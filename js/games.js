@@ -2545,12 +2545,328 @@ on('gs-say', el => {
 });
 on('gs-new', () => { gsNew_(); gsPaint_(); });
 
+/* ---------- FLABBY PIRD (back 15 Nov 2026 from receipt.js before 133b259): a canvas, a tap or the space bar; the round's count on the glass, nothing kept and no board (rule 6.2). */
+/* THE GAMES AND TOOLS, carried over. § */
+
+/* SIZE A CANVAS TO ITS BOX, or wait until it has one. § */
+function fitCanvas_(canvas, again) {
+  const box = canvas.getBoundingClientRect();
+  if (!box.width || !box.height) {
+    /* NOT AN ERROR, just early. One retry on the next frame, and one more after a beat for the
+       carousel's scroll to settle — after that something is genuinely wrong and retrying for ever
+       would be a loop nobody can see. */
+    if (again && !canvas.dataset.waiting) {
+      canvas.dataset.waiting = '1';
+      requestAnimationFrame(() => {
+        delete canvas.dataset.waiting;
+        again();
+      });
+    }
+    return false;
+  }
+  delete canvas.dataset.waiting;
+
+  /* ON A PHONE THE BOX IS IN CSS PIXELS and the screen has more than that. § */
+  const dpr = Math.min(window.devicePixelRatio || 1, 3);
+  const w = Math.round(box.width), h = Math.round(box.height);
+  if (canvas.width !== w * dpr || canvas.height !== h * dpr) {
+    canvas.width = Math.round(w * dpr);
+    canvas.height = Math.round(h * dpr);
+  }
+  const ctx = canvas.getContext('2d');
+  /* Guarded because a context is not guaranteed — a browser with the canvas turned off returns null, and a harness returns a stub with only what it was asked for. § */
+  if (ctx && ctx.setTransform) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  /* What the game should use for its own maths: the box, not the backing store. */
+  canvas.dataset.w = w;
+  canvas.dataset.h = h;
+  return true;
+}
+/* `still`: DRAWN AHEAD OF ITS ARRIVAL (`flappyStill_`, the widget's declared `draw`) — the board, the canvas fitted to its box and one frame of the scene, and § */
+function flappyStill_() { return initFlappy(true); }
+function initFlappy(still) {
+  const canvas = $('flappy-canvas');
+  if (!canvas) return still ? false : undefined;
+
+  /* THE BOARD IS DRAWN HERE because `startScreen_` calls this on every paint of the column, so it picks up the payload the moment `load()` lands and again whenever § */
+
+  /* THE ELEMENT'S OWN SIZE, not its box. § */
+  /* MEASURED WHEN IT HAS A SIZE, and measured again when that changes. § */
+  /* A STILL DRAWING DOES NOT WAIT FOR A BOX: § */
+  if (!fitCanvas_(canvas, still ? null : () => initFlappy(still))) return still ? false : undefined;
+
+  const ctx = canvas.getContext('2d');
+  /* THE BOX, not the backing store. Those differ by the pixel ratio now, and using the backing
+     store would put the bird three times too far right on a phone. */
+  const W = Number(canvas.dataset.w) || canvas.width;
+  const H = Number(canvas.dataset.h) || canvas.height;
+  /* ---------- BLUE SKY, GREEN PIPES, AND A BIRD § */
+  const SKY = token_('--fp-sky', 'black');   // the sky, flat, as the original's is
+  const CLOUD = token_('--fp-cloud', 'black');
+  const BUSH = token_('--fp-bush', 'black');   // the band of scrub between the sky and the floor
+  const GRASS = token_('--fp-grass', 'black');
+  const GRASS_D = token_('--fp-grass-d', 'black');
+  const SAND = token_('--fp-sand', 'black');   // the floor
+  const SAND_D = token_('--fp-sand-d', 'black');   // its hatch, which is the thing that makes the floor move
+  const PIPE = token_('--fp-pipe', 'black');
+  const PIPE_L = token_('--fp-pipe-l', 'black');
+  const PIPE_D = token_('--fp-pipe-d', 'black');
+  const EDGE = token_('--fp-edge', 'black');   // one outline for everything drawn on top of the sky
+  const BODY = token_('--fp-body', 'black');
+  const BELLY = token_('--fp-belly', 'black');
+  const WING = token_('--fp-wing', 'black');
+  const EYE = token_('--fp-eye', 'black');
+  const BEAK = token_('--fp-beak', 'black');
+
+  // reset any previous loop — but not from a still drawing, which the builder makes only of a game running nowhere
+  if (!still && flappyState?.raf) cancelAnimationFrame(flappyState.raf);
+  const S = flappyState = {
+    bird: { x: 60, y: H/2, vy: 0, r: 9 },
+    pipes: [], score: 0, running: false, dead: false, raf: null, frame: 0
+  };
+  /* SCALED FROM THE WIDTH, which is the axis this game is played along. § */
+  const k = W / 300;
+  /* THE GAP IS 98, NOT 110: § */
+  const GRAV = 0.45 * k, FLAP = -7 * k, GAP = 98 * k, PIPE_W = 42 * k, SPEED = 2 * k;
+  /* THE FLOOR IS PART OF THE GAME NOW rather than a stripe painted over the bottom of it. § */
+  const GROUND = Math.max(8, Math.round(H * 0.09));
+  const FLOOR = H - GROUND;
+  S.bird.r = 9 * k;
+  S.bird.x = 60 * k;
+  S.bird.y = FLOOR / 2;
+
+  const reset = () => {
+    S.bird.y = FLOOR/2; S.bird.vy = 0; S.pipes = []; S.score = 0; S.frame = 0; S.dead = false;
+  };
+  const spawnPipe = () => {
+    /* The margins scale too, or on a tall canvas every pipe would cluster at the top. */
+    const top = 40 * k + Math.random() * Math.max(10, FLOOR - GAP - 110 * k);
+    S.pipes.push({ x: W, top, scored: false });
+  };
+  const flap = () => {
+    if (S.dead) { reset(); S.running = true; $('flappy-msg').textContent = '\u00a0'; loop(); return; }
+    if (!S.running) { S.running = true; $('flappy-msg').textContent = '\u00a0'; loop(); }
+    S.bird.vy = FLAP;
+  };
+  const gameOver = () => {
+    S.dead = true; S.running = false;
+    $('flappy-msg').textContent = `Game over — score ${S.score}. Tap to retry.`;
+    /* NOTHING IS SAVED AND THERE IS NO BEST OR BOARD (rule 6.2). */
+  };
+
+  const loop = () => {
+    if (!S.running) return;
+    S.frame++;
+    // physics
+    S.bird.vy += GRAV; S.bird.y += S.bird.vy;
+    if (S.frame % 90 === 0) spawnPipe();
+    S.pipes.forEach(p => p.x -= SPEED);
+    S.pipes = S.pipes.filter(p => p.x + PIPE_W > 0);
+    // collisions + scoring
+    for (const p of S.pipes) {
+      if (!p.scored && p.x + PIPE_W < S.bird.x) { p.scored = true; S.score++; }
+      const inX = S.bird.x + S.bird.r > p.x && S.bird.x - S.bird.r < p.x + PIPE_W;
+      const hitY = S.bird.y - S.bird.r < p.top || S.bird.y + S.bird.r > p.top + GAP;
+      if (inX && hitY) return gameOver();
+    }
+    if (S.bird.y + S.bird.r > FLOOR || S.bird.y - S.bird.r < 0) return gameOver();
+    // draw
+    sky();
+    S.pipes.forEach(pipe);
+    bird();
+    hud();
+    S.raf = requestAnimationFrame(loop);
+  };
+
+  /* PAINTED RATHER THAN CLEARED — `clearRect` leaves the canvas transparent and the app's black shows through, which is what once made this a bird in a cave. § */
+  function sky() {
+    ctx.fillStyle = SKY;
+    ctx.fillRect(0, 0, W, FLOOR);
+    clouds();
+    bushes();
+    ground();
+  }
+
+  /* ---------- THREE LAYERS AT THREE SPEEDS, WHICH IS THE WHOLE BACKGROUND § */
+  function clouds() {
+    const r = Math.max(8, W * 0.075);
+    const span = W + r * 6;
+    const off = (S.frame * SPEED / 3) % span;
+    ctx.fillStyle = CLOUD;
+    for (let i = 0; i < 3; i++) {
+      const cx = ((i * span / 3 - off) % span + span) % span - r * 3;
+      const cy = FLOOR * (0.15 + 0.13 * (i % 2));
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.arc(cx + r, cy - r * 0.4, r * 0.78, 0, Math.PI * 2);
+      ctx.arc(cx + r * 1.9, cy, r * 0.6, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  /* A SCALLOPED BAND ALONG THE TOP OF THE FLOOR. § */
+  function bushes() {
+    const h = Math.max(6, FLOOR * 0.06);
+    const r = h * 0.75;
+    const span = r * 2;
+    const off = (S.frame * SPEED / 2) % span;
+    ctx.fillStyle = BUSH;
+    ctx.beginPath();
+    ctx.moveTo(-span, FLOOR);
+    for (let x = -off - span; x < W + span; x += span) ctx.arc(x + r, FLOOR, r, Math.PI, 0);
+    ctx.lineTo(W + span, FLOOR);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  function ground() {
+    const grass = Math.max(3, Math.round(GROUND * 0.28));
+    ctx.fillStyle = SAND;
+    ctx.fillRect(0, FLOOR, W, GROUND);
+    /* THE HATCH. Leaning parallelograms, scrolling at the pipes' own speed — the floor is the one
+       layer the bird is actually travelling over, so it is the one that must not lag. */
+    ctx.fillStyle = SAND_D;
+    const step = Math.max(8, W * 0.05);
+    const off = (S.frame * SPEED) % step;
+    for (let x = -off - step; x < W + step; x += step) {
+      ctx.beginPath();
+      ctx.moveTo(x, H);
+      ctx.lineTo(x + step * 0.34, FLOOR + grass);
+      ctx.lineTo(x + step * 0.6, FLOOR + grass);
+      ctx.lineTo(x + step * 0.26, H);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.fillStyle = GRASS;
+    ctx.fillRect(0, FLOOR, W, grass);
+    ctx.fillStyle = GRASS_D;
+    ctx.fillRect(0, FLOOR + grass - Math.max(1, grass * 0.25), W, Math.max(1, grass * 0.25));
+    ctx.fillStyle = EDGE;
+    ctx.fillRect(0, FLOOR, W, Math.max(1, k));
+  }
+
+  /* ---------- A PIPE IS A TUBE WITH A MOUTH § */
+  function pipe(p) {
+    const capH = Math.max(6, PIPE_W * 0.26);
+    const capW = PIPE_W * 1.18;
+    const capX = p.x - (capW - PIPE_W) / 2;
+    const line = Math.max(1, PIPE_W * 0.05);
+    const tube = (x, y, w, h) => {
+      if (h <= 0) return;
+      ctx.fillStyle = PIPE;
+      ctx.fillRect(x, y, w, h);
+      ctx.fillStyle = PIPE_L;
+      ctx.fillRect(x + w * 0.13, y, w * 0.17, h);
+      ctx.fillStyle = PIPE_D;
+      ctx.fillRect(x + w * 0.74, y, w * 0.26, h);
+      ctx.strokeStyle = EDGE;
+      ctx.lineWidth = line;
+      ctx.strokeRect(x + line / 2, y, w - line, h);
+    };
+    tube(p.x, -line, PIPE_W, p.top - capH + line);
+    tube(capX, p.top - capH, capW, capH);
+    tube(p.x, p.top + GAP + capH, PIPE_W, FLOOR - p.top - GAP - capH);
+    tube(capX, p.top + GAP, capW, capH);
+  }
+
+  /* THE SCORE IS ON THE SCREEN. § */
+  function hud() {
+    /* BIG, CENTRED AND OUTLINED, which is where the original keeps it and is also the only place a white number survives: § */
+    const px = Math.max(14, Math.round(W / 9));
+    const face = 'ui-monospace, SFMono-Regular, Menlo, monospace';
+    ctx.lineJoin = 'round';
+    ctx.font = `700 ${px}px ${face}`;
+    ctx.textAlign = 'center';
+    ctx.lineWidth = Math.max(2, px * 0.14);
+    ctx.strokeStyle = EDGE;
+    ctx.strokeText(String(S.score), W / 2, px * 1.3);
+    ctx.fillStyle = WING;
+    ctx.fillText(String(S.score), W / 2, px * 1.3);
+  }
+
+  /* ---------- THE BIRD, AND THE TWO THINGS THAT MAKE IT ONE § */
+  function bird() {
+    const r = S.bird.r;
+    const tilt = Math.max(-0.5, Math.min(1.2, (S.bird.vy / (9 * k)) * 0.85));
+    const beat = S.running ? Math.sin(S.frame * 0.35) * r * 0.3 : r * 0.1;
+    ctx.save();
+    ctx.translate(S.bird.x, S.bird.y);
+    ctx.rotate(tilt);
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = EDGE;
+    ctx.lineWidth = Math.max(1, r * 0.15);
+    ctx.fillStyle = BODY;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, r * 1.15, r, 0, 0, Math.PI * 2);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = BELLY;
+    ctx.beginPath();
+    ctx.ellipse(r * 0.2, r * 0.4, r * 0.58, r * 0.32, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = WING;
+    ctx.beginPath();
+    ctx.ellipse(-r * 0.22, beat, r * 0.55, r * 0.33, -0.25, 0, Math.PI * 2);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = EYE;
+    ctx.beginPath();
+    ctx.arc(r * 0.5, -r * 0.4, r * 0.33, 0, Math.PI * 2);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = EDGE;
+    ctx.beginPath();
+    ctx.arc(r * 0.62, -r * 0.4, r * 0.14, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = BEAK;
+    ctx.beginPath();
+    ctx.moveTo(r * 0.85, -r * 0.12);
+    ctx.lineTo(r * 1.75, r * 0.1);
+    ctx.lineTo(r * 0.85, r * 0.42);
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    ctx.restore();
+  }
+
+  // idle draw (bird sitting) — with the score, so the panel never shows a blank corner
+  sky();
+  bird();
+  hud();
+  /* A STILL DRAWING STOPS HERE — see `flappyStill_`. Nothing below may run for somebody not looking. */
+  if (still) return;
+
+  /* ---------- THE FLAP LANDS ON THE FINGER GOING DOWN § */
+  canvas.onclick = null;
+  canvas.onpointerdown = e => {
+    if (e.isPrimary === false) return;
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    flap();
+  };
+  // space/arrow to flap (only when arcade canvas exists)
+  /* ---------- NOT WHILE SOMEBODY IS TYPING § */
+  S.keyHandler = e => {
+    if (e.code !== 'Space' && e.code !== 'ArrowUp') return;
+    const t = e.target;
+    if (t && t.closest && (t.isContentEditable || t.closest('input, textarea, select, [contenteditable]'))) return;
+    if ($('flappy-canvas')) { e.preventDefault(); flap(); }
+  };
+  document.removeEventListener('keydown', window._flappyKey || (()=>{}));
+  window._flappyKey = S.keyHandler;
+  document.addEventListener('keydown', window._flappyKey);
+}
+
 /* THE CONSOLE PLAYS EVERY GAME (441): the person's game files, Flabby Pird and the Colliers Wood racer, one picker — the board games' shape (414). */
 const CONSOLE_GAMES = [
   { k: 'file', name: 'Game files', start: () => { nesPaint_(); nesPadWatch_(); }, still: () => nesPaint_(),
     stop: () => { nesStop_(); nesPadUnwatch_(); },
     body: `<p class="cs-one" title="NES, SNES, Game Boy, Game Boy Color, Game Boy Advance, N64 and DS">NES to DS games you own; they stay on this device.</p>
     <div id="nes-box" class="nes-box"></div>` },
+  /* A HANDHELD FOR THE BIRD: the canvas sits in a body of its own, and its tap and space bar are `initFlappy`'s. */
+  { k: 'flabby', name: 'Flabby Pird', start: () => initFlappy(), still: () => flappyStill_(),
+    stop: () => { if (flappyState && flappyState.raf) { cancelAnimationFrame(flappyState.raf); flappyState.raf = null; } },
+    body: `<p>Harder than it looks.</p>
+    <div class="cs-body cs-hand"><canvas id="flappy-canvas" class="flappy"></canvas>
+    <p class="note flappy-msg" id="flappy-msg">Tap to play</p></div>` },
+  /* A WIDE SCREEN FOR THE RACER; racer.js draws into `race-box` (426). */
+  { k: 'racer', name: 'Colliers Wood racer', start: () => window.initRacer?.(), still: () => window.raceStill_?.(),
+    stop: () => window.racerStop_?.(),
+    body: `<div class="cs-body cs-wide race"><div id="race-box" class="race-box"></div></div>` },
   /* TWO SMALL ONES (570): linked pictures and the guesser; nothing runs between taps, so stopping stops nothing. */
   { k: 'link', name: 'Linked pictures', start: () => lkPaint_(), still: () => lkPaint_(), stop: () => {},
     body: `<p>Join two the same with a line of up to two turns.</p>

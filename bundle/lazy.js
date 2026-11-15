@@ -2652,12 +2652,328 @@ on('gs-say', el => {
 });
 on('gs-new', () => { gsNew_(); gsPaint_(); });
 
+/* ---------- FLABBY PIRD (back 15 Nov 2026 from receipt.js before 133b259): a canvas, a tap or the space bar; the round's count on the glass, nothing kept and no board (rule 6.2). */
+/* THE GAMES AND TOOLS, carried over. § */
+
+/* SIZE A CANVAS TO ITS BOX, or wait until it has one. § */
+function fitCanvas_(canvas, again) {
+  const box = canvas.getBoundingClientRect();
+  if (!box.width || !box.height) {
+    /* NOT AN ERROR, just early. One retry on the next frame, and one more after a beat for the
+       carousel's scroll to settle — after that something is genuinely wrong and retrying for ever
+       would be a loop nobody can see. */
+    if (again && !canvas.dataset.waiting) {
+      canvas.dataset.waiting = '1';
+      requestAnimationFrame(() => {
+        delete canvas.dataset.waiting;
+        again();
+      });
+    }
+    return false;
+  }
+  delete canvas.dataset.waiting;
+
+  /* ON A PHONE THE BOX IS IN CSS PIXELS and the screen has more than that. § */
+  const dpr = Math.min(window.devicePixelRatio || 1, 3);
+  const w = Math.round(box.width), h = Math.round(box.height);
+  if (canvas.width !== w * dpr || canvas.height !== h * dpr) {
+    canvas.width = Math.round(w * dpr);
+    canvas.height = Math.round(h * dpr);
+  }
+  const ctx = canvas.getContext('2d');
+  /* Guarded because a context is not guaranteed — a browser with the canvas turned off returns null, and a harness returns a stub with only what it was asked for. § */
+  if (ctx && ctx.setTransform) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  /* What the game should use for its own maths: the box, not the backing store. */
+  canvas.dataset.w = w;
+  canvas.dataset.h = h;
+  return true;
+}
+/* `still`: DRAWN AHEAD OF ITS ARRIVAL (`flappyStill_`, the widget's declared `draw`) — the board, the canvas fitted to its box and one frame of the scene, and § */
+function flappyStill_() { return initFlappy(true); }
+function initFlappy(still) {
+  const canvas = $('flappy-canvas');
+  if (!canvas) return still ? false : undefined;
+
+  /* THE BOARD IS DRAWN HERE because `startScreen_` calls this on every paint of the column, so it picks up the payload the moment `load()` lands and again whenever § */
+
+  /* THE ELEMENT'S OWN SIZE, not its box. § */
+  /* MEASURED WHEN IT HAS A SIZE, and measured again when that changes. § */
+  /* A STILL DRAWING DOES NOT WAIT FOR A BOX: § */
+  if (!fitCanvas_(canvas, still ? null : () => initFlappy(still))) return still ? false : undefined;
+
+  const ctx = canvas.getContext('2d');
+  /* THE BOX, not the backing store. Those differ by the pixel ratio now, and using the backing
+     store would put the bird three times too far right on a phone. */
+  const W = Number(canvas.dataset.w) || canvas.width;
+  const H = Number(canvas.dataset.h) || canvas.height;
+  /* ---------- BLUE SKY, GREEN PIPES, AND A BIRD § */
+  const SKY = token_('--fp-sky', 'black');   // the sky, flat, as the original's is
+  const CLOUD = token_('--fp-cloud', 'black');
+  const BUSH = token_('--fp-bush', 'black');   // the band of scrub between the sky and the floor
+  const GRASS = token_('--fp-grass', 'black');
+  const GRASS_D = token_('--fp-grass-d', 'black');
+  const SAND = token_('--fp-sand', 'black');   // the floor
+  const SAND_D = token_('--fp-sand-d', 'black');   // its hatch, which is the thing that makes the floor move
+  const PIPE = token_('--fp-pipe', 'black');
+  const PIPE_L = token_('--fp-pipe-l', 'black');
+  const PIPE_D = token_('--fp-pipe-d', 'black');
+  const EDGE = token_('--fp-edge', 'black');   // one outline for everything drawn on top of the sky
+  const BODY = token_('--fp-body', 'black');
+  const BELLY = token_('--fp-belly', 'black');
+  const WING = token_('--fp-wing', 'black');
+  const EYE = token_('--fp-eye', 'black');
+  const BEAK = token_('--fp-beak', 'black');
+
+  // reset any previous loop — but not from a still drawing, which the builder makes only of a game running nowhere
+  if (!still && flappyState?.raf) cancelAnimationFrame(flappyState.raf);
+  const S = flappyState = {
+    bird: { x: 60, y: H/2, vy: 0, r: 9 },
+    pipes: [], score: 0, running: false, dead: false, raf: null, frame: 0
+  };
+  /* SCALED FROM THE WIDTH, which is the axis this game is played along. § */
+  const k = W / 300;
+  /* THE GAP IS 98, NOT 110: § */
+  const GRAV = 0.45 * k, FLAP = -7 * k, GAP = 98 * k, PIPE_W = 42 * k, SPEED = 2 * k;
+  /* THE FLOOR IS PART OF THE GAME NOW rather than a stripe painted over the bottom of it. § */
+  const GROUND = Math.max(8, Math.round(H * 0.09));
+  const FLOOR = H - GROUND;
+  S.bird.r = 9 * k;
+  S.bird.x = 60 * k;
+  S.bird.y = FLOOR / 2;
+
+  const reset = () => {
+    S.bird.y = FLOOR/2; S.bird.vy = 0; S.pipes = []; S.score = 0; S.frame = 0; S.dead = false;
+  };
+  const spawnPipe = () => {
+    /* The margins scale too, or on a tall canvas every pipe would cluster at the top. */
+    const top = 40 * k + Math.random() * Math.max(10, FLOOR - GAP - 110 * k);
+    S.pipes.push({ x: W, top, scored: false });
+  };
+  const flap = () => {
+    if (S.dead) { reset(); S.running = true; $('flappy-msg').textContent = '\u00a0'; loop(); return; }
+    if (!S.running) { S.running = true; $('flappy-msg').textContent = '\u00a0'; loop(); }
+    S.bird.vy = FLAP;
+  };
+  const gameOver = () => {
+    S.dead = true; S.running = false;
+    $('flappy-msg').textContent = `Game over — score ${S.score}. Tap to retry.`;
+    /* NOTHING IS SAVED AND THERE IS NO BEST OR BOARD (rule 6.2). */
+  };
+
+  const loop = () => {
+    if (!S.running) return;
+    S.frame++;
+    // physics
+    S.bird.vy += GRAV; S.bird.y += S.bird.vy;
+    if (S.frame % 90 === 0) spawnPipe();
+    S.pipes.forEach(p => p.x -= SPEED);
+    S.pipes = S.pipes.filter(p => p.x + PIPE_W > 0);
+    // collisions + scoring
+    for (const p of S.pipes) {
+      if (!p.scored && p.x + PIPE_W < S.bird.x) { p.scored = true; S.score++; }
+      const inX = S.bird.x + S.bird.r > p.x && S.bird.x - S.bird.r < p.x + PIPE_W;
+      const hitY = S.bird.y - S.bird.r < p.top || S.bird.y + S.bird.r > p.top + GAP;
+      if (inX && hitY) return gameOver();
+    }
+    if (S.bird.y + S.bird.r > FLOOR || S.bird.y - S.bird.r < 0) return gameOver();
+    // draw
+    sky();
+    S.pipes.forEach(pipe);
+    bird();
+    hud();
+    S.raf = requestAnimationFrame(loop);
+  };
+
+  /* PAINTED RATHER THAN CLEARED — `clearRect` leaves the canvas transparent and the app's black shows through, which is what once made this a bird in a cave. § */
+  function sky() {
+    ctx.fillStyle = SKY;
+    ctx.fillRect(0, 0, W, FLOOR);
+    clouds();
+    bushes();
+    ground();
+  }
+
+  /* ---------- THREE LAYERS AT THREE SPEEDS, WHICH IS THE WHOLE BACKGROUND § */
+  function clouds() {
+    const r = Math.max(8, W * 0.075);
+    const span = W + r * 6;
+    const off = (S.frame * SPEED / 3) % span;
+    ctx.fillStyle = CLOUD;
+    for (let i = 0; i < 3; i++) {
+      const cx = ((i * span / 3 - off) % span + span) % span - r * 3;
+      const cy = FLOOR * (0.15 + 0.13 * (i % 2));
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.arc(cx + r, cy - r * 0.4, r * 0.78, 0, Math.PI * 2);
+      ctx.arc(cx + r * 1.9, cy, r * 0.6, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  /* A SCALLOPED BAND ALONG THE TOP OF THE FLOOR. § */
+  function bushes() {
+    const h = Math.max(6, FLOOR * 0.06);
+    const r = h * 0.75;
+    const span = r * 2;
+    const off = (S.frame * SPEED / 2) % span;
+    ctx.fillStyle = BUSH;
+    ctx.beginPath();
+    ctx.moveTo(-span, FLOOR);
+    for (let x = -off - span; x < W + span; x += span) ctx.arc(x + r, FLOOR, r, Math.PI, 0);
+    ctx.lineTo(W + span, FLOOR);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  function ground() {
+    const grass = Math.max(3, Math.round(GROUND * 0.28));
+    ctx.fillStyle = SAND;
+    ctx.fillRect(0, FLOOR, W, GROUND);
+    /* THE HATCH. Leaning parallelograms, scrolling at the pipes' own speed — the floor is the one
+       layer the bird is actually travelling over, so it is the one that must not lag. */
+    ctx.fillStyle = SAND_D;
+    const step = Math.max(8, W * 0.05);
+    const off = (S.frame * SPEED) % step;
+    for (let x = -off - step; x < W + step; x += step) {
+      ctx.beginPath();
+      ctx.moveTo(x, H);
+      ctx.lineTo(x + step * 0.34, FLOOR + grass);
+      ctx.lineTo(x + step * 0.6, FLOOR + grass);
+      ctx.lineTo(x + step * 0.26, H);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.fillStyle = GRASS;
+    ctx.fillRect(0, FLOOR, W, grass);
+    ctx.fillStyle = GRASS_D;
+    ctx.fillRect(0, FLOOR + grass - Math.max(1, grass * 0.25), W, Math.max(1, grass * 0.25));
+    ctx.fillStyle = EDGE;
+    ctx.fillRect(0, FLOOR, W, Math.max(1, k));
+  }
+
+  /* ---------- A PIPE IS A TUBE WITH A MOUTH § */
+  function pipe(p) {
+    const capH = Math.max(6, PIPE_W * 0.26);
+    const capW = PIPE_W * 1.18;
+    const capX = p.x - (capW - PIPE_W) / 2;
+    const line = Math.max(1, PIPE_W * 0.05);
+    const tube = (x, y, w, h) => {
+      if (h <= 0) return;
+      ctx.fillStyle = PIPE;
+      ctx.fillRect(x, y, w, h);
+      ctx.fillStyle = PIPE_L;
+      ctx.fillRect(x + w * 0.13, y, w * 0.17, h);
+      ctx.fillStyle = PIPE_D;
+      ctx.fillRect(x + w * 0.74, y, w * 0.26, h);
+      ctx.strokeStyle = EDGE;
+      ctx.lineWidth = line;
+      ctx.strokeRect(x + line / 2, y, w - line, h);
+    };
+    tube(p.x, -line, PIPE_W, p.top - capH + line);
+    tube(capX, p.top - capH, capW, capH);
+    tube(p.x, p.top + GAP + capH, PIPE_W, FLOOR - p.top - GAP - capH);
+    tube(capX, p.top + GAP, capW, capH);
+  }
+
+  /* THE SCORE IS ON THE SCREEN. § */
+  function hud() {
+    /* BIG, CENTRED AND OUTLINED, which is where the original keeps it and is also the only place a white number survives: § */
+    const px = Math.max(14, Math.round(W / 9));
+    const face = 'ui-monospace, SFMono-Regular, Menlo, monospace';
+    ctx.lineJoin = 'round';
+    ctx.font = `700 ${px}px ${face}`;
+    ctx.textAlign = 'center';
+    ctx.lineWidth = Math.max(2, px * 0.14);
+    ctx.strokeStyle = EDGE;
+    ctx.strokeText(String(S.score), W / 2, px * 1.3);
+    ctx.fillStyle = WING;
+    ctx.fillText(String(S.score), W / 2, px * 1.3);
+  }
+
+  /* ---------- THE BIRD, AND THE TWO THINGS THAT MAKE IT ONE § */
+  function bird() {
+    const r = S.bird.r;
+    const tilt = Math.max(-0.5, Math.min(1.2, (S.bird.vy / (9 * k)) * 0.85));
+    const beat = S.running ? Math.sin(S.frame * 0.35) * r * 0.3 : r * 0.1;
+    ctx.save();
+    ctx.translate(S.bird.x, S.bird.y);
+    ctx.rotate(tilt);
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = EDGE;
+    ctx.lineWidth = Math.max(1, r * 0.15);
+    ctx.fillStyle = BODY;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, r * 1.15, r, 0, 0, Math.PI * 2);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = BELLY;
+    ctx.beginPath();
+    ctx.ellipse(r * 0.2, r * 0.4, r * 0.58, r * 0.32, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = WING;
+    ctx.beginPath();
+    ctx.ellipse(-r * 0.22, beat, r * 0.55, r * 0.33, -0.25, 0, Math.PI * 2);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = EYE;
+    ctx.beginPath();
+    ctx.arc(r * 0.5, -r * 0.4, r * 0.33, 0, Math.PI * 2);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = EDGE;
+    ctx.beginPath();
+    ctx.arc(r * 0.62, -r * 0.4, r * 0.14, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = BEAK;
+    ctx.beginPath();
+    ctx.moveTo(r * 0.85, -r * 0.12);
+    ctx.lineTo(r * 1.75, r * 0.1);
+    ctx.lineTo(r * 0.85, r * 0.42);
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    ctx.restore();
+  }
+
+  // idle draw (bird sitting) — with the score, so the panel never shows a blank corner
+  sky();
+  bird();
+  hud();
+  /* A STILL DRAWING STOPS HERE — see `flappyStill_`. Nothing below may run for somebody not looking. */
+  if (still) return;
+
+  /* ---------- THE FLAP LANDS ON THE FINGER GOING DOWN § */
+  canvas.onclick = null;
+  canvas.onpointerdown = e => {
+    if (e.isPrimary === false) return;
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    flap();
+  };
+  // space/arrow to flap (only when arcade canvas exists)
+  /* ---------- NOT WHILE SOMEBODY IS TYPING § */
+  S.keyHandler = e => {
+    if (e.code !== 'Space' && e.code !== 'ArrowUp') return;
+    const t = e.target;
+    if (t && t.closest && (t.isContentEditable || t.closest('input, textarea, select, [contenteditable]'))) return;
+    if ($('flappy-canvas')) { e.preventDefault(); flap(); }
+  };
+  document.removeEventListener('keydown', window._flappyKey || (()=>{}));
+  window._flappyKey = S.keyHandler;
+  document.addEventListener('keydown', window._flappyKey);
+}
+
 /* THE CONSOLE PLAYS EVERY GAME (441): the person's game files, Flabby Pird and the Colliers Wood racer, one picker — the board games' shape (414). */
 const CONSOLE_GAMES = [
   { k: 'file', name: 'Game files', start: () => { nesPaint_(); nesPadWatch_(); }, still: () => nesPaint_(),
     stop: () => { nesStop_(); nesPadUnwatch_(); },
     body: `<p class="cs-one" title="NES, SNES, Game Boy, Game Boy Color, Game Boy Advance, N64 and DS">NES to DS games you own; they stay on this device.</p>
     <div id="nes-box" class="nes-box"></div>` },
+  /* A HANDHELD FOR THE BIRD: the canvas sits in a body of its own, and its tap and space bar are `initFlappy`'s. */
+  { k: 'flabby', name: 'Flabby Pird', start: () => initFlappy(), still: () => flappyStill_(),
+    stop: () => { if (flappyState && flappyState.raf) { cancelAnimationFrame(flappyState.raf); flappyState.raf = null; } },
+    body: `<p>Harder than it looks.</p>
+    <div class="cs-body cs-hand"><canvas id="flappy-canvas" class="flappy"></canvas>
+    <p class="note flappy-msg" id="flappy-msg">Tap to play</p></div>` },
+  /* A WIDE SCREEN FOR THE RACER; racer.js draws into `race-box` (426). */
+  { k: 'racer', name: 'Colliers Wood racer', start: () => window.initRacer?.(), still: () => window.raceStill_?.(),
+    stop: () => window.racerStop_?.(),
+    body: `<div class="cs-body cs-wide race"><div id="race-box" class="race-box"></div></div>` },
   /* TWO SMALL ONES (570): linked pictures and the guesser; nothing runs between taps, so stopping stops nothing. */
   { k: 'link', name: 'Linked pictures', start: () => lkPaint_(), still: () => lkPaint_(), stop: () => {},
     body: `<p>Join two the same with a line of up to two turns.</p>
@@ -3604,6 +3920,2292 @@ function csvLine_() {
   p.hidden = !s;
   clearTimeout(CSV_.timer);
   if (s && !CSV_.said) CSV_.timer = setTimeout(csvLine_, 30000);
+}
+
+;
+/* ==== js/racer.js ==== */
+/* @family. — racer.js THE COLLIERS WOOD RACER (426; back 15 Nov 2026, a Console game): OSM streets at DEM heights in WebGL; plays `?race=1`'s map, else data/race-map.json. */
+/* The map is built by the backend's `buildRaceMap_` and fetched from `?race=1`; until then data/race-map.json plays (464). x metres east, y north, h above sea. */
+
+/* THE LOOP, BY ROAD NAME: each name's middle is a waypoint, visited in order round their centre. Names OSM may not have
+   are skipped; with fewer than three the loop goes round the map's major roads instead. */
+const RACE_ROUTE = ['High Street Colliers Wood', 'Christchurch Road', 'Merantun Way', 'Merton High Street'];
+const RACE_GATE_M = 110;          // a checkpoint every 110 m along the loop
+const RACE_DT = 1 / 60;           // the physics step, seconds
+const RACE_G = 9.81;
+/* The scene's own colours (sky, grass, asphalt, brick); the HUD's are the app's tokens, in style.css. */
+const RACE_COL = {
+  sky: [0.62, 0.78, 0.9], grass: [0.36, 0.55, 0.3], road: [0.27, 0.27, 0.29], kerb: [0.6, 0.6, 0.58],
+  line: [0.92, 0.92, 0.88], water: [0.25, 0.45, 0.62], roof: [0.38, 0.33, 0.31],
+  walls: [[0.62, 0.36, 0.27], [0.72, 0.56, 0.42], [0.84, 0.8, 0.72], [0.55, 0.53, 0.52], [0.66, 0.44, 0.33]],
+  /* COLLIERS WOOD'S OWN (500): London stock and red brick terraces, white render, pale-brick flats, grey retail sheds,
+     the station's Portland stone, the church's ragstone; slate roofs on houses, flat grey ones on the rest. */
+  kinds: { house: [[0.72, 0.6, 0.42], [0.6, 0.33, 0.25], [0.86, 0.84, 0.8], [0.66, 0.52, 0.38], [0.55, 0.3, 0.24]],
+    flat: [[0.78, 0.72, 0.6], [0.7, 0.7, 0.7], [0.62, 0.42, 0.32]], shop: [[0.62, 0.64, 0.66], [0.78, 0.78, 0.76], [0.5, 0.52, 0.56]],
+    ind: [[0.56, 0.58, 0.6], [0.66, 0.62, 0.55]], station: [[0.86, 0.83, 0.73]], church: [[0.56, 0.54, 0.5]] },
+  slate: [0.3, 0.32, 0.36], flatroof: [0.48, 0.48, 0.47],
+  areas: { res: [0.45, 0.52, 0.38], ind: [0.5, 0.49, 0.47], retail: [0.56, 0.55, 0.53], lot: [0.4, 0.4, 0.41],
+    park: [0.33, 0.58, 0.27], wood: [0.2, 0.4, 0.2], pitch: [0.4, 0.66, 0.32], water: [0.25, 0.45, 0.62] },
+  /* The ground's layers, bottom to top (511): one road surface, pavement and kerb where OSM has a footway, white markings. */
+  surf: { res: [0.45, 0.52, 0.38], ind: [0.5, 0.49, 0.47], retail: [0.56, 0.55, 0.53], lot: [0.4, 0.4, 0.41], park: [0.33, 0.58, 0.27],
+    wood: [0.2, 0.4, 0.2], pitch: [0.4, 0.66, 0.32], water: [0.25, 0.45, 0.62], rail: [0.45, 0.41, 0.37], rails: [0.62, 0.62, 0.64],
+    pave: [0.62, 0.61, 0.58], kerb: [0.78, 0.77, 0.74], road: [0.27, 0.27, 0.29], mark: [0.92, 0.92, 0.88] },
+  roundel: [0.86, 0.1, 0.12], bar: [0.0, 0.1, 0.53], sign: [0.95, 0.95, 0.92],
+  car: [0.85, 0.66, 0.16], glass: [0.12, 0.14, 0.18], tyre: [0.08, 0.08, 0.08], gate: [0.95, 0.74, 0.2],
+};
+const RACE_SUN = (() => { const v = [0.45, 0.8, 0.35], l = Math.hypot(v[0], v[1], v[2]); return v.map(x => x / l); })();
+
+const RACE = {
+  map: null, world: null, built: null, asking: null, err: '', building: null,
+  gl: null, running: false, raf: 0, last: 0, acc: 0, hudAt: 0,
+  keys: {}, touch: {},
+  car: { x: 0, y: 0, th: 0, v: 0, h: 0, pitch: 0, steer: 0 },
+  cam: null,
+  lap: { next: 1, start: 0, paused: 0, best: 0, last: 0, laps: 0 },
+};
+/* For the journeys: `RACE` is a const, which a second evaluation cannot reach. */
+function racer_() { return RACE; }
+
+/* ---------- THE MAP, ASKED FOR ONCE ---------- */
+function raceFetch_() {
+  if (RACE.map || RACE.asking) return RACE.asking;
+  RACE.err = '';
+  RACE.asking = fetch(API + '?race=1', { cache: 'no-store' })
+    .then(r => r.json())
+    .then(d => {
+      RACE.built = !!(d && d.built && d.race);
+      /* A BACKEND MAP WITHOUT PARKS AND LANDMARKS loses to the shipped Colliers Wood that has them (500). */
+      if (RACE.built && Array.isArray(d.race.areas)) { raceAdopt_(d.race); return; }
+      if (RACE.built) return raceShipped_().then(() => { if (!RACE.map || RACE.map.practice || !RACE.map.areas) raceAdopt_(d.race); }, () => raceAdopt_(d.race));
+      if (d && d.error) RACE.err = String(d.error);
+      return raceShipped_();
+    }, err => { RACE.err = 'The map could not be loaded — ' + why_(err); return raceShipped_(); })
+    .catch(err => { RACE.err = RACE.err || 'The map could not be loaded — ' + why_(err); })
+    .then(() => { RACE.asking = null; racePaint_(); });
+  return RACE.asking;
+}
+
+/* NOTHING BUILT IS NEVER AN EMPTY CARD (464): the repository's map — practice streets, or Colliers Wood once tools/race_map.py has run. */
+function raceShipped_() {
+  return fetch(RACE_SHIPPED + deployStamp_(), { cache: 'no-cache' }).then(r => r.json()).then(m => {
+    if (m && Array.isArray(m.pts) && m.pts.length && Array.isArray(m.roads) && m.roads.length) raceAdopt_(m);
+  });
+}
+const RACE_SHIPPED = 'data/race-map.json';
+
+
+function raceAdopt_(map) {
+  RACE.map = map;
+  RACE.world = raceWorld_(map);
+  raceReset_();
+  /* A NEW WORLD IS A NEW CANVAS: `raceGl_` lets the old context go and uploads this world's mesh. */
+  const box = $('race-box');
+  if (box) box.dataset.view = '';
+}
+
+/* ---------- THE WORLD: POINTS, ROADS, GROUND, BUILDINGS, THE LOOP ---------- */
+function raceWorld_(map) {
+  const P = (map.pts || []).length / 3 | 0;
+  const px = new Float64Array(P), py = new Float64Array(P), ph = new Float64Array(P);
+  for (let i = 0; i < P; i++) { px[i] = map.pts[3 * i] / 10; py[i] = map.pts[3 * i + 1] / 10; ph[i] = map.pts[3 * i + 2] / 10; }
+  const roads = (map.roads || []).map(r => ({ name: String(r[0] || ''), kind: String(r[1] || ''), w: Math.max(3, (r[2] || 60) / 10),
+    lanes: r[3] || 0, one: !!r[4], idx: (r[5] || []).filter(i => i >= 0 && i < P) })).filter(r => r.idx.length > 1);
+  const g = map.grid || { x0: 0, y0: 0, cell: 40, nx: 1, ny: 1, h: [0] };
+  const G = { x0: g.x0 / 10, y0: g.y0 / 10, cell: g.cell || 40, nx: g.nx || 1, ny: g.ny || 1, h: (g.h || [0]).map(v => v / 10) };
+  const W = { px, py, ph, P, roads, G, segs: [], hash: new Map(), bhash: new Map(), bld: [], water: [], areas: [], marks: [] };
+
+  /* THE GROUND between the grid's points, bilinear; outside the grid it holds the edge. */
+  W.ground = (x, y) => {
+    const fx = Math.min(Math.max((x - G.x0) / G.cell, 0), G.nx - 1.0001), fy = Math.min(Math.max((y - G.y0) / G.cell, 0), G.ny - 1.0001);
+    const i = Math.floor(fx), j = Math.floor(fy), u = fx - i, v = fy - j, i1 = Math.min(i + 1, G.nx - 1), j1 = Math.min(j + 1, G.ny - 1), H = G.h;
+    return (H[j * G.nx + i] || 0) * (1 - u) * (1 - v) + (H[j * G.nx + i1] || 0) * u * (1 - v) + (H[j1 * G.nx + i] || 0) * (1 - u) * v + (H[j1 * G.nx + i1] || 0) * u * v;
+  };
+  W.half = [Math.max(G.nx - 1, 1) * G.cell / 2, Math.max(G.ny - 1, 1) * G.cell / 2];
+  W.mid = [G.x0 + W.half[0], G.y0 + W.half[1]];
+
+  /* EVERY SEGMENT IN A 25 m HASH, so "which road am I on" asks a handful, not thousands. */
+  const C = 25, cellOf = (x, y) => Math.floor(x / C) + ':' + Math.floor(y / C);
+  roads.forEach((r, ri) => {
+    for (let k = 0; k + 1 < r.idx.length; k++) {
+      const a = r.idx[k], b = r.idx[k + 1], s = W.segs.length;
+      W.segs.push([a, b, ri]);
+      const pad = r.w / 2 + 6;
+      for (let cx = Math.floor((Math.min(px[a], px[b]) - pad) / C); cx <= Math.floor((Math.max(px[a], px[b]) + pad) / C); cx++) {
+        for (let cy = Math.floor((Math.min(py[a], py[b]) - pad) / C); cy <= Math.floor((Math.max(py[a], py[b]) + pad) / C); cy++) {
+          const key = cx + ':' + cy;
+          if (!W.hash.has(key)) W.hash.set(key, []);
+          W.hash.get(key).push(s);
+        }
+      }
+    }
+  });
+  /* THE NEAREST ROAD: distance from its centre line, its height there, and which road. */
+  W.roadAt = (x, y) => {
+    const list = W.hash.get(cellOf(x, y));
+    if (!list) return null;
+    let best = null;
+    for (const s of list) {
+      const [a, b, ri] = W.segs[s];
+      const dx = px[b] - px[a], dy = py[b] - py[a], l2 = dx * dx + dy * dy || 1;
+      const t = Math.min(1, Math.max(0, ((x - px[a]) * dx + (y - py[a]) * dy) / l2));
+      const d = Math.hypot(x - px[a] - dx * t, y - py[a] - dy * t);
+      if (!best || d - roads[ri].w / 2 < best.d - roads[best.ri].w / 2) best = { d, ri, h: ph[a] + (ph[b] - ph[a]) * t, road: roads[ri] };
+    }
+    return best;
+  };
+  /* THE SURFACE UNDER A WHEEL: the road's own height on it, the ground away from it, and a blend across the verge. */
+  W.heightAt = (x, y) => {
+    const r = W.roadAt(x, y), gh = W.ground(x, y);
+    if (!r) return gh;
+    const edge = r.road.w / 2 + 1.5, out = edge + 5;
+    if (r.d <= edge) return r.h;
+    if (r.d >= out) return gh;
+    const f = (r.d - edge) / (out - edge);
+    return r.h * (1 - f) + gh * f;
+  };
+
+  (map.water || []).forEach(wt => {
+    const c = wt[2] || [], line = [];
+    for (let i = 0; i + 1 < c.length; i += 2) line.push([c[i] / 10, c[i + 1] / 10]);
+    if (line.length > 1) W.water.push({ name: String(wt[0] || ''), w: (wt[1] || 80) / 10, line });
+  });
+  /* PARKS, WOODS, PONDS, CAR PARKS, RETAIL AND HOMES as flat fills on the ground, bottom to top as the file orders them (500). */
+  (map.areas || []).forEach(a => {
+    const c = a[1] || [], ring = [];
+    for (let i = 0; i + 1 < c.length; i += 2) ring.push([c[i] / 10, c[i + 1] / 10]);
+    if (ring.length >= 3 && RACE_COL.areas[a[0]]) W.areas.push({ kind: String(a[0]), ring });
+  });
+  /* THE LANDMARKS a local would name: a post where each stands, its name on the HUD when near (500). */
+  (map.marks || []).forEach(m => W.marks.push({ name: String(m[0] || ''), kind: String(m[1] || ''), x: (m[2] || 0) / 10, y: (m[3] || 0) / 10 }));
+  /* A BUILDING: its OSM outline, eaves height and roof (shape, ridge, planes as triangles) and its colours (511). An old row is [h, ring, kind]. */
+  const hex = (s, or) => (/^[0-9a-f]{6}$/i.test(s || '') ? [0, 2, 4].map(k => parseInt(s.slice(k, k + 2), 16) / 255) : or);
+  (map.bld || []).forEach((b, bi) => {
+    const c = b[1] || [], ring = [];
+    for (let i = 0; i + 1 < c.length; i += 2) ring.push([c[i] / 10, c[i + 1] / 10]);
+    if (ring.length < 3) return;
+    const xs = ring.map(p => p[0]), ys = ring.map(p => p[1]);
+    const box = [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
+    const grounds = ring.map(p => W.ground(p[0], p[1]));
+    const kind = RACE_COL.kinds[b[2]] ? b[2] : 'house', pal = RACE_COL.kinds[kind];
+    const ex = b[4] || [], extra = [];
+    for (let i = 0; i + 1 < ex.length; i += 2) extra.push([ex[i] / 10, ex[i + 1] / 10]);
+    const rf = Array.isArray(b[3]) ? b[3] : null;
+    const o = { h: Math.max(2.2, (b[0] || 75) / 10), kind, ring, box, base: Math.min(...grounds) - 1, top: Math.max(...grounds), i: bi,
+      roof: rf ? { shape: rf[0] | 0, h: (rf[1] || 0) / 10, ox: (rf[2] || 0) / 10, oy: (rf[3] || 0) / 10, ux: (rf[4] || 1000) / 1000, uy: (rf[5] || 0) / 1000,
+        hw: Math.max(0.1, (rf[6] || 1) / 10), hl: Math.max(0.1, (rf[7] || 1) / 10) } : null,
+      extra, tris: Array.isArray(b[5]) ? b[5] : null, wall: hex(b[6], pal[bi % pal.length]),
+      roofCol: hex(b[7], kind === 'house' ? RACE_COL.slate : RACE_COL.flatroof), minh: (b[8] || 0) / 10 };
+    W.bld.push(o);
+    for (let cx = Math.floor(box[0] / C); cx <= Math.floor(box[2] / C); cx++) {
+      for (let cy = Math.floor(box[1] / C); cy <= Math.floor(box[3] / C); cy++) {
+        const key = cx + ':' + cy;
+        if (!W.bhash.has(key)) W.bhash.set(key, []);
+        W.bhash.get(key).push(o);
+      }
+    }
+  });
+  /* THE FLAT LAYERS tools/race_map.py triangulated once: parks, water, pavement, kerb, ONE road surface, markings (511). */
+  W.surf = (Array.isArray(map.surf) ? map.surf : []).filter(L => Array.isArray(L) && RACE_COL.surf[L[0]] && Array.isArray(L[1]) && Array.isArray(L[2]));
+  /* INSIDE A BUILDING: an even-odd ray cast against the few in the car's cell. */
+  W.inBuilding = (x, y) => {
+    const list = W.bhash.get(cellOf(x, y));
+    if (!list) return false;
+    return list.some(o => {
+      if (x < o.box[0] || x > o.box[2] || y < o.box[1] || y > o.box[3]) return false;
+      let inside = false;
+      for (let i = 0, j = o.ring.length - 1; i < o.ring.length; j = i++) {
+        const a = o.ring[i], b = o.ring[j];
+        if ((a[1] > y) !== (b[1] > y) && x < (b[0] - a[0]) * (y - a[1]) / (b[1] - a[1]) + a[0]) inside = !inside;
+      }
+      return inside;
+    });
+  };
+
+  W.route = raceRoute_(W);
+  W.gates = raceGates_(W);
+  W.mesh = raceMesh_(W);
+  return W;
+}
+
+/* ---------- THE LOOP: SHORTEST PATHS BETWEEN THE WAYPOINTS, AVOIDING ROAD ALREADY DRIVEN ---------- */
+function raceRoute_(W) {
+  const { px, py, P, roads } = W;
+  const adj = Array.from({ length: P }, () => []);
+  roads.forEach(r => {
+    for (let k = 0; k + 1 < r.idx.length; k++) {
+      const a = r.idx[k], b = r.idx[k + 1], d = Math.hypot(px[b] - px[a], py[b] - py[a]);
+      adj[a].push([b, d]); adj[b].push([a, d]);
+    }
+  });
+  const used = new Set(), ek = (a, b) => a < b ? a + '-' + b : b + '-' + a;
+  const path = (from, to) => {
+    const dist = new Float64Array(P).fill(Infinity), prev = new Int32Array(P).fill(-1), heap = [];
+    /* A BINARY HEAP: a real map has thousands of points, and a linear scan per pop is their square. */
+    const push = q => {
+      heap.push(q);
+      for (let i = heap.length - 1; i > 0;) { const p = (i - 1) >> 1; if (heap[p][0] <= heap[i][0]) break; [heap[p], heap[i]] = [heap[i], heap[p]]; i = p; }
+    };
+    const pop = () => {
+      const top = heap[0], last = heap.pop();
+      if (heap.length) {
+        heap[0] = last;
+        for (let i = 0; ;) {
+          const l = 2 * i + 1, r = l + 1;
+          let m = i;
+          if (l < heap.length && heap[l][0] < heap[m][0]) m = l;
+          if (r < heap.length && heap[r][0] < heap[m][0]) m = r;
+          if (m === i) break;
+          [heap[m], heap[i]] = [heap[i], heap[m]]; i = m;
+        }
+      }
+      return top;
+    };
+    dist[from] = 0; push([0, from]);
+    while (heap.length) {
+      const [d, a] = pop();
+      if (d > dist[a]) continue;
+      if (a === to) break;
+      for (const [b, l] of adj[a]) {
+        const nd = d + l * (used.has(ek(a, b)) ? 5 : 1);
+        if (nd < dist[b]) { dist[b] = nd; prev[b] = a; push([nd, b]); }
+      }
+    }
+    if (from !== to && prev[to] < 0) return null;
+    const out = [to];
+    while (out[0] !== from) out.unshift(prev[out[0]]);
+    return out;
+  };
+  const near = (x, y, ok) => {
+    let best = -1, bd = Infinity;
+    for (let i = 0; i < P; i++) { if (ok && !ok[i]) continue; const d = Math.hypot(px[i] - x, py[i] - y); if (d < bd) { bd = d; best = i; } }
+    return best;
+  };
+  const key = s => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  let way = [];
+  RACE_ROUTE.forEach(name => {
+    const mine = roads.filter(r => key(r.name) === key(name));
+    if (!mine.length) return;
+    const on = new Uint8Array(P);
+    let sx = 0, sy = 0, n = 0;
+    mine.forEach(r => r.idx.forEach(i => { on[i] = 1; sx += px[i]; sy += py[i]; n++; }));
+    way.push(near(sx / n, sy / n, on));
+  });
+  if (way.length < 3) {
+    const major = new Uint8Array(P);
+    let any = false;
+    roads.forEach(r => { if (/^(trunk|primary|secondary|tertiary)$/.test(r.kind)) r.idx.forEach(i => { major[i] = 1; any = true; }); });
+    way = [45, 135, 225, 315].map(a => near(W.mid[0] + Math.sin(a * Math.PI / 180) * W.half[0] * 0.45,
+                                            W.mid[1] + Math.cos(a * Math.PI / 180) * W.half[1] * 0.45, any ? major : null));
+  }
+  way = way.filter((v, i, a) => v >= 0 && a.indexOf(v) === i);
+  /* ROUND THEIR CENTRE, so the loop goes round rather than back and forth. */
+  const cx = way.reduce((s, i) => s + px[i], 0) / (way.length || 1), cy = way.reduce((s, i) => s + py[i], 0) / (way.length || 1);
+  way.sort((a, b) => Math.atan2(px[a] - cx, py[a] - cy) - Math.atan2(px[b] - cx, py[b] - cy));
+  let route = [];
+  for (let k = 0; k < way.length; k++) {
+    const leg = path(way[k], way[(k + 1) % way.length]);
+    if (!leg) continue;
+    for (let i = 0; i + 1 < leg.length; i++) used.add(ek(leg[i], leg[i + 1]));
+    route = route.concat(route.length ? leg.slice(1) : leg);
+  }
+  if (route.length < 2 && roads.length) route = roads.slice().sort((a, b) => b.idx.length - a.idx.length)[0].idx.slice();
+  return route;
+}
+
+/* THE CHECKPOINTS: one every RACE_GATE_M along the loop, each facing the way the loop goes there; gate 0 is the start. */
+function raceGates_(W) {
+  const r = W.route, out = [];
+  if (r.length < 2) return out;
+  let run = RACE_GATE_M;
+  for (let k = 0; k + 1 < r.length; k++) {
+    const a = r[k], b = r[k + 1];
+    const seg = Math.hypot(W.px[b] - W.px[a], W.py[b] - W.py[a]);
+    if (run >= RACE_GATE_M || k === 0) {
+      const hit = W.roadAt(W.px[a], W.py[a]);
+      out.push({ x: W.px[a], y: W.py[a], th: Math.atan2(W.px[b] - W.px[a], W.py[b] - W.py[a]), w: hit ? hit.road.w : 7, pt: a });
+      run = 0;
+    }
+    run += seg;
+  }
+  /* A last gate too near the start is the start itself. */
+  if (out.length > 2 && Math.hypot(out[out.length - 1].x - out[0].x, out[out.length - 1].y - out[0].y) < RACE_GATE_M / 2) out.pop();
+  return out;
+}
+
+/* ---------- THE MESH, LIT ON THE CPU: x, h, -y and a colour per vertex, in 200 m tiles so what is past the fog is not drawn ---------- */
+const RACE_TILE = 200;            // metres a side of one drawing tile
+const RACE_LIFT = 0.12;           // the flat layers ride this far over the ground's own triangles
+function raceMesh_(W) {
+  /* ONE GROWING Float32Array PER LAYER AND TILE, written in place: an array per vertex froze the phone. */
+  const buckets = new Map();
+  let cur = null, layer = '', big = false;
+  let last = null;
+  const bucket = (x, y) => {
+    const tx = big ? 0 : Math.floor(x / RACE_TILE), ty = big ? 0 : Math.floor(-y / RACE_TILE);
+    if (last && last.layer === layer && last.big === big && last.tx === tx && last.ty === ty) return last;
+    const key = layer + '|' + (big ? 'all' : tx + ':' + ty);
+    let b = buckets.get(key);
+    if (!b) { b = { layer, big, tx, ty, v: new Float32Array(4096), at: 0 }; buckets.set(key, b); }
+    return (last = b);
+  };
+  /* A point is given as [x east, y north, h]; GL wants [x, h, -y]. The light is worked out here, once, with the normal facing up. */
+  const tri = (a, b, c, col, n) => {
+    let nx, ny, nz;
+    if (n) { nx = n[0]; ny = n[1]; nz = n[2]; }
+    else {
+      const ux = b[0] - a[0], uy = b[2] - a[2], uz = a[1] - b[1], wx = c[0] - a[0], wy = c[2] - a[2], wz = a[1] - c[1];
+      nx = uy * wz - uz * wy; ny = uz * wx - ux * wz; nz = ux * wy - uy * wx;
+      const l = (ny < 0 ? -1 : 1) * (Math.hypot(nx, ny, nz) || 1);
+      nx /= l; ny /= l; nz /= l;
+    }
+    const k = 0.55 + 0.45 * Math.max(0, nx * RACE_SUN[0] + ny * RACE_SUN[1] + nz * RACE_SUN[2]);
+    const r = col[0] * k, g = col[1] * k, bl = col[2] * k;
+    const B = cur || bucket((a[0] + b[0] + c[0]) / 3, (a[1] + b[1] + c[1]) / 3);
+    if (B.at + 18 > B.v.length) { const nv = new Float32Array(B.v.length * 2); nv.set(B.v); B.v = nv; }
+    const v = B.v;
+    v[B.at++] = a[0]; v[B.at++] = a[2]; v[B.at++] = -a[1]; v[B.at++] = r; v[B.at++] = g; v[B.at++] = bl;
+    v[B.at++] = b[0]; v[B.at++] = b[2]; v[B.at++] = -b[1]; v[B.at++] = r; v[B.at++] = g; v[B.at++] = bl;
+    v[B.at++] = c[0]; v[B.at++] = c[2]; v[B.at++] = -c[1]; v[B.at++] = r; v[B.at++] = g; v[B.at++] = bl;
+  };
+  const quad = (a, b, c, d, col, n) => { tri(a, b, c, col, n); tri(a, c, d, col, n); };
+  const order = [];
+  const mark = (name, fn) => { layer = name; if (order.indexOf(name) < 0) order.push(name); fn(); cur = null; big = false; };
+  /* One thing in one tile: a building's walls and roof stay together however its corners fall. */
+  const whole = (x, y, fn) => { cur = bucket(x, y); fn(); cur = null; };
+
+  mark('ground', () => {
+    const G = W.G;
+    for (let j = 0; j + 1 < G.ny; j++) for (let i = 0; i + 1 < G.nx; i++) {
+      const p = (a, b) => [G.x0 + a * G.cell, G.y0 + b * G.cell, G.h[b * G.nx + a]];
+      const shade = 0.94 + 0.06 * ((i * 7 + j * 13) % 5) / 4;
+      const col = RACE_COL.grass.map(c => c * shade);
+      quad(p(i, j), p(i + 1, j), p(i + 1, j + 1), p(i, j + 1), col);
+    }
+  });
+  /* A STRIP along a polyline: half-width `hw`, height from `hOf`, mitred at each joint (a backend-built map has no surface). */
+  const strip = (line, hw, hOf, col) => {
+    const n = line.length, L = [], R = [];
+    for (let k = 0; k < n; k++) {
+      const a = line[Math.max(0, k - 1)], b = line[Math.min(n - 1, k + 1)];
+      let dx = b[0] - a[0], dy = b[1] - a[1];
+      const l = Math.hypot(dx, dy) || 1; dx /= l; dy /= l;
+      const h = hOf(k);
+      L.push([line[k][0] - dy * hw, line[k][1] + dx * hw, h]);
+      R.push([line[k][0] + dy * hw, line[k][1] - dx * hw, h]);
+    }
+    for (let k = 0; k + 1 < n; k++) quad(L[k], R[k], R[k + 1], L[k + 1], col, [0, 1, 0]);
+  };
+  const up = [0, 1, 0];
+  if (W.surf.length) {
+    W.surf.forEach(L => mark(L[0], () => {
+      const v = L[1], t = L[2], col = RACE_COL.surf[L[0]], P = [];
+      for (let i = 0; i + 1 < v.length; i += 2) P.push([v[i] / 10, v[i + 1] / 10, W.ground(v[i] / 10, v[i + 1] / 10) + RACE_LIFT]);
+      for (let k = 0; k + 2 < t.length; k += 3) {
+        const a = P[t[k]], b = P[t[k + 1]], c = P[t[k + 2]];
+        if (!a || !b || !c) continue;
+        big = Math.max(Math.abs(a[0] - b[0]), Math.abs(a[0] - c[0]), Math.abs(a[1] - b[1]), Math.abs(a[1] - c[1])) > RACE_TILE / 2;
+        tri(a, b, c, col, up);
+      }
+    }));
+  } else {
+    mark('area', () => W.areas.forEach(a => {
+      const ring = raceCcw_(a.ring), col = RACE_COL.areas[a.kind];
+      const P = ring.map(p => [p[0], p[1], W.ground(p[0], p[1]) + RACE_LIFT]);
+      big = true;
+      raceEar_(ring).forEach(t => tri(P[t[0]], P[t[1]], P[t[2]], col, up));
+    }));
+    mark('water', () => W.water.forEach(wt => strip(wt.line, wt.w / 2, k => W.ground(wt.line[k][0], wt.line[k][1]) + RACE_LIFT, RACE_COL.water)));
+    mark('road', () => W.roads.forEach(r => strip(r.idx.map(i => [W.px[i], W.py[i]]), r.w / 2, k => W.ph[r.idx[k]] + RACE_LIFT, RACE_COL.road)));
+  }
+  /* THE ROOF OVER A POINT: eaves plus the slope times the distance in from the nearest eave line, as the shape says. */
+  const roofZ = (o, top, x, y) => {
+    const R = o.roof;
+    if (!R || !R.shape) return top;
+    const dx = x - R.ox, dy = y - R.oy, u = dx * R.ux + dy * R.uy, v = -dx * R.uy + dy * R.ux, s = R.h / R.hw;
+    if (R.shape === 1) return top + s * Math.max(0, R.hw - Math.abs(v));
+    if (R.shape === 2) return top + s * Math.max(0, Math.min(R.hw - Math.abs(v), R.hl - Math.abs(u)));
+    return top + R.h * Math.min(1, Math.max(0, (R.hw - v) / (2 * R.hw)));
+  };
+  mark('bld', () => W.bld.forEach(o => whole((o.box[0] + o.box[2]) / 2, (o.box[1] + o.box[3]) / 2, () => {
+    const top = o.top + o.h, base = o.minh ? o.top + o.minh : o.base, col = o.wall;
+    if (o.tris) {
+      /* THE RING IS COUNTER-CLOCKWISE (the builder's), its roof's cut points already in it: each wall's top follows the roof. */
+      const all = o.ring.concat(o.extra), Z = all.map(p => roofZ(o, top, p[0], p[1]));
+      for (let i = 0; i < o.ring.length; i++) {
+        const j = (i + 1) % o.ring.length, a = o.ring[i], b = o.ring[j];
+        const dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1, n = [dy / l, 0, dx / l];
+        quad([a[0], a[1], base], [b[0], b[1], base], [b[0], b[1], Z[j]], [a[0], a[1], Z[i]], col, n);
+      }
+      for (let k = 0; k + 2 < o.tris.length; k += 3) {
+        const i0 = o.tris[k], i1 = o.tris[k + 1], i2 = o.tris[k + 2], A = all[i0], B = all[i1], Cc = all[i2];
+        if (A && B && Cc) tri([A[0], A[1], Z[i0]], [B[0], B[1], Z[i1]], [Cc[0], Cc[1], Z[i2]], o.roofCol);
+      }
+      return;
+    }
+    const ring = raceCcw_(o.ring);
+    for (let i = 0; i < ring.length; i++) {
+      const a = ring[i], b = ring[(i + 1) % ring.length];
+      const dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1;
+      quad([a[0], a[1], base], [b[0], b[1], base], [b[0], b[1], top], [a[0], a[1], top], col, [dy / l, 0, dx / l]);
+    }
+    raceEar_(ring).forEach(t => tri([ring[t[0]][0], ring[t[0]][1], top], [ring[t[1]][0], ring[t[1]][1], top], [ring[t[2]][0], ring[t[2]][1], top], o.roofCol, up));
+  })));
+  /* A POST AT EACH LANDMARK: the station's red roundel and blue bar; a white sign for the rest. */
+  const cube = (x0, y0, z0, x1, y1, z1, col) => {
+    const c = (x, y, z) => [x, y, z];
+    quad(c(x0, y0, z1), c(x1, y0, z1), c(x1, y1, z1), c(x0, y1, z1), col, [0, 1, 0]);
+    quad(c(x0, y0, z0), c(x1, y0, z0), c(x1, y0, z1), c(x0, y0, z1), col, [0, 0, 1]);
+    quad(c(x1, y1, z0), c(x0, y1, z0), c(x0, y1, z1), c(x1, y1, z1), col, [0, 0, -1]);
+    quad(c(x0, y1, z0), c(x0, y0, z0), c(x0, y0, z1), c(x0, y1, z1), col, [-1, 0, 0]);
+    quad(c(x1, y0, z0), c(x1, y1, z0), c(x1, y1, z1), c(x1, y0, z1), col, [1, 0, 0]);
+  };
+  mark('marks', () => W.marks.forEach(m => whole(m.x, m.y, () => {
+    const g = W.ground(m.x, m.y), x = m.x, y = m.y;
+    cube(x - 0.15, y - 0.15, g, x + 0.15, y + 0.15, g + 6, RACE_COL.kerb);
+    if (m.kind === 'tube') {
+      cube(x - 1.4, y - 0.12, g + 6, x + 1.4, y + 0.12, g + 8.8, RACE_COL.roundel);
+      cube(x - 1.9, y - 0.2, g + 7.05, x + 1.9, y + 0.2, g + 7.75, RACE_COL.bar);
+    } else {
+      cube(x - 2, y - 0.1, g + 6, x + 2, y + 0.1, g + 7.4, m.kind === 'park' ? RACE_COL.areas.park : RACE_COL.sign);
+    }
+  })));
+  /* ONE BUFFER: each layer's tiles end to end, the layers in drawing order. `ranges` is a layer's whole span; `tiles` its pieces. */
+  let n = 0;
+  buckets.forEach(b => { n += b.at; });
+  const data = new Float32Array(n), ranges = {}, tiles = {};
+  let at = 0;
+  order.forEach(name => {
+    const s = at / 6;
+    tiles[name] = [];
+    buckets.forEach(b => {
+      if (b.layer !== name || !b.at) return;
+      data.set(b.v.subarray(0, b.at), at);
+      tiles[name].push({ big: b.big, x: (b.tx + 0.5) * RACE_TILE, y: (b.ty + 0.5) * RACE_TILE, first: at / 6, count: b.at / 6 });
+      at += b.at;
+    });
+    ranges[name] = [s, at / 6 - s];
+  });
+  return { data, ranges, tiles, order };
+}
+
+/* Counter-clockwise, seen from above (x east, y north). */
+function raceCcw_(ring) {
+  let a = 0;
+  for (let i = 0; i < ring.length; i++) { const p = ring[i], q = ring[(i + 1) % ring.length]; a += p[0] * q[1] - q[0] * p[1]; }
+  return a < 0 ? ring.slice().reverse() : ring;
+}
+
+/* EAR CLIPPING for a roof: an L-shaped house has a corner a fan would draw across. Triangles as index triples. */
+function raceEar_(ring) {
+  const idx = ring.map((_, i) => i), out = [];
+  const cross = (a, b, c) => (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
+  let guard = ring.length * ring.length;
+  while (idx.length > 3 && guard-- > 0) {
+    let cut = false;
+    for (let k = 0; k < idx.length; k++) {
+      const i0 = idx[(k + idx.length - 1) % idx.length], i1 = idx[k], i2 = idx[(k + 1) % idx.length];
+      const a = ring[i0], b = ring[i1], c = ring[i2];
+      if (cross(a, b, c) <= 0) continue;
+      const inside = idx.some(j => j !== i0 && j !== i1 && j !== i2 && cross(a, b, ring[j]) >= 0 && cross(b, c, ring[j]) >= 0 && cross(c, a, ring[j]) >= 0);
+      if (inside) continue;
+      out.push([i0, i1, i2]); idx.splice(k, 1); cut = true; break;
+    }
+    if (!cut) break;
+  }
+  if (idx.length === 3) out.push(idx.slice());
+  else for (let k = 1; k + 1 < idx.length; k++) out.push([idx[0], idx[k], idx[k + 1]]);
+  return out;
+}
+
+/* ---------- THE CAR ---------- */
+function raceReset_() {
+  const W = RACE.world, c = RACE.car;
+  const g = W && W.gates[0];
+  c.x = g ? g.x : 0; c.y = g ? g.y : 0; c.th = g ? g.th : 0; c.v = 0; c.steer = 0;
+  c.h = W ? W.heightAt(c.x, c.y) : 0; c.pitch = 0;
+  RACE.cam = null; RACE.prev = null;
+  RACE.lap = { next: 1, start: 0, paused: 0, best: raceBest_(), last: 0, laps: 0 };
+}
+
+function raceBest_() {
+  try { return Number(localStorage.getItem('race-best')) || 0; } catch (e) { return 0; }
+}
+
+/* ONE STEP OF dt SECONDS. Throttle, brakes, rolling and air drag, and the slope: g times the grade along the car is felt
+   as speed lost uphill and gained down. */
+function raceStep_(dt) {
+  const W = RACE.world, c = RACE.car;
+  if (!W) return;
+  const k = RACE.keys, t = RACE.touch;
+  const go = !!(k.up || t.go), back = !!(k.down), brake = !!(k.brake || t.brake);
+  const want = (k.right || t.right ? 1 : 0) - (k.left || t.left ? 1 : 0);
+  c.steer += Math.max(-dt * 4, Math.min(dt * 4, want - c.steer));
+  const fx = Math.sin(c.th), fy = Math.cos(c.th);
+  const ahead = W.heightAt(c.x + fx * 1.5, c.y + fy * 1.5), behind = W.heightAt(c.x - fx * 1.5, c.y - fy * 1.5);
+  const grade = (ahead - behind) / 3;
+  const road = W.roadAt(c.x, c.y);
+  const onRoad = !!road && road.d <= road.road.w / 2 + 0.5;
+  let a = -RACE_G * grade / Math.sqrt(1 + grade * grade);
+  if (go) a += c.v < -0.3 ? 8 : 3.6 * Math.max(0, 1 - c.v / 42);
+  if (back) a += c.v > 0.3 ? -8 : (c.v > -7 ? -2.5 : 0);
+  const roll = (onRoad ? 0.12 : 1.6) + (onRoad ? 0.0009 : 0.004) * c.v * c.v;
+  const stop = (brake ? 11 : 0) + roll;
+  const v0 = c.v + a * dt;
+  /* Brakes and rolling oppose the motion and stop it; they never push it backwards. */
+  c.v = Math.abs(v0) <= stop * dt && !go && !back ? (Math.abs(a) > stop ? v0 - Math.sign(v0) * stop * dt : 0) : v0 - Math.sign(v0) * stop * dt;
+  const turn = 0.55 / (1 + Math.abs(c.v) / 14);
+  c.th += c.v / 2.6 * Math.tan(c.steer * turn) * dt;
+  const nx = c.x + Math.sin(c.th) * c.v * dt, ny = c.y + Math.cos(c.th) * c.v * dt;
+  const out = Math.abs(nx - W.mid[0]) > W.half[0] || Math.abs(ny - W.mid[1]) > W.half[1];
+  if (out || W.inBuilding(nx, ny)) c.v *= -0.25;
+  else { c.x = nx; c.y = ny; }
+  c.h = W.heightAt(c.x, c.y);
+  c.pitch = Math.atan(grade);
+  raceGateCheck_();
+}
+
+/* THE CAR AS SEEN: between the last two physics steps by how far into the next one the clock is, so a 50, 75 or 120 Hz screen
+   never shows the same place twice and then a jump (511). */
+function raceSeen_() {
+  const c = RACE.car, p = RACE.prev;
+  if (!p || !RACE.running) return c;
+  const f = Math.min(1, Math.max(0, RACE.acc / RACE_DT)), mix = (a, b) => a + (b - a) * f;
+  let d = c.th - p.th;
+  d -= Math.round(d / (2 * Math.PI)) * 2 * Math.PI;
+  return { x: mix(p.x, c.x), y: mix(p.y, c.y), h: mix(p.h, c.h), th: p.th + d * f, pitch: mix(p.pitch, c.pitch), v: c.v };
+}
+
+function raceGateCheck_() {
+  const W = RACE.world, c = RACE.car, L = RACE.lap;
+  if (!W || W.gates.length < 2) return;
+  const now = raceNow_();
+  if (!L.start && Math.abs(c.v) > 0.5) L.start = now;
+  const g = W.gates[L.next % W.gates.length];
+  if (Math.hypot(c.x - g.x, c.y - g.y) > Math.max(9, g.w / 2 + 4)) return;
+  if (L.next % W.gates.length === 0) {
+    L.last = now - L.start; L.laps++; L.start = now;
+    if (!L.best || L.last < L.best) { L.best = L.last; try { localStorage.setItem('race-best', String(Math.round(L.best))); } catch (e) {} }
+    L.next = 1;
+  } else L.next++;
+}
+
+const raceNow_ = () => (typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now());
+
+/* ---------- THE RENDERER: one shader, lit vertices, fog ---------- */
+function raceGl_(canvas) {
+  if (RACE.gl && RACE.gl.canvas === canvas && !RACE.gl.ctx.isContextLost()) return RACE.gl;
+  /* LOST (iPad Safari drops a context under memory pressure): nothing is drawn until `webglcontextrestored`. */
+  if (RACE.gl && RACE.gl.canvas === canvas) return null;
+  /* ASKED ONCE PER CANVAS: a browser without WebGL says so on the card, not sixty times a second. */
+  if (RACE.noGl === canvas) return null;
+  /* A REPAINT MADE A NEW CANVAS: the old one's context is let go now, not whenever the collector gets to it (browsers cap them). */
+  try { const lose = RACE.gl && RACE.gl.ctx.getExtension('WEBGL_lose_context'); if (lose && RACE.gl.canvas !== canvas) lose.loseContext(); } catch (e) {}
+  RACE.gl = null;
+  let ctx = null;
+  try { ctx = canvas.getContext('webgl', { antialias: true, alpha: false }) || canvas.getContext('experimental-webgl'); } catch (e) { ctx = null; }
+  if (!ctx || !ctx.createShader) {
+    RACE.noGl = canvas;
+    const stage = canvas.closest('.race-stage');
+    if (stage && !stage.querySelector('.race-nogl')) stage.insertAdjacentHTML('beforeend', '<p class="note race-nogl">This browser cannot draw in 3D.</p>');
+    return null;
+  }
+  const sh = (type, src) => { const s = ctx.createShader(type); ctx.shaderSource(s, src); ctx.compileShader(s); return s; };
+  const prog = ctx.createProgram();
+  ctx.attachShader(prog, sh(ctx.VERTEX_SHADER, 'attribute vec3 aP;attribute vec3 aC;uniform mat4 uVP;uniform mat4 uM;uniform vec3 uEye;'
+    + 'varying vec3 vC;varying float vF;void main(){vec4 w=uM*vec4(aP,1.0);vC=aC;'
+    + 'vF=clamp((length(w.xyz-uEye)-140.0)/420.0,0.0,1.0);gl_Position=uVP*w;}'));
+  ctx.attachShader(prog, sh(ctx.FRAGMENT_SHADER, 'precision mediump float;uniform vec3 uFog;varying vec3 vC;varying float vF;'
+    + 'void main(){gl_FragColor=vec4(mix(vC,uFog,vF),1.0);}'));
+  ctx.linkProgram(prog);
+  if (!ctx.getProgramParameter(prog, ctx.LINK_STATUS)) return null;
+  const buf = data => { const b = ctx.createBuffer(); ctx.bindBuffer(ctx.ARRAY_BUFFER, b); ctx.bufferData(ctx.ARRAY_BUFFER, data, ctx.STATIC_DRAW); return { b, n: data.length / 6 }; };
+  const G = {
+    canvas, ctx, prog,
+    aP: ctx.getAttribLocation(prog, 'aP'), aC: ctx.getAttribLocation(prog, 'aC'),
+    uVP: ctx.getUniformLocation(prog, 'uVP'), uM: ctx.getUniformLocation(prog, 'uM'),
+    uEye: ctx.getUniformLocation(prog, 'uEye'), uFog: ctx.getUniformLocation(prog, 'uFog'),
+    world: buf(RACE.world.mesh.data), car: buf(raceCarMesh_()), gate: buf(raceGateMesh_()),
+  };
+  ctx.enable(ctx.DEPTH_TEST);
+  RACE.gl = G;
+  return G;
+}
+
+/* A BOX as lit triangles in model space (x right, y up, z forward). */
+function raceBox_(v, x0, y0, z0, x1, y1, z1, col) {
+  const P = [[x0, y0, z0], [x1, y0, z0], [x1, y1, z0], [x0, y1, z0], [x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1]];
+  [[0, 1, 2, 3, [0, 0, -1]], [5, 4, 7, 6, [0, 0, 1]], [4, 0, 3, 7, [-1, 0, 0]], [1, 5, 6, 2, [1, 0, 0]], [3, 2, 6, 7, [0, 1, 0]], [4, 5, 1, 0, [0, -1, 0]]]
+    .forEach(f => {
+      const n = f[4], l = 0.55 + 0.45 * Math.max(0, n[0] * RACE_SUN[0] + n[1] * RACE_SUN[1] - n[2] * RACE_SUN[2]);
+      [[f[0], f[1], f[2]], [f[0], f[2], f[3]]].forEach(t => t.forEach(i => v.push(P[i][0], P[i][1], P[i][2], col[0] * l, col[1] * l, col[2] * l)));
+    });
+}
+function raceCarMesh_() {
+  const v = [];
+  raceBox_(v, -0.9, 0.3, -2.1, 0.9, 1.0, 2.1, RACE_COL.car);
+  raceBox_(v, -0.75, 1.0, -1.2, 0.75, 1.5, 0.8, RACE_COL.glass);
+  [[-0.95, -1.35], [0.95, -1.35], [-0.95, 1.35], [0.95, 1.35]].forEach(([x, z]) => raceBox_(v, x - 0.15, 0, z - 0.35, x + 0.15, 0.7, z + 0.35, RACE_COL.tyre));
+  return new Float32Array(v);
+}
+/* A GATE five metres wide in model space; drawn scaled to the road it stands on. */
+function raceGateMesh_() {
+  const v = [];
+  raceBox_(v, -2.7, 0, -0.2, -2.3, 4, 0.2, RACE_COL.gate);
+  raceBox_(v, 2.3, 0, -0.2, 2.7, 4, 0.2, RACE_COL.gate);
+  raceBox_(v, -2.7, 3.4, -0.15, 2.7, 4, 0.15, RACE_COL.line);
+  return new Float32Array(v);
+}
+
+/* ---------- MATRICES (column-major, as GL reads them) ---------- */
+function raceMul_(a, b) {
+  const o = new Float32Array(16);
+  for (let c = 0; c < 4; c++) for (let r = 0; r < 4; r++) {
+    let s = 0;
+    for (let k = 0; k < 4; k++) s += a[k * 4 + r] * b[c * 4 + k];
+    o[c * 4 + r] = s;
+  }
+  return o;
+}
+function racePersp_(fov, asp, n, f) {
+  const t = 1 / Math.tan(fov / 2);
+  return new Float32Array([t / asp, 0, 0, 0, 0, t, 0, 0, 0, 0, (f + n) / (n - f), -1, 0, 0, 2 * f * n / (n - f), 0]);
+}
+function raceLook_(e, c, up) {
+  const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+  const nrm = a => { const l = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / l, a[1] / l, a[2] / l]; };
+  const crs = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+  const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  const z = nrm(sub(e, c)), x = nrm(crs(up, z)), y = crs(z, x);
+  return new Float32Array([x[0], y[0], z[0], 0, x[1], y[1], z[1], 0, x[2], y[2], z[2], 0, -dot(x, e), -dot(y, e), -dot(z, e), 1]);
+}
+/* A MODEL MATRIX: heading th from north clockwise, pitch up the slope, at [x, h, -y]; `s` widens it sideways. */
+function raceModel_(x, y, h, th, pitch, s) {
+  const f = [Math.sin(th) * Math.cos(pitch), Math.sin(pitch), -Math.cos(th) * Math.cos(pitch)];
+  const r = [Math.cos(th), 0, Math.sin(th)];
+  const u = [r[1] * f[2] - r[2] * f[1], r[2] * f[0] - r[0] * f[2], r[0] * f[1] - r[1] * f[0]];
+  const k = s || 1;
+  return new Float32Array([r[0] * k, r[1] * k, r[2] * k, 0, u[0], u[1], u[2], 0, f[0], f[1], f[2], 0, x, h, -y, 1]);
+}
+
+function raceDraw_() {
+  const box = $('race-box'), canvas = box && box.querySelector('.race-gl');
+  if (!canvas || !RACE.world) return;
+  const G = raceGl_(canvas);
+  if (G) {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = Math.max(1, Math.round(canvas.clientWidth * dpr)), h = Math.max(1, Math.round(canvas.clientHeight * dpr));
+    if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+    const ctx = G.ctx, W = RACE.world, c = raceSeen_();
+    /* THE CAMERA EASES AT THE SAME RATE AT ANY FRAME RATE (511): a fixed share per frame shook on a 120 Hz screen and lagged at 30. */
+    const now = raceNow_(), dt = Math.min(0.1, Math.max(0, (now - (RACE.drawAt || now)) / 1000));
+    RACE.drawAt = now;
+    const fx = Math.sin(c.th), fy = Math.cos(c.th);
+    const want = [c.x - fx * 9, c.y - fy * 9];
+    const eye = [want[0], Math.max(W.ground(want[0], want[1]) + 1.8, c.h + 3.2), -want[1]];
+    const ease = 1 - Math.pow(0.82, dt * 60);
+    RACE.cam = RACE.cam && dt > 0 ? RACE.cam.map((q, i) => q + (eye[i] - q) * ease) : (RACE.cam && !dt ? RACE.cam : eye);
+    /* DRAWN ROUND THE CAMERA: the world is moved by the whole metres under it, so every number the GPU sees is small. */
+    const O = [Math.round(RACE.cam[0]), 0, Math.round(RACE.cam[2])], rel = p => [p[0] - O[0], p[1], p[2] - O[2]];
+    const look = [c.x + fx * 4, c.h + 1.2, -(c.y + fy * 4)];
+    const vp = raceMul_(racePersp_(62 * Math.PI / 180, w / h, 0.8, 700), raceLook_(rel(RACE.cam), rel(look), [0, 1, 0]));
+    ctx.viewport(0, 0, w, h);
+    ctx.clearColor(RACE_COL.sky[0], RACE_COL.sky[1], RACE_COL.sky[2], 1);
+    ctx.clear(ctx.COLOR_BUFFER_BIT | ctx.DEPTH_BUFFER_BIT);
+    ctx.useProgram(G.prog);
+    ctx.uniformMatrix4fv(G.uVP, false, vp);
+    ctx.uniform3fv(G.uEye, rel(RACE.cam));
+    ctx.uniform3fv(G.uFog, RACE_COL.sky);
+    const draw = (b, m, first, count) => {
+      ctx.bindBuffer(ctx.ARRAY_BUFFER, b.b);
+      ctx.enableVertexAttribArray(G.aP); ctx.vertexAttribPointer(G.aP, 3, ctx.FLOAT, false, 24, 0);
+      ctx.enableVertexAttribArray(G.aC); ctx.vertexAttribPointer(G.aC, 3, ctx.FLOAT, false, 24, 12);
+      ctx.uniformMatrix4fv(G.uM, false, m);
+      ctx.drawArrays(ctx.TRIANGLES, first || 0, count === undefined ? b.n : count);
+    };
+    const I = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -O[0], 0, -O[2], 1]);
+    const model = (x, y, hh, th, pitch, k) => { const m = raceModel_(x, y, hh, th, pitch, k); m[12] -= O[0]; m[14] -= O[2]; return m; };
+    /* ONLY THE TILES NEAR ENOUGH TO SEE: the fog is whole by 560 m, so a tile whose nearest corner is further is not drawn. */
+    const T = W.mesh.tiles || {}, far = 560 + RACE_TILE * 0.75;
+    let drawn = 0;
+    const layer = name => (T[name] || []).forEach(t => {
+      if (!t.big && Math.hypot(t.x - RACE.cam[0], t.y - RACE.cam[2]) > far) return;
+      draw(G.world, I, t.first, t.count); drawn += t.count;
+    });
+    /* THE GROUND WRITES DEPTH; WHAT LIES FLAT ON IT DOES NOT, painted bottom to top over it, so no two layers ever fight for a pixel (511). */
+    layer('ground');
+    ctx.enable(ctx.POLYGON_OFFSET_FILL);
+    ctx.polygonOffset(-1, -4);
+    ctx.depthMask(false);
+    (W.mesh.order || []).forEach(name => { if (name !== 'ground' && name !== 'bld' && name !== 'marks') layer(name); });
+    ctx.depthMask(true);
+    ctx.disable(ctx.POLYGON_OFFSET_FILL);
+    layer('bld');
+    layer('marks');
+    RACE.drawn = drawn;
+    const g = W.gates[RACE.lap.next % (W.gates.length || 1)];
+    if (g) draw(G.gate, model(g.x, g.y, W.heightAt(g.x, g.y) + RACE_LIFT, g.th, 0, Math.max(1, (g.w + 2) / 5)));
+    draw(G.car, model(c.x, c.y, c.h + RACE_LIFT, c.th, c.pitch, 1));
+  }
+  raceMini_(box);
+}
+
+/* THE LITTLE MAP: every road drawn once into a hidden canvas, then turned under the car each frame. */
+function raceMini_(box) {
+  const cv = box.querySelector('.race-mini');
+  const W = RACE.world;
+  if (!cv || RACE.noMini === cv) return;
+  let ctx = null;
+  try { ctx = cv.getContext('2d'); } catch (e) { ctx = null; }
+  if (!ctx || !ctx.drawImage) { RACE.noMini = cv; return; }
+  const S = 0.25, px = 96;
+  if (!W.miniCanvas) {
+    const off = document.createElement('canvas');
+    off.width = Math.ceil(W.half[0] * 2 * S) + 2; off.height = Math.ceil(W.half[1] * 2 * S) + 2;
+    const o = off.getContext('2d');
+    if (!o) return;
+    o.lineCap = 'round'; o.lineJoin = 'round';
+    const X = x => (x - W.mid[0] + W.half[0]) * S, Y = y => (W.mid[1] + W.half[1] - y) * S;
+    const line = (pts, wd, col) => { o.strokeStyle = col; o.lineWidth = wd; o.beginPath(); pts.forEach((p, k) => (k ? o.lineTo : o.moveTo).call(o, X(p[0]), Y(p[1]))); o.stroke(); };
+    W.areas.forEach(a => {
+      const c = RACE_COL.areas[a.kind];
+      o.fillStyle = '#' + c.map(v => Math.round(v * 255).toString(16).padStart(2, '0')).join('');
+      o.beginPath(); a.ring.forEach((p, k) => (k ? o.lineTo : o.moveTo).call(o, X(p[0]), Y(p[1]))); o.closePath(); o.fill();
+    });
+    W.water.forEach(wt => line(wt.line, Math.max(1.5, wt.w * S), token_('--race-water', 'blue')));
+    W.roads.forEach(r => line(r.idx.map(i => [W.px[i], W.py[i]]), Math.max(1.2, r.w * S), token_('--race-road', 'grey')));
+    line(W.route.map(i => [W.px[i], W.py[i]]), 2, token_('--race-route', 'gold'));
+    W.miniCanvas = off;
+  }
+  if (cv.width !== px * 2) { cv.width = px * 2; cv.height = px * 2; }
+  const c = RACE.car;
+  ctx.setTransform(2, 0, 0, 2, 0, 0);
+  ctx.clearRect(0, 0, px, px);
+  ctx.save();
+  ctx.translate(px / 2, px / 2);
+  ctx.rotate(-c.th);
+  ctx.drawImage(W.miniCanvas, -(c.x - W.mid[0] + W.half[0]) * S, -(W.mid[1] + W.half[1] - c.y) * S);
+  ctx.restore();
+  ctx.fillStyle = token_('--race-route', 'gold');
+  ctx.beginPath(); ctx.moveTo(px / 2, px / 2 - 6); ctx.lineTo(px / 2 + 4, px / 2 + 4); ctx.lineTo(px / 2 - 4, px / 2 + 4); ctx.closePath(); ctx.fill();
+}
+
+/* THE NUMBERS OVER THE ROAD, ten times a second rather than sixty: text that changes every frame is a layout every frame. */
+function raceHud_(force) {
+  const now = raceNow_();
+  if (!force && now - RACE.hudAt < 100) return;
+  RACE.hudAt = now;
+  const box = $('race-box');
+  if (!box || !RACE.world) return;
+  const c = RACE.car, W = RACE.world, L = RACE.lap;
+  const r = W.roadAt(c.x, c.y);
+  const fx = Math.sin(c.th), fy = Math.cos(c.th);
+  const grade = (W.heightAt(c.x + fx * 4, c.y + fy * 4) - W.heightAt(c.x - fx * 4, c.y - fy * 4)) / 8 * 100;
+  const set = (k, t) => { const el = box.querySelector('[data-hud="' + k + '"]'); if (el && el.textContent !== t) el.textContent = t; };
+  const clock = ms => { const s = Math.max(0, ms) / 1000; return Math.floor(s / 60) + ':' + (s % 60).toFixed(1).padStart(4, '0'); };
+  set('mph', Math.round(Math.abs(c.v) * 2.23694) + ' mph');
+  set('road', r && r.d <= r.road.w / 2 + 3 ? (r.road.name || 'Unnamed road') : 'Off the road');
+  let near = '', nd = 220;
+  W.marks.forEach(m => { const d = Math.hypot(m.x - c.x, m.y - c.y); if (d < nd) { nd = d; near = m.name; } });
+  set('near', near ? 'Near ' + near : '');
+  set('alt', c.h.toFixed(1) + ' m · ' + (grade >= 0 ? '+' : '') + grade.toFixed(1) + '%');
+  set('gate', 'Gate ' + (L.next % (W.gates.length || 1) || W.gates.length) + '/' + W.gates.length);
+  set('time', clock(L.start ? (L.paused || now) - L.start : 0) + (L.best ? ' · best ' + clock(L.best) : ''));
+}
+
+/* ---------- THE LOOP ---------- */
+function raceFrame_(t) {
+  RACE.raf = 0;
+  if (!RACE.running) return;
+  const box = $('race-box');
+  /* OFF THE GLASS IS PAUSED: another page of Games, another column, or a hidden tab costs nothing. */
+  if (!box || !box.isConnected || document.hidden) { racePause_(); return; }
+  const now = raceNow_();
+  RACE.acc = Math.min(RACE.acc + (now - (RACE.last || now)) / 1000, RACE_DT * 15);
+  RACE.last = now;
+  while (RACE.acc >= RACE_DT) { RACE.prev = Object.assign({}, RACE.car); raceStep_(RACE_DT); RACE.acc -= RACE_DT; }
+  raceDraw_();
+  raceHud_();
+  RACE.raf = requestAnimationFrame(raceFrame_);
+}
+
+function raceGo_() {
+  if (!RACE.world || RACE.running) return;
+  RACE.running = true; RACE.last = 0; RACE.acc = 0;
+  /* THE LAP CLOCK STOOD STILL WHILE PAUSED. */
+  if (RACE.lap.start && RACE.lap.paused) RACE.lap.start += raceNow_() - RACE.lap.paused;
+  RACE.lap.paused = 0;
+  raceTiles_();
+  RACE.raf = requestAnimationFrame(raceFrame_);
+}
+function racePause_() {
+  if (RACE.running) RACE.lap.paused = raceNow_();
+  RACE.running = false;
+  if (RACE.raf) cancelAnimationFrame(RACE.raf);
+  RACE.raf = 0; RACE.keys = {}; RACE.touch = {};
+  document.querySelectorAll('.race-pad.on').forEach(b => b.classList.remove('on'));
+  raceTiles_();
+}
+
+/* ---------- THE CARD ---------- */
+function initRacer() {
+  raceFetch_();
+  racePaint_();
+}
+/* DRAWN AHEAD (the widget's `draw`): the card's markup from what is already here — no fetch, no frame. */
+function raceStill_() { racePaint_(true); }
+function racerStop_() { racePause_(); }
+
+function racePaint_(still) {
+  const box = $('race-box');
+  if (!box) return;
+  if (!RACE.world) {
+    box.dataset.view = RACE.asking ? 'wait' : 'none';
+    /* NO MAP AT ALL (the backend and the shipped file both failed): the reason, said. */
+    box.innerHTML = RACE.asking ? loading_()
+      : `<p class="note">${esc(RACE.err || 'The map could not be loaded.')}</p>`;
+    return;
+  }
+  if (box.dataset.view !== 'drive' || !box.querySelector('.race-gl')) {
+    box.dataset.view = 'drive';
+    box.innerHTML = `<div class="race-stage" data-noswipe>
+        <canvas class="race-gl" role="button" tabindex="0" data-do="race-go" aria-label="The road ahead"></canvas>
+        <canvas class="race-mini" aria-hidden="true"></canvas>
+        <div class="race-hud" aria-live="off"><b data-hud="mph">0 mph</b><span data-hud="road"></span><span data-hud="near"></span><span data-hud="alt"></span></div>
+        <div class="race-lap"><span data-hud="gate"></span><span data-hud="time"></span></div>
+      </div>
+      <div class="race-pads" data-noswipe>
+        ${tile_({ form: true, look: 'race-pad', attrs: 'data-pad="left"', aria: 'Steer left', html: '&#9664;' })}
+        ${tile_({ form: true, look: 'race-pad', attrs: 'data-pad="right"', aria: 'Steer right', html: '&#9654;' })}
+        <span></span>
+        ${tile_({ form: true, look: 'race-pad', attrs: 'data-pad="brake"', aria: 'Brake', label: 'Brake' })}
+        ${tile_({ form: true, look: 'race-pad is-go', attrs: 'data-pad="go"', aria: 'Accelerate', label: 'Go' })}
+      </div>
+      <p class="race-keys">&#8593; W go · &#8595; S reverse · &#8592; &#8594; A D steer · Space brake</p>
+      <div class="tile-row race-tiles"></div>
+      ${raceAttr_()}`;
+    racePads_(box);
+    raceGlWatch_(box.querySelector('.race-gl'));
+  }
+  raceTiles_();
+  const attr = box.querySelector('.race-attr');
+  if (attr) attr.outerHTML = raceAttr_();
+  raceHud_(true);
+  /* ONE STILL FRAME, so the card shows the street before anybody presses Drive. */
+  if (!still) requestAnimationFrame(() => { if (!RACE.running) raceDraw_(); });
+}
+
+/* WHOSE MAP: OSM's line on a real one; the practice streets say they are invented and that the real map is not built yet. */
+function raceAttr_() {
+  const m = RACE.map || {};
+  if (m.practice) {
+    return `<p class="race-attr">Practice streets, invented — the Colliers Wood map has not been built yet.</p>`;
+  }
+  return `<p class="race-attr"><a href="https://www.openstreetmap.org/copyright" rel="noopener">${
+    esc(m.osm || 'Map data © OpenStreetMap contributors (ODbL)')}</a> · heights ${esc(m.dem || 'DEM')}</p>`;
+}
+
+/* A LOST CONTEXT IS ASKED BACK (preventDefault) and the world uploaded again when it returns. */
+function raceGlWatch_(canvas) {
+  if (!canvas) return;
+  canvas.addEventListener('webglcontextlost', e => { e.preventDefault(); racePause_(); });
+  canvas.addEventListener('webglcontextrestored', () => { RACE.gl = null; if (!RACE.running) raceDraw_(); });
+}
+
+function raceTiles_() {
+  const box = $('race-box'), row = box && box.querySelector('.race-tiles');
+  if (!row) return;
+  row.innerHTML = (RACE.running ? tile_({ icon: 'pause', label: 'Pause', act: 'race-pause' })
+                                : tile_({ icon: 'play', label: 'Drive', act: 'race-go' }))
+    + tile_({ icon: 'undo', label: 'Back to the start', act: 'race-restart' });
+}
+
+/* THE PEDALS: pointer events with capture, so a thumb that slides off a pedal still lets go of it. */
+function racePads_(box) {
+  const pads = box.querySelector('.race-pads');
+  if (!pads) return;
+  const held = new Map();
+  const sync = () => {
+    const t = {};
+    held.forEach(k => { t[k] = true; });
+    RACE.touch = t;
+    pads.querySelectorAll('.race-pad').forEach(b => b.classList.toggle('on', !!t[b.dataset.pad]));
+  };
+  pads.addEventListener('pointerdown', e => {
+    const b = e.target.closest('[data-pad]');
+    if (!b) return;
+    e.preventDefault();
+    try { b.setPointerCapture(e.pointerId); } catch (err) {}
+    held.set(e.pointerId, b.dataset.pad);
+    raceGo_();
+    sync();
+  });
+  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(n => pads.addEventListener(n, e => { if (held.delete(e.pointerId)) sync(); }));
+  pads.addEventListener('contextmenu', e => e.preventDefault());
+}
+
+const RACE_KEYS = { ArrowUp: 'up', w: 'up', W: 'up', ArrowDown: 'down', s: 'down', S: 'down',
+                    ArrowLeft: 'left', a: 'left', A: 'left', ArrowRight: 'right', d: 'right', D: 'right', ' ': 'brake' };
+/* KEYS ONLY WHILE DRIVING, and then the arrows steer rather than turn the column. */
+['keydown', 'keyup'].forEach(type => document.addEventListener(type, e => {
+  if (!RACE.running) return;
+  const k = RACE_KEYS[e.key];
+  if (!k || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName || '')) return;
+  e.preventDefault(); e.stopPropagation();
+  RACE.keys[k] = type === 'keydown';
+}, true));
+document.addEventListener('visibilitychange', () => { if (document.hidden && RACE.running) racePause_(); });
+
+on('race-go', () => raceGo_());
+on('race-pause', () => racePause_());
+on('race-restart', () => { raceReset_(); raceHud_(true); if (!RACE.running) raceDraw_(); });
+
+;
+/* ==== js/boardgames.js ==== */
+/* @family. — boardgames.js THE BOARD GAMES (414, 461; back 15 Nov 2026): Chess, Maze, Connect 4, Othello, Scrabble; chess rules from attic/js/chess-engine.js, boards from games.js before 133b259. */
+
+const START = 'rnbqkbnrpppppppp________________________________PPPPPPPPRNBQKBNR'.split('');
+
+const CH_WHITE = 'w', CH_BLACK = 'b';
+const isWhite = p => p !== '_' && p === p.toUpperCase();
+const colourOf = p => p === '_' ? null : (isWhite(p) ? CH_WHITE : CH_BLACK);
+
+/* A position is the board plus the four things you cannot see on it: § */
+function newGame() {
+  return {
+    board: START.slice(),
+    turn: CH_WHITE,
+    castle: { K: true, Q: true, k: true, q: true },   // K/Q = white king/queen side
+    ep: -1,                                            // square a pawn may be captured on, or -1
+    halfmove: 0,                                       // for the fifty-move rule
+  };
+}
+
+const file = i => i % 8;
+const rank = i => Math.floor(i / 8);
+const onBoard = (f, r) => f >= 0 && f < 8 && r >= 0 && r < 8;
+const idx = (f, r) => r * 8 + f;
+
+/* ---------- MOVES A PIECE COULD MAKE, ignoring whether the king is left in check § */
+function pseudoMoves(pos, from) {
+  const b = pos.board, p = b[from];
+  if (p === '_') return [];
+  const me = colourOf(p);
+  const f = file(from), r = rank(from);
+  const out = [];
+  const add = (tf, tr, opts) => {
+    if (!onBoard(tf, tr)) return false;
+    const to = idx(tf, tr);
+    const t = b[to];
+    if (t !== '_' && colourOf(t) === me) return false;      // own piece blocks
+    out.push({ from, to, ...(opts || {}) });
+    return t === '_';                                        // may continue if empty
+  };
+  const ray = (df, dr) => {
+    for (let k = 1; k < 8; k++) if (!add(f + df * k, r + dr * k)) break;
+  };
+
+  const up = me === CH_WHITE ? -1 : 1;                          // white moves toward rank 0
+  switch (p.toLowerCase()) {
+    case 'p': {
+      const one = idx(f, r + up);
+      if (onBoard(f, r + up) && b[one] === '_') {
+        // Promotion: a pawn reaching the last rank must become something.
+        const last = (me === CH_WHITE && r + up === 0) || (me === CH_BLACK && r + up === 7);
+        if (last) 'QRBN'.split('').forEach(q => out.push({ from, to: one, promote: q }));
+        else out.push({ from, to: one });
+
+        const startRank = me === CH_WHITE ? 6 : 1;
+        const two = idx(f, r + up * 2);
+        if (r === startRank && b[two] === '_') out.push({ from, to: two, double: true });
+      }
+      // Captures, including en passant — the one capture that lands on an empty square.
+      [-1, 1].forEach(df => {
+        const tf = f + df, tr = r + up;
+        if (!onBoard(tf, tr)) return;
+        const to = idx(tf, tr);
+        const t = b[to];
+        if (t !== '_' && colourOf(t) !== me) {
+          const last = tr === 0 || tr === 7;
+          if (last) 'QRBN'.split('').forEach(q => out.push({ from, to, promote: q }));
+          else out.push({ from, to });
+        } else if (to === pos.ep) {
+          out.push({ from, to, enpassant: true });
+        }
+      });
+      break;
+    }
+    case 'n':
+      [[1,2],[2,1],[2,-1],[1,-2],[-1,-2],[-2,-1],[-2,1],[-1,2]]
+        .forEach(([df, dr]) => add(f + df, r + dr));
+      break;
+    case 'b': [[1,1],[1,-1],[-1,1],[-1,-1]].forEach(([a,c]) => ray(a,c)); break;
+    case 'r': [[1,0],[-1,0],[0,1],[0,-1]].forEach(([a,c]) => ray(a,c)); break;
+    case 'q': [[1,1],[1,-1],[-1,1],[-1,-1],[1,0],[-1,0],[0,1],[0,-1]].forEach(([a,c]) => ray(a,c)); break;
+    case 'k':
+      [[1,0],[1,1],[0,1],[-1,1],[-1,0],[-1,-1],[0,-1],[1,-1]].forEach(([df,dr]) => add(f+df, r+dr));
+      break;
+  }
+  return out;
+}
+
+/** Is `sq` attacked by `by`? Asked of the king's square to find check. */
+function attacked(pos, sq, by) {
+  for (let i = 0; i < 64; i++) {
+    const p = pos.board[i];
+    if (p === '_' || colourOf(p) !== by) continue;
+    /* Pawns are the exception: § */
+    if (p.toLowerCase() === 'p') {
+      const up = by === CH_WHITE ? -1 : 1;
+      const f = file(i), r = rank(i);
+      if ((onBoard(f-1, r+up) && idx(f-1, r+up) === sq) ||
+          (onBoard(f+1, r+up) && idx(f+1, r+up) === sq)) return true;
+      continue;
+    }
+    if (pseudoMoves(pos, i).some(m => m.to === sq)) return true;
+  }
+  return false;
+}
+
+const kingSquare = (pos, side) =>
+  pos.board.indexOf(side === CH_WHITE ? 'K' : 'k');
+
+const inCheck = (pos, side) =>
+  attacked(pos, kingSquare(pos, side), side === CH_WHITE ? CH_BLACK : CH_WHITE);
+
+/** Play a move and hand back a NEW position. Nothing mutates, so undo is free and search is safe. */
+function play(pos, m) {
+  const n = {
+    board: pos.board.slice(),
+    turn: pos.turn === CH_WHITE ? CH_BLACK : CH_WHITE,
+    castle: { ...pos.castle },
+    ep: -1,
+    halfmove: pos.halfmove + 1,
+  };
+  const p = n.board[m.from];
+  const isPawn = p.toLowerCase() === 'p';
+  if (isPawn || n.board[m.to] !== '_') n.halfmove = 0;
+
+  n.board[m.to] = m.promote ? (isWhite(p) ? m.promote : m.promote.toLowerCase()) : p;
+  n.board[m.from] = '_';
+
+  // En passant: the captured pawn is not on the square you landed on.
+  if (m.enpassant) n.board[idx(file(m.to), rank(m.from))] = '_';
+  if (m.double) n.ep = idx(file(m.from), (rank(m.from) + rank(m.to)) / 2);
+
+  // Castling moves the rook too.
+  if (m.castle === 'K') { n.board[63] = '_'; n.board[61] = 'R'; }
+  if (m.castle === 'Q') { n.board[56] = '_'; n.board[59] = 'R'; }
+  if (m.castle === 'k') { n.board[7]  = '_'; n.board[5]  = 'r'; }
+  if (m.castle === 'q') { n.board[0]  = '_'; n.board[3]  = 'r'; }
+
+  /* Rights are lost by the king or rook MOVING, and also by a rook being captured on its home
+     square — the second is the one implementations forget. */
+  if (p === 'K') { n.castle.K = n.castle.Q = false; }
+  if (p === 'k') { n.castle.k = n.castle.q = false; }
+  if (m.from === 63 || m.to === 63) n.castle.K = false;
+  if (m.from === 56 || m.to === 56) n.castle.Q = false;
+  if (m.from === 7  || m.to === 7)  n.castle.k = false;
+  if (m.from === 0  || m.to === 0)  n.castle.q = false;
+
+  return n;
+}
+
+/** Every LEGAL move for the side to play — pseudo-moves, minus those that leave the king in check. */
+function legalMoves(pos) {
+  const side = pos.turn;
+  const out = [];
+  for (let i = 0; i < 64; i++) {
+    if (pos.board[i] === '_' || colourOf(pos.board[i]) !== side) continue;
+    for (const m of pseudoMoves(pos, i)) {
+      if (!inCheck(play(pos, m), side)) out.push(m);
+    }
+  }
+
+  /* Castling, which has four conditions and is where most implementations leak:
+     the right survives, the squares between are empty, the king is not in check now, and it does
+     not PASS THROUGH or land on an attacked square. */
+  const them = side === CH_WHITE ? CH_BLACK : CH_WHITE;
+  const k = kingSquare(pos, side);
+  const safe = sq => !attacked(pos, sq, them);
+  if (!inCheck(pos, side)) {
+    if (side === CH_WHITE && k === 60) {
+      if (pos.castle.K && pos.board[61] === '_' && pos.board[62] === '_'
+          && pos.board[63] === 'R' && safe(61) && safe(62))
+        out.push({ from: 60, to: 62, castle: 'K' });
+      if (pos.castle.Q && pos.board[59] === '_' && pos.board[58] === '_' && pos.board[57] === '_'
+          && pos.board[56] === 'R' && safe(59) && safe(58))
+        out.push({ from: 60, to: 58, castle: 'Q' });
+    }
+    if (side === CH_BLACK && k === 4) {
+      if (pos.castle.k && pos.board[5] === '_' && pos.board[6] === '_'
+          && pos.board[7] === 'r' && safe(5) && safe(6))
+        out.push({ from: 4, to: 6, castle: 'k' });
+      if (pos.castle.q && pos.board[3] === '_' && pos.board[2] === '_' && pos.board[1] === '_'
+          && pos.board[0] === 'r' && safe(3) && safe(2))
+        out.push({ from: 4, to: 2, castle: 'q' });
+    }
+  }
+  return out;
+}
+
+/** Checkmate, stalemate, or neither. No legal moves plus check is mate; without check it's a draw. */
+function outcome(pos) {
+  if (legalMoves(pos).length) return null;
+  return inCheck(pos, pos.turn) ? 'mate' : 'stalemate';
+}
+
+
+/* THE GAME IN PLAY and the solid glyphs for both sides (the colour comes from CSS); these sat in receipt.js before 133b259. */
+let CHESS = null, CHESS_PICK = -1, CHESS_HIST = [], CHESS_PROMO = null, CHESS_LAST = null, CHESS_ARM = 0;
+const GLYPH = { K:'♚',Q:'♛',R:'♜',B:'♝',N:'♞',P:'♟', k:'♚',q:'♛',r:'♜',b:'♝',n:'♞',p:'♟' };
+
+/* ---------- CHESS, TWO PLAYERS ROUND ONE PHONE § */
+const CH_FILES = 'abcdefgh';
+const CH_NAME = { p: 'pawn', n: 'knight', b: 'bishop', r: 'rook', q: 'queen', k: 'king' };
+const chSide_ = s => s === CH_WHITE ? 'White' : 'Black';
+const chSq_ = i => CH_FILES[file(i)] + (8 - rank(i));
+/* ---------- THE BOARD MOVES LIKE A BOARD (429, "make it more cinematic") ---------- */
+/* WHAT THE LAST PRESS DID, for the next draw to show ONCE: a glide, a capture, a check, an ending. A draw for any other reason (a pick, a note) shows the position still. */
+let CHESS_FX = null;
+/* THE BOARD TURNS TO FACE WHOEVER IS TO MOVE, if asked; per device, a convenience (`chess-turns`). Off, White stays at the foot as it always did. */
+let CHESS_TURNS = (() => { try { return localStorage.getItem('chess-turns') === '1'; } catch (e) { return false; } })();
+let CHESS_FACE_T = 0;
+/* REDUCED MOTION MOVES INSTANTLY: no glide, no shake, no fall — the ending is drawn as it ends. Asked through the app's one `motionOK_` (537). */
+/* A GLIDE TAKES LONGER THE FURTHER IT GOES, but never long enough to wait for: a rook across the board is 380ms. */
+const chessGlideMs_ = (a, b) => Math.min(380, 170 + 32 * Math.hypot(file(a) - file(b), rank(a) - rank(b)));
+const CH_ROOK = { K: [63, 61], Q: [56, 59], k: [7, 5], q: [0, 3] };
+const CH_END_SAID = { mate: 'Checkmate', stalemate: 'Stalemate', fifty: 'Draw', material: 'Draw' };
+function chessReset_() {
+  CHESS = newGame(); CHESS_HIST = []; CHESS_PICK = -1; CHESS_PROMO = null; CHESS_LAST = null; CHESS_ARM = 0;
+  CHESS_FX = null;
+}
+function initChess() {
+  if (!$('chess-board')) return;
+  if (!CHESS) chessReset_();
+  drawChess();
+}
+/* THE GAME IS OVER, and why. § */
+function chessEnd_(pos) {
+  const end = outcome(pos);
+  if (end) return end;
+  if (pos.halfmove >= 100) return 'fifty';
+  const rest = pos.board.filter(p => p !== '_' && p.toLowerCase() !== 'k');
+  if (!rest.length || (rest.length === 1 && /[bn]/i.test(rest[0]))) return 'material';
+  return null;
+}
+function chessStatus_() {
+  const end = chessEnd_(CHESS);
+  const side = chSide_(CHESS.turn), other = chSide_(CHESS.turn === CH_WHITE ? CH_BLACK : CH_WHITE);
+  if (end === 'mate') return `Checkmate — ${other} wins.`;
+  if (end === 'stalemate') return `Stalemate — ${side} has no legal move. A draw.`;
+  if (end === 'fifty') return 'A draw — 50 moves each with no capture and no pawn move.';
+  if (end === 'material') return 'A draw — neither side has enough left to checkmate.';
+  if (CHESS_PROMO) return `${side} — promote the pawn to:`;
+  return inCheck(CHESS, CHESS.turn) ? `${side} to move — check!` : `${side} to move`;
+}
+/* THE ROW UNDER THE BOARD IS TILES — the board is a thing. Drawn here and not in the widget's markup because tiles.js loads after map.js. */
+function chessTiles_() {
+  return tile_({ icon: 'undo', label: 'Undo', note: 'take back the last move', act: 'chess-undo', off: !CHESS_HIST.length })
+    + tile_({ icon: 'turn', label: chessTurnSaid_(), act: 'chess-turn', on: CHESS_TURNS, pressed: CHESS_TURNS })
+    + tile_({ icon: 'again', label: 'New game', act: 'chess-new' });
+}
+const chessTurnSaid_ = () => CHESS_TURNS ? 'The board turns to face each player' : 'The board stays with White at the foot';
+function drawChess(note) {
+  if (!CHESS) return;
+  const fx = CHESS_FX; CHESS_FX = null;
+  const moving = !!fx && motionOK_();
+  const end = chessEnd_(CHESS);
+  const mine = CHESS_PICK >= 0 ? legalMoves(CHESS).filter(m => m.from === CHESS_PICK) : [];
+  const checked = inCheck(CHESS, CHESS.turn) ? kingSquare(CHESS, CHESS.turn) : -1;
+  const board = CHESS.board.map((p, i) => {
+    const cls = ['sq', 'chess-sq', (file(i) + rank(i)) % 2 ? 'dk' : 'lt'];
+    if (i === CHESS_PICK) cls.push('pick');
+    /* A CAPTURE IS RINGED AND A QUIET MOVE IS A DOT — and en passant is a capture that lands on an
+       empty square, so it is asked of the move rather than of what is standing on the square. */
+    const hit = mine.find(m => m.to === i);
+    if (hit) cls.push(p !== '_' || hit.enpassant ? 'take' : 'can');
+    if (CHESS_LAST && (i === CHESS_LAST.from || i === CHESS_LAST.to)) cls.push('last');
+    if (i === CHESS_LAST?.to) cls.push('last-to');
+    if (i === checked) cls.push('chk');
+    if (i === checked && moving && fx.check) cls.push('is-new');
+    const fell = end === 'mate' && i === checked;
+    if (fell) cls.push('fell');
+    if (p !== '_') cls.push(isWhite(p) ? 'wp' : 'bp');
+    const who = p === '_' ? '' : ', ' + (isWhite(p) ? 'white ' : 'black ') + CH_NAME[p.toLowerCase()];
+    /* THE PIECE IS ITS OWN BOX so it can travel over the squares without the square going with it. */
+    return tile_({ form: true, look: cls.join(' '), act: 'chess-sq', data: { sq: i }, aria: chSq_(i) + who,
+      html: p === '_' ? '' : `<span class="pc${fell ? ' fallen' : ''}">${GLYPH[p]}</span>` });
+  }).join('');
+  /* PROMOTION IS ASKED, NOT ASSUMED. § */
+  const promo = CHESS_PROMO ? 'QRBN'.split('').map(q => {
+    const g = CHESS.turn === CH_WHITE ? q : q.toLowerCase();
+    return tile_({ form: true, look: 'btn quiet chess-pro ' + (CHESS.turn === CH_WHITE ? 'wp' : 'bp'), act: 'chess-promo',
+      data: { p: q }, aria: CH_NAME[q.toLowerCase()], html: GLYPH[g] });
+  }).join('') : '';
+  const armed = Date.now() - CHESS_ARM < 3000;
+  document.querySelectorAll('.chess-game').forEach(root => {
+    const b = root.querySelector('.chess');
+    if (b) {
+      b.innerHTML = board;
+      /* THE ENDING IS THE BOARD'S OWN LAYERS (`data-end`, ::before and ::after), not a child: every child of a board is a square (check/ui.js). */
+      b.classList.toggle('is-over', !!end);
+      b.classList.toggle('is-mate', end === 'mate');
+      if (end) b.setAttribute('data-end', CH_END_SAID[end] || 'Draw'); else b.removeAttribute('data-end');
+      b.classList.toggle('is-fresh', moving && !!fx.end);
+      if (moving) chessShow_(b, fx);
+    }
+    const s = root.querySelector('.chess-say');
+    if (s) { s.textContent = note || chessStatus_(); s.classList.toggle('is-note', !!note); }
+    const pr = root.querySelector('.chess-promo'); if (pr) { pr.innerHTML = promo; pr.hidden = !promo; }
+    const ctl = root.querySelector('.chess-ctl');
+    if (ctl) {
+      ctl.hidden = !!promo;
+      if (!ctl.querySelector('.tile')) ctl.innerHTML = chessTiles_();
+      tileSet_(ctl.querySelector('[data-do="chess-undo"]'), { off: !CHESS_HIST.length });
+      tileSet_(ctl.querySelector('[data-do="chess-turn"]'), { label: chessTurnSaid_(), on: CHESS_TURNS, pressed: CHESS_TURNS });
+      tileSet_(ctl.querySelector('[data-do="chess-new"]'), { label: armed ? 'Tap again to start over' : 'New game', on: armed });
+    }
+  });
+  chessFace_(moving && fx.glides ? Math.max(...fx.glides.map(g => chessGlideMs_(g[0], g[1]))) + 90 : 0);
+}
+/* THE SCALE AT EACH STEP OF THE TURN: a square turned by θ fits its old box at 1 / (|cos θ| + |sin θ|). Same easing as the stylesheet's turn, so they keep step. */
+const CHESS_TURN_KEYS = Array.from({ length: 13 }, (_, k) => {
+  const th = Math.PI * k / 12;
+  return { transform: `scale(${(1 / (Math.abs(Math.cos(th)) + Math.abs(Math.sin(th)))).toFixed(3)})`, offset: k / 12 };
+});
+/* ---------- THE BOARD TURNS AFTER THE PIECE HAS LANDED, never under it. A game that is over stays as it ended. ---------- */
+function chessFace_(wait) {
+  clearTimeout(CHESS_FACE_T);
+  const turn = () => {
+    const end = CHESS && chessEnd_(CHESS);
+    const flip = !!(CHESS && CHESS_TURNS && CHESS.turn === CH_BLACK);
+    document.querySelectorAll('.chess-game .chess').forEach(b => {
+      if (b.classList.contains('is-flipped') === flip || (end && CHESS_TURNS)) return;
+      b.classList.toggle('is-flipped', flip);
+      /* DRAWN BACK AS IT TURNS, exactly as far as keeps a turned square inside its own footprint, so no corner covers the words or leaves the screen. */
+      /* ITS TIME AND CURVE ARE THE BOARD'S OWN `--chess-turn`/`--chess-ease`, the ones its rotate transition uses, so the two never part (537). */
+      if (motionOK_() && typeof b.animate === 'function') {
+        const cs = getComputedStyle(b), sec = parseFloat(cs.getPropertyValue('--chess-turn'));
+        b.animate(CHESS_TURN_KEYS, { duration: isFinite(sec) ? sec * 1000 : MOTION_.move,
+                                     easing: cs.getPropertyValue('--chess-ease').trim() || MOTION_.spring });
+      }
+    });
+  };
+  /* A BOARD JUST REDRAWN IS STYLED FIRST, so its new pieces turn with it rather than starting the turn already turned. */
+  if (wait > 0) CHESS_FACE_T = setTimeout(turn, wait);
+  else { document.querySelectorAll('.chess-game .chess').forEach(b => void b.offsetWidth); turn(); }
+}
+/* ---------- WHAT A MOVE LOOKS LIKE: transforms and opacity only, so a phone composites it and paints nothing. ---------- */
+function chessShow_(b, fx) {
+  if (typeof b.animate !== 'function') return;
+  const sq = i => b.querySelector(`[data-sq="${i}"]`);
+  let land = 0;
+  (fx.glides || []).forEach(([a, z]) => {
+    const from = sq(a), to = sq(z), pc = to && to.querySelector('.pc');
+    if (!from || !pc) return;
+    const ra = from.getBoundingClientRect(), rz = to.getBoundingClientRect();
+    if (!ra.width) return;                                   // a copy that is not drawn has nothing to see
+    const dx = ra.left - rz.left, dy = ra.top - rz.top, ms = chessGlideMs_(a, z);
+    land = Math.max(land, ms);
+    to.classList.add('mv');
+    /* LIFTED, CARRIED, SET DOWN: a little bigger in the middle of the journey, as a hand lifts a piece. */
+    const an = pc.animate([
+      { transform: `translate(${dx}px, ${dy}px)` },
+      { transform: `translate(${dx / 2}px, ${dy / 2}px) scale(1.14)`, offset: 0.5 },
+      { transform: 'none' }], { duration: ms, easing: MOTION_.spring });
+    const done = () => to.classList.remove('mv');
+    an.onfinish = done; an.oncancel = done;
+  });
+  /* A CAPTURE: the taken piece holds its square until the taker arrives, then is knocked away, and the board jolts once. */
+  if (fx.took >= 0 && fx.gone && !fx.back) {
+    const at = sq(fx.took);
+    if (at) {
+      const g = document.createElement('span');
+      g.className = 'pc ghost ' + (isWhite(fx.gone) ? 'wp' : 'bp');
+      g.setAttribute('aria-hidden', 'true');
+      g.textContent = GLYPH[fx.gone];
+      at.prepend(g);
+      const knock = MOTION_.enter, hit = land ? Math.max(0.5, (land - 40) / (land + knock)) : 0;
+      const an = g.animate([
+        { opacity: 1, transform: 'none' },
+        { opacity: 1, transform: 'none', offset: hit },
+        { opacity: 0, transform: 'scale(.5) rotate(-18deg)' }], { duration: land + knock, easing: MOTION_.in, fill: 'forwards' });
+      const gone = () => g.remove();
+      an.onfinish = gone; an.oncancel = gone;
+      b.animate([
+        { transform: 'none' }, { transform: 'translate(-3px, 1px)' }, { transform: 'translate(3px, -1px)' },
+        { transform: 'translate(-1px, 0)' }, { transform: 'none' }], { duration: knock, delay: Math.max(0, land - 30) });
+    }
+  }
+  /* AN UNDONE CAPTURE COMES BACK, faded up where it stood. */
+  if (fx.back && fx.took >= 0) {
+    const pc = sq(fx.took)?.querySelector('.pc');
+    if (pc) pc.animate([{ opacity: 0, transform: 'scale(.6)' }, { opacity: 1, transform: 'none' }],
+                       { duration: MOTION_.move, delay: land * 0.5, easing: MOTION_.out, fill: 'backwards' });
+  }
+  /* CHECK: the king flinches as the threat lands; the ring that pulses round it is the stylesheet's (`.chk.is-new`). */
+  if (fx.check) {
+    const k = b.querySelector('.chk .pc');
+    if (k) k.animate([
+      { transform: 'none' }, { transform: 'translateX(-.06em) rotate(-6deg)' }, { transform: 'translateX(.06em) rotate(5deg)' },
+      { transform: 'translateX(-.03em) rotate(-2deg)' }, { transform: 'none' }], { duration: MOTION_.move * 1.5, delay: land });
+  }
+}
+/* ---------- AND WHAT IT SOUNDS LIKE, through the marking sounds' own context (`markHear_`, submit.js), woken by this press. ---------- */
+/* A KNOCK OF WOOD for a move, a deeper one for a capture, two rising notes for check, three falling for mate. Quiet: two people are talking over this board. */
+const CHESS_TONES = {
+  move:  [['triangle', 196, 0, 0.09, 0.07]],
+  take:  [['triangle', 131, 0, 0.16, 0.09], ['triangle', 262, 0, 0.06, 0.04]],
+  check: [['sine', 659, 0, 0.12, 0.03], ['sine', 988, 0.1, 0.2, 0.03]],
+  mate:  [['sine', 523, 0, 0.22, 0.035], ['sine', 392, 0.18, 0.26, 0.035], ['sine', 262, 0.4, 0.6, 0.04]],
+};
+function chessSound_(kind, wait) {
+  const notes = CHESS_TONES[kind];
+  if (!notes || typeof markHear_ !== 'function') return;
+  const ac = markHear_();
+  if (!ac) return;
+  const go = () => {
+    try {
+      if (ac.state !== 'running') return;
+      const t0 = ac.currentTime + 0.02 + (wait || 0) / 1000;
+      let end = t0;
+      notes.forEach(([type, f, at, len, peak]) => {
+        const a = t0 + at, z = a + len;
+        const g = ac.createGain();
+        g.gain.setValueAtTime(0, a);
+        g.gain.linearRampToValueAtTime(peak, a + 0.006);
+        g.gain.exponentialRampToValueAtTime(peak / 1000, z);
+        g.connect(ac.destination);
+        const o = ac.createOscillator();
+        o.type = type;
+        o.frequency.setValueAtTime(f, a);
+        o.connect(g);
+        o.start(a);
+        o.stop(z + 0.02);
+        end = Math.max(end, z);
+      });
+      if (typeof markRest_ === 'function') markRest_(Math.max(0, end - ac.currentTime) * 1000 + MARK_REST_MS);
+    } catch (e) {}
+  };
+  if (ac.state === 'running') { go(); return; }
+  try { const p = ac.resume(); if (p && typeof p.then === 'function') p.then(go, () => {}); } catch (e) {}
+}
+function chessPlay_(m) {
+  const took = m.enpassant ? idx(file(m.to), rank(m.from)) : (CHESS.board[m.to] !== '_' ? m.to : -1);
+  const fx = { glides: [[m.from, m.to]].concat(m.castle ? [CH_ROOK[m.castle]] : []),
+               took: took, gone: took >= 0 ? CHESS.board[took] : '' };
+  CHESS_HIST.push({ pos: CHESS, last: CHESS_LAST, fx: fx });
+  CHESS = play(CHESS, m);
+  CHESS_LAST = { from: m.from, to: m.to };
+  CHESS_PICK = -1; CHESS_PROMO = null; CHESS_ARM = 0;
+  const end = chessEnd_(CHESS), check = !end && inCheck(CHESS, CHESS.turn);
+  CHESS_FX = Object.assign({}, fx, { end: end, check: check });
+  drawChess();
+  /* HEARD AS THE PIECE LANDS, not as the finger lifts. */
+  const land = motionOK_() ? Math.max(...fx.glides.map(g => chessGlideMs_(g[0], g[1]))) : 0;
+  chessSound_(end === 'mate' ? 'mate' : check ? 'check' : took >= 0 ? 'take' : 'move', land);
+}
+/* A TAP. Three things it can mean and they are tried in the order a player means them: § */
+on('chess-sq', el => {
+  if (!CHESS) chessReset_();
+  const i = Number(el.dataset.sq);
+  if (chessEnd_(CHESS)) return drawChess('The game is over — New game to play again.');
+  if (CHESS_PROMO) return drawChess();
+  const moves = legalMoves(CHESS);
+  if (CHESS_PICK >= 0) {
+    const hits = moves.filter(m => m.from === CHESS_PICK && m.to === i);
+    if (hits.length) {
+      if (hits.some(m => m.promote)) { CHESS_PROMO = { from: CHESS_PICK, to: i }; return drawChess(); }
+      return chessPlay_(hits[0]);
+    }
+  }
+  const p = CHESS.board[i];
+  if (p !== '_' && colourOf(p) === CHESS.turn) {
+    CHESS_PICK = CHESS_PICK === i ? -1 : i;        // the same piece again puts it back down
+    if (CHESS_PICK >= 0 && !moves.some(m => m.from === i))
+      return drawChess(`That ${CH_NAME[p.toLowerCase()]} has no legal move${inCheck(CHESS, CHESS.turn) ? ' — you are in check' : ''}.`);
+    return drawChess();
+  }
+  const wasPicked = CHESS_PICK >= 0;
+  CHESS_PICK = -1;
+  if (wasPicked) return drawChess(inCheck(CHESS, CHESS.turn) ? 'Not legal — you are in check.' : 'That piece cannot go there.');
+  if (p !== '_') return drawChess(`It is ${chSide_(CHESS.turn)}'s move.`);
+  drawChess();
+});
+on('chess-promo', el => {
+  if (!CHESS_PROMO) return drawChess();
+  const m = legalMoves(CHESS).find(x => x.from === CHESS_PROMO.from && x.to === CHESS_PROMO.to && x.promote === el.dataset.p);
+  if (m) chessPlay_(m); else { CHESS_PROMO = null; drawChess(); }
+});
+/* UNDO takes back one move, either side's — two people at one board agree on that out loud, and an app that refused it would be stricter than the table. § */
+on('chess-undo', () => {
+  if (!CHESS) return;
+  if (CHESS_PROMO) { CHESS_PROMO = null; CHESS_PICK = -1; return drawChess(); }
+  const h = CHESS_HIST.pop();
+  /* THE MOVE GOES BACK THE WAY IT CAME, and what it took is put back on its square. */
+  if (h) {
+    CHESS = h.pos; CHESS_LAST = h.last;
+    if (h.fx) CHESS_FX = { glides: h.fx.glides.map(([a, z]) => [z, a]), took: h.fx.took, back: true };
+  }
+  CHESS_PICK = -1; CHESS_ARM = 0;
+  drawChess();
+});
+/* TURN THE BOARD: a switch, saying the state it is in. On, the board turns now if it is Black's move, and after every move from here. */
+on('chess-turn', () => {
+  CHESS_TURNS = !CHESS_TURNS;
+  if (typeof keepPut_ === 'function') keepPut_('chess-turns', CHESS_TURNS ? '1' : null, true);
+  if (!CHESS) chessReset_();
+  drawChess(CHESS_TURNS ? 'The board turns with each move.' : 'White stays at the foot.');
+});
+/* NEW GAME THROWS A GAME AWAY, so a game in progress asks twice — the line above the board says so and goes back
+   by itself. A finished game or an empty board starts over at once: there is nothing to lose. */
+on('chess-new', () => {
+  const live = CHESS && CHESS_HIST.length && !chessEnd_(CHESS);
+  if (live && Date.now() - CHESS_ARM >= 3000) {
+    CHESS_ARM = Date.now();
+    setTimeout(() => drawChess(), 3100);
+    return drawChess('Tap New game again to start over.');
+  }
+  chessReset_();
+  drawChess();
+});
+/* CONNECT 4, OTHELLO AND HERD MENTALITY THREE GAMES, ONE SHAPE. § */
+
+/* ---------- CONNECT 4 § */
+const C4_W = 7, C4_H = 6;
+let c4 = null;
+/* THE TWO SIDES, NAMED ONCE. § */
+const C4_NAME = { 1: 'Red', 2: 'Yellow' };
+function initConnect4() {
+  const host = $('c4-board');
+  if (!host) return;
+  /* REBUILT FROM NOTHING EVERY TIME THE WIDGET OPENS. § */
+  /* `last` IS THE COUNTER JUST PLAYED, which is the one that falls — see `c4Paint`. `win` is the
+     line that ended the game, which is ringed. */
+  c4 = { cells: new Array(C4_W * C4_H).fill(0), turn: 1, over: false, said: 'Red starts — tap a column.',
+         last: null, win: null };
+  c4Paint();
+}
+const c4At = (x, y) => c4.cells[y * C4_W + x];
+/* THE LOWEST EMPTY SQUARE IN A COLUMN, or -1 when it is full. Everything else asks this. */
+function c4Drop_(cells, x) {
+  for (let y = C4_H - 1; y >= 0; y--) if (!cells[y * C4_W + x]) return y;
+  return -1;
+}
+/* FOUR IN A LINE THROUGH A SQUARE, checked in the four directions that matter. § */
+function c4Line_(cells, x, y, who) {
+  const dirs = [[1, 0], [0, 1], [1, 1], [1, -1]];
+  const won = [];
+  dirs.forEach(([dx, dy]) => {
+    const line = [y * C4_W + x];
+    for (const s of [1, -1]) {
+      for (let i = 1; i < 4; i++) {
+        const nx = x + dx * i * s, ny = y + dy * i * s;
+        if (nx < 0 || nx >= C4_W || ny < 0 || ny >= C4_H) break;
+        if (cells[ny * C4_W + nx] !== who) break;
+        line.push(ny * C4_W + nx);
+      }
+    }
+    if (line.length >= 4) line.forEach(i => { if (won.indexOf(i) < 0) won.push(i); });
+  });
+  return won;
+}
+function c4Play_(x) {
+  if (!c4 || c4.over) return;
+  const y = c4Drop_(c4.cells, x);
+  /* A FULL COLUMN PLAYS NOTHING, SO NOTHING FALLS: `last` is not set, and the paint that showed the
+     previous counter has already spent it — see `c4Paint`. */
+  if (y < 0) { c4.said = 'That column is full.'; return; }
+  c4.cells[y * C4_W + x] = c4.turn;
+  c4.last = { x, y };
+  const line = c4Line_(c4.cells, x, y, c4.turn);
+  if (line.length) {
+    c4.over = true;
+    c4.win = line;
+    c4.said = C4_NAME[c4.turn] + ' wins.';
+  } else if (c4.cells.every(Boolean)) {
+    c4.over = true; c4.said = 'Full board — a draw.';
+  } else {
+    c4.turn = c4.turn === 1 ? 2 : 1;
+    c4.said = C4_NAME[c4.turn] + '\u2019s go.';
+  }
+}
+/* ---------- THE COUNTER FALLS, AND THE FOUR THAT WON ARE RINGED § */
+function c4Paint() {
+  const host = $('c4-board');
+  if (!host || !c4) return;
+  const last = c4.last;
+  c4.last = null;
+  const win = c4.win || [];
+  let html = '';
+  for (let y = 0; y < C4_H; y++) {
+    for (let x = 0; x < C4_W; x++) {
+      const v = c4At(x, y);
+      const fell = last && last.x === x && last.y === y;
+      /* THE WHOLE COLUMN IS ONE TARGET, so every square in it carries the same `data-x` and the
+         same label. A screen reader hears "column 4" six times rather than 42 unnamed squares. */
+      /* HOW FAR IT FELL is a class (`c4-f1`…`c4-f6`), which style.css turns into the fall's length. */
+      html += tile_({ form: true, look: 'c4-cell' + (v ? (v === 1 ? ' p1' : ' p2') : '') + (fell ? ' c4-new c4-f' + (y + 1) : '')
+        + (win.indexOf(y * C4_W + x) >= 0 ? ' c4-win' : ''), act: 'c4-play', data: { x }, aria: 'Column ' + (x + 1), off: !!c4.over, html: '' });
+    }
+  }
+  host.innerHTML = html;
+  const said = $('c4-said');
+  if (said) {
+    const draw = c4.over && !win.length;
+    said.innerHTML = (draw ? '' : `<i class="c4-turn ${c4.turn === 1 ? 'p1' : 'p2'}" aria-hidden="true"></i>`)
+      + esc(c4.said);
+  }
+}
+on('c4-play', el => {
+  c4Play_(Number(el.getAttribute('data-x')));
+  c4Paint();
+});
+on('c4-again', () => { initConnect4(); });
+/* ---------- OTHELLO § */
+const OTH_N = 8;
+let oth = null;
+const OTH_NAME = { 1: 'Red', 2: 'Blue' };
+function initOthello() {
+  if (!$('oth-board')) return;
+  const cells = new Array(OTH_N * OTH_N).fill(0);
+  const m = OTH_N / 2;
+  cells[(m - 1) * OTH_N + (m - 1)] = 2; cells[(m - 1) * OTH_N + m] = 1;
+  cells[m * OTH_N + (m - 1)] = 1;       cells[m * OTH_N + m] = 2;
+  oth = { cells, turn: 1, over: false, said: 'Red starts.' };
+  othPaint();
+}
+function othFlips_(cells, i, who) {
+  if (cells[i]) return [];
+  const x0 = i % OTH_N, y0 = (i / OTH_N) | 0, them = who === 1 ? 2 : 1, out = [];
+  for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
+    if (!dx && !dy) continue;
+    const run = [];
+    let x = x0 + dx, y = y0 + dy;
+    while (x >= 0 && x < OTH_N && y >= 0 && y < OTH_N && cells[y * OTH_N + x] === them) {
+      run.push(y * OTH_N + x); x += dx; y += dy;
+    }
+    /* THE LINE ONLY COUNTS IF IT IS CLOSED BY ONE OF YOURS. A run that walks off the edge, or into
+       an empty square, brackets nothing — which is the half of this rule that is easy to forget. */
+    if (run.length && x >= 0 && x < OTH_N && y >= 0 && y < OTH_N && cells[y * OTH_N + x] === who) {
+      out.push(...run);
+    }
+  }
+  return out;
+}
+const othMoves_ = (cells, who) => {
+  const out = [];
+  for (let i = 0; i < cells.length; i++) if (othFlips_(cells, i, who).length) out.push(i);
+  return out;
+};
+const othScore_ = cells => cells.reduce((a, v) => (v === 1 ? [a[0] + 1, a[1]] : v === 2 ? [a[0], a[1] + 1] : a), [0, 0]);
+function othPlay_(i, who) {
+  const flips = othFlips_(oth.cells, i, who);
+  if (!flips.length) return false;
+  oth.cells[i] = who;
+  flips.forEach(j => { oth.cells[j] = who; });
+  return true;
+}
+/* WHOSE TURN IT IS NEXT, which is not simply "the other one". */
+function othAdvance_() {
+  const other = oth.turn === 1 ? 2 : 1;
+  if (othMoves_(oth.cells, other).length) { oth.turn = other; oth.said = OTH_NAME[other] + '\u2019s go.'; return; }
+  if (othMoves_(oth.cells, oth.turn).length) {
+    oth.said = OTH_NAME[other] + ' has no move \u2014 ' + OTH_NAME[oth.turn] + ' goes again.';
+    return;                                            // the same player goes again
+  }
+  oth.over = true;
+  const [b, w] = othScore_(oth.cells);
+  oth.said = b === w ? `Level, ${b}\u2013${w}.`
+           : b > w ? `Red wins, ${b}\u2013${w}.` : `Blue wins, ${w}\u2013${b}.`;
+}
+function othPaint() {
+  const host = $('oth-board');
+  if (!host || !oth) return;
+  let html = '';
+  for (let i = 0; i < oth.cells.length; i++) {
+    const v = oth.cells[i];
+    html += tile_({ form: true, look: 'oth-cell' + (v === 1 ? ' p1' : v === 2 ? ' p2' : ''), act: 'oth-play', data: { i },
+      aria: 'Row ' + (((i / OTH_N) | 0) + 1) + ' column ' + ((i % OTH_N) + 1), off: !!(v || oth.over), html: '' });
+  }
+  host.innerHTML = html;
+  const [b, w] = othScore_(oth.cells);
+  const sc = $('oth-score'); if (sc) sc.textContent = b + ' \u2013 ' + w;
+  const said = $('oth-said'); if (said) said.textContent = oth.said;
+}
+on('oth-play', el => {
+  if (!oth || oth.over) return;
+  /* THE TAP IS ALWAYS ANSWERED, and what it says is the rule rather than the answer: "nothing to
+     trap there" is true of every illegal square and names none of the legal ones. */
+  if (!othPlay_(Number(el.getAttribute('data-i')), oth.turn)) {
+    oth.said = 'Nothing to trap there \u2014 ' + OTH_NAME[oth.turn] + ' again.';
+    othPaint();
+    return;
+  }
+  othAdvance_();
+  othPaint();
+});
+on('oth-again', () => { initOthello(); });
+/* ---------- MAZE § */
+const MAZE_N = 11;
+/* ONE BIT PER WALL, so a cell is a number and carving is two lines. Read as compass points
+   everywhere below, which is why the pad's buttons carry the same four letters. */
+const MZ_N = 1, MZ_E = 2, MZ_S = 4, MZ_W = 8;
+const MZ_DIRS = {
+  n: { dx: 0, dy: -1, bit: MZ_N, back: MZ_S },
+  e: { dx: 1, dy: 0, bit: MZ_E, back: MZ_W },
+  s: { dx: 0, dy: 1, bit: MZ_S, back: MZ_N },
+  w: { dx: -1, dy: 0, bit: MZ_W, back: MZ_E }
+};
+let maze = null;
+const mzAt_ = (x, y) => y * MAZE_N + x;
+const mzIn_ = (x, y) => x >= 0 && x < MAZE_N && y >= 0 && y < MAZE_N;
+/* EVERY WALL UP, THEN A WALK THAT KNOCKS THEM DOWN. Iterative rather than recursive: a 121-cell
+   maze is fine either way and a bigger one would not be, and a stack written out is a stack you can
+   see the size of. */
+function mzBuild_() {
+  const cells = new Array(MAZE_N * MAZE_N).fill(MZ_N | MZ_E | MZ_S | MZ_W);
+  const seen = new Array(MAZE_N * MAZE_N).fill(false);
+  const stack = [[0, 0]];
+  seen[0] = true;
+  while (stack.length) {
+    const [x, y] = stack[stack.length - 1];
+    /* THE NEIGHBOURS NOT YET REACHED, shuffled, because taking them in a fixed order carves the
+       same maze every time and taking the first one always carves a staircase. */
+    const open = Object.keys(MZ_DIRS).filter(k => {
+      const d = MZ_DIRS[k];
+      return mzIn_(x + d.dx, y + d.dy) && !seen[mzAt_(x + d.dx, y + d.dy)];
+    });
+    if (!open.length) { stack.pop(); continue; }
+    const k = open[Math.floor(Math.random() * open.length)];
+    const d = MZ_DIRS[k];
+    const nx = x + d.dx, ny = y + d.dy;
+    /* BOTH SIDES OF THE SAME WALL. A wall belongs to two cells and removing it from one leaves a
+       door you can walk through in one direction only — which draws correctly and plays wrongly. */
+    cells[mzAt_(x, y)] &= ~d.bit;
+    cells[mzAt_(nx, ny)] &= ~d.back;
+    seen[mzAt_(nx, ny)] = true;
+    stack.push([nx, ny]);
+  }
+  return cells;
+}
+/* THE FEWEST MOVES THERE ARE. Breadth-first, so the first time the exit is reached is by the
+   shortest route — depth-first would find A route and call it the answer. */
+function mzShortest_(cells) {
+  const dist = new Array(MAZE_N * MAZE_N).fill(-1);
+  const q = [0];
+  dist[0] = 0;
+  for (let i = 0; i < q.length; i++) {
+    const at = q[i], x = at % MAZE_N, y = (at / MAZE_N) | 0;
+    Object.keys(MZ_DIRS).forEach(k => {
+      const d = MZ_DIRS[k];
+      if (cells[at] & d.bit) return;                       // a wall is not a way out
+      const nx = x + d.dx, ny = y + d.dy;
+      if (!mzIn_(nx, ny) || dist[mzAt_(nx, ny)] !== -1) return;
+      dist[mzAt_(nx, ny)] = dist[at] + 1;
+      q.push(mzAt_(nx, ny));
+    });
+  }
+  return dist[MAZE_N * MAZE_N - 1];
+}
+/* ---------- A MAZE IS KEPT UNTIL IT IS FINISHED, OR UNTIL `New maze` § */
+function initMaze() {
+  if (!$('maze-grid')) return;
+  if (!maze || maze.over) mzDeal_();
+  mazePaint();
+}
+function mzDeal_() {
+  const cells = mzBuild_();
+  /* NOTHING SAID AT THE START, because the line under the heading already says where you are going and this sat under it repeating it word for word -- which is the § */
+  maze = { cells, x: 0, y: 0, moves: 0, best: mzShortest_(cells),
+           trail: { 0: true }, over: false, said: '' };
+}
+function mzMove_(k) {
+  if (!maze || maze.over) return;
+  const d = MZ_DIRS[k];
+  if (!d) return;
+  /* A WALL STOPS YOU AND SAYS NOTHING. § */
+  if (maze.cells[mzAt_(maze.x, maze.y)] & d.bit) return;
+  const nx = maze.x + d.dx, ny = maze.y + d.dy;
+  if (!mzIn_(nx, ny)) return;
+  maze.x = nx; maze.y = ny;
+  maze.moves++;
+  maze.trail[mzAt_(nx, ny)] = true;
+  if (nx === MAZE_N - 1 && ny === MAZE_N - 1) {
+    maze.over = true;
+    maze.said = maze.moves === maze.best
+      ? 'Out in ' + maze.moves + ' — the shortest way there is.'
+      : 'Out in ' + maze.moves + '. The shortest way is ' + maze.best + '.';
+  }
+}
+function mazePaint() {
+  const host = $('maze-grid');
+  if (!host || !maze) return;
+  let html = '';
+  for (let y = 0; y < MAZE_N; y++) {
+    for (let x = 0; x < MAZE_N; x++) {
+      const v = maze.cells[mzAt_(x, y)];
+      /* THE WALLS ARE `mz-n`/`mz-e`/`mz-s`/`mz-w`, AND THEY WERE `wn`/`we`/`ws`/`ww`. § */
+      const cls = ['mz-cell'];
+      if (v & MZ_N) cls.push('mz-n');
+      if (v & MZ_E) cls.push('mz-e');
+      if (v & MZ_S) cls.push('mz-s');
+      if (v & MZ_W) cls.push('mz-w');
+      if (maze.trail[mzAt_(x, y)]) cls.push('been');
+      if (x === maze.x && y === maze.y) cls.push('you');
+      if (x === MAZE_N - 1 && y === MAZE_N - 1) cls.push('out');
+      html += '<i class="' + cls.join(' ') + '"></i>';
+    }
+  }
+  /* NOT A LIST OF 121 SQUARES TO A SCREEN READER. § */
+  host.innerHTML = html;
+  host.setAttribute('aria-label',
+    'Maze, row ' + (maze.y + 1) + ' of ' + MAZE_N + ', column ' + (maze.x + 1) + ' of ' + MAZE_N
+    + (maze.over ? ', out' : ''));
+  const said = $('maze-said'); if (said) said.textContent = maze.said;
+  const n = $('maze-moves'); if (n) n.textContent = String(maze.moves);
+}
+on('maze-go', el => { mzMove_(el.getAttribute('data-d')); mazePaint(); });
+on('maze-again', () => { mzDeal_(); mazePaint(); });
+/* SCRABBLE — two, three or four people, one phone. § */
+const SCR_N = 15;
+/* THE STANDARD ENGLISH SET — 100 tiles, and the two blanks are the empty string. § */
+const SCR_SET = [
+  ['A', 9, 1], ['B', 2, 3], ['C', 2, 3], ['D', 4, 2], ['E', 12, 1], ['F', 2, 4], ['G', 3, 2],
+  ['H', 2, 4], ['I', 9, 1], ['J', 1, 8], ['K', 1, 5], ['L', 4, 1], ['M', 2, 3], ['N', 6, 1],
+  ['O', 8, 1], ['P', 2, 3], ['Q', 1, 10], ['R', 6, 1], ['S', 4, 1], ['T', 6, 1], ['U', 4, 1],
+  ['V', 2, 4], ['W', 2, 4], ['X', 1, 8], ['Y', 2, 4], ['Z', 1, 10], ['', 2, 0],
+];
+const SCR_VALUE = {};
+/* ---------- THE PREMIUM SQUARES, BUILT FROM ONE QUADRANT § */
+const SCR_QUAD = [
+  'T..d...T',
+  '.D...t..',
+  '..D...d.',
+  'd..D...d',
+  '....D...',
+  '.t...t..',
+  '..d...d.',
+  'T..d...D',
+];
+function scrPrem_(i) {
+  const r = (i / SCR_N) | 0, c = i % SCR_N;
+  return SCR_QUAD[Math.min(r, SCR_N - 1 - r)][Math.min(c, SCR_N - 1 - c)];
+}
+const SCR_MID = ((SCR_N * SCR_N) - 1) / 2;
+let scrabble = null;
+/* Fisher-Yates, for the reason `herdShuffle_` gives: `sort(() => Math.random() - .5)` is the famous
+   wrong one and deals the same few orders far too often. */
+function scrShuffle_(a) {
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a;
+}
+function scrBag_() {
+  const bag = [];
+  SCR_SET.forEach(t => { for (let i = 0; i < t[1]; i++) bag.push(t[0]); });
+  return scrShuffle_(bag);
+}
+function scrDraw_(g, rack) {
+  while (rack.length < 7 && g.bag.length) rack.push(g.bag.pop());
+}
+function scrNew_(n) {
+  const g = { bag: scrBag_(), players: [], turn: 0, board: new Array(SCR_N * SCR_N).fill(null),
+              placed: [], sel: null, swap: null, blank: null, first: true,
+              handover: false, passes: 0, over: false, said: '' };
+  for (let i = 0; i < n; i++) {
+    const rack = [];
+    scrDraw_(g, rack);
+    g.players.push({ name: 'Player ' + (i + 1), rack, score: 0 });
+  }
+  return g;
+}
+function scrPlace_(g, i, rackIndex) {
+  const p = g.players[g.turn];
+  const letter = p.rack[rackIndex];
+  g.board[i] = { letter: letter || '?', blank: letter === '', fresh: true, from: rackIndex };
+  g.placed.push(i);
+}
+function scrRecall_(g) {
+  g.placed.forEach(i => { g.board[i] = null; });
+  g.placed = [];
+  g.sel = null;
+  g.blank = null;
+}
+/* ---------- THE RULES THAT ARE NOT A MATTER OF OPINION § */
+function scrIllegal_(g) {
+  if (!g.placed.length) return 'Put some tiles down first.';
+  const rows = {}, cols = {};
+  g.placed.forEach(i => { rows[(i / SCR_N) | 0] = 1; cols[i % SCR_N] = 1; });
+  const oneRow = Object.keys(rows).length === 1, oneCol = Object.keys(cols).length === 1;
+  if (!oneRow && !oneCol) return 'All your tiles have to be in one row or one column.';
+
+  /* NO GAPS, counting the tiles that were already there — a word may bridge a letter somebody else
+     played, and that is not a gap. */
+  const step = oneRow ? 1 : SCR_N;
+  const sorted = g.placed.slice().sort((a, b) => a - b);
+  for (let i = sorted[0]; i <= sorted[sorted.length - 1]; i += step) {
+    if (!g.board[i]) return 'There is a gap in your word.';
+  }
+
+  if (g.first) {
+    if (g.placed.indexOf(SCR_MID) < 0) return 'The first word has to cover the middle square.';
+    if (g.placed.length < 2) return 'The first word needs at least 2 letters.';
+    return '';
+  }
+  /* AND IT HAS TO TOUCH SOMETHING. After the first move a word floating on its own is the one
+     mistake that looks perfectly reasonable on screen. */
+  const touches = g.placed.some(i => {
+    const r = (i / SCR_N) | 0, c = i % SCR_N;
+    return [[r - 1, c], [r + 1, c], [r, c - 1], [r, c + 1]].some(([rr, cc]) => {
+      if (rr < 0 || cc < 0 || rr >= SCR_N || cc >= SCR_N) return false;
+      const t = g.board[rr * SCR_N + cc];
+      return !!t && !t.fresh;
+    });
+  });
+  return touches ? '' : 'Your word has to touch a tile that is already down.';
+}
+/* ---------- WHAT IT SCORES § */
+function scrWordAt_(g, i, step) {
+  let start = i;
+  while (start - step >= 0 && scrSameLine_(start, start - step, step) && g.board[start - step]) {
+    start -= step;
+  }
+  const out = [];
+  for (let j = start; j < SCR_N * SCR_N && g.board[j]; j += step) {
+    out.push(j);
+    if (!scrSameLine_(j, j + step, step)) break;
+  }
+  return out;
+}
+/* A STEP OF 1 MAY NOT CROSS A ROW END, which an index alone cannot say — 14 and 15 are adjacent
+   numbers and opposite ends of the board. */
+function scrSameLine_(a, b, step) {
+  if (b < 0 || b >= SCR_N * SCR_N) return false;
+  return step === SCR_N || ((a / SCR_N) | 0) === ((b / SCR_N) | 0);
+}
+function scrScoreWord_(g, idx) {
+  let sum = 0, mult = 1;
+  idx.forEach(i => {
+    const t = g.board[i];
+    let v = t.blank ? 0 : (SCR_VALUE[t.letter] || 0);
+    if (t.fresh) {
+      const p = scrPrem_(i);
+      if (p === 'd') v *= 2;
+      else if (p === 't') v *= 3;
+      else if (p === 'D') mult *= 2;
+      else if (p === 'T') mult *= 3;
+    }
+    sum += v;
+  });
+  return sum * mult;
+}
+function scrScore_(g) {
+  const rows = {}, cols = {};
+  g.placed.forEach(i => { rows[(i / SCR_N) | 0] = 1; cols[i % SCR_N] = 1; });
+  const acrossMain = Object.keys(rows).length === 1 && g.placed.length > 1;
+  const main = acrossMain ? scrWordAt_(g, g.placed[0], 1) : scrWordAt_(g, g.placed[0], SCR_N);
+  const words = [];
+  if (main.length > 1) words.push(main);
+  /* A one-tile move belongs to both directions and neither is "the main word", so both are gathered
+     the same way as a cross word and the pair is scored once each. */
+  g.placed.forEach(i => {
+    const cross = acrossMain || g.placed.length === 1 ? scrWordAt_(g, i, SCR_N) : scrWordAt_(g, i, 1);
+    if (cross.length > 1 && !words.some(w => w[0] === cross[0] && w.length === cross.length)) {
+      words.push(cross);
+    }
+    if (g.placed.length === 1) {
+      const other = scrWordAt_(g, i, 1);
+      if (other.length > 1 && !words.some(w => w[0] === other[0] && w.length === other.length)) {
+        words.push(other);
+      }
+    }
+  });
+  let total = words.reduce((n, w) => n + scrScoreWord_(g, w), 0);
+  /* SEVEN TILES IS FIFTY, which is the game's own number and the thing everybody plays for. */
+  if (g.placed.length === 7) total += 50;
+  return { total, words: words.length };
+}
+function scrPlay_(g) {
+  const why = scrIllegal_(g);
+  if (why) { g.said = why; return; }
+  const { total } = scrScore_(g);
+  const p = g.players[g.turn];
+  p.score += total;
+  /* THE RACK LOSES THE TILES THAT WENT DOWN, by index, highest first — splicing low-to-high moves
+     every index after the one removed and takes the wrong tile off next. */
+  g.placed.map(i => g.board[i].from).sort((a, b) => b - a).forEach(n => { p.rack.splice(n, 1); });
+  g.placed.forEach(i => { g.board[i].fresh = false; delete g.board[i].from; });
+  const bingo = g.placed.length === 7;
+  g.placed = [];
+  g.sel = null;
+  g.first = false;
+  g.passes = 0;
+  scrDraw_(g, p.rack);
+  g.said = p.name + ' scored ' + total + (bingo ? ' — all 7, 50 on top.' : '.');
+  /* THE GAME ENDS WHEN SOMEBODY GOES OUT AND THERE IS NOTHING LEFT TO DRAW. § */
+  if (!p.rack.length && !g.bag.length) { scrFinish_(g, p); return; }
+  scrNext_(g);
+}
+function scrFinish_(g, out) {
+  let picked = 0;
+  g.players.forEach(q => {
+    if (q === out) return;
+    const left = q.rack.reduce((n, l) => n + (SCR_VALUE[l] || 0), 0);
+    q.score -= left;
+    picked += left;
+  });
+  if (out) out.score += picked;
+  g.over = true;
+  g.handover = false;
+  const best = g.players.slice().sort((a, b) => b.score - a.score);
+  g.said = best[0].score === best[1].score
+    ? 'A draw on ' + best[0].score + '.'
+    : best[0].name + ' wins on ' + best[0].score + '.';
+}
+function scrNext_(g) {
+  g.turn = (g.turn + 1) % g.players.length;
+  g.sel = null;
+  g.blank = null;
+  g.swap = null;
+  /* THE HAND-OVER IS THE STATE, not a message. Until the next player taps, the rack is not drawn at
+     all — a rack you can read on the way past is a rack that is not secret. */
+  g.handover = true;
+}
+function scrPass_(g) {
+  scrRecall_(g);
+  g.passes++;
+  g.said = g.players[g.turn].name + ' passed.';
+  /* TWICE ROUND AND NOBODY CAN MOVE. The printed rules end it after six scoreless turns; two
+     passes each is the same idea at any number of players and needs no second counter. */
+  if (g.passes >= g.players.length * 2) { scrFinish_(g, null); return; }
+  scrNext_(g);
+}
+function scrSwapDo_(g) {
+  const p = g.players[g.turn];
+  const marked = (g.swap || []).slice().sort((a, b) => b - a);
+  if (!marked.length) { g.swap = null; g.said = ''; return; }
+  if (marked.length > g.bag.length) {
+    g.said = 'Only ' + g.bag.length + ' left in the bag — you can swap that many.';
+    return;
+  }
+  const back = marked.map(n => p.rack[n]);
+  marked.forEach(n => { p.rack.splice(n, 1); });
+  scrDraw_(g, p.rack);
+  back.forEach(l => g.bag.push(l));
+  scrShuffle_(g.bag);
+  g.passes++;
+  g.said = p.name + ' swapped ' + back.length + '.';
+  if (g.passes >= g.players.length * 2) { scrFinish_(g, null); return; }
+  scrNext_(g);
+}
+function initScrabble() {
+  if (!$('scr-board')) return;
+  scrabblePaint();
+}
+function scrCellsHtml_(g) {
+  let html = '';
+  for (let i = 0; i < SCR_N * SCR_N; i++) {
+    const t = g ? g.board[i] : null;
+    const p = scrPrem_(i);
+    const cls = ['scr-sq'];
+    if (p === 'T') cls.push('tw'); else if (p === 'D') cls.push('dw');
+    else if (p === 't') cls.push('tl'); else if (p === 'd') cls.push('dl');
+    if (i === SCR_MID) cls.push('mid');
+    if (t) cls.push('has');
+    if (t && t.fresh) cls.push('new');
+    const v = t && !t.blank ? (SCR_VALUE[t.letter] || 0) : 0;
+    /* ---------- A SQUARE IS ONLY A CONTROL WHILE THERE IS A GAME § */
+    if (!g) { html += '<i class="' + cls.join(' ') + '"></i>'; continue; }
+    html += tile_({ form: true, look: cls.join(' '), act: 'scr-cell', data: { i },
+      aria: 'Row ' + (((i / SCR_N) | 0) + 1) + ' column ' + ((i % SCR_N) + 1) + (t ? ', ' + (t.blank ? 'blank as ' : '') + t.letter : ''),
+      html: t ? esc(t.letter) + (v ? '<i>' + v + '</i>' : '') : '' });
+  }
+  return html;
+}
+function scrRackHtml_(g) {
+  const p = g.players[g.turn];
+  if (g.handover) {
+    return '<p class="scr-hand">Hand the phone to <b>' + esc(p.name) + '</b>.</p>'
+      + '' + tile_({ form: true, label: 'I have it', act: 'scr-hand' }) + '';
+  }
+  /* ---------- TWENTY-SIX LETTERS, AND NOT AS TWENTY-SIX BUTTONS § */
+  if (g.blank !== null) {
+    let opts = '<option value="">The blank is…</option>';
+    for (let n = 0; n < 26; n++) {
+      const l = String.fromCharCode(65 + n);
+      opts += '<option value="' + l + '">' + l + '</option>';
+    }
+    return '<p class="scr-say">What is the blank?</p>'
+      + '<select class="scr-sel" data-do="scr-blank" aria-label="What the blank stands for">'
+      + opts + '</select>';
+  }
+  /* ---------- A TILE THAT IS ON THE BOARD IS NOT ON THE RACK § */
+  const used = {};
+  g.placed.forEach(i => { used[g.board[i].from] = 1; });
+
+  let html = '<div class="scr-rack">';
+  p.rack.forEach((l, n) => {
+    const marked = g.swap && g.swap.indexOf(n) >= 0;
+    const gone = !!used[n];
+    html += tile_({ form: true, look: 'scr-tile' + (g.sel === n ? ' on' : '') + (marked ? ' mark' : '') + (gone ? ' used' : ''),
+      act: 'scr-rack', data: { i: n }, aria: gone ? 'That tile is on the board' : l ? 'Tile ' + l : 'Blank tile',
+      html: gone || !l ? '' : esc(l) + '<i>' + (SCR_VALUE[l] || 0) + '</i>' });
+  });
+  html += '</div>';
+  return html;
+}
+function scrabblePaint() {
+  const host = $('scr-board');
+  if (!host) return;
+  const g = scrabble;
+  host.innerHTML = scrCellsHtml_(g);
+
+  const who = $('scr-who');
+  const rack = $('scr-rack-box');
+  const acts = $('scr-acts');
+  const said = $('scr-said');
+  const start = $('scr-start');
+
+  if (!g) {
+    if (start) start.hidden = false;
+    if (who) who.textContent = '';
+    if (rack) rack.innerHTML = '';
+    if (acts) acts.innerHTML = '';
+    if (said) said.textContent = '';
+    return;
+  }
+  /* THE PLAYER-COUNT ROW COMES BACK WHEN THE GAME IS OVER, because at that point "2, 3 or 4 players" IS "new game" and a second control saying so is a second thing § */
+  if (start) start.hidden = !g.over;
+
+  if (who) {
+    who.innerHTML = g.players.map((p, n) =>
+      '<span class="scr-p' + (n === g.turn && !g.over ? ' on' : '') + '">'
+      + esc(p.name) + ' <b>' + p.score + '</b></span>').join('');
+  }
+  if (rack) rack.innerHTML = g.over ? '' : scrRackHtml_(g);
+  if (acts) {
+    /* BUILT, NOT HIDDEN. See the note beside the empty div in map.js: a hidden control is still a
+       control to anything that presses the page, and four of these do nothing between turns. */
+    /* EVERY ACTION WRITTEN OUT AS A LITERAL, not built from a list. § */
+    const playLabel = g.swap
+      ? (g.swap.length ? 'Swap ' + g.swap.length : 'Cancel swap')
+      : 'Play';
+    acts.innerHTML = (g.over || g.handover || g.blank !== null) ? ''
+      : tile_({ form: true, look: 'scr-act', act: 'scr-play', label: playLabel })
+      + tile_({ form: true, look: 'scr-act', act: 'scr-recall', label: 'Take back' })
+      + tile_({ form: true, look: 'scr-act', act: 'scr-swap', label: 'Swap' })
+      + tile_({ form: true, look: 'scr-act', act: 'scr-pass', label: 'Pass' })
+      + tile_({ form: true, look: 'scr-act', act: 'scr-again', label: 'New game' });
+  }
+  if (said) {
+    said.textContent = g.said
+      || (g.over ? '' : (g.bag.length + ' left in the bag.'));
+  }
+}
+on('scr-new', el => {
+  const n = Math.max(2, Math.min(4, Number(el.getAttribute('data-n')) || 2));
+  scrabble = scrNew_(n);
+  scrabblePaint();
+});
+on('scr-again', () => { scrabble = null; scrabblePaint(); });
+on('scr-hand', () => {
+  if (!scrabble) return;
+  scrabble.handover = false;
+  scrabble.said = '';
+  scrabblePaint();
+});
+on('scr-rack', el => {
+  const g = scrabble;
+  if (!g || g.over || g.handover || g.blank !== null) return;
+  const n = Number(el.getAttribute('data-i'));
+  /* A TILE ALREADY ON THE BOARD CANNOT BE PICKED UP TWICE — take it off the square to get it back,
+     which is the same gesture as on the table. */
+  if (g.placed.some(i => g.board[i].from === n)) return;
+  if (g.swap) {
+    const at = g.swap.indexOf(n);
+    if (at >= 0) g.swap.splice(at, 1); else g.swap.push(n);
+  } else {
+    g.sel = g.sel === n ? null : n;
+  }
+  scrabblePaint();
+});
+on('scr-cell', el => {
+  const g = scrabble;
+  if (!g || g.over || g.handover || g.blank !== null || g.swap) return;
+  const i = Number(el.getAttribute('data-i'));
+  const t = g.board[i];
+  /* TAP A TILE YOU JUST PUT DOWN AND IT COMES BACK. A committed one does not, which is what `fresh`
+     already says — so there is no separate list of what may be picked up. */
+  if (t) {
+    if (!t.fresh) return;
+    g.board[i] = null;
+    g.placed = g.placed.filter(x => x !== i);
+    g.said = '';
+    scrabblePaint();
+    return;
+  }
+  if (g.sel === null) { g.said = 'Pick a tile first.'; scrabblePaint(); return; }
+  const letter = g.players[g.turn].rack[g.sel];
+  scrPlace_(g, i, g.sel);
+  g.said = '';
+  /* A BLANK IS NOT A LETTER UNTIL SOMEBODY SAYS SO, and it is worth nought whatever they say. § */
+  if (letter === '') g.blank = i; else g.sel = null;
+  scrabblePaint();
+});
+on('scr-play', () => {
+  const g = scrabble;
+  if (!g || g.over || g.handover) return;
+  if (g.swap) { scrSwapDo_(g); scrabblePaint(); return; }
+  scrPlay_(g);
+  scrabblePaint();
+});
+on('scr-recall', () => {
+  const g = scrabble;
+  if (!g || g.over || g.handover) return;
+  scrRecall_(g);
+  g.said = '';
+  scrabblePaint();
+});
+on('scr-swap', () => {
+  const g = scrabble;
+  if (!g || g.over || g.handover) return;
+  scrRecall_(g);
+  g.swap = g.swap ? null : [];
+  g.said = g.swap ? 'Tap the tiles to put back, then Swap.' : '';
+  scrabblePaint();
+});
+on('scr-pass', () => {
+  const g = scrabble;
+  if (!g || g.over || g.handover) return;
+  scrPass_(g);
+  scrabblePaint();
+});
+/* BOARD GAMES (414, 461) — Connect 4, Othello, Scrabble, Chess and Maze in one widget, built as the word games are (238). Two players or more on one phone, so none needs a `stop`. */
+const BOARD_GAMES = [
+  /* CHESS AND THE MAZE, MOVED IN BY THE OWNER (461): their own cards before. Each keeps its game in memory (`CHESS`, `maze`), so a switch loses nothing. */
+  { k: 'chess', name: 'Chess', start: () => initChess(),
+    body: `<div class="chess-game">
+    <p class="chess-say" id="chess-say" aria-live="polite">White to move</p>
+    <div id="chess-board" class="chess"></div>
+    <div class="btn-row chess-promo" hidden></div>
+    <div class="tile-row chess-ctl"></div>
+  </div>` },
+  { k: 'maze', name: 'Maze', start: () => initMaze(),
+    body: `<p>Top left to bottom right. Tap the arrows, or use the arrow keys.</p>
+    <div id="maze-grid" class="mz" role="img"></div>
+    <div class="mz-pad">
+      ${tile_({ form: true, look: 'mz-key up', act: 'maze-go', data: { d: 'n' }, aria: 'Up', html: '&#9650;' })}
+      ${tile_({ form: true, look: 'mz-key left', act: 'maze-go', data: { d: 'w' }, aria: 'Left', html: '&#9664;' })}
+      ${tile_({ form: true, look: 'mz-key right', act: 'maze-go', data: { d: 'e' }, aria: 'Right', html: '&#9654;' })}
+      ${tile_({ form: true, look: 'mz-key down', act: 'maze-go', data: { d: 's' }, aria: 'Down', html: '&#9660;' })}
+    </div>
+    <p class="note game-said" id="maze-said"></p>
+    <p class="game-said">Moves: <b id="maze-moves">0</b></p>
+    ${tile_({ form: true, label: 'New maze', act: 'maze-again', kind: 'quiet' })}` },
+  { k: 'c4', name: 'Connect 4', start: () => initConnect4(),
+    body: `<p>2 players, 1 phone. Red starts. Tap a column; 4 in a line, any direction.</p>
+    <div id="c4-board" class="c4"></div>
+    <p class="note game-said" id="c4-said"></p>
+    ${tile_({ form: true, label: 'New game', act: 'c4-again', kind: 'quiet' })}` },
+  { k: 'oth', name: 'Othello', start: () => initOthello(),
+    body: `<p>2 players, 1 phone. Red starts. Trap a line of the other colour between 2
+       of yours.</p>
+    <div id="oth-board" class="oth"></div>
+    ${rowLive('Red \u2013 Blue', '2 \u2013 2', 'oth-score')}
+    <p class="note game-said" id="oth-said"></p>
+    ${tile_({ form: true, label: 'New game', act: 'oth-again', kind: 'quiet' })}` },
+  /* SCRABBLE KEEPS ITS GAME across a switch: its state is `scrabble`, and `initScrabble` only paints it. The action row is built by `scrabblePaint`, empty until there is a turn. */
+  { k: 'scr', name: 'Scrabble', start: () => initScrabble(),
+    body: `<p>2 to 4 players, 1 phone. Words stand unless somebody challenges them —
+       that part is yours.</p>
+    <div id="scr-who" class="scr-who"></div>
+    <div id="scr-board" class="scr"></div>
+    <div id="scr-rack-box" class="scr-box"></div>
+    <div id="scr-acts" class="scr-acts"></div>
+    <p class="note game-said" id="scr-said"></p>
+    <div id="scr-start" class="btn-row">
+      ${tile_({ form: true, label: '2 players', act: 'scr-new', data: { n: '2' } })}
+      ${tile_({ form: true, label: '3', act: 'scr-new', data: { n: '3' } })}
+      ${tile_({ form: true, label: '4', act: 'scr-new', data: { n: '4' } })}
+    </div>` },
+];
+function bgGame_(k) { return BOARD_GAMES.find(g => g.k === k) || BOARD_GAMES[0]; }
+/* REMEMBERED ON THE DEVICE under `bg-game`, `wg-game`'s rule. */
+function bgChosen_() {
+  let k = '';
+  try { k = localStorage.getItem('bg-game') || ''; } catch (e) {}
+  return bgGame_(k).k;
+}
+function bgOptions_() {
+  const k = bgChosen_();
+  return BOARD_GAMES.map(x =>
+    `<option value="${esc(x.k)}"${x.k === k ? ' selected' : ''}>${esc(x.name)}</option>`).join('');
+}
+function bgSlot_() {
+  const g = bgGame_(bgChosen_());
+  return `<div data-g="${esc(g.k)}" class="bg-game">${g.body}</div>`;
+}
+/* THE PICKER AND THE CHOSEN BOARD'S MARKUP — the widget's `draw`; rebuilt only when the game changed. */
+function bgPaint_() {
+  const slot = $('bg-slot'), sel = $('bg-pick');
+  if (!slot) return false;
+  const g = bgGame_(bgChosen_());
+  if (sel && sel.value !== g.k) sel.innerHTML = bgOptions_();
+  const now = slot.firstElementChild;
+  if (!now || now.getAttribute('data-g') !== g.k) slot.innerHTML = bgSlot_();
+  return g;
+}
+function initBoardGames() {
+  const g = bgPaint_();
+  if (g) g.start();
+}
+/* NOTHING RUNS BETWEEN MOVES, so leaving stops nothing; declared so the widget has the word games' shape. */
+function boardGamesStop_() {}
+on('bg-pick', el => {
+  const k = bgGame_(el.value).k;
+  try { localStorage.setItem('bg-game', k); } catch (e) {}
+  const slot = $('bg-slot');
+  if (slot) slot.innerHTML = '';
+  initBoardGames();
+});
+
+/* THE LOOSE LINES THE BOARDS NEED: the tiles' values, the maze's arrow keys, the Scrabble blank's letter. */
+document.addEventListener('keydown', e => {
+  if (!maze || maze.over) return;
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  const t = e.target;
+  if (t && (t.isContentEditable || (t.closest && t.closest('input, textarea, select')))) return;
+  const k = { ArrowUp: 'n', ArrowRight: 'e', ArrowDown: 's', ArrowLeft: 'w' }[e.key];
+  if (!k || !mzInFront_()) return;
+  e.preventDefault();
+  e.stopPropagation();
+  mzMove_(k);
+  mazePaint();
+});
+SCR_SET.forEach(t => { SCR_VALUE[t[0]] = t[2]; });
+document.addEventListener('change', e => {
+  const el = e.target && e.target.closest && e.target.closest('[data-do="scr-blank"]');
+  if (!el) return;
+  const g = scrabble;
+  if (!g || g.blank === null) return;
+  const l = String(el.value || '').toUpperCase();
+  if (!/^[A-Z]$/.test(l)) return;
+  const t = g.board[g.blank];
+  if (t) t.letter = l;
+  g.blank = null;
+  g.sel = null;
+  scrabblePaint();
+});
+/* THE ARROW KEYS, AND ONLY WHERE THE MAZE IS THE THING IN FRONT OF YOU: its grid on the column in front, no sheet over it. */
+function mzInFront_() {
+  if (typeof AT === 'undefined') return false;
+  const sheet = $('sheet');
+  if (sheet && !sheet.classList.contains('hidden')) return false;
+  return [...document.querySelectorAll('[id="maze-grid"]')].some(g => !!(g.closest('.screen') && g.closest('.screen').id === 's-' + AT));
 }
 
 ;

@@ -112,3 +112,11 @@ Callers read them as `window.<name>`, so: move them home, put them back in `wind
 commit before this one has the list), in tiers.json `files`/`later`/`checks`, then `node tools/tiers.js` and `node js/check.js`.
 Shop search is the `shopfind` widget, set `off` in tiers.json; the Parents and Students columns are `active: FALSE` in
 columns.json. Each tutor's own Staff card and its "Your manager" picker live in me-* and stay on.
+
+## Games back (15 Nov 2026)
+
+`js/games.js` and `js/pixel.js` are home again (Console, Word games, Pixel editor). Board games are `js/boardgames.js`
+(the move generator that was `attic/js/chess-engine.js`, plus Chess, Maze, Connect 4, Othello and Scrabble from
+`git show 133b259^:js/games.js`); Flabby Pird is back in games.js and the racer is `js/racer.js` (both Console games,
+from `133b259^`). No score board, kept best or saved score (rule 6.2); console saves and the racer's map stay off the
+server actions that were retired (a3a28da). Their style rules are at the end of style.css, put on the scale and tokens.
