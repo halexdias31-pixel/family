@@ -34,6 +34,7 @@
   "js/predicates.js": 1938,
   "js/predicates-marks.js": 1765,
   "js/predicates-fig.js": 1323,
+  "js/fig-place.js": 10641,
   "js/shell-boot.js": 47153,
   "js/shell-layout.js": 43539,
   "js/shell-pages.js": 44417,
