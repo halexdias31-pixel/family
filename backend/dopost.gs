@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-11-16-pin4-2";
+const DOPOST_VERSION = "2026-11-16-noai-1";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -204,8 +204,6 @@ function postActionsWork_() {
   return {
     /* MARKING IS MECHANICAL ONLY (owner, 16 Nov): no `aiMark`; `markWorking` keeps its name for phones loaded before, and only saves the photos. */
     markWorking: postSaveWorking_,
-    /* A LONG ANSWER WITH NO MECHANICAL KEY, MARKED BY CLAUDE HAIKU (owner, 16 Nov): post-learning.gs. */
-    markLong: postMarkLong_,
     workingOf: postWorkingOf_,
     workFileSave: postWorkFile_,
     workFilesOf: postWorkFile_,
