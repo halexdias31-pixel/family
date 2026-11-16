@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* node js/check-library-ledger.js — THE LIBRARY'S PRIVATE HALF IN THE LEDGER (397), asked of the real backend.
-   The copy, `libItems` and its cap, the tools' export and import, the Sunday email. `--full` copies the whole library. */
+   The copy, `libItems` (no daily cap), the tools' export and import, the Sunday email. `--full` copies the whole library. */
 require('../check/lib-full.js').needWords(); // LIB_PRIVATE=absent (CI, 780): skipped and counted, not passed
 'use strict';
 require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
@@ -65,7 +65,6 @@ function world(o) {
     Object.assign({ person_id: 'P-S2', first_name: 'Ben', last_name: 'Pupil', handle: 'bn2026', email: 's2@example.org', role: 'student' }, base),
     Object.assign({ person_id: 'P-A1', first_name: 'Hal', last_name: 'Admin', handle: 'hl2026', email: 'a1@example.org', role: 'admin' }, base),
   ]);
-  if (o.cap !== undefined) b.seed('config', [{ key: 'library_items_per_day', value: String(o.cap) }]);
   const tok = {};
   ['s1@example.org', 's2@example.org', 'a1@example.org'].forEach(e => {
     const d = b.post({ action: 'verifyLogin', email: e, pin: '0000' });
@@ -82,8 +81,8 @@ function world(o) {
     const outs = kinds.map(k => post1(who, Object.assign({}, body, { ids: ids.filter(t => String(t).split(':')[0] === k) })));
     const bad1 = outs.find(o => !o || !o.success);
     if (bad1) return bad1;
-    const all = Object.assign({}, outs[outs.length - 1], { items: {}, missing: [], refused: [] });
-    outs.forEach(o => { Object.assign(all.items, o.items || {}); all.missing.push(...(o.missing || [])); all.refused.push(...(o.refused || [])); });
+    const all = Object.assign({}, outs[outs.length - 1], { items: {}, missing: [] });
+    outs.forEach(o => { Object.assign(all.items, o.items || {}); all.missing.push(...(o.missing || [])); });
     return all;
   };
   /* A STEP WITH A CLOCK THAT TICKS ONCE PER LOOK, so `budget` ticks is a step cut short exactly where a slow sheet would cut it. */
@@ -208,7 +207,7 @@ let done = null;
   if (!/rerun/.test(threw)) bad.push('a stopped copy does not say how to run it again: ' + threw);
 }
 
-/* ---------- 4. libItems: signed in, a day's cap, the cache ---------- */
+/* ---------- 4. libItems: signed in, no daily cap, the cache ---------- */
 {
   const w = done;
   const q = 'q:' + biggest.row_id;
@@ -226,7 +225,7 @@ let done = null;
     if (!same(d.items[ct], expected.textbooks[ct.slice(3)])) bad.push('a content card came back different');
     if (!same(d.items[pr], expected.practicals[pr.slice(3)]) || !same(d.items[pj], expected.projects[pj.slice(3)])) bad.push('a practical or a project came back different');
     if (!same(d.missing, ['q:NOT-A-ROW'])) bad.push('an id with no row is not reported missing: ' + JSON.stringify(d.missing));
-    if (d.cap !== 400 || d.left !== 395) bad.push('the default cap is ' + d.cap + ' with ' + d.left + ' left — wanted 400 and 395 after five');
+    if ('cap' in d || 'left' in d || 'refused' in d) bad.push('libItems still speaks of a daily cap (owner, 16 Nov: no limit): ' + JSON.stringify({ cap: d.cap, left: d.left, refused: d.refused }));
   }
   asked++;
   if (!w.ask(ADA, { action: 'libItems', ids: ['<script>'] }).error) bad.push('a malformed id was answered');
@@ -245,40 +244,16 @@ let done = null;
   if (!ri.success || !same(ri.items[pr], expected.practicals[pr.slice(3)])) bad.push('readItems gave a practical different from libItems: ' + JSON.stringify(ri).slice(0, 160));
   if (!w.ask(BEN, { action: 'readItems', kind: 'practical', ids: [q] }).error) bad.push('readItems served a question asked for as a practical');
   if (!w.ask(BEN, { action: 'readItems', kind: 'venue', ids: ['v:1'] }).error) bad.push('readItems served a kind it has no reader for');
-  const log =(w.b.tabs.lib_log || []);
-  const h = log[0] || [];
-  const rows = log.slice(1).map(r => { const o = {}; h.forEach((c, i) => { o[c] = r[i]; }); return o; });
-  const ada = rows.find(r => r.person_id === 'P-S1');
-  if (!ada || Number(ada.served) !== 5 || ada.handle) bad.push('lib_log does not hold Ada\'s 5 under her person id alone (no handle copy, 12 Nov): ' + JSON.stringify(ada));
-  if (rows.some(r => Object.values(r).some(v => /Pupil/.test(String(v))))) bad.push('lib_log carries a surname');
-
-  /* THE CAP, ON A FRESH LEDGER AT 5 A DAY. */
-  const c = world({ cap: 5 });
-  while (!c.step(1e9).done) {}
+  /* NO DAILY CAP (owner, 16 Nov): no tally row in lib_log, and a reader asking for many more than 400 is answered every time. */
+  if ((w.b.tabs.lib_log || []).slice(1).some(r => /^P-/.test(String(r[1] || '')) || /^P-/.test(String(r[0] || '')))) bad.push('lib_log still keeps a per-person tally');
   const qs = Object.keys(expected.questions).map(id => 'q:' + id);
   asked++;
-  const a1 = c.ask(ADA, { action: 'libItems', ids: qs.slice(0, 4) });
-  const a2 = c.ask(ADA, { action: 'libItems', ids: qs.slice(2, 7) });
-  if (!a2.success || Object.keys(a2.items).length !== 3 || !same(a2.refused, qs.slice(5, 7)) || a2.left !== 0) bad.push('at 5 a day, 4 then 5 more (2 seen) gave ' + JSON.stringify({ n: Object.keys(a2.items || {}).length, refused: a2.refused, left: a2.left }));
-  const a3 = c.ask(ADA, { action: 'libItems', ids: qs.slice(0, 2) });
-  if (!a3.success || Object.keys(a3.items).length !== 2) bad.push('asking again for two already opened today was not free: ' + JSON.stringify(a3).slice(0, 160));
-  const a4 = c.ask(ADA, { action: 'libItems', ids: qs.slice(8, 9) });
-  if (a4.why !== 'lib-cap' || a4.items) bad.push('a new item past the cap answered ' + JSON.stringify(a4).slice(0, 160));
-  const b1 = c.ask(BEN, { action: 'libItems', ids: qs.slice(8, 9) });
-  if (!b1.success) bad.push('Ada\'s cap stopped Ben');
-  const hal = c.ask(HAL, { action: 'libItems', ids: qs.slice(0, 20) });
-  if (!hal.success || Object.keys(hal.items).length !== Math.min(20, qs.length) || hal.cap !== null) bad.push('an admin was capped: ' + JSON.stringify({ n: Object.keys(hal.items || {}).length, cap: hal.cap }));
-  /* THE CACHE FORGETS A DAY'S TALLY (six hours): the lib_log row remembers it. */
-  c.b.cache.clear();
-  const a5 = c.ask(ADA, { action: 'libItems', ids: qs.slice(9, 10) });
-  if (a5.why !== 'lib-cap') bad.push('with the cache emptied, the cap was forgotten — lib_log is not read back: ' + JSON.stringify(a5).slice(0, 160));
-  /* readItems (step 2, slice 1) SHARES THE CAP: Ada at her five is refused there too, and Ben's read through it counts against him. */
-  asked++;
-  const r1 = c.ask(ADA, { action: 'readItems', kind: 'question', ids: qs.slice(10, 11) });
-  if (r1.why !== 'lib-cap' || r1.items) bad.push('readItems let Ada past the cap libItems holds her to: ' + JSON.stringify(r1).slice(0, 160));
-  const r2 = c.ask(BEN, { action: 'readItems', kind: 'question', ids: qs.slice(11, 15) });
-  if (!r2.success || r2.left !== 0 || r2.kind !== 'question') bad.push('readItems did not count against Ben\'s cap as libItems does: ' + JSON.stringify({ left: r2.left, kind: r2.kind }));
-  void a1;
+  for (let i = 0; i < Math.min(qs.length, 480); i += 60) {
+    const r = w.ask(ADA, { action: 'libItems', ids: qs.slice(i, i + 60) });
+    if (!r.success || r.why) { bad.push('Ada was stopped after ' + i + ' items: ' + JSON.stringify(r).slice(0, 160)); break; }
+  }
+  const r2 = w.ask(BEN, { action: 'readItems', kind: 'question', ids: qs.slice(0, 4) });
+  if (!r2.success || r2.kind !== 'question') bad.push('readItems did not answer Ben: ' + JSON.stringify(r2).slice(0, 160));
 }
 
 /* ---------- 5. THE TOOLS' COPY: export a page, import replaces and adds, refuses what is not private, admin only ---------- */
@@ -578,4 +553,4 @@ if (bad.length) {
   process.exit(1);
 }
 console.log('OK — the library copies into the Ledger a step at a time and only counts once every row reads back as its source (' + asked
-  + ' questions asked' + (FULL ? ', the whole library' : ', ' + src.questions.length + ' question rows') + '); libItems is signed-in, capped per day, cached; the tools\' copy is the admin\'s; the Sunday email gets its words; Drive updates import whole or not at all, by a tap or the hourly run, a zip of them unpacks first (too big refused), and subfolders count too.');
+  + ' questions asked' + (FULL ? ', the whole library' : ', ' + src.questions.length + ' question rows') + '); libItems is signed-in, uncapped, cached; the tools\' copy is the admin\'s; the Sunday email gets its words; Drive updates import whole or not at all, by a tap or the hourly run, a zip of them unpacks first (too big refused), and subfolders count too.');

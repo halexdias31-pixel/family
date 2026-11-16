@@ -753,7 +753,7 @@ function libAheadCards_(pages, from, n) {
   }
   return out;
 }
-const libOnWay_ = x => !libSlim_(x) || libIdsFor_(x).every(t => LIB.pending.has(t) || LIB.flying.has(t) || LIB.gone.has(t) || LIB.refused.has(t));
+const libOnWay_ = x => !libSlim_(x) || libIdsFor_(x).every(t => LIB.pending.has(t) || LIB.flying.has(t) || LIB.gone.has(t));
 function libAheadAsk_(cards) {
   if (cards.slice(0, LIB_AHEAD).every(libOnWay_)) return;
   cards.forEach(x => { if (libSlim_(x)) libWant_(x); });

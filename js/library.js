@@ -489,7 +489,7 @@ function libraryInto_(d, rows) {
 
 /* ================= THE LIBRARY'S PRIVATE HALF, ASKED FOR AS IT IS OPENED (397) =================
    `lib_has` names a row's fields the Ledger holds; they arrive onto the row, kept for the visit, gone at sign-out. */
-const LIB = { pending: new Set(), flying: new Set(), gone: new Set(), refused: new Set(), failed: '',
+const LIB = { pending: new Set(), flying: new Set(), gone: new Set(), failed: '',
               timer: 0, filled: new Set(), gen: 0, ahead: {}, disk: null, diskP: null, ledger: '' };
 /* AT MOST THIS MANY IN ONE ASK — the backend's `LIB_PER_CALL`. */
 const LIB_PER_ASK = 60;
@@ -537,7 +537,7 @@ const libWho_ = () => (libSigned_() ? USER.token : '');
 /* ASK FOR THESE (typed ids), a moment from now, with whatever else is asked in the same turn. Nobody who may: nothing; a guest never a question. */
 function libAsk_(ids) {
   if (!libMayAsk_()) return;
-  (ids || []).forEach(t => { if (t && (libSigned_() || !/^q:/.test(t)) && !LIB.flying.has(t) && !LIB.gone.has(t) && !LIB.refused.has(t)) LIB.pending.add(t); });
+  (ids || []).forEach(t => { if (t && (libSigned_() || !/^q:/.test(t)) && !LIB.flying.has(t) && !LIB.gone.has(t)) LIB.pending.add(t); });
   if (!LIB.pending.size || LIB.timer || LIB.failed) return;
   LIB.timer = setTimeout(libPump_, 0);
 }
@@ -551,7 +551,7 @@ function libPump_() {
   }
   libFromDisk_();
   if (!LIB.pending.size) return;
-  /* EVERY CHUNK AT ONCE: one after another, a batch over the cap reached the reader a whole round trip late. */
+  /* EVERY CHUNK AT ONCE: one after another, a batch over the per-call size reached the reader a whole round trip late. */
   /* ONE KIND A CALL: `readItems` reads one kind at a time (q, ct, pr, pj). */
   while (LIB.pending.size) {
     const all = [...LIB.pending], pre = String(all[0]).split(':')[0] + ':';
@@ -570,14 +570,11 @@ function libSend_(ids) {
       libMerge_((d && d.items) || {});
       libDiskPut_((d && d.items) || {}, d && d.gen);
       ((d && d.missing) || []).forEach(t => LIB.gone.add(t));
-      ((d && d.refused) || []).forEach(t => LIB.refused.add(t));
-      if (d && d.refused && d.refused.length) LIB.failed = 'That is today’s ' + (d.cap || 'share') + ' — the rest open tomorrow.';
     })
     .catch(err => {
       if (libWho_() !== who) return;
       LIB.failed = libWhyNot_(err);
-      if (err && err.reply && err.reply.why === 'lib-cap') ids.forEach(t => LIB.refused.add(t));
-      else ids.forEach(t => LIB.pending.add(t));
+      ids.forEach(t => LIB.pending.add(t));
     })
     .then(() => {
       ids.forEach(t => LIB.flying.delete(t));
@@ -760,7 +757,7 @@ function libForget_() {
       }
     } catch (e) { /* a malformed row keeps the card as the payload drew it */ }
   });
-  LIB.filled.clear(); LIB.pending.clear(); LIB.flying.clear(); LIB.gone.clear(); LIB.refused.clear();
+  LIB.filled.clear(); LIB.pending.clear(); LIB.flying.clear(); LIB.gone.clear();
   LIB.failed = '';
   libDiskClear_();
   clearTimeout(LIB.timer); LIB.timer = 0;
@@ -770,7 +767,6 @@ function libForget_() {
 /* TRY AGAIN: whatever failed is asked for again, and the cards waiting say so. Online again is a Try again by itself. */
 function libRetry_() {
   LIB.failed = '';
-  LIB.refused.clear();
   if (typeof libLanded_ === 'function') libLanded_();
   if (LIB.pending.size && !LIB.timer) LIB.timer = setTimeout(libPump_, 0);
 }
