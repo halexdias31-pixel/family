@@ -1798,7 +1798,7 @@
      "ask": "find",
      "say": "Make an account, asked in Find one field a step (owner, 16 Nov: one form): who it is for, whose email, the names, the email and a 4-digit PIN; sent as the existing `register`. The PIN is held in memory for the call only, never stored. only: asked when an earlier answer is this.",
      "send": {
-      "label": "make-my-account"
+      "say": "make-my-account"
      },
      "fields": [
       {
@@ -1872,6 +1872,31 @@
       {
        "f": "pin",
        "type": "pin"
+      }
+     ]
+    },
+    "pin-change": {
+     "ask": "find",
+     "say": "Settings' Signing in card (owner, 16 Nov: one form): your PIN now, the new one, and it again, a digit a tag; sent as the existing `changePin`. The digits are held for the call only, never stored.",
+     "send": {
+      "t": "Save"
+     },
+     "back": "one",
+     "fields": [
+      {
+       "f": "now",
+       "type": "pin",
+       "label": "current PIN"
+      },
+      {
+       "f": "new",
+       "type": "pin",
+       "label": "new PIN, 4 numbers, not 1234"
+      },
+      {
+       "f": "again",
+       "type": "pin",
+       "label": "new PIN again"
       }
      ]
     }
