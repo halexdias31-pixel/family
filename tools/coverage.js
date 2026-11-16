@@ -23,7 +23,9 @@ const listOf = v => String(v || '').split(/\s*[,|]\s*/).map(s => s.trim()).filte
 /* THE LESSON SHAPE: a definition as the card's key word, then these four lines in this order on its worked page. */
 const SHAPE = ['Explanation', 'Worked example', 'Common mistake', 'Check'];
 const shapeOk = p => { const ls = String(p.points || '').split('|').map(l => l.trim().replace(/^\[H\]\s*/, '').split(' — ')[0]);
-  return !!String(p.words || '').trim() && ls.length === SHAPE.length && SHAPE.every((h, i) => ls[i] === h); };
+  return !!String(p.words || '').trim() && ((ls.length === SHAPE.length && SHAPE.every((h, i) => ls[i] === h))
+    /* OR INFORMATION ONLY (owner, 16 Nov: the library is information and animations): key words and 3 to 5 plain lines, no practice steps. */
+    || (ls.length >= 3 && ls.length <= 5 && !ls.some(h => SHAPE.indexOf(h) !== -1))); };
 
 /* ONE FOLDER (1214): data/spec/<board>-<code>.json is every specification; `measured` marks those whose points must all be taught. */
 const SPEC_DIR = 'data/spec', Q_SHOWN = 4;
