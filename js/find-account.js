@@ -304,23 +304,20 @@ function accountMine_(col, family, myRow, tcard_) {
   /* ---------- YOUR OWN CARD, FIRST IN EVERY COLUMN YOU BELONG TO, ITS EDIT THAT FACE'S (`ownCardSections_(col)`) ---------- */
   const mine = [];
   if (typeof peopleBelong_ === 'function' && peopleBelong_(col, family)) {
-    const row = isTutorsCol_(col) ? (cardMine_() || myRow) : myRow;
+    const row = myRow;
     /* NEVER AN EDITOR HERE (464): your own card is edited on your role's settings column (`ownCardSetPage_`, me.js). */
-    const face = row !== myRow ? tcard_(row) : (typeof meCard === 'function' ? meCard(row) : tcard_(row));
-    /* SHARE MY PROFILE (400): their own `?tutor=` link, to send a family — on the tutor face. */
-    const share = isTutorsCol_(col) && may_('staff') && USER.handle
-      ? tile_({ icon: 'share', label: 'Share my profile', note: 'your link', act: 'tutor-share', data: { handle: USER.handle } }) : '';
-    /* SHARE only: Edit is on your settings column (464); Sign out and Send the link again on Student settings (453). */
-    /* AND REPORT (486): everything has one, your own card too. */
-    const tiles = share + (typeof suggestOpts_ === 'function' ? tile_(suggestOpts_('person', String(USER.personId), row.title || '')) : '');
+    const face = typeof meCard === 'function' ? meCard(row) : tcard_(row);
+    /* REPORT (486): everything has one, your own card too. Share my profile is on your tutor card in Find (`tutorOpts_`). */
+    const tiles = (typeof suggestOpts_ === 'function' ? tile_(suggestOpts_('person', String(USER.personId), row.title || '')) : '');
     mine.push(personMark_(USER.personId, face + (tiles ? tileRow_(tiles, 'own-tiles', true) : '')));
   }
   return mine;
 }
-/* `col` IS THE PEOPLE COLUMN (453): 'tutors', 'students' or 'parents' — a card per person you may already see, by category. */
+/* `col` IS THE PEOPLE COLUMN (453): 'students' or 'parents' — a card per person you may already see, by category. */
 function accountPages_(col) {
-  if (!col) return ['tutors', 'students', 'parents'].reduce((a, c) => a.concat(accountPages_(c)), []);
-  if (!USER) return [];
+  if (!col) return ['students', 'parents'].reduce((a, c) => a.concat(accountPages_(c)), []);
+  /* TUTORS ARE FIND › PROFILES › TUTOR (find-only, 16 Nov): their cards are Find's tutor items, never a second directory here. */
+  if (!USER || isTutorsCol_(col)) return [];
   const myRow = myCardRow_();
 
   /* ---------- AN ITEM, NOT A ROW, AND THAT IS WHY THE MESSAGE TILE WAS MISSING § */
@@ -356,12 +353,7 @@ function accountPages_(col) {
   /* THE SEARCH CARD (442): Students only; the other columns move into Find (770). */
   const search = typeof peopleSearchPage_ === 'function' ? [peopleSearchPage_(col)].filter(Boolean) : [];
   let out;
-  if (isTutorsCol_(col)) {
-    /* THE DIRECTORY EVERYBODY SIGNED IN READS, less you (your card is above). */
-    const others = (DATA.tutors || []).filter(t => t && t.title && !mineIs_(t)).map(t => personMark_(t.personId, withTiles_(t)));
-    /* EACH LIST A CARD OF ITS OWN (465): the admin's layout tiles go on the list, not on each person. */
-    out = cardMark_('ppl:tutors:add', add).concat(cardMark_('ppl:tutors:dir', mine.concat(others)));
-  } else if (isStudentsCol_(col)) {
+  if (isStudentsCol_(col)) {
     /* FIND BY HANDLE ON TOP (442), then you, your brothers, sisters and children, then MANAGE YOUR CHILD (339) — the owner:
        "each user can edit their student people in student column". */
     const manage = typeof mayAddChild_ === 'function' && mayAddChild_() && typeof childManageCard_ === 'function' ? [childManageCard_()] : [];

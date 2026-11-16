@@ -9,15 +9,15 @@ That count can only go down.
 
 ## What is outside Find today (14 Nov)
 
-There are **12 columns** in the app: Find itself, and **11 others**. Before phase 1 there were 19
-columns, 18 of them outside Find; phase 2 (15 Nov) took Apprentice settings and phase 3 (15 Nov) Web settings and phase 4 (15 Nov) Parent settings, and phase 5 (16 Nov) Tutor, Kids and Biz settings. Only three are switched on (Find, DMs and Tutor profile). The rest are switched off, and most of
+There are **10 columns** in the app: Find itself, and **9 others**. Before phase 1 there were 19
+columns, 18 of them outside Find; phase 2 (15 Nov) took Apprentice settings and phase 3 (15 Nov) Web settings and phase 4 (15 Nov) Parent settings, and phase 5 (16 Nov) Tutor, Kids and Biz settings, and phase 6 (16 Nov) DMs and Tutor profile. Only Find is switched on. The rest are switched off, and most of
 them already have a Find branch.
 
 | Status | How many | What it means |
 |---|---|---|
-| Moved | 7 | Gone as a screen. Only a Find branch now. The old name, and a tab remembered on the phone, open the branch. |
+| Moved | 9 | Gone as a screen. Only a Find branch now. The old name, and a tab remembered on the phone, open the branch. |
 | Redirect | 1 | A Find branch already exists and the old name opens it, but the old column's code is still there (switched off). These are the easiest to finish next. |
-| Column | 2 | Still a column of its own, switched on. |
+| Column | 0 | Still a column of its own, switched on. |
 | Off | 8 | Switched off. Find shows a "Coming soon" card for each. The code is still there. |
 | Flows | 10 | Not columns: pop-over sheets and links that open something outside Find. |
 
@@ -45,6 +45,15 @@ them already have a Find branch.
   form in Find holds Find from a repaint while it has typing in it (`KEEP_FORMS_`, `settingsKeep_`), as the columns did.
   Journeys open a branch with `setOpen_` (`check/flow/02-qualification-tutor.js`).
 
+- **DMs** (16 Nov, phase 6): now **Find › Messages**. Daive, the assistant, is the first item there (`msgDoorItems_`,
+  `daiveItem_`), then one card per conversation. The 20-second message poll runs while Find shows a message card
+  (`dmShown_`, started by `msgDoorCard_`) and stops itself when none shows. `go('dm')` (Share a project) opens the branch.
+  A conversation is still drawn only for the people in it: the list is the backend's `messages` answer for the signed-in person.
+- **Tutor profile** (16 Nov, phase 6): now **Find › Profiles › Tutor**, the tutor items Booking already lists. The column's
+  directory and its "Add a tutor" card are gone (Find has one Add a person card); Share my profile is a tile on your own
+  tutor card (`tutorOpts_`). `go('tutors')` opens the branch. The layout journeys that moved cards on Tutor profile use
+  Student and Parent profile instead.
+
 ### Redirect: a Find branch exists, old code still to delete
 
 | Screen | What it shows | Who sees it | Find branch |
@@ -53,10 +62,7 @@ them already have a Find branch.
 
 ### Columns still switched on
 
-| Screen | What it shows | Who sees it | What is in Find already |
-|---|---|---|---|
-| DMs | one conversation per page | signed-in people | Find › Messages is a Coming soon card |
-| Tutor profile | a card per tutor | everyone | the same tutors are Booking cards, tagged Profiles |
+None besides Find.
 
 ### Switched off, a Coming soon card in Find
 
@@ -101,7 +107,7 @@ second (phase 4).
    slice. Book is later, because it touches money.
 2. The switched-off profiles: Web, Student and Parent profile.
 3. Saved, Spotlight, Feed, Reels and Shop: each one becomes a door or tag.
-4. Tutor profile, then DMs: these are switched on, so each needs its journeys moved first.
+4. Tutor profile, then DMs: done 16 Nov (phase 6).
 5. Pop-over sheets become cards. The sign-in and payment links go last, with the data-safety journeys.
 
 ## Sign-in items that touch the same Find code (listed, not done in this slice)

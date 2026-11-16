@@ -55,8 +55,8 @@ function go(id, remember, instant) {
   if (typeof window.reelsStop_ === 'function' && AT !== 'reel') window.reelsStop_();
   /* A PIN SHOWN ON A CARD (452) goes when its column is left. */
   if (was !== AT && typeof pinHideAll_ === 'function') pinHideAll_();
-  /* AND THE MESSAGE POLL, which is the fourth. § */
-  if (typeof dmStop_ === 'function' && AT !== 'dm') dmStop_();
+  /* AND THE MESSAGE POLL, which is the fourth: it runs only while Find shows a message card (`dmShown_`). § */
+  if (typeof dmStop_ === 'function' && AT !== 'stuff') dmStop_();
   /* STARTED AFTER THE SLIDE, in one list rather than two. `repaint` needs the same list — it has
      just rebuilt this screen's markup too — and two copies of "what does this screen need running"
      is two places to forget the camera. */
@@ -93,9 +93,6 @@ const SCREEN_HOOKS = {
     slid: n => { if (typeof window.feedCamWatch_ === 'function') afterSlide_(window.feedCamWatch_); if (n !== 0 && typeof window.camRest_ === 'function') window.camRest_(); } },
   /* an admin's business records are asked for, a POST, once (js/records.js) */
   biz: { started: [() => typeof window.bizStart_ === 'function' && window.bizStart_()] },
-  /* a conversation opens at its newest message, and keeps itself up to date while it is the screen you are on (`dmPoll_`) */
-  dm: { started: [() => typeof dmFoot_ === 'function' && dmFoot_(), () => typeof dmPoll_ === 'function' && dmPoll_()],
-    drawn: () => { if (typeof dmFoot_ === 'function') { try { dmFoot_(); } catch (e) { oops_(e, 'shell:drawnScreen_') } } } },
 };
 function startScreen_(id, arriving) {
   /* NOT A COLUMN A LANDING PAYLOAD LEFT ALONE — its markup was not replaced, so what runs in it is still

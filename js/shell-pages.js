@@ -318,7 +318,6 @@ const PAGER = {
   spotlight: () => cardCount_('spotlight', () => (typeof spotlightCards_ === 'function' ? spotlightCards_().length : 1)),
   /* AND THE SAME AGAIN FOR SETTINGS. § */
   web: () => cardCount_('web', () => webProfilePages_().length),
-  tutors: () => cardCount_('tutors', () => peoplePages_('tutors').length),
   students: () => cardCount_('students', () => peoplePages_('students').length),
   parents: () => cardCount_('parents', () => peoplePages_('parents').length),
   /* THE SHOP, COUNTED FROM `shopCards_`, the list `screen('shop')` draws. Never nought: the basket
@@ -347,8 +346,6 @@ const PAGER = {
   feed:   () => (typeof window.feedColumn_ === 'function' ? [].concat(window.feedColumn_()) : ['']).map(() => ''),
   /* ---------- THE REELS COLUMN HAD NO ENTRY HERE, AND THAT IS WHY IT MOVED DIFFERENTLY § */
   reel:   () => (typeof window.reelPages_ === 'function' ? window.reelPages_() : ['']),
-  /* ---------- AND MESSAGES WAS THE SIXTH COLUMN TO LOSE ITS AXIS THIS WAY § */
-  dm:     () => (typeof dmPages_ === 'function' ? dmPages_().map(p => p.name) : ['']),
   /* THE CAMERA, WHICH IS ONE PAGE AND IS COUNTED ANYWAY. § */
   /* `make:` WAS HERE, counting the camera column's one card. The camera is a page of the feed
      now and `PAGER.feed` counts it — see the note there. */

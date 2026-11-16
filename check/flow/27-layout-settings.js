@@ -84,19 +84,19 @@ check('merge with the card above (480): a profiles card merges with the one abov
   if (cm.length !== 1 || parts.join() !== [search, manage].join()) bad.push('a client sees ' + cm.length + ' merged cards of parts ' + parts.join());
   if (c.w.document.querySelector('#s-students .wgt-admin, [data-do="lay-merge"]')) bad.push('a client sees layout tiles');
   if (c.w.__t.pageCount('students') !== layPagesOf_(c.w, 'students')) bad.push('a client\'s pager counts ' + c.w.__t.pageCount('students') + ' for ' + layPagesOf_(c.w, 'students') + ' pages');
-  /* MOVE: ◀ takes every part to Tutor profiles. */
+  /* MOVE: ◀ takes every part to Web profile, the card column left of Student profiles (Tutor profile is Find › Profiles › Tutor since 16 Nov). */
   A['lay-c-col'](layCardTile_(d, help, 'lay-c-col', '-1')); await wait(250); await layPaintAll_(w);
-  const tut = laySeen_(w, 'tutors');
-  if ([help, add, search, manage].some(x => tut.indexOf(x) === -1) || laySeen_(w, 'students').some(x => [help, add, search, manage].indexOf(x) !== -1)) bad.push('◀ did not move every part: tutors ' + tut.join());
-  if (d.querySelectorAll('#s-tutors .card.is-merged').length !== 1) bad.push('the moved card is not one merged card on Tutor profiles');
+  const tut = laySeen_(w, 'web');
+  if ([help, add, search, manage].some(x => tut.indexOf(x) === -1) || laySeen_(w, 'students').some(x => [help, add, search, manage].indexOf(x) !== -1)) bad.push('◀ did not move every part: web ' + tut.join());
+  if (d.querySelectorAll('#s-web .card.is-merged').length !== 1) bad.push('the moved card is not one merged card on Web profile');
   /* SPLIT: the parts apart, in place. */
-  A['lay-unmerge'](d.querySelector('#s-tutors .card.is-merged [data-do="lay-unmerge"]')); await wait(250); await layPaintAll_(w);
-  if (layLast_(sent).merged || d.querySelector('#s-tutors .card.is-merged')) bad.push('Split left a merged card');
-  const tut2 = laySeen_(w, 'tutors');
+  A['lay-unmerge'](d.querySelector('#s-web .card.is-merged [data-do="lay-unmerge"]')); await wait(250); await layPaintAll_(w);
+  if (layLast_(sent).merged || d.querySelector('#s-web .card.is-merged')) bad.push('Split left a merged card');
+  const tut2 = laySeen_(w, 'web');
   if (tut2.slice(-4).join() !== [help, add, search, manage].join()) bad.push('Split did not leave the parts where they stood: ' + tut2.join());
   /* DELETE: merge two again, two taps, both gone. */
   A['lay-merge'](layMergeTile_(d, manage)); await wait(250); await layPaintAll_(w);
-  const del = () => d.querySelector('#s-tutors .card.is-merged [data-do="lay-c-del"]');
+  const del = () => d.querySelector('#s-web .card.is-merged [data-do="lay-c-del"]');
   if (!del()) return bad.concat(['the re-merged card has no Delete']);
   A['lay-c-del'](del());
   if (!/Tap again/.test(del().getAttribute('aria-label') || '')) bad.push('the first tap did not ask again');
@@ -176,7 +176,7 @@ check('layout cards (465): an admin sees ▲ ▼ ◀ ▶ Start here Delete on ev
   for (let i = bad.length - 1; i >= 0; i--) if (keep.some(k => bad[i] === k + ' has no Delete')) bad.splice(i, 1);
   /* BUILD (Web settings) IS FIND › SETTINGS › SITE since 15 Nov (find-only.json): the admin column's first card stands in for it here. */
   const bizFirst = laySeen_(w, 'biz').filter(x => keep.indexOf(x) === -1)[0] || 'a Biz settings card';
-  ['ppl:students:help', 'ppl:students:add', 'ppl:tutors:add', 'ppl:parents:add', bizFirst, 'acct:pin'].forEach(id => { if (!layCardTile_(d, id, 'lay-c-del')) bad.push(id + ' has no Delete'); });
+  ['ppl:students:help', 'ppl:students:add', 'ppl:parents:add', bizFirst, 'acct:pin'].forEach(id => { if (!layCardTile_(d, id, 'lay-c-del')) bad.push(id + ' has no Delete'); });
   /* SPLIT SITS BESIDE THEM on a card of several fields (Contact & address). */
   const split = d.querySelector('#s-account .card[data-split^="set:account:"] [data-do="lay-split"]');
   if (!split || !split.closest('.card').querySelector('.card-admin')) bad.push('a several-field settings card lacks Split beside its admin row');
@@ -252,7 +252,7 @@ check('layout cards (465): Delete asks twice in place and says when a card is th
   const says = {};
   /* BUILD STOOD ON WEB SETTINGS, which is Find › Settings › Site since 15 Nov (find-only.json): an admin column's card is deleted in its place. */
   const bizCard = laySeen_(w, 'biz').filter(x => x !== 'biz:deleted')[0] || 'a Biz settings card';
-  for (const id of [bizCard, 'ppl:students:help', 'ppl:students:add', 'ppl:tutors:add', 'ppl:parents:add']) says[id] = await del(id);
+  for (const id of [bizCard, 'ppl:students:help', 'ppl:students:add', 'ppl:parents:add']) says[id] = await del(id);
   if (!/^Tap again to delete/.test(says[bizCard] || '')) bad.push(bizCard + '\'s second step reads ' + says[bizCard]);
   if (laySeen_(w, 'biz').indexOf(bizCard) !== -1 || d.querySelector(`#s-biz .card-admin[data-lay-for="${bizCard}"]`) || d.querySelector('.help-list') || d.querySelector('[data-do="person-add"]')) bad.push(bizCard + ', Needs help or an Add card is still drawn');
   /* FINAL (477): no list of deleted cards, no Add back, no Layout card. */
@@ -635,7 +635,7 @@ check('columns (730): the owner\'s seven — four profiles then three settings, 
   return bad;
 });
 
-check('layout (730): a whole column moves — the first unit of Web profile carries Move this column ◀ ▶; ▶ saves an order with Web profile right of Tutor profile, the row redraws so, and a reload keeps it', async () => {
+check('layout (730): a whole column moves — the first unit of Web profile carries Move this column ◀ ▶; ▶ saves an order with Web profile right of Student profile (Tutor profile is Find › Profiles › Tutor since 16 Nov), the row redraws so, and a reload keeps it', async () => {
   const { w, sent } = layBoot_();
   await wait(300);
   const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
@@ -647,13 +647,13 @@ check('layout (730): a whole column moves — the first unit of Web profile carr
   if (d.querySelectorAll('#s-web [data-do="lay-col"][data-d="1"]').length !== 1) bad.push('more than one column tile on Web profile');
   A['lay-col'](rt); await wait(300);
   const L = layLast_(sent) || {}, ord = L.order || [];
-  if (!(ord.indexOf('web') > ord.indexOf('tutors') && ord.indexOf('tutors') !== -1)) bad.push('the saved order does not put web after tutors: ' + ord.join(' '));
+  if (!(ord.indexOf('web') > ord.indexOf('students') && ord.indexOf('students') !== -1)) bad.push('the saved order does not put web after students: ' + ord.join(' '));
   const ids = t.TABS.map(x => x.id);
-  if (ids.indexOf('web') !== ids.indexOf('tutors') + 1) bad.push('the row is not redrawn so: ' + ids.join(' '));
+  if (ids.indexOf('web') !== ids.indexOf('students') + 1) bad.push('the row is not redrawn so: ' + ids.join(' '));
   const p = payload(); p.layout = L;
   const r = layBoot_({ payload: p }); await wait(300);
   const ids2 = r.w.__t.TABS.map(x => x.id);
-  if (ids2.indexOf('web') !== ids2.indexOf('tutors') + 1) bad.push('a reload lost the order: ' + ids2.join(' '));
+  if (ids2.indexOf('web') !== ids2.indexOf('students') + 1) bad.push('a reload lost the order: ' + ids2.join(' '));
   return bad;
 });
 
@@ -975,6 +975,28 @@ check('Parent settings (find-only, 15 Nov): no column; go("family") opens Find �
   const fam = await famFind_(a.w);
   if (fam.dataset.at !== 'stuff' || !/"Parent"/.test(fam.dataset.filters || '')) bad.push('go("family") opened ' + fam.dataset.at + ' with ' + fam.dataset.filters);
   if (fam.dataset.err) bad.push('drawing it threw ' + fam.dataset.err);
+  if (a.errs && a.errs.length) bad.push('errors: ' + a.errs.join('; '));
+  return bad;
+});
+check('Messages and Tutor profile (find-only, 16 Nov): no columns; go("dm") opens Find › Messages with Daive first as a conversation card, go("tutors") opens Find › Profiles › Tutor; a message card on show starts the poll', async () => {
+  const W = cardWorld_();
+  const a = await cardOpen_(W, 'tutor@example.org', { serve: MOVED_SERVE_ });
+  if (a.err) return [a.err];
+  const bad = [], t = a.t, w = a.w;
+  ['dm', 'tutors'].forEach(id => { if (t.TABS.some(x => x.id === id) || a.d.getElementById('s-' + id)) bad.push(id + ' is still a column'); });
+  t.go('dm', false, true); await wait(300);
+  const mf = JSON.stringify(t.STUFF().filters);
+  if (t.AT() !== 'stuff' || !/"Messages"/.test(mf)) bad.push('go("dm") opened ' + t.AT() + ' with ' + mf + ', wanted Find › Messages');
+  const items = (w.stuffPages_() || []).filter(p => p && p.x && !p.part).map(p => p.x);
+  if (!items.length || !items[0].daive) bad.push('Daive is not the first item in Find › Messages: ' + items.map(x => x.name).join(', '));
+  let html = '';
+  try { html = items.length ? w.msgDoorCard_(items[0]) : ''; } catch (e) { bad.push('drawing Daive threw ' + e.message); }
+  if (!/data-daive/.test(html) || !/msg-text/.test(html)) bad.push('Daive\'s card in Find is not a conversation with a box');
+  await wait(50);
+  if (!w.eval('DM_TIMER')) bad.push('a message card on show did not start the message poll');
+  t.go('tutors', false, true); await wait(300);
+  const tf = JSON.stringify(t.STUFF().filters);
+  if (t.AT() !== 'stuff' || !/"Profiles"/.test(tf) || !/"Tutor"/.test(tf)) bad.push('go("tutors") opened ' + t.AT() + ' with ' + tf + ', wanted Find › Profiles › Tutor');
   if (a.errs && a.errs.length) bad.push('errors: ' + a.errs.join('; '));
   return bad;
 });

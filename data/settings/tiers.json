@@ -5,13 +5,11 @@
     "spotlight": "secondary",
     "feed": "secondary",
     "reel": "secondary",
-    "dm": "secondary",
     "stuff": "core",
     "saved": "secondary",
     "booking": "core",
     "shop": "secondary",
     "web": "secondary",
-    "tutors": "secondary",
     "students": "secondary",
     "parents": "secondary"
   },

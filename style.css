@@ -2396,17 +2396,6 @@ label.bk-k { cursor: pointer; }
   margin: 0 0 var(--card-gap);
 }
 .card:has(> .msg-body, > .kc-lines > .msg-body) .msg-body { max-height: 22rem; overflow-y: auto; scrollbar-width: none; }
-/* ---------- A CONVERSATION TAKES THE HEIGHT IT IS GIVEN § */
-#s-dm .card:has(> .msg-body, > .kc-lines > .msg-body) {
-  display: flex; flex-direction: column;
-  max-height: calc(100dvh - var(--bar) - var(--safe-bottom) - 2.5rem
-                   - var(--pane-pad) - 1rem - 2px - 1rem);
-}
-#s-dm .card:has(> .msg-body, > .kc-lines > .msg-body) > * { flex: 0 0 auto; }
-#s-dm .card:has(> .msg-body, > .kc-lines > .msg-body) > .msg-body { flex: 0 1 auto; min-height: 4rem; max-height: none; }
-/* BUILT BY THE ONE TEMPLATE, the thread sits in the card's lines: they take the height the bubbles would. */
-#s-dm .card.kc:has(> .kc-lines > .msg-body) > .kc-lines { flex: 0 1 auto; min-height: 4rem; display: flex; flex-direction: column; text-align: left; }
-#s-dm .card.kc > .kc-lines > .msg-body { flex: 0 1 auto; min-height: 0; max-height: none; }
 .msg-form .msg-said { flex: 1 0 100%; }
 
 .widget-full #timer-display {

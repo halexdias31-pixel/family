@@ -173,14 +173,14 @@ const TABS = [
 
   /* ---------- AND THE TWO THE LAYOUT SHEET ASKED FOR § */
   { id: 'reel',    icon: '▶',  label: 'Reels',   title: 'Reels' },
-  { id: 'dm',      icon: '✉',  label: 'DMs',     title: 'Messages' },
+  /* DMS WAS A COLUMN HERE; it is Find › Messages (find-only, 16 Nov). */
   /* ---------- SAVED, RIGHT OF FIND 2 WITH THE LEARNING COLUMNS (392) § */
   { id: 'saved',   icon: '★',  label: 'Saved',   title: 'Saved' },
   { id: 'spotlight', icon: '✦', label: 'Spotlight', title: 'Spotlight', cards: true },
   /* ---------- SIX COLUMNS (461): each account type's settings, then a card per tutor, student and parent. */
   /* THE OWNER'S ELEVEN (730): five profiles, then six settings; `cards` marks a card column (columns.json says the same; check-doors). */
   { id: 'web',      icon: '🌍', label: 'Web profile',        title: 'Web profile', cards: true },
-  { id: 'tutors',   icon: '🎓', label: 'Tutor profile',      title: 'Tutor profile', cards: true },
+  /* TUTOR PROFILE WAS A COLUMN HERE; it is Find › Profiles › Tutor (find-only, 16 Nov). */
   { id: 'students', icon: '👤', label: 'Student profile',    title: 'Student profile', cards: true },
   { id: 'parents',  icon: '👪', label: 'Parent profile',     title: 'Parent profile', cards: true },
   /* ---------- AND THE SHOP, RIGHT OF BOOKING § */
@@ -191,9 +191,9 @@ const TABS = [
 /* ---------- LEFT TO RIGHT, WHICH IS NOT THE ORDER THEY ARE WRITTEN IN § */
 /* GROUPED BY PURPOSE, read left to right (392). columns.json lists the same order; check-doors fails if they part. § */
 const TAB_ORDER = ['stuff', 'saved',                                  /* FIND FIRST, for everyone (1070): the one front door; Tools and Games are Find cards (790) */
-                   'spotlight', 'feed', 'reel', 'dm',                 /* social (392), below Find; Spotlight left of the posts (461) */
+                   'spotlight', 'feed', 'reel',                       /* social (392), below Find; Spotlight left of the posts (461); Messages is Find › Messages */
                    'booking', 'shop',                                 /* business */
-                   'web', 'tutors', 'students', 'parents']; /* the profiles (730); Apprentice profile is Find › Profiles › Apprentice; every settings column is Find › Settings › <type> (find-only.json) */
+                   'web', 'students', 'parents']; /* the profiles (730); Tutor and Apprentice profile are Find › Profiles › Tutor / Apprentice; every settings column is Find › Settings › <type> (find-only.json) */
 TABS.sort((a, b) => TAB_ORDER.indexOf(a.id) - TAB_ORDER.indexOf(b.id));
 /* SETTINGS THAT ARE FIND › SETTINGS › <type> NOW (find-only.json): no column, still a card group the layout keys by id and Find draws (CARD_BUILD). */
 const SETTING_GROUPS = [{ id: 'apprentice', label: 'Apprentice settings', cards: true, group: true },

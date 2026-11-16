@@ -439,8 +439,8 @@ check('business: signing in as an admin adds Find › Settings › Admin (the Bu
   const cols = BIZ_COLS_();
   /* BATCH C (1040): Business is no column; its cards are Find › Settings › Admin items, so an admin's signing in adds items, not a tab. */
   const on = cols.filter(c => /^true$/i.test(String(c.active))).map(c => c.screen);
-  const away = on.filter(x => x !== 'stuff' && x !== 'biz')[0];
-  if (!away) return ['columns.json has no active column but Find to stand on — NOT checked: ' + on.join(', ')];
+  /* FIND IS THE ONLY COLUMN SWITCHED ON since Messages and Tutor profile moved into it (find-only, 16 Nov): stand on another if one is on, else on Find. */
+  const away = on.filter(x => x !== 'stuff' && x !== 'biz')[0] || 'stuff';
   let hold = false;
   const { w, gets } = boot({ serve: u => (hold && /script\.google\.com/.test(u) ? new Promise(() => {}) : BIZ_SERVE_(cols)(u)),
     reply: body => (body.action === 'verifyLogin' ? Object.assign({ success: true }, BIZ_ADMIN_)

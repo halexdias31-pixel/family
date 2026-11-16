@@ -344,15 +344,9 @@ function msgPost_(p) {
   }).then(() => dmRedraw_(p.withId || p.withName));
 }
 
-/* Repaint the column and stay on the conversation somebody is in. § */
+/* REDRAW THE CONVERSATION WHERE IT STANDS IN FIND (find-only, 16 Nov: the Messages column is gone). */
 function dmRedraw_(key) {
   try { msgFindRedraw_(key); } catch (e) { oops_(e, 'me:findRedraw'); }
-  if (typeof paint !== 'function' || !$('s-dm')) return;
-  paint('dm');
-  const at = messageThreads_().findIndex(t => t.id === key);
-  /* ONE MORE THAN THE THREAD: Daive is page 0 (449). */
-  if (at >= 0 && typeof goPage === 'function' && AT === 'dm') { try { goPage('dm', at + 1, true); } catch (e) { oops_(e, 'me:dmRedraw_') } }
-  setTimeout(() => { if (typeof dmFoot_ === 'function') dmFoot_(); }, 0);
 }
 
 on('msg-send', el => {
@@ -410,7 +404,7 @@ on('msg-drop', el => {
   if (p.queue.length) MSG_QUEUE[key] = (MSG_QUEUE[key] || []).concat(p.queue);
   dmRedraw_(key);
   if (p.body) setTimeout(() => {
-    const host = $('s-dm');
+    const host = $('s-stuff');
     const box = host && [].slice.call(host.querySelectorAll('.msg-form'))
       .filter(f => f.dataset.k === key).map(f => f.querySelector('.msg-text'))[0];
     if (box && !box.value) box.value = p.body;
@@ -431,8 +425,6 @@ function markRead_(msgs) {
   });
 }
 
-/* AN EMPTY INBOX IS ONE SHORT LINE (owner, 8 Nov). */
-const emptyMessages_ = () => empty_('No messages yet.');
 
 /* ---------- ONE THREAD PER PERSON § */
 /* When a message was sent, as a number: § */
