@@ -363,11 +363,12 @@ function digestQuestions_(items, max, o) {
   /* A NAME OF ONE SEGMENT HAS NO NUMBER, so no number in its tag: its mark alone, and its words after —
      never ": What is 7 × 8?". */
   const tag = it => (it.num ? it.num + ' ' + it.mark : it.mark);
-  const { card, titleOf, pill } = digestCardMaker_(ink, says, cut);
-  const tagsHtml = list => (list || []).map(pill).join(' ');
-  const answerLines = it => (it.theirs ? ['Their answer: ' + it.theirs.text] : []).concat(it.right ? ['Answer: ' + it.right.text] : []);
+  const { card, titleOf } = digestCardMaker_(ink, says, cut);
+  const C = cardLetterOf_('question');
+  const answerLines = it => (it.theirs ? [C.labels.theirs + ': ' + it.theirs.text] : []).concat(it.right ? [C.labels.right + ': ' + it.right.text] : []);
   /* EVERY CARD WEARS ITS WHOLE TAG SET, as the site's card does — one rule, never trimmed by what the card above it said (owner, 16 Nov). */
-  const tagsFor = it => tagsHtml(it.tags);
+  /* Each tag's colour is its facet's hue (`hN`), the ink renderCard paints it in from DIGEST_TAG_INK. */
+  const tagsFor = it => (it.tags || []).map(t => ({ text: t.text, colour: t.kind }));
 
   const lines = [];
   const parts = [];
@@ -397,13 +398,13 @@ function digestBareHead_(q, h) {
   lines.push(h.head + (bare.length ? ': ' + bare.map(it => it.mark).join(', ') : ''));
   if (numbered.length) lines.push(numbered.map(tag).join(', '));
   lines.push('');
-  h.items.forEach(it => { html += card(it, '', tagsFor(it), titleOf(it, h.head)); });
+  h.items.forEach(it => { html += card(it, [], tagsFor(it), titleOf(it, h.head)); });
   parts.push(html);
 }
 
 /* ONE WORDED QUESTION, under its heading: the library's row, or the words on the site, or its own words; `at` carries the stem and card html along. */
 function digestWordedItem_(q, h, it, at) {
-  const { lines, kid, site, pre, ink, cut, tag, card, titleOf, tagsFor, answerLines } = q;
+  const { lines, kid, site, pre, cut, tag, card, titleOf, tagsFor, answerLines } = q;
   /* ---------- AS IT IS ON THE SITE (18 Oct): the row the card draws, from the library ---------- */
   const P = it.row ? digestPartOut_(it, pre, at.done, site) : null;
   if (P) {
@@ -416,21 +417,21 @@ function digestWordedItem_(q, h, it, at) {
     lines.push(kid + ': ' + it.mark);
     lines.push.apply(lines, answerLines(it));
     lines.push('');
-    at.html += card(it, inner + P.html, tagsFor(it), titleOf(it, h.head), P.pic);
+    at.html += card(it, [], tagsFor(it), titleOf(it, h.head), P.pic, inner + P.html);
     at.stem = '';
     return;
   }
   /* THE WORDS ITS SUBMISSION CARRIED, whole up to DIGEST_WORDS_SHOWN. */
-  let inner = '';
+  const inner = [];
   if (it.stem && it.stem !== at.stem) {
     lines.push(cut(it.stem, DIGEST_STEM_SHOWN));
-    inner += '<p style="margin:0 0 10px;padding:0 0 8px;border-bottom:1px dashed ' + ink.chip + ';color:' + ink.dim + '"><i>' + digestEsc_(cut(it.stem, DIGEST_STEM_SHOWN)) + '</i></p>';
+    inner.push({ type: 'text', look: 'stem', text: { i: cut(it.stem, DIGEST_STEM_SHOWN) } });
   }
   at.stem = it.stem;
   const said1 = cut(it.ask, DIGEST_WORDS_SHOWN);
   lines.push(said1 ? tag(it) + ': ' + said1 : tag(it));
   lines.push.apply(lines, answerLines(it));
-  if (said1) inner += '<p style="margin:0">' + digestEsc_(said1) + '</p>';
+  if (said1) inner.push({ type: 'text', look: 'line', text: said1 });
   at.html += card(it, inner, tagsFor(it), titleOf(it, h.head));
 }
 
@@ -471,31 +472,24 @@ function digestShown_(heads, max) {
   return { shown: shown, printed: printed };
 }
 
-/* ---------- ONE QUESTION AS THE SITE'S CARD (57a–62a): picture, heading, tags, lines, a rule under it — lean, said 80 times under Gmail's clip. */
+/* ---------- ONE QUESTION AS THE SITE'S CARD (57a–62a): the site's one card maker, `renderCard`, with the email's inks inline (cards-gen.gs). */
+/* Its labels, sizes and styles are kinds.json's question `card.letter`; `lines` are body blocks, `laid` the library's question as digestHtml_ made it. */
 function digestCardMaker_(ink, says, cut) {
-  const C = DIGEST_CARD, G = C.gap, R = C.round, most = C.cut * C.perLine;
-  const label = t => '<p style="margin:' + G + 'px 0 4px;font-size:' + C.size.small + 'px;color:' + ink.faint + '">' + t + '</p>';
+  const C = cardLetterOf_('question'), most = C.cut * C.perLine;
   /* LONG TEXT IS CUT TO 2 LINES, as the site clamps it; short text keeps its markup (a power, a fraction). */
   const short = a => (S(a.text).length > most ? digestEsc_(cut(a.text, most)) : a.html);
   const marksOf = it => { const q = it.row || {}; return Number(q.marks) || 0; };
   return {
     /* THE HEADING: its number and its marks as [n] (owner, 9 Nov); a name of one segment is its heading alone. */
     titleOf: (it, h) => [it.num || h, marksOf(it) > 0 ? '[' + marksOf(it) + ']' : ''].filter(Boolean).join(' '),
-    /* THE TAGS AS PILLS, each its facet's hue (`DIGEST_TAG_INK`, cards-gen.gs); a facet with none wears the plain outline. */
-    pill: t => '<span class="gi" style="color:' + (DIGEST_TAG_INK[t.kind] || ink.dim) + ';border:1px solid' + (DIGEST_TAG_INK[t.kind] ? '' : ' ' + ink.chip)
-      + ';border-radius:' + R + 'px;padding:0 6px">' + digestEsc_(t.text).replace(/ /g, '\u00a0') + '</span>',
-    card: (it, inner, tags, title, pic) => {
+    card: (it, lines, tags, title, pic, laid) => {
       const w = says.filter(x => x.id === it.how)[0] || says[says.length - 1];
-      const lines = { theirs: it.theirs ? label(C.labels.theirs) + '<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="' + ink.box
-          + '" style="border:1px solid ' + ink.paneLine + ';border-radius:' + R + 'px;padding:4px 14px;color:' + ink.ink + '">' + short(it.theirs) + '</td></tr></table>' : '',
-        verdict: '<p class="gi" style="margin:' + G + 'px 0 0;font-weight:bold;color:' + w.tone + '">' + digestEsc_(w.one || it.mark) + '</p>',
-        right: it.right ? label(C.labels.right) + '<p style="margin:0;color:' + ink.ink + '">' + short(it.right) + '</p>' : '' };
-      const parts = { pic: pic ? '<div style="margin:0 0 ' + G + 'px">' + pic + '</div>' : '',
-        head: title ? '<p style="margin:0 0 ' + G + 'px;font-size:' + C.size.title + 'px;font-weight:bold;color:' + ink.ink + '">' + digestEsc_(title) + '</p>' : '',
-        tags: tags ? '<div style="font-size:' + C.size.small + 'px;line-height:24px;margin:0 0 ' + G + 'px">' + tags + '</div>' : '',
-        lines: inner + C.lines.map(k => lines[k]).join('') };
-      return '<table role="presentation" class="kc" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-bottom:1px solid ' + C.rule
-        + ';border-radius:' + C.radius + '"><tr><td style="padding:' + G + 'px 0;font-size:' + C.size.body + 'px">' + C.order.map(k => parts[k]).join('') + '</td></tr></table>';
+      return renderCard({ kind: 'question', inline: Object.assign({ hues: DIGEST_TAG_INK }, ink), name: title, tags: tags,
+        cut: { pic: pic || '', lines: laid || '' },
+        body: (lines || []).concat(
+          it.theirs ? [{ type: 'list', items: [{ label: C.labels.theirs, cut: short(it.theirs), box: true }] }] : [],
+          [{ type: 'text', look: 'verdict', tone: w.tone, text: w.one || it.mark }],
+          it.right ? [{ type: 'list', items: [{ label: C.labels.right, cut: short(it.right) }] }] : []) });
     } };
 }
 

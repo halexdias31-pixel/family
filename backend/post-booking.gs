@@ -586,14 +586,14 @@ function createJobRow_(body, ctx) {
 
 /* THE CLIENT'S AND THE NAMED TUTOR'S MESSAGES for a new booking. */
 function createJobNotify_(body, me, jobId, named) {
-  /* THE CLIENT'S RECEIPT — `booked`, essential: it carries the total they asked to pay. THE ONE CARD (`cardText_`, generated
-     from the site by tools/cards-gen.js), never lines of our own; read as its reader, so a child's carries no price. */
+  /* THE CLIENT'S RECEIPT — `booked`, essential: it carries the total they asked to pay. THE ONE CARD MAKER (`renderCard`, copied
+     from the site by tools/cards-gen.js) with the email's `inline: 'text'`, never lines of our own; read as its reader, so a child's carries no price. */
   const card = { subject: body.subject, level: body.level, day: body.day, time: body.time,
                  location: body.location, dates: body.dates, price: body.price };
   const mine = findPerson(me);
   notify(me, 'Booking received 🎉',
     'Thanks for requesting ' + S(body.subject) + ' with @family.\n\n' +
-    cardText_(card, { kid: isChild_(mine) }) + '\n\n— @family.', 'booked');
+    renderCard({ kind: 'booking', inline: 'text', row: card, see: { kid: isChild_(mine) } }) + '\n\n— @family.', 'booked');
   /* ---------- AND THE NAMED TUTOR'S — `booked` TOO, WHICH THE SURVEY OF 9 OCT HAD AS OPTIONAL § */
   if (named) {
     /* THE BOOKER BY `fmtName_`: a child's surname never leaves the server. The tutor's card has no price — the family's money is theirs. */
@@ -602,7 +602,7 @@ function createJobNotify_(body, me, jobId, named) {
       who + ' · ' + fmtDate_(body.day, 'day') + ' ' + fmtDate_(body.time, 'time'), 'job:' + jobId);
     notify(S(body.requestedTutor),
       'New request: ' + S(body.subject) + ' — ' + who,
-      who + ' has requested you.\n\n' + cardText_(Object.assign({}, card, { dates: '' }), { prices: false }) + '\n' +
+      who + ' has requested you.\n\n' + renderCard({ kind: 'booking', inline: 'text', row: Object.assign({}, card, { dates: '' }), see: { prices: false } }) + '\n' +
       (S(body.message) ? '\nTheir message:\n"' + S(body.message) + '"\n' : '') +
       '\nIt may be outside your usual hours. Log in to @family. to accept or decline.\n\n— @family.', 'booked');
   }
@@ -819,7 +819,7 @@ function postDeleteJob_(body, action, began) {
   /* TELL THEM. A session vanishing from somebody's screen with no word is the worst version of
      this: they turn up, or they do not turn up and never know why. */
   before.forEach(pp => notify(pp.name, 'Cancelled: ' + S(j.subject),
-    cardText_({ subject: j.subject, day: j.weekday, time: j.start_time }, { prices: false })
+    renderCard({ kind: 'booking', inline: 'text', row: { subject: j.subject, day: j.weekday, time: j.start_time }, see: { prices: false } })
     + '\n\nThis is not going ahead.\n\nIf that is a surprise, reply to this message.\n\n— @family.', 'booked'));
 
   return jsonOut({ success: true, ended: before.length,
