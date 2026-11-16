@@ -1076,8 +1076,7 @@ function scrRackHtml_(g) {
       opts += '<option value="' + l + '">' + l + '</option>';
     }
     return '<p class="scr-say">What is the blank?</p>'
-      + '<select class="scr-sel" data-do="scr-blank" aria-label="What the blank stands for">'
-      + opts + '</select>';
+      + formSelect_('class="scr-sel" data-do="scr-blank" aria-label="What the blank stands for"', opts);
   }
   /* ---------- A TILE THAT IS ON THE BOARD IS NOT ON THE RACK § */
   const used = {};

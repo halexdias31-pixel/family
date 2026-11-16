@@ -87,7 +87,6 @@ const EXEMPT = [
   { file: 'spotify.js', fn: 'spCard_', has: 'id="sp-q"', why: 'a Spotify search (510) — a few words, run at once and shown as results; a reload starts a new search' },
   { file: 'favlinks.js', fn: 'favDraw_', has: 'data-fav="title"', why: 'a favourite link\'s title (509) — a few words typed and Added in one press; a redraw keeps it, a reload draws the saved list' },
   { file: 'favlinks.js', fn: 'favDraw_', has: 'data-fav="url"', why: 'a favourite link\'s address (509) — pasted and Added in one press; a redraw keeps it, a reload draws the saved list' },
-  { file: 'games.js', has: 'id="tt-answer"', why: 'a times-tables round — a reload is a new round, with a new question' },
   { file: 'tools.js', fn: 'ktPaint_', has: 'kt-in', why: 'touch typing — the line being typed IS the drill; the progress is kept (`kt`)' },
   { file: 'biz-check.js', fn: 'bcItem_', has: 'data-bc-k="expires_on"', why: 'a renewal\'s new expiry (10 Nov), picked and saved with Renewed in one press; a reload draws the saved expiry' },
   { file: 'biz-check.js', fn: 'bcItem_', has: 'data-bc-k="done_on"', why: 'the Business checker\'s done-on date (1050) — picked and Marked done in one press; a reload draws the saved tick\'s date' },

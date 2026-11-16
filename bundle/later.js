@@ -13182,8 +13182,9 @@ function kpPadHtml_(layer, words, signs, essay, vec, site) {
 const KP_HOLE = '\u03d9', KP_CARET = '\u03db';
 /* `kind` 'essay' IS A WORDED BOX THAT IS A SHEET (`ansEssay_`): § */
 /* `multi` IS ONE OF SEVERAL BOXES FOR ONE ANSWER (find.js `multiBoxes_`, 362): `{ n, k }`, the box's place and the answer's key. */
+/* `more` ARE A BOX'S OWN ATTRIBUTES over the answer's (a game's box: its id and its own data-do, so it is never stored as an answer). */
 const KP_BOX_KINDS = { essay: { essay: true, words: true }, words: { words: true } };
-function kpField_(k, val, kind, signs, name, multi) {
+function kpField_(k, val, kind, signs, name, multi, more) {
   const box = Object.prototype.hasOwnProperty.call(KP_BOX_KINDS, kind) ? KP_BOX_KINDS[kind] : {};
   const essay = !!box.essay;
   const words = !!box.words;
@@ -13192,6 +13193,7 @@ function kpField_(k, val, kind, signs, name, multi) {
     'data-k': k, 'data-kp': words ? 'words' : 'maths', 'data-kp-signs': signs & 1 ? '1' : null, 'data-kp-vec': signs & 2 ? '1' : null, 'data-kp-essay': essay ? '1' : null,
     'aria-label': name || 'Your answer', readonly: true, inputmode: 'none', autocomplete: 'off', autocapitalize: 'off', autocorrect: 'off', spellcheck: 'false',
     enterkeyhint: essay ? 'enter' : 'done' };
+  if (more) Object.assign(lock, more);
   return cardBlocks_({ type: 'group', tag: 'span', look: 'kp-field kp-' + (words ? 'words' : 'maths') + (essay ? ' kp-essay' + (v ? '' : ' is-blank') : ''), blocks: [
     { type: 'group', tag: 'span', look: 'kp-show', attrs: { 'aria-hidden': 'true' }, inner: kpDraw_(v, -1, words) },
     words ? { type: 'control', tag: 'textarea', attrs: Object.assign({}, lock, { rows: '1' }), value: v } : { type: 'control', attrs: Object.assign({}, lock, { value: v }) }] });
