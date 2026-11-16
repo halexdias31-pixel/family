@@ -372,7 +372,53 @@
     ],
     "pills": "kcBookingPills_(item)",
     "body": "kcBookingBody_(row, live)",
-    "tool": "jobPage_(raw)"
+    "tool": "jobPage_(raw)",
+    "letter": {
+     "say": "THE BOOKING AS AN EMAIL SAYS IT (owner, 16 Nov: one card maker): renderCard with inline \"text\" writes these lines, each through the words file; a line marked price is never said to a child or when prices are off.",
+     "bullet": "• ",
+     "lines": [
+      {
+       "word": "card-subject-level",
+       "need": [
+        "subject",
+        "level"
+       ],
+       "alone": "subject"
+      },
+      {
+       "word": "card-day-at-time",
+       "need": [
+        "day",
+        "time"
+       ],
+       "date": true,
+       "alone": "any"
+      },
+      {
+       "need": [
+        "location"
+       ],
+       "alone": "location"
+      },
+      {
+       "word": "card-dates",
+       "need": [
+        "dates"
+       ]
+      },
+      {
+       "word": "card-total",
+       "need": [
+        "price"
+       ],
+       "money": true,
+       "price": true,
+       "as": {
+        "price": "total"
+       }
+      }
+     ]
+    }
    },
    "live": {
     "money": "kcBookingMoney_(row)"
@@ -566,7 +612,43 @@
     "picture": "qCardPic_(entry)",
     "sheet": "qCardSheet_(entry, pic)",
     "tiles": "qCardTiles_(entry)",
-    "toolRow": true
+    "toolRow": true,
+    "letter": {
+     "say": "THE QUESTION CARD AS THE SUNDAY EMAIL DRAWS IT (57a-62a): renderCard with an inline ink fills these styles, {token} from the email ink and the sizes here; mail clients read inline styles only.",
+     "labels": {
+      "theirs": "Their answer",
+      "right": "Answer"
+     },
+     "sizes": {
+      "radius": 0,
+      "round": 999,
+      "gap": 14,
+      "rule": "#171717",
+      "small": 12,
+      "body": 16,
+      "title": 18
+     },
+     "cut": 2,
+     "perLine": 60,
+     "cls": {
+      "tag": "gi",
+      "verdict": "gi"
+     },
+     "styles": {
+      "card": "border-bottom:1px solid {rule};border-radius:{radius}",
+      "cell": "padding:{gap}px 0;font-size:{body}px",
+      "pic": "margin:0 0 {gap}px",
+      "head": "margin:0 0 {gap}px;font-size:{title}px;font-weight:bold;color:{ink}",
+      "tags": "font-size:{small}px;line-height:24px;margin:0 0 {gap}px",
+      "tag": "color:{hue};border:1px solid{edge};border-radius:{round}px;padding:0 6px",
+      "label": "margin:{gap}px 0 4px;font-size:{small}px;color:{faint}",
+      "box": "border:1px solid {paneLine};border-radius:{round}px;padding:4px 14px;color:{ink}",
+      "value": "margin:0;color:{ink}",
+      "line": "margin:0",
+      "stem": "margin:0 0 10px;padding:0 0 8px;border-bottom:1px dashed {chip};color:{dim}",
+      "verdict": "margin:{gap}px 0 0;font-weight:bold;color:{tone}"
+     }
+    }
    },
    "see": {
     "who": "anyone"
