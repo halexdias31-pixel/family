@@ -1,25 +1,28 @@
 # Piaget's conservation of liquid (GCSE Psychology, Development): two equal short wide glasses; one is poured into a tall
-# thin glass half as wide, so its level stands twice as high (3 x 2 = 1.5 x 4). Writes the `piag` row. Run: python3 tools/ps_piaget.py
+# thin glass half as wide, so its level stands twice as high (3 x 2 = 1.5 x 4): the same amount, but a child who cannot
+# yet conserve says the tall one has more. Writes the `sapiag` row in the one animation format (16 Nov). Run: python3 tools/ps_piaget.py
 import sys, pathlib; sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent)); import anim_row
+from sa_draw import Svg
 
-WIDE, LOW = 3.0, 2.0       # rem: the short glasses and their level
-THIN = WIDE / 2
-HIGH = WIDE * LOW / THIN   # the same amount in the thin glass
-assert WIDE * LOW == THIN * HIGH
-html = '''<div id="splash-piag" aria-hidden="true">
-    <div class="pg-r"><i><b></b></i><i><b></b></i><i><b></b></i></div>
-    <div class="pg-s">same amount: "the tall one has more"</div>
-  </div>'''
-css = '''.pg-r{display:flex;align-items:flex-end;justify-content:center;gap:1.2rem}
-.pg-r i{position:relative;width:%(w)grem;height:5rem;border:2px solid #f0ece099;border-top:0;border-radius:0 0 4px 4px}
-.pg-r b{position:absolute;left:0;right:0;bottom:0;height:%(l)grem;background:#6fa8dc;transform-origin:bottom}
-.pg-r i+i b{animation:pg-out 6s infinite}
-.pg-r i+i+i{width:%(t)grem}
-.pg-r i+i+i b{height:%(h)grem;animation-name:pg-in}
-@keyframes pg-out{0%%,25%%,100%%{transform:none}55%%,90%%{transform:scaleY(0)}}
-@keyframes pg-in{0%%,25%%,100%%{transform:scaleY(0)}55%%,90%%{transform:none}}
-.pg-s{margin-top:.9rem;font:.72rem var(--mono);color:#f0ece08c;text-align:center}
-@media (prefers-reduced-motion: reduce) {
-  .pg-r i+i b{animation:none}
-}''' % {'w': WIDE, 'l': LOW, 't': THIN, 'h': HIGH}
-anim_row.write_anim('piag', html=html, css=css)
+WIDE, LOW = 60, 40                       # the short glasses and their level; the tall one is half as wide, twice as high
+d = Svg(400, 200)
+base = 150
+
+
+def glass(x, w, h, level, step=''):
+    d.path('M%g,%g v%g h%g v%g' % (x, base - h, h, w, -h))
+    if step: d.g(step)
+    d.rect(x + 2, base - level, w - 4, level - 2, 'fill cool', style='fill-opacity:.6')
+    if step: d.end()
+
+
+glass(50, WIDE, 70, LOW)
+d.g('s1'); d.text(80, 172, 'A', size=11); d.end()
+glass(150, WIDE, 70, LOW, 's1')
+d.g('s1'); d.text(180, 172, 'B', size=11); d.end()
+d.g('s2'); d.arrow(215, 70, 270, 40, 'pt hot'); d.text(240, 36, 'pour B', 'hot', size=11); d.end()
+glass(290, WIDE / 2, 110, 2 * LOW, 's3')
+d.g('s3'); d.text(305, 172, 'C', size=11); d.end()
+d.g('s4'); d.text(200, 22, 'same amount: A = C'); d.end()
+d.g('s5'); d.text(200, 194, '"the tall one has more"', 'hot'); d.end()
+anim_row.write_sa('piag', d.svg('The same amount of liquid poured into a tall thin glass looks like more to a young child'))

@@ -56,6 +56,149 @@ import json, math, pathlib, re
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 BOOKS = ROOT / 'data' / 'textbooks.json'
+
+# ---------- ONE FORMAT (owner, 16 Nov) ---------------------------------------------------------------------
+# Every drawing in the books is `<svg class="sa">` now (tools/anim_sa.py says how an old one is turned into it). A
+# script here still computes its drawing the old way, and everything below works on the old row as before, but on a
+# scratch copy of the books in which each converted row stands as it was: its old markup and CSS are kept, one line
+# each, in tools/anim_legacy.json (the script's last output, which the merge of a script that writes only some parts
+# needs). When the script ends, each old row in the copy goes back to the books in the one format (anim `sa<id>`, the
+# drawing converted, `css` empty) and its old markup and CSS go back into anim_legacy.json. The drawings that were HTML
+# with no <svg> (the CS, English, languages, psychology ones, sieve, index, coin, aroot2, dtnet) are drawn in the format
+# by their scripts (tools/sa_draw.py, `write_sa` below), and the hand rows (ang clock half mult odds pas sf tri trick)
+# are `sa` rows edited in place. ANIM_SA_FORCE=1 converts every old row again (after a change to anim_sa.py).
+import atexit, os, sys, tempfile
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import anim_sa
+
+REAL = BOOKS
+LEGACY = ROOT / 'tools' / 'anim_legacy.json'
+# the converted id is `sa` + the old one, except where a drawing in the one format already had that name
+SA_ID = {'half': 'sahalfsum', 'cell': 'sacellparts', 'mitosis': 'sacelldivide', 'heart': 'sadoubleloop',
+         'dna': 'sadnaprotein', 'atom': 'saeshells', 'ionic': 'saionicbond', 'covalent': 'sacovalentbond',
+         'electro': 'saleadbromide', 'equil': 'sahaberproc', 'orbit': 'saplanets', 'lens': 'sasoclens'}
+TRUE_COLOUR = {'dtwheel'}                # what these teach is their colours: their fills stay as drawn
+
+
+def sa_id(anim_id):
+    return SA_ID.get(anim_id, 'sa' + anim_id)
+
+
+def _legacy():
+    if not LEGACY.exists(): return {}
+    out = {}
+    for line in LEGACY.read_text(encoding='utf-8').split('\n'):
+        line = line.strip().rstrip(',')
+        if line.startswith('{'):
+            r = json.loads(line); out[r['anim']] = r
+    return out
+
+
+def _save_legacy(store):
+    lines = [json.dumps(store[k], ensure_ascii=False, separators=(',', ':')) for k in sorted(store)]
+    LEGACY.write_text('[\n' + ',\n'.join(lines) + '\n]\n', encoding='utf-8')
+
+
+def _scratch():
+    """The books as the old scripts knew them: each converted row as its old self."""
+    store = _legacy()
+    back = {sa_id(k): k for k in store}
+    lines = REAL.read_text(encoding='utf-8').split('\n')
+    for k, l in enumerate(lines):
+        s = l.strip().rstrip(',')
+        if not s.startswith('{') or '"anim":"' not in s: continue
+        r = json.loads(s)
+        old = back.get(r.get('anim'))
+        if old is None: continue
+        leg = store[old]
+        row = {'book_id': r['book_id'], 'chapter': r['chapter'], 'anim': old, 'title': r['title'], 'about': r['about'],
+               'html': leg['html'], 'css': leg['css'], 'active': r['active']}
+        lines[k] = json.dumps(row, ensure_ascii=False, separators=(',', ':')) + (',' if l.rstrip().endswith(',') else '')
+    fd, path = tempfile.mkstemp(prefix='books-', suffix='.json')
+    os.close(fd)
+    pathlib.Path(path).write_text('\n'.join(lines), encoding='utf-8')
+    return pathlib.Path(path), store
+
+
+_FAILED = []
+
+
+def _finish():
+    """Each old row in the scratch copy goes back to the books in the one format."""
+    global BOOKS
+    path = BOOKS
+    if path == REAL or not path.exists(): return
+    BOOKS = REAL
+    try:
+        if _FAILED: return
+        store = _STORE
+        before = {sa_id(k): v for k, v in store.items()}
+        lines = path.read_text(encoding='utf-8').split('\n')
+        real = {}
+        for l in REAL.read_text(encoding='utf-8').split('\n'):
+            if l.strip().startswith('{') and '"anim":"' in l:
+                s = l.strip().rstrip(','); real[json.loads(s).get('anim')] = s
+        for k, l in enumerate(lines):
+            s = l.strip().rstrip(',')
+            if not s.startswith('{') or '"anim":"' not in s: continue
+            r = json.loads(s)
+            aid = r.get('anim')
+            if not aid or str(r.get('html', '')).lstrip().startswith('<svg class="sa'): continue
+            if '<svg' not in r['html']: continue          # drawn by hand in the one format: its script writes it so
+            leg = {'anim': aid, 'html': r['html'], 'css': r['css']}
+            new = sa_id(aid)
+            if not os.environ.get('ANIM_SA_FORCE') and before.get(new) == leg and new in real and json.loads(real[new]).get('chapter') == r['chapter'] \
+                    and json.loads(real[new]).get('book_id') == r['book_id']:
+                out = real[new]
+            else:
+                html = anim_sa.to_sa(r['html'], r['css'], r['title'], true_colour=aid in TRUE_COLOUR)
+                out = json.dumps({'book_id': r['book_id'], 'chapter': r['chapter'], 'anim': new, 'title': r['title'],
+                                  'about': r['about'], 'html': html, 'css': '', 'active': r['active']},
+                                 ensure_ascii=False, separators=(',', ':'))
+            store[aid] = leg
+            lines[k] = out + (',' if l.rstrip().endswith(',') else '')
+        REAL.write_text('\n'.join(lines), encoding='utf-8')
+        _save_legacy(store)
+    finally:
+        path.unlink()
+
+
+def _failed(*a):
+    _FAILED.append(a)
+    _hook(*a)
+
+
+def write_sa(anim_id, svg, place=None):
+    """A drawing drawn in the one format (tools/sa_draw.py) writes its row whole: anim `sa<id>`, the markup, no CSS.
+    The row is found by either id, or made under `place` = (book_id, chapter, title, about) after that chapter's drawings."""
+    assert svg.startswith('<svg class="sa"'), anim_id
+    new = sa_id(anim_id)
+    lines = BOOKS.read_text(encoding='utf-8').split('\n')
+    parse = lambda l: json.loads(l.strip().rstrip(',')) if l.strip().startswith('{') else None
+    hit = [k for k, l in enumerate(lines) if '"anim":"' in l and (parse(l) or {}).get('anim') in (anim_id, new)]
+    if len(hit) > 1: raise SystemExit('%d rows carry %s' % (len(hit), anim_id))
+    if hit:
+        k = hit[0]; r = parse(lines[k])
+        row = {'book_id': r['book_id'], 'chapter': r['chapter'], 'anim': new, 'title': r['title'], 'about': r['about'],
+               'html': svg, 'css': '', 'active': r.get('active', 'True')}
+        lines[k] = json.dumps(row, ensure_ascii=False, separators=(',', ':')) + (',' if lines[k].rstrip().endswith(',') else '')
+    else:
+        if not place: raise SystemExit('%s has no row and no place to make one' % anim_id)
+        book, chapter, title, about = place
+        at = [k for k, l in enumerate(lines) if (lambda r: r and r.get('book_id') == book and r.get('chapter') == chapter)(parse(l))]
+        if not at: raise SystemExit('%s chapter %s is not in data/textbooks.json' % (book, chapter))
+        k = at[-1]
+        if not lines[k].rstrip().endswith(','): lines[k] = lines[k].rstrip() + ','
+        row = {'book_id': book, 'chapter': chapter, 'anim': new, 'title': title, 'about': about, 'html': svg, 'css': '', 'active': 'True'}
+        lines.insert(k + 1, json.dumps(row, ensure_ascii=False, separators=(',', ':')) + (',' if lines[k + 1].strip() != ']' else ''))
+    BOOKS.write_text('\n'.join(lines), encoding='utf-8')
+    _STORE.pop(anim_id, None)
+
+
+BOOKS, _STORE = _scratch()
+atexit.register(_finish)
+_hook = sys.excepthook
+sys.excepthook = _failed
 EL = {'line': 'nline'}                   # the one whose element id was not its name
 
 
