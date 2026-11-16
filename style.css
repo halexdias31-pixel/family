@@ -118,6 +118,7 @@
   --dur-move:  280ms;
   /* AN INFORMATION HIGHLIGHT (`.lay-moved`, `.post-lit`): it says where something is, so reduced motion keeps it. */
   --dur-mark:  1.3s;
+  --dur-drift: 18s;   /* a picture's slow pan and zoom (`.kc-pan`, history topics): slow enough to read the picture as it moves */
   --dur-pan:   900ms; /* the timeline axis pan (owner-asked, batch F): slow enough to read the years go by */
   /* how long anything takes to respond to a touch; the old name, kept as an alias until every use moves onto `--dur-quick`. */
   --quick: var(--dur-quick);
@@ -6545,3 +6546,35 @@ button.scr-sq { cursor: pointer; }
 .race-attr { margin: var(--s1) 0 0; font-size: var(--fs-small); }
 .race-attr a { color: inherit; }
 .flappy-msg { text-align: center; margin: var(--s2) 0 0; }
+
+/* ---------- HISTORY TOPICS (owner, 16 Nov): a painting shown whole, and the one vertical timeline (`CARD_BLOCKS.timeline`) ---------- */
+.card.kc-hist > .kc-pic { overflow: hidden; }
+.card.kc-hist > .kc-pic img { object-fit: contain; background: var(--sunk); }
+.kc-tl { list-style: none; margin: 0; padding: 0 0 0 var(--s4); position: relative; }
+.kc-tl::before { content: ""; position: absolute; left: 0.3em; top: 0.4em; bottom: 0.4em; width: 2px; background: var(--line); transform-origin: top; }
+.kc-tl-stop { position: relative; display: grid; grid-template-columns: 3.4em 1fr; gap: var(--s2); padding: 0 0 var(--s3); text-align: left; }
+.kc-tl-stop::before { content: ""; position: absolute; left: calc(var(--s1) - var(--s4) - 4px); top: 0.35em; width: 10px; height: 10px; border-radius: 50%; background: var(--hue-4); }
+.kc-tl-when { font-weight: 700; color: var(--hue-4); font-variant-numeric: tabular-nums; }
+.kc-tl-what b { display: block; }
+.kc-tl-what p { margin: 0; }
+.kc-tl-who { color: var(--hue-8); }
+.htop-quote { border-left: 3px solid var(--hue-4); padding-left: var(--s2); font-style: italic; }
+.htop-credit { font-size: var(--fs-small); }
+/* THE TIMELINE DRAWS ITSELF IN ORDER: its line grows, then each stop rises in a beat after the one above (--dur-quick apart). */
+@media (prefers-reduced-motion: no-preference) {
+  .kc-tl::before { animation: kc-tl-grow var(--dur-pan) var(--ease-out) both; }
+  .kc-tl-stop { animation: kc-tl-in var(--dur-move) var(--ease-out) both; }
+  .kc-tl-stop:nth-child(2) { animation-delay: calc(var(--dur-quick) * 1); } .kc-tl-stop:nth-child(3) { animation-delay: calc(var(--dur-quick) * 2); }
+  .kc-tl-stop:nth-child(4) { animation-delay: calc(var(--dur-quick) * 3); } .kc-tl-stop:nth-child(5) { animation-delay: calc(var(--dur-quick) * 4); }
+  .kc-tl-stop:nth-child(6) { animation-delay: calc(var(--dur-quick) * 5); } .kc-tl-stop:nth-child(n+7) { animation-delay: calc(var(--dur-quick) * 6); }
+  /* WHERE THE BROWSER CAN TIE AN ANIMATION TO SCROLLING, each stop rises as it is scrolled to instead. */
+  @supports (animation-timeline: view()) {
+    .kc-tl > .kc-tl-stop:nth-child(n) { animation: kc-tl-in auto var(--ease-out) both; animation-timeline: view(); animation-range: entry 0% entry 60%; animation-delay: 0s; }
+  }
+  /* THE ONE PICTURE ANIMATION (owner, 16 Nov: information + animation): a card picture with `look: 'kc-pan'` drifts in a slow pan and zoom */
+  /* from the top third (a portrait's face); transform only, so it runs on the compositor. Still where motion is reduced. */
+  img.kc-pan { transform-origin: 50% 30%; animation: kc-pan var(--dur-drift) var(--ease-out) var(--dur-enter) infinite alternate both; }
+}
+@keyframes kc-tl-grow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes kc-tl-in { from { opacity: 0; transform: translateY(0.6em); } to { opacity: 1; transform: none; } }
+@keyframes kc-pan { from { transform: scale(1) translate(0, 0); } to { transform: scale(1.18) translate(-3%, 4%); } }

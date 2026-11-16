@@ -399,6 +399,8 @@ const KINDS = {
   mech: { group: 'Learning', label: 'Library', card: (x, c) => findCard(x, c) },
   /* CHEMISTRY (550): elements, substances and reactions, Library like the rest; `mKind` says which, js/chemistry.js. */
   chem: { group: 'Learning', label: 'Library', card: (x, c) => findCard(x, c) },
+  /* HISTORY TOPICS (16 Nov): a topic's timeline, people, sources and items, Library like the rest; js/history-topics.js. */
+  hist: { group: 'Learning', label: 'Library', card: (x, c) => findCard(x, c) },
 
   /* ---------- TWO GROUPS, NOT ONE GROUP AND THEN THE SAME QUESTION AGAIN § */
   /* ---------- THESE TWO STAY IN THE TABLE AND NO LONGER ANSWER THE FIRST QUESTION § */
@@ -705,6 +707,7 @@ const FACETS = [
   { field: 'boutEvent', label: 'Event',       of: x => (isFight_(x) && x.row && String(x.row.event || '').trim()) || '' },
   /* THE HISTORY DATABASE'S (459): which table, the era its years touch, and its columns as ordinary tags (`histCol_`). */
   { field: 'histKind',  label: 'Manuscripts, people, writings, events or timelines', of: x => x.histKind || (/^(pdtext|worktext|writ|writing|content)$/.test(x.kind) && [].concat(x.subject || []).indexOf('History') >= 0 ? 'Writings' : '') },
+  { field: 'histPart',  label: 'Timeline, people, sources or items', of: x => x.histPart || '' },
   { field: 'histEra',   label: 'Era',         of: x => histErasOf_(x) },
   { field: 'histMaterial', label: 'Material', of: x => histCol_(x, 'material') },
   { field: 'histFormat', label: 'Format',     of: x => histCol_(x, 'format') },
@@ -9267,6 +9270,7 @@ function stuffItemsRaw_() {
     ...(typeof window.hymnsItems_ === 'function' ? window.hymnsItems_() : []),
     ...(typeof mechItems_ === 'function' ? mechItems_() : []),
     ...(typeof chemItems_ === 'function' ? chemItems_() : []),
+    ...(typeof histTopicItems_ === 'function' ? histTopicItems_() : []),
 
     /* ---------- `DATA.films` WAS MAPPED HERE, ONE ITEM PER FILM OR SERIES, AND IS NOT ANY MORE § */
 
@@ -11230,7 +11234,7 @@ function chipShow_(f, i) {
 
 /* ---------- ONE COLOUR PER MENU (1030): every answer of a facet, its chip and its card words wear the facet's --hue-N. § */
 /* WRITTEN BY tools/facet-hues.js from the funnel's facet graph: two facets asked on one path never share a number. */
-const TAG_OF = {forLabel: 0, kindLabel: 0, kindOwn: 2, postState: 1, postBy: 9, postWhen: 10, msgWith: 7, profileType: 1, settingFor: 1, vidSubject: 10, vidTopic: 11, vidChannel: 8, vidLevel: 9, vidType: 0, venueArea: 6, venueFor: 10, venueSize: 8, projectType: 11, subject: 1, shelf: 5, wReligion: 5, histKind: 4, wCollection: 4, wWork: 8, wSection: 7, wSource: 2, wLanguage: 6, wText: 11, wTradition: 2, wBook: 9, wChapter: 10, wUnit: 2, wAuthor: 10, wForm: 1, wPrimacy: 2, mScope: 8, mMake: 6, mModel: 4, mGen: 2, mEngine: 3, mKind: 3, mSystem: 9, pcType: 5, pcSocket: 4, pcIface: 2, pcLinks: 3, mPhase: 5, mMarket: 3, mYears: 10, mSize: 8, mValves: 9, mBadge: 0, mFuel: 1, mPart: 7, mPrice: 6, cCategory: 11, cGroup: 2, cPeriod: 4, cState: 5, boxKind: 3, fighter: 8, boutMonth: 10, boutYear: 4, decade: 2, division: 4, boutRound: 0, boutMethod: 0, boutWinner: 7, boutEvent: 0, histEra: 1, histMaterial: 5, histFormat: 2, histGenre: 3, histRole: 7, personName: 7, personYears: 8, personFrom: 6, histTheme: 10, histRepository: 6, histFound: 7, histDated: 9, histSide: 8, histTheatre: 9, practicalType: 10, shopKind: 3, shopHow: 1, shopPrice: 6, shopBrand: 3, shopFor: 4, shopTheme: 5, required: 11, documentType: 4, level: 3, keystage: 7, yearGroup: 3, bandValue: 5, topic: 6, examBoard: 7, tier: 9, examYear: 5, examMonth: 8, examDay: 8, verified: 0, paperId: 8, paperSection: 1, qNumber: 9, qPart: 1, qSub: 2, marks: 11, needs: 0, myResult: 11, source: 6};
+const TAG_OF = {forLabel: 0, kindLabel: 0, kindOwn: 2, postState: 1, postBy: 9, postWhen: 10, msgWith: 7, profileType: 1, settingFor: 1, vidSubject: 10, vidTopic: 11, vidChannel: 8, vidLevel: 9, vidType: 0, venueArea: 6, venueFor: 10, venueSize: 8, projectType: 11, subject: 1, shelf: 5, wReligion: 5, histKind: 4, histPart: 2, wCollection: 4, wWork: 8, wSection: 7, wSource: 2, wLanguage: 6, wText: 11, wTradition: 2, wBook: 9, wChapter: 10, wUnit: 2, wAuthor: 10, wForm: 1, wPrimacy: 2, mScope: 8, mMake: 6, mModel: 4, mGen: 2, mEngine: 3, mKind: 3, mSystem: 9, pcType: 5, pcSocket: 4, pcIface: 2, pcLinks: 3, mPhase: 5, mMarket: 3, mYears: 10, mSize: 8, mValves: 9, mBadge: 0, mFuel: 1, mPart: 7, mPrice: 6, cCategory: 11, cGroup: 2, cPeriod: 4, cState: 5, boxKind: 3, fighter: 8, boutMonth: 10, boutYear: 4, decade: 2, division: 4, boutRound: 0, boutMethod: 0, boutWinner: 7, boutEvent: 0, histEra: 1, histMaterial: 5, histFormat: 2, histGenre: 3, histRole: 7, personName: 7, personYears: 8, personFrom: 6, histTheme: 10, histRepository: 6, histFound: 7, histDated: 9, histSide: 8, histTheatre: 9, practicalType: 10, shopKind: 3, shopHow: 1, shopPrice: 6, shopBrand: 3, shopFor: 4, shopTheme: 5, required: 11, documentType: 4, level: 3, keystage: 7, yearGroup: 3, bandValue: 5, topic: 6, examBoard: 7, tier: 9, examYear: 5, examMonth: 8, examDay: 8, verified: 0, paperId: 8, paperSection: 1, qNumber: 9, qPart: 1, qSub: 2, marks: 11, needs: 0, myResult: 11, source: 6};
 /* A FACET THE WALK NEVER MET (one the facets tab invented) still has a colour: the first. */
 const tagOf_ = field => 'h' + (TAG_OF[field] || 0);
 const tagAttr_ = field => ` data-tag="${tagOf_(field)}"`;
@@ -11406,7 +11410,8 @@ function stuffIndexesAsk_() {
   if (typeof window.orthoIndex_ === 'function') window.orthoIndex_();
   if (typeof window.hymnsIndex_ === 'function') window.hymnsIndex_();
   if (typeof mechIndex_ === 'function') mechIndex_();
-  if (typeof chemIndex_ === 'function') chemIndex_(); }
+  if (typeof chemIndex_ === 'function') chemIndex_();
+  if (typeof histTopicsIndex_ === 'function') histTopicsIndex_(); }
 }
 
 function paintStuff(keepPage) {
@@ -21797,6 +21802,81 @@ function chemBody_(r) { const has = v => v || v === 0;
     ['Discovered', r.discovered], ['Also called', r.also], ['Formula', r.formula], ['Use', r.use], ['Hazard', r.hazard], ['Pattern', r.pattern],
     ['Conditions', r.conditions], ['Observations', r.observations]].filter(f => has(f[1])).map(([k, v]) => k + ' ' + v);
   return [{ type: 'text', paras: facts.concat((r.examples || []).map(e => String(e.equation || '')), r.source || '') }]; }
+
+;
+/* ==== js/history-topics.js ==== */
+/* ================= HISTORY TOPICS (owner, 16 Nov): Library › History › <topic> › Timeline, People, Sources or Items ================= */
+/* One data file a topic, data/library/history/<id>.json (its list: index.json, written by tools/history-topics.js); every card is made from it here. */
+/* A topic is a `histKind` answer beside Events and People; which of its four kinds is `histPart`. Each is a card on the one template (ITEM_MAPS.hist). */
+
+const HTOP = { data: null, asking: null, failed: false, items: null, from: null };
+const HTOP_DIR = 'data/library/history/';
+const HTOP_PARTS = { timeline: 'Timeline', people: 'People', sources: 'Sources', items: 'Items' };
+
+function histTopicsIndex_() {
+  if (HTOP.data) return HTOP.data;
+  if (HTOP.asking || HTOP.failed || typeof fetch !== 'function') return null;
+  const stamp = deployStamp_();
+  const get = f => Promise.resolve().then(() => fetch(HTOP_DIR + f + '.json' + stamp, { cache: 'default' }))
+    .then(res => (res && res.ok) ? res.json() : null).catch(() => null);
+  HTOP.asking = get('index').then(ids => Promise.all((Array.isArray(ids) ? ids : []).filter(id => /^[a-z0-9-]+$/.test(String(id))).map(get))).then(all => {
+    HTOP.asking = null;
+    const d = (all || []).filter(t => t && t.id && t.name && Array.isArray(t.timeline));
+    if (!d.length) { HTOP.failed = true; return null; }
+    HTOP.data = d;
+    if (typeof lateCame_ === 'function') lateCame_();
+    return d;
+  });
+  return null;
+}
+
+/* A YEAR OR A SPAN AS SAID; `about` marks a year known only roughly. */
+const htopYears_ = (a, b, about) => (a ? (about ? 'c. ' : '') + a : '?') + (b ? '–' + b : '');
+
+/* ONE ITEM A CARD: the topic's whole timeline is one card; each person, source and item is one. */
+function histTopicItems_() {
+  const d = HTOP.data;
+  if (!d) return [];
+  if (HTOP.items && HTOP.from === d) return HTOP.items;
+  const list = [];
+  d.forEach(t => {
+    const one = (part, r, name, words) => list.push({
+      kind: 'hist', key: 'hist:' + t.id + ':' + (part === 'timeline' ? 'timeline' : part + ':' + r.id), name, subject: 'History', image: '', row: null,
+      level: t.level || '', keystage: t.keystage || '', histKind: t.name, histPart: HTOP_PARTS[part],
+      text: [t.name, t.title, name].concat(words).filter(Boolean).join(' '),
+      hist: { id: t.id + '-' + (r.id || part), name, part, topic: t, row: r, topicName: t.name, partName: HTOP_PARTS[part] },
+    });
+    one('timeline', { id: 'timeline' }, t.title + ': timeline', t.timeline.map(e => e.year + ' ' + e.title));
+    (t.people || []).forEach(r => one('people', r, r.name, [r.role].concat(r.facts || [])));
+    (t.sources || []).forEach(r => one('sources', r, r.name, [r.type, r.text]));
+    (t.items || []).forEach(r => one('items', r, r.name, r.facts || []));
+  });
+  HTOP.items = list; HTOP.from = d;
+  return list;
+}
+
+/* WHERE A PICTURE CAME FROM, under it: who made it and its licence, linked to its page. */
+const htopCredit_ = p => (p && p.credit ? [{ type: 'text', look: 'htop-credit', text: ['Picture: ', { link: p.credit + ' · ' + (p.licence || ''), href: p.page || '', act: 'file-view', look: 'link' }] }] : []);
+const htopLink_ = (u, say) => (u ? [{ type: 'text', look: 'htop-link', text: [{ link: say, href: u, act: 'file-view', look: 'link' }] }] : []);
+/* A PERSON NAMED ON A TIMELINE, by their card's name. */
+const htopWho_ = (t, id) => ((t.people || []).find(p => p.id === id) || {}).name || '';
+
+/* THE BODY OF EACH KIND (ITEM_MAPS.hist): no worked examples, only what happened, who, and what survives. */
+function histTopicBody_(h) {
+  const t = h.topic || {}, r = h.row || {};
+  if (h.part === 'timeline') return [{ type: 'text', text: t.summary || '' },
+    { type: 'timeline', label: t.title, events: (t.timeline || []).map(e => ({ when: htopYears_(e.year, e.to), title: e.title, text: e.text,
+      who: (e.who || []).map(id => htopWho_(t, id)).filter(Boolean).join(', ') })) }];
+  if (h.part === 'people') return [{ type: 'list', items: [{ label: 'Lived', value: htopYears_(r.born, r.died, r.about) }, { label: 'Who', value: r.role || '' },
+    r.fate ? { label: 'What happened', value: r.fate } : null].filter(Boolean) }, { type: 'list', items: r.facts || [] }].concat(htopCredit_(r.pic));
+  if (h.part === 'sources') return [{ type: 'list', items: [{ label: 'Kind', value: r.type || '' }, r.date ? { label: 'Made', value: r.date } : null].filter(Boolean) },
+    { type: 'text', text: r.text || '' }].concat(r.quote ? [{ type: 'text', look: 'htop-quote', text: '“' + r.quote + '”' }] : [],
+    htopLink_(r.url, r.type === 'Video' ? 'Watch on the BBC' : 'Read the full text'), htopCredit_(r.pic));
+  return [{ type: 'list', items: [{ label: 'When', value: r.date || '' }] }, { type: 'list', items: r.facts || [] }]
+    .concat(htopLink_(r.url, 'Find out more'), htopCredit_(r.pic));
+}
+/* ITS PICTURE: a portrait, painting or photo, hot-linked from Wikimedia Commons with its credit in the body. */
+const histTopicPic_ = h => (h && h.row && h.row.pic && h.row.pic.src ? { src: h.row.pic.src, alt: h.name, look: 'kc-pan' } : null);
 
 ;
 /* ==== js/qr.js ==== */

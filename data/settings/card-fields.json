@@ -31,6 +31,7 @@
 {"kind": "hymn", "cls": "", "pic": "ownPic", "title": "ownHead", "tags": "ownTags", "lines": "ownLines", "tiles": "", "notes": "its own file writes it; findCard cuts it into the parts: a hymn (readingCard_)", "facts": true, "icon": "sound"},
 {"kind": "mech", "cls": "", "pic": "", "title": "", "tags": "", "lines": "", "tiles": "", "notes": "drawn from its spec (cardKind_, master template)", "facts": false, "icon": "compass"},
 {"kind": "chem", "cls": "", "pic": "", "title": "", "tags": "", "lines": "", "tiles": "", "notes": "drawn from its spec (cardKind_, master template)", "facts": false, "icon": "spark"},
+{"kind": "hist", "cls": "", "pic": "", "title": "", "tags": "", "lines": "", "tiles": "", "notes": "a history topic's card (js/history-topics.js), drawn from its item map", "facts": false, "icon": "line"},
 {"kind": "soon", "cls": "", "pic": "", "title": "", "tags": "", "lines": "", "tiles": "", "notes": "drawn from its spec (cardKind_, master template)", "facts": true, "icon": "spark"},
 {"kind": "person", "cls": "is-prof prof-door", "pic": "", "title": "", "tags": "", "lines": "", "tiles": "", "notes": "a spec (cardKind_ person, find-doors.js): an admin's profile door", "facts": false, "icon": ""},
 {"kind": "setting", "cls": "", "pic": "ownPic", "title": "ownHead", "tags": "ownTags", "lines": "ownLines", "tiles": "", "notes": "its own file writes it; findCard cuts it into the parts: a settings door", "facts": true, "icon": "tools"},

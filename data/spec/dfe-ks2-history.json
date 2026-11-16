@@ -1,0 +1,102 @@
+{
+ "id": "dfe-ks2-history",
+ "board": "Department for Education",
+ "qualification": "National Curriculum",
+ "level": "KS2",
+ "subject": "History",
+ "code": "KS2 history",
+ "url": "https://www.gov.uk/government/publications/national-curriculum-in-england-history-programmes-of-study",
+ "note": "The national curriculum in England, history programmes of study, key stage 2 (DfE 2013). Short headings; the gov.uk page has the full wording. The Tudors are taught as KS2.6.",
+ "sections": [
+  {
+   "id": "KS2",
+   "title": "Key stage 2: subject content"
+  },
+  {
+   "id": "AIM",
+   "title": "Key stage 2: what pupils should learn to do"
+  }
+ ],
+ "points": [
+  {
+   "id": "KS2.1",
+   "text": "changes in Britain from the Stone Age to the Iron Age",
+   "parent": "KS2",
+   "links": []
+  },
+  {
+   "id": "KS2.2",
+   "text": "the Roman Empire and its impact on Britain",
+   "parent": "KS2",
+   "links": []
+  },
+  {
+   "id": "KS2.3",
+   "text": "Britain's settlement by Anglo-Saxons and Scots",
+   "parent": "KS2",
+   "links": []
+  },
+  {
+   "id": "KS2.4",
+   "text": "the Viking and Anglo-Saxon struggle for the Kingdom of England to the time of Edward the Confessor",
+   "parent": "KS2",
+   "links": []
+  },
+  {
+   "id": "KS2.5",
+   "text": "a local history study",
+   "parent": "KS2",
+   "links": []
+  },
+  {
+   "id": "KS2.6",
+   "text": "a study of an aspect or theme in British history that extends pupils' chronological knowledge beyond 1066",
+   "parent": "KS2",
+   "links": [
+    "hist:tudors:timeline"
+   ]
+  },
+  {
+   "id": "KS2.7",
+   "text": "the achievements of the earliest civilizations: Ancient Sumer, the Indus Valley, Ancient Egypt or the Shang Dynasty of Ancient China",
+   "parent": "KS2",
+   "links": []
+  },
+  {
+   "id": "KS2.8",
+   "text": "Ancient Greece: Greek life and achievements and their influence on the western world",
+   "parent": "KS2",
+   "links": []
+  },
+  {
+   "id": "KS2.9",
+   "text": "a non-European society that contrasts with British history: early Islamic civilization, Mayan civilization c. AD 900, or Benin (West Africa) c. AD 900-1300",
+   "parent": "KS2",
+   "links": []
+  },
+  {
+   "id": "AIM.1",
+   "text": "a secure chronological knowledge of British, local and world history",
+   "parent": "AIM",
+   "links": []
+  },
+  {
+   "id": "AIM.2",
+   "text": "connections, contrasts and trends over time; historical terms",
+   "parent": "AIM",
+   "links": []
+  },
+  {
+   "id": "AIM.3",
+   "text": "historically valid questions about change, cause, similarity and difference, and significance",
+   "parent": "AIM",
+   "links": []
+  },
+  {
+   "id": "AIM.4",
+   "text": "how knowledge of the past is built from a range of sources",
+   "parent": "AIM",
+   "links": []
+  }
+ ]
+}
