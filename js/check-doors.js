@@ -234,7 +234,9 @@ const noDoor = [...handlers.keys()]
   .filter(a => !doors.has(a) && !dynamicDoors.has(a) && !deliberatelyIdle.has(a)).sort();
 const noHandler = [...doors.keys()].filter(a => a !== '${…}' && !handlers.has(a)).sort();
 const noWayTo = [...screens.keys()].filter(s => !gotos.has(s) && !tabIds.has(s)).sort();
-const noScreen = [...gotos.keys()].filter(s => !screens.has(s)).sort();
+/* A SCREEN THAT MOVED INTO FIND is still a place to go: go() sends its old name to its Find branch (data/settings/screens-moved.json). */
+const MOVED_ = new Set(JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'settings', 'screens-moved.json'), 'utf8')).map(r => r.screen));
+const noScreen = [...gotos.keys()].filter(s => !screens.has(s) && !MOVED_.has(s)).sort();
 
 const say = (title, list, how) => {
   console.log('');

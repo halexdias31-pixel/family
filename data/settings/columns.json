@@ -101,32 +101,5 @@
   "sort_order": 14,
   "cards": "TRUE",
   "notes": "a card per parent or client you may see — your own first when you are one, your parents, a parent's claim waiting for your yes. An admin sees every client, with Send last week (docs/history/461)."
- },
- {
-  "screen": "staff",
-  "label": "Tutor settings",
-  "icon": "🛠",
-  "active": "FALSE",
-  "sort_order": 16,
-  "cards": "TRUE",
-  "notes": "a tutor's settings: the Staff hub (terms, hours, pricing) and the teaching settings with no card to live on. Below Staff it says it is not for your account and offers Apply to teach (docs/history/461)."
- },
- {
-  "screen": "account",
-  "label": "Kids settings",
-  "icon": "⚙",
-  "active": "FALSE",
-  "sort_order": 18,
-  "cards": "TRUE",
-  "notes": "Kids settings since 730 (was Student settings): every account's own settings: signing in and out, the PIN, your roles, notifications, Reading aloud (a sample of the device voice, 463), and what was the Progress column (countdowns, answered, activity, topics to work on, grades, each series, sessions; 461), and a student's details. Signed out, the sign-in card (docs/history/461)."
- },
- {
-  "screen": "biz",
-  "label": "Biz settings",
-  "icon": "📋",
-  "active": "FALSE",
-  "sort_order": 21,
-  "cards": "TRUE",
-  "notes": "Biz settings since 730 (was Business): what only an admin has: the money and the paperwork — profit, applications to teach, staff, and the business records (insurance, tax, legal and data, safeguarding, money and company). FOR AN ADMIN ONLY: for anybody else the column is not there at all (columnsFor_ in shell.js). The site's own settings went to the Site column on 27 Oct (docs/history/491)."
  }
 ]

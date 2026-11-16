@@ -162,7 +162,6 @@ function pfpTake_(box, url, said) {
   /* NOT WHILE THE PICKER IS ON YOUR OWN CARD'S EDIT (docs/history/339) — which is where it is now, for everybody. § */
   try { if (typeof window.postFacesMine_ === 'function') window.postFacesMine_(); } catch (e) { oops_(e, 'me:pfpTake_') }
   if (onCard) return;
-  try { if (typeof paint === 'function') paint('account'); } catch (e) { oops_(e, 'me:pfpTake_') }
 }
 on('pfp-pick', el => {
   const inp = el.closest('.pfp') && el.closest('.pfp').querySelector('.pfp-in');

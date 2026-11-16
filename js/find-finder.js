@@ -248,11 +248,7 @@ function soonItems_() {
   const cols = ((DATA && DATA.columnsOff) || []).filter(c => !inFind(c)).map(c => ({ kind: c.soonKind || 'soon', name: c.label, sub: c.what || '', image: '', key: 'soon:' + c.screen, soon: 'column', soonId: c.screen }));
   const ws = (typeof TIER_OFF_WIDGETS !== 'undefined' ? TIER_OFF_WIDGETS : []).map(id => ({ kind: 'soon', name: SOON_WIDGET_NAMES[id] || id,
     sub: SOON_WIDGET_NAMES[id] || id, image: '', key: 'soon:w:' + id, soon: 'widget', soonId: id, top: SOON_WIDGET_UNDER[id] || '' }));
-  /* YOUR SETTINGS (880): off the sign-in column while SETTINGS_OFF; one card each, so the owner sees what is waiting. */
-  const set = (typeof SETTINGS_OFF !== 'undefined' && SETTINGS_OFF ? [['picture', 'Picture'], ['figure', 'Your figure'], ['name', 'Name'], ['handle', 'Handle'],
-    ['settings', 'Your settings'], ['push', 'Phone notifications'], ['progress', 'Progress'], ['brownie', 'Brownie points'], ['roadmap', 'Roadmap'], ['conduct', 'Code of conduct']] : [])
-    .map(([id, n]) => ({ kind: 'setting', name: n, sub: 'Settings', image: '', key: 'soon:set:' + id, soon: 'setting', soonId: id }));
-  return cols.concat(ws, set).map(x => Object.assign(x, { text: [x.name, x.sub].join(' ') }));
+  return cols.concat(ws).map(x => Object.assign(x, { text: [x.name, x.sub].join(' ') }));
 }
 /* A SWITCHED-OFF THING'S SPEC: "Coming soon" is a tag beside its name, never a line; what it is, below. */
 const soonSpec_ = x => ({ look: 'soon-card', tags: [{ text: x.name, colour: 0 }, { text: brand('comingSoon', 'Coming soon') }],

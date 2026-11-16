@@ -13,10 +13,7 @@
     "web": "secondary",
     "tutors": "secondary",
     "students": "secondary",
-    "parents": "secondary",
-    "staff": "secondary",
-    "account": "core",
-    "biz": "secondary"
+    "parents": "secondary"
   },
   "widgets": {
     "reels": "off",

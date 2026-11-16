@@ -254,7 +254,7 @@ function staffPages_() {
   const out = ownCardSetPage_('staff').concat(top, typeof flyerCards_ === 'function' ? flyerCards_() : [], typeof window.legoCards_ === 'function' ? window.legoCards_() : [], settingsCards_(settingsSplit_().staff, '', 'staff'));
   return out.length ? out : [rankOffCard_('', NOTHING_YET, null, 'rank-off set-none')];
 }
-screen('staff', () => pages('staff', typeof cardsOf_ === 'function' ? cardsOf_('staff') : staffPages_()));
+/* TUTOR SETTINGS WAS A COLUMN; it is Find › Settings › Staff now (find-only.json), drawn from CARD_BUILD.staff. */
 
 /* ---------- APPRENTICE: WORK EXPERIENCE, A PLACEHOLDER UNTIL IT IS BUILT (570) ---------- */
 function apprenticePages_() {
@@ -431,7 +431,7 @@ on('roles-save', el => {
       if (!err || !err.refused) return;
       /* THE CARD ON THE PAGE NOW, as the success path asks: the payload arriving mid-request
          repaints the column, and the card held from the press would then be a detached copy. */
-      const live = document.querySelector('#s-account .roles-card') || card;
+      const live = document.querySelector('#s-stuff .roles-card') || card;
       [].forEach.call(live.querySelectorAll('[data-role-pick]'), b => { b.selected = b.dataset.rolePick === 'client'; });
     });
 });
@@ -512,7 +512,7 @@ on('notify-pick', el => {
         text: on ? label + ' is on.' : label + ' is off — we will not email you that.' };
       /* THE CARD ON THE PAGE NOW, for the roles card's reason: a payload landing mid-request repaints the
          column, and the card held from the press would be a detached copy. */
-      const live = document.querySelector('#s-account .notify-card') || card;
+      const live = document.querySelector('#s-stuff .notify-card') || card;
       const box = live && live.querySelector('[data-kind="' + kind + '"]');
       if (box) box.checked = on;
       const line = live && live.querySelector('.notify-said');
@@ -521,7 +521,7 @@ on('notify-pick', el => {
     })
     /* ---------- A FAILURE PUTS THE TICK BACK TO WHAT THE SERVER HAS — REFUSED OR LOST § */
     .catch(() => {
-      const live = document.querySelector('#s-account .notify-card [data-kind="' + kind + '"]') || el;
+      const live = document.querySelector('#s-stuff .notify-card [data-kind="' + kind + '"]') || el;
       live.checked = notifyOnNow_(kind);
     });
 });
