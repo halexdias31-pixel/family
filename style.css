@@ -4693,6 +4693,7 @@ svg.meas .meas-body, svg.meas .meas-turn, svg.meas .meas-tick, svg.meas .meas-nu
 #kp.is-abc .kp-key, #kp.is-sym .kp-key { border-inline: 2px solid transparent; background-clip: padding-box; }
 /* A KEY'S WIDTH IN THE SIXTY COLUMNS (`span` in keypad-keys.js), and where the second letter row starts (`at`). */
 .kp-key.kp-s6 { grid-column: span 6; }
+.kp-key.kp-s8 { grid-column: span 8; }
 .kp-key.kp-s9 { grid-column: span 9; }
 .kp-key.kp-s10 { grid-column: span 10; }
 .kp-key.kp-s12 { grid-column: span 12; }
