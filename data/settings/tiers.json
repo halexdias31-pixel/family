@@ -223,6 +223,7 @@
     "check-said.js": "core",
     "check-drafts.js": "core",
     "check-keyboard.js": "core",
+    "check-kp-spans.js": "core",
     "check-post.js": "core",
     "check-doors.js": "secondary",
     "check-look.js": "core",

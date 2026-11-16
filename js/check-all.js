@@ -83,6 +83,7 @@ const SUITE = [
   { file: 'check-drafts.js', what: 'every box a person types into survives a reload, or says why not' },
   /* THE @family KEYPAD EVERYWHERE (528): every box the source can draw and every box on every column, bound to the pad and tapped. */
   { file: 'check-keyboard.js', what: 'every box a person types into types on the @family keypad, never the phone\'s keyboard', par: true },
+  { file: 'check-kp-spans.js', what: 'every key width the keypad asks for has its grid rule, so the letters stay in their rows (owner photo, 16 Nov)' },
   { file: 'check-post.js', what: 'an action that names a person by a cell they can edit' },
   { file: 'check-doors.js',   what: 'buttons and handlers', soft: true },
   { file: 'check-look.js',    what: 'the owner\'s look (8 Nov): tiles, no grey sentences, tokens, one empty state, no inline spacing' },
