@@ -98,6 +98,8 @@ function cardText_(b, who) {
 }
 /* from js/find-bundles.js */
 const TAG_OF = {forLabel: 0, kindLabel: 0, kindOwn: 2, postState: 1, postBy: 8, postWhen: 9, msgWith: 8, profileType: 1, settingFor: 1, vidSubject: 0, vidTopic: 1, vidChannel: 10, vidLevel: 11, vidType: 2, venueArea: 6, venueFor: 7, venueSize: 8, projectType: 10, subject: 1, shelf: 1, wReligion: 9, histKind: 4, wCollection: 8, histPart: 3, wWork: 2, wSection: 10, wSource: 2, wLanguage: 6, wText: 3, wTradition: 6, wBook: 7, wChapter: 10, wUnit: 11, wAuthor: 3, wForm: 4, wPrimacy: 5, mScope: 4, mMake: 2, mModel: 5, mGen: 3, mEngine: 3, mKind: 5, mSystem: 11, pcType: 5, pcSocket: 4, pcIface: 2, pcLinks: 3, mPhase: 6, mMarket: 4, mYears: 11, mSize: 9, mValves: 10, mBadge: 1, mFuel: 2, mPart: 10, mPrice: 7, cCategory: 11, cGroup: 7, cPeriod: 8, cState: 9, boxKind: 7, fighter: 8, boutMonth: 11, boutYear: 2, decade: 3, division: 4, boutRound: 0, boutMethod: 0, boutWinner: 0, boutEvent: 0, histEra: 2, histMaterial: 8, histFormat: 5, histGenre: 9, histRole: 9, personName: 3, personYears: 7, personFrom: 6, histTheme: 11, histRepository: 10, histSide: 10, histFound: 8, histDated: 1, histTheatre: 11, practicalType: 4, shopKind: 6, shopHow: 1, shopPrice: 7, shopBrand: 2, shopFor: 3, shopTheme: 4, required: 0, documentType: 5, level: 3, keystage: 6, yearGroup: 5, bandValue: 10, topic: 5, examBoard: 4, specTopic: 9, specPoint: 8, tier: 9, examYear: 5, examMonth: 7, examDay: 6, verified: 9, paperId: 6, paperSection: 4, qNumber: 7, qPart: 6, qSub: 11, marks: 0, needs: 1, myResult: 0, source: 5};
+/* from js/find-account.js */
+const SIGN_PIN_LEN = 4;
 /* from js/find-facets.js */
 const SHOW_MAX = 30;
 function showForms_(s) {

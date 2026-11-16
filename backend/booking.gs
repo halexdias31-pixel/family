@@ -1,7 +1,7 @@
 /* @family. — 30_booking.gs (4 of 8) THE BOOKING MACHINE, and everything that decides who is in a session. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const BOOKING_VERSION = "2026-11-16-pin4-1";
+const BOOKING_VERSION = "2026-11-16-pin4-2";
 
 
 /* WHEN THE BUSINESS ACTUALLY OPERATES within an interval. § */
@@ -943,8 +943,6 @@ const AUTH = {
   /* A DAY WITH NO WRONG ANSWER STARTS THE COUNT AGAIN. § */
   QUIET_HOURS: 24,
   /* A PIN SENT BY "Forgotten your PIN?" § */
-  /* HOW MANY DIGITS A PIN HAS (owner, 10 Nov): the one number every PIN this backend makes or reads follows; the sign-in keypad's SIGN_PIN_LEN is checked equal to it. */
-  PIN_DIGITS: 4,
   RESET_HOURS: 24,
   RESET_GAP_MINS: 15,
   RESET_MISSES: 5,
@@ -1009,7 +1007,7 @@ function pinWeak_(pin) {
 function authFreshPin_() {
   let made = '';
   for (let tries = 0; tries < 20; tries++) {
-    const low = Math.pow(10, AUTH.PIN_DIGITS - 1);
+    const low = Math.pow(10, SIGN_PIN_LEN - 1);
     made = String(low + Math.floor(Math.random() * 9 * low));
     if (!pinWeak_(made)) break;
   }
@@ -1117,7 +1115,7 @@ function authResetFind_(key) {
 function authResetUse_(t, r, given, locked) {
   const held = authResetGet_(r);
   if (!held || held.dead) return false;
-  if (S(given) && authSame_(S(held.pin).slice(0, AUTH.PIN_DIGITS), S(given).slice(0, AUTH.PIN_DIGITS))) return authResetTake_(t, r, held);
+  if (S(given) && authSame_(S(held.pin).slice(0, SIGN_PIN_LEN), S(given).slice(0, SIGN_PIN_LEN))) return authResetTake_(t, r, held);
   if (locked) {
     held.misses = N(held.misses) + 1;
     /* RETIRED, NOT THROWN AWAY, WHEN THERE IS A LINK BESIDE IT — see the note over `authResetKey_`. */
@@ -1132,7 +1130,7 @@ function authResetUse_(t, r, given, locked) {
    cannot drift: the link is the same proof, only one nobody can guess. Answers `{ childrenHeld }`. */
 function authResetTake_(t, r, held) {
   /* A PIN EMAILED BEFORE PINs WERE FOUR DIGITS becomes its first four, the PIN the keypad can type. */
-  authSetPin_(t, r, S(held.pin).slice(0, AUTH.PIN_DIGITS));
+  authSetPin_(t, r, S(held.pin).slice(0, SIGN_PIN_LEN));
   /* THE OLD PIN'S GUESSES SAY NOTHING ABOUT THIS ONE — `authClearThrottle_`'s own argument. */
   authClearThrottle_(t, r);
   authResetDrop_(r);
