@@ -2094,6 +2094,24 @@
    "effects": [
     "drive"
    ]
+  },
+  "factSet": {
+   "fate": "special",
+   "into": "",
+   "why": "a person fact (kinds.json person.facts): admin only, its what checked against PERSON_FACT_KEYS",
+   "access": "admin",
+   "childRefused": false,
+   "handler": "postFactSet_",
+   "file": "backend/post-admin.gs",
+   "callers": [],
+   "fallbacks": [],
+   "tabs": [
+    "facts",
+    "people"
+   ],
+   "effects": [
+    "writes"
+   ]
   }
  }
 }

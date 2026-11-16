@@ -26,6 +26,8 @@ const WHERE = {
   messages:       { file: 'ledger' },
   /* A STUDENT'S SCANNED PAGES (work on file): the Ledger, because the app writes it; the pages themselves are in Drive. */
   work_files:     { file: 'ledger' },
+  /* WHAT THE OWNER STATES ABOUT A PERSON (kinds.json person.facts): one row a fact. */
+  facts:          { file: 'ledger' },
   records:        { file: 'ledger' }, biz_checks: { file: 'ledger' }, owner_answers: { file: 'ledger' },
   exams:          { file: 'ledger' },
   posts:          { file: 'ledger' },
@@ -132,7 +134,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-11-16-flag-1";
+const BACKEND_VERSION = "2026-11-16-facts-1";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -148,6 +150,7 @@ const TAB = {
   work_files: 'work_files',
   records: 'records', biz_checks: 'biz_checks', owner_answers: 'owner_answers',
   herd: 'herd',
+  facts: 'facts',
   /* Every receipt ever issued, kept as it was issued. See the schema below. */
   receipts: 'receipts',
   /* The calendar of festivals, as rules rather than dates — see the schema. */
@@ -352,6 +355,8 @@ const SCHEMA = {
   ],
   /* ---------- HERD MENTALITY'S QUESTIONS § */
   herd: ["question_id", "question", "sort_order", "active", "notes"],
+  /* A PERSON FACT (kinds.json person.facts.row): `what` one of PERSON_FACT_KEYS (cards-gen.gs), a value may be a range "7-8". */
+  facts: ["who", "what", "value", "as_of"],
 
   /* ---------- `resources` WAS A TAB, THEN A KIND OF ROW, AND IS NOW NEITHER § */
   /* ---------- ONE TAB FOR EVERYTHING THAT IS A THING § */

@@ -254,6 +254,8 @@ const ACTION_ACCESS = {
   raiseHand: 'self', hands: 'self',
   /* All `self`: each handler checks the message is the asker's own, and the POLICY table decides
      who may write to whom. The gate cannot know either, so it only checks somebody is signed in. */
+  /* A PERSON FACT, stated by the owner (kinds.json person.facts). */
+  factSet: 'admin',
   listRecords: 'admin', saveRecordsPage: 'admin', listOwnerAnswers: 'admin', saveOwnerAnswer: 'admin',
   sendMessage: 'self', messages: 'self', readMessage: 'self', flagMessage: 'self',
   /* WHETHER A PHOTOGRAPH IN A MESSAGE CAN BE KEPT — the column, the scope, the folder, a test file. § */
