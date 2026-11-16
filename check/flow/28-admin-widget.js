@@ -195,13 +195,13 @@ check('edit words in place (497): an admin\'s Edit words makes a widget\'s title
   if (!r || (r.reset || []).indexOf(k) === -1) bad.push('Reset did not post the key back: ' + JSON.stringify(r));
   return bad;
 });
-check('who sees this (497): an admin narrows a widget to Tutors in place; a student does not see it, a tutor does, and the pager counts agree; an admin-only widget cannot be widened; layoutClean_ keeps seen', async () => {
+check('who sees this (497): an admin narrows a widget to Tutors in place; a student does not see it, a tutor does, and the pager counts agree; layoutClean_ keeps seen', async () => {
   const { w, sent } = layBoot_();
   await wait(300);
   const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
   if (!A['seen-open'] || !A['seen-set']) return ['no seen-open or seen-set handler — NOT checked'];
   t.findGroup('Tools'); await wait(300);
-  const ids = layIds_(t, 'tool'), id = ids.find(x => x !== 'flyers' && !w.seenGate_(x));
+  const ids = layIds_(t, 'tool'), id = ids.find(x => !w.seenGate_(x));
   const tile = layTile_(d, id, 'seen-open');
   if (!tile) return ['the tool has no Who sees this tile'];
   A['seen-open'](tile); await wait(50);
@@ -223,13 +223,6 @@ check('who sees this (497): an admin narrows a widget to Tutors in place; a stud
   if (tIds.indexOf(id) === -1) bad.push('a tutor does not see ' + id);
   s.w.__t.findGroup('Tools'); await wait(300);
   if (s.w.document.querySelector(`#wgt-${id}`)) bad.push('the student\'s Tools column still draws ' + id);
-  /* AN ADMIN-ONLY WIDGET: Students, Parents and Tutors are not offered; Everyone and Admin only are. */
-  if (ids.indexOf('flyers') !== -1) {
-    const box = d.createElement('div'); box.innerHTML = w.seenBox_('flyers');
-    const o = v => box.querySelector(`option[value="${v}"]`);
-    if (!o('staff') || !o('staff').disabled || !o('student').disabled || !o('out').disabled) bad.push('an admin-only widget offers a wider audience');
-    if (o('admin').disabled || o('').disabled) bad.push('an admin-only widget cannot be set to Admin only or Everyone');
-  } else bad.push('no admin-only widget (flyers) to try widening — NOT checked');
   return bad;
 });
 check('suggest a change (489, 494): one tile with that name on a widget, the booking form and the finder itself; the box opens in place of the widget; after Send the words are gone when it opens again', async () => {

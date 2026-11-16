@@ -2336,12 +2336,12 @@ const FINDER_TAGS = {
 },
 "views": {
 "admin+bible": {
-  "": ["kindLabel",[["Practice"],["Library"],["Coming soon"],["Posts"],["Messages"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]],[32214,189264,22,2,1,4,5,10,32,7,3],221563,["Practice","Library","Coming soon","Posts","Messages","Profiles","Booking","Shop","Settings","Tools","Games"]],
+  "": ["kindLabel",[["Practice"],["Library"],["Coming soon"],["Posts"],["Messages"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]],[32214,189264,15,2,1,4,5,10,31,4,3],221552,["Practice","Library","Coming soon","Posts","Messages","Profiles","Booking","Shop","Settings","Tools","Games"]],
   "kindLabel=Profiles": ["profileType",[["Parent"],["Student"],["Tutor"]],[2,2,2],4,["Parent","Student","Tutor"]],
-  "kindLabel=Settings": ["settingFor",[["Student"],["Parent"],["Staff"],["Apprentice"],["Admin"],["Business"],["Site"]],[18,8,16,9,10,5,4],32,["Student","Parent","Staff","Apprentice","Admin","Business","Site"]]
+  "kindLabel=Settings": ["settingFor",[["Student"],["Parent"],["Staff"],["Apprentice"],["Admin"],["Business"],["Site"]],[18,8,15,9,9,5,4],31,["Student","Parent","Staff","Apprentice","Admin","Business","Site"]]
 },
 "bible": {
-  "": ["kindLabel",[["Practice"],["Library"],["Coming soon"],["Posts"],["Messages"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]],[32214,189264,22,2,1,1,5,10,29,7,3],221557,["Practice","Library","Coming soon","Posts","Messages","Profiles","Booking","Shop","Settings","Tools","Games"]],
+  "": ["kindLabel",[["Practice"],["Library"],["Coming soon"],["Posts"],["Messages"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]],[32214,189264,15,2,1,1,5,10,29,4,3],221547,["Practice","Library","Coming soon","Posts","Messages","Profiles","Booking","Shop","Settings","Tools","Games"]],
   "kindLabel=Settings": ["settingFor",[["Student"],["Parent"],["Staff"],["Apprentice"],["Admin"]],[20,8,17,8,7],29,["Student","Parent","Staff","Apprentice","Admin"]]
 }
 }};
@@ -4394,7 +4394,7 @@ const qtKeys_ = t => (QTYPE_PROTOCOL[t] && QTYPE_PROTOCOL[t].padLayer) || 'lette
 /* `settings/links` WAS ON THIS LIST, fetched on every load — 27 KB for the Links door on Find, its only reader. § */
 const SETTINGS_TABS = ['settings/brand', 'settings/facets', 'settings/kinds', 'settings/laws',
                        'settings/facts',
-                       'settings/campaigns', 'settings/copy', 'settings/columns',
+                       'settings/columns',
                        'settings/spotlight', 'settings/widgets-in-find', 'settings/setting-for', 'settings/card-fields',
                        'settings/default-pictures', 'settings/permissions', 'settings/screens-moved', 'settings/labels',
                        'settings/confusables'];
@@ -4486,32 +4486,6 @@ function setFacts_(d, extra) {
         row: setRow_(x.i),
       }))
       .sort((a, b) => (a.order - b.order) || (a.row - b.row));
-  }
-
-}
-
-function setCampaigns_(d, extra) {
-  const campaigns = extra['settings/campaigns'];
-  if (campaigns && campaigns.length) {
-    const words = {};
-    (extra['settings/copy'] || []).forEach(r => {
-      if (!libOn(r.active)) return;
-      const cid = libS(r.campaign_id), slot = libS(r.slot).toLowerCase(), text = libS(r.text);
-      if (!cid || !slot || !text) return;
-      (words[cid] || (words[cid] = {}));
-      (words[cid][slot] || (words[cid][slot] = []))
-        .push({ variant: libS(r.variant) || '1', text: text, note: libS(r.note) });
-    });
-    Object.keys(words).forEach(cid => Object.keys(words[cid]).forEach(slot =>
-      words[cid][slot].sort((a, b) => (Number(a.variant) || 0) - (Number(b.variant) || 0))));
-
-    d.campaigns = campaigns.filter(r => libOn(r.active) && libS(r.campaign_id) && libS(r.name))
-      .map(r => ({
-        id: libS(r.campaign_id), name: libS(r.name), when: libS(r.when), note: libS(r.note),
-        style: libS(r.style), ink: libS(r.ink), accent: libS(r.accent), ground: libS(r.ground),
-        blocks: libS(r.blocks),
-        copy: words[libS(r.campaign_id)] || {},
-      }));
   }
 
 }
@@ -4610,7 +4584,7 @@ const labelOf_ = (group, key, fallback) => {
 function settingsInto_(d, extra) {
   if (!d || !extra) return d;
   setBrand_(d, extra); setMoved_(d, extra); setFacets_(d, extra); setKinds_(d, extra); setLaws_(d, extra); setFacts_(d, extra);
-  setCampaigns_(d, extra); setColumns_(d, extra); setSpot_(d, extra); setInFind_(d, extra); setConfusables_(d, extra); setFor_(d, extra); setCardFields_(d, extra);
+  setColumns_(d, extra); setSpot_(d, extra); setInFind_(d, extra); setConfusables_(d, extra); setFor_(d, extra); setCardFields_(d, extra);
   setDefaultPictures_(d, extra); setPermissions_(d, extra); setLabels_(d, extra);
   return d;
 }
@@ -4701,7 +4675,7 @@ function oopsTry_(where, fn, host) {
 /* TWO TIERS (860): data/settings/tiers.json. What is not core runs through tierRun_, so its throw is reported and never reaches boot, the pager or Find. check-tiers holds these lists to the file. */
 const TIER_CORE_WIDGETS = [];
 const TIER_LAZY_WIDGETS = ['console', 'wordgames', 'boardgames', 'pixel'];
-const TIER_OFF_WIDGETS = ['reels', 'newspaper', 'homework', 'flyers', 'mat', 'timer', 'docket', 'notepad', 'spotify', 'speedread', 'timetable', 'typing', 'cart', 'shopfind', 'calendar', 'countdowns', 'favlinks', 'rewrite', 'poster'];
+const TIER_OFF_WIDGETS = ['reels', 'newspaper', 'docket', 'notepad', 'speedread', 'cart', 'shopfind', 'countdowns', 'favlinks'];
 const TIER_CORE_KINDS = ['question', 'content', 'insert', 'practical', 'project', 'level'];
 const tierCore_ = (what, id) => (what === 'kind' ? TIER_CORE_KINDS : TIER_CORE_WIDGETS).indexOf(String(id)) !== -1;
 const TIER_RUN = { depth: 0 };
@@ -10434,6 +10408,16 @@ on('reg-send', el => {
     })
     .catch(() => {});      // `send_` has already said why
 });
+/* ---------- WHERE THEY CAME FROM (moved from flyer.js when the flyer maker went to attic/, 16 Nov): a `?from=…` tag kept on this phone until sign-up sends it (`register`, `came_from`) ---------- */
+const CAME_FROM_KEY = 'came_from';
+function cameFromSave_() {
+  try {
+    const f = String(new URLSearchParams(location.search).get('from') || '').toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 60);
+    if (f) localStorage.setItem(CAME_FROM_KEY, f);
+  } catch (e) { /* no storage: the sign-up is simply not traced */ }
+}
+const cameFrom_ = () => { try { return localStorage.getItem(CAME_FROM_KEY) || ''; } catch (e) { return ''; } };
+cameFromSave_();
 
 ;
 /* ==== js/me-messages.js ==== */
@@ -11420,7 +11404,7 @@ function staffPages_() {
   const hub = typeof window.hubBlock_ === 'function' ? window.hubBlock_() : '';
   const warn = typeof window.hubWarn_ === 'function' ? window.hubWarn_() : '';
   const top = hub ? [rolesSet_('staff-top', 'Staff hub', [rolesDrawn_(() => warn + hub)])] : [];
-  const out = ownCardSetPage_('staff').concat(top, typeof flyerCards_ === 'function' ? flyerCards_() : [], typeof window.legoCards_ === 'function' ? window.legoCards_() : [], settingsCards_(settingsSplit_().staff, '', 'staff'));
+  const out = ownCardSetPage_('staff').concat(top, typeof window.legoCards_ === 'function' ? window.legoCards_() : [], settingsCards_(settingsSplit_().staff, '', 'staff'));
   return out.length ? out : [rankOffCard_('', NOTHING_YET, null, 'rank-off set-none')];
 }
 /* TUTOR SETTINGS WAS A COLUMN; it is Find › Settings › Staff now (find-only.json), drawn from CARD_BUILD.staff. */
@@ -15929,7 +15913,7 @@ function toolsStart_(kind, arriving) {
 /* ---------- A WIDGET THAT IS A FIND CARD (790): data/settings/widgets-in-find.json names a kind or an id, the id's row winning; before it comes, every tool and game ---------- */
 const FIND_WIDGET_KINDS = ['tool', 'game', 'shop'];
 /* A WIDGET THAT IS ITS OWN FIRST ANSWER IN FIND (batch B): a browsable thing gets a menu pill, not a column or a mini-app. */
-const FIND_WIDGET_GROUPS = { videos: 'Videos', reels: 'Tools', newspaper: 'Tools', shopfind: 'Tools', flyers: 'Tools', poster: 'Tools', cart: 'Shop' };
+const FIND_WIDGET_GROUPS = { videos: 'Videos', reels: 'Tools', newspaper: 'Tools', shopfind: 'Tools', cart: 'Shop' };
 function widgetInFind_(w) {
   if (!w) return false;
   const rows = (typeof DATA !== 'undefined' && DATA && Array.isArray(DATA.widgetsInFind)) ? DATA.widgetsInFind : null;

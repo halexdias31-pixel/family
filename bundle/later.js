@@ -455,9 +455,9 @@ function widgetCard_(x) {
 }
 
 /* THE OFF WIDGETS' NAMES (880), for a card whose file is never fetched: written by tools/tiers.js from map.js's WIDGETS, never by hand. */
-const SOON_WIDGET_NAMES = { reels: 'One more thing', videos: 'Videos', newspaper: 'Sunday Funday', homework: 'Homework', flyers: 'Make a flyer', mat: 'Cheat sheet maker', timer: 'Timer', docket: 'Docket', notepad: 'Notepad', spotify: 'Spotify', speedread: 'Speed reader', timetable: 'Timetable', typing: 'Touch typing', cart: 'Basket', shopfind: 'Search the shop', calendar: 'Calendar', termdates: 'Term dates', countdowns: 'Countdowns', favlinks: 'Favourite links', rewrite: 'Rewrite coach', poster: 'Poster planner', pixel: 'Pixel editor', libcards: 'Library cards', console: 'Console', wordgames: 'Word games', boardgames: 'Board games' };
+const SOON_WIDGET_NAMES = { reels: 'One more thing', videos: 'Videos', newspaper: 'Sunday Funday', docket: 'Docket', notepad: 'Notepad', speedread: 'Speed reader', cart: 'Basket', shopfind: 'Search the shop', termdates: 'Term dates', countdowns: 'Countdowns', favlinks: 'Favourite links', pixel: 'Pixel editor', libcards: 'Library cards', console: 'Console', wordgames: 'Word games', boardgames: 'Board games' };
 /* AN OFF WIDGET THAT WAITS UNDER ANOTHER FRONT ANSWER (owner, 6 Nov: Homework under Tools); the rest wait under Coming soon. */
-const SOON_WIDGET_UNDER = { videos: 'Videos', reels: 'Tools', flyers: 'Tools', poster: 'Tools', homework: 'Tools' };
+const SOON_WIDGET_UNDER = { videos: 'Videos', reels: 'Tools' };
 /* A FRONT ANSWER HOLDING ONLY COMING SOON CARDS IS GREYED, never hidden (owner, 7 Nov P7/P8): Videos and Games until one is turned on. */
 /* One walk per list for every front answer (slow taps, 8 Nov): the front menu asked it a dozen times, a walk each. */
 const FRONT_SOON_MEMO = new WeakMap();
@@ -1120,7 +1120,7 @@ function kindRank_() {
 }
 /* LISTS WHOSE OWN ORDER IS THE ORDER (473): § */
 /* FIND'S FRONT MENU, in the owner's order (4 Nov): the first question's answers, whatever kinds stand under them. */
-const FRONT_ORDER = ['Practice', 'Library', 'Videos', 'Newspaper', 'Coming soon', 'Posts', 'Messages', 'Profiles', 'Booking', 'Venues', 'Shop', 'Settings', 'Tools', 'Games', 'Reels', 'Flyers', 'Posters'];
+const FRONT_ORDER = ['Practice', 'Library', 'Videos', 'Newspaper', 'Coming soon', 'Posts', 'Messages', 'Profiles', 'Booking', 'Venues', 'Shop', 'Settings', 'Tools', 'Games', 'Reels'];
 /* THE DOORS' OWN MENUS IN THE OWNER'S ORDER (batch C): account types, who, which posts, when. */
 const ANSWER_ORDERS = [FRONT_ORDER, ['Student', 'Parent', 'Staff', 'Apprentice', 'Admin', 'Business', 'Site'], ['Parent', 'Over 18', 'Under 18', 'Student', 'Tutor', 'Apprentice', 'Admin'],
   ['Approved', 'Waiting for approval', 'Deleted'], ['Today', 'This week', 'This month', 'This year', 'Older']];
@@ -17830,43 +17830,10 @@ const WIDGETS = [
   { id: 'newspaper', kind: 'tool', name: 'Sunday Funday', pure: true, start: () => window.initNewspaper_?.(),
     into: 'np-box', what: 'The newspaper',
     get html() { return mapHtml_('Sunday Funday', mapBox_('np-box', 'np-box')); } },
-  /* HOMEWORK (owner, 6 Nov): a tutor sets a paper, the student sees it; off in tiers.json, so a Coming soon card under Tools. */
-  { id: 'homework', kind: 'tool', name: 'Homework',
-    get html() { return mapHtml_('Homework'); } },
   /* `solid` — AN INSTRUMENT, NOT A CARD. § */
   /* MESSAGES, as a widget. § */
   /* MESSAGES IS NOT A WIDGET ANY MORE. § */
 
-  /* THE FLYER MAKER WAS FOLDED INTO THE CHEAT SHEET MAKER ONCE, AND IS ITS OWN TOOL AGAIN — the `flyers` entry below. § */
-
-  /* THE CHEAT SHEET MAKER. § */
-  /* THE FLYER MAKER, WHICH IS A TOOL AND NOT A PIECE OF THE CHEAT SHEET. § */
-  { id: 'flyers', kind: 'tool', name: 'Make a flyer', solid: true, admin: true,
-    start: () => window.initFlyer?.(),
-    into: 'fm-wrap', what: 'The flyer',
-    get html() { return mapHtml_('Make a flyer', mapBox_('fm-wrap')); } },
-
-
-  { id: 'mat', kind: 'tool', name: 'Cheat sheet maker', solid: true,
-    start: () => window.initMat?.(),
-    into: 'mat-box', what: 'The cheat sheet',
-    /* NO BLURB. It said "one sheet of A4, tick what goes on it" over a list of tickboxes on a page showing a sheet of A4 — three sentences describing what is already § */
-    get html() { return card_(cardBlocks_({ type: 'group', look: '', blocks: [mapHead_('Cheat sheet maker'), mapBox_('mat-box')] })); } },
-  { id: 'timer', kind: 'tool', name: 'Timer', solid: true, start: () => window.initTimer?.(),
-    pure: true,
-    into: 'timer-display', what: 'The timer',
-    get html() { return mapHtml_('Timer',
-      mapBox_('timer-display', 'mono timer-big', { tag: 'p', text: '25:00' }),
-      /* A `data-do`, not an id. The delegated click handler only ever looks for `data-do`, so a
-         button carrying an id alone is a button nothing is listening to — which is why this
-         has never started anything. */
-      mapBox_(null, 'btn-row', { tiles: [
-        { form: true, look: 'btn quiet', act: 'timer-toggle', id: 'timer-toggle', label: '▶' },
-        { form: true, label: 'Reset', act: 'timer-reset', kind: 'quiet' }] }),
-      /* The lengths people actually use. A number field for a duration is a keyboard and four taps
-         for a question whose answer is almost always one of four. */
-      mapBox_(null, 'btn-row gap-t', { tiles: [5, 15, 25, 45].map(m =>
-        ({ form: true, label: m, act: 'timer-set', data: { min: m }, kind: 'quiet', cls: 'tiny' })) })); } },
   { id: 'docket', kind: 'tool', name: 'Docket', solid: true, pure: true, start: () => paintDocket?.(),
     into: 'docket-body', what: 'The docket',
     get html() { return mapHtml_('Docket', mapBox_('docket-body'),
@@ -17880,10 +17847,6 @@ const WIDGETS = [
       { type: 'control', tag: 'textarea', attrs: { id: 'notepad', placeholder: 'Jot something down…' } },
       mapBox_('pad-said', 'said said-s', { tag: 'p', text: 'Saves as you type.' }),
       { type: 'tiles', tiles: [{ icon: 'doc', label: 'Copy', note: 'the notes', act: 'pad-copy' }] }); } },
-  /* ---------- SPOTIFY (510): your own account, connected in this browser alone — spotify.js ---------- */
-  { id: 'spotify', kind: 'tool', name: 'Spotify', solid: true, start: () => window.initSpotify?.(),
-    into: 'sp-box', what: 'Spotify',
-    get html() { return mapHtml_('Spotify', mapBox_('sp-box', null, { inner: typeof window.spCard_ === 'function' ? window.spCard_() : '' })); } },
   /* ---------- SPEED READ (403): paste, then one word at a time — reader.js ---------- */
   { id: 'speedread', kind: 'tool', name: 'Speed reader', solid: true, pure: true, start: () => initSpeedRead?.(),
     into: 'sr-text', what: 'The speed reader',
@@ -17891,18 +17854,6 @@ const WIDGETS = [
       { type: 'control', tag: 'textarea', attrs: { id: 'sr-text', placeholder: 'Paste text to read…' } },
       /* A TILE, NOT A BUTTON (720): Read is the thing's action, so it is a tile in a row under it (house style). */
       { type: 'tiles', tiles: [{ icon: 'play', label: 'Read it', act: 'sr-read' }] }); } },
-
-  /* ---------- THE TIMETABLE, THE ONE WEEK VIEW § */
-  /* NOT `pure`, though it was until the review of 12 Oct: § */
-  { id: 'timetable', kind: 'tool', name: 'Timetable', solid: true, start: () => window.initTimetable?.(),
-    into: 'tmt-box', what: 'Your timetable',
-    /* NO `.card` OF ITS OWN. § */
-    get html() { return mapHtml_('Timetable', mapBox_('tmt-box', 'tmt-box')); } },
-
-  /* ---------- TOUCH TYPING § */
-  { id: 'typing', kind: 'tool', name: 'Touch typing', solid: true,
-    start: () => window.initTyping?.(), into: 'kt-box', what: 'The lesson',
-    get html() { return mapHtml_('Touch typing', mapBox_('kt-box', 'kt-box')); } },
 
   /* ---------- THE BASKET, WHICH HAS NOW LIVED IN FOUR PLACES § */
   { id: 'cart', kind: 'shop', name: 'Basket', start: () => initCart?.(),
@@ -17913,11 +17864,6 @@ const WIDGETS = [
   { id: 'shopfind', kind: 'tool', name: 'Search the shop', pure: true, start: () => paintShopFind_?.(),
     into: 'shop-find-box', what: 'The shop search',
     get html() { return mapHtml_('Search the shop', mapBox_('shop-find-box', 'shop-find')); } },
-
-  { id: 'calendar', kind: 'tool', name: 'Calendar', pure: true, start: () => window.initCalendar?.(),
-    into: 'cal-body', what: 'The calendar',
-    get html() { return mapHtml_('Calendar', mapBox_('cal-label', 'cal-month', { tag: 'p' }), mapBox_('cal-body', 'cal'),
-      { type: 'tiles', tiles: [{ icon: 'left', label: 'Earlier', note: 'the month before', act: 'cal-back' }, { icon: 'right', label: 'Later', note: 'the month after', act: 'cal-fwd' }] }); } },
 
   /* ---------- TERM DATES AND COUNTDOWNS (466): the owner — "a widget in the Tools column telling the user the end dates of the next 3 academic intervals"; countdowns "available for everyone under Tools". */
   { id: 'termdates', kind: 'tool', name: 'Term dates', pure: true, start: () => paintTermDates_?.(),
@@ -17934,16 +17880,6 @@ const WIDGETS = [
     start: () => window.initFavLinks_?.(),
     into: 'fav-box', what: 'Your favourite links',
     get html() { return mapHtml_('Favourite links', mapBox_('fav-box')); } },
-  /* ---------- THE REWRITE COACH (509, 519): admin only for now; a fact checklist and questions, never a rewrite — rewrite.js ---------- */
-  { id: 'rewrite', kind: 'tool', name: 'Rewrite coach', solid: true, admin: true,
-    start: () => window.initRewrite_?.(),
-    into: 'rw-box', what: 'The rewrite coach',
-    get html() { return mapHtml_('Rewrite coach', mapBox_('rw-box')); } },
-  /* ---------- THE POSTER PLANNER (547): bare bones -- a page, boxes, JSON and PNG out for Claude; this device only -- poster.js ---------- */
-  { id: 'poster', kind: 'tool', name: 'Poster planner', solid: true, pure: true,
-    start: () => window.initPoster_?.(),
-    into: 'pst-box', what: 'The poster planner',
-    get html() { return mapHtml_('Poster planner', mapBox_('pst-box')); } },
   /* ---------- THE PIXEL EDITOR (547): bare bones -- a grid, a colour, pen or eraser, Clear, a PNG; this device only -- pixel.js ---------- */
   { id: 'pixel', kind: 'tool', name: 'Pixel editor', solid: true, pure: true,
     start: () => window.initPixel_?.(),
@@ -22049,196 +21985,6 @@ function qrSvg_(text, cls) {
 }
 
 ;
-/* ==== js/flyer.js ==== */
-/* @family. — flyer.js THE FLYER MAKER (owner, 11 Nov): marketing from ONE source. Every word on a flyer is the Web profile's (brand tab) or the chosen tutor's own card. */
-/* The person chooses only which (the business, or a tutor — a tutor only themselves), a campaign, the layout and which listed subjects; nothing is typed. */
-
-/* THE FIXED LAYOUTS: what each prints, in order; `fields` are keys of `flyerSource_`'s answer and nothing else (check-flyer). */
-const FLY_LAYOUTS = [
-  { id: 'a4', name: 'A4 poster', note: 'one A4 page', fields: ['logo', 'name', 'head', 'tagline', 'slogan', 'say', 'photo', 'subjects', 'price', 'area', 'phone', 'site', 'cta', 'qr'] },
-  { id: 'a5', name: 'A5 flyer', note: 'one A5 page', fields: ['logo', 'name', 'head', 'tagline', 'say', 'subjects', 'price', 'area', 'phone', 'cta', 'qr'] },
-  { id: 'slip', name: 'QR slips', note: '10 business cards on A4', fields: ['name', 'head', 'subjects', 'phone', 'site', 'qr'], many: 10 },
-];
-const FLY_SUBJECTS_MAX = 6;
-let FLY = { who: '', layout: 'a4', subj: null, camp: '' };
-/* THE CAMPAIGNS (the old flyer maker's, 1100): data/settings/campaigns.json and copy.json, read into DATA.campaigns by settings.js. */
-/* Each gives a headline, a paragraph, a style and which blocks print; the facts stay the profile's. Its own hex colours are not used: */
-/* a style is one of four fixed paper looks (`fl-st-*`, tokens in :root). */
-const FLY_STYLES = ['minimal', 'elegant', 'detailed', 'loud'];
-const flyCampaigns_ = () => ((typeof DATA !== 'undefined' && DATA && DATA.campaigns) || []).filter(c => c && c.id && c.name && ((c.copy || {}).head || []).length);
-const flyCampaign_ = id => flyCampaigns_().find(c => c.id === id) || null;
-const flyCopy_ = (c, slot) => String((((c && c.copy) || {})[slot] || [])[0] ? c.copy[slot][0].text || '' : '');
-
-/* A SUBJECT ONCE, its level dropped ("Maths (GCSE)" is Maths): a flyer names what is taught, the card says the levels. */
-const flySubjects_ = list => {
-  const seen = new Set();
-  return (list || []).map(s => String(s || '').replace(/\s*\(.*\)\s*$/, '').trim()).filter(s => s && !seen.has(s.toLowerCase()) && seen.add(s.toLowerCase()));
-};
-const flyTutors_ = () => ((typeof DATA !== 'undefined' && DATA && DATA.tutors) || []).filter(t => t && t.title && t.listed !== false);
-const flyMine_ = () => (typeof passFor_ === 'function' && USER ? passFor_(USER.name) : null);
-/* WHO THIS VIEWER MAY MAKE A FLYER FOR: an admin, the business and every listed tutor; a tutor, their own card only. */
-function flyWhoList_() {
-  if (typeof may_ === 'function' && may_('admin')) return [{ id: 'web', label: brand('name', '@family.') }].concat(flyTutors_().map(t => ({ id: flyTutorId_(t), label: t.title })));
-  const me = flyMine_();
-  return me ? [{ id: flyTutorId_(me), label: me.title }] : [];
-}
-const flyTutorId_ = t => String((t && (t.handle || t.personId)) || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-
-/* THE ONE SOURCE: the Web profile's lines (as `webProfilePages_` reads them) or a tutor's own card. Every value is a string or a list of strings. */
-function flyerSource_(who) {
-  const site = String(brand('site', '')).replace(/^https?:\/\//i, '').replace(/\/+$/, '');
-  const common = { site, phone: String(brand('phone', '') || ''), logo: typeof brandLogo_ === 'function' ? brandLogo_() : '',
-    cta: brand('flyer_cta', 'Scan to book'), area: brand('area', '') };
-  if (!who || who === 'web') {
-    const rates = flyTutors_().map(t => Number(t.rate) || 0).filter(n => n > 0);
-    const listed = String(brand('web_subjects', '') || '').split(',');
-    return Object.assign(common, { kind: 'web', id: 'web', handle: '', name: brand('name', '@family.'),
-      tagline: brand('web_tagline', 'Tutoring for every age, at home and online.'), photo: '',
-      subjects: flySubjects_(listed.some(s => s.trim()) ? listed : flyTutors_().reduce((a, t) => a.concat(t.teaches || []), [])),
-      price: brand('web_price', '') || (rates.length ? 'From ' + fmtMoney_(Math.min(...rates), 'hour') : '') });
-  }
-  const t = flyTutors_().concat(flyMine_() || []).find(x => flyTutorId_(x) === who);
-  if (!t) return null;
-  const pics = Array.isArray(t.photos) ? t.photos : [];
-  return Object.assign(common, { kind: 'tutor', id: flyTutorId_(t), handle: String(t.handle || ''), name: String(t.title || ''),
-    tagline: String(t.subtitle || t.description || ''), photo: String(pics[0] || ''), subjects: flySubjects_(t.teaches || t.focus || []),
-    price: Number(t.rate) > 0 ? fmtMoney_(Number(t.rate), 'hour') : '', area: (t.venues || []).join(' · ') || common.area });
-}
-/* A CAMPAIGN LAID OVER A SOURCE: its headline (a `|` is a line break), paragraph, style and blocks; a block it leaves out is not printed. */
-function flyerWith_(src, campId) {
-  const c = flyCampaign_(campId);
-  if (!src || !c) return src ? Object.assign({}, src, { camp: '', style: 'minimal', blocks: null, head: [], say: '', slogan: '' }) : src;
-  const blocks = String(c.blocks || '').split(/\s+/).filter(Boolean);
-  return Object.assign({}, src, { camp: c.id.toLowerCase(), style: FLY_STYLES.indexOf(c.style) !== -1 ? c.style : 'minimal', blocks,
-    head: flyCopy_(c, 'head').split('|').map(x => x.trim()).filter(Boolean), say: flyCopy_(c, 'say'),
-    slogan: blocks.indexOf('slogan') !== -1 ? brand('slogan', '') : '' });
-}
-/* WHICH FIELDS A CAMPAIGN'S BLOCKS MAY LEAVE OUT: price, its paragraph and the slogan; the QR always stays, it is how a sign-up is traced. */
-const FLY_BLOCK_OF = { price: 'price', say: 'say', slogan: 'slogan' };
-const flyKeeps_ = (s, f) => !s.blocks || !FLY_BLOCK_OF[f] || s.blocks.indexOf(FLY_BLOCK_OF[f]) !== -1;
-
-/* THE QR'S ADDRESS: the site, a tutor's own card when it is theirs, and the source tag `came_from` records at sign-up. */
-function flyerUrl_(src, layout) {
-  if (!src || !src.site) return '';
-  const q = (src.kind === 'tutor' && src.handle ? 'tutor=' + encodeURIComponent(src.handle) + '&' : '') + 'from=flyer-' + layout + '-' + src.id + (src.camp ? '-' + src.camp : '');
-  return 'https://' + src.site + (/[/?]/.test(src.site.slice(-1)) ? '' : '/') + '?' + q;
-}
-
-/* ONE FIELD, drawn from the source only, as a block for the one card maker (`cardBlock_`); an empty value draws nothing. */
-const flyLine_ = (look, text) => (text ? { type: 'group', tag: 'p', look, text } : null);
-const FLY_DRAW = {
-  logo: s => (s.logo ? { type: 'media', kind: 'image', look: 'fl-logo', src: s.logo } : null),
-  /* A LINE THAT IS A HEADING, not an <h2>: inside a screen an h2 is a section rule (`.screen h2`). */
-  name: s => (s.name ? { type: 'group', tag: 'p', look: 'fl-name', attrs: { role: 'heading', 'aria-level': '2' }, text: s.name } : null),
-  head: s => ((s.head || []).length ? { type: 'group', tag: 'p', look: 'fl-head', blocks: s.head.map(l => ({ type: 'group', tag: 'span', text: l })) } : null),
-  slogan: s => flyLine_('fl-slogan', s.slogan),
-  say: s => flyLine_('fl-say', s.say),
-  tagline: s => flyLine_('fl-tag', s.tagline),
-  photo: s => (s.photo ? { type: 'media', kind: 'image', look: 'fl-photo', src: s.photo } : null),
-  subjects: (s, o) => { const l = flyPicked_(s, o.subj); return l.length ? { type: 'list', look: 'fl-subj', items: l } : null; },
-  price: s => flyLine_('fl-price', s.price),
-  area: s => flyLine_('fl-area', s.area),
-  phone: s => flyLine_('fl-phone', s.phone),
-  site: s => flyLine_('fl-site', s.site),
-  cta: s => flyLine_('fl-cta', s.cta),
-  /* THE QR is the QR maker's drawing, laid in as it is (`inner`). */
-  qr: (s, o) => { const u = flyerUrl_(s, o.layout); return u ? { type: 'group', look: 'fl-qr', attrs: { 'data-url': u }, inner: typeof qrSvg_ === 'function' ? qrSvg_(u, 'fl-qrsvg') : '' } : null; },
-};
-const flyPicked_ = (s, subj) => (s.subjects || []).filter(x => !subj || subj.indexOf(x) !== -1).slice(0, FLY_SUBJECTS_MAX);
-
-/* THE SHEET: the layout's fields from the source, nothing else; QR slips are one slip ten times. A spec; `flyerSheet_` draws it. */
-function flyerSheetSpec_(src, layout, subj) {
-  const L = FLY_LAYOUTS.find(x => x.id === layout) || FLY_LAYOUTS[0], o = { layout: L.id, subj };
-  if (!src) return null;
-  const one = L.fields.filter(f => flyKeeps_(src, f)).map(f => { try { return FLY_DRAW[f](src, o); } catch (e) { return null; } }).filter(Boolean);
-  const blocks = L.many ? Array.from({ length: L.many }, () => ({ type: 'group', look: 'fl-slip', blocks: one })) : one;
-  return { type: 'group', look: `fl-sheet fl-${L.id} fl-st-${src.style || 'minimal'}`, blocks };
-}
-const flyerSheet_ = (src, layout, subj) => cardBlock_(flyerSheetSpec_(src, layout, subj));
-
-/* ---------- THE CARD: three choices, a live preview, Download PDF ---------- */
-function flyerBody_() {
-  const who = flyWhoList_();
-  if (!who.length) return { type: 'group', look: 'fl-body', blocks: [{ type: 'text', look: 'empty', text: brand('flyer_none', 'Your flyer comes from your tutor card; fill that in first.') }] };
-  if (!who.some(w => w.id === FLY.who)) FLY.who = who[0].id;
-  if (FLY.camp && !flyCampaign_(FLY.camp)) FLY.camp = '';
-  const src = flyerWith_(flyerSource_(FLY.who), FLY.camp);
-  const subs = (src && src.subjects) || [];
-  const row = (items, act, on) => ({ type: 'group', look: 'fl-row', tiles: items.map(i => ({ form: true, kind: on(i) ? '' : 'quiet', label: i.label, act, data: { v: i.id }, pressed: on(i) })) });
-  return { type: 'group', look: 'fl-body', blocks: [
-    who.length > 1 ? row(who, 'fly-who', i => i.id === FLY.who) : null,
-    flyCampaigns_().length ? row([{ id: '', label: 'No campaign' }].concat(flyCampaigns_().map(c => ({ id: c.id, label: c.name }))), 'fly-camp', i => i.id === FLY.camp) : null,
-    row(FLY_LAYOUTS.map(l => ({ id: l.id, label: l.name })), 'fly-layout', i => i.id === FLY.layout),
-    subs.length ? row(subs.map(s => ({ id: s, label: s })), 'fly-subj', i => !FLY.subj || FLY.subj.indexOf(i.id) !== -1) : null,
-    { type: 'group', look: 'fl-prev', blocks: [flyerSheetSpec_(src, FLY.layout, FLY.subj)] },
-    { type: 'group', look: 'fl-row', tiles: [{ form: true, label: 'Download PDF', act: 'fly-print' }] },
-  ] };
-}
-/* THE CARD'S SPEC: its name the tag, the maker its one body block; `fl-maker` is how a redraw finds every copy. */
-const flyerCardSpec_ = () => ({ kind: 'panel', look: 'fl-maker', name: 'Flyer maker', tags: ['Flyer maker'], data: { 'lay-card': 'staff:flyer' }, body: [flyerBody_()] });
-function flyerCards_() {
-  if (!USER || !may_('staff')) return [];
-  /* FITTED ONCE IT IS ON THE PAGE: a card is drawn as a string before it has a width. */
-  try { setTimeout(flyerFit_, 0); setTimeout(flyerFit_, 400); } catch (e) { /* drawn unfitted */ }
-  return [renderCard(flyerCardSpec_())];
-}
-
-/* THE PREVIEW IS THE PRINTED SHEET, scaled to the card's width (its sizes are in mm, as printed). */
-function flyerFit_() {
-  if (typeof document === 'undefined') return;
-  document.querySelectorAll('.fl-prev').forEach(p => {
-    const s = p.querySelector('.fl-sheet'); if (!s) return;
-    const k = p.clientWidth / (s.offsetWidth || 1);
-    s.style.transform = `scale(${k})`; p.style.aspectRatio = 'auto'; p.style.height = Math.ceil(s.offsetHeight * k) + 'px';
-  });
-}
-/* EVERY COPY ON THE PAGE (both finders) drawn again round the new choice, as the same element (`cardFill_`). */
-function flyerRedraw_() {
-  /* The card's insides drawn again, the element kept (its place and listeners stay). */
-  document.querySelectorAll('.card.fl-maker').forEach(c => { const t = document.createElement('template'); t.innerHTML = renderCard(flyerCardSpec_());
-    const fresh = t.content.firstElementChild; if (fresh) c.replaceChildren(...fresh.childNodes); });
-  flyerFit_();
-}
-on('fly-who', el => { FLY.who = el.dataset.v || ''; FLY.subj = null; flyerRedraw_(el); });
-on('fly-camp', el => { FLY.camp = el.dataset.v || ''; flyerRedraw_(el); });
-on('fly-layout', el => { FLY.layout = el.dataset.v || 'a4'; flyerRedraw_(el); });
-on('fly-subj', el => {
-  const all = (flyerSource_(FLY.who) || {}).subjects || [], v = el.dataset.v || '';
-  const now = FLY.subj ? FLY.subj.slice() : all.slice();
-  const at = now.indexOf(v);
-  if (at === -1) now.push(v); else if (now.length > 1) now.splice(at, 1);
-  FLY.subj = now.length === all.length ? null : now;
-  flyerRedraw_(el);
-});
-/* "DOWNLOAD PDF" IS THE PRINT DIALOGUE, as the statement's: the sheet unscaled at the end of the body, the rest hidden (`.printing-flyer`). */
-on('fly-print', () => {
-  const src = flyerWith_(flyerSource_(FLY.who), FLY.camp); if (!src) return;
-  const paper = document.createElement('div');
-  paper.className = 'fl-paper fl-paper-' + FLY.layout;
-  paper.innerHTML = flyerSheet_(src, FLY.layout, FLY.subj);
-  document.body.appendChild(paper);
-  document.body.classList.add('printing-flyer');
-  const was = document.title;
-  document.title = 'Flyer ' + src.name + ' ' + FLY.layout;
-  const done = () => { document.body.classList.remove('printing-flyer'); paper.remove(); document.title = was; window.removeEventListener('afterprint', done); };
-  window.addEventListener('afterprint', done);
-  setTimeout(done, 4000);
-  window.print();
-});
-try { window.addEventListener('resize', () => flyerFit_()); } catch (e) { /* no window in a check */ }
-
-/* ---------- WHERE THEY CAME FROM: a flyer's `?from=flyer-…` kept on this phone until sign-up sends it (`register`, `came_from`) ---------- */
-const FLY_FROM_KEY = 'came_from';
-function cameFromSave_() {
-  try {
-    const f = String(new URLSearchParams(location.search).get('from') || '').toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 60);
-    if (f) localStorage.setItem(FLY_FROM_KEY, f);
-  } catch (e) { /* no storage: the sign-up is simply not traced */ }
-}
-const cameFrom_ = () => { try { return localStorage.getItem(FLY_FROM_KEY) || ''; } catch (e) { return ''; } };
-cameFromSave_();
-
-;
 /* ==== js/help.js ==== */
 /* ---------- A HAND UP (455): a child asks the tutor over from a question; the tutor's column lists who. ---------- */
 /* The child's side is device-kept (it survives a reload and a swipe); the backend's flag tells Staff. */
@@ -22688,7 +22434,6 @@ const CARD_REG = [
   { id: 'acct:prog-grade', col: 'account', label: 'Progress: grade', re: /^<div class="card prog-w prog-grade/, say: 'A rough grade from the questions you have answered.' },
   { id: 'acct:prog-sessions', col: 'account', label: 'Progress: sessions', re: /^<div class="card prog-w prog-sessions/, say: 'Your booked and past sessions.' },
   { id: 'staff:apply', col: 'staff', label: 'Apply to teach', re: /^<div class="card apply-card/, say: 'Ask to teach with us; the admin says yes or no.' },
-  { id: 'staff:flyer', col: 'staff', label: 'Flyer maker', say: 'Print a poster, flyer or QR slips from the Web profile or your tutor card.' },
   { id: 'staff:lego', col: 'staff', label: 'LEGO piece check', say: 'Count a trade-in set\'s pieces from photos, against its parts list.' },
   { id: 'staff:hub', col: 'staff', label: 'Staff hub', re: /^<div class="card staff-top/, only: 'your rate and hours', say: 'Your terms, weekly hours, prices and statement as a tutor.' },
   { id: 'ppl:students:help', col: 'students', label: 'Needs help', say: 'Students who have asked for help with a question.' },

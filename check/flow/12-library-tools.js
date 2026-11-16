@@ -899,7 +899,7 @@ check('review 339: somebody on a Tools page keeps that tool when they sign in an
   const tools = t.allWidgets().filter(x => x.kind === 'tool').map(x => String(x.id));
   if (tools[tools.length - 1] !== 'libcards') bad.push('the library cards are not the last tool: ' + tools.join(', '));
   /* FIND IS FOR MEMBERS (790): the one standing on the tool is a member, and another signing in on the phone keeps it; signing out leaves Find. */
-  for (const id of ['calendar', 'whiteboard']) {
+  for (const id of ['termdates', 'whiteboard']) {
     t.findGroup('Tools', id);
     await wait(400);
     if (front() !== 'wgt-' + id) { bad.push('could not stand on the ' + id + ' (' + front() + ') — NOT checked'); continue; }

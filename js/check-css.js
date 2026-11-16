@@ -214,7 +214,6 @@ const handTone = [];
    (541, U18). Each with its reason. A press, hover or disabled rule's colour is package E's. */
 const ART_TONE = [
   [/#timer-display/, 'the timer is an amber LED clock'],
-  [/\.fm-|\.fly-/, 'the printed flyer wears the colours the owner picked for it'],
   [/\.wc-/, 'the word counter is its own small chart'],
   [/\.feed-mark/, 'a watermark letter behind the subject, decoration rather than reading'],
   [/\.qpad-|\.qprot-|\.pad-loupe/, 'the pad\'s geometry tools are drawn instruments'],

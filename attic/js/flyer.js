@@ -175,13 +175,29 @@ on('fly-print', () => {
 });
 try { window.addEventListener('resize', () => flyerFit_()); } catch (e) { /* no window in a check */ }
 
-/* ---------- WHERE THEY CAME FROM: a flyer's `?from=flyer-…` kept on this phone until sign-up sends it (`register`, `came_from`) ---------- */
-const FLY_FROM_KEY = 'came_from';
-function cameFromSave_() {
-  try {
-    const f = String(new URLSearchParams(location.search).get('from') || '').toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 60);
-    if (f) localStorage.setItem(FLY_FROM_KEY, f);
-  } catch (e) { /* no storage: the sign-up is simply not traced */ }
+/* WAS IN js/settings.js (called from settings-read.js beside setColumns_; SETTINGS_TABS listed settings/campaigns and settings/copy): reads DATA.campaigns. Bring back with the flyer maker. */
+function setCampaigns_(d, extra) {
+  const campaigns = extra['settings/campaigns'];
+  if (campaigns && campaigns.length) {
+    const words = {};
+    (extra['settings/copy'] || []).forEach(r => {
+      if (!libOn(r.active)) return;
+      const cid = libS(r.campaign_id), slot = libS(r.slot).toLowerCase(), text = libS(r.text);
+      if (!cid || !slot || !text) return;
+      (words[cid] || (words[cid] = {}));
+      (words[cid][slot] || (words[cid][slot] = []))
+        .push({ variant: libS(r.variant) || '1', text: text, note: libS(r.note) });
+    });
+    Object.keys(words).forEach(cid => Object.keys(words[cid]).forEach(slot =>
+      words[cid][slot].sort((a, b) => (Number(a.variant) || 0) - (Number(b.variant) || 0))));
+
+    d.campaigns = campaigns.filter(r => libOn(r.active) && libS(r.campaign_id) && libS(r.name))
+      .map(r => ({
+        id: libS(r.campaign_id), name: libS(r.name), when: libS(r.when), note: libS(r.note),
+        style: libS(r.style), ink: libS(r.ink), accent: libS(r.accent), ground: libS(r.ground),
+        blocks: libS(r.blocks),
+        copy: words[libS(r.campaign_id)] || {},
+      }));
+  }
+
 }
-const cameFrom_ = () => { try { return localStorage.getItem(FLY_FROM_KEY) || ''; } catch (e) { return ''; } };
-cameFromSave_();

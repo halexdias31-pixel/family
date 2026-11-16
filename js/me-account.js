@@ -525,3 +525,13 @@ on('reg-send', el => {
     })
     .catch(() => {});      // `send_` has already said why
 });
+/* ---------- WHERE THEY CAME FROM (moved from flyer.js when the flyer maker went to attic/, 16 Nov): a `?from=…` tag kept on this phone until sign-up sends it (`register`, `came_from`) ---------- */
+const CAME_FROM_KEY = 'came_from';
+function cameFromSave_() {
+  try {
+    const f = String(new URLSearchParams(location.search).get('from') || '').toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 60);
+    if (f) localStorage.setItem(CAME_FROM_KEY, f);
+  } catch (e) { /* no storage: the sign-up is simply not traced */ }
+}
+const cameFrom_ = () => { try { return localStorage.getItem(CAME_FROM_KEY) || ''; } catch (e) { return ''; } };
+cameFromSave_();
