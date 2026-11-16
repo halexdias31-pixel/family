@@ -130,7 +130,7 @@ check('one box per value: a counted rule, a pair and an open list each get their
 });
 
 /* ---------- A DRAWN ANSWER IS SENT: EVERY DRAWING-ONLY QUESTION HAS SEND, AND IT RECORDS A SUBMISSION (docs/history/362) ---------- */
-check('a drawn answer is never sent to a person: a made-up surface and a figure each have the pen and the AI\'s Check in their tool row; a drawing alone asks for the answer in the box', async () => {
+check('a drawn answer is never sent to a person: a made-up surface and a figure each have the pen and Save in their tool row, never a Mark; a drawing alone asks for words in the box', async () => {
   const base = { active: 'True', subject: 'Maths', document_type: 'Worksheet', key_stage: 'KS2', pages_checked: 'True', kind: 'question', name: 'Draw', paper_id: 'DS', marks: '1', answer_type: 'drawing' };
   const R_ = o => Object.assign({}, base, o);
   const rows = [
@@ -138,10 +138,10 @@ check('a drawn answer is never sent to a person: a made-up surface and a figure 
     R_({ row_id: 'DS-1', question: '1', html: '<p>Draw a kite</p>', answer: 'a kite', surface: 'blank' }),
     R_({ row_id: 'DS-2', question: '2', html: '<p>Draw a radius on the circle</p>', answer: 'a radius', diagram: '<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40"/></svg>' }),
   ];
-  const { w } = boot({ payload: Object.assign(payload(), { features: ['aiMark'], aiMarking: true }), serve: url => (/data\/questions\.json/.test(url) ? rows : undefined) });
+  const { w } = boot({ payload: payload(), serve: url => (/data\/questions\.json/.test(url) ? rows : undefined) });
   await wait(300);
   const t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
-  if (typeof w.findCard !== 'function' || !A['qp-ai'] || !t.padKey) return ['findCard, padKey_ or the qp-ai handler is not reachable — NOT checked'];
+  if (typeof w.findCard !== 'function' || !A['qp-send'] || !t.padKey) return ['findCard, padKey_ or the qp-send handler is not reachable — NOT checked'];
   /* ROUND 3 (the owner: "a human never marks"): the pen's own Send is gone */
   if (A['pad-send']) bad.push('pad-send still has a handler — a drawing could be sent for a person to mark');
   t.STUFF().filters = [];
@@ -153,13 +153,14 @@ check('a drawn answer is never sent to a person: a made-up surface and a figure 
     host.innerHTML = w.findCard(x, 0);
     if (!host.querySelector('.qpad .qpad-art > svg')) bad.push(id + ': a drawn part with nothing to draw on');
     if (host.querySelector('[data-do="pad-send"]')) bad.push(id + ': still draws a Send for a person');
-    const go = host.querySelector('.qt-row .qp-ai-go[data-do="qp-ai"]');
-    if (!go) { bad.push(id + ': no AI Check in its tool row — nothing marks it'); continue; }
+    const go = host.querySelector('.qt-row [data-do="qp-send"]');
+    if (!go) { bad.push(id + ': no Save in its tool row'); continue; }
+    if (host.querySelector('[data-do="qp-ai"]')) bad.push(id + ': still offers an AI Mark');
     try { w.localStorage.setItem(t.padKey(x), JSON.stringify([[30, 30, 120, 90]])); } catch (e) {}
     host.innerHTML = w.findCard(x, 0);
-    A['qp-ai'](host.querySelector('.qt-row .qp-ai-go'));
-    const out = (host.querySelector('.qp-ai .qp-verdict') || {}).textContent || '';
-    if (!/Write your answer in the box too/.test(out)) bad.push(id + ': Check on a drawing with an empty box says ' + JSON.stringify(out) + ' — wanted it to ask for the answer in the box');
+    A['qp-send'](host.querySelector('.qt-row [data-do="qp-send"]'));
+    const out = (host.querySelector('.qp-keep .qp-verdict') || {}).textContent || '';
+    if (!/Write something first/.test(out)) bad.push(id + ': Save on a drawing with an empty box says ' + JSON.stringify(out) + ' — wanted it to ask for words in the box');
     const latest = w.subLatest_(t.ansKey(x));
     if (latest && latest.v === 'sent') bad.push(id + ': the drawing was recorded as sent, waiting for a person');
     try { w.localStorage.removeItem(t.padKey(x)); } catch (e) {}
@@ -233,7 +234,7 @@ check('every drawn part in the library has its pen and one Check in its tool row
     if (!w.qtDrawn_(w.workRow_(x))) continue;
     n++;
     host.innerHTML = w.findCard(x, 0);
-    const go = [...host.querySelectorAll('.qt-row .is-submit')].filter(g => !g.closest('[hidden]'));   // the AI's Check held back is not shown
+    const go = [...host.querySelectorAll('.qt-row .is-submit')].filter(g => !g.closest('[hidden]'));
     /* a passage to ring words in (`surface: text`) is drawn on in its words, not under a pen */
     if (!host.querySelector('.qpad, [data-circ]') || go.length !== 1 || host.querySelector('[data-do="pad-send"]')) bad.push((x.row && x.row.row_id) + ': drawn, with ' + (host.querySelector('.qpad, [data-circ]') ? '' : 'no pen, ') + go.length + ' Checks' + (host.querySelector('[data-do="pad-send"]') ? ' and a Send for a person' : ''));
   }
@@ -255,7 +256,7 @@ check('every part of the 71 Corbettmaths primary worksheets has an answer and a 
   if (typeof w.findCard !== 'function') return ['findCard not reachable — NOT checked'];
   w.__t.STUFF().filters = [];
   const SEND = '[data-do="qp-check"], [data-do="qp-cells-check"], [data-do="pad-send"], [data-do="pad-check"]';
-  /* a typed answer with no scheme is marked by a person or AI: Send or the AI tile, which come with signing in */
+  /* a typed answer with no exact key is saved, never marked (owner, 16 Nov) */
   const host = w.document.createElement('div');
   w.document.body.appendChild(host);
   let n = 0, later = 0;
@@ -346,7 +347,7 @@ check('a drawn answer is marked on Check: strokes on a real Corbettmaths figure 
   for (const x of all) {
     if (!x || x.kind !== 'question' || !x.row || !inSets(x.row)) continue;
     /* A DRAWN PART NO TYPED RULE MARKS (round 3: `qtDrawn_` and the part's marker, not `answerKinds_`) */
-    if (!w.qtDrawn_(w.workRow_(x)) || ['draw', 'ai'].indexOf(w.markerOf_(x).kind) < 0) continue;
+    if (!w.qtDrawn_(w.workRow_(x)) || ['draw', 'save'].indexOf(w.markerOf_(x).kind) < 0) continue;
     /* A PENDING ROW WITHOUT ITS WORDS HERE (a fresh clone, 411) has no drawn answer to Check yet: not this journey's subject. */
     if (/^true$/i.test(String(x.row.lib_pending || '')) && !String(x.row.draw_answers || x.row.drawAnswer || x.drawAnswer || '').trim()) continue;
     host.innerHTML = w.findCard(x, 0);
@@ -507,7 +508,7 @@ check('every part that draws on its stem\'s figure has exactly that one figure o
 });
 
 /* ---------- ROOM TO WRITE: AN EXPAND TILE OPENS THE ANSWER ON A WHOLE-SCREEN SHEET, AND DONE BRINGS IT BACK (docs/history/359) ---------- */
-check('marked by rule first: a 2-mark worded answer with mark_words gets Check, marks per point, says "by key words", and no AI button rides on it', async () => {
+check('marked by rule first: a 2-mark worded answer with mark_words gets Check, marks per point, says "by key words", and no Save rides on it', async () => {
   const base = { active: 'True', subject: 'Biology', document_type: 'Past paper', key_stage: 'KS4', pages_checked: 'True' };
   const rows = [
     Object.assign({}, base, { row_id: 'D-MW', paper_id: 'MW', kind: 'document', name: 'Cells' }),
@@ -525,7 +526,7 @@ check('marked by rule first: a 2-mark worded answer with mark_words gets Check, 
   host.innerHTML = w.findCard(x, 0);
   const go = (host.querySelector('.qp-mark[data-rule]') && host.querySelector('.qt-row [data-do="qp-check"]'));
   if (!go) return ['a row with mark_words has no Check by its key words'];
-  if (host.querySelector('[data-do="qp-ai"]')) bad.push('a part a rule marks still carries an AI button: one mark button per part (owner, 11 Nov)');
+  if (host.querySelector('[data-do="qp-ai"], [data-do="qp-send"]')) bad.push('a part a rule marks still carries an AI button or a Save: one mark button per part (owner, 11 Nov)');
   const inp = host.querySelector('.qp-ans-in'), out = host.querySelector('.qp-verdict');
   inp.value = 'just carbon';
   A['qp-check'](go);
@@ -540,11 +541,10 @@ check('marked by rule first: a 2-mark worded answer with mark_words gets Check, 
 });
 
 /* ---------- ONE MARK BUTTON PER PART (owner, 11 Nov): the part's protocol picks the marker; the student never picks between two ---------- */
-check('one mark button: every sampled library part has exactly one, first in its row, and no AI button rides on a part a rule marks', async () => {
+check('one mark button: every sampled library part has exactly one, first in its row, and no AI button anywhere', async () => {
   const LIB = LIB_FULL.rows('questions');
   const adult = Object.assign({}, MEMBER_, { profile: { dob_d: '1', dob_m: '1', dob_y: String(new Date().getFullYear() - 30) } });
-  const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? LIB : undefined), before: signedInAs_(adult),
-    payload: Object.assign(payload(), { features: ['aiMark'], aiMarking: true }) });
+  const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? LIB : undefined), before: signedInAs_(adult) });
   await wait(300);
   const bad = [], seen = {};
   if (typeof w.findCard !== 'function' || typeof w.qtMachine_ !== 'function') return ['findCard or qtMachine_ not reachable — NOT checked'];
@@ -564,7 +564,7 @@ check('one mark button: every sampled library part has exactly one, first in its
       if (go.length !== 1) bad.push(id + ': ' + go.length + ' mark buttons in one row');
       else if (go[0] !== row.querySelector('.kc-four > *')) bad.push(id + ': its mark button is not first in its row');
     });
-    if (w.qtMachine_(w.workRow_(x)) && host.querySelector('[data-do="qp-ai"]')) bad.push(id + ': marked by its ' + kind + ' rule and still offers the AI');
+    if (host.querySelector('[data-do="qp-ai"]')) bad.push(id + ': marked by ' + kind + ' and still offers the AI');
   });
   host.remove();
   if (Object.keys(seen).length < 5) bad.push('only marker kinds ' + Object.keys(seen).join(', ') + ' were seen');
@@ -572,7 +572,7 @@ check('one mark button: every sampled library part has exactly one, first in its
   return bad.slice(0, 20).concat(bad.length > 20 ? ['… and ' + (bad.length - 20) + ' more'] : []);
 });
 
-check('one mark per press: a rule part pressed twice is one submission and never reaches the AI; a part with no rule goes to the AI from the same button, busy until it answers', async () => {
+check('one mark per press: a rule part pressed twice is one submission; a part with no rule has Save in the same place, one unmarked submission, and nothing reaches an AI', async () => {
   const base = { active: 'True', subject: 'Chemistry', document_type: 'Past paper', key_stage: 'KS4', pages_checked: 'True' };
   const rows = [
     Object.assign({}, base, { row_id: 'D-OM', paper_id: 'OM', kind: 'document', name: 'Rates' }),
@@ -581,10 +581,7 @@ check('one mark per press: a rule part pressed twice is one submission and never
     Object.assign({}, base, { row_id: 'OM-2', paper_id: 'OM', kind: 'question', name: 'Rates', question: '2', marks: '3', answer_type: 'explain',
                               html: '<p>Explain why the rate increases with temperature.</p>', answer: 'Faster particles; more frequent collisions; more over the activation energy' }),
   ];
-  let release = null;
-  const { w, sent } = boot({ serve: url => (/data\/questions\.json/.test(url) ? rows : undefined), before: signedInAs_(ANS_ADA),
-    payload: Object.assign(payload(), { features: ['aiMark'], aiMarking: true }),
-    reply: b => (b.action === 'aiMark' ? new Promise(r => { release = () => r({ success: true, awarded: 2, available: 3, feedback: 'Two points made' }); }) : undefined) });
+  const { w, sent } = boot({ serve: url => (/data\/questions\.json/.test(url) ? rows : undefined), before: signedInAs_(ANS_ADA) });
   await wait(300);
   const d = w.document, A = w.__t.ACTIONS, bad = [];
   const item = id => w.stuffItemsAll_().find(i => i.row && i.row.row_id === id);
@@ -608,18 +605,15 @@ check('one mark per press: a rule part pressed twice is one submission and never
   if (v1.length !== 1 || !/Not yet/.test(v1[0].textContent)) bad.push('the rule part shows ' + v1.length + ' verdict line(s): ' + [...v1].map(v => v.textContent).join(' | '));
   const h2 = draw(open);
   const go2 = h2.querySelector('.qt-row .kc-four > .is-submit');
-  if (!go2 || go2.getAttribute('data-do') !== 'qp-ai') { w.subRecord_ = real; return bad.concat(['the open part\'s first button is ' + (go2 ? go2.getAttribute('data-do') : 'missing') + ', wanted the AI marker']); }
+  if (!go2 || go2.getAttribute('data-do') !== 'qp-send') { w.subRecord_ = real; return bad.concat(['the open part\'s first button is ' + (go2 ? go2.getAttribute('data-do') : 'missing') + ', wanted Save']); }
+  made.clear();
   h2.querySelector('.qp-ans-in').value = 'The particles move faster and collide more often.';
   press(go2); press(go2);
   await wait(30);
-  const asks = sent.filter(b => b.action === 'aiMark').length;
-  if (asks !== 1) bad.push('two presses on the AI part sent ' + asks + ' requests, wanted one');
-  if (!go2.disabled || !go2.classList.contains('is-busy')) bad.push('the button is not busy while the AI marks');
-  if (release) release();
-  await wait(80);
-  if (!/2 of 3 marks/.test(h2.querySelector('.qp-verdict').textContent)) bad.push('the AI verdict reads ' + JSON.stringify(h2.querySelector('.qp-verdict').textContent));
-  if (go2.classList.contains('is-busy')) bad.push('the button is still busy after the AI answered');
-  if (h2.querySelectorAll('.qp-verdict').length !== 1) bad.push('the AI part shows more than one verdict line');
+  if (made.size !== 1) bad.push('two presses of Save made ' + made.size + ' submissions, wanted one');
+  if (sent.some(b => b.action === 'aiMark')) bad.push('a part with no rule reached an AI');
+  if (!/^Saved/.test(h2.querySelector('.qp-verdict').textContent)) bad.push('Save reads ' + JSON.stringify(h2.querySelector('.qp-verdict').textContent));
+  if (h2.querySelectorAll('.qp-verdict').length !== 1) bad.push('the saved part shows more than one verdict line');
   w.subRecord_ = real;
   h1.remove(); h2.remove();
   return bad;

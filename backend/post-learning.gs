@@ -1,64 +1,8 @@
-/* post-learning.gs: doPost's handlers for marking, working, the assistant, answers, the library and console saves (1130).
+/* post-learning.gs: doPost's handlers for saved working, the assistant, answers, the library and console saves (1130).
    Named in `postActions_()`, dopost.gs, after its gate; § notes: docs/notes/backend/dopost.gs.md. */
 
-/* ---------- MARKING A WORDED ANSWER WITH GEMINI § */
-function postAiMark_(body, action, began) {
-  const key = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY') || '';
-  if (!key) return jsonOut({ success: false, why: 'ai-off', message: 'AI marking isn’t switched on.' });
-  const who = S(body.personId);
-  if (!who) return jsonOut({ success: false, message: 'Sign in to have it marked.' });
-  const cfg = config();
-  /* BLANK IS THE FALLBACK, AND 0 IS A REAL ANSWER — it switches AI marking off without touching
-     the key. `N('')` is 0, so the cell is asked whether it is empty before it is read as a number. */
-  const capCell = S(cfg.ai_marks_per_day);
-  const cap = capCell === '' ? 20 : Math.max(0, Math.floor(N(capCell)));
-  const models = aiModels_(cfg);
-  /* WHAT IS SENT IS CLAMPED HERE, NOT TRUSTED FROM THE PHONE. § */
-  const avail = Math.max(1, Math.min(40, Math.round(N(body.marks)) || 1));
-  const question = S(body.question).slice(0, AI_QUESTION_MAX);
-  const scheme = S(body.scheme).slice(0, AI_SCHEME_MAX);
-  const answer = S(body.answer);
-  /* AN ESSAY (`ansEssay_` on the phone: `written` or `explain`, six marks or more, never Maths -- a page of "show that" working is not writing to be judged on § */
-  const essay = body.essay === true || body.essay === 'true';
-  /* PICTURES (round 3): the pen's drawing as one PNG and up to WORKING_PHOTOS_MAX photos as JPEGs, each as markWorking's; refused whole, never cut */
-  /* the drawing is put first whatever order it came in, as the prompt says it is; one PNG, and no more JPEGs than markWorking takes */
-  const isPng = x => /^data:image\/png;/.test(x);
-  const given = (Array.isArray(body.images) ? body.images : []).map(x => S(x).trim()).filter(Boolean);
-  const shown = given.filter(isPng).concat(given.filter(x => !isPng(x)));
-  if (shown.filter(isPng).length > 1 || shown.filter(x => !isPng(x)).length > WORKING_PHOTOS_MAX
-      || shown.some(x => !/^data:image\/(png|jpeg);base64,[A-Za-z0-9+\/=]+$/.test(x) || x.length > WORKING_PHOTO_CHARS))
-    return jsonOut({ success: false, message: 'Those pictures could not be sent — one drawing and up to ' + WORKING_PHOTOS_MAX + ' photos, each under half a megabyte.' });
-  const images = shown.map(x => ({ mimeType: x.slice(5, x.indexOf(';')), data: x.split(',')[1] }));
-  if (!answer && !images.length) return jsonOut({ success: false, message: 'Write something first.' });
-  if (answer.length > AI_ANSWER_MAX) return jsonOut({ success: false,
-    message: 'That is too long to mark — ' + String(AI_ANSWER_MAX).replace(/\B(?=(\d{3})+$)/g, ',') + ' characters at most.' });
-  if (!scheme) return jsonOut({ success: false, message: 'This question has no mark scheme to mark against.' });
-  /* THE TAKE IS TIMED: it waits up to five seconds for the script lock, and the lock is the one a
-     `submitAnswer` from the press before holds while it writes -- a cost the timing line shows. */
-  const taking = Date.now();
-  const took = aiMarkCount_(who, cap);
-  const take = Date.now() - taking;
-  /* A LOCK NOT HAD IS NOT A CAP REACHED. § */
-  if (took && took.busy) { aiMarkTimed_(began, take, essay, { error: 'the script lock was busy' }); return jsonOut({ success: false, why: 'busy', message: AI_BUSY }); }
-  if (!took) { aiMarkTimed_(began, take, essay, { error: 'at the cap' }); return jsonOut({ success: false, why: 'ai-cap',
-    message: cap ? 'That is today’s ' + cap + ' AI marks used — they come back tomorrow.' : 'AI marking is paused.' }); }
-  /* A PRESS THAT ENDS WITHOUT A MARK GIVES ITS COUNT BACK -- a 503, a refusal, a reply with no mark in it, or a throw on the way, which is why it is a `finally` § */
-  let got = null;
-  try {
-    got = aiMarkAsk_(key, models, question, scheme, answer, avail, essay, images);
-  } finally {
-    if (!got || got.error) aiMarkGiveBack_(who, took.day);
-    aiMarkTimed_(began, take, essay, got);
-  }
-  if (got.error) return jsonOut({ success: false, message: got.error });
-  /* THE SAME FOUR FIELDS THE PHONE HAS ALWAYS READ, and an essay's breakdown beside them for anything that wants it as data rather than as the lines of `feedback`. § */
-  return jsonOut({ success: true, awarded: got.awarded, available: avail, feedback: got.feedback,
-                   parts: got.parts || [], points: got.points || [],
-                   model: got.model, left: Math.max(0, cap - took.used) });
-}
-
-/* ---------- A PHOTO OF THE WORKING (501): kept in Drive on the submission row, marked by Gemini from the pictures and only then kept on the submission row ---------- */
-function postMarkWorking_(body, action, began) {
+/* ---------- A PHOTO OF THE WORKING (501): kept in Drive on the submission row, MARKED BY NOTHING (owner, 16 Nov: marking is mechanical only) ---------- */
+function postSaveWorking_(body, action, began) {
   const me = findPerson('', S(body.personId));
   if (!me || !S(me.person_id)) return jsonOut({ success: false, message: 'Sign in to send your working.' });
   const pid = S(me.person_id);
@@ -69,51 +13,25 @@ function postMarkWorking_(body, action, began) {
   if (pics.length > WORKING_PHOTOS_MAX || pics.some(x => !/^data:image\/jpeg;base64,[A-Za-z0-9+\/=]+$/.test(x) || x.length > WORKING_PHOTO_CHARS))
     return jsonOut({ success: false, message: 'Those photos could not be sent — up to ' + WORKING_PHOTOS_MAX + ' pictures, each under half a megabyte.' });
   const typed = S(body.answer).slice(0, ANSWER_TEXT_MAX);
-  /* MARKED BY THE AI ONLY (the owner: "A human never marks. EVER."): nothing waits on a person; the phone keeps the photos to try again. */
-  const notNow = why => jsonOut({ success: false, why: why, message: 'Marking isn’t available right now — your photos are still here, so tap Mark my working again later.' });
-  const keyOn = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY') || '';
-  const question = S(body.question).slice(0, AI_QUESTION_MAX);
-  const scheme = S(body.scheme).slice(0, AI_SCHEME_MAX);
-  const avail = Math.max(1, Math.min(40, Math.round(N(body.marks)) || 1));
-  if (!keyOn) return notNow('ai-off');
-  if (!scheme) return notNow('no-scheme');
-  const cfg = config();
-  const capCell = S(cfg.ai_marks_per_day);
-  const cap = capCell === '' ? 20 : Math.max(0, Math.floor(N(capCell)));
-  const taking = Date.now();
-  const took = aiMarkCount_(pid, cap);
-  const take = Date.now() - taking;
-  if (took && took.busy) return notNow('busy');
-  if (!took) return notNow('ai-cap');
-  const images = pics.map(x => ({ mimeType: 'image/jpeg', data: x.split(',')[1] }));
-  let got = null;
-  try {
-    got = aiMarkAsk_(keyOn, aiModels_(cfg), question, scheme, typed, avail, false, images);
-  } finally {
-    if (!got || got.error) aiMarkGiveBack_(pid, took.day);
-    aiMarkTimed_(began, take, false, got);
-  }
-  if (got.error) return notNow('ai-error');
-  /* MARKED, THEN KEPT: the photos go to Drive (never shared by link) on the row with the AI's mark, for the student, their parents and staff to see. */
-  let saved = false;
+  /* SAVED, NOT MARKED: the photos go to Drive (never shared by link) on a `sent` row, for the student, their parents and staff to see. */
   const folder = workingFolder_();
-  if (folder) {
-    try {
-      const links = pics.map((x, i) => workingKeep_(folder, x, 'working-' + pid + '-' + id + '-' + (i + 1)));
-      const lock = LockService.getScriptLock();
-      if (lock.tryLock(5000)) {
-        try {
-          clearCache();
-          const out = submissionsAppend_(pid, [{ id: id, key: k, answer: typed.trim() || WORKING_ANSWER, verdict: 'ai:' + got.awarded + '/' + avail,
-            label: S(body.label), words: S(body.words), at: body.sent, photos: links.join(' '), feedback: S(got.feedback) }], body.sent);
-          if (out.wrote) { try { SpreadsheetApp.flush(); } catch (err) { /* flush is an early write; Apps Script writes at the end anyway */ } submissionsTouched_(pid); }
-          saved = !out.error;
-        } finally { lock.releaseLock(); }
-      }
-    } catch (err) { saved = false; }
-  }
-  return jsonOut({ success: true, saved: saved, ai: true, photos: pics.length, awarded: got.awarded, available: avail,
-                   feedback: got.feedback, model: got.model, left: Math.max(0, cap - took.used) });
+  if (!folder) return jsonOut({ success: false, message: 'Your working could not be saved just now — your photos are still here, so try again later.' });
+  let saved = false;
+  try {
+    const links = pics.map((x, i) => workingKeep_(folder, x, 'working-' + pid + '-' + id + '-' + (i + 1)));
+    const lock = LockService.getScriptLock();
+    if (lock.tryLock(5000)) {
+      try {
+        clearCache();
+        const out = submissionsAppend_(pid, [{ id: id, key: k, answer: typed.trim() || WORKING_ANSWER, verdict: 'sent',
+          label: S(body.label), words: S(body.words), at: body.sent, photos: links.join(' ') }], body.sent);
+        if (out.wrote) { try { SpreadsheetApp.flush(); } catch (err) { /* flush is an early write; Apps Script writes at the end anyway */ } submissionsTouched_(pid); }
+        saved = !out.error;
+      } finally { lock.releaseLock(); }
+    }
+  } catch (err) { saved = false; }
+  if (!saved) return jsonOut({ success: false, message: 'Your working could not be saved just now — your photos are still here, so try again later.' });
+  return jsonOut({ success: true, saved: true, photos: pics.length });
 }
 
 /* ---------- AND THE PHOTOS READ BACK (501): by the student, their accepted parents, and staff or admin -- nobody else, and never in doGet ---------- */
@@ -132,7 +50,7 @@ function postAskAssistant_(body, action, began) {
   const who = S(body.personId);
   if (!who) return jsonOut({ success: false, message: 'Sign in to ask Daive.' });
   const cfg = config();
-  /* BLANK IS THE DEFAULT, 0 SWITCHES IT OFF — the rule `ai_marks_per_day` has. */
+  /* BLANK IS THE DEFAULT, 0 SWITCHES IT OFF. */
   const capCell = S(cfg.assistant_questions_per_day);
   const cap = capCell === '' ? ASSIST_PER_DAY : Math.max(0, Math.floor(N(capCell)));
   const question = S(body.question).trim();
@@ -156,7 +74,7 @@ function postAskAssistant_(body, action, began) {
 
 /* ONE OF TODAY'S AI QUESTIONS TAKEN for `who` under the cap: null once it is used up, `{ busy }` when the tally is locked. */
 function aiCapTake_(who, cap, prop) {
-  return cap > 0 ? aiMarkTally_(tally => {
+  return cap > 0 ? aiTally_(tally => {
     const used = (Number(tally.n[who]) || 0) + 1;
     if (used > cap) return null;
     tally.n[who] = used;
@@ -166,7 +84,7 @@ function aiCapTake_(who, cap, prop) {
 
 /* AND GIVEN BACK when no answer came, into the day it was taken from. */
 function aiCapGiveBack_(who, took, prop) {
-  aiMarkTally_(tally => {
+  aiTally_(tally => {
     const n = Number(tally.n[who]) || 0;
     if (tally.day !== took.day || n < 1) return null;
     if (n === 1) delete tally.n[who]; else tally.n[who] = n - 1;

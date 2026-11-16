@@ -130,8 +130,8 @@ if (Q) {
 untyped.forEach(u => broken.push('a part with no type: ' + u));
 
 /* ---------- EVERY PART HAS ONE MARKER, NEVER A PERSON (the owner: "a human never marks"): qtypes.js `qtMarker_` */
-/* in the order choice_right, cells, draw_answer, accept, mark_words, else the AI against the scheme -- counted by marker */
-const MARKERS = ['choice', 'order', 'cells', 'draw', 'accept', 'words', 'ai'];
+/* in the order choice_right, cells, draw_answer, accept, mark_words, else saved and never marked (owner, 16 Nov: no AI) -- counted by marker */
+const MARKERS = ['choice', 'order', 'cells', 'draw', 'accept', 'words', 'save'];
 const byMarker = {};
 MARKERS.forEach(k => { byMarker[k] = 0; });
 if (Q) {
@@ -139,18 +139,18 @@ if (Q) {
   else rows.forEach(r => {
     let k = null;
     try { k = Q.qtMarker_(r); } catch (e) { broken.push(r.row_id + ': its marker threw ' + e.message); return; }
-    if (MARKERS.indexOf(k) === -1) { broken.push(r.row_id + ' is marked by ' + JSON.stringify(k) + ' — every part is marked by a rule or the AI, never a person'); return; }
+    if (MARKERS.indexOf(k) === -1) { broken.push(r.row_id + ' is marked by ' + JSON.stringify(k) + ' — every part is marked by a rule, or saved unmarked; never by a person or the AI'); return; }
     byMarker[k]++;
     /* the marker's own field is what chose it, in the owner's order */
     const S = v => String(v == null ? '' : v).trim();
     const want = S(r.choices) && S(r.choice_right) ? (S(r.answer_type).toLowerCase() === 'order' ? 'order' : 'choice')
-      : S(r.cells) ? 'cells' : S(r.draw_answer) ? 'draw' : S(r.accept) ? 'accept' : S(r.mark_words) ? 'words' : 'ai';
+      : S(r.cells) ? 'cells' : S(r.draw_answer) ? 'draw' : S(r.accept) ? 'accept' : S(r.mark_words) ? 'words' : 'save';
     if (k !== want) broken.push(r.row_id + ' is marked by ' + k + ', its fields say ' + want);
   });
   /* the fixture, one row a marker */
   [['choice', { choices: 'A | B', choice_right: '1' }], ['order', { answer_type: 'order', choices: '1 | 2', choice_right: '2,1' }],
    ['cells', { cells: '6 ; 12', accept: '6' }], ['draw', { draw_answer: '{"items":[]}', accept: '7' }], ['accept', { accept: '7', mark_words: 'x' }],
-   ['words', { mark_words: 'no; 16' }], ['ai', { answer_type: 'drawing', html: '<p>Draw it</p>' }], ['ai', { choices: 'A | B' }]].forEach(([want, r]) => {
+   ['words', { mark_words: 'no; 16' }], ['save', { answer_type: 'drawing', html: '<p>Draw it</p>' }], ['save', { choices: 'A | B' }]].forEach(([want, r]) => {
     if (typeof Q.qtMarker_ === 'function' && Q.qtMarker_(r) !== want) broken.push('fixture ' + JSON.stringify(r) + ' is marked by ' + Q.qtMarker_(r) + ', wanted ' + want);
   });
 }

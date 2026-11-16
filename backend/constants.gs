@@ -132,7 +132,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-11-16-gl-1";
+const BACKEND_VERSION = "2026-11-16-mech-1";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -637,7 +637,7 @@ const SCHEMA = {
   promo_codes: ["code", "type", "value", "absorbed_by", "max_uses", "used", "expires", "active", "notes"],
 };
 
-/* ---------- WHICH GEMINI MARKS, AND WHAT "MARK WITH AI" DOES WHEN GOOGLE IS FULL § */
+/* ---------- WHICH GEMINI THE ASSISTANT AND THE REWRITE COACH ASK, AND WHAT THEY DO WHEN GOOGLE IS FULL (nothing is marked by AI: owner, 16 Nov) */
 const AI_MODEL = 'gemini-3.8-flash';
 const AI_MODEL_FALLBACK = 'gemini-3.5-flash-lite';
 const AI_MODEL_OLD_SEED = 'gemini-flash-latest';
@@ -648,7 +648,7 @@ const AI_BUDGET_MS = 20000;
 const AI_HANDOFF_MS = 10000;
 /* A BUSY MODEL WITH ANOTHER WAITING IS ASKED ONCE (456): the owner's "it takes so long" was 0.8 s + 2 s of waits and two more asks of a full model before the fallback. */
 const AI_TRIES_BEFORE_HANDOFF = 1;
-const AI_BUSY = 'Marking is busy right now — try again in a minute.';
+const AI_BUSY = 'The AI is busy right now — try again in a minute.';
 /* THE THINKING LEVELS EACH PINNED MODEL OFFERS, LOWEST FIRST, as Google's thinking guide lists them § */
 const AI_THINKING_SCALE = ['minimal', 'low', 'medium', 'high'];
 const AI_THINKING_LEVELS = {
@@ -657,7 +657,6 @@ const AI_THINKING_LEVELS = {
 };
 /* WHAT A BLANK CELL MEANS: § */
 const AI_THINKING_SHORT = 'minimal';
-const AI_THINKING_ESSAY = 'low';
 const AI_THINKING_DEFAULT = {
   'gemini-3.8-flash': 'medium',
   'gemini-3.5-flash-lite': 'minimal',
@@ -688,18 +687,15 @@ const CONFIG_DEFAULTS = [
   ['max_open_requests', 2, 'how many live requests one family may hold at once'],
 
   /* ---------- GOOGLE SIGN-IN, WHICH HAD NO ROW TO SET IT IN § */
-  /* ---------- AI MARKING § */
-  ['gemini_model', AI_MODEL, 'the Gemini model that marks worded answers. Blank (or the old gemini-flash-latest) = ' + AI_MODEL + '. The API KEY never goes here: it is GEMINI_API_KEY in Script Properties'],
+  /* ---------- THE AI HELPERS (never marking: owner, 16 Nov) */
+  ['gemini_model', AI_MODEL, 'the Gemini model the assistant and the Rewrite coach ask. Blank (or the old gemini-flash-latest) = ' + AI_MODEL + '. The API KEY never goes here: it is GEMINI_API_KEY in Script Properties'],
   ['gemini_model_fallback', AI_MODEL_FALLBACK, 'the model asked when the first one is full, out of reach or retired (Gemini 429, 5xx or 404). Blank = ' + AI_MODEL_FALLBACK + '. none = no second model'],
   ['library_items_per_day', LIB_DAILY_CAP, 'how many questions, practicals and content cards one person may open in a day (a part, its opening and its answer count as one each; opening one again is free). Blank = ' + LIB_DAILY_CAP + '. Admins are not counted'],
   ['assistant_questions_per_day', 5, 'how many questions one person may ask Daive, the assistant in Messages in a day. Blank = 5. 0 switches it off'],
   ['rewrite_coach_per_day', REWRITE_PER_DAY, 'how many times one person may ask the Rewrite coach (Tools, admin only for now) in a day; reading a text and checking the writing count one each. Blank = ' + REWRITE_PER_DAY + '. 0 switches it off'],
-  ['ai_marks_per_day', 20, 'how many answers one person may have marked by AI in a day. Blank = 20. 0 switches AI marking off'],
-  /* HOW HARD GEMINI THINKS BEFORE IT MARKS, ONE CELL FOR EACH KIND OF ANSWER (12 Oct) -- the note over `AI_THINKING_LEVELS` above, and docs/history/350. § */
-  ['ai_thinking', '', 'how hard Gemini thinks before marking a SHORT answer: minimal, low, medium or high (each slower and deeper than the last), or none for the model\'s own default. A model that does not offer a level gets the next one up. Blank = the lowest each model offers ('
+  /* HOW HARD GEMINI THINKS BEFORE IT ANSWERS (12 Oct) -- the note over `AI_THINKING_LEVELS` above, and docs/history/350. § */
+  ['ai_thinking', '', 'how hard Gemini thinks before it answers: minimal, low, medium or high (each slower and deeper than the last), or none for the model\'s own default. A model that does not offer a level gets the next one up. Blank = the lowest each model offers ('
     + [AI_MODEL, AI_MODEL_FALLBACK].map(m => (AI_THINKING_LEVELS[m] || ["its own default"])[0] + ' on ' + m).join(', ') + ') -- the fastest'],
-  ['ai_thinking_essay', '', 'the same for an ESSAY (six marks or more, marked on its levels). Blank = ' + AI_THINKING_ESSAY
-    + '. medium = deeper and slower: how ' + AI_MODEL + ' marked essays before 12 Oct 2026'],
   ['google_client_id', '', 'Google Sign-In client ID (the PUBLIC one, ending .apps.googleusercontent.com). Blank switches Google sign-in off. Never put the client SECRET here'],
   ['pages_recheck_days', 30, 'how old a resource page count may get before the nightly job re-reads the file'],
 
@@ -1092,12 +1088,8 @@ const ANSWER_TEXT_MAX = 20000;
 const ANSWER_PAD_MAX = 40000;
 const ANSWERS_PER_POST = 25;
 
-/* ---------- WHAT "MARK WITH AI" SENDS GEMINI — `aiMark` in dopost.gs § */
-const AI_ANSWER_MAX = 20000;
-const AI_QUESTION_MAX = 8000;
 /* THE ASSISTANT IN MESSAGES (449): its daily cap when the config cell is blank, and what one question may carry. */
 const ASSIST_PER_DAY = 5, ASSIST_QUESTION_MAX = 1000, ASSIST_FACTS_MAX = 4000, ASSIST_HISTORY = 6, ASSIST_ANSWER_MAX = 3000;
-const AI_SCHEME_MAX = 8000;
 
 /* ---------- THE WEEKLY PARENT EMAIL — see backend/digest.gs § */
 const DIGEST_MODES = ['off', 'preview', 'send'];

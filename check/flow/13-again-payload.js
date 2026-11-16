@@ -857,11 +857,6 @@ check('an answer draws its result and nothing else: no Why, no working, no exami
     if (!opened || opened.classList.contains('is-hidden') || !opened.querySelector('.qans-body')) bad.push('"Show the answer" did not show the answer');
     else if (opened.querySelector('details, .qans-why, .qans-note') || /A half of 6|Most candidates/.test(opened.textContent)) bad.push('the shown answer page carries the working or the note');
   } else bad.push('the answer page or its Show the answer has no handler');
-  /* STILL SENT TO THE MARKER: the explanation left the page, not the row. */
-  if (typeof w.aiScheme_ === 'function') {
-    const sch = w.aiScheme_(full);
-    if (!/half of 6/.test(sch) || !/Most candidates/.test(sch)) bad.push('Mark with AI no longer sends the working and the examiner\'s note as its scheme: ' + sch.slice(0, 120));
-  } else bad.push('aiScheme_ is not reachable, so what the marker is sent was NOT checked');
   return bad;
 });
 
@@ -993,7 +988,7 @@ check('a fraction typed on the maths keypad is drawn stacked, saved, and marked 
       + ' — wanted an <input readonly inputmode="none">, so the phone’s keyboard has no way in'];
   }
   if (card.querySelector('textarea.qp-ans-in')) bad.push('the maths card drew a textarea as well as the keypad box');
-  if (card.querySelector('.qp-ai')) bad.push('a maths question with a scheme was offered "Mark with AI" — Check is exact there');
+  if (card.querySelector('.qp-keep, [data-do="qp-send"]')) bad.push('a maths question with a scheme was offered Save — Check is exact there');
   /* ---------- THE BOX IS A CHAT BAR WITH A SEND TILE § */
   const bar = card.querySelector('.qp-mark.qp-compose > .qp-bar');
   const sendT = card.querySelector('.qp-check');

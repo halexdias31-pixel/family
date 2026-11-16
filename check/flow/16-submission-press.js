@@ -220,10 +220,10 @@ check('submission: the latest one is the verdict beside the star, never a date, 
     const to = subDraw_(w, open);
     if (!to.querySelector('[data-do="qp-noscheme"]') || subSlotOf_(to).textContent) bad.push('options with no key do not say so on Check, or a submission was made: ' + JSON.stringify(say(to)));
   } finally { w.stuffItemsAll_ = held; }
-  /* A BOX NO RULE CAN MARK (round 3): its Check is the AI's, never a plain Send -- a human never marks -- and typing is not a submission. */
+  /* A BOX NO RULE CAN MARK (owner, 16 Nov): its one tile is Save, never a Mark -- and typing is not a submission. */
   const free = subDraw_(w, Object.assign({}, base, { key: 'q-v-free', accept: '', answerType: 'explain' }));
-  if (free.querySelector('[data-do="qp-send"]')) bad.push('a box with no scheme still draws a plain Send — a human never marks');
-  if (!free.querySelector('.qt-row [data-do="qp-ai"]')) bad.push('a box with no scheme has no AI Check in its tool row');
+  if (free.querySelector('[data-do="qp-ai"], [data-do="qp-check"]')) bad.push('a box with no exact key still draws a Mark or Check button');
+  if (!free.querySelector('.qt-row [data-do="qp-send"]')) bad.push('a box with no exact key has no Save in its tool row');
   const fin = free.querySelector('.qp-ans-in');
   fin.value = 'because it is'; fin.dispatchEvent(new w.Event('input', { bubbles: true }));
   if (subSlotOf_(free).textContent) bad.push('typing alone put "' + subSlotOf_(free).textContent + '" on the card — typing is not a submission');
@@ -361,7 +361,7 @@ check('submission: right, edited, wrong — two events on the account, a draft s
   return bad;
 });
 
-check('submission: a pick, an ordering, Mark with AI and a worksheet box are each an event, and a drawing still goes up as it is drawn', async () => {
+check('submission: a pick, an ordering, a Save with no key and a worksheet box are each an event, and a drawing still goes up as it is drawn', async () => {
   const rows = [], drafts = {};
   const ORD = { kind: 'question', key: 'q:Q-SUB-ORD', name: 'Q4', marks: 1, subject: 'Maths', sub: 'Order', answerType: 'order',
     row: { row_id: 'Q-SUB-ORD', paper_id: 'P-SUB', subject: 'Maths', name: 'Order' }, html: '<p>Smallest first.</p>',
@@ -369,8 +369,8 @@ check('submission: a pick, an ordering, Mark with AI and a worksheet box are eac
   const AIQ = { kind: 'question', key: 'q:Q-SUB-AI', name: 'Q9', marks: 3, subject: 'Science', sub: 'Explain', answerType: 'explain',
     row: { row_id: 'Q-SUB-AI', paper_id: 'P-SUB', subject: 'Science', name: 'Explain' }, html: '<p>Explain why.</p>', answer: '<b>Because</b> of the heat' };
   const PR = { kind: 'practical', name: 'Rates of reaction', key: 'pr:PR-SUB', subject: 'Chemistry', sub: 'Chemistry · Required practical · 60 min' };
-  const { w, sent } = boot({ payload: Object.assign(payload(), { features: SUB_FEATURES.concat(['aiMark']), aiMarking: true }),
-    reply: ansBackend_(drafts, subBackend_(rows, b => (b.action === 'aiMark' ? { success: true, awarded: 2, available: 3, feedback: 'Say what the heat does.' } : undefined))) });
+  const { w, sent } = boot({ payload: Object.assign(payload(), { features: SUB_FEATURES }),
+    reply: ansBackend_(drafts, subBackend_(rows)) });
   await wait(300);
   const need = ansNeed_(w).concat(['subRecord_', 'guideBox_'].filter(n => typeof w[n] !== 'function'));
   if (need.length) return [need.join(', ') + ' not reachable — renamed? Nothing was pressed'];
@@ -398,23 +398,19 @@ check('submission: a pick, an ordering, Mark with AI and a worksheet box are eac
   const o = of('q:Q-SUB-ORD');
   if (o.length !== 2 || o[1].answer !== 'B, C, A' || o[1].verdict !== 'right') bad.push('Check on the full ordering went up as ' + JSON.stringify(o) + ' — wanted a second event, B, C, A, right');
   if (said !== 'Correct') bad.push('the ordering’s verdict is ' + JSON.stringify(said));
-  /* MARK WITH AI: the marks are the verdict, ai:2/3. */
+  /* NO EXACT KEY (owner, 16 Nov): Save, one unmarked event, `sent`. */
   const ah = w.document.createElement('div');
   w.document.body.appendChild(ah);
   ah.innerHTML = w.findCard(AIQ, 0) + '<div class="tile-row">' + '' + '</div>';
-  const ai = ah.querySelector('.qp-ai-go');
-  if (!ai) bad.push('the worded card drew no Mark with AI — the AI press was NOT checked');
+  const ai = ah.querySelector('.qt-row [data-do="qp-send"]');
+  if (!ai) bad.push('the worded card drew no Save — the press was NOT checked');
   else {
     ansType_(w, ah.querySelector('.qp-ans-in'), 'because it is hot');
-    A['qp-ai'](ai);
+    A['qp-send'](ai);
     await wait(60);
     const m = of('q:Q-SUB-AI');
-    if (m.length !== 1 || m[0].verdict !== 'ai:2/3' || m[0].answer !== 'because it is hot') bad.push('Mark with AI went up as ' + JSON.stringify(m) + ' — wanted one event, ai:2/3');
-    const slot = subSlotOf_(ah.querySelector('.qcard') || ah);
-    if (!slot || slot.textContent !== '2/3') bad.push('the card after Mark with AI says ' + JSON.stringify(slot && slot.textContent) + ' — wanted the AI’s 2/3');
-    /* AND WHEN AI MARKING GOES AWAY MID-VISIT, THE CHECK WAITS, unpressable -- no plain Send: a human never marks (round 3) */
-    w.aiOff_('AI marking is switched off');
-    if (ah.querySelector('.qp-ai [data-do="qp-send"]') || !ah.querySelector('.qp-ai-go[disabled]')) bad.push('with AI marking switched off the worded box got a plain Send, or its Check still presses');
+    if (m.length !== 1 || m[0].verdict !== 'sent' || m[0].answer !== 'because it is hot') bad.push('Save went up as ' + JSON.stringify(m) + ' — wanted one event, sent');
+    if (sent.some(b => b.action === 'aiMark')) bad.push('Save asked for an AI mark');
   }
   /* A PRACTICAL'S WORKSHEET BOX: its own Send, `sent`, the slot on the key. */
   const sh = w.document.createElement('div');
@@ -634,15 +630,16 @@ check('submission: the keypad’s gold Send and a laptop’s Enter send the box�
   const pad = () => d.getElementById('kp');
   const press = v => { const b = pad() && pad().querySelector('.kp-key[data-v="' + v + '"]'); if (b) A['kp-key'](b); else bad.push('no key ' + JSON.stringify(v) + ' on the pad'); };
   const kd = (el, k, o) => el.dispatchEvent(new w.KeyboardEvent('keydown', Object.assign({ key: k, bubbles: true, cancelable: true }, o || {})));
-  /* A MATHS BOX WITH NO SCHEME (round 3): its Check is the AI's, never a plain Send; with AI marking off the gold key sends nothing for a person to mark */
+  /* A MATHS BOX WITH NO EXACT KEY (owner, 16 Nov): its tile is Save, and the gold key saves it, unmarked */
   const fc = subDraw_(w, FREE);
   const fi = fc.querySelector('.kp-in');
-  if (!fi || fc.querySelector('[data-do="qp-send"]') || !fc.querySelector('.qt-row [data-do="qp-ai"]')) return bad.concat(['the maths box with no scheme drew no pad box, a plain Send, or no AI Check']);
+  if (!fi || !fc.querySelector('.qt-row [data-do="qp-send"]') || fc.querySelector('[data-do="qp-ai"]')) return bad.concat(['the maths box with no exact key drew no pad box, no Save, or a Mark']);
   fi.focus();
   press('4'); press('2');
   press('!done');
   await wait(60);
-  if (items('q:Q-KP-FREE').some(i => i.verdict === 'sent')) bad.push('the gold key on a maths box with no scheme sent it to be marked by a person');
+  const fr = items('q:Q-KP-FREE');
+  if (fr.length !== 1 || fr[0].verdict !== 'sent' || fr[0].answer !== '42') bad.push('the gold key on a maths box with no exact key did not save it once, unmarked: ' + JSON.stringify(fr));
   if (pad() && !pad().hidden) bad.push('the gold key left the pad up');
   /* TWO WORKSHEET BOXES SIDE BY SIDE: the key sends the box it is typing in, and only that one. */
   const sh = d.createElement('div');
@@ -675,7 +672,7 @@ check('submission: the keypad’s gold Send and a laptop’s Enter send the box�
   const ei = eh.querySelector('.kp-in[data-kp-essay]');
   if (!ei) bad.push('the forty-mark English question drew no essay sheet — its "done" was NOT pressed');
   else {
-    if (eh.querySelector('[data-do="qp-send"]') || !eh.querySelector('.qt-row .qp-ai-go')) bad.push('with AI marking off the essay sheet drew a plain Send, or no AI Check — a human never marks (round 3)');
+    if (!eh.querySelector('.qt-row [data-do="qp-send"]') || eh.querySelector('[data-do="qp-ai"]')) bad.push('the essay sheet drew no Save, or a Mark (owner, 16 Nov: no Mark button where there is no exact key)');
     ei.focus();
     ['O', 'n', 'c', 'e'].forEach(c => kd(ei, c));
     press('!done');

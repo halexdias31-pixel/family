@@ -277,10 +277,7 @@ const ACTION_ACCESS = {
      from the signed-in name and never trusts a person_id off the body, so one person cannot star
      something as another. */
   favourite: 'self',
-  /* MARKING A WORDED ANSWER WITH GEMINI. `self`, because every press costs a request and the cap is
-     per person — counted against the id the token resolved to, which only a signed-in request has. */
-  aiMark: 'self',
-  /* A PHOTO OF THE WORKING (501): sent as yourself; read back by yourself, a linked parent, staff or admin (the handler checks). */
+  /* A PHOTO OF THE WORKING (501), saved and never marked (owner, 16 Nov): sent as yourself; read back by yourself, a linked parent, staff or admin (the handler checks). */
   markWorking: 'self', workingOf: 'self',
   /* WORK ON FILE: as yourself; the handler decides whose file (the student, a parent, a booked tutor, the admin). */
   workFileSave: 'self', workFilesOf: 'self', workFileOpen: 'self', workFileDelete: 'self',

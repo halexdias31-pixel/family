@@ -38,7 +38,7 @@ function oldMarkPart(x, typed) {
     const of = Math.max(1, Math.min(w.of, Number(x.marks) || w.of));
     return { got: Math.min(w.got, of), of, words: true };
   }
-  return String(typed == null ? '' : typed).trim() ? { ai: true } : null;
+  return String(typed == null ? '' : typed).trim() ? { save: true } : null;
 }
 /* THE OLD KEYPAD LAYERS, frozen: which types opened on maths, which on the essay sheet. */
 const OLD_MATHS = { value: 1, unit: 1, multi: 1, fraction: 1, coords: 1, expr: 1, measure: 1 };

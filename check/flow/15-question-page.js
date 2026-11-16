@@ -1,49 +1,3 @@
-/* ---------- A BACKEND NOT YET PULLED IS SENT NO ESSAY IT WOULD CUT § */
-check('a backend without aiMarkWhole is sent no essay over its old 2,000-character cut, and the pupil is told why', async () => {
-  const ID = 'Q-R0398-5';
-  const LIB = LIB_FULL.rows('questions');
-  const row = LIB.find(r => r.row_id === ID);
-  if (!row) return [ID + ' is not in data/questions.json — nothing was sent'];
-  const paper = LIB.filter(r => r.paper_id === row.paper_id);
-  const { w, sent, errs } = boot({ payload: Object.assign(payload(), { features: ['aiMark'], aiMarking: true }),
-    reply: b => (b.action === 'aiMark' ? { success: true, awarded: 9, available: 40, feedback: '• Use paragraphs.', left: 19 } : null),
-    serve: url => (/data\/questions\.json/.test(url) ? paper : undefined) });
-  await wait(300);
-  const d = w.document, A = w.__t.ACTIONS, bad = [];
-  if (!A['qp-ai'] || typeof w.findCard !== 'function') return ['Mark with AI is not reachable — nothing was sent'];
-  w.__t.USER({ name: 'Sam Student', personId: 'P-S1', token: 'tok-1', role: 'student' });
-  const x = w.stuffItemsAll_().find(it => it.row && it.row.row_id === ID);
-  if (!x) return ['the real ' + ID + ' did not come through the loader — nothing was sent'];
-  const k = w.__t.ansKey(x);
-  const host = d.createElement('div');
-  d.body.appendChild(host);
-  const mark = async text => {
-    try { w.localStorage.setItem(k, text); w.localStorage.removeItem(k.replace(/^ans:/, 'part:')); } catch (e) {}
-    host.innerHTML = w.findCard(x, 0);
-    const go = host.querySelector('.qp-ai-go');
-    if (!go) return null;
-    const n = sent.filter(b => b.action === 'aiMark').length;
-    A['qp-ai'](go);
-    await wait(50);
-    return { went: sent.filter(b => b.action === 'aiMark').slice(n), said: (host.querySelector('.qp-ai .qp-verdict') || {}).textContent || '' };
-  };
-  let long = '';
-  while (long.length < 6000) long += 'The rain drew long silver threads across the glass, and the town slid by. ';
-  const a = await mark(long);
-  if (!a) return ['with aiMark and no aiMarkWhole the essay drew no Mark with AI tile — a short essay could still be marked'];
-  if (a.went.length) bad.push('a ' + long.length + '-character essay was sent to a backend that cuts at 2,000 — its mark would be shown as the whole essay\'s');
-  if (!/reads only the first 2,000 characters until it is updated/.test(a.said) || !/6,0\d\d/.test(a.said)) bad.push('the pupil was told ' + JSON.stringify(a.said) + ' — wanted why it was not sent, with the two numbers');
-  const short = await mark('The rain drew long silver threads across the glass.\n\nThe town slid by.');
-  if (!short || short.went.length !== 1 || short.went[0].essay !== true) bad.push('an essay under 2,000 characters, which the old backend reads whole, was not sent: ' + JSON.stringify(short && short.went));
-  else if (!/9 of 40 marks/.test(short.said)) bad.push('the short essay\'s mark was drawn as ' + JSON.stringify(short.said));
-  /* AND WITH IT, THE SAME 6,000 GO WHOLE -- the essay journey above asks the rest. */
-  w.__t.DATA().features = ['aiMark', 'aiMarkWhole'];
-  const whole = await mark(long);
-  if (!whole || whole.went.length !== 1 || whole.went[0].answer !== long) bad.push('with aiMarkWhole the essay was not sent whole: ' + JSON.stringify(whole && whole.went.map(b => String(b.answer).length)));
-  try { w.localStorage.removeItem(k); w.localStorage.removeItem(k.replace(/^ans:/, 'part:')); } catch (e) {}
-  if (errs.length) bad.push('errors: ' + errs.join(' | '));
-  return bad;
-});
 
 /* ---------- THE ANSWER IS ITS OWN PAGE, AND NOBODY READS IT UNTIL THEY ASK § */
 check('an answer is its own page after its question, hidden from everybody alike until shown, and kept on Saved', async () => {
@@ -761,9 +715,7 @@ check('a part that uses an earlier part\'s drawing shows it, read only, in its o
 
 /* ---------- EVERY CONTROL ON A QUESTION'S PAGES IS A TILE § */
 check('every control on a question\'s pages is a tile, bar the options, the keys, the words and the box', async () => {
-  const p = Object.assign(payload(), { aiMarking: true });
-  p.features = (p.features || []).concat(['aiMark']);
-  const { w } = boot({ payload: p });
+  const { w } = boot({ payload: payload() });
   await wait(300);
   const t = w.__t, bad = [];
   const need = ['questionWhole_', 'stuffCard', 'questionAnsCard_', 'ansShow_', 'ansHide_'].filter(n => typeof w[n] !== 'function');
@@ -832,7 +784,7 @@ check('every control on a question\'s pages is a tile, bar the options, the keys
     });
   });
   /* THE ONES THE OWNER NAMED, which must be there for the rule above to mean anything. */
-  [['qp-check', 'Check'], ['qp-ai', 'Mark with AI'], ['pad-undo', 'Undo'],
+  [['qp-check', 'Check'], ['qp-send', 'Save'], ['pad-undo', 'Undo'],
    ['pad-clear', 'Clear'], ['qa-show', 'Show the answer'], ['qa-hide', 'Hide the answer'],
    ['qt-pen:pen', 'the Pen'], ['qt-inst:ruler', 'the Ruler'], ['qt-inst:compass', 'the Compass'],
    ['fav', 'the star']].forEach(([act, what]) => {

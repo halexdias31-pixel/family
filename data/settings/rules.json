@@ -426,14 +426,14 @@
   {
    "id": "1.33",
    "principle": 1,
-   "text": "AI only where a rule can't mark: open writing and photographed working, clearly labelled; nowhere else.",
+   "text": "Marking is mechanical only (owner, 16 Nov): a part with no exact key saves without marking — typed text and photos of the working kept, no Mark button, no AI and no person.",
    "checks": [
-    "aimark",
-    "aiimage",
     "working",
+    "answerable",
+    "qtypes",
     "assistant"
    ],
-   "since": "2026-11-12"
+   "since": "2026-11-16"
   },
   {
    "id": "1.34",

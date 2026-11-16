@@ -387,36 +387,29 @@ function ansBox_(x) {
   const geo = m.kind === 'draw' ? String(x.drawAnswer || '').trim() : '';
   /* ONE KEYPAD THAT TYPES ANYTHING (keypad.js): the answer's shape only picks the layer it opens on */
   const maths = ansMaths_(x);
-  /* ONE MARK BUTTON (owner, 11 Nov): the part's protocol picks the marker -- a rule where there is one, else the AI */
-  const ai = isAiMark_(m) ? tile_(aiOpts_(x)) : '';
   const val = ansRead_(k);
   const ws = workStrip_(x);
   /* A DRAWN ANSWER IS MARKED HERE TOO, by its geometry (366): the row carries the pad's key for `padCheck_` */
   const drawAt = geo ? { 'data-k': k, 'data-pad': padKey_(x), 'data-draw': geo, 'data-marks': String(Number(x.marks) || '') } : {};
-  const isAi = isAiMark_(m) && m.ready;
-  const cls = 'qp-mark qp-compose' + (isAi ? ' qp-ai' : '') + (geo ? ' qpad-send' : '');
+  /* NO EXACT KEY, NO MARK (owner, 16 Nov): the part saves its work; feedback an earlier AI mark left is still shown under it (`qp-fb`) */
+  const kept = isSaveMark_(m);
+  const cls = 'qp-mark qp-compose' + (kept ? ' qp-keep' : '') + (geo ? ' qpad-send' : '');
   const dataAt = Object.assign(can ? { 'data-accept': can } : {}, rule ? { 'data-rule': rule, 'data-marks': String(Number(x.marks) || '') } : {}, drawAt);
+  const fb = why => (kept && why ? fcG_('p', 'qp-fb', null, '', why) : '');
   /* ---------- AN ESSAY IS WRITTEN ON A SHEET: the same one box, bigger § */
   if (ansEssay_(x)) {
-    const note = isAiMark_(m) && !ai ? aiWhyNot_(x) : '';
-    const kept = isAi && typeof aiKeptView_ === 'function' ? aiKeptView_(k, val) : null;
     const said = subBoxSay_(k, val);
-    const own = kept && (kept.fresh || !said.text) ? kept : null;
-    const vcls = own ? own.cls : said.cls, vsay = own ? own.verdict : said.text;
-    return fcG_('div', cls + ' qp-essay' + (vcls ? ' ' + vcls : ''), dataAt,
+    return fcG_('div', cls + ' qp-essay' + (said.cls ? ' ' + said.cls : ''), dataAt,
       fcG_('label', 'qp-ans qp-sheet', { 'aria-label': text_('your-answer') }, kpField_(k, val, 'essay', 3)) + fcG_('p', 'qp-words', null, '', kpWordsSay_(val))
-      + ws + (note ? fcG_('p', 'qp-ai-note', null, '', note) : '') + fcVerdict_(vsay) + fcSaved_(k))
-      + (isAi ? fcG_('p', 'qp-ai-why', null, '', own ? own.why : said.why || '') : '');
+      + ws + fcVerdict_(said.text) + fcSaved_(k)) + fb(said.why);
   }
   const many = can ? multiOf_(x) : null;
   const bar = opts + (many ? fcG_('div', 'qp-ans-row qp-bar qp-multi-bar', null, multiBoxes_(x, k, val, many, maths, 3))
     : fcG_('div', 'qp-ans-row qp-bar', null, fcG_('label', 'qp-ans' + (maths ? ' qp-ans-maths' : ''), { 'aria-label': text_('your-answer') }, kpField_(k, val, maths ? 'maths' : 'words', 3))));
-  const note = isAiMark_(m) && !ai ? aiWhyNot_(x) : '';
   /* THE VERDICT IS THE LATEST SUBMISSION'S, WHILE THE BOX HOLDS WHAT WAS SENT -- on this device or on the account, next sign-in § */
   const said = geo ? subBoxSay_(k, padSay_(padRead_(padKey_(x)))) : subBoxSay_(k, val);
   return fcG_('div', cls + (said.cls ? ' ' + said.cls : ''), dataAt,
-    bar + ws + (note ? fcG_('p', 'qp-ai-note', null, '', note) : '') + fcVerdict_(geo ? padSaid_(said.text) : said.text) + fcSaved_(k))
-    + (isAi ? fcG_('p', 'qp-ai-why', null, '', said.text ? said.why : '') : '');
+    bar + ws + fcVerdict_(geo ? padSaid_(said.text) : said.text) + fcSaved_(k)) + fb(said.text ? said.why : '');
 }
 /* WHAT A BOX'S VERDICT LINE SAYS AS IT IS DRAWN: the latest submission's verdict, if the box holds it. */
 function subBoxSay_(k, val) {
@@ -425,7 +418,7 @@ function subBoxSay_(k, val) {
     ? Object.assign({ why: latest.f || '' }, subSay_(latest.v)) : { text: '', cls: '', why: '' };
 }
 
-/* ---------- THE VERDICT, ONE PATH FOR EVERY TYPED PART (owner, 9 Nov): `markPart_` against the scheme; a part with no rule goes to the AI from the same button. */
+/* ---------- THE VERDICT, ONE PATH FOR EVERY TYPED PART (owner, 9 Nov): `markPart_` against the scheme; a part with no rule is saved, never marked (owner, 16 Nov). */
 on('qp-check', (el) => {
   const box = qMark_(el);
   const card = el.closest('.qcard');
@@ -441,7 +434,7 @@ on('qp-check', (el) => {
   if (partReady_('typed', inp.value)) { tell_(out, 'info', partReady_('typed', inp.value)); return; }
   const v = x ? markPart_(x, inp.value) : markAnswer_(inp.value, box.getAttribute('data-accept')) === null ? null : { got: markAnswer_(inp.value, box.getAttribute('data-accept')) ? 1 : 0, of: 1 };
   if (!v) { tell_(out, 'info', partReady_('typed', '')); return; }
-  if (v.ai) { if (ACTIONS['qp-ai']) ACTIONS['qp-ai'](el); return; }
+  if (v.save) { ACTIONS['qp-send'](el); return; }
   const full = v.got >= v.of;
   box.classList.add(full ? 'is-right' : 'is-near');
   tell_(out, full && !v.words ? 'saved' : 'info', v.words ? v.got + ' of ' + v.of + ' mark' + (v.of === 1 ? '' : 's') + ' · by key words' : full ? (v.typo ? text_('correct-check-the-spelling') + v.typo + ')' : 'Correct') : text_('not-yet-have-another-go'));
@@ -449,16 +442,20 @@ on('qp-check', (el) => {
   subRecord_(k, inp.value, v.words ? 'rule:' + v.got + '/' + v.of : full ? 'right' : 'wrong');
 });
 
-/* ---------- SEND, WHERE NOTHING CAN MARK IT § */
+/* ---------- SAVE, WHERE NOTHING CAN MARK IT (owner, 16 Nov): the typed answer as a `sent` submission, and any photos with it (`workSave_`, working.js). */
 on('qp-send', (el) => {
   const box = qMark_(el);
   const inp = box && box.querySelector('.qp-multi-val, .qp-ans-in');
   const out = box && box.querySelector('.qp-verdict');
   if (!inp || !out || el.disabled) return;
   box.classList.remove('is-right', 'is-near');
-  if (partReady_('typed', inp.value)) { tell_(out, 'info', partReady_('typed', inp.value)); return; }
-  const sent = subRecord_(inp.getAttribute('data-k'), inp.value, 'sent');
-  tell_(out, sent ? 'saved' : 'error', sent ? 'Sent' : text_('sign-in-to-send-it'));
+  const k = inp.getAttribute('data-k');
+  const pics = typeof WORK_PICS === 'object' && WORK_PICS ? (WORK_PICS[k] || []).length : 0;
+  const notYet = partReady_('save', { typed: inp.value, pics });
+  if (notYet) { tell_(out, 'info', notYet); return; }
+  if (pics && typeof workSave_ === 'function') { workSave_(k, inp.value, el, out); return; }
+  const sent = subRecord_(k, inp.value, 'sent');
+  tell_(out, sent ? 'saved' : 'error', sent ? (box.classList.contains('qp-keep') ? 'Saved' : 'Sent') : text_('sign-in-to-send-it'));
 });
 
 /* ---------- WHO IS WORKING § */
