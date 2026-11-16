@@ -13,7 +13,7 @@ on('qp-ai', (el) => {
   /* NOTHING TYPED, DRAWN OR PHOTOGRAPHED IS NOT A WRONG ANSWER, and it is not worth a request either. */
   const x0 = ansItem_(inp.getAttribute('data-k'));
   const rec = typeof partRec_ === 'function' && x0 ? partRec_(x0) : {};
-  const seen = (rec.strokes || []).length > 0 || rec.photos > 0;
+  const seen = (rec.strokes || []).length > 0 || (rec.photos || []).length > 0;
   let reads = false;
   try { reads = (DATA.features || []).indexOf('aiMarkImages') !== -1; } catch (e) { reads = false; }
   /* a backend not yet pulled reads only the box: the drawing and photos are working beside it */

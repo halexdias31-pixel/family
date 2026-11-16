@@ -14,6 +14,7 @@ function workRow_(x) {
 function workStrip_(x) {
   if (!x || !isQ_(x)) return '';
   const k = ansKey_(x);
+  workLoad_(k);
   return cardBlock_({ type: 'group', look: 'qp-work', attrs: { 'data-k': k, hidden: !(WORK_PICS[k] || []).length }, inner: workStripInner_(k) });
 }
 function workStripInner_(k) {
@@ -65,12 +66,16 @@ function workShrink_(file) {
 }
 const workBytes_ = d => Math.floor((String(d).length - String(d).indexOf(',') - 1) * 3 / 4);
 
-/* THE PICKER: camera first on a phone (`capture`), the library a tap away. § */
+/* THE CAMERA TILE (owner, 16 Nov): the live camera fills the answer box's slot (`camOpen_`, answer-face.js); no overlay. */
 on('qp-work', el => {
   const k = el.getAttribute('data-k');
   if (!k) return;
   if (typeof whoIs_ === 'function' && !whoIs_()) { toast(text_('sign-in-to-send-your-working')); return; }
   if ((WORK_PICS[k] || []).length >= WORK_MAX) { workPaint_(k); workSay_(k, WORK_MAX + ' pages at most — remove one to add another'); return; }
+  if (typeof camOpen_ === 'function') camOpen_(el, k); else workPick_(k);
+});
+/* THE PICKER, where there is no live camera: camera first on a phone (`capture`), the library a tap away. § */
+function workPick_(k) {
   const inp = document.createElement('input');
   inp.type = 'file';
   inp.accept = 'image/*';
@@ -81,7 +86,7 @@ on('qp-work', el => {
   inp.addEventListener('change', () => { workAdd_(k, [].slice.call(inp.files || [])); inp.remove(); });
   document.body.appendChild(inp);
   inp.click();
-});
+}
 function workAdd_(k, files) {
   const room = WORK_MAX - (WORK_PICS[k] || []).length;
   const take = files.filter(f => f && /^image\//.test(f.type || 'image/')).slice(0, Math.max(0, room));
@@ -91,6 +96,7 @@ function workAdd_(k, files) {
   return Promise.all(take.map(f => workShrink_(f).then(url => ({ url }), () => null))).then(got => {
     const ok = got.filter(Boolean);
     WORK_PICS[k] = (WORK_PICS[k] || []).concat(ok).slice(0, WORK_MAX);
+    workKeep_(k);
     workPaint_(k);
     if (ok.length < take.length) workSay_(k, 'A photo could not be read — try taking it again');
     else if (files.length > take.length) workSay_(k, WORK_MAX + ' pages at most — the rest were left out');
@@ -99,6 +105,7 @@ function workAdd_(k, files) {
 on('qp-work-x', el => {
   const k = el.getAttribute('data-k'), i = Number(el.getAttribute('data-i'));
   (WORK_PICS[k] || []).splice(i, 1);
+  workKeep_(k);
   workPaint_(k);
 });
 
@@ -137,3 +144,66 @@ function workVerdictSay_(v) {
 }
 /* A BOX'S PAGES, made if missing -- for a check that cannot run the phone's canvas shrink. */
 function workPics_(k) { return WORK_PICS[k] || (WORK_PICS[k] = []); }
+
+/* ---------- THE PHOTOS PERSIST (owner, 16 Nov): in the part's one record on this device (`partRec_`, field `photos`) and on the
+   account, as the student's own Work on file (workfile.gs), one row per part named by its answer key -- so coming back to the
+   question shows them, on any device, as a typed answer does. The newest row replaces the last. */
+const WORK_TAG = 'Working ';
+const workTitle_ = k => (WORK_TAG + (typeof ansServerKey_ === 'function' ? ansServerKey_(k) : k)).slice(0, 80);
+const workRecKey_ = k => partKeyOfAns_(k);
+let WORK_ROWS = null;
+const WORK_SYNC = new Map();
+/* WORK_PICS FILLED FROM THE RECORD the first time a box is drawn this visit; then from the account where the device has none */
+function workLoad_(k) {
+  if (!k || WORK_PICS[k]) return;
+  const rec = partRecAt_(workRecKey_(k));
+  const urls = (Array.isArray(rec.photos) ? rec.photos : []).filter(u => /^data:image\/jpeg;base64,/.test(String(u || ''))).slice(0, WORK_MAX);
+  WORK_PICS[k] = urls.map(url => ({ url }));
+  if (!urls.length) workFromAccount_(k);
+}
+function workSignedIn_() { return typeof USER !== 'undefined' && USER && USER.token && USER.personId && !USER.lockedPreview; }
+function workRows_() {
+  if (WORK_ROWS) return WORK_ROWS;
+  WORK_ROWS = api({ action: 'workFilesOf', personId: USER.personId, of: USER.personId })
+    .then(d => (d && d.success && Array.isArray(d.work) ? d.work : []), () => { WORK_ROWS = null; return []; });
+  return WORK_ROWS;
+}
+function workFromAccount_(k) {
+  if (!workSignedIn_() || typeof api !== 'function') return;
+  workRows_().then(rows => {
+    const row = rows.find(r => r && r.title === workTitle_(k));
+    if (!row) return;
+    return api({ action: 'workFileOpen', personId: USER.personId, id: row.id }).then(d => {
+      if (!d || !d.success || (WORK_PICS[k] || []).length) return;
+      WORK_PICS[k] = (d.pages || []).filter(u => /^data:image\/jpeg;base64,/.test(String(u || ''))).slice(0, WORK_MAX).map(url => ({ url }));
+      partRecPutAt_(workRecKey_(k), 'photoFile', row.id);
+      workKeepHere_(k);
+      workPaint_(k);
+    });
+  }).catch(() => { /* the device's own copy stands */ });
+}
+function workKeepHere_(k) {
+  const urls = (WORK_PICS[k] || []).map(p => p.url);
+  partRecPutAt_(workRecKey_(k), 'photos', urls.length ? urls : null);
+}
+/* KEPT AS THEY CHANGE: here at once; to the account a moment later, the old row deleted once the new one is saved */
+function workKeep_(k) {
+  workKeepHere_(k);
+  if (!workSignedIn_() || typeof api !== 'function') return;
+  clearTimeout(WORK_SYNC.get(k));
+  WORK_SYNC.set(k, setTimeout(() => workSend_(k), 1200));
+}
+function workSend_(k) {
+  const pages = (WORK_PICS[k] || []).map(p => p.url);
+  const old = partRecAt_(workRecKey_(k)).photoFile || '';
+  const drop = () => (old ? api({ action: 'workFileDelete', personId: USER.personId, id: old }).catch(() => null) : Promise.resolve());
+  if (!pages.length) { drop().then(() => partRecPutAt_(workRecKey_(k), 'photoFile', null)); WORK_ROWS = null; return; }
+  api({ action: 'workFileSave', personId: USER.personId, of: USER.personId, title: workTitle_(k), subject: 'Question working', pages })
+    .then(d => {
+      if (!d || !d.success) { workSay_(k, (d && d.message) || 'Not saved to your account yet — kept on this device'); return; }
+      drop();
+      partRecPutAt_(workRecKey_(k), 'photoFile', d.id);
+      WORK_ROWS = null;
+    })
+    .catch(() => workSay_(k, 'Could not reach the server — the photos are kept on this device'));
+}
