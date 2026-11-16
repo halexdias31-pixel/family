@@ -9,8 +9,8 @@
 #   dttype  typeface anatomy: letters, then the lines they sit on ch 33
 #   dtnet   a cube net folding up into a box (CSS 3D)             ch 16
 # Lines draw with stroke-dashoffset on pathLength="1"; with reduced motion every element shows its final state.
-# Pending unification: another session may be defining one standard animation block; these are plain SVG/CSS step
-# animations in the existing teaching-animation row shape, so a converter can take them as they are.
+# One format (owner, 16 Nov): the six drawn here as SVG/CSS are written to the books in `<svg class="sa">` form by
+# anim_row's converter (tools/anim_sa.py); dtnet, which was HTML in 3D, is drawn in the format directly (tools/sa_draw.py).
 import sys, math, pathlib; sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent)); import anim_row
 
 BOOK = 'TB-AQA-8552'
@@ -233,46 +233,32 @@ body.append(a.line([(H1 + 8, BASE + 12), (H1 + 3, BASE + 2)], 6.2, 6.5))
 body.append(a.text(H1 + 10, BASE + 26, 'serif', 6.3, anchor='start'))
 put(a, 33, 'Typeface anatomy', 'Serif|x-height|Ascender and descender', body, [])
 
-# ---------- NET TO BOX: a cross-shaped cube net folds up in 3D, then its lid closes
-a = Anim('dtnet', 'dtn')
-S = 4.2                                   # rem, one face
-
-
-def fold(start, end, axis, sign):
-    return a.kf([(start, 'transform: rotate%s(0deg);' % axis), (end, 'transform: rotate%s(%ddeg);' % (axis, 90 * sign)),
-                 (T - 0.9, 'transform: rotate%s(%ddeg);' % (axis, 90 * sign)), (T - 0.3, 'transform: rotate%s(0deg);' % axis)])
-
-
-cap = a.kf([(0.3, 'opacity: 0;'), (0.6, 'opacity: 1;'), (2.6, 'opacity: 1;'), (2.9, 'opacity: 0;')])
-cap2 = a.kf([(3.0, 'opacity: 0;'), (3.3, 'opacity: 1;'), (T - 0.6, 'opacity: 1;'), (T - 0.3, 'opacity: 0;')])
-html = '\n'.join([
-    '<div class="an-dtnet" aria-hidden="true">',
-    '  <div class="dtn-stage">',
-    '    <div class="dtn-base dtn-f">base',
-    '      <div class="dtn-f dtn-n dtn-a" style="--kf: %s">side' % fold(1.0, 2.4, 'X', -1),
-    '        <div class="dtn-f dtn-lid dtn-a" style="--kf: %s">lid</div>' % fold(3.2, 4.4, 'X', -1),
-    '      </div>',
-    '      <div class="dtn-f dtn-s dtn-a" style="--kf: %s">side</div>' % fold(1.0, 2.4, 'X', 1),
-    '      <div class="dtn-f dtn-e dtn-a" style="--kf: %s">side</div>' % fold(1.0, 2.4, 'Y', -1),
-    '      <div class="dtn-f dtn-w dtn-a" style="--kf: %s">side</div>' % fold(1.0, 2.4, 'Y', 1),
-    '    </div>',
-    '  </div>',
-    '  <div class="dtn-say"><span class="dtn-a dtn-z" style="--kf: %s">the net: cut on solid lines, fold on dashed</span><span class="dtn-a" style="--kf: %s">folded, it is a box</span></div>' % (cap, cap2),
-    '</div>'])
-rules = ['.an-dtnet { display: grid; place-items: center; width: min(88vw, 22rem, 100%); margin: 0 auto; }',
-         '.dtn-stage { width: %grem; height: %grem; margin: 4.6rem auto 4.2rem; perspective: 40rem; }' % (S, S),
-         '.dtn-base { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; transform: rotateX(58deg) rotateZ(-32deg); }',
-         '.dtn-f { box-sizing: border-box; width: %grem; height: %grem; display: grid; place-items: center; font: 700 .62rem var(--mono); color: var(--dim); background: rgb(240 180 95 / .22); border: 1.5px dashed var(--gold); transform-style: preserve-3d; backface-visibility: visible; }' % (S, S),
-         '.dtn-base > .dtn-f, .dtn-n > .dtn-f { position: absolute; }',
-         '.dtn-n { bottom: 100%; left: 0; transform-origin: 50% 100%; }',
-         '.dtn-s { top: 100%; left: 0; transform-origin: 50% 0; }',
-         '.dtn-e { left: 100%; top: 0; transform-origin: 0 50%; }',
-         '.dtn-w { right: 100%; top: 0; transform-origin: 100% 50%; }',
-         '.dtn-lid { bottom: 100%; left: 0; transform-origin: 50% 100%; }',
-         '.dtn-a { animation: var(--kf) %gs ease-in-out infinite; }' % T,
-         '.dtn-say { position: relative; height: 1.2rem; width: 100%; text-align: center; font: 600 .72rem var(--mono); color: var(--dim); }',
-         '.dtn-say span { position: absolute; inset: 0; opacity: 0; }',
-         '.dtn-say .dtn-z { opacity: 1; }']
-css = '\n'.join(rules + a.keys + ['@media (prefers-reduced-motion: reduce) {', '  .an-dtnet .dtn-a { animation: none; }', '}'])
-anim_row.write_anim('dtnet', html=html, css=css, whole={'book_id': BOOK, 'chapter': 16, 'title': 'A net folds into a box', 'about': 'Net'})
+# ---------- NET TO BOX: a cross-shaped cube net, cut on solid lines and folded on dashed, beside the box it folds into.
+# Drawn in the one animation format (16 Nov, tools/sa_draw.py): the net, its fold lines, the sides lifting (mv-swing on
+# one flap), then the folded box with its lid.
+from sa_draw import Svg
+d = Svg(400, 220)
+F, X0, Y0 = 40, 60, 30                    # one face; the base's top-left corner is (X0 + F, Y0 + F)
+faces = [(1, 0, 'lid'), (1, 1, 'side'), (0, 2, 'side'), (1, 2, 'base'), (2, 2, 'side'), (1, 3, 'side')]
+d.g('s1')
+for c, r, name in faces:
+    d.rect(X0 + c * F, Y0 + r * F * 0.95 - 0, F, F * .95, 'pt')
+    d.text(X0 + c * F + F / 2, Y0 + r * F * .95 + F * .55, name, 'hot' if name == 'base' else '', size=10)
+d.end()
+d.g('s2')
+for x1, y1, x2, y2 in [(1, 1, 2, 1), (1, 2, 1, 3), (2, 2, 2, 3), (1, 3, 2, 3), (1, 2, 2, 2)]:
+    d.line(X0 + x1 * F, Y0 + y1 * F * .95, X0 + x2 * F, Y0 + y2 * F * .95, 'pt cool', 'stroke-dasharray:4 3;stroke-width:2')
+d.end()
+d.g('s3'); d.text(120, 212, 'the net: cut on solid lines, fold on dashed', size=10); d.end()
+d.g('s4'); d.arrow(190, 110, 236, 110, 'pt'); d.end()
+ix = lambda x, y, z: (300 + (x - y) * 40, 120 + (x + y) * 23 - z * 46)   # isometric, 30 degree axes
+P = lambda *v: '%g,%g' % ix(*v)
+d.g('s5')
+for poly in [((1, 0, 0), (1, 1, 0), (1, 1, 1), (1, 0, 1)), ((0, 1, 0), (1, 1, 0), (1, 1, 1), (0, 1, 1))]:   # two sides
+    d.path('M' + ' L'.join(P(*v) for v in poly) + ' Z')
+d.end()
+d.g('s6'); d.path('M' + ' L'.join(P(*v) for v in ((0, 0, 1), (1, 0, 1), (1, 1, 1), (0, 1, 1))) + ' Z', 'pt hot'); d.end()   # the lid
+d.g('s7'); d.text(300, 212, 'folded, it is a box', 'hot', size=11); d.end()
+anim_row.write_sa('dtnet', d.svg('A cube net, cut on solid lines and folded on dashed, makes a box'),
+                  place=(BOOK, 16, 'A net folds into a box', 'Net'))
 print('7 animations written under %s' % BOOK)
