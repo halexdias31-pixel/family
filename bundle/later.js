@@ -9709,7 +9709,7 @@ function levelOf_(x) {
 
 /* WHO MADE A WORKSHEET IS ITS SOURCE, NOT AN EXAM BOARD (O3): a maker's sheet has no board, a board's paper no Source.
    check/library-schema.js reads this list; backend/digest.gs keeps a copy that check-funnel compares card by card. */
-const LIB_SOURCES = ['1st Class Maths', 'Corbettmaths', 'Access Tuition'];
+const LIB_SOURCES = ['1st Class Maths', 'Corbettmaths', 'Access Tuition', 'GL Assessment'];
 const sourceOf_ = x => LIB_SOURCES.find(s => spellKey_(s) === spellKey_(x && x.company)) || '';
 const boardOf_ = x => (sourceOf_(x) ? '' : (x && x.examBoard) || '');
 
