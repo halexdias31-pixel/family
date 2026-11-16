@@ -144,7 +144,8 @@
      "attr": "data-me",
      "draft": false,
      "fields": "list",
-     "say": "the tutor card's edit form (cardEditForm_): its sections' names, typed by rules; a price only for may_('prices')."
+     "say": "the tutor card's edit form (cardEditForm_): its sections' names, typed by rules; a price only for may_('prices').",
+     "ask": "card"
     },
     "card-seat": {
      "attr": "data-pound",
@@ -190,6 +191,22 @@
        "look": "many-list where-areas"
       }
      ]
+    }
+   },
+   "fields": {
+    "extra_seat_rate": {
+     "label": "extra seat: share of your rate, 0–1 (0.5 = half)",
+     "min": 0,
+     "max": 1,
+     "step": 0.05
+    },
+    "extra_seat_cut": {
+     "label": "@family.'s share of an extra seat, 0–2 (blank = the usual)",
+     "labelLocked": "@family.'s share of an extra seat — set by @family. (blank = the usual)",
+     "min": 0,
+     "max": 2,
+     "step": 0.01,
+     "pad": "decimal"
     }
    }
   },
@@ -1338,7 +1355,8 @@
        "label": "Date of birth (optional)"
       }
      ],
-     "draft": "form"
+     "draft": "form",
+     "ask": "card"
     },
     "person-form": {
      "attr": "data-pf",
@@ -1390,7 +1408,8 @@
        "draft": false
       }
      ],
-     "draft": "form"
+     "draft": "form",
+     "ask": "card"
     },
     "person-edit": {
      "attr": "data-pe",
@@ -1433,7 +1452,8 @@
        "type": "text"
       }
      ],
-     "draft": "form"
+     "draft": "form",
+     "ask": "card"
     },
     "settings": {
      "attr": "data-me",
@@ -1792,7 +1812,8 @@
        "type": "tick",
        "label": "I agree to @family. keeping these details and documents privately to consider my application, contacting my referees and checking my DBS."
       }
-     ]
+     ],
+     "ask": "card"
     },
     "sign-join": {
      "ask": "find",

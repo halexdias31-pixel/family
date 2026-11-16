@@ -191,13 +191,18 @@ function formOf_(id, values, o) {
     const box = formFieldOf_(spec, x, get(formName_(x.f, o), x), o, id);
     return x.look && x.type !== 'ticks' ? cardBlock_({ type: 'group', look: x.look, inner: box }) : box;
   };
+  /* A FORM ASKED IN ITS CARD (`ask: "card"`): each run of plain fields is asked where its boxes were (askCardRun_); the rest draw as before. */
+  const asks = x => spec.ask === 'card' && ASK_TYPES_[x.type] && !x.readonly && !o.locked && !((o.with && o.with(formName_(x.f, o), x)) || {}).readonly;
   const out = [];
+  let run = null, n = 0;
   list.forEach((x, i) => {
-    if (x.row && list[i - 1] && list[i - 1].row === x.row) return;
-    const row = x.row ? list.filter(y => y.row === x.row) : null;
+    if (asks(x)) { if (!run) out.push(run = []); run.push(x); return; }
+    run = null;
+    if (x.row && list[i - 1] && list[i - 1].row === x.row && !asks(list[i - 1])) return;
+    const row = x.row ? list.filter(y => y.row === x.row && !asks(y)) : null;
     out.push(row ? cardBlock_({ type: 'group', look: 'f-row', attrs: { style: '--n:' + row.length }, inner: row.map(one).join('') }) : one(x));
   });
-  return out.join('');
+  return out.map(e => (typeof e === 'string' ? e : askCardRun_(id, spec, e, o, get, n++))).join('');
 }
 /* ---------- THE SETTINGS FORM: the backend's field groups (formCard_'s `groups`), each name drawn by its type (it was fieldsHtml, me-fields.js). */
 /* A heading per group unless `o.head` is false; a timetable group is the week; lib/qual/job/photo names their shelves; dob_* three boxes; phone the code and number; photo the picture. */
@@ -237,60 +242,98 @@ function formGroupsOf_(spec, groups, o) {
   }).join('');
 }
 
-/* YOUR OWN SETTINGS' PLAIN FIELDS ARE ASKED (askSetGroup_); a locked field and the phone keep their own boxes. */
-function askSetRest_(g, rest, o, value, wantsPhone, plain) {
-  const ro = o.readonly || [], kept = f => (f === 'phone' && wantsPhone) || ro.indexOf(f) !== -1;
-  const asked = rest.filter(f => !kept(f) && formMay_({ f, type: formKind_(f) }));
-  /* IN THE GROUP'S ORDER, so the card posts its fields in the order it always did. */
-  const area = asked.length ? askSetGroup_(g, asked, o, value) : '';
-  /* A ROW'S FIELDS TOGETHER, as `fieldRows_` placed them (FIELD_ROWS). */
-  const order = [];
-  rest.forEach(f => { const row = FIELD_ROWS.find(r => r.fields.indexOf(f) !== -1 && r.fields.every(x => rest.indexOf(x) !== -1));
-    (row ? row.fields : [f]).forEach(x => { if (order.indexOf(x) === -1) order.push(x); }); });
-  return order.map(f => kept(f) ? fieldRows_([f], (x, extra) => x === 'phone' && wantsPhone ? phoneField_(value) : plain(x, extra))
-    : asked.indexOf(f) !== -1 ? formHidden_(`data-me="${esc(f)}"`, askSetSaved_(f, value(f))) : '').join('') + area;
+/* ---------- A FORM ASKED IN ITS CARD, BOUND TO ITS BOXES (owner, 16 Nov: one form for any item) ---------- */
+/* Each asked field keeps a hidden twin box (the form's `attr`) where its box was. An answer, and what is typed, goes into the twin with an `input` */
+/* event, so the page's own listeners (drafts, saving 0.8s after typing stops, a card's dirty flag) and its Save read it as they read the old box. */
+/* A FIELD'S OWN PROPERTIES are kinds.json `fields` (caption `label`, `min`, `max`, `step`), the same for every form that asks it. */
+const FORM_FIELDS_ = Object.assign({}, ...Object.keys(ITEM_KINDS.kinds).map(k => ITEM_KINDS.kinds[k].fields || {}));
+const askProps_ = f => FORM_FIELDS_[f] || {};
+/* THE TYPES ASKED IN A CARD; a tick, a picture, a document, a timetable and the like keep their own controls. */
+const ASK_TYPES_ = { text: 'text', number: 'text', money: 'text', date: 'date', long: 'long', choice: 'choice' };
+function askTwin_(id, f) {
+  const a = (FORM_SPECS.forms[id] || {}).attr || 'data-me', sel = '[' + a + '="' + String(f).replace(/"/g, '\\"') + '"]';
+  for (const el of askEls_(id)) for (let n = el.parentElement; n; n = n.parentElement) { const t = n.querySelector(sel); if (t) return t; }
+  return null;
 }
-/* ---------- A SETTINGS CARD'S FIELDS ARE ASKED TOO (owner, 16 Nov: one form for any item): the card's group is a form `set:<group>`, a field a step ---------- */
-/* Every field with a value is a chip (tap to change just it); an empty one is asked, with Skip. A yes/no is two tags, a fixed list its tags, */
-/* several of a list ticks then "."; anything else the blank tag typed on. A money field still needs may_('prices') (formMay_), so a child sees none. */
-/* SAVED THROUGH THE SAME CALL: each field keeps its hidden `data-me` box in the card, so `meSave_` posts the card exactly as it did. */
+function askTwinPut_(id, f, v) {
+  const t = askTwin_(id, f);
+  if (t) { t.value = v; t.dispatchEvent(new Event('input', { bubbles: true })); }
+  return t;
+}
+/* A BOUND FORM'S ANSWERS ARE ITS TWINS' VALUES at each draw; what was skipped or is being asked again stays so. */
+function askBind_(id, spec, value) {
+  FORM_SPECS.forms[id] = Object.assign({ ask: 'card', bound: true, look: 'ask-pick', skip: true, back: 'one' }, spec);
+  const was = ASK[id], s = ASK[id] = { v: {}, done: {}, pin: [], more: (was && was.more) || '' };
+  spec.fields.forEach(x => {
+    const v = value(x.f);
+    s.v[x.f] = x.many ? profList_(v) : String(v == null ? '' : v);
+    s.done[x.f] = was && x.f in was.done ? was.done[x.f] : (x.many ? s.v[x.f].length > 0 : s.v[x.f].trim() !== '');
+  });
+}
+/* ONE ASKED FIELD FROM A NAME: its kind's properties, then the caller's caption and list. */
+const askFieldOf_ = (f, type, label, options, more) => Object.assign({ f, type: ASK_TYPES_[type] || 'text', label, ph: label,
+  pad: type === 'money' || FIELD_IS_DECIMAL.test(f) ? 'decimal' : type === 'number' || FIELD_IS_NUMERIC.test(f) ? 'numeric' : '' },
+  options ? { type: 'choice', options } : {}, more || {}, askProps_(f));
+
+/* ---------- YOUR SETTINGS' PLAIN FIELDS ARE ASKED in the card (form `set:<group>`); a locked field and the phone keep their own boxes ---------- */
+/* A field with a value is a chip (tap to change just it); an empty one is asked, with Skip. A money field still needs may_('prices') (formMay_). */
+/* Saved by the same `meSave_`: 0.8s after typing stops (the twin's `input`, autosaveHear_), and at once on an answer. */
 const askYesNo_ = [{ v: 'TRUE', t: 'Yes' }, { v: 'FALSE', t: 'No' }];
 function askSetField_(f, o) {
   const label = ROW_LABEL[f] || fieldLabel(f);
-  if (FIELD_IS_BOOL.test(f)) return { f, type: 'choice', label, options: askYesNo_ };
+  if (FIELD_IS_BOOL.test(f)) return askFieldOf_(f, 'choice', label, askYesNo_);
   const opts = f === 'manager' ? managerOptions_(String((o.raw && o.raw.person_id) || (whose_() || {}).personId || '')) : ((o.options ? o.options(f) : null) || []);
   const ov = x => String(x && typeof x === 'object' ? x.v : x), ot = x => String(x && typeof x === 'object' ? x.t : x);
-  if (FIELD_MULTI[f] && opts.length) return { f, type: 'choice', many: true, label, options: opts.map(x => ({ v: ov(x), t: ot(x) })) };
-  if (opts.length) return { f, type: 'choice', label, options: [{ v: '', t: f === 'manager' ? MANAGER_NONE : NONE_LABEL }].concat(opts.map(x => ({ v: ov(x), t: ot(x) }))) };
-  return { f, type: 'text', label, ph: label, pad: FIELD_IS_DECIMAL.test(f) ? 'decimal' : FIELD_IS_NUMERIC.test(f) ? 'numeric' : '' };
+  if (FIELD_MULTI[f] && opts.length) return askFieldOf_(f, 'choice', label, opts.map(x => ({ v: ov(x), t: ot(x) })), { many: true });
+  if (opts.length) return askFieldOf_(f, 'choice', label, [{ v: '', t: f === 'manager' ? MANAGER_NONE : NONE_LABEL }].concat(opts.map(x => ({ v: ov(x), t: ot(x) }))));
+  return askFieldOf_(f, FIELD_IS_DATE.test(f) ? 'date' : 'text', label);
 }
-/* WHAT THE HIDDEN BOX HOLDS: what `meSave_` read off the old box — TRUE/FALSE for a tick, a list joined, else the words. */
+/* WHAT THE TWIN HOLDS: what `meSave_` read off the old box (TRUE/FALSE, a list joined, else the words), or the unsaved "set" draft typed there. */
 const askSetSaved_ = (f, v) => (FIELD_IS_BOOL.test(f) ? (TRUEish_(v) ? 'TRUE' : 'FALSE') : FIELD_MULTI[f] ? profList_(v).join(', ') : String(v == null ? '' : v));
-function askSetGroup_(g, list, o, value) {
+const askSetKeeps_ = f => !FIELD_IS_BOOL.test(f) && setDraftOk_(f);
+const askSetShown_ = (f, value) => (askSetKeeps_(f) ? draftVal_('set', f, askSetSaved_(f, value(f))) : askSetSaved_(f, value(f)));
+const askSetTwin_ = (f, value) => formHidden_(`data-me="${esc(f)}"`, askSetShown_(f, value), askSetKeeps_(f) ? draftAttr_('set', f, askSetSaved_(f, value(f))) : '');
+function askSetRest_(g, rest, o, value, wantsPhone, plain) {
+  const ro = o.readonly || [], kept = f => (f === 'phone' && wantsPhone) || ro.indexOf(f) !== -1;
+  const asked = rest.filter(f => !kept(f) && formMay_({ f, type: formKind_(f) }));
   const id = 'set:' + g;
-  FORM_SPECS.forms[id] = { ask: 'find', look: 'ask-pick', skip: true, back: 'one', fields: list.map(f => askSetField_(f, o)) };
-  const was = ASK[id], s = ASK[id] = { v: {}, done: {}, pin: [], more: (was && was.more) || '' };
-  list.forEach(f => {
-    const saved = askSetSaved_(f, value(f));
-    s.v[f] = FIELD_MULTI[f] ? profList_(saved) : saved;
-    /* ANSWERED IS WHAT HAS A VALUE, or what this card was already past (skipped or answered); the one being asked again stays asked. */
-    s.done[f] = was ? !!was.done[f] : String(value(f) == null ? '' : value(f)).trim() !== '';
+  if (asked.length) {
+    askBind_(id, { attr: 'data-me', fields: asked.map(f => askSetField_(f, o)) }, f => askSetShown_(f, value));
+    const save = x => { const t = askTwin_(id, x.f); if (t) meSave_(t, true); };
+    FORM_ASK_[id] = { set: save, next: save };
+  }
+  /* IN THE GROUP'S ORDER, a row's fields together as `fieldRows_` placed them, so the card posts its fields in the order it always did; locked rows stay rows. */
+  const inRow = f => FIELD_ROWS.find(r => r.fields.indexOf(f) !== -1 && r.fields.every(x => rest.indexOf(x) !== -1));
+  const order = [];
+  rest.forEach(f => (inRow(f) ? inRow(f).fields : [f]).forEach(x => { if (order.indexOf(x) === -1) order.push(x); }));
+  const drawn = new Set(), out = [];
+  order.forEach(f => {
+    if (drawn.has(f)) return;
+    if (asked.indexOf(f) !== -1) { drawn.add(f); out.push(askSetTwin_(f, value)); return; }
+    if (!kept(f)) return;
+    const row = inRow(f), group = row && row.fields.every(kept) ? row.fields : [f];
+    group.forEach(x => drawn.add(x));
+    out.push(fieldRows_(group, (x, extra) => x === 'phone' && wantsPhone ? phoneField_(value) : plain(x, extra)));
   });
-  const box = f => askEls_(id).map(el => (el.closest('.me-form') || el.parentNode).querySelector('[data-me="' + f + '"]')).find(Boolean);
-  const save = (f, v) => { const b = box(f); if (!b) return; b.value = v; meSave_(b, true); };
-  FORM_ASK_[id] = {
-    state: () => ASK[id],
-    said: x => {
-      const v = ASK[id].v[x.f], c = (x.options || []).find(k => String(k.v) === String(v));
-      return x.label + ': ' + ((x.many ? (v || []).join(', ') : c ? c.t : String(v == null ? '' : v)) || NONE_LABEL);
-    },
-    set: (x, v) => save(x.f, v),
-    next: x => save(x.f, (ASK[id].v[x.f] || []).join(', ')),
-    /* WHAT IS TYPED IS A "set" DRAFT, as the old box's was, until it is saved (meSave_ drops it). */
-    keep: (x, v) => { if (setDraftOk_(x.f)) draftKeep_('set', x.f, v); },
-    boxValue: (x, v) => (setDraftOk_(x.f) ? draftVal_('set', x.f, String(v == null ? '' : v)) : v),
-  };
-  return askArea_(id);
+  return out.join('') + (asked.length ? askArea_(id) : '');
+}
+/* ---------- A formOf_ FORM WITH `ask: "card"` (the people and card editors, apply to teach): each run of plain fields is asked in the card ---------- */
+/* `n` numbers the runs (a heading or a tick ends one), so each is asked where its boxes were; the twins keep the form's own "form" drafts. */
+function askCardRun_(id, spec, xs, o, get, n) {
+  const key = [id, (o && o.draftId) || '', JSON.stringify((o && o.vars) || {}), ((o && o.only) || []).join(','), xs.map(x => x.f).join(','), n].join(':');
+  const a = spec.attr, shown = {}, twins = [];
+  const fields = xs.map(x => {
+    const f = formName_(x.f, o), more = (o.with && o.with(f, x)) || {}, v = get(f, x), val = v == null ? '' : String(v);
+    const dk = spec.draft === 'form' && x.draft !== false ? formDraftKey_(id, o, f) : '';
+    const was = dk && o.was ? String(o.was(f) == null ? '' : o.was(f)) : val;
+    shown[f] = dk ? draftVal_('form', dk, was) : val;
+    twins.push(formHidden_(`${x.attr || a}="${esc(f)}"`, shown[f], dk ? draftAttr_('form', dk, was) : ''));
+    const list = x.type === 'choice' ? (x.options || (typeof o.options === 'function' ? o.options(f) : (o.options || {})[f]) || [])
+      .map(c => (Array.isArray(c) ? { v: String(c[0]), t: String(c[1]) } : c && typeof c === 'object' ? { v: String(c.v != null ? c.v : c.value), t: String(c.t != null ? c.t : c.text) } : { v: String(c), t: String(c) })) : null;
+    return askFieldOf_(f, list && !list.length ? 'text' : x.type, more.label || x.label || (o.kid && x.phKid) || x.ph || fieldLabel(f), list && list.length ? list : null, { min: x.min, step: x.step });
+  });
+  askBind_(key, { attr: a, fields }, f => shown[f]);
+  return twins.join('') + askArea_(key);
 }
 
 /* ---------- A FORM ASKED IN FIND, ONE FIELD A STEP (`ask: "find"` in kinds.json; owner, 16 Nov: one form for any item) ---------- */
@@ -337,8 +380,10 @@ function askTags_(id, x, o) {
   o = o || {};
   const h = askHook_(id), val = o.value != null ? o.value : askOf_(id).v[x.f];
   if (x.type === 'pin') return { look: 'is-grid sign-pin', options: '0123456789'.split('').map(d => ({ text: d, act: o.act || 'ask-digit', data: { form: id, f: x.f, d: d, repeat: true } })) };
-  if (x.type === 'text') return { look: 'sign-type', box: { id: o.id != null ? o.id : 'ask-' + id + '-' + x.f, cls: o.cls || 'ask-box',
-    value: (h.boxValue ? h.boxValue(x, val) : val) || '', label: x.label || x.ph || '', placeholder: x.ph || '', inputmode: x.pad || (x.input === 'email' ? 'email' : 'text') } };
+  /* TYPED: one line, a date (the calendar), or several lines (`long`); a field with bounds is a number box with them. */
+  if (x.type === 'text' || x.type === 'date' || x.type === 'long') return { look: 'sign-type', box: { id: o.id != null ? o.id : 'ask-' + id + '-' + x.f, cls: o.cls || 'ask-box',
+    value: val || '', label: x.label || x.ph || '', placeholder: x.ph || '', inputmode: x.pad || (x.input === 'email' ? 'email' : 'text'),
+    type: x.type === 'date' ? 'date' : x.min != null || x.max != null ? 'number' : 'text', min: x.min, max: x.max, step: x.step, lines: x.type === 'long' ? 3 : 0 } };
   const list = h.options ? h.options(x) : (x.options || []).map(c => ({ v: c.v, text: askSay_(c), on: String(val) === String(c.v) }));
   return { look: askLook_(id) + (x.grid ? ' is-grid' : ''), options: list.map(c => ({
     text: (x.many && c.on ? '✓ ' : '') + c.text + (c.off ? ' · ' + c.off : c.note ? ' · ' + c.note : ''), act: o.act || 'ask-pick',
@@ -366,15 +411,17 @@ function askMenu_(id, o) {
 /* THE ANSWERS AS CHIPS: a PIN is a * per digit, never the digits. */
 function askChips_(id, look) {
   return askFields_(id).filter(x => askPassed_(id, x)).map(x => {
-    const text = askSaid_(id, x) || 'None', label = 'Change ' + text;
+    const h = askHook_(id), text = askSaid_(id, x) || 'None', label = 'Change ' + (x.label || (h.label && h.label(x)) || x.ph || x.f);
     return { base: 'chip', look: look || 'sm ask-chip', text: text, act: 'ask-back', data: { form: id, f: x.f }, label: label, x: { label: label }, colour: false };
   });
 }
 /* A FIELD ANSWERED, and on to the next. */
 function askSet_(id, f, v) {
   const s = askOf_(id), x = formAsk_(id, f), h = askHook_(id);
+  if (!askOk_(x, v)) return;
   s.v[f] = v; s.done[f] = true;
   if (askKeeps_(id, x)) draftKeep_('ask', id + ':' + f, v);
+  if ((FORM_SPECS.forms[id] || {}).bound) askTwinPut_(id, f, v);
   if (h.set) h.set(x, v);
   askPaint_(id);
 }
@@ -408,6 +455,7 @@ on('ask-next', el => {
   const had = h.had ? h.had(x) : (s.v[x.f] || []);
   if (had.length < (x.need || 0)) { toast(text_('pick-at-least-one-first')); return; }
   s.done[x.f] = true; s.more = '';
+  if ((FORM_SPECS.forms[id] || {}).bound) askTwinPut_(id, x.f, (s.v[x.f] || []).join(', '));
   if (h.next) h.next(x);
   askPaint_(id);
 });
@@ -436,15 +484,35 @@ document.addEventListener('input', e => {
   const t = e.target;
   if (!t || !t.classList || !t.classList.contains('ask-box')) return;
   const rest = String(t.id || '').slice(4), cut = rest.lastIndexOf('-'), id = rest.slice(0, cut), f = rest.slice(cut + 1);
-  const h = askHook_(id), x = formAsk_(id, f);
-  if (h.keep) h.keep(x, t.value); else if (askKeeps_(id, x)) draftKeep_('ask', id + ':' + f, t.value);
+  const x = formAsk_(id, f);
+  /* A BOUND FORM'S TWIN HEARS IT AS ITS OLD BOX DID: its draft, and its card's save 0.8s after typing stops. */
+  if ((FORM_SPECS.forms[id] || {}).bound) askTwinPut_(id, f, t.value);
+  else if (askKeeps_(id, x)) draftKeep_('ask', id + ':' + f, t.value);
 });
 /* ENTER IN A TEXT FIELD'S BLANK TAG (the keypad's ✓ is its Enter) ANSWERS IT, as a tap answers a tag. */
 document.addEventListener('keydown', e => {
   const t = e.target;
   if (!t || !t.classList || !t.classList.contains('ask-box') || !/^Enter$/.test(e.key)) return;
+  /* SEVERAL LINES: Enter is a new line, Ctrl or Cmd+Enter answers. */
+  if (t.tagName === 'TEXTAREA' && !(e.ctrlKey || e.metaKey)) return;
   e.preventDefault();
   const rest = String(t.id || '').slice(4), cut = rest.lastIndexOf('-'), v = String(t.value || '').trim();
-  if (!v) { toast(text_('type-your-name-username-or-email')); return; }
+  /* AN EMPTY ANSWER EMPTIES A BOUND FORM'S FIELD, as clearing its old box did; elsewhere it asks again. */
+  if (!v && !(FORM_SPECS.forms[rest.slice(0, cut)] || {}).bound) { toast(text_('type-your-name-username-or-email')); return; }
   askSet_(rest.slice(0, cut), rest.slice(cut + 1), v);
 });
+/* A DATE PICKED ON THE CALENDAR ANSWERS IT, as Enter does. */
+document.addEventListener('change', e => {
+  const t = e.target;
+  if (!t || !t.classList || !t.classList.contains('ask-box') || t.type !== 'date' || !t.value) return;
+  const rest = String(t.id || '').slice(4), cut = rest.lastIndexOf('-');
+  askSet_(rest.slice(0, cut), rest.slice(cut + 1), t.value);
+});
+/* A FIELD'S BOUNDS (kinds.json `min`, `max`), held on every answer as the old box's were. */
+function askOk_(x, v) {
+  if (!x || (x.min == null && x.max == null) || v === '' || v == null) return true;
+  const n = Number(v);
+  if (isFinite(n) && (x.min == null || n >= Number(x.min)) && (x.max == null || n <= Number(x.max))) return true;
+  toast(x.max != null ? 'A number from ' + (x.min != null ? x.min : 0) + ' to ' + x.max + ', please.' : 'A number from ' + x.min + ' up, please.');
+  return false;
+}

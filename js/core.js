@@ -398,7 +398,8 @@ function levelPriced(name) {
 
 /* ---------- WHAT ONE EXTRA SEAT ADDS, AS A FRACTION OF THE RATE § */
 /* AN EXTRA SEAT COSTS AT MOST THE FIRST STUDENT (620) — the server's `SEAT_RATE_MAX`, as a share of the rate. */
-const STAFF_SEAT_MAX = 1;
+/* THE MOST AN EXTRA SEAT MAY BE, AS A SHARE OF THE RATE: kinds.json's `extra_seat_rate` max (askProps_, form.js), read when asked. */
+const STAFF_SEAT_MAX_ = () => askProps_('extra_seat_rate').max;
 function seatShare_(tutorRow, c, B) {
   const v = ((typeof DATA !== 'undefined' && DATA && DATA.constants) || {}).vars || {};
   const cv = (...keys) => { for (const key of keys) { const x = num(v[key]); if (!isNaN(x)) return x; } return 0; };
@@ -406,7 +407,7 @@ function seatShare_(tutorRow, c, B) {
   if (B === undefined) B = cv('B', 'boss rate', 'boss_rate');
   const asFraction = (x, fallback) => (x > 0 && x <= 2) ? x : fallback;
   /* THE TUTOR'S SEAT NEVER COSTS MORE THAN THE FIRST STUDENT (620): an older share past 1 prices as 1. */
-  const seatTop = x => Math.min(x, STAFF_SEAT_MAX);
+  const seatTop = x => Math.min(x, STAFF_SEAT_MAX_());
   const seatOwn = !!tutorRow && Number(tutorRow.extraSeat) > 0;
   const cRaw = seatOwn ? Number(tutorRow.extraSeat) : c;
   const cUsed = seatTop(asFraction(cRaw, 0));
