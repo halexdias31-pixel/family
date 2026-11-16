@@ -1,9 +1,0 @@
-{
- "why": "budgets for rule checks 6.2 (games: words per file, only go down), 10.2 (hosts and shipped packages: a new one is an owner decision) and 11.1 (screens: never more)",
- "games": { "js/arcade.js": 7, "js/find-finder.js": 1, "js/layout.js": 1, "js/me-columns.js": 1,
-  "backend/dopost.gs": 2, "backend/get-people.gs": 4 },
- "hosts": ["api.postcodes.io", "www.googleapis.com", "oauth2.googleapis.com", "api.stripe.com", "generativelanguage.googleapis.com"],
- "hostsWhy": { "api.stripe.com": "pay-when-paid fees only", "generativelanguage.googleapis.com": "near-free AI marking", "api.postcodes.io": "free", "www.googleapis.com": "free within the Google account", "oauth2.googleapis.com": "free" },
- "packages": [],
- "screens": 9
-}
