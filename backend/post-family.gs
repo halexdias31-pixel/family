@@ -283,10 +283,9 @@ function postPersonSave_(body, action, began) {
 /* THE NEW ACCOUNT'S HANDLE AND PIN MAILED TO THEIR OWN ADDRESS (`invite`): false when it could not go, so the admin is shown the PIN instead. */
 function adminInvite_(r, pin) {
   try {
-    mailOut_({ to: S(r.email), name: BRAND_NAME, subject: 'Your ' + BRAND_NAME + ' account',
-      body: 'Hello ' + S(r.first_name) + ',\n\nAn account has been made for you on ' + BRAND_NAME + '.\n\n'
-          + 'Sign in at ' + SITE_URL + ' with your email (or your handle, @' + S(r.handle) + ') and the PIN ' + pin
-          + '\n\nChange the PIN under Settings → Signing in.\n\n— ' + BRAND_NAME });
+    mailOut_({ to: S(r.email), name: BRAND_NAME, subject: text_('mail-invite-subject', { brand: BRAND_NAME }),
+      body: text_('mail-invite-body', { first: S(r.first_name), brand: BRAND_NAME, site: SITE_URL, handle: S(r.handle), pin: pin })
+          + '\n\n' + text_('mail-sign-off', { brand: BRAND_NAME }) });
     return true;
   } catch (err) { return false; }
 }

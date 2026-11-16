@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-11-16-card-1";
+const DOPOST_VERSION = "2026-11-16-ssot-2";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -85,21 +85,13 @@ function signInRow_(t0, r, body, by, was) {
 /* ---------- THE CONFIRMATION LINK, TO AN ACCOUNT'S OWN ADDRESS § */
 function linkMail_(r, token, asParent) {
   const said = S(r.handle) ? '@' + S(r.handle) : '';
+  /* THE WORDS ARE data/settings/words.json `mail-confirm-*`; the parent's next step is the link's second half (`confirmFirst_`). */
   mailOut_({ to: S(r.email), name: BRAND_NAME,
-    subject: 'Confirm your @family. account',
-    body: 'Hello ' + S(r.first_name) + ',\n\nConfirm your email address by opening this link:\n\n'
-        + SITE_URL + '?verify=' + token
-        + '\n\nYou can already sign in with this email address' + (said ? ' (or your handle, ' + said + ')' : '')
-        + ' and the PIN you chose — the link only confirms the address is yours. Until it is opened we '
-        + 'send nothing else to this address.'
-        /* ---------- AND WHAT TO DO IF YOU DID NOT MAKE IT § */
-        + '\n\nIf you did not make this account, do not open the link: use "Forgotten your PIN?" with '
-        + 'this address instead — it takes the account over and signs everyone else out.'
-        /* THE NEXT STEP, for the person who came for it — and since a child waits on a confirmed
-           address (`confirmFirst_`), the link is that step's first half, said in that order. */
-        + (asParent ? '\n\nOnce you have opened the link, your child makes their own account; find their handle '
-                    + 'on Student profiles and tap Add as my child, and they say yes.' : '')
-        + '\n\n— @family.' });
+    subject: text_('mail-confirm-subject', { brand: BRAND_NAME }),
+    body: text_('mail-confirm-body', { first: S(r.first_name), link: SITE_URL + '?verify=' + token,
+                                       handleSaid: said ? text_('mail-confirm-or-handle', { handle: said }) : '' })
+        + (asParent ? text_('mail-confirm-parent-next') : '')
+        + '\n\n' + text_('mail-sign-off', { brand: BRAND_NAME }) });
 }
 
 function doPost(e) {

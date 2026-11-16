@@ -125,9 +125,8 @@ function postApplyTeach_(body, action, began) {
   const owner = ownerEmail_();
   if (owner) {
     try {
-      mailOut_({ to: owner, name: BRAND_NAME, subject: 'A new application to teach',
-        body: personDisplayName(me) + (S(me.handle) ? ' (@' + S(me.handle) + ')' : '') + ' has applied to teach: '
-            + f.subjects + '.\n\nRead it and say yes, interview or no in the Business column:\n\n' + SITE_URL + '\n' });
+      mailOut_({ to: owner, name: BRAND_NAME, subject: text_('mail-apply-owner-subject'),
+        body: text_('mail-apply-owner-body', { who: personDisplayName(me) + (S(me.handle) ? ' (@' + S(me.handle) + ')' : ''), subjects: f.subjects, site: SITE_URL }) });
     } catch (err) { /* a failed courtesy note must not undo the work already done */ }
   }
   return jsonOut({ success: true, application: applicationOf_(me) });
@@ -224,11 +223,9 @@ function postDecideApplication_(body, action, began) {
   if (!out.success) return jsonOut(out);
   /* THE TUTOR LIST IS IN THE STORED PAYLOAD — `setListed`'s reason. */
   if (status === 'approved') clearCache();
-  const said = { approved: 'Good news — your application to teach with ' + BRAND_NAME + ' has been approved. You are listed as a tutor now: sign in to fill in your card.',
-                 interview: 'Thank you for applying to teach with ' + BRAND_NAME + '. We would like to talk to you — we will be in touch to arrange a time.',
-                 declined: 'Thank you for applying to teach with ' + BRAND_NAME + '. We are not able to take your application further this time.' }[status];
+  const said = ['approved', 'interview', 'declined'].indexOf(status) === -1 ? undefined : text_('mail-apply-' + status, { brand: BRAND_NAME });
   if (who && S(who.email) && !addressPending_(who)) {
-    try { mailOut_({ to: S(who.email), name: BRAND_NAME, subject: 'Your application to teach', body: 'Hello ' + (S(who.first_name) || '') + ',\n\n' + said + '\n\n' + SITE_URL + '\n' }); out.emailed = true; } catch (err) { /* a failed courtesy note must not undo the work already done */ }
+    try { mailOut_({ to: S(who.email), name: BRAND_NAME, subject: text_('mail-apply-subject'), body: text_('mail-apply-body', { first: S(who.first_name) || '', said: said, site: SITE_URL }) }); out.emailed = true; } catch (err) { /* a failed courtesy note must not undo the work already done */ }
   }
   out.rank = rankOf(who);
   return jsonOut(out);

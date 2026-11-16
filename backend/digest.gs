@@ -827,7 +827,7 @@ function digestLook_(now, week) {
 /* THE EMAIL'S FOUR LINES (491): the config row where an admin wrote one, else the default. */
 function digestWords_(cfg) {
   const out = {};
-  Object.keys(DIGEST_WORDS).forEach(k => { const v = S(cfg && cfg[k]); out[k] = v || DIGEST_WORDS[k]; });
+  DIGEST_WORD_KEYS.forEach(k => { const v = S(cfg && cfg[k]); out[k] = v || text_(k); });
   return out;
 }
 /* {child} {parent} {count} {span} filled in; a parent with no printable name leaves "Hi," as before. */
@@ -1128,7 +1128,7 @@ const DIGEST_SAMPLE_CHILD = { first: 'Sam', days: [], again: [], fresh: [
 function digestWordsOver_(base, words) {
   const out = Object.assign({}, base || {});
   if (!words || typeof words !== 'object') return out;
-  Object.keys(DIGEST_WORDS).forEach(k => { if (k in words) out[k] = S(words[k]).slice(0, DIGEST_WORD_MAX).trim() || DIGEST_WORDS[k]; });
+  DIGEST_WORD_KEYS.forEach(k => { if (k in words) out[k] = S(words[k]).slice(0, DIGEST_WORD_MAX).trim() || text_(k); });
   return out;
 }
 

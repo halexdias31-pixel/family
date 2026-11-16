@@ -194,12 +194,10 @@ let ASKED_JOB = '';
 
 
 /* The day codes the availability grids are written in. `m16` is Monday at four. */
-const SLOT_DAYS = [['m', 'Monday'], ['tu', 'Tuesday'], ['w', 'Wednesday'], ['th', 'Thursday'],
-                   ['f', 'Friday'], ['sa', 'Saturday'], ['su', 'Sunday']];
+const SLOT_DAYS = SHARED_SETTINGS.days;
 
 /* ---------- NINE TILL NINE, WRITTEN ONCE (owner, 11 Nov: every grid, one span; the last cell is 20:00–21:00) § */
-const SLOT_HOURS = [];
-for (let h = 9; h <= 20; h++) SLOT_HOURS.push(h);
+const SLOT_HOURS = SHARED_SETTINGS.hours;
 
 /* ---------- MORNING, AFTERNOON, EVENING — THE WAITING LIST'S OWN COLUMNS § */
 /* ---------- `head` IS THE COLUMN LABEL AND `name` IS THE WORD THAT GETS STORED § */
