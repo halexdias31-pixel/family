@@ -589,7 +589,7 @@
   },
   {
    "id": "4.4.3",
-   "text": "Hazards and uses of radioactive emissions and of background radiation",
+   "text": "Hazards and uses of radioactive emissions and of background radiation (physics only)",
    "parent": "4.4",
    "links": []
   },
@@ -760,7 +760,7 @@
   },
   {
    "id": "4.5.4",
-   "text": "Moments, levers and gears",
+   "text": "Moments, levers and gears (physics only)",
    "parent": "4.5",
    "links": [
     "ct:TB-AQA-8463-46",
@@ -803,7 +803,7 @@
   },
   {
    "id": "4.5.5.1.2",
-   "text": "Pressure in a fluid 2",
+   "text": "Pressure in a fluid 2 (HT only)",
    "parent": "4.5.5.1",
    "links": [
     "ct:TB-AQA-8463-48",
@@ -910,7 +910,7 @@
   },
   {
    "id": "4.5.6.2",
-   "text": "Forces, accelerations and Newton's Laws of motion",
+   "text": "Forces, accelerations and Newton's laws of motion",
    "parent": "4.5.6",
    "links": []
   },
@@ -1124,7 +1124,7 @@
   },
   {
    "id": "4.6.1.4",
-   "text": "Sound waves",
+   "text": "Sound waves (physics only) (HT only)",
    "parent": "4.6.1",
    "links": [
     "ct:TB-AQA-8463-68",
@@ -1242,7 +1242,7 @@
   },
   {
    "id": "4.6.2.6",
-   "text": "Visible light",
+   "text": "Visible light (physics only)",
    "parent": "4.6.2",
    "links": [
     "ct:TB-AQA-8463-75",
@@ -1391,7 +1391,7 @@
   },
   {
    "id": "4.7.3",
-   "text": "Induced potential, transformers and the National Grid (physics only)",
+   "text": "Induced potential, transformers and the National Grid (physics only) (HT only)",
    "parent": "4.7",
    "links": []
   },
@@ -1440,7 +1440,7 @@
   },
   {
    "id": "4.7.3.4",
-   "text": "Transformers",
+   "text": "Transformers (HT only)",
    "parent": "4.7.3",
    "links": [
     "ct:TB-AQA-8463-87",
