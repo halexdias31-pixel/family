@@ -473,16 +473,19 @@ function myResults_() {
   MY_RESULT.key = key; MY_RESULT.from = DATA && DATA.submissions; MY_RESULT.map = map;
   return map;
 }
-/* ATTEMPTED IS EVERY PRESS; a marked one also says how it went, as Progress scores it (`progressScore_`). */
-function myResultOf_(x) {
+/* TWO QUESTIONS, TWO MENUS (owner, 16 Nov): did you try it (Attempted / Unattempted), and how did it go (Correct / Incorrect / Part marks, once marked). */
+function myAttemptOf_(x) {
   if (!isQ_(x)) return '';
   const map = myResults_();
   if (!map) return '';
-  const k = String(x.key || x.name || '');
-  if (!map.has(k)) return 'Unattempted';
+  return map.has(String(x.key || x.name || '')) ? 'Attempted' : 'Unattempted';
+}
+function myResultOf_(x) {
+  if (!isQ_(x)) return '';
+  const map = myResults_(), k = String(x.key || x.name || '');
+  if (!map || !map.has(k)) return '';
   const sc = typeof progressScore_ === 'function' ? progressScore_(map.get(k)) : null;
-  if (!sc) return 'Attempted';
-  return ['Attempted', sc.got >= sc.of ? 'Correct' : sc.got <= 0 ? 'Incorrect' : 'Part marks'];
+  return !sc ? '' : sc.got >= sc.of ? 'Correct' : sc.got <= 0 ? 'Incorrect' : 'Part marks';
 }
 /* A PRESS CHANGES IT AT ONCE: every finder forgets what it found, and the tags on the pressed question's own page are said again. */
 function myResultNew_(k) {
@@ -491,7 +494,7 @@ function myResultNew_(k) {
   try {
     const x = stuffItemsAll_().find(i => isQ_(i) && ansKey_(i) === k);
     if (!x) return;
-    const tags = asList_(myResultOf_(x)).map(v => qtag_(esc(v), tagAttr_('myResult') + ' data-f="myResult"')).join('');
+    const tags = [['myAttempt', myAttemptOf_(x)], ['myResult', myResultOf_(x)]].flatMap(([f, v]) => asList_(v).map(t => qtag_(esc(t), tagAttr_(f) + ' data-f="' + f + '"'))).join('');
     /* ONLY THE PRESSED PART'S OWN TAG LINE: a whole question's page holds every part's card (`.qb`), and each says its own result. */
     document.querySelectorAll('[data-k]').forEach(b => {
       if (b.getAttribute('data-k') !== k) return;
@@ -499,7 +502,7 @@ function myResultNew_(k) {
       /* THE ANSWER CARD UNDER A PART is the scheme's, not your result's. */
       (pg ? (own ? own.querySelectorAll(':scope > .kc-tags > .qcard-tags') : pg.querySelectorAll('.qcard-tags')) : []).forEach(row => {
         if (row.closest('.qans-card')) return;
-        row.querySelectorAll('[data-f="myResult"]').forEach(t => t.remove());
+        row.querySelectorAll('[data-f="myAttempt"], [data-f="myResult"]').forEach(t => t.remove());
         row.insertAdjacentHTML('beforeend', tags);
       });
     });
