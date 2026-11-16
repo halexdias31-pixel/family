@@ -248,6 +248,7 @@
     "check-qmerge.js": "core",
     "check-marking.js": "core",
     "check-marking-norm.js": "core",
+    "check-points.js": "core",
     "check-typeset.js": "core",
     "check-answers.js": "core",
     "check-typeable.js": "core",

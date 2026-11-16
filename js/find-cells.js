@@ -444,9 +444,9 @@ on('qp-check', (el) => {
   if (v.ai) { if (ACTIONS['qp-ai']) ACTIONS['qp-ai'](el); return; }
   const full = v.got >= v.of;
   box.classList.add(full ? 'is-right' : 'is-near');
-  tell_(out, full && !v.words ? 'saved' : 'info', v.words ? v.got + ' of ' + v.of + ' mark' + (v.of === 1 ? '' : 's') + ' · by key words' : full ? (v.typo ? text_('correct-check-the-spelling') + v.typo + ')' : 'Correct') : text_('not-yet-have-another-go'));
+  tell_(out, full && !v.words ? 'saved' : 'info', v.points ? v.got + ' of ' + v.of + ' mark' + (v.of === 1 ? '' : 's') : v.words ? v.got + ' of ' + v.of + ' mark' + (v.of === 1 ? '' : 's') + ' · by key words' : full ? (v.typo ? text_('correct-check-the-spelling') + v.typo + ')' : 'Correct') : text_('not-yet-have-another-go'));
   /* MARKED IS A SUBMISSION, right or not yet (js/submit.js); signed out it is this visit's alone. */
-  subRecord_(k, inp.value, v.words ? 'rule:' + v.got + '/' + v.of : full ? 'right' : 'wrong');
+  subRecord_(k, inp.value, v.words || v.points ? 'rule:' + v.got + '/' + v.of : full ? 'right' : 'wrong');
 });
 
 /* ---------- SEND, WHERE NOTHING CAN MARK IT § */

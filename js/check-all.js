@@ -116,6 +116,7 @@ const SUITE = [
   { file: 'check-keypad-power.js', what: 'the keypad power key types like a Casio; every written power marks and works out the same' },
   { file: 'check-qmerge.js', what: 'one marker per checker: every part of every type marked as the per-type markers did (1200)', par: true },
   { file: 'check-marking-norm.js', what: 'every spelling of one value marked alike, its near misses wrong', par: true },
+  { file: 'check-points.js', what: 'worded answers marked by the points they make: full marks, padding low, off-topic nothing', par: true },
   /* ---------- AND WHETHER THE MATHS ON A CARD LOOKS LIKE MATHS § */
   { file: 'check-typeset.js', what: 'fractions stacked, powers raised, no plain-text maths' },
   /* ---------- AND WHETHER THE ANSWER YOU SEE IS SHORT, AND ALL THERE IS § */
