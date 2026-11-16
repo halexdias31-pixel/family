@@ -24,13 +24,10 @@ function digestLibrary_(site) {
 }
 
 /* ---------- THE CARD'S TAGS, AS THE SITE DRAWS THEM (20 Oct, docs/history/380): `tagRow_` (js/find.js) for a question, ported § */
-/* THE TAG FACETS A QUESTION ANSWERS, with their `TAG_OF` colour kind. The ORDER is data/settings/facets.json's (`digestFacetOrder_`, 546). */
-/* This list's own order is only the fallback when that file cannot be fetched; check-digest holds it to the file. */
+/* THE TAG FACETS AND THEIR HUES ARE THE SITE'S (owner rule 1.1, 16 Nov): `DIGEST_TAG_FIELDS`, `TAG_OF` and `DIGEST_TAG_INK` are generated */
+/* into cards-gen.gs by tools/cards-gen.js from data/settings/facets.json, js/find-finder.js's FACETS, js/find-bundles.js and style.css. */
+/* The ORDER is the facets file's as fetched (`digestFacetOrder_`, 546); the generated list is the fallback when it cannot be. */
 /* ONE `verified` TAG (owner 10 Nov): the email reads the ledger's `function_verified` (397), which qtypes.js worked out in the browser, beside `verified`. */
-const DIGEST_TAG_FACETS = [['forLabel', 'kind'], ['kindLabel', 'kind'], ['subject', 'subject'], ['documentType', 'type'],
-  ['level', 'level'], ['keystage', 'level'], ['yearGroup', 'level'], ['bandValue', 'level'],
-  ['examBoard', 'board'], ['tier', 'tier'], ['examYear', 'sitting'], ['examMonth', 'sitting'], ['verified', 'check'], ['paperId', 'paper'], ['paperSection', 'other'], ['qNumber', 'paper'],
-  ['qPart', 'paper'], ['qSub', 'paper'], ['marks', 'paper'], ['needs', 'needs'], ['source', 'board']];
 const DIGEST_FACETS_PATH = 'data/settings/facets.json';
 /* THE FACETS FILE THE PHONE ORDERS ITS TAGS BY (546): the site's copy first, then raw.githubusercontent.com; null when neither answers. */
 function digestFacetOrder_(site) {
@@ -48,12 +45,14 @@ function digestFacetOrder_(site) {
 }
 /* THE EMAIL'S TAG FACETS IN THE FILE'S ORDER — one order, the card's: a facet the file switches off is not said; one it does not list keeps its place. */
 function digestTagFacets_(rows) {
-  if (!Array.isArray(rows)) return DIGEST_TAG_FACETS;
+  if (!Array.isArray(rows)) return DIGEST_TAG_FIELDS.slice();
   const at = {}, off = {};
   rows.forEach(r => { if (r && r.field) { if (r.active === false) off[r.field] = 1; else if (isFinite(Number(r.sort_order)) && S(r.sort_order) !== '') at[r.field] = Number(r.sort_order); } });
-  return DIGEST_TAG_FACETS.map((f, i) => ({ f: f, i: i, at: at[f[0]] })).filter(o => !off[o.f[0]])
+  return DIGEST_TAG_FIELDS.map((f, i) => ({ f: f, i: i, at: at[f] })).filter(o => !off[o.f])
     .sort((a, b) => (a.at === undefined || b.at === undefined ? a.i - b.i : a.at - b.at || a.i - b.i)).map(o => o.f);
 }
+/* A FACET'S TAG COLOUR, AS THE CARD'S `tagOf_` (js/find-bundles.js): `h` and its hue. */
+const digestTagHue_ = f => 'h' + (TAG_OF[f] || 0);
 /* `LIB_SOURCES` (js/find.js): a worksheet maker is a Source and its sheet has no exam board (O3). */
 const DIGEST_SOURCES = ['1st Class Maths', 'Corbettmaths', 'Access Tuition', 'GL Assessment'];
 const digestTagSource_ = q => DIGEST_SOURCES.find(s => digestSpell_(s) === digestSpell_(digestLibS_(q.company))) || '';
@@ -61,9 +60,6 @@ const digestTagSource_ = q => DIGEST_SOURCES.find(s => digestSpell_(s) === diges
 const DIGEST_CARD = { order: ['pic', 'head', 'tags', 'lines'], lines: ['theirs', 'verdict', 'right'],
   labels: { theirs: 'Their answer', right: 'Answer' }, radius: 0, round: 999, gap: 14, rule: '#171717',
   size: { small: 12, body: 16, title: 18 }, cut: 2, perLine: 60 };
-/* `[data-tag]`'s colours (style.css `--tag-*`), one for every kind `TAG_OF` gives. */
-const DIGEST_TAG_INK = { paper: '#ff7b72', subject: '#3ddc84', level: '#6cb6ff', sitting: '#c8a2ff', tier: '#ff8fc4', board: '#4fd1c5',
-  type: '#c3e88d', topic: '#ff9e64', needs: '#f0f08a', kind: '#e2cfa6', check: '#9ec5e8', other: '#bdbdbd' };
 const DIGEST_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const DIGEST_ROMAN = /^(i{1,3}|iv|vi{0,3}|ix|xi{0,3})$/i;
 
@@ -234,63 +230,66 @@ function digestTagMonth_(it, T) {
     || ofDate(doc.exam_date) || ofWave(it.examWave);
   return n >= 1 && n <= 12 ? DIGEST_MONTHS[n - 1] : '';
 }
-/* `nameForms_`: the rungs a paper's name is shortened by. */
-const DIGEST_TAG_CUT = new RegExp('\\s[\\u2014\\u2013]\\s|\\s\\u00b7\\s(?=(?:(?:19|20)\\d{2}|' + DIGEST_MONTHS.join('|') + ')$)');
-function digestTagForms_(s) {
-  const full = String(s == null ? '' : s).trim(), out = [];
-  const cut = re => { const m = re.exec(full); if (!m || !m.index) return; const v = full.slice(0, m.index).trim(); if (v && v !== full && out.indexOf(v) === -1) out.push(v); };
-  cut(DIGEST_TAG_CUT);
-  cut(/\s*[:(]/);
-  out.sort((a, b) => a.length - b.length);
-  const q = /\s*[:(]/.exec(full), d = DIGEST_TAG_CUT.exec(full);
-  if (q && q.index && d && q.index < d.index) { const v = full.slice(0, q.index).trim() + full.slice(d.index); if (v !== full && out.indexOf(v) === -1) out.splice(1, 0, v); }
-  out.push(full);
-  return out;
-}
 /* `facetSay_`'s one way of saying a value: its first letter capitalised, unless it is a single lower-case letter or a roman numeral. */
 const digestSay_ = v => { const t = String(v == null ? '' : v).trim(); return /^(?:[a-z]|[ivx]+)$/.test(t) ? t : t.charAt(0).toUpperCase() + t.slice(1); };
-/* THE ANSWERS OF THE FACETS ASKED BEFORE Paper that a paper's head row gives — `cardList_`'s chips, read off one row a paper. */
-function digestTagBefore_(it, T) {
-  return { subject: digestList_(it.subject), documentType: digestList_(it.documentType),
-           level: digestList_(digestTagLevel_(it)), keystage: digestTagKeystage_(it),
-           yearGroup: digestList_(it.bandValue && it.bandType === 'year' ? 'Year ' + it.bandValue : ''),
-           bandValue: digestList_(it.bandValue && it.bandType === 'grade' ? 'Grade ' + it.bandValue : ''),
-           examBoard: digestList_(it.examBoard), tier: digestList_(it.tier), examYear: digestList_(digestTagYear_(it, T)), examMonth: digestList_(digestTagMonth_(it, T)) };
-}
 const digestTagKeystage_ = it => { const s = digestTagSats_(it); return s.length ? s : digestTagStages_(it); };
-/* `paperLabel_` and `paperSectionOf_` (find.js, 770): a paper sat in sections is its real number — Paper 3, Section A, never Paper 31. */
+/* `paperSectionOf_` (js/find-finder.js, 770): a paper sat in sections is its real number — Paper 3, Section A, never Paper 31 — read from its id or its title. */
 function digestPaperSection_(doc) {
-  const m = /-(\d)(\d)$/.exec(S((doc && (doc.paper_id || doc.paperId)) || ''));
+  const id = S((doc && (doc.paper_id || doc.paperId)) || '');
+  const t = /^Paper (\d)(\d)\b(?::\s*([^—]+?))?\s*(?:—|$)/.exec(S((doc && doc.name) || ''));
+  const m = /-(\d)(\d)$/.exec(id) || t;
   if (!m || S(doc.paper) !== m[1] || Number(m[2]) < 1 || Number(m[2]) > 6) return null;
-  return { paper: m[1], section: 'Section ' + 'ABCDEF'[Number(m[2]) - 1], topic: S(doc.section).trim() };
+  return { paper: m[1], section: 'Section ' + 'ABCDEF'[Number(m[2]) - 1], topic: S(doc.section || (t && t[3]) || '').trim() };
 }
-function digestPaperLabel_(id, d) {
-  const name = String((d && d.name) || id || '').trim(), sec = digestPaperSection_(d);
-  return sec ? name.replace(/^Paper \d+\b/, 'Paper ' + sec.paper + ', ' + sec.section) : name;
+/* `paperTag_` (js/find-finder.js): "Paper 1/2/3" first, else the lead of its name, else the code on its cover. */
+function digestTagPaper_(pid, T) {
+  const d = T.docs[S(pid)] || null, sec = digestPaperSection_(d), n = S((d && d.paper) || '').trim();
+  if (sec) return 'Paper ' + sec.paper;
+  if (n) return 'Paper ' + n;
+  const lead = /^(?:Practice paper|Paper|Component|Unit) \w+/i.exec(S((d && d.name) || '').trim());
+  return lead ? lead[0] : S((d && d.paper_code) || '').trim();
 }
-/* `cardList_` + `facetShort_`: the paper said as its Paper button would be once every question before it was answered the card's way — `Paper 1`. */
-function digestTagPaper_(it, T) {
-  const pid = S(it.src.paper_id);
-  if (!pid) return '';
-  T.paperSaid = T.paperSaid || {};
-  if (pid in T.paperSaid) return T.paperSaid[pid];
-  const nameOf = id => digestSay_(digestPaperLabel_(id, T.docs[id]));
-  const forms0 = digestTagForms_(nameOf(pid));
-  if (forms0.length < 2) return (T.paperSaid[pid] = nameOf(pid));
-  if (!T.before) { T.before = {}; Object.keys(T.heads).forEach(p => { T.before[p] = digestTagBefore_(digestTagItem_(T.heads[p]), T); }); }
-  const mine = digestTagBefore_(it, T);
-  const sib = Object.keys(T.heads).filter(p => Object.keys(mine).every(k => !mine[k].length
-    || (T.before[p][k] || []).some(v => mine[k].some(w => digestSpell_(v) === digestSpell_(w)))));
-  if (sib.indexOf(pid) < 0) sib.push(pid);
-  /* `shortLabels_`: the first rung at which every name among them is told apart. */
-  const forms = sib.map(v => digestTagForms_(nameOf(v)));
-  let deepest = 0, show = '';
-  forms.forEach(f => { deepest = Math.max(deepest, f.length); });
-  for (let rung = 0; rung < deepest && !show; rung++) {
-    const at = forms.map(f => f[Math.min(rung, f.length - 1)]);
-    if (new Set(at.map(digestSpell_)).size === at.length) show = at[sib.indexOf(pid)];
+/* The `paperSection` facet, as the card asks it of the question's own row (its `section` is the topic): else a section its paper's title names (`paperNameSection_`). */
+function digestTagSection_(q, T) {
+  const pid = S(q.paper_id), d = T.docs[pid], sec = digestPaperSection_(S(q.name) ? q : d);
+  if (sec) return sec.section + (sec.topic ? ': ' + sec.topic : '');
+  return (/, (Section [A-F])\b/.exec(S((d || {}).name)) || [])[1] || '';
+}
+/* `showFit_` (js/find-facets.js): an over-long answer takes its first form (`showForms_`, cards-gen.gs) that no short answer */
+/* of its menu already says. The menu is the library's: every paper's section, read off its document rows. */
+function digestTagFit_(f, text, T) {
+  const key = v => digestSpell_(v);
+  if (!T.shortSaid) {
+    T.shortSaid = {};
+    Object.keys(T.docs).forEach(pid => { const v = digestTagSection_(T.docs[pid], T); if (v && v.length <= SHOW_MAX) T.shortSaid[key(v)] = 1; });
   }
-  return (T.paperSaid[pid] = show || nameOf(pid));
+  const taken = f === 'paperSection' ? T.shortSaid : {}, forms = showForms_(text);
+  return forms.find(t => !taken[key(t)]) || forms[forms.length - 1] || text.slice(0, SHOW_MAX);
+}
+/* `itemDate_` (js/find-levels.js): a dated item's month and day — a 5-a-day's "5 October". */
+function digestTagDate_(q) {
+  const iso = /^\s*(?:19|20)\d{2}-(\d{2})-(\d{2})\b/.exec(S(q.date || q.exam_date || ''));
+  const named = /\s[\u2014\u2013]\s(\d{1,2})\s+([A-Za-z]{3,9})\s*$/.exec(S(q.name || ''));
+  const mi = iso ? Number(iso[1]) : named ? DIGEST_MONTHS.findIndex(n => n.slice(0, 3).toLowerCase() === named[2].slice(0, 3).toLowerCase()) + 1 : 0;
+  const day = iso ? Number(iso[2]) : named ? Number(named[1]) : 0;
+  return mi >= 1 && mi <= 12 && day >= 1 && day <= 31 ? { month: DIGEST_MONTHS[mi - 1], day: String(day) } : {};
+}
+/* `verifyTags_` (js/find-levels.js): checked against the scheme, machine-marked, and nothing it names undrawn (`figUndrawn_`, cards-gen.gs) */
+/* — beside its stems and the part it `uses`. */
+function digestTagVerified_(q, T) {
+  if (!(digestLibTrue_(q.verified) && digestLibTrue_(q.function_verified))) return 'Not verified';
+  /* THE FILE'S FLAG STANDS ONLY FOR A CARD WHOSE WORDS ARE ON THEIR WAY (`libWaits_`): a row with no `lib_has` is read whole, */
+  /* and with no words it is incomplete (`qtIncomplete_`), whatever an old flag says. */
+  if (!S(q.lib_has).trim() && !S(q.html).trim()) return 'Not verified';
+  const rows = T.rows[S(q.paper_id)] || [];
+  const around = digestStemRows_(q, rows.filter(o => o.kind === 'preamble' && digestLibOn_(o.active)));
+  const uses = String(q.uses == null ? '' : q.uses).toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (uses) {
+    const bare = p => String(p == null ? '' : p).toLowerCase().replace(/[^a-z0-9]/g, '');
+    const y = rows.find(o => o !== q && o.kind !== 'preamble' && o.kind !== 'document' && S(o.question) === S(q.question) && bare(o.part) === uses);
+    if (y) around.push(y);
+  }
+  return figUndrawn_(q, around) ? 'Not verified' : 'Verified';
 }
 /* `partSplit_`, with the question's own numeral decision (`partNumerals_`): `ai` is [a] [i], AQA's `1` is [.1], a lone `ii` a numeral when every part of the question is one. */
 function digestTagSplit_(q, T) {
@@ -328,30 +327,35 @@ function digestCardTags_(q, T) {
   /* EACH FACET'S ANSWERS (`facetOwn_`, `tagOf` for the card's own page), in the words the value is. */
   const of = {
     /* `KIND_UNDER` (find.js, 546): a question is Practice as well as Questions. */
-    forLabel: () => 'Learning', kindLabel: () => ['Practice', 'Questions'],
+    forLabel: () => 'Learning', kindLabel: () => 'Practice', kindOwn: () => 'Questions',
     subject: () => it.subject, documentType: () => it.documentType,
     level: () => lv, keystage: () => digestTagKeystage_(it),
     yearGroup: () => (it.bandValue && it.bandType === 'year' ? 'Year ' + it.bandValue : ''),
     bandValue: () => (it.bandValue && it.bandType === 'grade' ? 'Grade ' + it.bandValue : ''),
     examBoard: () => it.examBoard, tier: () => it.tier,
-    examYear: () => digestTagYear_(it, T), examMonth: () => digestTagMonth_(it, T),
-    paperId: () => pid, paperSection: () => { const sec = digestPaperSection_(T.docs[pid]); return sec ? sec.section + (sec.topic ? ': ' + sec.topic : '') : ''; }, qNumber: () => (digestLibS_(q.question) ? 'Q' + digestLibS_(q.question) : ''), qPart: () => split.part, qSub: () => split.sub,
+    examYear: () => digestTagYear_(it, T), examMonth: () => digestTagMonth_(it, T) || digestTagDate_(q).month, examDay: () => digestTagDate_(q).day,
+    paperId: () => pid, paperSection: () => digestTagSection_(q, T), qNumber: () => (digestLibS_(q.question) ? 'Q' + digestLibS_(q.question) : ''), qPart: () => split.part, qSub: () => split.sub,
     marks: () => (marks > 0 ? marks + ' mark' + (marks === 1 ? '' : 's') : ''), needs: () => digestTagNeeds_(q, T),
-    verified: () => (digestLibTrue_(q.verified) && digestLibTrue_(q.function_verified) ? 'Verified' : 'Not verified'), source: () => digestTagSource_(q),
+    verified: () => digestTagVerified_(q, T), source: () => digestTagSource_(q),
   };
-  const say = { paperId: () => digestTagPaper_(it, T) };
+  /* SAID AS THE CARD SAYS THEM: the paper by `paperTag_`, the marks as the paper prints them, "[1]". */
+  const say = { paperId: () => digestTagPaper_(pid, T), marks: v => { const m = /^(\d+) marks?$/.exec(v); return m ? '[' + m[1] + ']' : v; } };
   /* `tagRow_`'s dedupe: a word already said, an id already said, or a tag that is only earlier tags side by side (`tagMadeOf_`, the site's own, cards-gen.gs). */
   const out = [], words = Object.create(null), ids = Object.create(null), said = [];
-  (T.facets || DIGEST_TAG_FACETS).forEach(f => {
+  (T.facets || DIGEST_TAG_FIELDS).forEach(f => {
+    if (!of[f]) return;
     let vals;
-    try { vals = digestList_(of[f[0]]()); } catch (err) { vals = []; }
+    try { vals = digestList_(of[f]()); } catch (err) { vals = []; }
     vals.forEach(raw => {
       let text = raw;
-      try { text = String((say[f[0]] ? say[f[0]](raw) : digestSay_(raw)) || raw).trim(); } catch (err) { text = raw; }
+      try { text = String(say[f] ? say[f](raw) : digestSay_(raw) || raw).trim(); } catch (err) { text = raw; }
+      if (text.length > SHOW_MAX) text = digestTagFit_(f, text, T);
+      /* A TAG SAID AS NOTHING IS NOT DRAWN (`tagList_`): a paper with no number, name lead or cover code has no Paper tag. */
+      if (!text) return;
       const w = text.toLowerCase();
       if ((/[A-Za-z]/.test(text) && (words[w] || tagMadeOf_(text, said))) || (/[A-Za-z]/.test(raw) && ids[raw])) return;
       words[w] = 1; ids[raw] = 1; said.push(text);
-      out.push({ kind: f[1], text: text });
+      out.push({ kind: digestTagHue_(f), text: text });
     });
   });
   return out;

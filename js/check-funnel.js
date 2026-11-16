@@ -1055,9 +1055,10 @@ function emailTags_(f) {
       + fs.readFileSync(path.join(__dirname, '..', 'data', 'settings', 'facets.json'), 'utf8') + ')');
     const differ = [];
     qs.forEach(x => {
-      /* THE PAGE TAGS ([2] [of 2]) ARE THE SITE'S READING PAGES; the email draws the part whole, so it says none. And no
-         Function tag: qtypes.js reads it in the browser (DIGEST_TAG_FACETS says so). */
-      const want = f.tagList_(x).filter(t => !/^(qPages?|function)$/.test(t.field)).map(t => t.tag + ':' + t.text).join(' ');
+      /* NO Function tag (the page tags qPage and qPages were retired, 15 Nov):
+         qtypes.js reads it in the browser (digest-tags.gs says so). Nor Your result: it is the viewer's
+         own (463), here the admin's, and the email is read by a parent about their child. */
+      const want = f.tagList_(x).filter(t => !/^(function|myResult)$/.test(t.field)).map(t => t.tag + ':' + t.text).join(' ');
       const got = b.ev('(() => { const pid = ' + JSON.stringify(String(x.row.paper_id || '')) + ', id = ' + JSON.stringify(String(x.row.row_id))
         + '; const r = (__T.rows[pid] || []).find(o => o.row_id === id); return digestCardTags_(r, __T).map(t => t.kind + ":" + t.text).join(" "); })()');
       if (got !== want) differ.push(x.row.row_id + ': the card says ' + JSON.stringify(want) + ', the email ' + JSON.stringify(got));
