@@ -388,11 +388,11 @@ function cardSeatShare_(f, typed, rate, was) {
   return usual ? '' : String(Math.round(P / rate * 1e6) / 1e6);
 }
 /* A PART PAST WHAT THE SERVER TAKES, read as the typed share: the tutor's 0 to `STAFF_SEAT_MAX` (620), @family.'s 0 to 2. */
-const cardSeatTop_ = f => f === 'extra_seat_cut' ? 2 : STAFF_SEAT_MAX;
+const cardSeatTop_ = f => askProps_(f).max;
 const cardSeatOff_ = (f, v) => { const x = num(v); return !isNaN(x) && (x < 0 || x > cardSeatTop_(f)); };
 const cardSeatOffSay_ = (rate, f) => f === 'extra_seat_cut'
   ? "@family.'s part is ' + fmtMoney_(0) + ' to " + fmtMoney_(pounds2_(rate * 2), 'hour') + ' — twice the rate.'
-  : 'An extra seat adds ' + fmtMoney_(0) + ' to ' + fmtMoney_(pounds2_(rate * STAFF_SEAT_MAX), 'hour') + ' — at most what the first student pays.';
+  : 'An extra seat adds ' + fmtMoney_(0) + ' to ' + fmtMoney_(pounds2_(rate * STAFF_SEAT_MAX_()), 'hour') + ' — at most what the first student pays.';
 /* ---------- THREE CARDS, ONE PRICE (620): n students pay x + k·x·(n−1) + g·x·(n−1) an hour — x the rate, k the tutor's share, g @family.'s ---------- */
 /* THE PARTS AS PRICED, through `seatShare_` (the booking's own reader): a blank is the config's usual. */
 function cardSeatParts_(rate, seat, cut) {
@@ -445,7 +445,7 @@ function cardRateHtml_(L, val, box, e) {
   /* THE POUNDS BOX AND ITS HIDDEN SHARE: forms.json's `card-seat`. */
   const pound = formOf_('card-seat', (f, x) => x.type === 'hidden' ? val(f) : cardSeatShown_(f, rate, val(f)), { only: ['extra_seat_rate'],
     with: () => ({ label: own ? 'yours, £/h' : 'theirs, £/h', readonly: !live,
-      extra: `type="number" min="0" max="${live ? pounds2_(rate * STAFF_SEAT_MAX) : 0}" step="0.01" placeholder="${esc(cardSeatPh_(rate))}"` }) });
+      extra: `type="number" min="0" max="${live ? pounds2_(rate * STAFF_SEAT_MAX_()) : 0}" step="0.01" placeholder="${esc(cardSeatPh_(rate))}"` }) });
   const bar = own || (typeof may_ === 'function' && may_('admin'))
     ? shareBarBox_(val('extra_seat_cut'), cardShareBar_(rate, val('extra_seat_rate'), val('extra_seat_cut'))) : '';
   return box('rate_per_hour', {}) + bar

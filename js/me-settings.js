@@ -193,7 +193,8 @@ function autosaveLater_(form) {
 }
 function autosaveHear_(e) {
   const box = e.target;
-  if (!box || !box.closest || !box.matches('input, select, textarea') || isFileBox_(box)) return;
+  /* AN ASKED FIELD'S BLANK TAG SAVES ON ITS ANSWER (askSetGroup_), never as you type. */
+  if (!box || !box.closest || !box.matches('input, select, textarea') || isFileBox_(box) || box.classList.contains('ask-box')) return;
   const form = box.closest(AUTOSAVE_FORMS_);
   if (!form || !USER) return;
   form.dataset.dirty = '1';
@@ -420,20 +421,18 @@ function profileRefresh_(loud, onOld) {
     .catch(() => { PROFILE_ASKING = false; });
 }
 /* `change-pin` opened a sheet of its own. § */
-on('pin-save', el => {
-  const v = id => ($(id) || {}).value || '';
+/* CHANGING YOUR PIN IS kinds.json's person form `pin-change`, asked a digit a tag on the Signing in card (askArea_); its send is the existing `changePin`. */
+FORM_SEND_['pin-change'] = (v, el) => {
   const said = $('pin-said');
   /* SIGNED OUT, OR A BLANK NEW PIN, SENDS NOTHING — a blank pair "matches" and would post an empty PIN. */
   if (!USER) { if (said) tell_(said, 'error', 'Sign in first.'); return; }
-  if (!v('pin-now') || !v('pin-new')) { if (said) tell_(said, 'info', 'Type your PIN now and the new one.'); return; }
+  if (!v.now || !v.new) { if (said) tell_(said, 'info', 'Type your PIN now and the new one.'); return; }
   /* Typed twice, checked here before the server sees it — a PIN you cannot see and typed once is
      a PIN you get locked out by. */
-  if (v('pin-new') !== v('pin-again')) { if (said) tell_(said, 'info', 'The 2 new PINs do not match.'); return; }
-  /* ---------- THE ONE WHERE A NAME COLLISION LOCKS SOMEBODY OUT § */
+  if (v.new !== v.again) { if (said) tell_(said, 'info', 'The 2 new PINs do not match.'); askBack_('pin-change', 'new'); askBack_('pin-change', 'again'); return; }
   /* `send_`, SO A SECOND TAP CANNOT POST A SECOND CHANGE. § */
-  const lock = $('pin-now') && $('pin-now').closest('.pin-row');
-  send_({ action: 'changePin', name: USER.name, personId: (USER && USER.personId) || '',
-          currentPin: v('pin-now'), newPin: v('pin-new') },
+  const lock = el && el.closest && el.closest('.ask-set');
+  send_({ action: 'changePin', name: USER.name, personId: (USER && USER.personId) || '', currentPin: v.now, newPin: v.new },
         { button: el, busy: 'Changing…', where: 'pin-said', lock: lock })
     .then(d => {
       /* ---------- A NEW PIN ENDS EVERY SESSION, SO THIS PHONE IS HANDED A NEW ONE § */
@@ -441,14 +440,14 @@ on('pin-save', el => {
         USER.token = d.token;
         try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch { /* storage blocked: the sign-in still holds for this visit */ }
       }
-      ['pin-now', 'pin-new', 'pin-again'].forEach(id => { const b = $(id); if (b) b.value = ''; });
+      /* THE DIGITS GO THE MOMENT THEY ARE SENT. */
+      askDone_('pin-change'); askPaint_('pin-change');
       if (said) tell_(said, 'saved', 'Changed.');
       toast('PIN changed');
-      /* ASKED OF THE DOM, LIKE `me-save` AND `msg-send`. */
-      if (el.closest('#sheet-body')) closeSheet();
+      if (el && el.closest && el.closest('#sheet-body')) closeSheet();
     })
     .catch(() => {});
-});
+};
 
 /* `LOADED` and `LOAD_FAILED` were declared here and are now in data.js, with the rest of the state. § */
 

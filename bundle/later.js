@@ -10216,50 +10216,37 @@ function bookFindAsks_(id) {
   if (id === 'kids') return st.options().some(k => k !== UNNAMED);
   return !stepLocked_(st);
 }
-const bookFindPassed_ = id => !!BOOK_FIND.done[id] || (!!formAsk_('booking', id).given && !!BOOKING[id]);
 /* THE STEP BEING ASKED, or '' once every step is answered and the summary card is the answer. */
 function bookFindAt_() {
-  try { return formAsks_('booking').find(id => bookFindAsks_(id) && !bookFindPassed_(id)) || ''; }
+  try { return (askAt_('booking') || {}).f || ''; }
   catch (e) { oops_(e, 'book:at'); return ''; }
 }
-/* A STEP'S TAGS: `act` and `data` are what a tap does; `on` is ticked or chosen; `off` is why it cannot be taken. */
+/* A STEP'S TAGS, the form's option source: `v` is the answer, `on` ticked or chosen, `off` why it cannot be taken. */
 function bookFindOpts_(id) {
   /* THE DAY BY ITS NAME (owner, 15 Nov): "Tuesday", then the next menu is that day's times. */
-  if (id === 'days') return bookOpenDays_().map(d => ({ text: d, act: 'book-pick', data: { step: id, v: d }, on: BOOK_FIND.days.indexOf(d) !== -1 }));
+  if (id === 'days') return bookOpenDays_().map(d => ({ text: d, v: d, on: BOOK_FIND.days.indexOf(d) !== -1 }));
   if (id === 'slots') {
     const on = BOOKING.slots || [], one = BOOK_FIND.day ? [BOOK_FIND.day] : BOOK_FIND.days;
     return slotGrid().days.filter(d => one.indexOf(d.label) !== -1).flatMap(d => d.hours.map(h => ({
-      text: (one.length > 1 ? fmtDate_(d.label, 'day') + ' ' : '') + String(h.h).padStart(2, '0') + ':00', act: 'book-pick', data: { step: id, v: h.code, code: h.code },
+      text: (one.length > 1 ? fmtDate_(d.label, 'day') + ' ' : '') + String(h.h).padStart(2, '0') + ':00', v: h.code,
       on: on.indexOf(h.code) !== -1, off: h.open ? '' : (h.why || 'not available'), note: h.open ? h.why : '' })));
   }
   if (id === 'avail') {
     const on = BOOKING.avail || [];
-    return SLOT_DAYS.flatMap(([, label]) => SLOT_BLOCKS.map(b => blockPhrase_(label, b)))
-      .map(p => ({ text: p, act: 'book-pick', data: { step: id, v: p, when: p }, on: on.indexOf(p) !== -1 }));
+    return SLOT_DAYS.flatMap(([, label]) => SLOT_BLOCKS.map(b => blockPhrase_(label, b))).map(p => ({ text: p, v: p, on: on.indexOf(p) !== -1 }));
   }
   const st = bookStep_(id);
   let opts = [];
   try { opts = (st.options() || []).filter(Boolean); } catch (e) { opts = []; }
   const v = BOOKING[id];
   const isOn = o => st.multi ? (v || []).some(c => norm(c) === norm(o)) : norm(v) === norm(o);
-  return opts.map(o => ({ text: String(st.label_ ? st.label_(o) : o), act: 'book-pick', data: { step: id, v: o }, on: isOn(o),
-    off: st.off ? String(st.off(o) || '') : '' }));
+  return opts.map(o => ({ text: String(st.label_ ? st.label_(o) : o), v: o, on: isOn(o), off: st.off ? String(st.off(o) || '') : '' }));
 }
-/* THE MENU FOR THE STEP BEING ASKED: its question and its tags (the one tag maker). AFTER EACH CHOICE ON A SEVERAL-ANSWER STEP (owner, 15 Nov): */
-/* a menu of exactly two tags, "and" (another of this) and "." (done, move on). */
+/* THE MENU FOR THE STEP BEING ASKED: the one form engine's (`askMenu_`, form.js), a block for Find's menu card. */
 function bookMenu_() {
   bookFindStart_();
-  const id = bookFindAt_();
-  if (!id) return null;
-  if (BOOK_FIND.more === id) return ({ type: 'choices', ask: bookSaid_(id) || '',
-    rows: [{ look: 'book-step book-more', options: [{ text: 'and', act: 'book-and', data: { step: id }, label: 'And another' }, { text: '.', act: 'book-next', data: { step: id }, label: 'Done, move on' }] }] });
-  const many = !!formAsk_('booking', id).many && id !== 'days';
-  const opts = bookFindOpts_(id).map(o => ({ text: (many && o.on ? '✓ ' : '') + o.text + (o.off ? ' · ' + o.off : o.note ? ' · ' + o.note : ''),
-    act: o.act, data: o.data, pressed: !!o.on, disabled: !!o.off, look: ((o.on ? 'is-on' : '') + (o.off ? ' is-off' : '')).trim() }));
-  return ({ type: 'choices', ask: formAsk_('booking', id).ask || (bookStep_(id) || {}).label || '',
-    rows: [{ look: 'book-step' + (id === 'slots' || id === 'avail' ? ' is-grid' : ''), options: opts }] });
+  return (askMenu_('booking') || [])[0] || null;
 }
-/* (Both menus below are blocks for Find's menu card, drawn by `renderCard`, never markup.) */
 /* WHAT A STEP'S CHIP SAYS: its answer as the summary says it; a bare number names what it counts. */
 function bookSaid_(id) {
   if (id === 'days') return BOOK_FIND.days.map(d => fmtDate_(d, 'day')).join(', ');
@@ -10270,15 +10257,12 @@ function bookSaid_(id) {
   const text = st.multi ? (v || []).map(said).join(', ') : v ? said(v) : '';
   return /^\d+$/.test(text) ? st.short + ' ' + text : text;
 }
-/* THE STEPS ANSWERED, AS CHIPS AFTER Booking's: tapping one (or its ×) asks that step again and every step after it. */
+/* THE STEPS ANSWERED, AS CHIPS AFTER Booking's (`askChips_`): tapping one (or its ×) asks that step again and every step after it. */
 function bookChips_() {
   if (!bookFindOn_() || typeof bookStep_ !== 'function') return [];
   try {
     bookFindStart_();
-    return formAsks_('booking').filter(id => bookFindAsks_(id) && bookFindPassed_(id)).map(id => {
-      const text = bookSaid_(id) || 'None', label = 'Change ' + text;
-      return { base: 'chip', look: 'sm book-chip', text: text, act: 'book-back', data: { step: id }, label: label, x: { label: label }, colour: false };
-    });
+    return askChips_('booking', 'sm book-chip');
   } catch (e) { oops_(e, 'book:chips'); return []; }
 }
 /* BEFORE ANY STEP IS ANSWERED, Booking's other answers (your sessions, tutors, venues) follow the first step's tags. */
@@ -10298,65 +10282,48 @@ function bookFindPaint_() {
   if (typeof bookKeep_ === 'function') bookKeep_();
   finderEach_(() => paintStuff(true));
 }
-/* ONE ANSWER: chosen and on to the next step; one of several: ticked or unticked, the step stays. The step's own `set` and `off` as before. */
-on('book-pick', el => {
-  const id = el.dataset.step, v = el.dataset.v;
+/* BOOKING'S SOURCES FOR THE ONE FORM ENGINE: its answers are BOOKING (BOOK_FIND.v), each step's tags, words and side effects are its step's (book-steps.js). */
+FORM_ASK_.booking = {
+  state: () => BOOK_FIND,
+  asks: x => bookFindAsks_(x.f),
+  options: x => bookFindOpts_(x.f),
+  label: x => (bookStep_(x.f) || {}).label || '',
+  said: x => bookSaid_(x.f),
+  off: (x, v) => { const st = bookStep_(x.f); return st && st.off ? st.off(v) : ''; },
+  set: (x, v) => { const st = bookStep_(x.f); if (st && st.set) st.set(v); },
   /* A DAY IS ONE PICK: it is named and its times are the next menu. */
-  if (id === 'days') {
+  pick: (x, v) => {
+    if (x.f !== 'days') return false;
     if (BOOK_FIND.days.indexOf(v) === -1) BOOK_FIND.days.push(v);
     BOOK_FIND.days.sort((a, b) => SLOT_DAYS.findIndex(d => d[1] === a) - SLOT_DAYS.findIndex(d => d[1] === b));
     BOOK_FIND.day = v; BOOK_FIND.done.days = true; BOOK_FIND.more = '';
-    return bookFindPaint_();
-  }
-  /* AN HOUR OR A WAITING LIST'S BLOCK: ticked (or unticked), then "and" / ".". */
-  if (id === 'slots' || id === 'avail') {
-    const key = id === 'slots' ? 'slots' : 'avail', list = BOOKING[key] || [], at = list.indexOf(v);
+    return true;
+  },
+  /* AN HOUR OR A WAITING LIST'S BLOCK is ticked as it is; any other answer in the order its step offers them (`bookToggle_`). */
+  toggle: (x, v) => {
+    if (x.f !== 'slots' && x.f !== 'avail') return bookToggle_(bookStep_(x.f), v);
+    const list = BOOKING[x.f] || [], at = list.indexOf(v);
     if (at === -1) list.push(v); else list.splice(at, 1);
-    BOOKING[key] = list; BOOK_FIND.more = id;
-    return bookFindPaint_();
-  }
-  const st = bookStep_(id);
-  if (!st) return;
-  if (st.multi) { bookToggle_(st, v); BOOK_FIND.more = id; return bookFindPaint_(); }
-  const no = st.off && v ? String(st.off(v) || '') : '';
-  if (no) { toast(v + ' ' + no); return; }
-  BOOKING[id] = v || '';
-  if (st.set) st.set(BOOKING[id]);
-  BOOK_FIND.done[id] = true;
-  bookFindPaint_();
-});
-on('book-next', el => {
-  const id = el.dataset.step;
-  const had = id === 'days' ? BOOK_FIND.days : (BOOKING[id] || []);
-  if (had.length < (formAsk_('booking', id).need || 0)) { toast(text_('pick-at-least-one-first')); return; }
-  BOOK_FIND.done[id] = true; BOOK_FIND.more = '';
+    BOOKING[x.f] = list;
+  },
+  had: x => (x.f === 'days' ? BOOK_FIND.days : (BOOKING[x.f] || [])),
   /* THE WEEK DONE: the days are the ones that have an hour; no day is half-asked. */
-  if (id === 'slots') { const codes = BOOKING.slots || [];
-    BOOK_FIND.days = BOOK_FIND.days.filter(dn => { const c = (SLOT_DAYS.find(x => x[1] === dn) || [])[0]; return codes.some(k => k.indexOf(c) === 0 && /^\d+$/.test(k.slice(c.length))); });
-    BOOK_FIND.day = ''; BOOK_FIND.done.days = true; }
-  bookFindPaint_();
-});
-/* "and": the same step's tags again; after a time, "and" is another day (a day, then its times). */
-on('book-and', el => {
-  const id = el.dataset.step;
-  BOOK_FIND.more = '';
-  if (id === 'slots') { delete BOOK_FIND.done.days; BOOK_FIND.day = ''; }
-  bookFindPaint_();
-});
-/* BACK TO A STEP: it and every step after it are asked again, from empty. */
-function bookFindBack_(id) {
-  const order = formAsks_('booking'), at = order.indexOf(id);
-  if (at === -1) return;
-  BOOK_FIND.more = ''; BOOK_FIND.day = '';
-  order.slice(at).forEach(k => {
-    delete BOOK_FIND.done[k];
-    if (k === 'days') { BOOK_FIND.days = []; return; }
-    const st = bookStep_(k);
-    if (st) BOOKING[k] = (st.multi || st.grid) ? [] : '';
-  });
-  bookFindPaint_();
-}
-on('book-back', el => bookFindBack_(el.dataset.step));
+  next: x => {
+    if (x.f !== 'slots') return;
+    const codes = BOOKING.slots || [];
+    BOOK_FIND.days = BOOK_FIND.days.filter(dn => { const c = (SLOT_DAYS.find(y => y[1] === dn) || [])[0]; return codes.some(k => k.indexOf(c) === 0 && /^\d+$/.test(k.slice(c.length))); });
+    BOOK_FIND.day = ''; BOOK_FIND.done.days = true;
+  },
+  /* "and" after a time is another day (a day, then its times). */
+  and: x => { if (x.f === 'slots') { delete BOOK_FIND.done.days; BOOK_FIND.day = ''; } },
+  clear: x => {
+    BOOK_FIND.day = '';
+    if (x.f === 'days') { BOOK_FIND.days = []; return; }
+    const st = bookStep_(x.f);
+    if (st) BOOKING[x.f] = (st.multi || st.grid) ? [] : '';
+  },
+  paint: () => bookFindPaint_(),
+};
 /* SET THE ROOM, A FORM ON THE RECEIPT from the start (no sheet, owner 7 Nov). */
 const jobRoomForm_ = j => cardBlock_({ type: 'group', look: 'rc-form room-form', blocks: [
   { type: 'field', cap: 'the room in the venue — the family sees it', blocks: [{ type: 'control', attrs: { class: 'room-name', value: j.room || '', autocomplete: 'off' } }] },
@@ -10536,17 +10503,21 @@ function accountPages_(col) {
 /* The digits live in `SIGN.pin` for the call and nowhere else: never a chip's value, the URL, history, storage or a log. */
 /* A wrong PIN says nothing and clears nothing, as a Find path that matches nothing: the person takes ● tags off themselves. */
 const SIGN = { step: '', who: '', pin: [], busy: false, wrong: false, known: null, card: '', dots: 0 };
+/* ITS TWO FIELDS ARE kinds.json's person form `sign-in` (the name, then the PIN's digits), drawn by the one tag maker `askTags_` (form.js). */
+const signField_ = f => formAsk_('sign-in', f);
+/* A PIN'S LENGTH, every PIN field's (form.js `askTags_`) and the backend's (tools/cards-gen.js copies it). */
 const SIGN_PIN_LEN = 4;
-const SIGN_DIGITS = '0123456789'.split('');
 const signAsking_ = () => !USER && SIGN.step !== 'guest';
 const signPaint_ = () => finderEach_(() => paintStuff());
 function signMenu_() {
   if (!signAsking_()) return null;
   if (SIGN.busy) return [{ type: 'wait', on: true }];
-  if (SIGN.step === 'join') return [typeof registerSpec_ === 'function' ? { type: 'card', spec: registerSpec_() } : ''];
+  /* MAKE AN ACCOUNT IS ASKED HERE A FIELD A STEP (`sign-join`, askMenu_); sending it says what the link does. */
+  const join = () => askMenu_('sign-join', { done: REG_NOTE[askOf_('sign-join').v.who] || '' });
+  if (SIGN.step === 'join') return join();
   if (SIGN.step === 'pin') {
     if (SIGN.card === 'forgot' && typeof signForgotSpec_ === 'function') return [{ type: 'card', spec: signForgotSpec_() }];
-    if (SIGN.card === 'join' && typeof signJoinSpec_ === 'function') return [{ type: 'card', spec: signJoinSpec_() }];
+    if (SIGN.card === 'join') return join();
     /* FOUR PICKED AND NOT IN: nothing at all, as a path that matches nothing. */
     /* A NAME NO ACCOUNT ANSWERS TO keeps Make an account on offer, and nothing else. */
     if (SIGN.wrong || SIGN.pin.length >= SIGN_PIN_LEN) return SIGN.known === false && !SIGN.busy
@@ -10554,7 +10525,7 @@ function signMenu_() {
     const more = [SIGN.pin.length ? null : { text: 'Forgot PIN', act: 'sign-forgot' },
       SIGN.known === false ? { text: 'Make an account', act: 'sign-join-card' } : null].filter(Boolean);
     return [{ type: 'choices', rows: [
-      { look: 'is-grid sign-pin', options: SIGN_DIGITS.map(d => ({ text: d, act: 'sign-digit', data: { d: d, repeat: true } })) }]
+      askTags_('sign-in', signField_('pin'), { act: 'sign-digit' })]
       .concat(more.length ? [{ look: 'sign-more', options: more }] : []) }];
   }
   /* ONE BOX ON ONE FINDER: Find's carries the id the checks read. */
@@ -10563,7 +10534,7 @@ function signMenu_() {
   return [{ type: 'choices', rows: [{ look: 'sign-who', options: [{ text: 'Guest', act: 'sign-guest' }, box] }] }];
 }
 /* THE BLANK TAG AS DATA (the checks draw it alone through `signBox_`); a text box, so the site's keypad opens on its letters. */
-const signBoxOpt_ = mine => ({ box: { id: mine ? 'in-name' : '', cls: 'sign-box', autocapitalize: 'off', value: SIGN.who, label: 'Your username or email', placeholder: 'Username or email' }, look: 'sign-type' });
+const signBoxOpt_ = mine => askTags_('sign-in', signField_('who'), { id: mine ? 'in-name' : '', cls: 'sign-box', value: SIGN.who });
 /* THE STEP'S CHIPS, first in the row: the name, then a ● per digit, each with its own ×; they stay once signed in (owner, 15 Nov). */
 function signChips_() {
   /* DATA FOR THE MENU CARD'S TAGS: a ● says only how many digits, never which. */
@@ -10575,16 +10546,16 @@ function signChips_() {
     return [chip(who, 'signout', 'Sign out ' + who)].concat(Array.from({ length: SIGN.dots }, (_, i) => dot(i)));
   }
   if (SIGN.step === 'guest') return [chip('Guest', 'sign-restart', 'Sign in instead')];
-  if (SIGN.step === 'join') return [chip('Make an account', 'sign-restart', 'Back to sign in')];
+  if (SIGN.step === 'join') return [chip('Make an account', 'sign-restart', 'Back to sign in')].concat(askChips_('sign-join'));
   if (SIGN.step !== 'pin') return [];
   const card = SIGN.card === 'forgot' ? [chip('Forgot PIN', 'sign-card-off', 'Back to the PIN')]
-    : SIGN.card === 'join' ? [chip('Make an account', 'sign-card-off', 'Back to the PIN')] : [];
+    : SIGN.card === 'join' ? [chip('Make an account', 'sign-card-off', 'Back to the PIN')].concat(askChips_('sign-join')) : [];
   return [chip(SIGN.who, 'sign-restart', 'Not ' + SIGN.who)].concat(SIGN.pin.map((_, i) => dot(i)), card);
 }
 on('sign-guest', () => { SIGN.step = 'guest'; SIGN.pin = []; signPaint_(); });
-on('sign-join', () => { SIGN.step = 'join'; SIGN.pin = []; signPaint_(); });
+on('sign-join', () => { SIGN.step = 'join'; SIGN.pin = []; signJoinStart_(SIGN.who); signPaint_(); });
 on('sign-forgot', () => { if (SIGN.step === 'pin' && !SIGN.pin.length) { SIGN.card = 'forgot'; signPaint_(); } });
-on('sign-join-card', () => { if (SIGN.step === 'pin') { SIGN.card = 'join'; signPaint_(); } });
+on('sign-join-card', () => { if (SIGN.step === 'pin') { SIGN.card = 'join'; signJoinStart_(SIGN.who); signPaint_(); } });
 on('sign-card-off', () => { SIGN.card = ''; signPaint_(); });
 on('sign-restart', () => {
   SIGN.step = ''; SIGN.pin = []; SIGN.wrong = false; SIGN.known = null; SIGN.card = '';
@@ -17389,7 +17360,7 @@ const BOOKING = {
 };
 
 /* WHERE FIND'S BOOKING STEPS ARE (find-account.js): which steps were answered, and the Days step's pick, which only Times reads. */
-const BOOK_FIND = { done: {}, days: [], started: false, more: '', day: '' };
+const BOOK_FIND = { done: {}, days: [], started: false, more: '', day: '', pin: [], get v() { return BOOKING; } };
 
 /* ---------- THE ONE YOU JUST ASKED FOR § */
 let ASKED_JOB = '';
@@ -21243,7 +21214,7 @@ const CARD_REG = [
   { id: 'acct:workfile', col: 'account', label: 'Work on file', re: /^<div class="card [^"]*\bworkfile-card\b/, say: 'Pages you scanned or photographed, kept on your account.' },
   { id: 'acct:roadmap', col: 'account', label: 'Roadmap', re: /^<div class="card soon-card soon-roadmap/, say: 'A placeholder: how much of the syllabus is left.' },
   { id: 'acct:conduct', col: 'account', label: 'Code of conduct', re: /^<div class="card soon-card soon-conduct/, say: 'A placeholder: the code of conduct.' },
-  { id: 'acct:pin', col: 'account', label: 'Signing in', re: /data-do="pin-save"/, only: 'your PIN', say: 'Change the PIN you sign in with.' },
+  { id: 'acct:pin', col: 'account', label: 'Signing in', re: /data-ask="pin-change"/, only: 'your PIN', say: 'Change the PIN you sign in with.' },
   { id: 'acct:roles', col: 'account', label: 'Your role', re: /^<div class="card roles-card/, only: 'your role', say: 'Whether this account is a student\'s or a parent\'s.' },
   { id: 'acct:notify', col: 'account', label: 'Notifications', re: /^<div class="card notify-card/, only: 'which emails you get', say: 'Which emails we send you.' },
   { id: 'acct:voice', col: 'account', label: 'Reading aloud', re: /^<div class="card voice-card/, say: 'How questions sound when they are read aloud on this device.' },
