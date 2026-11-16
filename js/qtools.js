@@ -25,7 +25,6 @@ const QT_TOOLS = [
 const QT_ROW = ['photo', 'graph', 'mag', 'read', 'lock', 'ruler', 'protractor', 'calc', 'offline'];
 /* THE PEN'S TILES, added only where the part has a figure to draw on (a drawing answer needs its pen) */
 const QT_DRAWING = { pen: 1, line: 1, compass: 1 };
-const QT_ORDER = QT_ROW.concat(Object.keys(QT_DRAWING), ['check']);
 /* THE PEN'S OWN NAME FOR EACH DRAWING TILE: Straight line is the pad's `ruler` mode (a line from press to lift, `padStroke_`). */
 const QT_PAD_TOOL = { pen: 'pen', line: 'ruler', compass: 'compass', protractor: 'protractor' };
 const qMulti_ = x => { try { return (questionParts_()[qId_(x)] || []).length > 1; } catch (e) { return false; } };
@@ -35,7 +34,6 @@ const qtTool_ = id => QT_TOOLS.find(t => t.id === id) || null;
 const PART_MEM = new Map();
 /* 'ans:<who>:<item>' is 'part:<who>:<item>': any box's key names its record, so a writer holding only the key finds it */
 const partKeyOfAns_ = k => /^ans:/.test(String(k || '')) ? String(k).replace(/^ans:/, 'part:') : 'part:' + String(k || '?');
-const partRecKey_ = x => partKeyOfAns_(ansKey_(x));
 function partRecAt_(pk) {
   if (PART_MEM.has(pk)) return PART_MEM.get(pk);
   let rec = null;
@@ -63,21 +61,8 @@ function partRecPutAt_(pk, field, v) {
   if (v == null || v === '') delete rec[field]; else rec[field] = v;
   try { localStorage.setItem(pk, JSON.stringify(rec)); } catch (e) { /* this visit only */ }
 }
-const partRecRaw_ = x => partRecAt_(partRecKey_(x));
 /* WHAT THE PART HOLDS, every kind of answer in one shape. The typed box and the pen go to the account under their own
    synced keys (answers.js, the server's ceilings); the record reads them, so nothing saved before it is lost. */
-function partRec_(x) {
-  const rec = Object.assign({}, partRecRaw_(x));
-  const ak = typeof ansKey_ === 'function' ? ansKey_(x) : '';
-  const a = ak && typeof ansRead_ === 'function' ? ansRead_(ak) : '';
-  const isChoice = Array.isArray(x && x.choices) && x.choices.length >= 2;
-  const isCells = typeof cellsOf_ === 'function' && cellsOf_(x).length > 0;
-  if (a) { if (isChoice) rec.choice = a; else if (isCells) rec.cells = a; else rec.text = a; }
-  try { rec.strokes = typeof padRead_ === 'function' ? padRead_(padKey_(x)) : []; } catch (e) { rec.strokes = []; }
-  /* THE PHOTOS OF THE WORKING, kept in this record and on the account (`workKeep_`, working.js): their data URLs */
-  rec.photos = (typeof WORK_PICS !== 'undefined' && WORK_PICS[ak]) ? WORK_PICS[ak].map(p => p.url) : (Array.isArray(rec.photos) ? rec.photos : []);
-  return rec;
-}
 
 /* ---------- THE MARKER: the one thing that varies between parts -- qtypes.js `qtMarker_`, which the Function tag reads too. */
 /* WHAT THE LINE UNDER CHECK SAYS, by marker: how this part will be marked, before it is. Never a person. */

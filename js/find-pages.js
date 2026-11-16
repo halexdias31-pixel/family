@@ -1,7 +1,5 @@
 /* THE ZOOM LADDER (533, U10): a card is drawn at one of these and nothing between, so a title has three sizes and not seven. */
 const PANE_ZOOM_STEPS = [1, 0.875, 0.75];
-/* HOW SMALL A CARD MAY BE DRAWN TO FIT ITS PANE before it scrolls instead: the ladder's last step. See `paneReach_`. */
-const PANE_ZOOM_MIN = PANE_ZOOM_STEPS[PANE_ZOOM_STEPS.length - 1];
 /* NEARLY FITTING IS FULL SIZE (533): above this the card is drawn at 1 in a pane with its spacing tightened (`.pane.is-snug`), not at .97. */
 const PANE_ZOOM_SNUG = 0.95;
 /* THE FLOORS (533, D3): no step that draws body words under 11px, a 44px tile (950) under 36px or a Check under 44px; past them the pane scrolls. */
@@ -684,33 +682,4 @@ screen('stuff', () => inFinder_(FINDERS.stuff, finderScreen_));
    — one swipe, and the pager names it — so a control that jumps there is a shortcut to somewhere
    already visible. */
 
-/* ---------- THE DOCKET § */
-/* ---------- `x ` AS THE DONE MARKER CORRUPTED ANY LINE STARTING WITH AN X § */
-const DOCK_DONE = /^-\s*\[\s*x\s*\]\s+/i;
-const DOCK_OPEN = /^-\s*\[\s*\]\s+/;
-const DOCK_OLD  = /^(x|\u2713)\s+/i;
 
-function docketLines() {
-  return String((USER && USER.todo) || '').split(/\r?\n/)
-    .map(t => t.trim()).filter(Boolean)
-    .map(t => {
-      if (DOCK_DONE.test(t)) return { done: true,  text: t.replace(DOCK_DONE, '') };
-      if (DOCK_OPEN.test(t)) return { done: false, text: t.replace(DOCK_OPEN, '') };
-      /* THE OLD FORM, READ ONLY — tried last, so a new-style line can never reach it. */
-      if (DOCK_OLD.test(t))  return { done: true,  text: t.replace(DOCK_OLD, '') };
-      return { done: false, text: t };
-    })
-    /* A LINE THAT WAS NOTHING BUT A MARKER leaves an empty text, and an empty row is a row you
-       cannot tick, delete or read. Dropped here rather than drawn. */
-    .filter(l => l.text);
-}
-
-/* WRITTEN WITH THE BOX EVERY TIME, done or not. An undone line with no marker would read back
-   correctly today, and then two forms would be in circulation and the next person would have to
-   know that. One form out. */
-const docketText = list =>
-  list.map(l => (l.done ? '- [x] ' : '- [ ] ') + l.text).join('\n');
-
-/* Kept in step on the phone first, then sent. A tick that waits for a round trip before moving is
-   a tick that feels broken on a train — and this is a scrap of paper, not a payment. */
-let dockTimer = null;

@@ -50,19 +50,6 @@ function bibleHere_(x) {
       && chipsOn_(fs, 'wChapter').some(f => leaf(f) && String(f.value) === String(x.ch));
 }
 
-/* ---------- KEPT ON SAVED § */
-function bibleKept_(has) {
-  if (!bibleFor_()) return [];
-  if (!BIBLE.index) return [];
-  const re = /^bible:[a-z0-9]+:\d+:\d+:\d+$/;
-  const keys = [];
-  const add = k => { const s = String(k); if (re.test(s) && has(s) && keys.indexOf(s) < 0) keys.push(s); };
-  FAVS.forEach(k => add(k));
-  if (typeof SPOT !== 'undefined') SPOT.forEach(k => add(k));
-  if (!keys.length) return [];
-  return keys.map(k => bibleByKey_(k)).filter(Boolean)
-    .sort((a, b) => (a.bb.n - b.bb.n) || (Number(a.ch) - Number(b.ch)) || (Number(a.v) - Number(b.v)));
-}
 
 /* ---------- DRAWING IT AGAIN WHERE IT ALREADY IS § */
 function bibleRedraw_(n) {
@@ -222,33 +209,7 @@ function pageParts_(x, prev) {
 /* ---------- AND THE CARD WITH ITS FIGURE, FOR A COLUMN THAT LISTS THINGS ONE PAGE EACH § */
 /* A KEPT BIBLE IS ITS COVER ALONE NOW, with the `Open` tile under it — its three lists of books were
    kept here once, because the cover was a card with no other way into the book. */
-/* `prev` IS THE KEPT THING IN FRONT, as on Find -- see `keptPages_`. */
-function cardPages_(x, credits, prev) {
-  /* ONE WAITING PAGE UNTIL ITS WORDS COME (397), as on Find. */
-  if (libSlim_(x)) { libWant_(x); return [libWaitHtml_(x)]; }
-  return pageParts_(x, prev).filter(keptPart_)
-    .map(p => (p ? stuffPart_(x, p) : stuffCard(x, credits)));
-}
 
-/* ---------- SAVED AND SPOTLIGHT DRAW A QUESTION'S OPENING ONCE, AS FIND DOES § */
-function keptPages_(items, credits) {
-  const by = {}, done = {}, seq = [];
-  const key = sortKey_;
-  (items || []).forEach(x => { const k = qId_(x); if (k) (by[k] = by[k] || []).push(x); });
-  (items || []).forEach(x => {
-    const k = qId_(x);
-    if (!k) { seq.push(x); return; }
-    if (done[k]) return;
-    done[k] = true;
-    by[k].slice().sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0)).forEach(p => seq.push(p));
-  });
-  /* `KEPT_DRAW` FOR THE DRAW, so a card that is not whole here is given its way to Find — see
-     `finderOpenOpts_`. In a `finally`, so a throw cannot leave Find's own cards carrying it. */
-  const was = KEPT_DRAW;
-  KEPT_DRAW = true;
-  try { return [].concat(...seq.map((x, i) => cardPages_(x, credits, seq[i - 1]))); }
-  finally { KEPT_DRAW = was; }
-}
 function stuffPart_(x, part) {
   if (libSlim_(x)) { libWant_(x); return libWaitHtml_(x); }
   if (x && isProject_(x)) return projectPart_(x, part);
@@ -265,170 +226,18 @@ function partCard_(x, part) {
   return isQ_(x) || /^\s*<div class=.card\b/.test(h) ? h : card_(h, 'part');
 }
 
-/* TWO LETTERS FOR THE PLACEHOLDER: § */
-const BOXER_PARTICLE = /^(de|la|del|della|van|von|da|di|du|le|der|den|dos|das)$/i;
-function boxerInitials_(name) {
-  const words = String(name || '').split(/\s+/).filter(s => s && !/^(jr|sr|ii|iii|iv)\.?$/i.test(s));
-  const at = words.findIndex((s, i) => i > 0 && BOXER_PARTICLE.test(s));
-  const w = (at > 0 ? words.slice(0, 1).concat(words[at]) : words)
-    .map(s => (s.match(/[A-Za-zÀ-ÿ]/) || [''])[0]).filter(Boolean);
-  return (w.length > 1 ? w[0] + w[w.length - 1] : (w[0] || '?')).toUpperCase();
-}
-/* ---------- THE WORDS A LOOK MAY USE, AND THE ONLY ONES § */
-const BOXER_LOOK = {
-  skin: ['s1', 's2', 's3', 's4', 's5', 's6'],
-  hair: ['bald', 'shaved', 'short', 'crop-top', 'flat-top', 'afro', 'curly', 'wavy', 'slicked', 'long',
-         'ponytail', 'cornrows', 'dreads'],
-  hair_colour: ['black', 'dark-brown', 'brown', 'light-brown', 'blond', 'red', 'grey', 'white'],
-  facial: ['none', 'moustache', 'goatee', 'beard', 'stubble', 'sideburns'],
-  trunks: ['black', 'white', 'red', 'maroon', 'blue', 'navy', 'sky', 'green', 'gold', 'yellow', 'orange',
-           'purple', 'pink', 'silver', 'grey', 'tan', 'leopard'],
-};
 
-/* ---------- THE GUARD POSE, AS ROWS OF GAME PIXELS § */
-const BOXER_BODY = {
-  head: '1:6-9 2:5-10 3:5-11 4:5-11 5:5-11 6:6-9',
-  body: '7:7-8 8:4-9 9:3-10 10:3-7,11 11:3-7 12:4-8 17:4-5,10-11 18:3-4,11-12 19:3-4,11-12',
-  eye: '4:10',
-  glove: '6:11-13 7:10-14 8:10-14 9:11-13 10:8-10 11:8-11 12:9-11',
-  band: '13:4-10',
-  trunks: '14:4-10 15:4-10 16:4-6,9-11',
-  stripe: '14:5 15:5 16:5',
-  spots: '14:5,9 15:7 16:5,10',
-  boot: '20:2-4,11-13 21:2-4,11-14',
-  /* HER TOP: the chest from the shoulders to the ribs, the back arm (x 3) and the midriff (row 12)
-     left bare, so it reads as a crop top over the trunks and not as a long-sleeved shirt. */
-  top: '8:5-8 9:4-9 10:4-7 11:4-7',
-};
-/* EACH HAIR STYLE IS ITS OWN SHAPE, and has to read as that style at this size or it is not worth a word of its own: § */
-const BOXER_HAIR = {
-  bald: '', shaved: '',
-  short: '1:6-9 2:5-10 3:5-6 4:5 5:5',
-  'crop-top': '1:6-9 2:6-10',
-  'flat-top': '-1:6-10 0:5-10 1:5-10 2:5-10 3:5-6 4:5',
-  afro: '-2:6-9 -1:5-10 0:4-11 1:4-11 2:4-10 3:4-6 4:4-5 5:4-5 6:5',
-  curly: '0:6-7,9-10 1:5-10 2:5-11 3:4-6 4:4-5 5:5',
-  wavy: '0:7-9 1:5-10 2:5-11 3:4-6 4:4-5 5:4-5 6:5',
-  slicked: '1:6-10 2:5-10 3:4-6 4:5',
-  long: '1:6-9 2:5-10 3:4-6 4:4-5 5:4-5 6:4-5 7:4-5',
-  ponytail: '1:6-9 2:5-10 3:3-6 4:2-3,5 5:2,5 6:2 7:2',
-  cornrows: '1:6-9 2:5,10 3:5-6 4:5 5:5',
-  dreads: '1:6-9 2:3-10 3:3,5-6 4:3,5 5:3,5 6:3,5 7:3',
-};
-/* HAIR NOBODY DESCRIBED, AND NOT A WORD OF THE VOCABULARY: § */
-const BOXER_HAIR_UNSAID = { M: BOXER_HAIR.short, F: '1:6-9 2:5-10 3:4-6 4:4-5 5:5' };
-/* FACIAL HAIR, OVER THE FACE, in his hair colour. § */
-const BOXER_FACE = {
-  none: '',
-  moustache: '5:10-11',
-  goatee: '5:10-11 6:8-9',
-  beard: '4:6 5:6-9,11 6:6-9',
-  stubble: '4:6 5:6-9,11 6:6-9',
-  sideburns: '3:6 4:6 5:6',
-};
-function boxerRuns_(spec) {
-  return String(spec || '').split(/\s+/).filter(Boolean).map(row => {
-    const at = row.indexOf(':'), y = row.slice(0, at);
-    return row.slice(at + 1).split(',').map(r => {
-      const ab = r.split('-').map(Number), w = (ab.length > 1 ? ab[1] : ab[0]) - ab[0] + 1;
-      return `M${ab[0]} ${y}h${w}v1h-${w}z`;
-    }).join('');
-  }).join('');
-}
 
-/* ---------- A TRUNKS CELL, READ: `{ main, trim }`, OR NOTHING § */
-function boxerTrunks_(v) {
-  const parts = String(v || '').trim().toLowerCase().split('/');
-  const ok = c => BOXER_LOOK.trunks.indexOf(c) >= 0;
-  if (parts.length > 2 || !parts.every(ok) || (parts.length === 2 && parts[0] === parts[1])) return null;
-  return { main: parts[0], trim: parts[1] || '' };
-}
 
-/* ---------- THE FIGHTER: ONE RENDERER, FROM A LOOK AND A PAIR OF TRUNKS § */
-function boxerFigure_(look, trunks, blue, sex) {
-  const L = look || {};
-  const woman = String(sex || '').trim().toUpperCase() === 'F';
-  const word = (k, v) => { const w = String(v || '').trim().toLowerCase(); return BOXER_LOOK[k].indexOf(w) >= 0 ? w : ''; };
-  const skin = word('skin', L.skin), hair = word('hair', L.hair),
-        hc = word('hair_colour', L.hairColour), face = word('facial', L.facial);
-  const t = boxerTrunks_(trunks);
-  const cls = ['bf', blue ? 'bf-r' : 'bf-l'], vars = [];
-  if (woman) cls.push('bf-f');
-  if (skin || hair || hc || face) cls.push('bf-seen');
-  if (skin) { cls.push('bf-sk-' + skin); vars.push('--bf-skin:var(--bf-' + skin + ')'); }
-  if (hair) cls.push('bf-hs-' + hair);
-  if (hc) { cls.push('bf-hc-' + hc); vars.push('--bf-hair:var(--bf-hc-' + hc + ')'); }
-  if (face && face !== 'none') cls.push('bf-fh-' + face);
-  if (t) {
-    cls.push('bf-tk-' + t.main);
-    if (t.trim) cls.push('bf-tt-' + t.trim);
-    vars.push('--bf-main:var(--bf-tk-' + t.main + ')', '--bf-trim:var(--bf-tk-' + (t.trim || t.main) + ')');
-  }
-  const p = (c, spec) => (spec ? [{ el: 'path', a: { class: c, d: boxerRuns_(spec) } }] : []);
-  return { el: 'g', a: { class: cls.join(' '), transform: blue ? 'translate(29 21) scale(-1 1)' : 'translate(11 21)', style: vars.join(';') }, kids: [].concat(
-    p('bf-skin', BOXER_BODY.head + ' ' + BOXER_BODY.body),
-    p('bf-hair', hair ? BOXER_HAIR[hair] : BOXER_HAIR_UNSAID[woman ? 'F' : 'M']),
-    p('bf-face' + (face === 'stubble' ? ' bf-stubble' : ''), BOXER_FACE[face]),
-    p('bf-eye', BOXER_BODY.eye),
-    /* HER TOP IS IN HER TRUNKS' COLOUR — a fighter's kit — and in the same muted corner colour as
-       the trunks when those are not on file; painted before the gloves, which are held over it. */
-    (woman ? p('bf-top', BOXER_BODY.top) : []),
-    p('bf-glove', BOXER_BODY.glove),
-    p('bf-band', BOXER_BODY.band),
-    p('bf-trunks', BOXER_BODY.trunks),
-    /* LEOPARD IS TWO TONES, the spots painted over the trunks — or over the waistband, when it is
-       the trim — in the figure's own dark brown. */
-    (t && t.main === 'leopard' ? p('bf-spot', BOXER_BODY.spots) : []),
-    (t && t.trim === 'leopard' ? p('bf-spot', '13:5,8') : []),
-    (t && t.trim ? p('bf-stripe', BOXER_BODY.stripe) : []),
-    p('bf-boot', BOXER_BODY.boot)) };
-}
 
-/* THE RING, SIDE ON (a drawing block): two posts, three ropes, the pads in each corner's colour, the mat and the apron, and his initials over the top rope like the name on a § */
-function boxerRing_(name, blue, look, trunks, sex) {
-  const r = (cls, x, y, width, height) => ({ el: 'rect', a: { class: cls, x, y, width, height } });
-  const ropes = [].concat(...[23, 29, 35].map((y, i) => [r(i === 1 ? 'bf-rope-mid' : 'bf-rope', 3, y, 34, 1), r('bf-pad-l', 0, y - 1, 3, 3), r('bf-pad-r', 37, y - 1, 3, 3)]));
-  return { type: 'drawing', node: { el: 'svg', a: { class: 'boxer-ring', viewBox: '0 0 40 50', preserveAspectRatio: 'xMidYMid slice', 'shape-rendering': 'crispEdges', 'aria-hidden': 'true' },
-    kids: [r('bf-stage', 0, 17, 40, 26), r('bf-post', 1, 18, 2, 25), r('bf-post', 37, 18, 2, 25)].concat(ropes,
-      [r('bf-mat', 0, 43, 40, 2), r('bf-mat-edge', 0, 43, 40, 1), r('bf-apron', 0, 45, 40, 5), r('bf-apron-band', 0, 46, 40, 1),
-        boxerFigure_(look, trunks, blue, sex),
-        { el: 'text', a: { class: 'boxer-ini', x: 20, y: 15, 'font-size': 10, 'text-anchor': 'middle' }, text: boxerInitials_(name) }]) } };
-}
 
 /* AN ADDRESS THAT ALREADY FAILED ON THIS PHONE IS NOT ASKED FOR AGAIN. § */
 const BOXER_PIC_DEAD = new Set();
 
-/* THE ADDRESS A CARD MAY SHOW, or nothing. § */
-function boxerPicSrc_(b) {
-  const src = pic((b && b.image) || '');
-  return /^https:\/\//i.test(src) && !!(b && b.imageCredit) && !BOXER_PIC_DEAD.has(src) ? src : '';
-}
 
-/* `corner` IS THE FIGHT CARD'S: § */
-function boxerPic_(b, corner, won, trunks) {
-  const src = boxerPicSrc_(b);
-  const frame = { type: 'group', tag: 'span', look: 'boxer-frame',
-    blocks: [boxerRing_(b.name, corner === 'b', b.look, corner ? trunks : b.trunks, b.sex)].concat(src ? [{ type: 'media', kind: 'image', look: 'boxer-img', src, title: b.name }] : []) };
-  if (corner) return cardBlock_({ type: 'group', tag: 'span', look: 'boxer-pic is-small' + (src ? '' : ' is-none') + (won ? ' won' : ''), blocks: [frame] });
-  /* THE CREDIT IS A LINE OF ITS OWN UNDER THE PHOTO AND THE NAME, NOT A CAPTION IN THE PHOTO'S COLUMN. § */
-  return cardBlock_({ type: 'drawing', node: { el: 'figure', a: { class: 'boxer-pic' + (src ? '' : ' is-none') }, inner: cardBlock_(frame) } })
-    + (src ? cardBlock_({ type: 'group', tag: 'p', look: 'boxer-credit', inner: boxerCredit_(b, b.imageCredit) }) : '');
-}
 
-/* ---------- THE CREDIT LINKS TO THE PHOTO'S FILE PAGE § */
-const BOXER_COMMONS = /^https:\/\/upload\.wikimedia\.org\/wikipedia\/commons\/(?:thumb\/)?[0-9a-f]\/[0-9a-f]{2}\/([^/?#]+)/i;
-function boxerCommons_(src) {
-  const m = String(src || '').match(BOXER_COMMONS);
-  return m ? 'https://commons.wikimedia.org/wiki/File:' + m[1] : '';
-}
 /* `data-src` IS THE ADDRESS THE CREDIT IS FOR, so a picture that fails takes its own credit away
    and leaves another's — the fight card has two (`boxerPicFail_`). */
-function boxerCredit_(b, text) {
-  const src = boxerPicSrc_(b), page = boxerCommons_(src);
-  /* The link, where there is a file page, is a run inside the one credit span the failing picture finds. */
-  return cardBlock_({ type: 'group', tag: 'span', look: 'boxer-src', attrs: { 'data-src': src },
-    text: /^https:\/\/commons\.wikimedia\.org\//.test(page) ? { link: text, href: page } : text });
-}
 
 /* A PICTURE THAT DID NOT COME LEAVES THE RING. § */
 function boxerPicFail_(img) {

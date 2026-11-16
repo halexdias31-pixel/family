@@ -375,8 +375,6 @@ function qMark_(el, sel) {
   const card = el && el.closest && el.closest('.qcard');
   return card ? card.querySelector(s) : null;
 }
-/* AND A BOX'S TILES: its card's one row, or the box itself where it stands alone. */
-const qRowOf_ = box => { const card = box && box.closest && box.closest('.qcard'); return (card && card.querySelector(':scope > .kc-act')) || box; };
 function ansBox_(x) {
   if (cellsOf_(x).length) return cellsBox_(x);
   const opts = choiceList_(x);

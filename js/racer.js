@@ -37,8 +37,6 @@ const RACE = {
   cam: null,
   lap: { next: 1, start: 0, paused: 0, best: 0, last: 0, laps: 0 },
 };
-/* For the journeys: `RACE` is a const, which a second evaluation cannot reach. */
-function racer_() { return RACE; }
 
 /* ---------- THE MAP, ASKED FOR ONCE ---------- */
 function raceFetch_() {

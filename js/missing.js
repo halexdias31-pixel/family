@@ -189,7 +189,6 @@ function missingBody_() {
 if (typeof on === 'function') on('miss-all', () => { MISSING.all = !MISSING.all; missingRepaint_(); });
 /* THE OPTIMISER'S BLOCKS WITH WHAT'S MISSING UNDER THEM (one card); `#miss-body` is what the list's arrival fills again. */
 const missingBox_ = () => { const body = missingBody_(); return { type: 'group', id: 'miss-body', attrs: { 'aria-busy': missingWaits_() ? 'true' : null }, blocks: body }; };
-const missingHead_ = look => ({ type: 'msgHead', look, text: 'What’s missing' });
 function missingCard_() {
   return healthCardSpec_([missingBox_()], 'miss-card', 'What’s missing');
 }

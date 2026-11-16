@@ -3,9 +3,6 @@
 
 /* ONE COLLECTION, THREE NAMES (520): the Protestant, Catholic and Orthodox words for the same books. */
 const WRITING_DEUTERO = 'Deuterocanon / Apocrypha / Anagignoskomena';
-const WRITING_DEUTERO_BOOKS = ['Tobit', 'Judith', 'Additions to Esther', 'Esther (Greek)', 'Wisdom of Solomon', 'Wisdom', 'Sirach', 'Ecclesiasticus',
-  'Baruch', 'Letter of Jeremiah', 'Epistle of Jeremiah', 'Prayer of Azariah', 'Song of the Three Children', 'Susanna', 'Bel and the Dragon',
-  '1 Maccabees', '2 Maccabees', '3 Maccabees', '4 Maccabees', '1 Esdras', '2 Esdras', 'Prayer of Manasseh', 'Prayer of Manasses', 'Psalm 151', 'Odes'];
 
 /* THE WORKS REGISTRY (520): § */
 const WRITING_WORKS = {
@@ -34,8 +31,6 @@ const WRITING_WORKS = {
 };
 const writingWork_ = (src, id) => WRITING_WORKS[src + ':' + id] || WRITING_WORKS[src] || {};
 
-/* WHETHER A SOURCE IS FETCHED: always — no age gates on learning (1040); kept as the one hook every source asks. */
-const writingFor_ = () => true;
 
 /* TEXT IS BUILT, NEVER WRITTEN (520): "<language>, <translator> (<year>)" from structured fields, keyed by what each index calls it. */
 const WRITING_LANG = { en: 'English', he: 'Hebrew', hbo: 'Hebrew', grc: 'Greek', ar: 'Arabic', arc: 'Aramaic', la: 'Latin', akk: 'Akkadian' };
@@ -183,12 +178,6 @@ function writingAt_(x, k) {
 /* THE RELIGION THIS FINDER'S FUNNEL HAS ANSWERED (not Any), or ''. */
 function writingReligionAsked_() {
   try { const f = (STUFF.filters || []).find(g => g && g.field === 'wReligion' && !g.any); return f ? String(f.value || '') : ''; } catch (e) { return ''; }
-}
-function writingOf_(x) {
-  if (!x || !(x.w || (isBible_(x) && x.bb))) return null;
-  const w = {};
-  WRITING_KEYS.forEach(k => { w[k] = writingAt_(x, k); });
-  return w;
 }
 
 /* ---------- R4: THE SET A FUNNEL ANSWERS OVER IS FIXED WHEN IT STARTS (520). A source whose index comes later joins at the next § */

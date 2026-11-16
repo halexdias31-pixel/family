@@ -282,24 +282,6 @@ function placeNow_(which, instant, dragPx, id) {
   });
 }
 
-/* A CARD COLUMN COUNTS WHAT `cardsOf_` DRAWS — the layout's moves and deletes included — or a card moved in sat past the last page and could not be reached (476). */
-/* A PAGE'S NAME FOR THE PAGER (730), whatever column drew it: its widget's name, else its card's title — a moved card is named where it went. */
-function pageName_(h) {
-  const m = /id="wgt-([^"]+)"/.exec(h);
-  const w = m && typeof anyWidgetOf_ === 'function' ? anyWidgetOf_(m[1]) : null;
-  if (w) return w.name || '';
-  const t = /<h3[^>]*>([^<]{1,80})<\/h3>/.exec(String(h || ''));
-  return t ? t[1].trim().replace(/&amp;/g, '&').replace(/&#39;|&#x27;/g, "'").replace(/&quot;/g, '"') : '';
-}
-/* A CARD COLUMN'S PAGER: a count, or (730) every page's name once a unit has been moved onto it, so the guest is named. */
-function cardCount_(col, raw, none) {
-  try {
-    if (typeof cardsOf_ !== 'function') return raw();
-    const L = typeof layoutNow_ === 'function' ? layoutNow_() : null, pages = cardsOf_(col);
-    const guests = L && (((L.cards || {})[col] || []).length || ((L.widgets || {})[col] || []).length);
-    return guests ? pages.map(pageName_) : pages.length;
-  } catch (e) { return none === undefined ? 1 : none; }
-}
 /* ---------- WIDGETS AS PAGES § */
 const PAGER = {
   /* POSTS ARE HOWEVER MANY THERE ARE, so this is a function rather than a list. § */
@@ -313,31 +295,6 @@ const PAGER = {
   /* ---------- THE FEED IS FOUR KINDS OF PAGE NOW, NOT TWO § */
   /* GUARDED, because shell.js is file five and collections.js is file twenty-one. § */
   /* THE SAME LIST THE COLUMN IS BUILT FROM, which is the rule every other entry here follows: § */
-  saved:  () => (typeof savedCards_ === 'function' ? savedCards_().length : 1),
-  /* NEVER 0, because the column always draws SOMETHING — the sentence saying nothing is spotlit is a page, and a count of nothing over a page that exists is a § */
-  spotlight: () => cardCount_('spotlight', () => (typeof spotlightCards_ === 'function' ? spotlightCards_().length : 1)),
-  /* AND THE SAME AGAIN FOR SETTINGS. § */
-  web: () => cardCount_('web', () => webProfilePages_().length),
-  students: () => cardCount_('students', () => peoplePages_('students').length),
-  parents: () => cardCount_('parents', () => peoplePages_('parents').length),
-  /* THE SHOP, COUNTED FROM `shopCards_`, the list `screen('shop')` draws. Never nought: the basket
-     is always page 0, and with nothing for sale the shop says so in a page of its own. */
-  shop: () => (typeof shopCards_ === 'function' ? shopCards_().length : 1),
-
-  /* ---------- AND `spotPages()` WENT FROM HERE, BECAUSE THE FEED STOPPED DRAWING IT § */
-  /* COUNTED FROM `feedColumn_`, the list `screen('feed')` draws, which now holds the camera as well — one page directly above the newest post. § */
-  feed:   () => (typeof window.feedColumn_ === 'function' ? [].concat(window.feedColumn_()) : ['']).map(() => ''),
-  /* ---------- THE REELS COLUMN HAD NO ENTRY HERE, AND THAT IS WHY IT MOVED DIFFERENTLY § */
-  reel:   () => (typeof window.reelPages_ === 'function' ? window.reelPages_() : ['']),
-  /* THE CAMERA, WHICH IS ONE PAGE AND IS COUNTED ANYWAY. § */
-  /* `make:` WAS HERE, counting the camera column's one card. The camera is a page of the feed
-     now and `PAGER.feed` counts it — see the note there. */
-  /* The controls, then the results. Named so the header says which page of how many — on a list
-     you are working through, that is the one thing a title cannot tell you and the number is
-     worth having. */
-  /* ---------- THE FIND PAGER COUNTS EVERY PAGE, NOT JUST THE RESULTS § */
-  /* A COUNT RATHER THAN A LIST OF NAMES, and it is the only entry that needs to be. § */
-  /* ---------- THE SAME GROUPS `screen('stuff')` BUILDS FROM, WHICH IS THIS TABLE'S OWN RULE § */
   stuff:  () => (typeof finderPageCount_ === 'function' ? finderPageCount_('stuff') : 1),
 };
 
@@ -351,19 +308,6 @@ function pagerNames(id) {
 /* ---------- WHERE EACH COLUMN OPENS § */
 /* A FUNCTION, NOT A NUMBER, and the Posts column is why. § */
 const PAGE_HOME = {
-  /* ---------- SPOTLIGHT IS WHAT THE COLUMN OPENS ON, WHEN THERE IS ONE § */
-  /* SAME RENAME AS `PAGER` ABOVE, and the same silent failure: § */
-  /* THE `USER ? 1 : 0` SKIPPED PAST THE ＋ CARD, which is no longer on this screen — so it now skips past the first festive card or the newest post instead, which § */
-  /* ---------- THE NEWEST POST, PAST THE CAMERA ABOVE IT § */
-  /* ---------- AND WHEN THERE IS NO POST, NOT THE CAMERA EITHER § */
-  feed:    () => {
-    if (typeof window.feedCamAt_ !== 'function') return 0;
-    /* THE NEWEST POST; with no post, the page after the camera, never the camera itself (489: camera first). */
-    const at = typeof window.feedPostsAt_ === 'function' ? window.feedPostsAt_() : window.feedCamAt_() + 1, n = pageCount('feed');
-    return n > at ? at : n > 1 && window.feedCamAt_() === 0 ? 1 : 0;
-  },
-  /* THE FIRST REEL (414), past the pages that lead it — the widgets and an admin's "+" (`REEL_LEAD`, posts.js). */
-  reel: () => (typeof window.REEL_LEAD === 'number' ? window.REEL_LEAD : 0),
 };
 /* ---------- THE TAB AND HOME-SCREEN ICON ARE THE REPO'S FILES (owner's logo, 6 Nov): a sheet `logo_square` still drives posts and avatars, never these. */
 function applyBrandIcon_() {
@@ -620,12 +564,6 @@ function aheadPick_(slowOk) {
         || (Math.abs(j.d - best.d) < 1e-9 && AHEAD_RANK.indexOf(j.kind) < AHEAD_RANK.indexOf(best.kind))) best = j;
   });
   return { job: best, slow: slow };
-}
-/* WHETHER ANYTHING IS LEFT TO BUILD — for the checks, which wait for it as they wait for `afterSlide_`. */
-function aheadBusy_() {
-  if (!(AHEAD.open || AHEAD.pre) || window.__aheadHold) return false;
-  if (AHEAD.booked || AHEAD.running) return true;
-  try { return aheadJobs_(false).length > 0; } catch (e) { return false; }
 }
 
 /* ---------- PAINT: A COLUMN MARKED `STALE`, DRAWN AGAIN BEFORE ANYBODY ARRIVES § */

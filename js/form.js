@@ -205,11 +205,6 @@ const formLine_ = (label, box, cls) => cardBlock_({ type: 'field', look: cls || 
 /* A TICK: `a` is the checkbox's attributes, `say` the html beside the box. */
 const formTick_ = (a, say, cls, la) => cardBlock_({ type: 'group', tag: 'label', look: 'check' + (cls ? ' ' + cls : ''), attrs: cardAttrsOf_(la),
   blocks: [{ type: 'control', attrs: cardAttrsOf_('type="checkbox" ' + a) }, { type: 'group', tag: 'span', look: 'box' }], inner: say });
-/* A SLIDER WITH ITS TYPED TWIN: both carry `a` (their data- key), so dragging and typing write the same value. */
-function formSlider_(a, o) {
-  return formInput_(`type="range" ${a} data-noswipe min="${o.min}" max="${o.max}" step="${o.step}" value="${o.value}" aria-label="${esc(o.label)}"${o.id ? ` id="${o.id}"` : ''}`)
-    + formInput_(`type="number" class="pf-num" ${a} min="0"${o.numMax != null ? ` max="${o.numMax}"` : ''} step="${o.step}" value="${o.value}" inputmode="decimal" aria-label="${esc(o.label + ', typed')}"`);
-}
 /* A PHONE: the country-code menu and the number, side by side, saved as you type under `cc` and `no`. */
 function formPhone_(cc, no, ccOpts, noAttrs) {
   return formLine_('', formSelect_(`data-me="${cc}" aria-label="Country code"`, ccOpts))

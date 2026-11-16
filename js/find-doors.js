@@ -4,8 +4,6 @@
 /* THE FRONT DOOR'S FIELD (batch C): Booking, Posts, Practice… are answers to it; `forIs_`, `book-with` and the receipts set and read this, never a literal. */
 const DOOR_FIELD = 'kindLabel';
 
-/* ---------- POSTS: state, then who, then when ---------- */
-const POST_STATES = ['Approved', 'Waiting for approval', 'Deleted'];
 function postState_(p) { return !p ? '' : p.active === false ? 'Deleted' : (p.waiting || p.refused) ? 'Waiting for approval' : 'Approved'; }
 /* A TIME FRAME, NOT A DATE: five answers however many posts there are. */
 function whenBand_(v) {

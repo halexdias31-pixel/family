@@ -81,7 +81,7 @@ function oopsTry_(where, fn, host) {
 /* TWO TIERS (860): data/settings/tiers.json. What is not core runs through tierRun_, so its throw is reported and never reaches boot, the pager or Find. check-tiers holds these lists to the file. */
 const TIER_CORE_WIDGETS = [];
 const TIER_LAZY_WIDGETS = ['console', 'wordgames', 'boardgames', 'pixel'];
-const TIER_OFF_WIDGETS = ['reels', 'newspaper', 'docket', 'notepad', 'speedread', 'cart', 'shopfind', 'countdowns', 'favlinks'];
+const TIER_OFF_WIDGETS = [];
 const TIER_CORE_KINDS = ['question', 'content', 'insert', 'practical', 'project', 'level'];
 const tierCore_ = (what, id) => (what === 'kind' ? TIER_CORE_KINDS : TIER_CORE_WIDGETS).indexOf(String(id)) !== -1;
 const TIER_RUN = { depth: 0 };
@@ -159,42 +159,10 @@ document.documentElement.classList.toggle('flow', FLOW_LAYOUT);
 
 /* ---------- THE TABS § */
 const TABS = [
-  /* Posts leftmost: the one screen somebody opens with no errand. Every other tab answers a
-     question, and a person with no question needs somewhere to land. */
-  /* ---------- ONE TAB § */
+  /* ONE SCREEN (owner, 16 Nov: Find is the only way around): every other column is a Find branch (screens-moved.json). */
   { id: 'stuff',   icon: '🔎', label: 'Find',    title: 'Find' },
-  /* ---------- WHO YOU ARE, AT THE START OF THE YOU GROUP (392) § */
-  /* KIDS SETTINGS WAS A COLUMN HERE; it is Find › Settings › Student (SETTING_GROUPS). */
-
-  /* ---------- AND SEVEN MORE, WHICH IS THIS TABLE GOING BACK THE WAY IT CAME § */
-  { id: 'feed',    icon: '🏠', label: 'Feed',    title: 'Feed' },
-  /* BOOK WAS A COLUMN HERE; it is Find › Booking (find-only, 16 Nov). */
-  /* `tools` AND `games` WERE COLUMNS HERE; their widgets are Find cards since 790 (data/settings/widgets-in-find.json). */
-
-  /* ---------- AND THE TWO THE LAYOUT SHEET ASKED FOR § */
-  { id: 'reel',    icon: '▶',  label: 'Reels',   title: 'Reels' },
-  /* DMS WAS A COLUMN HERE; it is Find › Messages (find-only, 16 Nov). */
-  /* ---------- SAVED, RIGHT OF FIND 2 WITH THE LEARNING COLUMNS (392) § */
-  { id: 'saved',   icon: '★',  label: 'Saved',   title: 'Saved' },
-  { id: 'spotlight', icon: '✦', label: 'Spotlight', title: 'Spotlight', cards: true },
-  /* ---------- SIX COLUMNS (461): each account type's settings, then a card per tutor, student and parent. */
-  /* THE OWNER'S ELEVEN (730): five profiles, then six settings; `cards` marks a card column (columns.json says the same; check-doors). */
-  { id: 'web',      icon: '🌍', label: 'Web profile',        title: 'Web profile', cards: true },
-  /* TUTOR PROFILE WAS A COLUMN HERE; it is Find › Profiles › Tutor (find-only, 16 Nov). */
-  { id: 'students', icon: '👤', label: 'Student profile',    title: 'Student profile', cards: true },
-  { id: 'parents',  icon: '👪', label: 'Parent profile',     title: 'Parent profile', cards: true },
-  /* ---------- AND THE SHOP, RIGHT OF BOOKING § */
-  { id: 'shop',    icon: '🛒', label: 'Shop',    title: 'Shop' },
-  /* ---------- AND PROGRESS, RIGHT OF SAVED (392), WAITING TO BE BUILT § */
 ];
-
-/* ---------- LEFT TO RIGHT, WHICH IS NOT THE ORDER THEY ARE WRITTEN IN § */
-/* GROUPED BY PURPOSE, read left to right (392). columns.json lists the same order; check-doors fails if they part. § */
-const TAB_ORDER = ['stuff', 'saved',                                  /* FIND FIRST, for everyone (1070): the one front door; Tools and Games are Find cards (790) */
-                   'spotlight', 'feed', 'reel',                       /* social (392), below Find; Spotlight left of the posts (461); Messages is Find › Messages */
-                   'shop',                                            /* business; Book is Find › Booking */
-                   'web', 'students', 'parents']; /* the profiles (730); Tutor and Apprentice profile are Find › Profiles › Tutor / Apprentice; every settings column is Find › Settings › <type> (find-only.json) */
-TABS.sort((a, b) => TAB_ORDER.indexOf(a.id) - TAB_ORDER.indexOf(b.id));
+const TAB_ORDER = ['stuff'];
 /* SETTINGS THAT ARE FIND › SETTINGS › <type> NOW (find-only.json): no column, still a card group the layout keys by id and Find draws (CARD_BUILD). */
 const SETTING_GROUPS = [{ id: 'apprentice', label: 'Apprentice settings', cards: true, group: true },
   /* WEB SETTINGS (491, an admin's alone): Find › Settings › Site since 15 Nov. */

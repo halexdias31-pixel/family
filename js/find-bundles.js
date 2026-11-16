@@ -492,7 +492,6 @@ function filterChipTags_() {
       colour: f.any ? false : tagOf_(f.field) };
   }).filter(Boolean), bookChips_());
 }
-function filterChips() { return renderTags(filterChipTags_(), 'chips', true); }
 
 /* NO CLEAR-ALL BIN (owner, 16 Nov: it broke the card template): each tag's × clears it; `filter-clear` stays for code that starts again. */
 function filterClear_() { return ''; }

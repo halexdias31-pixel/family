@@ -3,7 +3,7 @@
 
 /* ---------- WHICH COLUMN A WIDGET OF EACH KIND LIVES ON BY DEFAULT — the only columns that draw widgets ---------- */
 /* A tool and a game have no column since 790: each is a Find card (`widgetInFind_`, arcade.js), arranged by the funnel, not here. */
-const LAYOUT_COL = { reel: 'reel', shop: 'shop' };
+const LAYOUT_COL = {};
 /* THE DEVICE'S COPY of the last layout the payload sent, so the first paint before the payload is already arranged. */
 const LAYOUT_STORE = 'familyLayout';
 /* `#` joins a split card's piece to its card (`set:account:contact#email`, 466): a piece is a card of its own. */
@@ -135,14 +135,6 @@ function layoutWidgetCols_() {
   return cols.slice().sort((a, b) => seq.indexOf(a) - seq.indexOf(b));
 }
 
-/* ---------- WHAT DOES NOT MOVE, EACH WITH ITS REASON (730): every other column is a host, its units moved by their rows; check-doors keeps this list whole ---------- */
-const LAYOUT_FIXED = {
-  feed: "the posts page by post and the camera is the page above the newest (`feedCamAt_`); moving them as one unit needs the feed's paging to stop assuming its column",
-  dm: 'one conversation per page, drawn by the messages code',
-  stuff: "Find's own funnel: its words, chips and page are the finder's state",
-  saved: 'what you starred, drawn from your own stars',
-  booking: 'the booking form and its receipts are one flow',
-};
 /* ---------- EVERY COLUMN A UNIT MAY STAND ON (710): the widget columns, the card columns and an admin's own ---------- */
 function hostCols_(L) {
   const cu = ((L === undefined ? layoutNow_() : L) || {}).custom || [];
@@ -327,8 +319,6 @@ const CARD_REG = [
   { id: 'ppl:parents:claims', col: 'parents', label: 'Parent claims', say: 'Parents asking to be linked to a child.' },
   { id: 'ppl:parents:all', col: 'parents', label: 'Every parent', say: 'Every parent account.' },
   /* NO `say` ON THE TWO PUBLIC FACES (730): the web card and the window are read by everybody, and a line about the card is for an admin. */
-  { id: 'web:card', col: 'web', label: 'Web profile', re: /^<div class="card web-card/, say: '' },
-  { id: 'spot:list', col: 'spotlight', label: 'Spotlight', say: '' },
   { id: 'appr:blurb', col: 'apprentice', label: 'Apprentice settings', re: /^<div class="card appr-set/, say: 'Work experience with us: a placeholder until it is built.' },
   { id: 'biz:profit-sum', col: 'biz', label: 'Profit', re: /data-profit="sum"/, say: 'What came in and went out, and what is left.' },
   { id: 'biz:posts', col: 'site', label: 'Posts waiting', re: /^<div class="card biz posts-wait/, say: 'Posts waiting for you to approve.' },
@@ -453,9 +443,8 @@ const personOf_ = h => ((/^\s*(?:<!--card:[^>]*-->)?<!--person:([A-Za-z0-9_.-]+)
 /* EACH COLUMN'S OWN BUILDER — the code's cards for whoever is signed in, role gates and all. */
 const CARD_BUILD = {
   family: () => familyPages_(), staff: () => staffPages_(), account: () => studentSetPages_(),
-  students: () => peoplePages_('students'), parents: () => peoplePages_('parents'),
   biz: () => adminPages_(), site: () => sitePages_(),
-  web: () => webProfilePages_(), spotlight: () => cardMark_('spot:list', spotlightCards_()), apprentice: () => apprenticePages_(),
+  apprentice: () => apprenticePages_(),
 };
 /* THE CARD COLUMNS LEFT TO RIGHT; Business only for its own cards — anything else moved there would vanish for everyone but an admin. */
 function cardColsFor_(id) {
@@ -660,15 +649,12 @@ function frontPageOf_(col) {
     const n = widgetPagesOf_(kind).findIndex(w => String(w.id) === f.id || (w.parts || []).some(p => String(p.id) === f.id));
     if (n !== -1) return n;
   }
-  if (col === 'feed' && typeof window.feedCamAt_ === 'function') {
-    if (f.id === 'item:feed:camera') return window.feedCamAt_();
-  }
   const n = CARD_START_AT[col];
   return typeof n === 'number' && n >= 0 ? n : -1;
 }
 /* THE DOOR'S COLUMN OPENS ON ITS THING; every other column as before. */
 function frontHomes_() {
-  const cols = Object.keys(LAYOUT_COL).map(k => LAYOUT_COL[k]).concat(['feed']).concat(CARD_COLS);
+  const cols = Object.keys(LAYOUT_COL).map(k => LAYOUT_COL[k]).concat(CARD_COLS);
   cols.forEach(c => {
     const was = PAGE_HOME[c];
     PAGE_HOME[c] = () => { const n = frontPageOf_(c); if (n >= 0) return n; try { return was ? was() : 0; } catch (e) { return 0; } };
@@ -692,43 +678,6 @@ function frontGo_() {
 /* NO NOTES ARE LISTED ON THE SITE (498): the owner, "I don't even need to be able to tick or see old tasks" -- Claude marks them done (data/notes-done.json). */
 /* DELETE THEN THE NOTE, in the one flow (487). */
 function notePair_(del, note) { return del + note; }
-/* IN PLACE OF THE THING (489): the box takes its footprint, its content hidden while writing; Cancel or Send gives it back. A message keeps its box under it. */
-function boxInPlace_(el, html) {
-  const thing = el.closest('.msg') ? null : el.closest('.card, .own-set, .post');
-  if (!thing) return boxBeside_(el, html);
-  thing.querySelectorAll(':scope > .rep-box').forEach(b => b.remove());
-  const h = thing.getBoundingClientRect().height;
-  thing.insertAdjacentHTML('beforeend', html);
-  thing.classList.add('is-writing');
-  if (h) thing.style.setProperty('--writing-h', Math.round(h) + 'px');
-  return thing.lastElementChild;
-}
-/* A ROW OUTSIDE ITS THING (498): a Find card's row stands after its `.favwrap`; both are hidden and the box takes their place. A message keeps its box under it. */
-const BOX_HID = new WeakMap();
-function boxBeside_(el, html) {
-  const msg = el.closest('.msg'), row = el.closest('.tile-row');
-  if (msg || !row) { const at = msg || row; if (!at) return null; at.insertAdjacentHTML('afterend', html); return at.nextElementSibling; }
-  const prev = row.previousElementSibling, hid = [row].concat(prev && prev.matches('.favwrap, .card, .fc') ? [prev] : []);
-  if (row.nextElementSibling && row.nextElementSibling.classList.contains('rep-box')) row.nextElementSibling.remove();
-  const h = hid.reduce((n, e) => n + e.getBoundingClientRect().height, 0);
-  row.insertAdjacentHTML('afterend', html);
-  const box = row.nextElementSibling;
-  hid.forEach(e => { e.hidden = true; });
-  box.classList.add('is-beside');
-  if (h) box.style.minHeight = Math.round(h) + 'px';
-  BOX_HID.set(box, hid);
-  return box;
-}
-function boxOut_(box) {
-  if (!box) return;
-  const thing = box.parentElement;
-  (BOX_HID.get(box) || []).forEach(e => { e.hidden = false; });
-  box.remove();
-  if (thing && thing.classList.contains('is-writing') && !thing.querySelector(':scope > .rep-box')) {
-    thing.classList.remove('is-writing');
-    thing.style.removeProperty('--writing-h');
-  }
-}
 /* A COLUMN'S WHOLE ORDER (710): what it drew, then what it holds and did not draw for this admin (a widget for tutors), so a move never sends those home. */
 function cardListOf_(col, L) {
   if (!CARD_SEEN[col]) { try { colEntries_(col, CARD_BUILD[col] ? (CARD_BUILD[col]() || []).filter(Boolean) : []); } catch (e) { /* a column whose code has not loaded yet is built when it lands */ } }
@@ -787,9 +736,6 @@ CARD_COLS.forEach(c => {
 frontHomes_();
 /* THE KEPT LAYOUT'S DOOR FROM THE FIRST FRAME, before the payload; `frontGo_` again once it has come (shell.js `load`). */
 try { const f = frontNow_(); if (f && !FRONT_KEPT && TABS.some(t => t.id === f.col)) { AT = f.col; FRONT_GONE = true; } } catch (e) {}
-/* FOR THE JOURNEYS: a column's arranged cards, and the page it opens on. */
-function cardSeen_(col) { return (CARD_SEEN[col] || []).slice(); }
-function cardStartAt_(col) { try { return PAGE_HOME[col](); } catch (e) { return 0; } }
 
 /* ---------- AN ADMIN'S OWN COLUMNS (466, 710): ◀ or ▶ past an edge makes one, for everybody; it has no name, only a place ---------- */
 /* The owner: "there shouldn't really be a name distinguisher for the column." Its units keep their own role gates. */
@@ -961,8 +907,6 @@ on('lay-unmerge', el => {
   if (!D.merged.length) delete D.merged;
   layoutSave_(D);
 });
-/* FOR THE JOURNEYS: the merged groups in force. */
-function mergedNow_() { return (((layoutNow_() || {}).merged) || []).map(g => g.slice()); }
 
 /* THE CODE'S OWN GATE, where it is known: a widget's flags, a card on an admin column; '' when it is for everyone or decided inside its builder. */
 function seenGate_(id) {

@@ -28,11 +28,31 @@
   "to": "find:Settings:Parent"
  },
  {
+  "screen": "feed",
+  "to": "find:Posts"
+ },
+ {
+  "screen": "parents",
+  "to": "find:Profiles:profileType=Parent"
+ },
+ {
   "screen": "progress",
   "to": "find:Settings:Student"
  },
  {
+  "screen": "reel",
+  "to": "find:Videos"
+ },
+ {
   "screen": "res",
+  "to": "stuff"
+ },
+ {
+  "screen": "saved",
+  "to": "stuff"
+ },
+ {
+  "screen": "shop",
   "to": "stuff"
  },
  {
@@ -40,11 +60,23 @@
   "to": "find:Settings:Site"
  },
  {
+  "screen": "spotlight",
+  "to": "stuff"
+ },
+ {
   "screen": "staff",
   "to": "find:Settings:Staff"
  },
  {
+  "screen": "students",
+  "to": "find:Profiles:profileType=Student"
+ },
+ {
   "screen": "tutors",
   "to": "find:Profiles:profileType=Tutor"
+ },
+ {
+  "screen": "web",
+  "to": "stuff"
  }
 ]

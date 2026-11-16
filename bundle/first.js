@@ -37,9 +37,6 @@ const rowOf_ = (rowCls, label, v) => cardBlock_({ type: 'group', look: rowCls, b
   label === false ? null : { type: 'group', tag: 'span', look: 'k', text: label == null ? '' : String(label) },
   Object.assign({ type: 'group', tag: 'span' }, v)] });
 
-/* THE SAME ROW, WITH THE VALUE ALREADY MARKED UP — a link, a coloured word, a small drawing. § */
-const rowHtml = (label, html, extra, rowCls) =>
-  rowOf_('row' + (rowCls ? ' ' + rowCls : ''), label, { look: ['v', extra || ''].filter(Boolean).join(' '), inner: html });
 
 /* ---------- THE TWO SHAPES THE FIRST TWO COULD NOT MAKE § */
 
@@ -47,9 +44,6 @@ const rowHtml = (label, html, extra, rowCls) =>
 const rowLive = (label, value, id, extra) =>
   rowOf_('row', label, { look: ['v', 'mono', extra || ''].filter(Boolean).join(' '), id: String(id), text: String(value == null ? '' : value) });
 
-/* A ROW WITH NO LABEL — a name in a list, a line of a basket. § */
-const rowValue = (html, extra) =>
-  rowOf_('row', false, { look: ['v', extra || ''].filter(Boolean).join(' '), inner: html });
 
 
 function bookableSpaces() {
@@ -156,19 +150,7 @@ const fmtDay_ = v => {
   return i === -1 ? String(v ?? '') : DAYS_SHORT[i];
 };
 
-const ST = {
-  UNSENT:    'Unsent',      // built, not yet sent to anyone
-  REQUESTED: 'Requested',   // sent; waiting for the other side
-  WAITING:   'Waiting',     // in the lobby, hasn't readied up
-  AGREED:    'Agreed',      // readied up; waiting on everyone else
-  PAYING:    'Paying',      // terms settled, payment in flight
-  BOOKED:    'Booked',      // paid and in the diary
-  CONFIRMED: 'Confirmed',   // a session that has happened
-  DECLINED:  'Declined',    // the other side said no
-  CANCELLED: 'Cancelled',   // called off after being booked
-};
 
-const ROLE = { ADMIN: 'admin', TUTOR: 'tutor', CLIENT: 'client', STUDENT: 'student' };
 
 /* THE ROLE WORDS ARE THE BACKEND'S `ROLE_ALIASES` (constants.gs), sent as `roleAliases`; this copy stands until the payload lands (check-payload). */
 const ROLE_ALIASES = { administrator: 'admin', teacher: 'tutor', parent: 'client', guardian: 'client',
@@ -178,7 +160,6 @@ const roleAliases_ = () => { try { return (DATA && DATA.roleAliases) || ROLE_ALI
 const roleOf = r => roleAliases_()[norm(r)] || norm(r);
 
 
-const isRole = (r, want) => roleOf(r) === want;
 
 
 /* `u` IS WHOSE ROLES: the viewer by default; a settings card passes `whose_()` (the admin's lens, data-who.js). */
@@ -332,7 +313,6 @@ const val = id => ($(id) || {}).value || '';
 
 /* Who takes part in the checklist and the arcade: students, tutors and admins. A parent has no
    topics to tick and no score to keep. */
-const canTrack = () => hasRole('kid') || hasRole('student') || hasRole('tutor') || hasRole('admin');
 
 /* An admin is a tutor with extra powers, so everywhere gated on "tutor" admits an admin too. § */
 /* AND NOT A TUTOR WHO HAS ONLY TICKED THE BOX. § */
@@ -357,8 +337,6 @@ const rankAtLeast_ = (want, u = USER) => !!u && RANKS.indexOf(rank_(u)) >= RANKS
 /* WHAT SHE IS TOLD WHERE A PRICE OR A PAY BUTTON WOULD BE — the backend's `KID_ASK_PARENT` says the same. */
 const KID_ASK_PARENT = 'A parent books and pays for sessions — ask yours to book this one.';
 
-/* THE FOUR WORDS A JOB'S STATUS CAN BE, and nothing else. § */
-const JOB_STATUSES = ['Unsent', 'Unconfirmed', 'Active', 'Cancelled'];
 
 
 /* DOES THIS PROMOTION APPLY to this booking? § */
@@ -779,13 +757,6 @@ function cardDraw_(n) {
   /* `inner`: a drawing another maker drew already (a question's diagram, the pen's ink), laid inside as it is. */
   return `<${n.el}${attrs}>${n.text != null ? esc(String(n.text)) : ''}${n.inner || ''}${cardDraw_(n.kids)}</${n.el}>`;
 }
-/* A CARD DRAWN AGAIN WHERE IT STANDS: the new card replaces the old element whole. */
-function cardRedraw_(el, spec) {
-  if (!el || typeof document === 'undefined') return;
-  const t = document.createElement('template');
-  t.innerHTML = renderCard(spec);
-  if (t.content.firstElementChild) el.replaceWith(t.content.firstElementChild);
-}
 function cardBlock_(b) {
   if (b == null || b === '') return '';
   if (typeof b === 'string') return CARD_BLOCKS.text({ text: b });
@@ -818,8 +789,6 @@ function renderCard(spec) {
     + `<div class="kc-lines">${lines || (spec.empty ? `<p class="kc-line kc-empty">${esc(spec.empty)}</p>` : '')}</div>${cut.form ? `<div class="kc-form">${cut.form}</div>` : ''}`
     + `<div class="kc-act">${row}</div></div>`;
 }
-/* SEVERAL CARDS, or a message where there are none (the one empty card). */
-const renderCards = (specs, empty) => ((specs || []).length ? specs.map(renderCard).join('') : renderCard(Object.assign({ kind: 'empty', tags: [{ text: (empty && empty.name) || text_('nothing-yet') }] }, empty || {}, { empty: (empty && empty.say) || (typeof NOTHING_YET === 'string' ? NOTHING_YET : '') })));
 /* EACH CARD KIND'S BUILDER: `cardKind_('kind', x => spec)`; findCard draws a registered kind from its spec (check-card-spec runs each one). */
 const CARD_KINDS = {};
 function cardKind_(kind, build) { CARD_KINDS[kind] = build; }
@@ -2664,13 +2633,6 @@ const initial = s => (String(s ?? '').match(/[A-Za-z0-9]/) || ['?'])[0].toUpperC
    been filled in — the whole point of that tab is that most of it is empty most of the time. */
 /* A CONTACT DETAIL NEVER LIVES IN THE PUBLIC REPO: a blank brand key falls back to the private policy values the backend sends (phone, email). */
 const brand = (k, or) => ((DATA.brand || {})[k] || (DATA.policy || {})[k] || or || '');
-/* THE BUSINESS'S ONE PICTURE (1040 r10): tab icon, home-screen icon, Web profile and the business's posts all read it here. */
-/* A Drive share link is a page, so its picture's own address (as `pic`, posts.js). */
-function brandLogo_() {
-  const u = String(brand('logo_square', '') || brand('logo_circle', '') || 'icon.png').trim();
-  const id = (u.match(/\/file\/d\/([\w-]{20,})/) || u.match(/[?&]id=([\w-]{20,})/) || [])[1];
-  return id ? 'https://lh3.googleusercontent.com/d/' + id + '=w1200' : u;
-}
 /* IS THIS SOMETHING YOU WEAR? § */
 const isWearable = x => {
   const k = norm(x && (x.kind || x.kindRaw));
@@ -2816,12 +2778,6 @@ function batchFiles_(want, bundle) {
 
 /* THE KEYS THE SITE ASKS FOR AND THE BACKEND DOES NOT SEND. § */
 let MISSING_KEYS = {};
-function missingKeys() {
-  const ks = Object.keys(MISSING_KEYS);
-  if (!ks.length) { console.log('Nothing has been asked for that the backend did not send.'); return {}; }
-  console.table(MISSING_KEYS);
-  return MISSING_KEYS;
-}
 
 /* HAS THE FIRST LOAD COME BACK? § */
 let LOADED = false;
@@ -2919,15 +2875,7 @@ function keepAtRisk_() {
   });
 }
 /* ---------- AND WHAT IS WAITING TO GO UP GOES AS THE PAGE GOES § */
-const KEEP_DUE = new Map();
-function keepDue_(name, send) { if (send) KEEP_DUE.set(name, send); else KEEP_DUE.delete(name); }
-/* A PROMISE OF THEM ALL, so Sign out can send them before the session they need is ended (me.js). */
-function keepFlush_() {
-  const due = [...KEEP_DUE.values()];
-  KEEP_DUE.clear();
-  return Promise.all(due.map(f => { try { return Promise.resolve(f(true)).catch(() => {}); } catch (e) { return null; } }));
-}
-const keepLeaving_ = () => { keepFlush_(); keepRetry_(); };
+const keepLeaving_ = () => { keepRetry_(); };
 window.addEventListener('pagehide', keepLeaving_);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') keepLeaving_(); });
 /* ---------- A RELOAD ASKS FIRST, BUT ONLY WHEN THE WORK IS IN NOTHING BUT THIS PAGE § */
@@ -4131,12 +4079,6 @@ const QT_TYPED = 'One box on the site\'s keypad';
 /* ONE FIGURE, IN PLACE, AND IT IS THE PEN (356, 381): the part's own, or its stem's with the stem's words carried onto the card */
 const QT_PEN = 'Its figure under the pen, in place on the card: its own, or the stem\'s (the stem\'s words carried onto the card '
   + 'above it), else a made-up grid. One figure, no second copy, no Draw switch, no box or keypad; Check under the part\'s words';
-/* THE SHARED FIGURE (381): what each part of a question round one figure gets, as data for the page and the check */
-const QT_SHARED_FIGURE = {
-  drawn: 'Draws on the one figure on its own card; every other part\'s ink on that figure is under its own, faint, untouched by its Undo, Clear and Check',
-  typed: 'Its own box under its own words, nothing for the drawing; where its words read the drawn figure it names that part (`uses`) and has it, marked, in front of its words',
-  check: 'One Check tile per part, at the card\'s foot under the part\'s words, for a drawn part as for a typed one',
-};
 const QT_PEN_TILES = ['Figure', 'Pen', 'Ruler / Compass / Protractor (as asked)', 'Undo', 'Clear', 'Check'];
 const QT_PEN_PHONE = 'Finger draws, two fingers pan; the loupe follows the finger';
 const QT_PEN_PC = 'Mouse or stylus on a lazy brush (368); the ruler snaps to the grid';
@@ -4214,7 +4156,6 @@ const QTYPE_PROTOCOL = {
               marked: 'accept as a band (`a to b`); an angle survives the screen, a length needs a stated scale', tolerance: 'the scheme\'s ± (often 2 mm / 2°)',
               wrong: 'Not yet', right: 'Correct + marks', phone: 'One finger drags the tool, two turn it, or its round handle; it snaps onto a corner and along an arm', pc: 'Drag; the handle or the wheel turns it; typed', need: ['accept', 'band'] },
 };
-const QTYPE_ORDER = Object.keys(QTYPE_PROTOCOL);
 
 /* ---------- READING A ROW: the library's snake_case row, or a card item (which carries it as `row`). */
 const qtS_ = v => (v == null ? '' : String(v)).trim();
@@ -4223,8 +4164,6 @@ const qtText_ = r => [r.lead, r.html].map(h => qtS_(h).replace(/<[^>]*>/g, ' ').
 const qtWays_ = r => qtS_(r.accept).split('|').map(w => w.trim()).filter(Boolean);
 const qtRules_ = r => qtWays_(r).filter(w => /^rule:/i.test(w)).map(w => w.replace(/^rule:\s*/i, ''));
 const qtPlain_ = r => qtWays_(r).filter(w => !/^rule:/i.test(w));
-const qtTrue_ = v => /^true$/i.test(qtS_(v));
-let QT_DA_MEMO = null;
 function qtDrawKinds_(r) {
   const raw = qtS_(r.draw_answer);
   if (!raw) return [];
@@ -4367,22 +4306,11 @@ function qtNeedMet_(r, need) {
   if (QT_NEED[need]) return QT_NEED[need](r);
   return need.split('|').some(f => qtS_(r[f]) !== '');
 }
-/* ---------- WHERE A DRAWN PART'S FIGURE IS (381): `own`, `stem`, `surface` (made up), `none` (words point at a figure it lacks), `ambiguous` (two stems' figures) */
-const QT_FIG_NAMED = /\b(on|onto|in) the (grid|diagram|scale|graph|chart|number line|map|axes|pictogram|histogram|shape|net|clock|dial|probability scale|scatter (graph|diagram))\b|\b(diagram|grid|graph) (above|below)\b/;
 function qtDrawn_(x) {
   const r = (x && x.row) || x || {};
   const surf = qtS_(r.surface).toLowerCase();
   if (!(QT_DRAWN[qtS_(r.answer_type).toLowerCase()] || (surf && surf !== 'text'))) return false;
   return !qtS_(r.choices) && !qtS_(r.cells);
-}
-function qtFigureOf_(x, stems) {
-  const r = (x && x.row) || x || {};
-  if (qtS_(r.diagram) || qtS_(r.diagram_twin) || qtS_(r.images)) return 'own';
-  const st = (stems || []).filter(p => p && qtS_(p.diagram));
-  if (st.length === 1) return 'stem';
-  if (st.length > 1) return 'ambiguous';
-  if (qtS_(r.surface)) return 'surface';
-  return QT_FIG_NAMED.test(qtText_(r)) ? 'none' : 'surface';
 }
 function qtIncomplete_(x) {
   const r = (x && x.row) || x || {};
@@ -4694,7 +4622,7 @@ function oopsTry_(where, fn, host) {
 /* TWO TIERS (860): data/settings/tiers.json. What is not core runs through tierRun_, so its throw is reported and never reaches boot, the pager or Find. check-tiers holds these lists to the file. */
 const TIER_CORE_WIDGETS = [];
 const TIER_LAZY_WIDGETS = ['console', 'wordgames', 'boardgames', 'pixel'];
-const TIER_OFF_WIDGETS = ['reels', 'newspaper', 'docket', 'notepad', 'speedread', 'cart', 'shopfind', 'countdowns', 'favlinks'];
+const TIER_OFF_WIDGETS = [];
 const TIER_CORE_KINDS = ['question', 'content', 'insert', 'practical', 'project', 'level'];
 const tierCore_ = (what, id) => (what === 'kind' ? TIER_CORE_KINDS : TIER_CORE_WIDGETS).indexOf(String(id)) !== -1;
 const TIER_RUN = { depth: 0 };
@@ -4772,42 +4700,10 @@ document.documentElement.classList.toggle('flow', FLOW_LAYOUT);
 
 /* ---------- THE TABS § */
 const TABS = [
-  /* Posts leftmost: the one screen somebody opens with no errand. Every other tab answers a
-     question, and a person with no question needs somewhere to land. */
-  /* ---------- ONE TAB § */
+  /* ONE SCREEN (owner, 16 Nov: Find is the only way around): every other column is a Find branch (screens-moved.json). */
   { id: 'stuff',   icon: '🔎', label: 'Find',    title: 'Find' },
-  /* ---------- WHO YOU ARE, AT THE START OF THE YOU GROUP (392) § */
-  /* KIDS SETTINGS WAS A COLUMN HERE; it is Find › Settings › Student (SETTING_GROUPS). */
-
-  /* ---------- AND SEVEN MORE, WHICH IS THIS TABLE GOING BACK THE WAY IT CAME § */
-  { id: 'feed',    icon: '🏠', label: 'Feed',    title: 'Feed' },
-  /* BOOK WAS A COLUMN HERE; it is Find › Booking (find-only, 16 Nov). */
-  /* `tools` AND `games` WERE COLUMNS HERE; their widgets are Find cards since 790 (data/settings/widgets-in-find.json). */
-
-  /* ---------- AND THE TWO THE LAYOUT SHEET ASKED FOR § */
-  { id: 'reel',    icon: '▶',  label: 'Reels',   title: 'Reels' },
-  /* DMS WAS A COLUMN HERE; it is Find › Messages (find-only, 16 Nov). */
-  /* ---------- SAVED, RIGHT OF FIND 2 WITH THE LEARNING COLUMNS (392) § */
-  { id: 'saved',   icon: '★',  label: 'Saved',   title: 'Saved' },
-  { id: 'spotlight', icon: '✦', label: 'Spotlight', title: 'Spotlight', cards: true },
-  /* ---------- SIX COLUMNS (461): each account type's settings, then a card per tutor, student and parent. */
-  /* THE OWNER'S ELEVEN (730): five profiles, then six settings; `cards` marks a card column (columns.json says the same; check-doors). */
-  { id: 'web',      icon: '🌍', label: 'Web profile',        title: 'Web profile', cards: true },
-  /* TUTOR PROFILE WAS A COLUMN HERE; it is Find › Profiles › Tutor (find-only, 16 Nov). */
-  { id: 'students', icon: '👤', label: 'Student profile',    title: 'Student profile', cards: true },
-  { id: 'parents',  icon: '👪', label: 'Parent profile',     title: 'Parent profile', cards: true },
-  /* ---------- AND THE SHOP, RIGHT OF BOOKING § */
-  { id: 'shop',    icon: '🛒', label: 'Shop',    title: 'Shop' },
-  /* ---------- AND PROGRESS, RIGHT OF SAVED (392), WAITING TO BE BUILT § */
 ];
-
-/* ---------- LEFT TO RIGHT, WHICH IS NOT THE ORDER THEY ARE WRITTEN IN § */
-/* GROUPED BY PURPOSE, read left to right (392). columns.json lists the same order; check-doors fails if they part. § */
-const TAB_ORDER = ['stuff', 'saved',                                  /* FIND FIRST, for everyone (1070): the one front door; Tools and Games are Find cards (790) */
-                   'spotlight', 'feed', 'reel',                       /* social (392), below Find; Spotlight left of the posts (461); Messages is Find › Messages */
-                   'shop',                                            /* business; Book is Find › Booking */
-                   'web', 'students', 'parents']; /* the profiles (730); Tutor and Apprentice profile are Find › Profiles › Tutor / Apprentice; every settings column is Find › Settings › <type> (find-only.json) */
-TABS.sort((a, b) => TAB_ORDER.indexOf(a.id) - TAB_ORDER.indexOf(b.id));
+const TAB_ORDER = ['stuff'];
 /* SETTINGS THAT ARE FIND › SETTINGS › <type> NOW (find-only.json): no column, still a card group the layout keys by id and Find draws (CARD_BUILD). */
 const SETTING_GROUPS = [{ id: 'apprentice', label: 'Apprentice settings', cards: true, group: true },
   /* WEB SETTINGS (491, an admin's alone): Find › Settings › Site since 15 Nov. */
@@ -5162,10 +5058,9 @@ function go(id, remember, instant) {
      `startScreen_` below. */
   /* ---------- ONLY WHEN LEAVING THE FEED, OR WITH A CAMERA ACTUALLY OPEN § */
   /* PARKED, NOT STOPPED (427): coming back must not ask again, and a parked stream is no reason to run this on other columns. */
-  if (typeof window.camStop_ === 'function' && AT !== 'feed'
-      && (was === 'feed' || (typeof window.camOn_ === 'function' && window.camOn_()))) window.camStop_(false, true);
+  if (typeof window.camStop_ === 'function' && typeof window.camOn_ === 'function' && window.camOn_()) window.camStop_(false, true);
   /* AND THE REEL, which is the third of these and was the one nobody had written. § */
-  if (typeof window.reelsStop_ === 'function' && AT !== 'reel') window.reelsStop_();
+  if (typeof window.reelsStop_ === 'function') window.reelsStop_();
   /* A PIN SHOWN ON A CARD (452) goes when its column is left. */
   if (was !== AT && typeof pinHideAll_ === 'function') pinHideAll_();
   /* AND THE MESSAGE POLL, which is the fourth: it runs only while Find shows a message card (`dmShown_`). § */
@@ -5195,15 +5090,6 @@ function go(id, remember, instant) {
 /* SCREEN HOOKS: what one screen runs on starting, on being drawn and after a page turn; the shell keeps one rule.
    Saved, Shop and Reels hold widgets (414) whose cards grow (regrow); a start returns true when it ran. */
 const SCREEN_HOOKS = {
-  saved: { regrow: true, start: a => typeof savedStart_ === 'function' && (savedStart_(a), true) },
-  shop: { regrow: true, start: a => typeof toolsStart_ === 'function' && (toolsStart_('shop', a), true) },
-  reel: { regrow: true, start: a => typeof toolsStart_ === 'function' && (toolsStart_('reel', a), true),
-    started: [() => typeof window.reelsWatch_ === 'function' && window.reelsWatch_()],
-    paged: n => { if (typeof window.reelAhead_ === 'function') { try { window.reelAhead_(n); } catch (e) { oops_(e, 'shell:goPage') } } },
-    slid: () => { if (typeof window.reelsWatch_ === 'function') afterSlide_(window.reelsWatch_); } },
-  /* the camera is a page of the feed: started when its page arrives, put at rest at once when the page turns away (docs/history/341) */
-  feed: { started: [() => typeof window.feedCamWatch_ === 'function' && window.feedCamWatch_()],
-    slid: n => { if (typeof window.feedCamWatch_ === 'function') afterSlide_(window.feedCamWatch_); if (n !== 0 && typeof window.camRest_ === 'function') window.camRest_(); } },
   /* an admin's business records are asked for, a POST, once (js/records.js) */
   biz: { started: [() => typeof window.bizStart_ === 'function' && window.bizStart_()] },
 };
@@ -6465,24 +6351,6 @@ function placeNow_(which, instant, dragPx, id) {
   });
 }
 
-/* A CARD COLUMN COUNTS WHAT `cardsOf_` DRAWS — the layout's moves and deletes included — or a card moved in sat past the last page and could not be reached (476). */
-/* A PAGE'S NAME FOR THE PAGER (730), whatever column drew it: its widget's name, else its card's title — a moved card is named where it went. */
-function pageName_(h) {
-  const m = /id="wgt-([^"]+)"/.exec(h);
-  const w = m && typeof anyWidgetOf_ === 'function' ? anyWidgetOf_(m[1]) : null;
-  if (w) return w.name || '';
-  const t = /<h3[^>]*>([^<]{1,80})<\/h3>/.exec(String(h || ''));
-  return t ? t[1].trim().replace(/&amp;/g, '&').replace(/&#39;|&#x27;/g, "'").replace(/&quot;/g, '"') : '';
-}
-/* A CARD COLUMN'S PAGER: a count, or (730) every page's name once a unit has been moved onto it, so the guest is named. */
-function cardCount_(col, raw, none) {
-  try {
-    if (typeof cardsOf_ !== 'function') return raw();
-    const L = typeof layoutNow_ === 'function' ? layoutNow_() : null, pages = cardsOf_(col);
-    const guests = L && (((L.cards || {})[col] || []).length || ((L.widgets || {})[col] || []).length);
-    return guests ? pages.map(pageName_) : pages.length;
-  } catch (e) { return none === undefined ? 1 : none; }
-}
 /* ---------- WIDGETS AS PAGES § */
 const PAGER = {
   /* POSTS ARE HOWEVER MANY THERE ARE, so this is a function rather than a list. § */
@@ -6496,31 +6364,6 @@ const PAGER = {
   /* ---------- THE FEED IS FOUR KINDS OF PAGE NOW, NOT TWO § */
   /* GUARDED, because shell.js is file five and collections.js is file twenty-one. § */
   /* THE SAME LIST THE COLUMN IS BUILT FROM, which is the rule every other entry here follows: § */
-  saved:  () => (typeof savedCards_ === 'function' ? savedCards_().length : 1),
-  /* NEVER 0, because the column always draws SOMETHING — the sentence saying nothing is spotlit is a page, and a count of nothing over a page that exists is a § */
-  spotlight: () => cardCount_('spotlight', () => (typeof spotlightCards_ === 'function' ? spotlightCards_().length : 1)),
-  /* AND THE SAME AGAIN FOR SETTINGS. § */
-  web: () => cardCount_('web', () => webProfilePages_().length),
-  students: () => cardCount_('students', () => peoplePages_('students').length),
-  parents: () => cardCount_('parents', () => peoplePages_('parents').length),
-  /* THE SHOP, COUNTED FROM `shopCards_`, the list `screen('shop')` draws. Never nought: the basket
-     is always page 0, and with nothing for sale the shop says so in a page of its own. */
-  shop: () => (typeof shopCards_ === 'function' ? shopCards_().length : 1),
-
-  /* ---------- AND `spotPages()` WENT FROM HERE, BECAUSE THE FEED STOPPED DRAWING IT § */
-  /* COUNTED FROM `feedColumn_`, the list `screen('feed')` draws, which now holds the camera as well — one page directly above the newest post. § */
-  feed:   () => (typeof window.feedColumn_ === 'function' ? [].concat(window.feedColumn_()) : ['']).map(() => ''),
-  /* ---------- THE REELS COLUMN HAD NO ENTRY HERE, AND THAT IS WHY IT MOVED DIFFERENTLY § */
-  reel:   () => (typeof window.reelPages_ === 'function' ? window.reelPages_() : ['']),
-  /* THE CAMERA, WHICH IS ONE PAGE AND IS COUNTED ANYWAY. § */
-  /* `make:` WAS HERE, counting the camera column's one card. The camera is a page of the feed
-     now and `PAGER.feed` counts it — see the note there. */
-  /* The controls, then the results. Named so the header says which page of how many — on a list
-     you are working through, that is the one thing a title cannot tell you and the number is
-     worth having. */
-  /* ---------- THE FIND PAGER COUNTS EVERY PAGE, NOT JUST THE RESULTS § */
-  /* A COUNT RATHER THAN A LIST OF NAMES, and it is the only entry that needs to be. § */
-  /* ---------- THE SAME GROUPS `screen('stuff')` BUILDS FROM, WHICH IS THIS TABLE'S OWN RULE § */
   stuff:  () => (typeof finderPageCount_ === 'function' ? finderPageCount_('stuff') : 1),
 };
 
@@ -6534,19 +6377,6 @@ function pagerNames(id) {
 /* ---------- WHERE EACH COLUMN OPENS § */
 /* A FUNCTION, NOT A NUMBER, and the Posts column is why. § */
 const PAGE_HOME = {
-  /* ---------- SPOTLIGHT IS WHAT THE COLUMN OPENS ON, WHEN THERE IS ONE § */
-  /* SAME RENAME AS `PAGER` ABOVE, and the same silent failure: § */
-  /* THE `USER ? 1 : 0` SKIPPED PAST THE ＋ CARD, which is no longer on this screen — so it now skips past the first festive card or the newest post instead, which § */
-  /* ---------- THE NEWEST POST, PAST THE CAMERA ABOVE IT § */
-  /* ---------- AND WHEN THERE IS NO POST, NOT THE CAMERA EITHER § */
-  feed:    () => {
-    if (typeof window.feedCamAt_ !== 'function') return 0;
-    /* THE NEWEST POST; with no post, the page after the camera, never the camera itself (489: camera first). */
-    const at = typeof window.feedPostsAt_ === 'function' ? window.feedPostsAt_() : window.feedCamAt_() + 1, n = pageCount('feed');
-    return n > at ? at : n > 1 && window.feedCamAt_() === 0 ? 1 : 0;
-  },
-  /* THE FIRST REEL (414), past the pages that lead it — the widgets and an admin's "+" (`REEL_LEAD`, posts.js). */
-  reel: () => (typeof window.REEL_LEAD === 'number' ? window.REEL_LEAD : 0),
 };
 /* ---------- THE TAB AND HOME-SCREEN ICON ARE THE REPO'S FILES (owner's logo, 6 Nov): a sheet `logo_square` still drives posts and avatars, never these. */
 function applyBrandIcon_() {
@@ -6804,12 +6634,6 @@ function aheadPick_(slowOk) {
   });
   return { job: best, slow: slow };
 }
-/* WHETHER ANYTHING IS LEFT TO BUILD — for the checks, which wait for it as they wait for `afterSlide_`. */
-function aheadBusy_() {
-  if (!(AHEAD.open || AHEAD.pre) || window.__aheadHold) return false;
-  if (AHEAD.booked || AHEAD.running) return true;
-  try { return aheadJobs_(false).length > 0; } catch (e) { return false; }
-}
 
 /* ---------- PAINT: A COLUMN MARKED `STALE`, DRAWN AGAIN BEFORE ANYBODY ARRIVES § */
 AHEAD_KINDS.push(() => TABS.filter(t => t.id !== AT && STALE[t.id] && $('s-' + t.id)).map(t => ({
@@ -6921,7 +6745,6 @@ function goPageHere_(id, to, instant, F) {
 function adoptMarks_() {
   /* LATER FILES (find-bundles, collections): not here when the second batch has not landed; `laterFiles_` adopts again once it does. */
   try { if (typeof adoptFavourites_ === 'function') adoptFavourites_(); } catch (e) { oops_(e, 'shell:adoptMarks_') }
-  try { if (typeof adoptSpotlight_ === 'function') adoptSpotlight_(); } catch (e) { oops_(e, 'shell:adoptMarks_') }
   /* AND THE LATEST ANSWER SENT FOR EACH QUESTION, from the account — onto the cards and into the boxes — and whatever this device has waiting to send goes up. § */
   try { if (typeof subAdopt_ === 'function') subAdopt_(); } catch (e) { oops_(e, 'shell:adoptMarks_') }
   /* AND WHAT THIS PERSON HAS WRITTEN ON THEIR OTHER DEVICES — once a visit, and whatever this device has
@@ -6984,7 +6807,6 @@ let PRESSED_ = null;
 
 /* A CALLER THAT KNOWS ITS CARD says so: `el` is inside it; `swap` makes the card BECOME the sheet (an editor). */
 let SHEET_HERE_ = null;
-function sheetHere_(el, swap) { SHEET_HERE_ = { el, swap: !!swap }; }
 
 const SHEET_HOSTS_ = '.post, .rc, .widget-slot, .cpn, .card, .pane';
 /* HELD BY REFERENCE: a card drawn again takes the sheet out with its old markup, and `sheetKeep_` puts it back. */
@@ -7473,31 +7295,6 @@ function toast(msg) {
 /* ---------- A CANVAS SHARED AS A PNG (413) ----------
    The share sheet with the file; else a download, the link copied. Resolves shared, saved or cancelled.
    fix-profile-png's `tutorPngHand_` does the same: keep one at the merge. */
-function shareCanvasPng_(canvas, filename, text) {
-  const name = String(filename || 'family.png');
-  const words = String(text || '');
-  const blobOf = () => new Promise((ok, no) => {
-    try { canvas.toBlob(b => (b ? ok(b) : no(new Error('empty picture'))), 'image/png'); } catch (e) { no(e); }
-  });
-  return blobOf().then(blob => {
-    const file = typeof File === 'function' ? new File([blob], name, { type: 'image/png' }) : null;
-    let can = false;
-    try { can = !!(file && navigator.share && navigator.canShare && navigator.canShare({ files: [file] })); } catch (e) { can = false; }
-    const url = (words.match(/https?:\/\/\S+/) || [])[0] || '';
-    const save = () => {
-      const href = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = href; a.download = name;
-      document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(() => URL.revokeObjectURL(href), 60000);   // a download can start after the click returns
-      const copy = url && navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(url) : Promise.reject();
-      return copy.then(() => toast(text_('picture-saved-link-copied')), () => toast(text_('picture-saved'))).then(() => 'saved');
-    };
-    if (!can) return save();
-    return navigator.share({ files: [file], text: words })
-      .then(() => 'shared', e => (e && e.name === 'AbortError' ? 'cancelled' : save()));
-  });
-}
 
 /* ---------- SPEAKING, ONE VOICE FOR THE WHOLE APP (394, 453) ----------------------------------- */
 /* Imposter's Listen, a question's Read aloud and Hear it all speak through `say_`, so the voice choice, the
@@ -9081,7 +8878,6 @@ const kcLevelBody_ = (t, L) => { const s = L.subjects, n = L.tutors.length;
 /* A VENUE'S ROOMS AS FACTS: seats, and the price unless the map's `childHides` took it (a child is told the seats and not the price, 398). */
 const kcVenueBody_ = (t, L) => [{ type: 'list', items: L.rooms.map(o => { const say = [o.seats ? 'up to ' + o.seats : '', 'price' in o ? (o.price ? fmtMoney_(o.price, 'hour') : 'free') : ''].filter(Boolean).join(' · ');
   return say ? { label: o.label, value: say } : null; }).filter(Boolean) }];
-const kcTutorNames_ = t => (Array.isArray(t.tutors) ? t.tutors : []).map(y => y && y.title).filter(Boolean);
 const kcListOf_ = v => (Array.isArray(v) ? v : []).filter(Boolean);
 /* ONE ITEM SHAPE (owner, 14 Nov, step 1; data/settings/item-shape.json, docs/item-shape.md): every item is { id, kind, name, tags, body, links }. */
 /* A migrated kind is only a mapping here: which columns are its words (`tags`) and its links, its card's look and picture. No builder of its own. */
@@ -9729,11 +9525,6 @@ const formLine_ = (label, box, cls) => cardBlock_({ type: 'field', look: cls || 
 /* A TICK: `a` is the checkbox's attributes, `say` the html beside the box. */
 const formTick_ = (a, say, cls, la) => cardBlock_({ type: 'group', tag: 'label', look: 'check' + (cls ? ' ' + cls : ''), attrs: cardAttrsOf_(la),
   blocks: [{ type: 'control', attrs: cardAttrsOf_('type="checkbox" ' + a) }, { type: 'group', tag: 'span', look: 'box' }], inner: say });
-/* A SLIDER WITH ITS TYPED TWIN: both carry `a` (their data- key), so dragging and typing write the same value. */
-function formSlider_(a, o) {
-  return formInput_(`type="range" ${a} data-noswipe min="${o.min}" max="${o.max}" step="${o.step}" value="${o.value}" aria-label="${esc(o.label)}"${o.id ? ` id="${o.id}"` : ''}`)
-    + formInput_(`type="number" class="pf-num" ${a} min="0"${o.numMax != null ? ` max="${o.numMax}"` : ''} step="${o.step}" value="${o.value}" inputmode="decimal" aria-label="${esc(o.label + ', typed')}"`);
-}
 /* A PHONE: the country-code menu and the number, side by side, saved as you type under `cc` and `no`. */
 function formPhone_(cc, no, ccOpts, noAttrs) {
   return formLine_('', formSelect_(`data-me="${cc}" aria-label="Country code"`, ccOpts))
@@ -9910,54 +9701,10 @@ function formGroupsOf_(spec, groups, o) {
 /* One card ends where the next begins — the one place they are unambiguously separated, and the
    reason these screens are written as one template and split rather than assembled from a list:
    the template is how they read. */
-const split_ = html => String(html).split(/(?=<div class="card|<h2)/).map(x => x.trim()).filter(Boolean);
-
-/** Every card on the You screen, in order. */
-function meBlocks() {
-  if (!USER) return split_(registerCard_());
-  return meRest_();
-}
 
 
 
-function meRest_() {
-  /* `rows` WAS HERE — Name, Role, Credits, Ticks, Email, Where. They are on `meCard` in cards.js
-     now, built from the same `USER` and `USER.profile` this read. */
 
-  /* THE PHOTOGRAPH, not the figure. § */
-  /* A PHOTOGRAPH IF THERE IS ONE, otherwise the figure. § */
-  /* ---------- YOUR FACE AND YOUR NAME ARE ON YOUR CARD, NOT HERE § */
-  return split_(`
-    ${/* `installCard()` WAS HERE, "second, and that is the whole point of where it is" — and this column had stopped being drawn, so it was second on a page nobody § */
-          ''}
-
-    ${/* `Your figure` WAS A TILE ON YOUR CARD and is the last card of Settings now. § */
-          ''}
-
-    ${/* ---------- END OF THE PROFILE CARD § */
-          ''}
-    ${/* ---------- THE WEEK, ON A PANE OF ITS OWN § */
-          ''}
-    ${ME_SPLIT}
-    ${/* `Your week` WAS A CARD HERE, then a tool in the drawer, and is the Timetable's now — the
-          booked sessions are drawn into that week, locked. See the note where it stood in map.js. */''}
-    ${ME_SPLIT}
-    ${/* ---------- SOMEBODY WANTS TO ADD YOU TO THEIR FAMILY § */
-          ''}
-    ${(DATA.claims || []).map(claimCard_).join('')}
-
-    ${/* ---------- AND THE OTHER END OF IT § */
-          ''}
-    ${/* `Add your child` AND `Edit your details` ARE TILES ON YOUR CARD NOW — one mark each, in the row under your own face. § */
-          ''}
-
-    ${/* ---------- `What needs fixing` AND `Tell someone` WERE HERE § */
-          ''}
-
-    ${/* ---------- THE SECOND `Sign out` WAS HERE § */
-          ''}
-    ${/* ---------- THE VERSION CARD IS GONE FROM THE COLUMN § */
-          ''}`);}
 
 /* ---------- THE BUILD STAMPS, FOR WHEN SOMETHING HAS CHANGED AND HAS NOT § */
 /* THE BUILD CARD IS ITS LINES, so they are no grey clutter (A+): `build-said` keeps them past the rule that hides a card's grey lines. */
@@ -9975,12 +9722,6 @@ function versionSaid_() {
 /* ---------- APPLY TO TEACH (400): Staff only by application and an admin's yes ----------
    On You, for a signed-in adult who is not staff yet; no date of birth is underage (450), so the card asks for it. */
 const APP_SUBJECT_ROWS = 3;
-const APP_STATUS_LINE = {
-  new: text_('your-application-to-teach-is-with'),
-  interview: text_('we-would-like-to-talk-to'),
-  approved: text_('your-application-to-teach-was-approved'),
-  declined: text_('your-application-to-teach-was-not'),
-};
 /* WHOLE YEARS FROM A PROFILE'S DATE OF BIRTH (or an `age` field), or null when it says neither. */
 function profileAge_(p) {
   const q = p || {};
@@ -10103,18 +9844,7 @@ on('apply-send', el => {
 /* THE MARK BETWEEN THE TWO HALVES of the You screen. A comment in the markup: it survives being
    built into a string, it cannot be mistaken for content, and it renders as nothing if it ever
    escapes. */
-const ME_SPLIT = '<!--me-split-->';
 
-const mePages = () => {
-  const all = meBlocks().join('');
-  /* PROFILE, then ACCOUNT, then MESSAGES. § */
-  /* SPLIT ON EVERY MARKER, NOT THE FIRST. § */
-  const pages = all.split(ME_SPLIT).map(x => x.trim()).filter(Boolean);
-
-  /* ---------- YOUR SESSIONS ARE YOURS, SO THEY ARE HERE § */
-
-  return pages.length ? pages : [all];
-};
 
 /* Drawn, then filled. `fillMessages` looks for `#msg-body` by id, so it can only run once this screen's markup is in the document — the same reason a widget's § */
 /* ---------- NOTHING IN THE APP ASKS ANYBODY TO INSTALL IT § */
@@ -10151,10 +9881,7 @@ on('signout', () => {
   try {
     if (typeof subDrain_ === 'function') subs = subDrain_(USER && USER.personId, tok, typeof answersCan_ === 'function' && answersCan_('submitAnswer'));
   } catch (err) { /* nothing to send: the waiting answers stay on the device for next time */ }
-  /* AND THE NOTEPAD, THE DOCKET AND THE TIMETABLE, still inside their moment before they go up (`keepDue_`, data.js) — each is sent only while somebody is signed § */
-  let due = Promise.resolve();
-  try { if (typeof keepFlush_ === 'function') due = keepFlush_(); } catch (err) { oops_(err, 'me:googleSignedIn_') }
-  Promise.all([Promise.resolve(last).catch(() => {}), due, Promise.resolve(subs).catch(() => {})]).then(() => { try { if (tok) api({ action: 'signOut', token: tok }); } catch (err) { /* sign out goes on even if the server call cannot be made */ } });
+  Promise.all([Promise.resolve(last).catch(() => {}), Promise.resolve(subs).catch(() => {})]).then(() => { try { if (tok) api({ action: 'signOut', token: tok }); } catch (err) { /* sign out goes on even if the server call cannot be made */ } });
   signedOut_();
   toast(text_('signed-out'));
 });
@@ -11434,15 +11161,6 @@ function apprenticePages_() {
 }
 /* APPRENTICE SETTINGS WAS A COLUMN; it is Find › Settings › Apprentice now (find-only.json), drawn from CARD_BUILD.apprentice. */
 
-/* ---------- WEB PROFILE (730): @family.'s own public card, from the brand tab, every line with its fallback ---------- */
-function webProfilePages_() {
-  const b = typeof window.matBrand === 'function' ? window.matBrand() : {};
-  const name = b.name || brand('name', '@family.'), logo = brandLogo_();
-  const lines = [brand('web_tagline', 'Tutoring for every age, at home and online.'), b.area ? 'Where: ' + b.area : '',
-    b.phone ? 'Phone: ' + b.phone : '', b.site ? 'Online: ' + b.site : ''].filter(Boolean);
-  return [rolesSet_('web-card', name, logo ? [{ type: 'figure', src: logo, alt: '', look: 'web-logo' }] : [])];
-}
-screen('web', () => pages('web', typeof cardsOf_ === 'function' ? cardsOf_('web') : webProfilePages_()));
 
 /* APPRENTICE PROFILE WAS A COLUMN (730); it is Find › Profiles › Apprentice now (find-only.json, `profileTypes_`). */
 
@@ -11811,13 +11529,6 @@ function peopleBelong_(col, family) {
   if (col === homeCol_()) return true;
   if (isTutorsCol_(col)) return !!(typeof cardMine_ === 'function' && cardMine_());
   return rel(Object.prototype.hasOwnProperty.call(PEOPLE_COL_LINK, col) ? PEOPLE_COL_LINK[col] : 'parent');
-}
-/* A PEOPLE COLUMN: signed out it says where to sign in; with nobody in it, its title and one line. */
-function peoplePages_(col) {
-  const title = tabLabel_(col, col);
-  if (!USER) return [signedOutCard_(title)];
-  const out = typeof accountPages_ === 'function' ? accountPages_(col) : [];
-  return out.length ? out : [rankOffCard_(title, 'Nobody to show here yet.', null, 'people-none')];
 }
 /* ---------- YOUR CARD ON YOUR ROLE'S SETTINGS COLUMN: ONLY ITS EDITING, A CARD PER THING (468) — never a preview; the person is drawn on the profile columns. */
 function ownCardSetPage_(setCol) {
@@ -12941,8 +12652,6 @@ function meSave_(el, auto) {
     .then(d => {
       /* THE SERVER'S OWN READING OF THE ROW, NOT WHAT WAS TYPED. § */
       W.profile = (d && d.profile) ? d.profile : Object.assign({}, W.profile || {}, fields);
-      /* AND THE PROGRESS COLUMN, whose journey card counts down to the two exam dates on About you (`progressRedraw_`, js/arcade.js) — not left to the § */
-      if (typeof progressRedraw_ === 'function') progressRedraw_();
       /* ON THE SHEET NOW, SO EACH FIELD SENT IS NO LONGER A DRAFT (`fieldHtml`; 317). */
       Object.keys(fields).forEach(f => { try { draftDrop_('set', f); } catch (e) { oops_(e, 'me:meSave_') } });
       if (d && d.name) W.name = d.name;
@@ -13097,7 +12806,6 @@ function profileRefresh_(loud, onOld) {
           try { land(() => { paint(c); placeCells('y', true, 0, c); }); } catch (e) { /* a screen gone before it lands is painted on its next draw */ }
       });
       /* AND THE PROGRESS COLUMN, the same rule: § */
-      if (typeof progressRedraw_ === 'function') { try { land(() => progressRedraw_()); } catch (e) { oops_(e, 'me:profileRefresh_') } }
       /* AND THE LIBRARY CARDS ON TOOLS, which are drawn from this copy and are a widget now, not a page this column repaints (docs/history/339). § */
       try { land(() => libCardsRedraw_()); } catch (e) { oops_(e, 'me:profileRefresh_') }
     })
@@ -13551,7 +13259,6 @@ function cardMine_() {
   if (!whose_() || typeof mineIs_ !== 'function') return null;
   return ((typeof DATA !== 'undefined' && DATA && DATA.tutors) || []).find(t => t && t.personId && mineIs_(t, whose_())) || null;
 }
-const cardHolds_ = () => !!USER && cardSent_().length > 0 && !!cardMine_();
 /* THE GROUPS WITH EVERY FIELD THE CARD EDITS TAKEN OUT, AND A GROUP LEFT EMPTY DROPPED — so for a tutor with a card About you, Photos, the rate, Qualifications § */
 function cardSettingsGroups_(groups, on) {
   on = new Set(on || cardFields_());
@@ -14261,7 +13968,6 @@ function cardSave_(el, auto) {
         if (d && d.name) W.name = d.name;
         if (W === USER) try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (x) { /* storage can be blocked; the app runs without it */ }
         /* YOUR OWN COPY CHANGED, and the Progress column's journey card is drawn from it — see `meSave_`. */
-        if (typeof progressRedraw_ === 'function') progressRedraw_();
       }
       cardPatchTutor_(e.pid, Object.assign({}, base, fields), fields);
       /* A PART LEFT OUT, HERE OR BY THE SERVER, IS SAID BESIDE WHAT WAS SAVED (620). */
@@ -14378,7 +14084,6 @@ const pplP_ = (look, text, more) => cardBlock_(Object.assign({ type: 'group', ta
 /* A HEADED PEOPLE CARD: its heading the name and one tag, its look and data on the card, its parts the one embed. */
 const pplCard_ = (look, name, parts, data) => renderCard({ kind: 'setting', look, name, tags: name ? [name] : [], data: data || {},
   body: [{ type: 'embed', tool: 'me-form', args: { draw: () => [].concat(parts).join('') } }] });
-const pplSelect_ = (attrs, options) => cardBlock_({ type: 'control', tag: 'select', attrs, options });
 function peopleAddPage_(col) {
   if (!peopleMay_()) return '';
   col = PEOPLE_ADD_[col] ? col : 'students';
@@ -15094,7 +14799,6 @@ function pic(url) {
 }
 /* A CLIP IS MARKED `#video` BY THE BACKEND THAT UPLOADED IT, because a Drive address names no type;
    an address typed in is a clip if it ends like one. */
-const postIsVideo_ = u => /#video$/i.test(u) || /\.(mp4|webm|mov|m4v)(?:[?#]|$)/i.test(u);
 /* THE ADDRESS A `<video>` IS POINTED AT. § */
 function postVidSrc_(u) {
   const bare = String(u || '').replace(/#video$/i, '');
@@ -15109,7 +14813,6 @@ const profileOf_ = id => { const r = id && ['people', 'tutors', 'family', 'stude
    base64 adds a third. Numbers a phone can post over a school's wifi, not limits anybody enforces
    past this card. */
 const CAM_VID_MAX = 20 * 1048576;
-const CAM_POST_MAX = 45 * 1048576;
 /* ONE FILE OR RECORDING, READY TO POST. § */
 function camItemOf_(file) {
   return new Promise(done => {
@@ -15784,14 +15487,6 @@ function widgetPagesOf_(kind) {
   const list = widgetsOf_(kind);
   return typeof layoutMergeWidgets_ === 'function' ? layoutMergeWidgets_(list) : list;
 }
-function widgetColumn_(kind) {
-  /* ANY UNIT ON ANY COLUMN (710): once layout.js is here a widget column is drawn as every column is, its widgets and any card moved onto it (`cardsOf_`). */
-  if (typeof cardsOf_ === 'function' && typeof LAYOUT_COL !== 'undefined' && LAYOUT_COL[kind]) return cardsOf_(LAYOUT_COL[kind]);
-  return widgetPagesOf_(kind)
-    /* ---------- THE WIDGET IS THE CARD. THERE IS NOTHING TO PRESS § */
-    /* ---------- AND THE NAME IS PRINTED ONCE § */
-    .map(w => widgetOnColumn_(w, true));
-}
 
 /* ---------- ONE WIDGET, ONE CARD, AND A STAR ON IT § */
 const WIDGET_KEY = w => 'w:' + String(w.id);
@@ -15824,42 +15519,10 @@ function widgetMergedOn_(m, own) {
     body: m.parts.map(w => ({ type: 'group', look: 'merged-part', blocks: [widgetSlot_(w, name)] })), tiles: widgetTiles_(top, own) });
 }
 
-/* ---------- THE SAVED COLUMN, WHICH THIS APP HAS HAD BEFORE § */
-function savedWidgets_() {
-  if (typeof isFav !== 'function') return [];
-  /* THROUGH `widgetFor_`. A star outlives the role that made it — `FAVS` is kept on the device
-     between payloads — so a flyer starred by an admin must not come back on the Saved column of
-     whoever is signed in next. */
-  /* `shop` TOO, since the basket moved there: a basket starred while it was a tool is the same
-     `w:cart` key, and it would have dropped off Saved the day it changed column. */
-  /* `reel` TOO (414): Videos and One more thing lead the Reels column now, and their stars are the same `w:` keys. */
-  return allWidgets().filter(w => (w.kind === 'tool' || w.kind === 'game' || w.kind === 'shop' || w.kind === 'reel')
-                               && isFav(WIDGET_KEY(w)))
-    .filter(widgetFor_);
-}
 
-function savedCards_() {
-  /* SIGNED OUT THERE IS NO LIST, because `FAVS` is this device's and `savedPages_` has always said
-     so. One sentence rather than an empty column — the `nothingHere` rule. */
-  if (typeof USER === 'undefined' || !USER) {
-    return [emptyCard_('Saved')];
-  }
-  const wgts = savedWidgets_().map(widgetOnColumn_);
-  const rest = typeof savedPages_ === 'function' ? savedPages_() : [];
-  /* ---------- A KEPT CARD IS DRAWN AS FIND DRAWS IT, NOT IN A BOX INSIDE THE PANE'S BOX § */
-  /* ---------- AND WHAT IS STILL COMING IS NOT "NOTHING KEPT" § */
-  const coming = (typeof awaiting_ === 'function' && awaiting_())
-    || (typeof LIBRARY_ROWS !== 'undefined' && LIBRARY_ROWS === null && !LIBRARY_FAILED);
-  const cards = wgts.concat(rest, coming ? [loading_()] : []);
-  if (cards.length) return cards;
-  return [emptyCard_('Saved')];
-}
 
 /* STARTED AND STOPPED LIKE THE OTHER TWO COLUMNS. A starred timer is a running timer, and a canvas
    loop behind a screen nobody is looking at is the flat battery `toolsStop_` already exists for. */
-function savedStart_(arriving) {
-  widgetsWake_(savedWidgets_(), 'saved', arriving);
-}
 
 /* ---------- AND THEN THEY ARE STARTED § */
 /* ONE ENTRY PER WIDGET, NOT ONE PER COPY: § */
@@ -15925,9 +15588,6 @@ function widgetsBack_(col, held) {
   });
 }
 
-function toolsStart_(kind, arriving) {
-  widgetsWake_(widgetsOf_(kind), kind, arriving);
-}
 
 /* ---------- A WIDGET THAT IS A FIND CARD (790): data/settings/widgets-in-find.json names a kind or an id, the id's row winning; before it comes, every tool and game ---------- */
 const FIND_WIDGET_KINDS = ['tool', 'game', 'shop'];
@@ -15954,11 +15614,8 @@ function finderWidgets_(col) {
 /* WHICH WIDGETS A COLUMN HOLDS, by its id — the lists `toolsStart_` and `savedStart_` start from, asked by `widgetsGlass_` of a column beside the one in front. § */
 /* `reel` (414): the widgets leading the Reels column, before the admin's "+" and the first reel (`reelLead_`, posts.js). */
 /* `stuff` (790): the tools and games are Find cards, started and stopped as a column's are. */
-const WIDGET_COLS = ['shop', 'stuff', 'saved', 'reel'];
+const WIDGET_COLS = ['stuff'];
 function widgetsOn_(col) {
-  if (col === 'saved') return savedWidgets_();
-  if (col === 'reel') return widgetsOf_('reel');
-  if (col === 'shop') return widgetsOf_('shop');
   if (col === 'stuff') return finderWidgets_(col);
   /* A WIDGET THE ADMIN MOVED ONTO A CARD COLUMN OR ONE OF THEIR OWN (710). */
   if (typeof layoutWidgetsIn_ === 'function' && typeof allWidgets === 'function') { const L = layoutNow_(); return L ? layoutWidgetsIn_(col, allWidgets(), L).filter(widgetFor_) : []; }
@@ -16243,25 +15900,7 @@ function widgetsBeforeSlide_(col) {
 }
 
 
-/* ---------- A WIDGET IS A SCREEN, NOT AN ITEM IN A LIST § */
-screen('saved', () => pages('saved', savedCards_()));
-/* THE SHOP WINDOW. Built like Saved and for the same reason — one card per thing, a pager that counts the same array the screen is built from, and a sentence § */
-/* MOVABLE SINCE 730: a card column like the profiles; the whole window is one unit (`spot:list`), moved by its first page's row. */
-screen('spotlight', () => pages('spotlight', typeof cardsOf_ === 'function' ? cardsOf_('spotlight') : spotlightCards_()));
-/* ---------- PROGRESS (435): ONE WIDGET PER THING, ONE LINE PER THING, EACH ITS TITLE ALONE WITH NOTHING TO SAY ---------- */
-/* ---------- YOUR JOURNEY, MOVED HERE FROM THE SETTINGS COLUMN § */
-/* A STUDENT'S CARD, AND THE ADMIN'S TO SEE IT — by rank (400), never the role string. */
-function mayJourney_() {
-  if (typeof rank_ !== 'function') return false;
-  return rank_() === 'student' || may_('admin');
-}
 /* THE EXAM DATES CHANGED UNDER THE COLUMN, so it is REDRAWN IF IT IS DRAWN — the rule `profileRefresh_` keeps for Settings, whose About you holds the same two § */
-function progressRedraw_() {
-  try {
-    /* COUNTDOWNS ARE A TOOLS WIDGET SINCE 466, for everyone; a date saved on About you repaints it there. */
-    if (typeof paintCountdowns_ === 'function') paintCountdowns_();
-  } catch (e) {}
-}
 
 /* ---------- COUNTDOWNS ---------- */
 /* WHEN EACH BIG EXAM SEASON STARTS, as MM-DD (or a whole YYYY-MM-DD for one year): the config tab's `exam_*_start` wins, these are the usual second week of May and mid-September. */
@@ -16272,109 +15911,10 @@ const PROG_EXAMS = [
   { id: 'alevel', name: 'A-level exams', key: 'exam_alevel_start', at: '05-11' }];
 /* SCHOOL HOLIDAYS WHEN THE SHEET'S `intervals` NAME NONE AHEAD: config `holiday_starts` ("MM-DD Name, …") wins; these are the usual London starts. */
 const PROG_HOLIDAYS = '10-26 October half-term, 12-19 Christmas holidays, 02-13 February half-term, 03-27 Easter holidays, 05-22 May half-term, 07-22 Summer holidays';
-const progressVars_ = () => { try { return (DATA && DATA.constants && DATA.constants.vars) || {}; } catch (e) { return {}; } };
 const progressToday_ = () => { const t = new Date(); t.setHours(0, 0, 0, 0); return t; };
-const progressDaysTo_ = d => Math.round((d - progressToday_()) / 864e5);
-/* THE NEXT TIME `MM-DD` (or a fixed YYYY-MM-DD) COMES ROUND, today included; `year` asks for that year's. */
-function progressWhen_(spec, year) {
-  const s = String(spec || '').trim();
-  let m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
-  if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
-  m = /^(\d{1,2})-(\d{1,2})$/.exec(s);
-  if (!m) return null;
-  const t = progressToday_();
-  let d = new Date(year || t.getFullYear(), +m[1] - 1, +m[2]);
-  if (!year && d < t) d = new Date(t.getFullYear() + 1, +m[1] - 1, +m[2]);
-  return d;
-}
-const progressExamAt_ = (e, year) => progressWhen_(String(progressVars_()[e.key] || '').trim() || e.at, year)
-  || progressWhen_(e.at, year);
-/* THE SCHOOL YEAR OFF A DATE OF BIRTH (England): Year N is N + 4 on the 1st of September the year began. */
-function progressSchoolYear_(dob) {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(dob || ''));
-  if (!m) return null;
-  const t = progressToday_();
-  const began = t.getMonth() >= 8 ? t.getFullYear() : t.getFullYear() - 1;
-  let age = began - +m[1];
-  if (+m[2] > 9 || (+m[2] === 9 && +m[3] > 1)) age--;
-  const y = age - 4;
-  return y >= 1 && y <= 13 ? { year: y, began: began } : null;
-}
-/* THE ONE BIG EXAM AHEAD: off the school year when there is a birthday, else off the level of a session booked. */
-function progressBigExam_() {
-  const prof = (USER && USER.profile) || {};
-  const sy = progressSchoolYear_(prof.date_of_birth);
-  const E = id => PROG_EXAMS.find(e => e.id === id);
-  const t = progressToday_();
-  if (sy) {
-    const y = sy.year, began = sy.began;
-    if (y >= 12) return { e: E('alevel'), d: progressExamAt_(E('alevel'), began + (13 - y) + 1) };
-    if (y >= 7) return { e: E('gcse'), d: progressExamAt_(E('gcse'), began + (11 - y) + 1) };
-    if (y === 6) {
-      const eleven = progressExamAt_(E('elevenplus'), began);
-      if (eleven && eleven >= t) return { e: E('elevenplus'), d: eleven };
-      return { e: E('sats'), d: progressExamAt_(E('sats'), began + 1) };
-    }
-    if (y >= 3) return { e: E('elevenplus'), d: progressExamAt_(E('elevenplus'), began + (6 - y)) };
-    return null;
-  }
-  const lv = (typeof myJobs_ === 'function' ? myJobs_() : []).map(j => String(j.level || '')).join(' ');
-  const id = /a-?level/i.test(lv) ? 'alevel' : /gcse/i.test(lv) ? 'gcse' : /11\s*\+|eleven/i.test(lv) ? 'elevenplus' : /sats|ks2/i.test(lv) ? 'sats' : '';
-  return id ? { e: E(id), d: progressExamAt_(E(id)) } : null;
-}
-/* THE NEXT HOLIDAY: a holiday row of the sheet's `intervals` ahead, else the day after a term ends, else `holiday_starts`. */
-function progressHoliday_() {
-  const t = progressToday_();
-  const ivs = (DATA && DATA.intervals) || [];
-  const at = [];
-  ivs.forEach(x => {
-    const from = typeof parseDMY === 'function' ? parseDMY(x.startDate) : null, to = typeof parseDMY === 'function' ? parseDMY(x.endDate) : null;
-    if (/holiday|half/i.test(String(x.kind || '')) && from && from >= t) at.push({ name: x.label || x.term || 'Holiday', d: from });
-    else if (to) { const n = new Date(to.getTime()); n.setDate(n.getDate() + 1); if (n >= t) at.push({ name: 'Holiday after ' + (x.label || x.term || 'term'), d: n }); }
-  });
-  if (!at.length) {
-    const list = String(progressVars_().holiday_starts || '').trim() || PROG_HOLIDAYS;
-    list.split(',').forEach(bit => {
-      const m = /^\s*(\d{1,2}-\d{1,2}|\d{4}-\d{2}-\d{2})\s+(.+?)\s*$/.exec(bit);
-      const d = m && progressWhen_(m[1]);
-      if (d) at.push({ name: m[2], d: d });
-    });
-  }
-  at.sort((a, b) => a.d - b.d);
-  return at[0] || null;
-}
 const progressDaysSaid_ = n => (n === 0 ? 'today' : n + (n === 1 ? ' day' : ' days'));
-/* THE ROWS, for anyone (466): the next holiday needs no account; the exam dates are your own when signed in. */
-function progressCountdownRows_() {
-  const rows = [];
-  if (typeof USER !== 'undefined' && USER) {
-    const prof = USER.profile || {};
-    /* THE TWO DATES TYPED ON ABOUT YOU, for a student or an admin, as before (`mayJourney_`). */
-    if (mayJourney_()) {
-      [['Small exam', prof.exam_small_date], ['Big exam', prof.exam_big_date]].forEach(([k, v]) => {
-        const d = progressWhen_(/^\d{4}-\d{2}-\d{2}$/.test(String(v || '')) ? v : '');
-        if (d && progressDaysTo_(d) >= 0) rows.push([k, progressDaysTo_(d)]);
-      });
-    }
-    const big = progressBigExam_();
-    if (big && big.d && progressDaysTo_(big.d) >= 0) rows.push([big.e.name, progressDaysTo_(big.d)]);
-  }
-  const hol = progressHoliday_();
-  if (hol) rows.push([hol.name, progressDaysTo_(hol.d)]);
-  return rows;
-}
 /* ---------- THE COUNTDOWNS WIDGET ON TOOLS (466): every copy by class, as the Saved column draws it too ---------- */
 /* DAYS TO GO BY DEFAULT; one tile shows each one's date instead (a safe press, owner 12 Nov). */
-let CD_DATES = false;
-function paintCountdowns_() {
-  const rows = progressCountdownRows_();
-  const when = n => { const d = progressToday_(); d.setDate(d.getDate() + n); return fmtDate_(d, 'day') + ' ' + fmtDate_(d); };
-  const blocks = rows.length ? rows.map(([k, n]) => progRow_(k, CD_DATES ? when(n) : progressDaysSaid_(n))).concat({ type: 'tiles',
-    tiles: [{ icon: CD_DATES ? 'speed' : 'table', label: CD_DATES ? 'Days' : 'Dates', note: CD_DATES ? 'how many to go' : 'the day itself', act: 'cd-dates', pressed: CD_DATES }] })
-    : [{ type: 'group', tag: 'p', look: 'note', text: 'Nothing to count down to yet.' }];
-  document.querySelectorAll('.cd-box').forEach(box => { box.innerHTML = cardBlocks_(blocks); });
-}
-on('cd-dates', () => { CD_DATES = !CD_DATES; paintCountdowns_(); });
 
 /* ---------- TERM DATES (491): THE YEAR AS INTERVALS — terms, half-terms and holidays, each with its real first and last day ---------- */
 /* The backend's `schoolYear` (booking.gs) in the browser, rule for rule: a term runs Monday to Friday, a holiday Saturday to Sunday; `check-terms` holds the two together. */
@@ -16844,25 +16384,7 @@ function drawFeed() {
   /* ---------- WHERE YOU GOT TO IS NOT KEPT ANY MORE § */
 }
 
-/* THE FACT'S CARD AND NOTHING ELSE — the widget's declared `draw`, for the builder (docs/history/341). § */
-function feedPaint_() {
-  const host = $('feed-screen');
-  if (!host) return false;
-  if (FEED_AT === null) FEED_AT = 0;
-  const it = feedItem(Math.max(0, FEED_AT));
-  if (!it) return false;
-  const html = (window.feedSlide || (() => ''))(it);
-  if (/<video\b/i.test(html)) return false;
-  host.innerHTML = html;
-  return true;
-}
 
-function initFeed() {
-  if (!$('feed-screen')) return;
-  /* EVERY SESSION STARTS AT THE FIRST CARD OF ITS OWN SHUFFLE — see `drawFeed` above and the long note in `feedShuffle`. § */
-  if (FEED_AT === null) FEED_AT = 0;
-  drawFeed();
-}
 
 /* TAP FOR THE NEXT, and the left third for the one before — the gesture stories taught everybody, and it costs one line more than a tap that only goes forward. § */
 on('feed-tap', (el, e) => {
@@ -16873,17 +16395,6 @@ on('feed-tap', (el, e) => {
 });
 
 
-function paintTimer() {
-  const el = $('timer-display');
-  if (!el) return;
-  const m = Math.floor(timerState.left / 60), s = timerState.left % 60;
-  el.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-  /* Red in the last minute. The one moment the number has to be findable from across a room, and
-     the only thing on this screen allowed to be red. */
-  el.classList.toggle('bad', timerState.left > 0 && timerState.left <= 60);
-  const btn = $('timer-toggle');
-  if (btn) btn.textContent = timerState.running ? '❚❚' : '▶';
-}
 
 
 let flappyState = null;
@@ -17841,18 +17352,6 @@ function tileSet_(el, o) {
 }
 
 
-/* ---------- THE ADMIN ROW § */
-/* ---------- AND NOT ON ANYTHING FIND TEACHES WITH § */
-let SPOT_TILES = false;
-const adminLearn_ = x => typeof kindOf_ === 'function'
-  && asList_(kindOf_(x).group).indexOf('Learning') !== -1;
-function adminOpts_(x) {
-  if (adminLearn_(x) && !SPOT_TILES) return null;
-  /* INSIDE THE ONE ROW every card has (`tilesFor_`), in a group a screen reader names. */
-  return { icon: 'spot', label: isSpot(x.key) ? 'Spotlit' : 'Spotlight', tone: 'admin', on: isSpot(x.key), act: 'spot',
-    data: { key: x.key, kind: x.kind || 'item' } };
-}
-
 
 /* ---------- THE STAR, WHICH IS AN ACTION LIKE ANY OTHER § */
 function favOpts_(x) {
@@ -17982,27 +17481,20 @@ function cardRow_(x, flat) {
     + tile_([typeof speedOpts_ === 'function' ? speedOpts_(x) : null, typeof magCardOpts_ === 'function' ? magCardOpts_(x) : null, finderOpenOpts_(x)]) + (x.more || '')
     /* a question's padlock is its tool row's (`qtRow_`), so it has one, not two */
     + (x.key && !isMeCard_(x) && !isQ_(x) ? tile_(typeof gameLockOpts_ === 'function' ? gameLockOpts_('c:' + x.key) : null) : ''));
-  const admin = tileGroup_(adminOpts_(x), 'is-admin', 'Admin');
-  if (flat) return mine + admin;
-  if (!mine && !admin) return '';
-  /* YOUR OWN CARD IS ALL YOURS: nothing on it is split off as an admin's (the hub's gold means "terms to agree" there). */
-  return tileRow_(mine + admin, '', isMeCard_(x));
+  if (flat) return mine;
+  if (!mine) return '';
+  return tileRow_(mine, '', isMeCard_(x));
 }
 /* ---------- EVERY TILE SHOWN (420), ONE FLOW (487): nothing hides behind a "More" -- "I DONT LIKE POP UP MENUS" (420). */
 const TILE_RE_ = /<(button|a)\b[^>]*\bclass="tile\b[^"]*"[^>]*>[\s\S]*?<\/\1>/g;
 /* AN ADMIN'S OR OWNER'S TILE is one drawn in the admin or danger tone; these lead their group in this order, a danger tile last. */
-const TILE_ADMIN_ORDER_ = ['card-edit', 'spot', 'set-listed'];
+const TILE_ADMIN_ORDER_ = ['card-edit', 'set-listed'];
 const tileIsAdmin_ = t => /\bclass="tile\b[^"]*\bis-(admin|danger)\b/.test(t);
 const tileAct_ = t => (t.match(/\bdata-do="([^"]*)"/) || [])[1] || '';
 function tileAdminRank_(t) {
   if (/\bclass="tile\b[^"]*\bis-danger\b/.test(t)) return 99;
   const i = TILE_ADMIN_ORDER_.indexOf(tileAct_(t));
   return i === -1 ? TILE_ADMIN_ORDER_.length : i;
-}
-/* A NAMED GROUP OF tile_'s TILES (an admin's, a widget's keep); '' when none is drawn, so no empty group is left. */
-function tileGroup_(opts, cls, label) {
-  const h = tile_(opts);
-  return h ? `<span class="tile-group${cls ? ' ' + cls : ''}"${label ? ` role="group" aria-label="${esc(label)}"` : ''}>${h}</span>` : '';
 }
 function tileRow_(html, cls, own) {
   const src = String(html || '');
@@ -18162,27 +17654,6 @@ function jobAdminOpts_(j, stage, accepted) {
     { icon: 'bin', label: 'Delete', tone: 'danger', note: 'ends it for everybody', act: 'job-delete', data: { id: id } }];
 }
 
-/* ---------- WHAT YOU CAN DO ABOUT A POST § */
-function postOpts_(p) {
-  const id = String((p && p.id) || '');
-  if (!id) return null;
-  const admin = typeof may_ === 'function' && may_('admin');
-  const approve = { icon: 'tick', label: 'Approve', tone: 'buy', note: 'everyone sees it', act: 'post-approve', data: { id: id, on: '1' } };
-  return [{ icon: 'share', label: 'Share', note: 'as a picture', act: 'share', data: { id: id } },
-    /* WAITING (413): the admin decides on the post itself; ALREADY DECLINED: only the way back. */
-    (p.waiting || p.refused) && admin ? approve : null,
-    p.waiting && admin ? { icon: 'close', label: 'Decline', note: 'stays hidden', act: 'post-approve', data: { id: id, on: '' } } : null,
-    p.waiting && p.mine && !admin ? { icon: 'edit', label: 'Edit', note: 'until it is approved', act: 'post-edit', data: { id: id } } : null,
-    /* UP IS FINAL (413): nobody changes the words; an admin still pins it or fixes its date. */
-    admin && !p.waiting && !p.refused ? { icon: 'edit', label: text_('pin-or-date'), act: 'post-edit', data: { id: id } } : null];
-}
-/* THE POST'S ROW: its options, the one Suggest tile (your own too, 720), then Delete for an admin or its author. */
-function postRow_(p) {
-  const id = String((p && p.id) || '');
-  if (!id) return '';
-  const del = typeof may_ === 'function' && may_('admin') || p.mine ? { icon: 'bin', label: 'Delete', tone: 'danger', note: 'takes it off the feed', act: 'post-delete', data: { id: id } } : null;
-  return tileRow_(tile_(postOpts_(p)) + (typeof suggestOpts_ === 'function' ? tile_(suggestOpts_('post', id, String(p.title || p.body || '').slice(0, 80))) : '') + tile_(del));
-}
 
 on('noop', () => {});
 
@@ -18380,7 +17851,6 @@ function missingBody_() {
 if (typeof on === 'function') on('miss-all', () => { MISSING.all = !MISSING.all; missingRepaint_(); });
 /* THE OPTIMISER'S BLOCKS WITH WHAT'S MISSING UNDER THEM (one card); `#miss-body` is what the list's arrival fills again. */
 const missingBox_ = () => { const body = missingBody_(); return { type: 'group', id: 'miss-body', attrs: { 'aria-busy': missingWaits_() ? 'true' : null }, blocks: body }; };
-const missingHead_ = look => ({ type: 'msgHead', look, text: 'What’s missing' });
 function missingCard_() {
   return healthCardSpec_([missingBox_()], 'miss-card', 'What’s missing');
 }

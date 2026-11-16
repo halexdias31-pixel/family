@@ -4,7 +4,6 @@ const pplP_ = (look, text, more) => cardBlock_(Object.assign({ type: 'group', ta
 /* A HEADED PEOPLE CARD: its heading the name and one tag, its look and data on the card, its parts the one embed. */
 const pplCard_ = (look, name, parts, data) => renderCard({ kind: 'setting', look, name, tags: name ? [name] : [], data: data || {},
   body: [{ type: 'embed', tool: 'me-form', args: { draw: () => [].concat(parts).join('') } }] });
-const pplSelect_ = (attrs, options) => cardBlock_({ type: 'control', tag: 'select', attrs, options });
 function peopleAddPage_(col) {
   if (!peopleMay_()) return '';
   col = PEOPLE_ADD_[col] ? col : 'students';

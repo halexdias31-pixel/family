@@ -6,7 +6,6 @@
 function adoptMarks_() {
   /* LATER FILES (find-bundles, collections): not here when the second batch has not landed; `laterFiles_` adopts again once it does. */
   try { if (typeof adoptFavourites_ === 'function') adoptFavourites_(); } catch (e) { oops_(e, 'shell:adoptMarks_') }
-  try { if (typeof adoptSpotlight_ === 'function') adoptSpotlight_(); } catch (e) { oops_(e, 'shell:adoptMarks_') }
   /* AND THE LATEST ANSWER SENT FOR EACH QUESTION, from the account — onto the cards and into the boxes — and whatever this device has waiting to send goes up. § */
   try { if (typeof subAdopt_ === 'function') subAdopt_(); } catch (e) { oops_(e, 'shell:adoptMarks_') }
   /* AND WHAT THIS PERSON HAS WRITTEN ON THEIR OTHER DEVICES — once a visit, and whatever this device has
@@ -69,7 +68,6 @@ let PRESSED_ = null;
 
 /* A CALLER THAT KNOWS ITS CARD says so: `el` is inside it; `swap` makes the card BECOME the sheet (an editor). */
 let SHEET_HERE_ = null;
-function sheetHere_(el, swap) { SHEET_HERE_ = { el, swap: !!swap }; }
 
 const SHEET_HOSTS_ = '.post, .rc, .widget-slot, .cpn, .card, .pane';
 /* HELD BY REFERENCE: a card drawn again takes the sheet out with its old markup, and `sheetKeep_` puts it back. */
@@ -558,31 +556,6 @@ function toast(msg) {
 /* ---------- A CANVAS SHARED AS A PNG (413) ----------
    The share sheet with the file; else a download, the link copied. Resolves shared, saved or cancelled.
    fix-profile-png's `tutorPngHand_` does the same: keep one at the merge. */
-function shareCanvasPng_(canvas, filename, text) {
-  const name = String(filename || 'family.png');
-  const words = String(text || '');
-  const blobOf = () => new Promise((ok, no) => {
-    try { canvas.toBlob(b => (b ? ok(b) : no(new Error('empty picture'))), 'image/png'); } catch (e) { no(e); }
-  });
-  return blobOf().then(blob => {
-    const file = typeof File === 'function' ? new File([blob], name, { type: 'image/png' }) : null;
-    let can = false;
-    try { can = !!(file && navigator.share && navigator.canShare && navigator.canShare({ files: [file] })); } catch (e) { can = false; }
-    const url = (words.match(/https?:\/\/\S+/) || [])[0] || '';
-    const save = () => {
-      const href = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = href; a.download = name;
-      document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(() => URL.revokeObjectURL(href), 60000);   // a download can start after the click returns
-      const copy = url && navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(url) : Promise.reject();
-      return copy.then(() => toast(text_('picture-saved-link-copied')), () => toast(text_('picture-saved'))).then(() => 'saved');
-    };
-    if (!can) return save();
-    return navigator.share({ files: [file], text: words })
-      .then(() => 'shared', e => (e && e.name === 'AbortError' ? 'cancelled' : save()));
-  });
-}
 
 /* ---------- SPEAKING, ONE VOICE FOR THE WHOLE APP (394, 453) ----------------------------------- */
 /* Imposter's Listen, a question's Read aloud and Hear it all speak through `say_`, so the voice choice, the

@@ -4,7 +4,6 @@ function cardMine_() {
   if (!whose_() || typeof mineIs_ !== 'function') return null;
   return ((typeof DATA !== 'undefined' && DATA && DATA.tutors) || []).find(t => t && t.personId && mineIs_(t, whose_())) || null;
 }
-const cardHolds_ = () => !!USER && cardSent_().length > 0 && !!cardMine_();
 /* THE GROUPS WITH EVERY FIELD THE CARD EDITS TAKEN OUT, AND A GROUP LEFT EMPTY DROPPED — so for a tutor with a card About you, Photos, the rate, Qualifications § */
 function cardSettingsGroups_(groups, on) {
   on = new Set(on || cardFields_());
@@ -714,7 +713,6 @@ function cardSave_(el, auto) {
         if (d && d.name) W.name = d.name;
         if (W === USER) try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (x) { /* storage can be blocked; the app runs without it */ }
         /* YOUR OWN COPY CHANGED, and the Progress column's journey card is drawn from it — see `meSave_`. */
-        if (typeof progressRedraw_ === 'function') progressRedraw_();
       }
       cardPatchTutor_(e.pid, Object.assign({}, base, fields), fields);
       /* A PART LEFT OUT, HERE OR BY THE SERVER, IS SAID BESIDE WHAT WAS SAVED (620). */

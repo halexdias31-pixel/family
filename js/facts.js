@@ -167,26 +167,6 @@ function factsNow_() {
 
 const sheetFacts_ = () => ((typeof DATA !== 'undefined' && DATA.facts) || []);
 
-/* ---------- THE SHEET WINS PER LIST, NOT WHOLESALE § */
-/* ---------- ONLY WHAT A `<video>` CAN PLAY, AND IN AN ORDER DEALT ONCE PER OPEN § */
-const CLIP_DEAL = new Map();
-function clipDealt_(list) {
-  const key = f => {
-    const c = String(f.clip);
-    if (!CLIP_DEAL.has(c)) CLIP_DEAL.set(c, Math.random());
-    return CLIP_DEAL.get(c);
-  };
-  return list.slice().sort((a, b) => key(a) - key(b));
-}
-function clipsNow_() {
-  const ok = f => f && f.clip && (typeof window.clipPlayable_ !== 'function' || window.clipPlayable_(f.clip));
-  const said = sheetFacts_().filter(ok);
-  /* AND AN ADMIN'S OWN REELS OVER THEM, from the `media` tab (404). */
-  const base = said.length ? said : factsBuilt_().filter(ok);
-  const all = window.mediaReelsOver_ ? window.mediaReelsOver_(base) : base;
-  /* AND ONLY WHAT THIS VIEWER IS OLD ENOUGH FOR (406). */
-  return clipDealt_(window.mediaAgeOk_ ? all.filter(f => window.mediaAgeOk_(f.age)) : all);
-}
 
 /* THE COMPUTED GENERATORS lived here — times tables, factors, squares, percentages. § */
 

@@ -159,8 +159,6 @@ function workVerdictSay_(v) {
   const m = /^ai:(\d+)\/(\d+)$/.exec(String(v || ''));
   return m ? m[1] + ' of ' + m[2] + ' by AI' : 'saved, not marked';
 }
-/* A BOX'S PAGES, made if missing -- for a check that cannot run the phone's canvas shrink. */
-function workPics_(k) { return WORK_PICS[k] || (WORK_PICS[k] = []); }
 
 /* ---------- THE PHOTOS PERSIST (owner, 16 Nov): in the part's one record on this device (`partRec_`, field `photos`) and on the
    account, as the student's own Work on file (workfile.gs), one row per part named by its answer key -- so coming back to the
@@ -169,7 +167,6 @@ const WORK_TAG = 'Working ';
 const workTitle_ = k => (WORK_TAG + (typeof ansServerKey_ === 'function' ? ansServerKey_(k) : k)).slice(0, 80);
 const workRecKey_ = k => partKeyOfAns_(k);
 let WORK_ROWS = null;
-const WORK_SYNC = new Map();
 /* WORK_PICS FILLED FROM THE RECORD the first time a box is drawn this visit; then from the account where the device has none */
 function workLoad_(k) {
   if (!k || WORK_PICS[k]) return;
@@ -203,13 +200,7 @@ function workKeepHere_(k) {
   const urls = (WORK_PICS[k] || []).map(p => p.url);
   partRecPutAt_(workRecKey_(k), 'photos', urls.length ? urls : null);
 }
-/* KEPT AS THEY CHANGE: here at once; to the account a moment later, the old row deleted once the new one is saved */
-function workKeep_(k) {
-  workKeepHere_(k);
-  if (!workSignedIn_() || typeof api !== 'function') return;
-  clearTimeout(WORK_SYNC.get(k));
-  WORK_SYNC.set(k, setTimeout(() => workSend_(k), 1200));
-}
+const WORK_SYNC = new Map();
 function workSend_(k) {
   const pages = (WORK_PICS[k] || []).map(p => p.url);
   const old = partRecAt_(workRecKey_(k)).photoFile || '';
@@ -224,3 +215,10 @@ function workSend_(k) {
     })
     .catch(() => workSay_(k, 'Could not reach the server — the photos are kept on this device'));
 }
+function workKeep_(k) {
+  workKeepHere_(k);
+  if (!workSignedIn_() || typeof api !== 'function') return;
+  clearTimeout(WORK_SYNC.get(k));
+  WORK_SYNC.set(k, setTimeout(() => workSend_(k), 1200));
+}
+

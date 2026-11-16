@@ -670,7 +670,6 @@ function sureBack_(el) {
 }
 
 let FEED_AT = null;
-let timerState = { total: 25*60, left: 25*60, running: false, tick: null };
 let FEED_DECK = [];
 let FEED_SEEN = [];
 let FEED_PASS = 0;

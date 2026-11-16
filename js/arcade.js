@@ -36,14 +36,6 @@ function widgetPagesOf_(kind) {
   const list = widgetsOf_(kind);
   return typeof layoutMergeWidgets_ === 'function' ? layoutMergeWidgets_(list) : list;
 }
-function widgetColumn_(kind) {
-  /* ANY UNIT ON ANY COLUMN (710): once layout.js is here a widget column is drawn as every column is, its widgets and any card moved onto it (`cardsOf_`). */
-  if (typeof cardsOf_ === 'function' && typeof LAYOUT_COL !== 'undefined' && LAYOUT_COL[kind]) return cardsOf_(LAYOUT_COL[kind]);
-  return widgetPagesOf_(kind)
-    /* ---------- THE WIDGET IS THE CARD. THERE IS NOTHING TO PRESS § */
-    /* ---------- AND THE NAME IS PRINTED ONCE § */
-    .map(w => widgetOnColumn_(w, true));
-}
 
 /* ---------- ONE WIDGET, ONE CARD, AND A STAR ON IT § */
 const WIDGET_KEY = w => 'w:' + String(w.id);
@@ -76,42 +68,10 @@ function widgetMergedOn_(m, own) {
     body: m.parts.map(w => ({ type: 'group', look: 'merged-part', blocks: [widgetSlot_(w, name)] })), tiles: widgetTiles_(top, own) });
 }
 
-/* ---------- THE SAVED COLUMN, WHICH THIS APP HAS HAD BEFORE § */
-function savedWidgets_() {
-  if (typeof isFav !== 'function') return [];
-  /* THROUGH `widgetFor_`. A star outlives the role that made it — `FAVS` is kept on the device
-     between payloads — so a flyer starred by an admin must not come back on the Saved column of
-     whoever is signed in next. */
-  /* `shop` TOO, since the basket moved there: a basket starred while it was a tool is the same
-     `w:cart` key, and it would have dropped off Saved the day it changed column. */
-  /* `reel` TOO (414): Videos and One more thing lead the Reels column now, and their stars are the same `w:` keys. */
-  return allWidgets().filter(w => (w.kind === 'tool' || w.kind === 'game' || w.kind === 'shop' || w.kind === 'reel')
-                               && isFav(WIDGET_KEY(w)))
-    .filter(widgetFor_);
-}
 
-function savedCards_() {
-  /* SIGNED OUT THERE IS NO LIST, because `FAVS` is this device's and `savedPages_` has always said
-     so. One sentence rather than an empty column — the `nothingHere` rule. */
-  if (typeof USER === 'undefined' || !USER) {
-    return [emptyCard_('Saved')];
-  }
-  const wgts = savedWidgets_().map(widgetOnColumn_);
-  const rest = typeof savedPages_ === 'function' ? savedPages_() : [];
-  /* ---------- A KEPT CARD IS DRAWN AS FIND DRAWS IT, NOT IN A BOX INSIDE THE PANE'S BOX § */
-  /* ---------- AND WHAT IS STILL COMING IS NOT "NOTHING KEPT" § */
-  const coming = (typeof awaiting_ === 'function' && awaiting_())
-    || (typeof LIBRARY_ROWS !== 'undefined' && LIBRARY_ROWS === null && !LIBRARY_FAILED);
-  const cards = wgts.concat(rest, coming ? [loading_()] : []);
-  if (cards.length) return cards;
-  return [emptyCard_('Saved')];
-}
 
 /* STARTED AND STOPPED LIKE THE OTHER TWO COLUMNS. A starred timer is a running timer, and a canvas
    loop behind a screen nobody is looking at is the flat battery `toolsStop_` already exists for. */
-function savedStart_(arriving) {
-  widgetsWake_(savedWidgets_(), 'saved', arriving);
-}
 
 /* ---------- AND THEN THEY ARE STARTED § */
 /* ONE ENTRY PER WIDGET, NOT ONE PER COPY: § */
@@ -177,9 +137,6 @@ function widgetsBack_(col, held) {
   });
 }
 
-function toolsStart_(kind, arriving) {
-  widgetsWake_(widgetsOf_(kind), kind, arriving);
-}
 
 /* ---------- A WIDGET THAT IS A FIND CARD (790): data/settings/widgets-in-find.json names a kind or an id, the id's row winning; before it comes, every tool and game ---------- */
 const FIND_WIDGET_KINDS = ['tool', 'game', 'shop'];
@@ -206,11 +163,8 @@ function finderWidgets_(col) {
 /* WHICH WIDGETS A COLUMN HOLDS, by its id — the lists `toolsStart_` and `savedStart_` start from, asked by `widgetsGlass_` of a column beside the one in front. § */
 /* `reel` (414): the widgets leading the Reels column, before the admin's "+" and the first reel (`reelLead_`, posts.js). */
 /* `stuff` (790): the tools and games are Find cards, started and stopped as a column's are. */
-const WIDGET_COLS = ['shop', 'stuff', 'saved', 'reel'];
+const WIDGET_COLS = ['stuff'];
 function widgetsOn_(col) {
-  if (col === 'saved') return savedWidgets_();
-  if (col === 'reel') return widgetsOf_('reel');
-  if (col === 'shop') return widgetsOf_('shop');
   if (col === 'stuff') return finderWidgets_(col);
   /* A WIDGET THE ADMIN MOVED ONTO A CARD COLUMN OR ONE OF THEIR OWN (710). */
   if (typeof layoutWidgetsIn_ === 'function' && typeof allWidgets === 'function') { const L = layoutNow_(); return L ? layoutWidgetsIn_(col, allWidgets(), L).filter(widgetFor_) : []; }
@@ -495,25 +449,7 @@ function widgetsBeforeSlide_(col) {
 }
 
 
-/* ---------- A WIDGET IS A SCREEN, NOT AN ITEM IN A LIST § */
-screen('saved', () => pages('saved', savedCards_()));
-/* THE SHOP WINDOW. Built like Saved and for the same reason — one card per thing, a pager that counts the same array the screen is built from, and a sentence § */
-/* MOVABLE SINCE 730: a card column like the profiles; the whole window is one unit (`spot:list`), moved by its first page's row. */
-screen('spotlight', () => pages('spotlight', typeof cardsOf_ === 'function' ? cardsOf_('spotlight') : spotlightCards_()));
-/* ---------- PROGRESS (435): ONE WIDGET PER THING, ONE LINE PER THING, EACH ITS TITLE ALONE WITH NOTHING TO SAY ---------- */
-/* ---------- YOUR JOURNEY, MOVED HERE FROM THE SETTINGS COLUMN § */
-/* A STUDENT'S CARD, AND THE ADMIN'S TO SEE IT — by rank (400), never the role string. */
-function mayJourney_() {
-  if (typeof rank_ !== 'function') return false;
-  return rank_() === 'student' || may_('admin');
-}
 /* THE EXAM DATES CHANGED UNDER THE COLUMN, so it is REDRAWN IF IT IS DRAWN — the rule `profileRefresh_` keeps for Settings, whose About you holds the same two § */
-function progressRedraw_() {
-  try {
-    /* COUNTDOWNS ARE A TOOLS WIDGET SINCE 466, for everyone; a date saved on About you repaints it there. */
-    if (typeof paintCountdowns_ === 'function') paintCountdowns_();
-  } catch (e) {}
-}
 
 /* ---------- COUNTDOWNS ---------- */
 /* WHEN EACH BIG EXAM SEASON STARTS, as MM-DD (or a whole YYYY-MM-DD for one year): the config tab's `exam_*_start` wins, these are the usual second week of May and mid-September. */
@@ -524,109 +460,10 @@ const PROG_EXAMS = [
   { id: 'alevel', name: 'A-level exams', key: 'exam_alevel_start', at: '05-11' }];
 /* SCHOOL HOLIDAYS WHEN THE SHEET'S `intervals` NAME NONE AHEAD: config `holiday_starts` ("MM-DD Name, …") wins; these are the usual London starts. */
 const PROG_HOLIDAYS = '10-26 October half-term, 12-19 Christmas holidays, 02-13 February half-term, 03-27 Easter holidays, 05-22 May half-term, 07-22 Summer holidays';
-const progressVars_ = () => { try { return (DATA && DATA.constants && DATA.constants.vars) || {}; } catch (e) { return {}; } };
 const progressToday_ = () => { const t = new Date(); t.setHours(0, 0, 0, 0); return t; };
-const progressDaysTo_ = d => Math.round((d - progressToday_()) / 864e5);
-/* THE NEXT TIME `MM-DD` (or a fixed YYYY-MM-DD) COMES ROUND, today included; `year` asks for that year's. */
-function progressWhen_(spec, year) {
-  const s = String(spec || '').trim();
-  let m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
-  if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
-  m = /^(\d{1,2})-(\d{1,2})$/.exec(s);
-  if (!m) return null;
-  const t = progressToday_();
-  let d = new Date(year || t.getFullYear(), +m[1] - 1, +m[2]);
-  if (!year && d < t) d = new Date(t.getFullYear() + 1, +m[1] - 1, +m[2]);
-  return d;
-}
-const progressExamAt_ = (e, year) => progressWhen_(String(progressVars_()[e.key] || '').trim() || e.at, year)
-  || progressWhen_(e.at, year);
-/* THE SCHOOL YEAR OFF A DATE OF BIRTH (England): Year N is N + 4 on the 1st of September the year began. */
-function progressSchoolYear_(dob) {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(dob || ''));
-  if (!m) return null;
-  const t = progressToday_();
-  const began = t.getMonth() >= 8 ? t.getFullYear() : t.getFullYear() - 1;
-  let age = began - +m[1];
-  if (+m[2] > 9 || (+m[2] === 9 && +m[3] > 1)) age--;
-  const y = age - 4;
-  return y >= 1 && y <= 13 ? { year: y, began: began } : null;
-}
-/* THE ONE BIG EXAM AHEAD: off the school year when there is a birthday, else off the level of a session booked. */
-function progressBigExam_() {
-  const prof = (USER && USER.profile) || {};
-  const sy = progressSchoolYear_(prof.date_of_birth);
-  const E = id => PROG_EXAMS.find(e => e.id === id);
-  const t = progressToday_();
-  if (sy) {
-    const y = sy.year, began = sy.began;
-    if (y >= 12) return { e: E('alevel'), d: progressExamAt_(E('alevel'), began + (13 - y) + 1) };
-    if (y >= 7) return { e: E('gcse'), d: progressExamAt_(E('gcse'), began + (11 - y) + 1) };
-    if (y === 6) {
-      const eleven = progressExamAt_(E('elevenplus'), began);
-      if (eleven && eleven >= t) return { e: E('elevenplus'), d: eleven };
-      return { e: E('sats'), d: progressExamAt_(E('sats'), began + 1) };
-    }
-    if (y >= 3) return { e: E('elevenplus'), d: progressExamAt_(E('elevenplus'), began + (6 - y)) };
-    return null;
-  }
-  const lv = (typeof myJobs_ === 'function' ? myJobs_() : []).map(j => String(j.level || '')).join(' ');
-  const id = /a-?level/i.test(lv) ? 'alevel' : /gcse/i.test(lv) ? 'gcse' : /11\s*\+|eleven/i.test(lv) ? 'elevenplus' : /sats|ks2/i.test(lv) ? 'sats' : '';
-  return id ? { e: E(id), d: progressExamAt_(E(id)) } : null;
-}
-/* THE NEXT HOLIDAY: a holiday row of the sheet's `intervals` ahead, else the day after a term ends, else `holiday_starts`. */
-function progressHoliday_() {
-  const t = progressToday_();
-  const ivs = (DATA && DATA.intervals) || [];
-  const at = [];
-  ivs.forEach(x => {
-    const from = typeof parseDMY === 'function' ? parseDMY(x.startDate) : null, to = typeof parseDMY === 'function' ? parseDMY(x.endDate) : null;
-    if (/holiday|half/i.test(String(x.kind || '')) && from && from >= t) at.push({ name: x.label || x.term || 'Holiday', d: from });
-    else if (to) { const n = new Date(to.getTime()); n.setDate(n.getDate() + 1); if (n >= t) at.push({ name: 'Holiday after ' + (x.label || x.term || 'term'), d: n }); }
-  });
-  if (!at.length) {
-    const list = String(progressVars_().holiday_starts || '').trim() || PROG_HOLIDAYS;
-    list.split(',').forEach(bit => {
-      const m = /^\s*(\d{1,2}-\d{1,2}|\d{4}-\d{2}-\d{2})\s+(.+?)\s*$/.exec(bit);
-      const d = m && progressWhen_(m[1]);
-      if (d) at.push({ name: m[2], d: d });
-    });
-  }
-  at.sort((a, b) => a.d - b.d);
-  return at[0] || null;
-}
 const progressDaysSaid_ = n => (n === 0 ? 'today' : n + (n === 1 ? ' day' : ' days'));
-/* THE ROWS, for anyone (466): the next holiday needs no account; the exam dates are your own when signed in. */
-function progressCountdownRows_() {
-  const rows = [];
-  if (typeof USER !== 'undefined' && USER) {
-    const prof = USER.profile || {};
-    /* THE TWO DATES TYPED ON ABOUT YOU, for a student or an admin, as before (`mayJourney_`). */
-    if (mayJourney_()) {
-      [['Small exam', prof.exam_small_date], ['Big exam', prof.exam_big_date]].forEach(([k, v]) => {
-        const d = progressWhen_(/^\d{4}-\d{2}-\d{2}$/.test(String(v || '')) ? v : '');
-        if (d && progressDaysTo_(d) >= 0) rows.push([k, progressDaysTo_(d)]);
-      });
-    }
-    const big = progressBigExam_();
-    if (big && big.d && progressDaysTo_(big.d) >= 0) rows.push([big.e.name, progressDaysTo_(big.d)]);
-  }
-  const hol = progressHoliday_();
-  if (hol) rows.push([hol.name, progressDaysTo_(hol.d)]);
-  return rows;
-}
 /* ---------- THE COUNTDOWNS WIDGET ON TOOLS (466): every copy by class, as the Saved column draws it too ---------- */
 /* DAYS TO GO BY DEFAULT; one tile shows each one's date instead (a safe press, owner 12 Nov). */
-let CD_DATES = false;
-function paintCountdowns_() {
-  const rows = progressCountdownRows_();
-  const when = n => { const d = progressToday_(); d.setDate(d.getDate() + n); return fmtDate_(d, 'day') + ' ' + fmtDate_(d); };
-  const blocks = rows.length ? rows.map(([k, n]) => progRow_(k, CD_DATES ? when(n) : progressDaysSaid_(n))).concat({ type: 'tiles',
-    tiles: [{ icon: CD_DATES ? 'speed' : 'table', label: CD_DATES ? 'Days' : 'Dates', note: CD_DATES ? 'how many to go' : 'the day itself', act: 'cd-dates', pressed: CD_DATES }] })
-    : [{ type: 'group', tag: 'p', look: 'note', text: 'Nothing to count down to yet.' }];
-  document.querySelectorAll('.cd-box').forEach(box => { box.innerHTML = cardBlocks_(blocks); });
-}
-on('cd-dates', () => { CD_DATES = !CD_DATES; paintCountdowns_(); });
 
 /* ---------- TERM DATES (491): THE YEAR AS INTERVALS — terms, half-terms and holidays, each with its real first and last day ---------- */
 /* The backend's `schoolYear` (booking.gs) in the browser, rule for rule: a term runs Monday to Friday, a holiday Saturday to Sunday; `check-terms` holds the two together. */

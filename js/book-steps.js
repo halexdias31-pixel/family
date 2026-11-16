@@ -32,10 +32,6 @@ function myJobPages_() {
 
 /* WHICH PAGE OF THE BOOKING COLUMN A SESSION IS ON, or -1. Page 0 is the form, so the receipts
    start at 1 — read off the same list that builds them rather than counted a second time. */
-function jobPageAt_(id) {
-  const n = myJobsOrdered_().findIndex(j => String((j && (j.id || j.jobId)) || '') === String(id));
-  return n < 0 ? -1 : n + 1;
-}
 
 /* THE RECEIPT FOR THE BOOKING JUST SENT — see `ASKED_JOB` above for why it is one and not a list. § */
 function askedBlock_() {
@@ -149,12 +145,6 @@ function jobOn_(j, date) {
   return (!from || d >= from) && (!to || d <= to);
 }
 
-/* The Monday of the week holding `when`, at midnight — the week every "this week" here means. */
-function mondayOf_(when) {
-  const d = new Date(when || Date.now()); d.setHours(0, 0, 0, 0);
-  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
-  return d;
-}
 
 /* ---------- REPAINTING BOOK WITHOUT LOSING THE PLACE § */
 /* ---------- REPAINTING THE BOOKER, WHEREVER IT IS § */

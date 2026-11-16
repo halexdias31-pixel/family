@@ -83,27 +83,6 @@ function jobAdminOpts_(j, stage, accepted) {
     { icon: 'bin', label: 'Delete', tone: 'danger', note: 'ends it for everybody', act: 'job-delete', data: { id: id } }];
 }
 
-/* ---------- WHAT YOU CAN DO ABOUT A POST § */
-function postOpts_(p) {
-  const id = String((p && p.id) || '');
-  if (!id) return null;
-  const admin = typeof may_ === 'function' && may_('admin');
-  const approve = { icon: 'tick', label: 'Approve', tone: 'buy', note: 'everyone sees it', act: 'post-approve', data: { id: id, on: '1' } };
-  return [{ icon: 'share', label: 'Share', note: 'as a picture', act: 'share', data: { id: id } },
-    /* WAITING (413): the admin decides on the post itself; ALREADY DECLINED: only the way back. */
-    (p.waiting || p.refused) && admin ? approve : null,
-    p.waiting && admin ? { icon: 'close', label: 'Decline', note: 'stays hidden', act: 'post-approve', data: { id: id, on: '' } } : null,
-    p.waiting && p.mine && !admin ? { icon: 'edit', label: 'Edit', note: 'until it is approved', act: 'post-edit', data: { id: id } } : null,
-    /* UP IS FINAL (413): nobody changes the words; an admin still pins it or fixes its date. */
-    admin && !p.waiting && !p.refused ? { icon: 'edit', label: text_('pin-or-date'), act: 'post-edit', data: { id: id } } : null];
-}
-/* THE POST'S ROW: its options, the one Suggest tile (your own too, 720), then Delete for an admin or its author. */
-function postRow_(p) {
-  const id = String((p && p.id) || '');
-  if (!id) return '';
-  const del = typeof may_ === 'function' && may_('admin') || p.mine ? { icon: 'bin', label: 'Delete', tone: 'danger', note: 'takes it off the feed', act: 'post-delete', data: { id: id } } : null;
-  return tileRow_(tile_(postOpts_(p)) + (typeof suggestOpts_ === 'function' ? tile_(suggestOpts_('post', id, String(p.title || p.body || '').slice(0, 80))) : '') + tile_(del));
-}
 
 on('noop', () => {});
 
