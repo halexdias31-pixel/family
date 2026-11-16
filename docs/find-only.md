@@ -9,14 +9,14 @@ That count can only go down.
 
 ## What is outside Find today (14 Nov)
 
-There are **10 columns** in the app: Find itself, and **9 others**. Before phase 1 there were 19
-columns, 18 of them outside Find; phase 2 (15 Nov) took Apprentice settings and phase 3 (15 Nov) Web settings and phase 4 (15 Nov) Parent settings, and phase 5 (16 Nov) Tutor, Kids and Biz settings, and phase 6 (16 Nov) DMs and Tutor profile. Only Find is switched on. The rest are switched off, and most of
+There are **9 columns** in the app: Find itself, and **8 others**. Before phase 1 there were 19
+columns, 18 of them outside Find; phase 2 (15 Nov) took Apprentice settings and phase 3 (15 Nov) Web settings and phase 4 (15 Nov) Parent settings, and phase 5 (16 Nov) Tutor, Kids and Biz settings, and phase 6 (16 Nov) DMs and Tutor profile, and phase 7 (16 Nov) Book. Only Find is switched on. The rest are switched off, and most of
 them already have a Find branch.
 
 | Status | How many | What it means |
 |---|---|---|
-| Moved | 9 | Gone as a screen. Only a Find branch now. The old name, and a tab remembered on the phone, open the branch. |
-| Redirect | 1 | A Find branch already exists and the old name opens it, but the old column's code is still there (switched off). These are the easiest to finish next. |
+| Moved | 10 | Gone as a screen. Only a Find branch now. The old name, and a tab remembered on the phone, open the branch. |
+| Redirect | 0 | A Find branch already exists and the old name opens it, but the old column's code is still there (switched off). These are the easiest to finish next. |
 | Column | 0 | Still a column of its own, switched on. |
 | Off | 8 | Switched off. Find shows a "Coming soon" card for each. The code is still there. |
 | Flows | 10 | Not columns: pop-over sheets and links that open something outside Find. |
@@ -54,11 +54,16 @@ them already have a Find branch.
   tutor card (`tutorOpts_`). `go('tutors')` opens the branch. The layout journeys that moved cards on Tutor profile use
   Student and Parent profile instead.
 
+- **Book** (16 Nov, phase 7): now **Find › Booking**. Each question is a menu of Find tags (`bookMenu_`); after a choice on a
+  several-answer step the menu is only "and" / "."; the day step names the weekday, then its times. The end is one summary card
+  drawn by `renderCard` (`bookerCard`): price from `bookPrice()`, discounts, extra seats, Send. A child sees no price
+  (`may_('prices')`). Your sessions follow it; `openJob_` and `go('booking')` open the branch. Deleted: screen('booking'),
+  `bookBlocks`, the column half of `bookingPages_` and `paintBook_`, its PAGER row, TABS / TAB_ORDER entry, columns.json and
+  tiers.json rows, `<section id="s-booking">`. Venues stay pinned (clients see only locations).
+
 ### Redirect: a Find branch exists, old code still to delete
 
-| Screen | What it shows | Who sees it | Find branch |
-|---|---|---|---|
-| Book | sessions, seats, payment | everyone | Booking |
+None.
 
 ### Columns still switched on
 

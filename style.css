@@ -4762,6 +4762,21 @@ svg.meas .meas-body, svg.meas .meas-turn, svg.meas .meas-tick, svg.meas .meas-nu
   background: var(--bg); color: var(--ink); font: 400 var(--fs-title)/1 var(--font); padding: 0; cursor: pointer; }
 .qp-work-say { margin: var(--s1) 0 0; font: 400 var(--fs-small)/1.45 var(--font); color: var(--ink); white-space: pre-line; }
 .qp-work-say:empty { display: none; }
+/* THE ANSWER BOX'S FACES (owner, 16 Nov): camera or graph in the text box's own slot, in the page's flow -- never over it */
+.qp-face { position: static; margin: var(--s1) var(--s3); min-height: 3rem; display: flex; flex-direction: column; gap: var(--s2); }
+.qp-cam-view { display: block; width: 100%; max-height: 60svh; aspect-ratio: 3 / 4; object-fit: cover; background: var(--line-soft); border: 1px solid var(--line); border-radius: var(--r-ui); }
+.qp-face-say { margin: 0; font: 400 var(--fs-small)/1.45 var(--font); color: var(--ink); }
+.qp-face-say:empty { display: none; }
+.qp-graph-axes { display: flex; flex-wrap: wrap; gap: var(--s2); font: 400 var(--fs-small)/1.45 var(--font); color: var(--ink); }
+.qp-graph-ax input { width: 3.5em; }
+.qp-graph-art svg { display: block; width: min(100%, 44svh); height: auto; touch-action: manipulation; color: var(--ink); }
+.qp-graph-art .grid { stroke: currentColor; opacity: .33; }
+.qp-graph-art .axis { stroke: currentColor; stroke-width: 1.6; }
+.qp-graph-art .ax { font: italic 600 11px var(--font); fill: currentColor; }
+.qp-graph-line { stroke: currentColor; stroke-width: 2.4; }
+.qp-graph-pt { fill: currentColor; }
+.qp-graph-pt.is-picked { fill: none; stroke: currentColor; stroke-width: 3; }
+.qp-graph-shade { fill: currentColor; opacity: .3; }
 .work-seen { margin: var(--s2) var(--s3); font: 400 var(--fs-small)/1.45 var(--font); color: var(--ink); }
 .work-seen-row + .work-seen-row { margin-top: var(--s2); }
 .work-seen-say { margin: 0 0 var(--s1); }

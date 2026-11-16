@@ -5,5 +5,5 @@
  "hosts": ["api.postcodes.io", "www.googleapis.com", "oauth2.googleapis.com", "api.stripe.com", "generativelanguage.googleapis.com"],
  "hostsWhy": { "api.stripe.com": "pay-when-paid fees only", "generativelanguage.googleapis.com": "near-free AI marking", "api.postcodes.io": "free", "www.googleapis.com": "free within the Google account", "oauth2.googleapis.com": "free" },
  "packages": [],
- "screens": 10
+ "screens": 9
 }

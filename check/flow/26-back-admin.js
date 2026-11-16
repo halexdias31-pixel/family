@@ -319,7 +319,7 @@ check('a child sees a tutor card, the booking form and her session without any �
   /* AND THE SCREEN ITSELF: the booking column, drawn whole, has no £. */
   try { t.repaint(true); t.go('booking', false, true); } catch (e) { return bad.concat(['go("booking") threw: ' + e.message]); }
   await wait(150);
-  const col = (d.getElementById('s-booking') || {}).textContent || '';
+  const col = (d.getElementById('s-stuff') || {}).textContent || '';
   if (!col.trim()) bad.push('the booking column drew nothing for the child');
   if (/£/.test(col)) bad.push('the child\'s booking column shows a price: "' + /.{0,30}£.{0,20}/.exec(col)[0] + '"');
   return bad;

@@ -467,12 +467,11 @@ function openJob_(id, quiet) {
   if (!USER) { if (!quiet) { toast(text_('sign-in-to-open-a-session')); go('account'); } return false; }
 
   OPEN_JOB = want;
-  /* ---------- AND THE COLUMN HAS TO BE TOLD IT IS OUT OF DATE § */
-  markStale_('booking');
-  /* ---------- THE PAGE IS SET BEFORE THE SCREEN IS REACHED, NOT AFTER § */
-  const n = typeof jobPageAt_ === 'function' ? jobPageAt_(want) : -1;
-  if (n >= 0) PAGE.booking = n;
+  /* FIND › BOOKING (the column moved, 16 Nov): OPEN_JOB puts it first among the sessions; Find turns to its page. */
   go('booking');
+  const host = $('s-stuff'), ref = new RegExp('\\b' + want.replace(/[^\w-]/g, '') + '\\b');
+  const at = host ? [...host.querySelectorAll(':scope > .page')].findIndex(p => ref.test((p.querySelector('.rc-ref') || {}).textContent || '')) : -1;
+  if (at >= 0 && typeof goPage === 'function') goPage('stuff', at, true);
   return true;
 }
 

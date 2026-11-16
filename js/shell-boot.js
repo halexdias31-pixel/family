@@ -168,7 +168,7 @@ const TABS = [
 
   /* ---------- AND SEVEN MORE, WHICH IS THIS TABLE GOING BACK THE WAY IT CAME § */
   { id: 'feed',    icon: '🏠', label: 'Feed',    title: 'Feed' },
-  { id: 'booking', icon: '📅', label: 'Book',    title: 'Booking' },
+  /* BOOK WAS A COLUMN HERE; it is Find › Booking (find-only, 16 Nov). */
   /* `tools` AND `games` WERE COLUMNS HERE; their widgets are Find cards since 790 (data/settings/widgets-in-find.json). */
 
   /* ---------- AND THE TWO THE LAYOUT SHEET ASKED FOR § */
@@ -192,7 +192,7 @@ const TABS = [
 /* GROUPED BY PURPOSE, read left to right (392). columns.json lists the same order; check-doors fails if they part. § */
 const TAB_ORDER = ['stuff', 'saved',                                  /* FIND FIRST, for everyone (1070): the one front door; Tools and Games are Find cards (790) */
                    'spotlight', 'feed', 'reel',                       /* social (392), below Find; Spotlight left of the posts (461); Messages is Find › Messages */
-                   'booking', 'shop',                                 /* business */
+                   'shop',                                            /* business; Book is Find › Booking */
                    'web', 'students', 'parents']; /* the profiles (730); Tutor and Apprentice profile are Find › Profiles › Tutor / Apprentice; every settings column is Find › Settings › <type> (find-only.json) */
 TABS.sort((a, b) => TAB_ORDER.indexOf(a.id) - TAB_ORDER.indexOf(b.id));
 /* SETTINGS THAT ARE FIND › SETTINGS › <type> NOW (find-only.json): no column, still a card group the layout keys by id and Find draws (CARD_BUILD). */

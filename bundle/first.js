@@ -2330,12 +2330,12 @@ const FINDER_TAGS = {
 },
 "views": {
 "admin+bible": {
-  "": ["kindLabel",[["Practice"],["Library"],["Coming soon"],["Posts"],["Messages"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]],[32214,189264,23,2,1,4,5,10,32,7,3],221564,["Practice","Library","Coming soon","Posts","Messages","Profiles","Booking","Shop","Settings","Tools","Games"]],
+  "": ["kindLabel",[["Practice"],["Library"],["Coming soon"],["Posts"],["Messages"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]],[32214,189264,22,2,1,4,5,10,32,7,3],221563,["Practice","Library","Coming soon","Posts","Messages","Profiles","Booking","Shop","Settings","Tools","Games"]],
   "kindLabel=Profiles": ["profileType",[["Parent"],["Student"],["Tutor"]],[2,2,2],4,["Parent","Student","Tutor"]],
   "kindLabel=Settings": ["settingFor",[["Student"],["Parent"],["Staff"],["Apprentice"],["Admin"],["Business"],["Site"]],[18,8,16,9,10,5,4],32,["Student","Parent","Staff","Apprentice","Admin","Business","Site"]]
 },
 "bible": {
-  "": ["kindLabel",[["Practice"],["Library"],["Coming soon"],["Posts"],["Messages"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]],[32214,189264,23,2,1,1,5,10,29,7,3],221558,["Practice","Library","Coming soon","Posts","Messages","Profiles","Booking","Shop","Settings","Tools","Games"]],
+  "": ["kindLabel",[["Practice"],["Library"],["Coming soon"],["Posts"],["Messages"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]],[32214,189264,22,2,1,1,5,10,29,7,3],221557,["Practice","Library","Coming soon","Posts","Messages","Profiles","Booking","Shop","Settings","Tools","Games"]],
   "kindLabel=Settings": ["settingFor",[["Student"],["Parent"],["Staff"],["Apprentice"],["Admin"]],[20,8,17,8,7],29,["Student","Parent","Staff","Apprentice","Admin"]]
 }
 }};
@@ -4782,7 +4782,7 @@ const TABS = [
 
   /* ---------- AND SEVEN MORE, WHICH IS THIS TABLE GOING BACK THE WAY IT CAME § */
   { id: 'feed',    icon: '🏠', label: 'Feed',    title: 'Feed' },
-  { id: 'booking', icon: '📅', label: 'Book',    title: 'Booking' },
+  /* BOOK WAS A COLUMN HERE; it is Find › Booking (find-only, 16 Nov). */
   /* `tools` AND `games` WERE COLUMNS HERE; their widgets are Find cards since 790 (data/settings/widgets-in-find.json). */
 
   /* ---------- AND THE TWO THE LAYOUT SHEET ASKED FOR § */
@@ -4806,7 +4806,7 @@ const TABS = [
 /* GROUPED BY PURPOSE, read left to right (392). columns.json lists the same order; check-doors fails if they part. § */
 const TAB_ORDER = ['stuff', 'saved',                                  /* FIND FIRST, for everyone (1070): the one front door; Tools and Games are Find cards (790) */
                    'spotlight', 'feed', 'reel',                       /* social (392), below Find; Spotlight left of the posts (461); Messages is Find › Messages */
-                   'booking', 'shop',                                 /* business */
+                   'shop',                                            /* business; Book is Find › Booking */
                    'web', 'students', 'parents']; /* the profiles (730); Tutor and Apprentice profile are Find › Profiles › Tutor / Apprentice; every settings column is Find › Settings › <type> (find-only.json) */
 TABS.sort((a, b) => TAB_ORDER.indexOf(a.id) - TAB_ORDER.indexOf(b.id));
 /* SETTINGS THAT ARE FIND › SETTINGS › <type> NOW (find-only.json): no column, still a card group the layout keys by id and Find draws (CARD_BUILD). */
@@ -6508,23 +6508,6 @@ const PAGER = {
      is always page 0, and with nothing for sale the shop says so in a page of its own. */
   shop: () => (typeof shopCards_ === 'function' ? shopCards_().length : 1),
 
-  /* ---------- AND `booking` HAD NO ENTRY AT ALL, WHICH IS THE FAULT THE NOTE ABOVE DESCRIBES § */
-  booking: () => {
-    if (typeof bookingPages_ !== 'function') return [];
-    let n = 0;
-    try { n = bookingPages_({ column: true }).length; } catch (e) { return []; }
-    if (!n) return [];
-    const jobs = typeof myJobsOrdered_ === 'function' ? myJobsOrdered_() : [];
-    return Array.from({ length: n }, (_, i) => {
-      if (i === 0) return typeof USER !== 'undefined' && USER ? 'Book' : 'Sign in';
-      const j = jobs[i - 1];
-      /* PAST THE SESSIONS IS THE BASKET — `bookingPages_` appends it in column mode only. Derived
-         from running off the end of the job list rather than from a second count of it. */
-      if (!j) return 'Basket';
-      return [j.subject, j.weekday].filter(Boolean).join(' \u00b7 ') || 'Session';
-    });
-  },
-
   /* ---------- AND `spotPages()` WENT FROM HERE, BECAUSE THE FEED STOPPED DRAWING IT § */
   /* COUNTED FROM `feedColumn_`, the list `screen('feed')` draws, which now holds the camera as well — one page directly above the newest post. § */
   feed:   () => (typeof window.feedColumn_ === 'function' ? [].concat(window.feedColumn_()) : ['']).map(() => ''),
@@ -6579,7 +6562,7 @@ function applyBrandIcon_() {
    the long note on `PAGER`. Every screen that pages needs an entry here or its position is not
    remembered between visits. */
 /* `booking` AND `dm` WERE MISSING, and this table's own sentence above is the rule they broke: § */
-const PAGE = { feed: 0, stuff: 0, reel: 0, booking: 0, dm: 0, make: 0,
+const PAGE = { feed: 0, stuff: 0, reel: 0, dm: 0, make: 0,
                saved: 0, tutors: 0, students: 0, parents: 0, spotlight: 0, shop: 0, res: 0 };
 
 /* A COLUMN MAY HOLD FEWER PAGE ELEMENTS THAN IT HAS PAGES. § */

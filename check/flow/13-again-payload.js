@@ -333,8 +333,9 @@ check('while a failed first payload is asked for again, the score board and the 
   return bad;
 });
 
-/* ---------- AND A FIXED SENTENCE IS NOT A WAIT § */
-check('with the payload held, Booking says "Sign in to book" to a visitor at once, and waits for it for somebody signed in', async () => {
+
+/* FIND › BOOKING (find-only, 16 Nov): a visitor's steps are drawn at once (they need no payload; Send asks for sign-in); somebody signed in waits. */
+check('with the payload held, Find › Booking draws the booking steps to a visitor at once, and waits for it for somebody signed in', async () => {
   let openV, openK;
   const v = flaky_([new Promise(r => { openV = r; })]);
   const k = flaky_([new Promise(r => { openK = r; })], RC_KID_);
@@ -342,17 +343,18 @@ check('with the payload held, Booking says "Sign in to book" to a visitor at onc
   const bad = [];
   [['a visitor', v, false], ['a student', k, true]].forEach(([who, b, waits]) => {
     if (b.arrived()) { bad.push(`${who}'s payload arrived before it was let through, so nothing was tested`); return; }
-    b.w.__t.go('booking', false, true);
+    b.w.__t.inApp("finderSet_(FINDERS.stuff, { filters: [{ field: DOOR_FIELD, value: 'Booking' }], show: true })");
+    b.w.__t.go('stuff', false, true);
   });
   await wait(LEAVE_MS);
   [['a visitor', v, false], ['a student', k, true]].forEach(([who, b, waits]) => {
-    const col = b.w.document.getElementById('s-booking');
+    const col = b.w.document.getElementById('s-stuff');
     const text = ((col && col.textContent) || '').replace(/\s+/g, ' ');
     const dots = col ? col.querySelectorAll('.loading').length : 0;
     if (!waits) {
-      if (dots) bad.push(`${who}'s Booking column shows the loader while the payload is held — its sentence needs nothing from it`);
-      if (!/Sign in to book/.test(text)) bad.push(`${who}'s Booking column does not say "Sign in to book" while the payload is held: "${text.trim().slice(0, 80)}"`);
-    } else if (!dots) bad.push(`${who}'s Booking column shows no loader while the payload is held — the form needs it: "${text.trim().slice(0, 80)}"`);
+      if (dots) bad.push(`${who}'s Find › Booking shows the loader while the payload is held — its first step needs nothing from it`);
+      if (!col || !col.querySelector('[data-do="book-back"]')) bad.push(`${who}'s Find › Booking shows no booking step while the payload is held: "${text.trim().slice(0, 80)}"`);
+    } else if (!dots) bad.push(`${who}'s Find › Booking shows no loader while the payload is held — the form needs it: "${text.trim().slice(0, 80)}"`);
   });
   openV(); openK();
   return bad;

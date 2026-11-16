@@ -10,6 +10,7 @@ const dir = __dirname;
 const LIB_FULL = require('../check/lib-full.js');
 const { MEMBER_, signedInAs_ } = require('../check/flow-shared.js');   /* boot() reads them */
 let LAST_W = null;
+const MOVED_ROWS_ = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'settings', 'screens-moved.json'), 'utf8'));
 /* ---------- THE ORDER IS READ FROM index.html, NOT KEPT HERE § */
 function loadOrder_() {
   const html = require('fs').readFileSync(
@@ -140,7 +141,9 @@ function boot(opts) {
   w.fetch = (url, o) => {
     if (!(o && o.body)) {
       gets.push(String(url));
-      const got = typeof opts.serve === 'function' ? opts.serve(String(url)) : undefined;
+      const own = typeof opts.serve === 'function' ? opts.serve(String(url)) : undefined;
+      /* WHERE A MOVED SCREEN LIVES (screens-moved.json) is served as the site serves it, so go('booking') and openJob_ reach Find › Booking. */
+      const got = own !== undefined ? own : /(^|\/)data\/settings\/screens-moved\.json(\?|$)/.test(String(url)) ? MOVED_ROWS_ : undefined;
       /* A PROMISE IS A FILE THAT ARRIVES WHEN THE JOURNEY SAYS — the slow network, on demand. */
       const answer = v => (v === null
         ? { ok: false, status: 404, text: () => Promise.resolve('Not found'), json: () => Promise.reject(new Error('404')) }
@@ -342,7 +345,7 @@ function boot(opts) {
       /* THE TILE ROW UNDER A SESSION CARD, which is where Pay lives. § */
       'jobTiles: typeof jobOpts_ === "function" ? x => tile_(jobOpts_(x)) : null,' +
       /* THE BOOKING COLUMN AS DRAWN, and the id of the booking just asked for. § */
-      'blocks: typeof bookBlocks === "function" ? bookBlocks : null,' +
+      'blocks: () => [bookerCard() + askedBlock_()].concat(myJobPages_()).filter(Boolean),' +
       'asked: () => ASKED_JOB,' +
       /* THE CHEAT SHEET'S COMPONENT LIST AND ITS TWO WIDTHS. § */
       'matParts: typeof matParts === "function" ? matParts : null,' +

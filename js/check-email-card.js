@@ -31,7 +31,11 @@ if (C) {
   ['small', 'body', 'title'].forEach(k => { if (px(tok('fs-' + k)) !== C.size[k]) bad.push('DIGEST_CARD.size.' + k + ' is ' + C.size[k] + 'px, --fs-' + k + ' is ' + tok('fs-' + k)); });
   if (hex(tok('line-soft')) !== String(C.rule).toLowerCase()) bad.push('the email card\'s rule ' + C.rule + ' is not --line-soft ' + tok('line-soft'));
 }
-if (INK) Object.keys(INK).forEach(k => { const t = tok('tag-' + k); if (t && hex(t) !== INK[k].toLowerCase()) bad.push('DIGEST_TAG_INK.' + k + ' is ' + INK[k] + ', --tag-' + k + ' is ' + hex(t)); });
+/* EACH HUE `hN` IS `[data-tag="hN"]`'s --hue-N, and every one is there (cards-gen.gs, generated from style.css). */
+if (INK) {
+  if (!Object.keys(INK).length) bad.push('DIGEST_TAG_INK is empty, so every tag in the email is the plain outline');
+  Object.keys(INK).forEach(k => { const t = tok('hue-' + k.slice(1)); if (!t || hex(t) !== INK[k].toLowerCase()) bad.push('DIGEST_TAG_INK.' + k + ' is ' + INK[k] + ', --hue-' + k.slice(1) + ' is ' + (t ? hex(t) : 'missing')); });
+}
 
 /* AND AS DRAWN: a library question with a picture, two marks, their answer and the answer. */
 try {

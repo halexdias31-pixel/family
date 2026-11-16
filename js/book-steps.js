@@ -7,24 +7,6 @@
    one: the open classes are a dropdown on the booking form, not a kind in Find. */
 
 
-/* ---------- THE BOOKING PAGES ARE THE FORM, AND ONLY THE FORM § */
-function bookBlocks() {
-  if (!USER) {
-    return [renderCard({ kind: 'bookform', look: 'book-signin', name: 'Booking', tags: [{ text: 'Booking' }],
-      body: [{ type: 'text', look: 'note', text: text_('sign-in-to-book-your-account') }] })];
-  }
-  /* ---------- THE FORM, THEN WHAT IS ALREADY BOOKED, THEN WHAT IS FINISHED § */
-  /* ---------- THE FORM, AND ONLY THE FORM, AGAIN § */
-  /* THE MONEY BLOCK THAT STOOD UNDER THE FORM IS GONE — an admin's three figures are rows of the
-     paper now, see `formMoney_`. It never drew here anyway: see the note where `moneyBlock` was. */
-  /* BELOW THE FORM, NOT AS A SECOND PAGE. Each element of this array is a page somebody swipes to,
-     and the booking they just made is not somewhere else — it is the answer to the form they are
-     looking at. Same string. */
-  /* THE PAGE IS ALWAYS THE FORM. § */
-  bookPrefill_();
-  return [bookerCard() + askedBlock_()].concat(myJobPages_()).filter(Boolean);
-}
-
 /* ---------- YOUR SESSIONS CAME BACK TO THIS COLUMN, AND THE NOTE ABOVE IS WHY IT HAD TO § */
 /* ---------- THE ORDER IS ONE FUNCTION, BECAUSE TWO THINGS NEED TO AGREE ABOUT IT § */
 let OPEN_JOB = '';
@@ -177,19 +159,8 @@ function mondayOf_(when) {
 /* ---------- REPAINTING BOOK WITHOUT LOSING THE PLACE § */
 /* ---------- REPAINTING THE BOOKER, WHEREVER IT IS § */
 function paintBook_() {
-  /* ---------- WHICHEVER SCREEN THE FORM IS ACTUALLY ON § */
-  const host = $('bookr') && $('bookr').closest('.screen');
-  const id = host && String(host.id).indexOf('s-') === 0 ? host.id.slice(2) : '';
-
-  /* THE FUNNEL KEEPS ITS PLACE, which is what `paintStuff(true)` is for and what a plain `paint`
-     would throw away — the strip of result pages and which one you are on. */
-  if (id === 'stuff') { if (typeof paintStuff === 'function') paintStuff(true); return; }
-
-  /* ANY OTHER HOST IS AN ORDINARY SCREEN. `redrawBooker_` puts the scroll back either way. */
-  if (id && typeof paint === 'function') { paint(id); return; }
-
-  /* NO SUMMARY ON SCREEN YET: the answer was a Find step (find-account.js), so Find draws its next menu. */
-  if (typeof bookFindPaint_ === 'function' && typeof bookFindOn_ === 'function' && inFinder_(FINDERS.stuff, bookFindOn_)) finderEach_(() => paintStuff(true));
+  /* ONE HOST NOW: Find › Booking (the column moved, 16 Nov); `paintStuff(true)` keeps the funnel's place. */
+  if (typeof paintStuff === 'function') finderEach_(() => paintStuff(true));
 }
 
 /* `bookPages` WAS HERE — one pane per block for the Book column. `bookingPages_` in find.js does the

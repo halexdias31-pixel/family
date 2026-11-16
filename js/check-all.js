@@ -171,6 +171,7 @@ const SUITE = [
   { file: 'check-aimark.js', what: 'AI marking: the key, the clamp, the daily cap, and a full Gemini asked again then the fallback, through the real doPost' },
   { file: 'check-aiimage.js', what: 'the pen\'s drawing and the photos reach aiMark and Gemini as images; bad ones refused whole; an old backend sent words only' },
   { file: 'check-work-file.js', what: 'work on file: an upload is stored in Drive, the list shows it, another student cannot see, open, add to or delete it' },
+  { file: 'check-faces.js', what: 'the answer box\'s faces: camera and graph swapped into the box by one ansFace_, nothing over the page, the graph marked by rule' },
   { file: 'check-working.js', what: 'a photo of the working (501): marked by the AI only, sent as images, kept with its mark, read back only by those who may' },
   /* A FACE AND A POLL VOTE ARE SET, NOT TOGGLED. § */
   { file: 'check-choice.js', what: 'a reaction and a vote set to what the phone asked, once, under the lock' },

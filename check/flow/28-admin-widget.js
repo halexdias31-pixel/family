@@ -256,7 +256,7 @@ check('suggest a change (489, 494): one tile with that name on a widget, the boo
   const again = card.querySelector('.rep-box textarea');
   if (!again || again.value) bad.push('the Suggest box opened again with the last words in it: ' + (again && again.value));
   t.go('booking', false, true); await wait(300);
-  if (!d.querySelector('#s-booking [data-do="rep-box"]')) bad.push('the booking form has no Suggest tile');
+  if (!d.querySelector('#s-stuff [data-do="rep-box"]')) bad.push('the booking form has no Suggest tile');
   /* THE FINDER ITSELF (494): "should be on finder widget too" — Find carries one on the question's page. */
   for (const f of ['stuff']) {
     t.go(f, false, true); await wait(300);
