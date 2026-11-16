@@ -226,9 +226,27 @@ function digestTagMonth_(it, T) {
   };
   const ofName = v => { const m = /\s[—–]\s(?:\d{1,2}\s+)?([A-Za-z]{3,9})\s+(?:19|20)\d{2}\s*$/.exec(String(v || '')); return m ? ofWord(m[1]) : 0; };
   const ofWave = v => { const m = /^([A-Za-z]{3,9})\s+(?:19|20)\d{2}$/.exec(String(v || '').trim()); return m ? ofWord(m[1]) : ofDate(v); };
-  const n = ofName(doc.name || q.name || it.sub) || Number(q.month || 0) || ofDate(q.exam_date) || Number(doc.month || 0)
+  const own = ofName(doc.name || q.name || it.sub) || Number(q.month || 0) || ofDate(q.exam_date) || Number(doc.month || 0)
     || ofDate(doc.exam_date) || ofWave(it.examWave);
+  /* ONE SITTING, ONE MONTH (16 Nov): `sittingLastMonth_` — the last month any paper of the same subject, board, level, year and series names. */
+  if (!T.sittingLast) {
+    T.sittingLast = {};
+    Object.keys(T.docs).forEach(pid => {
+      const d = T.docs[pid] || {};
+      if (S(d.document_type).toLowerCase() !== 'past paper') return;
+      const mm = ofName(d.name) || Number(d.month || 0) || ofDate(d.exam_date);
+      const nm = /((?:19|20)\d{2})\s*$/.exec(S(d.name));
+      const k = digestSittingKey_(d, S(d.year) || (nm ? nm[1] : ''), mm);
+      if (k && mm > (T.sittingLast[k] || 0)) T.sittingLast[k] = mm;
+    });
+  }
+  const k = digestSittingKey_(Object.assign({}, doc, q), digestTagYear_(it, T), own);
+  const n = Math.max(own, (k && T.sittingLast[k]) || 0);
   return n >= 1 && n <= 12 ? DIGEST_MONTHS[n - 1] : '';
+}
+function digestSittingKey_(r, year, m) {
+  const ser = digestTagSeries_(m), lc = v => S(v).toLowerCase();
+  return ser && year ? [lc(r.subject), lc(r.exam_board || r.company), lc(r.level || r.band_value), S(year), lc(ser)].join('|') : '';
 }
 /* `facetSay_`'s one way of saying a value: its first letter capitalised, unless it is a single lower-case letter or a roman numeral. */
 const digestSay_ = v => { const t = String(v == null ? '' : v).trim(); return /^(?:[a-z]|[ivx]+)$/.test(t) ? t : t.charAt(0).toUpperCase() + t.slice(1); };

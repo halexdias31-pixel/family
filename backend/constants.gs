@@ -132,7 +132,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-11-16-mech-2";
+const BACKEND_VERSION = "2026-11-16-nocap-2";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -227,8 +227,6 @@ const LIB_PARTS = 6;
 const LIB_CELL = 40000;
 /* AT MOST THIS MANY ITEMS IN ONE `libItems` CALL — one question with its stems and parts, and the next few. */
 const LIB_PER_CALL = 60;
-/* AND A DAY'S DEFAULT CAP PER PERSON, when the config tab's `library_items_per_day` is blank. Admins are not capped. */
-const LIB_DAILY_CAP = 400;
 
 /* ---------- SCHEMA, AND KEEPING IT IN STEP § */
 const SCHEMA = {
@@ -578,7 +576,7 @@ const SCHEMA = {
   lib_practicals: ["id", "checksum", "parts", "content_1", "content_2", "content_3", "content_4", "content_5", "content_6"],
   lib_projects: ["id", "checksum", "parts", "content_1", "content_2", "content_3", "content_4", "content_5", "content_6"],
   lib_inserts: ["id", "checksum", "parts", "content_1", "content_2", "content_3", "content_4", "content_5", "content_6"],
-  /* `ids` is every item served that day (so a second look is free), `refused` what the cap turned away. */
+  /* NOW ONLY THE LIBRARY IMPORT'S LOG LINES (person_id `library-import`); the per-person daily tally went with the cap (owner, 16 Nov). */
   lib_log: [
     "day", "person_id", "served", "ids", "refused", "last_at",
   ],
@@ -690,7 +688,6 @@ const CONFIG_DEFAULTS = [
   /* ---------- THE AI HELPERS (never marking: owner, 16 Nov) */
   ['gemini_model', AI_MODEL, 'the Gemini model the assistant and the Rewrite coach ask. Blank (or the old gemini-flash-latest) = ' + AI_MODEL + '. The API KEY never goes here: it is GEMINI_API_KEY in Script Properties'],
   ['gemini_model_fallback', AI_MODEL_FALLBACK, 'the model asked when the first one is full, out of reach or retired (Gemini 429, 5xx or 404). Blank = ' + AI_MODEL_FALLBACK + '. none = no second model'],
-  ['library_items_per_day', LIB_DAILY_CAP, 'how many questions, practicals and content cards one person may open in a day (a part, its opening and its answer count as one each; opening one again is free). Blank = ' + LIB_DAILY_CAP + '. Admins are not counted'],
   ['assistant_questions_per_day', 5, 'how many questions one person may ask Daive, the assistant in Messages in a day. Blank = 5. 0 switches it off'],
   ['rewrite_coach_per_day', REWRITE_PER_DAY, 'how many times one person may ask the Rewrite coach (Tools, admin only for now) in a day; reading a text and checking the writing count one each. Blank = ' + REWRITE_PER_DAY + '. 0 switches it off'],
   /* HOW HARD GEMINI THINKS BEFORE IT ANSWERS (12 Oct) -- the note over `AI_THINKING_LEVELS` above, and docs/history/350. § */

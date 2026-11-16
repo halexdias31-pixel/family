@@ -2,7 +2,7 @@
 require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 /* @family. — check-funnel.js THE FUNNEL, RUN AGAINST THE REAL LIBRARY, ASKED WHETHER ITS QUESTIONS ARE WORTH ASKING. § */
 require('../check/lib-full.js').needWords(); // LIB_PRIVATE=absent (CI, 780): skipped and counted, not passed
-/* Flags: -v. FUNNEL_ONLY=walk walks the random funnels alone (section 7), =under the 531 rules, =email the email's tags; FUNNEL_SEED and FUNNEL_RUNS change that walk (522). */
+/* Flags: -v. FUNNEL_ONLY=orders every order of each past paper's answers (js/check-paper-orders.js), =walk walks the random funnels alone (section 7), =under the 531 rules, =email the email's tags; FUNNEL_SEED and FUNNEL_RUNS change that walk (522). */
 const fs = require('fs');
 const path = require('path');
 const { JSDOM } = require('jsdom');
@@ -103,6 +103,7 @@ boot(f => {
   if (process.env.FUNNEL_ONLY === 'under') { underTypes_(f, items); return done('the types under another and the timelines alone (545)'); }
   if (process.env.FUNNEL_ONLY === 'email') { emailTags_(f); return done('the Sunday email\'s tags against the card\'s alone (380)'); }
   if (process.env.FUNNEL_ONLY === 'paths') { pathsAsked_(f, items); oneFunnel_(f); tagsAgree_(f); return done('the owner\'s paper paths and the build\'s looked-up answers alone (8 Nov, 1100)'); }
+  if (process.env.FUNNEL_ONLY === 'orders') { paperOrders_(f, items); return done('every order of a past paper\'s answers reaches its questions (16 Nov)'); }
   if (process.env.FUNNEL_ONLY === 'walk') { walkFunnels_(f, items); return done('the random funnels alone (section 7)'); }
 
   /* ---------- 0. WHAT THE FIND SCREEN HOLDS IS WHAT THE OWNER SAID IT HOLDS § */
@@ -1251,6 +1252,69 @@ function oneFunnel_(f) {
     + Object.keys(seq).map(l => l + ': ' + [...seq[l]].slice(0, 3).join(' / ')).join('; '));
   if (nodes > 6000) bad.push('one funnel: the walk under Past paper passed 6000 lists and stopped, so it proves nothing');
   if (!sats || ends.length < 20) bad.push('one funnel: ' + ends.length + ' paths, ' + sats + ' of them SATs — too few to prove every qualification goes one way');
+}
+
+/* ---------- EVERY ORDER OF A PAST PAPER'S ANSWERS REACHES ITS QUESTIONS (owner, 16 Nov: AQA English Language Paper 1, June 2024,
+   R0373, "just didn't want to load it" -- Month said May for Paper 1 and June for Paper 2 of one sitting, so June then Paper 1 was nothing).
+   Narrowing is AND, so the list after any order of taps is the list of the SET tapped: every subset of the paper's answers is every order.
+   At each, a question still splitting the list must offer the paper's own answer, and the paper's questions must all still be there.
+   And one sitting (subject, board, level, year, series) answers Month the same for every paper in it. PAPER_ORDERS=n walks every nth paper (25 by default, 1 for all, slow); R0373 always. */
+const ORDER_FIELDS = ['kindLabel', 'kindOwn', 'subject', 'documentType', 'examBoard', 'level', 'tier', 'examYear', 'examMonth', 'paperId'];
+function paperOrders_(f, items) {
+  const by = k => f.facetList().find(x => x.field === k);
+  const pf = by('paperId');
+  const qs = f.stuffNarrow_(items, [{ field: 'kindLabel', value: 'Practice' }, { field: 'documentType', value: 'Past paper' }], 0);
+  const ofPaper = {};
+  qs.forEach(x => { const v = f.facetValues([x], pf)[0]; if (v) (ofPaper[v.value] = ofPaper[v.value] || []).push(x); });
+  const every = Math.max(1, Number(process.env.PAPER_ORDERS || 25));
+  const ids = Object.keys(ofPaper).sort().filter((id, i) => id === 'R0373' || i % every === 0);
+  if (!ofPaper.R0373) bad.push('paper orders: R0373 (AQA GCSE English Language Paper 1, June 2024) has no questions in Find');
+  let subsets = 0, fails = 0, walked = 0;
+  const sittings = {};
+  const one1 = (l, k) => { const v = f.facetValues(l, by(k)); return v.length === 1 ? v[0].value : ''; };
+  /* THE SITTING TEST READS EVERY PAPER, sampled or not: it is one tally per paper. */
+  Object.keys(ofPaper).forEach(id => {
+    const l = ofPaper[id], m = one1(l, 'examMonth');
+    const series = /^(May|June|July)$/.test(m) ? 'summer' : /^(October|November|December)$/.test(m) ? 'autumn' : m;
+    const sk = ['subject', 'examBoard', 'level', 'examYear'].map(k => one1(l, k)).join(' | ') + ' | ' + series;
+    if (m) (sittings[sk] = sittings[sk] || {})[m] = id;
+  });
+  ids.forEach(id => {
+    const mine = ofPaper[id].filter(x => f.facetValues([x], by('kindOwn')).some(v => v.value === 'Questions'));
+    if (!mine.length) return;
+    walked++;
+    const ans = ORDER_FIELDS.map(by).filter(Boolean).map(fac => ({ fac, vs: f.facetValues(mine, fac) }))
+      .filter(a => a.vs.length === 1).map(a => ({ field: a.fac.field, fac: a.fac, value: a.vs[0].value }));
+    const memo = new Map([[0, items]]);
+    const listOf = mask => {
+      if (memo.has(mask)) return memo.get(mask);
+      const hi = 31 - Math.clz32(mask), l = f.stuffNarrow_(listOf(mask & ~(1 << hi)), [{ field: ans[hi].field, value: ans[hi].value }], 0);
+      memo.set(mask, l);
+      return l;
+    };
+    for (let mask = 0; mask < (1 << ans.length); mask++) {
+      subsets++;
+      const list = listOf(mask), have = new Set(list);
+      const tapped = ans.filter((a, i) => mask & (1 << i)).map(a => a.field + '=' + a.value).join(' > ') || 'nothing';
+      const lost = mine.filter(x => !have.has(x)).length;
+      if (lost) { if (fails++ < 8) bad.push('paper orders: ' + id + ' after ' + tapped + ' has lost ' + lost + ' of its ' + mine.length + ' questions'); break; }
+      for (let i = 0; i < ans.length; i++) {
+        if (mask & (1 << i)) continue;
+        const vs = f.facetValues(list, ans[i].fac);
+        /* OFFERED UNDER A TWIN'S NAME counts (`tellApart_`: two "Paper 1"s are one answer, and a press chips both). */
+        if (vs.length > 1 && !vs.some(v => v.value === ans[i].value || (v.also || []).indexOf(ans[i].value) !== -1) && fails++ < 8) {
+          bad.push('paper orders: ' + id + ' after ' + tapped + ': ' + ans[i].field + ' offers ' + vs.map(v => v.value).join('/') + ', not its ' + ans[i].value);
+        }
+      }
+    }
+  });
+  Object.keys(sittings).forEach(k => {
+    const ms = Object.keys(sittings[k]);
+    if (ms.length > 1 && fails++ < 8) bad.push('paper orders: one sitting (' + k + ') answers Month as ' + ms.map(x => x + ' (' + sittings[k][x] + ')').join(' and '));
+  });
+  WALKED = walked + ' papers, ' + subsets + ' sets of answers (every order of each), ' + fails + ' failing';
+  console.log('\nPAPER ORDERS: ' + WALKED);
+  if (walked < 1) bad.push('paper orders: no paper was walked — not a pass');
 }
 
 function walkFunnels_(f, items) {

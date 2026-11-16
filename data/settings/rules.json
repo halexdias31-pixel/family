@@ -475,6 +475,7 @@
    "text": "Menus follow one rule: the next menu is the best split, a menu needs ≥2 answers, each category one colour, the same words in menu, chip and tag.",
    "checks": [
     "funnel",
+    "paper-orders",
     "finder",
     "menu-rule",
     "menu-thin",
