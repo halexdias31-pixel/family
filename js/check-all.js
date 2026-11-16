@@ -116,6 +116,7 @@ const SUITE = [
   { file: 'check-keypad-power.js', what: 'the keypad power key types like a Casio; every written power marks and works out the same' },
   { file: 'check-qmerge.js', what: 'one marker per checker: every part of every type marked as the per-type markers did (1200)', par: true },
   { file: 'check-marking-norm.js', what: 'every spelling of one value marked alike, its near misses wrong', par: true },
+  { file: 'check-points.js', what: 'worded answers marked by the points they make: full marks, padding low, off-topic nothing', par: true },
   /* ---------- AND WHETHER THE MATHS ON A CARD LOOKS LIKE MATHS § */
   { file: 'check-typeset.js', what: 'fractions stacked, powers raised, no plain-text maths' },
   /* ---------- AND WHETHER THE ANSWER YOU SEE IS SHORT, AND ALL THERE IS § */
@@ -171,13 +172,13 @@ const SUITE = [
   { file: 'check-work-file.js', what: 'work on file: an upload is stored in Drive, the list shows it, another student cannot see, open, add to or delete it' },
   { file: 'check-faces.js', what: 'the answer box\'s faces: camera and graph swapped into the box by one ansFace_, nothing over the page, the graph marked by rule' },
   { file: 'check-working.js', what: 'a photo of the working (501): saved, marked by nobody and no AI, read back only by those who may' },
+  { file: 'check-marklong.js', what: 'a long answer marked by Claude Haiku against the scheme: save-only on any bad reply, cached, no personal data, keyless parts only' },
   /* A FACE AND A POLL VOTE ARE SET, NOT TOGGLED. § */
   { file: 'check-choice.js', what: 'a reaction and a vote set to what the phone asked, once, under the lock' },
   /* EVERY ANSWER SENT IS AN EVENT. § */
   { file: 'check-submissions.js', what: 'submissions: a row per press, the token’s person, the latest per question, whose' },
   /* ONE RANK PER ACCOUNT, STAFF ONLY BY APPLICATION (400): ranks from old cells, sign-up, the application flow, a child's PIN to the owner. */
   { file: 'check-accounts.js', what: 'ranks, sign-up as Student or Client, Staff only by an approved application, a child\'s PIN to the owner' },
-  { file: 'check-flyer.js', what: 'the flyer maker: every word from the Web profile or the tutor card, nothing typed, every QR tagged for came_from' },
   { file: 'check-suggest.js', what: 'Suggest a change: an admin’s straight to Notes for Claude, anybody else’s waits for Confirm; the old reports moved once; one tile everywhere' },
   /* THE LIBRARY'S WORDS IN THE LEDGER (397): the copy checked row by row, libItems signed-in and capped, the tools' copy the admin's. */
   { file: 'check-library-ledger.js', what: 'the library in the Ledger: copied and checked a step at a time, served signed-in with a day\'s cap', par: true },

@@ -1055,6 +1055,28 @@
    "tabs": [],
    "effects": []
   },
+  "markLong": {
+   "fate": "special",
+   "into": "",
+   "why": "marking by Claude Haiku: each press may cost an API call to Anthropic and writes a submission, so it stays its own signed-in door",
+   "access": "self",
+   "childRefused": false,
+   "handler": "postMarkLong_",
+   "file": "backend/post-learning.gs",
+   "callers": [
+    "js/find-cells.js"
+   ],
+   "fallbacks": [],
+   "tabs": [
+    "config",
+    "submissions"
+   ],
+   "effects": [
+    "drive",
+    "outside",
+    "writes"
+   ]
+  },
   "markWorking": {
    "fate": "special",
    "into": "",
@@ -1445,14 +1467,10 @@
    ],
    "fallbacks": [],
    "tabs": [
-    "config",
-    "family",
     "lens_log",
-    "libLog",
     "people"
    ],
    "effects": [
-    "log",
     "writes"
    ]
   },
@@ -1980,7 +1998,8 @@
    "handler": "postWorkFile_",
    "file": "backend/workfile.gs",
    "callers": [
-    "js/work-file.js"
+    "js/work-file.js",
+    "js/working.js"
    ],
    "fallbacks": [],
    "tabs": [
@@ -2006,7 +2025,8 @@
    "handler": "postWorkFile_",
    "file": "backend/workfile.gs",
    "callers": [
-    "js/work-file.js"
+    "js/work-file.js",
+    "js/working.js"
    ],
    "fallbacks": [],
    "tabs": [
@@ -2032,7 +2052,8 @@
    "handler": "postWorkFile_",
    "file": "backend/workfile.gs",
    "callers": [
-    "js/work-file.js"
+    "js/work-file.js",
+    "js/working.js"
    ],
    "fallbacks": [],
    "tabs": [
@@ -2058,7 +2079,8 @@
    "handler": "postWorkFile_",
    "file": "backend/workfile.gs",
    "callers": [
-    "js/work-file.js"
+    "js/work-file.js",
+    "js/working.js"
    ],
    "fallbacks": [],
    "tabs": [

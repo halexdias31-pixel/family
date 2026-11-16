@@ -406,11 +406,12 @@
   {
    "id": "1.32",
    "principle": 1,
-   "text": "Marking is mechanical and fair: one typed box, one marker per checker, every accept marked right against itself and typeable on the pad.",
+   "text": "Marking is mechanical and fair: one typed box, one marker per checker, every accept marked right against itself and typeable on the pad. A worded answer of up to about six marks is marked by the distinct points it makes (`rule: points`): each point's words close together in a real sentence, a list of key words earning nothing, a quotation counted only if it is in the source, and one result shown, the marks out of the maximum.",
    "checks": [
     "answer",
     "answers",
     "marking",
+    "points",
     "keypad-power",
     "marking-norm",
     "qmerge",
@@ -427,9 +428,10 @@
   {
    "id": "1.33",
    "principle": 1,
-   "text": "Marking is mechanical only (owner, 16 Nov): a part with no exact key saves without marking — typed text and photos of the working kept, no Mark button, no AI and no person.",
+   "text": "Marking is mechanical first; Claude Haiku against the official mark scheme only where no mechanical key exists (owner, 16 Nov): the one Save tile on a keyless part asks markLong when the deploy offers it, shows marks/max, level, two strengths and two next steps, and on any bad reply only saves. No second button, no person marks.",
    "checks": [
     "working",
+    "marklong",
     "answerable",
     "qtypes",
     "assistant"
@@ -819,8 +821,7 @@
     "quiet",
     "sounds",
     "voice",
-    "calc",
-    "flyer"
+    "calc"
    ],
    "since": "2026-11-12"
   },

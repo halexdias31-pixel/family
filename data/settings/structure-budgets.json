@@ -303,13 +303,6 @@
    "inlineStyle": 0,
    "rawButton": 0
   },
-  "js/flyer.js": {
-   "lines": 425,
-   "oneOff": 8,
-   "emptyCatch": 0,
-   "inlineStyle": 0,
-   "rawButton": 2
-  },
   "js/games.js": {
    "lines": 6446,
    "oneOff": 18,

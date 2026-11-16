@@ -251,7 +251,7 @@ function staffPages_() {
   const hub = typeof window.hubBlock_ === 'function' ? window.hubBlock_() : '';
   const warn = typeof window.hubWarn_ === 'function' ? window.hubWarn_() : '';
   const top = hub ? [rolesSet_('staff-top', 'Staff hub', [rolesDrawn_(() => warn + hub)])] : [];
-  const out = ownCardSetPage_('staff').concat(top, typeof flyerCards_ === 'function' ? flyerCards_() : [], typeof window.legoCards_ === 'function' ? window.legoCards_() : [], settingsCards_(settingsSplit_().staff, '', 'staff'));
+  const out = ownCardSetPage_('staff').concat(top, typeof window.legoCards_ === 'function' ? window.legoCards_() : [], settingsCards_(settingsSplit_().staff, '', 'staff'));
   return out.length ? out : [rankOffCard_('', NOTHING_YET, null, 'rank-off set-none')];
 }
 /* TUTOR SETTINGS WAS A COLUMN; it is Find › Settings › Staff now (find-only.json), drawn from CARD_BUILD.staff. */

@@ -455,9 +455,9 @@ function widgetCard_(x) {
 }
 
 /* THE OFF WIDGETS' NAMES (880), for a card whose file is never fetched: written by tools/tiers.js from map.js's WIDGETS, never by hand. */
-const SOON_WIDGET_NAMES = { reels: 'One more thing', videos: 'Videos', newspaper: 'Sunday Funday', homework: 'Homework', flyers: 'Make a flyer', mat: 'Cheat sheet maker', timer: 'Timer', docket: 'Docket', notepad: 'Notepad', spotify: 'Spotify', speedread: 'Speed reader', timetable: 'Timetable', typing: 'Touch typing', cart: 'Basket', shopfind: 'Search the shop', calendar: 'Calendar', termdates: 'Term dates', countdowns: 'Countdowns', favlinks: 'Favourite links', rewrite: 'Rewrite coach', poster: 'Poster planner', pixel: 'Pixel editor', libcards: 'Library cards', console: 'Console', wordgames: 'Word games', boardgames: 'Board games' };
+const SOON_WIDGET_NAMES = { reels: 'One more thing', videos: 'Videos', newspaper: 'Sunday Funday', docket: 'Docket', notepad: 'Notepad', speedread: 'Speed reader', cart: 'Basket', shopfind: 'Search the shop', termdates: 'Term dates', countdowns: 'Countdowns', favlinks: 'Favourite links', pixel: 'Pixel editor', libcards: 'Library cards', console: 'Console', wordgames: 'Word games', boardgames: 'Board games' };
 /* AN OFF WIDGET THAT WAITS UNDER ANOTHER FRONT ANSWER (owner, 6 Nov: Homework under Tools); the rest wait under Coming soon. */
-const SOON_WIDGET_UNDER = { videos: 'Videos', reels: 'Tools', flyers: 'Tools', poster: 'Tools', homework: 'Tools' };
+const SOON_WIDGET_UNDER = { videos: 'Videos', reels: 'Tools' };
 /* A FRONT ANSWER HOLDING ONLY COMING SOON CARDS IS GREYED, never hidden (owner, 7 Nov P7/P8): Videos and Games until one is turned on. */
 /* One walk per list for every front answer (slow taps, 8 Nov): the front menu asked it a dozen times, a walk each. */
 const FRONT_SOON_MEMO = new WeakMap();
@@ -1120,7 +1120,7 @@ function kindRank_() {
 }
 /* LISTS WHOSE OWN ORDER IS THE ORDER (473): § */
 /* FIND'S FRONT MENU, in the owner's order (4 Nov): the first question's answers, whatever kinds stand under them. */
-const FRONT_ORDER = ['Practice', 'Library', 'Videos', 'Newspaper', 'Coming soon', 'Posts', 'Messages', 'Profiles', 'Booking', 'Venues', 'Shop', 'Settings', 'Tools', 'Games', 'Reels', 'Flyers', 'Posters'];
+const FRONT_ORDER = ['Practice', 'Library', 'Videos', 'Newspaper', 'Coming soon', 'Posts', 'Messages', 'Profiles', 'Booking', 'Venues', 'Shop', 'Settings', 'Tools', 'Games', 'Reels'];
 /* THE DOORS' OWN MENUS IN THE OWNER'S ORDER (batch C): account types, who, which posts, when. */
 const ANSWER_ORDERS = [FRONT_ORDER, ['Student', 'Parent', 'Staff', 'Apprentice', 'Admin', 'Business', 'Site'], ['Parent', 'Over 18', 'Under 18', 'Student', 'Tutor', 'Apprentice', 'Admin'],
   ['Approved', 'Waiting for approval', 'Deleted'], ['Today', 'This week', 'This month', 'This year', 'Older']];
@@ -4327,6 +4327,8 @@ function markExpr_(typed, want, eqn, fns) {
 }
 function markRule_(typed, rule) {
   const body = String(rule || '').replace(/^\s*rule:\s*/i, '');
+  /* `points`: worded points counted (`markPoints_`); as a yes or no, all of the marks */
+  if (/^points\b/i.test(body)) { const p = markPoints_(typed, rule); return !!p && p.got >= p.of; }
   /* `expr`/`eqn` is the whole rule but for `nobracket` (multiplied out), `fn g`, `parallel` and `not E` (any but that one) */
   const ex = /(?:^|,)\s*(expr|eqn)\s+([^,]+)/.exec(body);
   if (ex) {
@@ -4409,6 +4411,205 @@ function markRule_(typed, rule) {
   });
 }
 
+/* ---------- A WORDED ANSWER OF UP TO ABOUT SIX MARKS, MARKED BY THE POINTS IT MAKES (owner, 16 Nov) */
+/* `rule: points max 4; her head ached / headache; [2] limbs heavy~weighed; [q] heat intolerable`: `;` parts the points, `/` a point's
+   wordings, `~` a word's synonyms and spellings, `[2]` a point's marks (1 if none), `[q]` a quotation only; after `max N` the head may
+   say `first N` (only the first N answers read) and `phrases` (a short phrase is an answer, one point each). The distinct points found
+   are added up to `max`. A wording's words, stemmed and with the typo rule (`markTypo_`), must stand close, in any order, in one
+   sentence that is a sentence: a bare list of key words, a sentence of nothing but key words, and a long copied passage earn little. */
+const MARK_PT_GLUE = new Set(('a an the of to in on at for with by from and or but as is are was were be been being it its this that these those '
+  + 'he she they his her hers their him them i we you me my our your there here has have had do does did done will would can could may might '
+  + 'must should shall so because which who whom whose when while then than also very just not no into onto out up down over under about '
+  + 'all some any more most less if since until after before through each every one own too such what where why how').split(' '));
+const MARK_PT_CLAUSE = new Set(('is are was were be been being has have had do does did will would can could may might must should shall '
+  + 'he she it they i we you there because so which who that when while since if makes make made gets get got goes go went causes cause '
+  + 'turns turn becomes become became forms form changes change gives give gave shows show produces produce means mean leads lead '
+  + 'takes take took keeps keep kept lets let stops stop needs need uses use add adds put puts feels feel felt sees see saw').split(' '));
+const MARK_PT_NOT = new Set(['not', 'no', 'never', 'without', 'nor', 'hardly']);
+/* OPPOSITES THE TYPO RULE MUST NEVER JOIN (decreases is two letters from increases): each is a rival, so a near miss of one is that one */
+const MARK_PT_RIVALS = ('increase increases increased increasing decrease decreases decreased decreasing higher lower inhale exhale import export '
+  + 'inside outside above below before after maximum minimum positive negative endothermic exothermic absorb absorbs absorbed emit emits '
+  + 'emitted gain gains gained loses lost oxidised reduced oxidation reduction anode cathode acid alkali alkaline insulator conductor '
+  + 'diffusion osmosis mitosis meiosis').split(' ');
+/* the words of a source or an answer as they are read: entities, curly quotes and n't made plain */
+function markPtPlain_(s) {
+  return String(s == null ? '' : s).replace(/<br\s*\/?>|<\/(p|li|div|h\d|tr)>/gi, '\n').replace(/<[^>]*>/g, ' ')
+    .replace(/&(rsquo|lsquo|#8217|#8216|apos);/g, "'").replace(/&(rdquo|ldquo|quot|#8220|#8221);/g, '"')
+    .replace(/&hellip;/g, '...').replace(/&(mdash|ndash);/g, ' - ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&[a-z]+;|&#\d+;/g, ' ')
+    .replace(/[‘’ʼ]/g, "'").replace(/[“”]/g, '"').replace(/…/g, '...')
+    .toLowerCase().replace(/n't\b/g, ' not').replace(/'s\b/g, '');
+}
+function markPtWords_(s) {
+  return String(s).replace(/[-–—\/]/g, ' ').match(/[a-z0-9]+|¤/g) || [];
+}
+/* A LIGHT STEM: plurals, -ed, -ing, -ly, -ness and a closing e or y, so ached is ache and heavily is heavy */
+function markPtStem_(w) {
+  let s = w;
+  if (s.length < 4) return s;
+  if (/ies$/.test(s) && s.length > 4) s = s.slice(0, -3) + 'y';
+  else if (/sses$/.test(s)) s = s.slice(0, -2);
+  else if (/(s|x|z|ch|sh)es$/.test(s) && s.length > 4) s = s.slice(0, -2);
+  else if (/[^su]s$/.test(s) && !/is$/.test(s)) s = s.slice(0, -1);
+  if (/ness$/.test(s) && s.length > 6) s = s.slice(0, -4);
+  else if (/ingly$/.test(s) && s.length > 7) s = s.slice(0, -5);
+  else if (/ing$/.test(s) && s.length > 5) s = s.slice(0, -3);
+  else if (/edly$/.test(s) && s.length > 6) s = s.slice(0, -4);
+  else if (/ied$/.test(s) && s.length > 4) s = s.slice(0, -3) + 'y';
+  else if (/ed$/.test(s) && s.length > 4) s = s.slice(0, -2);
+  else if (/ly$/.test(s) && s.length > 4) s = s.slice(0, -2);
+  if (/([b-df-hj-np-tv-z])\1$/.test(s) && !/(ll|ss|zz|ff)$/.test(s)) s = s.slice(0, -1);
+  if (/e$/.test(s) && s.length > 3) s = s.slice(0, -1);
+  if (/y$/.test(s) && s.length > 3) s = s.slice(0, -1) + 'i';
+  return s;
+}
+/* THE KEY, read once: `{ max, points: [{ n, q, ways: [[[word, ...synonyms], ...], ...] }] }` */
+function markPtRead_(rule) {
+  const memo = markPtRead_.memo || (markPtRead_.memo = new Map());
+  if (memo.has(rule)) return memo.get(rule);
+  const parts = String(rule || '').replace(/^\s*rule:\s*/i, '').split(';').map(p => p.trim()).filter(Boolean);
+  const head = /^points\b(.*)$/i.exec(parts[0] || '');
+  const out = { max: 0, points: [] };
+  parts.slice(1).forEach(p => {
+    const tag = /^\[(\d*)(q?)\]\s*/i.exec(p);
+    const ways = (tag ? p.slice(tag[0].length) : p).split('/').map(w => w.trim().toLowerCase().replace(/n't\b/g, ' not').split(/\s+/)
+      .map(t => t.split('~').map(a => a.replace(/[^a-z0-9'-]/g, '').replace(/'s$/, '').replace(/-/g, '')).filter(Boolean))
+      .filter(alts => alts.length && !(alts.length === 1 && MARK_PT_GLUE.has(alts[0]) && !MARK_PT_NOT.has(alts[0]))))
+      .filter(w => w.length);
+    if (ways.length) out.points.push({ n: tag && tag[1] ? Number(tag[1]) : 1, q: !!(tag && tag[2]), ways });
+  });
+  const m = /max\s+(\d+)/i.exec(head ? head[1] : '') || /^\s*(\d+)/.exec(head ? head[1] : '');
+  out.max = m ? Number(m[1]) : out.points.reduce((s, p) => s + p.n, 0);
+  /* `first N`: only the first N answers are read, as an examiner reads "give two"; `phrases`: a short phrase is an answer, one point each */
+  out.first = Number((/first\s+(\d+)/i.exec(head ? head[1] : '') || [])[1]) || 0;
+  out.phrases = /\bphrases\b/i.test(head ? head[1] : '');
+  memo.set(rule, out);
+  return out;
+}
+/* THE SOURCE A QUOTATION IS CHECKED AGAINST: the question's own words, its lead and the stems above it; '' where there is none to check */
+function markPtSource_(x) {
+  if (!x) return '';
+  const bits = [x.lead, x.html].concat((x.stems || []).map(s => (s && (s.html || (s.row && s.row.html))) || ''));
+  const words = markPtWords_(markPtPlain_(bits.join('\n')));
+  return words.length >= 30 ? ' ' + words.join(' ') + ' ' : '';
+}
+/* A WORD OF THE ANSWER IS A WORD OF THE KEY: the same stem, or a near miss the typo rule forgives */
+function markPtIs_(tok, alts, opt) {
+  for (const a of alts) {
+    if (tok.w === a || tok.s === markPtStem_(a)) return true;
+    /* a little word (her, was) is never a near miss of a key word (hear, wax) */
+    if (/^\d+$/.test(a) || /^\d+$/.test(tok.w) || (opt && opt.strict) || MARK_PT_GLUE.has(tok.w)) continue;
+    if (markTypo_(tok.w, a, opt)) return true;
+    const sa = markPtStem_(a);
+    if (sa.length >= 4 && tok.s.length >= 4 && markTypo_(tok.s, sa, opt)) return true;
+  }
+  return false;
+}
+/* ONE WORDING IN A RUN OF WORDS: the closest set of places that holds every word of it, or null */
+function markPtFind_(toks, way, opt, quoteOnly) {
+  const negWay = way.some(a => a.some(b => MARK_PT_NOT.has(b)));
+  const at = way.map(alts => toks.map((t, i) => i).filter(i => {
+    if (!markPtIs_(toks[i], alts, opt)) return false;
+    if (quoteOnly && !toks[i].quote) return false;
+    if (negWay) return true;
+    /* "she was not tired" is not "she was tired" */
+    for (let j = i - 1, k = 0; j >= 0 && k < 3; j--, k++) {
+      if (MARK_PT_NOT.has(toks[j].w)) return false;
+      if (!MARK_PT_GLUE.has(toks[j].w)) break;
+    }
+    return true;
+  }));
+  if (at.some(a => !a.length)) return null;
+  const span = way.length + 4;
+  let best = null;
+  const walk = (k, used) => {
+    if (k === at.length) {
+      const lo = Math.min(...used), hi = Math.max(...used);
+      if (hi - lo + 1 <= span && (!best || hi - lo < best.hi - best.lo)) best = { lo, hi, used: used.slice() };
+      return;
+    }
+    for (const i of at[k].slice(0, 12)) if (used.indexOf(i) < 0) { used.push(i); walk(k + 1, used); used.pop(); }
+  };
+  walk(0, []);
+  return best;
+}
+/* `{ got, of, points: true }`, or null for nothing typed. `x` is the part, for its source; `opt` the typo rule's (`markOpt_`). */
+function markPoints_(typed, rule, x, opt) {
+  const raw = String(Array.isArray(typed) ? typed.join('\n') : typed == null ? '' : typed);
+  if (!raw.trim()) return null;
+  const key = markPtRead_(rule);
+  const source = markPtSource_(x);
+  opt = { strict: !!(opt && opt.strict), others: ((opt && opt.others) || []).concat(MARK_PT_RIVALS) };
+  /* A QUOTATION MUST BE IN THE SOURCE: one that is not is taken out, one that is is marked as quoted */
+  let quotes = 0;
+  const text = markPtPlain_(raw).replace(/(^|[\s(\[:,])(["'])((?:(?!\2)[^\n]|'(?=[a-z]))+?)\2(?=[\s.,;:!?)\]]|$)/g, (m, pre, qm, body) => {
+    const parts = body.split(/\.\.\.+/).map(p => markPtWords_(p)).filter(p => p.length);
+    /* with no source to check against, a quotation is read as the student's own words, and no `[q]` point is open */
+    if (!parts.length || !source) return pre + ' ' + body + ' ';
+    const found = source && parts.every(p => source.indexOf(' ' + p.join(' ') + ' ') >= 0);
+    quotes++;
+    return pre + (found ? ' \u0001' + quotes + ' ' + body.replace(/[.!?;]/g, ' ') + ' \u0002 ' : ' ¤ ');
+  });
+  const credited = new Map();
+  let inQuote = 0;
+  let units = text.split(key.phrases ? /[.!?]+(?=\s|$)|[;\n•,]+|\s+and\s+/ : /[.!?]+(?=\s|$)|[;\n•]+/);
+  units = units.filter(u => markPtWords_(u.replace(/\u0001\d+|\u0002/g, ' ')).some(w => !/^\d+$/.test(w)));
+  if (key.first) units = units.slice(0, key.first);
+  units.forEach(sentence => {
+    /* the sentence's words, each with its stem, its comma-part and the quotation it stands in */
+    const toks = [];
+    sentence.split(/,|\s+(?=and\s)|\s+-\s+/).forEach((chunk, c) => {
+      chunk.replace(/\u0001(\d+)|\u0002|[^\s\u0001\u0002]+/g, m => {
+        if (m[0] === '\u0001') inQuote = Number(m.slice(1));
+        else if (m === '\u0002') inQuote = 0;
+        else markPtWords_(m).forEach(w => toks.push({ w, s: markPtStem_(w), c, quote: inQuote }));
+        return m;
+      });
+    });
+    const glue = toks.filter(t => MARK_PT_GLUE.has(t.w)).length;
+    if (!key.phrases && toks.length < 3) return;
+    /* A LIST OF KEY WORDS: four or more comma-parts and all but one of them no clause; only the parts that are clauses are read */
+    const chunks = [...new Set(toks.map(t => t.c))];
+    const clause = c => toks.some(t => t.c === c && (t.quote || MARK_PT_CLAUSE.has(t.w) || (/ed$/.test(t.w) && t.w.length > 4)));
+    const scopes = chunks.length >= 4 && chunks.filter(c => !clause(c)).length >= chunks.length - 1
+      ? chunks.filter(clause).map(c => toks.filter(t => t.c === c)) : [toks];
+    const found = [];
+    scopes.forEach(sc => key.points.forEach((p, pi) => {
+      if (p.q && !source) return;
+      for (const way of p.ways) {
+        const f = markPtFind_(sc, way, opt, p.q);
+        if (f) { found.push({ pi, n: p.n, at: f.used.map(i => sc[i]) }); break; }
+      }
+    }));
+    /* NO MORE POINTS FROM A SENTENCE THAN IT HAS LITTLE TYING WORDS (the, she, so), NOR MORE THAN ONE PAST ITS VERBS; the same words never two points, a long quotation one */
+    const keyWords = new Set();
+    found.forEach(f => f.at.forEach(t => keyWords.add(t)));
+    const verbs = toks.filter(t => t.quote || MARK_PT_CLAUSE.has(t.w) || (/ed$/.test(t.w) && t.w.length > 4)).length;
+    /* a short sentence with no little words ("Hyenas worry Pi") is one point if a word in it is no key word at all */
+    const tying = toks.filter(t => !keyWords.has(t) && (MARK_PT_GLUE.has(t.w) || t.quote)).length;
+    const keyish = toks.filter(t => key.points.some(p => p.ways.some(w => w.some(alts => markPtIs_(t, alts, opt))))).length, own = keyish < toks.length;
+    /* and a sentence that is three parts in four key words is a list of them, whatever little word it carries */
+    let room = key.phrases ? 1 : keyish > 0.75 * toks.length ? 0 : glue ? Math.min(verbs + 1, tying) : toks.length <= 6 && own ? 1 : 0;
+    const kept = [], perQuote = {};
+    found.sort((a, b) => b.n - a.n || b.at.length - a.at.length).forEach(f => {
+      if (room <= 0 || credited.has(f.pi)) return;
+      if (kept.some(k => f.at.every(t => k.at.indexOf(t) >= 0))) return;
+      const q = f.at.every(t => t.quote && t.quote === f.at[0].quote) ? f.at[0].quote : 0;
+      if (q && toks.filter(t => t.quote === q).length > 15 && perQuote[q]) return;
+      if (q) perQuote[q] = 1;
+      kept.push(f);
+      room--;
+    });
+    kept.forEach(f => credited.set(f.pi, f.n));
+  });
+  const got = [...credited.values()].reduce((s, n) => s + n, 0);
+  return { got: Math.min(got, key.max), of: key.max, points: true };
+}
+function markIsPoints_(accept) {
+  return /(^|\|)\s*rule:\s*points\b/i.test(String(accept || ''));
+}
+function markPointsWay_(accept) {
+  return String(accept || '').split('|').find(w => /^\s*rule:\s*points\b/i.test(w)) || '';
+}
 /* ALGEBRA IN ANY ORDER (R3, O4): the sides' terms as a sorted list, so 4x^2-7x+x^3 is x^3+4x^2-7x; x+x is not 2x, which keeps "simplify". */
 function markTerms_(s) {
   const t = markNorm_(s).replace(/×/g, '*').replace(/\s+/g, '');
@@ -4632,6 +4833,8 @@ const PART_MARKERS = {
   choice: (x, typed) => markChoice_(x, typed, false),
   order: (x, typed) => markChoice_(x, typed, true),
   accept: (x, typed) => {
+    /* POINTS ARE COUNTED, and the one result is the marks out of the maximum */
+    if (markIsPoints_(x.accept)) return markPoints_(typed, markPointsWay_(x.accept), x, markOpt_(x));
     const o = markOpt_(x), v = markAnswer_(typed, x.accept, false, o);
     if (v === null) return null;
     const fix = v && !markAnswer_(typed, x.accept, false, { strict: true }) ? markTypo_(typed, x.accept, o) : '';
@@ -5165,9 +5368,9 @@ on('qp-check', (el) => {
   if (v.save) { ACTIONS['qp-send'](el); return; }
   const full = v.got >= v.of;
   box.classList.add(full ? 'is-right' : 'is-near');
-  tell_(out, full && !v.words ? 'saved' : 'info', v.words ? v.got + ' of ' + v.of + ' mark' + (v.of === 1 ? '' : 's') + ' · by key words' : full ? (v.typo ? text_('correct-check-the-spelling') + v.typo + ')' : 'Correct') : text_('not-yet-have-another-go'));
+  tell_(out, full && !v.words ? 'saved' : 'info', v.points ? v.got + ' of ' + v.of + ' mark' + (v.of === 1 ? '' : 's') : v.words ? v.got + ' of ' + v.of + ' mark' + (v.of === 1 ? '' : 's') + ' · by key words' : full ? (v.typo ? text_('correct-check-the-spelling') + v.typo + ')' : 'Correct') : text_('not-yet-have-another-go'));
   /* MARKED IS A SUBMISSION, right or not yet (js/submit.js); signed out it is this visit's alone. */
-  subRecord_(k, inp.value, v.words ? 'rule:' + v.got + '/' + v.of : full ? 'right' : 'wrong');
+  subRecord_(k, inp.value, v.words || v.points ? 'rule:' + v.got + '/' + v.of : full ? 'right' : 'wrong');
 });
 
 /* ---------- SAVE, WHERE NOTHING CAN MARK IT (owner, 16 Nov): the typed answer as a `sent` submission, and any photos with it (`workSave_`, working.js). */
@@ -5181,10 +5384,48 @@ on('qp-send', (el) => {
   const pics = typeof WORK_PICS === 'object' && WORK_PICS ? (WORK_PICS[k] || []).length : 0;
   const notYet = partReady_('save', { typed: inp.value, pics });
   if (notYet) { tell_(out, 'info', notYet); return; }
+  /* A LONG ANSWER IS MARKED BY CLAUDE HAIKU when the backend says it can (owner, 16 Nov); otherwise it is only saved, as before. */
+  if (markLongOn_()) { markLong_(box, k, inp.value, el, out); return; }
   if (pics && typeof workSave_ === 'function') { workSave_(k, inp.value, el, out); return; }
   const sent = subRecord_(k, inp.value, 'sent');
   tell_(out, sent ? 'saved' : 'error', sent ? (box.classList.contains('qp-keep') ? 'Saved' : 'Sent') : text_('sign-in-to-send-it'));
 });
+
+/* ---------- A LONG ANSWER, MARKED BY CLAUDE HAIKU ON THE SERVER (`markLong`, post-learning.gs) ---------- */
+/* Only parts with no mechanical key reach `qp-send`, so only they are ever sent. Signed in, and only when the deploy names the feature. */
+const markLongOn_ = () => typeof DATA === 'object' && DATA && Array.isArray(DATA.features) && DATA.features.indexOf('markLong') !== -1
+  && typeof USER === 'object' && !!USER && !!USER.token;
+/* THE ONE RESULT: marks/max, the level, two strengths and two next steps, drawn by the card maker's blocks. */
+function markLongCard_(d) {
+  const list = (head, xs) => (xs || []).length ? [{ type: 'group', tag: 'p', look: 'qp-long-head', text: head },
+    { type: 'group', tag: 'ul', look: 'qp-long-list', blocks: xs.slice(0, 2).map(t => ({ type: 'group', tag: 'li', text: t })) }] : [];
+  return cardBlock_({ type: 'group', look: 'qp-long', blocks: [
+    { type: 'group', tag: 'p', look: 'qp-long-mark', text: d.marks + ' / ' + d.max + ' marks' + (d.level ? ' · ' + d.level : '') }]
+    .concat(list('Strengths', d.strengths), list('Next steps', d.next)) });
+}
+function markLong_(box, k, typed, el, out) {
+  const pics = typeof WORK_PICS === 'object' && WORK_PICS ? (WORK_PICS[k] || []) : [];
+  const key = subKeyOf_(k);
+  const x = stuffItemsAll_().find(it => ansKey_(it) === k);
+  let shown = box.querySelector('.qp-long-at');
+  if (!shown) { shown = document.createElement('div'); shown.className = 'qp-long-at'; out.insertAdjacentElement('afterend', shown); }
+  el.disabled = true;
+  tell_(el, 'busy');
+  tell_(out, '');
+  shown.innerHTML = loading_();
+  api({ action: 'markLong', personId: USER.personId || '', id: subId_(), sent: Date.now(), key: key, marks: (x && x.marks) || '',
+        label: typeof doneLabel_ === 'function' ? (doneLabel_(k) || '') : '', answer: typed || '', photos: pics.map(p => p.url) })
+    .then(d => {
+      el.disabled = false;
+      tell_(el, '');
+      shown.innerHTML = '';
+      if (!d || !d.success) { tell_(out, 'error', (d && (d.message || d.error)) || 'Your answer could not be saved just now — try again'); return; }
+      if (!d.marked) { tell_(out, 'info', d.message || 'Saved'); return; }
+      tell_(out, 'saved', d.saved ? 'Marked and saved' : 'Marked');
+      shown.innerHTML = markLongCard_(d);
+    })
+    .catch(() => { el.disabled = false; tell_(el, ''); shown.innerHTML = ''; tell_(out, 'error', 'Could not reach the server — your answer is still here'); });
+}
 
 /* ---------- WHO IS WORKING § */
 
@@ -17861,43 +18102,10 @@ const WIDGETS = [
   { id: 'newspaper', kind: 'tool', name: 'Sunday Funday', pure: true, start: () => window.initNewspaper_?.(),
     into: 'np-box', what: 'The newspaper',
     get html() { return mapHtml_('Sunday Funday', mapBox_('np-box', 'np-box')); } },
-  /* HOMEWORK (owner, 6 Nov): a tutor sets a paper, the student sees it; off in tiers.json, so a Coming soon card under Tools. */
-  { id: 'homework', kind: 'tool', name: 'Homework',
-    get html() { return mapHtml_('Homework'); } },
   /* `solid` — AN INSTRUMENT, NOT A CARD. § */
   /* MESSAGES, as a widget. § */
   /* MESSAGES IS NOT A WIDGET ANY MORE. § */
 
-  /* THE FLYER MAKER WAS FOLDED INTO THE CHEAT SHEET MAKER ONCE, AND IS ITS OWN TOOL AGAIN — the `flyers` entry below. § */
-
-  /* THE CHEAT SHEET MAKER. § */
-  /* THE FLYER MAKER, WHICH IS A TOOL AND NOT A PIECE OF THE CHEAT SHEET. § */
-  { id: 'flyers', kind: 'tool', name: 'Make a flyer', solid: true, admin: true,
-    start: () => window.initFlyer?.(),
-    into: 'fm-wrap', what: 'The flyer',
-    get html() { return mapHtml_('Make a flyer', mapBox_('fm-wrap')); } },
-
-
-  { id: 'mat', kind: 'tool', name: 'Cheat sheet maker', solid: true,
-    start: () => window.initMat?.(),
-    into: 'mat-box', what: 'The cheat sheet',
-    /* NO BLURB. It said "one sheet of A4, tick what goes on it" over a list of tickboxes on a page showing a sheet of A4 — three sentences describing what is already § */
-    get html() { return card_(cardBlocks_({ type: 'group', look: '', blocks: [mapHead_('Cheat sheet maker'), mapBox_('mat-box')] })); } },
-  { id: 'timer', kind: 'tool', name: 'Timer', solid: true, start: () => window.initTimer?.(),
-    pure: true,
-    into: 'timer-display', what: 'The timer',
-    get html() { return mapHtml_('Timer',
-      mapBox_('timer-display', 'mono timer-big', { tag: 'p', text: '25:00' }),
-      /* A `data-do`, not an id. The delegated click handler only ever looks for `data-do`, so a
-         button carrying an id alone is a button nothing is listening to — which is why this
-         has never started anything. */
-      mapBox_(null, 'btn-row', { tiles: [
-        { form: true, look: 'btn quiet', act: 'timer-toggle', id: 'timer-toggle', label: '▶' },
-        { form: true, label: 'Reset', act: 'timer-reset', kind: 'quiet' }] }),
-      /* The lengths people actually use. A number field for a duration is a keyboard and four taps
-         for a question whose answer is almost always one of four. */
-      mapBox_(null, 'btn-row gap-t', { tiles: [5, 15, 25, 45].map(m =>
-        ({ form: true, label: m, act: 'timer-set', data: { min: m }, kind: 'quiet', cls: 'tiny' })) })); } },
   { id: 'docket', kind: 'tool', name: 'Docket', solid: true, pure: true, start: () => paintDocket?.(),
     into: 'docket-body', what: 'The docket',
     get html() { return mapHtml_('Docket', mapBox_('docket-body'),
@@ -17911,10 +18119,6 @@ const WIDGETS = [
       { type: 'control', tag: 'textarea', attrs: { id: 'notepad', placeholder: 'Jot something down…' } },
       mapBox_('pad-said', 'said said-s', { tag: 'p', text: 'Saves as you type.' }),
       { type: 'tiles', tiles: [{ icon: 'doc', label: 'Copy', note: 'the notes', act: 'pad-copy' }] }); } },
-  /* ---------- SPOTIFY (510): your own account, connected in this browser alone — spotify.js ---------- */
-  { id: 'spotify', kind: 'tool', name: 'Spotify', solid: true, start: () => window.initSpotify?.(),
-    into: 'sp-box', what: 'Spotify',
-    get html() { return mapHtml_('Spotify', mapBox_('sp-box', null, { inner: typeof window.spCard_ === 'function' ? window.spCard_() : '' })); } },
   /* ---------- SPEED READ (403): paste, then one word at a time — reader.js ---------- */
   { id: 'speedread', kind: 'tool', name: 'Speed reader', solid: true, pure: true, start: () => initSpeedRead?.(),
     into: 'sr-text', what: 'The speed reader',
@@ -17922,18 +18126,6 @@ const WIDGETS = [
       { type: 'control', tag: 'textarea', attrs: { id: 'sr-text', placeholder: 'Paste text to read…' } },
       /* A TILE, NOT A BUTTON (720): Read is the thing's action, so it is a tile in a row under it (house style). */
       { type: 'tiles', tiles: [{ icon: 'play', label: 'Read it', act: 'sr-read' }] }); } },
-
-  /* ---------- THE TIMETABLE, THE ONE WEEK VIEW § */
-  /* NOT `pure`, though it was until the review of 12 Oct: § */
-  { id: 'timetable', kind: 'tool', name: 'Timetable', solid: true, start: () => window.initTimetable?.(),
-    into: 'tmt-box', what: 'Your timetable',
-    /* NO `.card` OF ITS OWN. § */
-    get html() { return mapHtml_('Timetable', mapBox_('tmt-box', 'tmt-box')); } },
-
-  /* ---------- TOUCH TYPING § */
-  { id: 'typing', kind: 'tool', name: 'Touch typing', solid: true,
-    start: () => window.initTyping?.(), into: 'kt-box', what: 'The lesson',
-    get html() { return mapHtml_('Touch typing', mapBox_('kt-box', 'kt-box')); } },
 
   /* ---------- THE BASKET, WHICH HAS NOW LIVED IN FOUR PLACES § */
   { id: 'cart', kind: 'shop', name: 'Basket', start: () => initCart?.(),
@@ -17944,11 +18136,6 @@ const WIDGETS = [
   { id: 'shopfind', kind: 'tool', name: 'Search the shop', pure: true, start: () => paintShopFind_?.(),
     into: 'shop-find-box', what: 'The shop search',
     get html() { return mapHtml_('Search the shop', mapBox_('shop-find-box', 'shop-find')); } },
-
-  { id: 'calendar', kind: 'tool', name: 'Calendar', pure: true, start: () => window.initCalendar?.(),
-    into: 'cal-body', what: 'The calendar',
-    get html() { return mapHtml_('Calendar', mapBox_('cal-label', 'cal-month', { tag: 'p' }), mapBox_('cal-body', 'cal'),
-      { type: 'tiles', tiles: [{ icon: 'left', label: 'Earlier', note: 'the month before', act: 'cal-back' }, { icon: 'right', label: 'Later', note: 'the month after', act: 'cal-fwd' }] }); } },
 
   /* ---------- TERM DATES AND COUNTDOWNS (466): the owner — "a widget in the Tools column telling the user the end dates of the next 3 academic intervals"; countdowns "available for everyone under Tools". */
   { id: 'termdates', kind: 'tool', name: 'Term dates', pure: true, start: () => paintTermDates_?.(),
@@ -17965,16 +18152,6 @@ const WIDGETS = [
     start: () => window.initFavLinks_?.(),
     into: 'fav-box', what: 'Your favourite links',
     get html() { return mapHtml_('Favourite links', mapBox_('fav-box')); } },
-  /* ---------- THE REWRITE COACH (509, 519): admin only for now; a fact checklist and questions, never a rewrite — rewrite.js ---------- */
-  { id: 'rewrite', kind: 'tool', name: 'Rewrite coach', solid: true, admin: true,
-    start: () => window.initRewrite_?.(),
-    into: 'rw-box', what: 'The rewrite coach',
-    get html() { return mapHtml_('Rewrite coach', mapBox_('rw-box')); } },
-  /* ---------- THE POSTER PLANNER (547): bare bones -- a page, boxes, JSON and PNG out for Claude; this device only -- poster.js ---------- */
-  { id: 'poster', kind: 'tool', name: 'Poster planner', solid: true, pure: true,
-    start: () => window.initPoster_?.(),
-    into: 'pst-box', what: 'The poster planner',
-    get html() { return mapHtml_('Poster planner', mapBox_('pst-box')); } },
   /* ---------- THE PIXEL EDITOR (547): bare bones -- a grid, a colour, pen or eraser, Clear, a PNG; this device only -- pixel.js ---------- */
   { id: 'pixel', kind: 'tool', name: 'Pixel editor', solid: true, pure: true,
     start: () => window.initPixel_?.(),
@@ -22080,196 +22257,6 @@ function qrSvg_(text, cls) {
 }
 
 ;
-/* ==== js/flyer.js ==== */
-/* @family. — flyer.js THE FLYER MAKER (owner, 11 Nov): marketing from ONE source. Every word on a flyer is the Web profile's (brand tab) or the chosen tutor's own card. */
-/* The person chooses only which (the business, or a tutor — a tutor only themselves), a campaign, the layout and which listed subjects; nothing is typed. */
-
-/* THE FIXED LAYOUTS: what each prints, in order; `fields` are keys of `flyerSource_`'s answer and nothing else (check-flyer). */
-const FLY_LAYOUTS = [
-  { id: 'a4', name: 'A4 poster', note: 'one A4 page', fields: ['logo', 'name', 'head', 'tagline', 'slogan', 'say', 'photo', 'subjects', 'price', 'area', 'phone', 'site', 'cta', 'qr'] },
-  { id: 'a5', name: 'A5 flyer', note: 'one A5 page', fields: ['logo', 'name', 'head', 'tagline', 'say', 'subjects', 'price', 'area', 'phone', 'cta', 'qr'] },
-  { id: 'slip', name: 'QR slips', note: '10 business cards on A4', fields: ['name', 'head', 'subjects', 'phone', 'site', 'qr'], many: 10 },
-];
-const FLY_SUBJECTS_MAX = 6;
-let FLY = { who: '', layout: 'a4', subj: null, camp: '' };
-/* THE CAMPAIGNS (the old flyer maker's, 1100): data/settings/campaigns.json and copy.json, read into DATA.campaigns by settings.js. */
-/* Each gives a headline, a paragraph, a style and which blocks print; the facts stay the profile's. Its own hex colours are not used: */
-/* a style is one of four fixed paper looks (`fl-st-*`, tokens in :root). */
-const FLY_STYLES = ['minimal', 'elegant', 'detailed', 'loud'];
-const flyCampaigns_ = () => ((typeof DATA !== 'undefined' && DATA && DATA.campaigns) || []).filter(c => c && c.id && c.name && ((c.copy || {}).head || []).length);
-const flyCampaign_ = id => flyCampaigns_().find(c => c.id === id) || null;
-const flyCopy_ = (c, slot) => String((((c && c.copy) || {})[slot] || [])[0] ? c.copy[slot][0].text || '' : '');
-
-/* A SUBJECT ONCE, its level dropped ("Maths (GCSE)" is Maths): a flyer names what is taught, the card says the levels. */
-const flySubjects_ = list => {
-  const seen = new Set();
-  return (list || []).map(s => String(s || '').replace(/\s*\(.*\)\s*$/, '').trim()).filter(s => s && !seen.has(s.toLowerCase()) && seen.add(s.toLowerCase()));
-};
-const flyTutors_ = () => ((typeof DATA !== 'undefined' && DATA && DATA.tutors) || []).filter(t => t && t.title && t.listed !== false);
-const flyMine_ = () => (typeof passFor_ === 'function' && USER ? passFor_(USER.name) : null);
-/* WHO THIS VIEWER MAY MAKE A FLYER FOR: an admin, the business and every listed tutor; a tutor, their own card only. */
-function flyWhoList_() {
-  if (typeof may_ === 'function' && may_('admin')) return [{ id: 'web', label: brand('name', '@family.') }].concat(flyTutors_().map(t => ({ id: flyTutorId_(t), label: t.title })));
-  const me = flyMine_();
-  return me ? [{ id: flyTutorId_(me), label: me.title }] : [];
-}
-const flyTutorId_ = t => String((t && (t.handle || t.personId)) || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-
-/* THE ONE SOURCE: the Web profile's lines (as `webProfilePages_` reads them) or a tutor's own card. Every value is a string or a list of strings. */
-function flyerSource_(who) {
-  const site = String(brand('site', '')).replace(/^https?:\/\//i, '').replace(/\/+$/, '');
-  const common = { site, phone: String(brand('phone', '') || ''), logo: typeof brandLogo_ === 'function' ? brandLogo_() : '',
-    cta: brand('flyer_cta', 'Scan to book'), area: brand('area', '') };
-  if (!who || who === 'web') {
-    const rates = flyTutors_().map(t => Number(t.rate) || 0).filter(n => n > 0);
-    const listed = String(brand('web_subjects', '') || '').split(',');
-    return Object.assign(common, { kind: 'web', id: 'web', handle: '', name: brand('name', '@family.'),
-      tagline: brand('web_tagline', 'Tutoring for every age, at home and online.'), photo: '',
-      subjects: flySubjects_(listed.some(s => s.trim()) ? listed : flyTutors_().reduce((a, t) => a.concat(t.teaches || []), [])),
-      price: brand('web_price', '') || (rates.length ? 'From ' + fmtMoney_(Math.min(...rates), 'hour') : '') });
-  }
-  const t = flyTutors_().concat(flyMine_() || []).find(x => flyTutorId_(x) === who);
-  if (!t) return null;
-  const pics = Array.isArray(t.photos) ? t.photos : [];
-  return Object.assign(common, { kind: 'tutor', id: flyTutorId_(t), handle: String(t.handle || ''), name: String(t.title || ''),
-    tagline: String(t.subtitle || t.description || ''), photo: String(pics[0] || ''), subjects: flySubjects_(t.teaches || t.focus || []),
-    price: Number(t.rate) > 0 ? fmtMoney_(Number(t.rate), 'hour') : '', area: (t.venues || []).join(' · ') || common.area });
-}
-/* A CAMPAIGN LAID OVER A SOURCE: its headline (a `|` is a line break), paragraph, style and blocks; a block it leaves out is not printed. */
-function flyerWith_(src, campId) {
-  const c = flyCampaign_(campId);
-  if (!src || !c) return src ? Object.assign({}, src, { camp: '', style: 'minimal', blocks: null, head: [], say: '', slogan: '' }) : src;
-  const blocks = String(c.blocks || '').split(/\s+/).filter(Boolean);
-  return Object.assign({}, src, { camp: c.id.toLowerCase(), style: FLY_STYLES.indexOf(c.style) !== -1 ? c.style : 'minimal', blocks,
-    head: flyCopy_(c, 'head').split('|').map(x => x.trim()).filter(Boolean), say: flyCopy_(c, 'say'),
-    slogan: blocks.indexOf('slogan') !== -1 ? brand('slogan', '') : '' });
-}
-/* WHICH FIELDS A CAMPAIGN'S BLOCKS MAY LEAVE OUT: price, its paragraph and the slogan; the QR always stays, it is how a sign-up is traced. */
-const FLY_BLOCK_OF = { price: 'price', say: 'say', slogan: 'slogan' };
-const flyKeeps_ = (s, f) => !s.blocks || !FLY_BLOCK_OF[f] || s.blocks.indexOf(FLY_BLOCK_OF[f]) !== -1;
-
-/* THE QR'S ADDRESS: the site, a tutor's own card when it is theirs, and the source tag `came_from` records at sign-up. */
-function flyerUrl_(src, layout) {
-  if (!src || !src.site) return '';
-  const q = (src.kind === 'tutor' && src.handle ? 'tutor=' + encodeURIComponent(src.handle) + '&' : '') + 'from=flyer-' + layout + '-' + src.id + (src.camp ? '-' + src.camp : '');
-  return 'https://' + src.site + (/[/?]/.test(src.site.slice(-1)) ? '' : '/') + '?' + q;
-}
-
-/* ONE FIELD, drawn from the source only, as a block for the one card maker (`cardBlock_`); an empty value draws nothing. */
-const flyLine_ = (look, text) => (text ? { type: 'group', tag: 'p', look, text } : null);
-const FLY_DRAW = {
-  logo: s => (s.logo ? { type: 'media', kind: 'image', look: 'fl-logo', src: s.logo } : null),
-  /* A LINE THAT IS A HEADING, not an <h2>: inside a screen an h2 is a section rule (`.screen h2`). */
-  name: s => (s.name ? { type: 'group', tag: 'p', look: 'fl-name', attrs: { role: 'heading', 'aria-level': '2' }, text: s.name } : null),
-  head: s => ((s.head || []).length ? { type: 'group', tag: 'p', look: 'fl-head', blocks: s.head.map(l => ({ type: 'group', tag: 'span', text: l })) } : null),
-  slogan: s => flyLine_('fl-slogan', s.slogan),
-  say: s => flyLine_('fl-say', s.say),
-  tagline: s => flyLine_('fl-tag', s.tagline),
-  photo: s => (s.photo ? { type: 'media', kind: 'image', look: 'fl-photo', src: s.photo } : null),
-  subjects: (s, o) => { const l = flyPicked_(s, o.subj); return l.length ? { type: 'list', look: 'fl-subj', items: l } : null; },
-  price: s => flyLine_('fl-price', s.price),
-  area: s => flyLine_('fl-area', s.area),
-  phone: s => flyLine_('fl-phone', s.phone),
-  site: s => flyLine_('fl-site', s.site),
-  cta: s => flyLine_('fl-cta', s.cta),
-  /* THE QR is the QR maker's drawing, laid in as it is (`inner`). */
-  qr: (s, o) => { const u = flyerUrl_(s, o.layout); return u ? { type: 'group', look: 'fl-qr', attrs: { 'data-url': u }, inner: typeof qrSvg_ === 'function' ? qrSvg_(u, 'fl-qrsvg') : '' } : null; },
-};
-const flyPicked_ = (s, subj) => (s.subjects || []).filter(x => !subj || subj.indexOf(x) !== -1).slice(0, FLY_SUBJECTS_MAX);
-
-/* THE SHEET: the layout's fields from the source, nothing else; QR slips are one slip ten times. A spec; `flyerSheet_` draws it. */
-function flyerSheetSpec_(src, layout, subj) {
-  const L = FLY_LAYOUTS.find(x => x.id === layout) || FLY_LAYOUTS[0], o = { layout: L.id, subj };
-  if (!src) return null;
-  const one = L.fields.filter(f => flyKeeps_(src, f)).map(f => { try { return FLY_DRAW[f](src, o); } catch (e) { return null; } }).filter(Boolean);
-  const blocks = L.many ? Array.from({ length: L.many }, () => ({ type: 'group', look: 'fl-slip', blocks: one })) : one;
-  return { type: 'group', look: `fl-sheet fl-${L.id} fl-st-${src.style || 'minimal'}`, blocks };
-}
-const flyerSheet_ = (src, layout, subj) => cardBlock_(flyerSheetSpec_(src, layout, subj));
-
-/* ---------- THE CARD: three choices, a live preview, Download PDF ---------- */
-function flyerBody_() {
-  const who = flyWhoList_();
-  if (!who.length) return { type: 'group', look: 'fl-body', blocks: [{ type: 'text', look: 'empty', text: brand('flyer_none', 'Your flyer comes from your tutor card; fill that in first.') }] };
-  if (!who.some(w => w.id === FLY.who)) FLY.who = who[0].id;
-  if (FLY.camp && !flyCampaign_(FLY.camp)) FLY.camp = '';
-  const src = flyerWith_(flyerSource_(FLY.who), FLY.camp);
-  const subs = (src && src.subjects) || [];
-  const row = (items, act, on) => ({ type: 'group', look: 'fl-row', tiles: items.map(i => ({ form: true, kind: on(i) ? '' : 'quiet', label: i.label, act, data: { v: i.id }, pressed: on(i) })) });
-  return { type: 'group', look: 'fl-body', blocks: [
-    who.length > 1 ? row(who, 'fly-who', i => i.id === FLY.who) : null,
-    flyCampaigns_().length ? row([{ id: '', label: 'No campaign' }].concat(flyCampaigns_().map(c => ({ id: c.id, label: c.name }))), 'fly-camp', i => i.id === FLY.camp) : null,
-    row(FLY_LAYOUTS.map(l => ({ id: l.id, label: l.name })), 'fly-layout', i => i.id === FLY.layout),
-    subs.length ? row(subs.map(s => ({ id: s, label: s })), 'fly-subj', i => !FLY.subj || FLY.subj.indexOf(i.id) !== -1) : null,
-    { type: 'group', look: 'fl-prev', blocks: [flyerSheetSpec_(src, FLY.layout, FLY.subj)] },
-    { type: 'group', look: 'fl-row', tiles: [{ form: true, label: 'Download PDF', act: 'fly-print' }] },
-  ] };
-}
-/* THE CARD'S SPEC: its name the tag, the maker its one body block; `fl-maker` is how a redraw finds every copy. */
-const flyerCardSpec_ = () => ({ kind: 'panel', look: 'fl-maker', name: 'Flyer maker', tags: ['Flyer maker'], data: { 'lay-card': 'staff:flyer' }, body: [flyerBody_()] });
-function flyerCards_() {
-  if (!USER || !may_('staff')) return [];
-  /* FITTED ONCE IT IS ON THE PAGE: a card is drawn as a string before it has a width. */
-  try { setTimeout(flyerFit_, 0); setTimeout(flyerFit_, 400); } catch (e) { /* drawn unfitted */ }
-  return [renderCard(flyerCardSpec_())];
-}
-
-/* THE PREVIEW IS THE PRINTED SHEET, scaled to the card's width (its sizes are in mm, as printed). */
-function flyerFit_() {
-  if (typeof document === 'undefined') return;
-  document.querySelectorAll('.fl-prev').forEach(p => {
-    const s = p.querySelector('.fl-sheet'); if (!s) return;
-    const k = p.clientWidth / (s.offsetWidth || 1);
-    s.style.transform = `scale(${k})`; p.style.aspectRatio = 'auto'; p.style.height = Math.ceil(s.offsetHeight * k) + 'px';
-  });
-}
-/* EVERY COPY ON THE PAGE (both finders) drawn again round the new choice, as the same element (`cardFill_`). */
-function flyerRedraw_() {
-  /* The card's insides drawn again, the element kept (its place and listeners stay). */
-  document.querySelectorAll('.card.fl-maker').forEach(c => { const t = document.createElement('template'); t.innerHTML = renderCard(flyerCardSpec_());
-    const fresh = t.content.firstElementChild; if (fresh) c.replaceChildren(...fresh.childNodes); });
-  flyerFit_();
-}
-on('fly-who', el => { FLY.who = el.dataset.v || ''; FLY.subj = null; flyerRedraw_(el); });
-on('fly-camp', el => { FLY.camp = el.dataset.v || ''; flyerRedraw_(el); });
-on('fly-layout', el => { FLY.layout = el.dataset.v || 'a4'; flyerRedraw_(el); });
-on('fly-subj', el => {
-  const all = (flyerSource_(FLY.who) || {}).subjects || [], v = el.dataset.v || '';
-  const now = FLY.subj ? FLY.subj.slice() : all.slice();
-  const at = now.indexOf(v);
-  if (at === -1) now.push(v); else if (now.length > 1) now.splice(at, 1);
-  FLY.subj = now.length === all.length ? null : now;
-  flyerRedraw_(el);
-});
-/* "DOWNLOAD PDF" IS THE PRINT DIALOGUE, as the statement's: the sheet unscaled at the end of the body, the rest hidden (`.printing-flyer`). */
-on('fly-print', () => {
-  const src = flyerWith_(flyerSource_(FLY.who), FLY.camp); if (!src) return;
-  const paper = document.createElement('div');
-  paper.className = 'fl-paper fl-paper-' + FLY.layout;
-  paper.innerHTML = flyerSheet_(src, FLY.layout, FLY.subj);
-  document.body.appendChild(paper);
-  document.body.classList.add('printing-flyer');
-  const was = document.title;
-  document.title = 'Flyer ' + src.name + ' ' + FLY.layout;
-  const done = () => { document.body.classList.remove('printing-flyer'); paper.remove(); document.title = was; window.removeEventListener('afterprint', done); };
-  window.addEventListener('afterprint', done);
-  setTimeout(done, 4000);
-  window.print();
-});
-try { window.addEventListener('resize', () => flyerFit_()); } catch (e) { /* no window in a check */ }
-
-/* ---------- WHERE THEY CAME FROM: a flyer's `?from=flyer-…` kept on this phone until sign-up sends it (`register`, `came_from`) ---------- */
-const FLY_FROM_KEY = 'came_from';
-function cameFromSave_() {
-  try {
-    const f = String(new URLSearchParams(location.search).get('from') || '').toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 60);
-    if (f) localStorage.setItem(FLY_FROM_KEY, f);
-  } catch (e) { /* no storage: the sign-up is simply not traced */ }
-}
-const cameFrom_ = () => { try { return localStorage.getItem(FLY_FROM_KEY) || ''; } catch (e) { return ''; } };
-cameFromSave_();
-
-;
 /* ==== js/help.js ==== */
 /* ---------- A HAND UP (455): a child asks the tutor over from a question; the tutor's column lists who. ---------- */
 /* The child's side is device-kept (it survives a reload and a swipe); the backend's flag tells Staff. */
@@ -22719,7 +22706,6 @@ const CARD_REG = [
   { id: 'acct:prog-grade', col: 'account', label: 'Progress: grade', re: /^<div class="card prog-w prog-grade/, say: 'A rough grade from the questions you have answered.' },
   { id: 'acct:prog-sessions', col: 'account', label: 'Progress: sessions', re: /^<div class="card prog-w prog-sessions/, say: 'Your booked and past sessions.' },
   { id: 'staff:apply', col: 'staff', label: 'Apply to teach', re: /^<div class="card apply-card/, say: 'Ask to teach with us; the admin says yes or no.' },
-  { id: 'staff:flyer', col: 'staff', label: 'Flyer maker', say: 'Print a poster, flyer or QR slips from the Web profile or your tutor card.' },
   { id: 'staff:lego', col: 'staff', label: 'LEGO piece check', say: 'Count a trade-in set\'s pieces from photos, against its parts list.' },
   { id: 'staff:hub', col: 'staff', label: 'Staff hub', re: /^<div class="card staff-top/, only: 'your rate and hours', say: 'Your terms, weekly hours, prices and statement as a tutor.' },
   { id: 'ppl:students:help', col: 'students', label: 'Needs help', say: 'Students who have asked for help with a question.' },

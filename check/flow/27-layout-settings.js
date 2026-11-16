@@ -111,7 +111,7 @@ check('merge with the card above (480): widgets — a Find card (790) has no Mer
   await wait(300);
   const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
   if (!A['lay-merge']) return ['no lay-merge — NOT checked'];
-  for (const [g, id] of [['Tools', 'calculator'], ['Tools', 'mat'], ['Tools', 'timer'], ['Games', 'wordgames']]) {
+  for (const [g, id] of [['Tools', 'calculator'], ['Tools', 'libcards'], ['Tools', 'termdates'], ['Games', 'wordgames']]) {
     t.findGroup(g, id); await wait(300);
     if (!d.querySelector('#s-stuff #wgt-' + id)) { bad.push('Find › ' + g + ' did not draw ' + id + ' — NOT checked'); continue; }
     if (d.querySelector('#s-stuff [data-do="lay-merge"]')) bad.push('a Find card (' + id + ') has a Merge tile — Find places its cards, nothing merges them');
@@ -121,12 +121,12 @@ check('merge with the card above (480): widgets — a Find card (790) has no Mer
   for (const [who, b] of [['an admin', layBoot_({ payload: p })], ['a client', boot({ member: true, payload: p })]]) {
     await wait(300);
     if (b.errs && b.errs.length) bad.push(who + ': the old layout threw: ' + b.errs.join('; '));
-    b.w.__t.findGroup('Tools', 'timer'); await wait(400);
+    b.w.__t.findGroup('Tools', 'termdates'); await wait(400);
     const bd = b.w.document;
     if (bd.querySelector('#s-stuff .card.is-merged')) bad.push(who + ': an old merge of tools is drawn merged on Find');
-    const sl = bd.querySelector('#s-stuff #wgt-timer');
-    if (!sl) bad.push(who + ': the timer is not its own Find card under an old merged layout');
-    else { for (let k = 0; k < 40 && sl.getAttribute('aria-busy'); k++) await wait(50); if (sl.getAttribute('aria-busy')) bad.push(who + ': the timer on Find was never started'); }
+    const sl = bd.querySelector('#s-stuff #wgt-termdates');
+    if (!sl) bad.push(who + ': the term dates are not its own Find card under an old merged layout');
+    else { for (let k = 0; k < 40 && sl.getAttribute('aria-busy'); k++) await wait(50); if (sl.getAttribute('aria-busy')) bad.push(who + ': the term dates on Find were never started'); }
   }
   return bad;
 });

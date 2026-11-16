@@ -279,6 +279,8 @@ const ACTION_ACCESS = {
   favourite: 'self',
   /* A PHOTO OF THE WORKING (501), saved and never marked (owner, 16 Nov): sent as yourself; read back by yourself, a linked parent, staff or admin (the handler checks). */
   markWorking: 'self', workingOf: 'self',
+  /* A LONG ANSWER MARKED BY CLAUDE HAIKU (owner, 16 Nov): signed in only -- every press may cost an API call. */
+  markLong: 'self',
   /* WORK ON FILE: as yourself; the handler decides whose file (the student, a parent, a booked tutor, the admin). */
   workFileSave: 'self', workFilesOf: 'self', workFileOpen: 'self', workFileDelete: 'self',
   /* THE ASSISTANT IN MESSAGES (449): `self`, so the day's count is the token's person's. */
