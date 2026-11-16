@@ -18,6 +18,7 @@
 # tools/p_<name>.py, Economics and Business `ec<topic>` tools/ec_<topic>.py, Spanish and French `la<name>`
 # tools/la_<name>.py; Computer Science (bin bubble fde gates hex insert merge packet pixel rle search stack) is
 # tools/cs_<id>.py, Chemistry and Biology (atom balance … titrate) tools/cb_<id>.py with tools/cb_kit.py, and
+# Design and Technology (dtiso dtnet dtopp dtortho dttpp dttype dtwheel) is the one tools/dt_anims.py, and
 # Psychology and Sociology tools/ps_<topic>.py (asch ps_asch, ivdv ps_variables, lens ps_lenses, milg ps_milgram,
 # msm ps_memory, piag ps_piaget, samp ps_sampling, syn ps_synapse); every other one is tools/<id>.py. `grep -l
 # "write_anim('<id>'" tools/*.py` finds any of them. Change one of those in its script and re-run it; never edit its
