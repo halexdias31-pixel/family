@@ -14,7 +14,7 @@ function histTopicsIndex_() {
     .then(res => (res && res.ok) ? res.json() : null).catch(() => null);
   HTOP.asking = get('index').then(ids => Promise.all((Array.isArray(ids) ? ids : []).filter(id => /^[a-z0-9-]+$/.test(String(id))).map(get))).then(all => {
     HTOP.asking = null;
-    const d = (all || []).filter(t => t && t.id && t.name && Array.isArray(t.timeline));
+    const d = (all || []).filter(t => t && t.id && t.name && t.timeline);
     if (!d.length) { HTOP.failed = true; return null; }
     HTOP.data = d;
     if (typeof lateCame_ === 'function') lateCame_();
@@ -23,6 +23,13 @@ function histTopicsIndex_() {
   return null;
 }
 
+/* A TOPIC'S TIMELINE IS EVENTS (owner, 16 Nov): its `timeline` names a data/timelines.json row; the events are data/timeline.json's, never a copy. */
+function htopEvents_(t) {
+  const ex = (typeof LIBRARY_EXTRA !== 'undefined' && LIBRARY_EXTRA) || {};
+  const tl = (ex.timelines || []).find(x => x && x.id === t.timeline);
+  const by = new Map((ex.timeline || []).map(e => [e.id, e]));
+  return tl ? (tl.events || []).map(r => by.get(r.id)).filter(Boolean) : [];
+}
 /* A YEAR OR A SPAN AS SAID; `about` marks a year known only roughly. */
 const htopYears_ = (a, b, about) => (a ? (about ? 'c. ' : '') + a : '?') + (b ? '–' + b : '');
 
@@ -39,7 +46,7 @@ function histTopicItems_() {
       text: [t.name, t.title, name].concat(words).filter(Boolean).join(' '),
       hist: { id: t.id + '-' + (r.id || part), name, part, topic: t, row: r, topicName: t.name, partName: HTOP_PARTS[part] },
     });
-    one('timeline', { id: 'timeline' }, t.title + ': timeline', t.timeline.map(e => e.year + ' ' + e.title));
+    one('timeline', { id: 'timeline' }, t.title + ': timeline', htopEvents_(t).map(e => e.date_from + ' ' + e.name));
     (t.people || []).forEach(r => one('people', r, r.name, [r.role].concat(r.facts || [])));
     (t.sources || []).forEach(r => one('sources', r, r.name, [r.type, r.text]));
     (t.items || []).forEach(r => one('items', r, r.name, r.facts || []));
@@ -51,15 +58,12 @@ function histTopicItems_() {
 /* WHERE A PICTURE CAME FROM, under it: who made it and its licence, linked to its page. */
 const htopCredit_ = p => (p && p.credit ? [{ type: 'text', look: 'htop-credit', text: ['Picture: ', { link: p.credit + ' · ' + (p.licence || ''), href: p.page || '', act: 'file-view', look: 'link' }] }] : []);
 const htopLink_ = (u, say) => (u ? [{ type: 'text', look: 'htop-link', text: [{ link: say, href: u, act: 'file-view', look: 'link' }] }] : []);
-/* A PERSON NAMED ON A TIMELINE, by their card's name. */
-const htopWho_ = (t, id) => ((t.people || []).find(p => p.id === id) || {}).name || '';
 
 /* THE BODY OF EACH KIND (ITEM_MAPS.hist): no worked examples, only what happened, who, and what survives. */
 function histTopicBody_(h) {
   const t = h.topic || {}, r = h.row || {};
   if (h.part === 'timeline') return [{ type: 'text', text: t.summary || '' },
-    { type: 'timeline', label: t.title, events: (t.timeline || []).map(e => ({ when: htopYears_(e.year, e.to), title: e.title, text: e.text,
-      who: (e.who || []).map(id => htopWho_(t, id)).filter(Boolean).join(', ') })) }];
+    { type: 'timeline', label: t.title, events: htopEvents_(t).map(e => ({ when: htopYears_(e.date_from, e.date_to !== e.date_from ? e.date_to : ''), title: e.name, text: e.summary })) }];
   if (h.part === 'people') return [{ type: 'list', items: [{ label: 'Lived', value: htopYears_(r.born, r.died, r.about) }, { label: 'Who', value: r.role || '' },
     r.fate ? { label: 'What happened', value: r.fate } : null].filter(Boolean) }, { type: 'list', items: r.facts || [] }].concat(htopCredit_(r.pic));
   if (h.part === 'sources') return [{ type: 'list', items: [{ label: 'Kind', value: r.type || '' }, r.date ? { label: 'Made', value: r.date } : null].filter(Boolean) },
