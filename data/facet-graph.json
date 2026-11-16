@@ -161,6 +161,7 @@
 ["kindOwn","subject"],
 ["kindOwn","tier"],
 ["kindOwn","topic"],
+["level","paperId"],
 ["level","paperSection"],
 ["level","practicalType"],
 ["level","specPoint"],

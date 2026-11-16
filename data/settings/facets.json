@@ -74,8 +74,6 @@
 {"field": "qNumber", "label": "Question", "sort_order": 142, "note": "Q1, Q2 …; the coverage and 40-answer rules hold it back until a paper or a day is chosen", "active": true},
 {"field": "qPart", "label": "Part", "sort_order": 144, "note": "the part's letter, as the paper prints it", "active": true},
 {"field": "qSub", "label": "Sub-part", "sort_order": 145, "note": "the roman numeral, as the paper prints it", "active": true},
-{"field": "qPage", "label": "Page", "sort_order": 146, "note": "which of a part's reading pages; a chip keeps that page only", "active": true},
-{"field": "qPages", "label": "Pages", "sort_order": 147, "note": "how many reading pages a part has", "active": true},
 {"field": "marks", "label": "Marks", "sort_order": 148, "note": "what a question is worth", "active": true},
 {"field": "needs", "label": "What you need", "sort_order": 150, "note": "a comma-list: compasses and the printed sheet at once; the calculator is said as Non-calculator or Calculator allowed", "active": true},
 {"field": "source", "label": "Source", "sort_order": 160, "note": "who made a worksheet (Corbettmaths, 1st Class Maths); a board's own paper has none and a maker's sheet has no exam board (O3)", "active": true},
