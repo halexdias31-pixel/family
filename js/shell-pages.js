@@ -180,14 +180,10 @@ function flowShow_(id, n) {
   }, 'flow-show');
 }
 
-/* THE TOP BAR (900): the brand only; who is signed in is Find's first chip (owner, 13 Nov). */
+/* THE TOP BAR (900): the one logo (N-20261116-logo), its words the brand's; who is signed in is Find's first chip (owner, 13 Nov). */
 function topbarPaint_() {
-  const bar = $('topbar-who');
-  if (!bar || typeof tile_ !== 'function') return;
-  const mark = document.querySelector('.topbar-brand');
-  if (mark && mark.textContent !== brand('name', '@family.')) mark.textContent = brand('name', '@family.');
-  /* THE NAME IS FIND'S FIRST CHIP NOW (`signChips_`, owner 13 Nov), so the bar holds no tag of its own. */
-  if (bar.innerHTML) bar.innerHTML = '';
+  const mark = document.querySelector('#topbar > .logo'), name = brand('name', '@family.');
+  if (mark && mark.textContent !== name) mark.textContent = name;
 }
 
 /* ---------- ONE COLUMN PLACED ON ITS OWN, WITH NOTHING MOVING § */

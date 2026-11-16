@@ -85,7 +85,7 @@ function signInRow_(t0, r, body, by, was) {
 /* ---------- THE CONFIRMATION LINK, TO AN ACCOUNT'S OWN ADDRESS § */
 function linkMail_(r, token, asParent) {
   const said = S(r.handle) ? '@' + S(r.handle) : '';
-  mailOut_({ to: S(r.email), name: '@family.',
+  mailOut_({ to: S(r.email), name: BRAND_NAME,
     subject: 'Confirm your @family. account',
     body: 'Hello ' + S(r.first_name) + ',\n\nConfirm your email address by opening this link:\n\n'
         + SITE_URL + '?verify=' + token

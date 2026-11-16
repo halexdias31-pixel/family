@@ -127,7 +127,7 @@ function registerMail_(email, grownUp, first, regHandle, token, asParent) {
   const said = regHandle ? '@' + regHandle : '';
   /* THE ACCOUNT'S OWN ADDRESS GETS `linkMail_`, which `resendLink` sends again word for word. */
   if (email) linkMail_({ first_name: first, email: email, handle: regHandle || '' }, token, asParent);
-  else mailOut_({ to: grownUp, name: '@family.',
+  else mailOut_({ to: grownUp, name: BRAND_NAME,
         subject: first + ' has made an @family. account',
         /* THE FIRST NAME, as every email names a child now (the owner, 10 Oct: *"dont show
            children's last name"*) — the grown-up knows the rest, and `mailOut_` would take it out. */

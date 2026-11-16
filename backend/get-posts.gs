@@ -28,7 +28,7 @@ function getPosts_(meAsked, meAskedId, viewerIsAdmin, vis, opts, payload) {
     if (waiting && !viewerIsAdmin && !mine) return;
     /* An author who is not in the people list still gets a name — the one typed in the row. § */
     const who = faces[key(S(r.author))]
-      || { handle: S(r.author) || '@family.', avatar: '' };
+      || { handle: S(r.author) || BRAND_NAME, avatar: '' };
     if (!who.avatar && !faces[key(S(r.author))]) {
       who.avatar = S(payload.brand.logo_square) || S(payload.brand.logo_circle);
     }

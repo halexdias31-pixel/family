@@ -1270,7 +1270,7 @@ function authMoveFind_(key) {
 /* THE LINK TO THE NEW ADDRESS. It names nobody: the reader may be a stranger whose address was typed by
    mistake, and the account's name and handle are not theirs to be told. Throws as `MailApp` does. */
 function moveMail_(to, key) {
-  mailOut_({ to: S(to), name: '@family.',
+  mailOut_({ to: S(to), name: BRAND_NAME,
     subject: 'Confirm your new @family. email address',
     body: 'Hello,\n\nSomebody signed in to an @family. account has asked to use this email address for it.'
         + '\n\nIf that was you, open this link on a phone or computer where you are signed in to that account:'
