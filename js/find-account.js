@@ -2,12 +2,7 @@
 /* THE FRONT MENU'S ANSWER, read through `DOOR_FIELD` (find-finder.js) — the one name every writer and reader of it uses (1040 friction). */
 const forIs_ = want => (STUFF.filters || [])
   .some(f => f.field === DOOR_FIELD && norm(f.value) === want);
-function bookingPages_(o) {
-  /* ---------- THE COLUMN ASKS FOR IT DIRECTLY § */
-  if (o && o.column) {
-    if (typeof USER !== 'undefined' && USER && typeof awaiting_ === 'function' && awaiting_()) return [loading_()];
-    return (typeof bookBlocks === 'function' ? bookBlocks() : []).filter(Boolean);
-  }
+function bookingPages_() {
   if (!bookFindOn_()) return [];
   /* ---------- NOT BEFORE THE PAYLOAD § */
   if (typeof USER !== 'undefined' && USER && typeof awaiting_ === 'function' && awaiting_()) return [loading_()];

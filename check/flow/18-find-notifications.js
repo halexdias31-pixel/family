@@ -321,8 +321,9 @@ check('the shop is its own column with the basket on top, and Find no longer has
   const bad = [];
   const ids = t.TABS.map(x => x.id);
   if (ids.indexOf('shop') < 0) return ['there is no `shop` tab at all'];
-  if (ids.indexOf('shop') !== ids.indexOf('booking') + 1) {
-    bad.push('the Shop column is not right of Booking — the order reads ' + ids.join(', '));
+  /* BOOKING IS FIND › Booking NOW (find-only, 16 Nov): the Shop stands right of Reels. */
+  if (ids.indexOf('shop') !== ids.indexOf('reel') + 1) {
+    bad.push('the Shop column is not right of Reels — the order reads ' + ids.join(', '));
   }
   if (!t.shopAll().some(x => x.kind === 'shop' && x.name === 'Safety goggles')) {
     return ['the payload\'s shop rows are not items at all, so nothing here measures anything'];

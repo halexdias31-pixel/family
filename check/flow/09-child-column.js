@@ -940,11 +940,12 @@ check('an admin can answer a booking, and only one that is waiting', async () =>
   const { w } = boot();
   await wait(300);
   w.__t.USER({ name: 'Halex Dias', personId: 'PA', role: 'admin', roles: ['admin'] });
+  w.__t.repaint(true);   /* Find draws for whoever is signed in: Find › Booking is where openJob_ lands (find-only, 16 Nov). */
   const bad = [];
   /* ---------- IT LOOKED IN THE SHEET, AND THERE IS NO SHEET § */
   const buttonsOn = id => {
     try { w.openJob_(id); } catch (e) { return ['THREW: ' + e.message]; }
-    const b = w.document.getElementById('s-booking');
+    const b = w.document.getElementById('s-stuff');
     return b ? [...b.querySelectorAll('[data-do]')].map(x => x.dataset.do) : [];
   };
   const ask = buttonsOn('J-ASK');
@@ -986,8 +987,8 @@ check('taking a seat on a class does not go through the ordinary join', async ()
   w.__t.USER({ name: 'Somebody Else', personId: 'P9', role: 'parent', roles: ['parent'] });
   try { w.openJob_('W-LIST'); }
   catch (e) { return ['opening the class threw: ' + e.message]; }
-  /* `#s-booking` RATHER THAN THE SHEET — see the note on the admin journey above. § */
-  const b = w.document.getElementById('s-booking');
+  /* Find › Booking (`#s-stuff`) RATHER THAN THE SHEET — see the note on the admin journey above. § */
+  const b = w.document.getElementById('s-stuff');
   const dos = b ? [...b.querySelectorAll('[data-do]')].map(x => x.dataset.do) : [];
   if (dos.includes('job-join')) {
     return ['a class offers "Ask to join", which is the act for somebody else\'s booking — '
@@ -1066,7 +1067,7 @@ check('signing in over somebody else empties both finders\' chips, though nothin
 /* ---------- THE WAY IN IS A LINE AND A TILE OF THE PAPER, NOT A BLOCK UNDER IT § */
 const joinPage_ = (w, id) => {
   w.openJob_(id);
-  return [...w.document.querySelectorAll('#s-booking .page')]
+  return [...w.document.querySelectorAll('#s-stuff .page')]
     .find(p => new RegExp('\\b' + id + '\\b').test((p.querySelector('.rc-ref') || {}).textContent || ''));
 };
 const rowSays_ = (pg, k) => {
@@ -1075,7 +1076,7 @@ const rowSays_ = (pg, k) => {
   return r ? r.querySelector('.bk-v').textContent.replace(/\s+/g, ' ').trim() : null;
 };
 const onPaperOnly_ = (pg, bad) => {
-  if (pg.querySelector('.join') || pg.ownerDocument.querySelector('#s-booking .join')) {
+  if (pg.querySelector('.join') || pg.ownerDocument.querySelector('#s-stuff .join')) {
     bad.push('a .join block is still drawn under the paper');
   }
   const loose = [...pg.querySelectorAll('[data-do]')].filter(x => !x.closest('.rc'));
