@@ -32,6 +32,16 @@
    "figureHave": 22,
    "lessonPct": 100
   },
+  "Design and Technology": {
+   "spec": "AQA GCSE Design and Technology (8552)",
+   "file": "data/spec/aqa-8552.json",
+   "points": 27,
+   "lesson": 27,
+   "practice": 0,
+   "figureNeed": 0,
+   "figureHave": 0,
+   "lessonPct": 100
+  },
   "English Language (ESL)": {
    "spec": "Council of Europe ESL English Language (CEFR)",
    "file": "data/spec/coe-cefr.json",
@@ -54,6 +64,141 @@
   }
  },
  "work": [
+  {
+   "kind": "spec-practice",
+   "where": "Design and Technology 3.1.1 New and emerging technologies",
+   "say": "no practice question"
+  },
+  {
+   "kind": "spec-practice",
+   "where": "Design and Technology 3.1.2 Energy generation and storage",
+   "say": "no practice question"
+  },
+  {
+   "kind": "spec-practice",
+   "where": "Design and Technology 3.1.3 Developments in new materials",
+   "say": "no practice question"
+  },
+  {
+   "kind": "spec-practice",
+   "where": "Design and Technology 3.1.4 Systems approach to designing",
+   "say": "no practice question"
+  },
+  {
+   "kind": "spec-practice",
+   "where": "Design and Technology 3.1.5 Mechanical devices",
+   "say": "no practice question"
+  },
+  {
+   "kind": "spec-practice",
+   "where": "Design and Technology 3.1.6.1 Material categories",
+   "say": "no practice question"
+  },
+  {
+   "kind": "spec-practice",
+   "where": "Design and Technology 3.1.6.2 Material properties",
+   "say": "no practice question"
+  },
+  {
+   "kind": "spec-practice",
+   "where": "Design and Technology 3.2.1 Selection of materials or components",
+   "say": "no practice question"
+  },
+  {
+   "kind": "spec-practice",
+   "where": "Design and Technology 3.2.2 Forces and stresses",
+   "say": "no practice question"
+  },
+  {
+   "kind": "spec-practice",
+   "where": "Design and Technology 3.2.3 Ecological and social footprint",
+   "say": "no practice question"
+  },
+  {
+   "kind": "spec-practice",
+   "where": "Design and Technology 3.2.4 Sources and origins",
+   "say": "no practice question"
+  },
+  {
+   "kind": "spec-practice",
+   "where": "Design and Technology 3.2.5 Using and working with materials",
+   "say": "no practice question"
+  },
+  {
+   "kind": "spec-practice",
+   "where": "Design and Technology 3.2.6 Stock forms, types and sizes",
+   "say": "no practice question"
+  },
+  {
+   "kind": "spec-practice",
+   "where": "Design and Technology 3.2.7 Scales of production",
+   "say": "no practice question"
+  },
+  {
+   "kind": "spec-practice",
+   "where": "Design and Technology 3.2.8 Specialist techniques and processes",
+   "say": "no practice question"
+  },
+  {
+   "kind": "spec-practice",
+   "where": "Design and Technology 3.2.9 Surface treatments and finishes",
+   "say": "no practice question"
+  },
+  {
+   "kind": "spec-practice",
+   "where": "Design and Technology 3.3.1 Investigation, primary and secondary data",
+   "say": "no practice question"
+  },
+  {
+   "kind": "spec-practice",
+   "where": "Design and Technology 3.3.2 Environmental, social and economic challenge",
+   "say": "no practice question"
+  },
+  {
+   "kind": "spec-practice",
+   "where": "Design and Technology 3.3.3 The work of others",
+   "say": "no practice question"
+  },
+  {
+   "kind": "spec-practice",
+   "where": "Design and Technology 3.3.4 Design strategies",
+   "say": "no practice question"
+  },
+  {
+   "kind": "spec-practice",
+   "where": "Design and Technology 3.3.5 Communication of design ideas",
+   "say": "no practice question"
+  },
+  {
+   "kind": "spec-practice",
+   "where": "Design and Technology 3.3.6 Prototype development",
+   "say": "no practice question"
+  },
+  {
+   "kind": "spec-practice",
+   "where": "Design and Technology 3.3.7 Selection of materials and components",
+   "say": "no practice question"
+  },
+  {
+   "kind": "spec-practice",
+   "where": "Design and Technology 3.3.8 Tolerances",
+   "say": "no practice question"
+  },
+  {
+   "kind": "spec-practice",
+   "where": "Design and Technology 3.3.9 Material management",
+   "say": "no practice question"
+  },
+  {
+   "kind": "spec-practice",
+   "where": "Design and Technology 3.3.10 Specialist tools and equipment",
+   "say": "no practice question"
+  },
+  {
+   "kind": "spec-practice",
+   "where": "Design and Technology 3.3.11 Specialist techniques and processes",
+   "say": "no practice question"
+  },
   {
    "kind": "spec-lesson",
    "where": "Maths N6 use positive integer powers and associated real roots (square, cube and higher), recognise powers of 2, 3, 4, 5; estimate powers and roots…",
@@ -80,8 +225,8 @@
    "id": "spec-lesson",
    "group": "content",
    "label": "Spec points with a lesson",
-   "ok": 492,
-   "of": 493,
+   "ok": 519,
+   "of": 520,
    "kinds": [
     "spec-lesson"
    ],
@@ -103,7 +248,7 @@
    "group": "content",
    "label": "Spec points with practice questions",
    "ok": 493,
-   "of": 493,
+   "of": 520,
    "kinds": [
     "spec-practice"
    ],
