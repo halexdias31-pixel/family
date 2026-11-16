@@ -4344,7 +4344,7 @@ const SETTINGS_TABS = ['settings/brand', 'settings/facets', 'settings/kinds', 's
                        'settings/columns',
                        'settings/spotlight', 'settings/widgets-in-find', 'settings/setting-for', 'settings/card-fields',
                        'settings/default-pictures', 'settings/permissions', 'settings/screens-moved', 'settings/labels',
-                       'settings/confusables'];
+                       'settings/confusables', 'settings/peel'];
 
 /* `norm` on the backend. § */
 const setNorm_ = v => libS(v).toLowerCase().trim();
@@ -4472,6 +4472,12 @@ function setConfusables_(d, extra) {
   if (confusables && confusables.length) d.confusables = confusables.filter(r => libS(r.words).trim()).map(r => ({ words: libS(r.words) }));
 }
 
+/* PEEL (rule 1.33): a long English answer's boxes, the one AQA level table, and each subject's one list of techniques and of explaining words */
+function setPeel_(d, extra) {
+  const peel = extra['settings/peel'];
+  if (peel && peel.length) d.peel = peel.filter(r => r && libS(r.kind)).map(r => Object.assign({}, r));
+}
+
 function setInFind_(d, extra) {
   /* ---------- WHICH WIDGETS ARE FIND CARDS (790): a row names a widget's kind or its id; the id's row wins (`widgetInFind_`, arcade.js) ---------- */
   const inFind = extra['settings/widgets-in-find'];
@@ -4531,7 +4537,7 @@ const labelOf_ = (group, key, fallback) => {
 function settingsInto_(d, extra) {
   if (!d || !extra) return d;
   setBrand_(d, extra); setMoved_(d, extra); setFacets_(d, extra); setKinds_(d, extra); setLaws_(d, extra); setFacts_(d, extra);
-  setColumns_(d, extra); setSpot_(d, extra); setInFind_(d, extra); setConfusables_(d, extra); setFor_(d, extra); setCardFields_(d, extra);
+  setColumns_(d, extra); setSpot_(d, extra); setInFind_(d, extra); setConfusables_(d, extra); setPeel_(d, extra); setFor_(d, extra); setCardFields_(d, extra);
   setDefaultPictures_(d, extra); setPermissions_(d, extra); setLabels_(d, extra);
   return d;
 }

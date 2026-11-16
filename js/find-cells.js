@@ -273,6 +273,11 @@ function multiSplit_(s) {
 function multiOf_(x) {
   const all = String((x && x.accept) || '').split('|').map(w => w.trim()).filter(Boolean);
   const ways = all.filter(w => !/^rule:/i.test(w));
+  /* PEEL (rule 1.33): a box for the introduction and each paragraph, named, joined by a blank line */
+  if (all.some(w => /^rule:\s*peel\b/i.test(w)) && typeof peelBoxes_ === 'function') {
+    const heads = peelBoxes_().map(b => b.name);
+    if (heads.length) return { n: heads.length, paras: true, heads, wrap: '', labels: [] };
+  }
   for (const r of all.filter(w => /^rule:/i.test(w))) {
     const body = r.replace(/^rule:\s*/i, '');
     if (/(?:^|,)\s*(expr|eqn)\s/.test(body)) continue;   /* one expression, one box */
@@ -297,6 +302,7 @@ function multiOf_(x) {
 /* A SAVED ANSWER INTO ITS BOXES — an old one typed with commas too: brackets and `x =` off, split at the commas. */
 function multiVals_(val, m) {
   let s = String(val == null ? '' : val).trim();
+  if (m.paras) return s ? s.split(PEEL_SEP) : [];
   if (m.wrap) s = s.replace(/^\((.*)\)$/, '$1');
   const out = s ? multiSplit_(s).map((v, i) => (m.labels[i] ? v.replace(new RegExp('^' + m.labels[i] + '\\s*=\\s*', 'i'), '') : v)) : [];
   return out;
@@ -306,6 +312,7 @@ function multiJoin_(vals, m) {
   const v = vals.map(s => String(s == null ? '' : s).trim());
   while (v.length && !v[v.length - 1]) v.pop();
   if (!v.length) return '';
+  if (m.paras) return v.map(s => s.replace(/\n\s*\n/g, '\n')).join(PEEL_SEP);
   const s = v.map((s, i) => (m.labels[i] ? m.labels[i] + ' = ' + s : s)).join(', ');
   return m.wrap ? '(' + s + ')' : s;
 }
@@ -315,8 +322,9 @@ function multiField_(k, i, v, kind, signs) {
 function multiBoxes_(x, k, val, m, maths, signs) {
   const vals = multiVals_(val, m);
   const n = m.grow ? vals.filter(Boolean).length + 1 : m.n;
-  const kind = m.words || !maths ? 'words' : 'maths';
-  const one = i => multiLabel_(m.labels[i], multiField_(k, i, vals[i] || '', kind, signs));
+  const kind = m.paras ? 'essay' : m.words || !maths ? 'words' : 'maths';
+  const one = i => m.paras ? fcG_('label', 'qp-ans qp-sheet qp-multi-f', null, fcG_('span', 'qp-multi-h', null, '', m.heads[i]) + kpField_(k + '#' + i, vals[i] || '', kind, signs, m.heads[i], { n: i, k: k }))
+    : multiLabel_(m.labels[i], multiField_(k, i, vals[i] || '', kind, signs));
   const boxes = [];
   for (let i = 0; i < n; i++) boxes.push(one(i));
   /* the joined answer, first in the box, is what Check, Send and every verdict painter read in place of `.qp-ans-in` */
@@ -395,7 +403,7 @@ function ansBox_(x) {
   const dataAt = Object.assign(can ? { 'data-accept': can } : {}, rule ? { 'data-rule': rule, 'data-marks': String(Number(x.marks) || '') } : {}, drawAt);
   const fb = why => (kept && why ? fcG_('p', 'qp-fb', null, '', why) : '');
   /* ---------- AN ESSAY IS WRITTEN ON A SHEET: the same one box, bigger § */
-  if (ansEssay_(x)) {
+  if (ansEssay_(x) && !markIsPeel_(can)) {
     const said = subBoxSay_(k, val);
     return fcG_('div', cls + ' qp-essay' + (said.cls ? ' ' + said.cls : ''), dataAt,
       fcG_('label', 'qp-ans qp-sheet', { 'aria-label': text_('your-answer') }, kpField_(k, val, 'essay', 3)) + fcG_('p', 'qp-words', null, '', kpWordsSay_(val))
@@ -433,8 +441,18 @@ on('qp-check', (el) => {
   const v = x ? markPart_(x, inp.value) : markAnswer_(inp.value, box.getAttribute('data-accept')) === null ? null : { got: markAnswer_(inp.value, box.getAttribute('data-accept')) ? 1 : 0, of: 1 };
   if (!v) { tell_(out, 'info', partReady_('typed', '')); return; }
   if (v.save) { ACTIONS['qp-send'](el); return; }
+  if (v.wait) { tell_(out, 'info', v.say); return; }
   const full = v.got >= v.of;
   box.classList.add(full ? 'is-right' : 'is-near');
+  /* PEEL: the level and mark, and under it which elements each box had or missed (`qp-fb`, as a saved verdict draws it) */
+  if (v.peel) {
+    tell_(out, full ? 'saved' : 'info', v.say);
+    let fb = box.querySelector('.qp-fb') || (box.nextElementSibling && box.nextElementSibling.matches('.qp-fb') ? box.nextElementSibling : null);
+    if (!fb) { fb = document.createElement('p'); fb.className = 'qp-fb'; box.appendChild(fb); }
+    fb.textContent = v.why;
+    subRecord_(k, inp.value, 'rule:' + v.got + '/' + v.of, undefined, v.why);
+    return;
+  }
   tell_(out, full && !v.words ? 'saved' : 'info', v.points ? v.got + ' of ' + v.of + ' mark' + (v.of === 1 ? '' : 's') : v.words ? v.got + ' of ' + v.of + ' mark' + (v.of === 1 ? '' : 's') + ' · by key words' : full ? (v.typo ? text_('correct-check-the-spelling') + v.typo + ')' : 'Correct') : text_('not-yet-have-another-go'));
   /* MARKED IS A SUBMISSION, right or not yet (js/submit.js); signed out it is this visit's alone. */
   subRecord_(k, inp.value, v.words || v.points ? 'rule:' + v.got + '/' + v.of : full ? 'right' : 'wrong');

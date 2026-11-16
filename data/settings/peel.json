@@ -1,0 +1,12 @@
+[
+{"kind": "box", "name": "Introduction", "marks": "point"},
+{"kind": "box", "name": "Paragraph 1", "marks": "point evidence explain link"},
+{"kind": "box", "name": "Paragraph 2", "marks": "point evidence explain link"},
+{"kind": "box", "name": "Paragraph 3", "marks": "point evidence explain link"},
+{"kind": "level", "level": "1", "from": "1", "name": "Simple, limited"},
+{"kind": "level", "level": "2", "from": "4", "name": "Some understanding and comment"},
+{"kind": "level", "level": "3", "from": "7", "name": "Clear, relevant"},
+{"kind": "level", "level": "4", "from": "10", "name": "Perceptive, detailed"},
+{"kind": "technique", "subject": "English Language", "words": "metaphor~metaphors~metaphorical / simile~similes / personification~personifies~personified / alliteration~alliterative / sibilance~sibilant / onomatopoeia~onomatopoeic / imagery / semantic field / adjective~adjectives / adverb~adverbs / verb~verbs / noun~nouns / pronoun~pronouns / repetition~repeats~repeated / hyperbole / juxtaposition~juxtaposes / contrast~contrasts / oxymoron / pathetic fallacy / symbolism~symbol~symbolises / listing / triplet~tricolon / rhetorical question / short sentence~sentences / long sentence~sentences / minor sentence~sentences / complex sentence~sentences / simple sentence~sentences / exclamation~exclamatory / dialogue / tense / sensory language / connotation~connotations / foreshadowing~foreshadows / flashback / cyclical structure / shift~shifts / zooms~zoom / opening / ending~climax / tension / perspective~viewpoint / narrator / irony~ironic / tone"},
+{"kind": "explain", "subject": "English Language", "words": "suggests~suggest~suggesting / implies~imply / shows~show~showing / conveys~convey / emphasises~emphasise~emphasizes~highlights~highlight / reveals~reveal / creates~create / connotes / makes the reader~makes us / effect~effects / evokes~evoke / reflects~reflect / portrays~portray / presents~present / because / so that / which means / this means"}
+]

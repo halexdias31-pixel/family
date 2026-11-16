@@ -4278,7 +4278,9 @@ function markPtRead_(rule) {
 /* THE SOURCE A QUOTATION IS CHECKED AGAINST: the question's own words, its lead and the stems above it; '' where there is none to check */
 function markPtSource_(x) {
   if (!x) return '';
-  const bits = [x.lead, x.html].concat((x.stems || []).map(s => (s && (s.html || (s.row && s.row.html))) || ''));
+  /* and the paper's reading insert, once its words are here (`insertsFor_`), its printed line numbers left out */
+  const ins = typeof insertsFor_ === 'function' ? insertsFor_(x).filter(insReading_).map(r => String(r.sourceText || '').replace(/\[\d{1,3}\]/g, ' ')) : [];
+  const bits = [x.lead, x.html].concat((x.stems || []).map(s => (s && (s.html || (s.row && s.row.html))) || ''), ins);
   const words = markPtWords_(markPtPlain_(bits.join('\n')));
   return words.length >= 30 ? ' ' + words.join(' ') + ' ' : '';
 }
@@ -4330,14 +4332,15 @@ function markPoints_(typed, rule, x, opt) {
   const source = markPtSource_(x);
   opt = { strict: !!(opt && opt.strict), others: ((opt && opt.others) || []).concat(MARK_PT_RIVALS) };
   /* A QUOTATION MUST BE IN THE SOURCE: one that is not is taken out, one that is is marked as quoted */
-  let quotes = 0;
+  let quotes = 0, inSource = 0, notInSource = 0;
   const text = markPtPlain_(raw).replace(/(^|[\s(\[:,])(["'])((?:(?!\2)[^\n]|'(?=[a-z]))+?)\2(?=[\s.,;:!?)\]]|$)/g, (m, pre, qm, body) => {
     const parts = body.split(/\.\.\.+/).map(p => markPtWords_(p)).filter(p => p.length);
     /* with no source to check against, a quotation is read as the student's own words, and no `[q]` point is open */
     if (!parts.length || !source) return pre + ' ' + body + ' ';
     const found = source && parts.every(p => source.indexOf(' ' + p.join(' ') + ' ') >= 0);
     quotes++;
-    return pre + (found ? ' \u0001' + quotes + ' ' + body.replace(/[.!?;]/g, ' ') + ' \u0002 ' : ' ¤ ');
+    if (found) inSource++; else notInSource++;
+    return pre + (found ?' \u0001' + quotes + ' ' + body.replace(/[.!?;]/g, ' ') + ' \u0002 ' : ' ¤ ');
   });
   const credited = new Map();
   let inQuote = 0;
@@ -4392,7 +4395,78 @@ function markPoints_(typed, rule, x, opt) {
     kept.forEach(f => credited.set(f.pi, f.n));
   });
   const got = [...credited.values()].reduce((s, n) => s + n, 0);
-  return { got: Math.min(got, key.max), of: key.max, points: true };
+  /* `quoted`: quotations found word for word in the source; `unfound`: ones that are not; `sourced`: there was a source to check */
+  return { got: Math.min(got, key.max), of: key.max, points: true, quoted: inSource, unfound: notInSource, sourced: !!source };
+}
+/* ---------- PEEL (rule 1.33): a long English answer, by AQA level, mechanically. Its boxes (data/settings/peel.json) are each read
+   by `markPoints_` for Point (the question's focus in its first sentence), Evidence (a quotation found word for word in the insert),
+   Explain (a technique from the subject's one list with an explaining word) and Link (the focus again in its last sentence);
+   the count across the answer is a level, and the mark in it, through the one level table. `rule: peel; <focus wordings>` */
+const PEEL_SEP = '\n\n';
+const PEEL_SAY = { point: 'point', evidence: 'evidence', explain: 'explain', link: 'link' };
+function peelRows_(kind, subject) {
+  const rows = (typeof DATA !== 'undefined' && DATA && Array.isArray(DATA.peel)) ? DATA.peel : [];
+  return rows.filter(r => r.kind === kind && (!subject || !r.subject || String(r.subject).toLowerCase() === String(subject).toLowerCase()));
+}
+const markIsPeel_ = accept => /(^|\|)\s*rule:\s*peel\b/i.test(String(accept || ''));
+const peelBoxes_ = () => peelRows_('box').map(r => ({ name: String(r.name), marks: String(r.marks || '').split(/\s+/).filter(k => PEEL_SAY[k]) }));
+/* ONE BOX'S SENTENCES, quotations kept whole */
+const peelSentences_ = s => (String(s).replace(/(["“‘'])[^"”’\n]*?(["”’])/g, m => m.replace(/[.!?]/g, '\u0003')).match(/[^.!?]+[.!?]*/g) || [])
+  .map(t => t.replace(/\u0003/g, '.').trim()).filter(t => /[a-z]/i.test(t));
+function markPeel_(typed, accept, x, opt) {
+  const raw = String(typed == null ? '' : typed);
+  if (!raw.trim()) return null;
+  const subject = (x && (x.subject || (x.row && x.row.subject))) || '';
+  const rule = String(accept || '').split('|').find(w => /^\s*rule:\s*peel\b/i.test(w)) || '';
+  const focus = rule.replace(/^\s*rule:\s*peel\b\s*;?/i, '').trim();
+  const key = ways => 'points 1; ' + ways;
+  const has = (text, ways) => !!ways && !!String(text).trim() && (markPoints_(text, key(ways), x, opt) || { got: 0 }).got >= 1;
+  const tech = peelRows_('technique', subject).map(r => r.words).join(' / ');
+  const expl = peelRows_('explain', subject).map(r => r.words).join(' / ');
+  const boxes = peelBoxes_(), levels = peelRows_('level').map(r => ({ level: +r.level, from: +r.from, name: r.name })).sort((a, b) => a.from - b.from);
+  const of = Number(x && x.marks) || 0;
+  const parts = raw.split(PEEL_SEP);
+  let count = 0, made = 0, wait = false;
+  const said = boxes.map((b, i) => {
+    const text = String(parts[i] || '').trim(), s = peelSentences_(text);
+    const got = {};
+    if (text) b.marks.forEach(m => {
+      if (m === 'point') got.point = has(s[0] || '', focus);
+      if (m === 'link') got.link = s.length >= 2 && has(s[s.length - 1], focus);
+      if (m === 'explain') got.explain = has(text, tech) && has(text, expl);
+      if (m === 'evidence') {
+        const p = markPoints_(text, key(focus || 'the'), x, opt) || {};
+        if (!p.sourced) wait = true;
+        got.evidence = (p.quoted || 0) > 0;
+        if (p.unfound) got.unfound = p.unfound;
+      }
+    });
+    /* AN EXPLANATION AND A LINK ARE OF THE EVIDENCE: with no quotation from the extract, neither counts */
+    if (b.marks.indexOf('evidence') >= 0 && !got.evidence && (got.explain || got.link)) { got.explain = got.link = false; got.noquote = true; }
+    const hit = b.marks.filter(m => got[m]), miss = b.marks.filter(m => !got[m]);
+    count += hit.length; made += b.marks.length;
+    return b.name + (!text ? ': empty' : ': ' + (hit.length ? 'has ' + hit.map(m => PEEL_SAY[m]).join(', ') : 'has none of PEEL')
+      + (miss.length ? '; missing ' + miss.map(m => PEEL_SAY[m]).join(', ') : '')
+      + (got.unfound ? ' (a quotation not found word for word in the extract)' : '')
+      + (got.noquote ? '; explain and link count once there is a quotation from the extract' : '')) + '.';
+  });
+  /* WITH NO EXTRACT TO CHECK A QUOTATION AGAINST, nothing is marked: it is asked for, and Check says to wait */
+  if (wait && typeof insertsFor_ === 'function') {
+    const r = insertsFor_(x).find(insReading_);
+    if (r && typeof insWant_ === 'function') insWant_(r);
+    return { wait: true, say: 'The extract is still loading; press Check again in a moment.' };
+  }
+  const lv = levels.filter(l => count >= l.from).pop();
+  const n = Math.max(1, levels.length);
+  let mark = 0;
+  if (lv && of) {
+    const k = levels.indexOf(lv), lo = Math.round(k * of / n) + 1, hi = Math.round((k + 1) * of / n);
+    const top = k + 1 < levels.length ? levels[k + 1].from - 1 : made;
+    mark = Math.min(hi, lo + Math.floor((count - lv.from) * (hi - lo + 1) / Math.max(1, top - lv.from + 1)));
+  }
+  const head = lv ? 'Level ' + lv.level + ' (' + lv.name + '): ' + mark + ' of ' + of + ' marks, from ' + count + ' of ' + made + ' PEEL elements.'
+    : 'No level yet: 0 of ' + of + ' marks, from 0 of ' + made + ' PEEL elements.';
+  return { got: mark, of: of, points: true, peel: { level: lv ? lv.level : 0, count, made }, say: head, why: said.join(' ') };
 }
 function markIsPoints_(accept) {
   return /(^|\|)\s*rule:\s*points\b/i.test(String(accept || ''));
@@ -4636,6 +4710,7 @@ const PART_MARKERS = {
   order: (x, typed) => markChoice_(x, typed, true),
   accept: (x, typed) => {
     /* POINTS ARE COUNTED, and the one result is the marks out of the maximum */
+    if (markIsPeel_(x.accept)) return markPeel_(typed, x.accept, x, markOpt_(x));
     if (markIsPoints_(x.accept)) return markPoints_(typed, markPointsWay_(x.accept), x, markOpt_(x));
     const o = markOpt_(x), v = markAnswer_(typed, x.accept, false, o);
     if (v === null) return null;
@@ -5006,6 +5081,11 @@ function multiSplit_(s) {
 function multiOf_(x) {
   const all = String((x && x.accept) || '').split('|').map(w => w.trim()).filter(Boolean);
   const ways = all.filter(w => !/^rule:/i.test(w));
+  /* PEEL (rule 1.33): a box for the introduction and each paragraph, named, joined by a blank line */
+  if (all.some(w => /^rule:\s*peel\b/i.test(w)) && typeof peelBoxes_ === 'function') {
+    const heads = peelBoxes_().map(b => b.name);
+    if (heads.length) return { n: heads.length, paras: true, heads, wrap: '', labels: [] };
+  }
   for (const r of all.filter(w => /^rule:/i.test(w))) {
     const body = r.replace(/^rule:\s*/i, '');
     if (/(?:^|,)\s*(expr|eqn)\s/.test(body)) continue;   /* one expression, one box */
@@ -5030,6 +5110,7 @@ function multiOf_(x) {
 /* A SAVED ANSWER INTO ITS BOXES — an old one typed with commas too: brackets and `x =` off, split at the commas. */
 function multiVals_(val, m) {
   let s = String(val == null ? '' : val).trim();
+  if (m.paras) return s ? s.split(PEEL_SEP) : [];
   if (m.wrap) s = s.replace(/^\((.*)\)$/, '$1');
   const out = s ? multiSplit_(s).map((v, i) => (m.labels[i] ? v.replace(new RegExp('^' + m.labels[i] + '\\s*=\\s*', 'i'), '') : v)) : [];
   return out;
@@ -5039,6 +5120,7 @@ function multiJoin_(vals, m) {
   const v = vals.map(s => String(s == null ? '' : s).trim());
   while (v.length && !v[v.length - 1]) v.pop();
   if (!v.length) return '';
+  if (m.paras) return v.map(s => s.replace(/\n\s*\n/g, '\n')).join(PEEL_SEP);
   const s = v.map((s, i) => (m.labels[i] ? m.labels[i] + ' = ' + s : s)).join(', ');
   return m.wrap ? '(' + s + ')' : s;
 }
@@ -5048,8 +5130,9 @@ function multiField_(k, i, v, kind, signs) {
 function multiBoxes_(x, k, val, m, maths, signs) {
   const vals = multiVals_(val, m);
   const n = m.grow ? vals.filter(Boolean).length + 1 : m.n;
-  const kind = m.words || !maths ? 'words' : 'maths';
-  const one = i => multiLabel_(m.labels[i], multiField_(k, i, vals[i] || '', kind, signs));
+  const kind = m.paras ? 'essay' : m.words || !maths ? 'words' : 'maths';
+  const one = i => m.paras ? fcG_('label', 'qp-ans qp-sheet qp-multi-f', null, fcG_('span', 'qp-multi-h', null, '', m.heads[i]) + kpField_(k + '#' + i, vals[i] || '', kind, signs, m.heads[i], { n: i, k: k }))
+    : multiLabel_(m.labels[i], multiField_(k, i, vals[i] || '', kind, signs));
   const boxes = [];
   for (let i = 0; i < n; i++) boxes.push(one(i));
   /* the joined answer, first in the box, is what Check, Send and every verdict painter read in place of `.qp-ans-in` */
@@ -5128,7 +5211,7 @@ function ansBox_(x) {
   const dataAt = Object.assign(can ? { 'data-accept': can } : {}, rule ? { 'data-rule': rule, 'data-marks': String(Number(x.marks) || '') } : {}, drawAt);
   const fb = why => (kept && why ? fcG_('p', 'qp-fb', null, '', why) : '');
   /* ---------- AN ESSAY IS WRITTEN ON A SHEET: the same one box, bigger § */
-  if (ansEssay_(x)) {
+  if (ansEssay_(x) && !markIsPeel_(can)) {
     const said = subBoxSay_(k, val);
     return fcG_('div', cls + ' qp-essay' + (said.cls ? ' ' + said.cls : ''), dataAt,
       fcG_('label', 'qp-ans qp-sheet', { 'aria-label': text_('your-answer') }, kpField_(k, val, 'essay', 3)) + fcG_('p', 'qp-words', null, '', kpWordsSay_(val))
@@ -5166,8 +5249,18 @@ on('qp-check', (el) => {
   const v = x ? markPart_(x, inp.value) : markAnswer_(inp.value, box.getAttribute('data-accept')) === null ? null : { got: markAnswer_(inp.value, box.getAttribute('data-accept')) ? 1 : 0, of: 1 };
   if (!v) { tell_(out, 'info', partReady_('typed', '')); return; }
   if (v.save) { ACTIONS['qp-send'](el); return; }
+  if (v.wait) { tell_(out, 'info', v.say); return; }
   const full = v.got >= v.of;
   box.classList.add(full ? 'is-right' : 'is-near');
+  /* PEEL: the level and mark, and under it which elements each box had or missed (`qp-fb`, as a saved verdict draws it) */
+  if (v.peel) {
+    tell_(out, full ? 'saved' : 'info', v.say);
+    let fb = box.querySelector('.qp-fb') || (box.nextElementSibling && box.nextElementSibling.matches('.qp-fb') ? box.nextElementSibling : null);
+    if (!fb) { fb = document.createElement('p'); fb.className = 'qp-fb'; box.appendChild(fb); }
+    fb.textContent = v.why;
+    subRecord_(k, inp.value, 'rule:' + v.got + '/' + v.of, undefined, v.why);
+    return;
+  }
   tell_(out, full && !v.words ? 'saved' : 'info', v.points ? v.got + ' of ' + v.of + ' mark' + (v.of === 1 ? '' : 's') : v.words ? v.got + ' of ' + v.of + ' mark' + (v.of === 1 ? '' : 's') + ' · by key words' : full ? (v.typo ? text_('correct-check-the-spelling') + v.typo + ')' : 'Correct') : text_('not-yet-have-another-go'));
   /* MARKED IS A SUBMISSION, right or not yet (js/submit.js); signed out it is this visit's alone. */
   subRecord_(k, inp.value, v.words || v.points ? 'rule:' + v.got + '/' + v.of : full ? 'right' : 'wrong');
