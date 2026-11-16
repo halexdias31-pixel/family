@@ -299,122 +299,10 @@ const finderLeadHtml_ = lead => cardBlocks_(lead.map(c => ({ type: 'group', tag:
    chip label all read it. */
 /* ---------- ONE QUESTION AT A TIME § */
 /* WHAT KINDS OF THING CAN BE FOUND. § */
-const KINDS = {
-  /* A person, a place and a subject already have a card each — written for the Find screen and carrying the class that colours the name. § */
-  /* ---------- A TUTOR IS TWO THINGS AND THE GROUP HAD ROOM FOR ONE § */
-  tutor:   { group: 'Booking', label: 'Tutors',
-             /* ---------- YOUR OWN PASS IS YOUR OWN CARD § */
-             card: x => (USER && typeof meCard === 'function'
-                         && norm((x.row || {}).title) === norm(USER.name))
-                        ? meCard()
-                        : findCard(x) },
-  /* ---------- A VENUE IS A BOOKING THING AGAIN, AND THAT IS WHAT TAKES IT OFF FIND § */
-  /* FIND › VENUES (owner, 7 Nov): its own public answer, an 8-bit picture and tags (card-fields.json). */
-  venue:   { group: 'Venues', label: 'Venues', card: x => findCard(x) },
-  subject: { group: 'Booking', label: 'Subjects', card: x => findCard(x) },
-  /* A LEVEL IS THE FOURTH THING A BOOKING IS ASSEMBLED FROM — who, where, what, and how far on — and it was the one you could not look at. § */
-  level:   { group: 'Booking', label: 'Levels',   card: x => findCard(x) },
-
-  /* ---------- YOUR OWN SESSIONS ARE ANSWERS UNDER BOOKING § */
-  /* ---------- THE WHOLE RECEIPT, NOT A STUB THAT OPENS ONE § */
-  /* ---------- ONE ANSWER, NOT THREE § */
-  receipt:  { group: 'Booking', label: 'Receipts',  card: (x, c) => findCard(x, c) },
-  /* THE FORM AS A TAG OF ITS OWN (owner, 8 Nov): "the booking form should be a section which can be found in the menu tags". */
-  bookform: { group: 'Booking', label: 'Booking form', card: () => bookFormCard_() },   /* a FORM, never a card (9 Nov): its fields and Send */
-
-  /* `coupon` WAS A KIND HERE — the classes with seats going. § */
-
-  /* A FRIEND. Their figure, their level, and a way to stop being one. */
-  /* ---------- YOU ARE FINDABLE, AND YOU ARE THE ONLY PERSON WHO IS § */
-  /* ---------- BACK UNDER `People`, AND THERE IS NO `You` ANSWER § */
-
-  /* ---------- POSTS ARE A THING YOU LOOK FOR § */
-
-
-  /* THE KEY ORDER IS THE DEFAULT ORDER OF What kind's ANSWERS (`answerCmp_`), so the work comes first; the kinds tab can move any. */
-  question: { group: 'Learning', label: 'Questions', card: (x, c) => findCard(x, c) },
-  /* `answer` NAMES NO ITEM: it is the label of a question's answer page (`kindLabel`'s `tagOf`), placed here so the kinds tab orders it too. */
-  answer: { group: 'Learning', label: 'Answers', card: (x, c) => findCard(x, c) },
-  /* A widget's card is its name and nothing else — the thing itself is the page it opens. */
-  /* A PRACTICAL IS A THING YOU FIND, which is why it is in the funnel at all and tools and games are not. § */
-  practical: { group: 'Learning', label: 'Practicals', card: (x, c) => findCard(x, c) },
-  /* ---------- A PROJECT IS THE PRACTICAL'S SIBLING, NOT ONE OF ITS SHAPES § */
-  project: { group: 'Learning', label: 'Projects', card: (x, c) => findCard(x, c) },
-  /* ---------- `film` WAS A KIND HERE, AND THE FILMS ARE OFF FIND § */
-  content: { group: 'Learning', label: 'Library', card: (x, c) => findCard(x, c) },
-  /* AN INSERT IS WHAT THE EXAM HANDS YOU (455), and Content (463): the owner, "inserts count as content" -- no tag of its own. */
-  insert: { group: 'Learning', label: 'Library', card: (x, c) => findCard(x, c) },
-  /* A SPECIFICATION IS ITS OWN KIND (owner, 12 Nov), under Library: Library › subject › Specification › board and level. */
-  spec: { group: 'Learning', label: 'Specification', card: (x, c) => findCard(x, c) },
-  /* THE HISTORY DATABASE (459) and ONE PEOPLE KIND (batch D: boxers and figures alike, a pixel portrait under the tags); `histKind` says which. */
-  manuscript: { group: 'Learning', label: 'Library', card: x => findCard(x) },
-  people: { group: 'Learning', label: 'Library', card: x => findCard(x) },
-  writing: { group: 'Learning', label: 'Library', card: x => findCard(x) },
-  /* ITS FOURTH (461): an event, and a timeline — every event of one `era`, in date order, a tile each. */
-  event: { group: 'Learning', label: 'Library', card: x => findCard(x) },
-  /* A TIMELINE IS ITS OWN KIND OF ITEM (545): the owner, "timelines should have a tag called timeline". */
-  timeline: { group: 'Learning', label: 'Timeline', card: (x, c) => findCard(x, c) },
-  /* THE BOUTS. `boxers` is who; this is what happened. 157 of them sat in the sheet unread,
-     because nothing in the app had ever been told the tab existed. */
-  fight: { group: 'Learning', label: 'Library', card: (x, c) => findCard(x, c) },
-  /* ---------- THE BIBLE, AND THE ONE KIND THE PHONE ITSELF KEEPS FROM ALL BUT AN ADMIN § */
-  bible: { group: 'Learning', label: 'Library', card: (x, c) => findCard(x, c) },
-  /* THE TALMUD (473): one item a daf, its page drawn by js/talmud.js. */
-  talmud: { group: 'Learning', label: 'Library', card: (x, c) => findCard(x, c) },
-  /* THE QURAN (490): one card a verse. */
-  quran: { group: 'Learning', label: 'Library', card: (x, c) => findCard(x, c) },
-  /* A WRITING'S OWN WORDS (499): one card a chapter a language, js/works.js. */
-  worktext: { group: 'Learning', label: 'Library', card: (x, c) => findCard(x, c) },
-  /* THE HADITH (504): one card a hadith, js/hadith.js. */
-  hadith: { group: 'Learning', label: 'Library', card: (x, c) => findCard(x, c) },
-  /* MORE WRITINGS (513): a verse, section or chapter a card, one text each — js/texts.js. */
-  writ: { group: 'Learning', label: 'Library', card: (x, c) => findCard(x, c) },
-  /* PUBLIC-DOMAIN TEXTS (514): history's documents and English literature, a card a place, js/pdtexts.js. */
-  pdtext: { group: 'Learning', label: 'Library', card: (x, c) => findCard(x, c) },
-  /* ORTHODOX TEXTS AND CHURCH HISTORY (516): one card a canon, section or chapter, js/orthodox.js. */
-  orthotext: { group: 'Learning', label: 'Library', card: (x, c) => findCard(x, c) },
-  /* THE HYMNS SHELF (517): one card a hymn, js/hymns.js. */
-  hymn: { group: 'Learning', label: 'Library', card: (x, c) => findCard(x, c) },
-  /* MECHANICS (548, 650): parts and cars, Library like the rest; `mKind` says which, js/mechanics.js. */
-  mech: { group: 'Learning', label: 'Library', card: (x, c) => findCard(x, c) },
-  /* CHEMISTRY (550): elements, substances and reactions, Library like the rest; `mKind` says which, js/chemistry.js. */
-  chem: { group: 'Learning', label: 'Library', card: (x, c) => findCard(x, c) },
-  /* HISTORY TOPICS (16 Nov): a topic's timeline, people, sources and items, Library like the rest; js/history-topics.js. */
-  hist: { group: 'Learning', label: 'Library', card: (x, c) => findCard(x, c) },
-
-  /* ---------- TWO GROUPS, NOT ONE GROUP AND THEN THE SAME QUESTION AGAIN § */
-  /* ---------- THESE TWO STAY IN THE TABLE AND NO LONGER ANSWER THE FIRST QUESTION § */
-  tool: { group: 'Tools', label: 'Tools', card: x => findCard(x) },
-  /* GAMES (owner, 12 Nov): the Console and the Word games, a widget card each, their own answer beside Tools. */
-  game: { group: 'Games', label: 'Games', card: x => findCard(x) },
-  /* COMING SOON (880): a switched-off column or widget, its name, one line, Coming soon and Suggest; nothing on it works. */
-  soon: { group: 'Coming soon', label: 'Coming soon', card: (x, c) => findCard(x, c) },
-  /* PEOPLE (owner, 4 Nov): everybody an admin may see, one card each, drawn like the people columns drew them. */
-  person: { group: 'Profiles', label: 'Profiles', card: (x, c) => findCard(x, c) },
-  /* SETTINGS (owner, 4 Nov): their own answer in Find; each card Coming soon until it is turned back on. */
-  setting: { group: 'Settings', label: 'Settings', card: (x, c) => findCard(x, c) },
-  /* MESSAGES (owner, 4 Nov): its own answer; Coming soon while the DM column is off. */
-  msg: { group: 'Messages', label: 'Messages', card: (x, c) => findCard(x.soon ? Object.assign({}, x, { kind: 'soon' }) : x, c) },
-  /* THE SWITCHED-OFF AREAS' ONE CARD EACH (OFF_KINDS). */
-  offPosts: { group: 'Posts', label: 'Posts', card: (x, c) => findCard(x, c) },
-  offShop: { group: 'Shop', label: 'Shop', card: (x, c) => findCard(x, c) },
-  offBooking: { group: 'Booking', label: 'Booking', card: (x, c) => findCard(x, c) },
-  /* SITE HEALTH (owner, 4 Nov): Logic health and What's missing, an admin's, as Find cards. */
-  health: { group: 'Settings', label: 'Settings', card: (x, c) => findCard(x, c) },
-  /* POSTS (owner, 8 Nov, 36a): the standard Find card shape (its item map, ITEM_MAPS.post in cards-parts.js), not the feed's look. */
-  post: { group: 'Posts', label: 'Posts', card: x => findCard(x) },
-
-  /* ---------- `link` WAS A KIND HERE, AND THE LINKS ARE OFF FIND § */
-
-  /* A resource and a shop row share a card: to somebody looking for one they are the same kind of
-     thing — a picture, a name, what it belongs to, and what it costs if it costs anything. */
-  /* `topic` WAS HERE — the documents, labelled `Resources`. The funnel lists the questions inside
-     them now and not the boxes; see the note above `questionItems`. */
-  /* ---------- A QUESTION IS NOT A DIFFERENT KIND OF THING FROM ITS PAPER § */
-  /* ---------- `question` WAS A KIND AND IS NOT ANY MORE § */
-  /* ---------- THE SHOP HAS A COLUMN OF ITS OWN, AND THIS IS NOT A DOOR ANY MORE § */
-  shop:  { group: 'Shop',     label: 'Things',    card: (x, c) => (x.widget ? widgetCard_(x) : findCard(x, c)) },
-};
+/* A KIND'S OWN FIND CARD (kinds.json `find.draw`): your own tutor pass, a message door not yet on, a widget on the shop shelf. */
+const findTutorCard_ = x => (USER && typeof meCard === 'function' && norm((x.row || {}).title) === norm(USER.name) ? meCard() : findCard(x));
+const findMsgCard_ = (x, c) => findCard(x.soon ? Object.assign({}, x, { kind: 'soon' }) : x, c);
+const findShopCard_ = (x, c) => (x.widget ? widgetCard_(x) : findCard(x, c));
 
 /* EACH KIND WHOSE OWN FILE STILL WRITES ITS CARD (owner 1a, 8 Nov): `findCard` cuts what it writes into the one shape. */
 window.KC_OWN = Object.assign(window.KC_OWN || {}, {
@@ -500,37 +388,25 @@ function thingCard_(x, credits) {
 
 /* A THING'S ENTRY. Wearables are the one kind decided by a FIELD rather than by `kind` — the shop holds both, and which it is depends on whether the row names a § */
 /* THE FUNNEL'S ANSWERS, AS THE SHEET WANTS THEM. § */
-let KIND_LIVE = null, KIND_FROM = null;
-
+/* WHAT CAN BE FOUND (rule 1.80): each Find entry kind of each kind in kinds.json, in that file's order, with its group, label, door (`under`), card and `see`. */
+let KIND_LIVE = null;
 function kindMap_() {
-  const src = DATA.kinds || null;
-  if (KIND_LIVE && KIND_FROM === src) return KIND_LIVE;
-  KIND_FROM = src;
-  const said = {};
-  (src || []).forEach(k => { if (k && k.kind) said[k.kind] = k; });
-
-  /* ---------- A KIND THE SHEET INVENTED § */
+  if (KIND_LIVE) return KIND_LIVE;
   const out = {};
-  const order = Object.keys(KINDS)
-    .concat(Object.keys(said).filter(k => !KINDS[k]));
-  order.forEach((k, i) => {
-    const base = KINDS[k] || {}, s = said[k];
-    if (s && s.active === false) return;
-    /* A SHEET-ONLY KIND WITH NO GROUP WOULD LAND IN `undefined`, which `groupOrder_` would then offer as an answer to the first question. § */
-    if (!KINDS[k] && !asList_(s && s.group).length) base.group = 'Learning';
-    if (!KINDS[k]) base.fromSheet = true;
-    out[k] = Object.assign({}, base, {
-      /* THE SHEET WINS WHEN IT HAS SAID ANYTHING. § */
-      group: asList_(s && s.group).length ? s.group : base.group,
-      /* A KIND THE SHEET INVENTED AND DID NOT NAME falls back to the kind itself rather than to
-         `undefined`, which would print as an empty answer in the second question. */
-      /* `Content` IS `Library` NOW (490): the owner, "it's the library for all the resources" -- a sheet still saying the old word is read as the new. */
-      label: ((s && s.label) === 'Content' ? 'Library' : (s && s.label)) || base.label || k,
-      at:    facetNum_(s && s.order, (i + 1) * 10),
+  Object.keys(ITEM_KINDS.kinds).forEach(k => {
+    const K = ITEM_KINDS.kinds[k], f = K.find || {};
+    if (!f.group) return;
+    Object.keys(f.entries || { [(K.card || {}).card || k]: 1 }).forEach(e => {
+      if (out[e]) return;
+      const o = Object.assign({ kind: k, group: f.group, label: f.label, under: f.under || '', draw: f.draw || '', see: (K.see || {}).who || 'anyone' }, (f.entries || {})[e]);
+      out[e] = Object.assign(o, { at: (Object.keys(out).length + 1) * 10, card: (x, c) => { const d = o.draw && kindGlobal_(o.draw); return d ? d(x, c) : findCard(x, c); } });
     });
   });
   return (KIND_LIVE = out);
 }
+/* WHO IS LISTED AN ENTRY (kinds.json `see.who`): a kind named nowhere never; `self` and `family` rows reach only their own, as the backend sends no one else's. */
+const kindSees_ = x => { const m = x && kindMap_()[x.kind];
+  return !!m && String(m.see).split(',').map(w => w.trim()).some(w => w === 'anyone' || may_(/^(self|family)$/.test(w) ? 'signedIn' : w)); };
 
 /* THE GROUPS IN THE ORDER THEY ARE OFFERED, lowest `sort_order` of any kind in the group first —
    so a group moves by moving any one of its kinds, and there is no second list to keep in step. */
@@ -601,283 +477,162 @@ const spellKey_ = v => {
 /* Two optional readers, both about the value: `tagOf` is what one PAGE carries (the answer page says Answers), `showOf`
    the name of a value that is an id (a paper). */
 /* The order here is only the fallback for a facet the facets tab does not place; the tab's sort_order is the order, and the tie-break between equal splits. */
-const FACETS = [
-  { field: 'forLabel',  label: 'What for',    of: x => x.groups || kindOf_(x).group },
+const FACET_READ = {
+  forLabel: { of: x => x.groups || kindOf_(x).group },
   /* `Answers` BESIDE THE ITEM'S OWN KIND: a question with an answer is found by either, and its answer page carries the tag. */
-  /* A KIND UNDER ANOTHER (`KIND_UNDER`, 610) ANSWERS ONLY THAT ONE HERE: Questions are reached through Practice, a Timeline through Library. */
-  { field: 'kindLabel', label: 'What kind',
-    of: x => kindTop_(x) || x.kindLabel || kindOf_(x).label,
+  /* A KIND UNDER ANOTHER (kinds.json `find.under`, 610) ANSWERS ONLY THAT ONE HERE: Questions are reached through Practice, a Timeline through Library. */
+  kindLabel: { of: x => kindTop_(x) || x.kindLabel || kindOf_(x).label,
     tagOf: (x, page) => kindTopTag_(x) || (page === 'ans' && isQ_(x) ? ansKind_() : (x.kindLabel || kindOf_(x).label)) },
   /* AND ITS OWN KIND IS THE NEXT QUESTION, asked by the one rule like any other (`Answers` beside a question that has one, and on no tool or video). */
-  { field: 'kindOwn', label: 'Which',
-    of: x => !kindTop_(x) ? '' : notTop_(x, isQ_(x) && questionHasAns_(x) ? [kindOf_(x).label, ansKind_()] : (x.kindLabel || kindOf_(x).label)),
+  kindOwn: { of: x => !kindTop_(x) ? '' : notTop_(x, isQ_(x) && questionHasAns_(x) ? [kindOf_(x).label, ansKind_()] : (x.kindLabel || kindOf_(x).label)),
     tagOf: (x, page) => !kindTop_(x) ? '' : notTop_(x, page === 'ans' && isQ_(x) ? ansKind_() : (x.kindLabel || kindOf_(x).label)) },
   /* SUBJECT STRAIGHT AFTER WHAT KIND (494), as the facets tab orders it: "the library should go subject first". */
   /* THE FRONT DOORS' OWN MENUS (batch C, find-doors.js): each item answers only its own. */
-  ...[['postState', 'Which posts'], ['postBy', 'Who posted'], ['postWhen', 'When'], ['msgWith', 'Who with'], ['profileType', 'Who'], ['settingFor', 'Account type'],
-    ['vidSubject', 'Subject'], ['vidTopic', 'Topic'], ['vidChannel', 'Channel'], ['vidLevel', 'Level'], ['vidType', 'Type'], ['venueArea', 'Area'], ['venueFor', 'Good for'], ['venueSize', 'Holds']].map(([f, l]) => ({ field: f, label: l, of: x => x[f] || '' })),
-  { field: 'projectType',   label: 'Project or coursework', of: x => x.projectType || '' },
-  { field: 'subject',   label: 'Subject',     of: x => x.subject },
-  { field: 'shelf',     label: 'Shelf',       of: x => x.shelf || '' },
+  ...Object.fromEntries(['postState', 'postBy', 'postWhen', 'msgWith', 'profileType', 'settingFor', 'vidSubject', 'vidTopic', 'vidChannel', 'vidLevel', 'vidType', 'venueArea', 'venueFor', 'venueSize'].map(f => [f, { of: x => x[f] || '' }])),
+  projectType: { of: x => x.projectType || '' },
+  subject: { of: x => x.subject },
+  shelf: { of: x => x.shelf || '' },
   /* ONE FACET SET FOR EVERY WRITTEN WORK (520): the Bible, the Quran, the Talmud, the Hadith, the hymns and every other text
      answer the same questions, read off `writingOf_` (writings.js) — no loader has a private one. */
   /* ONE KIND OF VALUE A FACET (546): the religion, the language and whose translation are three questions, never one menu. */
-  { field: 'wReligion',  label: 'Religion',   of: x => writingAt_(x, 'religion') },
+  wReligion: { of: x => writingAt_(x, 'religion') },
   /* A COLLECTION IS A GROUP OF WORKS (600), so it is asked before Work: Rabbinic, Second Temple, Kabbalah; New Testament; Hadith. */
-  { field: 'wCollection', label: 'Collection', of: x => writingAt_(x, 'collection') },
+  wCollection: { of: x => writingAt_(x, 'collection') },
   /* WHAT IT IS BEFORE HOW IT IS WRITTEN (590): the work and the section a passage sits in, then its source, language and translation. */
-  { field: 'wWork',      label: 'Work',       of: x => writingAt_(x, 'work') },
-  { field: 'wSection',   label: 'Section',    of: x => writingAt_(x, 'section') },
-  { field: 'wSource',    label: 'Source text', of: x => writingAt_(x, 'source') },
+  wWork: { of: x => writingAt_(x, 'work') },
+  wSection: { of: x => writingAt_(x, 'section') },
+  wSource: { of: x => writingAt_(x, 'source') },
   /* ONE LANGUAGE QUESTION FOR EVERYTHING WRITTEN (546): a text's language and a manuscript's (the history database) are one kind of answer. */
-  { field: 'wLanguage',  label: 'Language',   of: x => writingLanguageOf_(writingAt_(x, 'text')) || histCol_(x, 'language') },
-  { field: 'wText',      label: 'Translation', of: x => writingVersionOf_(writingAt_(x, 'text')) },
-  { field: 'wTradition', label: 'Tradition',  of: x => writingAt_(x, 'tradition') },
-  { field: 'wBook',      label: 'Book',       of: x => writingAt_(x, 'book') },
-  { field: 'wChapter',   label: 'Chapter',    of: x => writingAt_(x, 'chapter') },
-  { field: 'wUnit',      label: 'Unit',       of: x => writingAt_(x, 'unit') },
-  { field: 'wAuthor',    label: 'Author',     of: x => writingAt_(x, 'author') },
-  { field: 'wForm',      label: 'Kind of writing', of: x => writingAt_(x, 'form') },
-  { field: 'wPrimacy',   label: 'Primary or secondary source', of: x => writingAt_(x, 'primacy') },
+  wLanguage: { of: x => writingLanguageOf_(writingAt_(x, 'text')) || histCol_(x, 'language') },
+  wText: { of: x => writingVersionOf_(writingAt_(x, 'text')) },
+  wTradition: { of: x => writingAt_(x, 'tradition') },
+  wBook: { of: x => writingAt_(x, 'book') },
+  wChapter: { of: x => writingAt_(x, 'chapter') },
+  wUnit: { of: x => writingAt_(x, 'unit') },
+  wAuthor: { of: x => writingAt_(x, 'author') },
+  wForm: { of: x => writingAt_(x, 'form') },
+  wPrimacy: { of: x => writingAt_(x, 'primacy') },
   /* MECHANICS (548): a car's facts as tags, read off the row; a row answers only what it has. */
   /* BATCH E: one exact car or any first (`choose`: asked however lopsided), then each car attribute its own question and tag. */
-  { field: 'mScope',    label: 'Car or car part?', of: x => mechScope_(x), tagOf: () => '', choose: true },
-  { field: 'mMake',     label: 'Brand',       of: x => mechFit_(x, 'mMake'), tagOf: x => mechFitTag_(x, 'mMake') },
-  { field: 'mModel',    label: 'Model',       of: x => mechFit_(x, 'mModel'), tagOf: x => mechFitTag_(x, 'mModel') },
-  { field: 'mGen',      label: 'Generation',  of: x => mechFit_(x, 'mGen'), tagOf: x => mechFitTag_(x, 'mGen') },
-  { field: 'mEngine',   label: 'Engine',      of: x => mechFit_(x, 'mEngine'), tagOf: x => mechFitTag_(x, 'mEngine') },
+  mScope: { of: x => mechScope_(x), tagOf: () => '', choose: true },
+  mMake: { of: x => mechFit_(x, 'mMake'), tagOf: x => mechFitTag_(x, 'mMake') },
+  mModel: { of: x => mechFit_(x, 'mModel'), tagOf: x => mechFitTag_(x, 'mModel') },
+  mGen: { of: x => mechFit_(x, 'mGen'), tagOf: x => mechFitTag_(x, 'mGen') },
+  mEngine: { of: x => mechFit_(x, 'mEngine'), tagOf: x => mechFitTag_(x, 'mEngine') },
   /* A LESSON WRITTEN TO A SPEC IS ONE TYPE BESIDE CHEMISTRY'S ELEMENTS AND SUBSTANCES (16 Nov): Library › Chemistry › Exam topics › GCSE › AQA. */
-  { field: 'mKind',     label: 'Card type',   of: x => x.mKind || (specTreeOf_(x).topic ? 'Exam topics' : '') },
-  { field: 'mSystem',   label: 'System',      of: x => x.mSystem || '' },
-  { field: 'mPhase',    label: 'Phase',       of: x => mechFit_(x, 'mPhase'), tagOf: x => mechFitTag_(x, 'mPhase') },
-  { field: 'mMarket',   label: 'Market',      of: x => mechFit_(x, 'mMarket'), tagOf: x => mechFitTag_(x, 'mMarket') },
-  { field: 'mYears',    label: 'Years made',  of: x => mechFit_(x, 'mYears'), tagOf: x => mechFitTag_(x, 'mYears') },
-  { field: 'mSize',     label: 'Engine size', of: x => mechFit_(x, 'mSize'), tagOf: x => mechFitTag_(x, 'mSize') },
-  { field: 'mValves',   label: 'Valves',      of: x => mechFit_(x, 'mValves'), tagOf: x => mechFitTag_(x, 'mValves') },
-  { field: 'mBadge',    label: 'Version',     of: x => mechFit_(x, 'mBadge'), tagOf: x => mechFitTag_(x, 'mBadge') },
-  { field: 'mFuel',     label: 'Fuel',        of: x => mechFit_(x, 'mFuel'), tagOf: x => mechFitTag_(x, 'mFuel') },
-  { field: 'mPart',     label: 'Part',        of: x => (x.kind === 'mech' && x.mFile !== 'models' && x.name) || '' },
-  { field: 'mPrice',    label: 'Price band',  of: x => mechOwn_(x, 'parts', 'value') },
+  mKind: { of: x => x.mKind || (specTreeOf_(x).topic ? 'Exam topics' : '') },
+  mSystem: { of: x => x.mSystem || '' },
+  mPhase: { of: x => mechFit_(x, 'mPhase'), tagOf: x => mechFitTag_(x, 'mPhase') },
+  mMarket: { of: x => mechFit_(x, 'mMarket'), tagOf: x => mechFitTag_(x, 'mMarket') },
+  mYears: { of: x => mechFit_(x, 'mYears'), tagOf: x => mechFitTag_(x, 'mYears') },
+  mSize: { of: x => mechFit_(x, 'mSize'), tagOf: x => mechFitTag_(x, 'mSize') },
+  mValves: { of: x => mechFit_(x, 'mValves'), tagOf: x => mechFitTag_(x, 'mValves') },
+  mBadge: { of: x => mechFit_(x, 'mBadge'), tagOf: x => mechFitTag_(x, 'mBadge') },
+  mFuel: { of: x => mechFit_(x, 'mFuel'), tagOf: x => mechFitTag_(x, 'mFuel') },
+  mPart: { of: x => (x.kind === 'mech' && x.mFile !== 'models' && x.name) || '' },
+  mPrice: { of: x => mechOwn_(x, 'parts', 'value') },
   /* A PC PART (batch E): what it is, its socket or form factor, the interfaces it uses and what it plugs into. */
-  { field: 'pcType',    label: 'Part type',   of: x => mechOwn_(x, 'pc', 'type') },
-  { field: 'pcSocket',  label: 'Socket or form factor', of: x => mechOwn_(x, 'pc', 'socket') },
-  { field: 'pcIface',   label: 'Interface',   of: x => mechOwn_(x, 'pc', 'iface') },
-  { field: 'pcLinks',   label: 'Connects to', of: x => mechOwn_(x, 'pc', 'links') },
+  pcType: { of: x => mechOwn_(x, 'pc', 'type') },
+  pcSocket: { of: x => mechOwn_(x, 'pc', 'socket') },
+  pcIface: { of: x => mechOwn_(x, 'pc', 'iface') },
+  pcLinks: { of: x => mechOwn_(x, 'pc', 'links') },
   /* CHEMISTRY (550): an element's category or a substance's or reaction's type, then group, period and state, off the row. */
-  { field: 'cCategory', label: 'Chemical type', of: x => x.cCategory || '' },
-  { field: 'cGroup',    label: 'Group',       of: x => x.cGroup || '' },
-  { field: 'cPeriod',   label: 'Period',      of: x => x.cPeriod || '' },
-  { field: 'cState',    label: 'State',       of: x => x.cState || '' },
+  cCategory: { of: x => x.cCategory || '' },
+  cGroup: { of: x => x.cGroup || '' },
+  cPeriod: { of: x => x.cPeriod || '' },
+  cState: { of: x => x.cState || '' },
   /* BATCH D: one people kind; a person's name, years and home are tags (the card has no title). */
-  { field: 'boxKind',   label: 'Fighters or fights', of: x => x.boxKind || '' },
+  boxKind: { of: x => x.boxKind || '' },
   /* A BOUT'S FACTS ARE TAGS (445), like a question's: who, when, how. A boxer answers Fighter too, so his name finds him and his bouts. */
-  { field: 'fighter',   label: 'Fighter',     of: x => isFight_(x) && x.row ? [x.row.a, x.row.b].filter(Boolean) : isBoxer_(x) ? x.name : '' },
-  { field: 'personName', label: 'Who', of: x => (isPerson_(x) ? x.name : '') },
-  { field: 'boutMonth', label: 'Month',       of: x => boutDate_(x).month },
-  { field: 'boutYear',  label: 'Year',        of: x => boutDate_(x).year },
-  { field: 'decade',    label: 'Decade',      of: x => decadesOf_(x) },
-  { field: 'division',  label: 'Division',    of: x => x.division || '' },
-  { field: 'boutRound', label: 'Round',       of: x => isFight_(x) && x.row && Number(x.row.endRound) > 0 ? 'Round ' + Number(x.row.endRound) : '' },
-  { field: 'boutMethod', label: 'Result',     of: x => (isFight_(x) && x.row && String(x.row.method || '').trim()) || '' },
+  fighter: { of: x => isFight_(x) && x.row ? [x.row.a, x.row.b].filter(Boolean) : isBoxer_(x) ? x.name : '' },
+  personName: { of: x => (isPerson_(x) ? x.name : '') },
+  boutMonth: { of: x => boutDate_(x).month },
+  boutYear: { of: x => boutDate_(x).year },
+  decade: { of: x => decadesOf_(x) },
+  division: { of: x => x.division || '' },
+  boutRound: { of: x => isFight_(x) && x.row && Number(x.row.endRound) > 0 ? 'Round ' + Number(x.row.endRound) : '' },
+  boutMethod: { of: x => (isFight_(x) && x.row && String(x.row.method || '').trim()) || '' },
   /* THE TITLE THE FIGHT CARD LOST (490) said who won and which night: tags now, like everything else. */
-  { field: 'boutWinner', label: 'Winner',     of: x => boutWinner_(x) },
-  { field: 'boutEvent', label: 'Event',       of: x => (isFight_(x) && x.row && String(x.row.event || '').trim()) || '' },
+  boutWinner: { of: x => boutWinner_(x) },
+  boutEvent: { of: x => (isFight_(x) && x.row && String(x.row.event || '').trim()) || '' },
   /* THE HISTORY DATABASE'S (459): which table, the era its years touch, and its columns as ordinary tags (`histCol_`). */
-  { field: 'histKind',  label: 'Manuscripts, people, writings, events or timelines', of: x => x.histKind || (/^(pdtext|worktext|writ|writing|content)$/.test(x.kind) && [].concat(x.subject || []).indexOf('History') >= 0 ? 'Writings' : '') },
-  { field: 'histPart',  label: 'Timeline, people, sources or items', of: x => x.histPart || '' },
-  { field: 'histEra',   label: 'Era',         of: x => histErasOf_(x) },
-  { field: 'histMaterial', label: 'Material', of: x => histCol_(x, 'material') },
-  { field: 'histFormat', label: 'Format',     of: x => histCol_(x, 'format') },
-  { field: 'histGenre', label: 'Genre',       of: x => histCol_(x, 'genre') },
-  { field: 'histRole',  label: 'Role',        of: x => (isPerson_(x) ? x.roles || [] : histCol_(x, 'roles')) },
-  { field: 'personYears', label: 'Years',     of: x => personYears_(x) },
-  { field: 'personFrom', label: 'From',       of: x => (isPerson_(x) && x.from) || '' },
-  { field: 'histTheme', label: 'Theme',       of: x => histCol_(x, 'themes') },
-  { field: 'histRepository', label: 'Held at', of: x => histCol_(x, 'repository') },
-  { field: 'histFound', label: 'Found',      of: x => msFound_(x) },
-  { field: 'histDated', label: 'Dated',      of: x => msDated_(x) },
+  histKind: { of: x => x.histKind || (/^(pdtext|worktext|writ|writing|content)$/.test(x.kind) && [].concat(x.subject || []).indexOf('History') >= 0 ? 'Writings' : '') },
+  histPart: { of: x => x.histPart || '' },
+  histEra: { of: x => histErasOf_(x) },
+  histMaterial: { of: x => histCol_(x, 'material') },
+  histFormat: { of: x => histCol_(x, 'format') },
+  histGenre: { of: x => histCol_(x, 'genre') },
+  histRole: { of: x => (isPerson_(x) ? x.roles || [] : histCol_(x, 'roles')) },
+  personYears: { of: x => personYears_(x) },
+  personFrom: { of: x => (isPerson_(x) && x.from) || '' },
+  histTheme: { of: x => histCol_(x, 'themes') },
+  histRepository: { of: x => histCol_(x, 'repository') },
+  histFound: { of: x => msFound_(x) },
+  histDated: { of: x => msDated_(x) },
   /* ONE SIDE A CARD (507): the owner, "make front a tag and back a tag, so each widget displays one side". */
-  { field: 'histSide',  label: 'Side',        of: x => x.msSide || '' },
-  { field: 'histTheatre', label: 'Theatre',   of: x => histCol_(x, 'theatre') },
+  histSide: { of: x => x.msSide || '' },
+  histTheatre: { of: x => histCol_(x, 'theatre') },
   /* A WRITING'S OWN WORDS (499): which work, which chapter, which language. */
   /* A SHOP ITEM'S TAGS (499): what it is, how you get it, its price band, the brand, who it is for. */
-  { field: 'shopKind',  label: 'Category',    of: x => x.shopKind || '' },
-  { field: 'shopHow',   label: 'How you get it', of: x => x.shopHow || '' },
-  { field: 'shopPrice', label: 'Price',       of: x => x.shopPrice || '' },
-  { field: 'shopBrand', label: 'Brand',       of: x => x.shopBrand || '' },
-  { field: 'shopFor',   label: 'For',         of: x => x.shopFor || '' },
+  shopKind: { of: x => x.shopKind || '' },
+  shopHow: { of: x => x.shopHow || '' },
+  shopPrice: { of: x => x.shopPrice || '' },
+  shopBrand: { of: x => x.shopBrand || '' },
+  shopFor: { of: x => x.shopFor || '' },
   /* A THEME (740): "just tags for items in shops… like history", from the shop tab's `theme` column. */
-  { field: 'shopTheme', label: 'Theme',       of: x => x.shopTheme || '' },
-  { field: 'practicalType', label: 'Experiment or build', of: x => x.practicalType || '' },
-  { field: 'required',  label: 'Required',
-    of: x => !isPractical_(x) || !x.row ? '' : PRAC_NEED[x.row.excluded ? 2 : x.row.required ? 0 : 1] },
+  shopTheme: { of: x => x.shopTheme || '' },
+  practicalType: { of: x => x.practicalType || '' },
+  required: { of: x => !isPractical_(x) || !x.row ? '' : PRAC_NEED[x.row.excluded ? 2 : x.row.required ? 0 : 1] },
   /* ONE TYPE QUESTION (owner, 15 Nov): a card's own type, no type under another; a 5-a-day answers the ordinary facets. */
-  { field: 'documentType', label: 'Type',     of: x => x.documentType || '' },
-  { field: 'level',     label: 'Level',       of: x => levelOf_(x) },
+  documentType: { of: x => x.documentType || '' },
+  level: { of: x => levelOf_(x) },
   /* A RESOURCE CAN BELONG TO MORE THAN ONE KEY STAGE; a SATs row's is read off its year when the cell is blank. */
-  { field: 'keystage',  label: 'Key stage',   of: x => { const s = satsStagesOf_(x); return s.length ? s : keyStagesOf_(x); } },
+  keystage: { of: x => { const s = satsStagesOf_(x); return s.length ? s : keyStagesOf_(x); } },
   /* A CHAPTER TAUGHT OVER SEVERAL YEARS ANSWERS EACH (770: "it should ask what year, no?" under KS2). */
-  { field: 'yearGroup', label: 'School year', of: x => x.bandValue && x.bandType === 'year' ? 'Year ' + x.bandValue : (x.years || []).map(y => 'Year ' + y) },
-  { field: 'bandValue', label: 'Grade',       of: x => x.bandValue && x.bandType === 'grade' ? 'Grade ' + x.bandValue : '' },
+  yearGroup: { of: x => x.bandValue && x.bandType === 'year' ? 'Year ' + x.bandValue : (x.years || []).map(y => 'Year ' + y) },
+  bandValue: { of: x => x.bandValue && x.bandType === 'grade' ? 'Grade ' + x.bandValue : '' },
   /* A CARD WRITTEN TO A SPEC ANSWERS THE SPEC'S OWN HEADINGS INSTEAD (16 Nov), asked after its board: Library › Biology › AQA › 4.1 Cell biology. */
-  { field: 'topic',     label: 'Topic',       of: x => topicShown_(x) && !specTreeOf_(x).topic ? (x.topic || topicOf_(x)) : [] },
-  { field: 'examBoard', label: 'Exam board',  of: x => boardOf_(x) },
-  { field: 'specTopic', label: 'Spec topic',  full: true, of: x => specTreeOf_(x).topic },
-  { field: 'specPoint', label: 'Spec point',  full: true, of: x => specTreeOf_(x).point },
+  topic: { of: x => topicShown_(x) && !specTreeOf_(x).topic ? (x.topic || topicOf_(x)) : [] },
+  examBoard: { of: x => boardOf_(x) },
+  specTopic: { full: true, of: x => specTreeOf_(x).topic },
+  specPoint: { full: true, of: x => specTreeOf_(x).point },
   /* A "PLUS" TIER IS ITS OWN TIER'S (owner, 15 Nov): Foundation Plus is Foundation, Higher Plus is Higher. */
-  { field: 'tier',      label: 'Tier',        of: x => String(x.tier || '').replace(/\s+Plus$/i, '') },
+  tier: { of: x => String(x.tier || '').replace(/\s+Plus$/i, '') },
   /* THE YEAR, THEN THE MONTH, THEN THE PAPER — like the folders they came from. */
-  { field: 'examYear',  label: 'Year',        of: x => sittingOf_(x).year },
+  examYear: { of: x => sittingOf_(x).year },
   /* MONTH AND DAY READ ANY ITEM'S DATE (owner, 15 Nov): a sitting's month, else the item's own date (`itemDate_`) — a 5-a-day's "5 October". */
-  { field: 'examMonth', label: 'Month',       of: x => sittingMonth_(x) || itemDate_(x).month },
-  { field: 'examDay',   label: 'Day',         of: x => itemDate_(x).day },
+  examMonth: { of: x => sittingMonth_(x) || itemDate_(x).month },
+  examDay: { of: x => itemDate_(x).day },
   /* ONE TAG ON EVERY QUESTION (388; owner 10 Nov): answer checked against the scheme and type machine-marked, or not -- asked before Paper (529). */
-  { field: 'verified',  label: 'Verified',    of: x => verifyTags_(x).verified },
+  verified: { of: x => verifyTags_(x).verified },
   /* THE ID DECIDES WHO ANSWERS; its cover code is what is said (owner 8 Nov) — year, month, tier, board are their own facets, and tellApart_ adds one where two collide. */
-  { field: 'paperId',   label: 'Paper',       of: x => (x.row && x.row.paper_id) || '',
+  paperId: { of: x => (x.row && x.row.paper_id) || '',
     showOf: id => paperTag_(id) || paperLabel_(id), tagSay: id => paperTag_(id),
     /* TWO PAPERS ONE NUMBER APART BY NOTHING ELSE (Combined Science's Paper 1 Biology, Chemistry, Physics): their titles, sitting last. */
     nameOf: id => { const t = paperLabel_(id); return [t.replace(/\s+—\s+[^—]+$/, ''), t]; } },
   /* THE SECTION OF A PAPER SAT IN SECTIONS (770): an ordinary facet, asked whenever it splits (owner, 15 Nov). */
-  { field: 'paperSection', label: 'Paper section',  of: x => { const r = paperSectionOf_(x && x.row); return r ? r.section + (r.topic ? ': ' + r.topic : '') : paperNameSection_(x); } },
+  paperSection: { of: x => { const r = paperSectionOf_(x && x.row); return r ? r.section + (r.topic ? ': ' + r.topic : '') : paperNameSection_(x); } },
   /* WHICH QUESTION, WHICH PART, HOW MANY MARKS: the words are the value, so the card and the button agree. */
-  { field: 'qNumber',   label: 'Question',
-    of: x => isQ_(x) && x.qNumber != null && String(x.qNumber) !== '' ? 'Q' + x.qNumber : '' },
-  { field: 'qPart',     label: 'Part',        of: x => qSplitOf_(x).part },
-  { field: 'qSub',      label: 'Sub-part',    of: x => qSplitOf_(x).sub },
-  { field: 'marks',     label: 'Marks',
-    of: x => Number(x && x.marks) > 0 ? Number(x.marks) + ' mark' + (Number(x.marks) === 1 ? '' : 's') : '',
+  qNumber: { of: x => isQ_(x) && x.qNumber != null && String(x.qNumber) !== '' ? 'Q' + x.qNumber : '' },
+  qPart: { of: x => qSplitOf_(x).part },
+  qSub: { of: x => qSplitOf_(x).sub },
+  marks: { of: x => Number(x && x.marks) > 0 ? Number(x.marks) + ' mark' + (Number(x.marks) === 1 ? '' : 's') : '',
     /* SAID AS THE PAPER PRINTS IT (owner 8 Nov, 28b): "[1]", while the value stays "1 mark". */
     showOf: v => { const m = /^(\d+) marks?$/.exec(String(v)); return m ? '[' + m[1] + ']' : v; } },
   /* A WORKSHEET'S MAKER (O3): Publisher went, being the exam board twice or this. */
-  { field: 'source',    label: 'Source',      of: x => sourceOf_(x) },
-  { field: 'needs',     label: 'What you need', of: x => asList_(x.needs) },
+  source: { of: x => sourceOf_(x) },
+  needs: { of: x => asList_(x.needs) },
   /* HOW YOU DID (463): the viewer's own latest press on a question; an ordinary facet (signed out it is blank, so it cannot split). */
-  { field: 'myAttempt', label: 'Attempted', of: x => myAttemptOf_(x) },
-  { field: 'myResult',  label: 'Your result', of: x => myResultOf_(x) },
-];
-
-
-/* THE FUNNEL'S QUESTIONS, AS THE SHEET WANTS THEM. § */
-/* ---------- KEYED ON THE PAYLOAD, THE WAY `allTopics` DOES IT § */
-let FACET_LIVE = null, FACET_FROM = null;
-
-/* ---------- A QUESTION THE SHEET INVENTED § */
-const facetFromSheet_ = f => ({
-  field: f.field,
-  label: f.label || String(f.field).replace(/_/g, ' '),
-  fromSheet: true,
-  of: x => {
-    const v = (x && x[f.field] !== undefined && x[f.field] !== null && x[f.field] !== '')
-      ? x[f.field]
-      : (x && x.row ? x.row[f.field] : undefined);
-    if (Array.isArray(v)) return v;
-    return String(v === undefined || v === null ? '' : v)
-      .split(',').map(t => t.trim()).filter(Boolean);
-  },
-});
-
-/* FIELDS WHOSE CODE FACET WAS DELETED ON PURPOSE, AND WHICH THE SHEET MAY NOT RESURRECT. § */
-const RETIRED_FACETS = {
-  histLanguage: 'a manuscript\'s language is the one Language question every written thing answers (`wLanguage`, 546).',
-  company: 'Publisher was the exam board said twice, or a worksheet maker; a maker is the Source now (O3).',
-  libBook: 'a writing\'s private facet; one facet set asks every writing now (520).',
-  bibleTranslation: 'a writing\'s private facet; one facet set asks every writing now (520).',
-  bibleTestament: 'a writing\'s private facet; one facet set asks every writing now (520).',
-  bibleGroup: 'a writing\'s private facet; one facet set asks every writing now (520).',
-  bibleBook: 'a writing\'s private facet; one facet set asks every writing now (520).',
-  bibleChapter: 'a writing\'s private facet; one facet set asks every writing now (520).',
-  bibleVerse: 'a writing\'s private facet; one facet set asks every writing now (520).',
-  wtWork: 'a writing\'s private facet; one facet set asks every writing now (520).',
-  wtChapter: 'a writing\'s private facet; one facet set asks every writing now (520).',
-  wtSection: 'a writing\'s private facet; one facet set asks every writing now (520).',
-  wtLanguage: 'a writing\'s private facet; one facet set asks every writing now (520).',
-  wtVerse: 'a writing\'s private facet; one facet set asks every writing now (520).',
-  txWriting: 'a writing\'s private facet; one facet set asks every writing now (520).',
-  txBook: 'a writing\'s private facet; one facet set asks every writing now (520).',
-  txChapter: 'a writing\'s private facet; one facet set asks every writing now (520).',
-  txSection: 'a writing\'s private facet; one facet set asks every writing now (520).',
-  txText: 'a writing\'s private facet; one facet set asks every writing now (520).',
-  txAnthology: 'a writing\'s private facet; one facet set asks every writing now (520).',
-  orTradition: 'a writing\'s private facet; one facet set asks every writing now (520).',
-  orGenre: 'a writing\'s private facet; one facet set asks every writing now (520).',
-  orCollection: 'a writing\'s private facet; one facet set asks every writing now (520).',
-  hymnTradition: 'a writing\'s private facet; one facet set asks every writing now (520).',
-  hymnTheme: 'a writing\'s private facet; one facet set asks every writing now (520).',
-  hymnAuthor: 'a writing\'s private facet; one facet set asks every writing now (520).',
-  hymnLanguage: 'a writing\'s private facet; one facet set asks every writing now (520).',
-  talSeder: 'a writing\'s private facet; one facet set asks every writing now (520).',
-  talTractate: 'a writing\'s private facet; one facet set asks every writing now (520).',
-  talChapter: 'a writing\'s private facet; one facet set asks every writing now (520).',
-  quranTranslation: 'a writing\'s private facet; one facet set asks every writing now (520).',
-  quranSurah: 'a writing\'s private facet; one facet set asks every writing now (520).',
-  quranAyah: 'a writing\'s private facet; one facet set asks every writing now (520).',
-  quranJuz: 'a writing\'s private facet; one facet set asks every writing now (520).',
-  hadithTranslation: 'a writing\'s private facet; one facet set asks every writing now (520).',
-  hadithCollection: 'a writing\'s private facet; one facet set asks every writing now (520).',
-  hadithBook: 'a writing\'s private facet; one facet set asks every writing now (520).',
-  hadithNumber: 'a writing\'s private facet; one facet set asks every writing now (520).',
-  orEra: 'a writing\'s private facet; one facet set asks every writing now (520).',
-  hymnSeason: 'a writing\'s private facet; one facet set asks every writing now (520).',
-  hymnTune: 'a writing\'s private facet; one facet set asks every writing now (520).',
-  talDaf: 'a writing\'s private facet; one facet set asks every writing now (520).',
-  talSide: 'a writing\'s private facet; one facet set asks every writing now (520).',
-  quranPlace: 'a writing\'s private facet; one facet set asks every writing now (520).',
-  quranSajda: 'a writing\'s private facet; one facet set asks every writing now (520).',
-  iconGroup: 'what an icon mark was for; the icons left Find at the owner\'s word (445).',
-  borough: 'venues only, and venues left Find; nothing else answers it (396 took the dead facet out).',
-  slot: 'where a wearable goes; nothing in Find carries one since the shop left it (396 took the dead facet out).',
-  afford: 'the price question; nothing in Find is priced (396 took the dead facet out).',
-  year: 'the year a paper was sat is asked as `examYear`, so asking both narrowed twice (396 took the dead facet out).',
-  health: 'the paper health score was deleted (388); a question carries Accuracy and Function tags instead.',
-  answerable: 'the paper health score was deleted (388); a question carries Accuracy and Function tags instead.',
-  paper: 'the "Printed?" facet was deleted for reading a literal — and the `paper` COLUMN it would '
-       + 'now read means which paper of the set (1, 2, 3), so the sheet\'s old label sits over '
-       + 'completely different data. Use `Paper`, which asks the same thing by name.',
-  examWave: 'the sitting is asked as 2 questions now, `examYear` (2018) and then `examMonth` '
-          + '(June). A sheet row naming `examWave` would read the raw column and offer `Summer 2018` '
-          + 'beside them, which is the one answer wearing 2 questions this split took apart.',
-  examSeries: 'the owner asked for months rather than seasons -- "I don\'t want it to ask summer or '
-            + 'autumn I\'d rather it just do the months" -- so `examMonth` asks it. A sheet row naming '
-            + '`examSeries` would offer `Summer` beside `May` and `June`, 2 vocabularies for 1 fact.',
-  category: 'the links\' own question, and the links are gone -- "Get rid of links that\'s almost '
-          + 'redundant now." A sheet row naming `category` would read that column off whatever else '
-          + 'carries one and offer it as a question nobody wrote a label for.',
-  /* ---------- THE ROW'S SPELLINGS OF THE QUESTION NUMBER AND THE PART § */
-  question: 'the row\'s spelling of `qNumber`; `qNumber` asks it, as the Question door on a paper.',
-  part: 'the row\'s raw `part` cell would offer `3i` beside `qPart` and `qSub`, which split it.',
-  topicArea: 'the owner: "why is there a topic area menu? ... im fin with names of pdfs which are the '
-           + 'names of the topics themselves". A sheet\'s topic is its PDF\'s name, which `Paper` asks; '
-           + 'the strands above it were a grouping over a list that did not need one.',
-  book: 'which @family. textbook -- and there are no textbooks on screen since 12 Oct: every chapter is '
-      + 'a content card of its own (docs/history/347, part 2), so nothing answers it. A sheet row naming '
-      + '`book` would read a field no item has; a kept `Book` chip would hold an empty list.',
+  myAttempt: { of: x => myAttemptOf_(x) },
+  myResult: { of: x => myResultOf_(x) },
 };
 
-function facetList() {
-  const src = DATA.facets || null;
-  if (FACET_LIVE && FACET_FROM === src) return FACET_LIVE;
-  FACET_FROM = src;
-  const said = {};
-  (src || []).forEach(f => { if (f && f.field) said[f.field] = f; });
-  const known = {};
-  FACETS.forEach(f => { known[f.field] = true; });
 
-  FACET_LIVE = FACETS
-    .map((f, i) => {
-      const s = said[f.field];
-      if (!s) return Object.assign({}, f, { at: f.at || (i + 1) * 10 });
-      if (s.active === false) return null;
-      return Object.assign({}, f, { label: s.label || f.label, at: facetNum_(s.order, (i + 1) * 10) });
-    })
-    /* ---------- AND THE ONES THE CODE HAS NEVER HEARD OF § */
-    .concat((src || [])
-      .filter(f => f && f.field && !known[f.field] && f.active !== false && !RETIRED_FACETS[f.field])
-      .map((f, i) => Object.assign(facetFromSheet_(f), { at: facetNum_(f.order, 1000 + i) })))
-    .filter(Boolean)
-    /* THE TAB'S sort_order IS THE ORDER, ALL OF IT (396): no facet is held in front of the others. */
-    .sort((a, b) => a.at - b.at);
-  return FACET_LIVE;
+/* THE FUNNEL'S QUESTIONS (rule 1.80): data/settings/facets.json (ITEM_KINDS.facets) is each one's label, order and whether it is asked; FACET_READ only how it reads an item. */
+let FACET_LIVE = null;
+function facetList() {
+  return FACET_LIVE || (FACET_LIVE = ITEM_KINDS.facets.filter(f => f.active !== false && FACET_READ[f.field])
+    .map((f, i) => Object.assign({ field: f.field, label: f.label, at: facetNum_(f.sort_order, 1000 + i) }, FACET_READ[f.field])).sort((x, y) => x.at - y.at));
 }
 
 /* ---------- WHAT A SPREADSHEET CELL IS ALLOWED TO DO TO THE FUNNEL § */
@@ -886,18 +641,9 @@ const facetNum_ = (v, fallback) => {
   return v === null || v === undefined || v === '' || !isFinite(n) ? fallback : n;
 };
 
-/* A MAP OVER THE LIVE LIST, rebuilt only when `facetList` hands back a different array. § */
-let FACET_BY_FROM = null, FACET_BY = null;
-const facetBy = f => {
-  const live = facetList();
-  if (FACET_BY_FROM !== live) {
-    FACET_BY = new Map();
-    FACETS.forEach(x => { if (!FACET_BY.has(x.field)) FACET_BY.set(x.field, x); });
-    [].concat(live).reverse().forEach(x => FACET_BY.set(x.field, x));
-    FACET_BY_FROM = live;
-  }
-  return FACET_BY.get(f);
-};
+/* A FACET BY ITS FIELD. */
+let FACET_BY = null;
+const facetBy = f => (FACET_BY || (FACET_BY = new Map(facetList().map(x => [x.field, x])))).get(f);
 
 /** Does one item satisfy one chosen filter? One comparison, because a facet says how to read
     itself — the old version had a switch with a case per field, which is a place to forget one. */
@@ -1089,9 +835,9 @@ const dateKey_ = v => {
 /* THE KINDS TAB'S ORDER, for answers that are all kinds (What kind) or all groups of them (What for). */
 function kindRank_() {
   const m = kindMap_(), labels = new Map();
-  /* AN ANSWER ABOVE KINDS (`KIND_UNDER`) STANDS JUST BEFORE THE FIRST OF THEM. */
+  /* AN ANSWER ABOVE KINDS (kinds.json `find.under`) STANDS JUST BEFORE THE FIRST OF THEM. */
   Object.keys(m).sort((a, b) => m[a].at - m[b].at).forEach(k => {
-    if (KIND_UNDER[k] && !labels.has(KIND_UNDER[k])) labels.set(KIND_UNDER[k], labels.size);
+    if (kindUnder_(k) && !labels.has(kindUnder_(k))) labels.set(kindUnder_(k), labels.size);
     if (!labels.has(m[k].label)) labels.set(m[k].label, labels.size);
   });
   const groups = new Map(groupOrder_().map((g, i) => [g, i]));
@@ -1272,12 +1018,8 @@ function facetSplit_(items, facet) {
 
 /* KINDS UNDER KINDS (546, 610): § */
 /* What kind offers the one above (`kindLabel`); the kind itself is asked after it (`kindOwn`). */
-const KIND_UNDER = { question: 'Practice', answer: 'Practice', practical: 'Library', project: 'Library', timeline: 'Library', spec: 'Library',
-  /* THE OWNER'S FRONT MENU (4 Nov): each kind under one of FRONT_ORDER's answers. */
-  /* A TUTOR ANSWERS TWO FRONT DOORS (owner, 8 Nov): § */
-  tutor: ['Booking', 'Profiles'], venue: 'Booking', subject: 'Booking', level: 'Booking', receipt: 'Booking', bookform: 'Booking', shop: 'Shop',
-  person: 'Profiles', video: 'Videos', setting: 'Settings', health: 'Settings', soon: 'Coming soon', msg: 'Messages',
-  post: 'Posts', tool: 'Tools', game: 'Games', offPosts: 'Posts', offShop: 'Shop', offBooking: 'Booking' };
+/* Each kind's door is its `find.under` in kinds.json (kindMap_). */
+const kindUnder_ = k => (kindMap_()[k] || {}).under || '';
 /* A RETURNED WIDGET THAT IS A BROWSABLE THING (batch B) is its own front answer: FIND_WIDGET_GROUPS (arcade.js). */
 /* ITS TAG SAYS ONE DOOR: § */
 function kindTopTag_(x) {
@@ -1286,7 +1028,7 @@ function kindTopTag_(x) {
   try { const f = chipsOn_(STUFF.filters, 'kindLabel').find(f => l.indexOf(f.value) >= 0); g = f ? f.value : kindOf_(x).group; } catch (e) { g = ''; }
   return l.indexOf(g) >= 0 ? g : l[0];
 }
-function kindTop_(x) { return (x && x.top) || (x && x.widget && typeof FIND_WIDGET_GROUPS !== 'undefined' && FIND_WIDGET_GROUPS[x.widget.id]) || (x && KIND_UNDER[x.kind]) || ''; }
+function kindTop_(x) { return (x && x.top) || (x && x.widget && typeof FIND_WIDGET_GROUPS !== 'undefined' && FIND_WIDGET_GROUPS[x.widget.id]) || (x && kindUnder_(x.kind)) || ''; }
 /* 680: a kind spelt like the kind above it is never offered twice (What kind, then Which). */
 function notTop_(x, v) { const top = asList_(kindTop_(x)).map(spellKey_); const l = [].concat(v || []).filter(k => k && top.indexOf(spellKey_(k)) === -1); return l.length > 1 ? l : (l[0] || ''); }
 
@@ -9160,12 +8902,11 @@ function placeTextMoved_(f) {
 function placeChipDead_(f) {
   if (!f || typeof f.field !== 'string') return true;
   if (f.field === 'shelf' && f.value === BIBLE_SHELF) return typeof bibleFor_ === 'function' && !bibleFor_();
-  if (RETIRED_FACETS[f.field]) return true;
   /* A RANGE CHIP (`bucket`) — the groupings went in 290 and their tables in 396, so nothing answers one. */
   if (f.bucket) return true;
   /* A SHELF THAT WENT. `@family. textbooks` held the books, and each chapter is a content card now with no shelf at all — so a kept place standing on it would come § */
   if ((RETIRED_ANSWERS[f.field] || []).indexOf(f.value) !== -1) return true;
-  return !facetBy(f.field) && Array.isArray(DATA.facets) && DATA.facets.length > 0;
+  return !facetBy(f.field);
 }
 
 /* ---------- ONE LIST FOR BOTH FINDERS, COUNTED ONCE § */
@@ -9182,7 +8923,7 @@ function doorsOff_(items) {
 function stuffItems() {
   const key = itemMemoKey_();
   if (!(FUNNEL_MEMO.from === DATA && FUNNEL_MEMO.key === key)) {
-    FUNNEL_MEMO = { key: key, from: DATA, items: doorsOff_(stuffItemsBuild_()) };
+    FUNNEL_MEMO = { key: key, from: DATA, items: doorsOff_(stuffItemsBuild_()).filter(kindSees_) };
   }
   /* THE WRITINGS THIS FUNNEL STARTED WITH (520): an index that comes after an answer joins at the next fresh start. */
   const admit = writingAdmit_();
@@ -9453,7 +9194,7 @@ const LEVEL_TABLE = [
 ;
 /* ==== js/find-doors.js ==== */
 /* @family. — js/find-doors.js FIND'S FRONT DOORS (batch C): Posts, Messages, Profiles, Settings and Videos as Find items,
-   each answering its own menus through the one funnel (FACETS). */
+   each answering its own menus through the one funnel (facetList). */
 
 /* THE FRONT DOOR'S FIELD (batch C): Booking, Posts, Practice… are answers to it; `forIs_`, `book-with` and the receipts set and read this, never a literal. */
 const DOOR_FIELD = 'kindLabel';
@@ -9531,7 +9272,7 @@ function profileDoorItems_() {
     out.push({ kind: 'person', name: fmtName_(p) || p.handle, key: 'person:' + id, sub: '', image: p.image || '', row: p,
       profileType: profileTypes_(p, tutor), text: [p.title, p.name, p.handle, p.role].filter(Boolean).join(' ') });
   };
-  /* Tutors are Booking's tutor items, tagged Profiles too (KIND_UNDER): never a second card here. */
+  /* Tutors are Booking's tutor items, tagged Profiles too (kinds.json `find.under`): never a second card here. */
   ((DATA && DATA.tutors) || []).forEach(t => { if (t) seen[String(t.personId || t.title || t.handle || '')] = 1; });
   if (seeMay_('find:all-people')) ((DATA && DATA.everyone) || []).filter(p => p && p.title).forEach(p => add(p, false));
   /* ADD A PERSON (add-person): one card for an admin, first among the people, drawn by `personAddCard_` (me-people.js). */
@@ -10555,7 +10296,7 @@ function bookFindQuestion_() {
   const items = stuffFiltered().filter(x => x.kind !== 'bookform');
   const facet = items.length > 1 ? nextFacet(items) : null;
   if (!facet) return menu;
-  const values = facetValues(items, facet).filter(v => spellKey_(v.value) !== spellKey_(KINDS.bookform.label));
+  const values = facetValues(items, facet).filter(v => spellKey_(v.value) !== spellKey_(kindMap_().bookform.label));
   return values.length ? menu.concat(facetAnswersSpec_(facet, values)) : menu;
 }
 /* EVERY STEP CHANGE REPAINTS FIND, and the draft is kept as the form's was (`bookKeep_`). */

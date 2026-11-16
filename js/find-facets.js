@@ -86,9 +86,9 @@ const dateKey_ = v => {
 /* THE KINDS TAB'S ORDER, for answers that are all kinds (What kind) or all groups of them (What for). */
 function kindRank_() {
   const m = kindMap_(), labels = new Map();
-  /* AN ANSWER ABOVE KINDS (`KIND_UNDER`) STANDS JUST BEFORE THE FIRST OF THEM. */
+  /* AN ANSWER ABOVE KINDS (kinds.json `find.under`) STANDS JUST BEFORE THE FIRST OF THEM. */
   Object.keys(m).sort((a, b) => m[a].at - m[b].at).forEach(k => {
-    if (KIND_UNDER[k] && !labels.has(KIND_UNDER[k])) labels.set(KIND_UNDER[k], labels.size);
+    if (kindUnder_(k) && !labels.has(kindUnder_(k))) labels.set(kindUnder_(k), labels.size);
     if (!labels.has(m[k].label)) labels.set(m[k].label, labels.size);
   });
   const groups = new Map(groupOrder_().map((g, i) => [g, i]));
@@ -269,12 +269,8 @@ function facetSplit_(items, facet) {
 
 /* KINDS UNDER KINDS (546, 610): § */
 /* What kind offers the one above (`kindLabel`); the kind itself is asked after it (`kindOwn`). */
-const KIND_UNDER = { question: 'Practice', answer: 'Practice', practical: 'Library', project: 'Library', timeline: 'Library', spec: 'Library',
-  /* THE OWNER'S FRONT MENU (4 Nov): each kind under one of FRONT_ORDER's answers. */
-  /* A TUTOR ANSWERS TWO FRONT DOORS (owner, 8 Nov): § */
-  tutor: ['Booking', 'Profiles'], venue: 'Booking', subject: 'Booking', level: 'Booking', receipt: 'Booking', bookform: 'Booking', shop: 'Shop',
-  person: 'Profiles', video: 'Videos', setting: 'Settings', health: 'Settings', soon: 'Coming soon', msg: 'Messages',
-  post: 'Posts', tool: 'Tools', game: 'Games', offPosts: 'Posts', offShop: 'Shop', offBooking: 'Booking' };
+/* Each kind's door is its `find.under` in kinds.json (kindMap_). */
+const kindUnder_ = k => (kindMap_()[k] || {}).under || '';
 /* A RETURNED WIDGET THAT IS A BROWSABLE THING (batch B) is its own front answer: FIND_WIDGET_GROUPS (arcade.js). */
 /* ITS TAG SAYS ONE DOOR: § */
 function kindTopTag_(x) {
@@ -283,7 +279,7 @@ function kindTopTag_(x) {
   try { const f = chipsOn_(STUFF.filters, 'kindLabel').find(f => l.indexOf(f.value) >= 0); g = f ? f.value : kindOf_(x).group; } catch (e) { g = ''; }
   return l.indexOf(g) >= 0 ? g : l[0];
 }
-function kindTop_(x) { return (x && x.top) || (x && x.widget && typeof FIND_WIDGET_GROUPS !== 'undefined' && FIND_WIDGET_GROUPS[x.widget.id]) || (x && KIND_UNDER[x.kind]) || ''; }
+function kindTop_(x) { return (x && x.top) || (x && x.widget && typeof FIND_WIDGET_GROUPS !== 'undefined' && FIND_WIDGET_GROUPS[x.widget.id]) || (x && kindUnder_(x.kind)) || ''; }
 /* 680: a kind spelt like the kind above it is never offered twice (What kind, then Which). */
 function notTop_(x, v) { const top = asList_(kindTop_(x)).map(spellKey_); const l = [].concat(v || []).filter(k => k && top.indexOf(spellKey_(k)) === -1); return l.length > 1 ? l : (l[0] || ''); }
 

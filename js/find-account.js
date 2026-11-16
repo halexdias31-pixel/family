@@ -124,7 +124,7 @@ function bookFindQuestion_() {
   const items = stuffFiltered().filter(x => x.kind !== 'bookform');
   const facet = items.length > 1 ? nextFacet(items) : null;
   if (!facet) return menu;
-  const values = facetValues(items, facet).filter(v => spellKey_(v.value) !== spellKey_(KINDS.bookform.label));
+  const values = facetValues(items, facet).filter(v => spellKey_(v.value) !== spellKey_(kindMap_().bookform.label));
   return values.length ? menu.concat(facetAnswersSpec_(facet, values)) : menu;
 }
 /* EVERY STEP CHANGE REPAINTS FIND, and the draft is kept as the form's was (`bookKeep_`). */
