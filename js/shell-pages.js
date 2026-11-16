@@ -306,7 +306,6 @@ const PAGER = {
   /* EVERY SCREEN IS PAGED. § */
   /* ---------- THESE KEYS ARE SCREEN IDS, AND TWO OF THEM NAMED SCREENS THAT DO NOT EXIST § */
   /* ---------- THE PAGER COUNTED A LIST THE SCREEN DOES NOT DRAW § */
-  account: () => cardCount_('account', () => studentSetPages_().length),
 
   /* Empty names, one per post. § */
   /* One name per page, and the ＋ card is a page — so it is counted here too, or the pager stops one short and the last post can never be reached. § */
@@ -318,7 +317,6 @@ const PAGER = {
   /* NEVER 0, because the column always draws SOMETHING — the sentence saying nothing is spotlit is a page, and a count of nothing over a page that exists is a § */
   spotlight: () => cardCount_('spotlight', () => (typeof spotlightCards_ === 'function' ? spotlightCards_().length : 1)),
   /* AND THE SAME AGAIN FOR SETTINGS. § */
-  staff: () => cardCount_('staff', () => staffPages_().length),
   web: () => cardCount_('web', () => webProfilePages_().length),
   tutors: () => cardCount_('tutors', () => peoplePages_('tutors').length),
   students: () => cardCount_('students', () => peoplePages_('students').length),
@@ -326,8 +324,6 @@ const PAGER = {
   /* THE SHOP, COUNTED FROM `shopCards_`, the list `screen('shop')` draws. Never nought: the basket
      is always page 0, and with nothing for sale the shop says so in a page of its own. */
   shop: () => (typeof shopCards_ === 'function' ? shopCards_().length : 1),
-  /* THE BUSINESS RECORDS, COUNTED FROM `bizPages_`, the list `screen('biz')` draws — five cards for an admin. § */
-  biz: () => cardCount_('biz', () => adminPages_().length, 0),
 
   /* ---------- AND `booking` HAD NO ENTRY AT ALL, WHICH IS THE FAULT THE NOTE ABOVE DESCRIBES § */
   booking: () => {
@@ -386,8 +382,6 @@ const PAGE_HOME = {
     const at = typeof window.feedPostsAt_ === 'function' ? window.feedPostsAt_() : window.feedCamAt_() + 1, n = pageCount('feed');
     return n > at ? at : n > 1 && window.feedCamAt_() === 0 ? 1 : 0;
   },
-  /* ---------- AND `account` HAS BEEN OPENING ON SOMEBODY ELSE § */
-  account: () => 0,
   /* THE FIRST REEL (414), past the pages that lead it — the widgets and an admin's "+" (`REEL_LEAD`, posts.js). */
   reel: () => (typeof window.REEL_LEAD === 'number' ? window.REEL_LEAD : 0),
 };
@@ -404,8 +398,8 @@ function applyBrandIcon_() {
    the long note on `PAGER`. Every screen that pages needs an entry here or its position is not
    remembered between visits. */
 /* `booking` AND `dm` WERE MISSING, and this table's own sentence above is the rule they broke: § */
-const PAGE = { feed: 0, stuff: 0, account: 0, reel: 0, booking: 0, dm: 0, make: 0,
-               saved: 0, staff: 0, tutors: 0, students: 0, parents: 0, spotlight: 0, shop: 0, res: 0, biz: 0 };
+const PAGE = { feed: 0, stuff: 0, reel: 0, booking: 0, dm: 0, make: 0,
+               saved: 0, tutors: 0, students: 0, parents: 0, spotlight: 0, shop: 0, res: 0 };
 
 /* A COLUMN MAY HOLD FEWER PAGE ELEMENTS THAN IT HAS PAGES. § */
 const PAGE_KEEP = {};

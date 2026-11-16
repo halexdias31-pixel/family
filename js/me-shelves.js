@@ -649,7 +649,7 @@ function qualWhenSaved_(el) {
     if (QUAL_NEXT !== mine) return;
     QUAL_NEXT = null;
     if (!ok) return;
-    const shelf = (form && form.isConnected && form.querySelector('.q-shelf')) || document.querySelector('#s-staff .q-shelf, #s-account .q-shelf');
+    const shelf = (form && form.isConnected && form.querySelector('.q-shelf')) || document.querySelector('#s-stuff .q-shelf');
     if (!shelf) return;
     const again = act === 'qual-add' ? shelf.querySelector('[data-do="qual-add"]')
       : shelf.querySelector('.q-slot[data-slot="' + i + '"] [data-do="' + act + '"]' + (v ? '[data-v="' + v + '"]' : ''));

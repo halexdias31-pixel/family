@@ -51,11 +51,11 @@ check('Intro video: the Photos card uploads a file in parts (videoPart), refuses
   await wait(300);
   const t = w.__t, d = w.document, bad = [];
   t.USER(JSON.parse(JSON.stringify(JOBS_TUTOR_)));
-  try { t.go('account', false, true); w.paint('account'); } catch (e) { return ['drawing settings threw: ' + e.message]; }
+  try { await setOpen_(w, 'account', 'Student', '.vid-pick'); } catch (e) { return ['drawing settings threw: ' + e.message]; }
   await wait(300);
-  const pick = () => d.querySelector('#s-account .vid-pick');
+  const pick = () => d.querySelector('#s-stuff .vid-pick');
   if (!pick()) return ['there is no video picker on the Photos card — the upload was NOT checked'];
-  if (d.querySelector('#s-account [data-me="video"]')) bad.push('the Photos card still asks for a video link');
+  if (d.querySelector('#s-stuff [data-me="video"]')) bad.push('the Photos card still asks for a video link');
   const inp = pick().querySelector('input[type="file"].vid-in');
   if (!inp || inp.getAttribute('accept') !== 'video/*') bad.push('the picker is not a video/* file input');
   const choose = file => {
@@ -74,7 +74,7 @@ check('Intro video: the Photos card uploads a file in parts (videoPart), refuses
   /* A SMALL CLIP OVER TWO PARTS: 4 MB and the rest, the last answering with the file id. */
   const bytes = new Uint8Array(4 * 1024 * 1024 + 1000);
   choose(new w.File([bytes], 'hello.mp4', { type: 'video/mp4' }));
-  for (let i = 0; i < 40 && !d.querySelector('#s-account .vid-pick[data-file="FILE-ID-1"]'); i++) await wait(250);
+  for (let i = 0; i < 40 && !d.querySelector('#s-stuff .vid-pick[data-file="FILE-ID-1"]'); i++) await wait(250);
   if (parts.length !== 2) bad.push('the clip went in ' + parts.length + ' parts, not 2');
   else {
     if (parts.some(p => p.upload !== parts[0].upload || p.size !== bytes.length || p.parts !== 2)) bad.push('the parts disagree on upload, size or count');

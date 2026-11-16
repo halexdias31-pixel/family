@@ -12,9 +12,9 @@ check('Photos: an extra photo is chosen from the phone, sent once (photoFile) as
   me.profile.photos_1 = 'https://example.org/old.jpg';
   me.profile.phone_cc = '';  /* a profile the site trusts (`profileShapeOk_`), so the packed photos may be saved */
   t.USER(me);
-  try { t.go('account', false, true); w.paint('account'); } catch (e) { return ['drawing settings threw: ' + e.message]; }
+  try { await setOpen_(w, 'account', 'Student', '.ph-shelf'); } catch (e) { return ['drawing settings threw: ' + e.message]; }
   await wait(300);
-  const shelf = d.querySelector('#s-account .ph-shelf');
+  const shelf = d.querySelector('#s-stuff .ph-shelf');
   if (!shelf) return ['there is no photo shelf on Settings — the upload was NOT checked'];
   if (/Another photo link/.test(shelf.innerHTML)) bad.push('the shelf still asks for a pasted link');
   if (shelf.querySelector('.ph-slot input[type="url"]')) bad.push('a slot is still a link box');

@@ -4758,7 +4758,7 @@ const TABS = [
   /* ---------- ONE TAB § */
   { id: 'stuff',   icon: '🔎', label: 'Find',    title: 'Find' },
   /* ---------- WHO YOU ARE, AT THE START OF THE YOU GROUP (392) § */
-  { id: 'account', icon: '⚙', label: 'Kids settings', title: 'Kids settings', cards: true },
+  /* KIDS SETTINGS WAS A COLUMN HERE; it is Find › Settings › Student (SETTING_GROUPS). */
 
   /* ---------- AND SEVEN MORE, WHICH IS THIS TABLE GOING BACK THE WAY IT CAME § */
   { id: 'feed',    icon: '🏠', label: 'Feed',    title: 'Feed' },
@@ -4777,12 +4777,9 @@ const TABS = [
   { id: 'tutors',   icon: '🎓', label: 'Tutor profile',      title: 'Tutor profile', cards: true },
   { id: 'students', icon: '👤', label: 'Student profile',    title: 'Student profile', cards: true },
   { id: 'parents',  icon: '👪', label: 'Parent profile',     title: 'Parent profile', cards: true },
-  { id: 'staff',   icon: '🛠', label: 'Tutor settings',   title: 'Tutor settings', cards: true },
   /* ---------- AND THE SHOP, RIGHT OF BOOKING § */
   { id: 'shop',    icon: '🛒', label: 'Shop',    title: 'Shop' },
   /* ---------- AND PROGRESS, RIGHT OF SAVED (392), WAITING TO BE BUILT § */
-  /* ---------- AND THE BUSINESS'S OWN PAPERWORK, LAST, FOR AN ADMIN AND NOBODY ELSE § */
-  { id: 'biz', icon: '📋', label: 'Biz settings', title: 'Biz settings', admin: true, cards: true },
 ];
 
 /* ---------- LEFT TO RIGHT, WHICH IS NOT THE ORDER THEY ARE WRITTEN IN § */
@@ -4790,15 +4787,18 @@ const TABS = [
 const TAB_ORDER = ['stuff', 'saved',                                  /* FIND FIRST, for everyone (1070): the one front door; Tools and Games are Find cards (790) */
                    'spotlight', 'feed', 'reel', 'dm',                 /* social (392), below Find; Spotlight left of the posts (461) */
                    'booking', 'shop',                                 /* business */
-                   'web', 'tutors', 'students', 'parents',                /* the profiles (730); Apprentice profile is Find › Profiles › Apprentice (find-only.json) */
-                   'staff', 'account', 'biz']; /* the settings, the owner's order (730); biz admin-only; Web and Parent settings are Find › Settings › Site / Parent (find-only.json) */
+                   'web', 'tutors', 'students', 'parents']; /* the profiles (730); Apprentice profile is Find › Profiles › Apprentice; every settings column is Find › Settings › <type> (find-only.json) */
 TABS.sort((a, b) => TAB_ORDER.indexOf(a.id) - TAB_ORDER.indexOf(b.id));
 /* SETTINGS THAT ARE FIND › SETTINGS › <type> NOW (find-only.json): no column, still a card group the layout keys by id and Find draws (CARD_BUILD). */
 const SETTING_GROUPS = [{ id: 'apprentice', label: 'Apprentice settings', cards: true, group: true },
   /* WEB SETTINGS (491, an admin's alone): Find › Settings › Site since 15 Nov. */
   { id: 'site', label: 'Web settings', admin: true, cards: true, group: true },
   /* PARENT SETTINGS (453, a parent's or payer's own): Find › Settings › Parent since 15 Nov. */
-  { id: 'family', label: 'Parent settings', cards: true, group: true }];
+  { id: 'family', label: 'Parent settings', cards: true, group: true },
+  /* TUTOR, KIDS AND BIZ SETTINGS: Find › Settings › Staff / Student / Business since 16 Nov; Biz an admin's alone. */
+  { id: 'staff', label: 'Tutor settings', cards: true, group: true },
+  { id: 'account', label: 'Kids settings', cards: true, group: true },
+  { id: 'biz', label: 'Biz settings', admin: true, cards: true, group: true }];
 
 /* ---------- EVERY COLUMN THE BUILD HAS, AND THE ONES THIS VIEWER IS GIVEN § */
 const TABS_BUILT = TABS.slice();
@@ -4840,8 +4840,7 @@ function columnsFor_() {
     s.className = 'screen hidden';
     s.id = 's-' + t.id;
     s.setAttribute('data-custom', '');
-    const biz = document.getElementById('s-biz');
-    if (biz && biz.parentNode === host) host.insertBefore(s, biz); else host.appendChild(s);
+    host.appendChild(s);
   });
   TABS_BUILT.forEach(t => {
     if (!t.admin) return;
@@ -6474,7 +6473,6 @@ const PAGER = {
   /* EVERY SCREEN IS PAGED. § */
   /* ---------- THESE KEYS ARE SCREEN IDS, AND TWO OF THEM NAMED SCREENS THAT DO NOT EXIST § */
   /* ---------- THE PAGER COUNTED A LIST THE SCREEN DOES NOT DRAW § */
-  account: () => cardCount_('account', () => studentSetPages_().length),
 
   /* Empty names, one per post. § */
   /* One name per page, and the ＋ card is a page — so it is counted here too, or the pager stops one short and the last post can never be reached. § */
@@ -6486,7 +6484,6 @@ const PAGER = {
   /* NEVER 0, because the column always draws SOMETHING — the sentence saying nothing is spotlit is a page, and a count of nothing over a page that exists is a § */
   spotlight: () => cardCount_('spotlight', () => (typeof spotlightCards_ === 'function' ? spotlightCards_().length : 1)),
   /* AND THE SAME AGAIN FOR SETTINGS. § */
-  staff: () => cardCount_('staff', () => staffPages_().length),
   web: () => cardCount_('web', () => webProfilePages_().length),
   tutors: () => cardCount_('tutors', () => peoplePages_('tutors').length),
   students: () => cardCount_('students', () => peoplePages_('students').length),
@@ -6494,8 +6491,6 @@ const PAGER = {
   /* THE SHOP, COUNTED FROM `shopCards_`, the list `screen('shop')` draws. Never nought: the basket
      is always page 0, and with nothing for sale the shop says so in a page of its own. */
   shop: () => (typeof shopCards_ === 'function' ? shopCards_().length : 1),
-  /* THE BUSINESS RECORDS, COUNTED FROM `bizPages_`, the list `screen('biz')` draws — five cards for an admin. § */
-  biz: () => cardCount_('biz', () => adminPages_().length, 0),
 
   /* ---------- AND `booking` HAD NO ENTRY AT ALL, WHICH IS THE FAULT THE NOTE ABOVE DESCRIBES § */
   booking: () => {
@@ -6554,8 +6549,6 @@ const PAGE_HOME = {
     const at = typeof window.feedPostsAt_ === 'function' ? window.feedPostsAt_() : window.feedCamAt_() + 1, n = pageCount('feed');
     return n > at ? at : n > 1 && window.feedCamAt_() === 0 ? 1 : 0;
   },
-  /* ---------- AND `account` HAS BEEN OPENING ON SOMEBODY ELSE § */
-  account: () => 0,
   /* THE FIRST REEL (414), past the pages that lead it — the widgets and an admin's "+" (`REEL_LEAD`, posts.js). */
   reel: () => (typeof window.REEL_LEAD === 'number' ? window.REEL_LEAD : 0),
 };
@@ -6572,8 +6565,8 @@ function applyBrandIcon_() {
    the long note on `PAGER`. Every screen that pages needs an entry here or its position is not
    remembered between visits. */
 /* `booking` AND `dm` WERE MISSING, and this table's own sentence above is the rule they broke: § */
-const PAGE = { feed: 0, stuff: 0, account: 0, reel: 0, booking: 0, dm: 0, make: 0,
-               saved: 0, staff: 0, tutors: 0, students: 0, parents: 0, spotlight: 0, shop: 0, res: 0, biz: 0 };
+const PAGE = { feed: 0, stuff: 0, reel: 0, booking: 0, dm: 0, make: 0,
+               saved: 0, tutors: 0, students: 0, parents: 0, spotlight: 0, shop: 0, res: 0 };
 
 /* A COLUMN MAY HOLD FEWER PAGE ELEMENTS THAN IT HAS PAGES. § */
 const PAGE_KEEP = {};
@@ -10106,7 +10099,7 @@ on('apply-send', el => {
       formDraftDrop_('apply-teach', { draftId: String((whose_() && whose_().personId) || '') });
       try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (e) { /* storage can be blocked; the app runs without it */ }
       toast(text_('application-sent'));
-      try { paint('staff'); } catch (e) { oops_(e, 'me:applyFormHtml_') }
+      try { paint('stuff'); } catch (e) { oops_(e, 'me:applyFormHtml_') }   /* Apply to teach is a Find › Settings › Staff card */
     })
     .catch(() => {});
 });
@@ -10292,15 +10285,6 @@ function signedIn_(d, typed) {
   try { if (typeof subAdopt_ === 'function') subAdopt_(); } catch (e) { oops_(e, 'me:signedIn_') }
   /* NO "SIGNED IN AS" (owner, 15 Nov): the name tag first in Find says whose account it is. */
   repaint();
-  /* ---------- AND BACK WHERE YOU CAME FROM § */
-  try {
-    if (AT === 'account') {
-      const kid = typeof hasRole === 'function' && (hasRole('kid') || hasRole('student'));
-      const back = typeof PREV_AT === 'string' && PREV_AT && PREV_AT !== 'account' && TABS.some(t => t.id === PREV_AT)
-        ? PREV_AT : (kid ? 'stuff' : '');
-      if (back) go(back);
-    }
-  } catch (e) { /* no way back: they stay on the account screen */ }
   Object.keys(backAt).forEach(id => { if (backAt[id] > 0) { try { goPage(id, backAt[id], true); } catch (e) { oops_(e, 'me:signedIn_') } } });
   load();
   /* AND WHAT IS OWED ONCE IN — a sentence about held children, a move link waiting. */
@@ -11447,7 +11431,7 @@ function staffPages_() {
   const out = ownCardSetPage_('staff').concat(top, typeof flyerCards_ === 'function' ? flyerCards_() : [], typeof window.legoCards_ === 'function' ? window.legoCards_() : [], settingsCards_(settingsSplit_().staff, '', 'staff'));
   return out.length ? out : [rankOffCard_('', NOTHING_YET, null, 'rank-off set-none')];
 }
-screen('staff', () => pages('staff', typeof cardsOf_ === 'function' ? cardsOf_('staff') : staffPages_()));
+/* TUTOR SETTINGS WAS A COLUMN; it is Find › Settings › Staff now (find-only.json), drawn from CARD_BUILD.staff. */
 
 /* ---------- APPRENTICE: WORK EXPERIENCE, A PLACEHOLDER UNTIL IT IS BUILT (570) ---------- */
 function apprenticePages_() {
@@ -11624,7 +11608,7 @@ on('roles-save', el => {
       if (!err || !err.refused) return;
       /* THE CARD ON THE PAGE NOW, as the success path asks: the payload arriving mid-request
          repaints the column, and the card held from the press would then be a detached copy. */
-      const live = document.querySelector('#s-account .roles-card') || card;
+      const live = document.querySelector('#s-stuff .roles-card') || card;
       [].forEach.call(live.querySelectorAll('[data-role-pick]'), b => { b.selected = b.dataset.rolePick === 'client'; });
     });
 });
@@ -11705,7 +11689,7 @@ on('notify-pick', el => {
         text: on ? label + ' is on.' : label + ' is off — we will not email you that.' };
       /* THE CARD ON THE PAGE NOW, for the roles card's reason: a payload landing mid-request repaints the
          column, and the card held from the press would be a detached copy. */
-      const live = document.querySelector('#s-account .notify-card') || card;
+      const live = document.querySelector('#s-stuff .notify-card') || card;
       const box = live && live.querySelector('[data-kind="' + kind + '"]');
       if (box) box.checked = on;
       const line = live && live.querySelector('.notify-said');
@@ -11714,7 +11698,7 @@ on('notify-pick', el => {
     })
     /* ---------- A FAILURE PUTS THE TICK BACK TO WHAT THE SERVER HAS — REFUSED OR LOST § */
     .catch(() => {
-      const live = document.querySelector('#s-account .notify-card [data-kind="' + kind + '"]') || el;
+      const live = document.querySelector('#s-stuff .notify-card [data-kind="' + kind + '"]') || el;
       live.checked = notifyOnNow_(kind);
     });
 });
@@ -11898,8 +11882,6 @@ function studentSetPages_() {
   const all = typeof progressCards_ === 'function' ? progressCards_() : [];
   /* `prog-w` MARKS THEM, so a check can ask the progress widgets apart from the settings around them. */
   const prog = all.map(c => String(c).replace(/^(\s*<div class=")/, '$1prog-w ')), wait = coming.length || !(typeof progressComing_ === 'function' && progressComing_()) ? coming : [loading_()];
-  /* ONLY SIGN IN HERE (owner, 4 Nov, 880): every other setting is a Coming soon card in Find until it is wanted. */
-  if (typeof SETTINGS_OFF !== 'undefined' && SETTINGS_OFF) return [top];
   return [top].concat(ownCardSetPage_('account'), youSettingsPages_(),
     /* WORK ON FILE (owner, 11 Nov): a student's own scanned pages; a tutor's opens each booked student's. */
     /^(student|staff)$/.test(rank_(whose_())) && typeof workFileCard_ === 'function' ? [workFileCard_()].filter(Boolean) : [], soonCards_(),
@@ -11912,8 +11894,7 @@ const SOON_CARDS = [
   ['soon-conduct', 'Code of conduct', 'How we treat each other here. Coming soon.'],
 ];
 const soonCards_ = () => SOON_CARDS.map(([c, h, p]) => renderCard({ kind: 'soon', look: 'soon-card ' + c, tags: [{ text: h, colour: 0 }], body: [{ type: 'text', text: p }] }));
-const SETTINGS_OFF = false;
-screen('account', () => pages('account', SETTINGS_OFF || typeof cardsOf_ !== 'function' ? studentSetPages_() : cardsOf_('account')));
+/* KIDS SETTINGS WAS A COLUMN; it is Find › Settings › Student now (find-only.json), drawn from CARD_BUILD.account. */
 
 ;
 /* ==== js/me-send.js ==== */
@@ -12649,7 +12630,7 @@ function qualWhenSaved_(el) {
     if (QUAL_NEXT !== mine) return;
     QUAL_NEXT = null;
     if (!ok) return;
-    const shelf = (form && form.isConnected && form.querySelector('.q-shelf')) || document.querySelector('#s-staff .q-shelf, #s-account .q-shelf');
+    const shelf = (form && form.isConnected && form.querySelector('.q-shelf')) || document.querySelector('#s-stuff .q-shelf');
     if (!shelf) return;
     const again = act === 'qual-add' ? shelf.querySelector('[data-do="qual-add"]')
       : shelf.querySelector('.q-slot[data-slot="' + i + '"] [data-do="' + act + '"]' + (v ? '[data-v="' + v + '"]' : ''));
@@ -13028,7 +13009,8 @@ const OLD_SERVER_SAY_ = 'The server in Apps Script is older than this site. Upda
 /* ---------- WHICH SETTINGS CARDS HAVE SOMETHING TYPED INTO THEM § */
 /* AND THE BUSINESS COLUMN BY THE SAME RULE. § */
 /* AND THE LIBRARY CARDS ON TOOLS (docs/history/339), and their starred copy on Saved — a `.me-form` in a widget's slot, kept by the same two lines § */
-const KEEP_FORMS_ = '#s-account .me-form, #s-staff .me-form, #s-family .me-form, #s-biz .me-form, #s-stuff .widget-slot .me-form, #s-saved .widget-slot .me-form';
+/* AND EVERY SETTINGS FORM IN FIND: Tutor, Kids and Biz settings are Find › Settings branches since 16 Nov, held as their columns were. */
+const KEEP_FORMS_ = '#s-stuff .me-form, #s-saved .widget-slot .me-form';
 document.addEventListener('input', e => {
   const f = e.target && e.target.closest && e.target.closest(KEEP_FORMS_);
   if (f) f.dataset.dirty = '1';
@@ -13039,7 +13021,7 @@ document.addEventListener('change', e => {
 });
 function settingsKeep_(id) {
   /* AND THE YOU COLUMN, WHILE A CARD ON IT IS BEING EDITED (`cardEditHtml_`) — the same rule for the same reason: § */
-  if (['account', 'tutors', 'students', 'parents'].indexOf(id) !== -1 && USER) {
+  if (['tutors', 'students', 'parents'].indexOf(id) !== -1 && USER) {
     const acc = $('s-' + id);
     /* AND STUDENT SETTINGS' CARDS, and the card editors and person forms on the people columns (453). */
     return !!(acc && acc.querySelector('.card-ed .me-form[data-dirty], .is-sending .card-ed, .me-form[data-dirty], .me-form.is-sending'));
@@ -13047,11 +13029,9 @@ function settingsKeep_(id) {
   /* AND SAVED, WHILE THE LIBRARY CARDS ON THEM HOLD TYPING (docs/history/339) — the one form a widget slot holds. § */
   if (['saved', 'stuff'].indexOf(id) !== -1 && USER) {   /* Find's too: the library cards are a Find card (790) */
     const col = $('s-' + id);
-    return !!(col && col.querySelector('.widget-slot .me-form[data-dirty], .widget-slot .me-form.is-sending'));
+    return !!(col && col.querySelector(id === 'stuff' ? '.me-form[data-dirty], .me-form.is-sending, .is-sending .card-ed' : '.widget-slot .me-form[data-dirty], .widget-slot .me-form.is-sending'));
   }
-  if (['staff', 'family', 'biz'].indexOf(id) === -1 || !USER) return false;
-  const el = $('s-' + id);
-  return !!(el && el.querySelector('.me-form[data-dirty], .me-form.is-sending, .is-sending .card-ed'));
+  return false;
 }
 
 /* ---------- YOUR SETTINGS, AS THE SHEET HOLDS THEM § */
@@ -13117,7 +13097,7 @@ function profileRefresh_(loud, onOld) {
       /* AND YOUR CARD, WHEN IT IS OPEN FOR EDITING — it is drawn from this copy (`cardEditHtml_`), and one still waiting for a copy it can trust § */
       if (CARD_EDIT && CARD_EDIT.own) { try { land(() => paint(SET_OF_FACE_[CARD_EDIT.col] || 'account')); } catch (e) { oops_(e, 'me:profileRefresh_') } }
       /* REDRAWN IF IT IS DRAWN — and `paint` itself declines while a card has typing in it. */
-      ['account', 'staff', 'family'].concat(PEOPLE_COLS_).forEach(c => {
+      PEOPLE_COLS_.forEach(c => {
         if (typeof screenHasMarkup_ === 'function' && screenHasMarkup_(c))
           try { land(() => { paint(c); placeCells('y', true, 0, c); }); } catch (e) { /* a screen gone before it lands is painted on its next draw */ }
       });
@@ -13490,7 +13470,6 @@ function pfpTake_(box, url, said) {
   /* NOT WHILE THE PICKER IS ON YOUR OWN CARD'S EDIT (docs/history/339) — which is where it is now, for everybody. § */
   try { if (typeof window.postFacesMine_ === 'function') window.postFacesMine_(); } catch (e) { oops_(e, 'me:pfpTake_') }
   if (onCard) return;
-  try { if (typeof paint === 'function') paint('account'); } catch (e) { oops_(e, 'me:pfpTake_') }
 }
 on('pfp-pick', el => {
   const inp = el.closest('.pfp') && el.closest('.pfp').querySelector('.pfp-in');
@@ -16341,9 +16320,6 @@ function progressRedraw_() {
   try {
     /* COUNTDOWNS ARE A TOOLS WIDGET SINCE 466, for everyone; a date saved on About you repaints it there. */
     if (typeof paintCountdowns_ === 'function') paintCountdowns_();
-    if (typeof screenHasMarkup_ === 'function' && !screenHasMarkup_('account')) return;
-    paint('account');
-    paintPager('account', true);
   } catch (e) {}
 }
 

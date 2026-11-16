@@ -164,7 +164,7 @@ const TABS = [
   /* ---------- ONE TAB § */
   { id: 'stuff',   icon: '🔎', label: 'Find',    title: 'Find' },
   /* ---------- WHO YOU ARE, AT THE START OF THE YOU GROUP (392) § */
-  { id: 'account', icon: '⚙', label: 'Kids settings', title: 'Kids settings', cards: true },
+  /* KIDS SETTINGS WAS A COLUMN HERE; it is Find › Settings › Student (SETTING_GROUPS). */
 
   /* ---------- AND SEVEN MORE, WHICH IS THIS TABLE GOING BACK THE WAY IT CAME § */
   { id: 'feed',    icon: '🏠', label: 'Feed',    title: 'Feed' },
@@ -183,12 +183,9 @@ const TABS = [
   { id: 'tutors',   icon: '🎓', label: 'Tutor profile',      title: 'Tutor profile', cards: true },
   { id: 'students', icon: '👤', label: 'Student profile',    title: 'Student profile', cards: true },
   { id: 'parents',  icon: '👪', label: 'Parent profile',     title: 'Parent profile', cards: true },
-  { id: 'staff',   icon: '🛠', label: 'Tutor settings',   title: 'Tutor settings', cards: true },
   /* ---------- AND THE SHOP, RIGHT OF BOOKING § */
   { id: 'shop',    icon: '🛒', label: 'Shop',    title: 'Shop' },
   /* ---------- AND PROGRESS, RIGHT OF SAVED (392), WAITING TO BE BUILT § */
-  /* ---------- AND THE BUSINESS'S OWN PAPERWORK, LAST, FOR AN ADMIN AND NOBODY ELSE § */
-  { id: 'biz', icon: '📋', label: 'Biz settings', title: 'Biz settings', admin: true, cards: true },
 ];
 
 /* ---------- LEFT TO RIGHT, WHICH IS NOT THE ORDER THEY ARE WRITTEN IN § */
@@ -196,15 +193,18 @@ const TABS = [
 const TAB_ORDER = ['stuff', 'saved',                                  /* FIND FIRST, for everyone (1070): the one front door; Tools and Games are Find cards (790) */
                    'spotlight', 'feed', 'reel', 'dm',                 /* social (392), below Find; Spotlight left of the posts (461) */
                    'booking', 'shop',                                 /* business */
-                   'web', 'tutors', 'students', 'parents',                /* the profiles (730); Apprentice profile is Find › Profiles › Apprentice (find-only.json) */
-                   'staff', 'account', 'biz']; /* the settings, the owner's order (730); biz admin-only; Web and Parent settings are Find › Settings › Site / Parent (find-only.json) */
+                   'web', 'tutors', 'students', 'parents']; /* the profiles (730); Apprentice profile is Find › Profiles › Apprentice; every settings column is Find › Settings › <type> (find-only.json) */
 TABS.sort((a, b) => TAB_ORDER.indexOf(a.id) - TAB_ORDER.indexOf(b.id));
 /* SETTINGS THAT ARE FIND › SETTINGS › <type> NOW (find-only.json): no column, still a card group the layout keys by id and Find draws (CARD_BUILD). */
 const SETTING_GROUPS = [{ id: 'apprentice', label: 'Apprentice settings', cards: true, group: true },
   /* WEB SETTINGS (491, an admin's alone): Find › Settings › Site since 15 Nov. */
   { id: 'site', label: 'Web settings', admin: true, cards: true, group: true },
   /* PARENT SETTINGS (453, a parent's or payer's own): Find › Settings › Parent since 15 Nov. */
-  { id: 'family', label: 'Parent settings', cards: true, group: true }];
+  { id: 'family', label: 'Parent settings', cards: true, group: true },
+  /* TUTOR, KIDS AND BIZ SETTINGS: Find › Settings › Staff / Student / Business since 16 Nov; Biz an admin's alone. */
+  { id: 'staff', label: 'Tutor settings', cards: true, group: true },
+  { id: 'account', label: 'Kids settings', cards: true, group: true },
+  { id: 'biz', label: 'Biz settings', admin: true, cards: true, group: true }];
 
 /* ---------- EVERY COLUMN THE BUILD HAS, AND THE ONES THIS VIEWER IS GIVEN § */
 const TABS_BUILT = TABS.slice();
@@ -246,8 +246,7 @@ function columnsFor_() {
     s.className = 'screen hidden';
     s.id = 's-' + t.id;
     s.setAttribute('data-custom', '');
-    const biz = document.getElementById('s-biz');
-    if (biz && biz.parentNode === host) host.insertBefore(s, biz); else host.appendChild(s);
+    host.appendChild(s);
   });
   TABS_BUILT.forEach(t => {
     if (!t.admin) return;

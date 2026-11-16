@@ -98,13 +98,12 @@ async function qualCard_(profile) {
   b.w.__t.USER({ name: 'Ada Tutor', personId: 'P002', role: 'tutor', roles: ['tutor'], token: 'tk',
                  profile: Object.assign({ first_name: 'Ada', last_name: 'Tutor', phone_cc: '+44' }, profile || QUAL_TUTOR) });
   /* WHAT YOU TEACH IS ON THE TUTOR COLUMN since 444. */
-  b.w.__t.go('staff', false, true); b.w.paint('staff');
-  await wait(300);
+  await setOpen_(b.w, 'staff', 'Staff', '.q-shelf');
   const d = b.w.document;
   const q = {
     b, w: b.w, d, sent: b.sent,
     A: (act, el) => b.w.__t.ACTIONS[act](el),
-    shelf: () => d.querySelector('#s-staff .q-shelf'),
+    shelf: () => d.querySelector('#s-stuff .q-shelf'),
     slot: i => q.shelf() && q.shelf().querySelector('.q-slot[data-slot="' + i + '"]'),
     box: (i, k) => (q.slot(i) || d).querySelector('[data-me="qual_' + i + k + '"]') || {},
     line: i => q.slot(i) && q.slot(i).querySelector(':scope > .q-line'),
@@ -126,7 +125,7 @@ check('the qualifications card reads one line a qualification, written as the pr
   const bad = [];
   const shelf = q.shelf();
   if (!shelf) return ['there is no qualifications card on the settings column'];
-  if (q.d.querySelectorAll('#s-staff [data-me^="qual_"]').length !== 70) bad.push('the form does not hold all seventy qual_ boxes');
+  if (q.d.querySelectorAll('#s-stuff [data-me^="qual_"]').length !== 70) bad.push('the form does not hold all seventy qual_ boxes');
   const lines = [...shelf.querySelectorAll('.q-list .q-line')];
   if (lines.length !== 7) bad.push('seven qualifications drew ' + lines.length + ' lines, not one each');
   /* THE SUBJECT ONCE, AT THE HEAD OF ITS OWN LINES. */
@@ -184,7 +183,7 @@ check('a qualification opens in place, and each answer is saved as it is chosen'
     if (Object.keys(f).filter(k => /^qual_/.test(k)).length !== 70) bad.push('the grade did not post all seventy qual_ boxes');
   }
   if (!q.slot(4).classList.contains('is-open')) bad.push('the line shut after its grade was saved, so a second answer means opening it again');
-  if (!q.d.querySelector('#s-staff .q-shelf').closest('.me-form').dataset.dirty) bad.push('an open line does not hold the column, so the repaint after a save would shut it');
+  if (!q.d.querySelector('#s-stuff .q-shelf').closest('.me-form').dataset.dirty) bad.push('an open line does not hold the column, so the repaint after a save would shut it');
   if ((q.line(4).querySelector('.prof-iso sub') || {}).textContent !== 'A*') bad.push('the line does not show the new grade');
   /* TEACH ON A SECOND LEVEL LEAVES THE FIRST'S — *"it unticks the other one. i dont want that"*. */
   /* ONE ROW, THE PHONE'S OWN PICKER: Can teach, Teaches or Not teaching. */
@@ -479,11 +478,15 @@ const cardOpen_ = async (W, who, more) => {
   await wait(250);
   /* `more.col` names the card's face (453); your own card is edited on that face's settings column (464), somebody else's on Tutors (`T`). */
   const SETOF = { tutors: 'staff', students: 'account', parents: 'family' };
-  const S = '#s-' + (SETOF[more.col || home] || more.col || home), T = '#s-tutors';
+  let S = '#s-' + (SETOF[more.col || home] || more.col || home);
+  const T = '#s-tutors';
+  /* A SETTINGS GROUP IS A FIND › SETTINGS BRANCH since 16 Nov (find-only.json): no section, so its branch is opened in Find and read there. */
+  const TYPE_ = { account: 'Student', staff: 'Staff', family: 'Parent', biz: 'Business', site: 'Site', apprentice: 'Apprentice' }, sc = S.slice(3);
+  if (TYPE_[sc] && !d.getElementById('s-' + sc)) { await setOpen_(b.w, sc, TYPE_[sc], more.sel || '.card-ed'); S = '#s-stuff'; }
   /* 468: YOUR OWN CARD IS ALWAYS OPEN ON ITS SETTINGS COLUMN, A CARD PER SECTION — `form()` is the column holding them, `sec(id)` one card. */
   const F = '#s-' + (more.col || home);
   /* 469: EVERYBODY'S FOUR ARE ON STUDENT SETTINGS, the rest on the face's own column — the cards read across both, Student settings first. */
-  const R = ['#s-account'].concat(S === '#s-account' ? [] : [S]);
+  const R = (d.getElementById('s-account') ? ['#s-account'] : []).concat(S === '#s-account' ? [] : [S]);
   const all = sel => [].concat(...R.map(r => [...d.querySelectorAll(r + ' ' + sel)]));
   const both = { querySelector: sel => all(sel)[0] || null, querySelectorAll: sel => all(sel) };
   const c = {
@@ -853,16 +856,18 @@ check('Sign out is on Student settings (453), not under a tutor\'s card while th
 /* WEB SETTINGS IS FIND › SETTINGS › SITE (find-only.json, 15 Nov): go('site') opens that branch (where screens-moved.json is served,
    else the branch is opened as its door does), and a card further down is opened by its page, as a person scrolls to it (flow 40).
    Resolves to the first element in Find matching `sel` (null when none); with no `sel`, the branch is open and drawn. */
-const siteOpen_ = async (w, sel) => {
+/* EVERY SETTINGS GROUP IS A FIND › SETTINGS BRANCH since 16 Nov (Tutor, Kids and Biz settings too): `setOpen_(w, 'staff', 'Staff', sel)`. */
+const setOpen_ = async (w, col, type, sel) => {
   const t = w.__t, d = w.document, inFind = () => (sel ? d.querySelector('#s-stuff ' + sel) : null);
-  try { t.go('site', false, true); } catch (e) { /* the door below opens it */ }
+  try { t.go(col, false, true); } catch (e) { /* the door below opens it */ }
   await wait(300);
-  if (t.AT() !== 'stuff' || !/"Site"/.test(JSON.stringify(t.STUFF().filters))) { try { w.findSettings_('Site'); } catch (e) {} await wait(300); }
+  if (t.AT() !== 'stuff' || !new RegExp('"' + type + '"').test(JSON.stringify(t.STUFF().filters))) { try { w.findSettings_(type); } catch (e) {} await wait(300); }
   if (!sel || inFind()) return inFind();
   const pgs = w.stuffPages_(), first = w.stuffFirstResult_();
   for (let i = 0; i < pgs.length && !inFind(); i++) { if (!pgs[i] || !pgs[i].x || pgs[i].part) continue; w.goPage('stuff', first + i, true); await wait(150); }
   return inFind();
 };
+const siteOpen_ = (w, sel) => setOpen_(w, 'site', 'Site', sel);
 /* PARENT SETTINGS IS FIND › SETTINGS › PARENT since 15 Nov (find-only.json): go('family') (or the door) opens it, and what it draws is each
    Find item's card as Find draws it (settingDoorCard_), held in one detached box so a journey can ask it what it asked #s-family. */
 const famFind_ = async w => {

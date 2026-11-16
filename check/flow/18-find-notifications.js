@@ -6,10 +6,10 @@ check('a refused role save puts the choice back to Client; a lost reply keeps it
   const t = w.__t, d = w.document;
   t.USER({ name: 'Pat Parent', personId: 'P-C1', role: 'parent', roles: ['parent'], token: 'tk', tutorPending: false,
            profile: { first_name: 'Pat', last_name: 'Parent' } });
-  try { t.go('account', false, true); w.paint('account'); } catch (e) { return ['drawing settings threw: ' + e.message]; }
+  try { await setOpen_(w, 'account', 'Student', '.roles-card'); } catch (e) { return ['drawing settings threw: ' + e.message]; }
   await wait(300);
   const bad = [];
-  const card = () => d.querySelector('#s-account .roles-card');
+  const card = () => d.querySelector('#s-stuff .roles-card');
   if (!card()) return ['Settings has no Your role card'];
   const pick = r => card().querySelector(`[data-role-pick="${r}"]`);
   const chosen = () => ['client', 'student'].filter(r => pick(r) && pick(r).selected).join(',');
@@ -59,9 +59,9 @@ const notifyCardOf_ = async (o) => {
   await wait(o.before ? 700 : 300);
   const t = w.__t, d = w.document;
   if (o.as) t.USER(o.as);
-  try { t.go('account', false, true); w.paint('account'); } catch (e) { return { err: 'drawing settings threw: ' + e.message }; }
+  try { await setOpen_(w, 'account', 'Student', '.notify-card'); } catch (e) { return { err: 'drawing settings threw: ' + e.message }; }
   await wait(300);
-  const card = () => d.querySelector('#s-account .notify-card');
+  const card = () => d.querySelector('#s-stuff .notify-card');
   return { w, t, d, sent, card };
 };
 check('the Notifications card shows a parent, a kid and a tutor only the emails that reach them, from the real backend', async () => {

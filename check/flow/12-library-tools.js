@@ -964,11 +964,10 @@ check('review 339: "Manage your child" waits with the loader while the payload c
   await wait(300);
   w.__t.USER({ name: 'Pat Parent', personId: 'P-C1', role: 'client', roles: ['client'], token: 'tk', handle: 'pat_kind20',
                profile: { first_name: 'Pat', last_name: 'Parent', phone_cc: '+44' } });
-  try { w.__t.go('account', false, true); w.paint('account'); } catch (e) { bad.push('drawing Settings threw: ' + e.message); }
-  await wait(200);
-  /* 469: NO FILLER LINE — with no group left, Signing in is simply there. */
-  if (w.document.querySelector('#s-account .ce-moved')) bad.push('with no group left, Settings still draws a line saying where things went');
-  if (!w.document.querySelector('#s-account [data-do="pin-save"]')) bad.push('with no group left, Settings has no Signing in');
+  try { await setOpen_(w, 'account', 'Student', '[data-do="pin-save"]'); } catch (e) { bad.push('drawing Settings threw: ' + e.message); }
+  /* 469: NO FILLER LINE — with no group left, Signing in is simply there (Find › Settings › Student since 16 Nov). */
+  if (w.document.querySelector('#s-stuff .ce-moved')) bad.push('with no group left, Settings still draws a line saying where things went');
+  if (!w.document.querySelector('#s-stuff [data-do="pin-save"]')) bad.push('with no group left, Settings has no Signing in');
   return bad;
 });
 

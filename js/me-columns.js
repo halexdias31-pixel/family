@@ -147,8 +147,6 @@ function studentSetPages_() {
   const all = typeof progressCards_ === 'function' ? progressCards_() : [];
   /* `prog-w` MARKS THEM, so a check can ask the progress widgets apart from the settings around them. */
   const prog = all.map(c => String(c).replace(/^(\s*<div class=")/, '$1prog-w ')), wait = coming.length || !(typeof progressComing_ === 'function' && progressComing_()) ? coming : [loading_()];
-  /* ONLY SIGN IN HERE (owner, 4 Nov, 880): every other setting is a Coming soon card in Find until it is wanted. */
-  if (typeof SETTINGS_OFF !== 'undefined' && SETTINGS_OFF) return [top];
   return [top].concat(ownCardSetPage_('account'), youSettingsPages_(),
     /* WORK ON FILE (owner, 11 Nov): a student's own scanned pages; a tutor's opens each booked student's. */
     /^(student|staff)$/.test(rank_(whose_())) && typeof workFileCard_ === 'function' ? [workFileCard_()].filter(Boolean) : [], soonCards_(),
@@ -161,5 +159,4 @@ const SOON_CARDS = [
   ['soon-conduct', 'Code of conduct', 'How we treat each other here. Coming soon.'],
 ];
 const soonCards_ = () => SOON_CARDS.map(([c, h, p]) => renderCard({ kind: 'soon', look: 'soon-card ' + c, tags: [{ text: h, colour: 0 }], body: [{ type: 'text', text: p }] }));
-const SETTINGS_OFF = false;
-screen('account', () => pages('account', SETTINGS_OFF || typeof cardsOf_ !== 'function' ? studentSetPages_() : cardsOf_('account')));
+/* KIDS SETTINGS WAS A COLUMN; it is Find › Settings › Student now (find-only.json), drawn from CARD_BUILD.account. */
