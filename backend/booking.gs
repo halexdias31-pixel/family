@@ -1,7 +1,7 @@
 /* @family. — 30_booking.gs (4 of 8) THE BOOKING MACHINE, and everything that decides who is in a session. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const BOOKING_VERSION = "2026-11-16-handle-2";
+const BOOKING_VERSION = "2026-11-16-cards-1";
 
 
 /* WHEN THE BUSINESS ACTUALLY OPERATES within an interval. § */
@@ -256,7 +256,7 @@ function discountRefusal_(body, isAdmin, codeRow, today) {
     return 'The code ' + code + ' has been used all ' + N(codeRow.max_uses) + ' times. Nothing was sent.';
   }
   if (S(codeRow.type) && (S(codeRow.type) !== type || N(codeRow.value) !== value)) {
-    return 'The code ' + code + ' is ' + (S(codeRow.type) === '%' ? N(codeRow.value) + '%' : '£' + N(codeRow.value))
+    return 'The code ' + code + ' is ' + (S(codeRow.type) === '%' ? N(codeRow.value) + '%' : fmtMoney_(N(codeRow.value)))
          + ', not what was sent. Nothing was sent.';
   }
   return '';
