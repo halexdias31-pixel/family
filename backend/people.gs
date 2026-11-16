@@ -1293,6 +1293,23 @@ function adminRolesIn_(v) {
   const list = (Array.isArray(v) ? v : S(v).split(',')).map(x => norm(x) === 'parent' ? 'client' : norm(x));
   return PEOPLE_ROLES_.filter(r => list.indexOf(r) !== -1);
 }
+/* THE SCHOOL YEAR, A GUESS THAT MAY BE A RANGE (owner, 16 Nov): kept with the September it was true for, so it moves up by itself. */
+function schoolYearStart_(d) { d = d || new Date(); return d.getMonth() >= 8 ? d.getFullYear() : d.getFullYear() - 1; }
+/* "7-8" as typed, or a cell already stamped, to "7-8@2026"; "R" is Reception; "" for anything else. */
+function schoolYearStamp_(v) {
+  const now = schoolYearNow_(v);
+  return now ? now + '@' + schoolYearStart_() : '';
+}
+/* A STAMPED CELL AS IT IS THIS SCHOOL YEAR: "7-8" (or "11", "R"); "" once past Year 13 or unreadable. */
+function schoolYearNow_(v) {
+  const m = /^\s*(R|\d{1,2})(?:\s*[-\u2013]\s*(\d{1,2}))?\s*(?:@\s*(\d{4}))?\s*$/i.exec(S(v));
+  if (!m) return '';
+  const up = m[3] ? Math.max(0, schoolYearStart_() - Number(m[3])) : 0;
+  const lo = (m[1].toUpperCase() === 'R' ? 0 : Number(m[1])) + up, hi = (m[2] ? Number(m[2]) : lo - up) + up;
+  if (hi < lo || lo > 13) return '';
+  const say = n => (n === 0 ? 'R' : String(Math.min(n, 13)));
+  return hi > lo && Math.min(hi, 13) > lo ? say(lo) + '-' + say(hi) : say(lo);
+}
 /* A DATE PICKER'S `yyyy-mm-dd` AS THE THREE BOXES `dobRefusal_` AND `dobIn` READ; null for anything else. */
 function adminDobFields_(v) {
   const t = S(v);

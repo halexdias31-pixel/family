@@ -132,7 +132,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-11-16-haiku-2";
+const BACKEND_VERSION = "2026-11-16-year-1";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -267,6 +267,8 @@ const SCHEMA = {
     "pricing_changed_at", "availability", "agreement_signed_at", "agreement_version",
     /* a family's and a student's own */
     "children", "favourite_colour", "exam_small_date", "exam_big_date",
+    /* A STUDENT'S SCHOOL YEAR AS A ROUGH GUESS, MAYBE A RANGE (owner, 16 Nov): "7-8@2026", read as it is now (`schoolYearNow_`, people.gs). */
+    "school_year",
     /* THE WEEKLY PARENT EMAIL, PER PARENT — see backend/digest.gs. § */
     "weekly_email",
     /* ---------- AND EVERY OTHER EMAIL SOMEBODY MAY TURN OFF, ONE COLUMN EACH — see `NOTIFY_KINDS` § */
@@ -1263,7 +1265,7 @@ const CLIENT_GROUPS = {
 };
 const STUDENT_GROUPS = {
   /* ---------- THE TWO EXAMS ARE ON THE FIRST PAGE NOW § */
-  'About you': ['first_name','last_name','date_of_birth','photo','exam_small_date','exam_big_date'],
+  'About you': ['first_name','last_name','date_of_birth','school_year','photo','exam_small_date','exam_big_date'],
   'Contact & address': ['email','phone','city','town','borough','postcode','address'],
   'Library cards': LIBRARY_FIELDS,
 };

@@ -9511,8 +9511,8 @@ const FORM_SPECS = {
     {"kind":"date","match":"_date$|^date_of_birth$|^dob_[dmy]$"},
     {"kind":"time","match":"^(m|tu|w|th|f|sa|su)\\d\\d$"},
     {"kind":"money","match":"rate|price|cost|fee|seat_cut"},
+    {"kind":"choice","match":"^(borough|city|town|focus|favourite_colour|school_year)$"},
     {"kind":"number","match":"hours|km|fraction|pages|year|students|days|weeks|count|level_required|age_|_cut$"},
-    {"kind":"choice","match":"^(borough|city|town|focus|favourite_colour)$"},
     {"kind":"text","match":""}
   ],
   "cards": {
@@ -11968,6 +11968,8 @@ const FIELD_IS_DATE = /_date$/;
 const FIELD_LISTS_ = {
   favourite_colour: ['Red', 'Orange', 'Yellow', 'Green', 'Teal', 'Blue', 'Navy', 'Purple', 'Pink',
                      'Brown', 'Black', 'White', 'Grey', 'Gold', 'Silver'],
+  /* A GUESS IS FINE, AND MAY BE TWO YEARS (owner, 16 Nov); the server keeps the September it was true for, so it moves up by itself. */
+  school_year: ['R'].concat([...Array(13)].map((_, i) => String(i + 1)), ['R-1'], [...Array(12)].map((_, i) => (i + 1) + '-' + (i + 2))),
 };
 /* ---------- WHAT A QUALIFICATION CAN BE IN, AS A LIST THAT IS SPELT RIGHT § */
 const QUAL_SUBJECTS = [
@@ -12177,6 +12179,7 @@ const ROW_LABEL = {
   /* `photo` HAS NO LABEL because it has no box any more on your own settings — see `photoPicker_`. */
   video: 'video link',
   travel_km: 'will travel (km)', favourite_colour: 'favourite colour',
+  school_year: 'school year (a guess is fine)',
   venues_ok: 'venues you teach at',
   manager: 'your manager',
 };
@@ -16267,11 +16270,13 @@ function progressWhen_(spec, year) {
 const progressExamAt_ = (e, year) => progressWhen_(String(progressVars_()[e.key] || '').trim() || e.at, year)
   || progressWhen_(e.at, year);
 /* THE SCHOOL YEAR OFF A DATE OF BIRTH (England): Year N is N + 4 on the 1st of September the year began. */
-function progressSchoolYear_(dob) {
+function progressSchoolYear_(dob, guess) {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(dob || ''));
-  if (!m) return null;
   const t = progressToday_();
   const began = t.getMonth() >= 8 ? t.getFullYear() : t.getFullYear() - 1;
+  /* NO BIRTHDAY: the school-year guess the server sends as it is now ("7-8" reads as its lower year). */
+  const g = /^(R|\d{1,2})/.exec(String(guess || ''));
+  if (!m) return g && +g[1] >= 1 && +g[1] <= 13 ? { year: +g[1], began: began } : null;
   let age = began - +m[1];
   if (+m[2] > 9 || (+m[2] === 9 && +m[3] > 1)) age--;
   const y = age - 4;
@@ -16280,7 +16285,7 @@ function progressSchoolYear_(dob) {
 /* THE ONE BIG EXAM AHEAD: off the school year when there is a birthday, else off the level of a session booked. */
 function progressBigExam_() {
   const prof = (USER && USER.profile) || {};
-  const sy = progressSchoolYear_(prof.date_of_birth);
+  const sy = progressSchoolYear_(prof.date_of_birth, prof.school_year);
   const E = id => PROG_EXAMS.find(e => e.id === id);
   const t = progressToday_();
   if (sy) {

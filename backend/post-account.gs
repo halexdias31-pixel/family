@@ -177,6 +177,7 @@ function profilePut_(r, t, fields, wanted, priceAsked, mailPlan, mailKey, availS
   if (phoneSent) put.phone = phoneIn(fields);
   if (dobSent) put.date_of_birth = dobIn(fields);
   wanted.forEach(f => { put[f] = fields[f]; });
+  if (put.school_year !== undefined) put.school_year = schoolYearStamp_(put.school_year);
   /* THE ADDRESS, BY THE PLAN ABOVE: written only when it is the same one or a PENDING row's correction. */
   if (mailPlan === 'keep' || mailPlan === 'waiting' || mailPlan === 'move') delete put.email;
   if (mailPlan === 'correct') put.verify_token = mailKey;

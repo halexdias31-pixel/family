@@ -542,11 +542,13 @@ function progressWhen_(spec, year) {
 const progressExamAt_ = (e, year) => progressWhen_(String(progressVars_()[e.key] || '').trim() || e.at, year)
   || progressWhen_(e.at, year);
 /* THE SCHOOL YEAR OFF A DATE OF BIRTH (England): Year N is N + 4 on the 1st of September the year began. */
-function progressSchoolYear_(dob) {
+function progressSchoolYear_(dob, guess) {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(dob || ''));
-  if (!m) return null;
   const t = progressToday_();
   const began = t.getMonth() >= 8 ? t.getFullYear() : t.getFullYear() - 1;
+  /* NO BIRTHDAY: the school-year guess the server sends as it is now ("7-8" reads as its lower year). */
+  const g = /^(R|\d{1,2})/.exec(String(guess || ''));
+  if (!m) return g && +g[1] >= 1 && +g[1] <= 13 ? { year: +g[1], began: began } : null;
   let age = began - +m[1];
   if (+m[2] > 9 || (+m[2] === 9 && +m[3] > 1)) age--;
   const y = age - 4;
@@ -555,7 +557,7 @@ function progressSchoolYear_(dob) {
 /* THE ONE BIG EXAM AHEAD: off the school year when there is a birthday, else off the level of a session booked. */
 function progressBigExam_() {
   const prof = (USER && USER.profile) || {};
-  const sy = progressSchoolYear_(prof.date_of_birth);
+  const sy = progressSchoolYear_(prof.date_of_birth, prof.school_year);
   const E = id => PROG_EXAMS.find(e => e.id === id);
   const t = progressToday_();
   if (sy) {

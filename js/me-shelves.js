@@ -15,6 +15,8 @@ const FIELD_IS_DATE = /_date$/;
 const FIELD_LISTS_ = {
   favourite_colour: ['Red', 'Orange', 'Yellow', 'Green', 'Teal', 'Blue', 'Navy', 'Purple', 'Pink',
                      'Brown', 'Black', 'White', 'Grey', 'Gold', 'Silver'],
+  /* A GUESS IS FINE, AND MAY BE TWO YEARS (owner, 16 Nov); the server keeps the September it was true for, so it moves up by itself. */
+  school_year: ['R'].concat([...Array(13)].map((_, i) => String(i + 1)), ['R-1'], [...Array(12)].map((_, i) => (i + 1) + '-' + (i + 2))),
 };
 /* ---------- WHAT A QUALIFICATION CAN BE IN, AS A LIST THAT IS SPELT RIGHT § */
 const QUAL_SUBJECTS = [
@@ -224,6 +226,7 @@ const ROW_LABEL = {
   /* `photo` HAS NO LABEL because it has no box any more on your own settings — see `photoPicker_`. */
   video: 'video link',
   travel_km: 'will travel (km)', favourite_colour: 'favourite colour',
+  school_year: 'school year (a guess is fine)',
   venues_ok: 'venues you teach at',
   manager: 'your manager',
 };

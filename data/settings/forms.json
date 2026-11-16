@@ -54,12 +54,12 @@
    "match": "rate|price|cost|fee|seat_cut"
   },
   {
-   "kind": "number",
-   "match": "hours|km|fraction|pages|year|students|days|weeks|count|level_required|age_|_cut$"
+   "kind": "choice",
+   "match": "^(borough|city|town|focus|favourite_colour|school_year)$"
   },
   {
-   "kind": "choice",
-   "match": "^(borough|city|town|focus|favourite_colour)$"
+   "kind": "number",
+   "match": "hours|km|fraction|pages|year|students|days|weeks|count|level_required|age_|_cut$"
   },
   {
    "kind": "text",

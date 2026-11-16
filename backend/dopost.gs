@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-11-16-haiku-2";
+const DOPOST_VERSION = "2026-11-16-year-1";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -527,6 +527,7 @@ function profileOf_(r) {
            : QUAL_FIELD.test(f) ? S(quals[f])
            : f === 'venues_ok' ? venuesFor_(r, read(TAB.venues).rows).join(', ')
            : f === 'date_of_birth' ? S(dobIn(dob))
+           : f === 'school_year' ? schoolYearNow_(r.school_year)
            /* ---------- AND AN EXAM DATE AS `yyyy-mm-dd`, WHICH IS WHAT THE PICKER CAN HOLD § */
            : DATE_COLS.indexOf(f) !== -1 ? isoDate_(r[f])
            : S(r[f]);
