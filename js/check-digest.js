@@ -1410,10 +1410,12 @@ const MS = (pid, key, verdict, label, words, answer, day, hh, more) => Object.as
     { key: 'q:Q-1MA1-2406-1F-7', label: 'Maths · Paper 1F (Non-calculator) — June 2024 · Q7', words: '', verdict: 'rule:3/4', answer: 'drawing · 4 marks · #x' },
     { key: 'q:Q-CBM-perimeter-1', label: 'Maths · Perimeter · Q1', words: '', verdict: 'right', answer: '16' }], again: [] };
   const r = JSON.parse(JSON.stringify(b.ev('digestRender_(__L, { first: "Pat" }, { start: "2026-10-12", end: "2026-10-18" }, { site: "https://halexdias31-pixel.github.io/family/", hour: 21, lib: __LIB })')));
+  const ink = f => b.ev('DIGEST_TAG_INK["h" + TAG_OF[' + JSON.stringify(f) + ']]');
+  const inkQ = ink('qNumber'), inkB = ink('examBoard'), inkM = ink('marks');
   const cards = r.html.split('class="kc" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-bottom:1px solid #171717;border-radius:0"').length - 1;
   asked++;
-  if (cards !== 2 || r.html.indexOf('<span class="gi" style="color:#ff8fc4;border:1px solid;border-radius:999px;padding:0 6px">Q7</span>') === -1
-      || r.html.indexOf('>Non-calculator</span>') === -1 || r.html.indexOf('color:#c8a2ff') === -1 || r.html.indexOf('color:#ff7b72;border:1px solid;border-radius:999px;padding:0 6px">[4]') === -1
+  if (cards !== 2 || r.html.indexOf('<span class="gi" style="color:' + inkQ + ';border:1px solid;border-radius:999px;padding:0 6px">Q7</span>') === -1
+      || r.html.indexOf('>Non-calculator</span>') === -1 || r.html.indexOf('color:' + inkB) === -1 || r.html.indexOf('color:' + inkM + ';border:1px solid;border-radius:999px;padding:0 6px">[4]') === -1
       || said(r.html).indexOf('Q1 Learning Practice Questions Maths Worksheet SATs KS2 Year 3 Not verified Q1 Corbettmaths') === -1 || said(r.html).indexOf('Q7 [4] Learning') === -1 || /Maths · Perimeter/.test(said(r.html))
       || /\b(Ready|Usable|Rough)\b/.test(said(r.html)))
     bad.push('each question is not the site\'s card — two cards in its shape (heading, tags, lines; a rule under, square), every tag a pill in its facet\'s hue (TAG_OF: Q7 pink, its marks red, the board purple — every facet coloured since 396), no health band (383), and no paper heading over them: ' + cards + ' card(s); ' + said(r.html).slice(0, 300));
