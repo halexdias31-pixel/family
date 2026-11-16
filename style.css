@@ -3480,7 +3480,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 /* ---------- COINS, PRICE TAGS, AND SAYING WHO DREW THEM § */
 .qsheet .coin, .qp-area .coin, .pad-loupe .coin { fill: none; stroke: currentColor; }
 .qsheet .tag, .qp-area .tag, .pad-loupe .tag { fill: none; stroke: currentColor; }
-.qsheet .cap, .qb-stem .cap, .gd .cap, .qp-area .cap, .pad-loupe .cap { font: 600 var(--fs-small) var(--fig-font); fill: currentColor; text-anchor: middle; opacity: .85; }
+.sa .cap, .qsheet .cap, .qb-stem .cap, .gd .cap, .qp-area .cap, .pad-loupe .cap { font: 600 var(--fs-small) var(--fig-font); fill: currentColor; text-anchor: middle; opacity: .85; }
 
 /* BOXING — THE FIGHTER AND THE FIGHT `boxer-nick` AND `boxer-rec` WERE NEVER STYLED. § */
 /* ---------- A FRACTION WRITTEN THE WAY THE PAPER PRINTS ONE § */

@@ -589,7 +589,7 @@
   },
   {
    "id": "4.2.4",
-   "text": "Bulk and surface properties of matter including nanoparticles",
+   "text": "Bulk and surface properties of matter including nanoparticles (chemistry only)",
    "parent": "4.2",
    "links": []
   },
@@ -750,7 +750,7 @@
   },
   {
    "id": "4.3.2.4",
-   "text": "Limiting reactants",
+   "text": "Limiting reactants (HT only)",
    "parent": "4.3.2",
    "links": [
     "ct:TB-AQA-8462-41",
@@ -807,7 +807,7 @@
   },
   {
    "id": "4.3.4",
-   "text": "Using concentrations of solutions in mol/dm3",
+   "text": "Using concentrations of solutions in mol/dm3 (chemistry only) (HT only)",
    "parent": "4.3",
    "links": [
     "ct:TB-AQA-8462-45",
@@ -820,7 +820,7 @@
   },
   {
    "id": "4.3.5",
-   "text": "Use of amount of substance in relation to volumes of gases",
+   "text": "Use of amount of substance in relation to volumes of gases (chemistry only) (HT only)",
    "parent": "4.3",
    "links": [
     "ct:TB-AQA-8462-46",
@@ -959,7 +959,7 @@
   },
   {
    "id": "4.4.2.5",
-   "text": "Titrations",
+   "text": "Titrations (chemistry only)",
    "parent": "4.4.2",
    "links": [
     "ct:TB-AQA-8462-55",
@@ -1243,7 +1243,7 @@
   },
   {
    "id": "4.6.2.4",
-   "text": "The effect of changing conditions on equilibrium",
+   "text": "The effect of changing conditions on equilibrium (HT only)",
    "parent": "4.6.2",
    "links": [
     "ct:TB-AQA-8462-74",
@@ -1460,7 +1460,7 @@
   },
   {
    "id": "4.7.3.3",
-   "text": "Amino acids",
+   "text": "Amino acids (HT only)",
    "parent": "4.7.3",
    "links": [
     "ct:TB-AQA-8462-88",
@@ -1593,7 +1593,7 @@
   },
   {
    "id": "4.8.3",
-   "text": "Identification of ions by chemical and spectroscopic means",
+   "text": "Identification of ions by chemical and spectroscopic means (chemistry only)",
    "parent": "4.8",
    "links": []
   },
