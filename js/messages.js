@@ -231,7 +231,6 @@ function pic(url) {
 }
 /* A CLIP IS MARKED `#video` BY THE BACKEND THAT UPLOADED IT, because a Drive address names no type;
    an address typed in is a clip if it ends like one. */
-const postIsVideo_ = u => /#video$/i.test(u) || /\.(mp4|webm|mov|m4v)(?:[?#]|$)/i.test(u);
 /* THE ADDRESS A `<video>` IS POINTED AT. § */
 function postVidSrc_(u) {
   const bare = String(u || '').replace(/#video$/i, '');
@@ -246,7 +245,6 @@ const profileOf_ = id => { const r = id && ['people', 'tutors', 'family', 'stude
    base64 adds a third. Numbers a phone can post over a school's wifi, not limits anybody enforces
    past this card. */
 const CAM_VID_MAX = 20 * 1048576;
-const CAM_POST_MAX = 45 * 1048576;
 /* ONE FILE OR RECORDING, READY TO POST. § */
 function camItemOf_(file) {
   return new Promise(done => {

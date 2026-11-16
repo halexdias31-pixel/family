@@ -542,27 +542,6 @@ function markRest_(ms) {
   };
   if (ms === 0) rest(); else MARK_REST = setTimeout(rest, ms);
 }
-/* MARK WITH AI'S PRESS: § */
-function markWait_() {
-  if (!markHear_()) return () => {};
-  MARK_HOLD++;
-  let held = true;
-  return () => {
-    if (!held) return;
-    held = false;
-    MARK_HOLD = Math.max(0, MARK_HOLD - 1);
-    markRest_(MARK_REST_MS);
-  };
-}
-/* ---------- WHETHER THE CHILD IS STILL AT THE CARD, SO A LATE VERDICT KNOWS WHETHER TO BE HEARD § */
-function markWhere_(k) {
-  try {
-    if (!k || document.visibilityState === 'hidden') return false;
-    const host = document.getElementById('s-' + AT);
-    const pg = host && host.querySelector(':scope > .page.on');
-    return !!pg && [...pg.querySelectorAll('.qp-ans-in[data-k], .qp-multi-val[data-k]')].some(el => el.getAttribute('data-k') === k);
-  } catch (e) { return false; }
-}
 
 /* ---------- AND PLAYED § */
 const MARK_LATE_MS = 600;

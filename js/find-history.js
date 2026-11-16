@@ -185,8 +185,6 @@ function histRow_(id) {
   return t ? (DATA[t.file] || []).find(r => r.id === id) || null : null;
 }
 const histName_ = r => (r && (r.name || r.title_english || r.title_original || r.id)) || '';
-/* A YEAR AS SAID: negative is BC. */
-const histYear_ = n => (n == null || !isFinite(n) ? '' : n < 0 ? -n + ' BC' : n < 1000 ? 'AD ' + n : String(n));
 /* THE ERAS, in order; a row is in every one its years touch (`histErasOf_`) and the funnel sorts them in this order (`answerCmp_`). */
 const HIST_ERAS = [
   { name: 'Ancient', to: 500 },

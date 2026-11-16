@@ -260,8 +260,6 @@ function meSave_(el, auto) {
     .then(d => {
       /* THE SERVER'S OWN READING OF THE ROW, NOT WHAT WAS TYPED. § */
       W.profile = (d && d.profile) ? d.profile : Object.assign({}, W.profile || {}, fields);
-      /* AND THE PROGRESS COLUMN, whose journey card counts down to the two exam dates on About you (`progressRedraw_`, js/arcade.js) — not left to the § */
-      if (typeof progressRedraw_ === 'function') progressRedraw_();
       /* ON THE SHEET NOW, SO EACH FIELD SENT IS NO LONGER A DRAFT (`fieldHtml`; 317). */
       Object.keys(fields).forEach(f => { try { draftDrop_('set', f); } catch (e) { oops_(e, 'me:meSave_') } });
       if (d && d.name) W.name = d.name;
@@ -416,7 +414,6 @@ function profileRefresh_(loud, onOld) {
           try { land(() => { paint(c); placeCells('y', true, 0, c); }); } catch (e) { /* a screen gone before it lands is painted on its next draw */ }
       });
       /* AND THE PROGRESS COLUMN, the same rule: § */
-      if (typeof progressRedraw_ === 'function') { try { land(() => progressRedraw_()); } catch (e) { oops_(e, 'me:profileRefresh_') } }
       /* AND THE LIBRARY CARDS ON TOOLS, which are drawn from this copy and are a widget now, not a page this column repaints (docs/history/339). § */
       try { land(() => libCardsRedraw_()); } catch (e) { oops_(e, 'me:profileRefresh_') }
     })

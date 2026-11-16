@@ -81,8 +81,6 @@ function qtTiles_(x, ans) {
     [ans && typeof qaToggleOpts_ === 'function' ? qaToggleOpts_(ansKey_(x), ansOpen_(x)) : null,
       typeof helpOpts_ === 'function' ? helpOpts_(x, '') : null]).filter(Boolean);
 }
-/* THE ROW ALONE (a check draws a pad with it): the card's own row maker, as `renderCard` draws it. */
-function qtRow_(x) { return x && x.key ? kcActRow_(x, '', tile_(qtTiles_(x)), { look: 'qt-row', key: x.key }) : ''; }
 const qtItem_ = key => { try { return stuffItemsAll_().find(it => it && it.key === key) || null; } catch (e) { return null; } };
 const qtKeyOf_ = el => (el && el.getAttribute('data-key')) || '';
 /* ---------- THE CARD DRAWN AGAIN, where it stands: what a pen opened needs, its plan forgotten first. */

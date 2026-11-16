@@ -291,18 +291,6 @@ function tileSet_(el, o) {
 }
 
 
-/* ---------- THE ADMIN ROW § */
-/* ---------- AND NOT ON ANYTHING FIND TEACHES WITH § */
-let SPOT_TILES = false;
-const adminLearn_ = x => typeof kindOf_ === 'function'
-  && asList_(kindOf_(x).group).indexOf('Learning') !== -1;
-function adminOpts_(x) {
-  if (adminLearn_(x) && !SPOT_TILES) return null;
-  /* INSIDE THE ONE ROW every card has (`tilesFor_`), in a group a screen reader names. */
-  return { icon: 'spot', label: isSpot(x.key) ? 'Spotlit' : 'Spotlight', tone: 'admin', on: isSpot(x.key), act: 'spot',
-    data: { key: x.key, kind: x.kind || 'item' } };
-}
-
 
 /* ---------- THE STAR, WHICH IS AN ACTION LIKE ANY OTHER § */
 function favOpts_(x) {
@@ -432,27 +420,20 @@ function cardRow_(x, flat) {
     + tile_([typeof speedOpts_ === 'function' ? speedOpts_(x) : null, typeof magCardOpts_ === 'function' ? magCardOpts_(x) : null, finderOpenOpts_(x)]) + (x.more || '')
     /* a question's padlock is its tool row's (`qtRow_`), so it has one, not two */
     + (x.key && !isMeCard_(x) && !isQ_(x) ? tile_(typeof gameLockOpts_ === 'function' ? gameLockOpts_('c:' + x.key) : null) : ''));
-  const admin = tileGroup_(adminOpts_(x), 'is-admin', 'Admin');
-  if (flat) return mine + admin;
-  if (!mine && !admin) return '';
-  /* YOUR OWN CARD IS ALL YOURS: nothing on it is split off as an admin's (the hub's gold means "terms to agree" there). */
-  return tileRow_(mine + admin, '', isMeCard_(x));
+  if (flat) return mine;
+  if (!mine) return '';
+  return tileRow_(mine, '', isMeCard_(x));
 }
 /* ---------- EVERY TILE SHOWN (420), ONE FLOW (487): nothing hides behind a "More" -- "I DONT LIKE POP UP MENUS" (420). */
 const TILE_RE_ = /<(button|a)\b[^>]*\bclass="tile\b[^"]*"[^>]*>[\s\S]*?<\/\1>/g;
 /* AN ADMIN'S OR OWNER'S TILE is one drawn in the admin or danger tone; these lead their group in this order, a danger tile last. */
-const TILE_ADMIN_ORDER_ = ['card-edit', 'spot', 'set-listed'];
+const TILE_ADMIN_ORDER_ = ['card-edit', 'set-listed'];
 const tileIsAdmin_ = t => /\bclass="tile\b[^"]*\bis-(admin|danger)\b/.test(t);
 const tileAct_ = t => (t.match(/\bdata-do="([^"]*)"/) || [])[1] || '';
 function tileAdminRank_(t) {
   if (/\bclass="tile\b[^"]*\bis-danger\b/.test(t)) return 99;
   const i = TILE_ADMIN_ORDER_.indexOf(tileAct_(t));
   return i === -1 ? TILE_ADMIN_ORDER_.length : i;
-}
-/* A NAMED GROUP OF tile_'s TILES (an admin's, a widget's keep); '' when none is drawn, so no empty group is left. */
-function tileGroup_(opts, cls, label) {
-  const h = tile_(opts);
-  return h ? `<span class="tile-group${cls ? ' ' + cls : ''}"${label ? ` role="group" aria-label="${esc(label)}"` : ''}>${h}</span>` : '';
 }
 function tileRow_(html, cls, own) {
   const src = String(html || '');

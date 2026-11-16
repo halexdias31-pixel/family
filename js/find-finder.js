@@ -221,9 +221,9 @@ function widgetCard_(x) {
 }
 
 /* THE OFF WIDGETS' NAMES (880), for a card whose file is never fetched: written by tools/tiers.js from map.js's WIDGETS, never by hand. */
-const SOON_WIDGET_NAMES = { reels: 'One more thing', videos: 'Videos', newspaper: 'Sunday Funday', docket: 'Docket', notepad: 'Notepad', speedread: 'Speed reader', cart: 'Basket', shopfind: 'Search the shop', termdates: 'Term dates', countdowns: 'Countdowns', favlinks: 'Favourite links', pixel: 'Pixel editor', libcards: 'Library cards', console: 'Console', wordgames: 'Word games', boardgames: 'Board games' };
+const SOON_WIDGET_NAMES = { videos: 'Videos', termdates: 'Term dates', pixel: 'Pixel editor', libcards: 'Library cards', console: 'Console', wordgames: 'Word games', boardgames: 'Board games' };
 /* AN OFF WIDGET THAT WAITS UNDER ANOTHER FRONT ANSWER (owner, 6 Nov: Homework under Tools); the rest wait under Coming soon. */
-const SOON_WIDGET_UNDER = { videos: 'Videos', reels: 'Tools' };
+const SOON_WIDGET_UNDER = { videos: 'Videos' };
 /* A FRONT ANSWER HOLDING ONLY COMING SOON CARDS IS GREYED, never hidden (owner, 7 Nov P7/P8): Videos and Games until one is turned on. */
 /* One walk per list for every front answer (slow taps, 8 Nov): the front menu asked it a dozen times, a walk each. */
 const FRONT_SOON_MEMO = new WeakMap();
@@ -543,8 +543,6 @@ const FACETS = [
   { field: 'myResult',  label: 'Your result', of: x => myResultOf_(x) },
 ];
 
-/* THE ONLY KEYS A FACET MAY CARRY (396) — `check-funnel` fails on any other, so a behaviour flag cannot creep back in. */
-const FACET_KEYS = ['field', 'label', 'of', 'tagOf', 'showOf', 'tagSay'];
 
 /* THE FUNNEL'S QUESTIONS, AS THE SHEET WANTS THEM. § */
 /* ---------- KEYED ON THE PAYLOAD, THE WAY `allTopics` DOES IT § */

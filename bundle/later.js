@@ -168,26 +168,6 @@ function factsNow_() {
 
 const sheetFacts_ = () => ((typeof DATA !== 'undefined' && DATA.facts) || []);
 
-/* ---------- THE SHEET WINS PER LIST, NOT WHOLESALE § */
-/* ---------- ONLY WHAT A `<video>` CAN PLAY, AND IN AN ORDER DEALT ONCE PER OPEN § */
-const CLIP_DEAL = new Map();
-function clipDealt_(list) {
-  const key = f => {
-    const c = String(f.clip);
-    if (!CLIP_DEAL.has(c)) CLIP_DEAL.set(c, Math.random());
-    return CLIP_DEAL.get(c);
-  };
-  return list.slice().sort((a, b) => key(a) - key(b));
-}
-function clipsNow_() {
-  const ok = f => f && f.clip && (typeof window.clipPlayable_ !== 'function' || window.clipPlayable_(f.clip));
-  const said = sheetFacts_().filter(ok);
-  /* AND AN ADMIN'S OWN REELS OVER THEM, from the `media` tab (404). */
-  const base = said.length ? said : factsBuilt_().filter(ok);
-  const all = window.mediaReelsOver_ ? window.mediaReelsOver_(base) : base;
-  /* AND ONLY WHAT THIS VIEWER IS OLD ENOUGH FOR (406). */
-  return clipDealt_(window.mediaAgeOk_ ? all.filter(f => window.mediaAgeOk_(f.age)) : all);
-}
 
 /* THE COMPUTED GENERATORS lived here — times tables, factors, squares, percentages. § */
 
@@ -455,9 +435,9 @@ function widgetCard_(x) {
 }
 
 /* THE OFF WIDGETS' NAMES (880), for a card whose file is never fetched: written by tools/tiers.js from map.js's WIDGETS, never by hand. */
-const SOON_WIDGET_NAMES = { reels: 'One more thing', videos: 'Videos', newspaper: 'Sunday Funday', docket: 'Docket', notepad: 'Notepad', speedread: 'Speed reader', cart: 'Basket', shopfind: 'Search the shop', termdates: 'Term dates', countdowns: 'Countdowns', favlinks: 'Favourite links', pixel: 'Pixel editor', libcards: 'Library cards', console: 'Console', wordgames: 'Word games', boardgames: 'Board games' };
+const SOON_WIDGET_NAMES = { videos: 'Videos', termdates: 'Term dates', pixel: 'Pixel editor', libcards: 'Library cards', console: 'Console', wordgames: 'Word games', boardgames: 'Board games' };
 /* AN OFF WIDGET THAT WAITS UNDER ANOTHER FRONT ANSWER (owner, 6 Nov: Homework under Tools); the rest wait under Coming soon. */
-const SOON_WIDGET_UNDER = { videos: 'Videos', reels: 'Tools' };
+const SOON_WIDGET_UNDER = { videos: 'Videos' };
 /* A FRONT ANSWER HOLDING ONLY COMING SOON CARDS IS GREYED, never hidden (owner, 7 Nov P7/P8): Videos and Games until one is turned on. */
 /* One walk per list for every front answer (slow taps, 8 Nov): the front menu asked it a dozen times, a walk each. */
 const FRONT_SOON_MEMO = new WeakMap();
@@ -777,8 +757,6 @@ const FACETS = [
   { field: 'myResult',  label: 'Your result', of: x => myResultOf_(x) },
 ];
 
-/* THE ONLY KEYS A FACET MAY CARRY (396) — `check-funnel` fails on any other, so a behaviour flag cannot creep back in. */
-const FACET_KEYS = ['field', 'label', 'of', 'tagOf', 'showOf', 'tagSay'];
 
 /* THE FUNNEL'S QUESTIONS, AS THE SHEET WANTS THEM. § */
 /* ---------- KEYED ON THE PAYLOAD, THE WAY `allTopics` DOES IT § */
@@ -1283,8 +1261,6 @@ const FACET_COVERAGE = 0.5;
 
 /* ---------- A QUESTION WITH FORTY ANSWERS IS NOT A QUESTION, IT IS THE LIST § */
 const FACET_MAX_ANSWERS = 40;
-/* ---------- HOW MANY ANSWERS ARE DRAWN, WHICH IS NOT HOW MANY MAKE A QUESTION ASKABLE § */
-const FACET_MAX_SHOWN = 7;
 
 /* ---------- AND A QUESTION EVERYBODY ANSWERS THE SAME WAY IS NOT A QUESTION EITHER § */
 const FACET_MIN_MINORITY = 0.02;
@@ -1428,13 +1404,6 @@ function facetLocal_(items, F) {
   return (m[key] = say);
 }
 
-/* HOW WELL A QUESTION SPLITS THE LIST, in bits, the score the menu-rule check measures (920). § */
-const FACET_BITS_ENOUGH = 2;
-function facetBits_(items, facet) {
-  const vs = facetValues(items, facet), t = vs.reduce((a, v) => a + v.n, 0);
-  const bits = t ? vs.reduce((a, v) => v.n ? a - v.n / t * Math.log2(v.n / t) : a, 0) : 0;
-  return Math.min(FACET_BITS_ENOUGH, Math.round(bits * 100) / 100);
-}
 
 /* THE NEXT QUESTION, or nothing — ONE PRINCIPLE (owner, 15 Nov): the first facet in the facets tab's order that splits the list. */
 /* No ranking by how well it splits, no kind or choose question jumping the queue: the tab's `sort_order` is the order. */
@@ -1638,10 +1607,6 @@ function contentBody_(c) {
 
 /* A CONTENT CARD'S OTHER PAGES AND THEIR TITLES, ONE PLACE (408): § */
 const CONTENT_PAGE = { fig: 'Diagram', formulas: 'Formulas', worked: 'Worked examples', info: 'Information', anim: 'Animation' };
-function contentPageTitle_(x, part) {
-  if (!part) return String((x && x.name) || '');
-  return CONTENT_PAGE[part] || '';
-}
 function contentPart_(x, part) {
   if (!CONTENT_PAGE[part]) return '';
   const c = x.row;
@@ -1910,8 +1875,6 @@ function histRow_(id) {
   return t ? (DATA[t.file] || []).find(r => r.id === id) || null : null;
 }
 const histName_ = r => (r && (r.name || r.title_english || r.title_original || r.id)) || '';
-/* A YEAR AS SAID: negative is BC. */
-const histYear_ = n => (n == null || !isFinite(n) ? '' : n < 0 ? -n + ' BC' : n < 1000 ? 'AD ' + n : String(n));
 /* THE ERAS, in order; a row is in every one its years touch (`histErasOf_`) and the funnel sorts them in this order (`answerCmp_`). */
 const HIST_ERAS = [
   { name: 'Ancient', to: 500 },
@@ -2606,19 +2569,6 @@ function bibleHere_(x) {
       && chipsOn_(fs, 'wChapter').some(f => leaf(f) && String(f.value) === String(x.ch));
 }
 
-/* ---------- KEPT ON SAVED § */
-function bibleKept_(has) {
-  if (!bibleFor_()) return [];
-  if (!BIBLE.index) return [];
-  const re = /^bible:[a-z0-9]+:\d+:\d+:\d+$/;
-  const keys = [];
-  const add = k => { const s = String(k); if (re.test(s) && has(s) && keys.indexOf(s) < 0) keys.push(s); };
-  FAVS.forEach(k => add(k));
-  if (typeof SPOT !== 'undefined') SPOT.forEach(k => add(k));
-  if (!keys.length) return [];
-  return keys.map(k => bibleByKey_(k)).filter(Boolean)
-    .sort((a, b) => (a.bb.n - b.bb.n) || (Number(a.ch) - Number(b.ch)) || (Number(a.v) - Number(b.v)));
-}
 
 /* ---------- DRAWING IT AGAIN WHERE IT ALREADY IS § */
 function bibleRedraw_(n) {
@@ -2778,33 +2728,7 @@ function pageParts_(x, prev) {
 /* ---------- AND THE CARD WITH ITS FIGURE, FOR A COLUMN THAT LISTS THINGS ONE PAGE EACH § */
 /* A KEPT BIBLE IS ITS COVER ALONE NOW, with the `Open` tile under it — its three lists of books were
    kept here once, because the cover was a card with no other way into the book. */
-/* `prev` IS THE KEPT THING IN FRONT, as on Find -- see `keptPages_`. */
-function cardPages_(x, credits, prev) {
-  /* ONE WAITING PAGE UNTIL ITS WORDS COME (397), as on Find. */
-  if (libSlim_(x)) { libWant_(x); return [libWaitHtml_(x)]; }
-  return pageParts_(x, prev).filter(keptPart_)
-    .map(p => (p ? stuffPart_(x, p) : stuffCard(x, credits)));
-}
 
-/* ---------- SAVED AND SPOTLIGHT DRAW A QUESTION'S OPENING ONCE, AS FIND DOES § */
-function keptPages_(items, credits) {
-  const by = {}, done = {}, seq = [];
-  const key = sortKey_;
-  (items || []).forEach(x => { const k = qId_(x); if (k) (by[k] = by[k] || []).push(x); });
-  (items || []).forEach(x => {
-    const k = qId_(x);
-    if (!k) { seq.push(x); return; }
-    if (done[k]) return;
-    done[k] = true;
-    by[k].slice().sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0)).forEach(p => seq.push(p));
-  });
-  /* `KEPT_DRAW` FOR THE DRAW, so a card that is not whole here is given its way to Find — see
-     `finderOpenOpts_`. In a `finally`, so a throw cannot leave Find's own cards carrying it. */
-  const was = KEPT_DRAW;
-  KEPT_DRAW = true;
-  try { return [].concat(...seq.map((x, i) => cardPages_(x, credits, seq[i - 1]))); }
-  finally { KEPT_DRAW = was; }
-}
 function stuffPart_(x, part) {
   if (libSlim_(x)) { libWant_(x); return libWaitHtml_(x); }
   if (x && isProject_(x)) return projectPart_(x, part);
@@ -2821,170 +2745,18 @@ function partCard_(x, part) {
   return isQ_(x) || /^\s*<div class=.card\b/.test(h) ? h : card_(h, 'part');
 }
 
-/* TWO LETTERS FOR THE PLACEHOLDER: § */
-const BOXER_PARTICLE = /^(de|la|del|della|van|von|da|di|du|le|der|den|dos|das)$/i;
-function boxerInitials_(name) {
-  const words = String(name || '').split(/\s+/).filter(s => s && !/^(jr|sr|ii|iii|iv)\.?$/i.test(s));
-  const at = words.findIndex((s, i) => i > 0 && BOXER_PARTICLE.test(s));
-  const w = (at > 0 ? words.slice(0, 1).concat(words[at]) : words)
-    .map(s => (s.match(/[A-Za-zÀ-ÿ]/) || [''])[0]).filter(Boolean);
-  return (w.length > 1 ? w[0] + w[w.length - 1] : (w[0] || '?')).toUpperCase();
-}
-/* ---------- THE WORDS A LOOK MAY USE, AND THE ONLY ONES § */
-const BOXER_LOOK = {
-  skin: ['s1', 's2', 's3', 's4', 's5', 's6'],
-  hair: ['bald', 'shaved', 'short', 'crop-top', 'flat-top', 'afro', 'curly', 'wavy', 'slicked', 'long',
-         'ponytail', 'cornrows', 'dreads'],
-  hair_colour: ['black', 'dark-brown', 'brown', 'light-brown', 'blond', 'red', 'grey', 'white'],
-  facial: ['none', 'moustache', 'goatee', 'beard', 'stubble', 'sideburns'],
-  trunks: ['black', 'white', 'red', 'maroon', 'blue', 'navy', 'sky', 'green', 'gold', 'yellow', 'orange',
-           'purple', 'pink', 'silver', 'grey', 'tan', 'leopard'],
-};
 
-/* ---------- THE GUARD POSE, AS ROWS OF GAME PIXELS § */
-const BOXER_BODY = {
-  head: '1:6-9 2:5-10 3:5-11 4:5-11 5:5-11 6:6-9',
-  body: '7:7-8 8:4-9 9:3-10 10:3-7,11 11:3-7 12:4-8 17:4-5,10-11 18:3-4,11-12 19:3-4,11-12',
-  eye: '4:10',
-  glove: '6:11-13 7:10-14 8:10-14 9:11-13 10:8-10 11:8-11 12:9-11',
-  band: '13:4-10',
-  trunks: '14:4-10 15:4-10 16:4-6,9-11',
-  stripe: '14:5 15:5 16:5',
-  spots: '14:5,9 15:7 16:5,10',
-  boot: '20:2-4,11-13 21:2-4,11-14',
-  /* HER TOP: the chest from the shoulders to the ribs, the back arm (x 3) and the midriff (row 12)
-     left bare, so it reads as a crop top over the trunks and not as a long-sleeved shirt. */
-  top: '8:5-8 9:4-9 10:4-7 11:4-7',
-};
-/* EACH HAIR STYLE IS ITS OWN SHAPE, and has to read as that style at this size or it is not worth a word of its own: § */
-const BOXER_HAIR = {
-  bald: '', shaved: '',
-  short: '1:6-9 2:5-10 3:5-6 4:5 5:5',
-  'crop-top': '1:6-9 2:6-10',
-  'flat-top': '-1:6-10 0:5-10 1:5-10 2:5-10 3:5-6 4:5',
-  afro: '-2:6-9 -1:5-10 0:4-11 1:4-11 2:4-10 3:4-6 4:4-5 5:4-5 6:5',
-  curly: '0:6-7,9-10 1:5-10 2:5-11 3:4-6 4:4-5 5:5',
-  wavy: '0:7-9 1:5-10 2:5-11 3:4-6 4:4-5 5:4-5 6:5',
-  slicked: '1:6-10 2:5-10 3:4-6 4:5',
-  long: '1:6-9 2:5-10 3:4-6 4:4-5 5:4-5 6:4-5 7:4-5',
-  ponytail: '1:6-9 2:5-10 3:3-6 4:2-3,5 5:2,5 6:2 7:2',
-  cornrows: '1:6-9 2:5,10 3:5-6 4:5 5:5',
-  dreads: '1:6-9 2:3-10 3:3,5-6 4:3,5 5:3,5 6:3,5 7:3',
-};
-/* HAIR NOBODY DESCRIBED, AND NOT A WORD OF THE VOCABULARY: § */
-const BOXER_HAIR_UNSAID = { M: BOXER_HAIR.short, F: '1:6-9 2:5-10 3:4-6 4:4-5 5:5' };
-/* FACIAL HAIR, OVER THE FACE, in his hair colour. § */
-const BOXER_FACE = {
-  none: '',
-  moustache: '5:10-11',
-  goatee: '5:10-11 6:8-9',
-  beard: '4:6 5:6-9,11 6:6-9',
-  stubble: '4:6 5:6-9,11 6:6-9',
-  sideburns: '3:6 4:6 5:6',
-};
-function boxerRuns_(spec) {
-  return String(spec || '').split(/\s+/).filter(Boolean).map(row => {
-    const at = row.indexOf(':'), y = row.slice(0, at);
-    return row.slice(at + 1).split(',').map(r => {
-      const ab = r.split('-').map(Number), w = (ab.length > 1 ? ab[1] : ab[0]) - ab[0] + 1;
-      return `M${ab[0]} ${y}h${w}v1h-${w}z`;
-    }).join('');
-  }).join('');
-}
 
-/* ---------- A TRUNKS CELL, READ: `{ main, trim }`, OR NOTHING § */
-function boxerTrunks_(v) {
-  const parts = String(v || '').trim().toLowerCase().split('/');
-  const ok = c => BOXER_LOOK.trunks.indexOf(c) >= 0;
-  if (parts.length > 2 || !parts.every(ok) || (parts.length === 2 && parts[0] === parts[1])) return null;
-  return { main: parts[0], trim: parts[1] || '' };
-}
 
-/* ---------- THE FIGHTER: ONE RENDERER, FROM A LOOK AND A PAIR OF TRUNKS § */
-function boxerFigure_(look, trunks, blue, sex) {
-  const L = look || {};
-  const woman = String(sex || '').trim().toUpperCase() === 'F';
-  const word = (k, v) => { const w = String(v || '').trim().toLowerCase(); return BOXER_LOOK[k].indexOf(w) >= 0 ? w : ''; };
-  const skin = word('skin', L.skin), hair = word('hair', L.hair),
-        hc = word('hair_colour', L.hairColour), face = word('facial', L.facial);
-  const t = boxerTrunks_(trunks);
-  const cls = ['bf', blue ? 'bf-r' : 'bf-l'], vars = [];
-  if (woman) cls.push('bf-f');
-  if (skin || hair || hc || face) cls.push('bf-seen');
-  if (skin) { cls.push('bf-sk-' + skin); vars.push('--bf-skin:var(--bf-' + skin + ')'); }
-  if (hair) cls.push('bf-hs-' + hair);
-  if (hc) { cls.push('bf-hc-' + hc); vars.push('--bf-hair:var(--bf-hc-' + hc + ')'); }
-  if (face && face !== 'none') cls.push('bf-fh-' + face);
-  if (t) {
-    cls.push('bf-tk-' + t.main);
-    if (t.trim) cls.push('bf-tt-' + t.trim);
-    vars.push('--bf-main:var(--bf-tk-' + t.main + ')', '--bf-trim:var(--bf-tk-' + (t.trim || t.main) + ')');
-  }
-  const p = (c, spec) => (spec ? [{ el: 'path', a: { class: c, d: boxerRuns_(spec) } }] : []);
-  return { el: 'g', a: { class: cls.join(' '), transform: blue ? 'translate(29 21) scale(-1 1)' : 'translate(11 21)', style: vars.join(';') }, kids: [].concat(
-    p('bf-skin', BOXER_BODY.head + ' ' + BOXER_BODY.body),
-    p('bf-hair', hair ? BOXER_HAIR[hair] : BOXER_HAIR_UNSAID[woman ? 'F' : 'M']),
-    p('bf-face' + (face === 'stubble' ? ' bf-stubble' : ''), BOXER_FACE[face]),
-    p('bf-eye', BOXER_BODY.eye),
-    /* HER TOP IS IN HER TRUNKS' COLOUR — a fighter's kit — and in the same muted corner colour as
-       the trunks when those are not on file; painted before the gloves, which are held over it. */
-    (woman ? p('bf-top', BOXER_BODY.top) : []),
-    p('bf-glove', BOXER_BODY.glove),
-    p('bf-band', BOXER_BODY.band),
-    p('bf-trunks', BOXER_BODY.trunks),
-    /* LEOPARD IS TWO TONES, the spots painted over the trunks — or over the waistband, when it is
-       the trim — in the figure's own dark brown. */
-    (t && t.main === 'leopard' ? p('bf-spot', BOXER_BODY.spots) : []),
-    (t && t.trim === 'leopard' ? p('bf-spot', '13:5,8') : []),
-    (t && t.trim ? p('bf-stripe', BOXER_BODY.stripe) : []),
-    p('bf-boot', BOXER_BODY.boot)) };
-}
 
-/* THE RING, SIDE ON (a drawing block): two posts, three ropes, the pads in each corner's colour, the mat and the apron, and his initials over the top rope like the name on a § */
-function boxerRing_(name, blue, look, trunks, sex) {
-  const r = (cls, x, y, width, height) => ({ el: 'rect', a: { class: cls, x, y, width, height } });
-  const ropes = [].concat(...[23, 29, 35].map((y, i) => [r(i === 1 ? 'bf-rope-mid' : 'bf-rope', 3, y, 34, 1), r('bf-pad-l', 0, y - 1, 3, 3), r('bf-pad-r', 37, y - 1, 3, 3)]));
-  return { type: 'drawing', node: { el: 'svg', a: { class: 'boxer-ring', viewBox: '0 0 40 50', preserveAspectRatio: 'xMidYMid slice', 'shape-rendering': 'crispEdges', 'aria-hidden': 'true' },
-    kids: [r('bf-stage', 0, 17, 40, 26), r('bf-post', 1, 18, 2, 25), r('bf-post', 37, 18, 2, 25)].concat(ropes,
-      [r('bf-mat', 0, 43, 40, 2), r('bf-mat-edge', 0, 43, 40, 1), r('bf-apron', 0, 45, 40, 5), r('bf-apron-band', 0, 46, 40, 1),
-        boxerFigure_(look, trunks, blue, sex),
-        { el: 'text', a: { class: 'boxer-ini', x: 20, y: 15, 'font-size': 10, 'text-anchor': 'middle' }, text: boxerInitials_(name) }]) } };
-}
 
 /* AN ADDRESS THAT ALREADY FAILED ON THIS PHONE IS NOT ASKED FOR AGAIN. § */
 const BOXER_PIC_DEAD = new Set();
 
-/* THE ADDRESS A CARD MAY SHOW, or nothing. § */
-function boxerPicSrc_(b) {
-  const src = pic((b && b.image) || '');
-  return /^https:\/\//i.test(src) && !!(b && b.imageCredit) && !BOXER_PIC_DEAD.has(src) ? src : '';
-}
 
-/* `corner` IS THE FIGHT CARD'S: § */
-function boxerPic_(b, corner, won, trunks) {
-  const src = boxerPicSrc_(b);
-  const frame = { type: 'group', tag: 'span', look: 'boxer-frame',
-    blocks: [boxerRing_(b.name, corner === 'b', b.look, corner ? trunks : b.trunks, b.sex)].concat(src ? [{ type: 'media', kind: 'image', look: 'boxer-img', src, title: b.name }] : []) };
-  if (corner) return cardBlock_({ type: 'group', tag: 'span', look: 'boxer-pic is-small' + (src ? '' : ' is-none') + (won ? ' won' : ''), blocks: [frame] });
-  /* THE CREDIT IS A LINE OF ITS OWN UNDER THE PHOTO AND THE NAME, NOT A CAPTION IN THE PHOTO'S COLUMN. § */
-  return cardBlock_({ type: 'drawing', node: { el: 'figure', a: { class: 'boxer-pic' + (src ? '' : ' is-none') }, inner: cardBlock_(frame) } })
-    + (src ? cardBlock_({ type: 'group', tag: 'p', look: 'boxer-credit', inner: boxerCredit_(b, b.imageCredit) }) : '');
-}
 
-/* ---------- THE CREDIT LINKS TO THE PHOTO'S FILE PAGE § */
-const BOXER_COMMONS = /^https:\/\/upload\.wikimedia\.org\/wikipedia\/commons\/(?:thumb\/)?[0-9a-f]\/[0-9a-f]{2}\/([^/?#]+)/i;
-function boxerCommons_(src) {
-  const m = String(src || '').match(BOXER_COMMONS);
-  return m ? 'https://commons.wikimedia.org/wiki/File:' + m[1] : '';
-}
 /* `data-src` IS THE ADDRESS THE CREDIT IS FOR, so a picture that fails takes its own credit away
    and leaves another's — the fight card has two (`boxerPicFail_`). */
-function boxerCredit_(b, text) {
-  const src = boxerPicSrc_(b), page = boxerCommons_(src);
-  /* The link, where there is a file page, is a run inside the one credit span the failing picture finds. */
-  return cardBlock_({ type: 'group', tag: 'span', look: 'boxer-src', attrs: { 'data-src': src },
-    text: /^https:\/\/commons\.wikimedia\.org\//.test(page) ? { link: text, href: page } : text });
-}
 
 /* A PICTURE THAT DID NOT COME LEAVES THE RING. § */
 function boxerPicFail_(img) {
@@ -5336,8 +5108,6 @@ function qMark_(el, sel) {
   const card = el && el.closest && el.closest('.qcard');
   return card ? card.querySelector(s) : null;
 }
-/* AND A BOX'S TILES: its card's one row, or the box itself where it stands alone. */
-const qRowOf_ = box => { const card = box && box.closest && box.closest('.qcard'); return (card && card.querySelector(':scope > .kc-act')) || box; };
 function ansBox_(x) {
   if (cellsOf_(x).length) return cellsBox_(x);
   const opts = choiceList_(x);
@@ -8394,7 +8164,6 @@ function stemFigOwed_(x, p) {
 }
 /* A PAGE IS SMALLER THAN A PHONE, SO LONG WORDS ARE CUT BETWEEN PARAGRAPHS. § */
 const CHUNK_PAGE = 640;
-const PART_LAST = 300;
 const CHUNK_MIN = 160;          // a first page lighter than this joins the next -- see `packBlocks_`
 const CHUNK_BLOCK = /^(p|div|table|ul|ol|h[1-6]|blockquote|figure|pre|section|dl)$/i;
 const CHUNK_VOID = /^(br|img|hr|input|meta|link|col|wbr|source|area|base|param|track|embed)$/i;
@@ -9596,8 +9365,6 @@ const LEVEL_TABLE = [
 /* THE FRONT DOOR'S FIELD (batch C): Booking, Posts, Practice… are answers to it; `forIs_`, `book-with` and the receipts set and read this, never a literal. */
 const DOOR_FIELD = 'kindLabel';
 
-/* ---------- POSTS: state, then who, then when ---------- */
-const POST_STATES = ['Approved', 'Waiting for approval', 'Deleted'];
 function postState_(p) { return !p ? '' : p.active === false ? 'Deleted' : (p.waiting || p.refused) ? 'Waiting for approval' : 'Approved'; }
 /* A TIME FRAME, NOT A DATE: five answers however many posts there are. */
 function whenBand_(v) {
@@ -10556,8 +10323,6 @@ function subDayText_(iso) {
 }
 
 /* THE PEOPLE COLUMNS (453); `peoplePages_` (me.js) adds the signed-out card and the empty one. Student settings is `studentSetPages_`. */
-screen('students', () => pages('students', typeof cardsOf_ === 'function' ? cardsOf_('students') : peoplePages_('students')));
-screen('parents', () => pages('parents', typeof cardsOf_ === 'function' ? cardsOf_('parents') : peoplePages_('parents')));
 
 /** Everything spliced between the question and the results, whichever answer is showing. */
 /* THE BUNDLE IS THE LAST OF THEM — see `bundlePages_`. § */
@@ -10972,7 +10737,6 @@ function signMenu_() {
 }
 /* THE BLANK TAG AS DATA (the checks draw it alone through `signBox_`); a text box, so the site's keypad opens on its letters. */
 const signBoxOpt_ = mine => ({ box: { id: mine ? 'in-name' : '', cls: 'sign-box', autocapitalize: 'off', value: SIGN.who, label: 'Your username or email', placeholder: 'Username or email' }, look: 'sign-type' });
-const signBox_ = mine => cardChoice_(signBoxOpt_(mine));
 /* THE STEP'S CHIPS, first in the row: the name, then a ● per digit, each with its own ×; they stay once signed in (owner, 15 Nov). */
 function signChips_() {
   /* DATA FOR THE MENU CARD'S TAGS: a ● says only how many digits, never which. */
@@ -11556,7 +11320,6 @@ function filterChipTags_() {
       colour: f.any ? false : tagOf_(f.field) };
   }).filter(Boolean), bookChips_());
 }
-function filterChips() { return renderTags(filterChipTags_(), 'chips', true); }
 
 /* NO CLEAR-ALL BIN (owner, 16 Nov: it broke the card template): each tag's × clears it; `filter-clear` stays for code that starts again. */
 function filterClear_() { return ''; }
@@ -11869,8 +11632,6 @@ const PANE_REACH = 24;
 /* ==== js/find-pages.js ==== */
 /* THE ZOOM LADDER (533, U10): a card is drawn at one of these and nothing between, so a title has three sizes and not seven. */
 const PANE_ZOOM_STEPS = [1, 0.875, 0.75];
-/* HOW SMALL A CARD MAY BE DRAWN TO FIT ITS PANE before it scrolls instead: the ladder's last step. See `paneReach_`. */
-const PANE_ZOOM_MIN = PANE_ZOOM_STEPS[PANE_ZOOM_STEPS.length - 1];
 /* NEARLY FITTING IS FULL SIZE (533): above this the card is drawn at 1 in a pane with its spacing tightened (`.pane.is-snug`), not at .97. */
 const PANE_ZOOM_SNUG = 0.95;
 /* THE FLOORS (533, D3): no step that draws body words under 11px, a 44px tile (950) under 36px or a Check under 44px; past them the pane scrolls. */
@@ -12553,36 +12314,7 @@ screen('stuff', () => inFinder_(FINDERS.stuff, finderScreen_));
    — one swipe, and the pager names it — so a control that jumps there is a shortcut to somewhere
    already visible. */
 
-/* ---------- THE DOCKET § */
-/* ---------- `x ` AS THE DONE MARKER CORRUPTED ANY LINE STARTING WITH AN X § */
-const DOCK_DONE = /^-\s*\[\s*x\s*\]\s+/i;
-const DOCK_OPEN = /^-\s*\[\s*\]\s+/;
-const DOCK_OLD  = /^(x|\u2713)\s+/i;
 
-function docketLines() {
-  return String((USER && USER.todo) || '').split(/\r?\n/)
-    .map(t => t.trim()).filter(Boolean)
-    .map(t => {
-      if (DOCK_DONE.test(t)) return { done: true,  text: t.replace(DOCK_DONE, '') };
-      if (DOCK_OPEN.test(t)) return { done: false, text: t.replace(DOCK_OPEN, '') };
-      /* THE OLD FORM, READ ONLY — tried last, so a new-style line can never reach it. */
-      if (DOCK_OLD.test(t))  return { done: true,  text: t.replace(DOCK_OLD, '') };
-      return { done: false, text: t };
-    })
-    /* A LINE THAT WAS NOTHING BUT A MARKER leaves an empty text, and an empty row is a row you
-       cannot tick, delete or read. Dropped here rather than drawn. */
-    .filter(l => l.text);
-}
-
-/* WRITTEN WITH THE BOX EVERY TIME, done or not. An undone line with no marker would read back
-   correctly today, and then two forms would be in circulation and the next person would have to
-   know that. One form out. */
-const docketText = list =>
-  list.map(l => (l.done ? '- [x] ' : '- [ ] ') + l.text).join('\n');
-
-/* Kept in step on the phone first, then sent. A tick that waits for a round trip before moving is
-   a tick that feels broken on a train — and this is a scrap of paper, not a payment. */
-let dockTimer = null;
 
 ;
 /* ==== js/find-settled.js ==== */
@@ -12781,182 +12513,6 @@ function bundleTags_(b) {
 
 ;
 /* ==== js/find-measure.js ==== */
-function docketSave(list) {
-  if (!USER) return;
-  USER.todo = docketText(list);
-  try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch { /* storage blocked: the sign-in still holds for this visit */ }
-  paintDocket();
-
-  /* Debounced, because ticking four things off in four seconds is one intention and four writes
-     to a spreadsheet cell. The last one wins and the three before it were never worth sending. */
-  clearTimeout(dockTimer);
-  const said = $('dock-said');
-  if (said) tell_(said, 'busy', 'Saving…');
-  /* AND BOOKED TO GO AS THE PAGE GOES (`keepDue_`, data.js; 317). */
-  const sendTodo = keepalive => {
-    clearTimeout(dockTimer);
-    keepDue_('docket', null);
-    if (!USER) return;
-    return api({ action: 'saveItem', item: 'todo',
-      name: USER.name, personId: USER.personId, todo: USER.todo }, keepalive ? { keepalive: true } : undefined)
-      .then(d => {
-        if (d && d.error) throw new Error(d.error);
-        const el = $('dock-said');
-        if (el) el.textContent = 'Saved';
-      })
-      .catch(err => {
-        /* SAID, not swallowed. A list that looks saved and is not is worse than one that never
-           pretended — you find out by opening it tomorrow to nothing. */
-        const el = $('dock-said');
-        if (el) el.textContent = why_(err);
-      });
-  };
-  dockTimer = setTimeout(sendTodo, 900);
-  keepDue_('docket', sendTodo);
-}
-
-function paintDocket() {
-  const host = $('docket-body');
-  if (!host) return;
-  /* SIGNED OUT, NO ADD ROW (720): it took a line and did nothing with it, which reads as broken. */
-  const row = host.parentElement && host.parentElement.querySelector('.dock-new');
-  if (row) row.hidden = !USER;
-  if (!USER) { host.innerHTML = empty_('Sign in to keep a docket.'); return; }
-  /* Google Tasks lives with the tasks it copies, not in Student settings (491). */
-  const gt = $('docket-gtasks');
-  if (gt) gt.innerHTML = typeof window.gtasksCard_ === 'function' ? window.gtasksCard_() : '';
-
-  const list = docketLines();
-  if (!list.length) {
-    host.innerHTML = empty_('Nothing on it yet.');
-    return;
-  }
-  const left = list.filter(l => !l.done).length;
-
-  /* ---------- A ROW IS IDENTIFIED BY ITS TEXT, NOT BY WHERE IT SITS § */
-  host.innerHTML = cardBlocks_(list.map((l, i) => ({ type: 'group', tag: 'label', look: 'row dock-item' + (l.done ? ' done' : ''),
-    blocks: [{ type: 'control', attrs: { type: 'checkbox', 'data-do': 'dock-tick', 'data-i': i, 'data-t': l.text, checked: !!l.done } },
-      { type: 'group', tag: 'span', look: 'box' },
-      { type: 'group', tag: 'span', look: 'dock-text', text: { marked: l.text } }],
-    /* A BUTTON, NOT A SPAN. § */
-    tiles: [{ icon: 'close', label: 'Remove ' + l.text, act: 'dock-drop', data: { i: i, t: l.text }, cls: 'text-drop' }] }))
-    .concat({ type: 'group', look: 'row dock-foot', blocks: [{ type: 'group', tag: 'span', look: 'k', text: left ? left + ' left' : 'All done' }]
-      .concat(list.length > left ? [{ type: 'group', tag: 'span', look: 'v', tiles: [{ form: true, label: 'Clear done', act: 'dock-clear', kind: 'quiet', cls: 'tiny' }] }] : []) }));
-}
-
-/* WHICH ROW THE TAP MEANT. See the note in `paintDocket`: the index is a hint, the text is the
-   identity, because the list can be renumbered between the draw and the tap. */
-function dockRow_(list, el) {
-  const i = Number(el.dataset.i);
-  const t = el.dataset.t;
-  if (t === undefined) return list[i] ? i : -1;        // no text to match on: markup from before
-  if (list[i] && list[i].text === t) return i;
-  return list.findIndex(l => l.text === t);
-}
-
-on('dock-tick', el => {
-  const list = docketLines();
-  const i = dockRow_(list, el);
-  /* REDRAWN IF THE ROW HAS GONE, so the box does not sit checked against a line that is not there
-     — the checkbox has already moved itself by the time this runs. */
-  if (i < 0) { paintDocket(); return; }
-  list[i].done = !!el.checked;
-  docketSave(list);
-});
-
-/* Dropping one is immediate and has no undo, which is right for a line somebody wrote thirty
-   seconds ago — a confirmation on a scrap of paper is a confirmation nobody reads. */
-on('dock-drop', (el, e) => {
-  /* It sits inside the label, so without this a tap would toggle the tick on its way past. § */
-  e?.preventDefault?.();
-  e?.stopPropagation?.();
-  if (!sure_(el, 'Remove?')) return;
-  const list = docketLines();
-  const i = dockRow_(list, el);
-  if (i < 0) { paintDocket(); return; }               // already gone: redraw, delete nothing
-  list.splice(i, 1);
-  docketSave(list);
-});
-
-on('dock-clear', () => docketSave(docketLines().filter(l => !l.done)));
-
-/* THE BOX IN THE COPY PRESSED (Find may hold two), and an empty press says what to do (owner, 12 Nov: every press answers). */
-on('dock-add', el => {
-  const host = el && el.closest && el.closest('[id^="wgt-"]');
-  const box = (host && host.querySelector('#dock-add')) || $('dock-add');
-  const text = (box && box.value || '').trim();
-  if (!text) { document.querySelectorAll('[id="dock-said"]').forEach(n => { n.textContent = 'Type a line first.'; }); box?.focus(); return; }
-  const list = docketLines();
-  /* NEW LINES GO AT THE BOTTOM. A list that grows from the top moves everything you were reading
-     every time you add to it, which on a phone means losing your place to your own typing. */
-  list.push({ done: false, text });
-  if (box) { box.value = ''; box.focus(); }
-  docketSave(list);
-});
-
-/* Enter adds it. A phone keyboard shows "return" over that field and pressing it doing nothing is
-   the smallest possible way to make a form feel broken. */
-document.addEventListener('keydown', e => {
-  if (e.target && e.target.id === 'dock-add' && e.key === 'Enter') {
-    e.preventDefault();
-    ACTIONS['dock-add']?.();
-  }
-});
-
-/* ---------- THE NOTEPAD § */
-/* WHETHER THIS BOX MAY KEEP A SWIPE IS A FACT ABOUT WHAT IS IN IT, AND ONLY THE APP CAN ASK. § */
-function padReach_(pad) {
-  if (!pad) return;
-  try {
-    pad.style.touchAction = pad.scrollHeight > pad.clientHeight + 6 ? 'pan-y' : 'none';
-  } catch (e) { /* an old browser keeps its default scrolling */ }
-}
-
-function initPad() {
-  const pad = $('notepad');
-  if (!pad) return;
-  pad.value = (USER && USER.notepad) || '';
-  pad.disabled = !USER;
-  padReach_(pad);
-  const said = $('pad-said');
-  if (said) tell_(said, 'info', USER ? 'Saves as you type.' : 'Sign in to keep notes.');
-}
-
-/* THE NOTEPAD'S SAFE PRESS (owner, 12 Nov): copies the notes and says so; nothing is changed or lost. */
-on('pad-copy', () => {
-  const pad = $('notepad'), said = $('pad-said');
-  const say = t => { if (said) tell_(said, 'info', t); };
-  Promise.resolve().then(() => navigator.clipboard.writeText(pad ? pad.value : '')).then(() => say('Copied.'), () => say('Copy is blocked here.'));
-});
-let padTimer = null;
-document.addEventListener('input', e => {
-  if (e.target.id !== 'notepad' || !USER) return;
-  padReach_(e.target);
-  USER.notepad = e.target.value;
-  try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch { /* storage blocked: the sign-in still holds for this visit */ }
-  clearTimeout(padTimer);
-  const said = $('pad-said');
-  if (said) tell_(said, 'busy', 'Saving…');
-  /* Longer than the docket's, because this is typed continuously rather than tapped. § */
-  padTimer = setTimeout(padSend_, 1400);
-  keepDue_('notepad', padSend_);
-});
-function padSend_(keepalive) {
-  clearTimeout(padTimer);
-  keepDue_('notepad', null);
-  if (!USER) return;
-  return api({ action: 'saveItem', item: 'notepad',
-    name: USER.name, personId: USER.personId, notepad: USER.notepad }, keepalive ? { keepalive: true } : undefined)
-    .then(d => {
-      if (d && d.error) throw new Error(d.error);
-      const el = $('pad-said');
-      if (el) el.textContent = 'Saved';
-    })
-    .catch(err => {
-      const el = $('pad-said');
-      if (el) el.textContent = why_(err);
-    });
-}
 /* ---------- MEASURING ON THE FIGURE (385): "There needs to be a protocol for this type of question. Like protractor tool." */
 /* Ruler and Protractor are in every part's tool row (qtools.js); on a figure with no pen open they lie on it here. */
 /* THE TOOL ON THE GLASS: which card, which tool, its centre (protractor) or zero (ruler) in the figure's own units, its turn in degrees */
@@ -16056,27 +15612,6 @@ function markRest_(ms) {
   };
   if (ms === 0) rest(); else MARK_REST = setTimeout(rest, ms);
 }
-/* MARK WITH AI'S PRESS: § */
-function markWait_() {
-  if (!markHear_()) return () => {};
-  MARK_HOLD++;
-  let held = true;
-  return () => {
-    if (!held) return;
-    held = false;
-    MARK_HOLD = Math.max(0, MARK_HOLD - 1);
-    markRest_(MARK_REST_MS);
-  };
-}
-/* ---------- WHETHER THE CHILD IS STILL AT THE CARD, SO A LATE VERDICT KNOWS WHETHER TO BE HEARD § */
-function markWhere_(k) {
-  try {
-    if (!k || document.visibilityState === 'hidden') return false;
-    const host = document.getElementById('s-' + AT);
-    const pg = host && host.querySelector(':scope > .page.on');
-    return !!pg && [...pg.querySelectorAll('.qp-ans-in[data-k], .qp-multi-val[data-k]')].some(el => el.getAttribute('data-k') === k);
-  } catch (e) { return false; }
-}
 
 /* ---------- AND PLAYED § */
 const MARK_LATE_MS = 600;
@@ -16420,8 +15955,6 @@ function workVerdictSay_(v) {
   const m = /^ai:(\d+)\/(\d+)$/.exec(String(v || ''));
   return m ? m[1] + ' of ' + m[2] + ' by AI' : 'saved, not marked';
 }
-/* A BOX'S PAGES, made if missing -- for a check that cannot run the phone's canvas shrink. */
-function workPics_(k) { return WORK_PICS[k] || (WORK_PICS[k] = []); }
 
 /* ---------- THE PHOTOS PERSIST (owner, 16 Nov): in the part's one record on this device (`partRec_`, field `photos`) and on the
    account, as the student's own Work on file (workfile.gs), one row per part named by its answer key -- so coming back to the
@@ -16430,7 +15963,6 @@ const WORK_TAG = 'Working ';
 const workTitle_ = k => (WORK_TAG + (typeof ansServerKey_ === 'function' ? ansServerKey_(k) : k)).slice(0, 80);
 const workRecKey_ = k => partKeyOfAns_(k);
 let WORK_ROWS = null;
-const WORK_SYNC = new Map();
 /* WORK_PICS FILLED FROM THE RECORD the first time a box is drawn this visit; then from the account where the device has none */
 function workLoad_(k) {
   if (!k || WORK_PICS[k]) return;
@@ -16464,13 +15996,7 @@ function workKeepHere_(k) {
   const urls = (WORK_PICS[k] || []).map(p => p.url);
   partRecPutAt_(workRecKey_(k), 'photos', urls.length ? urls : null);
 }
-/* KEPT AS THEY CHANGE: here at once; to the account a moment later, the old row deleted once the new one is saved */
-function workKeep_(k) {
-  workKeepHere_(k);
-  if (!workSignedIn_() || typeof api !== 'function') return;
-  clearTimeout(WORK_SYNC.get(k));
-  WORK_SYNC.set(k, setTimeout(() => workSend_(k), 1200));
-}
+const WORK_SYNC = new Map();
 function workSend_(k) {
   const pages = (WORK_PICS[k] || []).map(p => p.url);
   const old = partRecAt_(workRecKey_(k)).photoFile || '';
@@ -16485,6 +16011,13 @@ function workSend_(k) {
     })
     .catch(() => workSay_(k, 'Could not reach the server — the photos are kept on this device'));
 }
+function workKeep_(k) {
+  workKeepHere_(k);
+  if (!workSignedIn_() || typeof api !== 'function') return;
+  clearTimeout(WORK_SYNC.get(k));
+  WORK_SYNC.set(k, setTimeout(() => workSend_(k), 1200));
+}
+
 
 ;
 /* ==== js/work-file.js ==== */
@@ -16966,8 +16499,6 @@ function calcSay(v, f) {
   if (!dec) { const e = cExact_(v); if (e) return cExactHtml_(e); }
   return calcDec(v);
 }
-/* An answer as plain text (3/4, 1.5×10^12, √2/2, 1 1/2, 2^3×3), for the check and anything that wants a string. */
-const calcText = (v, dec) => calcPlain_(calcSay(v, dec), true);
 
 /* ---- editing: the cursor is a row and an index between its nodes */
 function calcNew() {
@@ -17252,7 +16783,6 @@ const QT_TOOLS = [
 const QT_ROW = ['photo', 'graph', 'mag', 'read', 'lock', 'ruler', 'protractor', 'calc', 'offline'];
 /* THE PEN'S TILES, added only where the part has a figure to draw on (a drawing answer needs its pen) */
 const QT_DRAWING = { pen: 1, line: 1, compass: 1 };
-const QT_ORDER = QT_ROW.concat(Object.keys(QT_DRAWING), ['check']);
 /* THE PEN'S OWN NAME FOR EACH DRAWING TILE: Straight line is the pad's `ruler` mode (a line from press to lift, `padStroke_`). */
 const QT_PAD_TOOL = { pen: 'pen', line: 'ruler', compass: 'compass', protractor: 'protractor' };
 const qMulti_ = x => { try { return (questionParts_()[qId_(x)] || []).length > 1; } catch (e) { return false; } };
@@ -17262,7 +16792,6 @@ const qtTool_ = id => QT_TOOLS.find(t => t.id === id) || null;
 const PART_MEM = new Map();
 /* 'ans:<who>:<item>' is 'part:<who>:<item>': any box's key names its record, so a writer holding only the key finds it */
 const partKeyOfAns_ = k => /^ans:/.test(String(k || '')) ? String(k).replace(/^ans:/, 'part:') : 'part:' + String(k || '?');
-const partRecKey_ = x => partKeyOfAns_(ansKey_(x));
 function partRecAt_(pk) {
   if (PART_MEM.has(pk)) return PART_MEM.get(pk);
   let rec = null;
@@ -17290,21 +16819,8 @@ function partRecPutAt_(pk, field, v) {
   if (v == null || v === '') delete rec[field]; else rec[field] = v;
   try { localStorage.setItem(pk, JSON.stringify(rec)); } catch (e) { /* this visit only */ }
 }
-const partRecRaw_ = x => partRecAt_(partRecKey_(x));
 /* WHAT THE PART HOLDS, every kind of answer in one shape. The typed box and the pen go to the account under their own
    synced keys (answers.js, the server's ceilings); the record reads them, so nothing saved before it is lost. */
-function partRec_(x) {
-  const rec = Object.assign({}, partRecRaw_(x));
-  const ak = typeof ansKey_ === 'function' ? ansKey_(x) : '';
-  const a = ak && typeof ansRead_ === 'function' ? ansRead_(ak) : '';
-  const isChoice = Array.isArray(x && x.choices) && x.choices.length >= 2;
-  const isCells = typeof cellsOf_ === 'function' && cellsOf_(x).length > 0;
-  if (a) { if (isChoice) rec.choice = a; else if (isCells) rec.cells = a; else rec.text = a; }
-  try { rec.strokes = typeof padRead_ === 'function' ? padRead_(padKey_(x)) : []; } catch (e) { rec.strokes = []; }
-  /* THE PHOTOS OF THE WORKING, kept in this record and on the account (`workKeep_`, working.js): their data URLs */
-  rec.photos = (typeof WORK_PICS !== 'undefined' && WORK_PICS[ak]) ? WORK_PICS[ak].map(p => p.url) : (Array.isArray(rec.photos) ? rec.photos : []);
-  return rec;
-}
 
 /* ---------- THE MARKER: the one thing that varies between parts -- qtypes.js `qtMarker_`, which the Function tag reads too. */
 /* WHAT THE LINE UNDER CHECK SAYS, by marker: how this part will be marked, before it is. Never a person. */
@@ -17442,8 +16958,6 @@ function qtTiles_(x, ans) {
     [ans && typeof qaToggleOpts_ === 'function' ? qaToggleOpts_(ansKey_(x), ansOpen_(x)) : null,
       typeof helpOpts_ === 'function' ? helpOpts_(x, '') : null]).filter(Boolean);
 }
-/* THE ROW ALONE (a check draws a pad with it): the card's own row maker, as `renderCard` draws it. */
-function qtRow_(x) { return x && x.key ? kcActRow_(x, '', tile_(qtTiles_(x)), { look: 'qt-row', key: x.key }) : ''; }
 const qtItem_ = key => { try { return stuffItemsAll_().find(it => it && it.key === key) || null; } catch (e) { return null; } };
 const qtKeyOf_ = el => (el && el.getAttribute('data-key')) || '';
 /* ---------- THE CARD DRAWN AGAIN, where it stands: what a pen opened needs, its plan forgotten first. */
@@ -17781,14 +17295,6 @@ const mapHtml_ = (name, ...parts) => cardBlocks_([mapHead_(name)].concat(parts))
 
 /* ---------- `draw` AND `pure`: WHAT THE BUILDER MAY DO WITH A WIDGET BEFORE ANYBODY ARRIVES § */
 const WIDGETS = [
-  /* `stop` IS THE CLIP. This card deals a fact on a tap and some of those facts are videos, so leaving the column with one playing left it playing — the same fault § */
-  /* A TOOL (owner, 12 Nov): a Find card under Tools, like every widget brought back. */
-  { id: 'reels', kind: 'tool', name: 'One more thing', start: () => initFeed?.(),
-    /* DRAWN AHEAD AS THE FACT'S CARD AND NOTHING ELSE (`feedPaint_`, overworld.js): § */
-    draw: () => feedPaint_?.(),
-    stop: () => { if (typeof window.clipsStop_ === 'function') window.clipsStop_($('feed-screen')); },
-    into: 'feed-screen', what: 'This',
-    get html() { return mapHtml_('One more thing', mapBox_('feed-screen', 'feed', { attrs: { 'data-do': 'feed-tap' } })); } },
 
   /* ---------- VIDEOS — TYPE, TAP, WATCH § */
   { id: 'videos', kind: 'reel', name: 'Videos', start: () => window.initVideos?.(),
@@ -17799,59 +17305,21 @@ const WIDGETS = [
     into: 'vid-box', what: 'The videos',
     get html() { return mapHtml_('Videos', mapBox_('vid-box', 'vid-box')); } },
   /* ---------- NEWSPAPER (owner, 12 Nov): a Sunday paper's fun section, one page on one card, never endless — newspaper.js reads data/settings/newspaper.json. */
-  { id: 'newspaper', kind: 'tool', name: 'Sunday Funday', pure: true, start: () => window.initNewspaper_?.(),
-    into: 'np-box', what: 'The newspaper',
-    get html() { return mapHtml_('Sunday Funday', mapBox_('np-box', 'np-box')); } },
   /* `solid` — AN INSTRUMENT, NOT A CARD. § */
   /* MESSAGES, as a widget. § */
   /* MESSAGES IS NOT A WIDGET ANY MORE. § */
 
-  { id: 'docket', kind: 'tool', name: 'Docket', solid: true, pure: true, start: () => paintDocket?.(),
-    into: 'docket-body', what: 'The docket',
-    get html() { return mapHtml_('Docket', mapBox_('docket-body'),
-      mapBox_(null, 'dock-new', { blocks: [{ type: 'control', attrs: { id: 'dock-add', placeholder: 'Add a line…', autocomplete: 'off' } }],
-        tiles: [{ form: true, label: '＋', act: 'dock-add', kind: 'quiet', cls: 'tiny' }] }),
-      mapBox_('dock-said', 'said said-s', { tag: 'p' }),
-      mapBox_('docket-gtasks')); } },
-  { id: 'notepad', kind: 'tool', name: 'Notepad', solid: true, pure: true, start: () => initPad?.(),
-    into: 'notepad', what: 'The notepad',
-    get html() { return mapHtml_('Notepad',
-      { type: 'control', tag: 'textarea', attrs: { id: 'notepad', placeholder: 'Jot something down…' } },
-      mapBox_('pad-said', 'said said-s', { tag: 'p', text: 'Saves as you type.' }),
-      { type: 'tiles', tiles: [{ icon: 'doc', label: 'Copy', note: 'the notes', act: 'pad-copy' }] }); } },
   /* ---------- SPEED READ (403): paste, then one word at a time — reader.js ---------- */
-  { id: 'speedread', kind: 'tool', name: 'Speed reader', solid: true, pure: true, start: () => initSpeedRead?.(),
-    into: 'sr-text', what: 'The speed reader',
-    get html() { return mapHtml_('Speed reader',
-      { type: 'control', tag: 'textarea', attrs: { id: 'sr-text', placeholder: 'Paste text to read…' } },
-      /* A TILE, NOT A BUTTON (720): Read is the thing's action, so it is a tile in a row under it (house style). */
-      { type: 'tiles', tiles: [{ icon: 'play', label: 'Read it', act: 'sr-read' }] }); } },
 
   /* ---------- THE BASKET, WHICH HAS NOW LIVED IN FOUR PLACES § */
-  { id: 'cart', kind: 'shop', name: 'Basket', start: () => initCart?.(),
-    into: 'cart-box', what: 'What is in it',
-    /* BOTH AN ID AND A CLASS. § */
-    get html() { return mapHtml_('Basket', mapBox_('cart-box', 'cart-box')); } },
-  /* SEARCH THE SHOP (491): the shared pill, and what matches listed under it; a tap goes to the item. */
-  { id: 'shopfind', kind: 'tool', name: 'Search the shop', pure: true, start: () => paintShopFind_?.(),
-    into: 'shop-find-box', what: 'The shop search',
-    get html() { return mapHtml_('Search the shop', mapBox_('shop-find-box', 'shop-find')); } },
 
   /* ---------- TERM DATES AND COUNTDOWNS (466): the owner — "a widget in the Tools column telling the user the end dates of the next 3 academic intervals"; countdowns "available for everyone under Tools". */
   { id: 'termdates', kind: 'tool', name: 'Term dates', pure: true, start: () => paintTermDates_?.(),
     draw: () => paintTermDates_?.(),
     into: 'td-box', what: 'The term dates',
     get html() { return mapHtml_('Term dates', mapBox_('td-box', 'td-box')); } },
-  { id: 'countdowns', kind: 'tool', name: 'Countdowns', start: () => paintCountdowns_?.(),
-    draw: () => paintCountdowns_?.(),
-    into: 'cd-box', what: 'The countdowns',
-    get html() { return mapHtml_('Countdowns', mapBox_('cd-box', 'cd-box')); } },
 
   /* ---------- FAVOURITE LINKS (509): ten a person keeps on their account; for everybody, so signing in moves no page (339) — favlinks.js ---------- */
-  { id: 'favlinks', kind: 'tool', name: 'Favourite links', solid: true,
-    start: () => window.initFavLinks_?.(),
-    into: 'fav-box', what: 'Your favourite links',
-    get html() { return mapHtml_('Favourite links', mapBox_('fav-box')); } },
   /* ---------- THE PIXEL EDITOR (547): bare bones -- a grid, a colour, pen or eraser, Clear, a PNG; this device only -- pixel.js ---------- */
   { id: 'pixel', kind: 'tool', name: 'Pixel editor', solid: true, pure: true,
     start: () => window.initPixel_?.(),
@@ -17939,10 +17407,6 @@ function myJobPages_() {
 
 /* WHICH PAGE OF THE BOOKING COLUMN A SESSION IS ON, or -1. Page 0 is the form, so the receipts
    start at 1 — read off the same list that builds them rather than counted a second time. */
-function jobPageAt_(id) {
-  const n = myJobsOrdered_().findIndex(j => String((j && (j.id || j.jobId)) || '') === String(id));
-  return n < 0 ? -1 : n + 1;
-}
 
 /* THE RECEIPT FOR THE BOOKING JUST SENT — see `ASKED_JOB` above for why it is one and not a list. § */
 function askedBlock_() {
@@ -18056,12 +17520,6 @@ function jobOn_(j, date) {
   return (!from || d >= from) && (!to || d <= to);
 }
 
-/* The Monday of the week holding `when`, at midnight — the week every "this week" here means. */
-function mondayOf_(when) {
-  const d = new Date(when || Date.now()); d.setHours(0, 0, 0, 0);
-  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
-  return d;
-}
 
 /* ---------- REPAINTING BOOK WITHOUT LOSING THE PLACE § */
 /* ---------- REPAINTING THE BOOKER, WHEREVER IT IS § */
@@ -19670,32 +19128,6 @@ function discountSaid_(j) {
     sel: cardBlock_({ type: 'paperInput', kind: 'number', value: pc > 0 ? String(pc) : '', placeholder: '% off', off: true, aria: 'Discount, per cent off' }) });
 }
 
-/* ---------- WHAT THE CARD HOLDS, FOR A SUGGESTION ABOUT IT § */
-function bookFieldsSaid_() {
-  try {
-    const ini = n => String(n || '').split(/\s+/).filter(Boolean).map(w => w[0].toUpperCase() + '.').join('');
-    const person = v => (v === NOBODY || v === UNNAMED) ? v : ini(v);
-    const fb = st => st.fallback ? String(st.fallback() || '') : '';
-    const on = bookOn_();
-    const out = BOOK_STEPS.filter(st => st.short && onlyHas_(st.only, on)).map(st => {
-      const v = BOOKING[st.id];
-      const list = [].concat(v == null ? [] : v).filter(x => String(x).trim());
-      const said = st.id === 'client' ? person(v || fb(st))
-        : st.id === 'kids' ? list.map(person).join(', ')
-        : st.grid === 'blocks' ? blockSay_(v)
-        : st.grid ? bookRuns().map(r => fmtDate_(r.dayName, 'day') + ' ' + fmtDate_(r.hour, 'hours', r.hour + r.hours)).join(', ')
-        : st.multi ? (list.join(', ') || fb(st))
-        : (st.label_ && v ? st.label_(v) : (v || fb(st)));
-      return st.short + ': ' + dash_(String(said || '').trim());
-    });
-    const admin = typeof may_ === 'function' && may_('admin');
-    if (admin && !isWaiting_()) out.push('Discount: ' + (Number(BOOKING.discValue) > 0 ? BOOKING.discValue + '%' : dash_()));
-    const L = bookPrice();
-    if (L && L.total > 0) out.push((admin && !isWaiting_() ? text_('client-pays') : 'Cost') + ': ' + fmtMoney_(L.total));
-    if (String(BOOKING.note || '').trim()) out.push('Note: written (not copied)');
-    return 'Fields: ' + out.join(' · ');
-  } catch (e) { return ''; }
-}
 
 const jobReceipt = (j, foot) => bookingDoc_(j, foot);
 
@@ -20455,7 +19887,6 @@ function sureBack_(el) {
 }
 
 let FEED_AT = null;
-let timerState = { total: 25*60, left: 25*60, running: false, tick: null };
 let FEED_DECK = [];
 let FEED_SEEN = [];
 let FEED_PASS = 0;
@@ -20480,128 +19911,15 @@ function policyLinks_(who) {
 
 ;
 /* ==== js/collections.js ==== */
-/* @family. — collections.js THREE COLUMNS THAT ARE ONE IDEA. § */
-
-
-/* ---------- THE SPOTLIT SET § */
-let SPOT = new Set();
-
-/* ---------- THE SHEET IS THE AUTHORITY THE MOMENT IT HOLDS A ROW, AND THE FILE IS THE FLOOR § */
-function spotNow_() {
-  const sheet = (DATA && DATA.spotlight);
-  /* AN ARRAY IS THE ANSWER, EMPTY OR NOT. § */
-  if (Array.isArray(sheet)) return sheet.map(String);
-  const file = (DATA && DATA.spotlightFile) || [];
-  return (Array.isArray(file) ? file : []).map(String);
-}
-
-function adoptSpotlight_() {
-  SPOT = new Set(spotNow_());
-}
-
-const isSpot = k => SPOT.has(String(k));
-
-/* Toggled by an admin, and saved one row at a time for the reason `favourite` is: writing a whole
-   list back is a read-modify-write, and two admins on two phones would lose one of the two taps. */
-
-/* ---------- ONE PLACE THAT SAYS WHETHER A KEY IS SPOTLIT, AND EVERYTHING THAT SHOWS IT FOLLOWS § */
-function spotSet_(key, on) {
-  if (on) SPOT.add(key); else SPOT.delete(key);
-  try { DATA.spotlight = Array.from(SPOT); } catch (e) {}
-  const label = on ? 'Spotlit' : 'Spotlight';
-  document.querySelectorAll('[data-do="spot"]').forEach(el => {
-    if (el.getAttribute('data-key') === key) tileSet_(el, { label: label, on: on });
-  });
-  markStale_(TABS.map(t => t.id).filter(id => id !== AT));
-  if (AT === 'spotlight') repaint(true);
-}
-
-function toggleSpot(k, kind) {
-  if (!may_('admin')) return;
-  const key = String(k);
-  const want = !SPOT.has(key);
-  /* AT ONCE, BEFORE THE SERVER HAS SAID ANYTHING. § */
-  spotSet_(key, want);
-
-  /* ---------- THIS CALLED `send` WITH TWO ARGUMENTS AND `send` TAKES ONE § */
-  send({
-    action: 'saveItem', item: 'spotlight',
-    name: USER.name,
-    /* ---------- AND THE ID, BECAUSE A NAME IS A CELL SOMEBODY CAN EDIT § */
-    personId: (USER && USER.personId) || '',
-    /* THE KEY GOES ACROSS WHOLE and the kind is passed separately, for the same reason the star does it: § */
-    kind: kind || 'item', itemId: key,
-    on: want ? 'TRUE' : '',
-  }).then(res => {
-    /* RECONCILED WITH WHAT THE SHEET NOW HOLDS. § */
-    if (res && typeof res.on === 'boolean' && res.on !== want && SPOT.has(key) === want) {
-      spotSet_(key, res.on);
-    }
-  }).catch(err => {
-    /* PUT BACK WHAT WAS NOT SAVED, and only if it is still what this tap left — a second tap has
-       already said something newer. Leaving the card on (or off) the column after the save failed
-       is the lie this was built on. */
-    if (SPOT.has(key) === want) spotSet_(key, !want);
-    toast(why_(err));
-  });
-}
-
-on('spot', el => {
-  /* THE TILE, THE PAYLOAD'S COPY AND THE COLUMN ARE ALL DONE IN `spotSet_`, so the press and the
-     refusal that may undo it go through one function rather than two that could disagree. */
-  toggleSpot(el.getAttribute('data-key'), el.getAttribute('data-kind'));
-});
+/* @family. — collections.js: Saved and the Basket. */
 
 
 /* ---------- A SET, AS CARDS ----------------------------------------------------------------------
    ONE FUNCTION FOR ALL THREE, because the only thing that varies is the test. */
-/* ---------- LOOKED UP IN EVERY ITEM, NOT IN THE ONES THE FUNNEL IS OFFERING § */
-function collItems_(has) {
-  const all = typeof stuffItemsAll_ === 'function' ? stuffItemsAll_()
-            : (typeof stuffItems === 'function' ? stuffItems() : []);
-  const kept = all.filter(x => x.key && has(x.key));
-  /* AND THE BIBLE'S VERSES, WHICH ARE ON NO LIST HERE. § */
-  return typeof bibleKept_ === 'function' ? kept.concat(bibleKept_(has)) : kept;
-}
 
 const collCredits_ = () => (USER ? (USER.credits || 0) : 0);
 
 
-/* ---------- SPOTLIGHT, ON THE FEED § */
-function spotPages() {
-  const items = collItems_(isSpot);
-  if (!items.length) return [];
-  const credits = collCredits_();
-  /* THE WINDOW'S OWN CARDS KEEP THE ADMIN'S SPOTLIGHT TILE, even on a question -- see `SPOT_TILES` in
-     tiles.js: Find draws a question the same for everybody, and this is not Find. */
-  SPOT_TILES = true;
-  try { return keptPages_(items, credits); }
-  finally { SPOT_TILES = false; }
-}
-
-/* ---------- AND IT IS A COLUMN AGAIN, WHICH IS THE THIRD TIME IT HAS MOVED § */
-function spotlightCards_() {
-  /* THE PAYLOAD DID NOT COME. `nothingHere` is the one thing that can tell a failed request from an
-     empty list, and it draws the reason and a Try again. */
-  if (typeof LOAD_FAILED !== 'undefined' && LOAD_FAILED && typeof nothingHere === 'function') {
-    return [nothingHere()];
-  }
-  /* ---------- AND THE THIRD STATE WAS MISSING: NOT ARRIVED YET § */
-  if (typeof awaiting_ === 'function' && awaiting_()) return [loading_()];
-  const cards = spotPages();
-  if (cards.length) return cards;
-  /* EMPTY IS THE TITLE ALONE (414), for an admin too: `emptyCard_`, shell.js. */
-  return [emptyCard_('Spotlight')];
-}
-
-
-/* ---------- FAVOURITES, ON THE FIND SCREEN § */
-function savedPages_() {
-  if (!USER) return [];
-  const credits = collCredits_();
-  /* A QUESTION'S KEPT PARTS TOGETHER, ITS OPENING ONCE -- see `keptPages_`. */
-  return keptPages_(collItems_(isFav), credits);
-}
 
 
 /* ---------- BASKET § */
@@ -20733,7 +20051,6 @@ function cartPaint_() {
 
 /* THE WIDGET'S OWN `start`. It is called when the tools column arrives and on every repaint of it,
    which is the list `toolsStart_` walks. */
-function initCart() { cartPaint_(); }
 
 /* `screen('basket')` WAS HERE. A screen with no tab is a screen nobody can reach — and the basket
    has been a page of Find and a page of Booking since. It is a tool now; see the note above. */
@@ -20742,153 +20059,6 @@ function initCart() { cartPaint_(); }
 /* THE SHOP, A COLUMN OF ITS OWN — AND THE BASKET IS ITS FIRST PAGE § */
 
 /* THREE TO A PAGE, MEASURED. § */
-const SHOP_PER = 3;
-
-/* THE GROUPS, IN THE ORDER A FAMILY LOOKS. § */
-const SHOP_GROUPS = [['bundle', 'Bundles'], ['book', 'Books'], ['game', 'Games'], ['kit', 'Kits'],
-                     ['equipment', 'Equipment'], ['stationery', 'Stationery'],
-                     ['consumable', 'Consumables'], ['service', 'Made to order']];
-
-function shopFor_(r) {
-  if (!r || (typeof isWearable === 'function' ? isWearable(r) : r.kind === 'wearable')) return false;
-  /* `false` ONLY. `ON_` on the backend sends a boolean, and a payload older than that sends nothing —
-     which must mean "on", or every shop on an old backend would empty itself. */
-  if (r.inStock === false) return false;
-  const who = String(r.audience || 'all').trim().toLowerCase();
-  if (who === 'admin') return typeof may_ === 'function' && may_('admin');
-  if (who === 'tutor') return typeof may_ === 'function' && may_('staff');
-  return true;
-}
-
-/* THE THINGS, GROUPED. § */
-function shopGroups_() {
-  const rows = (DATA && DATA.shop) || [];
-  const byKey = {};
-  (typeof stuffItemsAll_ === 'function' ? stuffItemsAll_() : [])
-    .forEach(x => { if (x.kind === 'shop' && x.key && !byKey[x.key]) byKey[x.key] = x; });
-  const groups = {};
-  rows.forEach(r => {
-    if (!shopFor_(r)) return;
-    const x = byKey[r.name];
-    if (!x || x.wearable) return;
-    const k = String(r.kindRaw || 'thing').trim().toLowerCase() || 'thing';
-    (groups[k] || (groups[k] = [])).push(x);
-  });
-  const named = SHOP_GROUPS.map(g => g[0]);
-  const order = named.filter(k => groups[k])
-    .concat(Object.keys(groups).filter(k => named.indexOf(k) < 0).sort());
-  return order.map(k => {
-    const g = SHOP_GROUPS.find(p => p[0] === k);
-    return { kind: k, label: labelOf_('shop-group', k, g ? g[1] : k.charAt(0).toUpperCase() + k.slice(1)), items: groups[k] };
-  });
-}
-
-/* ---------- AN ICON FOR EVERY ITEM (491, the owner: "easy to navigate, while also nice to look at") § */
-/* Line drawings in the tiles' 18x17 frame and weight; the first word that names the thing wins, else its group's. */
-/* EACH ICON IS DATA: its shapes `{ el, a }`, drawn by the one card maker (`drawing`). */
-const SHOP_ICONS = {
-  pencil: [{ el: 'path', a: { d: 'M3 14l1-4 8.5-8.5 3 3L7 13z' } }, { el: 'path', a: { d: 'M11 3l3 3M3 14l3-1' } }],
-  pen: [{ el: 'path', a: { d: 'M4 13l1.5-4.5L12 2l3 3-6.5 6.5z' } }, { el: 'path', a: { d: 'M3 15h5' } }],
-  ruler: [{ el: 'rect', a: { x: '1.5', y: '5.5', width: '15', height: '6', rx: '.8' } }, { el: 'path', a: { d: 'M4 5.5v2.5M6.5 5.5v1.6M9 5.5v2.5M11.5 5.5v1.6M14 5.5v2.5' } }],
-  calc: [{ el: 'rect', a: { x: '4', y: '1.5', width: '10', height: '14', rx: '1.2' } }, { el: 'rect', a: { x: '6', y: '3.5', width: '6', height: '3' } }, { el: 'path', a: { d: 'M6.5 9h.1M9 9h.1M11.5 9h.1M6.5 11.5h.1M9 11.5h.1M11.5 11.5h.1M6.5 14h.1M9 14h.1M11.5 14h.1' } }],
-  sticker: [{ el: 'path', a: { d: 'M3 2.5h12v7l-5 5H3z' } }, { el: 'path', a: { d: 'M15 9.5h-5v5' } }, { el: 'path', a: { d: 'M6.5 6.5h.1M10.5 6.5h.1M6.5 9.5c.8.8 2 .8 2.8 0' } }],
-  papers: [{ el: 'path', a: { d: 'M5 1.5h7l3 3v10H5z' } }, { el: 'path', a: { d: 'M12 1.5v3h3M7.5 8h5M7.5 10.5h5M7.5 13h3' } }, { el: 'path', a: { d: 'M5 4H3v11.5h10' } }],
-  game: [{ el: 'rect', a: { x: '2.5', y: '2.5', width: '12', height: '12', rx: '2' } }, { el: 'path', a: { d: 'M6 6h.1M11 6h.1M8.5 8.5h.1M6 11h.1M11 11h.1' } }],
-  print3d: [{ el: 'path', a: { d: 'M2.5 15.5h13M4 15.5V3h10v12.5' } }, { el: 'path', a: { d: 'M4 5.5h10M9 5.5v3' } }, { el: 'path', a: { d: 'M7 12.5h4l-1-2.5H8z' } }],
-  wheel: [{ el: 'circle', a: { cx: '9', cy: '11', r: '4.5' } }, { el: 'circle', a: { cx: '9', cy: '11', r: '.6' } }, { el: 'path', a: { d: 'M9 11L14.5 1.5M13 1.5h3' } }],
-  ink: [{ el: 'path', a: { d: 'M9 2C6.5 6 5 8.3 5 10.5a4 4 0 008 0C13 8.3 11.5 6 9 2z' } }],
-  bike: [{ el: 'circle', a: { cx: '4', cy: '11.5', r: '3' } }, { el: 'circle', a: { cx: '14', cy: '11.5', r: '3' } }, { el: 'path', a: { d: 'M4 11.5l3-6h5l2 6M7 5.5l2.5 6H4M11 3.5h2' } }],
-  book: [{ el: 'path', a: { d: 'M2 3.5c2.5-1 5-1 7 .5v11c-2-1.5-4.5-1.5-7-.5zM16 3.5c-2.5-1-5-1-7 .5v11c2-1.5 4.5-1.5 7-.5z' } }],
-  kit: [{ el: 'path', a: { d: 'M2 6.5h14v8.5H2z' } }, { el: 'path', a: { d: 'M6.5 6.5V4.5h5v2M2 10h14M8 10v1.5h2V10' } }],
-  tool: [{ el: 'path', a: { d: 'M10.5 2.5a3.5 3.5 0 004 4.5L8 13.5a1.8 1.8 0 01-2.5-2.5L12 4.5a3.5 3.5 0 01-1.5-2z' } }],
-  bag: [{ el: 'path', a: { d: 'M3 6h12l-1 9.5H4z' } }, { el: 'path', a: { d: 'M6.5 6V4.5a2.5 2.5 0 015 0V6' } }],
-  spark: [{ el: 'path', a: { d: 'M9 1.5l1.6 5 5 1.6-5 1.6L9 15l-1.6-5.3-5-1.6 5-1.6z' } }],
-};
-const SHOP_ICON_WORDS = [[/pencil|crayon/i, 'pencil'], [/\bpens?\b|marker|highlighter/i, 'pen'], [/ruler|protractor|set square/i, 'ruler'],
-  [/calculat/i, 'calc'], [/sticker|label/i, 'sticker'], [/3d|print(ed|ing)?\b/i, 'print3d'], [/wheel|trundle|tape measure/i, 'wheel'],
-  [/toner|ink|cartridge/i, 'ink'], [/bike|scooter|cycle/i, 'bike'], [/book|reader|novel/i, 'book'], [/paper|pack|worksheet|bundle/i, 'papers'],
-  [/game|dice|cards?\b|puzzle/i, 'game'], [/kit|box|set\b/i, 'kit'], [/bag|case|pouch/i, 'bag']];
-const SHOP_ICON_OF_GROUP = { bundle: 'papers', game: 'game', kit: 'kit', equipment: 'tool', stationery: 'pencil', consumable: 'bag', service: 'spark' };
-function shopIconName_(name, group) {
-  const w = SHOP_ICON_WORDS.find(([re]) => re.test(String(name || '')));
-  return w ? w[1] : SHOP_ICON_OF_GROUP[group] || 'bag';
-}
-const shopIconSpec_ = (name, group) => { const n = shopIconName_(name, group);
-  return { type: 'drawing', node: { el: 'svg', a: { class: 'shop-ic shop-ic-' + n, viewBox: '0 0 18 17', 'aria-hidden': 'true', focusable: 'false', fill: 'none',
-    stroke: 'currentColor', 'stroke-width': '1.3', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, kids: SHOP_ICONS[n] || [] } }; };
-const shopIcon_ = (name, group) => cardBlock_(shopIconSpec_(name, group));
-/* THE ICON GOES IN FRONT OF THE CARD'S BODY, so stuffCard (find.js) stays the one drawing of a thing. */
-const shopWithIcon_ = (html, x, group) => String(html).replace(/(<div class="thing)(">)/, (m, a, b) => a + ' shop-thing' + b + shopIcon_(x.title || x.name || x.key, group));
-
-/* ---------- SEARCH THE SHOP (491): the shared pill at the top; a list of what matches under it, a tap going to the item's page ---------- */
-let SHOP_FIND = { q: '', at: [], all: false };
-/* THE WIDGET'S `start`: the pill drawn once per box, so a repaint around somebody typing never takes their word away. */
-function paintShopFind_() {
-  if (!SHOP_FIND.at.length) try { shopCards_(); } catch (e) {}
-  document.querySelectorAll('.shop-find').forEach(box => {
-    if (!box.querySelector('.shop-q')) box.innerHTML = searchPill_(`class="shop-q" placeholder="Search the shop" aria-label="Search the shop" value="${esc(SHOP_FIND.q)}"`, 'shop-search')
-      + cardBlock_({ type: 'group', look: 'shop-hits', attrs: { 'aria-live': 'polite' } });
-    const h = box.querySelector('.shop-hits'); if (h) h.innerHTML = shopHits_();
-  });
-}
-/* AN EMPTY BOX OFFERS EVERYTHING: one tile lists the whole shop, the other puts it away (a safe press, owner 12 Nov). */
-function shopHits_() {
-  const q = SHOP_FIND.q.trim().toLowerCase();
-  const all = cardBlock_({ type: 'tiles', tiles: [{ icon: SHOP_FIND.all ? 'up' : 'grid', label: SHOP_FIND.all ? 'Fewer' : 'Everything', note: SHOP_FIND.all ? 'put the list away' : 'in the shop', act: 'shop-all', pressed: !!SHOP_FIND.all }] });
-  if (!q && !SHOP_FIND.all) return all;
-  const hits = SHOP_FIND.at.filter(h => !q || h.say.indexOf(q) !== -1).slice(0, q ? 8 : 40);
-  if (!q) return (hits.length ? shopHitRows_(hits) : empty_('The shop is empty.')) + all;
-  if (!hits.length) return empty_('Nothing in the shop matches.');
-  /* A HIT IS A THING (rule 8): its name on the line, and the tile that opens it. */
-  return shopHitRows_(hits);
-}
-const shopHitRows_ = hits => cardBlocks_(hits.map(h => ({ type: 'group', look: 'shop-hit',
-  blocks: [shopIconSpec_(h.name, h.group), { type: 'group', tag: 'span', text: h.name }, { type: 'tiles', tiles: [{ icon: 'open', label: 'Open ' + h.name, act: 'shop-go', data: { page: h.page } }] }] })));
-on('shop-all', () => { SHOP_FIND.all = !SHOP_FIND.all; document.querySelectorAll('.shop-find .shop-hits').forEach(b => { b.innerHTML = shopHits_(); }); });
-document.addEventListener('input', e => {
-  const el = e.target;
-  if (!el || !el.classList || !el.classList.contains('shop-q')) return;
-  SHOP_FIND.q = el.value || '';
-  document.querySelectorAll('.shop-find .shop-hits').forEach(b => { b.innerHTML = shopHits_(); });
-  /* THE OTHER COPY (Saved's) shows the same word. */
-  document.querySelectorAll('.shop-q').forEach(q => { if (q !== el) q.value = SHOP_FIND.q; });
-});
-on('shop-go', el => { try { goPage('shop', Number(el.dataset.page) || 0); } catch (e) {} });
-
-function shopCards_() {
-  /* THE BASKET, AND ANY OTHER WIDGET THE ROSTER FILES UNDER THE SHOP, drawn exactly as Tools draws
-     its own — the star on it, the widget in its slot, started by `toolsStart_('shop')`. */
-  const wgts = typeof widgetColumn_ === 'function' ? widgetColumn_('shop') : [];
-  /* THE PAYLOAD DID NOT COME — the reason and a Try again, rather than an empty shop that looks open
-     and is not. The basket stays above it: it is on this device and did not need the payload. */
-  if (typeof LOAD_FAILED !== 'undefined' && LOAD_FAILED && typeof nothingHere === 'function') {
-    return wgts.concat([nothingHere()]);
-  }
-  /* NOT ARRIVED IS NOT EMPTY — the Spotlight column's fault, the same line short: § */
-  if (typeof awaiting_ === 'function' && awaiting_()) {
-    return wgts.concat([loading_()]);
-  }
-  const credits = collCredits_();
-  const groups = shopGroups_();
-  const out = wgts.slice();
-  const at = [];
-  groups.forEach(g => {
-    for (let i = 0; i < g.items.length; i += SHOP_PER) {
-      g.items.slice(i, i + SHOP_PER).forEach(x => at.push({ name: x.title || x.name || x.key || '', group: g.kind, page: out.length,
-        say: [x.title, x.name, x.key, x.sub, x.description, x.desc, g.label].filter(Boolean).join(' ').toLowerCase() }));
-      /* AN `<h2>` BETWEEN CARDS, NOT INSIDE ONE — the rule `check-dead.js` states and `split_` cuts on. § */
-      out.push(cardBlock_({ type: 'group', tag: 'h2', look: null, blocks: [{ type: 'group', tag: 'span', text: g.label }], inner: qtag_(`${g.items.length}`) })
-        + g.items.slice(i, i + SHOP_PER).map(x => shopWithIcon_(stuffCard(x, credits), x, g.kind)).join(''));
-    }
-  });
-  SHOP_FIND.at = at;
-  if (out.length > wgts.length) return out;
-  return out.concat([emptyCard_('Shop')]);
-}
-
-screen('shop', () => pages('shop', shopCards_()));
-
-
 /* ---------- THE PAGERS § */
 /* NO `PAGER.spotlight`. Spotlight is pages on Posts now, and Posts counts its own. */
 /* NO `PAGER.favourites`. Saved is a strip on the Find controls page now, not a column, so it has
@@ -21084,11 +20254,6 @@ document.addEventListener('input', e => {
   try { localStorage.setItem('speedWpm', String(SPEED.wpm)); } catch (err) {}
 });
 
-/* ---------- THE TOOLS WIDGET: PASTE, THEN READ ---------- */
-function initSpeedRead() {
-  const t = $('sr-text');
-  if (t && !t.value) { try { t.value = localStorage.getItem('speedDraft') || ''; } catch (e) {} }
-}
 document.addEventListener('input', e => {
   if (!e.target || e.target.id !== 'sr-text') return;
   try { localStorage.setItem('speedDraft', e.target.value); } catch (err) {}
@@ -21107,9 +20272,6 @@ on('sr-read', () => {
 
 /* ONE COLLECTION, THREE NAMES (520): the Protestant, Catholic and Orthodox words for the same books. */
 const WRITING_DEUTERO = 'Deuterocanon / Apocrypha / Anagignoskomena';
-const WRITING_DEUTERO_BOOKS = ['Tobit', 'Judith', 'Additions to Esther', 'Esther (Greek)', 'Wisdom of Solomon', 'Wisdom', 'Sirach', 'Ecclesiasticus',
-  'Baruch', 'Letter of Jeremiah', 'Epistle of Jeremiah', 'Prayer of Azariah', 'Song of the Three Children', 'Susanna', 'Bel and the Dragon',
-  '1 Maccabees', '2 Maccabees', '3 Maccabees', '4 Maccabees', '1 Esdras', '2 Esdras', 'Prayer of Manasseh', 'Prayer of Manasses', 'Psalm 151', 'Odes'];
 
 /* THE WORKS REGISTRY (520): § */
 const WRITING_WORKS = {
@@ -21138,8 +20300,6 @@ const WRITING_WORKS = {
 };
 const writingWork_ = (src, id) => WRITING_WORKS[src + ':' + id] || WRITING_WORKS[src] || {};
 
-/* WHETHER A SOURCE IS FETCHED: always — no age gates on learning (1040); kept as the one hook every source asks. */
-const writingFor_ = () => true;
 
 /* TEXT IS BUILT, NEVER WRITTEN (520): "<language>, <translator> (<year>)" from structured fields, keyed by what each index calls it. */
 const WRITING_LANG = { en: 'English', he: 'Hebrew', hbo: 'Hebrew', grc: 'Greek', ar: 'Arabic', arc: 'Aramaic', la: 'Latin', akk: 'Akkadian' };
@@ -21287,12 +20447,6 @@ function writingAt_(x, k) {
 /* THE RELIGION THIS FINDER'S FUNNEL HAS ANSWERED (not Any), or ''. */
 function writingReligionAsked_() {
   try { const f = (STUFF.filters || []).find(g => g && g.field === 'wReligion' && !g.any); return f ? String(f.value || '') : ''; } catch (e) { return ''; }
-}
-function writingOf_(x) {
-  if (!x || !(x.w || (isBible_(x) && x.bb))) return null;
-  const w = {};
-  WRITING_KEYS.forEach(k => { w[k] = writingAt_(x, k); });
-  return w;
 }
 
 /* ---------- R4: THE SET A FUNNEL ANSWERS OVER IS FIXED WHEN IT STARTS (520). A source whose index comes later joins at the next § */
@@ -21814,147 +20968,20 @@ const histTopicPic_ = h => (h && h.row && h.row.pic && h.row.pic.src ? { src: h.
 /* ==== js/qr.js ==== */
 /* @family. — qr.js A QR CODE DRAWN HERE, no library and no service: byte mode, error level M, versions 1–10 (up to 213 bytes, ample for a link). */
 
-/* PER VERSION AT LEVEL M: total codewords, error codewords per block, then [blocks, data codewords] per group. */
-const QR_M_ = [null,
-  [26, 10, [[1, 16]]], [44, 16, [[1, 28]]], [70, 26, [[1, 44]]], [100, 18, [[2, 32]]], [134, 24, [[2, 43]]],
-  [172, 16, [[4, 27]]], [196, 18, [[4, 31]]], [242, 22, [[2, 38], [2, 39]]], [292, 22, [[3, 36], [2, 37]]], [346, 26, [[4, 43], [1, 44]]]];
-const QR_ALIGN_ = [null, [], [6, 18], [6, 22], [6, 26], [6, 30], [6, 34], [6, 22, 38], [6, 24, 42], [6, 26, 46], [6, 28, 50]];
 
 /* GF(256) over 0x11D, the field Reed–Solomon codes in a QR code live in. */
 const QR_EXP_ = new Array(512), QR_LOG_ = new Array(256);
 (() => { let x = 1; for (let i = 0; i < 255; i++) { QR_EXP_[i] = x; QR_LOG_[x] = i; x <<= 1; if (x & 256) x ^= 0x11D; }
   for (let i = 255; i < 512; i++) QR_EXP_[i] = QR_EXP_[i - 255]; })();
-const qrMul_ = (a, b) => (a && b ? QR_EXP_[QR_LOG_[a] + QR_LOG_[b]] : 0);
 
-function qrEcc_(data, n) {
-  let gen = [1];
-  for (let i = 0; i < n; i++) {
-    const next = new Array(gen.length + 1).fill(0);
-    gen.forEach((g, j) => { next[j] ^= g; next[j + 1] ^= qrMul_(g, QR_EXP_[i]); });
-    gen = next;
-  }
-  const rem = new Array(n).fill(0);
-  data.forEach(d => {
-    const f = d ^ rem.shift(); rem.push(0);
-    for (let j = 0; j < n; j++) rem[j] ^= qrMul_(gen[j + 1], f);
-  });
-  return rem;
-}
 
-/* A BCH remainder, for the format (15 bits) and version (18 bits) words. */
-function qrBch_(v, poly, bits) {
-  const top = Math.floor(Math.log2(poly));
-  let r = v << top;
-  for (let i = bits + top - 1; i >= top; i--) if ((r >> i) & 1) r ^= poly << (i - top);
-  return (v << top) | r;
-}
 
-function qrCodewords_(bytes, ver) {
-  const [total, ec, groups] = QR_M_[ver];
-  const cap = total - ec * groups.reduce((s, g) => s + g[0], 0);
-  const bits = [], put = (v, n) => { for (let i = n - 1; i >= 0; i--) bits.push((v >> i) & 1); };
-  put(4, 4); put(bytes.length, ver < 10 ? 8 : 16); bytes.forEach(b => put(b, 8));
-  put(0, Math.min(4, cap * 8 - bits.length));
-  while (bits.length % 8) bits.push(0);
-  const data = [];
-  for (let i = 0; i < bits.length; i += 8) data.push(parseInt(bits.slice(i, i + 8).join(''), 2));
-  for (let p = 0; data.length < cap; p++) data.push(p % 2 ? 0x11 : 0xEC);
-  const blocks = []; let at = 0;
-  groups.forEach(([n, k]) => { for (let i = 0; i < n; i++) { const d = data.slice(at, at + k); at += k; blocks.push({ d, e: qrEcc_(d, ec) }); } });
-  const out = [], most = Math.max(...blocks.map(b => b.d.length));
-  for (let i = 0; i < most; i++) blocks.forEach(b => { if (i < b.d.length) out.push(b.d[i]); });
-  for (let i = 0; i < ec; i++) blocks.forEach(b => out.push(b.e[i]));
-  return out;
-}
 
-const QR_MASKS_ = [(r, c) => (r + c) % 2 === 0, r => r % 2 === 0, (r, c) => c % 3 === 0, (r, c) => (r + c) % 3 === 0,
-  (r, c) => (Math.floor(r / 2) + Math.floor(c / 3)) % 2 === 0, (r, c) => (r * c) % 2 + (r * c) % 3 === 0,
-  (r, c) => ((r * c) % 2 + (r * c) % 3) % 2 === 0, (r, c) => ((r + c) % 2 + (r * c) % 3) % 2 === 0];
 
-function qrBase_(ver) {
-  const n = ver * 4 + 17, m = [], fixed = [];
-  for (let i = 0; i < n; i++) { m.push(new Array(n).fill(0)); fixed.push(new Array(n).fill(false)); }
-  const set = (r, c, v) => { if (r >= 0 && c >= 0 && r < n && c < n) { m[r][c] = v ? 1 : 0; fixed[r][c] = true; } };
-  for (let i = 0; i < n; i++) { set(6, i, i % 2 === 0); set(i, 6, i % 2 === 0); }
-  [[0, 0], [0, n - 7], [n - 7, 0]].forEach(([r0, c0]) => {
-    for (let r = -1; r <= 7; r++) for (let c = -1; c <= 7; c++) {
-      const ring = Math.max(Math.abs(r - 3), Math.abs(c - 3));
-      set(r0 + r, c0 + c, ring !== 2 && ring !== 4);
-    }
-  });
-  const al = QR_ALIGN_[ver];
-  al.forEach(r => al.forEach(c => {
-    if ((r === 6 && c === 6) || (r === 6 && c === n - 7) || (r === n - 7 && c === 6)) return;
-    for (let dr = -2; dr <= 2; dr++) for (let dc = -2; dc <= 2; dc++) set(r + dr, c + dc, Math.max(Math.abs(dr), Math.abs(dc)) !== 1);
-  }));
-  for (let i = 0; i < 9; i++) { if (!fixed[8][i]) set(8, i, 0); if (!fixed[i][8]) set(i, 8, 0); }
-  for (let i = 0; i < 8; i++) { set(8, n - 1 - i, 0); set(n - 1 - i, 8, 0); }
-  set(n - 8, 8, 1);
-  if (ver >= 7) {
-    const v = qrBch_(ver, 0x1F25, 6);
-    for (let i = 0; i < 18; i++) { const b = (v >> i) & 1, a = Math.floor(i / 3), c = n - 11 + i % 3; set(a, c, b); set(c, a, b); }
-  }
-  return { n, m, fixed };
-}
 
-function qrFormat_(m, n, mask) {
-  const v = qrBch_(mask, 0x537, 5) ^ 0x5412;
-  const bit = i => (v >> i) & 1;
-  for (let i = 0; i <= 5; i++) m[i][8] = bit(i);
-  m[7][8] = bit(6); m[8][8] = bit(7); m[8][7] = bit(8);
-  for (let i = 9; i < 15; i++) m[8][14 - i] = bit(i);
-  for (let i = 0; i < 8; i++) m[8][n - 1 - i] = bit(i);
-  for (let i = 8; i < 15; i++) m[n - 15 + i][8] = bit(i);
-  m[n - 8][8] = 1;
-}
 
-function qrPenalty_(m, n) {
-  let p = 0;
-  const line = get => { for (let i = 0; i < n; i++) { let run = 1;
-    for (let j = 1; j <= n; j++) { if (j < n && get(i, j) === get(i, j - 1)) run++; else { if (run >= 5) p += run - 2; run = 1; } } } };
-  line((i, j) => m[i][j]); line((i, j) => m[j][i]);
-  for (let r = 0; r < n - 1; r++) for (let c = 0; c < n - 1; c++) { const v = m[r][c]; if (v === m[r + 1][c] && v === m[r][c + 1] && v === m[r + 1][c + 1]) p += 3; }
-  let dark = 0; m.forEach(row => row.forEach(v => { dark += v; }));
-  return p + Math.floor(Math.abs(dark * 20 / (n * n) - 10)) * 10;
-}
 
-/* THE MATRIX: rows of 0/1, or null when the text will not fit in version 10. */
-function qrMatrix_(text) {
-  const bytes = Array.from(new TextEncoder().encode(String(text || '')));
-  let ver = 1;
-  while (ver <= 10) { const [t, e, g] = QR_M_[ver]; if (t - e * g.reduce((s, x) => s + x[0], 0) >= bytes.length + (ver < 10 ? 2 : 3)) break; ver++; }
-  if (ver > 10) return null;
-  const words = qrCodewords_(bytes, ver);
-  const { n, m, fixed } = qrBase_(ver);
-  let k = 0, up = true;
-  for (let c = n - 1; c > 0; c -= 2) {
-    if (c === 6) c--;
-    for (let i = 0; i < n; i++) {
-      const r = up ? n - 1 - i : i;
-      for (const cc of [c, c - 1]) if (!fixed[r][cc]) { m[r][cc] = k < words.length * 8 ? (words[k >> 3] >> (7 - (k & 7))) & 1 : 0; k++; }
-    }
-    up = !up;
-  }
-  let best = null, bestP = Infinity;
-  QR_MASKS_.forEach((f, mask) => {
-    const t = m.map((row, r) => row.map((v, c) => (!fixed[r][c] && f(r, c) ? v ^ 1 : v)));
-    qrFormat_(t, n, mask);
-    const p = qrPenalty_(t, n);
-    if (p < bestP) { bestP = p; best = t; }
-  });
-  return best;
-}
 
-/* AN SVG, one path, with the four-module quiet zone the standard asks for; it prints sharp at any size. */
-function qrSvg_(text, cls) {
-  let m = null;
-  try { m = qrMatrix_(text); } catch (e) { m = null; }
-  if (!m) return '';
-  const n = m.length, q = 4, d = [];
-  m.forEach((row, r) => row.forEach((v, c) => { if (v) d.push(`M${c + q} ${r + q}h1v1h-1z`); }));
-  return cardBlock_({ type: 'drawing', node: { el: 'svg', a: { class: cls || 'qr', viewBox: `0 0 ${n + 2 * q} ${n + 2 * q}`, 'shape-rendering': 'crispEdges', role: 'img', 'aria-label': 'QR code' },
-    kids: [{ el: 'rect', a: { width: '100%', height: '100%', class: 'qr-bg' } }, { el: 'path', a: { class: 'qr-ink', d: d.join('') } }] } });
-}
 
 ;
 /* ==== js/help.js ==== */
@@ -22096,7 +21123,7 @@ function helpPoll_() {
 
 /* ---------- WHICH COLUMN A WIDGET OF EACH KIND LIVES ON BY DEFAULT — the only columns that draw widgets ---------- */
 /* A tool and a game have no column since 790: each is a Find card (`widgetInFind_`, arcade.js), arranged by the funnel, not here. */
-const LAYOUT_COL = { reel: 'reel', shop: 'shop' };
+const LAYOUT_COL = {};
 /* THE DEVICE'S COPY of the last layout the payload sent, so the first paint before the payload is already arranged. */
 const LAYOUT_STORE = 'familyLayout';
 /* `#` joins a split card's piece to its card (`set:account:contact#email`, 466): a piece is a card of its own. */
@@ -22228,14 +21255,6 @@ function layoutWidgetCols_() {
   return cols.slice().sort((a, b) => seq.indexOf(a) - seq.indexOf(b));
 }
 
-/* ---------- WHAT DOES NOT MOVE, EACH WITH ITS REASON (730): every other column is a host, its units moved by their rows; check-doors keeps this list whole ---------- */
-const LAYOUT_FIXED = {
-  feed: "the posts page by post and the camera is the page above the newest (`feedCamAt_`); moving them as one unit needs the feed's paging to stop assuming its column",
-  dm: 'one conversation per page, drawn by the messages code',
-  stuff: "Find's own funnel: its words, chips and page are the finder's state",
-  saved: 'what you starred, drawn from your own stars',
-  booking: 'the booking form and its receipts are one flow',
-};
 /* ---------- EVERY COLUMN A UNIT MAY STAND ON (710): the widget columns, the card columns and an admin's own ---------- */
 function hostCols_(L) {
   const cu = ((L === undefined ? layoutNow_() : L) || {}).custom || [];
@@ -22420,8 +21439,6 @@ const CARD_REG = [
   { id: 'ppl:parents:claims', col: 'parents', label: 'Parent claims', say: 'Parents asking to be linked to a child.' },
   { id: 'ppl:parents:all', col: 'parents', label: 'Every parent', say: 'Every parent account.' },
   /* NO `say` ON THE TWO PUBLIC FACES (730): the web card and the window are read by everybody, and a line about the card is for an admin. */
-  { id: 'web:card', col: 'web', label: 'Web profile', re: /^<div class="card web-card/, say: '' },
-  { id: 'spot:list', col: 'spotlight', label: 'Spotlight', say: '' },
   { id: 'appr:blurb', col: 'apprentice', label: 'Apprentice settings', re: /^<div class="card appr-set/, say: 'Work experience with us: a placeholder until it is built.' },
   { id: 'biz:profit-sum', col: 'biz', label: 'Profit', re: /data-profit="sum"/, say: 'What came in and went out, and what is left.' },
   { id: 'biz:posts', col: 'site', label: 'Posts waiting', re: /^<div class="card biz posts-wait/, say: 'Posts waiting for you to approve.' },
@@ -22546,9 +21563,8 @@ const personOf_ = h => ((/^\s*(?:<!--card:[^>]*-->)?<!--person:([A-Za-z0-9_.-]+)
 /* EACH COLUMN'S OWN BUILDER — the code's cards for whoever is signed in, role gates and all. */
 const CARD_BUILD = {
   family: () => familyPages_(), staff: () => staffPages_(), account: () => studentSetPages_(),
-  students: () => peoplePages_('students'), parents: () => peoplePages_('parents'),
   biz: () => adminPages_(), site: () => sitePages_(),
-  web: () => webProfilePages_(), spotlight: () => cardMark_('spot:list', spotlightCards_()), apprentice: () => apprenticePages_(),
+  apprentice: () => apprenticePages_(),
 };
 /* THE CARD COLUMNS LEFT TO RIGHT; Business only for its own cards — anything else moved there would vanish for everyone but an admin. */
 function cardColsFor_(id) {
@@ -22753,15 +21769,12 @@ function frontPageOf_(col) {
     const n = widgetPagesOf_(kind).findIndex(w => String(w.id) === f.id || (w.parts || []).some(p => String(p.id) === f.id));
     if (n !== -1) return n;
   }
-  if (col === 'feed' && typeof window.feedCamAt_ === 'function') {
-    if (f.id === 'item:feed:camera') return window.feedCamAt_();
-  }
   const n = CARD_START_AT[col];
   return typeof n === 'number' && n >= 0 ? n : -1;
 }
 /* THE DOOR'S COLUMN OPENS ON ITS THING; every other column as before. */
 function frontHomes_() {
-  const cols = Object.keys(LAYOUT_COL).map(k => LAYOUT_COL[k]).concat(['feed']).concat(CARD_COLS);
+  const cols = Object.keys(LAYOUT_COL).map(k => LAYOUT_COL[k]).concat(CARD_COLS);
   cols.forEach(c => {
     const was = PAGE_HOME[c];
     PAGE_HOME[c] = () => { const n = frontPageOf_(c); if (n >= 0) return n; try { return was ? was() : 0; } catch (e) { return 0; } };
@@ -22785,43 +21798,6 @@ function frontGo_() {
 /* NO NOTES ARE LISTED ON THE SITE (498): the owner, "I don't even need to be able to tick or see old tasks" -- Claude marks them done (data/notes-done.json). */
 /* DELETE THEN THE NOTE, in the one flow (487). */
 function notePair_(del, note) { return del + note; }
-/* IN PLACE OF THE THING (489): the box takes its footprint, its content hidden while writing; Cancel or Send gives it back. A message keeps its box under it. */
-function boxInPlace_(el, html) {
-  const thing = el.closest('.msg') ? null : el.closest('.card, .own-set, .post');
-  if (!thing) return boxBeside_(el, html);
-  thing.querySelectorAll(':scope > .rep-box').forEach(b => b.remove());
-  const h = thing.getBoundingClientRect().height;
-  thing.insertAdjacentHTML('beforeend', html);
-  thing.classList.add('is-writing');
-  if (h) thing.style.setProperty('--writing-h', Math.round(h) + 'px');
-  return thing.lastElementChild;
-}
-/* A ROW OUTSIDE ITS THING (498): a Find card's row stands after its `.favwrap`; both are hidden and the box takes their place. A message keeps its box under it. */
-const BOX_HID = new WeakMap();
-function boxBeside_(el, html) {
-  const msg = el.closest('.msg'), row = el.closest('.tile-row');
-  if (msg || !row) { const at = msg || row; if (!at) return null; at.insertAdjacentHTML('afterend', html); return at.nextElementSibling; }
-  const prev = row.previousElementSibling, hid = [row].concat(prev && prev.matches('.favwrap, .card, .fc') ? [prev] : []);
-  if (row.nextElementSibling && row.nextElementSibling.classList.contains('rep-box')) row.nextElementSibling.remove();
-  const h = hid.reduce((n, e) => n + e.getBoundingClientRect().height, 0);
-  row.insertAdjacentHTML('afterend', html);
-  const box = row.nextElementSibling;
-  hid.forEach(e => { e.hidden = true; });
-  box.classList.add('is-beside');
-  if (h) box.style.minHeight = Math.round(h) + 'px';
-  BOX_HID.set(box, hid);
-  return box;
-}
-function boxOut_(box) {
-  if (!box) return;
-  const thing = box.parentElement;
-  (BOX_HID.get(box) || []).forEach(e => { e.hidden = false; });
-  box.remove();
-  if (thing && thing.classList.contains('is-writing') && !thing.querySelector(':scope > .rep-box')) {
-    thing.classList.remove('is-writing');
-    thing.style.removeProperty('--writing-h');
-  }
-}
 /* A COLUMN'S WHOLE ORDER (710): what it drew, then what it holds and did not draw for this admin (a widget for tutors), so a move never sends those home. */
 function cardListOf_(col, L) {
   if (!CARD_SEEN[col]) { try { colEntries_(col, CARD_BUILD[col] ? (CARD_BUILD[col]() || []).filter(Boolean) : []); } catch (e) { /* a column whose code has not loaded yet is built when it lands */ } }
@@ -22880,9 +21856,6 @@ CARD_COLS.forEach(c => {
 frontHomes_();
 /* THE KEPT LAYOUT'S DOOR FROM THE FIRST FRAME, before the payload; `frontGo_` again once it has come (shell.js `load`). */
 try { const f = frontNow_(); if (f && !FRONT_KEPT && TABS.some(t => t.id === f.col)) { AT = f.col; FRONT_GONE = true; } } catch (e) {}
-/* FOR THE JOURNEYS: a column's arranged cards, and the page it opens on. */
-function cardSeen_(col) { return (CARD_SEEN[col] || []).slice(); }
-function cardStartAt_(col) { try { return PAGE_HOME[col](); } catch (e) { return 0; } }
 
 /* ---------- AN ADMIN'S OWN COLUMNS (466, 710): ◀ or ▶ past an edge makes one, for everybody; it has no name, only a place ---------- */
 /* The owner: "there shouldn't really be a name distinguisher for the column." Its units keep their own role gates. */
@@ -23054,8 +22027,6 @@ on('lay-unmerge', el => {
   if (!D.merged.length) delete D.merged;
   layoutSave_(D);
 });
-/* FOR THE JOURNEYS: the merged groups in force. */
-function mergedNow_() { return (((layoutNow_() || {}).merged) || []).map(g => g.slice()); }
 
 /* THE CODE'S OWN GATE, where it is known: a widget's flags, a card on an admin column; '' when it is for everyone or decided inside its builder. */
 function seenGate_(id) {

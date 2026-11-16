@@ -315,8 +315,6 @@ function calcSay(v, f) {
   if (!dec) { const e = cExact_(v); if (e) return cExactHtml_(e); }
   return calcDec(v);
 }
-/* An answer as plain text (3/4, 1.5×10^12, √2/2, 1 1/2, 2^3×3), for the check and anything that wants a string. */
-const calcText = (v, dec) => calcPlain_(calcSay(v, dec), true);
 
 /* ---- editing: the cursor is a row and an index between its nodes */
 function calcNew() {

@@ -664,8 +664,6 @@ function subDayText_(iso) {
 }
 
 /* THE PEOPLE COLUMNS (453); `peoplePages_` (me.js) adds the signed-out card and the empty one. Student settings is `studentSetPages_`. */
-screen('students', () => pages('students', typeof cardsOf_ === 'function' ? cardsOf_('students') : peoplePages_('students')));
-screen('parents', () => pages('parents', typeof cardsOf_ === 'function' ? cardsOf_('parents') : peoplePages_('parents')));
 
 /** Everything spliced between the question and the results, whichever answer is showing. */
 /* THE BUNDLE IS THE LAST OF THEM — see `bundlePages_`. § */

@@ -380,7 +380,6 @@ function stemFigOwed_(x, p) {
 }
 /* A PAGE IS SMALLER THAN A PHONE, SO LONG WORDS ARE CUT BETWEEN PARAGRAPHS. § */
 const CHUNK_PAGE = 640;
-const PART_LAST = 300;
 const CHUNK_MIN = 160;          // a first page lighter than this joins the next -- see `packBlocks_`
 const CHUNK_BLOCK = /^(p|div|table|ul|ol|h[1-6]|blockquote|figure|pre|section|dl)$/i;
 const CHUNK_VOID = /^(br|img|hr|input|meta|link|col|wbr|source|area|base|param|track|embed)$/i;

@@ -229,7 +229,6 @@ const kcLevelBody_ = (t, L) => { const s = L.subjects, n = L.tutors.length;
 /* A VENUE'S ROOMS AS FACTS: seats, and the price unless the map's `childHides` took it (a child is told the seats and not the price, 398). */
 const kcVenueBody_ = (t, L) => [{ type: 'list', items: L.rooms.map(o => { const say = [o.seats ? 'up to ' + o.seats : '', 'price' in o ? (o.price ? fmtMoney_(o.price, 'hour') : 'free') : ''].filter(Boolean).join(' · ');
   return say ? { label: o.label, value: say } : null; }).filter(Boolean) }];
-const kcTutorNames_ = t => (Array.isArray(t.tutors) ? t.tutors : []).map(y => y && y.title).filter(Boolean);
 const kcListOf_ = v => (Array.isArray(v) ? v : []).filter(Boolean);
 /* ONE ITEM SHAPE (owner, 14 Nov, step 1; data/settings/item-shape.json, docs/item-shape.md): every item is { id, kind, name, tags, body, links }. */
 /* A migrated kind is only a mapping here: which columns are its words (`tags`) and its links, its card's look and picture. No builder of its own. */

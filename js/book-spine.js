@@ -542,32 +542,6 @@ function discountSaid_(j) {
     sel: cardBlock_({ type: 'paperInput', kind: 'number', value: pc > 0 ? String(pc) : '', placeholder: '% off', off: true, aria: 'Discount, per cent off' }) });
 }
 
-/* ---------- WHAT THE CARD HOLDS, FOR A SUGGESTION ABOUT IT § */
-function bookFieldsSaid_() {
-  try {
-    const ini = n => String(n || '').split(/\s+/).filter(Boolean).map(w => w[0].toUpperCase() + '.').join('');
-    const person = v => (v === NOBODY || v === UNNAMED) ? v : ini(v);
-    const fb = st => st.fallback ? String(st.fallback() || '') : '';
-    const on = bookOn_();
-    const out = BOOK_STEPS.filter(st => st.short && onlyHas_(st.only, on)).map(st => {
-      const v = BOOKING[st.id];
-      const list = [].concat(v == null ? [] : v).filter(x => String(x).trim());
-      const said = st.id === 'client' ? person(v || fb(st))
-        : st.id === 'kids' ? list.map(person).join(', ')
-        : st.grid === 'blocks' ? blockSay_(v)
-        : st.grid ? bookRuns().map(r => fmtDate_(r.dayName, 'day') + ' ' + fmtDate_(r.hour, 'hours', r.hour + r.hours)).join(', ')
-        : st.multi ? (list.join(', ') || fb(st))
-        : (st.label_ && v ? st.label_(v) : (v || fb(st)));
-      return st.short + ': ' + dash_(String(said || '').trim());
-    });
-    const admin = typeof may_ === 'function' && may_('admin');
-    if (admin && !isWaiting_()) out.push('Discount: ' + (Number(BOOKING.discValue) > 0 ? BOOKING.discValue + '%' : dash_()));
-    const L = bookPrice();
-    if (L && L.total > 0) out.push((admin && !isWaiting_() ? text_('client-pays') : 'Cost') + ': ' + fmtMoney_(L.total));
-    if (String(BOOKING.note || '').trim()) out.push('Note: written (not copied)');
-    return 'Fields: ' + out.join(' · ');
-  } catch (e) { return ''; }
-}
 
 const jobReceipt = (j, foot) => bookingDoc_(j, foot);
 

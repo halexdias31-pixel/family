@@ -7,12 +7,6 @@ const QT_TYPED = 'One box on the site\'s keypad';
 /* ONE FIGURE, IN PLACE, AND IT IS THE PEN (356, 381): the part's own, or its stem's with the stem's words carried onto the card */
 const QT_PEN = 'Its figure under the pen, in place on the card: its own, or the stem\'s (the stem\'s words carried onto the card '
   + 'above it), else a made-up grid. One figure, no second copy, no Draw switch, no box or keypad; Check under the part\'s words';
-/* THE SHARED FIGURE (381): what each part of a question round one figure gets, as data for the page and the check */
-const QT_SHARED_FIGURE = {
-  drawn: 'Draws on the one figure on its own card; every other part\'s ink on that figure is under its own, faint, untouched by its Undo, Clear and Check',
-  typed: 'Its own box under its own words, nothing for the drawing; where its words read the drawn figure it names that part (`uses`) and has it, marked, in front of its words',
-  check: 'One Check tile per part, at the card\'s foot under the part\'s words, for a drawn part as for a typed one',
-};
 const QT_PEN_TILES = ['Figure', 'Pen', 'Ruler / Compass / Protractor (as asked)', 'Undo', 'Clear', 'Check'];
 const QT_PEN_PHONE = 'Finger draws, two fingers pan; the loupe follows the finger';
 const QT_PEN_PC = 'Mouse or stylus on a lazy brush (368); the ruler snaps to the grid';
@@ -90,7 +84,6 @@ const QTYPE_PROTOCOL = {
               marked: 'accept as a band (`a to b`); an angle survives the screen, a length needs a stated scale', tolerance: 'the scheme\'s ± (often 2 mm / 2°)',
               wrong: 'Not yet', right: 'Correct + marks', phone: 'One finger drags the tool, two turn it, or its round handle; it snaps onto a corner and along an arm', pc: 'Drag; the handle or the wheel turns it; typed', need: ['accept', 'band'] },
 };
-const QTYPE_ORDER = Object.keys(QTYPE_PROTOCOL);
 
 /* ---------- READING A ROW: the library's snake_case row, or a card item (which carries it as `row`). */
 const qtS_ = v => (v == null ? '' : String(v)).trim();
@@ -99,8 +92,6 @@ const qtText_ = r => [r.lead, r.html].map(h => qtS_(h).replace(/<[^>]*>/g, ' ').
 const qtWays_ = r => qtS_(r.accept).split('|').map(w => w.trim()).filter(Boolean);
 const qtRules_ = r => qtWays_(r).filter(w => /^rule:/i.test(w)).map(w => w.replace(/^rule:\s*/i, ''));
 const qtPlain_ = r => qtWays_(r).filter(w => !/^rule:/i.test(w));
-const qtTrue_ = v => /^true$/i.test(qtS_(v));
-let QT_DA_MEMO = null;
 function qtDrawKinds_(r) {
   const raw = qtS_(r.draw_answer);
   if (!raw) return [];
@@ -243,22 +234,11 @@ function qtNeedMet_(r, need) {
   if (QT_NEED[need]) return QT_NEED[need](r);
   return need.split('|').some(f => qtS_(r[f]) !== '');
 }
-/* ---------- WHERE A DRAWN PART'S FIGURE IS (381): `own`, `stem`, `surface` (made up), `none` (words point at a figure it lacks), `ambiguous` (two stems' figures) */
-const QT_FIG_NAMED = /\b(on|onto|in) the (grid|diagram|scale|graph|chart|number line|map|axes|pictogram|histogram|shape|net|clock|dial|probability scale|scatter (graph|diagram))\b|\b(diagram|grid|graph) (above|below)\b/;
 function qtDrawn_(x) {
   const r = (x && x.row) || x || {};
   const surf = qtS_(r.surface).toLowerCase();
   if (!(QT_DRAWN[qtS_(r.answer_type).toLowerCase()] || (surf && surf !== 'text'))) return false;
   return !qtS_(r.choices) && !qtS_(r.cells);
-}
-function qtFigureOf_(x, stems) {
-  const r = (x && x.row) || x || {};
-  if (qtS_(r.diagram) || qtS_(r.diagram_twin) || qtS_(r.images)) return 'own';
-  const st = (stems || []).filter(p => p && qtS_(p.diagram));
-  if (st.length === 1) return 'stem';
-  if (st.length > 1) return 'ambiguous';
-  if (qtS_(r.surface)) return 'surface';
-  return QT_FIG_NAMED.test(qtText_(r)) ? 'none' : 'surface';
 }
 function qtIncomplete_(x) {
   const r = (x && x.row) || x || {};

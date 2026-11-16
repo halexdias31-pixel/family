@@ -2,28 +2,11 @@
   "v": 1,
   "notes": "THE TWO TIERS (docs/history/860). The owner: \"all I really care about is the finder working\". core = Find (stuff), the library and question pages (marking, keypad, pen), sign-in and accounts enough to reach Find, the boot path, and the payload and backend they need. Everything else is secondary: guarded at run time (tierRun_, shell.js), loaded only in LATER unless eagerSecondary says why, and its checks report-only. js/check-tiers.js holds this file to the code. off (the owner, 4 Nov) = deactivated: a cut-list REMOVE or HIDE IN EXTRAS widget shows only its name, \"Coming soon\" and Suggest; a file all of whose widgets are off is never fetched; its checks are skipped, counted. Turn one on: its line here, then node tools/tiers.js.",
   "screens": {
-    "spotlight": "secondary",
-    "feed": "secondary",
-    "reel": "secondary",
-    "stuff": "core",
-    "saved": "secondary",
-    "shop": "secondary",
-    "web": "secondary",
-    "students": "secondary",
-    "parents": "secondary"
+    "stuff": "core"
   },
   "widgets": {
-    "reels": "off",
     "videos": "secondary",
-    "newspaper": "off",
-    "docket": "off",
-    "notepad": "off",
-    "speedread": "off",
-    "cart": "off",
-    "shopfind": "off",
     "termdates": "secondary",
-    "countdowns": "off",
-    "favlinks": "off",
     "pixel": "secondary",
     "libcards": "secondary",
     "console": "secondary",
@@ -476,8 +459,7 @@
   },
   "soonUnder": {
     "notes": "WHERE AN OFF WIDGET'S COMING SOON CARD WAITS (owner, 7 Nov P7/P8): under this front answer, greyed there; any other waits under Coming soon. Written into find-finder.js by node tools/tiers.js.",
-    "videos": "Videos",
-    "reels": "Tools"
+    "videos": "Videos"
   },
   "findNeeds": {
     "notes": "Whole files Find cannot run without, beside the find, shell and keypad pieces; js/check-tiers.js holds each to core.",

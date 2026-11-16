@@ -3527,7 +3527,6 @@ const NES_FOUR = { snes: 1, n64: 1, nds: 1 };
 /* THE ONE LINE UNDER A HEAVY SYSTEM, said plainly: these run on the page's one thread, and a slow laptop or an older phone shows it (419). */
 const NES_SLOW = { n64: 'N64 games need a fast device; older phones may stutter.',
   nds: 'DS games need a fast device; on an older laptop or phone they may run slow. Closing other tabs helps.' };
-const NES_NAME = { nes: 'NES', snes: 'SNES', gb: 'Game Boy', gbc: 'Game Boy Color', gba: 'Game Boy Advance', n64: 'N64', nds: 'DS' };
 
 /* WHICH SYSTEM, from the bytes first (header magic and checksums), then the file's extension. Nothing of any game is kept here. */
 function nesSys_(u8, hint) {
@@ -3923,8 +3922,6 @@ const RACE = {
   cam: null,
   lap: { next: 1, start: 0, paused: 0, best: 0, last: 0, laps: 0 },
 };
-/* For the journeys: `RACE` is a const, which a second evaluation cannot reach. */
-function racer_() { return RACE; }
 
 /* ---------- THE MAP, ASKED FOR ONCE ---------- */
 function raceFetch_() {

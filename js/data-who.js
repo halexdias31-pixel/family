@@ -29,13 +29,6 @@ const initial = s => (String(s ?? '').match(/[A-Za-z0-9]/) || ['?'])[0].toUpperC
    been filled in — the whole point of that tab is that most of it is empty most of the time. */
 /* A CONTACT DETAIL NEVER LIVES IN THE PUBLIC REPO: a blank brand key falls back to the private policy values the backend sends (phone, email). */
 const brand = (k, or) => ((DATA.brand || {})[k] || (DATA.policy || {})[k] || or || '');
-/* THE BUSINESS'S ONE PICTURE (1040 r10): tab icon, home-screen icon, Web profile and the business's posts all read it here. */
-/* A Drive share link is a page, so its picture's own address (as `pic`, posts.js). */
-function brandLogo_() {
-  const u = String(brand('logo_square', '') || brand('logo_circle', '') || 'icon.png').trim();
-  const id = (u.match(/\/file\/d\/([\w-]{20,})/) || u.match(/[?&]id=([\w-]{20,})/) || [])[1];
-  return id ? 'https://lh3.googleusercontent.com/d/' + id + '=w1200' : u;
-}
 /* IS THIS SOMETHING YOU WEAR? § */
 const isWearable = x => {
   const k = norm(x && (x.kind || x.kindRaw));

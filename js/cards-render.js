@@ -264,13 +264,6 @@ function cardDraw_(n) {
   /* `inner`: a drawing another maker drew already (a question's diagram, the pen's ink), laid inside as it is. */
   return `<${n.el}${attrs}>${n.text != null ? esc(String(n.text)) : ''}${n.inner || ''}${cardDraw_(n.kids)}</${n.el}>`;
 }
-/* A CARD DRAWN AGAIN WHERE IT STANDS: the new card replaces the old element whole. */
-function cardRedraw_(el, spec) {
-  if (!el || typeof document === 'undefined') return;
-  const t = document.createElement('template');
-  t.innerHTML = renderCard(spec);
-  if (t.content.firstElementChild) el.replaceWith(t.content.firstElementChild);
-}
 function cardBlock_(b) {
   if (b == null || b === '') return '';
   if (typeof b === 'string') return CARD_BLOCKS.text({ text: b });
@@ -303,8 +296,6 @@ function renderCard(spec) {
     + `<div class="kc-lines">${lines || (spec.empty ? `<p class="kc-line kc-empty">${esc(spec.empty)}</p>` : '')}</div>${cut.form ? `<div class="kc-form">${cut.form}</div>` : ''}`
     + `<div class="kc-act">${row}</div></div>`;
 }
-/* SEVERAL CARDS, or a message where there are none (the one empty card). */
-const renderCards = (specs, empty) => ((specs || []).length ? specs.map(renderCard).join('') : renderCard(Object.assign({ kind: 'empty', tags: [{ text: (empty && empty.name) || text_('nothing-yet') }] }, empty || {}, { empty: (empty && empty.say) || (typeof NOTHING_YET === 'string' ? NOTHING_YET : '') })));
 /* EACH CARD KIND'S BUILDER: `cardKind_('kind', x => spec)`; findCard draws a registered kind from its spec (check-card-spec runs each one). */
 const CARD_KINDS = {};
 function cardKind_(kind, build) { CARD_KINDS[kind] = build; }

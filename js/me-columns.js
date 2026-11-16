@@ -82,13 +82,6 @@ function peopleBelong_(col, family) {
   if (isTutorsCol_(col)) return !!(typeof cardMine_ === 'function' && cardMine_());
   return rel(Object.prototype.hasOwnProperty.call(PEOPLE_COL_LINK, col) ? PEOPLE_COL_LINK[col] : 'parent');
 }
-/* A PEOPLE COLUMN: signed out it says where to sign in; with nobody in it, its title and one line. */
-function peoplePages_(col) {
-  const title = tabLabel_(col, col);
-  if (!USER) return [signedOutCard_(title)];
-  const out = typeof accountPages_ === 'function' ? accountPages_(col) : [];
-  return out.length ? out : [rankOffCard_(title, 'Nobody to show here yet.', null, 'people-none')];
-}
 /* ---------- YOUR CARD ON YOUR ROLE'S SETTINGS COLUMN: ONLY ITS EDITING, A CARD PER THING (468) — never a preview; the person is drawn on the profile columns. */
 function ownCardSetPage_(setCol) {
   const face = FACE_OF_SET_[setCol];

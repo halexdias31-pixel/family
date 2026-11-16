@@ -36,9 +36,6 @@ const rowOf_ = (rowCls, label, v) => cardBlock_({ type: 'group', look: rowCls, b
   label === false ? null : { type: 'group', tag: 'span', look: 'k', text: label == null ? '' : String(label) },
   Object.assign({ type: 'group', tag: 'span' }, v)] });
 
-/* THE SAME ROW, WITH THE VALUE ALREADY MARKED UP — a link, a coloured word, a small drawing. § */
-const rowHtml = (label, html, extra, rowCls) =>
-  rowOf_('row' + (rowCls ? ' ' + rowCls : ''), label, { look: ['v', extra || ''].filter(Boolean).join(' '), inner: html });
 
 /* ---------- THE TWO SHAPES THE FIRST TWO COULD NOT MAKE § */
 
@@ -46,9 +43,6 @@ const rowHtml = (label, html, extra, rowCls) =>
 const rowLive = (label, value, id, extra) =>
   rowOf_('row', label, { look: ['v', 'mono', extra || ''].filter(Boolean).join(' '), id: String(id), text: String(value == null ? '' : value) });
 
-/* A ROW WITH NO LABEL — a name in a list, a line of a basket. § */
-const rowValue = (html, extra) =>
-  rowOf_('row', false, { look: ['v', extra || ''].filter(Boolean).join(' '), inner: html });
 
 
 function bookableSpaces() {
@@ -155,19 +149,7 @@ const fmtDay_ = v => {
   return i === -1 ? String(v ?? '') : DAYS_SHORT[i];
 };
 
-const ST = {
-  UNSENT:    'Unsent',      // built, not yet sent to anyone
-  REQUESTED: 'Requested',   // sent; waiting for the other side
-  WAITING:   'Waiting',     // in the lobby, hasn't readied up
-  AGREED:    'Agreed',      // readied up; waiting on everyone else
-  PAYING:    'Paying',      // terms settled, payment in flight
-  BOOKED:    'Booked',      // paid and in the diary
-  CONFIRMED: 'Confirmed',   // a session that has happened
-  DECLINED:  'Declined',    // the other side said no
-  CANCELLED: 'Cancelled',   // called off after being booked
-};
 
-const ROLE = { ADMIN: 'admin', TUTOR: 'tutor', CLIENT: 'client', STUDENT: 'student' };
 
 /* THE ROLE WORDS ARE THE BACKEND'S `ROLE_ALIASES` (constants.gs), sent as `roleAliases`; this copy stands until the payload lands (check-payload). */
 const ROLE_ALIASES = { administrator: 'admin', teacher: 'tutor', parent: 'client', guardian: 'client',
@@ -177,7 +159,6 @@ const roleAliases_ = () => { try { return (DATA && DATA.roleAliases) || ROLE_ALI
 const roleOf = r => roleAliases_()[norm(r)] || norm(r);
 
 
-const isRole = (r, want) => roleOf(r) === want;
 
 
 /* `u` IS WHOSE ROLES: the viewer by default; a settings card passes `whose_()` (the admin's lens, data-who.js). */
@@ -331,7 +312,6 @@ const val = id => ($(id) || {}).value || '';
 
 /* Who takes part in the checklist and the arcade: students, tutors and admins. A parent has no
    topics to tick and no score to keep. */
-const canTrack = () => hasRole('kid') || hasRole('student') || hasRole('tutor') || hasRole('admin');
 
 /* An admin is a tutor with extra powers, so everywhere gated on "tutor" admits an admin too. § */
 /* AND NOT A TUTOR WHO HAS ONLY TICKED THE BOX. § */
@@ -356,8 +336,6 @@ const rankAtLeast_ = (want, u = USER) => !!u && RANKS.indexOf(rank_(u)) >= RANKS
 /* WHAT SHE IS TOLD WHERE A PRICE OR A PAY BUTTON WOULD BE — the backend's `KID_ASK_PARENT` says the same. */
 const KID_ASK_PARENT = 'A parent books and pays for sessions — ask yours to book this one.';
 
-/* THE FOUR WORDS A JOB'S STATUS CAN BE, and nothing else. § */
-const JOB_STATUSES = ['Unsent', 'Unconfirmed', 'Active', 'Cancelled'];
 
 
 /* DOES THIS PROMOTION APPLY to this booking? § */

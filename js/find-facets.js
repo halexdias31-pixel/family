@@ -258,8 +258,6 @@ const FACET_COVERAGE = 0.5;
 
 /* ---------- A QUESTION WITH FORTY ANSWERS IS NOT A QUESTION, IT IS THE LIST § */
 const FACET_MAX_ANSWERS = 40;
-/* ---------- HOW MANY ANSWERS ARE DRAWN, WHICH IS NOT HOW MANY MAKE A QUESTION ASKABLE § */
-const FACET_MAX_SHOWN = 7;
 
 /* ---------- AND A QUESTION EVERYBODY ANSWERS THE SAME WAY IS NOT A QUESTION EITHER § */
 const FACET_MIN_MINORITY = 0.02;
@@ -403,13 +401,6 @@ function facetLocal_(items, F) {
   return (m[key] = say);
 }
 
-/* HOW WELL A QUESTION SPLITS THE LIST, in bits, the score the menu-rule check measures (920). § */
-const FACET_BITS_ENOUGH = 2;
-function facetBits_(items, facet) {
-  const vs = facetValues(items, facet), t = vs.reduce((a, v) => a + v.n, 0);
-  const bits = t ? vs.reduce((a, v) => v.n ? a - v.n / t * Math.log2(v.n / t) : a, 0) : 0;
-  return Math.min(FACET_BITS_ENOUGH, Math.round(bits * 100) / 100);
-}
 
 /* THE NEXT QUESTION, or nothing — ONE PRINCIPLE (owner, 15 Nov): the first facet in the facets tab's order that splits the list. */
 /* No ranking by how well it splits, no kind or choose question jumping the queue: the tab's `sort_order` is the order. */
@@ -613,10 +604,6 @@ function contentBody_(c) {
 
 /* A CONTENT CARD'S OTHER PAGES AND THEIR TITLES, ONE PLACE (408): § */
 const CONTENT_PAGE = { fig: 'Diagram', formulas: 'Formulas', worked: 'Worked examples', info: 'Information', anim: 'Animation' };
-function contentPageTitle_(x, part) {
-  if (!part) return String((x && x.name) || '');
-  return CONTENT_PAGE[part] || '';
-}
 function contentPart_(x, part) {
   if (!CONTENT_PAGE[part]) return '';
   const c = x.row;

@@ -262,15 +262,6 @@ function apprenticePages_() {
 }
 /* APPRENTICE SETTINGS WAS A COLUMN; it is Find › Settings › Apprentice now (find-only.json), drawn from CARD_BUILD.apprentice. */
 
-/* ---------- WEB PROFILE (730): @family.'s own public card, from the brand tab, every line with its fallback ---------- */
-function webProfilePages_() {
-  const b = typeof window.matBrand === 'function' ? window.matBrand() : {};
-  const name = b.name || brand('name', '@family.'), logo = brandLogo_();
-  const lines = [brand('web_tagline', 'Tutoring for every age, at home and online.'), b.area ? 'Where: ' + b.area : '',
-    b.phone ? 'Phone: ' + b.phone : '', b.site ? 'Online: ' + b.site : ''].filter(Boolean);
-  return [rolesSet_('web-card', name, logo ? [{ type: 'figure', src: logo, alt: '', look: 'web-logo' }] : [])];
-}
-screen('web', () => pages('web', typeof cardsOf_ === 'function' ? cardsOf_('web') : webProfilePages_()));
 
 /* APPRENTICE PROFILE WAS A COLUMN (730); it is Find › Profiles › Apprentice now (find-only.json, `profileTypes_`). */
 

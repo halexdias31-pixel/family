@@ -87,25 +87,7 @@ function drawFeed() {
   /* ---------- WHERE YOU GOT TO IS NOT KEPT ANY MORE § */
 }
 
-/* THE FACT'S CARD AND NOTHING ELSE — the widget's declared `draw`, for the builder (docs/history/341). § */
-function feedPaint_() {
-  const host = $('feed-screen');
-  if (!host) return false;
-  if (FEED_AT === null) FEED_AT = 0;
-  const it = feedItem(Math.max(0, FEED_AT));
-  if (!it) return false;
-  const html = (window.feedSlide || (() => ''))(it);
-  if (/<video\b/i.test(html)) return false;
-  host.innerHTML = html;
-  return true;
-}
 
-function initFeed() {
-  if (!$('feed-screen')) return;
-  /* EVERY SESSION STARTS AT THE FIRST CARD OF ITS OWN SHUFFLE — see `drawFeed` above and the long note in `feedShuffle`. § */
-  if (FEED_AT === null) FEED_AT = 0;
-  drawFeed();
-}
 
 /* TAP FOR THE NEXT, and the left third for the one before — the gesture stories taught everybody, and it costs one line more than a tap that only goes forward. § */
 on('feed-tap', (el, e) => {
@@ -116,17 +98,6 @@ on('feed-tap', (el, e) => {
 });
 
 
-function paintTimer() {
-  const el = $('timer-display');
-  if (!el) return;
-  const m = Math.floor(timerState.left / 60), s = timerState.left % 60;
-  el.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-  /* Red in the last minute. The one moment the number has to be findable from across a room, and
-     the only thing on this screen allowed to be red. */
-  el.classList.toggle('bad', timerState.left > 0 && timerState.left <= 60);
-  const btn = $('timer-toggle');
-  if (btn) btn.textContent = timerState.running ? '❚❚' : '▶';
-}
 
 
 let flappyState = null;

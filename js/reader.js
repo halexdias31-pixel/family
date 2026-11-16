@@ -183,11 +183,6 @@ document.addEventListener('input', e => {
   try { localStorage.setItem('speedWpm', String(SPEED.wpm)); } catch (err) {}
 });
 
-/* ---------- THE TOOLS WIDGET: PASTE, THEN READ ---------- */
-function initSpeedRead() {
-  const t = $('sr-text');
-  if (t && !t.value) { try { t.value = localStorage.getItem('speedDraft') || ''; } catch (e) {} }
-}
 document.addEventListener('input', e => {
   if (!e.target || e.target.id !== 'sr-text') return;
   try { localStorage.setItem('speedDraft', e.target.value); } catch (err) {}

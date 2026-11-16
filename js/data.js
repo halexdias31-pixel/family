@@ -115,12 +115,6 @@ function batchFiles_(want, bundle) {
 
 /* THE KEYS THE SITE ASKS FOR AND THE BACKEND DOES NOT SEND. § */
 let MISSING_KEYS = {};
-function missingKeys() {
-  const ks = Object.keys(MISSING_KEYS);
-  if (!ks.length) { console.log('Nothing has been asked for that the backend did not send.'); return {}; }
-  console.table(MISSING_KEYS);
-  return MISSING_KEYS;
-}
 
 /* HAS THE FIRST LOAD COME BACK? § */
 let LOADED = false;
@@ -218,15 +212,7 @@ function keepAtRisk_() {
   });
 }
 /* ---------- AND WHAT IS WAITING TO GO UP GOES AS THE PAGE GOES § */
-const KEEP_DUE = new Map();
-function keepDue_(name, send) { if (send) KEEP_DUE.set(name, send); else KEEP_DUE.delete(name); }
-/* A PROMISE OF THEM ALL, so Sign out can send them before the session they need is ended (me.js). */
-function keepFlush_() {
-  const due = [...KEEP_DUE.values()];
-  KEEP_DUE.clear();
-  return Promise.all(due.map(f => { try { return Promise.resolve(f(true)).catch(() => {}); } catch (e) { return null; } }));
-}
-const keepLeaving_ = () => { keepFlush_(); keepRetry_(); };
+const keepLeaving_ = () => { keepRetry_(); };
 window.addEventListener('pagehide', keepLeaving_);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') keepLeaving_(); });
 /* ---------- A RELOAD ASKS FIRST, BUT ONLY WHEN THE WORK IS IN NOTHING BUT THIS PAGE § */

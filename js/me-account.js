@@ -8,54 +8,10 @@
 /* One card ends where the next begins — the one place they are unambiguously separated, and the
    reason these screens are written as one template and split rather than assembled from a list:
    the template is how they read. */
-const split_ = html => String(html).split(/(?=<div class="card|<h2)/).map(x => x.trim()).filter(Boolean);
-
-/** Every card on the You screen, in order. */
-function meBlocks() {
-  if (!USER) return split_(registerCard_());
-  return meRest_();
-}
 
 
 
-function meRest_() {
-  /* `rows` WAS HERE — Name, Role, Credits, Ticks, Email, Where. They are on `meCard` in cards.js
-     now, built from the same `USER` and `USER.profile` this read. */
 
-  /* THE PHOTOGRAPH, not the figure. § */
-  /* A PHOTOGRAPH IF THERE IS ONE, otherwise the figure. § */
-  /* ---------- YOUR FACE AND YOUR NAME ARE ON YOUR CARD, NOT HERE § */
-  return split_(`
-    ${/* `installCard()` WAS HERE, "second, and that is the whole point of where it is" — and this column had stopped being drawn, so it was second on a page nobody § */
-          ''}
-
-    ${/* `Your figure` WAS A TILE ON YOUR CARD and is the last card of Settings now. § */
-          ''}
-
-    ${/* ---------- END OF THE PROFILE CARD § */
-          ''}
-    ${/* ---------- THE WEEK, ON A PANE OF ITS OWN § */
-          ''}
-    ${ME_SPLIT}
-    ${/* `Your week` WAS A CARD HERE, then a tool in the drawer, and is the Timetable's now — the
-          booked sessions are drawn into that week, locked. See the note where it stood in map.js. */''}
-    ${ME_SPLIT}
-    ${/* ---------- SOMEBODY WANTS TO ADD YOU TO THEIR FAMILY § */
-          ''}
-    ${(DATA.claims || []).map(claimCard_).join('')}
-
-    ${/* ---------- AND THE OTHER END OF IT § */
-          ''}
-    ${/* `Add your child` AND `Edit your details` ARE TILES ON YOUR CARD NOW — one mark each, in the row under your own face. § */
-          ''}
-
-    ${/* ---------- `What needs fixing` AND `Tell someone` WERE HERE § */
-          ''}
-
-    ${/* ---------- THE SECOND `Sign out` WAS HERE § */
-          ''}
-    ${/* ---------- THE VERSION CARD IS GONE FROM THE COLUMN § */
-          ''}`);}
 
 /* ---------- THE BUILD STAMPS, FOR WHEN SOMETHING HAS CHANGED AND HAS NOT § */
 /* THE BUILD CARD IS ITS LINES, so they are no grey clutter (A+): `build-said` keeps them past the rule that hides a card's grey lines. */
@@ -73,12 +29,6 @@ function versionSaid_() {
 /* ---------- APPLY TO TEACH (400): Staff only by application and an admin's yes ----------
    On You, for a signed-in adult who is not staff yet; no date of birth is underage (450), so the card asks for it. */
 const APP_SUBJECT_ROWS = 3;
-const APP_STATUS_LINE = {
-  new: text_('your-application-to-teach-is-with'),
-  interview: text_('we-would-like-to-talk-to'),
-  approved: text_('your-application-to-teach-was-approved'),
-  declined: text_('your-application-to-teach-was-not'),
-};
 /* WHOLE YEARS FROM A PROFILE'S DATE OF BIRTH (or an `age` field), or null when it says neither. */
 function profileAge_(p) {
   const q = p || {};
@@ -201,18 +151,7 @@ on('apply-send', el => {
 /* THE MARK BETWEEN THE TWO HALVES of the You screen. A comment in the markup: it survives being
    built into a string, it cannot be mistaken for content, and it renders as nothing if it ever
    escapes. */
-const ME_SPLIT = '<!--me-split-->';
 
-const mePages = () => {
-  const all = meBlocks().join('');
-  /* PROFILE, then ACCOUNT, then MESSAGES. § */
-  /* SPLIT ON EVERY MARKER, NOT THE FIRST. § */
-  const pages = all.split(ME_SPLIT).map(x => x.trim()).filter(Boolean);
-
-  /* ---------- YOUR SESSIONS ARE YOURS, SO THEY ARE HERE § */
-
-  return pages.length ? pages : [all];
-};
 
 /* Drawn, then filled. `fillMessages` looks for `#msg-body` by id, so it can only run once this screen's markup is in the document — the same reason a widget's § */
 /* ---------- NOTHING IN THE APP ASKS ANYBODY TO INSTALL IT § */
@@ -249,10 +188,7 @@ on('signout', () => {
   try {
     if (typeof subDrain_ === 'function') subs = subDrain_(USER && USER.personId, tok, typeof answersCan_ === 'function' && answersCan_('submitAnswer'));
   } catch (err) { /* nothing to send: the waiting answers stay on the device for next time */ }
-  /* AND THE NOTEPAD, THE DOCKET AND THE TIMETABLE, still inside their moment before they go up (`keepDue_`, data.js) — each is sent only while somebody is signed § */
-  let due = Promise.resolve();
-  try { if (typeof keepFlush_ === 'function') due = keepFlush_(); } catch (err) { oops_(err, 'me:googleSignedIn_') }
-  Promise.all([Promise.resolve(last).catch(() => {}), due, Promise.resolve(subs).catch(() => {})]).then(() => { try { if (tok) api({ action: 'signOut', token: tok }); } catch (err) { /* sign out goes on even if the server call cannot be made */ } });
+  Promise.all([Promise.resolve(last).catch(() => {}), Promise.resolve(subs).catch(() => {})]).then(() => { try { if (tok) api({ action: 'signOut', token: tok }); } catch (err) { /* sign out goes on even if the server call cannot be made */ } });
   signedOut_();
   toast(text_('signed-out'));
 });
