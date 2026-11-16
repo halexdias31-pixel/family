@@ -6545,3 +6545,41 @@ button.scr-sq { cursor: pointer; }
 .race-attr { margin: var(--s1) 0 0; font-size: var(--fs-small); }
 .race-attr a { color: inherit; }
 .flappy-msg { text-align: center; margin: var(--s2) 0 0; }
+
+/* ---------- ONE ANIMATION FORMAT (16 Nov): <svg class="sa">, parts s1..s8 drawn in a second apart, mv-* always moving; sa-auto plays a still diagram. § */
+.sa { display: block; width: 100%; height: auto; max-height: 62vh; color: var(--ink); overflow: visible; }
+.sa .pt, .sa .ln { stroke: currentColor; fill: none; }
+.sa .fill { fill: currentColor; stroke: none; }
+.sa .hot { color: var(--coral); }
+.sa .cool { color: var(--green); }
+@keyframes sa-s1 { 0% { opacity: 0; } 3%, 94% { opacity: 1; } 100% { opacity: 0; } }
+.sa .s1, .sa-auto > :nth-child(1) { animation: sa-s1 10s linear infinite both; }
+@keyframes sa-s2 { 0%, 10% { opacity: 0; } 13%, 94% { opacity: 1; } 100% { opacity: 0; } }
+.sa .s2, .sa-auto > :nth-child(2) { animation: sa-s2 10s linear infinite both; }
+@keyframes sa-s3 { 0%, 20% { opacity: 0; } 23%, 94% { opacity: 1; } 100% { opacity: 0; } }
+.sa .s3, .sa-auto > :nth-child(3) { animation: sa-s3 10s linear infinite both; }
+@keyframes sa-s4 { 0%, 30% { opacity: 0; } 33%, 94% { opacity: 1; } 100% { opacity: 0; } }
+.sa .s4, .sa-auto > :nth-child(4) { animation: sa-s4 10s linear infinite both; }
+@keyframes sa-s5 { 0%, 40% { opacity: 0; } 43%, 94% { opacity: 1; } 100% { opacity: 0; } }
+.sa .s5, .sa-auto > :nth-child(5) { animation: sa-s5 10s linear infinite both; }
+@keyframes sa-s6 { 0%, 50% { opacity: 0; } 53%, 94% { opacity: 1; } 100% { opacity: 0; } }
+.sa .s6, .sa-auto > :nth-child(6) { animation: sa-s6 10s linear infinite both; }
+@keyframes sa-s7 { 0%, 60% { opacity: 0; } 63%, 94% { opacity: 1; } 100% { opacity: 0; } }
+.sa .s7, .sa-auto > :nth-child(7) { animation: sa-s7 10s linear infinite both; }
+@keyframes sa-s8 { 0%, 70% { opacity: 0; } 73%, 94% { opacity: 1; } 100% { opacity: 0; } }
+.sa .s8, .sa-auto > :nth-child(8), .sa-auto > :nth-child(n+9) { animation: sa-s8 10s linear infinite both; }
+@keyframes sa-flow { 0%, 100% { opacity: 1; } 50% { opacity: .2; } }
+.sa .mv-flow { stroke-dasharray: 4 4; animation: sa-flow .8s linear infinite; } .sa .mv-flow.b { stroke-dashoffset: 4; animation-delay: -.4s; }
+@keyframes sa-jig { 0%, 100% { transform: translate(0, 0); } 25% { transform: translate(1.5px, -1px); } 50% { transform: translate(-1px, 1.5px); } 75% { transform: translate(-1.5px, -1px); } }
+.sa .mv-jig { animation: sa-jig .7s linear infinite; }
+.sa .mv-jig:nth-of-type(3n) { animation-duration: .55s; } .sa .mv-jig:nth-of-type(3n+1) { animation-direction: reverse; }
+@keyframes sa-slide { 0%, 10% { transform: translate(0, 0); } 70%, 100% { transform: translate(var(--x, 0px), var(--y, 0px)); } }
+.sa .mv-slide { animation: sa-slide 5s ease-in-out infinite alternate; }
+@keyframes sa-turn { to { transform: rotate(-360deg); } }
+.sa .mv-spin { animation: sa-turn 6s linear infinite; }
+.sa .mv-spin.slow { animation-duration: 10s; }
+@keyframes sa-swing { from { transform: rotate(-35deg); } to { transform: rotate(35deg); } }
+.sa .mv-swing { animation: sa-swing 1.4s ease-in-out infinite alternate; }
+@keyframes sa-beat { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12); } }
+.sa .mv-pulse { transform-box: fill-box; transform-origin: center; animation: sa-beat 1.6s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .sa [class], .sa.sa-auto > * { animation: none; } }

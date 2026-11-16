@@ -63,6 +63,8 @@
 {"field": "bandValue", "label": "Grade", "sort_order": 80, "note": "band_type grade", "active": true},
 {"field": "topic", "label": "Topic", "sort_order": 100, "note": "hundreds of answers, so the 40-answer cap keeps it quiet until the list is small enough to name one", "active": true},
 {"field": "examBoard", "label": "Exam board", "sort_order": 110, "note": "", "active": true},
+{"field": "specTopic", "label": "Spec topic", "sort_order": 111, "note": "a content card written to one board's spec (16 Nov): the spec's own numbered topic, read from data/spec/<board>-<code>.json by its spec_ref; such a card answers no Topic, so its board is asked first", "active": true},
+{"field": "specPoint", "label": "Spec point", "sort_order": 112, "note": "the spec's numbered sub-topic under Spec topic (4.1.1 Cell structure), from the same file", "active": true},
 {"field": "tier", "label": "Tier", "sort_order": 120, "note": "Foundation or Higher", "active": true},
 {"field": "examYear", "label": "Year", "sort_order": 130, "note": "the year of the sitting, newest first", "active": true},
 {"field": "examMonth", "label": "Month", "sort_order": 132, "note": "May, June, November — the month and never the season; any item's own date too (a 5-a-day's)", "active": true},

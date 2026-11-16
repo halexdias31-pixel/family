@@ -668,7 +668,8 @@ const FACETS = [
   { field: 'mModel',    label: 'Model',       of: x => mechFit_(x, 'mModel'), tagOf: x => mechFitTag_(x, 'mModel') },
   { field: 'mGen',      label: 'Generation',  of: x => mechFit_(x, 'mGen'), tagOf: x => mechFitTag_(x, 'mGen') },
   { field: 'mEngine',   label: 'Engine',      of: x => mechFit_(x, 'mEngine'), tagOf: x => mechFitTag_(x, 'mEngine') },
-  { field: 'mKind',     label: 'Card type',   of: x => x.mKind || '' },
+  /* A LESSON WRITTEN TO A SPEC IS ONE TYPE BESIDE CHEMISTRY'S ELEMENTS AND SUBSTANCES (16 Nov): Library › Chemistry › Exam topics › GCSE › AQA. */
+  { field: 'mKind',     label: 'Card type',   of: x => x.mKind || (specTreeOf_(x).topic ? 'Exam topics' : '') },
   { field: 'mSystem',   label: 'System',      of: x => x.mSystem || '' },
   { field: 'mPhase',    label: 'Phase',       of: x => mechFit_(x, 'mPhase'), tagOf: x => mechFitTag_(x, 'mPhase') },
   { field: 'mMarket',   label: 'Market',      of: x => mechFit_(x, 'mMarket'), tagOf: x => mechFitTag_(x, 'mMarket') },
@@ -739,8 +740,11 @@ const FACETS = [
   /* A CHAPTER TAUGHT OVER SEVERAL YEARS ANSWERS EACH (770: "it should ask what year, no?" under KS2). */
   { field: 'yearGroup', label: 'School year', of: x => x.bandValue && x.bandType === 'year' ? 'Year ' + x.bandValue : (x.years || []).map(y => 'Year ' + y) },
   { field: 'bandValue', label: 'Grade',       of: x => x.bandValue && x.bandType === 'grade' ? 'Grade ' + x.bandValue : '' },
-  { field: 'topic',     label: 'Topic',       of: x => topicShown_(x) ? (x.topic || topicOf_(x)) : [] },
+  /* A CARD WRITTEN TO A SPEC ANSWERS THE SPEC'S OWN HEADINGS INSTEAD (16 Nov), asked after its board: Library › Biology › AQA › 4.1 Cell biology. */
+  { field: 'topic',     label: 'Topic',       of: x => topicShown_(x) && !specTreeOf_(x).topic ? (x.topic || topicOf_(x)) : [] },
   { field: 'examBoard', label: 'Exam board',  of: x => boardOf_(x) },
+  { field: 'specTopic', label: 'Spec topic',  full: true, of: x => specTreeOf_(x).topic },
+  { field: 'specPoint', label: 'Spec point',  full: true, of: x => specTreeOf_(x).point },
   /* A "PLUS" TIER IS ITS OWN TIER'S (owner, 15 Nov): Foundation Plus is Foundation, Higher Plus is Higher. */
   { field: 'tier',      label: 'Tier',        of: x => String(x.tier || '').replace(/\s+Plus$/i, '') },
   /* THE YEAR, THEN THE MONTH, THEN THE PAPER — like the folders they came from. */
@@ -1134,6 +1138,8 @@ function answerCmp_(texts) {
   for (const list of ANSWER_ORDERS) {
     if (list.length && every(t => list.indexOf(t) !== -1)) return (a, b) => list.indexOf(a) - list.indexOf(b);
   }
+  /* A SPEC'S NUMBERED HEADINGS IN THE SPEC'S ORDER (16 Nov): 4.2 before 4.10. */
+  if (every(t => /^\d+(?:\.\d+)+ /.test(t))) return (a, b) => specNumCmp_(a, b);
   const k = kindRank_();
   for (const by of [k.labels, k.groups]) {
     if (every(t => by.has(t))) return (a, b) => by.get(a) - by.get(b);
@@ -1236,7 +1242,9 @@ function facetTally_(items, facet) {
     values = Object.keys(folded).map(k => ({ value: String(folded[k].best.value), n: folded[k].n, text: facetSay_(facet, String(folded[k].best.value)) }));
     const cmp = answerCmp_(values.map(v => v.text));
     values.sort((a, b) => cmp(a.text, b.text) || cmpText(a.value, b.value));
-    shortLabels_(values); tellApart_(items, facet, values); showFit_(values);
+    /* A SPEC HEADING IS SAID WHOLE (`full`): "4.6 Inheritance, variation and evolution", never cut at its comma. */
+    if (facet.full) values.forEach(v => { v.show = v.text || v.value; }); else shortLabels_(values);
+    tellApart_(items, facet, values); if (!facet.full) showFit_(values);
     return values;
   };
 
@@ -1629,7 +1637,7 @@ function contentBody_(c) {
 }
 
 /* A CONTENT CARD'S OTHER PAGES AND THEIR TITLES, ONE PLACE (408): § */
-const CONTENT_PAGE = { fig: 'Diagram', formulas: 'Formulas', worked: 'Worked examples' };
+const CONTENT_PAGE = { fig: 'Diagram', formulas: 'Formulas', worked: 'Worked examples', info: 'Information', anim: 'Animation' };
 function contentPageTitle_(x, part) {
   if (!part) return String((x && x.name) || '');
   return CONTENT_PAGE[part] || '';
@@ -1639,7 +1647,9 @@ function contentPart_(x, part) {
   const c = x.row;
   return renderCard({ kind: 'part', look: 'prac prac-part tb tb-page is-' + part, name: CONTENT_PAGE[part], tags: [{ text: CONTENT_PAGE[part] }],
     body: [{ type: 'text', look: 'fc-kick', text: [[c.subject, c.title].filter(Boolean).join(' · ')].concat(tbMark_(c.higher)) }]
-      .concat(part === 'fig' ? [figPage_(c.diagram)] : tbSections_(c, null, { only: part === 'worked' ? 'points' : 'formulas', bare: true })) });
+      .concat(part === 'fig' ? [figPage_(c.diagram)] : part === 'anim' ? [gdSec_('', animPage_(c))]
+        : part === 'info' ? tbSections_(Object.assign({}, c, { points: infoPoints_(c) }), null, { only: 'points', bare: true })
+        : tbSections_(c, null, { only: part === 'worked' ? 'points' : 'formulas', bare: true })) });
 }
 
 /* ---------- A CHAPTER'S KEY WORDS, FORMULAS AND WORKED LINES — ALL OF THEM, OR THE ONES ASKED FOR § */
@@ -1656,7 +1666,36 @@ function tbSections_(c, keep, opt) {
   /* THE MARK ON THE FORMULA'S NAME, not after the formula: § */
   return [sec('tb-words', 'Key words', words.map(w => [{ b: w.name }, ' — '].concat(tbSub_(w.text), tbMark_(w.higher)))),
     sec('tb-math', 'Formulas', formulas.map(f => [{ b: f.name }].concat(tbMark_(f.higher), ' ', tbMath_(f.text)))),
-    sec('tb-points', 'Worked', points.map(p => [tbMath_(p.text)].concat(tbMark_(p.higher))))].filter(Boolean);
+    sec('tb-points', 'Information', points.map(p => [tbMath_(p.text)].concat(tbMark_(p.higher))))].filter(Boolean);
+}
+
+/* ---------- THE SPEC IS THE TOPIC TREE (owner, 16 Nov: "topics should follow the exam board's spec exactly") ---------- */
+/* One source, data/spec/<board>-<code>.json (DATA.specs): a card's `spec` and `spec_ref` answer Spec topic and Spec point. § */
+function specNumCmp_(a, b) {
+  const x = String(a).split(' ')[0].split('.').map(Number), y = String(b).split(' ')[0].split('.').map(Number);
+  for (let i = 0; i < Math.max(x.length, y.length); i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) - (y[i] || 0);
+  return 0;
+}
+const SPEC_TOPIC_NONE = { topic: '', point: '' };
+function specTreeOf_(x) {
+  if (!x || !isContent_(x) || !x.row) return SPEC_TOPIC_NONE;
+  if (x.specTree) return x.specTree;
+  const c = x.row, ref = String(c.specRef || '').trim();
+  const sp = ref && c.spec ? ((typeof DATA !== 'undefined' && DATA.specs) || []).find(s => String(s.code) === String(c.spec) && s.board === c.board) : null;
+  if (!sp) return (x.specTree = SPEC_TOPIC_NONE);
+  const a = ref.split('.'), sec = sp.sections.find(s => s.id === a.slice(0, 2).join('.')), pt = (sp.points || []).find(p => p.id === a.slice(0, 3).join('.'));
+  return (x.specTree = { topic: sec ? sec.id + ' ' + sec.title : '', point: pt ? pt.id + ' ' + pt.text : '' });
+}
+/* THE LIBRARY IS INFORMATION AND ANIMATIONS (owner, 16 Nov): no worked examples, no self-tests, no still pictures on its door. */
+const SCI_NOT_INFO = /^(Worked example|Check|Example)\b/i;
+const infoPoints_ = c => (c.points || []).filter(p => !SCI_NOT_INFO.test(String(p.text || '')))
+  .map(p => Object.assign({}, p, { text: String(p.text || '').replace(/^Explanation\s+—\s+/, '') }));
+/* ONE ANIMATION FORMAT: an `sa` SVG (s1..s8 steps, mv-* motion; style.css). A still diagram plays as one (`sa-auto`). § */
+const saSvg_ = svg => String(svg || '').replace(/^(\s*<svg)\b(?![^>]*class="sa)/, '$1 class="sa sa-auto"');
+function animPage_(c) {
+  const list = (c.anims || []).map(a => ({ type: 'figure', svg: a.svg, caption: [{ b: a.title }] }));
+  if (!list.length && c.diagram) list.push({ type: 'figure', svg: saSvg_(c.diagram) });
+  return list;
 }
 
 /* ---------- ONE CHAPTER, AS AN ITEM THE FUNNEL ASKS THE QUESTIONS' QUESTIONS OF § */
@@ -2699,11 +2738,12 @@ function pageParts_(x, prev) {
     out.push('share');
     return out;
   }
-  /* A CONTENT CARD IS ITSELF, then its Formulas and its Worked examples (408):
+  /* A CONTENT CARD IS ITSELF, then its Information, Formulas and Animation (408, 16 Nov):
      one titled page per thing, and a page only where the row has the thing. */
   if (x && isContent_(x) && x.row) {
     const c = x.row;
-    return [null].concat(c.diagram ? ['fig'] : [], (c.formulas || []).length ? ['formulas'] : [], (c.points || []).length ? ['worked'] : []);
+    /* THE LIBRARY IS INFORMATION AND ANIMATIONS (owner, 16 Nov): the card, its Information, its Formulas, its Animation; no worked examples, no still picture. */
+    return [null].concat(infoPoints_(c).length ? ['info'] : [], (c.formulas || []).length ? ['formulas'] : [], (c.anims || []).length || c.diagram ? ['anim'] : []);
   }
   /* THE BIBLE HAS NO BRANCH HERE ANY MORE. § */
   if (x && x.hdb && x.row && HIST_LINES[x.kind]) return [null].concat(histPages_(x));
@@ -11230,7 +11270,7 @@ function chipShow_(f, i) {
 
 /* ---------- ONE COLOUR PER MENU (1030): every answer of a facet, its chip and its card words wear the facet's --hue-N. § */
 /* WRITTEN BY tools/facet-hues.js from the funnel's facet graph: two facets asked on one path never share a number. */
-const TAG_OF = {forLabel: 0, kindLabel: 0, kindOwn: 2, postState: 1, postBy: 9, postWhen: 10, msgWith: 7, profileType: 1, settingFor: 1, vidSubject: 10, vidTopic: 11, vidChannel: 8, vidLevel: 9, vidType: 0, venueArea: 6, venueFor: 10, venueSize: 8, projectType: 11, subject: 1, shelf: 5, wReligion: 5, histKind: 4, wCollection: 4, wWork: 8, wSection: 7, wSource: 2, wLanguage: 6, wText: 11, wTradition: 2, wBook: 9, wChapter: 10, wUnit: 2, wAuthor: 10, wForm: 1, wPrimacy: 2, mScope: 8, mMake: 6, mModel: 4, mGen: 2, mEngine: 3, mKind: 3, mSystem: 9, pcType: 5, pcSocket: 4, pcIface: 2, pcLinks: 3, mPhase: 5, mMarket: 3, mYears: 10, mSize: 8, mValves: 9, mBadge: 0, mFuel: 1, mPart: 7, mPrice: 6, cCategory: 11, cGroup: 2, cPeriod: 4, cState: 5, boxKind: 3, fighter: 8, boutMonth: 10, boutYear: 4, decade: 2, division: 4, boutRound: 0, boutMethod: 0, boutWinner: 7, boutEvent: 0, histEra: 1, histMaterial: 5, histFormat: 2, histGenre: 3, histRole: 7, personName: 7, personYears: 8, personFrom: 6, histTheme: 10, histRepository: 6, histFound: 7, histDated: 9, histSide: 8, histTheatre: 9, practicalType: 10, shopKind: 3, shopHow: 1, shopPrice: 6, shopBrand: 3, shopFor: 4, shopTheme: 5, required: 11, documentType: 4, level: 3, keystage: 7, yearGroup: 3, bandValue: 5, topic: 6, examBoard: 7, tier: 9, examYear: 5, examMonth: 8, examDay: 8, verified: 0, paperId: 8, paperSection: 1, qNumber: 9, qPart: 1, qSub: 2, marks: 11, needs: 0, myResult: 11, source: 6};
+const TAG_OF = {forLabel: 0, kindLabel: 0, kindOwn: 2, postState: 1, postBy: 9, postWhen: 10, msgWith: 7, profileType: 1, settingFor: 1, vidSubject: 10, vidTopic: 11, vidChannel: 8, vidLevel: 9, vidType: 0, venueArea: 6, venueFor: 10, venueSize: 8, projectType: 11, subject: 1, shelf: 5, wReligion: 5, histKind: 4, wCollection: 4, wWork: 8, wSection: 7, wSource: 2, wLanguage: 6, wText: 11, wTradition: 2, wBook: 9, wChapter: 10, wUnit: 2, wAuthor: 10, wForm: 1, wPrimacy: 2, mScope: 8, mMake: 6, mModel: 4, mGen: 2, mEngine: 3, mKind: 3, mSystem: 9, pcType: 5, pcSocket: 4, pcIface: 2, pcLinks: 3, mPhase: 5, mMarket: 3, mYears: 10, mSize: 8, mValves: 9, mBadge: 0, mFuel: 1, mPart: 7, mPrice: 6, cCategory: 11, cGroup: 2, cPeriod: 4, cState: 5, boxKind: 3, fighter: 8, boutMonth: 10, boutYear: 4, decade: 2, division: 4, boutRound: 0, boutMethod: 0, boutWinner: 7, boutEvent: 0, histEra: 1, histMaterial: 5, histFormat: 2, histGenre: 3, histRole: 7, personName: 7, personYears: 8, personFrom: 6, histTheme: 10, histRepository: 6, histFound: 7, histDated: 9, histSide: 8, histTheatre: 9, practicalType: 10, shopKind: 3, shopHow: 1, shopPrice: 6, shopBrand: 3, shopFor: 4, shopTheme: 5, required: 11, documentType: 4, level: 3, keystage: 7, yearGroup: 3, bandValue: 5, topic: 6, examBoard: 7, specTopic: 6, specPoint: 10, tier: 9, examYear: 5, examMonth: 8, examDay: 8, verified: 0, paperId: 8, paperSection: 1, qNumber: 9, qPart: 1, qSub: 2, marks: 11, needs: 0, myResult: 11, source: 6};
 /* A FACET THE WALK NEVER MET (one the facets tab invented) still has a colour: the first. */
 const tagOf_ = field => 'h' + (TAG_OF[field] || 0);
 const tagAttr_ = field => ` data-tag="${tagOf_(field)}"`;
