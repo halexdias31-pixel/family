@@ -1547,7 +1547,7 @@ button.text-drop { color: var(--bad); }
 }
 .chip:is(:active, .is-pressed) { transform: scale(var(--press-small)); }
 /* THE FUNNEL'S OWN CHIPS: the tag's padding, but a 44px tap like every control (950); the radius is the one chip token. */
-.chip.sm { min-height: var(--tp-h); border-radius: var(--r-round); padding: var(--tp-pad); position: relative; line-height: var(--tp-lh); gap: var(--s1); }
+.chip.sm { min-height: var(--tp-h); padding: var(--tp-pad); position: relative; line-height: var(--tp-lh); gap: var(--s1); }
 .chip.sm::before, .row.tap.counted::before { content: ""; position: absolute; inset: calc((var(--tp-h) - 44px) / 2) 0; }
 /* A CHIP OF A KIND IS DRAWN IN ITS COLOUR: § */
 .chip[data-tag] {
@@ -1606,7 +1606,6 @@ html.flow body { max-width: none; padding: var(--safe-top) max(16px, var(--safe-
 /* THE PAD'S ROOM while it is up, so you can scroll the last box above it yourself; the pad itself never scrolls the page (owner, 16 Nov). */
 html.flow.kp-up body { padding-bottom: calc(var(--kp-h, 50dvh) + var(--s4)); }
 html.flow #topbar { display: flex; align-items: center; justify-content: space-between; gap: var(--s2); min-height: var(--tap); }
-html.flow #topbar-who { display: flex; align-items: center; gap: var(--s2); color: var(--ink); }
 html.flow #screen { height: auto; overflow: visible; touch-action: auto; background: none; display: flex; flex-direction: column; }
 html.flow .screen { position: static; transform: none; visibility: visible; transition: none; will-change: auto; }
 html.flow #s-account { order: -1; }
@@ -1622,8 +1621,6 @@ html.flow .page { width: 100%; min-width: 0; }
 /* A LIST, NOT CARDS (owner, 4 Nov): no frame per result, a hairline between rows, the tags one small line. */
 html.flow .pane { max-height: none; touch-action: auto; background: none; border: 0; border-radius: 0; box-shadow: none; padding-inline: 0; }
 html.flow #screen .page + .page { border-top: 1px solid var(--line); }
-/* EACH TAG A PILL LIKE ITS MENU CHIP (owner, 5 Nov): the chip's outline, tint and radius in its menu's colour, smaller and with no ✕. */
-html.flow .qcard-tags .qtag { color: var(--tag, var(--dim)); border: 1px solid var(--tag, var(--chip-line)); background: color-mix(in srgb, var(--tag, var(--chip-line)) 10%, transparent); border-radius: var(--r-round); padding: var(--tp-pad); }
 /* A RESULT NOT YET DRAWN takes no room; it is drawn as the scroll comes near (`flowMore_`, find.js). */
 html.flow .page.is-res:not([data-filled]) { display: none; }
 html.flow:not(.is-loaded) #s-feed { min-height: 100svh; }   /* the home column holds a screen till the payload lands, or a short feed landing above Find pushes it down (CLS, 1040) */
@@ -2250,8 +2247,8 @@ label.bk-k { cursor: pointer; }
 
 /* ---------- A WIDGET THAT IS THE WHOLE PAGE § */
 /* A WIDGET IS AS TALL AS IT NEEDS TO BE. § */
-.widget-full { flex: 0 0 auto; display: flex; flex-direction: column; min-height: 0; }
-.widget-full > .card { flex: 0 0 auto; display: flex; flex-direction: column; min-height: 0;
+.widget-full { display: flex; flex-direction: column; }
+.widget-full > .card { display: flex; flex-direction: column;
                        padding-top: var(--s2); }
 /* The heading and its line never grow — they say what the widget is and then get out of the way. */
 .widget-full > .card > h3, .widget-full > .card > .note,
@@ -2309,10 +2306,7 @@ label.bk-k { cursor: pointer; }
    pages still move and still fade, because that is the layout rather than the decoration — it just
    arrives rather than travelling. */
 @media (prefers-reduced-motion: reduce) {
-  /* A cell still moves — that is the layout, not the decoration. It arrives rather than
-     travelling. */
   .screen, .page { transition: none; }
-  .page { transition: none; }
   /* A cell still moves and still fades — that is the layout rather than the decoration. It simply
      arrives rather than travelling. */
   .screen, .page { transition: none; }
@@ -2804,7 +2798,6 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .wc-row.is-all .wc-n { color: var(--hue-10); }
 .wc-slot { position: relative; }
 
-
 /* ---------- A ROW WITH NOTHING IN THE FIGURE COLUMNS § */
 /* THE SAME TWO COLUMNS AS EVERY OTHER ROW, so a card of mixed rows lines up down its left edge. § */
 /* ---------- AND THE LABEL COLUMN GIVES WAY WHEREVER NOTHING BESIDE IT WANTS THE ROOM § */
@@ -2908,9 +2901,9 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 /* PRINTING FROM INSIDE THE APP. § */
 @media print {
   /* ---------- THE BODY IS STILL A 26.5rem COLUMN, AND THAT IS WHAT CLIPS THE PAGE § */
-  body.printing-fly { max-width: none !important; margin: 0 !important; padding: 0 !important;
-    overflow: visible !important; }
-  body.printing-fly * { visibility: hidden !important; }
+  /* ONE PRINTED PAGE, whichever paper is printing: the column let go and everything else hidden. */
+  body:is(.printing-fly, .printing-mat, .printing-stmt, .printing-insh) { max-width: none !important; margin: 0 !important; padding: 0 !important; overflow: visible !important; }
+  body:is(.printing-fly, .printing-mat, .printing-stmt, .printing-insh) * { visibility: hidden !important; }
   @page { size: A4 portrait; margin: 0; }
 }
 
@@ -3130,7 +3123,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .mat-pv em { font: 400 2.3mm/1 var(--mono); font-style: normal; color: var(--pa-mid); margin-top: .6mm; }
 .mat-meas { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.2mm 3mm; }
 .mat-meas em { display: block; font: 400 2.3mm/1 var(--mono); font-style: normal; color: var(--pa-mid); }
-.mat-meas i { display: block; font-style: normal; font-weight: 400; font-size: 2.8mm; line-height: 1.5; font-style: normal; }
+.mat-meas i { display: block; font-weight: 400; font-size: 2.8mm; line-height: 1.5; font-style: normal; }
 /* THE ENGLISH WORD BANK IS THIS BLOCK WITH A THIRD COLUMN — said, good, bad — so it borrows the
    measures block's type and spacing rather than starting another kind of list. */
 .mat-meas.mat-three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -3161,7 +3154,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .mat-shapes span { display: block; font-style: normal; font-weight: 400; font-size: 2.4mm; line-height: 1.2; margin-top: .6mm; }
 .mat-shapes em { display: block; font: 400 2.1mm/1 var(--mono); font-style: normal; color: var(--pa-mid); }
 .mat-rom { display: flex; flex-wrap: wrap; gap: 1mm 2mm; }
-.mat-rom i { font-style: normal; font-weight: 400; font-size: 2.8mm; line-height: 1.2; font-style: normal; }
+.mat-rom i { font-weight: 400; font-size: 2.8mm; line-height: 1.2; font-style: normal; }
 .mat-rom i b { font-weight: 700; margin-right: .8mm; }
 .mat-rom i.wide { flex-basis: 100%; color: var(--pa-mid); font-size: 2.5mm; }
 .mat-fdp { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: .6mm; text-align: center; }
@@ -3235,12 +3228,12 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .mat-circ .lb   { font: italic 400 var(--fs-small)/1 "Times New Roman", serif; fill: var(--pa-ink); }
 .mat-two i { display: contents; }
 /* UPRIGHT. `matPairs` wraps each row in `<i>` as its grid handle, and `<i>` is italics — so every label on every block has been italic since the day it was § */
-.mat-two i b { font-style: normal; font-weight: 600; font-size: 2.7mm; line-height: 1.3; font-style: normal; color: var(--pa-label); }
-.mat-two i em { font-style: normal; font-weight: 400; font-size: 2.7mm; line-height: 1.3; font-style: normal; color: var(--pa-ink); }
+.mat-two i b { font-weight: 600; font-size: 2.7mm; line-height: 1.3; font-style: normal; color: var(--pa-label); }
+.mat-two i em { font-weight: 400; font-size: 2.7mm; line-height: 1.3; font-style: normal; color: var(--pa-ink); }
 /* A LITTLE AIR BETWEEN THE TWO HALVES, put on the first value column rather than as a gap, because one gap value would have to space the label from its value too § */
 .mat-two i:nth-child(odd) em { padding-right: 4mm; }
 .mat-trig { display: grid; grid-template-columns: repeat(6, 1fr); border: .3mm solid var(--pa-ink); }
-.mat-trig i { display: grid; place-items: center; padding: 1mm 0; font-style: normal; font-weight: 400; font-size: 2.7mm; line-height: 1;
+.mat-trig i { display: grid; place-items: center; padding: 1mm 0; font-weight: 400; font-size: 2.7mm; line-height: 1;
               font-style: normal; border-right: .15mm solid var(--pa-rule);
               border-bottom: .15mm solid var(--pa-rule); }
 .mat-trig i:nth-child(6n) { border-right: 0; }
@@ -3269,7 +3262,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .mat-tk-nums { flex: 1; display: grid; grid-template-columns: repeat(5, 1fr);
                border-top: .4mm solid var(--pa-ink); padding-top: .8mm; }
 .mat-tk-row:first-child .mat-tk-nums { border-top: 0; }
-.mat-tk-nums i { text-align: center; font-style: normal; font-weight: 700; font-size: 4.2mm; line-height: 1.1; font-style: normal; }
+.mat-tk-nums i { text-align: center; font-weight: 700; font-size: 4.2mm; line-height: 1.1; font-style: normal; }
 .mat-tk-nums em { text-align: center; font: 400 2.6mm/1.1 var(--mono); font-style: normal;
                   color: var(--pa-mid); }
 .mat-tk-nums u { text-align: center; font: 400 2.7mm/1.1 var(--mono); text-decoration: none;
@@ -3283,9 +3276,6 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 /* ---------- PRINTING FROM INSIDE THE APP § */
 /* THE PAPER IS A COPY AT THE END OF THE BODY, not the sheet inside the card. § */
 @media print {
-  body.printing-mat { max-width: none !important; margin: 0 !important; padding: 0 !important;
-    overflow: visible !important; }
-  body.printing-mat * { visibility: hidden !important; }
   body.printing-mat .mat-paper, body.printing-mat .mat-paper * { visibility: visible !important; }
   body.printing-mat .mat-paper { position: absolute; left: 0; top: 0; margin: 0; padding: 0;
     width: 210mm; height: auto !important; overflow: visible !important; }
@@ -3874,7 +3864,7 @@ a.boxer-src { display: flex; align-items: center; min-height: var(--tap); text-d
 .tile-k { font-size: var(--fs-small); letter-spacing: .02em; }
 /* TAP AGAIN TO CONFIRM (420, `sure_`): an armed tile says so in words, in place of a pop-up, and widens to fit them. */
 .tile.is-submit { width: var(--tile-send); height: var(--tile-send); }
-.tile.is-sure { border-radius: var(--r-round); width: auto; padding: 0 var(--s2); color: var(--bad); border-color: var(--bad); white-space: nowrap; }
+.tile.is-sure { width: auto; padding: 0 var(--s2); color: var(--bad); border-color: var(--bad); white-space: nowrap; }
 
 /* `.tile-v` WAS THE DETAIL BESIDE THE LABEL — "23 questions", "£0.46 · 23pp" — and there is no label any more, so nothing emits one. § */
 
@@ -5223,8 +5213,6 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 .stmt-none { font-size: var(--fs-small); color: var(--paper-dim); }
 .stmt-note { margin: var(--s3) 0 0; font-size: var(--fs-small); line-height: 1.4; color: var(--paper-dim); }
 @media print {
-  body.printing-stmt { max-width: none !important; margin: 0 !important; padding: 0 !important; overflow: visible !important; }
-  body.printing-stmt * { visibility: hidden !important; }
   body.printing-stmt .stmt-paper, body.printing-stmt .stmt-paper * { visibility: visible !important; }
   body.printing-stmt .stmt-paper { position: absolute; left: 0; top: 0; width: 190mm; margin: 10mm; }
   body.printing-stmt .stmt { border-radius: 0; padding: 0; font-size: var(--fs-body); }
@@ -5301,9 +5289,6 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 
 /* ---------- WHAT NEEDS YOU (400): a Business card with something to act on glows, says how many, and the dot carries the total ---------- */
 .card.needs-you { border-color: var(--alert); box-shadow: 0 0 0 1px var(--alert), 0 0 1.1rem -.2rem var(--alert); }
-/* RENEWALS (10 Nov): due within 30 days glows; overdue glows harder, on the item and on its card. */
-.qtag.bc-tag.is-soon, .bc-tax.is-soon { color: var(--gold); border-color: var(--gold); }
-.qtag.bc-tag.is-over { color: var(--alert); border-color: var(--alert); }
 .kc-item { margin: 0 0 var(--s2); }
 .card.needs-now { border-width: 2px; box-shadow: 0 0 0 2px var(--alert), 0 0 1.6rem 0 var(--alert); }
 .bc-cycle { margin: var(--s1) 0; }
@@ -5445,8 +5430,6 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .insh-key { margin: var(--s2) 0 0; font-size: var(--fs-small); color: var(--paper-dim); }
 .insh-paper { display: none; }
 @media print {
-  body.printing-insh { max-width: none !important; margin: 0 !important; padding: 0 !important; overflow: visible !important; }
-  body.printing-insh * { visibility: hidden !important; }
   body.printing-insh .insh-paper, body.printing-insh .insh-paper * { visibility: visible !important; }
   body.printing-insh .insh-paper { display: block; position: absolute; left: 0; top: 0; width: 190mm; margin: 10mm; }
   body.printing-insh .insh-sheet { border: 0; padding: 0; font-size: var(--fs-body); }

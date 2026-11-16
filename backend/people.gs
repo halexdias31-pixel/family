@@ -1244,7 +1244,7 @@ function notify(name, subject, body, kind) {
     /* NOT A KIND THEY HAVE TURNED OFF — see `wants_`. False, like the two above: the action that wanted
        to tell them has happened, and whether they hear of it by email was theirs to decide. */
     if (!wants_(p, kind)) { notifyHeld_(p, kind, subject); return false; }
-    mailOut_({ to, subject, body, name: '@family.', kind });
+    mailOut_({ to, subject, body, name: BRAND_NAME, kind });
     return true;
   } catch (err) {
     return false;
