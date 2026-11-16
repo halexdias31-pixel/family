@@ -51,7 +51,7 @@ const TO = { '!abc': 'abc', '!123': 'maths', '!sym': 'sym' };
   else if (!/power/i.test(k.getAttribute('aria-label') || '')) fail.push('the power key on the ' + f + ' face is not named a power: ' + k.getAttribute('aria-label'));
 });
 /* INDICES IN ONE TAP (owner, 16 Nov): a maths box's 123 face has ², ³ and ×10ⁿ beside the power key; its letters keep ² ³ on their top row */
-[['maths', ['²', '³', '!pow', '!x10']], ['abc', ['²', '³', '!pow']]].forEach(([f, want]) => {
+[['maths', ['²', '³', '!pow', ' ']], ['abc', ['²', '³', '!pow']]].forEach(([f, want]) => {
   const box = w.document.createElement('div');
   box.innerHTML = w.kpPadHtml_(f, false, true, false, true);
   want.forEach(v => { if (![...box.querySelectorAll('.kp-key')].some(k => k.getAttribute('data-v') === v)) fail.push('the ' + f + ' face of a maths box has no ' + v + ' key'); });

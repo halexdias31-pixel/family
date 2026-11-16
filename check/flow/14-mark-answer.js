@@ -439,7 +439,7 @@ check('the power key is on the maths face and the letters, types x^(n+1) with it
     h.remove();
   };
   await run('q-pow-1', '3x^2', ['3', 'x', '!pow', '2'], '3x^(2)');
-  await run('q-pow-2', 'x^(n+1)', ['x', '!pow', '!abc', 'n', '!123', '+', '1'], 'x^(n+1)');
+  await run('q-pow-2', 'x^(n+1)', ['x', '!pow', '(', '!abc', 'n', '!123', '+', '1', ')'], 'x^(n+1)');
   return bad;
 });
 

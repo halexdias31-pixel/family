@@ -35,8 +35,6 @@ function kpWordsSay_(v) { const n = kpWordCount_(v); return n + (n === 1 ? ' wor
 /* ---------- THE KEYS § */
 /* THE POWER KEY (owner: "there's no to the power of button on keypad"): drawn as x and a raised box, named so; it writes ^() with the caret inside, as x^2 and x^(n+1) are stored */
 const KP_POW = { v: '!pow', a: 'to the power of', c: ' kp-op kp-pow', t: { type: 'group', tag: 'span', look: 'kp-pw', attrs: { 'aria-hidden': 'true' }, text: ['x', { i: '' }] } };
-const KP_X10 = { v: '!x10', a: 'times ten to the power of, for standard form', c: ' kp-op kp-x10',
-  t: { type: 'group', tag: 'span', look: 'kp-x10f', attrs: { 'aria-hidden': 'true' }, text: ['\u00d710', { i: '' }] } };
 const KP_MATHS_SPACE = { v: ' ', a: 'space', c: ' kp-mode', t: '\u2423' };
 const KP_KEYS = [
   { t: '7' }, { t: '8' }, { t: '9' }, { t: '\u00f7', a: 'divide' },
@@ -55,8 +53,8 @@ const KP_KEYS = [
   { v: '!abc', a: 'letters', c: ' kp-mode', t: 'abc' },
   { v: '!left', a: 'move left', c: ' kp-mode', t: '\u2190' },
   { v: '!right', a: 'move right', c: ' kp-mode', t: '\u2192' },
-  /* ×10ⁿ WHERE THE MATHS SPACE WAS (owner, 16 Nov): standard form in one tap; a maths answer's spaces never mattered to the marker, and a worded box or one elsewhere keeps its space (`KP_MATHS_SPACE`). */
-  KP_X10,
+  /* THE SPACE (owner, 16 Nov): an answer such as "x ≈ 2.6" or "x<4 or x>5" needs its spaces; standard form is 5 × 1 0 and the power key. */
+  KP_MATHS_SPACE,
   /* ---------- ⌫ IS RED, AND ITS MARK IS DRAWN § */
   { v: '!back', a: 'delete', c: ' kp-del',
     t: { type: 'drawing', node: { el: 'svg', a: { class: 'kp-del-i', viewBox: '0 0 24 24', 'aria-hidden': 'true', focusable: 'false', fill: 'none',
@@ -153,7 +151,7 @@ const KP_SITE_KEYS = [
   { t: '@', a: 'at', c: ' kp-op' }, { t: '#', a: 'hash', c: ' kp-op' }, { t: '&', v: '&', a: 'and', c: ' kp-op' },
   { t: '%', a: 'per cent', c: ' kp-op' }, { t: '\u00a3', a: 'pounds', c: ' kp-op' }, { t: '!', a: 'exclamation mark', c: ' kp-op' },
 ];
-const KP_PLAIN = { '!x10': KP_MATHS_SPACE, '!frac': { t: '/', a: 'slash', c: ' kp-op' }, '!pow': { t: '^', a: 'caret', c: ' kp-op' }, '!sqrt': { t: '\u221a', a: 'root sign', c: ' kp-op' } };
+const KP_PLAIN = { '!frac': { t: '/', a: 'slash', c: ' kp-op' }, '!pow': { t: '^', a: 'caret', c: ' kp-op' }, '!sqrt': { t: '\u221a', a: 'root sign', c: ' kp-op' } };
 const kpPlainKey_ = k => KP_PLAIN[k.v] || k;
 
 /* A KEY'S FACE: its text escaped, or its drawing (a group or drawing block, or several) drawn by the one maker. */
@@ -171,7 +169,7 @@ function kpPadHtml_(layer, words, signs, essay, vec, site) {
   const top = site === 'mail' ? KP_MAIL_KEYS : site ? [] : vec ? [KP_POW].concat(KP_VEC_KEYS).map((k, i) => Object.assign({}, k, { span: KP_ABC_TOP_SPAN[i] })) : [];
   if (layer === 'abc') return top.concat(KP_ABC).concat(kpAbcBottom_(essay)).map(kpKey_).join('');
   if (site) return KP_SITE_KEYS.concat(KP_SIGN_KEYS, KP_KEYS.map(kpPlainKey_)).map(k => (essay && k.v === '!done' ? KP_DONE_ESSAY : k)).map(kpKey_).join('');
-  return (vec ? KP_VEC_KEYS : []).concat(signs ? KP_SIGN_KEYS : []).concat(KP_KEYS).map(k => (essay && k.v === '!done' ? KP_DONE_ESSAY : words && k.v === '!x10' ? KP_MATHS_SPACE : k)).map(kpKey_).join('');
+  return (vec ? KP_VEC_KEYS : []).concat(signs ? KP_SIGN_KEYS : []).concat(KP_KEYS).map(k => (essay && k.v === '!done' ? KP_DONE_ESSAY : k)).map(kpKey_).join('');
 }
 
 /* ---------- THE BOX § */
