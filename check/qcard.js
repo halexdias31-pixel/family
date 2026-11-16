@@ -243,7 +243,7 @@ function tagScan() {
     const base = await page.evaluate(ctlSnap, sel);
     for (const own of Object.keys((base && base.ctl) || {})) {
       const act = own.split('#')[0].split(':')[0];
-      if (SKIP.test(act) || /^(kp-|help-|card-share|rep-box|fav|qp-work|q-mag|read-aloud)/.test(act)) continue;
+      if (SKIP.test(act) || /^(kp-|help-|card-share|rep-flag|fav|qp-work|q-mag|read-aloud)/.test(act)) continue;
       const before = await page.evaluate(ctlSnap, sel);
       const tap = () => page.evaluate(([sel, own]) => { const [a, n] = own.split('#'), [act, tool] = a.split(':');
         const e = [...document.querySelectorAll(sel + ` [data-do="${act}"]`)].filter(x => x.matches('.tile, button, .chip')).filter(x => (!tool || x.getAttribute('data-tool') === tool) && x.getBoundingClientRect().width)[n - 1];

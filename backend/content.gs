@@ -326,6 +326,17 @@ function reportedItems_() {
   claudeNotesOpen_().forEach(n => { if (/\|/.test(n.itemId) && out.indexOf(n.itemId) === -1) out.push(n.itemId); });
   return out;
 }
+/* A FLAG (owner, 16 Nov: "no more typing… they click the flag and it toggles on"): a row in `claude_notes` whose note is FLAG_NOTE.
+   A person's own flags still waiting, as `kind|id`, are what their flag tiles show on. */
+const FLAG_NOTE = 'Flagged';
+const flagRow_ = r => S(r.note).split('\n')[0] === FLAG_NOTE && (!norm(r.status) || norm(r.status) === 'open' || norm(r.status) === 'pending');
+function myFlags_(pid) {
+  const t = read(TAB.claude_notes);
+  if (!t.sheet || !S(pid)) return [];
+  const out = [];
+  t.rows.forEach(r => { if (S(r.made_by) === S(pid) && flagRow_(r) && out.indexOf(S(r.item_id)) === -1) out.push(S(r.item_id)); });
+  return out;
+}
 /* ---------- SUGGEST A CHANGE (494): one row in `claude_notes` — an admin's `open` at once, anybody else's `pending` until an admin confirms ---------- */
 function suggestRow_(t, me, kind, item, label, note, status, at) {
   const row = { note_id: 'N-' + Date.now() + '-' + Math.floor(Math.random() * 100000), made_at: at || new Date(), made_by: S(me),

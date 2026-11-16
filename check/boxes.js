@@ -17,7 +17,7 @@ const USER = { name: 'Test Admin', personId: 'P001', person_id: 'P001', role: 'a
 const { MIME } = require('./mime.js');
 /* THE OWNER'S PAGES: 5a's four Venn gaps, 5b's part and the answer page above it, 6b's long part (a page in front), a stem's page (9MA0 2024 Q6), a physics word bank. */
 const ROWS = ['Q-1MA1-2306-1H-5a', 'Q-1MA1-2306-1H-5b', 'Q-1MA1-2306-1H-6b', 'Q-9MA0-2406-P1-6a', 'Q-STA-KS2-2024-P2-5', 'Q-W-AT-P-energy-2a'];
-const FOOT = ['help-hand', 'fav', 'rep-box', 'find-top'];
+const FOOT = ['help-hand', 'fav', 'rep-flag', 'find-top'];
 const WIDTHS = (process.env.BOXES_WIDTHS || '390,320').split(',').map(Number);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const fail = [];

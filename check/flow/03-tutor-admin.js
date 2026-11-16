@@ -77,13 +77,13 @@ check('486: every top-level card and widget in every column has the one Report t
         seen++;
         /* A PERSON'S CARD HAS ITS ROW RIGHT AFTER IT (`withTiles_`, find.js). */
         const next = c.nextElementSibling;
-        if (!c.querySelector('[data-do="rep-box"]') && !(next && next.matches('.tile-row') && next.querySelector('[data-do="rep-box"]'))) bad.push(rank + ' ' + tab + ': no Report on “' + String((c.querySelector('h2, h3') || c).textContent).replace(/\s+/g, ' ').trim().slice(0, 50) + '” (' + c.className + ')');
+        if (!c.querySelector('[data-do="rep-flag"]') && !(next && next.matches('.tile-row') && next.querySelector('[data-do="rep-flag"]'))) bad.push(rank + ' ' + tab + ': no Report on “' + String((c.querySelector('h2, h3') || c).textContent).replace(/\s+/g, ' ').trim().slice(0, 50) + '” (' + c.className + ')');
       });
     }
     if (seen < 10) bad.push(rank + ': only ' + seen + ' cards were seen, so the rule was NOT checked');
     /* YOUR OWN POST AND A "+" CARD TOO (720): both had been let off. */
-    if (!/rep-box/.test(a.w.postRow_({ id: 'P-own', mine: true, title: 'Mine' }))) bad.push(rank + ': your own post has no Suggest a change');
-    if (!/rep-box/.test(a.w.addCard_({ act: 'media-add', label: 'Add a reel', data: { kind: 'reel' } }))) bad.push(rank + ': a "+" card has no Suggest a change');
+    if (!/rep-flag/.test(a.w.postRow_({ id: 'P-own', mine: true, title: 'Mine' }))) bad.push(rank + ': your own post has no Suggest a change');
+    if (!/rep-flag/.test(a.w.addCard_({ act: 'media-add', label: 'Add a reel', data: { kind: 'reel' } }))) bad.push(rank + ': a "+" card has no Suggest a change');
   }
   return bad;
 });
