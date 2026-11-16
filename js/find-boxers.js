@@ -199,11 +199,12 @@ function pageParts_(x, prev) {
     out.push('share');
     return out;
   }
-  /* A CONTENT CARD IS ITSELF, then its Formulas and its Worked examples (408):
+  /* A CONTENT CARD IS ITSELF, then its Information, Formulas and Animation (408, 16 Nov):
      one titled page per thing, and a page only where the row has the thing. */
   if (x && isContent_(x) && x.row) {
     const c = x.row;
-    return [null].concat(c.diagram ? ['fig'] : [], (c.formulas || []).length ? ['formulas'] : [], (c.points || []).length ? ['worked'] : []);
+    /* THE LIBRARY IS INFORMATION AND ANIMATIONS (owner, 16 Nov): the card, its Information, its Formulas, its Animation; no worked examples, no still picture. */
+    return [null].concat(infoPoints_(c).length ? ['info'] : [], (c.formulas || []).length ? ['formulas'] : [], (c.anims || []).length || c.diagram ? ['anim'] : []);
   }
   /* THE BIBLE HAS NO BRANCH HERE ANY MORE. § */
   if (x && x.hdb && x.row && HIST_LINES[x.kind]) return [null].concat(histPages_(x));

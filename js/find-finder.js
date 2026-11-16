@@ -436,7 +436,8 @@ const FACETS = [
   { field: 'mModel',    label: 'Model',       of: x => mechFit_(x, 'mModel'), tagOf: x => mechFitTag_(x, 'mModel') },
   { field: 'mGen',      label: 'Generation',  of: x => mechFit_(x, 'mGen'), tagOf: x => mechFitTag_(x, 'mGen') },
   { field: 'mEngine',   label: 'Engine',      of: x => mechFit_(x, 'mEngine'), tagOf: x => mechFitTag_(x, 'mEngine') },
-  { field: 'mKind',     label: 'Card type',   of: x => x.mKind || '' },
+  /* A LESSON WRITTEN TO A SPEC IS ONE TYPE BESIDE CHEMISTRY'S ELEMENTS AND SUBSTANCES (16 Nov): Library › Chemistry › Exam topics › GCSE › AQA. */
+  { field: 'mKind',     label: 'Card type',   of: x => x.mKind || (specTreeOf_(x).topic ? 'Exam topics' : '') },
   { field: 'mSystem',   label: 'System',      of: x => x.mSystem || '' },
   { field: 'mPhase',    label: 'Phase',       of: x => mechFit_(x, 'mPhase'), tagOf: x => mechFitTag_(x, 'mPhase') },
   { field: 'mMarket',   label: 'Market',      of: x => mechFit_(x, 'mMarket'), tagOf: x => mechFitTag_(x, 'mMarket') },
@@ -508,8 +509,11 @@ const FACETS = [
   /* A CHAPTER TAUGHT OVER SEVERAL YEARS ANSWERS EACH (770: "it should ask what year, no?" under KS2). */
   { field: 'yearGroup', label: 'School year', of: x => x.bandValue && x.bandType === 'year' ? 'Year ' + x.bandValue : (x.years || []).map(y => 'Year ' + y) },
   { field: 'bandValue', label: 'Grade',       of: x => x.bandValue && x.bandType === 'grade' ? 'Grade ' + x.bandValue : '' },
-  { field: 'topic',     label: 'Topic',       of: x => topicShown_(x) ? (x.topic || topicOf_(x)) : [] },
+  /* A CARD WRITTEN TO A SPEC ANSWERS THE SPEC'S OWN HEADINGS INSTEAD (16 Nov), asked after its board: Library › Biology › AQA › 4.1 Cell biology. */
+  { field: 'topic',     label: 'Topic',       of: x => topicShown_(x) && !specTreeOf_(x).topic ? (x.topic || topicOf_(x)) : [] },
   { field: 'examBoard', label: 'Exam board',  of: x => boardOf_(x) },
+  { field: 'specTopic', label: 'Spec topic',  full: true, of: x => specTreeOf_(x).topic },
+  { field: 'specPoint', label: 'Spec point',  full: true, of: x => specTreeOf_(x).point },
   /* A "PLUS" TIER IS ITS OWN TIER'S (owner, 15 Nov): Foundation Plus is Foundation, Higher Plus is Higher. */
   { field: 'tier',      label: 'Tier',        of: x => String(x.tier || '').replace(/\s+Plus$/i, '') },
   /* THE YEAR, THEN THE MONTH, THEN THE PAPER — like the folders they came from. */

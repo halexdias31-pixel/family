@@ -237,7 +237,7 @@ rows.forEach((r, line) => {
   const p = items('points', false);
   points += p.length;
   if (p.length < POINTS_MIN || p.length > POINTS_MAX) {
-    fail.push(where + ' has ' + p.length + ' worked lines — bare bones is ' + POINTS_MIN + ' to ' + POINTS_MAX);
+    fail.push(where + ' has ' + p.length + ' information lines — bare bones is ' + POINTS_MIN + ' to ' + POINTS_MAX);
   }
   p.forEach((i, k) => {
     if (i.text.length > pointLen) fail.push(where + ' worked line ' + (k + 1) + ' is ' + i.text.length + ' characters — a worked line, not a paragraph (max ' + pointLen + ')');
@@ -343,7 +343,7 @@ books.forEach((b, id) => {
       + '  —  topics: ' + (ts.join(', ') || 'none') + '  ·  GCSE questions on them: ' + n);
   });
 });
-console.log('key words: ' + words + '   formulas: ' + formulas + '   worked lines: ' + points
+console.log('key words: ' + words + '   formulas: ' + formulas + '   information lines: ' + points
   + '   items marked Higher: ' + higherItems + '   animations: ' + animCount);
 note.push('GCSE Statistics (1ST0) questions in the library: ' + stats1st0
   + '. The ' + alevelStats + ' "Statistics" paper rows are A-level 9MA0 — a different qualification, not joined.');
@@ -357,6 +357,6 @@ if (fail.length) {
   process.exit(1);
 }
 console.log('\nOK — every book has a title page and chapters 1 to N in order; every chapter has key words,\n'
-  + '     3 to 5 short worked lines and formulas that typeset_ draws; topics name real branches of\n'
+  + '     3 to 5 short information lines and formulas that typeset_ draws; topics name real branches of\n'
   + '     the tree, spelled as the library spells them, and on every maths card; and Find offers each\n'
   + '     chapter as a content card under What kind · Content.');
