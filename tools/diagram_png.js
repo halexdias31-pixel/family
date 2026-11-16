@@ -26,7 +26,7 @@ const widthOf = svg => {
 };
 
 /* THE WHOLE LIBRARY, words and all (check/lib-full.js) — data/questions.json alone has no drawing, which once deleted every twin (439). */
-const LIB = require('../check/lib-full.js');
+const LIB = require('./lib/lib-full.js');
 let ROWS = [];
 function drawings() {
   const rows = ROWS = LIB.rows('questions');

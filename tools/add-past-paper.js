@@ -3,8 +3,8 @@
 /* node tools/add-past-paper.js <rows.json> …  — rows from a paper script (tools/paperspec.py); a re-run replaces. docs/library.md */
 'use strict';
 const fs = require('fs'), path = require('path'), cp = require('child_process');
-const L = require('../check/lib-full.js');
-const SC = require('../check/library-schema.js');
+const L = require('./lib/lib-full.js');
+const SC = require('./lib/library-schema.js');
 
 /* THE IMPORT ITSELF, ON ROWS IN MEMORY: nothing is read or written here, so js/check-schema.js can hand it a bad fixture.
    Throws, having changed nothing the caller keeps, when a row breaks the schema (R5). */

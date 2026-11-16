@@ -20,8 +20,8 @@ const USAGE = `   The repository keeps card metadata; the words, answers and fig
 `;
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm');
-const L = require('../check/lib-full.js');
-const SC = require('../check/library-schema.js');
+const L = require('./lib/lib-full.js');
+const SC = require('./lib/library-schema.js');
 
 const args = process.argv.slice(2);
 const cmd = args[0] || 'status';

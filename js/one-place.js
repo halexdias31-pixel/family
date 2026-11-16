@@ -1,23 +1,5 @@
-/* CHECKS (1060), js/one-place.js: the one place — the one score per area, each area's next three, then the owner's inbox. docs/philosophy.md is the why. */
-/* Scores are data/health.json (tools/health.js); the questions data/settings/owner-questions.json; answers the owner_answers tab. */
+/* js/one-place.js: the owner's inbox — the questions data/settings/owner-questions.json, the answers the owner_answers tab — and What's missing under it. */
 const OQ = { list: null, answers: null, error: '', asking: false, watching: false };
-const CHECK_AREAS = [['code', 'Code'], ['logic', 'Find logic'], ['ui', 'Design and UI'], ['friction', 'Friction'], ['cost', 'AI cost'], ['speed', 'Speed'], ['business', 'Business']];
-
-/* THE BUSINESS AREA, LIVE: the checker's sorted share once its ticks came, else the file's figure. */
-/* THE BUSINESS CHECKER IS SWITCHED OFF (attic/js/biz-check.js, owner 13 Nov): the file's figure stands. */
-function checksBizLive_() { return null; }
-function checksAreas_(s) {
-  const A = Object.assign({}, (s && s.areas) || {}), live = checksBizLive_();
-  if (live) A.business = Object.assign({}, A.business || {}, { score: live.score, next: live.next, live: true });
-  return A;
-}
-/* THE TOTAL: the file's weights over the weighted areas, with business live when it is. */
-function checksTotal_(s, A) {
-  const W = (s && s.weights) || {};
-  const ks = Object.keys(W).filter(k => A[k] && isFinite(Number(A[k].score)));
-  const sum = ks.reduce((a, k) => a + W[k], 0);
-  return sum ? Math.round(ks.reduce((a, k) => a + W[k] * Number(A[k].score), 0) / sum * 10) / 10 : (s && s.score);
-}
 
 function oqStart_() {
   if (OQ.asking || OQ.list) return;
@@ -58,34 +40,17 @@ function oqInbox_() {
     + (done.length ? cardBlock_({ type: 'group', tag: 'details', look: 'oq-done', blocks: [{ type: 'group', tag: 'summary', text: 'Answered · ' + done.length }], inner: done.map(oqItem_).join('') }) : '');
 }
 
+/* THE ONE CARD (rule 1.75, no scores): the owner's inbox, then What's missing. */
 function checksInner_() {
-  const s = typeof HEALTH !== 'undefined' ? HEALTH.got : null;
-  if (typeof siteHealthCard_ === 'function' && typeof HEALTH !== 'undefined' && !HEALTH.asked) siteHealthCard_();
-  const head = cardBlocks_([{ type: 'group', look: 'qtags', inner: qtag_('Business') + qtag_('Admin only') }, { type: 'msgHead', text: 'Optimiser' }]);
-  if (!s) return head + (HEALTH && HEALTH.failed ? cardBlock_({ type: 'group', tag: 'p', look: 'me-said', text: 'The score could not be read. Run node tools/health.js and push.' }) : (typeof loading_ === 'function' ? loading_() : '')) + oqInbox_();
-  const A = checksAreas_(s);
-  return head + cardBlock_({ type: 'group', tag: 'p', look: 'stab-score', text: 'Optimiser: ' + checksTotal_(s, A) + '%' })
-    + CHECK_AREAS.filter(([k]) => A[k]).map(([k, n]) => cardBlocks_([
-      { type: 'group', tag: 'h4', text: n + ' ' + A[k].score + '%', inner: (s.weights || {})[k] ? '' : ' ' + qtag_('inside the others') },
-      { type: 'list', ordered: true, look: 'stab-top', items: (A[k].next || []).slice(0, 3).map(t => String(t)).concat((A[k].next || []).length ? [] : ['Nothing to do.']) }])).join('')
-    + oqInbox_();
+  return cardBlocks_([{ type: 'group', look: 'qtags', inner: qtag_('Business') + qtag_('Admin only') }, { type: 'msgHead', text: 'Owner questions' }]) + oqInbox_();
 }
-/* THE ONE CARD, then the detail it sums (the Optimiser's code worklist with What's missing, and the business checker's ticks), nothing lost. */
 function checksCard_() {
   if (!(typeof may_ === 'function' && may_('admin'))) return '';
   let more = '';
-  try { more = (typeof healthWithMissing_ === 'function' ? healthWithMissing_(siteHealthCard_(true)) : '') + (typeof window.bizCheckCard_ === 'function' ? window.bizCheckCard_() : ''); } catch (e) { if (typeof oops_ === 'function') oops_(e, 'checks detail'); }
-  if (!checksBizLive_()) setTimeout(checksWatchBiz_, 0);
+  try { more = typeof missingCard_ === 'function' && missingFor_() ? missingCard_() : ''; } catch (e) { if (typeof oops_ === 'function') oops_(e, 'checks detail'); }
   return card_(cardBlock_({ type: 'group', look: 'checks-card', attrs: { 'data-checks': true }, inner: checksInner_() }) + more);
 }
 const checksDraw_ = () => { document.querySelectorAll('[data-checks]').forEach(c => { cardFill_(c, checksInner_()); }); };
-/* THE LIVE BUSINESS SCORE: redraw once the checker's ticks have come (or a minute passes), without the checker knowing about this card. */
-function checksWatchBiz_() {
-  if (OQ.watching) return;
-  OQ.watching = true;
-  const t0 = Date.now();
-  (function tick() { if (checksBizLive_() || Date.now() - t0 > 60000) { OQ.watching = false; checksDraw_(); } else setTimeout(tick, 500); })();
-}
 
 on('oq-answer', el => {
   if (!may_('admin')) return;

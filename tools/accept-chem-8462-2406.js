@@ -1,7 +1,7 @@
 /* @family. — tools/accept-chem-8462-2406.js § */
 const fs = require('fs');
 const path = require('path');
-const { markingSource } = require('../js/check-marks-load.js');
+const { markingSource } = require('./lib/marks-load.js');
 
 const ROOT = path.join(__dirname, '..');
 const FILE = path.join(ROOT, 'data', 'questions.json');

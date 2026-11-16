@@ -8,8 +8,8 @@ const CHECK = process.argv.includes('--check');
 
 (async () => {
   const t0 = Date.now();
-  const { app, tick } = require('../check/jsdom-app.js');
-  const A = await app(JSON.parse(fs.readFileSync(path.join(ROOT, 'check', 'fixture.json'), 'utf8')));
+  const { app, tick } = require('./lib/jsdom-app.js');
+  const A = await app(JSON.parse(fs.readFileSync(path.join(ROOT, 'tools', 'lib', 'payload.json'), 'utf8')));
   const ev = s => A.w.__ev(s);
   while (!ev('LOADED && finderSettled_() && (LIBRARY_ROWS || []).length > 0')) {
     if (Date.now() - t0 > 240000) { console.error('facet-data: the app never settled in 240s'); process.exit(2); }
