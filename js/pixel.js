@@ -28,8 +28,8 @@ function pxeHtml_() {
   pxeLoad_();
   const cells = PXE.px.map((c, i) => `<span class="pxe-c" data-pxe="${i}"${c ? ` style="background:${c}"` : ''}></span>`).join('');
   return `<div class="pxe">
-    <label class="pxe-line"><span>Grid</span><select data-pxe-set="n" aria-label="Grid">${PXE_SIZES.map(s => `<option value="${s}"${s === PXE.n ? ' selected' : ''}>${s} × ${s}</option>`).join('')}</select></label>
-    <label class="pxe-line"><span>Colour</span><input type="color" data-pxe-set="colour" value="${esc(PXE.colour)}" aria-label="Colour"></label>
+    ${formLine_('Grid', formSelect_(`data-pxe-set="n" aria-label="Grid"`, PXE_SIZES.map(s => `<option value="${s}"${s === PXE.n ? ' selected' : ''}>${s} × ${s}</option>`).join('')), 'pxe-line')}
+    ${formLine_('Colour', formInput_(`type="color" data-pxe-set="colour" value="${esc(PXE.colour)}" aria-label="Colour"`), 'pxe-line')}
     <div class="tile-row">${
       /* ONE TILE SAYS WHICH IS IN THE HAND AND SWAPS IT: every press changes something (owner, 12 Nov). */
       PXE.tool === 'eraser' ? tile_({ icon: 'close', label: 'Eraser', note: 'tap for the pen', act: 'pxe-tool', data: { tool: 'pen' }, on: true })
