@@ -96,3 +96,38 @@ function cardText_(b, who) {
   if (!kid && r.prices !== false && str(x.price) !== '' && isFinite(Number(x.price))) out.push(text_('card-total', { total: fmtMoney_(x.price) }));
   return out.map(l => '• ' + l).join('\n');
 }
+/* from js/find-bundles.js */
+const TAG_OF = {forLabel: 0, kindLabel: 0, kindOwn: 2, postState: 1, postBy: 8, postWhen: 9, msgWith: 8, profileType: 1, settingFor: 1, vidSubject: 0, vidTopic: 1, vidChannel: 10, vidLevel: 11, vidType: 2, venueArea: 6, venueFor: 7, venueSize: 8, projectType: 10, subject: 1, shelf: 1, wReligion: 9, histKind: 4, wCollection: 8, histPart: 3, wWork: 2, wSection: 10, wSource: 2, wLanguage: 6, wText: 3, wTradition: 6, wBook: 7, wChapter: 10, wUnit: 11, wAuthor: 3, wForm: 4, wPrimacy: 5, mScope: 4, mMake: 2, mModel: 5, mGen: 3, mEngine: 3, mKind: 5, mSystem: 11, pcType: 5, pcSocket: 4, pcIface: 2, pcLinks: 3, mPhase: 6, mMarket: 4, mYears: 11, mSize: 9, mValves: 10, mBadge: 1, mFuel: 2, mPart: 10, mPrice: 7, cCategory: 11, cGroup: 7, cPeriod: 8, cState: 9, boxKind: 7, fighter: 8, boutMonth: 11, boutYear: 2, decade: 3, division: 4, boutRound: 0, boutMethod: 0, boutWinner: 0, boutEvent: 0, histEra: 2, histMaterial: 8, histFormat: 5, histGenre: 9, histRole: 9, personName: 3, personYears: 7, personFrom: 6, histTheme: 11, histRepository: 10, histSide: 10, histFound: 8, histDated: 1, histTheatre: 11, practicalType: 4, shopKind: 6, shopHow: 1, shopPrice: 7, shopBrand: 2, shopFor: 3, shopTheme: 4, required: 0, documentType: 5, level: 3, keystage: 6, yearGroup: 5, bandValue: 10, topic: 5, examBoard: 4, specTopic: 9, specPoint: 8, tier: 9, examYear: 5, examMonth: 7, examDay: 6, verified: 9, paperId: 6, paperSection: 4, qNumber: 7, qPart: 6, qSub: 11, marks: 0, needs: 1, myResult: 0, source: 5};
+/* from js/find-facets.js */
+const SHOW_MAX = 30;
+function showForms_(s) {
+  s = String(s == null ? '' : s).trim();
+  if (s.length <= SHOW_MAX) return [s];
+  const trim = t => t.replace(/[\s,;:.?!'’·/&…-]+$/, '');
+  const head = t => trim(t.slice(0, SHOW_MAX - 1).replace(/\s+\S*$/, ''));
+  const out = [], ref = /^((?:[IVX]+(?:-[IVX]+)*\.)?\d+(?:\.\d+)+)\s/.exec(s), cut = trim(s.replace(/\s*[([].*$/, ''));
+  /* A NUMBERED PART ("…, part 55", "…, Canon 8") KEEPS ITS NUMBER: the end is what tells it from its neighbours. */
+  const num = /(?:^|[\s,;:.-])((?:part|canon|section|chapter|book|article|question|no\.?|act|scene)\s+[\w.]+|\d+[\w.]*)$/i.exec(s);
+  const ends = tail => trim(s.slice(0, SHOW_MAX - tail.length - 2).replace(/\s+\S*$/, '')) + '… ' + tail;
+  if (ref) out.push(ref[1]);
+  /* A TITLE AND ITS SUBTITLE ("Paper 3 · Section A: Statistics") says the title, never "Section A…". */
+  const head1 = trim(s.replace(/:\s.*$/, ''));
+  if (!ref && head1 !== s && head1.length >= 4 && head1.length <= SHOW_MAX) out.push(head1);
+  if (num && !ref) out.push(ends(num[1]));
+  if (cut.length >= 4 && cut.length <= SHOW_MAX) out.push(cut);
+  const h = head(cut.length >= 4 ? cut : s);
+  if (h.length >= 4) out.push(h + '…');
+  out.push(ends(s.slice(-12).replace(/^\S*\s/, '').replace(/^[\s,;:.-]+/, '')), s.slice(0, SHOW_MAX - 1).trim() + '…');
+  return out.filter(t => t.length <= SHOW_MAX && t.length > 2);
+}
+/* from js/predicates-fig.js */
+const FIG_WORDS = /\b(grid|diagrams?|shapes?|tables?|graphs?|charts?|histogram|pictogram|figure|drawn|shown|below|number line|axes|axis|scatter|spinner|protractor|coordinate grid|scale drawing)\b/i;
+const FIG_NOT_WORDS = /\b(in figures|national grid|periodic tables?|below (?:the )?(?:surface|water|sea|ground|zero|freezing)|[xy]\s*-?\s*axis|significant figures?|figures? (?:on|of) )/gi;
+const figWords_ = r => !!r && FIG_WORDS.test(String((r.html || '') + ' ' + (r.lead || '')).replace(/<[^>]+>/g, ' ').replace(/&[a-z]+;/g, ' ').replace(FIG_NOT_WORDS, ' '));
+const figPictured_ = r => !!r && ((typeof r.diagram === 'string' && r.diagram.trim() !== '') ||
+  (' ' + String(r.lib_has || '') + ' ').indexOf(' diagram ') !== -1 ||
+  /<(table|svg|img)\b/i.test(String(r.html || '') + String(r.lead || '')) || !!r.cells || !!r.surface || figPictured_(r.row));
+const figUndrawn_ = (r, around) => figWords_(r) && !figPictured_(r) && !(around || []).some(figPictured_);
+/* from data/settings/facets.json, js/find-finder.js FACETS and style.css --hue-N */
+const DIGEST_TAG_FIELDS = ["forLabel", "kindLabel", "kindOwn", "projectType", "subject", "shelf", "wReligion", "histKind", "wCollection", "histPart", "wWork", "wSection", "wSource", "wLanguage", "wText", "wTradition", "wBook", "wChapter", "wUnit", "wAuthor", "wForm", "wPrimacy", "mScope", "mMake", "mModel", "mGen", "mEngine", "mKind", "mSystem", "pcType", "pcSocket", "pcIface", "pcLinks", "mPhase", "mMarket", "mYears", "mSize", "mValves", "mBadge", "mFuel", "mPart", "mPrice", "cCategory", "cGroup", "cPeriod", "cState", "boxKind", "fighter", "boutMonth", "boutYear", "decade", "division", "boutRound", "boutMethod", "boutWinner", "boutEvent", "histEra", "histMaterial", "histFormat", "histGenre", "histRole", "personName", "personYears", "personFrom", "histTheme", "histRepository", "histSide", "histFound", "histDated", "histTheatre", "practicalType", "shopKind", "shopHow", "shopPrice", "shopBrand", "shopFor", "shopTheme", "required", "documentType", "level", "keystage", "yearGroup", "bandValue", "topic", "examBoard", "specTopic", "specPoint", "tier", "examYear", "examMonth", "examDay", "verified", "paperId", "paperSection", "qNumber", "qPart", "qSub", "marks", "needs", "myResult", "source"];
+const DIGEST_TAG_INK = {"h0": "#ff7b72", "h1": "#6cb6ff", "h2": "#c3e88d", "h3": "#c8a2ff", "h4": "#ffb454", "h5": "#4fd1c5", "h6": "#ff8fc4", "h7": "#f0f08a", "h8": "#9ec5e8", "h9": "#ff9e64", "h10": "#7ee787", "h11": "#e2cfa6"};

@@ -481,7 +481,7 @@ function digestCardMaker_(ink, says, cut) {
   return {
     /* THE HEADING: its number and its marks as [n] (owner, 9 Nov); a name of one segment is its heading alone. */
     titleOf: (it, h) => [it.num || h, marksOf(it) > 0 ? '[' + marksOf(it) + ']' : ''].filter(Boolean).join(' '),
-    /* THE TAGS AS PILLS, each its facet's colour (`DIGEST_TAG_INK`); a facet with none wears the plain outline. */
+    /* THE TAGS AS PILLS, each its facet's hue (`DIGEST_TAG_INK`, cards-gen.gs); a facet with none wears the plain outline. */
     pill: t => '<span class="gi" style="color:' + (DIGEST_TAG_INK[t.kind] || ink.dim) + ';border:1px solid' + (DIGEST_TAG_INK[t.kind] ? '' : ' ' + ink.chip)
       + ';border-radius:' + R + 'px;padding:0 6px">' + digestEsc_(t.text).replace(/ /g, '\u00a0') + '</span>',
     card: (it, inner, tags, title, pic) => {
