@@ -913,13 +913,20 @@
   {
    "id": "1.74",
    "principle": 1,
-   "text": "This rulebook is the one foundation and it is code: `data/settings/rules.json` holds every rule, every rule names a check, every check serves a rule, each rule is stated once, and `docs/rules.md` is written from it.",
+   "text": "This rulebook is the one foundation and it is code: `data/settings/rules.json` holds every rule, each rule is stated once, a check a rule names exists, every check serves a rule, and `docs/rules.md` is written from it. A rule needs no check (owner, 16 Nov).",
    "checks": [
     "rule-checked",
     "check-tied",
     "rule-once"
    ],
    "since": "2026-11-12"
+  },
+  {
+   "id": "1.75",
+   "principle": 1,
+   "text": "No new checks (owner, 16 Nov: \"I don't like checks. I like working on SSOTs and first principles. NO MORE CHECKS\"): a mistake is fixed by moving the fact to one place that everything reads, never by adding a check; existing checks are retired as that structure makes their mistake impossible.",
+   "checks": [],
+   "since": "2026-11-16"
   },
   {
    "id": "2.1",
