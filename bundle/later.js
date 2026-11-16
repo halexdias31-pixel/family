@@ -13743,6 +13743,8 @@ function kpPadH_(pad) {
 function kpRoom_(inp, pad) {
   kpRoomBack_();
   kpPadH_(pad);
+  /* THE KEYBOARD NEVER MOVES THE SCREEN (owner, 16 Nov): it opens over the foot of the page and the page stays where it is. */
+  if (FLOW_LAYOUT) return;
   /* A FINDER'S CARD IS CENTRED IN WHAT SHOWS ABOVE THE PAD (720), then held there while you type — `glassSeenH_` (shell.js). */
   if (kpFinderCentre_(inp)) return;
   const box = kpBox_(inp);
@@ -13796,6 +13798,7 @@ function kpFinderCentre_(inp) {
 }
 /* ---------- AND AGAIN AS IT GROWS § */
 function kpKeepClear_(inp) {
+  if (FLOW_LAYOUT) return;
   const pad = document.getElementById('kp');
   if (!pad || pad.hidden || !inp || KP_AT !== inp || !inp.isConnected) return;
   kpPadH_(pad);
@@ -13839,8 +13842,7 @@ function kpSheetFit_(pane) {
 let KP_LIFT = null;
 function kpLift_(inp, pad) {
   /* ONE SCROLLING PAGE (900): the page scrolls the box above the pad; the body's foot makes the room (style.css, `.kp-up`). */
-  /* THE VIEW STAYS PUT (owner, 16 Nov): it moves only if the pad would cover the box, and only by that much. */
-  if (FLOW_LAYOUT) { try { const over = kpBox_(inp).getBoundingClientRect().bottom - (pad.getBoundingClientRect().top - 12); if (over > 0) window.scrollBy(0, over); } catch (e) { /* left where it is */ } return; }
+  if (FLOW_LAYOUT) return;
   try {
     const pg = inp.closest('#screen .page.on');
     const host = pg && pg.parentElement;
