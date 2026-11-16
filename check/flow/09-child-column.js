@@ -107,7 +107,8 @@ check('442, 453: Students opens with Find by handle (under an admin\'s "+ Add a 
   if (!d.querySelector('#s-students .page .help-list')) bad.push('an admin\'s Student profiles has no Needs help card');
   if (!first || !first.querySelector('.ps-card')) bad.push('Students does not start with Find by handle');
   if (d.querySelector('#s-account [data-do="person-add"], #s-biz [data-do="person-add"]')) bad.push('"Add a person" is on Student settings or Business');
-  ['tutors', 'students', 'parents'].forEach(c => { if (d.querySelectorAll('#s-' + c + ' [data-do="person-add"][data-col="' + c + '"]').length !== 1) bad.push(c + ' does not have one "+" of its own'); });
+  /* TUTOR PROFILE IS FIND › PROFILES › TUTOR (find-only, 16 Nov): Find's one Add a person card adds a tutor; the two people columns keep their own "+". */
+  ['students', 'parents'].forEach(c => { if (d.querySelectorAll('#s-' + c + ' [data-do="person-add"][data-col="' + c + '"]').length !== 1) bad.push(c + ' does not have one "+" of its own'); });
   return bad;
 });
 /* ---------- A HAND UP FROM A QUESTION (455) ---------- */

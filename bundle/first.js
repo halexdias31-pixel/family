@@ -1515,8 +1515,8 @@ try {
 const FINDER_TAGS = {
 "facets": "forLabel,kindLabel,kindOwn,postState,postBy,postWhen,msgWith,profileType,settingFor,vidSubject,vidTopic,vidChannel,vidLevel,vidType,venueArea,venueFor,venueSize,projectType,subject,shelf,wReligion,histKind,wCollection,histPart,wWork,wSection,wSource,wLanguage,wText,wTradition,wBook,wChapter,wUnit,wAuthor,wForm,wPrimacy,mScope,mMake,mModel,mGen,mEngine,mKind,mSystem,pcType,pcSocket,pcIface,pcLinks,mPhase,mMarket,mYears,mSize,mValves,mBadge,mFuel,mPart,mPrice,cCategory,cGroup,cPeriod,cState,boxKind,fighter,boutMonth,boutYear,decade,division,boutRound,boutMethod,boutWinner,boutEvent,histEra,histMaterial,histFormat,histGenre,histRole,personName,personYears,personFrom,histTheme,histRepository,histSide,histFound,histDated,histTheatre,practicalType,shopKind,shopHow,shopPrice,shopBrand,shopFor,shopTheme,required,documentType,level,keystage,yearGroup,bandValue,topic,examBoard,specTopic,specPoint,tier,examYear,examMonth,examDay,verified,paperId,paperSection,qNumber,qPart,qSub,qPage,qPages,marks,needs,myResult,source",
 "same": {
-  "kindLabel=Practice": ["kindOwn",[["Questions"],["Answers"]],[32171,26856],32171,["Questions","Answers"]],
-  "kindLabel=Practice&kindOwn=Questions": ["subject",[["Biology"],["Business"],["Chemistry"],["Driving Theory"],["Economics"],["English Language"],["English Literature"],["Geography"],["Greek"],["History"],["Maths"],["Physical Education"],["Physics"],["Politics"],["Psychology"],["Religious Studies"],["Sociology"],["Statistics"]],[4658,393,5252,10,131,414,522,522,78,944,11122,322,4539,120,1187,1004,436,517],32171,["Biology","Business","Chemistry","Driving Theory","Economics","English Language","English Literature","Geography","Greek","History","Maths","Physical Education","Physics","Politics","Psychology","Religious Studies","Sociology","Statistics"]],
+  "kindLabel=Practice": ["kindOwn",[["Questions"],["Answers"]],[32214,26856],32214,["Questions","Answers"]],
+  "kindLabel=Practice&kindOwn=Questions": ["subject",[["Biology"],["Business"],["Chemistry"],["Driving Theory"],["Economics"],["English Language"],["English Literature"],["Geography"],["Greek"],["History"],["Maths"],["Physical Education"],["Physics"],["Politics"],["Portuguese"],["Psychology"],["Religious Studies"],["Sociology"],["Statistics"]],[4658,393,5252,10,131,414,522,522,78,944,11122,322,4539,120,43,1187,1004,436,517],32214,["Biology","Business","Chemistry","Driving Theory","Economics","English Language","English Literature","Geography","Greek","History","Maths","Physical Education","Physics","Politics","Portuguese","Psychology","Religious Studies","Sociology","Statistics"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Biology": ["documentType",[["End of topic test"],["Past paper"],["Worksheet"]],[167,3896,595],4658,["End of topic test","Past paper","Worksheet"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Biology&documentType=End of topic test": ["paperId",[["T-AT-B-bioenergetics","Bioenergetics"],["T-AT-B-cell-biology","Cell Biology"],["T-AT-B-ecology","Ecology"],["T-AT-B-homeostasis-and-response","Homeostasis and Response"],["T-AT-B-infection-and-response","Infection and Response"],["T-AT-B-inheritance-variation-and-evolution","Inheritance, Variation and…"],["T-AT-B-organisation","Organisation"]],[22,27,21,27,26,20,24],167,["Bioenergetics (Biology)","Cell Biology (Biology)","Ecology (Biology)","Homeostasis and Response","Infection and Response","Inheritance, Variation and…","Organisation (Biology)"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Biology&documentType=Past paper": ["level",[["A-Level"],["GCSE"]],[1194,2702],3896,["A-Level","GCSE"]],
@@ -1847,6 +1847,7 @@ const FINDER_TAGS = {
   "kindLabel=Practice&kindOwn=Questions&subject=Physics&documentType=Worksheet&paperId=W-AT-P-transformers": ["qNumber",[["Q1"],["Q2"],["Q3"],["Q4"],["Q5"],["Q6"],["Q7"],["Q8"]],[4,3,8,2,4,1,5,5],32,["Q1","Q2","Q3","Q4","Q5","Q6","Q7","Q8"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Physics&documentType=Worksheet&paperId=W-AT-P-waves": ["qNumber",[["Q1"],["Q2"],["Q3"],["Q4"],["Q5"],["Q6"]],[3,5,9,8,4,4],33,["Q1","Q2","Q3","Q4","Q5","Q6"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Politics": ["examYear",[["2025"],["2024"],["2023"],["2022"],["2021"],["2020"]],[15,21,21,21,21,21],120,["2025","2024","2023","2022","2021","2020"]],
+  "kindLabel=Practice&kindOwn=Questions&subject=Portuguese": ["qNumber",[["Q1"],["Q2"],["Q3"],["Q4"],["Q5"],["Q6"],["Q7"],["Q8"],["Q9"],["Q10"]],[5,4,4,1,3,5,4,6,9,2],43,["Q1","Q2","Q3","Q4","Q5","Q6","Q7","Q8","Q9","Q10"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Psychology": ["level",[["A-Level"],["GCSE"]],[587,600],1187,["A-Level","GCSE"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Psychology&level=A-Level": ["examBoard",[["AQA"],["OCR"]],[464,123],587,["AQA","OCR"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Psychology&level=A-Level&examBoard=AQA": ["examYear",[["2025"],["2024"],["2023"],["2022"],["2021"],["2020"]],[75,90,80,76,82,61],464,["2025","2024","2023","2022","2021","2020"]],
@@ -2329,12 +2330,12 @@ const FINDER_TAGS = {
 },
 "views": {
 "admin+bible": {
-  "": ["kindLabel",[["Practice"],["Library"],["Coming soon"],["Posts"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]],[32171,189264,23,2,4,5,10,32,7,3],221520,["Practice","Library","Coming soon","Posts","Profiles","Booking","Shop","Settings","Tools","Games"]],
+  "": ["kindLabel",[["Practice"],["Library"],["Coming soon"],["Posts"],["Messages"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]],[32214,189264,23,2,1,4,5,10,32,7,3],221564,["Practice","Library","Coming soon","Posts","Messages","Profiles","Booking","Shop","Settings","Tools","Games"]],
   "kindLabel=Profiles": ["profileType",[["Parent"],["Student"],["Tutor"]],[2,2,2],4,["Parent","Student","Tutor"]],
   "kindLabel=Settings": ["settingFor",[["Student"],["Parent"],["Staff"],["Apprentice"],["Admin"],["Business"],["Site"]],[18,8,16,9,10,5,4],32,["Student","Parent","Staff","Apprentice","Admin","Business","Site"]]
 },
 "bible": {
-  "": ["kindLabel",[["Practice"],["Library"],["Coming soon"],["Posts"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]],[32171,189264,23,2,1,5,10,29,7,3],221514,["Practice","Library","Coming soon","Posts","Profiles","Booking","Shop","Settings","Tools","Games"]],
+  "": ["kindLabel",[["Practice"],["Library"],["Coming soon"],["Posts"],["Messages"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]],[32214,189264,23,2,1,1,5,10,29,7,3],221558,["Practice","Library","Coming soon","Posts","Messages","Profiles","Booking","Shop","Settings","Tools","Games"]],
   "kindLabel=Settings": ["settingFor",[["Student"],["Parent"],["Staff"],["Apprentice"],["Admin"]],[20,8,17,8,7],29,["Student","Parent","Staff","Apprentice","Admin"]]
 }
 }};
@@ -4786,14 +4787,14 @@ const TABS = [
 
   /* ---------- AND THE TWO THE LAYOUT SHEET ASKED FOR § */
   { id: 'reel',    icon: '▶',  label: 'Reels',   title: 'Reels' },
-  { id: 'dm',      icon: '✉',  label: 'DMs',     title: 'Messages' },
+  /* DMS WAS A COLUMN HERE; it is Find › Messages (find-only, 16 Nov). */
   /* ---------- SAVED, RIGHT OF FIND 2 WITH THE LEARNING COLUMNS (392) § */
   { id: 'saved',   icon: '★',  label: 'Saved',   title: 'Saved' },
   { id: 'spotlight', icon: '✦', label: 'Spotlight', title: 'Spotlight', cards: true },
   /* ---------- SIX COLUMNS (461): each account type's settings, then a card per tutor, student and parent. */
   /* THE OWNER'S ELEVEN (730): five profiles, then six settings; `cards` marks a card column (columns.json says the same; check-doors). */
   { id: 'web',      icon: '🌍', label: 'Web profile',        title: 'Web profile', cards: true },
-  { id: 'tutors',   icon: '🎓', label: 'Tutor profile',      title: 'Tutor profile', cards: true },
+  /* TUTOR PROFILE WAS A COLUMN HERE; it is Find › Profiles › Tutor (find-only, 16 Nov). */
   { id: 'students', icon: '👤', label: 'Student profile',    title: 'Student profile', cards: true },
   { id: 'parents',  icon: '👪', label: 'Parent profile',     title: 'Parent profile', cards: true },
   /* ---------- AND THE SHOP, RIGHT OF BOOKING § */
@@ -4804,9 +4805,9 @@ const TABS = [
 /* ---------- LEFT TO RIGHT, WHICH IS NOT THE ORDER THEY ARE WRITTEN IN § */
 /* GROUPED BY PURPOSE, read left to right (392). columns.json lists the same order; check-doors fails if they part. § */
 const TAB_ORDER = ['stuff', 'saved',                                  /* FIND FIRST, for everyone (1070): the one front door; Tools and Games are Find cards (790) */
-                   'spotlight', 'feed', 'reel', 'dm',                 /* social (392), below Find; Spotlight left of the posts (461) */
+                   'spotlight', 'feed', 'reel',                       /* social (392), below Find; Spotlight left of the posts (461); Messages is Find › Messages */
                    'booking', 'shop',                                 /* business */
-                   'web', 'tutors', 'students', 'parents']; /* the profiles (730); Apprentice profile is Find › Profiles › Apprentice; every settings column is Find › Settings › <type> (find-only.json) */
+                   'web', 'students', 'parents']; /* the profiles (730); Tutor and Apprentice profile are Find › Profiles › Tutor / Apprentice; every settings column is Find › Settings › <type> (find-only.json) */
 TABS.sort((a, b) => TAB_ORDER.indexOf(a.id) - TAB_ORDER.indexOf(b.id));
 /* SETTINGS THAT ARE FIND › SETTINGS › <type> NOW (find-only.json): no column, still a card group the layout keys by id and Find draws (CARD_BUILD). */
 const SETTING_GROUPS = [{ id: 'apprentice', label: 'Apprentice settings', cards: true, group: true },
@@ -5168,8 +5169,8 @@ function go(id, remember, instant) {
   if (typeof window.reelsStop_ === 'function' && AT !== 'reel') window.reelsStop_();
   /* A PIN SHOWN ON A CARD (452) goes when its column is left. */
   if (was !== AT && typeof pinHideAll_ === 'function') pinHideAll_();
-  /* AND THE MESSAGE POLL, which is the fourth. § */
-  if (typeof dmStop_ === 'function' && AT !== 'dm') dmStop_();
+  /* AND THE MESSAGE POLL, which is the fourth: it runs only while Find shows a message card (`dmShown_`). § */
+  if (typeof dmStop_ === 'function' && AT !== 'stuff') dmStop_();
   /* STARTED AFTER THE SLIDE, in one list rather than two. `repaint` needs the same list — it has
      just rebuilt this screen's markup too — and two copies of "what does this screen need running"
      is two places to forget the camera. */
@@ -5206,9 +5207,6 @@ const SCREEN_HOOKS = {
     slid: n => { if (typeof window.feedCamWatch_ === 'function') afterSlide_(window.feedCamWatch_); if (n !== 0 && typeof window.camRest_ === 'function') window.camRest_(); } },
   /* an admin's business records are asked for, a POST, once (js/records.js) */
   biz: { started: [() => typeof window.bizStart_ === 'function' && window.bizStart_()] },
-  /* a conversation opens at its newest message, and keeps itself up to date while it is the screen you are on (`dmPoll_`) */
-  dm: { started: [() => typeof dmFoot_ === 'function' && dmFoot_(), () => typeof dmPoll_ === 'function' && dmPoll_()],
-    drawn: () => { if (typeof dmFoot_ === 'function') { try { dmFoot_(); } catch (e) { oops_(e, 'shell:drawnScreen_') } } } },
 };
 function startScreen_(id, arriving) {
   /* NOT A COLUMN A LANDING PAYLOAD LEFT ALONE — its markup was not replaced, so what runs in it is still
@@ -6504,7 +6502,6 @@ const PAGER = {
   spotlight: () => cardCount_('spotlight', () => (typeof spotlightCards_ === 'function' ? spotlightCards_().length : 1)),
   /* AND THE SAME AGAIN FOR SETTINGS. § */
   web: () => cardCount_('web', () => webProfilePages_().length),
-  tutors: () => cardCount_('tutors', () => peoplePages_('tutors').length),
   students: () => cardCount_('students', () => peoplePages_('students').length),
   parents: () => cardCount_('parents', () => peoplePages_('parents').length),
   /* THE SHOP, COUNTED FROM `shopCards_`, the list `screen('shop')` draws. Never nought: the basket
@@ -6533,8 +6530,6 @@ const PAGER = {
   feed:   () => (typeof window.feedColumn_ === 'function' ? [].concat(window.feedColumn_()) : ['']).map(() => ''),
   /* ---------- THE REELS COLUMN HAD NO ENTRY HERE, AND THAT IS WHY IT MOVED DIFFERENTLY § */
   reel:   () => (typeof window.reelPages_ === 'function' ? window.reelPages_() : ['']),
-  /* ---------- AND MESSAGES WAS THE SIXTH COLUMN TO LOSE ITS AXIS THIS WAY § */
-  dm:     () => (typeof dmPages_ === 'function' ? dmPages_().map(p => p.name) : ['']),
   /* THE CAMERA, WHICH IS ONE PAGE AND IS COUNTED ANYWAY. § */
   /* `make:` WAS HERE, counting the camera column's one card. The camera is a page of the feed
      now and `PAGER.feed` counts it — see the note there. */
@@ -10802,15 +10797,9 @@ function msgPost_(p) {
   }).then(() => dmRedraw_(p.withId || p.withName));
 }
 
-/* Repaint the column and stay on the conversation somebody is in. § */
+/* REDRAW THE CONVERSATION WHERE IT STANDS IN FIND (find-only, 16 Nov: the Messages column is gone). */
 function dmRedraw_(key) {
   try { msgFindRedraw_(key); } catch (e) { oops_(e, 'me:findRedraw'); }
-  if (typeof paint !== 'function' || !$('s-dm')) return;
-  paint('dm');
-  const at = messageThreads_().findIndex(t => t.id === key);
-  /* ONE MORE THAN THE THREAD: Daive is page 0 (449). */
-  if (at >= 0 && typeof goPage === 'function' && AT === 'dm') { try { goPage('dm', at + 1, true); } catch (e) { oops_(e, 'me:dmRedraw_') } }
-  setTimeout(() => { if (typeof dmFoot_ === 'function') dmFoot_(); }, 0);
 }
 
 on('msg-send', el => {
@@ -10868,7 +10857,7 @@ on('msg-drop', el => {
   if (p.queue.length) MSG_QUEUE[key] = (MSG_QUEUE[key] || []).concat(p.queue);
   dmRedraw_(key);
   if (p.body) setTimeout(() => {
-    const host = $('s-dm');
+    const host = $('s-stuff');
     const box = host && [].slice.call(host.querySelectorAll('.msg-form'))
       .filter(f => f.dataset.k === key).map(f => f.querySelector('.msg-text'))[0];
     if (box && !box.value) box.value = p.body;
@@ -10889,8 +10878,6 @@ function markRead_(msgs) {
   });
 }
 
-/* AN EMPTY INBOX IS ONE SHORT LINE (owner, 8 Nov). */
-const emptyMessages_ = () => empty_('No messages yet.');
 
 /* ---------- ONE THREAD PER PERSON § */
 /* When a message was sent, as a number: § */
@@ -14886,19 +14873,7 @@ on('pe-unlink', el => sure_(el, 'Tap again to confirm') && peFamSend_(el, 'admin
 ;
 /* ==== js/messages.js ==== */
 /* @family. — messages.js DMs, Messages and Daive, cut out of posts.js when the Feed was switched off (13 Nov). */
-/* ---------- MESSAGES § */
-/* ---------- ONE CONVERSATION PER PAGE, WHICH IS WHAT EVERY OTHER COLUMN ALREADY IS § */
-/* ---------- BUT A COLUMN DRAWN AHEAD ASKS NOBODY (`dmAsk_`) § */
-function dmAsk_() {
-  if (typeof AHEAD !== 'undefined' && AHEAD.running) {
-    if (!DM_DONE && USER && MESSAGES) { DM_ASKED = true; DM_DONE = true; }
-    return;
-  }
-  dmSync_();
-}
-screen('dm', () => { dmAsk_(); return pages('dm', dmPages_().map(p => p.html)); });
-
-/* ---------- THIS SCREEN READ A KEY THAT HAS NEVER EXISTED § */
+/* ---------- MESSAGES ARE FIND › MESSAGES (find-only, 16 Nov): the column, its pages and its tab are gone; a conversation is a Find card (find-doors.js). */
 
 /* ASKED ONCE, NOT ONCE PER PAINT — AND `MESSAGES` CANNOT BE THE FLAG THAT SAYS SO. § */
 let DM_ASKED = false;
@@ -14923,7 +14898,7 @@ function dmStamp_() {
 /* IS SOMEBODY MID-SENTENCE. Asked of the DOM rather than remembered in a flag, which is what
    `msg-send` and `me-save` already do for the same reason: the fact is in the box. */
 function dmTyping_() {
-  const host = $('s-dm');
+  const host = $('s-stuff');
   if (!host) return false;
   /* Files chosen and not yet sent count as typing: a repaint would keep them (they live in
      `MSG_QUEUE`) but would close whatever somebody was doing with the picker. */
@@ -14936,17 +14911,26 @@ function dmTyping_() {
 function dmSync_(force) {
   if (!USER || !LOADED || DM_BUSY) return;
   if (!force && DM_ASKED && Date.now() - DM_LAST < DM_EVERY) return;
-  const first = !DM_ASKED;
   DM_ASKED = true; DM_BUSY = true; DM_LAST = Date.now();
   const was = dmStamp_();
-  /* Which conversation is on the screen, by person rather than by page — a message arriving in another thread moves that thread to the front and would otherwise § */
-  /* ONE LESS THAN THE PAGE: Daive is page 0 (449). */
-  const here = ((messageThreads_()[((typeof PAGE === 'object' && PAGE.dm) || 0) - 1]) || {}).id;
   loadMessages().then(() => {
     DM_BUSY = false; DM_DONE = true;
-    if (first) paint('dm');
-    else if (dmStamp_() !== was && !dmTyping_()) dmRedraw_(here);
+    /* EACH CONVERSATION SHOWN IN FIND REDRAWN WHERE IT STANDS, never under somebody's typing. */
+    if (dmStamp_() !== was && !dmTyping_()) dmShownThreads_().forEach(k => { try { msgFindRedraw_(k); } catch (e) { oops_(e, 'dm:sync'); } });
   });
+}
+/* THE CONVERSATIONS FIND IS SHOWING, by thread. */
+function dmShownThreads_() {
+  const host = $('s-stuff'), seen = {};
+  if (!host) return [];
+  [].forEach.call(host.querySelectorAll('[data-thread]'), el => { seen[el.dataset.thread] = 1; });
+  return Object.keys(seen);
+}
+/* FIND › MESSAGES IS OPEN, OR A MESSAGE CARD SHOWS (a conversation, Daive, or a first message's form): what keeps the poll running. */
+function dmShown_() {
+  if (typeof AT === 'undefined' || AT !== 'stuff') return false;
+  const host = $('s-stuff');
+  return !!(host && host.querySelector('[data-thread], [data-daive], .dm-card'));
 }
 
 /* THE PAYLOAD'S COPY (700): taken as the first answer, and the 20 s poll keeps it fresh from there. A backend that sends none leaves the ask as it was. */
@@ -14956,17 +14940,19 @@ function dmAdopt_(d) {
   DM_ASKED = true; DM_DONE = true; DM_LAST = Date.now();
 }
 
-/* STARTED WHEN THE COLUMN ARRIVES AND STOPPED WHEN IT LEAVES, from `startScreen_` and `paint` — the one list that exists for exactly this. § */
+/* STARTED WHEN A MESSAGE CARD IS DRAWN IN FIND (`msgDoorCard_`), and it stops itself once none shows. */
 function dmPoll_() {
   clearInterval(DM_TIMER);
   dmSync_();
-  DM_TIMER = setInterval(() => { if (AT === 'dm') dmSync_(); else dmStop_(); }, DM_EVERY);
+  DM_TIMER = setInterval(() => { if (dmShown_()) dmSync_(); else dmStop_(); }, DM_EVERY);
 }
+/* ONE TIMER: a card drawn again while it runs leaves it be. */
+function dmWatch_() { if (!DM_TIMER && USER) dmPoll_(); }
 function dmStop_() { clearInterval(DM_TIMER); DM_TIMER = 0; }
 
 /* AND COMING BACK TO THE APP IS WORTH AN ASK WHATEVER THE CLOCK SAYS. § */
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden && AT === 'dm') dmPoll_();
+  if (!document.hidden && dmShown_()) dmPoll_();
 });
 
 /* ---------- ONE LIST, TWO READINGS — THE MARKUP AND THE NAME IN THE HEADER § */
@@ -15000,33 +14986,7 @@ document.addEventListener('error', e => {
   if (ring) { ring.classList.remove('has-pic'); ring.textContent = ring.getAttribute('data-letter') || ''; }
 }, true);
 
-function dmPages_() {
-  if (!USER) return [{ name: '', html: card_(cardBlock_({ type: 'group', look: '', blocks: [{ type: 'msgHead', text: 'Messages' }] })) }];
-  /* THE PAYLOAD AND THE FIRST ANSWER FOR MESSAGES — `loading_()` until both, as every column waits. */
-  if (!LOADED || !DM_DONE) return [{ name: '', html: loading_() }];
-
-  const threads = messageThreads_();
-  /* ---------- THE HEAD CARD WAS A PAGE WITH NO MESSAGE ON IT § */
-
-  /* ---------- AND AN EMPTY INBOX SAYS WHICH EMPTY IT IS § */
-  if (!threads.length) return daivePages_().concat([{ name: '', html: suggestRowIn_(card_(cardBlock_({ type: 'group', look: '',
-    blocks: [{ type: 'msgHead', text: 'Messages' }], inner: MSG_FAILED ? empty_('Messages did not load.') : emptyMessages_(),
-    tiles: MSG_FAILED ? [{ form: true, label: 'Try again', act: 'dm-refresh', kind: 'quiet' }] : [] })), 'widget', 'messages', 'Messages') }]);
-
-  /* ONE CARD PER CONVERSATION, most recent first — `messageThreads_` has already done both, and
-     doing it again here is a second copy of the ordering rule to get wrong later. */
-  /* ---------- DRAWN IS READ, ON THIS SCREEN ONLY § */
-  threads.forEach(t2 => markRead_(t2.msgs));
-  /* ---------- AND EACH ONE CAN BE ANSWERED WHERE IT IS READ § */
-  /* THE NAME IS THE PERSON, and the unread count rides on it — so the header says who you are reading rather than "3 of 7", which is the same judgement § */
-  return daivePages_().concat(threads.map(t => ({
-    name: fmtName_(t.name) + (t.unread ? ' (' + t.unread + ')' : ''),
-    html: renderCard({ kind: 'msg', look: 'dm-page' + (t.unread ? ' unread' : ''), name: fmtName_(t.name),
-      body: [{ type: 'embed', tool: 'dm-thread', args: { t } }] }),
-  })));
-}
-
-/* ---------- DAIVE, THE ASSISTANT, PINNED FIRST IN MESSAGES (449, 461) ----------
+/* ---------- DAIVE, THE ASSISTANT, FIRST IN FIND › MESSAGES (449, 461; find-only 16 Nov) ----------
    A conversation like any other — the same head, bubbles and composer — kept on this device; `data-daive` marks its card. */
 let ASST_BUSY = false, ASST_SAID = '';
 const ASST_KEEP = 40, DAIVE = 'Daive';
@@ -15053,17 +15013,18 @@ function asstPut_(s) { ASST_MEM = { key: asstKey_(), s: s }; try { localStorage.
 /* WHAT EACH COLUMN IS FOR, in plain words, so Daive can say where things are. Site help only: nothing about the business (547). */
 const ASST_NAV = {
   spotlight: 'what is pinned in the window', feed: 'posts; the camera is the page above the newest post', reel: 'short videos, one per page',
-  dm: 'messages, one conversation per page; Daive is the first',
   stuff: 'pick answers to narrow down questions, papers, lessons, tools and games', res: 'a second finder that keeps its own place',
   saved: 'what you starred', booking: 'book a session', shop: 'the shop',
   family: 'a parent account\'s settings', staff: 'a tutor account\'s settings', account: 'a student account\'s settings: sign in, PIN, progress',
-  tutors: 'a card per tutor', students: 'a card per student', parents: 'a card per parent',
+  students: 'a card per student', parents: 'a card per parent',
 };
 /* WHAT DAIVE IS TOLD: the columns this viewer has, left to right, and the Tools widgets' names -- a map of the site and nothing else (547). */
 function asstFacts_() {
   const out = ['swipe left and right to move between columns; the bar at the bottom jumps to one'];
   try { TABS.forEach(t => out.push('column "' + t.title + '": ' + (ASST_NAV[t.id] || t.title))); } catch (e) { /* no columns yet: the map is shorter, not broken */ }
   try { const ws = widgetsOf_('tool').map(x => x.name || x.id).filter(Boolean); if (ws.length) out.push('Tools in Find: ' + ws.join(', ')); } catch (e) { /* no widgets yet: the columns alone */ }
+  out.push('Messages in Find: your conversations, one card each, and Daive first');
+  out.push('tutors in Find: Profiles, then Tutor');
   out.push('to message a tutor: the Message tile on their card');
   return out.join('\n').slice(0, 4000);
 }
@@ -15071,10 +15032,6 @@ function asstFacts_() {
 function asstMsgs_(s) {
   return s.msgs.map(m => ({ mine: m.role === 'user', read: true, body: m.text, atMs: m.at || 0, fromName: DAIVE }));
 }
-/* A CONVERSATION'S INSIDES (head, bubbles, composer) are the card's one embed: the send path stays msgForm_'s own. */
-CARD_EMBEDS['dm-thread'] = ({ t }) => cardBlocks_([
-  { type: 'group', look: 'dm-head', inner: dmFace_(t) + cardBlock_({ type: 'msgHead', text: [fmtName_(t.name)].concat(t.unread ? [' ', { span: 'dm-new', text: t.unread + ' new' }] : []) }) },
-  { type: 'group', look: 'msg-body', inner: messagesHtml_(t.msgs) }]) + msgForm_(t.name, t.id);
 CARD_EMBEDS['daive'] = () => {
   const s = asstGet_(), cap = asstCap_(), out = s.left <= 0, shut = out || ASST_BUSY;
   const said = out ? 'No questions left today — they come back tomorrow.' : s.left + ' of ' + cap + ' questions left today';
@@ -15085,16 +15042,14 @@ CARD_EMBEDS['daive'] = () => {
       send: { form: true, look: 'btn msg-go', act: 'daive-send', off: shut, label: 'Send' }, note: ASST_SAID, also: [{ look: 'daive-left', text: said }] }]);
 };
 const daiveHtml_ = () => renderCard({ kind: 'msg', look: 'daive', name: DAIVE, data: { daive: 1 }, body: [{ type: 'embed', tool: 'daive' }] });
-/* DAIVE IS AN ITEM (487): an admin's Delete and Note on it; deleted, it is gone for everyone. */
+/* DAIVE IS AN ITEM (487): an admin's Delete and Note on it; deleted, it is gone for everyone. Its id keeps the old column's name, so a delete already made stands. */
 const daiveItem_ = () => {
-  const h = typeof itemMark_ === 'function' ? itemMark_('item:dm:daive', 'dm', daiveHtml_()) : daiveHtml_();
+  const h = typeof itemMark_ === 'function' ? itemMark_('item:dm:daive', 'stuff', daiveHtml_()) : daiveHtml_();
   return h ? suggestRowIn_(h, 'widget', 'daive', DAIVE) : '';
 };
-function daivePage_() { return { name: DAIVE, html: daiveItem_() }; }
-const daivePages_ = () => [daivePage_()].filter(p => p.html);
-/* REDRAWN IN PLACE, and the column forgets what it drew, so a later paint never judges against the old card. */
+/* REDRAWN IN PLACE in Find, and Find forgets what it drew, so a later paint never judges against the old card. */
 function asstRedraw_() {
-  const col = $('s-dm'), card = col && col.querySelector('[data-daive]');
+  const col = $('s-stuff'), card = col && col.querySelector('[data-daive]');
   if (!card) return;
   card.outerHTML = daiveItem_() || cardBlock_({ type: 'group', tag: 'span', attrs: { hidden: true } });
   const body = col.querySelector('[data-daive] .msg-body');
@@ -15132,34 +15087,11 @@ on('daive-send', el => {
     now.msgs = now.msgs.slice(-ASST_KEEP);
     asstPut_(now);
     asstRedraw_();
-    if (!(d && d.success)) { const b = $('s-dm') && $('s-dm').querySelector('[data-daive] .msg-text'); if (b && !b.disabled) b.value = text; }
+    if (!(d && d.success)) { const b = $('s-stuff') && $('s-stuff').querySelector('[data-daive] .msg-text'); if (b && !b.disabled) b.value = text; }
   };
   api({ action: 'askAssistant', personId: USER.personId, question: text, history: history, facts: asstFacts_() })
     .then(done, () => done(null));
 });
-
-/* ---------- A CONVERSATION OPENS AT THE NEWEST MESSAGE, NOT THE OLDEST § */
-function dmFoot_() {
-  const col = $('s-dm');
-  if (!col) return;
-  [].forEach.call(col.querySelectorAll('.msg-body'), el => {
-    el.scrollTop = el.scrollHeight;
-    /* A PICTURE LANDS AFTER THE SCROLL, and a photograph arriving 300px tall under a thread already at its bottom pushes the newest message out of sight. § */
-    [].forEach.call(el.querySelectorAll('img, video'), m => {
-      if (m.dataset.foot) return;
-      m.dataset.foot = '1';
-      const bottom = () => el.scrollHeight - el.scrollTop - el.clientHeight < 80;
-      const was = bottom();
-      m.addEventListener(m.tagName === 'VIDEO' ? 'loadedmetadata' : 'load', () => {
-        if (was || bottom()) el.scrollTop = el.scrollHeight;
-      }, { once: true });
-    });
-  });
-}
-
-/* THE ONLY WAY BACK TO THE SERVER ONCE THE SCREEN IS UP. The fetch above runs once, so without this
-   a message that arrived after the tab was first opened would not appear until a reload. */
-on('dm-refresh', () => { loadMessages().then(() => { paint('dm'); setTimeout(dmFoot_, 0); }); });
 
 /* ---------- SHARED HELPERS FROM posts.js: a Drive address, a face by id, a picked file, a filename stamp, a tutor's own link § */
 /* A Google Drive share link is a page, not a picture — pasting one into an <img> gives a broken
@@ -17980,6 +17912,8 @@ function tutorOpts_(x) {
     USER && !isMe_(x) && (!!may_('prices') || /admin/i.test(String(t.role || ''))) ? { icon: 'chat', label: 'Message',
       note: 'a note to them', act: 'msg-open', data: { to: x.name, id: (x.row && x.row.personId) || '' } } : null,
     typeof cardEditOpts_ === 'function' ? cardEditOpts_(x) : null,
+    /* SHARE MY PROFILE (400, 412): on your own tutor card, in Find › Profiles › Tutor since its column went (16 Nov). */
+    USER && isMe_(x) && may_('staff') && t.handle ? { icon: 'share', label: 'Share my profile', note: 'your link', act: 'tutor-share', data: { handle: t.handle } } : null,
     x.key ? { icon: t.listed === false ? 'hide' : 'show', label: t.listed === false ? text_('not-listed') : 'Listed', tone: 'admin',
       on: t.listed !== false, act: 'set-listed', note: t.listed === false ? 'clients cannot see them' : 'clients can see them',
       /* THE ID AS WELL AS THE NAME: `x.key` is a display name, which `findPerson` only falls back to. */

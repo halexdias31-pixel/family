@@ -15,7 +15,7 @@ const WIDGETS = {
     'favlinks', 'spotify', 'pixel', 'libcards', 'reels', 'newspaper', 'shopfind'],
   Games: ['console', 'wordgames'],
 };
-const COLUMNS = ['spotlight', 'feed', 'dm', 'saved', 'booking', 'shop', 'web', 'tutors', 'students', 'parents'];
+const COLUMNS = ['spotlight', 'feed', 'saved', 'booking', 'shop', 'web', 'students', 'parents'];
 /* A SAFE PRESS (a picture picker opens the device chooser, which a page cannot see): not a card's own extras (star, lock, suggest, share, edit, hide, delete, move), which every card has and prove nothing. */
 const SKIP = /-pic\b|del|bin|lock|star|suggest|share|save|top|edit|hide|eye|lay-|help|sign|out|report|facet|chip/i;
 

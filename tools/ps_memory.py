@@ -1,23 +1,17 @@
 # The multi-store model (GCSE Psychology, Memory): three stores in a row and three items. One is rehearsed into LTM,
-# one decays in STM, one is displaced from STM by the next. Writes the `msm` row of data/textbooks.json.
-# The stores are 4.4rem wide with a 1.4rem gap, so an item moves 5.8rem a store. Run: python3 tools/ps_memory.py
+# one decays in STM, one is displaced from STM by the next. Writes the `samsm` row of data/textbooks.json, in the one
+# animation format (16 Nov, tools/sa_draw.py). Run: python3 tools/ps_memory.py
 import sys, pathlib; sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent)); import anim_row
+from sa_draw import Svg
 
-S = 5.8   # rem from one store's centre to the next
-html = '''<div id="splash-msm" aria-hidden="true">
-    <div class="ms-r"><b>sensory</b><b>STM</b><b>LTM</b><i></i><i></i><i></i></div>
-    <div class="ms-s">rehearse, decay, displace</div>
-  </div>'''
-css = '''.ms-r{position:relative;display:flex;gap:1.4rem}
-.ms-r b{width:4.4rem;padding:1.1rem 0 .5rem;border:2px solid #6fa8dc;font:700 .78rem var(--mono);color:var(--paper);text-align:center}
-.ms-r i{position:absolute;left:1.9rem;top:.4rem;padding:.3rem;border-radius:50%;background:#f0b45f;animation:ms-a 7s infinite}
-.ms-r i+i{left:1.2rem;animation-name:ms-d}
-.ms-r i+i+i{left:2.6rem;animation-name:ms-x}
-@keyframes ms-a{0%{opacity:0}6%{opacity:1;transform:none}22%,46%{transform:translateX({S}rem)}62%,94%{opacity:1;transform:translateX({L}rem)}100%{opacity:0;transform:translateX({L}rem)}}
-@keyframes ms-d{0%,10%{opacity:0}16%{opacity:1;transform:none}32%,50%{opacity:1;transform:translateX({S}rem)}70%,100%{opacity:0;transform:translateX({S}rem) scale(.3)}}
-@keyframes ms-x{0%,40%{opacity:0}46%{opacity:1;transform:none}58%,66%{opacity:1;transform:translateX({S}rem)}86%,100%{opacity:0;transform:translate({S}rem,3rem)}}
-.ms-s{margin-top:.8rem;font:.72rem var(--mono);color:#f0ece08c;text-align:center}
-@media (prefers-reduced-motion: reduce) {
-  .ms-r i{animation:none}
-}'''.replace('{S}', '%g' % S).replace('{L}', '%g' % (2 * S))
-anim_row.write_anim('msm', html=html, css=css)
+d = Svg(400, 190)
+for x, name in [(20, 'sensory'), (150, 'STM'), (280, 'LTM')]:
+    d.box(x, 50, 100, 50, name, 'cool' if name == 'LTM' else '', rx=8)
+d.arrow(122, 75, 148, 75); d.arrow(252, 75, 278, 75)
+d.g('s1'); d.text(70, 40, 'attention', size=11); d.end()
+d.g('s2'); d.path('M180,50 C180,20 220,20 220,50', 'pt cool mv-flow'); d.text(200, 18, 'rehearse', 'cool', size=11); d.end()
+d.g('s3'); d.text(330, 40, 'rehearsed: stored', 'cool', size=11); d.end()
+d.g('s4'); d.arrow(185, 102, 170, 140, 'pt hot'); d.text(150, 156, 'decay', 'hot', size=11); d.end()
+d.g('s5'); d.arrow(215, 102, 230, 140, 'pt hot'); d.text(250, 156, 'displace', 'hot', size=11); d.end()
+d.g('s6'); d.text(200, 182, 'rehearse, decay, displace'); d.end()
+anim_row.write_sa('msm', d.svg('The multi-store model: sensory store, STM, LTM; rehearsal, decay and displacement'))

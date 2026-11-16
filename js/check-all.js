@@ -21,6 +21,7 @@ const SUITE = [
   { file: 'check-style-sources.js', what: '!important only from its allow-list, js colours only go down' },
   /* MOTION IS ONE SYSTEM (531): read, not run, so it stays in --fast; a ratchet on literal durations, curves and moved properties. */
   { file: 'check/motion.js', what: 'durations, curves and moved properties: no count grows past check/motion-baseline.json' },
+  { file: 'check/fig-shown.js', what: 'no active question shows "Figure not drawn yet." outside the backlog, which only shrinks (owner, 15 Nov)' },
   /* ---------- ONE LOADER, AND NOTHING ELSE DRAWS A WAIT § */
   { file: 'check-loading.js', what: 'every wait is the one loader, and nothing else draws one' },
   /* THE REBUILT SPLASHES, AS KEYFRAMES. `npm run splash` asks whether the picture changes and a

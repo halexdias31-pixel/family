@@ -1,20 +1,12 @@
 # Independent and dependent variables (GCSE Psychology, Research methods): the IV is switched between two levels, the
-# DV follows a moment later, the extraneous variable stays put. Writes the `ivdv` row. Run: python3 tools/ps_variables.py
+# DV follows, the extraneous variable stays put. Writes the `saivdv` row in the one animation format (16 Nov).
+# Run: python3 tools/ps_variables.py
 import sys, pathlib; sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent)); import anim_row
+from sa_draw import Svg
 
-html = '''<div id="splash-ivdv" aria-hidden="true">
-    <div class="iv-r"><b>IV</b><i></i><span>changed</span></div>
-    <div class="iv-r"><b>DV</b><i></i><span>measured</span></div>
-    <div class="iv-r"><b>EV</b><i></i><span>kept the same</span></div>
-  </div>'''
-css = '''.iv-r{display:flex;align-items:center;gap:.6rem;margin:.5rem 0;font:700 .74rem var(--mono);color:var(--paper)}
-.iv-r i{width:7rem;height:.8rem;border-radius:3px;background:#241f18}
-.iv-r i::before{content:"";display:block;height:100%;width:50%;background:#5c544a;transform-origin:left}
-.iv-r span{font-weight:400;color:#f0ece08c}
-.iv-r:first-child i::before{background:#f0b45f;animation:iv-sw 5s infinite}
-.iv-r:nth-child(2) i::before{background:#6fa8dc;animation:iv-sw 5s .6s infinite}
-@keyframes iv-sw{0%,40%{transform:scaleX(.5)}50%,90%{transform:scaleX(1.8)}}
-@media (prefers-reduced-motion: reduce) {
-  .iv-r i::before{animation:none}
-}'''
-anim_row.write_anim('ivdv', html=html, css=css)
+d = Svg(400, 180)
+d.g('s1'); d.box(20, 40, 110, 46, 'IV', 'hot', rx=8); d.text(75, 104, 'changed', 'hot', size=11); d.end()
+d.g('s2'); d.arrow(134, 63, 266, 63, 'pt mv-flow'); d.text(200, 52, 'causes?', size=11); d.end()
+d.g('s3'); d.box(270, 40, 110, 46, 'DV', 'cool', rx=8); d.text(325, 104, 'measured', 'cool', size=11); d.end()
+d.g('s4'); d.box(145, 120, 110, 40, 'EV'); d.text(200, 176, 'kept the same', size=11); d.end()
+anim_row.write_sa('ivdv', d.svg('The IV is changed, the DV is measured, extraneous variables are kept the same'))

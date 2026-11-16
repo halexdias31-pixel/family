@@ -279,16 +279,20 @@ check('chat: what arrived unread stays outlined, the composer hint fits, a refus
 });
 
 /* ---------- DAIVE IN MESSAGES (449, 461): pinned first, drawn as a conversation, counts down after an answer, shut at 0 */
+/* MESSAGES IS FIND › MESSAGES (find-only, 16 Nov): screens-moved.json served as the site serves it, so go('dm') finds the branch. */
+const DM_MOVED_ = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'settings', 'screens-moved.json'), 'utf8'));
+const DM_MOVED_SERVE_ = u => (/(^|\/)data\/settings\/screens-moved\.json(\?|$)/.test(u) ? DM_MOVED_ : undefined);
 check('daive: pinned first in Messages as a conversation — the DM head, bubbles and composer, no look-alike classes', async () => {
   const bad = [];
-  const { w } = boot({ reply: () => ({ success: true }) });
+  const { w } = boot({ reply: () => ({ success: true }), serve: DM_MOVED_SERVE_ });
   await wait(300);
   const d = w.document;
   w.__t.USER({ name: 'Test Client', personId: 'P002', role: 'client', roles: ['client'], token: 'tk2' });
   w.__t.dmSeed([{ id: 'm1', mine: false, read: true, body: 'Hello', at: '2026-09-16 09:10', withId: 'P009', withName: 'Ada Tutor', fromName: 'Ada Tutor' }]);
+  /* FIND › MESSAGES (find-only, 16 Nov): go('dm') opens the branch; Daive is its first card, then each conversation. */
   try { w.__t.repaint(true); w.__t.go('dm', false, true); } catch (e) { return ['opening Messages threw: ' + e.message]; }
-  await wait(80);
-  const col = d.getElementById('s-dm');
+  await wait(300);
+  const col = d.getElementById('s-stuff');
   const daive = col && col.querySelector('[data-daive]');
   if (!daive) return ['Messages has no Daive conversation'];
   if (col.querySelector('.card') !== daive) bad.push('Daive is not the first conversation in Messages');
@@ -305,8 +309,6 @@ check('daive: pinned first in Messages as a conversation — the DM head, bubble
   const go = daive.querySelector('.msg-go'), box = daive.querySelector('.msg-text');
   if (go && go.textContent.trim() !== 'Send') bad.push('Daive\'s send control reads "' + go.textContent.trim() + '", not "Send"');
   if (box && box.getAttribute('placeholder') !== 'Message…') bad.push('Daive\'s box hint is "' + box.getAttribute('placeholder') + '"');
-  const names = ((w.__t.PAGER || {}).dm || {}).names;
-  if (Array.isArray(names) && names[0] !== 'Daive') bad.push('the pager\'s first page is named "' + names[0] + '"');
   return bad;
 });
 
@@ -320,16 +322,17 @@ check('daive: an answer takes the count from 5 to 4 even when the reply forgets 
     if (n === 1) return { success: true, answer: 'Sessions are two hours.' };
     if (n === 2) return { success: true, answer: 'Yes.', left: 0, cap: 5 };
     return { success: false, why: 'ai-cap', left: 0, message: 'That is today’s 5 questions used — they come back tomorrow.' };
-  } });
+  }, serve: DM_MOVED_SERVE_ });
   await wait(300);
   const d = w.document;
   w.__t.DATA().brand = Object.assign({}, w.__t.DATA().brand, { name: '@family.', slogan: 'Somebody to say why.',
     tagline: 'Somebody to say why.', intro: '{{intro}}', area: 'Merton & Wandsworth', motto: 'TODO' });
   w.__t.USER({ name: 'Test Client', personId: 'P002', role: 'client', roles: ['client'], token: 'tk2' });
   w.__t.dmSeed([]);
+  /* FIND › MESSAGES (find-only, 16 Nov): go('dm') opens the branch, and Daive is its first card. */
   try { w.__t.repaint(true); w.__t.go('dm', false, true); } catch (e) { return ['opening Messages threw: ' + e.message]; }
-  await wait(80);
-  const col = d.getElementById('s-dm');
+  await wait(300);
+  const col = d.getElementById('s-stuff');
   const card = () => col && col.querySelector('[data-daive]');
   if (!card()) return ['Messages has no Daive conversation'];
   const line = () => ((card().querySelector('.daive-left') || {}).textContent || '').trim();
@@ -345,7 +348,7 @@ check('daive: an answer takes the count from 5 to 4 even when the reply forgets 
   const leaked = brandVals.filter(v => facts.indexOf(v) >= 0);
   if (leaked.length) bad.push('the business went into Daive\'s facts: ' + leaked.slice(0, 3).join(' | '));
   if (/hours per session|most students|business name/i.test(facts)) bad.push('a business number went into the facts: ' + facts.slice(0, 200));
-  if (!/column "Find"/.test(facts) || !/column "Messages"/.test(facts)) bad.push('the site map is missing from the facts: ' + facts.slice(0, 200));
+  if (!/column "Find"/.test(facts) || !/Messages in Find/.test(facts)) bad.push('the site map is missing from the facts: ' + facts.slice(0, 200));
   if (!/two hours/.test(card().textContent)) bad.push('the stubbed answer was not drawn');
   if (card().querySelectorAll('.msg-bub').length !== 2) bad.push('the question and answer are not two DM bubbles');
   if (!card().querySelector('.msg.mine .msg-bub')) bad.push('the question is not drawn as the person\'s own bubble');

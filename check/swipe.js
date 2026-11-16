@@ -265,7 +265,7 @@ if (/^const FLOW_LAYOUT = true;/m.test(fs.readFileSync(path.join(__dirname, '..'
       await env.ctx.close(); continue;
     }
     /* A ONE-PAGE COLUMN WITH A COLUMN AFTER IT — named rather than found first in the row. § */
-    const one = ['saved', 'spotlight', 'booking', 'dm'].find(id => count[id] === 1 && next(id));
+    const one = ['saved', 'spotlight', 'booking'].find(id => count[id] === 1 && next(id));
     /* PAGES WITH BARE CARD ON THEM, and a page below each for a turn up to land on. */
     const TOOLS = [1, 2, 4, 5, 6, 7];
     if (!one) fail('REACH', at, 'there is no one-page column to ask the diagonal of');

@@ -22,7 +22,7 @@ import json, pathlib, re, sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent)); import anim_row
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-BOOKS = ROOT / 'data' / 'textbooks.json'
+BOOKS = anim_row.BOOKS                   # the scratch copy anim_row works on (one format, 16 Nov)
 SPLASHES = ROOT / 'data' / 'settings' / 'splashes.json'
 
 

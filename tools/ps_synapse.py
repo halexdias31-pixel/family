@@ -1,22 +1,22 @@
-# Synaptic transmission (GCSE Psychology, Brain and neuropsychology): an impulse lights the end of one neuron, three
-# neurotransmitter packets cross the gap, and the receptor side of the next lights. Writes the `syn` row. Run: python3 tools/ps_synapse.py
+# Synaptic transmission (GCSE Psychology, Brain and neuropsychology): an impulse reaches the end of one neuron,
+# neurotransmitter crosses the gap, and the receptors of the next take it up. Writes the `sasyn` row in the one
+# animation format (16 Nov). Run: python3 tools/ps_synapse.py
 import sys, pathlib; sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent)); import anim_row
+from sa_draw import Svg
 
-GAP = 3.0   # rem between the two neurons
-dots = ''.join('<i style="--i:%d"></i>' % k for k in range(3))
-html = '''<div id="splash-syn" aria-hidden="true">
-    <div class="sy-r"><b></b>%s<s></s></div>
-    <div class="sy-s">impulse, neurotransmitter, receptor</div>
-  </div>''' % dots
-css = '''.sy-r{position:relative;width:%(w)grem;height:3.6rem}
-.sy-r b,.sy-r s{position:absolute;top:0;bottom:0;width:5rem;background:#2b3a4f;border:2px solid #6fa8dc;animation:sy-lit 4s infinite}
-.sy-r b{left:0;border-radius:0 50%% 50%% 0}
-.sy-r s{right:0;border-radius:50%% 0 0 50%%;animation-delay:1.6s}
-.sy-r i{position:absolute;left:4.6rem;top:calc(.7rem + var(--i)*.9rem);padding:.225rem;border-radius:50%%;background:#f0b45f;animation:sy-go 4s calc(var(--i)*.15s) infinite}
-@keyframes sy-lit{40%%{background:#2b3a4f}10%%,25%%{background:#6fa8dc}}
-@keyframes sy-go{0%%,18%%{opacity:0}22%%{opacity:1;transform:none}50%%{opacity:1;transform:translateX(%(g)grem)}58%%,100%%{opacity:0;transform:translateX(%(g)grem)}}
-.sy-s{margin-top:.8rem;font:.72rem var(--mono);color:#f0ece08c;text-align:center}
-@media (prefers-reduced-motion: reduce) {
-  .sy-r b,.sy-r s,.sy-r i{animation:none;opacity:1}
-}''' % {'w': 10 + GAP, 'g': GAP + .1}
-anim_row.write_anim('syn', html=html, css=css)
+d = Svg(400, 170)
+d.path('M20,60 H150 C175,60 185,70 185,90 C185,110 175,120 150,120 H20')        # the end of the first neuron
+d.path('M380,60 H250 C228,60 215,72 215,90 C215,108 228,120 250,120 H380')     # the next one, across the gap
+d.g('s1'); d.arrow(30, 90, 120, 90, 'pt hot mv-flow'); d.text(70, 50, 'impulse', 'hot', size=11); d.end()
+d.g('s2')
+for y in (76, 90, 104):
+    d.g('mv-slide', style='--x:28px;--y:0px'); d.circle(176, y, 4, 'fill cool'); d.end()
+d.text(200, 40, 'neurotransmitter', 'cool', size=11)
+d.end()
+d.g('s3')
+for y in (74, 90, 106): d.path('M216,%g h6' % y, 'pt cool', 'stroke-width:3')
+d.text(300, 50, 'receptor', 'cool', size=11)
+d.end()
+d.g('s4'); d.arrow(280, 90, 370, 90, 'pt hot mv-flow'); d.end()
+d.g('s5'); d.text(200, 156, 'impulse, neurotransmitter, receptor'); d.end()
+anim_row.write_sa('syn', d.svg('An impulse releases neurotransmitter across the gap to the receptors of the next neuron'))

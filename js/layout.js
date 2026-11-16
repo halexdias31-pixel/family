@@ -316,8 +316,6 @@ const CARD_REG = [
   { id: 'staff:flyer', col: 'staff', label: 'Flyer maker', say: 'Print a poster, flyer or QR slips from the Web profile or your tutor card.' },
   { id: 'staff:lego', col: 'staff', label: 'LEGO piece check', say: 'Count a trade-in set\'s pieces from photos, against its parts list.' },
   { id: 'staff:hub', col: 'staff', label: 'Staff hub', re: /^<div class="card staff-top/, only: 'your rate and hours', say: 'Your terms, weekly hours, prices and statement as a tutor.' },
-  { id: 'ppl:tutors:add', col: 'tutors', label: 'Add a tutor', say: 'Make an account for a new tutor.' },
-  { id: 'ppl:tutors:dir', col: 'tutors', label: 'Tutor directory', say: 'Every tutor, with what they teach, where and when.' },
   { id: 'ppl:students:help', col: 'students', label: 'Needs help', say: 'Students who have asked for help with a question.' },
   { id: 'ppl:students:add', col: 'students', label: 'Add a student', say: 'Make an account for a new student.' },
   { id: 'ppl:students:search', col: 'students', label: 'Find by handle', say: 'Find a student by their handle, to add them as your child.' },
@@ -456,7 +454,7 @@ const personOf_ = h => ((/^\s*(?:<!--card:[^>]*-->)?<!--person:([A-Za-z0-9_.-]+)
 /* EACH COLUMN'S OWN BUILDER — the code's cards for whoever is signed in, role gates and all. */
 const CARD_BUILD = {
   family: () => familyPages_(), staff: () => staffPages_(), account: () => studentSetPages_(),
-  tutors: () => peoplePages_('tutors'), students: () => peoplePages_('students'), parents: () => peoplePages_('parents'),
+  students: () => peoplePages_('students'), parents: () => peoplePages_('parents'),
   biz: () => adminPages_(), site: () => sitePages_(),
   web: () => webProfilePages_(), spotlight: () => cardMark_('spot:list', spotlightCards_()), apprentice: () => apprenticePages_(),
 };
@@ -671,7 +669,7 @@ function frontPageOf_(col) {
 }
 /* THE DOOR'S COLUMN OPENS ON ITS THING; every other column as before. */
 function frontHomes_() {
-  const cols = Object.keys(LAYOUT_COL).map(k => LAYOUT_COL[k]).concat(['feed', 'dm']).concat(CARD_COLS);
+  const cols = Object.keys(LAYOUT_COL).map(k => LAYOUT_COL[k]).concat(['feed']).concat(CARD_COLS);
   cols.forEach(c => {
     const was = PAGE_HOME[c];
     PAGE_HOME[c] = () => { const n = frontPageOf_(c); if (n >= 0) return n; try { return was ? was() : 0; } catch (e) { return 0; } };

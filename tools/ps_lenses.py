@@ -1,25 +1,13 @@
 # Two lenses on one school (GCSE Sociology, Education): the functionalist lens (green) sees shared values and a fair
-# race; the Marxist lens (orange) sees class reproduced and obedience taught. One keyframe, the second half a loop
-# behind the first. Writes the `lens` row. Run: python3 tools/ps_lenses.py
+# race; the Marxist lens (coral) sees class reproduced and obedience taught. Writes the `sasoclens` row in the one
+# animation format (16 Nov). Run: python3 tools/ps_lenses.py
 import sys, pathlib; sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent)); import anim_row
+from sa_draw import Svg
 
-T = 8.0
-html = '''<div id="splash-lens" aria-hidden="true">
-    <div class="le-r"><b>school</b><i></i><i class="le-2"></i></div>
-    <div class="le-t"><span>functionalist: shared values, a fair race</span><span class="le-2">Marxist: class reproduced, obedience taught</span></div>
-  </div>'''
-css = '''.le-r{position:relative;display:grid;place-items:center;height:5rem}
-.le-r b{padding:.7rem 1.1rem;border:2px solid #f0ece099;font:700 .8rem var(--mono);color:var(--paper)}
-.le-r i{position:absolute;width:4.6rem;height:4.6rem;border:4px solid #6fd8a0;border-radius:50%%}
-.le-r .le-2{border-color:#e8862c}
-.le-r i,.le-t span{animation:le-on %(t)gs infinite}
-#splash-lens .le-2{animation-delay:-%(h)gs}
-@keyframes le-on{0%%,45%%,100%%{opacity:1}50%%,95%%{opacity:0}}
-.le-t{display:grid;margin-top:.8rem;font:.7rem var(--mono);color:#6fd8a0;text-align:center}
-.le-t span{grid-area:1/1}
-.le-t .le-2{color:#e8862c}
-@media (prefers-reduced-motion: reduce) {
-  .le-r i,.le-t span{animation:none}
-  .le-2{display:none}
-}''' % {'t': T, 'h': T / 2}
-anim_row.write_anim('lens', html=html, css=css)
+d = Svg(400, 200)
+d.path('M160,110 V70 L200,45 L240,70 V110 Z'); d.rect(192, 88, 16, 22); d.text(200, 128, 'school', size=12)
+d.g('s1'); d.circle(90, 80, 34, 'pt cool', 'stroke-width:3'); d.line(114, 104, 140, 128, 'pt cool', 'stroke-width:3'); d.end()
+d.g('s2'); d.text(90, 160, 'functionalist:', 'cool'); d.text(90, 178, 'shared values, a fair race', 'cool', size=11); d.end()
+d.g('s4'); d.circle(310, 80, 34, 'pt hot', 'stroke-width:3'); d.line(286, 104, 260, 128, 'pt hot', 'stroke-width:3'); d.end()
+d.g('s5'); d.text(310, 160, 'Marxist:', 'hot'); d.text(300, 178, 'class reproduced, obedience taught', 'hot', size=10); d.end()
+anim_row.write_sa('lens', d.svg('One school through two lenses: functionalist and Marxist'))
