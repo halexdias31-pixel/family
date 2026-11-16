@@ -357,6 +357,69 @@
    },
    "see": {
     "who": "anyone"
+   },
+   "forms": {
+    "booking": {
+     "ask": "find",
+     "say": "Booking, asked in Find one field a step in this order (owner, 13 Nov); each field is a BOOK_STEPS question (book-steps.js) or the hour grid (days, slots). given: the site answers it (bookPrefill_), still a chip. many: several answers, a tap ticks; need: how many before Next.",
+     "fields": [
+      {
+       "f": "how",
+       "given": true
+      },
+      {
+       "f": "client"
+      },
+      {
+       "f": "joining",
+       "given": true
+      },
+      {
+       "f": "subjects",
+       "many": true,
+       "need": 1
+      },
+      {
+       "f": "level"
+      },
+      {
+       "f": "tutor"
+      },
+      {
+       "f": "loc"
+      },
+      {
+       "f": "hosting"
+      },
+      {
+       "f": "interval",
+       "many": true
+      },
+      {
+       "f": "days",
+       "many": true,
+       "need": 1,
+       "ask": "Which day?"
+      },
+      {
+       "f": "slots",
+       "many": true,
+       "need": 1,
+       "ask": "What time? Each tag is one hour."
+      },
+      {
+       "f": "avail",
+       "many": true
+      },
+      {
+       "f": "kids",
+       "many": true
+      },
+      {
+       "f": "n"
+      }
+     ]
+    }
    }
   },
   "question": {
