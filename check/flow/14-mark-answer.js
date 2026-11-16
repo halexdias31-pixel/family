@@ -400,7 +400,7 @@ check('the pad\'s symbols face types ≈ → … ∛ and Greek letters into the 
   if (bottom.slice(-6).join('|') !== '!123|!abc|!mic| |!back|!done') bad.push('the symbols\' bottom row is ' + bottom.join(' ') + ', wanted 123 abc mic space ⌫ ✓ (562)');
   press('≈'); press(' '); press('!123'); ['2', '.', '6'].forEach(press);
   if (inp.value !== 'x ≈ 2.6') bad.push('x, a space, ≈ from the symbols, a space, 2.6 gave ' + JSON.stringify(inp.value));
-  press('!done');
+  press('!done'); sendRow_(w, inp);
   const mark = h.querySelector('.qp-mark');
   if (!mark || !mark.classList.contains('is-right')) bad.push('"x ≈ 2.6" typed on the pad was not marked right against "x ≈ 2.6": ' + (mark ? mark.textContent.trim().slice(0, 120) : 'no mark'));
   h.remove();
@@ -433,7 +433,7 @@ check('the power key is on the maths face and the letters, types x^(n+1) with it
     A['kp-key'](key_('!123'));
     keys.forEach(v => { const b = key_(v); if (b) A['kp-key'](b); else bad.push('no key ' + JSON.stringify(v) + ' on the ' + pad.getAttribute('data-layer') + ' face'); });
     if (inp.value !== want) bad.push('typing ' + keys.join(' ') + ' gave ' + JSON.stringify(inp.value) + ', wanted ' + JSON.stringify(want));
-    A['kp-key'](key_('!done'));
+    A['kp-key'](key_('!done')); sendRow_(w, inp);
     const mark = h.querySelector('.qp-mark');
     if (!mark || !mark.classList.contains('is-right')) bad.push(JSON.stringify(inp.value) + ' typed with the power key was not marked right against ' + JSON.stringify(accept) + ': ' + (mark ? mark.textContent.trim().slice(0, 120) : 'no mark'));
     h.remove();
@@ -500,9 +500,10 @@ check('the pad\'s letters type, save and mark a worded answer; 123 is the maths 
   if (kept !== inp.value) bad.push('the letters\' answer was not saved under ansKey_ (got ' + JSON.stringify(kept) + ')');
   if (!/Egestion/.test(card.querySelector('.kp-show').textContent)) bad.push('the drawing does not show the letters typed: ' + card.querySelector('.kp-show').innerHTML.slice(0, 120));
   press('!done');
+  if (!pad.hidden) bad.push('done left the pad up');
+  sendRow_(w, inp);
   const mark = card.querySelector('.qp-mark');
-  if (!mark || !mark.classList.contains('is-right')) bad.push('✓ on "Egestion" against egestion was not marked right: ' + (mark ? mark.className + ' / ' + mark.textContent.trim() : 'no mark row'));
-  if (!pad.hidden) bad.push('✓ left the pad up');
+  if (!mark || !mark.classList.contains('is-right')) bad.push('Check on "Egestion" against egestion was not marked right: ' + (mark ? mark.className + ' / ' + mark.textContent.trim() : 'no mark row'));
   /* `123` AND BACK, ⇧ AND CAPS LOCK, ⌫ IN PROSE. */
   inp.focus();
   press('!123');
@@ -611,7 +612,7 @@ check('the pad\'s letters type, save and mark a worded answer; 123 is the maths 
   const ii = draw(ineq).querySelector('.kp-in');
   ii.focus();
   ['<', '≤', '≥', '>', ':', '±'].forEach(v => { if (!key(v)) bad.push('an inequality\'s box has no ' + v + ' key'); });
-  press('x'); press('<'); press('3'); press('!done');
+  press('x'); press('<'); press('3'); press('!done'); sendRow_(w, ii);
   if (ii.value !== 'x<3' || !ii.closest('.qcard').querySelector('.qp-mark.is-right')) bad.push('x < 3 typed on the signs row gave ' + JSON.stringify(ii.value) + ' and was not marked right');
   /* AND ONLY THERE: with no scheme, the answer the worked answer LEADS with decides -- never its prose, which
      names wrong forms ("eg 5 : 9") and gave 411 more boxes a sixth row, one of them lifted off the screen. */
@@ -629,7 +630,7 @@ check('the pad\'s letters type, save and mark a worded answer; 123 is the maths 
   if (pad.getAttribute('data-layer') !== 'maths' || !key('!abc')) bad.push('a calculation whose scheme is "x < 4 or x > 5" did not open on the maths layer with abc on it');
   ['<', '≤', '≥', '>', ':', '±'].forEach(v => { if (!key(v)) bad.push('the maths layer of a box whose scheme is "x < 4 or x > 5" has no ' + v + ' key'); });
   ['x', '<', '4', ' '].forEach(press); press('!abc'); ['o', 'r', ' '].forEach(press); press('!123'); ['x', '>', '5'].forEach(press);
-  press('!done');
+  press('!done'); sendRow_(w, wb);
   if (wb.value !== 'x<4 or x>5' || !wb.closest('.qcard').querySelector('.qp-mark.is-right')) bad.push('"x<4 or x>5" typed on the pad into a worded box gave ' + JSON.stringify(wb.value) + ' and was not marked right');
   try { w.localStorage.removeItem(w.__t.ansKey(wi)); } catch (e) {}
   /* A WORDED ANSWER FROM ANOTHER DEVICE IS DRAWN AS WORDS: `ansRefresh_` through the pad's own drawing. */

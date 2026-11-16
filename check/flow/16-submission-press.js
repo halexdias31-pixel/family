@@ -610,7 +610,7 @@ check('submission: a press carries the question’s own words — its stem above
 });
 
 /* ---------- THE KEYPAD'S GOLD SEND IS THE BOX'S OWN SEND (review of 9 Oct, the blocker) § */
-check('submission: the keypad’s gold Send and a laptop’s Enter send the box’s own Send — no scheme, a worksheet box, a Check — and an essay’s “done” sends nothing', async () => {
+check('submission: the row’s one submit tile sends the box its own way — no scheme, a worksheet box, a Check — and the pad’s “done” and a laptop’s Enter send nothing (owner, 16 Nov: one submit)', async () => {
   const rows = [];
   const { w, sent } = boot({ payload: Object.assign(payload(), { features: SUB_FEATURES }), reply: ansBackend_({}, subBackend_(rows)) });
   await wait(300);
@@ -630,7 +630,7 @@ check('submission: the keypad’s gold Send and a laptop’s Enter send the box�
   const pad = () => d.getElementById('kp');
   const press = v => { const b = pad() && pad().querySelector('.kp-key[data-v="' + v + '"]'); if (b) A['kp-key'](b); else bad.push('no key ' + JSON.stringify(v) + ' on the pad'); };
   const kd = (el, k, o) => el.dispatchEvent(new w.KeyboardEvent('keydown', Object.assign({ key: k, bubbles: true, cancelable: true }, o || {})));
-  /* A MATHS BOX WITH NO EXACT KEY (owner, 16 Nov): its tile is Save, and the gold key saves it, unmarked */
+  /* A MATHS BOX WITH NO EXACT KEY (owner, 16 Nov): its tile is Save, and Save saves it, unmarked; the pad's done does not */
   const fc = subDraw_(w, FREE);
   const fi = fc.querySelector('.kp-in');
   if (!fi || !fc.querySelector('.qt-row [data-do="qp-send"]') || fc.querySelector('[data-do="qp-ai"]')) return bad.concat(['the maths box with no exact key drew no pad box, no Save, or a Mark']);
@@ -638,9 +638,12 @@ check('submission: the keypad’s gold Send and a laptop’s Enter send the box�
   press('4'); press('2');
   press('!done');
   await wait(60);
+  if (items('q:Q-KP-FREE').length) bad.push('the pad’s “done” saved the answer — the Save tile is the one submit');
+  if (pad() && !pad().hidden) bad.push('“done” left the pad up');
+  sendRow_(w, fi);
+  await wait(60);
   const fr = items('q:Q-KP-FREE');
-  if (fr.length !== 1 || fr[0].verdict !== 'sent' || fr[0].answer !== '42') bad.push('the gold key on a maths box with no exact key did not save it once, unmarked: ' + JSON.stringify(fr));
-  if (pad() && !pad().hidden) bad.push('the gold key left the pad up');
+  if (fr.length !== 1 || fr[0].verdict !== 'sent' || fr[0].answer !== '42') bad.push('Save on a maths box with no exact key did not save it once, unmarked: ' + JSON.stringify(fr));
   /* TWO WORKSHEET BOXES SIDE BY SIDE: the key sends the box it is typing in, and only that one. */
   const sh = d.createElement('div');
   d.body.appendChild(sh);
@@ -650,21 +653,21 @@ check('submission: the keypad’s gold Send and a laptop’s Enter send the box�
   else {
     dv.focus();
     ['t', 'i', 'm', 'e'].forEach(press);
-    press('!done');
+    press('!done'); sendRow_(w, dv);
     await wait(60);
     const p = items('pr:PR-KP#dv');
-    if (p.length !== 1 || p[0].answer !== 'Time' || p[0].verdict !== 'sent') bad.push('the gold key on a worksheet box sent ' + JSON.stringify(p) + ' — wanted one submission of its own box, Time, sent');
-    if (items('pr:PR-KP#iv').length) bad.push('the gold key in one worksheet box sent the box beside it');
+    if (p.length !== 1 || p[0].answer !== 'Time' || p[0].verdict !== 'sent') bad.push('Send on a worksheet box sent ' + JSON.stringify(p) + ' — wanted one submission of its own box, Time, sent');
+    if (items('pr:PR-KP#iv').length) bad.push('Send in one worksheet box sent the box beside it');
     if ((dv.closest('.qp-mark').querySelector('.qp-verdict') || {}).textContent !== 'Sent') bad.push('the worksheet box’s own line does not say Sent');
   }
   /* A BOX WITH A SCHEME: Check, as before. */
   const cc = subDraw_(w, CHK);
   const ci = cc.querySelector('.kp-in');
   ci.focus();
-  press('1'); press('5'); press('!done');
+  press('1'); press('5'); press('!done'); sendRow_(w, ci);
   await wait(60);
   const c1 = items('q:Q-KP-CHK');
-  if (c1.length !== 1 || c1[0].verdict !== 'right' || (cc.querySelector('.qp-verdict') || {}).textContent !== 'Correct') bad.push('the gold key on a box with a scheme did not Check it: ' + JSON.stringify(c1));
+  if (c1.length !== 1 || c1[0].verdict !== 'right' || (cc.querySelector('.qp-verdict') || {}).textContent !== 'Correct') bad.push('Check on a box with a scheme did not mark it: ' + JSON.stringify(c1));
   /* AN ESSAY: its key says "done", and neither it nor Ctrl+Enter sends anything — its Send is a tile. */
   const eh = d.createElement('div');
   d.body.appendChild(eh);

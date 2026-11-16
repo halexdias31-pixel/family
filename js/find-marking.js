@@ -856,13 +856,25 @@ function markTypo_(typed, accept, opt) {
     /* cheap first: a way of a very different length cannot be a near miss */
     if (Math.abs(ways[k].length - String(typed).trim().length) > 2 * tw.length + 2) continue;
     const ww = markTypoWords_(ways[k], ways[k]);
-    if (!ww || ww.length !== tw.length) continue;
+    if (!ww) continue;
+    /* HOW THE WORDS ARE SPLIT IS NOT THE ANSWER: "non renewable", "nonrenewable" and "non-renewable" are one word, so are
+       "gravitationalpotential" and "gravitational potential"; the joined letters take the same typo rule and the same rivals. */
+    if (ww.length !== tw.length || tw.join(' ') !== ww.join(' ')) {
+      const tj = tw.join('').replace(/-/g, ''), wj = ww.join('').replace(/-/g, '');
+      const cap = MARK_TYPO_OF(wj.length);
+      if (tj === wj) return markNorm_(ways[k]);
+      if (ww.length !== tw.length) {
+        if (cap && tj[0] === wj[0] && markEdits_(tj, wj, cap) <= cap && !rivals.some(r => r.replace(/-/g, '') !== wj && markEdits_(tj, r.replace(/-/g, ''), MARK_TYPO_OF(r.length)) <= MARK_TYPO_OF(r.length))) return markNorm_(ways[k]);
+        continue;
+      }
+    }
     let near = false;
     const ok = ww.every((w, i) => {
       const t = tw[i];
       if (t === w) return true;
       const cap = MARK_TYPO_OF(w.length);
-      if (!cap || markEdits_(t, w, cap) > cap) return false;
+      /* A SLIP KEEPS THE FIRST LETTER: increases/decreases, efficient/inefficient, elastic/inelastic are other words, not typos. */
+      if (!cap || t[0] !== w[0] || markEdits_(t, w, cap) > cap) return false;
       /* a near miss as near to another answer is that answer, typed: wrong */
       if (rivals.some(r => r !== w && markEdits_(t, r, MARK_TYPO_OF(r.length)) <= MARK_TYPO_OF(r.length))) return false;
       near = true;

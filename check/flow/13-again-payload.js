@@ -1004,7 +1004,7 @@ check('a fraction typed on the maths keypad is drawn stacked, saved, and marked 
   const key = v => pad.querySelector('.kp-key[data-v="' + v + '"]');
   const WANT = { '0': 'zero', '9': 'nine', '.': 'point', '-': 'minus', '×': 'times', '÷': 'divide',
     '!frac': 'fraction', '!pow': 'power', '!sqrt': 'square root', 'π': 'pi', '(': 'open bracket',
-    ')': 'close bracket', 'x': 'the letter x', '!back': 'backspace', '!done': 'the ✓ submit' };
+    ')': 'close bracket', 'x': 'the letter x', '!back': 'backspace', '!done': 'done' };
   Object.keys(WANT).forEach(v => { if (!key(v)) bad.push('the keypad has no ' + WANT[v] + ' key'); });
   /* 44px IS THE STYLESHEET'S, MEASURED BY check/ui.js IN A REAL BROWSER; jsdom lays nothing out. What
      this can see is that every key is a button with a handler, and that nothing on the pad would
@@ -1013,9 +1013,9 @@ check('a fraction typed on the maths keypad is drawn stacked, saved, and marked 
     if (b.tagName !== 'BUTTON' || b.getAttribute('type') !== 'button') bad.push('a key is not a <button type="button">: ' + b.outerHTML.slice(0, 60));
   });
   /* ⌫ IS THE RED KEY, with a drawn mark (*"especially backspace, which i thing should be red"*), and ✓
-     wears the Send tile's paper aeroplane -- one mark for "mark it" on the pad and beside the box. */
+     reads `done`: the question's Check tile is the one submit (owner, 16 Nov), so the pad carries no send mark. */
   if (key('!back') && (!key('!back').classList.contains('kp-del') || !key('!back').querySelector('svg.kp-del-i'))) bad.push('⌫ is not the red key (`kp-del`) with its drawn mark');
-  if (key('!done') && !key('!done').querySelector('.tile-i-send')) bad.push('✓ does not carry the send mark the Send tile has');
+  if (key('!done') && key('!done').querySelector('.tile-i-send')) bad.push('done wears the send mark — a second submit beside the Check tile');
   const press = v => { const b = key(v); if (b) A['kp-key'](b); else bad.push('no key ' + v + ' to press'); };
   press('!frac');
   const show = card.querySelector('.kp-show');
@@ -1030,10 +1030,12 @@ check('a fraction typed on the maths keypad is drawn stacked, saved, and marked 
   try { kept = w.localStorage.getItem(w.__t.ansKey(x)); } catch (e) {}
   if (kept !== '(3)/(4)') bad.push('the keypad’s answer was not saved under ansKey_ (got ' + JSON.stringify(kept) + ') — it has to go through the same input listener a typed one does');
   press('!done');
+  if (!pad.hidden) bad.push('done left the keypad up');
   const mark = card.querySelector('.qp-mark');
-  if (!mark || !mark.classList.contains('is-right')) bad.push('✓ on (3)/(4) against 0.75 did not mark it right: ' + (mark ? mark.className + ' / ' + mark.textContent.trim() : 'no mark row'));
-  if (!pad.hidden) bad.push('✓ left the keypad up');
-  /* ⌫ TAKES AN EMPTY STRUCTURE AWAY WHOLE, and leaves a filled one alone. */
+  if (mark && mark.classList.contains('is-right')) bad.push('done marked the answer — the Check tile is the one submit');
+  sendRow_(w, inp);
+  if (!mark || !mark.classList.contains('is-right')) bad.push('Check on (3)/(4) against 0.75 did not mark it right: ' + (mark ? mark.className + ' / ' + mark.textContent.trim() : 'no mark row'));
+    /* ⌫ TAKES AN EMPTY STRUCTURE AWAY WHOLE, and leaves a filled one alone. */
   const y = Object.assign({}, base, { key: 'q-kp-back', accept: 'x^2', row: Object.assign({}, base.row, { row_id: 'Q-KP-5' }) });
   try { w.localStorage.removeItem(w.__t.ansKey(y)); } catch (e) {}
   const c2 = draw(y);
@@ -1068,7 +1070,7 @@ check('a fraction typed on the maths keypad is drawn stacked, saved, and marked 
     if (i2.value) bad.push('thirty ⌫ from "' + start + '" did not empty the box: ' + seen.slice(-4).join(' → '));
   }
   setTo('x');
-  press('!pow'); press('2'); press('!done');
+  press('!pow'); press('2'); press('!done'); sendRow_(w, i2);
   if (i2.value !== 'x^(2)' || !c2.querySelector('.qp-mark.is-right')) bad.push('x^(2) against x^2 was not marked right: ' + i2.value);
   /* AND A WORDED ANSWER IS WORDS, ON THE PAD'S LETTERS -- it was the phone's own keyboard until the owner, 8 Oct: § */
   const wd = draw(Object.assign({}, base, { key: 'q-kp-words', answerType: 'explain', accept: '',
@@ -1119,3 +1121,5 @@ check('the payload kept on the device is this account\'s alone: no token in it, 
   }
   return bad;
 });
+/* THE ROW'S ONE SUBMIT, pressed as a finger presses it: the tile `qRowOf_` finds beside the box (owner, 16 Nov: one submit, not the pad's key too). */
+function sendRow_(w, el) { const card = el.closest('.qcard'); const row = (card && card.querySelector(':scope > .kc-act')) || el.closest('.qp-mark'); const t = row && row.querySelector('.tile.is-submit[data-do]:not([disabled])'); if (t) w.__t.ACTIONS[t.getAttribute('data-do')](t); return t; }

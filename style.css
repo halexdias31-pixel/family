@@ -4671,10 +4671,8 @@ svg.meas .meas-body, svg.meas .meas-turn, svg.meas .meas-tick, svg.meas .meas-nu
 .kp-key.kp-op { background: var(--kp-op-face); color: var(--kp-op-ink); }
 .kp-key.kp-mode { background: var(--kp-mode-face); color: var(--kp-mode-ink); font-size: var(--fs-body); }
 .kp-key.kp-del { background: var(--kp-del-face); color: var(--kp-del-ink); }
-.kp-key.kp-done { background: var(--gold); color: var(--bg); }
+.kp-key.kp-done { background: var(--kp-mode-face); color: var(--kp-mode-ink); font: 700 var(--fs-body)/1 var(--font); }
 .kp-del-i { display: inline-block; width: 26px; height: 26px; vertical-align: middle; }
-/* ✓ WEARS SEND'S MARK (keypad.js), drawn a little heavier than a tile's so it holds up on a key. */
-.kp-done .tile-i { width: 24px; height: 24px; stroke-width: 1.8; }
 /* THE FRACTION KEY IS A FRACTION: two boxes and a line, drawn, not a glyph that varies by font. */
 .kp-fr { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; vertical-align: middle; }
 .kp-fr i { display: block; width: 9px; height: 8px; border: 1px solid currentColor; border-radius: var(--r-ui); }

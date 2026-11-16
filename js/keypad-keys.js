@@ -61,7 +61,7 @@ const KP_KEYS = [
       stroke: 'currentColor', 'stroke-width': '2.2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' },
       kids: [{ el: 'path', a: { d: 'M9 5h11a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H9l-6-7z' } }, { el: 'path', a: { d: 'm12.5 9.5 5 5M17.5 9.5l-5 5' } }] } } },
   /* ✓ IS SEND: the same paper aeroplane as the Send tile beside the box (`ansBox_`), because it is the same act -- one mark for "mark it" wherever the child is § */
-  { v: '!done', a: 'done', c: ' kp-done', icon: 'send' },
+  { v: '!done', a: 'done, put the keypad away', c: ' kp-done', t: 'done' },
 ];
 /* THE SIGNS ROW, on every box, in the structures' amber because they are the keys that make an answer
    mathematical. `t` is the face as text (escaped by the one maker); a face that is a drawing is a block. */
@@ -387,17 +387,15 @@ function kpLayout_(inp) {
   kpShiftPaint_();
   return pad;
 }
-/* ✓ READS "next" IN A BOX WITH ANOTHER AFTER IT (one box per value, 362), and is Send again on the last. */
+/* DONE READS "next" IN A BOX WITH ANOTHER AFTER IT (one box per value, 362), and "done" on the last. It never sends: the question's Check tile is the one submit (owner, 16 Nov). */
 function kpNextPaint_(pad, inp) {
   const d = pad.querySelector('.kp-key.kp-done:not(.kp-done-k)');
   if (!d) return;
   const nx = !!(inp && typeof multiNext_ === 'function' && multiNext_(inp));
   if (d.classList.contains('is-next') === nx) return;
   d.classList.toggle('is-next', nx);
-  d.setAttribute('aria-label', nx ? 'next box' : 'done');
-  /* THE SEND MARK FROM A KEY DRAWN THE ONE WAY (`kpKey_`), so the pad keeps a single maker for its faces. */
-  const t = document.createElement('i'); t.innerHTML = kpKey_({ icon: 'send' });
-  d.innerHTML = nx ? 'next' : t.firstElementChild.innerHTML;
+  d.setAttribute('aria-label', nx ? 'next box' : 'done, put the keypad away');
+  d.textContent = nx ? 'next' : 'done';
 }
 /* `abc` AND `123`: the same pad turned over, the box keeping its focus and its caret. § */
 function kpLayer_(name, inp) {
