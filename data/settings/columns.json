@@ -42,14 +42,6 @@
   "notes": "one clip per page, opening on the first reel; before it, one swipe back, the Videos and One more thing widgets and an admin's \"+ Add a reel\" (docs/history/414)."
  },
  {
-  "screen": "booking",
-  "label": "Book",
-  "icon": "📅",
-  "active": "FALSE",
-  "sort_order": 9,
-  "notes": "off (owner, 7 Nov 2026): booking is Find › Booking, a Book tile over the booking cards; go('booking') lands there (its `moved`)."
- },
- {
   "screen": "shop",
   "label": "Shop",
   "icon": "🛒",

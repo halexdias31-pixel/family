@@ -10311,12 +10311,7 @@ const BUNDLE_MIN = 2;
 /* THE FRONT MENU'S ANSWER, read through `DOOR_FIELD` (find-finder.js) — the one name every writer and reader of it uses (1040 friction). */
 const forIs_ = want => (STUFF.filters || [])
   .some(f => f.field === DOOR_FIELD && norm(f.value) === want);
-function bookingPages_(o) {
-  /* ---------- THE COLUMN ASKS FOR IT DIRECTLY § */
-  if (o && o.column) {
-    if (typeof USER !== 'undefined' && USER && typeof awaiting_ === 'function' && awaiting_()) return [loading_()];
-    return (typeof bookBlocks === 'function' ? bookBlocks() : []).filter(Boolean);
-  }
+function bookingPages_() {
   if (!bookFindOn_()) return [];
   /* ---------- NOT BEFORE THE PAYLOAD § */
   if (typeof USER !== 'undefined' && USER && typeof awaiting_ === 'function' && awaiting_()) return [loading_()];
@@ -17986,24 +17981,6 @@ tierGuardWidgets_(WIDGETS);
    one: the open classes are a dropdown on the booking form, not a kind in Find. */
 
 
-/* ---------- THE BOOKING PAGES ARE THE FORM, AND ONLY THE FORM § */
-function bookBlocks() {
-  if (!USER) {
-    return [renderCard({ kind: 'bookform', look: 'book-signin', name: 'Booking', tags: [{ text: 'Booking' }],
-      body: [{ type: 'text', look: 'note', text: text_('sign-in-to-book-your-account') }] })];
-  }
-  /* ---------- THE FORM, THEN WHAT IS ALREADY BOOKED, THEN WHAT IS FINISHED § */
-  /* ---------- THE FORM, AND ONLY THE FORM, AGAIN § */
-  /* THE MONEY BLOCK THAT STOOD UNDER THE FORM IS GONE — an admin's three figures are rows of the
-     paper now, see `formMoney_`. It never drew here anyway: see the note where `moneyBlock` was. */
-  /* BELOW THE FORM, NOT AS A SECOND PAGE. Each element of this array is a page somebody swipes to,
-     and the booking they just made is not somewhere else — it is the answer to the form they are
-     looking at. Same string. */
-  /* THE PAGE IS ALWAYS THE FORM. § */
-  bookPrefill_();
-  return [bookerCard() + askedBlock_()].concat(myJobPages_()).filter(Boolean);
-}
-
 /* ---------- YOUR SESSIONS CAME BACK TO THIS COLUMN, AND THE NOTE ABOVE IS WHY IT HAD TO § */
 /* ---------- THE ORDER IS ONE FUNCTION, BECAUSE TWO THINGS NEED TO AGREE ABOUT IT § */
 let OPEN_JOB = '';
@@ -18156,19 +18133,8 @@ function mondayOf_(when) {
 /* ---------- REPAINTING BOOK WITHOUT LOSING THE PLACE § */
 /* ---------- REPAINTING THE BOOKER, WHEREVER IT IS § */
 function paintBook_() {
-  /* ---------- WHICHEVER SCREEN THE FORM IS ACTUALLY ON § */
-  const host = $('bookr') && $('bookr').closest('.screen');
-  const id = host && String(host.id).indexOf('s-') === 0 ? host.id.slice(2) : '';
-
-  /* THE FUNNEL KEEPS ITS PLACE, which is what `paintStuff(true)` is for and what a plain `paint`
-     would throw away — the strip of result pages and which one you are on. */
-  if (id === 'stuff') { if (typeof paintStuff === 'function') paintStuff(true); return; }
-
-  /* ANY OTHER HOST IS AN ORDINARY SCREEN. `redrawBooker_` puts the scroll back either way. */
-  if (id && typeof paint === 'function') { paint(id); return; }
-
-  /* NO SUMMARY ON SCREEN YET: the answer was a Find step (find-account.js), so Find draws its next menu. */
-  if (typeof bookFindPaint_ === 'function' && typeof bookFindOn_ === 'function' && inFinder_(FINDERS.stuff, bookFindOn_)) finderEach_(() => paintStuff(true));
+  /* ONE HOST NOW: Find › Booking (the column moved, 16 Nov); `paintStuff(true)` keeps the funnel's place. */
+  if (typeof paintStuff === 'function') finderEach_(() => paintStuff(true));
 }
 
 /* `bookPages` WAS HERE — one pane per block for the Book column. `bookingPages_` in find.js does the
@@ -19880,8 +19846,7 @@ function bookFocusBack_(k) {
   if (el && !el.disabled && document.activeElement !== el) { try { el.focus({ preventScroll: true }); } catch (e) { /* focus is a nicety; an old browser without the option still works */ } }
 }
 
-/* BOOKING, AS A COLUMN `bookingPages_` ALREADY BUILDS THIS and has done since the form was folded into the funnel — it answers `What for · Booking`, and it § */
-screen('booking', () => pages('booking', bookingPages_({ column: true })));
+/* THE BOOKING COLUMN WAS HERE; it is Find › Booking (find-only, 16 Nov) and go('booking') opens the branch. */
 
 ;
 /* ==== js/receipt.js ==== */
@@ -20354,12 +20319,11 @@ function openJob_(id, quiet) {
   if (!USER) { if (!quiet) { toast(text_('sign-in-to-open-a-session')); go('account'); } return false; }
 
   OPEN_JOB = want;
-  /* ---------- AND THE COLUMN HAS TO BE TOLD IT IS OUT OF DATE § */
-  markStale_('booking');
-  /* ---------- THE PAGE IS SET BEFORE THE SCREEN IS REACHED, NOT AFTER § */
-  const n = typeof jobPageAt_ === 'function' ? jobPageAt_(want) : -1;
-  if (n >= 0) PAGE.booking = n;
+  /* FIND › BOOKING (the column moved, 16 Nov): OPEN_JOB puts it first among the sessions; Find turns to its page. */
   go('booking');
+  const host = $('s-stuff'), ref = new RegExp('\\b' + want.replace(/[^\w-]/g, '') + '\\b');
+  const at = host ? [...host.querySelectorAll(':scope > .page')].findIndex(p => ref.test((p.querySelector('.rc-ref') || {}).textContent || '')) : -1;
+  if (at >= 0 && typeof goPage === 'function') goPage('stuff', at, true);
   return true;
 }
 

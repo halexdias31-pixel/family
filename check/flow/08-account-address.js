@@ -919,7 +919,7 @@ check('a fake Stripe return finalizes the payment once, says you are booked and 
   if (/paid=|ref=/.test(q)) bad.push('the payment is still in the address (' + q + '), so a refresh asks again');
   if (!/post=P9/.test(q)) bad.push('taking the payment out also took the rest of the address (' + q + ')');
   if (!/Payment received — you're booked/.test(toastOf_(d))) bad.push('the toast says ' + JSON.stringify(toastOf_(d)) + ', not "Payment received — you\'re booked"');
-  if (t.openJob() !== 'J-PAID' || t.screenAt() !== 'booking') bad.push('the receipt opened is ' + JSON.stringify(t.openJob()) + ' on ' + t.screenAt() + ', not J-PAID on booking');
+  if (t.openJob() !== 'J-PAID' || t.screenAt() !== 'stuff') bad.push('the receipt opened is ' + JSON.stringify(t.openJob()) + ' on ' + t.screenAt() + ', not J-PAID on Find › Booking');
   /* A SIGN-IN AFTER IT DOES NOT ASK AGAIN: the kept ref went with the answer. */
   w.eval('afterSignIn_({})');
   await wait(300);

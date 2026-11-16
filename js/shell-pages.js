@@ -324,23 +324,6 @@ const PAGER = {
      is always page 0, and with nothing for sale the shop says so in a page of its own. */
   shop: () => (typeof shopCards_ === 'function' ? shopCards_().length : 1),
 
-  /* ---------- AND `booking` HAD NO ENTRY AT ALL, WHICH IS THE FAULT THE NOTE ABOVE DESCRIBES § */
-  booking: () => {
-    if (typeof bookingPages_ !== 'function') return [];
-    let n = 0;
-    try { n = bookingPages_({ column: true }).length; } catch (e) { return []; }
-    if (!n) return [];
-    const jobs = typeof myJobsOrdered_ === 'function' ? myJobsOrdered_() : [];
-    return Array.from({ length: n }, (_, i) => {
-      if (i === 0) return typeof USER !== 'undefined' && USER ? 'Book' : 'Sign in';
-      const j = jobs[i - 1];
-      /* PAST THE SESSIONS IS THE BASKET — `bookingPages_` appends it in column mode only. Derived
-         from running off the end of the job list rather than from a second count of it. */
-      if (!j) return 'Basket';
-      return [j.subject, j.weekday].filter(Boolean).join(' \u00b7 ') || 'Session';
-    });
-  },
-
   /* ---------- AND `spotPages()` WENT FROM HERE, BECAUSE THE FEED STOPPED DRAWING IT § */
   /* COUNTED FROM `feedColumn_`, the list `screen('feed')` draws, which now holds the camera as well — one page directly above the newest post. § */
   feed:   () => (typeof window.feedColumn_ === 'function' ? [].concat(window.feedColumn_()) : ['']).map(() => ''),
@@ -395,7 +378,7 @@ function applyBrandIcon_() {
    the long note on `PAGER`. Every screen that pages needs an entry here or its position is not
    remembered between visits. */
 /* `booking` AND `dm` WERE MISSING, and this table's own sentence above is the rule they broke: § */
-const PAGE = { feed: 0, stuff: 0, reel: 0, booking: 0, dm: 0, make: 0,
+const PAGE = { feed: 0, stuff: 0, reel: 0, dm: 0, make: 0,
                saved: 0, tutors: 0, students: 0, parents: 0, spotlight: 0, shop: 0, res: 0 };
 
 /* A COLUMN MAY HOLD FEWER PAGE ELEMENTS THAN IT HAS PAGES. § */
