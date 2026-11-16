@@ -1055,28 +1055,6 @@
    "tabs": [],
    "effects": []
   },
-  "markLong": {
-   "fate": "special",
-   "into": "",
-   "why": "marking by Claude Haiku: each press may cost an API call to Anthropic and writes a submission, so it stays its own signed-in door",
-   "access": "self",
-   "childRefused": false,
-   "handler": "postMarkLong_",
-   "file": "backend/post-learning.gs",
-   "callers": [
-    "js/find-cells.js"
-   ],
-   "fallbacks": [],
-   "tabs": [
-    "config",
-    "submissions"
-   ],
-   "effects": [
-    "drive",
-    "outside",
-    "writes"
-   ]
-  },
   "markWorking": {
    "fate": "special",
    "into": "",

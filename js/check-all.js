@@ -172,7 +172,6 @@ const SUITE = [
   { file: 'check-work-file.js', what: 'work on file: an upload is stored in Drive, the list shows it, another student cannot see, open, add to or delete it' },
   { file: 'check-faces.js', what: 'the answer box\'s faces: camera and graph swapped into the box by one ansFace_, nothing over the page, the graph marked by rule' },
   { file: 'check-working.js', what: 'a photo of the working (501): saved, marked by nobody and no AI, read back only by those who may' },
-  { file: 'check-marklong.js', what: 'a long answer marked by Claude Haiku against the scheme: save-only on any bad reply, cached, no personal data, keyless parts only' },
   /* A FACE AND A POLL VOTE ARE SET, NOT TOGGLED. § */
   { file: 'check-choice.js', what: 'a reaction and a vote set to what the phone asked, once, under the lock' },
   /* EVERY ANSWER SENT IS AN EVENT. § */

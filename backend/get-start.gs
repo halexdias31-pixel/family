@@ -263,8 +263,6 @@ function payloadFeatures_() {
                /* The site checks this before offering the room form, so an older deployment says so
                   rather than answering "that action is not recognised". */
                'setRoom',
-               /* The site checks this before its one Save tile marks a long answer with Claude Haiku (owner, 16 Nov). */
-               'markLong',
                /* The site checks this before it offers the ＋ to somebody who is not an admin —
                   so an old deployment says so rather than swallowing their photograph. */
                'approvePost',

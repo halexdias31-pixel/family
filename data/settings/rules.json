@@ -428,10 +428,9 @@
   {
    "id": "1.33",
    "principle": 1,
-   "text": "Marking is mechanical first; Claude Haiku against the official mark scheme only where no mechanical key exists (owner, 16 Nov): the one Save tile on a keyless part asks markLong when the deploy offers it, shows marks/max, level, two strengths and two next steps, and on any bad reply only saves. No second button, no person marks.",
+   "text": "Marking is mechanical only (owner, 16 Nov: \"NO AI\"): an answer is marked by its key (accepted answers, options, cells, or key points, and a long answer broken into its paragraphs, each marked by points); a part with no key saves without a mark. No AI and no person marks.",
    "checks": [
     "working",
-    "marklong",
     "answerable",
     "qtypes",
     "assistant"
