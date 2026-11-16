@@ -1120,7 +1120,7 @@ let peopleRules = 0;
     /* MADE: a template handle, joined today, a fresh PIN that signs them in, their parent linked. */
     const made = as(ad, { action: 'personSave', firstName: 'Nia', lastName: 'Newby', roles: ['student'], dob: '2015-03-02', parentIds: ['P-PA'] });
     const id = made.person && made.person.personId;
-    rule(made.success && id && /^NiaN\d{4}$/.test(made.handle) && /^\d{6}$/.test(made.pin), 'adding a person said ' + JSON.stringify(made));
+    rule(made.success && id && /^NiaN\d{4}$/.test(made.handle) && /^\d{4}$/.test(made.pin), 'adding a person said ' + JSON.stringify(made));
     if (id) {
       const row = f.row(id);
       rule(row.role === 'student' && row.handle === made.handle && String(row.joined_on) !== '', 'the new row is not a student with the handle it was given and a day joined');
