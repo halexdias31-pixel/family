@@ -30,8 +30,8 @@ function colour(fields, edges, n) {
   const css = fs.readFileSync(path.join(ROOT, 'style.css'), 'utf8');
   const N = [...css.matchAll(/--hue-(\d+):\s*#[0-9a-f]{6}/gi)].length;
   if (!N) { console.error('facet-hues: no --hue-N palette on :root in style.css'); process.exit(2); }
-  const { app, tick } = require('../check/jsdom-app.js');
-  const A = await app(JSON.parse(fs.readFileSync(path.join(ROOT, 'check', 'fixture.json'), 'utf8')));
+  const { app, tick } = require('./lib/jsdom-app.js');
+  const A = await app(JSON.parse(fs.readFileSync(path.join(ROOT, 'tools', 'lib', 'payload.json'), 'utf8')));
   const ev = s => A.w.__ev(s);
   const t0 = Date.now();
   ev('inFinder_(FINDERS.stuff, () => stuffItems())');

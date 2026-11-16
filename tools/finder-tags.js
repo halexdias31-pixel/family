@@ -16,7 +16,7 @@ const inputsHash = () => {
   const crypto = require('crypto'), h = crypto.createHash('sha256');
   const walk = d => fs.readdirSync(path.join(ROOT, d), { withFileTypes: true }).sort((a, b) => a.name < b.name ? -1 : 1)
     .flatMap(e => e.isDirectory() ? walk(d + '/' + e.name) : [d + '/' + e.name]);
-  const list = walk('js').concat(walk('data'), ['index.html', 'check/jsdom-app.js', 'check/fixture.json', 'tools/finder-tags.js']).filter(f => !SKIP(f));
+  const list = walk('js').concat(walk('data'), ['index.html', 'tools/lib/jsdom-app.js', 'tools/lib/payload.json', 'tools/finder-tags.js']).filter(f => !SKIP(f));
   list.forEach(f => {
     let b = fs.readFileSync(path.join(ROOT, f));
     if (f === 'index.html') b = Buffer.from(b.toString('utf8').replace(/BUILD_STAMP\s*=\s*['"][^'"]*['"]/, 'BUILD_STAMP=""'));
@@ -61,10 +61,10 @@ if (require.main === module) (async () => {
     console.error('finder-tags: its inputs changed since the last full run. Run: node tools/finder-tags.js (or --check --full to walk)'); process.exit(1);
   }
   if (had === null || !/const FINDER_TAGS = /.test(had)) fs.writeFileSync(OUT, HEAD + 'const FINDER_TAGS = null;\n');
-  const { app, tick } = require('../check/jsdom-app.js');
+  const { app, tick } = require('./lib/jsdom-app.js');
   /* THE LIBRARY AS THE SITE SERVES IT (check/lib-full.js, words and all), so what is counted here is what a phone counts. */
-  const lib = require('../check/lib-full.js');
-  const payload = JSON.parse(fs.readFileSync(path.join(ROOT, 'check', 'fixture.json'), 'utf8'));
+  const lib = require('./lib/lib-full.js');
+  const payload = JSON.parse(fs.readFileSync(path.join(ROOT, 'tools', 'lib', 'payload.json'), 'utf8'));
   const A = await app(payload, (f, j) => { const t = lib.serve(path.join(ROOT, f)); return t !== null ? JSON.parse(t) : j; });
   const ev = s => A.w.__ev(s);
   /* EVERY SOURCE IN: the payload, the library and its extras, and each writings index this admin may have. */

@@ -18215,105 +18215,25 @@ const MISSING_ID = 'item:stuff:missing-papers';
 const missingFor_ = () => may_('admin') && !(typeof itemGone_ === 'function' && itemGone_(MISSING_ID));
 /* THE PAGE ABOVE FIND'S QUESTION (`FINDERS.stuff.lead`, find.js): an admin's only. */
 /* AND SUGGEST A CHANGE (486), as on Daive's card: one row with the item's tiles (`suggestRowIn_`, submit.js). */
-/* IN FIND, NOT ABOVE IT (owner, 4 Nov): the two cards are Find cards under the Optimiser (find.js `health`); the lead page is empty. */
-const HEALTH_IN_FIND = true;
-function missingLead_() { return HEALTH_IN_FIND ? [] : missingLeadCards_(); }
+/* IN FIND, NOT ABOVE IT (owner, 4 Nov): the lead page is empty; What's missing is a Find card under Owner questions. */
+function missingLead_() { return []; }
+const missingLeadN_ = () => 0;
 function missingLeadCards_() {
-  const out = logicLead_();
-  if (!missingFor_()) return out;
+  if (!missingFor_()) return [];
   const h = typeof itemMark_ === 'function' ? itemMark_(MISSING_ID, '', missingCard_()) : missingCard_();
-  return out.concat([typeof suggestRowIn_ === 'function' ? suggestRowIn_(h, 'widget', 'missing-papers', 'What’s missing') : h]);
+  return [typeof suggestRowIn_ === 'function' ? suggestRowIn_(h, 'widget', 'missing-papers', 'What’s missing') : h];
 }
-const missingLeadN_ = () => HEALTH_IN_FIND ? 0 : (LOGIC_SHOWN && logicFor_() ? 1 : 0) + (missingFor_() ? 1 : 0);
-/* ONE CARD EACH, for Find: `logic` or `missing`, the same markup the lead page drew. */
-/* ONE SCORE (890): `health` is the Optimiser; the Logic health card stays written but is off behind LOGIC_SHOWN. */
-const LOGIC_SHOWN = false;
-/* SETTINGS CARDS IN FIND BESIDE THE HEALTH ONES, drawn by their own files: the business checker (1050). */
+/* SETTINGS CARDS IN FIND, drawn by their own files: the business checker (1050). */
 const HEALTH_MORE_ = { bizcheck: () => (typeof window.bizCheckCard_ === 'function' ? window.bizCheckCard_() : '') };
 function healthCardOf_(which) {
   if (HEALTH_MORE_[which]) return HEALTH_MORE_[which]();
   /* ONE CARD (owner, 6 Nov): the Optimiser holds What's missing too, how complete Find's resources are, under its score. */
-  if (which === 'health') { try { return healthWithMissing_(siteHealthCard_(true)); } catch (e) { oops_(e, 'site health'); return ''; } }
   const all = (() => { try { return missingLeadCards_(); } catch (e) { oops_(e, 'health card'); return []; } })();
-  const l = LOGIC_SHOWN && logicFor_() ? 1 : 0;
-  return (which === 'logic' ? all.slice(0, l) : all.slice(l)).join('') || renderCard({ kind: 'panel', body: [{ type: 'text', look: 'empty', text: typeof NOTHING_YET === 'string' ? NOTHING_YET : 'Nothing yet' }] });
+  return all.join('') || renderCard({ kind: 'panel', body: [{ type: 'text', look: 'empty', text: typeof NOTHING_YET === 'string' ? NOTHING_YET : 'Nothing yet' }] });
 }
 
-/* ---------- SITE HEALTH (890): data/health.json, written by tools/health.js — code 40%, Find logic 35%, UI 25%, mechanical ---------- */
-const HEALTH = { got: null, failed: false, asked: false, all: false };
-function siteHealthCard_(raw) {
-  /* `raw`: its blocks, for What’s missing to join before the card is drawn. */
-  const out = b => (raw ? b : healthCardSpec_(b));
-  if (!HEALTH.asked && typeof fetch === 'function') {
-    HEALTH.asked = true;
-    Promise.resolve()
-      .then(() => fetch('data/health.json' + deployStamp_(), { cache: 'default' }))
-      .then(r => (r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status))))
-      .then(j => { HEALTH.got = j && typeof j.score === 'number' ? j : null; HEALTH.failed = !HEALTH.got; })
-      .catch(() => { HEALTH.failed = true; })
-      .then(() => { try { markStale_(['stuff']); paint('stuff'); } catch (e) { /* the finder redraws on its next paint anyway */ } });
-  }
-  const s = HEALTH.got;
-  if (!s) return out([HEALTH.failed ? healthSaid_('The score could not be read. Run node tools/health.js and push.') : { type: 'wait', on: true }]);
-  const list = (HEALTH.all ? s.all : s.top) || [];
-  const said = { code: 'Code', logic: 'Find logic', ui: 'UI' };
-  return out([{ type: 'group', tag: 'p', look: 'stab-score', text: String(s.score) + '%' },
-    s.next ? { type: 'group', tag: 'p', text: { b: String(s.next) } } : null, healthTrend_(s.trend),
-    { type: 'list', ordered: true, look: 'stab-top', items: list.map(t => [String(t.say) + ' ', { span: 'qtag', text: `${said[t.part] || t.part}, −${t.cost}` }]) },
-    healthWork_(s.worklist),
-    (s.all || []).length > 5 ? { type: 'tiles', tiles: [{ icon: HEALTH.all ? 'hide' : 'show', label: HEALTH.all ? 'Show the top 5' : 'Show the full list', act: 'health-all' }] } : null].filter(Boolean));
-}
-/* A HEALTH CARD FROM ITS BLOCKS, through the one card maker; its name is its first tag. */
-const healthCardSpec_ = (body, look, name) => renderCard({ kind: 'panel', look: look || 'logic-card', name, tags: [name || 'Optimiser worklist'], body });
-/* A LINE SAID ALOUD WHEN A SCORE COULD NOT BE READ. */
-const healthSaid_ = text => ({ type: 'group', tag: 'p', look: 'note', attrs: { role: 'alert' }, text });
-/* THE TREND (920): the last thirty full runs as one thin line in the text colour, and the commit of the worst drop. */
-function healthTrend_(t) {
-  const v = (t && Array.isArray(t.last) ? t.last : []).map(Number).filter(n => isFinite(n));
-  if (v.length < 2) return null;
-  const lo = Math.min(...v), hi = Math.max(...v), span = hi - lo || 1;
-  const pts = v.map((n, i) => (i * 100 / (v.length - 1)).toFixed(1) + ',' + (22 - (n - lo) / span * 20).toFixed(1)).join(' ');
-  return { type: 'drawing', node: { el: 'svg', a: { viewBox: '0 0 100 24', width: '100%', height: '24', preserveAspectRatio: 'none', role: 'img', 'aria-label': `Score over the last ${v.length} runs` },
-    kids: [{ el: 'polyline', a: { points: pts, fill: 'none', stroke: 'currentColor', 'stroke-width': '1.5', 'vector-effect': 'non-scaling-stroke' } }] } };
-}
-/* THE FIXER'S FIRST FIVE (920): the dearest findings of tools/health.js's worklist, each where it is and what it is, in plain words. */
-const HEALTH_SAY = { 'one-off': 'A special case for one name', 'long-fn': 'A long function', 'big-file': 'A very big file',
-  dup: 'A copied block', nest: 'Code nested too deep', catch: 'An error swallowed silently' };
-function healthWork_(w) {
-  const top = (Array.isArray(w) ? w : []).slice(0, 5);
-  if (!top.length) return null;
-  return { type: 'list', ordered: true, look: 'stab-top', items: top.map(f => [{ b: `${f.file}:${f.line}` }, ' · ' + (HEALTH_SAY[f.kind] || String(f.kind)) + ' ', { span: 'qtag', text: String(f.text || '') }]) };
-}
-on('health-all', () => { HEALTH.all = !HEALTH.all; try { markStale_(['stuff']); paint('stuff'); } catch (e) { /* the finder redraws on its next paint anyway */ } });
-
-/* ---------- LOGIC HEALTH (770), ABOVE WHAT'S MISSING: data/logic-health.json, measured by tools/logic-health.js — mechanical, never AI ---------- */
-const LOGIC_ID = 'item:stuff:logic-health';
-const LOGIC = { got: null, failed: false, asked: false, all: false };
-const logicFor_ = () => may_('admin') && !(typeof itemGone_ === 'function' && itemGone_(LOGIC_ID));
-function logicLead_() {
-  if (!LOGIC_SHOWN || !logicFor_()) return [];
-  const h = typeof itemMark_ === 'function' ? itemMark_(LOGIC_ID, '', logicCard_()) : logicCard_();
-  return [typeof suggestRowIn_ === 'function' ? suggestRowIn_(h, 'widget', 'logic-health', 'Logic health') : h];
-}
-function logicCard_() {
-  if (!LOGIC.asked && typeof fetch === 'function') {
-    LOGIC.asked = true;
-    Promise.resolve()
-      .then(() => fetch('data/logic-health.json' + deployStamp_(), { cache: 'default' }))
-      .then(r => (r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status))))
-      .then(j => { LOGIC.got = j && typeof j.score === 'number' ? j : null; LOGIC.failed = !LOGIC.got; })
-      .catch(() => { LOGIC.failed = true; })
-      .then(() => { try { markStale_(['stuff']); paint('stuff'); } catch (e) { /* the finder redraws on its next paint anyway */ } });
-  }
-  const s = LOGIC.got;
-  if (!s) return healthCardSpec_([LOGIC.failed ? healthSaid_('The score could not be read. Run node tools/logic-health.js and push.') : { type: 'wait', on: true }], '', 'Logic health');
-  const top = (s.top || []).slice(0, LOGIC.all ? 25 : 3);
-  const line = t => [{ b: t.where }, ' · ' + (t.asks || '') + ' ', { span: 'qtag', text: (t.why || []).join(' · ') }];
-  return healthCardSpec_([{ type: 'group', tag: 'p', look: 'stab-score', text: String(s.score) + '%' },
-    { type: 'list', ordered: true, look: 'stab-top', items: top.map(line) },
-    (s.top || []).length > 3 ? { type: 'tiles', tiles: [{ icon: LOGIC.all ? 'hide' : 'show', label: LOGIC.all ? 'Show the top 3' : 'Show the worst ' + Math.min(25, s.top.length), act: 'logic-all' }] } : null].filter(Boolean), '', 'Logic health');
-}
-on('logic-all', () => { LOGIC.all = !LOGIC.all; try { markStale_(['stuff']); paint('stuff'); } catch (e) { /* the finder redraws on its next paint anyway */ } });
+/* A CARD FROM ITS BLOCKS, through the one card maker; its name is its first tag. */
+const healthCardSpec_ = (body, look, name) => renderCard({ kind: 'panel', look: look || 'logic-card', name, tags: [name || 'What’s missing'], body });
 
 /* ---------- THE LIST, FETCHED WHEN THE CARD IS FIRST DRAWN — never in the boot payload; absent or broken is an empty list ---------- */
 function missingAsk_() {
@@ -18461,10 +18381,6 @@ if (typeof on === 'function') on('miss-all', () => { MISSING.all = !MISSING.all;
 /* THE OPTIMISER'S BLOCKS WITH WHAT'S MISSING UNDER THEM (one card); `#miss-body` is what the list's arrival fills again. */
 const missingBox_ = () => { const body = missingBody_(); return { type: 'group', id: 'miss-body', attrs: { 'aria-busy': missingWaits_() ? 'true' : null }, blocks: body }; };
 const missingHead_ = look => ({ type: 'msgHead', look, text: 'What’s missing' });
-function healthWithMissing_(blocks) {
-  if (!missingFor_()) return healthCardSpec_(blocks);
-  return healthCardSpec_([].concat(blocks || [], [missingHead_('miss-head'), missingBox_()]), 'logic-card miss-card');
-}
 function missingCard_() {
   return healthCardSpec_([missingBox_()], 'miss-card', 'What’s missing');
 }
