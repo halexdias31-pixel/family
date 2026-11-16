@@ -182,10 +182,13 @@ const cardGrid_ = b => `<div class="kc-grid-wrap"><div class="kc-grid" role="tab
     (c.parts || []).map((t, i) => `<span class="kc-cell-${i}">${esc(String(t == null ? '' : t))}</span>`).join('')}</div>`).join('')}</div></div>`;
 /* A MENU'S CHOICES (owner, 14 Nov: one template for everything): § */
 function cardChoice_(o) {
+  /* A BOX'S `type` (text, date, number), its bounds, and `lines` for a text area of several lines (Ctrl+Enter answers it). */
   if (o.box) { const b = o.box;
-    return answerBox_(`${b.id ? ` id="${esc(b.id)}"` : ''} class="${esc(b.cls || '')}" type="text" inputmode="${esc(b.inputmode || 'text')}" autocomplete="off"
-  autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="${esc(b.enterkeyhint || 'next')}" data-1p-ignore data-lpignore="true" aria-label="${esc(b.label || '')}"${b.placeholder ? ` placeholder="${esc(b.placeholder)}"` : ''}
-  value="${esc(b.value || '')}"`, o.look || ''); }
+    const at = `${b.id ? ` id="${esc(b.id)}"` : ''} class="${esc(b.cls || '')}" inputmode="${esc(b.inputmode || 'text')}" autocomplete="off"
+  autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="${esc(b.enterkeyhint || 'next')}" data-1p-ignore data-lpignore="true" aria-label="${esc(b.label || '')}"${b.placeholder ? ` placeholder="${esc(b.placeholder)}"` : ''}`
+      + ['min', 'max', 'step'].map(k => (b[k] != null && b[k] !== '' ? ` ${k}="${esc(String(b[k]))}"` : '')).join('');
+    if (b.lines) return `<label class="counted row${o.look ? ' ' + esc(o.look) : ''}"><textarea${at} rows="${esc(String(b.lines))}">${esc(b.value || '')}</textarea></label>`;
+    return answerBox_(`${at} type="${esc(b.type || 'text')}" value="${esc(b.value || '')}"`, o.look || ''); }
   const d = o.data || {};
   const attrs = (o.act ? ` data-do="${esc(o.act)}"` : '') + Object.keys(d).map(k => d[k] === true ? ` data-${esc(k)}` : ` data-${esc(k)}="${esc(String(d[k]))}"`).join('')
     + (o.label ? ` aria-label="${esc(o.label)}"` : '') + (o.pressed ? ' aria-pressed="true"' : '') + (o.disabled ? ' aria-disabled="true"' : '');

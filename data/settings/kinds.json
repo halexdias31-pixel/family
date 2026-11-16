@@ -144,7 +144,8 @@
      "attr": "data-me",
      "draft": false,
      "fields": "list",
-     "say": "the tutor card's edit form (cardEditForm_): its sections' names, typed by rules; a price only for may_('prices')."
+     "say": "the tutor card's edit form (cardEditForm_): its sections' names, typed by rules; a price only for may_('prices').",
+     "ask": "card"
     },
     "card-seat": {
      "attr": "data-pound",
@@ -190,6 +191,22 @@
        "look": "many-list where-areas"
       }
      ]
+    }
+   },
+   "fields": {
+    "extra_seat_rate": {
+     "label": "extra seat: share of your rate, 0–1 (0.5 = half)",
+     "min": 0,
+     "max": 1,
+     "step": 0.05
+    },
+    "extra_seat_cut": {
+     "label": "@family.'s share of an extra seat, 0–2 (blank = the usual)",
+     "labelLocked": "@family.'s share of an extra seat — set by @family. (blank = the usual)",
+     "min": 0,
+     "max": 2,
+     "step": 0.01,
+     "pad": "decimal"
     }
    }
   },
@@ -503,7 +520,6 @@
       },
       {
        "f": "days",
-       "many": true,
        "need": 1,
        "ask": "Which day?"
       },
@@ -511,11 +527,13 @@
        "f": "slots",
        "many": true,
        "need": 1,
-       "ask": "What time? Each tag is one hour."
+       "ask": "What time? Each tag is one hour.",
+       "grid": true
       },
       {
        "f": "avail",
-       "many": true
+       "many": true,
+       "grid": true
       },
       {
        "f": "kids",
@@ -524,7 +542,8 @@
       {
        "f": "n"
       }
-     ]
+     ],
+     "look": "book-step"
     }
    }
   },
@@ -1418,7 +1437,8 @@
        "label": "Date of birth (optional)"
       }
      ],
-     "draft": "form"
+     "draft": "form",
+     "ask": "card"
     },
     "person-form": {
      "attr": "data-pf",
@@ -1470,7 +1490,8 @@
        "draft": false
       }
      ],
-     "draft": "form"
+     "draft": "form",
+     "ask": "card"
     },
     "person-edit": {
      "attr": "data-pe",
@@ -1513,7 +1534,8 @@
        "type": "text"
       }
      ],
-     "draft": "form"
+     "draft": "form",
+     "ask": "card"
     },
     "settings": {
      "attr": "data-me",
@@ -1872,29 +1894,59 @@
        "type": "tick",
        "label": "I agree to @family. keeping these details and documents privately to consider my application, contacting my referees and checking my DBS."
       }
-     ]
+     ],
+     "ask": "card"
     },
     "sign-join": {
-     "attr": "data-sj",
-     "draft": false,
-     "say": "Find's Make an account card (owner, 15 Nov): who it is for, the names, the email and a PIN; sent as `register`. No draft, so the PIN is never kept.",
+     "ask": "find",
+     "say": "Make an account, asked in Find one field a step (owner, 16 Nov: one form): who it is for, whose email, the names, the email and a 4-digit PIN; sent as the existing `register`. The PIN is held in memory for the call only, never stored. only: asked when an earlier answer is this.",
+     "send": {
+      "say": "make-my-account"
+     },
      "fields": [
       {
        "f": "who",
        "type": "choice",
-       "label": "who is the account for?"
+       "label": "Who is the account for?",
+       "note": "Both are free; teaching starts with \"Apply to teach\" once you are in.",
+       "options": [
+        {
+         "v": "parent",
+         "say": "client-i-book-and-pay"
+        },
+        {
+         "v": "student",
+         "say": "student-im-learning"
+        }
+       ]
+      },
+      {
+       "f": "kid",
+       "type": "choice",
+       "only": {
+        "who": "student"
+       },
+       "label": "Whose email will you give?",
+       "options": [
+        {
+         "v": "own",
+         "t": "My own email"
+        },
+        {
+         "v": "grown-up",
+         "say": "its-a-grown-ups-email"
+        }
+       ]
       },
       {
        "f": "first",
        "type": "text",
-       "ph": "First name",
-       "row": "names"
+       "ph": "First name"
       },
       {
        "f": "last",
        "type": "text",
-       "ph": "Last name",
-       "row": "names"
+       "ph": "Last name"
       },
       {
        "f": "email",
@@ -1904,9 +1956,50 @@
       },
       {
        "f": "pin",
-       "type": "text",
-       "input": "password",
+       "type": "pin",
        "label": "PIN — 4 digits"
+      }
+     ],
+     "draft": "ask"
+    },
+    "sign-in": {
+     "ask": "find",
+     "say": "Signing in, Find's first step (owner, 13 Nov): the name typed on the blank tag, then the PIN a digit a tag; sent as `verifyLogin` on the last digit. The digits are never kept.",
+     "fields": [
+      {
+       "f": "who",
+       "type": "text",
+       "ph": "Username or email",
+       "label": "Your username or email"
+      },
+      {
+       "f": "pin",
+       "type": "pin"
+      }
+     ]
+    },
+    "pin-change": {
+     "ask": "find",
+     "say": "Settings' Signing in card (owner, 16 Nov: one form): your PIN now, the new one, and it again, a digit a tag; sent as the existing `changePin`. The digits are held for the call only, never stored.",
+     "send": {
+      "t": "Save"
+     },
+     "back": "one",
+     "fields": [
+      {
+       "f": "now",
+       "type": "pin",
+       "label": "current PIN"
+      },
+      {
+       "f": "new",
+       "type": "pin",
+       "label": "new PIN, 4 numbers, not 1234"
+      },
+      {
+       "f": "again",
+       "type": "pin",
+       "label": "new PIN again"
       }
      ]
     }

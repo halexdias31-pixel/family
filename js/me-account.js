@@ -337,121 +337,40 @@ const REG_NOTE = {
   student: text_('we-email-a-link-to-open')
          + 'can also make your account, on Students.',
 };
-/* MAKE AN ACCOUNT IS A CARD OF ITS OWN beside Sign in, its form there from the start (no sheet, owner 7 Nov). */
-const registerSpec_ = () => ({ kind: 'panel', look: 'reg-card', name: text_('make-an-account'), tags: [text_('make-an-account')], body: [{ type: 'embed', tool: 'reg-form' }] });
+/* MAKE AN ACCOUNT, OUTSIDE FIND (the Account column and Settings' door, signed out): one tile that starts Find's own asking of it. */
+const registerSpec_ = () => ({ kind: 'panel', look: 'reg-card', name: text_('make-an-account'), tags: [text_('make-an-account')],
+  tiles: [{ icon: 'plus', label: text_('make-an-account'), act: 'sign-join' }] });
 function registerCard_() { return renderCard(registerSpec_()); }
-/* THE FORM IS THE CARD'S ONE EMBED; its send (reg-send) is unchanged. */
-/* THE FORM AS ONE SPEC (owner, 14 Nov: one card maker). ONE ROW WITH THE PHONE'S OWN PICKER, starting on Choose: nothing is answered for anybody. */
-/* THE TWO NAMES SHARE A ROW, as on "Make your child's account" — measured: § */
-/* THE NAMES AND THE ADDRESS ARE DRAFTS (data.js; docs/history/317) — the sheet closed by a tap outside, or the page reloaded, and they were gone. § */
-/* THREE LINES AT 320, MEASURED: § */
-function regFormHtml_() {
-  const kept = (id, more) => ({ type: 'control', attrs: Object.assign({ id: 'reg-' + id, autocomplete: 'off' }, more || {},
-    meAttrs_(draftAttr_('reg', id)), { value: draftVal_('reg', id) }) });
-  const field = (cap, control) => ({ type: 'field', cap, blocks: [control] });
-  return cardBlock_({ type: 'group', look: 'reg-form', blocks: [
-    { type: 'group', look: 'reg-who', id: 'reg-who', attrs: { 'data-who': '' }, blocks: [
-      { type: 'group', tag: 'p', look: 'reg-cap', id: 'reg-who-cap', text: 'Both are free; teaching starts with "Apply to teach" once you are in.' },
-      field('who is the account for?', { type: 'control', tag: 'select', attrs: { id: 'reg-who-in', 'data-do': 'reg-who', 'aria-describedby': 'reg-who-cap' }, options: [
-        { value: '', text: 'Choose', on: true, off: true },
-        { value: 'parent', text: text_('client-i-book-and-pay'), data: { who: 'parent' } },
-        { value: 'student', text: text_('student-im-learning'), data: { who: 'student' } }] })] },
-    { type: 'group', look: null, id: 'reg-rest', attrs: { hidden: true }, blocks: [
-      { type: 'group', look: 'f-row', blocks: [field('first name', kept('first')), field('last name', kept('last'))] },
-      field('email', kept('email', { type: 'email', inputmode: 'email', autocapitalize: 'off', spellcheck: 'false', placeholder: 'you@example.com' })),
-      { type: 'tick', look: 'reg-kid', labelAttrs: { hidden: true }, attrs: { id: 'reg-noemail' }, text: text_('its-a-grown-ups-email') },
-      field('PIN — 4 digits', { type: 'control', attrs: { id: 'reg-pin', type: 'password', inputmode: 'numeric', autocomplete: 'one-time-code' } })],
-      /* the send stands loose in the form, the note under it, as before */
-      inner: tile_({ form: true, label: text_('make-my-account'), act: 'reg-send' }) + cardBlock_({ type: 'group', tag: 'p', look: 'said', id: 'reg-note' }) }] });
-}
-CARD_EMBEDS['reg-form'] = regFormHtml_;
 
-/* ---------- FIND'S PIN STEP OPENS ONE CARD EACH (owner, 15 Nov): Forgot PIN, and Make an account when the name is no account. */
+/* ---------- FIND'S PIN STEP OPENS Forgot PIN (owner, 15 Nov). */
 /* FORGOT PIN: one button, the reset link to the address on that account (`forgotPin`, the existing door). */
 const signForgotSpec_ = () => ({ kind: 'panel', look: 'reg-card sign-forgot', name: 'Forgot PIN', tags: [{ text: 'Forgot PIN' }],
   body: [{ type: 'text', look: 'note', text: 'We email a link to reset your PIN to the address on this account.' }],
   tiles: [{ icon: 'send', label: 'Email me the link', act: 'forgot-pin' }] });
-/* MAKE AN ACCOUNT: forms.json's `sign-join`, drawn by formOf_; its send is the existing `register`. What was typed fills the email or the first name. */
-const SIGN_JOIN_WHO_ = [{ v: 'parent', t: text_('client-i-book-and-pay') }, { v: 'student', t: text_('student-im-learning') }];
-const signJoinSpec_ = () => ({ kind: 'panel', look: 'reg-card sign-join', name: text_('make-an-account'), tags: [{ text: text_('make-an-account') }],
-  body: [{ type: 'embed', tool: 'sign-join-form' }], tiles: [{ icon: 'plus', label: text_('make-my-account'), act: 'sign-join-send' }] });
-CARD_EMBEDS['sign-join-form'] = () => {
-  const who = typeof SIGN !== 'undefined' ? SIGN.who : '';
-  const pre = who.indexOf('@') > 0 ? { email: who } : { first: who.replace(/^@+/, '') };
-  return cardBlock_({ type: 'group', look: 'reg-form sign-join-form', inner: formOf_('sign-join', pre, { options: f => (f === 'who' ? SIGN_JOIN_WHO_ : null) }) });
-};
-on('sign-join-send', el => {
-  const card = (el && el.closest && el.closest('.card')) || document;
-  const v = f => String((card.querySelector('[data-sj="' + f + '"]') || {}).value || '').trim();
-  const who = v('who'), first = v('first'), last = v('last'), email = v('email'), pin = v('pin');
-  if (who !== 'parent' && who !== 'student') { toast(text_('say-who-the-account-is-for')); return; }
-  if (!first || !last) { toast(text_('your-first-and-last-name-please')); return; }
-  if (email.indexOf('@') < 0) { toast(text_('an-email-address-please-the-link')); return; }
-  if (!REG_PIN.test(pin)) { toast('A PIN is 4 digits.'); return; }
-  const body = { action: 'register', who, first_name: first, last_name: last, pin, email };
-  const from = typeof cameFrom_ === 'function' ? cameFrom_() : ''; if (from) body.from = from;
-  send_(body, { button: el, busy: text_('making-it') })
-    .then(() => {
-      const box = card.querySelector('[data-sj="pin"]'); if (box) box.value = '';
-      if (typeof signAfterJoin_ === 'function') signAfterJoin_(email);
-      toast(text_('account-made-sign-in-now-with'));
-    })
-    .catch(() => {});      // `send_` has already said why
-});
-
-/* `regWho_` IS THE ONE READER of the answer, so the send and the redraw cannot disagree about it. */
-const regIn_ = (el, id) => ((el && el.closest && el.closest('.reg-form')) || document).querySelector('#' + id);
-const regWho_ = el => {
-  const w = ((regIn_(el, 'reg-who') || {}).dataset || {}).who || '';
-  return w === 'parent' || w === 'student' ? w : '';
-};
-on('reg-who', el => {
-  const row = regIn_(el, 'reg-who');
-  if (!row || !el) return;
-  /* THE SELECT ON A CHANGE; a check may hand one of its options. */
-  const sel = regIn_(el, 'reg-who-in'), v = el.tagName === 'OPTION' ? el.value : (el.value || el.dataset.who);
-  if (v !== 'parent' && v !== 'student') return;
-  const who = v;
-  row.dataset.who = who;
-  if (sel) sel.value = who;
-  const rest = regIn_(el, 'reg-rest'); if (rest) rest.hidden = false;
-  const tick = regIn_(el, 'reg-noemail'), tickRow = tick && tick.closest('.reg-kid');
-  if (tickRow) tickRow.hidden = who !== 'student';
-  if (tick && who !== 'student') tick.checked = false;
-  const note = regIn_(el, 'reg-note'); if (note) tell_(note, 'info', REG_NOTE[who]);
-});
-
-on('reg-send', el => {
-  const v = id => (((regIn_(el, id) || {}).value) || '').trim();
-  const first = v('reg-first'), last = v('reg-last'), email = v('reg-email'), pin = v('reg-pin');
-  const who = regWho_(el);
-  /* A STUDENT'S TICK ONLY. The row is hidden for a parent and unticked when it hides, and this asks
-     again rather than trusting that — a parent's address sent as `parent_email` is refused anyway. */
-  const kid = who === 'student' && !!(regIn_(el, 'reg-noemail') || {}).checked;
-  /* UNREACHABLE FROM THE CARD — the button is under the question until it is answered — and said anyway, for a button pressed some other way: § */
-  if (!who) { toast(text_('say-who-the-account-is-for')); return; }
-  if (!first || !last) { toast(text_('your-first-and-last-name-please')); return; }
+/* MAKE AN ACCOUNT IS kinds.json's person form `sign-join`, asked in Find a field a step (askMenu_, form.js); what was typed as the name fills the email or the first name. */
+const signJoinStart_ = who => askReset_('sign-join', String(who || '').indexOf('@') > 0 ? { email: who } : who ? { first: String(who).replace(/^@+/, '') } : {});
+/* ITS SEND IS THE EXISTING `register`. A student giving a grown-up's email sends it as `parent_email`; the PIN goes with the call and nowhere else. */
+FORM_SEND_['sign-join'] = (v, el) => {
+  const who = v.who, first = String(v.first || '').trim(), last = String(v.last || '').trim(), email = String(v.email || '').trim(), pin = String(v.pin || '');
+  const kid = who === 'student' && v.kid === 'grown-up';
+  if (who !== 'parent' && who !== 'student') { toast(text_('say-who-the-account-is-for')); return askBack_('sign-join', 'who'); }
+  if (!first || !last) { toast(text_('your-first-and-last-name-please')); return askBack_('sign-join', first ? 'last' : 'first'); }
   if (email.indexOf('@') < 0) {
-    toast(kid ? 'A grown-up\'s email address, please — the link goes to them.'
-              : text_('an-email-address-please-the-link'));
-    return;
+    toast(kid ? 'A grown-up\'s email address, please — the link goes to them.' : text_('an-email-address-please-the-link'));
+    return askBack_('sign-join', 'email');
   }
-  if (!REG_PIN.test(pin)) { toast('A PIN is 4 digits.'); return; }
-  /* THROUGH `send_`, so the button spins, the four boxes lock while it is on the wire (`#sheet-body` is one of the boxes `send_` knows to lock) and a refusal § */
+  if (!REG_PIN.test(pin)) { toast('A PIN is 4 digits.'); return askBack_('sign-join', 'pin'); }
   const body = { action: 'register', who, first_name: first, last_name: last, pin };
   if (kid) body.parent_email = email; else body.email = email;
-  /* A FLYER'S SOURCE TAG (`?from=flyer-…`, flyer.js) goes with it, so `came_from` says which flyer brought them. */
-  const from = typeof cameFrom_ === 'function' ? cameFrom_() : ''; if (from) body.from = from;
+  /* A FLYER'S SOURCE TAG (`?from=flyer-…`) goes with it, so `came_from` says which flyer brought them. */
+  const from = cameFrom_(); if (from) body.from = from;
   send_(body, { button: el, busy: text_('making-it') })
     .then(d => {
-      ['first', 'last', 'email'].forEach(f => { try { draftDrop_('reg', f); } catch (e) { oops_(e, 'me:registerCard_') } });
-      const pinBox = regIn_(el, 'reg-pin'); if (pinBox) pinBox.value = '';
-      /* THE ADDRESS GOES INTO THE SIGN-IN BOX, because the next thing this person does — after the email — is sign in with it, and they have just typed it once. § */
+      /* THE PIN IS DROPPED THE MOMENT IT IS SENT; the name it signs in with goes on to Find's PIN step. */
+      askDone_('sign-join');
       const handle = String((d && d.handle) || '');
       const said = kid && handle ? '@' + handle : email, box = $('in-name'); if (box) box.value = said;
-      if (typeof signAfterJoin_ === 'function') signAfterJoin_(said);
-      /* NO WAITING ON THE LINK — see the note over `verifyLogin`'s old PENDING refusal in dopost.gs.
-         The account works now; the link is said as what it is, a confirmation, not a door. */
+      signAfterJoin_(said);
       toast(kid ? text_('account-made-sign-in-now-as') + (handle ? '@' + handle : 'your handle')
                   + ' with your PIN. Your grown-up has been sent a link to confirm.'
                 : who === 'parent'
@@ -460,7 +379,7 @@ on('reg-send', el => {
                   : text_('account-made-sign-in-now-with'));
     })
     .catch(() => {});      // `send_` has already said why
-});
+};
 /* ---------- WHERE THEY CAME FROM (moved from flyer.js when the flyer maker went to attic/, 16 Nov): a `?from=…` tag kept on this phone until sign-up sends it (`register`, `came_from`) ---------- */
 const CAME_FROM_KEY = 'came_from';
 function cameFromSave_() {

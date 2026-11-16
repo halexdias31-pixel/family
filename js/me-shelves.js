@@ -76,16 +76,11 @@ function setHeldSay_(html) {
 }
 function fieldHtml(name, value, o) {
   o = o || {};
-  /* THE EXTRA-SEAT FIGURE IS A SHARE OF THE RATE, NOT POUNDS, and nothing on the box said so: § */
-  if (name === 'extra_seat_rate' && !o.label && !o.placeholder) {
-    o = Object.assign({}, o, { label: 'extra seat: share of your rate, 0–' + STAFF_SEAT_MAX + ' (0.5 = half)',
-      extra: (o.extra || '') + ' type="number" min="0" max="' + STAFF_SEAT_MAX + '" step="0.05"' });
-  }
-  /* AND THE BUSINESS'S CUT OF IT, PER TUTOR SINCE docs/history/345 — the same kind of figure, so the same caption and the same bounds (`seatCutRefusal_`), and it § */
-  if (name === 'extra_seat_cut' && !o.label && !o.placeholder) {
-    o = Object.assign({}, o, { label: o.readonly ? "@family.'s share of an extra seat — set by @family. (blank = the usual)"
-      : "@family.'s share of an extra seat, 0–2 (blank = the usual)",
-      extra: (o.extra || '') + ' type="number" min="0" max="2" step="0.01" inputmode="decimal"' });
+  /* A FIELD'S OWN CAPTION AND BOUNDS ARE kinds.json `fields` (askProps_, form.js) — the extra-seat share and @family.'s cut — the same as when it is asked. */
+  const pr = askProps_(name);
+  if ((pr.label || pr.min != null || pr.max != null) && !o.label && !o.placeholder) {
+    o = Object.assign({}, o, { label: (o.readonly && pr.labelLocked) || pr.label,
+      extra: (o.extra || '') + ` type="number"${pr.min != null ? ` min="${pr.min}"` : ''}${pr.max != null ? ` max="${pr.max}"` : ''}${pr.step != null ? ` step="${pr.step}"` : ''}${pr.pad ? ` inputmode="${pr.pad}"` : ''}` });
   }
   const attr = o.attr || 'data-me';
   const label = o.label || fieldLabel(name);

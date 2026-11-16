@@ -187,7 +187,7 @@ const BOOKING = {
 };
 
 /* WHERE FIND'S BOOKING STEPS ARE (find-account.js): which steps were answered, and the Days step's pick, which only Times reads. */
-const BOOK_FIND = { done: {}, days: [], started: false, more: '', day: '' };
+const BOOK_FIND = { done: {}, days: [], started: false, more: '', day: '', pin: [], get v() { return BOOKING; } };
 
 /* ---------- THE ONE YOU JUST ASKED FOR § */
 let ASKED_JOB = '';
