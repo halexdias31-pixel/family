@@ -36,6 +36,8 @@ const SUITE = [
   /* backend/files.json must name every backend file — sync.gs pulls by that list, and a name
      missing from it is a file DELETED from the live project on the next pull. */
   { file: 'check-manifest.js', what: 'the backend file list sync.gs pulls by' },
+  /* ONE CARD RULE (owner, 16 Nov): the email's name formatter and tag dedupe are the site's, copied by tools/cards-gen.js. */
+  { file: 'tools/cards-gen.js', what: 'backend/cards-gen.gs is the site\'s current name and tag code, and the digest has no copy of its own' },
   /* THE BACKEND'S OWN `check.js`. § */
   { file: 'check-backend.js', what: 'one scope, one declaration per name' },
   /* ---------- BEFORE THE COLUMNS, BECAUSE A TAB NOBODY CAN OPEN HAS NO COLUMNS § */
