@@ -82,10 +82,7 @@ const post = (b, body) => { asked++; return b.post(body); };
   }
   /* A PIN THIS BACKEND DRAWS NEVER STARTS WITH 0 AND IS NEVER ONE IT WOULD REFUSE. */
   const drawn = JSON.parse(b.ev('JSON.stringify(Array.from({ length: 3000 }, () => authFreshPin_()))'));
-  /* ONE LENGTH (owner, 10 Nov): the backend's AUTH.PIN_DIGITS, which the sign-in keypad's SIGN_PIN_LEN must equal. */
-  const digits = Number(b.ev('AUTH.PIN_DIGITS'));
-  const keypad = Number((/const SIGN_PIN_LEN = (\d+);/.exec(require('fs').readFileSync(require('path').join(__dirname, 'find-account.js'), 'utf8')) || [])[1]);
-  if (digits !== keypad) no('AUTH.PIN_DIGITS is ' + digits + ' but the sign-in keypad takes ' + keypad + ' digits: a PIN emailed or made could not be typed');
+  const digits = Number(b.ev('SIGN_PIN_LEN'));
   const zeroLed = drawn.filter(p => /^0/.test(p)).length, odd = drawn.filter(p => p.length !== digits || !/^\d+$/.test(p)).length;
   const weak = drawn.filter(p => b.ev('pinWeak_(' + JSON.stringify(p) + ')')).length;
   if (zeroLed) no(zeroLed + ' of 3000 drawn PINs start with 0 — the sheet drops it and the PIN emailed is not the PIN stored');
@@ -312,7 +309,7 @@ const post = (b, body) => { asked++; return b.post(body); };
   else {
     for (let i = 0; i < 11; i++) signIn(b, 'kit_kind61', '9');
     const r = post(b, { action: 'resetPin', token: pat.token, targetId: 'P-KIT' });
-    if (!r.success || !new RegExp('^[1-9]\\d{' + (Number(b.ev('AUTH.PIN_DIGITS')) - 1) + '}$').test(S(r.pin))) no('a parent could not give their own child a new PIN', r);
+    if (!r.success || !new RegExp('^[1-9]\\d{' + (Number(b.ev('SIGN_PIN_LEN')) - 1) + '}$').test(S(r.pin))) no('a parent could not give their own child a new PIN', r);
     else {
       if (!signIn(b, 'kit_kind61', r.pin).success) no('the PIN a parent gave a locked-out child does not sign them in');
       if (signIn(b, 'kit_kind61', PLACE).success) no('the old PIN still works after the parent gave a new one');

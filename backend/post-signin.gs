@@ -477,7 +477,7 @@ function postForgotPin_(body, action, began) {
 
   /* THE SAME PIN AGAIN if one is still waiting, so a grown-up holding two emails holds two copies of one PIN rather than a dead one and a live one — unless wrong § */
   /* …and only a waiting PIN of today's length is sent again: one emailed when PINs were six digits could not be typed on the four-digit keypad. */
-  const fresh = (was && !was.dead && S(was.pin).length === AUTH.PIN_DIGITS) ? S(was.pin) : authFreshPin_();
+  const fresh = (was && !was.dead && S(was.pin).length === SIGN_PIN_LEN) ? S(was.pin) : authFreshPin_();
   /* ---------- AND TO THE ACCOUNT'S OWN ADDRESS, A LINK BESIDE IT THAT NO WRONG GUESS CAN USE UP § */
   /* A CHILD'S LINK TOO (owner, 12 Nov): it goes only to the business, which holds the PIN already. */
   const linkKey = (was && S(was.key)) ? S(was.key)

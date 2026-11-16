@@ -14,6 +14,8 @@ const TAKE = [
   ['js/core.js', ['WORDS_FILE', 'text_', 'fmtTime_', 'fmtHours_', 'fmtMoney_', 'DAYS_SHORT', 'fmtDay_', 'fmtDmy_', 'fmtDate_', 'cardText_']],
   /* EACH FACET'S HUE (tools/facet-hues.js): a card's tag is `h` + TAG_OF[field], and so is the email's. */
   ['js/find-bundles.js', ['TAG_OF']],
+  /* HOW MANY DIGITS A PIN HAS (owner, 16 Nov): the sign-in keypad's number is the one the backend makes PINs to. */
+  ['js/find-account.js', ['SIGN_PIN_LEN']],
   /* A PART THAT NAMES A PICTURE HAS ONE (11 Nov): the email's `Verified` asks `figUndrawn_` as the card's `verifyTags_` does. */
   /* A VALUE TOO LONG FOR A TAG IS SAID AS THE MENU SAYS IT (`showForms_`, `SHOW_MAX`): "Section A: Modern prose or…". */
   ['js/find-facets.js', ['SHOW_MAX', 'showForms_']],
