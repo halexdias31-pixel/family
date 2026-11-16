@@ -1,4 +1,4 @@
-/* @family. — tools/css-scale.js THE ONE READING OF THE FIXED SCALE (rule 3.5): js/check-scale.js gates on it and
+/* @family. — tools/css-scale.js THE ONE READING OF THE FIXED SCALE (rule 1.20): js/check-scale.js gates on it and
    tools/health.js scores it, so the check and the Optimiser can never disagree about a size, corner, space or colour. */
 const fs = require('fs'), path = require('path');
 const ROOT = path.join(__dirname, '..');

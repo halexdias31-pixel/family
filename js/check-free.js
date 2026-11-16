@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* @family. — check-free.js (rule 10.2): every host the site or backend calls, and every package it ships, is on the owner's list; a new one may cost money, so it is an owner decision. */
+/* @family. — check-free.js (rule 1.64): every host the site or backend calls, and every package it ships, is on the owner's list; a new one may cost money, so it is an owner decision. */
 'use strict';
 const fs = require('fs'), path = require('path');
 const root = path.join(__dirname, '..'), G = require('../data/settings/rule-guards.json');
@@ -13,5 +13,5 @@ files.forEach(f => fs.readFileSync(path.join(root, f), 'utf8').split('\n').forEa
     if (!ok.has(h)) bad.push(`${f}:${i + 1}: calls ${h}, not in data/settings/rule-guards.json "hosts"`); }); }));
 const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
 Object.keys(pkg.dependencies || {}).forEach(d => { if (!(G.packages || []).includes(d)) bad.push(`package.json: shipped dependency ${d} is not in "packages"`); });
-if (bad.length) { bad.forEach(b => console.log('FAIL — ' + b + ' (rule 10.2: free unless the owner decides)')); process.exit(1); }
+if (bad.length) { bad.forEach(b => console.log('FAIL — ' + b + ' (rule 1.64: free unless the owner decides)')); process.exit(1); }
 console.log(`OK — ${seen.size} called host(s), all on the owner's list`);

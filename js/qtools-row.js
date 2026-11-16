@@ -68,7 +68,7 @@ function qtLight_(root, inHand) {
     tileSet_(t, { on: lit, pressed: lit });
   });
 }
-/* A PART'S TILES AS DATA, Check first (rule 3.11): its tools, the pen's Undo and Clear, Show the answer, Help. ONE MARK BUTTON (owner, 15 Nov): no second one for photos. */
+/* A PART'S TILES AS DATA, Check first (rule 1.26): its tools, the pen's Undo and Clear, Show the answer, Help. ONE MARK BUTTON (owner, 15 Nov): no second one for photos. */
 function qtTiles_(x, ans) {
   if (!x || !x.key) return [];
   /* A CARD DRAWN AGAIN WHILE ITS RULER IS OUT gets it back on the new figure, once the markup is in */

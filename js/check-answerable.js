@@ -230,7 +230,7 @@ const wordsSample = rule => S(rule).split(';').map(p => p.trim()).filter(Boolean
     const rows = host.querySelectorAll('.qt-row');
     if (rows.length !== 1) bad('tools', x, rows.length + ' tool rows, wanted one');
     else {
-      /* THE CARD'S ONE ROW (rule 3.11): Check first, then the tools in order; the card's own tiles (Message, Save, Share…) are not tools */
+      /* THE CARD'S ONE ROW (rule 1.26): Check first, then the tools in order; the card's own tiles (Message, Save, Share…) are not tools */
       const known = new Set(TOOL_ORDER.concat(['pad-undo', 'pad-clear'])), got = toolsOf(rows[0]).filter(t => known.has(t));
       /* THE SAME ROW ON EVERY PART; the pen's tiles only where there is something to draw on (`padHasArt_`, owner 29 Oct) */
       /* AND ONLY WHERE THE PAD IS ON THE CARD (`padReady_`, 1020), with Undo and Clear before the Check */

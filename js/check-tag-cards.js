@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
-/* @family. — check-tag-cards.js EVERY TAG IS A CARD (owner, 13 Nov, rule 5.6): each facet value is the name of exactly one card in Find. */
+/* @family. — check-tag-cards.js EVERY TAG IS A CARD (owner, 13 Nov, rule 1.49): each facet value is the name of exactly one card in Find. */
 /* Counts tags with no card and tags with two; the counts sit in check/tag-cards-ratchet.json and only go down (`--lower`). */
 'use strict';
 const fs = require('fs'), path = require('path');

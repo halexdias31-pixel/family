@@ -368,7 +368,7 @@ function multiNext_(inp) {
   return i >= 0 && i < ins.length - 1 ? ins[i + 1] : null;
 }
 
-/* A TILE'S ANSWER BOX: the box is in the card's sheet and its Check in the card's one tile row (rule 3.11), so a tile asks its card. */
+/* A TILE'S ANSWER BOX: the box is in the card's sheet and its Check in the card's one tile row (rule 1.26), so a tile asks its card. */
 function qMark_(el, sel) {
   const s = sel || '.qp-mark', own = el && el.closest && el.closest(s);
   if (own) return own;

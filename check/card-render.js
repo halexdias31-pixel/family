@@ -140,7 +140,7 @@ function measure(per) {
     box.innerHTML = `<div class="pane" style="position:static;overflow:visible">${html}</div>`;
     box.querySelectorAll('.qwhole > .qb').forEach(qb => {
       out.cards++;
-      /* ONE TEMPLATE CARD PER PART (rule 3.11): picture, tags, the sheet embed, then the card's tile row. */
+      /* ONE TEMPLATE CARD PER PART (rule 1.26): picture, tags, the sheet embed, then the card's tile row. */
       const mid = cx(qb), part = qb.querySelector(':scope > .kc-lines > .kc-embed');
       const order = [qb.querySelector(':scope > .kc-pic'), qb.querySelector(':scope > .kc-tags > .qcard-tags'), part && part.querySelector(':scope > .qsheet'),
         part && part.querySelector(':scope > :is(.qp-area, .qp-compose, .qp-mark, .qpad)'), qb.querySelector(':scope > .kc-act .tile-row')].filter(seen);

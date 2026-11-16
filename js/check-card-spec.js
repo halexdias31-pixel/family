@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 require('../check/quiet');
-/* @family. — check-card-spec.js A CARD IS DATA (owner, 12 Nov, rule 3.11): every kind's builder (`cardKind_`) returns a spec object, */
+/* @family. — check-card-spec.js A CARD IS DATA (owner, 12 Nov, rule 1.26): every kind's builder (`cardKind_`) returns a spec object, */
 /* never a string; no string in a spec carries markup; renderCard escapes every text it is given. */
 const fs = require('fs'), path = require('path');
 const ROOT = path.join(__dirname, '..'), bad = [];

@@ -2,7 +2,7 @@
 
 
 
-/* A WIDGET'S MARKUP IS DATA (owner, 12 Nov, rule 3.11): its title, then its parts, drawn by the one card maker's blocks. */
+/* A WIDGET'S MARKUP IS DATA (owner, 12 Nov, rule 1.26): its title, then its parts, drawn by the one card maker's blocks. */
 const mapHead_ = text => ({ type: 'msgHead', text });
 const mapBox_ = (id, look, more) => Object.assign({ type: 'group', id, look }, more || {});
 const mapHtml_ = (name, ...parts) => cardBlocks_([mapHead_(name)].concat(parts));

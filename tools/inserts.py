@@ -453,7 +453,7 @@ ROWS = [
 ]
 
 def parts(rows):
-    """Each line is a part (rule 4.12): id = sheet id plus its order; a line already on an earlier sheet keeps that one id."""
+    """Each line is a part (rule 1.41): id = sheet id plus its order; a line already on an earlier sheet keeps that one id."""
     seen = {}
     for r in rows:
         for si, s in enumerate(r['sections']):

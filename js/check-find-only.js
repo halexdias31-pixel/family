@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 require('../check/quiet');
-/* @family. — check-find-only.js FIND IS THE ONLY WAY AROUND (owner, 14 Nov, step 3, rule 5.8): every screen in TAB_ORDER is surveyed in */
+/* @family. — check-find-only.js FIND IS THE ONLY WAY AROUND (owner, 14 Nov, step 3, rule 1.51): every screen in TAB_ORDER is surveyed in */
 /* data/settings/find-only.json; one marked `moved` has no column, no screen code, no <section>, no columns.json row, and its old name */
 /* opens its Find branch (screens-moved.json); the columns still standing are listed in check/find-only-ratchet.json, a list that only */
 /* gets shorter (`--lower` after a move). */

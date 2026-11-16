@@ -100,7 +100,7 @@ if (!MANGLED('Hi tory of the Chri tian Church', ['History of the Christian Churc
         const tw = [];
         sig.forEach((h, i) => sig.forEach((g, j) => { if (j > i && g === h && values[i].n > 1) tw.push((values[i].show || values[i].value) + ' = ' + (values[j].show || values[j].value)); }));
         if (tw.length) bad.twins = tw.slice(0, 3);
-        /* UMBRELLAS IN ONE MENU (rule 5.5, owner 12 Nov): an answer whose cards are the union of two or more others, a parent beside its own child, or one label twice. */
+        /* UMBRELLAS IN ONE MENU (rule 1.48, owner 12 Nov): an answer whose cards are the union of two or more others, a parent beside its own child, or one label twice. */
         const cs = {};
         for (const x of items) { const s = String(x.key || x.name || ''); for (const t of new Set(facetOwn_(f, x).map(spellKey_))) (cs[t] = cs[t] || new Set()).add(s); }
         /* FEW: a child of under five cards inside another answer is chance (a fighter's two bouts), not a parent shown as a sister. */
@@ -190,7 +190,7 @@ if (!MANGLED('Hi tory of the Chri tian Church', ['History of the Christian Churc
     if (off.length) nd.bad.siblings = off.slice(0, 2);
   });
 
-  /* AN UMBRELLA ABOVE (rule 5.5): an answer whose next menu offers two or more of its own sisters ("Science" › Biology, Physics) duplicates them; one shared answer is overlap, fine. */
+  /* AN UMBRELLA ABOVE (rule 1.48): an answer whose next menu offers two or more of its own sisters ("Science" › Biology, Physics) duplicates them; one shared answer is overlap, fine. */
   const twin = (nd, say) => { (nd.bad.twinpaths = nd.bad.twinpaths || []).indexOf(say) === -1 && nd.bad.twinpaths.push(say); };
   const nodeAt = {}; got.forEach(nd => { nodeAt[JSON.stringify(nd.path)] = nd; });
   const wordOf = v => String(v).toLowerCase().replace(/[^a-z0-9]/g, '');

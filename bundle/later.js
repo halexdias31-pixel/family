@@ -5101,7 +5101,7 @@ function multiNext_(inp) {
   return i >= 0 && i < ins.length - 1 ? ins[i + 1] : null;
 }
 
-/* A TILE'S ANSWER BOX: the box is in the card's sheet and its Check in the card's one tile row (rule 3.11), so a tile asks its card. */
+/* A TILE'S ANSWER BOX: the box is in the card's sheet and its Check in the card's one tile row (rule 1.26), so a tile asks its card. */
 function qMark_(el, sel) {
   const s = sel || '.qp-mark', own = el && el.closest && el.closest(s);
   if (own) return own;
@@ -8108,7 +8108,7 @@ function qStemWhole_(x, p, onScreen, pics) {
   return figBox_({ look: 'qsheet-stem qtext qb-stem kc-lines' + (p.placeholder ? ' is-standin' : ''), attrs: { 'data-of': stemId_(p) },
     inner: (p.lines ? figBox_({ tag: 'p', look: 'qsheet-lines', text: p.lines }) : '') + html.join('') });
 }
-/* ---------- A QUESTION PART IS A CARD OF THE ONE TEMPLATE (rule 3.11): its figure on top, its tags, its sheet an embed, its tiles the card's row. */
+/* ---------- A QUESTION PART IS A CARD OF THE ONE TEMPLATE (rule 1.26): its figure on top, its tags, its sheet an embed, its tiles the card's row. */
 /* WHAT A PART'S CARD DREW BESIDE ITSELF (its stems, the parts on screen, its figure on top), by key, so the card drawn again draws the same. */
 const Q_DRAWN = new Map();
 /* THE PART A CARD WAS BUILT FROM, by key, for its embed (a spec carries the key, never the part). */
@@ -17748,7 +17748,7 @@ function qtLight_(root, inHand) {
     tileSet_(t, { on: lit, pressed: lit });
   });
 }
-/* A PART'S TILES AS DATA, Check first (rule 3.11): its tools, the pen's Undo and Clear, Show the answer, Help. ONE MARK BUTTON (owner, 15 Nov): no second one for photos. */
+/* A PART'S TILES AS DATA, Check first (rule 1.26): its tools, the pen's Undo and Clear, Show the answer, Help. ONE MARK BUTTON (owner, 15 Nov): no second one for photos. */
 function qtTiles_(x, ans) {
   if (!x || !x.key) return [];
   /* A CARD DRAWN AGAIN WHILE ITS RULER IS OUT gets it back on the new figure, once the markup is in */
@@ -17791,7 +17791,7 @@ function qtRedraw_(card, x) {
 
 
 
-/* A WIDGET'S MARKUP IS DATA (owner, 12 Nov, rule 3.11): its title, then its parts, drawn by the one card maker's blocks. */
+/* A WIDGET'S MARKUP IS DATA (owner, 12 Nov, rule 1.26): its title, then its parts, drawn by the one card maker's blocks. */
 const mapHead_ = text => ({ type: 'msgHead', text });
 const mapBox_ = (id, look, more) => Object.assign({ type: 'group', id, look }, more || {});
 const mapHtml_ = (name, ...parts) => cardBlocks_([mapHead_(name)].concat(parts));

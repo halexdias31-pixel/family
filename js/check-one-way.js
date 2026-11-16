@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
-/* @family. — check-one-way.js ONE WAY ONLY (owner, 12 Nov, rule 3.13): each element is written as markup only by its one maker. */
+/* @family. — check-one-way.js ONE WAY ONLY (owner, 12 Nov, rule 1.28): each element is written as markup only by its one maker. */
 /* What is still hand-built is listed in check/one-way-ratchet.json; the count only goes down (`--lower` after a migration). */
 const fs = require('fs'), path = require('path'), acorn = require('acorn');
 const ROOT = path.join(__dirname, '..'), RATCHET = path.join(ROOT, 'check/one-way-ratchet.json');
