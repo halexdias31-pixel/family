@@ -315,56 +315,6 @@ function libContent_(ids) {
   return { items: items, missing: missing };
 }
 
-/* ---------- THE DAY'S CAP: one `lib_log` row per person per London day, its ids so a second look is free ---------- */
-const LIB_LOG_IDS_MAX = 45000;
-function libCapOf_() {
-  let cfg = {};
-  try { cfg = config() || {}; } catch (err) { cfg = {}; }
-  const cell = S(cfg.library_items_per_day);
-  const n = cell === '' ? LIB_DAILY_CAP : Number(cell);
-  return isFinite(n) && n >= 0 ? Math.floor(n) : LIB_DAILY_CAP;
-}
-/* UNDER THE LOCK: which of `ids` this person may have now. Already had today → free; new → counted until the cap. */
-function libTally_(me, ids, cap) {
-  const pid = S(me.person_id), day = reportDay_(new Date());
-  const cache = CacheService.getScriptCache();
-  const ckey = 'lbt:' + pid + ':' + day;
-  const lock = LockService.getScriptLock();
-  if (!lock.tryLock(5000)) return { busy: true };
-  const wroteBefore = POST_WROTE;
-  try {
-    clearCache();
-    const t = read(TAB.libLog);
-    const row = t.sheet ? t.rows.find(r => S(r.person_id) === pid && reportDay_(r.day) === day) : null;
-    const had = row ? S(row.ids).split(',').filter(Boolean) : [];
-    let cached = null;
-    try { cached = JSON.parse(cache.get(ckey) || 'null'); } catch (err) { cached = null; }
-    const seen = {};
-    had.concat(cached && Array.isArray(cached.ids) ? cached.ids : []).forEach(id => { seen[id] = 1; });
-    let count = Math.max(row ? Number(row.served) || 0 : 0, cached ? Number(cached.n) || 0 : 0, Object.keys(seen).length);
-    const before = count;
-    const allowed = [], refused = [];
-    ids.forEach(id => {
-      if (seen[id]) { allowed.push(id); return; }
-      if (count >= cap) { refused.push(id); return; }
-      seen[id] = 1; count++; allowed.push(id);
-    });
-    let list = Object.keys(seen).join(',');
-    if (list.length > LIB_LOG_IDS_MAX) list = list.slice(0, LIB_LOG_IDS_MAX).replace(/,[^,]*$/, '');
-    if (t.sheet && (count !== before || refused.length)) {
-      const vals = { served: count, ids: list, refused: (row ? Number(row.refused) || 0 : 0) + refused.length, last_at: new Date() };
-      if (row) setCells(t, row, vals);
-      else addRow(t, Object.assign({ day: day, person_id: pid }, vals));
-    }
-    try { cache.put(ckey, JSON.stringify({ n: count, ids: list.split(',') }), LIB_CACHE_S); } catch (err) { /* the cache is an optimisation; a miss just rebuilds */ }
-    return { allowed: allowed, refused: refused, left: Math.max(0, cap - count) };
-  } finally {
-    lock.releaseLock();
-    /* NO PAYLOAD CARRIES THE LOG, so the stored payload stands. */
-    if (POST_WROTE && !wroteBefore) POST_WROTE = false;
-  }
-}
-
 /* ---------- THE TOOLS' COPY: out a page at a time, and back in (an admin's, from tools/lib-private.js) ---------- */
 const LIB_EXPORT_MAX = 500;
 const LIB_IMPORT_MAX = 300;

@@ -231,12 +231,12 @@ function postMyAnswers_(body, action, began) {
   return jsonOut({ success: true, for: S(me.person_id), answers: answersFor_(S(me.person_id)) });
 }
 
-/* ---------- THE LIBRARY'S WORDS AND ANSWERS (397): a few items at a time, to the token's person, a day's cap each ---------- */
+/* ---------- THE LIBRARY'S WORDS AND ANSWERS (397): a few items at a time, to the token's person; no daily cap (owner, 16 Nov) ---------- */
 /* `libItems` WAS ITS OWN DOOR until 15 Nov (server-path slice 5): readItems reads the library through libItemsReply_ alone. */
 
-/* THE LIBRARY READ ITSELF, as a reply object: libItems and readItems both answer through it, so the cap and the tally are one. */
+/* THE LIBRARY READ ITSELF, as a reply object: libItems and readItems both answer through it, so their steps are one. */
 function libItemsReply_(body) {
-  /* A GUEST (owner, 15 Nov) is tallied by the device she says she is, under the same day's cap; a question never reaches here for her. */
+  /* A GUEST (owner, 15 Nov) reads by the device she says she is; a question never reaches here for her. */
   const guest = S(body.guest).replace(/[^A-Za-z0-9-]/g, '').slice(0, 40);
   const me = findPerson('', S(body.personId)) || (guest ? { person_id: 'guest:' + guest, roles: '' } : null);
   if (!me || !S(me.person_id)) return { error: 'Sign in first.' };
@@ -246,19 +246,12 @@ function libItemsReply_(body) {
   if (!ids.length) return { error: 'Which items? Nothing was asked for.' };
   if (ids.length > LIB_PER_CALL) return { error: 'At most ' + LIB_PER_CALL + ' items at a time.' };
   if (!libReady_()) return { error: 'The library is still being copied into the Ledger — try again in a few minutes.', why: 'lib-not-ready' };
-  const cap = whoMay_(me, 'admin') ? Infinity : libCapOf_();
-  const tally = cap === Infinity ? { allowed: ids, refused: [], left: null } : libTally_(me, ids, cap);
-  if (tally.busy) return { error: 'Busy — try again in a moment.', why: 'busy' };
-  if (!tally.allowed.length) {
-    return { error: 'That is today’s ' + cap + ' — the rest open tomorrow.', why: 'lib-cap', refused: tally.refused, left: 0 };
-  }
-  const got = libContent_(tally.allowed);
-  return { success: true, items: got.items, missing: got.missing, refused: tally.refused,
-           left: tally.left, cap: cap === Infinity ? null : cap, gen: libGen_() };
+  const got = libContent_(ids);
+  return { success: true, items: got.items, missing: got.missing, gen: libGen_() };
 }
 
 /* ONE WAY TO THE SERVER (step 2, slice 1): items of one kind by id, as the table allows. Beside libItems, not instead of it. */
-/* A library kind is read by libItems' own steps (signed in, the day's cap, the same tally), so it can never give more than libItems did. */
+/* A library kind is read by libItems' own steps (signed in, the same reader), so it can never give more than libItems did. */
 const READ_ITEMS_LIB = { question: 'q', content: 'ct', practical: 'pr', project: 'pj' };
 /* THE TABLE'S ITEM KIND FOR EACH (owner, 15 Nov): a question is a question; everything else the library serves is ONE kind, `library`. */
 const READ_ITEMS_SHELF = { question: 'question', content: 'library', practical: 'library', project: 'library' };

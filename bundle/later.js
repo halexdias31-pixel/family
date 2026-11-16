@@ -3779,7 +3779,7 @@ function libAheadCards_(pages, from, n) {
   }
   return out;
 }
-const libOnWay_ = x => !libSlim_(x) || libIdsFor_(x).every(t => LIB.pending.has(t) || LIB.flying.has(t) || LIB.gone.has(t) || LIB.refused.has(t));
+const libOnWay_ = x => !libSlim_(x) || libIdsFor_(x).every(t => LIB.pending.has(t) || LIB.flying.has(t) || LIB.gone.has(t));
 function libAheadAsk_(cards) {
   if (cards.slice(0, LIB_AHEAD).every(libOnWay_)) return;
   cards.forEach(x => { if (libSlim_(x)) libWant_(x); });
@@ -9884,13 +9884,44 @@ function sittingMonth_(x) {
       const m = /^([A-Za-z]{3,9})\s+(?:19|20)\d{2}$/.exec(String(v || '').trim());
       return m ? ofWord(m[1]) : ofDate(v);
     };
-    const n = ofName(doc.name || r.name || x.sub) || Number(r.month || x.month || 0)
+    const own = ofName(doc.name || r.name || x.sub) || Number(r.month || x.month || 0)
       || ofDate(r.exam_date || x.examDate) || Number(doc.month || 0) || ofDate(doc.exam_date)
       || ofWave(x.examWave);
+    /* ONE SITTING, ONE MONTH (owner, 16 Nov): AQA's June 2024 sat Paper 1 on 23 May, so it was filed under May and
+       Paper 2 under June; Month = June then hid Paper 1, and only Paper-before-Month reached it. The month a series
+       is named by is its last: every paper of the same subject, board, level, year and series answers that. */
+    const n = Math.max(own, sittingLastMonth_(Object.assign({}, doc, r), sittingOf_(x).year, own) || 0);
     out = n >= 1 && n <= 12 ? MONTH_NAMES[n - 1] : '';
   }
   SITTING_MONTH.set(x, out);
   return out;
+}
+
+/* THE LAST MONTH OF EACH SITTING, from the document rows: subject|board|level|year|series → the latest month any of its papers names. */
+const SITTING_LAST = new WeakMap();
+function sittingKey_(r, year, m) {
+  const ser = seriesOf_(m);
+  const lc = v => String(v || '').trim().toLowerCase();
+  return ser && year ? [lc(r.subject), lc(r.exam_board || r.company), lc(r.level || r.band_value), String(year).trim(), lc(ser)].join('|') : '';
+}
+function sittingLastMonth_(r, year, m) {
+  const rows = typeof libDocRows_ === 'function' ? libDocRows_() : [];
+  let map = SITTING_LAST.get(rows);
+  if (!map) {
+    map = {};
+    rows.forEach(d => {
+      if (!libIsDoc_(d) || String(d.document_type || '').toLowerCase() !== 'past paper') return;
+      const nm = /\s[\u2014\u2013]\s(?:\d{1,2}\s+)?([A-Za-z]{3,9})\s+((?:19|20)\d{2})\s*$/.exec(String(d.name || ''));
+      const byName = nm ? MONTH_NAMES.findIndex(w => w.slice(0, 3).toLowerCase() === nm[1].slice(0, 3).toLowerCase()) + 1 : 0;
+      const iso = /\b(?:19|20)\d{2}-(\d{2})-\d{2}\b/.exec(String(d.exam_date || ''));
+      const mm = byName || Number(d.month || 0) || (iso ? Number(iso[1]) : 0);
+      const k = sittingKey_(d, String(d.year || '').trim() || (nm ? nm[2] : ''), mm);
+      if (k && mm > (map[k] || 0)) map[k] = mm;
+    });
+    SITTING_LAST.set(rows, map);
+  }
+  const k = sittingKey_(r, year, m);
+  return k ? map[k] || 0 : 0;
 }
 
 /* ---------- THE SITTING IN ITS TWO HALVES, FOR THE TWO QUESTIONS THAT ASK THEM § */

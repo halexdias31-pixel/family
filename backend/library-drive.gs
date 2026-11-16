@@ -329,7 +329,7 @@ function libImportKeepBooked_() {
   ScriptApp.newTrigger(LIB_DRIVE_HOURLY).timeBased().everyHours(1).create();
   return { installed: LIB_DRIVE_HOURLY, removed: mine.length };
 }
-/* A LINE IN `lib_log` PER FILE IMPORTED — `person_id` is `library-import`, never a person, so the day's cap never reads it as anybody's tally. */
+/* A LINE IN `lib_log` PER FILE IMPORTED — `person_id` is `library-import`, never a person, never a person's row. */
 function libDriveLog_(by, name, one) {
   try {
     const t = read(TAB.libLog);

@@ -1704,17 +1704,17 @@ const FINDER_TAGS = {
   "kindLabel=Practice&kindOwn=Questions&subject=Maths&documentType=Past paper&level=GCSE&tier=Foundation&examYear=2022": ["examMonth",[["June"],["November"]],[122,129],251,["June","November"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Maths&documentType=Past paper&level=GCSE&tier=Foundation&examYear=2021": ["paperId",[["RS1786302107764-445","Paper 1"],["RS1786302107764-447","Paper 2"],["RS1786302107764-449","Paper 3"]],[38,41,40],119,["Paper 1","Paper 2","Paper 3"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Maths&documentType=Past paper&level=GCSE&tier=Foundation&examYear=2019": ["paperId",[["RS1786302107764-457","Paper 1"],["RS1786302107764-461","Paper 3"]],[43,36],79,["Paper 1","Paper 3"]],
-  "kindLabel=Practice&kindOwn=Questions&subject=Maths&documentType=Past paper&level=GCSE&tier=Foundation&examYear=2018": ["examMonth",[["May"],["June"],["November"]],[41,79,121],241,["May","June","November"]],
-  "kindLabel=Practice&kindOwn=Questions&subject=Maths&documentType=Past paper&level=GCSE&tier=Foundation&examYear=2017": ["examMonth",[["May"],["June"],["November"]],[41,77,118],236,["May","June","November"]],
+  "kindLabel=Practice&kindOwn=Questions&subject=Maths&documentType=Past paper&level=GCSE&tier=Foundation&examYear=2018": ["examMonth",[["June"],["November"]],[120,121],241,["June","November"]],
+  "kindLabel=Practice&kindOwn=Questions&subject=Maths&documentType=Past paper&level=GCSE&tier=Foundation&examYear=2017": ["examMonth",[["June"],["November"]],[118,118],236,["June","November"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Maths&documentType=Past paper&level=GCSE&tier=Higher": ["examYear",[["2024"],["2023"],["2022"],["2021"],["2020"],["2019"],["2018"],["2017"]],[182,93,184,94,97,186,181,183],1200,["2024","2023","2022","2021","2020","2019","2018","2017"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Maths&documentType=Past paper&level=GCSE&tier=Higher&examYear=2024": ["examMonth",[["June"],["November"]],[96,86],182,["June","November"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Maths&documentType=Past paper&level=GCSE&tier=Higher&examYear=2023": ["paperId",[["P-1MA1-2306-1H","Paper 1"],["P-1MA1-2306-2H","Paper 2"],["P-1MA1-2306-3H","Paper 3"]],[29,32,32],93,["Paper 1","Paper 2","Paper 3"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Maths&documentType=Past paper&level=GCSE&tier=Higher&examYear=2022": ["examMonth",[["June"],["November"]],[88,96],184,["June","November"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Maths&documentType=Past paper&level=GCSE&tier=Higher&examYear=2021": ["paperId",[["RS1786302107764-446","Paper 1"],["RS1786302107764-448","Paper 2"],["RS1786302107764-450","Paper 3"]],[29,34,31],94,["Paper 1","Paper 2","Paper 3"]],
-  "kindLabel=Practice&kindOwn=Questions&subject=Maths&documentType=Past paper&level=GCSE&tier=Higher&examYear=2020": ["examMonth",[["May"],["June"]],[33,64],97,["May","June"]],
-  "kindLabel=Practice&kindOwn=Questions&subject=Maths&documentType=Past paper&level=GCSE&tier=Higher&examYear=2019": ["examMonth",[["May"],["June"],["November"]],[34,63,89],186,["May","June","November"]],
-  "kindLabel=Practice&kindOwn=Questions&subject=Maths&documentType=Past paper&level=GCSE&tier=Higher&examYear=2018": ["examMonth",[["May"],["June"],["November"]],[27,66,88],181,["May","June","November"]],
-  "kindLabel=Practice&kindOwn=Questions&subject=Maths&documentType=Past paper&level=GCSE&tier=Higher&examYear=2017": ["examMonth",[["May"],["June"],["November"]],[31,59,93],183,["May","June","November"]],
+  "kindLabel=Practice&kindOwn=Questions&subject=Maths&documentType=Past paper&level=GCSE&tier=Higher&examYear=2020": ["verified",[["Not verified"],["Verified"]],[2,95],97,["Not verified","Verified"]],
+  "kindLabel=Practice&kindOwn=Questions&subject=Maths&documentType=Past paper&level=GCSE&tier=Higher&examYear=2019": ["examMonth",[["June"],["November"]],[97,89],186,["June","November"]],
+  "kindLabel=Practice&kindOwn=Questions&subject=Maths&documentType=Past paper&level=GCSE&tier=Higher&examYear=2018": ["examMonth",[["June"],["November"]],[93,88],181,["June","November"]],
+  "kindLabel=Practice&kindOwn=Questions&subject=Maths&documentType=Past paper&level=GCSE&tier=Higher&examYear=2017": ["examMonth",[["June"],["November"]],[90,93],183,["June","November"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Maths&documentType=Past paper&level=SATs": ["keystage",[["KS1"],["KS2"]],[180,553],733,["KS1","KS2"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Maths&documentType=Past paper&level=SATs&keystage=KS1": ["examYear",[["2026"],["2025"],["2024"]],[64,58,58],180,["2026","2025","2024"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Maths&documentType=Past paper&level=SATs&keystage=KS2": ["examYear",[["2025"],["2024"],["2023"],["2022"],["2019"],["2018"]],[89,104,91,87,97,85],553,["2025","2024","2023","2022","2019","2018"]],
@@ -2076,10 +2076,10 @@ const FINDER_TAGS = {
   "kindLabel=Practice&kindOwn=Answers&subject=Maths&documentType=Past paper&level=GCSE&tier=Higher&examYear=2024": ["paperId",[["RS1786302107764-416","Paper 1"],["RS1786302107764-418","Paper 2"],["RS1786302107764-420","Paper 3"]],[33,32,31],96,["Paper 1","Paper 2","Paper 3"]],
   "kindLabel=Practice&kindOwn=Answers&subject=Maths&documentType=Past paper&level=GCSE&tier=Higher&examYear=2023": ["paperId",[["P-1MA1-2306-1H","Paper 1"],["P-1MA1-2306-2H","Paper 2"],["P-1MA1-2306-3H","Paper 3"]],[29,32,32],93,["Paper 1","Paper 2","Paper 3"]],
   "kindLabel=Practice&kindOwn=Answers&subject=Maths&documentType=Past paper&level=GCSE&tier=Higher&examYear=2022": ["paperId",[["P-1MA1-2211-1H","Paper 1"],["P-1MA1-2211-2H","Paper 2"]],[32,32],64,["Paper 1","Paper 2"]],
-  "kindLabel=Practice&kindOwn=Answers&subject=Maths&documentType=Past paper&level=GCSE&tier=Higher&examYear=2020": ["examMonth",[["May"],["June"]],[33,64],97,["May","June"]],
-  "kindLabel=Practice&kindOwn=Answers&subject=Maths&documentType=Past paper&level=GCSE&tier=Higher&examYear=2019": ["examMonth",[["May"],["June"],["November"]],[34,63,89],186,["May","June","November"]],
-  "kindLabel=Practice&kindOwn=Answers&subject=Maths&documentType=Past paper&level=GCSE&tier=Higher&examYear=2018": ["examMonth",[["May"],["June"],["November"]],[27,66,88],181,["May","June","November"]],
-  "kindLabel=Practice&kindOwn=Answers&subject=Maths&documentType=Past paper&level=GCSE&tier=Higher&examYear=2017": ["examMonth",[["May"],["June"],["November"]],[31,59,93],183,["May","June","November"]],
+  "kindLabel=Practice&kindOwn=Answers&subject=Maths&documentType=Past paper&level=GCSE&tier=Higher&examYear=2020": ["verified",[["Not verified"],["Verified"]],[2,95],97,["Not verified","Verified"]],
+  "kindLabel=Practice&kindOwn=Answers&subject=Maths&documentType=Past paper&level=GCSE&tier=Higher&examYear=2019": ["examMonth",[["June"],["November"]],[97,89],186,["June","November"]],
+  "kindLabel=Practice&kindOwn=Answers&subject=Maths&documentType=Past paper&level=GCSE&tier=Higher&examYear=2018": ["examMonth",[["June"],["November"]],[93,88],181,["June","November"]],
+  "kindLabel=Practice&kindOwn=Answers&subject=Maths&documentType=Past paper&level=GCSE&tier=Higher&examYear=2017": ["examMonth",[["June"],["November"]],[90,93],183,["June","November"]],
   "kindLabel=Practice&kindOwn=Answers&subject=Maths&documentType=Past paper&level=SATs": ["keystage",[["KS1"],["KS2"]],[59,465],524,["KS1","KS2"]],
   "kindLabel=Practice&kindOwn=Answers&subject=Maths&documentType=Past paper&level=SATs&keystage=KS1": ["paperId",[["P-STA-KS1-2026-P1","Paper 1"],["P-STA-KS1-2026-P2","Paper 2"]],[25,34],59,["Paper 1","Paper 2"]],
   "kindLabel=Practice&kindOwn=Answers&subject=Maths&documentType=Past paper&level=SATs&keystage=KS2": ["examYear",[["2025"],["2024"],["2023"],["2022"],["2019"]],[89,101,91,87,97],465,["2025","2024","2023","2022","2019"]],
@@ -3808,7 +3808,7 @@ function libraryInto_(d, rows) {
 
 /* ================= THE LIBRARY'S PRIVATE HALF, ASKED FOR AS IT IS OPENED (397) =================
    `lib_has` names a row's fields the Ledger holds; they arrive onto the row, kept for the visit, gone at sign-out. */
-const LIB = { pending: new Set(), flying: new Set(), gone: new Set(), refused: new Set(), failed: '',
+const LIB = { pending: new Set(), flying: new Set(), gone: new Set(), failed: '',
               timer: 0, filled: new Set(), gen: 0, ahead: {}, disk: null, diskP: null, ledger: '' };
 /* AT MOST THIS MANY IN ONE ASK — the backend's `LIB_PER_CALL`. */
 const LIB_PER_ASK = 60;
@@ -3856,7 +3856,7 @@ const libWho_ = () => (libSigned_() ? USER.token : '');
 /* ASK FOR THESE (typed ids), a moment from now, with whatever else is asked in the same turn. Nobody who may: nothing; a guest never a question. */
 function libAsk_(ids) {
   if (!libMayAsk_()) return;
-  (ids || []).forEach(t => { if (t && (libSigned_() || !/^q:/.test(t)) && !LIB.flying.has(t) && !LIB.gone.has(t) && !LIB.refused.has(t)) LIB.pending.add(t); });
+  (ids || []).forEach(t => { if (t && (libSigned_() || !/^q:/.test(t)) && !LIB.flying.has(t) && !LIB.gone.has(t)) LIB.pending.add(t); });
   if (!LIB.pending.size || LIB.timer || LIB.failed) return;
   LIB.timer = setTimeout(libPump_, 0);
 }
@@ -3870,7 +3870,7 @@ function libPump_() {
   }
   libFromDisk_();
   if (!LIB.pending.size) return;
-  /* EVERY CHUNK AT ONCE: one after another, a batch over the cap reached the reader a whole round trip late. */
+  /* EVERY CHUNK AT ONCE: one after another, a batch over the per-call size reached the reader a whole round trip late. */
   /* ONE KIND A CALL: `readItems` reads one kind at a time (q, ct, pr, pj). */
   while (LIB.pending.size) {
     const all = [...LIB.pending], pre = String(all[0]).split(':')[0] + ':';
@@ -3889,14 +3889,11 @@ function libSend_(ids) {
       libMerge_((d && d.items) || {});
       libDiskPut_((d && d.items) || {}, d && d.gen);
       ((d && d.missing) || []).forEach(t => LIB.gone.add(t));
-      ((d && d.refused) || []).forEach(t => LIB.refused.add(t));
-      if (d && d.refused && d.refused.length) LIB.failed = 'That is today’s ' + (d.cap || 'share') + ' — the rest open tomorrow.';
     })
     .catch(err => {
       if (libWho_() !== who) return;
       LIB.failed = libWhyNot_(err);
-      if (err && err.reply && err.reply.why === 'lib-cap') ids.forEach(t => LIB.refused.add(t));
-      else ids.forEach(t => LIB.pending.add(t));
+      ids.forEach(t => LIB.pending.add(t));
     })
     .then(() => {
       ids.forEach(t => LIB.flying.delete(t));
@@ -4079,7 +4076,7 @@ function libForget_() {
       }
     } catch (e) { /* a malformed row keeps the card as the payload drew it */ }
   });
-  LIB.filled.clear(); LIB.pending.clear(); LIB.flying.clear(); LIB.gone.clear(); LIB.refused.clear();
+  LIB.filled.clear(); LIB.pending.clear(); LIB.flying.clear(); LIB.gone.clear();
   LIB.failed = '';
   libDiskClear_();
   clearTimeout(LIB.timer); LIB.timer = 0;
@@ -4089,7 +4086,6 @@ function libForget_() {
 /* TRY AGAIN: whatever failed is asked for again, and the cards waiting say so. Online again is a Try again by itself. */
 function libRetry_() {
   LIB.failed = '';
-  LIB.refused.clear();
   if (typeof libLanded_ === 'function') libLanded_();
   if (LIB.pending.size && !LIB.timer) LIB.timer = setTimeout(libPump_, 0);
 }
