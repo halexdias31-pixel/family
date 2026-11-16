@@ -367,7 +367,7 @@ FORM_SEND_['sign-join'] = (v, el) => {
   send_(body, { button: el, busy: text_('making-it') })
     .then(d => {
       /* THE PIN IS DROPPED THE MOMENT IT IS SENT; the name it signs in with goes on to Find's PIN step. */
-      askReset_('sign-join');
+      askDone_('sign-join');
       const handle = String((d && d.handle) || '');
       const said = kid && handle ? '@' + handle : email, box = $('in-name'); if (box) box.value = said;
       signAfterJoin_(said);

@@ -272,9 +272,18 @@ function formGroupsOf_(spec, groups, o) {
 /* ---------- A FORM ASKED IN FIND, ONE FIELD A STEP (`ask: "find"` in kinds.json; owner, 16 Nov: one form for any item) ---------- */
 /* A choice is its tags, a text field the blank tag typed on, a PIN the ten digit tags; each answer is a chip whose tap asks it again. */
 /* The answers live in `ASK[id]` in memory only: never storage, the URL or a chip's words, so a PIN is gone once sent or the page goes. */
+/* A FORM WITH `draft: "ask"` KEEPS EVERY ANSWER BUT A PIN as a draft (data.js), so a reload asks on from where it was; a PIN is never kept. */
 const ASK = {};
-const askOf_ = id => ASK[id] || (ASK[id] = { v: {}, done: {}, pin: [] });
-const askReset_ = (id, pre) => { ASK[id] = { v: Object.assign({}, pre || {}), done: {}, pin: [] }; };
+const askKeeps_ = (id, x) => (FORM_SPECS.forms[id] || {}).draft === 'ask' && x.type !== 'pin' && !draftNever_(x.f);
+const askDrafts_ = id => ((FORM_SPECS.forms[id] || {}).fields || []).filter(x => askKeeps_(id, x));
+function askReset_(id, pre) {
+  const s = { v: Object.assign({}, pre || {}), done: {}, pin: [] };
+  askDrafts_(id).forEach(x => { const d = draftRead_('ask', id + ':' + x.f); if (d !== null && d !== undefined) { s.v[x.f] = d; s.done[x.f] = true; } });
+  ASK[id] = s;
+}
+const askOf_ = id => ASK[id] || (askReset_(id), ASK[id]);
+/* SENT: its drafts go, so a new blank form never shows the last one's answers. */
+const askDone_ = id => { askDrafts_(id).forEach(x => draftDrop_('ask', id + ':' + x.f)); ASK[id] = { v: {}, done: {}, pin: [] }; };
 /* THE FIELDS ASKED NOW: in order, each `only` met by the answers above it. */
 const askFields_ = id => ((FORM_SPECS.forms[id] || {}).fields || [])
   .filter(x => !x.only || Object.keys(x.only).every(k => String(askOf_(id).v[k]) === String(x.only[k])));
@@ -311,7 +320,12 @@ function askChips_(id) {
   });
 }
 /* A FIELD ANSWERED, and on to the next. */
-function askSet_(id, f, v) { const s = askOf_(id); s.v[f] = v; s.done[f] = true; askPaint_(); }
+function askSet_(id, f, v) {
+  const s = askOf_(id), x = formAsk_(id, f);
+  s.v[f] = v; s.done[f] = true;
+  if (askKeeps_(id, x)) draftKeep_('ask', id + ':' + f, v);
+  askPaint_();
+}
 /* BACK TO A FIELD: it and every field after it are asked again; a PIN from empty. */
 function askBack_(id, f) {
   const s = askOf_(id), all = (FORM_SPECS.forms[id] || {}).fields || [], at = all.findIndex(x => x.f === f);
