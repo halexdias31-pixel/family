@@ -55,6 +55,13 @@ const SRC = [
   grab(people, /function handleCandidates_\([\s\S]*?\n\}/, 'handleCandidates_'),
   grab(people, /function handleTemplate_\([\s\S]*?\n\}/, 'handleTemplate_'),
   grab(people, /function handleMake_\([\s\S]*?\n\}/, 'handleMake_'),
+  /* THE USERNAME LAW (owner, 15 Nov): FirstName + Red, Yellow or Blue + year joined. */
+  grab(people, /const HANDLE_FORMAT[^;]*;/, 'HANDLE_FORMAT'),
+  grab(people, /const HANDLE_LAW_FIRST_MAX[^;]*;/, 'HANDLE_LAW_FIRST_MAX'),
+  grab(people, /const handleLawRe_[\s\S]*?\$'\);/, 'handleLawRe_'),
+  grab(people, /function handleLawFirst_\([\s\S]*?\n\}/, 'handleLawFirst_'),
+  grab(people, /function handleLaw_\([\s\S]*?\n\}/, 'handleLaw_'),
+  grab(people, /function handleLawIs_\([\s\S]*?\n\}/, 'handleLawIs_'),
   grab(fs.readFileSync(path.join(ROOT, 'backend', 'core.gs'), 'utf8'), /function sheetDate\([\s\S]*?\n\}/, 'sheetDate'),
   grab(people, /function handleWasWith_\([\s\S]*?\n\}/, 'handleWasWith_'),
   /* AND THE FACE A MOVED HANDLE KEEPS (342, round 2) — `renameHandles_` writes it before the handle.
@@ -167,10 +174,10 @@ const MEnew = Object.assign({}, ME, { handle_changed_at: ago(5)  });
 const CASES = [
   // --- the shape
   ['no',  'ab',            ME, 'two characters'],
-  ['no',  'a'.repeat(21),  ME, 'twenty-one characters'],
+  ['no',  'a'.repeat(31),  ME, 'thirty-one characters'],
   ['no',  '9lives',        ME, 'starts with a digit'],
   ['no',  'paul.smith',    ME, 'a dot is not allowed'],
-  ['no',  'paul-smith',    ME, 'a hyphen is not allowed'],
+  ['yes', 'paul-smith',    ME, 'a hyphen is allowed (the law\'s -2, -3)'],
   ['no',  'paul smith',    ME, 'a space is not allowed'],
   ['no',  'раul_x',        ME, 'CYRILLIC а and р — looks exactly like paul_x and is a different string'],
   ['yes', 'paul_smith2',   ME, 'letters, digits, underscore, starts with a letter'],
@@ -335,43 +342,34 @@ function run() {
     why: 'the people tab has no username column, so a write to it fails the whole save',
     said: 'still named at ' + writesUser.slice(0, 4).join(', ') });
 
-  /* ---------- THE TEMPLATE (13 Nov): FIRST TWO AND LAST TWO LETTERS OF THE FIRST NAME (EVEN OVERLAPPING) AND THE YEAR JOINED — WORKED OUT ALONE */
+  /* ---------- THE USERNAME FORMAT (HANDLE_FORMAT, pending the owner's choice; these hold today's placeholder FirstName + a pick + year) */
   box.setGate(box.realGate);
   box.setRows([]);
   const NOW_Y = String(new Date().getFullYear());
+  const LAW = /^([A-Za-z]+?)(Red|Yellow|Blue)(\d{4})(-\d+)?$/;
   const TPL = [
-    [{ person_id: 'P1', first_name: 'Tam', last_name: 'Dove', joined_on: '04/03/2025' }, 'taam2025', 'a short name overlaps'],
-    [{ person_id: 'P1b', first_name: 'Rowena', last_name: 'Dove', joined_on: '04/03/2025' }, 'rona2025', 'first two and last two letters'],
-    [{ person_id: 'P2', first_name: 'Ed', last_name: 'Ng', joined_on: new Date(2024, 10, 21) }, 'eded2024', 'a date cell, as the sheet hands one over'],
-    [{ person_id: 'P3', first_name: 'Zoë', last_name: 'Łukas', joined_on: '30/1/2023' }, 'zooe2023', 'an accent folded'],
-    [{ person_id: 'P4', first_name: 'Łena', last_name: 'Ruiz', joined_on: '1/1/2022' }, 'lena2022', 'a stroke folded'],
-    [{ person_id: 'P-1042', first_name: 'Ana', last_name: 'Ruiz' }, 'anna' + NOW_Y, 'no join date and no activity: the year now'],
-    [{ person_id: 'P-X', first_name: '', last_name: '', joined_on: '1/1/2025' }, 'xxxx2025', 'nothing to go on still makes a handle'],
-    [{ person_id: 'P5', first_name: "O'Neil", last_name: 'de Vries', date_of_birth: '09/09/2010', joined_on: '2/2/2025' }, 'onil2025', 'a birthday changes nothing'],
+    [{ person_id: 'P1', first_name: 'Sam', last_name: 'Dove', joined_on: '04/03/2026' }, 'Sam', '2026', 'first name, a colour, the year joined'],
+    [{ person_id: 'P2', first_name: 'Ed', last_name: 'Ng', joined_on: new Date(2024, 10, 21) }, 'Ed', '2024', 'a date cell, as the sheet hands one over'],
+    [{ person_id: 'P3', first_name: 'Zoë', last_name: 'Łukas', joined_on: '30/1/2023' }, 'Zoe', '2023', 'an accent folded'],
+    [{ person_id: 'P-1042', first_name: 'ana', last_name: 'Ruiz' }, 'Ana', NOW_Y, 'no join date and no activity: the year now; a capital first'],
+    [{ person_id: 'P5', first_name: "O'Neil", last_name: 'de Vries', date_of_birth: '09/09/2010', joined_on: '2/2/2025' }, 'Oneil', '2025', 'a birthday changes nothing'],
   ];
-  TPL.forEach(([r, want, why]) => {
-    const got = box.make(r);
-    if (got !== want) bad.push({ handle: 'handleMake_', want: want, why: why, said: got });
-    if (!box.shape.test(got)) bad.push({ handle: got, want: 'HANDLE_SHAPE', why: 'a made handle the gate refuses', said: got });
-    if (/dove|ruiz|vries|ng$/.test(got.replace(/\d+$/, '').slice(1))) bad.push({ handle: got, want: 'no surname', why: 'a handle never shows a surname', said: got });
+  TPL.forEach(([r, first, year, why]) => {
+    const got = box.make(r), m = LAW.exec(got || '');
+    if (!m || m[1] !== first || m[3] !== year || m[4]) bad.push({ handle: 'handleMake_', want: first + '<colour>' + year, why: why, said: got });
+    if (!box.shape.test(String(got).toLowerCase())) bad.push({ handle: got, want: 'HANDLE_SHAPE', why: 'a made handle the gate refuses', said: got });
   });
-  /* A CLASH: another person's handle OR old handle is never handed out; a counter is added. */
-  box.setRows([{ person_id: 'Q1', handle: 'x', handle_was: 'theo2026' }]);
+  /* A CLASH: another person's handle OR old handle is never handed out; all three colours taken adds -2. */
+  box.setRows([{ person_id: 'Q1', handle: 'TheoRed2026', handle_was: 'TheoBlue2026' }]);
   const clash = box.make({ person_id: 'P1', first_name: 'Theo', joined_on: '04/03/2026' });
-  if (clash !== 'theo20262') bad.push({ handle: 'handleMake_', want: 'theo20262', why: 'theo2026 is somebody\'s old handle', said: clash });
-  box.setRows([{ person_id: 'Q1', handle: 'theo2026' }, { person_id: 'Q2', handle: 'theo20262' }]);
+  if (clash !== 'TheoYellow2026') bad.push({ handle: 'handleMake_', want: 'TheoYellow2026', why: 'the only colour still free', said: clash });
+  box.setRows([{ person_id: 'Q1', handle: 'TheoRed2026' }, { person_id: 'Q2', handle: 'TheoYellow2026' }, { person_id: 'Q3', handle: 'TheoBlue2026' }]);
   const theoN = box.make({ person_id: 'P1', first_name: 'Theo', joined_on: '04/03/2026' });
-  if (theoN !== 'theo20263') bad.push({ handle: 'handleMake_', want: 'theo20263', why: 'the plain form and the first counter taken', said: theoN });
-  box.setRows([{ person_id: 'Q1', handle: 'bobo2025' }]);
-  const counted = box.make({ person_id: 'P1', first_name: 'Bo', joined_on: '04/03/2025' });
-  if (counted !== 'bobo20252') bad.push({ handle: 'handleMake_', want: 'bobo20252', why: 'a clash takes a counter', said: counted });
-  /* NOTHING RANDOM: the same row gives the same handle every time. */
+  if (!/^Theo(Red|Yellow|Blue)2026-2$/.test(theoN)) bad.push({ handle: 'handleMake_', want: 'Theo<colour>2026-2', why: 'all three colours taken', said: theoN });
+  /* RANDOM AMONG THE FREE ONES (owner, 15 Nov). */
   box.setRows([]);
-  const same = new Set(Array.from({ length: 20 }, () => box.make({ person_id: 'P7', first_name: 'Kit', last_name: 'Moss', joined_on: '1/5/2025' })));
-  if (same.size !== 1) bad.push({ handle: 'handleMake_', want: 'one handle', why: 'a template a child can work out cannot vary', said: [...same].join(', ') });
-  if (/random/i.test(SRC.match(/function handleCandidates_[\s\S]*?\n\}/)[0] + SRC.match(/function handleMake_[\s\S]*?\n\}/)[0])) {
-    bad.push({ handle: 'handleMake_', want: 'no Math.random', why: 'the owner: "no more randomisation"', said: 'it draws' });
-  }
+  const many = new Set(Array.from({ length: 60 }, () => box.make({ person_id: 'P7', first_name: 'Kit', last_name: 'Moss', joined_on: '1/5/2025' })));
+  if (many.size < 2) bad.push({ handle: 'handleMake_', want: 'a colour drawn', why: 'the colour is random among those free', said: [...many].join(', ') });
 
   /* ---------- AND THE MOVE: EVERYBODY, EARLIEST JOINER FIRST, OLD HANDLE KEPT, THE UNREAD FRIENDS CELL LEFT ALONE, SAFE TO REPEAT */
   box.setHeaders(['person_id', 'handle', 'email', 'first_name', 'last_name', 'handle_was', 'handle_changed_at', 'friends', 'joined_on', 'role']);
@@ -432,8 +430,8 @@ function run() {
   if (did.leftAlone !== 1) bad.push({ handle: 'fillHandles', want: '1 left alone',
     why: 'a run that reports nothing left alone reads the same whether it found nothing or '
        + 'rewrote everything', said: String(did.leftAlone) });
-  if (rows[1].handle !== 'xxxx' + new Date().getFullYear()) {
-    bad.push({ handle: 'fillHandles', want: 'xxxx' + new Date().getFullYear(),
+  if (!new RegExp('^Friend(Red|Yellow|Blue)' + new Date().getFullYear() + '$').test(rows[1].handle)) {
+    bad.push({ handle: 'fillHandles', want: 'Friend<colour>' + new Date().getFullYear(),
       why: 'a blank row with no name and no join date gets the template: a stand-in letter four times and the year now',
       said: '"' + rows[1].handle + '"' });
   }

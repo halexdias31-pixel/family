@@ -285,7 +285,7 @@ function sitePages_() {
   return (typeof window.siteBizPages_ === 'function' ? window.siteBizPages_() : [])
     .concat(typeof window.inboxCard_ === 'function' ? [window.inboxCard_()] : [])
     .concat(STABILITY_SHOWN ? [stabilityCard_()] : [])
-    .concat([siteTplCard_()])
+    .concat([siteTplCard_(), siteRenameCard_()])
     .concat([rolesSet_('', 'Build', [rolesDrawn_(versionSaid_, 'me-build')])]);
 }
 /* ---------- THE ONE CARD TEMPLATE, SHOWN (owner, 11 Nov; back on Site 15 Nov): a sample drawn by the card maker, its parts named in order, */
@@ -305,6 +305,38 @@ function siteTplCard_() {
     { type: 'text', look: 'note', text: 'The fixed scale, as the page has it now:' }]
     .concat(...SITE_TPL_SCALE_.map(([name, list]) => [{ type: 'text', look: 'tpl-group', text: name }, { type: 'list', look: 'tpl-row', items: list.map(t => t + ' ' + siteTok_(t)) }])) });
 }
+
+/* ---------- EVERYBODY ONTO THE USERNAME FORMAT, ONCE (owner, 15 Nov): the format is the backend's HANDLE_FORMAT, pending the owner's choice. */
+/* Preview asks the backend for the list only; Apply needs a second tap and writes that same list (its `seed`). */
+/* The list is the admin's alone: held here in memory, never stored, logged or sent anywhere else. Old usernames stop working. */
+const RENAME = { list: null, seed: 0, busy: false, said: '' };
+function siteRenameCard_() {
+  const rows = (RENAME.list || []).map(p => (p.name || p.personId) + ': ' + (p.from ? '@' + p.from : '(none)') + ' → ' + (p.to ? '@' + p.to : 'could not make one'));
+  const tiles = [{ icon: 'show', label: 'Preview list', act: 'rename-preview' }]
+    .concat(RENAME.list ? [{ icon: 'save', label: 'Apply', act: 'rename-apply' }] : []);
+  return renderCard({ kind: 'panel', look: 'biz rename-card', name: 'Rename every username', tags: [{ text: 'Rename every username' }], body: [
+    { type: 'text', look: 'note', text: 'Everybody gets a new username in the site\'s username format (being decided). Old usernames stop working — tell people their new one.' }]
+    .concat(RENAME.said ? [{ type: 'text', look: 'note', text: RENAME.said }] : [])
+    .concat(rows.length ? [{ type: 'list', look: 'rename-list', items: rows }] : []), tiles: tiles });
+}
+const renameAsk_ = (el, dry) => {
+  if (RENAME.busy) return;
+  RENAME.busy = true;
+  send_({ action: 'renameAllUsernames', token: (USER && USER.token) || '', dryRun: dry, seed: dry ? undefined : RENAME.seed }, { button: el })
+    .then(d => {
+      RENAME.list = Array.isArray(d.list) ? d.list : []; RENAME.seed = Number(d.seed) || 0;
+      RENAME.said = dry ? RENAME.list.length + ' people — nothing changed yet.' : (d.renamed || 0) + ' usernames changed.';
+    })
+    .catch(() => {})
+    .then(() => { RENAME.busy = false; lensRedraw_(); });
+};
+on('rename-preview', el => renameAsk_(el, true));
+on('rename-apply', el => {
+  if (!RENAME.list || !RENAME.seed) return;
+  /* THE SECOND TAP (sure_): every username changes, and the old ones stop working. */
+  if (!sure_(el, 'Rename everybody?')) return;
+  renameAsk_(el, false);
+});
 
 /* ---------- STABILITY (730): data/stability.json, written by tools/stability.js, read the first time the card is drawn ---------- */
 /* ONE SCORE (890): the Optimiser in Find replaces this card; its code stays, switched off. */

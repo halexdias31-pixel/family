@@ -379,10 +379,11 @@ function accountPages_(col) {
   return out.concat(coming);
 }
 
-/* ---------- SIGNING IN IS FIND'S FIRST STEP (owner, 13 Nov) ---------- */
-/* Signed out, the first menu is Guest or who you are; a name is followed by four menus of digits, each picked one a ● chip. */
-/* The digits live in `SIGN.pin` for the one call and nowhere else: never a chip's value, the URL, history, storage or a log. */
-const SIGN = { step: '', who: '', pin: [], busy: false };
+/* ---------- SIGNING IN IS FIND'S FIRST STEP (owner, 13 Nov; 15 Nov) ---------- */
+/* Signed out, the first menu is only the blank tag, typed on the site's keypad; then the digits, each picked one a ● tag with its own ×. */
+/* The digits live in `SIGN.pin` for the call and nowhere else: never a chip's value, the URL, history, storage or a log. */
+/* A wrong PIN says nothing and clears nothing, as a Find path that matches nothing: the person takes ● tags off themselves. */
+const SIGN = { step: '', who: '', pin: [], busy: false, wrong: false, known: null, card: '', dots: 0 };
 const SIGN_PIN_LEN = 4;
 const SIGN_DIGITS = '0123456789'.split('');
 const signAsking_ = () => !USER && SIGN.step !== 'guest';
@@ -391,80 +392,111 @@ function signMenu_() {
   if (!signAsking_()) return null;
   if (SIGN.busy) return [{ type: 'wait', on: true }];
   if (SIGN.step === 'join') return [typeof registerSpec_ === 'function' ? { type: 'card', spec: registerSpec_() } : ''];
-  if (SIGN.step === 'pin') return [{ type: 'choices', rows: [
-    { look: 'is-grid sign-pin', options: SIGN_DIGITS.map(d => ({ text: d, act: 'sign-digit', data: { d: d, repeat: true } })) },
-    { look: 'sign-more', options: [{ text: 'Forgot PIN', act: 'forgot-pin' }] }] }];
-  /* ONE BOX ON ONE FINDER: Find's carries the id the forgotten-PIN tag and the checks read. */
+  if (SIGN.step === 'pin') {
+    if (SIGN.card === 'forgot' && typeof signForgotSpec_ === 'function') return [{ type: 'card', spec: signForgotSpec_() }];
+    if (SIGN.card === 'join' && typeof signJoinSpec_ === 'function') return [{ type: 'card', spec: signJoinSpec_() }];
+    /* FOUR PICKED AND NOT IN: nothing at all, as a path that matches nothing. */
+    /* A NAME NO ACCOUNT ANSWERS TO keeps Make an account on offer, and nothing else. */
+    if (SIGN.wrong || SIGN.pin.length >= SIGN_PIN_LEN) return SIGN.known === false && !SIGN.busy
+      ? [{ type: 'choices', rows: [{ look: 'sign-more', options: [{ text: 'Make an account', act: 'sign-join-card' }] }] }] : [];
+    const more = [SIGN.pin.length ? null : { text: 'Forgot PIN', act: 'sign-forgot' },
+      SIGN.known === false ? { text: 'Make an account', act: 'sign-join-card' } : null].filter(Boolean);
+    return [{ type: 'choices', rows: [
+      { look: 'is-grid sign-pin', options: SIGN_DIGITS.map(d => ({ text: d, act: 'sign-digit', data: { d: d, repeat: true } })) }]
+      .concat(more.length ? [{ look: 'sign-more', options: more }] : []) }];
+  }
+  /* ONE BOX ON ONE FINDER: Find's carries the id the checks read. */
   const mine = FINDER === FINDERS.stuff, google = mine && !!(DATA.googleClientId || '');
   if (google && typeof mountGoogleWhenDrawn === 'function') mountGoogleWhenDrawn();
-  /* THE BLANK TAG YOU TYPE YOUR NAME ON: no example and nothing remembered (383); `mine` gives it the id. */
+  /* THE BLANK TAG YOU TYPE YOUR NAME ON, AND NOTHING ELSE (owner, 15 Nov: no buttons): no example and nothing remembered (383). */
   const box = signBoxOpt_(mine);
-  return [{ type: 'choices', rows: [{ look: 'sign-who', options: [{ text: 'Guest', act: 'sign-guest' }, box,
-    { text: 'Make an account', act: 'sign-join' }, { text: 'Forgot PIN', act: 'forgot-pin' }] }].concat(google ? [{ look: 'g-row', id: 'g-btn', options: [] }] : []) }];
+  return [{ type: 'choices', rows: [{ look: 'sign-who', options: [box] }].concat(google ? [{ look: 'g-row', id: 'g-btn', options: [] }] : []) }];
 }
-/* THE BLANK TAG AS DATA (the checks draw it alone through `signBox_`). */
-const signBoxOpt_ = mine => ({ box: { id: mine ? 'in-name' : '', cls: 'sign-box', inputmode: 'email', value: SIGN.who, label: 'Your name, @username or email' }, look: 'sign-type' });
+/* THE BLANK TAG AS DATA (the checks draw it alone through `signBox_`); a text box, so the site's keypad opens on its letters. */
+const signBoxOpt_ = mine => ({ box: { id: mine ? 'in-name' : '', cls: 'sign-box', autocapitalize: 'off', value: SIGN.who, label: 'Your username or email' }, look: 'sign-type' });
 const signBox_ = mine => cardChoice_(signBoxOpt_(mine));
-/* THE STEP'S CHIPS, first in the row: your name signed in (its × signs out), Guest, or the name and a ● per digit. */
+/* THE STEP'S CHIPS, first in the row: the name, then a ● per digit, each with its own ×; they stay once signed in (owner, 15 Nov). */
 function signChips_() {
   /* DATA FOR THE MENU CARD'S TAGS: a ● says only how many digits, never which. */
   const chip = (text, act, label) => ({ base: 'chip', look: 'sm sign-chip', text: text, act: act, label: label, x: { label: label }, colour: false });
-  if (USER) { const who = String(USER.name || USER.handle || '').trim(); return [chip(who, 'signout', 'Sign out ' + who)]; }
+  const dot = i => ({ base: 'chip', look: 'sm sign-dot', text: '●', act: 'sign-dot-drop', data: { i: i }, label: 'Take this digit off', x: { label: 'Take this digit off' }, hidden: true, colour: false });
+  if (USER) {
+    const who = SIGN.who || String(USER.name || USER.handle || '').trim();
+    return [chip(who, 'signout', 'Sign out ' + who)].concat(Array.from({ length: SIGN.dots }, (_, i) => dot(i)));
+  }
   if (SIGN.step === 'guest') return [chip('Guest', 'sign-restart', 'Sign in instead')];
   if (SIGN.step === 'join') return [chip('Make an account', 'sign-restart', 'Back to sign in')];
   if (SIGN.step !== 'pin') return [];
-  const dots = SIGN.busy ? SIGN_PIN_LEN : SIGN.pin.length;
-  return [chip(SIGN.who, 'sign-restart', 'Not ' + SIGN.who)].concat(Array.from({ length: dots }, () => ({ base: 'chip', look: 'sm sign-dot', text: '●', hidden: true, colour: false })));
+  const card = SIGN.card === 'forgot' ? [chip('Forgot PIN', 'sign-card-off', 'Back to the PIN')]
+    : SIGN.card === 'join' ? [chip('Make an account', 'sign-card-off', 'Back to the PIN')] : [];
+  return [chip(SIGN.who, 'sign-restart', 'Not ' + SIGN.who)].concat(SIGN.pin.map((_, i) => dot(i)), card);
 }
 on('sign-guest', () => { SIGN.step = 'guest'; SIGN.pin = []; signPaint_(); });
 on('sign-join', () => { SIGN.step = 'join'; SIGN.pin = []; signPaint_(); });
+on('sign-forgot', () => { if (SIGN.step === 'pin' && !SIGN.pin.length) { SIGN.card = 'forgot'; signPaint_(); } });
+on('sign-join-card', () => { if (SIGN.step === 'pin') { SIGN.card = 'join'; signPaint_(); } });
+on('sign-card-off', () => { SIGN.card = ''; signPaint_(); });
 on('sign-restart', () => {
-  SIGN.step = ''; SIGN.pin = [];
+  SIGN.step = ''; SIGN.pin = []; SIGN.wrong = false; SIGN.known = null; SIGN.card = '';
   finderEach_(F => finderSet_(F, { paint: false }));
+  signPaint_();
+});
+/* A ● TAG'S ×: that digit off. Signed in, the tag only goes; signed out, the digits ask again. */
+on('sign-dot-drop', el => {
+  const i = Number((el && el.dataset && el.dataset.i) || 0);
+  if (USER) { SIGN.dots = Math.max(0, SIGN.dots - 1); signPaint_(); return; }
+  if (SIGN.step !== 'pin' || SIGN.busy) return;
+  SIGN.pin.splice(i >= 0 && i < SIGN.pin.length ? i : SIGN.pin.length - 1, 1);
+  SIGN.wrong = false;
   signPaint_();
 });
 /* AN ACCOUNT MADE FROM FIND'S Make an account goes straight on to its PIN, under the name it signs in with. */
 function signAfterJoin_(who) {
-  if (USER || SIGN.step !== 'join' || !who) return;
-  SIGN.who = who; SIGN.step = 'pin'; SIGN.pin = [];
+  if (USER || !who || (SIGN.step !== 'join' && SIGN.card !== 'join')) return;
+  SIGN.who = who; SIGN.step = 'pin'; SIGN.pin = []; SIGN.card = ''; SIGN.known = true; SIGN.wrong = false;
   signPaint_();
 }
 function signWho_(box) {
   const who = String((box && box.value) || '').trim();
   if (!who) { toast(text_('type-your-name-username-or-email')); return; }
-  SIGN.who = who; SIGN.step = 'pin'; SIGN.pin = [];
+  SIGN.who = who; SIGN.step = 'pin'; SIGN.pin = []; SIGN.wrong = false; SIGN.known = null; SIGN.card = '';
   signPaint_();
+  /* IS IT AN ACCOUNT? Asked quietly; no answer (an older backend) offers nothing more. */
+  try {
+    api({ action: 'verifyLogin', probe: true, email: who, name: who }).then(d => {
+      if (SIGN.who !== who || !d || !d.probe || typeof d.known !== 'boolean') return;
+      SIGN.known = d.known; if (!USER) signPaint_();
+    }).catch(() => {});
+  } catch (e) { /* the PIN step works without it */ }
 }
-/* ENTER IN THE BOX PICKS THE NAME, as a tap picks a tag. */
+/* ENTER IN THE BOX (the keypad's ✓ is its Enter) PICKS THE NAME, as a tap picks a tag. */
 document.addEventListener('keydown', e => {
   const t = e.target;
   if (!t || !t.classList || !t.classList.contains('sign-box') || !/^Enter$/.test(e.key)) return;
   e.preventDefault();
   signWho_(t);
 });
-/* THE FOURTH DIGIT SENDS: the same `verifyLogin`, so the server's attempt limits are the ones it always had. */
+/* THE FOURTH DIGIT SENDS: the same `verifyLogin`, so the server's attempt limits are the ones it always had. Quietly: a refusal shows nothing. */
 on('sign-digit', el => {
   const d = String((el && el.dataset && el.dataset.d) || '');
-  if (USER || SIGN.step !== 'pin' || SIGN.busy || !SIGN.who || !/^\d$/.test(d)) return;
+  if (USER || SIGN.step !== 'pin' || SIGN.busy || SIGN.wrong || !SIGN.who || !/^\d$/.test(d) || SIGN.pin.length >= SIGN_PIN_LEN) return;
   SIGN.pin.push(d);
   if (SIGN.pin.length < SIGN_PIN_LEN) { signPaint_(); return; }
   const who = SIGN.who, pin = SIGN.pin.join('');
-  SIGN.pin = []; SIGN.busy = true;
+  SIGN.busy = true;
   signPaint_();
-  send_({ action: 'verifyLogin', email: who, name: who, pin: pin })
+  const miss = why => {
+    SIGN.busy = false; SIGN.wrong = true;
+    if (why === 'not-an-email' || why === 'no-such-email') SIGN.known = false;
+    signPaint_();
+  };
+  api({ action: 'verifyLogin', email: who, name: who, pin: pin })
     .then(d2 => {
-      SIGN.busy = false;
-      if (!d2.success) { toast(d2.error || 'That did not work.'); signPaint_(); return; }
-      SIGN.step = ''; SIGN.who = '';
+      if (!d2 || d2.error || !d2.success) { miss(d2 && d2.why); return; }
+      const dots = SIGN.pin.length;
+      /* THE TAGS STAY (owner, 15 Nov): the name as typed and a ● per digit (`signedIn_`'s quiet sign-out keeps them). */
+      SIGN.busy = false; SIGN.pin = []; SIGN.step = ''; SIGN.wrong = false; SIGN.card = ''; SIGN.who = who; SIGN.dots = dots;
       signedIn_(d2, who);
     })
-    /* `send_` HAS TOASTED THE SERVER'S SENTENCE; a name it does not know goes back to the box to correct. */
-    .catch(err => {
-      SIGN.busy = false;
-      const why = err && err.reply && err.reply.why;
-      if (why === 'not-an-email' || why === 'no-such-email') SIGN.step = '';
-      signPaint_();
-      const box = $('in-name');
-      if (box && !SIGN.step) { box.setAttribute('aria-invalid', 'true'); box.focus(); box.select(); }
-    });
+    .catch(() => miss(''));
 });

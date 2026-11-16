@@ -808,9 +808,9 @@ const FINDER_TAGS = {
 },
 "views": {
 "admin+bible": {
-  "": ["kindLabel",[["Practice"],["Library"],["Coming soon"],["Posts"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]],[31768,189170,23,2,4,5,10,31,7,3],221022,["Practice","Library","Coming soon","Posts","Profiles","Booking","Shop","Settings","Tools","Games"]],
+  "": ["kindLabel",[["Practice"],["Library"],["Coming soon"],["Posts"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]],[31768,189170,23,2,4,5,10,32,7,3],221023,["Practice","Library","Coming soon","Posts","Profiles","Booking","Shop","Settings","Tools","Games"]],
   "kindLabel=Profiles": ["profileType",[["Parent"],["Student"],["Tutor"]],[2,2,2],4,["Parent","Student","Tutor"]],
-  "kindLabel=Settings": ["settingFor",[["Student"],["Parent"],["Staff"],["Apprentice"],["Admin"],["Business"],["Site"]],[18,8,16,9,10,5,3],31,["Student","Parent","Staff","Apprentice","Admin","Business","Site"]]
+  "kindLabel=Settings": ["settingFor",[["Student"],["Parent"],["Staff"],["Apprentice"],["Admin"],["Business"],["Site"]],[18,8,16,9,10,5,4],32,["Student","Parent","Staff","Apprentice","Admin","Business","Site"]]
 },
 "bible": {
   "": ["kindLabel",[["Practice"],["Library"],["Coming soon"],["Posts"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]],[31768,189170,23,2,1,5,10,29,7,3],221017,["Practice","Library","Coming soon","Posts","Profiles","Booking","Shop","Settings","Tools","Games"]],

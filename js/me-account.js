@@ -311,6 +311,7 @@ function signedOut_(opts) {
   let wasAdmin = false;
   try { wasAdmin = (typeof may_ === 'function' && may_('admin')) || (typeof hasRole === 'function' && hasRole('admin')); } catch (e) { oops_(e, 'me:signedOut_') }
   USER = null; LENS = null;   /* and the lens: the next admin opens their own settings */
+  if (typeof SIGN !== 'undefined' && !opts.quiet) { SIGN.who = ''; SIGN.dots = 0; SIGN.pin = []; SIGN.wrong = false; SIGN.known = null; SIGN.card = ''; }
   try { localStorage.removeItem('familyUser'); } catch (e) { /* storage can be blocked; the app runs without it */ }
   payloadForget_();   /* the device's copy of their payload goes with them (1070) */
   if (typeof window.offForget_ === 'function') window.offForget_();   /* and the app's offline copy; the words go with libDiskClear_ */
@@ -419,10 +420,7 @@ function signedIn_(d, typed) {
   /* AND THE LATEST ANSWER SENT FOR EACH QUESTION — onto the cards, into the boxes, with "Signed in" — and
      whatever this device has waiting for this person goes up (js/submit.js). */
   try { if (typeof subAdopt_ === 'function') subAdopt_(); } catch (e) { oops_(e, 'me:signedIn_') }
-  /* WHO, NOT JUST THAT. *"i feel very insecure when signing into the kids accounts"* — on an iPad passed
-     between children, "Signed in" does not say into whose account. */
-  const first = String(USER.name || USER.handle || '').trim().split(/\s+/)[0];
-  toast(first ? text_('signed-in-as') + first : text_('signed-in'));
+  /* NO "SIGNED IN AS" (owner, 15 Nov): the name tag first in Find says whose account it is. */
   repaint();
   /* ---------- AND BACK WHERE YOU CAME FROM § */
   try {
@@ -486,6 +484,39 @@ function regFormHtml_() {
       inner: tile_({ form: true, label: text_('make-my-account'), act: 'reg-send' }) + cardBlock_({ type: 'group', tag: 'p', look: 'said', id: 'reg-note' }) }] });
 }
 CARD_EMBEDS['reg-form'] = regFormHtml_;
+
+/* ---------- FIND'S PIN STEP OPENS ONE CARD EACH (owner, 15 Nov): Forgot PIN, and Make an account when the name is no account. */
+/* FORGOT PIN: one button, the reset link to the address on that account (`forgotPin`, the existing door). */
+const signForgotSpec_ = () => ({ kind: 'panel', look: 'reg-card sign-forgot', name: 'Forgot PIN', tags: [{ text: 'Forgot PIN' }],
+  body: [{ type: 'text', look: 'note', text: 'We email a link to reset your PIN to the address on this account.' }],
+  tiles: [{ icon: 'send', label: 'Email me the link', act: 'forgot-pin' }] });
+/* MAKE AN ACCOUNT: forms.json's `sign-join`, drawn by formOf_; its send is the existing `register`. What was typed fills the email or the first name. */
+const SIGN_JOIN_WHO_ = [{ v: 'parent', t: text_('client-i-book-and-pay') }, { v: 'student', t: text_('student-im-learning') }];
+const signJoinSpec_ = () => ({ kind: 'panel', look: 'reg-card sign-join', name: text_('make-an-account'), tags: [{ text: text_('make-an-account') }],
+  body: [{ type: 'embed', tool: 'sign-join-form' }], tiles: [{ icon: 'plus', label: text_('make-my-account'), act: 'sign-join-send' }] });
+CARD_EMBEDS['sign-join-form'] = () => {
+  const who = typeof SIGN !== 'undefined' ? SIGN.who : '';
+  const pre = who.indexOf('@') > 0 ? { email: who } : { first: who.replace(/^@+/, '') };
+  return cardBlock_({ type: 'group', look: 'reg-form sign-join-form', inner: formOf_('sign-join', pre, { options: f => (f === 'who' ? SIGN_JOIN_WHO_ : null) }) });
+};
+on('sign-join-send', el => {
+  const card = (el && el.closest && el.closest('.card')) || document;
+  const v = f => String((card.querySelector('[data-sj="' + f + '"]') || {}).value || '').trim();
+  const who = v('who'), first = v('first'), last = v('last'), email = v('email'), pin = v('pin');
+  if (who !== 'parent' && who !== 'student') { toast(text_('say-who-the-account-is-for')); return; }
+  if (!first || !last) { toast(text_('your-first-and-last-name-please')); return; }
+  if (email.indexOf('@') < 0) { toast(text_('an-email-address-please-the-link')); return; }
+  if (!REG_PIN.test(pin)) { toast('A PIN is 4 digits.'); return; }
+  const body = { action: 'register', who, first_name: first, last_name: last, pin, email };
+  const from = typeof cameFrom_ === 'function' ? cameFrom_() : ''; if (from) body.from = from;
+  send_(body, { button: el, busy: text_('making-it') })
+    .then(() => {
+      const box = card.querySelector('[data-sj="pin"]'); if (box) box.value = '';
+      if (typeof signAfterJoin_ === 'function') signAfterJoin_(email);
+      toast(text_('account-made-sign-in-now-with'));
+    })
+    .catch(() => {});      // `send_` has already said why
+});
 
 /* `regWho_` IS THE ONE READER of the answer, so the send and the redraw cannot disagree about it. */
 const regIn_ = (el, id) => ((el && el.closest && el.closest('.reg-form')) || document).querySelector('#' + id);

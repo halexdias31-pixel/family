@@ -133,14 +133,14 @@ function handleFold_(v) {
  * Why `want` may not be this person's handle — '' when it may.
  * `me` is their row, so their own cells are not counted as a clash.
  */
-function handleTrouble_(want, me) {
+function handleTrouble_(want, me, wordsOnly) {
   /* ---------- TWO FORMS, AND WHICH ONE EACH LINE BELOW USES IS THE WHOLE OF IT § */
   const shown = String(want == null ? '' : want).trim();
   const raw = shown.toLowerCase();
   if (!raw) return 'Type the name you want.';
   if (!HANDLE_SHAPE.test(raw)) {
-    return 'A handle is 3 to 20 characters, starts with a letter, and holds only letters, '
-         + 'numbers and underscores.';
+    return 'A handle is 3 to 30 characters, starts with a letter, and holds only letters, '
+         + 'numbers, underscores and hyphens.';
   }
 
   const folded = handleFold_(raw);
@@ -163,6 +163,8 @@ function handleTrouble_(want, me) {
     }
   }
 
+  /* THE ADMIN'S RENAME OF EVERYBODY (`renameAllUsernames`) keeps its own list of what is taken. */
+  if (wordsOnly) return '';
   /* ---------- TAKEN, AND AGAINST ALL THREE COLUMNS § */
   /* ---------- AND AGAINST EVERY HANDLE SOMEBODY ELSE USED TO HAVE (342) § */
   const mine = me ? key(me.person_id) : '';
@@ -287,6 +289,7 @@ function handleCandidates_(r, seen) {
 
 /* ALREADY IN THE TEMPLATE'S SHAPE for this first name (any year) — such a handle is never moved again. */
 function handleInShape_(h, r) {
+  if (handleLawIs_(h, r)) return true;
   const stems = handleStems_(r);
   const m = S(h).toLowerCase().match(/^([a-z]+)(\d{4})(\d*)$/);
   return !!m && stems.indexOf(m[1]) !== -1 && (!m[3] || m[1] === stems[stems.length - 1]);
@@ -301,7 +304,48 @@ function handleTemplate_(r, trouble, seen) {
 
 /* One handle for a person about to be written or already on the tab — `handleTrouble_` is the gate, so somebody else's handle or old handle is never given. `me` may be a draft row. */
 function handleMake_(me, seen) {
-  return handleTemplate_(me || {}, want => handleTrouble_(want, me && me.person_id ? me : null), seen);
+  return handleLaw_(me || {}, want => handleTrouble_(want, me && me.person_id ? me : null), seen);
+}
+
+/* ---------- THE USERNAME FORMAT IS ONE REPLACEABLE CONFIG (owner, 16 Nov: PENDING the owner's choice, child privacy). */
+/* `pattern` names its parts: {First} the first name, {Pick} one of `picks` (drawn among those still free), {Year} the year joined; */
+/* `counter` is added when every pick is taken ({n} = 2, 3…). Change only this object to change every new username and the admin's rename. */
+const HANDLE_FORMAT = { pending: true, pattern: '{First}{Pick}{Year}', picks: ['Red', 'Yellow', 'Blue'], counter: '-{n}' };
+const HANDLE_LAW_FIRST_MAX = 12;
+function handleLawFirst_(r) {
+  const l = handleLetters_(r && r.first_name).slice(0, HANDLE_LAW_FIRST_MAX) || HANDLE_FALLBACK;
+  return l.charAt(0).toUpperCase() + l.slice(1);
+}
+/* THE FORMAT AS A MATCHER, so a username already in it is never moved by the old template's migrations. */
+const handleLawRe_ = () => new RegExp('^' + HANDLE_FORMAT.pattern.replace(/[.*+?^$()|[\]\\]/g, '\\$&')
+  .replace('{First}', '([A-Za-z]+?)').replace('{Pick}', '(?:' + (HANDLE_FORMAT.picks.join('|') || 'x') + ')').replace('{Year}', '\\d{4}')
+  + '(?:' + HANDLE_FORMAT.counter.replace(/[.*+?^$()|[\]\\]/g, '\\$&').replace('{n}', '\\d+') + ')?$');
+/* `taken(h)` says a candidate is not free; `pick(n)` draws 0..n-1 (Math.random for a joiner, seeded for the admin's rename). */
+function handleLaw_(r, taken, seen, pick) {
+  const draw = pick || (n => Math.floor(Math.random() * n));
+  const F = HANDLE_FORMAT, stem = handleLawFirst_(r), year = String(handleJoined_(r, seen).when.getFullYear());
+  const picks = F.pattern.indexOf('{Pick}') !== -1 && F.picks.length ? F.picks : [''];
+  for (let n = 1; n <= 99; n++) {
+    const free = picks.map(c => F.pattern.replace('{First}', stem).replace('{Pick}', c).replace('{Year}', year)
+      + (n > 1 ? F.counter.replace('{n}', String(n)) : '')).filter(h => !taken(h));
+    if (free.length) return free[Math.min(free.length - 1, draw(free.length))];
+  }
+  return '';
+}
+/* ALREADY THE LAW for this first name (any colour, year or counter). */
+function handleLawIs_(h, r) {
+  const m = handleLawRe_().exec(S(h));
+  return !!m && m[1].toLowerCase() === handleLawFirst_(r).toLowerCase();
+}
+/* A DRAW THAT REPEATS: the same seed gives the same colours, so Apply writes exactly the list Preview showed. */
+function handleSeeded_(seed) {
+  let a = (Number(seed) >>> 0) || 1;
+  return n => {
+    a = (a + 0x6D2B79F5) >>> 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return Math.floor((((t ^ (t >>> 14)) >>> 0) / 4294967296) * n);
+  };
 }
 
 /* THE THREE COLUMNS A HANDLE MOVE NEEDS, the ones `t` lacks: one list for the follow and the rename. */
@@ -315,7 +359,8 @@ function handleFollow_(t, r, first) {
   const draft = Object.assign({}, r, { first_name: first });
   const has = S(r.handle);
   if (!S(first) || key(first) === key(r.first_name) || (has && handleInShape_(has, draft))) return {};
-  const made = handleTemplate_(draft, want => handleTrouble_(want, r), null);
+  const made = handleLawRe_().test(has) ? handleLaw_(draft, want => handleTrouble_(want, r), null)
+    : handleTemplate_(draft, want => handleTrouble_(want, r), null);
   if (!made || key(made) === key(has)) return {};
   const out = { handle: made, handle_changed_at: new Date() };
   if (has) Object.assign(out, { handle_was: handleWasWith_(r.handle_was, has) }, handleFaceKept_(t, r, has));

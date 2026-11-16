@@ -489,14 +489,10 @@ check('Find\'s sign-in tags come from the one tag maker, and Make an account pos
   t.USER(null);
   const no = await findSign_(w, null);
   if (no) return [no];
+  /* THE FIRST MENU IS THE NAME TAG ALONE (owner, 15 Nov: no buttons). */
   const row = d.querySelector('#stuff-groups .sign-who');
   const acts = row ? [...row.querySelectorAll('.row.tap.counted')].map(x => x.dataset.do) : [];
-  if (acts.join(',') !== 'sign-guest,sign-join,forgot-pin') {
-    bad.push('the first menu\'s tags are ' + JSON.stringify(acts) + ', wanted sign-guest, sign-join, forgot-pin');
-  }
-  const loose = [...d.querySelectorAll('#stuff-groups [data-do="sign-guest"], #stuff-groups [data-do="forgot-pin"], #stuff-groups [data-do="sign-join"]')]
-    .filter(x => !x.matches('.row.tap.counted'));
-  if (loose.length) bad.push(loose.length + ' sign-in control(s) are not Find tags: ' + loose.map(x => x.dataset.do).join(', '));
+  if (acts.length || !d.getElementById('in-name')) bad.push('the first menu holds tags ' + JSON.stringify(acts) + ' or no name tag; wanted the name tag alone');
 
   /* ENTER IN THE NAME TAG MOVES ON TO THE DIGITS, and the fourth digit sends verifyLogin. */
   sent.length = 0;
@@ -508,7 +504,7 @@ check('Find\'s sign-in tags come from the one tag maker, and Make an account pos
 
   /* MAKE AN ACCOUNT ON FIND draws the form in place of the menu. */
   t.ACTIONS['sign-restart'](d.createElement('button'));
-  t.ACTIONS['sign-join'](d.querySelector('#stuff-groups [data-do="sign-join"]') || d.createElement('button'));
+  t.ACTIONS['sign-join'](d.createElement('button'));
   if (!d.querySelector('#stuff-groups .reg-card .reg-form')) bad.push('Make an account on Find drew no form');
   t.ACTIONS['sign-restart'](d.createElement('button'));
   t.go('account', false, true); try { w.paint('account'); } catch (e) {} await wait(80);
