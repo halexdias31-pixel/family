@@ -3733,7 +3733,8 @@ function libQuestion_(r) {
        match against. */
     placeholder: String(r.placeholder) === 'True',
     /* `figure` SAYS WHICH KIND OF PICTURE; `diagram` IS THE PICTURE. § */
-    figure: libS(r.figure), diagram: libS(r.diagram) || (libHasField_(r, 'diagram') ? '' : libTwinSvg_(r)),
+    /* THE TWIN STANDS IN WHILE THE DRAWING IS ON ITS WAY, or never comes (a guest; a Ledger row without it): a blank there said "Figure not drawn yet." (owner, 15 Nov). */
+    figure: libS(r.figure), diagram: libS(r.diagram) || libTwinSvg_(r),
     /* WHAT YOU HAVE TO HAVE IN FRONT OF YOU — a comma-list, the way `topics` and `keystage` are. § */
     needs: libS(r.needs),
     isDoc: docRow,
