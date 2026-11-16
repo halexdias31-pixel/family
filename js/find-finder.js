@@ -165,6 +165,8 @@ const KINDS = {
   mech: { group: 'Learning', label: 'Library', card: (x, c) => findCard(x, c) },
   /* CHEMISTRY (550): elements, substances and reactions, Library like the rest; `mKind` says which, js/chemistry.js. */
   chem: { group: 'Learning', label: 'Library', card: (x, c) => findCard(x, c) },
+  /* HISTORY TOPICS (16 Nov): a topic's timeline, people, sources and items, Library like the rest; js/history-topics.js. */
+  hist: { group: 'Learning', label: 'Library', card: (x, c) => findCard(x, c) },
 
   /* ---------- TWO GROUPS, NOT ONE GROUP AND THEN THE SAME QUESTION AGAIN § */
   /* ---------- THESE TWO STAY IN THE TABLE AND NO LONGER ANSWER THE FIRST QUESTION § */
@@ -471,6 +473,7 @@ const FACETS = [
   { field: 'boutEvent', label: 'Event',       of: x => (isFight_(x) && x.row && String(x.row.event || '').trim()) || '' },
   /* THE HISTORY DATABASE'S (459): which table, the era its years touch, and its columns as ordinary tags (`histCol_`). */
   { field: 'histKind',  label: 'Manuscripts, people, writings, events or timelines', of: x => x.histKind || (/^(pdtext|worktext|writ|writing|content)$/.test(x.kind) && [].concat(x.subject || []).indexOf('History') >= 0 ? 'Writings' : '') },
+  { field: 'histPart',  label: 'Timeline, people, sources or items', of: x => x.histPart || '' },
   { field: 'histEra',   label: 'Era',         of: x => histErasOf_(x) },
   { field: 'histMaterial', label: 'Material', of: x => histCol_(x, 'material') },
   { field: 'histFormat', label: 'Format',     of: x => histCol_(x, 'format') },

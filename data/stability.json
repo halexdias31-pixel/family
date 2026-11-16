@@ -194,12 +194,12 @@
    {
     "id": "duplicates",
     "label": "Repeated long lines",
-    "count": 8,
+    "count": 10,
     "weight": 0.02,
     "cap": 10,
     "off": 0.2,
     "where": {
-     "lines": 4
+     "lines": 5
     }
    },
    {

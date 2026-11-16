@@ -32,6 +32,12 @@ function specs() {
   return (fs.existsSync(dir) ? fs.readdirSync(dir) : []).filter(f => /\.json$/.test(f)).sort().map(f => Object.assign(jr(SPEC_DIR + '/' + f), { file: SPEC_DIR + '/' + f }));
 }
 
+/* A HISTORY TOPIC (data/library/history/<id>.json) names the spec points it teaches (`spec`); its timeline card is the point's lesson. */
+const HIST_DIR = 'data/library/history';
+const histOf = (specId, pointId) => (fs.existsSync(path.join(ROOT, HIST_DIR)) ? fs.readdirSync(path.join(ROOT, HIST_DIR)) : [])
+  .filter(f => /^[a-z0-9-]+\.json$/.test(f) && f !== 'index.json').sort().map(f => jr(HIST_DIR + '/' + f) || {})
+  .filter(t => (t.spec || []).some(x => x.id === specId && x.point === pointId)).map(t => 'hist:' + t.id + ':timeline');
+
 /* WHICH SUBJECT'S QUESTIONS COUNT: its own, and Combined Science's on the same topic (the topic names are shared) or untagged. */
 const qSubjects = S => S.subject === 'Maths' ? ['Maths'] : [S.subject, 'Combined Science'];
 
@@ -86,7 +92,7 @@ function coverage() {
     /* A POINT'S LINKS (1214): the Find keys of its lessons, then its questions, written into its spec file for the card. */
     /* A few questions each, and how many there are in all: a point on a broad topic would otherwise carry hundreds. */
     all.forEach(p => { const was = (p.links || []).filter(k => /^q:/.test(k)), qs = PQ ? pracOf[p.id] || [] : was;
-      p.links = (lessonOf[p.id] || []).map(k => 'ct:' + k.replace('#', '-')).concat(qs.slice(0, Q_SHOWN));
+      p.links = (lessonOf[p.id] || []).map(k => 'ct:' + k.replace('#', '-')).concat(histOf(S.id, p.id), qs.slice(0, Q_SHOWN));
       if (PQ) { if (qs.length) p.asked = qs.length; else delete p.asked; } });
     out.specs.push(S);
     if (!S.measured) return;

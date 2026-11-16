@@ -1,0 +1,693 @@
+{
+ "id": "tudors",
+ "name": "Tudors",
+ "title": "The Tudors and Henry VIII",
+ "from": 1485,
+ "to": 1603,
+ "level": "KS2",
+ "keystage": "KS2",
+ "spec": [
+  {
+   "id": "dfe-ks2-history",
+   "point": "KS2.6"
+  }
+ ],
+ "summary": "The Tudor family ruled England from 1485 to 1603. Henry VIII, the second Tudor king, broke away from the Pope and made himself head of the Church in England.",
+ "sources_checked": "Dates checked against Historic Royal Palaces, the Mary Rose Trust, BBC Bitesize and Wikipedia, 16 Nov 2026.",
+ "timeline": [
+  {
+   "year": 1485,
+   "title": "Henry VII becomes king",
+   "text": "Henry Tudor beats Richard III at the Battle of Bosworth and becomes King Henry VII, the first Tudor king.",
+   "who": [
+    "henry7"
+   ]
+  },
+  {
+   "year": 1486,
+   "title": "The Tudor rose",
+   "text": "Henry VII marries Elizabeth of York. Their badge joins the red rose of Lancaster and the white rose of York.",
+   "who": [
+    "henry7"
+   ]
+  },
+  {
+   "year": 1491,
+   "title": "Henry VIII is born",
+   "text": "Prince Henry is born at Greenwich Palace on 28 June. He is a second son, so nobody expects him to be king.",
+   "who": [
+    "henry8"
+   ]
+  },
+  {
+   "year": 1502,
+   "title": "Prince Arthur dies",
+   "text": "Henry's older brother Arthur dies aged 15. Now Henry will be the next king.",
+   "who": [
+    "henry8"
+   ]
+  },
+  {
+   "year": 1509,
+   "title": "Henry VIII is crowned",
+   "text": "Henry VII dies in April. Henry VIII, aged 17, marries Catherine of Aragon in June and they are crowned together on 24 June.",
+   "who": [
+    "henry8",
+    "aragon"
+   ]
+  },
+  {
+   "year": 1520,
+   "title": "Field of the Cloth of Gold",
+   "text": "Henry meets King Francis I of France near Calais. Both kings show off with golden tents, feasts and jousting.",
+   "who": [
+    "henry8",
+    "wolsey"
+   ]
+  },
+  {
+   "year": 1533,
+   "title": "Henry marries Anne Boleyn",
+   "text": "Henry's marriage to Catherine is declared void and he marries Anne Boleyn. Their daughter Elizabeth is born in September.",
+   "who": [
+    "boleyn",
+    "cranmer"
+   ]
+  },
+  {
+   "year": 1534,
+   "title": "The break with Rome",
+   "text": "The Act of Supremacy makes the king Supreme Head of the Church of England. The Pope no longer rules the Church in England.",
+   "who": [
+    "henry8",
+    "cromwell"
+   ]
+  },
+  {
+   "year": 1535,
+   "title": "Thomas More is executed",
+   "text": "Thomas More will not accept Henry as head of the Church, and is beheaded.",
+   "who": [
+    "more"
+   ]
+  },
+  {
+   "year": 1536,
+   "to": 1541,
+   "title": "Dissolution of the monasteries",
+   "text": "Henry closes England's monasteries, abbeys and convents and takes their land and treasure. Many buildings are left in ruins.",
+   "who": [
+    "cromwell"
+   ]
+  },
+  {
+   "year": 1536,
+   "title": "Anne Boleyn is executed",
+   "text": "Anne is beheaded in May. Days later Henry marries Jane Seymour.",
+   "who": [
+    "boleyn",
+    "seymour"
+   ]
+  },
+  {
+   "year": 1537,
+   "title": "Prince Edward is born",
+   "text": "Jane Seymour gives Henry the son he wanted, Edward, but she dies twelve days later.",
+   "who": [
+    "seymour",
+    "edward6"
+   ]
+  },
+  {
+   "year": 1540,
+   "title": "Two weddings and a fall",
+   "text": "Henry marries and quickly divorces Anne of Cleves. Thomas Cromwell is executed, and Henry marries Catherine Howard.",
+   "who": [
+    "cleves",
+    "cromwell",
+    "howard"
+   ]
+  },
+  {
+   "year": 1543,
+   "title": "Henry's sixth wife",
+   "text": "Henry marries Catherine Parr. She brings his three children together at court.",
+   "who": [
+    "parr"
+   ]
+  },
+  {
+   "year": 1545,
+   "title": "The Mary Rose sinks",
+   "text": "Henry's warship the Mary Rose sinks in the Solent while fighting the French. Henry watches from the shore.",
+   "who": [
+    "henry8"
+   ]
+  },
+  {
+   "year": 1547,
+   "title": "Henry VIII dies",
+   "text": "Henry dies on 28 January, aged 55. His nine-year-old son becomes Edward VI.",
+   "who": [
+    "henry8",
+    "edward6"
+   ]
+  },
+  {
+   "year": 1553,
+   "title": "Mary I becomes queen",
+   "text": "Edward VI dies aged 15. His half-sister Mary becomes queen and brings back the Catholic Church.",
+   "who": [
+    "edward6",
+    "mary1"
+   ]
+  },
+  {
+   "year": 1558,
+   "title": "Elizabeth I becomes queen",
+   "text": "Mary dies and her half-sister Elizabeth becomes queen. She reigns for 44 years.",
+   "who": [
+    "elizabeth1"
+   ]
+  },
+  {
+   "year": 1588,
+   "title": "The Spanish Armada",
+   "text": "A huge Spanish fleet sails to invade England. English ships and storms defeat it.",
+   "who": [
+    "elizabeth1"
+   ]
+  },
+  {
+   "year": 1603,
+   "title": "The last Tudor",
+   "text": "Elizabeth I dies with no children. James VI of Scotland becomes king, and the Tudor age ends.",
+   "who": [
+    "elizabeth1"
+   ]
+  }
+ ],
+ "people": [
+  {
+   "id": "henry7",
+   "name": "Henry VII",
+   "born": 1457,
+   "died": 1509,
+   "role": "King",
+   "facts": [
+    "The first Tudor king, from 1485 to 1509.",
+    "Won the crown at the Battle of Bosworth.",
+    "Father of Arthur, Henry VIII, Margaret and Mary."
+   ],
+   "pic": {
+    "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0d/Enrique_VII_de_Inglaterra%2C_por_un_artista_an%C3%B3nimo.jpg/500px-Enrique_VII_de_Inglaterra%2C_por_un_artista_an%C3%B3nimo.jpg",
+    "credit": "Unknown artist",
+    "licence": "Public domain",
+    "page": "https://commons.wikimedia.org/wiki/File:Enrique_VII_de_Inglaterra%2C_por_un_artista_an%C3%B3nimo.jpg"
+   }
+  },
+  {
+   "id": "henry8",
+   "name": "Henry VIII",
+   "born": 1491,
+   "died": 1547,
+   "role": "King",
+   "facts": [
+    "King of England from 1509 to 1547.",
+    "Married six times, hoping for a son to be king after him.",
+    "Made himself head of the Church of England in 1534.",
+    "Loved music, hunting, jousting and feasts.",
+    "Built up the navy, including the Mary Rose."
+   ],
+   "pic": {
+    "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f9/After_Hans_Holbein_the_Younger_-_Portrait_of_Henry_VIII_-_Google_Art_Project.jpg/500px-After_Hans_Holbein_the_Younger_-_Portrait_of_Henry_VIII_-_Google_Art_Project.jpg",
+    "credit": "Workshop of Hans Holbein the Younger",
+    "licence": "Public domain",
+    "page": "https://commons.wikimedia.org/wiki/File:After_Hans_Holbein_the_Younger_-_Portrait_of_Henry_VIII_-_Google_Art_Project.jpg"
+   }
+  },
+  {
+   "id": "aragon",
+   "name": "Catherine of Aragon",
+   "born": 1485,
+   "died": 1536,
+   "role": "Wife 1",
+   "facts": [
+    "A Spanish princess, first married to Henry's brother Arthur.",
+    "Married Henry in 1509 and was queen for 24 years.",
+    "Mother of Mary I."
+   ],
+   "fate": "Divorced",
+   "pic": {
+    "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/Catherine_of_Aragon_%281485-1536%29.jpg/500px-Catherine_of_Aragon_%281485-1536%29.jpg",
+    "credit": "Lucas Horenbout",
+    "licence": "Public domain",
+    "page": "https://commons.wikimedia.org/wiki/File:Catherine_of_Aragon_%281485-1536%29.jpg"
+   }
+  },
+  {
+   "id": "boleyn",
+   "name": "Anne Boleyn",
+   "born": 1501,
+   "died": 1536,
+   "role": "Wife 2",
+   "facts": [
+    "Married Henry in 1533.",
+    "Mother of Elizabeth I.",
+    "Accused of crimes and beheaded at the Tower of London in 1536."
+   ],
+   "about": true,
+   "fate": "Beheaded",
+   "pic": {
+    "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/03/AnneBoleynHever.jpg/500px-AnneBoleynHever.jpg",
+    "credit": "English school",
+    "licence": "Public domain",
+    "page": "https://commons.wikimedia.org/wiki/File:AnneBoleynHever.jpg"
+   }
+  },
+  {
+   "id": "seymour",
+   "name": "Jane Seymour",
+   "born": 1508,
+   "died": 1537,
+   "role": "Wife 3",
+   "facts": [
+    "Married Henry in 1536.",
+    "Mother of Edward VI, Henry's only son to live.",
+    "Died soon after Edward was born."
+   ],
+   "about": true,
+   "fate": "Died",
+   "pic": {
+    "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/14/Hans_Holbein_the_Younger_-_Jane_Seymour%2C_Queen_of_England_-_Google_Art_Project.jpg/500px-Hans_Holbein_the_Younger_-_Jane_Seymour%2C_Queen_of_England_-_Google_Art_Project.jpg",
+    "credit": "Hans Holbein the Younger",
+    "licence": "Public domain",
+    "page": "https://commons.wikimedia.org/wiki/File:Hans_Holbein_the_Younger_-_Jane_Seymour%2C_Queen_of_England_-_Google_Art_Project.jpg"
+   }
+  },
+  {
+   "id": "cleves",
+   "name": "Anne of Cleves",
+   "born": 1515,
+   "died": 1557,
+   "role": "Wife 4",
+   "facts": [
+    "A German princess. Henry chose her after seeing Holbein's portrait of her.",
+    "Married in January 1540; the marriage was over by July.",
+    "Stayed in England as 'the King's sister' and outlived all the other wives."
+   ],
+   "fate": "Divorced",
+   "pic": {
+    "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6e/Anne_de_Cl%C3%A8ves_-_Hans_Holbein_le_Jeune_-_Mus%C3%A9e_du_Louvre_Peintures_INV_1348_%3B_MR_756_-_version_2.jpg/500px-Anne_de_Cl%C3%A8ves_-_Hans_Holbein_le_Jeune_-_Mus%C3%A9e_du_Louvre_Peintures_INV_1348_%3B_MR_756_-_version_2.jpg",
+    "credit": "Hans Holbein the Younger",
+    "licence": "Public domain",
+    "page": "https://commons.wikimedia.org/wiki/File:Anne_de_Cl%C3%A8ves_-_Hans_Holbein_le_Jeune_-_Mus%C3%A9e_du_Louvre_Peintures_INV_1348_%3B_MR_756_-_version_2.jpg"
+   }
+  },
+  {
+   "id": "howard",
+   "name": "Catherine Howard",
+   "born": 1523,
+   "died": 1542,
+   "role": "Wife 5",
+   "facts": [
+    "A cousin of Anne Boleyn.",
+    "Married Henry in 1540 when she was still a teenager.",
+    "Beheaded in 1542."
+   ],
+   "about": true,
+   "fate": "Beheaded"
+  },
+  {
+   "id": "parr",
+   "name": "Catherine Parr",
+   "born": 1512,
+   "died": 1548,
+   "role": "Wife 6",
+   "facts": [
+    "Married Henry in 1543.",
+    "Cared for Henry's children and wrote books of prayers.",
+    "Outlived Henry."
+   ],
+   "about": true,
+   "fate": "Survived",
+   "pic": {
+    "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/49/Catherine_Parr_from_NPG.jpg/500px-Catherine_Parr_from_NPG.jpg",
+    "credit": "Unknown artist",
+    "licence": "Public domain",
+    "page": "https://commons.wikimedia.org/wiki/File:Catherine_Parr_from_NPG.jpg"
+   }
+  },
+  {
+   "id": "wolsey",
+   "name": "Thomas Wolsey",
+   "born": 1473,
+   "died": 1530,
+   "role": "Cardinal and Lord Chancellor",
+   "facts": [
+    "A butcher's son who became Henry's chief minister.",
+    "Built Hampton Court and later gave it to Henry.",
+    "Lost power in 1529 when he could not get Henry's divorce, and died on his way to be tried."
+   ],
+   "about": true,
+   "pic": {
+    "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/23/Cardinal_Thomas_Wolsey.jpg/500px-Cardinal_Thomas_Wolsey.jpg",
+    "credit": "Unknown artist",
+    "licence": "Public domain",
+    "page": "https://commons.wikimedia.org/wiki/File:Cardinal_Thomas_Wolsey.jpg"
+   }
+  },
+  {
+   "id": "cromwell",
+   "name": "Thomas Cromwell",
+   "born": 1485,
+   "died": 1540,
+   "role": "Chief minister",
+   "facts": [
+    "Henry's chief minister in the 1530s.",
+    "Planned the break with Rome and the closing of the monasteries.",
+    "Arranged the marriage to Anne of Cleves, and was executed in 1540."
+   ],
+   "about": true,
+   "pic": {
+    "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c6/Cromwell%2CThomas%281EEssex%2901.jpg/500px-Cromwell%2CThomas%281EEssex%2901.jpg",
+    "credit": "Hans Holbein the Younger",
+    "licence": "Public domain",
+    "page": "https://commons.wikimedia.org/wiki/File:Cromwell%2CThomas%281EEssex%2901.jpg"
+   }
+  },
+  {
+   "id": "more",
+   "name": "Thomas More",
+   "born": 1478,
+   "died": 1535,
+   "role": "Lord Chancellor and writer",
+   "facts": [
+    "A lawyer and writer; wrote the book Utopia in 1516.",
+    "Lord Chancellor after Wolsey.",
+    "Would not accept Henry as head of the Church, so was executed in 1535."
+   ],
+   "pic": {
+    "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d2/Hans_Holbein%2C_the_Younger_-_Sir_Thomas_More_-_Google_Art_Project.jpg/500px-Hans_Holbein%2C_the_Younger_-_Sir_Thomas_More_-_Google_Art_Project.jpg",
+    "credit": "Hans Holbein the Younger",
+    "licence": "Public domain",
+    "page": "https://commons.wikimedia.org/wiki/File:Hans_Holbein%2C_the_Younger_-_Sir_Thomas_More_-_Google_Art_Project.jpg"
+   }
+  },
+  {
+   "id": "cranmer",
+   "name": "Thomas Cranmer",
+   "born": 1489,
+   "died": 1556,
+   "role": "Archbishop of Canterbury",
+   "facts": [
+    "Archbishop of Canterbury from 1533.",
+    "Ended Henry's first marriage so he could marry Anne Boleyn.",
+    "Wrote the Book of Common Prayer in English; burned under Mary I."
+   ],
+   "pic": {
+    "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/Thomas_Cranmer_by_Gerlach_Flicke.jpg/500px-Thomas_Cranmer_by_Gerlach_Flicke.jpg",
+    "credit": "Gerlach Flicke",
+    "licence": "Public domain",
+    "page": "https://commons.wikimedia.org/wiki/File:Thomas_Cranmer_by_Gerlach_Flicke.jpg"
+   }
+  },
+  {
+   "id": "edward6",
+   "name": "Edward VI",
+   "born": 1537,
+   "died": 1553,
+   "role": "King",
+   "facts": [
+    "Henry VIII's son with Jane Seymour.",
+    "King at nine years old, from 1547 to 1553.",
+    "A Protestant; died aged 15."
+   ],
+   "pic": {
+    "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/Circle_of_William_Scrots_Edward_VI_of_England.jpg/500px-Circle_of_William_Scrots_Edward_VI_of_England.jpg",
+    "credit": "Circle of William Scrots",
+    "licence": "Public domain",
+    "page": "https://commons.wikimedia.org/wiki/File:Circle_of_William_Scrots_Edward_VI_of_England.jpg"
+   }
+  },
+  {
+   "id": "mary1",
+   "name": "Mary I",
+   "born": 1516,
+   "died": 1558,
+   "role": "Queen",
+   "facts": [
+    "Daughter of Henry VIII and Catherine of Aragon.",
+    "The first queen to rule England in her own right, from 1553 to 1558.",
+    "Made England Catholic again; about 280 Protestants were burned, so enemies called her 'Bloody Mary'."
+   ],
+   "pic": {
+    "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fe/Anthonis_Mor_001.jpg/500px-Anthonis_Mor_001.jpg",
+    "credit": "Antonis Mor",
+    "licence": "Public domain",
+    "page": "https://commons.wikimedia.org/wiki/File:Anthonis_Mor_001.jpg"
+   }
+  },
+  {
+   "id": "elizabeth1",
+   "name": "Elizabeth I",
+   "born": 1533,
+   "died": 1603,
+   "role": "Queen",
+   "facts": [
+    "Daughter of Henry VIII and Anne Boleyn.",
+    "Queen for 44 years, from 1558 to 1603.",
+    "Never married; her navy beat the Spanish Armada in 1588."
+   ],
+   "pic": {
+    "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/af/Darnley_stage_3.jpg/500px-Darnley_stage_3.jpg",
+    "credit": "Unknown artist",
+    "licence": "Public domain",
+    "page": "https://commons.wikimedia.org/wiki/File:Darnley_stage_3.jpg"
+   }
+  },
+  {
+   "id": "holbein",
+   "name": "Hans Holbein the Younger",
+   "born": 1497,
+   "died": 1543,
+   "role": "Painter",
+   "facts": [
+    "A German painter who worked at Henry's court.",
+    "Painted Henry, Jane Seymour, Anne of Cleves, Thomas More and Thomas Cromwell.",
+    "Much of what we know of their faces comes from his pictures."
+   ],
+   "about": true,
+   "pic": {
+    "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/Hans_Holbein_the_Younger%2C_self-portrait.jpg/500px-Hans_Holbein_the_Younger%2C_self-portrait.jpg",
+    "credit": "Hans Holbein the Younger",
+    "licence": "Public domain",
+    "page": "https://commons.wikimedia.org/wiki/File:Hans_Holbein_the_Younger%2C_self-portrait.jpg"
+   }
+  }
+ ],
+ "sources": [
+  {
+   "id": "portrait-henry",
+   "name": "Portrait of Henry VIII",
+   "type": "Picture",
+   "date": "about 1537–1547",
+   "text": "Henry stands with his feet apart and hands on hips, in rich clothes. It was made to show a strong, powerful king, and copies hung in great houses all over England.",
+   "pic": {
+    "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f9/After_Hans_Holbein_the_Younger_-_Portrait_of_Henry_VIII_-_Google_Art_Project.jpg/500px-After_Hans_Holbein_the_Younger_-_Portrait_of_Henry_VIII_-_Google_Art_Project.jpg",
+    "credit": "Workshop of Hans Holbein the Younger",
+    "licence": "Public domain",
+    "page": "https://commons.wikimedia.org/wiki/File:After_Hans_Holbein_the_Younger_-_Portrait_of_Henry_VIII_-_Google_Art_Project.jpg"
+   }
+  },
+  {
+   "id": "cloth-gold-painting",
+   "name": "The Field of the Cloth of Gold",
+   "type": "Picture",
+   "date": "about 1545",
+   "text": "A painting of the 1520 meeting of Henry VIII and Francis I. Look for Henry on horseback, the golden tents, the fountain of wine and the dragon in the sky.",
+   "pic": {
+    "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/04/The_Field_of_the_Cloth_of_Gold.jpg/500px-The_Field_of_the_Cloth_of_Gold.jpg",
+    "credit": "Unknown artist",
+    "licence": "Public domain",
+    "page": "https://commons.wikimedia.org/wiki/File:The_Field_of_the_Cloth_of_Gold.jpg"
+   }
+  },
+  {
+   "id": "act-supremacy",
+   "name": "Act of Supremacy, 1534",
+   "type": "Document",
+   "date": "1534",
+   "text": "The law Parliament passed to make the king head of the Church in England. Its key words, in modern spelling:",
+   "quote": "the King our Sovereign Lord, his heirs and successors, kings of this realm, shall be taken, accepted, and reputed the only supreme head in earth of the Church of England, called Anglicana Ecclesia",
+   "url": "https://en.wikisource.org/wiki/Act_of_Supremacy_1534"
+  },
+  {
+   "id": "great-bible",
+   "name": "The Great Bible",
+   "type": "Document",
+   "date": "1539",
+   "text": "The first Bible in English that every church had to have. On its front page Henry hands out the Word of God, showing him as head of the Church.",
+   "pic": {
+    "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/GreatbibleI.jpg/500px-GreatbibleI.jpg",
+    "credit": "Master of François de Rohan",
+    "licence": "Public domain",
+    "page": "https://commons.wikimedia.org/wiki/File:GreatbibleI.jpg"
+   }
+  },
+  {
+   "id": "anthony-roll",
+   "name": "The Anthony Roll: the Mary Rose",
+   "type": "Picture",
+   "date": "1546",
+   "text": "A list of Henry VIII's warships with a picture of each, made by Anthony Anthony. It is the only picture of the Mary Rose made in Tudor times.",
+   "pic": {
+    "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/AnthonyRoll-2_Mary_Rose.jpg/500px-AnthonyRoll-2_Mary_Rose.jpg",
+    "credit": "Anthony Anthony (the Anthony Roll)",
+    "licence": "Public domain",
+    "page": "https://commons.wikimedia.org/wiki/File:AnthonyRoll-2_Mary_Rose.jpg"
+   }
+  },
+  {
+   "id": "cowdray",
+   "name": "The Cowdray engraving",
+   "type": "Picture",
+   "date": "1545, copied 1788",
+   "text": "A copy of a lost Tudor wall painting of the Battle of the Solent. Near the middle, only the masts of the sinking Mary Rose show above the water.",
+   "pic": {
+    "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/63/Cowdray_engraving-full-lowres.jpg/500px-Cowdray_engraving-full-lowres.jpg",
+    "credit": "James Basire, after a lost Tudor painting",
+    "licence": "Public domain",
+    "page": "https://commons.wikimedia.org/wiki/File:Cowdray_engraving-full-lowres.jpg"
+   }
+  },
+  {
+   "id": "bbc-tudors",
+   "name": "BBC Bitesize: The Tudors",
+   "type": "Video",
+   "text": "BBC Bitesize KS2: who the Tudors were.",
+   "url": "https://www.bbc.co.uk/bitesize/articles/z47cydm"
+  },
+  {
+   "id": "bbc-henry",
+   "name": "BBC Bitesize: Who was Henry VIII?",
+   "type": "Video",
+   "text": "BBC Bitesize KS2: Henry VIII and his six wives.",
+   "url": "https://www.bbc.co.uk/bitesize/articles/zmst6g8"
+  },
+  {
+   "id": "bbc-teach-henry",
+   "name": "BBC Teach: Life in Tudor times, Henry VIII",
+   "type": "Video",
+   "text": "A short BBC Teach class clip for KS2.",
+   "url": "https://www.bbc.co.uk/teach/class-clips-video/articles/zmf2p9q"
+  }
+ ],
+ "items": [
+  {
+   "id": "mary-rose",
+   "name": "The Mary Rose",
+   "date": "built 1510–1511",
+   "facts": [
+    "One of Henry VIII's biggest warships, armed with cannon.",
+    "Sank in the Solent on 19 July 1545, fighting the French.",
+    "Raised from the seabed in 1982; now in a museum in Portsmouth."
+   ],
+   "pic": {
+    "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/AnthonyRoll-2_Mary_Rose.jpg/500px-AnthonyRoll-2_Mary_Rose.jpg",
+    "credit": "Anthony Anthony (the Anthony Roll)",
+    "licence": "Public domain",
+    "page": "https://commons.wikimedia.org/wiki/File:AnthonyRoll-2_Mary_Rose.jpg"
+   },
+   "url": "https://maryrose.org/"
+  },
+  {
+   "id": "mary-rose-finds",
+   "name": "Mary Rose finds",
+   "date": "1545",
+   "facts": [
+    "About 19,000 objects have been brought up from the wreck.",
+    "Longbows and thousands of arrows, some still in their chests.",
+    "Wooden nit combs for getting rid of head lice.",
+    "The skeleton of the ship's dog, whom the museum calls Hatch."
+   ],
+   "url": "https://maryrose.org/"
+  },
+  {
+   "id": "henry-armour",
+   "name": "Henry VIII's armour",
+   "date": "1515–1540",
+   "facts": [
+    "Henry's suits of armour are kept by the Royal Armouries, some at the Tower of London.",
+    "His armour from when he was young is slim; his armour from 1540 is very wide around the waist.",
+    "Armour was made to measure, so it shows how Henry's body changed."
+   ],
+   "url": "https://royalarmouries.org/"
+  },
+  {
+   "id": "tudor-coins",
+   "name": "Tudor coins",
+   "date": "1489–1603",
+   "facts": [
+    "Henry VII made the first gold pound coin, the sovereign, in 1489.",
+    "A groat was worth four pennies.",
+    "Late in his reign Henry VIII mixed copper into silver coins; when the silver wore off his nose, people called him 'Old Coppernose'.",
+    "The picture is a gold sovereign of Elizabeth I."
+   ],
+   "pic": {
+    "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/England_%28Great_Britain%29_Sovereign_of_Elizabeth_I.jpg/500px-England_%28Great_Britain%29_Sovereign_of_Elizabeth_I.jpg",
+    "credit": "National Museum of American History",
+    "licence": "Public domain",
+    "page": "https://commons.wikimedia.org/wiki/File:England_%28Great_Britain%29_Sovereign_of_Elizabeth_I.jpg"
+   }
+  },
+  {
+   "id": "hampton-court",
+   "name": "Hampton Court Palace",
+   "date": "from 1515",
+   "facts": [
+    "Built by Cardinal Wolsey, then given to Henry VIII.",
+    "Henry added a Great Hall and huge kitchens to feed his court.",
+    "It still stands by the River Thames near London."
+   ],
+   "pic": {
+    "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Hampton_Court_Palace%2C_West_Front_Richmond_upon_Thames_1193127_20230823_0050.jpg/500px-Hampton_Court_Palace%2C_West_Front_Richmond_upon_Thames_1193127_20230823_0050.jpg",
+    "credit": "Tilman2007",
+    "licence": "CC BY-SA 4.0",
+    "page": "https://commons.wikimedia.org/wiki/File:Hampton_Court_Palace%2C_West_Front_Richmond_upon_Thames_1193127_20230823_0050.jpg"
+   }
+  },
+  {
+   "id": "tudor-rose",
+   "name": "The Tudor rose",
+   "date": "1486",
+   "facts": [
+    "The badge of the Tudor family.",
+    "It puts the red rose of Lancaster and the white rose of York together.",
+    "It showed the Wars of the Roses were over."
+   ],
+   "pic": {
+    "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/Tudor_Rose.svg/500px-Tudor_Rose.svg.png",
+    "credit": "Sodacan",
+    "licence": "CC BY-SA 3.0",
+    "page": "https://commons.wikimedia.org/wiki/File:Tudor_Rose.svg"
+   }
+  },
+  {
+   "id": "ruined-abbey",
+   "name": "A ruined abbey",
+   "date": "1536–1541",
+   "facts": [
+    "When Henry closed the monasteries, many abbeys lost their roofs and lead.",
+    "Glastonbury Abbey, in the picture, was closed in 1539.",
+    "Its ruins can still be visited."
+   ],
+   "pic": {
+    "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/Glastonburyabbey.jpg/500px-Glastonburyabbey.jpg",
+    "credit": "Littleblackpistol",
+    "licence": "Public domain",
+    "page": "https://commons.wikimedia.org/wiki/File:Glastonburyabbey.jpg"
+   }
+  }
+ ]
+}

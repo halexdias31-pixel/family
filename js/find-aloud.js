@@ -735,6 +735,7 @@ function stuffItemsRaw_() {
     ...(typeof window.hymnsItems_ === 'function' ? window.hymnsItems_() : []),
     ...(typeof mechItems_ === 'function' ? mechItems_() : []),
     ...(typeof chemItems_ === 'function' ? chemItems_() : []),
+    ...(typeof histTopicItems_ === 'function' ? histTopicItems_() : []),
 
     /* ---------- `DATA.films` WAS MAPPED HERE, ONE ITEM PER FILM OR SERIES, AND IS NOT ANY MORE § */
 

@@ -226,6 +226,9 @@ const CARD_BLOCKS = {
   /* A HEADED SECTION: a small heading, then any blocks. */
   section: b => `<section class="kc-sec${b.look ? ' ' + esc(b.look) : ''}"${b.live ? ' aria-live="polite"' : ''}>${b.head ? `<h4 class="kc-h${b.headLook ? ' ' + esc(b.headLook) : ''}">${cardRuns_(b.head)}</h4>` : ''}${(b.blocks || []).map(cardBlock_).join('')}</section>`,
   tree: b => cardTree_(b.nodes, !!b.fold, true),
+  /* A TIMELINE (history topics, the one timeline renderer): a dated stop a row down one line, each drawn in after the one above (style.css `.kc-tl`). */
+  timeline: b => ((b.events || []).length ? `<ol class="kc-tl"${b.label ? ` aria-label="${esc(b.label)}"` : ''}>${b.events.map(e => `<li class="kc-tl-stop"><span class="kc-tl-when">${esc(e.when || '')}</span>`
+    + `<div class="kc-tl-what"><b>${cardRuns_(e.title)}</b>${e.text ? `<p>${cardRuns_(e.text)}</p>` : ''}${e.who ? `<p class="kc-tl-who">${cardRuns_(e.who)}</p>` : ''}</div></li>`).join('')}</ol>` : ''),
   grid: cardGrid_,
   /* A WAIT is `loading_()` and nothing else; `look` and `data` name a region its redraw finds (`.err-body`). */
   choices: cardChoices_,

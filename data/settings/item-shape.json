@@ -21,6 +21,7 @@
     "insert": { "source": "data/inserts.json + Ledger lib_inserts", "loader": "js/library.js -> find-history.js", "builder": "item map (cards-parts.js ITEM_MAPS)" },
     "spec": { "source": "data/specs.json", "loader": "js/library.js -> find-history.js", "builder": "item map (cards-parts.js ITEM_MAPS)" },
     "chem": { "source": "data/chemistry/*.json", "loader": "js/chemistry.js", "builder": "item map (cards-parts.js ITEM_MAPS)" },
+    "hist": { "source": "one file a topic, data/library/history/<id>.json: its timeline, people, sources and items, a card each", "loader": "js/history-topics.js", "builder": "item map (cards-parts.js ITEM_MAPS)" },
     "mech": { "source": "data/mechanics/*.json", "loader": "js/mechanics.js", "builder": "item map (cards-parts.js ITEM_MAPS)" },
     "question": { "source": "data/questions.json + data-private + Ledger lib_questions", "loader": "js/data.js, js/library.js", "builder": "item map (cards-parts.js ITEM_MAPS)" },
     "subject": { "source": "payload (Ledger people/pricing)", "loader": "subjectRows() -> find-aloud.js", "builder": "item map (cards-parts.js ITEM_MAPS)" },
@@ -32,5 +33,5 @@
     "product": { "source": "Ledger shop tab (data/settings/shop.json, data/shop-additions.json)", "loader": "backend get-shop.gs -> find-aloud.js findMineItems_ (its Find entry is its row)", "sample": "check/fixture.json shop", "builder": "item map (cards-parts.js ITEM_MAPS.product, drawn as kind shop)" },
     "post": { "source": "Ledger posts tabs", "loader": "backend get-posts.gs -> find-doors.js", "sample": "check/fixture.json posts", "builder": "item map (cards-parts.js ITEM_MAPS)" }
   },
-  "migrated": ["manuscript", "writing", "event", "insert", "spec", "chem", "mech", "figure", "boxer", "fight", "practical", "project", "content", "subject", "level", "venue", "question", "tutor", "person", "post", "product", "booking"]
+  "migrated": ["manuscript", "writing", "event", "insert", "spec", "chem", "hist", "mech", "figure", "boxer", "fight", "practical", "project", "content", "subject", "level", "venue", "question", "tutor", "person", "post", "product", "booking"]
 }
