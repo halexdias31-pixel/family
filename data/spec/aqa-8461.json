@@ -1179,7 +1179,7 @@
   },
   {
    "id": "4.6.2.5",
-   "text": "Cloning",
+   "text": "Cloning (biology only)",
    "parent": "4.6.2",
    "links": [
     "ct:TB-AQA-8461-68",
@@ -1211,7 +1211,7 @@
   },
   {
    "id": "4.6.3.2",
-   "text": "Speciation",
+   "text": "Speciation (biology only)",
    "parent": "4.6.3",
    "links": [
     "ct:TB-AQA-8461-70",
@@ -1446,7 +1446,7 @@
   },
   {
    "id": "4.7.2.4",
-   "text": "Impact of environmental change",
+   "text": "Impact of environmental change (biology only) (HT only)",
    "parent": "4.7.2",
    "links": [
     "ct:TB-AQA-8461-84",
