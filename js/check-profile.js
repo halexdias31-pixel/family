@@ -1120,7 +1120,7 @@ let peopleRules = 0;
     /* MADE: a template handle, joined today, a fresh PIN that signs them in, their parent linked. */
     const made = as(ad, { action: 'personSave', firstName: 'Nia', lastName: 'Newby', roles: ['student'], dob: '2015-03-02', parentIds: ['P-PA'] });
     const id = made.person && made.person.personId;
-    rule(made.success && id && /^niia\d{4}$/.test(made.handle) && /^\d{6}$/.test(made.pin), 'adding a person said ' + JSON.stringify(made));
+    rule(made.success && id && /^NiaN\d{4}$/.test(made.handle) && /^\d{6}$/.test(made.pin), 'adding a person said ' + JSON.stringify(made));
     if (id) {
       const row = f.row(id);
       rule(row.role === 'student' && row.handle === made.handle && String(row.joined_on) !== '', 'the new row is not a student with the handle it was given and a day joined');
@@ -1134,7 +1134,7 @@ let peopleRules = 0;
       const ed = as(ad, { action: 'personSave', targetId: id, firstName: 'Niamh', lastName: 'Newby', roles: ['student'], email: 'niamh@example.org', parentIds: [] });
       const after = f.row(id);
       /* THE HANDLE FOLLOWS THE FIRST NAME, and the old one is kept in handle_was. */
-      rule(ed.success && after.first_name === 'Niamh' && after.handle === made.handle.replace(/^niia/, 'nimh') && String(after.handle_was).indexOf(made.handle) === 0 && after.email === 'niamh@example.org', 'editing did not write the name and email, or the handle did not follow the first name: ' + JSON.stringify(ed));
+      rule(ed.success && after.first_name === 'Niamh' && after.handle === made.handle.replace(/^NiaN/, 'NiamhN') && String(after.handle_was).indexOf(made.handle) === 0 && after.email === 'niamh@example.org', 'editing did not write the name and email, or the handle did not follow the first name: ' + JSON.stringify(ed));
       rule(!f.tabs.family.some(r => r.indexOf(id) !== -1), 'unticking the parent left the link');
       rule(!as(ad, { action: 'personSave', targetId: id, firstName: 'Niamh', lastName: 'Newby', roles: ['student'], email: 'p-pa@example.org' }).success, 'two people were given one email address');
       /* REMOVED, with every family row naming them. */

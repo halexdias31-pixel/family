@@ -28,6 +28,7 @@ function startTimesTables() {
 
   const input = $('tt-answer');
   input.value = '';
+  kpRender_(input);
   input.focus();
 
   ttState.timer = setInterval(() => {
@@ -53,6 +54,7 @@ function startTimesTables() {
       $('tt-feedback').textContent = '✓';
       ttAsk();
       input.value = '';
+      kpRender_(input);
     }
   };
 }
@@ -2337,8 +2339,7 @@ const WORD_GAMES = [
   /* WORD SEARCH AND SENTENCE SCRAMBLE, MOVED IN BY THE OWNER (441) — their own cards before; nothing runs between taps, so no stop. */
   { k: 'ws', name: 'Word Search', start: () => initWordSearch(), stop: () => {},
     body: `<p>Tap the first letter of a word, then its last.</p>
-    <label class="mat-sel ws-top"><select id="ws-theme" data-do="ws-theme"
-      aria-label="Which words"></select></label>
+    ${formLine_('', formSelect_(`id="ws-theme" data-do="ws-theme" aria-label="Which words"`, ''), 'mat-sel ws-top')}
     <div id="ws-grid" class="ws"></div>
     <ul id="ws-words" class="ws-list"></ul>
     <p class="note game-said" id="ws-said"></p>
@@ -2352,7 +2353,7 @@ const WORD_GAMES = [
     </div>
     <div id="tt-question" class="hidden tt">
       <p class="mono tt-big" id="tt-q">—</p>
-      <input id="tt-answer" inputmode="numeric" placeholder="answer" autocomplete="off">
+      ${kpField_('tt', '', 'maths', 0, 'answer', null, { id: 'tt-answer', 'data-do': 'tt-answer' })}
       <p class="note game-said" id="tt-feedback"></p>
       ${rowLive('Time', '60', 'tt-time')}
       ${rowLive('Right', '0', 'tt-score')}
@@ -2361,8 +2362,7 @@ const WORD_GAMES = [
     <div id="tt-over" class="hidden"></div>` },
   { k: 'ss', name: 'Sentence Scramble', start: () => initScramble(), stop: () => {},
     body: `<p>Tap the words in order to put the sentence back together.</p>
-    <label class="mat-sel ws-top"><select id="ss-level" data-do="ss-level"
-      aria-label="Level"></select></label>
+    ${formLine_('', formSelect_(`id="ss-level" data-do="ss-level" aria-label="Level"`, ''), 'mat-sel ws-top')}
     <div id="ss-box"></div>
     <p class="note game-said" id="ss-said"></p>` },
 ];
@@ -3018,7 +3018,7 @@ function nesPaint_() {
     <p class="note" id="nes-say" role="status"></p>
     <p id="nes-kept" hidden></p>
     <p id="nes-sysnote" hidden></p>
-    <input type="file" id="nes-file" class="nes-file" accept="${NES_ACCEPT}">`;
+    ${formInput_(`type="file" id="nes-file" class="nes-file" accept="${NES_ACCEPT}"`)}`;
     nesPadWire_($('nes-pad'));
     nesModeWire_($('nes-wrap'));
     nesSeen_($('nes-wrap'));
