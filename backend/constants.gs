@@ -136,7 +136,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-11-16-items-1";
+const BACKEND_VERSION = "2026-11-16-card-1";
 /* THE SWITCH (owner's go, after the copy is checked): 'tabs' reads and writes each kind's own Ledger tab (kinds.json `sheet.tab`); */
 /* 'items' reads and writes the one items tab and the one events tab. The action `item` (items.gs) is the same either way. */
 const ITEM_STORE = 'tabs';

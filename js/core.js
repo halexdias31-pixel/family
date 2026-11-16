@@ -210,22 +210,6 @@ function fmtDate_(v, style, b) {
   if (style === 'hours') return fmtHours_(v, b);
   return fmtDmy_(v);
 }
-/* ONE CARD, AS TEXT (owner rule 1.1, 16 Nov): a booking's lines for an email, a receipt or a notice. The backend's copy is generated */
-/* (tools/cards-gen.js), so no email writes its own. `b` {subject, level, day, time, location, dates, price}; `who` the reader: */
-/* a child never sees a price, and `who.prices === false` hides it for anybody. */
-function cardText_(b, who) {
-  const x = b || {}, r = who || {};
-  const kid = r.kid === true || r.child === true || [].concat(r.roles || [], r.role || []).join(',').split(/[,\s]+/).some(v => /^(kid|child|student)$/i.test(v));
-  const str = v => String(v == null ? '' : v).trim();
-  const out = [];
-  if (str(x.subject)) out.push(str(x.level) ? text_('card-subject-level', { subject: str(x.subject), level: str(x.level) }) : str(x.subject));
-  const day = str(x.day) ? fmtDate_(x.day, 'day') : '', time = str(x.time) ? fmtDate_(x.time, 'time') : '';
-  if (day || time) out.push(day && time ? text_('card-day-at-time', { day, time }) : day || time);
-  if (str(x.location)) out.push(str(x.location));
-  if (str(x.dates)) out.push(text_('card-dates', { dates: str(x.dates) }));
-  if (!kid && r.prices !== false && str(x.price) !== '' && isFinite(Number(x.price))) out.push(text_('card-total', { total: fmtMoney_(x.price) }));
-  return out.map(l => '• ' + l).join('\n');
-}
 
 
 function num(raw) {

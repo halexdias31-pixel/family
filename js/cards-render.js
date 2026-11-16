@@ -275,6 +275,7 @@ const cardBlocks_ = bs => [].concat(bs == null ? [] : bs).map(cardBlock_).join('
 /* THE CARD. Its tile row is the one round row: the first tile leads, Message and Save stand beside it, the rest behind ⋯ (a question's all shown). */
 function renderCard(spec) {
   spec = spec || {};
+  if (spec.inline) return cardLetter_(spec);
   const kind = spec.kind || 'thing', name = spec.name || ((spec.tags || [])[0] && ((spec.tags[0].text != null ? spec.tags[0].text : spec.tags[0]))) || '';
   /* THE NAME IS SAID ONCE: a facet tag that says the first tag again is left out. */
   const said = t => String(typeof t === 'object' ? t.text : t).trim().toLowerCase();
@@ -295,6 +296,45 @@ function renderCard(spec) {
     + `<div class="kc-tags"${spec.tagsId ? ` id="${esc(spec.tagsId)}"` : ''}>${renderTags(tags, spec.tagLook, spec.tagsKeep)}${(spec.tagRows || []).map(CARD_BLOCKS.tags).join('')}</div>`
     + `<div class="kc-lines">${lines || (spec.empty ? `<p class="kc-line kc-empty">${esc(spec.empty)}</p>` : '')}</div>${cut.form ? `<div class="kc-form">${cut.form}</div>` : ''}`
     + `<div class="kc-act">${row}</div></div>`;
+}
+/* THE CARD IN A LETTER (owner, 16 Nov: one card maker everywhere — the Sunday email, every booking email, the backend's copy by tools/cards-gen.js). */
+/* `inline: 'text'` writes the kind's lines as plain text; an ink object (the email's colours, `hues` its tag inks) writes a table with every style inline, */
+/* as mail clients read no stylesheet. The lines, labels, sizes and styles are the kind's `card.letter` in kinds.json and nowhere else. */
+const cardLetterOf_ = kind => (((ITEM_KINDS.kinds[kind] || {}).card || {}).letter || {});
+/* A KIND'S LINES FROM ITS ROW, each through the words file; a `price` line is never said to a child (`see.kid` or a kid role) or with `see.prices === false`. */
+function cardLetterLines_(L, row, see) {
+  const r = row || {}, s = see || {}, str = v => String(v == null ? '' : v).trim();
+  const kid = s.kid === true || s.child === true || [].concat(s.roles || [], s.role || []).join(',').split(/[,\s]+/).some(v => /^(kid|child|student)$/i.test(v));
+  return (L.lines || []).map(l => {
+    if (l.price && (kid || s.prices === false)) return '';
+    const said = {}, as = l.as || {};
+    (l.need || []).forEach(f => { const v = str(r[f]); if (!v || (l.money && !isFinite(Number(r[f])))) return;
+      said[as[f] || f] = l.date ? fmtDate_(r[f], f) : l.money ? fmtMoney_(r[f]) : v; });
+    const got = (l.need || []).map(f => said[as[f] || f]).filter(Boolean);
+    if (l.word && got.length === (l.need || []).length) return text_(l.word, said);
+    return l.alone === 'any' ? got[0] || '' : l.alone ? said[l.alone] || '' : '';
+  }).filter(Boolean);
+}
+function cardLetter_(spec) {
+  const L = cardLetterOf_(spec.kind), I = spec.inline, cut = spec.cut || {};
+  if (I === 'text') return cardLetterLines_(L, spec.row, spec.see).map(l => (L.bullet || '') + l).join('\n');
+  const Z = Object.assign({}, L.sizes, I);
+  const st = (k, more) => String((L.styles || {})[k] || '').replace(/\{(\w+)\}/g, (m, n) => { const v = more && n in more ? more[n] : Z[n]; return v == null ? '' : v; });
+  const cl = k => ((L.cls || {})[k] ? ` class="${esc(L.cls[k])}"` : '');
+  const p = (k, inner, more) => `<p${cl(k)} style="${st(k, more)}">${inner}</p>`;
+  const tag = t => { t = typeof t === 'object' ? t : { text: t }; const hue = (I.hues || {})[t.colour];
+    return `<span${cl('tag')} style="${st('tag', { hue: hue || I.dim, edge: hue ? '' : ' ' + I.chip })}">${cardRuns_(t.text).replace(/ /g, ' ')}</span>`; };
+  /* A FACT's value is `cut` when the email's own sanitiser laid it out already (an answer's power or fraction), else its runs; `box` draws it in the answer box. */
+  const fact = x => p('label', cardRuns_(x.label)) + (x.box
+    ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="${esc(I.box || '')}" style="${st('box')}">${x.cut != null ? x.cut : cardRuns_(x.value)}</td></tr></table>`
+    : p('value', x.cut != null ? x.cut : cardRuns_(x.value)));
+  const block = b => (b && b.type === 'text' ? p(b.look || 'line', cardRuns_(b.text), { tone: b.tone }) : b && b.type === 'list' ? (b.items || []).map(fact).join('') : cardBlock_(b));
+  const tags = (spec.tags || []).filter(t => t != null && t !== '');
+  /* PICTURE, NAME, TAGS, LINES: the laid-out lines (`cut.lines`, the library's question) lead, the body's lines follow. */
+  const parts = { pic: cut.pic ? `<div style="${st('pic')}">${cut.pic}</div>` : '', head: spec.name ? p('head', cardRuns_(spec.name)) : '',
+    tags: tags.length ? `<div style="${st('tags')}">${tags.map(tag).join(' ')}</div>` : '', lines: (cut.lines || '') + (spec.body || []).map(block).join('') };
+  return `<table role="presentation" class="kc" width="100%" cellpadding="0" cellspacing="0" border="0" style="${st('card')}"><tr><td style="${st('cell')}">`
+    + ['pic', 'head', 'tags', 'lines'].map(k => parts[k]).join('') + '</td></tr></table>';
 }
 /* EACH CARD KIND'S BUILDER: `cardKind_('kind', x => spec)`; findCard draws a registered kind from its spec (check-card-spec runs each one). */
 const CARD_KINDS = {};

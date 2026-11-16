@@ -56,10 +56,6 @@ const digestTagHue_ = f => 'h' + (TAG_OF[f] || 0);
 /* `LIB_SOURCES` (js/find.js): a worksheet maker is a Source and its sheet has no exam board (O3). */
 const DIGEST_SOURCES = ['1st Class Maths', 'Corbettmaths', 'Access Tuition', 'GL Assessment'];
 const digestTagSource_ = q => DIGEST_SOURCES.find(s => digestSpell_(s) === digestSpell_(digestLibS_(q.company))) || '';
-/* THE SITE CARD'S SHAPE, AS THE EMAIL DRAWS IT (57a–62a): js/check-email-card.js holds it to findCard's parts and style.css's tokens. */
-const DIGEST_CARD = { order: ['pic', 'head', 'tags', 'lines'], lines: ['theirs', 'verdict', 'right'],
-  labels: { theirs: 'Their answer', right: 'Answer' }, radius: 0, round: 999, gap: 14, rule: '#171717',
-  size: { small: 12, body: 16, title: 18 }, cut: 2, perLine: 60 };
 const DIGEST_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const DIGEST_ROMAN = /^(i{1,3}|iv|vi{0,3}|ix|xi{0,3})$/i;
 
