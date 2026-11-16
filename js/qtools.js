@@ -12,6 +12,8 @@ const QT_TOOLS = [
   { id: 'protractor', icon: 'protractor', label: 'Protractor',      note: 'measure an angle',         act: 'qt-inst' },
   { id: 'compass',    icon: 'compass',    label: 'Compass',         note: 'press the centre, drag',   act: 'qt-inst' },
   { id: 'photo',      icon: 'photo',      label: 'Photo of working', note: 'up to 3 pages',           act: 'qp-work' },
+  /* THE GRAPH FACE (owner, 16 Nov): a grid with axes in the answer box's slot, marked by rule (answer-face.js) */
+  { id: 'graph',      icon: 'grid',       label: 'Graph',           note: 'a grid in the answer box', act: 'qp-graph' },
   { id: 'mag',        icon: 'zoom',       label: 'Magnifier',       note: 'hold it over the page',    act: 'q-mag' },
   { id: 'read',       icon: 'speak',      label: 'Read aloud',      note: 'reads the question out',   act: 'read-aloud' },
   { id: 'lock',       icon: 'unlock',     label: 'Lock',            note: 'hold this page still',     act: 'q-lock' },
@@ -20,7 +22,7 @@ const QT_TOOLS = [
   { id: 'check',      icon: 'send',       label: 'Check',           note: '',                         act: '' },
 ];
 /* THE ONE ROW EVERY PART SHOWS, identically (owner, 8 Nov); data/settings/qengine.json `row` repeats it (check-answerable) */
-const QT_ROW = ['photo', 'mag', 'read', 'lock', 'ruler', 'protractor', 'calc', 'offline'];
+const QT_ROW = ['photo', 'graph', 'mag', 'read', 'lock', 'ruler', 'protractor', 'calc', 'offline'];
 /* THE PEN'S TILES, added only where the part has a figure to draw on (a drawing answer needs its pen) */
 const QT_DRAWING = { pen: 1, line: 1, compass: 1 };
 const QT_ORDER = QT_ROW.concat(Object.keys(QT_DRAWING), ['check']);
@@ -72,7 +74,8 @@ function partRec_(x) {
   const isCells = typeof cellsOf_ === 'function' && cellsOf_(x).length > 0;
   if (a) { if (isChoice) rec.choice = a; else if (isCells) rec.cells = a; else rec.text = a; }
   try { rec.strokes = typeof padRead_ === 'function' ? padRead_(padKey_(x)) : []; } catch (e) { rec.strokes = []; }
-  rec.photos = (typeof WORK_PICS !== 'undefined' && WORK_PICS[ak]) ? WORK_PICS[ak].length : 0;
+  /* THE PHOTOS OF THE WORKING, kept in this record and on the account (`workKeep_`, working.js): their data URLs */
+  rec.photos = (typeof WORK_PICS !== 'undefined' && WORK_PICS[ak]) ? WORK_PICS[ak].map(p => p.url) : (Array.isArray(rec.photos) ? rec.photos : []);
   return rec;
 }
 
