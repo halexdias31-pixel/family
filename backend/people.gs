@@ -307,10 +307,12 @@ function handleMake_(me, seen) {
   return handleLaw_(me || {}, want => handleTrouble_(want, me && me.person_id ? me : null), seen);
 }
 
-/* ---------- THE USERNAME FORMAT IS ONE REPLACEABLE CONFIG (owner chose 16 Nov: first name + Red/Yellow/Blue + year joined). */
+/* ---------- THE USERNAME FORMAT IS ONE REPLACEABLE CONFIG (owner chose 16 Nov: first name + surname initial + year joined, e.g. SamD2026). */
 /* `pattern` names its parts: {First} the first name, {Pick} one of `picks` (drawn among those still free), {Year} the year joined; */
 /* `counter` is added when every pick is taken ({n} = 2, 3…). Change only this object to change every new username and the admin's rename. */
-const HANDLE_FORMAT = { pattern: '{First}{Pick}{Year}', picks: ['Red', 'Yellow', 'Blue'], counter: '-{n}' };
+const HANDLE_FORMAT = { pattern: '{First}{Initial}{Year}', picks: [], counter: '-{n}' };
+/* {Initial} is the surname's first letter, capital; none when there is no surname. */
+const handleLawInitial_ = r => (handleLetters_(r && r.last_name).charAt(0) || '').toUpperCase();
 const HANDLE_LAW_FIRST_MAX = 12;
 function handleLawFirst_(r) {
   const l = handleLetters_(r && r.first_name).slice(0, HANDLE_LAW_FIRST_MAX) || HANDLE_FALLBACK;
@@ -318,15 +320,15 @@ function handleLawFirst_(r) {
 }
 /* THE FORMAT AS A MATCHER, so a username already in it is never moved by the old template's migrations. */
 const handleLawRe_ = () => new RegExp('^' + HANDLE_FORMAT.pattern.replace(/[.*+?^$()|[\]\\]/g, '\\$&')
-  .replace('{First}', '([A-Za-z]+?)').replace('{Pick}', '(?:' + (HANDLE_FORMAT.picks.join('|') || 'x') + ')').replace('{Year}', '\\d{4}')
+  .replace('{First}', '([A-Za-z]+?)').replace('{Pick}', '(?:' + (HANDLE_FORMAT.picks.join('|') || 'x') + ')').replace('{Initial}', '[A-Za-z]?').replace('{Year}', '\\d{4}')
   + '(?:' + HANDLE_FORMAT.counter.replace(/[.*+?^$()|[\]\\]/g, '\\$&').replace('{n}', '\\d+') + ')?$');
 /* `taken(h)` says a candidate is not free; `pick(n)` draws 0..n-1 (Math.random for a joiner, seeded for the admin's rename). */
 function handleLaw_(r, taken, seen, pick) {
   const draw = pick || (n => Math.floor(Math.random() * n));
-  const F = HANDLE_FORMAT, stem = handleLawFirst_(r), year = String(handleJoined_(r, seen).when.getFullYear());
+  const F = HANDLE_FORMAT, stem = handleLawFirst_(r), initial = handleLawInitial_(r), year = String(handleJoined_(r, seen).when.getFullYear());
   const picks = F.pattern.indexOf('{Pick}') !== -1 && F.picks.length ? F.picks : [''];
   for (let n = 1; n <= 99; n++) {
-    const free = picks.map(c => F.pattern.replace('{First}', stem).replace('{Pick}', c).replace('{Year}', year)
+    const free = picks.map(c => F.pattern.replace('{First}', stem).replace('{Pick}', c).replace('{Initial}', initial).replace('{Year}', year)
       + (n > 1 ? F.counter.replace('{n}', String(n)) : '')).filter(h => !taken(h));
     if (free.length) return free[Math.min(free.length - 1, draw(free.length))];
   }
@@ -334,8 +336,11 @@ function handleLaw_(r, taken, seen, pick) {
 }
 /* ALREADY THE LAW for this first name (any colour, year or counter). */
 function handleLawIs_(h, r) {
-  const m = handleLawRe_().exec(S(h));
-  return !!m && m[1].toLowerCase() === handleLawFirst_(r).toLowerCase();
+  const esc = x => x.replace(/[.*+?^$()|[\]\\{}]/g, '\\$&');
+  const F = HANDLE_FORMAT, stem = esc(handleLawFirst_(r));
+  const re = new RegExp('^' + esc(F.pattern).replace('\\{First\\}', stem).replace('\\{Pick\\}', '(?:' + (F.picks.map(esc).join('|') || 'x') + ')')
+    .replace('\\{Initial\\}', '[A-Za-z]?').replace('\\{Year\\}', '\\d{4}') + '(?:' + esc(F.counter).replace('\\{n\\}', '\\d+') + ')?$', 'i');
+  return re.test(S(h));
 }
 /* A DRAW THAT REPEATS: the same seed gives the same colours, so Apply writes exactly the list Preview showed. */
 function handleSeeded_(seed) {
