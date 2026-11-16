@@ -1,7 +1,7 @@
 /* @family. — 60_doGet.gs (7 of 8) THE PAYLOAD. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOGET_VERSION = "2026-11-16-gl-1";
+const DOGET_VERSION = "2026-11-16-ans-1";
 
 
 function doGet(e) {
@@ -397,7 +397,7 @@ function submissionsTouched_(pid) {
 function submissionsBuild_(pid, people) {
   const mine = {}, sum = {};
   readCols_(TAB.submissions, ['person_id', 'key', 'answer', 'verdict', 'submitted_at', 'event_id', 'pressed_at', 'feedback']).rows.forEach(r => {
-    const who = S(r.person_id), k = S(r.key);
+    const who = S(r.person_id), k = submissionKey_(S(r.key));
     if (!who || !k) return;
     const came = answerAtMs_(r.submitted_at);
     if (people) {

@@ -132,7 +132,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-11-16-gl-1";
+const BACKEND_VERSION = "2026-11-16-ans-1";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -1041,6 +1041,8 @@ const WORKING_ANSWER = '(photo of working)';
 /* THE WHOLE VOCABULARY OF `submissions.verdict`: § */
 /* THE AI'S FEEDBACK ON A SUBMISSION, cut to this (submit.js SUB_FEEDBACK_MAX says the same). */
 const SUBMISSION_FEEDBACK_MAX = 2000;
+/* A SUBMISSION'S KEY IS THE QUESTION'S (`q:<id>`), never the phone's box key: `ans:u:<person>:` stripped, as `subKeyOf_` (submit.js) does — the old photo path sent the box key, and those rows never came back to the box. */
+const submissionKey_ = k => String(k == null ? '' : k).trim().replace(/^ans:(?:u:[^:]+:)?/, '');
 const SUBMISSION_VERDICT = /^(right|wrong|sent|(?:ai|rule):\d{1,3}\/[1-9]\d{0,2})$/;
 /* AND THE PHONE'S NAME FOR A PRESS — its clock in ms, a dash, a random tail (`subId_` in js/submit.js).
    Checked for its shape so a retried send is recognised and nothing else rides in the column. */

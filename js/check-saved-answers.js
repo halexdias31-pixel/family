@@ -234,6 +234,24 @@ const T1 = T0 + 60000, T2 = T0 + 120000;
   }
 }
 
+/* ---------- A SUBMISSION IS FILED UNDER THE QUESTION, NOT THE BOX (16 Nov): the old photo path sent `ans:u:<person>:q:<id>`,
+   and the sign-in reply handed it back under that key, so the box (`ans:u:<person>:` + key) never found it. Both ends say `q:<id>`. */
+{
+  const b = backend();
+  b.seed('submissions', [
+    { person_id: 'P-S1', key: 'ans:u:P-S1:q:Q-OLD-1', answer: "'(photo of working)", verdict: 'ai:1/4', submitted_at: '11/11/2026 14:55:36', event_id: '1794000000000-abc123', pressed_at: '2026-11-11T14:55:30.000Z' },
+    { person_id: 'P-S1', key: 'q:Q-NEW-1', answer: "'42", verdict: 'right', submitted_at: '12/11/2026 10:00:00', event_id: '1794000000001-abc124', pressed_at: '2026-11-12T10:00:00.000Z' },
+  ]);
+  asked++;
+  const mine = JSON.parse(JSON.stringify(b.ev('clearCache(); submissionsBuild_("P-S1", false)'))).mine || {};
+  if (!mine['q:Q-OLD-1']) bad.push('a submission filed under the box key is not handed back under its question (`q:Q-OLD-1`): ' + Object.keys(mine).join(', '));
+  if (Object.keys(mine).some(k => /^ans:/.test(k))) bad.push('the sign-in reply still names a submission by its box key: ' + Object.keys(mine).join(', '));
+  if (!mine['q:Q-NEW-1']) bad.push('a plain `q:` submission went missing');
+  asked++;
+  const n = String(b.ev('submissionKey_("ans:u:P-S1:q:Q-X-1") + "|" + submissionKey_("ans:q:Q-X-2") + "|" + submissionKey_("q:Q-X-3")'));
+  if (n !== 'q:Q-X-1|q:Q-X-2|q:Q-X-3') bad.push('submissionKey_ does not reduce a box key to its question: ' + n);
+}
+
 console.log('');
 console.log('WHAT A CHILD WROTE, KEPT ON THEIR ACCOUNT, THROUGH THE REAL doPost AND doGet  (' + bad.length + ')');
 bad.forEach(x => console.log('  ' + x));
