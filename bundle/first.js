@@ -490,6 +490,11 @@ function bookShares_(L) {
 
 
 ;
+/* ==== js/kinds.js ==== */
+/* @family. — js/kinds.js: WRITTEN BY tools/kinds.js FROM data/settings/kinds.json; edit that. */
+const ITEM_KINDS = {"kinds":{"question":{"source":"data/questions.json + data-private + Ledger lib_questions","loader":"js/data.js, js/library.js","sheet":{"tab":"lib_questions","columns":["row_id","id","paper_id","question","part","subject","exam_board","level","key_stage","year","document_type"]},"find":{"facets":["forLabel","kindLabel","kindOwn","subject","documentType","level","keystage","yearGroup","bandValue","examBoard","tier","examYear","examMonth","examDay","verified","paperId","paperSection","qNumber","qPart","qSub","marks","needs","myAttempt","source"]},"card":{"look":"qCardLook_(entry)","lookElse":"qb","id":["row_id","id"],"nameTag":false,"tagLook":"qcard-tags","name":"qCardName_(row)","tags":["subject","exam_board","level","key_stage","year","document_type"],"links":["paper_id"],"keep":"qCardKeep_(entry)","data":"kcQData_(item, entry)","picture":"qCardPic_(entry)","sheet":"qCardSheet_(entry, pic)","tiles":"qCardTiles_(entry)","toolRow":true},"see":{"who":"anyone"}},"person":{"source":"Ledger people tab","loader":"payload -> find-doors.js","sample":"check/fixture.json everyone","sheet":{"tab":"people","columns":["personId","first","last","handle","role","email","dob"],"never":["pin"]},"find":{"facets":["forLabel","kindLabel","profileType"]},"card":{"look":"is-prof prof-door kc-facts","id":["personId","id"],"name":"kcPersonName_(row)","tags":["role","handle"],"lines":true,"body":"kcPersonBody_(row)","picture":"profFace_(entry, 160)","tiles":"peopleOpts_(raw)"},"see":{"who":"self, family, staff, admin"},"forms":{"person-add":{"attr":"data-pa","fields":[{"f":"first","type":"text","ph":"First name"},{"f":"last","type":"text","ph":"Last name"},{"f":"role","type":"choice","label":"Role","draft":false},{"f":"email","type":"text","input":"email","ph":"Email","phKid":"Email (optional)"},{"f":"dob","type":"date","label":"Date of birth (optional)"}],"draft":"form"},"person-form":{"attr":"data-pf","fields":[{"f":"first","type":"text","ph":"First name","row":"names"},{"f":"last","type":"text","ph":"Last name","row":"names"},{"f":"roles","type":"ticks","attr":"data-pf-role","label":"Role","look":"pf-roles","tickLook":""},{"f":"email","type":"text","input":"email","ph":"Email (optional)"},{"f":"dob","type":"date","label":"Date of birth (optional)"},{"f":"parents","type":"ticks","attr":"data-pf-parent","label":"Parents","draft":false,"look":"pf-ticks","tickLook":""},{"f":"parent","type":"choice","label":"Their parent (optional)","draft":false}],"draft":"form"},"person-edit":{"attr":"data-pe","fields":[{"f":"first_name","type":"text"},{"f":"last_name","type":"text"},{"f":"handle","type":"text","label":"handle (theirs to change)","readonly":true},{"f":"dob","type":"date","label":"date of birth"},{"f":"email","type":"text","input":"email"},{"f":"phone","type":"phone","input":"tel"},{"f":"address","type":"text"},{"f":"postcode","type":"text"}],"draft":"form"},"settings":{"attr":"data-me","draft":"set","fields":"groups","say":"Settings cards: the backend's field groups; a timetable group is the week grid, lib/qual/job/photo names their shelves, dob_* the three boxes, phone the code and number, photo the picture."},"library-card":{"attr":"data-me","draft":"set","say":"one library card on the shelf; a library PIN is not a sign-in PIN and keeps no draft (setDraftOk_).","fields":[{"f":"lib{n}_name","type":"text","ph":"Library name","look":"lib-name","quiet":true},{"f":"lib{n}_pin","type":"text","label":"PIN","look":"lib-pin","quiet":true,"blank":true},{"f":"lib{n}_no","type":"text","ph":"Card number","look":"lib-no","quiet":true}]},"job":{"attr":"data-me","draft":"set","say":"one job on the shelf: role, where, from–to.","fields":[{"f":"job_{n}_role","type":"text","ph":"role","max":80},{"f":"job_{n}_where","type":"text","ph":"where","max":80},{"f":"job_{n}_from","type":"text","ph":"from","max":80},{"f":"job_{n}_to","type":"text","ph":"to, or now","max":80}]},"dob":{"attr":"data-me","draft":"set","say":"a date of birth as three boxes.","fields":[{"f":"dob_d","type":"text","ph":"DD","max":2,"pad":"numeric"},{"f":"dob_m","type":"text","ph":"MM","max":2,"pad":"numeric"},{"f":"dob_y","type":"text","ph":"YYYY","max":4,"pad":"numeric"}]},"family-pick":{"attr":"data-fam-q","draft":false,"say":"a family picker: a name looked up, not work, retyped in a second.","fields":[{"f":"{scope}","type":"search","ph":"name or @handle","want":"{want}"}]},"notify":{"attr":"data-do","draft":false,"say":"Notifications: each tick a setNotify the moment it is ticked (formToggle_).","fields":[{"f":"kinds","type":"toggles"}]},"apply-teach":{"attr":"data-app","draft":"form","say":"Apply to teach (400): one sheet, kept as drafts until it is sent.","fields":[{"f":"","type":"head","label":"You"},{"f":"fullName","type":"text","label":"full name"},{"f":"phone","type":"text","input":"tel","label":"phone","row":"r1"},{"f":"email","type":"text","input":"email","label":"email","row":"r1"},{"f":"address","type":"long","label":"home address"},{"f":"postcode","type":"text","label":"postcode","caps":true,"row":"r2"},{"f":"dob","type":"date","label":"date of birth","row":"r2"},{"f":"","type":"head","label":"Documents"},{"f":"idDoc","type":"doc","label":"photo ID — passport or driving licence"},{"f":"rightToWork","type":"choice","label":"right to work in the UK","options":[["","Choose"],["yes","Yes"],["no","No"]]},{"f":"rtwDoc","type":"doc","label":"right-to-work document — passport, share code or visa"},{"f":"","type":"head","label":"What you teach"},{"f":"subjects","type":"subjects"},{"f":"qualifications","type":"long","label":"qualifications — degrees, teaching qualifications, anything relevant"},{"f":"qual0","type":"doc","label":"a qualification certificate"},{"f":"qual1","type":"doc","label":"another qualification certificate (optional)"},{"f":"qual2","type":"doc","label":"another qualification certificate (optional)"},{"f":"rate","type":"money","input":"number","label":"hourly rate (£)","min":"1","step":"0.5"},{"f":"","type":"head","label":"Checks"},{"f":"dbsNumber","type":"text","label":"enhanced DBS certificate number","row":"r3"},{"f":"dbsIssued","type":"date","label":"issued on","row":"r3"},{"f":"dbsUpdate","type":"tick","label":"I consent to you checking it on the DBS Update Service"},{"f":"dbsNeeded","type":"tick","label":"I need a DBS check"},{"f":"","type":"head","label":"When and where"},{"f":"availability","type":"timetable","label":"when you can teach"},{"f":"area","type":"text","label":"area and venues you can reach"},{"f":"experience","type":"long","label":"experience"},{"f":"","type":"head","label":"2 references"},{"f":"ref1Name","type":"text","label":"name","row":"a1"},{"f":"ref1Relationship","type":"text","label":"relationship to you","row":"a1"},{"f":"ref1Email","type":"text","input":"email","label":"email","row":"b1"},{"f":"ref1Phone","type":"text","input":"tel","label":"phone","row":"b1"},{"f":"ref2Name","type":"text","label":"name","row":"a2"},{"f":"ref2Relationship","type":"text","label":"relationship to you","row":"a2"},{"f":"ref2Email","type":"text","input":"email","label":"email","row":"b2"},{"f":"ref2Phone","type":"text","input":"tel","label":"phone","row":"b2"},{"f":"statement","type":"long","label":"a short statement — why you want to teach"},{"f":"cvLink","type":"text","input":"url","label":"CV link (optional)","ph":"https://…"},{"f":"consent","type":"tick","label":"I agree to @family. keeping these details and documents privately to consider my application, contacting my referees and checking my DBS."}]},"sign-join":{"attr":"data-sj","draft":false,"say":"Find's Make an account card (owner, 15 Nov): who it is for, the names, the email and a PIN; sent as `register`. No draft, so the PIN is never kept.","fields":[{"f":"who","type":"choice","label":"who is the account for?"},{"f":"first","type":"text","ph":"First name","row":"names"},{"f":"last","type":"text","ph":"Last name","row":"names"},{"f":"email","type":"text","input":"email","ph":"Email"},{"f":"pin","type":"text","input":"password","label":"PIN — 4 digits"}]}},"facts":{"say":"WHAT THE OWNER STATES ABOUT A PERSON (owner, 16 Nov): one row a fact, {who, what, value, as_of}. `what` is one of `keys`; a value may be a range (\"7-8\"). Values age by themselves (`ages`): school_year goes up one each 1 September after as_of, age one each year after as_of. Shown on the person's card to staff (tutors) and admins only (`see`), never to a child or another family. Stored in the facts list (backend payload `facts`, Ledger tab `facts`) until the events record exists and absorbs it. A PIN is never a fact.","row":{"who":"person id (P010)","what":"a key from `keys`","value":"text; a range is \"a-b\"","as_of":"date (yyyy-mm-dd)"},"keys":["age","school_year","course","board","set_texts","school","subjects","target_grade","needs","notes"],"ages":{"school_year":"september","age":"year"},"see":["admin","staff"],"store":{"tab":"facts","payload":"facts","until":"events record"}}},"tutor":{"source":"Ledger people tab (role tutor)","loader":"payload -> find-aloud.js","sample":"check/fixture.json tutors","sheet":{"tab":"people","columns":["personId","title","tags","titles","venues","rate","listed"],"never":["pin"]},"find":{"facets":["forLabel","kindLabel","kindOwn","profileType"]},"card":{"look":"is-widget is-prof tcard","id":["personId","id"],"name":"title","nameTag":false,"tags":["tags","titles"],"links":["venues"],"lines":true,"off":"kcUnlisted_(row)","body":"profBody_(row, live)","picture":"profFace_(entry, 96)","tagLook":"prof-tags prof-who-tags","pills":"profPills_(item, entryRow)","tagRows":"profTagRows_(raw)"},"live":{"money":"kcTutorMoney_(row)","say":"kcTutorSay_(row)"},"see":{"who":"anyone","hide":{"prices":["rate"],"admin":["note"]}},"forms":{"card-edit":{"attr":"data-me","draft":false,"fields":"list","say":"the tutor card's edit form (cardEditForm_): its sections' names, typed by rules; a price only for may_('prices')."},"card-seat":{"attr":"data-pound","draft":false,"say":"the extra seat in pounds, kept as the share in the hidden twin; @family.'s share only for an admin.","fields":[{"f":"extra_seat_rate","type":"money"},{"f":"extra_seat_rate","type":"hidden","attr":"data-me"},{"f":"extra_seat_cut","type":"money","may":"admin"},{"f":"extra_seat_cut","type":"hidden","attr":"data-me","may":"admin"}]},"card-where":{"attr":"data-me","draft":false,"say":"Where you teach: an area a tick, rewriting the hidden venues_ok, saved by the card's Save.","fields":[{"f":"venues_ok","type":"hidden"},{"f":"areas","type":"ticks","attr":"data-where-area","label":"Areas you teach in","look":"many-list where-areas"}]}}},"booking":{"source":"Ledger events + receipts tabs","loader":"backend booking.gs -> book-*.js (myJobs_ -> findMineItems_)","sample":"check/fixture.json liveJobs","sheet":{"tab":"events","columns":["job_id","subject","level","tutor","venue","price","unit","rate","weeks","client","slots"],"also":["receipts"]},"find":{"facets":[]},"card":{"card":"receipt","id":["id","jobId","job_id"],"name":"kcBookingName_(row)","facts":true,"tags":["subject","level","tutor","venue"],"pills":"kcBookingPills_(item)","body":"kcBookingBody_(row, live)","tool":"jobPage_(raw)"},"live":{"money":"kcBookingMoney_(row)"},"see":{"who":"self, family, staff, admin","hide":{"prices":["rate","total"]}}},"product":{"source":"Ledger shop tab (data/settings/shop.json, data/shop-additions.json)","loader":"backend get-shop.gs -> find-aloud.js findMineItems_ (its Find entry is its row)","sample":"check/fixture.json shop","sheet":{"tab":"shop","columns":["name","shopKind","shopHow","shopBrand","shopTheme","shopFor","cost","level","image"]},"find":{"facets":["forLabel","kindLabel","kindOwn","shopKind","shopHow","shopPrice","shopBrand","shopFor","shopTheme"]},"card":{"card":"shop","from":"entry","id":["key","name"],"tags":["shopKind","shopHow","shopPrice","shopBrand","shopTheme","shopFor"],"facts":true,"tagLook":"qcard-tags","look":"kcShopLook_(entry)","picture":"kcShopPic_(entry)","pills":"kcShopPills_(entry)"},"see":{"who":"anyone"}},"post":{"source":"Ledger posts tabs","loader":"backend get-posts.gs -> find-doors.js","sample":"check/fixture.json posts","sheet":{"tab":"posts","columns":["text","caption","title","location","authorId"]},"find":{"facets":["forLabel","kindLabel","postState","postBy","postWhen"],"onCard":false},"card":{"look":"post-fc","name":"kcPostName_(row)","tags":["location"],"links":["authorId"]},"see":{"who":"signedIn"}},"venue":{"source":"Ledger venues + rooms tabs (data/settings/venues.json)","loader":"payload -> find-aloud.js","sample":"check/fixture.json venues","sheet":{"tab":"venues","columns":["name","focus","borough","city","tags","maxCapacity","bestRate"],"also":["rooms"]},"find":{"facets":["forLabel","kindLabel","kindOwn","venueArea","venueFor","venueSize"]},"card":{"look":"venue-door","tags":["focus","borough","city","tags"],"lines":true,"body":"kcVenueBody_(row, live)","picture":"kcVenuePic_(item, entry)"},"live":{"rooms":"kcRooms_(row)"},"see":{"who":"anyone","hide":{"prices":["price"]}}},"subject":{"source":"payload (Ledger people/pricing)","loader":"subjectRows() -> find-aloud.js","find":{"facets":[]},"card":{"look":"is-subject","tags":["levels","focus"],"lines":true,"liveTags":{"tutors":3},"body":"kcSubjectBody_(row, live)"},"live":{"levels":"kcLevels_(row)","tutors":"kcTutorNames_(row)"},"see":{"who":"anyone"}},"level":{"source":"payload (Ledger people/pricing)","loader":"find-aloud.js","find":{"facets":["forLabel","kindLabel","kindOwn"]},"card":{"look":"is-level","tags":["subjects","focus"],"lines":true,"liveTags":{"tutors":3},"body":"kcLevelBody_(row, live)"},"live":{"subjects":"kcSubjects_(row)","tutors":"kcTutorNames_(row)"},"see":{"who":"anyone"}},"manuscript":{"source":"data/manuscripts.json","loader":"js/library.js HIST_DB -> find-history.js histItem_","find":{"facets":["forLabel","kindLabel","subject","shelf","histKind","wLanguage","histEra","histMaterial","histFormat","histRepository","histSide","histFound","histDated"]},"card":{"look":"hdb hdb-msc lib-c","tags":["language","material","script"],"links":["writings"],"picture":"kcMsPic_(item, entry)"},"see":{"who":"anyone"}},"writing":{"source":"data/writings.json","loader":"js/library.js HIST_DB -> find-history.js histItem_","find":{"facets":[]},"card":{"look":"hdb lib-c","tags":["language","genre"],"links":["author_id","manuscripts"]},"see":{"who":"anyone"}},"event":{"source":"data/timeline.json","loader":"js/library.js HIST_DB -> find-history.js histItem_","find":{"facets":["forLabel","kindLabel","subject","shelf","histKind","histEra","histTheatre"]},"card":{"look":"hdb lib-c","tags":["era","theatre"],"links":["figures","writings"]},"see":{"who":"anyone"}},"figure":{"source":"data/figures.json (+ portraits.json)","loader":"js/library.js HIST_DB -> histItem_ as kind people","find":{"facets":["forLabel","kindLabel","subject","shelf","histKind","boxKind","fighter","decade","division","histEra","histRole","personName","personYears","personFrom"]},"card":{"look":"person lib-c","card":"people","when":"hdb","tags":["roles","eras"],"links":["writings","events"],"picture":"kcPersonPic_(item)"},"see":{"who":"anyone"}},"boxer":{"source":"data/boxers.json","loader":"js/library.js libExtrasBoxing_ -> find-aloud.js","find":{"facets":["forLabel","kindLabel","subject","shelf","histKind","boxKind","fighter","decade","division","histEra","histRole","personName","personYears","personFrom"]},"card":{"look":"person lib-c","card":"people","id":["id","boxer_id"],"tags":["country","bestDivision","best_division","stance"],"picture":"kcPersonPic_(item)"},"see":{"who":"anyone"}},"fight":{"source":"data/fights.json","loader":"js/library.js libExtrasBoxing_ -> find-aloud.js","find":{"facets":["forLabel","kindLabel","subject","shelf","boxKind","fighter","boutMonth","boutYear","decade","division","boutRound","boutMethod","boutWinner","boutEvent","examMonth","examDay"]},"card":{"look":"fight","id":["id","fight_id"],"name":"kcFightName_(row)","nameTag":false,"lines":true,"tags":["division"],"links":["aId","bId","boxer_a_id","boxer_b_id"],"body":"fightBody_(row)"},"see":{"who":"anyone"}},"practical":{"source":"data/practicals.json + data-private + Ledger lib_practicals","loader":"js/library.js libPractical_","sheet":{"tab":"lib_practicals","columns":["practical_id","subject","level","exam_board","practical_type","excluded"]},"find":{"facets":["forLabel","kindLabel","kindOwn","subject","practicalType","required","level","topic","examBoard","needs"]},"card":{"look":"prac kc-facts","id":["id","practical_id"],"tags":["subject","level","board","exam_board","practicalType","practical_type"],"lines":true,"off":"excluded","body":"practicalBody_(row)"},"see":{"who":"anyone"}},"project":{"source":"data/projects.json + data-private + Ledger lib_projects","loader":"js/library.js libProject_","sheet":{"tab":"lib_projects","columns":["project_id","subject","level","exam_board","project_type"]},"find":{"facets":["forLabel","kindLabel","kindOwn","projectType","subject","level","topic","examBoard"]},"card":{"look":"prac proj lib-c kc-facts","id":["id","project_id"],"tags":["subject","level","board","exam_board","projectType","project_type"],"lines":true,"body":"projectBody_(row)"},"see":{"who":"anyone"}},"content":{"source":"data/textbooks.json + Ledger lib_content","loader":"js/library.js -> find-facets.js","sheet":{"tab":"lib_content","columns":["book_id","chapter","subject","level","keystage","board","tier"]},"find":{"facets":["forLabel","kindLabel","subject","histKind","wWork","mKind","level","keystage","yearGroup","topic","examBoard","specTopic","specPoint","tier"]},"card":{"look":"prac tb ct lib-c","id":"kcContentId_(row)","tags":["subject","level","keystage","board","tier"],"lines":true,"body":"contentBody_(row)"},"see":{"who":"anyone"}},"insert":{"source":"data/inserts.json + Ledger lib_inserts","loader":"js/library.js -> find-history.js","sheet":{"tab":"lib_inserts","columns":["insert_id","subject","boards","levels"]},"find":{"facets":["forLabel","kindLabel","subject","level","keystage","examBoard","tier"]},"card":{"look":"insh","id":["id","insert_id"],"tags":["subject","boards","board","levels","level"],"links":["forPapers"],"lines":true,"entryTags":{"sheets":2},"body":"kcInsertBody_(row)"},"see":{"who":"anyone"}},"spec":{"source":"data/specs.json","loader":"js/library.js -> find-history.js","find":{"facets":["forLabel","kindLabel","kindOwn","subject","level","keystage","examBoard","tier"]},"card":{"look":"insh spec-sheet","name":"code","tags":["board","qualification","subject","level"],"lines":true,"body":"specBody_(row)"},"see":{"who":"anyone"}},"chem":{"source":"data/chemistry/*.json","loader":"js/chemistry.js","find":{"facets":["forLabel","kindLabel","subject","mKind","cCategory","cGroup","cPeriod","cState"]},"card":{"look":"tx kc-facts","from":"chem","tags":["category","type","block","state"],"lines":true,"body":"chemBody_(row)"},"see":{"who":"anyone"}},"hist":{"source":"one file a topic, data/library/history/<id>.json: its timeline, people, sources and items, a card each","loader":"js/history-topics.js","find":{"facets":["forLabel","kindLabel","subject","histKind","histPart","level","keystage"]},"card":{"look":"lib-c kc-facts","from":"hist","tags":["topicName","partName"],"lines":true,"picture":"histTopicPic_(raw)","body":"histTopicBody_(row)"},"see":{"who":"anyone"}},"mech":{"source":"data/mechanics/*.json","loader":"js/mechanics.js","find":{"facets":["forLabel","kindLabel","subject","shelf","mMake","mModel","mGen","mEngine","mKind","mSystem","pcType","pcSocket","pcIface","pcLinks","mPhase","mMarket","mYears","mSize","mValves","mBadge","mFuel","mPart","mPrice"]},"card":{"look":"mech","from":"mech","tags":["system","type","make"],"links":["fits"],"nameTag":false,"lines":true,"picture":"kcMechPic_(item)","body":"kcMechBody_(row)"},"see":{"who":"anyone"}}}};
+
+;
 /* ==== js/cards-render.js ==== */
 /* @family. — cards-render.js THE ONE MASTER TEMPLATE (owner, 12 Nov: "go all the way"; rules.md 3.11). */
 /* A card is DATA: { kind, picture?, tags, body: [blocks], tiles }. renderCard is the only code that writes card markup. */
@@ -8879,116 +8884,90 @@ const kcLevelBody_ = (t, L) => { const s = L.subjects, n = L.tutors.length;
 const kcVenueBody_ = (t, L) => [{ type: 'list', items: L.rooms.map(o => { const say = [o.seats ? 'up to ' + o.seats : '', 'price' in o ? (o.price ? fmtMoney_(o.price, 'hour') : 'free') : ''].filter(Boolean).join(' · ');
   return say ? { label: o.label, value: say } : null; }).filter(Boolean) }];
 const kcListOf_ = v => (Array.isArray(v) ? v : []).filter(Boolean);
-/* ONE ITEM SHAPE (owner, 14 Nov, step 1; data/settings/item-shape.json, docs/item-shape.md): every item is { id, kind, name, tags, body, links }. */
-/* A migrated kind is only a mapping here: which columns are its words (`tags`) and its links, its card's look and picture. No builder of its own. */
-const ITEM_MAPS = {
-  manuscript: { look: 'hdb hdb-msc lib-c', tags: ['language', 'material', 'script'], links: ['writings'],
-    picture: (it, x) => { const svg = typeof msFragSvg_ === 'function' ? msFragSvg_(it.raw, x && x.msSideIx) : ''; return svg ? { svg, alt: it.name } : null; } },
-  writing: { look: 'hdb lib-c', tags: ['language', 'genre'], links: ['author_id', 'manuscripts'] },
-  event: { look: 'hdb lib-c', tags: ['era', 'theatre'], links: ['figures', 'writings'] },
-  insert: { look: 'insh', id: ['id', 'insert_id'], tags: ['subject', 'boards', 'board', 'levels', 'level'], links: ['forPapers'], lines: true, entryTags: { sheets: 2 },
-    body: r => { if (typeof insWant_ === 'function') insWant_(r); return typeof insertBody_ === 'function' ? insertBody_(r) : []; } },
-  spec: { look: 'insh spec-sheet', name: r => r.code, tags: ['board', 'qualification', 'subject', 'level'], lines: true,
-    body: r => (typeof specBody_ === 'function' ? specBody_(r) : []) },
-  chem: { look: 'tx kc-facts', from: 'chem', tags: ['category', 'type', 'block', 'state'], lines: true, body: r => (typeof chemBody_ === 'function' ? chemBody_(r) : []) },
-  hist: { look: 'lib-c kc-facts', from: 'hist', tags: ['topicName', 'partName'], lines: true, picture: it => (typeof histTopicPic_ === 'function' ? histTopicPic_(it.raw) : null),
-    body: r => (typeof histTopicBody_ === 'function' ? histTopicBody_(r) : []) },
-  mech: { look: 'mech', from: 'mech', tags: ['system', 'type', 'make'], links: ['fits'], nameTag: false, lines: true,
-    picture: it => (Array.isArray(it.raw.px) && typeof mechPic_ === 'function' ? { svg: mechPic_(it.raw.px, it.name), alt: it.name } : null),
-    body: r => (r.does ? [{ type: 'text', text: r.does, look: 'mech-does' }] : []) },
-  figure: { look: 'person lib-c', card: 'people', when: x => !!x.hdb, tags: ['roles', 'eras'], links: ['writings', 'events'], picture: it => kcPersonPic_(it) },
-  boxer: { look: 'person lib-c', card: 'people', id: ['id', 'boxer_id'], tags: ['country', 'bestDivision', 'best_division', 'stance'], picture: it => kcPersonPic_(it) },
-  fight: { look: 'fight', id: ['id', 'fight_id'], name: r => [r.a || r.boxer_a, r.b || r.boxer_b].filter(Boolean).join(' and '), nameTag: false, lines: true,
-    tags: ['division'], links: ['aId', 'bId', 'boxer_a_id', 'boxer_b_id'], body: r => (typeof fightBody_ === 'function' ? fightBody_(r) : []) },
-  practical: { look: 'prac kc-facts', id: ['id', 'practical_id'], tags: ['subject', 'level', 'board', 'exam_board', 'practicalType', 'practical_type'], lines: true,
-    off: r => !!r.excluded, body: r => (typeof practicalBody_ === 'function' ? practicalBody_(r) : []) },
-  project: { look: 'prac proj lib-c kc-facts', id: ['id', 'project_id'], tags: ['subject', 'level', 'board', 'exam_board', 'projectType', 'project_type'], lines: true,
-    body: r => (typeof projectBody_ === 'function' ? projectBody_(r) : []) },
-  content: { look: 'prac tb ct lib-c', id: r => r.id || [r.bookId || r.book_id, r.n == null ? r.chapter : r.n].filter(v => v != null && v !== '').join('-'),
-    tags: ['subject', 'level', 'keystage', 'board', 'tier'], lines: true, body: r => (typeof contentBody_ === 'function' ? contentBody_(r) : []) },
-  subject: { look: 'is-subject', tags: ['levels', 'focus'], lines: true, liveTags: { tutors: 3 }, body: kcSubjectBody_,
-    live: { levels: r => kcListOf_(r.levels), tutors: r => (Array.isArray(r.tutors) ? r.tutors : []).map(y => y.title) } },
-  level: { look: 'is-level', tags: ['subjects', 'focus'], lines: true, liveTags: { tutors: 3 }, body: kcLevelBody_,
-    live: { subjects: r => (Array.isArray(r.subjects) ? r.subjects : []), tutors: r => (Array.isArray(r.tutors) ? r.tutors : []).map(y => y.title) } },
-  venue: { look: 'venue-door', tags: ['focus', 'borough', 'city', 'tags'], lines: true, body: kcVenueBody_, childHides: ['price'],
-    live: { rooms: r => (Array.isArray(r.rooms) && r.rooms.length ? r.rooms.slice(0, 4).map(o => ({ label: o.name || 'Room', seats: o.max, price: o.rate }))
-      : [{ label: text_('the-room'), seats: r.maxCapacity, price: r.bestRate }]) },
-    /* ITS 8-BIT BUILDING (find-doors.js), picked off its name. */
-    picture: (it, x) => { const pix = typeof VENUE_PIX === 'object' && typeof venueShape_ === 'function' ? VENUE_PIX[venueShape_(it.raw)] : null; return pix ? { pix, alt: x.name } : null; } },
-  /* A QUESTION PART (slice 4): named "Q5b", its tags its facets alone; its picture the stems' figure, its body the sheet (words, answer box, */
-  /* mark scheme: find-figures.js, unchanged), its tiles its tool row. Loading and marking are not here. */
-  question: { look: (it, x) => (typeof qCardLook_ === 'function' ? qCardLook_(x) : 'qb'), id: ['row_id', 'id'], nameTag: false, tagLook: 'qcard-tags',
-    name: r => (r.question != null && String(r.question) !== '' ? 'Q' + r.question + (typeof qPartName_ === 'function' ? qPartName_(r.part) : '') : ''),
-    tags: ['subject', 'exam_board', 'level', 'key_stage', 'year', 'document_type'], links: ['paper_id'],
-    keep: (it, x) => (typeof qCardKeep_ === 'function' ? qCardKeep_(x) : null),
-    data: (it, x) => ({ part: x.key || '', of: it.id || x.key || '' }),
-    picture: (it, x) => (typeof qCardPic_ === 'function' ? qCardPic_(x) : null),
-    sheet: (it, x, pic) => (typeof qCardSheet_ === 'function' ? qCardSheet_(x, pic) : []),
-    tiles: (it, x) => (typeof qCardTiles_ === 'function' ? qCardTiles_(x) : []), toolRow: true },
-  /* PEOPLE (slice 5). A TUTOR: the name line's pills, subjects and facts rows, then its lines (cards-people.js); a child is not told the rate and */
-  /* only an admin the note on why they are unlisted — both decided by `childHides` / `adminOnly` as the item loads, not by the drawing. */
-  tutor: { look: 'is-widget is-prof tcard', id: ['personId', 'id'], name: r => r.title, nameTag: false, tags: ['tags', 'titles'], links: ['venues'], lines: true, off: r => r.listed === false,
-    live: { money: r => (r.rate ? { rate: typeof rateRange_ === 'function' ? rateRange_(r) : '' } : {}), say: r => ({ note: typeof profNote_ === 'function' ? profNote_(r) : '' }) },
-    childHides: ['rate'], adminOnly: ['note'], body: (r, L) => (typeof profBody_ === 'function' ? profBody_(r, L) : []),
-    picture: (it, x) => (typeof profFace_ === 'function' ? profFace_(x, 96) : null), tagLook: 'prof-tags prof-who-tags',
-    pills: (it, x) => (typeof profPills_ === 'function' ? profPills_(it, kcRow_(x)) : []), tagRows: it => (typeof profTagRows_ === 'function' ? profTagRows_(it.raw) : []) },
-  /* A PERSON'S DOOR (find-doors.js): face, name and facets, the handle (and the Edit form while an admin has it open); its tiles are */
-  /* `peopleOpts_`, whose every button the permissions table already gates. */
-  person: { look: 'is-prof prof-door kc-facts', id: ['personId', 'id'], name: r => (typeof fmtName_ === 'function' && fmtName_(r)) || r.handle,
-    tags: ['role', 'handle'], lines: true, body: r => (typeof personDoorBody_ === 'function' ? personDoorBody_(r) : []),
-    picture: (it, x) => (typeof profFace_ === 'function' ? profFace_(x, 160) : null), tiles: it => (typeof peopleOpts_ === 'function' ? peopleOpts_(it.raw) : []) },
-  /* A POST: its words its name, and nothing else on the tag line (`facets: false`); its Like tile is its kind's. */
-  post: { look: 'post-fc', name: r => String(r.text || r.caption || r.title || 'Post').slice(0, 80), tags: ['location'], links: ['authorId'], facets: false },
-  /* A SHOP THING (slice 6), drawn as kind `shop`: its row is its Find entry (the shop mapper read the Ledger row into it); its name, facets and */
-  /* price tag, its photo. The price is `shopPriceTag_` (the words thingCard_ wrote); its Buy tile and the basket are tiles.js's and collections.js's, untouched. */
-  product: { card: 'shop', from: x => x, id: ['key', 'name'], tags: ['shopKind', 'shopHow', 'shopPrice', 'shopBrand', 'shopTheme', 'shopFor'], facts: true, tagLook: 'qcard-tags',
-    look: (it, x) => [x.wearable ? 'is-wear' : '', x.off ? 'is-off' : ''].filter(Boolean).join(' '),
-    picture: (it, x) => (x.image && typeof pic === 'function' ? { src: pic(x.image), look: 'thing-pic', alt: '' } : null),
-    pills: (it, x) => itemFacets_(ITEM_MAPS.product, x).concat(shopPriceTag_(x) || []) },
-  /* A BOOKING (slice 6), drawn as kind `receipt`: its tags say what, who, when, the rate and whether it is paid; one line says who and how much */
-  /* in all; then the receipt paper itself (`jobPage_` -> bookingDoc_), the booking's TOOL (the same paper the booking form fills), drawn by its */
-  /* own maker exactly as before and laid out by `tool`. A child is told neither the rate nor the total (`childHides`, 398). */
-  booking: { card: 'receipt', id: ['id', 'jobId', 'job_id'], name: r => [r.subject || 'Session', r.level].filter(Boolean).join(' · '), facts: true,
-    tags: ['subject', 'level', 'tutor', 'venue'], childHides: ['rate', 'total'],
-    live: { money: r => { const rate = Number(r.rate) || (/hour/i.test(String(r.unit || '')) ? Number(r.price) : 0) || 0;
-      return { rate: rate > 0 ? fmtMoney_(rate, 'hour') : '', total: r.price !== '' && r.price != null && isFinite(Number(r.price)) ? fmtMoney_(Number(r.price)) + ' in all' : '' }; } },
-    pills: it => { const j = it.raw, m = it.live.money || {}, paid = typeof rcpPaid_ === 'function' ? rcpPaid_(j) : '';
-      return ['Booking', j.subject, j.tutor ? fmtName_(j.tutor) : '', typeof rcpWhen_ === 'function' ? rcpWhen_(j) : '', m.rate]
-        .map(t => ({ text: t, colour: false })).concat([{ text: paid, colour: false, look: paid === 'Unpaid' ? 'is-new' : '' }]).filter(t => t.text); },
-    body: (r, L) => { const who = (r.slots || []).map(sl => sl && sl.client).filter(Boolean).map(n => fmtName_(n)).join(', ') || (r.client ? fmtName_(r.client) : '');
-      const weeks = Number(r.weeks || (typeof jobDates_ === 'function' ? jobDates_(r).length : 0)) || 0;
-      const said = [who, weeks ? weeks + (weeks === 1 ? ' week' : ' weeks') : '', (L.money || {}).total].filter(Boolean).join(' · ');
-      return said ? [{ type: 'group', tag: 'p', look: 'rc-sum', text: said }] : []; },
-    tool: it => (typeof jobPage_ === 'function' ? jobPage_(it.raw) : '') },
-};
+/* ONE ITEM SHAPE, ONE DICTIONARY OF KINDS (owner, 16 Nov, the four step 1): every item is { id, kind, name, tags, body, links }, and every kind is */
+/* described once, in data/settings/kinds.json (ITEM_KINDS, js/kinds.js): its columns, Find's facets, its card, its live fields, who sees what, its forms. */
+/* ITEM_MAPS is read off it here, nothing per kind written by hand: a card slot is a column, or "fn(args)" naming a global function (a hook below, */
+/* or the kind's own drawer in its file). */
+const KIND_ARG_ = /^[A-Za-z_$][\w$]*$/;
+/* A GLOBAL BY NAME, found when first asked (a LATER file's drawer may not be loaded yet, so a miss is not kept). Direct eval sees every file's top-level names. */
+function kindGlobal_(n) { if (!KIND_ARG_.test(n)) return null; try { const f = eval(n); return typeof f === 'function' ? f : null; } catch (e) { return null; } }
+function kindHook_(spec, empty) {
+  if (spec == null) return null;
+  const m = /^([A-Za-z_$][\w$]*)\((.*)\)$/.exec(String(spec));
+  if (!m) return c => (c.row || {})[spec];
+  const args = m[2].split(',').map(a => a.trim()).filter(Boolean).map(a => (KIND_ARG_.test(a) ? c => c[a] : (v => () => v)(JSON.parse(a))));
+  let fn = null;
+  return c => { fn = fn || kindGlobal_(m[1]); return fn ? fn(...args.map(g => g(c))) : empty; };
+}
+const KIND_EMPTY_ = { name: '', id: '', body: [], picture: null, pills: [], tagRows: [], tiles: [], sheet: [], tool: '', keep: null, data: null, look: '', off: false };
+const kindCtx_ = (it, x, pic) => ({ item: it, entry: x, raw: it.raw, row: it.raw, live: it.live, entryRow: kcRow_(x), pic });
+function itemMapOfKind_(k) {
+  const K = ITEM_KINDS.kinds[k], c = K.card, see = K.see || {}, hide = see.hide || {}, H = f => kindHook_(c[f], KIND_EMPTY_[f]);
+  const M = { facetOrder: (K.find || {}).facets || [] };
+  ['card', 'tags', 'links', 'lines', 'nameTag', 'tagLook', 'entryTags', 'liveTags', 'facts', 'toolRow'].forEach(f => { if (c[f] !== undefined) M[f] = c[f]; });
+  if ((K.find || {}).onCard === false) M.facets = false;
+  if (hide.prices) M.childHides = hide.prices;
+  if (hide.admin) M.adminOnly = hide.admin;
+  if (Array.isArray(c.id)) M.id = c.id; else if (c.id) { const h = H('id'); M.id = r => h({ row: r }); }
+  if (c.name) { const h = H('name'); M.name = r => h({ row: r }); }
+  if (c.body) { const h = H('body'); M.body = (r, live) => h({ row: r, live }); }
+  if (c.off) { const h = H('off'); M.off = r => !!h({ row: r }); }
+  if (c.from) M.from = c.from === 'entry' ? x => x : c.from;
+  if (c.when) M.when = x => !!x[c.when];
+  if (c.look) { const h = /\(/.test(c.look) ? H('look') : null; M.look = h ? (it, x) => h(kindCtx_(it, x)) || c.lookElse || '' : c.look; }
+  ['picture', 'pills', 'tagRows', 'tiles', 'keep', 'data', 'tool', 'sheet'].forEach(f => { if (c[f]) { const h = H(f); M[f] = (it, x, pic) => h(kindCtx_(it, x, pic)); } });
+  if (K.live) { M.live = {}; Object.keys(K.live).forEach(f => { const h = kindHook_(K.live[f], null); M.live[f] = r => h({ row: r }); }); }
+  return M;
+}
+const ITEM_MAPS = Object.fromEntries(Object.keys(ITEM_KINDS.kinds).map(k => [k, itemMapOfKind_(k)]));
+/* ---------- KIND HOOKS: the few slots kinds.json names that no kind's own file already draws. ---------- */
+function kcMsPic_(it, x) { const svg = typeof msFragSvg_ === 'function' ? msFragSvg_(it.raw, x && x.msSideIx) : ''; return svg ? { svg, alt: it.name } : null; }
+function kcInsertBody_(r) { if (typeof insWant_ === 'function') insWant_(r); return typeof insertBody_ === 'function' ? insertBody_(r) : []; }
+function kcMechPic_(it) { return Array.isArray(it.raw.px) && typeof mechPic_ === 'function' ? { svg: mechPic_(it.raw.px, it.name), alt: it.name } : null; }
+function kcMechBody_(r) { return r.does ? [{ type: 'text', text: r.does, look: 'mech-does' }] : []; }
+function kcFightName_(r) { return [r.a || r.boxer_a, r.b || r.boxer_b].filter(Boolean).join(' and '); }
+function kcContentId_(r) { return r.id || [r.bookId || r.book_id, r.n == null ? r.chapter : r.n].filter(v => v != null && v !== '').join('-'); }
+function kcLevels_(r) { return kcListOf_(r.levels); }
+function kcSubjects_(r) { return Array.isArray(r.subjects) ? r.subjects : []; }
+function kcTutorNames_(r) { return (Array.isArray(r.tutors) ? r.tutors : []).map(y => y.title); }
+function kcRooms_(r) { return Array.isArray(r.rooms) && r.rooms.length ? r.rooms.slice(0, 4).map(o => ({ label: o.name || 'Room', seats: o.max, price: o.rate }))
+  : [{ label: text_('the-room'), seats: r.maxCapacity, price: r.bestRate }]; }
+/* A VENUE'S 8-BIT BUILDING (find-doors.js), picked off its name. */
+function kcVenuePic_(it, x) { const pix = typeof VENUE_PIX === 'object' && typeof venueShape_ === 'function' ? VENUE_PIX[venueShape_(it.raw)] : null; return pix ? { pix, alt: x.name } : null; }
+/* A QUESTION PART is named "Q5b"; its data- attributes say which part. */
+function qCardName_(r) { return r.question != null && String(r.question) !== '' ? 'Q' + r.question + (typeof qPartName_ === 'function' ? qPartName_(r.part) : '') : ''; }
+function kcQData_(it, x) { return { part: x.key || '', of: it.id || x.key || '' }; }
+function kcUnlisted_(r) { return r.listed === false; }
+function kcTutorMoney_(r) { return r.rate ? { rate: typeof rateRange_ === 'function' ? rateRange_(r) : '' } : {}; }
+function kcTutorSay_(r) { return { note: typeof profNote_ === 'function' ? profNote_(r) : '' }; }
+function kcPersonName_(r) { return (typeof fmtName_ === 'function' && fmtName_(r)) || r.handle; }
+function kcPostName_(r) { return String(r.text || r.caption || r.title || 'Post').slice(0, 80); }
+function kcShopLook_(x) { return [x.wearable ? 'is-wear' : '', x.off ? 'is-off' : ''].filter(Boolean).join(' '); }
+function kcShopPic_(x) { return x.image && typeof pic === 'function' ? { src: pic(x.image), look: 'thing-pic', alt: '' } : null; }
+function kcShopPills_(x) { return itemFacets_(ITEM_MAPS.product, x).concat(shopPriceTag_(x) || []); }
+/* A BOOKING: what, who, when, the rate and whether it is paid; one line says who and how much in all; a child is told neither (kinds.json `see`). */
+function kcBookingName_(r) { return [r.subject || 'Session', r.level].filter(Boolean).join(' · '); }
+function kcBookingMoney_(r) { const rate = Number(r.rate) || (/hour/i.test(String(r.unit || '')) ? Number(r.price) : 0) || 0;
+  return { rate: rate > 0 ? fmtMoney_(rate, 'hour') : '', total: r.price !== '' && r.price != null && isFinite(Number(r.price)) ? fmtMoney_(Number(r.price)) + ' in all' : '' }; }
+function kcBookingPills_(it) { const j = it.raw, m = it.live.money || {}, paid = typeof rcpPaid_ === 'function' ? rcpPaid_(j) : '';
+  return ['Booking', j.subject, j.tutor ? fmtName_(j.tutor) : '', typeof rcpWhen_ === 'function' ? rcpWhen_(j) : '', m.rate]
+    .map(t => ({ text: t, colour: false })).concat([{ text: paid, colour: false, look: paid === 'Unpaid' ? 'is-new' : '' }]).filter(t => t.text); }
+function kcBookingBody_(r, L) { const who = (r.slots || []).map(sl => sl && sl.client).filter(Boolean).map(n => fmtName_(n)).join(', ') || (r.client ? fmtName_(r.client) : '');
+  const weeks = Number(r.weeks || (typeof jobDates_ === 'function' ? jobDates_(r).length : 0)) || 0;
+  const said = [who, weeks ? weeks + (weeks === 1 ? ' week' : ' weeks') : '', (L.money || {}).total].filter(Boolean).join(' · ');
+  return said ? [{ type: 'group', tag: 'p', look: 'rc-sum', text: said }] : []; }
 /* A SHOP THING'S PRICE TAG: its level, or free, pence as pounds, else credits; `can` when you have the level or the credits (your own, collCredits_). */
 const shopPriceTag_ = x => { const myLevel = Math.floor((Number(typeof USER !== 'undefined' && USER && USER.xp) || 0) / 10), free = x.cost === 0;
   const credits = typeof collCredits_ === 'function' ? collCredits_() : 0, afford = !free && !x.pence && credits >= x.cost;
   if (x.level > 0) return { text: myLevel >= x.level ? 'Level ' + x.level + ' — yours' : 'Level ' + x.level, look: 'price ' + (myLevel >= x.level ? 'can' : ''), colour: false };
   return x.cost === undefined ? null : { text: free ? 'free' : x.pence ? fmtMoney_(x.cost / 100) : x.cost + ' credits', look: 'price ' + (free ? 'free' : afford ? 'can' : ''), colour: false }; };
-/* THE SAME OPTIONS FOR EVERY KIND (slice 2): `id` its id columns; `name` (row → name); `from` the Find entry's field holding its row (else `row`); */
-/* `card` the card kind drawing it (else its own) and `when` (entry → true) which map that card picks; `body` (row → blocks) and `lines: true` */
-/* to draw them; `nameTag: false` for a card whose tags are its facets alone; `entryTags` { entry field: colour } after the facets; `off` (row → true) greys it. */
-/* COMPUTED FIELDS (slice 3): `live` { field: row → value } are worked out from the payload as the item loads (a subject's tutors, a room's rate), */
-/* kept as `it.live` and handed to `body` (row, live); `liveTags` { live field: colour } after the facets; `childHides` [keys] are taken out of every */
-/* live value for a child (childView_), and `adminOnly` [keys] for anyone not an admin, in this one place, so no kind's drawing decides */
-/* who may see a price or an admin's note (398). PEOPLE (slice 5): `pills` (item, entry) → the whole tag line, in place of name and facets; */
-/* `tagRows` (item, entry) → rows of tags under it; `facets: false` leaves Find's facets off the tag line. */
-/* A CARD THAT IS A TOOL (slice 4, a question): `look` may be (item, entry) → class; `keep` (item, entry) remembers the entry for an embed; */
-/* `data` (item, entry) → its data- attributes; `sheet` (item, entry, picture) → blocks drawn in place of `body`; `tiles` (item, entry) → its */
-/* tiles and `toolRow: true` its tool row; `tagLook` its tags' class. */
-/* SLICE 6 (a shop thing, a booking): `from` may be (entry → row); `facts: true` lays the card out as findCard lays out a facts card: its tags */
-/* tidied (a tag a picked chip says goes, the name leads only when no tag says it already, a tag over KC_TAG_MAX letters goes), an empty body */
-/* says so, `kc-facts` on it. `tool` (item) → the HTML of a shared TOOL the card holds (the booking paper), drawn by its own maker and laid out */
-/* the one way (`itemTool_`): its classes kept, its heading dropped, its tile rows joined to the card's row, a form open and whole (`kc-form`), */
-/* else its words as lines with the original kept hidden; the card's `body` leads it. */
 const itemLive_ = (r, M) => { const v = {}; Object.keys(M.live || {}).forEach(f => { v[f] = M.live[f](r); });
   const hide = (typeof may_ === 'function' && !may_('prices') ? M.childHides || [] : []).concat(typeof may_ === 'function' && may_('admin') ? [] : M.adminOnly || []);
   const strip = o => { if (Array.isArray(o)) o.forEach(strip); else if (o && typeof o === 'object') hide.forEach(k => { delete o[k]; }); };
   if (hide.length) Object.keys(v).forEach(f => strip(v[f]));
   return v; };
 /* A PERSON'S 8-BIT PORTRAIT (find-boxers.js), by their id. */
-const kcPersonPic_ = it => (typeof personPicSpec_ === 'function' ? personPicSpec_(it.raw.id, it.name) : null);
+function kcPersonPic_(it) { return typeof personPicSpec_ === 'function' ? personPicSpec_(it.raw.id, it.name) : null; }
 const itemList_ = v => (Array.isArray(v) ? v : String(v == null ? '' : v).split('|')).map(t => String(t).trim()).filter(Boolean);
 /* ANY ROW → THE SHAPE. `raw` is kept beside it, for what only a kind's drawing needs (a manuscript's fragment). */
 function item_(raw, kind) {
@@ -9020,11 +8999,13 @@ function cardOfItem_(it, x) {
     ...(M.tagRows ? { tagRows: M.tagRows(it, own) } : {}),
     tags: M.facts ? itemFactsTags_(tags, name) : tags };
 }
-/* FIND'S FACETS FOR AN ENTRY, unless its map leaves them off (`facets: false`). */
+/* FIND'S FACETS FOR AN ENTRY, in its kind's order (kinds.json `find.facets`), unless its kind keeps them off the card (`find.onCard: false`). */
 function itemFacets_(M, own) {
   let f0 = [];
   try { f0 = M.facets !== false && typeof tagList_ === 'function' && own.key ? tagList_(own) : []; } catch (e) { if (typeof oops_ === 'function') oops_(e, 'item:tags'); }
-  return Array.isArray(f0) ? f0 : [];
+  if (!Array.isArray(f0)) return [];
+  const at = f => { const i = (M.facetOrder || []).indexOf(f); return i < 0 ? 1e6 : i; };
+  return f0.map((t, i) => [t, i]).sort((a, b) => (at(a[0].field) - at(b[0].field)) || (a[1] - b[1])).map(p => p[0]);
 }
 /* A FACTS CARD'S TAG LINE (`facts: true`), as findCard tidies one: a tag a picked chip already says goes (kcPicked_); the name leads unless a */
 /* tag says it already (kcSays_); a tag longer than KC_TAG_MAX goes, unless it wears the name's colour. */
@@ -9052,6 +9033,27 @@ const itemMapOf_ = x => { const ks = Object.keys(ITEM_MAPS).filter(k => (ITEM_MA
   return ks.find(k => ITEM_MAPS[k].when && ITEM_MAPS[k].when(x)) || ks.find(k => !ITEM_MAPS[k].when) || ks[0]; };
 const itemOfEntry_ = x => { const k = itemMapOf_(x), f = ITEM_MAPS[k].from; return x.shape || item_((typeof f === 'function' ? f(x) : x[f || 'row']) || {}, k); };
 [...new Set(Object.keys(ITEM_MAPS).map(k => ITEM_MAPS[k].card || k))].forEach(c => cardKind_(c, x => cardOfItem_(itemOfEntry_(x), x)));
+/* A PERSON'S FACTS (owner, 16 Nov; kinds.json person `facts`): the owner's stated facts, aged to today, on the card for staff and admins only. */
+function personFacts_(id, now) {
+  const F = ITEM_KINDS.kinds.person.facts, d = now || new Date();
+  return (typeof DATA === 'object' && DATA && Array.isArray(DATA.facts) ? DATA.facts : []).filter(f => f && String(f.who) === String(id) && F.keys.indexOf(f.what) >= 0)
+    .map(f => ({ what: f.what, value: factAged_(f, F.ages[f.what], d) }));
+}
+/* "7-8" or "11" moved up by the Septembers since as_of (school_year) or the whole years (age); anything else as stated. */
+function factAged_(f, how, now) {
+  const at = new Date(f.as_of), v = String(f.value == null ? '' : f.value);
+  if (!how || isNaN(at)) return v;
+  let n = 0;
+  if (how === 'year') n = Math.max(0, Math.floor((now - at) / 31557600000));
+  else for (let y = at.getFullYear(); y <= now.getFullYear(); y++) { const s = new Date(y, 8, 1); if (s > at && s <= now) n++; }
+  return n ? v.replace(/\d+/g, x => String(Number(x) + n)) : v;
+}
+function kcPersonBody_(r) {
+  const own = typeof personDoorBody_ === 'function' ? personDoorBody_(r) : [];
+  const may = typeof may_ === 'function' && ITEM_KINDS.kinds.person.facts.see.some(w => may_(w));
+  const facts = may ? personFacts_(r.personId || r.id) : [];
+  return facts.length ? own.concat([{ type: 'list', items: facts.map(f => ({ label: f.what.replace(/_/g, ' '), value: f.value })) }]) : own;
+}
 
 ;
 /* ==== js/cards-make.js ==== */
@@ -9320,7 +9322,7 @@ on('book-with', el => {
 /* ==== js/form.js ==== */
 /* @family. — form.js ONE FORM MAKER (84a): every Settings card is drawn here from a spec, so spacing, buttons and labels cannot drift card to card. */
 
-/* THE SPECS ARE data/settings/forms.json; this is its copy, which check-forms.js holds equal to the file. */
+/* THE SPECS ARE data/settings/forms.json (field kinds, rules, Settings cards); this is its copy. An item's forms are its kind's, in kinds.json (ITEM_KINDS). */
 const FORM_SPECS = {
   "kinds": ["text","number","money","choice","toggle","date","time","picture","list","pin","slider","phone","file","tick","hidden","long","ticks","toggles","search","timetable","many","doc","head","subjects","shelf","dob"],
   "rules": [
@@ -9365,115 +9367,12 @@ const FORM_SPECS = {
       },
       "said": "pin-said"
     }
-  },
-  "forms": {
-    "say": "FORMS FROM THE ITEM SHAPE (foundation 2): a form is an item kind (item-shape.json) plus this field list: which fields, their order, type (a FORM kind), caption or placeholder, and `may` (a may_() word) for who sees it; money fields also need may_('prices'), so a child never sees a price. `draft`: \"form\" keeps each box a draft until saved (the handler drops it on success), \"set\" is Settings' own (fieldHtml), false none. `fields`: a list, or \"groups\"/\"list\" for names the backend sends, typed by `rules`. `{x}` in a name is o.vars.x. Drawn by formOf_ (js/form.js) through renderCard's field/control blocks.",
-    "person-add": {"item": "person", "attr": "data-pa", "fields": [
-      {"f":"first","type":"text","ph":"First name"},
-      {"f":"last","type":"text","ph":"Last name"},
-      {"f":"role","type":"choice","label":"Role","draft":false},
-      {"f":"email","type":"text","input":"email","ph":"Email","phKid":"Email (optional)"},
-      {"f":"dob","type":"date","label":"Date of birth (optional)"}
-    ], "draft": "form"},
-    "person-form": {"item": "person", "attr": "data-pf", "fields": [
-      {"f":"first","type":"text","ph":"First name","row":"names"},
-      {"f":"last","type":"text","ph":"Last name","row":"names"},
-      {"f":"roles","type":"ticks","attr":"data-pf-role","label":"Role","look":"pf-roles","tickLook":""},
-      {"f":"email","type":"text","input":"email","ph":"Email (optional)"},
-      {"f":"dob","type":"date","label":"Date of birth (optional)"},
-      {"f":"parents","type":"ticks","attr":"data-pf-parent","label":"Parents","draft":false,"look":"pf-ticks","tickLook":""},
-      {"f":"parent","type":"choice","label":"Their parent (optional)","draft":false}
-    ], "draft": "form"},
-    "person-edit": {"item": "person", "attr": "data-pe", "fields": [
-      {"f":"first_name","type":"text"},
-      {"f":"last_name","type":"text"},
-      {"f":"handle","type":"text","label":"handle (theirs to change)","readonly":true},
-      {"f":"dob","type":"date","label":"date of birth"},
-      {"f":"email","type":"text","input":"email"},
-      {"f":"phone","type":"phone","input":"tel"},
-      {"f":"address","type":"text"},
-      {"f":"postcode","type":"text"}
-    ], "draft": "form"},
-    "settings": {"item": "person", "attr": "data-me", "draft": "set", "fields": "groups", "say": "Settings cards: the backend's field groups; a timetable group is the week grid, lib/qual/job/photo names their shelves, dob_* the three boxes, phone the code and number, photo the picture."},
-    "card-edit": {"item": "tutor", "attr": "data-me", "draft": false, "fields": "list", "say": "the tutor card's edit form (cardEditForm_): its sections' names, typed by rules; a price only for may_('prices')."},
-    "card-seat": {"item": "tutor", "attr": "data-pound", "draft": false, "say": "the extra seat in pounds, kept as the share in the hidden twin; @family.'s share only for an admin.", "fields": [
-      {"f":"extra_seat_rate","type":"money"},
-      {"f":"extra_seat_rate","type":"hidden","attr":"data-me"},
-      {"f":"extra_seat_cut","type":"money","may":"admin"},
-      {"f":"extra_seat_cut","type":"hidden","attr":"data-me","may":"admin"}
-    ]},
-    "card-where": {"item": "tutor", "attr": "data-me", "draft": false, "say": "Where you teach: an area a tick, rewriting the hidden venues_ok, saved by the card's Save.", "fields": [
-      {"f":"venues_ok","type":"hidden"},
-      {"f":"areas","type":"ticks","attr":"data-where-area","label":"Areas you teach in","look":"many-list where-areas"}
-    ]},
-    "library-card": {"item": "person", "attr": "data-me", "draft": "set", "say": "one library card on the shelf; a library PIN is not a sign-in PIN and keeps no draft (setDraftOk_).", "fields": [
-      {"f":"lib{n}_name","type":"text","ph":"Library name","look":"lib-name","quiet":true},
-      {"f":"lib{n}_pin","type":"text","label":"PIN","look":"lib-pin","quiet":true,"blank":true},
-      {"f":"lib{n}_no","type":"text","ph":"Card number","look":"lib-no","quiet":true}
-    ]},
-    "job": {"item": "person", "attr": "data-me", "draft": "set", "say": "one job on the shelf: role, where, from–to.", "fields": [
-      {"f":"job_{n}_role","type":"text","ph":"role","max":80},
-      {"f":"job_{n}_where","type":"text","ph":"where","max":80},
-      {"f":"job_{n}_from","type":"text","ph":"from","max":80},
-      {"f":"job_{n}_to","type":"text","ph":"to, or now","max":80}
-    ]},
-    "dob": {"item": "person", "attr": "data-me", "draft": "set", "say": "a date of birth as three boxes.", "fields": [
-      {"f":"dob_d","type":"text","ph":"DD","max":2,"pad":"numeric"},
-      {"f":"dob_m","type":"text","ph":"MM","max":2,"pad":"numeric"},
-      {"f":"dob_y","type":"text","ph":"YYYY","max":4,"pad":"numeric"}
-    ]},
-    "family-pick": {"item": "person", "attr": "data-fam-q", "draft": false, "say": "a family picker: a name looked up, not work, retyped in a second.", "fields": [
-      {"f":"{scope}","type":"search","ph":"name or @handle","want":"{want}"}
-    ]},
-    "notify": {"item": "person", "attr": "data-do", "draft": false, "say": "Notifications: each tick a setNotify the moment it is ticked (formToggle_).", "fields": [
-      {"f":"kinds","type":"toggles"}
-    ]},
-    "apply-teach": {"item": "person", "attr": "data-app", "draft": "form", "say": "Apply to teach (400): one sheet, kept as drafts until it is sent.", "fields": [
-      {"f":"","type":"head","label":"You"},
-      {"f":"fullName","type":"text","label":"full name"},
-      {"f":"phone","type":"text","input":"tel","label":"phone","row":"r1"},
-      {"f":"email","type":"text","input":"email","label":"email","row":"r1"},
-      {"f":"address","type":"long","label":"home address"},
-      {"f":"postcode","type":"text","label":"postcode","caps":true,"row":"r2"},
-      {"f":"dob","type":"date","label":"date of birth","row":"r2"},
-      {"f":"","type":"head","label":"Documents"},
-      {"f":"idDoc","type":"doc","label":"photo ID — passport or driving licence"},
-      {"f":"rightToWork","type":"choice","label":"right to work in the UK","options":[["","Choose"],["yes","Yes"],["no","No"]]},
-      {"f":"rtwDoc","type":"doc","label":"right-to-work document — passport, share code or visa"},
-      {"f":"","type":"head","label":"What you teach"},
-      {"f":"subjects","type":"subjects"},
-      {"f":"qualifications","type":"long","label":"qualifications — degrees, teaching qualifications, anything relevant"},
-      {"f":"qual0","type":"doc","label":"a qualification certificate"},
-      {"f":"qual1","type":"doc","label":"another qualification certificate (optional)"},
-      {"f":"qual2","type":"doc","label":"another qualification certificate (optional)"},
-      {"f":"rate","type":"money","input":"number","label":"hourly rate (£)","min":"1","step":"0.5"},
-      {"f":"","type":"head","label":"Checks"},
-      {"f":"dbsNumber","type":"text","label":"enhanced DBS certificate number","row":"r3"},
-      {"f":"dbsIssued","type":"date","label":"issued on","row":"r3"},
-      {"f":"dbsUpdate","type":"tick","label":"I consent to you checking it on the DBS Update Service"},
-      {"f":"dbsNeeded","type":"tick","label":"I need a DBS check"},
-      {"f":"","type":"head","label":"When and where"},
-      {"f":"availability","type":"timetable","label":"when you can teach"},
-      {"f":"area","type":"text","label":"area and venues you can reach"},
-      {"f":"experience","type":"long","label":"experience"},
-      {"f":"","type":"head","label":"2 references"},
-      {"f":"ref1Name","type":"text","label":"name","row":"a1"},
-      {"f":"ref1Relationship","type":"text","label":"relationship to you","row":"a1"},
-      {"f":"ref1Email","type":"text","input":"email","label":"email","row":"b1"},
-      {"f":"ref1Phone","type":"text","input":"tel","label":"phone","row":"b1"},
-      {"f":"ref2Name","type":"text","label":"name","row":"a2"},
-      {"f":"ref2Relationship","type":"text","label":"relationship to you","row":"a2"},
-      {"f":"ref2Email","type":"text","input":"email","label":"email","row":"b2"},
-      {"f":"ref2Phone","type":"text","input":"tel","label":"phone","row":"b2"},
-      {"f":"statement","type":"long","label":"a short statement — why you want to teach"},
-      {"f":"cvLink","type":"text","input":"url","label":"CV link (optional)","ph":"https://…"},
-      {"f":"consent","type":"tick","label":"I agree to @family. keeping these details and documents privately to consider my application, contacting my referees and checking my DBS."}
-    ]},
-    "sign-join": {"item":"person","attr":"data-sj","draft":false,"say":"Find's Make an account card (owner, 15 Nov): who it is for, the names, the email and a PIN; sent as `register`. No draft, so the PIN is never kept.","fields":[{"f":"who","type":"choice","label":"who is the account for?"},{"f":"first","type":"text","ph":"First name","row":"names"},{"f":"last","type":"text","ph":"Last name","row":"names"},{"f":"email","type":"text","input":"email","ph":"Email"},{"f":"pin","type":"text","input":"password","label":"PIN — 4 digits"}]}
   }
 };
 
 /* WHICH OF THE KINDS A FIELD IS, by the first rule its name matches; the last rule catches everything as text. */
+/* EVERY FORM IS ITS KIND'S (data/settings/kinds.json `forms`): read from KINDS, each told the kind it fills. */
+FORM_SPECS.forms = Object.assign({}, ...Object.keys(ITEM_KINDS.kinds).map(k => Object.fromEntries(Object.entries(ITEM_KINDS.kinds[k].forms || {}).map(([id, f]) => [id, Object.assign({ item: k }, f)]))));
 const FORM_RULES_ = FORM_SPECS.rules.map(r => ({ kind: r.kind, re: new RegExp(r.match) }));
 const formKind_ = f => (FORM_RULES_.find(r => r.re.test(String(f || ''))) || { kind: 'text' }).kind;
 
