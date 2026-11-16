@@ -51,7 +51,10 @@ const FORM_SPECS = {
 /* WHICH OF THE KINDS A FIELD IS, by the first rule its name matches; the last rule catches everything as text. */
 /* EVERY FORM IS ITS KIND'S (data/settings/kinds.json `forms`): read from KINDS, each told the kind it fills. */
 FORM_SPECS.forms = Object.assign({}, ...Object.keys(ITEM_KINDS.kinds).map(k => Object.fromEntries(Object.entries(ITEM_KINDS.kinds[k].forms || {}).map(([id, f]) => [id, Object.assign({ item: k }, f)]))));
-const FORM_RULES_ = FORM_SPECS.rules.map(r => ({ kind: r.kind, re: new RegExp(r.match) }));
+/* A FORM ASKED IN FIND, ONE FIELD A STEP (`ask: "find"`): its fields in order, and one field's spec (many, need, given, ask). */
+const formAsks_ = id => ((FORM_SPECS.forms[id] || {}).fields || []).map(x => x.f);
+const formAsk_ = (id, f) => ((FORM_SPECS.forms[id] || {}).fields || []).find(x => x.f === f) || {};
+const FORM_RULES_ =FORM_SPECS.rules.map(r => ({ kind: r.kind, re: new RegExp(r.match) }));
 const formKind_ = f => (FORM_RULES_.find(r => r.re.test(String(f || ''))) || { kind: 'text' }).kind;
 
 /* ONE FIELD, ONE LINE: every kind but a box with no column behind it goes through `fieldHtml`, the one line-drawer. */

@@ -52,6 +52,35 @@
     ],
     "never": [
      "pin"
+    ],
+    "via": "person",
+    "id": "person_id",
+    "show": [
+     "person_id",
+     "role",
+     "first_name",
+     "handle",
+     "photo",
+     "photos",
+     "video",
+     "headline",
+     "adjective_1",
+     "adjective_2",
+     "adjective_3",
+     "years_experience",
+     "focus",
+     "borough",
+     "town",
+     "city",
+     "travel_km",
+     "rate_per_hour",
+     "extra_seat_rate",
+     "min_students",
+     "max_students",
+     "availability",
+     "listed",
+     "avatar",
+     "dbs_checked"
     ]
    },
    "find": {
@@ -100,7 +129,10 @@
     "who": "anyone",
     "hide": {
      "prices": [
-      "rate"
+      "rate",
+      "rate_per_hour",
+      "extra_seat_rate",
+      "extra_seat_cut"
      ],
      "admin": [
       "note"
@@ -178,7 +210,8 @@
     ],
     "also": [
      "rooms"
-    ]
+    ],
+    "id": "venue_id"
    },
    "find": {
     "group": "Venues",
@@ -212,7 +245,9 @@
     "who": "anyone",
     "hide": {
      "prices": [
-      "price"
+      "price",
+      "cost_per_hour",
+      "travel_cost"
      ]
     }
    }
@@ -284,7 +319,7 @@
    "loader": "backend booking.gs -> book-*.js (myJobs_ -> findMineItems_)",
    "sample": "check/fixture.json liveJobs",
    "sheet": {
-    "tab": "events",
+    "tab": "jobs",
     "columns": [
      "job_id",
      "subject",
@@ -300,6 +335,11 @@
     ],
     "also": [
      "receipts"
+    ],
+    "id": "job_id",
+    "owner": [
+     "booked_by",
+     "client_hosts"
     ]
    },
    "find": {
@@ -342,7 +382,27 @@
     "hide": {
      "prices": [
       "rate",
-      "total"
+      "total",
+      "price_total",
+      "tutor_pay",
+      "travel_paid",
+      "admin_profit",
+      "gross",
+      "tutor_payout",
+      "venue_cost",
+      "materials_charge",
+      "materials_cost",
+      "tickets_cost",
+      "card_fees",
+      "discount_value",
+      "net_profit"
+     ],
+     "admin": [
+      "tutor_pay",
+      "admin_profit",
+      "net_profit",
+      "venue_cost",
+      "card_fees"
      ]
     }
    }
@@ -357,6 +417,69 @@
    },
    "see": {
     "who": "anyone"
+   },
+   "forms": {
+    "booking": {
+     "ask": "find",
+     "say": "Booking, asked in Find one field a step in this order (owner, 13 Nov); each field is a BOOK_STEPS question (book-steps.js) or the hour grid (days, slots). given: the site answers it (bookPrefill_), still a chip. many: several answers, a tap ticks; need: how many before Next.",
+     "fields": [
+      {
+       "f": "how",
+       "given": true
+      },
+      {
+       "f": "client"
+      },
+      {
+       "f": "joining",
+       "given": true
+      },
+      {
+       "f": "subjects",
+       "many": true,
+       "need": 1
+      },
+      {
+       "f": "level"
+      },
+      {
+       "f": "tutor"
+      },
+      {
+       "f": "loc"
+      },
+      {
+       "f": "hosting"
+      },
+      {
+       "f": "interval",
+       "many": true
+      },
+      {
+       "f": "days",
+       "many": true,
+       "need": 1,
+       "ask": "Which day?"
+      },
+      {
+       "f": "slots",
+       "many": true,
+       "need": 1,
+       "ask": "What time? Each tag is one hour."
+      },
+      {
+       "f": "avail",
+       "many": true
+      },
+      {
+       "f": "kids",
+       "many": true
+      },
+      {
+       "f": "n"
+      }
+     ]
+    }
    }
   },
   "question": {
@@ -376,7 +499,9 @@
      "key_stage",
      "year",
      "document_type"
-    ]
+    ],
+    "id": "id",
+    "blob": true
    },
    "find": {
     "group": "Learning",
@@ -459,7 +584,9 @@
      "exam_board",
      "practical_type",
      "excluded"
-    ]
+    ],
+    "id": "id",
+    "blob": true
    },
    "find": {
     "group": "Learning",
@@ -511,7 +638,9 @@
      "level",
      "exam_board",
      "project_type"
-    ]
+    ],
+    "id": "id",
+    "blob": true
    },
    "find": {
     "group": "Learning",
@@ -562,7 +691,9 @@
      "keystage",
      "board",
      "tier"
-    ]
+    ],
+    "id": "id",
+    "blob": true
    },
    "find": {
     "group": "Learning",
@@ -611,7 +742,9 @@
      "subject",
      "boards",
      "levels"
-    ]
+    ],
+    "id": "id",
+    "blob": true
    },
    "find": {
     "group": "Learning",
@@ -1104,6 +1237,34 @@
     ],
     "never": [
      "pin"
+    ],
+    "id": "person_id",
+    "owner": [
+     "person_id"
+    ],
+    "kindBy": {
+     "column": "role",
+     "match": "tutor",
+     "kind": "tutor"
+    },
+    "show": [
+     "person_id",
+     "role",
+     "first_name",
+     "last_name",
+     "handle",
+     "email",
+     "phone",
+     "date_of_birth",
+     "photo",
+     "avatar",
+     "favourite_colour",
+     "xp",
+     "credits",
+     "children",
+     "joined_on",
+     "exam_small_date",
+     "exam_big_date"
     ]
    },
    "find": {
@@ -1133,7 +1294,14 @@
     "tiles": "peopleOpts_(raw)"
    },
    "see": {
-    "who": "self, family, staff, admin"
+    "who": "self, family, staff, admin",
+    "hide": {
+     "prices": [
+      "rate_per_hour",
+      "extra_seat_rate",
+      "extra_seat_cut"
+     ]
+    }
    },
    "forms": {
     "person-add": {
@@ -1745,6 +1913,10 @@
      "title",
      "location",
      "authorId"
+    ],
+    "id": "post_id",
+    "owner": [
+     "posted_by"
     ]
    },
    "find": {
@@ -1794,7 +1966,8 @@
      "cost",
      "level",
      "image"
-    ]
+    ],
+    "id": "item_id"
    },
    "find": {
     "group": "Shop",
@@ -1857,5 +2030,569 @@
    }
   }
  },
- "findSay": "FIND (rule 1.80): a kind's `find` gives its What-for group, its What-kind label, the front door(s) it stands under (`under`), the facets in order, and `draw` (a global that draws its Find card, else findCard). `entries` names the Find entry kinds it covers when they are not the kind itself (an answer page, a timeline, a switched-off door), each overriding those fields. An entry kind named by no kind is never listed or drawn; `see.who` (anyone, signedIn, self, family, staff, admin) decides who is listed it. Labels and order of the facets are data/settings/facets.json."
+ "findSay": "FIND (rule 1.80): a kind's `find` gives its What-for group, its What-kind label, the front door(s) it stands under (`under`), the facets in order, and `draw` (a global that draws its Find card, else findCard). `entries` names the Find entry kinds it covers when they are not the kind itself (an answer page, a timeline, a switched-off door), each overriding those fields. An entry kind named by no kind is never listed or drawn; `see.who` (anyone, signedIn, self, family, staff, admin) decides who is listed it. Labels and order of the facets are data/settings/facets.json.",
+ "stored": {
+  "qualification": {
+   "sheet": {
+    "tab": "qualifications",
+    "id": [
+     "person_id",
+     "subject",
+     "level"
+    ],
+    "owner": [
+     "person_id"
+    ]
+   },
+   "see": {
+    "who": "anyone"
+   }
+  },
+  "library_card": {
+   "sheet": {
+    "tab": "library_cards",
+    "id": [
+     "person_id",
+     "library"
+    ],
+    "owner": [
+     "person_id"
+    ]
+   },
+   "see": {
+    "who": "self, admin"
+   }
+  },
+  "family_link": {
+   "sheet": {
+    "tab": "family",
+    "id": "link_id",
+    "owner": [
+     "parent_id",
+     "child_id"
+    ]
+   },
+   "see": {
+    "who": "self, admin"
+   }
+  },
+  "message": {
+   "sheet": {
+    "tab": "messages",
+    "id": "message_id",
+    "owner": [
+     "from_id",
+     "to_id"
+    ]
+   },
+   "see": {
+    "who": "self, admin"
+   }
+  },
+  "receipt": {
+   "sheet": {
+    "tab": "receipts",
+    "id": "receipt_id",
+    "owner": [
+     "person_id"
+    ]
+   },
+   "see": {
+    "who": "self, family, admin",
+    "hide": {
+     "prices": [
+      "total_pence",
+      "lines"
+     ]
+    }
+   }
+  },
+  "invite": {
+   "sheet": {
+    "tab": "invites",
+    "id": "invite_id"
+   },
+   "see": {
+    "who": "admin"
+   }
+  },
+  "exam": {
+   "sheet": {
+    "tab": "exams",
+    "id": "exam_id",
+    "owner": [
+     "person_id"
+    ]
+   },
+   "see": {
+    "who": "self, family, staff, admin"
+   }
+  },
+  "fav_link": {
+   "sheet": {
+    "tab": "fav_links",
+    "id": [
+     "person_id",
+     "url"
+    ],
+    "owner": [
+     "person_id"
+    ]
+   },
+   "see": {
+    "who": "self, admin"
+   }
+  },
+  "favourite": {
+   "sheet": {
+    "tab": "favourites",
+    "id": "fav_id",
+    "owner": [
+     "person_id"
+    ]
+   },
+   "see": {
+    "who": "self, admin"
+   }
+  },
+  "setting": {
+   "sheet": {
+    "tab": "config",
+    "id": "key"
+   },
+   "see": {
+    "who": "admin"
+   }
+  },
+  "price_rule": {
+   "sheet": {
+    "tab": "pricing",
+    "id": [
+     "kind",
+     "label"
+    ]
+   },
+   "see": {
+    "who": "staff, admin",
+    "hide": {
+     "prices": [
+      "surcharge_per_hour"
+     ]
+    }
+   }
+  },
+  "option": {
+   "sheet": {
+    "tab": "options",
+    "id": [
+     "list_name",
+     "value"
+    ]
+   },
+   "see": {
+    "who": "anyone"
+   }
+  },
+  "holiday": {
+   "sheet": {
+    "tab": "holidays",
+    "id": "holiday_id"
+   },
+   "see": {
+    "who": "anyone",
+    "hide": {
+     "prices": [
+      "price_per_child"
+     ]
+    }
+   }
+  },
+  "landmark": {
+   "sheet": {
+    "tab": "landmarks",
+    "id": "id"
+   },
+   "see": {
+    "who": "anyone"
+   }
+  },
+  "landmark_part": {
+   "sheet": {
+    "tab": "landmark_parts",
+    "id": "part_id"
+   },
+   "see": {
+    "who": "anyone"
+   }
+  },
+  "map_shape": {
+   "sheet": {
+    "tab": "map",
+    "id": [
+     "world",
+     "kind",
+     "name"
+    ]
+   },
+   "see": {
+    "who": "anyone"
+   }
+  },
+  "term": {
+   "sheet": {
+    "tab": "terms",
+    "id": "term_id"
+   },
+   "see": {
+    "who": "anyone"
+   }
+  },
+  "herd_question": {
+   "sheet": {
+    "tab": "herd",
+    "id": "question_id"
+   },
+   "see": {
+    "who": "anyone"
+   }
+  },
+  "room": {
+   "sheet": {
+    "tab": "rooms",
+    "id": "room_id"
+   },
+   "see": {
+    "who": "anyone",
+    "hide": {
+     "prices": [
+      "rate_per_hour",
+      "concession_rate"
+     ]
+    }
+   }
+  },
+  "film": {
+   "sheet": {
+    "tab": "films",
+    "id": "film_id"
+   },
+   "see": {
+    "who": "signedIn"
+   }
+  },
+  "comment": {
+   "sheet": {
+    "tab": "post_comments",
+    "id": "comment_id",
+    "owner": [
+     "person_id"
+    ]
+   },
+   "see": {
+    "who": "signedIn"
+   }
+  },
+  "spotlight": {
+   "sheet": {
+    "tab": "spotlight",
+    "id": "spot_id"
+   },
+   "see": {
+    "who": "anyone"
+   }
+  },
+  "trip": {
+   "sheet": {
+    "tab": "trips",
+    "id": "trip_id"
+   },
+   "see": {
+    "who": "anyone",
+    "hide": {
+     "prices": [
+      "price_per_child",
+      "ticket_child",
+      "ticket_adult",
+      "travel_per_child"
+     ]
+    }
+   }
+  },
+  "record": {
+   "sheet": {
+    "tab": "records",
+    "id": "record_id"
+   },
+   "see": {
+    "who": "admin"
+   }
+  },
+  "answer": {
+   "sheet": {
+    "tab": "answers",
+    "id": [
+     "person_id",
+     "answer_key"
+    ],
+    "owner": [
+     "person_id"
+    ]
+   },
+   "see": {
+    "who": "self, family, staff, admin"
+   }
+  },
+  "fact": {
+   "sheet": {
+    "tab": "facts",
+    "id": [
+     "who",
+     "what"
+    ],
+    "owner": [
+     "who"
+    ]
+   },
+   "see": {
+    "who": "staff, admin"
+   }
+  },
+  "media": {
+   "sheet": {
+    "tab": "media",
+    "id": "media_id"
+   },
+   "see": {
+    "who": "anyone"
+   }
+  },
+  "application": {
+   "sheet": {
+    "tab": "applications",
+    "id": "application_id",
+    "owner": [
+     "person_id"
+    ]
+   },
+   "see": {
+    "who": "self, admin"
+   }
+  },
+  "promo_code": {
+   "sheet": {
+    "tab": "promo_codes",
+    "id": "code"
+   },
+   "see": {
+    "who": "admin"
+   }
+  },
+  "biz_check": {
+   "sheet": {
+    "tab": "biz_checks",
+    "id": "check_id"
+   },
+   "see": {
+    "who": "admin"
+   }
+  },
+  "owner_answer": {
+   "sheet": {
+    "tab": "owner_answers",
+    "id": "question_id"
+   },
+   "see": {
+    "who": "admin"
+   }
+  },
+  "work_file": {
+   "sheet": {
+    "tab": "work_files",
+    "id": "work_id",
+    "owner": [
+     "person_id"
+    ]
+   },
+   "see": {
+    "who": "self, family, staff, admin"
+   }
+  },
+  "push_token": {
+   "sheet": {
+    "tab": "push_tokens",
+    "id": "token_id"
+   },
+   "see": {
+    "who": "admin"
+   }
+  },
+  "claude_note": {
+   "sheet": {
+    "tab": "claude_notes",
+    "id": "note_id"
+   },
+   "see": {
+    "who": "admin"
+   }
+  },
+  "report": {
+   "sheet": {
+    "tab": "reports",
+    "id": "report_id"
+   },
+   "see": {
+    "who": "admin"
+   }
+  },
+  "client_error": {
+   "sheet": {
+    "tab": "client_errors",
+    "id": "error_id"
+   },
+   "see": {
+    "who": "admin"
+   }
+  },
+  "lens": {
+   "sheet": {
+    "tab": "lens_log",
+    "to": "events",
+    "at": "at",
+    "who": "by_id",
+    "what": "action",
+    "item": "for_id"
+   },
+   "see": {
+    "who": "admin"
+   }
+  },
+  "health": {
+   "sheet": {
+    "tab": "health_log",
+    "to": "events",
+    "at": "at",
+    "who": "device",
+    "what": "version",
+    "item": ""
+   },
+   "see": {
+    "who": "admin"
+   }
+  },
+  "lib_serve": {
+   "sheet": {
+    "tab": "lib_log",
+    "to": "events",
+    "at": "last_at",
+    "who": "person_id",
+    "what": "served",
+    "item": "day"
+   },
+   "see": {
+    "who": "admin"
+   }
+  },
+  "booking_event": {
+   "sheet": {
+    "tab": "events",
+    "to": "events",
+    "at": "at",
+    "who": "actor",
+    "what": "action",
+    "item": "job_id"
+   },
+   "see": {
+    "who": "admin"
+   }
+  },
+  "reaction": {
+   "sheet": {
+    "tab": "post_reactions",
+    "to": "events",
+    "at": "reacted_on",
+    "who": "person_id",
+    "what": "emoji",
+    "item": "post_id"
+   },
+   "see": {
+    "who": "admin"
+   }
+  },
+  "vote": {
+   "sheet": {
+    "tab": "post_votes",
+    "to": "events",
+    "at": "voted_on",
+    "who": "person_id",
+    "what": "choice",
+    "item": "post_id"
+   },
+   "see": {
+    "who": "admin"
+   }
+  },
+  "digest": {
+   "sheet": {
+    "tab": "digest_log",
+    "to": "events",
+    "at": "at",
+    "who": "learner_id",
+    "what": "status",
+    "item": "week_of"
+   },
+   "see": {
+    "who": "admin"
+   }
+  },
+  "submission": {
+   "sheet": {
+    "tab": "submissions",
+    "to": "events",
+    "at": "submitted_at",
+    "who": "person_id",
+    "what": "verdict",
+    "item": "key"
+   },
+   "see": {
+    "who": "admin"
+   }
+  }
+ },
+ "ledger": {
+  "say": "THE ITEMS AND EVENTS TABS (owner, 16 Nov, go extreme): every Ledger tab is one kind, a card kind's `sheet` above or a storage kind in `stored`; `to` is items unless it says events. An item row is {id, kind, data_1..data_6}: data_1 the row as JSON, or a blob's six chunks. An event row is {at, who, kind, what, item, data}. `id` is a column, or columns joined by ':'. `owner` columns say whose an item is (self and family in `see.who`; staff is a tutor). A non-admin gets only a kind's `sheet.show` columns when it has them, never a `never` column, never a `see.hide.prices` column as a child, never a `see.hide.admin` one. Moved by tools/ledger-migrate.js; read, written and logged by the one action `item` (backend/items.gs). A tab with no kind is in `unmapped`.",
+  "items": {
+   "tab": "items",
+   "columns": [
+    "id",
+    "kind",
+    "data_1",
+    "data_2",
+    "data_3",
+    "data_4",
+    "data_5",
+    "data_6"
+   ]
+  },
+  "events": {
+   "tab": "events_log",
+   "columns": [
+    "at",
+    "who",
+    "kind",
+    "what",
+    "item",
+    "data"
+   ]
+  },
+  "never": [
+   "pin",
+   "verify_token",
+   "token",
+   "card_number",
+   "dbs_number"
+  ],
+  "unmapped": {
+   "_README": "the owner's notes on the file itself, not data"
+  }
+ }
 }

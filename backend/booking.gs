@@ -1,7 +1,7 @@
 /* @family. — 30_booking.gs (4 of 8) THE BOOKING MACHINE, and everything that decides who is in a session. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const BOOKING_VERSION = "2026-11-16-facts-1";
+const BOOKING_VERSION = "2026-11-16-items-1";
 
 
 /* WHEN THE BUSINESS ACTUALLY OPERATES within an interval. § */
@@ -1310,6 +1310,7 @@ const PERMISSIONS = {
   digestPreview: ['admin'],
   digestSendNow: ['admin'],
   editPost: ['member', 'child', 'admin'],
+  factSet: ['admin'],
   favourite: ['member', 'child', 'admin'],
   filmsSync: ['admin'],
   finalizePayment: ['member', 'admin'],
@@ -1320,6 +1321,7 @@ const PERMISSIONS = {
   googleLogin: ['anyone', 'member', 'child', 'admin'],
   hands: ['member', 'child', 'admin'],
   healthLog: ['anyone', 'member', 'child', 'admin'],
+  item: ['anyone', 'member', 'child', 'admin'],
   joinWaitlist: ['member', 'admin'],
   layoutSave: ['admin'],
   lensOpen: ['admin'],

@@ -401,7 +401,7 @@ const BOOK_STEPS = [
   /* ORDER BY DEPENDENCY (owner, 12 Nov): who → what → who teaches → where → how many → when; a row reads only rows above it. */
   /* ---------- WHOSE CHILDREN ARE THESE? § */
   /* THE SEATS FOLLOW THE CHILDREN (owner, 7 Nov): picking a child past the count raises it; seats beyond them stay the admin's. */
-  { id: 'kids', label: text_('which-of-your-children-is-this'), short: 'Child', multi: true, set: list => { if (list && list.length > (Number(BOOKING.n) || 1)) BOOKING.n = String(list.length); },
+  { id: 'kids', label: text_('which-of-your-children-is-this'), short: 'Child', set: list => { if (list && list.length > (Number(BOOKING.n) || 1)) BOOKING.n = String(list.length); },
     /* EVERY CHILD IS OFFERED. § */
     /* ---------- WHOSE CHILDREN, WHICH IS NOT ALWAYS YOURS § */
     options: () => {
@@ -439,7 +439,7 @@ const BOOK_STEPS = [
   /* ---------- AND THEN THE SENTENCE CAME OFF AGAIN § */
   /* ---------- AND A WAITING LIST IS ASKED IT TOO § */
   /* NO `format`, `practical` OR `trip` STEP (463): trips and practicals are shop items, bought in the basket. */
-  { id: 'subjects', label: text_('what-are-we-working-on'), short: 'Subject', multi: true,
+  { id: 'subjects', label: text_('what-are-we-working-on'), short: 'Subject',
     options: () => (subjectRows() || []).map(x => x.name) },
 
   /* MIXED LEVELS IN ONE BOOKING (owner, 7 Nov): one answer, the highest qualification, and the price follows it. */
@@ -540,7 +540,7 @@ const BOOK_STEPS = [
   /* AND NO TERM, for the same reason as the day. */
   /* ---------- SEVERAL TERMS, BECAUSE A BOOKING IS RARELY ONE OF THEM § */
   /* ---------- AND ON A WAITING LIST IT ANSWERS ITSELF § */
-  { id: 'interval', label: text_('over-what-period'), short: 'Term', multi: true,
+  { id: 'interval', label: text_('over-what-period'), short: 'Term',
     fallback: () => { const t = isWaiting_() ? waitTerm_() : null;
                       return t ? (t.label || t.term) : ''; },
     /* ---------- AND IT IS OFFERED ON BOTH BRANCHES NOW § */
@@ -558,7 +558,7 @@ const BOOK_STEPS = [
   /* ---------- "FREE" MEANT FREE OF CHARGE TO EVERY READER § */
   /* ---------- AND IT IS THE WEEK NOW, NOT FIVE PHRASES § */
   /* ---------- AND IT IS NOT ON AN ORDINARY BOOKING AT ALL § */
-  { id: 'avail', label: text_('when-could-you-come'), short: text_('when-free'), multi: true,
+  { id: 'avail', label: text_('when-could-you-come'), short: text_('when-free'),
     only: 'wait',
     grid: 'blocks', week: true, options: () => [], why: () => '' },
 
@@ -594,6 +594,8 @@ function venueRate_() {
   return v ? Number(v.bestRate) || 0 : 0;
 }
 
+/* SEVERAL ANSWERS OR ONE is the booking form's (kinds.json `many`), never written on the step. */
+BOOK_STEPS.forEach(st => { st.multi = !!formAsk_('booking', st.id).many; });
 const bookStep_ = id => BOOK_STEPS.find(s => s.id === id);
 
 /* ---------- ONE TERM PER NAME, AND THE NEAREST ONE § */
