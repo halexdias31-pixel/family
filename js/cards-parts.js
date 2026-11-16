@@ -265,7 +265,7 @@ function itemMapOfKind_(k) {
   if (K.live) { M.live = {}; Object.keys(K.live).forEach(f => { const h = kindHook_(K.live[f], null); M.live[f] = r => h({ row: r }); }); }
   return M;
 }
-const ITEM_MAPS = Object.fromEntries(Object.keys(ITEM_KINDS.kinds).map(k => [k, itemMapOfKind_(k)]));
+const ITEM_MAPS = Object.fromEntries(Object.keys(ITEM_KINDS.kinds).filter(k => ITEM_KINDS.kinds[k].card).map(k => [k, itemMapOfKind_(k)]));
 /* ---------- KIND HOOKS: the few slots kinds.json names that no kind's own file already draws. ---------- */
 function kcMsPic_(it, x) { const svg = typeof msFragSvg_ === 'function' ? msFragSvg_(it.raw, x && x.msSideIx) : ''; return svg ? { svg, alt: it.name } : null; }
 function kcInsertBody_(r) { if (typeof insWant_ === 'function') insWant_(r); return typeof insertBody_ === 'function' ? insertBody_(r) : []; }

@@ -496,12 +496,11 @@ function placeTextMoved_(f) {
 function placeChipDead_(f) {
   if (!f || typeof f.field !== 'string') return true;
   if (f.field === 'shelf' && f.value === BIBLE_SHELF) return typeof bibleFor_ === 'function' && !bibleFor_();
-  if (RETIRED_FACETS[f.field]) return true;
   /* A RANGE CHIP (`bucket`) — the groupings went in 290 and their tables in 396, so nothing answers one. */
   if (f.bucket) return true;
   /* A SHELF THAT WENT. `@family. textbooks` held the books, and each chapter is a content card now with no shelf at all — so a kept place standing on it would come § */
   if ((RETIRED_ANSWERS[f.field] || []).indexOf(f.value) !== -1) return true;
-  return !facetBy(f.field) && Array.isArray(DATA.facets) && DATA.facets.length > 0;
+  return !facetBy(f.field);
 }
 
 /* ---------- ONE LIST FOR BOTH FINDERS, COUNTED ONCE § */
@@ -518,7 +517,7 @@ function doorsOff_(items) {
 function stuffItems() {
   const key = itemMemoKey_();
   if (!(FUNNEL_MEMO.from === DATA && FUNNEL_MEMO.key === key)) {
-    FUNNEL_MEMO = { key: key, from: DATA, items: doorsOff_(stuffItemsBuild_()) };
+    FUNNEL_MEMO = { key: key, from: DATA, items: doorsOff_(stuffItemsBuild_()).filter(kindSees_) };
   }
   /* THE WRITINGS THIS FUNNEL STARTED WITH (520): an index that comes after an answer joins at the next fresh start. */
   const admit = writingAdmit_();

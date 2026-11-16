@@ -544,7 +544,7 @@
   {
    "id": "1.80",
    "principle": 1,
-   "text": "kinds.json is the one description of every kind; Find, cards, forms, permissions and sheet columns are read from it (owner, 16 Nov, the four step 1: `data/settings/kinds.json`, copied to js/kinds.js by tools/kinds.js). A kind's fields, Find facets in order, card (picture, tags, body, tiles), forms, who sees it and which fields a child or non-admin is not shown, and its sheet tab and columns live there and nowhere else; `ITEM_MAPS` and `FORM_SPECS.forms` are read off it. A person's stated facts ({who, what, value, as_of}, aged by themselves) are described there too and shown to staff and admins only.",
+   "text": "kinds.json is the one description of every kind; Find, cards, forms, permissions and sheet columns are read from it (owner, 16 Nov, the four step 1: `data/settings/kinds.json`, copied to js/kinds.js by tools/kinds.js). A kind's fields, Find facets in order, card (picture, tags, body, tiles), forms, who sees it and which fields a child or non-admin is not shown, and its sheet tab and columns live there and nowhere else; `ITEM_MAPS`, `FORM_SPECS.forms`, Find's kinds (group, label, door, card: `kindMap_`) and who is listed each (`see.who`, `kindSees_`) are read off it, and an entry kind it does not name is never listed. Every facet's label, order and on/off is `data/settings/facets.json` (copied into js/kinds.js beside it); the code says only how each facet reads an item (`FACET_READ`). A person's stated facts ({who, what, value, as_of}, aged by themselves) are described there too and shown to staff and admins only.",
    "since": "2026-11-16"
   }
  ],

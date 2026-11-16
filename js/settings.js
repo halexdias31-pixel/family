@@ -2,7 +2,7 @@
 
 /* THE TABS THIS FILE OWNS. § */
 /* `settings/links` WAS ON THIS LIST, fetched on every load — 27 KB for the Links door on Find, its only reader. § */
-const SETTINGS_TABS = ['settings/brand', 'settings/facets', 'settings/kinds', 'settings/laws',
+const SETTINGS_TABS = ['settings/brand', 'settings/laws',
                        'settings/facts',
                        'settings/columns',
                        'settings/spotlight', 'settings/widgets-in-find', 'settings/setting-for', 'settings/card-fields',
@@ -31,33 +31,6 @@ function setBrand_(d, extra) {
       const k = libS(r.key).trim();
       if (k) d.brand[k] = libS(r.value);
     });
-  }
-}
-
-function setFacets_(d, extra) {
-  /* what the funnel asks ------------------------------------------------------------------- `order` is THREE-STATE: § */
-  const facets = extra['settings/facets'];
-  if (facets && facets.length) {
-    d.facets = facets.filter(r => libS(r.field).trim()).map(r => ({
-      field: libS(r.field).trim(),
-      label: libS(r.label),
-      order: libS(r.sort_order) === '' ? null : Number(r.sort_order),
-      active: libOn(r.active),
-    }));
-  }
-}
-
-function setKinds_(d, extra) {
-  /* what the funnel's first two questions answer -------------------------------------------- A KIND MAY BE IN MORE THAN ONE § */
-  const kinds = extra['settings/kinds'];
-  if (kinds && kinds.length) {
-    d.kinds = kinds.filter(r => libS(r.kind).trim()).map(r => ({
-      kind: libS(r.kind).trim(),
-      group: libS(r.group).split(',').map(x => x.trim()).filter(Boolean),
-      label: libS(r.label),
-      order: libS(r.sort_order) === '' ? null : Number(r.sort_order),
-      active: libOn(r.active),
-    }));
   }
 }
 
