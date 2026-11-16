@@ -1,6 +1,6 @@
-/* A basket line printed on paper, and a question's marking by AI or by its own words list (1040). */
+/* A basket line printed on paper; a question part with no exact key, saved and never marked (owner, 16 Nov); one marked by its own words list (1040). */
 const isPrint_ = c => !!c && c.kind === 'print';
-const isAiMark_ = m => !!m && m.kind === 'ai';
+const isSaveMark_ = m => !!m && m.kind === 'save';
 const isWordsMark_ = m => !!m && m.kind === 'words';
 /* A people column by name: the tutors' cards and the students' (1040). */
 const isTutorsCol_ = col => col === 'tutors';

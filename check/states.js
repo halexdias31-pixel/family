@@ -1484,60 +1484,42 @@ const STATES = {
         kpClose_();
         STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_());
       } },
-    /* ---------- AND A WORDED ANSWER, WITH "MARK WITH AI" BESIDE IT § */
-    { name: 'a worded answer, Mark with AI beside it',
+    /* ---------- AND A WORDED ANSWER, WITH SAVE BESIDE IT (owner, 16 Nov: no exact key, no Mark button) ---------- */
+    { name: 'a worded answer, Save beside it',
       enter: () => {
         const id = 'Q-AQA-8461-2406-1F-033';
         const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === id);
         if (!it) throw new Error(id + ' is not in the library');
-        DATA.aiMarking = true;
         try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
         const facet = FACETS.find(f => f.field === 'paperId');
         STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
         paintStuff();
-        window.__aiKey = ansKey_(it);
+        window.__svKey = ansKey_(it);
         goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
-        /* SIGNED IN, IT IS MARKED — by a stand-in for `api` that answers the way `aiMark` does, so the picture is of the verdict and the sentence as they are really § */
-        window.__aiApi = api;
-        /* THE FIXTURE'S SIGNED-IN VISITOR HAS NO SESSION TOKEN, which every real sign-in carries — so
-           one is lent for the length of the state, and taken back. */
-        window.__aiTok = !!(typeof USER === 'object' && USER && !USER.token);
-        if (window.__aiTok) USER.token = 'state-token';
-        api = b => (b && b.action === 'aiMark')
-          ? Promise.resolve({ success: true, awarded: 2, available: 3, left: 19,
-              feedback: 'You described the fall after 1968 but not the peak before it.' })
-          : window.__aiApi(b);
         /* POLLED, LIKE THE KEYPAD'S STATE ABOVE: once at 150ms missed the card at 768 on a loaded run. */
         let tries = 0;
-        const markIt = () => {
-          const ta = [...document.querySelectorAll('#s-stuff textarea.qp-ans-in')].find(b => b.getAttribute('data-k') === window.__aiKey);
-          const go = ta && ta.closest('.qcard').querySelector('.qp-ai-go');
-          if (!ta || !go) { if (++tries < 20) setTimeout(markIt, 20); return; }
+        const saveIt = () => {
+          const ta = [...document.querySelectorAll('#s-stuff textarea.qp-ans-in')].find(b => b.getAttribute('data-k') === window.__svKey);
+          const go = ta && ta.closest('.qcard').querySelector('.qt-row [data-do="qp-send"]');
+          if (!ta || !go) { if (++tries < 20) setTimeout(saveIt, 20); return; }
           ta.value = 'It rose to a peak in the 1960s and then fell sharply once the vaccine came in.';
           ta.dispatchEvent(new Event('input', { bubbles: true }));
           go.click();
         };
-        /* FIRST AT ONCE, as the keypad's state above now does; the poll is the fallback. */
-        markIt();
+        saveIt();
       },
       expect: () => {
-        const ta = [...document.querySelectorAll('#s-stuff textarea.qp-ans-in')].find(b => b.getAttribute('data-k') === window.__aiKey);
+        const ta = [...document.querySelectorAll('#s-stuff textarea.qp-ans-in')].find(b => b.getAttribute('data-k') === window.__svKey);
         const card = ta && ta.closest('.qcard');
-        const go = card && card.querySelector('.qp-ai-go');
-        const said = card && card.querySelector('.qp-ai .qp-verdict');
-        const why = card && card.querySelector('.qp-ai-why');
-        const marked = (typeof USER === 'object' && USER && USER.token)
-          ? /2 of 3 marks/.test(said.textContent) && /peak/.test(why.textContent)
-          : /Sign in/.test(said.textContent);
+        const go = card && card.querySelector('.qt-row [data-do="qp-send"]');
+        const said = card && card.querySelector('.qp-keep .qp-verdict');
         /* NO MATHS BOX ON IT: the worded box is the pad's too since 8 Oct, on the letters (`data-kp="words"`). */
-        return !!go && !card.querySelector('.kp-in[data-kp="maths"]') && !!ta.matches('.kp-in[data-kp="words"][readonly]') && !!said && marked;
+        return !!go && !card.querySelector('[data-do="qp-ai"], [data-do="qp-check"]') && !card.querySelector('.kp-in[data-kp="maths"]')
+          && !!ta.matches('.kp-in[data-kp="words"][readonly]') && !!said && /Saved|Sign in/.test(said.textContent);
       },
-      wants: 'a three-mark explain question with the pad\'s locked words box, "Mark with AI" beside it in the bar, and its verdict drawn — 2 of 3 and a sentence signed in, "sign in" signed out',
+      wants: 'a three-mark explain question with the pad\'s locked words box, Save beside it in the bar and no Mark button, and its line saying Saved',
       leave: () => {
-        if (window.__aiApi) api = window.__aiApi;
-        if (window.__aiTok && USER) delete USER.token;
-        try { localStorage.removeItem(window.__aiKey); } catch (e) {}
-        DATA.aiMarking = false;
+        try { localStorage.removeItem(window.__svKey); } catch (e) {}
         STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_());
       } },
     /* ---------- A WORDED ANSWER, THE PAD UP ON ITS LETTERS § */

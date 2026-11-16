@@ -49,8 +49,7 @@ function boot(lib) {
   w.requestAnimationFrame = cb => setTimeout(() => cb(Date.now()), 0);
   w.cancelAnimationFrame = id => clearTimeout(id);
   w.confirm = () => true;
-  /* AI MARKING ON, as with the key in place: an AI part's Check is then pressable exactly where it has a scheme to mark against */
-  const fixture = Object.assign(JSON.parse(fs.readFileSync(path.join(ROOT, 'check', 'fixture.json'), 'utf8')), { aiMarking: true });
+  const fixture = JSON.parse(fs.readFileSync(path.join(ROOT, 'check', 'fixture.json'), 'utf8'));
   const ok = v => ({ ok: true, status: 200, text: () => Promise.resolve(JSON.stringify(v)), json: () => Promise.resolve(v) });
   w.fetch = (url, o) => {
     const u = String(url);
@@ -120,14 +119,12 @@ const insText_ = () => {
 const STAND_IN = /\[[^\]]*\b(NOT|PARTIALLY) (EXTRACTED|TRANSCRIBED)\b|\bgarbled in extraction\b|\bthe source PDF\b|\bOpen the paper to transcribe\b|\binvolving (terms in|a constant|a positive constant)\b|\bthe given (identity|equation)\b|\bthe corresponding equation involving\b/i;
 const WRONG = ['zzqq wvxk', '987654.321'];
 /* EACH MARKER'S CHECK, written here and not read from the app: every typed scheme is one Check, `qp-check` (owner, 9 Nov) */
-const CHECK_OF = { choice: 'qp-check', order: 'qp-check', cells: 'qp-cells-check', draw: 'pad-check', accept: 'qp-check', words: 'qp-check', ai: 'qp-ai' };
-/* EACH PART'S MARKER FROM ITS OWN ROW, written here and not asked of the app (Review B: an app that handed every accept part to the AI passed) */
+const CHECK_OF = { choice: 'qp-check', order: 'qp-check', cells: 'qp-cells-check', draw: 'pad-check', accept: 'qp-check', words: 'qp-check', save: 'qp-send' };
+/* EACH PART'S MARKER FROM ITS OWN ROW, written here and not asked of the app (Review B: an app that handed every accept part to another marker passed) */
 const MARKER_OF = (x, r) => {
   if (Array.isArray(x.choices) && x.choices.length >= 2) return S(x.answerType || r.answer_type).toLowerCase() === 'order' ? 'order' : 'choice';
-  return S(r.cells) ? 'cells' : S(r.draw_answer) ? 'draw' : S(r.accept) ? 'accept' : S(r.mark_words) ? 'words' : 'ai';
+  return S(r.cells) ? 'cells' : S(r.draw_answer) ? 'draw' : S(r.accept) ? 'accept' : S(r.mark_words) ? 'words' : 'save';
 };
-/* A MARK SCHEME FROM THE ROW ITSELF (round 4): an AI part with no `answer` has none -- an importer's note is not one -- and its Check is never the AI's */
-const SCHEME_IN = r => !!S(r.answer).replace(/<[^>]*>/g, ' ').replace(/&nbsp;|\s+/g, ' ').trim();
 const NO_SCHEME_SAYS = /^No mark scheme yet\b/;
 const PEN_DRAW_EVERY = 10;
 const byMarker = {}, notReady = {}, notReadyLive = [];   // no letter sum or product hides in either ("9x7" was 63)
@@ -250,21 +247,19 @@ const wordsSample = rule => S(rule).split(';').map(p => p.trim()).filter(Boolean
       if (m && (own === 'choice' || own === 'order') && m.ready !== !!S(r.choice_right)) bad('marker', x, 'its options ' + (S(r.choice_right) ? 'have' : 'have no') + ' key, and the app says it is ' + (m.ready ? '' : 'not ') + 'ready');
       if (m) {
         const keyless = (own === 'choice' || own === 'order') && !S(r.choice_right);
-        const want = (own === 'ai' && !SCHEME_IN(r)) || keyless ? 'qp-noscheme' : CHECK_OF[own];
-        if (own === 'ai' && m.ready !== SCHEME_IN(r)) bad('marker', x, 'its row ' + (SCHEME_IN(r) ? 'has' : 'has no') + ' mark scheme, and the app says it is ' + (m.ready ? '' : 'not ') + 'ready');
-        const go = [...rows[0].querySelectorAll('.is-submit')].filter(g => !g.closest('[hidden]'));   // the AI's Check held back is not yet shown
-        if (!CHECK_OF[m.kind]) bad('marker', x, 'it is marked by ' + JSON.stringify(m.kind) + ' — only a rule or the AI marks');
+        const want = keyless ? 'qp-noscheme' : CHECK_OF[own];
+        const go = [...rows[0].querySelectorAll('.is-submit')].filter(g => !g.closest('[hidden]'));
+        if (!CHECK_OF[m.kind]) bad('marker', x, 'it is marked by ' + JSON.stringify(m.kind) + ' — only a rule marks; the rest save unmarked');
         else {
           byMarker[m.kind] = (byMarker[m.kind] || 0) + 1;
           if (!m.ready) { notReady[m.kind] = (notReady[m.kind] || 0) + 1; if (!LIB_FULL.pending(r)) notReadyLive.push(r.row_id); }
           if (go.length !== 1 || go[0].getAttribute('data-do') !== want) bad('marker', x, 'marked by ' + own + ', its Check is ' + go.map(g => g.getAttribute('data-do')).join(', ') + ', wanted ' + want);
-          else if (own === 'ai' && m.ready && go[0].disabled) bad('marker', x, 'a scheme to mark against, and its AI Check cannot be pressed');
+          else if (own === 'save' && go[0].disabled) bad('marker', x, 'no exact key, and its Save cannot be pressed');
           else if (want === 'qp-noscheme') {
             /* PRESSED, IT SAYS SO ON THE VERDICT LINE AND SENDS NOTHING: the line under the row says it before the press */
             const out = box && box.querySelector('.qp-verdict');
             try { A.ACTIONS['qp-noscheme'](go[0]); } catch (e) { bad('marker', x, 'its Check threw: ' + e.message); }
             if (!out || !NO_SCHEME_SAYS.test(S(out.textContent))) bad('marker', x, 'no mark scheme, and its Check says ' + JSON.stringify(out ? out.textContent : null));
-            if (box && (box.classList.contains('qp-ai') || box.querySelector('[data-do="qp-ai"]'))) bad('marker', x, 'no mark scheme, and its box still offers the AI');
           }
         }
         if (host.querySelector('.qt-how')) bad('marker', x, 'a grey line is still drawn under Check (owner, 9 Nov: no grey info text)');

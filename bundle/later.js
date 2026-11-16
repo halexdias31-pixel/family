@@ -4644,12 +4644,12 @@ const PART_MARKERS = {
     return { got: Math.min(w.got, of), of, words: true };
   },
 };
-/* ---------- ONE MARKER FOR EVERY TYPED PART (owner, 9 Nov): the mark scheme first — options, order, accepted answers, key words. `{got, of}`; null for nothing typed; `{ai:true}` where only the AI can mark. */
+/* ---------- ONE MARKER FOR EVERY TYPED PART (owner, 9 Nov): the mark scheme — options, order, accepted answers, key words. `{got, of}`; null for nothing typed; `{save:true}` where no rule can mark (saved, never marked: owner, 16 Nov). */
 function markPart_(x, typed) {
   const m = markerOf_(x || {});
   const mark = Object.prototype.hasOwnProperty.call(PART_MARKERS, m.kind) ? PART_MARKERS[m.kind] : null;
   if (mark) return mark(x, typed);
-  return String(typed == null ? '' : typed).trim() ? { ai: true } : null;
+  return String(typed == null ? '' : typed).trim() ? { save: true } : null;
 }
 
 /* ---------- IS THIS ANSWER READY TO SEND: one table, a row per answer surface -- what it holds counts as an answer, and what is said when it does not. */
@@ -4661,9 +4661,8 @@ const PART_READY = {
   cells: { has: m => !!m && (m.each || []).some(v => v === true || v === false), say: () => text_('fill-a-cell-first') },
   /* the pen: some ink the drawing marker can read (`padSay_`) */
   draw: { has: said => !!said, say: () => text_('draw-your-answer-first') },
-  /* the AI: the box, or a drawing or photos where the backend reads images */
-  ai: { has: a => !!qTrim_(a.typed) || (a.seen && a.reads),
-        say: a => a.seen ? text_('write-your-answer-in-the-box') : text_('write-something-first') },
+  /* saved, never marked: the box or photos of the working */
+  save: { has: a => !!qTrim_(a.typed) || a.pics > 0, say: () => text_('write-something-first') },
   /* photos of working: at least one page */
   photo: { has: pics => (pics || []).length > 0, say: () => text_('take-a-photo-of-your-working') },
 };
@@ -5116,36 +5115,29 @@ function ansBox_(x) {
   const geo = m.kind === 'draw' ? String(x.drawAnswer || '').trim() : '';
   /* ONE KEYPAD THAT TYPES ANYTHING (keypad.js): the answer's shape only picks the layer it opens on */
   const maths = ansMaths_(x);
-  /* ONE MARK BUTTON (owner, 11 Nov): the part's protocol picks the marker -- a rule where there is one, else the AI */
-  const ai = isAiMark_(m) ? tile_(aiOpts_(x)) : '';
   const val = ansRead_(k);
   const ws = workStrip_(x);
   /* A DRAWN ANSWER IS MARKED HERE TOO, by its geometry (366): the row carries the pad's key for `padCheck_` */
   const drawAt = geo ? { 'data-k': k, 'data-pad': padKey_(x), 'data-draw': geo, 'data-marks': String(Number(x.marks) || '') } : {};
-  const isAi = isAiMark_(m) && m.ready;
-  const cls = 'qp-mark qp-compose' + (isAi ? ' qp-ai' : '') + (geo ? ' qpad-send' : '');
+  /* NO EXACT KEY, NO MARK (owner, 16 Nov): the part saves its work; feedback an earlier AI mark left is still shown under it (`qp-fb`) */
+  const kept = isSaveMark_(m);
+  const cls = 'qp-mark qp-compose' + (kept ? ' qp-keep' : '') + (geo ? ' qpad-send' : '');
   const dataAt = Object.assign(can ? { 'data-accept': can } : {}, rule ? { 'data-rule': rule, 'data-marks': String(Number(x.marks) || '') } : {}, drawAt);
+  const fb = why => (kept && why ? fcG_('p', 'qp-fb', null, '', why) : '');
   /* ---------- AN ESSAY IS WRITTEN ON A SHEET: the same one box, bigger § */
   if (ansEssay_(x)) {
-    const note = isAiMark_(m) && !ai ? aiWhyNot_(x) : '';
-    const kept = isAi && typeof aiKeptView_ === 'function' ? aiKeptView_(k, val) : null;
     const said = subBoxSay_(k, val);
-    const own = kept && (kept.fresh || !said.text) ? kept : null;
-    const vcls = own ? own.cls : said.cls, vsay = own ? own.verdict : said.text;
-    return fcG_('div', cls + ' qp-essay' + (vcls ? ' ' + vcls : ''), dataAt,
+    return fcG_('div', cls + ' qp-essay' + (said.cls ? ' ' + said.cls : ''), dataAt,
       fcG_('label', 'qp-ans qp-sheet', { 'aria-label': text_('your-answer') }, kpField_(k, val, 'essay', 3)) + fcG_('p', 'qp-words', null, '', kpWordsSay_(val))
-      + ws + (note ? fcG_('p', 'qp-ai-note', null, '', note) : '') + fcVerdict_(vsay) + fcSaved_(k))
-      + (isAi ? fcG_('p', 'qp-ai-why', null, '', own ? own.why : said.why || '') : '');
+      + ws + fcVerdict_(said.text) + fcSaved_(k)) + fb(said.why);
   }
   const many = can ? multiOf_(x) : null;
   const bar = opts + (many ? fcG_('div', 'qp-ans-row qp-bar qp-multi-bar', null, multiBoxes_(x, k, val, many, maths, 3))
     : fcG_('div', 'qp-ans-row qp-bar', null, fcG_('label', 'qp-ans' + (maths ? ' qp-ans-maths' : ''), { 'aria-label': text_('your-answer') }, kpField_(k, val, maths ? 'maths' : 'words', 3))));
-  const note = isAiMark_(m) && !ai ? aiWhyNot_(x) : '';
   /* THE VERDICT IS THE LATEST SUBMISSION'S, WHILE THE BOX HOLDS WHAT WAS SENT -- on this device or on the account, next sign-in § */
   const said = geo ? subBoxSay_(k, padSay_(padRead_(padKey_(x)))) : subBoxSay_(k, val);
   return fcG_('div', cls + (said.cls ? ' ' + said.cls : ''), dataAt,
-    bar + ws + (note ? fcG_('p', 'qp-ai-note', null, '', note) : '') + fcVerdict_(geo ? padSaid_(said.text) : said.text) + fcSaved_(k))
-    + (isAi ? fcG_('p', 'qp-ai-why', null, '', said.text ? said.why : '') : '');
+    bar + ws + fcVerdict_(geo ? padSaid_(said.text) : said.text) + fcSaved_(k)) + fb(said.text ? said.why : '');
 }
 /* WHAT A BOX'S VERDICT LINE SAYS AS IT IS DRAWN: the latest submission's verdict, if the box holds it. */
 function subBoxSay_(k, val) {
@@ -5154,7 +5146,7 @@ function subBoxSay_(k, val) {
     ? Object.assign({ why: latest.f || '' }, subSay_(latest.v)) : { text: '', cls: '', why: '' };
 }
 
-/* ---------- THE VERDICT, ONE PATH FOR EVERY TYPED PART (owner, 9 Nov): `markPart_` against the scheme; a part with no rule goes to the AI from the same button. */
+/* ---------- THE VERDICT, ONE PATH FOR EVERY TYPED PART (owner, 9 Nov): `markPart_` against the scheme; a part with no rule is saved, never marked (owner, 16 Nov). */
 on('qp-check', (el) => {
   const box = qMark_(el);
   const card = el.closest('.qcard');
@@ -5170,7 +5162,7 @@ on('qp-check', (el) => {
   if (partReady_('typed', inp.value)) { tell_(out, 'info', partReady_('typed', inp.value)); return; }
   const v = x ? markPart_(x, inp.value) : markAnswer_(inp.value, box.getAttribute('data-accept')) === null ? null : { got: markAnswer_(inp.value, box.getAttribute('data-accept')) ? 1 : 0, of: 1 };
   if (!v) { tell_(out, 'info', partReady_('typed', '')); return; }
-  if (v.ai) { if (ACTIONS['qp-ai']) ACTIONS['qp-ai'](el); return; }
+  if (v.save) { ACTIONS['qp-send'](el); return; }
   const full = v.got >= v.of;
   box.classList.add(full ? 'is-right' : 'is-near');
   tell_(out, full && !v.words ? 'saved' : 'info', v.words ? v.got + ' of ' + v.of + ' mark' + (v.of === 1 ? '' : 's') + ' · by key words' : full ? (v.typo ? text_('correct-check-the-spelling') + v.typo + ')' : 'Correct') : text_('not-yet-have-another-go'));
@@ -5178,16 +5170,20 @@ on('qp-check', (el) => {
   subRecord_(k, inp.value, v.words ? 'rule:' + v.got + '/' + v.of : full ? 'right' : 'wrong');
 });
 
-/* ---------- SEND, WHERE NOTHING CAN MARK IT § */
+/* ---------- SAVE, WHERE NOTHING CAN MARK IT (owner, 16 Nov): the typed answer as a `sent` submission, and any photos with it (`workSave_`, working.js). */
 on('qp-send', (el) => {
   const box = qMark_(el);
   const inp = box && box.querySelector('.qp-multi-val, .qp-ans-in');
   const out = box && box.querySelector('.qp-verdict');
   if (!inp || !out || el.disabled) return;
   box.classList.remove('is-right', 'is-near');
-  if (partReady_('typed', inp.value)) { tell_(out, 'info', partReady_('typed', inp.value)); return; }
-  const sent = subRecord_(inp.getAttribute('data-k'), inp.value, 'sent');
-  tell_(out, sent ? 'saved' : 'error', sent ? 'Sent' : text_('sign-in-to-send-it'));
+  const k = inp.getAttribute('data-k');
+  const pics = typeof WORK_PICS === 'object' && WORK_PICS ? (WORK_PICS[k] || []).length : 0;
+  const notYet = partReady_('save', { typed: inp.value, pics });
+  if (notYet) { tell_(out, 'info', notYet); return; }
+  if (pics && typeof workSave_ === 'function') { workSave_(k, inp.value, el, out); return; }
+  const sent = subRecord_(k, inp.value, 'sent');
+  tell_(out, sent ? 'saved' : 'error', sent ? (box.classList.contains('qp-keep') ? 'Saved' : 'Sent') : text_('sign-in-to-send-it'));
 });
 
 /* ---------- WHO IS WORKING § */
@@ -13038,8 +13034,6 @@ function kpWordsSay_(v) { const n = kpWordCount_(v); return n + (n === 1 ? ' wor
 /* ---------- THE KEYS § */
 /* THE POWER KEY (owner: "there's no to the power of button on keypad"): drawn as x and a raised box, named so; it writes ^() with the caret inside, as x^2 and x^(n+1) are stored */
 const KP_POW = { v: '!pow', a: 'to the power of', c: ' kp-op kp-pow', t: { type: 'group', tag: 'span', look: 'kp-pw', attrs: { 'aria-hidden': 'true' }, text: ['x', { i: '' }] } };
-const KP_X10 = { v: '!x10', a: 'times ten to the power of, for standard form', c: ' kp-op kp-x10',
-  t: { type: 'group', tag: 'span', look: 'kp-x10f', attrs: { 'aria-hidden': 'true' }, text: ['\u00d710', { i: '' }] } };
 const KP_MATHS_SPACE = { v: ' ', a: 'space', c: ' kp-mode', t: '\u2423' };
 const KP_KEYS = [
   { t: '7' }, { t: '8' }, { t: '9' }, { t: '\u00f7', a: 'divide' },
@@ -13058,8 +13052,8 @@ const KP_KEYS = [
   { v: '!abc', a: 'letters', c: ' kp-mode', t: 'abc' },
   { v: '!left', a: 'move left', c: ' kp-mode', t: '\u2190' },
   { v: '!right', a: 'move right', c: ' kp-mode', t: '\u2192' },
-  /* ×10ⁿ WHERE THE MATHS SPACE WAS (owner, 16 Nov): standard form in one tap; a maths answer's spaces never mattered to the marker, and a worded box or one elsewhere keeps its space (`KP_MATHS_SPACE`). */
-  KP_X10,
+  /* THE SPACE (owner, 16 Nov): an answer such as "x ≈ 2.6" or "x<4 or x>5" needs its spaces; standard form is 5 × 1 0 and the power key. */
+  KP_MATHS_SPACE,
   /* ---------- ⌫ IS RED, AND ITS MARK IS DRAWN § */
   { v: '!back', a: 'delete', c: ' kp-del',
     t: { type: 'drawing', node: { el: 'svg', a: { class: 'kp-del-i', viewBox: '0 0 24 24', 'aria-hidden': 'true', focusable: 'false', fill: 'none',
@@ -13156,7 +13150,7 @@ const KP_SITE_KEYS = [
   { t: '@', a: 'at', c: ' kp-op' }, { t: '#', a: 'hash', c: ' kp-op' }, { t: '&', v: '&', a: 'and', c: ' kp-op' },
   { t: '%', a: 'per cent', c: ' kp-op' }, { t: '\u00a3', a: 'pounds', c: ' kp-op' }, { t: '!', a: 'exclamation mark', c: ' kp-op' },
 ];
-const KP_PLAIN = { '!x10': KP_MATHS_SPACE, '!frac': { t: '/', a: 'slash', c: ' kp-op' }, '!pow': { t: '^', a: 'caret', c: ' kp-op' }, '!sqrt': { t: '\u221a', a: 'root sign', c: ' kp-op' } };
+const KP_PLAIN = { '!frac': { t: '/', a: 'slash', c: ' kp-op' }, '!pow': { t: '^', a: 'caret', c: ' kp-op' }, '!sqrt': { t: '\u221a', a: 'root sign', c: ' kp-op' } };
 const kpPlainKey_ = k => KP_PLAIN[k.v] || k;
 
 /* A KEY'S FACE: its text escaped, or its drawing (a group or drawing block, or several) drawn by the one maker. */
@@ -13174,7 +13168,7 @@ function kpPadHtml_(layer, words, signs, essay, vec, site) {
   const top = site === 'mail' ? KP_MAIL_KEYS : site ? [] : vec ? [KP_POW].concat(KP_VEC_KEYS).map((k, i) => Object.assign({}, k, { span: KP_ABC_TOP_SPAN[i] })) : [];
   if (layer === 'abc') return top.concat(KP_ABC).concat(kpAbcBottom_(essay)).map(kpKey_).join('');
   if (site) return KP_SITE_KEYS.concat(KP_SIGN_KEYS, KP_KEYS.map(kpPlainKey_)).map(k => (essay && k.v === '!done' ? KP_DONE_ESSAY : k)).map(kpKey_).join('');
-  return (vec ? KP_VEC_KEYS : []).concat(signs ? KP_SIGN_KEYS : []).concat(KP_KEYS).map(k => (essay && k.v === '!done' ? KP_DONE_ESSAY : words && k.v === '!x10' ? KP_MATHS_SPACE : k)).map(kpKey_).join('');
+  return (vec ? KP_VEC_KEYS : []).concat(signs ? KP_SIGN_KEYS : []).concat(KP_KEYS).map(k => (essay && k.v === '!done' ? KP_DONE_ESSAY : k)).map(kpKey_).join('');
 }
 
 /* ---------- THE BOX § */
@@ -13839,8 +13833,7 @@ function kpDone_(inp) {
   const box = inp.hasAttribute('data-kp-essay') ? null : inp.closest('.qp-mark');
   /* ONE SUBMIT PATH (508): ✓ presses the box's own send tile, whatever it is called. */
   const row = box && qRowOf_(box);
-  const go = row && (row.querySelector('.tile.is-submit[data-do]:not([disabled])')
-    || row.querySelector('.qp-ai-go[data-do="qp-ai"]:not([disabled])'));
+  const go = row && row.querySelector('.tile.is-submit[data-do]:not([disabled])');
   const run = go && ACTIONS[go.getAttribute('data-do')];
   if (run) run(go);
   inp.blur();
@@ -14347,292 +14340,8 @@ document.addEventListener('paste', e => {
   kpType_(t, t.getAttribute('data-kp') === 'words' ? s.replace(/\r\n?/g, '\n') : s.replace(/\s*[\r\n]+\s*/g, ' '), true);
 }, true);
 
-/* MARK WITH AI — A WORDED ANSWER, MARKED BY GEMINI AGAINST THE SCHEME THE CARD ALREADY HOLDS. § */
-let AI_OFF = false;
-
-function aiOffered_() {
-  if (AI_OFF) return false;
-  try { return (DATA.features || []).indexOf('aiMark') !== -1 && DATA.aiMarking !== false; }
-  catch (e) { return false; }
-}
-
-/* ---------- NOT KNOWN YET IS NOT OFF (review of 10 Oct) § */
-function aiUndecided_() {
-  if (AI_OFF) return false;
-  try { return typeof awaiting_ === 'function' && awaiting_() && !(DATA && Array.isArray(DATA.features)); }
-  catch (e) { return false; }
-}
-
-/* THE AI MARKS EVERY PART NO RULE CAN (`markerOf_`, qtools.js), and only those: one mark button per part (owner, 11 Nov). */
-/* an AI part with no mark scheme is not offered it (round 4): its Check says "No mark scheme yet" instead (`qtCheckOpts_`) */
-function aiWanted_(x) {
-  const m = x && typeof markerOf_ === 'function' ? markerOf_(x) : null;
-  return !!m && m.ready && isAiMark_(m);
-}
-
-/* THE TILE ALONE, GOLD AND ROUND IN THE ANSWER BAR WHERE SEND STANDS ON A BOX WITH A SCHEME -- the bar, its verdict line and the sentence under it are § */
-function aiOpts_(x) {
-  if (!aiWanted_(x)) return null;
-  const wait = aiUndecided_();
-  if (!wait && !aiOffered_()) return null;
-  return { send: true, act: 'qp-ai', cls: wait ? 'qp-ai-go qp-ai-wait' : 'qp-ai-go', off: wait };
-}
-/* ---------- AND DECIDED WHERE IT STANDS, THE MOMENT THE PAYLOAD SAYS (`adoptMarks_`, shell.js) § */
-function aiDecided_() {
-  if (aiUndecided_() || !aiOffered_()) return;
-  document.querySelectorAll('.qp-ai-go.qp-ai-wait').forEach(b => {
-    b.classList.remove('qp-ai-wait');
-    b.disabled = false;
-  });
-  /* AND A PART PRESSED WITH NO CONNECTION is marked now its card is drawn again online (offline.js). */
-  if (typeof window.offAiFlush_ === 'function') window.offAiFlush_();
-}
-
-/* THE QUESTION AS WORDS. § */
-function aiPlain_(html) {
-  const s = String(html || '')
-    .replace(/<sup>([^<]*)<\/sup>\s*(?:&frasl;|\u2044)\s*<sub>([^<]*)<\/sub>/g, '($1)/($2)')
-    .replace(/<sup>([^<]*)<\/sup>/g, '^($1)')
-    .replace(/<(br|\/p|\/li|\/div|\/tr)\b[^>]*>/gi, '\n');
-  let t = '';
-  try { t = new DOMParser().parseFromString(s, 'text/html').body.textContent || ''; }
-  catch (e) { t = s.replace(/<[^>]*>/g, ' '); }
-  return t.replace(/[ \t\u00a0]+/g, ' ').replace(/\n\s*\n+/g, '\n').trim();
-}
-
-/* ---------- HOW MUCH GOES TO GEMINI, AND THE SAME NUMBERS ON THE SERVER § */
-const AI_ANSWER_MAX = 20000, AI_QUESTION_MAX = 8000, AI_SCHEME_MAX = 8000;
-
-function aiQuestion_(x) {
-  const parts = (x.stems || []).map(p => p && p.html).concat([x.lead, x.html]);
-  return parts.map(aiPlain_).filter(Boolean).join('\n\n').slice(0, AI_QUESTION_MAX);
-}
-
-function aiScheme_(x) {
-  const note = String(x.examinerNote || '').trim();
-  return (aiPlain_(x.answer) + (note ? '\nExaminer\u2019s note: ' + note : '')).slice(0, AI_SCHEME_MAX);
-}
-
-/* ---------- AND WHEN THERE IS NO TILE, A LINE SAYING WHY § */
-function aiWhyNot_(x) {
-  if (!aiWanted_(x) || aiOffered_()) return '';
-  if (!(typeof whoIs_ === 'function' && whoIs_())) return '';
-  return AI_OFF ? 'AI marking isn\u2019t switched on' : 'AI marking isn\u2019t switched on yet';
-}
-
-/* AND THE BOX SAYS THE MARKER IS OFF; its Check stays, unpressable, until it is on. */
-function aiOff_(said) {
-  AI_OFF = true;
-  document.querySelectorAll('.qp-ai').forEach(box => {
-    box.classList.add('is-off');
-    /* NEVER SWAPPED FOR A PLAIN SEND: a human never marks, so the Check waits for the AI, off */
-    (box.closest('.qcard') || box).querySelectorAll('.qp-ai-go').forEach(b => { b.disabled = true; });
-    const out = box.querySelector('.qp-verdict');
-    const say = said || 'AI marking isn\u2019t switched on';
-    if (out) tell_(out, 'info', say);
-    /* WHAT THIS LINE SAID, so `subVerdictPaint_` (js/submit.js) keeps it only while it still says it: a
-       verdict that has replaced it is taken off by the next key, as on every box. */
-    box.setAttribute('data-off-said', say);
-  });
-}
-
-/* ---------- A BACKEND THAT READS THE WHOLE ESSAY SAYS SO (`aiMarkWhole` in `features`) § */
-const AI_ANSWER_OLD = 2000;
-function aiWhole_() {
-  try { return (DATA.features || []).indexOf('aiMarkWhole') !== -1; }
-  catch (e) { return false; }
-}
-const aiCount_ = n => String(n).replace(/\B(?=(\d{3})+$)/g, ',');
-
-/* ---------- AN ESSAY'S MARK STAYS WHILE IT IS REVISED, AND ACROSS A RELOAD § */
-/* KEPT IN THE PART'S ONE RECORD (qtools.js `partRecAt_`), field `ai`; an old `aiMark:` key is folded into it once. */
-function aiKeep_(k, rec) {
-  if (!k) return;
-  partRecPutAt_(partKeyOfAns_(k), 'ai', rec);
-}
-function aiKept_(k) {
-  if (!k) return null;
-  const rec = partRecAt_(partKeyOfAns_(k)).ai;
-  return rec && typeof rec.a === 'string' && typeof rec.v === 'string' ? rec : null;
-}
-/* WHAT THE ROW SHOWS FOR A KEPT MARK against the answer as it is now -- read by `ansBox_` when the card
-   is drawn and by the `input` listener as it is typed into. */
-function aiKeptView_(k, now) {
-  const rec = aiKept_(k);
-  if (!rec) return null;
-  const fresh = String(now == null ? '' : now) === rec.a;
-  return { fresh: fresh, cls: fresh ? (rec.c === 'is-right' ? 'is-right' : 'is-near') : 'is-stale',
-           verdict: rec.v + (fresh ? '' : ' \u00b7 before your changes'), why: String(rec.f || '') };
-}
-function aiKeptPaint_(box, inp) {
-  const view = aiKeptView_(inp.getAttribute('data-k'), inp.value);
-  if (!view) return false;
-  /* ONE OF THE THREE, and a forced `toggle` writes nothing that is already so -- this is asked on every key typed into an essay that has a kept mark. § */
-  ['is-right', 'is-near', 'is-stale'].forEach(c => box.classList.toggle(c, c === view.cls));
-  const out = box.querySelector('.qp-verdict');
-  if (out && out.textContent !== view.verdict) tell_(out, 'info', view.verdict);
-  const why = box.nextElementSibling;
-  if (why && why.classList.contains('qp-ai-why') && why.textContent !== view.why) why.textContent = view.why;
-  return true;
-}
-
-/* ---------- MARK WITH AI SAYS WHERE IT IS (456): the owner, "it just says marking ... we didn't feel blind". The one wait allowed words beside the dots. § */
-const AI_STAGE_SENT_MS = 1500;   // the answer is a few KB of text: past this it has left on any connection that will answer
-const AI_STAGE_SLOW_MS = 20000;  // a mark usually lands well inside this; past it, say so
-const AI_STAGE_TICK_MS = 500;
-function aiStageSay_(ms) {
-  const s = Math.floor(ms / 1000);
-  /* ONLY WHAT HAS HAPPENED: sent, then marked by Gemini in one call -- so no "reading" stage it cannot vouch for. */
-  const words = ms < AI_STAGE_SENT_MS ? 'Sending your work…'
-    : ms < AI_STAGE_SLOW_MS ? 'Marking against the scheme…'
-    : 'Still working — this one is taking longer than usual';
-  return s ? words + ' · ' + s + ' s' : words;
-}
-function aiStageStart_(box, out) {
-  let line = box.querySelector(':scope > .qp-ai-stage');
-  if (!line) {
-    line = document.createElement('div');
-    if (out && out.parentNode === box) out.after(line); else box.appendChild(line);
-  }
-  line.className = 'qp-ai-stage';
-  /* WORDS ONLY: the pressed tile's ring is the press's one wait (owner, 12 Nov: two rings at once). */
-  line.innerHTML = cardBlock_({ type: 'group', tag: 'span', look: 'qp-ai-stage-say' });
-  line.setAttribute('role', 'status');
-  const say = line.querySelector('.qp-ai-stage-say');
-  const began = Date.now();
-  const paint = () => { const t = aiStageSay_(Date.now() - began); tell_(say, 'info', t); };
-  paint();
-  const timer = setInterval(paint, AI_STAGE_TICK_MS);
-  return { line: line, stop: () => clearInterval(timer) };
-}
-/* A MARK TAKES THE LINE AWAY; A FAILURE LEAVES A TRY AGAIN TILE IN IT, the reason being the verdict line above. */
-function aiStageEnd_(st, failed) {
-  st.stop();
-  if (!failed) { st.line.remove(); return; }
-  st.line.removeAttribute('role');
-  st.line.className = 'qp-ai-stage tile-row';
-  st.line.innerHTML = tile_({ icon: 'again', label: 'Try again', act: 'qp-ai-again' });
-}
-on('qp-ai-again', (el) => {
-  const box = qMark_(el, '.qp-ai');
-  const go = box && qRowOf_(box).querySelector('[data-do="qp-ai"]');
-  if (go && !go.disabled) ACTIONS['qp-ai'](go);
-});
-
-const aiMarkSane_ = d => Number.isInteger(Number(d.awarded)) && Number.isInteger(Number(d.available))
-  && Number(d.available) >= 1 && Number(d.awarded) >= 0 && Number(d.awarded) <= Number(d.available) && d.available !== '' && d.awarded !== '';
-
 ;
 /* ==== js/keypad-edit.js ==== */
-on('qp-ai', (el) => {
-  const box = qMark_(el, '.qp-ai');
-  const card = el.closest('.qcard');
-  const inp = card && card.querySelector('.qp-multi-val, .qp-ans-in');
-  const out = box && box.querySelector('.qp-verdict');
-  const why = box && box.nextElementSibling && box.nextElementSibling.classList.contains('qp-ai-why')
-    ? box.nextElementSibling : null;
-  if (!inp || !out || el.disabled || (box && box.classList.contains('is-busy'))) return;
-  /* AN ESSAY'S KEPT POINTS STAY UNDER IT UNTIL NEW ONES ARRIVE (`aiKeep_`): § */
-  const essayBox = box.classList.contains('qp-essay');
-  box.classList.remove('is-right', 'is-near');
-  if (why && !essayBox) why.textContent = '';
-  /* NOTHING TYPED, DRAWN OR PHOTOGRAPHED IS NOT A WRONG ANSWER, and it is not worth a request either. */
-  const x0 = ansItem_(inp.getAttribute('data-k'));
-  const rec = typeof partRec_ === 'function' && x0 ? partRec_(x0) : {};
-  const seen = (rec.strokes || []).length > 0 || (rec.photos || []).length > 0;
-  let reads = false;
-  try { reads = (DATA.features || []).indexOf('aiMarkImages') !== -1; } catch (e) { reads = false; }
-  /* a backend not yet pulled reads only the box: the drawing and photos are working beside it */
-  const notYet = partReady_('ai', { typed: inp.value, seen, reads });
-  if (notYet) { tell_(out, 'info', notYet); return; }
-  if (typeof USER !== 'object' || !USER || !USER.token) { tell_(out, 'error', text_('sign-in-to-have-it-marked')); return; }
-  const x = x0;
-  if (!x) { tell_(out, 'error', text_('could-not-find-this-question')); return; }
-  const sent = inp.value;
-  /* TOO LONG IS SAID, NEVER CUT: a mark for part of an essay, shown as a mark for the essay, is the fault
-     the 2,000-character cut was. */
-  if (sent.length > AI_ANSWER_MAX) { tell_(out, 'error', text_('too-long-to-mark') + aiCount_(AI_ANSWER_MAX) + ' characters at most'); return; }
-  /* AND A BACKEND THAT HAS NOT BEEN PULLED YET WOULD CUT IT -- `aiWhole_` above. */
-  if (sent.length > AI_ANSWER_OLD && !aiWhole_()) {
-    out.textContent = text_('the-ai-marker-reads-only-the') + aiCount_(AI_ANSWER_OLD) + ' characters until it is updated \u2014 this is '
-      + aiCount_(sent.length) + ', so it was not sent';
-    return;
-  }
-  /* THE SOUND IS WOKEN NOW, INSIDE THE TAP, and held awake until the reply, because the verdict lands after the network and an iPad lets a page start sound only § */
-  const k = inp.getAttribute('data-k');
-  /* NO CONNECTION: the press is queued and the mark asked once online (offline.js), never a failed request. */
-  if (typeof window.offAiHold_ === 'function' && window.offAiHold_(k, sent, out)) return;
-  const letGo = typeof markWait_ === 'function' ? markWait_() : null;
-  const here = typeof markWhere_ === 'function' && markWhere_(k);
-  el.disabled = true;
-  /* THE TILE'S OWN RING WHILE IT WAITS (`.tile.is-busy`), on the tile as well as the row: § */
-  tell_(box, 'busy');
-  tell_(el, 'busy');
-  tell_(out, '', '');
-  const stage = aiStageStart_(box, out);
-  let failed = false;
-  const done = () => { el.disabled = AI_OFF; tell_(box, ''); tell_(el, ''); aiStageEnd_(stage, failed); if (letGo) letGo(); };
-  /* `essay` ASKS FOR THE LEVELLED MARKING (`aiMarkAsk_` in dopost.gs): § */
-  const essay = ansEssay_(x);
-  /* THE DRAWING AS A PNG AND THE PHOTOS go with the words (`aiImages_`, qtools.js); drawing it is part of the wait the dots show. Words alone go at once. */
-  const body = { action: 'aiMark', personId: USER.personId || '', question: aiQuestion_(x), scheme: aiScheme_(x),
-                 answer: sent, marks: Number(x.marks) || 1, essay: essay };
-  (seen && reads ? aiImages_(x, card).then(images => api(Object.assign(body, images.length ? { images: images } : {}))) : api(body))
-    .then(d => {
-      /* BELIEVED ONLY IN THE SHAPE ASKED FOR: whole marks, none below 0 or above what is available */
-      if (d && d.success && !aiMarkSane_(d)) d = { success: false, message: text_('could-not-mark-that-just-now') };
-      /* NO TRY AGAIN WHERE AGAIN CANNOT HELP: switched off, or today's marks used. */
-      failed = (!d || !d.success) && !(d && (d.why === 'ai-off' || d.why === 'ai-cap'));
-      done();
-      if (d && d.why === 'ai-off') return aiOff_(d.message);
-      /* A VERDICT IS ABOUT THE ANSWER IT MARKED. § */
-      if (inp.value !== sent && !essayBox) { tell_(out, '', ''); return; }
-      if (!d || !d.success) {
-        tell_(out, 'error', (d && (d.message || d.error)) || text_('could-not-mark-that-just-now'));
-        return;
-      }
-      const full = d.awarded >= d.available;
-      const said = d.awarded + ' of ' + d.available + ' mark' + (d.available === 1 ? '' : 's') + ' \u00b7 AI';
-      if (essayBox) {
-        aiKeep_(inp.getAttribute('data-k'), { a: sent, v: said, f: String(d.feedback || ''), c: full ? 'is-right' : 'is-near' });
-      } else {
-        box.classList.add(full ? 'is-right' : 'is-near');
-        tell_(out, 'info', said);
-        if (why) why.textContent = d.feedback || '';
-      }
-      /* MARKED IS A SUBMISSION — the answer and its marks, `ai:3/4`, one event on the account like a Check (js/submit.js). § */
-      const a = Number(d.awarded), m = Number(d.available);
-      /* HEARD ONLY WHERE IT WAS ASKED FOR: this card still on the page in front, with the app in sight --
-         `'late'`, through the context the press woke; anywhere else, `'none'`. */
-      if (typeof subRecord_ === 'function') {
-        subRecord_(k, sent,
-          Number.isInteger(a) && Number.isInteger(m) && a >= 0 && m >= 1 && a <= m && m < 1000 ? 'ai:' + a + '/' + m : 'sent',
-          here && markWhere_(k) ? 'late' : 'none', String(d.feedback || ''));
-      }
-      /* AND THEN THE ESSAY'S LINE, FROM WHAT IS KEPT — after the record, so the verdict line and the
-         submission it now reads agree (`subVerdictPaint_` asks both). */
-      if (essayBox) aiKeptPaint_(box, inp);
-    })
-    .catch(e => {
-      failed = true;
-      done();
-      /* THE REAL REASON, not a guess at the connection: a timeout, the server's own error, or truly offline. */
-      const why = String((e && e.message) || '');
-      out.textContent = (typeof navigator !== 'undefined' && navigator.onLine === false) || !why || /Failed to fetch|NetworkError|Load failed/i.test(why)
-        ? text_('could-not-reach-the-marker-check') : text_('the-marker-did-not-answer') + why.replace(/^Backend:\s*/, '');
-    });
-});
-
-/* TYPING TAKES THE AI'S SENTENCE OFF, as find.js's listener takes the verdict off every box — that one draws the verdict line from the latest submission now § */
-document.addEventListener('input', e => {
-  const el = e.target && e.target.closest && e.target.closest('[data-do="qp-ans"]');
-  const box = el && el.closest('.qp-ai');
-  if (!box || box.classList.contains('is-busy') || box.classList.contains('is-off')) return;
-  if (box.classList.contains('qp-essay')) return;
-  const why = box.nextElementSibling;
-  if (why && why.classList.contains('qp-ai-why')) why.textContent = '';
-});
-
 /* ---------- ROOM TO WRITE, the whole-screen sheet of 359, is gone (368): the owner found it did nothing; the box wraps its own lines */
 
 /* ---------- EDITING LIKE iOS (385): "editing a text box of text you have already written is hard and clunky". */
@@ -15208,10 +14917,8 @@ function ansRefresh_(keys) {
       if (el.classList.contains('kp-in') && typeof kpRender_ === 'function') kpRender_(el);
       if (el.classList.contains('qp-multi-val') && typeof multiFill_ === 'function') multiFill_(el);
       const card = el.closest('.qcard');
-      [card && card.querySelector('.qp-mark[data-accept]'), card && card.querySelector('.qp-ai')].forEach(m => {
+      [card && card.querySelector('.qp-mark[data-accept]'), card && card.querySelector('.qp-keep')].forEach(m => {
         if (!m) return;
-        /* EXCEPT AN ESSAY'S KEPT AI MARK, which is said again against the words now on the sheet -- fresh if they § */
-        if (m.classList.contains('qp-essay') && m.classList.contains('qp-ai') && typeof aiKeptPaint_ === 'function' && aiKeptPaint_(m, el)) return;
         m.classList.remove('is-right', 'is-near');
         const out = m.querySelector('.qp-verdict');
         if (out) tell_(out, '', '');
@@ -15463,7 +15170,7 @@ document.addEventListener('focusout', e => {
 });
 /* TO A BACKEND FROM BEFORE `submitAnswer` ONLY, now: § */
 document.addEventListener('click', e => {
-  const t = e.target && e.target.closest && e.target.closest('[data-do="qp-check"], [data-do="qp-ai"], [data-do="qp-send"]');
+  const t = e.target && e.target.closest && e.target.closest('[data-do="qp-check"], [data-do="qp-send"]');
   if (t) answersPush_(true);
 });
 document.addEventListener('visibilitychange', () => {
@@ -15510,7 +15217,7 @@ function findKeep_(id) {
 function findVerdictShown_(id) {
   try {
     const host = document.getElementById('s-' + (id && findIs_(id) ? id : 'stuff'));
-    return !!host && [].some.call(host.querySelectorAll('.qp-mark[data-accept] .qp-verdict, .qp-ai .qp-verdict'),
+    return !!host && [].some.call(host.querySelectorAll('.qp-mark[data-accept] .qp-verdict, .qp-keep .qp-verdict'),
       el => !!String(el.textContent || '').trim());
   } catch (e) { return false; }
 }
@@ -16175,17 +15882,9 @@ function subVerdictPaint_(mark, inp) {
   const k = inp.getAttribute('data-k');
   const latest = subLatest_(k);
   const say = latest && latest.a === inp.value ? subSay_(latest.v) : { text: '', cls: '' };
-  /* AN ESSAY'S MARK KEPT ON THIS DEVICE (`aiKeptView_`, keypad.js, note 312) is drawn instead — with its points, fresh or "before your changes" — when it is about § */
-  if (mark.classList.contains('qp-essay') && mark.classList.contains('qp-ai') && typeof aiKeptView_ === 'function') {
-    const view = aiKeptView_(k, inp.value);
-    if (view && (view.fresh || !say.text) && typeof aiKeptPaint_ === 'function') { aiKeptPaint_(mark, inp); return; }
-    mark.classList.remove('is-stale');
-  }
-  /* THE AI'S FEEDBACK, FROM THE SUBMISSION (owner, 15 Nov): the same on every device, and only with the verdict it came with. */
+  /* FEEDBACK AN EARLIER AI MARK LEFT ON THE SUBMISSION is still read (owner, 16 Nov: kept, never made again), and only with the verdict it came with. */
   const why = mark.nextElementSibling;
-  if (why && why.classList.contains('qp-ai-why')) { const f = say.text && latest && latest.f ? latest.f : ''; tell_(why, 'info', f); }
-  /* AI MARKING SWITCHED OFF says so on this line (`aiOff_`), and keeps saying it until there is something else to say — but ONLY WHILE THE LINE STILL SAYS IT. § */
-  if (!say.text && mark.classList.contains('is-off') && out.textContent && out.textContent === mark.getAttribute('data-off-said')) return;
+  if (why && why.classList.contains('qp-fb')) { const f = say.text && latest && latest.f ? latest.f : ''; tell_(why, 'info', f); }
   mark.classList.remove('is-right', 'is-near');
   if (say.cls) mark.classList.add(say.cls);
   if (out.textContent !== say.text) tell_(out, 'info', say.text);
@@ -16588,7 +16287,7 @@ on('rep-send', el => {
 
 ;
 /* ==== js/working.js ==== */
-/* ---------- A PHOTO OF THE WORKING (501): up to three pages; they go with the part's one AI Mark (`aiMark`). Only the AI marks. § */
+/* ---------- A PHOTO OF THE WORKING (501): up to three pages; the part's Save keeps them on the account (`markWorking`, its old name). Nothing marks them (owner, 16 Nov). */
 const WORK_MAX = 3, WORK_EDGE = 1600, WORK_BYTES = 500 * 1024;
 /* EACH BOX'S PHOTOS by answer key: data URLs, in memory only, never browser storage. § */
 const WORK_PICS = {};
@@ -16600,7 +16299,7 @@ function workRow_(x) {
     accept: x.accept || '', mark_words: x.markWords || '', cells: x.cells || '', draw_answer: x.drawAnswer || '',
     choices: (x.choices || []).join('|'), choice_right: (x.choiceRight || []).join('|'), marks: x.marks, subject: x.subject || r.subject });
 }
-/* THE STRIP UNDER THE BOX: thumbnails; the part's one Mark sends them, and a failed mark keeps them. */
+/* THE STRIP UNDER THE BOX: thumbnails; the part's Save sends them, and a failed save keeps them. */
 function workStrip_(x) {
   if (!x || !isQ_(x)) return '';
   const k = ansKey_(x);
@@ -16699,13 +16398,29 @@ on('qp-work-x', el => {
   workPaint_(k);
 });
 
-/* ---------- MARKED BY THE PART'S ONE MARK BUTTON (owner, 15 Nov): the photos go with the AI's mark (`aiImages_`, qtools.js); there is no second button. */
+/* ---------- SAVED BY THE PART'S ONE SAVE (owner, 16 Nov): the photos and anything typed, as one `markWorking` -- kept on the submission row, marked by nothing. */
+function workSave_(k, typed, el, out) {
+  const pics = WORK_PICS[k] || [];
+  if (!pics.length || el.disabled) return;
+  if (typeof USER !== 'object' || !USER || !USER.token) { tell_(out, 'error', text_('sign-in-to-send-your-working')); return; }
+  el.disabled = true;
+  tell_(el, 'busy');
+  api({ action: 'markWorking', personId: USER.personId || '', id: subId_(), sent: Date.now(), key: k,
+        label: typeof doneLabel_ === 'function' ? (doneLabel_(k) || '') : '', answer: typed || '', photos: pics.map(p => p.url) })
+    .then(d => {
+      el.disabled = false;
+      tell_(el, '');
+      if (!d || !d.success) { tell_(out, 'error', (d && (d.message || d.error)) || 'Your working could not be saved just now \u2014 try again later'); return; }
+      tell_(out, 'saved', 'Saved, with ' + pics.length + ' photo' + (pics.length === 1 ? '' : 's'));
+    })
+    .catch(() => { el.disabled = false; tell_(el, ''); tell_(out, 'error', 'Could not reach the server \u2014 your photos are still here'); });
+}
 
 /* ---------- SEEN BY WHO MAY (`workingOf`): student, accepted parent, admin; fetched on the tap. § */
 /* `workingMaySee_` (dopost.gs): a parent or Admin, never a tutor (owner, 28 Oct). § */
 function workSeeOpts_(pid, asParent) {
   if (!pid || !(asParent === true || may_('admin'))) return null;
-  return ({ icon: 'photo', label: 'Working photos', note: 'with the AI’s mark', act: 'work-see', data: { id: pid } });
+  return ({ icon: 'photo', label: 'Working photos', note: 'saved with the answer', act: 'work-see', data: { id: pid } });
 }
 on('work-see', el => {
   const pid = el.getAttribute('data-id');
@@ -16728,9 +16443,10 @@ on('work-see', el => {
         attrs: { href: u, 'data-do': 'file-view', target: '_blank', rel: 'noopener' }, blocks: [{ type: 'group', tag: 'img', attrs: { src: u, alt: `Page ${i + 1}` } }] })) }] })));
   }).catch(() => { loaded_(box); box.textContent = 'Could not reach the server'; });
 });
+/* AN OLD AI SCORE IS STILL READ (kept, never made again: owner, 16 Nov) */
 function workVerdictSay_(v) {
   const m = /^ai:(\d+)\/(\d+)$/.exec(String(v || ''));
-  return m ? m[1] + ' of ' + m[2] + ' by AI' : 'not marked';
+  return m ? m[1] + ' of ' + m[2] + ' by AI' : 'saved, not marked';
 }
 /* A BOX'S PAGES, made if missing -- for a check that cannot run the phone's canvas shrink. */
 function workPics_(k) { return WORK_PICS[k] || (WORK_PICS[k] = []); }
@@ -17621,15 +17337,14 @@ function partRec_(x) {
 /* ---------- THE MARKER: the one thing that varies between parts -- qtypes.js `qtMarker_`, which the Function tag reads too. */
 /* WHAT THE LINE UNDER CHECK SAYS, by marker: how this part will be marked, before it is. Never a person. */
 /* ONE LINE UNDER EVERY ROW (owner, 9 Nov): marking is one path for every type, so it says the same words everywhere. */
-const QT_HOW_ALL = 'Marked by its mark scheme where a rule can, otherwise by AI';
+const QT_HOW_ALL = 'Marked by its mark scheme where a rule can; otherwise your work is saved, not marked';
 /* the markers `markPart_` (find-marking.js) reads off the typed box: one Check, `qp-check`, for all of them */
 const QT_SCHEME_KINDS = { choice: 1, order: 1, accept: 1, words: 1 };
 /* `ready` is false where the marker has nothing to mark against yet (no key, no scheme): Check says so instead of asking */
 const QT_NO_SCHEME = 'No mark scheme yet \u2014 flag it and we will add one';
-const qtSchemeIn_ = x => !!x && !!String(x.answer || '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;|\s+/g, ' ').trim();
-/* IS A MARKER'S SCHEME THERE: options with a key, or an AI part with an answer to mark against; the rest are ready as written. */
+/* IS A MARKER'S SCHEME THERE: options with a key; the rest are ready as written (a part with no exact key saves, never marks: owner, 16 Nov). */
 const choiceKeyed_ = x => (Array.isArray(x.choiceRight) ? x.choiceRight.length > 0 : !!x.choiceRight);
-const MARKER_READY = { choice: choiceKeyed_, order: choiceKeyed_, ai: x => qtSchemeIn_(x) };
+const MARKER_READY = { choice: choiceKeyed_, order: choiceKeyed_ };
 /* THE PEN: the card's pad, made on the first tap where the part has none -- its figure, else its stem's, else a grid. */
 function qtPenOpen_(el, tool) {
   const key = qtKeyOf_(el);
@@ -17669,109 +17384,13 @@ on('qp-noscheme', el => {
   if (out) tell_(out, 'info', QT_NO_SCHEME);
 });
 
-/* ---------- WHAT THE AI SEES (round 3): the pen's drawing as a PNG and the photos of the working, beside the typed answer. */
-/* the server's own ceiling for one picture (`WORKING_PHOTO_CHARS`); a drawing over it is drawn again at half the size */
-const PEN_PNG_EDGE = 1024, PEN_PNG_CHARS = 760000, PEN_PNG_MS = 4000;
-/* THE LOOK EACH LINE HAS ON SCREEN, written onto its copy: an <img> of an SVG never sees style.css, so `currentColor` and classes would draw nothing */
-const PEN_PNG_PROPS = ['fill', 'fill-opacity', 'stroke', 'stroke-width', 'stroke-opacity', 'stroke-dasharray', 'stroke-linecap',
-  'stroke-linejoin', 'opacity', 'font-size', 'font-family', 'font-weight', 'font-style', 'text-anchor', 'dominant-baseline', 'visibility', 'display'];
-function penInline_(from, to) {
-  const a = [from].concat([].slice.call(from.querySelectorAll('*'))), b = [to].concat([].slice.call(to.querySelectorAll('*')));
-  a.forEach((el, i) => {
-    if (!b[i]) return;
-    const cs = getComputedStyle(el);
-    b[i].setAttribute('style', PEN_PNG_PROPS.map(p => p + ':' + cs.getPropertyValue(p)).filter(t => !/:\s*$/.test(t)).join(';'));
-    b[i].removeAttribute('class');
-  });
-}
-/* THE PAD AS ONE SVG for the PNG: its figures, then the ink; and the <img> figures under it, with their boxes, for the canvas */
-function penSvg_(pad, scale) {
-  const art = pad && pad.querySelector('.qpad-art');
-  if (!art || !art.querySelector('.qpad-ink .qpad-g path')) return null;
-  const box = art.getBoundingClientRect();
-  if (!(box.width > 0 && box.height > 0)) return null;
-  const k = (scale || 1) * Math.min(2, PEN_PNG_EDGE / Math.max(box.width, box.height));
-  const W = Math.max(1, Math.round(box.width * k)), H = Math.max(1, Math.round(box.height * k));
-  const NS = 'http://www.w3.org/2000/svg';
-  const out = document.createElementNS(NS, 'svg');
-  out.setAttribute('xmlns', NS);
-  out.setAttribute('width', W); out.setAttribute('height', H);
-  out.setAttribute('viewBox', '0 0 ' + box.width + ' ' + box.height);
-  const at = el => { const r = el.getBoundingClientRect(); return { x: r.left - box.left, y: r.top - box.top, w: r.width, h: r.height }; };
-  const svgs = [].filter.call(art.querySelectorAll('svg'), s => !(s.parentElement && s.parentElement.closest('svg')));
-  const copy = s => {
-    const r = at(s), c = s.cloneNode(true);
-    penInline_(s, c);
-    c.setAttribute('x', r.x); c.setAttribute('y', r.y);
-    c.setAttribute('width', r.w); c.setAttribute('height', r.h);
-    out.appendChild(c);
-  };
-  svgs.filter(s => !s.classList.contains('qpad-ink')).forEach(copy);
-  svgs.filter(s => s.classList.contains('qpad-ink')).forEach(copy);
-  const imgs = [].map.call(art.querySelectorAll('img'), el => Object.assign({ el }, at(el))).filter(m => m.w > 0 && m.h > 0);
-  return { out, W, H, k: W / box.width, imgs };
-}
-/* A PAD'S FIGURE AND INK AS ONE PNG data URL, on the card's own ground; '' when there is no ink, no canvas, or it will not draw in time. */
-function penPng_(pad, scale) {
-  return new Promise(done => {
-    let over = false;
-    const end = v => { if (!over) { over = true; done(v || ''); } };
-    try {
-      const made = penSvg_(pad, scale);
-      if (!made) return end('');
-      const { out, W, H, imgs } = made;
-      const card = pad.closest('.qcard') || pad;
-      const ground = getComputedStyle(card).backgroundColor;
-      const bg = ground && !/rgba\(0, 0, 0, 0\)|transparent/.test(ground) ? ground : token_('--raised', 'black');
-      const url = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(out)], { type: 'image/svg+xml' }));
-      const img = new Image();
-      const timer = setTimeout(() => { URL.revokeObjectURL(url); end(''); }, PEN_PNG_MS);
-      img.onerror = () => { clearTimeout(timer); URL.revokeObjectURL(url); end(''); };
-      img.onload = () => {
-        clearTimeout(timer);
-        /* a picture figure goes under the SVG; one from another site taints the canvas, and then the drawing goes without it */
-        const paint = withImgs => {
-          const cv = document.createElement('canvas');
-          cv.width = W; cv.height = H;
-          const g = cv.getContext('2d');
-          g.fillStyle = bg; g.fillRect(0, 0, W, H);
-          if (withImgs) imgs.forEach(m => { if (m.el.complete && m.el.naturalWidth) g.drawImage(m.el, m.x * made.k, m.y * made.k, m.w * made.k, m.h * made.k); });
-          g.drawImage(img, 0, 0, W, H);
-          return cv.toDataURL('image/png');
-        };
-        try {
-          let png;
-          try { png = paint(imgs.length > 0); } catch (e) { if (!imgs.length) throw e; png = paint(false); }
-          URL.revokeObjectURL(url);
-          if (!/^data:image\/png;base64,/.test(png)) return end('');
-          if (png.length > PEN_PNG_CHARS) return (scale || 1) > 0.3 ? penPng_(pad, (scale || 1) / 2).then(end) : end('');
-          end(png);
-        } catch (e) { URL.revokeObjectURL(url); end(''); }
-      };
-      img.src = url;
-    } catch (e) { end(''); }
-  });
-}
-/* THE PICTURES A PART'S AI MARK IS SENT: its drawing (if it has ink) then up to three photos -- only to a backend that says it reads them */
-function aiImages_(x, card) {
-  let feat = false;
-  try { feat = (DATA.features || []).indexOf('aiMarkImages') !== -1; } catch (e) { feat = false; }
-  if (!x || !feat) return Promise.resolve([]);
-  const k = ansKey_(x);
-  const pics = ((typeof WORK_PICS !== 'undefined' && WORK_PICS[k]) || []).map(p => p && p.url)
-    .filter(u => /^data:image\/jpeg;base64,/.test(String(u || ''))).slice(0, typeof WORK_MAX === 'number' ? WORK_MAX : 3);
-  const pk = padKey_(x);
-  const pad = card && [].find.call(card.querySelectorAll('.qpad[data-k]'), p => p.getAttribute('data-k') === pk);
-  const inked = padRead_(pk).length > 0;
-  return (inked && pad ? penPng_(pad) : Promise.resolve('')).then(png => (png ? [png] : []).concat(pics)).catch(() => pics);
-}
 
 ;
 /* ==== js/qtools-row.js ==== */
 /* @family. — js/qtools-row.js A PART'S TOOL ROW: its marker, the pen, ruler and Check tiles, redrawn in place (cut from qtools.js; read as one by tools/piece-src.js). */
 function markerOf_(x) {
-  let kind = 'ai';
-  try { kind = qtMarker_(workRow_(x || {})); } catch (e) { kind = 'ai'; }
+  let kind = 'save';
+  try { kind = qtMarker_(workRow_(x || {})); } catch (e) { kind = 'save'; }
   /* options with no key are still options to tap: their Check says the key is missing (never a person) */
   if (!isChoiceMarker_(kind) && x && Array.isArray(x.choices) && x.choices.length >= 2) kind = orderIs_(x) ? 'order' : 'choice';
   /* NO MARK SCHEME is no accept, key words, cells, options or answer (round 4): an importer's note alone is not a scheme to mark against */
@@ -17779,15 +17398,15 @@ function markerOf_(x) {
   const how = ready ? QT_HOW_ALL : QT_NO_SCHEME;
   return { kind, ready, how };
 }
-/* THE CHECK TILE FOR THAT MARKER, last in the row. An AI part whose marker is off says why under the row, not by vanishing. */
+/* THE CHECK TILE FOR THAT MARKER, last in the row. A part with no exact key has no Check: its tile saves the work (owner, 16 Nov: marking is mechanical only). */
 function qtCheckOpts_(x, m) {
   m = m || markerOf_(x);
   if (QT_SCHEME_KINDS[m.kind] && m.ready) return { send: true, act: 'qp-check', cls: 'qp-check' };
   if (m.kind === 'cells') return { send: true, act: 'qp-cells-check', cls: 'qp-check' };
   if (m.kind === 'draw') return { send: true, act: 'pad-check', cls: 'qp-check' };
-  /* NO SCHEME, NO AI CHECK: a request could only fail, so its Check says so under the row, as options with no key do (round 4) */
+  /* OPTIONS WITH NO KEY: their Check says so under the row (round 4) */
   if (!m.ready) return { send: true, act: 'qp-noscheme', cls: 'qp-check', data: { key: (x && x.key) || '' } };
-  return (typeof aiOpts_ === 'function' && aiOpts_(x)) || { send: true, act: 'qp-ai', cls: 'qp-ai-go qp-check', off: true };
+  return { send: true, label: 'Save', act: 'qp-send', cls: 'qp-send' };
 }
 /* ---------- THE ROW. QT_ROW on every part, the pen's tiles where there is a figure, then Undo, Clear and Check (1020). */
 const PEN_OPEN = new Set();
@@ -17804,8 +17423,8 @@ const QT_TILE = {
   calc: (t, x, key) => calcAllowed_(x) ? { icon: t.icon, label: t.label, note: t.note, act: t.act, cls: 'qt-t qt-calc', on: QCALC_OPEN.has(key), pressed: QCALC_OPEN.has(key), data: { tool: t.id, key } } : null,
   /* SIGNED IN, ON A PAPER: the whole paper downloaded for no connection (offline.js) */
   offline: (t, x) => (typeof window.offOpts_ === 'function' ? window.offOpts_(x) : null),
-  /* THE MARKER IS THE QUESTION'S (owner, 15 Nov): photos are read only by the AI, so only a part the AI marks takes them; a rule-marked part never does. */
-  photo: (t, x) => (isAiMark_(markerOf_(x)) ? { icon: t.icon, label: t.label, note: t.note, act: 'qp-work', cls: 'qp-work-go qt-t', data: { k: ansKey_(x), tool: t.id } } : null),
+  /* THE MARKER IS THE QUESTION'S (owner, 15 Nov): photos are saved with a part no rule marks; a rule-marked part never takes them. */
+  photo: (t, x) => (isSaveMark_(markerOf_(x)) ? { icon: t.icon, label: t.label, note: t.note, act: 'qp-work', cls: 'qp-work-go qt-t', data: { k: ansKey_(x), tool: t.id } } : null),
 };
 /* THE PAD'S KEY A PEN OR INSTRUMENT TILE READS, '' for the rest; and the tool that pad holds, '' when it is not taking the pen */
 const qtPadKey_ = (t, x) => t && (t.act === 'qt-pen' || t.act === 'qt-inst') && typeof padKey_ === 'function' ? padKey_(x) : '';
@@ -18166,7 +17785,7 @@ function graphCheck_(el) {
   return true;
 }
 /* WRAPPED WHEN A GRAPH FACE FIRST OPENS, not at load: the files that register the Check acts may load after this one. */
-const GRAPH_CHECK_ACTS = ['qp-check', 'qp-ai', 'qp-noscheme', 'qp-cells-check', 'pad-check'];
+const GRAPH_CHECK_ACTS = ['qp-check', 'qp-noscheme', 'qp-cells-check', 'pad-check'];
 function graphCheckWrap_() {
   GRAPH_CHECK_ACTS.forEach(act => {
     const was = ACTIONS[act];

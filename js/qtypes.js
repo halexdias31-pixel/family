@@ -266,7 +266,7 @@ function qtIncomplete_(x) {
   return p ? p.need.filter(n => !qtNeedMet_(r, n)) : ['type'];
 }
 /* THE MARKER (round 3): what marks this part, the one thing that varies between pages -- the page's Check and the
-   Function verified tag both read it. Never a person: what no rule can mark, the AI marks. */
+   Function verified tag both read it. Never a person, never AI (owner, 16 Nov): what no rule can mark is saved, unmarked (`save`). */
 function qtMarker_(x) {
   const r = (x && x.row) || x || {};
   if (qtS_(r.choices) && qtS_(r.choice_right)) return qtS_(r.answer_type).toLowerCase() === 'order' ? 'order' : 'choice';
@@ -274,9 +274,9 @@ function qtMarker_(x) {
   if (qtS_(r.draw_answer)) return 'draw';
   if (qtS_(r.accept)) return 'accept';
   if (qtS_(r.mark_words)) return 'words';
-  return 'ai';
+  return 'save';
 }
-/* MACHINE-MARKED: a way to mark it with no person and no AI (359); with a complete protocol it is the Function verified tag (388). */
-function qtMachine_(x) { return qtMarker_(x) !== 'ai'; }
+/* MACHINE-MARKED: a way to mark it at all (359); with a complete protocol it is the Function verified tag (388). */
+function qtMachine_(x) { return qtMarker_(x) !== 'save'; }
 /* THE LAYER THE ONE PAD OPENS ON is the type row's `keys` (1200): maths, the essay's sheet, else the letters (keypad.js) */
 const qtKeys_ = t => (QTYPE_PROTOCOL[t] && QTYPE_PROTOCOL[t].padLayer) || 'letters';

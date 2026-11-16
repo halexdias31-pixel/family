@@ -396,10 +396,8 @@ function ansRefresh_(keys) {
       if (el.classList.contains('kp-in') && typeof kpRender_ === 'function') kpRender_(el);
       if (el.classList.contains('qp-multi-val') && typeof multiFill_ === 'function') multiFill_(el);
       const card = el.closest('.qcard');
-      [card && card.querySelector('.qp-mark[data-accept]'), card && card.querySelector('.qp-ai')].forEach(m => {
+      [card && card.querySelector('.qp-mark[data-accept]'), card && card.querySelector('.qp-keep')].forEach(m => {
         if (!m) return;
-        /* EXCEPT AN ESSAY'S KEPT AI MARK, which is said again against the words now on the sheet -- fresh if they § */
-        if (m.classList.contains('qp-essay') && m.classList.contains('qp-ai') && typeof aiKeptPaint_ === 'function' && aiKeptPaint_(m, el)) return;
         m.classList.remove('is-right', 'is-near');
         const out = m.querySelector('.qp-verdict');
         if (out) tell_(out, '', '');
@@ -651,7 +649,7 @@ document.addEventListener('focusout', e => {
 });
 /* TO A BACKEND FROM BEFORE `submitAnswer` ONLY, now: § */
 document.addEventListener('click', e => {
-  const t = e.target && e.target.closest && e.target.closest('[data-do="qp-check"], [data-do="qp-ai"], [data-do="qp-send"]');
+  const t = e.target && e.target.closest && e.target.closest('[data-do="qp-check"], [data-do="qp-send"]');
   if (t) answersPush_(true);
 });
 document.addEventListener('visibilitychange', () => {
@@ -698,7 +696,7 @@ function findKeep_(id) {
 function findVerdictShown_(id) {
   try {
     const host = document.getElementById('s-' + (id && findIs_(id) ? id : 'stuff'));
-    return !!host && [].some.call(host.querySelectorAll('.qp-mark[data-accept] .qp-verdict, .qp-ai .qp-verdict'),
+    return !!host && [].some.call(host.querySelectorAll('.qp-mark[data-accept] .qp-verdict, .qp-keep .qp-verdict'),
       el => !!String(el.textContent || '').trim());
   } catch (e) { return false; }
 }

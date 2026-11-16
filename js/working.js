@@ -1,4 +1,4 @@
-/* ---------- A PHOTO OF THE WORKING (501): up to three pages; they go with the part's one AI Mark (`aiMark`). Only the AI marks. § */
+/* ---------- A PHOTO OF THE WORKING (501): up to three pages; the part's Save keeps them on the account (`markWorking`, its old name). Nothing marks them (owner, 16 Nov). */
 const WORK_MAX = 3, WORK_EDGE = 1600, WORK_BYTES = 500 * 1024;
 /* EACH BOX'S PHOTOS by answer key: data URLs, in memory only, never browser storage. § */
 const WORK_PICS = {};
@@ -10,7 +10,7 @@ function workRow_(x) {
     accept: x.accept || '', mark_words: x.markWords || '', cells: x.cells || '', draw_answer: x.drawAnswer || '',
     choices: (x.choices || []).join('|'), choice_right: (x.choiceRight || []).join('|'), marks: x.marks, subject: x.subject || r.subject });
 }
-/* THE STRIP UNDER THE BOX: thumbnails; the part's one Mark sends them, and a failed mark keeps them. */
+/* THE STRIP UNDER THE BOX: thumbnails; the part's Save sends them, and a failed save keeps them. */
 function workStrip_(x) {
   if (!x || !isQ_(x)) return '';
   const k = ansKey_(x);
@@ -109,13 +109,29 @@ on('qp-work-x', el => {
   workPaint_(k);
 });
 
-/* ---------- MARKED BY THE PART'S ONE MARK BUTTON (owner, 15 Nov): the photos go with the AI's mark (`aiImages_`, qtools.js); there is no second button. */
+/* ---------- SAVED BY THE PART'S ONE SAVE (owner, 16 Nov): the photos and anything typed, as one `markWorking` -- kept on the submission row, marked by nothing. */
+function workSave_(k, typed, el, out) {
+  const pics = WORK_PICS[k] || [];
+  if (!pics.length || el.disabled) return;
+  if (typeof USER !== 'object' || !USER || !USER.token) { tell_(out, 'error', text_('sign-in-to-send-your-working')); return; }
+  el.disabled = true;
+  tell_(el, 'busy');
+  api({ action: 'markWorking', personId: USER.personId || '', id: subId_(), sent: Date.now(), key: k,
+        label: typeof doneLabel_ === 'function' ? (doneLabel_(k) || '') : '', answer: typed || '', photos: pics.map(p => p.url) })
+    .then(d => {
+      el.disabled = false;
+      tell_(el, '');
+      if (!d || !d.success) { tell_(out, 'error', (d && (d.message || d.error)) || 'Your working could not be saved just now \u2014 try again later'); return; }
+      tell_(out, 'saved', 'Saved, with ' + pics.length + ' photo' + (pics.length === 1 ? '' : 's'));
+    })
+    .catch(() => { el.disabled = false; tell_(el, ''); tell_(out, 'error', 'Could not reach the server \u2014 your photos are still here'); });
+}
 
 /* ---------- SEEN BY WHO MAY (`workingOf`): student, accepted parent, admin; fetched on the tap. § */
 /* `workingMaySee_` (dopost.gs): a parent or Admin, never a tutor (owner, 28 Oct). § */
 function workSeeOpts_(pid, asParent) {
   if (!pid || !(asParent === true || may_('admin'))) return null;
-  return ({ icon: 'photo', label: 'Working photos', note: 'with the AI’s mark', act: 'work-see', data: { id: pid } });
+  return ({ icon: 'photo', label: 'Working photos', note: 'saved with the answer', act: 'work-see', data: { id: pid } });
 }
 on('work-see', el => {
   const pid = el.getAttribute('data-id');
@@ -138,9 +154,10 @@ on('work-see', el => {
         attrs: { href: u, 'data-do': 'file-view', target: '_blank', rel: 'noopener' }, blocks: [{ type: 'group', tag: 'img', attrs: { src: u, alt: `Page ${i + 1}` } }] })) }] })));
   }).catch(() => { loaded_(box); box.textContent = 'Could not reach the server'; });
 });
+/* AN OLD AI SCORE IS STILL READ (kept, never made again: owner, 16 Nov) */
 function workVerdictSay_(v) {
   const m = /^ai:(\d+)\/(\d+)$/.exec(String(v || ''));
-  return m ? m[1] + ' of ' + m[2] + ' by AI' : 'not marked';
+  return m ? m[1] + ' of ' + m[2] + ' by AI' : 'saved, not marked';
 }
 /* A BOX'S PAGES, made if missing -- for a check that cannot run the phone's canvas shrink. */
 function workPics_(k) { return WORK_PICS[k] || (WORK_PICS[k] = []); }

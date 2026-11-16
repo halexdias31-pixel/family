@@ -819,12 +819,12 @@ const PART_MARKERS = {
     return { got: Math.min(w.got, of), of, words: true };
   },
 };
-/* ---------- ONE MARKER FOR EVERY TYPED PART (owner, 9 Nov): the mark scheme first — options, order, accepted answers, key words. `{got, of}`; null for nothing typed; `{ai:true}` where only the AI can mark. */
+/* ---------- ONE MARKER FOR EVERY TYPED PART (owner, 9 Nov): the mark scheme — options, order, accepted answers, key words. `{got, of}`; null for nothing typed; `{save:true}` where no rule can mark (saved, never marked: owner, 16 Nov). */
 function markPart_(x, typed) {
   const m = markerOf_(x || {});
   const mark = Object.prototype.hasOwnProperty.call(PART_MARKERS, m.kind) ? PART_MARKERS[m.kind] : null;
   if (mark) return mark(x, typed);
-  return String(typed == null ? '' : typed).trim() ? { ai: true } : null;
+  return String(typed == null ? '' : typed).trim() ? { save: true } : null;
 }
 
 /* ---------- IS THIS ANSWER READY TO SEND: one table, a row per answer surface -- what it holds counts as an answer, and what is said when it does not. */
@@ -836,9 +836,8 @@ const PART_READY = {
   cells: { has: m => !!m && (m.each || []).some(v => v === true || v === false), say: () => text_('fill-a-cell-first') },
   /* the pen: some ink the drawing marker can read (`padSay_`) */
   draw: { has: said => !!said, say: () => text_('draw-your-answer-first') },
-  /* the AI: the box, or a drawing or photos where the backend reads images */
-  ai: { has: a => !!qTrim_(a.typed) || (a.seen && a.reads),
-        say: a => a.seen ? text_('write-your-answer-in-the-box') : text_('write-something-first') },
+  /* saved, never marked: the box or photos of the working */
+  save: { has: a => !!qTrim_(a.typed) || a.pics > 0, say: () => text_('write-something-first') },
   /* photos of working: at least one page */
   photo: { has: pics => (pics || []).length > 0, say: () => text_('take-a-photo-of-your-working') },
 };

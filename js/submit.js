@@ -633,17 +633,9 @@ function subVerdictPaint_(mark, inp) {
   const k = inp.getAttribute('data-k');
   const latest = subLatest_(k);
   const say = latest && latest.a === inp.value ? subSay_(latest.v) : { text: '', cls: '' };
-  /* AN ESSAY'S MARK KEPT ON THIS DEVICE (`aiKeptView_`, keypad.js, note 312) is drawn instead — with its points, fresh or "before your changes" — when it is about § */
-  if (mark.classList.contains('qp-essay') && mark.classList.contains('qp-ai') && typeof aiKeptView_ === 'function') {
-    const view = aiKeptView_(k, inp.value);
-    if (view && (view.fresh || !say.text) && typeof aiKeptPaint_ === 'function') { aiKeptPaint_(mark, inp); return; }
-    mark.classList.remove('is-stale');
-  }
-  /* THE AI'S FEEDBACK, FROM THE SUBMISSION (owner, 15 Nov): the same on every device, and only with the verdict it came with. */
+  /* FEEDBACK AN EARLIER AI MARK LEFT ON THE SUBMISSION is still read (owner, 16 Nov: kept, never made again), and only with the verdict it came with. */
   const why = mark.nextElementSibling;
-  if (why && why.classList.contains('qp-ai-why')) { const f = say.text && latest && latest.f ? latest.f : ''; tell_(why, 'info', f); }
-  /* AI MARKING SWITCHED OFF says so on this line (`aiOff_`), and keeps saying it until there is something else to say — but ONLY WHILE THE LINE STILL SAYS IT. § */
-  if (!say.text && mark.classList.contains('is-off') && out.textContent && out.textContent === mark.getAttribute('data-off-said')) return;
+  if (why && why.classList.contains('qp-fb')) { const f = say.text && latest && latest.f ? latest.f : ''; tell_(why, 'info', f); }
   mark.classList.remove('is-right', 'is-near');
   if (say.cls) mark.classList.add(say.cls);
   if (out.textContent !== say.text) tell_(out, 'info', say.text);

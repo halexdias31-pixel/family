@@ -280,8 +280,6 @@
     "check-kid-prices.js": "secondary",
     "check-booking-journey.js": "core",
     "check-pay-return.js": "secondary",
-    "check-aimark.js": "core",
-    "check-aiimage.js": "core",
     "check-work-file.js": "secondary",
     "check-working.js": "core",
     "check-faces.js": "core",
