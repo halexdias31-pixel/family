@@ -4608,7 +4608,14 @@ a.boxer-src { display: flex; align-items: center; min-height: var(--tap); text-d
 /* A SLOT IS A DASHED BOX, the shape Hegarty draws for "something goes here". § */
 .kp-hole { display: inline-block; width: .75em; height: 1em; min-width: 10px; min-height: 14px;
            vertical-align: middle; border: 1px dashed var(--paper-dim); border-radius: var(--r-ui); }
-.kp-show sup .kp-hole { height: .8em; min-height: 10px; min-width: 8px; }
+/* A POWER IS DRAWN RAISED (owner, 16 Nov): `.kp-show` is a flex row, so a <sup> straight in it was a flex item, centred on the line
+   a gap away from its base -- it read as x 2, not x². It sits at the top, against its base, smaller, with a hole big enough to see. */
+.kp-show sup { font-size: .72em; line-height: 1; }
+.kp-show > sup { align-self: flex-start; margin-left: calc(-1 * var(--s0)); }
+.kp-show sup .kp-hole { width: .8em; height: 1em; min-height: 14px; min-width: 12px; vertical-align: baseline; }
+.kp-show sup .kp-caret { height: 1.1em; vertical-align: text-bottom; }
+/* AND THE BOX THE CARET IS UP IN IS SHADED, so the child can see the next key goes up there until → or an operator brings it down */
+.kp-show sup:has(> .kp-caret) { background: var(--paper-rule); border-radius: var(--r-ui); padding: 0 2px; }
 /* THE CARET IN THE PAPER'S INK. It was gold on black; gold on the cream is 1.56:1 and it vanished. */
 .kp-caret { display: inline-block; width: 2px; height: 1.15em; margin: 0 -1px; vertical-align: middle;
             background: var(--paper-ink); animation: kp-blink 1.1s steps(1) infinite; }
@@ -4687,6 +4694,9 @@ svg.meas .meas-body, svg.meas .meas-turn, svg.meas .meas-tick, svg.meas .meas-nu
 /* THE POWER KEY IS A POWER: x and a raised box for what goes up, drawn as the fraction's boxes are (the owner could not find "to the power of") */
 .kp-pw { display: inline-flex; align-items: flex-start; font: 600 var(--fs-title)/1 var(--font); }
 .kp-pw i { display: block; width: 8px; height: 9px; margin: -2px 0 0 1px; border: 1.5px solid currentColor; border-radius: var(--r-ui); }
+/* ×10 AND ITS RAISED BOX, the power key's box beside "×10": standard form in one key */
+.kp-x10f { display: inline-flex; align-items: flex-start; font: 600 var(--fs-body)/1 var(--font); }
+.kp-x10f i { display: block; width: 7px; height: 8px; margin: -3px 0 0 1px; border: 1.5px solid currentColor; border-radius: var(--r-ui); }
 
 /* ---------- THE LETTERS: THE SAME PAD, TURNED OVER (`abc`) § */
 #kp.is-abc, #kp.is-sym { grid-template-columns: repeat(60, minmax(0, 1fr)); column-gap: 0; max-width: 640px; }

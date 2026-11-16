@@ -50,8 +50,14 @@ const TO = { '!abc': 'abc', '!123': 'maths', '!sym': 'sym' };
   if (!k) fail.push('the ' + f + ' face of a maths box has no power key — x^2 is a face away');
   else if (!/power/i.test(k.getAttribute('aria-label') || '')) fail.push('the power key on the ' + f + ' face is not named a power: ' + k.getAttribute('aria-label'));
 });
+/* INDICES IN ONE TAP (owner, 16 Nov): a maths box's 123 face has ², ³ and ×10ⁿ beside the power key; its letters keep ² ³ on their top row */
+[['maths', ['²', '³', '!pow', '!x10']], ['abc', ['²', '³', '!pow']]].forEach(([f, want]) => {
+  const box = w.document.createElement('div');
+  box.innerHTML = w.kpPadHtml_(f, false, true, false, true);
+  want.forEach(v => { if (![...box.querySelectorAll('.kp-key')].some(k => k.getAttribute('data-v') === v)) fail.push('the ' + f + ' face of a maths box has no ' + v + ' key'); });
+});
 /* WHAT A KEY PUTS IN THE BOX: itself, a letter in both cases (⇧), or the structure a command writes */
-const PUTS = { '!frac': '()/()', '!pow': '^()', '!sqrt': '√()', '!vec': '⟮,⟯', '!nl': '\n' };
+const PUTS = { '!x10': '×10^()', '!frac': '()/()', '!pow': '^()', '!sqrt': '√()', '!vec': '⟮,⟯', '!nl': '\n' };
 const typed = new Set();
 all.forEach(a => a.keys.forEach(v => {
   const t = PUTS[v] !== undefined ? PUTS[v] : /^!./.test(v) ? '' : v;
