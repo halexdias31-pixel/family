@@ -13043,6 +13043,9 @@ function kpWordsSay_(v) { const n = kpWordCount_(v); return n + (n === 1 ? ' wor
 /* ---------- THE KEYS § */
 /* THE POWER KEY (owner: "there's no to the power of button on keypad"): drawn as x and a raised box, named so; it writes ^() with the caret inside, as x^2 and x^(n+1) are stored */
 const KP_POW = { v: '!pow', a: 'to the power of', c: ' kp-op kp-pow', t: { type: 'group', tag: 'span', look: 'kp-pw', attrs: { 'aria-hidden': 'true' }, text: ['x', { i: '' }] } };
+const KP_X10 = { v: '!x10', a: 'times ten to the power of, for standard form', c: ' kp-op kp-x10',
+  t: { type: 'group', tag: 'span', look: 'kp-x10f', attrs: { 'aria-hidden': 'true' }, text: ['\u00d710', { i: '' }] } };
+const KP_MATHS_SPACE = { v: ' ', a: 'space', c: ' kp-mode', t: '\u2423' };
 const KP_KEYS = [
   { t: '7' }, { t: '8' }, { t: '9' }, { t: '\u00f7', a: 'divide' },
   { t: '(', a: 'open bracket' }, { t: ')', a: 'close bracket' },
@@ -13060,7 +13063,8 @@ const KP_KEYS = [
   { v: '!abc', a: 'letters', c: ' kp-mode', t: 'abc' },
   { v: '!left', a: 'move left', c: ' kp-mode', t: '\u2190' },
   { v: '!right', a: 'move right', c: ' kp-mode', t: '\u2192' },
-  { v: ' ', a: 'space', c: ' kp-mode', t: '\u2423' },
+  /* ×10ⁿ WHERE THE MATHS SPACE WAS (owner, 16 Nov): standard form in one tap; a maths answer's spaces never mattered to the marker, and a worded box or one elsewhere keeps its space (`KP_MATHS_SPACE`). */
+  KP_X10,
   /* ---------- ⌫ IS RED, AND ITS MARK IS DRAWN § */
   { v: '!back', a: 'delete', c: ' kp-del',
     t: { type: 'drawing', node: { el: 'svg', a: { class: 'kp-del-i', viewBox: '0 0 24 24', 'aria-hidden': 'true', focusable: 'false', fill: 'none',
@@ -13157,7 +13161,7 @@ const KP_SITE_KEYS = [
   { t: '@', a: 'at', c: ' kp-op' }, { t: '#', a: 'hash', c: ' kp-op' }, { t: '&', v: '&', a: 'and', c: ' kp-op' },
   { t: '%', a: 'per cent', c: ' kp-op' }, { t: '\u00a3', a: 'pounds', c: ' kp-op' }, { t: '!', a: 'exclamation mark', c: ' kp-op' },
 ];
-const KP_PLAIN = { '!frac': { t: '/', a: 'slash', c: ' kp-op' }, '!pow': { t: '^', a: 'caret', c: ' kp-op' }, '!sqrt': { t: '\u221a', a: 'root sign', c: ' kp-op' } };
+const KP_PLAIN = { '!x10': KP_MATHS_SPACE, '!frac': { t: '/', a: 'slash', c: ' kp-op' }, '!pow': { t: '^', a: 'caret', c: ' kp-op' }, '!sqrt': { t: '\u221a', a: 'root sign', c: ' kp-op' } };
 const kpPlainKey_ = k => KP_PLAIN[k.v] || k;
 
 /* A KEY'S FACE: its text escaped, or its drawing (a group or drawing block, or several) drawn by the one maker. */
@@ -13175,7 +13179,7 @@ function kpPadHtml_(layer, words, signs, essay, vec, site) {
   const top = site === 'mail' ? KP_MAIL_KEYS : site ? [] : vec ? [KP_POW].concat(KP_VEC_KEYS).map((k, i) => Object.assign({}, k, { span: KP_ABC_TOP_SPAN[i] })) : [];
   if (layer === 'abc') return top.concat(KP_ABC).concat(kpAbcBottom_(essay)).map(kpKey_).join('');
   if (site) return KP_SITE_KEYS.concat(KP_SIGN_KEYS, KP_KEYS.map(kpPlainKey_)).map(k => (essay && k.v === '!done' ? KP_DONE_ESSAY : k)).map(kpKey_).join('');
-  return (vec ? KP_VEC_KEYS : []).concat(signs ? KP_SIGN_KEYS : []).concat(KP_KEYS).map(k => (essay && k.v === '!done' ? KP_DONE_ESSAY : k)).map(kpKey_).join('');
+  return (vec ? KP_VEC_KEYS : []).concat(signs ? KP_SIGN_KEYS : []).concat(KP_KEYS).map(k => (essay && k.v === '!done' ? KP_DONE_ESSAY : words && k.v === '!x10' ? KP_MATHS_SPACE : k)).map(kpKey_).join('');
 }
 
 /* ---------- THE BOX § */
@@ -13217,7 +13221,9 @@ function kpTypeset_(v, caret, end) {
     .replace(/(^|[\s(+\-\u00d7\u00f7=,])(\u03db?)\//g, '$1$2' + KP_HOLE + '/')
     .replace(new RegExp('\\/(\u03db?)' + END, 'g'), '/' + KP_HOLE + '$1')
     .replace(new RegExp('\\^(\u03db?)' + END, 'g'), '^(' + KP_HOLE + '$1)')
-    .replace(new RegExp('\u221a(\u03db?)' + END, 'g'), '\u221a' + KP_HOLE + '$1');
+    .replace(new RegExp('\u221a(\u03db?)' + END, 'g'), '\u221a' + KP_HOLE + '$1')
+    /* A FRACTION RAISED, x^((1)/(2)), DRAWN AS THE SMALL \u00bd OF x^(1/2), not with its working brackets showing */
+    .replace(/\^\(\(([^()]*)\)\/\(([^()]*)\)\)/g, (m, p, q) => (/^-?[^-+\u00d7\u00f7=\s]*$/.test(p) && /^[^-+\u00d7\u00f7=\s]*$/.test(q) ? '^(' + p + '/' + q + ')' : m));
   /* THE SLASH AS `&frasl;` AFTER ESCAPING, which is what `typeset_` stacks — `tbMath_` in find.js does the same for the textbooks. § */
   const h = typeset_(esc(s).replace(/\//g, '&frasl;').replace(/-/g, '\u2212'));
   return h.replace(/\u03d9/g, () => kpDot_('kp-hole'))
@@ -13613,14 +13619,29 @@ function kpPowAt_(v, a) {
   const o = kpPartner_(v, a);
   return o > 0 && v.charAt(o - 1) === '^' ? a : -1;
 }
-/* AN OPERATOR AT THE END OF A NUMBER POWER LEAVES IT FIRST, as a Casio's does after 2^3: 2^3+1 is 9, never 2^(3+1); a minus into an empty one stays, so 10^-14 types. */
+/* THE CARET COMES DOWN BY ITSELF, as on a phone's maths keyboard (owner, 16 Nov: "using indices on keypad sucks"): at the end of a raised box,
+   an operator leaves it first (2^3+1 is 9, a^m+n is a^m then +n), and so does a letter after a number power (3x^2y, 2^2x3).
+   It stays up for a minus into an empty box (10^-3), and while a bracket typed inside it is still open (a^(m+n)). */
+const kpBal_ = s => { let d = 0; for (const c of s) { d += c === '(' ? 1 : c === ')' ? -1 : 0; if (d < 0) return false; } return !d; };
 function kpPowOut_(v, a, cmd) {
   const z = kpPowAt_(v, a);
-  if (z < 0 || !/^[-+\u00d7\u00f7=]$/.test(cmd)) return a;
-  const o = kpPartner_(v, z);
-  /* a letter in it is algebra, x^(n+1), and stays in as the pad always typed it */
-  if (z === o + 1 || !/^[-\d.]+$/.test(v.slice(o + 1, z)) || (cmd === '-' && /[(\u00d7\u00f7+\-^]$/.test(v.slice(0, a)))) return a;
-  return z + 1;
+  if (z < 0) return a;
+  const box = v.slice(kpPartner_(v, z) + 1, z);
+  if (!box || !kpBal_(box)) return a;
+  if (/^[-+\u00d7\u00f7=<>\u2264\u2265,:\u00b1]$/.test(cmd) && !(cmd === '-' && /[(\u00d7\u00f7+\-^]$/.test(box))) return z + 1;
+  if (cmd === '!x10' || (/^[a-z\u03b1-\u03c9]$/i.test(cmd) && /^[\d.]+$/.test(box))) return z + 1;
+  return a;
+}
+/* `)` AT THE END OF A RAISED BOX: it closes a bracket the child opened at the box's start -- a^(m+n) is stored a^(m+n), not a^((m+n)) --
+   and otherwise steps out first, so (x^2)^3 closes the outer bracket. The caret lands after the box either way; null when `)` is ordinary. */
+function kpPowShut_(v, a) {
+  if (v.charAt(a) !== ')') return null;
+  /* the box's own `)` pairs with the child's `(` while the box's `(` before it is left open: ^((m+n|) */
+  const p = kpPartner_(v, a);
+  if (p > 1 && p + 1 < a && v.slice(p - 2, p) === '^(' && kpPartner_(v, p - 1) < 0) return { v: v.slice(0, p) + v.slice(p + 1), at: a };
+  const z = kpPowAt_(v, a);
+  const box = z < 0 ? '' : v.slice(kpPartner_(v, z) + 1, z);
+  return box && kpBal_(box) ? { v: v.slice(0, z + 1) + ')' + v.slice(z + 1), at: z + 2 } : null;
 }
 function kpEdit_(inp, cmd) {
   if (kpSite_(inp)) return kpSiteEdit_(inp, cmd);
@@ -13630,6 +13651,7 @@ function kpEdit_(inp, cmd) {
   if (a == null) { a = v.length; b = v.length; }
   if (!words && a === b) { a = kpPowOut_(v, a, cmd); b = a; }
   const a0 = a, b0 = b;
+  const shut = !words && a === b && cmd === ')' ? kpPowShut_(v, a) : null;
   const put = (t, at) => {
     inp.value = v.slice(0, a) + t + v.slice(b);
     const c = a + (at == null ? t.length : at);
@@ -13637,7 +13659,10 @@ function kpEdit_(inp, cmd) {
   };
   const to = c => inp.setSelectionRange(c, c);
   const term = /[0-9a-z.\u03c0)]$/i.test(v.slice(0, a));
-  if (cmd === '!vec') put(KP_VEC_A + ',' + KP_VEC_B, 1);
+  if (shut) { inp.value = shut.v; to(shut.at); }
+  else if (cmd === '!vec') put(KP_VEC_A + ',' + KP_VEC_B, 1);
+  /* ×10ⁿ, STANDARD FORM IN ONE KEY: the times, the ten and a raised box with the caret in it (a × already typed is not doubled) */
+  else if (cmd === '!x10') { const x = /×\s*$/.test(v.slice(0, a)) ? '10^()' : '×10^()'; put(x, x.length - 1); }
   else if (cmd === '!frac') { if (term) put('/()', 2); else put('()/()', 1); }
   else if (cmd === '!pow') put('^()', 2);
   else if (cmd === '!sqrt') put('\u221a()', 2);
@@ -13673,7 +13698,9 @@ function kpEdit_(inp, cmd) {
       inp.value = v.slice(0, -1); to(inp.value.length);
     } else if (a > 0) {
       let from = a - 1, end = a;
-      if (v.slice(a - 1, a + 1) === '()') {
+      /* A `(` TYPED INTO AN EMPTY RAISED BOX goes alone, leaving the box: 2^(| ⌫ is 2^(), never a broken 2^( */
+      if (v.slice(a - 3, a + 1) === '^(()' && kpPartner_(v, a - 2) < 0) from = a - 1;
+      else if (v.slice(a - 1, a + 1) === '()') {
         end = a + 1;
         if (v.slice(a + 1, a + 4) === '/()') end = a + 4;          /* ()/() with nothing in either */
         else if (/[\^\u221a\/]/.test(v.charAt(a - 2))) from = a - 2;

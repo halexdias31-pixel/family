@@ -15,7 +15,7 @@ if (!typeset_) { console.log('FAIL — check-keypad-power: typeset_ not found');
 
 /* THE KEYPAD'S EDITING, cut out by name and run on a stand-in box that keeps a value and a caret, as an <input> does. */
 const KP_NAMES = ['KP_HOLE', 'KP_SEL_A', 'KP_VEC_A', 'kpVecStep_', 'kpPartner_', 'kpLineStart_', 'kpLineEnd_',
-  'kpPowAt_', 'kpPowOut_', 'kpEdit_', 'kpDotB_', 'kpDot_', 'kpTypeset_'];
+  'kpPowAt_', 'kpBal_', 'kpPowOut_', 'kpPowShut_', 'kpEdit_', 'kpDotB_', 'kpDot_', 'kpTypeset_'];
 const kpParts = KP_NAMES.map(n => [n, cutFrom(kp, n)]);
 kpParts.filter(p => !p[1]).forEach(p => bad.push('keypad: ' + p[0] + ' not found in js/keypad-*.js'));
 const ctx = { typeset_, esc: require('./check-esc.js').esc,
@@ -63,13 +63,14 @@ function box() {
     dispatchEvent() {}, classList: { contains: () => false } };
 }
 /* A KEY AS THE PAD SENDS IT: '^' the power key, '²' '³' the squared and cubed keys, '→' '←' the arrows, '⌫' delete, '−' the minus key. */
-const KEY = { '^': '!pow', '→': '!right', '←': '!left', '⌫': '!back', '−': '-', '√': '!sqrt' };
+const KEY = { 'X': '!x10', '/': '!frac', '^': '!pow', '→': '!right', '←': '!left', '⌫': '!back', '−': '-', '√': '!sqrt' };
 function press(seq) {
   const b = box();
   [...seq].forEach(k => ctx.kpEdit_(b, KEY[k] || k));
   return b;
 }
-const drawn = b => ctx.kpTypeset_(b.value, -1).replace(/<span class="kp-hole"><\/span>/g, '□');
+const drawn = b => ctx.kpTypeset_(b.value, -1).replace(/<span class="kp-hole"><\/span>/g, '□')
+  .replace(/<span class="frac-ix"><span class="frac-ix-n">1<\/span>&#x2044;<span class="frac-ix-d">2<\/span><\/span>/g, '½');
 const near = (a, b) => a != null && b != null && Math.abs(a - b) <= 1e-9 * Math.max(1, Math.abs(b));
 const valOf = t => { try { return cctx.api.calcTextVal(t); } catch (e) { return 'threw ' + (e.calc || e.message); } };
 
@@ -81,9 +82,9 @@ const SEQ = [
   ['2^3×4', '2^(3)×4', '2<sup>3</sup>×4', 32],
   ['2^12', '2^(12)', '2<sup>12</sup>', 4096],
   ['(2+3)^2', '(2+3)^(2)', '(2+3)<sup>2</sup>', 25],
-  ['2^(1+2)→+1', '2^((1+2))+1', '2<sup>(1+2)</sup>+1', 9],
-  ['2^(1+2)', '2^((1+2))', '2<sup>(1+2)</sup>', 8],
-  ['x^n+1', 'x^(n+1)', 'x<sup>n+1</sup>', null],
+  ['2^(1+2)→+1', '2^(1+2)+1', '2<sup>1+2</sup>+1', 9],
+  ['2^(1+2)', '2^(1+2)', '2<sup>1+2</sup>', 8],
+  ['x^n+1', 'x^(n)+1', 'x<sup>n</sup>+1', null],
   ['2^3^2', '2^(3^(2))', '2<sup>3<sup>2</sup></sup>', 512],
   ['10^−14', '10^(-14)', '10<sup>&minus;14</sup>', 1e-14],
   ['10^−14→+1', '10^(-14)+1', null, 1 + 1e-14],
@@ -98,6 +99,32 @@ const SEQ = [
   ['2^3→⌫⌫5', '2^(5)', '2<sup>5</sup>', 32],
   ['2^3→+1←←←7', '2^(37)+1', null, Math.pow(2, 37) + 1],
   ['2^→1', '2^()1', null, null],
+  /* THE OWNER'S INDICES (16 Nov, "using indices on keypad sucks"): one tap for ² ³, the caret down by itself, ×10ⁿ (X) for standard form */
+  ['x²', 'x²', 'x²', null],
+  ['x³', 'x³', 'x³', null],
+  ['x^2', 'x^(2)', 'x<sup>2</sup>', null],
+  ['2^5', '2^(5)', '2<sup>5</sup>', 32],
+  ['10^−3', '10^(-3)', '10<sup>&minus;3</sup>', 0.001],
+  ['a^m+n', 'a^(m)+n', 'a<sup>m</sup>+n', null],
+  ['a^(m+n)', 'a^(m+n)', 'a<sup>m+n</sup>', null],
+  ['a^(m+n)×2', 'a^(m+n)×2', 'a<sup>m+n</sup>×2', null],
+  ['e^(3x)', 'e^(3x)', 'e<sup>3x</sup>', null],
+  ['(x²)³', '(x²)³', '(x²)³', null],
+  ['(x^2)^3', '(x^(2))^(3)', '(x<sup>2</sup>)<sup>3</sup>', null],
+  ['(2^2)^3', '(2^(2))^(3)', '(2<sup>2</sup>)<sup>3</sup>', 64],
+  ['3x²y', '3x²y', '3x²y', null],
+  ['3x^2y', '3x^(2)y', '3x<sup>2</sup>y', null],
+  ['3x^2→y', '3x^(2)y', '3x<sup>2</sup>y', null],
+  ['2^2x3^2x5', '2^(2)x3^(2)x5', '2<sup>2</sup>x3<sup>2</sup>x5', null],
+  ['x^/1→2', 'x^((1)/(2))', 'x<sup>½</sup>', null],
+  ['x^/1→2→→+1', 'x^((1)/(2))+1', 'x<sup>½</sup>+1', null],
+  ['5X4', '5×10^(4)', '5×10<sup>4</sup>', 50000],
+  ['5×X4', '5×10^(4)', '5×10<sup>4</sup>', 50000],
+  ['5X4+1', '5×10^(4)+1', '5×10<sup>4</sup>+1', 50001],
+  ['1.6X−19', '1.6×10^(-19)', '1.6×10<sup>&minus;19</sup>', 1.6e-19],
+  ['2^(⌫', '2^()', '2<sup>□</sup>', null],
+  ['2^(⌫⌫', '2', '2', 2],
+  ['x^2→⌫⌫⌫', 'x', 'x', null],
 ];
 SEQ.forEach(([keys, text, html, val]) => {
   const b = press(keys);
