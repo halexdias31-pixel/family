@@ -162,7 +162,7 @@
   {
    "id": "1.13",
    "principle": 1,
-   "text": "A username is made by one maker (`handleLaw_`) from one replaceable format (`HANDLE_FORMAT`, people.gs: first name + Red/Yellow/Blue + year joined, owner 16 Nov), unique by a counter; an admin moves everybody once with Find › Settings › Site › Rename every username (Preview, then Apply on a second tap; old usernames stop working), whose list goes to the admin alone.",
+   "text": "A username is made by one maker (`handleLaw_`) from one replaceable format (`HANDLE_FORMAT`, people.gs: first name + surname initial + year joined, e.g. SamD2026, owner 16 Nov), unique by a counter; an admin moves everybody once with Find › Settings › Site › Rename every username (Preview, then Apply on a second tap; old usernames stop working), whose list goes to the admin alone.",
    "checks": [
     "handle-follows",
     "handles"
