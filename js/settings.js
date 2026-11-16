@@ -7,7 +7,7 @@ const SETTINGS_TABS = ['settings/brand', 'settings/facets', 'settings/kinds', 's
                        'settings/columns',
                        'settings/spotlight', 'settings/widgets-in-find', 'settings/setting-for', 'settings/card-fields',
                        'settings/default-pictures', 'settings/permissions', 'settings/screens-moved', 'settings/labels',
-                       'settings/confusables'];
+                       'settings/confusables', 'settings/peel'];
 
 /* `norm` on the backend. § */
 const setNorm_ = v => libS(v).toLowerCase().trim();
