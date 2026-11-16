@@ -268,6 +268,8 @@ function bundleCard_(b) {
 
 /* THE ONE BUNDLE A LIST OF WHOLE PAPERS OFFERS, in front of its questions. `Bundles` is not a kind to ask for (396). */
 function bundlePages_() {
+  /* A BUNDLE IS NOT A QUESTION (owner, 16 Nov: "These are not questions"): a list asked for Questions shows questions only. */
+  if (['kindLabel', 'kindOwn'].some(f => chipsOn_(STUFF.filters, f).some(c => !c.any && /^questions?$/i.test(String(c.value))))) return [];
   const b = bundleOf_();
   return b ? [bundleCard_(b)] : [];
 }
