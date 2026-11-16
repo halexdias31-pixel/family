@@ -1,17 +1,5 @@
 /* @family. — messages.js DMs, Messages and Daive, cut out of posts.js when the Feed was switched off (13 Nov). */
-/* ---------- MESSAGES § */
-/* ---------- ONE CONVERSATION PER PAGE, WHICH IS WHAT EVERY OTHER COLUMN ALREADY IS § */
-/* ---------- BUT A COLUMN DRAWN AHEAD ASKS NOBODY (`dmAsk_`) § */
-function dmAsk_() {
-  if (typeof AHEAD !== 'undefined' && AHEAD.running) {
-    if (!DM_DONE && USER && MESSAGES) { DM_ASKED = true; DM_DONE = true; }
-    return;
-  }
-  dmSync_();
-}
-screen('dm', () => { dmAsk_(); return pages('dm', dmPages_().map(p => p.html)); });
-
-/* ---------- THIS SCREEN READ A KEY THAT HAS NEVER EXISTED § */
+/* ---------- MESSAGES ARE FIND › MESSAGES (find-only, 16 Nov): the column, its pages and its tab are gone; a conversation is a Find card (find-doors.js). */
 
 /* ASKED ONCE, NOT ONCE PER PAINT — AND `MESSAGES` CANNOT BE THE FLAG THAT SAYS SO. § */
 let DM_ASKED = false;
@@ -36,7 +24,7 @@ function dmStamp_() {
 /* IS SOMEBODY MID-SENTENCE. Asked of the DOM rather than remembered in a flag, which is what
    `msg-send` and `me-save` already do for the same reason: the fact is in the box. */
 function dmTyping_() {
-  const host = $('s-dm');
+  const host = $('s-stuff');
   if (!host) return false;
   /* Files chosen and not yet sent count as typing: a repaint would keep them (they live in
      `MSG_QUEUE`) but would close whatever somebody was doing with the picker. */
@@ -49,17 +37,26 @@ function dmTyping_() {
 function dmSync_(force) {
   if (!USER || !LOADED || DM_BUSY) return;
   if (!force && DM_ASKED && Date.now() - DM_LAST < DM_EVERY) return;
-  const first = !DM_ASKED;
   DM_ASKED = true; DM_BUSY = true; DM_LAST = Date.now();
   const was = dmStamp_();
-  /* Which conversation is on the screen, by person rather than by page — a message arriving in another thread moves that thread to the front and would otherwise § */
-  /* ONE LESS THAN THE PAGE: Daive is page 0 (449). */
-  const here = ((messageThreads_()[((typeof PAGE === 'object' && PAGE.dm) || 0) - 1]) || {}).id;
   loadMessages().then(() => {
     DM_BUSY = false; DM_DONE = true;
-    if (first) paint('dm');
-    else if (dmStamp_() !== was && !dmTyping_()) dmRedraw_(here);
+    /* EACH CONVERSATION SHOWN IN FIND REDRAWN WHERE IT STANDS, never under somebody's typing. */
+    if (dmStamp_() !== was && !dmTyping_()) dmShownThreads_().forEach(k => { try { msgFindRedraw_(k); } catch (e) { oops_(e, 'dm:sync'); } });
   });
+}
+/* THE CONVERSATIONS FIND IS SHOWING, by thread. */
+function dmShownThreads_() {
+  const host = $('s-stuff'), seen = {};
+  if (!host) return [];
+  [].forEach.call(host.querySelectorAll('[data-thread]'), el => { seen[el.dataset.thread] = 1; });
+  return Object.keys(seen);
+}
+/* FIND › MESSAGES IS OPEN, OR A MESSAGE CARD SHOWS (a conversation, Daive, or a first message's form): what keeps the poll running. */
+function dmShown_() {
+  if (typeof AT === 'undefined' || AT !== 'stuff') return false;
+  const host = $('s-stuff');
+  return !!(host && host.querySelector('[data-thread], [data-daive], .dm-card'));
 }
 
 /* THE PAYLOAD'S COPY (700): taken as the first answer, and the 20 s poll keeps it fresh from there. A backend that sends none leaves the ask as it was. */
@@ -69,17 +66,19 @@ function dmAdopt_(d) {
   DM_ASKED = true; DM_DONE = true; DM_LAST = Date.now();
 }
 
-/* STARTED WHEN THE COLUMN ARRIVES AND STOPPED WHEN IT LEAVES, from `startScreen_` and `paint` — the one list that exists for exactly this. § */
+/* STARTED WHEN A MESSAGE CARD IS DRAWN IN FIND (`msgDoorCard_`), and it stops itself once none shows. */
 function dmPoll_() {
   clearInterval(DM_TIMER);
   dmSync_();
-  DM_TIMER = setInterval(() => { if (AT === 'dm') dmSync_(); else dmStop_(); }, DM_EVERY);
+  DM_TIMER = setInterval(() => { if (dmShown_()) dmSync_(); else dmStop_(); }, DM_EVERY);
 }
+/* ONE TIMER: a card drawn again while it runs leaves it be. */
+function dmWatch_() { if (!DM_TIMER && USER) dmPoll_(); }
 function dmStop_() { clearInterval(DM_TIMER); DM_TIMER = 0; }
 
 /* AND COMING BACK TO THE APP IS WORTH AN ASK WHATEVER THE CLOCK SAYS. § */
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden && AT === 'dm') dmPoll_();
+  if (!document.hidden && dmShown_()) dmPoll_();
 });
 
 /* ---------- ONE LIST, TWO READINGS — THE MARKUP AND THE NAME IN THE HEADER § */
@@ -113,33 +112,7 @@ document.addEventListener('error', e => {
   if (ring) { ring.classList.remove('has-pic'); ring.textContent = ring.getAttribute('data-letter') || ''; }
 }, true);
 
-function dmPages_() {
-  if (!USER) return [{ name: '', html: card_(cardBlock_({ type: 'group', look: '', blocks: [{ type: 'msgHead', text: 'Messages' }] })) }];
-  /* THE PAYLOAD AND THE FIRST ANSWER FOR MESSAGES — `loading_()` until both, as every column waits. */
-  if (!LOADED || !DM_DONE) return [{ name: '', html: loading_() }];
-
-  const threads = messageThreads_();
-  /* ---------- THE HEAD CARD WAS A PAGE WITH NO MESSAGE ON IT § */
-
-  /* ---------- AND AN EMPTY INBOX SAYS WHICH EMPTY IT IS § */
-  if (!threads.length) return daivePages_().concat([{ name: '', html: suggestRowIn_(card_(cardBlock_({ type: 'group', look: '',
-    blocks: [{ type: 'msgHead', text: 'Messages' }], inner: MSG_FAILED ? empty_('Messages did not load.') : emptyMessages_(),
-    tiles: MSG_FAILED ? [{ form: true, label: 'Try again', act: 'dm-refresh', kind: 'quiet' }] : [] })), 'widget', 'messages', 'Messages') }]);
-
-  /* ONE CARD PER CONVERSATION, most recent first — `messageThreads_` has already done both, and
-     doing it again here is a second copy of the ordering rule to get wrong later. */
-  /* ---------- DRAWN IS READ, ON THIS SCREEN ONLY § */
-  threads.forEach(t2 => markRead_(t2.msgs));
-  /* ---------- AND EACH ONE CAN BE ANSWERED WHERE IT IS READ § */
-  /* THE NAME IS THE PERSON, and the unread count rides on it — so the header says who you are reading rather than "3 of 7", which is the same judgement § */
-  return daivePages_().concat(threads.map(t => ({
-    name: fmtName_(t.name) + (t.unread ? ' (' + t.unread + ')' : ''),
-    html: renderCard({ kind: 'msg', look: 'dm-page' + (t.unread ? ' unread' : ''), name: fmtName_(t.name),
-      body: [{ type: 'embed', tool: 'dm-thread', args: { t } }] }),
-  })));
-}
-
-/* ---------- DAIVE, THE ASSISTANT, PINNED FIRST IN MESSAGES (449, 461) ----------
+/* ---------- DAIVE, THE ASSISTANT, FIRST IN FIND › MESSAGES (449, 461; find-only 16 Nov) ----------
    A conversation like any other — the same head, bubbles and composer — kept on this device; `data-daive` marks its card. */
 let ASST_BUSY = false, ASST_SAID = '';
 const ASST_KEEP = 40, DAIVE = 'Daive';
@@ -166,17 +139,18 @@ function asstPut_(s) { ASST_MEM = { key: asstKey_(), s: s }; try { localStorage.
 /* WHAT EACH COLUMN IS FOR, in plain words, so Daive can say where things are. Site help only: nothing about the business (547). */
 const ASST_NAV = {
   spotlight: 'what is pinned in the window', feed: 'posts; the camera is the page above the newest post', reel: 'short videos, one per page',
-  dm: 'messages, one conversation per page; Daive is the first',
   stuff: 'pick answers to narrow down questions, papers, lessons, tools and games', res: 'a second finder that keeps its own place',
   saved: 'what you starred', booking: 'book a session', shop: 'the shop',
   family: 'a parent account\'s settings', staff: 'a tutor account\'s settings', account: 'a student account\'s settings: sign in, PIN, progress',
-  tutors: 'a card per tutor', students: 'a card per student', parents: 'a card per parent',
+  students: 'a card per student', parents: 'a card per parent',
 };
 /* WHAT DAIVE IS TOLD: the columns this viewer has, left to right, and the Tools widgets' names -- a map of the site and nothing else (547). */
 function asstFacts_() {
   const out = ['swipe left and right to move between columns; the bar at the bottom jumps to one'];
   try { TABS.forEach(t => out.push('column "' + t.title + '": ' + (ASST_NAV[t.id] || t.title))); } catch (e) { /* no columns yet: the map is shorter, not broken */ }
   try { const ws = widgetsOf_('tool').map(x => x.name || x.id).filter(Boolean); if (ws.length) out.push('Tools in Find: ' + ws.join(', ')); } catch (e) { /* no widgets yet: the columns alone */ }
+  out.push('Messages in Find: your conversations, one card each, and Daive first');
+  out.push('tutors in Find: Profiles, then Tutor');
   out.push('to message a tutor: the Message tile on their card');
   return out.join('\n').slice(0, 4000);
 }
@@ -184,10 +158,6 @@ function asstFacts_() {
 function asstMsgs_(s) {
   return s.msgs.map(m => ({ mine: m.role === 'user', read: true, body: m.text, atMs: m.at || 0, fromName: DAIVE }));
 }
-/* A CONVERSATION'S INSIDES (head, bubbles, composer) are the card's one embed: the send path stays msgForm_'s own. */
-CARD_EMBEDS['dm-thread'] = ({ t }) => cardBlocks_([
-  { type: 'group', look: 'dm-head', inner: dmFace_(t) + cardBlock_({ type: 'msgHead', text: [fmtName_(t.name)].concat(t.unread ? [' ', { span: 'dm-new', text: t.unread + ' new' }] : []) }) },
-  { type: 'group', look: 'msg-body', inner: messagesHtml_(t.msgs) }]) + msgForm_(t.name, t.id);
 CARD_EMBEDS['daive'] = () => {
   const s = asstGet_(), cap = asstCap_(), out = s.left <= 0, shut = out || ASST_BUSY;
   const said = out ? 'No questions left today — they come back tomorrow.' : s.left + ' of ' + cap + ' questions left today';
@@ -198,16 +168,14 @@ CARD_EMBEDS['daive'] = () => {
       send: { form: true, look: 'btn msg-go', act: 'daive-send', off: shut, label: 'Send' }, note: ASST_SAID, also: [{ look: 'daive-left', text: said }] }]);
 };
 const daiveHtml_ = () => renderCard({ kind: 'msg', look: 'daive', name: DAIVE, data: { daive: 1 }, body: [{ type: 'embed', tool: 'daive' }] });
-/* DAIVE IS AN ITEM (487): an admin's Delete and Note on it; deleted, it is gone for everyone. */
+/* DAIVE IS AN ITEM (487): an admin's Delete and Note on it; deleted, it is gone for everyone. Its id keeps the old column's name, so a delete already made stands. */
 const daiveItem_ = () => {
-  const h = typeof itemMark_ === 'function' ? itemMark_('item:dm:daive', 'dm', daiveHtml_()) : daiveHtml_();
+  const h = typeof itemMark_ === 'function' ? itemMark_('item:dm:daive', 'stuff', daiveHtml_()) : daiveHtml_();
   return h ? suggestRowIn_(h, 'widget', 'daive', DAIVE) : '';
 };
-function daivePage_() { return { name: DAIVE, html: daiveItem_() }; }
-const daivePages_ = () => [daivePage_()].filter(p => p.html);
-/* REDRAWN IN PLACE, and the column forgets what it drew, so a later paint never judges against the old card. */
+/* REDRAWN IN PLACE in Find, and Find forgets what it drew, so a later paint never judges against the old card. */
 function asstRedraw_() {
-  const col = $('s-dm'), card = col && col.querySelector('[data-daive]');
+  const col = $('s-stuff'), card = col && col.querySelector('[data-daive]');
   if (!card) return;
   card.outerHTML = daiveItem_() || cardBlock_({ type: 'group', tag: 'span', attrs: { hidden: true } });
   const body = col.querySelector('[data-daive] .msg-body');
@@ -245,34 +213,11 @@ on('daive-send', el => {
     now.msgs = now.msgs.slice(-ASST_KEEP);
     asstPut_(now);
     asstRedraw_();
-    if (!(d && d.success)) { const b = $('s-dm') && $('s-dm').querySelector('[data-daive] .msg-text'); if (b && !b.disabled) b.value = text; }
+    if (!(d && d.success)) { const b = $('s-stuff') && $('s-stuff').querySelector('[data-daive] .msg-text'); if (b && !b.disabled) b.value = text; }
   };
   api({ action: 'askAssistant', personId: USER.personId, question: text, history: history, facts: asstFacts_() })
     .then(done, () => done(null));
 });
-
-/* ---------- A CONVERSATION OPENS AT THE NEWEST MESSAGE, NOT THE OLDEST § */
-function dmFoot_() {
-  const col = $('s-dm');
-  if (!col) return;
-  [].forEach.call(col.querySelectorAll('.msg-body'), el => {
-    el.scrollTop = el.scrollHeight;
-    /* A PICTURE LANDS AFTER THE SCROLL, and a photograph arriving 300px tall under a thread already at its bottom pushes the newest message out of sight. § */
-    [].forEach.call(el.querySelectorAll('img, video'), m => {
-      if (m.dataset.foot) return;
-      m.dataset.foot = '1';
-      const bottom = () => el.scrollHeight - el.scrollTop - el.clientHeight < 80;
-      const was = bottom();
-      m.addEventListener(m.tagName === 'VIDEO' ? 'loadedmetadata' : 'load', () => {
-        if (was || bottom()) el.scrollTop = el.scrollHeight;
-      }, { once: true });
-    });
-  });
-}
-
-/* THE ONLY WAY BACK TO THE SERVER ONCE THE SCREEN IS UP. The fetch above runs once, so without this
-   a message that arrived after the tab was first opened would not appear until a reload. */
-on('dm-refresh', () => { loadMessages().then(() => { paint('dm'); setTimeout(dmFoot_, 0); }); });
 
 /* ---------- SHARED HELPERS FROM posts.js: a Drive address, a face by id, a picked file, a filename stamp, a tutor's own link § */
 /* A Google Drive share link is a page, not a picture — pasting one into an <img> gives a broken

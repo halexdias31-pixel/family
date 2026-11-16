@@ -9396,12 +9396,17 @@ function msgDoorItems_() {
   const people = [];
   (typeof myJobs_ === 'function' ? myJobs_() : []).forEach(j => (typeof jobPeople_ === 'function' ? jobPeople_(j) : []).forEach(p => {
     if (!had[norm(p.name)]) { had[norm(p.name)] = 1; people.push(p); } }));
-  return threads.map(t => ({ kind: 'msg', name: t.name, key: 'msg:' + t.id, sub: '', image: '', thread: t.id,
-    msgWith: t.name, text: t.name }))
+  /* DAIVE, THE ASSISTANT, FIRST (449; its column went 16 Nov): a conversation like the rest, kept on this device. */
+  const daive = typeof daiveItem_ === 'function' && !(typeof itemGone_ === 'function' && itemGone_('item:dm:daive')) ? [{ kind: 'msg', name: DAIVE, key: 'msg:daive', sub: '', image: '', daive: true, msgWith: DAIVE, text: DAIVE + ' help assistant ask' }] : [];
+  return daive.concat(threads.map(t => ({ kind: 'msg', name: t.name, key: 'msg:' + t.id, sub: '', image: '', thread: t.id,
+    msgWith: t.name, text: t.name })))
     .concat(people.map(p => ({ kind: 'msg', name: p.name, key: 'msg:' + (p.id || p.name), sub: '', image: '', to: p, msgWith: p.name, text: p.name })));
 }
 /* A CONVERSATION'S CARD, around the one card maker: somebody not yet written to gets the form, a thread gets `msgFindCard_`. */
 function msgDoorCard_(x, draw) {
+  /* A MESSAGE CARD ON SHOW KEEPS MESSAGES FRESH (`dmWatch_`, messages.js): the 20 s poll the column had. */
+  if (typeof dmWatch_ === 'function') setTimeout(dmWatch_, 0);
+  if (x.daive) return daiveItem_();
   const t = (typeof messageThreads_ === 'function' ? messageThreads_() : []).find(t2 => t2.id === x.thread);
   if (!t && x.to) return card_(cardBlock_({ type: 'group', look: 'dm-card', blocks: [{ type: 'group', look: 'dm-head', blocks: [{ type: 'msgHead', text: x.name }] }],
     inner: msgForm_(x.to.name, x.to.id) }));
@@ -10286,7 +10291,6 @@ function subDayText_(iso) {
 }
 
 /* THE PEOPLE COLUMNS (453); `peoplePages_` (me.js) adds the signed-out card and the empty one. Student settings is `studentSetPages_`. */
-screen('tutors', () => pages('tutors', typeof cardsOf_ === 'function' ? cardsOf_('tutors') : peoplePages_('tutors')));
 screen('students', () => pages('students', typeof cardsOf_ === 'function' ? cardsOf_('students') : peoplePages_('students')));
 screen('parents', () => pages('parents', typeof cardsOf_ === 'function' ? cardsOf_('parents') : peoplePages_('parents')));
 
@@ -10608,23 +10612,20 @@ function accountMine_(col, family, myRow, tcard_) {
   /* ---------- YOUR OWN CARD, FIRST IN EVERY COLUMN YOU BELONG TO, ITS EDIT THAT FACE'S (`ownCardSections_(col)`) ---------- */
   const mine = [];
   if (typeof peopleBelong_ === 'function' && peopleBelong_(col, family)) {
-    const row = isTutorsCol_(col) ? (cardMine_() || myRow) : myRow;
+    const row = myRow;
     /* NEVER AN EDITOR HERE (464): your own card is edited on your role's settings column (`ownCardSetPage_`, me.js). */
-    const face = row !== myRow ? tcard_(row) : (typeof meCard === 'function' ? meCard(row) : tcard_(row));
-    /* SHARE MY PROFILE (400): their own `?tutor=` link, to send a family — on the tutor face. */
-    const share = isTutorsCol_(col) && may_('staff') && USER.handle
-      ? tile_({ icon: 'share', label: 'Share my profile', note: 'your link', act: 'tutor-share', data: { handle: USER.handle } }) : '';
-    /* SHARE only: Edit is on your settings column (464); Sign out and Send the link again on Student settings (453). */
-    /* AND REPORT (486): everything has one, your own card too. */
-    const tiles = share + (typeof suggestOpts_ === 'function' ? tile_(suggestOpts_('person', String(USER.personId), row.title || '')) : '');
+    const face = typeof meCard === 'function' ? meCard(row) : tcard_(row);
+    /* REPORT (486): everything has one, your own card too. Share my profile is on your tutor card in Find (`tutorOpts_`). */
+    const tiles = (typeof suggestOpts_ === 'function' ? tile_(suggestOpts_('person', String(USER.personId), row.title || '')) : '');
     mine.push(personMark_(USER.personId, face + (tiles ? tileRow_(tiles, 'own-tiles', true) : '')));
   }
   return mine;
 }
-/* `col` IS THE PEOPLE COLUMN (453): 'tutors', 'students' or 'parents' — a card per person you may already see, by category. */
+/* `col` IS THE PEOPLE COLUMN (453): 'students' or 'parents' — a card per person you may already see, by category. */
 function accountPages_(col) {
-  if (!col) return ['tutors', 'students', 'parents'].reduce((a, c) => a.concat(accountPages_(c)), []);
-  if (!USER) return [];
+  if (!col) return ['students', 'parents'].reduce((a, c) => a.concat(accountPages_(c)), []);
+  /* TUTORS ARE FIND › PROFILES › TUTOR (find-only, 16 Nov): their cards are Find's tutor items, never a second directory here. */
+  if (!USER || isTutorsCol_(col)) return [];
   const myRow = myCardRow_();
 
   /* ---------- AN ITEM, NOT A ROW, AND THAT IS WHY THE MESSAGE TILE WAS MISSING § */
@@ -10660,12 +10661,7 @@ function accountPages_(col) {
   /* THE SEARCH CARD (442): Students only; the other columns move into Find (770). */
   const search = typeof peopleSearchPage_ === 'function' ? [peopleSearchPage_(col)].filter(Boolean) : [];
   let out;
-  if (isTutorsCol_(col)) {
-    /* THE DIRECTORY EVERYBODY SIGNED IN READS, less you (your card is above). */
-    const others = (DATA.tutors || []).filter(t => t && t.title && !mineIs_(t)).map(t => personMark_(t.personId, withTiles_(t)));
-    /* EACH LIST A CARD OF ITS OWN (465): the admin's layout tiles go on the list, not on each person. */
-    out = cardMark_('ppl:tutors:add', add).concat(cardMark_('ppl:tutors:dir', mine.concat(others)));
-  } else if (isStudentsCol_(col)) {
+  if (isStudentsCol_(col)) {
     /* FIND BY HANDLE ON TOP (442), then you, your brothers, sisters and children, then MANAGE YOUR CHILD (339) — the owner:
        "each user can edit their student people in student column". */
     const manage = typeof mayAddChild_ === 'function' && mayAddChild_() && typeof childManageCard_ === 'function' ? [childManageCard_()] : [];
@@ -22705,8 +22701,6 @@ const CARD_REG = [
   { id: 'staff:flyer', col: 'staff', label: 'Flyer maker', say: 'Print a poster, flyer or QR slips from the Web profile or your tutor card.' },
   { id: 'staff:lego', col: 'staff', label: 'LEGO piece check', say: 'Count a trade-in set\'s pieces from photos, against its parts list.' },
   { id: 'staff:hub', col: 'staff', label: 'Staff hub', re: /^<div class="card staff-top/, only: 'your rate and hours', say: 'Your terms, weekly hours, prices and statement as a tutor.' },
-  { id: 'ppl:tutors:add', col: 'tutors', label: 'Add a tutor', say: 'Make an account for a new tutor.' },
-  { id: 'ppl:tutors:dir', col: 'tutors', label: 'Tutor directory', say: 'Every tutor, with what they teach, where and when.' },
   { id: 'ppl:students:help', col: 'students', label: 'Needs help', say: 'Students who have asked for help with a question.' },
   { id: 'ppl:students:add', col: 'students', label: 'Add a student', say: 'Make an account for a new student.' },
   { id: 'ppl:students:search', col: 'students', label: 'Find by handle', say: 'Find a student by their handle, to add them as your child.' },
@@ -22845,7 +22839,7 @@ const personOf_ = h => ((/^\s*(?:<!--card:[^>]*-->)?<!--person:([A-Za-z0-9_.-]+)
 /* EACH COLUMN'S OWN BUILDER — the code's cards for whoever is signed in, role gates and all. */
 const CARD_BUILD = {
   family: () => familyPages_(), staff: () => staffPages_(), account: () => studentSetPages_(),
-  tutors: () => peoplePages_('tutors'), students: () => peoplePages_('students'), parents: () => peoplePages_('parents'),
+  students: () => peoplePages_('students'), parents: () => peoplePages_('parents'),
   biz: () => adminPages_(), site: () => sitePages_(),
   web: () => webProfilePages_(), spotlight: () => cardMark_('spot:list', spotlightCards_()), apprentice: () => apprenticePages_(),
 };
@@ -23060,7 +23054,7 @@ function frontPageOf_(col) {
 }
 /* THE DOOR'S COLUMN OPENS ON ITS THING; every other column as before. */
 function frontHomes_() {
-  const cols = Object.keys(LAYOUT_COL).map(k => LAYOUT_COL[k]).concat(['feed', 'dm']).concat(CARD_COLS);
+  const cols = Object.keys(LAYOUT_COL).map(k => LAYOUT_COL[k]).concat(['feed']).concat(CARD_COLS);
   cols.forEach(c => {
     const was = PAGE_HOME[c];
     PAGE_HOME[c] = () => { const n = frontPageOf_(c); if (n >= 0) return n; try { return was ? was() : 0; } catch (e) { return 0; } };

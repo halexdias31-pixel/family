@@ -35,12 +35,17 @@ function msgDoorItems_() {
   const people = [];
   (typeof myJobs_ === 'function' ? myJobs_() : []).forEach(j => (typeof jobPeople_ === 'function' ? jobPeople_(j) : []).forEach(p => {
     if (!had[norm(p.name)]) { had[norm(p.name)] = 1; people.push(p); } }));
-  return threads.map(t => ({ kind: 'msg', name: t.name, key: 'msg:' + t.id, sub: '', image: '', thread: t.id,
-    msgWith: t.name, text: t.name }))
+  /* DAIVE, THE ASSISTANT, FIRST (449; its column went 16 Nov): a conversation like the rest, kept on this device. */
+  const daive = typeof daiveItem_ === 'function' && !(typeof itemGone_ === 'function' && itemGone_('item:dm:daive')) ? [{ kind: 'msg', name: DAIVE, key: 'msg:daive', sub: '', image: '', daive: true, msgWith: DAIVE, text: DAIVE + ' help assistant ask' }] : [];
+  return daive.concat(threads.map(t => ({ kind: 'msg', name: t.name, key: 'msg:' + t.id, sub: '', image: '', thread: t.id,
+    msgWith: t.name, text: t.name })))
     .concat(people.map(p => ({ kind: 'msg', name: p.name, key: 'msg:' + (p.id || p.name), sub: '', image: '', to: p, msgWith: p.name, text: p.name })));
 }
 /* A CONVERSATION'S CARD, around the one card maker: somebody not yet written to gets the form, a thread gets `msgFindCard_`. */
 function msgDoorCard_(x, draw) {
+  /* A MESSAGE CARD ON SHOW KEEPS MESSAGES FRESH (`dmWatch_`, messages.js): the 20 s poll the column had. */
+  if (typeof dmWatch_ === 'function') setTimeout(dmWatch_, 0);
+  if (x.daive) return daiveItem_();
   const t = (typeof messageThreads_ === 'function' ? messageThreads_() : []).find(t2 => t2.id === x.thread);
   if (!t && x.to) return card_(cardBlock_({ type: 'group', look: 'dm-card', blocks: [{ type: 'group', look: 'dm-head', blocks: [{ type: 'msgHead', text: x.name }] }],
     inner: msgForm_(x.to.name, x.to.id) }));

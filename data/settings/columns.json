@@ -42,15 +42,6 @@
   "notes": "one clip per page, opening on the first reel; before it, one swipe back, the Videos and One more thing widgets and an admin's \"+ Add a reel\" (docs/history/414)."
  },
  {
-  "screen": "dm",
-  "soon_kind": "msg",
-  "label": "DMs",
-  "icon": "✉",
-  "active": "TRUE",
-  "sort_order": 8,
-  "notes": "one conversation per page."
- },
- {
   "screen": "booking",
   "label": "Book",
   "icon": "📅",
@@ -74,15 +65,6 @@
   "sort_order": 11,
   "cards": "TRUE",
   "notes": "@family.'s own public business card, read from the brand tab with a fallback for every line (docs/history/730). First of the five profiles."
- },
- {
-  "screen": "tutors",
-  "label": "Tutor profile",
-  "icon": "🎓",
-  "active": "TRUE",
-  "sort_order": 12,
-  "cards": "TRUE",
-  "notes": "a card per tutor — the directory everybody signed in reads; your own card first when you teach, edited here for everything on it, with Share my profile. An admin's + Add a tutor and Edit / Delete / Show PIN under each (docs/history/461)."
  },
  {
   "screen": "students",

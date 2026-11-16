@@ -20,6 +20,10 @@
   "to": "find:Booking"
  },
  {
+  "screen": "dm",
+  "to": "find:Messages"
+ },
+ {
   "screen": "family",
   "to": "find:Settings:Parent"
  },
@@ -38,5 +42,9 @@
  {
   "screen": "staff",
   "to": "find:Settings:Staff"
+ },
+ {
+  "screen": "tutors",
+  "to": "find:Profiles:profileType=Tutor"
  }
 ]

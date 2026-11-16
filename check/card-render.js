@@ -56,7 +56,7 @@ function measure(per) {
   [['add', () => addCard_({ act: 'noop', label: 'Add a thing' })], ['empty', () => emptyCard_('Nothing')], ['oops', () => oopsHtml_()], ['notify', () => notifyDoorCard_()],
     ['help list', () => helpListCard_()], ['deleted', () => deletedCard_()], ['roles', () => rolesCard_()],
     /* MESSAGES AND EVERY WIDGET'S OWN CARD (owner, 11 Nov: the DM screen left-aligned, an off widget a card in a card). */
-    ['messages', () => (typeof daivePages_ === 'function' ? daivePages_().map(p => p.html) : [])],
+    ['messages', () => (typeof daiveItem_ === 'function' ? [daiveItem_()].filter(Boolean) : [])],
     ['widgets', () => (typeof WIDGETS !== 'undefined' && typeof widgetOnColumn_ === 'function' ? WIDGETS.filter(w => w && !w.parts).map(w => widgetOnColumn_(w)) : [])]]
     .forEach(([n, f]) => panel(n, () => (typeof f === 'function' ? f() : '')));
   if (PANEL.length) by.panel = PANEL;

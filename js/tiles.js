@@ -351,6 +351,8 @@ function tutorOpts_(x) {
     USER && !isMe_(x) && (!!may_('prices') || /admin/i.test(String(t.role || ''))) ? { icon: 'chat', label: 'Message',
       note: 'a note to them', act: 'msg-open', data: { to: x.name, id: (x.row && x.row.personId) || '' } } : null,
     typeof cardEditOpts_ === 'function' ? cardEditOpts_(x) : null,
+    /* SHARE MY PROFILE (400, 412): on your own tutor card, in Find › Profiles › Tutor since its column went (16 Nov). */
+    USER && isMe_(x) && may_('staff') && t.handle ? { icon: 'share', label: 'Share my profile', note: 'your link', act: 'tutor-share', data: { handle: t.handle } } : null,
     x.key ? { icon: t.listed === false ? 'hide' : 'show', label: t.listed === false ? text_('not-listed') : 'Listed', tone: 'admin',
       on: t.listed !== false, act: 'set-listed', note: t.listed === false ? 'clients cannot see them' : 'clients can see them',
       /* THE ID AS WELL AS THE NAME: `x.key` is a display name, which `findPerson` only falls back to. */
