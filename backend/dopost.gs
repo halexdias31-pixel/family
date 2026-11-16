@@ -797,7 +797,7 @@ function submissionsAppend_(pid, items, sent) {
     if (!SUBMISSION_ID.test(id)) return;
     const had = seen[id];
     if (had) { whole(had); saved[id] = { key: S(had.key), verdict: S(had.verdict), at: pressedMs(had) }; return; }
-    const k = S(it && it.key);
+    const k = submissionKey_(S(it && it.key));
     if (!k || k.length > 120) return;
     const verdict = S(it && it.verdict);
     if (!SUBMISSION_VERDICT.test(verdict)) return;

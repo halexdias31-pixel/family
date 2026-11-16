@@ -15760,8 +15760,10 @@ function subAdopt_() {
     if (s && s.mine && typeof s.mine === 'object' && String(s.for || '') === pid) {
       const all = subAll_(who);
       const moved = [], filled = [];
-      Object.keys(s.mine).forEach(key => {
-        const g = s.mine[key];
+      Object.keys(s.mine).forEach(raw => {
+        const g = s.mine[raw];
+        /* A ROW FILED UNDER THE BOX'S KEY (`ans:u:<person>:q:…`, the old photo path) is the question's all the same. */
+        const key = subKeyOf_(raw);
         if (!g || typeof g !== 'object' || g.answer === undefined || g.answer === null) return;
         const at = Number(g.at) || 0, id = String(g.id || ''), answer = String(g.answer), verdict = String(g.verdict || '');
         /* AN EMPTY SUBMISSION IS NOBODY'S LATEST, AND NEVER EMPTIES A BOX. § */

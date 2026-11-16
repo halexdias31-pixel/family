@@ -397,7 +397,7 @@ function submissionsTouched_(pid) {
 function submissionsBuild_(pid, people) {
   const mine = {}, sum = {};
   readCols_(TAB.submissions, ['person_id', 'key', 'answer', 'verdict', 'submitted_at', 'event_id', 'pressed_at', 'feedback']).rows.forEach(r => {
-    const who = S(r.person_id), k = S(r.key);
+    const who = S(r.person_id), k = submissionKey_(S(r.key));
     if (!who || !k) return;
     const came = answerAtMs_(r.submitted_at);
     if (people) {
