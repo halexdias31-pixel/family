@@ -248,7 +248,7 @@ const shopRow_ = (n, name, kindRaw, audience, inStock, extra) => Object.assign({
   acquire: 'buy', audience: audience, level: 0, slot: '', artId: '', description: name + ', for sale.',
   image: '', inStock: inStock, fields: {} }, extra || {});
 /* A CHOSEN ANSWER IS ONLY ITS VALUE, and Clear-all is a tile of its own above the chips; Find has no search box (8 Nov). */
-check('a chosen answer is only its value, Clear is a tile of its own, and Find draws no search box', async () => {
+check('a chosen answer is only its value, no Clear bin (each tag\'s × clears it), and Find draws no search box', async () => {
   const { w } = boot({ member: true, payload: payload() });
   await wait(300);
   const t = w.__t, d = w.document;
@@ -267,7 +267,7 @@ check('a chosen answer is only its value, Clear is a tile of its own, and Find d
   t.ACTIONS['facet-pick']({ dataset: { field: 'forLabel', value: 'Learning' } });
   await wait(80);
   const tiles = () => [...slot().querySelectorAll('.tile[data-do="filter-clear"]')];
-  if (tiles().length !== 1) bad.push('one answer in, the Clear slot holds ' + tiles().length + ' Clear tile(s) — one, from the first answer');
+  if (tiles().length || d.querySelector('#s-stuff [data-do="filter-clear"]')) bad.push('a Clear bin is drawn — the owner took it away (16 Nov): each tag\'s × clears it');
 
   /* THE CHIPS: a value, a skip, a bare number, and the tag that colours a kind. */
   t.STUFF().filters.splice(0, t.STUFF().filters.length,
@@ -295,17 +295,11 @@ check('a chosen answer is only its value, Clear is a tile of its own, and Find d
   if (said.indexOf('Any school year') < 0) bad.push('the skipped School year does not read "Any school year" — ' + said.join(' | '));
   if (said.indexOf('Chapter 119') < 0) bad.push('a bare 119 does not keep its field as "Chapter 119" — ' + said.join(' | '));
   if (d.querySelector('#stuff-chips [data-do="filter-clear"]')) bad.push('Clear is still drawn in the row of chips, where it looks like a tag');
-  if (tiles().length !== 1) bad.push('four answers in, the Clear slot holds ' + tiles().length + ' Clear tile(s)');
-  else {
-    const tile = tiles()[0];
-    if (!/Clear/.test(tile.getAttribute('aria-label') || '')) bad.push('the Clear tile is named ' + JSON.stringify(tile.getAttribute('aria-label')) + ' — it should say Clear');
-    if (!tile.querySelector('svg')) bad.push('the Clear tile has no mark on it — the bin');
-    /* AND IT STILL CLEARS, and goes with what it cleared. */
-    t.ACTIONS['filter-clear'](tile);
-    await wait(30);
-    if (t.STUFF().filters.length) bad.push('pressing Clear left ' + t.STUFF().filters.length + ' answer(s) chosen');
-    if (slot().innerHTML.trim()) bad.push('with everything cleared, the Clear tile is still drawn');
-  }
+  if (tiles().length) bad.push('four answers in, a Clear bin is drawn');
+  /* AND THE CHIP'S × STILL TAKES ITS ANSWER OFF. */
+  t.ACTIONS['filter-drop']({ dataset: { i: '0' } });
+  await wait(30);
+  if (t.STUFF().filters.length !== 3) bad.push('a chip\'s × left ' + t.STUFF().filters.length + ' answers, wanted 3');
   return bad;
 });
 

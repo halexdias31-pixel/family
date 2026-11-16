@@ -155,6 +155,47 @@ function renameHandles_() {
   return out;
 }
 
+/* ---------- EVERYBODY ONTO THE USERNAME LAW, ONCE (owner, 15 Nov): an admin's card, never a migration. */
+/* `dryRun` only returns the list; Apply passes the preview's `seed` so it writes that same list. Old handles are NOT kept as aliases: */
+/* they stop working, and the owner tells people. The list goes back to the admin alone — never logged, never written anywhere else. */
+function renameAllPlan_(rows, seed) {
+  const seen = handleFirstSeen_(rows);
+  const when = r => handleJoined_(r, seen).when.getTime();
+  const order = rows.slice().sort((a, b) => (when(a) - when(b))
+    || (S(a.person_id) < S(b.person_id) ? -1 : S(a.person_id) > S(b.person_id) ? 1 : a._row - b._row));
+  const was = {}, planned = {};
+  rows.forEach(r => S(r.handle_was).split(',').forEach(w => { if (key(w)) was[key(w)] = 1; }));
+  const pick = handleSeeded_(seed);
+  return order.map(r => {
+    const to = handleLaw_(r, h => !!planned[key(h)] || !!was[key(h)] || !!handleTrouble_(h, r, true), seen, pick);
+    if (to) planned[key(to)] = 1;
+    return { row: r, personId: S(r.person_id), name: (S(r.first_name) + ' ' + S(r.last_name)).trim(), from: S(r.handle), to: to };
+  });
+}
+function postRenameAllUsernames_(body, action, began) {
+  const t = read(TAB.people);
+  if (!t.sheet) return jsonOut({ error: 'no people tab' });
+  const lacking = handleColsLacking_(t);
+  if (lacking.length) return jsonOut({ error: 'the people tab has no ' + lacking.join(', ') + ' column. Run ?setup=1 first — nothing was changed.' });
+  const dry = body.dryRun !== false;
+  const seed = dry ? (Math.floor(Math.random() * 2147483646) + 1) : Number(body.seed);
+  if (!dry && !(seed > 0)) return jsonOut({ error: 'Preview the list first — Apply writes the list the preview showed. Nothing was changed.' });
+  const plan = renameAllPlan_(t.rows, seed);
+  const list = plan.map(p => ({ personId: p.personId, name: p.name, from: p.from, to: p.to }));
+  if (dry) return jsonOut({ success: true, dryRun: true, seed: seed, list: list });
+  let renamed = 0;
+  try {
+    plan.forEach(p => {
+      if (!p.to || p.to === p.from) return;
+      setCells(t, p.row, { handle: p.to, handle_changed_at: new Date() });
+      renamed++;
+    });
+  } finally {
+    clearCache();
+  }
+  return jsonOut({ success: true, dryRun: false, seed: seed, renamed: renamed, list: list });
+}
+
 /** Add any config key that's missing. Never overwrites a value you've set. */
 function seedConfig_() {
   const t = read(TAB.config);

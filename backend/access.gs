@@ -294,7 +294,7 @@ const ACTION_ACCESS = {
   /* A QUESTION REPORTED (395): anybody signed in, as the token's person. Reading and closing them is the business's alone — a report is somebody else's words. */
   reportQuestion: 'self', report: 'self',
   /* AN ERROR FROM A PHONE: `anyone`, because a screen can break before sign-in; throttled per device and day in the handler. */
-  clientError: 'anyone', listClientErrors: 'admin', tidyOldRows: 'admin',
+  clientError: 'anyone', listClientErrors: 'admin', tidyOldRows: 'admin', renameAllUsernames: 'admin',
   /* A SAMPLED VISIT'S FIGURES (920): `anyone`, as an error is; throttled per device and day in the handler. */
   healthLog: 'anyone',
   suggest: 'self', suggestUpload: 'admin', listSuggestions: 'admin', decideSuggestion: 'admin',

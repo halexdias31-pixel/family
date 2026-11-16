@@ -33,6 +33,7 @@ const REASONS = {
   votePoll: 'its front end (posts, the Feed and the camera) was switched off into attic/js/posts.js (owner, 13 Nov); the handler stays for when it comes back.',
   saveRecordsPage: 'its front end was switched off into attic/js (games, tools, favlinks, lego, records, biz-check; owner, 13 Nov); the handler stays for when it comes back.',
   saveTimetable: 'its front end was switched off into attic/js (games, tools, favlinks, lego, records, biz-check; owner, 13 Nov); the handler stays for when it comes back.',
+  googleLogin: 'the Google sign-in row was taken off Find (owner, 16 Nov: one way in); the handler stays until a backend deploy removes it.',
   tidyOldRows: 'its front end was switched off into attic/js (games, tools, favlinks, lego, records, biz-check; owner, 13 Nov); the handler stays for when it comes back.',
   filmsSync: 'its front end (the films list, games.js/racer.js) was frozen and deleted (1110); the handler stays until the backend is next redeployed. Restore from cfc19fa.',
   mediaDelete: 'its front end (the reels and videos admin, games.js/racer.js) was frozen and deleted (1110); the handler stays until the backend is next redeployed. Restore from cfc19fa.',

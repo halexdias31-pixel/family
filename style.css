@@ -2827,7 +2827,6 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .wc-row.is-all .wc-n { color: var(--hue-10); }
 .wc-slot { position: relative; }
 
-#g-btn { display: flex; justify-content: center; min-height: 2.5rem; }
 
 /* ---------- A ROW WITH NOTHING IN THE FIGURE COLUMNS § */
 /* THE SAME TWO COLUMNS AS EVERY OTHER ROW, so a card of mixed rows lines up down its left edge. § */

@@ -1148,7 +1148,7 @@ const faceOf = (packed, handle) => {
     /* `makeChild` WAS A DOOR HERE; it makes nothing since 461. */
   }
   const reg = post(b, { action: 'register', who: 'parent', first_name: 'Una', last_name: 'Vale', email: 'una@example.org', pin: ZERO2 });
-  kidRule(reg.success && S(reg.handle) === 'unna' + NOW_Y, 'a person who registered was not given the template (initial and the year joined)', reg);
+  kidRule(reg.success && new RegExp('^Una(Red|Yellow|Blue)' + NOW_Y + '$').test(S(reg.handle)), 'a person who registered was not given the username law (FirstName + a primary colour + the year joined)', reg);
   kidRule(post(b, { action: 'randomiseHandle', token: pat.token }).error, 'randomiseHandle is still answered — the handle is a template now, not a press');
 
   /* ---- THE MIGRATION, ON THE NEXT ADMIN LOAD ---- */

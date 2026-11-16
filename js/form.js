@@ -148,7 +148,8 @@ const FORM_SPECS = {
       {"f":"statement","type":"long","label":"a short statement — why you want to teach"},
       {"f":"cvLink","type":"text","input":"url","label":"CV link (optional)","ph":"https://…"},
       {"f":"consent","type":"tick","label":"I agree to @family. keeping these details and documents privately to consider my application, contacting my referees and checking my DBS."}
-    ]}
+    ]},
+    "sign-join": {"item":"person","attr":"data-sj","draft":false,"say":"Find's Make an account card (owner, 15 Nov): who it is for, the names, the email and a PIN; sent as `register`. No draft, so the PIN is never kept.","fields":[{"f":"who","type":"choice","label":"who is the account for?"},{"f":"first","type":"text","ph":"First name","row":"names"},{"f":"last","type":"text","ph":"Last name","row":"names"},{"f":"email","type":"text","input":"email","ph":"Email"},{"f":"pin","type":"text","input":"password","label":"PIN — 4 digits"}]}
   }
 };
 

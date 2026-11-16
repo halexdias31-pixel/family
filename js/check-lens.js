@@ -11,7 +11,7 @@ const bad = [];
    Walked from the columns' builders, so a card added later is read the day it is called. */
 const ROOTS = ['familyPages_', 'staffPages_', 'studentSetPages_'];
 /* THE SESSION'S OWN: signing in and out, your own refresh and links, and the shut placeholder that swaps USER on purpose. */
-const SESSION = { lockedAs_: 1, mountGoogleWhenDrawn: 1, profileRefresh_: 1, signedIn_: 1, SIGN_IN_REFUSED: 1, signedOut_: 1,
+const SESSION = { lockedAs_: 1, profileRefresh_: 1, signedIn_: 1, SIGN_IN_REFUSED: 1, signedOut_: 1,
   verifyFromLink_: 1, paidFromLink_: 1 };
 const defs = Object.create(null);
 pieceFiles('me', ROOT).forEach(f => {

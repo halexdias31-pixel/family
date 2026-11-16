@@ -775,9 +775,7 @@
    "childRefused": false,
    "handler": "postGoogleLogin_",
    "file": "backend/post-signin.gs",
-   "callers": [
-    "js/me-account.js"
-   ],
+   "callers": [],
    "fallbacks": [],
    "tabs": [
     "answers",
@@ -1497,6 +1495,26 @@
    ],
    "effects": [
     "email",
+    "writes"
+   ]
+  },
+  "renameAllUsernames": {
+   "fate": "special",
+   "into": "",
+   "why": "an admin's one-off rename of every username (owner, 15 Nov): its list goes back to the admin alone, never through the general path's item rows",
+   "access": "admin",
+   "childRefused": false,
+   "handler": "postRenameAllUsernames_",
+   "file": "backend/setup.gs",
+   "callers": [
+    "js/me-roles.js"
+   ],
+   "fallbacks": [],
+   "tabs": [
+    "family",
+    "people"
+   ],
+   "effects": [
     "writes"
    ]
   },

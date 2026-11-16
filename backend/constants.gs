@@ -132,7 +132,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-11-15-who-1";
+const BACKEND_VERSION = "2026-11-16-signin-1";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -1322,7 +1322,7 @@ const PROFILE_READONLY = ['dbs_checked', 'role'];
 const PRICING_COOLDOWN_DAYS = 30;
 
 /* THREE TO TWENTY, LOWER CASE, LETTERS DIGITS AND UNDERSCORE, STARTING WITH A LETTER. § */
-const HANDLE_SHAPE = /^[a-z][a-z0-9_]{2,19}$/;
+const HANDLE_SHAPE = /^[a-z][a-z0-9_-]{2,29}$/;
 
 /* NAMES THAT WOULD SPEAK FOR THE BUSINESS. Someone called @office or @admin messaging a parent is
    not rude, it is a person with the school's voice — and the roles system cannot help, because the

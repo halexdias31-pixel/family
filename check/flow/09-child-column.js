@@ -458,15 +458,22 @@ check('Forgot PIN says what the server said, including that nobody can be writte
   const t = w.__t, d = w.document, bad = [];
   t.USER(null);
   { const no = await findSign_(w, null); if (no) return [no]; }
-  const box = d.getElementById('in-name'), tile = d.querySelector('#stuff-groups [data-do="forgot-pin"]');
-  if (!box || !tile) return ['Find\'s first menu has no name tag or no Forgot PIN tag'];
-  box.value = 'lee_kind42';
+  /* FORGOT PIN IS ON THE PIN STEP, before the first digit, and opens one card with one button (owner, 15 Nov). */
+  const card = async who => {
+    t.ACTIONS['sign-restart'](d.createElement('button'));
+    const no = await findSign_(w, who, ''); if (no) return null;
+    t.ACTIONS['sign-forgot'](d.querySelector('#stuff-groups [data-do="sign-forgot"]') || d.createElement('button'));
+    return d.querySelector('#stuff-groups [data-do="forgot-pin"]');
+  };
+  let tile = await card('lee_kind42');
+  if (!tile) return ['the PIN step has no Forgot PIN, or its card no button'];
   t.ACTIONS['forgot-pin'](tile);
   await wait(300);
   let said = String((d.getElementById('toast') || {}).textContent || '');
   if (!/no email for this account/i.test(said)) bad.push('a child nobody can be written to was told ' + JSON.stringify(said));
-  box.value = '@kit_kind41';
-  t.ACTIONS['forgot-pin'](d.querySelector('#stuff-groups [data-do="forgot-pin"]') || tile);
+  tile = await card('@kit_kind41');
+  if (!tile) return bad.concat(['the second Forgot PIN card has no button']);
+  t.ACTIONS['forgot-pin'](tile);
   await wait(300);
   said = String((d.getElementById('toast') || {}).textContent || '');
   if (!/old PIN still works/i.test(said)) bad.push('the sent case toasted ' + JSON.stringify(said) + ' — not the server\'s sentence');

@@ -114,10 +114,9 @@ const STATES = {
           && !document.querySelector('#stuff-chips .chip-k')
           && !!subject && text(subject) === 'Maths✕'
           && chips.some(c => text(c) === 'Any school year✕')
-          && !!document.querySelector('#stuff-clear .tile[data-do="filter-clear"]')
-          && !document.querySelector('#stuff-chips [data-do="filter-clear"]');
+          && !document.querySelector('#s-stuff [data-do="filter-clear"]');
       },
-      wants: 'a question with answers on it, the chips only their values (Maths✕, Any school year✕), and Clear a tile beside the search box' },
+      wants: 'a question with answers on it, the chips only their values (Maths✕, Any school year✕), and no Clear bin' },
     /* ---------- THE SITTING, ASKED AS THE YEAR AND THEN THE MONTH § */
     { name: 'the year folder',
       enter: () => {

@@ -1,7 +1,7 @@
 /* ==== js/core.js ==== */
 /* @family. — core.js ONE FILE, SPLIT. § */
 /* WORDS:BEGIN — a copy of data/settings/words.json, written by `node tools/words.js --write`; edit the json, never this. */
-const WORDS_FILE = {"accept-request":"Accept request","accepted-by":"Accepted by ","accepted-the-family-can-pay-and":"Accepted — the family can pay and confirm","account-made-sign-in-now-as":"Account made — sign in now as ","account-made-sign-in-now-with":"Account made — sign in now with your PIN. We have also emailed you a link to confirm your address.","account-made-sign-in-now-with-2":"Account made — sign in now with your PIN. Open the link we have emailed you before making ","add-them-to-that-account-and":"Add them to that account and the next booking will name them.","add-to-basket":"Add to basket","admin-earns":"Admin earns","ages-up-to":"Ages up to ","all-ages":"All ages","already-in-your-basket":"Already in your basket","already-teaching":"Already teaching","an-email-address-please-the-link":"An email address, please — the link goes to it.","anyone-in-particular":"Anyone in particular?","anything-else-we-should-know":"Anything else we should know","application-sent":"Application sent","applied-for":"Applied for","applied-the-family-picks":"Applied — the family picks","apply-again":"Apply again","apply-to-teach":"Apply to teach","are-you-providing-the-space":"Are you providing the space?","ask-to-join":"Ask to join","ask-us-to-add-them-and":"Ask us to add them and the next booking will name them.","asked-they-will-be-in-touch":"Asked — they will be in touch","asked-we-will-come-back-to":"Asked — we will come back to you","attach-a-photo-video-or-file":"Attach a photo, video or file","book-this":"Book this","booking-form":"Booking form","can-come":"Can come","cancellation-and-refunds":"Cancellation and refunds","change-photo":"Change photo","checking-with-google":"Checking with Google…","client-i-book-and-pay":"Client — I book and pay","client-pays":"Client pays","clients-cannot-see-them-the-crossed":"Clients cannot see them. The crossed-out eye below puts them back on the site.","correct-check-the-spelling":"Correct (check the spelling: ","correct-every":"Correct — every ","could-not-find-this-question":"Could not find this question","could-not-make-the-picture":"Could not make the picture: ","could-not-mark-that-just-now":"Could not mark that just now","could-not-reach-the-marker-check":"Could not reach the marker — check the connection","could-not-reach-the-server":"Could not reach the server","could-not-share-it-press-and":"Could not share it — press and hold the picture to save it","decline-request":"Decline request","declined-by":"Declined by ","declined-the-family-has-been-told":"Declined — the family has been told","dictation-is-not-available-in-this":"Dictation is not available in this browser.","draw-your-answer-first":"Draw your answer first","each-seat-pays":"Each seat pays","end-it":"End it?","every-hour-they-have-ticked-is":" Every hour they have ticked is outside ","extra-seats":"Extra seats","extra-subj":"Extra subj.","fill-a-cell-first":"Fill a cell first","getting-the-photo-ready":"Getting the photo ready…","hidden-from-clients":"Hidden from clients","home-visits":"Home visits","how-many-extra-seats":"How many extra seats?","how-would-you-like-to-book":"How would you like to book?","if-there-is-an-account-with":"If there is an account with that email, a new PIN is on its way.","image-saved-link-copied":"Image saved · link copied","in-your-basket":"In your basket","instant-class":"Instant class","its-a-grown-ups-email":"It's a grown-up's email","just-you":"Just you","link-copied":"Link copied","make-an-account":"Make an account","make-my-account":"Make my account","making-a-picture-of-this-booking":"Making a picture of this booking…","making-a-picture-of-this-profile":"Making a picture of this profile…","making-it":"Making it…","no-children-are-on":"No children are on ","no-connection-that-hand-is-still":"No connection — that hand is still up.","no-free-hours-this-week":"No free hours this week","no-free-hours-this-week-2":"No free hours this week.","no-preference":"No preference","no-surcharge":"No surcharge","no-tutor-yet":"No tutor yet","no-we-book-the-room":"No — we book the room","nobody-yet-just-open-it":"Nobody yet — just open it","none-yet":"None yet","not-deployed":"Not deployed: ","not-enough-answered-to-price-it":"Not enough answered to price it yet.","not-listed":"Not listed","not-offered":"Not offered","not-on-the-booking-form":"Not on the booking form","not-priced-yet":"Not priced yet","not-saved":"Not saved","not-yet-have-another-go":"Not yet — have another go","nothing-changed":"Nothing changed","nothing-here-yet":"Nothing here yet.","nothing-in-that-bundle-can-be":"Nothing in that bundle can be printed","nothing-was-added-a-qualification-needs":"Nothing was added — a qualification needs a subject and a level.","nothing-yet":"Nothing yet","on-the-list":"On the list","on-the-list-2":"On the list — ","online-safety":"Online safety","open":"Open — ","over-what-period":"Over what period?","paste-some-text-first":"Paste some text first","pay-and-confirm":"Pay and confirm","payment-cancelled-nothing-was-charged-your":"Payment cancelled — nothing was charged. Your booking is still waiting.","per-session":"Per session","photo-ready":"Photo ready.","pick-at-least-one-first":"Pick at least one first.","picture-removed":"Picture removed","picture-saved":"Picture saved","picture-saved-link-copied":"Picture saved · link copied","pin-or-date":"Pin or date","please-add":"Please add ","press-and-hold-the-picture-to":"Press and hold the picture to save it.","press-share-to-send-it":"Press Share to send it.","put-back":"Put back","put-back-as-it-was-your":"Put back as it was — your picture too","rest-of":"Rest of ","rest-of-this":"Rest of this ","room-and-fees":"Room and fees","room-saved":"Room saved","safer-recruitment":"Safer recruitment","save-or-cancel-the-card-you":"Save or cancel the card you are editing first.","saved-a-picture-of-this-booking":"Saved a picture of this booking","saved-for-everyone":"Saved for everyone","say-who-the-account-is-for":"Say who the account is for first — a parent or a student.","send-my-application":"Send my application","session-ended":"Session ended","share-this-booking":"Share this booking","shared-by":"Shared by","shared-with-tutor":"Shared with tutor","sign-in-first":"Sign in first","sign-in-first-2":"Sign in first.","sign-in-to-book-your-account":"Sign in to book — your account is a few screens to the right.","sign-in-to-finish-your-booking":"Sign in to finish your booking — your payment is safe.","sign-in-to-have-it-marked":"Sign in to have it marked","sign-in-to-open-a-session":"Sign in to open a session","sign-in-to-send-it":"Sign in to send it","sign-in-to-send-this-booking":"Sign in to send this booking — your answers are kept.","sign-in-to-send-your-working":"Sign in to send your working","sign-in-to-suggest-a-change":"Sign in to suggest a change.","signed-in":"Signed in","signed-in-as":"Signed in as ","signed-out":"Signed out","signed-out-please-sign-in-again":"Signed out — please sign in again","someone-else":"Someone else","something-already-going-or-a-new":"Something already going, or a new one?","something-went-wrong-there":"Something went wrong there.","start-a-new-one":"Start a new one","stripe-did-not-give-us-a":"Stripe did not give us a payment page.","student-im-learning":"Student — I'm learning","take-a-photo-of-your-working":"Take a photo of your working first","take-a-seat":"Take a seat","tap-to-choose":"Tap to choose","that-account-has-no-id-yet":"That account has no id yet — ask us.","that-class-has-gone":"That class has gone.","that-did-not-work":"That did not work.","that-did-not-work-everything-else":"That did not work. Everything else still works.","that-is-longer-than-a-message":"That is longer than a message should be — 2,000 characters.","that-is-not-a-picture-take":"That is not a picture. Take a photo of the document.","that-is-the-most-this-card":"That is the most this card holds — 10 qualifications in all.","that-is-too-much-for-one":"That is too much for one message — send some of it now and the rest after","that-room-is-booked-every-hour":"That room is booked every hour.","that-session-is-not-in-this":"That session is not in this list any more","that-would-be-over-32mb-in":"That would be over 32MB in one message — send it on its own.","the-ai-marker-reads-only-the":"The AI marker reads only the first ","the-answers-are-still-on-their":"The answers are still on their way — a moment.","the-board-is-full-clear-it":"The board is full. Clear it to carry on.","the-marker-did-not-answer":"The marker did not answer: ","the-phone-could-not-read-that":"The phone could not read that photo. Try another.","the-pin-this-account-was-made":"The PIN this account was made with no longer works. Sign in ","the-reply-was-not-valid-json":"The reply was not valid JSON (HTTP ","the-room":"The room","the-tutor-was-not-told-no":"The tutor was not told — no connection. Your card is still red.","there-is-no-booking-on-screen":"There is no booking on screen to share","there-is-nobody-on-the-site":"There is nobody on the site to send this to yet — message @family. directly","there-is-nothing-to-share-on":"There is nothing to share on this card yet","they-tick-them-in-settings-under":" They tick them in Settings, under their week.","they-ticked-tutor-in-their-settings":"They ticked Tutor in their settings. Until you list them they are not on the site, cannot be booked and cannot take a session — the crossed-out eye below approves them.","this-booking-as-a-picture":"This booking, as a picture","this-browser-is-not-saving-what":"This browser is not saving what you type — leaving the page would lose it.","this-session-is-no-longer-yours":"This session is no longer yours.","too-long-to-mark":"Too long to mark — ","turn-it-down":"Turn it down?","tutor-earns":"Tutor earns","type-the-letter":"Type the letter","type-the-letters-in-order-e":"Type the letters in order, e.g. B, A, C","type-your-email-address-or-your":"Type your email address or your handle first.","type-your-name-username-or-email":"Type your name, @username or email first.","video-removed":"Video removed","video-saved":"Video saved","waiting-for":"Waiting for ","waiting-list-class":"Waiting list class","watch-intro":"Watch intro","we-email-a-link-to-open":"We email a link to open. Then sign in with your handle or email and the PIN. A parent ","we-email-you-a-link-to":"We email you a link to open. Once you have opened it, find your child's handle on Student profiles ","we-would-like-to-talk-to":"We would like to talk to you about teaching — we will be in touch to arrange it.","what-are-we-working-on":"What are we working on?","what-level-the-highest-among-the":"What level? (the highest among the children)","when-could-you-come":"When could you come?","when-free":"When free","which-of-your-children-is-this":"Which of your children is this for?","who-is-in-it":"Who is in it","who-is-this-for":"Who is this for?","withdraw-from-this":"Withdraw from this","write-something-first":"Write something first","write-the":"Write the ","write-the-note-first":"Write the note first.","write-your-answer-in-the-box":"Write your answer in the box too — the drawing and photos are your working","yes-no-room-hire":"Yes — no room hire","you-earn":"You earn","your-answer":"Your answer","your-answers-in-order":"Your answers, in order","your-application-to-teach-is-with":"Your application to teach is with us. We will be in touch.","your-application-to-teach-was-approved":"Your application to teach was approved.","your-application-to-teach-was-not":"Your application to teach was not taken further this time. You can apply again.","your-booking":"Your booking","your-first-and-last-name-please":"Your first and last name, please.","your-picture-is-still-saving-cancel":"Your picture is still saving — Cancel once it has.","your-seat":"Your seat","your-sessions":"Your sessions"};
+const WORDS_FILE = {"accept-request":"Accept request","accepted-by":"Accepted by ","accepted-the-family-can-pay-and":"Accepted — the family can pay and confirm","account-made-sign-in-now-as":"Account made — sign in now as ","account-made-sign-in-now-with":"Account made — sign in now with your PIN. We have also emailed you a link to confirm your address.","account-made-sign-in-now-with-2":"Account made — sign in now with your PIN. Open the link we have emailed you before making ","add-them-to-that-account-and":"Add them to that account and the next booking will name them.","add-to-basket":"Add to basket","admin-earns":"Admin earns","ages-up-to":"Ages up to ","all-ages":"All ages","already-in-your-basket":"Already in your basket","already-teaching":"Already teaching","an-email-address-please-the-link":"An email address, please — the link goes to it.","anyone-in-particular":"Anyone in particular?","anything-else-we-should-know":"Anything else we should know","application-sent":"Application sent","applied-for":"Applied for","applied-the-family-picks":"Applied — the family picks","apply-again":"Apply again","apply-to-teach":"Apply to teach","are-you-providing-the-space":"Are you providing the space?","ask-to-join":"Ask to join","ask-us-to-add-them-and":"Ask us to add them and the next booking will name them.","asked-they-will-be-in-touch":"Asked — they will be in touch","asked-we-will-come-back-to":"Asked — we will come back to you","attach-a-photo-video-or-file":"Attach a photo, video or file","book-this":"Book this","booking-form":"Booking form","can-come":"Can come","cancellation-and-refunds":"Cancellation and refunds","change-photo":"Change photo","client-i-book-and-pay":"Client — I book and pay","client-pays":"Client pays","clients-cannot-see-them-the-crossed":"Clients cannot see them. The crossed-out eye below puts them back on the site.","correct-check-the-spelling":"Correct (check the spelling: ","correct-every":"Correct — every ","could-not-find-this-question":"Could not find this question","could-not-make-the-picture":"Could not make the picture: ","could-not-mark-that-just-now":"Could not mark that just now","could-not-reach-the-marker-check":"Could not reach the marker — check the connection","could-not-reach-the-server":"Could not reach the server","could-not-share-it-press-and":"Could not share it — press and hold the picture to save it","decline-request":"Decline request","declined-by":"Declined by ","declined-the-family-has-been-told":"Declined — the family has been told","dictation-is-not-available-in-this":"Dictation is not available in this browser.","draw-your-answer-first":"Draw your answer first","each-seat-pays":"Each seat pays","end-it":"End it?","every-hour-they-have-ticked-is":" Every hour they have ticked is outside ","extra-seats":"Extra seats","extra-subj":"Extra subj.","fill-a-cell-first":"Fill a cell first","getting-the-photo-ready":"Getting the photo ready…","hidden-from-clients":"Hidden from clients","home-visits":"Home visits","how-many-extra-seats":"How many extra seats?","how-would-you-like-to-book":"How would you like to book?","if-there-is-an-account-with":"If there is an account with that email, a new PIN is on its way.","image-saved-link-copied":"Image saved · link copied","in-your-basket":"In your basket","instant-class":"Instant class","its-a-grown-ups-email":"It's a grown-up's email","just-you":"Just you","link-copied":"Link copied","make-an-account":"Make an account","make-my-account":"Make my account","making-a-picture-of-this-booking":"Making a picture of this booking…","making-a-picture-of-this-profile":"Making a picture of this profile…","making-it":"Making it…","no-children-are-on":"No children are on ","no-connection-that-hand-is-still":"No connection — that hand is still up.","no-free-hours-this-week":"No free hours this week","no-free-hours-this-week-2":"No free hours this week.","no-preference":"No preference","no-surcharge":"No surcharge","no-tutor-yet":"No tutor yet","no-we-book-the-room":"No — we book the room","nobody-yet-just-open-it":"Nobody yet — just open it","none-yet":"None yet","not-deployed":"Not deployed: ","not-enough-answered-to-price-it":"Not enough answered to price it yet.","not-listed":"Not listed","not-offered":"Not offered","not-on-the-booking-form":"Not on the booking form","not-priced-yet":"Not priced yet","not-saved":"Not saved","not-yet-have-another-go":"Not yet — have another go","nothing-changed":"Nothing changed","nothing-here-yet":"Nothing here yet.","nothing-in-that-bundle-can-be":"Nothing in that bundle can be printed","nothing-was-added-a-qualification-needs":"Nothing was added — a qualification needs a subject and a level.","nothing-yet":"Nothing yet","on-the-list":"On the list","on-the-list-2":"On the list — ","online-safety":"Online safety","open":"Open — ","over-what-period":"Over what period?","paste-some-text-first":"Paste some text first","pay-and-confirm":"Pay and confirm","payment-cancelled-nothing-was-charged-your":"Payment cancelled — nothing was charged. Your booking is still waiting.","per-session":"Per session","photo-ready":"Photo ready.","pick-at-least-one-first":"Pick at least one first.","picture-removed":"Picture removed","picture-saved":"Picture saved","picture-saved-link-copied":"Picture saved · link copied","pin-or-date":"Pin or date","please-add":"Please add ","press-and-hold-the-picture-to":"Press and hold the picture to save it.","press-share-to-send-it":"Press Share to send it.","put-back":"Put back","put-back-as-it-was-your":"Put back as it was — your picture too","rest-of":"Rest of ","rest-of-this":"Rest of this ","room-and-fees":"Room and fees","room-saved":"Room saved","safer-recruitment":"Safer recruitment","save-or-cancel-the-card-you":"Save or cancel the card you are editing first.","saved-a-picture-of-this-booking":"Saved a picture of this booking","saved-for-everyone":"Saved for everyone","say-who-the-account-is-for":"Say who the account is for first — a parent or a student.","send-my-application":"Send my application","session-ended":"Session ended","share-this-booking":"Share this booking","shared-by":"Shared by","shared-with-tutor":"Shared with tutor","sign-in-first":"Sign in first","sign-in-first-2":"Sign in first.","sign-in-to-book-your-account":"Sign in to book — your account is a few screens to the right.","sign-in-to-finish-your-booking":"Sign in to finish your booking — your payment is safe.","sign-in-to-have-it-marked":"Sign in to have it marked","sign-in-to-open-a-session":"Sign in to open a session","sign-in-to-send-it":"Sign in to send it","sign-in-to-send-this-booking":"Sign in to send this booking — your answers are kept.","sign-in-to-send-your-working":"Sign in to send your working","sign-in-to-suggest-a-change":"Sign in to suggest a change.","signed-out":"Signed out","signed-out-please-sign-in-again":"Signed out — please sign in again","someone-else":"Someone else","something-already-going-or-a-new":"Something already going, or a new one?","something-went-wrong-there":"Something went wrong there.","start-a-new-one":"Start a new one","stripe-did-not-give-us-a":"Stripe did not give us a payment page.","student-im-learning":"Student — I'm learning","take-a-photo-of-your-working":"Take a photo of your working first","take-a-seat":"Take a seat","tap-to-choose":"Tap to choose","that-account-has-no-id-yet":"That account has no id yet — ask us.","that-class-has-gone":"That class has gone.","that-did-not-work":"That did not work.","that-did-not-work-everything-else":"That did not work. Everything else still works.","that-is-longer-than-a-message":"That is longer than a message should be — 2,000 characters.","that-is-not-a-picture-take":"That is not a picture. Take a photo of the document.","that-is-the-most-this-card":"That is the most this card holds — 10 qualifications in all.","that-is-too-much-for-one":"That is too much for one message — send some of it now and the rest after","that-room-is-booked-every-hour":"That room is booked every hour.","that-session-is-not-in-this":"That session is not in this list any more","that-would-be-over-32mb-in":"That would be over 32MB in one message — send it on its own.","the-ai-marker-reads-only-the":"The AI marker reads only the first ","the-answers-are-still-on-their":"The answers are still on their way — a moment.","the-board-is-full-clear-it":"The board is full. Clear it to carry on.","the-marker-did-not-answer":"The marker did not answer: ","the-phone-could-not-read-that":"The phone could not read that photo. Try another.","the-reply-was-not-valid-json":"The reply was not valid JSON (HTTP ","the-room":"The room","the-tutor-was-not-told-no":"The tutor was not told — no connection. Your card is still red.","there-is-no-booking-on-screen":"There is no booking on screen to share","there-is-nobody-on-the-site":"There is nobody on the site to send this to yet — message @family. directly","there-is-nothing-to-share-on":"There is nothing to share on this card yet","they-tick-them-in-settings-under":" They tick them in Settings, under their week.","they-ticked-tutor-in-their-settings":"They ticked Tutor in their settings. Until you list them they are not on the site, cannot be booked and cannot take a session — the crossed-out eye below approves them.","this-booking-as-a-picture":"This booking, as a picture","this-browser-is-not-saving-what":"This browser is not saving what you type — leaving the page would lose it.","this-session-is-no-longer-yours":"This session is no longer yours.","too-long-to-mark":"Too long to mark — ","turn-it-down":"Turn it down?","tutor-earns":"Tutor earns","type-the-letter":"Type the letter","type-the-letters-in-order-e":"Type the letters in order, e.g. B, A, C","type-your-email-address-or-your":"Type your email address or your handle first.","type-your-name-username-or-email":"Type your name, @username or email first.","video-removed":"Video removed","video-saved":"Video saved","waiting-for":"Waiting for ","waiting-list-class":"Waiting list class","watch-intro":"Watch intro","we-email-a-link-to-open":"We email a link to open. Then sign in with your handle or email and the PIN. A parent ","we-email-you-a-link-to":"We email you a link to open. Once you have opened it, find your child's handle on Student profiles ","we-would-like-to-talk-to":"We would like to talk to you about teaching — we will be in touch to arrange it.","what-are-we-working-on":"What are we working on?","what-level-the-highest-among-the":"What level? (the highest among the children)","when-could-you-come":"When could you come?","when-free":"When free","which-of-your-children-is-this":"Which of your children is this for?","who-is-in-it":"Who is in it","who-is-this-for":"Who is this for?","withdraw-from-this":"Withdraw from this","write-something-first":"Write something first","write-the":"Write the ","write-the-note-first":"Write the note first.","write-your-answer-in-the-box":"Write your answer in the box too — the drawing and photos are your working","yes-no-room-hire":"Yes — no room hire","you-earn":"You earn","your-answer":"Your answer","your-answers-in-order":"Your answers, in order","your-application-to-teach-is-with":"Your application to teach is with us. We will be in touch.","your-application-to-teach-was-approved":"Your application to teach was approved.","your-application-to-teach-was-not":"Your application to teach was not taken further this time. You can apply again.","your-booking":"Your booking","your-first-and-last-name-please":"Your first and last name, please.","your-picture-is-still-saving-cancel":"Your picture is still saving — Cancel once it has.","your-seat":"Your seat","your-sessions":"Your sessions"};
 /* WORDS:END */
 /* ONE WORDS FILE (foundation 3): every label, button, message and caption is a key in data/settings/words.json.
    `text_(key)`; `{name}` in a word is filled from `vars`. A key that is missing reads as itself, so a gap shows. */
@@ -683,7 +683,7 @@ const cardGrid_ = b => `<div class="kc-grid-wrap"><div class="kc-grid" role="tab
 function cardChoice_(o) {
   if (o.box) { const b = o.box;
     return answerBox_(`${b.id ? ` id="${esc(b.id)}"` : ''} class="${esc(b.cls || '')}" type="text" inputmode="${esc(b.inputmode || 'text')}" autocomplete="off"
-  autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="${esc(b.enterkeyhint || 'next')}" data-1p-ignore data-lpignore="true" aria-label="${esc(b.label || '')}"
+  autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="${esc(b.enterkeyhint || 'next')}" data-1p-ignore data-lpignore="true" aria-label="${esc(b.label || '')}"${b.placeholder ? ` placeholder="${esc(b.placeholder)}"` : ''}
   value="${esc(b.value || '')}"`, o.look || ''); }
   const d = o.data || {};
   const attrs = (o.act ? ` data-do="${esc(o.act)}"` : '') + Object.keys(d).map(k => d[k] === true ? ` data-${esc(k)}` : ` data-${esc(k)}="${esc(String(d[k]))}"`).join('')
@@ -2302,9 +2302,9 @@ const FINDER_TAGS = {
 },
 "views": {
 "admin+bible": {
-  "": ["kindLabel",[["Practice"],["Library"],["Coming soon"],["Posts"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]],[31768,189170,23,2,4,5,10,31,7,3],221022,["Practice","Library","Coming soon","Posts","Profiles","Booking","Shop","Settings","Tools","Games"]],
+  "": ["kindLabel",[["Practice"],["Library"],["Coming soon"],["Posts"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]],[31768,189170,23,2,4,5,10,32,7,3],221023,["Practice","Library","Coming soon","Posts","Profiles","Booking","Shop","Settings","Tools","Games"]],
   "kindLabel=Profiles": ["profileType",[["Parent"],["Student"],["Tutor"]],[2,2,2],4,["Parent","Student","Tutor"]],
-  "kindLabel=Settings": ["settingFor",[["Student"],["Parent"],["Staff"],["Apprentice"],["Admin"],["Business"],["Site"]],[18,8,16,9,10,5,3],31,["Student","Parent","Staff","Apprentice","Admin","Business","Site"]]
+  "kindLabel=Settings": ["settingFor",[["Student"],["Parent"],["Staff"],["Apprentice"],["Admin"],["Business"],["Site"]],[18,8,16,9,10,5,4],32,["Student","Parent","Staff","Apprentice","Admin","Business","Site"]]
 },
 "bible": {
   "": ["kindLabel",[["Practice"],["Library"],["Coming soon"],["Posts"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]],[31768,189170,23,2,1,5,10,29,7,3],221017,["Practice","Library","Coming soon","Posts","Profiles","Booking","Shop","Settings","Tools","Games"]],
@@ -9672,7 +9672,8 @@ const FORM_SPECS = {
       {"f":"statement","type":"long","label":"a short statement — why you want to teach"},
       {"f":"cvLink","type":"text","input":"url","label":"CV link (optional)","ph":"https://…"},
       {"f":"consent","type":"tick","label":"I agree to @family. keeping these details and documents privately to consider my application, contacting my referees and checking my DBS."}
-    ]}
+    ]},
+    "sign-join": {"item":"person","attr":"data-sj","draft":false,"say":"Find's Make an account card (owner, 15 Nov): who it is for, the names, the email and a PIN; sent as `register`. No draft, so the PIN is never kept.","fields":[{"f":"who","type":"choice","label":"who is the account for?"},{"f":"first","type":"text","ph":"First name","row":"names"},{"f":"last","type":"text","ph":"Last name","row":"names"},{"f":"email","type":"text","input":"email","ph":"Email"},{"f":"pin","type":"text","input":"password","label":"PIN — 4 digits"}]}
   }
 };
 
@@ -10119,53 +10120,7 @@ const mePages = () => {
 /* ---------- NOTHING IN THE APP ASKS ANYBODY TO INSTALL IT § */
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); });
 
-function mountGoogleWhenDrawn() {
-  if (!USER && typeof googleMount === 'function') requestAnimationFrame(googleMount);
-}
-
-
-/* ---------- MOUNTING GOOGLE'S BUTTON § */
-let gLoaded = false;
-
-function googleMount() {
-  const host = $('g-btn');
-  const id = DATA.googleClientId || '';
-  if (!host || !id || host.childElementCount) return;
-
-  const draw = () => {
-    if (!window.google || !google.accounts || !google.accounts.id) return;
-    google.accounts.id.initialize({ client_id: id, callback: googleSignedIn_ });
-    google.accounts.id.renderButton(host, { theme: 'filled_black', size: 'large',
-                                            text: 'signin_with', width: 260 });
-  };
-  if (gLoaded) { draw(); return; }
-  gLoaded = true;
-  const s = document.createElement('script');
-  s.src = 'https://accounts.google.com/gsi/client';
-  s.async = true;
-  s.onload = draw;
-  /* NO SCRIPT, NO BUTTON, AND A SENTENCE. A blocked or offline third party otherwise leaves an
-     empty gap under the word "or", which reads as the app having lost something. */
-  s.onerror = () => { host.innerHTML = ''; };
-  document.head.appendChild(s);
-}
-
-/* WHAT COMES BACK IS A CLAIM AND IT IS NOT INSPECTED HERE. § */
-function googleSignedIn_(res) {
-  /* THE SAME VOICE AS THE PIN DOOR, which is the point: § */
-  toast(text_('checking-with-google'));
-  send_({ action: 'googleLogin', credential: (res && res.credential) || '' })
-    .then(d => {
-      if (!d.success) { toast(d.error || text_('that-did-not-work')); return; }
-      /* ---------- EXCEPT WHEN GOOGLE HAS JUST TAKEN AWAY THE PIN § */
-      if (d.pinCleared && !d.message) d.message = text_('the-pin-this-account-was-made')
-        + 'with Google, or use "Forgotten your PIN?" for a new one.';
-      /* THE SAME DOOR AS THE PIN PATH — `signedIn_`, because the reply is the same reply (one function builds it on the server for exactly this reason) and both doors § */
-      signedIn_(d);
-    })
-    /* `send_` HAS ALREADY TOASTED IT — see the note over `sign-digit` in find-account.js. */
-    .catch(() => {});
-}
+/* SIGNING IN WITH GOOGLE WENT (owner, 16 Nov): one way in, a username or email and the PIN. */
 
 /* THE SIGN-IN CARD SPEAKS IN TOASTS, AND IT USED TO SAY EVERYTHING THREE TIMES. § */
 /* ---------- A NEW PIN, TO THE ADDRESS IN THE SHEET AND NOWHERE ELSE § */
@@ -10212,6 +10167,7 @@ function signedOut_(opts) {
   let wasAdmin = false;
   try { wasAdmin = (typeof may_ === 'function' && may_('admin')) || (typeof hasRole === 'function' && hasRole('admin')); } catch (e) { oops_(e, 'me:signedOut_') }
   USER = null; LENS = null;   /* and the lens: the next admin opens their own settings */
+  if (typeof SIGN !== 'undefined' && !opts.quiet) { SIGN.who = ''; SIGN.dots = 0; SIGN.pin = []; SIGN.wrong = false; SIGN.known = null; SIGN.card = ''; }
   try { localStorage.removeItem('familyUser'); } catch (e) { /* storage can be blocked; the app runs without it */ }
   payloadForget_();   /* the device's copy of their payload goes with them (1070) */
   if (typeof window.offForget_ === 'function') window.offForget_();   /* and the app's offline copy; the words go with libDiskClear_ */
@@ -10320,10 +10276,7 @@ function signedIn_(d, typed) {
   /* AND THE LATEST ANSWER SENT FOR EACH QUESTION — onto the cards, into the boxes, with "Signed in" — and
      whatever this device has waiting for this person goes up (js/submit.js). */
   try { if (typeof subAdopt_ === 'function') subAdopt_(); } catch (e) { oops_(e, 'me:signedIn_') }
-  /* WHO, NOT JUST THAT. *"i feel very insecure when signing into the kids accounts"* — on an iPad passed
-     between children, "Signed in" does not say into whose account. */
-  const first = String(USER.name || USER.handle || '').trim().split(/\s+/)[0];
-  toast(first ? text_('signed-in-as') + first : text_('signed-in'));
+  /* NO "SIGNED IN AS" (owner, 15 Nov): the name tag first in Find says whose account it is. */
   repaint();
   /* ---------- AND BACK WHERE YOU CAME FROM § */
   try {
@@ -10387,6 +10340,39 @@ function regFormHtml_() {
       inner: tile_({ form: true, label: text_('make-my-account'), act: 'reg-send' }) + cardBlock_({ type: 'group', tag: 'p', look: 'said', id: 'reg-note' }) }] });
 }
 CARD_EMBEDS['reg-form'] = regFormHtml_;
+
+/* ---------- FIND'S PIN STEP OPENS ONE CARD EACH (owner, 15 Nov): Forgot PIN, and Make an account when the name is no account. */
+/* FORGOT PIN: one button, the reset link to the address on that account (`forgotPin`, the existing door). */
+const signForgotSpec_ = () => ({ kind: 'panel', look: 'reg-card sign-forgot', name: 'Forgot PIN', tags: [{ text: 'Forgot PIN' }],
+  body: [{ type: 'text', look: 'note', text: 'We email a link to reset your PIN to the address on this account.' }],
+  tiles: [{ icon: 'send', label: 'Email me the link', act: 'forgot-pin' }] });
+/* MAKE AN ACCOUNT: forms.json's `sign-join`, drawn by formOf_; its send is the existing `register`. What was typed fills the email or the first name. */
+const SIGN_JOIN_WHO_ = [{ v: 'parent', t: text_('client-i-book-and-pay') }, { v: 'student', t: text_('student-im-learning') }];
+const signJoinSpec_ = () => ({ kind: 'panel', look: 'reg-card sign-join', name: text_('make-an-account'), tags: [{ text: text_('make-an-account') }],
+  body: [{ type: 'embed', tool: 'sign-join-form' }], tiles: [{ icon: 'plus', label: text_('make-my-account'), act: 'sign-join-send' }] });
+CARD_EMBEDS['sign-join-form'] = () => {
+  const who = typeof SIGN !== 'undefined' ? SIGN.who : '';
+  const pre = who.indexOf('@') > 0 ? { email: who } : { first: who.replace(/^@+/, '') };
+  return cardBlock_({ type: 'group', look: 'reg-form sign-join-form', inner: formOf_('sign-join', pre, { options: f => (f === 'who' ? SIGN_JOIN_WHO_ : null) }) });
+};
+on('sign-join-send', el => {
+  const card = (el && el.closest && el.closest('.card')) || document;
+  const v = f => String((card.querySelector('[data-sj="' + f + '"]') || {}).value || '').trim();
+  const who = v('who'), first = v('first'), last = v('last'), email = v('email'), pin = v('pin');
+  if (who !== 'parent' && who !== 'student') { toast(text_('say-who-the-account-is-for')); return; }
+  if (!first || !last) { toast(text_('your-first-and-last-name-please')); return; }
+  if (email.indexOf('@') < 0) { toast(text_('an-email-address-please-the-link')); return; }
+  if (!REG_PIN.test(pin)) { toast('A PIN is 4 digits.'); return; }
+  const body = { action: 'register', who, first_name: first, last_name: last, pin, email };
+  const from = typeof cameFrom_ === 'function' ? cameFrom_() : ''; if (from) body.from = from;
+  send_(body, { button: el, busy: text_('making-it') })
+    .then(() => {
+      const box = card.querySelector('[data-sj="pin"]'); if (box) box.value = '';
+      if (typeof signAfterJoin_ === 'function') signAfterJoin_(email);
+      toast(text_('account-made-sign-in-now-with'));
+    })
+    .catch(() => {});      // `send_` has already said why
+});
 
 /* `regWho_` IS THE ONE READER of the answer, so the send and the redraw cannot disagree about it. */
 const regIn_ = (el, id) => ((el && el.closest && el.closest('.reg-form')) || document).querySelector('#' + id);
@@ -11478,7 +11464,7 @@ function sitePages_() {
   return (typeof window.siteBizPages_ === 'function' ? window.siteBizPages_() : [])
     .concat(typeof window.inboxCard_ === 'function' ? [window.inboxCard_()] : [])
     .concat(STABILITY_SHOWN ? [stabilityCard_()] : [])
-    .concat([siteTplCard_()])
+    .concat([siteTplCard_(), siteRenameCard_()])
     .concat([rolesSet_('', 'Build', [rolesDrawn_(versionSaid_, 'me-build')])]);
 }
 /* ---------- THE ONE CARD TEMPLATE, SHOWN (owner, 11 Nov; back on Site 15 Nov): a sample drawn by the card maker, its parts named in order, */
@@ -11498,6 +11484,38 @@ function siteTplCard_() {
     { type: 'text', look: 'note', text: 'The fixed scale, as the page has it now:' }]
     .concat(...SITE_TPL_SCALE_.map(([name, list]) => [{ type: 'text', look: 'tpl-group', text: name }, { type: 'list', look: 'tpl-row', items: list.map(t => t + ' ' + siteTok_(t)) }])) });
 }
+
+/* ---------- EVERYBODY ONTO THE USERNAME FORMAT, ONCE (owner, 15 Nov): the format is the backend's HANDLE_FORMAT, pending the owner's choice. */
+/* Preview asks the backend for the list only; Apply needs a second tap and writes that same list (its `seed`). */
+/* The list is the admin's alone: held here in memory, never stored, logged or sent anywhere else. Old usernames stop working. */
+const RENAME = { list: null, seed: 0, busy: false, said: '' };
+function siteRenameCard_() {
+  const rows = (RENAME.list || []).map(p => (p.name || p.personId) + ': ' + (p.from ? '@' + p.from : '(none)') + ' → ' + (p.to ? '@' + p.to : 'could not make one'));
+  const tiles = [{ icon: 'show', label: 'Preview list', act: 'rename-preview' }]
+    .concat(RENAME.list ? [{ icon: 'save', label: 'Apply', act: 'rename-apply' }] : []);
+  return renderCard({ kind: 'panel', look: 'biz rename-card', name: 'Rename every username', tags: [{ text: 'Rename every username' }], body: [
+    { type: 'text', look: 'note', text: 'Everybody gets a new username in the site\'s username format (being decided). Old usernames stop working — tell people their new one.' }]
+    .concat(RENAME.said ? [{ type: 'text', look: 'note', text: RENAME.said }] : [])
+    .concat(rows.length ? [{ type: 'list', look: 'rename-list', items: rows }] : []), tiles: tiles });
+}
+const renameAsk_ = (el, dry) => {
+  if (RENAME.busy) return;
+  RENAME.busy = true;
+  send_({ action: 'renameAllUsernames', token: (USER && USER.token) || '', dryRun: dry, seed: dry ? undefined : RENAME.seed }, { button: el })
+    .then(d => {
+      RENAME.list = Array.isArray(d.list) ? d.list : []; RENAME.seed = Number(d.seed) || 0;
+      RENAME.said = dry ? RENAME.list.length + ' people — nothing changed yet.' : (d.renamed || 0) + ' usernames changed.';
+    })
+    .catch(() => {})
+    .then(() => { RENAME.busy = false; lensRedraw_(); });
+};
+on('rename-preview', el => renameAsk_(el, true));
+on('rename-apply', el => {
+  if (!RENAME.list || !RENAME.seed) return;
+  /* THE SECOND TAP (sure_): every username changes, and the old ones stop working. */
+  if (!sure_(el, 'Rename everybody?')) return;
+  renameAsk_(el, false);
+});
 
 /* ---------- STABILITY (730): data/stability.json, written by tools/stability.js, read the first time the card is drawn ---------- */
 /* ONE SCORE (890): the Optimiser in Find replaces this card; its code stays, switched off. */

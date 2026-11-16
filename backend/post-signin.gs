@@ -354,6 +354,14 @@ function postSignOut_(body, action, began) {
 
 function postVerifyLogin_(body, action, began) {
   const t0 = read(TAB.people);
+  /* `probe` WITH NO PIN: only whether an account answers to the name or email, so Find's PIN step can offer Make an account (owner, 15 Nov). */
+  /* No PIN is checked and no attempt is counted; it says no more than forgotPin's refusals already do. */
+  if (body.probe === true) {
+    const typed = S(body.email || body.name), m = norm(typed).replace(/^@+/, '');
+    const n = !m ? 0 : m.indexOf('@') === -1 ? handleRows_(t0.rows, typed).length + handleWasRows_(t0.rows, typed).length
+      : t0.rows.filter(x => norm(x.email) === m).length;
+    return jsonOut({ success: false, probe: true, known: n > 0 });
+  }
   /* ---------- AN E-MAIL ADDRESS AND A PIN, AND NOTHING ELSE § */
   /* A LEADING `@` IS DROPPED, because every card on the site prints a handle as `@halex_kind42`
      and that is what somebody copies. No address starts with one, so nothing else changes. */

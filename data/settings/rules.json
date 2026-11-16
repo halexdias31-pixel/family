@@ -225,11 +225,12 @@
   {
    "id": "2.9",
    "principle": 2,
-   "text": "A handle is the first two and last two letters of the first name (overlapping on a short one) and the year joined, a counter on a clash (earliest joiner keeps the plain form), made by one maker (`handleStems_`) for sign-up, rename and backfill; the old one goes to `handle_was` and still signs in.",
+   "text": "A username is made by one maker (`handleLaw_`) from one replaceable format (`HANDLE_FORMAT`, people.gs; the format itself is pending the owner's choice, child privacy), unique by a counter; an admin moves everybody once with Find › Settings › Site › Rename every username (Preview, then Apply on a second tap; old usernames stop working), whose list goes to the admin alone.",
    "checks": [
-    "handle-follows"
+    "handle-follows",
+    "handles"
    ],
-   "since": "2026-11-13"
+   "since": "2026-11-15"
   },
   {
    "id": "2.10",
