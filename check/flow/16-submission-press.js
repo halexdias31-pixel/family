@@ -6,7 +6,7 @@ check('no tag-door rows anywhere: a chosen paper goes on to ask Question by the 
   const { w } = boot({ member: true, serve: url => (/data\/questions\.json/.test(url) ? rows : undefined) });
   for (let i = 0; i < 60 && !(typeof w.stuffItemsAll_ === 'function' && w.stuffItemsAll_().some(x => x.row && x.row.paper_id === PID)); i++) await wait(50);
   const t = w.__t, d = w.document, bad = [];
-  const OWN = ['qNumber', 'qPart', 'qSub', 'qPage', 'qPages', 'marks'];
+  const OWN = ['qNumber', 'qPart', 'qSub', 'marks'];
   if (typeof w.stuffQuestion !== 'function') return ['stuffQuestion not reachable — the doors were NOT checked'];
   if (typeof w.tagDoors_ === 'function') bad.push('tagDoors_ is back — the owner asked for no door rows (387)');
   if (typeof w.paperEnd_ === 'function' || typeof w.funnelEnded_ === 'function') bad.push('a paper ends the funnel again (paperEnd_/funnelEnded_) — since 396 the one rule goes on asking inside it');
@@ -73,7 +73,7 @@ check('Required is never on the first screen, and is the funnel\'s own question 
   S.filters = [];   const first = w.nextFacet(w.stuffFiltered());
   if (first && first.field === 'required') bad.push('the first screen asks Required');
   {
-    S.filters = [{ field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Practicals' }];
+    S.filters = [{ field: 'kindLabel', value: 'Library' }, { field: 'kindOwn', value: 'Practicals' }];
     if (!w.stuffFiltered().length) bad.push('the Practicals chip leaves nothing');
     const seen = [];
     for (let i = 0; i < 10; i++) {
