@@ -4,7 +4,7 @@
 /* `settings/links` WAS ON THIS LIST, fetched on every load — 27 KB for the Links door on Find, its only reader. § */
 const SETTINGS_TABS = ['settings/brand', 'settings/facets', 'settings/kinds', 'settings/laws',
                        'settings/facts',
-                       'settings/campaigns', 'settings/copy', 'settings/columns',
+                       'settings/columns',
                        'settings/spotlight', 'settings/widgets-in-find', 'settings/setting-for', 'settings/card-fields',
                        'settings/default-pictures', 'settings/permissions', 'settings/screens-moved', 'settings/labels',
                        'settings/confusables'];
@@ -96,32 +96,6 @@ function setFacts_(d, extra) {
         row: setRow_(x.i),
       }))
       .sort((a, b) => (a.order - b.order) || (a.row - b.row));
-  }
-
-}
-
-function setCampaigns_(d, extra) {
-  const campaigns = extra['settings/campaigns'];
-  if (campaigns && campaigns.length) {
-    const words = {};
-    (extra['settings/copy'] || []).forEach(r => {
-      if (!libOn(r.active)) return;
-      const cid = libS(r.campaign_id), slot = libS(r.slot).toLowerCase(), text = libS(r.text);
-      if (!cid || !slot || !text) return;
-      (words[cid] || (words[cid] = {}));
-      (words[cid][slot] || (words[cid][slot] = []))
-        .push({ variant: libS(r.variant) || '1', text: text, note: libS(r.note) });
-    });
-    Object.keys(words).forEach(cid => Object.keys(words[cid]).forEach(slot =>
-      words[cid][slot].sort((a, b) => (Number(a.variant) || 0) - (Number(b.variant) || 0))));
-
-    d.campaigns = campaigns.filter(r => libOn(r.active) && libS(r.campaign_id) && libS(r.name))
-      .map(r => ({
-        id: libS(r.campaign_id), name: libS(r.name), when: libS(r.when), note: libS(r.note),
-        style: libS(r.style), ink: libS(r.ink), accent: libS(r.accent), ground: libS(r.ground),
-        blocks: libS(r.blocks),
-        copy: words[libS(r.campaign_id)] || {},
-      }));
   }
 
 }

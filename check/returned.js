@@ -11,8 +11,8 @@ const SHOTS = process.env.RF_SHOTS || '';
 const wait = ms => new Promise(r => setTimeout(r, ms));
 /* WHERE EACH RETURNED WIDGET IS: its front answer in Find. */
 const WIDGETS = {
-  Tools: ['timer', 'notepad', 'typing', 'speedread', 'countdowns', 'calendar', 'termdates', 'timetable', 'docket', 'mat',
-    'favlinks', 'spotify', 'pixel', 'libcards', 'reels', 'newspaper', 'shopfind'],
+  Tools: ['notepad', 'speedread', 'countdowns', 'termdates', 'docket',
+    'favlinks', 'pixel', 'libcards', 'reels', 'newspaper', 'shopfind'],
   Games: ['console', 'wordgames'],
 };
 const COLUMNS = ['spotlight', 'feed', 'saved', 'booking', 'shop', 'web', 'students', 'parents'];

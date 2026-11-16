@@ -142,24 +142,24 @@ check('a widget drawn ahead with nothing changed is adopted on arrival without s
   t.USER(SAM_); t.findGroupOn('stuff', 'Tools'); t.go('feed', false, true); t.repaint();
   await aheadQuiet_(t);
   const tools = t.widgetsOf('tool');
-  const calc = tools.find(x => String(x.id) === 'calculator'), cal = tools.find(x => String(x.id) === 'mat');
-  if (!calc || !cal) { t.USER(null); return ['no calculator or calendar on Tools — NOT checked']; }
-  const n = { calculator: 0, mat: 0 };
+  const calc = tools.find(x => String(x.id) === 'calculator'), cal = tools.find(x => String(x.id) === 'libcards');
+  if (!calc || !cal) { t.USER(null); return ['no calculator or library cards on Tools — NOT checked']; }
+  const n = { calculator: 0, libcards: 0 };
   [calc, cal].forEach(x => { const real = x.start; x.start = function () { n[x.id]++; return real.apply(this, arguments); }; });
-  const arrive = async () => { n.calculator = 0; n.mat = 0; t.go('stuff', false, true); await wait(LEAVE_MS); await woken_(); };
+  const arrive = async () => { n.calculator = 0; n.libcards = 0; t.go('stuff', false, true); await wait(LEAVE_MS); await woken_(); };
   const leave = async () => { t.go('feed', false, true); await wait(LEAVE_MS); await woken_(); };
   const slot = id => t.slotOn('stuff', id);
   /* 1. NOTHING MOVED: adopted. */
   if (!slot('calculator') || slot('calculator').getAttribute('aria-busy')) bad.push('the calculator was not drawn ahead on Tools');
   await arrive();
-  if (n.calculator || n.mat) bad.push('arriving at drawn, unchanged widgets started them again (' + JSON.stringify(n) + ') — they should be adopted');
+  if (n.calculator || n.libcards) bad.push('arriving at drawn, unchanged widgets started them again (' + JSON.stringify(n) + ') — they should be adopted');
   if (!t.running().some(e => e.id === 'calculator' && e.col === 'stuff')) bad.push('the adopted calculator is not entered as running');
   /* 2. A PRESS: the next drawing ahead, then an action, then the arrival — started. */
   await leave(); t.repaint(); t.findGroupOn('stuff', 'Tools'); await aheadQuiet_(t);   /* Find back on Tools while away (790) */
   /* ANY PRESS (`on`'s wrapper bumps ACT_EPOCH): Clear done on the docket, which changes nothing Find shows — the funnel's Clear would empty Find's Tools answer (790). */
   try { t.ACTIONS['dock-clear'](w.document.createElement('button')); } catch (e) {}
   await arrive();
-  if (!n.mat) bad.push('after a press the cheat sheet maker (beside the calculator on Find) drawn before it was adopted, not started');
+  if (!n.libcards) bad.push('after a press the library cards (beside the calculator on Find) drawn before it was adopted, not started');
   /* 3. A DRAWING CARRIED THROUGH A PAINT (pure, the calculator) keeps its old clocks: started behind it. */
   await leave(); t.repaint(); t.findGroupOn('stuff', 'Tools'); await aheadQuiet_(t);   /* Find back on Tools while away (790) */
   const before = slot('calculator');
@@ -254,10 +254,10 @@ check('signing out puts away the widgets drawn for the last person, before the r
   if (!t || typeof w.signedOut_ !== 'function') return ['signedOut_ is not reachable — NOT checked'];
   t.USER(SAM_); t.findGroupOn('stuff', 'Tools'); t.findFillAll('stuff'); t.go('feed', false, true); t.repaint();   /* Find showing Tools, every card filled, then left (790) */
   await aheadQuiet_(t);
-  /* THE NOTEPAD AND THE TIMETABLE, both asked: § */
-  const ids = ['notepad', 'timetable'];
+  /* THE NOTEPAD AND THE LIBRARY CARDS, both asked: § */
+  const ids = ['notepad', 'libcards'];
   const drawn = ids.filter(id => { const sl = t.slotOn('stuff', id); return sl && !sl.getAttribute('aria-busy'); });
-  if (drawn.length < 2) { t.USER(null); return ['the notepad and the timetable were not both drawn ahead for Sam (' + drawn.join(', ') + ') — NOT checked']; }
+  if (drawn.length < 2) { t.USER(null); return ['the notepad and the library cards were not both drawn ahead for Sam (' + drawn.join(', ') + ') — NOT checked']; }
   w.signedOut_();
   ids.forEach(id => {
     const now = t.slotOn('stuff', id);
@@ -421,7 +421,7 @@ check('nothing drawn ahead asks the network: three repaints with the builder on 
 });
 
 check('signing out puts away every widget drawing the last person had, including the ones the next person has no slot for: an admin\'s tools and her stars', async () => {
-  /* REVIEW, 12 Oct: the re-veil at a change of person walked the NEW person's widgets, so the admin's flyer maker, availability and uploads on Tools, and every § */
+  /* REVIEW, 12 Oct: the re-veil at a change of person walked the NEW person's widgets, so the admin's tools, availability and uploads on Tools, and every § */
   const admin = { name: 'Test Admin', personId: 'P001', person_id: 'P001', role: 'admin', roles: ['admin'], token: 't-adm' };
   const { w } = await aheadBoot_({ before: x => { try {
     x.localStorage.setItem('familyUser', JSON.stringify(admin));
@@ -429,9 +429,9 @@ check('signing out puts away every widget drawing the last person had, including
   } catch (e) {} } });
   const t = w.__t, bad = [];
   if (!t || typeof w.signedOut_ !== 'function') return ['signedOut_ is not reachable — NOT checked'];
-  t.findGroupOn('stuff', 'Tools', 'flyers'); t.go('feed', false, true); t.repaint();   /* Find showing the admin's tools, left (790) */
+  t.findGroupOn('stuff', 'Tools', 'libcards'); t.go('feed', false, true); t.repaint();   /* Find showing the admin's tools, left (790) */
   await aheadQuiet_(t);
-  const ask = [['stuff', 'flyers'], ['saved', 'calculator'], ['saved', 'notepad']];
+  const ask = [['stuff', 'libcards'], ['saved', 'calculator'], ['saved', 'notepad']];
   const drawn = ask.filter(([c, id]) => { const sl = t.slotOn(c, id); return sl && !sl.getAttribute('aria-busy') && sl.WHO === 'P001'; });
   if (drawn.length < ask.length) { return ['not every slot was drawn ahead for the admin (' + drawn.map(x => x.join(':')).join(', ') + ') — NOT checked']; }
   w.signedOut_();
