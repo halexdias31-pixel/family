@@ -268,3 +268,78 @@ function formGroupsOf_(spec, groups, o) {
     return (head ? cardBlock_({ type: 'group', tag: head, look: null, blocks: [{ type: 'group', tag: 'span', look: null, text: g }] }) : '') + body;
   }).join('');
 }
+
+/* ---------- A FORM ASKED IN FIND, ONE FIELD A STEP (`ask: "find"` in kinds.json; owner, 16 Nov: one form for any item) ---------- */
+/* A choice is its tags, a text field the blank tag typed on, a PIN the ten digit tags; each answer is a chip whose tap asks it again. */
+/* The answers live in `ASK[id]` in memory only: never storage, the URL or a chip's words, so a PIN is gone once sent or the page goes. */
+const ASK = {};
+const askOf_ = id => ASK[id] || (ASK[id] = { v: {}, done: {}, pin: [] });
+const askReset_ = (id, pre) => { ASK[id] = { v: Object.assign({}, pre || {}), done: {}, pin: [] }; };
+/* THE FIELDS ASKED NOW: in order, each `only` met by the answers above it. */
+const askFields_ = id => ((FORM_SPECS.forms[id] || {}).fields || [])
+  .filter(x => !x.only || Object.keys(x.only).every(k => String(askOf_(id).v[k]) === String(x.only[k])));
+const askAt_ = id => askFields_(id).find(x => !askOf_(id).done[x.f]) || null;
+const askSay_ = c => (c.say ? text_(c.say) : c.t || c.v);
+const askPaint_ = () => finderEach_(() => paintStuff());
+/* ONE FIELD'S TAGS, the one tag maker for every asked form; `o.act`, `o.id`, `o.cls` and `o.value` let a form keep its own handler, box and answer (sign-in's). */
+function askTags_(id, x, o) {
+  o = o || {};
+  const val = o.value != null ? o.value : askOf_(id).v[x.f];
+  if (x.type === 'choice') return { look: 'ask-pick', options: (x.options || []).map(c => ({ text: askSay_(c), act: o.act || 'ask-pick',
+    data: { form: id, f: x.f, v: c.v }, pressed: String(val) === String(c.v) })) };
+  if (x.type === 'pin') return { look: 'is-grid sign-pin', options: '0123456789'.split('').map(d => ({ text: d, act: o.act || 'ask-digit', data: { form: id, f: x.f, d: d, repeat: true } })) };
+  return { look: 'sign-type', box: { id: o.id != null ? o.id : 'ask-' + id + '-' + x.f, cls: o.cls || 'ask-box', value: val || '', label: x.label || x.ph || '',
+    placeholder: x.ph || '', inputmode: x.input === 'email' ? 'email' : 'text' } };
+}
+/* THE MENU FOR THE FIELD BEING ASKED, or the send once every field is answered (`o.done` says what sending does). */
+function askMenu_(id, o) {
+  o = o || {};
+  const spec = FORM_SPECS.forms[id] || {}, x = askAt_(id);
+  if (!x) return [{ type: 'choices', ask: o.done || '', rows: [{ look: 'sign-more', options: [{ text: (spec.send || {}).label ? text_(spec.send.label) : 'Send', act: 'ask-send', data: { form: id } }] }] }];
+  const pin = x.type === 'pin' ? askOf_(id).pin.length : 0, tags = askTags_(id, x);
+  return [{ type: 'choices', ask: [x.label || x.ph, pin ? '*'.repeat(pin) : '', x.note].filter(Boolean).join(' '),
+    rows: [tags.box ? { look: 'sign-who', options: [tags] } : tags] }];
+}
+/* THE ANSWERS AS CHIPS: a PIN is a * per digit, never the digits. */
+function askChips_(id) {
+  const s = askOf_(id);
+  return askFields_(id).filter(x => s.done[x.f]).map(x => {
+    const c = (x.options || []).find(k => String(k.v) === String(s.v[x.f]));
+    const text = x.type === 'pin' ? '*'.repeat(SIGN_PIN_LEN) : c ? askSay_(c) : String(s.v[x.f] || '');
+    const label = 'Change ' + (x.label || x.ph || x.f);
+    return { base: 'chip', look: 'sm ask-chip', text: text, act: 'ask-back', data: { form: id, f: x.f }, label: label, x: { label: label }, colour: false };
+  });
+}
+/* A FIELD ANSWERED, and on to the next. */
+function askSet_(id, f, v) { const s = askOf_(id); s.v[f] = v; s.done[f] = true; askPaint_(); }
+/* BACK TO A FIELD: it and every field after it are asked again; a PIN from empty. */
+function askBack_(id, f) {
+  const s = askOf_(id), all = (FORM_SPECS.forms[id] || {}).fields || [], at = all.findIndex(x => x.f === f);
+  if (at === -1) return;
+  all.slice(at).forEach(x => { delete s.done[x.f]; if (x.type === 'pin') delete s.v[x.f]; });
+  s.pin = [];
+  askPaint_();
+}
+/* WHAT SENDING A FORM DOES: its kind's code sets `FORM_SEND_[id](values, button)`, an existing backend action, never a new one. */
+const FORM_SEND_ = {};
+on('ask-pick', el => askSet_(el.dataset.form, el.dataset.f, el.dataset.v));
+on('ask-back', el => askBack_(el.dataset.form, el.dataset.f));
+on('ask-digit', el => {
+  const id = el.dataset.form, x = askAt_(id), s = askOf_(id), d = String(el.dataset.d || '');
+  if (!x || x.type !== 'pin' || x.f !== el.dataset.f || !/^\d$/.test(d)) return;
+  s.pin.push(d);
+  if (s.pin.length < SIGN_PIN_LEN) { askPaint_(); return; }
+  const pin = s.pin.join('');
+  s.pin = [];
+  askSet_(id, x.f, pin);
+});
+on('ask-send', el => { const id = el.dataset.form; if (FORM_SEND_[id]) FORM_SEND_[id](Object.assign({}, askOf_(id).v), el); });
+/* ENTER IN A TEXT FIELD'S BLANK TAG (the keypad's ✓ is its Enter) ANSWERS IT, as a tap answers a tag. */
+document.addEventListener('keydown', e => {
+  const t = e.target;
+  if (!t || !t.classList || !t.classList.contains('ask-box') || !/^Enter$/.test(e.key)) return;
+  e.preventDefault();
+  const rest = String(t.id || '').slice(4), cut = rest.lastIndexOf('-'), v = String(t.value || '').trim();
+  if (!v) { toast(text_('type-your-name-username-or-email')); return; }
+  askSet_(rest.slice(0, cut), rest.slice(cut + 1), v);
+});

@@ -698,7 +698,6 @@ label.field > .note { display: block; margin-top: var(--s1); text-transform: non
 .check.reg-kid { font-size: var(--fs-body); color: var(--ink); padding-top: var(--s1); }
 /* ---------- WHO THE ACCOUNT IS FOR: THE FIRST QUESTION ON THE REGISTER SHEET § */
 .reg-cap { margin-top: 0; }
-.reg-who { margin-bottom: var(--s3); }
 
 /* ---------- THREE LIBRARY CARDS ON ONE PAGE, WHICH NINE STACKED BOXES CANNOT BE § */
 .lib-shelf { display: flex; flex-direction: column; }
