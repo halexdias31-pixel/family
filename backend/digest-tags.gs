@@ -86,11 +86,6 @@ function digestTagIndex_(text, pids, facets) {
 const digestLibS_ = v => (v === undefined || v === null ? '' : String(v));
 const digestLibOn_ = v => /^(|true|yes|1|y|on)$/.test(digestLibS_(v).toLowerCase().trim());
 const digestLibTrue_ = v => /^(true|yes|1|y|on)$/.test(digestLibS_(v).toLowerCase().trim());
-const digestLibNum_ = v => {
-  if (v === undefined || v === null || String(v).trim() === '') return null;
-  const n = Number(String(v).replace(/[^0-9.-]/g, ''));
-  return isFinite(n) ? n : null;
-};
 /* find.js's `spellKey_` and `asList_`. */
 const digestSpell_ = v => String(v == null ? '' : v).toLowerCase().replace(/[^a-z0-9]/g, '');
 const digestList_ = v => (Array.isArray(v) ? v : v == null || v === false ? [] : [v]).map(it => String(it == null ? '' : it).trim()).filter(Boolean);
