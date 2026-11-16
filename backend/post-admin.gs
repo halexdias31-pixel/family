@@ -302,3 +302,14 @@ function postWordsSave_(body, action, began) {
   return jsonOut({ success: true, words: now });
 }
 
+
+/* A PERSON FACT (kinds.json person.facts): admin only by ACTION_ACCESS; one row appended, `what` from PERSON_FACT_KEYS, as_of today unless given. */
+function postFactSet_(body, action, began) {
+  const who = S(body.who).trim(), what = S(body.what).trim(), value = S(body.value).trim();
+  if (!who || !findPerson(who)) return jsonOut({ error: 'No such person.' });
+  if (PERSON_FACT_KEYS.indexOf(what) < 0) return jsonOut({ error: 'Not a fact this site keeps: ' + what });
+  if (!value) return jsonOut({ error: 'A fact needs a value.' });
+  const asOf = /^\d{4}-\d{2}-\d{2}$/.test(S(body.as_of)) ? S(body.as_of) : isoDate_(new Date());
+  addRow(read(TAB.facts), { who: who, what: what, value: value, as_of: asOf });
+  return jsonOut({ ok: true, fact: { who: who, what: what, value: value, as_of: asOf } });
+}

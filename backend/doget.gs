@@ -1,7 +1,7 @@
 /* @family. — 60_doGet.gs (7 of 8) THE PAYLOAD. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOGET_VERSION = "2026-11-16-flag-1";
+const DOGET_VERSION = "2026-11-16-facts-1";
 
 
 function doGet(e) {
@@ -274,6 +274,8 @@ function freshFor_(viewer) {
   /* AND THE VIEWER'S OWN FAVOURITE LINKS (509), fresh each load and never in the kept body, which is shared by a role. */
   try { out.favLinks = favLinksOf_(viewer); } catch (err) { out.favLinks = []; }
   try { out.messages = viewer ? messagesOf_(viewer) : []; } catch (err) { out.messages = []; }
+  /* PERSON FACTS, to an admin (all) or a tutor (their own students) only — never in the kept body (kinds.json person.facts.see). */
+  try { const f = factsFor_(viewer); if (f) out.personFacts = f; } catch (err) { /* no facts is the safe answer */ }
   if (admin) {
     try { out.filmsSync = filmsSyncSays_(); } catch (err) { out.filmsSync = { at: '', more: false }; }
     try { out.setup = setupStatus_(); } catch (err) { out.setup = { error: String(err && err.message || err) }; }
@@ -290,6 +292,7 @@ function payloadWithFresh_(body, fresh, cached) {
     + ',"films":' + JSON.stringify(Array.isArray(f.films) ? f.films : [])
     + ',"favLinks":' + JSON.stringify(Array.isArray(f.favLinks) ? f.favLinks : [])
     + ',"messages":' + JSON.stringify(Array.isArray(f.messages) ? f.messages : [])
+    + (Array.isArray(f.personFacts) ? ',"personFacts":' + JSON.stringify(f.personFacts) : '')
     + (f.filmsSync ? ',"filmsSync":' + JSON.stringify(f.filmsSync) : '')
     + (f.setup ? ',"setup":' + JSON.stringify(f.setup) : '')
     + (f.claudeNotes ? ',"claudeNotes":' + JSON.stringify(f.claudeNotes) : '')

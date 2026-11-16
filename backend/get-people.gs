@@ -276,3 +276,19 @@ function getFamilyVenues_(p, meAsked, viewerIsAdmin, venuesTab, payload) {
     ];
   }
 }
+
+/* ---------- `payload.personFacts` (kinds.json person.facts): an admin every fact, a tutor their own students', anybody else NONE (null). */
+/* A fact whose `what` is not on PERSON_FACT_KEYS (generated from kinds.json) is dropped. */
+function factsFor_(viewer) {
+  if (!viewer || isChild_(viewer)) return null;
+  const admin = whoMay_(viewer, 'admin');
+  if (!admin && !hasRole(viewer, 'tutor')) return null;
+  let mine = null;
+  if (!admin) {
+    mine = {};
+    bookedCircles_().forEach(c => { if (c.teach.some(t => key(t.person_id) === key(viewer.person_id))) c.learn.forEach(s => { mine[key(s.person_id)] = 1; }); });
+  }
+  return read(TAB.facts).rows
+    .filter(r => PERSON_FACT_KEYS.indexOf(S(r.what).trim()) >= 0 && S(r.who).trim() && (!mine || mine[key(r.who)]))
+    .map(r => ({ who: S(r.who).trim(), what: S(r.what).trim(), value: S(r.value), as_of: r.as_of instanceof Date ? isoDate_(r.as_of) : S(r.as_of) }));
+}

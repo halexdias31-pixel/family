@@ -382,7 +382,7 @@ const itemOfEntry_ = x => { const k = itemMapOf_(x), f = ITEM_MAPS[k].from; retu
 /* A PERSON'S FACTS (owner, 16 Nov; kinds.json person `facts`): the owner's stated facts, aged to today, on the card for staff and admins only. */
 function personFacts_(id, now) {
   const F = ITEM_KINDS.kinds.person.facts, d = now || new Date();
-  return (typeof DATA === 'object' && DATA && Array.isArray(DATA.facts) ? DATA.facts : []).filter(f => f && String(f.who) === String(id) && F.keys.indexOf(f.what) >= 0)
+  return (typeof DATA === 'object' && DATA && Array.isArray(DATA.personFacts) ? DATA.personFacts : []).filter(f => f && String(f.who) === String(id) && F.keys.indexOf(f.what) >= 0)
     .map(f => ({ what: f.what, value: factAged_(f, F.ages[f.what], d) }));
 }
 /* "7-8" or "11" moved up by the Septembers since as_of (school_year) or the whole years (age); anything else as stated. */

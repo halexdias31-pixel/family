@@ -686,7 +686,7 @@
     }
    },
    "facts": {
-    "say": "WHAT THE OWNER STATES ABOUT A PERSON (owner, 16 Nov): one row a fact, {who, what, value, as_of}. `what` is one of `keys`; a value may be a range (\"7-8\"). Values age by themselves (`ages`): school_year goes up one each 1 September after as_of, age one each year after as_of. Shown on the person's card to staff (tutors) and admins only (`see`), never to a child or another family. Stored in the facts list (backend payload `facts`, Ledger tab `facts`) until the events record exists and absorbs it. A PIN is never a fact.",
+    "say": "WHAT THE OWNER STATES ABOUT A PERSON (owner, 16 Nov): one row a fact, {who, what, value, as_of}. `what` is one of `keys`; a value may be a range (\"7-8\"). Values age by themselves (`ages`): school_year goes up one each 1 September after as_of, age one each year after as_of. Shown on the person's card to staff (tutors) and admins only (`see`), never to a child or another family. Stored in the facts list (backend payload `personFacts` — `facts` is the fun-facts reel, Ledger tab `facts`) until the events record exists and absorbs it. A PIN is never a fact.",
     "row": {
      "who": "person id (P010)",
      "what": "a key from `keys`",
@@ -715,7 +715,7 @@
     ],
     "store": {
      "tab": "facts",
-     "payload": "facts",
+     "payload": "personFacts",
      "until": "events record"
     }
    }
