@@ -369,6 +369,12 @@ const paperInput_ = b => `<input class="bk-in${b.wide ? ' bk-in-l' : ''}"${b.id 
 const paperNote_ = b => `<p class="note${b.look ? ' ' + esc(b.look) : ''}"${b.live ? ' aria-live="polite"' : ''}${b.alert ? ' role="alert"' : ''}>${cardRuns_(b.text)}</p>`;
 const paperLinks_ = b => `<p class="note policy-links">${esc(b.say || '')}${(b.links || []).map(l => `<a href="${esc(l.href)}" data-do="file-view" target="_blank" rel="noopener">${esc(l.text)}</a>`).join(' · ')}</p>`;
 const paperBox_ = b => `<div${b.id ? ` id="${esc(b.id)}"` : ''} class="${esc(b.look || '')}">${b.inner || ''}</div>`;
+/* A PLAIN BOX (rule 1.1, one template): a `div`, `p`, `ul` or `span` with its id, class and flags; `text` as runs, then `parts` — a drawn string kept as is, a block drawn. */
+const BOX_TAGS = { div: 1, p: 1, ul: 1, span: 1 };
+const cardBox_ = b => { const t = BOX_TAGS[b.tag] ? b.tag : 'div';
+  return `<${t}${b.id ? ` id="${esc(b.id)}"` : ''}${b.look ? ` class="${esc(b.look)}"` : ''}${b.hidden ? ' hidden' : ''}${b.live ? ` role="${esc(b.live)}"` : ''}${b.label ? ` aria-label="${esc(b.label)}"` : ''}>`
+    + (b.text != null ? cardRuns_(b.text) : '') + [].concat(b.parts || []).map(x => (typeof x === 'string' ? x : cardBlock_(x))).join('') + `</${t}>`; };
+CARD_BLOCKS.box = cardBox_;
 Object.assign(CARD_BLOCKS, { paperRow: paperRow_, paperDoc: paperDoc_, paperRoster: paperRoster_, paperWhenCould: paperWhenCould_, paperWeek: paperWeek_,
   paperStrip: paperStrip_, paperSelect: paperSelect_, paperSet: paperSet_, paperInput: paperInput_, paperNote: paperNote_, paperLinks: paperLinks_, paperBox: paperBox_ });
 /* A BOOKING AS A PICTURE: the paper's own markup (`xml`, already serialised) laid in an SVG at the screen's width; `css` is the page's own rules. */

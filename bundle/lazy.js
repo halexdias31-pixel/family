@@ -2445,43 +2445,40 @@ const WORD_GAMES = [
     </div>` },
   /* WORD SEARCH AND SENTENCE SCRAMBLE, MOVED IN BY THE OWNER (441) — their own cards before; nothing runs between taps, so no stop. */
   { k: 'ws', name: 'Word Search', start: () => initWordSearch(), stop: () => {},
-    body: `<p>Tap the first letter of a word, then its last.</p>
-    ${formLine_('', formSelect_(`id="ws-theme" data-do="ws-theme" aria-label="Which words"`, ''), 'mat-sel ws-top')}
-    <div id="ws-grid" class="ws"></div>
-    <ul id="ws-words" class="ws-list"></ul>
-    <p class="note game-said" id="ws-said"></p>
-    ${tile_({ form: true, label: 'New puzzle', act: 'ws-again', kind: 'quiet' })}` },
+    body: cardBlocks_([
+      { type: 'box', tag: 'p', text: 'Tap the first letter of a word, then its last.' },
+      { type: 'field', look: 'mat-sel ws-top', cap: '', blocks: [{ type: 'control', tag: 'select', attrs: { id: 'ws-theme', 'data-do': 'ws-theme', 'aria-label': 'Which words' } }] },
+      { type: 'box', id: 'ws-grid', look: 'ws' },
+      { type: 'box', tag: 'ul', id: 'ws-words', look: 'ws-list' },
+      { type: 'box', tag: 'p', id: 'ws-said', look: 'note game-said' },
+      tile_({ form: true, label: 'New puzzle', act: 'ws-again', kind: 'quiet' })]) },
   /* THE TIMES TABLES SPRINT, MOVED IN BY THE OWNER (461): its own card before; no board and no kept best (rule 1.53). */
   { k: 'tt', name: 'Times Tables Sprint', start: () => initTables(),
     stop: () => { if (typeof ttState !== 'undefined' && ttState) { clearInterval(ttState.timer); ttState = null; } },
-    body: `<div id="tt-idle">
-      <p>Sixty seconds. As many as you can.</p>
-      ${tile_({ form: true, look: `btn`, attrs: `id="tt-play" data-do="tt-begin"`, html: `Start` })}
-    </div>
-    <div id="tt-question" class="hidden tt">
-      <p class="mono tt-big" id="tt-q">—</p>
-      ${kpField_('tt', '', 'maths', 0, 'answer', null, { id: 'tt-answer', 'data-do': 'tt-answer' })}
-      <p class="note game-said" id="tt-feedback"></p>
-      ${rowLive('Time', '60', 'tt-time')}
-      ${rowLive('Right', '0', 'tt-score')}
-      ${tile_({ form: true, look: `btn quiet`, attrs: `data-do="tt-stop"`, html: `Give up` })}
-    </div>
-    <div id="tt-over" class="hidden"></div>` },
+    body: cardBlocks_([
+      { type: 'box', id: 'tt-idle', parts: [{ type: 'box', tag: 'p', text: 'Sixty seconds. As many as you can.' },
+        tile_({ form: true, look: 'btn', id: 'tt-play', act: 'tt-begin', label: 'Start' })] },
+      { type: 'box', id: 'tt-question', look: 'hidden tt', parts: [
+        { type: 'box', tag: 'p', id: 'tt-q', look: 'mono tt-big', text: '—' },
+        kpField_('tt', '', 'maths', 0, 'answer', null, { id: 'tt-answer', 'data-do': 'tt-answer' }),
+        { type: 'box', tag: 'p', id: 'tt-feedback', look: 'note game-said' },
+        rowLive('Time', '60', 'tt-time'), rowLive('Right', '0', 'tt-score'),
+        tile_({ form: true, look: 'btn quiet', act: 'tt-stop', label: 'Give up' })] },
+      { type: 'box', id: 'tt-over', look: 'hidden' }]) },
   { k: 'ss', name: 'Sentence Scramble', start: () => initScramble(), stop: () => {},
-    body: `<p>Tap the words in order to put the sentence back together.</p>
-    ${formLine_('', formSelect_(`id="ss-level" data-do="ss-level" aria-label="Level"`, ''), 'mat-sel ws-top')}
-    <div id="ss-box"></div>
-    <p class="note game-said" id="ss-said"></p>` },
+    body: cardBlocks_([
+      { type: 'box', tag: 'p', text: 'Tap the words in order to put the sentence back together.' },
+      { type: 'field', look: 'mat-sel ws-top', cap: '', blocks: [{ type: 'control', tag: 'select', attrs: { id: 'ss-level', 'data-do': 'ss-level', 'aria-label': 'Level' } }] },
+      { type: 'box', id: 'ss-box' },
+      { type: 'box', tag: 'p', id: 'ss-said', look: 'note game-said' }]) },
 ];
 
 /* A party game's body is its sentence and the frame `PARTY_GAMES[k].paint` fills — the same three
    elements for all four, so they are written once here rather than four times above. */
 function wgBody_(g) {
   if (!g.party) return g.body;
-  return g.body + `
-    <div id="${g.k}-card" class="art"></div>
-    <div id="${g.k}-acts" class="party-acts"></div>
-    <p class="note game-said" id="${g.k}-said"></p>`;
+  return g.body + cardBlocks_([{ type: 'box', id: g.k + '-card', look: 'art' }, { type: 'box', id: g.k + '-acts', look: 'party-acts' },
+    { type: 'box', tag: 'p', id: g.k + '-said', look: 'note game-said' }]);
 }
 
 function wgGame_(k) { return WORD_GAMES.find(g => g.k === k) || WORD_GAMES[0]; }
@@ -3122,10 +3119,8 @@ function nesPaint_() {
     </div>
     <p id="nes-padnote" hidden>Controller connected</p>
     <div class="tile-row" id="nes-tiles"></div>
-    <p class="note" id="nes-say" role="status"></p>
-    <p id="nes-kept" hidden></p>
-    <p id="nes-sysnote" hidden></p>
-    ${formInput_(`type="file" id="nes-file" class="nes-file" accept="${NES_ACCEPT}"`)}`;
+    ` + cardBlocks_([{ type: 'box', tag: 'p', id: 'nes-say', look: 'note', live: 'status' }, { type: 'box', tag: 'p', id: 'nes-kept', hidden: true },
+      { type: 'box', tag: 'p', id: 'nes-sysnote', hidden: true }, { type: 'control', attrs: { type: 'file', id: 'nes-file', class: 'nes-file', accept: NES_ACCEPT } }]);
     nesPadWire_($('nes-pad'));
     nesModeWire_($('nes-wrap'));
     nesSeen_($('nes-wrap'));
