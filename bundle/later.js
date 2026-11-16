@@ -8451,7 +8451,8 @@ function figMissing_(x) {
   /* NOT A PART THAT USES AN EARLIER PART'S DRAWING: § */
   if (usesOf_(x)) return false;
   const own = p => !!(p && (p.diagram || figImgs_(p.images).length));
-  let figured = own(x) || (x.stems || []).some(stemHasFig_);
+  /* A STEM THAT PRINTS THE CHART AS A TABLE has drawn it (H240 Q11: "the chart", given as its bands). */
+  let figured = own(x) || (x.stems || []).some(p => stemHasFig_(p) || /<table\b/i.test(String(p && p.html || '')));
   if (!figured) {
     const k = qId_(x);
     figured = !!k && ((questionParts_()[k]) || []).some(own);
