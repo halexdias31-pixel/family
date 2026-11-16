@@ -316,8 +316,9 @@ function qStemWhole_(x, p, onScreen, pics) {
   /* A FIGURE LEFT FOR THE PART THAT PENS ON IT, when that part is not on screen: drawn here, under the stem's words. */
   if (stemHasFig_(p) && stemPenned_(p) && !(onScreen || []).some(y => { const s = isQ_(y) ? padSource_(y) : null; return s && s.svg === p.diagram; })) fig((p.diagram ? figWrap_(p.diagram) : '') + pics_(figImgs_(p.images)));
   if (stemFigOwed_(x, p)) html.push(figNotDrawn_());
+  const fromIns = typeof insStemLines_ === 'function' ? insStemLines_(x, p) : null;
   return figBox_({ look: 'qsheet-stem qtext qb-stem kc-lines' + (p.placeholder ? ' is-standin' : ''), attrs: { 'data-of': stemId_(p) },
-    inner: (p.lines ? figBox_({ tag: 'p', look: 'qsheet-lines', text: p.lines }) : '') + html.join('') });
+    inner: (p.lines ? figBox_({ tag: 'p', look: 'qsheet-lines', text: String(p.lines).replace(/&ndash;/g, '–') }) : '') + (fromIns || html.join('')) });
 }
 /* ---------- A QUESTION PART IS A CARD OF THE ONE TEMPLATE (rule 1.26): its figure on top, its tags, its sheet an embed, its tiles the card's row. */
 /* WHAT A PART'S CARD DREW BESIDE ITSELF (its stems, the parts on screen, its figure on top), by key, so the card drawn again draws the same. */
