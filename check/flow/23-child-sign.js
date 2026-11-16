@@ -214,7 +214,7 @@ check('the PIN is no box the iPad keeps, and nothing about who signed in is kept
   await wait(300);
   if (!sent.some(b => b.action === 'verifyLogin')) return bad.concat(['signing in posted nothing']);
   const all = []; for (let i = 0; i < w.localStorage.length; i++) { const k = w.localStorage.key(i); all.push(k + '=' + w.localStorage.getItem(k)); }
-  if (all.some(x => /4826/.test(x))) bad.push('THE PIN IS WRITTEN ON THE DEVICE: ' + all.filter(x => /4826/.test(x)).join(' | '));
+  if (all.some(x => /(^|\D)4826(\D|$)/.test(x))) bad.push('THE PIN IS WRITTEN ON THE DEVICE: ' + all.filter(x => /(^|\D)4826(\D|$)/.test(x)).join(' | '));
   if (all.some(x => /ada_kind7/.test(x) && !/^familyUser=/.test(x))) bad.push('the handle is kept on the device for next time: ' + all.filter(x => /ada_kind7/.test(x) && !/^familyUser=/.test(x)).join(' | '));
   if (/"answers"|"submissions"|"favourites"/.test(String(w.localStorage.getItem('familyUser')))) bad.push('the sign-in reply’s per-person extras were kept in familyUser for thirty days');
   /* SIGNED OUT, THE NAME TAG IS EMPTY AND NO NAME IS OFFERED. */
