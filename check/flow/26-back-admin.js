@@ -623,7 +623,7 @@ check('after a wrong Check every answer can be deleted and checked again — typ
     /* TYPED: wrong, Check, then back into the box by a TAP ON ITS DRAWING, as a finger does -- the tap that put the caret at 0 and froze ⌫ */
     if (!inp) { bad.push(when + ': no keypad box'); return; }
     const mark = inp.closest('.qp-mark');
-    if (!inp.value) { inp.focus(); press('7'); press('1'); press('7'); press('!done'); }
+    if (!inp.value) { inp.focus(); press('7'); press('1'); press('7'); press('!done'); A['qp-check'](mark.closest('.qcard').querySelector('.qt-row .qp-check')); }
     else A['qp-check'](mark.closest('.qcard').querySelector('.qt-row .qp-check'));
     if (inp.value !== '717' || !mark.classList.contains('is-near')) bad.push(when + ': 717 was not marked "not yet" in the box: ' + JSON.stringify(inp.value) + ' ' + mark.className);
     inp.blur(); await wait(10);
@@ -639,7 +639,7 @@ check('after a wrong Check every answer can be deleted and checked again — typ
     if (inp.value !== '7') bad.push(when + ': ⌫ with the caret before the answer left ' + JSON.stringify(inp.value) + ', wanted "7"');
     inp.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Backspace', bubbles: true, cancelable: true }));
     if (inp.value !== '') bad.push(when + ': a keyboard Backspace left ' + JSON.stringify(inp.value));
-    press('7'); press('2'); press('7'); press('!done');
+    press('7'); press('2'); press('7'); press('!done'); A['qp-check'](mark.closest('.qcard').querySelector('.qt-row .qp-check'));
     if (!mark.classList.contains('is-right')) bad.push(when + ': 727 typed after deleting was not marked right: ' + mark.className);
     /* PICKED AND ORDERED ARE TYPED (owner, 9 Nov): a wrong letter, deleted, then the right one */
     const pc = host.querySelector('.qp-ans-in[data-k="' + w.__t.ansKey(PICK) + '"]').closest('.qcard') || host;

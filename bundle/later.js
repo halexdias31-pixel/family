@@ -4699,13 +4699,25 @@ function markTypo_(typed, accept, opt) {
     /* cheap first: a way of a very different length cannot be a near miss */
     if (Math.abs(ways[k].length - String(typed).trim().length) > 2 * tw.length + 2) continue;
     const ww = markTypoWords_(ways[k], ways[k]);
-    if (!ww || ww.length !== tw.length) continue;
+    if (!ww) continue;
+    /* HOW THE WORDS ARE SPLIT IS NOT THE ANSWER: "non renewable", "nonrenewable" and "non-renewable" are one word, so are
+       "gravitationalpotential" and "gravitational potential"; the joined letters take the same typo rule and the same rivals. */
+    if (ww.length !== tw.length || tw.join(' ') !== ww.join(' ')) {
+      const tj = tw.join('').replace(/-/g, ''), wj = ww.join('').replace(/-/g, '');
+      const cap = MARK_TYPO_OF(wj.length);
+      if (tj === wj) return markNorm_(ways[k]);
+      if (ww.length !== tw.length) {
+        if (cap && tj[0] === wj[0] && markEdits_(tj, wj, cap) <= cap && !rivals.some(r => r.replace(/-/g, '') !== wj && markEdits_(tj, r.replace(/-/g, ''), MARK_TYPO_OF(r.length)) <= MARK_TYPO_OF(r.length))) return markNorm_(ways[k]);
+        continue;
+      }
+    }
     let near = false;
     const ok = ww.every((w, i) => {
       const t = tw[i];
       if (t === w) return true;
       const cap = MARK_TYPO_OF(w.length);
-      if (!cap || markEdits_(t, w, cap) > cap) return false;
+      /* A SLIP KEEPS THE FIRST LETTER: increases/decreases, efficient/inefficient, elastic/inelastic are other words, not typos. */
+      if (!cap || t[0] !== w[0] || markEdits_(t, w, cap) > cap) return false;
       /* a near miss as near to another answer is that answer, typed: wrong */
       if (rivals.some(r => r !== w && markEdits_(t, r, MARK_TYPO_OF(r.length)) <= MARK_TYPO_OF(r.length))) return false;
       near = true;
@@ -13319,7 +13331,7 @@ const KP_KEYS = [
       stroke: 'currentColor', 'stroke-width': '2.2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' },
       kids: [{ el: 'path', a: { d: 'M9 5h11a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H9l-6-7z' } }, { el: 'path', a: { d: 'm12.5 9.5 5 5M17.5 9.5l-5 5' } }] } } },
   /* ✓ IS SEND: the same paper aeroplane as the Send tile beside the box (`ansBox_`), because it is the same act -- one mark for "mark it" wherever the child is § */
-  { v: '!done', a: 'done', c: ' kp-done', icon: 'send' },
+  { v: '!done', a: 'done, put the keypad away', c: ' kp-done', t: 'done' },
 ];
 /* THE SIGNS ROW, on every box, in the structures' amber because they are the keys that make an answer
    mathematical. `t` is the face as text (escaped by the one maker); a face that is a drawing is a block. */
@@ -13645,17 +13657,15 @@ function kpLayout_(inp) {
   kpShiftPaint_();
   return pad;
 }
-/* ✓ READS "next" IN A BOX WITH ANOTHER AFTER IT (one box per value, 362), and is Send again on the last. */
+/* DONE READS "next" IN A BOX WITH ANOTHER AFTER IT (one box per value, 362), and "done" on the last. It never sends: the question's Check tile is the one submit (owner, 16 Nov). */
 function kpNextPaint_(pad, inp) {
   const d = pad.querySelector('.kp-key.kp-done:not(.kp-done-k)');
   if (!d) return;
   const nx = !!(inp && typeof multiNext_ === 'function' && multiNext_(inp));
   if (d.classList.contains('is-next') === nx) return;
   d.classList.toggle('is-next', nx);
-  d.setAttribute('aria-label', nx ? 'next box' : 'done');
-  /* THE SEND MARK FROM A KEY DRAWN THE ONE WAY (`kpKey_`), so the pad keeps a single maker for its faces. */
-  const t = document.createElement('i'); t.innerHTML = kpKey_({ icon: 'send' });
-  d.innerHTML = nx ? 'next' : t.firstElementChild.innerHTML;
+  d.setAttribute('aria-label', nx ? 'next box' : 'done, put the keypad away');
+  d.textContent = nx ? 'next' : 'done';
 }
 /* `abc` AND `123`: the same pad turned over, the box keeping its focus and its caret. § */
 function kpLayer_(name, inp) {
@@ -14086,18 +14096,11 @@ function kpMic_(inp, el) {
   try { r.start(); KP_MIC_ON = r; kpMicPaint_(true); } catch (e) { KP_MIC_ON = null; kpMicPaint_(false); }
 }
 
-/* ✓ IS CHECK, where the question has a scheme to check against — the same handler the button runs, not a copy of it — and otherwise it is "I have finished" § */
-/* ---------- ✓ — THE GOLD SEND KEY, AND ENTER ON A LAPTOP — RUNS THE BOX'S OWN SEND § */
+/* ---------- DONE — AND ENTER ON A LAPTOP — MOVES TO THE NEXT BOX OR PUTS THE PAD AWAY. It never submits: the question's Check tile is the one submit (owner, 16 Nov: "2 places for submit… violating ssots"). */
 function kpDone_(inp) {
   if (kpSite_(inp)) return kpSiteDone_(inp);
   const nx = typeof multiNext_ === 'function' ? multiNext_(inp) : null;
   if (nx) return kpTake_(nx);
-  const box = inp.hasAttribute('data-kp-essay') ? null : inp.closest('.qp-mark');
-  /* ONE SUBMIT PATH (508): ✓ presses the box's own send tile, whatever it is called. */
-  const row = box && qRowOf_(box);
-  const go = row && row.querySelector('.tile.is-submit[data-do]:not([disabled])');
-  const run = go && ACTIONS[go.getAttribute('data-do')];
-  if (run) run(go);
   inp.blur();
   kpClose_();
 }

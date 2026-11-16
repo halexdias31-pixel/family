@@ -203,13 +203,13 @@ check('mark sound: a right answer chimes once and a wrong one buzzes once, for e
   const key = v => { const b = pad() && pad().querySelector('.kp-key[data-v="' + v + '"]'); if (b) earIn_(rec, () => A['kp-key'](b)); else bad.push('no key ' + v + ' on the pad'); };
   if (!ki) bad.push('the keypad card drew no pad box — ✓ was NOT pressed');
   else {
-    ki.focus(); key('1'); key('3'); key('!done'); await wait(30);
-    expect(['buzzer'], '✓ on the keypad with a wrong answer');
+    ki.focus(); key('1'); key('3'); key('!done'); earIn_(rec, () => sendRow_(w, ki)); await wait(30);
+    expect(['buzzer'], 'Check on a wrong answer typed on the keypad');
     ki.focus();
     earIn_(rec, () => { ki.value = '12'; ki.dispatchEvent(new w.Event('input', { bubbles: true })); });
-    earIn_(rec, () => ki.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })));
+    earIn_(rec, () => sendRow_(w, ki));
     await wait(30);
-    expect(['chime'], 'Enter on a laptop with the right answer');
+    expect(['chime'], 'Check on the right answer');
   }
 
   /* ---- NOTHING THAT ONLY DRAWS A VERDICT. ---- */

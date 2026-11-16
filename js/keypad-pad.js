@@ -33,18 +33,11 @@ function kpMic_(inp, el) {
   try { r.start(); KP_MIC_ON = r; kpMicPaint_(true); } catch (e) { KP_MIC_ON = null; kpMicPaint_(false); }
 }
 
-/* ✓ IS CHECK, where the question has a scheme to check against — the same handler the button runs, not a copy of it — and otherwise it is "I have finished" § */
-/* ---------- ✓ — THE GOLD SEND KEY, AND ENTER ON A LAPTOP — RUNS THE BOX'S OWN SEND § */
+/* ---------- DONE — AND ENTER ON A LAPTOP — MOVES TO THE NEXT BOX OR PUTS THE PAD AWAY. It never submits: the question's Check tile is the one submit (owner, 16 Nov: "2 places for submit… violating ssots"). */
 function kpDone_(inp) {
   if (kpSite_(inp)) return kpSiteDone_(inp);
   const nx = typeof multiNext_ === 'function' ? multiNext_(inp) : null;
   if (nx) return kpTake_(nx);
-  const box = inp.hasAttribute('data-kp-essay') ? null : inp.closest('.qp-mark');
-  /* ONE SUBMIT PATH (508): ✓ presses the box's own send tile, whatever it is called. */
-  const row = box && qRowOf_(box);
-  const go = row && row.querySelector('.tile.is-submit[data-do]:not([disabled])');
-  const run = go && ACTIONS[go.getAttribute('data-do')];
-  if (run) run(go);
   inp.blur();
   kpClose_();
 }
