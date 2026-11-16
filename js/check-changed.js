@@ -20,7 +20,7 @@ const MAP = [
                   'js/check-accounts.js', 'js/check-visibility.js', 'js/check-surnames.js', 'js/check-digest.js', 'js/check-library-ledger.js']],
   ['style.css', ['js/check-css.js', 'check/motion.js', 'js/check-cache.js', 'check/cascade.js', 'check/ui.js --part=1/3', 'check/ui.js --part=2/3', 'check/ui.js --part=3/3']],
   ['index.html', ['js/check-cache.js', 'js/check-loading.js', 'check/bootslow.js', 'check/arrival.js']],
-  ['data/questions.json', ['js/check-library.js', 'js/check-schema.js', 'js/check-qtypes.js', 'js/check-marking.js', 'js/check-typeset.js', 'js/check-answers.js',
+  ['data/questions.json', ['js/check-library.js', 'js/check-schema.js', 'js/check-qtypes.js', 'js/check-marking.js', 'js/check-points.js', 'js/check-typeset.js', 'js/check-answers.js',
                            'js/check-typeable.js', 'js/check-diagram-png.js', 'tools/finder-tags.js --check', 'check/cards.js']],
   ['data/textbooks.json', ['js/check-textbooks.js', 'js/check-schema.js', 'js/check-library.js', 'tools/finder-tags.js --check']],
   ['data/practicals.json', ['js/check-practicals.js', 'js/check-schema.js', 'js/check-library.js']],

@@ -4327,6 +4327,8 @@ function markExpr_(typed, want, eqn, fns) {
 }
 function markRule_(typed, rule) {
   const body = String(rule || '').replace(/^\s*rule:\s*/i, '');
+  /* `points`: worded points counted (`markPoints_`); as a yes or no, all of the marks */
+  if (/^points\b/i.test(body)) { const p = markPoints_(typed, rule); return !!p && p.got >= p.of; }
   /* `expr`/`eqn` is the whole rule but for `nobracket` (multiplied out), `fn g`, `parallel` and `not E` (any but that one) */
   const ex = /(?:^|,)\s*(expr|eqn)\s+([^,]+)/.exec(body);
   if (ex) {
@@ -4409,6 +4411,205 @@ function markRule_(typed, rule) {
   });
 }
 
+/* ---------- A WORDED ANSWER OF UP TO ABOUT SIX MARKS, MARKED BY THE POINTS IT MAKES (owner, 16 Nov) */
+/* `rule: points max 4; her head ached / headache; [2] limbs heavy~weighed; [q] heat intolerable`: `;` parts the points, `/` a point's
+   wordings, `~` a word's synonyms and spellings, `[2]` a point's marks (1 if none), `[q]` a quotation only; after `max N` the head may
+   say `first N` (only the first N answers read) and `phrases` (a short phrase is an answer, one point each). The distinct points found
+   are added up to `max`. A wording's words, stemmed and with the typo rule (`markTypo_`), must stand close, in any order, in one
+   sentence that is a sentence: a bare list of key words, a sentence of nothing but key words, and a long copied passage earn little. */
+const MARK_PT_GLUE = new Set(('a an the of to in on at for with by from and or but as is are was were be been being it its this that these those '
+  + 'he she they his her hers their him them i we you me my our your there here has have had do does did done will would can could may might '
+  + 'must should shall so because which who whom whose when while then than also very just not no into onto out up down over under about '
+  + 'all some any more most less if since until after before through each every one own too such what where why how').split(' '));
+const MARK_PT_CLAUSE = new Set(('is are was were be been being has have had do does did will would can could may might must should shall '
+  + 'he she it they i we you there because so which who that when while since if makes make made gets get got goes go went causes cause '
+  + 'turns turn becomes become became forms form changes change gives give gave shows show produces produce means mean leads lead '
+  + 'takes take took keeps keep kept lets let stops stop needs need uses use add adds put puts feels feel felt sees see saw').split(' '));
+const MARK_PT_NOT = new Set(['not', 'no', 'never', 'without', 'nor', 'hardly']);
+/* OPPOSITES THE TYPO RULE MUST NEVER JOIN (decreases is two letters from increases): each is a rival, so a near miss of one is that one */
+const MARK_PT_RIVALS = ('increase increases increased increasing decrease decreases decreased decreasing higher lower inhale exhale import export '
+  + 'inside outside above below before after maximum minimum positive negative endothermic exothermic absorb absorbs absorbed emit emits '
+  + 'emitted gain gains gained loses lost oxidised reduced oxidation reduction anode cathode acid alkali alkaline insulator conductor '
+  + 'diffusion osmosis mitosis meiosis').split(' ');
+/* the words of a source or an answer as they are read: entities, curly quotes and n't made plain */
+function markPtPlain_(s) {
+  return String(s == null ? '' : s).replace(/<br\s*\/?>|<\/(p|li|div|h\d|tr)>/gi, '\n').replace(/<[^>]*>/g, ' ')
+    .replace(/&(rsquo|lsquo|#8217|#8216|apos);/g, "'").replace(/&(rdquo|ldquo|quot|#8220|#8221);/g, '"')
+    .replace(/&hellip;/g, '...').replace(/&(mdash|ndash);/g, ' - ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&[a-z]+;|&#\d+;/g, ' ')
+    .replace(/[‘’ʼ]/g, "'").replace(/[“”]/g, '"').replace(/…/g, '...')
+    .toLowerCase().replace(/n't\b/g, ' not').replace(/'s\b/g, '');
+}
+function markPtWords_(s) {
+  return String(s).replace(/[-–—\/]/g, ' ').match(/[a-z0-9]+|¤/g) || [];
+}
+/* A LIGHT STEM: plurals, -ed, -ing, -ly, -ness and a closing e or y, so ached is ache and heavily is heavy */
+function markPtStem_(w) {
+  let s = w;
+  if (s.length < 4) return s;
+  if (/ies$/.test(s) && s.length > 4) s = s.slice(0, -3) + 'y';
+  else if (/sses$/.test(s)) s = s.slice(0, -2);
+  else if (/(s|x|z|ch|sh)es$/.test(s) && s.length > 4) s = s.slice(0, -2);
+  else if (/[^su]s$/.test(s) && !/is$/.test(s)) s = s.slice(0, -1);
+  if (/ness$/.test(s) && s.length > 6) s = s.slice(0, -4);
+  else if (/ingly$/.test(s) && s.length > 7) s = s.slice(0, -5);
+  else if (/ing$/.test(s) && s.length > 5) s = s.slice(0, -3);
+  else if (/edly$/.test(s) && s.length > 6) s = s.slice(0, -4);
+  else if (/ied$/.test(s) && s.length > 4) s = s.slice(0, -3) + 'y';
+  else if (/ed$/.test(s) && s.length > 4) s = s.slice(0, -2);
+  else if (/ly$/.test(s) && s.length > 4) s = s.slice(0, -2);
+  if (/([b-df-hj-np-tv-z])\1$/.test(s) && !/(ll|ss|zz|ff)$/.test(s)) s = s.slice(0, -1);
+  if (/e$/.test(s) && s.length > 3) s = s.slice(0, -1);
+  if (/y$/.test(s) && s.length > 3) s = s.slice(0, -1) + 'i';
+  return s;
+}
+/* THE KEY, read once: `{ max, points: [{ n, q, ways: [[[word, ...synonyms], ...], ...] }] }` */
+function markPtRead_(rule) {
+  const memo = markPtRead_.memo || (markPtRead_.memo = new Map());
+  if (memo.has(rule)) return memo.get(rule);
+  const parts = String(rule || '').replace(/^\s*rule:\s*/i, '').split(';').map(p => p.trim()).filter(Boolean);
+  const head = /^points\b(.*)$/i.exec(parts[0] || '');
+  const out = { max: 0, points: [] };
+  parts.slice(1).forEach(p => {
+    const tag = /^\[(\d*)(q?)\]\s*/i.exec(p);
+    const ways = (tag ? p.slice(tag[0].length) : p).split('/').map(w => w.trim().toLowerCase().replace(/n't\b/g, ' not').split(/\s+/)
+      .map(t => t.split('~').map(a => a.replace(/[^a-z0-9'-]/g, '').replace(/'s$/, '').replace(/-/g, '')).filter(Boolean))
+      .filter(alts => alts.length && !(alts.length === 1 && MARK_PT_GLUE.has(alts[0]) && !MARK_PT_NOT.has(alts[0]))))
+      .filter(w => w.length);
+    if (ways.length) out.points.push({ n: tag && tag[1] ? Number(tag[1]) : 1, q: !!(tag && tag[2]), ways });
+  });
+  const m = /max\s+(\d+)/i.exec(head ? head[1] : '') || /^\s*(\d+)/.exec(head ? head[1] : '');
+  out.max = m ? Number(m[1]) : out.points.reduce((s, p) => s + p.n, 0);
+  /* `first N`: only the first N answers are read, as an examiner reads "give two"; `phrases`: a short phrase is an answer, one point each */
+  out.first = Number((/first\s+(\d+)/i.exec(head ? head[1] : '') || [])[1]) || 0;
+  out.phrases = /\bphrases\b/i.test(head ? head[1] : '');
+  memo.set(rule, out);
+  return out;
+}
+/* THE SOURCE A QUOTATION IS CHECKED AGAINST: the question's own words, its lead and the stems above it; '' where there is none to check */
+function markPtSource_(x) {
+  if (!x) return '';
+  const bits = [x.lead, x.html].concat((x.stems || []).map(s => (s && (s.html || (s.row && s.row.html))) || ''));
+  const words = markPtWords_(markPtPlain_(bits.join('\n')));
+  return words.length >= 30 ? ' ' + words.join(' ') + ' ' : '';
+}
+/* A WORD OF THE ANSWER IS A WORD OF THE KEY: the same stem, or a near miss the typo rule forgives */
+function markPtIs_(tok, alts, opt) {
+  for (const a of alts) {
+    if (tok.w === a || tok.s === markPtStem_(a)) return true;
+    /* a little word (her, was) is never a near miss of a key word (hear, wax) */
+    if (/^\d+$/.test(a) || /^\d+$/.test(tok.w) || (opt && opt.strict) || MARK_PT_GLUE.has(tok.w)) continue;
+    if (markTypo_(tok.w, a, opt)) return true;
+    const sa = markPtStem_(a);
+    if (sa.length >= 4 && tok.s.length >= 4 && markTypo_(tok.s, sa, opt)) return true;
+  }
+  return false;
+}
+/* ONE WORDING IN A RUN OF WORDS: the closest set of places that holds every word of it, or null */
+function markPtFind_(toks, way, opt, quoteOnly) {
+  const negWay = way.some(a => a.some(b => MARK_PT_NOT.has(b)));
+  const at = way.map(alts => toks.map((t, i) => i).filter(i => {
+    if (!markPtIs_(toks[i], alts, opt)) return false;
+    if (quoteOnly && !toks[i].quote) return false;
+    if (negWay) return true;
+    /* "she was not tired" is not "she was tired" */
+    for (let j = i - 1, k = 0; j >= 0 && k < 3; j--, k++) {
+      if (MARK_PT_NOT.has(toks[j].w)) return false;
+      if (!MARK_PT_GLUE.has(toks[j].w)) break;
+    }
+    return true;
+  }));
+  if (at.some(a => !a.length)) return null;
+  const span = way.length + 4;
+  let best = null;
+  const walk = (k, used) => {
+    if (k === at.length) {
+      const lo = Math.min(...used), hi = Math.max(...used);
+      if (hi - lo + 1 <= span && (!best || hi - lo < best.hi - best.lo)) best = { lo, hi, used: used.slice() };
+      return;
+    }
+    for (const i of at[k].slice(0, 12)) if (used.indexOf(i) < 0) { used.push(i); walk(k + 1, used); used.pop(); }
+  };
+  walk(0, []);
+  return best;
+}
+/* `{ got, of, points: true }`, or null for nothing typed. `x` is the part, for its source; `opt` the typo rule's (`markOpt_`). */
+function markPoints_(typed, rule, x, opt) {
+  const raw = String(Array.isArray(typed) ? typed.join('\n') : typed == null ? '' : typed);
+  if (!raw.trim()) return null;
+  const key = markPtRead_(rule);
+  const source = markPtSource_(x);
+  opt = { strict: !!(opt && opt.strict), others: ((opt && opt.others) || []).concat(MARK_PT_RIVALS) };
+  /* A QUOTATION MUST BE IN THE SOURCE: one that is not is taken out, one that is is marked as quoted */
+  let quotes = 0;
+  const text = markPtPlain_(raw).replace(/(^|[\s(\[:,])(["'])((?:(?!\2)[^\n]|'(?=[a-z]))+?)\2(?=[\s.,;:!?)\]]|$)/g, (m, pre, qm, body) => {
+    const parts = body.split(/\.\.\.+/).map(p => markPtWords_(p)).filter(p => p.length);
+    /* with no source to check against, a quotation is read as the student's own words, and no `[q]` point is open */
+    if (!parts.length || !source) return pre + ' ' + body + ' ';
+    const found = source && parts.every(p => source.indexOf(' ' + p.join(' ') + ' ') >= 0);
+    quotes++;
+    return pre + (found ? ' \u0001' + quotes + ' ' + body.replace(/[.!?;]/g, ' ') + ' \u0002 ' : ' ¤ ');
+  });
+  const credited = new Map();
+  let inQuote = 0;
+  let units = text.split(key.phrases ? /[.!?]+(?=\s|$)|[;\n•,]+|\s+and\s+/ : /[.!?]+(?=\s|$)|[;\n•]+/);
+  units = units.filter(u => markPtWords_(u.replace(/\u0001\d+|\u0002/g, ' ')).some(w => !/^\d+$/.test(w)));
+  if (key.first) units = units.slice(0, key.first);
+  units.forEach(sentence => {
+    /* the sentence's words, each with its stem, its comma-part and the quotation it stands in */
+    const toks = [];
+    sentence.split(/,|\s+(?=and\s)|\s+-\s+/).forEach((chunk, c) => {
+      chunk.replace(/\u0001(\d+)|\u0002|[^\s\u0001\u0002]+/g, m => {
+        if (m[0] === '\u0001') inQuote = Number(m.slice(1));
+        else if (m === '\u0002') inQuote = 0;
+        else markPtWords_(m).forEach(w => toks.push({ w, s: markPtStem_(w), c, quote: inQuote }));
+        return m;
+      });
+    });
+    const glue = toks.filter(t => MARK_PT_GLUE.has(t.w)).length;
+    if (!key.phrases && toks.length < 3) return;
+    /* A LIST OF KEY WORDS: four or more comma-parts and all but one of them no clause; only the parts that are clauses are read */
+    const chunks = [...new Set(toks.map(t => t.c))];
+    const clause = c => toks.some(t => t.c === c && (t.quote || MARK_PT_CLAUSE.has(t.w) || (/ed$/.test(t.w) && t.w.length > 4)));
+    const scopes = chunks.length >= 4 && chunks.filter(c => !clause(c)).length >= chunks.length - 1
+      ? chunks.filter(clause).map(c => toks.filter(t => t.c === c)) : [toks];
+    const found = [];
+    scopes.forEach(sc => key.points.forEach((p, pi) => {
+      if (p.q && !source) return;
+      for (const way of p.ways) {
+        const f = markPtFind_(sc, way, opt, p.q);
+        if (f) { found.push({ pi, n: p.n, at: f.used.map(i => sc[i]) }); break; }
+      }
+    }));
+    /* NO MORE POINTS FROM A SENTENCE THAN IT HAS LITTLE TYING WORDS (the, she, so), NOR MORE THAN ONE PAST ITS VERBS; the same words never two points, a long quotation one */
+    const keyWords = new Set();
+    found.forEach(f => f.at.forEach(t => keyWords.add(t)));
+    const verbs = toks.filter(t => t.quote || MARK_PT_CLAUSE.has(t.w) || (/ed$/.test(t.w) && t.w.length > 4)).length;
+    /* a short sentence with no little words ("Hyenas worry Pi") is one point if a word in it is no key word at all */
+    const tying = toks.filter(t => !keyWords.has(t) && (MARK_PT_GLUE.has(t.w) || t.quote)).length;
+    const keyish = toks.filter(t => key.points.some(p => p.ways.some(w => w.some(alts => markPtIs_(t, alts, opt))))).length, own = keyish < toks.length;
+    /* and a sentence that is three parts in four key words is a list of them, whatever little word it carries */
+    let room = key.phrases ? 1 : keyish > 0.75 * toks.length ? 0 : glue ? Math.min(verbs + 1, tying) : toks.length <= 6 && own ? 1 : 0;
+    const kept = [], perQuote = {};
+    found.sort((a, b) => b.n - a.n || b.at.length - a.at.length).forEach(f => {
+      if (room <= 0 || credited.has(f.pi)) return;
+      if (kept.some(k => f.at.every(t => k.at.indexOf(t) >= 0))) return;
+      const q = f.at.every(t => t.quote && t.quote === f.at[0].quote) ? f.at[0].quote : 0;
+      if (q && toks.filter(t => t.quote === q).length > 15 && perQuote[q]) return;
+      if (q) perQuote[q] = 1;
+      kept.push(f);
+      room--;
+    });
+    kept.forEach(f => credited.set(f.pi, f.n));
+  });
+  const got = [...credited.values()].reduce((s, n) => s + n, 0);
+  return { got: Math.min(got, key.max), of: key.max, points: true };
+}
+function markIsPoints_(accept) {
+  return /(^|\|)\s*rule:\s*points\b/i.test(String(accept || ''));
+}
+function markPointsWay_(accept) {
+  return String(accept || '').split('|').find(w => /^\s*rule:\s*points\b/i.test(w)) || '';
+}
 /* ALGEBRA IN ANY ORDER (R3, O4): the sides' terms as a sorted list, so 4x^2-7x+x^3 is x^3+4x^2-7x; x+x is not 2x, which keeps "simplify". */
 function markTerms_(s) {
   const t = markNorm_(s).replace(/×/g, '*').replace(/\s+/g, '');
@@ -4632,6 +4833,8 @@ const PART_MARKERS = {
   choice: (x, typed) => markChoice_(x, typed, false),
   order: (x, typed) => markChoice_(x, typed, true),
   accept: (x, typed) => {
+    /* POINTS ARE COUNTED, and the one result is the marks out of the maximum */
+    if (markIsPoints_(x.accept)) return markPoints_(typed, markPointsWay_(x.accept), x, markOpt_(x));
     const o = markOpt_(x), v = markAnswer_(typed, x.accept, false, o);
     if (v === null) return null;
     const fix = v && !markAnswer_(typed, x.accept, false, { strict: true }) ? markTypo_(typed, x.accept, o) : '';
@@ -5165,9 +5368,9 @@ on('qp-check', (el) => {
   if (v.save) { ACTIONS['qp-send'](el); return; }
   const full = v.got >= v.of;
   box.classList.add(full ? 'is-right' : 'is-near');
-  tell_(out, full && !v.words ? 'saved' : 'info', v.words ? v.got + ' of ' + v.of + ' mark' + (v.of === 1 ? '' : 's') + ' · by key words' : full ? (v.typo ? text_('correct-check-the-spelling') + v.typo + ')' : 'Correct') : text_('not-yet-have-another-go'));
+  tell_(out, full && !v.words ? 'saved' : 'info', v.points ? v.got + ' of ' + v.of + ' mark' + (v.of === 1 ? '' : 's') : v.words ? v.got + ' of ' + v.of + ' mark' + (v.of === 1 ? '' : 's') + ' · by key words' : full ? (v.typo ? text_('correct-check-the-spelling') + v.typo + ')' : 'Correct') : text_('not-yet-have-another-go'));
   /* MARKED IS A SUBMISSION, right or not yet (js/submit.js); signed out it is this visit's alone. */
-  subRecord_(k, inp.value, v.words ? 'rule:' + v.got + '/' + v.of : full ? 'right' : 'wrong');
+  subRecord_(k, inp.value, v.words || v.points ? 'rule:' + v.got + '/' + v.of : full ? 'right' : 'wrong');
 });
 
 /* ---------- SAVE, WHERE NOTHING CAN MARK IT (owner, 16 Nov): the typed answer as a `sent` submission, and any photos with it (`workSave_`, working.js). */

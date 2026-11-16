@@ -406,11 +406,12 @@
   {
    "id": "1.32",
    "principle": 1,
-   "text": "Marking is mechanical and fair: one typed box, one marker per checker, every accept marked right against itself and typeable on the pad.",
+   "text": "Marking is mechanical and fair: one typed box, one marker per checker, every accept marked right against itself and typeable on the pad. A worded answer of up to about six marks is marked by the distinct points it makes (`rule: points`): each point's words close together in a real sentence, a list of key words earning nothing, a quotation counted only if it is in the source, and one result shown, the marks out of the maximum.",
    "checks": [
     "answer",
     "answers",
     "marking",
+    "points",
     "keypad-power",
     "marking-norm",
     "qmerge",
