@@ -539,6 +539,7 @@ const FACETS = [
   { field: 'source',    label: 'Source',      of: x => sourceOf_(x) },
   { field: 'needs',     label: 'What you need', of: x => asList_(x.needs) },
   /* HOW YOU DID (463): the viewer's own latest press on a question; an ordinary facet (signed out it is blank, so it cannot split). */
+  { field: 'myAttempt', label: 'Attempted', of: x => myAttemptOf_(x) },
   { field: 'myResult',  label: 'Your result', of: x => myResultOf_(x) },
 ];
 

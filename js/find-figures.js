@@ -242,7 +242,7 @@ function tagList_(x, page) {
   facetList().forEach(facet => {
     let vals;
     /* YOUR RESULT IS THE QUESTION'S: the answer card under it does not say it again. */
-    if (page === 'ans' && facet.field === 'myResult') return;
+    if (page === 'ans' && /^my(Attempt|Result)$/.test(facet.field)) return;
     try { vals = facetTags_(facet, x, page); } catch (e) { vals = []; }
     vals.forEach(v => {
       const raw = String(v == null ? '' : v).trim();

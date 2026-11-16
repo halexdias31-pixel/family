@@ -773,6 +773,7 @@ const FACETS = [
   { field: 'source',    label: 'Source',      of: x => sourceOf_(x) },
   { field: 'needs',     label: 'What you need', of: x => asList_(x.needs) },
   /* HOW YOU DID (463): the viewer's own latest press on a question; an ordinary facet (signed out it is blank, so it cannot split). */
+  { field: 'myAttempt', label: 'Attempted', of: x => myAttemptOf_(x) },
   { field: 'myResult',  label: 'Your result', of: x => myResultOf_(x) },
 ];
 
@@ -8264,7 +8265,7 @@ function tagList_(x, page) {
   facetList().forEach(facet => {
     let vals;
     /* YOUR RESULT IS THE QUESTION'S: the answer card under it does not say it again. */
-    if (page === 'ans' && facet.field === 'myResult') return;
+    if (page === 'ans' && /^my(Attempt|Result)$/.test(facet.field)) return;
     try { vals = facetTags_(facet, x, page); } catch (e) { vals = []; }
     vals.forEach(v => {
       const raw = String(v == null ? '' : v).trim();
@@ -10372,16 +10373,19 @@ function myResults_() {
   MY_RESULT.key = key; MY_RESULT.from = DATA && DATA.submissions; MY_RESULT.map = map;
   return map;
 }
-/* ATTEMPTED IS EVERY PRESS; a marked one also says how it went, as Progress scores it (`progressScore_`). */
-function myResultOf_(x) {
+/* TWO QUESTIONS, TWO MENUS (owner, 16 Nov): did you try it (Attempted / Unattempted), and how did it go (Correct / Incorrect / Part marks, once marked). */
+function myAttemptOf_(x) {
   if (!isQ_(x)) return '';
   const map = myResults_();
   if (!map) return '';
-  const k = String(x.key || x.name || '');
-  if (!map.has(k)) return 'Unattempted';
+  return map.has(String(x.key || x.name || '')) ? 'Attempted' : 'Unattempted';
+}
+function myResultOf_(x) {
+  if (!isQ_(x)) return '';
+  const map = myResults_(), k = String(x.key || x.name || '');
+  if (!map || !map.has(k)) return '';
   const sc = typeof progressScore_ === 'function' ? progressScore_(map.get(k)) : null;
-  if (!sc) return 'Attempted';
-  return ['Attempted', sc.got >= sc.of ? 'Correct' : sc.got <= 0 ? 'Incorrect' : 'Part marks'];
+  return !sc ? '' : sc.got >= sc.of ? 'Correct' : sc.got <= 0 ? 'Incorrect' : 'Part marks';
 }
 /* A PRESS CHANGES IT AT ONCE: every finder forgets what it found, and the tags on the pressed question's own page are said again. */
 function myResultNew_(k) {
@@ -10390,7 +10394,7 @@ function myResultNew_(k) {
   try {
     const x = stuffItemsAll_().find(i => isQ_(i) && ansKey_(i) === k);
     if (!x) return;
-    const tags = asList_(myResultOf_(x)).map(v => qtag_(esc(v), tagAttr_('myResult') + ' data-f="myResult"')).join('');
+    const tags = [['myAttempt', myAttemptOf_(x)], ['myResult', myResultOf_(x)]].flatMap(([f, v]) => asList_(v).map(t => qtag_(esc(t), tagAttr_(f) + ' data-f="' + f + '"'))).join('');
     /* ONLY THE PRESSED PART'S OWN TAG LINE: a whole question's page holds every part's card (`.qb`), and each says its own result. */
     document.querySelectorAll('[data-k]').forEach(b => {
       if (b.getAttribute('data-k') !== k) return;
@@ -10398,7 +10402,7 @@ function myResultNew_(k) {
       /* THE ANSWER CARD UNDER A PART is the scheme's, not your result's. */
       (pg ? (own ? own.querySelectorAll(':scope > .kc-tags > .qcard-tags') : pg.querySelectorAll('.qcard-tags')) : []).forEach(row => {
         if (row.closest('.qans-card')) return;
-        row.querySelectorAll('[data-f="myResult"]').forEach(t => t.remove());
+        row.querySelectorAll('[data-f="myAttempt"], [data-f="myResult"]').forEach(t => t.remove());
         row.insertAdjacentHTML('beforeend', tags);
       });
     });
@@ -11293,7 +11297,7 @@ const BUNDLE_ITEM = { kind: 'bundle', kindLabel: 'Bundles' };
 /* A BUNDLE CARRIES EVERY TAG ITS PAPERS SHARE (owner, 6 Nov: "the same tags the sections have"), after its own Bundles tag. */
 function bundleTagsOf_(b) {
   /* Tags as DATA (one template): a paper's tag is the same tag when it draws the same; the row is drawn once, by `renderTags`. */
-  const skip = /^(kindLabel|kindOwn|qNumber|qPart|qSub|marks|myResult)$/, same = t => cardTag_(t, 1);
+  const skip = /^(kindLabel|kindOwn|qNumber|qPart|qSub|marks|myAttempt|myResult)$/, same = t => cardTag_(t, 1);
   const sets = ((b && b.firsts) || []).map(x => { const m = new Map(); tagList_(x).forEach(t => { if (!skip.test(String((t.data || {}).f || ''))) m.set(same(t), t); }); return m; });
   const all = tagList_(BUNDLE_ITEM).concat(sets.length ? [...sets[0].keys()].filter(k => sets.every(m => m.has(k))).map(k => sets[0].get(k)) : []);
   return renderTags(all, 'qcard-tags', !all.length);
@@ -11530,7 +11534,7 @@ function chipShow_(f, i) {
 
 /* ---------- ONE COLOUR PER MENU (1030): every answer of a facet, its chip and its card words wear the facet's --hue-N. § */
 /* WRITTEN BY tools/facet-hues.js from the funnel's facet graph: two facets asked on one path never share a number. */
-const TAG_OF = {forLabel: 0, kindLabel: 0, kindOwn: 2, postState: 1, postBy: 8, postWhen: 9, msgWith: 8, profileType: 1, settingFor: 1, vidSubject: 0, vidTopic: 1, vidChannel: 10, vidLevel: 11, vidType: 2, venueArea: 6, venueFor: 7, venueSize: 8, projectType: 10, subject: 1, shelf: 1, wReligion: 9, histKind: 4, wCollection: 8, histPart: 3, wWork: 2, wSection: 10, wSource: 2, wLanguage: 6, wText: 3, wTradition: 6, wBook: 7, wChapter: 10, wUnit: 11, wAuthor: 3, wForm: 4, wPrimacy: 5, mScope: 4, mMake: 2, mModel: 5, mGen: 3, mEngine: 3, mKind: 5, mSystem: 11, pcType: 5, pcSocket: 4, pcIface: 2, pcLinks: 3, mPhase: 6, mMarket: 4, mYears: 11, mSize: 9, mValves: 10, mBadge: 1, mFuel: 2, mPart: 10, mPrice: 7, cCategory: 11, cGroup: 7, cPeriod: 8, cState: 9, boxKind: 7, fighter: 8, boutMonth: 11, boutYear: 2, decade: 3, division: 4, boutRound: 0, boutMethod: 0, boutWinner: 0, boutEvent: 0, histEra: 2, histMaterial: 8, histFormat: 5, histGenre: 9, histRole: 9, personName: 3, personYears: 7, personFrom: 6, histTheme: 11, histRepository: 10, histSide: 10, histFound: 8, histDated: 1, histTheatre: 11, practicalType: 4, shopKind: 6, shopHow: 1, shopPrice: 7, shopBrand: 2, shopFor: 3, shopTheme: 4, required: 0, documentType: 5, level: 3, keystage: 6, yearGroup: 5, bandValue: 10, topic: 5, examBoard: 4, specTopic: 9, specPoint: 8, tier: 9, examYear: 5, examMonth: 7, examDay: 6, verified: 9, paperId: 6, paperSection: 4, qNumber: 7, qPart: 6, qSub: 11, marks: 0, needs: 1, myResult: 0, source: 5};
+const TAG_OF = {forLabel: 0, kindLabel: 0, kindOwn: 2, postState: 1, postBy: 8, postWhen: 9, msgWith: 8, profileType: 1, settingFor: 1, vidSubject: 0, vidTopic: 1, vidChannel: 10, vidLevel: 11, vidType: 2, venueArea: 6, venueFor: 7, venueSize: 8, projectType: 10, subject: 1, shelf: 1, wReligion: 9, histKind: 4, wCollection: 8, histPart: 3, wWork: 2, wSection: 10, wSource: 2, wLanguage: 6, wText: 3, wTradition: 6, wBook: 7, wChapter: 10, wUnit: 11, wAuthor: 3, wForm: 4, wPrimacy: 5, mScope: 4, mMake: 2, mModel: 5, mGen: 3, mEngine: 3, mKind: 5, mSystem: 11, pcType: 5, pcSocket: 4, pcIface: 2, pcLinks: 3, mPhase: 6, mMarket: 4, mYears: 11, mSize: 9, mValves: 10, mBadge: 1, mFuel: 2, mPart: 10, mPrice: 7, cCategory: 11, cGroup: 7, cPeriod: 8, cState: 9, boxKind: 7, fighter: 8, boutMonth: 11, boutYear: 2, decade: 3, division: 4, boutRound: 0, boutMethod: 0, boutWinner: 0, boutEvent: 0, histEra: 2, histMaterial: 8, histFormat: 5, histGenre: 9, histRole: 9, personName: 3, personYears: 7, personFrom: 6, histTheme: 11, histRepository: 10, histSide: 10, histFound: 8, histDated: 1, histTheatre: 11, practicalType: 4, shopKind: 6, shopHow: 1, shopPrice: 7, shopBrand: 2, shopFor: 3, shopTheme: 4, required: 0, documentType: 5, level: 3, keystage: 6, yearGroup: 5, bandValue: 10, topic: 5, examBoard: 4, specTopic: 9, specPoint: 8, tier: 9, examYear: 5, examMonth: 7, examDay: 6, verified: 9, paperId: 6, paperSection: 4, qNumber: 7, qPart: 6, qSub: 11, marks: 0, needs: 1, myResult: 0, myAttempt: 10, source: 5};
 /* A FACET THE WALK NEVER MET (one the facets tab invented) still has a colour: the first. */
 const tagOf_ = field => 'h' + (TAG_OF[field] || 0);
 const tagAttr_ = field => ` data-tag="${tagOf_(field)}"`;
@@ -12683,7 +12687,7 @@ function answerSaysBuilt_(items) {
 
 /* A BIG LIST'S CARDS BY ONE FACET'S ANSWER (1100), in the list's order, made once (or ahead, `frontWarm_`): § */
 /* Not for a facet that reads the chips or your presses (`OWN_LIVE`), and only over NARROW_BIG cards, where a walk is felt. */
-const NARROW_INDEX = new WeakMap(), NARROW_BIG = 20000, OWN_LIVE = { myResult: 1, wCollection: 1 };
+const NARROW_INDEX = new WeakMap(), NARROW_BIG = 20000, OWN_LIVE = { myAttempt: 1, myResult: 1, wCollection: 1 };
 function narrowIndex_(items, field, make) {
   if (!items || items.length < NARROW_BIG || OWN_LIVE[field]) return null;
   let per = NARROW_INDEX.get(items);
