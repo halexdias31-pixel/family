@@ -190,7 +190,7 @@ on('apply-send', el => {
       formDraftDrop_('apply-teach', { draftId: String((whose_() && whose_().personId) || '') });
       try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (e) { /* storage can be blocked; the app runs without it */ }
       toast(text_('application-sent'));
-      try { paint('staff'); } catch (e) { oops_(e, 'me:applyFormHtml_') }
+      try { paint('stuff'); } catch (e) { oops_(e, 'me:applyFormHtml_') }   /* Apply to teach is a Find › Settings › Staff card */
     })
     .catch(() => {});
 });
@@ -376,15 +376,6 @@ function signedIn_(d, typed) {
   try { if (typeof subAdopt_ === 'function') subAdopt_(); } catch (e) { oops_(e, 'me:signedIn_') }
   /* NO "SIGNED IN AS" (owner, 15 Nov): the name tag first in Find says whose account it is. */
   repaint();
-  /* ---------- AND BACK WHERE YOU CAME FROM § */
-  try {
-    if (AT === 'account') {
-      const kid = typeof hasRole === 'function' && (hasRole('kid') || hasRole('student'));
-      const back = typeof PREV_AT === 'string' && PREV_AT && PREV_AT !== 'account' && TABS.some(t => t.id === PREV_AT)
-        ? PREV_AT : (kid ? 'stuff' : '');
-      if (back) go(back);
-    }
-  } catch (e) { /* no way back: they stay on the account screen */ }
   Object.keys(backAt).forEach(id => { if (backAt[id] > 0) { try { goPage(id, backAt[id], true); } catch (e) { oops_(e, 'me:signedIn_') } } });
   load();
   /* AND WHAT IS OWED ONCE IN — a sentence about held children, a move link waiting. */

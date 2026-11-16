@@ -512,7 +512,7 @@ check('rate card (620): a tutor\'s three cards — rate and extra seat, @family.
 /* ---------- A TUTOR CHOOSES THEIR MANAGER, AND THE BOOKING'S MONEY SHOWS THE SPLIT (owner, 13 Nov; history 1217) ---------- */
 check('manager chain (1217): Ada picks Ben as her manager on her Staff card, the line says Ben 25% and @family. 25%, Save writes it, and the admin\'s booking breakdown shows Ben\'s line', async () => {
   const W = cardWorld_({ vars: CUT_VARS_ });
-  const c = await cardOpen_(W, 'tutor@example.org', { col: 'tutors' });
+  const c = await cardOpen_(W, 'tutor@example.org', { col: 'tutors', sel: '.card-ed[data-sec="manager"]' });
   if (c.err) return [c.err];
   const bad = [];
   for (let k = 0; k < 20 && !c.sec('manager'); k++) await wait(100);

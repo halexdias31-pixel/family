@@ -512,9 +512,6 @@ function progressRedraw_() {
   try {
     /* COUNTDOWNS ARE A TOOLS WIDGET SINCE 466, for everyone; a date saved on About you repaints it there. */
     if (typeof paintCountdowns_ === 'function') paintCountdowns_();
-    if (typeof screenHasMarkup_ === 'function' && !screenHasMarkup_('account')) return;
-    paint('account');
-    paintPager('account', true);
   } catch (e) {}
 }
 

@@ -323,7 +323,8 @@ const OLD_SERVER_SAY_ = 'The server in Apps Script is older than this site. Upda
 /* ---------- WHICH SETTINGS CARDS HAVE SOMETHING TYPED INTO THEM § */
 /* AND THE BUSINESS COLUMN BY THE SAME RULE. § */
 /* AND THE LIBRARY CARDS ON TOOLS (docs/history/339), and their starred copy on Saved — a `.me-form` in a widget's slot, kept by the same two lines § */
-const KEEP_FORMS_ = '#s-account .me-form, #s-staff .me-form, #s-family .me-form, #s-biz .me-form, #s-stuff .widget-slot .me-form, #s-saved .widget-slot .me-form';
+/* AND EVERY SETTINGS FORM IN FIND: Tutor, Kids and Biz settings are Find › Settings branches since 16 Nov, held as their columns were. */
+const KEEP_FORMS_ = '#s-stuff .me-form, #s-saved .widget-slot .me-form';
 document.addEventListener('input', e => {
   const f = e.target && e.target.closest && e.target.closest(KEEP_FORMS_);
   if (f) f.dataset.dirty = '1';
@@ -334,7 +335,7 @@ document.addEventListener('change', e => {
 });
 function settingsKeep_(id) {
   /* AND THE YOU COLUMN, WHILE A CARD ON IT IS BEING EDITED (`cardEditHtml_`) — the same rule for the same reason: § */
-  if (['account', 'tutors', 'students', 'parents'].indexOf(id) !== -1 && USER) {
+  if (['tutors', 'students', 'parents'].indexOf(id) !== -1 && USER) {
     const acc = $('s-' + id);
     /* AND STUDENT SETTINGS' CARDS, and the card editors and person forms on the people columns (453). */
     return !!(acc && acc.querySelector('.card-ed .me-form[data-dirty], .is-sending .card-ed, .me-form[data-dirty], .me-form.is-sending'));
@@ -342,11 +343,9 @@ function settingsKeep_(id) {
   /* AND SAVED, WHILE THE LIBRARY CARDS ON THEM HOLD TYPING (docs/history/339) — the one form a widget slot holds. § */
   if (['saved', 'stuff'].indexOf(id) !== -1 && USER) {   /* Find's too: the library cards are a Find card (790) */
     const col = $('s-' + id);
-    return !!(col && col.querySelector('.widget-slot .me-form[data-dirty], .widget-slot .me-form.is-sending'));
+    return !!(col && col.querySelector(id === 'stuff' ? '.me-form[data-dirty], .me-form.is-sending, .is-sending .card-ed' : '.widget-slot .me-form[data-dirty], .widget-slot .me-form.is-sending'));
   }
-  if (['staff', 'family', 'biz'].indexOf(id) === -1 || !USER) return false;
-  const el = $('s-' + id);
-  return !!(el && el.querySelector('.me-form[data-dirty], .me-form.is-sending, .is-sending .card-ed'));
+  return false;
 }
 
 /* ---------- YOUR SETTINGS, AS THE SHEET HOLDS THEM § */
@@ -412,7 +411,7 @@ function profileRefresh_(loud, onOld) {
       /* AND YOUR CARD, WHEN IT IS OPEN FOR EDITING — it is drawn from this copy (`cardEditHtml_`), and one still waiting for a copy it can trust § */
       if (CARD_EDIT && CARD_EDIT.own) { try { land(() => paint(SET_OF_FACE_[CARD_EDIT.col] || 'account')); } catch (e) { oops_(e, 'me:profileRefresh_') } }
       /* REDRAWN IF IT IS DRAWN — and `paint` itself declines while a card has typing in it. */
-      ['account', 'staff', 'family'].concat(PEOPLE_COLS_).forEach(c => {
+      PEOPLE_COLS_.forEach(c => {
         if (typeof screenHasMarkup_ === 'function' && screenHasMarkup_(c))
           try { land(() => { paint(c); placeCells('y', true, 0, c); }); } catch (e) { /* a screen gone before it lands is painted on its next draw */ }
       });
