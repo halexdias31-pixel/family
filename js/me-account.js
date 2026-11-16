@@ -218,53 +218,7 @@ const mePages = () => {
 /* ---------- NOTHING IN THE APP ASKS ANYBODY TO INSTALL IT § */
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); });
 
-function mountGoogleWhenDrawn() {
-  if (!USER && typeof googleMount === 'function') requestAnimationFrame(googleMount);
-}
-
-
-/* ---------- MOUNTING GOOGLE'S BUTTON § */
-let gLoaded = false;
-
-function googleMount() {
-  const host = $('g-btn');
-  const id = DATA.googleClientId || '';
-  if (!host || !id || host.childElementCount) return;
-
-  const draw = () => {
-    if (!window.google || !google.accounts || !google.accounts.id) return;
-    google.accounts.id.initialize({ client_id: id, callback: googleSignedIn_ });
-    google.accounts.id.renderButton(host, { theme: 'filled_black', size: 'large',
-                                            text: 'signin_with', width: 260 });
-  };
-  if (gLoaded) { draw(); return; }
-  gLoaded = true;
-  const s = document.createElement('script');
-  s.src = 'https://accounts.google.com/gsi/client';
-  s.async = true;
-  s.onload = draw;
-  /* NO SCRIPT, NO BUTTON, AND A SENTENCE. A blocked or offline third party otherwise leaves an
-     empty gap under the word "or", which reads as the app having lost something. */
-  s.onerror = () => { host.innerHTML = ''; };
-  document.head.appendChild(s);
-}
-
-/* WHAT COMES BACK IS A CLAIM AND IT IS NOT INSPECTED HERE. § */
-function googleSignedIn_(res) {
-  /* THE SAME VOICE AS THE PIN DOOR, which is the point: § */
-  toast(text_('checking-with-google'));
-  send_({ action: 'googleLogin', credential: (res && res.credential) || '' })
-    .then(d => {
-      if (!d.success) { toast(d.error || text_('that-did-not-work')); return; }
-      /* ---------- EXCEPT WHEN GOOGLE HAS JUST TAKEN AWAY THE PIN § */
-      if (d.pinCleared && !d.message) d.message = text_('the-pin-this-account-was-made')
-        + 'with Google, or use "Forgotten your PIN?" for a new one.';
-      /* THE SAME DOOR AS THE PIN PATH — `signedIn_`, because the reply is the same reply (one function builds it on the server for exactly this reason) and both doors § */
-      signedIn_(d);
-    })
-    /* `send_` HAS ALREADY TOASTED IT — see the note over `sign-digit` in find-account.js. */
-    .catch(() => {});
-}
+/* SIGNING IN WITH GOOGLE WENT (owner, 16 Nov): one way in, a username or email and the PIN. */
 
 /* THE SIGN-IN CARD SPEAKS IN TOASTS, AND IT USED TO SAY EVERYTHING THREE TIMES. § */
 /* ---------- A NEW PIN, TO THE ADDRESS IN THE SHEET AND NOWHERE ELSE § */

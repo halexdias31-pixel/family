@@ -161,7 +161,7 @@ check('sign out, then the next child signs in: none of the last child’s messag
   return bad;
 });
 
-check('a wrong PIN shows nothing and clears nothing (owner, 15 Nov): the four ● stay, no toast, the banner unchanged; each ● comes off by its ×', async () => {
+check('a wrong PIN shows nothing and clears nothing (owner, 15 Nov): the four * stay, no toast, the banner unchanged; each * comes off by its ×', async () => {
   const { w } = boot({ reply: b => (b.action === 'verifyLogin' && b.probe ? { success: false, probe: true, known: !/^@?nobody/.test(String(b.email)) }
     : b.action === 'verifyLogin'
     ? (/^@?nobody/.test(String(b.email)) ? { success: false, why: 'not-an-email', error: 'Sign in with the email on your account — or your handle, as it is on your card.' }
@@ -176,16 +176,16 @@ check('a wrong PIN shows nothing and clears nothing (owner, 15 Nov): the four �
   if (no) return [no];
   await wait(300);
   const dots = () => d.querySelectorAll('#stuff-chips .sign-dot').length;
-  if (dots() !== 4) bad.push('after a wrong PIN ' + dots() + ' ● chips are left — nothing is cleared; the child takes them off');
+  if (dots() !== 4) bad.push('after a wrong PIN ' + dots() + ' * chips are left — nothing is cleared; the child takes them off');
   if (d.querySelector('#stuff-groups [data-do="sign-digit"]')) bad.push('after a wrong PIN the digit menu is still offered — nothing shows, as a path that matches nothing');
   if (!/ada_kind7/.test((d.querySelector('#stuff-chips .chip') || {}).textContent || '')) bad.push('after a wrong PIN the name is not still the first chip');
   if (toastOf_(d) !== toastWas && /Wrong PIN/.test(toastOf_(d))) bad.push('a wrong PIN said ' + JSON.stringify(toastOf_(d)));
   const ban = d.getElementById('banner');
   if ((ban && !ban.classList.contains('hidden') ? String(ban.textContent || '') : '') !== bannerWas) bad.push('a wrong PIN changed the banner');
   if (d.getElementById('in-name')) bad.push('a wrong PIN sent the child back to the name, which was not what was wrong');
-  /* ONE ● OFF BY ITS ×, AND THE DIGITS ARE ASKED AGAIN; the next digit is the fourth ● again. */
+  /* ONE * OFF BY ITS ×, AND THE DIGITS ARE ASKED AGAIN; the next digit is the fourth * again. */
   t.ACTIONS['sign-dot-drop'](d.querySelector('#stuff-chips .sign-dot'));
-  if (dots() !== 3 || !d.querySelector('#stuff-groups [data-do="sign-digit"]')) bad.push('a ● taken off did not leave three and ask the digits again');
+  if (dots() !== 3 || !d.querySelector('#stuff-groups [data-do="sign-digit"]')) bad.push('a * taken off did not leave three and ask the digits again');
   /* A HANDLE NOBODY HAS: nothing said either, and Make an account is offered. */
   t.ACTIONS['sign-restart'](d.createElement('button'));
   const no2 = await findSign_(w, 'nobody_here', '1234');
@@ -223,7 +223,8 @@ check('the PIN is no box the iPad keeps, and nothing about who signed in is kept
   if (no2) return bad.concat([no2]);
   if (d.querySelector('#stuff-groups .hchips, #stuff-groups [data-do="handle-pick"]')) bad.push('signed out, Find offers handles that signed in here');
   const nm = d.getElementById('in-name');
-  if (!nm || nm.value || nm.hasAttribute('placeholder')) bad.push('signed out, the name tag is not empty: ' + JSON.stringify(nm && (nm.value || nm.getAttribute('placeholder'))));
+  /* ONLY THE GENERIC 'Username or email' (owner, 16 Nov), never an example or a remembered name. */
+  if (!nm || nm.value || (nm.getAttribute('placeholder') || 'Username or email') !== 'Username or email') bad.push('signed out, the name tag is not empty: ' + JSON.stringify(nm && (nm.value || nm.getAttribute('placeholder'))));
   return bad;
 });
 
@@ -238,7 +239,7 @@ check('the sign-in box has no example and no remembered name, even on a device a
   const box = () => { t.go('stuff', false, true); w.paintFinder_('stuff'); return d.getElementById('in-name'); };
   t.USER(null);
   if (!box()) return ['no name tag on Find'];
-  const blank = when => { if (box().hasAttribute('placeholder') || box().value) bad.push(when + ' the sign-in box shows ' + JSON.stringify(box().getAttribute('placeholder') || box().value)); };
+  const blank = when => { if ((box().getAttribute('placeholder') || 'Username or email') !== 'Username or email' || box().value) bad.push(when + ' the sign-in box shows ' + JSON.stringify(box().getAttribute('placeholder') || box().value)); };
   blank('on a fresh device');
   if (/old_one1|old@example/.test(d.getElementById('s-stuff').innerHTML)) bad.push('an old remembered name is on Find');
   { const no = await findSign_(w, 'admin@example.com', '4826'); if (no) return bad.concat([no]); }
@@ -375,7 +376,7 @@ const keepWalk_ = async (w, id) => {
   return said;
 };
 /* ---------- THE FINDER IS FOR MEMBERS (400); SIGNED OUT, ITS FIRST MENU IS WHO YOU ARE (owner, 13 Nov) ---------- */
-check('signed out, Find is the one front door: its first menu is the name tag alone; Guest\'s only answer is Settings, holding Make an account, which asks Student or Client; signed in, Find answers more (C+, 1040)', async () => {
+check('signed out, Find is the one front door: its first menu is Guest and the name tag; Guest\'s only answer is Settings, holding Make an account, which asks Student or Client; signed in, Find answers more (C+, 1040)', async () => {
   const { w } = boot({ payload: payload() });
   for (let i = 0; i < 80 && !w.__t; i++) await wait(25);
   await wait(300);
@@ -384,7 +385,7 @@ check('signed out, Find is the one front door: its first menu is the name tag al
   t.go('stuff', false, true); w.paint('stuff'); await wait(100);
   if (d.querySelector('#s-stuff .members-only')) bad.push('signed out, Find still draws the old Members only card');
   if (!d.getElementById('stuff-chips')) bad.push('signed out, Find draws no chips row (one front door: the same shape for everyone)');
-  if (!d.getElementById('in-name') || d.querySelector('#stuff-groups .sign-who [data-do]')) bad.push('signed out, Find\'s first menu is not the name tag alone');
+  if (!d.getElementById('in-name') || !d.querySelector('#stuff-groups [data-do="sign-guest"]') || d.querySelector('#stuff-groups .sign-who [data-do]:not([data-do="sign-guest"])')) bad.push('signed out, Find\'s first menu is not Guest and the name tag');
   const items = w.stuffItemsBuild_();
   const own = (items || []).filter(Boolean);
   /* AND BOOKING (owner, 13 Nov): a guest books through Find's steps and is asked to sign in at Send. */

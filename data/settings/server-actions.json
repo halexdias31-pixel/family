@@ -775,9 +775,7 @@
    "childRefused": false,
    "handler": "postGoogleLogin_",
    "file": "backend/post-signin.gs",
-   "callers": [
-    "js/me-account.js"
-   ],
+   "callers": [],
    "fallbacks": [],
    "tabs": [
     "answers",

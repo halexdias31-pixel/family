@@ -489,10 +489,10 @@ check('Find\'s sign-in tags come from the one tag maker, and Make an account pos
   t.USER(null);
   const no = await findSign_(w, null);
   if (no) return [no];
-  /* THE FIRST MENU IS THE NAME TAG ALONE (owner, 15 Nov: no buttons). */
+  /* THE FIRST MENU IS GUEST AND THE NAME TAG (owner, 16 Nov). */
   const row = d.querySelector('#stuff-groups .sign-who');
   const acts = row ? [...row.querySelectorAll('.row.tap.counted')].map(x => x.dataset.do) : [];
-  if (acts.length || !d.getElementById('in-name')) bad.push('the first menu holds tags ' + JSON.stringify(acts) + ' or no name tag; wanted the name tag alone');
+  if (acts.join(',') !== 'sign-guest' || !d.getElementById('in-name')) bad.push('the first menu holds tags ' + JSON.stringify(acts) + ' or no name tag; wanted Guest and the name tag');
 
   /* ENTER IN THE NAME TAG MOVES ON TO THE DIGITS, and the fourth digit sends verifyLogin. */
   sent.length = 0;
@@ -743,35 +743,6 @@ check('a parent whose address is unconfirmed is told their mail is held, and can
   t2.go('account', false, true);
   await wait(250);
   if (d2.querySelector('#s-account .mail-held, #s-account [data-do="resend-link"]')) bad.push('once the address was proved, the You column still says the mail is held');
-  return bad;
-});
-
-/* GOOGLE TAKING A PENDING ROW BACK CLEARS ITS PIN, and the person is told in a sheet — as often the real
-   registrant, who would otherwise find their PIN refused tomorrow with no idea why. */
-check('signing in with Google on an unconfirmed account says the PIN has gone, in a sheet', async () => {
-  const msg = 'Signed in with Google, and that has confirmed your email. The account was made with a PIN before '
-            + 'anybody had confirmed the address, so that PIN no longer works.';
-  const { w } = boot({ reply: b => b.action === 'googleLogin'
-    ? { success: true, name: 'Val Owner', personId: 'P-VAL', role: 'parent', roles: ['parent'], token: 'tk-val',
-        pendingEmail: '', pinCleared: true, message: msg, profile: { first_name: 'Val' } }
-    : { success: true, messages: [] } });
-  await wait(300);
-  const d = w.document, bad = [];
-  if (typeof w.googleSignedIn_ !== 'function') return ['googleSignedIn_ is not reachable, so the Google reply was NOT checked'];
-  w.googleSignedIn_({ credential: 'a-google-token' });
-  await wait(400);
-  const said = String((d.getElementById('sheet-body') || {}).textContent || '').replace(/\s+/g, ' ');
-  if (!/PIN no longer works/.test(said)) bad.push('the Google reply said the PIN was cleared and no sheet says so: ' + JSON.stringify(said));
-  /* AND AN ORDINARY GOOGLE SIGN-IN OPENS NOTHING. */
-  const b2 = boot({ reply: b => b.action === 'googleLogin'
-    ? { success: true, name: 'Cy Done', personId: 'P-CY', role: 'parent', roles: ['parent'], token: 'tk-cy', pendingEmail: '', profile: {} }
-    : { success: true, messages: [] } });
-  await wait(300);
-  b2.w.googleSignedIn_({ credential: 'a-google-token' });
-  await wait(400);
-  const s2 = b2.w.document.getElementById('sheet');
-  if (s2 && String((b2.w.document.getElementById('sheet-body') || {}).textContent || '').trim() && !s2.hidden && !/\bhidden\b/.test(s2.className))
-    bad.push('an ordinary Google sign-in opened a sheet');
   return bad;
 });
 

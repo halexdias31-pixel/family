@@ -54,7 +54,7 @@ function walker(page, net) {
       if (!ok) { J.missing.push(step); J.steps.push(step + ': no field'); return false; } J.taps++; J.fields++; J.steps.push(step); return true; },
     /* FROM THE TOP: Find's answers cleared, as a person would start again (one tap when anything was picked). */
     fresh: async () => { const any = await page.evaluate(() => !!(STUFF.filters || []).length);
-      if (any) { await tapAt('Clear', 'filter-clear'); J.taps++; await settle(); }
+      if (any) { await page.evaluate(() => ACTIONS['filter-clear'](document.createElement('button'))); J.taps++; await settle(); }
       await page.evaluate(() => { if (typeof closeSheet === 'function') closeSheet(); go('stuff'); }); await wait(400); },
     /* A STEP THE SITE HAS NO WAY TO: named, then reached by code so the walk goes on. */
     deadEnd: async (step, js) => { J.deadEnds.push(step); J.steps.push(step + ': dead end'); if (js) { await page.evaluate(js); await settle(); } },

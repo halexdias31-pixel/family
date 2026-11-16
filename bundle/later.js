@@ -10644,7 +10644,7 @@ function accountPages_(col) {
 }
 
 /* ---------- SIGNING IN IS FIND'S FIRST STEP (owner, 13 Nov; 15 Nov) ---------- */
-/* Signed out, the first menu is only the blank tag, typed on the site's keypad; then the digits, each picked one a ● tag with its own ×. */
+/* Signed out, the first menu is only the blank tag, typed on the site's keypad; then the digits, each picked one a * tag; tapping it takes it off. */
 /* The digits live in `SIGN.pin` for the call and nowhere else: never a chip's value, the URL, history, storage or a log. */
 /* A wrong PIN says nothing and clears nothing, as a Find path that matches nothing: the person takes ● tags off themselves. */
 const SIGN = { step: '', who: '', pin: [], busy: false, wrong: false, known: null, card: '', dots: 0 };
@@ -10670,20 +10670,19 @@ function signMenu_() {
       .concat(more.length ? [{ look: 'sign-more', options: more }] : []) }];
   }
   /* ONE BOX ON ONE FINDER: Find's carries the id the checks read. */
-  const mine = FINDER === FINDERS.stuff, google = mine && !!(DATA.googleClientId || '');
-  if (google && typeof mountGoogleWhenDrawn === 'function') mountGoogleWhenDrawn();
-  /* THE BLANK TAG YOU TYPE YOUR NAME ON, AND NOTHING ELSE (owner, 15 Nov: no buttons): no example and nothing remembered (383). */
-  const box = signBoxOpt_(mine);
-  return [{ type: 'choices', rows: [{ look: 'sign-who', options: [box] }].concat(google ? [{ look: 'g-row', id: 'g-btn', options: [] }] : []) }];
+  /* THE BLANK TAG YOU TYPE YOUR NAME ON, AND ONE TAG BESIDE IT, Guest (owner, 16 Nov): one way in, no Google row. */
+  const box = signBoxOpt_(FINDER === FINDERS.stuff);
+  return [{ type: 'choices', rows: [{ look: 'sign-who', options: [{ text: 'Guest', act: 'sign-guest' }, box] }] }];
 }
 /* THE BLANK TAG AS DATA (the checks draw it alone through `signBox_`); a text box, so the site's keypad opens on its letters. */
-const signBoxOpt_ = mine => ({ box: { id: mine ? 'in-name' : '', cls: 'sign-box', autocapitalize: 'off', value: SIGN.who, label: 'Your username or email' }, look: 'sign-type' });
+const signBoxOpt_ = mine => ({ box: { id: mine ? 'in-name' : '', cls: 'sign-box', autocapitalize: 'off', value: SIGN.who, label: 'Your username or email', placeholder: 'Username or email' }, look: 'sign-type' });
 const signBox_ = mine => cardChoice_(signBoxOpt_(mine));
 /* THE STEP'S CHIPS, first in the row: the name, then a ● per digit, each with its own ×; they stay once signed in (owner, 15 Nov). */
 function signChips_() {
   /* DATA FOR THE MENU CARD'S TAGS: a ● says only how many digits, never which. */
   const chip = (text, act, label) => ({ base: 'chip', look: 'sm sign-chip', text: text, act: act, label: label, x: { label: label }, colour: false });
-  const dot = i => ({ base: 'chip', look: 'sm sign-dot', text: '●', act: 'sign-dot-drop', data: { i: i }, label: 'Take this digit off', x: { label: 'Take this digit off' }, hidden: true, colour: false });
+  /* A * PER DIGIT (owner, 16 Nov); the whole tag is the button that takes that digit off, its × only shows it. */
+  const dot = i => ({ base: 'chip', look: 'sm sign-dot', text: '*', act: 'sign-dot-drop', data: { i: i }, label: 'Remove this digit', x: { label: 'Remove this digit' }, colour: false });
   if (USER) {
     const who = SIGN.who || String(USER.name || USER.handle || '').trim();
     return [chip(who, 'signout', 'Sign out ' + who)].concat(Array.from({ length: SIGN.dots }, (_, i) => dot(i)));
@@ -11261,12 +11260,8 @@ function filterChipTags_() {
 }
 function filterChips() { return renderTags(filterChipTags_(), 'chips', true); }
 
-/* CLEAR-ALL IS A TILE ABOVE THE CHIPS, not a chip at the end of the row: it empties every answer at once. */
-function filterClear_() {
-  return STUFF.filters.length
-    ? tile_({ icon: 'bin', label: 'Clear', note: 'every answer', act: 'filter-clear', cls: 'find-clear' })
-    : '';
-}
+/* NO CLEAR-ALL BIN (owner, 16 Nov: it broke the card template): each tag's × clears it; `filter-clear` stays for code that starts again. */
+function filterClear_() { return ''; }
 
 /* `on('noop')` was here: a handler that did nothing, for markup that wanted to swallow a tap.
    Nothing carries `data-do="noop"`, so it swallowed nothing. */

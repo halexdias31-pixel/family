@@ -492,12 +492,8 @@ function filterChipTags_() {
 }
 function filterChips() { return renderTags(filterChipTags_(), 'chips', true); }
 
-/* CLEAR-ALL IS A TILE ABOVE THE CHIPS, not a chip at the end of the row: it empties every answer at once. */
-function filterClear_() {
-  return STUFF.filters.length
-    ? tile_({ icon: 'bin', label: 'Clear', note: 'every answer', act: 'filter-clear', cls: 'find-clear' })
-    : '';
-}
+/* NO CLEAR-ALL BIN (owner, 16 Nov: it broke the card template): each tag's × clears it; `filter-clear` stays for code that starts again. */
+function filterClear_() { return ''; }
 
 /* `on('noop')` was here: a handler that did nothing, for markup that wanted to swallow a tap.
    Nothing carries `data-do="noop"`, so it swallowed nothing. */

@@ -184,7 +184,7 @@ const cardGrid_ = b => `<div class="kc-grid-wrap"><div class="kc-grid" role="tab
 function cardChoice_(o) {
   if (o.box) { const b = o.box;
     return answerBox_(`${b.id ? ` id="${esc(b.id)}"` : ''} class="${esc(b.cls || '')}" type="text" inputmode="${esc(b.inputmode || 'text')}" autocomplete="off"
-  autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="${esc(b.enterkeyhint || 'next')}" data-1p-ignore data-lpignore="true" aria-label="${esc(b.label || '')}"
+  autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="${esc(b.enterkeyhint || 'next')}" data-1p-ignore data-lpignore="true" aria-label="${esc(b.label || '')}"${b.placeholder ? ` placeholder="${esc(b.placeholder)}"` : ''}
   value="${esc(b.value || '')}"`, o.look || ''); }
   const d = o.data || {};
   const attrs = (o.act ? ` data-do="${esc(o.act)}"` : '') + Object.keys(d).map(k => d[k] === true ? ` data-${esc(k)}` : ` data-${esc(k)}="${esc(String(d[k]))}"`).join('')
