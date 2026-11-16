@@ -43,7 +43,8 @@ function coverage(ids, known) {
   let checked = 0;
   R.forEach(r => { const ok = r.checks.filter(t => hits(t).length), bad = r.checks.filter(t => !hits(t).length);
     ok.forEach(t => hits(t).forEach(c => tied.add(c)));
-    if (ok.length) checked++; else work.push({ kind: 'rule-checked', part: 'code', where: SRC + ' ' + r.n, say: `rule ${r.n} names no existing check` });
+    /* A RULE NEEDS NO CHECK (owner, 16 Nov: "NO MORE CHECKS"); a check it names must still exist. */
+    if (ok.length || !r.checks.length) checked++;
     bad.forEach(t => work.push({ kind: 'rule-checked', part: 'code', where: SRC + ' ' + r.n, say: `rule ${r.n} names \`${t}\`, which no check measures` })); });
   const untied = pop.filter(c => !tied.has(c));
   untied.forEach(c => work.push({ kind: 'check-tied', part: 'code', where: c, say: 'check ' + c + ' serves no rule in ' + SRC }));
@@ -83,8 +84,8 @@ if (require.main === module) {
   c.work.forEach(w => console.log('  ' + w.say));
   const q = ownerQuestions(); console.log(`owner questions: ${q.open} open of ${q.of}; ${q.work.length} findings`);
   onePlace().forEach(f => console.log(`  ${f.status.padEnd(6)} ${f.name} (${f.found}/${f.of})`));
-  /* A GATE, NOT A SCORE (owner, 12 Nov): a rule with no check, a check with no rule, or a rule said twice fails. */
+  /* A GATE (owner, 12 Nov; 16 Nov): a named check that does not exist, a check with no rule, or a rule said twice fails. */
   if (c.work.length || c.checked !== c.rules || c.tied !== c.checks) {
     console.log(`FAILED — the rulebook and the checks do not match: ${c.checked}/${c.rules} rules checked, ${c.tied}/${c.checks} checks tied.`); process.exit(1); }
-  console.log(`OK — every rule has a check and every check a rule (${c.checked}/${c.rules}, ${c.tied}/${c.checks}).`);
+  console.log(`OK — every check serves a rule and every named check exists (${c.checked}/${c.rules}, ${c.tied}/${c.checks}).`);
 }
