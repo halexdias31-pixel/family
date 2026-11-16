@@ -80,7 +80,7 @@ function endTimesTables() {
   const score = ttState.score;
   ttState = null;
 
-  /* NO BOARD AND NO KEPT BEST (rule 6.2): the round says how many were right, and nothing is saved. */
+  /* NO BOARD AND NO KEPT BEST (rule 1.53): the round says how many were right, and nothing is saved. */
   $('tt-question')?.classList.add('hidden');
   const over = $('tt-over');
   if (over) {
@@ -2343,7 +2343,7 @@ const WORD_GAMES = [
     <ul id="ws-words" class="ws-list"></ul>
     <p class="note game-said" id="ws-said"></p>
     ${tile_({ form: true, label: 'New puzzle', act: 'ws-again', kind: 'quiet' })}` },
-  /* THE TIMES TABLES SPRINT, MOVED IN BY THE OWNER (461): its own card before; no board and no kept best (rule 6.2). */
+  /* THE TIMES TABLES SPRINT, MOVED IN BY THE OWNER (461): its own card before; no board and no kept best (rule 1.53). */
   { k: 'tt', name: 'Times Tables Sprint', start: () => initTables(),
     stop: () => { if (typeof ttState !== 'undefined' && ttState) { clearInterval(ttState.timer); ttState = null; } },
     body: `<div id="tt-idle">
@@ -2545,7 +2545,7 @@ on('gs-say', el => {
 });
 on('gs-new', () => { gsNew_(); gsPaint_(); });
 
-/* ---------- FLABBY PIRD (back 15 Nov 2026 from receipt.js before 133b259): a canvas, a tap or the space bar; the round's count on the glass, nothing kept and no board (rule 6.2). */
+/* ---------- FLABBY PIRD (back 15 Nov 2026 from receipt.js before 133b259): a canvas, a tap or the space bar; the round's count on the glass, nothing kept and no board (rule 1.53). */
 /* THE GAMES AND TOOLS, carried over. § */
 
 /* SIZE A CANVAS TO ITS BOX, or wait until it has one. § */
@@ -2650,7 +2650,7 @@ function initFlappy(still) {
   const gameOver = () => {
     S.dead = true; S.running = false;
     $('flappy-msg').textContent = `Game over — score ${S.score}. Tap to retry.`;
-    /* NOTHING IS SAVED AND THERE IS NO BEST OR BOARD (rule 6.2). */
+    /* NOTHING IS SAVED AND THERE IS NO BEST OR BOARD (rule 1.53). */
   };
 
   const loop = () => {

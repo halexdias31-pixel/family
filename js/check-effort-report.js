@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* @family. — check-effort-report.js (rule 12.1): effort (lines and files a round changes) is measured and kept by the full health run only; --changed never fails a change on it. */
+/* @family. — check-effort-report.js (rule 1.72): effort (lines and files a round changes) is measured and kept by the full health run only; --changed never fails a change on it. */
 'use strict';
 const fs = require('fs'), path = require('path');
 const src = fs.readFileSync(path.join(__dirname, '..', 'tools/health.js'), 'utf8'), bad = [];
@@ -13,5 +13,5 @@ else {
 }
 if (!/trendAppend\(/.test(src.replace(/\nfunction trendAppend\(/, ''))) bad.push('no full run calls trendAppend(), so effort is never recorded');
 if (!/effort: h\.aiCost && h\.aiCost\.effort/.test(src)) bad.push('the trend entry no longer carries effort');
-if (bad.length) { bad.forEach(b => console.log('FAIL — ' + b + ' (rule 12.1)')); process.exit(1); }
+if (bad.length) { bad.forEach(b => console.log('FAIL — ' + b + ' (rule 1.72)')); process.exit(1); }
 console.log('OK — effort is report-only, kept by the full health run');

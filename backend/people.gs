@@ -307,10 +307,10 @@ function handleMake_(me, seen) {
   return handleLaw_(me || {}, want => handleTrouble_(want, me && me.person_id ? me : null), seen);
 }
 
-/* ---------- THE USERNAME FORMAT IS ONE REPLACEABLE CONFIG (owner, 16 Nov: PENDING the owner's choice, child privacy). */
+/* ---------- THE USERNAME FORMAT IS ONE REPLACEABLE CONFIG (owner chose 16 Nov: first name + Red/Yellow/Blue + year joined). */
 /* `pattern` names its parts: {First} the first name, {Pick} one of `picks` (drawn among those still free), {Year} the year joined; */
 /* `counter` is added when every pick is taken ({n} = 2, 3…). Change only this object to change every new username and the admin's rename. */
-const HANDLE_FORMAT = { pending: true, pattern: '{First}{Pick}{Year}', picks: ['Red', 'Yellow', 'Blue'], counter: '-{n}' };
+const HANDLE_FORMAT = { pattern: '{First}{Pick}{Year}', picks: ['Red', 'Yellow', 'Blue'], counter: '-{n}' };
 const HANDLE_LAW_FIRST_MAX = 12;
 function handleLawFirst_(r) {
   const l = handleLetters_(r && r.first_name).slice(0, HANDLE_LAW_FIRST_MAX) || HANDLE_FALLBACK;

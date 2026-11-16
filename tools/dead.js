@@ -1,4 +1,4 @@
-/* @family. — tools/dead.js THE ONE LIST OF FUNCTIONS NOTHING CALLS (rule 11.2): js/check-dead.js fails on it, tools/stability.js
+/* @family. — tools/dead.js THE ONE LIST OF FUNCTIONS NOTHING CALLS (rule 1.70): js/check-dead.js fails on it, tools/stability.js
    weighs it and tools/health.js scores it (`dead`), so the three can never disagree. */
 const path = require('path');
 const fs = require('fs');

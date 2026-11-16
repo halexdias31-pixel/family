@@ -319,7 +319,7 @@ function qStemWhole_(x, p, onScreen, pics) {
   return figBox_({ look: 'qsheet-stem qtext qb-stem kc-lines' + (p.placeholder ? ' is-standin' : ''), attrs: { 'data-of': stemId_(p) },
     inner: (p.lines ? figBox_({ tag: 'p', look: 'qsheet-lines', text: p.lines }) : '') + html.join('') });
 }
-/* ---------- A QUESTION PART IS A CARD OF THE ONE TEMPLATE (rule 3.11): its figure on top, its tags, its sheet an embed, its tiles the card's row. */
+/* ---------- A QUESTION PART IS A CARD OF THE ONE TEMPLATE (rule 1.26): its figure on top, its tags, its sheet an embed, its tiles the card's row. */
 /* WHAT A PART'S CARD DREW BESIDE ITSELF (its stems, the parts on screen, its figure on top), by key, so the card drawn again draws the same. */
 const Q_DRAWN = new Map();
 /* THE PART A CARD WAS BUILT FROM, by key, for its embed (a spec carries the key, never the part). */

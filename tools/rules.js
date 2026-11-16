@@ -65,7 +65,7 @@ function ownerQuestions() {
     if (!/^(open|answered)$/.test(q.status || '')) work.push({ kind: 'owner-questions', part: 'code', where: at, say: 'status is not open or answered' }); });
   return { open: j.questions.filter(q => q.status === 'open').length, of: j.questions.length, work };
 }
-/* ONE PLACE (rule 10.1), report-only: each business function is yes when all its evidence is in the code, partly when some, else no. */
+/* ONE PLACE (rule 1.63), report-only: each business function is yes when all its evidence is in the code, partly when some, else no. */
 function onePlace() {
   const j = jread('data/settings/one-place.json');
   return ((j && j.functions) || []).map(f => { const ev = f.evidence || [], got = ev.filter(([file, has]) => read(file).indexOf(has) >= 0).length;

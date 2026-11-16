@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 require('../check/quiet');
-/* @family. — check-item-shape.js ONE ITEM SHAPE (owner, 14 Nov, rule 3.14): every migrated kind's items, loaded by item_, */
+/* @family. — check-item-shape.js ONE ITEM SHAPE (owner, 14 Nov, rule 1.29): every migrated kind's items, loaded by item_, */
 /* are { id, kind, name, tags, body, links } as data/settings/item-shape.json says; a migrated kind has no builder of its own; */
 /* the kinds still to move are listed in check/item-shape-ratchet.json and that list only gets shorter (`--lower` after a migration). */
 const fs = require('fs'), path = require('path');

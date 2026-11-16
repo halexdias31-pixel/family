@@ -134,7 +134,7 @@ const SUITE = [
   { file: 'check-one-way.js', what: 'any markup only from the renderer files (cards-render.js, tiles.js); the rest hand over data (owner, 12 Nov)' },
   { file: 'check-card-type.js', what: 'card content reads at the tag size (--fs-tag) and every figure fills to --pic-w (owner, 13 Nov)' },
   { file: 'check-card-spec.js', what: 'every card kind builder returns a spec object; renderCard escapes its text (owner, 12 Nov)' },
-  { file: 'check-find-only.js', what: 'rule 5.8: every screen surveyed in find-only.json; a moved screen has no column or screen code and its old name opens Find; columns left only go down (owner, 14 Nov)' },
+  { file: 'check-find-only.js', what: 'rule 1.51: every screen surveyed in find-only.json; a moved screen has no column or screen code and its old name opens Find; columns left only go down (owner, 14 Nov)' },
   { file: 'check-item-shape.js', what: 'every migrated kind is the one item shape (id, kind, name, tags, body, links); kinds left only go down (owner, 14 Nov)' },
   { file: 'check-email-card.js', what: 'the Sunday email card is the site card: parts, lines, labels, corner, gap, sizes, tag colours (57a–62a)' },
   /* ---------- AND THE ANIMATIONS IN THEM, WHICH THE LOADING SCREEN DRAWS FROM A COPY § */
@@ -252,10 +252,10 @@ const SUITE = [
   /* RULES THAT HAD NO CHECK: read, not run, each well under a second. */
   { file: 'check-money-terms.js', what: 'rule 1.4: terms, refunds and complaints written, linked, and every policy reviewed within the year' },
   { file: 'check-how-we-work.js', what: 'rule 1.6: every CI job has a timeout, pull requests run check-all, a session starts with it' },
-  { file: 'check-no-games.js', what: 'rule 6.2: no new leaderboard, points, streak or high score; the ones left only go down' },
-  { file: 'check-free.js', what: 'rule 10.2: every host called and package shipped is on the owner\'s list in rule-guards.json' },
-  { file: 'check-no-new-screen.js', what: 'rule 11.1: TAB_ORDER and columns.json never grow past the screen budget' },
-  { file: 'check-effort-report.js', what: 'rule 12.1: effort is report-only, recorded by the full health run alone' },
+  { file: 'check-no-games.js', what: 'rule 1.53: no new leaderboard, points, streak or high score; the ones left only go down' },
+  { file: 'check-free.js', what: 'rule 1.64: every host called and package shipped is on the owner\'s list in rule-guards.json' },
+  { file: 'check-no-new-screen.js', what: 'rule 1.69: TAB_ORDER and columns.json never grow past the screen budget' },
+  { file: 'check-effort-report.js', what: 'rule 1.72: effort is report-only, recorded by the full health run alone' },
   { file: 'check-api-deadline.js', what: 'a POST the backend runs for minutes is not cut by api()\'s one-minute deadline' },
   { file: 'check-press-hold.js', what: 'a control waiting on its request holds itself, not its twin, and not for ever; steppers take two fast taps' },
   { file: 'check/press-twice.js', what: 'two taps 110 ms apart on every control post nothing twice; a control that asks first ignores a yes under 400 ms', slow: true, heavy: true },
