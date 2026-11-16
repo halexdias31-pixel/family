@@ -377,7 +377,8 @@
     "check/jank.js": "secondary",
     "check/touch.js": "secondary",
     "check/isolation.js": "core",
-    "check-tiers.js": "core"
+    "check-tiers.js": "core",
+    "tools/cards-gen.js": "core"
   },
   "journeys": {
     "notes": "a journey of check-flow.js is core when its name matches `core` and not `secondary` (case-insensitive); every other journey is secondary, run with FLOW_TIER=all or FLOW_TIER=secondary and report-only.",

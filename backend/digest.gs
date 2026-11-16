@@ -174,9 +174,10 @@ function digestReach_(pid, parentsOf) {
 
 /* ---------- ONE EMAIL: A SUBJECT, A PLAIN BODY AND THE SAME IN HTML § */
 function digestRender_(L, P, week, look) {
-  const kid = S(L.first) || 'Your child';
+  /* THE ONE NAME FORMATTER (`fmtName_`, the site's, cards-gen.gs): a capital, and a child's first name only. */
+  const kid = fmtName_({ first_name: S(L && L.first), kid: true }, 'first') || 'Your child';
   /* THE OWNER (372): each parent by their first name, casual, no branding anywhere. A name that is not safe to print is just "Hi,". */
-  const pf = S(P && P.first).split(/\s+/)[0];
+  const pf = fmtName_({ first_name: S(P && P.first).split(/\s+/)[0] }, 'first');
   const W = (look && look.words) || digestWords_({});
   const items = (L.fresh || []).concat(L.again || []);
   const n = items.length;
@@ -193,7 +194,7 @@ function digestRender_(L, P, week, look) {
      `digestPlan_` would print — hidden, or only its own key — is counted in `n` and never listed, so it
      is part of the "more". */
   /* EACH QUESTION AS IT IS ON THE SITE when the library has it (`look.lib`, 18 Oct) — see `digestPartOut_`. */
-  const opts = { lib: look && look.lib, site: S(look && look.site) || SITE_URL, kid: kid, cut: {} };
+  const opts = { lib: look && look.lib, site: S(look && look.site) || SITE_URL, kid: kid };
   /* ONE PLAIN LINE TO STOP, and no business name, logo or link (372). */
   const fill = { child: kid, parent: pf && pf.length <= 30 && digestSafe_(pf) ? pf : '', count: qs(n), span: digestSpan_(week) + upTo };
   const hi = digestFill_(W.digest_greeting, fill);
@@ -227,22 +228,12 @@ function digestRender_(L, P, week, look) {
         + '<div class="gs"><div class="gd">' + body + '</div></div></td></tr></table></td></tr></table>'),
     };
   };
-  let Q = digestQuestions_(items, DIGEST_WEEK_LIST_MAX, opts), m = make(Q);
-  /* ---------- AND UNDER GMAIL'S CLIP, EVERY QUESTION KEPT § */
-  for (let turn = 0; turn < 12 && digestBytes_(m.html) > DIGEST_CLIP_BYTES; turn++) {
-    let over = digestBytes_(m.html) - DIGEST_CLIP_BYTES;
-    const next = Q.sizes.filter(z => z.bytes && !opts.cut[z.id])
-      .sort((a, b) => (a.kind === b.kind ? b.bytes - a.bytes : DIGEST_CUT_FIRST.indexOf(a.kind) - DIGEST_CUT_FIRST.indexOf(b.kind)));
-    if (!next.length) break;
-    for (let k = 0; k < next.length && over > 0; k++) { opts.cut[next[k].id] = 1; over -= next[k].bytes - 80; }
-    Q = digestQuestions_(items, DIGEST_WEEK_LIST_MAX, opts);
-    m = make(Q);
-  }
+  /* EVERY CARD WHOLE, AS ON THE SITE (owner, 16 Nov): nothing is said as "on the site" to fit Gmail's clip — a long week is
+     clipped by Gmail itself, behind its "View entire message", with every word still in it. */
+  const m = make(digestQuestions_(items, DIGEST_WEEK_LIST_MAX, opts));
   return { subject: subject, text: m.text, html: m.html };
 }
 
-/* WHAT THE CLIP GIVES UP FIRST: a long source, then a later card's repeat of its paper's tags, then a question's own words. */
-const DIGEST_CUT_FIRST = ['stem', 'tags', 'part'];
 /* THE EMAIL'S COLOURS: the site's black-and-gold screen (style.css `:root`) — page, pane, card, ink, verdicts; no paper, even for the answer box (25 Oct, 457). */
 function digestInk_() {
   return { page: '#000', pane: '#101010', paneLine: '#383838', card: '#0b0b0b', line: '#232323', ink: '#e6e6e6', dim: '#9a9a9a',
@@ -319,8 +310,8 @@ function digestSummary_(items, days, lib, week) {
   const from = Object.keys(tally).length ? tally : subj;
   const topics = Object.keys(from).sort((a, b) => from[b] - from[a] || a.localeCompare(b));
   /* ALWAYS A TOPICS LINE when there was work, even one the week cannot name — its absence is what the owner noticed (20 Oct). */
-  const topicSay = topics.length > 6 ? topics.slice(0, 6).concat([(topics.length - 6) + ' more'])
-    : topics.length ? topics : ['not recorded'];
+  /* EVERY TOPIC, never "and N more" (owner, 16 Nov). */
+  const topicSay = topics.length ? topics : ['not recorded'];
   const NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   const dayNames = (days || []).filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d) && (!week || (d >= week.start && d <= week.end)))
     .sort().map(d => NAMES[new Date(d + 'T12:00:00Z').getUTCDay()]);
@@ -364,7 +355,7 @@ function digestQuestions_(items, max, o) {
   const ink = digestInk_(), says = digestHowSay_();
   /* THE LIBRARY'S ROWS FOR THE WEEK (`digestEmailLibrary_`), and what the clip has asked to be said as "on the site" (`digestRender_`): § */
   const lib = o.lib && o.lib.rows ? o.lib : null, pre = lib && lib.pre ? lib.pre : [];
-  const said = o.cut || {}, kid = S(o.kid) || 'Your child', site = S(o.site) || SITE_URL;
+  const kid = S(o.kid) || 'Your child', site = S(o.site) || SITE_URL;
   const cut = (t, most) => { const x = S(t).replace(/\s*\n+\s*/g, ' ').trim(); return x.length > most ? x.slice(0, most - 1).replace(/\s+\S*$/, '') + '…' : x; };
   const heads = digestHeads_(items, lib);
   const sh = digestShown_(heads, max), shown = sh.shown, printed = sh.printed;
@@ -375,29 +366,12 @@ function digestQuestions_(items, max, o) {
   const { card, titleOf, pill } = digestCardMaker_(ink, says, cut);
   const tagsHtml = list => (list || []).map(pill).join(' ');
   const answerLines = it => (it.theirs ? ['Their answer: ' + it.theirs.text] : []).concat(it.right ? ['Answer: ' + it.right.text] : []);
-  /* NO HEADING OVER A PAPER: § */
-  let prev = null;
-  const tagsFor = it => {
-    const above = prev;
-    prev = it;
-    if (!above || !said['tags:' + it.key]) return tagsHtml(it.tags);
-    const had = {};
-    (above.tags || []).forEach(t => { had[t.text] = 1; });
-    return tagsHtml((it.tags || []).filter(t => !had[t.text]));
-  };
-  const weigh = it => {
-    if (!prev) return;
-    const had = {};
-    (prev.tags || []).forEach(t => { had[t.text] = 1; });
-    const less = digestBytes_(tagsHtml(it.tags)) - digestBytes_(tagsHtml((it.tags || []).filter(t => !had[t.text])));
-    if (less > 0) sizes.push({ id: 'tags:' + it.key, kind: 'tags', bytes: less + 80 });
-  };
+  /* EVERY CARD WEARS ITS WHOLE TAG SET, as the site's card does — one rule, never trimmed by what the card above it said (owner, 16 Nov). */
+  const tagsFor = it => tagsHtml(it.tags);
 
   const lines = [];
   const parts = [];
-  /* WHAT THE CLIP MAY SAY AS "ON THE SITE" INSTEAD, with what its words weigh — `digestRender_` picks from it. */
-  const sizes = [];
-  const q = { lines, parts, sizes, said, kid, site, pre, ink, cut, tag, card, titleOf, tagsFor, weigh, answerLines, fromLib: 0 };
+  const q = { lines, parts, kid, site, pre, ink, cut, tag, card, titleOf, tagsFor, answerLines, fromLib: 0 };
   shown.forEach(h => {
     if (!h.worded) { digestBareHead_(q, h); return; }
     lines.push(h.head);
@@ -410,12 +384,12 @@ function digestQuestions_(items, max, o) {
   const marks = [];
   shown.forEach(h => h.items.forEach(it => marks.push(it.mark)));
   return { lines: lines, html: parts.join('') + (printed && more > 0 ? '<p style="margin:12px 0 0">…and ' + more + ' more.</p>' : ''),
-           printed: printed, marks: marks, more: more, fromLib: q.fromLib, sizes: sizes };
+           printed: printed, marks: marks, more: more, fromLib: q.fromLib };
 }
 
 /* A NAME OF ONE SEGMENT WITH NO WORDS: its heading, its marks, and a card per question with no words in it. */
 function digestBareHead_(q, h) {
-  const { lines, parts, tag, card, titleOf, tagsFor, weigh } = q;
+  const { lines, parts, tag, card, titleOf, tagsFor } = q;
   let html = '';
   /* A NAME OF ONE SEGMENT WITH NO WORDS IS ITS HEADING AND NOTHING ELSE, so its mark goes on the heading
      ("Times tables: ✓") rather than alone on a line under it; numbered ones are the line of numbers. */
@@ -423,21 +397,19 @@ function digestBareHead_(q, h) {
   lines.push(h.head + (bare.length ? ': ' + bare.map(it => it.mark).join(', ') : ''));
   if (numbered.length) lines.push(numbered.map(tag).join(', '));
   lines.push('');
-  h.items.forEach(it => { weigh(it); html += card(it, '', tagsFor(it), titleOf(it, h.head)); });
+  h.items.forEach(it => { html += card(it, '', tagsFor(it), titleOf(it, h.head)); });
   parts.push(html);
 }
 
 /* ONE WORDED QUESTION, under its heading: the library's row, or the words on the site, or its own words; `at` carries the stem and card html along. */
 function digestWordedItem_(q, h, it, at) {
-  const { lines, sizes, said, kid, site, pre, ink, cut, tag, card, titleOf, tagsFor, weigh, answerLines } = q;
-  weigh(it);
+  const { lines, kid, site, pre, ink, cut, tag, card, titleOf, tagsFor, answerLines } = q;
   /* ---------- AS IT IS ON THE SITE (18 Oct): the row the card draws, from the library ---------- */
-  const P = it.row ? digestPartOut_(it, pre, at.done, said, site) : null;
+  const P = it.row ? digestPartOut_(it, pre, at.done, site) : null;
   if (P) {
     q.fromLib++;
     let inner = '';
-    P.stems.forEach(st => { lines.push.apply(lines, st.lines); inner += st.html; sizes.push({ id: st.id, kind: 'stem', bytes: st.bytes }); });
-    if (P.bytes) sizes.push({ id: 'part:' + it.key, kind: 'part', bytes: P.bytes });
+    P.stems.forEach(st => { lines.push.apply(lines, st.lines); inner += st.html; });
     const head = [it.num, P.marks].filter(Boolean).join(' · ');
     if (head) lines.push(head);
     lines.push.apply(lines, P.lines);
@@ -448,15 +420,7 @@ function digestWordedItem_(q, h, it, at) {
     at.stem = '';
     return;
   }
-  /* THE WORDS ITS SUBMISSION CARRIED, which the clip may say as on the site as it may a library row's (380: a card weighs more than a line did). */
-  const wid = 'words:' + it.key;
-  if (said[wid]) {
-    lines.push(tag(it) + ': (the question’s words are on the site)');
-    lines.push.apply(lines, answerLines(it));
-    at.html += card(it, '<p style="margin:0"><i>(the question’s words are on the site)</i></p>', tagsFor(it), titleOf(it, h.head));
-    at.stem = it.stem;
-    return;
-  }
+  /* THE WORDS ITS SUBMISSION CARRIED, whole up to DIGEST_WORDS_SHOWN. */
   let inner = '';
   if (it.stem && it.stem !== at.stem) {
     lines.push(cut(it.stem, DIGEST_STEM_SHOWN));
@@ -467,7 +431,6 @@ function digestWordedItem_(q, h, it, at) {
   lines.push(said1 ? tag(it) + ': ' + said1 : tag(it));
   lines.push.apply(lines, answerLines(it));
   if (said1) inner += '<p style="margin:0">' + digestEsc_(said1) + '</p>';
-  if (inner) sizes.push({ id: wid, kind: 'part', bytes: digestBytes_(inner) });
   at.html += card(it, inner, tagsFor(it), titleOf(it, h.head));
 }
 
@@ -625,7 +588,7 @@ function digestTheirAnswer_(q, a) {
 }
 
 /* ---------- ONE QUESTION AS THE SITE'S CARD DRAWS IT (18 Oct) § */
-function digestPartOut_(it, pre, done, said, site) {
+function digestPartOut_(it, pre, done, site) {
   const q = it.row;
   const refused = t => DIGEST_WORDS_REFUSE.some(re => re.test(t));
   /* EACH PIECE ON ITS OWN — the lead is a block of its own on the card (`.qsheet-lead`), and run together with
@@ -637,9 +600,8 @@ function digestPartOut_(it, pre, done, said, site) {
   const mark = /<!--\s*fig\s*-->/i, html = S(q.html), at = html.search(mark);
   const lead = S(q.lead).replace(/<!--\s*fig\s*-->/gi, '');
   const before = at >= 0 ? html.slice(0, at) : '', after = at >= 0 ? html.slice(at).replace(mark, '') : html;
-  const cutOut = !!said['part:' + it.key];
   const piece = h => (S(h).replace(/<!--[\s\S]*?-->/g, '').trim() ? '<div style="margin:0 0 6px">' + digestHtml_(h) + '</div>' : '');
-  const out = { stems: [], lines: [], html: '', bytes: 0,
+  const out = { stems: [], lines: [], html: '',
                 marks: Number(q.marks) > 0 ? Number(q.marks) + ' mark' + (Number(q.marks) === 1 ? '' : 's') : '' };
   digestStemRows_(q, pre).forEach(p => {
     const id = 'stem:' + (S(p.row_id) || S(p.html).slice(0, 80));
@@ -647,7 +609,7 @@ function digestPartOut_(it, pre, done, said, site) {
     done[id] = 1;
     const pf = digestDiagram_(p.diagram, site);
     const ph = S(p.html), pat = ph.search(mark), text = digestText_(ph);
-    const gone = !!said[id] || refused(text);
+    const gone = refused(text);
     /* A STAND-IN FOR A SOURCE THE PAPER PRINTS IN A SEPARATE BOOKLET is in a dashed box, as on the site
        (`.qsheet-stem.is-standin`), so nobody takes it for the exam's own words. */
     const ink = digestInk_();
@@ -666,20 +628,13 @@ function digestPartOut_(it, pre, done, said, site) {
       l.push.apply(l, digestLines_(after));
     }
     h = '<div style="margin:0 0 10px;color:' + ink.dim + ';' + box + '">' + h + '</div>';
-    out.stems.push({ id: id, html: h, lines: l, bytes: gone ? 0 : digestBytes_(h) });
+    out.stems.push({ id: id, html: h, lines: l });
   });
-  if (cutOut) {
-    out.pic = fig ? fig.html : '';
-    out.html = '<p style="margin:0 0 6px"><i>(the question’s words are on the site)</i></p>';
-    out.lines = ['(the question’s words are on the site)'].concat(fig ? [fig.text] : []);
-    return out;
-  }
   const figFirst = at < 0 && !lead;
   /* THE PICTURE LEADS THE CARD (`kc-pic`), so the words go without it; the plain text keeps it where it stood. */
   out.pic = fig ? fig.html : '';
   out.html = piece(lead) + piece(before) + piece(after);
   out.lines = (figFirst && fig ? [fig.text] : []).concat(digestLines_(lead), digestLines_(before), !figFirst && fig ? [fig.text] : [], digestLines_(after));
-  out.bytes = digestBytes_(out.html);
   return out;
 }
 /* THE ROW A KEY NAMES, WHEN THE CARD WOULD DRAW IT: § */
@@ -765,17 +720,6 @@ function digestText_(html) {
 function digestLines_(html) {
   return digestText_(html).split('\n').map(x => x.trim()).filter(Boolean);
 }
-/* WHAT A STRING WEIGHS IN UTF-8 — what Gmail's clip counts. */
-function digestBytes_(s) {
-  const t = S(s);
-  let n = 0;
-  for (let i = 0; i < t.length; i++) {
-    const c = t.charCodeAt(i);
-    if (c >= 0xd800 && c <= 0xdbff) { n += 4; i++; } else n += c < 0x80 ? 1 : c < 0x800 ? 2 : 3;
-  }
-  return n;
-}
-
 /* ---------- A DRAWING, AS AN EMAIL CAN SHOW IT § */
 function digestDiagram_(svg, site) {
   const s = S(svg);
@@ -1272,7 +1216,7 @@ function checkSundayWeek_(plan, week, hour, say, plural) {
   say('THIS WEEK (' + digestSpan_(week) + ', so far): ' + plural(plan.learners.length, 'learner') + ' sent answers; '
     + reached.length + ' of them will have a parent emailed (' + plural(plan.emails.length, 'email') + ').');
   plan.learners.filter(L => L.why).forEach(L => {
-    say('  NOT REACHED — ' + (S(L.first) || 'a learner with no first name') + ': ' + digestWhyNot_(L) + '.');
+    say('  NOT REACHED — ' + (fmtName_({ first_name: S(L.first), kid: true }, 'first') || 'a learner with no first name') + ': ' + digestWhyNot_(L) + '.');
   });
   /* AND WHO GETS NOTHING BECAUSE THERE IS NOTHING YET (the review of 12 Oct). § */
   const did = {};
