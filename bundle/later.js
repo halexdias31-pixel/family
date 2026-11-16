@@ -13011,9 +13011,10 @@ function measDraw_(fig) {
       const t = a * Math.PI / 180, c = Math.cos(t), s = -Math.sin(t), L = a % 10 ? 0.05 : a % 30 ? 0.08 : 0.12;
       P('meas-tick', `M ${(R * c).toFixed(2)} ${(R * s).toFixed(2)} L ${(R * (1 - L) * c).toFixed(2)} ${(R * (1 - L) * s).toFixed(2)}`);
       if (!(a % 30)) {
-        const o = R * 0.8, i = R * 0.64;
-        N('meas-num', o * c, o * s, R * 0.08, a);
-        N('meas-num meas-in', i * c, i * s, R * 0.07, 180 - a);
+        const o = R * 0.83, i = R * 0.7;
+        /* SMALL, LIKE A REAL PROTRACTOR'S (owner, 16 Nov: "the numbers are too big") */
+        N('meas-num', o * c, o * s, R * 0.05, a);
+        N('meas-num meas-in', i * c, i * s, R * 0.045, 180 - a);
       }
     }
     P('meas-tick', `M ${-R} 0 L ${R} 0 M 0 ${-R * 0.06} L 0 ${R * 0.06} M ${-R * 0.06} 0 L ${R * 0.06} 0`);
