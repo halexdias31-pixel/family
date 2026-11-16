@@ -575,13 +575,22 @@ function postSuggest_(body, action, began) {
   /* A SHOP ITEM'S ID IS ITS NAME (498), spaces and brackets and all: "Gooey Louie (board game)" was refused, so Suggest on the shop did nothing. */
   if (item.length > REPORT_FIELD_MAX || !/^[A-Za-z0-9][A-Za-z0-9 _.:|#\/()'&,+-]*$/.test(item) || (kind === 'question' && !/^q:./.test(item)))
     return jsonOut({ error: 'Which one? Nothing was sent.' });
-  /* AN OLD PHONE'S REASON IS KEPT AS WORDS in front of the note. */
-  const why = Object.prototype.hasOwnProperty.call(REPORT_REASONS, S(body.reason)) && S(body.reason) !== 'suggest' ? REPORT_REASONS[S(body.reason)] : '';
-  const words = S(body.note).trim().slice(0, CLAUDE_NOTE_MAX);
-  const note = [why, words].filter(Boolean).join(' — ');
   const people = kind === 'message' || kind === 'post';
-  /* A MESSAGE MAY BE SENT WITHOUT WORDS (413): a child need not explain why one frightened them. */
-  if (!note && !people && !(body.files && rankAtLeast_(me, 'admin'))) return jsonOut({ error: 'Write what should change first.' });
+  /* A FLAG IS THE WHOLE SUGGESTION (owner, 16 Nov): no words, no picture, no files. Off withdraws the person's own. */
+  const on = norm(body.flag) !== 'off';
+  const pid0 = S(me.person_id), key0 = kind + '|' + item;
+  if (!on) {
+    const lock0 = LockService.getScriptLock();
+    if (!lock0.tryLock(5000)) return jsonOut({ error: 'Busy — try again in a moment.', why: 'busy' });
+    try {
+      clearCache();
+      const t0 = read(TAB.claude_notes);
+      t0.rows.filter(r => S(r.made_by) === pid0 && S(r.item_id) === key0 && flagRow_(r)).forEach(r => setCells(t0, r, { status: 'withdrawn', done_at: new Date() }));
+    } finally { lock0.releaseLock(); }
+    clearCache();
+    return jsonOut({ success: true, flag: false, myFlags: myFlags_(pid0), reportedItems: reportedItems_() });
+  }
+  const note = FLAG_NOTE;
   const admin = rankAtLeast_(me, 'admin');
   let msg = null;
   if (kind === 'message') {
@@ -589,20 +598,10 @@ function postSuggest_(body, action, began) {
     if (!msg) return jsonOut({ error: 'Not found.' });
     if (S(msg.to_id) !== S(me.person_id) && !admin) return jsonOut({ error: 'Not yours to send on.' });
   }
-  /* A PICTURE WITH IT (498): one image, shrunk on the phone, kept in the posts folder and named on the note as a link. */
-  let pic = '';
-  const img = S(body.image).trim();
-  if (img) {
-    if (!/^data:image\/(jpeg|png|webp);base64,/i.test(img) || img.length > SUGGEST_PIC_MAX) return jsonOut({ error: 'That picture could not be sent — try a smaller one.' });
-    const folder = getPostFolder();
-    if (!folder) return jsonOut({ error: 'No posts folder for the picture. Add `posts_folder` to the config tab.' });
-    try { pic = driveKeep_(folder, img, 'suggest-' + Date.now()); } catch (err) { return jsonOut({ error: 'The picture could not be kept in Drive.' }); }
-  }
-  /* AND THE FUNNEL PATH ON FIND (498): which answers and words led to the card, so the note says which menu it meant. */
+  /* AND THE FUNNEL PATH ON FIND (498) and the screen it was seen on, so the owner can find the same thing. */
   const path = S(body.path).replace(/\s+/g, ' ').trim().slice(0, 300);
-  /* FILES (515), an admin's alone: already in Drive by `suggestUpload`; the note names the folder and the files. */
-  const filesLine = admin ? inboxLine_(body.files) : '';
-  const noteAll = [note || (people ? 'A message they were sent' : ''), path ? 'Path: ' + path : '', pic ? 'Picture: ' + pic : '', filesLine].filter(Boolean).join('\n');
+  const device = /^(phone|tablet|computer)$/.test(S(body.device)) ? S(body.device) : '';
+  const noteAll = [note, path ? 'Path: ' + path : '', device ? 'Seen on: ' + device : ''].filter(Boolean).join('\n');
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(5000)) return jsonOut({ error: 'Busy — try again in a moment.', why: 'busy' });
   let out = {}, made = null;
@@ -612,9 +611,9 @@ function postSuggest_(body, action, began) {
     const t = read(TAB.claude_notes);
     if (!t.sheet) out = { error: 'Suggestions are not set up yet — an admin opening the site sets them up.', why: 'no-tab' };
     else {
-      const pid = S(me.person_id), today = reportDay_(new Date()), key = kind + '|' + item;
-      /* ONCE A DAY PER THING PER PERSON, while it waits: two taps are one suggestion. */
-      const had = !admin && t.rows.find(r => S(r.made_by) === pid && S(r.item_id) === key && norm(r.status) === 'pending' && reportDay_(r.made_at) === today);
+      const pid = S(me.person_id), key = kind + '|' + item;
+      /* ONE FLAG PER THING PER PERSON while it waits: on twice is on. */
+      const had = t.rows.find(r => S(r.made_by) === pid && S(r.item_id) === key && flagRow_(r));
       if (had) out = { success: true, already: true };
       else {
         made = suggestRow_(t, pid, kind, item, reportCut_(body.label, REPORT_FIELD_MAX), noteAll, admin ? 'open' : 'pending');
@@ -625,6 +624,7 @@ function postSuggest_(body, action, began) {
     lock.releaseLock();
   }
   if (made && admin) { clearCache(); out.notes = claudeNotesOpen_(); try { out.file = claudeNotesWrite_(out.notes); } catch (err) { out.fileError = S(err && err.message || err); } }
+  if (out.success) { clearCache(); out.flag = true; out.myFlags = myFlags_(S(me.person_id)); out.reportedItems = reportedItems_(); }
   if (made && !admin && POST_WROTE && !wroteBefore) POST_WROTE = false;
   /* `reported` — ESSENTIAL: a message sent on is a safeguarding matter and the admin is told at once (413). */
   if (made && msg && !admin) {

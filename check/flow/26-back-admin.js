@@ -553,50 +553,6 @@ check('Share on a post (413) draws the whole post on a canvas and hands a PNG to
   return bad;
 });
 
-check('a child sends on a message she was sent (413, 494): the one Tell the admin tile on received messages only, words optional, "Thanks — sent to the admin"; it waits on Suggestions, glowing, until dismissed', async () => {
-  const W = postWorld_(), bad = [];
-  W.real.seed('messages', [
-    { message_id: 'M-IN1', from_id: 'P-A1', to_id: 'P-S1', sent_at: '23/10/2026 10:00', body: 'Homework is due Friday' },
-    { message_id: 'M-OUT1', from_id: 'P-S1', to_id: 'P-A1', sent_at: '23/10/2026 10:05', body: 'OK thanks' },
-  ]);
-  const kid = await postOpen_(W, 'student@example.org');
-  if (kid.err) return [kid.err];
-  try { kid.t.go('dm', false, true); kid.w.paint('dm'); } catch (e) { return ['opening Messages threw: ' + e.message]; }
-  for (let k = 0; k < 40 && !kid.d.querySelector('#s-dm .msg'); k++) { await wait(100); try { kid.w.paint('dm'); } catch (e) {} }
-  const flags = [...kid.d.querySelectorAll('#s-dm [data-do="rep-box"][data-rk="message"]')].map(x => x.dataset.ri);
-  if (JSON.stringify(flags) !== JSON.stringify(['M-IN1'])) return ['the Tell the admin tiles are on ' + JSON.stringify(flags) + ' — wanted the received message only'];
-  kid.A('rep-box', kid.d.querySelector('#s-dm [data-do="rep-box"][data-rk="message"]'));
-  await wait(150);
-  /* ONE BOX FOR EVERY REPORT (486), in place under the message. */
-  const form = kid.d.querySelector('#s-dm .rep-box[data-rk="message"]');
-  if (!form) return ['Tell the admin did not open its box under the message'];
-  if (form.querySelector('select')) bad.push('the box still asks for a reason');
-  const tl = kid.d.querySelector('#s-dm [data-do="rep-box"][data-rk="message"]');
-  if (tl.getAttribute('aria-label') !== 'Tell the admin') bad.push('the message tile is called ' + tl.getAttribute('aria-label'));
-  const note = form.querySelector('.rep-note-in'); note.value = 'it was scary';
-  kid.A('rep-send', form.querySelector('[data-do="rep-send"]'));
-  for (let k = 0; k < 30 && !/Thanks — sent/.test((kid.d.getElementById('toast') || {}).textContent || ''); k++) await wait(50);
-  const post = kid.sent.find(b => b.action === 'suggest');
-  if (!post || post.kind !== 'message' || post.itemId !== 'M-IN1' || !/it was scary/.test(post.note)) bad.push('the send did not carry the message and the words: ' + JSON.stringify(post));
-  if (!/Thanks — sent/.test((kid.d.getElementById('toast') || {}).textContent || '')) bad.push('no "Thanks — sent"');
-  if (String(W.sheet('S((read(TAB.claude_notes).rows.find(r => r.item_id === "message|M-IN1") || {}).status)')) !== 'pending') bad.push('it is not a waiting row of claude_notes');
-  const hal = await postOpen_(W, 'admin@example.org');
-  if (hal.err) return bad.concat([hal.err]);
-  try { await siteOpen_(hal.w, '.rep-item'); } catch (e) {}
-  for (let k = 0; k < 40 && !hal.d.querySelector('#s-stuff .rep-item'); k++) await wait(100);
-  await wait(300);   // the glow is painted just after the column (`bizNeedsPaint_`)
-  const item = [...hal.d.querySelectorAll('#s-stuff .rep-item')].find(n => /Homework is due Friday/.test(n.textContent));
-  if (!item || !/scary/.test(item.textContent)) bad.push('the Suggestions card does not show the message and the words');
-  const card = hal.d.querySelector('#s-stuff [data-need="reports"]');
-  if (!card || !card.classList.contains('needs-you')) bad.push('the Suggestions card does not glow with a message waiting');
-  const done = item && item.querySelector('[data-do="rep-status"][data-decision="dismiss"]');
-  if (!done) bad.push('no Dismiss tile on the reported message');
-  else { hal.A('rep-status', done); await wait(400); }
-  if ([...hal.d.querySelectorAll('#s-stuff .rep-item')].some(n => /Homework is due Friday/.test(n.textContent))) bad.push('Dismiss left the message on the card');
-  if (String(W.sheet('S((read(TAB.claude_notes).rows.find(r => r.item_id === "message|M-IN1") || {}).status)')) !== 'dismissed') bad.push('Dismiss did not write dismissed on the sheet');
-  [kid, hal].forEach(x => { if (x.errs.length) bad.push('errors: ' + x.errs.join(' | ')); });
-  return bad;
-});
 
 /* ---------- AFTER A WRONG CHECK, THE ANSWER CAN ALWAYS BE DELETED AND CHECKED AGAIN (docs/history/454) ---------- */
 check('after a wrong Check every answer can be deleted and checked again — typed on the keypad, picked, ordered — and after a reload', async () => {
@@ -698,7 +654,7 @@ check('the one toolkit: a typed, a chosen, a table, a drawn and an essay part, a
   for (const k of Object.keys(pick)) {
     const x = pick[k];
     host.innerHTML = whole(x);
-    const missing = ['q-mag', 'q-lock', 'read-aloud', 'help-hand', 'rep-box'].filter(a => !host.querySelector('[data-do="' + a + '"]'));
+    const missing = ['q-mag', 'q-lock', 'read-aloud', 'help-hand', 'rep-flag'].filter(a => !host.querySelector('[data-do="' + a + '"]'));
     if (missing.length) bad.push(k + ' part ' + x.row.row_id + ' has no ' + missing.join(', '));
     const gone = ['q-zoom', 'q-fig', 'ins-show'].filter(a => host.querySelector('[data-do="' + a + '"]'));
     if (gone.length) bad.push(k + ' part ' + x.row.row_id + ' still has ' + gone.join(', ') + ' (463)');

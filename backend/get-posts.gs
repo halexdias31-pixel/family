@@ -306,6 +306,8 @@ function getViewerBits_(meAsked, viewerIsAdmin, payload) {
 
   /* ---------- WHAT AN ADMIN REPORTED AND NOBODY HAS FIXED (486): `kind|id` only, so a card can say "flagged to fix" ---------- */
   try { payload.reportedItems = reportedItems_(); } catch (err) { payload.reportedItems = []; }
+  /* AND THE VIEWER'S OWN FLAGS (owner, 16 Nov), so each flag tile is drawn on or off. */
+  try { payload.myFlags = meAsked ? myFlags_(meAsked.person_id) : []; } catch (err) { payload.myFlags = []; }
 
   /* ---------- AND THE SHOP WINDOW, WHICH IS THE SAME LIST FOR EVERYBODY § */
   /* AND A TAB WITH NO ROWS SENDS NO KEY, because the filter below cannot tell "an admin switched the last one off" from "nobody has ever spotlit anything" — both § */

@@ -57,7 +57,7 @@ const sg = more => Object.assign({ action: 'suggest', kind: 'question', itemId: 
     const x = n[0];
     if (x.made_by !== 'P-S1') bad.push('the row is for ' + x.made_by + ' — the token was Ada’s');
     if (x.status !== 'pending' || x.item_id !== 'question|q:Q-T-1' || x.column !== 'question') bad.push('a child’s row is ' + JSON.stringify([x.status, x.item_id, x.column]) + ' — wanted pending, question|q:Q-T-1');
-    if (x.note !== 'the answer says 12 but it is 15') bad.push('the words were not kept: ' + JSON.stringify(x.note));
+    if (x.note.split('\n')[0] !== 'Flagged') bad.push('a flag is not the note “Flagged” — typed words are not a flag’s (owner, 16 Nov): ' + JSON.stringify(x.note));
   }
   if (reports().length) bad.push('a suggestion wrote to the retired reports tab');
   const again = ask(ADA, sg({ note: 'again' }));
@@ -72,7 +72,9 @@ const sg = more => Object.assign({ action: 'suggest', kind: 'question', itemId: 
   if (b.ev('claudeNotesOpen_().length') !== 0) bad.push('a waiting suggestion is counted open for Claude');
   /* REFUSED: signed out, no words, a bad id, a bad kind, and busy. */
   if (!ask('', sg()).error) bad.push('signed out, a suggestion was taken');
-  if (!ask(ADA, sg({ itemId: 'q:Q-T-7', note: '  ' })).error) bad.push('a suggestion with no words was taken');
+  if (ask(ADA, sg({ itemId: 'q:Q-T-7', note: '' })).error) bad.push('a flag with no words was refused — a flag is one tap (owner, 16 Nov)');
+  const off = ask(ADA, sg({ itemId: 'q:Q-T-7', flag: 'off' }));
+  if (!off.success || (off.myFlags || []).indexOf('question|q:Q-T-7') !== -1) bad.push('a second tap did not take the flag off: ' + JSON.stringify(off).slice(0, 200));
   if (!ask(ADA, sg({ itemId: '<b>x</b>' })).error) bad.push('an id that is not one was taken');
   if (!ask(ADA, sg({ kind: 'Bad Kind' })).error) bad.push('a kind that is not a word was taken');
   const { ask: askBusy, notes: nBusy } = world(false);
@@ -80,7 +82,7 @@ const sg = more => Object.assign({ action: 'suggest', kind: 'question', itemId: 
   /* AN OLD PHONE'S report AND reportQuestion LAND HERE TOO, the reason kept as words. */
   ask(ADA, { action: 'reportQuestion', questionId: 'Q-T-3', reason: 'answer-wrong', note: 'old' });
   const old = notes().find(r => r.item_id === 'question|q:Q-T-3');
-  if (!old || old.note !== 'The answer is wrong — old' || old.status !== 'pending') bad.push('an old phone’s reportQuestion became ' + JSON.stringify(old));
+  if (!old || old.note !== 'Flagged' || old.status !== 'pending') bad.push('an old phone’s reportQuestion became ' + JSON.stringify(old));
 }
 
 /* ---------- 2. AN ADMIN'S IS OPEN AT ONCE, AND ONLY AN ADMIN DECIDES ---------- */
@@ -145,7 +147,7 @@ const sg = more => Object.assign({ action: 'suggest', kind: 'question', itemId: 
   files.forEach(f => {
     const src = fs.readFileSync(path.join(dir, f), 'utf8');
     const own = f === 'submit-suggest.js' ? src.replace(/function suggestOpts_\([\s\S]*?\n\}/, '') : src;
-    if (/act:\s*'rep-box'/.test(own)) bad.push('js/' + f + ' draws a Suggest tile of its own — use tile_(suggestOpts_(kind, id, label))');
+    if (/act:\s*'rep-flag'/.test(own)) bad.push('js/' + f + ' draws a Suggest tile of its own — use tile_(suggestOpts_(kind, id, label))');
     if (/label:\s*'(Report[^']*|Note for Claude)'/.test(src)) bad.push('js/' + f + ' still has a Report or Note for Claude tile');
     if (/act:\s*'ncl-open'|reportTile_|noteTile_/.test(src)) bad.push('js/' + f + ' still calls the old report or note tile');
     if (/data-do="(q-report|msg-report)"|'(q-report|msg-report)'/.test(src)) bad.push('js/' + f + ' still has the old q-report/msg-report tile');
@@ -154,7 +156,7 @@ const sg = more => Object.assign({ action: 'suggest', kind: 'question', itemId: 
   ['tiles.js', 'arcade.js', 'layout.js', 'me.js', 'find.js'].forEach(f => { if (!uses.some(u => u === f || u.startsWith(f.slice(0, -3) + '-'))) bad.push(f + ' no longer calls suggestOpts_ — cards, widgets, column cards, the finder and messages each need it'); });
   const icons = fs.readFileSync(path.join(dir, 'tiles.js'), 'utf8');
   if (!/^\s*suggest:\s*'/m.test(icons)) bad.push('TILE_ICONS has no `suggest` icon');
-  if (!/icon: 'suggest'/.test(require('../tools/piece-src.js').pieceSrc('submit'))) bad.push('suggestOpts_ does not use the suggest icon');
+  if (!/icon: 'flag'/.test(require('../tools/piece-src.js').pieceSrc('submit'))) bad.push('suggestOpts_ does not use the flag icon');
 }
 
 /* ---------- 5. ROUND THREE (498): a shop item's id with spaces is taken; Find's path is a line of the note; data/notes-done.json marks done; one day's mistaken Done reopened ---------- */

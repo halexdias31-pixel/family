@@ -126,7 +126,7 @@ function kcFour_(x, rest, main) {
   const first = String((spec.tiles || [])[0] || '').split(':')[0];
   const pick = test => { const t = all.find(test); if (t) all.splice(all.indexOf(t), 1); return t || ''; };
   main = main || pick(t => first && kcAct_(t) === first) || pick(t => /\bis-(submit|buy)\b/.test(t))
-    || pick(t => KC_MAIN_ACTS.indexOf(kcAct_(t)) >= 0) || pick(t => !/^(fav|msg-open|card-share|find-top|rep-box|game-lock)$/.test(kcAct_(t)) && !/\bis-(admin|danger)\b/.test(t));
+    || pick(t => KC_MAIN_ACTS.indexOf(kcAct_(t)) >= 0) || pick(t => !/^(fav|msg-open|card-share|find-top|rep-flag|game-lock)$/.test(kcAct_(t)) && !/\bis-(admin|danger)\b/.test(t));
   const r = kcRow_(x), who = r.title || r.name || '';
   const msg = pick(t => kcAct_(t) === 'msg-open')
     || (x && x.key && typeof personTiles_ === 'function' && /^(tutor|person|people)$/.test(x.kind) ? personTiles_(x) : '')

@@ -1,61 +1,5 @@
 /* ---------- NOTES FOR CLAUDE BY SUGGEST A CHANGE (484, 494): one Suggest tile on every widget and card; a box in place; Send, Done ---------- */
 const cnRow_ = (w, id) => (w.document.querySelector(`#wgt-${id}`)?.closest('.card')?.querySelector('.wgt-foot')) || null;
-check('notes for Claude by Suggest a change (494): an admin has one Suggest tile on a widget and on a card and no Note for Claude tile; it opens a box in place, a draft survives Cancel, Send posts the item id and title; no note is listed and there is no Done (498)', async () => {
-  const notes = [];
-  const { w, sent } = layBoot_({ reply: b => {
-    if (b.action === 'suggest') { notes.unshift({ id: 'N-1', at: Date.now(), column: b.kind, itemId: b.kind + '|' + b.itemId, itemLabel: b.label, note: b.note }); return { success: true, serious: true, id: 'N-1', notes: notes.slice() }; }
-    if (b.action === 'claudeNoteDone') { notes.splice(0); return { success: true, id: b.id, notes: [] }; }
-    return undefined;
-  } });
-  await wait(300);
-  const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
-  if (!A['rep-box'] || !A['rep-send']) return ['no rep-box / rep-send — NOT checked'];
-  if (A['ncl-done']) bad.push('Done is still wired — Claude marks notes done by data/notes-done.json (498)');
-  if (A['ncl-open'] || A['ncl-send']) bad.push('the old Note for Claude box is still wired');
-  t.findGroup('Tools'); await wait(300);
-  const a = layIds_(t, 'tool')[0];
-  const row = cnRow_(w, a);
-  const tiles = row ? row.querySelectorAll('[data-do="rep-box"]') : [];
-  if (tiles.length !== 1) return ['the first tool has ' + tiles.length + ' Suggest tiles in its row — wanted one'];
-  const tile = tiles[0];
-  if (tile.getAttribute('aria-label') !== 'Suggest a change') bad.push('the tile is called ' + tile.getAttribute('aria-label'));
-  if (d.querySelector('[data-do="ncl-open"]')) bad.push('a Note for Claude tile is still drawn');
-  await layPaintAll_(w);
-  const cardRow = d.querySelector('.card-admin[data-lay-for]');
-  if (cardRow && cardRow.querySelectorAll('[data-do="rep-box"]').length > 1) bad.push('a right-hand card’s admin row has two Suggest tiles');
-  A['rep-box'](tile); await wait(50);
-  const boxOf = () => [...d.querySelectorAll('.rep-box')].find(x => x.dataset.rk === 'widget' && x.dataset.ri === a);
-  const box = boxOf();
-  if (!box) return bad.concat(['Suggest a change opened no box']);
-  const wcard = d.querySelector(`#wgt-${a}`)?.closest('.card');
-  if (box.parentElement !== wcard || !wcard.classList.contains('is-writing')) bad.push('the box did not open in place of the widget');
-  const ta = box.querySelector('textarea');
-  if (!ta || ta.getAttribute('placeholder') !== 'What should change here?') bad.push('the box has no "What should change here?" textarea');
-  if (!box.querySelector('[data-do="rep-send"]') || !box.querySelector('[data-do="rep-cancel"]')) bad.push('the box has no Send and Cancel tiles');
-  ta.value = 'Make the title bigger'; ta.dispatchEvent(new w.Event('input', { bubbles: true })); await wait(50);
-  A['rep-cancel'](box.querySelector('[data-do="rep-cancel"]')); await wait(50);
-  if (boxOf()) bad.push('Cancel did not close the box');
-  A['rep-box'](tile); await wait(50);
-  const box2 = boxOf(), ta2 = box2 && box2.querySelector('textarea');
-  if (!ta2 || ta2.value !== 'Make the title bigger') bad.push('the draft did not survive Cancel: ' + (ta2 && ta2.value));
-  A['rep-send'](box2.querySelector('[data-do="rep-send"]')); await wait(300);
-  const post = sent.filter(x => x.action === 'suggest');
-  if (post.length !== 1) bad.push(post.length + ' suggest posts after one Send');
-  else if (post[0].itemId !== a || post[0].kind !== 'widget' || !post[0].label || post[0].note !== 'Make the title bigger') bad.push('the suggestion went as ' + JSON.stringify(post[0]));
-  if (boxOf()) bad.push('Send did not close the box');
-  if (d.querySelector(`#wgt-${a}`)?.closest('.card')?.classList.contains('is-writing')) bad.push('the widget is still hidden after Send');
-  const tile2 = cnRow_(w, a)?.querySelector('[data-do="rep-box"]') || tile;
-  A['rep-box'](tile2); await wait(50);
-  const ta3 = boxOf()?.querySelector('textarea');
-  if (ta3 && ta3.value) bad.push('the box opened again with the sent words in it: ' + ta3.value);
-  if (boxOf()?.querySelector('.ncl-item, [data-do="ncl-done"]')) bad.push('the box lists notes or a Done tile — the owner: "I don\'t even need to be able to tick or see old tasks"');
-  const c = boot({ before: signedInAs_({ name: 'Cal Client', personId: 'P-CL', role: 'client', roles: ['client'], rank: 'client', token: 'tk', handle: 'calclient' }) });
-  await wait(300);
-  c.w.__t.findGroup('Tools'); await wait(200); await layPaintAll_(c.w);
-  if (c.w.document.querySelector('[data-do="ncl-open"]')) bad.push('a client has a Note for Claude tile');
-  if (!c.w.document.querySelector('#s-stuff [data-do="rep-box"]')) bad.push('a client has no Suggest a change tile on Tools');
-  return bad;
-});
 check('notes for Claude (484), the real backend: claudeNoteAdd keeps a row with the item id and title and rewrites the Drive file "Notes for Claude"; a client is refused; doGet sends open notes to an admin only; Done takes it out of both', async () => {
   const { backend } = require('./check-gas-load.js');
   const files = [];
@@ -223,39 +167,6 @@ check('who sees this (497): an admin narrows a widget to Tutors in place; a stud
   if (tIds.indexOf(id) === -1) bad.push('a tutor does not see ' + id);
   s.w.__t.findGroup('Tools'); await wait(300);
   if (s.w.document.querySelector(`#wgt-${id}`)) bad.push('the student\'s Tools column still draws ' + id);
-  return bad;
-});
-check('suggest a change (489, 494): one tile with that name on a widget, the booking form and the finder itself; the box opens in place of the widget; after Send the words are gone when it opens again', async () => {
-  const { w, sent } = layBoot_({ reply: b => (b.action === 'suggest' ? { success: true } : undefined) });
-  await wait(300);
-  const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
-  t.findGroup('Tools'); await wait(300);
-  const id = layIds_(t, 'tool')[0];
-  const card = d.querySelector(`#wgt-${id}`)?.closest('.card');
-  const tile = card && card.querySelector('[data-do="rep-box"]');
-  if (!tile) return ['the first tool has no Suggest tile'];
-  if (tile.getAttribute('aria-label') !== 'Suggest a change') bad.push('the tile is called ' + tile.getAttribute('aria-label'));
-  if (card.querySelectorAll('[data-do="rep-box"]').length !== 1) bad.push('the widget has more than one Suggest tile');
-  A['rep-box'](tile); await wait(50);
-  const box = card.querySelector(':scope > .rep-box');
-  if (!box || !card.classList.contains('is-writing')) return bad.concat(['the Suggest box did not open in place of the widget']);
-  if (box.querySelector('select')) bad.push('the box still asks for a reason');
-  const ta = box.querySelector('textarea');
-  ta.value = 'Bigger keys please'; ta.dispatchEvent(new w.Event('input', { bubbles: true })); await wait(50);
-  A['rep-send'](box.querySelector('[data-do="rep-send"]')); await wait(300);
-  if (sent.filter(x => x.action === 'suggest' && x.note === 'Bigger keys please').length !== 1) bad.push('Send did not post one suggestion with the words');
-  if (card.querySelector('.rep-box') || card.classList.contains('is-writing')) bad.push('after Send the widget did not come back');
-  A['rep-box'](card.querySelector('[data-do="rep-box"]')); await wait(50);
-  const again = card.querySelector('.rep-box textarea');
-  if (!again || again.value) bad.push('the Suggest box opened again with the last words in it: ' + (again && again.value));
-  t.go('booking', false, true); await wait(300);
-  if (!d.querySelector('#s-stuff [data-do="rep-box"]')) bad.push('the booking form has no Suggest tile');
-  /* THE FINDER ITSELF (494): "should be on finder widget too" — Find carries one on the question's page. */
-  for (const f of ['stuff']) {
-    t.go(f, false, true); await wait(300);
-    const n = d.querySelectorAll(`#${f}-controls [data-do="rep-box"][data-rk="finder"]`).length;
-    if (n !== 1) bad.push(`#${f}-controls has ${n} Suggest tiles for the finder itself — wanted one`);
-  }
   return bad;
 });
 check('library cards (489): the widget holds one card — no Add another, the one filled shown', async () => {
@@ -574,7 +485,7 @@ check('Find › Questions › Maths › Past paper › A-Level › Edexcel › 2
       if (!q) return;
       seen++;
       if (q.classList.contains('qstem') || q.classList.contains('qpre')) stems++;
-      if (!pg.querySelector('[data-do="rep-box"]')) bad.push('a ' + (q.classList.contains('qstem') ? 'stem' : q.classList.contains('qpre') ? 'first' : 'part') + ' page has no Suggest a change: ' + pg.textContent.replace(/\s+/g, ' ').trim().slice(0, 60));
+      if (!pg.querySelector('[data-do="rep-flag"]')) bad.push('a ' + (q.classList.contains('qstem') ? 'stem' : q.classList.contains('qpre') ? 'first' : 'part') + ' page has no Suggest a change: ' + pg.textContent.replace(/\s+/g, ' ').trim().slice(0, 60));
       const row = pg.querySelector('.qt-row');
       if (!row) return;
       const it = W.stuffItemsAll_().find(y => y.key === row.getAttribute('data-key'));

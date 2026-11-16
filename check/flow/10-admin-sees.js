@@ -443,7 +443,7 @@ check('an empty Spotlight, Saved, shop and basket draw their title and, for a si
     if (!card || !kids[0] || kids[0].tagName !== 'H3' || kids[0].textContent.trim() !== title || kids.length > 2 || (kids[1] && kids[1] !== row)) {
       bad.push(who + '’s empty ' + title + ' draws more than its title: ' + JSON.stringify(box.textContent.replace(/\s+/g, ' ').trim().slice(0, 100)));
     }
-    if (acts.join() !== (who === 'a visitor' ? '' : 'rep-box')) bad.push(who + '’s empty ' + title + ' has the tiles ' + JSON.stringify(acts) + ', wanted ' + (who === 'a visitor' ? 'none (signed out)' : 'Suggest a change alone'));
+    if (acts.join() !== (who === 'a visitor' ? '' : 'rep-flag')) bad.push(who + '’s empty ' + title + ' has the tiles ' + JSON.stringify(acts) + ', wanted ' + (who === 'a visitor' ? 'none (signed out)' : 'Suggest a change alone'));
   };
   for (const who of [null, { name: 'Ada Admin', personId: 'P-AD', role: 'admin', roles: ['admin'], token: 'tk' }]) {
     t.USER(who);

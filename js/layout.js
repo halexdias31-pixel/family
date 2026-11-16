@@ -565,7 +565,7 @@ function cardsOf_(col) {
       let page = strip(i === 0 && g.id ? cardSayIn_(h, g.id) : h);
       /* THE CARD'S ROW FIRST, then the person's one Start here: appended after, the card row was spliced INSIDE the start row (467). */
       /* AN EMPTY CARD CARRIES ITS OWN Suggest a change (`emptyCard_`), so the admin's row does not add a second. */
-      const row1 = /data-do="rep-box"/.test(page) ? row.replace(/<button[^>]*data-do="rep-box"[\s\S]*?<\/button>/, '') : row;
+      const row1 = /data-do="rep-flag"/.test(page) ? row.replace(/<button[^>]*data-do="rep-flag"[\s\S]*?<\/button>/, '') : row;
       if (row && (each || i === g.pages.length - 1)) page = cardRowIn_(page, pid ? row1.replace(/<button[^>]*data-do="lay-start"[\s\S]*?<\/button>/, '') : row1);
       if (admin && pid) page = cardRowIn_(page, cardBlock_({ type: 'tiles', look: 'wgt-admin start-tiles', tiles: [startOpts_(col, 'person:' + pid, start)] }));
       out.push(page);
@@ -613,7 +613,7 @@ function cardAdminRow_(id, col, mergeable) {
 /* A CARD'S REPORT ROW FOR SOMEBODY WHO DOES NOT ARRANGE CARDS (486); an admin's is in `cardAdminRow_`. */
 function cardReportRow_(id, page) {
   /* NOT ON A LOCKED CARD (467: nothing pressable) NOR ONE CARRYING ITS OWN (an empty card's, `emptyCard_`). */
-  if (/^\s*(?:<!--[^>]*-->)*\s*<div class="card[^"]*\bis-locked\b/.test(page) || /data-do="rep-box"/.test(page)) return '';
+  if (/^\s*(?:<!--[^>]*-->)*\s*<div class="card[^"]*\bis-locked\b/.test(page) || /data-do="rep-flag"/.test(page)) return '';
   const t = typeof suggestOpts_ === 'function' ? tile_(suggestOpts_('card', id, CARD_TITLE[id] || ((/<h3[^>]*>([^<]{1,80})<\/h3>/.exec(page) || /^\s*(?:<!--[^>]*-->)*\s*<div class="card[^>]*\saria-label="([^"]{1,80})"/.exec(page) || [])[1] || id).trim())) : '';
   return t ? cardBlock_({ type: 'group', look: 'tile-row card-rep', inner: tile_(typeof gameLockOpts_ === 'function' ? gameLockOpts_('k:' + id) : null) + t }) : '';
 }

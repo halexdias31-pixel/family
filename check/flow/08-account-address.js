@@ -215,52 +215,6 @@ check('the Child list holds only the chosen client\'s children, the admin bookin
 });
 
 /* ---------- WHAT THE CARD HELD GOES WITH A SUGGESTION ABOUT IT (owner, 29 Oct; docs/history/530) § */
-check('Suggest a change on the Booking widget sends the filled-in fields, people as initials', async () => {
-  const reply = b => b.action === 'suggest' ? { success: true, serious: true, notes: [] } : { success: true };
-  const { w, sent } = boot({ reply });
-  await wait(300);
-  const t = w.__t, d = w.document, bad = [];
-  t.USER({ name: 'Hal Admin', personId: 'PA', role: 'admin', roles: ['admin'], token: 'tok-PA', handle: 'ha2026' });
-  const D = t.DATA();
-  D.clients = [{ name: 'Ann Client', children: ['Amy Client'] }];
-  const B = t.BOOKING;
-  Object.keys(B).forEach(k => { if (Array.isArray(B[k])) B[k] = []; else B[k] = ''; });
-  Object.assign(B, { client: 'Ann Client', how: 'Instant class', subjects: ['Maths'], level: 'GCSE', kids: ['Amy Client'], n: '1',
-    split: ['someone@example.org'], discValue: '30', note: 'secret words about my child' });
-  const host = d.createElement('div');
-  host.className = 'pane';
-  host.innerHTML = '<div class="card"><h3>Booking</h3><div class="tile-row">' + w.tile_(w.suggestOpts_('widget', 'booking', 'Booking')) + '</div></div>';
-  d.body.appendChild(host);
-  const tile = host.querySelector('[data-do="rep-box"]');
-  if (!tile) return ['the Booking widget has no Suggest a change tile — NOTHING was checked'];
-  t.ACTIONS['rep-box'](tile);
-  const box = d.querySelector('.rep-box[data-rk="widget"][data-ri="booking"]');
-  if (!box) return ['the suggestion box did not open — NOTHING was checked'];
-  box.querySelector('textarea').value = 'make the term list bigger';
-  t.ACTIONS['rep-send'](box.querySelector('[data-do="rep-send"]'));
-  for (let i = 0; i < 50 && !sent.some(b => b.action === 'suggest'); i++) await wait(50);
-  const got = sent.find(b => b.action === 'suggest');
-  if (!got) return bad.concat('no suggestion was sent');
-  const note = String(got.note || '');
-  if (note.indexOf('make the term list bigger') !== 0) bad.push('the owner\'s words are not first in the note: ' + JSON.stringify(note.slice(0, 80)));
-  ['Fields:', 'For: A.C.', 'Kind: Instant class', 'Subject: Maths', 'Level: GCSE', 'Child: A.C.', 'Split: 1 address', 'Discount: 30%'].forEach(x => {
-    if (note.indexOf(x) === -1) bad.push('the note does not say ' + JSON.stringify(x) + ': ' + JSON.stringify(note));
-  });
-  ['Ann', 'Amy', 'someone@example.org', 'secret words'].forEach(x => { if (note.indexOf(x) !== -1) bad.push('the note carries ' + JSON.stringify(x) + ' — a public repository reads these'); });
-  /* AND ONLY THE BOOKING WIDGET'S: a suggestion about anything else is the words alone. */
-  host.innerHTML = '<div class="card"><h3>Other</h3><div class="tile-row">' + w.tile_(w.suggestOpts_('widget', 'other', 'Other')) + '</div></div>';
-  t.ACTIONS['rep-box'](host.querySelector('[data-do="rep-box"]'));
-  const box2 = d.querySelector('.rep-box[data-ri="other"]');
-  if (box2) {
-    box2.querySelector('textarea').value = 'plain';
-    t.ACTIONS['rep-send'](box2.querySelector('[data-do="rep-send"]'));
-    for (let i = 0; i < 50 && sent.filter(b => b.action === 'suggest').length < 2; i++) await wait(50);
-    const two = sent.filter(b => b.action === 'suggest')[1];
-    if (two && two.note !== 'plain') bad.push('a suggestion about another widget carried the booking\'s fields: ' + JSON.stringify(two.note));
-  }
-  host.remove();
-  return bad;
-});
 
 /* ---------- A SELECT IS THE PLATFORM'S OWN, AND NOTHING IN THE APP STANDS IN FRONT OF IT § */
 check('a select is the platform\'s own: its press is not cancelled, its focus is not taken, nothing opens over it', async () => {
