@@ -320,7 +320,7 @@ function handleLawFirst_(r) {
 }
 /* THE FORMAT AS A MATCHER, so a username already in it is never moved by the old template's migrations. */
 const handleLawRe_ = () => new RegExp('^' + HANDLE_FORMAT.pattern.replace(/[.*+?^$()|[\]\\]/g, '\\$&')
-  .replace('{First}', '([A-Za-z]+?)').replace('{Pick}', '(?:' + (HANDLE_FORMAT.picks.join('|') || 'x') + ')').replace('{Initial}', '[A-Za-z]?').replace('{Year}', '\\d{4}')
+  .replace('{First}', '([A-Z][a-z]*)').replace('{Pick}', '(?:' + (HANDLE_FORMAT.picks.join('|') || 'x') + ')').replace('{Initial}', '[A-Z]?').replace('{Year}', '\\d{4}')
   + '(?:' + HANDLE_FORMAT.counter.replace(/[.*+?^$()|[\]\\]/g, '\\$&').replace('{n}', '\\d+') + ')?$');
 /* `taken(h)` says a candidate is not free; `pick(n)` draws 0..n-1 (Math.random for a joiner, seeded for the admin's rename). */
 function handleLaw_(r, taken, seen, pick) {
@@ -339,7 +339,7 @@ function handleLawIs_(h, r) {
   const esc = x => x.replace(/[.*+?^$()|[\]\\{}]/g, '\\$&');
   const F = HANDLE_FORMAT, stem = esc(handleLawFirst_(r));
   const re = new RegExp('^' + esc(F.pattern).replace('\\{First\\}', stem).replace('\\{Pick\\}', '(?:' + (F.picks.map(esc).join('|') || 'x') + ')')
-    .replace('\\{Initial\\}', '[A-Za-z]?').replace('\\{Year\\}', '\\d{4}') + '(?:' + esc(F.counter).replace('\\{n\\}', '\\d+') + ')?$', 'i');
+    .replace('\\{Initial\\}', '[A-Z]?').replace('\\{Year\\}', '\\d{4}') + '(?:' + esc(F.counter).replace('\\{n\\}', '\\d+') + ')?$');
   return re.test(S(h));
 }
 /* A DRAW THAT REPEATS: the same seed gives the same colours, so Apply writes exactly the list Preview showed. */

@@ -21868,8 +21868,8 @@ function histTopicsIndex_() {
 function htopEvents_(t) {
   const ex = (typeof LIBRARY_EXTRA !== 'undefined' && LIBRARY_EXTRA) || {};
   const tl = (ex.timelines || []).find(x => x && x.id === t.timeline);
-  const by = new Map((ex.timeline || []).map(e => [e.id, e]));
-  return tl ? (tl.events || []).map(r => by.get(r.id)).filter(Boolean) : [];
+  const by = new Map((ex.timeline || []).filter(e => e && e.id).map(e => [e.id, e]));
+  return tl ? (Array.isArray(tl.events) ? tl.events : []).map(r => r && by.get(r.id)).filter(Boolean) : [];
 }
 /* A YEAR OR A SPAN AS SAID; `about` marks a year known only roughly. */
 const htopYears_ = (a, b, about) => (a ? (about ? 'c. ' : '') + a : '?') + (b ? '–' + b : '');
