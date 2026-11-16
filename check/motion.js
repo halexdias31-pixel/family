@@ -24,6 +24,7 @@ const EASE_WORD = /^(ease|ease-in|ease-out|ease-in-out|linear|step-start|step-en
 /* THE NAMED EXCEPTIONS, each with its reason. `css` is matched against the rule's selector (inside its @media/@keyframes);
    `js` is a file and a pattern on the line. Everything else is a token: --dur-*, --ease-*, MOTION_. */
 const ACCEPTED = [
+  { css: /^\.sa\b|^@keyframes sa-/, why: 'the library\'s teaching animations (16 Nov) loop on their own clock: steps a second apart, a 10 s cycle' },
   { css: /^\.screen$/, why: 'the slide between columns (527) owns its own spring and timing' },
   { css: /^\.loading > span/, why: 'the loading ring turns forever at its own speed (owner, 12 Nov), not a movement' },
   { css: /^\.kp-caret$/, why: 'the keypad (528) owns its caret' },

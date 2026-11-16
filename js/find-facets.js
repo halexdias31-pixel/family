@@ -113,6 +113,8 @@ function answerCmp_(texts) {
   for (const list of ANSWER_ORDERS) {
     if (list.length && every(t => list.indexOf(t) !== -1)) return (a, b) => list.indexOf(a) - list.indexOf(b);
   }
+  /* A SPEC'S NUMBERED HEADINGS IN THE SPEC'S ORDER (16 Nov): 4.2 before 4.10. */
+  if (every(t => /^\d+(?:\.\d+)+ /.test(t))) return (a, b) => specNumCmp_(a, b);
   const k = kindRank_();
   for (const by of [k.labels, k.groups]) {
     if (every(t => by.has(t))) return (a, b) => by.get(a) - by.get(b);
@@ -215,7 +217,9 @@ function facetTally_(items, facet) {
     values = Object.keys(folded).map(k => ({ value: String(folded[k].best.value), n: folded[k].n, text: facetSay_(facet, String(folded[k].best.value)) }));
     const cmp = answerCmp_(values.map(v => v.text));
     values.sort((a, b) => cmp(a.text, b.text) || cmpText(a.value, b.value));
-    shortLabels_(values); tellApart_(items, facet, values); showFit_(values);
+    /* A SPEC HEADING IS SAID WHOLE (`full`): "4.6 Inheritance, variation and evolution", never cut at its comma. */
+    if (facet.full) values.forEach(v => { v.show = v.text || v.value; }); else shortLabels_(values);
+    tellApart_(items, facet, values); if (!facet.full) showFit_(values);
     return values;
   };
 
@@ -608,7 +612,7 @@ function contentBody_(c) {
 }
 
 /* A CONTENT CARD'S OTHER PAGES AND THEIR TITLES, ONE PLACE (408): § */
-const CONTENT_PAGE = { fig: 'Diagram', formulas: 'Formulas', worked: 'Worked examples' };
+const CONTENT_PAGE = { fig: 'Diagram', formulas: 'Formulas', worked: 'Worked examples', info: 'Information', anim: 'Animation' };
 function contentPageTitle_(x, part) {
   if (!part) return String((x && x.name) || '');
   return CONTENT_PAGE[part] || '';
@@ -618,7 +622,9 @@ function contentPart_(x, part) {
   const c = x.row;
   return renderCard({ kind: 'part', look: 'prac prac-part tb tb-page is-' + part, name: CONTENT_PAGE[part], tags: [{ text: CONTENT_PAGE[part] }],
     body: [{ type: 'text', look: 'fc-kick', text: [[c.subject, c.title].filter(Boolean).join(' · ')].concat(tbMark_(c.higher)) }]
-      .concat(part === 'fig' ? [figPage_(c.diagram)] : tbSections_(c, null, { only: part === 'worked' ? 'points' : 'formulas', bare: true })) });
+      .concat(part === 'fig' ? [figPage_(c.diagram)] : part === 'anim' ? [gdSec_('', animPage_(c))]
+        : part === 'info' ? tbSections_(Object.assign({}, c, { points: infoPoints_(c) }), null, { only: 'points', bare: true })
+        : tbSections_(c, null, { only: part === 'worked' ? 'points' : 'formulas', bare: true })) });
 }
 
 /* ---------- A CHAPTER'S KEY WORDS, FORMULAS AND WORKED LINES — ALL OF THEM, OR THE ONES ASKED FOR § */
@@ -635,7 +641,36 @@ function tbSections_(c, keep, opt) {
   /* THE MARK ON THE FORMULA'S NAME, not after the formula: § */
   return [sec('tb-words', 'Key words', words.map(w => [{ b: w.name }, ' — '].concat(tbSub_(w.text), tbMark_(w.higher)))),
     sec('tb-math', 'Formulas', formulas.map(f => [{ b: f.name }].concat(tbMark_(f.higher), ' ', tbMath_(f.text)))),
-    sec('tb-points', 'Worked', points.map(p => [tbMath_(p.text)].concat(tbMark_(p.higher))))].filter(Boolean);
+    sec('tb-points', 'Information', points.map(p => [tbMath_(p.text)].concat(tbMark_(p.higher))))].filter(Boolean);
+}
+
+/* ---------- THE SPEC IS THE TOPIC TREE (owner, 16 Nov: "topics should follow the exam board's spec exactly") ---------- */
+/* One source, data/spec/<board>-<code>.json (DATA.specs): a card's `spec` and `spec_ref` answer Spec topic and Spec point. § */
+function specNumCmp_(a, b) {
+  const x = String(a).split(' ')[0].split('.').map(Number), y = String(b).split(' ')[0].split('.').map(Number);
+  for (let i = 0; i < Math.max(x.length, y.length); i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) - (y[i] || 0);
+  return 0;
+}
+const SPEC_TOPIC_NONE = { topic: '', point: '' };
+function specTreeOf_(x) {
+  if (!x || !isContent_(x) || !x.row) return SPEC_TOPIC_NONE;
+  if (x.specTree) return x.specTree;
+  const c = x.row, ref = String(c.specRef || '').trim();
+  const sp = ref && c.spec ? ((typeof DATA !== 'undefined' && DATA.specs) || []).find(s => String(s.code) === String(c.spec) && s.board === c.board) : null;
+  if (!sp) return (x.specTree = SPEC_TOPIC_NONE);
+  const a = ref.split('.'), sec = sp.sections.find(s => s.id === a.slice(0, 2).join('.')), pt = (sp.points || []).find(p => p.id === a.slice(0, 3).join('.'));
+  return (x.specTree = { topic: sec ? sec.id + ' ' + sec.title : '', point: pt ? pt.id + ' ' + pt.text : '' });
+}
+/* THE LIBRARY IS INFORMATION AND ANIMATIONS (owner, 16 Nov): no worked examples, no self-tests, no still pictures on its door. */
+const SCI_NOT_INFO = /^(Worked example|Check|Example)\b/i;
+const infoPoints_ = c => (c.points || []).filter(p => !SCI_NOT_INFO.test(String(p.text || '')))
+  .map(p => Object.assign({}, p, { text: String(p.text || '').replace(/^Explanation\s+—\s+/, '') }));
+/* ONE ANIMATION FORMAT: an `sa` SVG (s1..s8 steps, mv-* motion; style.css). A still diagram plays as one (`sa-auto`). § */
+const saSvg_ = svg => String(svg || '').replace(/^(\s*<svg)\b(?![^>]*class="sa)/, '$1 class="sa sa-auto"');
+function animPage_(c) {
+  const list = (c.anims || []).map(a => ({ type: 'figure', svg: a.svg, caption: [{ b: a.title }] }));
+  if (!list.length && c.diagram) list.push({ type: 'figure', svg: saSvg_(c.diagram) });
+  return list;
 }
 
 /* ---------- ONE CHAPTER, AS AN ITEM THE FUNNEL ASKS THE QUESTIONS' QUESTIONS OF § */
