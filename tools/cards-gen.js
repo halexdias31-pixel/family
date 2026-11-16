@@ -22,22 +22,18 @@ const TAKE = [
   ['js/predicates-fig.js', ['FIG_WORDS', 'FIG_NOT_WORDS', 'figWords_', 'figPictured_', 'figUndrawn_']],
 ];
 /* THE EMAIL'S TAGS, FROM THE SITE'S ONE RULE (owner rule 1.1, 16 Nov): no hand table of facets or colours in the backend. */
-/* DIGEST_TAG_FIELDS: data/settings/facets.json's live facets in its order, kept to those the site's FACETS (js/find-finder.js) still has. */
+/* DIGEST_TAG_FIELDS: data/settings/facets.json's live facets in its order (the site's one facet list, rule 1.80). */
 /* DIGEST_TAG_INK: each hue `hN` as style.css's `--hue-N`, the colour `[data-tag="hN"]` draws. */
 function tagParts() {
-  const finder = fs.readFileSync(path.join(ROOT, 'js/find-finder.js'), 'utf8');
-  const a = finder.indexOf('\nconst FACETS = ['), b = finder.indexOf('\n];', a);
-  if (a < 0 || b < 0) throw new Error('tools/cards-gen.js: js/find-finder.js has no top-level `const FACETS = [ … ];`');
-  const site = new Set((finder.slice(a, b).match(/\{ field: '(\w+)'/g) || []).map(m => /'(\w+)'/.exec(m)[1]));
   const rows = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/settings/facets.json'), 'utf8'));
-  const fields = rows.filter(r => r && r.field && r.active !== false && site.has(r.field) && isFinite(Number(r.sort_order)) && String(r.sort_order) !== '')
+  const fields = rows.filter(r => r && r.field && r.active !== false && isFinite(Number(r.sort_order)) && String(r.sort_order) !== '')
     .map((r, i) => ({ f: r.field, at: Number(r.sort_order), i })).sort((x, y) => x.at - y.at || x.i - y.i).map(o => o.f);
   const css = fs.readFileSync(path.join(ROOT, 'style.css'), 'utf8'), ink = {};
   let m;
   const re = /--hue-(\d+):\s*(#[0-9a-fA-F]{3,8})/g;
   while ((m = re.exec(css))) if (!(('h' + m[1]) in ink)) ink['h' + m[1]] = m[2];
   if (!Object.keys(ink).length) throw new Error('tools/cards-gen.js: style.css has no `--hue-N: #…` tokens');
-  return '/* from data/settings/facets.json, js/find-finder.js FACETS and style.css --hue-N */\n'
+  return '/* from data/settings/facets.json and style.css --hue-N */\n'
     + 'const DIGEST_TAG_FIELDS = ' + JSON.stringify(fields).replace(/","/g, '", "') + ';\n'
     + 'const DIGEST_TAG_INK = ' + JSON.stringify(ink).replace(/":"/g, '": "').replace(/","/g, '", "') + ';';
 }

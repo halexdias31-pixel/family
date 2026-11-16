@@ -1,5 +1,5 @@
 /* @family. — js/find-doors.js FIND'S FRONT DOORS (batch C): Posts, Messages, Profiles, Settings and Videos as Find items,
-   each answering its own menus through the one funnel (FACETS). */
+   each answering its own menus through the one funnel (facetList). */
 
 /* THE FRONT DOOR'S FIELD (batch C): Booking, Posts, Practice… are answers to it; `forIs_`, `book-with` and the receipts set and read this, never a literal. */
 const DOOR_FIELD = 'kindLabel';
@@ -77,7 +77,7 @@ function profileDoorItems_() {
     out.push({ kind: 'person', name: fmtName_(p) || p.handle, key: 'person:' + id, sub: '', image: p.image || '', row: p,
       profileType: profileTypes_(p, tutor), text: [p.title, p.name, p.handle, p.role].filter(Boolean).join(' ') });
   };
-  /* Tutors are Booking's tutor items, tagged Profiles too (KIND_UNDER): never a second card here. */
+  /* Tutors are Booking's tutor items, tagged Profiles too (kinds.json `find.under`): never a second card here. */
   ((DATA && DATA.tutors) || []).forEach(t => { if (t) seen[String(t.personId || t.title || t.handle || '')] = 1; });
   if (seeMay_('find:all-people')) ((DATA && DATA.everyone) || []).filter(p => p && p.title).forEach(p => add(p, false));
   /* ADD A PERSON (add-person): one card for an admin, first among the people, drawn by `personAddCard_` (me-people.js). */

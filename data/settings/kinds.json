@@ -35,6 +35,453 @@
   }
  },
  "kinds": {
+  "tutor": {
+   "source": "Ledger people tab (role tutor)",
+   "loader": "payload -> find-aloud.js",
+   "sample": "check/fixture.json tutors",
+   "sheet": {
+    "tab": "people",
+    "columns": [
+     "personId",
+     "title",
+     "tags",
+     "titles",
+     "venues",
+     "rate",
+     "listed"
+    ],
+    "never": [
+     "pin"
+    ],
+    "via": "person",
+    "id": "person_id",
+    "show": [
+     "person_id",
+     "role",
+     "first_name",
+     "handle",
+     "photo",
+     "photos",
+     "video",
+     "headline",
+     "adjective_1",
+     "adjective_2",
+     "adjective_3",
+     "years_experience",
+     "focus",
+     "borough",
+     "town",
+     "city",
+     "travel_km",
+     "rate_per_hour",
+     "extra_seat_rate",
+     "min_students",
+     "max_students",
+     "availability",
+     "listed",
+     "avatar",
+     "dbs_checked"
+    ]
+   },
+   "find": {
+    "group": "Booking",
+    "label": "Tutors",
+    "under": [
+     "Booking",
+     "Profiles"
+    ],
+    "draw": "findTutorCard_",
+    "facets": [
+     "forLabel",
+     "kindLabel",
+     "kindOwn",
+     "profileType"
+    ]
+   },
+   "card": {
+    "look": "is-widget is-prof tcard",
+    "id": [
+     "personId",
+     "id"
+    ],
+    "name": "title",
+    "nameTag": false,
+    "tags": [
+     "tags",
+     "titles"
+    ],
+    "links": [
+     "venues"
+    ],
+    "lines": true,
+    "off": "kcUnlisted_(row)",
+    "body": "profBody_(row, live)",
+    "picture": "profFace_(entry, 96)",
+    "tagLook": "prof-tags prof-who-tags",
+    "pills": "profPills_(item, entryRow)",
+    "tagRows": "profTagRows_(raw)"
+   },
+   "live": {
+    "money": "kcTutorMoney_(row)",
+    "say": "kcTutorSay_(row)"
+   },
+   "see": {
+    "who": "anyone",
+    "hide": {
+     "prices": [
+      "rate",
+      "rate_per_hour",
+      "extra_seat_rate",
+      "extra_seat_cut"
+     ],
+     "admin": [
+      "note"
+     ]
+    }
+   },
+   "forms": {
+    "card-edit": {
+     "attr": "data-me",
+     "draft": false,
+     "fields": "list",
+     "say": "the tutor card's edit form (cardEditForm_): its sections' names, typed by rules; a price only for may_('prices')."
+    },
+    "card-seat": {
+     "attr": "data-pound",
+     "draft": false,
+     "say": "the extra seat in pounds, kept as the share in the hidden twin; @family.'s share only for an admin.",
+     "fields": [
+      {
+       "f": "extra_seat_rate",
+       "type": "money"
+      },
+      {
+       "f": "extra_seat_rate",
+       "type": "hidden",
+       "attr": "data-me"
+      },
+      {
+       "f": "extra_seat_cut",
+       "type": "money",
+       "may": "admin"
+      },
+      {
+       "f": "extra_seat_cut",
+       "type": "hidden",
+       "attr": "data-me",
+       "may": "admin"
+      }
+     ]
+    },
+    "card-where": {
+     "attr": "data-me",
+     "draft": false,
+     "say": "Where you teach: an area a tick, rewriting the hidden venues_ok, saved by the card's Save.",
+     "fields": [
+      {
+       "f": "venues_ok",
+       "type": "hidden"
+      },
+      {
+       "f": "areas",
+       "type": "ticks",
+       "attr": "data-where-area",
+       "label": "Areas you teach in",
+       "look": "many-list where-areas"
+      }
+     ]
+    }
+   }
+  },
+  "venue": {
+   "source": "Ledger venues + rooms tabs (data/settings/venues.json)",
+   "loader": "payload -> find-aloud.js",
+   "sample": "check/fixture.json venues",
+   "sheet": {
+    "tab": "venues",
+    "columns": [
+     "name",
+     "focus",
+     "borough",
+     "city",
+     "tags",
+     "maxCapacity",
+     "bestRate"
+    ],
+    "also": [
+     "rooms"
+    ],
+    "id": "venue_id"
+   },
+   "find": {
+    "group": "Venues",
+    "label": "Venues",
+    "under": "Booking",
+    "facets": [
+     "forLabel",
+     "kindLabel",
+     "kindOwn",
+     "venueArea",
+     "venueFor",
+     "venueSize"
+    ]
+   },
+   "card": {
+    "look": "venue-door",
+    "tags": [
+     "focus",
+     "borough",
+     "city",
+     "tags"
+    ],
+    "lines": true,
+    "body": "kcVenueBody_(row, live)",
+    "picture": "kcVenuePic_(item, entry)"
+   },
+   "live": {
+    "rooms": "kcRooms_(row)"
+   },
+   "see": {
+    "who": "anyone",
+    "hide": {
+     "prices": [
+      "price",
+      "cost_per_hour",
+      "travel_cost"
+     ]
+    }
+   }
+  },
+  "subject": {
+   "source": "payload (Ledger people/pricing)",
+   "loader": "subjectRows() -> find-aloud.js",
+   "find": {
+    "group": "Booking",
+    "label": "Subjects",
+    "under": "Booking",
+    "facets": []
+   },
+   "card": {
+    "look": "is-subject",
+    "tags": [
+     "levels",
+     "focus"
+    ],
+    "lines": true,
+    "liveTags": {
+     "tutors": 3
+    },
+    "body": "kcSubjectBody_(row, live)"
+   },
+   "live": {
+    "levels": "kcLevels_(row)",
+    "tutors": "kcTutorNames_(row)"
+   },
+   "see": {
+    "who": "anyone"
+   }
+  },
+  "level": {
+   "source": "payload (Ledger people/pricing)",
+   "loader": "find-aloud.js",
+   "find": {
+    "group": "Booking",
+    "label": "Levels",
+    "under": "Booking",
+    "facets": [
+     "forLabel",
+     "kindLabel",
+     "kindOwn"
+    ]
+   },
+   "card": {
+    "look": "is-level",
+    "tags": [
+     "subjects",
+     "focus"
+    ],
+    "lines": true,
+    "liveTags": {
+     "tutors": 3
+    },
+    "body": "kcLevelBody_(row, live)"
+   },
+   "live": {
+    "subjects": "kcSubjects_(row)",
+    "tutors": "kcTutorNames_(row)"
+   },
+   "see": {
+    "who": "anyone"
+   }
+  },
+  "booking": {
+   "source": "Ledger events + receipts tabs",
+   "loader": "backend booking.gs -> book-*.js (myJobs_ -> findMineItems_)",
+   "sample": "check/fixture.json liveJobs",
+   "sheet": {
+    "tab": "jobs",
+    "columns": [
+     "job_id",
+     "subject",
+     "level",
+     "tutor",
+     "venue",
+     "price",
+     "unit",
+     "rate",
+     "weeks",
+     "client",
+     "slots"
+    ],
+    "also": [
+     "receipts"
+    ],
+    "id": "job_id",
+    "owner": [
+     "booked_by",
+     "client_hosts"
+    ]
+   },
+   "find": {
+    "group": "Booking",
+    "label": "Receipts",
+    "under": "Booking",
+    "entries": {
+     "receipt": {},
+     "offBooking": {
+      "label": "Booking",
+      "draw": ""
+     }
+    },
+    "facets": []
+   },
+   "card": {
+    "card": "receipt",
+    "id": [
+     "id",
+     "jobId",
+     "job_id"
+    ],
+    "name": "kcBookingName_(row)",
+    "facts": true,
+    "tags": [
+     "subject",
+     "level",
+     "tutor",
+     "venue"
+    ],
+    "pills": "kcBookingPills_(item)",
+    "body": "kcBookingBody_(row, live)",
+    "tool": "jobPage_(raw)"
+   },
+   "live": {
+    "money": "kcBookingMoney_(row)"
+   },
+   "see": {
+    "who": "self, family, staff, admin",
+    "hide": {
+     "prices": [
+      "rate",
+      "total",
+      "price_total",
+      "tutor_pay",
+      "travel_paid",
+      "admin_profit",
+      "gross",
+      "tutor_payout",
+      "venue_cost",
+      "materials_charge",
+      "materials_cost",
+      "tickets_cost",
+      "card_fees",
+      "discount_value",
+      "net_profit"
+     ],
+     "admin": [
+      "tutor_pay",
+      "admin_profit",
+      "net_profit",
+      "venue_cost",
+      "card_fees"
+     ]
+    }
+   }
+  },
+  "bookform": {
+   "source": "the booking form (js/book-*.js)",
+   "find": {
+    "group": "Booking",
+    "label": "Booking form",
+    "under": "Booking",
+    "draw": "bookFormCard_"
+   },
+   "see": {
+    "who": "anyone"
+   },
+   "forms": {
+    "booking": {
+     "ask": "find",
+     "say": "Booking, asked in Find one field a step in this order (owner, 13 Nov); each field is a BOOK_STEPS question (book-steps.js) or the hour grid (days, slots). given: the site answers it (bookPrefill_), still a chip. many: several answers, a tap ticks; need: how many before Next.",
+     "fields": [
+      {
+       "f": "how",
+       "given": true
+      },
+      {
+       "f": "client"
+      },
+      {
+       "f": "joining",
+       "given": true
+      },
+      {
+       "f": "subjects",
+       "many": true,
+       "need": 1
+      },
+      {
+       "f": "level"
+      },
+      {
+       "f": "tutor"
+      },
+      {
+       "f": "loc"
+      },
+      {
+       "f": "hosting"
+      },
+      {
+       "f": "interval",
+       "many": true
+      },
+      {
+       "f": "days",
+       "many": true,
+       "need": 1,
+       "ask": "Which day?"
+      },
+      {
+       "f": "slots",
+       "many": true,
+       "need": 1,
+       "ask": "What time? Each tag is one hour."
+      },
+      {
+       "f": "avail",
+       "many": true
+      },
+      {
+       "f": "kids",
+       "many": true
+      },
+      {
+       "f": "n"
+      }
+     ]
+    }
+   }
+  },
   "question": {
    "source": "data/questions.json + data-private + Ledger lib_questions",
    "loader": "js/data.js, js/library.js",
@@ -57,6 +504,15 @@
     "blob": true
    },
    "find": {
+    "group": "Learning",
+    "label": "Questions",
+    "under": "Practice",
+    "entries": {
+     "question": {},
+     "answer": {
+      "label": "Answers"
+     }
+    },
     "facets": [
      "forLabel",
      "kindLabel",
@@ -116,6 +572,654 @@
     "who": "anyone"
    }
   },
+  "practical": {
+   "source": "data/practicals.json + data-private + Ledger lib_practicals",
+   "loader": "js/library.js libPractical_",
+   "sheet": {
+    "tab": "lib_practicals",
+    "columns": [
+     "practical_id",
+     "subject",
+     "level",
+     "exam_board",
+     "practical_type",
+     "excluded"
+    ],
+    "id": "id",
+    "blob": true
+   },
+   "find": {
+    "group": "Learning",
+    "label": "Practicals",
+    "under": "Library",
+    "facets": [
+     "forLabel",
+     "kindLabel",
+     "kindOwn",
+     "subject",
+     "practicalType",
+     "required",
+     "level",
+     "topic",
+     "examBoard",
+     "needs"
+    ]
+   },
+   "card": {
+    "look": "prac kc-facts",
+    "id": [
+     "id",
+     "practical_id"
+    ],
+    "tags": [
+     "subject",
+     "level",
+     "board",
+     "exam_board",
+     "practicalType",
+     "practical_type"
+    ],
+    "lines": true,
+    "off": "excluded",
+    "body": "practicalBody_(row)"
+   },
+   "see": {
+    "who": "anyone"
+   }
+  },
+  "project": {
+   "source": "data/projects.json + data-private + Ledger lib_projects",
+   "loader": "js/library.js libProject_",
+   "sheet": {
+    "tab": "lib_projects",
+    "columns": [
+     "project_id",
+     "subject",
+     "level",
+     "exam_board",
+     "project_type"
+    ],
+    "id": "id",
+    "blob": true
+   },
+   "find": {
+    "group": "Learning",
+    "label": "Projects",
+    "under": "Library",
+    "facets": [
+     "forLabel",
+     "kindLabel",
+     "kindOwn",
+     "projectType",
+     "subject",
+     "level",
+     "topic",
+     "examBoard"
+    ]
+   },
+   "card": {
+    "look": "prac proj lib-c kc-facts",
+    "id": [
+     "id",
+     "project_id"
+    ],
+    "tags": [
+     "subject",
+     "level",
+     "board",
+     "exam_board",
+     "projectType",
+     "project_type"
+    ],
+    "lines": true,
+    "body": "projectBody_(row)"
+   },
+   "see": {
+    "who": "anyone"
+   }
+  },
+  "content": {
+   "source": "data/textbooks.json + Ledger lib_content",
+   "loader": "js/library.js -> find-facets.js",
+   "sheet": {
+    "tab": "lib_content",
+    "columns": [
+     "book_id",
+     "chapter",
+     "subject",
+     "level",
+     "keystage",
+     "board",
+     "tier"
+    ],
+    "id": "id",
+    "blob": true
+   },
+   "find": {
+    "group": "Learning",
+    "label": "Library",
+    "facets": [
+     "forLabel",
+     "kindLabel",
+     "subject",
+     "histKind",
+     "wWork",
+     "mKind",
+     "level",
+     "keystage",
+     "yearGroup",
+     "topic",
+     "examBoard",
+     "specTopic",
+     "specPoint",
+     "tier"
+    ]
+   },
+   "card": {
+    "look": "prac tb ct lib-c",
+    "id": "kcContentId_(row)",
+    "tags": [
+     "subject",
+     "level",
+     "keystage",
+     "board",
+     "tier"
+    ],
+    "lines": true,
+    "body": "contentBody_(row)"
+   },
+   "see": {
+    "who": "anyone"
+   }
+  },
+  "insert": {
+   "source": "data/inserts.json + Ledger lib_inserts",
+   "loader": "js/library.js -> find-history.js",
+   "sheet": {
+    "tab": "lib_inserts",
+    "columns": [
+     "insert_id",
+     "subject",
+     "boards",
+     "levels"
+    ],
+    "id": "id",
+    "blob": true
+   },
+   "find": {
+    "group": "Learning",
+    "label": "Library",
+    "facets": [
+     "forLabel",
+     "kindLabel",
+     "subject",
+     "level",
+     "keystage",
+     "examBoard",
+     "tier"
+    ]
+   },
+   "card": {
+    "look": "insh",
+    "id": [
+     "id",
+     "insert_id"
+    ],
+    "tags": [
+     "subject",
+     "boards",
+     "board",
+     "levels",
+     "level"
+    ],
+    "links": [
+     "forPapers"
+    ],
+    "lines": true,
+    "entryTags": {
+     "sheets": 2
+    },
+    "body": "kcInsertBody_(row)"
+   },
+   "see": {
+    "who": "anyone"
+   }
+  },
+  "spec": {
+   "source": "data/specs.json",
+   "loader": "js/library.js -> find-history.js",
+   "find": {
+    "group": "Learning",
+    "label": "Specification",
+    "under": "Library",
+    "facets": [
+     "forLabel",
+     "kindLabel",
+     "kindOwn",
+     "subject",
+     "level",
+     "keystage",
+     "examBoard",
+     "tier"
+    ]
+   },
+   "card": {
+    "look": "insh spec-sheet",
+    "name": "code",
+    "tags": [
+     "board",
+     "qualification",
+     "subject",
+     "level"
+    ],
+    "lines": true,
+    "body": "specBody_(row)"
+   },
+   "see": {
+    "who": "anyone"
+   }
+  },
+  "manuscript": {
+   "source": "data/manuscripts.json",
+   "loader": "js/library.js HIST_DB -> find-history.js histItem_",
+   "find": {
+    "group": "Learning",
+    "label": "Library",
+    "facets": [
+     "forLabel",
+     "kindLabel",
+     "subject",
+     "shelf",
+     "histKind",
+     "wLanguage",
+     "histEra",
+     "histMaterial",
+     "histFormat",
+     "histRepository",
+     "histSide",
+     "histFound",
+     "histDated"
+    ]
+   },
+   "card": {
+    "look": "hdb hdb-msc lib-c",
+    "tags": [
+     "language",
+     "material",
+     "script"
+    ],
+    "links": [
+     "writings"
+    ],
+    "picture": "kcMsPic_(item, entry)"
+   },
+   "see": {
+    "who": "anyone"
+   }
+  },
+  "figure": {
+   "source": "data/figures.json (+ portraits.json)",
+   "loader": "js/library.js HIST_DB -> histItem_ as kind people",
+   "find": {
+    "group": "Learning",
+    "label": "Library",
+    "facets": [
+     "forLabel",
+     "kindLabel",
+     "subject",
+     "shelf",
+     "histKind",
+     "boxKind",
+     "fighter",
+     "decade",
+     "division",
+     "histEra",
+     "histRole",
+     "personName",
+     "personYears",
+     "personFrom"
+    ]
+   },
+   "card": {
+    "look": "person lib-c",
+    "card": "people",
+    "when": "hdb",
+    "tags": [
+     "roles",
+     "eras"
+    ],
+    "links": [
+     "writings",
+     "events"
+    ],
+    "picture": "kcPersonPic_(item)"
+   },
+   "see": {
+    "who": "anyone"
+   }
+  },
+  "boxer": {
+   "source": "data/boxers.json",
+   "loader": "js/library.js libExtrasBoxing_ -> find-aloud.js",
+   "find": {
+    "group": "Learning",
+    "label": "Library",
+    "facets": [
+     "forLabel",
+     "kindLabel",
+     "subject",
+     "shelf",
+     "histKind",
+     "boxKind",
+     "fighter",
+     "decade",
+     "division",
+     "histEra",
+     "histRole",
+     "personName",
+     "personYears",
+     "personFrom"
+    ]
+   },
+   "card": {
+    "look": "person lib-c",
+    "card": "people",
+    "id": [
+     "id",
+     "boxer_id"
+    ],
+    "tags": [
+     "country",
+     "bestDivision",
+     "best_division",
+     "stance"
+    ],
+    "picture": "kcPersonPic_(item)"
+   },
+   "see": {
+    "who": "anyone"
+   }
+  },
+  "writing": {
+   "source": "data/writings.json",
+   "loader": "js/library.js HIST_DB -> find-history.js histItem_",
+   "find": {
+    "group": "Learning",
+    "label": "Library",
+    "facets": []
+   },
+   "card": {
+    "look": "hdb lib-c",
+    "tags": [
+     "language",
+     "genre"
+    ],
+    "links": [
+     "author_id",
+     "manuscripts"
+    ]
+   },
+   "see": {
+    "who": "anyone"
+   }
+  },
+  "event": {
+   "source": "data/timeline.json",
+   "loader": "js/library.js HIST_DB -> find-history.js histItem_",
+   "find": {
+    "group": "Learning",
+    "label": "Library",
+    "entries": {
+     "event": {},
+     "timeline": {
+      "label": "Timeline",
+      "under": "Library"
+     }
+    },
+    "facets": [
+     "forLabel",
+     "kindLabel",
+     "subject",
+     "shelf",
+     "histKind",
+     "histEra",
+     "histTheatre"
+    ]
+   },
+   "card": {
+    "look": "hdb lib-c",
+    "tags": [
+     "era",
+     "theatre"
+    ],
+    "links": [
+     "figures",
+     "writings"
+    ]
+   },
+   "see": {
+    "who": "anyone"
+   }
+  },
+  "fight": {
+   "source": "data/fights.json",
+   "loader": "js/library.js libExtrasBoxing_ -> find-aloud.js",
+   "find": {
+    "group": "Learning",
+    "label": "Library",
+    "facets": [
+     "forLabel",
+     "kindLabel",
+     "subject",
+     "shelf",
+     "boxKind",
+     "fighter",
+     "boutMonth",
+     "boutYear",
+     "decade",
+     "division",
+     "boutRound",
+     "boutMethod",
+     "boutWinner",
+     "boutEvent",
+     "examMonth",
+     "examDay"
+    ]
+   },
+   "card": {
+    "look": "fight",
+    "id": [
+     "id",
+     "fight_id"
+    ],
+    "name": "kcFightName_(row)",
+    "nameTag": false,
+    "lines": true,
+    "tags": [
+     "division"
+    ],
+    "links": [
+     "aId",
+     "bId",
+     "boxer_a_id",
+     "boxer_b_id"
+    ],
+    "body": "fightBody_(row)"
+   },
+   "see": {
+    "who": "anyone"
+   }
+  },
+  "libcard": {
+   "source": "a library card: one passage of a text collection (js/bible.js, talmud.js, quran.js, works.js, hadith.js, texts.js, pdtexts.js, orthodox.js, hymns.js)",
+   "find": {
+    "group": "Learning",
+    "label": "Library",
+    "entries": {
+     "bible": {},
+     "talmud": {},
+     "quran": {},
+     "worktext": {},
+     "hadith": {},
+     "writ": {},
+     "pdtext": {},
+     "orthotext": {},
+     "hymn": {}
+    }
+   },
+   "see": {
+    "who": "anyone"
+   }
+  },
+  "mech": {
+   "source": "data/mechanics/*.json",
+   "loader": "js/mechanics.js",
+   "find": {
+    "group": "Learning",
+    "label": "Library",
+    "facets": [
+     "forLabel",
+     "kindLabel",
+     "subject",
+     "shelf",
+     "mMake",
+     "mModel",
+     "mGen",
+     "mEngine",
+     "mKind",
+     "mSystem",
+     "pcType",
+     "pcSocket",
+     "pcIface",
+     "pcLinks",
+     "mPhase",
+     "mMarket",
+     "mYears",
+     "mSize",
+     "mValves",
+     "mBadge",
+     "mFuel",
+     "mPart",
+     "mPrice"
+    ]
+   },
+   "card": {
+    "look": "mech",
+    "from": "mech",
+    "tags": [
+     "system",
+     "type",
+     "make"
+    ],
+    "links": [
+     "fits"
+    ],
+    "nameTag": false,
+    "lines": true,
+    "picture": "kcMechPic_(item)",
+    "body": "kcMechBody_(row)"
+   },
+   "see": {
+    "who": "anyone"
+   }
+  },
+  "chem": {
+   "source": "data/chemistry/*.json",
+   "loader": "js/chemistry.js",
+   "find": {
+    "group": "Learning",
+    "label": "Library",
+    "facets": [
+     "forLabel",
+     "kindLabel",
+     "subject",
+     "mKind",
+     "cCategory",
+     "cGroup",
+     "cPeriod",
+     "cState"
+    ]
+   },
+   "card": {
+    "look": "tx kc-facts",
+    "from": "chem",
+    "tags": [
+     "category",
+     "type",
+     "block",
+     "state"
+    ],
+    "lines": true,
+    "body": "chemBody_(row)"
+   },
+   "see": {
+    "who": "anyone"
+   }
+  },
+  "hist": {
+   "source": "one file a topic, data/library/history/<id>.json: its timeline, people, sources and items, a card each",
+   "loader": "js/history-topics.js",
+   "find": {
+    "group": "Learning",
+    "label": "Library",
+    "facets": [
+     "forLabel",
+     "kindLabel",
+     "subject",
+     "histKind",
+     "histPart",
+     "level",
+     "keystage"
+    ]
+   },
+   "card": {
+    "look": "lib-c kc-facts",
+    "from": "hist",
+    "tags": [
+     "topicName",
+     "partName"
+    ],
+    "lines": true,
+    "picture": "histTopicPic_(raw)",
+    "body": "histTopicBody_(row)"
+   },
+   "see": {
+    "who": "anyone"
+   }
+  },
+  "tool": {
+   "source": "js/map.js WIDGETS (kind tool)",
+   "find": {
+    "group": "Tools",
+    "label": "Tools",
+    "under": "Tools"
+   },
+   "see": {
+    "who": "anyone"
+   }
+  },
+  "game": {
+   "source": "js/map.js WIDGETS (kind game)",
+   "find": {
+    "group": "Games",
+    "label": "Games",
+    "under": "Games"
+   },
+   "see": {
+    "who": "anyone"
+   }
+  },
+  "soon": {
+   "source": "columns.json and tiers.json: a switched-off column or widget",
+   "find": {
+    "group": "Coming soon",
+    "label": "Coming soon",
+    "under": "Coming soon"
+   },
+   "see": {
+    "who": "anyone"
+   }
+  },
   "person": {
    "source": "Ledger people tab",
    "loader": "payload -> find-doors.js",
@@ -164,6 +1268,9 @@
     ]
    },
    "find": {
+    "group": "Profiles",
+    "label": "Profiles",
+    "under": "Profiles",
     "facets": [
      "forLabel",
      "kindLabel",
@@ -757,238 +1864,90 @@
     }
    }
   },
-  "tutor": {
-   "source": "Ledger people tab (role tutor)",
-   "loader": "payload -> find-aloud.js",
-   "sample": "check/fixture.json tutors",
+  "setting": {
+   "source": "js/me-settings.js and data/settings/setting-for.json",
+   "find": {
+    "group": "Settings",
+    "label": "Settings",
+    "under": "Settings",
+    "entries": {
+     "setting": {}
+    }
+   },
+   "see": {
+    "who": "anyone"
+   }
+  },
+  "health": {
+   "source": "site health (js/health*.js)",
+   "find": {
+    "group": "Settings",
+    "label": "Settings",
+    "under": "Settings"
+   },
+   "see": {
+    "who": "admin"
+   }
+  },
+  "msg": {
+   "source": "Ledger messages tab (payload.messages)",
+   "find": {
+    "group": "Messages",
+    "label": "Messages",
+    "under": "Messages",
+    "draw": "findMsgCard_"
+   },
+   "see": {
+    "who": "anyone"
+   }
+  },
+  "post": {
+   "source": "Ledger posts tabs",
+   "loader": "backend get-posts.gs -> find-doors.js",
+   "sample": "check/fixture.json posts",
    "sheet": {
-    "tab": "people",
+    "tab": "posts",
     "columns": [
-     "personId",
+     "text",
+     "caption",
      "title",
-     "tags",
-     "titles",
-     "venues",
-     "rate",
-     "listed"
+     "location",
+     "authorId"
     ],
-    "never": [
-     "pin"
-    ],
-    "via": "person",
-    "id": "person_id",
-    "show": [
-     "person_id",
-     "role",
-     "first_name",
-     "handle",
-     "photo",
-     "photos",
-     "video",
-     "headline",
-     "adjective_1",
-     "adjective_2",
-     "adjective_3",
-     "years_experience",
-     "focus",
-     "borough",
-     "town",
-     "city",
-     "travel_km",
-     "rate_per_hour",
-     "extra_seat_rate",
-     "min_students",
-     "max_students",
-     "availability",
-     "listed",
-     "avatar",
-     "dbs_checked"
+    "id": "post_id",
+    "owner": [
+     "posted_by"
     ]
    },
    "find": {
+    "group": "Posts",
+    "label": "Posts",
+    "under": "Posts",
+    "entries": {
+     "post": {},
+     "offPosts": {}
+    },
     "facets": [
      "forLabel",
      "kindLabel",
-     "kindOwn",
-     "profileType"
-    ]
+     "postState",
+     "postBy",
+     "postWhen"
+    ],
+    "onCard": false
    },
    "card": {
-    "look": "is-widget is-prof tcard",
-    "id": [
-     "personId",
-     "id"
-    ],
-    "name": "title",
-    "nameTag": false,
+    "look": "post-fc",
+    "name": "kcPostName_(row)",
     "tags": [
-     "tags",
-     "titles"
+     "location"
     ],
     "links": [
-     "venues"
-    ],
-    "lines": true,
-    "off": "kcUnlisted_(row)",
-    "body": "profBody_(row, live)",
-    "picture": "profFace_(entry, 96)",
-    "tagLook": "prof-tags prof-who-tags",
-    "pills": "profPills_(item, entryRow)",
-    "tagRows": "profTagRows_(raw)"
-   },
-   "live": {
-    "money": "kcTutorMoney_(row)",
-    "say": "kcTutorSay_(row)"
-   },
-   "see": {
-    "who": "anyone",
-    "hide": {
-     "prices": [
-      "rate",
-      "rate_per_hour",
-      "extra_seat_rate",
-      "extra_seat_cut"
-     ],
-     "admin": [
-      "note"
-     ]
-    }
-   },
-   "forms": {
-    "card-edit": {
-     "attr": "data-me",
-     "draft": false,
-     "fields": "list",
-     "say": "the tutor card's edit form (cardEditForm_): its sections' names, typed by rules; a price only for may_('prices')."
-    },
-    "card-seat": {
-     "attr": "data-pound",
-     "draft": false,
-     "say": "the extra seat in pounds, kept as the share in the hidden twin; @family.'s share only for an admin.",
-     "fields": [
-      {
-       "f": "extra_seat_rate",
-       "type": "money"
-      },
-      {
-       "f": "extra_seat_rate",
-       "type": "hidden",
-       "attr": "data-me"
-      },
-      {
-       "f": "extra_seat_cut",
-       "type": "money",
-       "may": "admin"
-      },
-      {
-       "f": "extra_seat_cut",
-       "type": "hidden",
-       "attr": "data-me",
-       "may": "admin"
-      }
-     ]
-    },
-    "card-where": {
-     "attr": "data-me",
-     "draft": false,
-     "say": "Where you teach: an area a tick, rewriting the hidden venues_ok, saved by the card's Save.",
-     "fields": [
-      {
-       "f": "venues_ok",
-       "type": "hidden"
-      },
-      {
-       "f": "areas",
-       "type": "ticks",
-       "attr": "data-where-area",
-       "label": "Areas you teach in",
-       "look": "many-list where-areas"
-      }
-     ]
-    }
-   }
-  },
-  "booking": {
-   "source": "Ledger events + receipts tabs",
-   "loader": "backend booking.gs -> book-*.js (myJobs_ -> findMineItems_)",
-   "sample": "check/fixture.json liveJobs",
-   "sheet": {
-    "tab": "jobs",
-    "columns": [
-     "job_id",
-     "subject",
-     "level",
-     "tutor",
-     "venue",
-     "price",
-     "unit",
-     "rate",
-     "weeks",
-     "client",
-     "slots"
-    ],
-    "also": [
-     "receipts"
-    ],
-    "id": "job_id",
-    "owner": [
-     "booked_by",
-     "client_hosts"
+     "authorId"
     ]
    },
-   "find": {
-    "facets": []
-   },
-   "card": {
-    "card": "receipt",
-    "id": [
-     "id",
-     "jobId",
-     "job_id"
-    ],
-    "name": "kcBookingName_(row)",
-    "facts": true,
-    "tags": [
-     "subject",
-     "level",
-     "tutor",
-     "venue"
-    ],
-    "pills": "kcBookingPills_(item)",
-    "body": "kcBookingBody_(row, live)",
-    "tool": "jobPage_(raw)"
-   },
-   "live": {
-    "money": "kcBookingMoney_(row)"
-   },
    "see": {
-    "who": "self, family, staff, admin",
-    "hide": {
-     "prices": [
-      "rate",
-      "total",
-      "price_total",
-      "tutor_pay",
-      "travel_paid",
-      "admin_profit",
-      "gross",
-      "tutor_payout",
-      "venue_cost",
-      "materials_charge",
-      "materials_cost",
-      "tickets_cost",
-      "card_fees",
-      "discount_value",
-      "net_profit"
-     ],
-     "admin": [
-      "tutor_pay",
-      "admin_profit",
-      "net_profit",
-      "venue_cost",
-      "card_fees"
-     ]
-    }
+    "who": "signedIn"
    }
   },
   "product": {
@@ -1011,6 +1970,17 @@
     "id": "item_id"
    },
    "find": {
+    "group": "Shop",
+    "label": "Things",
+    "under": "Shop",
+    "draw": "findShopCard_",
+    "entries": {
+     "shop": {},
+     "offShop": {
+      "label": "Shop",
+      "draw": ""
+     }
+    },
     "facets": [
      "forLabel",
      "kindLabel",
@@ -1048,717 +2018,19 @@
     "who": "anyone"
    }
   },
-  "post": {
-   "source": "Ledger posts tabs",
-   "loader": "backend get-posts.gs -> find-doors.js",
-   "sample": "check/fixture.json posts",
-   "sheet": {
-    "tab": "posts",
-    "columns": [
-     "text",
-     "caption",
-     "title",
-     "location",
-     "authorId"
-    ],
-    "id": "post_id",
-    "owner": [
-     "posted_by"
-    ]
-   },
+  "paper": {
+   "source": "data/questions.json paper_id (+ data/expected-papers.json)",
    "find": {
     "facets": [
-     "forLabel",
-     "kindLabel",
-     "postState",
-     "postBy",
-     "postWhen"
-    ],
-    "onCard": false
-   },
-   "card": {
-    "look": "post-fc",
-    "name": "kcPostName_(row)",
-    "tags": [
-     "location"
-    ],
-    "links": [
-     "authorId"
+     "paperId"
     ]
-   },
-   "see": {
-    "who": "signedIn"
-   }
-  },
-  "venue": {
-   "source": "Ledger venues + rooms tabs (data/settings/venues.json)",
-   "loader": "payload -> find-aloud.js",
-   "sample": "check/fixture.json venues",
-   "sheet": {
-    "tab": "venues",
-    "columns": [
-     "name",
-     "focus",
-     "borough",
-     "city",
-     "tags",
-     "maxCapacity",
-     "bestRate"
-    ],
-    "also": [
-     "rooms"
-    ],
-    "id": "venue_id"
-   },
-   "find": {
-    "facets": [
-     "forLabel",
-     "kindLabel",
-     "kindOwn",
-     "venueArea",
-     "venueFor",
-     "venueSize"
-    ]
-   },
-   "card": {
-    "look": "venue-door",
-    "tags": [
-     "focus",
-     "borough",
-     "city",
-     "tags"
-    ],
-    "lines": true,
-    "body": "kcVenueBody_(row, live)",
-    "picture": "kcVenuePic_(item, entry)"
-   },
-   "live": {
-    "rooms": "kcRooms_(row)"
-   },
-   "see": {
-    "who": "anyone",
-    "hide": {
-     "prices": [
-      "price",
-      "cost_per_hour",
-      "travel_cost"
-     ]
-    }
-   }
-  },
-  "subject": {
-   "source": "payload (Ledger people/pricing)",
-   "loader": "subjectRows() -> find-aloud.js",
-   "find": {
-    "facets": []
-   },
-   "card": {
-    "look": "is-subject",
-    "tags": [
-     "levels",
-     "focus"
-    ],
-    "lines": true,
-    "liveTags": {
-     "tutors": 3
-    },
-    "body": "kcSubjectBody_(row, live)"
-   },
-   "live": {
-    "levels": "kcLevels_(row)",
-    "tutors": "kcTutorNames_(row)"
-   },
-   "see": {
-    "who": "anyone"
-   }
-  },
-  "level": {
-   "source": "payload (Ledger people/pricing)",
-   "loader": "find-aloud.js",
-   "find": {
-    "facets": [
-     "forLabel",
-     "kindLabel",
-     "kindOwn"
-    ]
-   },
-   "card": {
-    "look": "is-level",
-    "tags": [
-     "subjects",
-     "focus"
-    ],
-    "lines": true,
-    "liveTags": {
-     "tutors": 3
-    },
-    "body": "kcLevelBody_(row, live)"
-   },
-   "live": {
-    "subjects": "kcSubjects_(row)",
-    "tutors": "kcTutorNames_(row)"
-   },
-   "see": {
-    "who": "anyone"
-   }
-  },
-  "manuscript": {
-   "source": "data/manuscripts.json",
-   "loader": "js/library.js HIST_DB -> find-history.js histItem_",
-   "find": {
-    "facets": [
-     "forLabel",
-     "kindLabel",
-     "subject",
-     "shelf",
-     "histKind",
-     "wLanguage",
-     "histEra",
-     "histMaterial",
-     "histFormat",
-     "histRepository",
-     "histSide",
-     "histFound",
-     "histDated"
-    ]
-   },
-   "card": {
-    "look": "hdb hdb-msc lib-c",
-    "tags": [
-     "language",
-     "material",
-     "script"
-    ],
-    "links": [
-     "writings"
-    ],
-    "picture": "kcMsPic_(item, entry)"
-   },
-   "see": {
-    "who": "anyone"
-   }
-  },
-  "writing": {
-   "source": "data/writings.json",
-   "loader": "js/library.js HIST_DB -> find-history.js histItem_",
-   "find": {
-    "facets": []
-   },
-   "card": {
-    "look": "hdb lib-c",
-    "tags": [
-     "language",
-     "genre"
-    ],
-    "links": [
-     "author_id",
-     "manuscripts"
-    ]
-   },
-   "see": {
-    "who": "anyone"
-   }
-  },
-  "event": {
-   "source": "data/timeline.json",
-   "loader": "js/library.js HIST_DB -> find-history.js histItem_",
-   "find": {
-    "facets": [
-     "forLabel",
-     "kindLabel",
-     "subject",
-     "shelf",
-     "histKind",
-     "histEra",
-     "histTheatre"
-    ]
-   },
-   "card": {
-    "look": "hdb lib-c",
-    "tags": [
-     "era",
-     "theatre"
-    ],
-    "links": [
-     "figures",
-     "writings"
-    ]
-   },
-   "see": {
-    "who": "anyone"
-   }
-  },
-  "figure": {
-   "source": "data/figures.json (+ portraits.json)",
-   "loader": "js/library.js HIST_DB -> histItem_ as kind people",
-   "find": {
-    "facets": [
-     "forLabel",
-     "kindLabel",
-     "subject",
-     "shelf",
-     "histKind",
-     "boxKind",
-     "fighter",
-     "decade",
-     "division",
-     "histEra",
-     "histRole",
-     "personName",
-     "personYears",
-     "personFrom"
-    ]
-   },
-   "card": {
-    "look": "person lib-c",
-    "card": "people",
-    "when": "hdb",
-    "tags": [
-     "roles",
-     "eras"
-    ],
-    "links": [
-     "writings",
-     "events"
-    ],
-    "picture": "kcPersonPic_(item)"
-   },
-   "see": {
-    "who": "anyone"
-   }
-  },
-  "boxer": {
-   "source": "data/boxers.json",
-   "loader": "js/library.js libExtrasBoxing_ -> find-aloud.js",
-   "find": {
-    "facets": [
-     "forLabel",
-     "kindLabel",
-     "subject",
-     "shelf",
-     "histKind",
-     "boxKind",
-     "fighter",
-     "decade",
-     "division",
-     "histEra",
-     "histRole",
-     "personName",
-     "personYears",
-     "personFrom"
-    ]
-   },
-   "card": {
-    "look": "person lib-c",
-    "card": "people",
-    "id": [
-     "id",
-     "boxer_id"
-    ],
-    "tags": [
-     "country",
-     "bestDivision",
-     "best_division",
-     "stance"
-    ],
-    "picture": "kcPersonPic_(item)"
-   },
-   "see": {
-    "who": "anyone"
-   }
-  },
-  "fight": {
-   "source": "data/fights.json",
-   "loader": "js/library.js libExtrasBoxing_ -> find-aloud.js",
-   "find": {
-    "facets": [
-     "forLabel",
-     "kindLabel",
-     "subject",
-     "shelf",
-     "boxKind",
-     "fighter",
-     "boutMonth",
-     "boutYear",
-     "decade",
-     "division",
-     "boutRound",
-     "boutMethod",
-     "boutWinner",
-     "boutEvent",
-     "examMonth",
-     "examDay"
-    ]
-   },
-   "card": {
-    "look": "fight",
-    "id": [
-     "id",
-     "fight_id"
-    ],
-    "name": "kcFightName_(row)",
-    "nameTag": false,
-    "lines": true,
-    "tags": [
-     "division"
-    ],
-    "links": [
-     "aId",
-     "bId",
-     "boxer_a_id",
-     "boxer_b_id"
-    ],
-    "body": "fightBody_(row)"
-   },
-   "see": {
-    "who": "anyone"
-   }
-  },
-  "practical": {
-   "source": "data/practicals.json + data-private + Ledger lib_practicals",
-   "loader": "js/library.js libPractical_",
-   "sheet": {
-    "tab": "lib_practicals",
-    "columns": [
-     "practical_id",
-     "subject",
-     "level",
-     "exam_board",
-     "practical_type",
-     "excluded"
-    ],
-    "id": "id",
-    "blob": true
-   },
-   "find": {
-    "facets": [
-     "forLabel",
-     "kindLabel",
-     "kindOwn",
-     "subject",
-     "practicalType",
-     "required",
-     "level",
-     "topic",
-     "examBoard",
-     "needs"
-    ]
-   },
-   "card": {
-    "look": "prac kc-facts",
-    "id": [
-     "id",
-     "practical_id"
-    ],
-    "tags": [
-     "subject",
-     "level",
-     "board",
-     "exam_board",
-     "practicalType",
-     "practical_type"
-    ],
-    "lines": true,
-    "off": "excluded",
-    "body": "practicalBody_(row)"
-   },
-   "see": {
-    "who": "anyone"
-   }
-  },
-  "project": {
-   "source": "data/projects.json + data-private + Ledger lib_projects",
-   "loader": "js/library.js libProject_",
-   "sheet": {
-    "tab": "lib_projects",
-    "columns": [
-     "project_id",
-     "subject",
-     "level",
-     "exam_board",
-     "project_type"
-    ],
-    "id": "id",
-    "blob": true
-   },
-   "find": {
-    "facets": [
-     "forLabel",
-     "kindLabel",
-     "kindOwn",
-     "projectType",
-     "subject",
-     "level",
-     "topic",
-     "examBoard"
-    ]
-   },
-   "card": {
-    "look": "prac proj lib-c kc-facts",
-    "id": [
-     "id",
-     "project_id"
-    ],
-    "tags": [
-     "subject",
-     "level",
-     "board",
-     "exam_board",
-     "projectType",
-     "project_type"
-    ],
-    "lines": true,
-    "body": "projectBody_(row)"
-   },
-   "see": {
-    "who": "anyone"
-   }
-  },
-  "content": {
-   "source": "data/textbooks.json + Ledger lib_content",
-   "loader": "js/library.js -> find-facets.js",
-   "sheet": {
-    "tab": "lib_content",
-    "columns": [
-     "book_id",
-     "chapter",
-     "subject",
-     "level",
-     "keystage",
-     "board",
-     "tier"
-    ],
-    "id": "id",
-    "blob": true
-   },
-   "find": {
-    "facets": [
-     "forLabel",
-     "kindLabel",
-     "subject",
-     "histKind",
-     "wWork",
-     "mKind",
-     "level",
-     "keystage",
-     "yearGroup",
-     "topic",
-     "examBoard",
-     "specTopic",
-     "specPoint",
-     "tier"
-    ]
-   },
-   "card": {
-    "look": "prac tb ct lib-c",
-    "id": "kcContentId_(row)",
-    "tags": [
-     "subject",
-     "level",
-     "keystage",
-     "board",
-     "tier"
-    ],
-    "lines": true,
-    "body": "contentBody_(row)"
-   },
-   "see": {
-    "who": "anyone"
-   }
-  },
-  "insert": {
-   "source": "data/inserts.json + Ledger lib_inserts",
-   "loader": "js/library.js -> find-history.js",
-   "sheet": {
-    "tab": "lib_inserts",
-    "columns": [
-     "insert_id",
-     "subject",
-     "boards",
-     "levels"
-    ],
-    "id": "id",
-    "blob": true
-   },
-   "find": {
-    "facets": [
-     "forLabel",
-     "kindLabel",
-     "subject",
-     "level",
-     "keystage",
-     "examBoard",
-     "tier"
-    ]
-   },
-   "card": {
-    "look": "insh",
-    "id": [
-     "id",
-     "insert_id"
-    ],
-    "tags": [
-     "subject",
-     "boards",
-     "board",
-     "levels",
-     "level"
-    ],
-    "links": [
-     "forPapers"
-    ],
-    "lines": true,
-    "entryTags": {
-     "sheets": 2
-    },
-    "body": "kcInsertBody_(row)"
-   },
-   "see": {
-    "who": "anyone"
-   }
-  },
-  "spec": {
-   "source": "data/specs.json",
-   "loader": "js/library.js -> find-history.js",
-   "find": {
-    "facets": [
-     "forLabel",
-     "kindLabel",
-     "kindOwn",
-     "subject",
-     "level",
-     "keystage",
-     "examBoard",
-     "tier"
-    ]
-   },
-   "card": {
-    "look": "insh spec-sheet",
-    "name": "code",
-    "tags": [
-     "board",
-     "qualification",
-     "subject",
-     "level"
-    ],
-    "lines": true,
-    "body": "specBody_(row)"
-   },
-   "see": {
-    "who": "anyone"
-   }
-  },
-  "chem": {
-   "source": "data/chemistry/*.json",
-   "loader": "js/chemistry.js",
-   "find": {
-    "facets": [
-     "forLabel",
-     "kindLabel",
-     "subject",
-     "mKind",
-     "cCategory",
-     "cGroup",
-     "cPeriod",
-     "cState"
-    ]
-   },
-   "card": {
-    "look": "tx kc-facts",
-    "from": "chem",
-    "tags": [
-     "category",
-     "type",
-     "block",
-     "state"
-    ],
-    "lines": true,
-    "body": "chemBody_(row)"
-   },
-   "see": {
-    "who": "anyone"
-   }
-  },
-  "hist": {
-   "source": "one file a topic, data/library/history/<id>.json: its timeline, people, sources and items, a card each",
-   "loader": "js/history-topics.js",
-   "find": {
-    "facets": [
-     "forLabel",
-     "kindLabel",
-     "subject",
-     "histKind",
-     "histPart",
-     "level",
-     "keystage"
-    ]
-   },
-   "card": {
-    "look": "lib-c kc-facts",
-    "from": "hist",
-    "tags": [
-     "topicName",
-     "partName"
-    ],
-    "lines": true,
-    "picture": "histTopicPic_(raw)",
-    "body": "histTopicBody_(row)"
-   },
-   "see": {
-    "who": "anyone"
-   }
-  },
-  "mech": {
-   "source": "data/mechanics/*.json",
-   "loader": "js/mechanics.js",
-   "find": {
-    "facets": [
-     "forLabel",
-     "kindLabel",
-     "subject",
-     "shelf",
-     "mMake",
-     "mModel",
-     "mGen",
-     "mEngine",
-     "mKind",
-     "mSystem",
-     "pcType",
-     "pcSocket",
-     "pcIface",
-     "pcLinks",
-     "mPhase",
-     "mMarket",
-     "mYears",
-     "mSize",
-     "mValves",
-     "mBadge",
-     "mFuel",
-     "mPart",
-     "mPrice"
-    ]
-   },
-   "card": {
-    "look": "mech",
-    "from": "mech",
-    "tags": [
-     "system",
-     "type",
-     "make"
-    ],
-    "links": [
-     "fits"
-    ],
-    "nameTag": false,
-    "lines": true,
-    "picture": "kcMechPic_(item)",
-    "body": "kcMechBody_(row)"
    },
    "see": {
     "who": "anyone"
    }
   }
  },
+ "findSay": "FIND (rule 1.80): a kind's `find` gives its What-for group, its What-kind label, the front door(s) it stands under (`under`), the facets in order, and `draw` (a global that draws its Find card, else findCard). `entries` names the Find entry kinds it covers when they are not the kind itself (an answer page, a timeline, a switched-off door), each overriding those fields. An entry kind named by no kind is never listed or drawn; `see.who` (anyone, signedIn, self, family, staff, admin) decides who is listed it. Labels and order of the facets are data/settings/facets.json.",
  "stored": {
   "qualification": {
    "sheet": {
