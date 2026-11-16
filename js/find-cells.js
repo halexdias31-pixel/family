@@ -453,10 +453,48 @@ on('qp-send', (el) => {
   const pics = typeof WORK_PICS === 'object' && WORK_PICS ? (WORK_PICS[k] || []).length : 0;
   const notYet = partReady_('save', { typed: inp.value, pics });
   if (notYet) { tell_(out, 'info', notYet); return; }
+  /* A LONG ANSWER IS MARKED BY CLAUDE HAIKU when the backend says it can (owner, 16 Nov); otherwise it is only saved, as before. */
+  if (markLongOn_()) { markLong_(box, k, inp.value, el, out); return; }
   if (pics && typeof workSave_ === 'function') { workSave_(k, inp.value, el, out); return; }
   const sent = subRecord_(k, inp.value, 'sent');
   tell_(out, sent ? 'saved' : 'error', sent ? (box.classList.contains('qp-keep') ? 'Saved' : 'Sent') : text_('sign-in-to-send-it'));
 });
+
+/* ---------- A LONG ANSWER, MARKED BY CLAUDE HAIKU ON THE SERVER (`markLong`, post-learning.gs) ---------- */
+/* Only parts with no mechanical key reach `qp-send`, so only they are ever sent. Signed in, and only when the deploy names the feature. */
+const markLongOn_ = () => typeof DATA === 'object' && DATA && Array.isArray(DATA.features) && DATA.features.indexOf('markLong') !== -1
+  && typeof USER === 'object' && !!USER && !!USER.token;
+/* THE ONE RESULT: marks/max, the level, two strengths and two next steps, drawn by the card maker's blocks. */
+function markLongCard_(d) {
+  const list = (head, xs) => (xs || []).length ? [{ type: 'group', tag: 'p', look: 'qp-long-head', text: head },
+    { type: 'group', tag: 'ul', look: 'qp-long-list', blocks: xs.slice(0, 2).map(t => ({ type: 'group', tag: 'li', text: t })) }] : [];
+  return cardBlock_({ type: 'group', look: 'qp-long', blocks: [
+    { type: 'group', tag: 'p', look: 'qp-long-mark', text: d.marks + ' / ' + d.max + ' marks' + (d.level ? ' · ' + d.level : '') }]
+    .concat(list('Strengths', d.strengths), list('Next steps', d.next)) });
+}
+function markLong_(box, k, typed, el, out) {
+  const pics = typeof WORK_PICS === 'object' && WORK_PICS ? (WORK_PICS[k] || []) : [];
+  const key = subKeyOf_(k);
+  const x = stuffItemsAll_().find(it => ansKey_(it) === k);
+  let shown = box.querySelector('.qp-long-at');
+  if (!shown) { shown = document.createElement('div'); shown.className = 'qp-long-at'; out.insertAdjacentElement('afterend', shown); }
+  el.disabled = true;
+  tell_(el, 'busy');
+  tell_(out, '');
+  shown.innerHTML = loading_();
+  api({ action: 'markLong', personId: USER.personId || '', id: subId_(), sent: Date.now(), key: key, marks: (x && x.marks) || '',
+        label: typeof doneLabel_ === 'function' ? (doneLabel_(k) || '') : '', answer: typed || '', photos: pics.map(p => p.url) })
+    .then(d => {
+      el.disabled = false;
+      tell_(el, '');
+      shown.innerHTML = '';
+      if (!d || !d.success) { tell_(out, 'error', (d && (d.message || d.error)) || 'Your answer could not be saved just now — try again'); return; }
+      if (!d.marked) { tell_(out, 'info', d.message || 'Saved'); return; }
+      tell_(out, 'saved', d.saved ? 'Marked and saved' : 'Marked');
+      shown.innerHTML = markLongCard_(d);
+    })
+    .catch(() => { el.disabled = false; tell_(el, ''); shown.innerHTML = ''; tell_(out, 'error', 'Could not reach the server — your answer is still here'); });
+}
 
 /* ---------- WHO IS WORKING § */
 

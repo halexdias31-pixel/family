@@ -427,9 +427,10 @@
   {
    "id": "1.33",
    "principle": 1,
-   "text": "Marking is mechanical only (owner, 16 Nov): a part with no exact key saves without marking — typed text and photos of the working kept, no Mark button, no AI and no person.",
+   "text": "Marking is mechanical first; Claude Haiku against the official mark scheme only where no mechanical key exists (owner, 16 Nov): the one Save tile on a keyless part asks markLong when the deploy offers it, shows marks/max, level, two strengths and two next steps, and on any bad reply only saves. No second button, no person marks.",
    "checks": [
     "working",
+    "marklong",
     "answerable",
     "qtypes",
     "assistant"

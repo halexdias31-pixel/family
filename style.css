@@ -4744,6 +4744,10 @@ svg.meas .meas-body, svg.meas .meas-turn, svg.meas .meas-tick, svg.meas .meas-nu
 .qp-fb { margin: var(--s0) var(--s3) var(--s1); font: 400 var(--fs-small)/1.45 var(--font); color: var(--ink); white-space: pre-line; }
 .qp-essay + .qp-fb { margin-inline: var(--s1); }
 .qp-fb:empty { display: none; }
+.qp-long { margin: var(--s1) var(--s3); font: 400 var(--fs-small)/1.45 var(--font); color: var(--ink); }
+.qp-long-mark { margin: 0 0 var(--s1); font-weight: 700; }
+.qp-long-head { margin: var(--s1) 0 0; font-weight: 600; }
+.qp-long-list { margin: 0; padding-inline-start: 1.2em; }
 /* A PHOTO OF THE WORKING (501): the pages as thumbnails under the box, each with its remove; Mark my working in its own tile row. */
 .qp-work { margin: var(--s1) var(--s3) var(--s1); }
 .qp-work[hidden] { display: none; }
