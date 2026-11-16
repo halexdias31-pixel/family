@@ -1608,9 +1608,8 @@ button.text-drop { color: var(--bad); }
 /* ---------- THE ONE SCROLLING PAGE (900, `FLOW_LAYOUT` in shell.js): the grid above undone — one centred column in flow, scrolled by the browser. */
 #topbar { display: none; }
 /* THE WHOLE WINDOW (owner, 10 Nov): no column cap; gutters never inside a notch. Width is shared out by `.card-grid`, a reading measure by `70ch` on text. */
-html.flow body { max-width: none; padding: var(--safe-top) max(16px, var(--safe-right)) calc(var(--s4) + var(--safe-bottom)) max(16px, var(--safe-left)); box-shadow: none; }
-/* THE PAD'S ROOM: the last answer box can still scroll above it. */
-html.flow.kp-up body { padding-bottom: calc(var(--kp-h, 50dvh) + var(--s4)); }
+/* THE PAD'S ROOM IS ALWAYS THERE (owner, 16 Nov): the page is as tall with the pad up as down, so opening or closing it never moves the view. */
+html.flow body { max-width: none; padding: var(--safe-top) max(16px, var(--safe-right)) calc(var(--kp-h, 50dvh) + var(--s4) + var(--safe-bottom)) max(16px, var(--safe-left)); box-shadow: none; }
 html.flow #topbar { display: flex; align-items: center; justify-content: space-between; gap: var(--s2); min-height: var(--tap); }
 html.flow #topbar-who { display: flex; align-items: center; gap: var(--s2); color: var(--ink); }
 html.flow #screen { height: auto; overflow: visible; touch-action: auto; background: none; display: flex; flex-direction: column; }
