@@ -214,6 +214,7 @@
     "diagram-png",
     "diagrams",
     "fig-labels",
+    "fig-shown",
     "picture-first"
    ],
    "since": "2026-11-12"
