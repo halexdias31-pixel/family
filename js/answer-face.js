@@ -287,7 +287,7 @@ function graphCheck_(el) {
   return true;
 }
 /* WRAPPED WHEN A GRAPH FACE FIRST OPENS, not at load: the files that register the Check acts may load after this one. */
-const GRAPH_CHECK_ACTS = ['qp-check', 'qp-ai', 'qp-noscheme', 'qp-cells-check', 'pad-check'];
+const GRAPH_CHECK_ACTS = ['qp-check', 'qp-noscheme', 'qp-cells-check', 'pad-check'];
 function graphCheckWrap_() {
   GRAPH_CHECK_ACTS.forEach(act => {
     const was = ACTIONS[act];

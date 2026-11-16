@@ -89,11 +89,6 @@ function getPayloadHead_(behind, migrated, cfg) {
     version: BACKEND_VERSION,
     /* ---------- GOOGLE SIGN-IN WAS BUILT AT BOTH ENDS AND HAD NO MIDDLE § */
     googleClientId: S(cfg.google_client_id),
-    /* WHETHER "Mark with AI" IS WORTH DRAWING — true when `GEMINI_API_KEY` is in Script Properties. § */
-    aiMarking: (function () {
-      try { return !!PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY'); }
-      catch (e) { return false; }
-    })(),
     /* WHAT THE SHEET DID when this version first arrived — null on every request but the first after a deploy. § */
     migrated: migrated,
     /* WHETHER THE SHEET IS BEHIND THE CODE. Said rather than fixed: the fixing costs seconds and
@@ -268,13 +263,6 @@ function payloadFeatures_() {
                /* The site checks this before offering the room form, so an older deployment says so
                   rather than answering "that action is not recognised". */
                'setRoom',
-               /* The site checks this before it draws "Mark with AI", so a phone ahead of the
-                  deployment shows no button rather than one answering "not recognised". */
-               'aiMark',
-               /* And this one says `aiMark` reads the WHOLE answer, up to `AI_ANSWER_MAX` (20,000 characters), and marks an essay on its levels. § */
-               'aiMarkWhole',
-               /* And this one says `aiMark` reads pictures too: the pen's drawing as a PNG and the photos of the working (round 3). */
-               'aiMarkImages',
                /* The site checks this before it offers the ＋ to somebody who is not an admin —
                   so an old deployment says so rather than swallowing their photograph. */
                'approvePost',

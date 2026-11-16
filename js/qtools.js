@@ -82,15 +82,14 @@ function partRec_(x) {
 /* ---------- THE MARKER: the one thing that varies between parts -- qtypes.js `qtMarker_`, which the Function tag reads too. */
 /* WHAT THE LINE UNDER CHECK SAYS, by marker: how this part will be marked, before it is. Never a person. */
 /* ONE LINE UNDER EVERY ROW (owner, 9 Nov): marking is one path for every type, so it says the same words everywhere. */
-const QT_HOW_ALL = 'Marked by its mark scheme where a rule can, otherwise by AI';
+const QT_HOW_ALL = 'Marked by its mark scheme where a rule can; otherwise your work is saved, not marked';
 /* the markers `markPart_` (find-marking.js) reads off the typed box: one Check, `qp-check`, for all of them */
 const QT_SCHEME_KINDS = { choice: 1, order: 1, accept: 1, words: 1 };
 /* `ready` is false where the marker has nothing to mark against yet (no key, no scheme): Check says so instead of asking */
 const QT_NO_SCHEME = 'No mark scheme yet \u2014 flag it and we will add one';
-const qtSchemeIn_ = x => !!x && !!String(x.answer || '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;|\s+/g, ' ').trim();
-/* IS A MARKER'S SCHEME THERE: options with a key, or an AI part with an answer to mark against; the rest are ready as written. */
+/* IS A MARKER'S SCHEME THERE: options with a key; the rest are ready as written (a part with no exact key saves, never marks: owner, 16 Nov). */
 const choiceKeyed_ = x => (Array.isArray(x.choiceRight) ? x.choiceRight.length > 0 : !!x.choiceRight);
-const MARKER_READY = { choice: choiceKeyed_, order: choiceKeyed_, ai: x => qtSchemeIn_(x) };
+const MARKER_READY = { choice: choiceKeyed_, order: choiceKeyed_ };
 /* THE PEN: the card's pad, made on the first tap where the part has none -- its figure, else its stem's, else a grid. */
 function qtPenOpen_(el, tool) {
   const key = qtKeyOf_(el);
@@ -130,99 +129,3 @@ on('qp-noscheme', el => {
   if (out) tell_(out, 'info', QT_NO_SCHEME);
 });
 
-/* ---------- WHAT THE AI SEES (round 3): the pen's drawing as a PNG and the photos of the working, beside the typed answer. */
-/* the server's own ceiling for one picture (`WORKING_PHOTO_CHARS`); a drawing over it is drawn again at half the size */
-const PEN_PNG_EDGE = 1024, PEN_PNG_CHARS = 760000, PEN_PNG_MS = 4000;
-/* THE LOOK EACH LINE HAS ON SCREEN, written onto its copy: an <img> of an SVG never sees style.css, so `currentColor` and classes would draw nothing */
-const PEN_PNG_PROPS = ['fill', 'fill-opacity', 'stroke', 'stroke-width', 'stroke-opacity', 'stroke-dasharray', 'stroke-linecap',
-  'stroke-linejoin', 'opacity', 'font-size', 'font-family', 'font-weight', 'font-style', 'text-anchor', 'dominant-baseline', 'visibility', 'display'];
-function penInline_(from, to) {
-  const a = [from].concat([].slice.call(from.querySelectorAll('*'))), b = [to].concat([].slice.call(to.querySelectorAll('*')));
-  a.forEach((el, i) => {
-    if (!b[i]) return;
-    const cs = getComputedStyle(el);
-    b[i].setAttribute('style', PEN_PNG_PROPS.map(p => p + ':' + cs.getPropertyValue(p)).filter(t => !/:\s*$/.test(t)).join(';'));
-    b[i].removeAttribute('class');
-  });
-}
-/* THE PAD AS ONE SVG for the PNG: its figures, then the ink; and the <img> figures under it, with their boxes, for the canvas */
-function penSvg_(pad, scale) {
-  const art = pad && pad.querySelector('.qpad-art');
-  if (!art || !art.querySelector('.qpad-ink .qpad-g path')) return null;
-  const box = art.getBoundingClientRect();
-  if (!(box.width > 0 && box.height > 0)) return null;
-  const k = (scale || 1) * Math.min(2, PEN_PNG_EDGE / Math.max(box.width, box.height));
-  const W = Math.max(1, Math.round(box.width * k)), H = Math.max(1, Math.round(box.height * k));
-  const NS = 'http://www.w3.org/2000/svg';
-  const out = document.createElementNS(NS, 'svg');
-  out.setAttribute('xmlns', NS);
-  out.setAttribute('width', W); out.setAttribute('height', H);
-  out.setAttribute('viewBox', '0 0 ' + box.width + ' ' + box.height);
-  const at = el => { const r = el.getBoundingClientRect(); return { x: r.left - box.left, y: r.top - box.top, w: r.width, h: r.height }; };
-  const svgs = [].filter.call(art.querySelectorAll('svg'), s => !(s.parentElement && s.parentElement.closest('svg')));
-  const copy = s => {
-    const r = at(s), c = s.cloneNode(true);
-    penInline_(s, c);
-    c.setAttribute('x', r.x); c.setAttribute('y', r.y);
-    c.setAttribute('width', r.w); c.setAttribute('height', r.h);
-    out.appendChild(c);
-  };
-  svgs.filter(s => !s.classList.contains('qpad-ink')).forEach(copy);
-  svgs.filter(s => s.classList.contains('qpad-ink')).forEach(copy);
-  const imgs = [].map.call(art.querySelectorAll('img'), el => Object.assign({ el }, at(el))).filter(m => m.w > 0 && m.h > 0);
-  return { out, W, H, k: W / box.width, imgs };
-}
-/* A PAD'S FIGURE AND INK AS ONE PNG data URL, on the card's own ground; '' when there is no ink, no canvas, or it will not draw in time. */
-function penPng_(pad, scale) {
-  return new Promise(done => {
-    let over = false;
-    const end = v => { if (!over) { over = true; done(v || ''); } };
-    try {
-      const made = penSvg_(pad, scale);
-      if (!made) return end('');
-      const { out, W, H, imgs } = made;
-      const card = pad.closest('.qcard') || pad;
-      const ground = getComputedStyle(card).backgroundColor;
-      const bg = ground && !/rgba\(0, 0, 0, 0\)|transparent/.test(ground) ? ground : token_('--raised', 'black');
-      const url = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(out)], { type: 'image/svg+xml' }));
-      const img = new Image();
-      const timer = setTimeout(() => { URL.revokeObjectURL(url); end(''); }, PEN_PNG_MS);
-      img.onerror = () => { clearTimeout(timer); URL.revokeObjectURL(url); end(''); };
-      img.onload = () => {
-        clearTimeout(timer);
-        /* a picture figure goes under the SVG; one from another site taints the canvas, and then the drawing goes without it */
-        const paint = withImgs => {
-          const cv = document.createElement('canvas');
-          cv.width = W; cv.height = H;
-          const g = cv.getContext('2d');
-          g.fillStyle = bg; g.fillRect(0, 0, W, H);
-          if (withImgs) imgs.forEach(m => { if (m.el.complete && m.el.naturalWidth) g.drawImage(m.el, m.x * made.k, m.y * made.k, m.w * made.k, m.h * made.k); });
-          g.drawImage(img, 0, 0, W, H);
-          return cv.toDataURL('image/png');
-        };
-        try {
-          let png;
-          try { png = paint(imgs.length > 0); } catch (e) { if (!imgs.length) throw e; png = paint(false); }
-          URL.revokeObjectURL(url);
-          if (!/^data:image\/png;base64,/.test(png)) return end('');
-          if (png.length > PEN_PNG_CHARS) return (scale || 1) > 0.3 ? penPng_(pad, (scale || 1) / 2).then(end) : end('');
-          end(png);
-        } catch (e) { URL.revokeObjectURL(url); end(''); }
-      };
-      img.src = url;
-    } catch (e) { end(''); }
-  });
-}
-/* THE PICTURES A PART'S AI MARK IS SENT: its drawing (if it has ink) then up to three photos -- only to a backend that says it reads them */
-function aiImages_(x, card) {
-  let feat = false;
-  try { feat = (DATA.features || []).indexOf('aiMarkImages') !== -1; } catch (e) { feat = false; }
-  if (!x || !feat) return Promise.resolve([]);
-  const k = ansKey_(x);
-  const pics = ((typeof WORK_PICS !== 'undefined' && WORK_PICS[k]) || []).map(p => p && p.url)
-    .filter(u => /^data:image\/jpeg;base64,/.test(String(u || ''))).slice(0, typeof WORK_MAX === 'number' ? WORK_MAX : 3);
-  const pk = padKey_(x);
-  const pad = card && [].find.call(card.querySelectorAll('.qpad[data-k]'), p => p.getAttribute('data-k') === pk);
-  const inked = padRead_(pk).length > 0;
-  return (inked && pad ? penPng_(pad) : Promise.resolve('')).then(png => (png ? [png] : []).concat(pics)).catch(() => pics);
-}

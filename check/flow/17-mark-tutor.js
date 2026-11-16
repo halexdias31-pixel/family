@@ -1,64 +1,3 @@
-/* ---------- BEFORE THE PAYLOAD SAYS WHETHER AI MARKING IS ON, MARK WITH AI WAITS — NEVER A PLAIN SEND AND "SWITCHED OFF" (review of 10 Oct) § */
-check('submission: before the payload lands, an essay and a worded box draw Mark with AI waiting — no plain Send, no "switched off", nothing sent — and the payload decides the tile', async () => {
-  const ESSAY = { kind: 'question', key: 'q:Q-AIW-E', name: 'Q5', marks: 40, subject: 'English Language', answerType: 'written',
-    row: { row_id: 'Q-AIW-E', paper_id: 'P-AIW', subject: 'English Language', name: 'Paper 1' }, html: '<p>Write a story about a journey.</p>', answer: '<b>A compelling description</b> with a clear structure' };
-  const WORDED = { kind: 'question', key: 'q:Q-AIW-W', name: 'Q9', marks: 3, subject: 'Science', answerType: 'explain',
-    row: { row_id: 'Q-AIW-W', paper_id: 'P-AIW', subject: 'Science', name: 'Explain' }, html: '<p>Explain why.</p>', answer: '<b>Because</b> of the heat' };
-  const bad = [];
-  for (const on of [true, false]) {
-    const tag = on ? 'AI marking on' : 'AI marking off';
-    const pay = () => Object.assign(payload(), { features: SUB_FEATURES.concat(on ? ['aiMark', 'aiMarkWhole'] : []), aiMarking: on, submissions: { for: 'P7', mine: {} } });
-    let release = null;
-    const rows = [];
-    const { w, sent } = boot({ payload: pay(), reply: ansBackend_({}, subBackend_(rows)),
-      serve: u => (u.indexOf('script.google.com') === -1 ? undefined : new Promise(r => { release = () => r(pay()); })),
-      before: win => { win.localStorage.setItem('familyUser', JSON.stringify(ANS_ADA)); win.localStorage.setItem('subMigrated:u:P7', '1'); } });
-    await wait(300);
-    if (!release || typeof w.awaiting_ !== 'function' || !w.awaiting_()) { bad.push(tag + ': the payload was not held — nothing was checked'); continue; }
-    w.stuffItemsAll_ = () => [ESSAY, WORDED];
-    const early = [];
-    for (const X of [ESSAY, WORDED]) {
-      const what = (X === ESSAY ? 'the essay' : 'the worded box') + ', ' + tag + ', the payload out';
-      const card = subDraw_(w, X);
-      early.push([X, card]);
-      const mark = card.querySelector('.qp-compose');
-      const ai = mark && card.querySelector('.qt-row .qp-ai-go');
-      if (!ai) bad.push(what + ': no Mark with AI tile where it will stand');
-      else if (!ai.disabled) bad.push(what + ': Mark with AI can be pressed before anybody knows AI marking is on');
-      if (mark && mark.querySelector('[data-do="qp-send"]')) bad.push(what + ': drawn with the plain Send — pressed, it records an unmarked "Sent"');
-      if (/switched on/.test(card.parentNode.textContent)) bad.push(what + ': says AI marking is not switched on, which nobody knows yet');
-      ansType_(w, card.querySelector('.qp-ans-in'), 'He did not order them');
-      /* THE ROUND TILE PRESSED, WHICHEVER IT IS — as the child presses it. */
-      const go = ai || (mark && mark.querySelector('[data-do="qp-send"]'));
-      if (go) go.click();
-      if (typeof w.kpDone_ === 'function') { try { w.kpDone_(card.querySelector('.qp-ans-in')); } catch (e) {} }
-    }
-    await wait(80);
-    /* NOTHING RECORDED: no press queued for the account (it would go up the moment the payload lets it), and
-       nothing asked of the marker. */
-    const queued = (() => { try { return JSON.parse(w.localStorage.getItem('subQ:u:P7') || '[]'); } catch (e) { return []; } })();
-    if (rows.length || queued.length || sent.some(b => b.action === 'aiMark')) bad.push(tag + ', the payload out: a press was recorded — ' + JSON.stringify(queued.map(e => [e.key, e.verdict])) + ' queued, ' + rows.length + ' row(s), ' + sent.filter(b => b.action === 'aiMark').length + ' aiMark');
-    release();
-    for (let n = 0; n < 50 && w.awaiting_(); n++) await wait(100);
-    await wait(100);
-    /* THE CARDS DRAWN WHILE IT WAS OUT, NOT DRAWN AGAIN — as on a Find column held back from the repaint because a child is typing in it (`findKeep_`): § */
-    if (on) early.forEach(([X, card]) => {
-      const ai = card.parentNode.querySelector('.qp-ai-go');
-      if (!ai || ai.disabled) bad.push((X === ESSAY ? 'the essay' : 'the worded box') + ', AI marking on, drawn before the payload and not drawn again: Mark with AI is ' + (ai ? 'still waiting (disabled) after the payload landed' : 'gone'));
-    });
-    for (const X of [ESSAY, WORDED]) {
-      const what = (X === ESSAY ? 'the essay' : 'the worded box') + ', ' + tag + ', the payload landed';
-      const card = subDraw_(w, X);
-      const mark = card.querySelector('.qp-compose');
-      const ai = mark && (mark.closest('.qcard') || mark).querySelector('.qt-row .qp-ai-go'), send = mark && mark.querySelector('[data-do="qp-send"]');
-      if (on && (!ai || ai.disabled || send)) bad.push(what + ': wanted Mark with AI, pressable, and no plain Send');
-      if (!on && (send || !ai || !ai.disabled)) bad.push(what + ': wanted the AI Check, unpressable, and no plain Send — a human never marks (round 3)');
-      if (!on && X === ESSAY && !/switched on yet/.test(card.parentNode.textContent)) bad.push(what + ': the sheet does not say why nothing marks it');
-    }
-    w.__t.USER(null);
-  }
-  return bad;
-});
 
 /* ---------- EVERY SEND CARRIES THIS DEVICE'S CLOCK, SO THE SERVER CAN TAKE A SLOW ONE'S ERROR OUT (review of 10 Oct) § */
 check('submission: every send carries this device’s clock as it sends, so the server can take a slow clock’s error out', async () => {
@@ -84,38 +23,6 @@ check('submission: every send carries this device’s clock as it sends, so the 
   return bad;
 });
 
-/* ---------- "SENT", THEN A LETTER, AFTER AI MARKING WENT AWAY MID-VISIT (review of 9 Oct) ----------------------- */
-check('submission: after AI marking switches off, the Check waits unpressable with no plain Send, and the line says why until the answer changes', async () => {
-  const rows = [];
-  const AIQ = { kind: 'question', key: 'q:Q-OFF-AI', name: 'Q9', marks: 3, subject: 'Science', sub: 'Explain', answerType: 'explain',
-    row: { row_id: 'Q-OFF-AI', paper_id: 'P-OFF', subject: 'Science', name: 'Explain' }, html: '<p>Explain why.</p>', answer: '<b>Because</b> of the heat' };
-  const { w, sent } = boot({ payload: Object.assign(payload(), { features: SUB_FEATURES.concat(['aiMark']), aiMarking: true }),
-    reply: ansBackend_({}, subBackend_(rows, b => (b.action === 'aiMark' ? { success: false, why: 'ai-off', message: 'AI marking isn’t switched on' } : undefined))) });
-  await wait(300);
-  const bad = [], A = w.__t.ACTIONS;
-  w.__t.USER(Object.assign({}, ANS_ADA));
-  w.stuffItemsAll_ = () => [AIQ];
-  const h = w.document.createElement('div');
-  w.document.body.appendChild(h);
-  h.innerHTML = w.findCard(AIQ, 0) + '<div class="tile-row">' + '' + '</div>';
-  const inp = () => h.querySelector('.qp-ans-in');
-  const out = () => (h.querySelector('.qp-verdict') || {}).textContent;
-  const saved = () => savedWords_(h.querySelector('.qp-saved'));
-  ansType_(w, inp(), 'because it is hot');
-  A['qp-ai'](h.querySelector('.qp-ai-go'));
-  await wait(80);
-  /* ROUND 3: no plain Send takes the AI's place -- a human never marks -- and the Check stays, unpressable */
-  if (h.querySelector('.qp-ai [data-do="qp-send"]')) bad.push('the server said ai-off and a plain Send took the AI Check\'s place');
-  if (!h.querySelector('.qp-ai-go[disabled]')) bad.push('after ai-off the AI Check still presses');
-  if (!/switched on/.test(out())) bad.push('the line does not say AI marking is off: ' + JSON.stringify(out()));
-  /* TYPING WHILE THE LINE STILL SAYS IT KEEPS IT — it is the reason there is no mark. */
-  ansType_(w, inp(), 'because it is hot.');
-  if (!/switched on/.test(out())) bad.push('a letter typed under "AI marking isn’t switched on" took it off');
-  if (rows.length) bad.push(rows.length + ' row(s) went up with nothing to mark them');
-  if (saved() !== 'On this device until you send it') bad.push('the line under the box says ' + JSON.stringify(saved()));
-  w.__t.USER(null);
-  return bad;
-});
 
 /* THE VERDICT, HEARD (docs/history/340). § */
 /* A RECORDING AUDIOCONTEXT WITH AN IPAD'S RULES. § */
@@ -284,10 +191,10 @@ check('mark sound: a right answer chimes once and a wrong one buzzes once, for e
   tc(ord, ORD, 'C, B, A'); await wait(30);
   expect(['buzzer'], 'Check on a wrong order');
 
-  /* ---- A BOX NO RULE MARKS (round 3: its Check is the AI's, never a plain Send): no verdict here, so silent. ---- */
+  /* ---- A BOX NO RULE MARKS (owner, 16 Nov: its tile is Save, never a Mark): no verdict, so silent. ---- */
   const free = subDraw_(w, FREE);
   type(free, '42'); earTap_(rec, free.querySelector('.qt-row .is-submit')); await wait(30);
-  expect([], 'the AI\'s Check on a box with no scheme, with no mark back');
+  expect([], 'Save on a box with no exact key');
 
   /* ---- THE KEYPAD'S ✓ AND A LAPTOP'S ENTER: the box's own Check, called with no click. ---- */
   const keys = subDraw_(w, KEYS);
@@ -373,150 +280,6 @@ check('mark sound: a right answer chimes once and a wrong one buzzes once, for e
   return bad;
 });
 
-check('mark sound: Mark with AI wakes the sound at the press, and its marks are heard when they land — full a chime, none the buzzer, a part mark and a child who has moved on nothing', async () => {
-  const rec = {}, rows = [];
-  let land = null;
-  const AIQ = earQ_('Q-EAR-9', { marks: 3, subject: 'Science', answerType: 'explain', accept: '',
-    html: '<p>Explain why the rate increases.</p>', answer: 'Particles move faster &mdash; more frequent collisions.' });
-  /* ANOTHER QUESTION: what takes the AI card's page when the list under it changes, and a Check pressed
-     beside it while it marks. */
-  const NEXT = earQ_('Q-EAR-10', { html: '<p>Work out 3 &times; 5.</p>', answer: '<b>15</b>', accept: '15' });
-  const { w, sent, errs } = boot({ payload: Object.assign(payload(), { features: SUB_FEATURES.concat(['aiMark']), aiMarking: true }),
-    reply: ansBackend_({}, subBackend_(rows, b => (b.action === 'aiMark' ? new Promise(r => { land = r; }) : undefined))),
-    before: win => earFake_(win, rec) });
-  await wait(300);
-  const d = w.document, bad = [];
-  const held = w.stuffItemsAll_;
-  w.stuffItemsAll_ = () => (held() || []).concat([AIQ, NEXT]);
-  w.__t.USER(Object.assign({}, ANS_ADA));
-  /* THE CARD IN FRONT, IN A COLUMN WITH PAGES TO TURN -- Tools' pages, holding the card as Find and Saved do. § */
-  const COL = 'shop';   /* Tools went into Find (790); the shop is a column of pages too */
-  w.__t.go(COL, false, true);
-  await wait(60);
-  const pageAt = n => d.querySelectorAll('#s-' + COL + ' > .page')[n];
-  const front = () => [...d.querySelectorAll('#s-' + COL + ' > .page')].findIndex(p => p.classList.contains('on'));
-  /* A PAGE'S CARDS, DRAWN AFRESH -- new markup, as the funnel's redraws make it. */
-  const put = (n, xs) => {
-    const pg = pageAt(n), pane = pg.querySelector(':scope > .pane') || pg;
-    pane.innerHTML = xs.map(x => '<div>' + w.findCard(x, 0) + '<div class="tile-row">' + '' + '</div></div>').join('');
-    return [...pane.querySelectorAll('.qcard.card')];
-  };
-  let [card] = put(0, [AIQ]);
-  if (front() !== 0) bad.push('setup: page ' + front() + ' of ' + COL + ' is in front, not the first');
-  const go = c => c.querySelector('.qp-ai-go[data-do="qp-ai"]');
-  const slot = c => (subSlotOf_(c) || {}).textContent;
-  if (!go(card)) return ['the worded card drew no Mark with AI — nothing was pressed'];
-  if (card.parentNode.querySelector('.mark-sound, [data-do="mark-sound"]')) bad.push('a card Mark with AI can mark still has a sound switch (374: there is none)');
-  let asked = 0;
-  /* ONE PRESS AND ITS LANDING. `move` runs while it marks and may hand back the copy of the card that is
-     drawn now; what was heard from the press to the landing is returned with it. */
-  const ask = async (c, text, marks, move) => {
-    ansType_(w, c.querySelector('.qp-ans-in'), text);
-    land = null;
-    /* ASLEEP BEFORE EVERY PRESS, as an iPad leaves it after a phone call or the app going away: so each
-       press must wake it inside the tap, or the marks that land after the network are silent. */
-    rec.acs.forEach(a => { a.state = 'suspended'; });
-    const n = rec.outs.length;
-    earTap_(rec, go(c));
-    await wait(30);
-    if (!land) { bad.push('"' + text + '": the press sent no aiMark'); return { heard: [], c }; }
-    asked++;
-    if (rec.outs.length !== n) bad.push('"' + text + '": a sound was heard before the marks arrived');
-    const now = move ? await move() : null;
-    land({ success: true, awarded: marks[0], available: marks[1], feedback: 'A sentence about it.' });
-    await wait(80);
-    return { heard: earHeard_(rec).slice(n), c: now || c };
-  };
-  let r = await ask(card, 'The particles move faster so they collide more often with enough energy.', [3, 3]);
-  if (r.heard.join(',') !== 'chime') bad.push('3 of 3 marks from the AI was heard as [' + r.heard.join(', ') + '], wanted [chime]');
-  r = await ask(card, 'Because.', [0, 3]);
-  if (r.heard.join(',') !== 'buzzer') bad.push('0 of 3 marks from the AI was heard as [' + r.heard.join(', ') + '], wanted [buzzer]');
-  r = await ask(card, 'The particles move faster.', [2, 3]);
-  if (r.heard.length) bad.push('2 of 3 marks — a part mark, neither right nor wrong — was heard as [' + r.heard.join(', ') + ']');
-  if (slot(card) !== '2/3') bad.push('the part mark was not drawn in the slot: ' + JSON.stringify(slot(card)));
-
-  /* ---- MOVED ON WHILE IT MARKED: drawn in the slot, not heard over whatever is in front now. ---- */
-  const away = (w.__t.TABS.find(t => t.id !== COL) || {}).id;
-  r = await ask(card, 'The particles move faster and collide more often.', [3, 3], async () => { w.__t.go(away, false, true); await wait(30); });
-  if (r.heard.length) bad.push('marks that landed after the child had gone to another column were heard as [' + r.heard.join(', ') + ']');
-  if (slot(card) !== '3/3') bad.push('marks that landed after the child had gone were not drawn in the slot for when they come back: ' + JSON.stringify(slot(card)));
-  w.__t.go(COL, false, true);
-  await wait(60);
-  /* THE NEXT PAGE OF THE SAME COLUMN -- the commonest way on: one swipe, the next question. */
-  r = await ask(card, 'Particles collide more often.', [0, 3], async () => {
-    w.__t.goPage(COL, 1, true); await wait(30);
-    if (front() !== 1) bad.push('setup: a swipe to the next page left page ' + front() + ' in front');
-  });
-  if (r.heard.length) bad.push('marks that landed after the child had swiped to the next page of the same column were heard as [' + r.heard.join(', ') + '] — a buzzer over the next question');
-  w.__t.goPage(COL, 0, true);
-  await wait(30);
-  /* ANOTHER CARD ON THE SAME PAGE NUMBER -- the list under the page changed while it marked (a star taken off on Saved, one more row in front on Find): § */
-  r = await ask(card, 'Faster particles, more collisions.', [0, 3], async () => { put(0, [NEXT]); await wait(10); });
-  if (r.heard.length) bad.push('marks that landed with a different question now on the same page number were heard as [' + r.heard.join(', ') + '] — over a question nobody asked it about');
-  /* AND THE SAME CARD ON A NEW PAGE NUMBER -- the app followed it there (`stuffBackTo_`): the child never
-     left it, so it is heard. */
-  [card] = put(0, [AIQ]);
-  r = await ask(card, 'The particles gain energy and collide more often.', [3, 3], async () => {
-    put(0, [NEXT]);
-    const [moved] = put(1, [AIQ]);
-    w.__t.goPage(COL, 1, true); await wait(30);
-    return moved;
-  });
-  if (r.heard.join(',') !== 'chime') bad.push('marks that landed on the same card, followed to a new page number while it marked, were heard as [' + r.heard.join(', ') + '], wanted [chime] — the child never left it');
-  if (slot(r.c) !== '3/3') bad.push('the card followed to a new page did not draw its 3/3: ' + JSON.stringify(slot(r.c)));
-  card = r.c;
-  /* OUT OF SIGHT AS IT LANDS -- asked of `visibilityState` alone, with no event, so the suspend the event
-     makes cannot be what silences it. */
-  r = await ask(card, 'More energy, more collisions.', [0, 3], async () => { earHide_(w, true, false); });
-  earHide_(w, false, false);
-  if (r.heard.length) bad.push('marks that landed while the app was out of sight were heard as [' + r.heard.join(', ') + ']');
-
-  /* ---- A CHECK BESIDE IT WHILE IT MARKS, and longer than the context's rest before the marks land: the
-     context is held awake for the marks, because one asleep when they land wakes only from a tap. ---- */
-  const [aiC, chk] = put(1, [AIQ, NEXT]);
-  r = await ask(aiC, 'The particles move faster so they collide more often.', [3, 3], async () => {
-    ansType_(w, chk.querySelector('.qp-ans-in'), '16');
-    earTap_(rec, chk.querySelector('.qp-check'));
-    await wait(2500);
-    if (rec.acs.some(a => a.state !== 'running')) bad.push('the context went to rest while Mark with AI was still marking — its marks land on a context only a tap can wake');
-  });
-  if (r.heard.join(',') !== 'buzzer,chime') bad.push('a wrong Check while Mark with AI marked, and then 3 of 3, were heard as [' + r.heard.join(', ') + '], wanted [buzzer, chime]');
-  /* AND AT REST AFTERWARDS: nothing playing, nothing waiting. */
-  if (!(await earRests_(rec, 4000))) bad.push('four seconds after the last sound, with nothing waiting, the context is ' + rec.acs.map(a => a.state).join(', ') + ' — left running it holds a phone\'s audio awake');
-  card = aiC;
-
-  if (rec.made.some(m => !m.inPress)) bad.push('an AudioContext was made outside a tap');
-  if (rec.made.length > 1) bad.push(rec.made.length + ' AudioContexts were made — one for the visit, woken each press');
-  const ai = sent.filter(b => b.action === 'aiMark').length;
-  if (ai !== asked) bad.push(ai + ' aiMark requests went, wanted ' + asked + ' — the journey did not press what it says');
-  w.stuffItemsAll_ = held;
-  w.__t.USER(null);
-
-  /* ---- A DEVICE LEFT OFF BY THE OLD SWITCH (before 374): forgotten, so Mark with AI landing none is heard. ---- */
-  const rec2 = {};
-  let land2 = null;
-  const b2 = boot({ payload: Object.assign(payload(), { features: SUB_FEATURES.concat(['aiMark']), aiMarking: true }),
-    reply: ansBackend_({}, subBackend_([], b => (b.action === 'aiMark' ? new Promise(res => { land2 = res; }) : undefined))),
-    before: win => { earFake_(win, rec2); win.localStorage.setItem('mark-sound', '0'); } });
-  await wait(300);
-  b2.w.__t.USER(Object.assign({}, ANS_ADA));
-  b2.w.stuffItemsAll_ = () => [AIQ];
-  const off = subDraw_(b2.w, AIQ);
-  ansType_(b2.w, off.querySelector('.qp-ans-in'), 'The particles move faster so they collide more often.');
-  earTap_(rec2, go(off));
-  await wait(30);
-  if (!land2) bad.push('a device left off: the press sent no aiMark — nothing was asked');
-  else {
-    land2({ success: true, awarded: 0, available: 3, feedback: 'x' });
-    await wait(80);
-    if (rec2.made.length !== 1) bad.push('a device the old switch left off pressed Mark with AI: ' + rec2.made.length + ' AudioContext(s) woken at the press, wanted 1 — there is no switch now');
-    let kept2 = 'unread'; try { kept2 = b2.w.localStorage.getItem('mark-sound'); } catch (e) {}
-    if (kept2 !== null) bad.push('the old switch\'s setting is still on the device: mark-sound is ' + JSON.stringify(kept2));
-  }
-  b2.w.__t.USER(null);
-  if (errs.length || b2.errs.length) bad.push('errors: ' + errs.concat(b2.errs).join(' | '));
-  return bad;
-});
 
 check('mark sound: there is no switch (374) — no sound tile on any card, signed in or out, and a device the old switch left off hears a right Check chime and a wrong one buzz', async () => {
   const rec = {};

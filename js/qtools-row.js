@@ -1,7 +1,7 @@
 /* @family. — js/qtools-row.js A PART'S TOOL ROW: its marker, the pen, ruler and Check tiles, redrawn in place (cut from qtools.js; read as one by tools/piece-src.js). */
 function markerOf_(x) {
-  let kind = 'ai';
-  try { kind = qtMarker_(workRow_(x || {})); } catch (e) { kind = 'ai'; }
+  let kind = 'save';
+  try { kind = qtMarker_(workRow_(x || {})); } catch (e) { kind = 'save'; }
   /* options with no key are still options to tap: their Check says the key is missing (never a person) */
   if (!isChoiceMarker_(kind) && x && Array.isArray(x.choices) && x.choices.length >= 2) kind = orderIs_(x) ? 'order' : 'choice';
   /* NO MARK SCHEME is no accept, key words, cells, options or answer (round 4): an importer's note alone is not a scheme to mark against */
@@ -9,15 +9,15 @@ function markerOf_(x) {
   const how = ready ? QT_HOW_ALL : QT_NO_SCHEME;
   return { kind, ready, how };
 }
-/* THE CHECK TILE FOR THAT MARKER, last in the row. An AI part whose marker is off says why under the row, not by vanishing. */
+/* THE CHECK TILE FOR THAT MARKER, last in the row. A part with no exact key has no Check: its tile saves the work (owner, 16 Nov: marking is mechanical only). */
 function qtCheckOpts_(x, m) {
   m = m || markerOf_(x);
   if (QT_SCHEME_KINDS[m.kind] && m.ready) return { send: true, act: 'qp-check', cls: 'qp-check' };
   if (m.kind === 'cells') return { send: true, act: 'qp-cells-check', cls: 'qp-check' };
   if (m.kind === 'draw') return { send: true, act: 'pad-check', cls: 'qp-check' };
-  /* NO SCHEME, NO AI CHECK: a request could only fail, so its Check says so under the row, as options with no key do (round 4) */
+  /* OPTIONS WITH NO KEY: their Check says so under the row (round 4) */
   if (!m.ready) return { send: true, act: 'qp-noscheme', cls: 'qp-check', data: { key: (x && x.key) || '' } };
-  return (typeof aiOpts_ === 'function' && aiOpts_(x)) || { send: true, act: 'qp-ai', cls: 'qp-ai-go qp-check', off: true };
+  return { send: true, label: 'Save', act: 'qp-send', cls: 'qp-send' };
 }
 /* ---------- THE ROW. QT_ROW on every part, the pen's tiles where there is a figure, then Undo, Clear and Check (1020). */
 const PEN_OPEN = new Set();
@@ -34,8 +34,8 @@ const QT_TILE = {
   calc: (t, x, key) => calcAllowed_(x) ? { icon: t.icon, label: t.label, note: t.note, act: t.act, cls: 'qt-t qt-calc', on: QCALC_OPEN.has(key), pressed: QCALC_OPEN.has(key), data: { tool: t.id, key } } : null,
   /* SIGNED IN, ON A PAPER: the whole paper downloaded for no connection (offline.js) */
   offline: (t, x) => (typeof window.offOpts_ === 'function' ? window.offOpts_(x) : null),
-  /* THE MARKER IS THE QUESTION'S (owner, 15 Nov): photos are read only by the AI, so only a part the AI marks takes them; a rule-marked part never does. */
-  photo: (t, x) => (isAiMark_(markerOf_(x)) ? { icon: t.icon, label: t.label, note: t.note, act: 'qp-work', cls: 'qp-work-go qt-t', data: { k: ansKey_(x), tool: t.id } } : null),
+  /* THE MARKER IS THE QUESTION'S (owner, 15 Nov): photos are saved with a part no rule marks; a rule-marked part never takes them. */
+  photo: (t, x) => (isSaveMark_(markerOf_(x)) ? { icon: t.icon, label: t.label, note: t.note, act: 'qp-work', cls: 'qp-work-go qt-t', data: { k: ansKey_(x), tool: t.id } } : null),
 };
 /* THE PAD'S KEY A PEN OR INSTRUMENT TILE READS, '' for the rest; and the tool that pad holds, '' when it is not taking the pen */
 const qtPadKey_ = (t, x) => t && (t.act === 'qt-pen' || t.act === 'qt-inst') && typeof padKey_ === 'function' ? padKey_(x) : '';

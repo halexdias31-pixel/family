@@ -42,7 +42,7 @@ const PHRASES = [
   [/\bhave not arrived from the server\b/i, 'the hours\' "The hours have not arrived from the server yet" while the payload was on its way — gone with the `avail` tool (432); the Staff hub\'s Hours draws the loader instead'],
   /* ---------- AND THE SHAPE, WHATEVER THE WORDS § */
   /* A WAIT'S STAGES IN WORDS (456): allowed in one place, Mark with AI, below -- anywhere else it is the ring. */
-  [/\b(Sending your work|Marking against the scheme|Still working)\b/, 'a wait told in stages — allowed for Mark with AI alone (keypad.js, 456)'],
+  [/\b(Sending your work|Marking against the scheme|Still working)\b/, 'a wait told in stages — Mark with AI\'s was the one allowed, and is gone (owner, 16 Nov)'],
   [/>[^<>]*\w(…|\.\.\.)\s*<\/(p|div|span|li|h\d|b|i|small)>/, 'an element whose text trails off in "…" — the shape of a wait drawn in words of its own'],
 ];
 /* THREE OF THOSE ARE STILL IN THE APP, AND EACH IS RIGHT WHERE IT IS. § */
@@ -52,8 +52,6 @@ const PHRASE_OK = [
     why: 'scoreBoard_ draws the loader while the payload is on its way; this sentence is for a payload that came with nobody in it' },
   { file: 'me.js', re: />sending…<\/p>/,
     why: 'a message already sent and in flight under its bubble — a press answered (send_\'s "Sending…", docs/history/094), not content on its way' },
-  { file: 'keypad.js', re: /\b(Sending your work|Marking against the scheme|Still working)\b/,
-    why: 'Mark with AI\'s stage line beside the ring (aiStageSay_, 456) — the owner, 25 Oct: "It takes so long and just says marking. Would be nice if there was more feedback so we didn\'t feel blind."' },
   { file: 'me.js', re: /\bstill loading from the sheet, so nothing was sent\b/,
     why: 'the answer to a press of Save before the saved details came: a refusal said once, after the press, and not a wait drawn on a card' },
 ];

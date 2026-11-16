@@ -9,9 +9,6 @@ function adoptMarks_() {
   try { if (typeof adoptSpotlight_ === 'function') adoptSpotlight_(); } catch (e) { oops_(e, 'shell:adoptMarks_') }
   /* AND THE LATEST ANSWER SENT FOR EACH QUESTION, from the account — onto the cards and into the boxes — and whatever this device has waiting to send goes up. § */
   try { if (typeof subAdopt_ === 'function') subAdopt_(); } catch (e) { oops_(e, 'shell:adoptMarks_') }
-  /* AND A MARK WITH AI TILE DRAWN WAITING FOR THIS PAYLOAD (`aiDecided_`, keypad.js) — let go where it stands,
-     because the column holding it may be held back from the repaint that would draw it again. */
-  try { if (typeof aiDecided_ === 'function') aiDecided_(); } catch (e) { oops_(e, 'shell:adoptMarks_') }
   /* AND WHAT THIS PERSON HAS WRITTEN ON THEIR OTHER DEVICES — once a visit, and whatever this device has
      waiting for the account goes up with it. See `answersPull_` in js/answers.js. */
   try { if (typeof answersPull_ === 'function') answersPull_(); } catch (e) { oops_(e, 'shell:adoptMarks_') }
