@@ -8,6 +8,7 @@ const ROOT = path.resolve(__dirname, '..');
 const HTML = path.join(ROOT, 'index.html');
 const CHECK = process.argv.includes('--check');
 /* THE BUNDLES FIRST (1211), so they are never forgotten and the stamp hashes what is served; --check fails on a stale one. */
+if (!CHECK) require('./kinds.js').run();
 const BUNDLE = require('./bundle.js').run(CHECK);
 if (BUNDLE.stale.length) { console.error('FAIL — build-stamp: ' + BUNDLE.stale.join(', ') + ' stale. Run: node tools/build-stamp.js'); process.exit(1); }
 /* WHAT `?t=` IS PUT ON: index.html's scripts and stylesheet, and every `deployStamp_()` fetch (check-cache holds those to data/, tools/, js/). */
