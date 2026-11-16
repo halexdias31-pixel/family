@@ -1146,7 +1146,6 @@ const DIGEST_STEM_SHOWN = 300;
 const DIGEST_PNG_DIR = 'data/diagrams/';
 const DIGEST_PNG_HEX = 12;
 const DIGEST_PNG_WIDTH = 340;
-const DIGEST_CLIP_BYTES = 95000;
 
 /* ---------- WHAT THE BUSINESS IS CALLED, ON THE SERVER § */
 const BRAND_NAME = '@family.';

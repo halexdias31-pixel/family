@@ -513,8 +513,9 @@ function S(pid, key, day, label, verdict, words, hh, more) {
   const r = JSON.parse(JSON.stringify(b.ev('digestRender_(__L, { first: "Pat" }, { start: "2026-09-28", end: "2026-10-04" }, { brand: "@family.", site: "https://halexdias31-pixel.github.io/family/", hour: 18 })')));
   const kb = Buffer.byteLength(r.html, 'utf8') / 1024;
   asked++;
-  if (!(kb < 102) || kb < 40 || !/<p[^>]*>…and 5 more\.<\/p>/.test(r.html) || !/Just reply and say so/.test(r.html))
-    bad.push('80 of the longest questions make ' + kb.toFixed(1) + ' KB of HTML — wanted under Gmail’s ~102 KB clip (and over 40, the words printed at length), "…and 5 more." and the footer after them');
+  /* NO SIZE CAP SINCE 16 NOV: every card whole, as on the site; a week past Gmail's ~102 KB is clipped by Gmail, behind "View entire message". */
+  if (kb < 40 || !/<p[^>]*>…and 5 more\.<\/p>/.test(r.html) || !/Just reply and say so/.test(r.html) || /on the site\)/.test(r.html))
+    bad.push('80 of the longest questions make ' + kb.toFixed(1) + ' KB of HTML — wanted every word printed (over 40 KB), "…and 5 more." and the footer after them');
 }
 
 /* ---------- 3. THE LABEL submitAnswer KEEPS § */
@@ -1365,9 +1366,8 @@ const MS = (pid, key, verdict, label, words, answer, day, hh, more) => Object.as
     bad.push('a real question with a picture (Q-9MA031-2206-5c) did not go with its words, its alt text and an <img> of a PNG that is in data/diagrams/: ' + JSON.stringify(src || rm.body.slice(0, 200)));
 }
 {
-  /* UNDER GMAIL'S CLIP, EVERY QUESTION KEPT. § */
+  /* EVERY CARD WHOLE, AS ON THE SITE (owner, 16 Nov): no source or question said as "on the site" to fit Gmail's clip, and every card its whole tag set. */
   const { b, G } = world();
-  const CLIP = b.ev('DIGEST_CLIP_BYTES');
   const make = (askLen, stemLen) => {
     const rows = {}, pre = [], items = [];
     for (let i = 0; i < 80; i++) {
@@ -1381,21 +1381,15 @@ const MS = (pid, key, verdict, label, words, answer, day, hh, more) => Object.as
     return JSON.parse(JSON.stringify(b.ev('digestRender_(__L, { first: "Pat" }, { start: "2026-10-12", end: "2026-10-18" }, __LOOK)')));
   };
   asked++;
-  /* 200 CHARACTERS A PART, NOT 600, SINCE 20 OCT: each question is a card now (380), whose frame weighs about 0.6 KB of the clip. */
-  const m = make(200, 3000);
-  const kb = Buffer.byteLength(m.html, 'utf8');
-  const marks = m.text.split('\n').filter(l => l === 'Ada: 3 of 4 marks').length;
-  if (!(kb <= CLIP) || kb < 40000 || marks !== 80 || m.text.indexOf('(the source text is on the site)') === -1 || !/END79\./.test(m.text)
-      || /the question’s words are on the site/.test(m.text) || !/Just reply and say so/.test(m.html) || CLIP > 100000)
-    bad.push('a week of 80 parts under long sources is ' + (kb / 1024).toFixed(1) + ' KB with ' + marks + ' marks listed — wanted under DIGEST_CLIP_BYTES (' + CLIP
-      + ', short of Gmail’s ~102 KB), all 80 with their whole words and marks, the longest sources said as on the site, and the footer');
+  const m = make(2000, 3000);
+  const words = m.text.split('\n').filter(l => /^Q1 · 4 marks$/.test(l)).length;
+  if (/on the site\)/.test(m.text + m.html) || words !== 80 || m.text.split('\n').filter(l => l === 'Ada: 3 of 4 marks').length !== 80
+      || !/END79\./.test(m.text) || !/Source 79 reads/.test(m.text) || !/Just reply and say so/.test(m.html))
+    bad.push('a long week said a source or a question as "on the site" instead of printing it, or lost a question: ' + words + ' listed');
   asked++;
-  const m2 = make(2000, 200);
-  const kb2 = Buffer.byteLength(m2.html, 'utf8');
-  const listed = m2.text.split('\n').filter(l => /^Q1 · 4 marks$/.test(l)).length;
-  if (!(kb2 <= CLIP) || listed !== 80 || m2.text.split('\n').filter(l => l === 'Ada: 3 of 4 marks').length !== 80
-      || m2.text.indexOf('(the question’s words are on the site)') === -1 || !/Just reply and say so/.test(m2.html))
-    bad.push('80 long parts made ' + (kb2 / 1024).toFixed(1) + ' KB with ' + listed + ' listed — wanted under the clip with every question still listed by number and mark');
+  const pills = m.html.split('class="kc"').slice(1).map(c => (c.match(/border-radius:\d+px;padding:0 6px">/g) || []).length);
+  if (pills.some(n => n !== pills[0]) || !pills[0])
+    bad.push('cards of one kind wear different numbers of tags — one tag rule, every card its whole set: ' + JSON.stringify(pills.slice(0, 6)));
 }
 
 /* ---------- 11b. EACH QUESTION IS THE SITE'S CARD (380, 20 Oct): its tags as the card wears them, in its facets' colours, on the black screen § */
@@ -1602,6 +1596,22 @@ const MS = (pid, key, verdict, label, words, answer, day, hh, more) => Object.as
   if (fallback !== fromFile) bad.push('the email\'s fallback order (DIGEST_TAG_FACETS, used when the facets file cannot be fetched) has drifted from the file: ' + fallback + ' — the file says ' + fromFile);
   const T = b.ev('Object.keys(digestTagIndex_("", [], ' + file + ')).indexOf("facets") >= 0');
   if (!T) bad.push('digestTagIndex_ does not carry the facets file\'s order, so the cards in the email ignore it');
+}
+
+/* ---------- THE OWNER'S 15 NOV EMAIL: a lower-case name, "and 7 more" topics — one name formatter, every topic. */
+{
+  const { b, G } = world();
+  const rows = {}, items = [];
+  'Algebra Angles Area Bearings Circles Fractions Graphs Percentages Ratio Vectors'.split(' ').forEach((t, i) => {
+    rows['TP-' + i] = { row_id: 'TP-' + i, kind: 'question', question: String(i + 1), marks: '2', active: 'True', topics: t, html: '<p>Ask ' + i + '</p>' };
+    items.push({ key: 'q:TP-' + i, label: 'Maths · Sheet · Q' + (i + 1), words: '', last: '2026-11-10', verdict: 'right' });
+  });
+  G.__L = { id: 'P-S1', first: 'finley', fresh: items, again: [] };
+  const r = JSON.parse(JSON.stringify(b.ev('digestRender_(__L, { first: "pat" }, { start: "2026-11-09", end: "2026-11-15" }, { site: "https://halexdias31-pixel.github.io/family/", hour: 21, lib: { rows: ' + JSON.stringify(JSON.stringify(rows)).replace(/^"|"$/g, '').replace(/\\"/g, '"') + ', pre: [] } })')));
+  asked++;
+  if (/finley/.test(r.subject + r.text) || !/Finley/.test(r.subject) || !/^Hi Pat,/.test(r.text) || / more\./.test(r.text.split('\n').filter(l => /^Topics:/.test(l))[0] || ' more.')
+      || !/Topics: Algebra, Angles, Area, Bearings, Circles, Fractions, Graphs, Percentages, Ratio and Vectors\./.test(r.text))
+    bad.push('the name is not through fmtName_ or the topics are capped: ' + JSON.stringify([r.subject, r.text.split('\n').slice(0, 8)]));
 }
 
 console.log('rules asked: ' + asked);

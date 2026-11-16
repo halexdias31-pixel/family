@@ -12,6 +12,7 @@
   "library-drive.gs",
   "media.gs",
   "core.gs",
+  "cards-gen.gs",
   "digest.gs",
   "digest-tags.gs",
   "doget.gs",

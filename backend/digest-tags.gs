@@ -340,12 +340,7 @@ function digestCardTags_(q, T) {
     verified: () => (digestLibTrue_(q.verified) && digestLibTrue_(q.function_verified) ? 'Verified' : 'Not verified'), source: () => digestTagSource_(q),
   };
   const say = { paperId: () => digestTagPaper_(it, T) };
-  /* `tagRow_`'s dedupe: a word already said, an id already said, or a tag that is only earlier tags side by side (`tagMadeOf_`). */
-  const madeOf = (text, said) => {
-    const t = text.toLowerCase(), parts = said.map(w => w.toLowerCase()).filter(Boolean);
-    const from = i => i === t.length || parts.some(p => t.startsWith(p, i) && (i + p.length === t.length || (t[i + p.length] === ' ' && from(i + p.length + 1))));
-    return parts.length > 1 && t.indexOf(' ') > 0 && from(0);
-  };
+  /* `tagRow_`'s dedupe: a word already said, an id already said, or a tag that is only earlier tags side by side (`tagMadeOf_`, the site's own, cards-gen.gs). */
   const out = [], words = Object.create(null), ids = Object.create(null), said = [];
   (T.facets || DIGEST_TAG_FACETS).forEach(f => {
     let vals;
@@ -354,7 +349,7 @@ function digestCardTags_(q, T) {
       let text = raw;
       try { text = String((say[f[0]] ? say[f[0]](raw) : digestSay_(raw)) || raw).trim(); } catch (err) { text = raw; }
       const w = text.toLowerCase();
-      if ((/[A-Za-z]/.test(text) && (words[w] || madeOf(text, said))) || (/[A-Za-z]/.test(raw) && ids[raw])) return;
+      if ((/[A-Za-z]/.test(text) && (words[w] || tagMadeOf_(text, said))) || (/[A-Za-z]/.test(raw) && ids[raw])) return;
       words[w] = 1; ids[raw] = 1; said.push(text);
       out.push({ kind: f[1], text: text });
     });
