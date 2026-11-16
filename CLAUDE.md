@@ -4,6 +4,9 @@ A tutoring business's site: static front end on GitHub Pages, Google Apps Script
 
 **The rulebook is `data/settings/rules.json`** — the one place rules live. Read it as `docs/rules.md` (generated: `node tools/rules.js --write`).
 
+## Before any work
+- Read the Ledger `claude_notes` rows whose column is `Handover` (16 Nov), then the `Principles` rows N-20261116-ss1…ss9: the plan in order.
+
 ## Reading cheaply
 - Grep first, then Read a line range. Never Read a big file whole (`style.css`, `check/states.js`, `data/*.json` — use a `node -e` one-liner).
 - Cut files are read as one: Find by `tools/find-src.js`; `me-*`, `shell-*`, `keypad-*`, `book-*` by `tools/piece-src.js`.
