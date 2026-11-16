@@ -457,7 +457,6 @@
       },
       {
        "f": "days",
-       "many": true,
        "need": 1,
        "ask": "Which day?"
       },
@@ -465,11 +464,13 @@
        "f": "slots",
        "many": true,
        "need": 1,
-       "ask": "What time? Each tag is one hour."
+       "ask": "What time? Each tag is one hour.",
+       "grid": true
       },
       {
        "f": "avail",
-       "many": true
+       "many": true,
+       "grid": true
       },
       {
        "f": "kids",
@@ -478,7 +479,8 @@
       {
        "f": "n"
       }
-     ]
+     ],
+     "look": "book-step"
     }
    }
   },

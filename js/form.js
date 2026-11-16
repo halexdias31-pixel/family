@@ -270,53 +270,68 @@ function formGroupsOf_(spec, groups, o) {
 }
 
 /* ---------- A FORM ASKED IN FIND, ONE FIELD A STEP (`ask: "find"` in kinds.json; owner, 16 Nov: one form for any item) ---------- */
-/* A choice is its tags, a text field the blank tag typed on, a PIN the ten digit tags; each answer is a chip whose tap asks it again. */
-/* The answers live in `ASK[id]` in memory only: never storage, the URL or a chip's words, so a PIN is gone once sent or the page goes. */
-/* A FORM WITH `draft: "ask"` KEEPS EVERY ANSWER BUT A PIN as a draft (data.js), so a reload asks on from where it was; a PIN is never kept. */
+/* A choice is its tags, a text field the blank tag typed on, a PIN the ten digit tags; each answer is a chip whose tap asks it (and every field after it) again. */
+/* A `many` field ticks on a tap, then asks "and" (another) or "." (done); `need` is how many before "." moves on; `given` is answered by the site, still a chip. */
+/* The answers live in memory (`ASK[id]`), never the URL or a chip's words; a form with `draft: "ask"` keeps every answer but a PIN as a draft (data.js). */
+/* A FORM'S OWN CODE (`FORM_ASK_[id]`) IS ONLY ITS SOURCES: where its answers live (`state`: {v, done, more}), whether a field is asked now (`asks`), */
+/* a field's tags (`options`: [{v, text, on, off, note}]), its question and chip words (`label`, `said`), why an answer is refused (`off`), */
+/* and what an answer does besides being kept (`pick` true when it handled it, `toggle`, `set`, `had`, `next`, `and`, `clear`, `paint`). */
+const FORM_ASK_ = {};
+const askHook_ = id => FORM_ASK_[id] || {};
 const ASK = {};
 const askKeeps_ = (id, x) => (FORM_SPECS.forms[id] || {}).draft === 'ask' && x.type !== 'pin' && !draftNever_(x.f);
 const askDrafts_ = id => ((FORM_SPECS.forms[id] || {}).fields || []).filter(x => askKeeps_(id, x));
 function askReset_(id, pre) {
-  const s = { v: Object.assign({}, pre || {}), done: {}, pin: [] };
+  const s = { v: Object.assign({}, pre || {}), done: {}, pin: [], more: '' };
   askDrafts_(id).forEach(x => { const d = draftRead_('ask', id + ':' + x.f); if (d !== null && d !== undefined) { s.v[x.f] = d; s.done[x.f] = true; } });
   ASK[id] = s;
 }
-const askOf_ = id => ASK[id] || (askReset_(id), ASK[id]);
+const askOf_ = id => (askHook_(id).state ? askHook_(id).state() : ASK[id] || (askReset_(id), ASK[id]));
 /* SENT: its drafts go, so a new blank form never shows the last one's answers. */
-const askDone_ = id => { askDrafts_(id).forEach(x => draftDrop_('ask', id + ':' + x.f)); ASK[id] = { v: {}, done: {}, pin: [] }; };
-/* THE FIELDS ASKED NOW: in order, each `only` met by the answers above it. */
-const askFields_ = id => ((FORM_SPECS.forms[id] || {}).fields || [])
-  .filter(x => !x.only || Object.keys(x.only).every(k => String(askOf_(id).v[k]) === String(x.only[k])));
-const askAt_ = id => askFields_(id).find(x => !askOf_(id).done[x.f]) || null;
+const askDone_ = id => { askDrafts_(id).forEach(x => draftDrop_('ask', id + ':' + x.f)); ASK[id] = { v: {}, done: {}, pin: [], more: '' }; };
+const askSpecs_ = id => (FORM_SPECS.forms[id] || {}).fields || [];
+/* THE FIELDS ASKED NOW: in order, each `only` met by the answers above it, and each its form's code asks. */
+const askFields_ = id => askSpecs_(id).filter(x => (!x.only || Object.keys(x.only).every(k => String(askOf_(id).v[k]) === String(x.only[k])))
+  && (!askHook_(id).asks || askHook_(id).asks(x)));
+const askPassed_ = (id, x) => !!askOf_(id).done[x.f] || (!!x.given && !!askOf_(id).v[x.f]);
+const askAt_ = id => askFields_(id).find(x => !askPassed_(id, x)) || null;
 const askSay_ = c => (c.say ? text_(c.say) : c.t || c.v);
-const askPaint_ = () => finderEach_(() => paintStuff());
+const askPaint_ = id => (askHook_(id).paint ? askHook_(id).paint() : finderEach_(() => paintStuff()));
+const askLook_ = id => (FORM_SPECS.forms[id] || {}).look || 'ask-pick';
 /* ONE FIELD'S TAGS, the one tag maker for every asked form; `o.act`, `o.id`, `o.cls` and `o.value` let a form keep its own handler, box and answer (sign-in's). */
 function askTags_(id, x, o) {
   o = o || {};
-  const val = o.value != null ? o.value : askOf_(id).v[x.f];
-  if (x.type === 'choice') return { look: 'ask-pick', options: (x.options || []).map(c => ({ text: askSay_(c), act: o.act || 'ask-pick',
-    data: { form: id, f: x.f, v: c.v }, pressed: String(val) === String(c.v) })) };
+  const h = askHook_(id), val = o.value != null ? o.value : askOf_(id).v[x.f];
   if (x.type === 'pin') return { look: 'is-grid sign-pin', options: '0123456789'.split('').map(d => ({ text: d, act: o.act || 'ask-digit', data: { form: id, f: x.f, d: d, repeat: true } })) };
-  return { look: 'sign-type', box: { id: o.id != null ? o.id : 'ask-' + id + '-' + x.f, cls: o.cls || 'ask-box', value: val || '', label: x.label || x.ph || '',
+  if (x.type === 'text') return { look: 'sign-type', box: { id: o.id != null ? o.id : 'ask-' + id + '-' + x.f, cls: o.cls || 'ask-box', value: val || '', label: x.label || x.ph || '',
     placeholder: x.ph || '', inputmode: x.input === 'email' ? 'email' : 'text' } };
+  const list = h.options ? h.options(x) : (x.options || []).map(c => ({ v: c.v, text: askSay_(c), on: String(val) === String(c.v) }));
+  return { look: askLook_(id) + (x.grid ? ' is-grid' : ''), options: list.map(c => ({
+    text: (x.many && c.on ? '✓ ' : '') + c.text + (c.off ? ' · ' + c.off : c.note ? ' · ' + c.note : ''), act: o.act || 'ask-pick',
+    data: { form: id, f: x.f, v: c.v }, pressed: !!c.on, disabled: !!c.off, look: ((c.on ? 'is-on' : '') + (c.off ? ' is-off' : '')).trim() })) };
 }
-/* THE MENU FOR THE FIELD BEING ASKED, or the send once every field is answered (`o.done` says what sending does). */
+const askSaid_ = (id, x) => {
+  if (askHook_(id).said) return askHook_(id).said(x);
+  const c = (x.options || []).find(k => String(k.v) === String(askOf_(id).v[x.f]));
+  return x.type === 'pin' ? '*'.repeat(SIGN_PIN_LEN) : c ? askSay_(c) : String(askOf_(id).v[x.f] || '');
+};
+/* THE MENU FOR THE FIELD BEING ASKED; once every field is answered, the send (`o.done` says what sending does), or nothing when the form has none. */
 function askMenu_(id, o) {
   o = o || {};
-  const spec = FORM_SPECS.forms[id] || {}, x = askAt_(id);
-  if (!x) return [{ type: 'choices', ask: o.done || '', rows: [{ look: 'sign-more', options: [{ text: (spec.send || {}).label ? text_(spec.send.label) : 'Send', act: 'ask-send', data: { form: id } }] }] }];
+  const spec = FORM_SPECS.forms[id] || {}, x = askAt_(id), h = askHook_(id);
+  if (!x) return spec.send ? [{ type: 'choices', ask: o.done || '', rows: [{ look: 'sign-more', options: [{ text: text_(spec.send.label), act: 'ask-send', data: { form: id } }] }] }] : null;
+  /* AFTER EACH CHOICE ON A SEVERAL-ANSWER FIELD: exactly two tags, "and" (another of this) and "." (done, move on). */
+  if (askOf_(id).more === x.f) return [{ type: 'choices', ask: askSaid_(id, x) || '', rows: [{ look: askLook_(id) + ' book-more', options: [
+    { text: 'and', act: 'ask-and', data: { form: id, f: x.f }, label: 'And another' }, { text: '.', act: 'ask-next', data: { form: id, f: x.f }, label: 'Done, move on' }] }] }];
   const pin = x.type === 'pin' ? askOf_(id).pin.length : 0, tags = askTags_(id, x);
-  return [{ type: 'choices', ask: [x.label || x.ph, pin ? '*'.repeat(pin) : '', x.note].filter(Boolean).join(' '),
+  return [{ type: 'choices', ask: [x.ask || (h.label && h.label(x)) || x.label || x.ph, pin ? '*'.repeat(pin) : '', x.note].filter(Boolean).join(' '),
     rows: [tags.box ? { look: 'sign-who', options: [tags] } : tags] }];
 }
 /* THE ANSWERS AS CHIPS: a PIN is a * per digit, never the digits. */
-function askChips_(id) {
-  const s = askOf_(id);
-  return askFields_(id).filter(x => s.done[x.f]).map(x => {
-    const c = (x.options || []).find(k => String(k.v) === String(s.v[x.f]));
-    const text = x.type === 'pin' ? '*'.repeat(SIGN_PIN_LEN) : c ? askSay_(c) : String(s.v[x.f] || '');
-    const label = 'Change ' + (x.label || x.ph || x.f);
-    return { base: 'chip', look: 'sm ask-chip', text: text, act: 'ask-back', data: { form: id, f: x.f }, label: label, x: { label: label }, colour: false };
+function askChips_(id, look) {
+  return askFields_(id).filter(x => askPassed_(id, x)).map(x => {
+    const text = askSaid_(id, x) || 'None', label = 'Change ' + text;
+    return { base: 'chip', look: look || 'sm ask-chip', text: text, act: 'ask-back', data: { form: id, f: x.f }, label: label, x: { label: label }, colour: false };
   });
 }
 /* A FIELD ANSWERED, and on to the next. */
@@ -324,30 +339,67 @@ function askSet_(id, f, v) {
   const s = askOf_(id), x = formAsk_(id, f);
   s.v[f] = v; s.done[f] = true;
   if (askKeeps_(id, x)) draftKeep_('ask', id + ':' + f, v);
-  askPaint_();
+  askPaint_(id);
 }
-/* BACK TO A FIELD: it and every field after it are asked again; a PIN from empty. */
+/* BACK TO A FIELD: it and every field after it are asked again, from empty (a PIN always). */
 function askBack_(id, f) {
-  const s = askOf_(id), all = (FORM_SPECS.forms[id] || {}).fields || [], at = all.findIndex(x => x.f === f);
+  const s = askOf_(id), h = askHook_(id), all = askSpecs_(id), at = all.findIndex(x => x.f === f);
   if (at === -1) return;
-  all.slice(at).forEach(x => { delete s.done[x.f]; if (x.type === 'pin') delete s.v[x.f]; });
-  s.pin = [];
-  askPaint_();
+  s.more = ''; s.pin = [];
+  all.slice(at).forEach(x => { delete s.done[x.f]; if (h.clear) h.clear(x); else if (x.type === 'pin') delete s.v[x.f]; });
+  askPaint_(id);
 }
 /* WHAT SENDING A FORM DOES: its kind's code sets `FORM_SEND_[id](values, button)`, an existing backend action, never a new one. */
 const FORM_SEND_ = {};
-on('ask-pick', el => askSet_(el.dataset.form, el.dataset.f, el.dataset.v));
+/* ONE ANSWER: chosen and on to the next field; one of several: ticked or unticked, the field stays. */
+on('ask-pick', el => {
+  const id = el.dataset.form, f = el.dataset.f, v = el.dataset.v, x = formAsk_(id, f), h = askHook_(id), s = askOf_(id);
+  if (h.pick && h.pick(x, v)) return askPaint_(id);
+  if (x.many) {
+    if (h.toggle) h.toggle(x, v);
+    else { const list = s.v[f] || [], at = list.indexOf(v); if (at === -1) list.push(v); else list.splice(at, 1); s.v[f] = list; }
+    s.more = f;
+    return askPaint_(id);
+  }
+  const no = h.off && v ? String(h.off(x, v) || '') : '';
+  if (no) { toast(v + ' ' + no); return; }
+  if (h.set) { s.v[f] = v || ''; h.set(x, s.v[f]); s.done[f] = true; return askPaint_(id); }
+  askSet_(id, f, v);
+});
+/* ".": the several answers are done, once there are as many as `need`. */
+on('ask-next', el => {
+  const id = el.dataset.form, x = formAsk_(id, el.dataset.f), h = askHook_(id), s = askOf_(id);
+  const had = h.had ? h.had(x) : (s.v[x.f] || []);
+  if (had.length < (x.need || 0)) { toast(text_('pick-at-least-one-first')); return; }
+  s.done[x.f] = true; s.more = '';
+  if (h.next) h.next(x);
+  askPaint_(id);
+});
+/* "and": the same field's tags again. */
+on('ask-and', el => {
+  const id = el.dataset.form, x = formAsk_(id, el.dataset.f), h = askHook_(id);
+  askOf_(id).more = '';
+  if (h.and) h.and(x);
+  askPaint_(id);
+});
 on('ask-back', el => askBack_(el.dataset.form, el.dataset.f));
 on('ask-digit', el => {
   const id = el.dataset.form, x = askAt_(id), s = askOf_(id), d = String(el.dataset.d || '');
   if (!x || x.type !== 'pin' || x.f !== el.dataset.f || !/^\d$/.test(d)) return;
   s.pin.push(d);
-  if (s.pin.length < SIGN_PIN_LEN) { askPaint_(); return; }
+  if (s.pin.length < SIGN_PIN_LEN) { askPaint_(id); return; }
   const pin = s.pin.join('');
   s.pin = [];
   askSet_(id, x.f, pin);
 });
 on('ask-send', el => { const id = el.dataset.form; if (FORM_SEND_[id]) FORM_SEND_[id](Object.assign({}, askOf_(id).v), el); });
+/* WHAT IS TYPED IN A KEPT FORM'S BLANK TAG is kept as it is typed, as the old boxes' drafts were. */
+document.addEventListener('input', e => {
+  const t = e.target;
+  if (!t || !t.classList || !t.classList.contains('ask-box')) return;
+  const rest = String(t.id || '').slice(4), cut = rest.lastIndexOf('-'), id = rest.slice(0, cut), f = rest.slice(cut + 1);
+  if (askKeeps_(id, formAsk_(id, f))) draftKeep_('ask', id + ':' + f, t.value);
+});
 /* ENTER IN A TEXT FIELD'S BLANK TAG (the keypad's ✓ is its Enter) ANSWERS IT, as a tap answers a tag. */
 document.addEventListener('keydown', e => {
   const t = e.target;
