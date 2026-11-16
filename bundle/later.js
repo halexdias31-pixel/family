@@ -13773,7 +13773,7 @@ function kpRoomBack_() {
   const L = KP_LIFT;
   KP_LIFT = null;
   /* AND A FINDER, ITS PAD GONE, IS CENTRED AGAIN in the whole glass. */
-  if (!(L && L.lift) && typeof finderOf_ === 'function' && finderOf_(AT)) { try { placeCells('y', true, 0, AT); } catch (e) { /* left where it was */ } }
+  if (!FLOW_LAYOUT && !(L && L.lift) && typeof finderOf_ === 'function' && finderOf_(AT)) { try { placeCells('y', true, 0, AT); } catch (e) { /* left where it was */ } }
   if (L && L.lift) {
     L.lift = 0;
     try { if (HOLD_AT === L) placeCells('y', true, 0, L.id); } catch (e) { oops_(e, 'keypad:kpRoomBack_') }
@@ -13781,7 +13781,7 @@ function kpRoomBack_() {
 }
 function kpFinderCentre_(inp) {
   try {
-    if (typeof finderOf_ !== 'function' || !finderOf_(AT)) return false;
+    if (FLOW_LAYOUT || typeof finderOf_ !== 'function' || !finderOf_(AT)) return false;
     const pg = inp.closest('#screen .page.on'), host = pg && pg.parentElement;
     if (!isAtHost_(host)) return false;
     holdHere_(inp);
@@ -13839,7 +13839,8 @@ function kpSheetFit_(pane) {
 let KP_LIFT = null;
 function kpLift_(inp, pad) {
   /* ONE SCROLLING PAGE (900): the page scrolls the box above the pad; the body's foot makes the room (style.css, `.kp-up`). */
-  if (FLOW_LAYOUT) { try { window.scrollBy(0, kpBox_(inp).getBoundingClientRect().bottom - (pad.getBoundingClientRect().top - 12)); } catch (e) { /* left where it is */ } return; }
+  /* THE VIEW STAYS PUT (owner, 16 Nov): it moves only if the pad would cover the box, and only by that much. */
+  if (FLOW_LAYOUT) { try { const over = kpBox_(inp).getBoundingClientRect().bottom - (pad.getBoundingClientRect().top - 12); if (over > 0) window.scrollBy(0, over); } catch (e) { /* left where it is */ } return; }
   try {
     const pg = inp.closest('#screen .page.on');
     const host = pg && pg.parentElement;
