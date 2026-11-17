@@ -22,7 +22,6 @@ Order: what a child or parent would notice first, then what stops things driftin
 - 5-A-DAY IS A WORKSHEET (owner, 17 Nov): file 5-a-days as worksheets, not their own document type.
 - STANDING (owner, 17 Nov): Claude optimises objectively — disagrees openly when the owner's idea is worse, never just affirms; the owner's statements are principles (uniform, minimal sources, lean, memorable, fewest features), not orders to apply blindly.
 - LIBRARY TREE: each idea one entry with one "part of" link (subject › topic › subtopic › idea), at most ~3 levels; the same tree drives menus, topic pages, spec links and "revise this".
-- FOR THE OWNER: tick-box parts typed as text cause marking misses (spelling, abbreviations); proposal — the one answer face shows the paper's own options as tap tags when the paper offers options. Owner's rule says text boxes; asked 17 Nov.
 - STANDING (owner, 17 Nov): taxonomy, naming, grouping and cutting features like the four above are Claude's to find and decide over time, without being told.
 
 5. Short rulebook: rules only, history moved to docs/history; first rule 0.1 (literal, universal; Claude owns the site).
@@ -31,7 +30,7 @@ Order: what a child or parent would notice first, then what stops things driftin
 8. Preview copy before live.
 9. Marking signals: near-miss wrong marks, all-zero questions, repeated retries, logged automatically.
 10. A one-tap "this mark is wrong" on every marked answer; each report becomes a permanent example in an answer bank the marker must keep passing.
-11. One answer face: one text box for everything, one pad for drawing and photos; remove any other button a question can do without.
+11. ONE ANSWER FACE (decided 17 Nov): the one text box for every question. Printed options: the marker matches typed text forgivingly to the paper's own options (spelling, abbreviation, letter). Tables: one box, any separator. Drawn answers become the facts that define the drawing (angles, values, points, equation, vertices, inequality, bar heights), typed and marked exactly; the child draws on paper. True drawings (constructions, loci, sketches, shading) are "marked by your tutor". Then remove the drawing pad, photo marking and every other answer button (unless the owner objects).
 12. One form engine (the profile editor's own boxes join the form maker).
 
 ## Then (content)
