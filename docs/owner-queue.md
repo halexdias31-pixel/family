@@ -8,6 +8,7 @@ Order: what a child or parent would notice first, then what stops things driftin
 
 1. Marking keys for the ~9,200 questions that have a written answer but no mechanical key (mostly short science "explain" parts): derive `rule: points` / `accept` from each row's own mark-scheme text; each must pass `tools/validate-questions.js`.
 2. Typed-in text for the ~2,000 science questions with none: AQA papers from the cards' source_url, mark schemes from AQA's filestore (method: 8461-2306-1F and the seven papers done 17 Nov).
+2b. Papers from the manifest data-private/paper-sources.json (4,284 PDF links: question papers, mark schemes, inserts — Edexcel and AQA, GCSE and A-Level, from the pages the owner gave 17 Nov): fill any paper the library lacks or has without text/keys, subjects the owner's students take first (GCSE Maths, Biology, Chemistry, Physics, English, History). Check each entry's URL matches its labelled subject (some Edexcel pages link the combined-science files).
 3. The 232 questions that refer to a Figure with no diagram, and the 52 whose figure was not transcribed: draw them with tools/figkit.py.
 4. The 35 keys the check says accept a wrong answer or fail their own drawing.
 
