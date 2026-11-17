@@ -939,14 +939,8 @@ function photosIn(fields) {
   return out.join(' | ');
 }
 /* ---------- THE JOBS: FOUR BOXES A JOB, ONE CELL OF JSON (8 Nov) ---------- */
-function jobsList_(r) {
-  let a = [];
-  try { a = JSON.parse(S(r && r.jobs) || '[]'); } catch (err) { a = []; }
-  return (Array.isArray(a) ? a : []).map(o => ({ role: S((o || {}).role), where: S((o || {}).where), from: S((o || {}).from), to: S((o || {}).to) }))
-    .filter(o => o.role || o.where).slice(0, JOB_MAX);
-}
 function jobsOut(cellValue) {
-  const list = jobsList_({ jobs: cellValue }), out = {};
+  const list = tutorCardOf_({ jobs: cellValue }, { jobs: JOB_MAX }).jobs, out = {};
   for (let i = 1; i <= JOB_MAX; i++) JOB_PARTS.forEach(k => { out['job_' + i + '_' + k] = S((list[i - 1] || {})[k]); });
   return out;
 }
@@ -968,13 +962,6 @@ function photosRefusal_(fields) {
     }
   }
   return '';
-}
-/* THE LIST THE CARD DRAWS: § */
-function photosList_(r) {
-  const face = S(r.photo).trim();
-  return S(r.photos).split('|').map(x => x.trim())
-    .filter((v, i, all) => /^https?:\/\//i.test(v) && v !== face && all.indexOf(v) === i)
-    .slice(0, PHOTO_MAX);
 }
 
 /* ---------- THE FACE CELL: A LINK, NOTHING, OR ONE OF ELEVEN TOKENS — AND THIS IS THE ONE PLACE IT IS ASKED § */

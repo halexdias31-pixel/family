@@ -15,28 +15,11 @@ function tutorOut_(r, i, name, listed, qp, venuesTab) {
     /* THE HANDLE OR NOTHING — never the first name in its place. § */
     title: name, handle: S(r.handle),
     subtitle: S(r.city) || 'London',
-    image: S(r.photo), mediaUrl: S(r.video),
-    /* THE UPLOADED INTRO VIDEO'S DRIVE ID (shared view-by-link), played on the card; and the jobs as a list. */
-    videoFile: S(r.video_file), jobs: jobsList_(r),
     /* THE FIGURE, ONLY WHEN THE FACE IS THE FIGURE (`pfp:avatar`) — `faceFig_` in core.gs. § */
     avatar: faceFig_(r).avatar,
-    /* THE OTHER PHOTOGRAPHS, AS A LIST, without the face — `photosList_`. § */
-    photos: photosList_(r),
-    tags: [r.adjective_1, r.adjective_2, r.adjective_3].map(S).filter(Boolean),
-    description: S(r.headline) ? '"' + S(r.headline) + '"' : '',
-    rate: N(r.rate_per_hour),
     dbs: TRUE_(r.dbs_checked),
     /* When they last confirmed their details are current. § */
     detailsConfirmed: fmtDate(r.details_confirmed),
-    yrsExp: S(r.years_experience),
-    // The shape of job they'll accept. Sent as numbers so the booking form can filter on
-    // them; 0 means "no limit set", which is treated as no limit rather than as zero.
-    // Blank means "no view", and the smallest real booking is one student for one hour.
-    minStudents: N(r.min_students) || 1, maxStudents: N(r.max_students),
-    minHours: N(r.min_hours) || 1, maxHours: N(r.max_hours),
-    /* THE AGES THEY TEACH, public like the rate — it is what a parent checks before anything else. § */
-    ageMin: ageOut_(r.age_min), ageMax: ageOut_(r.age_max),
-    extraSeat: N(r.extra_seat_rate),
     /* AND THE BUSINESS'S CUT OF THAT SEAT, THIS TUTOR'S OWN (docs/history/345) — '' for a blank cell, which is the config tab's `B`, and nought for nought, which is § */
     /* A TUTOR'S OWN CUT IS IGNORED SINCE 8 NOV: config B is the one share, so none is sent. */
     extraSeatCut: '',
@@ -59,7 +42,9 @@ function tutorOut_(r, i, name, listed, qp, venuesTab) {
     /* UP TO TEN, OFF THEIR ROWS OF THE `qualifications` TAB — `qualsList_` in core.gs. § */
     quals: qp.map(qualSentence_),
     qualsParts: qp,
-    actionText: '▶ Watch Intro'
+    actionText: '▶ Watch Intro',
+    /* THE ROW'S OWN FIELDS, by the one mapping the site also reads a saved row by (`tutorCardOf_`, js/core.js via cards-gen). */
+    ...tutorCardOf_(r, { photos: PHOTO_MAX, jobs: JOB_MAX })
   };
 }
 
