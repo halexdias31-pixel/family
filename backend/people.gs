@@ -508,19 +508,6 @@ function managerRefusal_(me, asked) {
 }
 
 /* THE AGES A TUTOR TEACHES — ONE READER, AND A REFUSAL ASKED BEFORE ANYTHING IS WRITTEN. § */
-function ageRank_(v) {
-  const s = S(v);
-  if (!s) return null;
-  if (/^adults?$/i.test(s) || /^18\s*\+$/.test(s)) return Infinity;
-  if (!/^\d{1,3}$/.test(s)) return NaN;
-  return Number(s) || null;
-}
-
-function ageOut_(v) {
-  const n = ageRank_(v);
-  return n === Infinity ? 'Adults' : (n == null || isNaN(n)) ? '' : n;
-}
-
 function ageRefusal_(me, asked) {
   if (!me || !asked) return '';
   const has = f => Object.prototype.hasOwnProperty.call(asked, f);

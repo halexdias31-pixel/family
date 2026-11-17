@@ -206,6 +206,43 @@ function levelPriced(name) {
 const t = (DATA.multipliers || {}).levels || {};
 return Object.prototype.hasOwnProperty.call(t, name) && String(t[name]).trim() !== '';
 }
+function ageRank_(v) {
+const s = String(v ?? '').trim();
+if (!s) return null;
+if (/^adults?$/i.test(s) || /^18\s*\+$/.test(s)) return Infinity;
+if (!/^\d{1,3}$/.test(s)) return NaN;
+return Number(s) || null;
+}
+function ageOut_(v) {
+const n = ageRank_(v);
+return n === Infinity ? 'Adults' : (n == null || isNaN(n)) ? '' : n;
+}
+function tutorCardOf_(r, max) {
+const S = v => String(v ?? '').trim();
+const N = v => { const x = parseFloat(String(v ?? '').replace(/[£$,\s]/g, '')); return isNaN(x) ? 0 : x; };
+const m = max || {}, keys = Object.keys(r || {});
+let jobs = [];
+if ('jobs' in r) { try { jobs = JSON.parse(S(r.jobs) || '[]'); } catch (err) { jobs = []; } }
+else jobs = keys.map(k => (/^job_(\d+)_role$/.exec(k) || [])[1]).filter(Boolean).sort((a, b) => a - b)
+.map(n => ({ role: r['job_' + n + '_role'], where: r['job_' + n + '_where'], from: r['job_' + n + '_from'], to: r['job_' + n + '_to'] }));
+const face = S(r.photo);
+const photos = 'photos' in r ? S(r.photos).split('|')
+: keys.filter(k => /^photos_\d+$/.test(k)).sort((a, b) => a.slice(7) - b.slice(7)).map(k => r[k]);
+return {
+image: S(r.photo), mediaUrl: S(r.video), videoFile: S(r.video_file),
+jobs: (Array.isArray(jobs) ? jobs : []).map(o => ({ role: S((o || {}).role), where: S((o || {}).where), from: S((o || {}).from), to: S((o || {}).to) }))
+.filter(o => o.role || o.where).slice(0, m.jobs || Infinity),
+photos: photos.map(S).filter((v, i, all) => /^https?:\/\//i.test(v) && v !== face && all.indexOf(v) === i).slice(0, m.photos || Infinity),
+tags: [r.adjective_1, r.adjective_2, r.adjective_3].map(S).filter(Boolean),
+description: S(r.headline),
+rate: N(r.rate_per_hour),
+yrsExp: S(r.years_experience),
+minStudents: N(r.min_students) || 1, maxStudents: N(r.max_students),
+minHours: N(r.min_hours) || 1, maxHours: N(r.max_hours),
+ageMin: ageOut_(r.age_min), ageMax: ageOut_(r.age_max),
+extraSeat: N(r.extra_seat_rate)
+};
+}
 ;
 /* js/draw.js */
 const drawRatio_ = cap => Math.min((typeof window !== 'undefined' && window.devicePixelRatio) || 1, cap || 3);
@@ -9369,31 +9406,9 @@ const row = ((DATA && DATA.tutors) || []).find(r => r && String(r.personId) === 
 if (!row) return;
 const has = k => Object.prototype.hasOwnProperty.call(sent, k);
 const txt = v => String(v == null ? '' : v).trim();
-const age = v => (/^\d+$/.test(txt(v)) ? Number(txt(v)) : txt(v));
 if (has('first_name') || has('last_name')) row.title = (txt(all.first_name) + ' ' + txt(all.last_name)).trim() || row.title;
-if (has('headline')) row.description = txt(all.headline) ? '"' + txt(all.headline) + '"' : '';
-if (has('rate_per_hour')) row.rate = Number(all.rate_per_hour) || 0;
-if (has('extra_seat_rate')) row.extraSeat = Number(all.extra_seat_rate) || 0;
+Object.assign(row, tutorCardOf_(Object.assign({ photo: row.image }, all)));
 if (has('extra_seat_cut')) { const x = seatCutOf_(all.extra_seat_cut); row.extraSeatCut = isNaN(x) ? '' : x; }
-if (has('min_students')) row.minStudents = Number(all.min_students) || 1;
-if (has('max_students')) row.maxStudents = Number(all.max_students) || 0;
-if (has('years_experience')) row.yrsExp = txt(all.years_experience);
-if (has('age_min')) row.ageMin = age(all.age_min);
-if (has('age_max')) row.ageMax = age(all.age_max);
-if (has('min_hours')) row.minHours = Number(all.min_hours) || 1;
-if (has('max_hours')) row.maxHours = Number(all.max_hours) || 0;
-if (has('video')) row.mediaUrl = txt(all.video);
-if (Object.keys(sent).some(isJobField_)) {
-row.jobs = [1, 2, 3, 4, 5, 6].map(n => ({ role: txt(all['job_' + n + '_role']), where: txt(all['job_' + n + '_where']),
-from: txt(all['job_' + n + '_from']), to: txt(all['job_' + n + '_to']) })).filter(j => j.role || j.where);
-}
-if (ADJECTIVE_FIELDS.some(has)) {
-row.tags = [all.adjective_1, all.adjective_2, all.adjective_3].map(txt).filter(Boolean);
-}
-if (Object.keys(sent).some(isPhotoField_)) {
-row.photos = Object.keys(all).filter(isPhotoField_)
-.sort((a, b) => Number(a.slice(7)) - Number(b.slice(7))).map(f => txt(all[f])).filter(Boolean);
-}
 if (has('venues_ok')) row.venues = profList_(all.venues_ok);
 const hours = Object.keys(sent).filter(f => CARD_HOUR_.test(f));
 if (hours.length) {

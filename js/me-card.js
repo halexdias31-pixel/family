@@ -545,35 +545,12 @@ function cardPatchTutor_(pid, all, sent) {
   if (!row) return;
   const has = k => Object.prototype.hasOwnProperty.call(sent, k);
   const txt = v => String(v == null ? '' : v).trim();
-  const age = v => (/^\d+$/.test(txt(v)) ? Number(txt(v)) : txt(v));
   if (has('first_name') || has('last_name')) row.title = (txt(all.first_name) + ' ' + txt(all.last_name)).trim() || row.title;
-  if (has('headline')) row.description = txt(all.headline) ? '"' + txt(all.headline) + '"' : '';
-  if (has('rate_per_hour')) row.rate = Number(all.rate_per_hour) || 0;
-  if (has('extra_seat_rate')) row.extraSeat = Number(all.extra_seat_rate) || 0;
+  /* THE ROW'S OWN FIELDS BY THE SERVER'S OWN MAPPING (`tutorCardOf_`, js/core.js): the card is what the payload will say. */
+  Object.assign(row, tutorCardOf_(Object.assign({ photo: row.image }, all)));
   /* `doGet`'s shape (`seatCutOut_`): '' is the usual cut and nought is none, so not `Number(...) || 0` — read by
      `seatCutOf_`, the phone's copy of that one reading, so this guess and the payload that replaces it agree. */
   if (has('extra_seat_cut')) { const x = seatCutOf_(all.extra_seat_cut); row.extraSeatCut = isNaN(x) ? '' : x; }
-  if (has('min_students')) row.minStudents = Number(all.min_students) || 1;
-  if (has('max_students')) row.maxStudents = Number(all.max_students) || 0;
-  if (has('years_experience')) row.yrsExp = txt(all.years_experience);
-  if (has('age_min')) row.ageMin = age(all.age_min);
-  if (has('age_max')) row.ageMax = age(all.age_max);
-  /* `doGet`'s shapes: a blank shortest is one, a blank longest is no limit (0). */
-  if (has('min_hours')) row.minHours = Number(all.min_hours) || 1;
-  if (has('max_hours')) row.maxHours = Number(all.max_hours) || 0;
-  if (has('video')) row.mediaUrl = txt(all.video);
-  /* THE JOBS, AS `jobsList_` SENDS THEM, so the card shows the new pills before the payload comes back. */
-  if (Object.keys(sent).some(isJobField_)) {
-    row.jobs = [1, 2, 3, 4, 5, 6].map(n => ({ role: txt(all['job_' + n + '_role']), where: txt(all['job_' + n + '_where']),
-      from: txt(all['job_' + n + '_from']), to: txt(all['job_' + n + '_to']) })).filter(j => j.role || j.where);
-  }
-  if (ADJECTIVE_FIELDS.some(has)) {
-    row.tags = [all.adjective_1, all.adjective_2, all.adjective_3].map(txt).filter(Boolean);
-  }
-  if (Object.keys(sent).some(isPhotoField_)) {
-    row.photos = Object.keys(all).filter(isPhotoField_)
-      .sort((a, b) => Number(a.slice(7)) - Number(b.slice(7))).map(f => txt(all[f])).filter(Boolean);
-  }
   if (has('venues_ok')) row.venues = profList_(all.venues_ok);
   const hours = Object.keys(sent).filter(f => CARD_HOUR_.test(f));
   if (hours.length) {

@@ -316,3 +316,45 @@ function levelPriced(name) {
 }
 
 
+
+/* ---------- ONE PERSON ROW, ONE TUTOR CARD (owner, 17 Nov): the server's `tutorOut_` and the site's `cardPatchTutor_` both read a row by this. */
+/* Copied to the backend by tools/cards-gen.js. A row is the sheet's (`jobs` JSON, `photos` piped) or the form's (`job_N_*`, `photos_N`). */
+function ageRank_(v) {
+  const s = String(v ?? '').trim();
+  if (!s) return null;
+  if (/^adults?$/i.test(s) || /^18\s*\+$/.test(s)) return Infinity;
+  if (!/^\d{1,3}$/.test(s)) return NaN;
+  return Number(s) || null;
+}
+function ageOut_(v) {
+  const n = ageRank_(v);
+  return n === Infinity ? 'Adults' : (n == null || isNaN(n)) ? '' : n;
+}
+function tutorCardOf_(r, max) {
+  const S = v => String(v ?? '').trim();
+  const N = v => { const x = parseFloat(String(v ?? '').replace(/[£$,\s]/g, '')); return isNaN(x) ? 0 : x; };
+  const m = max || {}, keys = Object.keys(r || {});
+  let jobs = [];
+  if ('jobs' in r) { try { jobs = JSON.parse(S(r.jobs) || '[]'); } catch (err) { jobs = []; } }
+  else jobs = keys.map(k => (/^job_(\d+)_role$/.exec(k) || [])[1]).filter(Boolean).sort((a, b) => a - b)
+    .map(n => ({ role: r['job_' + n + '_role'], where: r['job_' + n + '_where'], from: r['job_' + n + '_from'], to: r['job_' + n + '_to'] }));
+  const face = S(r.photo);
+  const photos = 'photos' in r ? S(r.photos).split('|')
+    : keys.filter(k => /^photos_\d+$/.test(k)).sort((a, b) => a.slice(7) - b.slice(7)).map(k => r[k]);
+  return {
+    image: S(r.photo), mediaUrl: S(r.video), videoFile: S(r.video_file),
+    jobs: (Array.isArray(jobs) ? jobs : []).map(o => ({ role: S((o || {}).role), where: S((o || {}).where), from: S((o || {}).from), to: S((o || {}).to) }))
+      .filter(o => o.role || o.where).slice(0, m.jobs || Infinity),
+    /* THE OTHER PHOTOGRAPHS, links only, without the face. */
+    photos: photos.map(S).filter((v, i, all) => /^https?:\/\//i.test(v) && v !== face && all.indexOf(v) === i).slice(0, m.photos || Infinity),
+    tags: [r.adjective_1, r.adjective_2, r.adjective_3].map(S).filter(Boolean),
+    description: S(r.headline),
+    rate: N(r.rate_per_hour),
+    yrsExp: S(r.years_experience),
+    /* 0 means "no limit set"; blank means "no view", and the smallest real booking is one student for one hour. */
+    minStudents: N(r.min_students) || 1, maxStudents: N(r.max_students),
+    minHours: N(r.min_hours) || 1, maxHours: N(r.max_hours),
+    ageMin: ageOut_(r.age_min), ageMax: ageOut_(r.age_max),
+    extraSeat: N(r.extra_seat_rate)
+  };
+}

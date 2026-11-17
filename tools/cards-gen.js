@@ -18,7 +18,9 @@ const TAKE = [
   ['js/find-marking.js', ['verdictOf_']],
   ['js/find-figures.js', ['TAG_NAME', 'tagMadeOf_']],
   /* THE WORDS FILE AND THE FORMATTERS (owner rule 1.1): every line a card says in an email goes through these. */
-  ['js/core.js', ['WORDS_FILE', 'esc', 'text_', 'fmtTime_', 'fmtHours_', 'fmtMoney_', 'DAYS_SHORT', 'fmtDay_', 'fmtDmy_', 'fmtDate_']],
+  ['js/core.js', ['WORDS_FILE', 'esc', 'text_', 'fmtTime_', 'fmtHours_', 'fmtMoney_', 'DAYS_SHORT', 'fmtDay_', 'fmtDmy_', 'fmtDate_',
+    /* ONE PERSON ROW, ONE TUTOR CARD (owner, 17 Nov): get-people.gs `tutorOut_` and me-card.js `cardPatchTutor_` read a row by it. */
+    'ageRank_', 'ageOut_', 'tutorCardOf_']],
   /* THE ONE CARD MAKER (owner, 16 Nov: one card maker everywhere): renderCard and the blocks it draws; an email calls it with its inline setting. */
   ['js/cards-render.js', ['cardRuns_', 'CARD_ENT', 'cardHasMarkup_', 'cardMarkupRuns_', 'CARD_SUB', 'cardSub_', 'cardFrac_', 'cardLastGap_', 'cardAttrs_',
     'cardPic_', 'pixSvg_', 'cardTag_', 'renderTags', 'cardControl_', 'cardAnswer_', 'CARD_EMBEDS', 'cardEmbed_', 'cardTree_', 'cardGrid_', 'cardChoice_',
