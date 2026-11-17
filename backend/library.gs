@@ -348,7 +348,7 @@ function libSelfTest_(fileKey, c) {
       return { refuse: 'its choice_right ' + right + ' is not among its ' + choices.length + ' options' };
     }
   }
-  if (S(c.cells) && !S(c.cells).split(';').some(cell => { const w = S(cell.replace(/^[^=|]{1,12}?=/, '')); return w && w !== '-'; })) {
+  if (S(c.cells) && !S(c.cells).split(/(?<!&#?\w+);/).some(cell => { const w = S(cell.replace(/^[^=|]{1,60}?=/, '')); return w && w !== '-'; })) {
     return { refuse: 'its cells hold no answer to mark by' };
   }
   if (S(c.accept) && !S(c.accept).split('|').some(w => S(w))) return { refuse: 'its accept has no way in it' };

@@ -542,8 +542,9 @@ function digestRightAnswer_(q) {
 function digestCells_(q) {
   const raw = S(q && q.cells).trim();
   if (!raw) return [];
-  return raw.split(';').map((c, i) => {
-    const m = /^\s*([^=|]{1,12}?)\s*=\s*(.*)$/.exec(c);
+  /* an entity's `;` (`&rsquo;`) never splits a blank; a label is up to 60 characters */
+  return raw.split(/(?<!&#?\w+);/).map((c, i) => {
+    const m = /^\s*([^=|]{1,60}?)\s*=\s*(.*)$/.exec(c);
     const ways = (m ? m[2] : c).trim();
     return { label: m ? m[1].trim() : String(i + 1), ways: ways === '-' ? '' : ways };
   });
