@@ -63,17 +63,24 @@ function storeCell_(v) {
   return v;
 }
 function storeCellOut_(v) {
+  /* A LEADING ' MEANS "TEXT" TO SHEETS, which keeps the rest and drops the mark (`week_of` is written so); the store does the same. */
+  if (typeof v === 'string') return v.charAt(0) === "'" ? v.slice(1) : v;
   if (!(v instanceof Date) || isNaN(v)) return v;
   const base = new Date(1899, 11, 30), mid = new Date(v.getFullYear(), v.getMonth(), v.getDate());
   return { $d: Math.round((mid - base) / 864e5) + (v - mid) / 864e5 };
 }
 /* AN EVENT KIND'S ROWS ARE IN THE EVENTS TAB ({at, who, kind, what, item, data}), the old row whole in `data`; an item kind's in `data_1`. */
+const STORE_MARK = '~moved';
 function storeIsEvents_(kinds) { const s = ITEM_STORE_KINDS.kinds[kinds[0]].sheet; return s.to === 'events' ? s : null; }
 function storeRead_(name, kinds) {
   const ev = storeIsEvents_(kinds), col = ev ? 'data' : 'data_1';
-  const it = read(ev ? TAB.events_log : TAB.items), mine = it.rows.filter(r => kinds.indexOf(S(r.kind)) !== -1);
-  if (!mine.length) return null;
+  const it = read(ev ? TAB.events_log : TAB.items), all = it.rows.filter(r => kinds.indexOf(S(r.kind)) !== -1);
+  /* THE MARKER ROW (id `~moved`, or what `~moved` for an event kind) says the kind has moved and holds its tab's columns, */
+  /* so a kind whose last row was deleted stays here (never falls back to its stale old tab) and a new row gets every column. */
+  const isMark = r => S(ev ? r.what : r.id) === STORE_MARK, marks = all.filter(isMark), mine = all.filter(r => !isMark(r));
+  if (!mine.length && !marks.length) return null;
   const headers = [], rows = [];
+  marks.forEach(r => { let d = {}; try { d = JSON.parse(S(r[col]) || '{}'); } catch (err) { d = {}; } (d._headers || []).forEach(h => { if (h && headers.indexOf(h) < 0) headers.push(h); }); });
   mine.forEach((r, i) => {
     let d = {};
     try { d = JSON.parse(S(r[col]) || '{}'); } catch (err) { d = {}; }
