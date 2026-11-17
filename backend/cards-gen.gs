@@ -370,10 +370,9 @@ const CARD_BLOCKS = {
     b.act ? ` data-do="${esc(b.act)}"` : ''}>${cardRuns_(p)}</p>`).join(''),
   /* A ROW OF TAGS among the lines (a tutor's quals, jobs, places), its look naming its colour family. */
   tags: b => ((b.tags || []).length ? `<div class="qtags${b.look ? ' ' + esc(b.look) : ''}">${b.tags.map(cardTag_).join('')}</div>` : ''),
-  /* PHOTOS, small and square, the first `more` shown and "+N" for the rest; one that will not load takes itself away. */
-  photos: b => { const all = (b.srcs || []).filter(Boolean), n = Number(b.more) || all.length;
-    return all.length ? `<div class="prof-photos">${all.slice(0, n).map(u => `<span class="prof-shot"><img src="${esc(u)}" alt="" loading="lazy" decoding="async" onerror="this.parentNode.remove()"></span>`).join('')}${
-      all.length > n ? cardTag_({ pill: true, look: 'prof-more', text: '+' + (all.length - n) }) : ''}</div>` : ''; },
+  /* PHOTOS, small and square, every one shown (no "+N", owner 17 Nov); one that will not load takes itself away. */
+  photos: b => { const all = (b.srcs || []).filter(Boolean);
+    return all.length ? `<div class="prof-photos">${all.map(u => `<span class="prof-shot"><img src="${esc(u)}" alt="" loading="lazy" decoding="async" onerror="this.parentNode.remove()"></span>`).join('')}</div>` : ''; },
   /* A WEEK'S HOURS: one pill a day free, then the hours already taught; `say` reads every hour aloud. */
   hours: b => `<div class="prof-week prof-hours" data-avail="${esc(b.count || 0)}" aria-label="${esc(b.say || '')}">${
     (b.free || []).length ? `<p class="prof-hour-line">${b.free.map(d => cardTag_({ pill: true, look: 'prof-day', text: d })).join('<span class="prof-sep"> </span>')}</p>` : ''}${
