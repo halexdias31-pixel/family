@@ -478,9 +478,7 @@ def write_anim(anim_id, html=None, css=None, fragments=(), run=None, place=None,
 # part where it ends up.
 #   -in / -out   fade in / out at the switch          -pop   a count arriving: up from small, a touch too big
 #   -mv / -mvs   from `--t0` (any transform) to where it is drawn, in MV / MVS seconds; -fly fades in as it goes
-def num(v):
-    s = ('%.2f' % v).rstrip('0').rstrip('.')
-    return '0' if s in ('-0', '') else s
+from figkit import num, pc   # noqa: E402  the numbers as written and keyframe percentages: tools/figkit.py
 
 
 class Loop:
@@ -562,12 +560,6 @@ class Loop:
 
 
 # ---------- KEYFRAMES FROM SECONDS, for the scripts that write a whole row ----------
-def pc(t, T):
-    """t seconds of a T-second loop as a keyframe percentage, trimmed."""
-    v = round(100.0 * t / T, 2)
-    return ('%g' % v) + '%'
-
-
 def kf(name, T, stops):
     """@keyframes from [(seconds, 'declarations')], with 0% and 100% filled from the first and last stop."""
     stops = sorted(stops, key=lambda s: s[0])

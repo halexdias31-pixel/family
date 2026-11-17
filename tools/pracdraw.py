@@ -23,41 +23,37 @@ palettes without a second copy of it -- the rule every diagram in `data/question
 """
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from svgplot import W
+import figkit as F                      # the primitives: tools/figkit.py, the one figure kit
+from figkit import W
 
 
 def esc(s):
-    return (s.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-             .replace('"', '&quot;'))
+    return F.esc(s, quote=True)
 
 
 def svg(h, label, *body):
-    return ('<svg viewBox="0 0 %d %d" role="img" aria-label="%s">%s</svg>'
-            % (W, h, esc(label), ''.join(body)))
+    return F.svg(W, h, esc(label), ''.join(body))
 
 
 # ---- ink ----------------------------------------------------------------------------------------
 def ln(x1, y1, x2, y2, cls='pt'):
-    return '<line x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f" class="%s"/>' % (x1, y1, x2, y2, cls)
+    return F.line(x1, y1, x2, y2, ' class="%s"' % cls)
 
 
 def dash(x1, y1, x2, y2):
-    return ('<line x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f" class="pt" '
-            'style="stroke-dasharray:4 3;opacity:.65"/>' % (x1, y1, x2, y2))
+    return F.line(x1, y1, x2, y2, ' class="pt" style="stroke-dasharray:4 3;opacity:.65"')
 
 
 def rect(x, y, w, h, cls='pt', extra=''):
-    return ('<rect x="%.1f" y="%.1f" width="%.1f" height="%.1f" class="%s"%s/>'
-            % (x, y, w, h, cls, (' ' + extra) if extra else ''))
+    return F.rect(x, y, w, h, ' class="%s"%s' % (cls, (' ' + extra) if extra else ''))
 
 
 def circ(cx, cy, r, cls='pt', extra=''):
-    return ('<circle cx="%.1f" cy="%.1f" r="%.1f" class="%s"%s/>'
-            % (cx, cy, r, cls, (' ' + extra) if extra else ''))
+    return F.circle(cx, cy, r, ' class="%s"%s' % (cls, (' ' + extra) if extra else ''))
 
 
 def dot(cx, cy, r=2.2):
-    return '<circle cx="%.1f" cy="%.1f" r="%.1f" fill="currentColor"/>' % (cx, cy, r)
+    return F.circle(cx, cy, r, ' fill="currentColor"')
 
 
 def path(d, cls='pt', extra=''):
@@ -73,8 +69,7 @@ def poly(pts, cls='pt', extra=''):
 # beats an SVG presentation attribute -- the fault CLAUDE.md records where ten y-axis numbers sat
 # centred on the axis under a `text-anchor="end"` that did nothing.
 def txt(x, y, s, cls='cap', anchor='middle'):
-    return ('<text x="%.1f" y="%.1f" class="%s" style="text-anchor:%s">%s</text>'
-            % (x, y, cls, anchor, esc(s)))
+    return F.text(x, y, esc(s), ' class="%s" style="text-anchor:%s"' % (cls, anchor))
 
 
 def cap(x, y, s, anchor='middle'):
@@ -89,13 +84,7 @@ def head(dx, dy, tipx, tipy, size=6):
     """One arrowhead, as a filled triangle. A `<marker>` needs an id, and about five cards sit in
     the DOM at once -- two diagrams carrying the same marker id would both resolve to whichever
     came first. CLAUDE.md records that under the dimension arrows on the square ABCD."""
-    m = (dx * dx + dy * dy) ** .5 or 1
-    ux, uy = dx / m, dy / m
-    px, py = -uy, ux
-    return ('<polygon points="%.1f,%.1f %.1f,%.1f %.1f,%.1f" fill="currentColor"/>'
-            % (tipx, tipy,
-               tipx - ux * size + px * size * .42, tipy - uy * size + py * size * .42,
-               tipx - ux * size - px * size * .42, tipy - uy * size - py * size * .42))
+    return F.head_tri(dx, dy, tipx, tipy, size)
 
 
 def arrow(x1, y1, x2, y2, both=True):

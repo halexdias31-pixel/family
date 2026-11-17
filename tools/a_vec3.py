@@ -4,6 +4,7 @@
 import math, sys
 sys.path.insert(0, str(__import__('pathlib').Path(__file__).resolve().parent)); import anim_row
 from anim_row import kf, fade, captions, still_block
+from figkit import barbs
 
 T = 12.0
 O = (110, 146)
@@ -17,10 +18,9 @@ def P(x, y, z): return (O[0] + x * EX[0] + y * EY[0] + z * EZ[0], O[1] + x * EX[
 def arrow(cls, a, b, head=7):
     """a shaft drawn from a to b (pathLength 1, grown by its dash) and a head at b"""
     ang = math.atan2(b[1] - a[1], b[0] - a[0])
-    hx = [b[0] - head * math.cos(ang - s * 0.42) for s in (1, -1)]
-    hy = [b[1] - head * math.sin(ang - s * 0.42) for s in (1, -1)]
+    (hx0, hy0), (hx1, hy1) = barbs(b[0], b[1], ang, head, -0.42)
     return ('<path class="av3-shaft %s" d="M%.1f %.1fL%.1f %.1f" pathLength="1"/>' % (cls, a[0], a[1], b[0], b[1]),
-            '<path class="av3-head %sh" d="M%.1f %.1fL%.1f %.1fL%.1f %.1fZ"/>' % (cls, b[0], b[1], hx[0], hy[0], hx[1], hy[1]))
+            '<path class="av3-head %sh" d="M%.1f %.1fL%.1f %.1fL%.1f %.1fZ"/>' % (cls, b[0], b[1], hx0, hy0, hx1, hy1))
 
 
 STEPS = [('av3-i', P(0, 0, 0), P(3, 0, 0), 0.6), ('av3-j', P(3, 0, 0), P(3, 2, 0), 2.2),

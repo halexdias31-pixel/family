@@ -25,27 +25,23 @@ file draws everywhere between a picture the row's own words determine and an ill
 import json, pathlib, re, sys
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
 from svgplot import W, axes, scatter
+import figkit as F                # the primitives: tools/figkit.py, the one figure kit
 
 FILE = pathlib.Path(__file__).resolve().parent.parent / 'data/questions.json'
 ID = 'Q-AQA-8462-2406-1F-%s'
 
-def svg(h, body, label):
-    return ('<svg viewBox="0 0 %d %d" role="img" aria-label="%s">%s</svg>' % (W, h, label, body))
+def svg(h, body, label): return F.svg(W, h, label, body)
 
-def t(x, y, s, cls='lbl', extra=''):
-    return '<text x="%.1f" y="%.1f" class="%s"%s>%s</text>' % (x, y, cls, extra, s)
+def t(x, y, s, cls='lbl', extra=''): return F.text(x, y, s, ' class="%s"%s' % (cls, extra))
 
 def line(x1, y1, x2, y2, w=1.4, dash=''):
-    return ('<line x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f" stroke="currentColor" '
-            'stroke-width="%s" %s/>' % (x1, y1, x2, y2, w, 'stroke-dasharray="4 3"' if dash else ''))
+    return F.line(x1, y1, x2, y2, ' stroke="currentColor" stroke-width="%s" %s' % (w, 'stroke-dasharray="4 3"' if dash else ''))
 
 def rect(x, y, w, h, fill='none', sw=1.4, rx=0):
-    return ('<rect x="%.1f" y="%.1f" width="%.1f" height="%.1f" fill="%s" stroke="currentColor" '
-            'stroke-width="%s" rx="%s"/>' % (x, y, w, h, fill, sw, rx))
+    return F.rect(x, y, w, h, ' fill="%s" stroke="currentColor" stroke-width="%s" rx="%s"' % (fill, sw, rx))
 
 def circ(cx, cy, r, fill='none', sw=1.3):
-    return ('<circle cx="%.1f" cy="%.1f" r="%.1f" fill="%s" stroke="currentColor" '
-            'stroke-width="%s"/>' % (cx, cy, r, fill, sw))
+    return F.circle(cx, cy, r, ' fill="%s" stroke="currentColor" stroke-width="%s"' % (fill, sw))
 
 def path(d, fill='none', sw=1.4):
     return '<path d="%s" fill="%s" stroke="currentColor" stroke-width="%s"/>' % (d, fill, sw)

@@ -6,7 +6,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent)); import anim_ro
 BOOK = 'TB-GCSE-MATHS-1MA1'
 
 
-def pc(t, T): return ('%.2f' % (100 * t / T)).rstrip('0').rstrip('.') + '%'
+from figkit import pc   # the keyframe percentages: tools/figkit.py, the one figure kit
 
 
 def write(P, chapter, title, about, view, steps, caption, step=1.1, hold=4.0):
