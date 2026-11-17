@@ -563,7 +563,7 @@ const LIB_KIND_ = { q: 'question', ct: 'content', pr: 'practical', pj: 'project'
 function libSend_(ids) {
   ids.forEach(t => { LIB.pending.delete(t); LIB.flying.add(t); });
   const who = libWho_();
-  send(Object.assign({ action: 'readItems', kind: LIB_KIND_[String(ids[0]).split(':')[0]], personId: (USER && USER.personId) || '', ids: ids },
+  send(Object.assign({ action: 'item', door: 'get', kind: LIB_KIND_[String(ids[0]).split(':')[0]], personId: (USER && USER.personId) || '', ids: ids },
     who ? {} : { device: typeof oopsDevice_ === 'function' ? oopsDevice_() : '' }))
     .then(d => {
       if (libWho_() !== who) return;

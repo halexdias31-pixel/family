@@ -263,8 +263,6 @@ function itemsWrite_(verb, body, began) {
   if (netViewerIsChild_() && permChildDenied_(old)) return jsonOut({ error: KID_ASK_PARENT, why: 'ask-a-parent' });
   return itemsDoors_()[old](b, old, began);
 }
-function postSaveItem_(body, action, began) { return itemsWrite_('save', body, began); }
-function postDeleteItem_(body, action, began) { return itemsWrite_('delete', body, began); }
 
 /* THE TOOLS' COPY OF THE PRIVATE HALF — a page out, rows back in (tools/lib-private.js). Admin only, at the gate. */
 function postLibExport_(body, action, began) {

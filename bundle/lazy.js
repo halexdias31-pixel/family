@@ -59,7 +59,7 @@ on('oq-answer', el => {
   if (!box || !OQ.answers) { toast(text_('the-answers-are-still-on-their')); return; }
   const note = String((box.querySelector('[data-oq-note]') || {}).value || '').trim();
   if (choice === 'note' && !note) { toast(text_('write-the-note-first')); return; }
-  send_({ action: 'saveItem', item: 'ownerAnswer', name: USER && USER.name, id, choice, note },
+  send_({ action: 'item', door: 'save', item: 'ownerAnswer', name: USER && USER.name, id, choice, note },
         { button: el, where: box.querySelector('.oq-said'), busy: 'Saving…' })
     .then(d => { OQ.answers[id] = (d && d.answer) || { id, choice, note }; checksDraw_(); })
     .catch(() => { /* send_ already said why in the line */ });

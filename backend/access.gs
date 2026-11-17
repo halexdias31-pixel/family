@@ -303,13 +303,10 @@ const ACTION_ACCESS = {
   payStatement: 'self', listStaff: 'admin',
   /* THE LIBRARY'S WORDS AND ANSWERS (397): anybody signed in, a day's cap each; the tools' copy in and out is the admin's. */
   libItems: 'self',
-  /* ONE WAY TO THE SERVER (step 2, slice 1): the general read. `anyone` at the gate (owner, 15 Nov: guests use the library); */
-  /* the handler resolves the token itself, and which kind a role may read is ITEM_PERMISSIONS alone (permissions.json `item` rows). */
-  readItems: 'anyone',
   /* THE ONE GENERAL ACTION (owner, 16 Nov): `anyone` at the gate; inside, kinds.json `see`/`edit` and permissions.json `item` rows decide (items.gs). */
   item: 'anyone',
-  /* AND (slice 3) THE GENERAL SAVE AND DELETE: `self` at the gate; inside, the old door's own gate again, by name, and an ITEM_PERMISSIONS row. */
-  saveItem: 'self', deleteItem: 'self',
+  /* `item` door save/delete asks this word first (signed in); it is no longer an action of its own (stage b, 17 Nov). */
+  saveItem: 'self',
   libExport: 'admin', libImport: 'admin',
   /* AND UPDATES LEFT IN THE OWNER'S DRIVE BY A SESSION (407): the count and the import, the admin's alone. */
   libImportList: 'admin', libImportDrive: 'admin',

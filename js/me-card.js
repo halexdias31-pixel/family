@@ -189,7 +189,7 @@ function cardFetch_(e) {
     return;
   }
   e.asking = true;
-  api({ action: 'readItems', kind: 'card', ids: [e.pid], name: USER.name, personId: USER.personId || '', target: e.pid })
+  api({ action: 'item', door: 'get', kind: 'card', ids: [e.pid], name: USER.name, personId: USER.personId || '', target: e.pid })
     .then(d => {
       e.asking = false;
       if (CARD_EDIT !== e) return;
@@ -704,7 +704,7 @@ function cardSave_(el, auto) {
   const t = ((DATA && DATA.tutors) || []).find(r => r && String(r.personId) === e.pid) || {};
   /* `own` IS `whose_()`'S CARD: yours, or the lens's person's, written to their row by `targetId`. */
   const W = whose_();
-  send_({ action: 'saveItem', item: 'profile', name: USER.name, personId: USER.personId || '',
+  send_({ action: 'item', door: 'save', item: 'profile', name: USER.name, personId: USER.personId || '',
           target: e.own ? W.name : (t.title || ''), targetId: e.pid, fields },
         auto ? { where: said } : { button: el, busy: 'Saving…', where: said, lock: pane })
     .then(d => {
@@ -742,7 +742,7 @@ on('card-cancel', el => {
   if (!picBack) { cardClose_(e, pane, sec); return; }
   const form = (card || pane) && (card || pane).querySelector((card ? '' : '.card-ed ') + '.me-form');
   const said = form && form.querySelector('.me-said');
-  send_({ action: 'saveItem', item: 'profile', name: USER.name, personId: USER.personId || '', target: USER.name,
+  send_({ action: 'item', door: 'save', item: 'profile', name: USER.name, personId: USER.personId || '', target: USER.name,
           targetId: e.pid, fields: { photo: was } },
         { button: el, where: said, lock: pane })
     .then(d => {
