@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /* @family. — tools/bundle.js ONE FILE PER BATCH, SO A RETURN VISIT RE-ASKS 3 URLS, NOT ~56 (owner, 12 Nov, history 1211). */
 /* Concatenates js/ in index.html's FILES order into bundle/first.js (EAGER), bundle/later.js (LATER less LAZY) and bundle/lazy.js (LAZY); OFF never. */
-/* The js/ files stay the source; edit those. build-stamp.js runs this first. `--check`: write nothing, exit 1 when a bundle is stale. */
+/* The js/ files stay the source; edit those. tools/build.js runs this after the generators. */
 'use strict';
 const fs = require('fs'), path = require('path');
 const ROOT = path.resolve(__dirname, '..');
@@ -30,26 +30,18 @@ function text(files) {
   return files.map(f => '/* ==== js/' + f + '.js ==== */\n' + fs.readFileSync(path.join(ROOT, 'js', f + '.js'), 'utf8') + '\n;\n').join('');
 }
 
-function run(check) {
-  const b = batches(), stale = [];
-  if (!check) fs.mkdirSync(OUT, { recursive: true });
+function run() {
+  const b = batches(), wrote = [];
+  fs.mkdirSync(OUT, { recursive: true });
   for (const k of Object.keys(b)) {
     const file = path.join(OUT, k + '.js'), want = text(b[k]);
     let have = null;
     try { have = fs.readFileSync(file, 'utf8'); } catch (e) { /* not written yet */ }
-    if (have === want) continue;
-    if (check) stale.push('bundle/' + k + '.js');
-    else fs.writeFileSync(file, want);
+    if (have !== want) { fs.writeFileSync(file, want); wrote.push('bundle/' + k + '.js'); }
   }
-  return { b, stale };
+  console.log('bundle: ' + (wrote.join(', ') || 'unchanged') + ' (' + Object.keys(b).map(k => k + ' ' + b[k].length).join(', ') + ' files)');
+  return { b, wrote };
 }
 
 module.exports = { run, batches };
-
-if (require.main === module) {
-  const check = process.argv.includes('--check');
-  const { b, stale } = run(check);
-  const n = Object.keys(b).map(k => k + ' ' + b[k].length).join(', ');
-  if (check && stale.length) { console.error('FAIL — bundle: ' + stale.join(', ') + ' no longer the js/ files they join. Run: node tools/build-stamp.js'); process.exit(1); }
-  console.log((check ? 'OK — bundle: up to date (' : 'bundle: wrote (') + n + ' files)');
-}
+if (require.main === module) run();

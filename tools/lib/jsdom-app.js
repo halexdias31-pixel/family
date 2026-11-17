@@ -17,7 +17,9 @@ async function app(payload, rows) {
   w.matchMedia = () => ({ matches: false, addEventListener() {}, removeEventListener() {} });
   w.scrollTo = () => {}; w.HTMLElement.prototype.scrollIntoView = () => {};
   w.HTMLMediaElement.prototype.pause = () => {}; w.HTMLMediaElement.prototype.play = () => Promise.resolve();
-  w.requestAnimationFrame = cb => setTimeout(() => cb(Date.now()), 0); w.cancelAnimationFrame = id => clearTimeout(id);
+  let closed = false;
+  /* NODE'S OWN TIMER, so it outlives w.close(): a closed app never paints again (build.js walks two apps in one process). */
+  w.requestAnimationFrame = cb => setTimeout(() => { if (!closed) cb(Date.now()); }, 0); w.cancelAnimationFrame = id => clearTimeout(id);
   w.localStorage.setItem('familyUser', JSON.stringify({ name: 'T', personId: 'P-A', role: 'Admin', roles: ['admin'] }));
   const reply = t => ({ ok: true, status: 200, text: () => Promise.resolve(JSON.stringify(t)), json: () => Promise.resolve(t) });
   const posts = [];
@@ -44,7 +46,7 @@ async function app(payload, rows) {
   /* `__ev` READS THE APP'S OWN SCOPE: its `let`s and `const`s live inside this one eval, out of reach of another. */
   w.eval(src + '\n;window.__h={TABS,paint,go,SCREENS,on};window.__ev=function(s){return eval(s);};');
   await tick(1500);
-  return { w, h: w.__h, posts, close: () => { process.off('unhandledRejection', rej); w.close(); } };
+  return { w, h: w.__h, posts, close: () => { closed = true; process.off('unhandledRejection', rej); w.close(); } };
 }
 const undrawn = (w, id) => {
   const el = w.document.getElementById('s-' + id);

@@ -11,7 +11,7 @@ const book = () => jread(SRC) || { principles: [], rules: [], sweep: [] };
 function rules() { return (book().rules || []).map(r => ({ n: r.id, text: r.text || '' })); }
 /* THE PAGE: docs/rules.md is written from the JSON, never edited. */
 function render() {
-  const b = book(), out = ['# The rulebook — the one foundation', '', '<!-- generated — edit data/settings/rules.json, then run: node tools/rules.js --write -->', '',
+  const b = book(), out = ['# The rulebook — the one foundation', '', '<!-- generated — edit data/settings/rules.json, then run: node tools/build.js -->', '',
     '**' + b.core + '**', '', b.about];
   (b.principles || []).forEach(p => { out.push('', '## ' + p.n + '. ' + p.name);
     (b.rules || []).filter(r => r.principle === p.n).forEach(r => out.push('- **' + r.id + '** ' + r.text)); });
@@ -30,9 +30,10 @@ function onePlace() {
   return ((j && j.functions) || []).map(f => { const ev = f.evidence || [], got = ev.filter(([file, has]) => read(file).indexOf(has) >= 0).length;
     return { id: f.id, name: f.name, status: !ev.length || !got ? 'no' : got === ev.length ? 'yes' : 'partly', found: got, of: ev.length }; });
 }
-module.exports = { rules, render, ownerQuestions, onePlace };
+function run() { fs.writeFileSync(path.join(ROOT, PAGE), render()); console.log('rules: wrote ' + PAGE + ' from ' + SRC); }
+module.exports = { rules, render, ownerQuestions, onePlace, run };
 if (require.main === module) {
-  if (process.argv.includes('--write')) { fs.writeFileSync(path.join(ROOT, PAGE), render()); console.log('rules: wrote ' + PAGE + ' from ' + SRC); }
+  run();
   console.log(rules().length + ' rules');
   const q = ownerQuestions(); console.log(`owner questions: ${q.open} open of ${q.of}`);
   onePlace().forEach(f => console.log(`  ${f.status.padEnd(6)} ${f.name} (${f.found}/${f.of})`));

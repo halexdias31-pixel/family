@@ -97,8 +97,7 @@ function bookingGs(rows) {
     }).join('\n') + '\n  };\n}\n';
 }
 
-module.exports = { ROLES, ACTIONS, levelOf, jsonRows };
-if (require.main === module) {
+function run() {
   const rows = jsonRows();
   fs.writeFileSync(JSON_PATH, '[\n' + rows.map(r => JSON.stringify(r)).join(',\n') + '\n]\n');
   blockInto('backend/access.gs', 'ACTIONS', accessGs());
@@ -107,3 +106,5 @@ if (require.main === module) {
   blockInto('backend/booking.gs', 'PERMISSIONS', bookingGs(rows));
   console.log('permissions: ' + rows.length + ' rows to permissions.json; ' + POSTS.length + ' actions and ' + RUNS.length + ' jobs into access.gs, dopost.gs, get-start.gs and booking.gs');
 }
+module.exports = { ROLES, ACTIONS, levelOf, jsonRows, run };
+if (require.main === module) run();

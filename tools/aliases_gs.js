@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* WRITES data/settings/question-aliases.json into js/qaliases.js; tools/cards-gen.js copies it and qAliasMine_ to the backend. `--check` only compares. */
+/* WRITES data/settings/question-aliases.json into js/qaliases.js; tools/cards-gen.js copies it and qAliasMine_ to the backend. tools/build.js runs it. */
 const fs = require('fs'), path = require('path');
 const ROOT = path.join(__dirname, '..');
 const JS = path.join(ROOT, 'js', 'qaliases.js');
@@ -19,14 +19,10 @@ function want() {
   const js = put(fs.readFileSync(JS, 'utf8'), B, E, mapSrc());
   return { js };
 }
-module.exports = { want };
-if (require.main === module) {
-  const w = want();
-  const stale = [[JS, w.js]].filter(([f, t]) => fs.readFileSync(f, 'utf8') !== t);
-  if (process.argv.includes('--check')) {
-    if (stale.length) { console.log('✗ stale: ' + stale.map(s => path.relative(ROOT, s[0])).join(', ') + ' (node tools/aliases_gs.js)'); process.exit(1); }
-    console.log('✓ aliases copied'); process.exit(0);
-  }
-  stale.forEach(([f, t]) => fs.writeFileSync(f, t));
-  console.log('wrote ' + stale.length + ' file(s)');
+function run() {
+  const t = want().js, was = fs.readFileSync(JS, 'utf8');
+  if (t !== was) fs.writeFileSync(JS, t);
+  console.log('aliases_gs: ' + (t !== was ? 'wrote' : 'unchanged') + ' js/qaliases.js');
 }
+module.exports = { want, run };
+if (require.main === module) run();
