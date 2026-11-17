@@ -15,6 +15,12 @@ Order: what a child or parent would notice first, then what stops things driftin
 
 - ONE CARD, LITERALLY (owner, 17 Nov — most important to them): every card on the site, Settings included, is the same card: same slots in the same order (picture, tags, body, buttons), same look, same behaviour; Settings' forms, week grid and shelves become body blocks of that one card, never their own layouts. Measure it as a count (cards drawn by the one maker with no card-specific layout ÷ all cards), list every card that differs by name, drive it to 100%, then keep the count in the nightly checks.
 
+- FEWER FEATURES (owner, 17 Nov): every button and feature is a cost. Audit them all; cut any a child or tutor can do without; the fewer there are, the more stable and easy the site. Show the before/after button count.
+- ONE LEVEL LADDER (owner, 17 Nov): KS4 and GCSE overlap (the same students, the same papers) — evaluate and merge where they are one thing, so a question lives under one level, not two; same check for KS3/KS4 and the other paired levels.
+- PAPER TYPES (owner, 17 Nov): past papers and specimen papers are one kind of thing — one "Exam paper" choice with Past and Specimen inside it (or one step), not two separate tags.
+- 5-A-DAY IS A WORKSHEET (owner, 17 Nov): file 5-a-days as worksheets, not their own document type.
+- STANDING (owner, 17 Nov): taxonomy, naming, grouping and cutting features like the four above are Claude's to find and decide over time, without being told.
+
 5. Short rulebook: rules only, history moved to docs/history; first rule 0.1 (literal, universal; Claude owns the site).
 6. One count per rule, measured across the whole site; a nightly counts page.
 7. Checks run on every change; a red check stops the merge (CI gate).
