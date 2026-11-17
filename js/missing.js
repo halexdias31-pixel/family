@@ -48,11 +48,7 @@ const healthCardSpec_ = (body, look, name) => renderCard({ kind: 'panel', look: 
 function missingAsk_() {
   if (MISSING.list || MISSING.asking || typeof fetch !== 'function') return;
   MISSING.asking = true;
-  const stamp = deployStamp_();
-  Promise.resolve()
-    .then(() => fetch('data/settings/expected-papers.json' + stamp, { cache: 'default' }))
-    .then(res => (res && res.ok ? res.json() : null))
-    .catch(() => null)
+  dataFile_('data/settings/expected-papers.json')
     .then(d => {
       MISSING.asking = false;
       MISSING.list = Array.isArray(d) ? d : [];

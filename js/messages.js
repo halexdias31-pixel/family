@@ -127,7 +127,7 @@ function asstKey_() { return 'asst:' + String((USER && USER.personId) || ''); }
 let ASST_MEM = null;
 function asstGet_() {
   let s = null;
-  try { s = JSON.parse(localStorage.getItem(asstKey_()) || 'null'); } catch (e) { s = null; }
+  s = keep_.json(asstKey_(), null);
   if (!s && ASST_MEM && ASST_MEM.key === asstKey_()) s = ASST_MEM.s;
   s = s && typeof s === 'object' ? s : {};
   const msgs = Array.isArray(s.msgs) ? s.msgs.filter(m => m && typeof m.text === 'string') : [];
@@ -135,7 +135,7 @@ function asstGet_() {
   const left = s.day === today && typeof s.left === 'number' ? Math.min(s.left, asstCap_()) : asstCap_();
   return { day: today, left: Math.max(0, left), msgs: msgs.slice(-ASST_KEEP) };
 }
-function asstPut_(s) { ASST_MEM = { key: asstKey_(), s: s }; try { localStorage.setItem(asstKey_(), JSON.stringify(s)); } catch (e) {} }
+function asstPut_(s) { ASST_MEM = { key: asstKey_(), s: s }; keep_.put(asstKey_(), JSON.stringify(s)); }
 /* WHAT EACH COLUMN IS FOR, in plain words, so Daive can say where things are. Site help only: nothing about the business (547). */
 const ASST_NAV = {
   spotlight: 'what is pinned in the window', feed: 'posts; the camera is the page above the newest post', reel: 'short videos, one per page',

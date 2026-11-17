@@ -78,7 +78,7 @@ function heldBy_(err) {
   const d = err && err.reply;
   if (!USER || !d || d.why !== 'unconfirmed' || !d.pendingEmail) return;
   USER.pendingEmail = String(d.pendingEmail);
-  try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch { /* storage blocked: the sign-in still holds for this visit */ }
+  saveUser_();
   try { repaint(true); } catch (e) { oops_(e, 'me:heldBy_') }
 }
 
@@ -92,7 +92,7 @@ on('resend-link', el => {
       if (d.why === 'confirmed' && USER) {
         accountChanged_();
         USER.pendingEmail = '';
-        try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch { /* storage blocked: the sign-in still holds for this visit */ }
+        saveUser_();
         try { repaint(true); } catch (e) { oops_(e, 'me:heldBy_') }
       }
     })
@@ -336,13 +336,8 @@ const STAB = { got: null, failed: false, asked: false, all: false };
 function stabilityCard_() {
   if (!STAB.asked) {
     STAB.asked = true;
-    try {
-      fetch('data/stability.json' + (typeof deployStamp_ === 'function' ? deployStamp_() : ''), { cache: 'default' })
-        .then(r => (r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status))))
-        .then(j => { STAB.got = j && typeof j.score === 'number' ? j : null; STAB.failed = !STAB.got; })
-        .catch(() => { STAB.failed = true; })
-        .then(() => { lensRedraw_(); });
-    } catch (e) { STAB.failed = true; }
+    dataFile_('data/stability.json')
+      .then(j => { STAB.got = j && typeof j.score === 'number' ? j : null; STAB.failed = !STAB.got; lensRedraw_(); });
   }
   const s = STAB.got;
   if (!s) return rolesSet_('biz stability-card', 'Stability', [STAB.failed ? { type: 'paperNote', alert: true, text: 'The score could not be read. Run node tools/stability.js and push.' } : { type: 'wait', on: true }]);
@@ -409,7 +404,7 @@ on('roles-save', el => {
       /* AND WHICH EMAILS REACH YOU NOW — they follow the roles (`notifyOf_`), so the Notifications card
          is redrawn from the server's list with them. An older backend sends none and the card keeps its own. */
       if (d.notify) USER.profile = Object.assign({}, USER.profile || {}, { notify: d.notify });
-      try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch { /* storage blocked: the sign-in still holds for this visit */ }
+      saveUser_();
       toast(d.changed ? 'Role saved' : 'Nothing changed');
       /* THE COLUMN IS DRAWN FROM THE ROLE — which pages of fields, the agreement card — so it is
          drawn again; then the payload, because who is a tutor is in it. */
@@ -498,7 +493,7 @@ on('notify-pick', el => {
         W.profile = Object.assign({}, W.profile, { notify: Object.assign({}, held, {
           kinds: held.kinds.map(x => x.kind === kind && !x.essential ? Object.assign({}, x, { on: on }) : x) }) });
       } else if (d && d.notify) W.profile = Object.assign({}, W.profile || {}, { notify: d.notify });
-      if (W === USER) keepUser_();
+      if (W === USER) saveUser_();
       NOTIFY_SAID = { pid: String(W.personId || ''),
         text: on ? label + ' is on.' : label + ' is off — we will not email you that.' };
       /* THE CARD ON THE PAGE NOW, for the roles card's reason: a payload landing mid-request repaints the

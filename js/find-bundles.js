@@ -331,7 +331,7 @@ on('find-top', el => { const F = finderAt_(el), p = el.closest('.pane'); if (F) 
 /* THE CARD FOR A THING, whatever kind it is. § */
 /* FAVOURITES. ONE STAR FOR EVERY KIND, and that is only possible because every item in this list already carries a `key` — a tutor is `t.title`, a widget is § */
 let FAVS = (() => {
-  try { return new Set(JSON.parse(localStorage.getItem('favs') || '[]')); }
+  try { return new Set(JSON.parse(keep_.get('favs') || '[]')); }
   catch (e) { return new Set(); }
 })();
 
@@ -339,7 +339,7 @@ let FAVS = (() => {
 function adoptFavourites_() {
   if (!DATA || !DATA.favourites) return;
   FAVS = new Set(DATA.favourites.map(String));
-  try { localStorage.setItem('favs', JSON.stringify([...FAVS])); } catch (e) { /* storage can be blocked; the app runs without it */ }
+  keep_.put('favs', JSON.stringify([...FAVS]));
 }
 
 const isFav = k => FAVS.has(String(k));
@@ -347,7 +347,7 @@ const isFav = k => FAVS.has(String(k));
 function toggleFav(k, kind) {
   const key = String(k);
   if (FAVS.has(key)) FAVS.delete(key); else FAVS.add(key);
-  try { localStorage.setItem('favs', JSON.stringify([...FAVS])); } catch (e) { /* storage can be blocked; the app runs without it */ }
+  keep_.put('favs', JSON.stringify([...FAVS]));
   /* SAVED QUIETLY. A star is not worth a toast or a spinner — and if the save fails the star is
      still right on this device, which is the part that matters in the moment. */
   if (USER) {
@@ -364,7 +364,7 @@ function toggleFav(k, kind) {
     }).catch(err => {
       /* PUT THE STAR BACK. `.catch(() => {})` was the other half of the disguise: § */
       if (FAVS.has(key)) FAVS.delete(key); else FAVS.add(key);
-      try { localStorage.setItem('favs', JSON.stringify([...FAVS])); } catch (e) { /* storage can be blocked; the app runs without it */ }
+      keep_.put('favs', JSON.stringify([...FAVS]));
       if (typeof repaint === 'function') { try { repaint(); } catch (e) { oops_(e, 'find:toggleFav') } }
       toast(why_(err));
     });

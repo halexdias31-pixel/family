@@ -11,7 +11,7 @@ let HELP_TIMER = null;
 
 function helpGet_() {
   let h = null;
-  try { h = JSON.parse(localStorage.getItem(HELP_STORE) || 'null'); } catch (e) { h = null; }
+  h = keep_.json(HELP_STORE, null);
   if (!h || !(Date.now() - Number(h.at) < HELP_TTL_MS)) {
     if (h) helpPut_(null);
     return null;
@@ -19,7 +19,7 @@ function helpGet_() {
   return h;
 }
 function helpPut_(h) {
-  try { if (h) localStorage.setItem(HELP_STORE, JSON.stringify(h)); else localStorage.removeItem(HELP_STORE); } catch (e) {}
+  keep_.put(HELP_STORE, h ? JSON.stringify(h) : null);
 }
 const helpOn_ = () => !!helpGet_();
 /* WHICH PAGE A HAND IS UP ON: the part's key and its page ('' the part, 'ans', 'stem0', 'pre1') -- the owner, "just make the current widget red, not the widgets before or after or same question" (1 Nov). */

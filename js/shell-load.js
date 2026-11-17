@@ -327,11 +327,10 @@ function bootLoaded_(on) {
 function splashForget_() {
   const gone = [];
   try {
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i);
+    for (const k of keep_.keys('')) {
       if (k && (k === 'splashAnims' || k === 'splashOff' || k.indexOf('splashAnim:') === 0)) gone.push(k);
     }
-    gone.forEach(k => localStorage.removeItem(k));
+    gone.forEach(k => keep_.del(k));
   } catch (e) { /* storage blocked: old splash keys stay, unread */ }
   return gone.length > 0;
 }

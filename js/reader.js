@@ -3,7 +3,7 @@
 
 const SPEED_MIN = 150, SPEED_MAX = 700, SPEED_STEP = 25;
 const SPEED = { words: [], i: 0, wpm: 300, playing: false, timer: 0, wait: 0, x: null };
-try { const w = Number(localStorage.getItem('speedWpm')); if (w >= SPEED_MIN && w <= SPEED_MAX) SPEED.wpm = w; } catch (e) {}
+try { const w = Number(keep_.get('speedWpm')); if (w >= SPEED_MIN && w <= SPEED_MAX) SPEED.wpm = w; } catch (e) {}
 
 /* WHICH THINGS HAVE WORDS LONG ENOUGH TO BE WORTH IT. */
 function speedFor_(x) {
@@ -180,12 +180,12 @@ document.addEventListener('input', e => {
   SPEED.wpm = Math.min(SPEED_MAX, Math.max(SPEED_MIN, Number(e.target.value) || 300));
   const say = $('rsvp-wpm-say');
   if (say) say.textContent = SPEED.wpm + ' words a minute';
-  try { localStorage.setItem('speedWpm', String(SPEED.wpm)); } catch (err) {}
+  keep_.put('speedWpm', String(SPEED.wpm));
 });
 
 document.addEventListener('input', e => {
   if (!e.target || e.target.id !== 'sr-text') return;
-  try { localStorage.setItem('speedDraft', e.target.value); } catch (err) {}
+  keep_.put('speedDraft', e.target.value);
 });
 on('sr-read', () => {
   const t = $('sr-text');

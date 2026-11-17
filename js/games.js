@@ -619,11 +619,11 @@ function ssDraw_(band) {
 
 function ssBand_(b) {
   if (b !== undefined) {
-    try { localStorage.setItem('ss-band', b); } catch (e) {}
+    keep_.put('ss-band', b);
     return b;
   }
   let v = 'KS2';
-  try { v = localStorage.getItem('ss-band') || 'KS2'; } catch (e) {}
+  v = keep_.get('ss-band') || 'KS2';
   return SS_SENTENCES[v] ? v : 'KS2';
 }
 
@@ -862,11 +862,11 @@ const wsTheme_ = id => WS_THEMES.find(t => t.id === id) || WS_THEMES[0];
 
 function wsThemeId_(id) {
   if (id !== undefined) {
-    try { localStorage.setItem('ws-theme', id); } catch (e) {}
+    keep_.put('ws-theme', id);
     return id;
   }
   let v = WS_THEMES[0].id;
-  try { v = localStorage.getItem('ws-theme') || v; } catch (e) {}
+  v = keep_.get('ws-theme') || v;
   return wsTheme_(v).id;
 }
 
@@ -1544,11 +1544,11 @@ function impDraw_() {
    week. The try is the house rule for storage: a browser that refuses it still gets a game. */
 function impCount_(n) {
   if (n !== undefined) {
-    try { localStorage.setItem('imp-n', String(n)); } catch (e) {}
+    keep_.put('imp-n', String(n));
     return n;
   }
   let v = 4;
-  try { v = parseInt(localStorage.getItem('imp-n'), 10) || 4; } catch (e) {}
+  v = parseInt(keep_.get('imp-n'), 10) || 4;
   return Math.max(IMP_MIN, Math.min(IMP_MAX, v));
 }
 
@@ -1556,11 +1556,11 @@ function impCount_(n) {
 function impCanSay_() { return canSay_(); }
 function impAloud_(on) {
   if (on !== undefined) {
-    try { localStorage.setItem('imp-aloud', on ? '1' : '0'); } catch (e) {}
+    keep_.put('imp-aloud', on ? '1' : '0');
     return on;
   }
   let v = false;
-  try { v = localStorage.getItem('imp-aloud') === '1'; } catch (e) {}
+  v = keep_.get('imp-aloud') === '1';
   return v && impCanSay_();
 }
 function impHush_() { hush_(); }
@@ -2380,7 +2380,7 @@ function wgGame_(k) { return WORD_GAMES.find(g => g.k === k) || WORD_GAMES[0]; }
    open to, and a remembered key nothing answers any more falls back to the first. */
 function wgChosen_() {
   let k = '';
-  try { k = localStorage.getItem('wg-game') || ''; } catch (e) {}
+  k = keep_.get('wg-game') || '';
   return wgGame_(k).k;
 }
 
@@ -2426,7 +2426,7 @@ function wordGamesStop_() {
 
 on('wg-pick', el => {
   const k = wgGame_(el.value).k;
-  try { localStorage.setItem('wg-game', k); } catch (e) {}
+  keep_.put('wg-game', k);
   /* THE OLD GAME IS STOPPED AFTER ITS CARD HAS LEFT THE DOCUMENT, which is the order that makes its own stop read it as "the column is gone": § */
   document.querySelectorAll('#wg-slot').forEach(x => { x.innerHTML = ''; });
   wordGamesStop_();
@@ -2877,7 +2877,7 @@ function csGame_(k) { return CONSOLE_GAMES.find(g => g.k === k) || CONSOLE_GAMES
 /* REMEMBERED ON THE DEVICE under `cs-game`, `bg-game`'s rule. */
 function csChosen_() {
   let k = '';
-  try { k = localStorage.getItem('cs-game') || ''; } catch (e) {}
+  k = keep_.get('cs-game') || '';
   return csGame_(k).k;
 }
 function csOptions_() {
@@ -2909,7 +2909,7 @@ function consoleStop_() {
 }
 on('cs-pick', el => {
   const k = csGame_(el.value).k;
-  try { localStorage.setItem('cs-game', k); } catch (e) {}
+  keep_.put('cs-game', k);
   consoleStop_();
   document.querySelectorAll('#cs-slot').forEach(x => { x.innerHTML = ''; });
   initConsole();
@@ -3275,7 +3275,7 @@ function nesModeWire_(w) {
   w.addEventListener('pointerdown', e => { if (e.pointerType === 'touch') nesModeSet_('touch'); }, true);
 }
 /* THE KEY LIST: hidden until the Keys tile asks, on every system, and not remembered (481): a "show" kept from before 478 was still showing it. */
-try { localStorage.removeItem('nes-keys'); } catch (e) {}
+keep_.del('nes-keys');
 function nesLegendOn_() {
   return nesMode_() === 'keys' && NES_.legend === true;
 }

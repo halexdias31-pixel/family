@@ -9,9 +9,7 @@ const HTOP_PARTS = { timeline: 'Timeline', people: 'People', sources: 'Sources',
 function histTopicsIndex_() {
   if (HTOP.data) return HTOP.data;
   if (HTOP.asking || HTOP.failed || typeof fetch !== 'function') return null;
-  const stamp = deployStamp_();
-  const get = f => Promise.resolve().then(() => fetch(HTOP_DIR + f + '.json' + stamp, { cache: 'default' }))
-    .then(res => (res && res.ok) ? res.json() : null).catch(() => null);
+  const get = f => dataFile_(HTOP_DIR + f + '.json');
   HTOP.asking = get('index').then(ids => Promise.all((Array.isArray(ids) ? ids : []).filter(id => /^[a-z0-9-]+$/.test(String(id))).map(get))).then(all => {
     HTOP.asking = null;
     const d = (all || []).filter(t => t && t.id && t.name && t.timeline);

@@ -57,7 +57,7 @@ function rulesSane_(v) {
 }
 function rulesKept_() {
   if (RULES_KEPT !== undefined) return RULES_KEPT;
-  try { RULES_KEPT = rulesSane_(localStorage.getItem(RULES_STORE)); } catch (e) { RULES_KEPT = null; }
+  try { RULES_KEPT = rulesSane_(keep_.get(RULES_STORE)); } catch (e) { RULES_KEPT = null; }
   return RULES_KEPT;
 }
 function rulesNow_() {
@@ -68,7 +68,7 @@ function rulesNow_() {
   const out = rulesSane_(src);
   RULES_MEMO = { src: src, out: out };
   RULES_KEPT = out;
-  try { if (out) localStorage.setItem(RULES_STORE, JSON.stringify(out)); else localStorage.removeItem(RULES_STORE); } catch (e) { /* storage can be blocked; the app runs without it */ }
+  keep_.put(RULES_STORE, out ? JSON.stringify(out) : null);
   rulesMark_();
   return out;
 }

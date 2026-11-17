@@ -107,12 +107,12 @@ let LAYOUT_MEMO = { src: undefined, out: null };
 let LAYOUT_KEPT = undefined;
 function layoutKept_() {
   if (LAYOUT_KEPT !== undefined) return LAYOUT_KEPT;
-  try { LAYOUT_KEPT = layoutSane_(localStorage.getItem(LAYOUT_STORE)); } catch (e) { LAYOUT_KEPT = null; }
+  try { LAYOUT_KEPT = layoutSane_(keep_.get(LAYOUT_STORE)); } catch (e) { LAYOUT_KEPT = null; }
   return LAYOUT_KEPT;
 }
 function layoutKeep_(L) {
   LAYOUT_KEPT = L || null;
-  try { if (L) localStorage.setItem(LAYOUT_STORE, JSON.stringify(L)); else localStorage.removeItem(LAYOUT_STORE); } catch (e) {}
+  keep_.put(LAYOUT_STORE, L ? JSON.stringify(L) : null);
 }
 function layoutNow_() {
   if (!LAYOUT_EDIT) return null;

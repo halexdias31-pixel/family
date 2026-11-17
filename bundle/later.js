@@ -1913,21 +1913,10 @@ function scriptureWait_(items) {
 /* ONE FETCH FOR EVERY FILE OF IT, stamped with the deploy so the service worker's exact-URL cache hands back a fresh copy after one — `videosAsk_`'s reasoning § */
 function bibleGet_(file) {
   if (!bibleFor_()) return Promise.resolve(null);
-  return scriptureFetch_(o => fetch('data/bible/' + file + deployStamp_(), o));
+  return dataFile_('data/bible/' + file, { wait: SCRIPTURE_WAIT_MS });
 }
 /* SCRIPTURE'S FETCHES END (504): a request that hangs is given up after this long and said as a miss, so no wait lasts for ever. */
 const SCRIPTURE_WAIT_MS = 20000;
-function scriptureFetch_(ask) {
-  return new Promise(done => {
-    let over = false, ab = null;
-    try { if (typeof AbortController === 'function') ab = new AbortController(); } catch (e) { oops_(e, 'find:scriptureFetch_') }
-    const t = setTimeout(() => { over = true; try { if (ab) ab.abort(); } catch (e) { /* already stopped is fine */ } done(null); }, SCRIPTURE_WAIT_MS);
-    Promise.resolve().then(() => ask(ab ? { cache: 'default', signal: ab.signal } : { cache: 'default' }))
-      .then(res => (res && res.ok) ? res.json() : null)
-      .catch(() => null)
-      .then(d => { clearTimeout(t); if (!over) done(d); });
-  });
-}
 
 /* THE LIST OF BOOKS — asked for once, the first time an admin's Find is built, which is long before a finger reaches the shelf. § */
 function bibleIndex_() {
@@ -2219,7 +2208,7 @@ function policyView_(u, host, name) {
   box.innerHTML = cardBlock_({ type: 'wait', look: 'policy-page', on: true }) + tileRow_(tile_({ icon: 'close', label: 'Close', act: 'file-view-close' }));
   host.appendChild(box);
   const page = box.querySelector('.policy-page'), show = md => { page.removeAttribute('aria-busy'); page.innerHTML = policyMd_(policyFill_(md)); };
-  const get = url => fetch(url, { cache: 'no-cache' }).then(r => { if (!r.ok) throw new Error(r.status); return r.text(); });
+  const get = url => dataFile_(url, { as: 'text', cache: 'no-cache', stamp: false, fail: true });
   /* The served copy beside the site first, the brand's address second. */
   get('docs/policies/' + name + '.md').catch(() => get(u)).then(show)
     .catch(() => { page.innerHTML = cardBlock_({ type: 'paperNote', text: ['This policy could not be loaded. ', { link: 'Open it', href: u }, '.'] }); });
@@ -3414,21 +3403,21 @@ function ansRead_(k) {
   const held = typeof keepHeld_ === 'function' ? keepHeld_(k) : undefined;
   if (held !== undefined) return held || '';
   try {
-    const v = localStorage.getItem(k);
+    const v = keep_.get(k);
     if (v !== null) return v;
     /* ---------- AN ANSWER TYPED BEFORE ANYBODY SIGNED IN, FOUND AND MOVED § */
     const bare = k.replace(/^ans:u:[^:]*:/, 'ans:');
     if (bare === k) return '';
     /* THE SIGNED-OUT ONE AS ITS WRITER'S OWN READER READS IT (`ansValue_`), the visit's copy of a write
        the store refused first — `padAdopt_`'s reason below (317, "Six edges"). */
-    const was = typeof ansValue_ === 'function' ? ansValue_(bare) : localStorage.getItem(bare);
+    const was = typeof ansValue_ === 'function' ? ansValue_(bare) : keep_.get(bare);
     if (was === null) return '';
     /* NOT INTO SOMEBODY ELSE'S BOX: § */
     if (typeof ansMayMove_ === 'function' && !ansMayMove_(bare, k)) return '';
-    if (typeof ansStore_ === 'function') ansStore_(k, was); else localStorage.setItem(k, was);
+    if (typeof ansStore_ === 'function') ansStore_(k, was); else keep_.put(k, was);
     /* AND THE SIGNED-OUT COPY GOES THROUGH THE WRITER — the stored one, the visit's held one (or the page
        going would write it back, `keepRetry_`) and its mark (`ansGoneMark_`), all at once. */
-    if (typeof ansLocalPut_ === 'function') ansLocalPut_(bare, null); else localStorage.removeItem(bare);
+    if (typeof ansLocalPut_ === 'function') ansLocalPut_(bare, null); else keep_.del(bare);
     return was;
   } catch (e) { return ''; }
 }
@@ -5052,7 +5041,7 @@ function padAdopt_(k, bare) {
   if (!k || !bare || k === bare) return;
   try {
     /* "EMPTY" IS ASKED OF THE WRITER'S OWN READER (`ansValue_`, answers.js), the visit's copy first. § */
-    const read = typeof ansValue_ === 'function' ? ansValue_ : (x => localStorage.getItem(x));
+    const read = typeof ansValue_ === 'function' ? ansValue_ : (x => keep_.get(x));
     if (read(k) !== null) return;
     const v = read(bare);
     if (v === null) return;
@@ -5060,9 +5049,9 @@ function padAdopt_(k, bare) {
        (answers.js). Only into an empty pad, so any answer but "no" moves it. */
     if (typeof ansMayMove_ === 'function' && !ansMayMove_(bare, k)) return;
     /* THROUGH `ansStore_`, so the marks that became this person's go up to their account with the rest. */
-    if (typeof ansStore_ === 'function') ansStore_(k, v); else localStorage.setItem(k, v);
+    if (typeof ansStore_ === 'function') ansStore_(k, v); else keep_.put(k, v);
     /* AND OFF THE SIGNED-OUT KEY THROUGH THE WRITER: the store's copy, the visit's, and the mark. */
-    if (typeof ansLocalPut_ === 'function') ansLocalPut_(bare, null); else localStorage.removeItem(bare);
+    if (typeof ansLocalPut_ === 'function') ansLocalPut_(bare, null); else keep_.del(bare);
   } catch (e) { /* storage blocked: the answer stays on the page only */ }
 }
 
@@ -5111,7 +5100,7 @@ function padHasInk_(x) {
 /* THROUGH `ansValue_`, THE WRITER'S OWN READER (js/answers.js), and not `localStorage` beside it. § */
 function padRead_(k) {
   try {
-    const raw = typeof ansValue_ === 'function' ? ansValue_(k) : localStorage.getItem(k);
+    const raw = typeof ansValue_ === 'function' ? ansValue_(k) : keep_.get(k);
     const v = JSON.parse(raw || '[]');
     return Array.isArray(v) ? v : [];
   } catch (e) { return []; }
@@ -7758,7 +7747,7 @@ function circRead_(k) {
   try {
     /* THE VISIT'S COPY FIRST when the store refused it — `ansRead_`'s reason (317). */
     const held = typeof keepHeld_ === 'function' ? keepHeld_(k) : undefined;
-    const raw = held !== undefined ? (held === null ? '[]' : held) : localStorage.getItem(k);
+    const raw = held !== undefined ? (held === null ? '[]' : held) : keep_.get(k);
     if (raw !== null) {
       const v = JSON.parse(raw);
       return Array.isArray(v) ? v.map(String) : [];
@@ -10957,7 +10946,7 @@ on('find-top', el => { const F = finderAt_(el), p = el.closest('.pane'); if (F) 
 /* THE CARD FOR A THING, whatever kind it is. § */
 /* FAVOURITES. ONE STAR FOR EVERY KIND, and that is only possible because every item in this list already carries a `key` — a tutor is `t.title`, a widget is § */
 let FAVS = (() => {
-  try { return new Set(JSON.parse(localStorage.getItem('favs') || '[]')); }
+  try { return new Set(JSON.parse(keep_.get('favs') || '[]')); }
   catch (e) { return new Set(); }
 })();
 
@@ -10965,7 +10954,7 @@ let FAVS = (() => {
 function adoptFavourites_() {
   if (!DATA || !DATA.favourites) return;
   FAVS = new Set(DATA.favourites.map(String));
-  try { localStorage.setItem('favs', JSON.stringify([...FAVS])); } catch (e) { /* storage can be blocked; the app runs without it */ }
+  keep_.put('favs', JSON.stringify([...FAVS]));
 }
 
 const isFav = k => FAVS.has(String(k));
@@ -10973,7 +10962,7 @@ const isFav = k => FAVS.has(String(k));
 function toggleFav(k, kind) {
   const key = String(k);
   if (FAVS.has(key)) FAVS.delete(key); else FAVS.add(key);
-  try { localStorage.setItem('favs', JSON.stringify([...FAVS])); } catch (e) { /* storage can be blocked; the app runs without it */ }
+  keep_.put('favs', JSON.stringify([...FAVS]));
   /* SAVED QUIETLY. A star is not worth a toast or a spinner — and if the save fails the star is
      still right on this device, which is the part that matters in the moment. */
   if (USER) {
@@ -10990,7 +10979,7 @@ function toggleFav(k, kind) {
     }).catch(err => {
       /* PUT THE STAR BACK. `.catch(() => {})` was the other half of the disguise: § */
       if (FAVS.has(key)) FAVS.delete(key); else FAVS.add(key);
-      try { localStorage.setItem('favs', JSON.stringify([...FAVS])); } catch (e) { /* storage can be blocked; the app runs without it */ }
+      keep_.put('favs', JSON.stringify([...FAVS]));
       if (typeof repaint === 'function') { try { repaint(); } catch (e) { oops_(e, 'find:toggleFav') } }
       toast(why_(err));
     });
@@ -14169,7 +14158,8 @@ function ansValue_(k) {
   /* A KEY THE STORE REFUSED IS READ FROM THE VISIT FIRST (`keepHeld_`, data.js) — the stored copy is older § */
   const held = typeof keepHeld_ === 'function' ? keepHeld_(k) : undefined;
   if (held !== undefined) return held;
-  try { return localStorage.getItem(k); } catch (e) { /* storage can be blocked; the app runs without it */ }
+  const got = keep_.get(k);
+  if (got !== undefined) return got;
   return ANS_MEM.has(k) ? ANS_MEM.get(k) : null;
 }
 /* `words` IS TRUE FOR A WORDED BOX (the essay's too), from the `input` listener in find.js — what § */
@@ -14181,8 +14171,7 @@ function ansLocalPut_(k, v, words) {
   /* SIGNED OUT, WHILE A SESSION THE SERVER ENDED IS FRESH, IT IS THAT PERSON'S — `ansGoneMark_` below. § */
   if (mark) ansGoneMark_(k, v, words, was);
   /* A FULL STORE GIVES UP THE LOADING SCREEN'S COPY BEFORE IT GIVES UP A CHILD'S WORK. § */
-  if (typeof keepPut_ === 'function') keepPut_(k, v);
-  else { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { /* storage can be blocked; the app runs without it */ } }
+  keep_.put(k, v, 'loud');
   /* A RING HELD FOR THE VISIT (`CIRC_HELD`) is the copy `circRead_` falls back to, and must say the same. */
   if (ansIsRing_(k) && typeof CIRC_HELD !== 'undefined') {
     try { if (v === null || v === '') CIRC_HELD.delete(k); else CIRC_HELD.set(k, JSON.parse(v)); } catch (e) { /* a bad stored value reads as none */ }
@@ -14191,12 +14180,13 @@ function ansLocalPut_(k, v, words) {
 /* WHEN THE ANSWER IN THIS KEY WAS LAST EDITED, in ms — by this device's child, or by whichever device the § */
 const ANS_AT_MEM = new Map();
 function ansAt_(k) {
-  try { return Number(localStorage.getItem('ansAt:' + k)) || 0; } catch (e) { /* storage can be blocked; the app runs without it */ }
+  const got = keep_.get('ansAt:' + k);
+  if (got !== undefined) return Number(got) || 0;
   return ANS_AT_MEM.get(k) || 0;
 }
 function ansAtSet_(k, at) {
   ANS_AT_MEM.set(k, at);
-  try { localStorage.setItem('ansAt:' + k, String(at)); } catch (e) { /* storage can be blocked; the app runs without it */ }
+  keep_.put('ansAt:' + k, String(at));
 }
 /* WHICH KEYS STILL HAVE TO GO UP, per person. § */
 const ANS_DIRTY = new Map();
@@ -14204,7 +14194,7 @@ function ansDirtySet_(who) {
   let s = ANS_DIRTY.get(who);
   if (!s) {
     s = new Set();
-    try { (JSON.parse(localStorage.getItem('ansDirty:' + who) || '[]') || []).forEach(k => s.add(String(k))); } catch (e) { /* storage can be blocked; the app runs without it */ }
+    [].concat(keep_.json('ansDirty:' + who, [])).forEach(k => s.add(String(k)));
     ANS_DIRTY.set(who, s);
   }
   return s;
@@ -14212,8 +14202,8 @@ function ansDirtySet_(who) {
 function ansDirtyKeep_(who) {
   const s = ANS_DIRTY.get(who);
   try {
-    if (s && s.size) localStorage.setItem('ansDirty:' + who, JSON.stringify([...s]));
-    else localStorage.removeItem('ansDirty:' + who);
+    if (s && s.size) keep_.put('ansDirty:' + who, JSON.stringify([...s]));
+    else keep_.del('ansDirty:' + who);
   } catch (e) { /* storage can be blocked; the app runs without it */ }
 }
 
@@ -14453,11 +14443,10 @@ function answersAdopt_(pid, got) {
   });
   try {
     const pre = subs ? ['pad:' + who + ':'] : ['ans:' + who + ':', 'pad:' + who + ':'];
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i);
+    for (const k of keep_.keys('')) {
       if (!k || seen.has(k) || dirty.has(k) || !pre.some(p => k.indexOf(p) === 0)) continue;
       if (ansAt_(k)) continue;
-      const v = localStorage.getItem(k);
+      const v = keep_.get(k);
       if (v === null || !String(v).trim() || v === '[]') continue;
       ansAtSet_(k, Date.now());
       dirty.add(k);
@@ -14471,8 +14460,8 @@ function answersAdopt_(pid, got) {
 /* ---------- WHAT WAS WRITTEN SIGNED OUT, CLAIMED BY WHOEVER SIGNS IN FROM SIGNED OUT § */
 function ansBareKeys_() {
   const all = new Set();
-  try { for (let i = 0; i < localStorage.length; i++) all.add(localStorage.key(i)); }
-  catch (e) { ANS_MEM.forEach((v, k) => all.add(k)); }
+  if (keep_.get('familyDevice') === undefined) ANS_MEM.forEach((v, k) => all.add(k));
+  else keep_.keys('').forEach(k => all.add(k));
   if (typeof KEEP_UNKEPT !== 'undefined') KEEP_UNKEPT.forEach(k => all.add(k));
   return [...all].filter(k => k && /^(?:ans|pad|board):(?!u:)/.test(k));
 }
@@ -14495,7 +14484,7 @@ function answersClaim_(pid, ownOnly) {
     /* GONE FROM UNDER THE SIGNED-OUT KEY WHATEVER HAPPENS NEXT — moved, joined, or the older of two. */
     ansLocalPut_(bare, null);
     ANS_AT_MEM.delete(bare);
-    try { localStorage.removeItem('ansAt:' + bare); } catch (e) { /* storage can be blocked; the app runs without it */ }
+    keep_.del('ansAt:' + bare);
     if (v === null || !String(v).trim() || v === '[]') return;
     const joined = mark && has ? ansJoin_(bare, mine, v, mark.words) : null;
     /* WHAT IS WRITTEN OVER IS THE ANSWER THE OLD CODE LEFT, until this person's one-time carry-over has run on § */
@@ -14590,12 +14579,11 @@ function ansSentHere_(k) {
 const ANS_NOT_KEPT = 'Not saved — this browser is not keeping it';
 /* ---------- AN EMPTY BOX OVER AN ANSWER THAT IS STILL HERE § */
 /* ---------- FOR AN HOUR, NOT UNTIL SOMEBODY SIGNS IN § */
-const ANS_GONE_MS = 60 * 60 * 1000;
+const ANS_GONE_MS = KEEP.familyGone.ttl;
 /* ---------- AND THE RECORD OF IT IS KEPT AS CAREFULLY AS THE WORK IT GUARDS § */
 const ansRec_ = name => ansValue_(name);
 function ansRecPut_(name, v) {
-  if (typeof keepPut_ === 'function') { keepPut_(name, v, 'record'); return; }
-  try { if (v === null) localStorage.removeItem(name); else localStorage.setItem(name, v); } catch (e) { /* storage can be blocked; the app runs without it */ }
+  keep_.put(name, v, 'record');
 }
 function ansGone_() {
   try {
@@ -14678,7 +14666,7 @@ function keepWaits_(k) {
   if (!held) return false;
   /* NOT WHEN THE STORED MARKS SAY THE SAME ALREADY — the refused write was about some other answer. */
   let kept = null;
-  try { kept = ansGoneRead_((JSON.parse(localStorage.getItem(ANS_GONE_KEYS) || '{}') || {})[k]); } catch (e) { /* a bad stored value reads as none */ }
+  try { kept = ansGoneRead_((JSON.parse(keep_.get(ANS_GONE_KEYS) || '{}') || {})[k]); } catch (e) { /* a bad stored value reads as none */ }
   return !(kept && kept.who === held.who);
 }
 /* ---------- THE PEN'S AND THE RINGS' NOTE, FOR THE KEY IT IS UNDER § */
@@ -14885,9 +14873,8 @@ const SUB_MEM = new Map();
 function subAll_(who) {
   const m = SUB_MEM.get(who);
   if (!who) return m ? m.map : (SUB_MEM.set('', { raw: '', map: {} }), SUB_MEM.get('').map);
-  let raw = null;
-  try { raw = localStorage.getItem('subLast:' + who); }
-  catch (e) { return m ? m.map : (SUB_MEM.set(who, { raw: null, map: {} }), SUB_MEM.get(who).map); }
+  const raw = keep_.get('subLast:' + who);
+  if (raw === undefined) return m ? m.map : (SUB_MEM.set(who, { raw: null, map: {} }), SUB_MEM.get(who).map);
   if (m && m.raw === raw) return m.map;
   let map = {};
   try { map = JSON.parse(raw || '{}') || {}; } catch (e) { map = {}; }
@@ -14900,14 +14887,10 @@ function subAllKeep_(who, map) {
   const raw = JSON.stringify(map || {});
   SUB_MEM.set(who, { raw: raw, map: map || {} });
   if (!who) return true;
-  try { localStorage.setItem('subLast:' + who, raw); return true; }
-  catch (e) {
-    /* A FULL STORE KEEPS THE OLD TEXT, and the next read would find it differing from this copy and parse the old one over the press just made. § */
-    let held = null;
-    try { held = localStorage.getItem('subLast:' + who); } catch (e2) { held = null; }
-    SUB_MEM.set(who, { raw: held, map: map || {} });
-    return false;
-  }
+  if (keep_.put('subLast:' + who, raw)) return true;
+  /* A FULL STORE KEEPS THE OLD TEXT, and the next read would find it differing from this copy and parse the old one over the press just made. § */
+  SUB_MEM.set(who, { raw: keep_.get('subLast:' + who) ?? null, map: map || {} });
+  return false;
 }
 /* THE LATEST PRESS FOR AN ANSWER KEY — only ever the person signed in now. A key that names somebody
    else is somebody else's drawer, and is never read out on this person's screen. */
@@ -14934,15 +14917,14 @@ function subQueue_(who) {
   const held = typeof keepHeld_ === 'function' ? keepHeld_(subQKey_(who)) : undefined;
   if (held !== undefined) return parse(held);
   let raw = null;
-  try { raw = localStorage.getItem(subQKey_(who)); } catch (e) { return (SUBQ_MEM.get(who) || []).slice(); }
+  raw = keep_.get(subQKey_(who));
+  if (raw === undefined) return (SUBQ_MEM.get(who) || []).slice();
   return parse(raw);
 }
 function subQueueKeep_(who, list) {
   SUBQ_MEM.set(who, list.slice());
   const raw = list.length ? JSON.stringify(list) : null;
-  if (typeof keepPut_ === 'function') return keepPut_(subQKey_(who), raw);
-  try { if (raw === null) localStorage.removeItem(subQKey_(who)); else localStorage.setItem(subQKey_(who), raw); return true; }
-  catch (e) { return false; }
+  return keep_.put(subQKey_(who), raw, 'loud');
 }
 /* ---------- A PRESS MARKED "STILL TO GO" THAT THE QUEUE HAS NOT GOT WILL NEVER GO — SO IT IS QUEUED AGAIN § */
 function subRequeue_(who) {
@@ -15154,7 +15136,7 @@ const SUB_BEFORE = Date.UTC(2026, 9, 9);
 const subBeforeKey_ = who => 'subBefore:' + who;
 function subBefore_(who) {
   let raw = typeof keepHeld_ === 'function' ? keepHeld_(subBeforeKey_(who)) : undefined;
-  if (raw === undefined) { try { raw = localStorage.getItem(subBeforeKey_(who)); } catch (e) { raw = null; } }
+  if (raw === undefined) raw = keep_.get(subBeforeKey_(who)) ?? null;
   try { const m = JSON.parse(raw || '{}'); return m && typeof m === 'object' && !Array.isArray(m) ? m : {}; }
   catch (e) { return {}; }
 }
@@ -15162,13 +15144,12 @@ function subClaimOver_(k, was, at) {
   k = String(k || '');
   const who = ansWhoOf_(k);
   if (!who || !/^ans:/.test(k) || was === null || was === undefined || !String(was).trim()) return;
-  try { if (localStorage.getItem('subMigrated:' + who)) return; } catch (e) { return; }
+  if (keep_.get('subMigrated:' + who) !== null) return;
   const held = subBefore_(who), key = subKeyOf_(k);
   if (held[key]) return;
   held[key] = { a: String(was), at: Number(at) || 0 };
   const raw = JSON.stringify(held);
-  if (typeof keepPut_ === 'function') keepPut_(subBeforeKey_(who), raw, 'record');
-  else { try { localStorage.setItem(subBeforeKey_(who), raw); } catch (e) { /* storage can be blocked; the app runs without it */ } }
+  keep_.put(subBeforeKey_(who), raw, 'record');
 }
 function subMigrateId_(pid, key) {
   /* TWO 32-BIT FNV-1a PASSES IN BASE 36 — `SUBMISSION_ID`'s shape, `<digits>-<letters and digits>`, with an
@@ -15209,9 +15190,8 @@ function subDoneOf_(who, pid) {
   const done = {};
   const pre = 'done:' + who + ':';
   try {
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i);
-      if (k && k.indexOf(pre) === 0) done[k.slice(pre.length)] = String(localStorage.getItem(k) || '');
+    for (const k of keep_.keys(pre)) {
+      done[k.slice(pre.length)] = String(keep_.get(k) || '');
     }
   } catch (e) { /* storage can be blocked; the app runs without it */ }
   try {
@@ -15229,7 +15209,7 @@ function subMigrate_() {
   const flag = 'subMigrated:' + who;
   /* A BROWSER THAT KEEPS NOTHING KEPT NO `done:` DATE AND NO ANSWER PAST THE VISIT, and could hold no flag:
      nothing to carry, and nothing to stop the pass running on every load. */
-  try { if (localStorage.getItem(flag)) return; } catch (e) { return; }
+  if (keep_.get(flag) !== null) return;
   /* THE ACCOUNT'S OWN, so a question it already has a submission for is left alone — and a backend that
      keeps submissions but has not sent this person's copy yet is waited for. */
   let mine = {};
@@ -15286,10 +15266,9 @@ function subMigrate_() {
     subPaintAll_();
   }
   if (!stored) return;
-  try { localStorage.setItem(flag, String(Date.now())); } catch (e) { /* storage can be blocked; the app runs without it */ }
+  keep_.put(flag, String(Date.now()));
   /* AND WHAT THE CLAIM WROTE OVER IS NOBODY'S BUSINESS ANY MORE. */
-  if (typeof keepPut_ === 'function') keepPut_(subBeforeKey_(who), null, 'record');
-  else { try { localStorage.removeItem(subBeforeKey_(who)); } catch (e) { /* storage can be blocked; the app runs without it */ } }
+  keep_.del(subBeforeKey_(who), 'record');
 }
 
 /* ---------- THE WORDS FOR A VERDICT § */
@@ -15309,7 +15288,7 @@ function subSay_(v) {
 
 /* ---------- THE VERDICT, HEARD § */
 /* NO SWITCH (374, the owner: "it should just play sound, no option to get rid of"): the tab's mute and the device's volume are the way to quiet it; the old device setting is forgotten */
-try { localStorage.removeItem('mark-sound'); } catch (e) { /* nothing kept */ }
+keep_.del('mark-sound');
 /* WHETHER THIS DEVICE CAN MAKE A SOUND AT ALL. § */
 function markCanSound_() {
   try { return !!(window.AudioContext || window.webkitAudioContext); } catch (e) { return false; }
@@ -16593,7 +16572,7 @@ const partKeyOfAns_ = k => /^ans:/.test(String(k || '')) ? String(k).replace(/^a
 function partRecAt_(pk) {
   if (PART_MEM.has(pk)) return PART_MEM.get(pk);
   let rec = null;
-  try { rec = JSON.parse(localStorage.getItem(pk) || 'null'); } catch (e) { rec = null; }
+  rec = keep_.json(pk, null);
   if (!rec || typeof rec !== 'object') rec = partMigrate_(pk);
   PART_MEM.set(pk, rec);
   return rec;
@@ -16603,19 +16582,18 @@ function partMigrate_(pk) {
   const rec = { v: 1 };
   const old = 'aiMark:' + pk.replace(/^part:/, 'ans:');
   try {
-    const raw = localStorage.getItem(old);
+    const raw = keep_.get(old);
     if (raw === null) return rec;
     const ai = JSON.parse(raw);
     if (ai && typeof ai.a === 'string' && typeof ai.v === 'string') rec.ai = ai;
-    localStorage.setItem(pk, JSON.stringify(rec));
-    localStorage.removeItem(old);
+    if (keep_.put(pk, JSON.stringify(rec))) keep_.del(old);
   } catch (e) { /* the old key stays, and is read again next visit */ }
   return rec;
 }
 function partRecPutAt_(pk, field, v) {
   const rec = partRecAt_(pk);
   if (v == null || v === '') delete rec[field]; else rec[field] = v;
-  try { localStorage.setItem(pk, JSON.stringify(rec)); } catch (e) { /* this visit only */ }
+  keep_.put(pk, JSON.stringify(rec));
 }
 /* WHAT THE PART HOLDS, every kind of answer in one shape. The typed box and the pen go to the account under their own
    synced keys (answers.js, the server's ceilings); the record reads them, so nothing saved before it is lost. */
@@ -19872,7 +19850,7 @@ function cartPaint_() {
 
 const SPEED_MIN = 150, SPEED_MAX = 700, SPEED_STEP = 25;
 const SPEED = { words: [], i: 0, wpm: 300, playing: false, timer: 0, wait: 0, x: null };
-try { const w = Number(localStorage.getItem('speedWpm')); if (w >= SPEED_MIN && w <= SPEED_MAX) SPEED.wpm = w; } catch (e) {}
+try { const w = Number(keep_.get('speedWpm')); if (w >= SPEED_MIN && w <= SPEED_MAX) SPEED.wpm = w; } catch (e) {}
 
 /* WHICH THINGS HAVE WORDS LONG ENOUGH TO BE WORTH IT. */
 function speedFor_(x) {
@@ -20049,12 +20027,12 @@ document.addEventListener('input', e => {
   SPEED.wpm = Math.min(SPEED_MAX, Math.max(SPEED_MIN, Number(e.target.value) || 300));
   const say = $('rsvp-wpm-say');
   if (say) say.textContent = SPEED.wpm + ' words a minute';
-  try { localStorage.setItem('speedWpm', String(SPEED.wpm)); } catch (err) {}
+  keep_.put('speedWpm', String(SPEED.wpm));
 });
 
 document.addEventListener('input', e => {
   if (!e.target || e.target.id !== 'sr-text') return;
-  try { localStorage.setItem('speedDraft', e.target.value); } catch (err) {}
+  keep_.put('speedDraft', e.target.value);
 });
 on('sr-read', () => {
   const t = $('sr-text');
@@ -20336,13 +20314,7 @@ function readingCard_(x, o) {
    The index when a finder paints, a work's words when one of its cards is drawn. Sources: data/texts/LICENSE. */
 
 const TEXTS = { index: null, asking: null, failed: false, words: {}, loading: {}, missed: {}, items: null, from: null, adult: null };
-const textsGet_ = file => {
-  const stamp = deployStamp_();
-  return Promise.resolve()
-    .then(() => fetch('data/texts/' + file + stamp, { cache: 'default' }))
-    .then(res => (res && res.ok) ? res.json() : null)
-    .catch(() => null);
-};
+const textsGet_ = file => dataFile_('data/texts/' + file);
 /* A PART IS [chapter tag, cite, n]: n verses numbered 1..n, a list of their numbers, or 0 when the chapter is the card. */
 const textsUnits_ = p => p[2] === 0 ? [''] : Array.isArray(p[2]) ? p[2].map(String) : Array.from({ length: Number(p[2]) || 0 }, (_, i) => String(i + 1));
 
@@ -20435,13 +20407,7 @@ function textsRedraw_(file) {
 /* data/pdtexts/: the index when a finder paints, a text's words only when one of its cards is drawn (as js/works.js does). */
 
 const PDTEXTS = { index: null, asking: null, failed: false, files: {}, loading: {}, missed: {}, items: null, from: null };
-const pdtextsGet_ = file => {
-  const stamp = deployStamp_();
-  return Promise.resolve()
-    .then(() => fetch('data/pdtexts/' + file + stamp, { cache: 'default' }))
-    .then(res => (res && res.ok) ? res.json() : null)
-    .catch(() => null);
-};
+const pdtextsGet_ = file => dataFile_('data/pdtexts/' + file);
 
 function pdtextsIndex_() {
   if (PDTEXTS.index) return PDTEXTS.index;
@@ -20549,9 +20515,7 @@ const MECH_PART = 'Car part', MECH_ONE = 'Car';
 function mechIndex_() {
   if (MECH.data) return MECH.data;
   if (MECH.asking || MECH.failed || typeof fetch !== 'function') return null;
-  const stamp = deployStamp_();
-  const get = f => Promise.resolve().then(() => fetch('data/mechanics/' + f + '.json' + stamp, { cache: 'default' }))
-    .then(res => (res && res.ok) ? res.json() : null).catch(() => null);
+  const get = f => dataFile_('data/mechanics/' + f + '.json');
   const names = Object.keys(MECH_FILES);
   MECH.asking = Promise.all(names.map(get)).then(all => {
     MECH.asking = null;
@@ -20639,9 +20603,7 @@ const CHEM_SUBJECT = 'Chemistry';
 function chemIndex_() {
   if (CHEM.data) return CHEM.data;
   if (CHEM.asking || CHEM.failed || typeof fetch !== 'function') return null;
-  const stamp = deployStamp_();
-  const get = f => Promise.resolve().then(() => fetch('data/chemistry/' + f + '.json' + stamp, { cache: 'default' }))
-    .then(res => (res && res.ok) ? res.json() : null).catch(() => null);
+  const get = f => dataFile_('data/chemistry/' + f + '.json');
   const names = Object.keys(CHEM_FILES);
   CHEM.asking = Promise.all(names.map(get)).then(all => {
     CHEM.asking = null;
@@ -20696,9 +20658,7 @@ const HTOP_PARTS = { timeline: 'Timeline', people: 'People', sources: 'Sources',
 function histTopicsIndex_() {
   if (HTOP.data) return HTOP.data;
   if (HTOP.asking || HTOP.failed || typeof fetch !== 'function') return null;
-  const stamp = deployStamp_();
-  const get = f => Promise.resolve().then(() => fetch(HTOP_DIR + f + '.json' + stamp, { cache: 'default' }))
-    .then(res => (res && res.ok) ? res.json() : null).catch(() => null);
+  const get = f => dataFile_(HTOP_DIR + f + '.json');
   HTOP.asking = get('index').then(ids => Promise.all((Array.isArray(ids) ? ids : []).filter(id => /^[a-z0-9-]+$/.test(String(id))).map(get))).then(all => {
     HTOP.asking = null;
     const d = (all || []).filter(t => t && t.id && t.name && t.timeline);
@@ -20796,7 +20756,7 @@ let HELP_TIMER = null;
 
 function helpGet_() {
   let h = null;
-  try { h = JSON.parse(localStorage.getItem(HELP_STORE) || 'null'); } catch (e) { h = null; }
+  h = keep_.json(HELP_STORE, null);
   if (!h || !(Date.now() - Number(h.at) < HELP_TTL_MS)) {
     if (h) helpPut_(null);
     return null;
@@ -20804,7 +20764,7 @@ function helpGet_() {
   return h;
 }
 function helpPut_(h) {
-  try { if (h) localStorage.setItem(HELP_STORE, JSON.stringify(h)); else localStorage.removeItem(HELP_STORE); } catch (e) {}
+  keep_.put(HELP_STORE, h ? JSON.stringify(h) : null);
 }
 const helpOn_ = () => !!helpGet_();
 /* WHICH PAGE A HAND IS UP ON: the part's key and its page ('' the part, 'ans', 'stem0', 'pre1') -- the owner, "just make the current widget red, not the widgets before or after or same question" (1 Nov). */
@@ -21025,12 +20985,12 @@ let LAYOUT_MEMO = { src: undefined, out: null };
 let LAYOUT_KEPT = undefined;
 function layoutKept_() {
   if (LAYOUT_KEPT !== undefined) return LAYOUT_KEPT;
-  try { LAYOUT_KEPT = layoutSane_(localStorage.getItem(LAYOUT_STORE)); } catch (e) { LAYOUT_KEPT = null; }
+  try { LAYOUT_KEPT = layoutSane_(keep_.get(LAYOUT_STORE)); } catch (e) { LAYOUT_KEPT = null; }
   return LAYOUT_KEPT;
 }
 function layoutKeep_(L) {
   LAYOUT_KEPT = L || null;
-  try { if (L) localStorage.setItem(LAYOUT_STORE, JSON.stringify(L)); else localStorage.removeItem(LAYOUT_STORE); } catch (e) {}
+  keep_.put(LAYOUT_STORE, L ? JSON.stringify(L) : null);
 }
 function layoutNow_() {
   if (!LAYOUT_EDIT) return null;
@@ -22071,10 +22031,10 @@ function wordsNow_() {
   let w;
   try { w = DATA && DATA.words; } catch (e) { w = null; }
   if (w && typeof w === 'object' && !Array.isArray(w)) {
-    try { const s = JSON.stringify(w); if (s !== WORDS_KEPT) { WORDS_KEPT = s; localStorage.setItem(WORDS_STORE, s); } } catch (e) {}
+    try { const s = JSON.stringify(w); if (s !== WORDS_KEPT) { WORDS_KEPT = s; keep_.put(WORDS_STORE, s); } } catch (e) {}
     return w;
   }
-  try { const k = JSON.parse(localStorage.getItem(WORDS_STORE) || '{}'); return k && typeof k === 'object' && !Array.isArray(k) ? k : {}; } catch (e) { return {}; }
+  try { const k = JSON.parse(keep_.get(WORDS_STORE) || '{}'); return k && typeof k === 'object' && !Array.isArray(k) ? k : {}; } catch (e) { return {}; }
 }
 /* THE ONE LOOKUP, like `brand(k, or)`: the admin's text, else the code's. Plain text — whoever draws it escapes it. */
 function words_(key, or) {

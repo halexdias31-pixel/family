@@ -38,6 +38,14 @@ function kitParse_(cell) {
 
 /* A LIBRARY FILE GETS 20 SECONDS TO ANSWER AND 90 TO ARRIVE (503): one that hung kept `load()` from ever finishing. */
 const LIB_ANSWER = 20000, LIB_BODY = 90000;
+/* A FILE: index.html's early fetch when it started one (`BOOT_LIB`), else `dataFile_` with both waits; rejects with the reason. */
+async function libFile_(early, path, what) {
+  if (!early) return dataFile_(path, { wait: LIB_ANSWER + LIB_BODY, fail: true, what });
+  const res = await libWithin_(early, what, LIB_ANSWER);
+  if (!res) throw new Error(what + ' did not come back');
+  if (!res.ok) throw new Error(what + ' answered ' + res.status);
+  return libWithin_(res.json(), what, LIB_BODY);          /* a truncated body throws here, and that is the point */
+}
 function libWithin_(p, what, ms) {
   let t;
   const late = new Promise((u, no) => { t = setTimeout(() => no(new Error(what + ' did not arrive in ' + Math.round(ms / 1000) + ' seconds')), ms); });
@@ -72,10 +80,7 @@ async function libraryRowsAsk_() {
   try {
     const early = window.BOOT_LIB || null;
     window.BOOT_LIB = null;
-    const res = await libWithin_(early || fetch('data/questions.json' + deployStamp_(), { cache: 'default' }), 'the question file', LIB_ANSWER);
-    if (!res) LIBRARY_FAILED = 'the question file did not come back';
-    else if (!res.ok) LIBRARY_FAILED = 'the question file answered ' + res.status;
-    else rows = await libWithin_(res.json(), 'the question file', LIB_BODY);          /* a truncated body throws here, and that is the point */
+    rows = await libFile_(early, 'data/questions.json', 'the question file');
   } catch (e) {
     LIBRARY_FAILED = why_(e);
   }
@@ -130,9 +135,7 @@ async function libraryExtraAsk_(names) {
       const early = (window.BOOT_LIB_EXTRA || {})[name] || null;
       if (window.BOOT_LIB_EXTRA) window.BOOT_LIB_EXTRA[name] = null;
       /* ---------- WITH THE DEPLOY'S STAMP, AS THE BOXERS ALREADY WERE § */
-      const stamp = deployStamp_();
-      const res = await libWithin_(early || fetch('data/' + name + '.json' + stamp, { cache: 'default' }), name, LIB_ANSWER);
-      if (res && res.ok) rows = await libWithin_(res.json(), name, LIB_BODY);
+      rows = await libFile_(early, 'data/' + name + '.json', name);
     } catch (e) { rows = null; }
     out[name] = Array.isArray(rows) ? rows : [];
   }));

@@ -138,7 +138,7 @@ on('apply-send', el => {
       USER.application = d.application || { status: 'new', at: Date.now() };
       Object.keys(APPLY_DOCS).forEach(k => { delete APPLY_DOCS[k]; });
       formDraftDrop_('apply-teach', { draftId: String((whose_() && whose_().personId) || '') });
-      try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (e) { /* storage can be blocked; the app runs without it */ }
+      saveUser_();
       toast(text_('application-sent'));
       try { paint('stuff'); } catch (e) { oops_(e, 'me:applyFormHtml_') }   /* Apply to teach is a Find › Settings › Staff card */
     })
@@ -202,7 +202,8 @@ function signedOut_(opts) {
   try { wasAdmin = (typeof may_ === 'function' && may_('admin')) || (typeof hasRole === 'function' && hasRole('admin')); } catch (e) { oops_(e, 'me:signedOut_') }
   USER = null; LENS = null;   /* and the lens: the next admin opens their own settings */
   if (typeof SIGN !== 'undefined' && !opts.quiet) { SIGN.who = ''; SIGN.dots = 0; SIGN.pin = []; SIGN.wrong = false; SIGN.known = null; SIGN.card = ''; }
-  try { localStorage.removeItem('familyUser'); } catch (e) { /* storage can be blocked; the app runs without it */ }
+  /* EVERY KEY THE KEEPER MARKS clearOnSignOut (`KEEP`, data.js): the sign-in, the stars, the kept payload, the card being edited. */
+  keep_.signOut();
   payloadForget_();   /* the device's copy of their payload goes with them (1070) */
   if (typeof window.offForget_ === 'function') window.offForget_();   /* and the app's offline copy; the words go with libDiskClear_ */
   /* ---------- AND WHAT THEY HAD ASKED FIND FOR GOES WITH THEM § */
@@ -227,7 +228,7 @@ function signedOut_(opts) {
   Object.keys(MSG_QUEUE).forEach(k => { delete MSG_QUEUE[k]; });
   try { DM_ASKED = false; DM_DONE = false; DM_LAST = 0; if (typeof dmStop_ === 'function') dmStop_(); } catch (e) { oops_(e, 'me:signedOut_') }
   /* THE STARS — the device's copy is a cache of the person, and the next person is not them. */
-  try { FAVS = new Set(); localStorage.removeItem('favs'); } catch (e) { /* storage can be blocked; the app runs without it */ }
+  FAVS = new Set();
   /* WHAT THE LAST PERSON SENT, AS THIS DEVICE HELD IT FOR THE VISIT, AND ANYTHING OPEN OVER THE SCREEN. § */
   try { if (typeof subForget_ === 'function') subForget_(); } catch (e) { oops_(e, 'me:signedOut_') }
   try { if (typeof kpClose_ === 'function') kpClose_(); } catch (e) { oops_(e, 'me:signedOut_') }
@@ -252,8 +253,6 @@ function signedOut_(opts) {
   try { if (typeof answersForget_ === 'function') answersForget_(); } catch (e) { oops_(e, 'me:signedOut_') }
   /* AND THE PEN — the last person's pad stayed armed under their key (`padWhoChanged_`, find-loupe.js). */
   try { if (typeof padWhoChanged_ === 'function') padWhoChanged_(); } catch (e) { oops_(e, 'me:signedOut_') }
-  /* AND THE DEAD KEY OF THE DRAW/TYPE SWITCH, which face each drawing question was left on (327, 337). § */
-  try { localStorage.removeItem('surfaceFace'); } catch (e) { /* storage can be blocked; the app runs without it */ }
   /* AND THE BOOKING FORM, which is the person's draft and not the next family's (`bookFollow_`, book.js;
      docs/history/317). `typeof`, because book.js loads after this file. */
   try { if (typeof bookFollow_ === 'function') bookFollow_(!!opts.quiet); } catch (e) { oops_(e, 'me:signedOut_') }
@@ -286,7 +285,7 @@ function signedIn_(d, typed) {
   /* THE REPLY, PLUS WHAT WE ALREADY KNEW — see `sign-digit`. The handle when the row has no name. */
   USER = me; LENS = null;
   if (!USER.name) USER.name = me.handle || typed || '';
-  try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (e) { /* storage can be blocked; the app runs without it */ }
+  saveUser_();
   /* ---------- AND ARRIVED OVER SOMEBODY ELSE, WRITTEN DOWN BEFORE ANY DOOR IS ASKED § */
   try { if (over && typeof ansSwitchedIn_ === 'function') ansSwitchedIn_(pid); } catch (e) { oops_(e, 'me:signedIn_') }
   /* THE PEN PUT DOWN FOR THE PERSON WHO IS SIGNED IN NOW. */
@@ -320,7 +319,7 @@ function signedIn_(d, typed) {
 
 /* NOTHING ABOUT WHO SIGNED IN IS KEPT ON THE DEVICE — the owner did not want recent usernames offered (docs/history/383). Old keys are wiped. */
 function signInForgetOld_() {
-  try { localStorage.removeItem('familyHandles'); localStorage.removeItem('familyAdminHint'); } catch (e) { /* storage can be blocked; the app runs without it */ }
+  keep_.del('familyHandles'); keep_.del('familyAdminHint');
 }
 signInForgetOld_();
 
@@ -385,8 +384,8 @@ const CAME_FROM_KEY = 'came_from';
 function cameFromSave_() {
   try {
     const f = String(new URLSearchParams(location.search).get('from') || '').toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 60);
-    if (f) localStorage.setItem(CAME_FROM_KEY, f);
+    if (f) keep_.put(CAME_FROM_KEY, f);
   } catch (e) { /* no storage: the sign-up is simply not traced */ }
 }
-const cameFrom_ = () => { try { return localStorage.getItem(CAME_FROM_KEY) || ''; } catch (e) { return ''; } };
+const cameFrom_ = () => keep_.get(CAME_FROM_KEY) || '';
 cameFromSave_();

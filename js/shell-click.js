@@ -410,13 +410,12 @@ function api(body, opts) {
            that person wrote in is drawn empty under the signed-out key now, and says why (317). */
         const gone = typeof whoIs_ === 'function' ? whoIs_() : '';
         if (typeof signedOut_ === 'function') { try { signedOut_({ ended: true }); } catch (e) { /* the sign-out goes on even if the redraw fails */ } }
-        else { USER = null; try { localStorage.removeItem('familyUser'); } catch (e) { /* storage can be blocked; the app runs without it */ } try { repaint(); } catch (e) { oops_(e, 'shell:api') } }
+        else { USER = null; keep_.signOut(); try { repaint(); } catch (e) { oops_(e, 'shell:api') } }
         /* THROUGH `ansRecPut_`, held for the visit when the store refuses or throws: without it a
            browser keeping no site data never knew whose the next answer was (review of the merge). */
         try {
           const rec = gone ? JSON.stringify({ who: gone, at: Date.now() }) : '';
-          if (rec && typeof ansRecPut_ === 'function') ansRecPut_('familyGone', rec);
-          else if (rec) localStorage.setItem('familyGone', rec);
+          if (rec) keep_.put('familyGone', rec, 'record');
         } catch (e) { /* storage can be blocked; the app runs without it */ }
         try { if (typeof ansSavedPaint_ === 'function') ansSavedPaint_(); } catch (e) { oops_(e, 'shell:api') }
         toast(text_('signed-out-please-sign-in-again'));
@@ -589,7 +588,7 @@ function voicesRanked_(lang, list) {
 }
 /* NO CHOICE: the best the device has; the old kept choice (453) is forgotten. */
 function voicePick_(lang, list) { return voicesRanked_(lang, list)[0] || null; }
-try { localStorage.removeItem('voice:name'); } catch (e) { /* storage can be blocked; the app runs without it */ }
+keep_.del('voice:name');
 /* MATHS SAID AS WORDS (453): the symbols a voice skips or reads as "superscript two". Words pass through unchanged. */
 const SAY_SUP = { '⁰': 0, '¹': 1, '²': 2, '³': 3, '⁴': 4, '⁵': 5, '⁶': 6, '⁷': 7, '⁸': 8, '⁹': 9 };
 const SAY_VULGAR = { '½': 'one half', '⅓': 'one third', '⅔': 'two thirds', '¼': 'one quarter', '¾': 'three quarters', '⅕': 'one fifth', '⅛': 'one eighth' };

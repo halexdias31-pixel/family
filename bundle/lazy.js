@@ -5,9 +5,8 @@ const OQ = { list: null, answers: null, error: '', asking: false, watching: fals
 function oqStart_() {
   if (OQ.asking || OQ.list) return;
   OQ.asking = true;
-  const list = fetch('data/settings/owner-questions.json' + (typeof deployStamp_ === 'function' ? deployStamp_() : ''), { cache: 'default' })
-    .then(r => r.json()).then(j => { OQ.list = Array.isArray(j && j.questions) ? j.questions : []; })
-    .catch(() => { OQ.list = []; OQ.error = 'The questions could not be fetched — check the connection.'; });
+  const list = dataFile_('data/settings/owner-questions.json')
+    .then(j => { OQ.list = Array.isArray(j && j.questions) ? j.questions : []; if (!j) OQ.error = 'The questions could not be fetched — check the connection.'; });
   const got = api({ action: 'listOwnerAnswers', name: USER && USER.name })
     .then(d => { OQ.answers = oqOf_(d && !d.error ? d.answers : []); if (d && d.error) OQ.error = String(d.error); })
     .catch(() => { OQ.answers = {}; OQ.error = 'The answers could not be fetched — the questions show unanswered.'; });
@@ -691,11 +690,11 @@ function ssDraw_(band) {
 
 function ssBand_(b) {
   if (b !== undefined) {
-    try { localStorage.setItem('ss-band', b); } catch (e) {}
+    keep_.put('ss-band', b);
     return b;
   }
   let v = 'KS2';
-  try { v = localStorage.getItem('ss-band') || 'KS2'; } catch (e) {}
+  v = keep_.get('ss-band') || 'KS2';
   return SS_SENTENCES[v] ? v : 'KS2';
 }
 
@@ -934,11 +933,11 @@ const wsTheme_ = id => WS_THEMES.find(t => t.id === id) || WS_THEMES[0];
 
 function wsThemeId_(id) {
   if (id !== undefined) {
-    try { localStorage.setItem('ws-theme', id); } catch (e) {}
+    keep_.put('ws-theme', id);
     return id;
   }
   let v = WS_THEMES[0].id;
-  try { v = localStorage.getItem('ws-theme') || v; } catch (e) {}
+  v = keep_.get('ws-theme') || v;
   return wsTheme_(v).id;
 }
 
@@ -1616,11 +1615,11 @@ function impDraw_() {
    week. The try is the house rule for storage: a browser that refuses it still gets a game. */
 function impCount_(n) {
   if (n !== undefined) {
-    try { localStorage.setItem('imp-n', String(n)); } catch (e) {}
+    keep_.put('imp-n', String(n));
     return n;
   }
   let v = 4;
-  try { v = parseInt(localStorage.getItem('imp-n'), 10) || 4; } catch (e) {}
+  v = parseInt(keep_.get('imp-n'), 10) || 4;
   return Math.max(IMP_MIN, Math.min(IMP_MAX, v));
 }
 
@@ -1628,11 +1627,11 @@ function impCount_(n) {
 function impCanSay_() { return canSay_(); }
 function impAloud_(on) {
   if (on !== undefined) {
-    try { localStorage.setItem('imp-aloud', on ? '1' : '0'); } catch (e) {}
+    keep_.put('imp-aloud', on ? '1' : '0');
     return on;
   }
   let v = false;
-  try { v = localStorage.getItem('imp-aloud') === '1'; } catch (e) {}
+  v = keep_.get('imp-aloud') === '1';
   return v && impCanSay_();
 }
 function impHush_() { hush_(); }
@@ -2452,7 +2451,7 @@ function wgGame_(k) { return WORD_GAMES.find(g => g.k === k) || WORD_GAMES[0]; }
    open to, and a remembered key nothing answers any more falls back to the first. */
 function wgChosen_() {
   let k = '';
-  try { k = localStorage.getItem('wg-game') || ''; } catch (e) {}
+  k = keep_.get('wg-game') || '';
   return wgGame_(k).k;
 }
 
@@ -2498,7 +2497,7 @@ function wordGamesStop_() {
 
 on('wg-pick', el => {
   const k = wgGame_(el.value).k;
-  try { localStorage.setItem('wg-game', k); } catch (e) {}
+  keep_.put('wg-game', k);
   /* THE OLD GAME IS STOPPED AFTER ITS CARD HAS LEFT THE DOCUMENT, which is the order that makes its own stop read it as "the column is gone": § */
   document.querySelectorAll('#wg-slot').forEach(x => { x.innerHTML = ''; });
   wordGamesStop_();
@@ -2949,7 +2948,7 @@ function csGame_(k) { return CONSOLE_GAMES.find(g => g.k === k) || CONSOLE_GAMES
 /* REMEMBERED ON THE DEVICE under `cs-game`, `bg-game`'s rule. */
 function csChosen_() {
   let k = '';
-  try { k = localStorage.getItem('cs-game') || ''; } catch (e) {}
+  k = keep_.get('cs-game') || '';
   return csGame_(k).k;
 }
 function csOptions_() {
@@ -2981,7 +2980,7 @@ function consoleStop_() {
 }
 on('cs-pick', el => {
   const k = csGame_(el.value).k;
-  try { localStorage.setItem('cs-game', k); } catch (e) {}
+  keep_.put('cs-game', k);
   consoleStop_();
   document.querySelectorAll('#cs-slot').forEach(x => { x.innerHTML = ''; });
   initConsole();
@@ -3347,7 +3346,7 @@ function nesModeWire_(w) {
   w.addEventListener('pointerdown', e => { if (e.pointerType === 'touch') nesModeSet_('touch'); }, true);
 }
 /* THE KEY LIST: hidden until the Keys tile asks, on every system, and not remembered (481): a "show" kept from before 478 was still showing it. */
-try { localStorage.removeItem('nes-keys'); } catch (e) {}
+keep_.del('nes-keys');
 function nesLegendOn_() {
   return nesMode_() === 'keys' && NES_.legend === true;
 }
@@ -3944,7 +3943,7 @@ function raceFetch_() {
 
 /* NOTHING BUILT IS NEVER AN EMPTY CARD (464): the repository's map — practice streets, or Colliers Wood once tools/race_map.py has run. */
 function raceShipped_() {
-  return fetch(RACE_SHIPPED + deployStamp_(), { cache: 'no-cache' }).then(r => r.json()).then(m => {
+  return dataFile_(RACE_SHIPPED, { cache: 'no-cache', fail: true }).then(m => {
     if (m && Array.isArray(m.pts) && m.pts.length && Array.isArray(m.roads) && m.roads.length) raceAdopt_(m);
   });
 }
@@ -4385,7 +4384,7 @@ function raceReset_() {
 }
 
 function raceBest_() {
-  try { return Number(localStorage.getItem('race-best')) || 0; } catch (e) { return 0; }
+  return Number(keep_.get('race-best')) || 0;
 }
 
 /* ONE STEP OF dt SECONDS. Throttle, brakes, rolling and air drag, and the slope: g times the grade along the car is felt
@@ -4441,7 +4440,7 @@ function raceGateCheck_() {
   if (Math.hypot(c.x - g.x, c.y - g.y) > Math.max(9, g.w / 2 + 4)) return;
   if (L.next % W.gates.length === 0) {
     L.last = now - L.start; L.laps++; L.start = now;
-    if (!L.best || L.last < L.best) { L.best = L.last; try { localStorage.setItem('race-best', String(Math.round(L.best))); } catch (e) {} }
+    if (!L.best || L.last < L.best) { L.best = L.last; keep_.put('race-best', String(Math.round(L.best))); }
     L.next = 1;
   } else L.next++;
 }
@@ -5026,7 +5025,7 @@ const chSq_ = i => CH_FILES[file(i)] + (8 - rank(i));
 /* WHAT THE LAST PRESS DID, for the next draw to show ONCE: a glide, a capture, a check, an ending. A draw for any other reason (a pick, a note) shows the position still. */
 let CHESS_FX = null;
 /* THE BOARD TURNS TO FACE WHOEVER IS TO MOVE, if asked; per device, a convenience (`chess-turns`). Off, White stays at the foot as it always did. */
-let CHESS_TURNS = (() => { try { return localStorage.getItem('chess-turns') === '1'; } catch (e) { return false; } })();
+let CHESS_TURNS = keep_.get('chess-turns') === '1';
 let CHESS_FACE_T = 0;
 /* REDUCED MOTION MOVES INSTANTLY: no glide, no shake, no fall — the ending is drawn as it ends. Asked through the app's one `motionOK_` (537). */
 /* A GLIDE TAKES LONGER THE FURTHER IT GOES, but never long enough to wait for: a rook across the board is 380ms. */
@@ -5311,7 +5310,7 @@ on('chess-undo', () => {
 /* TURN THE BOARD: a switch, saying the state it is in. On, the board turns now if it is Black's move, and after every move from here. */
 on('chess-turn', () => {
   CHESS_TURNS = !CHESS_TURNS;
-  if (typeof keepPut_ === 'function') keepPut_('chess-turns', CHESS_TURNS ? '1' : null, true);
+  keep_.put('chess-turns', CHESS_TURNS ? '1' : null);
   if (!CHESS) chessReset_();
   drawChess(CHESS_TURNS ? 'The board turns with each move.' : 'White stays at the foot.');
 });
@@ -6093,7 +6092,7 @@ function bgGame_(k) { return BOARD_GAMES.find(g => g.k === k) || BOARD_GAMES[0];
 /* REMEMBERED ON THE DEVICE under `bg-game`, `wg-game`'s rule. */
 function bgChosen_() {
   let k = '';
-  try { k = localStorage.getItem('bg-game') || ''; } catch (e) {}
+  k = keep_.get('bg-game') || '';
   return bgGame_(k).k;
 }
 function bgOptions_() {
@@ -6123,7 +6122,7 @@ function initBoardGames() {
 function boardGamesStop_() {}
 on('bg-pick', el => {
   const k = bgGame_(el.value).k;
-  try { localStorage.setItem('bg-game', k); } catch (e) {}
+  keep_.put('bg-game', k);
   const slot = $('bg-slot');
   if (slot) slot.innerHTML = '';
   initBoardGames();
@@ -6183,14 +6182,14 @@ function pxeInk_() {
 function pxeLoad_() {
   if (PXE) return PXE;
   let got = null;
-  try { got = JSON.parse(localStorage.getItem(PXE_KEY) || 'null'); } catch (e) { got = null; }
+  got = keep_.json(PXE_KEY, null);
   const n = got && PXE_SIZES.indexOf(Number(got.n)) >= 0 ? Number(got.n) : 16;
   const px = new Array(n * n).fill('');
   if (got && Array.isArray(got.px)) got.px.slice(0, n * n).forEach((c, i) => { px[i] = pxeHex_(c); });
   PXE = { n, colour: pxeHex_(got && got.colour) || pxeInk_(), tool: got && got.tool === 'eraser' ? 'eraser' : 'pen', px };
   return PXE;
 }
-function pxeKeep_() { try { localStorage.setItem(PXE_KEY, JSON.stringify(PXE)); } catch (e) { /* storage blocked: the picture lives until the page goes */ } }
+function pxeKeep_() { keep_.put(PXE_KEY, JSON.stringify(PXE)); }
 
 function pxeHtml_() {
   pxeLoad_();

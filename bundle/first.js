@@ -2813,6 +2813,35 @@ function batchFiles_(want, bundle) {
     });
 }
 
+/* ---------- ONE LOADER FOR A FILE OF THE SITE'S OWN (owner, 17 Nov): `dataFile_(path, o)` resolves to the parsed file, or null.
+   o.as 'json' (the default) or 'text'; o.memo: one ask per path for the visit, shared by every caller; o.wait: ms before it is
+   given up (20 s); o.cache: the fetch's cache mode ('default'); o.stamp false: no deploy stamp (a path that is not ours, or a
+   page fetched fresh); o.what: the file's name in the reason. A miss is said once in `DATA_FILE_WHY[path]`; o.fail rejects with that reason instead of null. */
+const DATA_FILE_MEMO = new Map(), DATA_FILE_WHY = {};
+function dataFile_(path, o) {
+  o = o || {};
+  const as = o.as === 'text' ? 'text' : 'json';
+  if (o.memo && DATA_FILE_MEMO.has(as + path)) return DATA_FILE_MEMO.get(as + path);
+  const ask = new Promise((done, no) => {
+    const what = o.what || path;
+    const miss = why => { DATA_FILE_WHY[path] = why; if (o.fail) no(new Error(why)); else done(null); };
+    if (typeof fetch !== 'function') return miss('nothing to fetch with');
+    let over = false, ab = null;
+    try { if (typeof AbortController === 'function') ab = new AbortController(); } catch (e) { /* no abort: the wait still ends */ }
+    const ms = o.wait || 20000;
+    const t = setTimeout(() => { over = true; try { if (ab) ab.abort(); } catch (e) { /* already stopped */ } miss(what + ' did not arrive in ' + Math.round(ms / 1000) + ' seconds'); }, ms);
+    const url = path + (o.stamp === false || /^https?:/.test(path) ? '' : deployStamp_());
+    const opt = { cache: o.cache || 'default' };
+    if (ab) opt.signal = ab.signal;
+    Promise.resolve().then(() => fetch(url, opt))
+      .then(r => { if (!r || !r.ok) throw new Error(what + ' answered ' + (r ? r.status : 'nothing')); return as === 'text' ? r.text() : r.json(); })
+      .then(v => { clearTimeout(t); if (!over) { delete DATA_FILE_WHY[path]; done(v); } },
+            e => { clearTimeout(t); if (!over) miss((e && e.message) || String(e)); });
+  });
+  if (o.memo) { DATA_FILE_MEMO.set(as + path, ask); ask.then(v => { if (v === null) DATA_FILE_MEMO.delete(as + path); }, () => DATA_FILE_MEMO.delete(as + path)); }
+  return ask;
+}
+
 /* THE KEYS THE SITE ASKS FOR AND THE BACKEND DOES NOT SEND. § */
 let MISSING_KEYS = {};
 
@@ -2892,6 +2921,80 @@ function keepPut_(k, v, quiet) {
 }
 /* THE VISIT'S COPY OF A KEY THE STORE REFUSED, or `undefined` for a key the store holds as written. */
 const keepHeld_ = k => (KEEP_UNKEPT.has(k) ? KEEP_MEM.get(k) : undefined);
+
+/* ---------- ONE STORAGE KEEPER: every key the site keeps, by name, or by prefix when the name ends in `:` (owner, 17 Nov).
+   scope: 'user' (this person's), 'device' (the phone's, whoever holds it) or 'session' (the tab's, sessionStorage).
+   clearOnSignOut: `keep_.signOut()` removes it. ttl: how long it is good for, ms, where something reads it (the drafts' sweep).
+   A user key that is unsent work (answers, the queue, drafts) is filed under its person and stays: the next person never reads it.
+   NAMES NEVER CHANGE — a device keeps what it holds under them. A PIN is never kept: any name `DRAFT_NEVER` matches is refused. */
+const KEEP = {
+  familyUser: { scope: 'user', clearOnSignOut: true },
+  favs: { scope: 'user', clearOnSignOut: true },
+  surfaceFace: { scope: 'user', clearOnSignOut: true },
+  familyCardEdit: { scope: 'user', clearOnSignOut: true },
+  'payload:kept': { scope: 'user', clearOnSignOut: true },
+  'kept:': { scope: 'user', clearOnSignOut: true },
+  'asst:': { scope: 'user', clearOnSignOut: true },
+  familyHandles: { scope: 'user', clearOnSignOut: true },
+  familyAdminHint: { scope: 'user', clearOnSignOut: true },
+  'ans:': { scope: 'user' }, 'pad:': { scope: 'user' }, 'board:': { scope: 'user' }, 'part:': { scope: 'user' }, 'aiMark:': { scope: 'user' },
+  'ansAt:': { scope: 'user' }, 'ansDirty:': { scope: 'user' }, 'done:': { scope: 'user' },
+  'subLast:': { scope: 'user' }, 'subQ:': { scope: 'user' }, 'subBefore:': { scope: 'user' }, 'subMigrated:': { scope: 'user' },
+  'draft:': { scope: 'user', ttl: 30 * 24 * 60 * 60 * 1000 },
+  'familyTermShift:': { scope: 'user' },
+  familyGone: { scope: 'device', ttl: 60 * 60 * 1000 }, familyGoneKeys: { scope: 'device' }, familySwitched: { scope: 'device' },
+  familyDevice: { scope: 'device' }, familyField: { scope: 'device' }, came_from: { scope: 'device' },
+  familyTab: { scope: 'device' }, familyTabAt: { scope: 'device' }, 'arrival:shape': { scope: 'device' }, familyAheadSlow: { scope: 'device' },
+  familyCart: { scope: 'device' }, familyHelpHand: { scope: 'device' }, familyLayout: { scope: 'device' }, familyRules: { scope: 'device' },
+  familyWords: { scope: 'device' }, pixelArt: { scope: 'device' }, speedWpm: { scope: 'device' }, speedDraft: { scope: 'device' },
+  'chess-turns': { scope: 'device' }, 'bg-game': { scope: 'device' }, 'wg-game': { scope: 'device' }, 'cs-game': { scope: 'device' },
+  'ss-band': { scope: 'device' }, 'ws-theme': { scope: 'device' }, 'imp-n': { scope: 'device' }, 'imp-aloud': { scope: 'device' }, 'race-best': { scope: 'device' },
+  /* gone: old keys only ever removed */
+  'nes-keys': { scope: 'device' }, 'mark-sound': { scope: 'device' }, 'voice:name': { scope: 'device' },
+  splashAnims: { scope: 'device' }, splashOff: { scope: 'device' }, 'splashAnim:': { scope: 'device' },
+  familyVerify: { scope: 'session' }, familyPaid: { scope: 'session' },
+};
+const KEEP_ODD = new Set();
+function keepSpec_(k) {
+  k = String(k);
+  if (Object.prototype.hasOwnProperty.call(KEEP, k)) return KEEP[k];
+  const pre = Object.keys(KEEP).find(p => p.slice(-1) === ':' && k.indexOf(p) === 0);
+  return pre ? KEEP[pre] : null;
+}
+const keepStore_ = k => ((keepSpec_(k) || {}).scope === 'session' ? sessionStorage : localStorage);
+/* get: the stored text, null when there is none, undefined when the store is blocked. put: `how` is undefined (quiet: a refusal
+   is only `false`), 'loud' (`keepPut_`'s held-for-the-visit and said) or 'record'. True when the store took it. */
+const keep_ = {
+  get(k) {
+    const held = keepHeld_(k);
+    if (held !== undefined) return held;
+    try { return keepStore_(k).getItem(k); } catch (e) { return undefined; }
+  },
+  json(k, none) { try { const v = JSON.parse(keep_.get(k) || 'null'); return v == null ? none : v; } catch (e) { return none; } },
+  put(k, v, how) {
+    /* A NAME NOBODY REGISTERED is said once, and refused outright when it names a PIN or a password. */
+    if (!keepSpec_(k)) { if (v !== null && draftNever_(k)) return false; if (!KEEP_ODD.has(k)) { KEEP_ODD.add(k); console.warn('keep_: unregistered key ' + k); } }
+    if (keepStore_(k) !== localStorage) { try { if (v === null) sessionStorage.removeItem(k); else sessionStorage.setItem(k, v); return true; } catch (e) { return false; } }
+    return keepPut_(k, v === null ? null : String(v), how === 'loud' ? undefined : how || true);
+  },
+  del(k, how) { return keep_.put(k, null, how); },
+  /* EVERY KEY THE DEVICE HOLDS starting `pre` ('' for all). */
+  keys(pre) {
+    const out = [];
+    try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.indexOf(pre || '') === 0) out.push(k); } } catch (e) { return out; }
+    return out;
+  },
+  /* SIGN-OUT: every key marked clearOnSignOut goes, by name and by prefix. */
+  signOut() {
+    Object.keys(KEEP).filter(n => KEEP[n].clearOnSignOut).forEach(n => {
+      (n.slice(-1) === ':' ? keep_.keys(n) : [n]).forEach(k => keep_.del(k));
+    });
+  },
+};
+/* THE SIGN-IN KEPT ON THIS PHONE, never its PIN; false when storage is blocked, and the sign-in still holds for this visit. */
+function saveUser_() {
+  try { return keep_.put('familyUser', JSON.stringify(USER, (n, v) => (n && draftNever_(n) ? undefined : v))); } catch (e) { return false; }
+}
 /* ONCE MORE, AS THE PAGE GOES — a draft sent or a copy given way since may have made the room. § */
 function keepRetry_() {
   [...KEEP_UNKEPT].sort((a, b) => KEEP_RECORD.has(b) - KEEP_RECORD.has(a)).forEach(k => {
@@ -2926,7 +3029,7 @@ window.addEventListener('beforeunload', e => {
 const DRAFT_DEVICE_MS = 6 * 60 * 60 * 1000;
 /* WHOSE A SIGNED-OUT ANSWER OR DEVICE DRAFT IS (`ansGoneMark_`, answers.js; docs/history/317). § */
 const ANS_GONE_KEYS = 'familyGoneKeys';
-const DRAFT_KEEP_MS = 30 * 24 * 60 * 60 * 1000;
+const DRAFT_KEEP_MS = KEEP['draft:'].ttl;
 /* LONGER THAN ANY ANSWER APPS SCRIPT GIVES (six minutes is its ceiling), so a send still out in another tab § */
 const DRAFT_SENT_MS = 10 * 60 * 1000;
 const DRAFT_MAX = 200;
@@ -2950,8 +3053,8 @@ function draftParse_(raw) {
   } catch (e) { return null; }
 }
 function draftRaw_(k) {
-  let raw = keepHeld_(k);
-  if (raw === undefined) { try { raw = localStorage.getItem(k); } catch (e) { raw = KEEP_MEM.has(k) ? KEEP_MEM.get(k) : null; } }
+  let raw = keep_.get(k);
+  if (raw === undefined) raw = KEEP_MEM.has(k) ? KEEP_MEM.get(k) : null;
   return raw === null || raw === undefined ? null : draftParse_(raw);
 }
 /* PAST ITS TIME — see the sweep's note above. */
@@ -2959,7 +3062,7 @@ function draftRaw_(k) {
 function draftHeld_(k) {
   try {
     let raw;
-    try { raw = ansRec_(ANS_GONE_KEYS); } catch (e) { raw = localStorage.getItem(ANS_GONE_KEYS); }
+    try { raw = ansRec_(ANS_GONE_KEYS); } catch (e) { raw = keep_.get(ANS_GONE_KEYS); }
     const map = JSON.parse(raw || '{}');
     return !!(map && map[k]);
   } catch (e) { return false; }
@@ -2999,7 +3102,7 @@ function draftDrop_(surface, id, who) {
   DRAFT_SENDING.delete(k);
   draftMark_(k, null);
   let had = KEEP_MEM.has(k);
-  if (!had) { try { had = localStorage.getItem(k) !== null; } catch (e) { /* storage can be blocked; the app runs without it */ } }
+  if (!had) had = typeof keep_.get(k) === 'string';
   return had ? keepPut_(k, null) : true;
 }
 /* ---------- SENT, ANSWERED, REFUSED — see "SENT IS NOT A DRAFT" above. `v` is the words that went, so a § */
@@ -3059,13 +3162,12 @@ function draftFrom_(el) {
 }));
 function draftSweep_() {
   try {
-    const now = Date.now(), all = [], live = [];
-    for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.indexOf('draft:') === 0) all.push(k); }
+    const now = Date.now(), all = keep_.keys('draft:'), live = [];
     all.forEach(k => {
-      const d = draftParse_(localStorage.getItem(k));
-      if (!d || draftOld_(k, d, now)) localStorage.removeItem(k); else live.push([k, Number(d.at) || 0]);
+      const d = draftParse_(keep_.get(k));
+      if (!d || draftOld_(k, d, now)) keep_.del(k); else live.push([k, Number(d.at) || 0]);
     });
-    live.sort((a, b) => b[1] - a[1]).slice(DRAFT_MAX).forEach(x => localStorage.removeItem(x[0]));
+    live.sort((a, b) => b[1] - a[1]).slice(DRAFT_MAX).forEach(x => keep_.del(x[0]));
   } catch (e) { /* storage can be blocked; old drafts wait for next time */ }
 }
 draftSweep_();
@@ -3271,13 +3373,13 @@ function payloadKeep_(text, f) {
     const d = JSON.parse(text);
     if (!d || d.error) return;
     f = f || payloadFor_();
-    localStorage.setItem(PAYLOAD_KEY, JSON.stringify({ who: f.who, build: f.build, at: Date.now(), d }, (k, v) => (PAYLOAD_SECRET.test(k) ? undefined : v)));
+    keep_.put(PAYLOAD_KEY, JSON.stringify({ who: f.who, build: f.build, at: Date.now(), d }, (k, v) => (PAYLOAD_SECRET.test(k) ? undefined : v)));
   } catch (e) { payloadForget_(); }
 }
 /* THE KEPT COPY FOR THIS ACCOUNT AND THIS BUILD, or null: anything else, or anything unreadable, is a normal load. */
 function payloadKept_() {
   try {
-    const k = JSON.parse(localStorage.getItem(PAYLOAD_KEY) || 'null'), f = payloadFor_();
+    const k = JSON.parse(keep_.get(PAYLOAD_KEY) || 'null'), f = payloadFor_();
     if (!k || !k.d || typeof k.d !== 'object' || k.who !== f.who || k.build !== f.build) return null;
     return k.d;
   } catch (e) { payloadForget_(); return null; }
@@ -3286,7 +3388,9 @@ function payloadKept_() {
 function payloadForget_() {
   PAYLOAD_OWED = null; PAYLOAD_TEXT = null;
   const kept = keptForget_();
-  try { const had = localStorage.getItem(PAYLOAD_KEY) !== null; localStorage.removeItem(PAYLOAD_KEY); return had || kept; } catch (e) { return kept; }
+  const had = typeof keep_.get(PAYLOAD_KEY) === 'string';
+  keep_.del(PAYLOAD_KEY);
+  return had || kept;
 }
 
 /* KEPT READS (`apiKept_`): each fetched card's last reply, per account and build like the payload, so it draws at once next time. */
@@ -3295,7 +3399,7 @@ const KEPT_PREFIX = 'kept:', KEPT_MAX = 200000;
 const keptKey_ = body => { const b = Object.assign({}, body); delete b.token; return KEPT_PREFIX + payloadFor_().who + ':' + JSON.stringify(b); };
 /* `anyBuild`: a record that is the person's own (a paper they downloaded), not a reply a new build may answer differently. */
 function keptGet_(k, anyBuild) {
-  try { const o = JSON.parse(localStorage.getItem(k) || 'null'); return o && (anyBuild || o.build === payloadFor_().build) && o.d && typeof o.d === 'object' ? o.d : null; } catch (e) { return null; }
+  try { const o = JSON.parse(keep_.get(k) || 'null'); return o && (anyBuild || o.build === payloadFor_().build) && o.d && typeof o.d === 'object' ? o.d : null; } catch (e) { return null; }
 }
 function keptPut_(k, text) {
   if (!text || text.length > KEPT_MAX) return;
@@ -3304,7 +3408,7 @@ function keptPut_(k, text) {
 /* GONE WITH THE PAYLOAD'S COPY: on sign-out and when the store is full. True when there was any. */
 function keptForget_() {
   const ks = [];
-  try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.indexOf(KEPT_PREFIX) === 0) ks.push(k); } ks.forEach(k => localStorage.removeItem(k)); } catch (e) { return false; }
+  ks.push(...keep_.keys(KEPT_PREFIX)); ks.forEach(k => keep_.del(k));
   return ks.length > 0;
 }
 
@@ -3371,6 +3475,14 @@ function kitParse_(cell) {
 
 /* A LIBRARY FILE GETS 20 SECONDS TO ANSWER AND 90 TO ARRIVE (503): one that hung kept `load()` from ever finishing. */
 const LIB_ANSWER = 20000, LIB_BODY = 90000;
+/* A FILE: index.html's early fetch when it started one (`BOOT_LIB`), else `dataFile_` with both waits; rejects with the reason. */
+async function libFile_(early, path, what) {
+  if (!early) return dataFile_(path, { wait: LIB_ANSWER + LIB_BODY, fail: true, what });
+  const res = await libWithin_(early, what, LIB_ANSWER);
+  if (!res) throw new Error(what + ' did not come back');
+  if (!res.ok) throw new Error(what + ' answered ' + res.status);
+  return libWithin_(res.json(), what, LIB_BODY);          /* a truncated body throws here, and that is the point */
+}
 function libWithin_(p, what, ms) {
   let t;
   const late = new Promise((u, no) => { t = setTimeout(() => no(new Error(what + ' did not arrive in ' + Math.round(ms / 1000) + ' seconds')), ms); });
@@ -3405,10 +3517,7 @@ async function libraryRowsAsk_() {
   try {
     const early = window.BOOT_LIB || null;
     window.BOOT_LIB = null;
-    const res = await libWithin_(early || fetch('data/questions.json' + deployStamp_(), { cache: 'default' }), 'the question file', LIB_ANSWER);
-    if (!res) LIBRARY_FAILED = 'the question file did not come back';
-    else if (!res.ok) LIBRARY_FAILED = 'the question file answered ' + res.status;
-    else rows = await libWithin_(res.json(), 'the question file', LIB_BODY);          /* a truncated body throws here, and that is the point */
+    rows = await libFile_(early, 'data/questions.json', 'the question file');
   } catch (e) {
     LIBRARY_FAILED = why_(e);
   }
@@ -3463,9 +3572,7 @@ async function libraryExtraAsk_(names) {
       const early = (window.BOOT_LIB_EXTRA || {})[name] || null;
       if (window.BOOT_LIB_EXTRA) window.BOOT_LIB_EXTRA[name] = null;
       /* ---------- WITH THE DEPLOY'S STAMP, AS THE BOXERS ALREADY WERE § */
-      const stamp = deployStamp_();
-      const res = await libWithin_(early || fetch('data/' + name + '.json' + stamp, { cache: 'default' }), name, LIB_ANSWER);
-      if (res && res.ok) rows = await libWithin_(res.json(), name, LIB_BODY);
+      rows = await libFile_(early, 'data/' + name + '.json', name);
     } catch (e) { rows = null; }
     out[name] = Array.isArray(rows) ? rows : [];
   }));
@@ -4562,17 +4669,13 @@ function settingsInto_(d, extra) {
 const OOPS = { sent: new Set(), n: 0, max: 10, told: 0 };
 function oopsDevice_() {
   try {
-    let d = localStorage.getItem('familyDevice');
-    if (!d) { d = 'D' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); localStorage.setItem('familyDevice', d); }
+    let d = keep_.get('familyDevice');
+    if (!d) { d = 'D' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); if (!keep_.put('familyDevice', d)) return 'nostore'; }
     return d;
   } catch (e) { return 'nostore'; }
 }
 function oopsHtml_() {
   return renderCard({ kind: 'oops', look: 'oops', tags: [{ text: 'This part did not load', colour: 0 }] });
-}
-/* THE SIGN-IN KEPT ON THIS PHONE; false when storage is blocked, and the sign-in still holds for this visit. */
-function keepUser_() {
-  try { localStorage.setItem('familyUser', JSON.stringify(USER)); return true; } catch (e) { return false; }
 }
 function oops_(err, where, host, o) {
   o = o || {};
@@ -4615,10 +4718,10 @@ function fieldSend_(final) {
   if (!FIELD.on || FIELD.sent || typeof API !== 'string' || typeof fetch !== 'function') return;
   FIELD.sent = true;
   let q = [];
-  try { q = JSON.parse(localStorage.getItem('familyField') || '[]'); } catch (e) { q = []; }
+  q = keep_.json('familyField', []);
   q.push(fieldRow_());
-  if (q.length < 3 && !final) { try { localStorage.setItem('familyField', JSON.stringify(q.slice(-5))); } catch (e) { FIELD.lost = (FIELD.lost || 0) + 1; } return; }
-  try { localStorage.removeItem('familyField'); } catch (e) { FIELD.lost = (FIELD.lost || 0) + 1; }
+  if (q.length < 3 && !final) { if (!keep_.put('familyField', JSON.stringify(q.slice(-5)))) FIELD.lost = (FIELD.lost || 0) + 1; return; }
+  if (!keep_.del('familyField')) FIELD.lost = (FIELD.lost || 0) + 1;
   try { Promise.resolve(fetch(API, { method: 'POST', cache: 'no-store', keepalive: true, body: JSON.stringify({ action: 'healthLog', device: fieldDevice_(), rows: q.slice(-5) }) })).catch(() => {}); }
   catch (e) { FIELD.lost = (FIELD.lost || 0) + 1; }
 }
@@ -4848,16 +4951,16 @@ let KEPT_GONE = '';
    Business is put back on it, and anybody else's remembered `biz` is not a column and is let go. */
 try { columnsFor_(); } catch (e) { oops_(e, 'shell:screen') }
 try {
-  const kept = localStorage.getItem('familyTab');
+  const kept = keep_.get('familyTab');
   const was = kept && screenNow_(kept);
-  const when = Number(localStorage.getItem('familyTabAt') || 0);
+  const when = Number(keep_.get('familyTabAt') || 0);
   if (was && TABS.some(t => t.id === was) && when && Date.now() - when < AWAY_AGAIN) AT = was;
   /* A REMEMBERED COLUMN THAT IS A FIND BRANCH NOW (screens-moved.json `find:`) opens that branch once the payload is in (`loadFinish_`). */
   else if (was && when && Date.now() - when < AWAY_AGAIN) KEPT_GONE = was;
 } catch { /* a bad stored tab opens the default one */ }
 /* ---------- AND THE MOMENT IS WHEN YOU LEFT, NOT WHEN YOU ARRIVED § */
 function tabStampLeft_() {
-  try { if (localStorage.getItem('familyTab') === AT) localStorage.setItem('familyTabAt', String(Date.now())); } catch { /* storage blocked: the tab is not remembered */ }
+  if (keep_.get('familyTab') === AT) keep_.put('familyTabAt', String(Date.now()));
 }
 window.addEventListener('pagehide', tabStampLeft_);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') tabStampLeft_(); });
@@ -4895,7 +4998,7 @@ function loading_() {
 /* EACH COLUMN'S SHAPE, KEPT ON THE DEVICE (700): page heights in px, no data, so a column waiting next visit holds its final size. */
 const SHAPE_KEY = 'arrival:shape', SHAPE_PAGES = 6;
 const shapeWidth_ = () => { try { return WIDE ? 'w' + Math.round(wideCard_().card) : 'n' + innerWidth; } catch (e) { return ''; } };
-function shapeAll_() { try { return JSON.parse(localStorage.getItem(SHAPE_KEY) || '{}') || {}; } catch (e) { return {}; } }
+function shapeAll_() { return keep_.json(SHAPE_KEY, {}); }
 /* A SHAPE WITH NO HEIGHT IN IT (nothing laid out, as under jsdom) is no shape: the column keeps its one waiting page. */
 function shapeOf_(id) { const w = shapeWidth_(), all = shapeAll_(), hs = all.at === w && all[id]; return Array.isArray(hs) && hs.some(h => h > 0) ? hs : null; }
 /* A COLUMN WITH NO DRAWER YET: its remembered pages, each a quiet surface round the one loader; one page when it was never seen. */
@@ -5034,10 +5137,10 @@ function go(id, remember, instant) {
   if (was && was !== AT) PREV_AT = was;
   if (remember !== false) {
     try {
-      localStorage.setItem('familyTab', AT);
+      keep_.put('familyTab', AT);
       /* THE STAMP IS WRITTEN WITH THE ID AND NEVER WITHOUT IT — see the note over `AT` above. A
          stamp left behind by an id that was not written is a column remembered by its timestamp. */
-      localStorage.setItem('familyTabAt', String(Date.now()));
+      keep_.put('familyTabAt', String(Date.now()));
     } catch { /* storage blocked: the tab is not remembered */ }
   }
 
@@ -6504,9 +6607,9 @@ const AHEAD_SLOW = new Set();
 const AHEAD_QUIET = 400, AHEAD_QUIET_SLOW = 1000, AHEAD_SLOW_MS = 150;
 /* ---------- THE SLOW BIT IS KEPT ON THE DEVICE, AND A COLUMN'S FIRST DRAW IS SLOW UNTIL IT HAS BEEN TIMED § */
 const AHEAD_SLOW_KEY = 'familyAheadSlow';
-try { (JSON.parse(localStorage.getItem(AHEAD_SLOW_KEY) || '[]') || []).forEach(k => { if (typeof k === 'string') AHEAD_SLOW.add(k); }); } catch (e) { /* a bad stored list reads as none */ }
+try { (JSON.parse(keep_.get(AHEAD_SLOW_KEY) || '[]') || []).forEach(k => { if (typeof k === 'string') AHEAD_SLOW.add(k); }); } catch (e) { /* a bad stored list reads as none */ }
 function aheadSlowKeep_() {
-  try { localStorage.setItem(AHEAD_SLOW_KEY, JSON.stringify([...AHEAD_SLOW].filter(k => /^(paint|widget):/.test(k)))); } catch (e) { /* storage can be blocked; the app runs without it */ }
+  keep_.put(AHEAD_SLOW_KEY, JSON.stringify([...AHEAD_SLOW].filter(k => /^(paint|widget):/.test(k))));
 }
 /* THE LAST TWO HUNDRED SLICES, for the harness and the journeys: what ran, for how long, and whether any
    gate was open that should not have been. */
@@ -7161,13 +7264,12 @@ function api(body, opts) {
            that person wrote in is drawn empty under the signed-out key now, and says why (317). */
         const gone = typeof whoIs_ === 'function' ? whoIs_() : '';
         if (typeof signedOut_ === 'function') { try { signedOut_({ ended: true }); } catch (e) { /* the sign-out goes on even if the redraw fails */ } }
-        else { USER = null; try { localStorage.removeItem('familyUser'); } catch (e) { /* storage can be blocked; the app runs without it */ } try { repaint(); } catch (e) { oops_(e, 'shell:api') } }
+        else { USER = null; keep_.signOut(); try { repaint(); } catch (e) { oops_(e, 'shell:api') } }
         /* THROUGH `ansRecPut_`, held for the visit when the store refuses or throws: without it a
            browser keeping no site data never knew whose the next answer was (review of the merge). */
         try {
           const rec = gone ? JSON.stringify({ who: gone, at: Date.now() }) : '';
-          if (rec && typeof ansRecPut_ === 'function') ansRecPut_('familyGone', rec);
-          else if (rec) localStorage.setItem('familyGone', rec);
+          if (rec) keep_.put('familyGone', rec, 'record');
         } catch (e) { /* storage can be blocked; the app runs without it */ }
         try { if (typeof ansSavedPaint_ === 'function') ansSavedPaint_(); } catch (e) { oops_(e, 'shell:api') }
         toast(text_('signed-out-please-sign-in-again'));
@@ -7340,7 +7442,7 @@ function voicesRanked_(lang, list) {
 }
 /* NO CHOICE: the best the device has; the old kept choice (453) is forgotten. */
 function voicePick_(lang, list) { return voicesRanked_(lang, list)[0] || null; }
-try { localStorage.removeItem('voice:name'); } catch (e) { /* storage can be blocked; the app runs without it */ }
+keep_.del('voice:name');
 /* MATHS SAID AS WORDS (453): the symbols a voice skips or reads as "superscript two". Words pass through unchanged. */
 const SAY_SUP = { '⁰': 0, '¹': 1, '²': 2, '³': 3, '⁴': 4, '⁵': 5, '⁶': 6, '⁷': 7, '⁸': 8, '⁹': 9 };
 const SAY_VULGAR = { '½': 'one half', '⅓': 'one third', '⅔': 'two thirds', '¼': 'one quarter', '¾': 'three quarters', '⅕': 'one fifth', '⅛': 'one eighth' };
@@ -8263,11 +8365,10 @@ function bootLoaded_(on) {
 function splashForget_() {
   const gone = [];
   try {
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i);
+    for (const k of keep_.keys('')) {
       if (k && (k === 'splashAnims' || k === 'splashOff' || k.indexOf('splashAnim:') === 0)) gone.push(k);
     }
-    gone.forEach(k => localStorage.removeItem(k));
+    gone.forEach(k => keep_.del(k));
   } catch (e) { /* storage blocked: old splash keys stay, unread */ }
   return gone.length > 0;
 }
@@ -8370,7 +8471,7 @@ function rulesSane_(v) {
 }
 function rulesKept_() {
   if (RULES_KEPT !== undefined) return RULES_KEPT;
-  try { RULES_KEPT = rulesSane_(localStorage.getItem(RULES_STORE)); } catch (e) { RULES_KEPT = null; }
+  try { RULES_KEPT = rulesSane_(keep_.get(RULES_STORE)); } catch (e) { RULES_KEPT = null; }
   return RULES_KEPT;
 }
 function rulesNow_() {
@@ -8381,7 +8482,7 @@ function rulesNow_() {
   const out = rulesSane_(src);
   RULES_MEMO = { src: src, out: out };
   RULES_KEPT = out;
-  try { if (out) localStorage.setItem(RULES_STORE, JSON.stringify(out)); else localStorage.removeItem(RULES_STORE); } catch (e) { /* storage can be blocked; the app runs without it */ }
+  keep_.put(RULES_STORE, out ? JSON.stringify(out) : null);
   rulesMark_();
   return out;
 }
@@ -9421,7 +9522,7 @@ function formDraftDrop_(id, o) {
   if (typeof draftDrop_ !== 'function' || typeof draftKey_ !== 'function') return;
   try {
     const pre = draftKey_('form', formDraftKey_(id, o, '')), keys = [];
-    for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.indexOf(pre) === 0) keys.push(k); }
+    keys.push(...keep_.keys(pre));
     keys.forEach(k => draftDrop_('form', k.slice(draftKey_('form', '').length)));
   } catch (e) { /* storage blocked: nothing was kept */ }
 }
@@ -9999,7 +10100,7 @@ on('apply-send', el => {
       USER.application = d.application || { status: 'new', at: Date.now() };
       Object.keys(APPLY_DOCS).forEach(k => { delete APPLY_DOCS[k]; });
       formDraftDrop_('apply-teach', { draftId: String((whose_() && whose_().personId) || '') });
-      try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (e) { /* storage can be blocked; the app runs without it */ }
+      saveUser_();
       toast(text_('application-sent'));
       try { paint('stuff'); } catch (e) { oops_(e, 'me:applyFormHtml_') }   /* Apply to teach is a Find › Settings › Staff card */
     })
@@ -10063,7 +10164,8 @@ function signedOut_(opts) {
   try { wasAdmin = (typeof may_ === 'function' && may_('admin')) || (typeof hasRole === 'function' && hasRole('admin')); } catch (e) { oops_(e, 'me:signedOut_') }
   USER = null; LENS = null;   /* and the lens: the next admin opens their own settings */
   if (typeof SIGN !== 'undefined' && !opts.quiet) { SIGN.who = ''; SIGN.dots = 0; SIGN.pin = []; SIGN.wrong = false; SIGN.known = null; SIGN.card = ''; }
-  try { localStorage.removeItem('familyUser'); } catch (e) { /* storage can be blocked; the app runs without it */ }
+  /* EVERY KEY THE KEEPER MARKS clearOnSignOut (`KEEP`, data.js): the sign-in, the stars, the kept payload, the card being edited. */
+  keep_.signOut();
   payloadForget_();   /* the device's copy of their payload goes with them (1070) */
   if (typeof window.offForget_ === 'function') window.offForget_();   /* and the app's offline copy; the words go with libDiskClear_ */
   /* ---------- AND WHAT THEY HAD ASKED FIND FOR GOES WITH THEM § */
@@ -10088,7 +10190,7 @@ function signedOut_(opts) {
   Object.keys(MSG_QUEUE).forEach(k => { delete MSG_QUEUE[k]; });
   try { DM_ASKED = false; DM_DONE = false; DM_LAST = 0; if (typeof dmStop_ === 'function') dmStop_(); } catch (e) { oops_(e, 'me:signedOut_') }
   /* THE STARS — the device's copy is a cache of the person, and the next person is not them. */
-  try { FAVS = new Set(); localStorage.removeItem('favs'); } catch (e) { /* storage can be blocked; the app runs without it */ }
+  FAVS = new Set();
   /* WHAT THE LAST PERSON SENT, AS THIS DEVICE HELD IT FOR THE VISIT, AND ANYTHING OPEN OVER THE SCREEN. § */
   try { if (typeof subForget_ === 'function') subForget_(); } catch (e) { oops_(e, 'me:signedOut_') }
   try { if (typeof kpClose_ === 'function') kpClose_(); } catch (e) { oops_(e, 'me:signedOut_') }
@@ -10113,8 +10215,6 @@ function signedOut_(opts) {
   try { if (typeof answersForget_ === 'function') answersForget_(); } catch (e) { oops_(e, 'me:signedOut_') }
   /* AND THE PEN — the last person's pad stayed armed under their key (`padWhoChanged_`, find-loupe.js). */
   try { if (typeof padWhoChanged_ === 'function') padWhoChanged_(); } catch (e) { oops_(e, 'me:signedOut_') }
-  /* AND THE DEAD KEY OF THE DRAW/TYPE SWITCH, which face each drawing question was left on (327, 337). § */
-  try { localStorage.removeItem('surfaceFace'); } catch (e) { /* storage can be blocked; the app runs without it */ }
   /* AND THE BOOKING FORM, which is the person's draft and not the next family's (`bookFollow_`, book.js;
      docs/history/317). `typeof`, because book.js loads after this file. */
   try { if (typeof bookFollow_ === 'function') bookFollow_(!!opts.quiet); } catch (e) { oops_(e, 'me:signedOut_') }
@@ -10147,7 +10247,7 @@ function signedIn_(d, typed) {
   /* THE REPLY, PLUS WHAT WE ALREADY KNEW — see `sign-digit`. The handle when the row has no name. */
   USER = me; LENS = null;
   if (!USER.name) USER.name = me.handle || typed || '';
-  try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (e) { /* storage can be blocked; the app runs without it */ }
+  saveUser_();
   /* ---------- AND ARRIVED OVER SOMEBODY ELSE, WRITTEN DOWN BEFORE ANY DOOR IS ASKED § */
   try { if (over && typeof ansSwitchedIn_ === 'function') ansSwitchedIn_(pid); } catch (e) { oops_(e, 'me:signedIn_') }
   /* THE PEN PUT DOWN FOR THE PERSON WHO IS SIGNED IN NOW. */
@@ -10181,7 +10281,7 @@ function signedIn_(d, typed) {
 
 /* NOTHING ABOUT WHO SIGNED IN IS KEPT ON THE DEVICE — the owner did not want recent usernames offered (docs/history/383). Old keys are wiped. */
 function signInForgetOld_() {
-  try { localStorage.removeItem('familyHandles'); localStorage.removeItem('familyAdminHint'); } catch (e) { /* storage can be blocked; the app runs without it */ }
+  keep_.del('familyHandles'); keep_.del('familyAdminHint');
 }
 signInForgetOld_();
 
@@ -10246,10 +10346,10 @@ const CAME_FROM_KEY = 'came_from';
 function cameFromSave_() {
   try {
     const f = String(new URLSearchParams(location.search).get('from') || '').toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 60);
-    if (f) localStorage.setItem(CAME_FROM_KEY, f);
+    if (f) keep_.put(CAME_FROM_KEY, f);
   } catch (e) { /* no storage: the sign-up is simply not traced */ }
 }
-const cameFrom_ = () => { try { return localStorage.getItem(CAME_FROM_KEY) || ''; } catch (e) { return ''; } };
+const cameFrom_ = () => keep_.get(CAME_FROM_KEY) || '';
 cameFromSave_();
 
 ;
@@ -10274,7 +10374,7 @@ function verifyFromLink_(again) {
         accountChanged_();
         if (USER) {
           USER.profile = Object.assign({}, USER.profile || {}, { email: String(d.email || ''), email_moving: '' });
-          try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch { /* storage blocked: the sign-in still holds for this visit */ }
+          saveUser_();
           try { repaint(true); } catch (e) { oops_(e, 'me:verifyFromLink_') }
         }
         toast('Your email is ' + (d.email || 'changed') + ' now — sign in with it from here on.');
@@ -10307,7 +10407,7 @@ function verifyFromLink_(again) {
           /* AND A `myProfile` ASKED BEFORE THIS IS NOT ALLOWED TO PUT IT BACK (`ACCOUNT_AT_`) — measured by round three of the review: § */
           accountChanged_();
           USER.pendingEmail = '';
-          try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch { /* storage blocked: the sign-in still holds for this visit */ }
+          saveUser_();
           try { repaint(true); } catch (e) { oops_(e, 'me:verifyFromLink_') }
         }
         toast('Email confirmed' + (first ? ', ' + first : '')
@@ -10321,7 +10421,7 @@ function verifyFromLink_(again) {
     .catch(err => {
       const d = err && err.reply;
       if (!d || d.why !== 'sign-in-first') return;    // `send_` has already toasted the server's sentence
-      try { sessionStorage.setItem('familyVerify', token); } catch (e) { /* storage can be blocked; the app runs without it */ }
+      keep_.put('familyVerify', token);
       try { go('account'); } catch (e) { oops_(e, 'me:verifyFromLink_') }
     });
 }
@@ -10339,10 +10439,10 @@ function afterSignIn_(d) {
       cardBlock_({ type: 'text', look: 'note', text: d.message }) + tile_({ form: true, label: 'Done', act: 'sheet-done', kind: 'quiet' }));
   }
   let waiting = '';
-  try { waiting = sessionStorage.getItem('familyVerify') || ''; sessionStorage.removeItem('familyVerify'); } catch (e) { /* storage can be blocked; the app runs without it */ }
+  waiting = keep_.get('familyVerify') || ''; keep_.del('familyVerify');
   if (waiting) verifyFromLink_(waiting);
   /* AND A CARD PAYMENT THAT CAME BACK BEFORE ANYBODY WAS SIGNED IN — see `paidFromLink_`. */
-  try { if (sessionStorage.getItem(PAID_KEY_)) paidFromLink_(); } catch (e) { /* storage can be blocked; the app runs without it */ }
+  try { if (keep_.get(PAID_KEY_)) paidFromLink_(); } catch (e) { /* storage can be blocked; the app runs without it */ }
 }
 
 /* ---------- AND THE SIGN-IN LINK IN A FORGOTTEN-PIN MAIL § */
@@ -10382,10 +10482,10 @@ function paidFromLink_() {
       const rest = q.toString();
       history.replaceState(null, '', location.pathname + (rest ? '?' + rest : '') + location.hash);
       if (paid !== '1' || !ref) { toast(text_('payment-cancelled-nothing-was-charged-your')); return; }
-      try { sessionStorage.setItem(PAID_KEY_, ref); } catch (e) { /* storage can be blocked; the app runs without it */ }
+      keep_.put(PAID_KEY_, ref);
     }
   } catch (e) { /* no address bar to read: no payment came back */ }
-  if (!ref) try { ref = sessionStorage.getItem(PAID_KEY_) || ''; } catch (e) { /* storage can be blocked; the app runs without it */ }
+  if (!ref) ref = keep_.get(PAID_KEY_) || '';
   if (!ref || PAID_ASKING_ === ref) return;
   if (!USER || !USER.token) {
     toast(text_('sign-in-to-finish-your-booking'));
@@ -10395,7 +10495,7 @@ function paidFromLink_() {
   /* A CHILD NEVER PAYS (398), so a child's phone does not ask — the parent who paid signs in and it finishes. */
   if (!may_('prices')) { toast('A parent paid for this — they sign in to finish the booking.'); return; }
   PAID_ASKING_ = ref;
-  const forget = () => { try { sessionStorage.removeItem(PAID_KEY_); } catch (e) { /* storage can be blocked; the app runs without it */ } };
+  const forget = () => { keep_.del(PAID_KEY_); };
   api({ action: 'finalizePayment', ref })
     .then(d => {
       PAID_ASKING_ = '';
@@ -11064,7 +11164,7 @@ function heldBy_(err) {
   const d = err && err.reply;
   if (!USER || !d || d.why !== 'unconfirmed' || !d.pendingEmail) return;
   USER.pendingEmail = String(d.pendingEmail);
-  try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch { /* storage blocked: the sign-in still holds for this visit */ }
+  saveUser_();
   try { repaint(true); } catch (e) { oops_(e, 'me:heldBy_') }
 }
 
@@ -11078,7 +11178,7 @@ on('resend-link', el => {
       if (d.why === 'confirmed' && USER) {
         accountChanged_();
         USER.pendingEmail = '';
-        try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch { /* storage blocked: the sign-in still holds for this visit */ }
+        saveUser_();
         try { repaint(true); } catch (e) { oops_(e, 'me:heldBy_') }
       }
     })
@@ -11322,13 +11422,8 @@ const STAB = { got: null, failed: false, asked: false, all: false };
 function stabilityCard_() {
   if (!STAB.asked) {
     STAB.asked = true;
-    try {
-      fetch('data/stability.json' + (typeof deployStamp_ === 'function' ? deployStamp_() : ''), { cache: 'default' })
-        .then(r => (r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status))))
-        .then(j => { STAB.got = j && typeof j.score === 'number' ? j : null; STAB.failed = !STAB.got; })
-        .catch(() => { STAB.failed = true; })
-        .then(() => { lensRedraw_(); });
-    } catch (e) { STAB.failed = true; }
+    dataFile_('data/stability.json')
+      .then(j => { STAB.got = j && typeof j.score === 'number' ? j : null; STAB.failed = !STAB.got; lensRedraw_(); });
   }
   const s = STAB.got;
   if (!s) return rolesSet_('biz stability-card', 'Stability', [STAB.failed ? { type: 'paperNote', alert: true, text: 'The score could not be read. Run node tools/stability.js and push.' } : { type: 'wait', on: true }]);
@@ -11395,7 +11490,7 @@ on('roles-save', el => {
       /* AND WHICH EMAILS REACH YOU NOW — they follow the roles (`notifyOf_`), so the Notifications card
          is redrawn from the server's list with them. An older backend sends none and the card keeps its own. */
       if (d.notify) USER.profile = Object.assign({}, USER.profile || {}, { notify: d.notify });
-      try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch { /* storage blocked: the sign-in still holds for this visit */ }
+      saveUser_();
       toast(d.changed ? 'Role saved' : 'Nothing changed');
       /* THE COLUMN IS DRAWN FROM THE ROLE — which pages of fields, the agreement card — so it is
          drawn again; then the payload, because who is a tutor is in it. */
@@ -11484,7 +11579,7 @@ on('notify-pick', el => {
         W.profile = Object.assign({}, W.profile, { notify: Object.assign({}, held, {
           kinds: held.kinds.map(x => x.kind === kind && !x.essential ? Object.assign({}, x, { on: on }) : x) }) });
       } else if (d && d.notify) W.profile = Object.assign({}, W.profile || {}, { notify: d.notify });
-      if (W === USER) keepUser_();
+      if (W === USER) saveUser_();
       NOTIFY_SAID = { pid: String(W.personId || ''),
         text: on ? label + ' is on.' : label + ' is off — we will not email you that.' };
       /* THE CARD ON THE PAGE NOW, for the roles card's reason: a payload landing mid-request repaints the
@@ -12742,7 +12837,7 @@ function meSave_(el, auto) {
       if (d && d.pendingEmail !== undefined) { accountChanged_(); W.pendingEmail = String(d.pendingEmail || ''); }
       /* ---------- "SAVED" IS NOT THE WHOLE STORY WHEN AN ADDRESS WAS TYPED § */
       const word = (d && d.said) || 'Saved';
-      if (W === USER) keepUser_();
+      if (W === USER) saveUser_();
       if (box.closest('#sheet-body') && !auto) closeSheet();
       /* THIS CARD IS CLEAN NOW, so a repaint may redraw it — see `settingsKeep_` — unless the caret is still in it. */
       const form = el.closest('.me-form');
@@ -12877,7 +12972,7 @@ function profileRefresh_(loud, onOld) {
       if (d.handle) USER.handle = String(d.handle);
       const roleMoved = JSON.stringify([USER.rank, USER.role, USER.roles, !!USER.tutorPending, String(USER.pendingEmail || ''),
         String(USER.name || ''), USER.children, USER.kids, String(USER.handle || '')]) !== roleWas;
-      try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch { /* storage blocked: the sign-in still holds for this visit */ }
+      saveUser_();
       /* BOTH THROUGH `landRepaint_` (shell.js), because this is a reply landing like the payload is: § */
       const land = typeof landRepaint_ === 'function' ? landRepaint_ : (f => (f || repaint)());
       if (roleMoved) { try { land(); } catch (e) { oops_(e, 'me:profileRefresh_') } return; }
@@ -12912,7 +13007,7 @@ FORM_SEND_['pin-change'] = (v, el) => {
       /* ---------- A NEW PIN ENDS EVERY SESSION, SO THIS PHONE IS HANDED A NEW ONE § */
       if (d && d.token) {
         USER.token = d.token;
-        try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch { /* storage blocked: the sign-in still holds for this visit */ }
+        saveUser_();
       }
       /* THE DIGITS GO THE MOMENT THEY ARE SENT. */
       askDone_('pin-change'); askPaint_('pin-change');
@@ -13242,7 +13337,7 @@ function pfpTake_(box, url, said) {
   if (!USER) return;
   USER.profile = Object.assign({}, USER.profile || {}, { photo: url });
   USER.photo = url;
-  try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (e) { /* storage can be blocked; the app runs without it */ }
+  saveUser_();
   ['tutors', 'people', 'students', 'clients', 'family', 'everyone'].forEach(k => ((DATA && DATA[k]) || []).forEach(r => {
     if (r && USER.personId && (r.personId === USER.personId || r.person_id === USER.personId || r.id === USER.personId)) {
       if ('image' in r) r.image = url;
@@ -13368,7 +13463,7 @@ function cardEditNow_() {
   if (!CARD_EDIT && CARD_EDIT_READ !== me) {
     CARD_EDIT_READ = me;
     try {
-      const k = JSON.parse(localStorage.getItem(CARD_EDIT_KEY) || 'null');
+      const k = JSON.parse(keep_.get(CARD_EDIT_KEY) || 'null');
       if (k && k.pid && k.who && k.who === me) {
         CARD_EDIT = cardEditFresh_(k.pid);
         if (!CARD_EDIT.own && PEOPLE_COLS_.indexOf(k.col) !== -1) CARD_EDIT.col = k.col;
@@ -13388,9 +13483,9 @@ function cardRemember_(e) {
   if (typeof e.fig0 === 'string') k.fig = e.fig0;
   /* NOT THE HANDLE (383): nothing about who signed in is kept beside it — it cannot change while the card is open, so the live one is the same. */
   if (typeof e.cr0 === 'number') k.cr = e.cr0;
-  try { localStorage.setItem(CARD_EDIT_KEY, JSON.stringify(k)); } catch (x) { /* storage can be blocked; the app runs without it */ }
+  keep_.put(CARD_EDIT_KEY, JSON.stringify(k));
 }
-function cardForget_() { try { localStorage.removeItem(CARD_EDIT_KEY); } catch (x) { /* storage can be blocked; the app runs without it */ } }
+function cardForget_() { keep_.del(CARD_EDIT_KEY); }
 
 /* WHO MAY EDIT THIS CARD: § */
 function cardMayEdit_(t) {
@@ -14047,7 +14142,7 @@ function cardSave_(el, auto) {
       if (e.own) {
         W.profile = (d && d.profile) ? d.profile : Object.assign({}, W.profile || {}, fields);
         if (d && d.name) W.name = d.name;
-        if (W === USER) try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (x) { /* storage can be blocked; the app runs without it */ }
+        if (W === USER) saveUser_();
         /* YOUR OWN COPY CHANGED, and the Progress column's journey card is drawn from it — see `meSave_`. */
       }
       cardPatchTutor_(e.pid, Object.assign({}, base, fields), fields);
@@ -14776,7 +14871,7 @@ function asstKey_() { return 'asst:' + String((USER && USER.personId) || ''); }
 let ASST_MEM = null;
 function asstGet_() {
   let s = null;
-  try { s = JSON.parse(localStorage.getItem(asstKey_()) || 'null'); } catch (e) { s = null; }
+  s = keep_.json(asstKey_(), null);
   if (!s && ASST_MEM && ASST_MEM.key === asstKey_()) s = ASST_MEM.s;
   s = s && typeof s === 'object' ? s : {};
   const msgs = Array.isArray(s.msgs) ? s.msgs.filter(m => m && typeof m.text === 'string') : [];
@@ -14784,7 +14879,7 @@ function asstGet_() {
   const left = s.day === today && typeof s.left === 'number' ? Math.min(s.left, asstCap_()) : asstCap_();
   return { day: today, left: Math.max(0, left), msgs: msgs.slice(-ASST_KEEP) };
 }
-function asstPut_(s) { ASST_MEM = { key: asstKey_(), s: s }; try { localStorage.setItem(asstKey_(), JSON.stringify(s)); } catch (e) {} }
+function asstPut_(s) { ASST_MEM = { key: asstKey_(), s: s }; keep_.put(asstKey_(), JSON.stringify(s)); }
 /* WHAT EACH COLUMN IS FOR, in plain words, so Daive can say where things are. Site help only: nothing about the business (547). */
 const ASST_NAV = {
   spotlight: 'what is pinned in the window', feed: 'posts; the camera is the page above the newest post', reel: 'short videos, one per page',
@@ -15305,9 +15400,8 @@ const fieldLabel = f => FIELD_LABEL[f] || String(f).replace(/_/g, ' ');
 
 
 /* ---------- THE BASKET § */
-let CART = [];
-try { CART = JSON.parse(localStorage.getItem('familyCart') || '[]'); } catch { /* a bad stored basket reads as empty */ }
-const cartSave = () => { try { localStorage.setItem('familyCart', JSON.stringify(CART)); } catch { /* storage blocked: the basket still holds for this visit */ } };
+let CART = keep_.json('familyCart', []);
+const cartSave = () => { keep_.put('familyCart', JSON.stringify(CART)); };
 
 /* ---------- A SHOP ROW PRICED IN PENCE IS MONEY, NOT CREDITS § */
 function cartPrice_(src) {
@@ -16042,7 +16136,7 @@ function tdYear0_(y) {
 }
 /* MY SCHOOL (491): starts and ends a few school days earlier or later, kept on this phone for whoever is signed in. */
 const tdKey_ = () => 'familyTermShift:' + ((typeof USER !== 'undefined' && USER && USER.personId) || 'anon');
-function tdShift_() { try { const o = JSON.parse(localStorage.getItem(tdKey_()) || 'null'); return { s: +(o && o.s) || 0, e: +(o && o.e) || 0 }; } catch (e) { return { s: 0, e: 0 }; } }
+function tdShift_() { try { const o = JSON.parse(keep_.get(tdKey_()) || 'null'); return { s: +(o && o.s) || 0, e: +(o && o.e) || 0 }; } catch (e) { return { s: 0, e: 0 }; } }
 /* N SCHOOL DAYS ON from a weekday, weekends skipped, so a shift never lands a first day on a Saturday. */
 function tdSchoolDays_(d, n) { let x = new Date(d.getTime()); const st = n < 0 ? -1 : 1; for (let k = Math.abs(n); k > 0;) { x.setDate(x.getDate() + st); if (x.getDay() % 6) k--; } return x; }
 function termDatesRows_(today) {
@@ -16085,7 +16179,7 @@ document.addEventListener('change', e => {
   const el = e.target && e.target.closest && e.target.closest('.td-adj');
   if (!el) return;
   const o = tdShift_(); o[el.dataset.td] = Number(el.value) || 0;
-  try { localStorage.setItem(tdKey_(), JSON.stringify(o)); } catch (x) {}
+  keep_.put(tdKey_(), JSON.stringify(o));
   paintTermDates_();
 });
 
@@ -16402,8 +16496,7 @@ function feedPicture(query) {
       + '&gsrsearch=' + encodeURIComponent('filetype:bitmap ' + q)
       + '&prop=imageinfo&iiprop=url|extmetadata&iiurlwidth=900';
 
-  return fetch(url)
-    .then(r => r.json())
+  return dataFile_(url, { fail: true })
     .then(d => {
       let out = null;
       if (key) {
@@ -17793,11 +17886,7 @@ const healthCardSpec_ = (body, look, name) => renderCard({ kind: 'panel', look: 
 function missingAsk_() {
   if (MISSING.list || MISSING.asking || typeof fetch !== 'function') return;
   MISSING.asking = true;
-  const stamp = deployStamp_();
-  Promise.resolve()
-    .then(() => fetch('data/settings/expected-papers.json' + stamp, { cache: 'default' }))
-    .then(res => (res && res.ok ? res.json() : null))
-    .catch(() => null)
+  dataFile_('data/settings/expected-papers.json')
     .then(d => {
       MISSING.asking = false;
       MISSING.list = Array.isArray(d) ? d : [];

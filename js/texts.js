@@ -3,13 +3,7 @@
    The index when a finder paints, a work's words when one of its cards is drawn. Sources: data/texts/LICENSE. */
 
 const TEXTS = { index: null, asking: null, failed: false, words: {}, loading: {}, missed: {}, items: null, from: null, adult: null };
-const textsGet_ = file => {
-  const stamp = deployStamp_();
-  return Promise.resolve()
-    .then(() => fetch('data/texts/' + file + stamp, { cache: 'default' }))
-    .then(res => (res && res.ok) ? res.json() : null)
-    .catch(() => null);
-};
+const textsGet_ = file => dataFile_('data/texts/' + file);
 /* A PART IS [chapter tag, cite, n]: n verses numbered 1..n, a list of their numbers, or 0 when the chapter is the card. */
 const textsUnits_ = p => p[2] === 0 ? [''] : Array.isArray(p[2]) ? p[2].map(String) : Array.from({ length: Number(p[2]) || 0 }, (_, i) => String(i + 1));
 

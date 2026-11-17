@@ -57,21 +57,21 @@ function ansRead_(k) {
   const held = typeof keepHeld_ === 'function' ? keepHeld_(k) : undefined;
   if (held !== undefined) return held || '';
   try {
-    const v = localStorage.getItem(k);
+    const v = keep_.get(k);
     if (v !== null) return v;
     /* ---------- AN ANSWER TYPED BEFORE ANYBODY SIGNED IN, FOUND AND MOVED § */
     const bare = k.replace(/^ans:u:[^:]*:/, 'ans:');
     if (bare === k) return '';
     /* THE SIGNED-OUT ONE AS ITS WRITER'S OWN READER READS IT (`ansValue_`), the visit's copy of a write
        the store refused first — `padAdopt_`'s reason below (317, "Six edges"). */
-    const was = typeof ansValue_ === 'function' ? ansValue_(bare) : localStorage.getItem(bare);
+    const was = typeof ansValue_ === 'function' ? ansValue_(bare) : keep_.get(bare);
     if (was === null) return '';
     /* NOT INTO SOMEBODY ELSE'S BOX: § */
     if (typeof ansMayMove_ === 'function' && !ansMayMove_(bare, k)) return '';
-    if (typeof ansStore_ === 'function') ansStore_(k, was); else localStorage.setItem(k, was);
+    if (typeof ansStore_ === 'function') ansStore_(k, was); else keep_.put(k, was);
     /* AND THE SIGNED-OUT COPY GOES THROUGH THE WRITER — the stored one, the visit's held one (or the page
        going would write it back, `keepRetry_`) and its mark (`ansGoneMark_`), all at once. */
-    if (typeof ansLocalPut_ === 'function') ansLocalPut_(bare, null); else localStorage.removeItem(bare);
+    if (typeof ansLocalPut_ === 'function') ansLocalPut_(bare, null); else keep_.del(bare);
     return was;
   } catch (e) { return ''; }
 }

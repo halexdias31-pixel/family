@@ -510,7 +510,7 @@ function tdYear0_(y) {
 }
 /* MY SCHOOL (491): starts and ends a few school days earlier or later, kept on this phone for whoever is signed in. */
 const tdKey_ = () => 'familyTermShift:' + ((typeof USER !== 'undefined' && USER && USER.personId) || 'anon');
-function tdShift_() { try { const o = JSON.parse(localStorage.getItem(tdKey_()) || 'null'); return { s: +(o && o.s) || 0, e: +(o && o.e) || 0 }; } catch (e) { return { s: 0, e: 0 }; } }
+function tdShift_() { try { const o = JSON.parse(keep_.get(tdKey_()) || 'null'); return { s: +(o && o.s) || 0, e: +(o && o.e) || 0 }; } catch (e) { return { s: 0, e: 0 }; } }
 /* N SCHOOL DAYS ON from a weekday, weekends skipped, so a shift never lands a first day on a Saturday. */
 function tdSchoolDays_(d, n) { let x = new Date(d.getTime()); const st = n < 0 ? -1 : 1; for (let k = Math.abs(n); k > 0;) { x.setDate(x.getDate() + st); if (x.getDay() % 6) k--; } return x; }
 function termDatesRows_(today) {
@@ -553,7 +553,7 @@ document.addEventListener('change', e => {
   const el = e.target && e.target.closest && e.target.closest('.td-adj');
   if (!el) return;
   const o = tdShift_(); o[el.dataset.td] = Number(el.value) || 0;
-  try { localStorage.setItem(tdKey_(), JSON.stringify(o)); } catch (x) {}
+  keep_.put(tdKey_(), JSON.stringify(o));
   paintTermDates_();
 });
 
