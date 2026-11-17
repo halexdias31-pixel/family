@@ -276,7 +276,6 @@ const RUNNABLE = {
   authoriseDrive: () => authoriseDrive(),
   checkScopes: () => checkScopes(),
   geocode: () => geocodeVenues(),
-  buildRaceMap: a => buildRaceMap_(a),
   regeocode: () => runRegeocode_(),
   rename: a => renameValue_(a),
   seedOptions: () => seedOptions(),

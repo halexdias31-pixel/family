@@ -62,7 +62,6 @@ function saveBlob_(blob, name) {
 }
 
 /* ---------- PAINTING: a press paints the square under it, and a drag paints every square it crosses (the grid takes the drag, never the column). */
-let PXE_DOWN = false;
 function pxeAt_(e) {
   const hit = (document.elementFromPoint && document.elementFromPoint(e.clientX, e.clientY)) || e.target;
   const c = hit && hit.closest ? hit.closest('[data-pxe]') : null;
@@ -72,17 +71,12 @@ function pxeAt_(e) {
   PXE.px[i] = v;
   c.style.background = v;
 }
-document.addEventListener('pointerdown', e => {
-  if (!(e.target && e.target.closest && e.target.closest('.pxe-grid'))) return;
+inputDrag_(e => {
+  if (!(e.target && e.target.closest && e.target.closest('.pxe-grid'))) return null;
   pxeLoad_();
-  PXE_DOWN = true;
-  e.preventDefault();
   pxeAt_(e);
-});
-document.addEventListener('pointermove', e => { if (PXE_DOWN) pxeAt_(e); });
-function pxeUp_() { if (!PXE_DOWN) return; PXE_DOWN = false; pxeKeep_(); }
-document.addEventListener('pointerup', pxeUp_);
-document.addEventListener('pointercancel', pxeUp_);
+  return {};
+}, (g, e) => pxeAt_(e), () => pxeKeep_());
 
 /* THE FORM'S TWO ROWS: a new grid size starts a blank picture of that size; the colour is kept as it is picked. */
 document.addEventListener('change', e => {

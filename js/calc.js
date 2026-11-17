@@ -42,14 +42,9 @@ function calcPress_(box, v) {
 }
 on('qcalc-key', el => calcPress_(el.closest('.calc'), el.getAttribute('data-mc')));
 /* TYPING ON A LAPTOP, while focus is anywhere inside a calculator */
-document.addEventListener('keydown', e => {
-  const box = e.target && e.target.closest && e.target.closest('.calc[data-key]');
-  if (!box || e.ctrlKey || e.metaKey || e.altKey) return;
-  const k = /^[0-9]$/.test(e.key) ? e.key : CALC_KEYBOARD[e.key];
-  if (!k) return;
-  e.preventDefault();
-  calcPress_(box, k);
-});
+inputKeys_(Object.assign({ 0: '0', 1: '1', 2: '2', 3: '3', 4: '4', 5: '5', 6: '6', 7: '7', 8: '8', 9: '9' }, CALC_KEYBOARD),
+  (k, down, e) => calcPress_(e.target.closest('.calc[data-key]'), k),
+  { when: e => !!(e.target && e.target.closest && e.target.closest('.calc[data-key]')), stop: false, inField: true });
 /* THE QUESTION TOOL ROW'S CALCULATOR (owner, 11 Nov), this face; since 13 Nov a small one floating over the page, dragged like the ruler. */
 const calcAllowed_ = x => ![].concat((x && x.needs) || []).some(v => /^non-calculator$|^no calculator$/i.test(String(v).trim()));
 /* ONE AT A TIME: the part whose calculator floats, or none */

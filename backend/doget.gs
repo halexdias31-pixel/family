@@ -1,7 +1,7 @@
 /* @family. — 60_doGet.gs (7 of 8) THE PAYLOAD. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOGET_VERSION = "2026-11-17-life-1";
+const DOGET_VERSION = "2026-11-17-engines-1";
 
 
 function doGet(e) {
@@ -162,7 +162,7 @@ function getCatchUp_(p, askedBy_) {
   return { behind: behind, migrated: migrated };
 }
 
-/* THE ASKS THAT ARE NOT A PAYLOAD (a job, setup, receipts, the racer's map, triggers); null for a payload. */
+/* THE ASKS THAT ARE NOT A PAYLOAD (a job, setup, receipts, triggers); null for a payload. */
 function getRouted_(p, migrated, askedBy_) {
   /* A maintenance job, before anything else — none of these want a payload built first, and
      `checkEverything` in particular is for the case where building one fails. */
@@ -179,7 +179,6 @@ function getRouted_(p, migrated, askedBy_) {
   if (p.receipts) return getReceipts_(p, askedBy_);
 
   /* THE RACER'S MAP (426), on its own and never in the payload: half a megabyte nobody else needs. */
-  if (p.race) return raceServe_();
 
   // ?triggers=1 installs the nightly jobs; ?triggers=list shows what's scheduled.
   if (p.triggers) return jsonOut({ version: BACKEND_VERSION,
