@@ -253,7 +253,6 @@ function padLand_(e, ink, k) {
   }
   if (!ink) return;
   /* A COLUMN OR A PANE ALREADY MOVING IS NOT DRAWN ON: the swipe engine is carrying another finger. */
-  if (e.isPrimary === false && typeof SWIPE !== 'undefined' && SWIPE.live && SWIPE.axis && SWIPE.id !== e.pointerId) return;
   const r = ink.getBoundingClientRect();
   const at = padMap_(r, e.clientX, e.clientY);
   if (!at) { PAD_TOUCH.delete(c.id); return; }

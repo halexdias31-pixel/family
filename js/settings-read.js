@@ -1,19 +1,3 @@
-function setColumns_(d, extra) {
-  const columns = extra['settings/columns'];
-  if (columns && columns.length) {
-    const live = columns
-      .map((r, i) => ({ r: r, i: i }))
-      .filter(x => libS(x.r.screen) && libOn(x.r.active))
-      .sort((a, b) => (libN(a.r.sort_order) - libN(b.r.sort_order)) || (a.i - b.i))
-      .map(x => ({ screen: libS(x.r.screen), label: libS(x.r.label), icon: libS(x.r.icon) }));
-    if (live.length) d.columns = live;
-    /* SWITCHED OFF (880): each is a Coming soon card in Find, its first plain line its notes; switched on again, its card goes. */
-    d.columnsOff = columns.filter(r => libS(r.screen) && !libOn(r.active))
-      .map(r => ({ screen: libS(r.screen), label: libS(r.label) || libS(r.screen), what: libS(r.notes).split(/ — |\. |\(/)[0].trim(),
-        inFind: libS(r.in_find) !== '' && libOn(r.in_find), soonKind: libS(r.soon_kind) || 'soon' }));
-  }
-}
-
 function setSpot_(d, extra) {
   /* THE SHOP WINDOW'S FLOOR, `spotlightFile` not `spotlight` § */
   const spot = extra['settings/spotlight'];
@@ -36,13 +20,6 @@ function setMarking_(d, extra) {
   if (rows && rows.length) d.marking = rows.filter(r => r && libS(r.kind)).map(r => Object.assign({}, r));
 }
 
-function setInFind_(d, extra) {
-  /* ---------- WHICH WIDGETS ARE FIND CARDS (790): a row names a widget's kind or its id; the id's row wins (`widgetInFind_`, arcade.js) ---------- */
-  const inFind = extra['settings/widgets-in-find'];
-  if (inFind && inFind.length) {
-    d.widgetsInFind = inFind.filter(r => libS(r.widget).trim()).map(r => ({ widget: libS(r.widget).trim(), find: libOn(r.find) }));
-  }
-}
 
 function setFor_(d, extra) {
   /* ---------- EACH SETTING'S NAME AND PLACE; who sees it is permissions.json's `see` rows (86a), never this file ---------- */
@@ -95,7 +72,7 @@ const labelOf_ = (group, key, fallback) => {
 function settingsInto_(d, extra) {
   if (!d || !extra) return d;
   setBrand_(d, extra); setMoved_(d, extra); setLaws_(d, extra); setFacts_(d, extra);
-  setColumns_(d, extra); setSpot_(d, extra); setInFind_(d, extra); setConfusables_(d, extra); setMarking_(d, extra); setFor_(d, extra); setCardFields_(d, extra);
+  setSpot_(d, extra); setConfusables_(d, extra); setMarking_(d, extra); setFor_(d, extra); setCardFields_(d, extra);
   setDefaultPictures_(d, extra); setPermissions_(d, extra); setLabels_(d, extra);
   return d;
 }

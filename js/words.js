@@ -1,5 +1,7 @@
-/* @family. — words.js THE ADMIN CHANGES THE SITE WITHOUT ASKING (497): the words on every widget and card edited in place, and who sees each. */
-/* Words: config's one `words` row, `{key: text}`, sent as `words`; a key is `<card or w:widget>|<slot>`. Who sees: the layout's `seen`. */
+/* @family. — words.js THE ADMIN CHANGES THE SITE WITHOUT ASKING (497): the words on every widget and card edited in place. */
+/* Words: config's one `words` row, `{key: text}`, sent as `words`; a key is `<card or w:widget>|<slot>`. */
+/* A CARD'S OR WIDGET'S WORDS SCOPE: `w:<widget>`, a card's id (`set:account:contact`), an item's (`item:dm:daive`). */
+const WORDS_SCOPE = /^[A-Za-z0-9_:.#-]{1,64}$/;
 
 /* ---------- THE WORDS IN FORCE: the payload's, else the device's copy of the last, else the code's own ---------- */
 const WORDS_STORE = 'familyWords';
@@ -35,7 +37,7 @@ const wordsAttr_ = s => String(s).replace(/"/g, '&quot;');
 /* Only a piece that is text alone (no markup inside); what replaces it is escaped, so typed `<script>` is shown as text. */
 function wordsIn_(scope, html) {
   const h = String(html == null ? '' : html);
-  if (!h || !LAYOUT_ID.test(String(scope || ''))) return h;
+  if (!h || !WORDS_SCOPE.test(String(scope || ''))) return h;
   /* THE CARD BEING EDITED IS DRAWN EDITABLE: the lock is written in the markup, never set by script (the answer boxes' rule). */
   const edit = WORDS_EDIT === scope ? ' contenteditable="plaintext-only" spellcheck="true"' : '';
   const piece = (kind, raw, open, close) => {
@@ -55,12 +57,10 @@ function wordsIn_(scope, html) {
     });
 }
 
-/* ---------- THE ADMIN'S TWO TILES on every widget, card and item, in the layout group: Edit words, Who sees this ---------- */
-function wordsOpts_(scope, id) {
+/* ---------- THE ADMIN'S TILE on every widget, card and item: Edit words ---------- */
+function wordsOpts_(scope) {
   if (!may_('admin')) return null;
-  const s = seenOf_(id);
-  return [{ icon: 'edit', label: 'Edit words', note: 'type over this card\'s words, for everyone', act: 'words-edit', tone: 'admin', data: { ws: scope } },
-    { icon: 'show', label: 'Who sees this', note: s ? SEEN_SAY[s] : 'Everyone', act: 'seen-open', tone: 'admin', on: !!s, data: { lc: id } }];
+  return [{ icon: 'edit', label: 'Edit words', note: 'type over this card\'s words, for everyone', act: 'words-edit', tone: 'admin', data: { ws: scope } }];
 }
 const wordsRoot_ = el => el.closest('.wk-editing') || el.closest('.card, .own-set, .post');
 const wordsText_ = s => String(s || '').replace(/[\u0000-\u001f\u007f]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, WORDS_PIECE_MAX);
@@ -88,7 +88,10 @@ function wordsEditOn_(root) {
 /* REDRAWN EDITABLE (or not), then the bar put on the card found again by its tile. */
 function wordsEditSet_(scope) {
   WORDS_EDIT = scope;
-  try { layoutRelayout_(); } catch (e) {}
+  /* FIND'S LIST HOLDS THE WIDGET CARDS (790): forgotten, so the card is drawn again editable (`repaint` leaves the one in front). */
+  try { if (typeof stuffForget_ === 'function') stuffForget_(); } catch (e) { /* find.js not in yet: nothing is memoised */ }
+  try { repaint(true); } catch (e) {}
+  try { if (typeof finderOf_ === 'function' && finderOf_(AT)) paint(AT, true); } catch (e) { /* paint reports its own draw errors */ }
   if (!scope) return;
   wordsBarOn_(scope, 10);
 }
@@ -149,45 +152,21 @@ document.addEventListener('paste', e => {
   try { document.execCommand('insertText', false, t); } catch (x) {}
 }, true);
 
-/* ---------- WHO SEES THIS (497): `seen: {id: level}` on the layout; it narrows only, the code's own gate always wins ---------- */
-const SEEN_SAY = { out: 'Signed out only', in: 'Signed in', student: 'Students', client: 'Parents (Client)', staff: 'Tutors (Staff)', admin: 'Admin only' };
-function seenOf_(id) { const s = (((layoutNow_() || {}).seen) || {})[id]; return SEEN_ORDER.indexOf(s) !== -1 ? s : ''; }
-/* AN ADMIN STILL SEES EVERYTHING, or a thing narrowed away from them could never be widened again. */
-function seenOk_(id) {
-  const s = seenOf_(id);
-  if (!s || may_('admin')) return true;
-  const signed = typeof USER !== 'undefined' && !!USER;
-  if (s === 'out') return !signed;
-  if (s === 'in') return signed;
-  return typeof rankAtLeast_ === 'function' && rankAtLeast_(s);
+/* ---------- A CARD'S TILE ROW PUT INSIDE IT: only when the last `</div>` closes the card; else after it ---------- */
+function cardRowIn_(h, row) {
+  const t = h.replace(/\s+$/, '');
+  if (/^\s*<div\b[^>]*\sclass="(card|own-set)/.test(t) && /<\/div>$/.test(t)) {
+    let depth = 0, end = -1;
+    const re = /<(\/?)div\b[^>]*>/g;
+    for (let m; (m = re.exec(t));) { depth += m[1] ? -1 : 1; if (!depth) { end = re.lastIndex; break; } }
+    if (end === t.length) return t.slice(0, -6) + row + t.slice(-6);
+  }
+  return h + row;
 }
-/* A LEVEL BELOW THE CODE'S GATE WOULD WIDEN IT, so it is not offered (and would not work: both are asked). */
-const seenWider_ = (lvl, gate) => !!gate && lvl !== '' && (lvl === 'out' || SEEN_ORDER.indexOf(lvl) < SEEN_ORDER.indexOf(gate));
-function seenBox_(id) {
-  const now = seenOf_(id), gate = seenGate_(id);
-  const opt = (v, say) => ({ value: v, text: say, on: v === now, off: seenWider_(v, gate) && v !== now });
-  return cardBlock_({ type: 'group', look: 'seen-box', attrs: { 'data-seen-for': id }, blocks: [
-    { type: 'group', tag: 'label', look: 'row seen-item', blocks: [{ type: 'group', tag: 'span', look: 'seen-l', text: 'Who sees this' },
-      { type: 'control', tag: 'select', attrs: { 'data-do': 'seen-set', 'data-lc': id, 'aria-label': 'Who sees this' },
-        options: [opt('', 'Everyone')].concat(SEEN_ORDER.map(v => opt(v, SEEN_SAY[v]))) }] },
-    { type: 'tiles', tiles: [{ icon: 'close', label: 'Close', act: 'seen-close', tone: 'admin' }] }] });
+/* AN ITEM FIND'S OWN CODE PLACES (487), `item:<where>:<name>`: its words the admin's, and Edit words on it for an admin. */
+function itemMark_(id, html) {
+  if (!html) return '';
+  const h = wordsIn_(id, String(html)).replace(/^(\s*<div)\b/, `$1 data-item="${esc(id)}"`);
+  if (!may_('admin')) return h;
+  return cardRowIn_(h, cardBlock_({ type: 'group', look: 'tile-row wgt-admin card-admin item-admin no-move', attrs: { 'data-lay-for': id }, inner: tile_(wordsOpts_(id)) }));
 }
-on('seen-open', el => {
-  if (!may_('admin')) return;
-  const id = el.getAttribute('data-lc'), row = el.closest('.tile-row');
-  if (!row || !LAYOUT_ID.test(id || '')) return;
-  const open = row.parentElement && [...row.parentElement.querySelectorAll(':scope > .seen-box')].find(b => b.getAttribute('data-seen-for') === id);
-  if (open) { open.remove(); return; }
-  row.insertAdjacentHTML('afterend', seenBox_(id));
-});
-on('seen-close', el => { el.closest('.seen-box')?.remove(); });
-on('seen-set', el => {
-  if (!may_('admin')) return;
-  const id = el.getAttribute('data-lc'), v = String(el.value || '');
-  if (!LAYOUT_ID.test(id || '') || (v && SEEN_ORDER.indexOf(v) === -1) || (seenWider_(v, seenGate_(id)) && v !== '')) return;
-  const D = layoutDraftOf_(layoutNow_());
-  D.seen = Object.assign({}, D.seen || {});
-  if (v) D.seen[id] = v; else delete D.seen[id];
-  if (!Object.keys(D.seen).length) delete D.seen;
-  layoutSave_(D);
-});

@@ -489,7 +489,7 @@ function inputDrag_(start, move, end, o) {
 ;
 /* ==== js/kinds.js ==== */
 /* @family. — js/kinds.js: WRITTEN BY tools/kinds.js FROM data/settings/kinds.json and facets.json; edit those. */
-const ITEM_KINDS = {"kinds":{"tutor":{"source":"Ledger people tab (role tutor)","loader":"payload -> find-aloud.js","sample":"check/fixture.json tutors","sheet":{"tab":"people","columns":["personId","title","tags","titles","venues","rate","listed"],"never":["pin"],"via":"person","id":"person_id","show":["person_id","role","first_name","handle","photo","photos","video","headline","adjective_1","adjective_2","adjective_3","years_experience","focus","borough","town","city","travel_km","rate_per_hour","extra_seat_rate","min_students","max_students","availability","listed","avatar","dbs_checked"]},"find":{"group":"Booking","label":"Tutors","under":["Booking","Profiles"],"draw":"findTutorCard_","facets":["forLabel","kindLabel","kindOwn","profileType"]},"card":{"look":"is-widget is-prof tcard","id":["personId","id"],"name":"title","nameTag":false,"tags":["tags","titles"],"links":["venues"],"lines":true,"off":"kcUnlisted_(row)","body":"profBody_(row, live)","picture":"profFace_(entry, 96)","tagLook":"prof-tags prof-who-tags","pills":"profPills_(item, entryRow)","tagRows":"profTagRows_(raw)"},"live":{"money":"kcTutorMoney_(row)","say":"kcTutorSay_(row)"},"see":{"who":"anyone","hide":{"prices":["rate","rate_per_hour","extra_seat_rate","extra_seat_cut"],"admin":["note"]}},"forms":{"card-edit":{"attr":"data-me","draft":false,"fields":"list","say":"the tutor card's edit form (cardEditForm_): its sections' names, typed by rules; a price only for may_('prices').","ask":"card"},"card-seat":{"attr":"data-pound","draft":false,"say":"the extra seat in pounds, kept as the share in the hidden twin (type `shown`: `show` draws the stored value, `store` turns what is typed back); @family.'s share only for an admin.","fields":[{"f":"extra_seat_rate","type":"shown","as":"money","twin":"data-me","show":"cardSeatShown_","store":"cardSeatShare_"},{"f":"extra_seat_cut","type":"shown","as":"money","twin":"data-me","show":"cardSeatShown_","store":"cardSeatShare_","may":"admin"}]},"card-where":{"attr":"data-me","draft":false,"say":"Where you teach: an area a tick, rewriting the hidden venues_ok, saved by the card's Save.","fields":[{"f":"venues_ok","type":"hidden"},{"f":"areas","type":"ticks","attr":"data-where-area","label":"Areas you teach in","look":"many-list where-areas"}]}},"fields":{"extra_seat_rate":{"label":"extra seat: share of your rate, 0–1 (0.5 = half)","min":0,"max":1,"step":0.05},"extra_seat_cut":{"label":"@family.'s share of an extra seat, 0–2 (blank = the usual)","labelLocked":"@family.'s share of an extra seat — set by @family. (blank = the usual)","min":0,"max":2,"step":0.01,"pad":"decimal"}}},"venue":{"source":"Ledger venues + rooms tabs (data/settings/venues.json)","loader":"payload -> find-aloud.js","sample":"check/fixture.json venues","sheet":{"tab":"venues","columns":["name","focus","borough","city","tags","maxCapacity","bestRate"],"also":["rooms"],"id":"venue_id"},"find":{"group":"Venues","label":"Venues","under":"Booking","facets":["forLabel","kindLabel","kindOwn","venueArea","venueFor","venueSize"]},"card":{"look":"venue-door","tags":["focus","borough","city","tags"],"lines":true,"body":"kcVenueBody_(row, live)","picture":"kcVenuePic_(item, entry)"},"live":{"rooms":"kcRooms_(row)"},"see":{"who":"anyone","hide":{"prices":["price","cost_per_hour","travel_cost"]}}},"subject":{"source":"payload (Ledger people/pricing)","loader":"subjectRows() -> find-aloud.js","find":{"group":"Booking","label":"Subjects","under":"Booking","facets":[]},"card":{"look":"is-subject","tags":["levels","focus"],"lines":true,"liveTags":{"tutors":3},"body":"kcSubjectBody_(row, live)"},"live":{"levels":"kcLevels_(row)","tutors":"kcTutorNames_(row)"},"see":{"who":"anyone"}},"level":{"source":"payload (Ledger people/pricing)","loader":"find-aloud.js","find":{"group":"Booking","label":"Levels","under":"Booking","facets":["forLabel","kindLabel","kindOwn"]},"card":{"look":"is-level","tags":["subjects","focus"],"lines":true,"liveTags":{"tutors":3},"body":"kcLevelBody_(row, live)"},"live":{"subjects":"kcSubjects_(row)","tutors":"kcTutorNames_(row)"},"see":{"who":"anyone"}},"booking":{"source":"Ledger events + receipts tabs","loader":"backend booking.gs -> book-*.js (myJobs_ -> findMineItems_)","sample":"check/fixture.json liveJobs","sheet":{"tab":"jobs","columns":["job_id","subject","level","tutor","venue","price","unit","rate","weeks","client","slots"],"also":["receipts"],"id":"job_id","owner":["booked_by","client_hosts"]},"find":{"group":"Booking","label":"Receipts","under":"Booking","entries":{"receipt":{},"offBooking":{"label":"Booking","draw":""}},"facets":[]},"card":{"card":"receipt","id":["id","jobId","job_id"],"name":"kcBookingName_(row)","facts":true,"tags":["subject","level","tutor","venue"],"pills":"kcBookingPills_(item)","body":"kcBookingBody_(row, live)","tool":"jobPage_(raw)","letter":{"say":"THE BOOKING AS AN EMAIL SAYS IT (owner, 16 Nov: one card maker): renderCard with inline \"text\" writes these lines, each through the words file; a line marked price is never said to a child or when prices are off.","bullet":"• ","lines":[{"word":"card-subject-level","need":["subject","level"],"alone":"subject"},{"word":"card-day-at-time","need":["day","time"],"date":true,"alone":"any"},{"need":["location"],"alone":"location"},{"word":"card-dates","need":["dates"]},{"word":"card-total","need":["price"],"money":true,"price":true,"as":{"price":"total"}}]}},"live":{"money":"kcBookingMoney_(row)"},"see":{"who":"self, family, staff, admin","hide":{"prices":["rate","total","price_total","tutor_pay","travel_paid","admin_profit","gross","tutor_payout","venue_cost","materials_charge","materials_cost","tickets_cost","card_fees","discount_value","net_profit"],"admin":["tutor_pay","admin_profit","net_profit","venue_cost","card_fees"]}}},"bookform":{"source":"the booking form (js/book-*.js)","find":{"group":"Booking","label":"Booking form","under":"Booking","draw":"bookFormCard_"},"see":{"who":"anyone"},"forms":{"booking":{"ask":"find","say":"Booking, asked in Find one field a step in this order (owner, 13 Nov); each field is a BOOK_STEPS question (book-steps.js) or the hour grid (days, slots). given: the site answers it (bookPrefill_), still a chip. many: several answers, a tap ticks; need: how many before Next. rows: the order the booking card lists them (BOOK_STEPS). A field's `step` is its booking question as data, read by formSteps_ (form.js): q, short (words keys or text); list (fixed options) or from (a source: clients, children, openJobs, subjects, levels, tutors, venues, intervals, seats, hourGrid); when/unless (conditions that empty the list), may (a permission); filter (a row field that must be set, or a named test), label (the row field, or fields in turn, or a named function), sort (a row field), first/last (options put before/after), then (a named step over the whole list); say (an option's shown text: a map, or a named function); check (why an answer is refused), off (why an option is greyed), fallback, lock, set: named functions in BOOK_FNS (book-steps.js). Any name is looked up there first, else read as a row field.","fields":[{"f":"how","given":true,"step":{"q":"how-would-you-like-to-book","short":"Kind","list":["instant-class","waiting-list-class"],"set":"howSet"}},{"f":"client","step":{"q":"who-is-this-for","short":"For","from":"clients","may":"admin","label":"name","then":"meFirstNobody","fallback":"me","check":"needsSomebody","set":"kidsFor"}},{"f":"joining","given":true,"step":{"q":"something-already-going-or-a-new","short":"Class","when":"how","from":"openJobs","filter":"sameKind","label":"openClass","first":["start-a-new-one"],"set":"joiningSet"}},{"f":"subjects","many":true,"need":1,"step":{"q":"what-are-we-working-on","short":"Subject","from":"subjects","label":"name"}},{"f":"level","step":{"q":"what-level-the-highest-among-the","short":"Level","from":"levels"}},{"f":"tutor","step":{"q":"anyone-in-particular","short":"Tutor","unless":"waiting","from":"tutors","filter":"title","label":"title","first":["no-preference"],"say":"tutorListed","fallback":"waitNoPreference","check":"teaches"}},{"f":"loc","step":{"q":"Where?","short":"Venue","only":"wait, tutoring","from":"venues","label":"label","wrap":true,"check":"roomHolds","set":"homeHostsItself"}},{"f":"hosting","step":{"q":"are-you-providing-the-space","short":"Space","only":"wait, tutoring","unless":["waiting","atHome"],"list":["No","Yes"],"filter":"roomCosts","say":{"Yes":"yes-no-room-hire","No":"no-we-book-the-room"},"fallback":"atHomeYes"}},{"f":"interval","many":true,"step":{"q":"over-what-period","short":"Term","from":"intervals","label":["label","term"],"fallback":"waitTerm","filter":["label","term"]}},{"f":"days","need":1,"ask":"Which day?"},{"f":"slots","many":true,"need":1,"ask":"What time? Each tag is one hour.","grid":true,"step":{"q":"When?","short":"When","unless":"waiting","from":"hourGrid","grid":"hours","week":true}},{"f":"avail","many":true,"grid":true,"step":{"q":"when-could-you-come","short":"when-free","only":"wait","grid":"blocks","week":true}},{"f":"kids","many":true,"step":{"q":"which-of-your-children-is-this","short":"Child","unless":"waiting","from":"children","last":["someone-else"],"set":"seatsFollowKids"}},{"f":"n","step":{"q":"how-many-extra-seats","short":"extra-seats","from":"seats","say":"extraSeats","lock":"homeSeats","off":"overCap","check":"seatLimits"}}],"look":"book-step","rows":["client","how","kids","joining","subjects","level","tutor","loc","hosting","n","interval","slots","avail"]}}},"question":{"source":"data/questions.json + data-private + Ledger lib_questions","loader":"js/data.js, js/library.js","sheet":{"tab":"lib_questions","columns":["row_id","id","paper_id","question","part","year"],"id":"id","blob":true,"lib":{"name":"questions","order":1,"file":"data/questions.json","prefix":"q","key":["row_id"],"joined":{"say":"THE PAPER'S CARD, NOT COPIED (owner, 17 Nov): these fields are stored once, on the paper's own row (kind document, same paper_id), and joined onto each of its questions as the file is read (js/library.js libJoinPaper_, the backend's copy in cards-gen.gs). A question keeps one only where it differs (an override); null is none though the paper has one.","from":"document","by":"paper_id","fields":["name","subject","key_stage","band_type","band_value","company","exam_board","level","document_type","trackable","printable","source_url"]},"private":["html","lead","diagram","answer","accept","choices","choice_right","order_ends","cells","mark_words","draw_answer","examiner_note","examiner_report","guide"]}},"find":{"group":"Learning","label":"Questions","under":"Practice","entries":{"question":{},"answer":{"label":"Answers"}},"facets":["forLabel","kindLabel","kindOwn","subject","documentType","level","keystage","yearGroup","bandValue","examBoard","tier","examYear","examMonth","examDay","verified","paperId","paperSection","qNumber","qPart","qSub","marks","needs","myAttempt","source"]},"card":{"look":"qCardLook_(entry)","lookElse":"qb","id":["row_id","id"],"nameTag":false,"tagLook":"qcard-tags","name":"qCardName_(row)","tags":["subject","exam_board","level","key_stage","year","document_type"],"links":["paper_id"],"keep":"qCardKeep_(entry)","data":"kcQData_(item, entry)","picture":"qCardPic_(entry)","sheet":"qCardSheet_(entry, pic)","tiles":"qCardTiles_(entry)","toolRow":true,"letter":{"say":"THE QUESTION CARD AS THE SUNDAY EMAIL DRAWS IT (57a-62a): renderCard with an inline ink fills these styles, {token} from the email ink and the sizes here; mail clients read inline styles only.","labels":{"theirs":"Their answer","right":"Answer"},"sizes":{"radius":0,"round":999,"gap":14,"rule":"#171717","small":12,"body":16,"title":18},"cut":2,"perLine":60,"cls":{"tag":"gi","verdict":"gi"},"styles":{"card":"border-bottom:1px solid {rule};border-radius:{radius}","cell":"padding:{gap}px 0;font-size:{body}px","pic":"margin:0 0 {gap}px","head":"margin:0 0 {gap}px;font-size:{title}px;font-weight:bold;color:{ink}","tags":"font-size:{small}px;line-height:24px;margin:0 0 {gap}px","tag":"color:{hue};border:1px solid{edge};border-radius:{round}px;padding:0 6px","label":"margin:{gap}px 0 4px;font-size:{small}px;color:{faint}","box":"border:1px solid {paneLine};border-radius:{round}px;padding:4px 14px;color:{ink}","value":"margin:0;color:{ink}","line":"margin:0","stem":"margin:0 0 10px;padding:0 0 8px;border-bottom:1px dashed {chip};color:{dim}","verdict":"margin:{gap}px 0 0;font-weight:bold;color:{tone}"}}},"see":{"who":"anyone"},"shape":{"face":{"type":"string","required":false,"values":["text","graph","lines","blank"],"say":"The answer box's face when the part is first opened (row column face): text, or paper with its grid -- graph, lines or blank (js/answer-face.js ansFaceWant_). A face the student picks by hand is kept over it (the part record, field face). Never camera: that asks for the camera."}}},"practical":{"source":"data/practicals.json + data-private + Ledger lib_practicals","loader":"js/library.js libPractical_","sheet":{"tab":"lib_practicals","columns":["practical_id","subject","level","exam_board","practical_type","excluded"],"id":"id","blob":true,"lib":{"name":"practicals","order":3,"file":"data/practicals.json","prefix":"pr","key":["practical_id"],"private":["aim","outcome","safety","maths_link","equipment","steps","notes","science","log","variables","diagram","risks"]}},"find":{"group":"Learning","label":"Practicals","under":"Library","facets":["forLabel","kindLabel","kindOwn","subject","practicalType","required","level","topic","examBoard","needs"]},"card":{"look":"prac kc-facts","id":["id","practical_id"],"tags":["subject","level","board","exam_board","practicalType","practical_type"],"lines":true,"off":"excluded","body":"practicalBody_(row)"},"see":{"who":"anyone"}},"project":{"source":"data/projects.json + data-private + Ledger lib_projects","loader":"js/library.js libProject_","sheet":{"tab":"lib_projects","columns":["project_id","subject","level","exam_board","project_type"],"id":"id","blob":true,"lib":{"name":"projects","order":4,"file":"data/projects.json","prefix":"pj","key":["project_id"],"private":["materials","steps","safety","share"]}},"find":{"group":"Learning","label":"Projects","under":"Library","facets":["forLabel","kindLabel","kindOwn","projectType","subject","level","topic","examBoard"]},"card":{"look":"prac proj lib-c kc-facts","id":["id","project_id"],"tags":["subject","level","board","exam_board","projectType","project_type"],"lines":true,"body":"projectBody_(row)"},"see":{"who":"anyone"}},"content":{"source":"data/textbooks.json + Ledger lib_content","loader":"js/library.js -> find-facets.js","sheet":{"tab":"lib_content","columns":["book_id","chapter","subject","level","keystage","board","tier"],"id":"id","blob":true,"lib":{"name":"textbooks","order":2,"file":"data/textbooks.json","prefix":"ct","key":["book_id","chapter"],"skip":"anim","private":["words","points","formulas","diagram"]}},"find":{"group":"Learning","label":"Library","facets":["forLabel","kindLabel","subject","histKind","wWork","mKind","level","keystage","yearGroup","topic","examBoard","specTopic","specPoint","tier"]},"card":{"look":"prac tb ct lib-c","id":"kcContentId_(row)","tags":["subject","level","keystage","board","tier"],"lines":true,"body":"contentBody_(row)"},"see":{"who":"anyone"}},"insert":{"source":"data/inserts.json + Ledger lib_inserts","loader":"js/library.js -> find-history.js","sheet":{"tab":"lib_inserts","columns":["insert_id","subject","boards","levels"],"id":"id","blob":true,"lib":{"name":"inserts","order":5,"file":"data/inserts.json","prefix":"in","key":["insert_id"],"newer":true,"private":["source_text"]}},"find":{"group":"Learning","label":"Library","facets":["forLabel","kindLabel","subject","level","keystage","examBoard","tier"]},"card":{"look":"insh","id":["id","insert_id"],"tags":["subject","boards","board","levels","level"],"links":["forPapers"],"lines":true,"entryTags":{"sheets":2},"body":"kcInsertBody_(row)"},"see":{"who":"anyone"}},"spec":{"source":"data/specs.json","loader":"js/library.js -> find-history.js","find":{"group":"Learning","label":"Specification","under":"Library","facets":["forLabel","kindLabel","kindOwn","subject","level","keystage","examBoard","tier"]},"card":{"look":"insh spec-sheet","name":"code","tags":["board","qualification","subject","level"],"lines":true,"body":"specBody_(row)"},"see":{"who":"anyone"}},"manuscript":{"source":"data/manuscripts.json","loader":"js/library.js HIST_DB -> find-history.js histItem_","find":{"group":"Learning","label":"Library","facets":["forLabel","kindLabel","subject","shelf","histKind","wLanguage","histEra","histMaterial","histFormat","histRepository","histSide","histFound","histDated"]},"card":{"look":"hdb hdb-msc lib-c","tags":["language","material","script"],"links":["writings"],"picture":"kcMsPic_(item, entry)"},"see":{"who":"anyone"}},"figure":{"source":"data/figures.json (+ portraits.json)","loader":"js/library.js HIST_DB -> histItem_ as kind people","find":{"group":"Learning","label":"Library","facets":["forLabel","kindLabel","subject","shelf","histKind","boxKind","fighter","decade","division","histEra","histRole","personName","personYears","personFrom"]},"card":{"look":"person lib-c","card":"people","when":"hdb","tags":["roles","eras"],"links":["writings","events"],"picture":"kcPersonPic_(item)"},"see":{"who":"anyone"}},"boxer":{"source":"data/boxers.json","loader":"js/library.js libExtrasBoxing_ -> find-aloud.js","find":{"group":"Learning","label":"Library","facets":["forLabel","kindLabel","subject","shelf","histKind","boxKind","fighter","decade","division","histEra","histRole","personName","personYears","personFrom"]},"card":{"look":"person lib-c","card":"people","id":["id","boxer_id"],"tags":["country","bestDivision","best_division","stance"],"picture":"kcPersonPic_(item)"},"see":{"who":"anyone"}},"writing":{"source":"data/writings.json","loader":"js/library.js HIST_DB -> find-history.js histItem_","find":{"group":"Learning","label":"Library","facets":[]},"card":{"look":"hdb lib-c","tags":["language","genre"],"links":["author_id","manuscripts"]},"see":{"who":"anyone"}},"event":{"source":"data/timeline.json","loader":"js/library.js HIST_DB -> find-history.js histItem_","find":{"group":"Learning","label":"Library","entries":{"event":{},"timeline":{"label":"Timeline","under":"Library"}},"facets":["forLabel","kindLabel","subject","shelf","histKind","histEra","histTheatre"]},"card":{"look":"hdb lib-c","tags":["era","theatre"],"links":["figures","writings"]},"see":{"who":"anyone"}},"fight":{"source":"data/fights.json","loader":"js/library.js libExtrasBoxing_ -> find-aloud.js","find":{"group":"Learning","label":"Library","facets":["forLabel","kindLabel","subject","shelf","boxKind","fighter","boutMonth","boutYear","decade","division","boutRound","boutMethod","boutWinner","boutEvent","examMonth","examDay"]},"card":{"look":"fight","id":["id","fight_id"],"name":"kcFightName_(row)","nameTag":false,"lines":true,"tags":["division"],"links":["aId","bId","boxer_a_id","boxer_b_id"],"body":"fightBody_(row)"},"see":{"who":"anyone"}},"libcard":{"source":"a library card: one passage of a text collection (js/bible.js, talmud.js, quran.js, works.js, hadith.js, texts.js, pdtexts.js, orthodox.js, hymns.js)","find":{"group":"Learning","label":"Library","entries":{"bible":{},"talmud":{},"quran":{},"worktext":{},"hadith":{},"writ":{},"pdtext":{},"orthotext":{},"hymn":{}}},"see":{"who":"anyone"}},"mech":{"source":"data/mechanics/*.json","loader":"js/mechanics.js","find":{"group":"Learning","label":"Library","facets":["forLabel","kindLabel","subject","shelf","mMake","mModel","mGen","mEngine","mKind","mSystem","pcType","pcSocket","pcIface","pcLinks","mPhase","mMarket","mYears","mSize","mValves","mBadge","mFuel","mPart","mPrice"]},"card":{"look":"mech","from":"mech","tags":["system","type","make"],"links":["fits"],"nameTag":false,"lines":true,"picture":"kcMechPic_(item)","body":"kcMechBody_(row)"},"see":{"who":"anyone"}},"chem":{"source":"data/chemistry/*.json","loader":"js/chemistry.js","find":{"group":"Learning","label":"Library","facets":["forLabel","kindLabel","subject","mKind","cCategory","cGroup","cPeriod","cState"]},"card":{"look":"tx kc-facts","from":"chem","tags":["category","type","block","state"],"lines":true,"body":"chemBody_(row)"},"see":{"who":"anyone"}},"hist":{"source":"one file a topic, data/library/history/<id>.json: its timeline, people, sources and items, a card each","loader":"js/history-topics.js","find":{"group":"Learning","label":"Library","facets":["forLabel","kindLabel","subject","histKind","histPart","level","keystage"]},"card":{"look":"lib-c kc-facts","from":"hist","tags":["topicName","partName"],"lines":true,"picture":"histTopicPic_(raw)","body":"histTopicBody_(row)"},"see":{"who":"anyone"}},"tool":{"source":"js/map.js WIDGETS (kind tool)","find":{"group":"Tools","label":"Tools","under":"Tools"},"see":{"who":"anyone"}},"game":{"source":"js/map.js WIDGETS (kind game)","find":{"group":"Games","label":"Games","under":"Games"},"see":{"who":"anyone"}},"soon":{"source":"columns.json and tiers.json: a switched-off column or widget","find":{"group":"Coming soon","label":"Coming soon","under":"Coming soon"},"see":{"who":"anyone"}},"person":{"source":"Ledger people tab","loader":"payload -> find-doors.js","sample":"check/fixture.json everyone","sheet":{"tab":"people","columns":["personId","first","last","handle","role","email","dob"],"never":["pin"],"id":"person_id","owner":["person_id"],"kindBy":{"column":"role","match":"tutor","kind":"tutor"},"show":["person_id","role","first_name","last_name","handle","email","phone","date_of_birth","photo","avatar","favourite_colour","xp","credits","children","joined_on","exam_small_date","exam_big_date"]},"find":{"group":"Profiles","label":"Profiles","under":"Profiles","facets":["forLabel","kindLabel","profileType"]},"card":{"look":"is-prof prof-door kc-facts","id":["personId","id"],"name":"kcPersonName_(row)","tags":["role","handle"],"lines":true,"body":"kcPersonBody_(row)","picture":"profFace_(entry, 160)","tiles":"peopleOpts_(raw)"},"see":{"who":"self, family, staff, admin","hide":{"prices":["rate_per_hour","extra_seat_rate","extra_seat_cut"]}},"forms":{"person-add":{"attr":"data-pa","fields":[{"f":"first","type":"text","ph":"First name"},{"f":"last","type":"text","ph":"Last name"},{"f":"role","type":"choice","label":"Role","draft":false},{"f":"email","type":"text","input":"email","ph":"Email","phKid":"Email (optional)"},{"f":"dob","type":"date","label":"Date of birth (optional)"}],"draft":"form","ask":"card"},"person-form":{"attr":"data-pf","fields":[{"f":"first","type":"text","ph":"First name","row":"names"},{"f":"last","type":"text","ph":"Last name","row":"names"},{"f":"roles","type":"ticks","attr":"data-pf-role","label":"Role","look":"pf-roles","tickLook":""},{"f":"email","type":"text","input":"email","ph":"Email (optional)"},{"f":"dob","type":"date","label":"Date of birth (optional)"},{"f":"parents","type":"ticks","attr":"data-pf-parent","label":"Parents","draft":false,"look":"pf-ticks","tickLook":""},{"f":"parent","type":"choice","label":"Their parent (optional)","draft":false}],"draft":"form","ask":"card"},"person-edit":{"attr":"data-pe","fields":[{"f":"first_name","type":"text"},{"f":"last_name","type":"text"},{"f":"handle","type":"text","label":"handle (theirs to change)","readonly":true},{"f":"dob","type":"date","label":"date of birth"},{"f":"email","type":"text","input":"email"},{"f":"phone","type":"phone","input":"tel"},{"f":"address","type":"text"},{"f":"postcode","type":"text"}],"draft":"form","ask":"card"},"settings":{"attr":"data-me","draft":"set","fields":"groups","say":"Settings cards: the backend's field groups; a timetable group is the week grid, lib/qual/job/photo names their shelves, dob_* the three boxes, phone the code and number, photo the picture."},"library-card":{"attr":"data-me","draft":"set","say":"one library card on the shelf; a library PIN is not a sign-in PIN and keeps no draft (setDraftOk_).","fields":[{"f":"lib{n}_name","type":"text","ph":"Library name","look":"lib-name","quiet":true},{"f":"lib{n}_pin","type":"text","label":"PIN","look":"lib-pin","quiet":true,"blank":true},{"f":"lib{n}_no","type":"text","ph":"Card number","look":"lib-no","quiet":true}]},"job":{"attr":"data-me","draft":"set","say":"one job on the shelf: role, where, from–to.","fields":[{"f":"job_{n}_role","type":"text","ph":"role","max":80},{"f":"job_{n}_where","type":"text","ph":"where","max":80},{"f":"job_{n}_from","type":"text","ph":"from","max":80},{"f":"job_{n}_to","type":"text","ph":"to, or now","max":80}]},"dob":{"attr":"data-me","draft":"set","say":"a date of birth as three boxes.","fields":[{"f":"dob_d","type":"text","ph":"DD","max":2,"pad":"numeric"},{"f":"dob_m","type":"text","ph":"MM","max":2,"pad":"numeric"},{"f":"dob_y","type":"text","ph":"YYYY","max":4,"pad":"numeric"}]},"family-pick":{"attr":"data-fam-q","draft":false,"say":"a family picker: a name looked up, not work, retyped in a second.","fields":[{"f":"{scope}","type":"search","ph":"name or @handle","want":"{want}"}]},"notify":{"attr":"data-do","draft":false,"say":"Notifications: each tick a setNotify the moment it is ticked (formToggle_).","fields":[{"f":"kinds","type":"toggles"}]},"apply-teach":{"attr":"data-app","draft":"form","say":"Apply to teach (400): one sheet, kept as drafts until it is sent.","fields":[{"f":"","type":"head","label":"You"},{"f":"fullName","type":"text","label":"full name"},{"f":"phone","type":"text","input":"tel","label":"phone","row":"r1"},{"f":"email","type":"text","input":"email","label":"email","row":"r1"},{"f":"address","type":"long","label":"home address"},{"f":"postcode","type":"text","label":"postcode","caps":true,"row":"r2"},{"f":"dob","type":"date","label":"date of birth","row":"r2"},{"f":"","type":"head","label":"Documents"},{"f":"idDoc","type":"doc","label":"photo ID — passport or driving licence"},{"f":"rightToWork","type":"choice","label":"right to work in the UK","options":[["","Choose"],["yes","Yes"],["no","No"]]},{"f":"rtwDoc","type":"doc","label":"right-to-work document — passport, share code or visa"},{"f":"","type":"head","label":"What you teach"},{"f":"subjects","type":"subjects"},{"f":"qualifications","type":"long","label":"qualifications — degrees, teaching qualifications, anything relevant"},{"f":"qual0","type":"doc","label":"a qualification certificate"},{"f":"qual1","type":"doc","label":"another qualification certificate (optional)"},{"f":"qual2","type":"doc","label":"another qualification certificate (optional)"},{"f":"rate","type":"money","input":"number","label":"hourly rate (£)","min":"1","step":"0.5"},{"f":"","type":"head","label":"Checks"},{"f":"dbsNumber","type":"text","label":"enhanced DBS certificate number","row":"r3"},{"f":"dbsIssued","type":"date","label":"issued on","row":"r3"},{"f":"dbsUpdate","type":"tick","label":"I consent to you checking it on the DBS Update Service"},{"f":"dbsNeeded","type":"tick","label":"I need a DBS check"},{"f":"","type":"head","label":"When and where"},{"f":"availability","type":"timetable","label":"when you can teach"},{"f":"area","type":"text","label":"area and venues you can reach"},{"f":"experience","type":"long","label":"experience"},{"f":"","type":"head","label":"2 references"},{"f":"ref1Name","type":"text","label":"name","row":"a1"},{"f":"ref1Relationship","type":"text","label":"relationship to you","row":"a1"},{"f":"ref1Email","type":"text","input":"email","label":"email","row":"b1"},{"f":"ref1Phone","type":"text","input":"tel","label":"phone","row":"b1"},{"f":"ref2Name","type":"text","label":"name","row":"a2"},{"f":"ref2Relationship","type":"text","label":"relationship to you","row":"a2"},{"f":"ref2Email","type":"text","input":"email","label":"email","row":"b2"},{"f":"ref2Phone","type":"text","input":"tel","label":"phone","row":"b2"},{"f":"statement","type":"long","label":"a short statement — why you want to teach"},{"f":"cvLink","type":"text","input":"url","label":"CV link (optional)","ph":"https://…"},{"f":"consent","type":"tick","label":"I agree to @family. keeping these details and documents privately to consider my application, contacting my referees and checking my DBS."}],"ask":"card"},"sign-join":{"ask":"find","say":"Make an account, asked in Find one field a step (owner, 16 Nov: one form): who it is for, whose email, the names, the email and a 4-digit PIN; sent as the existing `register`. The PIN is held in memory for the call only, never stored. only: asked when an earlier answer is this.","send":{"say":"make-my-account"},"fields":[{"f":"who","type":"choice","label":"Who is the account for?","note":"Both are free; teaching starts with \"Apply to teach\" once you are in.","options":[{"v":"parent","say":"client-i-book-and-pay"},{"v":"student","say":"student-im-learning"}]},{"f":"kid","type":"choice","only":{"who":"student"},"label":"Whose email will you give?","options":[{"v":"own","t":"My own email"},{"v":"grown-up","say":"its-a-grown-ups-email"}]},{"f":"first","type":"text","ph":"First name"},{"f":"last","type":"text","ph":"Last name"},{"f":"email","type":"text","input":"email","ph":"Email"},{"f":"pin","type":"pin","label":"PIN — 4 digits"}],"draft":"ask"},"sign-in":{"ask":"find","say":"Signing in, Find's first step (owner, 13 Nov): the name typed on the blank tag, then the PIN a digit a tag; sent as `verifyLogin` on the last digit. The digits are never kept.","fields":[{"f":"who","type":"text","ph":"Username or email","label":"Your username or email"},{"f":"pin","type":"pin"}]},"pin-change":{"ask":"find","say":"Settings' Signing in card (owner, 16 Nov: one form): your PIN now, the new one, and it again, a digit a tag; sent as the existing `changePin`. The digits are held for the call only, never stored.","send":{"t":"Save"},"back":"one","fields":[{"f":"now","type":"pin","label":"current PIN"},{"f":"new","type":"pin","label":"new PIN, 4 numbers, not 1234"},{"f":"again","type":"pin","label":"new PIN again"}]}},"facts":{"say":"WHAT THE OWNER STATES ABOUT A PERSON (owner, 16 Nov): one row a fact, {who, what, value, as_of}. `what` is one of `keys`; a value may be a range (\"7-8\"). Values age by themselves (`ages`): school_year goes up one each 1 September after as_of, age one each year after as_of. Shown on the person's card to staff (tutors) and admins only (`see`), never to a child or another family. Sent as backend payload `personFacts`; kept in the items tab as kind `fact` (17 Nov). A PIN is never a fact.","row":{"who":"person id (P010)","what":"a key from `keys`","value":"text; a range is \"a-b\"","as_of":"date (yyyy-mm-dd)"},"keys":["age","school_year","course","board","set_texts","school","subjects","target_grade","needs","business","ventures","notes"],"ages":{"school_year":"september","age":"year"},"see":["admin","staff"],"store":{"tab":"facts","payload":"personFacts","until":"events record","say":"moved to the items tab (ledger.moved `fact`, 17 Nov): still read and written as core.gs read('facts')"}}},"setting":{"source":"js/me-settings.js and data/settings/setting-for.json","find":{"group":"Settings","label":"Settings","under":"Settings","entries":{"setting":{}}},"see":{"who":"anyone"}},"health":{"source":"site health (js/health*.js)","find":{"group":"Settings","label":"Settings","under":"Settings"},"see":{"who":"admin"}},"msg":{"source":"Ledger messages tab (payload.messages)","find":{"group":"Messages","label":"Messages","under":"Messages","draw":"findMsgCard_"},"see":{"who":"anyone"}},"post":{"source":"Ledger posts tabs","loader":"backend get-posts.gs -> find-doors.js","sample":"check/fixture.json posts","sheet":{"tab":"posts","columns":["text","caption","title","location","authorId"],"id":"post_id","owner":["posted_by"]},"find":{"group":"Posts","label":"Posts","under":"Posts","entries":{"post":{},"offPosts":{}},"facets":["forLabel","kindLabel","postState","postBy","postWhen"],"onCard":false},"card":{"look":"post-fc","name":"kcPostName_(row)","tags":["location"],"links":["authorId"]},"see":{"who":"signedIn"}},"product":{"source":"Ledger shop tab (data/settings/shop.json, data/shop-additions.json)","loader":"backend get-shop.gs -> find-aloud.js findMineItems_ (its Find entry is its row)","sample":"check/fixture.json shop","sheet":{"tab":"shop","columns":["name","shopKind","shopHow","shopBrand","shopTheme","shopFor","cost","level","image"],"id":"item_id"},"find":{"group":"Shop","label":"Things","under":"Shop","draw":"findShopCard_","entries":{"shop":{},"offShop":{"label":"Shop","draw":""}},"facets":["forLabel","kindLabel","kindOwn","shopKind","shopHow","shopPrice","shopBrand","shopFor","shopTheme"]},"card":{"card":"shop","from":"entry","id":["key","name"],"tags":["shopKind","shopHow","shopPrice","shopBrand","shopTheme","shopFor"],"facts":true,"tagLook":"qcard-tags","look":"kcShopLook_(entry)","picture":"kcShopPic_(entry)","pills":"kcShopPills_(entry)"},"see":{"who":"anyone"}},"paper":{"source":"data/questions.json paper_id (+ data/expected-papers.json)","find":{"facets":["paperId"]},"see":{"who":"anyone"}},"partner":{"source":"the owner's business partners (owner, 17 Nov); rows in the items tab","sheet":{"tab":"partners","id":"partner_id","columns":["partner_id","who","business","together","terms","status"]},"find":{"group":"Life","label":"Partners","under":"Settings","from":"store","new":"New partner","facets":["forLabel","kindLabel","partnerStatus"],"facetCols":{"partnerStatus":"status"}},"card":{"look":"kc-facts store-card","lines":true,"body":"storeLines_(row, \"partner\")","sheet":"storeSheet_(item, entry)","name":"business","tags":["status"],"links":["who"],"tiles":"storeTiles_(item, entry)"},"see":{"who":"admin"},"forms":{"partner-new":{"ask":"find","store":true,"skip":true,"send":{"t":"Save"},"say":"the \"New partner\" card in Find (form.js storeSend_): one field a step, any left empty, sent as the one action `item` (mode write).","fields":[{"f":"who","type":"text","label":"Who (their person id)"},{"f":"business","type":"text","label":"Business"},{"f":"together","type":"long","label":"What we could do together"},{"f":"terms","type":"text","label":"Terms / %"},{"f":"status","type":"choice","label":"Status","options":[{"v":"idea","t":"Idea"},{"v":"talking","t":"Talking"},{"v":"agreed","t":"Agreed"},{"v":"running","t":"Running"},{"v":"ended","t":"Ended"}]}]}}},"food":{"source":"the owner's food: what, where, cost, time (owner, 17 Nov); rows in the items tab","sheet":{"tab":"food","id":"food_id","columns":["food_id","name","shop","price","minutes","meal","how"]},"find":{"group":"Life","label":"Food","under":"Settings","from":"store","new":"New food","facets":["forLabel","kindLabel","foodMeal","foodShop"],"facetCols":{"foodMeal":"meal","foodShop":"shop"}},"card":{"look":"kc-facts store-card","lines":true,"body":"storeLines_(row, \"food\")","sheet":"storeSheet_(item, entry)","name":"name","tags":["meal","shop"],"tiles":"storeTiles_(item, entry)"},"see":{"who":"admin"},"forms":{"food-new":{"ask":"find","store":true,"skip":true,"send":{"t":"Save"},"say":"the \"New food\" card in Find (form.js storeSend_): one field a step, any left empty, sent as the one action `item` (mode write).","fields":[{"f":"name","type":"text","label":"Name"},{"f":"shop","type":"text","label":"Shop"},{"f":"price","type":"text","label":"Price (£)","min":0,"step":0.01},{"f":"minutes","type":"text","label":"Minutes to make","min":0},{"f":"meal","type":"choice","label":"Meal","options":[{"v":"breakfast","t":"Breakfast"},{"v":"lunch","t":"Lunch"},{"v":"dinner","t":"Dinner"},{"v":"snack","t":"Snack"}]},{"f":"how","type":"long","label":"How"}]}}},"task":{"source":"the owner's tasks (owner, 17 Nov); rows in the items tab","sheet":{"tab":"tasks","id":"task_id","columns":["task_id","title","notes","due","repeat","list","done","person_id","booking_id","item_id"]},"find":{"group":"Life","label":"Tasks","under":"Settings","from":"store","new":"New task","facets":["forLabel","kindLabel","taskList","taskRepeat","taskDone"],"facetCols":{"taskList":"list","taskRepeat":"repeat","taskDone":"done"}},"card":{"look":"kc-facts store-card","lines":true,"body":"storeLines_(row, \"task\")","sheet":"storeSheet_(item, entry)","name":"title","tags":["list","due"],"links":["person_id","booking_id","item_id"],"tiles":"storeTiles_(item, entry)","tick":{"f":"done","on":"yes","off":"no","label":"Done"}},"see":{"who":"admin"},"forms":{"task-new":{"ask":"find","store":true,"skip":true,"send":{"t":"Save"},"say":"the \"New task\" card in Find (form.js storeSend_): one field a step, any left empty, sent as the one action `item` (mode write).","fields":[{"f":"title","type":"text","label":"Title"},{"f":"notes","type":"long","label":"Notes"},{"f":"due","type":"date","label":"Due"},{"f":"repeat","type":"choice","label":"Repeat","options":[{"v":"never","t":"Never"},{"v":"daily","t":"Daily"},{"v":"weekly","t":"Weekly"},{"v":"monthly","t":"Monthly"},{"v":"yearly","t":"Yearly"}]},{"f":"list","type":"text","label":"List"},{"f":"done","type":"choice","label":"Done","options":[{"v":"no","t":"No"},{"v":"yes","t":"Yes"}]},{"f":"person_id","type":"text","label":"Person (id)"},{"f":"booking_id","type":"text","label":"Booking (id)"},{"f":"item_id","type":"text","label":"Item (id)"}]}}},"drive_area":{"source":"the owner's Google Drive areas (owner, 17 Nov); rows in the items tab","sheet":{"tab":"drive_areas","id":"area_id","columns":["area_id","name","folder_id","what"]},"find":{"group":"Life","label":"Drive","under":"Settings","from":"store","new":"New Drive area","facets":["forLabel","kindLabel"],"facetCols":{}},"card":{"look":"kc-facts store-card","lines":true,"body":"storeLines_(row, \"drive_area\")","sheet":"storeSheet_(item, entry)","name":"name","tags":["folder_id"],"tiles":"storeTiles_(item, entry)"},"see":{"who":"admin"},"forms":{"drive_area-new":{"ask":"find","store":true,"skip":true,"send":{"t":"Save"},"say":"the \"New Drive area\" card in Find (form.js storeSend_): one field a step, any left empty, sent as the one action `item` (mode write).","fields":[{"f":"name","type":"text","label":"Name"},{"f":"folder_id","type":"text","label":"Folder id"},{"f":"what","type":"long","label":"What goes there"}]}}},"session":{"source":"the owner's weekly timetable of sessions (owner, 17 Nov): who, where, which days, start-end, this term; rows in the items tab. Plain record, not a booking: no price, no sync.","sheet":{"tab":"sessions","id":"session_id","columns":["session_id","who","person_id","place","address","days","start","end","term","notes"]},"find":{"group":"Life","label":"Week","under":"Settings","from":"store","new":"New session","facets":["forLabel","kindLabel"],"facetCols":{}},"card":{"look":"kc-facts store-card","lines":true,"body":"storeLines_(row, \"session\")","sheet":"storeSheet_(item, entry)","name":"who","tags":["days","start"],"tiles":"storeTiles_(item, entry)"},"see":{"who":"admin"},"forms":{"session-new":{"ask":"find","store":true,"skip":true,"send":{"t":"Save"},"say":"the \"New session\" card in Find: one field a step, sent as item write.","fields":[{"f":"who","type":"text","label":"Who"},{"f":"person_id","type":"text","label":"Person id (if they have a file)"},{"f":"place","type":"text","label":"Where"},{"f":"address","type":"text","label":"Address"},{"f":"days","type":"text","label":"Days (e.g. Mon-Fri, Mon)"},{"f":"start","type":"text","label":"Start (HH:MM)"},{"f":"end","type":"text","label":"End (HH:MM)"},{"f":"term","type":"text","label":"Term"},{"f":"notes","type":"long","label":"Notes"}]}}}},"facets":[{"field":"mScope","label":"Car or car part?","sort_order":24.581,"note":"mechanics (owner, 7 Nov): a car, or a car part (a part then answers the cars it fits)","active":true},{"field":"mMake","label":"Brand","sort_order":24.582,"note":"mechanics (batch E): a car's brand; a part answers the brands it fits","active":true},{"field":"mModel","label":"Model","sort_order":24.583,"note":"mechanics (batch E): a car's model","active":true},{"field":"mGen","label":"Generation","sort_order":24.584,"note":"mechanics (batch E): a car's generation (III, Mk7)","active":true},{"field":"mPhase","label":"Phase","sort_order":24.611,"note":"mechanics (batch E): a facelift phase, a tag","active":true},{"field":"mMarket","label":"Market","sort_order":24.612,"note":"mechanics (batch E): where the car was sold, a tag","active":true},{"field":"mYears","label":"Years made","sort_order":24.613,"note":"mechanics (batch E): the years this car and engine were sold, a tag","active":true},{"field":"mSize","label":"Engine size","sort_order":24.614,"note":"mechanics (batch E): litres, a tag","active":true},{"field":"mValves","label":"Valves","sort_order":24.615,"note":"mechanics (batch E): valves, a tag","active":true},{"field":"mBadge","label":"Version","sort_order":24.616,"note":"mechanics (batch E): the badge (TCe 100, TDI), a tag","active":true},{"field":"mFuel","label":"Fuel","sort_order":24.617,"note":"mechanics (batch E): petrol or diesel","active":true},{"field":"mPart","label":"Part","sort_order":24.618,"note":"mechanics and PC parts (batch E): the part's name, a tag","active":true},{"field":"mPrice","label":"Price band","sort_order":24.619,"note":"mechanics (batch E): a rough UK parts price band, a tag","active":true},{"field":"pcType","label":"Part type","sort_order":24.601,"note":"PC parts (batch E): CPU, Motherboard, RAM, GPU, Storage, PSU, Case, Cooling, Cables, OS media","active":true},{"field":"pcSocket","label":"Socket or form factor","sort_order":24.602,"note":"PC parts (batch E): AM5, ATX, M.2 2280, 2.5-inch","active":true},{"field":"pcIface","label":"Interface","sort_order":24.603,"note":"PC parts (batch E): PCIe, SATA, DDR5, USB","active":true},{"field":"pcLinks","label":"Connects to","sort_order":24.604,"note":"PC parts (batch E): the parts it plugs into","active":true},{"field":"mKind","label":"Card type","sort_order":24.59,"note":"a Library card's kind: mechanics (548, 650) Part or Car; chemistry (550) Element, Substance or Reaction","active":true},{"field":"mSystem","label":"System","sort_order":24.6,"note":"a mechanics card (548): the car system a part, job or symptom belongs to","active":true},{"field":"mEngine","label":"Engine","sort_order":24.585,"note":"a mechanics card (548, batch E): the engine code (D4F, K9K); a part answers the engines it fits","active":true},{"field":"cCategory","label":"Chemical type","sort_order":24.65,"note":"a chemistry card (550): an element's category, a substance's or a reaction's type","active":true},{"field":"cGroup","label":"Group","sort_order":24.66,"note":"a chemistry element (550): its group in the periodic table","active":true},{"field":"cPeriod","label":"Period","sort_order":24.67,"note":"a chemistry element (550): its period","active":true},{"field":"cState","label":"State","sort_order":24.68,"note":"a chemistry card (550): state at 20 °C","active":true},{"field":"forLabel","label":"What for","sort_order":10,"note":"what the thing is for (a group of kinds); asked by the one rule like every facet","active":true},{"field":"kindLabel","label":"What kind","sort_order":20,"note":"what kind of thing: Practice (Questions and Answers; 610), Library (practicals since 15 Nov, projects since 7 Nov, boxers, bouts and the Bible are in the Library; Content until 490). Answers keeps a question's answer pages; its answers are ordered by the kinds tab","active":true},{"field":"kindOwn","label":"Which","sort_order":20.5,"note":"the kind under a kind (610): Questions and Answers under Practice; Practicals, Timeline and Projects under Library; asked after What kind","active":true},{"field":"wReligion","label":"Religion","sort_order":24.03,"note":"every religious writing (546): the religion it belongs to, its registry topic (Christianity, Judaism, Islam, Ancient Egyptian religion); asked first in Religious Studies","active":true},{"field":"wWork","label":"Work","sort_order":24.05,"note":"every writing (520): the Bible, the Quran, the Talmud, the Hadith, a hymnal, a play, any work","active":true},{"field":"wSource","label":"Source text","sort_order":24.07,"note":"every writing (owner, 29 Oct): the original a Text was made from, its base by Collection: Hebrew Masoretic Text, Greek Septuagint, Greek New Testament, Arabic, Babylonian Talmud (Bavli); asked before the Translation","active":true},{"field":"wLanguage","label":"Language","sort_order":24.08,"note":"every writing (546): the language a text is written in (Greek, Hebrew, English), its own question, never merged with whose translation","active":true},{"field":"wText","label":"Translation","sort_order":24.1,"note":"every writing (520, 546): whose translation or edition (King James Version (1611)); its language is the Language question","active":true},{"field":"wTradition","label":"Tradition","sort_order":24.15,"note":"every writing (520): the church or school within its religion (Orthodox, Catholic, Methodist); the religion itself is its Topic","active":true},{"field":"wCollection","label":"Collection","sort_order":24.045,"note":"every writing (520, 600): a group of works, asked before Work: Rabbinic, Second Temple, Kabbalah, Hadith, the testament, an anthology, Hymns, Deuterocanon / Apocrypha / Anagignoskomena","active":true},{"field":"wSection","label":"Section","sort_order":24.06,"note":"every writing (520): a group of books above Book (Torah, Gospels), a Talmud order, a juz, a hymnal section","active":true},{"field":"wBook","label":"Book","sort_order":24.3,"note":"every writing (520): a book of the Bible, a tractate, a hadith book, a volume","active":true},{"field":"wChapter","label":"Chapter","sort_order":24.35,"note":"every writing (520): chapter, surah, act, poem, perek; drawn as a grid when its answers are numbers","active":true},{"field":"wUnit","label":"Unit","sort_order":24.4,"note":"every writing (520): the card itself: a verse, ayah, hadith, daf side, scene, stanza, hymn","active":true},{"field":"wAuthor","label":"Author","sort_order":24.45,"note":"every writing (520): who wrote it, where the index says","active":true},{"field":"wPrimacy","label":"Primary or secondary source","sort_order":24.51,"note":"every writing (owner, 7 Nov): Primary for an original text, Secondary for a later study of it","active":true},{"field":"wForm","label":"Kind of writing","sort_order":24.5,"note":"every writing (520): play, novel, poem, hymn, canon law, homily","active":true},{"field":"shelf","label":"Shelf","sort_order":24,"note":"which shelf of the Library: Boxing, or Writings, where every written work is (520); Physical Education is Boxing only (7 Nov)","active":true},{"field":"book","label":"Book","sort_order":31,"note":"off and retired in code: it asked which @family. textbook, and since 12 Oct every chapter is a content card of its own, so nothing answers it (docs/history/347, part 2)","active":false},{"field":"projectType","label":"Project or coursework","sort_order":21,"note":"projects only, which the coverage rule decides: asked once half the list is projects","active":true},{"field":"subject","label":"Subject","sort_order":22,"note":"asked first after What kind (494): \"the library should go subject first\"; every Library item carries one (scripture is Religious Studies)","active":true},{"field":"boxKind","label":"Fighters or fights","sort_order":34,"note":"fighters (people) or bouts (batch D)","active":true},{"field":"fighter","label":"Fighter","sort_order":34.1,"note":"a bout's two corners, and a boxer's own name (445)","active":true},{"field":"boutMonth","label":"Month","sort_order":34.2,"note":"the month a bout was fought (445)","active":true},{"field":"boutYear","label":"Year","sort_order":34.3,"note":"the year a bout was fought (445)","active":true},{"field":"decade","label":"Decade","sort_order":35,"note":"an era before a weight","active":true},{"field":"division","label":"Division","sort_order":36,"note":"boxers and bouts only; the coverage rule hides it elsewhere","active":true},{"field":"boutRound","label":"Round","sort_order":36.1,"note":"the round a bout ended in (445)","active":true},{"field":"boutMethod","label":"Result","sort_order":36.2,"note":"how a bout ended: KO, TKO, decision (445)","active":true},{"field":"boutWinner","label":"Winner","sort_order":36.3,"note":"who won a bout -- a tag since the fight card lost its A v B title (490)","active":true},{"field":"boutEvent","label":"Event","sort_order":36.4,"note":"the night a bout was billed as (490)","active":true},{"field":"practicalType","label":"Experiment or build","sort_order":38,"note":"practicals only; the coverage rule hides it elsewhere","active":true},{"field":"required","label":"Required","sort_order":39,"note":"Required practical, Extra or Not for now; practicals only, so the coverage rule keeps it off the first screen","active":true},{"field":"documentType","label":"Type","sort_order":40,"note":"the errand: revising a topic and sitting a mock want different questions after this one","active":true},{"field":"level","label":"Level","sort_order":50,"note":"which qualification; band_type stage wins over the level column","active":true},{"field":"keystage","label":"Key stage","sort_order":60,"note":"a comma in the cell is a list: a sheet may be KS1 and KS2","active":true},{"field":"yearGroup","label":"School year","sort_order":70,"note":"band_type year. Not \"Year\" — that is the year a paper was sat","active":true},{"field":"bandValue","label":"Grade","sort_order":80,"note":"band_type grade","active":true},{"field":"topic","label":"Topic","sort_order":100,"note":"hundreds of answers, so the 40-answer cap keeps it quiet until the list is small enough to name one","active":true},{"field":"examBoard","label":"Exam board","sort_order":110,"note":"","active":true},{"field":"specTopic","label":"Spec topic","sort_order":111,"note":"a content card written to one board's spec (16 Nov): the spec's own numbered topic, read from data/spec/<board>-<code>.json by its spec_ref; such a card answers no Topic, so its board is asked first","active":true},{"field":"specPoint","label":"Spec point","sort_order":112,"note":"the spec's numbered sub-topic under Spec topic (4.1.1 Cell structure), from the same file","active":true},{"field":"tier","label":"Tier","sort_order":120,"note":"Foundation or Higher","active":true},{"field":"examYear","label":"Year","sort_order":130,"note":"the year of the sitting, newest first","active":true},{"field":"examMonth","label":"Month","sort_order":132,"note":"May, June, November — the month and never the season; any item's own date too (a 5-a-day's)","active":true},{"field":"examDay","label":"Day","sort_order":133,"note":"the day of the month of any item's own date (a 5-a-day's 5 October is 5)","active":true},{"field":"paperId","label":"Paper","sort_order":140,"note":"the id decides who answers; the document's name is what is said, shortened against the names beside it","active":true},{"field":"paperSection","label":"Paper section","sort_order":141,"note":"a paper sat in sections (9MA0 Paper 3: A Statistics, B Mechanics); an ordinary facet, asked whenever it splits (owner, 15 Nov)","active":true},{"field":"qNumber","label":"Question","sort_order":142,"note":"Q1, Q2 …; the coverage and 40-answer rules hold it back until a paper or a day is chosen","active":true},{"field":"qPart","label":"Part","sort_order":144,"note":"the part's letter, as the paper prints it","active":true},{"field":"qSub","label":"Sub-part","sort_order":145,"note":"the roman numeral, as the paper prints it","active":true},{"field":"marks","label":"Marks","sort_order":148,"note":"what a question is worth","active":true},{"field":"needs","label":"What you need","sort_order":150,"note":"a comma-list: compasses and the printed sheet at once; the calculator is said as Non-calculator or Calculator allowed","active":true},{"field":"source","label":"Source","sort_order":160,"note":"who made a worksheet (Corbettmaths, 1st Class Maths); a board's own paper has none and a maker's sheet has no exam board (O3)","active":true},{"field":"verified","label":"Verified","sort_order":136,"note":"Verified only when the answer was checked against the official scheme AND the question type is complete and machine-marked (388); one tag, not two (owner, 10 Nov); asked before Paper, Question and Part (owner, 29 Oct)","active":true},{"field":"myAttempt","label":"Attempted","sort_order":155,"note":"has the signed-in person answered this question: Attempted or Unattempted (owner, 16 Nov: its own menu, apart from how it went)","active":true},{"field":"myResult","label":"Your result","sort_order":156,"note":"how the signed-in person's latest marked answer went: Correct, Incorrect or Part marks (463; 16 Nov, attempted moved to its own menu)","active":true},{"field":"histKind","label":"Manuscripts, people, writings, events or timelines","sort_order":24.04,"note":"history database only (459, 461): which table, and the timelines (batch F); a history topic (16 Nov, data/library/history/) answers its own name","active":true},{"field":"histPart","label":"Timeline, people, sources or items","sort_order":24.045,"note":"a history topic's card (16 Nov, js/history-topics.js): its timeline, a person, a source or an item","active":true},{"field":"histEra","label":"Era","sort_order":37.2,"note":"history database only: Ancient, Medieval, Early modern, Modern, from the row's years (histEras_)","active":true},{"field":"histMaterial","label":"Material","sort_order":37.4,"note":"manuscripts only: papyrus, parchment, paper","active":true},{"field":"histFormat","label":"Format","sort_order":37.5,"note":"manuscripts only: codex, roll, fragment","active":true},{"field":"histGenre","label":"Genre","sort_order":37.6,"note":"writings only: letter, history, poem","active":true},{"field":"histRole","label":"Role","sort_order":37.7,"note":"historical figures only: a list cell, one tag each","active":true},{"field":"personName","label":"Who","sort_order":37.705,"note":"a person (batch D): their name, the card's only title","active":true},{"field":"personYears","label":"Years","sort_order":37.71,"note":"a person (batch D), boxer or figure: born–died","active":true},{"field":"personFrom","label":"From","sort_order":37.72,"note":"a person (batch D): a boxer's country, a figure's birthplace","active":true},{"field":"histTheme","label":"Theme","sort_order":37.8,"note":"writings only: a list cell, one tag each","active":true},{"field":"histRepository","label":"Held at","sort_order":37.9,"note":"manuscripts only: the library or museum that holds it","active":true},{"field":"histFound","label":"Found","sort_order":37.93,"note":"manuscripts only (owner, 7 Nov: facts as tags): where and when it was found, the first line of its provenance","active":true},{"field":"histDated","label":"Dated","sort_order":37.94,"note":"manuscripts only (owner, 7 Nov: facts as tags): the date it is dated to, as the row says it","active":true},{"field":"histSide","label":"Side","sort_order":37.92,"note":"drawn manuscripts only (507): Front (recto) or Back (verso), one card a side","active":true},{"field":"histTheatre","label":"Theatre","sort_order":37.95,"note":"events and timelines only (461): Europe, Pacific, Africa, Atlantic, Home front, Diplomacy","active":true},{"field":"shopKind","label":"Category","sort_order":38.1,"note":"shop items only (499): what it is, from its kind","active":true},{"field":"shopHow","label":"How you get it","sort_order":38.2,"note":"shop items only (499): buy, earn with ticks, unlock by level, borrow","active":true},{"field":"shopPrice","label":"Price","sort_order":38.3,"note":"shop items only (499): a band from its price","active":true},{"field":"shopBrand","label":"Brand","sort_order":38.4,"note":"shop items only (499): its maker","active":true},{"field":"shopFor","label":"For","sort_order":38.5,"note":"shop items only (499): who it is for when not everybody","active":true},{"field":"shopTheme","label":"Theme","sort_order":38.6,"note":"shop items only (740): its theme, from the shop tab's theme column; empty is no tag","active":true},{"field":"postState","label":"Which posts","sort_order":20.6,"note":"a post (batch C): Approved, Waiting for approval or Deleted; only an admin is sent the last two","active":true},{"field":"postBy","label":"Who posted","sort_order":20.61,"note":"a post (batch C): its author","active":true},{"field":"postWhen","label":"When","sort_order":20.62,"note":"a post (batch C): a time frame, Today to Older","active":true},{"field":"msgWith","label":"Who with","sort_order":20.63,"note":"a conversation (batch C): the person it is with","active":true},{"field":"profileType","label":"Who","sort_order":20.64,"note":"a profile (batch C): Parent, Student, Tutor; an admin also Over/Under 18, Apprentice, Admin","active":true},{"field":"settingFor","label":"Account type","sort_order":20.65,"note":"a settings card (batch C): Student, Parent, Staff, Apprentice, Admin","active":true},{"field":"vidSubject","label":"Subject","sort_order":20.66,"note":"a video (batch C): its subject","active":true},{"field":"vidTopic","label":"Topic","sort_order":20.67,"note":"a video (batch C): its tags","active":true},{"field":"vidChannel","label":"Channel","sort_order":20.68,"note":"a video (batch C): its channel","active":true},{"field":"vidLevel","label":"Level","sort_order":20.69,"note":"a video (batch C): its level","active":true},{"field":"venueArea","label":"Area","sort_order":20.696,"note":"a venue (Find › Venues): its borough, else its city","active":true},{"field":"venueFor","label":"Good for","sort_order":20.697,"note":"a venue: its focus list off the venues tab","active":true},{"field":"venueSize","label":"Holds","sort_order":20.698,"note":"a venue: up to how many students, and how many rooms","active":true},{"field":"vidType","label":"Type","sort_order":20.695,"note":"a video (batch D): Movie, Lesson, Documentary, Music video, Clip; the row's type, else guessed from its title","active":true},{"field":"partnerStatus","label":"Status","sort_order":20.71,"note":"a partner (owner, 17 Nov): idea, talking, agreed, running, ended","active":true},{"field":"foodMeal","label":"Meal","sort_order":20.72,"note":"a food (owner, 17 Nov): breakfast, lunch, dinner, snack","active":true},{"field":"foodShop","label":"Shop","sort_order":20.73,"note":"a food: where it is bought","active":true},{"field":"taskList","label":"List","sort_order":20.74,"note":"a task (owner, 17 Nov): its list","active":true},{"field":"taskRepeat","label":"Repeats","sort_order":20.75,"note":"a task: never, daily, weekly, monthly, yearly","active":true},{"field":"taskDone","label":"Done","sort_order":20.76,"note":"a task: yes or no","active":true}]};
+const ITEM_KINDS = {"kinds":{"tutor":{"source":"Ledger people tab (role tutor)","loader":"payload -> find-aloud.js","sample":"check/fixture.json tutors","sheet":{"tab":"people","columns":["personId","title","tags","titles","venues","rate","listed"],"never":["pin"],"via":"person","id":"person_id","show":["person_id","role","first_name","handle","photo","photos","video","headline","adjective_1","adjective_2","adjective_3","years_experience","focus","borough","town","city","travel_km","rate_per_hour","extra_seat_rate","min_students","max_students","availability","listed","avatar","dbs_checked"]},"find":{"group":"Booking","label":"Tutors","under":["Booking","Profiles"],"draw":"findTutorCard_","facets":["forLabel","kindLabel","kindOwn","profileType"]},"card":{"look":"is-widget is-prof tcard","id":["personId","id"],"name":"title","nameTag":false,"tags":["tags","titles"],"links":["venues"],"lines":true,"off":"kcUnlisted_(row)","body":"profBody_(row, live)","picture":"profFace_(entry, 96)","tagLook":"prof-tags prof-who-tags","pills":"profPills_(item, entryRow)","tagRows":"profTagRows_(raw)"},"live":{"money":"kcTutorMoney_(row)","say":"kcTutorSay_(row)"},"see":{"who":"anyone","hide":{"prices":["rate","rate_per_hour","extra_seat_rate","extra_seat_cut"],"admin":["note"]}},"forms":{"card-edit":{"attr":"data-me","draft":false,"fields":"list","say":"the tutor card's edit form (cardEditForm_): its sections' names, typed by rules; a price only for may_('prices').","ask":"card"},"card-seat":{"attr":"data-pound","draft":false,"say":"the extra seat in pounds, kept as the share in the hidden twin (type `shown`: `show` draws the stored value, `store` turns what is typed back); @family.'s share only for an admin.","fields":[{"f":"extra_seat_rate","type":"shown","as":"money","twin":"data-me","show":"cardSeatShown_","store":"cardSeatShare_"},{"f":"extra_seat_cut","type":"shown","as":"money","twin":"data-me","show":"cardSeatShown_","store":"cardSeatShare_","may":"admin"}]},"card-where":{"attr":"data-me","draft":false,"say":"Where you teach: an area a tick, rewriting the hidden venues_ok, saved by the card's Save.","fields":[{"f":"venues_ok","type":"hidden"},{"f":"areas","type":"ticks","attr":"data-where-area","label":"Areas you teach in","look":"many-list where-areas"}]}},"fields":{"extra_seat_rate":{"label":"extra seat: share of your rate, 0–1 (0.5 = half)","min":0,"max":1,"step":0.05},"extra_seat_cut":{"label":"@family.'s share of an extra seat, 0–2 (blank = the usual)","labelLocked":"@family.'s share of an extra seat — set by @family. (blank = the usual)","min":0,"max":2,"step":0.01,"pad":"decimal"}}},"venue":{"source":"Ledger venues + rooms tabs (data/settings/venues.json)","loader":"payload -> find-aloud.js","sample":"check/fixture.json venues","sheet":{"tab":"venues","columns":["name","focus","borough","city","tags","maxCapacity","bestRate"],"also":["rooms"],"id":"venue_id"},"find":{"group":"Venues","label":"Venues","under":"Booking","facets":["forLabel","kindLabel","kindOwn","venueArea","venueFor","venueSize"]},"card":{"look":"venue-door","tags":["focus","borough","city","tags"],"lines":true,"body":"kcVenueBody_(row, live)","picture":"kcVenuePic_(item, entry)"},"live":{"rooms":"kcRooms_(row)"},"see":{"who":"anyone","hide":{"prices":["price","cost_per_hour","travel_cost"]}}},"subject":{"source":"payload (Ledger people/pricing)","loader":"subjectRows() -> find-aloud.js","find":{"group":"Booking","label":"Subjects","under":"Booking","facets":[]},"card":{"look":"is-subject","tags":["levels","focus"],"lines":true,"liveTags":{"tutors":3},"body":"kcSubjectBody_(row, live)"},"live":{"levels":"kcLevels_(row)","tutors":"kcTutorNames_(row)"},"see":{"who":"anyone"}},"level":{"source":"payload (Ledger people/pricing)","loader":"find-aloud.js","find":{"group":"Booking","label":"Levels","under":"Booking","facets":["forLabel","kindLabel","kindOwn"]},"card":{"look":"is-level","tags":["subjects","focus"],"lines":true,"liveTags":{"tutors":3},"body":"kcLevelBody_(row, live)"},"live":{"subjects":"kcSubjects_(row)","tutors":"kcTutorNames_(row)"},"see":{"who":"anyone"}},"booking":{"source":"Ledger events + receipts tabs","loader":"backend booking.gs -> book-*.js (myJobs_ -> findMineItems_)","sample":"check/fixture.json liveJobs","sheet":{"tab":"jobs","columns":["job_id","subject","level","tutor","venue","price","unit","rate","weeks","client","slots"],"also":["receipts"],"id":"job_id","owner":["booked_by","client_hosts"]},"find":{"group":"Booking","label":"Receipts","under":"Booking","entries":{"receipt":{},"offBooking":{"label":"Booking","draw":""}},"facets":[]},"card":{"card":"receipt","id":["id","jobId","job_id"],"name":"kcBookingName_(row)","facts":true,"tags":["subject","level","tutor","venue"],"pills":"kcBookingPills_(item)","body":"kcBookingBody_(row, live)","tool":"jobPage_(raw)","letter":{"say":"THE BOOKING AS AN EMAIL SAYS IT (owner, 16 Nov: one card maker): renderCard with inline \"text\" writes these lines, each through the words file; a line marked price is never said to a child or when prices are off.","bullet":"• ","lines":[{"word":"card-subject-level","need":["subject","level"],"alone":"subject"},{"word":"card-day-at-time","need":["day","time"],"date":true,"alone":"any"},{"need":["location"],"alone":"location"},{"word":"card-dates","need":["dates"]},{"word":"card-total","need":["price"],"money":true,"price":true,"as":{"price":"total"}}]}},"live":{"money":"kcBookingMoney_(row)"},"see":{"who":"self, family, staff, admin","hide":{"prices":["rate","total","price_total","tutor_pay","travel_paid","admin_profit","gross","tutor_payout","venue_cost","materials_charge","materials_cost","tickets_cost","card_fees","discount_value","net_profit"],"admin":["tutor_pay","admin_profit","net_profit","venue_cost","card_fees"]}}},"bookform":{"source":"the booking form (js/book-*.js)","find":{"group":"Booking","label":"Booking form","under":"Booking","draw":"bookFormCard_"},"see":{"who":"anyone"},"forms":{"booking":{"ask":"find","say":"Booking, asked in Find one field a step in this order (owner, 13 Nov); each field is a BOOK_STEPS question (book-steps.js) or the hour grid (days, slots). given: the site answers it (bookPrefill_), still a chip. many: several answers, a tap ticks; need: how many before Next. rows: the order the booking card lists them (BOOK_STEPS). A field's `step` is its booking question as data, read by formSteps_ (form.js): q, short (words keys or text); list (fixed options) or from (a source: clients, children, openJobs, subjects, levels, tutors, venues, intervals, seats, hourGrid); when/unless (conditions that empty the list), may (a permission); filter (a row field that must be set, or a named test), label (the row field, or fields in turn, or a named function), sort (a row field), first/last (options put before/after), then (a named step over the whole list); say (an option's shown text: a map, or a named function); check (why an answer is refused), off (why an option is greyed), fallback, lock, set: named functions in BOOK_FNS (book-steps.js). Any name is looked up there first, else read as a row field.","fields":[{"f":"how","given":true,"step":{"q":"how-would-you-like-to-book","short":"Kind","list":["instant-class","waiting-list-class"],"set":"howSet"}},{"f":"client","step":{"q":"who-is-this-for","short":"For","from":"clients","may":"admin","label":"name","then":"meFirstNobody","fallback":"me","check":"needsSomebody","set":"kidsFor"}},{"f":"joining","given":true,"step":{"q":"something-already-going-or-a-new","short":"Class","when":"how","from":"openJobs","filter":"sameKind","label":"openClass","first":["start-a-new-one"],"set":"joiningSet"}},{"f":"subjects","many":true,"need":1,"step":{"q":"what-are-we-working-on","short":"Subject","from":"subjects","label":"name"}},{"f":"level","step":{"q":"what-level-the-highest-among-the","short":"Level","from":"levels"}},{"f":"tutor","step":{"q":"anyone-in-particular","short":"Tutor","unless":"waiting","from":"tutors","filter":"title","label":"title","first":["no-preference"],"say":"tutorListed","fallback":"waitNoPreference","check":"teaches"}},{"f":"loc","step":{"q":"Where?","short":"Venue","only":"wait, tutoring","from":"venues","label":"label","wrap":true,"check":"roomHolds","set":"homeHostsItself"}},{"f":"hosting","step":{"q":"are-you-providing-the-space","short":"Space","only":"wait, tutoring","unless":["waiting","atHome"],"list":["No","Yes"],"filter":"roomCosts","say":{"Yes":"yes-no-room-hire","No":"no-we-book-the-room"},"fallback":"atHomeYes"}},{"f":"interval","many":true,"step":{"q":"over-what-period","short":"Term","from":"intervals","label":["label","term"],"fallback":"waitTerm","filter":["label","term"]}},{"f":"days","need":1,"ask":"Which day?"},{"f":"slots","many":true,"need":1,"ask":"What time? Each tag is one hour.","grid":true,"step":{"q":"When?","short":"When","unless":"waiting","from":"hourGrid","grid":"hours","week":true}},{"f":"avail","many":true,"grid":true,"step":{"q":"when-could-you-come","short":"when-free","only":"wait","grid":"blocks","week":true}},{"f":"kids","many":true,"step":{"q":"which-of-your-children-is-this","short":"Child","unless":"waiting","from":"children","last":["someone-else"],"set":"seatsFollowKids"}},{"f":"n","step":{"q":"how-many-extra-seats","short":"extra-seats","from":"seats","say":"extraSeats","lock":"homeSeats","off":"overCap","check":"seatLimits"}}],"look":"book-step","rows":["client","how","kids","joining","subjects","level","tutor","loc","hosting","n","interval","slots","avail"]}}},"question":{"source":"data/questions.json + data-private + Ledger lib_questions","loader":"js/data.js, js/library.js","sheet":{"tab":"lib_questions","columns":["row_id","id","paper_id","question","part","year"],"id":"id","blob":true,"lib":{"name":"questions","order":1,"file":"data/questions.json","prefix":"q","key":["row_id"],"joined":{"say":"THE PAPER'S CARD, NOT COPIED (owner, 17 Nov): these fields are stored once, on the paper's own row (kind document, same paper_id), and joined onto each of its questions as the file is read (js/library.js libJoinPaper_, the backend's copy in cards-gen.gs). A question keeps one only where it differs (an override); null is none though the paper has one.","from":"document","by":"paper_id","fields":["name","subject","key_stage","band_type","band_value","company","exam_board","level","document_type","trackable","printable","source_url"]},"private":["html","lead","diagram","answer","accept","choices","choice_right","order_ends","cells","mark_words","draw_answer","examiner_note","examiner_report","guide"]}},"find":{"group":"Learning","label":"Questions","under":"Practice","entries":{"question":{},"answer":{"label":"Answers"}},"facets":["forLabel","kindLabel","kindOwn","subject","documentType","level","keystage","yearGroup","bandValue","examBoard","tier","examYear","examMonth","examDay","verified","paperId","paperSection","qNumber","qPart","qSub","marks","needs","myAttempt","source"]},"card":{"look":"qCardLook_(entry)","lookElse":"qb","id":["row_id","id"],"nameTag":false,"tagLook":"qcard-tags","name":"qCardName_(row)","tags":["subject","exam_board","level","key_stage","year","document_type"],"links":["paper_id"],"keep":"qCardKeep_(entry)","data":"kcQData_(item, entry)","picture":"qCardPic_(entry)","sheet":"qCardSheet_(entry, pic)","tiles":"qCardTiles_(entry)","toolRow":true,"letter":{"say":"THE QUESTION CARD AS THE SUNDAY EMAIL DRAWS IT (57a-62a): renderCard with an inline ink fills these styles, {token} from the email ink and the sizes here; mail clients read inline styles only.","labels":{"theirs":"Their answer","right":"Answer"},"sizes":{"radius":0,"round":999,"gap":14,"rule":"#171717","small":12,"body":16,"title":18},"cut":2,"perLine":60,"cls":{"tag":"gi","verdict":"gi"},"styles":{"card":"border-bottom:1px solid {rule};border-radius:{radius}","cell":"padding:{gap}px 0;font-size:{body}px","pic":"margin:0 0 {gap}px","head":"margin:0 0 {gap}px;font-size:{title}px;font-weight:bold;color:{ink}","tags":"font-size:{small}px;line-height:24px;margin:0 0 {gap}px","tag":"color:{hue};border:1px solid{edge};border-radius:{round}px;padding:0 6px","label":"margin:{gap}px 0 4px;font-size:{small}px;color:{faint}","box":"border:1px solid {paneLine};border-radius:{round}px;padding:4px 14px;color:{ink}","value":"margin:0;color:{ink}","line":"margin:0","stem":"margin:0 0 10px;padding:0 0 8px;border-bottom:1px dashed {chip};color:{dim}","verdict":"margin:{gap}px 0 0;font-weight:bold;color:{tone}"}}},"see":{"who":"anyone"},"shape":{"face":{"type":"string","required":false,"values":["text","graph","lines","blank"],"say":"The answer box's face when the part is first opened (row column face): text, or paper with its grid -- graph, lines or blank (js/answer-face.js ansFaceWant_). A face the student picks by hand is kept over it (the part record, field face). Never camera: that asks for the camera."}}},"practical":{"source":"data/practicals.json + data-private + Ledger lib_practicals","loader":"js/library.js libPractical_","sheet":{"tab":"lib_practicals","columns":["practical_id","subject","level","exam_board","practical_type","excluded"],"id":"id","blob":true,"lib":{"name":"practicals","order":3,"file":"data/practicals.json","prefix":"pr","key":["practical_id"],"private":["aim","outcome","safety","maths_link","equipment","steps","notes","science","log","variables","diagram","risks"]}},"find":{"group":"Learning","label":"Practicals","under":"Library","facets":["forLabel","kindLabel","kindOwn","subject","practicalType","required","level","topic","examBoard","needs"]},"card":{"look":"prac kc-facts","id":["id","practical_id"],"tags":["subject","level","board","exam_board","practicalType","practical_type"],"lines":true,"off":"excluded","body":"practicalBody_(row)"},"see":{"who":"anyone"}},"project":{"source":"data/projects.json + data-private + Ledger lib_projects","loader":"js/library.js libProject_","sheet":{"tab":"lib_projects","columns":["project_id","subject","level","exam_board","project_type"],"id":"id","blob":true,"lib":{"name":"projects","order":4,"file":"data/projects.json","prefix":"pj","key":["project_id"],"private":["materials","steps","safety","share"]}},"find":{"group":"Learning","label":"Projects","under":"Library","facets":["forLabel","kindLabel","kindOwn","projectType","subject","level","topic","examBoard"]},"card":{"look":"prac proj lib-c kc-facts","id":["id","project_id"],"tags":["subject","level","board","exam_board","projectType","project_type"],"lines":true,"body":"projectBody_(row)"},"see":{"who":"anyone"}},"content":{"source":"data/textbooks.json + Ledger lib_content","loader":"js/library.js -> find-facets.js","sheet":{"tab":"lib_content","columns":["book_id","chapter","subject","level","keystage","board","tier"],"id":"id","blob":true,"lib":{"name":"textbooks","order":2,"file":"data/textbooks.json","prefix":"ct","key":["book_id","chapter"],"skip":"anim","private":["words","points","formulas","diagram"]}},"find":{"group":"Learning","label":"Library","facets":["forLabel","kindLabel","subject","histKind","wWork","mKind","level","keystage","yearGroup","topic","examBoard","specTopic","specPoint","tier"]},"card":{"look":"prac tb ct lib-c","id":"kcContentId_(row)","tags":["subject","level","keystage","board","tier"],"lines":true,"body":"contentBody_(row)"},"see":{"who":"anyone"}},"insert":{"source":"data/inserts.json + Ledger lib_inserts","loader":"js/library.js -> find-history.js","sheet":{"tab":"lib_inserts","columns":["insert_id","subject","boards","levels"],"id":"id","blob":true,"lib":{"name":"inserts","order":5,"file":"data/inserts.json","prefix":"in","key":["insert_id"],"newer":true,"private":["source_text"]}},"find":{"group":"Learning","label":"Library","facets":["forLabel","kindLabel","subject","level","keystage","examBoard","tier"]},"card":{"look":"insh","id":["id","insert_id"],"tags":["subject","boards","board","levels","level"],"links":["forPapers"],"lines":true,"entryTags":{"sheets":2},"body":"kcInsertBody_(row)"},"see":{"who":"anyone"}},"spec":{"source":"data/specs.json","loader":"js/library.js -> find-history.js","find":{"group":"Learning","label":"Specification","under":"Library","facets":["forLabel","kindLabel","kindOwn","subject","level","keystage","examBoard","tier"]},"card":{"look":"insh spec-sheet","name":"code","tags":["board","qualification","subject","level"],"lines":true,"body":"specBody_(row)"},"see":{"who":"anyone"}},"manuscript":{"source":"data/manuscripts.json","loader":"js/library.js HIST_DB -> find-history.js histItem_","find":{"group":"Learning","label":"Library","facets":["forLabel","kindLabel","subject","shelf","histKind","wLanguage","histEra","histMaterial","histFormat","histRepository","histSide","histFound","histDated"]},"card":{"look":"hdb hdb-msc lib-c","tags":["language","material","script"],"links":["writings"],"picture":"kcMsPic_(item, entry)"},"see":{"who":"anyone"}},"figure":{"source":"data/figures.json (+ portraits.json)","loader":"js/library.js HIST_DB -> histItem_ as kind people","find":{"group":"Learning","label":"Library","facets":["forLabel","kindLabel","subject","shelf","histKind","boxKind","fighter","decade","division","histEra","histRole","personName","personYears","personFrom"]},"card":{"look":"person lib-c","card":"people","when":"hdb","tags":["roles","eras"],"links":["writings","events"],"picture":"kcPersonPic_(item)"},"see":{"who":"anyone"}},"boxer":{"source":"data/boxers.json","loader":"js/library.js libExtrasBoxing_ -> find-aloud.js","find":{"group":"Learning","label":"Library","facets":["forLabel","kindLabel","subject","shelf","histKind","boxKind","fighter","decade","division","histEra","histRole","personName","personYears","personFrom"]},"card":{"look":"person lib-c","card":"people","id":["id","boxer_id"],"tags":["country","bestDivision","best_division","stance"],"picture":"kcPersonPic_(item)"},"see":{"who":"anyone"}},"writing":{"source":"data/writings.json","loader":"js/library.js HIST_DB -> find-history.js histItem_","find":{"group":"Learning","label":"Library","facets":[]},"card":{"look":"hdb lib-c","tags":["language","genre"],"links":["author_id","manuscripts"]},"see":{"who":"anyone"}},"event":{"source":"data/timeline.json","loader":"js/library.js HIST_DB -> find-history.js histItem_","find":{"group":"Learning","label":"Library","entries":{"event":{},"timeline":{"label":"Timeline","under":"Library"}},"facets":["forLabel","kindLabel","subject","shelf","histKind","histEra","histTheatre"]},"card":{"look":"hdb lib-c","tags":["era","theatre"],"links":["figures","writings"]},"see":{"who":"anyone"}},"fight":{"source":"data/fights.json","loader":"js/library.js libExtrasBoxing_ -> find-aloud.js","find":{"group":"Learning","label":"Library","facets":["forLabel","kindLabel","subject","shelf","boxKind","fighter","boutMonth","boutYear","decade","division","boutRound","boutMethod","boutWinner","boutEvent","examMonth","examDay"]},"card":{"look":"fight","id":["id","fight_id"],"name":"kcFightName_(row)","nameTag":false,"lines":true,"tags":["division"],"links":["aId","bId","boxer_a_id","boxer_b_id"],"body":"fightBody_(row)"},"see":{"who":"anyone"}},"libcard":{"source":"a library card: one passage of a text collection (js/bible.js, talmud.js, quran.js, works.js, hadith.js, texts.js, pdtexts.js, orthodox.js, hymns.js)","find":{"group":"Learning","label":"Library","entries":{"bible":{},"talmud":{},"quran":{},"worktext":{},"hadith":{},"writ":{},"pdtext":{},"orthotext":{},"hymn":{}}},"see":{"who":"anyone"}},"mech":{"source":"data/mechanics/*.json","loader":"js/mechanics.js","find":{"group":"Learning","label":"Library","facets":["forLabel","kindLabel","subject","shelf","mMake","mModel","mGen","mEngine","mKind","mSystem","pcType","pcSocket","pcIface","pcLinks","mPhase","mMarket","mYears","mSize","mValves","mBadge","mFuel","mPart","mPrice"]},"card":{"look":"mech","from":"mech","tags":["system","type","make"],"links":["fits"],"nameTag":false,"lines":true,"picture":"kcMechPic_(item)","body":"kcMechBody_(row)"},"see":{"who":"anyone"}},"chem":{"source":"data/chemistry/*.json","loader":"js/chemistry.js","find":{"group":"Learning","label":"Library","facets":["forLabel","kindLabel","subject","mKind","cCategory","cGroup","cPeriod","cState"]},"card":{"look":"tx kc-facts","from":"chem","tags":["category","type","block","state"],"lines":true,"body":"chemBody_(row)"},"see":{"who":"anyone"}},"hist":{"source":"one file a topic, data/library/history/<id>.json: its timeline, people, sources and items, a card each","loader":"js/history-topics.js","find":{"group":"Learning","label":"Library","facets":["forLabel","kindLabel","subject","histKind","histPart","level","keystage"]},"card":{"look":"lib-c kc-facts","from":"hist","tags":["topicName","partName"],"lines":true,"picture":"histTopicPic_(raw)","body":"histTopicBody_(row)"},"see":{"who":"anyone"}},"tool":{"source":"js/map.js WIDGETS (kind tool)","find":{"group":"Tools","label":"Tools","under":"Tools"},"see":{"who":"anyone"}},"game":{"source":"js/map.js WIDGETS (kind game)","find":{"group":"Games","label":"Games","under":"Games"},"see":{"who":"anyone"}},"soon":{"source":"tiers.json: a switched-off widget","find":{"group":"Coming soon","label":"Coming soon","under":"Coming soon"},"see":{"who":"anyone"}},"person":{"source":"Ledger people tab","loader":"payload -> find-doors.js","sample":"check/fixture.json everyone","sheet":{"tab":"people","columns":["personId","first","last","handle","role","email","dob"],"never":["pin"],"id":"person_id","owner":["person_id"],"kindBy":{"column":"role","match":"tutor","kind":"tutor"},"show":["person_id","role","first_name","last_name","handle","email","phone","date_of_birth","photo","avatar","favourite_colour","xp","credits","children","joined_on","exam_small_date","exam_big_date"]},"find":{"group":"Profiles","label":"Profiles","under":"Profiles","facets":["forLabel","kindLabel","profileType"]},"card":{"look":"is-prof prof-door kc-facts","id":["personId","id"],"name":"kcPersonName_(row)","tags":["role","handle"],"lines":true,"body":"kcPersonBody_(row)","picture":"profFace_(entry, 160)","tiles":"peopleOpts_(raw)"},"see":{"who":"self, family, staff, admin","hide":{"prices":["rate_per_hour","extra_seat_rate","extra_seat_cut"]}},"forms":{"person-add":{"attr":"data-pa","fields":[{"f":"first","type":"text","ph":"First name"},{"f":"last","type":"text","ph":"Last name"},{"f":"role","type":"choice","label":"Role","draft":false},{"f":"email","type":"text","input":"email","ph":"Email","phKid":"Email (optional)"},{"f":"dob","type":"date","label":"Date of birth (optional)"}],"draft":"form","ask":"card"},"person-form":{"attr":"data-pf","fields":[{"f":"first","type":"text","ph":"First name","row":"names"},{"f":"last","type":"text","ph":"Last name","row":"names"},{"f":"roles","type":"ticks","attr":"data-pf-role","label":"Role","look":"pf-roles","tickLook":""},{"f":"email","type":"text","input":"email","ph":"Email (optional)"},{"f":"dob","type":"date","label":"Date of birth (optional)"},{"f":"parents","type":"ticks","attr":"data-pf-parent","label":"Parents","draft":false,"look":"pf-ticks","tickLook":""},{"f":"parent","type":"choice","label":"Their parent (optional)","draft":false}],"draft":"form","ask":"card"},"person-edit":{"attr":"data-pe","fields":[{"f":"first_name","type":"text"},{"f":"last_name","type":"text"},{"f":"handle","type":"text","label":"handle (theirs to change)","readonly":true},{"f":"dob","type":"date","label":"date of birth"},{"f":"email","type":"text","input":"email"},{"f":"phone","type":"phone","input":"tel"},{"f":"address","type":"text"},{"f":"postcode","type":"text"}],"draft":"form","ask":"card"},"settings":{"attr":"data-me","draft":"set","fields":"groups","say":"Settings cards: the backend's field groups; a timetable group is the week grid, lib/qual/job/photo names their shelves, dob_* the three boxes, phone the code and number, photo the picture."},"library-card":{"attr":"data-me","draft":"set","say":"one library card on the shelf; a library PIN is not a sign-in PIN and keeps no draft (setDraftOk_).","fields":[{"f":"lib{n}_name","type":"text","ph":"Library name","look":"lib-name","quiet":true},{"f":"lib{n}_pin","type":"text","label":"PIN","look":"lib-pin","quiet":true,"blank":true},{"f":"lib{n}_no","type":"text","ph":"Card number","look":"lib-no","quiet":true}]},"job":{"attr":"data-me","draft":"set","say":"one job on the shelf: role, where, from–to.","fields":[{"f":"job_{n}_role","type":"text","ph":"role","max":80},{"f":"job_{n}_where","type":"text","ph":"where","max":80},{"f":"job_{n}_from","type":"text","ph":"from","max":80},{"f":"job_{n}_to","type":"text","ph":"to, or now","max":80}]},"dob":{"attr":"data-me","draft":"set","say":"a date of birth as three boxes.","fields":[{"f":"dob_d","type":"text","ph":"DD","max":2,"pad":"numeric"},{"f":"dob_m","type":"text","ph":"MM","max":2,"pad":"numeric"},{"f":"dob_y","type":"text","ph":"YYYY","max":4,"pad":"numeric"}]},"family-pick":{"attr":"data-fam-q","draft":false,"say":"a family picker: a name looked up, not work, retyped in a second.","fields":[{"f":"{scope}","type":"search","ph":"name or @handle","want":"{want}"}]},"notify":{"attr":"data-do","draft":false,"say":"Notifications: each tick a setNotify the moment it is ticked (formToggle_).","fields":[{"f":"kinds","type":"toggles"}]},"apply-teach":{"attr":"data-app","draft":"form","say":"Apply to teach (400): one sheet, kept as drafts until it is sent.","fields":[{"f":"","type":"head","label":"You"},{"f":"fullName","type":"text","label":"full name"},{"f":"phone","type":"text","input":"tel","label":"phone","row":"r1"},{"f":"email","type":"text","input":"email","label":"email","row":"r1"},{"f":"address","type":"long","label":"home address"},{"f":"postcode","type":"text","label":"postcode","caps":true,"row":"r2"},{"f":"dob","type":"date","label":"date of birth","row":"r2"},{"f":"","type":"head","label":"Documents"},{"f":"idDoc","type":"doc","label":"photo ID — passport or driving licence"},{"f":"rightToWork","type":"choice","label":"right to work in the UK","options":[["","Choose"],["yes","Yes"],["no","No"]]},{"f":"rtwDoc","type":"doc","label":"right-to-work document — passport, share code or visa"},{"f":"","type":"head","label":"What you teach"},{"f":"subjects","type":"subjects"},{"f":"qualifications","type":"long","label":"qualifications — degrees, teaching qualifications, anything relevant"},{"f":"qual0","type":"doc","label":"a qualification certificate"},{"f":"qual1","type":"doc","label":"another qualification certificate (optional)"},{"f":"qual2","type":"doc","label":"another qualification certificate (optional)"},{"f":"rate","type":"money","input":"number","label":"hourly rate (£)","min":"1","step":"0.5"},{"f":"","type":"head","label":"Checks"},{"f":"dbsNumber","type":"text","label":"enhanced DBS certificate number","row":"r3"},{"f":"dbsIssued","type":"date","label":"issued on","row":"r3"},{"f":"dbsUpdate","type":"tick","label":"I consent to you checking it on the DBS Update Service"},{"f":"dbsNeeded","type":"tick","label":"I need a DBS check"},{"f":"","type":"head","label":"When and where"},{"f":"availability","type":"timetable","label":"when you can teach"},{"f":"area","type":"text","label":"area and venues you can reach"},{"f":"experience","type":"long","label":"experience"},{"f":"","type":"head","label":"2 references"},{"f":"ref1Name","type":"text","label":"name","row":"a1"},{"f":"ref1Relationship","type":"text","label":"relationship to you","row":"a1"},{"f":"ref1Email","type":"text","input":"email","label":"email","row":"b1"},{"f":"ref1Phone","type":"text","input":"tel","label":"phone","row":"b1"},{"f":"ref2Name","type":"text","label":"name","row":"a2"},{"f":"ref2Relationship","type":"text","label":"relationship to you","row":"a2"},{"f":"ref2Email","type":"text","input":"email","label":"email","row":"b2"},{"f":"ref2Phone","type":"text","input":"tel","label":"phone","row":"b2"},{"f":"statement","type":"long","label":"a short statement — why you want to teach"},{"f":"cvLink","type":"text","input":"url","label":"CV link (optional)","ph":"https://…"},{"f":"consent","type":"tick","label":"I agree to @family. keeping these details and documents privately to consider my application, contacting my referees and checking my DBS."}],"ask":"card"},"sign-join":{"ask":"find","say":"Make an account, asked in Find one field a step (owner, 16 Nov: one form): who it is for, whose email, the names, the email and a 4-digit PIN; sent as the existing `register`. The PIN is held in memory for the call only, never stored. only: asked when an earlier answer is this.","send":{"say":"make-my-account"},"fields":[{"f":"who","type":"choice","label":"Who is the account for?","note":"Both are free; teaching starts with \"Apply to teach\" once you are in.","options":[{"v":"parent","say":"client-i-book-and-pay"},{"v":"student","say":"student-im-learning"}]},{"f":"kid","type":"choice","only":{"who":"student"},"label":"Whose email will you give?","options":[{"v":"own","t":"My own email"},{"v":"grown-up","say":"its-a-grown-ups-email"}]},{"f":"first","type":"text","ph":"First name"},{"f":"last","type":"text","ph":"Last name"},{"f":"email","type":"text","input":"email","ph":"Email"},{"f":"pin","type":"pin","label":"PIN — 4 digits"}],"draft":"ask"},"sign-in":{"ask":"find","say":"Signing in, Find's first step (owner, 13 Nov): the name typed on the blank tag, then the PIN a digit a tag; sent as `verifyLogin` on the last digit. The digits are never kept.","fields":[{"f":"who","type":"text","ph":"Username or email","label":"Your username or email"},{"f":"pin","type":"pin"}]},"pin-change":{"ask":"find","say":"Settings' Signing in card (owner, 16 Nov: one form): your PIN now, the new one, and it again, a digit a tag; sent as the existing `changePin`. The digits are held for the call only, never stored.","send":{"t":"Save"},"back":"one","fields":[{"f":"now","type":"pin","label":"current PIN"},{"f":"new","type":"pin","label":"new PIN, 4 numbers, not 1234"},{"f":"again","type":"pin","label":"new PIN again"}]}},"facts":{"say":"WHAT THE OWNER STATES ABOUT A PERSON (owner, 16 Nov): one row a fact, {who, what, value, as_of}. `what` is one of `keys`; a value may be a range (\"7-8\"). Values age by themselves (`ages`): school_year goes up one each 1 September after as_of, age one each year after as_of. Shown on the person's card to staff (tutors) and admins only (`see`), never to a child or another family. Sent as backend payload `personFacts`; kept in the items tab as kind `fact` (17 Nov). A PIN is never a fact.","row":{"who":"person id (P010)","what":"a key from `keys`","value":"text; a range is \"a-b\"","as_of":"date (yyyy-mm-dd)"},"keys":["age","school_year","course","board","set_texts","school","subjects","target_grade","needs","business","ventures","notes"],"ages":{"school_year":"september","age":"year"},"see":["admin","staff"],"store":{"tab":"facts","payload":"personFacts","until":"events record","say":"moved to the items tab (ledger.moved `fact`, 17 Nov): still read and written as core.gs read('facts')"}}},"setting":{"source":"js/me-settings.js and data/settings/setting-for.json","find":{"group":"Settings","label":"Settings","under":"Settings","entries":{"setting":{}}},"see":{"who":"anyone"}},"health":{"source":"site health (js/health*.js)","find":{"group":"Settings","label":"Settings","under":"Settings"},"see":{"who":"admin"}},"msg":{"source":"Ledger messages tab (payload.messages)","find":{"group":"Messages","label":"Messages","under":"Messages","draw":"findMsgCard_"},"see":{"who":"anyone"}},"post":{"source":"Ledger posts tabs","loader":"backend get-posts.gs -> find-doors.js","sample":"check/fixture.json posts","sheet":{"tab":"posts","columns":["text","caption","title","location","authorId"],"id":"post_id","owner":["posted_by"]},"find":{"group":"Posts","label":"Posts","under":"Posts","entries":{"post":{},"offPosts":{}},"facets":["forLabel","kindLabel","postState","postBy","postWhen"],"onCard":false},"card":{"look":"post-fc","name":"kcPostName_(row)","tags":["location"],"links":["authorId"]},"see":{"who":"signedIn"}},"product":{"source":"Ledger shop tab (data/settings/shop.json, data/shop-additions.json)","loader":"backend get-shop.gs -> find-aloud.js findMineItems_ (its Find entry is its row)","sample":"check/fixture.json shop","sheet":{"tab":"shop","columns":["name","shopKind","shopHow","shopBrand","shopTheme","shopFor","cost","level","image"],"id":"item_id"},"find":{"group":"Shop","label":"Things","under":"Shop","draw":"findShopCard_","entries":{"shop":{},"offShop":{"label":"Shop","draw":""}},"facets":["forLabel","kindLabel","kindOwn","shopKind","shopHow","shopPrice","shopBrand","shopFor","shopTheme"]},"card":{"card":"shop","from":"entry","id":["key","name"],"tags":["shopKind","shopHow","shopPrice","shopBrand","shopTheme","shopFor"],"facts":true,"tagLook":"qcard-tags","look":"kcShopLook_(entry)","picture":"kcShopPic_(entry)","pills":"kcShopPills_(entry)"},"see":{"who":"anyone"}},"paper":{"source":"data/questions.json paper_id (+ data/expected-papers.json)","find":{"facets":["paperId"]},"see":{"who":"anyone"}},"partner":{"source":"the owner's business partners (owner, 17 Nov); rows in the items tab","sheet":{"tab":"partners","id":"partner_id","columns":["partner_id","who","business","together","terms","status"]},"find":{"group":"Life","label":"Partners","under":"Settings","from":"store","new":"New partner","facets":["forLabel","kindLabel","partnerStatus"],"facetCols":{"partnerStatus":"status"}},"card":{"look":"kc-facts store-card","lines":true,"body":"storeLines_(row, \"partner\")","sheet":"storeSheet_(item, entry)","name":"business","tags":["status"],"links":["who"],"tiles":"storeTiles_(item, entry)"},"see":{"who":"admin"},"forms":{"partner-new":{"ask":"find","store":true,"skip":true,"send":{"t":"Save"},"say":"the \"New partner\" card in Find (form.js storeSend_): one field a step, any left empty, sent as the one action `item` (mode write).","fields":[{"f":"who","type":"text","label":"Who (their person id)"},{"f":"business","type":"text","label":"Business"},{"f":"together","type":"long","label":"What we could do together"},{"f":"terms","type":"text","label":"Terms / %"},{"f":"status","type":"choice","label":"Status","options":[{"v":"idea","t":"Idea"},{"v":"talking","t":"Talking"},{"v":"agreed","t":"Agreed"},{"v":"running","t":"Running"},{"v":"ended","t":"Ended"}]}]}}},"food":{"source":"the owner's food: what, where, cost, time (owner, 17 Nov); rows in the items tab","sheet":{"tab":"food","id":"food_id","columns":["food_id","name","shop","price","minutes","meal","how"]},"find":{"group":"Life","label":"Food","under":"Settings","from":"store","new":"New food","facets":["forLabel","kindLabel","foodMeal","foodShop"],"facetCols":{"foodMeal":"meal","foodShop":"shop"}},"card":{"look":"kc-facts store-card","lines":true,"body":"storeLines_(row, \"food\")","sheet":"storeSheet_(item, entry)","name":"name","tags":["meal","shop"],"tiles":"storeTiles_(item, entry)"},"see":{"who":"admin"},"forms":{"food-new":{"ask":"find","store":true,"skip":true,"send":{"t":"Save"},"say":"the \"New food\" card in Find (form.js storeSend_): one field a step, any left empty, sent as the one action `item` (mode write).","fields":[{"f":"name","type":"text","label":"Name"},{"f":"shop","type":"text","label":"Shop"},{"f":"price","type":"text","label":"Price (£)","min":0,"step":0.01},{"f":"minutes","type":"text","label":"Minutes to make","min":0},{"f":"meal","type":"choice","label":"Meal","options":[{"v":"breakfast","t":"Breakfast"},{"v":"lunch","t":"Lunch"},{"v":"dinner","t":"Dinner"},{"v":"snack","t":"Snack"}]},{"f":"how","type":"long","label":"How"}]}}},"task":{"source":"the owner's tasks (owner, 17 Nov); rows in the items tab","sheet":{"tab":"tasks","id":"task_id","columns":["task_id","title","notes","due","repeat","list","done","person_id","booking_id","item_id"]},"find":{"group":"Life","label":"Tasks","under":"Settings","from":"store","new":"New task","facets":["forLabel","kindLabel","taskList","taskRepeat","taskDone"],"facetCols":{"taskList":"list","taskRepeat":"repeat","taskDone":"done"}},"card":{"look":"kc-facts store-card","lines":true,"body":"storeLines_(row, \"task\")","sheet":"storeSheet_(item, entry)","name":"title","tags":["list","due"],"links":["person_id","booking_id","item_id"],"tiles":"storeTiles_(item, entry)","tick":{"f":"done","on":"yes","off":"no","label":"Done"}},"see":{"who":"admin"},"forms":{"task-new":{"ask":"find","store":true,"skip":true,"send":{"t":"Save"},"say":"the \"New task\" card in Find (form.js storeSend_): one field a step, any left empty, sent as the one action `item` (mode write).","fields":[{"f":"title","type":"text","label":"Title"},{"f":"notes","type":"long","label":"Notes"},{"f":"due","type":"date","label":"Due"},{"f":"repeat","type":"choice","label":"Repeat","options":[{"v":"never","t":"Never"},{"v":"daily","t":"Daily"},{"v":"weekly","t":"Weekly"},{"v":"monthly","t":"Monthly"},{"v":"yearly","t":"Yearly"}]},{"f":"list","type":"text","label":"List"},{"f":"done","type":"choice","label":"Done","options":[{"v":"no","t":"No"},{"v":"yes","t":"Yes"}]},{"f":"person_id","type":"text","label":"Person (id)"},{"f":"booking_id","type":"text","label":"Booking (id)"},{"f":"item_id","type":"text","label":"Item (id)"}]}}},"drive_area":{"source":"the owner's Google Drive areas (owner, 17 Nov); rows in the items tab","sheet":{"tab":"drive_areas","id":"area_id","columns":["area_id","name","folder_id","what"]},"find":{"group":"Life","label":"Drive","under":"Settings","from":"store","new":"New Drive area","facets":["forLabel","kindLabel"],"facetCols":{}},"card":{"look":"kc-facts store-card","lines":true,"body":"storeLines_(row, \"drive_area\")","sheet":"storeSheet_(item, entry)","name":"name","tags":["folder_id"],"tiles":"storeTiles_(item, entry)"},"see":{"who":"admin"},"forms":{"drive_area-new":{"ask":"find","store":true,"skip":true,"send":{"t":"Save"},"say":"the \"New Drive area\" card in Find (form.js storeSend_): one field a step, any left empty, sent as the one action `item` (mode write).","fields":[{"f":"name","type":"text","label":"Name"},{"f":"folder_id","type":"text","label":"Folder id"},{"f":"what","type":"long","label":"What goes there"}]}}},"session":{"source":"the owner's weekly timetable of sessions (owner, 17 Nov): who, where, which days, start-end, this term; rows in the items tab. Plain record, not a booking: no price, no sync.","sheet":{"tab":"sessions","id":"session_id","columns":["session_id","who","person_id","place","address","days","start","end","term","notes"]},"find":{"group":"Life","label":"Week","under":"Settings","from":"store","new":"New session","facets":["forLabel","kindLabel"],"facetCols":{}},"card":{"look":"kc-facts store-card","lines":true,"body":"storeLines_(row, \"session\")","sheet":"storeSheet_(item, entry)","name":"who","tags":["days","start"],"tiles":"storeTiles_(item, entry)"},"see":{"who":"admin"},"forms":{"session-new":{"ask":"find","store":true,"skip":true,"send":{"t":"Save"},"say":"the \"New session\" card in Find: one field a step, sent as item write.","fields":[{"f":"who","type":"text","label":"Who"},{"f":"person_id","type":"text","label":"Person id (if they have a file)"},{"f":"place","type":"text","label":"Where"},{"f":"address","type":"text","label":"Address"},{"f":"days","type":"text","label":"Days (e.g. Mon-Fri, Mon)"},{"f":"start","type":"text","label":"Start (HH:MM)"},{"f":"end","type":"text","label":"End (HH:MM)"},{"f":"term","type":"text","label":"Term"},{"f":"notes","type":"long","label":"Notes"}]}}}},"facets":[{"field":"mScope","label":"Car or car part?","sort_order":24.581,"note":"mechanics (owner, 7 Nov): a car, or a car part (a part then answers the cars it fits)","active":true},{"field":"mMake","label":"Brand","sort_order":24.582,"note":"mechanics (batch E): a car's brand; a part answers the brands it fits","active":true},{"field":"mModel","label":"Model","sort_order":24.583,"note":"mechanics (batch E): a car's model","active":true},{"field":"mGen","label":"Generation","sort_order":24.584,"note":"mechanics (batch E): a car's generation (III, Mk7)","active":true},{"field":"mPhase","label":"Phase","sort_order":24.611,"note":"mechanics (batch E): a facelift phase, a tag","active":true},{"field":"mMarket","label":"Market","sort_order":24.612,"note":"mechanics (batch E): where the car was sold, a tag","active":true},{"field":"mYears","label":"Years made","sort_order":24.613,"note":"mechanics (batch E): the years this car and engine were sold, a tag","active":true},{"field":"mSize","label":"Engine size","sort_order":24.614,"note":"mechanics (batch E): litres, a tag","active":true},{"field":"mValves","label":"Valves","sort_order":24.615,"note":"mechanics (batch E): valves, a tag","active":true},{"field":"mBadge","label":"Version","sort_order":24.616,"note":"mechanics (batch E): the badge (TCe 100, TDI), a tag","active":true},{"field":"mFuel","label":"Fuel","sort_order":24.617,"note":"mechanics (batch E): petrol or diesel","active":true},{"field":"mPart","label":"Part","sort_order":24.618,"note":"mechanics and PC parts (batch E): the part's name, a tag","active":true},{"field":"mPrice","label":"Price band","sort_order":24.619,"note":"mechanics (batch E): a rough UK parts price band, a tag","active":true},{"field":"pcType","label":"Part type","sort_order":24.601,"note":"PC parts (batch E): CPU, Motherboard, RAM, GPU, Storage, PSU, Case, Cooling, Cables, OS media","active":true},{"field":"pcSocket","label":"Socket or form factor","sort_order":24.602,"note":"PC parts (batch E): AM5, ATX, M.2 2280, 2.5-inch","active":true},{"field":"pcIface","label":"Interface","sort_order":24.603,"note":"PC parts (batch E): PCIe, SATA, DDR5, USB","active":true},{"field":"pcLinks","label":"Connects to","sort_order":24.604,"note":"PC parts (batch E): the parts it plugs into","active":true},{"field":"mKind","label":"Card type","sort_order":24.59,"note":"a Library card's kind: mechanics (548, 650) Part or Car; chemistry (550) Element, Substance or Reaction","active":true},{"field":"mSystem","label":"System","sort_order":24.6,"note":"a mechanics card (548): the car system a part, job or symptom belongs to","active":true},{"field":"mEngine","label":"Engine","sort_order":24.585,"note":"a mechanics card (548, batch E): the engine code (D4F, K9K); a part answers the engines it fits","active":true},{"field":"cCategory","label":"Chemical type","sort_order":24.65,"note":"a chemistry card (550): an element's category, a substance's or a reaction's type","active":true},{"field":"cGroup","label":"Group","sort_order":24.66,"note":"a chemistry element (550): its group in the periodic table","active":true},{"field":"cPeriod","label":"Period","sort_order":24.67,"note":"a chemistry element (550): its period","active":true},{"field":"cState","label":"State","sort_order":24.68,"note":"a chemistry card (550): state at 20 °C","active":true},{"field":"forLabel","label":"What for","sort_order":10,"note":"what the thing is for (a group of kinds); asked by the one rule like every facet","active":true},{"field":"kindLabel","label":"What kind","sort_order":20,"note":"what kind of thing: Practice (Questions and Answers; 610), Library (practicals since 15 Nov, projects since 7 Nov, boxers, bouts and the Bible are in the Library; Content until 490). Answers keeps a question's answer pages; its answers are ordered by the kinds tab","active":true},{"field":"kindOwn","label":"Which","sort_order":20.5,"note":"the kind under a kind (610): Questions and Answers under Practice; Practicals, Timeline and Projects under Library; asked after What kind","active":true},{"field":"mySaved","label":"Saved","sort_order":20.6,"note":"what the signed-in person starred (17 Nov): Saved or Not saved; was the Saved column (screens-moved.json saved)","active":true},{"field":"wReligion","label":"Religion","sort_order":24.03,"note":"every religious writing (546): the religion it belongs to, its registry topic (Christianity, Judaism, Islam, Ancient Egyptian religion); asked first in Religious Studies","active":true},{"field":"wWork","label":"Work","sort_order":24.05,"note":"every writing (520): the Bible, the Quran, the Talmud, the Hadith, a hymnal, a play, any work","active":true},{"field":"wSource","label":"Source text","sort_order":24.07,"note":"every writing (owner, 29 Oct): the original a Text was made from, its base by Collection: Hebrew Masoretic Text, Greek Septuagint, Greek New Testament, Arabic, Babylonian Talmud (Bavli); asked before the Translation","active":true},{"field":"wLanguage","label":"Language","sort_order":24.08,"note":"every writing (546): the language a text is written in (Greek, Hebrew, English), its own question, never merged with whose translation","active":true},{"field":"wText","label":"Translation","sort_order":24.1,"note":"every writing (520, 546): whose translation or edition (King James Version (1611)); its language is the Language question","active":true},{"field":"wTradition","label":"Tradition","sort_order":24.15,"note":"every writing (520): the church or school within its religion (Orthodox, Catholic, Methodist); the religion itself is its Topic","active":true},{"field":"wCollection","label":"Collection","sort_order":24.045,"note":"every writing (520, 600): a group of works, asked before Work: Rabbinic, Second Temple, Kabbalah, Hadith, the testament, an anthology, Hymns, Deuterocanon / Apocrypha / Anagignoskomena","active":true},{"field":"wSection","label":"Section","sort_order":24.06,"note":"every writing (520): a group of books above Book (Torah, Gospels), a Talmud order, a juz, a hymnal section","active":true},{"field":"wBook","label":"Book","sort_order":24.3,"note":"every writing (520): a book of the Bible, a tractate, a hadith book, a volume","active":true},{"field":"wChapter","label":"Chapter","sort_order":24.35,"note":"every writing (520): chapter, surah, act, poem, perek; drawn as a grid when its answers are numbers","active":true},{"field":"wUnit","label":"Unit","sort_order":24.4,"note":"every writing (520): the card itself: a verse, ayah, hadith, daf side, scene, stanza, hymn","active":true},{"field":"wAuthor","label":"Author","sort_order":24.45,"note":"every writing (520): who wrote it, where the index says","active":true},{"field":"wPrimacy","label":"Primary or secondary source","sort_order":24.51,"note":"every writing (owner, 7 Nov): Primary for an original text, Secondary for a later study of it","active":true},{"field":"wForm","label":"Kind of writing","sort_order":24.5,"note":"every writing (520): play, novel, poem, hymn, canon law, homily","active":true},{"field":"shelf","label":"Shelf","sort_order":24,"note":"which shelf of the Library: Boxing, or Writings, where every written work is (520); Physical Education is Boxing only (7 Nov)","active":true},{"field":"book","label":"Book","sort_order":31,"note":"off and retired in code: it asked which @family. textbook, and since 12 Oct every chapter is a content card of its own, so nothing answers it (docs/history/347, part 2)","active":false},{"field":"projectType","label":"Project or coursework","sort_order":21,"note":"projects only, which the coverage rule decides: asked once half the list is projects","active":true},{"field":"subject","label":"Subject","sort_order":22,"note":"asked first after What kind (494): \"the library should go subject first\"; every Library item carries one (scripture is Religious Studies)","active":true},{"field":"boxKind","label":"Fighters or fights","sort_order":34,"note":"fighters (people) or bouts (batch D)","active":true},{"field":"fighter","label":"Fighter","sort_order":34.1,"note":"a bout's two corners, and a boxer's own name (445)","active":true},{"field":"boutMonth","label":"Month","sort_order":34.2,"note":"the month a bout was fought (445)","active":true},{"field":"boutYear","label":"Year","sort_order":34.3,"note":"the year a bout was fought (445)","active":true},{"field":"decade","label":"Decade","sort_order":35,"note":"an era before a weight","active":true},{"field":"division","label":"Division","sort_order":36,"note":"boxers and bouts only; the coverage rule hides it elsewhere","active":true},{"field":"boutRound","label":"Round","sort_order":36.1,"note":"the round a bout ended in (445)","active":true},{"field":"boutMethod","label":"Result","sort_order":36.2,"note":"how a bout ended: KO, TKO, decision (445)","active":true},{"field":"boutWinner","label":"Winner","sort_order":36.3,"note":"who won a bout -- a tag since the fight card lost its A v B title (490)","active":true},{"field":"boutEvent","label":"Event","sort_order":36.4,"note":"the night a bout was billed as (490)","active":true},{"field":"practicalType","label":"Experiment or build","sort_order":38,"note":"practicals only; the coverage rule hides it elsewhere","active":true},{"field":"required","label":"Required","sort_order":39,"note":"Required practical, Extra or Not for now; practicals only, so the coverage rule keeps it off the first screen","active":true},{"field":"documentType","label":"Type","sort_order":40,"note":"the errand: revising a topic and sitting a mock want different questions after this one","active":true},{"field":"level","label":"Level","sort_order":50,"note":"which qualification; band_type stage wins over the level column","active":true},{"field":"keystage","label":"Key stage","sort_order":60,"note":"a comma in the cell is a list: a sheet may be KS1 and KS2","active":true},{"field":"yearGroup","label":"School year","sort_order":70,"note":"band_type year. Not \"Year\" — that is the year a paper was sat","active":true},{"field":"bandValue","label":"Grade","sort_order":80,"note":"band_type grade","active":true},{"field":"topic","label":"Topic","sort_order":100,"note":"hundreds of answers, so the 40-answer cap keeps it quiet until the list is small enough to name one","active":true},{"field":"examBoard","label":"Exam board","sort_order":110,"note":"","active":true},{"field":"specTopic","label":"Spec topic","sort_order":111,"note":"a content card written to one board's spec (16 Nov): the spec's own numbered topic, read from data/spec/<board>-<code>.json by its spec_ref; such a card answers no Topic, so its board is asked first","active":true},{"field":"specPoint","label":"Spec point","sort_order":112,"note":"the spec's numbered sub-topic under Spec topic (4.1.1 Cell structure), from the same file","active":true},{"field":"tier","label":"Tier","sort_order":120,"note":"Foundation or Higher","active":true},{"field":"examYear","label":"Year","sort_order":130,"note":"the year of the sitting, newest first","active":true},{"field":"examMonth","label":"Month","sort_order":132,"note":"May, June, November — the month and never the season; any item's own date too (a 5-a-day's)","active":true},{"field":"examDay","label":"Day","sort_order":133,"note":"the day of the month of any item's own date (a 5-a-day's 5 October is 5)","active":true},{"field":"paperId","label":"Paper","sort_order":140,"note":"the id decides who answers; the document's name is what is said, shortened against the names beside it","active":true},{"field":"paperSection","label":"Paper section","sort_order":141,"note":"a paper sat in sections (9MA0 Paper 3: A Statistics, B Mechanics); an ordinary facet, asked whenever it splits (owner, 15 Nov)","active":true},{"field":"qNumber","label":"Question","sort_order":142,"note":"Q1, Q2 …; the coverage and 40-answer rules hold it back until a paper or a day is chosen","active":true},{"field":"qPart","label":"Part","sort_order":144,"note":"the part's letter, as the paper prints it","active":true},{"field":"qSub","label":"Sub-part","sort_order":145,"note":"the roman numeral, as the paper prints it","active":true},{"field":"marks","label":"Marks","sort_order":148,"note":"what a question is worth","active":true},{"field":"needs","label":"What you need","sort_order":150,"note":"a comma-list: compasses and the printed sheet at once; the calculator is said as Non-calculator or Calculator allowed","active":true},{"field":"source","label":"Source","sort_order":160,"note":"who made a worksheet (Corbettmaths, 1st Class Maths); a board's own paper has none and a maker's sheet has no exam board (O3)","active":true},{"field":"verified","label":"Verified","sort_order":136,"note":"Verified only when the answer was checked against the official scheme AND the question type is complete and machine-marked (388); one tag, not two (owner, 10 Nov); asked before Paper, Question and Part (owner, 29 Oct)","active":true},{"field":"myAttempt","label":"Attempted","sort_order":155,"note":"has the signed-in person answered this question: Attempted or Unattempted (owner, 16 Nov: its own menu, apart from how it went)","active":true},{"field":"myResult","label":"Your result","sort_order":156,"note":"how the signed-in person's latest marked answer went: Correct, Incorrect or Part marks (463; 16 Nov, attempted moved to its own menu)","active":true},{"field":"histKind","label":"Manuscripts, people, writings, events or timelines","sort_order":24.04,"note":"history database only (459, 461): which table, and the timelines (batch F); a history topic (16 Nov, data/library/history/) answers its own name","active":true},{"field":"histPart","label":"Timeline, people, sources or items","sort_order":24.045,"note":"a history topic's card (16 Nov, js/history-topics.js): its timeline, a person, a source or an item","active":true},{"field":"histEra","label":"Era","sort_order":37.2,"note":"history database only: Ancient, Medieval, Early modern, Modern, from the row's years (histEras_)","active":true},{"field":"histMaterial","label":"Material","sort_order":37.4,"note":"manuscripts only: papyrus, parchment, paper","active":true},{"field":"histFormat","label":"Format","sort_order":37.5,"note":"manuscripts only: codex, roll, fragment","active":true},{"field":"histGenre","label":"Genre","sort_order":37.6,"note":"writings only: letter, history, poem","active":true},{"field":"histRole","label":"Role","sort_order":37.7,"note":"historical figures only: a list cell, one tag each","active":true},{"field":"personName","label":"Who","sort_order":37.705,"note":"a person (batch D): their name, the card's only title","active":true},{"field":"personYears","label":"Years","sort_order":37.71,"note":"a person (batch D), boxer or figure: born–died","active":true},{"field":"personFrom","label":"From","sort_order":37.72,"note":"a person (batch D): a boxer's country, a figure's birthplace","active":true},{"field":"histTheme","label":"Theme","sort_order":37.8,"note":"writings only: a list cell, one tag each","active":true},{"field":"histRepository","label":"Held at","sort_order":37.9,"note":"manuscripts only: the library or museum that holds it","active":true},{"field":"histFound","label":"Found","sort_order":37.93,"note":"manuscripts only (owner, 7 Nov: facts as tags): where and when it was found, the first line of its provenance","active":true},{"field":"histDated","label":"Dated","sort_order":37.94,"note":"manuscripts only (owner, 7 Nov: facts as tags): the date it is dated to, as the row says it","active":true},{"field":"histSide","label":"Side","sort_order":37.92,"note":"drawn manuscripts only (507): Front (recto) or Back (verso), one card a side","active":true},{"field":"histTheatre","label":"Theatre","sort_order":37.95,"note":"events and timelines only (461): Europe, Pacific, Africa, Atlantic, Home front, Diplomacy","active":true},{"field":"shopKind","label":"Category","sort_order":38.1,"note":"shop items only (499): what it is, from its kind","active":true},{"field":"shopHow","label":"How you get it","sort_order":38.2,"note":"shop items only (499): buy, earn with ticks, unlock by level, borrow","active":true},{"field":"shopPrice","label":"Price","sort_order":38.3,"note":"shop items only (499): a band from its price","active":true},{"field":"shopBrand","label":"Brand","sort_order":38.4,"note":"shop items only (499): its maker","active":true},{"field":"shopFor","label":"For","sort_order":38.5,"note":"shop items only (499): who it is for when not everybody","active":true},{"field":"shopTheme","label":"Theme","sort_order":38.6,"note":"shop items only (740): its theme, from the shop tab's theme column; empty is no tag","active":true},{"field":"postState","label":"Which posts","sort_order":20.6,"note":"a post (batch C): Approved, Waiting for approval or Deleted; only an admin is sent the last two","active":true},{"field":"postBy","label":"Who posted","sort_order":20.61,"note":"a post (batch C): its author","active":true},{"field":"postWhen","label":"When","sort_order":20.62,"note":"a post (batch C): a time frame, Today to Older","active":true},{"field":"msgWith","label":"Who with","sort_order":20.63,"note":"a conversation (batch C): the person it is with","active":true},{"field":"profileType","label":"Who","sort_order":20.64,"note":"a profile (batch C): Parent, Student, Tutor; an admin also Over/Under 18, Apprentice, Admin","active":true},{"field":"settingFor","label":"Account type","sort_order":20.65,"note":"a settings card (batch C): Student, Parent, Staff, Apprentice, Admin","active":true},{"field":"vidSubject","label":"Subject","sort_order":20.66,"note":"a video (batch C): its subject","active":true},{"field":"vidTopic","label":"Topic","sort_order":20.67,"note":"a video (batch C): its tags","active":true},{"field":"vidChannel","label":"Channel","sort_order":20.68,"note":"a video (batch C): its channel","active":true},{"field":"vidLevel","label":"Level","sort_order":20.69,"note":"a video (batch C): its level","active":true},{"field":"venueArea","label":"Area","sort_order":20.696,"note":"a venue (Find › Venues): its borough, else its city","active":true},{"field":"venueFor","label":"Good for","sort_order":20.697,"note":"a venue: its focus list off the venues tab","active":true},{"field":"venueSize","label":"Holds","sort_order":20.698,"note":"a venue: up to how many students, and how many rooms","active":true},{"field":"vidType","label":"Type","sort_order":20.695,"note":"a video (batch D): Movie, Lesson, Documentary, Music video, Clip; the row's type, else guessed from its title","active":true},{"field":"partnerStatus","label":"Status","sort_order":20.71,"note":"a partner (owner, 17 Nov): idea, talking, agreed, running, ended","active":true},{"field":"foodMeal","label":"Meal","sort_order":20.72,"note":"a food (owner, 17 Nov): breakfast, lunch, dinner, snack","active":true},{"field":"foodShop","label":"Shop","sort_order":20.73,"note":"a food: where it is bought","active":true},{"field":"taskList","label":"List","sort_order":20.74,"note":"a task (owner, 17 Nov): its list","active":true},{"field":"taskRepeat","label":"Repeats","sort_order":20.75,"note":"a task: never, daily, weekly, monthly, yearly","active":true},{"field":"taskDone","label":"Done","sort_order":20.76,"note":"a task: yes or no","active":true}]};
 
 ;
 /* ==== js/cards-render.js ==== */
@@ -4618,8 +4618,7 @@ const qtKeys_ = t => (QTYPE_PROTOCOL[t] && QTYPE_PROTOCOL[t].padLayer) || 'lette
 /* `settings/links` WAS ON THIS LIST, fetched on every load — 27 KB for the Links door on Find, its only reader. § */
 const SETTINGS_TABS = ['settings/brand', 'settings/laws',
                        'settings/facts',
-                       'settings/columns',
-                       'settings/spotlight', 'settings/widgets-in-find', 'settings/setting-for', 'settings/card-fields',
+                       'settings/spotlight', 'settings/setting-for', 'settings/card-fields',
                        'settings/default-pictures', 'settings/permissions', 'settings/screens-moved', 'settings/labels',
                        'settings/confusables', 'settings/marking'];
 
@@ -4690,22 +4689,6 @@ function setFacts_(d, extra) {
 
 ;
 /* ==== js/settings-read.js ==== */
-function setColumns_(d, extra) {
-  const columns = extra['settings/columns'];
-  if (columns && columns.length) {
-    const live = columns
-      .map((r, i) => ({ r: r, i: i }))
-      .filter(x => libS(x.r.screen) && libOn(x.r.active))
-      .sort((a, b) => (libN(a.r.sort_order) - libN(b.r.sort_order)) || (a.i - b.i))
-      .map(x => ({ screen: libS(x.r.screen), label: libS(x.r.label), icon: libS(x.r.icon) }));
-    if (live.length) d.columns = live;
-    /* SWITCHED OFF (880): each is a Coming soon card in Find, its first plain line its notes; switched on again, its card goes. */
-    d.columnsOff = columns.filter(r => libS(r.screen) && !libOn(r.active))
-      .map(r => ({ screen: libS(r.screen), label: libS(r.label) || libS(r.screen), what: libS(r.notes).split(/ — |\. |\(/)[0].trim(),
-        inFind: libS(r.in_find) !== '' && libOn(r.in_find), soonKind: libS(r.soon_kind) || 'soon' }));
-  }
-}
-
 function setSpot_(d, extra) {
   /* THE SHOP WINDOW'S FLOOR, `spotlightFile` not `spotlight` § */
   const spot = extra['settings/spotlight'];
@@ -4728,13 +4711,6 @@ function setMarking_(d, extra) {
   if (rows && rows.length) d.marking = rows.filter(r => r && libS(r.kind)).map(r => Object.assign({}, r));
 }
 
-function setInFind_(d, extra) {
-  /* ---------- WHICH WIDGETS ARE FIND CARDS (790): a row names a widget's kind or its id; the id's row wins (`widgetInFind_`, arcade.js) ---------- */
-  const inFind = extra['settings/widgets-in-find'];
-  if (inFind && inFind.length) {
-    d.widgetsInFind = inFind.filter(r => libS(r.widget).trim()).map(r => ({ widget: libS(r.widget).trim(), find: libOn(r.find) }));
-  }
-}
 
 function setFor_(d, extra) {
   /* ---------- EACH SETTING'S NAME AND PLACE; who sees it is permissions.json's `see` rows (86a), never this file ---------- */
@@ -4787,7 +4763,7 @@ const labelOf_ = (group, key, fallback) => {
 function settingsInto_(d, extra) {
   if (!d || !extra) return d;
   setBrand_(d, extra); setMoved_(d, extra); setLaws_(d, extra); setFacts_(d, extra);
-  setColumns_(d, extra); setSpot_(d, extra); setInFind_(d, extra); setConfusables_(d, extra); setMarking_(d, extra); setFor_(d, extra); setCardFields_(d, extra);
+  setSpot_(d, extra); setConfusables_(d, extra); setMarking_(d, extra); setFor_(d, extra); setCardFields_(d, extra);
   setDefaultPictures_(d, extra); setPermissions_(d, extra); setLabels_(d, extra);
   return d;
 }
@@ -4946,17 +4922,15 @@ function tierLazy_(w, slot) {
   };
 }
 
-/* ONE SCROLLING PAGE (900): sections in normal flow, scrolled by the browser. false brings back the sideways columns, the pager and the glass. */
-const FLOW_LAYOUT = true;
-document.documentElement.classList.toggle('flow', FLOW_LAYOUT);
+/* ONE SCROLLING PAGE (900): Find's sections in normal flow, scrolled by the browser; the sideways columns went 17 Nov (Find only). */
+document.documentElement.classList.add('flow');
 
 /* ---------- THE TABS § */
 const TABS = [
   /* ONE SCREEN (owner, 16 Nov: Find is the only way around): every other column is a Find branch (screens-moved.json). */
   { id: 'stuff',   icon: '🔎', label: 'Find',    title: 'Find' },
 ];
-const TAB_ORDER = ['stuff'];
-/* SETTINGS THAT ARE FIND › SETTINGS › <type> NOW (find-only.json): no column, still a card group the layout keys by id and Find draws (CARD_BUILD). */
+/* SETTINGS ARE FIND › SETTINGS › <type>: each a card group Find draws (CARD_BUILD, find-doors.js), its cards keyed by id. */
 const SETTING_GROUPS = [{ id: 'apprentice', label: 'Apprentice settings', cards: true, group: true },
   /* WEB SETTINGS (491, an admin's alone): Find › Settings › Site since 15 Nov. */
   { id: 'site', label: 'Web settings', admin: true, cards: true, group: true },
@@ -4967,103 +4941,14 @@ const SETTING_GROUPS = [{ id: 'apprentice', label: 'Apprentice settings', cards:
   { id: 'account', label: 'Kids settings', cards: true, group: true },
   { id: 'biz', label: 'Biz settings', admin: true, cards: true, group: true }];
 
-/* ---------- EVERY COLUMN THE BUILD HAS, AND THE ONES THIS VIEWER IS GIVEN § */
-const TABS_BUILT = TABS.slice();
-/* THE CARD COLUMNS (730), left to right: TAB_ORDER and each tab's `cards`, which data/settings/columns.json repeats (check-doors). */
-const CARD_COLS = TAB_ORDER.filter(id => TABS_BUILT.some(t => t.id === id && t.cards)).concat(SETTING_GROUPS.map(g => g.id));
-/* A CARD COLUMN OR SETTINGS GROUP BY ID: its label and whether it is an admin's (layout.js, me-columns.js). */
-const settingGroupOf_ = id => TABS_BUILT.find(t => t.id === id) || SETTING_GROUPS.find(g => g.id === id) || null;
-const COLUMNS = TABS.slice();
-
-/* ---------- WHICH COLUMNS THIS VIEWER IS GIVEN — THE SMALLEST RULE THAT LEAVES ONE OUT § */
-function columnsFor_() {
-  let admin = false;
-  try { admin = typeof may_ === 'function' && may_('admin'); } catch (e) { admin = false; }
-  /* AN ADMIN'S CUSTOM COLUMNS (466, layout.js) put into `COLUMNS` before Business, as the layout in force names them. */
-  try { if (typeof customTabsSync_ === 'function') customTabsSync_(); } catch (e) { oops_(e, 'shell:columnsFor_') }
-  const want = COLUMNS.filter(t => !t.admin || admin);
-  const changed = want.length !== TABS.length || want.some((t, i) => TABS[i] !== t);
-  if (changed) {
-    /* WHERE YOU ARE, IF IT IS THE COLUMN GOING — the nearest column left of it that stays. */
-    let at = null;
-    try { at = AT; } catch (e) { at = null; }
-    if (at && !want.some(t => t.id === at) && COLUMNS.some(t => t.id === at)) {
-      const i = COLUMNS.findIndex(t => t.id === at);
-      const left = COLUMNS.slice(0, i).reverse().find(t => want.indexOf(t) !== -1);
-      AT = (left || want.find(t => t.id === TAB_HOME) || want[0]).id;
-    }
-    TABS.length = 0;
-    want.forEach(t => TABS.push(t));
-  }
-  /* AND THE SECTIONS, every time — cheap, and it puts the document right even where `TABS` did not
-     change (the first call, when index.html has just been parsed). */
-  const host = typeof document !== 'undefined' && document.getElementById('screen');
-  if (!host) return changed;
-  /* A CUSTOM COLUMN'S SECTION is made while it is a tab and removed when it is not, like Business's. */
-  host.querySelectorAll(':scope > section[data-custom]').forEach(el => { if (!TABS.some(t => t.custom && 's-' + t.id === el.id)) el.remove(); });
-  TABS.forEach(t => {
-    if (!t.custom || document.getElementById('s-' + t.id)) return;
-    const s = document.createElement('section');
-    s.className = 'screen hidden';
-    s.id = 's-' + t.id;
-    s.setAttribute('data-custom', '');
-    host.appendChild(s);
-  });
-  TABS_BUILT.forEach(t => {
-    if (!t.admin) return;
-    const el = document.getElementById('s-' + t.id);
-    const mine = TABS.indexOf(t) !== -1;
-    if (mine && !el) {
-      const s = document.createElement('section');
-      s.className = 'screen hidden';
-      s.id = 's-' + t.id;
-      host.appendChild(s);
-    } else if (!mine && el) {
-      el.remove();
-    }
-  });
-  return changed;
-}
-
-/* ---------- AND THE SHEET DECIDES, ONCE THERE IS ONE § */
-function applyColumns_() {
-  const rows = (DATA && DATA.columns) || [];
-  if (!rows.length) return;
-
-  const known = {};
-  TABS_BUILT.forEach(t => { known[t.id] = t; });
-
-  const want = rows.map(r => known[String(r.screen || '').trim()])
-                   .filter(Boolean);
-  if (!want.length) return;      /* the sheet names nothing this build has — leave it alone */
-  /* FIND STANDS FIRST WHATEVER ORDER A SHEET GIVES (1070): the one front door; the rest keep their order below it. */
-  want.sort((a, b) => (b.id === TAB_HOME) - (a.id === TAB_HOME));
-
-  /* THE LABEL AND THE ICON COME FROM THE SHEET TOO, where it gives them. A blank cell means "keep
-     what the code says" rather than "make it empty", which is the same rule every other tab in this
-     system follows. */
-  rows.forEach(r => {
-    const t = known[String(r.screen || '').trim()];
-    if (!t) return;
-    if (String(r.label || '').trim()) t.label = String(r.label).trim();
-    if (String(r.icon  || '').trim()) t.icon  = String(r.icon).trim();
-  });
-
-  COLUMNS.length = 0;
-  want.forEach(t => COLUMNS.push(t));
-  columnsFor_();
-
-  /* WHERE `AT` IS NOW. Somebody remembered on a column the sheet has just switched off would be on a
-     screen that no longer exists, and `go` would silently send them home without saying why. */
-  if (!TABS.some(t => t.id === AT)) AT = (TABS.find(t => t.id === TAB_HOME) || TABS[0]).id;
-}
+/* A SETTINGS GROUP BY ID: its label and whether it is an admin's (me-roles.js, find-doors.js). */
+const settingGroupOf_ = id => SETTING_GROUPS.find(g => g.id === id) || null;
 
 /* ---------- WHERE AN UNKNOWN ROUTE LANDS, NAMED RATHER THAN COUNTED § */
 /* THE FIRST THING ANYBODY SEES IS FIND (1070): the core and the one front door; the other columns stand below it. */
 const TAB_HOME = 'stuff';
-/* WHERE A SCREEN THAT MOVED LIVES (461): a column, or `find:<kind>[:<type>]` — data/settings/screens-moved.json, the one table. */
+/* WHERE AN OLD SCREEN'S NAME OPENS (461): its Find branch, `find:<door>[:<type> or :<field>=<value>]` — data/settings/screens-moved.json, the one table. */
 function screenMoved_() { try { return (DATA && DATA.columnsMoved) || {}; } catch (e) { return {}; } }
-const screenNow_ = id => { const to = screenMoved_()[id]; return to && to.indexOf(':') < 0 ? to : id; };
 
 /* ---------- HOW LONG AWAY COUNTS AS OPENING IT AGAIN § */
 const AWAY_AGAIN = 6 * 60 * 1000;
@@ -5080,12 +4965,9 @@ function screen(id, draw) { SCREENS[id] = { draw }; }
 let AT = TAB_HOME;
 let KEPT_GONE = '';
 /* ---------- REMEMBERED FOR A RELOAD, NOT FOR TOMORROW § */
-/* THE VIEWER'S COLUMNS FIRST — `USER` is already read out of storage (data.js), so an admin reloading on
-   Business is put back on it, and anybody else's remembered `biz` is not a column and is let go. */
-try { columnsFor_(); } catch (e) { oops_(e, 'shell:screen') }
 try {
   const kept = keep_.get('familyTab');
-  const was = kept && screenNow_(kept);
+  const was = kept;
   const when = Number(keep_.get('familyTabAt') || 0);
   if (was && TABS.some(t => t.id === was) && when && Date.now() - when < AWAY_AGAIN) AT = was;
   /* A REMEMBERED COLUMN THAT IS A FIND BRANCH NOW (screens-moved.json `find:`) opens that branch once the payload is in (`loadFinish_`). */
@@ -5130,7 +5012,7 @@ function loading_() {
 
 /* EACH COLUMN'S SHAPE, KEPT ON THE DEVICE (700): page heights in px, no data, so a column waiting next visit holds its final size. */
 const SHAPE_KEY = 'arrival:shape', SHAPE_PAGES = 6;
-const shapeWidth_ = () => { try { return WIDE ? 'w' + Math.round(wideCard_().card) : 'n' + innerWidth; } catch (e) { return ''; } };
+const shapeWidth_ = () => { try { return 'n' + innerWidth; } catch (e) { return ''; } };
 function shapeAll_() { return keep_.json(SHAPE_KEY, {}); }
 /* A SHAPE WITH NO HEIGHT IN IT (nothing laid out, as under jsdom) is no shape: the column keeps its one waiting page. */
 function shapeOf_(id) { const w = shapeWidth_(), all = shapeAll_(), hs = all.at === w && all[id]; return Array.isArray(hs) && hs.some(h => h > 0) ? hs : null; }
@@ -5261,7 +5143,7 @@ function awaiting_() {
 /* ==== js/shell-go.js ==== */
 /* ---------- GOING TO A COLUMN AND PAINTING IT (cut from shell-boot.js; read with the other shell-*.js by tools/piece-src.js). */
 function go(id, remember, instant) {
-  id = screenNow_(id); if (typeof screenGone_ === 'function' && screenGone_(id)) return;  /* a column switched off is a Find door now (batch C) */
+  if (!TABS.some(t => t.id === id) && typeof oldBranch_ === 'function' && oldBranch_(id)) return;  /* an old screen's name opens its Find branch (screens-moved.json) */
   const tab = TABS.find(t => t.id === id)
            || TABS.find(t => t.id === TAB_HOME)
            || TABS[0];
@@ -5334,7 +5216,7 @@ function go(id, remember, instant) {
   }
   /* After wake, because a page holding a canvas has to exist and be sized before it is moved. § */
   oopsTry_('go:pager', () => paintPager(AT, instant));
-  if (FLOW_LAYOUT) oopsTry_('go:flow', () => { topbarPaint_(); if (was && was !== AT) $('s-' + AT).scrollIntoView({ block: 'start' }); });
+  oopsTry_('go:flow', () => { topbarPaint_(); if (was && was !== AT) $('s-' + AT).scrollIntoView({ block: 'start' }); });
 
 }
 /* DRAW THE SCREEN EITHER SIDE, so a sideways drag reveals one rather than an empty rectangle. § */
@@ -5371,7 +5253,7 @@ function bootGlass_() {
   if (!PRE_PAYLOAD.size || typeof GLASS === 'undefined') return;
   const ti = TABS.findIndex(t => t.id === AT);
   if (ti < 0) return;
-  const k = WIDE ? Math.max(1, GLASS.reach || 1) : 1;
+  const k = 1;
   TABS.forEach((t, i) => {
     if (t.id === AT || Math.abs(i - ti) > k || !PRE_PAYLOAD.has(t.id) || !STALE[t.id]) return;
     paint(t.id);
@@ -5507,8 +5389,7 @@ function paint(id, fresh, o) {
   el.PG_SIG = null;
 
   /* ---------- AND THE COLUMN IS CENTRED ON WHAT WAS JUST DRAWN § */
-  if (typeof PLACED_ONCE !== 'undefined' && PLACED_ONCE && !(o && o.ahead)
-      && !(typeof SWIPE !== 'undefined' && SWIPE.live && SWIPE.axis)) {
+  if (typeof PLACED_ONCE !== 'undefined' && PLACED_ONCE && !(o && o.ahead)) {
     placeCells('y', true, 0, id);
   }
 
@@ -5524,9 +5405,6 @@ function paint(id, fresh, o) {
 /** Redraw whatever is showing. What almost everything calls after a change. */
 /* THE ORDER A REDRAW HAPPENS IN, WRITTEN DOWN ONCE § */
 const repaint = (instant) => {
-  /* 00. WHICH COLUMNS THERE ARE, for whoever is signed in now — every sign-in and sign-out ends here, so
-         an admin's column comes and goes with them, without a reload. See `columnsFor_`. */
-  try { columnsFor_(); } catch (e) { oops_(e, 'shell:awaiting_') }
   /* 000. A CHANGE OF PERSON PUTS AWAY WHAT WAS DRAWN FOR THE LAST ONE, NOW — before this returns, with no idle moment in between: § */
   const who = typeof widgetWho_ === 'function' ? widgetWho_() : '';
   if (REPAINT_WHO !== null && who !== REPAINT_WHO) {
@@ -5555,894 +5433,33 @@ const repaint = (instant) => {
 /* WHO THE LAST REPAINT DREW FOR — see step 000 above. Null until the first, which has nobody before it. */
 let REPAINT_WHO = null;
 
-/* ONE GRID. TWO AXES. THE SAME BEHAVIOUR ON BOTH. § */
-const AXES = {
-  /* X — the tabs. */
-  x: {
-    prop: '--dx',                                   // the drag offset, in the cell's transform
-    /* HOW FAR A SIDEWAYS SWIPE HAS TO TRAVEL to count, and it is a share of the APP's width rather than the window's — the same mistake `stepX_` had. § */
-    span: () => appWidth_(),
-    /* The same signature as the other axis, `id` ignored — there is only one row of tabs. Written
-       the same way so nothing calling an axis has to know which one it has. */
-    at:    () => Math.max(0, TABS.findIndex(t => t.id === AT)),
-    count: () => TABS.length,
-    /* IN TAB ORDER, not in the order the sections happen to appear in index.html. § */
-    cells: () => TABS.map(t => $('s-' + t.id)).filter(Boolean),
-    /* CLAMPED. The other axis clamps inside `goPage` and this one did not, so a swipe past the last tab asked for `TABS[4]` and read `.id` off nothing. § */
-    go:    (n, instant) => {
-      const at = Math.max(0, Math.min(TABS.length - 1, n));
-      go(TABS[at].id, true, instant);
-    },
-  },
-  /* Y — the widgets on a paged screen. Absent on a screen that is not paged, which is what makes
-     a vertical drag there fall through to ordinary scrolling. */
-  y: {
-    prop: '--dy',
-    /* THE SAME DISTANCE the threshold and the settle use — see `stepY_`. This said `innerHeight`,
-       which is the SCREEN rather than the step, so a vertical gesture was judged against a number
-       it was never travelling. */
-    span: () => stepY_(),
-    /* EVERY ONE OF THESE TAKES AN `id`, defaulting to the screen in front. § */
-    at:    id => PAGE[id || AT] || 0,
-    count: id => PAGER[id || AT] ? pageCount(id || AT) : 0,
-    /* WHAT MOVES, which is the screen — the pages are stacked inside it by CSS and never carry a transform of their own. § */
-    cells: id => [$('s-' + (id || AT))].filter(Boolean),
-    go:    (n, instant) => goPage(AT, n, instant),
-  },
-};
-
-/* PLACE EVERY CELL ON AN AXIS. § */
-/* PLACE EVERY CELL, ON BOTH AXES AT ONCE. § */
-/* HOW BIG A CELL IS, AND THE ONE GAP BETWEEN THEM. § */
-/* HOW MUCH OF THE VIEWPORT A CELL TAKES, and it is the same number for every cell on the grid, always. § */
-/* ---------- HOW WIDE A CARD IS, AND HOW MUCH OF THE NEXT ONE YOU CAN SEE § */
-const CARD_W       = 0.84;    // a card, as a fraction of the screen's width
-const EDGE_SHOWING = 0.06;    // how much of the card either side you can see, same units
-
-/* ---------- ON A WIDE WINDOW THE GRID SHOWS MORE OF ITSELF § */
-const WIDE_FROM     = 700;    // px of WINDOW — a phone held either way, and a small tablet upright, are below it
-const WIDE_CARD_MIN = 21;     // rem — the narrowest card that is put beside another
-const WIDE_CARD_MAX = 28;     // rem — the widest a card grows to fill the room
-const WIDE_EDGE     = 24;     // px — at least this much of the next column shows past the last whole one
-let WIDE = false;
-
-/* SAID ON `<html>` AS `.wide`, which is what lets `body` stop being a phone (style.css, THE WIDE WINDOW). § */
-function wideSet_() {
-  let w;
-  try { w = matchMedia('(min-width: ' + WIDE_FROM + 'px)').matches; } catch (e) { w = innerWidth >= WIDE_FROM; }
-  if (FLOW_LAYOUT) w = false;   /* one centred column at every width (900) */
-  if (w !== WIDE || document.documentElement.classList.contains('wide') !== w) {
-    WIDE = w;
-    document.documentElement.classList.toggle('wide', w);
-    /* AND WHAT THE POINTER WAS SAYING ON A WIDE WINDOW GOES WITH IT — see `wideOverClear_`. */
-    if (!w) wideOverClear_();
-  }
-  return WIDE;
-}
-
-/* THE CARD'S WIDTH ON A WIDE WINDOW, in px, and how many whole ones fit — see above. */
-function wideCard_() {
-  const W = appWidth_();
-  let rem = 16;
-  try { rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16; } catch (e) { oops_(e, 'shell:wideCard_') }
-  const lo = WIDE_CARD_MIN * rem, hi = WIDE_CARD_MAX * rem;
-  let k = 1;
-  while ((k + 2) * lo + (k + 1) * CELL_GAP + 2 * WIDE_EDGE <= W) k += 2;
-  const card = Math.min(hi, (W - 2 * WIDE_EDGE - (k - 1) * CELL_GAP) / k);
-  return { card: Math.max(lo, card), k: k };
-}
-
-/* THESE TWO COME OUT OF THE SAME WIDTH, which is the whole thing to understand before changing either. § */
-/* Kept under its old name because the vertical spacing still uses it and 16px is right there —
-   a column of cards is read one after another, and the gap only has to say "these are separate". */
-const CELL_GAP   = 16;        // pixels between one card and the next, going DOWN
-
-/* HOW FAR APART TWO PANES SIT, so that the gap between what you SEE is `CELL_GAP`. § */
-/* ---------- THE BROWSER STACKS THE COLUMN, NOT THIS FILE § */
-/* ---------- THE CARD YOU ARE ON SITS IN THE MIDDLE OF THE SCREEN § */
-/* THE PART OF A COLUMN'S GLASS THAT CAN BE SEEN (720): all of it, or only what is above the keypad while it is up, so a card is centred where it shows. */
-function glassSeenH_(host) {
-  const boxH = host.clientHeight || innerHeight;
-  if (!document.documentElement.classList.contains('kp-up')) return boxH;
-  try {
-    const pad = document.getElementById('kp');
-    if (!pad || pad.hidden) return boxH;
-    const base = (host.offsetParent || host.parentElement).getBoundingClientRect().top + host.offsetTop;
-    const seen = pad.getBoundingClientRect().top - 12 - base;
-    return seen > 120 ? Math.min(boxH, seen) : boxH;
-  } catch (e) { return boxH; }
-}
-function columnShift_(host, at) {
-  const pages = host.querySelectorAll(':scope > .page');
-  const cur = pages[Math.max(0, Math.min(pages.length - 1, at))];
-  if (!cur) return 0;
-  const boxH = glassSeenH_(host);
-  const h = HOLD_AT;
-  /* A FINDER IS NOT HELD ONCE NOTHING IN IT HAS FOCUS (720, owner: "the finder widget should always stay centred"): the hold is for typing, and typing is over. */
-  const loose = h && typeof finderOf_ === 'function' && finderOf_(h.id) && !(document.activeElement && host.contains(document.activeElement));
-  if (h && !loose && host.id === 's-' + h.id && (PAGE[h.id] || 0) === h.p && at === domIndex_(h.id, h.p)
-      && h.vp === innerWidth + 'x' + innerHeight) {
-    const room = boxH - cur.offsetHeight;
-    /* HELD ONLY WHILE IT GROWS (508): a card that shrank (words or chips cleared) is centred again, and held from there. */
-    if (h.h != null && cur.offsetHeight < h.h - 1) h.top = Math.max(0, room / 2);
-    h.h = cur.offsetHeight;
-    /* `lift` IS THE MATHS KEYPAD'S, and only the keypad's — see `kpLift_` in keypad.js. § */
-    return (room <= 0 ? 0 : Math.max(0, Math.min(room, h.top))) - (h.lift || 0) - cur.offsetTop;
-  }
-  return Math.max(0, (boxH - cur.offsetHeight) / 2) - cur.offsetTop;
-}
-
-/* ---------- ONCE YOU ARE USING A CARD, IT STAYS WHERE IT IS § */
-let HOLD_AT = null;      // { id, p, top, h, vp, lift } — the card being used, where its top is held, and how far the keypad lifted it
-
-function holdHere_(t) {
-  try {
-    const pg = t && t.closest && t.closest('#screen .page.on');
-    const host = pg && pg.parentElement;
-    if (!isAtHost_(host)) return;
-    /* ONCE PER CARD. The first touch says where it is; asking again on every keystroke would force a
-       layout per letter typed, for the answer the first one already gave. */
-    if (HOLD_AT && HOLD_AT.id === AT && HOLD_AT.p === (PAGE[AT] || 0)) return;
-    const at = colPlaced_(host);
-    if (!at) return;
-    HOLD_AT = { id: AT, p: PAGE[AT] || 0, top: at[1] + pg.offsetTop, h: pg.offsetHeight, vp: innerWidth + 'x' + innerHeight };
-  } catch (e) { HOLD_AT = null; }
-}
-
-/* ---------- A CARD ABOVE CHANGED HEIGHT, SO THE COLUMN IS HELD ON THE PAGE YOU ARE READING § */
-/* ---------- AND ONLY ON THE PAGE IT WAS PLACED FOR, AND IT SAYS WHETHER IT COULD § */
-function holdColumn_(id) {
-  try {
-    const host = $('s-' + id);
-    if (!host) return false;
-    if (PLACE_FRAME && PLACE_WANT && !PLACE_WANT.instant) return false;
-    if (host.PLACED_P !== (PAGE[id] || 0)) return false;
-    const at = colPlaced_(host);
-    if (!at) return false;
-    /* A FINGER IS DOWN: this column's entry in this drag's plan, or nothing to correct — a plan
-       made for another card in front is one the next drag frame throws away and measures afresh. */
-    let plan = null;
-    if (host.classList.contains('dragging')) {
-      const p = DRAG_PLAN;
-      plan = p && p.at === AT && p.page === (PAGE[AT] || 0) ? p.cols.find(c => c.host === host) : null;
-      if (!plan) return true;
-    }
-    const want = columnShift_(host, domIndex_(id, PAGE[id] || 0));
-    const rest = plan ? plan.y : at[1];
-    if (!isFinite(want)) return false;
-    if (Math.abs(rest - want) < 0.5) return true;
-    const run = typeof host.getAnimations === 'function'
-      && host.getAnimations().find(a => a.playState === 'running' && a.transitionProperty === colProp_('y'));
-    if (plan) plan.y = want;
-    /* ---------- MID-SLIDE, THE SLIDE IS MOVED WITH THE LAYOUT, NOT RETARGETED UNDER IT § */
-    if (run && !plan) {
-      let left = 0;
-      try { const tm = run.effect.getComputedTiming(); left = Math.max(0, tm.endTime - tm.localTime); } catch (e) { oops_(e, 'shell:holdColumn_') }
-      colShiftNow_(host, want - rest);
-      colTransition_(host, null, { d: Math.max(80, Math.round(left)) + 'ms', tf: 'cubic-bezier(.25, .6, .25, 1)', delay: '0s' });
-    } else if (!run) colTransition_(host, null, SLIDE_NONE);
-    colWrite_(host, at[0], want + (at[1] - rest));
-    return true;
-  } catch (e) { /* a column left where it was is the behaviour before this existed */ return false; }
-}
-
-/* ---------- HOW FAR IT IS TO THE NEXT CARD DOWN § */
-function stepY_() {
-  const host = $('s-' + AT);
-  const pages = host ? host.querySelectorAll(':scope > .page') : [];
-  const at = Math.max(0, Math.min(pages.length - 1, domIndex_(AT, PAGE[AT] || 0)));
-  const here = pages[at], next = pages[at + 1] || pages[at - 1];
-  if (here && next) {
-    const gap = Math.abs(next.offsetTop - here.offsetTop);
-    if (gap > 20) return gap;
-  }
-  return innerHeight * 0.66;
-}
-
-/* ACROSS IS A CONSTANT — every card is the same width by rule, so there is nothing to measure. */
-/* WHERE THE NEXT CARD SITS, from the two fractions above and nothing else. § */
-/* ---------- ONE SOURCE FOR THE CARD'S WIDTH § */
-function publishCardWidth_() {
-  /* A WIDE WINDOW'S CARD IS A WIDTH, NOT A SHARE — see THE GRID SHOWS MORE OF ITSELF. `wideSet_`
-     first, because the class it writes is what decides the width `wideCard_` measures. */
-  if (wideSet_()) {
-    document.documentElement.style.setProperty('--card-w', wideCard_().card.toFixed(1) + 'px');
-  } else {
-    document.documentElement.style.setProperty('--card-w', (CARD_W * 100).toFixed(2) + '%');
-  }
-  /* AND HOW SOFT A CARD OUT OF FOCUS IS, for the same reason: § */
-  document.documentElement.style.setProperty('--soft-blur', SOFT_BLUR + 'px');
-}
-
-/* ---------- THE WIDTH THAT MATTERS IS THE APP'S, NOT THE WINDOW'S § */
-function appWidth_() {
-  const el = $('screen');
-  return (el && el.clientWidth) || innerWidth;
-}
-
-function stepX_() {
-  /* THE GAP THE TWO FRACTIONS LEAVE, and a refusal if they leave none. § */
-  /* ON A WIDE WINDOW: ONE CARD AND ONE GAP. § */
-  if (WIDE) return wideCard_().card + CELL_GAP;
-  const gap = Math.max(0.005, 0.5 - CARD_W / 2 - EDGE_SHOWING);
-  return appWidth_() * (CARD_W + gap);
-}
-
-/* ---------- THE SETTLE AFTER A SWIPE, MATCHED TO THE FINGER § */
-let SETTLE_FROM = null;        // { axis, v, at } — the release the next placement settles from
-/* { axis, dur, tf, until } — the settle the columns are running now. THE AXIS IS PART OF IT: a
-   settle is one axis's transition and the other axis keeps its own — see `colWrite_`. */
-let SETTLE_ON = null;
-function settleFrom_(axis, v) {
-  SETTLE_FROM = axis ? { axis: axis, v: Number(v) || 0, at: performance.now() } : null;
-}
-/* THE SETTLE IS A CRITICALLY DAMPED SPRING (527), iOS's: done within half a pixel, so its time follows distance and speed. */
-/* WRITTEN AS A CSS `linear()` sampled from it, so the compositor runs it; without `linear()`, the old bezier at the spring's time. */
-const SPRING_W = 0.02;         // natural frequency, per ms: nine tenths of the way in about 195ms from rest
-const SPRING_MAX = 900;        // ms, the longest a settle may take
-const SPRING_LINEAR = (() => {
-  try { return !!(window.CSS && CSS.supports && CSS.supports('transition-timing-function', 'linear(0, 1)')); } catch (e) { return false; }
-})();
-/* THE SHARE OF THE WAY AT TIME t, released at `a` shares per ms: x(t) = 1 − (1 + (ω − a)t)·e^(−ωt). */
-function springAt_(a, t) { return 1 - (1 + (SPRING_W - a) * t) * Math.exp(-SPRING_W * t); }
-/* THE RELEASE SPEED AS A SHARE OF THE WAY, capped at ω (more would sail past the target) and at −ω/2 the other way. */
-function springOf_(D, v) {
-  const dist = Math.abs(D);
-  const a = dist >= 1 ? Math.max(-SPRING_W / 2, Math.min(SPRING_W, (Number(v) || 0) * Math.sign(D) / dist)) : 0;
-  const eps = 0.5 / Math.max(1, dist);
-  let T = 16;
-  while (T < SPRING_MAX && Math.abs(1 - springAt_(a, T)) > eps) T += 8;
-  return { a: a, dur: T };
-}
-function settleCurve_(D, v) {
-  const s = springOf_(D, v), dur = s.dur;
-  if (SPRING_LINEAR) {
-    const n = Math.max(12, Math.min(48, Math.round(dur / 12))), pts = [0];
-    for (let i = 1; i < n; i++) pts.push(+springAt_(s.a, dur * i / n).toFixed(4));
-    pts.push(1);
-    return { dur: dur, a: s.a, tf: 'linear(' + pts.join(', ') + ')' };
-  }
-  /* THE FALLBACK: a bezier whose first slope is the release speed — the curve before 527. */
-  const k = s.a * dur;
-  if (!(k > 0.02)) return { dur: dur, a: s.a, tf: 'cubic-bezier(.3, 0, .2, 1)' };
-  let x1 = 0.3, y1 = 0.3 * k;
-  if (y1 > 1) { x1 = 1 / k; y1 = 1; }
-  return { dur: dur, a: s.a, tf: 'cubic-bezier(' + x1.toFixed(3) + ', ' + y1.toFixed(3) + ', .25, 1)' };
-}
-/* LESS MOTION ASKED FOR: every placement lands at once — a release snaps, a tab jumps (527). */
-const motionLess_ = () => !motionOK_();   // one question for less motion, asked through motionOK_ (531)
-
-/* ---------- EACH AXIS HAS ITS OWN CLOCK § */
-const SPLIT_AXES = (() => {
-  try { return !(window.CSS && window.CSS.supports) || window.CSS.supports('translate', '1px 2px'); }
-  catch (e) { return false; }
-})();
-/* THE SLIDE NOBODY'S FINGER IS IN — a tab tapped, a tile that turns a page — and the stylesheet's
-   `.screen` transition says the same, for the moment before anything is placed. */
-const SLIDE_TAP = { d: '.3s', tf: 'cubic-bezier(.3, 0, .2, 1)', delay: '0s' };
-const SLIDE_NONE = { d: '0s', tf: 'linear', delay: '0s' };
-const colProp_ = axis => (SPLIT_AXES && axis === 'y' ? 'translate' : 'transform');
-
-function colWrite_(host, x, y) {
-  if (SPLIT_AXES) {
-    host.style.transform = `translateX(${x.toFixed(1)}px)`;
-    host.style.translate = `0px ${y.toFixed(1)}px`;
-  } else {
-    host.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
-  }
-}
-/* ---------- A COLUMN MOVED BY WHAT ITS LAYOUT MOVED, FROM WHERE IT IS DRAWN § */
-/* AND WITH NO TRANSITION AT ALL, NOT A SHORT ONE. § */
-function colShiftNow_(host, d) {
-  if (!host || !(Math.abs(d) >= 0.5)) return;
-  const at = colPlaced_(host);
-  if (!at) return;
-  const now = colNow_(host);
-  colTransition_(host, null, SLIDE_NONE);
-  const list = host.style.transitionProperty;
-  host.style.transitionProperty = SPLIT_AXES ? 'transform, opacity' : 'opacity';
-  colWrite_(host, SPLIT_AXES ? at[0] : now[0], now[1] + d);
-  void getComputedStyle(host).getPropertyValue(colProp_('y'));
-  host.style.transitionProperty = list;
-}
-
-/* WHERE THE LAST PLACEMENT PUT IT — the inline values, which are where it is going, not where it is
-   drawn mid-slide (that is `colNow_`). `translate: 0px 0px` reads back as `0px`, so a missing second
-   half is nought. */
-function colPlaced_(host) {
-  if (SPLIT_AXES) {
-    const mx = /translateX\(\s*(-?[\d.]+)px/.exec(host.style.transform || '');
-    if (!mx) return null;
-    const t = String(host.style.translate || '').trim().split(/\s+/);
-    return [parseFloat(mx[1]), parseFloat(t[1]) || 0];
-  }
-  const m = /translate\(\s*(-?[\d.]+)px\s*,\s*(-?[\d.]+)px/.exec(host.style.transform || '');
-  return m ? [parseFloat(m[1]), parseFloat(m[2])] : null;
-}
-/* AND WHERE IT IS DRAWN NOW, off the running transitions. § */
-function colNow_(host) {
-  const cs = getComputedStyle(host);
-  const m = String(cs.transform || '').match(/matrix\(([^)]+)\)/);
-  const v6 = m ? m[1].split(',').map(Number) : [1, 0, 0, 1, 0, 0];
-  if (!SPLIT_AXES) return [v6[4], v6[5]];
-  const t = String(cs.translate || '').trim().split(/\s+/);
-  return [v6[4], parseFloat(t[1]) || 0];
-}
-/* THE THREE TRANSITIONS, AS LONGHANDS. `x` and `y` are `{ d, tf, delay }`; a `null` keeps what this
-   column had, which is how `holdColumn_` zeroes the vertical without touching a sideways slide. */
-function colTransition_(host, x, y, o) {
-  const t = host._slide || (host._slide = { x: SLIDE_TAP, y: SLIDE_TAP, o: { d: '.22s', tf: 'ease', delay: '0s' } });
-  if (x) t.x = x;
-  if (y) t.y = y;
-  if (o) t.o = o;
-  /* ONE TRANSFORM, ONE CLOCK: whichever axis a finger holds wins, then a settle, then the tap. */
-  const one = t.x === SLIDE_NONE || t.y === SLIDE_NONE ? SLIDE_NONE : (t.x !== SLIDE_TAP ? t.x : t.y);
-  const list = SPLIT_AXES ? [t.x, t.y, t.o] : [one, t.o];
-  host.style.transitionProperty = SPLIT_AXES ? 'transform, translate, opacity' : 'transform, opacity';
-  host.style.transitionDuration = list.map(v => v.d).join(', ');
-  host.style.transitionTimingFunction = list.map(v => v.tf).join(', ');
-  host.style.transitionDelay = list.map(v => v.delay).join(', ');
-}
-
-/* WHERE A SETTLING COLUMN REALLY IS, against where it is going — for a drag that starts before the last one has landed (`SWIPE.catch` in overworld.js). § */
-function settleLeft_(axis) {
-  try {
-    const host = $('s-' + AT);
-    const prop = colProp_(axis);
-    if (!host || !host.getAnimations || !host.getAnimations().some(a => a.transitionProperty === prop)) return 0;
-    const placed = colPlaced_(host);
-    if (!placed) return 0;
-    const now = colNow_(host);
-    const off = axis === 'x' ? now[0] - placed[0] : now[1] - placed[1];
-    return Math.abs(off) < 0.5 ? 0 : off;
-  } catch (e) { return 0; }
-}
-
-/* A FINGER LANDING ON THE ROW WHILE IT SLIDES HOLDS IT THERE (527), as on iOS. A sideways drag picks it up (`grabTake_`); */
-/* anything else, or a plain lift, lets the spring go on from where it was held (`grabLet_`). Never left half-way. */
-let GRAB = null;               // { hosts: [{ host, rest, now }], off } — the row held, and where each column was going
-function grabRow_() {
-  /* A HOLD WHOSE LIFT NEVER CAME is let go first, so no row is left frozen where a finger once held it. */
-  if (GRAB) grabLet_(0);
-  GRAB = null;
-  /* ONE TRANSFORM FOR BOTH AXES (no `translate`): holding the row would stop a page slide with it, so the catch at the lock does it. */
-  if (!SPLIT_AXES || motionLess_()) return 0;
-  try {
-    const front = $('s-' + AT);
-    if (!slideRunning_(front, 'transform')) return 0;
-    const hosts = [];
-    TABS.forEach(t => {
-      const host = $('s-' + t.id), at = host && colPlaced_(host);
-      if (at) hosts.push({ host: host, rest: at[0], now: colNow_(host)[0] });
-    });
-    const f = hosts.find(h => h.host === front);
-    if (!f || Math.abs(f.now - f.rest) < 0.5) return 0;
-    hosts.forEach(h => {
-      colTransition_(h.host, SLIDE_NONE, null);
-      h.host.REST_X = h.rest;
-      h.host.style.transform = `translateX(${h.now.toFixed(1)}px)`;
-    });
-    GRAB = { hosts: hosts, off: f.now - f.rest };
-    SETTLE_ON = null;
-    return GRAB.off;
-  } catch (e) { GRAB = null; return 0; }
-}
-/* THE DRAG TAKES IT: the offset becomes the drag's catch, and the columns' rests stay in `REST_X` for `dragPlan_`. */
-function grabTake_() {
-  const g = GRAB;
-  GRAB = null;
-  return g ? g.off : 0;
-}
-/* NOBODY TOOK IT: the spring goes on from where it was held to where it was going, unless a placement has been since. */
-function grabLet_(v) {
-  const g = GRAB;
-  GRAB = null;
-  if (!g || g.hosts.some(h => h.host.REST_X !== h.rest)) return;
-  const c = settleCurve_(-g.off, v || 0), run = { d: c.dur + 'ms', tf: c.tf, delay: '0s' };
-  g.hosts.forEach(h => {
-    h.host.REST_X = null;
-    if (!h.host.isConnected) return;
-    colTransition_(h.host, run, null);
-    h.host.style.transform = `translateX(${h.rest.toFixed(1)}px)`;
-  });
-  SETTLE_ON = { axis: 'x', dur: c.dur, tf: c.tf, until: performance.now() + c.dur };
-  SLIDE_UNTIL = Math.max(SLIDE_UNTIL, SETTLE_ON.until);
-  TRAIL_X.until = Math.max(TRAIL_X.until, SETTLE_ON.until + 50);
-}
-
-/* ---------- THE CARDS NOT IN FRONT ARE SLIGHTLY OUT OF FOCUS § */
-const SOFT_BLUR = 2;              // px — the stylesheet reads it as `--soft-blur`, published once
-let SOFT_DRAG = null;             // { ok, b, keep } — the gesture the out-of-focus look is following
-const SOFT_EASE = new Set();      // panes carrying an inline filter, will-change and transition
-let SOFT_DONE = 0;
-
-function softMotion_() {
-  try { return !matchMedia('(prefers-reduced-motion: reduce), (prefers-reduced-transparency: reduce)').matches; }
-  catch (e) { return true; }
-}
-const glassOf_ = page => (page && page.querySelector(':scope > .pane')) || null;
-/* A PANE THAT REPAINTS ITSELF is dimmed rather than blurred — see above. § */
-const softDim_ = page => !!(page && (
-  [...page.querySelectorAll('iframe')].some(f => !f.closest('.feed-yt:not(.is-live)'))
-  || [...page.querySelectorAll('video')].some(v => !v.paused && !v.ended)));
-/* AND ONE THE KEYBOARD IS TYPING INTO is left sharp while a finger drags it away. */
-function softKeep_(page) {
-  if (!page) return true;
-  if (SOFT_DRAG && SOFT_DRAG.keep.has(page)) return SOFT_DRAG.keep.get(page);
-  const fe = document.activeElement;
-  const k = softDim_(page) || !!(fe && fe !== document.body && page.contains(fe)
-    && /^(INPUT|TEXTAREA|SELECT)$/.test(fe.tagName));
-  if (SOFT_DRAG) SOFT_DRAG.keep.set(page, k);
-  return k;
-}
-function softHold_(glass) {
-  if (!glass) return;
-  if (!SOFT_EASE.has(glass)) SOFT_EASE.add(glass);
-  if (glass.style.willChange !== 'filter') glass.style.willChange = 'filter';
-  if (glass.style.transition !== 'none') glass.style.transition = 'none';
-}
-
-function softDrag_(which, px, stepX) {
-  /* A WIDE WINDOW BLURS ITS NEIGHBOURS TOO NOW (see `placeGrid`), so the finger eases it there as well. */
-  if (!SOFT_DRAG) SOFT_DRAG = { ok: softMotion_(), b: null, keep: new Map() };
-  if (!SOFT_DRAG.ok) return;
-  /* THE NEIGHBOUR AND HOW FAR AWAY IT IS, WORKED OUT ONCE A DIRECTION. § */
-  const key = which + (px < 0 ? '+' : '-');
-  const seen = DRAG_PLAN ? DRAG_PLAN.near || (DRAG_PLAN.near = new Map()) : new Map();
-  let a, b = null, step = 0;
-  if (seen.has(key)) {
-    ({ a, b, step } = seen.get(key));
-  } else {
-    const host = $('s-' + AT);
-    a = host && host.querySelector(':scope > .page.on');
-    if (!a) return;
-    if (which === 'x') {
-      const next = TABS[TABS.findIndex(t => t.id === AT) + (px < 0 ? 1 : -1)];
-      const col = next && $('s-' + next.id);
-      b = col ? col.querySelectorAll(':scope > .page')[domIndex_(next.id, PAGE[next.id] || 0)] || null : null;
-      step = stepX;
-    } else {
-      b = px < 0 ? a.nextElementSibling : a.previousElementSibling;
-      if (b && !b.classList.contains('page')) b = null;
-      if (b) step = Math.abs((b.offsetTop + b.offsetHeight / 2) - (a.offsetTop + a.offsetHeight / 2));
-    }
-    seen.set(key, { a, b, step });
-  }
-  if (!a) return;
-  /* THE ONE THE FINGER TURNED AWAY FROM goes back to the look its class gives it. */
-  if (SOFT_DRAG.b && SOFT_DRAG.b !== b) { const g = glassOf_(SOFT_DRAG.b); if (g) g.style.filter = ''; }
-  SOFT_DRAG.b = b;
-  const f = b && step > 0 ? Math.min(1, Math.abs(px) / step) : 0;
-  if (f < 0.01) return;
-  if (!softKeep_(a)) { const g = glassOf_(a); softHold_(g); g.style.filter = `blur(${(SOFT_BLUR * f).toFixed(2)}px)`; }
-  if (b && !softKeep_(b)) { const g = glassOf_(b); softHold_(g); g.style.filter = `blur(${(SOFT_BLUR * (1 - f)).toFixed(2)}px)`; }
-}
-
-/* THE RELEASE, OR ANY PLACEMENT THAT MOVED THE FOCUS: § */
-function softSettle_(timing, instant) {
-  /* NOT UNDER A FINGER: a placement asked for by something else mid-drag must not take the blur the
-     finger is easing off the two cards it is between. */
-  if (typeof SWIPE !== 'undefined' && SWIPE.live && SWIPE.axis) return;
-  SOFT_DRAG = null;
-  if (!SOFT_EASE.size) return;
-  SOFT_EASE.forEach(g => { g.style.transition = 'none'; g.style.filter = ''; });
-  clearTimeout(SOFT_DONE);
-  const ms = instant ? 0 : (parseFloat(timing.d) || 0) * (/ms$/.test(timing.d) ? 1 : 1000);
-  SOFT_DONE = setTimeout(function done() {
-    /* A FINGER DOWN AGAIN OWNS THESE NOW — wait for it rather than pull its inline blur away. */
-    if (SOFT_DRAG) { SOFT_DONE = setTimeout(done, 120); return; }
-    SOFT_EASE.forEach(g => { g.style.willChange = ''; g.style.transition = ''; g.style.filter = ''; });
-    SOFT_EASE.clear();
-  }, ms + 80);
-}
-
-/* ---------- A TAP ON A CARD STILL SLIDING IS NOT A PRESS § */
-let SLIDE_UNTIL = 0;
-
-/* The two axes still call in — one placer underneath, so a horizontal move and a vertical one
-   cannot disagree about where a cell is. */
-
-/* ---------- A DRAG FRAME MOVES THE CARDS AND DOES NOTHING ELSE § */
-let DRAG_PLAN = null;    // { which, at, page, stepX, cols: [{ host, x, y, front }], near } — this drag's sums
-function dragPlan_(drag) {
-  if (PLACE_FRAME) return null;
-  const cols = [];
-  for (const t of TABS) {
-    const host = $('s-' + t.id);
-    if (!host) continue;
-    const at = colPlaced_(host);
-    if (!at || !host._slide) return null;
-    /* A ROW HELD MID-SLIDE (`grabRow_`) is drawn where it was held; the drag is placed from where it was going, as every drag is. */
-    cols.push({ host: host, x: host.REST_X != null ? host.REST_X : at[0], y: at[1], front: t.id === AT });
-  }
-  if (!cols.some(c => c.front)) return null;
-  cols.forEach(c => {
-    c.host.classList.add('dragging');
-    if (drag.which === 'x') colTransition_(c.host, SLIDE_NONE, null);
-    else if (c.front) colTransition_(c.host, null, SLIDE_NONE);
-  });
-  return { which: drag.which, at: AT, page: PAGE[AT] || 0, stepX: drag.which === 'x' ? stepX_() : 0, cols: cols };
-}
-function dragFast_(drag) {
-  if (!DRAG_PLAN) DRAG_PLAN = dragPlan_(drag);
-  const p = DRAG_PLAN;
-  if (!p || p.which !== drag.which || p.at !== AT || p.page !== (PAGE[AT] || 0)) return false;
-  if (!p.cols.every(c => c.host.isConnected)) return false;
-  const dx = drag.which === 'x' ? drag.px : 0, dy = drag.which === 'y' ? drag.px : 0;
-  p.cols.forEach(c => { if (dx || c.front) colWrite_(c.host, c.x + dx, c.y + (c.front ? dy : 0)); });
-  softDrag_(drag.which, drag.px, p.stepX);
-  return true;
-}
-
 /* ---------- HOW MANY CARDS ABOVE AND BELOW THE ONE IN FRONT THE GLASS SHOWS § */
-const glassRows_ = () => (WIDE ? 3 : 2);
+const glassRows_ = () => 2;
 
 /* ---------- WHICH CARDS ARE ON THE GLASS, SAID ONCE PER PLACEMENT § */
 let GLASS = { at: null, cols: [], pages: [] };
 
-function glassNow_(hosts, ti, stepX) {
-  const out = { at: AT, cols: [], pages: [] };
-  const W = appWidth_();
-  const card = WIDE ? stepX - CELL_GAP : 0;
-  /* `reach`: HOW MANY COLUMNS EITHER SIDE OF THE ONE IN FRONT THIS WINDOW SHOWS — the same sum as `across` below, for any column. § */
-  out.reach = 0;
-  if (WIDE && stepX > 0) while (out.reach < TABS.length && W / 2 + card / 2 - (out.reach + 1) * stepX > WIDE_EDGE) out.reach++;
-  hosts.forEach(h => {
-    const dx = h.i - ti;
-    /* HOW MUCH OF THIS COLUMN'S CARD IS INSIDE THE WINDOW, ACROSS — all of it for the column in front. */
-    const across = dx ? W / 2 + card / 2 - Math.abs(dx) * stepX : Infinity;
-    if (dx && !(WIDE && across > WIDE_EDGE)) return;
-    out.cols.push(h.id);
-    const H = h.host.clientHeight || innerHeight;
-    const at = PAGE[h.id] || 0;
-    h.host.querySelectorAll(':scope > .page').forEach((el, pos) => {
-      if (Math.abs(logIndex_(h.id, pos) - at) > glassRows_()) return;
-      if (glassShows_(el, h.shift + el.offsetTop, H, across)) out.pages.push(el);
-    });
-  });
-  return out;
-}
-
-/* IS A PAGE'S WIDGET ON THE GLASS — its slot, or the page when it has none, showing more than `WIDE_EDGE` of itself inside a window `H` tall, with the page's top § */
-function glassShows_(el, top, H, across) {
-  const sl = el.querySelector('.widget-slot');
-  const at = sl && glassOffset_(sl, el);
-  const y = at ? top + at.top : top;
-  const tall = at ? sl.offsetHeight : el.offsetHeight;
-  if (!tall) return y > 0 && y < H;
-  const down = Math.min(y + tall, H) - Math.max(y, 0);
-  const side = Math.min((at ? sl.offsetWidth : el.offsetWidth) || Infinity, across - (at ? at.left : 0));
-  return down > WIDE_EDGE && side > WIDE_EDGE;
-}
-
-/* WHERE A SLOT SITS INSIDE ITS PAGE, by offsets — the same untransformed layout the page's own `offsetTop` is, so it agrees with where this placement puts the § */
-function glassOffset_(sl, page) {
-  let top = 0, left = 0, n = sl;
-  const base = page.offsetParent;
-  while (n && n !== page && n !== base) { top += n.offsetTop; left += n.offsetLeft; n = n.offsetParent; }
-  if (!n) return null;
-  if (n !== page) { top -= page.offsetTop; left -= page.offsetLeft; }
-  for (let p = sl.parentNode; p && p !== page; p = p.parentNode) top -= p.scrollTop || 0;
-  return { top, left };
-}
-
-function placeHosts_(tabs, drag) {
-  const hosts = [];
-  tabs.forEach((id, i) => {
-    const host = $('s-' + id);
-    if (!host) return;
-    hosts.push({ id: id, i: i, host: host, wasFront: host.classList.contains('is-front') });
-
-    /* A SCREEN IS THE COLUMN, and the column is what moves. § */
-    host.classList.remove('hidden');
-    host.style.display = 'flex';
-    host.style.position = 'absolute';
-    host.style.top = '0'; host.style.right = '0'; host.style.bottom = '0'; host.style.left = '0';
-    host.style.overflow = 'visible';
-    /* `is-front`, NOT `on`. § */
-    host.classList.toggle('is-front', id === AT);
-    /* A FINGER IS DOWN — read by `holdColumn_`. It used to be `no-anim`, which switched off every
-       transition on the column; a drag now zeroes only its own axis (`colTransition_` below). */
-    host.classList.toggle('dragging', !!drag);
-  });
-  return hosts;
-}
-
-function placeSettleStart_(hosts, ti, stepX, instant, drag) {
-  const rel = !instant && !drag && SETTLE_FROM ? SETTLE_FROM : null;
-  if (rel) {
-    SETTLE_FROM = null;
-    let D = 0;
-    hosts.forEach(({ i, host, shift }) => {
-      const was = colPlaced_(host);
-      if (!was) return;
-      const d = rel.axis === 'x' ? (i - ti) * stepX - was[0] : shift - was[1];
-      if (Math.abs(d) > Math.abs(D)) D = d;
-    });
-    const c = settleCurve_(D, rel.v);
-    /* SIXTEEN MILLISECONDS IN ALREADY — see the delay below. */
-    SETTLE_ON = { axis: rel.axis, dur: c.dur, tf: c.tf, until: performance.now() + c.dur - 16 };
-  }
-}
-
-/* Whether the row is drawn wider than the glass, so it is put back once the slide ends. */
-function placeReads_(hosts, ti, stepX, glass, instant, drag, settle) {
-  const now = performance.now();
-  if (!drag) TRAIL_X = trailX_(ti, now, !!instant, settle);
-  const xRun = now < TRAIL_X.until || !drag;
-  const xlo = xRun ? Math.min(TRAIL_X.lo, ti) : ti, xhi = xRun ? Math.max(TRAIL_X.hi, ti) : ti;
-  let wider = xlo < xhi;
-  hosts.forEach(h => {
-    const dx = h.i - ti;
-    const at = PAGE[h.id] || 0;
-    const acrossT = h.i < xlo ? xlo - h.i : h.i > xhi ? h.i - xhi : 0;
-    const glassH = h.host.clientHeight || innerHeight;
-    const dur = settle ? settle.dur : 300;
-    const band = trailY_(h.host, h.shift, glassH, now, !!drag, !!instant, dur);
-    if (band.top < -h.shift - 1 || band.bot > -h.shift + glassH + 1) wider = true;
-    const c = { at: at, across: Math.abs(dx), acrossT: acrossT,
-      onGlass: WIDE && acrossT * stepX < glass,
-      drag: !!drag, lo: band.top - glassH, hi: band.bot + glassH };
-    c.skip = !drag && h.id !== AT && GLASS.cols.indexOf(h.id) === -1;
-    h.c = c;
-    h.pg = pagesRead_(h.host, h.id, c);
-  });
-  return wider;
-}
-
-function placeWrite_({ id, i, host, shift, c, pg, wasFront }, ti, stepX, dxPx, instant, drag, runs, glass) {
-  const dx = i - ti;
-  const at = c.at;
-  const x = dx * stepX + dxPx;
-  /* A COLUMN ARRIVING ON THE PAGE IT WAS PLACED FOR, WHOSE CARD CHANGED HEIGHT SINCE, TAKES ITS NEW HEIGHT NOW: the slide carries it across, never down (382). */
-  if (!instant && !drag && !wasFront && host.PLACED_P === at) {
-    const was = colPlaced_(host);
-    if (was && Math.abs(shift - was[1]) > 0.5) colShiftNow_(host, shift - was[1]);
-  }
-
-  /* EACH AXIS ITS OWN CLOCK — see `colWrite_`. The finger's axis follows the finger; the other
-     keeps whatever slide it is in the middle of. */
-  colTransition_(host,
-    instant || (drag && drag.which === 'x') ? SLIDE_NONE : runs('x'),
-    instant || (drag && drag.which === 'y' && id === AT) ? SLIDE_NONE : runs('y'),
-    instant ? SLIDE_NONE : { d: '.22s', tf: 'ease', delay: '0s' });
-  colWrite_(host, x, shift);
-  host.REST_X = null;
-  /* WHICH PAGE THIS SHIFT WAS WORKED OUT FOR — read by `holdColumn_`, which corrects a column only
-     for the page it was sent to. */
-  host.PLACED_P = at;
-  /* Only the screen in front takes presses. A sliver of the next tab showing at the edge is
-     something to look at, not something to tap. */
-  /* STILL TRUE ON A WIDE WINDOW, where the columns beside are whole and readable: § */
-  host.style.pointerEvents = dx === 0 ? 'auto' : 'none';
-  const across = Math.abs(dx);
-  /* ---------- THE NEIGHBOUR IS BARELY DIMMED, AND HERE IS WHY § */
-  /* ---------- AND THE ROW KEEPS DRAWN THE COLUMNS A SLIDE CROSSES § */
-  const onGlass = c.onGlass;
-  const lit = WIDE && c.acrossT * stepX < glass + stepX;
-  const op = across === 0 ? '1' : WIDE ? (lit ? '1' : '0')
-    : c.acrossT <= 3 ? '.92' : '0';
-  /* ---------- AND A COLUMN COMING BACK FROM NOUGHT IS DRAWN AT ONCE, NOT FADED IN § */
-  const was = +host.style.opacity || 0;
-  if (!instant && was <= 0.05 && +op > 0.05) colTransition_(host, null, null, { d: '0s', tf: 'linear', delay: '0s' });
-  host.style.opacity = op;
-  /* AND SIDEWAYS, THE SAME. § */
-  host.style.visibility = c.acrossT > 4 && !lit ? 'hidden' : 'visible';
-
-  /* AND EACH PAGE — `placePages_`, below, which a builder placing one column alone (`placeOne_`) shares. § */
-  placePages_({ id: id, host: host }, c, pg);
-}
-
-function placeSlideUntil_(before, front, settle) {
-  if (before && front) {
-    const now = colPlaced_(front.host);
-    if (now && (Math.abs(now[0] - before[0]) > 2 || Math.abs(now[1] - before[1]) > 2)) {
-      SLIDE_UNTIL = performance.now() + (settle ? settle.dur : 300);
-    }
-  }
-}
-
-function placeBlurLeft_() {
-  try {
-    const fe = document.activeElement;
-    const pg = fe && fe !== document.body && fe.closest ? fe.closest('#screen .page') : null;
-    if (pg && !pg.classList.contains('on') && typeof fe.blur === 'function') fe.blur();
-  } catch (e) { /* a field that keeps its focus is the behaviour before this existed */ }
-}
-
-function placeGrid(instant, drag) {
-  if (FLOW_LAYOUT) return flowPlace_();
-  if (drag && dragFast_(drag)) return;
-  DRAG_PLAN = null;
-  /* Said before anything is measured or moved, so the width the stylesheet draws and the width
-     this function spaces by cannot be different on the same frame. Setting a custom property that
-     already holds that value costs nothing. */
-  publishCardWidth_();
-  const tabs = TABS.map(t => t.id);
-  const ti = Math.max(0, tabs.indexOf(AT));
-  const dxPx = (drag && drag.which === 'x') ? drag.px : 0;
-  const dyPx = (drag && drag.which === 'y') ? drag.px : 0;
-  const stepX = stepX_();
-
-  /* ---------- THREE PASSES — WRITE, READ, WRITE — AND THAT IS THE WHOLE OF THE SPEED § */
-  /* ---------- AN INSTANT PLACEMENT DOES NOT CANCEL A SLIDE THAT IS STILL RUNNING § */
-  if (instant && !drag && SETTLE_ON && performance.now() < SETTLE_ON.until) instant = false;
-  if (!drag && motionLess_()) { instant = true; SETTLE_FROM = null; SETTLE_ON = null; }
-  const hosts = placeHosts_(tabs, drag);
-  /* A CARD HELD BECAUSE YOU WERE USING IT IS LET GO THE MOMENT ANOTHER ONE IS IN FRONT — see
-     `HOLD_AT`. Before the shifts are read, so the card arrived at is centred. */
-  if (HOLD_AT && (HOLD_AT.id !== AT || (PAGE[AT] || 0) !== HOLD_AT.p)) HOLD_AT = null;
-  /* Slid so the page being read sits in the middle — see `columnShift_`. A vertical drag only ever
-     moves the screen in front; the others have no finger on them. READ ONLY — see the three passes
-     above. */
-  hosts.forEach(h => {
-    h.shift = columnShift_(h.host, domIndex_(h.id, PAGE[h.id] || 0)) + (h.id === AT ? dyPx : 0);
-  });
-  /* AND WHICH CARDS THAT LEAVES ON THE GLASS — see `GLASS`. Still in the reading pass. */
-  if (!drag) GLASS = glassNow_(hosts, ti, stepX);
-  /* THE SETTLE, if this placement is the one a release asked for. § */
-  /* WHENEVER IT COMES. A window of 150ms was the first version, and on a slow phone the placement a release asks for can start later than that — it then fell back § */
-  placeSettleStart_(hosts, ti, stepX, instant, drag);
-  const settle = !instant && !drag && SETTLE_ON && performance.now() < SETTLE_ON.until ? SETTLE_ON : null;
-  /* ON THE COLUMN, NOT THE ROOT — see `settleCurve_`. § */
-  const runs = ax => (settle && settle.axis === ax
-    ? { d: settle.dur + 'ms', tf: settle.tf, delay: '-16ms' } : SLIDE_TAP);
-  const front = hosts.find(h => h.id === AT);
-  const before = front && !instant && !drag ? colPlaced_(front.host) : null;
-  /* ON A WIDE WINDOW, how far from the middle a column can be and still have a card on the glass:
-     half the window and half a card, and one step more, so a column a drag is about to bring in is
-     already drawn. */
-  const glass = WIDE ? appWidth_() / 2 + stepX * 1.5 : 0;
-  /* ---------- AND WHAT A SLIDE CARRIES ACROSS THE GLASS STAYS DRAWN WHILE IT IS CARRIED § */
-  const wider = placeReads_(hosts, ti, stepX, glass, instant, drag, settle);
-  /* PUT BACK TO THE GLASS ONCE THE SLIDE HAS ENDED — see `trailEnd_`. */
-  if (wider && !drag && typeof afterSlide_ === 'function') afterSlide_(trailEnd_, 'trail');
-  hosts.forEach(h => placeWrite_(h, ti, stepX, dxPx, instant, drag, runs, glass));
-
-  if (drag) {
-    /* THE SUMS THIS FRAME DID, KEPT FOR THE REST OF THE DRAG — see `dragFast_`. The finger's own
-       offset taken back out, so the plan is where each column RESTS. */
-    DRAG_PLAN = { which: drag.which, at: AT, page: PAGE[AT] || 0, stepX: stepX,
-      cols: hosts.map(h => ({ host: h.host, x: (h.i - ti) * stepX, y: h.shift - (h.id === AT ? dyPx : 0), front: h.id === AT })) };
-    softDrag_(drag.which, drag.px, stepX);
-    return;
-  }
-  softSettle_(settle ? runs(settle.axis) : SLIDE_TAP, instant);
-
-  /* A SLIDE THE EYE CAN FOLLOW — the column in front going somewhere new — is a window in which a tap
-     is not a press. See `SLIDE_UNTIL`. */
-  placeSlideUntil_(before, front, settle);
-
-  /* ---------- A FIELD ON A CARD THAT HAS LEFT IS LET GO OF § */
-  placeBlurLeft_();
-}
+/* THE ONE SCROLLING PAGE (900): Find's section in flow, its page being read marked `.on` — `flowPlace_` (shell-pages.js). */
+function placeGrid() { return flowPlace_(); }
 
 ;
 /* ==== js/shell-pages.js ==== */
 
 /* ---------- EACH PAGE OF ONE COLUMN, AND ONLY WHAT CHANGED § */
-function placePages_(h, c, pg) {
-  const id = h.id, host = h.host;
-  const r = pg || pagesRead_(host, id, c);
-  if (r.skipped) return;
-  /* A DRAG'S WRITES ARE NOT A RESTING STATE — the blur is left to the finger — so the next placement walks. */
-  host.PG_SIG = c.drag ? null : r.sig;
-  r.pages.forEach((el, pos) => {
-    /* WHICH PAGE THIS ELEMENT IS -- see `logIndex_`. Identical to `pos` on every screen that
-       holds all of its pages, which is all of them but the Find screen. */
-    const p = logIndex_(id, pos);
-    const d = Math.abs(p - c.at);
-    const focused = id === AT && p === c.at;
-    const was = el.PG || null;
-    /* OUT OF FOCUS — see the note over `SOFT_BLUR`. Not during a drag: the classes describe where
-       the cards ARE, and a finger has not moved the focus until it lets go. */
-    /* AND ON A WIDE WINDOW, EVERY CARD ON THE GLASS BUT ONE. § */
-    let soft = was ? was.soft : false, dim = was ? was.dim : null;
-    if (!c.drag) {
-      soft = !focused && (WIDE ? (c.across === 0 || c.onGlass) && d <= 3 : c.across <= 1 && d <= 2);
-      if (soft) dim = softDim_(el);
-    }
-    /* ---------- DRAWN WHILE ITS BOX MEETS THE BAND, AND ONLY THEN § */
-    const box = r.boxes[pos];
-    const inBand = !!box && box[0] < c.hi && box[0] + box[1] > c.lo;
-    /* DIMMING ON A BLACK SCREEN IS DELETING. § */
-    /* A TALL WIDE WINDOW SHOWS A FOURTH CARD DOWN, so there nothing near is faded to nothing —
-       it would be a hole in a column you can otherwise read. The focus is said by `.soft` above. */
-    pageWrite_(el, {
-      on: focused,
-      far: !inBand,
-      soft: soft, dim: dim,
-      op: !inBand ? '0' : WIDE ? '1' : d === 0 ? '1' : d === 1 ? '.9' : '.75',
-      /* ---------- THE CARD IN FRONT, NOT EVERY COLUMN'S CURRENT CARD § */
-      vis: inBand ? 'visible' : 'hidden',
-    });
-  });
-}
-/* THE READING HALF, done in `placeGrid`'s reading pass so no offset is asked after a write: § */
-const PAGE_READ = 12;
-function pagesRead_(host, id, c) {
-  const pages = host.querySelectorAll(':scope > .page');
-  const sig = [c.at, Math.round(c.lo), Math.round(c.hi), c.across, c.onGlass ? 1 : 0, WIDE ? 1 : 0,
-    pages.length, PAGE_LO[id] || 0].join('|');
-  if (c.skip && host.PG_SIG === sig) return { skipped: true };
-  const boxes = [];
-  for (let pos = 0; pos < pages.length; pos++) {
-    const p = logIndex_(id, pos);
-    boxes.push(Math.abs(p - c.at) > PAGE_READ ? null : [pages[pos].offsetTop, pages[pos].offsetHeight]);
-  }
-  return { pages: pages, sig: sig, boxes: boxes };
-}
-
 /* ---------- THE TRAIL, DOWN ONE COLUMN § */
-const TRAIL_CAP = 8;
-function trailY_(host, shift, glassH, now, drag, instant, dur) {
-  const tTop = -shift, tBot = -shift + glassH;
-  const T = host.TRAIL;
-  const run = !!(T && (now < T.until || (!drag && !instant && slideRunning_(host, colProp_('y')))));
-  let top = tTop, bot = tBot;
-  if (run) { top = Math.min(top, T.top); bot = Math.max(bot, T.bot); }
-  else if (!drag && !instant) {
-    const was = colPlaced_(host);
-    if (was) { top = Math.min(top, -was[1]); bot = Math.max(bot, -was[1] + glassH); }
-  }
-  top = Math.max(top, tTop - TRAIL_CAP * glassH);
-  bot = Math.min(bot, tBot + TRAIL_CAP * glassH);
-  const band = { top: top, bot: bot, until: drag || instant ? (run ? T.until : 0) : now + dur + 50 };
-  if (!drag) host.TRAIL = band;
-  if (!drag && !instant) trailFrom_(band, dur);
-  return band;
-}
 /* ---------- A SLIDE ENDS `dur` AFTER THE FRAME IT STARTS IN, NOT AFTER THE WRITE THAT ASKED FOR IT § */
-function trailFrom_(band, dur) {
-  try { requestAnimationFrame(() => { band.until = Math.max(band.until, performance.now() + dur + 50); }); } catch (e) { /* no frame to wait for: the band ends on its own timer */ }
-}
 /* ---------- AND A SLIDE STILL RUNNING IS STILL A SLIDE, WHATEVER THE CLOCK SAYS § */
-function slideRunning_(host, prop) {
-  try {
-    return !!(host && host.getAnimations && host.getAnimations().some(a => a.playState === 'running'
-      && (prop ? a.transitionProperty === prop : a.transitionProperty === 'transform' || a.transitionProperty === 'translate')));
-  } catch (e) { return false; }
-}
 /* AND ACROSS THE ROW: the column indices the row has swept while its sideways slide still runs, the index
    it is leaving and the one it is going to. `at` is the index this placement was for. */
-let TRAIL_X = { lo: 0, hi: 0, at: null, until: 0 };
-function trailX_(ti, now, instant, settle) {
-  const T = TRAIL_X;
-  const run = now < T.until || (!instant && T.at != null && slideRunning_($('s-' + ((TABS[T.at] || {}).id)), colProp_('x')));
-  let lo = ti, hi = ti;
-  if (run) { lo = Math.min(lo, T.lo); hi = Math.max(hi, T.hi); }
-  else if (!instant && T.at != null) { lo = Math.min(lo, T.at); hi = Math.max(hi, T.at); }
-  const moved = T.at !== ti;
-  const dur = settle && settle.axis === 'x' ? settle.dur : 300;
-  const out = { lo: lo, hi: hi, at: ti,
-    until: instant ? (run ? T.until : 0) : moved || run ? now + dur + 50 : T.until };
-  if (!instant && (moved || run)) trailFrom_(out, dur);
-  return out;
-}
-/* ONCE THE SLIDES HAVE ENDED, THE BAND GOES BACK TO THE GLASS. § */
-function trailEnd_() {
-  const now = performance.now();
-  let until = TRAIL_X.until;
-  TABS.forEach(t => { const h = $('s-' + t.id); if (h && h.TRAIL) until = Math.max(until, h.TRAIL.until); });
-  if (until > now) { setTimeout(() => afterSlide_(trailEnd_, 'trail'), Math.ceil(until - now)); return; }
-  /* NOR WHILE A SLIDE IS STILL RUNNING past its clock (`slideRunning_`, above). */
-  if (TABS.some(t => slideRunning_($('s-' + t.id)))) { setTimeout(() => afterSlide_(trailEnd_, 'trail'), 100); return; }
-  const wide = TRAIL_X.lo < TRAIL_X.hi || TABS.some(t => {
-    const h = $('s-' + t.id);
-    const was = h && h.TRAIL && colPlaced_(h);
-    return !!(was && (h.TRAIL.top < -was[1] - 1 || h.TRAIL.bot > -was[1] + (h.clientHeight || innerHeight) + 1));
-  });
-  if (wide) placeCells('y', true);
-}
 /* ONE PAGE'S WRITES, EACH ONLY IF IT DIFFERS FROM WHAT THIS ELEMENT WAS LAST GIVEN. § */
 function pageWrite_(el, st) {
   const was = el.PG;
   if (!was) { el.style.position = 'static'; el.style.transform = 'none'; }
   if (!was || was.on !== st.on) {
     el.classList.toggle('on', st.on);
-    el.style.pointerEvents = st.on || FLOW_LAYOUT ? 'auto' : 'none';
+    el.style.pointerEvents = 'auto';
     /* AND THE KEYBOARD WITH IT (561, U15): a page a finger cannot reach is out of the Tab order too. */
-    el.inert = !st.on && !FLOW_LAYOUT;
+    el.inert = false;
   }
   if (!was || was.far !== st.far) el.classList.toggle('far', st.far);
   if (!was || was.soft !== st.soft) el.classList.toggle('soft', st.soft);
@@ -6491,7 +5508,7 @@ function flowScrolled_() {
   /* NEAR THE FOOT OF WHAT IS DRAWN, the next few results are drawn (`flowMore_`, find.js). */
   if (typeof flowMore_ === 'function' && document.documentElement.scrollHeight - window.scrollY - innerHeight < innerHeight) flowMore_(id);
 }
-addEventListener('scroll', () => { if (FLOW_LAYOUT && !FLOW_FRAME) FLOW_FRAME = requestAnimationFrame(flowScrolled_); }, { passive: true });
+addEventListener('scroll', () => { if (!FLOW_FRAME) FLOW_FRAME = requestAnimationFrame(flowScrolled_); }, { passive: true });
 /* A PAGE TURNED TO BY A TAP (a question opened, its answer shown) is scrolled to, once the turn's fills have run. */
 function flowShow_(id, n) {
   if (FLOW_TURNING) return;
@@ -6508,30 +5525,6 @@ function topbarPaint_() {
 }
 
 /* ---------- ONE COLUMN PLACED ON ITS OWN, WITH NOTHING MOVING § */
-function placeOne_(id) {
-  const host = $('s-' + id);
-  if (!host || !PLACED_ONCE || !host.style.transform) return;
-  if (id === AT || GLASS.cols.indexOf(id) !== -1) { placeCells('y', true, 0, id); return; }
-  const tabs = TABS.map(t => t.id);
-  const ti = Math.max(0, tabs.indexOf(AT)), i = tabs.indexOf(id);
-  if (i < 0) return;
-  const stepX = stepX_();
-  const at = PAGE[id] || 0;
-  const shift = columnShift_(host, domIndex_(id, at));
-  const across = Math.abs(i - ti);
-  const onGlass = WIDE && Math.abs((i - ti) * stepX) < appWidth_() / 2 + stepX * 1.5;
-  const glassH = host.clientHeight || innerHeight;
-  /* NOTHING IS SLIDING (the builder's own gate), so the band is this column's glass and one either side. */
-  const band = trailY_(host, shift, glassH, performance.now(), false, true, 0);
-  const c = { at: at, across: across, acrossT: across, onGlass: onGlass, drag: false, skip: false,
-    lo: band.top - glassH, hi: band.bot + glassH };
-  const pg = pagesRead_(host, id, c);
-  colTransition_(host, SLIDE_NONE, SLIDE_NONE, null);
-  colWrite_(host, (i - ti) * stepX, shift);
-  host.PLACED_P = at;
-  placePages_({ id: id, host: host }, c, pg);
-}
-
 /* ONE PLACEMENT PER FRAME, AND ANIMATION WINS § */
 let PLACE_WANT = null;      // { which, instant, id } — what has been asked for this turn
 let PLACED_ONCE = false;    // the very first placement runs now, not next frame
@@ -6676,7 +5669,6 @@ function pageHome_(id) {
 /* A NUMBER OR A LIST. The names were read by the header and there is no header, so `pagerNames` is only ever asked for its LENGTH -- and `PAGER.stuff` was § */
 /* ---------- AND COUNTED ONCE A HANDLER, NOT FIVE TIMES A FLICK § */
 let COUNT_HOLD = null;
-function countHold_(on) { COUNT_HOLD = on ? new Map() : null; }
 /* ---------- AND NOT BUILT AT ALL WHILE THE COLUMN IS THE ONE IT WAS § */
 const COUNT_MEMO = new Map();
 const pageCount = id => {
@@ -6709,11 +5701,8 @@ function afterSlide_(fn, key) {
     /* NOT INSIDE A SETTLE, AND NOT UNDER A FINGER. § */
     /* ---------- A FINGER DOWN AT ALL, NOT ONLY ONE THAT HAS CHOSEN ITS AXIS § */
     const now = performance.now();
-    const down = typeof SWIPE !== 'undefined' && !!SWIPE.live;
-    if (!down) AFTER_SLIDE_HELD = 0;
-    else if (!AFTER_SLIDE_HELD) AFTER_SLIDE_HELD = now;
-    const wait = SETTLE_ON && now < SETTLE_ON.until ? Math.ceil(SETTLE_ON.until - now) + 50
-               : down && now - AFTER_SLIDE_HELD < 1500 ? 100 : 0;
+    AFTER_SLIDE_HELD = 0;
+    const wait = 0;
     if (wait) { AFTER_SLIDE = setTimeout(run, wait); return; }
     AFTER_SLIDE_HELD = 0;
     const jobs = [...AFTER_SLIDE_JOBS.values()];
@@ -6731,7 +5720,7 @@ function afterSlide_(fn, key) {
       if (typeof aheadKick_ === 'function') aheadKick_();
     };
     next();
-  }, FLOW_LAYOUT ? 0 : 300);
+  }, 0);
 }
 
 /* AHEAD: WHAT A FLICK CAN REACH IS DRAWN BEFORE IT GETS THERE § */
@@ -6774,9 +5763,6 @@ function aheadPreOpen_() {
 function aheadGate_() {
   if (!(AHEAD.open || AHEAD.pre) || document.hidden || window.__aheadHold) return -1;
   const now = performance.now();
-  if (typeof SWIPE !== 'undefined' && SWIPE.live) return 100;
-  if (SETTLE_ON && now < SETTLE_ON.until) return SETTLE_ON.until - now + 20;
-  if (now < SLIDE_UNTIL) return SLIDE_UNTIL - now + 20;
   if (GLASS.at !== AT || PLACE_FRAME) return 50;
   if (AFTER_SLIDE || AFTER_SLIDE_JOBS.size || (typeof TOOLS_WAIT !== 'undefined' && TOOLS_WAIT.length)) return 150;
   /* SOMEBODY WRITING: a box focused anywhere — Find's answer box too, whatever `typingBox_` leaves out for
@@ -6840,7 +5826,6 @@ function aheadSlice_() {
   if (left || aheadStill_(job)) AHEAD.stuck.add(job.key);
   const log = window.__aheadLog;
   log.push({ key: job.key, ms: Math.round(ms * 10) / 10, t: Math.round(t0), quiet: Math.round(quiet),
-    live: !!(typeof SWIPE !== 'undefined' && SWIPE.live), settle: !!(SETTLE_ON && t0 < SETTLE_ON.until),
     after: !!(AFTER_SLIDE || AFTER_SLIDE_JOBS.size) });
   if (log.length > 200) log.splice(0, log.length - 200);
   aheadKick_(0);
@@ -6905,7 +5890,6 @@ function aheadPaint_(id) {
   if (F && typeof stuffOnGlass_ === 'function' && stuffOnGlass_(id)) {
     try { finderSoon_(F, () => { if ($(id + '-controls')) stuffBandFill_(); }); } catch (e) { /* a finder gone mid-draw keeps its old band */ }
   }
-  placeOne_(id);
   if (typeof paneWatch_ === 'function') paneWatch_(host);
   drawnScreen_(id);
 }
@@ -6980,7 +5964,7 @@ function goPageHere_(id, to, instant, F) {
   /* ---------- AFTER THE SLIDE, THE SCREEN'S OWN WORK: the reel being watched, the feed's camera started or put at rest (SCREEN_HOOKS). */
   if (H.slid) H.slid(n);
   paintPager(id);
-  if (FLOW_LAYOUT) flowShow_(id, n);
+  flowShow_(id, n);
 }
 
 ;
@@ -7645,7 +6629,7 @@ const ACTIONS = {};
 /* EVERY ACTION MOVES `ACT_EPOCH` (see the note over `STALE`): a press is what can edit a column in place,
    and a column edited in place must not be kept by a landing on the grounds that its markup is the same. */
 /* A SLOW ACT SHOWS ITS TAP AT ONCE (the tile's ring) and works after the next frame (990); `aria-busy`, so a `send_` inside keeps its own. */
-const SLOW_ACTS_ = new Set(['card-share', 'card-cancel', 'lay-split']);
+const SLOW_ACTS_ = new Set(['card-share', 'card-cancel']);
 function on(name, fn) {
   ACTIONS[name] = function (el) { ACT_EPOCH++; if (!SLOW_ACTS_.has(name) || !el || !el.setAttribute) return fn.apply(this, arguments);
     const a = arguments; el.setAttribute('aria-busy', 'true');
@@ -7675,8 +6659,6 @@ function clicks(on) {
 
 /* ---------- A SWIPE IS NOT A PRESS, AND THE BROWSER CANNOT TELL § */
 let PRESS_MOVED = false;
-/* AND A PRESS THAT BEGAN ON A CARD STILL SLIDING — see `SLIDE_UNTIL` above `placeGrid`. § */
-let PRESS_SLIDING = false;
 
 /* THE THING YOU PRESSED STAYS LIT UNTIL THE SCREEN HAS ANSWERED. § */
 let PRESSED = null;
@@ -7709,11 +6691,6 @@ function pressDone_() {
 addEventListener('pointerdown', e => {
   if (!e.isPrimary) return;
   if (e.pointerType === 'mouse' && e.buttons !== 1) return;
-  /* THE LAST 60ms ARE LET THROUGH — by then the card has all but arrived. § */
-  PRESS_SLIDING = performance.now() < SLIDE_UNTIL - 60
-    && !!(e.target && e.target.closest && e.target.closest('#screen'));
-  /* AND NOTHING IS LIT UNDER A FINGER THAT IS CATCHING A MOVING CARD rather than pressing it. */
-  if (PRESS_SLIDING) { pressClear_(); return; }
   pressMark_(e.target);
 }, { passive: true, capture: true });
 addEventListener('pointercancel', pressClear_, { passive: true });
@@ -7726,80 +6703,15 @@ addEventListener('pointerup', e => {
 }, { passive: true, capture: true });
 /* iOS PAINTS `:active` ONLY ON A PAGE WITH A TOUCH LISTENER; this one is the app's own promise of that, not the measuring tool's in find.js. */
 document.addEventListener('touchstart', () => {}, { passive: true });
-/* A FIELD ON THE CARD IN FRONT TAKING FOCUS, OR A SELECT OR A BOX CHANGED ON IT, HOLDS IT TOO — see `HOLD_AT`. § */
-document.addEventListener('focusin', e => holdHere_(e.target), true);
-document.addEventListener('change', e => holdHere_(e.target), true);
 
-/* ---------- ON A WIDE WINDOW, PRESSING A CARD BESIDE THE ONE IN FRONT BRINGS IT TO THE FRONT § */
-function wideHit_(x, y) {
-  if (!WIDE) return null;
-  const pages = document.querySelectorAll('#screen > .screen > .page');
-  for (const pg of pages) {
-    if (pg.classList.contains('on') || pg.style.visibility === 'hidden') continue;
-    const host = pg.parentElement;
-    if (!host || host.style.visibility === 'hidden' || host.style.opacity === '0') continue;
-    const r = pg.getBoundingClientRect();
-    if (x < r.left || x > r.right || y < r.top || y > r.bottom) continue;
-    const id = host.id.replace(/^s-/, '');
-    if (!TABS.some(t => t.id === id)) continue;
-    const pos = Array.prototype.indexOf.call(host.querySelectorAll(':scope > .page'), pg);
-    return { id: id, p: logIndex_(id, pos), el: pg };
-  }
-  return null;
-}
+
 
 ;
 /* ==== js/shell-api.js ==== */
-addEventListener('click', e => {
-  if (FLOW_LAYOUT || !WIDE || PRESS_MOVED || PRESS_SLIDING) return;
-  /* ---------- A CLICK WITH NO POINTER UNDER IT IS NOT A PRESS BESIDE THE CARD § */
-  if (!e.detail) return;
-  const t = e.target;
-  /* ONLY A PRESS THAT NOTHING IN FRONT TOOK — on the front card it is that card's press. */
-  if (t && t.closest && t.closest('#screen .page.on')) return;
-  if (!(t && t.closest && t.closest('#screen'))) return;
-  const hit = wideHit_(e.clientX, e.clientY);
-  if (!hit) return;
-  try {
-    /* THE PAGE FIRST, while its column is still beside: `goPage` on a column not in front only
-       records where it is and places it, and `go` then slides the whole grid once. */
-    if (PAGER[hit.id] && hit.p !== (PAGE[hit.id] || 0)) goPage(hit.id, hit.p);
-    if (hit.id !== AT) go(hit.id, true);
-  } catch (err) { /* a press that moved nothing is the behaviour before this existed */ }
-}, true);
-
-/* AND THE POINTER SAYS SO BEFORE THE PRESS. § */
-let WIDE_OVER = null, WIDE_OVER_F = 0;
-addEventListener('pointermove', e => {
-  if (!WIDE || e.pointerType !== 'mouse' || WIDE_OVER_F) return;
-  const x = e.clientX, y = e.clientY;
-  WIDE_OVER_F = requestAnimationFrame(() => {
-    WIDE_OVER_F = 0;
-    const onFront = document.elementFromPoint(x, y);
-    const hit = onFront && onFront.closest && onFront.closest('#screen .page.on') ? null : wideHit_(x, y);
-    const el = hit ? hit.el : null;
-    if (el === WIDE_OVER) return;
-    if (WIDE_OVER) WIDE_OVER.classList.remove('wide-over');
-    WIDE_OVER = el;
-    if (el) el.classList.add('wide-over');
-    const scr = $('screen');
-    if (scr) scr.style.cursor = el ? 'pointer' : '';
-  });
-}, { passive: true });
-/* ---------- LEAVING A WIDE WINDOW TAKES THE HAND AWAY § */
-function wideOverClear_() {
-  try {
-    if (WIDE_OVER) WIDE_OVER.classList.remove('wide-over');
-    WIDE_OVER = null;
-    const scr = $('screen');
-    if (scr) scr.style.cursor = '';
-  } catch (e) { /* before this file has finished loading there is nothing to clear */ }
-}
-
 /* ---------- A SWIPE THAT BEGAN ON A FIELD OPENS NOTHING AND TICKS NOTHING § */
 const FIELD_ACTS_ = 'select, label, summary, input[type="checkbox"], input[type="radio"]';
 addEventListener('mousedown', e => {
-  if (!PRESS_MOVED && !PRESS_SLIDING) return;
+  if (!PRESS_MOVED) return;
   if (e.target && e.target.closest && e.target.closest(FIELD_ACTS_)) e.preventDefault();
 }, true);
 
@@ -7807,19 +6719,10 @@ document.addEventListener('click', e => {
   /* FIRST, because a swipe that ends on a tab must not change tab either. */
   if (PRESS_MOVED) {
     PRESS_MOVED = false;
-    PRESS_SLIDING = false;
     pressClear_();
     /* AND ON A FIELD, NOT EVEN THE BROWSER'S OWN DEFAULT — see `FIELD_ACTS_` above. */
     if (e.target && e.target.closest && e.target.closest(FIELD_ACTS_)) e.preventDefault();
     if (CLICK_LOG) console.log('[click] swallowed — the finger moved, so this was a swipe');
-    return;
-  }
-  /* A TAP ON A CARD STILL GLIDING STOPS NOTHING AND PRESSES NOTHING — see `SLIDE_UNTIL`. */
-  if (PRESS_SLIDING) {
-    PRESS_SLIDING = false;
-    pressClear_();
-    if (e.target && e.target.closest && e.target.closest(FIELD_ACTS_)) e.preventDefault();
-    if (CLICK_LOG) console.log('[click] swallowed — it began on a card still sliding');
     return;
   }
   pressDone_();
@@ -7834,9 +6737,6 @@ document.addEventListener('click', e => {
       handledByChange: !!(d && (d.tagName === 'SELECT' || isCheckbox_(d))),
     });
   }
-  /* A PRESS ON THE CARD IN FRONT HOLDS IT WHERE IT IS, before the handler below changes it — see
-     `HOLD_AT`. After the two swallows above, because a swipe is not somebody using the card. */
-  holdHere_(e.target);
   const tab = e.target.closest('.tab');
   if (tab) { go(tab.dataset.tab); return; }
 
@@ -7889,9 +6789,6 @@ function pressAct_(doer, e) {
 /* Escape closes the sheet, for anybody on a keyboard. Costs one line and is the first thing
    somebody tries. */
 /* ---------- THE ARROW KEYS § */
-const ARROWS = { ArrowLeft: ['x', -1], ArrowRight: ['x', 1],
-                 ArrowUp: ['y', -1], ArrowDown: ['y', 1] };
-
 addEventListener('keydown', e => {
   /* A [role=button] THAT IS NOT A <button> PRESSES ON ENTER OR SPACE LIKE ONE (561, U15). */
   if ((e.key === 'Enter' || e.key === ' ') && e.target && e.target.matches && e.target.matches('[role=button][data-do]:not(button)')) {
@@ -7900,23 +6797,7 @@ addEventListener('keydown', e => {
   /* ESCAPE SHUT `#drop` FIRST while there was one. § */
   if (e.key === 'Escape' && !$('sheet').classList.contains('hidden')) { closeSheet(); return; }
 
-  const arrow = !FLOW_LAYOUT && ARROWS[e.key];
-  if (!arrow) return;
-  if (typeof padlocked_ === 'function' && padlocked_()) return;   // the padlock (457)
-  /* A modifier means the key belongs to the browser — ⌘← is back, alt+arrow is word-by-word. */
-  if (e.metaKey || e.ctrlKey || e.altKey) return;
-  /* Typing, or anywhere a caret could be. `isContentEditable` catches the cases a tag name does
-     not, which is the sort of thing a list of tag names quietly misses. */
-  const t = e.target;
-  if (t && (t.isContentEditable
-    || /^(input|textarea|select)$/i.test(t.tagName || ''))) return;
-  /* The sheet is the page; while it is open the grid is not what these are for. */
-  if (!$('sheet').classList.contains('hidden')) return;
-
-  const ax = AXES[arrow[0]];
-  if (!ax || ax.count() < 2) return;
-  e.preventDefault();
-  ax.go(ax.at() + arrow[1]);
+  /* THE ARROWS ARE THE BROWSER'S: they scroll the one page (900). */
 });
 
 /* THE EDGES OF THE SCREEN were tappable from here — a second `click` listener that turned to the next card when you pressed the sliver either side. § */
@@ -7947,9 +6828,7 @@ async function filesOnly_() {
   /* A PLAIN OBJECT, NOT THE PROXY. § */
   loadRowsClean_(d);
   DATA = d;
-  /* THE COLUMNS AND THE ICON ARE IN `data/settings/`, so they are knowable here and are the two
-     things that decide what the app looks like before anything is drawn. */
-  try { applyColumns_(); } catch (e) { oops_(e, 'shell:filesOnly_') }
+  /* THE ICON IS IN `data/settings/`, so it is knowable here, before anything is drawn. */
   try { applyBrandIcon_(); } catch (e) { oops_(e, 'shell:filesOnly_') }
 }
 
@@ -8261,9 +7140,6 @@ async function loadOnce_(again, n, kept) {
       setTimeout(shapeSave_, 4000);
       /* THE STARS AND THE SPOTLIGHTS, from the payload that has just landed. § */
       adoptMarks_();
-      /* BEFORE THE ICON AND BEFORE ANYTHING IS DRAWN. `applyColumns_` can change which screen you
-         are on, and everything painted after it reads `AT`. */
-      applyColumns_();
       applyBrandIcon_();
       /* ---------- THE WATCHDOG'S MESSAGE IS NOT TRUE ANY MORE § */
       if (!kept) loadNotices_(d);   /* a kept copy says nothing new (1070): banners, messages and settings wait for the network */
@@ -8454,9 +7330,8 @@ function loadFinish_(kept) {
   /* THE FIRST LOAD IS DONE, said on `<html>` for whatever waits on it; nothing on screen changes. */
   bootLoaded_(true);
   /* THE ADMIN'S FRONT DOOR (489, layout.js), once the layout has come with the payload. */
-  try { if (typeof frontGo_ === 'function') frontGo_(); } catch (e) { oops_(e, 'shell:loadOnce_') }
   /* A REMEMBERED COLUMN THAT MOVED INTO FIND (shell-boot.js `KEPT_GONE`) opens its branch, once, if nothing else was opened meanwhile. */
-  try { const k = KEPT_GONE; if (k && !LOAD_FAILED && AT === TAB_HOME && typeof screenGone_ === 'function' && screenGone_(k)) KEPT_GONE = ''; } catch (e) { oops_(e, 'shell:keptGone_') }
+  try { const k = KEPT_GONE; if (k && !LOAD_FAILED && AT === TAB_HOME && typeof oldBranch_ === 'function' && oldBranch_(k)) KEPT_GONE = ''; } catch (e) { oops_(e, 'shell:keptGone_') }
   /* ---------- THE STALE SCREENS, CLEARED BEFORE THE REDRAW § */
   /* ---------- ONCE, NOT ON EVERY LOAD § */
   /* ---------- AND NOT EMPTIED AT ALL ANY MORE — THE GLASS IS DRAWN, THE REST IN THE QUIET AFTER IT § */
@@ -11571,7 +10446,7 @@ function familyPages_() {
   /* NOTHING A PARENT'S ALONE (469): your picture, name and contact are everybody's, so on Student settings. */
   return out.length ? out : [rankOffCard_(title, NOTHING_YET + ' Your details are on ' + tabLabel_('account', 'Kids settings') + '.', null, 'set-none')];
 }
-/* PARENT SETTINGS WAS A COLUMN; it is Find › Settings › Parent now (find-only.json), drawn from CARD_BUILD.family. */
+/* PARENT SETTINGS WAS A COLUMN; it is Find › Settings › Parent now (docs/history/find-only.md), drawn from CARD_BUILD.family. */
 
 /* APPLY TO TEACH IS A CARD OF ITS OWN, not a line on the padlock: Find › Settings skips a padlock, and the owner onboards through Find (1150). */
 function applyCard_() {
@@ -11593,21 +10468,21 @@ function staffPages_() {
   const out = ownCardSetPage_('staff').concat(top, typeof window.legoCards_ === 'function' ? window.legoCards_() : [], settingsCards_(settingsSplit_().staff, '', 'staff'));
   return out.length ? out : [rankOffCard_('', NOTHING_YET, null, 'rank-off set-none')];
 }
-/* TUTOR SETTINGS WAS A COLUMN; it is Find › Settings › Staff now (find-only.json), drawn from CARD_BUILD.staff. */
+/* TUTOR SETTINGS WAS A COLUMN; it is Find › Settings › Staff now (docs/history/find-only.md), drawn from CARD_BUILD.staff. */
 
 /* ---------- APPRENTICE: WORK EXPERIENCE, A PLACEHOLDER UNTIL IT IS BUILT (570) ---------- */
 function apprenticePages_() {
   return [rolesSet_('appr-set', '', [{ type: 'text', look: 'note', text: brand('apprentice_blurb', 'Work experience with us. Coming soon.') }])];
 }
-/* APPRENTICE SETTINGS WAS A COLUMN; it is Find › Settings › Apprentice now (find-only.json), drawn from CARD_BUILD.apprentice. */
+/* APPRENTICE SETTINGS WAS A COLUMN; it is Find › Settings › Apprentice now (docs/history/find-only.md), drawn from CARD_BUILD.apprentice. */
 
 
-/* APPRENTICE PROFILE WAS A COLUMN (730); it is Find › Profiles › Apprentice now (find-only.json, `profileTypes_`). */
+/* APPRENTICE PROFILE WAS A COLUMN (730); it is Find › Profiles › Apprentice now (docs/history/find-only.md, `profileTypes_`). */
 
 /* ---------- ADMIN: THE BUSINESS CARDS, THEN THE BUILD STAMPS (people management is on the people columns since 453) ---------- */
 function adminPages_() {
   if (!(typeof may_ === 'function' && may_('admin'))) return [];
-  return (typeof window.bizPages_ === 'function' ? window.bizPages_() : []).concat(typeof deletedCard_ === 'function' ? [deletedCard_()] : []);
+  return typeof window.bizPages_ === 'function' ? window.bizPages_() : [];
 }
 /* WEB SETTINGS (491), Find › Settings › Site since 15 Nov: what runs the site rather than the business — setup, moderation, imports, the weekly email, the build. */
 function sitePages_() {
@@ -11878,12 +10753,7 @@ function availGrid_(codes, p, readonly, mine) {
   return cardBlock_({ type: 'paperBox', look: 'me-week', inner: weekGrid_(days, (h, d) => cardBlock_({ type: 'tickCell', look: 'hr' + (on(h.code) ? ' on' : '') + (ro(h.code) ? ' shut' : ''),
     label: d.label + ' ' + h.h + ':00', control: { value: on(h.code), off: ro(h.code), data: { me: h.code }, drafted: keep(h.code) ? draftAttr_('set', h.code, was(h.code)) : '' } })) });
 }
-
-;
-/* ==== js/me-columns.js ==== */
-/* ---------- THE SETTINGS COLUMNS: a column per rank and the people on each (cut from me-roles.js; read with the other me-*.js by tools/piece-src.js). */
-/* ---------- A COLUMN PER RANK (444): YOU FOR EVERY ACCOUNT, THEN FAMILY, TUTOR AND ADMIN ----------
-   The owner: one column whose contents change with rank "becomes really messy and hard for me to know what's going on". */
+/* ---------- EACH ACCOUNT TYPE'S SETTINGS CARDS (444): YOU FOR EVERY ACCOUNT, THEN FAMILY, TUTOR AND ADMIN — Find › Settings › <type> ---------- */
 /* A FIELD IS A TUTOR'S WHEN NEITHER A CLIENT'S NOR A STUDENT'S GROUPS HAVE IT — the backend's lists decide, not a list here. */
 const STAFF_GROUPS_ = ['Your rate and group size', 'Qualifications', 'Jobs', 'Availability', 'When I can teach'];
 function staffField_(f, g) {
@@ -11896,7 +10766,7 @@ function parentOnly_(f) {
   const c = DATA.clientFields, k = DATA.studentFields, has = x => x && Object.keys(x).length, inn = x => Object.keys(x).some(g => (x[g] || []).indexOf(f) !== -1);
   return !!(has(c) && has(k) && inn(c) && !inn(k));
 }
-/* WHAT A SPLIT GROUP IS CALLED ON THE TUTOR COLUMN, where "Contact & address" would mislead. */
+/* WHAT A SPLIT GROUP IS CALLED UNDER STAFF, where "Contact & address" would mislead. */
 const STAFF_GROUP_NAMES_ = { 'Contact & address': 'Where you teach', 'About you': 'About you as a tutor' };
 /* YOUR SETTINGS' GROUPS, SPLIT: `{ you, staff }`, each `{ group: [fields] }`, card fields already taken out. */
 function settingsSplit_() {
@@ -11914,8 +10784,8 @@ function settingsSplit_() {
   });
   return out;
 }
-/* ONE GROUP, ONE CARD, ITS OWN SAVE — `meSave_` posts the boxes of the card it is pressed in, whichever column.
-   `col` names the column, so an admin's Split (464, layout.js) can draw a group a field a card, each with its own Save. */
+/* ONE GROUP, ONE CARD, ITS OWN SAVE — `meSave_` posts the boxes of the card it is pressed in.
+   `col` names the account type's group, so each card has its id (`set:<col>:<group>`, setting-for.json). */
 /* THE LINE UNDER A SETTINGS FORM THAT SAYS WHAT WAS SAVED: one shape, here and on the library shelf (me-settings.js). */
 const ME_SAID_ = { type: 'group', tag: 'p', look: 'note me-said' };
 function settingsCards_(shown, moved, col) {
@@ -11925,8 +10795,8 @@ function settingsCards_(shown, moved, col) {
   const readonly = (DATA.profileReadonly || []).concat(may_('admin') ? [] : ['extra_seat_cut']);
   /* ONE SHAPE FOR EVERY CARD (8 Nov; 84a): `formCard_` — the title, one line per field, saved as you type. */
   const mail = list => (list || []).indexOf('email') !== -1;
-  const one = (g, list, top, id, n, lid) => setHeldSay_(formCard_({ title: g, cls: id ? 'set-card' : '', lead: (top || '') + shareBarFor_(list, p),
-    attrs: (id ? ` data-split="${esc(id)}"` : '') + (lid ? ` data-lay-card="${esc(lid)}"` : ''),
+  const one = (g, list, top, lid) => setHeldSay_(formCard_({ title: g, cls: lid ? 'set-card' : '', lead: (top || '') + shareBarFor_(list, p),
+    attrs: lid ? ` data-lay-card="${esc(lid)}"` : '',
     groups: { [g]: list },
     fieldOpts: {
       /* THE ADDRESS WAITING TO BE PROVED, in the address's box — see `movingNote_`. */
@@ -11936,21 +10806,17 @@ function settingsCards_(shown, moved, col) {
       options: fieldOptions_,
     },
     save: mail(list) && p.email_moving ? tile_(RESEND_LINK) : false,
-    foot: (mail(list) ? movingNote_(p) : '') + cardBlock_(ME_SAID_),
-    after: id && typeof splitRow_ === 'function' ? splitRow_(id, n) : '' }));
+    foot: (mail(list) ? movingNote_(p) : '') + cardBlock_(ME_SAID_) }));
   const out = [];
   Object.keys(shown).forEach((g, k) => {
     const list = shown[g] || [], top = k === 0 ? moved : '';
-    const id = col && settingsSplittable_(list) && typeof splitId_ === 'function' ? splitId_('set', col, g) : '';
-    if (id && typeof splitOn_ === 'function' && splitOn_(id))
-      list.forEach((f, i) => out.push(one(String((typeof fieldLabel === 'function' && fieldLabel(f)) || ROW_LABEL[f] || g).replace(/^./, c => c.toUpperCase()), [f], i === 0 ? top : '', id, 1, typeof pieceId_ === 'function' ? pieceId_(id, f) : '')));
-    else out.push(one(g, list, top, id, list.length, col && typeof splitId_ === 'function' ? splitId_('set', col, g) : ''));
+    out.push(one(g, list, top, col ? setCardId_(col, g) : ''));
   });
   return out;
 }
-/* A GROUP SPLITS WHEN ITS FIELDS STAND ALONE: not the qualifications (one shelf) and not a week of hours (one grid). */
-const settingsSplittable_ = list => (list || []).length > 1 && !list.some(isQualField_) && !isTimetable_(list);
-/* ---------- SIX COLUMNS (453): TUTORS, STUDENTS, PARENTS, THEN EACH ACCOUNT TYPE'S SETTINGS ----------
+/* A SETTINGS CARD'S ID: `set:<type's group>:<group, in words>` (setting-for.json keys its tags by it). */
+const setCardId_ = (col, g) => 'set:' + [col, g].map(x => String(x).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 28) || 'x').join(':');
+/* ---------- EACH ACCOUNT TYPE'S NAME, AND THE PEOPLE YOU BELONG WITH (453) ----------
    The owner: "A user in theory could appear in each of these 3 categories" and "split account settings into 3". */
 const tabLabel_ = (id, or) => ((typeof settingGroupOf_ === 'function' && settingGroupOf_(id)) || {}).label || or;
 /* THE PEOPLE COLUMN OF YOUR RANK, where your own card is shown first (453); what you edit is on Student settings for every rank (469). */
@@ -12035,7 +10901,7 @@ const SOON_CARDS = [
   ['soon-conduct', 'Code of conduct', 'How we treat each other here. Coming soon.'],
 ];
 const soonCards_ = () => SOON_CARDS.map(([c, h, p]) => renderCard({ kind: 'soon', look: 'soon-card ' + c, tags: [{ text: h, colour: 0 }], body: [{ type: 'text', text: p }] }));
-/* KIDS SETTINGS WAS A COLUMN; it is Find › Settings › Student now (find-only.json), drawn from CARD_BUILD.account. */
+/* KIDS SETTINGS IS Find › Settings › Student, drawn from CARD_BUILD.account. */
 
 ;
 /* ==== js/me-send.js ==== */
@@ -15159,7 +14025,7 @@ CARD_EMBEDS['daive'] = () => {
 const daiveHtml_ = () => renderCard({ kind: 'msg', look: 'daive', name: DAIVE, data: { daive: 1 }, body: [{ type: 'embed', tool: 'daive' }] });
 /* DAIVE IS AN ITEM (487): an admin's Delete and Note on it; deleted, it is gone for everyone. Its id keeps the old column's name, so a delete already made stands. */
 const daiveItem_ = () => {
-  const h = typeof itemMark_ === 'function' ? itemMark_('item:dm:daive', 'stuff', daiveHtml_()) : daiveHtml_();
+  const h = typeof itemMark_ === 'function' ? itemMark_('item:dm:daive', daiveHtml_()) : daiveHtml_();
   return h ? suggestRowIn_(h, 'widget', 'daive', DAIVE) : '';
 };
 /* REDRAWN IN PLACE in Find, and Find forgets what it drew, so a later paint never judges against the old card. */
@@ -15888,42 +14754,35 @@ function widgetFor_(w) {
   if (w.tutor && !(typeof may_ === 'function' && may_('staff'))) return false;
   if (w.signedIn && !(typeof USER !== 'undefined' && USER)) return false;
   /* WHO SEES THIS (497, words.js): an admin's narrowing, asked after the code's own gates, which always win. */
-  if (typeof seenOk_ === 'function' && !seenOk_(String(w.id))) return false;
   return true;
 }
 
 function widgetsOf_(kind) {
   /* THE LIST IS find.js's, which comes after the first screen (670): none yet. */
   if (typeof allWidgets !== 'function') return [];
-  /* THE ADMIN'S LAYOUT FIRST (462, 463): which column each widget is on and in what order, else the code's (`layoutWidgets_`, layout.js). */
-  if (typeof layoutWidgets_ === 'function') return layoutWidgets_(kind, allWidgets()).filter(widgetFor_);
   return allWidgets()
     .filter(w => w.kind === kind)
     .filter(widgetFor_);
 }
 
-/* A COLUMN'S PAGES: its widgets with each merged card's parts as one (480, `layoutMergeWidgets_`, layout.js) — what the pager counts. */
-function widgetPagesOf_(kind) {
-  const list = widgetsOf_(kind);
-  return typeof layoutMergeWidgets_ === 'function' ? layoutMergeWidgets_(list) : list;
-}
+/* A KIND'S PAGES: a widget a page — what the pager counts. */
+const widgetPagesOf_ = kind => widgetsOf_(kind);
 
 /* ---------- ONE WIDGET, ONE CARD, AND A STAR ON IT § */
 const WIDGET_KEY = w => 'w:' + String(w.id);
 
 /* NAMED FOR THE COLUMN, because `find.js` already has a `widgetCard_` and it is a different object: § */
 /* ---------- AND UNTIL IT HAS STARTED, IT IS WAITING, AND IT LOOKS IT § */
-/* `own` is its own column (not Saved): only there does an admin get the layout row (463, `layoutOpts_` in layout.js). */
+/* `own` is its own card (not Saved): only there does an admin get Edit words (`wordsOpts_`, words.js). */
 function widgetOnColumn_(w, own) {
-  if (w && w.parts) return widgetMergedOn_(w, own);
   const held = typeof gameLocked_ === 'function' && gameLocked_(w.id), name = w.name || w.title || w.label || '';
   return renderCard({ kind: 'panel', look: 'is-widget' + (held ? ' is-locked' : ''), name, tags: name ? [name] : [],
     body: [widgetSlot_(w, name)], tiles: widgetTiles_(w, own) });
 }
-/* ONE PLACE FOR A WIDGET'S TILES (472): the star, the padlock, Suggest, then the admin's layout tiles — the card's one row. */
+/* ONE PLACE FOR A WIDGET'S TILES (472): the star, the padlock, Suggest, then the admin's Edit words — the card's one row. */
 const widgetTiles_ = (w, own) => [].concat(typeof favOpts_ === 'function' ? [favOpts_({ key: WIDGET_KEY(w), kind: 'widget' }),
   typeof gameLockOpts_ === 'function' ? gameLockOpts_(w.id) : null, typeof suggestOpts_ === 'function' ? suggestOpts_('widget', String(w.id), w.name || w.title || w.label || '') : null] : [],
-  own === true && typeof layoutOpts_ === 'function' ? layoutOpts_(w) || [] : []).filter(Boolean);
+  own === true && typeof wordsOpts_ === 'function' ? wordsOpts_('w:' + String(w.id)) || [] : []).filter(Boolean);
 /* A WIDGET'S SLOT, its own maker's drawing inside (a heading saying the card's name goes: the name tag says it); waiting until it has started. */
 function widgetSlot_(w, name) {
   const waits = typeof w.start === 'function' && typeof loading_ === 'function';
@@ -15932,12 +14791,6 @@ function widgetSlot_(w, name) {
     inner: (typeof kcTidy_ === 'function' ? kcTidy_('', html, name).lines : String(html || '')) + (waits ? loading_() : '') };
 }
 
-/* A MERGED CARD (480): one frame, each part's own slot (started by its own widget), the lower titles as subheadings, one tile row — the top part's. */
-function widgetMergedOn_(m, own) {
-  const top = m.parts[0], name = top.name || top.title || top.label || '';
-  return renderCard({ kind: 'panel', look: 'is-widget is-merged', data: { merged: m.parts.map(w => String(w.id)).join(' ') }, name, tags: name ? [name] : [],
-    body: m.parts.map(w => ({ type: 'group', look: 'merged-part', blocks: [widgetSlot_(w, name)] })), tiles: widgetTiles_(top, own) });
-}
 
 
 
@@ -16009,22 +14862,11 @@ function widgetsBack_(col, held) {
 }
 
 
-/* ---------- A WIDGET THAT IS A FIND CARD (790): data/settings/widgets-in-find.json names a kind or an id, the id's row winning; before it comes, every tool and game ---------- */
-const FIND_WIDGET_KINDS = ['tool', 'game', 'shop'];
 /* A WIDGET THAT IS ITS OWN FIRST ANSWER IN FIND (batch B): a browsable thing gets a menu pill, not a column or a mini-app. */
 const FIND_WIDGET_GROUPS = { videos: 'Videos', reels: 'Tools', newspaper: 'Tools', shopfind: 'Tools', cart: 'Shop' };
-function widgetInFind_(w) {
-  if (!w) return false;
-  const rows = (typeof DATA !== 'undefined' && DATA && Array.isArray(DATA.widgetsInFind)) ? DATA.widgetsInFind : null;
-  if (!rows) return FIND_WIDGET_KINDS.indexOf(w.kind) !== -1;
-  const said = rows.find(r => r.widget === String(w.id)) || rows.find(r => r.widget === w.kind);
-  return !!said && /^(true|yes|1)$/i.test(String(said.find).trim());   /* a sheet's "FALSE" is a string, so truthiness would keep it */
-}
-/* EVERY WIDGET THAT IS A FIND CARD FOR THIS VIEWER, in the code's order; one an admin deleted (layout.js) is gone here too. */
+/* EVERY WIDGET IS A FIND CARD (790) FOR THIS VIEWER, in the code's order — but the reel's: each of its videos is a Find card of its own (kind video). */
 function findWidgetList_() {
-  let gone = [];
-  try { const L = typeof layoutNow_ === 'function' ? layoutNow_() : null; gone = (L && L.deleted) || []; } catch (e) { gone = []; }
-  return allWidgets().filter(w => widgetInFind_(w) && gone.indexOf(String(w.id)) === -1).filter(widgetFor_);
+  return allWidgets().filter(w => w && w.kind !== 'reel').filter(widgetFor_);
 }
 /* THE WIDGETS ON A FINDER: the slots its filled pages hold — Find fills only the pages near the glass, so a card not drawn yet has nothing to start. */
 function finderWidgets_(col) {
@@ -16036,10 +14878,7 @@ function finderWidgets_(col) {
 /* `stuff` (790): the tools and games are Find cards, started and stopped as a column's are. */
 const WIDGET_COLS = ['stuff'];
 function widgetsOn_(col) {
-  if (col === 'stuff') return finderWidgets_(col);
-  /* A WIDGET THE ADMIN MOVED ONTO A CARD COLUMN OR ONE OF THEIR OWN (710). */
-  if (typeof layoutWidgetsIn_ === 'function' && typeof allWidgets === 'function') { const L = layoutNow_(); return L ? layoutWidgetsIn_(col, allWidgets(), L).filter(widgetFor_) : []; }
-  return [];
+  return col === 'stuff' ? finderWidgets_(col) : [];
 }
 
 /* THE SLOT ON THAT COLUMN, NOT `$()`'s — the note on `widgetUp_` says why. § */
@@ -16150,10 +14989,7 @@ function widgetsLater_() {
     const now = performance.now();
     /* A FINGER DOWN AT ALL, NOT ONLY ONE WHOSE DIRECTION IS DECIDED: § */
     /* AND A COLUMN CHANGE NOT YET PLACED (`GLASS.at`). § */
-    const busy = (typeof SETTLE_ON !== 'undefined' && SETTLE_ON && now < SETTLE_ON.until)
-              || (typeof SWIPE !== 'undefined' && SWIPE.live)
-              || (typeof SLIDE_UNTIL !== 'undefined' && now < SLIDE_UNTIL)
-              || (typeof GLASS !== 'undefined' && GLASS.at !== AT);
+    const busy = typeof GLASS !== 'undefined' && GLASS.at !== AT;
     /* BUT NOT FOR EVER. A finger resting on the glass — or a `pointerup` the browser never sent — is `SWIPE.live` with nothing moving, and a column of widgets that § */
     if (busy && !(TOOLS_BUSY_SINCE && now - TOOLS_BUSY_SINCE > 1500)) {
       if (!TOOLS_BUSY_SINCE) TOOLS_BUSY_SINCE = now;
@@ -16276,8 +15112,6 @@ function aheadDrawWidget_(w, col) {
   delete slot.LENT;
   slot.AHEAD = { who: widgetWho_(), act: ACT_EPOCH, draw: DRAW_EPOCH, ups: WIDGET_UPS[id] || 0, pure: !!w.pure };
   slot.WHO = widgetWho_();
-  /* AND ITS COLUMN PLACED AGAIN, NOW: a widget grows its card as it draws (`widgetsLater_`'s reason). */
-  if (typeof placeOne_ === 'function') placeOne_(col);
 }
 /* THE BUILDER'S WIDGET JOBS — every slot `aheadDrawWidget_` may draw, with how far it is. § */
 function aheadWidgetJobs_() {
@@ -16817,31 +15651,13 @@ let flappyState = null;
 /* Started when their screen appears, and only then — a canvas loop running behind a screen nobody
    is looking at is a flat battery for nothing. */
 
-/* SWIPING BETWEEN TABS. § */
-
-const SWIPE = {
-  x: 0, y: 0,          // where the finger started
-  d: 0,                // how far it has travelled along the axis it claimed
-  axis: null,          // null until the finger commits: 'x' or 'y'
-  live: false,
-  cells: null,         // the strip being dragged, held so the release moves the same one
-  id: null,            // which finger this is, so a second one cannot steer it
-  /* THE FRAME BOOKED BUT NOT YET DRAWN, and the position it will use when it is. § */
-  frame: 0,
-  px: 0,
-  /* HOW FAST, AND WHEN. Two samples is all a flick needs — where the finger was a moment ago and where it is now — and keeping only the LAST short stretch is what § */
-  vAt: 0, vD: 0, v: 0,
-  /* Whether the one-off setup for this drag has been done — the cells taken off their transition,
-     and the measurements held still. Once per gesture, not once per frame. */
-  held: false,
-  lock: 0,             // the drag's dead zone, put back on every touch: NOT the padlock (`PADLOCK` below)
-  band: false,         // pulled past the first or last card, on the rubber band (527)
-  span: 0,             // the step the band is measured against, once a drag
-};
-
+/* A PEN'S INK KEEPS THE DRAG ONLY WHILE ITS PEN IS PICKED (owner, 7 Nov): an unarmed figure scrolls like the page */
+function noSwipe_(t) {
+  const n = t && t.closest ? t.closest('[data-noswipe]') : null;
+  return !!n && !(n.classList && n.classList.contains('qpad-ink') && !n.closest('.qpad.is-drawing'));
+}
 /* THE PADLOCK (457, 461): a game widget's (`game`, 'id@column:page') or a question page's (`q`, 'column:page') holds the column still. Its own name, as `SWIPE.lock` is zeroed on every touch. */
 const PADLOCK = { game: '', q: '' };
-const padlocked_ = () => !!(PADLOCK.game || PADLOCK.q);
 const padHere_ = () => String(typeof AT !== 'undefined' ? AT : '') + ':' + String((typeof PAGE !== 'undefined' && PAGE[AT]) || 0);
 
 /* ONE PADLOCK FOR EVERY WIDGET AND CARD (461, 498): `widgetOnColumn_` and `cardRow_` put it on each, so text can be selected and copied with the column held. */
@@ -16891,381 +15707,9 @@ function pageHold_(on) {
   (on ? addEventListener : removeEventListener)('keydown', padStop_);
 }
 
-/* A PEN'S INK KEEPS THE DRAG ONLY WHILE ITS PEN IS PICKED (owner, 7 Nov): an unarmed figure scrolls like the page */
-function noSwipe_(t) {
-  const n = t && t.closest ? t.closest('[data-noswipe]') : null;
-  return !!n && !(n.classList && n.classList.contains('qpad-ink') && !n.closest('.qpad.is-drawing'));
-}
-/* DOES THIS DRAG BELONG TO THE GRID, OR TO WHAT IS UNDER THE FINGER? § */
-function axisFree(target, axis, dir) {
-  /* ---------- THE SHEET NO LONGER BLOCKS EVERYTHING, ONLY THE GRID § */
-  if (!$('sheet').classList.contains('hidden')) return false;   // the sheet is the page (420)
-  if (padlocked_()) return false;
-  /* ---------- A SELECT IS NOT NAMED, AND A TEXTAREA IS MEASURED § */
-  if (noSwipe_(target)) return false;
-  /* A cell is not a scroll container any more, so the walk below stops at anything genuinely inside one — the docket's list, the notepad — and hands everything § */
-
-  return !scrollHost_(target, axis, dir);
-}
-
-/* ---------- WHICH BOX WANTS IT, NOT MERELY WHETHER ONE DOES § */
-function scrollHost_(target, axis, dir) {
-  let el = target;
-  while (el && el !== document.body) {
-    const style = getComputedStyle(el);
-    const over = axis === 'x' ? style.overflowX : style.overflowY;
-    if (over === 'auto' || over === 'scroll') {
-      const size = axis === 'x' ? el.clientWidth : el.clientHeight;
-      const full = axis === 'x' ? el.scrollWidth : el.scrollHeight;
-      const pos  = axis === 'x' ? el.scrollLeft : el.scrollTop;
-      /* MORE THAN A PIXEL OR TWO, and this number is the whole fault behind "swiping up sometimes thinks I am scrolling". § */
-      if (full > size + 6) {
-        /* It can scroll. Whether it still can IN THIS DIRECTION is what decides: § */
-        const atStart = pos <= 0, atEnd = pos + size >= full - 1;
-        if ((dir > 0 && !atStart) || (dir < 0 && !atEnd)) return el;
-      }
-    }
-    el = el.parentElement;
-  }
-  return null;
-}
-
-/* HOW FAR IS FAR ENOUGH — one distance, in pixels, whichever way you are going. § */
-/* ---------- WHAT COUNTS AS TURNING THE PAGE § */
-/* ---------- AND "MOST OF THE WAY" HAD BECOME FIFTY-SIX PIXELS § */
-const THROW_PX = 56;          // far enough, in pixels, at the least
-/* HALFWAY, AS ON iOS (527): where the card would coast to (`PROJECT_MS` of the release speed) past half the step turns the page. */
-const THROW_FRACTION = 0.5;   // ...half the way to the next card
-const THROW_MAX = 180;        // ...and never more than this, whichever card it is
-const FLICK = 0.4;            // fast enough, in pixels per millisecond
-const PROJECT_MS = 100;       // how far a release coasts, in ms of its speed: iOS's "fast" deceleration
-/* PAST THE FIRST OR LAST, THE CARD GIVES LESS AND LESS (527): iOS's rubber band, b(x) = (1 − 1/(x·c/d + 1))·d. */
-const BAND_C = 0.55;
-const band_ = (x, d) => { const k = Math.abs(x) * BAND_C / Math.max(1, d) + 1; return Math.sign(x) * (1 - 1 / k) * Math.max(1, d); };
-/* AND HOW FAST THE CARD MOVES THERE FOR A FINGER MOVING AT 1 — the band's slope, so the spring back starts at the card's speed. */
-const bandSlope_ = (x, d) => { const k = Math.abs(x) * BAND_C / Math.max(1, d) + 1; return 1 / (k * k); };
-
-/* Far enough, for this axis. § */
-/* ---------- THE RELEASE SPEED, FITTED RATHER THAN SUBTRACTED § */
-function releaseV_(trail, axis, upAt) {
-  const k = axis === 'x' ? 1 : 2, last = trail && trail[trail.length - 1];
-  if (!last || upAt - last[0] > 50) return 0;
-  const pts = trail.filter(p => p[0] >= last[0] - 80);
-  if (pts.length < 2) return 0;
-  let n = 0, st = 0, sp = 0, stt = 0, stp = 0;
-  pts.forEach(p => { const t = p[0] - last[0]; n++; st += t; sp += p[k]; stt += t * t; stp += t * p[k]; });
-  const den = n * stt - st * st;
-  return den > 1e-6 ? (n * stp - st * sp) / den : 0;
-}
-
-const THROW = axis => {
-  /* THE ACTUAL STEP, both ways. `innerHeight * 0.5` was a guess at the vertical one and it did not
-     match the guess the settle used or the one the axis used — three numbers for one distance. */
-  const step = axis === 'x' ? stepX_() : stepY_();
-  return Math.min(THROW_MAX, Math.max(THROW_PX, (step || 0) * THROW_FRACTION));
-};
-
-/* THE GRID WILL NOT TAKE THIS GESTURE: let it go, and a row held at touch-down with it (`grabLet_`, 527). */
-function swipeDrop_() {
-  SWIPE.live = false;
-  if (typeof GRAB !== 'undefined' && GRAB) grabLet_(0);
-}
-
-/* POINTER EVENTS, NOT TOUCH EVENTS. § */
-addEventListener('pointerdown', e => {
-  if (FLOW_LAYOUT || !e.isPrimary) return;                            // a second finger is a pinch, not a swipe
-  /* A mouse only counts while a button is down. Without this, moving the cursor across the page
-     would drag the grid. */
-  if (e.pointerType === 'mouse' && e.buttons !== 1) return;
-  SWIPE.x = e.clientX; SWIPE.y = e.clientY;
-  SWIPE.d = 0; SWIPE.axis = null; SWIPE.cells = null; SWIPE.scroll = null;
-  SWIPE.live = true;
-  SWIPE.target = e.target;
-  SWIPE.frame = 0;
-  SWIPE.held = false;
-  SWIPE.vAt = Date.now(); SWIPE.vD = 0; SWIPE.v = 0;
-  SWIPE.lock = 0; SWIPE.catch = 0; SWIPE.last = null; SWIPE.band = false; SWIPE.span = 0;
-  SWIPE.trail = [[e.timeStamp, e.clientX, e.clientY]];
-  /* A FINGER ON A CARD STILL GLIDING STOPS IT WHERE IT IS — see `glide_` below — and a new finger
-     is a new drag, which measures its own columns rather than inheriting the last one's (`DRAG_PLAN`
-     in shell.js). */
-  glideStop_();
-  DRAG_PLAN = null;
-  /* A RELEASE NOBODY PLACED YET IS NOT THIS GESTURE'S. Cleared so a later tap cannot inherit the
-     last swipe's speed — see `settleFrom_` in shell.js. */
-  if (typeof settleFrom_ === 'function') settleFrom_(null);
-  /* A ROW STILL SLIDING STOPS UNDER THE FINGER (527) — `grabRow_` in shell.js; let go again below unless a sideways drag takes it. */
-  if (typeof grabRow_ === 'function') grabRow_();
-  SWIPE.id = e.pointerId;
-  /* A NEW GESTURE HAS NOT MOVED YET — see `PRESS_MOVED` in shell.js. Cleared here as well as
-     by the click it swallows, so a drag that ends without one cannot eat the next tap. */
-  PRESS_MOVED = false;
-
-  /* NO POINTER CAPTURE, AND THAT WAS THE BUG. § */
-  SWIPE.id = e.pointerId;
-}, { passive: true });
-
-addEventListener('pointermove', e => {
-  /* THE SAME FINGER THAT STARTED IT, and nothing else. § */
-  if (!SWIPE.live || e.pointerId !== SWIPE.id) return;
-  if (e.pointerType === 'mouse' && e.buttons !== 1) { SWIPE.live = false; return; }
-  const dx = e.clientX - SWIPE.x, dy = e.clientY - SWIPE.y;
-  /* EVERY SAMPLE, INCLUDING THE ONES THE BROWSER FOLDED TOGETHER — `releaseV_` above. Before any
-     early return, so a gesture the grid has not claimed yet still has its start recorded. */
-  {
-    const co = e.getCoalescedEvents ? e.getCoalescedEvents() : null;
-    (co && co.length ? co : [e]).forEach(p => SWIPE.trail.push([p.timeStamp || e.timeStamp, p.clientX, p.clientY]));
-    while (SWIPE.trail.length > 2 && SWIPE.trail[0][0] < e.timeStamp - 120) SWIPE.trail.shift();
-  }
-
-  /* THIS IS A DRAG, WHATEVER THE GRID DECIDES NEXT. § */
-  if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
-    /* AND THE PRESSED LOOK GOES WITH IT, NOW. § */
-    if (!PRESS_MOVED && typeof pressClear_ === 'function') pressClear_();
-    PRESS_MOVED = true;
-  }
-
-  /* THE DECISION, made once. § */
-  if (!SWIPE.axis) {
-    if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
-    /* ---------- NOT WHILE A FINGER IS ON THE ARMED DRAWING § */
-    if (typeof padBusy_ === 'function' && padBusy_()) { swipeDrop_(); return; }
-    /* NOR WHILE A FINGER IS MOVING A CARET OR A SELECTION IN A BOX (385, `kpBusy_`) */
-    if (typeof kpBusy_ === 'function' && kpBusy_()) { swipeDrop_(); return; }
-    /* NOR WHILE THE MAGNIFIER IS HELD OVER A QUESTION (463, `magBusy_`) */
-    if (typeof magBusy_ === 'function' && magBusy_()) { swipeDrop_(); return; }
-    /* A LOCKED GAME KEEPS EVERY DRAG: no column turn and no scroll of the page under it (461). */
-    if (PADLOCK.game) { swipeDrop_(); return; }
-    /* ONE COUNT FOR THE WHOLE DECISION — `countHold_` in shell.js. § */
-    countHold_(true);
-    try {
-      let axis = Math.abs(dx) > Math.abs(dy) * 1.4 ? 'x' : 'y';
-      /* ---------- UNLESS UP AND DOWN HAS NOWHERE TO GO § */
-      if (axis === 'y' && Math.abs(dx) >= Math.abs(dy) * 0.5) {
-        const n = AXES.y.count(), at = AXES.y.at();
-        const nowhere = n <= 1 || (dy > 0 && at <= 0) || (dy < 0 && at >= n - 1);
-        if (nowhere && !scrollHost_(SWIPE.target, 'y', dy)) axis = 'x';
-      }
-      const dir = axis === 'x' ? dx : dy;
-      if (!AXES[axis].count() || !axisFree(SWIPE.target, axis, dir)) {
-        /* ---------- THE GRID WILL NOT TAKE IT, SO SOMETHING UNDER THE FINGER MIGHT § */
-        const host = axis === 'y' && $('sheet').classList.contains('hidden')
-          && !noSwipe_(SWIPE.target)
-          ? scrollHost_(SWIPE.target, axis, dir) : null;
-        if (!host) { swipeDrop_(); return; }
-        SWIPE.scroll = host;
-        /* FROM WHERE THE FINGER IS NOW, not where it started — the grid's own dead-zone pop, in the
-           box that scrolls instead. */
-        SWIPE.scrollFrom = host.scrollTop + dy;
-        SWIPE.axis = axis;
-      } else {
-        SWIPE.axis = axis;
-        SWIPE.cells = AXES[axis].cells();
-        /* ---------- THE TEN PIXELS ARE NOT ADDED IN ONE FRAME § */
-        SWIPE.lock = Math.sign(dir) * Math.min(Math.abs(dir), 10);
-        SWIPE.last = AXES[axis].count() - 1;
-        /* ---------- AND A CARD STILL SETTLING IS CAUGHT WHERE IT IS § */
-        SWIPE.catch = axis === 'x' && GRAB ? grabTake_() : settleLeft_(axis);
-      }
-    } finally { countHold_(false); }
-    /* NOT A SIDEWAYS DRAG OF THE ROW: a row held at touch-down goes on to where it was going. */
-    if (GRAB) grabLet_(0);
-  }
-
-  /* SCROLLING THAT BOX AND NOTHING ELSE. No cells, no velocity, no placement -- the grid is not
-     moving, so none of the machinery below applies. */
-  if (SWIPE.scroll) {
-    if (e.cancelable) e.preventDefault();
-    SWIPE.scroll.scrollTop = SWIPE.scrollFrom - dy;
-    return;
-  }
-
-  const ax = AXES[SWIPE.axis];
-  const travelled = SWIPE.axis === 'x' ? dx : dy;
-  /* THE COUNT FROM THE LOCK, not rebuilt on every move: `ax.count()` walks the column's page list,
-     which on Settings is a millisecond a move at 1x and six at 4x, for a number that cannot change
-     while the finger is down. */
-  const at = ax.at(), last = SWIPE.last !== undefined && SWIPE.last !== null ? SWIPE.last : ax.count() - 1;
-  /* Resisted at the ends. The grid still moves, grudgingly, which says "nothing that way" better
-     than refusing to move at all. */
-  const end = (travelled > 0 && at === 0) || (travelled < 0 && at === last);
-
-  /* A mouse drag selects text as it goes, so the screen ends up half-highlighted behind the movement. § */
-  if (e.cancelable) e.preventDefault();
-  document.getSelection?.()?.removeAllRanges?.();
-  SWIPE.d = travelled;
-  /* `no-anim` WAS ADDED TO THE DRAGGED CELLS HERE, and it switched off every transition on them — including the OTHER axis's slide, which is the jump `colWrite_` § */
-  SWIPE.held = true;
-
-  /* ONE PLACEMENT PER FRAME THAT IS ACTUALLY DRAWN. § */
-  /* ---------- AT THE END OF THE RUN, NOTHING MOVES § */
-  /* ...UNTIL 527: the owner asked for iOS, so past the end is iOS's rubber band (`band_`), the step measured once a drag (`SWIPE.span`). */
-  if (end && !SWIPE.span) SWIPE.span = (SWIPE.axis === 'x' ? stepX_() : stepY_()) || 1;
-  SWIPE.band = end;
-  SWIPE.px = (end ? band_(travelled - SWIPE.lock, SWIPE.span) : travelled - SWIPE.lock) + SWIPE.catch;
-  /* THE CATCH IS IN WHAT IS PLACED AND NEVER IN WHAT IS DECIDED. § */
-  SWIPE.d = travelled;
-  if (SWIPE.frame) return;
-  SWIPE.frame = requestAnimationFrame(() => {
-    SWIPE.frame = 0;
-    if (!SWIPE.live || !SWIPE.axis) return;
-    /* THE SAME PLACER that puts them at rest, given a drag. One function decides where a cell is,
-       whether a finger is on it or not — two would be two things to keep in step, which is how the
-       axes came apart in the first place. */
-    /* A DRAG AT EXACTLY NOUGHT IS STILL A DRAG. § */
-    placeCells(SWIPE.axis, false, SWIPE.px || 0.01);
-  });
-}, { passive: false });
-
-addEventListener('pointerup', e => {
-  /* AND THE SAME FINGER LETTING GO. § */
-  /* A ROW HELD AT TOUCH-DOWN AND NEVER DRAGGED GOES ON (527) — before the early return, as a gesture not the grid's ends here too. */
-  if (GRAB) grabLet_(0);
-  if (!SWIPE.live || (e && e.pointerId !== undefined && e.pointerId !== SWIPE.id)) return;
-  const v = releaseV_(SWIPE.trail, SWIPE.axis, e && e.timeStamp !== undefined ? e.timeStamp : performance.now());
-  const axis = SWIPE.axis, d = SWIPE.d, cells = SWIPE.cells, scrolled = SWIPE.scroll;
-  const banded = SWIPE.band, span = SWIPE.span, lock = SWIPE.lock;
-  SWIPE.band = false; SWIPE.span = 0;
-  /* EVERYTHING A DRAG SET, PUT BACK — in one line, so a field added later is added here rather than left to be noticed. § */
-  SWIPE.live = false; SWIPE.axis = null; SWIPE.d = 0; SWIPE.cells = null;
-  SWIPE.held = false; SWIPE.px = 0; SWIPE.v = 0; SWIPE.vD = 0; SWIPE.vAt = 0;
-  SWIPE.lock = 0; SWIPE.catch = 0;
-  SWIPE.id = null;
-  /* A frame booked and not yet run would place the grid mid-drag AFTER the drag had finished,
-     putting it back where the finger left it a moment after it had settled somewhere else. */
-  if (SWIPE.frame) { cancelAnimationFrame(SWIPE.frame); SWIPE.frame = 0; }
-  /* A TALL CARD LET GO WHILE IT WAS MOVING CARRIES ON — see `glide_`. The finger's speed is the
-     card's, the other way round: a thumb going up moves the text up, which is `scrollTop` going up. */
-  if (scrolled && axis === 'y') { SWIPE.scroll = null; glide_(scrolled, -v); return; }
-  if (!axis || !cells) return;
-
-  const ax = AXES[axis];
-  /* THE COUNT HELD FOR THE RELEASE — see `countHold_`. § */
-  if (axis === 'y') countHold_(true);
-  try {
-
-    /* FAR ENOUGH, OR FAST ENOUGH — and the flick has to be going the SAME WAY as the drag. § */
-    /* ---------- AND FAR ENOUGH IS NOT ENOUGH IF THE FINGER IS ON ITS WAY BACK § */
-    const backing = Math.abs(v) >= 0.2 && (v < 0) !== (d < 0);
-    const coast = d + v * PROJECT_MS;
-    const far = Math.abs(coast) >= THROW(axis) && (coast < 0) === (d < 0) && !backing;
-    const fast = Math.abs(v) >= FLICK && (v < 0) === (d < 0) && Math.abs(d) > 8;
-    const going = far || fast;
-
-    /* ---------- THE SETTLE CARRIES ON AT THE SPEED THE FINGER WAS GOING § */
-    /* PULLED PAST THE END, the card was moving at the band's slope of the finger's speed. */
-    settleFrom_(axis, banded ? v * bandSlope_(d - lock, span) : v);
-
-    /* The sweep `placeCells` skips during a drag — which screens nothing points at — runs once now.
-       There is no pane-watching any more: sizes are fixed, so nothing can change size. */
-    /* PAST THE END IS A SETTLE, NOT A TURN. § */
-    const to = ax.at() + (d < 0 ? 1 : -1);
-    /* LESS MOTION ASKED FOR: the turn, or the way back, lands at once (527). */
-    const now = typeof motionLess_ === 'function' && motionLess_();
-    if (going && to >= 0 && to < ax.count()) ax.go(to, now);
-    else placeCells(axis, now);     // not far enough: it settles back, and is seen to
-  } finally { countHold_(false); }
-}, { passive: true });
-
-/* ---------- A TALL CARD KEEPS MOVING AFTER THE THUMB LEAVES IT § */
-const GLIDE = { frame: 0, el: null };
-const GLIDE_DECAY = 0.998;     // per millisecond — a phone's own "normal" deceleration
-const GLIDE_MAX = 4;           // px/ms: past this a flick is a throw, and a throw is not reading
-function glideStop_() {
-  if (GLIDE.frame) cancelAnimationFrame(GLIDE.frame);
-  GLIDE.frame = 0; GLIDE.el = null;
-}
-function glide_(el, v) {
-  glideStop_();
-  if (!el || !(Math.abs(v) >= 0.15)) return;
-  v = Math.max(-GLIDE_MAX, Math.min(GLIDE_MAX, v));
-  GLIDE.el = el;
-  const id = AT, p = PAGE[AT] || 0;
-  let last = performance.now(), pos = el.scrollTop, wrote = pos;
-  const step = now => {
-    GLIDE.frame = 0;
-    if (GLIDE.el !== el || !el.isConnected) return;
-    if (AT !== id || (PAGE[id] || 0) !== p || Math.abs(el.scrollTop - wrote) > 1) { GLIDE.el = null; return; }
-    const dt = Math.max(1, Math.min(48, now - last));
-    last = now;
-    /* THE DISTANCE OVER THIS FRAME, integrated rather than v * dt, so a long frame cannot overshoot
-       what the decay would have allowed. */
-    const k = Math.pow(GLIDE_DECAY, dt);
-    pos += v * (1 - k) / (1 - GLIDE_DECAY);
-    v *= k;
-    const max = el.scrollHeight - el.clientHeight;
-    if (pos <= 0 || pos >= max) pos = Math.max(0, Math.min(max, pos));
-    el.scrollTop = pos;
-    wrote = el.scrollTop;
-    if (pos <= 0 || pos >= max || Math.abs(v) < 0.02) { GLIDE.el = null; return; }
-    SLIDE_UNTIL = Math.max(SLIDE_UNTIL, performance.now() + 100);
-    GLIDE.frame = requestAnimationFrame(step);
-  };
-  SLIDE_UNTIL = Math.max(SLIDE_UNTIL, performance.now() + 100);
-  GLIDE.frame = requestAnimationFrame(step);
-}
-
-/* THE SAME GESTURE ON A TRACKPAD. § */
-let wheelAt = 0, wheelStop = null, wheelDone = false;
-/* A NEW FLICK INSIDE THE LAST ONE'S MOMENTUM: the tail only decays and never turns round, so a reversal or a sharp rise is fingers again (401). */
-let wheelLast = 0, wheelSign = 0, wheelTurned = 0;
-const wheelWin = [];
-const WHEEL_RISE = 3, WHEEL_FRESH = 30, WHEEL_GAP_MS = 300;
-
-addEventListener('wheel', e => {
-  if (FLOW_LAYOUT) return;   /* the browser scrolls the one page (900) */
-  const axis = Math.abs(e.deltaX) > Math.abs(e.deltaY) * 1.4 ? 'x' : 'y';
-  const delta = axis === 'x' ? e.deltaX : e.deltaY;
-  if (!AXES[axis].count()) return;
-  if (!axisFree(e.target, axis, -delta)) return;
-
-  /* PIXELS OVER THE LAST 60ms, NOT PER EVENT: input folded or bunched by a slow page keeps the same sum, so only real fingers rise (401). */
-  const mag = Math.abs(delta), sign = Math.sign(delta), now = e.timeStamp || performance.now();
-  wheelWin.push([now, mag]);
-  while (wheelWin.length && wheelWin[0][0] < now - 60) wheelWin.shift();
-  const rate = wheelWin.reduce((n, w) => n + w[1], 0);
-  if (wheelDone && sign && now - wheelTurned > WHEEL_GAP_MS
-      && (sign !== wheelSign || (rate >= WHEEL_FRESH && rate > wheelLast * WHEEL_RISE))) { wheelAt = 0; wheelDone = false; }
-  if (sign) { wheelLast = sign === wheelSign ? Math.min(wheelLast * 0.8 + rate * 0.2, rate) : rate; wheelSign = sign; }
-  wheelAt += delta;
-  /* ONE NOTCH IS ONE WIDGET. § */
-  if (!wheelDone && Math.abs(wheelAt) > 40) {
-    wheelDone = true;
-    wheelTurned = now;
-    const ax = AXES[axis];
-    const to = ax.at() + (wheelAt > 0 ? 1 : -1);
-    if (to >= 0 && to < ax.count()) ax.go(to);
-  }
-  /* A gap of 140ms means the fingers have stopped: long enough to outlast the momentum, short
-     enough that a second deliberate flick is a second gesture. */
-  clearTimeout(wheelStop);
-  wheelStop = setTimeout(() => { wheelAt = 0; wheelDone = false; wheelLast = 0; wheelSign = 0; wheelWin.length = 0; }, 140);
-}, { passive: true });
-
-/* A finger interrupted — a call arriving, the app going to the background. Put the screen back,
-   or it stays shifted sideways for ever. */
-/* A finger interrupted — a call arriving, the app going to the background. Whatever was being
-   dragged is put back, on whichever axis it was. */
-/* A CANCELLED POINTER. § */
-addEventListener('pointercancel', e => {
-  if (GRAB) grabLet_(0);
-  if (!SWIPE.live || (e && e.pointerId !== undefined && e.pointerId !== SWIPE.id)) return;
-  const axis = SWIPE.axis;
-  /* The same reset as `pointerup`, because a cancelled gesture has to leave exactly as little
-     behind as a finished one. */
-  SWIPE.live = false; SWIPE.axis = null; SWIPE.d = 0; SWIPE.cells = null;
-  SWIPE.held = false; SWIPE.px = 0; SWIPE.v = 0; SWIPE.vD = 0; SWIPE.vAt = 0;
-  SWIPE.lock = 0; SWIPE.catch = 0; SWIPE.band = false; SWIPE.span = 0;
-  SWIPE.id = null;
-  if (SWIPE.frame) { cancelAnimationFrame(SWIPE.frame); SWIPE.frame = 0; }
-  if (axis) placeCells(axis);
-}, { passive: true });
-
-
 /* ---------- THE SCREEN CHANGING SHAPE UNDER THE APP § */
 let RESHAPE = 0;
 function reshaped_() {
-  if (SWIPE.live) return;
   clearTimeout(RESHAPE);
   /* `'x'` names the axis the placement is FOR, and a full placement does both — every cell gets a new transform whichever is named. § */
   RESHAPE = setTimeout(() => { try { placeCells('x', true); } catch (err) {} }, 100);
@@ -17278,22 +15722,6 @@ addEventListener('orientationchange', reshaped_, { passive: true });
 if (window.visualViewport) {
   visualViewport.addEventListener('resize', reshaped_, { passive: true });
 }
-
-/* ---------- COMING BACK TO A TAB THAT WAS LEFT MID-GESTURE § */
-addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible') return;
-  if (GRAB) grabLet_(0);
-  if (!SWIPE.live) return;
-  const axis = SWIPE.axis;
-  SWIPE.live = false; SWIPE.axis = null; SWIPE.d = 0;
-  SWIPE.held = false; SWIPE.px = 0; SWIPE.v = 0; SWIPE.vD = 0; SWIPE.vAt = 0;
-  SWIPE.lock = 0; SWIPE.catch = 0;
-  SWIPE.id = null;
-  if (SWIPE.frame) { cancelAnimationFrame(SWIPE.frame); SWIPE.frame = 0; }
-  SWIPE.cells = null;
-  /* AND PUT BACK, as `pointercancel` does. § */
-  if (axis) { try { placeCells(axis); } catch (e) {} }
-}, { passive: true });
 
 /* IF ANY OF THIS THROWS, SAY SO ON THE SCREEN. § */
 function bootFailed(err, when) {
@@ -18094,9 +16522,9 @@ document.addEventListener('toggle', e => {
   if (el.open) MISSING_OPEN.add(k); else MISSING_OPEN.delete(k);
 }, true);
 
-/* AN ITEM (487, layout.js `itemMark_`): Delete and Note for an admin, no move and no door — Find's own code places it. */
+/* AN ITEM (487, words.js `itemMark_`): Edit words for an admin — Find's own code places it. */
 const MISSING_ID = 'item:stuff:missing-papers';
-const missingFor_ = () => may_('admin') && !(typeof itemGone_ === 'function' && itemGone_(MISSING_ID));
+const missingFor_ = () => may_('admin');
 /* THE PAGE ABOVE FIND'S QUESTION (`FINDERS.stuff.lead`, find.js): an admin's only. */
 /* AND SUGGEST A CHANGE (486), as on Daive's card: one row with the item's tiles (`suggestRowIn_`, submit.js). */
 /* IN FIND, NOT ABOVE IT (owner, 4 Nov): the lead page is empty; What's missing is a Find card under Owner questions. */
@@ -18104,7 +16532,7 @@ function missingLead_() { return []; }
 const missingLeadN_ = () => 0;
 function missingLeadCards_() {
   if (!missingFor_()) return [];
-  const h = typeof itemMark_ === 'function' ? itemMark_(MISSING_ID, '', missingCard_()) : missingCard_();
+  const h = typeof itemMark_ === 'function' ? itemMark_(MISSING_ID, missingCard_()) : missingCard_();
   return [typeof suggestRowIn_ === 'function' ? suggestRowIn_(h, 'widget', 'missing-papers', 'What’s missing') : h];
 }
 /* SETTINGS CARDS IN FIND, drawn by their own files: the business checker (1050). */

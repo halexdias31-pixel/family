@@ -1564,7 +1564,7 @@
    }
   },
   "soon": {
-   "source": "columns.json and tiers.json: a switched-off column or widget",
+   "source": "tiers.json: a switched-off widget",
    "find": {
     "group": "Coming soon",
     "label": "Coming soon",

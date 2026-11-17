@@ -45,15 +45,15 @@
  },
  {
   "screen": "res",
-  "to": "stuff"
+  "to": "find:Library"
  },
  {
   "screen": "saved",
-  "to": "stuff"
+  "to": "find::mySaved=Saved"
  },
  {
   "screen": "shop",
-  "to": "stuff"
+  "to": "find:Shop"
  },
  {
   "screen": "site",
@@ -61,7 +61,7 @@
  },
  {
   "screen": "spotlight",
-  "to": "stuff"
+  "to": "find:Shop"
  },
  {
   "screen": "staff",
@@ -77,6 +77,6 @@
  },
  {
   "screen": "web",
-  "to": "stuff"
+  "to": "find:Profiles"
  }
 ]
