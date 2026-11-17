@@ -4465,6 +4465,8 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 
 /* SHARING A BOOKING IS A PICTURE OF IT — THE ELEMENT ON THE SCREEN, DRAWN BY THE BROWSER. § */
 .rc.rc-snap :is(.rc-tiles, .rc-more):not(#no-such-id) { display: none; }
+/* A CARD'S PICTURE IS ITS CONTENT: its buttons are not in it. */
+.rc-snap :is(.kc-row, .tile-row):not(#no-such-id) { display: none; }
 
 /* THE PICTURE IN THE SHEET, when the share sheet refused or there is none — see `rcOffer_`. Its
    own width, never wider than its card, and a hairline so a dark card does not vanish into a dark

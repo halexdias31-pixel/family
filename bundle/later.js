@@ -8913,9 +8913,13 @@ window.addEventListener('pagehide', () => findPlaceKeep_());
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') findPlaceKeep_(); });
 /* ONE SHARE FOR EVERY CARD (950): the phone's sheet with the card's `?card=` link, else the link copied and said so. */
 const cardByKey_ = k => (k ? stuffItemsAll_().find(i => i && i.key === k) : null), cardUrl_ = k => location.origin + location.pathname + '?card=' + encodeURIComponent(k);
+/* SHARE IS A PICTURE OF ITS CARD (owner, 17 Nov: a universal rule): the receipt's one picture maker (`rcPng_`, receipt.js) on whatever card holds the button; the link only where no picture can be made. */
 on('card-share', el => { const k = el.getAttribute('data-key') || '', url = cardUrl_(k), name = (cardByKey_(k) || {}).name || brand('name', '@family.');
-  if (navigator.share) navigator.share({ title: name, text: name, url }).catch(() => {});
-  else try { navigator.clipboard.writeText(url).then(() => toast(text_('link-copied')), () => toast(url)); } catch (e) { toast(url); } });
+  const link = () => { if (navigator.share) navigator.share({ title: name, text: name, url }).catch(() => {});
+    else try { navigator.clipboard.writeText(url).then(() => toast(text_('link-copied')), () => toast(url)); } catch (e) { toast(url); } };
+  const card = el.closest && el.closest('.card, .qcard');
+  if (!card || typeof rcPng_ !== 'function') return link();
+  rcPng_(card).then(p => rcHand_(p.blob, String(name).replace(/[^\w-]+/g, '-').slice(0, 40) + '.png', card, name)).catch(link); });
 /* ARRIVING ON ONE, before any kept place; the link then leaves the address, so a reload keeps its own place. */
 function openSharedCard() { let x = null;
   try { x = cardByKey_(new URLSearchParams(location.search).get('card')); if (x) history.replaceState(null, '', location.pathname + location.hash); } catch (e) { oops_(e, 'find:openSharedCard'); }
@@ -19189,12 +19193,12 @@ on('rc-shot-share', () => {
     .catch(e => { if (!e || e.name !== 'AbortError') toast(text_('could-not-share-it-press-and')); });
 });
 
-function rcHand_(blob, name, rc) {
+function rcHand_(blob, name, rc, title) {
   const file = typeof File === 'function' ? new File([blob], name, { type: 'image/png' }) : null;
   const can = !!(file && navigator.share && navigator.canShare
                  && (() => { try { return navigator.canShare({ files: [file] }); } catch (e) { return false; } })());
   if (!can) return rcSave_(blob, name, rc);
-  return navigator.share({ files: [file], title: 'Booking' }).catch(e => {
+  return navigator.share({ files: [file], title: title || 'Booking' }).catch(e => {
     if (e && e.name === 'AbortError') return;
     rcOffer_(blob, name, rc);
   });
