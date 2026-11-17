@@ -1,7 +1,7 @@
 /* @family. — 30_booking.gs (4 of 8) THE BOOKING MACHINE, and everything that decides who is in a session. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const BOOKING_VERSION = "2026-11-16-ssot-2";
+const BOOKING_VERSION = "2026-11-17-store-2";
 
 
 /* WHEN THE BUSINESS ACTUALLY OPERATES within an interval. § */
@@ -560,99 +560,17 @@ function codeSaid_(c) {
 
 /* `tutorHoursRefusal_` WAS HERE (488): a tutor's week is a guide now, never a refusal — the tutor accepts or declines (`answerRequest`). */
 
-/* THE SCHOOL YEAR, WORKED OUT RATHER THAN TYPED. § */
-function easter(y) {
-  /* Meeus/Butcher. Valid for any Gregorian year, and worth using rather than a lookup table for
-     the same reason as everything else here: a table runs out. */
-  const a = y % 19, b = Math.floor(y / 100), c = y % 100;
-  const d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25);
-  const g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30;
-  const i = Math.floor(c / 4), k = c % 4;
-  const l = (32 + 2 * e + 2 * i - h - k) % 7;
-  const m = Math.floor((a + 11 * h + 22 * l) / 451);
-  const mo = Math.floor((h + l - 7 * m + 114) / 31);
-  const da = ((h + l - 7 * m + 114) % 31) + 1;
-  return new Date(Date.UTC(y, mo - 1, da));
-}
-/* ONE DAY IN MILLISECONDS, and it has to live out here. § */
-const DAY_MS = 864e5;
-const add = (d, n) => new Date(d.getTime() + n * DAY_MS);
-/* The nth given weekday of a month; n = -1 means the last one. */
-function nth(y, mo, wd, n) {
-  if (n > 0) {
-    const first = new Date(Date.UTC(y, mo, 1));
-    return add(first, ((wd - first.getUTCDay() + 7) % 7) + (n - 1) * 7);
-  }
-  const last = new Date(Date.UTC(y, mo + 1, 0));
-  return add(last, -((last.getUTCDay() - wd + 7) % 7));
-}
-const MON = 1, FRI = 5;
-
+/* THE SCHOOL YEAR, WORKED OUT RATHER THAN TYPED: the site's one rule (`tdYear_`, `tdEaster_` in js/arcade.js, copied into cards-gen.gs), as UTC days. */
+const utcDay_ = d => new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+function easter(y) { return utcDay_(tdEaster_(y)); }
+/* THE BACKEND'S NAMES FOR THE SITE'S HOLIDAYS (the terms tab's term_name rows match these). */
+const SCHOOL_HOLS_ = { 'October half-term': 'October Half Term', 'Christmas holidays': 'Christmas Holiday', 'February half-term': 'February Half Term',
+  'Easter holidays': 'Easter Holiday', 'May half-term': 'May Half Term', 'Summer holidays': 'Summer Holiday' };
+/* `y` is the September the year STARTS in, so schoolYear(2026) is 2026-27, led by the summer holiday before it. */
 function schoolYear(y) {
-  /* `y` is the September the year STARTS in, so schoolYear(2026) is 2026-27. Each rule fits Wandsworth's published 2026-27 and 2027-28 dates (wandsworth.gov.uk/termdates); `js/check-terms.js` holds them to it. */
-  const out = [];
-  const push = (name, kind, s, e) => out.push({ name, kind, start: s, end: e });
-  const U = (yy, m, d) => new Date(Date.UTC(yy, m, d));
-  const wd = d => d.getUTCDay();
-  const friOnOrBefore = d => add(d, -((wd(d) - FRI + 7) % 7));
-  const monOnOrAfter = d => add(d, (MON - wd(d) + 7) % 7);
-
-  /* AUTUMN starts the first Wednesday on or after 1 Sep (Wed 2 Sep 2026, Wed 1 Sep 2027); past the 5th, the first Mon-Thu from 1 Sep instead. */
-  const sep1 = U(y, 8, 1);
-  let autumnStart = add(sep1, (3 - wd(sep1) + 7) % 7);
-  if (autumnStart.getUTCDate() > 5) {
-    autumnStart = sep1;
-    while (wd(autumnStart) === 0 || wd(autumnStart) > 4) autumnStart = add(autumnStart, 1);
-  }
-
-  /* THE OCTOBER HALF TERM is the last full Monday-to-Friday week of October (26-30 Oct 2026, 25-29 Oct 2027). */
-  const octMon = nth(y, 9, MON, -1);
-  const octHalf = octMon.getUTCDate() + 4 > 31 ? add(octMon, -7) : octMon;
-
-  /* CHRISTMAS: the last Friday on or before 21 Dec (Fri 18 Dec 2026, Fri 17 Dec 2027); when that is the 15th, Wed 20 Dec instead. */
-  let termEnd = friOnOrBefore(U(y, 11, 21));
-  if (termEnd.getUTCDate() < 16) termEnd = U(y, 11, 20);
-
-  /* SPRING starts the Monday on or after 2 Jan, the Tuesday when that Monday is the New Year bank holiday (Mon 4 Jan 2027, Tue 4 Jan 2028). */
-  let jan = monOnOrAfter(U(y + 1, 0, 2));
-  if (jan.getUTCDate() <= 3 && wd(U(y + 1, 0, 1)) % 6 === 0) jan = add(jan, 1);
-
-  /* THE FEBRUARY HALF TERM is the week whose Monday falls 12-18 Feb (15-19 Feb 2027, 14-18 Feb 2028). */
-  const febHalf = monOnOrAfter(U(y + 1, 1, 12));
-
-  /* EASTER: two weeks from the week before Good Friday's, never before 29 Mar; Good Friday and Easter Monday always off (26 Mar-11 Apr 2027, 1-17 Apr 2028). */
-  const eas = easter(y + 1);
-  const goodFri = add(eas, -2), easMon = add(eas, 1);
-  const floor = monOnOrAfter(easMon < U(y + 1, 2, 29) ? easMon : U(y + 1, 2, 29));
-  const early = add(goodFri, -11);
-  const easStart = early > floor ? early : floor;
-  const springEnd = goodFri < easStart ? add(goodFri, -1) : add(easStart, -3);
-  const summerStart = add(easStart, 14) > easMon ? add(easStart, 14) : add(easMon, 1);
-
-  /* THE MAY HALF TERM is the week of the spring bank holiday: the last Monday in May. */
-  const mayHalf = nth(y + 1, 4, MON, -1);
-
-  /* SUMMER ends on 22 Jul, or the Friday before when that is a weekend (Thu 22 Jul 2027, Fri 21 Jul 2028). */
-  const julEnd = j => { const d = U(j, 6, 22); return wd(d) % 6 === 0 ? friOnOrBefore(d) : d; };
-
-  /* ---------- A HOLIDAY COVERS THE WEEKEND EITHER SIDE OF IT § */
-  const terms = [
-    ['Autumn 1',  autumnStart,     add(octHalf, -3)],
-    ['Autumn 2',  add(octHalf, 7), termEnd],
-    ['Spring 1',  jan,             add(febHalf, -3)],
-    ['Spring 2',  add(febHalf, 7), springEnd],
-    ['Summer 1',  summerStart,     add(mayHalf, -3)],
-    ['Summer 2',  add(mayHalf, 7), julEnd(y + 1)],
-  ];
-  const hols = ['October Half Term', 'Christmas Holiday', 'February Half Term',
-                'Easter Holiday', 'May Half Term'];
-
-  push('Summer Holiday', 'holiday', add(julEnd(y), 1), add(terms[0][1], -1));
-  terms.forEach((t, i) => {
-    push(t[0], 'term', t[1], t[2]);
-    if (i < hols.length) push(hols[i], 'holiday', add(t[2], 1), add(terms[i + 1][1], -1));
-  });
-  return out;
+  const one = t => ({ name: SCHOOL_HOLS_[t.name] || t.name, kind: t.kind === 'term' ? 'term' : 'holiday', start: utcDay_(t.from), end: utcDay_(t.to) });
+  const was = tdYear_(y - 1), now = tdYear_(y);
+  return [one(was[was.length - 1])].concat(now.slice(0, -1).map(one));
 }
 
 /* ---------- WHICH TERM A WAITING LIST IS FOR § */

@@ -117,6 +117,8 @@ const fmtTime_ = t => {
   if (t instanceof Date || typeof t === 'number') { const d = new Date(t); return isNaN(d) ? '' : String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }
   const s = String(t ?? '').trim();
   if (!s) return '';
+  /* A BARE HOUR ("9", a sheet's 16) IS THAT HOUR ON THE DOT. */
+  if (/^\d{1,2}$/.test(s)) return s.padStart(2, '0') + ':00';
   let h, min;
   const m = s.match(/(\d{1,2}):(\d{2})\s*([ap]m)?/i);
   const a = m ? null : s.match(/^(\d{1,2})\s*([ap]m)$/i);

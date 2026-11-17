@@ -61,14 +61,14 @@ function skipParts(names) {
 }
 const isAbsent = e => !!(e && (e.code === 'LIB_ABSENT' || /^LIB_PRIVATE=absent:/.test(String(e.message || ''))));
 
-/* LIB_FILES AND THE PINNED COMMIT, read out of backend/constants.gs — one definition, the backend's. */
+/* LIB_FILES FROM kinds.json (tools/lib/lib-files.js, as the backend's cards-gen.gs has it) AND THE PINNED COMMIT out of backend/constants.gs. */
 let DEFS = null;
 function defs() {
   if (DEFS) return DEFS;
   const ctx = vm.createContext({});
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'backend', 'constants.gs'), 'utf8')
-    + ';this.__L = { files: LIB_FILES, commit: LIB_SOURCE_COMMIT };', ctx, { filename: 'constants.gs' });
-  DEFS = JSON.parse(JSON.stringify(ctx.__L));
+    + ';this.__L = { commit: LIB_SOURCE_COMMIT };', ctx, { filename: 'constants.gs' });
+  DEFS = { files: require('./lib-files.js').libFiles(), commit: ctx.__L.commit };
   return DEFS;
 }
 const NAMES = () => Object.keys(defs().files);

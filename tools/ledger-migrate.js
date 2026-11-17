@@ -26,6 +26,14 @@ function tabMap() {
 
 /* ONE ROW, AS AN ITEM OR AN EVENT — the same rule as backend/items.gs `itemFromRow_`. */
 const ids = s => [].concat(s.id || []);
+/* A CELL KEEPS ITS TYPE (owner, 17 Nov): a number stays a number, a tick a boolean, and a date is {"$d": its Sheets serial}, */
+/* so the store (core.gs storeRead_) hands every reader the value Sheets would have. Text stays text, even when it looks like a number. */
+const SERIAL0 = Date.UTC(1899, 11, 30);
+function cellJson(v) {
+  if (v instanceof Date) return { $d: (Date.UTC(v.getFullYear(), v.getMonth(), v.getDate(), v.getHours(), v.getMinutes(), v.getSeconds()) - SERIAL0) / 864e5 };
+  return v;
+}
+const rowJson = row => JSON.stringify(Object.fromEntries(Object.entries(row).map(([k, v]) => [k, cellJson(v)])));
 function idOf(sheet, row) {
   const parts = ids(sheet).map(c => String(row[c] ?? '').trim());
   return parts.some(p => p === '') ? '' : parts.join(':');
@@ -37,12 +45,12 @@ function kindOf(m, row) {
 function mapRow(m, row) {
   const s = m.sheet;
   if (s.to === 'events') {
-    return { to: 'events', row: { at: row[s.at] ?? '', who: row[s.who] ?? '', kind: m.kind, what: row[s.what] ?? '', item: s.item ? row[s.item] ?? '' : '', data: JSON.stringify(row) } };
+    return { to: 'events', row: { at: row[s.at] ?? '', who: row[s.who] ?? '', kind: m.kind, what: row[s.what] ?? '', item: s.item ? row[s.item] ?? '' : '', data: rowJson(row) } };
   }
   const id = idOf(s, row);
   if (!id) return null;
   if (s.blob) return { to: 'items', row: { id, kind: m.kind, data_1: row.content_1 || '', data_2: row.content_2 || '', data_3: row.content_3 || '', data_4: row.content_4 || '', data_5: row.content_5 || '', data_6: row.content_6 || '' } };
-  return { to: 'items', row: { id, kind: kindOf(m, row), data_1: JSON.stringify(row) } };
+  return { to: 'items', row: { id, kind: kindOf(m, row), data_1: rowJson(row) } };
 }
 
 /* THE SAME, AS ONE SHEETS FORMULA OVER THE WHOLE TAB: a FILTER of the rows whose id is not blank. */
@@ -54,7 +62,9 @@ function sheetFormula(m, heads) {
   const txt = r => 'SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(TO_TEXT(' + r + '),"\\","\\\\"),CHAR(34),"\\"&CHAR(34)),CHAR(10),"\\n"),CHAR(13),"")';
   /* THE ROW AS JSON, by its own header row: {"col":"text", …}, a blank header skipped. */
   const last = col(heads.length - 1), H = T + '!A1:' + last + '1', C = 'CHAR(34)';
-  const json = 'BYROW(' + T + '!A2:' + last + ',LAMBDA(r,"{"&TEXTJOIN(",",TRUE,IF(' + H + '="","",' + C + '&' + H + '&' + C + '&":"&' + C + '&' + txt('r') + '&' + C + '))&"}"))';
+  /* EACH CELL BY ITS TYPE: a tick true/false, a date {"$d":serial} (a number Sheets shows with / or :), a number bare, text quoted. */
+  const val = 'IF(ISLOGICAL(r),IF(r,"true","false"),IF(ISNUMBER(r),IF(REGEXMATCH(TO_TEXT(r),"[/:]"),"{"&' + C + '&"$d"&' + C + '&":"&r&"}",r&""),' + C + '&' + txt('r') + '&' + C + '))';
+  const json = 'BYROW(' + T + '!A2:' + last + ',LAMBDA(r,"{"&TEXTJOIN(",",TRUE,IF(' + H + '="","",' + C + '&' + H + '&' + C + '&":"&' + val + '))&"}"))';
   const keyCol = s.to === 'events' ? rng(0) : at(ids(s)[0]);
   const lit = v => 'IF(LEN(' + keyCol + '),"' + v + '")';
   let cols;
