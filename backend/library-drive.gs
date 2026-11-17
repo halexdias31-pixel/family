@@ -197,13 +197,13 @@ function libDriveParse_(text) {
 
 /* ONE FILE INTO THE LEDGER: merge per id, write, read every row back; any row that does not read back puts every row of the file back as it was. */
 function libDriveApply_(parsed, memo) {
-  const counts = {}, writes = [], flagged = [];
+  const counts = {}, writes = [], flagged = [], index = {};
   const keys = Object.keys(parsed.plan);
   /* PLAN EVERYTHING FIRST, so a refusal leaves the Ledger untouched. */
   for (let k = 0; k < keys.length; k++) {
     const key = keys[k], def = LIB_FILES[key];
     const sh = libSheet_(def, 0);
-    const at = libIndex_(def, sh, '', null);
+    const at = index[key] = libIndex_(def, sh, '', null);
     let foot = Math.max(1, sh.getLastRow());
     const c = counts[key] = { added: 0, replaced: 0, same: 0, deleted: 0 };
     for (let i = 0; i < parsed.plan[key].length; i++) {
@@ -252,6 +252,18 @@ function libDriveApply_(parsed, memo) {
     });
     return { error: bad + (restored ? ' — every row of this file was put back as it was' : ' — AND PUTTING THE ROWS BACK FAILED: check the lib_ tabs') };
   }
+  /* THE LEDGER MIRRORS THE LIBRARY (owner, 17 Nov: unify): a row whose id the public file no longer has (a part folded into
+     another, a card removed) is emptied, so nothing the site dropped lives on. Only when the public file read whole, and never
+     more than a few rows at once, so a bad read can never empty a tab. */
+  keys.forEach(key => {
+    const def = LIB_FILES[key], pub = libPublicIds_(def, memo) || {}, n = Object.keys(pub).length, at = index[key];
+    if (n < 100) return;
+    const gone = Object.keys(at).filter(id => !pub[id] && !(parsed.cards[key] && parsed.cards[key][id]));
+    if (!gone.length || gone.length > Math.max(20, Math.ceil(n / 100))) { if (gone.length) flagged.push(def.tab + ': ' + gone.length + ' rows not in ' + def.file + ' (too many to empty at once; left)'); return; }
+    const sh = libSheet_(def, 0), blank = new Array(3 + LIB_PARTS).fill('');
+    gone.forEach(id => sh.getRange(at[id], 1, 1, 3 + LIB_PARTS).setValues([blank]));
+    counts[key].emptied = gone.length;
+  });
   return { counts: counts, written: writes.length, flagged: flagged };
 }
 
@@ -334,7 +346,7 @@ function libDriveLog_(by, name, one) {
   try {
     const t = read(TAB.libLog);
     if (!t.sheet) return;
-    const said = Object.keys(one.counts).map(k => { const c = one.counts[k]; return k + ' +' + c.added + ' ~' + c.replaced + ' =' + c.same + (c.deleted ? ' -' + c.deleted + ' field(s)' : ''); }).join('; ');
+    const said = Object.keys(one.counts).map(k => { const c = one.counts[k]; return k + ' +' + c.added + ' ~' + c.replaced + ' =' + c.same + (c.deleted ? ' -' + c.deleted + ' field(s)' : '') + (c.emptied ? ' x' + c.emptied + ' row(s) gone' : ''); }).join('; ');
     addRow(t, { day: reportDay_(new Date()), person_id: 'library-import', served: one.written,
                 ids: ((by && (S(by.person_id) || S(by.handle)) ? 'by ' + (S(by.person_id) || S(by.handle)) + ' — ' : '') + name + ': ' + said + (one.note ? ' — ' + one.note : '')).slice(0, 2000), refused: 0, last_at: new Date() });
   } catch (err) { /* the log costs a line, never the import */ }
