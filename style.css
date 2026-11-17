@@ -2295,9 +2295,10 @@ textarea { touch-action: none; }
 
 /* NO SPLASH (466): nothing covers the app while the payload comes; only a load still waiting after 30 s says so, here. */
 /* IN THE FLOW, ITS OWN SLOT (owner, 13 Nov): fixed, it was drawn over a card's tag and text. */
-#boot-slow { position: static; width: min(32rem, 100%); margin: 0 auto var(--s2); text-align: center; }
-#boot-slow .boot-why { font-size: var(--fs-small); word-break: break-all; }
-#boot-slow .tile-row { justify-content: center; }
+#boot-slow { display: flex; align-items: center; gap: var(--s2); min-width: 0; font-size: var(--fs-small); }
+#boot-slow .loading { width: auto; min-height: 0; }
+#boot-slow .loading > span { width: 1em; height: 1em; }
+#boot-slow .boot-why { word-break: break-all; }
 #boot-slow .boot-why > summary { list-style: none; cursor: pointer; }
 
 /* IF IT CAN BE TAPPED, IT LOOKS LIKE IT THE PROBLEM. § */
@@ -3864,7 +3865,8 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
   background: var(--paper); color: var(--paper-ink); border: 1px solid var(--paper); border-radius: var(--r-box); font: var(--fs-body)/1.3 var(--font);
 }
 /* THE ANSWER IN THE BAR IS ON THE CREAM PILL (1030), so its words take the paper's ink. */
-.qp-bar .kp-show, .qp-multi .kp-show { color: var(--paper-ink); font: var(--fs-body)/1.3 var(--font); min-height: 0; }
+.qp-bar .kp-show, .qp-multi .kp-show { color: var(--paper-ink); font: var(--fs-body)/1.3 var(--font); min-height: calc(1.3em + 2 * var(--s1)); }
+/* ONE LINE TALL EMPTY OR NOT (owner, 17 Nov: "inputs are offset"): the bare caret was 3px shorter than the placeholder, so the box jumped as the pad opened and again at the first key. */
 .qp-bar .kp-show:empty::before, .qp-multi .kp-show:empty::before { color: var(--paper-dim); }
 .qp-multi > .qp-ans > .kp-field { flex: 1 1 auto; min-width: 0; }
 .qp-multi .kp-show:empty::before { content: "\2026"; }

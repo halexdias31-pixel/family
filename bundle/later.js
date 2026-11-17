@@ -13272,6 +13272,16 @@ function kpOpen_(inp) {
   if (!back && !same) kpAutoShift_(inp);
   kpShiftPaint_();
   kpPadH_(pad);
+  if (!same) kpInView_(inp, pad);
+}
+/* A BOX THE PAD WOULD HIDE IS BROUGHT ABOVE IT, ONCE, AS IT OPENS (owner, 17 Nov: "sometimes inputs are offset"): centred in the room over the pad, as a phone's own keyboard does; a box already in that room stays put, and nothing moves while you type. */
+function kpInView_(inp, pad) {
+  try {
+    const box = (inp.closest && inp.closest('.kp-field, .qp-ans')) || inp, r = box.getBoundingClientRect();
+    const room = Math.round(pad.getBoundingClientRect().top);
+    if (!(room > 0) || (r.top >= 0 && r.bottom <= room - 8)) return;
+    window.scrollBy({ top: Math.round(r.top + r.height / 2 - room / 2), behavior: 'instant' });
+  } catch (e) { /* the box stays where it is; the body's foot still leaves room to scroll it up */ }
 }
 
 function kpClose_() {
@@ -13284,7 +13294,7 @@ function kpClose_() {
   if (was) kpRender_(was);
 }
 
-/* ---------- THE PAD OPENS OVER THE FOOT OF THE PAGE (owner, 16 Nov): nothing moves; the body's foot makes the room (style.css, `.kp-up`) ---------- */
+/* ---------- THE PAD OPENS OVER THE FOOT OF THE PAGE (owner, 16 Nov): nothing moves while you type; the body's foot makes the room (style.css, `.kp-up`), and only a box it would hide is lifted, once (`kpInView_`) ---------- */
 /* THE PAD'S HEIGHT, FOR THE STYLESHEET: § */
 function kpPadH_(pad) {
   try {
