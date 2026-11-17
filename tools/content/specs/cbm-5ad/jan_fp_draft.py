@@ -113,12 +113,12 @@ from fractions import Fraction as F
 # 1 to 22 January and is committed so it survives the container; none of it may reach the library
 # until the month is whole and the writer exists. Delete these two lines in the same change that
 # adds days 23-31 and the writer, and not before.
-sys.exit('tools/insert-cbm-5ad-jan-FP.py is unfinished (1-22 Jan only, no writer). '
+sys.exit('tools/content/specs/cbm-5ad/jan_fp_draft.py is unfinished (1-22 Jan only, no writer). '
          'See the header for exactly what is left.')
 
 HERE = pathlib.Path(__file__).resolve().parent
-TARGET = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else HERE.parent / 'data' / 'questions.json')
-TOPICS = HERE.parent / 'data' / 'topics.json'
+
+TOPICS = HERE.parents[3] / 'data' / 'topics.json'
 
 KEY = 'FP'
 TIER = 'Foundation Plus'

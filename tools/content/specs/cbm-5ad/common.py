@@ -1,11 +1,11 @@
 """Shared shape for the Corbettmaths 5-a-day Foundation books (June to December).
 
 ONE MODULE PER MONTH (`F_06.py` … `F_12.py`) holds that month's transcription as `q(...)` and
-`pre(...)` calls, and `write.py` turns every month into rows and writes `data/questions.json` once.
+`pre(...)` calls, and `node tools/content.js P-CBM-5AD-` runs every month through the content pipeline.
 Months were transcribed in parallel, and a month module never touches the library file itself —
 seven writers on one file is seven merge conflicts.
 
-THE SHAPE FOLLOWS tools/insert-cbm-5ad-jan-FP.py, which is the argument for all of it: a 5-a-day is
+THE SHAPE FOLLOWS tools/content/specs/cbm-5ad/jan_fp_draft.py, which is the argument for all of it: a 5-a-day is
 its own `document_type`, ONE DOCUMENT ROW PER DAY because a day is the thing somebody sits, five
 question rows under it, a table recovered as a real <table>, a picture that carries data described
 in words AND given a `figure` label so check-library.js counts it, and every answer worked out from
@@ -18,7 +18,7 @@ gives: Corbettmaths is not a board, a 5-a-day has no sitting, and nothing states
 import json, pathlib
 
 HERE = pathlib.Path(__file__).resolve().parent
-ROOT = HERE.parent.parent
+ROOT = HERE.parents[3]
 TIER = 'Foundation'
 MONTHS = {6: 'June', 7: 'July', 8: 'August', 9: 'September', 10: 'October', 11: 'November',
           12: 'December'}

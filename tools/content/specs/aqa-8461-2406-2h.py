@@ -307,24 +307,4 @@ for q, part, marks, atype, topics, figure, diagram, html, answer, note in Q:
         r['examiner_note'] = note
     rows.append(r)
 
-p = pathlib.Path('/home/user/family/data/questions.json')
-lines = p.read_text().rstrip('\n').split('\n')
-assert lines[0] == '[' and lines[-1] == ']'
-seen = {json.loads(l.rstrip(','))['row_id'] for l in lines if '"row_id"' in l}
-clash = seen & {r['row_id'] for r in rows}
-assert not clash, 'row ids already in the file: %r' % sorted(clash)
-
-lines[-2] += ','
-for r in rows[:-1]:
-    lines.insert(-1, json.dumps(r) + ',')
-lines.insert(-1, json.dumps(rows[-1]))
-p.write_text('\n'.join(lines) + '\n')
-
-# THE NUMBER PRINTED IS THE ONE check-library.js WILL COUNT, not "rows with a figure" — a row that
-# carries a drawing is not outstanding. CLAUDE.md records the run where those two were confused.
-ANSWER_SPACE = ('grid-blank', 'fractions', 'boxes', 'long-method', 'lines', 'working',
-                'answer-space', 'table-blank')
-missing = [x for x in Q if x[5] and x[5] not in ANSWER_SPACE and not x[6]]
-print('%s: %d questions, %d marks, %d rows written. %d lack the picture they are about (%s)'
-      % (PAPER, len(Q), sum(got.values()), len(rows), len(missing),
-         ', '.join('%s.%s' % (x[0], x[1]) for x in missing)))
+ROWS = rows

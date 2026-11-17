@@ -13,7 +13,7 @@ carries per DOCUMENT -- so they are two documents, each summing to its own secti
 the KS1 arithmetic and reasoning papers are two.
 
 THE PDFs HAVE NO TEXT LAYER AT ALL -- every page is a picture with only its barcode as text. So none
-of this was READ off a text layer the way tools/insert-ks1-2026.py was: each page was rendered and
+of this was READ off a text layer the way tools/content/specs/sta-ks1-2026.py was: each page was rendered and
 transcribed by eye, and every number below was checked against the rendered page. That is why the
 tables (Section B Q6, Q7, Q12) are typed in full and the dot diagram (Q10) is given as the table of
 its counts; the two graphs (Q1's conversion line, Q3's scatter) cannot be carried by words and are
@@ -30,7 +30,7 @@ A PRACTICE PAPER IS NOT A SITTING. The cover says "Practice exam paper for first
 refuses a sitting to anything that is not a past paper, for exactly this reason. It is reached by
 Level -> Exam board -> Paper rather than Year -> Month -> Paper. See docs/history/pending-funcmaths.md.
 
-Run:  python3 tools/insert-fs-maths-l2-prac1.py A     (then B). Refuses to insert twice.
+Run:  node tools/content.js tools/content/specs/edx-fsl2-prac1.py   (both sections, through the content pipeline).
 """
 import json
 import math
@@ -38,7 +38,6 @@ import pathlib
 import sys
 from fractions import Fraction
 
-FILE = pathlib.Path(__file__).parent.parent / 'data' / 'questions.json'
 LEVEL = 'Functional Skills L2'
 NOMS = 'There is no mark scheme in Drive for this paper, so this answer is worked here and marked by a person.'
 DESCRIBED = "The paper's diagram is described in words here; every length and angle it prints is in them."
@@ -353,7 +352,7 @@ def row(paper, d, r):
     return out
 
 
-which = sys.argv[1:] or ['A', 'B']
+which = ['A', 'B']
 rows = []
 for s in which:
     paper, d, qs, total = SECTIONS[s]
@@ -363,14 +362,4 @@ for s in which:
     rows.extend(row(paper, d, r) for r in qs)
     print('Section %s: %d questions / %d marks' % (s, sum(1 for r in qs if not r['preamble']), marks))
 
-lines = FILE.read_text().rstrip('\n').split('\n')
-assert lines[0] == '[' and lines[-1] == ']'
-seen = {r['row_id'] for r in json.loads('\n'.join(lines))}
-clash = seen & {r['row_id'] for r in rows}
-assert not clash, 'already inserted: %r' % sorted(clash)
-lines[-2] += ','
-for r in rows[:-1]:
-    lines.insert(-1, json.dumps(r) + ',')
-lines.insert(-1, json.dumps(rows[-1]))
-FILE.write_text('\n'.join(lines) + '\n')
-print('%d rows written' % len(rows))
+ROWS = rows

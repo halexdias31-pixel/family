@@ -3601,7 +3601,7 @@ top level, before `fiveADayOf_`
 
 ```
 /* ---------- A 5-A-DAY'S DATE, READ OFF ITS PAPER ID ----------------------------------------------
-   `P-CBM-5AD-F-0601` is the Foundation book's 1 June — the id scheme `tools/cbm5ad/common.py`
+   `P-CBM-5AD-F-0601` is the Foundation book's 1 June — the id scheme `tools/content/specs/cbm-5ad/common.py`
    writes, month then day. Read off the id rather than out of the name, because the name is prose
    and the id is a key somebody chose to be read. Null for anything else. */
 ```

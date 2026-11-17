@@ -10,7 +10,7 @@ its cover, the header on every page and its PDF metadata all say 2017, and its q
 (telescopes A and B, Rasalgethi, a supernova light curve, exoplanet detection) are not this paper's.
 No June 2024 scheme for this paper is in Drive under any name. Answers here are read off the mark
 scheme and never derived (CLAUDE.md, the 2017 Highers), so every `answer` and `accept` waits for the
-right scheme. Until then `write.py --check p_3ba_2406` refuses this module with "has no answer",
+right scheme. Until then `node tools/content.js tools/content/specs/aqa-7408/draft_3ba_2406.py --stage spec` refuses this module with "has no answer",
 which is the right refusal.
 
 When the scheme arrives, fill `answer` for each question row (and `accept` for 03.3, the tick-box,

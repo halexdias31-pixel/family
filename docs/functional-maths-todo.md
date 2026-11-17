@@ -7,7 +7,7 @@
 | Pearson Edexcel FS Maths Level 2, Practice Paper 1 (Sept 2019 materials), Section A, non-calculator | S64037A | 16 | `P-EDX-FSL2-PRAC1-A`: 1 document, 1 preamble, 6 questions |
 | the same, Section B, calculator | S64039A | 48 | `P-EDX-FSL2-PRAC1-B`: 1 document, 6 preambles, 18 questions |
 
-Inserted by `tools/insert-fs-maths-l2-prac1.py`, which asserts every answer and each section total.
+Transcribed in `tools/content/specs/edx-fsl2-prac1.py` (run by `node tools/content.js`), which asserts every answer and each section total.
 
 ## Still to do
 

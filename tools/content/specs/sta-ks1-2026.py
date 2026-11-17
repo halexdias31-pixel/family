@@ -24,7 +24,6 @@ import json
 import pathlib
 from fractions import Fraction
 
-FILE = pathlib.Path(__file__).parent.parent / 'data' / 'questions.json'
 BOX = '&#9744;'
 
 
@@ -239,15 +238,4 @@ for r in B:
     rows.append(row(P2, D2, r['n'], r['marks'], r['html'], r['topic'], r['answer'], r['accept'],
                     r['note'], r['figure'], r['choices'], r['right'], r['placeholder']))
 
-lines = FILE.read_text().rstrip('\n').split('\n')
-assert lines[0] == '[' and lines[-1] == ']'
-seen = {json.loads(l.rstrip(','))['row_id'] for l in lines if '"row_id"' in l}
-clash = seen & {r['row_id'] for r in rows}
-assert not clash, 'already inserted: %r' % sorted(clash)
-lines[-2] += ','
-for r in rows[:-1]:
-    lines.insert(-1, json.dumps(r) + ',')
-lines.insert(-1, json.dumps(rows[-1]))
-FILE.write_text('\n'.join(lines) + '\n')
-print('%d rows written: Paper 1 %d questions / %d marks, Paper 2 %d questions / %d marks'
-      % (len(rows), len(A), sum(x[1] for x in A), len(B), sum(x['marks'] for x in B)))
+ROWS = rows
