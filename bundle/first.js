@@ -7170,7 +7170,7 @@ async function loadFetch_(who) {
         if (LOADED) return;
         try { repaint(); } catch (e) { oops_(e, 'shell:loadOnce_') }
       }).catch(() => {});
-    }, EARLY_AFTER);
+    }, who ? EARLY_AFTER : 0);   /* SIGNED OUT, AT ONCE (owner, 17 Nov): a guest's screen is the files alone, so it never waits on the backend. */
     /* ---------- A DEADLINE, BECAUSE A REQUEST THAT NEVER ANSWERS IS THE WORST FAILURE § */
     let bell;
     const deadline = new Promise((unused, no) => {
