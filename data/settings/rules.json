@@ -552,6 +552,11 @@
    "principle": 1,
    "text": "One engine each for the games and tools (owner, 17 Nov): every canvas and SVG is sized, scaled and looped by js/draw.js, every pointer, key and drag goes through js/input.js, and every map (the racer and its little map) is tools/race_map.py's, for any place, massaged there once (junctions welded, one width per road, bends smoothed). A game keeps only what it draws.",
    "since": "2026-11-17"
+  },
+  {
+   "id": "1.81",
+   "principle": 1,
+   "text": "Never idle (owner, 17 Nov). When nothing is asked and the register is clear, keep improving at the source, most useful first: give an unmarked question a mechanical key it can be grounded in, give a drawing question its draw_answer, convert a library card to the lean card (1.80), fix a figure that renders badly, add resources the owner's learners need. Each piece goes live and is closed the same way as asked work; the hourly sweep takes the next piece."
   }
  ],
  "sweep": [
