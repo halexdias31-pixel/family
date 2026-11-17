@@ -54,7 +54,7 @@ function libRowIn_(cells) {
 }
 /* THE TAB, MADE WITH ITS HEADER IF IT IS NOT THERE YET — and as tall as `rows` needs, because a range past the grid throws. */
 function libSheet_(def, rows) {
-  const ss = SpreadsheetApp.openById(LEDGER_ID);
+  const ss = SpreadsheetApp.openById(ledgerId_());
   let sh = ss.getSheetByName(def.tab);
   if (!sh) {
     sh = ss.insertSheet(def.tab);
@@ -288,7 +288,7 @@ function libContent_(ids) {
   });
   Object.keys(need).forEach(key => {
     const def = LIB_FILES[key];
-    const sh = SpreadsheetApp.openById(LEDGER_ID).getSheetByName(def.tab);
+    const sh = SpreadsheetApp.openById(ledgerId_()).getSheetByName(def.tab);
     if (!sh) { need[key].forEach(d => missing.push(d.def.prefix + ':' + d.id)); return; }
     const at = libIndex_(def, sh, gen, cache);
     const rows = [];
@@ -321,7 +321,7 @@ const LIB_IMPORT_MAX = 300;
 function libExport_(fileKey, from, count) {
   const def = LIB_FILES[S(fileKey)];
   if (!def) return { error: 'Which file? One of ' + Object.keys(LIB_FILES).join(', ') + '.' };
-  const sh = SpreadsheetApp.openById(LEDGER_ID).getSheetByName(def.tab);
+  const sh = SpreadsheetApp.openById(ledgerId_()).getSheetByName(def.tab);
   if (!sh) return { error: 'There is no ' + def.tab + ' tab yet.' };
   const total = Math.max(0, sh.getLastRow() - 1);
   const a = Math.max(0, Math.floor(Number(from) || 0));
