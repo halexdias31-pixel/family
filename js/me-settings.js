@@ -255,7 +255,7 @@ function meSave_(el, auto) {
   /* `send_`, NOT `api()`. § */
   /* YOU ASK; `whose_()` IS WHOSE ROW — yours, or the person an admin's lens is on (the backend lets only an admin name another). */
   const W = whose_();
-  send_({ action: 'saveItem', item: 'profile', name: USER.name, personId: USER.personId || '',
+  send_({ action: 'item', door: 'save', item: 'profile', name: USER.name, personId: USER.personId || '',
           target: W.name, targetId: W.personId || '', fields },
         auto ? { where: said } : { button: el, busy: 'Saving…', where: said })
     .then(d => {
@@ -358,7 +358,7 @@ function profileRefresh_(loud, onOld) {
   PROFILE_ASKING = true;
   const askedAt = Date.now();
   /* RETURNED, so a caller waiting on a copy it can trust (the card editor, `cardFetch_`) knows when the question has been answered either way — every § */
-  return api({ action: 'readItems', kind: 'profile', name: USER.name, personId: USER.personId || '' })
+  return api({ action: 'item', door: 'get', kind: 'profile', name: USER.name, personId: USER.personId || '' })
     .then(d => {
       PROFILE_ASKING = false;
       /* ---------- AN ANSWER OLDER THAN WHAT THE PHONE NOW KNOWS IS NOT PAINTED § */

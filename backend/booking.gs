@@ -1,7 +1,7 @@
 /* @family. — 30_booking.gs (4 of 8) THE BOOKING MACHINE, and everything that decides who is in a session. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const BOOKING_VERSION = "2026-11-17-clean-2";
+const BOOKING_VERSION = "2026-11-17-store-3";
 
 
 /* WHEN THE BUSINESS ACTUALLY OPERATES within an interval. § */
@@ -1213,7 +1213,6 @@ const PERMISSIONS = {
   createJob: ['member', 'admin'],
   decideApplication: ['admin'],
   decideSuggestion: ['admin'],
-  deleteItem: ['member', 'child', 'admin'],
   deleteJob: ['admin'],
   deletePost: ['member', 'child', 'admin'],
   digestPreview: ['admin'],
@@ -1270,7 +1269,6 @@ const PERMISSIONS = {
   pushUnsubscribe: ['member', 'child', 'admin'],
   raiseHand: ['member', 'child', 'admin'],
   reactPost: ['member', 'child', 'admin'],
-  readItems: ['anyone', 'member', 'child', 'admin'],
   readMessage: ['member', 'child', 'admin'],
   register: ['anyone', 'member', 'child', 'admin'],
   renameAllUsernames: ['admin'],

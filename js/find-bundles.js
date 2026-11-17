@@ -357,7 +357,7 @@ function toggleFav(k, kind) {
     /* THE KEY IS NOT SPLITTABLE, so it is not split. § */
     /* ---------- AND IT WAS STILL CALLING `send` WITH TWO ARGUMENTS § */
     send({
-      action: 'saveItem', item: 'favourite',
+      action: 'item', door: 'save', item: 'favourite',
       name: USER.name, personId: (USER && USER.personId) || '',
       kind: kind || 'item', itemId: key,
       on: FAVS.has(key) ? 'TRUE' : '',

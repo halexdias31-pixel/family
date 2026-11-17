@@ -212,7 +212,7 @@ function layoutSave_(next) {
   const set = v => { try { DATA.layout = v; } catch (e) { /* no payload yet: the device's copy below still holds it */ } layoutKeep_(v); layoutRelayout_(); };
   const val = layoutSane_(next);
   set(val);
-  return send({ action: 'saveItem', item: 'layout', personId: (USER && USER.personId) || '', layout: val })
+  return send({ action: 'item', door: 'save', item: 'layout', personId: (USER && USER.personId) || '', layout: val })
     .then(() => true)
     .catch(err => { set(was); toast(why_(err)); return false; });
 }
