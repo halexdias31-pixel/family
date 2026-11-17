@@ -744,7 +744,8 @@ function stuffItemsRaw_() {
 
     /* ---------- `DATA.films` WAS MAPPED HERE, ONE ITEM PER FILM OR SERIES, AND IS NOT ANY MORE § */
 
-    ...questionItems(),
+    /* ONLY WHAT THE SITE CAN MARK (tools/validate-questions.js): a broken question is an admin's alone (`qOffered_`, library.js) */
+    ...questionItems().filter(x => typeof qOffered_ !== 'function' || qOffered_(x)),
   ].filter(x => !x || OFF_KINDS[x.kind] === undefined).concat(offKindCards_());
 }
 /* SWITCHED OFF (owner, 4 Nov): these kinds' items leave Find; each area keeps one Coming soon card under its own answer. */

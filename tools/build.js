@@ -20,6 +20,7 @@ const ORDER = [
   'facet-hues',   // walks the app over every js/ write above -> TAG_OF, data/facet-graph.json
   'finder-tags',  // walks it again, TAG_OF included -> js/finder-tags.js
   'rules',        // rules.json -> docs/rules.md
+  'validate-questions', // the questions marked by the site's own marker -> data/question-status.json (ok / tutor / broken)
   'bundle',       // js/ in index.html's order -> bundle/*.js
   'build-stamp',  // everything served -> index.html's BUILD_STAMP; last
 ];

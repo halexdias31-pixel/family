@@ -17,7 +17,8 @@ function qtCheckOpts_(x, m) {
   if (m.kind === 'draw') return { send: true, act: 'pad-check', cls: 'qp-check' };
   /* OPTIONS WITH NO KEY: their Check says so under the row (round 4) */
   if (!m.ready) return { send: true, act: 'qp-noscheme', cls: 'qp-check', data: { key: (x && x.key) || '' } };
-  return { send: true, label: 'Save', act: 'qp-send', cls: 'qp-send' };
+  /* LEVEL-MARKED (tools/validate-questions.js `tutor`): saved for the tutor, and it says so */
+  return Object.assign({ send: true, label: 'Save', act: 'qp-send', cls: 'qp-send' }, typeof qStatus_ === 'function' && qStatus_(x) === 'tutor' ? { note: 'marked by your tutor' } : {});
 }
 /* ---------- THE ROW. QT_ROW on every part, the pen's tiles where there is a figure, then Undo, Clear and Check (1020). */
 const PEN_OPEN = new Set();
