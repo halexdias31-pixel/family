@@ -67,7 +67,7 @@ function partRecPutAt_(pk, field, v) {
 /* WHAT THE LINE UNDER CHECK SAYS, by marker: how this part will be marked, before it is. Never a person. */
 /* ONE LINE UNDER EVERY ROW (owner, 9 Nov): marking is one path for every type, so it says the same words everywhere. */
 const QT_HOW_ALL = 'Marked by its mark scheme where a rule can; otherwise your work is saved, not marked';
-/* the markers `markPart_` (find-marking.js) reads off the typed box: one Check, `qp-check`, for all of them */
+/* the markers `mark_` (find-marking.js) reads off the typed box: one Check, `qp-check`, for all of them */
 const QT_SCHEME_KINDS = { choice: 1, order: 1, accept: 1, words: 1 };
 /* `ready` is false where the marker has nothing to mark against yet (no key, no scheme): Check says so instead of asking */
 const QT_NO_SCHEME = 'No mark scheme yet \u2014 flag it and we will add one';

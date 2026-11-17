@@ -35,7 +35,7 @@ const QT_TILE = {
   /* SIGNED IN, ON A PAPER: the whole paper downloaded for no connection (offline.js) */
   offline: (t, x) => (typeof window.offOpts_ === 'function' ? window.offOpts_(x) : null),
   /* THE MARKER IS THE QUESTION'S (owner, 15 Nov): photos are saved with a part no rule marks; a rule-marked part never takes them. */
-  photo: (t, x) => (isSaveMark_(markerOf_(x)) ? { icon: t.icon, label: t.label, note: t.note, act: 'qp-work', cls: 'qp-work-go qt-t', data: { k: ansKey_(x), tool: t.id } } : null),
+  photo: (t, x) => (!markSchemeOf_(x).length ? { icon: t.icon, label: t.label, note: t.note, act: 'qp-work', cls: 'qp-work-go qt-t', data: { k: ansKey_(x), tool: t.id } } : null),
 };
 /* THE PAD'S KEY A PEN OR INSTRUMENT TILE READS, '' for the rest; and the tool that pad holds, '' when it is not taking the pen */
 const qtPadKey_ = (t, x) => t && (t.act === 'qt-pen' || t.act === 'qt-inst') && typeof padKey_ === 'function' ? padKey_(x) : '';

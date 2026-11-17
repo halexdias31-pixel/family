@@ -416,18 +416,13 @@ function subMigrate_() {
 }
 
 /* ---------- THE WORDS FOR A VERDICT § */
-/* `ai:2/3` MARKED BY THE AI, `rule:2/3` BY THE QUESTION'S KEY WORDS (359) -- which way is kept with the marks. */
-function subAiOf_(v) {
-  const m = /^(ai|rule):(\d{1,3})\/(\d{1,3})$/.exec(String(v || ''));
-  return m ? { got: +m[2], of: +m[3], by: m[1] } : null;
-}
+/* A STORED VERDICT READ AS THE ONE SHAPE (`verdictOf_`, find-marking.js): `rule:2/3` by a mechanical rule, `ai:2/3` an old AI mark, read only. */
 function subSay_(v) {
-  if (v === 'right') return { text: 'Correct', cls: 'is-right' };
-  if (v === 'wrong') return { text: text_('not-yet-have-another-go'), cls: 'is-near' };
-  if (v === 'sent') return { text: 'Sent', cls: '' };
-  const ai = subAiOf_(v);
-  if (ai) return { text: ai.got + ' of ' + ai.of + ' mark' + (ai.of === 1 ? '' : 's') + (ai.by === 'rule' ? ' · by key words' : ' · AI'), cls: ai.got >= ai.of ? 'is-right' : 'is-near' };
-  return { text: '', cls: '' };
+  const r = verdictOf_(v);
+  if (!r) return { text: '', cls: '' };
+  if (r.method === 'unmarked') return { text: 'Sent', cls: '' };
+  if (r.method === 'dogma') return r.verdict === 'right' ? { text: 'Correct', cls: 'is-right' } : { text: text_('not-yet-have-another-go'), cls: 'is-near' };
+  return { text: r.marks + ' of ' + r.max + ' mark' + (r.max === 1 ? '' : 's') + (r.method === 'rules' ? ' · by key words' : ' · AI'), cls: r.marks >= r.max ? 'is-right' : 'is-near' };
 }
 
 /* ---------- THE VERDICT, HEARD § */
@@ -438,11 +433,9 @@ function markCanSound_() {
   try { return !!(window.AudioContext || window.webkitAudioContext); } catch (e) { return false; }
 }
 function markKind_(v) {
-  if (v === 'right') return 'right';
-  if (v === 'wrong') return 'wrong';
-  const ai = subAiOf_(v);
-  if (!ai || ai.of < 1) return '';
-  return ai.got >= ai.of ? 'right' : ai.got === 0 ? 'wrong' : '';
+  const r = verdictOf_(v);
+  if (!r || r.max < 1) return '';
+  return r.marks >= r.max ? 'right' : r.marks === 0 ? 'wrong' : '';
 }
 
 /* ---------- THE TWO SOUNDS, AS NOTES ON A CLOCK § */

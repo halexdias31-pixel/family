@@ -12,8 +12,8 @@ const TAKE = [
   ['js/qaliases.js', ['QALIAS', 'qAliasKey_', 'qAliasMine_']],
   /* THE SCHOOL YEAR AND EASTER (491): booking.gs `schoolYear` and setup.gs `easterOf_` date by the site's rule. */
   ['js/arcade.js', ['tdEaster_', 'tdJul_', 'tdYear0_', 'tdYear_']],
-  /* A MARKED VERDICT (`ai:2/3`, `rule:2/3`, 359): the Sunday email's `digestMark_` reads it as the site's `subSay_` does. */
-  ['js/submit.js', ['subAiOf_']],
+  /* A STORED VERDICT AS THE ONE MARKING ENGINE'S SHAPE (owner, 17 Nov): the Sunday email's `digestMark_` reads it as the site's `subSay_` does. */
+  ['js/find-marking.js', ['verdictOf_']],
   ['js/find-figures.js', ['TAG_NAME', 'tagMadeOf_']],
   /* THE WORDS FILE AND THE FORMATTERS (owner rule 1.1): every line a card says in an email goes through these. */
   ['js/core.js', ['WORDS_FILE', 'esc', 'text_', 'fmtTime_', 'fmtHours_', 'fmtMoney_', 'DAYS_SHORT', 'fmtDay_', 'fmtDmy_', 'fmtDate_']],

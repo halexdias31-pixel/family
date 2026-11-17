@@ -783,15 +783,14 @@ function markPoints_(typed, rule, x, opt) {
   /* `quoted`: quotations found word for word in the source; `unfound`: ones that are not; `sourced`: there was a source to check */
   return { got: Math.min(got, key.max), of: key.max, points: true, quoted: inSource, unfound: notInSource, sourced: !!source };
 }
-/* ---------- PEEL (rule 1.33): a long English answer, by AQA level, mechanically. Its boxes (data/settings/peel.json) are each read
+/* ---------- PEEL (rule 1.33): a long English answer, by AQA level, mechanically. Its boxes (data/settings/marking.json) are each read
    by `markPoints_` for Point (the question's focus in its first sentence), Evidence (a quotation found word for word in the insert),
    Explain (a technique from the subject's one list with an explaining word) and Link (the focus again in its last sentence);
    the count across the answer is a level, and the mark in it, through the one level table. `rule: peel; <focus wordings>` */
 const PEEL_SEP = '\n\n';
 const PEEL_SAY = { point: 'point', evidence: 'evidence', explain: 'explain', link: 'link' };
 function peelRows_(kind, subject) {
-  const rows = (typeof DATA !== 'undefined' && DATA && Array.isArray(DATA.peel)) ? DATA.peel : [];
-  return rows.filter(r => r.kind === kind && (!subject || !r.subject || String(r.subject).toLowerCase() === String(subject).toLowerCase()));
+  return markRows_().filter(r => r.kind === kind && (!subject || !r.subject || String(r.subject).toLowerCase() === String(subject).toLowerCase()));
 }
 const markIsPeel_ = accept => /(^|\|)\s*rule:\s*peel\b/i.test(String(accept || ''));
 const peelBoxes_ = () => peelRows_('box').map(r => ({ name: String(r.name), marks: String(r.marks || '').split(/\s+/).filter(k => PEEL_SAY[k]) }));
@@ -1082,7 +1081,7 @@ function choicePicks_(x, typed) {
   return out.some(n => !n) ? [] : out;
 }
 
-/* EACH MARKER BY ITS KIND: `{got, of}`, or null for nothing typed. */
+/* OPTIONS, AS A SET OR IN ORDER: `{got, of}`, or null for nothing typed. */
 const markChoice_ = (x, typed, ord) => {
   const p = choicePicks_(x, typed);
   if (p === null) return null;
@@ -1090,37 +1089,81 @@ const markChoice_ = (x, typed, ord) => {
   const set = w => (ord ? w : w.slice().sort((a, b) => a - b));
   return { got: markOrder_(set(p), ord ? orderWays_(x) : [set(x.choiceRight || [])]) ? 1 : 0, of: 1 };
 };
-const PART_MARKERS = {
-  choice: (x, typed) => markChoice_(x, typed, false),
-  order: (x, typed) => markChoice_(x, typed, true),
-  accept: (x, typed) => {
-    /* POINTS ARE COUNTED, and the one result is the marks out of the maximum */
-    if (markIsPeel_(x.accept)) return markPeel_(typed, x.accept, x, markOpt_(x));
-    if (markIsPoints_(x.accept)) return markPoints_(typed, markPointsWay_(x.accept), x, markOpt_(x));
-    const o = markOpt_(x), v = markAnswer_(typed, x.accept, false, o);
+/* ---------- ONE MARKING ENGINE (owner, 17 Nov), never live AI: `mark_(x, answer, scheme)` marks a part by the most exact method its
+   scheme supports -- dogma (options, cells, exact keys and aliases, numbers with tolerance and units), then mechanical rules (PEEL,
+   points, key words, a graph's geometry, a rule set distilled offline) -- and else it is `unmarked`: saved, never sent to a person.
+   One verdict everywhere: `{ verdict, marks, max, method, why }`, verdict right | wrong | part | empty | wait | unmarked.
+   The methods, their tiers and their order are the table data/settings/marking.json (`DATA.marking`), with PEEL's rows. */
+const markRows_ = () => ((typeof DATA !== 'undefined' && DATA && Array.isArray(DATA.marking)) ? DATA.marking : []);
+/* A DISTILLED RULE SET (the slot): rows `{kind: 'distilled', key, points}` made offline, run here as marking points */
+const markDistilled_ = x => markRows_().find(r => r.kind === 'distilled' && r.key && (r.key === (x && x.key) || r.key === (x && x.row && x.row.row_id)));
+/* each method: `has(x)` its scheme is on the part; `run(x, answer)` gives `{got, of, ...}`, or null for nothing to mark */
+const MARK_METHODS = {
+  choice: { has: x => markerOf_(x).kind === 'choice', run: (x, a) => markChoice_(x, a, false) },
+  order: { has: x => markerOf_(x).kind === 'order', run: (x, a) => markChoice_(x, a, true) },
+  cells: { has: x => markerOf_(x).kind === 'cells', run: (x, a) => {
+    const m = markCells_(a, cellsOf_(x), markOpt_(x));
+    return m.each.some(v => v === true || v === false) ? { got: m.right, of: m.of, each: m.each } : null;
+  } },
+  accept: { has: x => markerOf_(x).kind === 'accept' && !markIsPeel_(x.accept) && !markIsPoints_(x.accept), run: (x, a) => {
+    const o = markOpt_(x), v = markAnswer_(a, x.accept, false, o);
     if (v === null) return null;
-    const fix = v && !markAnswer_(typed, x.accept, false, { strict: true }) ? markTypo_(typed, x.accept, o) : '';
+    const fix = v && !markAnswer_(a, x.accept, false, { strict: true }) ? markTypo_(a, x.accept, o) : '';
     return fix ? { got: 1, of: 1, typo: fix } : { got: v ? 1 : 0, of: 1 };
-  },
-  words: (x, typed) => {
-    const w = markWords_(typed, x.markWords);
+  } },
+  peel: { has: x => markerOf_(x).kind === 'accept' && markIsPeel_(x.accept), run: (x, a) => markPeel_(a, x.accept, x, markOpt_(x)) },
+  points: { has: x => markerOf_(x).kind === 'accept' && !markIsPeel_(x.accept) && markIsPoints_(x.accept),
+    run: (x, a) => markPoints_(a, markPointsWay_(x.accept), x, markOpt_(x)) },
+  words: { has: x => markerOf_(x).kind === 'words', run: (x, a) => {
+    const w = markWords_(a, x.markWords);
     if (!w) return null;
     const of = Math.max(1, Math.min(w.of, Number(x.marks) || w.of));
-    return { got: Math.min(w.got, of), of, words: true };
-  },
+    return { got: Math.min(w.got, of), of };
+  } },
+  /* a drawing or graph: `answer` is `{ strokes, fig }`, held against `draw_answer` (366) */
+  graph: { has: x => markerOf_(x).kind === 'draw', run: (x, a) => (a && typeof a === 'object' && !Array.isArray(a) ? DRAW_MARK.mark(a.strokes, x.drawAnswer, a.fig, x.marks) : null) || { error: true } },
+  distilled: { has: x => !!markDistilled_(x), run: (x, a) => markPoints_(a, markDistilled_(x).points, x, markOpt_(x)) },
 };
-/* ---------- ONE MARKER FOR EVERY TYPED PART (owner, 9 Nov): the mark scheme — options, order, accepted answers, key words. `{got, of}`; null for nothing typed; `{save:true}` where no rule can mark (saved, never marked: owner, 16 Nov). */
-function markPart_(x, typed) {
-  const m = markerOf_(x || {});
-  const mark = Object.prototype.hasOwnProperty.call(PART_MARKERS, m.kind) ? PART_MARKERS[m.kind] : null;
-  if (mark) return mark(x, typed);
-  return String(typed == null ? '' : typed).trim() ? { save: true } : null;
+/* THE PART'S METHODS, in the table's order: the first whose scheme is on the part marks it */
+function markSchemeOf_(x) {
+  const names = markRows_().filter(r => r.kind === 'method' && MARK_METHODS[r.name]).map(r => r.name);
+  return (names.length ? names : Object.keys(MARK_METHODS)).filter(n => MARK_METHODS[n].has(x || {}));
 }
-
+const markTierOf_ = name => ((markRows_().find(r => r.kind === 'method' && r.name === name) || {}).tier || (name === 'unmarked' ? 'none' : 'rules'));
+function mark_(x, answer, scheme) {
+  x = x || {};
+  const name = scheme || markSchemeOf_(x)[0] || 'unmarked';
+  const max = Math.max(1, Number(x.marks) || 1);
+  const out = (verdict, marks, of, why, more) => Object.assign({ verdict, marks, max: of, method: name, why: why || '' }, more || {});
+  const blank = answer == null || (typeof answer === 'string' && !answer.trim()) || (Array.isArray(answer) && !answer.some(v => String(v == null ? '' : v).trim()));
+  if (!MARK_METHODS[name]) return out(blank ? 'empty' : 'unmarked', 0, max, 'No exact key or mechanical rule for this part yet: saved, not marked.');
+  const r = blank && name !== 'graph' ? null : MARK_METHODS[name].run(x, answer);
+  if (!r || r.empty) return out('empty', 0, r ? r.of : max, '');
+  if (r.error) return out('unmarked', 0, max, 'Could not mark it \u2014 try again');
+  if (r.wait) return out('wait', 0, max, r.say);
+  const more = {};
+  ['typo', 'peel', 'say', 'each', 'stray'].forEach(k => { if (r[k] !== undefined) more[k] = r[k]; });
+  return out(r.got >= r.of ? 'right' : r.got > 0 ? 'part' : 'wrong', r.got, r.of, r.why || '', more);
+}
+/* THE VERDICT AS STORED (`submissions.verdict`): a one-mark exact method or graph right | wrong, a rule's marks `rule:n/m`, unmarked `sent` */
+function markWord_(v) {
+  if (!v || v.verdict === 'unmarked') return 'sent';
+  return (markTierOf_(v.method) === 'dogma' || v.method === 'graph') && v.max === 1 ? (v.marks >= 1 ? 'right' : 'wrong') : 'rule:' + v.marks + '/' + v.max;
+}
+/* AND READ BACK: a stored verdict as the one shape; `ai:` is an old AI mark, read only, never made again */
+function verdictOf_(v) {
+  const t = String(v == null ? '' : v);
+  if (t === 'right' || t === 'wrong') return { verdict: t, marks: t === 'right' ? 1 : 0, max: 1, method: 'dogma', why: '' };
+  if (t === 'sent') return { verdict: 'unmarked', marks: 0, max: 0, method: 'unmarked', why: '' };
+  const m = /^(ai|rule):(\d{1,3})\/(\d{1,3})$/.exec(t);
+  if (!m) return null;
+  const got = +m[2], of = +m[3];
+  return { verdict: got >= of ? 'right' : got > 0 ? 'part' : 'wrong', marks: got, max: of, method: m[1] === 'ai' ? 'ai' : 'rules', why: '' };
+}
 /* ---------- IS THIS ANSWER READY TO SEND: one table, a row per answer surface -- what it holds counts as an answer, and what is said when it does not. */
 const qTrim_ = v => String(v == null ? '' : v).trim();
 const PART_READY = {
-  /* typed boxes: options, order, values, fractions, words -- `markPart_` reads them all */
+  /* typed boxes: options, order, values, fractions, words -- `mark_` reads them all */
   typed: { has: a => !!qTrim_(a), say: () => text_('write-something-first') },
   /* a table's or a sort's cells: one cell the marker can read */
   cells: { has: m => !!m && (m.each || []).some(v => v === true || v === false), say: () => text_('fill-a-cell-first') },
