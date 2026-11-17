@@ -700,11 +700,15 @@ function bibleCard_(x) {
   return x && x.bb ? bibleVerseCard_(x) : '';
 }
 /* ---------- THE ONE VIEWER (owner, 9 Nov): a library card's book, paper, video or PDF opens inside its own card, never a new tab; a video plays there, not full screen. */
+/* THE SITES OUR SOURCES LINK TO THAT SEND X-Frame-Options (checked 17 Nov). */
+const FILE_VIEW_AWAY = ['www.bbc.co.uk', 'royalarmouries.org'];
 function fileViewKind_(u) {
   const s = String(u || '');
   if (/youtube\.com\/watch|youtu\.be\//i.test(s)) return 'youtube';
   if (/\.(mp4|webm|m4v|mov)(\?|#|$)/i.test(s)) return 'video';
   if (/\.(png|jpe?g|gif|webp|svg)(\?|#|$)/i.test(s)) return 'image';
+  /* A SITE THAT REFUSES TO BE FRAMED (X-Frame-Options) drew a blank card (owner, 17 Nov): it opens in a new tab instead. */
+  if (FILE_VIEW_AWAY.some(h => s.indexOf('https://' + h + '/') === 0)) return 'away';
   return 'page';
 }
 /* ---------- A POLICY (docs/policies/*.md) OPENS AS A PAGE, its placeholders filled from `DATA.policy`; a missing value reads "[to follow]". */
@@ -800,6 +804,7 @@ function fileView_(u, host, title) {
   if (had) { const same = had.getAttribute('data-url') === u; had.remove(); if (same) return true; }
   if (policyName_(u)) return policyView_(u, host, policyName_(u));
   const kind = fileViewKind_(u), name = title || 'File';
+  if (kind === 'away') { window.open(u, '_blank', 'noopener'); return true; }
   const body = (Object.prototype.hasOwnProperty.call(FILE_VIEW_BODY, kind) ? FILE_VIEW_BODY[kind] : fileFrame_)(u, name);
   const box = document.createElement('div');
   box.className = 'file-view file-view-' + kind;

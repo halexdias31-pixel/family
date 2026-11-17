@@ -55,7 +55,8 @@ function histTopicItems_() {
 
 /* WHERE A PICTURE CAME FROM, under it: who made it and its licence, linked to its page. */
 const htopCredit_ = p => (p && p.credit ? [{ type: 'text', look: 'htop-credit', text: ['Picture: ', { link: p.credit + ' · ' + (p.licence || ''), href: p.page || '', act: 'file-view', look: 'link' }] }] : []);
-const htopLink_ = (u, say) => (u ? [{ type: 'text', look: 'htop-link', text: [{ link: say, href: u, act: 'file-view', look: 'link' }] }] : []);
+/* A SOURCE'S LINK IS A BUTTON (owner, 17 Nov): a video's plays, a text's reads. */
+const htopLink_ = (u, say, icon) => (u ? [{ type: 'tiles', tiles: [{ icon: icon || 'open', label: say, href: u }] }] : []);
 
 /* THE BODY OF EACH KIND (ITEM_MAPS.hist): no worked examples, only what happened, who, and what survives. */
 function histTopicBody_(h) {
@@ -66,7 +67,7 @@ function histTopicBody_(h) {
     r.fate ? { label: 'What happened', value: r.fate } : null].filter(Boolean) }, { type: 'list', items: r.facts || [] }].concat(htopCredit_(r.pic));
   if (h.part === 'sources') return [{ type: 'list', items: [{ label: 'Kind', value: r.type || '' }, r.date ? { label: 'Made', value: r.date } : null].filter(Boolean) },
     { type: 'text', text: r.text || '' }].concat(r.quote ? [{ type: 'text', look: 'htop-quote', text: '“' + r.quote + '”' }] : [],
-    htopLink_(r.url, r.type === 'Video' ? 'Watch on the BBC' : 'Read the full text'), htopCredit_(r.pic));
+    htopLink_(r.url, r.type === 'Video' ? 'Watch the video' : 'Read the full text', r.type === 'Video' ? 'play' : 'open'), htopCredit_(r.pic));
   return [{ type: 'list', items: [{ label: 'When', value: r.date || '' }] }, { type: 'list', items: r.facts || [] }]
     .concat(htopLink_(r.url, 'Find out more'), htopCredit_(r.pic));
 }
