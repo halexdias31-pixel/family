@@ -12,8 +12,8 @@ const QT_TOOLS = [
   { id: 'protractor', icon: 'protractor', label: 'Protractor',      note: 'measure an angle',         act: 'qt-inst' },
   { id: 'compass',    icon: 'compass',    label: 'Compass',         note: 'press the centre, drag',   act: 'qt-inst' },
   { id: 'photo',      icon: 'photo',      label: 'Photo of working', note: 'up to 3 pages',           act: 'qp-work' },
-  /* THE GRAPH FACE (owner, 16 Nov): a grid with axes in the answer box's slot, marked by rule (answer-face.js) */
-  { id: 'graph',      icon: 'grid',       label: 'Graph',           note: 'a grid in the answer box', act: 'qp-graph' },
+  /* THE PAPER FACE (owner, 17 Nov): graph, lined or blank paper in the answer box's slot, the pen tools on it (answer-face.js) */
+  { id: 'paper',      icon: 'grid',       label: 'Paper',           note: 'graph, lined or blank',    act: 'qp-paper' },
   { id: 'mag',        icon: 'zoom',       label: 'Magnifier',       note: 'hold it over the page',    act: 'q-mag' },
   { id: 'read',       icon: 'speak',      label: 'Read aloud',      note: 'reads the question out',   act: 'read-aloud' },
   { id: 'lock',       icon: 'unlock',     label: 'Lock',            note: 'hold this page still',     act: 'q-lock' },
@@ -22,7 +22,7 @@ const QT_TOOLS = [
   { id: 'check',      icon: 'send',       label: 'Check',           note: '',                         act: '' },
 ];
 /* THE ONE ROW EVERY PART SHOWS, identically (owner, 8 Nov); data/settings/qengine.json `row` repeats it (check-answerable) */
-const QT_ROW = ['photo', 'graph', 'mag', 'read', 'lock', 'ruler', 'protractor', 'calc', 'offline'];
+const QT_ROW = ['photo', 'paper', 'mag', 'read', 'lock', 'ruler', 'protractor', 'calc', 'offline'];
 /* THE PEN'S TILES, added only where the part has a figure to draw on (a drawing answer needs its pen) */
 const QT_DRAWING = { pen: 1, line: 1, compass: 1 };
 /* THE PEN'S OWN NAME FOR EACH DRAWING TILE: Straight line is the pad's `ruler` mode (a line from press to lift, `padStroke_`). */
@@ -79,10 +79,14 @@ function qtPenOpen_(el, tool) {
   const key = qtKeyOf_(el);
   let card = el.closest('.qcard');
   if (!card) return null;
-  let pad = card.querySelector('.qpad');
+  /* A TILE ON THE PAPER FACE draws on that paper's pad, whatever figure the card has */
+  const face = el.closest('.qp-face');
+  let pad = (face || card).querySelector('.qpad');
   if (!pad) {
     const x = qtItem_(key);
     if (!x) return null;
+    /* NOTHING TO DRAW ON (no figure, no surface): the tool goes on blank paper in the answer box (answer-face.js), never nowhere */
+    if (!padReady_(x)) return paperPadPick_(card, key, tool);
     qtPenSet_(x, true);
     card = qtRedraw_(card, x);
     pad = card && card.querySelector('.qpad');

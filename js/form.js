@@ -29,6 +29,35 @@ FORM_SPECS.forms = Object.assign({}, ...Object.keys(ITEM_KINDS.kinds).map(k => O
 /* A FORM ASKED IN FIND, ONE FIELD A STEP (`ask: "find"`): its fields in order, and one field's spec (many, need, given, ask). */
 const formAsks_ = id => ((FORM_SPECS.forms[id] || {}).fields || []).map(x => x.f);
 const formAsk_ = (id, f) => ((FORM_SPECS.forms[id] || {}).fields || []).find(x => x.f === f) || {};
+/* A FORM'S QUESTIONS AS DATA (kinds.json `step` on a field, rows in `rows`): where each one's options come from, which it keeps,
+   how each reads, and why one is refused. `fns` holds the named pieces that cannot be data (the hour grid's maths, a seat range);
+   every name is looked up there first, else read as a row field. One step object per row, the shape the booking code reads. */
+const formArr_ = v => v == null ? [] : Array.isArray(v) ? v : [v];
+function formSteps_(id, fns) {
+  const spec = FORM_SPECS.forms[id] || {}, fn = n => typeof n === 'string' && typeof fns[n] === 'function' ? fns[n] : null;
+  const pick = (row, by) => { const f = fn(by); if (f) return f(row); if (row == null || typeof row !== 'object') return row;
+    return formArr_(by).map(k => row[k]).find(v => v != null && v !== '') || ''; };
+  const holds = c => { const f = fn(c); return f ? !!f() : !!(typeof BOOKING === 'object' && BOOKING[c]); };
+  return (spec.rows || []).map(f => {
+    const s = (formAsk_(id, f).step) || {}, st = { id: f, label: text_(s.q || f), short: s.short ? text_(s.short) : '' };
+    ['only', 'wrap', 'week', 'grid'].forEach(k => { if (s[k] != null) st[k] = s[k]; });
+    ['fallback', 'lock', 'set', 'off'].forEach(k => { if (fn(s[k])) st[k] = fn(s[k]); });
+    if (fn(s.check)) st.why = fn(s.check);
+    if (fn(s.say)) st.label_ = fn(s.say);
+    else if (s.say && typeof s.say === 'object') st.label_ = v => text_(s.say[v] || v);
+    st.options = () => {
+      if (formArr_(s.when).some(c => !holds(c)) || formArr_(s.unless).some(holds)) return [];
+      if (s.may && !(typeof may_ === 'function' && may_(s.may))) return [];
+      let rows = s.list ? s.list.map(w => text_(w)) : s.from ? (fns.from[s.from] || (() => []))() || [] : [];
+      if (s.filter) rows = rows.filter(r => !!pick(r, s.filter));
+      if (s.sort) rows = rows.slice().sort((a, b) => String(pick(a, s.sort)).localeCompare(String(pick(b, s.sort))));
+      let out = rows.map(r => s.label ? pick(r, s.label) : r);
+      out = formArr_(s.first).map(w => text_(w)).concat(out, formArr_(s.last).map(w => text_(w)));
+      return fn(s.then) ? fn(s.then)(out) : out;
+    };
+    return st;
+  });
+}
 const FORM_RULES_ =FORM_SPECS.rules.map(r => ({ kind: r.kind, re: new RegExp(r.match) }));
 const formKind_ = f => (FORM_RULES_.find(r => r.re.test(String(f || ''))) || { kind: 'text' }).kind;
 

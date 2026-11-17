@@ -4162,7 +4162,10 @@ svg.meas .meas-body, svg.meas .meas-turn, svg.meas .meas-tick, svg.meas .meas-nu
 .qp-face-say:empty { display: none; }
 .qp-graph-axes { display: flex; flex-wrap: wrap; gap: var(--s2); font: 400 var(--fs-small)/1.45 var(--font); color: var(--ink); }
 .qp-graph-ax input { width: 3.5em; }
-.qp-graph-art svg { display: block; width: min(100%, 44svh); height: auto; touch-action: manipulation; color: var(--ink); }
+/* THE PAPER FACE: graph, lined or blank paper under the one drawing layer (the pad's ink) */
+.qp-paper-art .qpad-art { width: min(100%, 44svh); color: var(--ink); }
+.qp-paper-art .qpad-art > svg:first-child { touch-action: manipulation; }
+.qp-paper-art .qsurf .grid { stroke: currentColor; opacity: .33; }
 .qp-graph-art .grid { stroke: currentColor; opacity: .33; }
 .qp-graph-art .axis { stroke: currentColor; stroke-width: 1.6; }
 .qp-graph-art .ax { font: italic 600 11px var(--font); fill: currentColor; }
