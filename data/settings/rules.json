@@ -208,7 +208,7 @@
   {
    "id": "1.33",
    "principle": 1,
-   "text": "Marking is mechanical only (owner, 16 Nov: \"NO AI\"): an answer is marked by its key (accepted answers, options, cells, or key points, and a long answer broken into its paragraphs, each marked by points); a part with no key saves without a mark. No AI and no person marks. An English long answer is marked as AQA does, by level, mechanically: its paragraphs (introduction, 1, 2, 3) are counted for PEEL — a point on the question's focus, a quote found word for word in the extract, a named technique explained, a link back — and the count across the answer sets the level and the mark in it (owner, 16 Nov).",
+   "text": "Marking is mechanical only (owner, 16 Nov: \"NO AI\"): an answer is marked by its key (accepted answers, options, cells, or key points, and a long answer broken into its paragraphs, each marked by points); a part with no key saves without a mark. No AI and no person marks. An English long answer is marked as AQA does, by level, mechanically: its paragraphs (introduction, 1, 2, 3) are counted for PEEL — a point on the question's focus, a quote found word for word in the extract, a named technique explained, a link back — and the count across the answer sets the level and the mark in it (owner, 16 Nov). A photo of a DRAWN answer (a part with `draw_answer`; pie charts first) is read on the phone by deterministic image geometry into strokes (`PHOTO_READ`, working.js) and marked by the same draw marker as the pen (`DRAW_MARK`); the lines read are shown over the photo, and one it cannot read confidently stays unmarked. Handwritten words in a photo stay unmarked (owner, 17 Nov).",
    "since": "2026-11-16"
   },
   {

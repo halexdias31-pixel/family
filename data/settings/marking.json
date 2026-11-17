@@ -8,7 +8,7 @@
 {"kind":"method","name":"words","tier":"rules","says":"Key words, a point each (mark_words)."},
 {"kind":"method","name":"graph","tier":"rules","says":"Every visual maths answer drawn on the grid or pad (graphs, bar charts, plotted points and lines, shaded regions, constructions, angles, shapes, translations, reflections) held against its key geometrically: points, lines, lengths, angles and areas within tolerance (draw_answer)."},
 {"kind":"method","name":"distilled","tier":"rules","says":"Long essays only (English, RS, History and the like): a rule set distilled offline for one part, rows of kind distilled {key, points}, marked as points. Data only; nothing is asked at run time."},
-{"kind":"method","name":"unmarked","tier":"none","says":"No exact key and no mechanical rule (a photo of handwritten working): saved, verdict unmarked. Never a person, never live AI."},
+{"kind":"method","name":"unmarked","tier":"none","says":"No exact key and no mechanical rule (a photo of handwritten words or working; a photo of a drawn answer is read by its geometry and marked by the draw marker): saved, verdict unmarked. Never a person, never live AI."},
 {"kind":"box","name":"Introduction","marks":"point"},
 {"kind":"box","name":"Paragraph 1","marks":"point evidence explain link"},
 {"kind":"box","name":"Paragraph 2","marks":"point evidence explain link"},
