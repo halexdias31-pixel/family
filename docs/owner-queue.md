@@ -30,8 +30,18 @@ Order: what a child or parent would notice first, then what stops things driftin
 8. Preview copy before live.
 9. Marking signals: near-miss wrong marks, all-zero questions, repeated retries, logged automatically.
 10. A one-tap "this mark is wrong" on every marked answer; each report becomes a permanent example in an answer bank the marker must keep passing.
-11. ONE ANSWER FACE (decided 17 Nov): the one text box for every question. Printed options: the marker matches typed text forgivingly to the paper's own options (spelling, abbreviation, letter). Tables: one box, any separator. Drawn answers become the facts that define the drawing (angles, values, points, equation, vertices, inequality, bar heights), typed and marked exactly; the child draws on paper. True drawings (constructions, loci, sketches, shading) are "marked by your tutor". Then remove the drawing pad, photo marking and every other answer button (unless the owner objects).
+11. ANSWER FACES (owner, 17 Nov, revised): REMOVE photo marking. KEEP the drawing pad (coordinate grids, transformations, graphs work well and children need it). One systematic rule for where the answer goes: if the paper draws the answer space inside the figure (grid, axes, shape to reflect, number line), the answer IS drawn on that figure in the pad; otherwise it is the one text box. Printed options: the text box, marked forgivingly against the paper's own options. Tables: one box, any separator. Essays are MARKED MECHANICALLY (PEEL / distilled rules) — never "marked by your tutor"; that label is wrong for essays and must go. Loci/constructions/sketches: keyed geometrically where possible on the pad.
+11b. Drawing tools for children: the line tool and the magnifier are sometimes hard to use; watch it at phone size, find the real friction (hit area, loupe size, snapping), fix at the one pad engine.
 12. One form engine (the profile editor's own boxes join the form maker).
+
+## Find and people (owner, 17 Nov)
+
+- The name at the top of Find is always the person's login handle (never first + last name), one form everywhere; the PIN ● tags stay visible the whole time, including after a refresh.
+- Booking asks no questions ("Who is this for?"): Find never asks questions elsewhere; booking's steps are Find steps like every other menu.
+- Subject step bug: two rules at once — the multiple-choice tick rule and the "and / ." rule. Remove the multiple-choice rule; "and" / "." replaces it everywhere.
+- Staff, not Tutor: everywhere the people category says Tutor it is Staff, with Tutor / Coach / Head of Boxing inside it (George is found under Staff › Coach).
+- "Add a person" sits at the very top of Profiles: place it where it belongs; decide whether Profile and Settings merge (they overlap) — Claude's call.
+- Examiner reports: find them per board/year (the boards' own sites, Save My Exams, Physics & Maths Tutor), add them to the paper manifest, and use them to sharpen marking (English first).
 
 ## Then (content)
 
