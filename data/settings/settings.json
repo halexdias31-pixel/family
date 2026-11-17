@@ -15,7 +15,7 @@
   "guest": {"rank": "out", "tier": "anyone"},
   "ranks": ["contact", "student", "client", "staff", "admin"],
   "tiers": ["anyone", "member", "child", "admin"],
-  "titles": {"head of boxing": "Head of Boxing"}
+  "titles": {"head of boxing": "Head of Boxing", "coach": "Coach"}
  },
  "submissionsPerPost": 25,
  "answerTextMax": 20000,

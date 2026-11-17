@@ -214,7 +214,7 @@ const mcNote_ = (look, text) => cardBlock_({ type: 'msgText', look: 'note ' + lo
 function cardEditHtml_(t) {
   const e = cardEditNow_();
   const pid = String(t.personId);
-  const head = cardBlock_({ type: 'msgHead', text: [[t.role || 'Tutor'].concat(profList_(t.titles)).join(' · ') + ' ', { span: 'ce-what', text: '· editing' }] });
+  const head = cardBlock_({ type: 'msgHead', text: [profRoleWords_(t).join(' · ') + ' ', { span: 'ce-what', text: '· editing' }] });
   const base = cardBaseNow_(e);
   if (!base) {
     if (!e.err) setTimeout(() => cardFetch_(e), 0);
