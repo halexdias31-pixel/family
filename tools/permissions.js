@@ -24,20 +24,15 @@ function blockInto(file, name, body) {
 /* THE GATE'S LEVEL: anyone, self (signed in) or admin. */
 const levelOf = roles => roles.indexOf('anyone') !== -1 ? 'anyone' : roles.indexOf('member') !== -1 ? 'self' : roles.indexOf('admin') !== -1 ? 'admin' : '';
 
-/* THE ITEM ROWS: each action's `items`, then the file's own (`via` a door that is not an action). A kind's `anyone` read follows kinds.json `see.who`. */
+/* THE ITEM ROWS: actions.json `items`, each kind:verb × tier. A kind's `anyone` read follows kinds.json `see.who`. */
 function itemRows() {
-  const kinds = JSON.parse(read('data/settings/kinds.json')).kinds || {}, rows = [], at = {};
-  /* ONE ROW PER kind:verb AND TIER: where two actions mirror one kind:verb, the one that allows it is its `via`. */
-  const add = (via, items) => Object.keys(items || {}).forEach(kv => ROLES.forEach(role => {
-    let allow = items[kv].indexOf(role) !== -1;
+  const kinds = JSON.parse(read('data/settings/kinds.json')).kinds || {}, rows = [];
+  Object.keys(ACTIONS.items).forEach(kv => ROLES.forEach(role => {
+    let allow = ACTIONS.items[kv].roles.indexOf(role) !== -1;
     const m = role === 'anyone' && /^(\w+):read$/.exec(kv), see = m && kinds[m[1]] && kinds[m[1]].see;
     if (see && see.who) allow = S_(see.who).split(',').map(x => x.trim()).indexOf('anyone') !== -1;
-    const k = kv + ' ' + role;
-    if (!at[k]) rows.push(at[k] = { kind: 'item', role, action: kv, allow, via });
-    else if (allow && !at[k].allow) Object.assign(at[k], { allow, via });
+    rows.push({ kind: 'item', role, action: kv, allow });
   }));
-  POSTS.forEach(a => add(a.name, a.items));
-  Object.keys(ACTIONS.items || {}).forEach(via => add(via, ACTIONS.items[via]));
   return rows;
 }
 
@@ -62,8 +57,10 @@ function dopostGs() {
   return '/* EVERY ACTION BY NAME → its handler (backend/post-*.gs). An action with no handler here answers `Unknown action`. */\n'
     + 'function postActions_() {\n  return {\n' + POSTS.filter(a => a.handler).map(a => '    ' + a.name + ': ' + a.handler + ',').join('\n') + '\n  };\n}\n';
 }
+const DOORS = Object.keys(ACTIONS.items).filter(kv => ACTIONS.items[kv].handler || ACTIONS.items[kv].other);
 function featuresGs() {
-  const f = POSTS.filter(a => a.feature).map(a => a.name).concat(ACTIONS.features || []);
+  /* THE ACTIONS FLAGGED `feature`, every kind:verb the item door answers, and the file's own words. */
+  const f = POSTS.filter(a => a.feature).map(a => a.name).concat(DOORS, ACTIONS.features || []);
   return '/* WHAT THIS DEPLOY CAN DO, by action name: the site compares it against what it needs. */\n'
     + 'function payloadFeatures_() {\n  return [' + f.map(q).join(', ') + '];\n}\n';
 }
@@ -88,7 +85,16 @@ function bookingGs(rows) {
     + 'function itemMay_(kind, verb, role) {\n'
     + "  const r = Object.prototype.hasOwnProperty.call(ITEM_PERMISSIONS, kind + ':' + verb) ? ITEM_PERMISSIONS[kind + ':' + verb] : null;\n"
     + '  return !!r && r.indexOf(role) !== -1;\n'
-    + '}\n';
+    + '}\n\n'
+    + '/* WHAT THE ITEM DOOR ANSWERS kind:verb WITH: `self` your own, `other` an admin asking after somebody else (`logged` leaves a lens_log row, `blank` may name nobody). */\n'
+    + 'function itemDoors_() {\n  return {\n' + DOORS.map(kv => {
+      const e = ACTIONS.items[kv], parts = [];
+      if (e.handler) parts.push('self: ' + e.handler);
+      if (e.other) parts.push('other: ' + e.other);
+      if (e.logged) parts.push('logged: true');
+      if (e.blank) parts.push('blank: true');
+      return "    '" + kv + "': { " + parts.join(', ') + ' },';
+    }).join('\n') + '\n  };\n}\n';
 }
 
 module.exports = { ROLES, ACTIONS, levelOf, jsonRows };

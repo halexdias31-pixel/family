@@ -435,7 +435,7 @@ function notifyCard_() {
   const said = t => cardBlock_({ type: 'paperNote', look: 'notify-said', live: true, text: t });
   let inner, toggles = [], tail = '';
   /* AN EMPTY LIST BEFORE THE PAYLOAD HAS LANDED IS "NOT KNOWN YET", NOT "OLD" — `LOADED` says which. */
-  if (f.indexOf('setNotify') === -1 && (f.length || LOADED)) {
+  if (f.indexOf('notify:save') === -1 && (f.length || LOADED)) {
     inner = '';
   }
   else if (!n) inner = said('Your choices are on their way from the sheet.');

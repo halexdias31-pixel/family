@@ -178,17 +178,8 @@ function readItemsRole_(me) {
   if (whoMay_(me, 'admin')) return 'admin';
   return netViewerIsChild_() ? 'child' : 'member';
 }
-/* ONE WAY TO THE SERVER (step 2, slice 2): people, answers and messages, each answered by its old door's own handler, so the fields and refusals are that door's. */
-/* `self` is your own only (myProfile, myAnswers, messages); `other` is somebody else's, admin only as the old door was; `logged` leaves a lens_log row of ids; `blank` lets an admin ask for none (a new person's form). */
-function readItemsOld_() {
-  return {
-    profile: { self: postMyProfile_, other: postLensOpen_, logged: true },
-    answer: { self: postMyAnswers_ },
-    message: { self: postMessages_ },
-    person: { other: postPersonGet_, blank: true },
-    card: { other: postGetProfile_ },
-  };
-}
+/* ONE WAY TO THE SERVER (step 2, slice 2): people, answers and messages, each answered by its handler in `itemDoors_` (actions.json `items`). */
+/* `self` is your own only; `other` is somebody else's, an admin's alone; `logged` leaves a lens_log row of ids; `blank` lets an admin ask for none (a new person's form). */
 function readItemsOwn_(kind, how, body, began) {
   const me = findPerson('', S(body.personId));
   const role = readItemsRole_(me);
@@ -198,7 +189,7 @@ function readItemsOwn_(kind, how, body, began) {
   const self = S(me.person_id), want = ids[0] || '';
   const b = { token: body.token, name: personDisplayName(me), personId: self };
   if (how.self && (!want || want === self)) return how.self(b, 'readItems', began);
-  /* SOMEBODY ELSE'S: an admin's alone, asked of the row the token resolved to — as the gate asked it of lensOpen, personGet and getProfile. */
+  /* SOMEBODY ELSE'S: an admin's alone, asked of the row the token resolved to. */
   if (!how.other || role !== 'admin' || !whoMay_(me, 'admin')) return jsonOut({ error: 'Only your own.', why: 'refused' });
   if (!want && !how.blank) return jsonOut({ error: 'Whose? Nobody was asked for.' });
   b.targetId = want; b.target = want;
@@ -214,8 +205,8 @@ function postReadItems_(body, action, began) {
   if (S(body.token) && !who) return jsonOut({ error: 'Please sign in again.', why: 'signed-out' });
   body = Object.assign({}, body, { personId: who ? S(who.person_id) : '', name: who ? personDisplayName(who) : '' });
   const kind = S(body.kind);
-  const own = readItemsOld_();
-  if (Object.prototype.hasOwnProperty.call(own, kind)) return readItemsOwn_(kind, own[kind], body, began);
+  const doors = itemDoors_();
+  if (Object.prototype.hasOwnProperty.call(doors, kind + ':read')) return readItemsOwn_(kind, doors[kind + ':read'], body, began);
   if (!Object.prototype.hasOwnProperty.call(READ_ITEMS_LIB, kind)) return jsonOut({ error: 'That kind cannot be read here yet.', why: 'kind' });
   const me = who;
   if (!itemMay_(READ_ITEMS_SHELF[kind], 'read', readItemsRole_(me))) return jsonOut({ error: me ? 'Not authorised.' : 'Sign in first.', why: me ? 'kind' : 'signed-out' });
@@ -227,39 +218,16 @@ function postReadItems_(body, action, began) {
   return jsonOut(out);
 }
 
-/* ONE WAY TO THE SERVER (step 2, slice 3): saveItem and deleteItem. Each kind is answered by its OLD door's own handler, with the very same request, */
-/* so the fields, the checks, the refusals and the logging are that door's. `item` names the kind (`kind` is already some old doors' own field). */
-function saveItemsOld_() {
-  return { profile: 'updateProfile', notepad: 'saveNotepad', todo: 'saveTodo', notify: 'setNotify', answer: 'saveAnswers',
-           favourite: 'favourite', message: 'readMessage', post: 'editPost', layout: 'layoutSave', words: 'wordsSave',
-           listed: 'setListed', person: 'personSave', spotlight: 'spotlight', ownerAnswer: 'saveOwnerAnswer' };
-}
-function deleteItemsOld_() {
-  return { post: 'deletePost', person: 'personDelete' };
-}
-/* THE OLD DOORS' HANDLERS (slice 5, 15 Nov): no longer doors of their own — a request naming one is an unknown action. */
-/* Reached only through saveItem/deleteItem, behind that door's own gate (ACTION_ACCESS keeps its row), under its own name. */
-function itemsDoors_() {
-  return { updateProfile: postUpdateProfile_, saveNotepad: postSaveNotepad_, saveTodo: postSaveTodo_, setNotify: postSetNotify_,
-           saveAnswers: postSaveAnswers_, favourite: postFavourite_, readMessage: postReadMessage_, editPost: postEditPost_,
-           layoutSave: postLayoutSave_, wordsSave: postWordsSave_, setListed: postSetListed_, personSave: postPersonSave_,
-           spotlight: postSpotlight_, saveOwnerAnswer: postListOwnerAnswers_, deletePost: postDeletePost_, personDelete: postPersonDelete_ };
-}
+/* ONE WAY TO THE SERVER (step 2, slice 3): save and delete. Gated by kind:verb (itemMay_, permissions.json item rows), then answered */
+/* by its handler in `itemDoors_` (actions.json `items`) with the very same request, so the fields, checks and logging are that handler's. */
 function itemsWrite_(verb, body, began) {
-  const item = S(body.item);
-  const map = verb === 'save' ? saveItemsOld_() : deleteItemsOld_();
-  if (!Object.prototype.hasOwnProperty.call(map, item)) return jsonOut({ error: 'That kind cannot be ' + (verb === 'save' ? 'saved' : 'deleted') + ' here yet.', why: 'kind' });
-  const old = map[item];
-  const b = Object.assign({}, body, { action: old });
+  const item = S(body.item), how = itemDoors_()[item + ':' + verb];
+  if (!how || !how.self) return jsonOut({ error: 'That kind cannot be ' + (verb === 'save' ? 'saved' : 'deleted') + ' here yet.', why: 'kind' });
+  const b = Object.assign({}, body, { action: item + ':' + verb });
   delete b.item;
-  /* THE OLD DOOR'S OWN GATE, asked again by its name: signed in, an admin's door an admin's alone, a child's money refusal. */
-  const denied = accessDenied(old, b);
-  if (denied) return jsonOut(denied === 'Please sign in again.' ? { error: denied, why: 'signed-out' } : { error: denied });
   const me = findPerson('', S(b.personId));
-  const role = readItemsRole_(me);
-  if (!me || !S(me.person_id) || !itemMay_(item, verb, role)) return jsonOut({ error: 'Not authorised.', why: 'refused' });
-  if (netViewerIsChild_() && permChildDenied_(old)) return jsonOut({ error: KID_ASK_PARENT, why: 'ask-a-parent' });
-  return itemsDoors_()[old](b, old, began);
+  if (!me || !S(me.person_id) || !itemMay_(item, verb, readItemsRole_(me))) return jsonOut({ error: 'Not authorised.' });
+  return how.self(b, item + ':' + verb, began);
 }
 
 /* THE TOOLS' COPY OF THE PRIVATE HALF — a page out, rows back in (tools/lib-private.js). Admin only, at the gate. */

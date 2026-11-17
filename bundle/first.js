@@ -8269,7 +8269,7 @@ function loadNotices_(d) {
       if (USER && typeof profileRefresh_ === 'function') profileRefresh_();
       /* NO BANNER FOR A VERSION MISMATCH ANY MORE. § */
       /* `editResource` AND `deleteResource` WERE IN THIS LIST. § */
-      const NEEDS = ['editPost', 'deletePost'];
+      const NEEDS = ['post:save', 'post:delete'];
       const missing = NEEDS.filter(f => (d.features || []).indexOf(f) === -1);
       if (missing.length) {
         /* THE VERSION IT ACTUALLY REACHED, said out loud. § */
@@ -11523,7 +11523,7 @@ function notifyCard_() {
   const said = t => cardBlock_({ type: 'paperNote', look: 'notify-said', live: true, text: t });
   let inner, toggles = [], tail = '';
   /* AN EMPTY LIST BEFORE THE PAYLOAD HAS LANDED IS "NOT KNOWN YET", NOT "OLD" — `LOADED` says which. */
-  if (f.indexOf('setNotify') === -1 && (f.length || LOADED)) {
+  if (f.indexOf('notify:save') === -1 && (f.length || LOADED)) {
     inner = '';
   }
   else if (!n) inner = said('Your choices are on their way from the sheet.');

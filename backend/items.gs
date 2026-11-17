@@ -174,8 +174,8 @@ function postItem_(body, action, began) {
   const door = S(body.door);
   if (door === 'get') return postReadItems_(body, 'item', began);
   if (door === 'save' || door === 'delete') {
-    /* SIGNED IN, as saveItem's own gate was: the token names the person, never the request. */
-    const denied = accessDenied('saveItem', body);
+    /* SIGNED IN: the token names the person, never the request. */
+    const denied = gateDenied_('self', body);
     if (denied) return jsonOut(denied === 'Please sign in again.' ? { error: denied, why: 'signed-out' } : { error: denied });
     return itemsWrite_(door, body, began);
   }
