@@ -1,0 +1,358 @@
+{
+ "id": "bncc-ef-mat-08",
+ "board": "MEC",
+ "qualification": "BNCC Ensino Fundamental",
+ "level": "BNCC",
+ "tiers": [
+  "8º ano"
+ ],
+ "subject": "Maths",
+ "code": "Matemática 8º ano",
+ "url": "http://basenacionalcomum.mec.gov.br/images/BNCC_EI_EF_110518_versaofinal_site.pdf",
+ "sections": [
+  {
+   "id": "N",
+   "title": "Números (objetos de conhecimento)"
+  },
+  {
+   "id": "A",
+   "title": "Álgebra (objetos de conhecimento)"
+  },
+  {
+   "id": "G",
+   "title": "Geometria (objetos de conhecimento)"
+  },
+  {
+   "id": "M",
+   "title": "Grandezas e medidas (objetos de conhecimento)"
+  },
+  {
+   "id": "P",
+   "title": "Probabilidade e estatística (objetos de conhecimento)"
+  },
+  {
+   "id": "H",
+   "title": "Habilidades"
+  }
+ ],
+ "points": [
+  {
+   "id": "N.1",
+   "text": "Notação científica",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "N.2",
+   "text": "Potenciação e radiciação",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "N.3",
+   "text": "O princípio multiplicativo da contagem",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "N.4",
+   "text": "Porcentagens",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "N.5",
+   "text": "Dízimas periódicas: fração geratriz",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "A.1",
+   "text": "Valor numérico de expressões algébricas",
+   "parent": "A",
+   "links": []
+  },
+  {
+   "id": "A.2",
+   "text": "Associação de uma equação linear de 1º grau a uma reta no plano cartesiano",
+   "parent": "A",
+   "links": []
+  },
+  {
+   "id": "A.3",
+   "text": "Sistema de equações polinomiais de 1º grau: resolução algébrica e representação no plano cartesiano",
+   "parent": "A",
+   "links": []
+  },
+  {
+   "id": "A.4",
+   "text": "Equação polinomial de 2º grau do tipo ax2 = b",
+   "parent": "A",
+   "links": []
+  },
+  {
+   "id": "A.5",
+   "text": "Sequências recursivas e não recursivas",
+   "parent": "A",
+   "links": []
+  },
+  {
+   "id": "A.6",
+   "text": "Variação de grandezas: diretamente proporcionais, inversamente proporcionais ou não proporcionais",
+   "parent": "A",
+   "links": []
+  },
+  {
+   "id": "G.1",
+   "text": "Congruência de triângulos e demonstrações de propriedades de quadriláteros",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "G.2",
+   "text": "Construções geométricas: ângulos de 90°, 60°, 45° e 30° e polígonos regulares",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "G.3",
+   "text": "Mediatriz e bissetriz como lugares geométricos: construção e problemas",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "G.4",
+   "text": "Transformações geométricas: simetrias de translação, reflexão e rotação",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "M.1",
+   "text": "Área de figuras planas",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "M.2",
+   "text": "Área do círculo e comprimento de sua circunferência",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "M.3",
+   "text": "Volume de bloco retangular",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "M.4",
+   "text": "Medidas de capacidade",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "P.1",
+   "text": "Princípio multiplicativo da contagem",
+   "parent": "P",
+   "links": []
+  },
+  {
+   "id": "P.2",
+   "text": "Soma das probabilidades de todos os elementos de um espaço amostral",
+   "parent": "P",
+   "links": []
+  },
+  {
+   "id": "P.3",
+   "text": "Gráficos de barras, colunas, linhas ou setores e seus elementos constitutivos e adequação para determinado conjunto de dados",
+   "parent": "P",
+   "links": []
+  },
+  {
+   "id": "P.4",
+   "text": "Organização dos dados de uma variável contínua em classes",
+   "parent": "P",
+   "links": []
+  },
+  {
+   "id": "P.5",
+   "text": "Medidas de tendência central e de dispersão",
+   "parent": "P",
+   "links": []
+  },
+  {
+   "id": "P.6",
+   "text": "Pesquisas censitária ou amostral",
+   "parent": "P",
+   "links": []
+  },
+  {
+   "id": "P.7",
+   "text": "Planejamento e execução de pesquisa amostral",
+   "parent": "P",
+   "links": []
+  },
+  {
+   "id": "EF08MA01",
+   "text": "Efetuar cálculos com potências de expoentes inteiros e aplicar esse conhecimento na representação de números em notação científica.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF08MA02",
+   "text": "Resolver e elaborar problemas usando a relação entre potenciação e radiciação, para representar uma raiz como potência de expoente fracionário.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF08MA03",
+   "text": "Resolver e elaborar problemas de contagem cuja resolução envolva a aplicação do princípio multiplicativo.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF08MA04",
+   "text": "Resolver e elaborar problemas, envolvendo cálculo de porcentagens, incluindo o uso de tecnologias digitais.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF08MA05",
+   "text": "Reconhecer e utilizar procedimentos para a obtenção de uma fração geratriz para uma dízima periódica.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF08MA06",
+   "text": "Resolver e elaborar problemas que envolvam cálculo do valor numérico de expressões algébricas, utilizando as propriedades das operações.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF08MA07",
+   "text": "Associar uma equação linear de 1º grau com duas incógnitas a uma reta no plano cartesiano.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF08MA08",
+   "text": "Resolver e elaborar problemas relacionados ao seu contexto próximo, que possam ser representados por sistemas de equações de 1º grau com duas incógnitas e interpretá-los, utilizando, inclusive, o plano cartesiano como recurso.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF08MA09",
+   "text": "Resolver e elaborar, com e sem uso de tecnologias, problemas que possam ser representados por equações polinomiais de 2º grau do tipo ax2 = b.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF08MA10",
+   "text": "Identificar a regularidade de uma sequência numérica ou figural não recursiva e construir um algoritmo por meio de um fluxograma que permita indicar os números ou as figuras seguintes.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF08MA11",
+   "text": "Identificar a regularidade de uma sequência numérica recursiva e construir um algoritmo por meio de um fluxograma que permita indicar os números seguintes.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF08MA12",
+   "text": "Identificar a natureza da variação de duas grandezas, diretamente, inversamente proporcionais ou não proporcionais, expressando a relação existente por meio de sentença algébrica e representá-la no plano cartesiano.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF08MA13",
+   "text": "Resolver e elaborar problemas que envolvam grandezas diretamente ou inversamente proporcionais, por meio de estratégias variadas.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF08MA14",
+   "text": "Demonstrar propriedades de quadriláteros por meio da identificação da congruência de triângulos.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF08MA15",
+   "text": "Construir, utilizando instrumentos de desenho ou softwares de geometria dinâmica, mediatriz, bissetriz, ângulos de 90°, 60°, 45° e 30° e polígonos regulares.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF08MA16",
+   "text": "Descrever, por escrito e por meio de um fluxograma, um algoritmo para a construção de um hexágono regular de qualquer área, a partir da medida do ângulo central e da utilização de esquadros e compasso.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF08MA17",
+   "text": "Aplicar os conceitos de mediatriz e bissetriz como lugares geométricos na resolução de problemas.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF08MA18",
+   "text": "Reconhecer e construir figuras obtidas por composições de transformações geométricas (translação, reflexão e rotação), com o uso de instrumentos de desenho ou de softwares de geometria dinâmica.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF08MA19",
+   "text": "Resolver e elaborar problemas que envolvam medidas de área de figuras geométricas, utilizando expressões de cálculo de área (quadriláteros, triângulos e círculos), em situações como determinar medida de terrenos.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF08MA20",
+   "text": "Reconhecer a relação entre um litro e um decímetro cúbico e a relação entre litro e metro cúbico, para resolver problemas de cálculo de capacidade de recipientes.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF08MA21",
+   "text": "Resolver e elaborar problemas que envolvam o cálculo do volume de recipiente cujo formato é o de um bloco retangular.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF08MA22",
+   "text": "Calcular a probabilidade de eventos, com base na construção do espaço amostral, utilizando o princípio multiplicativo, e reconhecer que a soma das probabilidades de todos os elementos do espaço amostral é igual a 1.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF08MA23",
+   "text": "Avaliar a adequação de diferentes tipos de gráficos para representar um conjunto de dados de uma pesquisa.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF08MA24",
+   "text": "Classificar as frequências de uma variável contínua de uma pesquisa em classes, de modo que resumam os dados de maneira adequada para a tomada de decisões.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF08MA25",
+   "text": "Obter os valores de medidas de tendência central de uma pesquisa estatística (média, moda e mediana) com a compreensão de seus significados e relacioná-los com a dispersão de dados, indicada pela amplitude.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF08MA26",
+   "text": "Selecionar razões, de diferentes naturezas (física, ética ou econômica), que justificam a realização de pesquisas amostrais e não censitárias, e reconhecer que a seleção da amostra pode ser feita de diferentes maneiras (amostra casual simples, sistemática e estratificada).",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF08MA27",
+   "text": "Planejar e executar pesquisa amostral, selecionando uma técnica de amostragem adequada, e escrever relatório que contenha os gráficos apropriados para representar os conjuntos de dados, destacando aspectos como as medidas de tendência central, a amplitude e as conclusões.",
+   "parent": "H",
+   "links": []
+  }
+ ]
+}

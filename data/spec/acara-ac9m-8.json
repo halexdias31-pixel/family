@@ -1,0 +1,202 @@
+{
+ "id": "acara-ac9m-8",
+ "board": "ACARA",
+ "qualification": "Australian Curriculum v9.0",
+ "level": "Australian Curriculum",
+ "tiers": [
+  "Year 8"
+ ],
+ "subject": "Maths",
+ "code": "Mathematics Year 8",
+ "url": "https://v9.australiancurriculum.edu.au/downloads/learning-areas",
+ "sections": [
+  {
+   "id": "N",
+   "title": "Number"
+  },
+  {
+   "id": "A",
+   "title": "Algebra"
+  },
+  {
+   "id": "M",
+   "title": "Measurement"
+  },
+  {
+   "id": "SP",
+   "title": "Space"
+  },
+  {
+   "id": "ST",
+   "title": "Statistics"
+  },
+  {
+   "id": "P",
+   "title": "Probability"
+  }
+ ],
+ "points": [
+  {
+   "id": "AC9M8N01",
+   "text": "recognise irrational numbers in applied contexts, including square roots and π",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "AC9M8N02",
+   "text": "establish and apply the exponent laws with positive integer exponents and the zero-exponent, using exponent notation with numbers",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "AC9M8N03",
+   "text": "recognise terminating and recurring decimals, using digital tools as appropriate",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "AC9M8N04",
+   "text": "use the 4 operations with integers and with rational numbers, choosing and using efficient strategies and digital tools where appropriate",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "AC9M8N05",
+   "text": "use mathematical modelling to solve practical problems involving rational numbers and percentages, including financial contexts; formulate problems, choosing efficient calculation strategies and using digital tools where appropriate; interpret and communicate solutions in terms of the situation, reviewing the appropriateness of the model",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "AC9M8A01",
+   "text": "create, expand, factorise, rearrange and simplify linear expressions, applying the associative, commutative, identity, distributive and inverse properties",
+   "parent": "A",
+   "links": []
+  },
+  {
+   "id": "AC9M8A02",
+   "text": "graph linear relations on the Cartesian plane using digital tools where appropriate; solve linear equations and one-variable inequalities using graphical and algebraic techniques; verify solutions by substitution",
+   "parent": "A",
+   "links": []
+  },
+  {
+   "id": "AC9M8A03",
+   "text": "use mathematical modelling to solve applied problems involving linear relations , including financial contexts; formulate problems with linear functions, choosing a representation; interpret and communicate solutions in terms of the situation, reviewing the appropriateness of the model",
+   "parent": "A",
+   "links": []
+  },
+  {
+   "id": "AC9M8A04",
+   "text": "experiment with linear functions and relations using digital tools, making and testing conjectures and generalising emerging patterns",
+   "parent": "A",
+   "links": []
+  },
+  {
+   "id": "AC9M8M01",
+   "text": "solve problems involving the area and perimeter of irregular and composite shapes using appropriate units",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "AC9M8M02",
+   "text": "solve problems involving the volume and capacity of right prisms using appropriate units",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "AC9M8M03",
+   "text": "solve problems involving the circumference and area of a circle using formulas and appropriate units",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "AC9M8M04",
+   "text": "solve problems involving duration, including using 12- and 24-hour time across multiple time zones",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "AC9M8M05",
+   "text": "recognise and use rates to solve problems involving the comparison of 2 related quantities of different units of measure",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "AC9M8M06",
+   "text": "use Pythagoras’ theorem to solve problems involving the side lengths of right-angled triangles",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "AC9M8M07",
+   "text": "use mathematical modelling to solve practical problems involving ratios and rates, including financial contexts; formulate problems; interpret and communicate solutions in terms of the situation, reviewing the appropriateness of the model",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "AC9M8SP01",
+   "text": "identify the conditions for congruence and similarity of triangles and explain the conditions for other sets of common shapes to be congruent or similar, including those formed by transformations",
+   "parent": "SP",
+   "links": []
+  },
+  {
+   "id": "AC9M8SP02",
+   "text": "establish properties of quadrilaterals using congruent triangles and angle properties, and solve related problems explaining reasoning",
+   "parent": "SP",
+   "links": []
+  },
+  {
+   "id": "AC9M8SP03",
+   "text": "describe the position and location of objects in 3 dimensions in different ways, including using a three-dimensional coordinate system with the use of dynamic geometric software and other digital tools",
+   "parent": "SP",
+   "links": []
+  },
+  {
+   "id": "AC9M8SP04",
+   "text": "design, create and test algorithms involving a sequence of steps and decisions that identify congruency or similarity of shapes, and describe how the algorithm works",
+   "parent": "SP",
+   "links": []
+  },
+  {
+   "id": "AC9M8ST01",
+   "text": "investigate techniques for data collection including census, sampling, experiment and observation, and explain the practicalities and implications of obtaining data through these techniques",
+   "parent": "ST",
+   "links": []
+  },
+  {
+   "id": "AC9M8ST02",
+   "text": "analyse and report on the distribution of data from primary and secondary sources using random and non-random  sampling techniques to select and study samples",
+   "parent": "ST",
+   "links": []
+  },
+  {
+   "id": "AC9M8ST03",
+   "text": "compare variations in distributions and proportions obtained from random samples of the same size drawn from a population and recognise the effect of sample size on this variation",
+   "parent": "ST",
+   "links": []
+  },
+  {
+   "id": "AC9M8ST04",
+   "text": "plan and conduct statistical investigations involving samples of a population; use ethical and fair methods to make inferences about the population and report findings, acknowledging uncertainty",
+   "parent": "ST",
+   "links": []
+  },
+  {
+   "id": "AC9M8P01",
+   "text": "recognise that complementary events have a combined probability of one; use this relationship to calculate probabilities in applied contexts",
+   "parent": "P",
+   "links": []
+  },
+  {
+   "id": "AC9M8P02",
+   "text": "determine all possible combinations for 2 events, using two-way tables, tree diagrams and Venn diagrams, and use these to determine probabilities of specific outcomes in practical situations",
+   "parent": "P",
+   "links": []
+  },
+  {
+   "id": "AC9M8P03",
+   "text": "conduct repeated chance experiments and simulations, using digital tools to determine probabilities for compound events, and describe results",
+   "parent": "P",
+   "links": []
+  }
+ ]
+}

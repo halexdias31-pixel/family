@@ -53,7 +53,11 @@
    {"level": "A-Level", "rung": 4, "stages": ["KS5"], "tiers": [], "says": ["Alevel", "A level", "KS5"]},
    {"level": "AS", "rung": 0, "stages": ["KS5"], "tiers": [], "says": ["AS level", "AS-level"]},
    {"level": "Theory test", "rung": 0, "stages": [], "tiers": [], "says": []},
-   {"level": "ESL", "rung": 0, "stages": [], "tiers": ["A1", "A2", "B1", "B2", "C1", "C2"], "says": ["EFL", "ESOL", "CEFR"]}
+   {"level": "ESL", "rung": 0, "stages": [], "tiers": ["A1", "A2", "B1", "B2", "C1", "C2"], "says": ["EFL", "ESOL", "CEFR"]},
+   {"level": "University", "rung": 5, "stages": [], "tiers": ["FHEQ 4", "FHEQ 5", "FHEQ 6", "FHEQ 7"], "says": ["Degree", "Undergraduate", "FHEQ", "MSOR"]},
+   {"level": "BNCC", "rung": 0, "stages": [], "tiers": ["1º ano", "2º ano", "3º ano", "4º ano", "5º ano", "6º ano", "7º ano", "8º ano", "9º ano"], "says": ["Brazil", "Brasil", "Ensino Fundamental"]},
+   {"level": "ENEM", "rung": 0, "stages": [], "tiers": [], "says": []},
+   {"level": "Australian Curriculum", "rung": 0, "stages": [], "tiers": ["Foundation Year", "Year 1", "Year 2", "Year 3", "Year 4", "Year 5", "Year 6", "Year 7", "Year 8", "Year 9", "Year 10"], "says": ["Australia", "ACARA", "F-10"]}
   ]
  }
 }

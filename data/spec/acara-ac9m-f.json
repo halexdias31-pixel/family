@@ -1,0 +1,108 @@
+{
+ "id": "acara-ac9m-f",
+ "board": "ACARA",
+ "qualification": "Australian Curriculum v9.0",
+ "level": "Australian Curriculum",
+ "tiers": [
+  "Foundation Year"
+ ],
+ "subject": "Maths",
+ "code": "Mathematics Foundation Year",
+ "url": "https://v9.australiancurriculum.edu.au/downloads/learning-areas",
+ "sections": [
+  {
+   "id": "N",
+   "title": "Number"
+  },
+  {
+   "id": "A",
+   "title": "Algebra"
+  },
+  {
+   "id": "M",
+   "title": "Measurement"
+  },
+  {
+   "id": "SP",
+   "title": "Space"
+  },
+  {
+   "id": "ST",
+   "title": "Statistics"
+  }
+ ],
+ "points": [
+  {
+   "id": "AC9MFN01",
+   "text": "name, represent and order numbers including zero to at least 20, using physical and virtual materials and numerals",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "AC9MFN02",
+   "text": "recognise and name the number of objects within a collection up to 5 using subitising",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "AC9MFN03",
+   "text": "quantify and compare collections to at least 20 using counting and explain or demonstrate reasoning",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "AC9MFN04",
+   "text": "partition and combine collections up to 10 using part-part-whole relationships and subitising to recognise and name the parts",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "AC9MFN05",
+   "text": "represent practical situations involving addition, subtraction and quantification with physical and virtual materials and use counting or subitising strategies",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "AC9MFN06",
+   "text": "represent practical situations involving equal sharing and grouping with physical and virtual materials and use counting or subitising strategies",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "AC9MFA01",
+   "text": "recognise, copy and continue repeating patterns represented in different ways",
+   "parent": "A",
+   "links": []
+  },
+  {
+   "id": "AC9MFM01",
+   "text": "identify and compare attributes of objects and events, including length, capacity, mass and duration, using direct comparisons and communicating reasoning",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "AC9MFM02",
+   "text": "sequence days of the week and times of the day including morning, lunchtime, afternoon and night time, and connect them to familiar events and actions",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "AC9MFSP01",
+   "text": "sort, name and create familiar shapes; recognise and describe familiar shapes within objects in the environment, giving reasons",
+   "parent": "SP",
+   "links": []
+  },
+  {
+   "id": "AC9MFSP02",
+   "text": "describe the position and location of themselves and objects in relation to other people and objects within a familiar space",
+   "parent": "SP",
+   "links": []
+  },
+  {
+   "id": "AC9MFST01",
+   "text": "collect, sort and compare data represented by objects and images in response to given investigative questions that relate to familiar situations",
+   "parent": "ST",
+   "links": []
+  }
+ ]
+}

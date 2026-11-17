@@ -1,0 +1,126 @@
+{
+ "id": "acara-ac9m-1",
+ "board": "ACARA",
+ "qualification": "Australian Curriculum v9.0",
+ "level": "Australian Curriculum",
+ "tiers": [
+  "Year 1"
+ ],
+ "subject": "Maths",
+ "code": "Mathematics Year 1",
+ "url": "https://v9.australiancurriculum.edu.au/downloads/learning-areas",
+ "sections": [
+  {
+   "id": "N",
+   "title": "Number"
+  },
+  {
+   "id": "A",
+   "title": "Algebra"
+  },
+  {
+   "id": "M",
+   "title": "Measurement"
+  },
+  {
+   "id": "SP",
+   "title": "Space"
+  },
+  {
+   "id": "ST",
+   "title": "Statistics"
+  }
+ ],
+ "points": [
+  {
+   "id": "AC9M1N01",
+   "text": "recognise, represent and order numbers to at least 120 using physical and virtual materials, numerals, number lines and charts",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "AC9M1N02",
+   "text": "partition one- and two-digit numbers in different ways using physical and virtual materials, including partitioning two-digit numbers into tens and ones",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "AC9M1N03",
+   "text": "quantify sets of objects, to at least 120, by partitioning collections into equal groups using number knowledge and skip counting",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "AC9M1N04",
+   "text": "add and subtract numbers within 20, using physical and virtual materials, part-part-whole knowledge to 10 and a variety of calculation strategies",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "AC9M1N05",
+   "text": "use mathematical modelling to solve practical problems involving additive situations, including simple money transactions; represent the situations with diagrams, physical and virtual materials, and use calculation strategies to solve the problem",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "AC9M1N06",
+   "text": "use mathematical modelling to solve practical problems involving equal sharing and grouping; represent the situations with diagrams, physical and virtual materials, and use calculation strategies to solve the problem",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "AC9M1A01",
+   "text": "recognise, continue and create pattern sequences, with numbers, symbols, shapes and objects, formed by skip counting, initially by twos, fives and tens",
+   "parent": "A",
+   "links": []
+  },
+  {
+   "id": "AC9M1A02",
+   "text": "recognise, continue and create repeating patterns with numbers, symbols, shapes and objects, identifying the repeating unit",
+   "parent": "A",
+   "links": []
+  },
+  {
+   "id": "AC9M1M01",
+   "text": "compare directly and indirectly and order objects and events using attributes of length, mass, capacity and duration, communicating reasoning",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "AC9M1M02",
+   "text": "measure the length of shapes and objects using informal units, recognising that units need to be uniform and used end-to-end",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "AC9M1M03",
+   "text": "describe the duration and sequence of events using years, months, weeks, days and hours",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "AC9M1SP01",
+   "text": "make, compare and classify familiar shapes; recognise familiar shapes and objects in the environment, identifying the similarities and differences between them",
+   "parent": "SP",
+   "links": []
+  },
+  {
+   "id": "AC9M1SP02",
+   "text": "give and follow directions to move people and objects to different locations within a space",
+   "parent": "SP",
+   "links": []
+  },
+  {
+   "id": "AC9M1ST01",
+   "text": "acquire and record data for categorical variables in various ways including using digital tools, objects, images, drawings, lists, tally marks and symbols",
+   "parent": "ST",
+   "links": []
+  },
+  {
+   "id": "AC9M1ST02",
+   "text": "represent collected data for a categorical variable using one-to-one displays and digital tools where appropriate; compare the data using frequencies and discuss the findings",
+   "parent": "ST",
+   "links": []
+  }
+ ]
+}

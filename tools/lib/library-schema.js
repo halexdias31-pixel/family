@@ -32,7 +32,7 @@ const levelEntry = name => LEVEL_TABLE().find(l => l.level === name) || null;
 
 /* ---------- THE CLOSED VOCABULARIES ---------- */
 const KEY_STAGES = ['KS1', 'KS2', 'KS3', 'KS4', 'KS5'];
-const BOARDS = ['AQA', 'Edexcel', 'STA', 'DVSA', 'OCR', 'Eduqas'];
+const BOARDS = ['AQA', 'Edexcel', 'STA', 'DVSA', 'OCR', 'Eduqas', 'QAA', 'MEC', 'INEP', 'ACARA'];
 /* A BOARD BY ITS LONG NAME, as `company` spells a board's own paper. */
 const BOARD_NAMES = ['Standards & Testing Agency'];
 const SOURCES = () => Array.from(app().LIB_SOURCES);

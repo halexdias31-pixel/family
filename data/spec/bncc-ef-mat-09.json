@@ -1,0 +1,334 @@
+{
+ "id": "bncc-ef-mat-09",
+ "board": "MEC",
+ "qualification": "BNCC Ensino Fundamental",
+ "level": "BNCC",
+ "tiers": [
+  "9º ano"
+ ],
+ "subject": "Maths",
+ "code": "Matemática 9º ano",
+ "url": "http://basenacionalcomum.mec.gov.br/images/BNCC_EI_EF_110518_versaofinal_site.pdf",
+ "sections": [
+  {
+   "id": "N",
+   "title": "Números (objetos de conhecimento)"
+  },
+  {
+   "id": "A",
+   "title": "Álgebra (objetos de conhecimento)"
+  },
+  {
+   "id": "G",
+   "title": "Geometria (objetos de conhecimento)"
+  },
+  {
+   "id": "M",
+   "title": "Grandezas e medidas (objetos de conhecimento)"
+  },
+  {
+   "id": "P",
+   "title": "Probabilidade e estatística (objetos de conhecimento)"
+  },
+  {
+   "id": "H",
+   "title": "Habilidades"
+  }
+ ],
+ "points": [
+  {
+   "id": "N.1",
+   "text": "Necessidade dos números reais para medir qualquer segmento de reta",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "N.2",
+   "text": "Números irracionais: reconhecimento e localização de alguns na reta numérica",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "N.3",
+   "text": "Potências com expoentes negativos e fracionários",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "N.4",
+   "text": "Números reais: notação científica e problemas",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "N.5",
+   "text": "Porcentagens: problemas que envolvem cálculo de percentuais sucessivos",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "A.1",
+   "text": "Funções: representações numérica, algébrica e gráfica",
+   "parent": "A",
+   "links": []
+  },
+  {
+   "id": "A.2",
+   "text": "Razão entre grandezas de espécies diferentes",
+   "parent": "A",
+   "links": []
+  },
+  {
+   "id": "A.3",
+   "text": "Grandezas diretamente proporcionais e grandezas inversamente proporcionais",
+   "parent": "A",
+   "links": []
+  },
+  {
+   "id": "A.4",
+   "text": "Expressões algébricas: fatoração e produtos notáveis",
+   "parent": "A",
+   "links": []
+  },
+  {
+   "id": "A.5",
+   "text": "Resolução de equações polinomiais do 2º grau por meio de fatorações",
+   "parent": "A",
+   "links": []
+  },
+  {
+   "id": "G.1",
+   "text": "Demonstrações de relações entre os ângulos formados por retas paralelas intersectadas por uma transversal",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "G.2",
+   "text": "Relações entre arcos e ângulos na circunferência de um círculo",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "G.3",
+   "text": "Semelhança de triângulos",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "G.4",
+   "text": "Relações métricas no triângulo retângulo",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "G.5",
+   "text": "Teorema de Pitágoras: verificações experimentais e demonstração",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "G.6",
+   "text": "Retas paralelas cortadas por transversais: teoremas de proporcionalidade e verificações experimentais",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "G.7",
+   "text": "Polígonos regulares",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "G.8",
+   "text": "Distância entre pontos no plano cartesiano",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "G.9",
+   "text": "Vistas ortogonais de figuras espaciais",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "M.1",
+   "text": "Unidades de medida para medir distâncias muito grandes e muito pequenas",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "M.2",
+   "text": "Unidades de medida utilizadas na informática",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "M.3",
+   "text": "Volume de prismas e cilindros",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "P.1",
+   "text": "Análise de probabilidade de eventos aleatórios: eventos dependentes e independentes",
+   "parent": "P",
+   "links": []
+  },
+  {
+   "id": "P.2",
+   "text": "Análise de gráficos divulgados pela mídia: elementos que podem induzir a erros de leitura ou de interpretação",
+   "parent": "P",
+   "links": []
+  },
+  {
+   "id": "P.3",
+   "text": "Leitura, interpretação e representação de dados de pesquisa expressos em tabelas de dupla entrada, gráficos de colunas simples e agrupadas, gráficos de barras e de setores e gráficos pictóricos",
+   "parent": "P",
+   "links": []
+  },
+  {
+   "id": "P.4",
+   "text": "Planejamento e execução de pesquisa amostral e apresentação de relatório",
+   "parent": "P",
+   "links": []
+  },
+  {
+   "id": "EF09MA01",
+   "text": "Reconhecer que, uma vez fixada uma unidade de comprimento, existem segmentos de reta cujo comprimento não é expresso por número racional (como as medidas de diagonais de um polígono e alturas de um triângulo, quando se toma a medida de cada lado como unidade).",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF09MA02",
+   "text": "Reconhecer um número irracional como um número real cuja representação decimal é infinita e não periódica, e estimar a localização de alguns deles na reta numérica.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF09MA03",
+   "text": "Efetuar cálculos com números reais, inclusive potências com expoentes fracionários.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF09MA04",
+   "text": "Resolver e elaborar problemas com números reais, inclusive em notação científica, envolvendo diferentes operações.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF09MA05",
+   "text": "Resolver e elaborar problemas que envolvam porcentagens, com a ideia de aplicação de percentuais sucessivos e a determinação das taxas percentuais, preferencialmente com o uso de tecnologias digitais, no contexto da educação financeira.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF09MA06",
+   "text": "Compreender as funções como relações de dependência unívoca entre duas variáveis e suas representações numérica, algébrica e gráfica e utilizar esse conceito para analisar situações que envolvam relações funcionais entre duas variáveis.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF09MA07",
+   "text": "Resolver problemas que envolvam a razão entre duas grandezas de espécies diferentes, como velocidade e densidade demográfica.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF09MA08",
+   "text": "Resolver e elaborar problemas que envolvam relações de proporcionalidade direta e inversa entre duas ou mais grandezas, inclusive escalas, divisão em partes proporcionais e taxa de variação, em contextos socioculturais, ambientais e de outras áreas.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF09MA09",
+   "text": "Compreender os processos de fatoração de expressões algébricas, com base em suas relações com os produtos notáveis, para resolver e elaborar problemas que possam ser representados por equações polinomiais do 2º grau.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF09MA10",
+   "text": "Demonstrar relações simples entre os ângulos formados por retas paralelas cortadas por uma transversal.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF09MA11",
+   "text": "Resolver problemas por meio do estabelecimento de relações entre arcos, ângulos centrais e ângulos inscritos na circunferência, fazendo uso, inclusive, de softwares de geometria dinâmica.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF09MA12",
+   "text": "Reconhecer as condições necessárias e suficientes para que dois triângulos sejam semelhantes.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF09MA13",
+   "text": "Demonstrar relações métricas do triângulo retângulo, entre elas o teorema de Pitágoras, utilizando, inclusive, a semelhança de triângulos.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF09MA14",
+   "text": "Resolver e elaborar problemas de aplicação do teorema de Pitágoras ou das relações de proporcionalidade envolvendo retas paralelas cortadas por secantes.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF09MA15",
+   "text": "Descrever, por escrito e por meio de um fluxograma, um algoritmo para a construção de um polígono regular cuja medida do lado é conhecida, utilizando régua e compasso, como também softwares.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF09MA16",
+   "text": "Determinar o ponto médio de um segmento de reta e a distância entre dois pontos quaisquer, dadas as coordenadas desses pontos no plano cartesiano, sem o uso de fórmulas, e utilizar esse conhecimento para calcular, por exemplo, medidas de perímetros e áreas de figuras planas construídas no plano.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF09MA17",
+   "text": "Reconhecer vistas ortogonais de figuras espaciais e aplicar esse conhecimento para desenhar objetos em perspectiva.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF09MA18",
+   "text": "Reconhecer e empregar unidades usadas para expressar medidas muito grandes ou muito pequenas, tais como distância entre planetas e sistemas solares, tamanho de vírus ou de células, capacidade de armazenamento de computadores, entre outros.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF09MA19",
+   "text": "Resolver e elaborar problemas que envolvam medidas de volumes de prismas e de cilindros retos, inclusive com uso de expressões de cálculo, em situações cotidianas.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF09MA20",
+   "text": "Reconhecer, em experimentos aleatórios, eventos independentes e dependentes e calcular a probabilidade de sua ocorrência, nos dois casos.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF09MA21",
+   "text": "Analisar e identificar, em gráficos divulgados pela mídia, os elementos que podem induzir, às vezes propositadamente, erros de leitura, como escalas inapropriadas, legendas não explicitadas corretamente, omissão de informações importantes (fontes e datas), entre outros.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF09MA22",
+   "text": "Escolher e construir o gráfico mais adequado (colunas, setores, linhas), com ou sem uso de planilhas eletrônicas, para apresentar um determinado conjunto de dados, destacando aspectos como as medidas de tendência central.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF09MA23",
+   "text": "Planejar e executar pesquisa amostral envolvendo tema da realidade social e comunicar os resultados por meio de relatório contendo avaliação de medidas de tendência central e da amplitude, tabelas e gráficos adequados, construídos com o apoio de planilhas eletrônicas.",
+   "parent": "H",
+   "links": []
+  }
+ ]
+}
