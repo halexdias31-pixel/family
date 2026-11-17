@@ -1,53 +1,7 @@
-addEventListener('click', e => {
-  if (FLOW_LAYOUT || !WIDE || PRESS_MOVED || PRESS_SLIDING) return;
-  /* ---------- A CLICK WITH NO POINTER UNDER IT IS NOT A PRESS BESIDE THE CARD § */
-  if (!e.detail) return;
-  const t = e.target;
-  /* ONLY A PRESS THAT NOTHING IN FRONT TOOK — on the front card it is that card's press. */
-  if (t && t.closest && t.closest('#screen .page.on')) return;
-  if (!(t && t.closest && t.closest('#screen'))) return;
-  const hit = wideHit_(e.clientX, e.clientY);
-  if (!hit) return;
-  try {
-    /* THE PAGE FIRST, while its column is still beside: `goPage` on a column not in front only
-       records where it is and places it, and `go` then slides the whole grid once. */
-    if (PAGER[hit.id] && hit.p !== (PAGE[hit.id] || 0)) goPage(hit.id, hit.p);
-    if (hit.id !== AT) go(hit.id, true);
-  } catch (err) { /* a press that moved nothing is the behaviour before this existed */ }
-}, true);
-
-/* AND THE POINTER SAYS SO BEFORE THE PRESS. § */
-let WIDE_OVER = null, WIDE_OVER_F = 0;
-addEventListener('pointermove', e => {
-  if (!WIDE || e.pointerType !== 'mouse' || WIDE_OVER_F) return;
-  const x = e.clientX, y = e.clientY;
-  WIDE_OVER_F = requestAnimationFrame(() => {
-    WIDE_OVER_F = 0;
-    const onFront = document.elementFromPoint(x, y);
-    const hit = onFront && onFront.closest && onFront.closest('#screen .page.on') ? null : wideHit_(x, y);
-    const el = hit ? hit.el : null;
-    if (el === WIDE_OVER) return;
-    if (WIDE_OVER) WIDE_OVER.classList.remove('wide-over');
-    WIDE_OVER = el;
-    if (el) el.classList.add('wide-over');
-    const scr = $('screen');
-    if (scr) scr.style.cursor = el ? 'pointer' : '';
-  });
-}, { passive: true });
-/* ---------- LEAVING A WIDE WINDOW TAKES THE HAND AWAY § */
-function wideOverClear_() {
-  try {
-    if (WIDE_OVER) WIDE_OVER.classList.remove('wide-over');
-    WIDE_OVER = null;
-    const scr = $('screen');
-    if (scr) scr.style.cursor = '';
-  } catch (e) { /* before this file has finished loading there is nothing to clear */ }
-}
-
 /* ---------- A SWIPE THAT BEGAN ON A FIELD OPENS NOTHING AND TICKS NOTHING § */
 const FIELD_ACTS_ = 'select, label, summary, input[type="checkbox"], input[type="radio"]';
 addEventListener('mousedown', e => {
-  if (!PRESS_MOVED && !PRESS_SLIDING) return;
+  if (!PRESS_MOVED) return;
   if (e.target && e.target.closest && e.target.closest(FIELD_ACTS_)) e.preventDefault();
 }, true);
 
@@ -55,19 +9,10 @@ document.addEventListener('click', e => {
   /* FIRST, because a swipe that ends on a tab must not change tab either. */
   if (PRESS_MOVED) {
     PRESS_MOVED = false;
-    PRESS_SLIDING = false;
     pressClear_();
     /* AND ON A FIELD, NOT EVEN THE BROWSER'S OWN DEFAULT — see `FIELD_ACTS_` above. */
     if (e.target && e.target.closest && e.target.closest(FIELD_ACTS_)) e.preventDefault();
     if (CLICK_LOG) console.log('[click] swallowed — the finger moved, so this was a swipe');
-    return;
-  }
-  /* A TAP ON A CARD STILL GLIDING STOPS NOTHING AND PRESSES NOTHING — see `SLIDE_UNTIL`. */
-  if (PRESS_SLIDING) {
-    PRESS_SLIDING = false;
-    pressClear_();
-    if (e.target && e.target.closest && e.target.closest(FIELD_ACTS_)) e.preventDefault();
-    if (CLICK_LOG) console.log('[click] swallowed — it began on a card still sliding');
     return;
   }
   pressDone_();
@@ -82,9 +27,6 @@ document.addEventListener('click', e => {
       handledByChange: !!(d && (d.tagName === 'SELECT' || isCheckbox_(d))),
     });
   }
-  /* A PRESS ON THE CARD IN FRONT HOLDS IT WHERE IT IS, before the handler below changes it — see
-     `HOLD_AT`. After the two swallows above, because a swipe is not somebody using the card. */
-  holdHere_(e.target);
   const tab = e.target.closest('.tab');
   if (tab) { go(tab.dataset.tab); return; }
 
@@ -137,9 +79,6 @@ function pressAct_(doer, e) {
 /* Escape closes the sheet, for anybody on a keyboard. Costs one line and is the first thing
    somebody tries. */
 /* ---------- THE ARROW KEYS § */
-const ARROWS = { ArrowLeft: ['x', -1], ArrowRight: ['x', 1],
-                 ArrowUp: ['y', -1], ArrowDown: ['y', 1] };
-
 addEventListener('keydown', e => {
   /* A [role=button] THAT IS NOT A <button> PRESSES ON ENTER OR SPACE LIKE ONE (561, U15). */
   if ((e.key === 'Enter' || e.key === ' ') && e.target && e.target.matches && e.target.matches('[role=button][data-do]:not(button)')) {
@@ -148,23 +87,7 @@ addEventListener('keydown', e => {
   /* ESCAPE SHUT `#drop` FIRST while there was one. § */
   if (e.key === 'Escape' && !$('sheet').classList.contains('hidden')) { closeSheet(); return; }
 
-  const arrow = !FLOW_LAYOUT && ARROWS[e.key];
-  if (!arrow) return;
-  if (typeof padlocked_ === 'function' && padlocked_()) return;   // the padlock (457)
-  /* A modifier means the key belongs to the browser — ⌘← is back, alt+arrow is word-by-word. */
-  if (e.metaKey || e.ctrlKey || e.altKey) return;
-  /* Typing, or anywhere a caret could be. `isContentEditable` catches the cases a tag name does
-     not, which is the sort of thing a list of tag names quietly misses. */
-  const t = e.target;
-  if (t && (t.isContentEditable
-    || /^(input|textarea|select)$/i.test(t.tagName || ''))) return;
-  /* The sheet is the page; while it is open the grid is not what these are for. */
-  if (!$('sheet').classList.contains('hidden')) return;
-
-  const ax = AXES[arrow[0]];
-  if (!ax || ax.count() < 2) return;
-  e.preventDefault();
-  ax.go(ax.at() + arrow[1]);
+  /* THE ARROWS ARE THE BROWSER'S: they scroll the one page (900). */
 });
 
 /* THE EDGES OF THE SCREEN were tappable from here — a second `click` listener that turned to the next card when you pressed the sliver either side. § */
@@ -195,9 +118,7 @@ async function filesOnly_() {
   /* A PLAIN OBJECT, NOT THE PROXY. § */
   loadRowsClean_(d);
   DATA = d;
-  /* THE COLUMNS AND THE ICON ARE IN `data/settings/`, so they are knowable here and are the two
-     things that decide what the app looks like before anything is drawn. */
-  try { applyColumns_(); } catch (e) { oops_(e, 'shell:filesOnly_') }
+  /* THE ICON IS IN `data/settings/`, so it is knowable here, before anything is drawn. */
   try { applyBrandIcon_(); } catch (e) { oops_(e, 'shell:filesOnly_') }
 }
 

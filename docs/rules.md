@@ -14,7 +14,7 @@ Everything below derives from that core: 2 principles (single source of truth, a
 - **1.5** Only irreversible actions need a human tap (deleting data, approving tutors, publishing policies); every delete, decline, remove or reset arms on the first press (`sure_()`), never `confirm()`.
 - **1.6** Report only results and "safe to merge"; never idle on CI; bugs before anything new; quality first, done once.
 - **1.7** Every key the site reads, `doGet` sends; one payload, one data source, in sync.
-- **1.8** Switches are data: `tiers.json` marks core/secondary, `columns.json` the screens; a secondary part cannot break Find.
+- **1.8** Switches are data: `tiers.json` marks core/secondary; a secondary part cannot break Find.
 - **1.9** A new sheet tab is named in `TAB`, `SCHEMA` and `WHERE`; backend files are listed once (`files.json`); the backend is one scope; version stamps bump together.
 - **1.10** Old rows are migrated to the new rule, never left behind; names are read from the people row by id.
 - **1.11** One permissions table (`permissions.json`) for every action × role; every handler is classified and has a caller.
@@ -57,7 +57,7 @@ Everything below derives from that core: 2 principles (single source of truth, a
 - **1.48** No umbrella answers: a menu never offers an answer that is the union of other answers beside it (no Science or Combined Science beside Biology, Physics and Chemistry), a parent next to its own child, or one label twice. Overlap across subjects is fine: a card may sit under several subjects (History and Religious Studies share cards).
 - **1.49** Every tag is a card (owner, 13 Nov): a tag links to exactly one card — each subject, level, board, year and kind, and each entity (a work, a person, a place) — and picking it in Find shows that card first, then everything tagged with it; never two cards for one tag, never a tag without one. The count still missing sits in `check/tag-cards-ratchet.json` and only goes down.
 - **1.50** Two finders, one list: outside `inFinder_(F, fn)` the shared `STUFF` is Find's, and an async job re-binds its finder before it reads or writes; only `finderSet_` writes a finder's chips and words.
-- **1.51** Find is the only way around (owner, 14 Nov, step 3): every screen becomes a Find branch whose menu is tags and whose leaves are cards, seen by the same permission rows; a moved screen keeps no column, screen code or <section>, and its old name opens its branch (`data/settings/screens-moved.json`). `data/settings/find-only.json` surveys every screen and `check/find-only-ratchet.json` lists the columns still standing, a list that only gets shorter.
+- **1.51** Find is the only way around (owner, 14 Nov, step 3): every screen becomes a Find branch whose menu is tags and whose leaves are cards, seen by the same permission rows; there is no column, screen code or <section> but Find's, and an old screen's name opens its branch (`data/settings/screens-moved.json`, old name to branch). Done 17 Nov; the survey is docs/history/find-only.md.
 - **1.52** Icons and one-word labels, no grey clutter, information as a tag; a failure is said in words through `why_()`.
 - **1.53** No leaderboards, points or streaks; no public stars (feedback is private to the owner).
 - **1.54** Same controls in the same places for every account; ones you can't use are greyed, never hidden, moved or appearing on tap.

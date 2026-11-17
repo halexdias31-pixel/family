@@ -827,7 +827,7 @@ function layoutClean_(v) {
     .filter((x, i, all) => all.findIndex(y => y.id === x.id) === i).slice(0, 12);
   if (custom.length) out.custom = custom;
   /* ANY UNIT ON ANY COLUMN (710): a widget column's `cards` list is its mixed order. */
-  /* THE COLUMNS FROM columns.json (730), through the generated block of constants.gs — never a list typed here. */
+  /* THE COLUMNS FROM constants.gs's fixed block (730; columns.json went 17 Nov). */
   const COLS = LAYOUT_CARD_COLS.concat(LAYOUT_WIDGET_COLS).concat(custom.map(x => x.id));
   const c = o.cards && typeof o.cards === 'object' && !Array.isArray(o.cards) ? o.cards : {};
   const cards = {};

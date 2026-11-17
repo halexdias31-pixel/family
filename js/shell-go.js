@@ -1,6 +1,6 @@
 /* ---------- GOING TO A COLUMN AND PAINTING IT (cut from shell-boot.js; read with the other shell-*.js by tools/piece-src.js). */
 function go(id, remember, instant) {
-  id = screenNow_(id); if (typeof screenGone_ === 'function' && screenGone_(id)) return;  /* a column switched off is a Find door now (batch C) */
+  if (!TABS.some(t => t.id === id) && typeof oldBranch_ === 'function' && oldBranch_(id)) return;  /* an old screen's name opens its Find branch (screens-moved.json) */
   const tab = TABS.find(t => t.id === id)
            || TABS.find(t => t.id === TAB_HOME)
            || TABS[0];
@@ -73,7 +73,7 @@ function go(id, remember, instant) {
   }
   /* After wake, because a page holding a canvas has to exist and be sized before it is moved. § */
   oopsTry_('go:pager', () => paintPager(AT, instant));
-  if (FLOW_LAYOUT) oopsTry_('go:flow', () => { topbarPaint_(); if (was && was !== AT) $('s-' + AT).scrollIntoView({ block: 'start' }); });
+  oopsTry_('go:flow', () => { topbarPaint_(); if (was && was !== AT) $('s-' + AT).scrollIntoView({ block: 'start' }); });
 
 }
 /* DRAW THE SCREEN EITHER SIDE, so a sideways drag reveals one rather than an empty rectangle. § */
@@ -110,7 +110,7 @@ function bootGlass_() {
   if (!PRE_PAYLOAD.size || typeof GLASS === 'undefined') return;
   const ti = TABS.findIndex(t => t.id === AT);
   if (ti < 0) return;
-  const k = WIDE ? Math.max(1, GLASS.reach || 1) : 1;
+  const k = 1;
   TABS.forEach((t, i) => {
     if (t.id === AT || Math.abs(i - ti) > k || !PRE_PAYLOAD.has(t.id) || !STALE[t.id]) return;
     paint(t.id);
@@ -246,8 +246,7 @@ function paint(id, fresh, o) {
   el.PG_SIG = null;
 
   /* ---------- AND THE COLUMN IS CENTRED ON WHAT WAS JUST DRAWN § */
-  if (typeof PLACED_ONCE !== 'undefined' && PLACED_ONCE && !(o && o.ahead)
-      && !(typeof SWIPE !== 'undefined' && SWIPE.live && SWIPE.axis)) {
+  if (typeof PLACED_ONCE !== 'undefined' && PLACED_ONCE && !(o && o.ahead)) {
     placeCells('y', true, 0, id);
   }
 

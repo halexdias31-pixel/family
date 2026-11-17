@@ -403,7 +403,6 @@ function kpLayer_(name, inp) {
   kpLayout_(inp);
   kpAutoShift_(inp);
   kpShiftPaint_();
-  kpKeepClear_(inp);
 }
 
 function kpOpen_(inp) {
@@ -433,7 +432,7 @@ function kpOpen_(inp) {
   kpRender_(inp);
   if (!back && !same) kpAutoShift_(inp);
   kpShiftPaint_();
-  kpRoom_(inp, pad);
+  kpPadH_(pad);
 }
 
 function kpClose_() {
@@ -444,19 +443,9 @@ function kpClose_() {
   KP_AT = null;
   kpHoldStop_();
   if (was) kpRender_(was);
-  kpRoomBack_();
 }
 
-/* ---------- AND THE BOX STAYS ABOVE THE PAD § */
-let KP_ROOM = null;
-const kpBox_ = inp => {
-  /* THE BOX AND ITS TOOL ROW (round 3): the row is under the box with Check last in it, so the row's foot is what stays above the pad */
-  const mark = inp && inp.closest && inp.closest('.qp-mark');
-  const card = mark && mark.closest('.qcard'), row = card && card.querySelector(':scope > .kc-act > .qt-row');
-  if (row) return row;
-  const essay = inp && inp.closest && inp.closest('.qp-essay');
-  return (essay && essay.querySelector('.qp-sheet-foot')) || (inp && inp.closest && inp.closest('.qp-ans')) || inp;
-};
+/* ---------- THE PAD OPENS OVER THE FOOT OF THE PAGE (owner, 16 Nov): nothing moves; the body's foot makes the room (style.css, `.kp-up`) ---------- */
 /* THE PAD'S HEIGHT, FOR THE STYLESHEET: § */
 function kpPadH_(pad) {
   try {
@@ -466,82 +455,6 @@ function kpPadH_(pad) {
     }
   } catch (e) { /* the stylesheet's own guess stands */ }
 }
-function kpRoom_(inp, pad) {
-  kpRoomBack_();
-  kpPadH_(pad);
-  /* THE KEYBOARD NEVER MOVES THE SCREEN (owner, 16 Nov): it opens over the foot of the page and the page stays where it is. */
-  if (FLOW_LAYOUT) return;
-  /* A FINDER'S CARD IS CENTRED IN WHAT SHOWS ABOVE THE PAD (720), then held there while you type — `glassSeenH_` (shell.js). */
-  if (kpFinderCentre_(inp)) return;
-  const box = kpBox_(inp);
-  let el = inp.parentNode;
-  while (el && el !== document.body) {
-    const oy = getComputedStyle(el).overflowY;
-    if (oy === 'auto' || oy === 'scroll') break;
-    el = el.parentNode;
-  }
-  if (el && el !== document.body) {
-    const h = pad.getBoundingClientRect().height;
-    KP_ROOM = { el: el, was: el.style.paddingBottom };
-    el.style.paddingBottom = h + 'px';
-    const over = box.getBoundingClientRect().bottom - (pad.getBoundingClientRect().top - 12);
-    if (over > 0) el.scrollTop += over;
-    /* A SCROLLER WITH NOTHING LEFT TO GIVE leaves the rest to the column, below. */
-    if (box.getBoundingClientRect().bottom - (pad.getBoundingClientRect().top - 12) <= 0) return;
-  }
-  kpLift_(inp, pad);
-}
-function kpRoomBack_() {
-  if (KP_ROOM) {
-    KP_ROOM.el.style.paddingBottom = KP_ROOM.was;
-    KP_ROOM = null;
-  }
-  /* AND THE COLUMN PUT BACK WHERE IT WAS HELD — only if it is still the hold the lift was written on.
-     A swipe away has already let go of it (`placeGrid`), and the card arrived at is centred. */
-  const L = KP_LIFT;
-  KP_LIFT = null;
-  /* AND A FINDER, ITS PAD GONE, IS CENTRED AGAIN in the whole glass. */
-  if (!FLOW_LAYOUT && !(L && L.lift) && typeof finderOf_ === 'function' && finderOf_(AT)) { try { placeCells('y', true, 0, AT); } catch (e) { /* left where it was */ } }
-  if (L && L.lift) {
-    L.lift = 0;
-    try { if (HOLD_AT === L) placeCells('y', true, 0, L.id); } catch (e) { oops_(e, 'keypad:kpRoomBack_') }
-  }
-}
-function kpFinderCentre_(inp) {
-  try {
-    if (FLOW_LAYOUT || typeof finderOf_ !== 'function' || !finderOf_(AT)) return false;
-    const pg = inp.closest('#screen .page.on'), host = pg && pg.parentElement;
-    if (!isAtHost_(host)) return false;
-    holdHere_(inp);
-    const h = HOLD_AT;
-    if (!h || h.id !== AT) return false;
-    const seen = glassSeenH_(host);
-    if (pg.offsetHeight > seen) return false;   // taller than what shows: the lift below keeps the box clear instead
-    h.lift = 0; h.top = Math.max(0, (seen - pg.offsetHeight) / 2); h.h = pg.offsetHeight;
-    placeCells('y', true, 0, AT);
-    return true;
-  } catch (e) { return false; }
-}
-/* ---------- AND AGAIN AS IT GROWS § */
-function kpKeepClear_(inp) {
-  if (FLOW_LAYOUT) return;
-  const pad = document.getElementById('kp');
-  if (!pad || pad.hidden || !inp || KP_AT !== inp || !inp.isConnected) return;
-  kpPadH_(pad);
-  try {
-    const top = pad.getBoundingClientRect().top - 12;
-    let over = kpBox_(inp).getBoundingClientRect().bottom - top;
-    if (over <= 0.5) return;
-    if (KP_ROOM) {
-      KP_ROOM.el.style.paddingBottom = pad.getBoundingClientRect().height + 'px';
-      KP_ROOM.el.scrollTop += over;
-      over = kpBox_(inp).getBoundingClientRect().bottom - top;
-      if (over <= 0.5) return;
-    }
-    kpLift_(inp, pad);
-  } catch (e) { /* a box that cannot be measured is left where it is */ }
-}
-
 /* ---------- AN ESSAY'S SHEET IS AS TALL AS ITS CARD HAS ROOM FOR § */
 const KP_SHEET_FLOOR = 5 * 24;
 function kpSheetFit_(pane) {
@@ -562,30 +475,6 @@ function kpSheetFit_(pane) {
     if (floor > fit) show.style.minHeight = fit + 'px';
     if (KP_AT && show.parentNode && show.parentNode.contains(KP_AT)) kpCaretSeen_(show);
   } catch (e) { /* the stylesheet's cap stands */ }
-}
-
-/* ---------- A CARD WITH NOTHING TO SCROLL IS LIFTED WHOLE § */
-let KP_LIFT = null;
-function kpLift_(inp, pad) {
-  /* ONE SCROLLING PAGE (900): the page scrolls the box above the pad; the body's foot makes the room (style.css, `.kp-up`). */
-  if (FLOW_LAYOUT) return;
-  try {
-    const pg = inp.closest('#screen .page.on');
-    const host = pg && pg.parentElement;
-    if (!isAtHost_(host)) return;
-    if (!HOLD_AT || HOLD_AT.id !== AT || HOLD_AT.p !== (PAGE[AT] || 0)) holdHere_(inp);
-    const h = HOLD_AT;
-    if (!h || h.id !== AT) return;
-    h.lift = 0;
-    const want = columnShift_(host, domIndex_(AT, PAGE[AT] || 0));
-    const base = (host.offsetParent || host.parentElement).getBoundingClientRect().top + host.offsetTop;
-    const fromTop = kpBox_(inp).getBoundingClientRect().bottom - host.getBoundingClientRect().top;
-    const over = base + want + fromTop - (pad.getBoundingClientRect().top - 12);
-    if (!isFinite(over) || over <= 0) return;
-    h.lift = over;
-    KP_LIFT = h;
-    placeCells('y', true, 0, AT);
-  } catch (e) { /* a box left where it was is the behaviour before this existed */ }
 }
 
 /* ---------- WHAT A KEY DOES § */
@@ -781,7 +670,6 @@ function kpAfter_(inp, c) {
   if (pad && inp.getAttribute('data-do') === 'qp-multi') kpNextPaint_(pad, inp);
   if (!/^!(left|right|home|end|top|bottom)$/.test(c)) kpAutoShift_(inp);
   kpShiftPaint_();
-  kpKeepClear_(inp);
   kpSay_(inp);
 }
 

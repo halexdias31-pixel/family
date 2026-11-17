@@ -561,8 +561,8 @@ function findPeopleItems_() {
       venueSize: [Number(v.maxCapacity) ? 'Up to ' + v.maxCapacity : '', (v.rooms || []).length ? (v.rooms || []).length + ' room' + ((v.rooms || []).length === 1 ? '' : 's') : ''].filter(Boolean),
     })),
     /* The widgets, findable like everything else. § */
-    /* ---------- THE WIDGETS ARE IN THE FUNNEL AGAIN (790): each one data/settings/widgets-in-find.json names is a card, its kind's group (Tools, Games) its first answer. */
-    ...(typeof allWidgets === 'function' && typeof widgetInFind_ === 'function' ? findWidgetList_() : []).map(w => ({
+    /* ---------- THE WIDGETS ARE IN THE FUNNEL AGAIN (790): every widget but the reel's is a card, its kind's group (Tools, Games) its first answer. */
+    ...(typeof allWidgets === 'function' && typeof findWidgetList_ === 'function' ? findWidgetList_() : []).map(w => ({
       kind: w.kind, name: w.name || w.title || w.label || String(w.id), sub: w.what || '', image: '',
       groups: w.groups, widget: w, text: [w.name, w.what, w.label].filter(Boolean).join(' '),
       /* A SHOP WIDGET (the Basket) IS ITS OWN ANSWER UNDER SHOP (batch C), beside the things' categories. */

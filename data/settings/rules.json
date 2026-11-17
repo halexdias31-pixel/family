@@ -58,7 +58,7 @@
   {
    "id": "1.8",
    "principle": 1,
-   "text": "Switches are data: `tiers.json` marks core/secondary, `columns.json` the screens; a secondary part cannot break Find.",
+   "text": "Switches are data: `tiers.json` marks core/secondary; a secondary part cannot break Find.",
    "since": "2026-11-12"
   },
   {
@@ -316,7 +316,7 @@
   {
    "id": "1.51",
    "principle": 1,
-   "text": "Find is the only way around (owner, 14 Nov, step 3): every screen becomes a Find branch whose menu is tags and whose leaves are cards, seen by the same permission rows; a moved screen keeps no column, screen code or <section>, and its old name opens its branch (`data/settings/screens-moved.json`). `data/settings/find-only.json` surveys every screen and `check/find-only-ratchet.json` lists the columns still standing, a list that only gets shorter.",
+   "text": "Find is the only way around (owner, 14 Nov, step 3): every screen becomes a Find branch whose menu is tags and whose leaves are cards, seen by the same permission rows; there is no column, screen code or <section> but Find's, and an old screen's name opens its branch (`data/settings/screens-moved.json`, old name to branch). Done 17 Nov; the survey is docs/history/find-only.md.",
    "since": "2026-11-14"
   },
   {

@@ -19,9 +19,9 @@ document.addEventListener('toggle', e => {
   if (el.open) MISSING_OPEN.add(k); else MISSING_OPEN.delete(k);
 }, true);
 
-/* AN ITEM (487, layout.js `itemMark_`): Delete and Note for an admin, no move and no door — Find's own code places it. */
+/* AN ITEM (487, words.js `itemMark_`): Edit words for an admin — Find's own code places it. */
 const MISSING_ID = 'item:stuff:missing-papers';
-const missingFor_ = () => may_('admin') && !(typeof itemGone_ === 'function' && itemGone_(MISSING_ID));
+const missingFor_ = () => may_('admin');
 /* THE PAGE ABOVE FIND'S QUESTION (`FINDERS.stuff.lead`, find.js): an admin's only. */
 /* AND SUGGEST A CHANGE (486), as on Daive's card: one row with the item's tiles (`suggestRowIn_`, submit.js). */
 /* IN FIND, NOT ABOVE IT (owner, 4 Nov): the lead page is empty; What's missing is a Find card under Owner questions. */
@@ -29,7 +29,7 @@ function missingLead_() { return []; }
 const missingLeadN_ = () => 0;
 function missingLeadCards_() {
   if (!missingFor_()) return [];
-  const h = typeof itemMark_ === 'function' ? itemMark_(MISSING_ID, '', missingCard_()) : missingCard_();
+  const h = typeof itemMark_ === 'function' ? itemMark_(MISSING_ID, missingCard_()) : missingCard_();
   return [typeof suggestRowIn_ === 'function' ? suggestRowIn_(h, 'widget', 'missing-papers', 'What’s missing') : h];
 }
 /* SETTINGS CARDS IN FIND, drawn by their own files: the business checker (1050). */

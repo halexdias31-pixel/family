@@ -90,9 +90,6 @@ async function loadOnce_(again, n, kept) {
       setTimeout(shapeSave_, 4000);
       /* THE STARS AND THE SPOTLIGHTS, from the payload that has just landed. § */
       adoptMarks_();
-      /* BEFORE THE ICON AND BEFORE ANYTHING IS DRAWN. `applyColumns_` can change which screen you
-         are on, and everything painted after it reads `AT`. */
-      applyColumns_();
       applyBrandIcon_();
       /* ---------- THE WATCHDOG'S MESSAGE IS NOT TRUE ANY MORE § */
       if (!kept) loadNotices_(d);   /* a kept copy says nothing new (1070): banners, messages and settings wait for the network */
@@ -283,9 +280,8 @@ function loadFinish_(kept) {
   /* THE FIRST LOAD IS DONE, said on `<html>` for whatever waits on it; nothing on screen changes. */
   bootLoaded_(true);
   /* THE ADMIN'S FRONT DOOR (489, layout.js), once the layout has come with the payload. */
-  try { if (typeof frontGo_ === 'function') frontGo_(); } catch (e) { oops_(e, 'shell:loadOnce_') }
   /* A REMEMBERED COLUMN THAT MOVED INTO FIND (shell-boot.js `KEPT_GONE`) opens its branch, once, if nothing else was opened meanwhile. */
-  try { const k = KEPT_GONE; if (k && !LOAD_FAILED && AT === TAB_HOME && typeof screenGone_ === 'function' && screenGone_(k)) KEPT_GONE = ''; } catch (e) { oops_(e, 'shell:keptGone_') }
+  try { const k = KEPT_GONE; if (k && !LOAD_FAILED && AT === TAB_HOME && typeof oldBranch_ === 'function' && oldBranch_(k)) KEPT_GONE = ''; } catch (e) { oops_(e, 'shell:keptGone_') }
   /* ---------- THE STALE SCREENS, CLEARED BEFORE THE REDRAW § */
   /* ---------- ONCE, NOT ON EVERY LOAD § */
   /* ---------- AND NOT EMPTIED AT ALL ANY MORE — THE GLASS IS DRAWN, THE REST IN THE QUIET AFTER IT § */

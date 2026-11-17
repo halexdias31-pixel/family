@@ -17,42 +17,35 @@ function widgetFor_(w) {
   if (w.tutor && !(typeof may_ === 'function' && may_('staff'))) return false;
   if (w.signedIn && !(typeof USER !== 'undefined' && USER)) return false;
   /* WHO SEES THIS (497, words.js): an admin's narrowing, asked after the code's own gates, which always win. */
-  if (typeof seenOk_ === 'function' && !seenOk_(String(w.id))) return false;
   return true;
 }
 
 function widgetsOf_(kind) {
   /* THE LIST IS find.js's, which comes after the first screen (670): none yet. */
   if (typeof allWidgets !== 'function') return [];
-  /* THE ADMIN'S LAYOUT FIRST (462, 463): which column each widget is on and in what order, else the code's (`layoutWidgets_`, layout.js). */
-  if (typeof layoutWidgets_ === 'function') return layoutWidgets_(kind, allWidgets()).filter(widgetFor_);
   return allWidgets()
     .filter(w => w.kind === kind)
     .filter(widgetFor_);
 }
 
-/* A COLUMN'S PAGES: its widgets with each merged card's parts as one (480, `layoutMergeWidgets_`, layout.js) — what the pager counts. */
-function widgetPagesOf_(kind) {
-  const list = widgetsOf_(kind);
-  return typeof layoutMergeWidgets_ === 'function' ? layoutMergeWidgets_(list) : list;
-}
+/* A KIND'S PAGES: a widget a page — what the pager counts. */
+const widgetPagesOf_ = kind => widgetsOf_(kind);
 
 /* ---------- ONE WIDGET, ONE CARD, AND A STAR ON IT § */
 const WIDGET_KEY = w => 'w:' + String(w.id);
 
 /* NAMED FOR THE COLUMN, because `find.js` already has a `widgetCard_` and it is a different object: § */
 /* ---------- AND UNTIL IT HAS STARTED, IT IS WAITING, AND IT LOOKS IT § */
-/* `own` is its own column (not Saved): only there does an admin get the layout row (463, `layoutOpts_` in layout.js). */
+/* `own` is its own card (not Saved): only there does an admin get Edit words (`wordsOpts_`, words.js). */
 function widgetOnColumn_(w, own) {
-  if (w && w.parts) return widgetMergedOn_(w, own);
   const held = typeof gameLocked_ === 'function' && gameLocked_(w.id), name = w.name || w.title || w.label || '';
   return renderCard({ kind: 'panel', look: 'is-widget' + (held ? ' is-locked' : ''), name, tags: name ? [name] : [],
     body: [widgetSlot_(w, name)], tiles: widgetTiles_(w, own) });
 }
-/* ONE PLACE FOR A WIDGET'S TILES (472): the star, the padlock, Suggest, then the admin's layout tiles — the card's one row. */
+/* ONE PLACE FOR A WIDGET'S TILES (472): the star, the padlock, Suggest, then the admin's Edit words — the card's one row. */
 const widgetTiles_ = (w, own) => [].concat(typeof favOpts_ === 'function' ? [favOpts_({ key: WIDGET_KEY(w), kind: 'widget' }),
   typeof gameLockOpts_ === 'function' ? gameLockOpts_(w.id) : null, typeof suggestOpts_ === 'function' ? suggestOpts_('widget', String(w.id), w.name || w.title || w.label || '') : null] : [],
-  own === true && typeof layoutOpts_ === 'function' ? layoutOpts_(w) || [] : []).filter(Boolean);
+  own === true && typeof wordsOpts_ === 'function' ? wordsOpts_('w:' + String(w.id)) || [] : []).filter(Boolean);
 /* A WIDGET'S SLOT, its own maker's drawing inside (a heading saying the card's name goes: the name tag says it); waiting until it has started. */
 function widgetSlot_(w, name) {
   const waits = typeof w.start === 'function' && typeof loading_ === 'function';
@@ -61,12 +54,6 @@ function widgetSlot_(w, name) {
     inner: (typeof kcTidy_ === 'function' ? kcTidy_('', html, name).lines : String(html || '')) + (waits ? loading_() : '') };
 }
 
-/* A MERGED CARD (480): one frame, each part's own slot (started by its own widget), the lower titles as subheadings, one tile row — the top part's. */
-function widgetMergedOn_(m, own) {
-  const top = m.parts[0], name = top.name || top.title || top.label || '';
-  return renderCard({ kind: 'panel', look: 'is-widget is-merged', data: { merged: m.parts.map(w => String(w.id)).join(' ') }, name, tags: name ? [name] : [],
-    body: m.parts.map(w => ({ type: 'group', look: 'merged-part', blocks: [widgetSlot_(w, name)] })), tiles: widgetTiles_(top, own) });
-}
 
 
 
@@ -138,22 +125,11 @@ function widgetsBack_(col, held) {
 }
 
 
-/* ---------- A WIDGET THAT IS A FIND CARD (790): data/settings/widgets-in-find.json names a kind or an id, the id's row winning; before it comes, every tool and game ---------- */
-const FIND_WIDGET_KINDS = ['tool', 'game', 'shop'];
 /* A WIDGET THAT IS ITS OWN FIRST ANSWER IN FIND (batch B): a browsable thing gets a menu pill, not a column or a mini-app. */
 const FIND_WIDGET_GROUPS = { videos: 'Videos', reels: 'Tools', newspaper: 'Tools', shopfind: 'Tools', cart: 'Shop' };
-function widgetInFind_(w) {
-  if (!w) return false;
-  const rows = (typeof DATA !== 'undefined' && DATA && Array.isArray(DATA.widgetsInFind)) ? DATA.widgetsInFind : null;
-  if (!rows) return FIND_WIDGET_KINDS.indexOf(w.kind) !== -1;
-  const said = rows.find(r => r.widget === String(w.id)) || rows.find(r => r.widget === w.kind);
-  return !!said && /^(true|yes|1)$/i.test(String(said.find).trim());   /* a sheet's "FALSE" is a string, so truthiness would keep it */
-}
-/* EVERY WIDGET THAT IS A FIND CARD FOR THIS VIEWER, in the code's order; one an admin deleted (layout.js) is gone here too. */
+/* EVERY WIDGET IS A FIND CARD (790) FOR THIS VIEWER, in the code's order — but the reel's: each of its videos is a Find card of its own (kind video). */
 function findWidgetList_() {
-  let gone = [];
-  try { const L = typeof layoutNow_ === 'function' ? layoutNow_() : null; gone = (L && L.deleted) || []; } catch (e) { gone = []; }
-  return allWidgets().filter(w => widgetInFind_(w) && gone.indexOf(String(w.id)) === -1).filter(widgetFor_);
+  return allWidgets().filter(w => w && w.kind !== 'reel').filter(widgetFor_);
 }
 /* THE WIDGETS ON A FINDER: the slots its filled pages hold — Find fills only the pages near the glass, so a card not drawn yet has nothing to start. */
 function finderWidgets_(col) {
@@ -165,10 +141,7 @@ function finderWidgets_(col) {
 /* `stuff` (790): the tools and games are Find cards, started and stopped as a column's are. */
 const WIDGET_COLS = ['stuff'];
 function widgetsOn_(col) {
-  if (col === 'stuff') return finderWidgets_(col);
-  /* A WIDGET THE ADMIN MOVED ONTO A CARD COLUMN OR ONE OF THEIR OWN (710). */
-  if (typeof layoutWidgetsIn_ === 'function' && typeof allWidgets === 'function') { const L = layoutNow_(); return L ? layoutWidgetsIn_(col, allWidgets(), L).filter(widgetFor_) : []; }
-  return [];
+  return col === 'stuff' ? finderWidgets_(col) : [];
 }
 
 /* THE SLOT ON THAT COLUMN, NOT `$()`'s — the note on `widgetUp_` says why. § */
@@ -279,10 +252,7 @@ function widgetsLater_() {
     const now = performance.now();
     /* A FINGER DOWN AT ALL, NOT ONLY ONE WHOSE DIRECTION IS DECIDED: § */
     /* AND A COLUMN CHANGE NOT YET PLACED (`GLASS.at`). § */
-    const busy = (typeof SETTLE_ON !== 'undefined' && SETTLE_ON && now < SETTLE_ON.until)
-              || (typeof SWIPE !== 'undefined' && SWIPE.live)
-              || (typeof SLIDE_UNTIL !== 'undefined' && now < SLIDE_UNTIL)
-              || (typeof GLASS !== 'undefined' && GLASS.at !== AT);
+    const busy = typeof GLASS !== 'undefined' && GLASS.at !== AT;
     /* BUT NOT FOR EVER. A finger resting on the glass — or a `pointerup` the browser never sent — is `SWIPE.live` with nothing moving, and a column of widgets that § */
     if (busy && !(TOOLS_BUSY_SINCE && now - TOOLS_BUSY_SINCE > 1500)) {
       if (!TOOLS_BUSY_SINCE) TOOLS_BUSY_SINCE = now;
@@ -405,8 +375,6 @@ function aheadDrawWidget_(w, col) {
   delete slot.LENT;
   slot.AHEAD = { who: widgetWho_(), act: ACT_EPOCH, draw: DRAW_EPOCH, ups: WIDGET_UPS[id] || 0, pure: !!w.pure };
   slot.WHO = widgetWho_();
-  /* AND ITS COLUMN PLACED AGAIN, NOW: a widget grows its card as it draws (`widgetsLater_`'s reason). */
-  if (typeof placeOne_ === 'function') placeOne_(col);
 }
 /* THE BUILDER'S WIDGET JOBS — every slot `aheadDrawWidget_` may draw, with how far it is. § */
 function aheadWidgetJobs_() {

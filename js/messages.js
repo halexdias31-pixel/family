@@ -170,7 +170,7 @@ CARD_EMBEDS['daive'] = () => {
 const daiveHtml_ = () => renderCard({ kind: 'msg', look: 'daive', name: DAIVE, data: { daive: 1 }, body: [{ type: 'embed', tool: 'daive' }] });
 /* DAIVE IS AN ITEM (487): an admin's Delete and Note on it; deleted, it is gone for everyone. Its id keeps the old column's name, so a delete already made stands. */
 const daiveItem_ = () => {
-  const h = typeof itemMark_ === 'function' ? itemMark_('item:dm:daive', 'stuff', daiveHtml_()) : daiveHtml_();
+  const h = typeof itemMark_ === 'function' ? itemMark_('item:dm:daive', daiveHtml_()) : daiveHtml_();
   return h ? suggestRowIn_(h, 'widget', 'daive', DAIVE) : '';
 };
 /* REDRAWN IN PLACE in Find, and Find forgets what it drew, so a later paint never judges against the old card. */

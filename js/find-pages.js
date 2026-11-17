@@ -223,7 +223,6 @@ function paneWatch_(host) {
     if (!PANE_WATCH) PANE_WATCH = new ResizeObserver(rows => {
       const due = PANE_WATCH_DUE || (PANE_WATCH_DUE = []);
       const first = due.length === 0;
-      const held = new Set();
       /* ---------- AND HOW TALL EACH PANE WAS, FOR THE DAY IT IS EMPTIED § */
       rows.forEach(r => {
         const pane = r.target && r.target.parentElement;
@@ -232,12 +231,6 @@ function paneWatch_(host) {
       rows.forEach(r => {
         const pane = r.target && r.target.parentElement;
         if (pane && due.indexOf(pane) === -1) due.push(pane);
-        const scr = pane && pane.closest && pane.closest('.screen');
-        if (scr && scr.id && !held.has(scr.id)) {
-          held.add(scr.id);
-          /* NOW, INSIDE THE DELIVERY, and not with the measuring a frame later — see `holdColumn_` in shell.js: § */
-          if (typeof holdColumn_ === 'function') holdColumn_(scr.id.replace(/^s-/, ''));
-        }
       });
       if (first && due.length) requestAnimationFrame(() => {
         const mine = (PANE_WATCH_DUE || []).filter(p => p.isConnected);
@@ -397,7 +390,6 @@ function stuffAheadCentre_(F, ask) {
   return inFinder_(F, () => {
     if (stuffAsk_() !== ask) return;
     stuffWindow_('centre');
-    if (typeof placeOne_ === 'function') placeOne_(F.id);
   });
 }
 AHEAD_KINDS.push(stuffAheadJobs_);
@@ -487,7 +479,7 @@ function fillStuffPages(all) {
 }
 
 /* THE WORD FOR GOING ON TO THE RESULTS: a scroll on the one page (900), a swipe on the columns. */
-const SWIPE_UP = FLOW_LAYOUT ? 'Scroll down' : 'Swipe up';
+const SWIPE_UP = 'Scroll down';
 /* THE ONE SCROLLING PAGE (900): near the foot of what is drawn, the next three results of the window are drawn. */
 function flowMore_(id) {
   const F = typeof finderOf_ === 'function' ? finderOf_(id) : null;
@@ -513,7 +505,7 @@ function settle_(changed) {
   if (!changed) return;
   const host = $('s-' + FINDER.id);
   if (host && typeof paneWatch_ === 'function') paneWatch_(host);
-  if (!holdColumn_(FINDER.id)) placeCells('y', true, 0, FINDER.id);
+  placeCells('y', true, 0, FINDER.id);
 }
 
 /* ---------- EVERY WIDGET, FIXED AND MADE § */
