@@ -71,6 +71,51 @@ function qAliasMine_(mine, map) {
   });
   return out;
 }
+/* from js/arcade.js */
+function tdEaster_(yy) {
+  const D = (y, m, d) => new Date(y, m, d);
+  const a = yy % 19, b = Math.floor(yy / 100), c = yy % 100, d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25),
+    g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30, i = Math.floor(c / 4), k = c % 4,
+    l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451);
+  return D(yy, Math.floor((h + l - 7 * m + 114) / 31) - 1, ((h + l - 7 * m + 114) % 31) + 1);
+}
+function tdJul_(y) { const d = new Date(y, 6, 22); return d.getDay() % 6 ? d : new Date(y, 6, d.getDay() ? 21 : 20); }
+/* THE FIRST DAY OF A YEAR'S AUTUMN TERM: the first Wednesday from 1 Sep, or past the 5th the first Mon-Thu. */
+function tdYear0_(y) {
+  let d = new Date(y, 8, 1 + ((3 - new Date(y, 8, 1).getDay() + 7) % 7));
+  if (d.getDate() > 5) { d = new Date(y, 8, 1); while (d.getDay() === 0 || d.getDay() > 4) d.setDate(d.getDate() + 1); }
+  return d;
+}
+function tdYear0_(y) {
+  let d = new Date(y, 8, 1 + ((3 - new Date(y, 8, 1).getDay() + 7) % 7));
+  if (d.getDate() > 5) { d = new Date(y, 8, 1); while (d.getDay() === 0 || d.getDay() > 4) d.setDate(d.getDate() + 1); }
+  return d;
+}
+function tdYear_(y) {
+  const D = (yy, m, d) => new Date(yy, m, d), add = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+  const nth = (yy, mo, wd, n) => {
+    if (n > 0) { const d = D(yy, mo, 1); return add(d, ((wd - d.getDay() + 7) % 7) + 7 * (n - 1)); }
+    const d = D(yy, mo + 1, 0); return add(d, -((d.getDay() - wd + 7) % 7));
+  };
+  const fri = d => add(d, -((d.getDay() - 5 + 7) % 7)), mon = d => add(d, (8 - d.getDay()) % 7);
+  const octMon = nth(y, 9, 1, -1), octHalf = octMon.getDate() + 4 > 31 ? add(octMon, -7) : octMon;
+  let xmas = fri(D(y, 11, 21)); if (xmas.getDate() < 16) xmas = D(y, 11, 20);
+  let jan = mon(D(y + 1, 0, 2)); if (jan.getDate() <= 3 && D(y + 1, 0, 1).getDay() % 6 === 0) jan = add(jan, 1);
+  const feb = mon(D(y + 1, 1, 12)), eas = tdEaster_(y + 1), gf = add(eas, -2), em = add(eas, 1);
+  const floor = mon(em < D(y + 1, 2, 29) ? em : D(y + 1, 2, 29)), early = add(gf, -11), easStart = early > floor ? early : floor;
+  const springEnd = gf < easStart ? add(gf, -1) : add(easStart, -3), summer = add(easStart, 14) > em ? add(easStart, 14) : add(em, 1);
+  const may = nth(y + 1, 4, 1, -1), jul = tdJul_(y + 1);
+  const terms = [['Autumn 1', tdYear0_(y), add(octHalf, -3)], ['Autumn 2', add(octHalf, 7), xmas], ['Spring 1', jan, add(feb, -3)],
+    ['Spring 2', add(feb, 7), springEnd], ['Summer 1', summer, add(may, -3)], ['Summer 2', add(may, 7), jul]];
+  const hols = [['October half-term', 'half'], ['Christmas holidays', 'holiday'], ['February half-term', 'half'], ['Easter holidays', 'holiday'], ['May half-term', 'half']];
+  const out = [];
+  terms.forEach((t, i) => {
+    out.push({ name: t[0], kind: 'term', from: t[1], to: t[2] });
+    if (i < hols.length) out.push({ name: hols[i][0], kind: hols[i][1], from: add(t[2], 1), to: add(terms[i + 1][1], -1) });
+  });
+  out.push({ name: 'Summer holidays', kind: 'holiday', from: add(jul, 1), to: add(tdYear0_(y + 1), -1) });
+  return out;
+}
 /* from js/find-figures.js */
 const TAG_NAME = /[A-Za-z]/;
 function tagMadeOf_(text, said) {

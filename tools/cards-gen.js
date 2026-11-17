@@ -10,6 +10,8 @@ const TAKE = [
   ['js/data.js', ['nameBesideHandle_', 'capFirst_', 'nameKid_', 'fmtName_']],
   /* QUESTION ALIASES (answer-ids): the map and the merge the site reads by, as the backend files answers. */
   ['js/qaliases.js', ['QALIAS', 'qAliasKey_', 'qAliasMine_']],
+  /* THE SCHOOL YEAR AND EASTER (491): booking.gs `schoolYear` and setup.gs `easterOf_` date by the site's rule. */
+  ['js/arcade.js', ['tdEaster_', 'tdJul_', 'tdYear0_', 'tdYear_']],
   ['js/find-figures.js', ['TAG_NAME', 'tagMadeOf_']],
   /* THE WORDS FILE AND THE FORMATTERS (owner rule 1.1): every line a card says in an email goes through these. */
   ['js/core.js', ['WORDS_FILE', 'esc', 'text_', 'fmtTime_', 'fmtHours_', 'fmtMoney_', 'DAYS_SHORT', 'fmtDay_', 'fmtDmy_', 'fmtDate_']],

@@ -154,7 +154,7 @@
      "fields": [
       { "f": "extra_seat_rate", "type": "shown", "as": "money", "twin": "data-me", "show": "cardSeatShown_", "store": "cardSeatShare_" },
       { "f": "extra_seat_cut", "type": "shown", "as": "money", "twin": "data-me", "show": "cardSeatShown_", "store": "cardSeatShare_", "may": "admin" }
-    ]
+     ]
     },
     "card-where": {
      "attr": "data-me",
