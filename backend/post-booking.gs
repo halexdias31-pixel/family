@@ -337,11 +337,11 @@ function moveAdminSettle_(before, act, asAdmin, me, body, jobId) {
   }
 }
 
-/* THE NEW TERMS AN Edit OR Request CARRIES, written to the job's cells. */
+/* THE NEW TERMS AN Edit OR Request CARRIES, written to the job's cells — never a price: only `serverPrice_` makes one (owner, 17 Nov). */
 function moveEdits_(t, j, act, body) {
   if ((act === ACT.EDIT || act === ACT.REQUEST) && body.edits) {
     const MAP = { subject:'subject', level:'level', day:'weekday', time:'start_time',
-                  venue:'venue', price:'price_total', students:'max_students' };
+                  venue:'venue', students:'max_students' };
     Object.keys(body.edits).forEach(k => {
       const f = MAP[k], v = body.edits[k];
       if (f && v !== '' && v != null) setCell(t, j, f, k === 'time' ? fmtTime(v) : v);
@@ -455,16 +455,13 @@ function postCreateJob_(body, action, began) {
   /* ---------- HOW MANY TIMES SOMEBODY MAKES THE JOURNEY § */
   const sessionCount = S(body.dates).split(',').filter(Boolean).length || 1;
 
+  /* THE SERVER'S OWN PRICE (owner, 17 Nov): `serverPrice_` sums the booking by the site's lines over the sheet's rows, and its figures replace the phone's. */
+  const priced = serverPrice_(body);
+  if (!priced) return jsonOut({ error: 'This booking has no price yet — tick its hours and a term. Nothing has been booked.' });
+  Object.assign(body, priced);
   const travel = travelCost(S(body.location), sessionCount);
   const chargeTravel = N(cfg3.travel_on_client) > 0 && travel > 0;
   if (chargeTravel) body.price = N(body.price) + travel;
-
-  const wrong = priceLooksWrong({
-    price: body.price, venue: body.location, hours: body.hours,
-    weeks: S(body.dates).split(',').filter(Boolean).length || 1,
-    seats: body.n,
-  });
-  if (wrong) return jsonOut({ error: wrong });
 
   const jobId = S(body.forceItemId) || ('J-' + Date.now());
   const named = S(body.requestedTutor) && !/^(no preference|any)$/i.test(S(body.requestedTutor));

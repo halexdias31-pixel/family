@@ -198,7 +198,7 @@ function getFamilyVenues_(p, meAsked, viewerIsAdmin, venuesTab, payload) {
       comfort: S(r.tutors_happy_here).split(/[,\n]/).map(x => x.trim()).filter(Boolean),
       // The rooms in this building, each with its own price and capacity. Empty for a venue
       // that's just one space, which is most of them.
-      /* EACH BLANK CELL IS THE VENUE'S, decided in `roomTerms_` (booking.gs) — the same call `capacityFor`, `priceLooksWrong` and `waitlistPrice` make, so the room the § */
+      /* EACH BLANK CELL IS THE VENUE'S, decided in `roomTerms_` (booking.gs) — the same call `capacityFor`, `priceData_` and `waitlistPrice` make, so the room the § */
       rooms: read(TAB.rooms).rows
         .filter(x => key(x.venue) === key(r.name) && ON_(x.active))
         .map(x => {

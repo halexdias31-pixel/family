@@ -81,24 +81,6 @@ const PRICE_ROWS = [
   /* The bulk and booked-ahead rows lived here. § */
 ];
 
-const RATE_CHAIN = [
-  { key: 'subject',    mult: L => L.avgSubject },
-  { key: 'complexity', mult: L => L.fSubjectCount },
-  { key: 'level',      mult: L => L.L },
-  { key: 'daytime',    mult: L => (Number(L.D) || 1) * (Number(L.T) || 1) },
-  { key: 'students',   mult: L => L.fChildrenAll },
-];
-
-/** The running hourly rate immediately BEFORE the named row applies. */
-function rateBase(L, key) {
-  let base = L.chargeRate || 0;
-  for (const step of RATE_CHAIN) {
-    if (step.key === key) return base;
-    base = pence_(base * (Number(step.mult(L)) || 1));
-  }
-  return base;
-}
-
 
 function priceCells(row, L, fmt) {
   const { esc } = fmt;

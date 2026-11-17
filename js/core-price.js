@@ -1,3 +1,192 @@
+/* @family. — core-price.js THE ONE PRICE (owner, 17 Nov): every sum a price is made of, for the site and the server alike. */
+/* tools/cards-gen.js copies this whole file into backend/cards-gen.gs as `priceCore_`, so createJob prices a booking by these lines and no other. */
+/* Pure: it reads DATA, `num`, `norm`, `askProps_`, `spaceFor` and `computeSessionDates`, and the server hands it its own of each. */
+
+/* R is the hourly rate, and it is the tutor's own. § */
+const OPEN_RATE = 10;
+
+
+function activePromoFactor(ctx) {
+  const promos = DATA.promotions || [];
+  let factor = 1;
+  promos.forEach(p => {
+    if (promoApplies(p, ctx)) factor *= (parseFloat(p.value) || 1);
+  });
+  return factor;
+}
+
+
+
+/* DOES THIS PROMOTION APPLY to this booking? § */
+function promoApplies(p, ctx) {
+  if (!p || !p.active) return false;
+  switch (String(p.type || '').toLowerCase()) {
+    case 'bulk':          return ctx.lessonCount >= (parseFloat(p.threshold) || 999);
+    case 'multi_student': return ctx.n           >= (parseFloat(p.threshold) || 999);
+    case 'long_term':     return ctx.weeks       >= (parseFloat(p.threshold) || 999);
+    default: return false;
+  }
+}
+
+const pence_ = x => Math.round((Number(x) || 0) * 100) / 100;
+const RATE_KEYS_ = ['base', 'subject', 'complexity', 'level', 'daytime', 'students'];
+
+/* THE RUNNING TOTAL after a given row has applied. § */
+function runningAfter(key, L) {
+  let p = L.chargeRate || 0;
+  const step = { subject: L.avgSubject, complexity: L.fSubjectCount,
+                 level: L.L, daytime: (Number(L.D) || 1) * (Number(L.T) || 1), students: L.fChildrenAll };
+  /* ROUNDED TO THE PENNY AT EVERY LINE (owner, 8 Nov), so each line's figure is the product of what the row shows. */
+  for (const k of RATE_KEYS_) {
+    if (k !== 'base') p = pence_(p * (Number(step[k]) || 1));
+    if (k === key) return p;
+  }
+  /* NET ON ONE ROW (owner, 7 Nov): the venue's rate, unless the family provides the space. */
+  p += L.hosting ? 0 : (L.venueRate || 0);
+  if (key === 'venue') return p;
+  if (key === 'host') return p;
+  p *= (L.hoursPerWeek || 0) || 1;
+  if (key === 'hoursweek') return p;
+  /* WEEKS, not dates. Hours-a-week already spans every day ticked, so multiplying by the date
+     count — which is days × weeks — would count the days a second time. */
+  p *= (L.weeksBooked || 0) || 1;
+  if (key === 'term') return p;
+  p /= (L.splitShares || 1);
+  return p;
+}
+
+/* ---------- ONE READER FOR THE SUBJECT MULTIPLIERS § */
+function subjectMult(name) {
+  const m = DATA.multipliers || {};
+  const table = m.subjects || m.subjectsEta || {};
+  const q = num(table[name]);
+  return (isNaN(q) || q <= 0) ? 1 : q;
+}
+
+/* ---------- AND ONE READER FOR THE LEVEL MULTIPLIERS § */
+function levelMult(name) {
+  const q = num(((DATA.multipliers || {}).levels || {})[name]);
+  return (isNaN(q) || q <= 0) ? 1 : q;
+}
+
+
+/* ---------- WHAT ONE EXTRA SEAT ADDS, AS A FRACTION OF THE RATE § */
+/* AN EXTRA SEAT COSTS AT MOST THE FIRST STUDENT (620) — the server's `SEAT_RATE_MAX`, as a share of the rate. */
+/* THE MOST AN EXTRA SEAT MAY BE, AS A SHARE OF THE RATE: kinds.json's `extra_seat_rate` max (askProps_, form.js), read when asked. */
+const STAFF_SEAT_MAX_ = () => askProps_('extra_seat_rate').max;
+/* AND @FAMILY.'S PART OF ONE, 0 to twice the rate: kinds.json's `extra_seat_cut` max, the one ceiling the card, `seatCutOf_` and the server read. */
+const CUT_MAX_ = () => askProps_('extra_seat_cut').max;
+function seatShare_(tutorRow, c, B) {
+  const v = ((typeof DATA !== 'undefined' && DATA && DATA.constants) || {}).vars || {};
+  const cv = (...keys) => { for (const key of keys) { const x = num(v[key]); if (!isNaN(x)) return x; } return 0; };
+  if (c === undefined) c = cv('c', 'extra child rate', 'extra_child_rate');
+  if (B === undefined) B = cv('B', 'boss rate', 'boss_rate');
+  const asFraction = (x, fallback) => (x > 0 && x <= 2) ? x : fallback;
+  /* THE TUTOR'S SEAT NEVER COSTS MORE THAN THE FIRST STUDENT (620): an older share past 1 prices as 1. */
+  const seatTop = x => Math.min(x, STAFF_SEAT_MAX_());
+  const seatOwn = !!tutorRow && Number(tutorRow.extraSeat) > 0;
+  const cRaw = seatOwn ? Number(tutorRow.extraSeat) : c;
+  const cUsed = seatTop(asFraction(cRaw, 0));
+  /* NO PLATFORM SHARE ON TOP SINCE 13 NOV: the extra seat costs the tutor's own rate, and `chainShares_` splits that money. */
+  return { cRaw, bRaw: B, seatOwn, cutOwn: false, cUsed, bUsed: 0 };
+}
+/* ---------- A TUTOR'S OWN CUT, READ THE ONE WAY THE SERVER SENDS IT (`seatCutOut_`, people.gs) § */
+function seatCutOf_(v) {
+  const s = typeof v === 'number' ? String(v) : String(v == null ? '' : v).trim();
+  if (!/^\d*\.?\d+$/.test(s)) return NaN;
+  const x = Number(s);
+  return x <= CUT_MAX_() ? x : NaN;
+}
+
+/* NO FORMAT, PRACTICAL OR TRIP ON A BOOKING (463): those are shop items now, so a booking is teaching and a room. */
+/* ---------- THE ONE SUM FROM CHARGED TO NET § */
+function bookMoney_(m) {
+  m = m || {};
+  const pos = x => { const v = Number(x); return isFinite(v) && v > 0 ? v : 0; };
+  const teaching = pos(m.tutorPay) + pos(m.profit);
+  const venue = pos(m.venue);
+  const gross = teaching + venue;
+  const d = m.discount || {};
+  const discountType = d.type === '%' ? '%' : (d.type === '£' ? '£' : '');
+  const discountValue = discountType ? pos(d.value) : 0;
+  /* THE DISCOUNT IS OFF THE TEACHING, NO MAXIMUM, SHARED (owner, 12 Nov): tutor and @family. each lose the same %; room and card fees are not discounted. */
+  const asked = !discountValue ? 0
+    : discountType === '%' ? teaching * Math.min(discountValue, 100) / 100
+    : discountValue;
+  const tutor = pos(m.tutorPay), p = pos(m.feePct) / 100, f = pos(m.feeFixed);
+  const discount = Math.min(Math.round(asked * 100) / 100, teaching);
+  const scale = teaching > 0 ? 1 - discount / teaching : 1;
+  const tutorPayout = Math.round(tutor * scale * 100) / 100;
+  const charged = Math.round((gross - discount) * 100) / 100;
+  const cardFees = charged > 0 ? Math.round((charged * p + f) * 100) / 100 : 0;
+  /* THE MANAGERS' PART OF THE EXTRA-SEAT MONEY, after the discount like the tutor's (`chainShares_`); it comes out of @family.'s. */
+  const seatMoney = pos(m.seatMoney) * scale;
+  const managers = ((m.chain && m.chain.managers) || []).map(x => ({ id: x.id, name: x.name, share: x.share,
+    amount: Math.round(seatMoney * x.share * 100) / 100 }));
+  const managerTotal = Math.round(managers.reduce((a, x) => a + x.amount, 0) * 100) / 100;
+  const net = Math.round((charged - tutorPayout - venue - cardFees - managerTotal) * 100) / 100;
+  return { managers, managerTotal, seatMoney,
+    gross, discount, discountType, discountValue, discountCode: String(d.code || ''),
+    absorbedBy: discount ? 'Shared with tutor' : '',
+    charged, teaching, tutorPayout, venue, cardFees, net, margin: charged > 0 ? net / charged : 0,
+  };
+}
+
+/* ---------- WHO SHARES A TUTOR'S EXTRA-SEAT MONEY (history 1217): the tutor half; each manager up half of what is left; the admin the rest.
+   A blank, missing or looping `manager` ends the walk at the admin. */
+const CHAIN_GIVE = 0.5;
+function chainShares_(tutorId, people) {
+  const byId = {};
+  (people || []).forEach(p => { if (p && p.personId) byId[String(p.personId)] = p; });
+  const boss = p => !!p && String(p.role || '') === 'Admin';
+  const me = byId[String(tutorId || '')];
+  if (boss(me)) return { tutor: 1, managers: [], admin: 0 };
+  const managers = [], seen = {};
+  seen[String(tutorId || '')] = 1;
+  let left = CHAIN_GIVE, m = String((me && me.manager) || '').trim();
+  while (m && byId[m] && !boss(byId[m]) && !seen[m]) {
+    managers.push({ id: m, name: String(byId[m].title || m), share: left / 2 });
+    left -= left / 2;
+    seen[m] = 1;
+    m = String(byId[m].manager || '').trim();
+  }
+  return { tutor: 1 - CHAIN_GIVE, managers, admin: left };
+}
+
+/* THE THREE FIGURES A BOOKING ROW KEEPS, per family and after the discount, so client pays = tutor + admin + room and fees to the penny. */
+function bookShares_(L) {
+  const e = L && L.earn;
+  if (!e || !(Number(L.total) > 0)) return null;
+  const n = Math.max(1, Number(L.splitShares) || 1), p2 = x => Math.round((Number(x) || 0) / n * 100) / 100;
+  const pays = p2(e.charged), tutor = p2(e.tutorPayout), fees = p2(e.venue + e.cardFees);
+  const managers = (e.managers || []).map(x => ({ name: x.name, share: x.share, amount: p2(x.amount) }));
+  const up = managers.reduce((a, x) => a + x.amount, 0);
+  return { pays, tutor, fees, managers, admin: Math.round((pays - tutor - fees - up) * 100) / 100 };
+}
+
+/* THE RUNNING RATE JUST BEFORE A ROW (the breakdown's `of`): `runningAfter` the row above it, so the card and the price round alike. */
+function rateBase(L, key) {
+  const at = RATE_KEYS_.indexOf(key);
+  return at > 0 ? runningAfter(RATE_KEYS_[at - 1], L) : runningAfter('students', L);
+}
+
+/* ---------- A PRICE THAT NOBODY HAS TYPED IS NOT A PRICE OF ZERO § */
+function priced_(v) {
+  if (v === null || v === undefined || String(v).trim() === '') return undefined;
+  const n = Number(String(v).replace(/[^0-9.-]/g, ''));
+  return isFinite(n) ? n : undefined;
+}
+
+/* ---------- THREE CARDS, ONE PRICE (620): n students pay x + k·x·(n−1) + g·x·(n−1) an hour — x the rate, k the tutor's share, g @family.'s ---------- */
+/* THE PARTS AS PRICED, through `seatShare_` (the booking's own reader): a blank is the config's usual. */
+function cardSeatParts_(rate, seat, cut) {
+  const s = seatShare_({ extraSeat: seat, extraSeatCut: cut });
+  return { k: s.cUsed, g: s.bUsed, kOwn: s.seatOwn, gOwn: s.cutOwn, kx: pence_(rate * s.cUsed), gx: pence_(rate * s.bUsed) };
+}
+/* WHAT n STUDENTS PAY AN HOUR: the booking's own seat line (`priceSeats_`, `runningAfter`), before subjects, level, day and time multiply it. */
+const cardGroupTotal_ = (rate, seat, cut, n) => runningAfter('students',
+  { chargeRate: rate, fChildrenAll: priceSeats_({ extraSeat: seat, extraSeatCut: cut }, undefined, undefined, Math.max(1, n)).fSeats });
+
 /* The config readers priceFrom's helpers share: a constant by any of its names, and a surcharge lookup. */
 function priceKnobs_() {
   const m = DATA.multipliers || {};
@@ -115,7 +304,8 @@ function priceDates_(spec, q) {
   const windows = (spec.windows && spec.windows.length) ? spec.windows
                                                         : [{ startDate: q.startDate, lastSun: q.lastSun }];
   const seenDay = {};
-  const sessionDates = bookedDays
+  /* THE DATES THE BOOKING CARRIES (`spec.sessionDates`), when given: the server prices those, not a window it would work out again. */
+  const sessionDates = spec.sessionDates ? spec.sessionDates.slice() : bookedDays
     .map(d => windows
       .map(w => computeSessionDates(d, w.lastSun || w.endDate, w.startDate))
       .reduce((all, list) => all.concat(list), []))

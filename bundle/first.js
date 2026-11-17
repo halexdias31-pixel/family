@@ -1,7 +1,7 @@
 /* ==== js/core.js ==== */
 /* @family. — core.js ONE FILE, SPLIT. § */
 /* SHARED:BEGIN — data/settings/settings.json, written by `node tools/cards-gen.js --write`; edit the json, never this. */
-const SHARED_SETTINGS = {"days":[["m","Monday"],["tu","Tuesday"],["w","Wednesday"],["th","Thursday"],["f","Friday"],["sa","Saturday"],["su","Sunday"]],"hours":[9,10,11,12,13,14,15,16,17,18,19,20],"roles":{"ids":{"admin":{"label":"Admin","aliases":["administrator"],"rank":"admin","tier":"admin","self":false},"tutor":{"label":"Tutor","aliases":["teacher"],"rank":"staff","tier":"member","self":true,"pending":true},"client":{"label":"Client","aliases":["parent","guardian"],"app":"parent","rank":"client","tier":"member","self":true},"student":{"label":"Student","aliases":["kid","child","pupil"],"app":"kid","rank":"student","tier":"child","self":true},"contact":{"label":"Contact","aliases":[],"rank":"contact","tier":"anyone","self":false,"signIn":false}},"default":"client","guest":{"rank":"out","tier":"anyone"},"ranks":["contact","student","client","staff","admin"],"tiers":["anyone","member","child","admin"],"titles":{"head of boxing":"Head of Boxing"}},"submissionsPerPost":25,"answerTextMax":20000};
+const SHARED_SETTINGS = {"days":[["m","Monday"],["tu","Tuesday"],["w","Wednesday"],["th","Thursday"],["f","Friday"],["sa","Saturday"],["su","Sunday"]],"hours":[9,10,11,12,13,14,15,16,17,18,19,20],"roles":{"ids":{"admin":{"label":"Admin","aliases":["administrator"],"rank":"admin","tier":"admin","self":false},"tutor":{"label":"Tutor","aliases":["teacher"],"rank":"staff","tier":"member","self":true,"pending":true},"client":{"label":"Client","aliases":["parent","guardian"],"app":"parent","rank":"client","tier":"member","self":true},"student":{"label":"Student","aliases":["kid","child","pupil"],"app":"kid","rank":"student","tier":"child","self":true},"contact":{"label":"Contact","aliases":[],"rank":"contact","tier":"anyone","self":false,"signIn":false}},"default":"client","guest":{"rank":"out","tier":"anyone"},"ranks":["contact","student","client","staff","admin"],"tiers":["anyone","member","child","admin"],"titles":{"head of boxing":"Head of Boxing"}},"submissionsPerPost":25,"answerTextMax":20000,"calendar":{"breaks":[{"name":"October half-term","sheet":"October Half Term","kind":"half","starts":"10-26"},{"name":"Christmas holidays","sheet":"Christmas Holiday","kind":"holiday","starts":"12-19"},{"name":"February half-term","sheet":"February Half Term","kind":"half","starts":"02-13"},{"name":"Easter holidays","sheet":"Easter Holiday","kind":"holiday","starts":"03-27"},{"name":"May half-term","sheet":"May Half Term","kind":"half","starts":"05-22"},{"name":"Summer holidays","sheet":"Summer Holiday","kind":"holiday","starts":"07-22"}],"kinds":{"term":{"say":"term","words":[]},"half-term":{"say":"half term","also":["half term"],"words":["half\\s*term"]},"holiday":{"say":"holiday","words":["holiday","christmas","easter","summer break","break"]}},"exams":[{"id":"sats","name":"SATs","key":"exam_sats_start","at":"05-11"},{"id":"elevenplus","name":"11+","key":"exam_11plus_start","at":"09-12"},{"id":"gcse","name":"GCSE exams","key":"exam_gcse_start","at":"05-11"},{"id":"alevel","name":"A-level exams","key":"exam_alevel_start","at":"05-11"}]}};
 /* SHARED:END */
 /* WORDS:BEGIN — a copy of data/settings/words.json, written by `node tools/words.js --write`; edit the json, never this. */
 const WORDS_FILE = {"accept-request":"Accept request","accepted-by":"Accepted by ","accepted-the-family-can-pay-and":"Accepted — the family can pay and confirm","account-made-sign-in-now-as":"Account made — sign in now as ","account-made-sign-in-now-with":"Account made — sign in now with your PIN. We have also emailed you a link to confirm your address.","account-made-sign-in-now-with-2":"Account made — sign in now with your PIN. Open the link we have emailed you before making ","add-them-to-that-account-and":"Add them to that account and the next booking will name them.","add-to-basket":"Add to basket","admin-earns":"Admin earns","ages-up-to":"Ages up to ","all-ages":"All ages","already-in-your-basket":"Already in your basket","already-teaching":"Already teaching","an-email-address-please-the-link":"An email address, please — the link goes to it.","anyone-in-particular":"Anyone in particular?","anything-else-we-should-know":"Anything else we should know","application-sent":"Application sent","applied-for":"Applied for","applied-the-family-picks":"Applied — the family picks","apply-again":"Apply again","apply-to-teach":"Apply to teach","are-you-providing-the-space":"Are you providing the space?","ask-to-join":"Ask to join","ask-us-to-add-them-and":"Ask us to add them and the next booking will name them.","asked-they-will-be-in-touch":"Asked — they will be in touch","asked-we-will-come-back-to":"Asked — we will come back to you","attach-a-photo-video-or-file":"Attach a photo, video or file","book-this":"Book this","booking-form":"Booking form","can-come":"Can come","cancellation-and-refunds":"Cancellation and refunds","card-dates":"Dates: {dates}","card-day-at-time":"{day} at {time}","card-subject-level":"{subject} ({level})","card-total":"Total: {total}","change-photo":"Change photo","client-i-book-and-pay":"Client — I book and pay","client-pays":"Client pays","clients-cannot-see-them-the-crossed":"Clients cannot see them. The crossed-out eye below puts them back on the site.","correct-check-the-spelling":"Correct (check the spelling: ","correct-every":"Correct — every ","could-not-make-the-picture":"Could not make the picture: ","could-not-reach-the-server":"Could not reach the server","could-not-share-it-press-and":"Could not share it — press and hold the picture to save it","decline-request":"Decline request","declined-by":"Declined by ","declined-the-family-has-been-told":"Declined — the family has been told","dictation-is-not-available-in-this":"Dictation is not available in this browser.","digest_footer":"Don’t want these any more? Just reply and say so.","digest_greeting":"Hi {parent},","digest_intro":"Here’s what {child} worked on this week: {count} ({span}).","digest_subject":"{child}’s week: {count}","draw-your-answer-first":"Draw your answer first","each-seat-pays":"Each seat pays","end-it":"End it?","every-hour-they-have-ticked-is":" Every hour they have ticked is outside ","extra-seats":"Extra seats","extra-subj":"Extra subj.","fill-a-cell-first":"Fill a cell first","getting-the-photo-ready":"Getting the photo ready…","hidden-from-clients":"Hidden from clients","home-visits":"Home visits","how-many-extra-seats":"How many extra seats?","how-would-you-like-to-book":"How would you like to book?","if-there-is-an-account-with":"If there is an account with that email, a new PIN is on its way.","image-saved-link-copied":"Image saved · link copied","in-your-basket":"In your basket","instant-class":"Instant class","its-a-grown-ups-email":"It's a grown-up's email","just-you":"Just you","link-copied":"Link copied","mail-apply-approved":"Good news — your application to teach with {brand} has been approved. You are listed as a tutor now: sign in to fill in your card.","mail-apply-body":"Hello {first},\n\n{said}\n\n{site}\n","mail-apply-declined":"Thank you for applying to teach with {brand}. We are not able to take your application further this time.","mail-apply-interview":"Thank you for applying to teach with {brand}. We would like to talk to you — we will be in touch to arrange a time.","mail-apply-owner-body":"{who} has applied to teach: {subjects}.\n\nRead it and say yes, interview or no in the Business column:\n\n{site}\n","mail-apply-owner-subject":"A new application to teach","mail-apply-subject":"Your application to teach","mail-attempts-kid-body":"{said}If that was {first}, \"New PIN\" on their card on your account gives them a new one at once. If it was not, tell us.","mail-attempts-own-tail":"If that was not you, reply here.","mail-attempts-said":"Somebody has tried the {brand} PIN for {who} {n} times and got it wrong.\n\nSigning in is held up for a minute, and for longer on each wrong answer after that.\n","mail-attempts-subject":"Too many sign-in attempts","mail-child-made-body":"Hello,\n\n{first} has made an account on {brand} and gave this address as their grown-up's, because they have no email of their own.\n\nTheir account works already. If that is right, open this link to confirm your address (it also puts them on your {brand} parent account if you have one and have confirmed it):\n\n{link}\n\nThey sign in with their handle, {handle}, and the PIN they chose. Once you have opened the link, \"Forgotten your PIN?\" sends a new one to this address if they forget it.\n\nIf you have an {brand} parent account on this address and have confirmed it, opening the link also puts {first} on it. If you do not know who this is, ignore this email and nothing happens.","mail-child-made-subject":"{first} has made an {brand} account","mail-confirm-body":"Hello {first},\n\nConfirm your email address by opening this link:\n\n{link}\n\nYou can already sign in with this email address{handleSaid} and the PIN you chose — the link only confirms the address is yours. Until it is opened we send nothing else to this address.\n\nIf you did not make this account, do not open the link: use \"Forgotten your PIN?\" with this address instead — it takes the account over and signs everyone else out.","mail-confirm-or-handle":" (or your handle, {handle})","mail-confirm-parent-next":"\n\nOnce you have opened the link, your child makes their own account; find their handle on Student profiles and tap Add as my child, and they say yes.","mail-confirm-subject":"Confirm your {brand} account","mail-invite-body":"Hello {first},\n\nAn account has been made for you on {brand}.\n\nSign in at {site} with your email (or your handle, @{handle}) and the PIN {pin}\n\nChange the PIN under Settings → Signing in.","mail-invite-subject":"Your {brand} account","mail-move-body":"Hello,\n\nSomebody signed in to an {brand} account has asked to use this email address for it.\n\nIf that was you, open this link on a phone or computer where you are signed in to that account:\n\n{link}\n\nUntil it is opened, the account keeps its old address — sign in with that, or with your handle. The link works for {days} days.\n\nIf it was not you, ignore this email. Nothing changes, and the link does nothing for anybody who is not signed in to that account.","mail-move-subject":"Confirm your new {brand} email address","mail-pin-body":"Somebody asked for a new PIN on your {brand} account{byHandle}.\n\nYour new PIN is {pin}\n\nSign in with {signInWith} and this PIN. It works for a day; your old PIN keeps working too until you use this one. Change it under Settings → Signing in.\n\nOr open this link to sign in with it straight away — it works even if wrong PINs have locked the account:\n\n{link}\n\nIf this was not you, do nothing — your PIN has not changed, and whoever asked cannot read this email.","mail-pin-by-handle":", by your handle ({handle})","mail-pin-kid-body":"{first}{handleSaid} has no email of their own and asked for a new PIN.\n\nThe new PIN is {pin}\n\nPass it on to them. They sign in with their handle and this PIN; it works for a day, and their old PIN keeps working until they use this one. \"New PIN\" on their card in the people column gives a fresh one at once.\n\nOr open this link on their device to sign them in as {who} straight away:\n\n{link}\n\nIf they did not ask, do nothing — nothing has changed.","mail-pin-kid-subject":"A forgotten PIN: {who}","mail-pin-subject":"Your new {brand} PIN","mail-pin-with-email":"your email","mail-pin-with-handle":"your handle, {handle}, or your email","mail-sign-off":"— {brand}","make-an-account":"Make an account","make-my-account":"Make my account","making-a-picture-of-this-booking":"Making a picture of this booking…","making-a-picture-of-this-profile":"Making a picture of this profile…","making-it":"Making it…","no-children-are-on":"No children are on ","no-connection-that-hand-is-still":"No connection — that hand is still up.","no-free-hours-this-week":"No free hours this week","no-free-hours-this-week-2":"No free hours this week.","no-preference":"No preference","no-surcharge":"No surcharge","no-tutor-yet":"No tutor yet","no-we-book-the-room":"No — we book the room","nobody-yet-just-open-it":"Nobody yet — just open it","none-yet":"None yet","not-deployed":"Not deployed: ","not-enough-answered-to-price-it":"Not enough answered to price it yet.","not-listed":"Not listed","not-offered":"Not offered","not-on-the-booking-form":"Not on the booking form","not-priced-yet":"Not priced yet","not-saved":"Not saved","not-yet-have-another-go":"Not yet — have another go","nothing-changed":"Nothing changed","nothing-here-yet":"Nothing here yet.","nothing-in-that-bundle-can-be":"Nothing in that bundle can be printed","nothing-was-added-a-qualification-needs":"Nothing was added — a qualification needs a subject and a level.","nothing-yet":"Nothing yet","on-the-list":"On the list","on-the-list-2":"On the list — ","online-safety":"Online safety","open":"Open — ","over-what-period":"Over what period?","paste-some-text-first":"Paste some text first","pay-and-confirm":"Pay and confirm","payment-cancelled-nothing-was-charged-your":"Payment cancelled — nothing was charged. Your booking is still waiting.","per-session":"Per session","photo-ready":"Photo ready.","pick-at-least-one-first":"Pick at least one first.","picture-removed":"Picture removed","picture-saved":"Picture saved","picture-saved-link-copied":"Picture saved · link copied","pin-or-date":"Pin or date","please-add":"Please add ","press-and-hold-the-picture-to":"Press and hold the picture to save it.","press-share-to-send-it":"Press Share to send it.","put-back":"Put back","put-back-as-it-was-your":"Put back as it was — your picture too","rest-of":"Rest of ","rest-of-this":"Rest of this ","room-and-fees":"Room and fees","room-saved":"Room saved","safer-recruitment":"Safer recruitment","save-or-cancel-the-card-you":"Save or cancel the card you are editing first.","saved-a-picture-of-this-booking":"Saved a picture of this booking","saved-for-everyone":"Saved for everyone","say-who-the-account-is-for":"Say who the account is for first — a parent or a student.","send-my-application":"Send my application","session-ended":"Session ended","share-this-booking":"Share this booking","shared-by":"Shared by","shared-with-tutor":"Shared with tutor","sign-in-first":"Sign in first","sign-in-first-2":"Sign in first.","sign-in-to-book-your-account":"Sign in to book — your account is a few screens to the right.","sign-in-to-finish-your-booking":"Sign in to finish your booking — your payment is safe.","sign-in-to-open-a-session":"Sign in to open a session","sign-in-to-send-it":"Sign in to send it","sign-in-to-send-this-booking":"Sign in to send this booking — your answers are kept.","sign-in-to-send-your-working":"Sign in to send your working","sign-in-to-suggest-a-change":"Sign in to suggest a change.","signed-out":"Signed out","signed-out-please-sign-in-again":"Signed out — please sign in again","someone-else":"Someone else","something-already-going-or-a-new":"Something already going, or a new one?","something-went-wrong-there":"Something went wrong there.","start-a-new-one":"Start a new one","stripe-did-not-give-us-a":"Stripe did not give us a payment page.","student-im-learning":"Student — I'm learning","take-a-photo-of-your-working":"Take a photo of your working first","take-a-seat":"Take a seat","tap-to-choose":"Tap to choose","that-account-has-no-id-yet":"That account has no id yet — ask us.","that-class-has-gone":"That class has gone.","that-did-not-work":"That did not work.","that-did-not-work-everything-else":"That did not work. Everything else still works.","that-is-longer-than-a-message":"That is longer than a message should be — 2,000 characters.","that-is-not-a-picture-take":"That is not a picture. Take a photo of the document.","that-is-the-most-this-card":"That is the most this card holds — 10 qualifications in all.","that-is-too-much-for-one":"That is too much for one message — send some of it now and the rest after","that-room-is-booked-every-hour":"That room is booked every hour.","that-session-is-not-in-this":"That session is not in this list any more","that-would-be-over-32mb-in":"That would be over 32MB in one message — send it on its own.","the-answers-are-still-on-their":"The answers are still on their way — a moment.","the-board-is-full-clear-it":"The board is full. Clear it to carry on.","the-phone-could-not-read-that":"The phone could not read that photo. Try another.","the-reply-was-not-valid-json":"The reply was not valid JSON (HTTP ","the-room":"The room","the-tutor-was-not-told-no":"The tutor was not told — no connection. Your card is still red.","there-is-no-booking-on-screen":"There is no booking on screen to share","there-is-nobody-on-the-site":"There is nobody on the site to send this to yet — message @family. directly","there-is-nothing-to-share-on":"There is nothing to share on this card yet","they-tick-them-in-settings-under":" They tick them in Settings, under their week.","they-ticked-tutor-in-their-settings":"They ticked Tutor in their settings. Until you list them they are not on the site, cannot be booked and cannot take a session — the crossed-out eye below approves them.","this-booking-as-a-picture":"This booking, as a picture","this-browser-is-not-saving-what":"This browser is not saving what you type — leaving the page would lose it.","this-session-is-no-longer-yours":"This session is no longer yours.","turn-it-down":"Turn it down?","tutor-earns":"Tutor earns","type-the-letter":"Type the letter","type-the-letters-in-order-e":"Type the letters in order, e.g. B, A, C","type-your-email-address-or-your":"Type your email address or your handle first.","type-your-name-username-or-email":"Type your name, @username or email first.","video-removed":"Video removed","video-saved":"Video saved","waiting-for":"Waiting for ","waiting-list-class":"Waiting list class","watch-intro":"Watch intro","we-email-a-link-to-open":"We email a link to open. Then sign in with your handle or email and the PIN. A parent ","we-email-you-a-link-to":"We email you a link to open. Once you have opened it, find your child's handle on Student profiles ","we-would-like-to-talk-to":"We would like to talk to you about teaching — we will be in touch to arrange it.","what-are-we-working-on":"What are we working on?","what-level-the-highest-among-the":"What level? (the highest among the children)","when-could-you-come":"When could you come?","when-free":"When free","which-of-your-children-is-this":"Which of your children is this for?","who-is-in-it":"Who is in it","who-is-this-for":"Who is this for?","withdraw-from-this":"Withdraw from this","write-something-first":"Write something first","write-the":"Write the ","write-the-note-first":"Write the note first.","yes-no-room-hire":"Yes — no room hire","you-earn":"You earn","your-answer":"Your answer","your-answers-in-order":"Your answers, in order","your-application-to-teach-is-with":"Your application to teach is with us. We will be in touch.","your-application-to-teach-was-approved":"Your application to teach was approved.","your-application-to-teach-was-not":"Your application to teach was not taken further this time. You can apply again.","your-booking":"Your booking","your-first-and-last-name-please":"Your first and last name, please.","your-picture-is-still-saving-cancel":"Your picture is still saving — Cancel once it has.","your-seat":"Your seat","your-sessions":"Your sessions"};
@@ -46,7 +46,6 @@ const rowOf_ = (rowCls, label, v) => cardBlock_({ type: 'group', look: rowCls, b
 /* A VALUE THAT CHANGES WHILE YOU WATCH — a clock ticking down, a score going up. § */
 const rowLive = (label, value, id, extra) =>
   rowOf_('row', label, { look: ['v', 'mono', extra || ''].filter(Boolean).join(' '), id: String(id), text: String(value == null ? '' : value) });
-
 
 
 function bookableSpaces() {
@@ -103,16 +102,6 @@ function computeSessionDates(dayName, endDateStr, startDateStr) {
 }
 
 
-function activePromoFactor(ctx) {
-  const promos = DATA.promotions || [];
-  let factor = 1;
-  promos.forEach(p => {
-    if (promoApplies(p, ctx)) factor *= (parseFloat(p.value) || 1);
-  });
-  return factor;
-}
-
-
 /* FORMATS (owner, 8 Nov): one helper each, and check-format fails on a hand-formatted value. Times are 24-hour: 16:00. */
 const fmtTime_ = t => {
   if (t instanceof Date || typeof t === 'number') { const d = new Date(t); return isNaN(d) ? '' : String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }
@@ -156,7 +145,6 @@ const fmtDay_ = v => {
 };
 
 
-
 /* THE ROLES ARE settings.json `roles` (owner, 17 Nov), the backend's too: ids in order of precedence, each its aliases, rank and tier. */
 const ROLES_ = SHARED_SETTINGS.roles;
 const ROLE_IDS = Object.keys(ROLES_.ids);
@@ -164,8 +152,6 @@ const ROLE_ALIASES = Object.fromEntries([].concat(...ROLE_IDS.map(r => (ROLES_.i
 const roleAliases_ = () => { try { return (DATA && DATA.roleAliases) || ROLE_ALIASES; } catch (e) { return ROLE_ALIASES; } };
 
 const roleOf = r => roleAliases_()[norm(r)] || norm(r);
-
-
 
 
 /* `u` IS WHOSE ROLES: the viewer by default; a settings card passes `whose_()` (the admin's lens, data-who.js). */
@@ -288,11 +274,7 @@ function seatLimits(space, tutor, loc) {
 }
 
 
-
 /* THE EIGHT THAT WERE NEVER CARRIED OVER. § */
-
-/* R is the hourly rate, and it is the tutor's own. § */
-const OPEN_RATE = 10;
 
 /* One word for "nothing chosen yet", everywhere. The form had four — "Choose ⌄", "All Levels", an
    empty option and "No preference" — which read as four different states rather than one. */
@@ -328,156 +310,12 @@ const rankAtLeast_ = (want, u = USER) => !!u && RANKS.indexOf(rank_(u)) >= RANKS
 const KID_ASK_PARENT = 'A parent books and pays for sessions — ask yours to book this one.';
 
 
-
-/* DOES THIS PROMOTION APPLY to this booking? § */
-function promoApplies(p, ctx) {
-  if (!p || !p.active) return false;
-  switch (String(p.type || '').toLowerCase()) {
-    case 'bulk':          return ctx.lessonCount >= (parseFloat(p.threshold) || 999);
-    case 'multi_student': return ctx.n           >= (parseFloat(p.threshold) || 999);
-    case 'long_term':     return ctx.weeks       >= (parseFloat(p.threshold) || 999);
-    default: return false;
-  }
-}
-
-const pence_ = x => Math.round((Number(x) || 0) * 100) / 100;
-const RATE_KEYS_ = ['base', 'subject', 'complexity', 'level', 'daytime', 'students'];
-
-/* THE RUNNING TOTAL after a given row has applied. § */
-function runningAfter(key, L) {
-  let p = L.chargeRate || 0;
-  const step = { subject: L.avgSubject, complexity: L.fSubjectCount,
-                 level: L.L, daytime: (Number(L.D) || 1) * (Number(L.T) || 1), students: L.fChildrenAll };
-  /* ROUNDED TO THE PENNY AT EVERY LINE (owner, 8 Nov), so each line's figure is the product of what the row shows. */
-  for (const k of RATE_KEYS_) {
-    if (k !== 'base') p = pence_(p * (Number(step[k]) || 1));
-    if (k === key) return p;
-  }
-  /* NET ON ONE ROW (owner, 7 Nov): the venue's rate, unless the family provides the space. */
-  p += L.hosting ? 0 : (L.venueRate || 0);
-  if (key === 'venue') return p;
-  if (key === 'host') return p;
-  p *= (L.hoursPerWeek || 0) || 1;
-  if (key === 'hoursweek') return p;
-  /* WEEKS, not dates. Hours-a-week already spans every day ticked, so multiplying by the date
-     count — which is days × weeks — would count the days a second time. */
-  p *= (L.weeksBooked || 0) || 1;
-  if (key === 'term') return p;
-  p /= (L.splitShares || 1);
-  return p;
-}
-
-/* ---------- ONE READER FOR THE SUBJECT MULTIPLIERS § */
-function subjectMult(name) {
-  const m = DATA.multipliers || {};
-  const table = m.subjects || m.subjectsEta || {};
-  const q = num(table[name]);
-  return (isNaN(q) || q <= 0) ? 1 : q;
-}
-
-/* ---------- AND ONE READER FOR THE LEVEL MULTIPLIERS § */
-function levelMult(name) {
-  const q = num(((DATA.multipliers || {}).levels || {})[name]);
-  return (isNaN(q) || q <= 0) ? 1 : q;
-}
-
 /* WHETHER A LEVEL HAS ACTUALLY BEEN PRICED, which `levelMult` cannot say — it answers 1 for a level set to 1 on purpose and 1 for a level nobody has ever § */
 function levelPriced(name) {
   const t = (DATA.multipliers || {}).levels || {};
   return Object.prototype.hasOwnProperty.call(t, name) && String(t[name]).trim() !== '';
 }
 
-/* ---------- WHAT ONE EXTRA SEAT ADDS, AS A FRACTION OF THE RATE § */
-/* AN EXTRA SEAT COSTS AT MOST THE FIRST STUDENT (620) — the server's `SEAT_RATE_MAX`, as a share of the rate. */
-/* THE MOST AN EXTRA SEAT MAY BE, AS A SHARE OF THE RATE: kinds.json's `extra_seat_rate` max (askProps_, form.js), read when asked. */
-const STAFF_SEAT_MAX_ = () => askProps_('extra_seat_rate').max;
-function seatShare_(tutorRow, c, B) {
-  const v = ((typeof DATA !== 'undefined' && DATA && DATA.constants) || {}).vars || {};
-  const cv = (...keys) => { for (const key of keys) { const x = num(v[key]); if (!isNaN(x)) return x; } return 0; };
-  if (c === undefined) c = cv('c', 'extra child rate', 'extra_child_rate');
-  if (B === undefined) B = cv('B', 'boss rate', 'boss_rate');
-  const asFraction = (x, fallback) => (x > 0 && x <= 2) ? x : fallback;
-  /* THE TUTOR'S SEAT NEVER COSTS MORE THAN THE FIRST STUDENT (620): an older share past 1 prices as 1. */
-  const seatTop = x => Math.min(x, STAFF_SEAT_MAX_());
-  const seatOwn = !!tutorRow && Number(tutorRow.extraSeat) > 0;
-  const cRaw = seatOwn ? Number(tutorRow.extraSeat) : c;
-  const cUsed = seatTop(asFraction(cRaw, 0));
-  /* NO PLATFORM SHARE ON TOP SINCE 13 NOV: the extra seat costs the tutor's own rate, and `chainShares_` splits that money. */
-  return { cRaw, bRaw: B, seatOwn, cutOwn: false, cUsed, bUsed: 0 };
-}
-/* ---------- A TUTOR'S OWN CUT, READ THE ONE WAY THE SERVER SENDS IT (`seatCutOut_`, people.gs) § */
-function seatCutOf_(v) {
-  const s = typeof v === 'number' ? String(v) : String(v == null ? '' : v).trim();
-  if (!/^\d*\.?\d+$/.test(s)) return NaN;
-  const x = Number(s);
-  return x <= 2 ? x : NaN;
-}
-
-/* NO FORMAT, PRACTICAL OR TRIP ON A BOOKING (463): those are shop items now, so a booking is teaching and a room. */
-/* ---------- THE ONE SUM FROM CHARGED TO NET § */
-function bookMoney_(m) {
-  m = m || {};
-  const pos = x => { const v = Number(x); return isFinite(v) && v > 0 ? v : 0; };
-  const teaching = pos(m.tutorPay) + pos(m.profit);
-  const venue = pos(m.venue);
-  const gross = teaching + venue;
-  const d = m.discount || {};
-  const discountType = d.type === '%' ? '%' : (d.type === '£' ? '£' : '');
-  const discountValue = discountType ? pos(d.value) : 0;
-  /* THE DISCOUNT IS OFF THE TEACHING, NO MAXIMUM, SHARED (owner, 12 Nov): tutor and @family. each lose the same %; room and card fees are not discounted. */
-  const asked = !discountValue ? 0
-    : discountType === '%' ? teaching * Math.min(discountValue, 100) / 100
-    : discountValue;
-  const tutor = pos(m.tutorPay), p = pos(m.feePct) / 100, f = pos(m.feeFixed);
-  const discount = Math.min(Math.round(asked * 100) / 100, teaching);
-  const scale = teaching > 0 ? 1 - discount / teaching : 1;
-  const tutorPayout = Math.round(tutor * scale * 100) / 100;
-  const charged = Math.round((gross - discount) * 100) / 100;
-  const cardFees = charged > 0 ? Math.round((charged * p + f) * 100) / 100 : 0;
-  /* THE MANAGERS' PART OF THE EXTRA-SEAT MONEY, after the discount like the tutor's (`chainShares_`); it comes out of @family.'s. */
-  const seatMoney = pos(m.seatMoney) * scale;
-  const managers = ((m.chain && m.chain.managers) || []).map(x => ({ id: x.id, name: x.name, share: x.share,
-    amount: Math.round(seatMoney * x.share * 100) / 100 }));
-  const managerTotal = Math.round(managers.reduce((a, x) => a + x.amount, 0) * 100) / 100;
-  const net = Math.round((charged - tutorPayout - venue - cardFees - managerTotal) * 100) / 100;
-  return { managers, managerTotal, seatMoney,
-    gross, discount, discountType, discountValue, discountCode: String(d.code || ''),
-    absorbedBy: discount ? 'Shared with tutor' : '',
-    charged, teaching, tutorPayout, venue, cardFees, net, margin: charged > 0 ? net / charged : 0,
-  };
-}
-
-/* ---------- WHO SHARES A TUTOR'S EXTRA-SEAT MONEY (history 1217): the tutor half; each manager up half of what is left; the admin the rest.
-   A blank, missing or looping `manager` ends the walk at the admin. */
-const CHAIN_GIVE = 0.5;
-function chainShares_(tutorId, people) {
-  const byId = {};
-  (people || []).forEach(p => { if (p && p.personId) byId[String(p.personId)] = p; });
-  const boss = p => !!p && String(p.role || '') === 'Admin';
-  const me = byId[String(tutorId || '')];
-  if (boss(me)) return { tutor: 1, managers: [], admin: 0 };
-  const managers = [], seen = {};
-  seen[String(tutorId || '')] = 1;
-  let left = CHAIN_GIVE, m = String((me && me.manager) || '').trim();
-  while (m && byId[m] && !boss(byId[m]) && !seen[m]) {
-    managers.push({ id: m, name: String(byId[m].title || m), share: left / 2 });
-    left -= left / 2;
-    seen[m] = 1;
-    m = String(byId[m].manager || '').trim();
-  }
-  return { tutor: 1 - CHAIN_GIVE, managers, admin: left };
-}
-
-/* THE THREE FIGURES A BOOKING ROW KEEPS, per family and after the discount, so client pays = tutor + admin + room and fees to the penny. */
-function bookShares_(L) {
-  const e = L && L.earn;
-  if (!e || !(Number(L.total) > 0)) return null;
-  const n = Math.max(1, Number(L.splitShares) || 1), p2 = x => Math.round((Number(x) || 0) / n * 100) / 100;
-  const pays = p2(e.charged), tutor = p2(e.tutorPayout), fees = p2(e.venue + e.cardFees);
-  const managers = (e.managers || []).map(x => ({ name: x.name, share: x.share, amount: p2(x.amount) }));
-  const up = managers.reduce((a, x) => a + x.amount, 0);
-  return { pays, tutor, fees, managers, admin: Math.round((pays - tutor - fees - up) * 100) / 100 };
-}
 
 
 ;
@@ -1145,6 +983,195 @@ Object.assign(CARD_BLOCKS, { msgAtt: msgAtt_, msgLinks: msgLinks_, msgChips: msg
 
 ;
 /* ==== js/core-price.js ==== */
+/* @family. — core-price.js THE ONE PRICE (owner, 17 Nov): every sum a price is made of, for the site and the server alike. */
+/* tools/cards-gen.js copies this whole file into backend/cards-gen.gs as `priceCore_`, so createJob prices a booking by these lines and no other. */
+/* Pure: it reads DATA, `num`, `norm`, `askProps_`, `spaceFor` and `computeSessionDates`, and the server hands it its own of each. */
+
+/* R is the hourly rate, and it is the tutor's own. § */
+const OPEN_RATE = 10;
+
+
+function activePromoFactor(ctx) {
+  const promos = DATA.promotions || [];
+  let factor = 1;
+  promos.forEach(p => {
+    if (promoApplies(p, ctx)) factor *= (parseFloat(p.value) || 1);
+  });
+  return factor;
+}
+
+
+
+/* DOES THIS PROMOTION APPLY to this booking? § */
+function promoApplies(p, ctx) {
+  if (!p || !p.active) return false;
+  switch (String(p.type || '').toLowerCase()) {
+    case 'bulk':          return ctx.lessonCount >= (parseFloat(p.threshold) || 999);
+    case 'multi_student': return ctx.n           >= (parseFloat(p.threshold) || 999);
+    case 'long_term':     return ctx.weeks       >= (parseFloat(p.threshold) || 999);
+    default: return false;
+  }
+}
+
+const pence_ = x => Math.round((Number(x) || 0) * 100) / 100;
+const RATE_KEYS_ = ['base', 'subject', 'complexity', 'level', 'daytime', 'students'];
+
+/* THE RUNNING TOTAL after a given row has applied. § */
+function runningAfter(key, L) {
+  let p = L.chargeRate || 0;
+  const step = { subject: L.avgSubject, complexity: L.fSubjectCount,
+                 level: L.L, daytime: (Number(L.D) || 1) * (Number(L.T) || 1), students: L.fChildrenAll };
+  /* ROUNDED TO THE PENNY AT EVERY LINE (owner, 8 Nov), so each line's figure is the product of what the row shows. */
+  for (const k of RATE_KEYS_) {
+    if (k !== 'base') p = pence_(p * (Number(step[k]) || 1));
+    if (k === key) return p;
+  }
+  /* NET ON ONE ROW (owner, 7 Nov): the venue's rate, unless the family provides the space. */
+  p += L.hosting ? 0 : (L.venueRate || 0);
+  if (key === 'venue') return p;
+  if (key === 'host') return p;
+  p *= (L.hoursPerWeek || 0) || 1;
+  if (key === 'hoursweek') return p;
+  /* WEEKS, not dates. Hours-a-week already spans every day ticked, so multiplying by the date
+     count — which is days × weeks — would count the days a second time. */
+  p *= (L.weeksBooked || 0) || 1;
+  if (key === 'term') return p;
+  p /= (L.splitShares || 1);
+  return p;
+}
+
+/* ---------- ONE READER FOR THE SUBJECT MULTIPLIERS § */
+function subjectMult(name) {
+  const m = DATA.multipliers || {};
+  const table = m.subjects || m.subjectsEta || {};
+  const q = num(table[name]);
+  return (isNaN(q) || q <= 0) ? 1 : q;
+}
+
+/* ---------- AND ONE READER FOR THE LEVEL MULTIPLIERS § */
+function levelMult(name) {
+  const q = num(((DATA.multipliers || {}).levels || {})[name]);
+  return (isNaN(q) || q <= 0) ? 1 : q;
+}
+
+
+/* ---------- WHAT ONE EXTRA SEAT ADDS, AS A FRACTION OF THE RATE § */
+/* AN EXTRA SEAT COSTS AT MOST THE FIRST STUDENT (620) — the server's `SEAT_RATE_MAX`, as a share of the rate. */
+/* THE MOST AN EXTRA SEAT MAY BE, AS A SHARE OF THE RATE: kinds.json's `extra_seat_rate` max (askProps_, form.js), read when asked. */
+const STAFF_SEAT_MAX_ = () => askProps_('extra_seat_rate').max;
+/* AND @FAMILY.'S PART OF ONE, 0 to twice the rate: kinds.json's `extra_seat_cut` max, the one ceiling the card, `seatCutOf_` and the server read. */
+const CUT_MAX_ = () => askProps_('extra_seat_cut').max;
+function seatShare_(tutorRow, c, B) {
+  const v = ((typeof DATA !== 'undefined' && DATA && DATA.constants) || {}).vars || {};
+  const cv = (...keys) => { for (const key of keys) { const x = num(v[key]); if (!isNaN(x)) return x; } return 0; };
+  if (c === undefined) c = cv('c', 'extra child rate', 'extra_child_rate');
+  if (B === undefined) B = cv('B', 'boss rate', 'boss_rate');
+  const asFraction = (x, fallback) => (x > 0 && x <= 2) ? x : fallback;
+  /* THE TUTOR'S SEAT NEVER COSTS MORE THAN THE FIRST STUDENT (620): an older share past 1 prices as 1. */
+  const seatTop = x => Math.min(x, STAFF_SEAT_MAX_());
+  const seatOwn = !!tutorRow && Number(tutorRow.extraSeat) > 0;
+  const cRaw = seatOwn ? Number(tutorRow.extraSeat) : c;
+  const cUsed = seatTop(asFraction(cRaw, 0));
+  /* NO PLATFORM SHARE ON TOP SINCE 13 NOV: the extra seat costs the tutor's own rate, and `chainShares_` splits that money. */
+  return { cRaw, bRaw: B, seatOwn, cutOwn: false, cUsed, bUsed: 0 };
+}
+/* ---------- A TUTOR'S OWN CUT, READ THE ONE WAY THE SERVER SENDS IT (`seatCutOut_`, people.gs) § */
+function seatCutOf_(v) {
+  const s = typeof v === 'number' ? String(v) : String(v == null ? '' : v).trim();
+  if (!/^\d*\.?\d+$/.test(s)) return NaN;
+  const x = Number(s);
+  return x <= CUT_MAX_() ? x : NaN;
+}
+
+/* NO FORMAT, PRACTICAL OR TRIP ON A BOOKING (463): those are shop items now, so a booking is teaching and a room. */
+/* ---------- THE ONE SUM FROM CHARGED TO NET § */
+function bookMoney_(m) {
+  m = m || {};
+  const pos = x => { const v = Number(x); return isFinite(v) && v > 0 ? v : 0; };
+  const teaching = pos(m.tutorPay) + pos(m.profit);
+  const venue = pos(m.venue);
+  const gross = teaching + venue;
+  const d = m.discount || {};
+  const discountType = d.type === '%' ? '%' : (d.type === '£' ? '£' : '');
+  const discountValue = discountType ? pos(d.value) : 0;
+  /* THE DISCOUNT IS OFF THE TEACHING, NO MAXIMUM, SHARED (owner, 12 Nov): tutor and @family. each lose the same %; room and card fees are not discounted. */
+  const asked = !discountValue ? 0
+    : discountType === '%' ? teaching * Math.min(discountValue, 100) / 100
+    : discountValue;
+  const tutor = pos(m.tutorPay), p = pos(m.feePct) / 100, f = pos(m.feeFixed);
+  const discount = Math.min(Math.round(asked * 100) / 100, teaching);
+  const scale = teaching > 0 ? 1 - discount / teaching : 1;
+  const tutorPayout = Math.round(tutor * scale * 100) / 100;
+  const charged = Math.round((gross - discount) * 100) / 100;
+  const cardFees = charged > 0 ? Math.round((charged * p + f) * 100) / 100 : 0;
+  /* THE MANAGERS' PART OF THE EXTRA-SEAT MONEY, after the discount like the tutor's (`chainShares_`); it comes out of @family.'s. */
+  const seatMoney = pos(m.seatMoney) * scale;
+  const managers = ((m.chain && m.chain.managers) || []).map(x => ({ id: x.id, name: x.name, share: x.share,
+    amount: Math.round(seatMoney * x.share * 100) / 100 }));
+  const managerTotal = Math.round(managers.reduce((a, x) => a + x.amount, 0) * 100) / 100;
+  const net = Math.round((charged - tutorPayout - venue - cardFees - managerTotal) * 100) / 100;
+  return { managers, managerTotal, seatMoney,
+    gross, discount, discountType, discountValue, discountCode: String(d.code || ''),
+    absorbedBy: discount ? 'Shared with tutor' : '',
+    charged, teaching, tutorPayout, venue, cardFees, net, margin: charged > 0 ? net / charged : 0,
+  };
+}
+
+/* ---------- WHO SHARES A TUTOR'S EXTRA-SEAT MONEY (history 1217): the tutor half; each manager up half of what is left; the admin the rest.
+   A blank, missing or looping `manager` ends the walk at the admin. */
+const CHAIN_GIVE = 0.5;
+function chainShares_(tutorId, people) {
+  const byId = {};
+  (people || []).forEach(p => { if (p && p.personId) byId[String(p.personId)] = p; });
+  const boss = p => !!p && String(p.role || '') === 'Admin';
+  const me = byId[String(tutorId || '')];
+  if (boss(me)) return { tutor: 1, managers: [], admin: 0 };
+  const managers = [], seen = {};
+  seen[String(tutorId || '')] = 1;
+  let left = CHAIN_GIVE, m = String((me && me.manager) || '').trim();
+  while (m && byId[m] && !boss(byId[m]) && !seen[m]) {
+    managers.push({ id: m, name: String(byId[m].title || m), share: left / 2 });
+    left -= left / 2;
+    seen[m] = 1;
+    m = String(byId[m].manager || '').trim();
+  }
+  return { tutor: 1 - CHAIN_GIVE, managers, admin: left };
+}
+
+/* THE THREE FIGURES A BOOKING ROW KEEPS, per family and after the discount, so client pays = tutor + admin + room and fees to the penny. */
+function bookShares_(L) {
+  const e = L && L.earn;
+  if (!e || !(Number(L.total) > 0)) return null;
+  const n = Math.max(1, Number(L.splitShares) || 1), p2 = x => Math.round((Number(x) || 0) / n * 100) / 100;
+  const pays = p2(e.charged), tutor = p2(e.tutorPayout), fees = p2(e.venue + e.cardFees);
+  const managers = (e.managers || []).map(x => ({ name: x.name, share: x.share, amount: p2(x.amount) }));
+  const up = managers.reduce((a, x) => a + x.amount, 0);
+  return { pays, tutor, fees, managers, admin: Math.round((pays - tutor - fees - up) * 100) / 100 };
+}
+
+/* THE RUNNING RATE JUST BEFORE A ROW (the breakdown's `of`): `runningAfter` the row above it, so the card and the price round alike. */
+function rateBase(L, key) {
+  const at = RATE_KEYS_.indexOf(key);
+  return at > 0 ? runningAfter(RATE_KEYS_[at - 1], L) : runningAfter('students', L);
+}
+
+/* ---------- A PRICE THAT NOBODY HAS TYPED IS NOT A PRICE OF ZERO § */
+function priced_(v) {
+  if (v === null || v === undefined || String(v).trim() === '') return undefined;
+  const n = Number(String(v).replace(/[^0-9.-]/g, ''));
+  return isFinite(n) ? n : undefined;
+}
+
+/* ---------- THREE CARDS, ONE PRICE (620): n students pay x + k·x·(n−1) + g·x·(n−1) an hour — x the rate, k the tutor's share, g @family.'s ---------- */
+/* THE PARTS AS PRICED, through `seatShare_` (the booking's own reader): a blank is the config's usual. */
+function cardSeatParts_(rate, seat, cut) {
+  const s = seatShare_({ extraSeat: seat, extraSeatCut: cut });
+  return { k: s.cUsed, g: s.bUsed, kOwn: s.seatOwn, gOwn: s.cutOwn, kx: pence_(rate * s.cUsed), gx: pence_(rate * s.bUsed) };
+}
+/* WHAT n STUDENTS PAY AN HOUR: the booking's own seat line (`priceSeats_`, `runningAfter`), before subjects, level, day and time multiply it. */
+const cardGroupTotal_ = (rate, seat, cut, n) => runningAfter('students',
+  { chargeRate: rate, fChildrenAll: priceSeats_({ extraSeat: seat, extraSeatCut: cut }, undefined, undefined, Math.max(1, n)).fSeats });
+
 /* The config readers priceFrom's helpers share: a constant by any of its names, and a surcharge lookup. */
 function priceKnobs_() {
   const m = DATA.multipliers || {};
@@ -1262,7 +1289,8 @@ function priceDates_(spec, q) {
   const windows = (spec.windows && spec.windows.length) ? spec.windows
                                                         : [{ startDate: q.startDate, lastSun: q.lastSun }];
   const seenDay = {};
-  const sessionDates = bookedDays
+  /* THE DATES THE BOOKING CARRIES (`spec.sessionDates`), when given: the server prices those, not a window it would work out again. */
+  const sessionDates = spec.sessionDates ? spec.sessionDates.slice() : bookedDays
     .map(d => windows
       .map(w => computeSessionDates(d, w.lastSun || w.endDate, w.startDate))
       .reduce((all, list) => all.concat(list), []))
@@ -2627,24 +2655,6 @@ const PRICE_ROWS = [
   // --- what builds the hourly rate ---
   /* The bulk and booked-ahead rows lived here. § */
 ];
-
-const RATE_CHAIN = [
-  { key: 'subject',    mult: L => L.avgSubject },
-  { key: 'complexity', mult: L => L.fSubjectCount },
-  { key: 'level',      mult: L => L.L },
-  { key: 'daytime',    mult: L => (Number(L.D) || 1) * (Number(L.T) || 1) },
-  { key: 'students',   mult: L => L.fChildrenAll },
-];
-
-/** The running hourly rate immediately BEFORE the named row applies. */
-function rateBase(L, key) {
-  let base = L.chargeRate || 0;
-  for (const step of RATE_CHAIN) {
-    if (step.key === key) return base;
-    base = pence_(base * (Number(step.mult(L)) || 1));
-  }
-  return base;
-}
 
 
 function priceCells(row, L, fmt) {
@@ -14082,44 +14092,36 @@ function cardEditForm_(t, e, vals, only) {
   }).join('');
 }
 /* ---------- THE RATE, AND WHAT AN EXTRA SEAT ADDS IN POUNDS BESIDE IT (docs/history/345) § */
-const pounds2_ = x => Math.round(x * 100) / 100;
 /* WHAT A BLANK MEANS IN POUNDS AT THIS RATE — the config's `c` and `B` through the one reader, `seatShare_`. */
 function cardSeatUsual_(rate) {
-  const u = typeof seatShare_ === 'function' ? seatShare_(null) : { cUsed: 0, bUsed: 0 };
-  return { extra_seat_rate: pounds2_(rate * u.cUsed), extra_seat_cut: pounds2_(rate * u.bUsed) };
+  const u = seatShare_(null);
+  return { extra_seat_rate: pence_(rate * u.cUsed), extra_seat_cut: pence_(rate * u.bUsed) };
 }
 /* A BLANK BOX SAYS "usual" AND NO MORE — "usual £3.00" was cut off in a box half a 390px card wide (measured);
    the amounts are in the line under the boxes, which has the room. Nothing without a rate: the line says why. */
 const cardSeatPh_ = rate => rate > 0 ? 'usual' : '';
 /* ---------- A PART IS DRAWN ONLY WHERE THE PRICE USES IT AS THE TUTOR'S OWN, AND ASKED OF `seatShare_` § */
 function cardSeatShown_(f, rate, frac) {
-  if (!(rate > 0) || typeof seatShare_ !== 'function') return '';
+  if (!(rate > 0)) return '';
   const s = seatShare_({ extraSeat: frac, extraSeatCut: frac });
-  if (f === 'extra_seat_cut') return s.cutOwn ? pounds2_(s.bRaw * rate).toFixed(2) : '';
-  return s.seatOwn ? pounds2_(s.cRaw * rate).toFixed(2) : '';
+  if (f === 'extra_seat_cut') return s.cutOwn ? pence_(s.bRaw * rate).toFixed(2) : '';
+  return s.seatOwn ? pence_(s.cRaw * rate).toFixed(2) : '';
 }
 /* POUNDS TYPED INTO A PART → THE SHARE THE HIDDEN BOX HOLDS. § */
 function cardSeatShare_(f, typed, rate, was) {
   const s = String(typed == null ? '' : typed).trim(), P = num(s);
   const cell = String(was == null ? '' : was).trim();
   const usual = s === '' || isNaN(P) || (f === 'extra_seat_rate' && P === 0);
-  if (cardSeatShown_(f, rate, cell) === (usual ? '' : pounds2_(P).toFixed(2))) return cell;
+  if (cardSeatShown_(f, rate, cell) === (usual ? '' : pence_(P).toFixed(2))) return cell;
   return usual ? '' : String(Math.round(P / rate * 1e6) / 1e6);
 }
 /* A PART PAST WHAT THE SERVER TAKES, read as the typed share: the tutor's 0 to `STAFF_SEAT_MAX` (620), @family.'s 0 to 2. */
 const cardSeatTop_ = f => askProps_(f).max;
 const cardSeatOff_ = (f, v) => { const x = num(v); return !isNaN(x) && (x < 0 || x > cardSeatTop_(f)); };
 const cardSeatOffSay_ = (rate, f) => f === 'extra_seat_cut'
-  ? "@family.'s part is ' + fmtMoney_(0) + ' to " + fmtMoney_(pounds2_(rate * 2), 'hour') + ' — twice the rate.'
-  : 'An extra seat adds ' + fmtMoney_(0) + ' to ' + fmtMoney_(pounds2_(rate * STAFF_SEAT_MAX_()), 'hour') + ' — at most what the first student pays.';
-/* ---------- THREE CARDS, ONE PRICE (620): n students pay x + k·x·(n−1) + g·x·(n−1) an hour — x the rate, k the tutor's share, g @family.'s ---------- */
-/* THE PARTS AS PRICED, through `seatShare_` (the booking's own reader): a blank is the config's usual. */
-function cardSeatParts_(rate, seat, cut) {
-  const s = typeof seatShare_ === 'function' ? seatShare_({ extraSeat: seat, extraSeatCut: cut }) : { cUsed: 0, bUsed: 0, seatOwn: false, cutOwn: false };
-  return { k: s.cUsed, g: s.bUsed, kOwn: s.seatOwn, gOwn: s.cutOwn, kx: pounds2_(rate * s.cUsed), gx: pounds2_(rate * s.bUsed) };
-}
-/* WHAT n STUDENTS PAY AN HOUR, the formula above — what the booking charges before subjects, level, day and time multiply it. */
-const cardGroupTotal_ = (rate, seat, cut, n) => { const p = cardSeatParts_(rate, seat, cut); return pounds2_(rate * (1 + (p.k + p.g) * Math.max(0, n - 1))); };
+  ? "@family.'s part is " + fmtMoney_(0) + ' to ' + fmtMoney_(pence_(rate * CUT_MAX_()), 'hour') + ' — twice the rate.'
+  : 'An extra seat adds ' + fmtMoney_(0) + ' to ' + fmtMoney_(pence_(rate * STAFF_SEAT_MAX_()), 'hour') + ' — at most what the first student pays.';
+/* ---------- THREE CARDS, ONE PRICE (620): `cardSeatParts_` and `cardGroupTotal_` are core-price.js's, the booking's own sums. */
 /* THE EXTRA SEAT CARD'S LINE: the tutor's part of each extra student, in pounds. */
 function cardSeatSay_(rate, seat) {
   if (!(rate > 0)) return 'An extra seat is priced from the rate — set it first.';
@@ -14164,7 +14166,7 @@ function cardRateHtml_(L, val, box, e) {
   /* THE POUNDS BOX AND ITS HIDDEN SHARE: forms.json's `card-seat`. */
   const pound = formOf_('card-seat', val, { ctx: rate, only: ['extra_seat_rate'],
     with: () => ({ label: own ? 'yours, £/h' : 'theirs, £/h', readonly: !live,
-      extra: `type="number" min="0" max="${live ? pounds2_(rate * STAFF_SEAT_MAX_()) : 0}" step="0.01" placeholder="${esc(cardSeatPh_(rate))}"` }) });
+      extra: `type="number" min="0" max="${live ? pence_(rate * STAFF_SEAT_MAX_()) : 0}" step="0.01" placeholder="${esc(cardSeatPh_(rate))}"` }) });
   const bar = own || (typeof may_ === 'function' && may_('admin'))
     ? shareBarBox_(val('extra_seat_cut'), cardShareBar_(rate, val('extra_seat_rate'), val('extra_seat_cut'))) : '';
   return box('rate_per_hour', {}) + bar
@@ -14182,7 +14184,7 @@ function cardCutHtml_(L, val, box) {
   const body = mayCut
     ? formOf_('card-seat', val, { ctx: rate, only: ['extra_seat_cut'],
         with: () => ({ label: "@family.'s, £/h", readonly: !live,
-          extra: `type="number" min="0" max="${live ? pounds2_(rate * 2) : 0}" step="0.01" inputmode="decimal" placeholder="${esc(cardSeatPh_(rate))}"` }) })
+          extra: `type="number" min="0" max="${live ? pence_(rate * CUT_MAX_()) : 0}" step="0.01" inputmode="decimal" placeholder="${esc(cardSeatPh_(rate))}"` }) })
     : '';
   return mcG_('span', 'ce-rate', { attrs: { hidden: true, 'data-rate': String(rate || 0) } })
     + ceFold_('cut', "@family.'s share", mcLive_('ce-cut', cardCutSay_(rate, val('extra_seat_cut'))), body)
@@ -14223,7 +14225,7 @@ function cardSeatSync_(form, t, ev) {
   if (t === rateBox) {
     sec.querySelectorAll('[data-pound]').forEach(b => {
       b.disabled = !(rate > 0);
-      b.max = String(rate > 0 ? pounds2_(rate * cardSeatTop_(b.dataset.pound)) : 0);
+      b.max = String(rate > 0 ? pence_(rate * cardSeatTop_(b.dataset.pound)) : 0);
       b.placeholder = cardSeatPh_(rate);
       if (b.dataset.typed) { share(b); return; }
       const h = hid(b.dataset.pound);
@@ -16365,15 +16367,6 @@ function widgetsBeforeSlide_(col) {
 
 /* THE EXAM DATES CHANGED UNDER THE COLUMN, so it is REDRAWN IF IT IS DRAWN — the rule `profileRefresh_` keeps for Settings, whose About you holds the same two § */
 
-/* ---------- COUNTDOWNS ---------- */
-/* WHEN EACH BIG EXAM SEASON STARTS, as MM-DD (or a whole YYYY-MM-DD for one year): the config tab's `exam_*_start` wins, these are the usual second week of May and mid-September. */
-const PROG_EXAMS = [
-  { id: 'sats', name: 'SATs', key: 'exam_sats_start', at: '05-11' },
-  { id: 'elevenplus', name: '11+', key: 'exam_11plus_start', at: '09-12' },
-  { id: 'gcse', name: 'GCSE exams', key: 'exam_gcse_start', at: '05-11' },
-  { id: 'alevel', name: 'A-level exams', key: 'exam_alevel_start', at: '05-11' }];
-/* SCHOOL HOLIDAYS WHEN THE SHEET'S `intervals` NAME NONE AHEAD: config `holiday_starts` ("MM-DD Name, …") wins; these are the usual London starts. */
-const PROG_HOLIDAYS = '10-26 October half-term, 12-19 Christmas holidays, 02-13 February half-term, 03-27 Easter holidays, 05-22 May half-term, 07-22 Summer holidays';
 const progressToday_ = () => { const t = new Date(); t.setHours(0, 0, 0, 0); return t; };
 const progressDaysSaid_ = n => (n === 0 ? 'today' : n + (n === 1 ? ' day' : ' days'));
 /* ---------- THE COUNTDOWNS WIDGET ON TOOLS (466): every copy by class, as the Saved column draws it too ---------- */
@@ -16405,13 +16398,14 @@ function tdYear_(y) {
   const may = nth(y + 1, 4, 1, -1), jul = tdJul_(y + 1);
   const terms = [['Autumn 1', tdYear0_(y), add(octHalf, -3)], ['Autumn 2', add(octHalf, 7), xmas], ['Spring 1', jan, add(feb, -3)],
     ['Spring 2', add(feb, 7), springEnd], ['Summer 1', summer, add(may, -3)], ['Summer 2', add(may, 7), jul]];
-  const hols = [['October half-term', 'half'], ['Christmas holidays', 'holiday'], ['February half-term', 'half'], ['Easter holidays', 'holiday'], ['May half-term', 'half']];
+  /* THE BREAKS' NAMES AND KINDS, IN ORDER: settings.json's `calendar` (SHARED_SETTINGS), the summer last. */
+  const hols = SHARED_SETTINGS.calendar.breaks, summerHols = hols[hols.length - 1];
   const out = [];
   terms.forEach((t, i) => {
     out.push({ name: t[0], kind: 'term', from: t[1], to: t[2] });
-    if (i < hols.length) out.push({ name: hols[i][0], kind: hols[i][1], from: add(t[2], 1), to: add(terms[i + 1][1], -1) });
+    if (i < hols.length - 1) out.push({ name: hols[i].name, kind: hols[i].kind, from: add(t[2], 1), to: add(terms[i + 1][1], -1) });
   });
-  out.push({ name: 'Summer holidays', kind: 'holiday', from: add(jul, 1), to: add(tdYear0_(y + 1), -1) });
+  out.push({ name: summerHols.name, kind: summerHols.kind, from: add(jul, 1), to: add(tdYear0_(y + 1), -1) });
   return out;
 }
 /* THE LAST DAY OF SUMMER TERM: 22 July, or the Friday before when that is a weekend. */

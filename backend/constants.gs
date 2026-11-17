@@ -1,6 +1,6 @@
 /* @family. — 00_constants.gs (1 of 8) THE TOP-LEVEL VALUES IN THE ORIGINAL ORDER (jobs, migrations and ACTION_ACCESS follow in access.gs). § */
 /* SHARED:BEGIN — data/settings/settings.json, written by `node tools/cards-gen.js --write`; edit the json, never this. */
-const SHARED_SETTINGS = {"days":[["m","Monday"],["tu","Tuesday"],["w","Wednesday"],["th","Thursday"],["f","Friday"],["sa","Saturday"],["su","Sunday"]],"hours":[9,10,11,12,13,14,15,16,17,18,19,20],"roles":{"ids":{"admin":{"label":"Admin","aliases":["administrator"],"rank":"admin","tier":"admin","self":false},"tutor":{"label":"Tutor","aliases":["teacher"],"rank":"staff","tier":"member","self":true,"pending":true},"client":{"label":"Client","aliases":["parent","guardian"],"app":"parent","rank":"client","tier":"member","self":true},"student":{"label":"Student","aliases":["kid","child","pupil"],"app":"kid","rank":"student","tier":"child","self":true},"contact":{"label":"Contact","aliases":[],"rank":"contact","tier":"anyone","self":false,"signIn":false}},"default":"client","guest":{"rank":"out","tier":"anyone"},"ranks":["contact","student","client","staff","admin"],"tiers":["anyone","member","child","admin"],"titles":{"head of boxing":"Head of Boxing"}},"submissionsPerPost":25,"answerTextMax":20000};
+const SHARED_SETTINGS = {"days":[["m","Monday"],["tu","Tuesday"],["w","Wednesday"],["th","Thursday"],["f","Friday"],["sa","Saturday"],["su","Sunday"]],"hours":[9,10,11,12,13,14,15,16,17,18,19,20],"roles":{"ids":{"admin":{"label":"Admin","aliases":["administrator"],"rank":"admin","tier":"admin","self":false},"tutor":{"label":"Tutor","aliases":["teacher"],"rank":"staff","tier":"member","self":true,"pending":true},"client":{"label":"Client","aliases":["parent","guardian"],"app":"parent","rank":"client","tier":"member","self":true},"student":{"label":"Student","aliases":["kid","child","pupil"],"app":"kid","rank":"student","tier":"child","self":true},"contact":{"label":"Contact","aliases":[],"rank":"contact","tier":"anyone","self":false,"signIn":false}},"default":"client","guest":{"rank":"out","tier":"anyone"},"ranks":["contact","student","client","staff","admin"],"tiers":["anyone","member","child","admin"],"titles":{"head of boxing":"Head of Boxing"}},"submissionsPerPost":25,"answerTextMax":20000,"calendar":{"breaks":[{"name":"October half-term","sheet":"October Half Term","kind":"half","starts":"10-26"},{"name":"Christmas holidays","sheet":"Christmas Holiday","kind":"holiday","starts":"12-19"},{"name":"February half-term","sheet":"February Half Term","kind":"half","starts":"02-13"},{"name":"Easter holidays","sheet":"Easter Holiday","kind":"holiday","starts":"03-27"},{"name":"May half-term","sheet":"May Half Term","kind":"half","starts":"05-22"},{"name":"Summer holidays","sheet":"Summer Holiday","kind":"holiday","starts":"07-22"}],"kinds":{"term":{"say":"term","words":[]},"half-term":{"say":"half term","also":["half term"],"words":["half\\s*term"]},"holiday":{"say":"holiday","words":["holiday","christmas","easter","summer break","break"]}},"exams":[{"id":"sats","name":"SATs","key":"exam_sats_start","at":"05-11"},{"id":"elevenplus","name":"11+","key":"exam_11plus_start","at":"09-12"},{"id":"gcse","name":"GCSE exams","key":"exam_gcse_start","at":"05-11"},{"id":"alevel","name":"A-level exams","key":"exam_alevel_start","at":"05-11"}]}};
 /* SHARED:END */
 
 /* @family. — backend (hermes) Rewritten against the eleven-tab database. § */
@@ -83,7 +83,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-11-17-engines-1";
+const BACKEND_VERSION = "2026-11-17-price-1";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 /* EVERY TAB NAME CODE READS BY. A kind in kinds.json ledger.moved is read through the items/events store
@@ -411,10 +411,6 @@ const SCHEMA = {
 
   /* `orders` WAS HERE — printing posted to a learner; nothing had made an order since `redeem` went (379). */
 
-  /* ---------- HOLIDAYS § */
-  /* A `holidays` TAB WAS DECLARED TWICE, and this was the first of the two. § */
-
-  /* ---------- HOLIDAYS § */
   /* ---------- AD CAMPAIGNS § */
   /* ---------- THE LOADING SPLASHES § */
 
@@ -659,12 +655,10 @@ const CONFIG_DEFAULTS = [
   ['laminate_minimum', 0, 'the least a laminating job can cost, whatever the page count. 0 = none'],
   /* WHO HEARS ABOUT A CHILD'S FORGOTTEN PIN AND A NEW STAFF APPLICATION (400). Blank = the first admin with a proved address. Never sent to a phone (`CONFIG_PRIVATE`). */
   ['owner_email', '', "the business owner's address: a child's forgotten-PIN link and new tutor applications go here. Blank = the first admin's own email"],
-  /* ---------- THE PROGRESS COLUMN'S COUNTDOWNS (435): blank keeps the defaults in js/arcade.js (`PROG_EXAMS`, `PROG_HOLIDAYS`). */
-  ['exam_gcse_start', '', 'the day GCSE exams start, as MM-DD (every year) or YYYY-MM-DD (one year). Blank = 05-11'],
-  ['exam_alevel_start', '', 'the day A-level exams start, as MM-DD or YYYY-MM-DD. Blank = 05-11'],
-  ['exam_sats_start', '', 'the day Year 6 SATs start, as MM-DD or YYYY-MM-DD. Blank = 05-11'],
-  ['exam_11plus_start', '', 'the day the 11+ is sat, as MM-DD or YYYY-MM-DD. Blank = 09-12'],
-  ['holiday_starts', '', 'school holidays when the intervals tab names none ahead: "MM-DD Name" separated by commas, e.g. 10-26 October half-term, 12-19 Christmas holidays. Blank = the usual London dates'],
+  /* ---------- THE SCHOOL CALENDAR'S OVERRIDES: each blank is settings.json's `calendar` (SHARED_SETTINGS), named in the row's own words. */
+  ...SHARED_SETTINGS.calendar.exams.map(e => [e.key, '', 'the start of ' + e.name + ', as MM-DD (every year) or YYYY-MM-DD (one year). Blank = ' + e.at]),
+  ['holiday_starts', '', 'school holidays, overriding the calendar\'s usual starts: "MM-DD Name" separated by commas. Blank = '
+    + SHARED_SETTINGS.calendar.breaks.map(h => h.starts + ' ' + h.name).join(', ')],
   ['postage_flat', 0, 'one stamp and one envelope for a whole order, not per item. 0 = you do not post, and only collection is offered'],
   // Documentation rows. Read by nobody — written so the sheet explains its own arithmetic.
   /* The formula_* rows lived here. § */

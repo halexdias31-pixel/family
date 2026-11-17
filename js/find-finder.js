@@ -233,13 +233,6 @@ function kindOf_(x) {
   return (x && kindMap_()[x.kind]) || { group: 'Shop', label: 'Things' };
 }
 
-/* ---------- A PRICE THAT NOBODY HAS TYPED IS NOT A PRICE OF ZERO § */
-function priced_(v) {
-  if (v === null || v === undefined || String(v).trim() === '') return undefined;
-  const n = Number(String(v).replace(/[^0-9.-]/g, ''));
-  return isFinite(n) ? n : undefined;
-}
-
 /* EVERY VALUE ONE FACET GIVES THIS ITEM — the one reader the funnel, the filter and the card all ask. No facet hides
    behind another any more (396): a repeat on a card is the tag row's duplicate rule. */
 function facetOwn_(facet, x) {

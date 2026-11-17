@@ -363,44 +363,36 @@ function cardEditForm_(t, e, vals, only) {
   }).join('');
 }
 /* ---------- THE RATE, AND WHAT AN EXTRA SEAT ADDS IN POUNDS BESIDE IT (docs/history/345) § */
-const pounds2_ = x => Math.round(x * 100) / 100;
 /* WHAT A BLANK MEANS IN POUNDS AT THIS RATE — the config's `c` and `B` through the one reader, `seatShare_`. */
 function cardSeatUsual_(rate) {
-  const u = typeof seatShare_ === 'function' ? seatShare_(null) : { cUsed: 0, bUsed: 0 };
-  return { extra_seat_rate: pounds2_(rate * u.cUsed), extra_seat_cut: pounds2_(rate * u.bUsed) };
+  const u = seatShare_(null);
+  return { extra_seat_rate: pence_(rate * u.cUsed), extra_seat_cut: pence_(rate * u.bUsed) };
 }
 /* A BLANK BOX SAYS "usual" AND NO MORE — "usual £3.00" was cut off in a box half a 390px card wide (measured);
    the amounts are in the line under the boxes, which has the room. Nothing without a rate: the line says why. */
 const cardSeatPh_ = rate => rate > 0 ? 'usual' : '';
 /* ---------- A PART IS DRAWN ONLY WHERE THE PRICE USES IT AS THE TUTOR'S OWN, AND ASKED OF `seatShare_` § */
 function cardSeatShown_(f, rate, frac) {
-  if (!(rate > 0) || typeof seatShare_ !== 'function') return '';
+  if (!(rate > 0)) return '';
   const s = seatShare_({ extraSeat: frac, extraSeatCut: frac });
-  if (f === 'extra_seat_cut') return s.cutOwn ? pounds2_(s.bRaw * rate).toFixed(2) : '';
-  return s.seatOwn ? pounds2_(s.cRaw * rate).toFixed(2) : '';
+  if (f === 'extra_seat_cut') return s.cutOwn ? pence_(s.bRaw * rate).toFixed(2) : '';
+  return s.seatOwn ? pence_(s.cRaw * rate).toFixed(2) : '';
 }
 /* POUNDS TYPED INTO A PART → THE SHARE THE HIDDEN BOX HOLDS. § */
 function cardSeatShare_(f, typed, rate, was) {
   const s = String(typed == null ? '' : typed).trim(), P = num(s);
   const cell = String(was == null ? '' : was).trim();
   const usual = s === '' || isNaN(P) || (f === 'extra_seat_rate' && P === 0);
-  if (cardSeatShown_(f, rate, cell) === (usual ? '' : pounds2_(P).toFixed(2))) return cell;
+  if (cardSeatShown_(f, rate, cell) === (usual ? '' : pence_(P).toFixed(2))) return cell;
   return usual ? '' : String(Math.round(P / rate * 1e6) / 1e6);
 }
 /* A PART PAST WHAT THE SERVER TAKES, read as the typed share: the tutor's 0 to `STAFF_SEAT_MAX` (620), @family.'s 0 to 2. */
 const cardSeatTop_ = f => askProps_(f).max;
 const cardSeatOff_ = (f, v) => { const x = num(v); return !isNaN(x) && (x < 0 || x > cardSeatTop_(f)); };
 const cardSeatOffSay_ = (rate, f) => f === 'extra_seat_cut'
-  ? "@family.'s part is ' + fmtMoney_(0) + ' to " + fmtMoney_(pounds2_(rate * 2), 'hour') + ' — twice the rate.'
-  : 'An extra seat adds ' + fmtMoney_(0) + ' to ' + fmtMoney_(pounds2_(rate * STAFF_SEAT_MAX_()), 'hour') + ' — at most what the first student pays.';
-/* ---------- THREE CARDS, ONE PRICE (620): n students pay x + k·x·(n−1) + g·x·(n−1) an hour — x the rate, k the tutor's share, g @family.'s ---------- */
-/* THE PARTS AS PRICED, through `seatShare_` (the booking's own reader): a blank is the config's usual. */
-function cardSeatParts_(rate, seat, cut) {
-  const s = typeof seatShare_ === 'function' ? seatShare_({ extraSeat: seat, extraSeatCut: cut }) : { cUsed: 0, bUsed: 0, seatOwn: false, cutOwn: false };
-  return { k: s.cUsed, g: s.bUsed, kOwn: s.seatOwn, gOwn: s.cutOwn, kx: pounds2_(rate * s.cUsed), gx: pounds2_(rate * s.bUsed) };
-}
-/* WHAT n STUDENTS PAY AN HOUR, the formula above — what the booking charges before subjects, level, day and time multiply it. */
-const cardGroupTotal_ = (rate, seat, cut, n) => { const p = cardSeatParts_(rate, seat, cut); return pounds2_(rate * (1 + (p.k + p.g) * Math.max(0, n - 1))); };
+  ? "@family.'s part is " + fmtMoney_(0) + ' to ' + fmtMoney_(pence_(rate * CUT_MAX_()), 'hour') + ' — twice the rate.'
+  : 'An extra seat adds ' + fmtMoney_(0) + ' to ' + fmtMoney_(pence_(rate * STAFF_SEAT_MAX_()), 'hour') + ' — at most what the first student pays.';
+/* ---------- THREE CARDS, ONE PRICE (620): `cardSeatParts_` and `cardGroupTotal_` are core-price.js's, the booking's own sums. */
 /* THE EXTRA SEAT CARD'S LINE: the tutor's part of each extra student, in pounds. */
 function cardSeatSay_(rate, seat) {
   if (!(rate > 0)) return 'An extra seat is priced from the rate — set it first.';
@@ -445,7 +437,7 @@ function cardRateHtml_(L, val, box, e) {
   /* THE POUNDS BOX AND ITS HIDDEN SHARE: forms.json's `card-seat`. */
   const pound = formOf_('card-seat', val, { ctx: rate, only: ['extra_seat_rate'],
     with: () => ({ label: own ? 'yours, £/h' : 'theirs, £/h', readonly: !live,
-      extra: `type="number" min="0" max="${live ? pounds2_(rate * STAFF_SEAT_MAX_()) : 0}" step="0.01" placeholder="${esc(cardSeatPh_(rate))}"` }) });
+      extra: `type="number" min="0" max="${live ? pence_(rate * STAFF_SEAT_MAX_()) : 0}" step="0.01" placeholder="${esc(cardSeatPh_(rate))}"` }) });
   const bar = own || (typeof may_ === 'function' && may_('admin'))
     ? shareBarBox_(val('extra_seat_cut'), cardShareBar_(rate, val('extra_seat_rate'), val('extra_seat_cut'))) : '';
   return box('rate_per_hour', {}) + bar
@@ -463,7 +455,7 @@ function cardCutHtml_(L, val, box) {
   const body = mayCut
     ? formOf_('card-seat', val, { ctx: rate, only: ['extra_seat_cut'],
         with: () => ({ label: "@family.'s, £/h", readonly: !live,
-          extra: `type="number" min="0" max="${live ? pounds2_(rate * 2) : 0}" step="0.01" inputmode="decimal" placeholder="${esc(cardSeatPh_(rate))}"` }) })
+          extra: `type="number" min="0" max="${live ? pence_(rate * CUT_MAX_()) : 0}" step="0.01" inputmode="decimal" placeholder="${esc(cardSeatPh_(rate))}"` }) })
     : '';
   return mcG_('span', 'ce-rate', { attrs: { hidden: true, 'data-rate': String(rate || 0) } })
     + ceFold_('cut', "@family.'s share", mcLive_('ce-cut', cardCutSay_(rate, val('extra_seat_cut'))), body)
@@ -504,7 +496,7 @@ function cardSeatSync_(form, t, ev) {
   if (t === rateBox) {
     sec.querySelectorAll('[data-pound]').forEach(b => {
       b.disabled = !(rate > 0);
-      b.max = String(rate > 0 ? pounds2_(rate * cardSeatTop_(b.dataset.pound)) : 0);
+      b.max = String(rate > 0 ? pence_(rate * cardSeatTop_(b.dataset.pound)) : 0);
       b.placeholder = cardSeatPh_(rate);
       if (b.dataset.typed) { share(b); return; }
       const h = hid(b.dataset.pound);
