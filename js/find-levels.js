@@ -88,6 +88,17 @@ function ksLevel_(k) {
 function keyStagesOf_(x) {
   return String((x && x.keystage) || '').split(',').map(s => s.trim()).filter(Boolean);
 }
+/* A KEY STAGE FOLLOWS FROM ITS LEVEL (owner, 17 Nov, N-20261117-alevelks4): once a level is chosen, a row's key stages are the
+   chosen levels' (settings.json `levels`) — a row taught KS3 to A-Level is KS5 under A-Level — so a facet with one sensible answer is skipped. */
+function keyStagesAt_(x) {
+  const chosen = ((typeof STUFF !== 'undefined' && STUFF && STUFF.filters) || []).filter(f => f && f.field === 'level' && !f.any).map(f => spellKey_(f.value));
+  const own = keyStagesOf_(x);
+  if (!chosen.length) return own;
+  const st = [].concat(...LEVEL_TABLE.filter(l => chosen.indexOf(spellKey_(l.level)) !== -1).map(l => l.stages));
+  if (!st.length) return own;
+  /* a row with its own key stages keeps those the level holds; one with none takes its level's, where the level has just one */
+  return own.length ? own.filter(k => st.indexOf(k) !== -1) : st.length === 1 ? st : [];
+}
 /* ---------- WHERE A ROW HAS NO LEVEL, ITS KEY STAGE SAYS ONE § */
 function ksFallback_(x) {
   const yr = (x && x.bandType === 'year') ? Number(x.bandValue) : NaN;

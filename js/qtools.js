@@ -21,8 +21,8 @@ const QT_TOOLS = [
   { id: 'offline',    icon: 'down',       label: 'Make available offline', note: 'this paper, on this device', act: 'offline-get' },
   { id: 'check',      icon: 'send',       label: 'Check',           note: '',                         act: '' },
 ];
-/* THE ONE ROW EVERY PART SHOWS, identically (owner, 8 Nov); data/settings/qengine.json `row` repeats it (check-answerable) */
-const QT_ROW = ['photo', 'paper', 'mag', 'read', 'lock', 'ruler', 'protractor', 'calc', 'offline'];
+/* THE ONE ROW EVERY PART SHOWS, identically (owner, 8 Nov): data/settings/qengine.json `row`, as qtypes.js carries it (QENGINE) */
+const QT_ROW = QENGINE.row;
 /* THE PEN'S TILES, added only where the part has a figure to draw on (a drawing answer needs its pen) */
 const QT_DRAWING = { pen: 1, line: 1, compass: 1 };
 /* THE PEN'S OWN NAME FOR EACH DRAWING TILE: Straight line is the pad's `ruler` mode (a line from press to lift, `padStroke_`). */

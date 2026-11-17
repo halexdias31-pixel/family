@@ -704,12 +704,7 @@
      "paper_id",
      "question",
      "part",
-     "subject",
-     "exam_board",
-     "level",
-     "key_stage",
-     "year",
-     "document_type"
+     "year"
     ],
     "id": "id",
     "blob": true,
@@ -721,6 +716,12 @@
      "key": [
       "row_id"
      ],
+     "joined": {
+      "say": "THE PAPER'S CARD, NOT COPIED (owner, 17 Nov): these fields are stored once, on the paper's own row (kind document, same paper_id), and joined onto each of its questions as the file is read (js/library.js libJoinPaper_, the backend's copy in cards-gen.gs). A question keeps one only where it differs (an override); null is none though the paper has one.",
+      "from": "document",
+      "by": "paper_id",
+      "fields": ["name", "subject", "key_stage", "band_type", "band_value", "company", "exam_board", "level", "document_type", "trackable", "printable", "source_url"]
+     },
      "private": [
       "html",
       "lead",

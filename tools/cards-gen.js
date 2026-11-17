@@ -8,6 +8,8 @@ const OUT = path.join(ROOT, 'backend/cards-gen.gs');
 /* WHAT IS SHARED, FROM WHERE: each a top-level `function NAME` or `const NAME =` in a site file, copied as it stands. */
 const TAKE = [
   ['js/data.js', ['nameBesideHandle_', 'capFirst_', 'nameKid_', 'fmtName_']],
+  /* A QUESTION WEARS ITS PAPER'S CARD (owner, 17 Nov): the email joins the file's rows as the site does, by LIB_FILES.questions.joined. */
+  ['js/library.js', ['libJoinPaper_']],
   /* QUESTION ALIASES (answer-ids): the map and the merge the site reads by, as the backend files answers. */
   ['js/qaliases.js', ['QALIAS', 'qAliasKey_', 'qAliasMine_']],
   /* THE SCHOOL YEAR AND EASTER (491): booking.gs `schoolYear` and setup.gs `easterOf_` date by the site's rule. */
@@ -122,7 +124,18 @@ function sharedInto(file) {
   src = SHARED_RE.test(src) ? src.replace(SHARED_RE, () => block) : src.replace(/^[^\n]*\n/, m => m + block + '\n');
   fs.writeFileSync(path.join(ROOT, file), src);
 }
+/* THE ONE LIST OF QUESTION TYPES (owner, 17 Nov): data/settings/qengine.json's types, phrases and row, as QENGINE in js/qtypes.js. */
+const QENGINE_RE = /\/\* QENGINE:BEGIN[\s\S]*?\/\* QENGINE:END \*\//;
+function qengineInto(file) {
+  const j = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/settings/qengine.json'), 'utf8'));
+  const block = '/* QENGINE:BEGIN — data/settings/qengine.json, written by `node tools/cards-gen.js --write`; edit the json, never this. */\n'
+    + 'const QENGINE = ' + JSON.stringify({ types: j.types, phrases: j.phrases, row: j.row }) + ';\n/* QENGINE:END */';
+  const src = fs.readFileSync(path.join(ROOT, file), 'utf8');
+  if (!QENGINE_RE.test(src)) throw new Error(file + ' has no QENGINE block');
+  fs.writeFileSync(path.join(ROOT, file), src.replace(QENGINE_RE, () => block));
+}
 if (process.argv.includes('--write')) {
+  qengineInto('js/qtypes.js');
   sharedInto('js/core.js');
   sharedInto('backend/constants.gs');
   fs.writeFileSync(OUT, body);

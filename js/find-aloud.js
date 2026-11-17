@@ -770,19 +770,5 @@ function topicOf_(x) {
 
 /* ---------- THE TOPIC TREE WAS READ HERE § */
 
-/* THE LIBRARY'S LEVELS, ONE TABLE (R4): each level's key stages, tiers, other spellings, and rung on the ladder a range is
-   read along (0: never in a range). check/library-schema.js reads this very literal. */
-const LEVEL_TABLE = [
-  /* ---------- `KS2 SATs` IS TWO FACTS, AND THE LEVEL IS ONE OF THEM § */
-  { level: 'SATs',        rung: 1, stages: ['KS1', 'KS2'], tiers: [], says: ['KS1', 'KS2', 'KS1 SATs', 'KS2 SATs'] },
-  { level: '11+',         rung: 0, stages: ['KS2'],        tiers: [], says: [] },
-  { level: 'KS3',         rung: 2, stages: ['KS3'],        tiers: [], says: [] },
-  { level: 'GCSE',        rung: 3, stages: ['KS4'],        tiers: ['Foundation', 'Higher', 'Foundation Plus', 'Higher Plus'], says: ['KS4'] },
-  { level: 'Functional Skills L2', rung: 0, stages: [],    tiers: [], says: [] },
-  { level: 'Level 2 Certificate', rung: 0, stages: ['KS4'], tiers: [], says: ['L2 Certificate'] },
-  { level: 'A-Level',     rung: 4, stages: ['KS5'],        tiers: [], says: ['Alevel', 'A level', 'KS5'] },
-  { level: 'AS',          rung: 0, stages: ['KS5'],        tiers: [], says: ['AS level', 'AS-level'] },
-  { level: 'Theory test', rung: 0, stages: [],             tiers: [], says: [] },
-  /* ENGLISH AS A SECOND LANGUAGE: one level off the school ladder; its CEFR bands are its tiers, as GCSE's are Foundation and Higher. */
-  { level: 'ESL',         rung: 0, stages: [],             tiers: ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'], says: ['EFL', 'ESOL', 'CEFR'] },
-];
+/* THE LIBRARY'S LEVELS, ONE TABLE (R4): data/settings/settings.json `levels` — each level's key stages, tiers, other spellings and rung. */
+const LEVEL_TABLE = SHARED_SETTINGS.levels.list;

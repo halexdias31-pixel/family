@@ -72,6 +72,8 @@ function fromLibrary(pid) {
     return all ? Object.assign({}, r, w) : Object.assign({}, r);
   });
   if (!rows.length) throw new Error('no rows with paper_id ' + pid + ' in data/questions.json');
+  /* EACH ROW WEARS ITS PAPER'S CARD again (owner, 17 Nov): the file keeps it once, on the paper's own row */
+  L.joinPaper(rows);
   const doc = rows.find(r => r.kind === 'document');
   /* THE PAPER'S OWN INSERT (an English source booklet: data/inserts.json, for_papers), words and all */
   const idef = L.defs().files.inserts, iwords = L.readPrivate('inserts') || {};
@@ -188,7 +190,7 @@ function importRows(spec, opt) {
   const { def, cards, words } = joined();
   const pids = new Set(spec.rows.map(r => r.paper_id));
   const map = Object.assign({}, words);
-  const before = cards.filter(r => pids.has(r.paper_id)).map(r => Object.assign({}, r, words[L.idOf(def, r)] || {}));
+  const before = L.joinPaper(cards.filter(r => pids.has(r.paper_id)).map(r => Object.assign({}, r, words[L.idOf(def, r)] || {})));
   /* A RE-RUN REPLACES: the paper's rows go, and their words with them, and the new ones take their place */
   const now = new Set(spec.rows.map(r => r.row_id));
   cards.filter(r => pids.has(r.paper_id) && !now.has(r.row_id)).forEach(r => delete map[L.idOf(def, r)]);
@@ -201,7 +203,8 @@ function importRows(spec, opt) {
   /* VALIDATE BEFORE WRITE (R5): the paper's rows against what they were */
   SC.refuse('questions', spec.rows, before, 'tools/content.js import');
   /* a card whose words are not here (lib_has, nothing private) comes back as it was */
-  const slim = spec.rows.map(r => LIB.splitRow('questions', Object.assign({}, r), map).row);
+  /* AND THE PAPER'S CARD STORED ONCE (owner, 17 Nov): a question keeps only the card fields that differ from its paper's row */
+  const slim = L.stripPaper(spec.rows.map(r => LIB.splitRow('questions', Object.assign({}, r), map).row));
   /* EACH ROW WHERE IT WAS: a re-run moves no line; a new row goes after the paper's last, a new paper at the end */
   const byId = new Map(slim.map(r => [r.row_id, r])), placed = new Set();
   let rows = [], last = -1;

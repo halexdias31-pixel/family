@@ -11,6 +11,7 @@ function libFiles() {
       const L = s.lib, d = { tab: s.tab, file: L.file, prefix: L.prefix, id: L.key };
       if (L.skip) d.skip = L.skip;
       if (L.newer) d.newer = true;
+      if (L.joined) d.joined = { from: L.joined.from, by: L.joined.by, fields: L.joined.fields };
       d.private = L.private;
       d.kind = k;
       out[L.name] = d;

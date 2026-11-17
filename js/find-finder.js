@@ -368,7 +368,7 @@ const FACET_READ = {
   documentType: { of: x => x.documentType || '' },
   level: { of: x => levelOf_(x) },
   /* A RESOURCE CAN BELONG TO MORE THAN ONE KEY STAGE; a SATs row's is read off its year when the cell is blank. */
-  keystage: { of: x => { const s = satsStagesOf_(x); return s.length ? s : keyStagesOf_(x); } },
+  keystage: { of: x => { const s = satsStagesOf_(x); return s.length ? s : keyStagesAt_(x); } },
   /* A CHAPTER TAUGHT OVER SEVERAL YEARS ANSWERS EACH (770: "it should ask what year, no?" under KS2). */
   yearGroup: { of: x => x.bandValue && x.bandType === 'year' ? 'Year ' + x.bandValue : (x.years || []).map(y => 'Year ' + y) },
   bandValue: { of: x => x.bandValue && x.bandType === 'grade' ? 'Grade ' + x.bandValue : '' },
@@ -378,7 +378,8 @@ const FACET_READ = {
   specTopic: { full: true, of: x => specTreeOf_(x).topic },
   specPoint: { full: true, of: x => specTreeOf_(x).point },
   /* A "PLUS" TIER IS ITS OWN TIER'S (owner, 15 Nov): Foundation Plus is Foundation, Higher Plus is Higher. */
-  tier: { of: x => String(x.tier || '').replace(/\s+Plus$/i, '') },
+  /* A COMMA PARTS TIERS (owner, 17 Nov, N-20261117-tiertag): `Foundation,Higher` is two tags, as a key stage list is. */
+  tier: { of: x => [...new Set(String(x.tier || '').split(',').map(t => t.trim().replace(/\s+Plus$/i, '')).filter(Boolean))] },
   /* THE YEAR, THEN THE MONTH, THEN THE PAPER — like the folders they came from. */
   examYear: { of: x => sittingOf_(x).year },
   /* MONTH AND DAY READ ANY ITEM'S DATE (owner, 15 Nov): a sitting's month, else the item's own date (`itemDate_`) — a 5-a-day's "5 October". */

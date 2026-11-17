@@ -79,6 +79,10 @@ function digestTagIndex_(text, pids, facets) {
     if (want[pid]) (out.rows[pid] = out.rows[pid] || []).push(q);
     if (!doc && !out.heads[pid] && live(q)) out.heads[pid] = q;
   });
+  /* EACH ROW WEARS ITS PAPER'S CARD (owner, 17 Nov), joined as the site joins it (libJoinPaper_, LIB_FILES.questions.joined). */
+  const J = LIB_FILES.questions.joined;
+  Object.keys(out.rows).forEach(p => libJoinPaper_(out.rows[p], J));
+  Object.keys(out.heads).forEach(p => { if (out.docs[p]) libJoinPaper_([out.docs[p], out.heads[p]], J); });
   return out;
 }
 
@@ -112,18 +116,12 @@ function digestTagLevel_(it) {
   const l = digestLevelsIn_(own);
   return l.length > 1 ? l : (l[0] || '');
 }
-/* find.js's `LEVEL_TABLE` and `levelsIn_` (O1), copied: Apps Script cannot load find.js. check-schema asks both copies every
-   level cell in the library and its range fixtures, and fails on any difference. */
-const DIGEST_LEVELS = [
-  { level: 'SATs', rung: 1, says: ['KS1', 'KS2', 'KS1 SATs', 'KS2 SATs'] }, { level: '11+', rung: 0, says: [] },
-  { level: 'KS3', rung: 2, says: [] }, { level: 'GCSE', rung: 3, says: ['KS4'] }, { level: 'Functional Skills L2', rung: 0, says: [] },
-  { level: 'Level 2 Certificate', rung: 0, says: ['L2 Certificate'] },
-  { level: 'A-Level', rung: 4, says: ['Alevel', 'A level', 'KS5'] }, { level: 'AS', rung: 0, says: ['AS level', 'AS-level'] },
-  { level: 'Theory test', rung: 0, says: [] },
-];
+/* THE LEVELS ARE data/settings/settings.json `levels` (owner, 17 Nov), here as SHARED_SETTINGS (constants.gs) — the site's LEVEL_TABLE. */
+/* Read when called, so the order Apps Script loads its files in never matters. */
+const digestLevels_ = () => SHARED_SETTINGS.levels.list;
 function digestLevelsIn_(cell) {
   const key = v => String(v == null ? '' : v).toLowerCase().replace(/[^a-z0-9+]/g, '');
-  const find = v => DIGEST_LEVELS.find(l => key(l.level) === key(v) || l.says.some(s => key(s) === key(v)));
+  const find = v => digestLevels_().find(l => key(l.level) === key(v) || l.says.some(s => key(s) === key(v)));
   const out = [];
   const add = v => { if (v && out.indexOf(v) === -1) out.push(v); };
   const pair = t => {
@@ -145,7 +143,7 @@ function digestLevelsIn_(cell) {
     const a = p[0], b = p[1];
     if (p[2] || !a.rung || !b.rung) { add(a.level); add(b.level); return; }
     const lo = Math.min(a.rung, b.rung), hi = Math.max(a.rung, b.rung);
-    DIGEST_LEVELS.filter(e => e.rung >= lo && e.rung <= hi).forEach(e => add(e.level));
+    digestLevels_().filter(e => e.rung >= lo && e.rung <= hi).forEach(e => add(e.level));
   });
   return out;
 }
@@ -400,6 +398,15 @@ function digestLibraryFind_(text, ids) {
     }
     at = text.indexOf(mark, ab[1]);
   }
+  /* EACH ROW WEARS ITS PAPER'S CARD (owner, 17 Nov): the paper's own row (`D-` and its id), joined as the site joins it. */
+  const docs = [];
+  papers.forEach(pid => {
+    const at = text.indexOf('"row_id":' + JSON.stringify('D-' + pid));
+    if (at === -1) return;
+    const ab = bounds(at), d = parse(text.slice(ab[0], ab[1]));
+    if (d && d.kind === 'document') docs.push(d);
+  });
+  libJoinPaper_(docs.concat(Object.keys(rows).map(id => rows[id]), pre), LIB_FILES.questions.joined);
   /* AND EACH ROW'S TAGS, AS ITS CARD WEARS THEM (`digestCardTags_`); a failure costs the tags, never the email. */
   const worn = {};
   try {
