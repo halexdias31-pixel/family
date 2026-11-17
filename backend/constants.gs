@@ -63,25 +63,29 @@ const NOTIFY_KINDS = {
   approvals: { col: 'approvals_email', roles: ['admin'],
                label: 'Posts waiting for you', note: 'If off, a post waits until you open Posts' },
 
-  access:    { essential: true, roles: NOTIFY_ALL_ROLES,
+  access:    { always: true, roles: NOTIFY_ALL_ROLES,
                label: 'Sign-in links and new PINs', note: 'Confirming your address, a forgotten PIN, a link to sign in',
                why: 'without them nobody can get into their account, or back into it' },
-  security:  { essential: true, roles: NOTIFY_ALL_ROLES,
+  security:  { always: true, roles: NOTIFY_ALL_ROLES,
                label: 'Security warnings', note: 'Too many wrong PINs, or your PIN changed',
                why: 'the only warning an account theft ever gives' },
-  family:    { essential: true, roles: ['client', 'student'], parents: true,
+  family:    { always: true, roles: ['client', 'student'], parents: true,
                label: 'Family links', note: 'Somebody adding you as their child, and the answer',
                why: 'a child is never put on an account they were not told about' },
-  booked:    { essential: true, roles: ['client', 'tutor'],
+  booked:    { always: true, roles: ['client', 'tutor'],
                label: 'Bookings confirmed or cancelled', note: 'Received, accepted, paid, a tutor leaving, cancelled',
                why: 'each decides whether a session happens, and the door is too late to find out' },
-  reported:  { essential: true, roles: ['admin'],
+  reported:  { always: true, roles: ['admin'],
                label: 'Reported messages', note: 'A message somebody has reported',
                why: 'a report is a safeguarding matter and the admin is the only one told' },
+  /* HIDDEN: A TUTOR'S APPLICATION — the owner's notice and the applicant's answer; nobody's card draws it. */
+  applied:   { always: true, roles: NOTIFY_ALL_ROLES, hidden: true,
+               label: 'Tutor applications', note: 'An application, and the answer to it',
+               why: 'the business is run on it' },
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-11-17-final-1";
+const BACKEND_VERSION = "2026-11-17-deliver-1";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 /* EVERY TAB NAME CODE READS BY. A kind in kinds.json ledger.moved is read through the items/events store
@@ -155,7 +159,7 @@ const LIB_SOURCE_RAW = 'https://raw.githubusercontent.com/halexdias31-pixel/fami
 const LIB_PARTS = 6;
 const LIB_CELL = 40000;
 /* AT MOST THIS MANY ITEMS IN ONE `libItems` CALL — one question with its stems and parts, and the next few. */
-const LIB_PER_CALL = 60;
+const LIB_PER_CALL = 50;
 
 /* ---------- SCHEMA, AND KEEPING IT IN STEP § */
 const SCHEMA = {

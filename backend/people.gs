@@ -1104,7 +1104,7 @@ function mailOut_(o) {
   const bare = !!(o && o.firstNamesOnly);
   if (o) delete o.firstNamesOnly;
   const K = NOTIFY_KINDS[kind];
-  if (o && !(K && !K.essential)) {
+  if (o && !(K && !K.always)) {
     const keep = [];
     S(o.to).split(',').map(x => x.trim()).filter(Boolean).forEach(a => {
       const r = mailParentRow_(a);
@@ -1180,7 +1180,7 @@ function confirmFirst_(r, then) {
 /* ---------- DOES THIS PERSON STILL WANT THIS KIND OF EMAIL — `NOTIFY_KINDS` in constants.gs § */
 function wants_(r, kind) {
   const K = NOTIFY_KINDS[S(kind)];
-  if (!K || K.essential || !K.col) return true;
+  if (!K || K.always || !K.col) return true;
   return notifyCellOn_(r, K);
 }
 /* A PARENT GETS NOTHING UNTIL THEY TICK IT (owner, 11 Nov): blank is off where the kind reaches them as a parent; a tutor's own kinds stay on. */
@@ -1231,7 +1231,7 @@ function notifyOf_(r) {
     const notes = [];
     mine.forEach(x => { const n = (K.noteFor && K.noteFor[x]) || K.note; if (notes.indexOf(n) === -1) notes.push(n); });
     const out = { kind: k, label: K.label, note: notes.join(' · ') };
-    if (K.essential) out.essential = true;
+    if (K.always) out.essential = true;
     else out.on = wants_(r, k);
     if (k === 'weekly' && mode !== 'send') out.idle = 'Not being sent yet';
     kinds.push(out);
@@ -1239,24 +1239,54 @@ function notifyOf_(r) {
   return { to: S(r && r.email), held: addressPending_(r), kinds: kinds };
 }
 
-/** Send an email. Skips silently when there's no address — a missing email must not break a move. */
-/* ---------- `kind` IS WHICH OF `NOTIFY_KINDS` THIS IS, AND EVERY CALLER NAMES ONE § */
+/* ---------- ONE DOOR FOR EVERY EMAIL AND PUSH: `deliver_(person, kind, msg)` (17 Nov) ----------
+   1. the kind, from `NOTIFY_KINDS` — an `always` kind is sent whatever the prefs say (a PIN, a link, a warning);
+   2. the person's prefs — `wants_` for email (a parent's blank is no), the push card's `off` for push (in `pushTo_`);
+   3. the mail quota, read here and nowhere else (`mailQuota_`);
+   4. the channel: `msg.push` {title, body, link} goes by `pushTo_`; `msg.subject` by `mailOut_`.
+   `person` is a row or a name; null only for an `always` kind sent to `msg.to`, an address nobody owns yet.
+   `msg.to` overrides the person's address (only `always` kinds may name one); `msg.need` is how many
+   emails of quota it takes (default one per address); `msg.reserve` is held back (the Sunday run's).
+   Never throws. Returns { email: true|false, push: n, why } — why: kind, no-address, pending, prefs, quota, failed. */
+function deliver_(person, kind, msg) {
+  const out = { email: false, push: 0, why: '' };
+  const K = NOTIFY_KINDS[S(kind)];
+  if (!K) { out.why = 'kind'; return out; }
+  msg = msg || {};
+  let p = null;
+  try { p = person && typeof person === 'object' ? person : (person ? findPerson(S(person)) : null); } catch (err) { p = null; }
+  if (msg.push) out.push = pushTo_(p || S(person), S(kind), msg.push.title, msg.push.body, msg.push.link);
+  if (!msg.subject) return out;
+  const to = (K.always && msg.to) ? S(msg.to) : S(p && p.email);
+  if (!to) { out.why = 'no-address'; return out; }
+  /* NOT TO AN ADDRESS NOBODY CONFIRMED (`addressPending_`) — unless an `always` mail names its own address, as a confirming link must. */
+  if (!(K.always && msg.to) && addressPending_(p)) { out.why = 'pending'; return out; }
+  /* NOT A KIND THEY HAVE TURNED OFF — see `wants_`. */
+  if (p && !wants_(p, kind)) { notifyHeld_(p, kind, msg.subject); out.why = 'prefs'; return out; }
+  const need = N(msg.need) || to.split(',').filter(x => x.trim()).length;
+  const strict = msg.reserve !== undefined;
+  if (mailQuota_(strict) - (strict ? N(msg.reserve) : 0) < need) { out.why = 'quota'; return out; }
+  const o = { to: to, name: BRAND_NAME, subject: msg.subject, body: S(msg.body), kind: S(kind) };
+  if (msg.name === null) delete o.name;
+  if (typeof msg.htmlBody === 'string') o.htmlBody = msg.htmlBody;
+  if (msg.firstNamesOnly) o.firstNamesOnly = true;
+  try { mailOut_(o); out.email = true; } catch (err) { out.why = 'failed'; out.error = S(err && err.message || err); }
+  return out;
+}
+/* FOR A CALLER THAT WAS WRITTEN AROUND `MailApp` THROWING: the same door, and an error when nothing went. */
+function deliverOrThrow_(person, kind, msg) {
+  const d = deliver_(person, kind, msg);
+  if (!d.email) throw new Error(d.error || 'not sent: ' + d.why);
+  return d;
+}
+/* EMAILS LEFT TODAY. One that cannot be read is one — or none where the caller keeps a reserve back (`strict`). */
+function mailQuota_(strict) {
+  try { return Number(MailApp.getRemainingDailyQuota()) || 0; } catch (err) { return strict ? 0 : 1; }
+}
+
+/* ---------- `kind` IS WHICH OF `NOTIFY_KINDS` THIS IS, AND EVERY CALLER NAMES ONE — through `deliver_`. True when it went. */
 function notify(name, subject, body, kind) {
-  try {
-    const p = findPerson(name);
-    const to = p ? S(p.email) : '';
-    if (!to) return false;
-    /* NOT TO AN ADDRESS NOBODY CONFIRMED — see `addressPending_`. False, as for no address: the caller
-       carries on either way, and a booking notice in a stranger's inbox is the worse of the two. */
-    if (addressPending_(p)) return false;
-    /* NOT A KIND THEY HAVE TURNED OFF — see `wants_`. False, like the two above: the action that wanted
-       to tell them has happened, and whether they hear of it by email was theirs to decide. */
-    if (!wants_(p, kind)) { notifyHeld_(p, kind, subject); return false; }
-    mailOut_({ to, subject, body, name: BRAND_NAME, kind });
-    return true;
-  } catch (err) {
-    return false;
-  }
+  return deliver_(name, kind, { subject: subject, body: body }).email;
 }
 
 /* The catalogue as the SHEET has it, falling back to the code list until the tab is seeded. § */

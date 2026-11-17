@@ -283,7 +283,7 @@ function postPersonSave_(body, action, began) {
 /* THE NEW ACCOUNT'S HANDLE AND PIN MAILED TO THEIR OWN ADDRESS (`invite`): false when it could not go, so the admin is shown the PIN instead. */
 function adminInvite_(r, pin) {
   try {
-    mailOut_({ to: S(r.email), name: BRAND_NAME, subject: text_('mail-invite-subject', { brand: BRAND_NAME }),
+    deliverOrThrow_(null, 'access', { to: S(r.email), subject: text_('mail-invite-subject', { brand: BRAND_NAME }),
       body: text_('mail-invite-body', { first: S(r.first_name), brand: BRAND_NAME, site: SITE_URL, handle: S(r.handle), pin: pin })
           + '\n\n' + text_('mail-sign-off', { brand: BRAND_NAME }) });
     return true;

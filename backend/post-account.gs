@@ -329,10 +329,7 @@ function profileMailPlan_(r, wanted, fields) {
     : (S(r.email) && addressPending_(r)) ? 'correct' : 'move';
   let mailKey = '';
   if (mailPlan === 'correct' || mailPlan === 'move') {
-    let quota = 1;
-    try { quota = MailApp.getRemainingDailyQuota(); } catch (err) { quota = 1; }
     const cannot = 'We could not email ' + mailWant + ' just now, so nothing was saved. Try again later.';
-    if (quota < 1) return { fail: jsonOut({ why: 'no-mail', error: cannot }) };
     try {
       if (mailPlan === 'correct') {
         mailKey = 'V' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
@@ -411,7 +408,7 @@ function postSetNotify_(body, action, began) {
   const kind = S(body.kind);
   const K = Object.prototype.hasOwnProperty.call(NOTIFY_KINDS, kind) ? NOTIFY_KINDS[kind] : null;
   if (!K) return jsonOut({ error: 'There is no email called "' + kind + '" to turn on or off. Nothing was changed.' });
-  if (K.essential) {
+  if (K.always) {
     return jsonOut({ error: '"' + K.label + '" is always sent — ' + K.why + '. Nothing was changed.' });
   }
   const t = read(TAB.people);

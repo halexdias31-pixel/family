@@ -606,7 +606,7 @@
 {"kind":"see","role":"family","action":"find:admin-tags","allow":false},
 {"kind":"see","role":"tutor","action":"find:admin-tags","allow":false},
 {"kind":"see","role":"admin","action":"find:admin-tags","allow":true},
-{"kind":"item","role":"anyone","action":"question:read","allow":false,"via":"libItems"},
+{"kind":"item","role":"anyone","action":"question:read","allow":true,"via":"libItems"},
 {"kind":"item","role":"member","action":"question:read","allow":true,"via":"libItems"},
 {"kind":"item","role":"child","action":"question:read","allow":true,"via":"libItems"},
 {"kind":"item","role":"admin","action":"question:read","allow":true,"via":"libItems"},

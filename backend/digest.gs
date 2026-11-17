@@ -968,10 +968,6 @@ function digestMail_(emails, o) {
         o.put(log, row, m, Object.assign(v, { status: 'preview' }));
         return { previewed: true };
       }
-      if (digestQuota_() <= o.reserve) {
-        o.put(log, row, m, Object.assign(v, { status: 'held', note: o.heldNote }));
-        return { held: true };
-      }
       const r = o.put(log, row, m, Object.assign(v, { status: 'sending' }));
       /* FLUSHED BEFORE THE LOCK GOES, so the next run to take it reads the claim off the sheet. */
       try { SpreadsheetApp.flush(); } catch (err) { /* flush is an early write; Apps Script writes at the end anyway */ }
@@ -984,7 +980,15 @@ function digestMail_(emails, o) {
     try {
       /* `firstNamesOnly`: the net in `mailOut_` leaves a child's whole name as the first name alone here,
          never "First (@handle)" — a parent's email carries no username (the note over `digestRender_`). */
-      mailOut_({ to: m.to, subject: m.subject, body: m.text, htmlBody: m.html, firstNamesOnly: true, kind: 'weekly' });
+      /* THE PARENT'S OWN ROW, so `deliver_` asks their prefs again at the moment it sends. */
+      const d = deliver_(findPerson('', S(m.parent_id)), 'weekly',
+        { subject: m.subject, body: m.text, htmlBody: m.html, firstNamesOnly: true, reserve: o.reserve, name: null });
+      if (d.why === 'quota') {
+        try { setCells(claim.log, claim.row, { status: 'held', note: o.heldNote }); } catch (e2) { /* the next run reads 'sending' and leaves it, as for a crash */ }
+        out.held++;
+        return;
+      }
+      if (!d.email) throw new Error(d.error || 'not sent: ' + d.why);
     } catch (err) {
       try { setCells(claim.log, claim.row, { status: 'failed', note: S(err && err.message || err).slice(0, 200) }); } catch (e2) { /* a failed courtesy note must not undo the work already done */ }
       out.failed++;
@@ -1019,9 +1023,6 @@ function digestLogFind_(log, weekStart, learnerId, parentId) {
 function digestLogPut_(log, row, weekStart, learnerId, parentId, values) {
   if (row) { setCells(log, row, values); return row; }
   return addRow(log, Object.assign({ week_of: "'" + weekStart, learner_id: S(learnerId), parent_id: S(parentId) }, values));
-}
-function digestQuota_() {
-  try { return Number(MailApp.getRemainingDailyQuota()) || 0; } catch (err) { return 0; }
 }
 
 
@@ -1180,7 +1181,7 @@ function checkSundayEmail() {
         + 'WARNING: the next admin page load re-books it at ' + cellHour + ':00 (weekly_digest_hour) and the hour is recorded.'
       : 'nothing is booked yet; the next admin page load books ' + cellHour + ':00 (weekly_digest_hour on the config tab).'));
 
-  const quota = digestQuota_();
+  const quota = mailQuota_(true);
   say('MAIL: ' + plural(quota, 'email') + ' left in today’s quota; the Sunday run keeps ' + reserve + ' back for PIN resets and notices.');
 
   /* THE LIBRARY, AS THE RUN FETCHES IT — the one part of this nobody can see from the editor, and what

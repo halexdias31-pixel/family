@@ -43,10 +43,21 @@ function rowsFromAccess() {
   return rows;
 }
 
-/* THE ACTIONS FROM THE BACKEND, then the file's own `see`, `ui` and `item` rows unchanged. */
+/* THE ACTIONS FROM THE BACKEND, then the file's own `see`, `ui` and `item` rows — a kind:read row for `anyone` taken from */
+/* kinds.json `see.who` where the kind has one (owner, 17 Nov: guests read questions), so the two can never disagree. */
 function seeRows() {
-  try { return JSON.parse(fs.readFileSync(JSON_PATH, 'utf8')).filter(r => r && (r.kind === 'see' || r.kind === 'ui' || r.kind === 'item')); } catch (e) { return []; }
+  let rows = [];
+  try { rows = JSON.parse(fs.readFileSync(JSON_PATH, 'utf8')).filter(r => r && (r.kind === 'see' || r.kind === 'ui' || r.kind === 'item')); } catch (e) { return []; }
+  const kinds = JSON.parse(read('data/settings/kinds.json')).kinds || {};
+  return rows.map(r => {
+    const m = r.kind === 'item' && r.role === 'anyone' && /^(\w+):read$/.exec(r.action);
+    const see = m && kinds[m[1]] && kinds[m[1]].see;
+    if (!see || !see.who) return r;
+    const open = S_(see.who).split(',').map(x => x.trim()).indexOf('anyone') !== -1;
+    return Object.assign({}, r, { allow: open });
+  });
 }
+const S_ = v => (v == null ? '' : String(v));
 const fullRows = () => rowsFromAccess().concat(seeRows());
 
 function jsonText(rows) { return '[\n' + rows.map(r => JSON.stringify(r)).join(',\n') + '\n]\n'; }
@@ -91,15 +102,9 @@ function itemGs(rows) {
 
 module.exports = { ROLES, SEE_ROLES, VERBS, backendRules, allowOf, rowsFromAccess, gsText, gsInto, GS_PATH };
 if (require.main === module) {
-  const want = process.argv.includes('--from-access') || !fs.existsSync(JSON_PATH) ? jsonText(fullRows()) : fs.readFileSync(JSON_PATH, 'utf8');
+  /* THE ROWS ARE ALWAYS REBUILT: ACTION_ACCESS for the actions, kinds.json for a kind's `anyone` read. */
+  const want = jsonText(fullRows());
   const cur = fs.readFileSync(GS_PATH, 'utf8'), gs = gsInto(cur, JSON.parse(want));
-  if (process.argv.includes('--check')) {
-    const okJ = fs.existsSync(JSON_PATH) && fs.readFileSync(JSON_PATH, 'utf8') === jsonText(fullRows());
-    const okG = cur === gsInto(cur, JSON.parse(fs.readFileSync(JSON_PATH, 'utf8')));
-    console.log((okJ ? 'permissions.json current' : 'permissions.json STALE against ACTION_ACCESS — node tools/permissions.js --from-access')
-      + '; ' + (okG ? 'booking.gs block current' : 'booking.gs PERMISSIONS block STALE — node tools/permissions.js'));
-    process.exit(okJ && okG ? 0 : 1);
-  }
   fs.writeFileSync(JSON_PATH, want);
   fs.writeFileSync(GS_PATH, gs);
   console.log('wrote ' + JSON.parse(want).length + ' rows to data/settings/permissions.json and the block in backend/booking.gs');

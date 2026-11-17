@@ -1,7 +1,7 @@
 /* @family. — 30_booking.gs (4 of 8) THE BOOKING MACHINE, and everything that decides who is in a session. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const BOOKING_VERSION = "2026-11-17-final-1";
+const BOOKING_VERSION = "2026-11-17-deliver-1";
 
 
 /* WHEN THE BUSINESS ACTUALLY OPERATES within an interval. § */
@@ -971,7 +971,7 @@ function authWrong_(t, r) {
   const tos = authGrownUps_(r);
   if (!tos.length) return;
   try {
-    mailOut_({ to: tos.join(','), name: BRAND_NAME, subject: text_('mail-attempts-subject'),
+    deliverOrThrow_(null, 'security', { to: tos.join(','), subject: text_('mail-attempts-subject'),
       body: text_('mail-attempts-kid-body', { said: said, first: S(r.first_name) || 'them' }) });
   } catch (err) { /* a failed courtesy note must not undo the work already done */ }
 }
@@ -1185,7 +1185,7 @@ function authMoveFind_(key) {
 /* THE LINK TO THE NEW ADDRESS. It names nobody: the reader may be a stranger whose address was typed by
    mistake, and the account's name and handle are not theirs to be told. Throws as `MailApp` does. */
 function moveMail_(to, key) {
-  mailOut_({ to: S(to), name: BRAND_NAME,
+  deliverOrThrow_(null, 'access', { to: S(to),
     subject: text_('mail-move-subject', { brand: BRAND_NAME }),
     body: text_('mail-move-body', { brand: BRAND_NAME, link: SITE_URL + '?verify=' + key, days: AUTH.MOVE_DAYS })
         + '\n\n' + text_('mail-sign-off', { brand: BRAND_NAME }) });
@@ -1349,7 +1349,7 @@ const ITEM_PERMISSIONS = {
   'profile:read': { member: [], child: [], admin: [] },
   'profile:save': { member: [], child: [], admin: [] },
   'project:save': { admin: [] },
-  'question:read': { member: [], child: [], admin: [] },
+  'question:read': { anyone: [], member: [], child: [], admin: [] },
   'question:save': { admin: [] },
   'spotlight:save': { admin: [] },
   'todo:save': { member: [], child: [], admin: [] },

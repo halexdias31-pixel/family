@@ -154,7 +154,7 @@ function postMyAnswers_(body, action, began) {
 
 /* THE LIBRARY READ ITSELF, as a reply object: libItems and readItems both answer through it, so their steps are one. */
 function libItemsReply_(body) {
-  /* A GUEST (owner, 15 Nov) reads by the device she says she is; a question never reaches here for her. */
+  /* A GUEST (owner, 15 Nov) reads by the device she says she is — questions too (owner, 17 Nov: kinds.json `see.who: anyone`). */
   const guest = S(body.guest).replace(/[^A-Za-z0-9-]/g, '').slice(0, 40);
   const me = findPerson('', S(body.personId)) || (guest ? { person_id: 'guest:' + guest, roles: '' } : null);
   if (!me || !S(me.person_id)) return { error: 'Sign in first.' };
