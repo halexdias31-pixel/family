@@ -8804,7 +8804,7 @@ function askCardRun_(id, spec, xs, o, get, n) {
 
 /* ---------- A FORM ASKED IN FIND, ONE FIELD A STEP (`ask: "find"` in kinds.json; owner, 16 Nov: one form for any item) ---------- */
 /* A choice is its tags, a text field the blank tag typed on, a PIN the ten digit tags; each answer is a chip whose tap asks it (and every field after it) again. */
-/* A `many` field ticks on a tap, then asks "and" (another) or "." (done); `need` is how many before "." moves on; `given` is answered by the site, still a chip. */
+/* A `many` field ticks on a tap, then shows "and" (another) and "." (done) as tags with the answers; `need` is how many before "." moves on; `given` is answered by the site, still a chip. */
 /* The answers live in memory (`ASK[id]`), never the URL or a chip's words; a form with `draft: "ask"` keeps every answer but a PIN as a draft (data.js). */
 /* A FORM'S OWN CODE (`FORM_ASK_[id]`) IS ONLY ITS SOURCES: where its answers live (`state`: {v, done, more}), whether a field is asked now (`asks`), */
 /* a field's tags (`options`: [{v, text, on, off, note}]), its question and chip words (`label`, `said`), why an answer is refused (`off`), */
@@ -8866,8 +8866,8 @@ function askMenu_(id, o) {
   const spec = FORM_SPECS.forms[id] || {}, x = askAt_(id), h = askHook_(id);
   if (!x) return spec.send ? [{ type: 'choices', ask: o.done || '', rows: [{ look: 'sign-more', options: [{ text: spec.send.say ? text_(spec.send.say) : spec.send.t, act: 'ask-send', data: { form: id } }] }] }] : null;
   /* AFTER EACH CHOICE ON A SEVERAL-ANSWER FIELD: exactly two tags, "and" (another of this) and "." (done, move on). */
-  if (askOf_(id).more === x.f) return [{ type: 'choices', ask: askSaid_(id, x) || '', rows: [{ look: askLook_(id) + ' book-more', options: [
-    { text: 'and', act: 'ask-and', data: { form: id, f: x.f }, label: 'And another' }, { text: '.', act: 'ask-next', data: { form: id, f: x.f }, label: 'Done, move on' }] }] }];
+  /* THE TWO TAGS ARE AT THE TOP WITH THE ANSWERS (`askChips_`; owner, 17 Nov), so the menu only says what is ticked. */
+  if (askOf_(id).more === x.f) return [{ type: 'choices', ask: askSaid_(id, x) || '', rows: [] }];
   const pin = x.type === 'pin' ? askOf_(id).pin.length : 0, tags = askTags_(id, x);
   /* A FORM WHOSE FIELDS MAY STAY EMPTY (`skip`) offers Skip beside each. */
   const skip = spec.skip ? [{ text: 'Skip', act: 'ask-skip', data: { form: id, f: x.f }, label: 'Leave this empty for now' }] : [];
@@ -8879,7 +8879,14 @@ function askChips_(id, look) {
   return askFields_(id).filter(x => askPassed_(id, x)).map(x => {
     const h = askHook_(id), text = askSaid_(id, x) || 'None', label = 'Change ' + (x.label || (h.label && h.label(x)) || x.ph || x.f);
     return { base: 'chip', look: look || 'sm ask-chip', text: text, act: 'ask-back', data: { form: id, f: x.f }, label: label, x: { label: label }, colour: false };
-  });
+  }).concat(askMoreChips_(id, look));
+}
+/* AFTER EACH CHOICE ON A SEVERAL-ANSWER FIELD: exactly two tags, "and" (another of this) and "." (done, move on), at the end of the answers' row. */
+function askMoreChips_(id, look) {
+  const x = askAt_(id);
+  if (!x || askOf_(id).more !== x.f) return [];
+  const tag = (text, act, label) => ({ base: 'chip', look: (look || 'sm ask-chip') + ' ask-more', text: text, act: act, data: { form: id, f: x.f }, label: label, colour: false });
+  return [tag('and', 'ask-and', 'And another'), tag('.', 'ask-next', 'Done, move on')];
 }
 /* A FIELD ANSWERED, and on to the next. */
 function askSet_(id, f, v) {
