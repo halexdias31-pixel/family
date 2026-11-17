@@ -2022,7 +2022,9 @@
      "subjects",
      "target_grade",
      "needs",
-     "notes"
+     "business",
+      "ventures",
+      "notes"
     ],
     "ages": {
      "school_year": "september",
