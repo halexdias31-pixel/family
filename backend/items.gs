@@ -65,11 +65,7 @@ function itemShape_(spec, data, v) {
   return out;
 }
 
-/* ---------- THE STORE: each kind's own tab ('tabs'), or the one items tab ('items'). Rows come back as { id, kind, data }. */
-function itemTabRead_(tab) {
-  if (!WHERE[tab]) WHERE[tab] = { file: 'ledger' };
-  return read(tab);
-}
+/* ---------- THE STORE: `read` hands back a moved kind from the items/events tabs, a kept one (library, facts, notes) from its own tab. */
 function itemIdOf_(sheet, row) {
   const parts = [].concat(sheet.id || []).map(c => S(row[c]));
   return parts.some(p => p === '') ? '' : parts.join(':');
@@ -88,7 +84,7 @@ function itemRows_(kind) {
   const spec = itemKind_(kind), sh = spec.sheet;
   const home = sh.via ? itemKind_(sh.via).sheet : sh, homeKind = sh.via || kind;
   /* THE ONE STORE (core.gs `read`): a moved kind's rows come from the items tab, the rest from their own tab, shaped alike. */
-  return itemTabRead_(home.tab).rows.map(r => {
+  return read(home.tab).rows.map(r => {
     const id = itemIdOf_(home, r);
     if (!id || itemKindOf_(homeKind, home, r) !== kind) return null;
     const data = home.blob ? (itemBlob_(r, 'content_') || {}) : Object.assign({}, r);
@@ -124,7 +120,7 @@ function itemWrite_(body, v) {
   if (!given || typeof given !== 'object' || Array.isArray(given)) return { error: 'Send the item as an object.', why: 'item' };
   if (!itemMayWrite_(kind, spec, v)) return { error: v.row ? 'Not authorised.' : 'Sign in first.', why: v.row ? 'kind' : 'signed-out' };
   const home = spec.sheet.via ? itemKind_(spec.sheet.via).sheet : spec.sheet;
-  const t = itemTabRead_(home.tab);
+  const t = read(home.tab);
   const id = itemIdOf_(home, given);
   if (!id) return { error: 'The item needs its ' + [].concat(home.id).join(' and ') + '.', why: 'id' };
   const have = itemRows_(kind).find(it => it.id === id);
@@ -157,7 +153,7 @@ function itemEvent_(body, v) {
     row[s.at] = ev.at; row[s.who] = ev.who;
     if (s.what) row[s.what] = ev.what;
     if (s.item) row[s.item] = ev.item;
-    addRow(itemTabRead_(s.tab), row);
+    addRow(read(s.tab), row);
   }
   return { ok: true, kind, at: ev.at };
 }

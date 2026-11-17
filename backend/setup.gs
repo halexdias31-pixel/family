@@ -355,123 +355,6 @@ function makeBrandAccount(pin) {
   return out;
 }
 
-/* EVERY OLD LIKE BECOMES A 👍, keeping the day it was pressed — the `post_likes` rows handed in by `tidyOldTabs_`, which then deletes that tab (379). */
-function migrateLikes_(likeRows) {
-  const t = read(TAB.post_reactions);
-  if (!t.sheet) throw new Error('the post_reactions tab is missing — open the site once as an admin');
-
-  const already = {};
-  t.rows.forEach(r => { already[S(r.post_id) + '|' + S(r.person_id)] = true; });
-
-  let made = 0, had = 0, skipped = 0;
-  (likeRows || []).forEach(l => {
-    const post = S(l.post_id), who = S(l.person_id);
-    if (!post || !who) { skipped++; return; }
-    if (already[post + '|' + who]) { had++; return; }
-    addRow(t, {
-      reaction_id: 'RE' + Date.now() + '-' + made,
-      post_id: post, person_id: who, emoji: '👍',
-      /* The date it was LIKED, not today. A migration that stamps everything with the hour it ran
-         destroys the only interesting thing about the rows it is moving. */
-      reacted_on: l.liked_on || new Date(),
-    });
-    already[post + '|' + who] = true;
-    made++;
-  });
-
-  clearCache();
-  return { turnedIntoThumbs: made, alreadyReacted: had, unusable: skipped };
-}
-
-/* ---------- THE OLD TABS AND COLUMNS, GONE ONCE, WITH A WHOLE COPY KEPT FIRST (379) ---------- */
-/* Tabs nothing reads or writes any more. `attempts` goes whatever it holds (submissions replaced it, 308); the rest only while they hold no row a person typed. */
-const TIDY_TABS = { attempts: 'always', post_likes: 'after-likes', widgets: 'if-empty', orders: 'if-empty' };
-/* Columns nothing reads, each removed only while every cell under its header is blank. */
-const TIDY_COLUMNS = {
-  people: ['account_number', 'sort_code'],
-  terms: ['relative_name', 'weeks_left'],
-  jobs: ['client_1', 'client_1_status', 'client_2', 'client_2_status', 'client_3', 'client_3_status',
-         'client_4', 'client_4_status', 'tutor_a', 'tutor_a_status', 'tutor_b', 'tutor_b_status',
-         'tutor_c', 'tutor_c_status'],
-};
-/* AND A HEADER WRITTEN TWICE: `read` keeps the last and `setCell` writes the first, so a value typed in one is never seen in the other. The later copy goes, if blank. */
-const TIDY_TWICE = { venues: ['focus'] };
-
-/* A tab's header and rows straight off the sheet — these tabs are out of WHERE, so `read` cannot find them. */
-function tidyRows_(sh) {
-  const n = sh.getLastRow(), c = sh.getLastColumn();
-  if (!n || !c) return { headers: [], rows: [], cells: [] };
-  const v = sh.getRange(1, 1, n, c).getValues();
-  const headers = v[0].map(h => String(h).trim());
-  const cells = v.slice(1).filter(r => r.some(x => String(x == null ? '' : x).trim() !== ''));
-  const rows = cells.map(r => { const o = {}; headers.forEach((h, i) => { if (h) o[h] = r[i]; }); return o; });
-  return { headers: headers, rows: rows, cells: cells };
-}
-
-/* The whole file copied before anything goes; its link is kept (TIDY_BACKUP_<file>) so a retry reuses it rather than making a second. */
-function tidyBackup_(key, ss, props) {
-  const had = S(props.getProperty('TIDY_BACKUP_' + key));
-  if (had) return had;
-  const day = Utilities.formatDate(new Date(), DIGEST_TZ, 'yyyy-MM-dd');
-  const copy = ss.copy(ss.getName() + ' — backup before tidy ' + day);
-  const url = copy.getUrl();
-  if (!url) throw new Error('the backup copy of ' + ss.getName() + ' has no address, so nothing was removed');
-  props.setProperty('TIDY_BACKUP_' + key, url);
-  return url;
-}
-
-function tidyOldTabs_() {
-  const props = PropertiesService.getScriptProperties();
-  const out = { backups: [], removedTabs: [], keptTabs: [], removedColumns: [], keptColumns: [] };
-  Object.keys(FILES).forEach(key => {
-    const ss = SpreadsheetApp.openById(FILES[key]);
-    /* A BACKUP THAT FAILS THROWS HERE, before any tab of this file is touched. */
-    out.backups.push(tidyBackup_(key, ss, props));
-
-    Object.keys(TIDY_TABS).forEach(name => {
-      const sh = ss.getSheetByName(name);
-      if (!sh) return;
-      const got = tidyRows_(sh);
-      const rule = TIDY_TABS[name];
-      if (rule === 'if-empty' && got.cells.length) {
-        out.keptTabs.push(name + ' (' + got.cells.length + (got.cells.length === 1 ? ' row' : ' rows') + ' typed in it)');
-        return;
-      }
-      if (rule === 'after-likes') out.likes = migrateLikes_(got.rows);
-      ss.deleteSheet(sh);
-      out.removedTabs.push(name + (got.cells.length ? ' (' + got.cells.length + (got.cells.length === 1 ? ' row' : ' rows') + ', in the backup)' : ''));
-    });
-
-    const dropCols = (name, pick) => {
-      const sh = ss.getSheetByName(name);
-      if (!sh) return;
-      const got = tidyRows_(sh);
-      const idx = pick(got.headers).sort((a, b) => b - a);
-      idx.forEach(i => {
-        const label = name + '.' + got.headers[i];
-        if (got.cells.some(r => String(r[i] == null ? '' : r[i]).trim() !== '')) { out.keptColumns.push(label + ' (has values)'); return; }
-        sh.deleteColumn(i + 1);
-        out.removedColumns.push(label);
-      });
-    };
-    Object.keys(TIDY_COLUMNS).forEach(name => dropCols(name,
-      h => h.map((x, i) => (TIDY_COLUMNS[name].indexOf(x) !== -1 ? i : -1)).filter(i => i >= 0)));
-    Object.keys(TIDY_TWICE).forEach(name => dropCols(name,
-      h => h.map((x, i) => (TIDY_TWICE[name].indexOf(x) !== -1 && h.indexOf(x) !== i ? i : -1)).filter(i => i >= 0)));
-  });
-  clearCache();
-  /* WHAT THE SETUP CARD SAYS (361): the backup's link and every tab and column that went. */
-  props.setProperty('SAID_tidy-old-tabs', JSON.stringify({
-    link: out.backups[0] || '',
-    said: 'Backup copy made first. Removed tabs: ' + (out.removedTabs.join(', ') || 'none')
-      + '. Removed columns: ' + (out.removedColumns.join(', ') || 'none')
-      + (out.keptTabs.length || out.keptColumns.length ? '. Kept, because they hold something: '
-        + out.keptTabs.concat(out.keptColumns).join(', ') : '') + '.',
-  }).slice(0, 8000));
-  Logger.log('tidy-old-tabs: ' + JSON.stringify(out));
-  return out;
-}
-
 /* ---------- FOUR PAPER JOBS WERE HERE, AND CLAUDE.md ALREADY SAID NOT TO RUN THEM § */
 
 /* WHEN EASTER IS, and it is the only date on this tab that needs arithmetic rather than a rule. § */
@@ -906,7 +789,7 @@ function dpTerms_(add, deep) {
 /* `checkEverything`'s TABS section: each tab found, or MISSING. */
 function checkTabs_(say) {
 say('TABS');
-Object.keys(TAB).forEach(k => {
+Object.keys(TAB).filter(k => !storeMoved_(TAB[k])).forEach(k => {
   /* THROUGH `sheetFor_` LIKE THE REST — otherwise the four subjects tabs and anything renamed
      are reported MISSING by the very function somebody runs to find out what is missing. */
   const at = sheetFor_(k);
@@ -1190,6 +1073,7 @@ function authoriseDrive() {
 function schemaGaps() {
   const gaps = {};
   Object.keys(SCHEMA).forEach(name => {
+    if (storeMoved_(name)) return;            /* a moved kind's columns are its marker row's (ensureSchema_ widens it) */
     /* ---------- THE SAME LOOKUP AS EVERYWHERE ELSE, FOR THE THIRD TIME § */
     const at = sheetFor_(name);
     if (!at.id) return;                       /* a file that is not configured is not a gap */
@@ -1358,28 +1242,5 @@ function setupStatus_() {
     out.triggers = Object.keys(n).sort().map(fn => ({ fn: fn, times: n[fn], when: setupTriggerWhen_(fn, hour) }));
   } catch (err) { out.triggersError = String((err && err.message) || err); }
   out.sunday = digestSetupSays_(cfg, new Date());
-  return out;
-}
-
-/* WHERE IS EVERY TAB, AND IS IT THERE? § */
-function checkTabs() {
-  const out = { ok: [], EMPTY: [], MISSING: [] };
-  Object.keys(SCHEMA).forEach(name => {
-    const at = sheetFor_(name);
-    const label = name + (at.away ? '  (' + at.away + ' → ' + at.names.join(' / ') + ')' : '');
-    if (!at.id) { out.MISSING.push(label + '  — no file id'); return; }
-    let sh = null;
-    /* THE SAME FAULT AS `ensureSchema_` ABOVE — `at.tab` is undefined, so this found no tab for any
-       name and reported the whole database missing. Same fix: the names `read` would try. */
-    try {
-      const ss2 = SpreadsheetApp.openById(at.id);
-      for (let i = 0; i < at.names.length && !sh; i++) sh = ss2.getSheetByName(at.names[i]);
-    }
-    catch (err) { out.MISSING.push(label + '  — cannot open that file'); return; }
-    if (!sh) { out.MISSING.push(label + '  — no such tab'); return; }
-    const n = Math.max(0, sh.getLastRow() - 1);
-    (n ? out.ok : out.EMPTY).push(label + '  — ' + n + ' rows');
-  });
-  Logger.log(JSON.stringify(out, null, 2));
   return out;
 }

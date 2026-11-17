@@ -27,45 +27,19 @@ const FILES = { get ledger() { return ledgerId_(); } };
 /* ---------- WHICH FILE EACH TAB IS IN § */
 /* MOVED TABS ARE NOT HERE (17 Nov): a kind in kinds.json ledger.moved is read and written in the items or events tab only (core.gs `read`). */
 const WHERE = {
-  /* ---- the app writes these ---- */
-  /* A STUDENT'S SCANNED PAGES (work on file): the Ledger, because the app writes it; the pages themselves are in Drive. */
   /* WHAT THE OWNER STATES ABOUT A PERSON (kinds.json person.facts): one row a fact. */
   facts:          { file: 'ledger' },
-  /* ONE TAB OF ITEMS AND ONE OF EVENTS (owner, 16 Nov; kinds.json `ledger`), filled by tools/ledger-migrate.js; read for a kind once kinds.json `ledger.moved` lists it (core.gs `read`). */
+  /* THE STORE: one tab of items and one of events (kinds.json `ledger`); every moved kind lives here (core.gs `read`). */
   items:          { file: 'ledger' }, events_log: { file: 'ledger' },
-  /* WHAT EACH LEARNER DREW, so it follows them to another device — see SCHEMA.answers. The Ledger
-     beside `favourites` and `submissions`, for their reason: it is a record OF a learner, and the app
-     writes it. */
-  /* EVERY ANSWER A LEARNER SENT, AND WHAT IT WAS MARKED — one row per press, never rewritten. § */
-  /* WHAT THE WEEKLY PARENT EMAIL SENT, OR WOULD HAVE — see SCHEMA.digest_log. The Ledger beside
-     `submissions`, which is what it reports on, and because the app writes it. */
-  /* A QUESTION A LEARNER SAYS IS WRONG OR BROKEN (395) — the Ledger, because the app writes it. Admin-only to read. */
-  /* AN APPLICATION TO TEACH (400) — the Ledger, because the app writes it. Admin-only to read; the applicant sees only their own status. */
-  /* AN ADMIN'S NOTE FOR CLAUDE ON A WIDGET OR CARD (484) — the Ledger, because the app writes it. Admin-only to read. */
+  /* AN ADMIN'S NOTE FOR CLAUDE ON A WIDGET OR CARD (484) — written directly by sessions too. Admin-only to read. */
   claude_notes:   { file: 'ledger' },
-  /* A SCREEN THAT THREW ON SOMEBODY'S PHONE — the Ledger, because the app writes it. Admin-only to read; no learner data in a row. */
-  /* WHO CHANGED SOMEBODY ELSE'S SETTINGS (the admin's lens) — the Ledger, because the app writes it. Admin-only; ids, never names. */
-  /* A PERSON'S FAVOURITE LINKS (509) — the Ledger, because the app writes it. doGet sends each viewer their own rows alone. */
-  /* A PHONE'S NOTIFICATION ADDRESS (492) — the Ledger, because the app writes it. Never sent by doGet. */
-  /* WRITTEN BY AN ADMIN FROM THE PHONE, so it is the Ledger rather than a settings file: § */
-  /* ---------- THE FILMS, AND WHY THEY ARE IN `Ledger` RATHER THAN IN THE REPOSITORY § */
-  /* REELS AND VIDEOS AN ADMIN ADDED FROM THE PHONE (404) — merged over the repository's lists by the site. */
-
-  /* ---- you write these, the app reads them ---- */
-  /* AN ADMIN'S DISCOUNT CODES (docs/history/353) — the ledger, beside `jobs`, because `used` is counted up
-     by `createJob` as a code is spent and the job that spent it is in the same file. */
-
-  /* ---- the library's private half (397): the words, answers and figures, filled by `library-to-ledger` ---- */
+  /* THE LIBRARY'S PRIVATE HALF (397): the words, answers and figures, filled by `library-to-ledger`; kept on their own tabs (kinds.json ledger.kept). */
   lib_questions:  { file: 'ledger' },
   lib_content:    { file: 'ledger' },
   lib_practicals: { file: 'ledger' },
   lib_projects:   { file: 'ledger' },
   /* THE READING SOURCES A PAPER'S INSERT PRINTS (458): copyrighted, so the extract is here and never in the repository. */
   lib_inserts:    { file: 'ledger' },
-  /* WHO OPENED HOW MANY TODAY — one row per person per London day; the daily cap is counted here. */
-
-  /* ---- subject content, edited in bulk ---- */
-  /* NOTHING IS ROUTED HERE ANY MORE, and the section is kept so that is visible rather than merely absent. § */
 };
 /* WHO GETS TOLD when something needs doing by hand. § */
 const ADMIN_NAME = "@family.";
@@ -107,14 +81,14 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-11-17-store-13";
+const BACKEND_VERSION = "2026-11-17-final-1";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
+/* EVERY TAB NAME CODE READS BY. A kind in kinds.json ledger.moved is read through the items/events store
+   (core.gs `read`), so these stay as names; only ledger.kept are real tabs (WHERE). */
 const TAB = {
   people: 'people', qualifications: 'qualifications', library_cards: 'library_cards',
   venues: 'venues', jobs: 'jobs', events: 'events', terms: 'terms',
-  /* `resources` WAS HERE, then `questions` was. Both are gone: the documents and the questions
-     inside them are one table, and that table is `data/questions.json` in this repository now. */
   shop: 'shop', pricing: 'pricing',
   config: 'config', options: 'options', trips: 'trips', rooms: 'rooms', invites: 'invites',
   promo_codes: 'promo_codes',
@@ -130,10 +104,6 @@ const TAB = {
   receipts: 'receipts',
   /* The calendar of festivals, as rules rather than dates — see the schema. */
   holidays: 'holidays',
-  /* When a particular message is worth putting out — see SCHEMA.campaigns. */
-  /* The words those campaigns say, one line per row — see SCHEMA.copy. */
-  /* What the search funnel asks, in what order, and what it calls things — see SCHEMA.facets. */
-  /* What the funnel's first two questions ANSWER — see SCHEMA.kinds. */
   /* Who starred what — see SCHEMA.favourites. */
   favourites: 'favourites',
   /* What each learner drew on a question — see SCHEMA.answers. */
@@ -158,10 +128,6 @@ const TAB = {
   fav_links: 'fav_links',
   /* What the BUSINESS has chosen to put in front of everybody — see SCHEMA.spotlight. */
   spotlight: 'spotlight',
-  /* `questions`, `boxers` AND `fights` WERE HERE. All three tabs are gone — see the notes where
-     their SCHEMA entries used to be. */
-  /* Which loading splashes are in the pool — see SCHEMA.splashes. */
-  /* `cheatsheet` WAS HERE. Gone the same way — see the note where SCHEMA.cheatsheet used to be. */
   /* What the Reels column shows. One row is one slide: a subject, a heading, a line or two, and a
      few words to find a photograph by — see SCHEMA.facts. */
   films: 'films',

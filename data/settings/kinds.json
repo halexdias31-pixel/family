@@ -2826,7 +2826,7 @@
   }
  },
  "ledger": {
-  "say": "THE ITEMS AND EVENTS TABS (owner, 16 Nov, go extreme): every Ledger tab is one kind, a card kind's `sheet` above or a storage kind in `stored`; `to` is items unless it says events. An item row is {id, kind, data_1..data_6}: data_1 the row as JSON, or a blob's six chunks. An event row is {at, who, kind, what, item, data}. `id` is a column, or columns joined by ':'. `owner` columns say whose an item is (self and family in `see.who`; staff is a tutor). A non-admin gets only a kind's `sheet.show` columns when it has them, never a `never` column, never a `see.hide.prices` column as a child, never a `see.hide.admin` one. Moved by tools/ledger-migrate.js; read, written and logged by the one action `item` (backend/items.gs). A tab with no kind is in `unmapped`.",
+  "say": "THE ITEMS AND EVENTS TABS (owner, 16 Nov, go extreme): every Ledger tab is one kind, a card kind's `sheet` above or a storage kind in `stored`; `to` is items unless it says events. An item row is {id, kind, data_1..data_6}: data_1 the row as JSON, or a blob's six chunks. An event row is {at, who, kind, what, item, data}. `id` is a column, or columns joined by ':'. `owner` columns say whose an item is (self and family in `see.who`; staff is a tutor). A non-admin gets only a kind's `sheet.show` columns when it has them, never a `never` column, never a `see.hide.prices` column as a child, never a `see.hide.admin` one. Read, written and logged by the one action `item` (backend/items.gs); every other reader asks core.gs `read(tab)`, which routes a moved kind here. A tab with no kind is in `unmapped`.",
   "items": {
    "tab": "items",
    "columns": [
@@ -2910,7 +2910,7 @@
    "library_card",
    "client_error"
   ],
-  "movedSay": "THE KINDS NOW KEPT IN THE ITEMS TAB (owner, 17 Nov), one stage at a time: core.gs read/setCell/addRow route a listed kind to the items tab, and the old tab stays as a read-only fallback until the items tab holds that kind. Migrate a tab with tools/ledger-migrate.js right after the deploy that lists it.",
+  "movedSay": "THE KINDS KEPT IN THE ITEMS (or events) TAB (owner, 17 Nov): core.gs read/setCell/addRow route a listed kind there; each has a `~moved` marker row holding its columns. Their old tabs are locked and never read. A new kind is listed here and starts with SCHEMA's columns.",
   "kept": {
    "say": "KEPT ON THEIR OWN TABS, ON PURPOSE (17 Nov): the library is 39,000 rows of chunked JSON read a few rows at a time by row number (library.gs libIndex_/libContent_). In the items tab, every request that reads any moved kind would load all of it; on their own tabs they are already one item a row ({id, checksum, parts, content_1..6}), described here by each kind`s sheet. facts and claude_notes are written directly by sessions.",
    "tabs": [
