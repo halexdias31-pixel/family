@@ -18,5 +18,27 @@
   "titles": {"head of boxing": "Head of Boxing"}
  },
  "submissionsPerPost": 25,
- "answerTextMax": 20000
+ "answerTextMax": 20000,
+ "calendar": {
+  "_about": "THE SCHOOL CALENDAR (owner, 17 Nov): each break in its order through the year, the name the site says, the name the terms tab uses, its kind (`half` or `holiday`) and its usual London start (MM-DD); the exams with their config key and usual start. tdYear_ dates the breaks by rule; config `holiday_starts` and `exam_*_start` override the starts.",
+  "breaks": [
+   {"name": "October half-term", "sheet": "October Half Term", "kind": "half", "starts": "10-26"},
+   {"name": "Christmas holidays", "sheet": "Christmas Holiday", "kind": "holiday", "starts": "12-19"},
+   {"name": "February half-term", "sheet": "February Half Term", "kind": "half", "starts": "02-13"},
+   {"name": "Easter holidays", "sheet": "Easter Holiday", "kind": "holiday", "starts": "03-27"},
+   {"name": "May half-term", "sheet": "May Half Term", "kind": "half", "starts": "05-22"},
+   {"name": "Summer holidays", "sheet": "Summer Holiday", "kind": "holiday", "starts": "07-22"}
+  ],
+  "kinds": {
+   "term": {"say": "term", "words": []},
+   "half-term": {"say": "half term", "also": ["half term"], "words": ["half\\s*term"]},
+   "holiday": {"say": "holiday", "words": ["holiday", "christmas", "easter", "summer break", "break"]}
+  },
+  "exams": [
+   {"id": "sats", "name": "SATs", "key": "exam_sats_start", "at": "05-11"},
+   {"id": "elevenplus", "name": "11+", "key": "exam_11plus_start", "at": "09-12"},
+   {"id": "gcse", "name": "GCSE exams", "key": "exam_gcse_start", "at": "05-11"},
+   {"id": "alevel", "name": "A-level exams", "key": "exam_alevel_start", "at": "05-11"}
+  ]
+ }
 }

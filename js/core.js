@@ -1,6 +1,6 @@
 /* @family. — core.js ONE FILE, SPLIT. § */
 /* SHARED:BEGIN — data/settings/settings.json, written by `node tools/cards-gen.js --write`; edit the json, never this. */
-const SHARED_SETTINGS = {"days":[["m","Monday"],["tu","Tuesday"],["w","Wednesday"],["th","Thursday"],["f","Friday"],["sa","Saturday"],["su","Sunday"]],"hours":[9,10,11,12,13,14,15,16,17,18,19,20],"roles":{"ids":{"admin":{"label":"Admin","aliases":["administrator"],"rank":"admin","tier":"admin","self":false},"tutor":{"label":"Tutor","aliases":["teacher"],"rank":"staff","tier":"member","self":true,"pending":true},"client":{"label":"Client","aliases":["parent","guardian"],"app":"parent","rank":"client","tier":"member","self":true},"student":{"label":"Student","aliases":["kid","child","pupil"],"app":"kid","rank":"student","tier":"child","self":true},"contact":{"label":"Contact","aliases":[],"rank":"contact","tier":"anyone","self":false,"signIn":false}},"default":"client","guest":{"rank":"out","tier":"anyone"},"ranks":["contact","student","client","staff","admin"],"tiers":["anyone","member","child","admin"],"titles":{"head of boxing":"Head of Boxing"}},"submissionsPerPost":25,"answerTextMax":20000};
+const SHARED_SETTINGS = {"days":[["m","Monday"],["tu","Tuesday"],["w","Wednesday"],["th","Thursday"],["f","Friday"],["sa","Saturday"],["su","Sunday"]],"hours":[9,10,11,12,13,14,15,16,17,18,19,20],"roles":{"ids":{"admin":{"label":"Admin","aliases":["administrator"],"rank":"admin","tier":"admin","self":false},"tutor":{"label":"Tutor","aliases":["teacher"],"rank":"staff","tier":"member","self":true,"pending":true},"client":{"label":"Client","aliases":["parent","guardian"],"app":"parent","rank":"client","tier":"member","self":true},"student":{"label":"Student","aliases":["kid","child","pupil"],"app":"kid","rank":"student","tier":"child","self":true},"contact":{"label":"Contact","aliases":[],"rank":"contact","tier":"anyone","self":false,"signIn":false}},"default":"client","guest":{"rank":"out","tier":"anyone"},"ranks":["contact","student","client","staff","admin"],"tiers":["anyone","member","child","admin"],"titles":{"head of boxing":"Head of Boxing"}},"submissionsPerPost":25,"answerTextMax":20000,"calendar":{"breaks":[{"name":"October half-term","sheet":"October Half Term","kind":"half","starts":"10-26"},{"name":"Christmas holidays","sheet":"Christmas Holiday","kind":"holiday","starts":"12-19"},{"name":"February half-term","sheet":"February Half Term","kind":"half","starts":"02-13"},{"name":"Easter holidays","sheet":"Easter Holiday","kind":"holiday","starts":"03-27"},{"name":"May half-term","sheet":"May Half Term","kind":"half","starts":"05-22"},{"name":"Summer holidays","sheet":"Summer Holiday","kind":"holiday","starts":"07-22"}],"kinds":{"term":{"say":"term","words":[]},"half-term":{"say":"half term","also":["half term"],"words":["half\\s*term"]},"holiday":{"say":"holiday","words":["holiday","christmas","easter","summer break","break"]}},"exams":[{"id":"sats","name":"SATs","key":"exam_sats_start","at":"05-11"},{"id":"elevenplus","name":"11+","key":"exam_11plus_start","at":"09-12"},{"id":"gcse","name":"GCSE exams","key":"exam_gcse_start","at":"05-11"},{"id":"alevel","name":"A-level exams","key":"exam_alevel_start","at":"05-11"}]}};
 /* SHARED:END */
 /* WORDS:BEGIN — a copy of data/settings/words.json, written by `node tools/words.js --write`; edit the json, never this. */
 const WORDS_FILE = {"accept-request":"Accept request","accepted-by":"Accepted by ","accepted-the-family-can-pay-and":"Accepted — the family can pay and confirm","account-made-sign-in-now-as":"Account made — sign in now as ","account-made-sign-in-now-with":"Account made — sign in now with your PIN. We have also emailed you a link to confirm your address.","account-made-sign-in-now-with-2":"Account made — sign in now with your PIN. Open the link we have emailed you before making ","add-them-to-that-account-and":"Add them to that account and the next booking will name them.","add-to-basket":"Add to basket","admin-earns":"Admin earns","ages-up-to":"Ages up to ","all-ages":"All ages","already-in-your-basket":"Already in your basket","already-teaching":"Already teaching","an-email-address-please-the-link":"An email address, please — the link goes to it.","anyone-in-particular":"Anyone in particular?","anything-else-we-should-know":"Anything else we should know","application-sent":"Application sent","applied-for":"Applied for","applied-the-family-picks":"Applied — the family picks","apply-again":"Apply again","apply-to-teach":"Apply to teach","are-you-providing-the-space":"Are you providing the space?","ask-to-join":"Ask to join","ask-us-to-add-them-and":"Ask us to add them and the next booking will name them.","asked-they-will-be-in-touch":"Asked — they will be in touch","asked-we-will-come-back-to":"Asked — we will come back to you","attach-a-photo-video-or-file":"Attach a photo, video or file","book-this":"Book this","booking-form":"Booking form","can-come":"Can come","cancellation-and-refunds":"Cancellation and refunds","card-dates":"Dates: {dates}","card-day-at-time":"{day} at {time}","card-subject-level":"{subject} ({level})","card-total":"Total: {total}","change-photo":"Change photo","client-i-book-and-pay":"Client — I book and pay","client-pays":"Client pays","clients-cannot-see-them-the-crossed":"Clients cannot see them. The crossed-out eye below puts them back on the site.","correct-check-the-spelling":"Correct (check the spelling: ","correct-every":"Correct — every ","could-not-make-the-picture":"Could not make the picture: ","could-not-reach-the-server":"Could not reach the server","could-not-share-it-press-and":"Could not share it — press and hold the picture to save it","decline-request":"Decline request","declined-by":"Declined by ","declined-the-family-has-been-told":"Declined — the family has been told","dictation-is-not-available-in-this":"Dictation is not available in this browser.","digest_footer":"Don’t want these any more? Just reply and say so.","digest_greeting":"Hi {parent},","digest_intro":"Here’s what {child} worked on this week: {count} ({span}).","digest_subject":"{child}’s week: {count}","draw-your-answer-first":"Draw your answer first","each-seat-pays":"Each seat pays","end-it":"End it?","every-hour-they-have-ticked-is":" Every hour they have ticked is outside ","extra-seats":"Extra seats","extra-subj":"Extra subj.","fill-a-cell-first":"Fill a cell first","getting-the-photo-ready":"Getting the photo ready…","hidden-from-clients":"Hidden from clients","home-visits":"Home visits","how-many-extra-seats":"How many extra seats?","how-would-you-like-to-book":"How would you like to book?","if-there-is-an-account-with":"If there is an account with that email, a new PIN is on its way.","image-saved-link-copied":"Image saved · link copied","in-your-basket":"In your basket","instant-class":"Instant class","its-a-grown-ups-email":"It's a grown-up's email","just-you":"Just you","link-copied":"Link copied","mail-apply-approved":"Good news — your application to teach with {brand} has been approved. You are listed as a tutor now: sign in to fill in your card.","mail-apply-body":"Hello {first},\n\n{said}\n\n{site}\n","mail-apply-declined":"Thank you for applying to teach with {brand}. We are not able to take your application further this time.","mail-apply-interview":"Thank you for applying to teach with {brand}. We would like to talk to you — we will be in touch to arrange a time.","mail-apply-owner-body":"{who} has applied to teach: {subjects}.\n\nRead it and say yes, interview or no in the Business column:\n\n{site}\n","mail-apply-owner-subject":"A new application to teach","mail-apply-subject":"Your application to teach","mail-attempts-kid-body":"{said}If that was {first}, \"New PIN\" on their card on your account gives them a new one at once. If it was not, tell us.","mail-attempts-own-tail":"If that was not you, reply here.","mail-attempts-said":"Somebody has tried the {brand} PIN for {who} {n} times and got it wrong.\n\nSigning in is held up for a minute, and for longer on each wrong answer after that.\n","mail-attempts-subject":"Too many sign-in attempts","mail-child-made-body":"Hello,\n\n{first} has made an account on {brand} and gave this address as their grown-up's, because they have no email of their own.\n\nTheir account works already. If that is right, open this link to confirm your address (it also puts them on your {brand} parent account if you have one and have confirmed it):\n\n{link}\n\nThey sign in with their handle, {handle}, and the PIN they chose. Once you have opened the link, \"Forgotten your PIN?\" sends a new one to this address if they forget it.\n\nIf you have an {brand} parent account on this address and have confirmed it, opening the link also puts {first} on it. If you do not know who this is, ignore this email and nothing happens.","mail-child-made-subject":"{first} has made an {brand} account","mail-confirm-body":"Hello {first},\n\nConfirm your email address by opening this link:\n\n{link}\n\nYou can already sign in with this email address{handleSaid} and the PIN you chose — the link only confirms the address is yours. Until it is opened we send nothing else to this address.\n\nIf you did not make this account, do not open the link: use \"Forgotten your PIN?\" with this address instead — it takes the account over and signs everyone else out.","mail-confirm-or-handle":" (or your handle, {handle})","mail-confirm-parent-next":"\n\nOnce you have opened the link, your child makes their own account; find their handle on Student profiles and tap Add as my child, and they say yes.","mail-confirm-subject":"Confirm your {brand} account","mail-invite-body":"Hello {first},\n\nAn account has been made for you on {brand}.\n\nSign in at {site} with your email (or your handle, @{handle}) and the PIN {pin}\n\nChange the PIN under Settings → Signing in.","mail-invite-subject":"Your {brand} account","mail-move-body":"Hello,\n\nSomebody signed in to an {brand} account has asked to use this email address for it.\n\nIf that was you, open this link on a phone or computer where you are signed in to that account:\n\n{link}\n\nUntil it is opened, the account keeps its old address — sign in with that, or with your handle. The link works for {days} days.\n\nIf it was not you, ignore this email. Nothing changes, and the link does nothing for anybody who is not signed in to that account.","mail-move-subject":"Confirm your new {brand} email address","mail-pin-body":"Somebody asked for a new PIN on your {brand} account{byHandle}.\n\nYour new PIN is {pin}\n\nSign in with {signInWith} and this PIN. It works for a day; your old PIN keeps working too until you use this one. Change it under Settings → Signing in.\n\nOr open this link to sign in with it straight away — it works even if wrong PINs have locked the account:\n\n{link}\n\nIf this was not you, do nothing — your PIN has not changed, and whoever asked cannot read this email.","mail-pin-by-handle":", by your handle ({handle})","mail-pin-kid-body":"{first}{handleSaid} has no email of their own and asked for a new PIN.\n\nThe new PIN is {pin}\n\nPass it on to them. They sign in with their handle and this PIN; it works for a day, and their old PIN keeps working until they use this one. \"New PIN\" on their card in the people column gives a fresh one at once.\n\nOr open this link on their device to sign them in as {who} straight away:\n\n{link}\n\nIf they did not ask, do nothing — nothing has changed.","mail-pin-kid-subject":"A forgotten PIN: {who}","mail-pin-subject":"Your new {brand} PIN","mail-pin-with-email":"your email","mail-pin-with-handle":"your handle, {handle}, or your email","mail-sign-off":"— {brand}","make-an-account":"Make an account","make-my-account":"Make my account","making-a-picture-of-this-booking":"Making a picture of this booking…","making-a-picture-of-this-profile":"Making a picture of this profile…","making-it":"Making it…","no-children-are-on":"No children are on ","no-connection-that-hand-is-still":"No connection — that hand is still up.","no-free-hours-this-week":"No free hours this week","no-free-hours-this-week-2":"No free hours this week.","no-preference":"No preference","no-surcharge":"No surcharge","no-tutor-yet":"No tutor yet","no-we-book-the-room":"No — we book the room","nobody-yet-just-open-it":"Nobody yet — just open it","none-yet":"None yet","not-deployed":"Not deployed: ","not-enough-answered-to-price-it":"Not enough answered to price it yet.","not-listed":"Not listed","not-offered":"Not offered","not-on-the-booking-form":"Not on the booking form","not-priced-yet":"Not priced yet","not-saved":"Not saved","not-yet-have-another-go":"Not yet — have another go","nothing-changed":"Nothing changed","nothing-here-yet":"Nothing here yet.","nothing-in-that-bundle-can-be":"Nothing in that bundle can be printed","nothing-was-added-a-qualification-needs":"Nothing was added — a qualification needs a subject and a level.","nothing-yet":"Nothing yet","on-the-list":"On the list","on-the-list-2":"On the list — ","online-safety":"Online safety","open":"Open — ","over-what-period":"Over what period?","paste-some-text-first":"Paste some text first","pay-and-confirm":"Pay and confirm","payment-cancelled-nothing-was-charged-your":"Payment cancelled — nothing was charged. Your booking is still waiting.","per-session":"Per session","photo-ready":"Photo ready.","pick-at-least-one-first":"Pick at least one first.","picture-removed":"Picture removed","picture-saved":"Picture saved","picture-saved-link-copied":"Picture saved · link copied","pin-or-date":"Pin or date","please-add":"Please add ","press-and-hold-the-picture-to":"Press and hold the picture to save it.","press-share-to-send-it":"Press Share to send it.","put-back":"Put back","put-back-as-it-was-your":"Put back as it was — your picture too","rest-of":"Rest of ","rest-of-this":"Rest of this ","room-and-fees":"Room and fees","room-saved":"Room saved","safer-recruitment":"Safer recruitment","save-or-cancel-the-card-you":"Save or cancel the card you are editing first.","saved-a-picture-of-this-booking":"Saved a picture of this booking","saved-for-everyone":"Saved for everyone","say-who-the-account-is-for":"Say who the account is for first — a parent or a student.","send-my-application":"Send my application","session-ended":"Session ended","share-this-booking":"Share this booking","shared-by":"Shared by","shared-with-tutor":"Shared with tutor","sign-in-first":"Sign in first","sign-in-first-2":"Sign in first.","sign-in-to-book-your-account":"Sign in to book — your account is a few screens to the right.","sign-in-to-finish-your-booking":"Sign in to finish your booking — your payment is safe.","sign-in-to-open-a-session":"Sign in to open a session","sign-in-to-send-it":"Sign in to send it","sign-in-to-send-this-booking":"Sign in to send this booking — your answers are kept.","sign-in-to-send-your-working":"Sign in to send your working","sign-in-to-suggest-a-change":"Sign in to suggest a change.","signed-out":"Signed out","signed-out-please-sign-in-again":"Signed out — please sign in again","someone-else":"Someone else","something-already-going-or-a-new":"Something already going, or a new one?","something-went-wrong-there":"Something went wrong there.","start-a-new-one":"Start a new one","stripe-did-not-give-us-a":"Stripe did not give us a payment page.","student-im-learning":"Student — I'm learning","take-a-photo-of-your-working":"Take a photo of your working first","take-a-seat":"Take a seat","tap-to-choose":"Tap to choose","that-account-has-no-id-yet":"That account has no id yet — ask us.","that-class-has-gone":"That class has gone.","that-did-not-work":"That did not work.","that-did-not-work-everything-else":"That did not work. Everything else still works.","that-is-longer-than-a-message":"That is longer than a message should be — 2,000 characters.","that-is-not-a-picture-take":"That is not a picture. Take a photo of the document.","that-is-the-most-this-card":"That is the most this card holds — 10 qualifications in all.","that-is-too-much-for-one":"That is too much for one message — send some of it now and the rest after","that-room-is-booked-every-hour":"That room is booked every hour.","that-session-is-not-in-this":"That session is not in this list any more","that-would-be-over-32mb-in":"That would be over 32MB in one message — send it on its own.","the-answers-are-still-on-their":"The answers are still on their way — a moment.","the-board-is-full-clear-it":"The board is full. Clear it to carry on.","the-phone-could-not-read-that":"The phone could not read that photo. Try another.","the-reply-was-not-valid-json":"The reply was not valid JSON (HTTP ","the-room":"The room","the-tutor-was-not-told-no":"The tutor was not told — no connection. Your card is still red.","there-is-no-booking-on-screen":"There is no booking on screen to share","there-is-nobody-on-the-site":"There is nobody on the site to send this to yet — message @family. directly","there-is-nothing-to-share-on":"There is nothing to share on this card yet","they-tick-them-in-settings-under":" They tick them in Settings, under their week.","they-ticked-tutor-in-their-settings":"They ticked Tutor in their settings. Until you list them they are not on the site, cannot be booked and cannot take a session — the crossed-out eye below approves them.","this-booking-as-a-picture":"This booking, as a picture","this-browser-is-not-saving-what":"This browser is not saving what you type — leaving the page would lose it.","this-session-is-no-longer-yours":"This session is no longer yours.","turn-it-down":"Turn it down?","tutor-earns":"Tutor earns","type-the-letter":"Type the letter","type-the-letters-in-order-e":"Type the letters in order, e.g. B, A, C","type-your-email-address-or-your":"Type your email address or your handle first.","type-your-name-username-or-email":"Type your name, @username or email first.","video-removed":"Video removed","video-saved":"Video saved","waiting-for":"Waiting for ","waiting-list-class":"Waiting list class","watch-intro":"Watch intro","we-email-a-link-to-open":"We email a link to open. Then sign in with your handle or email and the PIN. A parent ","we-email-you-a-link-to":"We email you a link to open. Once you have opened it, find your child's handle on Student profiles ","we-would-like-to-talk-to":"We would like to talk to you about teaching — we will be in touch to arrange it.","what-are-we-working-on":"What are we working on?","what-level-the-highest-among-the":"What level? (the highest among the children)","when-could-you-come":"When could you come?","when-free":"When free","which-of-your-children-is-this":"Which of your children is this for?","who-is-in-it":"Who is in it","who-is-this-for":"Who is this for?","withdraw-from-this":"Withdraw from this","write-something-first":"Write something first","write-the":"Write the ","write-the-note-first":"Write the note first.","yes-no-room-hire":"Yes — no room hire","you-earn":"You earn","your-answer":"Your answer","your-answers-in-order":"Your answers, in order","your-application-to-teach-is-with":"Your application to teach is with us. We will be in touch.","your-application-to-teach-was-approved":"Your application to teach was approved.","your-application-to-teach-was-not":"Your application to teach was not taken further this time. You can apply again.","your-booking":"Your booking","your-first-and-last-name-please":"Your first and last name, please.","your-picture-is-still-saving-cancel":"Your picture is still saving — Cancel once it has.","your-seat":"Your seat","your-sessions":"Your sessions"};
@@ -45,7 +45,6 @@ const rowOf_ = (rowCls, label, v) => cardBlock_({ type: 'group', look: rowCls, b
 /* A VALUE THAT CHANGES WHILE YOU WATCH — a clock ticking down, a score going up. § */
 const rowLive = (label, value, id, extra) =>
   rowOf_('row', label, { look: ['v', 'mono', extra || ''].filter(Boolean).join(' '), id: String(id), text: String(value == null ? '' : value) });
-
 
 
 function bookableSpaces() {
@@ -102,16 +101,6 @@ function computeSessionDates(dayName, endDateStr, startDateStr) {
 }
 
 
-function activePromoFactor(ctx) {
-  const promos = DATA.promotions || [];
-  let factor = 1;
-  promos.forEach(p => {
-    if (promoApplies(p, ctx)) factor *= (parseFloat(p.value) || 1);
-  });
-  return factor;
-}
-
-
 /* FORMATS (owner, 8 Nov): one helper each, and check-format fails on a hand-formatted value. Times are 24-hour: 16:00. */
 const fmtTime_ = t => {
   if (t instanceof Date || typeof t === 'number') { const d = new Date(t); return isNaN(d) ? '' : String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }
@@ -155,7 +144,6 @@ const fmtDay_ = v => {
 };
 
 
-
 /* THE ROLES ARE settings.json `roles` (owner, 17 Nov), the backend's too: ids in order of precedence, each its aliases, rank and tier. */
 const ROLES_ = SHARED_SETTINGS.roles;
 const ROLE_IDS = Object.keys(ROLES_.ids);
@@ -163,8 +151,6 @@ const ROLE_ALIASES = Object.fromEntries([].concat(...ROLE_IDS.map(r => (ROLES_.i
 const roleAliases_ = () => { try { return (DATA && DATA.roleAliases) || ROLE_ALIASES; } catch (e) { return ROLE_ALIASES; } };
 
 const roleOf = r => roleAliases_()[norm(r)] || norm(r);
-
-
 
 
 /* `u` IS WHOSE ROLES: the viewer by default; a settings card passes `whose_()` (the admin's lens, data-who.js). */
@@ -287,11 +273,7 @@ function seatLimits(space, tutor, loc) {
 }
 
 
-
 /* THE EIGHT THAT WERE NEVER CARRIED OVER. § */
-
-/* R is the hourly rate, and it is the tutor's own. § */
-const OPEN_RATE = 10;
 
 /* One word for "nothing chosen yet", everywhere. The form had four — "Choose ⌄", "All Levels", an
    empty option and "No preference" — which read as four different states rather than one. */
@@ -327,154 +309,10 @@ const rankAtLeast_ = (want, u = USER) => !!u && RANKS.indexOf(rank_(u)) >= RANKS
 const KID_ASK_PARENT = 'A parent books and pays for sessions — ask yours to book this one.';
 
 
-
-/* DOES THIS PROMOTION APPLY to this booking? § */
-function promoApplies(p, ctx) {
-  if (!p || !p.active) return false;
-  switch (String(p.type || '').toLowerCase()) {
-    case 'bulk':          return ctx.lessonCount >= (parseFloat(p.threshold) || 999);
-    case 'multi_student': return ctx.n           >= (parseFloat(p.threshold) || 999);
-    case 'long_term':     return ctx.weeks       >= (parseFloat(p.threshold) || 999);
-    default: return false;
-  }
-}
-
-const pence_ = x => Math.round((Number(x) || 0) * 100) / 100;
-const RATE_KEYS_ = ['base', 'subject', 'complexity', 'level', 'daytime', 'students'];
-
-/* THE RUNNING TOTAL after a given row has applied. § */
-function runningAfter(key, L) {
-  let p = L.chargeRate || 0;
-  const step = { subject: L.avgSubject, complexity: L.fSubjectCount,
-                 level: L.L, daytime: (Number(L.D) || 1) * (Number(L.T) || 1), students: L.fChildrenAll };
-  /* ROUNDED TO THE PENNY AT EVERY LINE (owner, 8 Nov), so each line's figure is the product of what the row shows. */
-  for (const k of RATE_KEYS_) {
-    if (k !== 'base') p = pence_(p * (Number(step[k]) || 1));
-    if (k === key) return p;
-  }
-  /* NET ON ONE ROW (owner, 7 Nov): the venue's rate, unless the family provides the space. */
-  p += L.hosting ? 0 : (L.venueRate || 0);
-  if (key === 'venue') return p;
-  if (key === 'host') return p;
-  p *= (L.hoursPerWeek || 0) || 1;
-  if (key === 'hoursweek') return p;
-  /* WEEKS, not dates. Hours-a-week already spans every day ticked, so multiplying by the date
-     count — which is days × weeks — would count the days a second time. */
-  p *= (L.weeksBooked || 0) || 1;
-  if (key === 'term') return p;
-  p /= (L.splitShares || 1);
-  return p;
-}
-
-/* ---------- ONE READER FOR THE SUBJECT MULTIPLIERS § */
-function subjectMult(name) {
-  const m = DATA.multipliers || {};
-  const table = m.subjects || m.subjectsEta || {};
-  const q = num(table[name]);
-  return (isNaN(q) || q <= 0) ? 1 : q;
-}
-
-/* ---------- AND ONE READER FOR THE LEVEL MULTIPLIERS § */
-function levelMult(name) {
-  const q = num(((DATA.multipliers || {}).levels || {})[name]);
-  return (isNaN(q) || q <= 0) ? 1 : q;
-}
-
 /* WHETHER A LEVEL HAS ACTUALLY BEEN PRICED, which `levelMult` cannot say — it answers 1 for a level set to 1 on purpose and 1 for a level nobody has ever § */
 function levelPriced(name) {
   const t = (DATA.multipliers || {}).levels || {};
   return Object.prototype.hasOwnProperty.call(t, name) && String(t[name]).trim() !== '';
 }
 
-/* ---------- WHAT ONE EXTRA SEAT ADDS, AS A FRACTION OF THE RATE § */
-/* AN EXTRA SEAT COSTS AT MOST THE FIRST STUDENT (620) — the server's `SEAT_RATE_MAX`, as a share of the rate. */
-/* THE MOST AN EXTRA SEAT MAY BE, AS A SHARE OF THE RATE: kinds.json's `extra_seat_rate` max (askProps_, form.js), read when asked. */
-const STAFF_SEAT_MAX_ = () => askProps_('extra_seat_rate').max;
-function seatShare_(tutorRow, c, B) {
-  const v = ((typeof DATA !== 'undefined' && DATA && DATA.constants) || {}).vars || {};
-  const cv = (...keys) => { for (const key of keys) { const x = num(v[key]); if (!isNaN(x)) return x; } return 0; };
-  if (c === undefined) c = cv('c', 'extra child rate', 'extra_child_rate');
-  if (B === undefined) B = cv('B', 'boss rate', 'boss_rate');
-  const asFraction = (x, fallback) => (x > 0 && x <= 2) ? x : fallback;
-  /* THE TUTOR'S SEAT NEVER COSTS MORE THAN THE FIRST STUDENT (620): an older share past 1 prices as 1. */
-  const seatTop = x => Math.min(x, STAFF_SEAT_MAX_());
-  const seatOwn = !!tutorRow && Number(tutorRow.extraSeat) > 0;
-  const cRaw = seatOwn ? Number(tutorRow.extraSeat) : c;
-  const cUsed = seatTop(asFraction(cRaw, 0));
-  /* NO PLATFORM SHARE ON TOP SINCE 13 NOV: the extra seat costs the tutor's own rate, and `chainShares_` splits that money. */
-  return { cRaw, bRaw: B, seatOwn, cutOwn: false, cUsed, bUsed: 0 };
-}
-/* ---------- A TUTOR'S OWN CUT, READ THE ONE WAY THE SERVER SENDS IT (`seatCutOut_`, people.gs) § */
-function seatCutOf_(v) {
-  const s = typeof v === 'number' ? String(v) : String(v == null ? '' : v).trim();
-  if (!/^\d*\.?\d+$/.test(s)) return NaN;
-  const x = Number(s);
-  return x <= 2 ? x : NaN;
-}
-
-/* NO FORMAT, PRACTICAL OR TRIP ON A BOOKING (463): those are shop items now, so a booking is teaching and a room. */
-/* ---------- THE ONE SUM FROM CHARGED TO NET § */
-function bookMoney_(m) {
-  m = m || {};
-  const pos = x => { const v = Number(x); return isFinite(v) && v > 0 ? v : 0; };
-  const teaching = pos(m.tutorPay) + pos(m.profit);
-  const venue = pos(m.venue);
-  const gross = teaching + venue;
-  const d = m.discount || {};
-  const discountType = d.type === '%' ? '%' : (d.type === '£' ? '£' : '');
-  const discountValue = discountType ? pos(d.value) : 0;
-  /* THE DISCOUNT IS OFF THE TEACHING, NO MAXIMUM, SHARED (owner, 12 Nov): tutor and @family. each lose the same %; room and card fees are not discounted. */
-  const asked = !discountValue ? 0
-    : discountType === '%' ? teaching * Math.min(discountValue, 100) / 100
-    : discountValue;
-  const tutor = pos(m.tutorPay), p = pos(m.feePct) / 100, f = pos(m.feeFixed);
-  const discount = Math.min(Math.round(asked * 100) / 100, teaching);
-  const scale = teaching > 0 ? 1 - discount / teaching : 1;
-  const tutorPayout = Math.round(tutor * scale * 100) / 100;
-  const charged = Math.round((gross - discount) * 100) / 100;
-  const cardFees = charged > 0 ? Math.round((charged * p + f) * 100) / 100 : 0;
-  /* THE MANAGERS' PART OF THE EXTRA-SEAT MONEY, after the discount like the tutor's (`chainShares_`); it comes out of @family.'s. */
-  const seatMoney = pos(m.seatMoney) * scale;
-  const managers = ((m.chain && m.chain.managers) || []).map(x => ({ id: x.id, name: x.name, share: x.share,
-    amount: Math.round(seatMoney * x.share * 100) / 100 }));
-  const managerTotal = Math.round(managers.reduce((a, x) => a + x.amount, 0) * 100) / 100;
-  const net = Math.round((charged - tutorPayout - venue - cardFees - managerTotal) * 100) / 100;
-  return { managers, managerTotal, seatMoney,
-    gross, discount, discountType, discountValue, discountCode: String(d.code || ''),
-    absorbedBy: discount ? 'Shared with tutor' : '',
-    charged, teaching, tutorPayout, venue, cardFees, net, margin: charged > 0 ? net / charged : 0,
-  };
-}
-
-/* ---------- WHO SHARES A TUTOR'S EXTRA-SEAT MONEY (history 1217): the tutor half; each manager up half of what is left; the admin the rest.
-   A blank, missing or looping `manager` ends the walk at the admin. */
-const CHAIN_GIVE = 0.5;
-function chainShares_(tutorId, people) {
-  const byId = {};
-  (people || []).forEach(p => { if (p && p.personId) byId[String(p.personId)] = p; });
-  const boss = p => !!p && String(p.role || '') === 'Admin';
-  const me = byId[String(tutorId || '')];
-  if (boss(me)) return { tutor: 1, managers: [], admin: 0 };
-  const managers = [], seen = {};
-  seen[String(tutorId || '')] = 1;
-  let left = CHAIN_GIVE, m = String((me && me.manager) || '').trim();
-  while (m && byId[m] && !boss(byId[m]) && !seen[m]) {
-    managers.push({ id: m, name: String(byId[m].title || m), share: left / 2 });
-    left -= left / 2;
-    seen[m] = 1;
-    m = String(byId[m].manager || '').trim();
-  }
-  return { tutor: 1 - CHAIN_GIVE, managers, admin: left };
-}
-
-/* THE THREE FIGURES A BOOKING ROW KEEPS, per family and after the discount, so client pays = tutor + admin + room and fees to the penny. */
-function bookShares_(L) {
-  const e = L && L.earn;
-  if (!e || !(Number(L.total) > 0)) return null;
-  const n = Math.max(1, Number(L.splitShares) || 1), p2 = x => Math.round((Number(x) || 0) / n * 100) / 100;
-  const pays = p2(e.charged), tutor = p2(e.tutorPayout), fees = p2(e.venue + e.cardFees);
-  const managers = (e.managers || []).map(x => ({ name: x.name, share: x.share, amount: p2(x.amount) }));
-  const up = managers.reduce((a, x) => a + x.amount, 0);
-  return { pays, tutor, fees, managers, admin: Math.round((pays - tutor - fees - up) * 100) / 100 };
-}
 

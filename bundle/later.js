@@ -447,13 +447,6 @@ function kindOf_(x) {
   return (x && kindMap_()[x.kind]) || { group: 'Shop', label: 'Things' };
 }
 
-/* ---------- A PRICE THAT NOBODY HAS TYPED IS NOT A PRICE OF ZERO § */
-function priced_(v) {
-  if (v === null || v === undefined || String(v).trim() === '') return undefined;
-  const n = Number(String(v).replace(/[^0-9.-]/g, ''));
-  return isFinite(n) ? n : undefined;
-}
-
 /* EVERY VALUE ONE FACET GIVES THIS ITEM — the one reader the funnel, the filter and the card all ask. No facet hides
    behind another any more (396): a repeat on a card is the tag row's duplicate rule. */
 function facetOwn_(facet, x) {
@@ -18039,7 +18032,7 @@ function restInterval_(list, today) {
   const end = parseDMY(t.closesOn);
   const dmy = String(now.getDate()).padStart(2, '0') + '/' + String(now.getMonth() + 1).padStart(2, '0') + '/' + now.getFullYear();
   return Object.assign({}, t, {
-    label: text_('rest-of-this') + (norm(t.kind) === 'half-term' ? 'half term' : 'term'),
+    label: text_('rest-of-this') + (SHARED_SETTINGS.calendar.kinds[norm(t.kind)] || SHARED_SETTINGS.calendar.kinds.term).say,
     rest: t.label || t.term, opensOn: dmy, startDate: dmy,
     weeks: Math.max(1, Math.ceil((end - now + 864e5) / (7 * 864e5))),
   });

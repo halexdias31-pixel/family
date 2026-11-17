@@ -107,13 +107,14 @@ function tdYear_(y) {
   const may = nth(y + 1, 4, 1, -1), jul = tdJul_(y + 1);
   const terms = [['Autumn 1', tdYear0_(y), add(octHalf, -3)], ['Autumn 2', add(octHalf, 7), xmas], ['Spring 1', jan, add(feb, -3)],
     ['Spring 2', add(feb, 7), springEnd], ['Summer 1', summer, add(may, -3)], ['Summer 2', add(may, 7), jul]];
-  const hols = [['October half-term', 'half'], ['Christmas holidays', 'holiday'], ['February half-term', 'half'], ['Easter holidays', 'holiday'], ['May half-term', 'half']];
+  /* THE BREAKS' NAMES AND KINDS, IN ORDER: settings.json's `calendar` (SHARED_SETTINGS), the summer last. */
+  const hols = SHARED_SETTINGS.calendar.breaks, summerHols = hols[hols.length - 1];
   const out = [];
   terms.forEach((t, i) => {
     out.push({ name: t[0], kind: 'term', from: t[1], to: t[2] });
-    if (i < hols.length) out.push({ name: hols[i][0], kind: hols[i][1], from: add(t[2], 1), to: add(terms[i + 1][1], -1) });
+    if (i < hols.length - 1) out.push({ name: hols[i].name, kind: hols[i].kind, from: add(t[2], 1), to: add(terms[i + 1][1], -1) });
   });
-  out.push({ name: 'Summer holidays', kind: 'holiday', from: add(jul, 1), to: add(tdYear0_(y + 1), -1) });
+  out.push({ name: summerHols.name, kind: summerHols.kind, from: add(jul, 1), to: add(tdYear0_(y + 1), -1) });
   return out;
 }
 /* from js/find-marking.js */
@@ -531,3 +532,556 @@ const ITEM_STORE_KINDS = {"moved":["venue","product","option","holiday","landmar
 const ITEM_KINDS = {"kinds":{"booking":{"card":{"letter":{"say":"THE BOOKING AS AN EMAIL SAYS IT (owner, 16 Nov: one card maker): renderCard with inline \"text\" writes these lines, each through the words file; a line marked price is never said to a child or when prices are off.","bullet":"• ","lines":[{"word":"card-subject-level","need":["subject","level"],"alone":"subject"},{"word":"card-day-at-time","need":["day","time"],"date":true,"alone":"any"},{"need":["location"],"alone":"location"},{"word":"card-dates","need":["dates"]},{"word":"card-total","need":["price"],"money":true,"price":true,"as":{"price":"total"}}]}}},"question":{"card":{"letter":{"say":"THE QUESTION CARD AS THE SUNDAY EMAIL DRAWS IT (57a-62a): renderCard with an inline ink fills these styles, {token} from the email ink and the sizes here; mail clients read inline styles only.","labels":{"theirs":"Their answer","right":"Answer"},"sizes":{"radius":0,"round":999,"gap":14,"rule":"#171717","small":12,"body":16,"title":18},"cut":2,"perLine":60,"cls":{"tag":"gi","verdict":"gi"},"styles":{"card":"border-bottom:1px solid {rule};border-radius:{radius}","cell":"padding:{gap}px 0;font-size:{body}px","pic":"margin:0 0 {gap}px","head":"margin:0 0 {gap}px;font-size:{title}px;font-weight:bold;color:{ink}","tags":"font-size:{small}px;line-height:24px;margin:0 0 {gap}px","tag":"color:{hue};border:1px solid{edge};border-radius:{round}px;padding:0 6px","label":"margin:{gap}px 0 4px;font-size:{small}px;color:{faint}","box":"border:1px solid {paneLine};border-radius:{round}px;padding:4px 14px;color:{ink}","value":"margin:0;color:{ink}","line":"margin:0","stem":"margin:0 0 10px;padding:0 0 8px;border-bottom:1px dashed {chip};color:{dim}","verdict":"margin:{gap}px 0 0;font-weight:bold;color:{tone}"}}}}}};
 /* from data/settings/kinds.json sheet.lib (tools/lib/lib-files.js) */
 const LIB_FILES = {"questions":{"tab":"lib_questions","file":"data/questions.json","prefix":"q","id":["row_id"],"private":["html","lead","diagram","answer","accept","choices","choice_right","order_ends","cells","mark_words","draw_answer","examiner_note","examiner_report","guide"],"kind":"question"},"textbooks":{"tab":"lib_content","file":"data/textbooks.json","prefix":"ct","id":["book_id","chapter"],"skip":"anim","private":["words","points","formulas","diagram"],"kind":"content"},"practicals":{"tab":"lib_practicals","file":"data/practicals.json","prefix":"pr","id":["practical_id"],"private":["aim","outcome","safety","maths_link","equipment","steps","notes","science","log","variables","diagram","risks"],"kind":"practical"},"projects":{"tab":"lib_projects","file":"data/projects.json","prefix":"pj","id":["project_id"],"private":["materials","steps","safety","share"],"kind":"project"},"inserts":{"tab":"lib_inserts","file":"data/inserts.json","prefix":"in","id":["insert_id"],"newer":true,"private":["source_text"],"kind":"insert"}};
+/* from data/settings/kinds.json tutor.fields */
+const PRICE_FIELDS = {"extra_seat_rate":{"max":1},"extra_seat_cut":{"max":2}};
+/* from js/core.js (its readers) and js/core-price.js (whole) */
+function priceCore_(DATA, askProps_) {
+const norm = s => String(s || '').toLowerCase().trim();
+function num(raw) {
+  if (typeof raw === 'number') return raw;
+  const t = String(raw == null ? '' : raw).trim().replace(/[£$,\s]/g, '');
+  if (!t) return NaN;
+  const frac = t.match(/^(-?\d*\.?\d+)\/(-?\d*\.?\d+)$/);
+  if (frac) { const den = parseFloat(frac[2]); return den === 0 ? NaN : parseFloat(frac[1]) / den; }
+  if (t.endsWith('%')) { const p = parseFloat(t); return isNaN(p) ? NaN : p / 100; }
+  return parseFloat(t);
+}
+function parseDMY(s) {
+  if (!s) return null;
+  const m = String(s).match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
+  let d;
+  if (m) { const y = m[3].length === 2 ? '20' + m[3] : m[3]; d = new Date(+y, +m[2] - 1, +m[1]); }
+  else { d = new Date(s); }
+  if (isNaN(d)) return null;
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+let CLOSED_ = { of: null, at: {} };
+function closedOn_(d) {
+  const list = (typeof DATA !== 'undefined' && DATA && Array.isArray(DATA.closures)) ? DATA.closures : [];
+  if (CLOSED_.of !== list) {
+    const at = {};
+    list.forEach(c => { const x = parseDMY(c && c.date); if (x) at[x.getTime()] = c; });
+    CLOSED_ = { of: list, at };
+  }
+  const k = new Date(d); k.setHours(0, 0, 0, 0);
+  return CLOSED_.at[k.getTime()] || null;
+}
+function computeSessionDates(dayName, endDateStr, startDateStr) {
+  const DAYS = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+  const target = DAYS.indexOf(String(dayName||'').toLowerCase().replace(/s$/,''));
+  const end = parseDMY(endDateStr);
+  if (target < 0 || !end) return [];
+  const today = new Date(); today.setHours(0,0,0,0);
+  const winStart = parseDMY(startDateStr);
+  const d = (winStart && winStart > today) ? new Date(winStart) : new Date(today);
+  while (d.getDay() !== target) d.setDate(d.getDate()+1);
+  const out = [];
+  while (d <= end && out.length < 60) {
+    if (!closedOn_(d)) out.push(new Date(d));
+    d.setDate(d.getDate()+7);
+  }
+  return out;
+}
+function bookableSpaces() {
+  const out = [];
+  (DATA.venues || []).forEach(v => {
+    if (v.rooms && v.rooms.length) {
+      v.rooms.forEach(r => out.push({
+        label: v.title + ' \u2014 ' + r.name, venue: v.title, room: r.name,
+        rate: r.rate, concession: r.concession, min: r.min, max: r.max, image: v.image,
+        avail: r.avail, busy: r.busy || {}, rowIndex: r.rowIndex, fields: r.fields,
+        minHours: v.minHours, maxHours: v.maxHours, takesAllSeats: !!v.takesAllSeats
+      }));
+    } else {
+      out.push({ label: v.title, venue: v.title, room: '',
+                 rate: Number(v.bestRate) || 0, concession: 0,
+                 min: v.minCapacity || 1, max: v.maxCapacity, image: v.image,
+                 avail: v.avail, minHours: v.minHours, maxHours: v.maxHours,
+                 takesAllSeats: !!v.takesAllSeats });
+    }
+  });
+  return out;
+}
+function spaceFor(label) {
+  const want = norm(label);
+  const all = bookableSpaces();
+  /* An older saved "At home" answer is the venue row marked `takes_all_seats`, found by its field. */
+  if (want === norm('At home')) return all.find(x => x.takesAllSeats) || null;
+  return all.find(x => norm(x.label) === want) || null;
+}
+/* @family. — core-price.js THE ONE PRICE (owner, 17 Nov): every sum a price is made of, for the site and the server alike. */
+/* tools/cards-gen.js copies this whole file into backend/cards-gen.gs as `priceCore_`, so createJob prices a booking by these lines and no other. */
+/* Pure: it reads DATA, `num`, `norm`, `askProps_`, `spaceFor` and `computeSessionDates`, and the server hands it its own of each. */
+
+/* R is the hourly rate, and it is the tutor's own. § */
+const OPEN_RATE = 10;
+
+
+function activePromoFactor(ctx) {
+  const promos = DATA.promotions || [];
+  let factor = 1;
+  promos.forEach(p => {
+    if (promoApplies(p, ctx)) factor *= (parseFloat(p.value) || 1);
+  });
+  return factor;
+}
+
+
+
+/* DOES THIS PROMOTION APPLY to this booking? § */
+function promoApplies(p, ctx) {
+  if (!p || !p.active) return false;
+  switch (String(p.type || '').toLowerCase()) {
+    case 'bulk':          return ctx.lessonCount >= (parseFloat(p.threshold) || 999);
+    case 'multi_student': return ctx.n           >= (parseFloat(p.threshold) || 999);
+    case 'long_term':     return ctx.weeks       >= (parseFloat(p.threshold) || 999);
+    default: return false;
+  }
+}
+
+const pence_ = x => Math.round((Number(x) || 0) * 100) / 100;
+const RATE_KEYS_ = ['base', 'subject', 'complexity', 'level', 'daytime', 'students'];
+
+/* THE RUNNING TOTAL after a given row has applied. § */
+function runningAfter(key, L) {
+  let p = L.chargeRate || 0;
+  const step = { subject: L.avgSubject, complexity: L.fSubjectCount,
+                 level: L.L, daytime: (Number(L.D) || 1) * (Number(L.T) || 1), students: L.fChildrenAll };
+  /* ROUNDED TO THE PENNY AT EVERY LINE (owner, 8 Nov), so each line's figure is the product of what the row shows. */
+  for (const k of RATE_KEYS_) {
+    if (k !== 'base') p = pence_(p * (Number(step[k]) || 1));
+    if (k === key) return p;
+  }
+  /* NET ON ONE ROW (owner, 7 Nov): the venue's rate, unless the family provides the space. */
+  p += L.hosting ? 0 : (L.venueRate || 0);
+  if (key === 'venue') return p;
+  if (key === 'host') return p;
+  p *= (L.hoursPerWeek || 0) || 1;
+  if (key === 'hoursweek') return p;
+  /* WEEKS, not dates. Hours-a-week already spans every day ticked, so multiplying by the date
+     count — which is days × weeks — would count the days a second time. */
+  p *= (L.weeksBooked || 0) || 1;
+  if (key === 'term') return p;
+  p /= (L.splitShares || 1);
+  return p;
+}
+
+/* ---------- ONE READER FOR THE SUBJECT MULTIPLIERS § */
+function subjectMult(name) {
+  const m = DATA.multipliers || {};
+  const table = m.subjects || m.subjectsEta || {};
+  const q = num(table[name]);
+  return (isNaN(q) || q <= 0) ? 1 : q;
+}
+
+/* ---------- AND ONE READER FOR THE LEVEL MULTIPLIERS § */
+function levelMult(name) {
+  const q = num(((DATA.multipliers || {}).levels || {})[name]);
+  return (isNaN(q) || q <= 0) ? 1 : q;
+}
+
+
+/* ---------- WHAT ONE EXTRA SEAT ADDS, AS A FRACTION OF THE RATE § */
+/* AN EXTRA SEAT COSTS AT MOST THE FIRST STUDENT (620) — the server's `SEAT_RATE_MAX`, as a share of the rate. */
+/* THE MOST AN EXTRA SEAT MAY BE, AS A SHARE OF THE RATE: kinds.json's `extra_seat_rate` max (askProps_, form.js), read when asked. */
+const STAFF_SEAT_MAX_ = () => askProps_('extra_seat_rate').max;
+/* AND @FAMILY.'S PART OF ONE, 0 to twice the rate: kinds.json's `extra_seat_cut` max, the one ceiling the card, `seatCutOf_` and the server read. */
+const CUT_MAX_ = () => askProps_('extra_seat_cut').max;
+function seatShare_(tutorRow, c, B) {
+  const v = ((typeof DATA !== 'undefined' && DATA && DATA.constants) || {}).vars || {};
+  const cv = (...keys) => { for (const key of keys) { const x = num(v[key]); if (!isNaN(x)) return x; } return 0; };
+  if (c === undefined) c = cv('c', 'extra child rate', 'extra_child_rate');
+  if (B === undefined) B = cv('B', 'boss rate', 'boss_rate');
+  const asFraction = (x, fallback) => (x > 0 && x <= 2) ? x : fallback;
+  /* THE TUTOR'S SEAT NEVER COSTS MORE THAN THE FIRST STUDENT (620): an older share past 1 prices as 1. */
+  const seatTop = x => Math.min(x, STAFF_SEAT_MAX_());
+  const seatOwn = !!tutorRow && Number(tutorRow.extraSeat) > 0;
+  const cRaw = seatOwn ? Number(tutorRow.extraSeat) : c;
+  const cUsed = seatTop(asFraction(cRaw, 0));
+  /* NO PLATFORM SHARE ON TOP SINCE 13 NOV: the extra seat costs the tutor's own rate, and `chainShares_` splits that money. */
+  return { cRaw, bRaw: B, seatOwn, cutOwn: false, cUsed, bUsed: 0 };
+}
+/* ---------- A TUTOR'S OWN CUT, READ THE ONE WAY THE SERVER SENDS IT (`seatCutOut_`, people.gs) § */
+function seatCutOf_(v) {
+  const s = typeof v === 'number' ? String(v) : String(v == null ? '' : v).trim();
+  if (!/^\d*\.?\d+$/.test(s)) return NaN;
+  const x = Number(s);
+  return x <= CUT_MAX_() ? x : NaN;
+}
+
+/* NO FORMAT, PRACTICAL OR TRIP ON A BOOKING (463): those are shop items now, so a booking is teaching and a room. */
+/* ---------- THE ONE SUM FROM CHARGED TO NET § */
+function bookMoney_(m) {
+  m = m || {};
+  const pos = x => { const v = Number(x); return isFinite(v) && v > 0 ? v : 0; };
+  const teaching = pos(m.tutorPay) + pos(m.profit);
+  const venue = pos(m.venue);
+  const gross = teaching + venue;
+  const d = m.discount || {};
+  const discountType = d.type === '%' ? '%' : (d.type === '£' ? '£' : '');
+  const discountValue = discountType ? pos(d.value) : 0;
+  /* THE DISCOUNT IS OFF THE TEACHING, NO MAXIMUM, SHARED (owner, 12 Nov): tutor and @family. each lose the same %; room and card fees are not discounted. */
+  const asked = !discountValue ? 0
+    : discountType === '%' ? teaching * Math.min(discountValue, 100) / 100
+    : discountValue;
+  const tutor = pos(m.tutorPay), p = pos(m.feePct) / 100, f = pos(m.feeFixed);
+  const discount = Math.min(Math.round(asked * 100) / 100, teaching);
+  const scale = teaching > 0 ? 1 - discount / teaching : 1;
+  const tutorPayout = Math.round(tutor * scale * 100) / 100;
+  const charged = Math.round((gross - discount) * 100) / 100;
+  const cardFees = charged > 0 ? Math.round((charged * p + f) * 100) / 100 : 0;
+  /* THE MANAGERS' PART OF THE EXTRA-SEAT MONEY, after the discount like the tutor's (`chainShares_`); it comes out of @family.'s. */
+  const seatMoney = pos(m.seatMoney) * scale;
+  const managers = ((m.chain && m.chain.managers) || []).map(x => ({ id: x.id, name: x.name, share: x.share,
+    amount: Math.round(seatMoney * x.share * 100) / 100 }));
+  const managerTotal = Math.round(managers.reduce((a, x) => a + x.amount, 0) * 100) / 100;
+  const net = Math.round((charged - tutorPayout - venue - cardFees - managerTotal) * 100) / 100;
+  return { managers, managerTotal, seatMoney,
+    gross, discount, discountType, discountValue, discountCode: String(d.code || ''),
+    absorbedBy: discount ? 'Shared with tutor' : '',
+    charged, teaching, tutorPayout, venue, cardFees, net, margin: charged > 0 ? net / charged : 0,
+  };
+}
+
+/* ---------- WHO SHARES A TUTOR'S EXTRA-SEAT MONEY (history 1217): the tutor half; each manager up half of what is left; the admin the rest.
+   A blank, missing or looping `manager` ends the walk at the admin. */
+const CHAIN_GIVE = 0.5;
+function chainShares_(tutorId, people) {
+  const byId = {};
+  (people || []).forEach(p => { if (p && p.personId) byId[String(p.personId)] = p; });
+  const boss = p => !!p && String(p.role || '') === 'Admin';
+  const me = byId[String(tutorId || '')];
+  if (boss(me)) return { tutor: 1, managers: [], admin: 0 };
+  const managers = [], seen = {};
+  seen[String(tutorId || '')] = 1;
+  let left = CHAIN_GIVE, m = String((me && me.manager) || '').trim();
+  while (m && byId[m] && !boss(byId[m]) && !seen[m]) {
+    managers.push({ id: m, name: String(byId[m].title || m), share: left / 2 });
+    left -= left / 2;
+    seen[m] = 1;
+    m = String(byId[m].manager || '').trim();
+  }
+  return { tutor: 1 - CHAIN_GIVE, managers, admin: left };
+}
+
+/* THE THREE FIGURES A BOOKING ROW KEEPS, per family and after the discount, so client pays = tutor + admin + room and fees to the penny. */
+function bookShares_(L) {
+  const e = L && L.earn;
+  if (!e || !(Number(L.total) > 0)) return null;
+  const n = Math.max(1, Number(L.splitShares) || 1), p2 = x => Math.round((Number(x) || 0) / n * 100) / 100;
+  const pays = p2(e.charged), tutor = p2(e.tutorPayout), fees = p2(e.venue + e.cardFees);
+  const managers = (e.managers || []).map(x => ({ name: x.name, share: x.share, amount: p2(x.amount) }));
+  const up = managers.reduce((a, x) => a + x.amount, 0);
+  return { pays, tutor, fees, managers, admin: Math.round((pays - tutor - fees - up) * 100) / 100 };
+}
+
+/* THE RUNNING RATE JUST BEFORE A ROW (the breakdown's `of`): `runningAfter` the row above it, so the card and the price round alike. */
+function rateBase(L, key) {
+  const at = RATE_KEYS_.indexOf(key);
+  return at > 0 ? runningAfter(RATE_KEYS_[at - 1], L) : runningAfter('students', L);
+}
+
+/* ---------- A PRICE THAT NOBODY HAS TYPED IS NOT A PRICE OF ZERO § */
+function priced_(v) {
+  if (v === null || v === undefined || String(v).trim() === '') return undefined;
+  const n = Number(String(v).replace(/[^0-9.-]/g, ''));
+  return isFinite(n) ? n : undefined;
+}
+
+/* ---------- THREE CARDS, ONE PRICE (620): n students pay x + k·x·(n−1) + g·x·(n−1) an hour — x the rate, k the tutor's share, g @family.'s ---------- */
+/* THE PARTS AS PRICED, through `seatShare_` (the booking's own reader): a blank is the config's usual. */
+function cardSeatParts_(rate, seat, cut) {
+  const s = seatShare_({ extraSeat: seat, extraSeatCut: cut });
+  return { k: s.cUsed, g: s.bUsed, kOwn: s.seatOwn, gOwn: s.cutOwn, kx: pence_(rate * s.cUsed), gx: pence_(rate * s.bUsed) };
+}
+/* WHAT n STUDENTS PAY AN HOUR: the booking's own seat line (`priceSeats_`, `runningAfter`), before subjects, level, day and time multiply it. */
+const cardGroupTotal_ = (rate, seat, cut, n) => runningAfter('students',
+  { chargeRate: rate, fChildrenAll: priceSeats_({ extraSeat: seat, extraSeatCut: cut }, undefined, undefined, Math.max(1, n)).fSeats });
+
+/* The config readers priceFrom's helpers share: a constant by any of its names, and a surcharge lookup. */
+function priceKnobs_() {
+  const m = DATA.multipliers || {};
+  const v = (DATA.constants || {}).vars || {};
+  const cv  = (...keys) => { for (const key of keys) { const x = num(v[key]); if (!isNaN(x)) return x; } return 0; };
+  const cvD = (key, dflt, ...alts) => { for (const key2 of [key, ...alts]) { const x = num(v[key2]); if (!isNaN(x)) return x; } return dflt; };
+  /* A SURCHARGE IS A MULTIPLIER, so the neutral value is 1. § */
+  /* LEVELS GO THROUGH `levelMult`, which is this same rule lifted out so the subject cards and the level cards can ask the question too. § */
+  const sur = (group, value) => {
+    if (group === 'levels') return levelMult(value);
+    const x = num((m[group] || {})[value]);
+    return (isNaN(x) || x <= 0) ? 1 : x;
+  };
+  return { cv, cvD, sur };
+}
+
+/* The booking as asked for, every field defaulted, so an empty spec still prices. */
+function priceSpec_(spec) {
+  const endDate = spec.endDate || '';
+  return {
+    subjects: spec.subjects || [],
+    n: Math.max(1, parseInt(spec.n) || 1),
+    weeks: parseFloat(spec.weeks) || 1,
+    interval: spec.interval || '',
+    endDate,
+    startDate: spec.startDate || '',
+    lastSun: spec.lastSun || endDate,
+    loc: spec.loc || '',
+    day: spec.day || '',
+    time: spec.time || '',
+    level: spec.level || '',
+    tutor: spec.tutor || '',
+    splitOthers: parseInt(spec.splitOthers) || 0,
+    i: spec.i,
+    hosting: spec.hosting,
+  };
+}
+
+/* The room rent, the rate charged, and every per-hour multiplier and config rate. */
+function priceRates_(spec, q, knobs) {
+  const { cv, cvD, sur } = knobs;
+  const venue = (DATA.venues || []).find(x => norm(x.title) === norm(q.loc));
+  // "I'll host the venue" — the client provides the space (or it's their home), so they don't
+  // pay venue rent. Auto-on and locked for a home venue. When hosting, the V term drops to 0.
+  // A room's own rate wins over the building's — a small room and a large one at Richmond are
+  // different prices, and the venue's single figure could only ever be right for one of them.
+  const space = spaceFor(q.loc);
+  const venueRate = space ? space.rate : (venue ? (parseFloat(venue.bestRate) || 0) : 0);
+  const V = q.hosting ? 0 : venueRate;
+
+  /* THE PRICING FORMULA ================== P = § */
+
+  /* THE PER-HOUR MULTIPLIERS. § */
+  // What the tutor is paid per hour. Each tutor row carries its own `constant`; the row named
+  // "No preference" holds the default, so switching the default is a sheet edit, not a code
+  // change. Only if no tutor (and no such row) resolves do we fall back to the M variable.
+  /* WHAT THE CLIENT PAYS PER HOUR, before any multiplier. § */
+  // Two ways to book, two rates:
+  //   a named tutor  -> that tutor's own rate_per_hour
+  //   No preference  -> the `open_rate` in config
+  // open_rate falls back to the HIGHEST rate any tutor charges, because whoever ends up taking an
+  // open job has to be covered by the price already agreed. Set it below the dearest tutor and the
+  // difference comes out of your margin every time they're the one who applies.
+  /* `spec.tutorRow`: a row not yet saved — the Staff hub's pricing (405) asks this same sum of the figures being typed. */
+  const tutorRow = spec.tutorRow || (q.tutor ? (DATA.tutors || []).find(t => norm(t.title) === norm(q.tutor)) : null);
+  const tutorRate = Number(tutorRow && tutorRow.rate) || 0;
+  // Named tutor: their own charge-out rate. No preference: the open rate, which is fixed because a
+  // job nobody has claimed can't be priced on the rate of a tutor who hasn't taken it yet.
+  const chargeRate = tutorRate > 0 ? tutorRate : OPEN_RATE;
+  const usingTutorRate = tutorRate > 0;
+  const M = tutorRate || cv('M', 'minimum wage', 'min wage', 'μ', 'mu');   // tutor's £/hr
+  const wMul = cvD('w', 1, 'wage multiplier', 'W', 'λ', 'lambda');  // wage multiplier (default 1)
+  const L = sur('levels', q.level);   // level multiplier: 1.1 is "10% more", whoever teaches it
+  /* With several days and times in one booking, the DEAREST applies. Averaging would let a cheap
+     Monday offset a Sunday, so a booking that includes the expensive slot would cost less than one
+     that is only the expensive slot. */
+  const worstOf = (group, csv) => String(csv || '').split(',').map(x => x.trim()).filter(Boolean)
+    /* Starts at 1 rather than 0 now that `sur` is neutral there — the `|| 1` on the end was the patch that hid this fault for days and times, and a patch that is no § */
+    .reduce((hi, one) => Math.max(hi, sur(group, one)), 1);
+  const D = worstOf('days',  q.day);
+  const T = worstOf('times', q.time);
+
+  // Subjects: the AVERAGE of the chosen subjects' multipliers — so a pricey subject among three
+  // exerts only a third of its pull. (Σ Sᵢ)/k, written out.
+  const subjAdds = q.subjects.map(subjectMult);
+  const k = Math.max(1, subjAdds.length);                       // k = subject count
+  // The mean of the chosen subjects' multipliers: Maths at 1.0 and Physics at 1.2 gives 1.1, so a
+  // dear subject among three carries a third of its weight. No subjects chosen means no effect.
+  const avgSubject = subjAdds.length ? subjAdds.reduce((x, y) => x + y, 0) / k : 1;
+
+  // --- Rates (0 switches the effect off) ---
+  const s = cv('s', 'subject count rate', 'subject_count_rate');  // 1 + s(k−1)
+  const c = cv('c', 'extra child rate', 'extra_child_rate');      // tutor's share of each extra child
+  const B = cv('B', 'boss rate', 'boss_rate');                    // the DEFAULT cut, for a tutor whose own is blank
+  const b = cv('b', 'bulk discount rate', 'bulk_discount_rate');  // 1 − b(W−1)
+  const a = cv('a', 'advance booking rate', 'early booking rate');// 1 − a(A−1)
+
+  /* No fallback. An unchosen length is 0, not the configured default — a default here put 'x 2 hrs' on the card beside a control still reading '———', which is the § */
+  const h = num(spec.hours) > 0 ? num(spec.hours) : 0;
+  return { venueRate, V, tutorRow, chargeRate, usingTutorRate, M, wMul, L, D, T, k, avgSubject, s, c, B, b, a, h };
+}
+
+/* The real session dates across every run and term window, and the counts billed from them. */
+function priceDates_(spec, q) {
+  /* The ACTUAL sessions that will run, across EVERY run in the booking. § */
+  const runList = spec.runs && spec.runs.length ? spec.runs
+    : String(q.day || '').split(',').map(x => x.trim()).filter(Boolean).map(d => ({ dayName: d }));
+  const DAY_FROM_PREFIX = { m:'Monday', tu:'Tuesday', w:'Wednesday', th:'Thursday',
+                            f:'Friday', sa:'Saturday', su:'Sunday' };
+  /* One date per DAY, not per run. § */
+  const bookedDays = [...new Set(runList
+    .map(r => r.dayName || DAY_FROM_PREFIX[r.day] || '')
+    .filter(Boolean))];
+  /* ---------- ONE WINDOW PER TERM, NOT ONE ACROSS ALL OF THEM § */
+  const windows = (spec.windows && spec.windows.length) ? spec.windows
+                                                        : [{ startDate: q.startDate, lastSun: q.lastSun }];
+  const seenDay = {};
+  /* THE DATES THE BOOKING CARRIES (`spec.sessionDates`), when given: the server prices those, not a window it would work out again. */
+  const sessionDates = spec.sessionDates ? spec.sessionDates.slice() : bookedDays
+    .map(d => windows
+      .map(w => computeSessionDates(d, w.lastSun || w.endDate, w.startDate))
+      .reduce((all, list) => all.concat(list), []))
+    .reduce((all, list) => all.concat(list), [])
+    .filter(dt => { const k = dt.getTime(); if (seenDay[k]) return false; seenDay[k] = 1; return true; })
+    .sort((a, b) => a - b);
+  // A live job already knows how many sessions it runs; only a fresh booking derives them
+  // from the term window. spec.slots lets a job card price itself without a term dropdown.
+  /* Sessions come from the actual dates. § */
+  const slots = spec.slots || sessionDates.length || 0;
+  const weeksLeft = q.interval ? (parseFloat(spec.weeks) || 0) : 0;
+  const W = slots;                             // bill by real sessions, not raw week count
+  const firstDate = sessionDates[0] || null;
+  const A = firstDate ? Math.max(0, Math.floor((firstDate - new Date()) / (7 * 864e5))) : 0;
+  return { runList, bookedDays, sessionDates, slots, weeksLeft, W, firstDate, A };
+}
+
+/* Each extra seat's fraction (the tutor's own or config's) and the cut, named by where each came from. */
+function priceSeats_(tutorRow, c, B, n) {
+  /* The tutor's own extra-seat fraction when they've set one, the config default otherwise. § */
+  /* A per-seat share is a FRACTION of the rate: § */
+  const { cRaw, bRaw, cutOwn, cUsed, bUsed } = seatShare_(tutorRow, c, B);
+  // Which one won, for the admin view. A silent fallback and a read value look the same on a card.
+  // The cut is named by where it came from too: the tutor's own, or the config default.
+  const ignored = [];
+  if (cRaw > 2) ignored.push(`c ${cRaw}`);
+  if (bRaw > 2 || bRaw < 0) ignored.push(cutOwn ? `their cut ${bRaw}` : `B ${bRaw}`);
+  const seatSource = ignored.length
+    ? `ignoring ${ignored.join(' and ')} — not fractions`
+    : ((tutorRow && Number(tutorRow.extraSeat) > 0) ? `tutor ${cUsed}` : `config ${cUsed}`)
+      + (cutOwn ? ` + their cut ${bUsed}` : ` + B ${bUsed}`);
+  const fSeats     = 1 + (cUsed + bUsed) * (n - 1);
+  return { cUsed, bUsed, seatSource, fSeats };
+}
+
+function priceFrom(spec) {
+  spec = spec || {};
+  const knobs = priceKnobs_();
+  const q = priceSpec_(spec);
+  const { subjects, n, weeks, interval, endDate, startDate, lastSun, loc, day, time, level, tutor, splitOthers, i, hosting } = q;
+  const { venueRate, V, tutorRow, chargeRate, usingTutorRate, M, wMul, L, D, T, k, avgSubject, s, c, B, b, a, h } = priceRates_(spec, q, knobs);
+  const { runList, bookedDays, sessionDates, slots, weeksLeft, W, firstDate, A } = priceDates_(spec, q);
+
+  // --- The parts ------------------------------------------------------------------------------
+  // Subjects and seats are FRACTIONS of the base rate, not flat amounts. A flat £5 for a second
+  // seat means 36% more on a £14 tutor and 20% more on a £25 one — the same number meaning two
+  // different things, and needing re-tuning every time a rate moves. As a fraction it holds its
+  // meaning: 0.4 is "an extra seat costs 40% of the first", whoever is teaching.
+  //
+  // Both sit INSIDE the discount brackets, so a long booking discounts the extra seats too.
+  // The venue stays outside: room hire doesn't change with how many people are in the room.
+  // Everything in the hourly bracket is now a multiplier. One kind of thing instead of two: a
+  // surcharge no longer has to be re-tuned when a tutor's rate moves, because 1.1 means "10% more"
+  // whoever is teaching, where £1 meant 3.6% on one rate and 2.0% on another.
+  const baseHourly = chargeRate * avgSubject * L * D * T;
+  const fSubjects  = 1 + s * (k - 1);                     // each extra subject adds a fraction
+  const { cUsed, bUsed, seatSource, fSeats } = priceSeats_(tutorRow, c, B, n);
+  /* Both discounts count units BEYOND the first: § */
+  /* Three discounts, all counting units BEYOND the first, all clamped at zero — a discount that goes negative becomes a surcharge, which is how booking for this § */
+  /* Both neutral. The coefficients are still read from config so nothing downstream breaks, but
+     they don't move the price while there's no row on the card to say they did. */
+  const fBulk      = 1;
+  const fAdvance   = 1;
+  /* A block discount — cheaper per hour for a longer unbroken session — was asked for and isn't here, deliberately. § */
+  const discountFactor = fBulk * fAdvance;
+  const discountFloored = false;
+  const F = 0;
+
+  // Kept under their old names so nothing downstream had to change.
+  const perChildHourly = baseHourly;
+  const R = baseHourly * fSubjects;
+  const addSubjects = R - baseHourly;                      // what the extra subjects added, in £
+  const addChildren = R * (fSeats - 1);                    // what the extra seats added, in £
+  const fSubjectCount = fSubjects, fChildrenAll = fSeats;
+
+  const promoAdj = activePromoFactor({ subjects, n, weeks: W, day, time, level,
+                                       lessonCount: spec.lessonCount || 1 });
+  const { weeksBooked, hoursTotal, splitShares, chargePerHour, tutorPay, profitTotal, venueTotal,
+          cost, tutorHourly, belowMinWage, mo, total, wholeTotal, shareAmount } = priceMoney_(spec, knobs,
+    { R, fSeats, discountFactor, promoAdj, V, splitOthers, bookedDays, sessionDates, slots,
+      chargeRate, avgSubject, L, D, T, fSubjects, cUsed, bUsed, M, tutorRow,
+      rows: { chargeRate, avgSubject, fSubjectCount: fSubjects, L, D, T, fChildrenAll: fSeats, n } });
+  return {
+    i, total, weeks, slots, n, V, loc, day, time, level, subjects, tutor, interval, endDate, startDate, lastSun,
+    // True once we know the real dates; a term-based estimate still shows, marked as provisional.
+    slotsKnown: spec.slotsKnown !== false && slots > 0,
+    // Weeks remaining in the chosen interval — reportable, never counted from.
+    weeksLeft,
+    provisional: !sessionDates.length && slots > 0,
+    runs: runList,
+    // What the venue WOULD cost. V is zero when hosting, so without this the saving can't be shown.
+    venueRate, hosting, seatSource,
+    hoursPerWeek: num(spec.hoursPerWeek) || 0, weeksBooked,
+    // The two discount factors, so the card can show them as their own rows rather than folding
+    // them silently into the total.
+    fBulk, fAdvance, A,
+    // The headline rate actually in play: this tutor's, or the open rate. The Tuition row shows it,
+    // and showing anything else is how an edited rate appeared to have no effect.
+    chargeRate,
+    // The real dates this booking runs on. These ARE the billing basis — slots is their count —
+    // so showing them is showing the client exactly what they're paying for, not a summary of it.
+    sessionDates, firstDate,
+    // every factor exposed so the breakdown can explain the price
+    M, wMul, L, D, T, avgSubject, k, s, c, B, b, a, h, A, W,
+    usingTutorRate,
+    perChildHourly, addSubjects, addChildren, fSubjectCount, fChildrenAll, fBulk, fAdvance,
+    discountFactor, discountFloored, F, R,
+    chargePerHour, hoursTotal, tutorPay, venueTotal, cost, tutorHourly, belowMinWage,
+    promoAdj, splitOthers, splitShares, shareAmount, profitTotal, wholeTotal,
+    // THE MONEY BLOCK'S FIGURES, whole-booking — see `bookMoney_`. Only an admin's screen draws them.
+    earn: mo,
+    summary: { service: (typeof document !== 'undefined' ? val('c-service') : ''), level,
+               subject: subjects.join(', '), location: loc, day, time, students: n,
+               interval, weeks, requestedTutor: tutor }
+  };
+}
+
+/* Hours booked, the per-hour charge, and who is paid what — the shares add up to what the client pays. */
+function priceMoney_(spec, knobs, p) {
+  const { R, fSeats, discountFactor, promoAdj, V, splitOthers, bookedDays, sessionDates, slots,
+          chargeRate, avgSubject, L, D, T, fSubjects, cUsed, bUsed, M } = p;
+  /* HOURS A WEEK × WEEKS RUN (sessions ÷ days a week): sessions can differ in length, and 22 Mon+Tue sessions are 11 weeks. */
+  const runsPerWeek = Math.max(1, bookedDays.length || 1);
+  /* ---------- BILLED BY THE SESSIONS THAT EXIST, NOT THE WEEKS THAT REMAIN § */
+  const weeksBooked = sessionDates.length
+    ? Math.max(1, Math.round(sessionDates.length / runsPerWeek))
+    : (slots ? Math.round(slots / runsPerWeek) : 0);
+  const hoursTotal = (num(spec.hoursPerWeek) || 0) * weeksBooked;
+  /* The per-hour figure is real as soon as a rate is known — it does not need a length or a term. § */
+  /* SPLITTING DIVIDES BOTH FIGURES. § */
+  const splitShares = splitOthers + 1;
+  /* THE HOURLY RATE THE ROWS SHOW, penny-rounded line by line (`runningAfter`), so gross = rows × hours exactly. */
+  const rate = pence_(runningAfter('students', p.rows) * discountFactor * promoAdj);
+  const chargePerHour = (rate + V) / splitShares;
+  const teachTotal = hoursTotal ? chargePerHour * hoursTotal : null;
+
+  /* THE SHARES ADD UP TO WHAT THE CLIENT PAYS, so each comes from the same numbers. */
+  /* TUTOR = THEIR OWN RATE FOR THE FIRST SEAT + THEIR EXTRA-SEAT RATE FOR EACH OTHER, × HOURS (owner, 8 Nov); @family. keeps the rest of the teaching. */
+  const r = pence_(runningAfter('daytime', p.rows) * discountFactor * promoAdj);
+  /* THE EXTRA-SEAT MONEY IS SHARED UP THE MANAGER CHAIN (`chainShares_`); the 1-to-1 rate stays the tutor's. */
+  const chain = chainShares_(p.tutorRow && p.tutorRow.personId, (typeof DATA !== 'undefined' && DATA && DATA.tutors) || []);
+  const seatHour = pence_(r * cUsed * Math.max(0, (p.rows.n || 1) - 1));
+  const tutorHour = pence_(r + seatHour * chain.tutor);
+  const tutorPay    = Math.min(tutorHour, rate) * hoursTotal;
+  const profitTotal = rate * hoursTotal - tutorPay;
+  const venueTotal  = V * hoursTotal;                                   // venue gets
+  const cost        = tutorPay + venueTotal;                            // what the job costs us
+
+  /* THE TUTOR'S REAL £/HOUR, shown (never clamped) so a discount under minimum wage is seen. */
+  const tutorHourly = hoursTotal ? tutorPay / hoursTotal : 0;
+  const belowMinWage = M > 0 && tutorHourly > 0 && tutorHourly < M;
+
+  /* ---------- WHAT THE BOOKING EARNS, AFTER EVERYTHING IT COSTS (docs/history/353) § */
+  const mo = bookMoney_({
+    hours: hoursTotal,
+    tutorPay, profit: profitTotal, venue: venueTotal,
+    discount: spec.discount || null, seatMoney: seatHour * hoursTotal, chain,
+    feePct: knobs.cvD('card_fee_pct', 0), feeFixed: knobs.cvD('card_fee_fixed', 0),
+  });
+  /* THE TOTAL IS THE CHARGED FIGURE NOW, still per family. § */
+  const total = teachTotal === null ? null : mo.charged / splitShares;
+  const wholeTotal = total === null ? null : mo.charged;
+  return { weeksBooked, hoursTotal, splitShares, chargePerHour, tutorPay, profitTotal, venueTotal,
+           cost, tutorHourly, belowMinWage, mo, total, wholeTotal, shareAmount: total };
+}
+return { priceFrom, bookMoney_, bookShares_, parseDMY };
+}

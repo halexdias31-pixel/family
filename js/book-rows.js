@@ -191,7 +191,7 @@ function restInterval_(list, today) {
   const end = parseDMY(t.closesOn);
   const dmy = String(now.getDate()).padStart(2, '0') + '/' + String(now.getMonth() + 1).padStart(2, '0') + '/' + now.getFullYear();
   return Object.assign({}, t, {
-    label: text_('rest-of-this') + (norm(t.kind) === 'half-term' ? 'half term' : 'term'),
+    label: text_('rest-of-this') + (SHARED_SETTINGS.calendar.kinds[norm(t.kind)] || SHARED_SETTINGS.calendar.kinds.term).say,
     rest: t.label || t.term, opensOn: dmy, startDate: dmy,
     weeks: Math.max(1, Math.ceil((end - now + 864e5) / (7 * 864e5))),
   });

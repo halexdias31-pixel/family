@@ -1,7 +1,7 @@
 /* @family. — 30_booking.gs (4 of 8) THE BOOKING MACHINE, and everything that decides who is in a session. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const BOOKING_VERSION = "2026-11-17-engines-1";
+const BOOKING_VERSION = "2026-11-17-price-1";
 
 
 /* WHEN THE BUSINESS ACTUALLY OPERATES within an interval. § */
@@ -55,14 +55,12 @@ function relativeName(startCell, endCell, allRows) {
 
 /* TERM, HOLIDAY, or HALF-TERM. § */
 function intervalKind(kindCell, nameCell) {
-  const said = norm(kindCell);
-  if (said === 'term' || said === 'holiday' || said === 'half-term' || said === 'half term') {
-    return said === 'half term' ? 'half-term' : said;
-  }
+  /* THE KINDS AND THE WORDS THAT NAME THEM: settings.json's `calendar.kinds` (SHARED_SETTINGS). */
+  const kinds = SHARED_SETTINGS.calendar.kinds, said = norm(kindCell);
+  const own = Object.keys(kinds).find(k => k === said || (kinds[k].also || []).indexOf(said) !== -1);
+  if (own) return own;
   const n = norm(nameCell);
-  if (/half\s*term/.test(n)) return 'half-term';
-  if (/holiday|christmas|easter|summer break|break/.test(n)) return 'holiday';
-  return 'term';
+  return Object.keys(kinds).find(k => kinds[k].words.some(w => new RegExp(w).test(n))) || 'term';
 }
 
 /* WRITE A RECEIPT, and never fail the thing it is recording. § */
@@ -568,12 +566,11 @@ function codeSaid_(c) {
 /* THE SCHOOL YEAR, WORKED OUT RATHER THAN TYPED: the site's one rule (`tdYear_`, `tdEaster_` in js/arcade.js, copied into cards-gen.gs), as UTC days. */
 const utcDay_ = d => new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
 function easter(y) { return utcDay_(tdEaster_(y)); }
-/* THE BACKEND'S NAMES FOR THE SITE'S HOLIDAYS (the terms tab's term_name rows match these). */
-const SCHOOL_HOLS_ = { 'October half-term': 'October Half Term', 'Christmas holidays': 'Christmas Holiday', 'February half-term': 'February Half Term',
-  'Easter holidays': 'Easter Holiday', 'May half-term': 'May Half Term', 'Summer holidays': 'Summer Holiday' };
 /* `y` is the September the year STARTS in, so schoolYear(2026) is 2026-27, led by the summer holiday before it. */
 function schoolYear(y) {
-  const one = t => ({ name: SCHOOL_HOLS_[t.name] || t.name, kind: t.kind === 'term' ? 'term' : 'holiday', start: utcDay_(t.from), end: utcDay_(t.to) });
+  /* THE TERMS TAB'S NAME FOR EACH BREAK (`sheet`), from settings.json's `calendar.breaks`. */
+  const sheetName = n => (SHARED_SETTINGS.calendar.breaks.find(b => b.name === n) || {}).sheet || n;
+  const one = t => ({ name: sheetName(t.name), kind: t.kind === 'term' ? 'term' : 'holiday', start: utcDay_(t.from), end: utcDay_(t.to) });
   const was = tdYear_(y - 1), now = tdYear_(y);
   return [one(was[was.length - 1])].concat(now.slice(0, -1).map(one));
 }
@@ -659,39 +656,45 @@ function travelCost(venueName, sessions) {
   return Math.round(each * Math.max(1, N(sessions) || 1) * 100) / 100;
 }
 
-/* ---------- IS THAT PRICE PLAUSIBLE? § */
-function priceLooksWrong(o) {
-  const hours = N(o.hours) || N(config().h) || 2;
-  const weeks = Math.max(1, N(o.weeks) || 1);
-  const seats = Math.max(1, N(o.seats) || 1);
-
-  /* THE ROOM. Free is a legitimate answer — Online costs nothing and a client's own house nearly nothing — so a venue that is not found contributes zero rather § */
-  const sp = spaceOf_(o.venue);
-  const room = sp.terms ? sp.terms.rate : (sp.venue ? N(sp.venue.cost_per_hour) : 0);
-
-  /* AND THE TEACHING. The cheapest listed tutor is the floor: nobody on this site works for less,
-     so a total that does not cover it is a total that cannot pay for the session it describes. */
-  const rates = read(TAB.people).rows
-    /* NOT A PENDING ONE: a rate typed by somebody who ticked Tutor an hour ago is not a rate this
-       business charges, and the cheapest one here is the floor every booking is judged against. */
-    .filter(r => hasRole(r, 'tutor') && !tutorPending_(r) && N(r.rate_per_hour) > 0)
-    .map(r => N(r.rate_per_hour));
-  const cheapest = rates.length ? Math.min.apply(null, rates) : 0;
-
-  const floor = (room + cheapest) * hours * weeks;
-  const asked = N(o.price);
-
-  /* HALF THE FLOOR, not ninety per cent of it — and the difference matters more than it looks. § */
-  if (floor > 0 && asked < floor * 0.5) {
-    return 'That price (' + asked + ') is below what the room and the teaching cost for '
-      + weeks + ' session(s) of ' + hours + ' hours — about ' + Math.round(floor) + '. '
-      + 'Nothing has been booked. Reload and try again; if it keeps happening, tell us.';
-  }
-  if (floor > 0 && asked > floor * 12) {
-    return 'That price (' + asked + ') is far above what this session could cost. Nothing has been '
-      + 'booked, so nobody is charged it.';
-  }
-  return '';
+/* ---------- THE SERVER'S OWN PRICE (owner, 17 Nov): the phone's figures are never kept ----------
+   The site's `priceFrom` (js/core-price.js, copied whole as `priceCore_` by tools/cards-gen.js) over the sheet's own rows,
+   in the shape the site's payload gives them (`tutorOut_`, `getFamilyVenues_`, `getPayloadSite_`), so an honest phone and this agree to the penny. */
+function priceData_() {
+  const cfg = config(), sur = surcharges(), rooms = read(TAB.rooms).rows;
+  return {
+    tutors: read(TAB.people).rows.filter(r => personDisplayName(r) && (hasRole(r, 'tutor') || whoMay_(r, 'admin')))
+      .map(r => ({ title: personDisplayName(r), personId: S(r.person_id), role: ROLE_LABEL[mainRole(r)] || 'Tutor',
+                   rate: N(r.rate_per_hour), extraSeat: N(r.extra_seat_rate), manager: S(r.manager) })),
+    venues: read(TAB.venues).rows.filter(r => S(r.name)).map(r => ({
+      title: S(r.name), bestRate: N(r.cost_per_hour), takesAllSeats: TRUE_(r.takes_all_seats),
+      minCapacity: N(r.min_students) || 1, maxCapacity: N(r.max_students),
+      rooms: rooms.filter(x => key(x.venue) === key(r.name) && ON_(x.active)).map(x => {
+        const t = roomTerms_(x, r);
+        return { name: S(x.name), rate: t.rate, concession: t.concession, min: t.min, max: t.max };
+      }) })),
+    multipliers: { levels: sur.level, subjects: sur.subject, subjectsEta: sur.subject, days: sur.day, times: sur.time },
+    constants: { vars: configPublic_(cfg) },
+    promotions: [], closures: closures(),
+  };
+}
+/* A BOOKING AS createJob CARRIES IT, PRICED: the figures the phone sends (`bookMoneySend_`, `bookShares_`), worked out here; null when nothing can be priced. */
+function serverPrice_(body, data) {
+  const P = priceCore_(data || priceData_(), f => PRICE_FIELDS[f] || {});
+  const tutor = S(body.requestedTutor);
+  const dates = S(body.dates).split(',').map(x => P.parseDMY(x.trim())).filter(Boolean);
+  const disc = S(body.discountType) ? { type: S(body.discountType), value: N(body.discountValue), code: S(body.discountCode) } : null;
+  const L = P.priceFrom({
+    subjects: S(body.subject).split(',').map(x => x.trim()).filter(Boolean), level: S(body.level),
+    n: N(body.n) || 1, loc: S(body.location), hosting: takesAllSeats_(body.location) || TRUE_(body.hosting), splitOthers: 0,
+    day: S(body.day), time: S(body.time), hours: N(body.hours),
+    hoursPerWeek: S(body.slots).split(',').filter(x => x.trim()).length,
+    sessionDates: dates, tutor: /^(no preference|any)$/i.test(tutor) ? '' : tutor, discount: disc,
+  });
+  const SH = P.bookShares_(L), e = L.earn;
+  if (!SH || !e) return null;
+  const p2 = x => String(Math.round((Number(x) || 0) * 100) / 100);
+  return { price: String(SH.pays), profit: String(SH.admin), tutorPay: String(SH.tutor),
+           gross: p2(e.charged), tutorPayout: p2(e.tutorPayout), venueCost: p2(e.venue), cardFees: p2(e.cardFees), netProfit: p2(e.net) };
 }
 
 /* ---------- WHAT A WAITLIST SEAT COSTS § */

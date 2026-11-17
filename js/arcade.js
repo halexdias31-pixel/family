@@ -451,15 +451,6 @@ function widgetsBeforeSlide_(col) {
 
 /* THE EXAM DATES CHANGED UNDER THE COLUMN, so it is REDRAWN IF IT IS DRAWN — the rule `profileRefresh_` keeps for Settings, whose About you holds the same two § */
 
-/* ---------- COUNTDOWNS ---------- */
-/* WHEN EACH BIG EXAM SEASON STARTS, as MM-DD (or a whole YYYY-MM-DD for one year): the config tab's `exam_*_start` wins, these are the usual second week of May and mid-September. */
-const PROG_EXAMS = [
-  { id: 'sats', name: 'SATs', key: 'exam_sats_start', at: '05-11' },
-  { id: 'elevenplus', name: '11+', key: 'exam_11plus_start', at: '09-12' },
-  { id: 'gcse', name: 'GCSE exams', key: 'exam_gcse_start', at: '05-11' },
-  { id: 'alevel', name: 'A-level exams', key: 'exam_alevel_start', at: '05-11' }];
-/* SCHOOL HOLIDAYS WHEN THE SHEET'S `intervals` NAME NONE AHEAD: config `holiday_starts` ("MM-DD Name, …") wins; these are the usual London starts. */
-const PROG_HOLIDAYS = '10-26 October half-term, 12-19 Christmas holidays, 02-13 February half-term, 03-27 Easter holidays, 05-22 May half-term, 07-22 Summer holidays';
 const progressToday_ = () => { const t = new Date(); t.setHours(0, 0, 0, 0); return t; };
 const progressDaysSaid_ = n => (n === 0 ? 'today' : n + (n === 1 ? ' day' : ' days'));
 /* ---------- THE COUNTDOWNS WIDGET ON TOOLS (466): every copy by class, as the Saved column draws it too ---------- */
@@ -491,13 +482,14 @@ function tdYear_(y) {
   const may = nth(y + 1, 4, 1, -1), jul = tdJul_(y + 1);
   const terms = [['Autumn 1', tdYear0_(y), add(octHalf, -3)], ['Autumn 2', add(octHalf, 7), xmas], ['Spring 1', jan, add(feb, -3)],
     ['Spring 2', add(feb, 7), springEnd], ['Summer 1', summer, add(may, -3)], ['Summer 2', add(may, 7), jul]];
-  const hols = [['October half-term', 'half'], ['Christmas holidays', 'holiday'], ['February half-term', 'half'], ['Easter holidays', 'holiday'], ['May half-term', 'half']];
+  /* THE BREAKS' NAMES AND KINDS, IN ORDER: settings.json's `calendar` (SHARED_SETTINGS), the summer last. */
+  const hols = SHARED_SETTINGS.calendar.breaks, summerHols = hols[hols.length - 1];
   const out = [];
   terms.forEach((t, i) => {
     out.push({ name: t[0], kind: 'term', from: t[1], to: t[2] });
-    if (i < hols.length) out.push({ name: hols[i][0], kind: hols[i][1], from: add(t[2], 1), to: add(terms[i + 1][1], -1) });
+    if (i < hols.length - 1) out.push({ name: hols[i].name, kind: hols[i].kind, from: add(t[2], 1), to: add(terms[i + 1][1], -1) });
   });
-  out.push({ name: 'Summer holidays', kind: 'holiday', from: add(jul, 1), to: add(tdYear0_(y + 1), -1) });
+  out.push({ name: summerHols.name, kind: summerHols.kind, from: add(jul, 1), to: add(tdYear0_(y + 1), -1) });
   return out;
 }
 /* THE LAST DAY OF SUMMER TERM: 22 July, or the Friday before when that is a weekend. */
