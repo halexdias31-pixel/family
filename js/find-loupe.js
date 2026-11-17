@@ -498,11 +498,11 @@ function padForgetOthers_() {
 function padToolPick_(pad, t) {
   if (!pad) return;
   const k = pad.getAttribute('data-k') || '';
-  /* THE PROTRACTOR IS PUT DOWN OR PICKED UP, and the tool in hand stays in hand (458). */
+  /* THE PROTRACTOR IS PUT DOWN OR PICKED UP, and the tool in hand stays in hand (458). It is not a drawing tool, so it never arms the pen:
+     one finger on the page scrolls it until Pen, Straight line or Compass is picked (owner, 16 Nov: "scrolling down ... draws by accident"). */
   if (t === 'protractor') {
     const st = padProtOf_(k);
     st.on = !st.on;
-    if (PAD_ON !== k) padTake_(pad, k);
     padProtSync_(k);
     return;
   }
@@ -521,6 +521,8 @@ const padProtOn_ = k => !!(k && PAD_PROT.has(k) && PAD_PROT.get(k).on);
 const PROT_PX = 50, PROT_PY = 126 / 134 * 100;
 /* WITHIN THIS MANY DEGREES OF LEVEL OR UPRIGHT IT SETTLES THERE, as a ruler laid on a line does */
 const PROT_SNAP_DEG = 2;
+/* ITS NUMBERS' SIZE, in the drawing's units: three digits fit the 10° between two of them on either ring (radius 81 and 69) */
+const PROT_FS = 7.5, PROT_FS_IN = 6.5;
 let PROT_SVG = '';
 function padProtSvg_() {
   if (PROT_SVG) return PROT_SVG;
@@ -532,7 +534,8 @@ function padProtSvg_() {
     ticks += `M${a[0]} ${a[1]}L${b[0]} ${b[1]}`;
     if (d % 10 === 0) {
       const o = P(R - 19, d), i = P(R - 31, d);
-      nums.push({ el: 'text', a: { x: o[0], y: o[1] }, text: d }, { el: 'text', a: { class: 'qprot-in', x: i[0], y: i[1] }, text: 180 - d });
+      /* IN THE DRAWING'S OWN UNITS (owner, 16 Nov: "Protractor's broken"): a page-sized font in a 216-unit box made every number run into the next */
+      nums.push({ el: 'text', a: { x: o[0], y: o[1], 'font-size': PROT_FS }, text: d }, { el: 'text', a: { class: 'qprot-in', x: i[0], y: i[1], 'font-size': PROT_FS_IN }, text: 180 - d });
     }
   }
   PROT_SVG = cardBlock_({ type: 'drawing', node: { el: 'svg', a: { viewBox: '-8 -26 216 134', 'aria-hidden': 'true' }, kids: [

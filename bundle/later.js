@@ -2751,12 +2751,14 @@ function typesetFracs_(k) {
     from = q;
     const w = where(p);
     if (w.tag || w.raw) continue;
-    /* A FRACTIONAL INDEX LOOKS LIKE A HALF (owner, 1 Nov: "make it look more like a half. universal rule"): x<sup>1/2</sup> is a small 1 over a small 2 on a slant, like ½ -- on its line, not stacked (241). */
+    /* A FRACTION IN AN INDEX IS A SMALL STACKED FRACTION (owner, 16 Nov: "x to the power of a half looks goofy"): x<sup>1/2</sup>, x<sup>n/2</sup>, x<sup>−2x/3</sup>
+       and a half-typed one on the keypad (its hole and caret are one marker character each here) all set as one small top over one small bottom, its
+       foot level with the index's line -- every index, every page, this one place. The slash stays in it for copying and reading aloud (`frac-s`). */
     if (w.deep) {
-      const a = /\d+$/.exec(k.s.slice(Math.max(0, p - 12), p)), b = /^\d+/.exec(k.s.slice(q, q + 12));
+      const T = '[0-9A-Za-z.\u0370-\u03ff]+', a = new RegExp(T + '$').exec(k.s.slice(Math.max(0, p - 24), p)), b = new RegExp('^' + T).exec(k.s.slice(q, q + 24));
       if (!a || !b) continue;
       const ix = cardBlock_({ type: 'group', tag: 'span', look: 'frac-ix', inner: cardBlock_({ type: 'group', tag: 'span', look: 'frac-ix-n', text: a[0] })
-        + '&#x2044;' + cardBlock_({ type: 'group', tag: 'span', look: 'frac-ix-d', text: b[0] }) });
+        + cardBlock_({ type: 'group', tag: 'span', look: 'frac-s', inner: '/' }) + cardBlock_({ type: 'group', tag: 'span', look: 'frac-ix-d', text: b[0] }) });
       k.s = k.s.slice(0, p - a[0].length) + ix + k.s.slice(q + b[0].length);
       from = p - a[0].length + ix.length;
       continue;
@@ -7404,11 +7406,11 @@ function padForgetOthers_() {
 function padToolPick_(pad, t) {
   if (!pad) return;
   const k = pad.getAttribute('data-k') || '';
-  /* THE PROTRACTOR IS PUT DOWN OR PICKED UP, and the tool in hand stays in hand (458). */
+  /* THE PROTRACTOR IS PUT DOWN OR PICKED UP, and the tool in hand stays in hand (458). It is not a drawing tool, so it never arms the pen:
+     one finger on the page scrolls it until Pen, Straight line or Compass is picked (owner, 16 Nov: "scrolling down ... draws by accident"). */
   if (t === 'protractor') {
     const st = padProtOf_(k);
     st.on = !st.on;
-    if (PAD_ON !== k) padTake_(pad, k);
     padProtSync_(k);
     return;
   }
@@ -7427,6 +7429,8 @@ const padProtOn_ = k => !!(k && PAD_PROT.has(k) && PAD_PROT.get(k).on);
 const PROT_PX = 50, PROT_PY = 126 / 134 * 100;
 /* WITHIN THIS MANY DEGREES OF LEVEL OR UPRIGHT IT SETTLES THERE, as a ruler laid on a line does */
 const PROT_SNAP_DEG = 2;
+/* ITS NUMBERS' SIZE, in the drawing's units: three digits fit the 10° between two of them on either ring (radius 81 and 69) */
+const PROT_FS = 7.5, PROT_FS_IN = 6.5;
 let PROT_SVG = '';
 function padProtSvg_() {
   if (PROT_SVG) return PROT_SVG;
@@ -7438,7 +7442,8 @@ function padProtSvg_() {
     ticks += `M${a[0]} ${a[1]}L${b[0]} ${b[1]}`;
     if (d % 10 === 0) {
       const o = P(R - 19, d), i = P(R - 31, d);
-      nums.push({ el: 'text', a: { x: o[0], y: o[1] }, text: d }, { el: 'text', a: { class: 'qprot-in', x: i[0], y: i[1] }, text: 180 - d });
+      /* IN THE DRAWING'S OWN UNITS (owner, 16 Nov: "Protractor's broken"): a page-sized font in a 216-unit box made every number run into the next */
+      nums.push({ el: 'text', a: { x: o[0], y: o[1], 'font-size': PROT_FS }, text: d }, { el: 'text', a: { class: 'qprot-in', x: i[0], y: i[1], 'font-size': PROT_FS_IN }, text: 180 - d });
     }
   }
   PROT_SVG = cardBlock_({ type: 'drawing', node: { el: 'svg', a: { viewBox: '-8 -26 216 134', 'aria-hidden': 'true' }, kids: [
@@ -12938,11 +12943,18 @@ const kpKey_ = k => tile_({ act: 'kp-key', label: k.a || String(k.t || ''),
 /* THE PAD'S KEYS FOR A LAYOUT AND A BOX. § */
 /* AND ON THE LETTERS TOO, beside the vector, so a power is never a face away: seven keys over the letters' sixty columns */
 const KP_ABC_TOP_SPAN = [8, 9, 9, 9, 9, 8, 8];
+/* EVERY ROW OF THE SIXTY COLUMNS STARTS AT COLUMN 1, said on its first key (`at: 1`) as the spans add up: a row never inherits the
+   row above's leftovers, so the letters stay q-row, a-row, z-row on any browser's grid placement (iPad, 2406-2F Q28a). */
+function kpRows_(keys) {
+  let used = 0;
+  return keys.map(k => { const span = k.span || 6, first = used % 60 === 0; used += (k.at ? k.at - 1 - used % 60 : 0) + span;
+    return first && !k.at ? Object.assign({}, k, { at: 1 }) : k; });
+}
 /* `site` IS A BOX ELSEWHERE ON THE SITE (528): 'mail' tops the letters with @ . /, any other the 123 face with @ # & and plain keys for the structures */
 function kpPadHtml_(layer, words, signs, essay, vec, site) {
-  if (layer === 'sym') return KP_SYM.concat(kpAbcBottom_(essay, true)).map(kpKey_).join('');
+  if (layer === 'sym') return kpRows_(KP_SYM.concat(kpAbcBottom_(essay, true))).map(kpKey_).join('');
   const top = site === 'mail' ? KP_MAIL_KEYS : site ? [] : vec ? [KP_POW].concat(KP_VEC_KEYS).map((k, i) => Object.assign({}, k, { span: KP_ABC_TOP_SPAN[i] })) : [];
-  if (layer === 'abc') return top.concat(KP_ABC).concat(kpAbcBottom_(essay)).map(kpKey_).join('');
+  if (layer === 'abc') return kpRows_(top.concat(KP_ABC).concat(kpAbcBottom_(essay))).map(kpKey_).join('');
   if (site) return KP_SITE_KEYS.concat(KP_SIGN_KEYS, KP_KEYS.map(kpPlainKey_)).map(k => (essay && k.v === '!done' ? KP_DONE_ESSAY : k)).map(kpKey_).join('');
   return (vec ? KP_VEC_KEYS : []).concat(signs ? KP_SIGN_KEYS : []).concat(KP_KEYS).map(k => (essay && k.v === '!done' ? KP_DONE_ESSAY : k)).map(kpKey_).join('');
 }
@@ -13160,6 +13172,8 @@ function kpLayout_(inp) {
   pad.setAttribute('data-layer', KP_LAYER);
   pad.setAttribute('aria-label', KP_LAYER === 'abc' ? 'Letters keypad' : KP_LAYER === 'sym' ? 'Symbols keypad' : site ? 'Numbers keypad' : 'Maths keypad');
   kpShiftPaint_();
+  /* A FACE OF ANOTHER HEIGHT (123 to abc) re-measures the room the page leaves under it, or the taller pad sits over the page's foot */
+  if (!pad.hidden) kpPadH_(pad);
   return pad;
 }
 /* DONE READS "next" IN A BOX WITH ANOTHER AFTER IT (one box per value, 362), and "done" on the last. It never sends: the question's Check tile is the one submit (owner, 16 Nov). */
