@@ -311,7 +311,7 @@
    },
    "find": {
     "group": "Booking",
-    "label": "Tutors",
+    "label": "Staff",
     "under": [
      "Booking",
      "Profiles"
