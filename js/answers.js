@@ -29,7 +29,8 @@ function ansValue_(k) {
   /* A KEY THE STORE REFUSED IS READ FROM THE VISIT FIRST (`keepHeld_`, data.js) — the stored copy is older § */
   const held = typeof keepHeld_ === 'function' ? keepHeld_(k) : undefined;
   if (held !== undefined) return held;
-  try { return localStorage.getItem(k); } catch (e) { /* storage can be blocked; the app runs without it */ }
+  const got = keep_.get(k);
+  if (got !== undefined) return got;
   return ANS_MEM.has(k) ? ANS_MEM.get(k) : null;
 }
 /* `words` IS TRUE FOR A WORDED BOX (the essay's too), from the `input` listener in find.js — what § */
@@ -41,8 +42,7 @@ function ansLocalPut_(k, v, words) {
   /* SIGNED OUT, WHILE A SESSION THE SERVER ENDED IS FRESH, IT IS THAT PERSON'S — `ansGoneMark_` below. § */
   if (mark) ansGoneMark_(k, v, words, was);
   /* A FULL STORE GIVES UP THE LOADING SCREEN'S COPY BEFORE IT GIVES UP A CHILD'S WORK. § */
-  if (typeof keepPut_ === 'function') keepPut_(k, v);
-  else { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { /* storage can be blocked; the app runs without it */ } }
+  keep_.put(k, v, 'loud');
   /* A RING HELD FOR THE VISIT (`CIRC_HELD`) is the copy `circRead_` falls back to, and must say the same. */
   if (ansIsRing_(k) && typeof CIRC_HELD !== 'undefined') {
     try { if (v === null || v === '') CIRC_HELD.delete(k); else CIRC_HELD.set(k, JSON.parse(v)); } catch (e) { /* a bad stored value reads as none */ }
@@ -51,12 +51,13 @@ function ansLocalPut_(k, v, words) {
 /* WHEN THE ANSWER IN THIS KEY WAS LAST EDITED, in ms — by this device's child, or by whichever device the § */
 const ANS_AT_MEM = new Map();
 function ansAt_(k) {
-  try { return Number(localStorage.getItem('ansAt:' + k)) || 0; } catch (e) { /* storage can be blocked; the app runs without it */ }
+  const got = keep_.get('ansAt:' + k);
+  if (got !== undefined) return Number(got) || 0;
   return ANS_AT_MEM.get(k) || 0;
 }
 function ansAtSet_(k, at) {
   ANS_AT_MEM.set(k, at);
-  try { localStorage.setItem('ansAt:' + k, String(at)); } catch (e) { /* storage can be blocked; the app runs without it */ }
+  keep_.put('ansAt:' + k, String(at));
 }
 /* WHICH KEYS STILL HAVE TO GO UP, per person. § */
 const ANS_DIRTY = new Map();
@@ -64,7 +65,7 @@ function ansDirtySet_(who) {
   let s = ANS_DIRTY.get(who);
   if (!s) {
     s = new Set();
-    try { (JSON.parse(localStorage.getItem('ansDirty:' + who) || '[]') || []).forEach(k => s.add(String(k))); } catch (e) { /* storage can be blocked; the app runs without it */ }
+    [].concat(keep_.json('ansDirty:' + who, [])).forEach(k => s.add(String(k)));
     ANS_DIRTY.set(who, s);
   }
   return s;
@@ -72,8 +73,8 @@ function ansDirtySet_(who) {
 function ansDirtyKeep_(who) {
   const s = ANS_DIRTY.get(who);
   try {
-    if (s && s.size) localStorage.setItem('ansDirty:' + who, JSON.stringify([...s]));
-    else localStorage.removeItem('ansDirty:' + who);
+    if (s && s.size) keep_.put('ansDirty:' + who, JSON.stringify([...s]));
+    else keep_.del('ansDirty:' + who);
   } catch (e) { /* storage can be blocked; the app runs without it */ }
 }
 
@@ -313,11 +314,10 @@ function answersAdopt_(pid, got) {
   });
   try {
     const pre = subs ? ['pad:' + who + ':'] : ['ans:' + who + ':', 'pad:' + who + ':'];
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i);
+    for (const k of keep_.keys('')) {
       if (!k || seen.has(k) || dirty.has(k) || !pre.some(p => k.indexOf(p) === 0)) continue;
       if (ansAt_(k)) continue;
-      const v = localStorage.getItem(k);
+      const v = keep_.get(k);
       if (v === null || !String(v).trim() || v === '[]') continue;
       ansAtSet_(k, Date.now());
       dirty.add(k);
@@ -331,8 +331,8 @@ function answersAdopt_(pid, got) {
 /* ---------- WHAT WAS WRITTEN SIGNED OUT, CLAIMED BY WHOEVER SIGNS IN FROM SIGNED OUT § */
 function ansBareKeys_() {
   const all = new Set();
-  try { for (let i = 0; i < localStorage.length; i++) all.add(localStorage.key(i)); }
-  catch (e) { ANS_MEM.forEach((v, k) => all.add(k)); }
+  if (keep_.get('familyDevice') === undefined) ANS_MEM.forEach((v, k) => all.add(k));
+  else keep_.keys('').forEach(k => all.add(k));
   if (typeof KEEP_UNKEPT !== 'undefined') KEEP_UNKEPT.forEach(k => all.add(k));
   return [...all].filter(k => k && /^(?:ans|pad|board):(?!u:)/.test(k));
 }
@@ -355,7 +355,7 @@ function answersClaim_(pid, ownOnly) {
     /* GONE FROM UNDER THE SIGNED-OUT KEY WHATEVER HAPPENS NEXT — moved, joined, or the older of two. */
     ansLocalPut_(bare, null);
     ANS_AT_MEM.delete(bare);
-    try { localStorage.removeItem('ansAt:' + bare); } catch (e) { /* storage can be blocked; the app runs without it */ }
+    keep_.del('ansAt:' + bare);
     if (v === null || !String(v).trim() || v === '[]') return;
     const joined = mark && has ? ansJoin_(bare, mine, v, mark.words) : null;
     /* WHAT IS WRITTEN OVER IS THE ANSWER THE OLD CODE LEFT, until this person's one-time carry-over has run on § */
@@ -450,12 +450,11 @@ function ansSentHere_(k) {
 const ANS_NOT_KEPT = 'Not saved — this browser is not keeping it';
 /* ---------- AN EMPTY BOX OVER AN ANSWER THAT IS STILL HERE § */
 /* ---------- FOR AN HOUR, NOT UNTIL SOMEBODY SIGNS IN § */
-const ANS_GONE_MS = 60 * 60 * 1000;
+const ANS_GONE_MS = KEEP.familyGone.ttl;
 /* ---------- AND THE RECORD OF IT IS KEPT AS CAREFULLY AS THE WORK IT GUARDS § */
 const ansRec_ = name => ansValue_(name);
 function ansRecPut_(name, v) {
-  if (typeof keepPut_ === 'function') { keepPut_(name, v, 'record'); return; }
-  try { if (v === null) localStorage.removeItem(name); else localStorage.setItem(name, v); } catch (e) { /* storage can be blocked; the app runs without it */ }
+  keep_.put(name, v, 'record');
 }
 function ansGone_() {
   try {
@@ -538,7 +537,7 @@ function keepWaits_(k) {
   if (!held) return false;
   /* NOT WHEN THE STORED MARKS SAY THE SAME ALREADY — the refused write was about some other answer. */
   let kept = null;
-  try { kept = ansGoneRead_((JSON.parse(localStorage.getItem(ANS_GONE_KEYS) || '{}') || {})[k]); } catch (e) { /* a bad stored value reads as none */ }
+  try { kept = ansGoneRead_((JSON.parse(keep_.get(ANS_GONE_KEYS) || '{}') || {})[k]); } catch (e) { /* a bad stored value reads as none */ }
   return !(kept && kept.who === held.who);
 }
 /* ---------- THE PEN'S AND THE RINGS' NOTE, FOR THE KEY IT IS UNDER § */

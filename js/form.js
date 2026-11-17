@@ -92,7 +92,7 @@ function formDraftDrop_(id, o) {
   if (typeof draftDrop_ !== 'function' || typeof draftKey_ !== 'function') return;
   try {
     const pre = draftKey_('form', formDraftKey_(id, o, '')), keys = [];
-    for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.indexOf(pre) === 0) keys.push(k); }
+    keys.push(...keep_.keys(pre));
     keys.forEach(k => draftDrop_('form', k.slice(draftKey_('form', '').length)));
   } catch (e) { /* storage blocked: nothing was kept */ }
 }

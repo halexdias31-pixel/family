@@ -142,13 +142,13 @@ function payloadKeep_(text, f) {
     const d = JSON.parse(text);
     if (!d || d.error) return;
     f = f || payloadFor_();
-    localStorage.setItem(PAYLOAD_KEY, JSON.stringify({ who: f.who, build: f.build, at: Date.now(), d }, (k, v) => (PAYLOAD_SECRET.test(k) ? undefined : v)));
+    keep_.put(PAYLOAD_KEY, JSON.stringify({ who: f.who, build: f.build, at: Date.now(), d }, (k, v) => (PAYLOAD_SECRET.test(k) ? undefined : v)));
   } catch (e) { payloadForget_(); }
 }
 /* THE KEPT COPY FOR THIS ACCOUNT AND THIS BUILD, or null: anything else, or anything unreadable, is a normal load. */
 function payloadKept_() {
   try {
-    const k = JSON.parse(localStorage.getItem(PAYLOAD_KEY) || 'null'), f = payloadFor_();
+    const k = JSON.parse(keep_.get(PAYLOAD_KEY) || 'null'), f = payloadFor_();
     if (!k || !k.d || typeof k.d !== 'object' || k.who !== f.who || k.build !== f.build) return null;
     return k.d;
   } catch (e) { payloadForget_(); return null; }
@@ -157,7 +157,9 @@ function payloadKept_() {
 function payloadForget_() {
   PAYLOAD_OWED = null; PAYLOAD_TEXT = null;
   const kept = keptForget_();
-  try { const had = localStorage.getItem(PAYLOAD_KEY) !== null; localStorage.removeItem(PAYLOAD_KEY); return had || kept; } catch (e) { return kept; }
+  const had = typeof keep_.get(PAYLOAD_KEY) === 'string';
+  keep_.del(PAYLOAD_KEY);
+  return had || kept;
 }
 
 /* KEPT READS (`apiKept_`): each fetched card's last reply, per account and build like the payload, so it draws at once next time. */
@@ -166,7 +168,7 @@ const KEPT_PREFIX = 'kept:', KEPT_MAX = 200000;
 const keptKey_ = body => { const b = Object.assign({}, body); delete b.token; return KEPT_PREFIX + payloadFor_().who + ':' + JSON.stringify(b); };
 /* `anyBuild`: a record that is the person's own (a paper they downloaded), not a reply a new build may answer differently. */
 function keptGet_(k, anyBuild) {
-  try { const o = JSON.parse(localStorage.getItem(k) || 'null'); return o && (anyBuild || o.build === payloadFor_().build) && o.d && typeof o.d === 'object' ? o.d : null; } catch (e) { return null; }
+  try { const o = JSON.parse(keep_.get(k) || 'null'); return o && (anyBuild || o.build === payloadFor_().build) && o.d && typeof o.d === 'object' ? o.d : null; } catch (e) { return null; }
 }
 function keptPut_(k, text) {
   if (!text || text.length > KEPT_MAX) return;
@@ -175,7 +177,7 @@ function keptPut_(k, text) {
 /* GONE WITH THE PAYLOAD'S COPY: on sign-out and when the store is full. True when there was any. */
 function keptForget_() {
   const ks = [];
-  try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.indexOf(KEPT_PREFIX) === 0) ks.push(k); } ks.forEach(k => localStorage.removeItem(k)); } catch (e) { return false; }
+  ks.push(...keep_.keys(KEPT_PREFIX)); ks.forEach(k => keep_.del(k));
   return ks.length > 0;
 }
 

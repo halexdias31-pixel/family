@@ -32,7 +32,7 @@ function cardEditNow_() {
   if (!CARD_EDIT && CARD_EDIT_READ !== me) {
     CARD_EDIT_READ = me;
     try {
-      const k = JSON.parse(localStorage.getItem(CARD_EDIT_KEY) || 'null');
+      const k = JSON.parse(keep_.get(CARD_EDIT_KEY) || 'null');
       if (k && k.pid && k.who && k.who === me) {
         CARD_EDIT = cardEditFresh_(k.pid);
         if (!CARD_EDIT.own && PEOPLE_COLS_.indexOf(k.col) !== -1) CARD_EDIT.col = k.col;
@@ -52,9 +52,9 @@ function cardRemember_(e) {
   if (typeof e.fig0 === 'string') k.fig = e.fig0;
   /* NOT THE HANDLE (383): nothing about who signed in is kept beside it — it cannot change while the card is open, so the live one is the same. */
   if (typeof e.cr0 === 'number') k.cr = e.cr0;
-  try { localStorage.setItem(CARD_EDIT_KEY, JSON.stringify(k)); } catch (x) { /* storage can be blocked; the app runs without it */ }
+  keep_.put(CARD_EDIT_KEY, JSON.stringify(k));
 }
-function cardForget_() { try { localStorage.removeItem(CARD_EDIT_KEY); } catch (x) { /* storage can be blocked; the app runs without it */ } }
+function cardForget_() { keep_.del(CARD_EDIT_KEY); }
 
 /* WHO MAY EDIT THIS CARD: § */
 function cardMayEdit_(t) {
@@ -711,7 +711,7 @@ function cardSave_(el, auto) {
       if (e.own) {
         W.profile = (d && d.profile) ? d.profile : Object.assign({}, W.profile || {}, fields);
         if (d && d.name) W.name = d.name;
-        if (W === USER) try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (x) { /* storage can be blocked; the app runs without it */ }
+        if (W === USER) saveUser_();
         /* YOUR OWN COPY CHANGED, and the Progress column's journey card is drawn from it — see `meSave_`. */
       }
       cardPatchTutor_(e.pid, Object.assign({}, base, fields), fields);

@@ -113,6 +113,35 @@ function batchFiles_(want, bundle) {
     });
 }
 
+/* ---------- ONE LOADER FOR A FILE OF THE SITE'S OWN (owner, 17 Nov): `dataFile_(path, o)` resolves to the parsed file, or null.
+   o.as 'json' (the default) or 'text'; o.memo: one ask per path for the visit, shared by every caller; o.wait: ms before it is
+   given up (20 s); o.cache: the fetch's cache mode ('default'); o.stamp false: no deploy stamp (a path that is not ours, or a
+   page fetched fresh); o.what: the file's name in the reason. A miss is said once in `DATA_FILE_WHY[path]`; o.fail rejects with that reason instead of null. */
+const DATA_FILE_MEMO = new Map(), DATA_FILE_WHY = {};
+function dataFile_(path, o) {
+  o = o || {};
+  const as = o.as === 'text' ? 'text' : 'json';
+  if (o.memo && DATA_FILE_MEMO.has(as + path)) return DATA_FILE_MEMO.get(as + path);
+  const ask = new Promise((done, no) => {
+    const what = o.what || path;
+    const miss = why => { DATA_FILE_WHY[path] = why; if (o.fail) no(new Error(why)); else done(null); };
+    if (typeof fetch !== 'function') return miss('nothing to fetch with');
+    let over = false, ab = null;
+    try { if (typeof AbortController === 'function') ab = new AbortController(); } catch (e) { /* no abort: the wait still ends */ }
+    const ms = o.wait || 20000;
+    const t = setTimeout(() => { over = true; try { if (ab) ab.abort(); } catch (e) { /* already stopped */ } miss(what + ' did not arrive in ' + Math.round(ms / 1000) + ' seconds'); }, ms);
+    const url = path + (o.stamp === false || /^https?:/.test(path) ? '' : deployStamp_());
+    const opt = { cache: o.cache || 'default' };
+    if (ab) opt.signal = ab.signal;
+    Promise.resolve().then(() => fetch(url, opt))
+      .then(r => { if (!r || !r.ok) throw new Error(what + ' answered ' + (r ? r.status : 'nothing')); return as === 'text' ? r.text() : r.json(); })
+      .then(v => { clearTimeout(t); if (!over) { delete DATA_FILE_WHY[path]; done(v); } },
+            e => { clearTimeout(t); if (!over) miss((e && e.message) || String(e)); });
+  });
+  if (o.memo) { DATA_FILE_MEMO.set(as + path, ask); ask.then(v => { if (v === null) DATA_FILE_MEMO.delete(as + path); }, () => DATA_FILE_MEMO.delete(as + path)); }
+  return ask;
+}
+
 /* THE KEYS THE SITE ASKS FOR AND THE BACKEND DOES NOT SEND. § */
 let MISSING_KEYS = {};
 
@@ -192,6 +221,80 @@ function keepPut_(k, v, quiet) {
 }
 /* THE VISIT'S COPY OF A KEY THE STORE REFUSED, or `undefined` for a key the store holds as written. */
 const keepHeld_ = k => (KEEP_UNKEPT.has(k) ? KEEP_MEM.get(k) : undefined);
+
+/* ---------- ONE STORAGE KEEPER: every key the site keeps, by name, or by prefix when the name ends in `:` (owner, 17 Nov).
+   scope: 'user' (this person's), 'device' (the phone's, whoever holds it) or 'session' (the tab's, sessionStorage).
+   clearOnSignOut: `keep_.signOut()` removes it. ttl: how long it is good for, ms, where something reads it (the drafts' sweep).
+   A user key that is unsent work (answers, the queue, drafts) is filed under its person and stays: the next person never reads it.
+   NAMES NEVER CHANGE — a device keeps what it holds under them. A PIN is never kept: any name `DRAFT_NEVER` matches is refused. */
+const KEEP = {
+  familyUser: { scope: 'user', clearOnSignOut: true },
+  favs: { scope: 'user', clearOnSignOut: true },
+  surfaceFace: { scope: 'user', clearOnSignOut: true },
+  familyCardEdit: { scope: 'user', clearOnSignOut: true },
+  'payload:kept': { scope: 'user', clearOnSignOut: true },
+  'kept:': { scope: 'user', clearOnSignOut: true },
+  'asst:': { scope: 'user', clearOnSignOut: true },
+  familyHandles: { scope: 'user', clearOnSignOut: true },
+  familyAdminHint: { scope: 'user', clearOnSignOut: true },
+  'ans:': { scope: 'user' }, 'pad:': { scope: 'user' }, 'board:': { scope: 'user' }, 'part:': { scope: 'user' }, 'aiMark:': { scope: 'user' },
+  'ansAt:': { scope: 'user' }, 'ansDirty:': { scope: 'user' }, 'done:': { scope: 'user' },
+  'subLast:': { scope: 'user' }, 'subQ:': { scope: 'user' }, 'subBefore:': { scope: 'user' }, 'subMigrated:': { scope: 'user' },
+  'draft:': { scope: 'user', ttl: 30 * 24 * 60 * 60 * 1000 },
+  'familyTermShift:': { scope: 'user' },
+  familyGone: { scope: 'device', ttl: 60 * 60 * 1000 }, familyGoneKeys: { scope: 'device' }, familySwitched: { scope: 'device' },
+  familyDevice: { scope: 'device' }, familyField: { scope: 'device' }, came_from: { scope: 'device' },
+  familyTab: { scope: 'device' }, familyTabAt: { scope: 'device' }, 'arrival:shape': { scope: 'device' }, familyAheadSlow: { scope: 'device' },
+  familyCart: { scope: 'device' }, familyHelpHand: { scope: 'device' }, familyLayout: { scope: 'device' }, familyRules: { scope: 'device' },
+  familyWords: { scope: 'device' }, pixelArt: { scope: 'device' }, speedWpm: { scope: 'device' }, speedDraft: { scope: 'device' },
+  'chess-turns': { scope: 'device' }, 'bg-game': { scope: 'device' }, 'wg-game': { scope: 'device' }, 'cs-game': { scope: 'device' },
+  'ss-band': { scope: 'device' }, 'ws-theme': { scope: 'device' }, 'imp-n': { scope: 'device' }, 'imp-aloud': { scope: 'device' }, 'race-best': { scope: 'device' },
+  /* gone: old keys only ever removed */
+  'nes-keys': { scope: 'device' }, 'mark-sound': { scope: 'device' }, 'voice:name': { scope: 'device' },
+  splashAnims: { scope: 'device' }, splashOff: { scope: 'device' }, 'splashAnim:': { scope: 'device' },
+  familyVerify: { scope: 'session' }, familyPaid: { scope: 'session' },
+};
+const KEEP_ODD = new Set();
+function keepSpec_(k) {
+  k = String(k);
+  if (Object.prototype.hasOwnProperty.call(KEEP, k)) return KEEP[k];
+  const pre = Object.keys(KEEP).find(p => p.slice(-1) === ':' && k.indexOf(p) === 0);
+  return pre ? KEEP[pre] : null;
+}
+const keepStore_ = k => ((keepSpec_(k) || {}).scope === 'session' ? sessionStorage : localStorage);
+/* get: the stored text, null when there is none, undefined when the store is blocked. put: `how` is undefined (quiet: a refusal
+   is only `false`), 'loud' (`keepPut_`'s held-for-the-visit and said) or 'record'. True when the store took it. */
+const keep_ = {
+  get(k) {
+    const held = keepHeld_(k);
+    if (held !== undefined) return held;
+    try { return keepStore_(k).getItem(k); } catch (e) { return undefined; }
+  },
+  json(k, none) { try { const v = JSON.parse(keep_.get(k) || 'null'); return v == null ? none : v; } catch (e) { return none; } },
+  put(k, v, how) {
+    /* A NAME NOBODY REGISTERED is said once, and refused outright when it names a PIN or a password. */
+    if (!keepSpec_(k)) { if (v !== null && draftNever_(k)) return false; if (!KEEP_ODD.has(k)) { KEEP_ODD.add(k); console.warn('keep_: unregistered key ' + k); } }
+    if (keepStore_(k) !== localStorage) { try { if (v === null) sessionStorage.removeItem(k); else sessionStorage.setItem(k, v); return true; } catch (e) { return false; } }
+    return keepPut_(k, v === null ? null : String(v), how === 'loud' ? undefined : how || true);
+  },
+  del(k, how) { return keep_.put(k, null, how); },
+  /* EVERY KEY THE DEVICE HOLDS starting `pre` ('' for all). */
+  keys(pre) {
+    const out = [];
+    try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.indexOf(pre || '') === 0) out.push(k); } } catch (e) { return out; }
+    return out;
+  },
+  /* SIGN-OUT: every key marked clearOnSignOut goes, by name and by prefix. */
+  signOut() {
+    Object.keys(KEEP).filter(n => KEEP[n].clearOnSignOut).forEach(n => {
+      (n.slice(-1) === ':' ? keep_.keys(n) : [n]).forEach(k => keep_.del(k));
+    });
+  },
+};
+/* THE SIGN-IN KEPT ON THIS PHONE, never its PIN; false when storage is blocked, and the sign-in still holds for this visit. */
+function saveUser_() {
+  try { return keep_.put('familyUser', JSON.stringify(USER, (n, v) => (n && draftNever_(n) ? undefined : v))); } catch (e) { return false; }
+}
 /* ONCE MORE, AS THE PAGE GOES — a draft sent or a copy given way since may have made the room. § */
 function keepRetry_() {
   [...KEEP_UNKEPT].sort((a, b) => KEEP_RECORD.has(b) - KEEP_RECORD.has(a)).forEach(k => {
@@ -226,7 +329,7 @@ window.addEventListener('beforeunload', e => {
 const DRAFT_DEVICE_MS = 6 * 60 * 60 * 1000;
 /* WHOSE A SIGNED-OUT ANSWER OR DEVICE DRAFT IS (`ansGoneMark_`, answers.js; docs/history/317). § */
 const ANS_GONE_KEYS = 'familyGoneKeys';
-const DRAFT_KEEP_MS = 30 * 24 * 60 * 60 * 1000;
+const DRAFT_KEEP_MS = KEEP['draft:'].ttl;
 /* LONGER THAN ANY ANSWER APPS SCRIPT GIVES (six minutes is its ceiling), so a send still out in another tab § */
 const DRAFT_SENT_MS = 10 * 60 * 1000;
 const DRAFT_MAX = 200;
@@ -250,8 +353,8 @@ function draftParse_(raw) {
   } catch (e) { return null; }
 }
 function draftRaw_(k) {
-  let raw = keepHeld_(k);
-  if (raw === undefined) { try { raw = localStorage.getItem(k); } catch (e) { raw = KEEP_MEM.has(k) ? KEEP_MEM.get(k) : null; } }
+  let raw = keep_.get(k);
+  if (raw === undefined) raw = KEEP_MEM.has(k) ? KEEP_MEM.get(k) : null;
   return raw === null || raw === undefined ? null : draftParse_(raw);
 }
 /* PAST ITS TIME — see the sweep's note above. */
@@ -259,7 +362,7 @@ function draftRaw_(k) {
 function draftHeld_(k) {
   try {
     let raw;
-    try { raw = ansRec_(ANS_GONE_KEYS); } catch (e) { raw = localStorage.getItem(ANS_GONE_KEYS); }
+    try { raw = ansRec_(ANS_GONE_KEYS); } catch (e) { raw = keep_.get(ANS_GONE_KEYS); }
     const map = JSON.parse(raw || '{}');
     return !!(map && map[k]);
   } catch (e) { return false; }
@@ -299,7 +402,7 @@ function draftDrop_(surface, id, who) {
   DRAFT_SENDING.delete(k);
   draftMark_(k, null);
   let had = KEEP_MEM.has(k);
-  if (!had) { try { had = localStorage.getItem(k) !== null; } catch (e) { /* storage can be blocked; the app runs without it */ } }
+  if (!had) had = typeof keep_.get(k) === 'string';
   return had ? keepPut_(k, null) : true;
 }
 /* ---------- SENT, ANSWERED, REFUSED — see "SENT IS NOT A DRAFT" above. `v` is the words that went, so a § */
@@ -359,13 +462,12 @@ function draftFrom_(el) {
 }));
 function draftSweep_() {
   try {
-    const now = Date.now(), all = [], live = [];
-    for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.indexOf('draft:') === 0) all.push(k); }
+    const now = Date.now(), all = keep_.keys('draft:'), live = [];
     all.forEach(k => {
-      const d = draftParse_(localStorage.getItem(k));
-      if (!d || draftOld_(k, d, now)) localStorage.removeItem(k); else live.push([k, Number(d.at) || 0]);
+      const d = draftParse_(keep_.get(k));
+      if (!d || draftOld_(k, d, now)) keep_.del(k); else live.push([k, Number(d.at) || 0]);
     });
-    live.sort((a, b) => b[1] - a[1]).slice(DRAFT_MAX).forEach(x => localStorage.removeItem(x[0]));
+    live.sort((a, b) => b[1] - a[1]).slice(DRAFT_MAX).forEach(x => keep_.del(x[0]));
   } catch (e) { /* storage can be blocked; old drafts wait for next time */ }
 }
 draftSweep_();

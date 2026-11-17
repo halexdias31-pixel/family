@@ -22,8 +22,7 @@ function feedPicture(query) {
       + '&gsrsearch=' + encodeURIComponent('filetype:bitmap ' + q)
       + '&prop=imageinfo&iiprop=url|extmetadata&iiurlwidth=900';
 
-  return fetch(url)
-    .then(r => r.json())
+  return dataFile_(url, { fail: true })
     .then(d => {
       let out = null;
       if (key) {

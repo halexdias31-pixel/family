@@ -150,7 +150,7 @@ function pfpTake_(box, url, said) {
   if (!USER) return;
   USER.profile = Object.assign({}, USER.profile || {}, { photo: url });
   USER.photo = url;
-  try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (e) { /* storage can be blocked; the app runs without it */ }
+  saveUser_();
   ['tutors', 'people', 'students', 'clients', 'family', 'everyone'].forEach(k => ((DATA && DATA[k]) || []).forEach(r => {
     if (r && USER.personId && (r.personId === USER.personId || r.person_id === USER.personId || r.id === USER.personId)) {
       if ('image' in r) r.image = url;

@@ -5,17 +5,13 @@
 const OOPS = { sent: new Set(), n: 0, max: 10, told: 0 };
 function oopsDevice_() {
   try {
-    let d = localStorage.getItem('familyDevice');
-    if (!d) { d = 'D' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); localStorage.setItem('familyDevice', d); }
+    let d = keep_.get('familyDevice');
+    if (!d) { d = 'D' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); if (!keep_.put('familyDevice', d)) return 'nostore'; }
     return d;
   } catch (e) { return 'nostore'; }
 }
 function oopsHtml_() {
   return renderCard({ kind: 'oops', look: 'oops', tags: [{ text: 'This part did not load', colour: 0 }] });
-}
-/* THE SIGN-IN KEPT ON THIS PHONE; false when storage is blocked, and the sign-in still holds for this visit. */
-function keepUser_() {
-  try { localStorage.setItem('familyUser', JSON.stringify(USER)); return true; } catch (e) { return false; }
 }
 function oops_(err, where, host, o) {
   o = o || {};
@@ -58,10 +54,10 @@ function fieldSend_(final) {
   if (!FIELD.on || FIELD.sent || typeof API !== 'string' || typeof fetch !== 'function') return;
   FIELD.sent = true;
   let q = [];
-  try { q = JSON.parse(localStorage.getItem('familyField') || '[]'); } catch (e) { q = []; }
+  q = keep_.json('familyField', []);
   q.push(fieldRow_());
-  if (q.length < 3 && !final) { try { localStorage.setItem('familyField', JSON.stringify(q.slice(-5))); } catch (e) { FIELD.lost = (FIELD.lost || 0) + 1; } return; }
-  try { localStorage.removeItem('familyField'); } catch (e) { FIELD.lost = (FIELD.lost || 0) + 1; }
+  if (q.length < 3 && !final) { if (!keep_.put('familyField', JSON.stringify(q.slice(-5)))) FIELD.lost = (FIELD.lost || 0) + 1; return; }
+  if (!keep_.del('familyField')) FIELD.lost = (FIELD.lost || 0) + 1;
   try { Promise.resolve(fetch(API, { method: 'POST', cache: 'no-store', keepalive: true, body: JSON.stringify({ action: 'healthLog', device: fieldDevice_(), rows: q.slice(-5) }) })).catch(() => {}); }
   catch (e) { FIELD.lost = (FIELD.lost || 0) + 1; }
 }
@@ -291,16 +287,16 @@ let KEPT_GONE = '';
    Business is put back on it, and anybody else's remembered `biz` is not a column and is let go. */
 try { columnsFor_(); } catch (e) { oops_(e, 'shell:screen') }
 try {
-  const kept = localStorage.getItem('familyTab');
+  const kept = keep_.get('familyTab');
   const was = kept && screenNow_(kept);
-  const when = Number(localStorage.getItem('familyTabAt') || 0);
+  const when = Number(keep_.get('familyTabAt') || 0);
   if (was && TABS.some(t => t.id === was) && when && Date.now() - when < AWAY_AGAIN) AT = was;
   /* A REMEMBERED COLUMN THAT IS A FIND BRANCH NOW (screens-moved.json `find:`) opens that branch once the payload is in (`loadFinish_`). */
   else if (was && when && Date.now() - when < AWAY_AGAIN) KEPT_GONE = was;
 } catch { /* a bad stored tab opens the default one */ }
 /* ---------- AND THE MOMENT IS WHEN YOU LEFT, NOT WHEN YOU ARRIVED § */
 function tabStampLeft_() {
-  try { if (localStorage.getItem('familyTab') === AT) localStorage.setItem('familyTabAt', String(Date.now())); } catch { /* storage blocked: the tab is not remembered */ }
+  if (keep_.get('familyTab') === AT) keep_.put('familyTabAt', String(Date.now()));
 }
 window.addEventListener('pagehide', tabStampLeft_);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') tabStampLeft_(); });
@@ -338,7 +334,7 @@ function loading_() {
 /* EACH COLUMN'S SHAPE, KEPT ON THE DEVICE (700): page heights in px, no data, so a column waiting next visit holds its final size. */
 const SHAPE_KEY = 'arrival:shape', SHAPE_PAGES = 6;
 const shapeWidth_ = () => { try { return WIDE ? 'w' + Math.round(wideCard_().card) : 'n' + innerWidth; } catch (e) { return ''; } };
-function shapeAll_() { try { return JSON.parse(localStorage.getItem(SHAPE_KEY) || '{}') || {}; } catch (e) { return {}; } }
+function shapeAll_() { return keep_.json(SHAPE_KEY, {}); }
 /* A SHAPE WITH NO HEIGHT IN IT (nothing laid out, as under jsdom) is no shape: the column keeps its one waiting page. */
 function shapeOf_(id) { const w = shapeWidth_(), all = shapeAll_(), hs = all.at === w && all[id]; return Array.isArray(hs) && hs.some(h => h > 0) ? hs : null; }
 /* A COLUMN WITH NO DRAWER YET: its remembered pages, each a quiet surface round the one loader; one page when it was never seen. */

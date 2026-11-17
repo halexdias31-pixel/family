@@ -8,9 +8,7 @@ const CHEM_SUBJECT = 'Chemistry';
 function chemIndex_() {
   if (CHEM.data) return CHEM.data;
   if (CHEM.asking || CHEM.failed || typeof fetch !== 'function') return null;
-  const stamp = deployStamp_();
-  const get = f => Promise.resolve().then(() => fetch('data/chemistry/' + f + '.json' + stamp, { cache: 'default' }))
-    .then(res => (res && res.ok) ? res.json() : null).catch(() => null);
+  const get = f => dataFile_('data/chemistry/' + f + '.json');
   const names = Object.keys(CHEM_FILES);
   CHEM.asking = Promise.all(names.map(get)).then(all => {
     CHEM.asking = null;

@@ -20,9 +20,8 @@ const fieldLabel = f => FIELD_LABEL[f] || String(f).replace(/_/g, ' ');
 
 
 /* ---------- THE BASKET § */
-let CART = [];
-try { CART = JSON.parse(localStorage.getItem('familyCart') || '[]'); } catch { /* a bad stored basket reads as empty */ }
-const cartSave = () => { try { localStorage.setItem('familyCart', JSON.stringify(CART)); } catch { /* storage blocked: the basket still holds for this visit */ } };
+let CART = keep_.json('familyCart', []);
+const cartSave = () => { keep_.put('familyCart', JSON.stringify(CART)); };
 
 /* ---------- A SHOP ROW PRICED IN PENCE IS MONEY, NOT CREDITS § */
 function cartPrice_(src) {

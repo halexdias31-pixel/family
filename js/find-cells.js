@@ -502,7 +502,7 @@ function padAdopt_(k, bare) {
   if (!k || !bare || k === bare) return;
   try {
     /* "EMPTY" IS ASKED OF THE WRITER'S OWN READER (`ansValue_`, answers.js), the visit's copy first. § */
-    const read = typeof ansValue_ === 'function' ? ansValue_ : (x => localStorage.getItem(x));
+    const read = typeof ansValue_ === 'function' ? ansValue_ : (x => keep_.get(x));
     if (read(k) !== null) return;
     const v = read(bare);
     if (v === null) return;
@@ -510,9 +510,9 @@ function padAdopt_(k, bare) {
        (answers.js). Only into an empty pad, so any answer but "no" moves it. */
     if (typeof ansMayMove_ === 'function' && !ansMayMove_(bare, k)) return;
     /* THROUGH `ansStore_`, so the marks that became this person's go up to their account with the rest. */
-    if (typeof ansStore_ === 'function') ansStore_(k, v); else localStorage.setItem(k, v);
+    if (typeof ansStore_ === 'function') ansStore_(k, v); else keep_.put(k, v);
     /* AND OFF THE SIGNED-OUT KEY THROUGH THE WRITER: the store's copy, the visit's, and the mark. */
-    if (typeof ansLocalPut_ === 'function') ansLocalPut_(bare, null); else localStorage.removeItem(bare);
+    if (typeof ansLocalPut_ === 'function') ansLocalPut_(bare, null); else keep_.del(bare);
   } catch (e) { /* storage blocked: the answer stays on the page only */ }
 }
 
@@ -561,7 +561,7 @@ function padHasInk_(x) {
 /* THROUGH `ansValue_`, THE WRITER'S OWN READER (js/answers.js), and not `localStorage` beside it. § */
 function padRead_(k) {
   try {
-    const raw = typeof ansValue_ === 'function' ? ansValue_(k) : localStorage.getItem(k);
+    const raw = typeof ansValue_ === 'function' ? ansValue_(k) : keep_.get(k);
     const v = JSON.parse(raw || '[]');
     return Array.isArray(v) ? v : [];
   } catch (e) { return []; }

@@ -18,7 +18,7 @@ function verifyFromLink_(again) {
         accountChanged_();
         if (USER) {
           USER.profile = Object.assign({}, USER.profile || {}, { email: String(d.email || ''), email_moving: '' });
-          try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch { /* storage blocked: the sign-in still holds for this visit */ }
+          saveUser_();
           try { repaint(true); } catch (e) { oops_(e, 'me:verifyFromLink_') }
         }
         toast('Your email is ' + (d.email || 'changed') + ' now — sign in with it from here on.');
@@ -51,7 +51,7 @@ function verifyFromLink_(again) {
           /* AND A `myProfile` ASKED BEFORE THIS IS NOT ALLOWED TO PUT IT BACK (`ACCOUNT_AT_`) — measured by round three of the review: § */
           accountChanged_();
           USER.pendingEmail = '';
-          try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch { /* storage blocked: the sign-in still holds for this visit */ }
+          saveUser_();
           try { repaint(true); } catch (e) { oops_(e, 'me:verifyFromLink_') }
         }
         toast('Email confirmed' + (first ? ', ' + first : '')
@@ -65,7 +65,7 @@ function verifyFromLink_(again) {
     .catch(err => {
       const d = err && err.reply;
       if (!d || d.why !== 'sign-in-first') return;    // `send_` has already toasted the server's sentence
-      try { sessionStorage.setItem('familyVerify', token); } catch (e) { /* storage can be blocked; the app runs without it */ }
+      keep_.put('familyVerify', token);
       try { go('account'); } catch (e) { oops_(e, 'me:verifyFromLink_') }
     });
 }
@@ -83,10 +83,10 @@ function afterSignIn_(d) {
       cardBlock_({ type: 'text', look: 'note', text: d.message }) + tile_({ form: true, label: 'Done', act: 'sheet-done', kind: 'quiet' }));
   }
   let waiting = '';
-  try { waiting = sessionStorage.getItem('familyVerify') || ''; sessionStorage.removeItem('familyVerify'); } catch (e) { /* storage can be blocked; the app runs without it */ }
+  waiting = keep_.get('familyVerify') || ''; keep_.del('familyVerify');
   if (waiting) verifyFromLink_(waiting);
   /* AND A CARD PAYMENT THAT CAME BACK BEFORE ANYBODY WAS SIGNED IN — see `paidFromLink_`. */
-  try { if (sessionStorage.getItem(PAID_KEY_)) paidFromLink_(); } catch (e) { /* storage can be blocked; the app runs without it */ }
+  try { if (keep_.get(PAID_KEY_)) paidFromLink_(); } catch (e) { /* storage can be blocked; the app runs without it */ }
 }
 
 /* ---------- AND THE SIGN-IN LINK IN A FORGOTTEN-PIN MAIL § */
@@ -126,10 +126,10 @@ function paidFromLink_() {
       const rest = q.toString();
       history.replaceState(null, '', location.pathname + (rest ? '?' + rest : '') + location.hash);
       if (paid !== '1' || !ref) { toast(text_('payment-cancelled-nothing-was-charged-your')); return; }
-      try { sessionStorage.setItem(PAID_KEY_, ref); } catch (e) { /* storage can be blocked; the app runs without it */ }
+      keep_.put(PAID_KEY_, ref);
     }
   } catch (e) { /* no address bar to read: no payment came back */ }
-  if (!ref) try { ref = sessionStorage.getItem(PAID_KEY_) || ''; } catch (e) { /* storage can be blocked; the app runs without it */ }
+  if (!ref) ref = keep_.get(PAID_KEY_) || '';
   if (!ref || PAID_ASKING_ === ref) return;
   if (!USER || !USER.token) {
     toast(text_('sign-in-to-finish-your-booking'));
@@ -139,7 +139,7 @@ function paidFromLink_() {
   /* A CHILD NEVER PAYS (398), so a child's phone does not ask — the parent who paid signs in and it finishes. */
   if (!may_('prices')) { toast('A parent paid for this — they sign in to finish the booking.'); return; }
   PAID_ASKING_ = ref;
-  const forget = () => { try { sessionStorage.removeItem(PAID_KEY_); } catch (e) { /* storage can be blocked; the app runs without it */ } };
+  const forget = () => { keep_.del(PAID_KEY_); };
   api({ action: 'finalizePayment', ref })
     .then(d => {
       PAID_ASKING_ = '';

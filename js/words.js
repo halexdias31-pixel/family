@@ -12,10 +12,10 @@ function wordsNow_() {
   let w;
   try { w = DATA && DATA.words; } catch (e) { w = null; }
   if (w && typeof w === 'object' && !Array.isArray(w)) {
-    try { const s = JSON.stringify(w); if (s !== WORDS_KEPT) { WORDS_KEPT = s; localStorage.setItem(WORDS_STORE, s); } } catch (e) {}
+    try { const s = JSON.stringify(w); if (s !== WORDS_KEPT) { WORDS_KEPT = s; keep_.put(WORDS_STORE, s); } } catch (e) {}
     return w;
   }
-  try { const k = JSON.parse(localStorage.getItem(WORDS_STORE) || '{}'); return k && typeof k === 'object' && !Array.isArray(k) ? k : {}; } catch (e) { return {}; }
+  try { const k = JSON.parse(keep_.get(WORDS_STORE) || '{}'); return k && typeof k === 'object' && !Array.isArray(k) ? k : {}; } catch (e) { return {}; }
 }
 /* THE ONE LOOKUP, like `brand(k, or)`: the admin's text, else the code's. Plain text — whoever draws it escapes it. */
 function words_(key, or) {

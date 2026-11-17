@@ -17,9 +17,8 @@ const SUB_MEM = new Map();
 function subAll_(who) {
   const m = SUB_MEM.get(who);
   if (!who) return m ? m.map : (SUB_MEM.set('', { raw: '', map: {} }), SUB_MEM.get('').map);
-  let raw = null;
-  try { raw = localStorage.getItem('subLast:' + who); }
-  catch (e) { return m ? m.map : (SUB_MEM.set(who, { raw: null, map: {} }), SUB_MEM.get(who).map); }
+  const raw = keep_.get('subLast:' + who);
+  if (raw === undefined) return m ? m.map : (SUB_MEM.set(who, { raw: null, map: {} }), SUB_MEM.get(who).map);
   if (m && m.raw === raw) return m.map;
   let map = {};
   try { map = JSON.parse(raw || '{}') || {}; } catch (e) { map = {}; }
@@ -32,14 +31,10 @@ function subAllKeep_(who, map) {
   const raw = JSON.stringify(map || {});
   SUB_MEM.set(who, { raw: raw, map: map || {} });
   if (!who) return true;
-  try { localStorage.setItem('subLast:' + who, raw); return true; }
-  catch (e) {
-    /* A FULL STORE KEEPS THE OLD TEXT, and the next read would find it differing from this copy and parse the old one over the press just made. § */
-    let held = null;
-    try { held = localStorage.getItem('subLast:' + who); } catch (e2) { held = null; }
-    SUB_MEM.set(who, { raw: held, map: map || {} });
-    return false;
-  }
+  if (keep_.put('subLast:' + who, raw)) return true;
+  /* A FULL STORE KEEPS THE OLD TEXT, and the next read would find it differing from this copy and parse the old one over the press just made. § */
+  SUB_MEM.set(who, { raw: keep_.get('subLast:' + who) ?? null, map: map || {} });
+  return false;
 }
 /* THE LATEST PRESS FOR AN ANSWER KEY — only ever the person signed in now. A key that names somebody
    else is somebody else's drawer, and is never read out on this person's screen. */
@@ -66,15 +61,14 @@ function subQueue_(who) {
   const held = typeof keepHeld_ === 'function' ? keepHeld_(subQKey_(who)) : undefined;
   if (held !== undefined) return parse(held);
   let raw = null;
-  try { raw = localStorage.getItem(subQKey_(who)); } catch (e) { return (SUBQ_MEM.get(who) || []).slice(); }
+  raw = keep_.get(subQKey_(who));
+  if (raw === undefined) return (SUBQ_MEM.get(who) || []).slice();
   return parse(raw);
 }
 function subQueueKeep_(who, list) {
   SUBQ_MEM.set(who, list.slice());
   const raw = list.length ? JSON.stringify(list) : null;
-  if (typeof keepPut_ === 'function') return keepPut_(subQKey_(who), raw);
-  try { if (raw === null) localStorage.removeItem(subQKey_(who)); else localStorage.setItem(subQKey_(who), raw); return true; }
-  catch (e) { return false; }
+  return keep_.put(subQKey_(who), raw, 'loud');
 }
 /* ---------- A PRESS MARKED "STILL TO GO" THAT THE QUEUE HAS NOT GOT WILL NEVER GO — SO IT IS QUEUED AGAIN § */
 function subRequeue_(who) {
@@ -286,7 +280,7 @@ const SUB_BEFORE = Date.UTC(2026, 9, 9);
 const subBeforeKey_ = who => 'subBefore:' + who;
 function subBefore_(who) {
   let raw = typeof keepHeld_ === 'function' ? keepHeld_(subBeforeKey_(who)) : undefined;
-  if (raw === undefined) { try { raw = localStorage.getItem(subBeforeKey_(who)); } catch (e) { raw = null; } }
+  if (raw === undefined) raw = keep_.get(subBeforeKey_(who)) ?? null;
   try { const m = JSON.parse(raw || '{}'); return m && typeof m === 'object' && !Array.isArray(m) ? m : {}; }
   catch (e) { return {}; }
 }
@@ -294,13 +288,12 @@ function subClaimOver_(k, was, at) {
   k = String(k || '');
   const who = ansWhoOf_(k);
   if (!who || !/^ans:/.test(k) || was === null || was === undefined || !String(was).trim()) return;
-  try { if (localStorage.getItem('subMigrated:' + who)) return; } catch (e) { return; }
+  if (keep_.get('subMigrated:' + who) !== null) return;
   const held = subBefore_(who), key = subKeyOf_(k);
   if (held[key]) return;
   held[key] = { a: String(was), at: Number(at) || 0 };
   const raw = JSON.stringify(held);
-  if (typeof keepPut_ === 'function') keepPut_(subBeforeKey_(who), raw, 'record');
-  else { try { localStorage.setItem(subBeforeKey_(who), raw); } catch (e) { /* storage can be blocked; the app runs without it */ } }
+  keep_.put(subBeforeKey_(who), raw, 'record');
 }
 function subMigrateId_(pid, key) {
   /* TWO 32-BIT FNV-1a PASSES IN BASE 36 — `SUBMISSION_ID`'s shape, `<digits>-<letters and digits>`, with an
@@ -341,9 +334,8 @@ function subDoneOf_(who, pid) {
   const done = {};
   const pre = 'done:' + who + ':';
   try {
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i);
-      if (k && k.indexOf(pre) === 0) done[k.slice(pre.length)] = String(localStorage.getItem(k) || '');
+    for (const k of keep_.keys(pre)) {
+      done[k.slice(pre.length)] = String(keep_.get(k) || '');
     }
   } catch (e) { /* storage can be blocked; the app runs without it */ }
   try {
@@ -361,7 +353,7 @@ function subMigrate_() {
   const flag = 'subMigrated:' + who;
   /* A BROWSER THAT KEEPS NOTHING KEPT NO `done:` DATE AND NO ANSWER PAST THE VISIT, and could hold no flag:
      nothing to carry, and nothing to stop the pass running on every load. */
-  try { if (localStorage.getItem(flag)) return; } catch (e) { return; }
+  if (keep_.get(flag) !== null) return;
   /* THE ACCOUNT'S OWN, so a question it already has a submission for is left alone — and a backend that
      keeps submissions but has not sent this person's copy yet is waited for. */
   let mine = {};
@@ -418,10 +410,9 @@ function subMigrate_() {
     subPaintAll_();
   }
   if (!stored) return;
-  try { localStorage.setItem(flag, String(Date.now())); } catch (e) { /* storage can be blocked; the app runs without it */ }
+  keep_.put(flag, String(Date.now()));
   /* AND WHAT THE CLAIM WROTE OVER IS NOBODY'S BUSINESS ANY MORE. */
-  if (typeof keepPut_ === 'function') keepPut_(subBeforeKey_(who), null, 'record');
-  else { try { localStorage.removeItem(subBeforeKey_(who)); } catch (e) { /* storage can be blocked; the app runs without it */ } }
+  keep_.del(subBeforeKey_(who), 'record');
 }
 
 /* ---------- THE WORDS FOR A VERDICT § */
@@ -441,7 +432,7 @@ function subSay_(v) {
 
 /* ---------- THE VERDICT, HEARD § */
 /* NO SWITCH (374, the owner: "it should just play sound, no option to get rid of"): the tab's mute and the device's volume are the way to quiet it; the old device setting is forgotten */
-try { localStorage.removeItem('mark-sound'); } catch (e) { /* nothing kept */ }
+keep_.del('mark-sound');
 /* WHETHER THIS DEVICE CAN MAKE A SOUND AT ALL. § */
 function markCanSound_() {
   try { return !!(window.AudioContext || window.webkitAudioContext); } catch (e) { return false; }
