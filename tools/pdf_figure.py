@@ -1,6 +1,6 @@
 """A paper's own figure, drawn as this library draws one: its vector line-work and its labels, off the PDF.
 
-Used by tools/add-past-paper.py (415). The question paper's figures are vector drawings, so their
+Used by the figures stage of tools/content.js and by tools/content/paper.py (415). The question paper's figures are vector drawings, so their
 coordinates are the paper's own; this takes everything painted inside a clip rectangle and writes it
 as an SVG `W` wide (svgplot.W, the one scale), strokes in `currentColor`, labels as `.num`/`.lbl`
 text with the anchor inline (`.qsheet .num` beats an attribute). Nothing is traced by eye.

@@ -31,18 +31,18 @@ Every row-writing tool (`tools/*.py`, `tools/diagram_png.js`, `tools/anim_row.py
 and writes whole rows, as it always did. Around it:
 
 ```bash
-node tools/lib-private.js pull          # data-private/ from the Ledger (or `seed`, from git history, first time)
-node tools/lib-private.js join          # whole rows back into data/*.json
+node tools/content.js library pull          # data-private/ from the Ledger (or `seed`, from git history, first time)
+node tools/content.js library join          # whole rows back into data/*.json
 python3 tools/<the tool>.py             # the tool, unchanged
-node tools/lib-private.js split         # the words back out into data-private/, lib_has and function_verified recomputed
+node tools/content.js library split         # the words back out into data-private/, lib_has and function_verified recomputed
 npm run check                           # the checks read the whole library through check/lib-full.js
-node tools/lib-private.js push          # what changed, into the Ledger
+node tools/content.js library push          # what changed, into the Ledger
 git commit                              # data/ holds cards only; check-secrets refuses words in it
 ```
 
-`pull` and `push` use an admin's sign-in token: `FAMILY_ADMIN_TOKEN=<token> node tools/lib-private.js pull` (the
+`pull` and `push` use an admin's sign-in token: `FAMILY_ADMIN_TOKEN=<token> node tools/content.js library pull` (the
 token is `familyUser.token` in the site's localStorage when signed in as an admin). `FAMILY_API` overrides the
-Apps Script address in `js/data.js`. `node tools/lib-private.js status` says what is where; `help` prints the usage.
+Apps Script address in `js/data.js`. `node tools/content.js library status` says what is where; `help` prints the usage.
 
 `split` merges rather than replaces: a tool that wrote one field onto a card-only row keeps the rest of that row's
 words. A row written whole is the truth for that row.
@@ -56,9 +56,9 @@ A Claude session cannot reach Apps Script or hold an admin token, so it cannot `
 Google Drive, and the backend reads them from there:
 
 ```bash
-node tools/lib-private.js join && python3 tools/<the tool>.py && node tools/lib-private.js split   # as above
-node tools/lib-private.js drive-pack /tmp/out/          # writes /tmp/out/lib-import-<time>.json — never inside the repo
-node tools/lib-private.js drive-pack /tmp/x.json --ids Q-1a,Q-1b --private <another data-private dir> --note "why"
+node tools/content.js library join && python3 tools/<the tool>.py && node tools/content.js library split   # as above
+node tools/content.js library drive-pack /tmp/out/          # writes /tmp/out/lib-import-<time>.json — never inside the repo
+node tools/content.js library drive-pack /tmp/x.json --ids Q-1a,Q-1b --private <another data-private dir> --note "why"
 ```
 
 1. **Claude prepares** the file. Without `--ids` it holds every item that differs from the Ledger as this machine knows
@@ -111,20 +111,20 @@ lacks the words. Used by the content batch, all merged in 436: `TB-ALEVEL-MATHS`
 Science 13–14 (424), Business 11–19 and Economics (425), Psychology 9–10 and Sociology 9 (426), the Spanish and French
 Foundation books (427) and RS 12 (418) — one implementation; the copies some of those branches carried (a card that never asked
 and always said Coming soon) were folded into this one. An import file is made with
-`node tools/lib-private.js drive-pack <file> --ids <ids>`; `check-flow`'s journey "a new content card (lib_pending)…"
+`node tools/content.js library drive-pack <file> --ids <ids>`; `check-flow`'s journey "a new content card (lib_pending)…"
 holds the site to both answers, with stand-in words where this machine has none.
 
-New past papers: `tools/add-past-paper.js <rows.json>` (rows written by a paper script through `tools/paperspec.py`,
-figures through `tools/pdf_figure.py`; the script with the words stays outside the repository) puts a paper's rows in
-after its cover row, splits them, and marks them pending. Their words reach the Ledger by `push`, or as an import file
-(`{version: 1, files: {questions: [{id, …private fields}]}, cards: {…}}`) through the Drive import (407).
+New past papers come in through the one content pipeline, `node tools/content.js` (source → spec → parts → figures →
+keys → card → import; docs/notes/tools/content.md): it puts a paper's rows where its old ones were (a new paper at the end),
+splits them, and leaves its card pending. Their words reach the Ledger by `push`, or as an import file
+(`{version: 1, files: {questions: [{id, …private fields}]}, cards: {…}}`, `--ledger <dir>`) through the Drive import (407).
 
 ## The schema: a row a tool writes is checked first (523)
 
 `check/library-schema.js` is the library's one schema: each card file's columns, which column holds each idea (level, key stage,
 tier, board, topics), and the closed vocabularies. Levels come from `LEVEL_TABLE` in js/find.js — store a list of real
 levels (`KS3, GCSE`), never a range. A worksheet maker goes in `company` and is a Source; its sheet carries no
-`exam_board`. `tools/add-past-paper.js` and `tools/lib-private.js split` call it and refuse, writing nothing, any problem
+`exam_board`. `tools/content.js` (its import stage) and `tools/content.js library split` call it and refuse, writing nothing, any problem
 the same rows did not have at HEAD; `node js/check-schema.js` fails on any problem in the library. The schema asks
 nothing of `lib_pending`: a new card carries it with its words on, and keeps it after (above). A problem in a private
 field of a `lib_pending` row whose words here are older than its card is not counted (a fresh clone before `pull`).

@@ -115,7 +115,7 @@ function writePrivate(name, map) {
 }
 
 /* A MACHINE WITH NO PRIVATE COPY GETS ONE FROM THE PINNED COMMIT — the last that held every file whole. Its words are the
-   Ledger's as copied; anything edited in the Ledger since comes with `node tools/lib-private.js pull`. */
+   Ledger's as copied; anything edited in the Ledger since comes with `node tools/content.js library pull`. */
 function pinnedMap(name) {
   const def = defs().files[name];
   /* A FILE WITH NO PRIVATE ROW AT THE PINNED COMMIT (`newer`, 458): nothing to seed, its rows are lib_pending cards */
@@ -165,7 +165,7 @@ function text(name) {
     if (!map && seedFromGit(name)) map = readPrivate(name);
     if (!map) {
       throw new Error(def.file + ' holds card metadata only and there is no data-private/' + name + '.json to put the words back from. '
-        + 'Run `node tools/lib-private.js seed` (from git history) or `node tools/lib-private.js pull` (from the Ledger).');
+        + 'Run `node tools/content.js library seed` (from git history) or `node tools/content.js library pull` (from the Ledger).');
     }
     const lost = [];
     rows.forEach(r => {
@@ -179,7 +179,7 @@ function text(name) {
     });
     if (lost.length) {
       throw new Error(lost.length + ' row(s) of ' + def.file + ' have words in the Ledger and none in data-private/' + name + '.json ('
-        + lost.slice(0, 5).join(', ') + (lost.length > 5 ? ', …' : '') + '). Run `node tools/lib-private.js pull`.');
+        + lost.slice(0, 5).join(', ') + (lost.length > 5 ? ', …' : '') + '). Run `node tools/content.js library pull`.');
     }
     out = fileText(rows, styleOf(raw));
   }

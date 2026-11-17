@@ -1,13 +1,12 @@
-#!/usr/bin/env node
-/* @family. — tools/lib-private.js THE LIBRARY'S PRIVATE HALF, ON THIS MACHINE AND IN THE LEDGER (397).
-   `node tools/lib-private.js help` says how; docs/library.md says why. Nothing here writes a word of the library into git. */
+/* @family. — tools/content/library.js THE LIBRARY'S PRIVATE HALF, ON THIS MACHINE AND IN THE LEDGER (397).
+   `node tools/content.js library help` says how; docs/library.md says why. Nothing here writes a word of the library into git. */
 const USAGE = `   The repository keeps card metadata; the words, answers and figures are in the Ledger and, here, in data-private/
    (git ignores it). Every row-writing tool still reads and writes whole rows in data/*.json — so:
 
-     node tools/lib-private.js join          whole rows back into data/*.json, for a tool to edit
+     node tools/content.js library join          whole rows back into data/*.json, for a tool to edit
      python3 tools/<something>.py            the tool, as it always ran
-     node tools/lib-private.js split         the words back out into data-private/, the metadata left in data/
-     node tools/lib-private.js push          what changed, into the Ledger (an admin's token)
+     node tools/content.js library split         the words back out into data-private/, the metadata left in data/
+     node tools/content.js library push          what changed, into the Ledger (an admin's token)
 
    No token (a Claude session)? \`drive-pack <out.json|dir/> [--ids a,b] [--private <dir>] [--note "…"]\` writes an import file of
    what differs from the Ledger as this machine knows it (the pinned commit and its pushes); upload it to the owner's Drive
@@ -20,15 +19,11 @@ const USAGE = `   The repository keeps card metadata; the words, answers and fig
 `;
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm');
-const L = require('./lib/lib-full.js');
-const SC = require('./lib/library-schema.js');
+const L = require('../lib/lib-full.js');
+const SC = require('../lib/library-schema.js');
 
-const args = process.argv.slice(2);
-const cmd = args[0] || 'status';
-const named = cmd === 'drive-pack' ? [] : args.slice(1).filter(a => !a.startsWith('--'));
-const names = named.length ? named : L.NAMES();
-const bad = named.filter(n => !L.isLib(n));
-if (bad.length && require.main === module) { console.error('not a library file: ' + bad.join(', ') + ' — one of ' + L.NAMES().join(', ')); process.exit(1); }
+/* `node tools/content.js library <cmd> [files] [--flags]` — content.js hands its arguments to main(). */
+let args = [], cmd = 'status', names = [];
 
 const fileOf = name => path.join(L.ROOT, L.defs().files[name].file);
 const readRows = name => { const t = fs.readFileSync(fileOf(name), 'utf8'); return { rows: JSON.parse(t), style: L.styleOf(t) }; };
@@ -53,7 +48,7 @@ function splitGate(name, rows, map, before) {
     delete w.lib_has;
     return w;
   });
-  SC.refuse(name, whole, before, 'tools/lib-private.js split ' + name);
+  SC.refuse(name, whole, before, 'tools/content.js library split ' + name);
   if (name === 'questions') idsForLife(before, rows);
 }
 /* IDS FOR LIFE (answer-ids): a part id the committed file had and this one drops strands every saved answer on it, so the
@@ -63,8 +58,32 @@ function idsForLife(before, rows) {
   try { A = JSON.parse(fs.readFileSync(path.join(L.ROOT, 'data', 'settings', 'question-aliases.json'), 'utf8')).aliases || {}; } catch (e) { A = {}; }
   const now = new Set((rows || []).map(r => r && String(r.row_id || '')));
   const lost = (before || []).map(r => r && String(r.row_id || '')).filter(id => id && !now.has(id) && !A[id]);
-  if (lost.length) throw new Error('tools/lib-private.js split questions: ' + lost.length + ' part id(s) dropped with no alias (' + lost.slice(0, 8).join(', ')
+  if (lost.length) throw new Error('tools/content.js library split questions: ' + lost.length + ' part id(s) dropped with no alias (' + lost.slice(0, 8).join(', ')
     + '). One item per printed part, ids for life: keep the part, or add it to data/settings/question-aliases.json (docs/rules.md).');
+}
+
+/* ONE ROW SPLIT: its words into `map` (merged over what a metadata row already had there), the metadata row back, with
+   lib_has and function_verified worked out. A row with nothing private (already split, a document) comes back as it is. */
+function splitRow(name, r, map) {
+  const def = L.defs().files[name];
+  const id = L.idOf(def, r);
+  const c = L.privateOf(def, r);
+  if (!c) return { row: r, moved: false };
+  if (!id) throw new Error(def.file + ' has a row with private fields and no id: ' + JSON.stringify(r).slice(0, 120));
+  /* A METADATA ROW A TOOL WROTE ONE FIELD ONTO keeps the rest of its words: merged, never replaced. A whole row is the truth. */
+  const prior = Object.prototype.hasOwnProperty.call(r, 'lib_has') ? (map[id] || {}) : {};
+  const both = Object.assign({}, prior, c), whole = {};
+  def.private.forEach(f => { if (Object.prototype.hasOwnProperty.call(both, f)) whole[f] = both[f]; });
+  map[id] = whole;
+  const slim = {};
+  /* lib_has and function_verified keep their place in a row that had them (a re-run changes no line it need not) */
+  Object.keys(r).forEach(k => { if (!Object.prototype.hasOwnProperty.call(c, k)) slim[k] = r[k]; });
+  const hasNow = def.private.filter(f => whole[f] !== undefined && whole[f] !== null && String(whole[f]).trim() !== '');
+  /* the same fields in an older order are the same lib_has: the line is left as it was */
+  const was = String(r.lib_has || '').split(' ').filter(Boolean);
+  slim.lib_has = was.length === hasNow.length && hasNow.every(f => was.includes(f)) ? r.lib_has : hasNow.join(' ');
+  if (name === 'questions' && String(r.kind || '').toLowerCase() === 'question') slim.function_verified = functionVerified(Object.assign({}, slim, whole));
+  return { row: slim, moved: true };
 }
 
 /* ---------- SPLIT: whole rows → metadata in data/, words in data-private/ ---------- */
@@ -75,25 +94,9 @@ function split(name) {
   splitGate(name, rows, map, SC.committed(name, map));
   let moved = 0, kept = 0;
   const out = rows.map(r => {
-    const id = L.idOf(def, r);
-    const c = L.privateOf(def, r);
-    if (!c) {
-      /* ALREADY SPLIT, or a row with nothing private (a document, a teaching animation): as it is. */
-      if (Object.prototype.hasOwnProperty.call(r, 'lib_has')) kept++;
-      return r;
-    }
-    if (!id) throw new Error(def.file + ' has a row with private fields and no id: ' + JSON.stringify(r).slice(0, 120));
-    /* A METADATA ROW A TOOL WROTE ONE FIELD ONTO keeps the rest of its words: merged, never replaced. A whole row is the truth. */
-    const prior = Object.prototype.hasOwnProperty.call(r, 'lib_has') ? (map[id] || {}) : {};
-    const both = Object.assign({}, prior, c), whole = {};
-    def.private.forEach(f => { if (Object.prototype.hasOwnProperty.call(both, f)) whole[f] = both[f]; });
-    map[id] = whole;
-    const slim = {};
-    Object.keys(r).forEach(k => { if (!Object.prototype.hasOwnProperty.call(c, k) && k !== 'lib_has' && k !== 'function_verified') slim[k] = r[k]; });
-    slim.lib_has = def.private.filter(f => whole[f] !== undefined && whole[f] !== null && String(whole[f]).trim() !== '').join(' ');
-    if (name === 'questions' && String(r.kind || '').toLowerCase() === 'question') slim.function_verified = functionVerified(Object.assign({}, slim, whole));
-    moved++;
-    return slim;
+    const one = splitRow(name, r, map);
+    if (one.moved) moved++; else if (Object.prototype.hasOwnProperty.call(r, 'lib_has')) kept++;
+    return one.row;
   });
   L.writePrivate(name, map);
   /* NOTHING MOVED, NOTHING WRITTEN: a file kept in its own layout (data/inserts.json, 458) is not reflowed for nothing */
@@ -251,12 +254,18 @@ function status(name) {
     + name + '.json ' + (map ? Object.keys(map).length + ' item(s)' : 'absent'));
 }
 
-if (require.main === module) (async () => {
+async function main(argv) {
+  args = argv.slice();
+  cmd = args[0] || 'status';
+  const named = cmd === 'drive-pack' ? [] : args.slice(1).filter(a => !a.startsWith('--'));
+  names = named.length ? named : L.NAMES();
+  const bad = named.filter(n => !L.isLib(n));
+  if (bad.length) throw new Error('not a library file: ' + bad.join(', ') + ' — one of ' + L.NAMES().join(', '));
   if (cmd === 'help' || cmd === '--help') { console.log(USAGE); return; }
   if (cmd === 'drive-pack') { drivePack(); return; }
   const run = { split, join, seed, pull, push, status }[cmd];
-  if (!run) { console.error('unknown command ' + cmd + ' — split, join, seed, pull, push, drive-pack or status'); process.exit(1); }
+  if (!run) throw new Error('unknown command ' + cmd + ' — split, join, seed, pull, push, drive-pack or status');
   for (const n of names) await run(n);
-})().catch(e => { console.error(String((e && e.message) || e)); process.exit(1); });
+}
 
-module.exports = { splitGate };
+module.exports = { main, splitGate, splitRow, split, functionVerified, drivePack };

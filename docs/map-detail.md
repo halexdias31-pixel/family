@@ -108,7 +108,7 @@ almost never writes to it directly.
   of `lib_questions`, `lib_content`, `lib_practicals` and `lib_projects` in the Ledger (`LIB_FILES` in
   constants.gs), copied once by `library-to-ledger` and fetched a card at a time by `libItems` (signed in,
   `library_items_per_day`). A card whose words have not come is one waiting page (`libWaitHtml_`). The teaching
-  animation rows stay public whole. Tools: `tools/lib-private.js`; checks: `check/lib-full.js`.
+  animation rows stay public whole. Tools: `tools/content.js library`; checks: `check/lib-full.js`.
 - **What must exist is the specification** (1213, 1214): `data/spec/<board>-<code>.json` is every spec (the `measured` ones count);
   `node tools/coverage.js -v` maps lessons (`spec_ref`), questions and figures onto the points, writes each point's `links`
   back, `data/specs.json` (Find's Library › subject › Specification card) and `data/coverage-health.json` for *Library content*.
@@ -207,7 +207,7 @@ node tools/bundle.js --check     # bundle/*.js are the js/ files they join, in F
 node check/firstpaint.js         # cold load at 390px, 4x CPU: the finder's first answers are drawn once and never change (546); FIRSTPAINT_PORT
 node js/check-missing.js         # What's missing (525): expected-papers.json against the covers, a present paper never listed; -v prints today's gaps
 node js/check-library-ledger.js  # the library's words in the Ledger: the copy checked row by row, libItems signed-in and capped (--full: all of it)
-node tools/lib-private.js status # where the library's words are: data/, data-private/ (docs/library.md)
+node tools/content.js library status # where the library's words are: data/, data-private/ (docs/library.md)
 node js/check-const.js           # nothing declared `const` is assigned to. Two seconds.
 node js/check-loading.js         # every wait is `loading_()`: no phrase, class or keyframe of its own
 node check/deploy.js             # after a push, does a browser that has the site run the new code
@@ -407,7 +407,7 @@ when it was not told it could", never "is this past the right edge".
 - **The library is two halves** (397): `data/questions|textbooks|practicals|projects.json` are the CARDS (ids, facet
   columns, `lib_has`, `function_verified`); words, answers and figures are in the Ledger (`LIB_FILES`, `lib_*` tabs)
   and reach a phone by `libItems` when a card opens. Never commit a private field to `data/` (`check-secrets`); a
-  row-writing tool runs between `node tools/lib-private.js join` and `split`; checks read the whole library through
+  row-writing tool runs between `node tools/content.js library join` and `split`; checks read the whole library through
   `check/lib-full.js`; a new card whose words await import carries `lib_pending` (411). See docs/library.md.
 - **Content cards:** each chapter row of `data/textbooks.json` is a content card (kind `content`); nothing a
   person sees says textbook, book or chapter. The file name, row shape, `DATA.textbooks` and `tb*` names

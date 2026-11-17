@@ -1,4 +1,4 @@
-"""Corbettmaths Foundation 5-a-day — December. See common.py and tools/insert-cbm-5ad-jan-FP.py.
+"""Corbettmaths Foundation 5-a-day — December. See common.py and tools/content/specs/cbm-5ad/jan_fp_draft.py.
 
 Every page was rendered and read, because the text layer drops the fractions, the indices and every
 number printed inside a picture. The December book is a grid: each of the page's five rows is one

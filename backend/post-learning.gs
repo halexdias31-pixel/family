@@ -230,7 +230,7 @@ function itemsWrite_(verb, body, began) {
   return how.self(b, item + ':' + verb, began);
 }
 
-/* THE TOOLS' COPY OF THE PRIVATE HALF — a page out, rows back in (tools/lib-private.js). Admin only, at the gate. */
+/* THE TOOLS' COPY OF THE PRIVATE HALF — a page out, rows back in (tools/content.js library). Admin only, at the gate. */
 function postLibExport_(body, action, began) {
   return jsonOut(libExport_(body.file, body.from, body.count));
 }

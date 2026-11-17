@@ -1,14 +1,15 @@
-"""One past paper as rows, in the shape the library's verified Edexcel 1MA1 rows already have (415).
+"""A paper's transcription helper: one past paper as rows, for the content pipeline's `spec` stage (tools/content.js).
 
-A paper's words are private (docs/library.md), so the script that holds them is NOT in this
-repository: it lives beside the PDFs, imports this, and writes a rows file that
-`node tools/add-past-paper.js <rows.json>` puts into data/questions.json and data-private/.
+A paper's words are private (docs/library.md), so a module that holds them may live beside the PDFs, outside the
+repository; it imports this, and `node tools/content.js <module.py>` runs it. Nothing here knows a board: the card
+fields (board, subject, level, band) come from the paper's family in data/settings/content.json, at the `card` stage.
 
-    P = Paper(code='1805-1F', paper_id='RS1786302107764-469', pdf='/…/qp.pdf', name='Paper 1 (Non-calculator) — May 2018',
-              year='2018', month='5', paper='1', tier='Foundation', exam_date='2018-05-24', needs='No calculator')
+    P = Paper(code='1MA1-1805-1F', paper_id='P-1MA1-1805-1F', pdf='/…/qp.pdf', name='Paper 1 (Non-calculator) — May 2018',
+              year='2018', month='5', paper='1', tier='Foundation', exam_date='2018-05-24', needs='No calculator',
+              spec_code='1MA1/1F', total_marks='80')
     P.stem('7', '<p>…</p>', fig=P.fig(4, (140, 100, 460, 165), 'A probability scale …'), figure='scale', topics='…')
     P.q('7a', 1, 'calculation', 'Basic Probability', '<p>…</p>', '<b>D</b> &mdash; B1. …', acc='D')
-    P.write('/…/rows-1805-1F.json')
+    ROWS = P.rows()
 
 `q` takes the part's id after the question number ('7a', '24ai', '1'), its marks, its answer_type, its
 topics, its html and the scheme's answer; keywords: acc (accept), mw (mark_words), lead, fig (an SVG from
@@ -29,19 +30,16 @@ ORDER = ['row_id', 'paper_id', 'question', 'part', 'kind', 'marks', 'figure', 'a
 
 
 class Paper:
-    def __init__(self, code, paper_id, pdf, name, year, month, paper, tier, exam_date, needs,
-                 wave='First wave', source_url=None, spec_code=None):
+    def __init__(self, code, paper_id, pdf, name, year, month, paper, exam_date, needs='', tier='',
+                 wave='First wave', source_url=None, spec_code='', total_marks='', row_prefix=None):
         self.code, self.pdf = code, pdf
-        self.meta = dict(paper_id=paper_id, name=name, subject='Maths', key_stage='KS4', band_type='stage',
-                         band_value='GCSE', tier=tier, trackable='True', printable='True', company='Edexcel',
-                         exam_board='Edexcel', exam_wave=wave, year=year, level='GCSE', paper=paper, month=month,
-                         document_type='Past paper', source_id=paper_id)
+        self.meta = dict(paper_id=paper_id, name=name, tier=tier, exam_wave=wave, year=year, paper=paper, month=month,
+                         source_id=paper_id)
         if source_url:
             self.meta['source_url'] = source_url
-        self.doc = dict(exam_date=exam_date, needs=needs, spec_code=spec_code or '1MA1/' + code.split('-')[1],
-                        total_marks='80')
-        self.rows = []
-        self.pfx = 'Q-1MA1-%s-' % code
+        self.doc = dict(exam_date=exam_date, needs=needs, spec_code=spec_code, total_marks=str(total_marks))
+        self.rows_ = []
+        self.pfx = row_prefix or 'Q-%s-' % code
 
     def fig(self, page, clip, label, **kw):
         return _figure(self.pdf, page, clip, label, **kw)
@@ -63,7 +61,7 @@ class Paper:
             r['lead'] = lead
         if note:
             r['examiner_note'] = note
-        self.rows.append(r)
+        self.rows_.append(r)
 
     def q(self, qid, marks, atype, topics, html, answer, acc=None, mw=None, lead=None, fig=None,
           figure='', choices=None, right=None, ends=None, cells=None, draw=None, note=None,
@@ -100,18 +98,19 @@ class Paper:
             r['draw_answer'] = draw if isinstance(draw, str) else json.dumps(draw, separators=(',', ':'))
         if note:
             r['examiner_note'] = note
-        self.rows.append(r)
+        self.rows_.append(r)
 
-    def write(self, path):
-        out = []
-        for r in self.rows:
+    def rows(self):
+        """The document row, then every stem and part, each carrying the paper's own meta (a new card is lib_pending)."""
+        out = [dict(self.meta, **{k: v for k, v in self.doc.items() if v}, row_id='D-' + self.meta['paper_id'],
+                    kind='document')]
+        for r in self.rows_:
             full = dict(self.meta)
             full.update(r)
             full['lib_pending'] = 'True'
             out.append({k: full[k] for k in ORDER if k in full and full[k] not in (None, '')}
                        | {k: v for k, v in full.items() if k not in ORDER})
-        ids = [r['row_id'] for r in out]
-        assert len(ids) == len(set(ids)), 'a row id twice'
-        json.dump({'paper_id': self.meta['paper_id'], 'meta': self.meta, 'doc': self.doc, 'rows': out},
-                  open(path, 'w'), ensure_ascii=False, indent=0)
-        print('%s: %d rows -> %s' % (self.code, len(out), path))
+        for r in out:
+            for k in [k for k, v in r.items() if v in (None, '')]:
+                del r[k]
+        return out
