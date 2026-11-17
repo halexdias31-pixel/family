@@ -701,10 +701,9 @@ const CARD_BLOCKS = {
     b.act ? ` data-do="${esc(b.act)}"` : ''}>${cardRuns_(p)}</p>`).join(''),
   /* A ROW OF TAGS among the lines (a tutor's quals, jobs, places), its look naming its colour family. */
   tags: b => ((b.tags || []).length ? `<div class="qtags${b.look ? ' ' + esc(b.look) : ''}">${b.tags.map(cardTag_).join('')}</div>` : ''),
-  /* PHOTOS, small and square, the first `more` shown and "+N" for the rest; one that will not load takes itself away. */
-  photos: b => { const all = (b.srcs || []).filter(Boolean), n = Number(b.more) || all.length;
-    return all.length ? `<div class="prof-photos">${all.slice(0, n).map(u => `<span class="prof-shot"><img src="${esc(u)}" alt="" loading="lazy" decoding="async" onerror="this.parentNode.remove()"></span>`).join('')}${
-      all.length > n ? cardTag_({ pill: true, look: 'prof-more', text: '+' + (all.length - n) }) : ''}</div>` : ''; },
+  /* PHOTOS, small and square, every one shown (no "+N", owner 17 Nov); one that will not load takes itself away. */
+  photos: b => { const all = (b.srcs || []).filter(Boolean);
+    return all.length ? `<div class="prof-photos">${all.map(u => `<span class="prof-shot"><img src="${esc(u)}" alt="" loading="lazy" decoding="async" onerror="this.parentNode.remove()"></span>`).join('')}</div>` : ''; },
   /* A WEEK'S HOURS: one pill a day free, then the hours already taught; `say` reads every hour aloud. */
   hours: b => `<div class="prof-week prof-hours" data-avail="${esc(b.count || 0)}" aria-label="${esc(b.say || '')}">${
     (b.free || []).length ? `<p class="prof-hour-line">${b.free.map(d => cardTag_({ pill: true, look: 'prof-day', text: d })).join('<span class="prof-sep"> </span>')}</p>` : ''}${
@@ -7579,8 +7578,7 @@ function profQualChip_(p) {
   return { pill: true, look: 'prof-q', say, text: { iso: subject, sup: level ? { marked: level } : null, sub: low } };
 }
 /* A LONG LIST SHORTENED TO "+N" (8 Nov): the whole tutor card fits one phone screen; the rest are named in the pill's title. */
-const PROF_MORE_ = (chips, n, names) => chips.length > n
-  ? chips.slice(0, n).concat({ pill: true, look: 'prof-more', text: `+${chips.length - n}`, title: (names || []).slice(n).join(', ') }) : chips;
+/* EVERY TAG SHOWN, never a "+N" (owner, 17 Nov). */
 const profTagRow_ = (look, tags) => (tags.length ? { type: 'tags', look: 'prof-tags prof-teach ' + look, tags } : null);
 function profQuals_(t) {
   const parts = Array.isArray(t.qualsParts) ? t.qualsParts.filter(p => p && profQualV_(p.subject)) : [];
@@ -7596,7 +7594,7 @@ function profQuals_(t) {
   } else {
     chips = profList_(t.quals).map(text => ({ pill: true, text }));
   }
-  chips = PROF_MORE_(chips, 2, parts.length ? parts.map(p => profQualV_(p.subject)) : profList_(t.quals));
+  chips = chips;
   return profTagRow_('prof-quals', chips);
 }
 
@@ -7604,7 +7602,7 @@ function profQuals_(t) {
 const profJobSay_ = j => [j.role, j.where, [j.from, j.to].filter(Boolean).join('–')].map(v => String(v || '').trim()).filter(Boolean).join(' · ');
 function profJobs_(t) {
   const says = (Array.isArray(t.jobs) ? t.jobs : []).map(profJobSay_).filter(Boolean);
-  return profTagRow_('prof-jobs', PROF_MORE_(says.map(text => ({ pill: true, text })), 1, says));
+  return profTagRow_('prof-jobs', says.map(text => ({ pill: true, text })));
 }
 
 /* ---------- "1 to 4 students", NOT `minStudents` AND `maxStudents` § */
@@ -7647,7 +7645,7 @@ function profFacts_(t) {
 
 /* ---------- WHERE THEY TUTOR: every place by name, as tags. */
 function profPlaces_(names) {
-  return profTagRow_('prof-places', PROF_MORE_((names || []).map(text => ({ pill: true, text })), 3, names));
+  return profTagRow_('prof-places', (names || []).map(text => ({ pill: true, text })));
 }
 
 /* ---------- WHEN THEY TEACH, AS THE RECEIPT'S WEEK § */
@@ -7740,8 +7738,8 @@ const profPills_ = (it, t) => [profPill_(fmtName_(t), 0, 'prof-tag-name')].conca
 /* SUBJECTS (main, then also) AND FACTS, a row each. */
 function profTagRows_(t) {
   const main = profList_(t.teachesSpec || t.teachesMain), also = profList_(t.teaches).filter(v => !main.includes(v));
-  return [main.length ? { look: 'prof-tags prof-teach', tags: PROF_MORE_(teachGroups_(main).map(g => teachChip_(g, true)), 3) } : null,
-    also.length ? { look: 'prof-tags prof-teach', tags: PROF_MORE_(teachGroups_(also).map(g => teachChip_(g, false)), 2) } : null,
+  return [main.length ? { look: 'prof-tags prof-teach', tags: teachGroups_(main).map(g => teachChip_(g, true)) } : null,
+    also.length ? { look: 'prof-tags prof-teach', tags: teachGroups_(also).map(g => teachChip_(g, false)) } : null,
     profTagRow_('prof-facts', profFacts_(t).map(text => ({ pill: true, text })))].filter(Boolean);
 }
 /* ITS LINES: the note (if `it.live` kept it), the description, photos, words, qualifications, jobs, places, hours. */

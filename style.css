@@ -4936,7 +4936,6 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .tcard .prof-hours .prof-hour-line .prof-day { display: inline-block; padding: 0 var(--s1); border: 1px solid var(--line); border-radius: var(--r-round); }
 
 .tcard .prof-who { gap: 0; flex: 1; min-width: 0; }
-.tcard .prof-photos .prof-more { display: grid; place-items: center; border-radius: var(--r-ui); }
 
 /* ONE CARD SHAPE (owner, 8 Nov): picture, title, tags, lines; an empty part takes no room. */
 .card.kc > :empty { display: none; }
