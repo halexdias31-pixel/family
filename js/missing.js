@@ -38,7 +38,7 @@ function healthCardOf_(which) {
   if (HEALTH_MORE_[which]) return HEALTH_MORE_[which]();
   /* ONE CARD (owner, 6 Nov): the Optimiser holds What's missing too, how complete Find's resources are, under its score. */
   const all = (() => { try { return missingLeadCards_(); } catch (e) { oops_(e, 'health card'); return []; } })();
-  return all.join('') || renderCard({ kind: 'panel', body: [{ type: 'text', look: 'empty', text: typeof NOTHING_YET === 'string' ? NOTHING_YET : 'Nothing yet' }] });
+  return all.join('') || renderCard({ kind: 'panel', body: [{ type: 'text', look: 'empty', text: typeof NOTHING_YET === 'string' ? NOTHING_YET : text_('nothing-yet') }] });
 }
 
 /* A CARD FROM ITS BLOCKS, through the one card maker; its name is its first tag. */

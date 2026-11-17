@@ -268,23 +268,9 @@ function kpSiteCaps_(el) {
   return el.tagName === 'TEXTAREA' || (el.tagName === 'INPUT' && /^(|text)$/i.test(el.getAttribute('type') || ''));
 }
 /* THE ONE BINDING: the face read from the markup, then the phone's keyboard shut out. The only script in js/ that writes `inputmode`, and only ever "none" (check-flow). No `readonly`: a reader still hears a field. */
-function kpBind_(el) {
-  /* THE ONE SCROLLING PAGE (900): an ordinary box keeps the phone's own keyboard; the pad is the answer boxes' alone, so nothing is bound. */
-  void el;
-}
-function kpBindIn_(root) {
-  if (!root || root.nodeType !== 1) return;
-  kpBind_(root);
-  if (root.firstElementChild) root.querySelectorAll('input, textarea, [contenteditable]').forEach(kpBind_);
-}
 /* A BOX TAKEN AWAY WITH THE PAD ON IT (a message sent, its composer drawn again) takes the pad with it, as a phone's keyboard goes; an answer box is found again by its name (kpLive_) */
 const kpGone_ = () => { if (KP_AT && kpSite_(KP_AT) && !KP_AT.isConnected) kpClose_(); };
-/* EVERY BOX AS IT IS DRAWN, before a finger can reach it; and again on the way in (a tap, a focus), for a box drawn and focused in one go */
-try {
-  new MutationObserver(list => { for (const m of list) for (const n of m.addedNodes) kpBindIn_(n); kpGone_(); })
-    .observe(document.documentElement, { childList: true, subtree: true });
-} catch (e) { /* the tap and the focus below still bind */ }
-kpBindIn_(document.documentElement);
+try { new MutationObserver(kpGone_).observe(document.documentElement, { childList: true, subtree: true }); } catch (e) { /* no observer: the pad stays until closed */ }
 
 /* THE PAD COMES UP WHEN A PERSON PUT THE FOCUS THERE (a tap, Tab), as a phone's keyboard does, and not for a box a screen focused by itself; a tap on it later brings it up */
 const KP_USER_MS = 1500;
@@ -293,12 +279,10 @@ const kpUser_ = () => Date.now() - KP_USER_AT < KP_USER_MS;
 const kpBoxAt_ = t => (t && t.closest ? t.closest('input, textarea, [contenteditable]') : null);
 ['pointerdown', 'touchstart'].forEach(ev => document.addEventListener(ev, e => {
   KP_USER_AT = Date.now();
-  kpBind_(kpBoxAt_(e.target));
 }, { capture: true, passive: true }));
 document.addEventListener('keydown', e => { if (e.key === 'Tab') KP_USER_AT = Date.now(); }, true);
 document.addEventListener('focusin', e => {
   const t = e.target;
-  kpBind_(t);
   if (kpSite_(t) && kpWritable_(t) && kpUser_()) kpOpen_(t);
 }, true);
 document.addEventListener('click', e => {

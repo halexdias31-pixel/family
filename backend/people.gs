@@ -68,7 +68,7 @@ function liveSeatsAs_(row, role) {
   read(TAB.jobs).rows.forEach(j => {
     const id = S(j.job_id) || String(j._row);
     if (!id || norm(j.status) === 'ended') return;
-    const dates = sessionDatesOf(j).map(parseDate).filter(Boolean).sort((a, b) => a - b);
+    const dates = sessionDatesOf(j).map(sheetDate).filter(Boolean).sort((a, b) => a - b);
     if (dates.length && dates[dates.length - 1] < today) return;
     if (jobStatusOf(id) === 'cancelled') return;
     const seat = participantsOf(id).find(p => key(p.name) === name && p.role === role

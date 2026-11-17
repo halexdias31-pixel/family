@@ -231,7 +231,6 @@
     "check-one-template.js": "core",
     "check-one-way.js": "core",
     "check-card-spec.js": "core",
-    "check-find-only.js": "core",
     "check-card-type.js": "core",
     "check-email-card.js": "core",
     "check-writings.js": "secondary",

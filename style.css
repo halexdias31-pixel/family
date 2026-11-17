@@ -2592,8 +2592,8 @@ button.prof-tag.is-sm { padding: 0 var(--s2); line-height: 1; font-weight: 500; 
 /* `.tile-row.ce-tiles`, TWO CLASSES, because `.tile-row`'s own margin is declared further down this file and
    would win a tie on order alone. */
 .tile-row.ce-tiles {
-  position: sticky; bottom: -1rem; z-index: 2;
-  margin-top: 0; padding: var(--s2) 0 calc(.45rem + 1rem);
+  position: sticky; bottom: calc(-1 * var(--s4)); z-index: 2;
+  margin-top: 0; padding: var(--s2) 0 calc(.45rem + var(--s4));
   background: var(--raised);
   box-shadow: 0 -1px 0 var(--line-soft);
 }
@@ -2956,8 +2956,6 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 
 /* QUESTIONS IN THE FUNNEL. § */
 /* ---------- ONE RHYTHM DOWN THE CARD, WHERE THERE WERE FOUR GAPS AND NO REASON BETWEEN THEM § */
-.qcard { background: var(--raised); border: 1px solid var(--line); border-radius: var(--r-ui);
-         padding: var(--s3) var(--s3) var(--s3); margin-bottom: var(--card-gap); }
 /* THE BUNDLE CARD'S HEAD -- `Bundle` and its noun. It was every question page's head too, the gold
    `Q4a` with `2 marks` hard right; those pages say all of that as tags now (`.qcard-tags` below). */
 /* ---------- HOW YOUR LAST ANSWER WENT, BESIDE THE STAR § */
@@ -3701,25 +3699,15 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .card.bundle .bundle-list li::marker { color: var(--ink); font-family: var(--mono); }
 .card.bundle .bundle-name { color: var(--ink); }
 .card.bundle .bundle-off { margin: var(--s1) 0 0; font-size: var(--fs-small); color: var(--ink); }
-/* ---------- AND IT IS A QUESTION CARD'S SHAPE NOW § */
-.card.qcard.bundle {
-  background: var(--raised); border: 1px solid var(--line); border-radius: var(--r-ui);
-  padding: var(--s3) var(--s3) var(--s3); margin-bottom: var(--card-gap);
-}
 /* THE TITLE IS WHAT IS BEING CHOSEN, so it is the one large line -- ink, not gold, because gold is
    the header's word on every card in this family. It wraps on its middots, which is where it reads. */
 
-/* ---------- EACH WIDGET IS ITS OWN THING § */
-.card.is-widget {
-  /* A SURFACE OF ITS OWN. § */
-  background: var(--raised);
-  border: 1px solid var(--line);
-  /* 14px, the same as the pane. A widget is a body in its own right, not a chip. `--r-lg` is not
-     declared, so the number is written out rather than falling back silently to something else. */
-  border-radius: var(--r-ui);
-  padding: var(--wgt-pad);
-  margin-bottom: var(--card-gap);
+/* ---------- ONE BOXED CARD: a widget, a question card and the bundle card share one surface; a widget's padding is its own. § */
+.qcard, .card.qcard.bundle, .card.is-widget {
+  background: var(--raised); border: 1px solid var(--line); border-radius: var(--r-ui);
+  padding: var(--s3); margin-bottom: var(--card-gap);
 }
+.card.is-widget { padding: var(--wgt-pad); }
 /* ---------- THE LIBRARY CARDS' WIDGET GIVES ITS FACES THE FRAME'S SIDES (docs/history/339) § */
 .card.is-widget:has(.lib-shelf) { padding-left: var(--s2); padding-right: var(--s2); }
 .card.is-widget:last-child { margin-bottom: 0; }
@@ -4681,7 +4669,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .insrc-h:first-child { margin-top: 0; }
 .insrc-note { margin: 0 0 var(--s2); font-style: italic; font-size: var(--fs-small); color: var(--paper-dim); }
 .insrc-p { position: relative; margin: 0 0 var(--s3); }
-.insrc-p .kc-ln { position: absolute; left: -2rem; width: 1.5rem; text-align: right; font: var(--fs-small)/2.2 var(--mono); color: var(--paper-faint); }
+.insrc-p .kc-ln { position: absolute; left: calc(-1 * var(--s6)); width: var(--s5); text-align: right; font: var(--fs-small)/2.2 var(--mono); color: var(--paper-faint); }
 .insrc-wait { min-height: 3rem; font-family: inherit; }
 /* THE TABLE SCROLLS SIDEWAYS INSIDE ITS OWN BOX — eighteen columns do not fit 320px, and the box says it may. */
 .kc-grid-wrap { overflow-x: auto; }
@@ -5059,7 +5047,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .card.kc > .kc-lines :is(.rd-body, .policy-page, .policy-table, table, ul, ol, pre, blockquote, .insh-sec, .q-text, .qt-body),
 .card.kc > .kc-lines :is(form, .kc-items) { text-align: left; }
 /* THE CONTENT PART IS CENTRED (owner, 11 Nov), with the same side space as the card's other parts: a form, a panel's lines, every label, line and table. */
-.card.kc > .kc-form, .card.kc-panel > .kc-lines { box-sizing: border-box; width: 100%; padding-inline: var(--kc-side, 1rem); text-align: center; }
+.card.kc > .kc-form, .card.kc-panel > .kc-lines { box-sizing: border-box; width: 100%; padding-inline: var(--kc-side, var(--s4)); text-align: center; }
 /* THE BOOKING FORM IS A FIVE-COLUMN SHEET (owner, 12 Nov: a card like the rest): it takes the card's whole width, or the answers squeeze to a pill. */
 .card.kc-bookform { --kc-side: 0; }
 .card.kc > .kc-form :is(label, .field, p, .note, .dob-cap, li, dt, dd), .card.kc-panel > .kc-lines :is(label, .field, p, .note, li, dt, dd) { text-align: center; }
@@ -5174,7 +5162,6 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .nes-lg-v { color: var(--ink); }
 body.nes-on *, body.nes-on *::before, body.nes-on *::after { animation-play-state: paused; }
 body.nes-on .nes-wrap *, body.nes-on .nes-wrap *::before, body.nes-on .nes-wrap *::after { animation-play-state: running; }
-body.nes-on .page.soft > .pane { filter: none; }
 .nes-dpad { width: var(--k-dpad); height: var(--k-dpad); border-radius: var(--r-ui); flex: none; touch-action: none; background: radial-gradient(circle, var(--nes-dp-hi) 0 8%, transparent 9%),
     linear-gradient(var(--nes-dp), var(--nes-dp)) center / 36% 100% no-repeat,
     linear-gradient(var(--nes-dp), var(--nes-dp)) center / 100% 36% no-repeat, var(--nes-well); }
@@ -5442,7 +5429,9 @@ body.nes-on .page.soft > .pane { filter: none; }
 .mz-cell.out { box-shadow: inset 0 0 0 2px var(--gold); }
 .mz-cell.you { background: var(--gold); }
 .mz-pad { display: grid; gap: var(--s2); justify-content: center; margin: var(--s2) 0 0; grid-template-columns: repeat(3, 44px); grid-template-rows: repeat(2, 44px); }
-.mz-key { min-width: var(--tap); min-height: var(--tap); padding: 0; background: var(--sunk); color: var(--ink); border: 1px solid var(--line); border-radius: var(--r-ui); font: 600 var(--fs-body)/1 var(--font); cursor: pointer; transition: transform var(--dur-quick) var(--ease-out), background var(--dur-quick) var(--ease-out); }
+/* ONE GAME BUTTON: the maze's keys, the scramble's actions and the racer's pads share one face; each keeps its own size. */
+.mz-key, .scr-act, .race-pad { padding: 0; background: var(--sunk); color: var(--ink); border: 1px solid var(--line); border-radius: var(--r-ui); font: 600 var(--fs-body)/1 var(--font); cursor: pointer; }
+.mz-key { min-width: var(--tap); min-height: var(--tap); transition: transform var(--dur-quick) var(--ease-out), background var(--dur-quick) var(--ease-out); }
 .mz-key:is(:active, .is-pressed) { transform: scale(var(--press-small)); }
 .mz-key.up { grid-column: 2; grid-row: 1; }
 .mz-key.left { grid-column: 1; grid-row: 2; }
@@ -5475,7 +5464,7 @@ button.scr-sq { cursor: pointer; }
 .scr-tile.used i { display: none; }
 .scr-tile:is(:active, .is-pressed) { transform: scale(var(--press-small)); }
 .scr-acts { display: flex; flex-wrap: wrap; gap: var(--s1); justify-content: center; margin: var(--s2) 0 0; }
-.scr-act { flex: 1 1 auto; min-width: 5rem; min-height: var(--tap); padding: 0 var(--s2); background: var(--sunk); color: var(--ink); border: 1px solid var(--line); border-radius: var(--r-ui); font: 600 var(--fs-small)/1 var(--font); cursor: pointer; }
+.scr-act { flex: 1 1 auto; min-width: 5rem; min-height: var(--tap); padding: 0 var(--s2); font-size: var(--fs-small); }
 .scr-acts .scr-act:first-child { background: var(--gold); color: var(--on-gold); border-color: var(--gold); }
 
 /* ---------- FLABBY PIRD AND THE COLLIERS WOOD RACER (back 15 Nov 2026, Console games): the rules as they were before 133b259. */
@@ -5491,7 +5480,7 @@ button.scr-sq { cursor: pointer; }
 .race-hud span, .race-lap span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
 .race-lap { bottom: 8px; }
 .race-pads { display: none; grid-template-columns: repeat(2, minmax(0, 1fr)) 12px repeat(2, minmax(0, 1fr)); gap: var(--s2); height: 64px; margin: var(--s2) 0 0; }
-.race-pad { height: 64px; min-width: 0; padding: 0; border-radius: var(--r-ui); touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; background: var(--sunk); color: var(--ink); border: 1px solid var(--line); font: 600 var(--fs-body)/1 var(--font); }
+.race-pad { height: 64px; min-width: 0; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; cursor: default; }
 .race-pad.is-go { color: var(--gold); }
 .race-pad.on { background: var(--line); border-color: var(--gold); }
 .race-keys { margin: var(--s2) 0 0; text-align: center; }
