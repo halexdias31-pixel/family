@@ -351,6 +351,7 @@
     "secondary": "\\b(basket|posts?|venue|rooms?|tutors?|staff|reels?|videos?|console|games?|chess|board ?games?|widgets?|feed|shop|receipt|digest|suggest|rewrite|bible|talmud|quran|hadith|hymns?|verse|e-ink|spotify|flyer|poster|pixel|docket|notepad|timer|timetable|typing|countdowns?|racer|layout|calendar|spotlight|messages?|DMs?|chat|seats?|pay(ment)?|stripe|invoice|profit|apprentices?|whiteboard|library cards?|mat|newspaper|term dates|favourite|tasks|push|inbox|email|notifications?|saved|cheat sheet|score board|scramble|word search|films?|starred|star|progress|profiles?|stability)\\b"
   },
   "later": [
+    "finder-tags",
     "facts",
     "keypad-keys",
     "keypad-pad",
