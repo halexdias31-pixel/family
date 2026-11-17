@@ -4,9 +4,8 @@ const OQ = { list: null, answers: null, error: '', asking: false, watching: fals
 function oqStart_() {
   if (OQ.asking || OQ.list) return;
   OQ.asking = true;
-  const list = fetch('data/settings/owner-questions.json' + (typeof deployStamp_ === 'function' ? deployStamp_() : ''), { cache: 'default' })
-    .then(r => r.json()).then(j => { OQ.list = Array.isArray(j && j.questions) ? j.questions : []; })
-    .catch(() => { OQ.list = []; OQ.error = 'The questions could not be fetched — check the connection.'; });
+  const list = dataFile_('data/settings/owner-questions.json')
+    .then(j => { OQ.list = Array.isArray(j && j.questions) ? j.questions : []; if (!j) OQ.error = 'The questions could not be fetched — check the connection.'; });
   const got = api({ action: 'listOwnerAnswers', name: USER && USER.name })
     .then(d => { OQ.answers = oqOf_(d && !d.error ? d.answers : []); if (d && d.error) OQ.error = String(d.error); })
     .catch(() => { OQ.answers = {}; OQ.error = 'The answers could not be fetched — the questions show unanswered.'; });

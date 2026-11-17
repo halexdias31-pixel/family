@@ -59,7 +59,7 @@ function raceFetch_() {
 
 /* NOTHING BUILT IS NEVER AN EMPTY CARD (464): the repository's map — practice streets, or Colliers Wood once tools/race_map.py has run. */
 function raceShipped_() {
-  return fetch(RACE_SHIPPED + deployStamp_(), { cache: 'no-cache' }).then(r => r.json()).then(m => {
+  return dataFile_(RACE_SHIPPED, { cache: 'no-cache', fail: true }).then(m => {
     if (m && Array.isArray(m.pts) && m.pts.length && Array.isArray(m.roads) && m.roads.length) raceAdopt_(m);
   });
 }
@@ -500,7 +500,7 @@ function raceReset_() {
 }
 
 function raceBest_() {
-  try { return Number(localStorage.getItem('race-best')) || 0; } catch (e) { return 0; }
+  return Number(keep_.get('race-best')) || 0;
 }
 
 /* ONE STEP OF dt SECONDS. Throttle, brakes, rolling and air drag, and the slope: g times the grade along the car is felt
@@ -556,7 +556,7 @@ function raceGateCheck_() {
   if (Math.hypot(c.x - g.x, c.y - g.y) > Math.max(9, g.w / 2 + 4)) return;
   if (L.next % W.gates.length === 0) {
     L.last = now - L.start; L.laps++; L.start = now;
-    if (!L.best || L.last < L.best) { L.best = L.last; try { localStorage.setItem('race-best', String(Math.round(L.best))); } catch (e) {} }
+    if (!L.best || L.last < L.best) { L.best = L.last; keep_.put('race-best', String(Math.round(L.best))); }
     L.next = 1;
   } else L.next++;
 }

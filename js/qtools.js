@@ -37,7 +37,7 @@ const partKeyOfAns_ = k => /^ans:/.test(String(k || '')) ? String(k).replace(/^a
 function partRecAt_(pk) {
   if (PART_MEM.has(pk)) return PART_MEM.get(pk);
   let rec = null;
-  try { rec = JSON.parse(localStorage.getItem(pk) || 'null'); } catch (e) { rec = null; }
+  rec = keep_.json(pk, null);
   if (!rec || typeof rec !== 'object') rec = partMigrate_(pk);
   PART_MEM.set(pk, rec);
   return rec;
@@ -47,19 +47,18 @@ function partMigrate_(pk) {
   const rec = { v: 1 };
   const old = 'aiMark:' + pk.replace(/^part:/, 'ans:');
   try {
-    const raw = localStorage.getItem(old);
+    const raw = keep_.get(old);
     if (raw === null) return rec;
     const ai = JSON.parse(raw);
     if (ai && typeof ai.a === 'string' && typeof ai.v === 'string') rec.ai = ai;
-    localStorage.setItem(pk, JSON.stringify(rec));
-    localStorage.removeItem(old);
+    if (keep_.put(pk, JSON.stringify(rec))) keep_.del(old);
   } catch (e) { /* the old key stays, and is read again next visit */ }
   return rec;
 }
 function partRecPutAt_(pk, field, v) {
   const rec = partRecAt_(pk);
   if (v == null || v === '') delete rec[field]; else rec[field] = v;
-  try { localStorage.setItem(pk, JSON.stringify(rec)); } catch (e) { /* this visit only */ }
+  keep_.put(pk, JSON.stringify(rec));
 }
 /* WHAT THE PART HOLDS, every kind of answer in one shape. The typed box and the pen go to the account under their own
    synced keys (answers.js, the server's ceilings); the record reads them, so nothing saved before it is lost. */

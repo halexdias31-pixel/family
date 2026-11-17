@@ -419,9 +419,9 @@ const AHEAD_SLOW = new Set();
 const AHEAD_QUIET = 400, AHEAD_QUIET_SLOW = 1000, AHEAD_SLOW_MS = 150;
 /* ---------- THE SLOW BIT IS KEPT ON THE DEVICE, AND A COLUMN'S FIRST DRAW IS SLOW UNTIL IT HAS BEEN TIMED § */
 const AHEAD_SLOW_KEY = 'familyAheadSlow';
-try { (JSON.parse(localStorage.getItem(AHEAD_SLOW_KEY) || '[]') || []).forEach(k => { if (typeof k === 'string') AHEAD_SLOW.add(k); }); } catch (e) { /* a bad stored list reads as none */ }
+try { (JSON.parse(keep_.get(AHEAD_SLOW_KEY) || '[]') || []).forEach(k => { if (typeof k === 'string') AHEAD_SLOW.add(k); }); } catch (e) { /* a bad stored list reads as none */ }
 function aheadSlowKeep_() {
-  try { localStorage.setItem(AHEAD_SLOW_KEY, JSON.stringify([...AHEAD_SLOW].filter(k => /^(paint|widget):/.test(k)))); } catch (e) { /* storage can be blocked; the app runs without it */ }
+  keep_.put(AHEAD_SLOW_KEY, JSON.stringify([...AHEAD_SLOW].filter(k => /^(paint|widget):/.test(k))));
 }
 /* THE LAST TWO HUNDRED SLICES, for the harness and the journeys: what ran, for how long, and whether any
    gate was open that should not have been. */

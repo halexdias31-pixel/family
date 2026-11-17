@@ -9,10 +9,10 @@ function go(id, remember, instant) {
   if (was && was !== AT) PREV_AT = was;
   if (remember !== false) {
     try {
-      localStorage.setItem('familyTab', AT);
+      keep_.put('familyTab', AT);
       /* THE STAMP IS WRITTEN WITH THE ID AND NEVER WITHOUT IT — see the note over `AT` above. A
          stamp left behind by an id that was not written is a column remembered by its timestamp. */
-      localStorage.setItem('familyTabAt', String(Date.now()));
+      keep_.put('familyTabAt', String(Date.now()));
     } catch { /* storage blocked: the tab is not remembered */ }
   }
 

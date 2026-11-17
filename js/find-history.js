@@ -481,21 +481,10 @@ function scriptureWait_(items) {
 /* ONE FETCH FOR EVERY FILE OF IT, stamped with the deploy so the service worker's exact-URL cache hands back a fresh copy after one — `videosAsk_`'s reasoning § */
 function bibleGet_(file) {
   if (!bibleFor_()) return Promise.resolve(null);
-  return scriptureFetch_(o => fetch('data/bible/' + file + deployStamp_(), o));
+  return dataFile_('data/bible/' + file, { wait: SCRIPTURE_WAIT_MS });
 }
 /* SCRIPTURE'S FETCHES END (504): a request that hangs is given up after this long and said as a miss, so no wait lasts for ever. */
 const SCRIPTURE_WAIT_MS = 20000;
-function scriptureFetch_(ask) {
-  return new Promise(done => {
-    let over = false, ab = null;
-    try { if (typeof AbortController === 'function') ab = new AbortController(); } catch (e) { oops_(e, 'find:scriptureFetch_') }
-    const t = setTimeout(() => { over = true; try { if (ab) ab.abort(); } catch (e) { /* already stopped is fine */ } done(null); }, SCRIPTURE_WAIT_MS);
-    Promise.resolve().then(() => ask(ab ? { cache: 'default', signal: ab.signal } : { cache: 'default' }))
-      .then(res => (res && res.ok) ? res.json() : null)
-      .catch(() => null)
-      .then(d => { clearTimeout(t); if (!over) done(d); });
-  });
-}
 
 /* THE LIST OF BOOKS — asked for once, the first time an admin's Find is built, which is long before a finger reaches the shelf. § */
 function bibleIndex_() {
@@ -787,7 +776,7 @@ function policyView_(u, host, name) {
   box.innerHTML = cardBlock_({ type: 'wait', look: 'policy-page', on: true }) + tileRow_(tile_({ icon: 'close', label: 'Close', act: 'file-view-close' }));
   host.appendChild(box);
   const page = box.querySelector('.policy-page'), show = md => { page.removeAttribute('aria-busy'); page.innerHTML = policyMd_(policyFill_(md)); };
-  const get = url => fetch(url, { cache: 'no-cache' }).then(r => { if (!r.ok) throw new Error(r.status); return r.text(); });
+  const get = url => dataFile_(url, { as: 'text', cache: 'no-cache', stamp: false, fail: true });
   /* The served copy beside the site first, the brand's address second. */
   get('docs/policies/' + name + '.md').catch(() => get(u)).then(show)
     .catch(() => { page.innerHTML = cardBlock_({ type: 'paperNote', text: ['This policy could not be loaded. ', { link: 'Open it', href: u }, '.'] }); });

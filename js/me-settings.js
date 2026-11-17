@@ -268,7 +268,7 @@ function meSave_(el, auto) {
       if (d && d.pendingEmail !== undefined) { accountChanged_(); W.pendingEmail = String(d.pendingEmail || ''); }
       /* ---------- "SAVED" IS NOT THE WHOLE STORY WHEN AN ADDRESS WAS TYPED § */
       const word = (d && d.said) || 'Saved';
-      if (W === USER) keepUser_();
+      if (W === USER) saveUser_();
       if (box.closest('#sheet-body') && !auto) closeSheet();
       /* THIS CARD IS CLEAN NOW, so a repaint may redraw it — see `settingsKeep_` — unless the caret is still in it. */
       const form = el.closest('.me-form');
@@ -403,7 +403,7 @@ function profileRefresh_(loud, onOld) {
       if (d.handle) USER.handle = String(d.handle);
       const roleMoved = JSON.stringify([USER.rank, USER.role, USER.roles, !!USER.tutorPending, String(USER.pendingEmail || ''),
         String(USER.name || ''), USER.children, USER.kids, String(USER.handle || '')]) !== roleWas;
-      try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch { /* storage blocked: the sign-in still holds for this visit */ }
+      saveUser_();
       /* BOTH THROUGH `landRepaint_` (shell.js), because this is a reply landing like the payload is: § */
       const land = typeof landRepaint_ === 'function' ? landRepaint_ : (f => (f || repaint)());
       if (roleMoved) { try { land(); } catch (e) { oops_(e, 'me:profileRefresh_') } return; }
@@ -438,7 +438,7 @@ FORM_SEND_['pin-change'] = (v, el) => {
       /* ---------- A NEW PIN ENDS EVERY SESSION, SO THIS PHONE IS HANDED A NEW ONE § */
       if (d && d.token) {
         USER.token = d.token;
-        try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch { /* storage blocked: the sign-in still holds for this visit */ }
+        saveUser_();
       }
       /* THE DIGITS GO THE MOMENT THEY ARE SENT. */
       askDone_('pin-change'); askPaint_('pin-change');

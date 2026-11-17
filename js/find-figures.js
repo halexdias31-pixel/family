@@ -139,7 +139,7 @@ function circRead_(k) {
   try {
     /* THE VISIT'S COPY FIRST when the store refused it — `ansRead_`'s reason (317). */
     const held = typeof keepHeld_ === 'function' ? keepHeld_(k) : undefined;
-    const raw = held !== undefined ? (held === null ? '[]' : held) : localStorage.getItem(k);
+    const raw = held !== undefined ? (held === null ? '[]' : held) : keep_.get(k);
     if (raw !== null) {
       const v = JSON.parse(raw);
       return Array.isArray(v) ? v.map(String) : [];

@@ -15,14 +15,14 @@ function pxeInk_() {
 function pxeLoad_() {
   if (PXE) return PXE;
   let got = null;
-  try { got = JSON.parse(localStorage.getItem(PXE_KEY) || 'null'); } catch (e) { got = null; }
+  got = keep_.json(PXE_KEY, null);
   const n = got && PXE_SIZES.indexOf(Number(got.n)) >= 0 ? Number(got.n) : 16;
   const px = new Array(n * n).fill('');
   if (got && Array.isArray(got.px)) got.px.slice(0, n * n).forEach((c, i) => { px[i] = pxeHex_(c); });
   PXE = { n, colour: pxeHex_(got && got.colour) || pxeInk_(), tool: got && got.tool === 'eraser' ? 'eraser' : 'pen', px };
   return PXE;
 }
-function pxeKeep_() { try { localStorage.setItem(PXE_KEY, JSON.stringify(PXE)); } catch (e) { /* storage blocked: the picture lives until the page goes */ } }
+function pxeKeep_() { keep_.put(PXE_KEY, JSON.stringify(PXE)); }
 
 function pxeHtml_() {
   pxeLoad_();

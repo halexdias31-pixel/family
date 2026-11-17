@@ -2,13 +2,7 @@
 /* data/pdtexts/: the index when a finder paints, a text's words only when one of its cards is drawn (as js/works.js does). */
 
 const PDTEXTS = { index: null, asking: null, failed: false, files: {}, loading: {}, missed: {}, items: null, from: null };
-const pdtextsGet_ = file => {
-  const stamp = deployStamp_();
-  return Promise.resolve()
-    .then(() => fetch('data/pdtexts/' + file + stamp, { cache: 'default' }))
-    .then(res => (res && res.ok) ? res.json() : null)
-    .catch(() => null);
-};
+const pdtextsGet_ = file => dataFile_('data/pdtexts/' + file);
 
 function pdtextsIndex_() {
   if (PDTEXTS.index) return PDTEXTS.index;

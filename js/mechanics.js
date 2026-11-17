@@ -16,9 +16,7 @@ const MECH_PART = 'Car part', MECH_ONE = 'Car';
 function mechIndex_() {
   if (MECH.data) return MECH.data;
   if (MECH.asking || MECH.failed || typeof fetch !== 'function') return null;
-  const stamp = deployStamp_();
-  const get = f => Promise.resolve().then(() => fetch('data/mechanics/' + f + '.json' + stamp, { cache: 'default' }))
-    .then(res => (res && res.ok) ? res.json() : null).catch(() => null);
+  const get = f => dataFile_('data/mechanics/' + f + '.json');
   const names = Object.keys(MECH_FILES);
   MECH.asking = Promise.all(names.map(get)).then(all => {
     MECH.asking = null;
