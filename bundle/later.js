@@ -17593,16 +17593,23 @@ return list;
 const htopCredit_ = p => (p && p.credit ? [{ type: 'text', look: 'htop-credit', text: ['Picture: ', { link: p.credit + ' · ' + (p.licence || ''), href: p.page || '', act: 'file-view', look: 'link' }] }] : []);
 const htopLink_ = (u, say, icon) => (u ? [{ type: 'tiles', tiles: [{ icon: icon || 'open', label: say, href: u }] }] : []);
 function histTopicBody_(h) {
-const t = h.topic || {}, r = h.row || {};
-if (h.part === 'timeline') return [{ type: 'text', text: t.summary || '' },
-{ type: 'timeline', label: t.title, events: htopEvents_(t).map(e => ({ when: htopYears_(e.date_from, e.date_to !== e.date_from ? e.date_to : ''), title: e.name, text: e.summary })) }];
+const t = h.topic || {}, r = h.row || {}, sl = TOPIC_SLOTS(), refuse = sl.refuse || [];
+const lean = a => (a || []).filter(x => !refuse.some(w => new RegExp('^\\s*' + w + '\\b', 'i').test(typeof x === 'string' ? x : (x && x.label) || '')));
+const idea = h.part === 'timeline' ? t.idea : r.idea;
+const draw = {
+idea: () => (idea ? [{ type: 'text', look: 'fc-kick tb-idea', text: [{ b: idea }] }] : []),
+figure: () => (h.part === 'timeline' ? [{ type: 'timeline', label: t.title, events: htopEvents_(t).map(e => ({ when: htopYears_(e.date_from, e.date_to !== e.date_from ? e.date_to : ''), title: e.name, text: e.summary })) }] : []),
+content: () => {
+if (h.part === 'timeline') return [{ type: 'text', text: t.summary || '' }];
 if (h.part === 'people') return [{ type: 'list', items: [{ label: 'Lived', value: htopYears_(r.born, r.died, r.about) }, { label: 'Who', value: r.role || '' },
-r.fate ? { label: 'What happened', value: r.fate } : null].filter(Boolean) }, { type: 'list', items: r.facts || [] }].concat(htopCredit_(r.pic));
+r.fate ? { label: 'What happened', value: r.fate } : null].filter(Boolean) }, { type: 'list', items: lean(r.facts) }].concat(htopCredit_(r.pic));
 if (h.part === 'sources') return [{ type: 'list', items: [{ label: 'Kind', value: r.type || '' }, r.date ? { label: 'Made', value: r.date } : null].filter(Boolean) },
 { type: 'text', text: r.text || '' }].concat(r.quote ? [{ type: 'text', look: 'htop-quote', text: '“' + r.quote + '”' }] : [],
 htopLink_(r.url, r.type === 'Video' ? 'Watch the video' : 'Read the full text', r.type === 'Video' ? 'play' : 'open'), htopCredit_(r.pic));
-return [{ type: 'list', items: [{ label: 'When', value: r.date || '' }] }, { type: 'list', items: r.facts || [] }]
-.concat(htopLink_(r.url, 'Find out more'), htopCredit_(r.pic));
+return [{ type: 'list', items: [{ label: 'When', value: r.date || '' }] }, { type: 'list', items: lean(r.facts) }].concat(htopLink_(r.url, 'Find out more'), htopCredit_(r.pic));
+},
+};
+return [].concat(...(sl.order || []).map(k => (draw[k] ? draw[k]() : [])));
 }
 const histTopicPic_ = h => (h && h.row && h.row.pic && h.row.pic.src ? { src: h.row.pic.src, alt: h.name, look: 'kc-pan' } : null);
 ;

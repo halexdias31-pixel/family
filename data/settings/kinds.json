@@ -1087,7 +1087,7 @@
     "lines": true,
     "body": "contentBody_(row)",
     "slots": {
-     "say": "THE TOPIC CARD (rule 1.80, owner 17 Nov): three slots in this order, an empty one hidden: the idea in one line; the animation or figure; the content, everything the topic needs and nothing else. Read by contentBody_ (find-facets.js); tools/content/library.js drive-pack refuses a card that breaks it.",
+     "say": "THE TOPIC CARD (rule 1.80, owner 17 Nov): three slots in this order, an empty one hidden: the idea in one line; the animation or figure; the content, everything the topic needs and nothing else. Read by contentBody_ (find-facets.js) and histTopicBody_ (history-topics.js, each History card: its `idea`, the timeline or picture, the content); tools/content/library.js drive-pack refuses a card that breaks it.",
      "order": [
       "idea",
       "figure",
