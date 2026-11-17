@@ -60,6 +60,33 @@ function libraryRows_() {
   if (!LIBRARY_ASK) LIBRARY_ASK = libraryRowsAsk_().finally(() => { LIBRARY_ASK = null; });
   return LIBRARY_ASK;
 }
+/* A QUESTION WEARS ITS PAPER'S CARD (owner, 17 Nov): kinds.json `sheet.lib.joined` names the card fields (name, subject, level …) a row
+   takes from its paper's own row (`kind` document, the same paper_id) instead of keeping a copy. A field a row does keep is its own
+   (an override); null is "none here though the paper has one". The backend joins the same way (cards-gen.gs). */
+function libJoinPaper_(rows, join) {
+  if (!join || !Array.isArray(join.fields) || !Array.isArray(rows)) return rows;
+  const card = new Map();
+  rows.forEach(r => { if (r && r.kind === join.from) card.set(r[join.by], r); });
+  rows.forEach(r => {
+    const c = r && r.kind !== join.from && card.get(r[join.by]);
+    if (c) join.fields.forEach(f => { if (r[f] === null) delete r[f]; else if (r[f] === undefined && c[f] !== undefined) r[f] = c[f]; });
+  });
+  return rows;
+}
+/* AND THE WAY BACK, for whatever writes the file (tools/content.js import): a copy equal to its paper's goes; an absent one is null. */
+function libStripPaper_(rows, join) {
+  if (!join || !Array.isArray(join.fields) || !Array.isArray(rows)) return rows;
+  const card = new Map();
+  rows.forEach(r => { if (r && r.kind === join.from) card.set(r[join.by], r); });
+  rows.forEach(r => {
+    const c = r && r.kind !== join.from && card.get(r[join.by]);
+    if (c) join.fields.forEach(f => {
+      if (r[f] === undefined) { if (c[f] !== undefined) r[f] = null; } else if (r[f] === c[f]) delete r[f];
+    });
+  });
+  return rows;
+}
+const LIB_JOIN = () => (((((typeof ITEM_KINDS !== 'undefined' && ITEM_KINDS.kinds.question) || {}).sheet || {}).lib || {}).joined || null);
 /* ONE COPY OF EACH SHORT CELL ("True", "GCSE", "AQA"): a parsed file holds a fresh string per row, a hundred thousand of each. */
 function libIntern_(rows) {
   const pool = new Map();
@@ -86,7 +113,7 @@ async function libraryRowsAsk_() {
   }
   /* AN EMPTY ARRAY IS A REAL ANSWER and is left alone — the file legitimately parses to `[]` on a
      fresh clone. Only a throw or a refusal sets the flag, so "empty" and "absent" stay different. */
-  LIBRARY_ROWS = Array.isArray(rows) ? libIntern_(rows) : [];
+  LIBRARY_ROWS = Array.isArray(rows) ? libIntern_(libJoinPaper_(rows, LIB_JOIN())) : [];
   if (Array.isArray(rows)) LIBRARY_FAILED = '';
   return LIBRARY_ROWS;
 }

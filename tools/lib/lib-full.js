@@ -213,5 +213,19 @@ function pendingTwins(rows, nameOf) {
   const mine = new Set(rows.filter(r => pending(r) && typeof r.diagram === 'string' && /^\s*<svg\b/i.test(r.diagram)).map(r => nameOf(r.diagram)));
   return { blind, listed: new Set(Array.isArray(listed) ? listed : []), mine, file: TWIN_LIST };
 }
+/* A QUESTION WEARS ITS PAPER'S CARD (owner, 17 Nov): js/library.js's libJoinPaper_ and libStripPaper_, run as they stand, by
+   kinds.json `sheet.lib.joined`. joinPaper(rows) fills each row's card from its paper's row; stripPaper(rows) takes the copies off again. */
+let PAPER = null;
+function paperFns() {
+  if (PAPER) return PAPER;
+  const src = fs.readFileSync(path.join(ROOT, 'js', 'library.js'), 'utf8');
+  const grab = n => { const m = new RegExp('^function ' + n + '\\([\\s\\S]*?\\n}\\n', 'm').exec(src); if (!m) throw new Error('js/library.js has no ' + n); return m[0]; };
+  const ctx = vm.createContext({});
+  vm.runInContext(grab('libJoinPaper_') + grab('libStripPaper_') + 'this.__P = { join: libJoinPaper_, strip: libStripPaper_ };', ctx, { filename: 'library.js (extract)' });
+  PAPER = ctx.__P;
+  return PAPER;
+}
+const joinPaper = rows => paperFns().join(rows, defs().files.questions.joined);
+const stripPaper = rows => paperFns().strip(rows, defs().files.questions.joined);
 module.exports = { ABSENT, needWords, fixture: () => FIXTURE, skipParts, isAbsent, behind, waits, pendingTwins, TWIN_LIST, ROOT, PRIVATE_DIR, defs, NAMES, isLib, idOf, privateOf, pending, styleOf, rowText, fileText,
-                   privatePath, readPrivate, writePrivate, pinnedMap, seedFromGit, text, rows, serve };
+                   privatePath, readPrivate, writePrivate, pinnedMap, seedFromGit, text, rows, serve, joinPaper, stripPaper };

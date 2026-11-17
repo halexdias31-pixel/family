@@ -582,7 +582,7 @@ const FACET_READ = {
   documentType: { of: x => x.documentType || '' },
   level: { of: x => levelOf_(x) },
   /* A RESOURCE CAN BELONG TO MORE THAN ONE KEY STAGE; a SATs row's is read off its year when the cell is blank. */
-  keystage: { of: x => { const s = satsStagesOf_(x); return s.length ? s : keyStagesOf_(x); } },
+  keystage: { of: x => { const s = satsStagesOf_(x); return s.length ? s : keyStagesAt_(x); } },
   /* A CHAPTER TAUGHT OVER SEVERAL YEARS ANSWERS EACH (770: "it should ask what year, no?" under KS2). */
   yearGroup: { of: x => x.bandValue && x.bandType === 'year' ? 'Year ' + x.bandValue : (x.years || []).map(y => 'Year ' + y) },
   bandValue: { of: x => x.bandValue && x.bandType === 'grade' ? 'Grade ' + x.bandValue : '' },
@@ -592,7 +592,8 @@ const FACET_READ = {
   specTopic: { full: true, of: x => specTreeOf_(x).topic },
   specPoint: { full: true, of: x => specTreeOf_(x).point },
   /* A "PLUS" TIER IS ITS OWN TIER'S (owner, 15 Nov): Foundation Plus is Foundation, Higher Plus is Higher. */
-  tier: { of: x => String(x.tier || '').replace(/\s+Plus$/i, '') },
+  /* A COMMA PARTS TIERS (owner, 17 Nov, N-20261117-tiertag): `Foundation,Higher` is two tags, as a key stage list is. */
+  tier: { of: x => [...new Set(String(x.tier || '').split(',').map(t => t.trim().replace(/\s+Plus$/i, '')).filter(Boolean))] },
   /* THE YEAR, THEN THE MONTH, THEN THE PAPER — like the folders they came from. */
   examYear: { of: x => sittingOf_(x).year },
   /* MONTH AND DAY READ ANY ITEM'S DATE (owner, 15 Nov): a sitting's month, else the item's own date (`itemDate_`) — a 5-a-day's "5 October". */
@@ -9206,22 +9207,8 @@ function topicOf_(x) {
 
 /* ---------- THE TOPIC TREE WAS READ HERE § */
 
-/* THE LIBRARY'S LEVELS, ONE TABLE (R4): each level's key stages, tiers, other spellings, and rung on the ladder a range is
-   read along (0: never in a range). check/library-schema.js reads this very literal. */
-const LEVEL_TABLE = [
-  /* ---------- `KS2 SATs` IS TWO FACTS, AND THE LEVEL IS ONE OF THEM § */
-  { level: 'SATs',        rung: 1, stages: ['KS1', 'KS2'], tiers: [], says: ['KS1', 'KS2', 'KS1 SATs', 'KS2 SATs'] },
-  { level: '11+',         rung: 0, stages: ['KS2'],        tiers: [], says: [] },
-  { level: 'KS3',         rung: 2, stages: ['KS3'],        tiers: [], says: [] },
-  { level: 'GCSE',        rung: 3, stages: ['KS4'],        tiers: ['Foundation', 'Higher', 'Foundation Plus', 'Higher Plus'], says: ['KS4'] },
-  { level: 'Functional Skills L2', rung: 0, stages: [],    tiers: [], says: [] },
-  { level: 'Level 2 Certificate', rung: 0, stages: ['KS4'], tiers: [], says: ['L2 Certificate'] },
-  { level: 'A-Level',     rung: 4, stages: ['KS5'],        tiers: [], says: ['Alevel', 'A level', 'KS5'] },
-  { level: 'AS',          rung: 0, stages: ['KS5'],        tiers: [], says: ['AS level', 'AS-level'] },
-  { level: 'Theory test', rung: 0, stages: [],             tiers: [], says: [] },
-  /* ENGLISH AS A SECOND LANGUAGE: one level off the school ladder; its CEFR bands are its tiers, as GCSE's are Foundation and Higher. */
-  { level: 'ESL',         rung: 0, stages: [],             tiers: ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'], says: ['EFL', 'ESOL', 'CEFR'] },
-];
+/* THE LIBRARY'S LEVELS, ONE TABLE (R4): data/settings/settings.json `levels` — each level's key stages, tiers, other spellings and rung. */
+const LEVEL_TABLE = SHARED_SETTINGS.levels.list;
 
 ;
 /* ==== js/find-doors.js ==== */
@@ -9612,6 +9599,17 @@ function ksLevel_(k) {
 /* The `key_stage` cell as a list — `KS3, KS4` is two key stages, as the facet has always read it. */
 function keyStagesOf_(x) {
   return String((x && x.keystage) || '').split(',').map(s => s.trim()).filter(Boolean);
+}
+/* A KEY STAGE FOLLOWS FROM ITS LEVEL (owner, 17 Nov, N-20261117-alevelks4): once a level is chosen, a row's key stages are the
+   chosen levels' (settings.json `levels`) — a row taught KS3 to A-Level is KS5 under A-Level — so a facet with one sensible answer is skipped. */
+function keyStagesAt_(x) {
+  const chosen = ((typeof STUFF !== 'undefined' && STUFF && STUFF.filters) || []).filter(f => f && f.field === 'level' && !f.any).map(f => spellKey_(f.value));
+  const own = keyStagesOf_(x);
+  if (!chosen.length) return own;
+  const st = [].concat(...LEVEL_TABLE.filter(l => chosen.indexOf(spellKey_(l.level)) !== -1).map(l => l.stages));
+  if (!st.length) return own;
+  /* a row with its own key stages keeps those the level holds; one with none takes its level's, where the level has just one */
+  return own.length ? own.filter(k => st.indexOf(k) !== -1) : st.length === 1 ? st : [];
 }
 /* ---------- WHERE A ROW HAS NO LEVEL, ITS KEY STAGE SAYS ONE § */
 function ksFallback_(x) {
@@ -16574,8 +16572,8 @@ const QT_TOOLS = [
   { id: 'offline',    icon: 'down',       label: 'Make available offline', note: 'this paper, on this device', act: 'offline-get' },
   { id: 'check',      icon: 'send',       label: 'Check',           note: '',                         act: '' },
 ];
-/* THE ONE ROW EVERY PART SHOWS, identically (owner, 8 Nov); data/settings/qengine.json `row` repeats it (check-answerable) */
-const QT_ROW = ['photo', 'paper', 'mag', 'read', 'lock', 'ruler', 'protractor', 'calc', 'offline'];
+/* THE ONE ROW EVERY PART SHOWS, identically (owner, 8 Nov): data/settings/qengine.json `row`, as qtypes.js carries it (QENGINE) */
+const QT_ROW = QENGINE.row;
 /* THE PEN'S TILES, added only where the part has a figure to draw on (a drawing answer needs its pen) */
 const QT_DRAWING = { pen: 1, line: 1, compass: 1 };
 /* THE PEN'S OWN NAME FOR EACH DRAWING TILE: Straight line is the pad's `ruler` mode (a line from press to lift, `padStroke_`). */

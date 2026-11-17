@@ -4,7 +4,7 @@
 const fs = require('fs'), path = require('path'), vm = require('vm'), cp = require('child_process');
 const L = require('./lib-full.js');
 
-/* ---------- THE LEVEL TABLE AND THE SOURCES, OUT OF js/find.js — the app reads them there, so there is one copy ---------- */
+/* ---------- THE LEVEL TABLE (settings.json `levels`) AND, OUT OF js/find.js, levelsIn_ and the sources — one copy each ---------- */
 let APP = null;
 function app() {
   if (APP) return APP;
@@ -16,7 +16,8 @@ function app() {
   };
   const ctx = vm.createContext({});
   vm.runInContext([
-    grab(/^const LEVEL_TABLE = \[[\s\S]*?\n\];\n/m, '`const LEVEL_TABLE = [ … ];`'),
+    /* THE LEVELS ARE data/settings/settings.json `levels` (owner, 17 Nov), as the app reads them (LEVEL_TABLE) */
+    'const LEVEL_TABLE = ' + JSON.stringify(JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', 'data', 'settings', 'settings.json'), 'utf8')).levels.list) + ';',
     grab(/^function levelsIn_\([\s\S]*?\n}\n/m, '`function levelsIn_(cell) { … }`'),
     grab(/^const LIB_SOURCES = \[[^\]]*\];\n/m, '`const LIB_SOURCES = [ … ];`'),
     'this.__A = { LEVEL_TABLE: LEVEL_TABLE, levelsIn: levelsIn_, LIB_SOURCES: LIB_SOURCES };',

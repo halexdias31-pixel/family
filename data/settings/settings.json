@@ -40,5 +40,20 @@
    {"id": "gcse", "name": "GCSE exams", "key": "exam_gcse_start", "at": "05-11"},
    {"id": "alevel", "name": "A-level exams", "key": "exam_alevel_start", "at": "05-11"}
   ]
+ },
+ "levels": {
+  "_about": "THE LIBRARY'S LEVELS, ONE TABLE (R4; owner, 17 Nov): each level, its rung on the ladder a range is read along (0: never in a range), its key stages, its tiers and its other spellings. A key stage follows from its level, so Find never asks one a level already answers. KS1 SATs and KS2 SATs are two facts and the level is one of them; ESL is off the school ladder, its CEFR bands its tiers. LEVEL_TABLE (js/find-aloud.js), the backend's digest and tools/lib/library-schema.js all read this.",
+  "list": [
+   {"level": "SATs", "rung": 1, "stages": ["KS1", "KS2"], "tiers": [], "says": ["KS1", "KS2", "KS1 SATs", "KS2 SATs"]},
+   {"level": "11+", "rung": 0, "stages": ["KS2"], "tiers": [], "says": []},
+   {"level": "KS3", "rung": 2, "stages": ["KS3"], "tiers": [], "says": []},
+   {"level": "GCSE", "rung": 3, "stages": ["KS4"], "tiers": ["Foundation", "Higher", "Foundation Plus", "Higher Plus"], "says": ["KS4"]},
+   {"level": "Functional Skills L2", "rung": 0, "stages": [], "tiers": [], "says": []},
+   {"level": "Level 2 Certificate", "rung": 0, "stages": ["KS4"], "tiers": [], "says": ["L2 Certificate"]},
+   {"level": "A-Level", "rung": 4, "stages": ["KS5"], "tiers": [], "says": ["Alevel", "A level", "KS5"]},
+   {"level": "AS", "rung": 0, "stages": ["KS5"], "tiers": [], "says": ["AS level", "AS-level"]},
+   {"level": "Theory test", "rung": 0, "stages": [], "tiers": [], "says": []},
+   {"level": "ESL", "rung": 0, "stages": [], "tiers": ["A1", "A2", "B1", "B2", "C1", "C2"], "says": ["EFL", "ESOL", "CEFR"]}
+  ]
  }
 }
