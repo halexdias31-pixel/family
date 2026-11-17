@@ -148,11 +148,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-11-17-clean-2";
-/* THE SWITCH (owner's go, after the copy is checked): 'tabs' reads and writes each kind's own Ledger tab (kinds.json `sheet.tab`); */
-/* 'items' reads and writes the one items tab and the one events tab. The action `item` (items.gs) is the same either way. */
-const ITEM_STORE = 'tabs';
-@@CONFLICT@@const BACKEND_VERSION = "2026-11-17-store-3";
+const BACKEND_VERSION = "2026-11-17-store-4";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
