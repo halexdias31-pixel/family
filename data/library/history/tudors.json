@@ -2,6 +2,7 @@
  "id": "tudors",
  "name": "Tudors",
  "title": "The Tudors and Henry VIII",
+ "idea": "The Tudors ruled England for 118 years, and Henry VIII's break with Rome changed its Church for good.",
  "from": 1485,
  "to": 1603,
  "level": "KS2",
@@ -19,6 +20,7 @@
   {
    "id": "henry7",
    "name": "Henry VII",
+   "idea": "He won the crown at Bosworth and began the Tudor family's rule.",
    "born": 1457,
    "died": 1509,
    "role": "King",
@@ -37,6 +39,7 @@
   {
    "id": "henry8",
    "name": "Henry VIII",
+   "idea": "He broke with the Pope to end his first marriage and made himself head of the Church in England.",
    "born": 1491,
    "died": 1547,
    "role": "King",
@@ -57,6 +60,7 @@
   {
    "id": "aragon",
    "name": "Catherine of Aragon",
+   "idea": "Her failure to give Henry a son led to the divorce that split England from Rome.",
    "born": 1485,
    "died": 1536,
    "role": "Wife 1",
@@ -76,6 +80,7 @@
   {
    "id": "boleyn",
    "name": "Anne Boleyn",
+   "idea": "Henry broke with Rome to marry her; she was the mother of Elizabeth I.",
    "born": 1501,
    "died": 1536,
    "role": "Wife 2",
@@ -96,6 +101,7 @@
   {
    "id": "seymour",
    "name": "Jane Seymour",
+   "idea": "She gave Henry the son he wanted, the future Edward VI.",
    "born": 1508,
    "died": 1537,
    "role": "Wife 3",
@@ -116,6 +122,7 @@
   {
    "id": "cleves",
    "name": "Anne of Cleves",
+   "idea": "Henry married her after seeing her portrait, and ended the marriage within six months.",
    "born": 1515,
    "died": 1557,
    "role": "Wife 4",
@@ -135,6 +142,7 @@
   {
    "id": "howard",
    "name": "Catherine Howard",
+   "idea": "Henry's teenage fifth wife, beheaded after less than two years as queen.",
    "born": 1523,
    "died": 1542,
    "role": "Wife 5",
@@ -149,6 +157,7 @@
   {
    "id": "parr",
    "name": "Catherine Parr",
+   "idea": "Henry's last wife, who cared for his children and outlived him.",
    "born": 1512,
    "died": 1548,
    "role": "Wife 6",
@@ -169,6 +178,7 @@
   {
    "id": "wolsey",
    "name": "Thomas Wolsey",
+   "idea": "A butcher's son who ran Henry's government until he failed to get the divorce.",
    "born": 1473,
    "died": 1530,
    "role": "Cardinal and Lord Chancellor",
@@ -188,6 +198,7 @@
   {
    "id": "cromwell",
    "name": "Thomas Cromwell",
+   "idea": "He planned the break with Rome and the closing of the monasteries.",
    "born": 1485,
    "died": 1540,
    "role": "Chief minister",
@@ -207,6 +218,7 @@
   {
    "id": "more",
    "name": "Thomas More",
+   "idea": "He chose death rather than accept Henry as head of the Church.",
    "born": 1478,
    "died": 1535,
    "role": "Lord Chancellor and writer",
@@ -225,6 +237,7 @@
   {
    "id": "cranmer",
    "name": "Thomas Cranmer",
+   "idea": "He ended Henry's first marriage and gave England its prayer book in English.",
    "born": 1489,
    "died": 1556,
    "role": "Archbishop of Canterbury",
@@ -243,6 +256,7 @@
   {
    "id": "edward6",
    "name": "Edward VI",
+   "idea": "Henry's only surviving son, a boy king who made England more Protestant.",
    "born": 1537,
    "died": 1553,
    "role": "King",
@@ -261,6 +275,7 @@
   {
    "id": "mary1",
    "name": "Mary I",
+   "idea": "The first queen to rule England in her own right, who made it Catholic again.",
    "born": 1516,
    "died": 1558,
    "role": "Queen",
@@ -279,6 +294,7 @@
   {
    "id": "elizabeth1",
    "name": "Elizabeth I",
+   "idea": "The last Tudor, who ruled for 44 years and saw off the Spanish Armada.",
    "born": 1533,
    "died": 1603,
    "role": "Queen",
@@ -297,6 +313,7 @@
   {
    "id": "holbein",
    "name": "Hans Holbein the Younger",
+   "idea": "His paintings show us what Henry's court looked like.",
    "born": 1497,
    "died": 1543,
    "role": "Painter",
@@ -318,6 +335,7 @@
   {
    "id": "portrait-henry",
    "name": "Portrait of Henry VIII",
+   "idea": "A picture made to show Henry as a strong, powerful king.",
    "type": "Picture",
    "date": "about 1537–1547",
    "text": "Henry stands with his feet apart and hands on hips, in rich clothes. It was made to show a strong, powerful king, and copies hung in great houses all over England.",
@@ -331,6 +349,7 @@
   {
    "id": "cloth-gold-painting",
    "name": "The Field of the Cloth of Gold",
+   "idea": "A painting of Henry's showy 1520 meeting with the King of France.",
    "type": "Picture",
    "date": "about 1545",
    "text": "A painting of the 1520 meeting of Henry VIII and Francis I. Look for Henry on horseback, the golden tents, the fountain of wine and the dragon in the sky.",
@@ -344,6 +363,7 @@
   {
    "id": "act-supremacy",
    "name": "Act of Supremacy, 1534",
+   "idea": "The 1534 law that made the king head of the Church in England.",
    "type": "Document",
    "date": "1534",
    "text": "The law Parliament passed to make the king head of the Church in England. Its key words, in modern spelling:",
@@ -353,6 +373,7 @@
   {
    "id": "great-bible",
    "name": "The Great Bible",
+   "idea": "The English Bible every church had to have, showing Henry as head of the Church.",
    "type": "Document",
    "date": "1539",
    "text": "The first Bible in English that every church had to have. On its front page Henry hands out the Word of God, showing him as head of the Church.",
@@ -366,6 +387,7 @@
   {
    "id": "anthony-roll",
    "name": "The Anthony Roll: the Mary Rose",
+   "idea": "The only picture of the Mary Rose made in Tudor times.",
    "type": "Picture",
    "date": "1546",
    "text": "A list of Henry VIII's warships with a picture of each, made by Anthony Anthony. It is the only picture of the Mary Rose made in Tudor times.",
@@ -379,6 +401,7 @@
   {
    "id": "cowdray",
    "name": "The Cowdray engraving",
+   "idea": "A copy of a lost Tudor painting showing the Mary Rose sinking in 1545.",
    "type": "Picture",
    "date": "1545, copied 1788",
    "text": "A copy of a lost Tudor wall painting of the Battle of the Solent. Near the middle, only the masts of the sinking Mary Rose show above the water.",
@@ -392,6 +415,7 @@
   {
    "id": "bbc-tudors",
    "name": "BBC Bitesize: The Tudors",
+   "idea": "A short video on who the Tudors were.",
    "type": "Video",
    "text": "BBC Bitesize KS2: who the Tudors were.",
    "url": "https://www.bbc.co.uk/bitesize/articles/z47cydm"
@@ -399,6 +423,7 @@
   {
    "id": "bbc-henry",
    "name": "BBC Bitesize: Who was Henry VIII?",
+   "idea": "A short video on Henry VIII and his six wives.",
    "type": "Video",
    "text": "BBC Bitesize KS2: Henry VIII and his six wives.",
    "url": "https://www.bbc.co.uk/bitesize/articles/zmst6g8"
@@ -406,6 +431,7 @@
   {
    "id": "bbc-teach-henry",
    "name": "BBC Teach: Life in Tudor times, Henry VIII",
+   "idea": "A short class clip on life in Henry VIII's time.",
    "type": "Video",
    "text": "A short BBC Teach class clip for KS2.",
    "url": "https://www.bbc.co.uk/teach/class-clips-video/articles/zmf2p9q"
@@ -415,6 +441,7 @@
   {
    "id": "mary-rose",
    "name": "The Mary Rose",
+   "idea": "Henry's great warship, sunk in 1545 and raised in 1982.",
    "date": "built 1510–1511",
    "facts": [
     "One of Henry VIII's biggest warships, armed with cannon.",
@@ -432,6 +459,7 @@
   {
    "id": "mary-rose-finds",
    "name": "Mary Rose finds",
+   "idea": "Objects from the wreck show everyday life on a Tudor warship.",
    "date": "1545",
    "facts": [
     "About 19,000 objects have been brought up from the wreck.",
@@ -444,6 +472,7 @@
   {
    "id": "henry-armour",
    "name": "Henry VIII's armour",
+   "idea": "Made to measure, his armour shows how Henry's body changed.",
    "date": "1515–1540",
    "facts": [
     "Henry's suits of armour are kept by the Royal Armouries, some at the Tower of London.",
@@ -455,6 +484,7 @@
   {
    "id": "tudor-coins",
    "name": "Tudor coins",
+   "idea": "Tudor money, from the first gold sovereign to Henry's debased silver.",
    "date": "1489–1603",
    "facts": [
     "Henry VII made the first gold pound coin, the sovereign, in 1489.",
@@ -472,6 +502,7 @@
   {
    "id": "hampton-court",
    "name": "Hampton Court Palace",
+   "idea": "Wolsey's palace, which Henry took over and made bigger.",
    "date": "from 1515",
    "facts": [
     "Built by Cardinal Wolsey, then given to Henry VIII.",
@@ -488,6 +519,7 @@
   {
    "id": "tudor-rose",
    "name": "The Tudor rose",
+   "idea": "The Tudor badge, joining the roses of Lancaster and York.",
    "date": "1486",
    "facts": [
     "The badge of the Tudor family.",
@@ -504,6 +536,7 @@
   {
    "id": "ruined-abbey",
    "name": "A ruined abbey",
+   "idea": "What was left when Henry closed the monasteries.",
    "date": "1536–1541",
    "facts": [
     "When Henry closed the monasteries, many abbeys lost their roofs and lead.",

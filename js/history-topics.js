@@ -58,18 +58,26 @@ const htopCredit_ = p => (p && p.credit ? [{ type: 'text', look: 'htop-credit', 
 /* A SOURCE'S LINK IS A BUTTON (owner, 17 Nov): a video's plays, a text's reads. */
 const htopLink_ = (u, say, icon) => (u ? [{ type: 'tiles', tiles: [{ icon: icon || 'open', label: say, href: u }] }] : []);
 
-/* THE BODY OF EACH KIND (ITEM_MAPS.hist): no worked examples, only what happened, who, and what survives. */
+/* THE BODY OF EACH KIND (ITEM_MAPS.hist) IS THE TOPIC CARD (rule 1.80): the slots and order of kinds.json `content.card.slots` (TOPIC_SLOTS, find-facets.js),
+   as contentBody_ draws them — the idea in one line; the figure (the timeline, or the card's picture above); the content. What the slots refuse is never drawn. */
 function histTopicBody_(h) {
-  const t = h.topic || {}, r = h.row || {};
-  if (h.part === 'timeline') return [{ type: 'text', text: t.summary || '' },
-    { type: 'timeline', label: t.title, events: htopEvents_(t).map(e => ({ when: htopYears_(e.date_from, e.date_to !== e.date_from ? e.date_to : ''), title: e.name, text: e.summary })) }];
-  if (h.part === 'people') return [{ type: 'list', items: [{ label: 'Lived', value: htopYears_(r.born, r.died, r.about) }, { label: 'Who', value: r.role || '' },
-    r.fate ? { label: 'What happened', value: r.fate } : null].filter(Boolean) }, { type: 'list', items: r.facts || [] }].concat(htopCredit_(r.pic));
-  if (h.part === 'sources') return [{ type: 'list', items: [{ label: 'Kind', value: r.type || '' }, r.date ? { label: 'Made', value: r.date } : null].filter(Boolean) },
-    { type: 'text', text: r.text || '' }].concat(r.quote ? [{ type: 'text', look: 'htop-quote', text: '“' + r.quote + '”' }] : [],
-    htopLink_(r.url, r.type === 'Video' ? 'Watch the video' : 'Read the full text', r.type === 'Video' ? 'play' : 'open'), htopCredit_(r.pic));
-  return [{ type: 'list', items: [{ label: 'When', value: r.date || '' }] }, { type: 'list', items: r.facts || [] }]
-    .concat(htopLink_(r.url, 'Find out more'), htopCredit_(r.pic));
+  const t = h.topic || {}, r = h.row || {}, sl = TOPIC_SLOTS(), refuse = sl.refuse || [];
+  const lean = a => (a || []).filter(x => !refuse.some(w => new RegExp('^\\s*' + w + '\\b', 'i').test(typeof x === 'string' ? x : (x && x.label) || '')));
+  const idea = h.part === 'timeline' ? t.idea : r.idea;
+  const draw = {
+    idea: () => (idea ? [{ type: 'text', look: 'fc-kick tb-idea', text: [{ b: idea }] }] : []),
+    figure: () => (h.part === 'timeline' ? [{ type: 'timeline', label: t.title, events: htopEvents_(t).map(e => ({ when: htopYears_(e.date_from, e.date_to !== e.date_from ? e.date_to : ''), title: e.name, text: e.summary })) }] : []),
+    content: () => {
+      if (h.part === 'timeline') return [{ type: 'text', text: t.summary || '' }];
+      if (h.part === 'people') return [{ type: 'list', items: [{ label: 'Lived', value: htopYears_(r.born, r.died, r.about) }, { label: 'Who', value: r.role || '' },
+        r.fate ? { label: 'What happened', value: r.fate } : null].filter(Boolean) }, { type: 'list', items: lean(r.facts) }].concat(htopCredit_(r.pic));
+      if (h.part === 'sources') return [{ type: 'list', items: [{ label: 'Kind', value: r.type || '' }, r.date ? { label: 'Made', value: r.date } : null].filter(Boolean) },
+        { type: 'text', text: r.text || '' }].concat(r.quote ? [{ type: 'text', look: 'htop-quote', text: '“' + r.quote + '”' }] : [],
+        htopLink_(r.url, r.type === 'Video' ? 'Watch the video' : 'Read the full text', r.type === 'Video' ? 'play' : 'open'), htopCredit_(r.pic));
+      return [{ type: 'list', items: [{ label: 'When', value: r.date || '' }] }, { type: 'list', items: lean(r.facts) }].concat(htopLink_(r.url, 'Find out more'), htopCredit_(r.pic));
+    },
+  };
+  return [].concat(...(sl.order || []).map(k => (draw[k] ? draw[k]() : [])));
 }
 /* ITS PICTURE: a portrait, painting or photo, hot-linked from Wikimedia Commons with its credit in the body. */
 const histTopicPic_ = h => (h && h.row && h.row.pic && h.row.pic.src ? { src: h.row.pic.src, alt: h.name, look: 'kc-pan' } : null);
