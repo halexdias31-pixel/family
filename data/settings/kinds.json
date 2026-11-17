@@ -35,6 +35,232 @@
   }
  },
  "kinds": {
+  "bookform": {
+   "source": "the booking form (js/book-*.js)",
+   "find": {
+    "group": "Booking",
+    "label": "Booking form",
+    "under": "Booking",
+    "draw": "bookFormCard_"
+   },
+   "see": {
+    "who": "anyone"
+   },
+   "forms": {
+    "booking": {
+     "ask": "find",
+     "say": "Booking, asked in Find one field a step in this order (owner, 13 Nov); each field is a BOOK_STEPS question (book-steps.js) or the hour grid (days, slots). given: the site answers it (bookPrefill_), still a chip. many: several answers, a tap ticks; need: how many before Next. rows: the order the booking card lists them (BOOK_STEPS). A field's `step` is its booking question as data, read by formSteps_ (form.js): q, short (words keys or text); list (fixed options) or from (a source: clients, children, openJobs, subjects, levels, tutors, venues, intervals, seats, hourGrid); when/unless (conditions that empty the list), may (a permission); filter (a row field that must be set, or a named test), label (the row field, or fields in turn, or a named function), sort (a row field), first/last (options put before/after), then (a named step over the whole list); say (an option's shown text: a map, or a named function); check (why an answer is refused), off (why an option is greyed), fallback, lock, set: named functions in BOOK_FNS (book-steps.js). Any name is looked up there first, else read as a row field.",
+     "fields": [
+      {
+       "f": "how",
+       "given": true,
+       "step": {
+        "q": "how-would-you-like-to-book",
+        "short": "Kind",
+        "list": [
+         "instant-class",
+         "waiting-list-class"
+        ],
+        "set": "howSet"
+       }
+      },
+      {
+       "f": "client",
+       "step": {
+        "q": "who-is-this-for",
+        "short": "For",
+        "from": "clients",
+        "may": "admin",
+        "label": "name",
+        "then": "meFirstNobody",
+        "fallback": "me",
+        "check": "needsSomebody",
+        "set": "kidsFor"
+       }
+      },
+      {
+       "f": "joining",
+       "given": true,
+       "step": {
+        "q": "something-already-going-or-a-new",
+        "short": "Class",
+        "when": "how",
+        "from": "openJobs",
+        "filter": "sameKind",
+        "label": "openClass",
+        "first": [
+         "start-a-new-one"
+        ],
+        "set": "joiningSet"
+       }
+      },
+      {
+       "f": "subjects",
+       "many": true,
+       "need": 1,
+       "step": {
+        "q": "what-are-we-working-on",
+        "short": "Subject",
+        "from": "subjects",
+        "label": "name"
+       }
+      },
+      {
+       "f": "level",
+       "step": {
+        "q": "what-level-the-highest-among-the",
+        "short": "Level",
+        "from": "levels"
+       }
+      },
+      {
+       "f": "tutor",
+       "step": {
+        "q": "anyone-in-particular",
+        "short": "Tutor",
+        "unless": "waiting",
+        "from": "tutors",
+        "filter": "title",
+        "label": "title",
+        "first": [
+         "no-preference"
+        ],
+        "say": "tutorListed",
+        "fallback": "waitNoPreference",
+        "check": "teaches"
+       }
+      },
+      {
+       "f": "loc",
+       "step": {
+        "q": "Where?",
+        "short": "Venue",
+        "only": "wait, tutoring",
+        "from": "venues",
+        "label": "label",
+        "wrap": true,
+        "check": "roomHolds",
+        "set": "homeHostsItself"
+       }
+      },
+      {
+       "f": "hosting",
+       "step": {
+        "q": "are-you-providing-the-space",
+        "short": "Space",
+        "only": "wait, tutoring",
+        "unless": [
+         "waiting",
+         "atHome"
+        ],
+        "list": [
+         "No",
+         "Yes"
+        ],
+        "filter": "roomCosts",
+        "say": {
+         "Yes": "yes-no-room-hire",
+         "No": "no-we-book-the-room"
+        },
+        "fallback": "atHomeYes"
+       }
+      },
+      {
+       "f": "interval",
+       "many": true,
+       "step": {
+        "q": "over-what-period",
+        "short": "Term",
+        "from": "intervals",
+        "label": [
+         "label",
+         "term"
+        ],
+        "fallback": "waitTerm",
+        "filter": [
+         "label",
+         "term"
+        ]
+       }
+      },
+      {
+       "f": "days",
+       "need": 1,
+       "ask": "Which day?"
+      },
+      {
+       "f": "slots",
+       "many": true,
+       "need": 1,
+       "ask": "What time? Each tag is one hour.",
+       "grid": true,
+       "step": {
+        "q": "When?",
+        "short": "When",
+        "unless": "waiting",
+        "from": "hourGrid",
+        "grid": "hours",
+        "week": true
+       }
+      },
+      {
+       "f": "avail",
+       "many": true,
+       "grid": true,
+       "step": {
+        "q": "when-could-you-come",
+        "short": "when-free",
+        "only": "wait",
+        "grid": "blocks",
+        "week": true
+       }
+      },
+      {
+       "f": "kids",
+       "many": true,
+       "step": {
+        "q": "which-of-your-children-is-this",
+        "short": "Child",
+        "unless": "waiting",
+        "from": "children",
+        "last": [
+         "someone-else"
+        ],
+        "set": "seatsFollowKids"
+       }
+      },
+      {
+       "f": "n",
+       "step": {
+        "q": "how-many-extra-seats",
+        "short": "extra-seats",
+        "from": "seats",
+        "say": "extraSeats",
+        "lock": "homeSeats",
+        "off": "overCap",
+        "check": "seatLimits"
+       }
+      }
+     ],
+     "look": "book-step",
+     "rows": [
+      "client",
+      "how",
+      "kids",
+      "joining",
+      "subjects",
+      "level",
+      "tutor",
+      "loc",
+      "hosting",
+      "n",
+      "interval",
+      "slots",
+      "avail"
+     ]
+    }
+   }
+  },
   "tutor": {
    "source": "Ledger people tab (role tutor)",
    "loader": "payload -> find-aloud.js",
@@ -463,232 +689,6 @@
       "net_profit",
       "venue_cost",
       "card_fees"
-     ]
-    }
-   }
-  },
-  "bookform": {
-   "source": "the booking form (js/book-*.js)",
-   "find": {
-    "group": "Booking",
-    "label": "Booking form",
-    "under": "Booking",
-    "draw": "bookFormCard_"
-   },
-   "see": {
-    "who": "anyone"
-   },
-   "forms": {
-    "booking": {
-     "ask": "find",
-     "say": "Booking, asked in Find one field a step in this order (owner, 13 Nov); each field is a BOOK_STEPS question (book-steps.js) or the hour grid (days, slots). given: the site answers it (bookPrefill_), still a chip. many: several answers, a tap ticks; need: how many before Next. rows: the order the booking card lists them (BOOK_STEPS). A field's `step` is its booking question as data, read by formSteps_ (form.js): q, short (words keys or text); list (fixed options) or from (a source: clients, children, openJobs, subjects, levels, tutors, venues, intervals, seats, hourGrid); when/unless (conditions that empty the list), may (a permission); filter (a row field that must be set, or a named test), label (the row field, or fields in turn, or a named function), sort (a row field), first/last (options put before/after), then (a named step over the whole list); say (an option's shown text: a map, or a named function); check (why an answer is refused), off (why an option is greyed), fallback, lock, set: named functions in BOOK_FNS (book-steps.js). Any name is looked up there first, else read as a row field.",
-     "fields": [
-      {
-       "f": "how",
-       "given": true,
-       "step": {
-        "q": "how-would-you-like-to-book",
-        "short": "Kind",
-        "list": [
-         "instant-class",
-         "waiting-list-class"
-        ],
-        "set": "howSet"
-       }
-      },
-      {
-       "f": "client",
-       "step": {
-        "q": "who-is-this-for",
-        "short": "For",
-        "from": "clients",
-        "may": "admin",
-        "label": "name",
-        "then": "meFirstNobody",
-        "fallback": "me",
-        "check": "needsSomebody",
-        "set": "kidsFor"
-       }
-      },
-      {
-       "f": "joining",
-       "given": true,
-       "step": {
-        "q": "something-already-going-or-a-new",
-        "short": "Class",
-        "when": "how",
-        "from": "openJobs",
-        "filter": "sameKind",
-        "label": "openClass",
-        "first": [
-         "start-a-new-one"
-        ],
-        "set": "joiningSet"
-       }
-      },
-      {
-       "f": "subjects",
-       "many": true,
-       "need": 1,
-       "step": {
-        "q": "what-are-we-working-on",
-        "short": "Subject",
-        "from": "subjects",
-        "label": "name"
-       }
-      },
-      {
-       "f": "level",
-       "step": {
-        "q": "what-level-the-highest-among-the",
-        "short": "Level",
-        "from": "levels"
-       }
-      },
-      {
-       "f": "tutor",
-       "step": {
-        "q": "anyone-in-particular",
-        "short": "Tutor",
-        "unless": "waiting",
-        "from": "tutors",
-        "filter": "title",
-        "label": "title",
-        "first": [
-         "no-preference"
-        ],
-        "say": "tutorListed",
-        "fallback": "waitNoPreference",
-        "check": "teaches"
-       }
-      },
-      {
-       "f": "loc",
-       "step": {
-        "q": "Where?",
-        "short": "Venue",
-        "only": "wait, tutoring",
-        "from": "venues",
-        "label": "label",
-        "wrap": true,
-        "check": "roomHolds",
-        "set": "homeHostsItself"
-       }
-      },
-      {
-       "f": "hosting",
-       "step": {
-        "q": "are-you-providing-the-space",
-        "short": "Space",
-        "only": "wait, tutoring",
-        "unless": [
-         "waiting",
-         "atHome"
-        ],
-        "list": [
-         "No",
-         "Yes"
-        ],
-        "filter": "roomCosts",
-        "say": {
-         "Yes": "yes-no-room-hire",
-         "No": "no-we-book-the-room"
-        },
-        "fallback": "atHomeYes"
-       }
-      },
-      {
-       "f": "interval",
-       "many": true,
-       "step": {
-        "q": "over-what-period",
-        "short": "Term",
-        "from": "intervals",
-        "label": [
-         "label",
-         "term"
-        ],
-        "fallback": "waitTerm",
-        "filter": [
-         "label",
-         "term"
-        ]
-       }
-      },
-      {
-       "f": "days",
-       "need": 1,
-       "ask": "Which day?"
-      },
-      {
-       "f": "slots",
-       "many": true,
-       "need": 1,
-       "ask": "What time? Each tag is one hour.",
-       "grid": true,
-       "step": {
-        "q": "When?",
-        "short": "When",
-        "unless": "waiting",
-        "from": "hourGrid",
-        "grid": "hours",
-        "week": true
-       }
-      },
-      {
-       "f": "avail",
-       "many": true,
-       "grid": true,
-       "step": {
-        "q": "when-could-you-come",
-        "short": "when-free",
-        "only": "wait",
-        "grid": "blocks",
-        "week": true
-       }
-      },
-      {
-       "f": "kids",
-       "many": true,
-       "step": {
-        "q": "which-of-your-children-is-this",
-        "short": "Child",
-        "unless": "waiting",
-        "from": "children",
-        "last": [
-         "someone-else"
-        ],
-        "set": "seatsFollowKids"
-       }
-      },
-      {
-       "f": "n",
-       "step": {
-        "q": "how-many-extra-seats",
-        "short": "extra-seats",
-        "from": "seats",
-        "say": "extraSeats",
-        "lock": "homeSeats",
-        "off": "overCap",
-        "check": "seatLimits"
-       }
-      }
-     ],
-     "look": "book-step",
-     "rows": [
-      "client",
-      "how",
-      "kids",
-      "joining",
-      "subjects",
-      "level",
-      "tutor",
-      "loc",
-      "hosting",
-      "n",
-      "interval",
-      "slots",
-      "avail"
      ]
     }
    }
