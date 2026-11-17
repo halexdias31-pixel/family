@@ -7,7 +7,7 @@ const fs = require('fs'), path = require('path'), crypto = require('crypto'), { 
 const ROOT = path.resolve(__dirname, '..');
 const HTML = path.join(ROOT, 'index.html');
 /* WHAT `?t=` IS PUT ON: index.html's scripts and stylesheet, and every `deployStamp_()` fetch (check-cache holds those to data/, tools/, js/). */
-const SERVED = ['js/', 'bundle/', 'style.css', 'fonts/', 'data/'];
+const SERVED = ['js/', 'bundle/', 'style.css', 'style.min.css', 'fonts/', 'data/'];
 /* THE CHECKS ARE NEVER SERVED TO A PHONE, so editing one must not make every phone download the app again. */
 const NOT = f => /^js\/check[-.]/.test(f);
 
