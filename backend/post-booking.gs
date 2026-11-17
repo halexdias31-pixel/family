@@ -423,8 +423,8 @@ function postAnswerRequest_(body, action, began) {
   } finally {
     lock.releaseLock();
   }
-  clients.forEach(c => pushTo_(c.name, 'bookings', (yes ? 'Accepted: ' : 'Declined: ') + S(j.subject),
-    tutorName + (yes ? ' accepted. Open to pay and confirm.' : ' cannot take it.'), 'job:' + (S(j.job_id) || String(j._row))));
+  clients.forEach(c => deliver_(c.name, 'bookings', { push: { title: (yes ? 'Accepted: ' : 'Declined: ') + S(j.subject),
+    body: tutorName + (yes ? ' accepted. Open to pay and confirm.' : ' cannot take it.'), link: 'job:' + (S(j.job_id) || String(j._row)) } }));
   clients.forEach(c => notify(c.name,
     (yes ? 'Accepted: ' : 'Declined: ') + S(j.subject),
     tutorName + (yes ? ' accepted your request for ' + S(j.subject) + '.\n\nLog in to @family. to pay and confirm.'
@@ -598,8 +598,8 @@ function createJobNotify_(body, me, jobId, named) {
   if (named) {
     /* THE BOOKER BY `fmtName_`: a child's surname never leaves the server. The tutor's card has no price — the family's money is theirs. */
     const who = fmtName_(mine || me);
-    pushTo_(S(body.requestedTutor), 'bookings', 'New request: ' + S(body.subject),
-      who + ' · ' + fmtDate_(body.day, 'day') + ' ' + fmtDate_(body.time, 'time'), 'job:' + jobId);
+    deliver_(S(body.requestedTutor), 'bookings', { push: { title: 'New request: ' + S(body.subject),
+      body: who + ' · ' + fmtDate_(body.day, 'day') + ' ' + fmtDate_(body.time, 'time'), link: 'job:' + jobId } });
     notify(S(body.requestedTutor),
       'New request: ' + S(body.subject) + ' — ' + who,
       who + ' has requested you.\n\n' + renderCard({ kind: 'booking', inline: 'text', row: Object.assign({}, card, { dates: '' }), see: { prices: false } }) + '\n' +

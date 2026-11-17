@@ -324,7 +324,7 @@ function postAddComment_(body, action, began) {
   /* THE POST'S AUTHOR HEARS OF A REPLY (492) — not of their own. */
   const author = post && S(post.author) ? findPerson(S(post.author)) : null;
   if (author && S(author.person_id) !== S(me.person_id)) {
-    pushTo_(author, 'posts', personDisplayName(me) + ' replied to your post', text, 'post:' + S(body.postId));
+    deliver_(author, 'posts', { push: { title: personDisplayName(me) + ' replied to your post', body: text, link: 'post:' + S(body.postId) } });
   }
   return jsonOut({ success: true, commentId: id });
 }
@@ -458,7 +458,7 @@ function postSendMessage_(body, action, began) {
   notify(personDisplayName(to), 'A message from ' + personDisplayName(me),
     (text || 'Sent you ' + (saved.list.length === 1 ? 'a file.' : 'some files.'))
     + extra + '\n\n— reply on the site.', 'messages');
-  pushTo_(to, 'messages', personDisplayName(me), text || 'Sent you a file.', 'dm:' + S(me.person_id));
+  deliver_(to, 'messages', { push: { title: personDisplayName(me), body: text || 'Sent you a file.', link: 'dm:' + S(me.person_id) } });
 
   return jsonOut({ success: true, id: id, attachments: saved.list });
 }

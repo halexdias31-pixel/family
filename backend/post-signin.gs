@@ -127,7 +127,7 @@ function registerMail_(email, grownUp, first, regHandle, token, asParent) {
   const said = regHandle ? '@' + regHandle : '';
   /* THE ACCOUNT'S OWN ADDRESS GETS `linkMail_`, which `resendLink` sends again word for word. */
   if (email) linkMail_({ first_name: first, email: email, handle: regHandle || '' }, token, asParent);
-  else mailOut_({ to: grownUp, name: BRAND_NAME,
+  else deliverOrThrow_(null, 'access', { to: grownUp,
         /* THE FIRST NAME, as every email names a child now (the owner, 10 Oct) — `mailOut_` would take the rest out. */
         subject: text_('mail-child-made-subject', { first: first, brand: BRAND_NAME }),
         body: text_('mail-child-made-body', { first: first, brand: BRAND_NAME, handle: said, link: SITE_URL + '?verify=' + token })
@@ -233,10 +233,7 @@ function postResendLink_(body, action, began) {
       message: 'A link went to ' + at + ' a few minutes ago — look there, and in spam. You can ask again in '
              + mins + (mins === 1 ? ' minute.' : ' minutes.') });
   }
-  let quota = 1;
-  try { quota = MailApp.getRemainingDailyQuota(); } catch (err) { quota = 1; }
   const cannot = { why: 'no-mail', error: 'We could not send the email just now, so nothing has changed. Try again later.' };
-  if (quota < 1) return jsonOut(cannot);
   if (move) {
     const fresh = 'M' + Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '');
     try { moveMail_(move.to, fresh); } catch (err) { return jsonOut(cannot); }
@@ -443,13 +440,9 @@ function postForgotPin_(body, action, began) {
       message: 'A new PIN went to ' + where + ' a few minutes ago — look there, and in spam. You can '
              + 'ask again in ' + mins + (mins === 1 ? ' minute.' : ' minutes.') });
   }
-  /* NO QUOTA, NO CHANGE. Asked first, so a request that cannot be sent says so rather than storing
-     a PIN nobody will ever read. */
-  let quota = 1;
-  try { quota = MailApp.getRemainingDailyQuota(); } catch (err) { quota = 1; }
+  /* NO QUOTA, NO CHANGE: `deliver_` holds it, and nothing is stored before it has gone. */
   const cannot = { why: 'no-mail', error: 'We could not send the email just now, so nothing has changed. '
                  + 'Try again later, or ask your tutor for a new PIN.' };
-  if (quota < tos.length) return jsonOut(cannot);
 
   /* THE SAME PIN AGAIN if one is still waiting, so a grown-up holding two emails holds two copies of one PIN rather than a dead one and a live one — unless wrong § */
   /* …and only a waiting PIN of today's length is sent again: one emailed when PINs were six digits could not be typed on the four-digit keypad. */
@@ -462,7 +455,7 @@ function postForgotPin_(body, action, began) {
   /* NOT `notify`, which looks the person up again by name — the row is already in hand, and a
      second lookup on a name is a second chance to send somebody's PIN to somebody else. */
   try {
-    mailOut_(forgotPinMail_(own, tos, r, byHandle, handleSaid, fresh, linkKey));
+    deliverOrThrow_(null, 'access', forgotPinMail_(own, tos, r, byHandle, handleSaid, fresh, linkKey));
   } catch (err) { return jsonOut(cannot); }
 
   /* `to` IS THE ACCOUNT'S OWN ADDRESS WHEN THAT IS WHERE IT WENT — typing this PIN back is then proof of that inbox, and a PENDING row is confirmed by it § */

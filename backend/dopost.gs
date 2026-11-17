@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-11-17-final-1";
+const DOPOST_VERSION = "2026-11-17-deliver-1";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -86,7 +86,7 @@ function signInRow_(t0, r, body, by, was) {
 function linkMail_(r, token, asParent) {
   const said = S(r.handle) ? '@' + S(r.handle) : '';
   /* THE WORDS ARE data/settings/words.json `mail-confirm-*`; the parent's next step is the link's second half (`confirmFirst_`). */
-  mailOut_({ to: S(r.email), name: BRAND_NAME,
+  deliverOrThrow_(null, 'access', { to: S(r.email),
     subject: text_('mail-confirm-subject', { brand: BRAND_NAME }),
     body: text_('mail-confirm-body', { first: S(r.first_name), link: SITE_URL + '?verify=' + token,
                                        handleSaid: said ? text_('mail-confirm-or-handle', { handle: said }) : '' })

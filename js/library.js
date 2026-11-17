@@ -492,7 +492,7 @@ function libraryInto_(d, rows) {
 const LIB = { pending: new Set(), flying: new Set(), gone: new Set(), failed: '',
               timer: 0, filled: new Set(), gen: 0, ahead: {}, disk: null, diskP: null, ledger: '' };
 /* AT MOST THIS MANY IN ONE ASK — the backend's `LIB_PER_CALL`. */
-const LIB_PER_ASK = 60;
+const LIB_PER_ASK = 50;
 /* WORDS AHEAD OF THE READER (447): when fewer than LIB_AHEAD cards past the one in front are whole or on their way,
    the next LIB_AHEAD_BATCH are asked for in one call — a few calls a list, each landing well before its cards. */
 const LIB_AHEAD = 10;
