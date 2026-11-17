@@ -590,6 +590,14 @@ function ensurePersonIds_() {
   const t = read(TAB.people);
   const c = t.headers.indexOf('person_id');
   if (c < 0) return 0;
+  /* MOVED TO THE ITEMS TAB (kinds.json ledger.moved): the column below is not this tab's, so each row is asked through the store. */
+  if (t.moved) {
+    const at = Date.now();
+    let made = 0;
+    t.rows.forEach((r, i) => { if (!S(r.person_id)) { setCell(t, r, 'person_id', 'P' + at + '-' + i); made++; } });
+    clearCache();
+    return made;
+  }
   const last = t.sheet ? t.sheet.getLastRow() : 0;
   if (last < 2) return 0;
 
