@@ -136,7 +136,10 @@ function run() {
   for (const r of rows) {
     if (r.kind !== 'question' || !(r.active === true || /^true$/i.test(S(r.active)))) continue;
     /* words still only in the Ledger (`lib_has`, 397): the site fetches them later, but nothing here can see or check them */
-    if (!plain(r.html) && !plain(r.lead) && !S(r.diagram) && !S(r.choices)) { add(r, 'broken', S(r.lib_has) ? 'words only in the Ledger, not in data-private (cannot check)' : 'no question text'); continue; }
+    /* ONLY IN THE LEDGER: not hidden for that alone (owner's call, 17 Nov) -- kept when the Ledger says it holds a key, so a question that works is never hidden for being unchecked here. */
+    if (!plain(r.html) && !plain(r.lead) && !S(r.diagram) && !S(r.choices)) {
+      if (/\b(accept|cells|draw_answer|choice_right|mark_words|order_ends)\b/.test(S(r.lib_has))) { add(r, 'ok', 'words and key only in the Ledger (not checked here)'); continue; }
+      add(r, 'broken', S(r.lib_has) ? 'words only in the Ledger, no key listed' : 'no question text'); continue; }
     const fig = figureMissing(r, stemFig.has(S(r.paper_id) + '#' + S(r.question)));
     if (fig) { add(r, 'broken', fig); continue; }
     ctx.__r = r;
