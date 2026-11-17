@@ -370,8 +370,7 @@
      "attr": "data-me",
      "draft": false,
      "fields": "list",
-     "say": "the tutor card's edit form (cardEditForm_): its sections' names, typed by rules; a price only for may_('prices').",
-     "ask": "card"
+     "say": "the tutor card's edit form (cardEditForm_): its sections' names, typed by rules; a price only for may_('prices')."
     },
     "card-seat": {
      "attr": "data-pound",
@@ -1695,8 +1694,7 @@
        "label": "Date of birth (optional)"
       }
      ],
-     "draft": "form",
-     "ask": "card"
+     "draft": "form"
     },
     "person-form": {
      "attr": "data-pf",
@@ -1748,8 +1746,7 @@
        "draft": false
       }
      ],
-     "draft": "form",
-     "ask": "card"
+     "draft": "form"
     },
     "person-edit": {
      "attr": "data-pe",
@@ -1792,8 +1789,7 @@
        "type": "text"
       }
      ],
-     "draft": "form",
-     "ask": "card"
+     "draft": "form"
     },
     "settings": {
      "attr": "data-me",
@@ -2152,8 +2148,7 @@
        "type": "tick",
        "label": "I agree to @family. keeping these details and documents privately to consider my application, contacting my referees and checking my DBS."
       }
-     ],
-     "ask": "card"
+     ]
     },
     "sign-join": {
      "ask": "find",
