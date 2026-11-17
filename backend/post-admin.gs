@@ -125,7 +125,7 @@ function postApplyTeach_(body, action, began) {
   const owner = ownerEmail_();
   if (owner) {
     try {
-      mailOut_({ to: owner, name: BRAND_NAME, subject: text_('mail-apply-owner-subject'),
+      deliverOrThrow_(null, 'applied', { to: owner, subject: text_('mail-apply-owner-subject'),
         body: text_('mail-apply-owner-body', { who: personDisplayName(me) + (S(me.handle) ? ' (@' + S(me.handle) + ')' : ''), subjects: f.subjects, site: SITE_URL }) });
     } catch (err) { /* a failed courtesy note must not undo the work already done */ }
   }
@@ -225,7 +225,7 @@ function postDecideApplication_(body, action, began) {
   if (status === 'approved') clearCache();
   const said = ['approved', 'interview', 'declined'].indexOf(status) === -1 ? undefined : text_('mail-apply-' + status, { brand: BRAND_NAME });
   if (who && S(who.email) && !addressPending_(who)) {
-    try { mailOut_({ to: S(who.email), name: BRAND_NAME, subject: text_('mail-apply-subject'), body: text_('mail-apply-body', { first: S(who.first_name) || '', said: said, site: SITE_URL }) }); out.emailed = true; } catch (err) { /* a failed courtesy note must not undo the work already done */ }
+    try { deliverOrThrow_(null, 'applied', { to: S(who.email), subject: text_('mail-apply-subject'), body: text_('mail-apply-body', { first: S(who.first_name) || '', said: said, site: SITE_URL }) }); out.emailed = true; } catch (err) { /* a failed courtesy note must not undo the work already done */ }
   }
   out.rank = rankOf(who);
   return jsonOut(out);

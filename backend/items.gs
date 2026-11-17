@@ -93,13 +93,13 @@ function itemRows_(kind) {
   }).filter(Boolean);
 }
 
-/* ---------- READ: the items of a kind this viewer may see, each shaped for them. A blob kind is read by `ids` only (at most 50). */
+/* ---------- READ: the items of a kind this viewer may see, each shaped for them. A blob kind is read by `ids` only (at most LIB_PER_CALL, as readItems). */
 function itemRead_(body, v) {
   const kind = S(body.kind), spec = itemKind_(kind);
   if (!spec || spec.sheet.to === 'events') return { error: 'There is no kind called ' + kind + '.', why: 'kind' };
   const want = Array.isArray(body.ids) ? body.ids.map(S) : null;
   const home = spec.sheet.via ? itemKind_(spec.sheet.via).sheet : spec.sheet;
-  if (home.blob && (!want || want.length > 50)) return { error: 'Ask for at most 50 ' + kind + ' ids.', why: 'ids' };
+  if (home.blob && (!want || want.length > LIB_PER_CALL)) return { error: 'Ask for at most ' + LIB_PER_CALL + ' ' + kind + ' ids.', why: 'ids' };
   const items = itemRows_(kind)
     .filter(it => (!want || want.indexOf(it.id) !== -1) && itemMaySee_(spec, it.data, v))
     .map(it => ({ id: it.id, kind, data: itemShape_(spec, it.data, v) }));
