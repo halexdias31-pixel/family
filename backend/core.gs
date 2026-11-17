@@ -47,7 +47,7 @@ function findSheet_(at) {
 /* Until the items tab holds any row of that kind (the migration has not run), the old tab answers, so a deploy before the move loses nothing. */
 function storeMoved_(name) {
   const K = ITEM_STORE_KINDS, out = [];
-  (K.moved || []).forEach(k => { const s = K.kinds[k] && K.kinds[k].sheet; if (s && s.tab === name && s.to !== 'events' && !s.blob) out.push(k); });
+  (K.moved || []).forEach(k => { const s = K.kinds[k] && K.kinds[k].sheet; if (s && s.tab === name && !s.blob) out.push(k); });
   /* A KIND THAT RIDES ON A MOVED KIND'S TAB (tutor on people) comes with it. */
   if (out.length) Object.keys(K.kinds).forEach(k => { const s = K.kinds[k].sheet; if (s.via && out.indexOf(s.via) !== -1 && out.indexOf(k) === -1) out.push(k); });
   return out.length ? out : null;
@@ -67,13 +67,16 @@ function storeCellOut_(v) {
   const base = new Date(1899, 11, 30), mid = new Date(v.getFullYear(), v.getMonth(), v.getDate());
   return { $d: Math.round((mid - base) / 864e5) + (v - mid) / 864e5 };
 }
+/* AN EVENT KIND'S ROWS ARE IN THE EVENTS TAB ({at, who, kind, what, item, data}), the old row whole in `data`; an item kind's in `data_1`. */
+function storeIsEvents_(kinds) { const s = ITEM_STORE_KINDS.kinds[kinds[0]].sheet; return s.to === 'events' ? s : null; }
 function storeRead_(name, kinds) {
-  const it = read(TAB.items), mine = it.rows.filter(r => kinds.indexOf(S(r.kind)) !== -1);
+  const ev = storeIsEvents_(kinds), col = ev ? 'data' : 'data_1';
+  const it = read(ev ? TAB.events_log : TAB.items), mine = it.rows.filter(r => kinds.indexOf(S(r.kind)) !== -1);
   if (!mine.length) return null;
   const headers = [], rows = [];
   mine.forEach((r, i) => {
     let d = {};
-    try { d = JSON.parse(S(r.data_1) || '{}'); } catch (err) { d = {}; }
+    try { d = JSON.parse(S(r[col]) || '{}'); } catch (err) { d = {}; }
     /* ITS ROW NUMBER AS THE OLD TAB HAD IT (the migration keeps the order): ids made of `_row` (the shop's) stay the same. */
     const row = { _row: i + 2 };
     /* THE ITEMS ROW BEHIND IT, kept out of sight so no payload carries it. */
@@ -81,21 +84,24 @@ function storeRead_(name, kinds) {
     Object.keys(d).forEach(h => { if (headers.indexOf(h) < 0) headers.push(h); row[h] = storeCell_(d[h]); });
     rows.push(row);
   });
-  return { sheet: it.sheet, headers, rows, moved: { name, kinds, items: it } };
+  return { sheet: it.sheet, headers, rows, moved: { name, kinds, items: it, ev } };
 }
 function storeSave_(t, row) {
   const d = {};
   t.headers.forEach(h => { if (row[h] !== undefined) d[h] = storeCellOut_(row[h]); });
-  const data = JSON.stringify(d), it = t.moved.items;
-  setCell(it, row._item, 'data_1', data);
+  const data = JSON.stringify(d), it = t.moved.items, ev = t.moved.ev;
+  if (!ev) { setCell(it, row._item, 'data_1', data); return; }
+  setCells(it, row._item, { at: row[ev.at] ?? '', who: row[ev.who] ?? '', what: ev.what ? row[ev.what] ?? '' : '', item: ev.item ? row[ev.item] ?? '' : '', data: data });
 }
 function storeAdd_(t, obj) {
   const K = ITEM_STORE_KINDS.kinds, home = t.moved.kinds.find(k => !K[k].sheet.via), sh = K[home].sheet;
   Object.keys(obj).forEach(h => { if (t.headers.indexOf(h) < 0) t.headers.push(h); });
   const id = [].concat(sh.id || []).map(c => S(obj[c])).join(':');
   const b = sh.kindBy, kind = b && norm(obj[b.column]).indexOf(b.match) !== -1 ? b.kind : home;
-  const item = addRow(t.moved.items, { id: id, kind: kind, data_1: '{}' });
-  const row = Object.assign({ _row: t.rows.length + 2 }, obj);
+  const item = t.moved.ev ? addRow(t.moved.items, { at: '', who: '', kind: home, what: '', item: '', data: '{}' })
+                          : addRow(t.moved.items, { id: id, kind: kind, data_1: '{}' });
+  /* A NEW ROW HAS EVERY COLUMN, blank where not given, as an appended sheet row has. */
+  const row = Object.assign({ _row: t.rows.length + 2 }, Object.fromEntries(t.headers.map(h => [h, ''])), obj);
   Object.defineProperty(row, '_item', { value: item, enumerable: false, writable: true });
   storeSave_(t, row);
   t.rows.push(row);
