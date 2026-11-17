@@ -1148,7 +1148,7 @@
    },
    "find": {
     "group": "Learning",
-    "label": "Library",
+    "label": "Inserts",
     "facets": [
      "forLabel",
      "kindLabel",
@@ -1157,7 +1157,8 @@
      "keystage",
      "examBoard",
      "tier"
-    ]
+    ],
+    "under": "Practice"
    },
    "card": {
     "look": "insh",
