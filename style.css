@@ -109,7 +109,7 @@
   --dur-enter: 220ms;
   --dur-exit:  180ms;
   --dur-move:  280ms;
-  /* AN INFORMATION HIGHLIGHT (`.lay-moved`, `.post-lit`): it says where something is, so reduced motion keeps it. */
+  /* AN INFORMATION HIGHLIGHT (`.post-lit`): it says where something is, so reduced motion keeps it. */
   --dur-mark:  1.3s;
   --dur-drift: 18s;   /* a picture's slow pan and zoom (`.kc-pan`, history topics): slow enough to read the picture as it moves */
   --dur-pan:   900ms; /* the timeline axis pan (owner-asked, batch F): slow enough to read the years go by */
@@ -4746,10 +4746,6 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
   @page { size: A4 portrait; margin: 0; }
 }
 
-/* ---------- THE ADMIN'S LAYOUT TILES (463): one row under a widget's own tiles; Delete widens to ask again ---------- */
-.lay-del.is-armed { color: var(--bad); border-color: var(--bad); width: auto; padding: 0 var(--s2); }
-.lay-again { font: 500 var(--fs-small)/1 var(--font); margin-left: var(--s1); white-space: nowrap; }
-
 /* ---------- A SETTINGS COLUMN FOR A ROLE YOU DO NOT HOLD (464): a padlock and one short line ---------- */
 .col-lock { text-align: center; }
 
@@ -4838,14 +4834,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .hdb-ms .mfr-spray { fill: none; stroke: var(--ms-red); stroke-width: 2.5; }
 .hdb-ms .mfr-edge { fill: none; stroke: var(--paper-dim); stroke-width: 2; }
 
-/* ---------- MERGED CARDS (480): one frame, the parts stacked, the lower titles small subheadings, one tile row at the foot */
-.card.is-merged > .merged-part > .card { background: none; border: 0; box-shadow: none; padding: 0; margin: 0; border-radius: 0; }
-.card.is-merged > .merged-part + .merged-part { margin-top: var(--s3); padding-top: var(--s3); border-top: 1px solid var(--line); }
-.card.is-merged > .merged-part + .merged-part :is(h3, .kc-h):first-of-type { font-size: var(--fs-small); font-family: var(--mono); font-weight: 600; letter-spacing: .04em; color: var(--ink); margin: 0 0 var(--s1); }
 
-/* A MOVED THING LIT A MOMENT (498), so the eye finds where it went; still with reduced motion, as a ring, not a movement. */
-.lay-moved { animation: lay-moved var(--dur-mark) var(--ease-out); }
-@keyframes lay-moved { 0%, 40% { box-shadow: 0 0 0 3px var(--gold); } 100% { box-shadow: 0 0 0 0 transparent; } }
 /* A SUGGESTION'S PICTURE (498), shown small in the box before it is sent. */
 
 /* WRITING IN PLACE OF THE THING (489, `boxInPlace_`): the note or report box takes the thing's own footprint, its content hidden until Cancel or Send. */
@@ -4871,10 +4860,6 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .wk-ph-row { display: block; margin: var(--s1) 0; font-size: var(--fs-body); }
 .wk-bar { margin-top: var(--s2); padding-top: var(--s2); border-top: 1px solid var(--line); }
 
-.seen-box { margin: var(--s2) 0; padding-top: var(--s2); border-top: 1px solid var(--line); }
-.row.seen-item { flex-direction: row; align-items: center; min-height: var(--tap); }
-.row.seen-item select { min-height: var(--tap); max-width: 60%; }
-.seen-box .seen-say { margin: var(--s1) 0 var(--s2); }
 /* ---------- THE EMAIL WIDGET (493): one line per message, the unread dot in the accent; a static overview, nothing opens (547). */
 
 /* ---------- A PROFILE SHARED AS A PICTURE (412, 547): the card itself, drawn off the screen at a phone column's width for the snapshot (`tutorPng_`). */

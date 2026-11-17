@@ -658,7 +658,7 @@ const ACTIONS = {};
 /* EVERY ACTION MOVES `ACT_EPOCH` (see the note over `STALE`): a press is what can edit a column in place,
    and a column edited in place must not be kept by a landing on the grounds that its markup is the same. */
 /* A SLOW ACT SHOWS ITS TAP AT ONCE (the tile's ring) and works after the next frame (990); `aria-busy`, so a `send_` inside keeps its own. */
-const SLOW_ACTS_ = new Set(['card-share', 'card-cancel', 'lay-split']);
+const SLOW_ACTS_ = new Set(['card-share', 'card-cancel']);
 function on(name, fn) {
   ACTIONS[name] = function (el) { ACT_EPOCH++; if (!SLOW_ACTS_.has(name) || !el || !el.setAttribute) return fn.apply(this, arguments);
     const a = arguments; el.setAttribute('aria-busy', 'true');
