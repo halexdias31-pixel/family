@@ -56,7 +56,6 @@
 ["examBoard","specPoint"],
 ["examBoard","specTopic"],
 ["examBoard","subject"],
-["examBoard","tier"],
 ["examMonth","kindLabel"],
 ["examMonth","kindOwn"],
 ["examMonth","level"],
