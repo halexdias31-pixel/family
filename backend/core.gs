@@ -64,7 +64,13 @@ function storeCell_(v) {
 }
 function storeCellOut_(v) {
   /* A LEADING ' MEANS "TEXT" TO SHEETS, which keeps the rest and drops the mark (`week_of` is written so); the store does the same. */
-  if (typeof v === 'string') return v.charAt(0) === "'" ? v.slice(1) : v;
+  /* AND A TYPED WORD BECOMES WHAT SHEETS MAKES OF IT: "TRUE"/"FALSE" a tick, "12" or "-0.5" a number (not "012", which cellSafe_ marks as text). */
+  if (typeof v === 'string') {
+    if (v.charAt(0) === "'") return v.slice(1);
+    if (/^(true|false)$/i.test(v)) return /^true$/i.test(v);
+    if (/^-?(0|[1-9]\d{0,14})(\.\d+)?$/.test(v)) return Number(v);
+    return v;
+  }
   if (!(v instanceof Date) || isNaN(v)) return v;
   const base = new Date(1899, 11, 30), mid = new Date(v.getFullYear(), v.getMonth(), v.getDate());
   return { $d: Math.round((mid - base) / 864e5) + (v - mid) / 864e5 };

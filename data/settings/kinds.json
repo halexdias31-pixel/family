@@ -2889,8 +2889,36 @@
    "family_link",
    "message",
    "setting",
-   "price_rule"
+   "price_rule",
+   "work_file",
+   "owner_answer",
+   "biz_check",
+   "push_token",
+   "application",
+   "promo_code",
+   "invite",
+   "exam",
+   "post",
+   "landmark_part",
+   "map_shape",
+   "term",
+   "herd_question",
+   "room",
+   "comment",
+   "trip"
   ],
-  "movedSay": "THE KINDS NOW KEPT IN THE ITEMS TAB (owner, 17 Nov), one stage at a time: core.gs read/setCell/addRow route a listed kind to the items tab, and the old tab stays as a read-only fallback until the items tab holds that kind. Migrate a tab with tools/ledger-migrate.js right after the deploy that lists it."
+  "movedSay": "THE KINDS NOW KEPT IN THE ITEMS TAB (owner, 17 Nov), one stage at a time: core.gs read/setCell/addRow route a listed kind to the items tab, and the old tab stays as a read-only fallback until the items tab holds that kind. Migrate a tab with tools/ledger-migrate.js right after the deploy that lists it.",
+  "kept": {
+   "say": "KEPT ON THEIR OWN TABS, ON PURPOSE (17 Nov): the library is 39,000 rows of chunked JSON read a few rows at a time by row number (library.gs libIndex_/libContent_). In the items tab, every request that reads any moved kind would load all of it; on their own tabs they are already one item a row ({id, checksum, parts, content_1..6}), described here by each kind`s sheet. facts and claude_notes are written directly by sessions.",
+   "tabs": [
+    "lib_questions",
+    "lib_content",
+    "lib_practicals",
+    "lib_projects",
+    "lib_inserts",
+    "facts",
+    "claude_notes"
+   ]
+  }
  }
 }
