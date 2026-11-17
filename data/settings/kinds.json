@@ -152,8 +152,23 @@
      "draft": false,
      "say": "the extra seat in pounds, kept as the share in the hidden twin (type `shown`: `show` draws the stored value, `store` turns what is typed back); @family.'s share only for an admin.",
      "fields": [
-      { "f": "extra_seat_rate", "type": "shown", "as": "money", "twin": "data-me", "show": "cardSeatShown_", "store": "cardSeatShare_" },
-      { "f": "extra_seat_cut", "type": "shown", "as": "money", "twin": "data-me", "show": "cardSeatShown_", "store": "cardSeatShare_", "may": "admin" }
+      {
+       "f": "extra_seat_rate",
+       "type": "shown",
+       "as": "money",
+       "twin": "data-me",
+       "show": "cardSeatShown_",
+       "store": "cardSeatShare_"
+      },
+      {
+       "f": "extra_seat_cut",
+       "type": "shown",
+       "as": "money",
+       "twin": "data-me",
+       "show": "cardSeatShown_",
+       "store": "cardSeatShare_",
+       "may": "admin"
+      }
      ]
     },
     "card-where": {
@@ -549,7 +564,31 @@
     ],
     "id": "id",
     "blob": true,
-        "lib": {"name": "questions", "order": 1, "file": "data/questions.json", "prefix": "q", "key": ["row_id"], "private": ["html", "lead", "diagram", "answer", "accept", "choices", "choice_right", "order_ends", "cells", "mark_words", "draw_answer", "examiner_note", "examiner_report", "guide"]}
+    "lib": {
+     "name": "questions",
+     "order": 1,
+     "file": "data/questions.json",
+     "prefix": "q",
+     "key": [
+      "row_id"
+     ],
+     "private": [
+      "html",
+      "lead",
+      "diagram",
+      "answer",
+      "accept",
+      "choices",
+      "choice_right",
+      "order_ends",
+      "cells",
+      "mark_words",
+      "draw_answer",
+      "examiner_note",
+      "examiner_report",
+      "guide"
+     ]
+    }
    },
    "find": {
     "group": "Learning",
@@ -671,7 +710,29 @@
     ],
     "id": "id",
     "blob": true,
-        "lib": {"name": "practicals", "order": 3, "file": "data/practicals.json", "prefix": "pr", "key": ["practical_id"], "private": ["aim", "outcome", "safety", "maths_link", "equipment", "steps", "notes", "science", "log", "variables", "diagram", "risks"]}
+    "lib": {
+     "name": "practicals",
+     "order": 3,
+     "file": "data/practicals.json",
+     "prefix": "pr",
+     "key": [
+      "practical_id"
+     ],
+     "private": [
+      "aim",
+      "outcome",
+      "safety",
+      "maths_link",
+      "equipment",
+      "steps",
+      "notes",
+      "science",
+      "log",
+      "variables",
+      "diagram",
+      "risks"
+     ]
+    }
    },
    "find": {
     "group": "Learning",
@@ -726,7 +787,21 @@
     ],
     "id": "id",
     "blob": true,
-        "lib": {"name": "projects", "order": 4, "file": "data/projects.json", "prefix": "pj", "key": ["project_id"], "private": ["materials", "steps", "safety", "share"]}
+    "lib": {
+     "name": "projects",
+     "order": 4,
+     "file": "data/projects.json",
+     "prefix": "pj",
+     "key": [
+      "project_id"
+     ],
+     "private": [
+      "materials",
+      "steps",
+      "safety",
+      "share"
+     ]
+    }
    },
    "find": {
     "group": "Learning",
@@ -780,7 +855,23 @@
     ],
     "id": "id",
     "blob": true,
-        "lib": {"name": "textbooks", "order": 2, "file": "data/textbooks.json", "prefix": "ct", "key": ["book_id", "chapter"], "skip": "anim", "private": ["words", "points", "formulas", "diagram"]}
+    "lib": {
+     "name": "textbooks",
+     "order": 2,
+     "file": "data/textbooks.json",
+     "prefix": "ct",
+     "key": [
+      "book_id",
+      "chapter"
+     ],
+     "skip": "anim",
+     "private": [
+      "words",
+      "points",
+      "formulas",
+      "diagram"
+     ]
+    }
    },
    "find": {
     "group": "Learning",
@@ -832,7 +923,19 @@
     ],
     "id": "id",
     "blob": true,
-        "lib": {"name": "inserts", "order": 5, "file": "data/inserts.json", "prefix": "in", "key": ["insert_id"], "newer": true, "private": ["source_text"]}
+    "lib": {
+     "name": "inserts",
+     "order": 5,
+     "file": "data/inserts.json",
+     "prefix": "in",
+     "key": [
+      "insert_id"
+     ],
+     "newer": true,
+     "private": [
+      "source_text"
+     ]
+    }
    },
    "find": {
     "group": "Learning",
@@ -2010,8 +2113,8 @@
      "target_grade",
      "needs",
      "business",
-      "ventures",
-      "notes"
+     "ventures",
+     "notes"
     ],
     "ages": {
      "school_year": "september",
@@ -2761,7 +2864,17 @@
   "moved": [
    "venue",
    "product",
-   "option"
+   "option",
+   "holiday",
+   "landmark",
+   "film",
+   "media",
+   "spotlight",
+   "fav_link",
+   "favourite",
+   "qualification",
+   "record",
+   "report"
   ],
   "movedSay": "THE KINDS NOW KEPT IN THE ITEMS TAB (owner, 17 Nov), one stage at a time: core.gs read/setCell/addRow route a listed kind to the items tab, and the old tab stays as a read-only fallback until the items tab holds that kind. Migrate a tab with tools/ledger-migrate.js right after the deploy that lists it."
  }
