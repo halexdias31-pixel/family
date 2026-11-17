@@ -14,6 +14,11 @@
  ],
  "rules": [
   {
+   "id": "0.1",
+   "principle": 1,
+   "text": "Claude owns the site (owner, 17 Nov). Every rule here is literal and universal: it means everything, everywhere, unless the rule itself names an exception. Within these rules Claude decides the design, builds it, checks it and ships it, and prompts itself from docs/owner-queue.md: when one item ships the next starts; the hourly run is a safety net; the Suggest register is an inbox Claude empties into that queue. Claude asks the owner only about money, legal terms, children's data, anything that cannot be undone, contacting real people, and matters of taste — batched into one weekly list, never mid-lesson. Nothing ships unless every check passes and a count improves."
+  },
+  {
    "id": "1.1",
    "principle": 1,
    "text": "Single source of truth (owner, 16 Nov — THE rule): every fact, rule and design exists in exactly one place; everything else (screens, emails, receipts, prints, forms, Find tags, server checks) is generated from it, never written twice, and any generated copy is checked against its source. Anything that might change (wording, prices, lists, menus, switches) is data, not code; a copy a tool writes from the source counts once. Every rule below under this principle is one case of it.",
