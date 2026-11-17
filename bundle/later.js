@@ -328,6 +328,7 @@ const SOON_WIDGET_NAMES = { videos: 'Videos', termdates: 'Term dates', pixel: 'P
 const SOON_WIDGET_UNDER = { videos: 'Videos' };
 /* A FRONT ANSWER HOLDING ONLY COMING SOON CARDS IS GREYED, never hidden (owner, 7 Nov P7/P8): Videos and Games until one is turned on. */
 /* One walk per list for every front answer (slow taps, 8 Nov): the front menu asked it a dozen times, a walk each. */
+const NEED_CALC_ = { 'Non-calculator': 1, 'Calculator allowed': 1 };
 const FRONT_SOON_MEMO = new WeakMap();
 function frontSoonOnly_(value) {
   if (value === 'Coming soon') return false;
@@ -614,7 +615,9 @@ const FACET_READ = {
     showOf: v => { const m = /^(\d+) marks?$/.exec(String(v)); return m ? '[' + m[1] + ']' : v; } },
   /* A WORKSHEET'S MAKER (O3): Publisher went, being the exam board twice or this. */
   source: { of: x => sourceOf_(x) },
-  needs: { of: x => asList_(x.needs) },
+  /* THE CALCULATOR IS ITS OWN STEP (owner, R204): Calculator allowed or Non-calculator; What you need keeps the rest (compasses, the printed sheet), so both can be wanted. */
+  needCalc: { of: x => asList_(x.needs).filter(v => NEED_CALC_[v]) },
+  needs: { of: x => asList_(x.needs).filter(v => !NEED_CALC_[v]) },
   /* HOW YOU DID (463): the viewer's own latest press on a question; an ordinary facet (signed out it is blank, so it cannot split). */
   myAttempt: { of: x => myAttemptOf_(x) },
   myResult: { of: x => myResultOf_(x) },
@@ -840,7 +843,7 @@ function kindRank_() {
 }
 /* LISTS WHOSE OWN ORDER IS THE ORDER (473): § */
 /* FIND'S FRONT MENU, in the owner's order (4 Nov): the first question's answers, whatever kinds stand under them. */
-const FRONT_ORDER = ['Practice', 'Library', 'Videos', 'Newspaper', 'Coming soon', 'Posts', 'Messages', 'Profiles', 'Booking', 'Venues', 'Shop', 'Settings', 'Tools', 'Games', 'Reels'];
+const FRONT_ORDER = ['Practice', 'Library', 'Videos', 'Coming soon', 'Posts', 'Messages', 'Profiles', 'Booking', 'Shop', 'Settings', 'Tools', 'Games'];
 /* THE DOORS' OWN MENUS IN THE OWNER'S ORDER (batch C): account types, who, which posts, when. */
 const ANSWER_ORDERS = [FRONT_ORDER, ['Student', 'Parent', 'Staff', 'Apprentice', 'Admin', 'Business', 'Site'], ['Parent', 'Over 18', 'Under 18', 'Student', 'Tutor', 'Apprentice', 'Admin'],
   ['Approved', 'Waiting for approval', 'Deleted'], ['Today', 'This week', 'This month', 'This year', 'Older']];
@@ -11268,7 +11271,7 @@ function chipShow_(f, i) {
 
 /* ---------- ONE COLOUR PER MENU (1030): every answer of a facet, its chip and its card words wear the facet's --hue-N. § */
 /* WRITTEN BY tools/facet-hues.js from the funnel's facet graph: two facets asked on one path never share a number. */
-const TAG_OF = {forLabel: 9, kindLabel: 0, kindOwn: 4, mySaved: 5, postState: 1, postBy: 2, postWhen: 3, msgWith: 11, profileType: 1, settingFor: 1, vidSubject: 9, vidTopic: 10, vidChannel: 7, vidLevel: 8, vidType: 11, venueArea: 3, venueFor: 4, venueSize: 5, partnerStatus: 7, foodMeal: 1, foodShop: 8, taskList: 1, taskRepeat: 2, taskDone: 0, projectType: 4, subject: 1, shelf: 7, wReligion: 9, histKind: 3, wCollection: 6, histPart: 5, wWork: 2, wSection: 10, wSource: 2, wLanguage: 5, wForm: 3, wAuthor: 0, wText: 7, wTradition: 2, wBook: 8, wChapter: 10, wUnit: 11, wPrimacy: 1, mScope: 5, mMake: 2, mModel: 8, mGen: 6, mEngine: 4, mKind: 4, mSystem: 11, pcType: 11, pcSocket: 10, pcIface: 8, pcLinks: 9, mPhase: 9, mMarket: 7, mYears: 3, mSize: 0, mValves: 1, mBadge: 4, mFuel: 5, mPart: 10, mPrice: 10, cCategory: 11, cGroup: 5, cPeriod: 8, cState: 9, boxKind: 6, fighter: 7, boutMonth: 11, boutYear: 2, decade: 3, division: 4, boutRound: 0, boutMethod: 0, boutWinner: 0, boutEvent: 0, histEra: 2, histMaterial: 8, histFormat: 7, histGenre: 0, histRole: 9, personName: 4, personYears: 1, personFrom: 0, histTheme: 2, histRepository: 10, histSide: 1, histFound: 11, histDated: 10, histTheatre: 11, practicalType: 3, shopKind: 6, shopHow: 1, shopPrice: 7, shopBrand: 8, shopFor: 9, shopTheme: 10, required: 6, level: 2, documentType: 7, keystage: 8, yearGroup: 4, bandValue: 10, topic: 9, examBoard: 3, specTopic: 7, specPoint: 6, tier: 8, examYear: 6, examMonth: 5, examDay: 0, verified: 6, paperId: 9, paperSection: 3, qNumber: 5, qPart: 6, qSub: 5, marks: 3, needs: 6, myAttempt: 2, myResult: 4, source: 11};
+const TAG_OF = {forLabel: 9, kindLabel: 0, kindOwn: 4, mySaved: 5, postState: 1, postBy: 3, postWhen: 4, msgWith: 11, profileType: 1, settingFor: 1, vidSubject: 10, vidTopic: 11, vidChannel: 8, vidLevel: 9, vidType: 0, venueArea: 4, venueFor: 5, venueSize: 6, partnerStatus: 8, foodMeal: 1, foodShop: 8, taskList: 2, taskRepeat: 3, taskDone: 1, projectType: 5, subject: 1, shelf: 8, wReligion: 9, histKind: 3, wCollection: 6, histPart: 5, wWork: 2, wSection: 10, wSource: 2, wLanguage: 5, wForm: 3, wAuthor: 1, wText: 7, wTradition: 3, wBook: 8, wChapter: 10, wUnit: 11, wPrimacy: 2, mScope: 5, mMake: 2, mModel: 8, mGen: 6, mEngine: 4, mKind: 4, mSystem: 11, pcType: 0, pcSocket: 11, pcIface: 9, pcLinks: 10, mPhase: 9, mMarket: 7, mYears: 3, mSize: 0, mValves: 1, mBadge: 4, mFuel: 5, mPart: 10, mPrice: 10, cCategory: 11, cGroup: 5, cPeriod: 8, cState: 9, boxKind: 6, fighter: 7, boutMonth: 11, boutYear: 2, decade: 3, division: 4, boutRound: 0, boutMethod: 0, boutWinner: 0, boutEvent: 0, histEra: 2, histMaterial: 8, histFormat: 7, histGenre: 0, histRole: 9, personName: 4, personYears: 2, personFrom: 1, histTheme: 2, histRepository: 10, histSide: 1, histFound: 11, histDated: 10, histTheatre: 11, practicalType: 3, shopKind: 6, shopHow: 1, shopPrice: 7, shopBrand: 9, shopFor: 10, shopTheme: 11, required: 7, level: 2, documentType: 7, keystage: 8, yearGroup: 4, bandValue: 10, topic: 9, examBoard: 3, specTopic: 7, specPoint: 6, tier: 8, examYear: 6, examMonth: 5, examDay: 0, verified: 7, paperId: 9, paperSection: 3, qNumber: 5, qPart: 6, qSub: 6, marks: 3, needCalc: 6, needs: 7, myAttempt: 2, myResult: 4, source: 0};
 /* A FACET THE WALK NEVER MET (one the facets tab invented) still has a colour: the first. */
 const tagOf_ = field => 'h' + (TAG_OF[field] || 0);
 const tagAttr_ = field => ` data-tag="${tagOf_(field)}"`;

@@ -311,7 +311,7 @@
    },
    "find": {
     "group": "Booking",
-    "label": "Tutors",
+    "label": "Staff",
     "under": [
      "Booking",
      "Profiles"
@@ -776,6 +776,7 @@
      "qPart",
      "qSub",
      "marks",
+     "needCalc",
      "needs",
      "myAttempt",
      "source"

@@ -114,6 +114,7 @@ const SOON_WIDGET_NAMES = { videos: 'Videos', termdates: 'Term dates', pixel: 'P
 const SOON_WIDGET_UNDER = { videos: 'Videos' };
 /* A FRONT ANSWER HOLDING ONLY COMING SOON CARDS IS GREYED, never hidden (owner, 7 Nov P7/P8): Videos and Games until one is turned on. */
 /* One walk per list for every front answer (slow taps, 8 Nov): the front menu asked it a dozen times, a walk each. */
+const NEED_CALC_ = { 'Non-calculator': 1, 'Calculator allowed': 1 };
 const FRONT_SOON_MEMO = new WeakMap();
 function frontSoonOnly_(value) {
   if (value === 'Coming soon') return false;
@@ -400,7 +401,9 @@ const FACET_READ = {
     showOf: v => { const m = /^(\d+) marks?$/.exec(String(v)); return m ? '[' + m[1] + ']' : v; } },
   /* A WORKSHEET'S MAKER (O3): Publisher went, being the exam board twice or this. */
   source: { of: x => sourceOf_(x) },
-  needs: { of: x => asList_(x.needs) },
+  /* THE CALCULATOR IS ITS OWN STEP (owner, R204): Calculator allowed or Non-calculator; What you need keeps the rest (compasses, the printed sheet), so both can be wanted. */
+  needCalc: { of: x => asList_(x.needs).filter(v => NEED_CALC_[v]) },
+  needs: { of: x => asList_(x.needs).filter(v => !NEED_CALC_[v]) },
   /* HOW YOU DID (463): the viewer's own latest press on a question; an ordinary facet (signed out it is blank, so it cannot split). */
   myAttempt: { of: x => myAttemptOf_(x) },
   myResult: { of: x => myResultOf_(x) },
