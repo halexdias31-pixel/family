@@ -18,7 +18,6 @@
   "content:save": {"roles":["admin"]},
   "practical:save": {"roles":["admin"]},
   "project:save": {"roles":["admin"]},
-  "layout:save": {"roles":["admin"],"handler":"postLayoutSave_"},
   "words:save": {"roles":["admin"],"handler":"postWordsSave_"},
   "profile:read": {"roles":["member","child","admin"],"handler":"postMyProfile_","other":"postLensOpen_","logged":true},
   "notify:save": {"roles":["member","child","admin"],"handler":"postSetNotify_"},

@@ -15,9 +15,6 @@ function pageWrite_(el, st) {
     /* AND THE KEYBOARD WITH IT (561, U15): a page a finger cannot reach is out of the Tab order too. */
     el.inert = false;
   }
-  if (!was || was.far !== st.far) el.classList.toggle('far', st.far);
-  if (!was || was.soft !== st.soft) el.classList.toggle('soft', st.soft);
-  if (st.soft && (!was || was.dim !== st.dim)) el.classList.toggle('soft-dim', !!st.dim);
   if (!was || was.op !== st.op) el.style.opacity = st.op;
   if (!was || was.vis !== st.vis) el.style.visibility = st.vis;
   el.PG = st;
@@ -38,7 +35,7 @@ function flowPlace_() {
     host.classList.toggle('is-front', t.id === AT);
     host.PLACED_P = PAGE[t.id] || 0;
     host.querySelectorAll(':scope > .page').forEach((el, pos) => pageWrite_(el,
-      { on: logIndex_(t.id, pos) === (PAGE[t.id] || 0), far: false, soft: false, dim: null, op: '1', vis: 'visible' }));
+      { on: logIndex_(t.id, pos) === (PAGE[t.id] || 0), op: '1', vis: 'visible' }));
   });
   /* PLACED, AS THE GLASS SAYS IT (one column, its page being read): else `GLASS.at !== AT` holds the builder and the widgets' wake for ever. */
   const front = $('s-' + AT);

@@ -83,7 +83,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-11-17-qdata-1";
+const BACKEND_VERSION = "2026-11-17-tidy-1";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 /* EVERY TAB NAME CODE READS BY. A kind in kinds.json ledger.moved is read through the items/events store
@@ -675,8 +675,6 @@ const CONFIG_RESEEDED = [
 const FILMS_FOLDER_KEY = 'films_folder';
 const OWNER_EMAIL_KEY = 'owner_email';
 const CONFIG_PRIVATE = [FILMS_FOLDER_KEY, OWNER_EMAIL_KEY];
-/* THE SITE'S LAYOUT (462, 463): the config row a widget's admin tiles write, and the most it may hold. */
-const LAYOUT_KEY = 'layout';
 /* THE RULES (496): config's `rules` row, `{set, hist}`; js/rules.js registers each rule. A locked one is in RULES_LOCKED and never saved universal. */
 const RULES_KEY = 'rules';
 const RULE_IDS = ['mag-items', 'speed-long', 'hear-lang', 'tap-44', 'search-icon', 'whole-widgets', 'library-one-card', 'tell-admin', 'kjv-admin', 'finder-members',
@@ -687,7 +685,8 @@ const RULES_HIST_MAX = 20;
 /* THE FOUR LINES' DEFAULTS ARE data/settings/words.json `digest_*`; a config row of the same key overrides one. */
 const DIGEST_WORD_KEYS = ['digest_subject', 'digest_greeting', 'digest_intro', 'digest_footer'];
 const DIGEST_WORD_MAX = 300;
-const LAYOUT_MAX = 8000;
+/* The rules row's longest (it once shared the layout's cap). */
+const RULES_MAX = 8000;
 /* THE SITE'S OWN WORDS (497): one config row of {key: text} an admin types in place over the code's; a piece's longest, and the whole row's. */
 const WORDS_KEY = 'words';
 const WORDS_PIECE_MAX = 300;
@@ -1331,9 +1330,4 @@ const BM_EFFECT = {
 
 
 /* ---------- COLUMNS (generated) ---------- */
-/* THE LAST COLUMNS (730), fixed since the front end lost its columns (17 Nov, Find only): a saved layout is still cleaned by these, and nothing reads it. */
-/* Every column, the card columns (a card or widget may stand on them) and the widget columns, for layoutClean_ (core.gs). */
-const LAYOUT_SCREENS = ['stuff', 'saved', 'spotlight', 'feed', 'reel', 'shop', 'web', 'students', 'parents'];
-const LAYOUT_CARD_COLS = ['spotlight', 'web', 'students', 'parents'];
-const LAYOUT_WIDGET_COLS = ['reel', 'shop'];
 /* ---------- END COLUMNS ---------- */
