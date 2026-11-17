@@ -78,6 +78,11 @@ function sheetFormula(m, heads) {
   return '=ARRAYFORMULA(IFERROR(FILTER({' + cols.join(',') + '},' + keyCol + '<>""),""))';
 }
 
+/* THE MARKER ROW of a moved tab (core.gs storeRead_): the kind is moved even with no rows, and these are its columns. */
+function markerRow(m, heads) {
+  const data = JSON.stringify({ _headers: heads.filter(Boolean) });
+  return m.sheet.to === 'events' ? { at: '', who: '', kind: m.kind, what: '~moved', item: '', data } : { id: '~moved', kind: m.kind, data_1: data };
+}
 function plan(heads) {
   const map = tabMap(), out = { items: [], events: [], unmapped: [] }, next = { items: 2, events: 2 };
   /* THE BIG TAB LAST, so every other block's place is known before it grows. */
@@ -88,7 +93,7 @@ function plan(heads) {
     const to = m.sheet.to === 'events' ? 'events' : 'items', n = Number(rows);
     const heads1 = String(h).split('|');
     while (heads1.length && !heads1[heads1.length - 1]) heads1.pop();
-    out[to].push({ tab, kind: m.kind, at: next[to], rows: n, formula: n ? sheetFormula(m, heads1) : '' });
+    out[to].push({ tab, kind: m.kind, at: next[to], rows: n, formula: n ? sheetFormula(m, heads1) : '', marker: markerRow(m, heads1) });
     next[to] += n ? n + 1 : 0;
   });
   Object.keys(map).forEach(t => { if (!heads.some(x => x[0] === t)) out.unmapped.push({ tab: t, rows: 0, why: 'kinds.json maps it, the file has no such tab' }); });
@@ -96,7 +101,7 @@ function plan(heads) {
   return out;
 }
 
-module.exports = { tabMap, mapRow, plan };
+module.exports = { tabMap, mapRow, plan, markerRow };
 if (require.main === module) {
   const a = process.argv;
   if (a.includes('--plan')) console.log(JSON.stringify(plan(JSON.parse(fs.readFileSync(a[a.indexOf('--plan') + 1], 'utf8'))), null, 1));
