@@ -52,21 +52,40 @@ function storeMoved_(name) {
   if (out.length) Object.keys(K.kinds).forEach(k => { const s = K.kinds[k].sheet; if (s.via && out.indexOf(s.via) !== -1 && out.indexOf(k) === -1) out.push(k); });
   return out.length ? out : null;
 }
+/* A VALUE AS SHEETS WOULD HAVE HANDED IT OVER: {"$d": serial} is a Date in the script's time zone; numbers, ticks and text are as stored. */
+function storeCell_(v) {
+  if (v && typeof v === 'object' && typeof v.$d === 'number') {
+    const days = Math.floor(v.$d), d = new Date(1899, 11, 30);
+    d.setDate(d.getDate() + days);
+    d.setMilliseconds(Math.round((v.$d - days) * 864e5));
+    return d;
+  }
+  return v;
+}
+function storeCellOut_(v) {
+  if (!(v instanceof Date) || isNaN(v)) return v;
+  const base = new Date(1899, 11, 30), mid = new Date(v.getFullYear(), v.getMonth(), v.getDate());
+  return { $d: Math.round((mid - base) / 864e5) + (v - mid) / 864e5 };
+}
 function storeRead_(name, kinds) {
   const it = read(TAB.items), mine = it.rows.filter(r => kinds.indexOf(S(r.kind)) !== -1);
   if (!mine.length) return null;
   const headers = [], rows = [];
-  mine.forEach(r => {
+  mine.forEach((r, i) => {
     let d = {};
     try { d = JSON.parse(S(r.data_1) || '{}'); } catch (err) { d = {}; }
-    Object.keys(d).forEach(h => { if (headers.indexOf(h) < 0) headers.push(h); });
-    rows.push(Object.assign({ _row: r._row, _item: r }, d));
+    /* ITS ROW NUMBER AS THE OLD TAB HAD IT (the migration keeps the order): ids made of `_row` (the shop's) stay the same. */
+    const row = { _row: i + 2 };
+    /* THE ITEMS ROW BEHIND IT, kept out of sight so no payload carries it. */
+    Object.defineProperty(row, '_item', { value: r, enumerable: false, writable: true });
+    Object.keys(d).forEach(h => { if (headers.indexOf(h) < 0) headers.push(h); row[h] = storeCell_(d[h]); });
+    rows.push(row);
   });
   return { sheet: it.sheet, headers, rows, moved: { name, kinds, items: it } };
 }
 function storeSave_(t, row) {
   const d = {};
-  t.headers.forEach(h => { if (row[h] !== undefined) d[h] = row[h] instanceof Date ? fmtDateTime(row[h]) : row[h]; });
+  t.headers.forEach(h => { if (row[h] !== undefined) d[h] = storeCellOut_(row[h]); });
   const data = JSON.stringify(d), it = t.moved.items;
   setCell(it, row._item, 'data_1', data);
 }
@@ -76,7 +95,8 @@ function storeAdd_(t, obj) {
   const id = [].concat(sh.id || []).map(c => S(obj[c])).join(':');
   const b = sh.kindBy, kind = b && norm(obj[b.column]).indexOf(b.match) !== -1 ? b.kind : home;
   const item = addRow(t.moved.items, { id: id, kind: kind, data_1: '{}' });
-  const row = Object.assign({ _row: item._row, _item: item }, obj);
+  const row = Object.assign({ _row: t.rows.length + 2 }, obj);
+  Object.defineProperty(row, '_item', { value: item, enumerable: false, writable: true });
   storeSave_(t, row);
   t.rows.push(row);
   return row;
