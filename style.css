@@ -3091,11 +3091,10 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .frac-n, .frac-d { display: block; padding: 0 var(--s1); line-height: 1.25; }
 .frac-n { border-bottom: 1px solid currentColor; }
 .frac-mixed { white-space: nowrap; }
-/* A FRACTIONAL INDEX (owner, 1 Nov: "look more like a half"): a raised small top and a small bottom either side of a slant, ½'s shape at any number. */
-.frac-ix { white-space: nowrap; }
-.frac-ix-n, .frac-ix-d { font-size: var(--fs-small); }
-.frac-ix-n { vertical-align: .4em; }
-.frac-ix-d { vertical-align: -.1em; }
+/* A FRACTIONAL INDEX (owner, 16 Nov: "x to the power of a half looks goofy"): a small top over a small bottom, the top on the index line, the bottom just under it. */
+.frac-ix { position: relative; display: inline-flex; flex-direction: column; align-items: center; vertical-align: baseline; font-size: .85em; line-height: 1.05; margin: 0 .08em; white-space: nowrap; }
+.frac-ix-n, .frac-ix-d { display: block; padding: 0 .12em; }
+.frac-ix-n { border-bottom: 1px solid currentColor; }
 .frac-mixed .frac { white-space: normal; }
 .frac-s { position: absolute; left: 0; top: 0; clip: rect(0 0 0 0); clip-path: inset(50%);
           white-space: nowrap; pointer-events: none; }
@@ -4068,14 +4067,15 @@ svg.meas .meas-body, svg.meas .meas-turn, svg.meas .meas-tick, svg.meas .meas-nu
 #kp.is-abc, #kp.is-sym { grid-template-columns: repeat(60, minmax(0, 1fr)); column-gap: 0; max-width: 640px; }
 #kp.is-abc .kp-key, #kp.is-sym .kp-key { border-inline: 2px solid transparent; background-clip: padding-box; }
 /* A KEY'S WIDTH IN THE SIXTY COLUMNS (`span` in keypad-keys.js), and where the second letter row starts (`at`). */
-.kp-key.kp-s6 { grid-column: span 6; }
-.kp-key.kp-s8 { grid-column: span 8; }
-.kp-key.kp-s9 { grid-column: span 9; }
-.kp-key.kp-s10 { grid-column: span 10; }
-.kp-key.kp-s12 { grid-column: span 12; }
-.kp-key.kp-s18 { grid-column: span 18; }
-.kp-key.kp-s24 { grid-column: span 24; }
+.kp-key.kp-s6 { grid-column-end: span 6; }
+.kp-key.kp-s8 { grid-column-end: span 8; }
+.kp-key.kp-s9 { grid-column-end: span 9; }
+.kp-key.kp-s10 { grid-column-end: span 10; }
+.kp-key.kp-s12 { grid-column-end: span 12; }
+.kp-key.kp-s18 { grid-column-end: span 18; }
+.kp-key.kp-s24 { grid-column-end: span 24; }
 .kp-key.kp-at4.kp-s6 { grid-column: 4 / span 6; }
+.kp-key.kp-at1 { grid-column-start: 1; }
 /* THE SYMBOLS FACE (round 4, `KP_SYM`): Greek letters and the signs no other key types, ten a row like the letters */
 .kp-key.kp-sy { font-size: var(--fs-title); font-weight: 500; }
 .kp-key.kp-ch { position: relative; font-weight: 500; font-size: var(--fs-title); }
@@ -4373,8 +4373,7 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 .qpad-prot svg { width: 100%; height: auto; display: block; overflow: visible; }
 .qpad-prot .qprot-body { fill: color-mix(in srgb, var(--gold) 14%, transparent); stroke: var(--gold); stroke-width: 1.2; pointer-events: auto; cursor: move; }
 .qpad-prot .qprot-ticks { fill: none; stroke: var(--gold); stroke-width: .6; pointer-events: none; }
-.qpad-prot .qprot-nums text { fill: var(--gold); font-size: var(--fs-small); text-anchor: middle; dominant-baseline: middle; pointer-events: none; }
-.qpad-prot .qprot-nums .qprot-in { font-size: var(--fs-small); }
+.qpad-prot .qprot-nums text { fill: var(--gold); text-anchor: middle; dominant-baseline: middle; pointer-events: none; }
 .qpad-prot .qprot-pin { fill: var(--gold); pointer-events: none; }
 .qpad-prot .qprot-stem { stroke: var(--gold); stroke-width: 1; }
 .qpad-prot .qprot-hit { fill: transparent; pointer-events: auto; cursor: grab; }

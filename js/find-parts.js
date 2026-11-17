@@ -202,12 +202,14 @@ function typesetFracs_(k) {
     from = q;
     const w = where(p);
     if (w.tag || w.raw) continue;
-    /* A FRACTIONAL INDEX LOOKS LIKE A HALF (owner, 1 Nov: "make it look more like a half. universal rule"): x<sup>1/2</sup> is a small 1 over a small 2 on a slant, like ½ -- on its line, not stacked (241). */
+    /* A FRACTION IN AN INDEX IS A SMALL STACKED FRACTION (owner, 16 Nov: "x to the power of a half looks goofy"): x<sup>1/2</sup>, x<sup>n/2</sup>, x<sup>−2x/3</sup>
+       and a half-typed one on the keypad (its hole and caret are one marker character each here) all set as one small top over one small bottom, its
+       foot level with the index's line -- every index, every page, this one place. The slash stays in it for copying and reading aloud (`frac-s`). */
     if (w.deep) {
-      const a = /\d+$/.exec(k.s.slice(Math.max(0, p - 12), p)), b = /^\d+/.exec(k.s.slice(q, q + 12));
+      const T = '[0-9A-Za-z.\u0370-\u03ff]+', a = new RegExp(T + '$').exec(k.s.slice(Math.max(0, p - 24), p)), b = new RegExp('^' + T).exec(k.s.slice(q, q + 24));
       if (!a || !b) continue;
       const ix = cardBlock_({ type: 'group', tag: 'span', look: 'frac-ix', inner: cardBlock_({ type: 'group', tag: 'span', look: 'frac-ix-n', text: a[0] })
-        + '&#x2044;' + cardBlock_({ type: 'group', tag: 'span', look: 'frac-ix-d', text: b[0] }) });
+        + cardBlock_({ type: 'group', tag: 'span', look: 'frac-s', inner: '/' }) + cardBlock_({ type: 'group', tag: 'span', look: 'frac-ix-d', text: b[0] }) });
       k.s = k.s.slice(0, p - a[0].length) + ix + k.s.slice(q + b[0].length);
       from = p - a[0].length + ix.length;
       continue;

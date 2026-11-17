@@ -57,9 +57,11 @@ function pressAfterPaint_(doer, e) {
   doer.classList.add('is-pressed');
   requestAnimationFrame(() => setTimeout(() => {
     PRESS_SOON_ = null;
-    /* REDRAWN AWAY MEANWHILE (a payload landing): the press was on something no longer there, so nothing is done. */
-    if (doer.isConnected) pressAct_(doer, e);
-    else if (CLICK_LOG) console.log('[click] dropped — its control was redrawn before its frame came');
+    /* REDRAWN MEANWHILE (a payload landing, a fill): the press goes to the same control as drawn now (`pressKey_`), not lost (owner, 16 Nov:
+       "sometimes a tap doesn't register"); only a control that is gone from the screen does nothing. */
+    const live = doer.isConnected ? doer : [...document.querySelectorAll('[data-do="' + doer.dataset.do + '"]')].find(c => pressKey_(c) === key);
+    if (live) pressAct_(live, e);
+    else if (CLICK_LOG) console.log('[click] dropped — its control is no longer on the screen');
   }, 0));
 }
 function pressAct_(doer, e) {

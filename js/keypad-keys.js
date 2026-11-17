@@ -163,11 +163,18 @@ const kpKey_ = k => tile_({ act: 'kp-key', label: k.a || String(k.t || ''),
 /* THE PAD'S KEYS FOR A LAYOUT AND A BOX. § */
 /* AND ON THE LETTERS TOO, beside the vector, so a power is never a face away: seven keys over the letters' sixty columns */
 const KP_ABC_TOP_SPAN = [8, 9, 9, 9, 9, 8, 8];
+/* EVERY ROW OF THE SIXTY COLUMNS STARTS AT COLUMN 1, said on its first key (`at: 1`) as the spans add up: a row never inherits the
+   row above's leftovers, so the letters stay q-row, a-row, z-row on any browser's grid placement (iPad, 2406-2F Q28a). */
+function kpRows_(keys) {
+  let used = 0;
+  return keys.map(k => { const span = k.span || 6, first = used % 60 === 0; used += (k.at ? k.at - 1 - used % 60 : 0) + span;
+    return first && !k.at ? Object.assign({}, k, { at: 1 }) : k; });
+}
 /* `site` IS A BOX ELSEWHERE ON THE SITE (528): 'mail' tops the letters with @ . /, any other the 123 face with @ # & and plain keys for the structures */
 function kpPadHtml_(layer, words, signs, essay, vec, site) {
-  if (layer === 'sym') return KP_SYM.concat(kpAbcBottom_(essay, true)).map(kpKey_).join('');
+  if (layer === 'sym') return kpRows_(KP_SYM.concat(kpAbcBottom_(essay, true))).map(kpKey_).join('');
   const top = site === 'mail' ? KP_MAIL_KEYS : site ? [] : vec ? [KP_POW].concat(KP_VEC_KEYS).map((k, i) => Object.assign({}, k, { span: KP_ABC_TOP_SPAN[i] })) : [];
-  if (layer === 'abc') return top.concat(KP_ABC).concat(kpAbcBottom_(essay)).map(kpKey_).join('');
+  if (layer === 'abc') return kpRows_(top.concat(KP_ABC).concat(kpAbcBottom_(essay))).map(kpKey_).join('');
   if (site) return KP_SITE_KEYS.concat(KP_SIGN_KEYS, KP_KEYS.map(kpPlainKey_)).map(k => (essay && k.v === '!done' ? KP_DONE_ESSAY : k)).map(kpKey_).join('');
   return (vec ? KP_VEC_KEYS : []).concat(signs ? KP_SIGN_KEYS : []).concat(KP_KEYS).map(k => (essay && k.v === '!done' ? KP_DONE_ESSAY : k)).map(kpKey_).join('');
 }
@@ -385,6 +392,8 @@ function kpLayout_(inp) {
   pad.setAttribute('data-layer', KP_LAYER);
   pad.setAttribute('aria-label', KP_LAYER === 'abc' ? 'Letters keypad' : KP_LAYER === 'sym' ? 'Symbols keypad' : site ? 'Numbers keypad' : 'Maths keypad');
   kpShiftPaint_();
+  /* A FACE OF ANOTHER HEIGHT (123 to abc) re-measures the room the page leaves under it, or the taller pad sits over the page's foot */
+  if (!pad.hidden) kpPadH_(pad);
   return pad;
 }
 /* DONE READS "next" IN A BOX WITH ANOTHER AFTER IT (one box per value, 362), and "done" on the last. It never sends: the question's Check tile is the one submit (owner, 16 Nov). */
