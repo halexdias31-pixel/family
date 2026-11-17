@@ -12175,7 +12175,7 @@ function qualFace_(q) {
   const who = q.first || q.fresh ? (q.subject || (q.fresh ? 'New qualification' : '')) : '';
   const cert = qualIsCert_(q);
   return cardRuns_([{ span: 'q-who' + (q.subject ? '' : ' is-none'), text: who }, { span: 'q-note', text: qualIso_(q) },
-    { span: 'q-mark', text: cert ? '' : q.spec ? { span: 'q-chip', text: 'Teach' } : q.teach ? { span: 'q-can', text: 'Can teach' } : '' }]);
+    { span: 'q-mark', text: cert ? '' : q.spec ? { span: 'prof-tag is-sm', text: 'Teach' } : q.teach ? { span: 'q-can', text: 'Can teach' } : '' }]);
 }
 /* THE TEACHING STATE IN WORDS, and drawn: gold for Teaches, plain for Can teach, faint for Not teaching. */
 const qualTeachKey_ = q => q.spec ? 'spec' : q.teach ? 'teach' : 'no';

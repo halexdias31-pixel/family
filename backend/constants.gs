@@ -6,14 +6,30 @@ const SHARED_SETTINGS = {"days":[["m","Monday"],["tu","Tuesday"],["w","Wednesday
 /* @family. — backend (hermes) Rewritten against the eleven-tab database. § */
 
 /* BOTH OF THESE IDS POINTED AT AN .xlsx AND `SpreadsheetApp` CANNOT OPEN ONE. § */
-const LEDGER_ID = "1l26ZSHC5DDvsP-tBkAhxs8blRKjAtuV5Y2g0D4s1Gbo";
+/* THE LEDGER'S ID LIVES IN THE SCRIPT PROPERTY LEDGER_ID, not in this public repo. Order: the property,
+   then (interim, one release) LEDGER_ID_OLD_ seeded into the property, then the bound spreadsheet, else an error.
+   doGet and doPost call this once, so the first request after deploy seeds the property. */
+const LEDGER_ID_OLD_ = "1l26ZSHC5DDvsP-tBkAhxs8blRKjAtuV5Y2g0D4s1Gbo";
+let LEDGER_ID_CACHE_ = '';
+function ledgerId_() {
+  if (LEDGER_ID_CACHE_) return LEDGER_ID_CACHE_;
+  const props = PropertiesService.getScriptProperties();
+  let id = props.getProperty('LEDGER_ID') || '';
+  if (!id && LEDGER_ID_OLD_) {
+    id = LEDGER_ID_OLD_;
+    try { props.setProperty('LEDGER_ID', id); } catch (err) { /* seeded again next run */ }
+  }
+  if (!id) { try { const ss = SpreadsheetApp.getActive(); if (ss) id = ss.getId(); } catch (err) { /* standalone project */ } }
+  if (!id) throw new Error('No Ledger id: set the Script Property LEDGER_ID (Project Settings > Script properties).');
+  return (LEDGER_ID_CACHE_ = id);
+}
 
 /* THE OTHER TWO FILES, AND WHY THERE ARE THREE OF THEM. § */
 /* ---------- `SETTINGS_ID` WAS HERE, AND THERE ARE TWO SPREADSHEETS NOW § */
 /* `LIBRARY_ID` WAS HERE. § */
 
 /* `installSheetWatch` walks this to put an edit trigger on every file, so a fourth database is one line here and nothing else. § */
-const FILES = { ledger: LEDGER_ID };
+const FILES = { get ledger() { return ledgerId_(); } };
 
 /* ---------- WHICH FILE EACH TAB IS IN § */
 const WHERE = {
@@ -139,7 +155,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-11-16-ssot-2";
+const BACKEND_VERSION = "2026-11-17-clean-1";
 /* THE SWITCH (owner's go, after the copy is checked): 'tabs' reads and writes each kind's own Ledger tab (kinds.json `sheet.tab`); */
 /* 'items' reads and writes the one items tab and the one events tab. The action `item` (items.gs) is the same either way. */
 const ITEM_STORE = 'tabs';

@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-11-16-ssot-2";
+const DOPOST_VERSION = "2026-11-17-clean-1";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -95,6 +95,7 @@ function linkMail_(r, token, asParent) {
 }
 
 function doPost(e) {
+  try { ledgerId_(); } catch (err) { /* reported where a sheet is opened */ }
   /* WHEN THIS REQUEST BEGAN, handed to every handler beside its body (docs/history/350). */
   const began = Date.now();
   try {

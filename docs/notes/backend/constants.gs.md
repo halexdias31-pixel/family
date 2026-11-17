@@ -83,8 +83,8 @@ top level, before `LEDGER_ID`
    below used to say "if every section ever loads empty, this line is the first thing to check", and
    it was right, and the line was wrong:
 
-     was  1WeY0AD7dEzpKKDzndqEl4bAyahI6AgrW   businessDB.xlsx   an Excel UPLOAD
-     is   1bashNkVQSyMfsJeGDSQNYY9QN5Troy2quHNx_qKUi7s          the Google Sheet
+     was  (id removed)                        businessDB.xlsx   an Excel UPLOAD
+     is   (id removed)                                          the Google Sheet
 
    `SpreadsheetApp.openById` opens Google Sheets. An .xlsx sitting in Drive is a FILE in Drive — it
    has an id, it has the same title, it opens in the browser when you click it, and Apps Script
