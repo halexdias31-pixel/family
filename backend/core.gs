@@ -44,7 +44,7 @@ function findSheet_(at) {
 
 /* ---------- THE ONE STORE (owner, 17 Nov): a tab whose kind kinds.json `ledger.moved` lists is read from, and written to, the items tab. */
 /* Every reader still asks `read(tab)` and gets { sheet, headers, rows } shaped as the tab was; setCell/setCells/addRow/delRow see `t.moved`. */
-/* Until the items tab holds any row of that kind (the migration has not run), the old tab answers, so a deploy before the move loses nothing. */
+/* A moved kind is the store's alone: its old tab is never read or written again (kept read-only as the fallback copy, not used). */
 function storeMoved_(name) {
   const K = ITEM_STORE_KINDS, out = [];
   (K.moved || []).forEach(k => { const s = K.kinds[k] && K.kinds[k].sheet; if (s && s.tab === name && !s.blob) out.push(k); });
@@ -118,8 +118,8 @@ function storeRead_(name, kinds) {
   /* THE MARKER ROW (id `~moved`, or what `~moved` for an event kind) says the kind has moved and holds its tab's columns, */
   /* so a kind whose last row was deleted stays here (never falls back to its stale old tab) and a new row gets every column. */
   const isMark = r => S(ev ? r.what : r.id) === STORE_MARK, marks = all.filter(isMark), mine = all.filter(r => !isMark(r));
-  if (!mine.length && !marks.length) return null;
-  const headers = [], rows = [];
+  /* NO MARKER AND NO ROWS: still the store's (the fallback to the old tab is gone, 17 Nov), with SCHEMA's columns for a first row. */
+  const headers = (!mine.length && !marks.length && typeof SCHEMA === 'object' && SCHEMA[name]) ? SCHEMA[name].slice() : [], rows = [];
   marks.forEach(r => { let d = {}; try { d = JSON.parse(S(r[col]) || '{}'); } catch (err) { d = {}; } (d._headers || []).forEach(h => { if (h && headers.indexOf(h) < 0) headers.push(h); }); });
   mine.forEach((r, i) => {
     let d = {};

@@ -25,75 +25,35 @@ function ledgerId_() {
 const FILES = { get ledger() { return ledgerId_(); } };
 
 /* ---------- WHICH FILE EACH TAB IS IN § */
+/* MOVED TABS ARE NOT HERE (17 Nov): a kind in kinds.json ledger.moved is read and written in the items or events tab only (core.gs `read`). */
 const WHERE = {
   /* ---- the app writes these ---- */
-  people:         { file: 'ledger' },
-  qualifications: { file: 'ledger' },
-  library_cards:  { file: 'ledger' },
-  family:         { file: 'ledger' },
-  jobs:           { file: 'ledger' },
-  events:         { file: 'ledger' },
-  receipts:       { file: 'ledger' },
-  invites:        { file: 'ledger' },
-  messages:       { file: 'ledger' },
   /* A STUDENT'S SCANNED PAGES (work on file): the Ledger, because the app writes it; the pages themselves are in Drive. */
-  work_files:     { file: 'ledger' },
   /* WHAT THE OWNER STATES ABOUT A PERSON (kinds.json person.facts): one row a fact. */
   facts:          { file: 'ledger' },
   /* ONE TAB OF ITEMS AND ONE OF EVENTS (owner, 16 Nov; kinds.json `ledger`), filled by tools/ledger-migrate.js; read for a kind once kinds.json `ledger.moved` lists it (core.gs `read`). */
   items:          { file: 'ledger' }, events_log: { file: 'ledger' },
-  records:        { file: 'ledger' }, biz_checks: { file: 'ledger' }, owner_answers: { file: 'ledger' },
-  exams:          { file: 'ledger' },
-  posts:          { file: 'ledger' },
-  post_votes:     { file: 'ledger' },
-  post_comments:  { file: 'ledger' },
-  post_reactions: { file: 'ledger' },
-  favourites:     { file: 'ledger' },
   /* WHAT EACH LEARNER DREW, so it follows them to another device — see SCHEMA.answers. The Ledger
      beside `favourites` and `submissions`, for their reason: it is a record OF a learner, and the app
      writes it. */
-  answers:        { file: 'ledger' },
   /* EVERY ANSWER A LEARNER SENT, AND WHAT IT WAS MARKED — one row per press, never rewritten. § */
-  submissions:    { file: 'ledger' },
   /* WHAT THE WEEKLY PARENT EMAIL SENT, OR WOULD HAVE — see SCHEMA.digest_log. The Ledger beside
      `submissions`, which is what it reports on, and because the app writes it. */
-  digest_log:     { file: 'ledger' },
   /* A QUESTION A LEARNER SAYS IS WRONG OR BROKEN (395) — the Ledger, because the app writes it. Admin-only to read. */
-  reports:        { file: 'ledger' },
   /* AN APPLICATION TO TEACH (400) — the Ledger, because the app writes it. Admin-only to read; the applicant sees only their own status. */
-  applications:   { file: 'ledger' },
   /* AN ADMIN'S NOTE FOR CLAUDE ON A WIDGET OR CARD (484) — the Ledger, because the app writes it. Admin-only to read. */
   claude_notes:   { file: 'ledger' },
   /* A SCREEN THAT THREW ON SOMEBODY'S PHONE — the Ledger, because the app writes it. Admin-only to read; no learner data in a row. */
-  client_errors:  { file: 'ledger' },
-  health_log:     { file: 'ledger' },
   /* WHO CHANGED SOMEBODY ELSE'S SETTINGS (the admin's lens) — the Ledger, because the app writes it. Admin-only; ids, never names. */
-  lens_log:       { file: 'ledger' },
   /* A PERSON'S FAVOURITE LINKS (509) — the Ledger, because the app writes it. doGet sends each viewer their own rows alone. */
-  fav_links:      { file: 'ledger' },
   /* A PHONE'S NOTIFICATION ADDRESS (492) — the Ledger, because the app writes it. Never sent by doGet. */
-  push_tokens:    { file: 'ledger' },
   /* WRITTEN BY AN ADMIN FROM THE PHONE, so it is the Ledger rather than a settings file: § */
-  spotlight:      { file: 'ledger' },
   /* ---------- THE FILMS, AND WHY THEY ARE IN `Ledger` RATHER THAN IN THE REPOSITORY § */
-  films:          { file: 'ledger' },
   /* REELS AND VIDEOS AN ADMIN ADDED FROM THE PHONE (404) — merged over the repository's lists by the site. */
-  media:          { file: 'ledger' },
 
   /* ---- you write these, the app reads them ---- */
-  config:         { file: 'ledger' },
-  options:        { file: 'ledger' },
-  pricing:        { file: 'ledger' },
-  shop:           { file: 'ledger', alsoTry: 'items&shop' },
-  terms:          { file: 'ledger' },
-  venues:         { file: 'ledger' },
-  rooms:          { file: 'ledger' },
-  trips:          { file: 'ledger' },
   /* AN ADMIN'S DISCOUNT CODES (docs/history/353) — the ledger, beside `jobs`, because `used` is counted up
      by `createJob` as a code is spent and the job that spent it is in the same file. */
-  promo_codes:    { file: 'ledger' },
-  holidays:       { file: 'ledger' },
-  herd:           { file: 'ledger' },
 
   /* ---- the library's private half (397): the words, answers and figures, filled by `library-to-ledger` ---- */
   lib_questions:  { file: 'ledger' },
@@ -103,7 +63,6 @@ const WHERE = {
   /* THE READING SOURCES A PAPER'S INSERT PRINTS (458): copyrighted, so the extract is here and never in the repository. */
   lib_inserts:    { file: 'ledger' },
   /* WHO OPENED HOW MANY TODAY — one row per person per London day; the daily cap is counted here. */
-  lib_log:        { file: 'ledger' },
 
   /* ---- subject content, edited in bulk ---- */
   /* NOTHING IS ROUTED HERE ANY MORE, and the section is kept so that is visible rather than merely absent. § */
@@ -148,7 +107,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-11-17-store-12";
+const BACKEND_VERSION = "2026-11-17-store-13";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
