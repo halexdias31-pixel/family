@@ -72,7 +72,20 @@ function drawGeom_() {
     const o = (a, b, c) => Math.sign((b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]));
     return o(s[0], s[1], t[0]) !== o(s[0], s[1], t[1]) && o(t[0], t[1], s[0]) !== o(t[0], t[1], s[1]);
   }
-  return { H, R, near, dSeg, dLine, dPoly, len, rdp, inside, area, bearing, dirOf, dDir, latSnap, onDots, convex, cross };
+  /* THE LEAST-SQUARES POLYNOMIAL of degree `deg` through points, as y of x (x scaled to 0..1 over the points, so the sums stay well-sized) */
+  function lsq(P, deg) {
+    const X = P.map(p => p[0]), x0 = Math.min.apply(null, X), w = Math.max.apply(null, X) - x0 || 1, n = Math.min(deg, P.length - 1) + 1, A = [], b = [];
+    for (let i = 0; i < n; i++) { A.push(new Array(n).fill(0)); b.push(0); }
+    P.forEach(p => { const t = (p[0] - x0) / w; for (let i = 0; i < n; i++) { b[i] += p[1] * Math.pow(t, i); for (let j = 0; j < n; j++) A[i][j] += Math.pow(t, i + j); } });
+    for (let i = 0; i < n; i++) {
+      let k = i; for (let j = i + 1; j < n; j++) if (Math.abs(A[j][i]) > Math.abs(A[k][i])) k = j;
+      [A[i], A[k]] = [A[k], A[i]]; [b[i], b[k]] = [b[k], b[i]];
+      for (let j = 0; j < n; j++) if (j !== i) { const m = A[j][i] / A[i][i]; for (let c = i; c < n; c++) A[j][c] -= m * A[i][c]; b[j] -= m * b[i]; }
+    }
+    const c = b.map((v, i) => v / A[i][i]);
+    return x => c.reduce((s, k, i) => s + k * Math.pow((x - x0) / w, i), 0);
+  }
+  return { H, R, near, dSeg, dLine, dPoly, len, rdp, inside, area, bearing, dirOf, dDir, latSnap, onDots, convex, cross, lsq };
 }
 function drawFrame_() {
   /* THE FRAME: figure units to the picture's. Labels give an axis its scale; a grid alone counts squares from its bottom-left corner, y up. */
@@ -499,26 +512,30 @@ function drawKinds4_(g) { const { near, dPoly, inside, dirOf, dDir, latSnap, con
       const good = [end(X(v[0])), atUp(X(v[1])), atUp(X(v[2])), atUp(X(v[3])), end(X(v[4]))].filter(Boolean).length;
       return { ok: good >= (it.need || 5), ex: q => q[0] >= X(v[0]) - tol * 1.5 && q[0] <= X(v[4]) + tol * 1.5 };
     },
-    /* AN INEQUALITY ON A NUMBER LINE: a line from a to b, and at each end a circle, filled where the end is included */
+    /* AN INEQUALITY ON A NUMBER LINE: a line from a to b, and at each end a circle, filled where the end is included.
+       One-sided (x > a): no `b`, and `to` 1 or -1 -- the line runs from a's circle that way, two squares or more, with its arrow beyond. */
     interval(it, ink, F, tol) {
       const S = straights(ink, F.sq * 1).filter(s => dDir(dirOf(s[0], s[1]), 0) <= 6).sort((p, q) => near(q[0], q[1]) - near(p[0], p[1]));
       if (!S.length) return { ok: false, ex: () => false };
       const L = S[0], xs = [L[0][0], L[1][0]].sort((p, q) => p - q), ya = (L[0][1] + L[1][1]) / 2;
-      const A = F.v([it.a, 0])[0], B = F.v([it.b, 0])[0], r = F.sq * 0.9;
+      const A = F.v([it.a, 0])[0], r = F.sq * 0.9, one = it.b == null, way = one ? Math.sign(it.to || 1) * Math.sign(F.u[0]) : 1;
+      const B = one ? (way > 0 ? xs[1] : xs[0]) : F.v([it.b, 0])[0];
       const end = x => {
         const near_ = ink.filter(s => s !== L && Math.abs(s.c[0] - x) <= r && Math.abs(s.c[1] - ya) <= r * 1.5 && s.size <= r * 2.5);
         if (!near_.length) return null;
         const size = Math.max.apply(null, near_.map(s => s.size)), Lsum = near_.reduce((t, s) => t + s.len, 0);
         return Lsum >= 1.2 * Math.PI * Math.max(size, 1) ? 'filled' : 'open';
       };
-      const ea = end(A), eb = end(B);
-      const at = Math.abs(xs[0] - A) <= tol * 1.6 && Math.abs(xs[1] - B) <= tol * 1.6;
-      const circles = it.loose ? !!ea && !!eb : ea === (it.ca ? 'filled' : 'open') && eb === (it.cb ? 'filled' : 'open');
-      return { ok: at && circles, ex: q => q[0] >= A - r * 1.5 && q[0] <= B + r * 1.5 && Math.abs(q[1] - ya) <= r * 2 };
+      const ea = end(A), eb = one ? null : end(B);
+      const at = one ? Math.abs((way > 0 ? xs[0] : xs[1]) - A) <= tol * 1.6 && (B - A) * way >= F.sq * 2
+        : Math.abs(xs[0] - A) <= tol * 1.6 && Math.abs(xs[1] - B) <= tol * 1.6;
+      const circles = it.loose ? !!ea && (one || !!eb) : ea === (it.ca ? 'filled' : 'open') && (one || eb === (it.cb ? 'filled' : 'open'));
+      const lo = Math.min(A, B), hi = Math.max(A, B);
+      return { ok: at && circles, ex: q => q[0] >= lo - r * 1.5 && q[0] <= hi + r * 1.5 && Math.abs(q[1] - ya) <= r * 2 };
     },
   };
 }
-function drawKinds5_(g) { const { near, dSeg, dPoly, inside, area, polygons } = g;
+function drawKinds5_(g) { const { near, dSeg, dPoly, inside, area, polygons, samples, lsq } = g;
   return {
     /* AREA: the closed shapes drawn inside a box, their areas added (a pictogram's symbols) */
     area(it, ink, F) {
@@ -561,6 +578,20 @@ function drawKinds5_(g) { const { near, dSeg, dPoly, inside, area, polygons } = 
       ink.forEach(s => s.pl.forEach((p, k) => { if (k && inside(p, P) && inside(s.pl[k - 1], P)) L += near(p, s.pl[k - 1]); }));
       return { ok: L >= F.sq * (it.min || 0.5), ex: q => inside(q, P) };
     },
+    /* A LINE OR CURVE OF BEST FIT (`fit`): the least-squares polynomial (`deg`, 1 a line) through the points `at`, or the scheme's own `region` (a polygon) where it gives one.
+       The long ink, across the points' x-range, keeps within `ftol` squares of it -- or of the points' own scatter about it, if that is wider -- and spans `span` of the range. */
+    fit(it, ink, F, tol) {
+      const X = it.at.map(p => p[0]), x0 = Math.min.apply(null, X), x1 = Math.max.apply(null, X), w = x1 - x0 || 1;
+      const y = lsq(it.at, it.deg || 1);
+      const uy = Math.abs(F.u[1]), rms = Math.sqrt(it.at.reduce((s, p) => s + Math.pow((p[1] - y(p[0])) * uy, 2), 0) / it.at.length);
+      const band = Math.max(F.sq * (it.ftol || 1), rms * 1.5), R = it.region ? it.region.map(F.v) : null;
+      const off = q => { if (R) return inside(q, R) ? 0 : Infinity; const f = F.f(q); return Math.abs(f[1] - y(f[0])) * uy; };
+      const long = ink.filter(s => s.size >= Math.abs(w * F.u[0]) * 0.25);
+      const pts = [].concat.apply([], long.map(s => s.pl.length < 2 ? s.pl : [].concat.apply([], s.pl.slice(1).map((q, i) => samples(s.pl[i], q, F.sq * 0.25))))).filter(q => { const f = F.f(q)[0]; return f >= x0 && f <= x1; });
+      const fx = pts.map(q => F.f(q)[0]), cov = fx.length ? (Math.max.apply(null, fx) - Math.min.apply(null, fx)) / w : 0;
+      const ok = pts.length > 0 && cov >= (it.span || 0.8) && pts.every(q => off(q) <= band);
+      return { ok: ok, ex: q => off(q) <= band * 1.5 };
+    },
     /* `join` (402): a matching line — one stroke from inside box `a` to inside box `b`, either way. Boxes [x, y, w, h] in figure units, padded by `pad`. */
     join(it, ink, F) {
       const pad = it.pad == null ? 10 : it.pad;
@@ -574,7 +605,7 @@ function drawKinds5_(g) { const { near, dSeg, dPoly, inside, area, polygons } = 
     },
   };
 }
-function drawExample_(g) { const { H, R, near, inside, frameOf } = g;
+function drawExample_(g) { const { H, R, near, inside, frameOf, lsq } = g;
   /* A RIGHT DRAWING OF THE ANSWER, as strokes the pen would store: the row's own `eg` (figure units) or one made from its items. The checks mark it full and a near miss less. */
   function example(spec, fig) {
     if (typeof spec === 'string') { try { spec = JSON.parse(spec); } catch (e) { return []; } }
@@ -613,9 +644,18 @@ function drawExample_(g) { const { H, R, near, inside, frameOf } = g;
         put([[v[1], y - h], [v[1], y + h], [v[3], y + h], [v[3], y - h], [v[1], y - h]].map(F.v)); put([[v[2], y - h], [v[2], y + h]].map(F.v));
       }
       if (it.k === 'interval') {
-        const a = F.v([it.a, 0]), b = F.v([it.b, 0]), y = it.y != null ? F.v([0, it.y])[1] : a[1] - q * 1.5, r = q * 0.35;
-        put([[a[0] + r, y], [b[0] - r, y]]);
-        [[a, it.ca], [b, it.cb]].forEach(e => { const c = [e[0][0], y], ring = []; for (let g = 0; g <= 360; g += 30) ring.push(at(c, g, r)); put(ring); if (e[1]) { put(ring.map(p => [c[0] + (p[0] - c[0]) * 0.5, c[1] + (p[1] - c[1]) * 0.5])); put([at(c, 0, r * 0.8), at(c, 180, r * 0.8)]); put([at(c, 90, r * 0.8), at(c, 270, r * 0.8)]); put(ring.map(p => [c[0] + (p[0] - c[0]) * 0.75, c[1] + (p[1] - c[1]) * 0.75])); } });
+        const one = it.b == null, way = one ? Math.sign(it.to || 1) : 1, a = F.v([it.a, 0]);
+        const room = way * Math.sign(F.u[0]) > 0 ? vb[0] + vb[2] - a[0] : a[0] - vb[0], run = Math.max(q * 2.5, Math.min(q * 5, room - q * 1.5));
+        const b = one ? [a[0] + way * Math.sign(F.u[0]) * run, a[1]] : F.v([it.b, 0]), y = it.y != null ? F.v([0, it.y])[1] : a[1] - q * 1.5, r = q * 0.35;
+        const d = Math.sign(b[0] - a[0]);
+        put([[a[0] + d * r, y], [b[0] - (one ? 0 : d * r), y]]);
+        if (one) put([[b[0] - d * q * 0.6, y - q * 0.45], [b[0], y], [b[0] - d * q * 0.6, y + q * 0.45]]);
+        (one ? [[a, it.ca]] : [[a, it.ca], [b, it.cb]]).forEach(e => { const c = [e[0][0], y], ring = []; for (let g = 0; g <= 360; g += 30) ring.push(at(c, g, r)); put(ring); if (e[1]) { put(ring.map(p => [c[0] + (p[0] - c[0]) * 0.5, c[1] + (p[1] - c[1]) * 0.5])); put([at(c, 0, r * 0.8), at(c, 180, r * 0.8)]); put([at(c, 90, r * 0.8), at(c, 270, r * 0.8)]); put(ring.map(p => [c[0] + (p[0] - c[0]) * 0.75, c[1] + (p[1] - c[1]) * 0.75])); } });
+      }
+      if (it.k === 'fit') {
+        const y = lsq(it.at, it.deg || 1), X = it.at.map(p => p[0]), x0 = Math.min.apply(null, X), x1 = Math.max.apply(null, X), pl = [];
+        for (let i = 0; i <= 40; i++) { const x = x0 + (x1 - x0) * i / 40; pl.push([x, y(x)]); }
+        put(pl.map(F.v));
       }
       if (it.k === 'line') put(it.thru.map(F.v));
       if (it.k === 'join') put([it.a, it.b].map(r => F.v([r[0] + r[2] / 2, r[1] + r[3] / 2])));
