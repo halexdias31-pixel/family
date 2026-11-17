@@ -115,5 +115,11 @@
 {"field": "venueArea", "label": "Area", "sort_order": 20.696, "note": "a venue (Find › Venues): its borough, else its city", "active": true},
 {"field": "venueFor", "label": "Good for", "sort_order": 20.697, "note": "a venue: its focus list off the venues tab", "active": true},
 {"field": "venueSize", "label": "Holds", "sort_order": 20.698, "note": "a venue: up to how many students, and how many rooms", "active": true},
-{"field": "vidType", "label": "Type", "sort_order": 20.695, "note": "a video (batch D): Movie, Lesson, Documentary, Music video, Clip; the row's type, else guessed from its title", "active": true}
+{"field": "vidType", "label": "Type", "sort_order": 20.695, "note": "a video (batch D): Movie, Lesson, Documentary, Music video, Clip; the row's type, else guessed from its title", "active": true},
+{"field": "partnerStatus", "label": "Status", "sort_order": 20.71, "note": "a partner (owner, 17 Nov): idea, talking, agreed, running, ended", "active": true},
+{"field": "foodMeal", "label": "Meal", "sort_order": 20.72, "note": "a food (owner, 17 Nov): breakfast, lunch, dinner, snack", "active": true},
+{"field": "foodShop", "label": "Shop", "sort_order": 20.73, "note": "a food: where it is bought", "active": true},
+{"field": "taskList", "label": "List", "sort_order": 20.74, "note": "a task (owner, 17 Nov): its list", "active": true},
+{"field": "taskRepeat", "label": "Repeats", "sort_order": 20.75, "note": "a task: never, daily, weekly, monthly, yearly", "active": true},
+{"field": "taskDone", "label": "Done", "sort_order": 20.76, "note": "a task: yes or no", "active": true}
 ]

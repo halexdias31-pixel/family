@@ -1,6 +1,6 @@
 /* @family. — 00_constants.gs (1 of 8) THE TOP-LEVEL VALUES IN THE ORIGINAL ORDER (jobs, migrations and ACTION_ACCESS follow in access.gs). § */
 /* SHARED:BEGIN — data/settings/settings.json, written by `node tools/cards-gen.js --write`; edit the json, never this. */
-const SHARED_SETTINGS = {"days":[["m","Monday"],["tu","Tuesday"],["w","Wednesday"],["th","Thursday"],["f","Friday"],["sa","Saturday"],["su","Sunday"]],"hours":[9,10,11,12,13,14,15,16,17,18,19,20],"roles":{"ids":{"admin":{"label":"Admin","aliases":["administrator"],"rank":"admin","tier":"admin","self":false},"tutor":{"label":"Tutor","aliases":["teacher"],"rank":"staff","tier":"member","self":true,"pending":true},"client":{"label":"Client","aliases":["parent","guardian"],"app":"parent","rank":"client","tier":"member","self":true},"student":{"label":"Student","aliases":["kid","child","pupil"],"app":"kid","rank":"student","tier":"child","self":true}},"default":"client","guest":{"rank":"out","tier":"anyone"},"ranks":["student","client","staff","admin"],"tiers":["anyone","member","child","admin"],"titles":{"head of boxing":"Head of Boxing"}},"submissionsPerPost":25,"answerTextMax":20000};
+const SHARED_SETTINGS = {"days":[["m","Monday"],["tu","Tuesday"],["w","Wednesday"],["th","Thursday"],["f","Friday"],["sa","Saturday"],["su","Sunday"]],"hours":[9,10,11,12,13,14,15,16,17,18,19,20],"roles":{"ids":{"admin":{"label":"Admin","aliases":["administrator"],"rank":"admin","tier":"admin","self":false},"tutor":{"label":"Tutor","aliases":["teacher"],"rank":"staff","tier":"member","self":true,"pending":true},"client":{"label":"Client","aliases":["parent","guardian"],"app":"parent","rank":"client","tier":"member","self":true},"student":{"label":"Student","aliases":["kid","child","pupil"],"app":"kid","rank":"student","tier":"child","self":true},"contact":{"label":"Contact","aliases":[],"rank":"contact","tier":"anyone","self":false,"signIn":false}},"default":"client","guest":{"rank":"out","tier":"anyone"},"ranks":["contact","student","client","staff","admin"],"tiers":["anyone","member","child","admin"],"titles":{"head of boxing":"Head of Boxing"}},"submissionsPerPost":25,"answerTextMax":20000};
 /* SHARED:END */
 
 /* @family. — backend (hermes) Rewritten against the eleven-tab database. § */
@@ -27,8 +27,6 @@ const FILES = { get ledger() { return ledgerId_(); } };
 /* ---------- WHICH FILE EACH TAB IS IN § */
 /* MOVED TABS ARE NOT HERE (17 Nov): a kind in kinds.json ledger.moved is read and written in the items or events tab only (core.gs `read`). */
 const WHERE = {
-  /* WHAT THE OWNER STATES ABOUT A PERSON (kinds.json person.facts): one row a fact. */
-  facts:          { file: 'ledger' },
   /* THE STORE: one tab of items and one of events (kinds.json `ledger`); every moved kind lives here (core.gs `read`). */
   items:          { file: 'ledger' }, events_log: { file: 'ledger' },
   /* AN ADMIN'S NOTE FOR CLAUDE ON A WIDGET OR CARD (484) — written directly by sessions too. Admin-only to read. */
@@ -85,7 +83,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-11-17-mark-1";
+const BACKEND_VERSION = "2026-11-17-life-1";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 /* EVERY TAB NAME CODE READS BY. A kind in kinds.json ledger.moved is read through the items/events store

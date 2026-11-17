@@ -1322,7 +1322,7 @@ function avatarUnlocks(row) {
 function levelFromXp(xp) { return Math.floor((N(xp) || 0) / 10); }
 /* ---------- PEOPLE MADE, CHANGED AND REMOVED BY AN ADMIN (373) ---------- */
 /* THE FOUR ROLES THE FORM TICKS, in the order it draws them. `client` is the sheet's word for a parent. */
-const PEOPLE_ROLES_ = ['student', 'client', 'tutor', 'admin'];
+const PEOPLE_ROLES_ = ['student', 'client', 'tutor', 'admin', 'contact'];
 function adminRolesIn_(v) {
   const list = (Array.isArray(v) ? v : S(v).split(',')).map(x => norm(x) === 'parent' ? 'client' : norm(x));
   return PEOPLE_ROLES_.filter(r => list.indexOf(r) !== -1);

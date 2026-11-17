@@ -1,7 +1,7 @@
 /* @family. — 30_booking.gs (4 of 8) THE BOOKING MACHINE, and everything that decides who is in a session. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const BOOKING_VERSION = "2026-11-17-mark-1";
+const BOOKING_VERSION = "2026-11-17-life-1";
 
 
 /* WHEN THE BUSINESS ACTUALLY OPERATES within an interval. § */
@@ -1097,7 +1097,9 @@ function authWhoIs_(token) {
   let s = null;
   try { s = JSON.parse(authProps_().getProperty(authSessionKey_(given)) || 'null'); } catch (err) { /* a malformed stored value counts as absent */ }
   if (!s || !s.id || N(s.until) < Date.now()) return null;
-  return read(TAB.people).rows.find(x => S(x.person_id) === S(s.id)) || null;
+  const row = read(TAB.people).rows.find(x => S(x.person_id) === S(s.id)) || null;
+  /* A ROLE THAT NEVER SIGNS IN (settings.json roles `signIn: false`, a contact): no token is ever theirs. */
+  return row && ROLES_.ids[mainRole(row)].signIn === false ? null : row;
 }
 
 /* ---------- A PENDING ADDRESS PROVED BY ITS OWNER: CONFIRMED, AND THE LINK RETIRED § */

@@ -556,3 +556,56 @@ function askOk_(x, v) {
   toast(x.max != null ? 'A number from ' + (x.min != null ? x.min : 0) + ' to ' + x.max + ', please.' : 'A number from ' + x.min + ' up, please.');
   return false;
 }
+
+/* ---------- THE KINDS FIND READS STRAIGHT FROM THE STORE (kinds.json `find.from: "store"`; owner, 17 Nov: the owner's life and business) ---------- */
+/* Listed only to whom `see.who` lists them (kindSees_). Rows come by the one action `item` (mode read), once a viewer; the kind's `store` form is */
+/* asked on its `new` card and sent as `item` mode write, an id made when none was typed. Nothing here names a kind: kinds.json says it all. */
+const STORE_KINDS_ = Object.keys(ITEM_KINDS.kinds).filter(k => (ITEM_KINDS.kinds[k].find || {}).from === 'store');
+const STORE_ROWS_ = {};
+const storeWho_ = () => (typeof USER === 'object' && USER ? String(USER.personId || USER.name || '') : '');
+const storeFormOf_ = k => Object.keys(ITEM_KINDS.kinds[k].forms || {}).find(id => ITEM_KINDS.kinds[k].forms[id].store) || '';
+const storeFacets_ = () => STORE_KINDS_.flatMap(k => Object.keys(ITEM_KINDS.kinds[k].find.facetCols || {}));
+function storePull_(k) {
+  const who = storeWho_();
+  if ((STORE_ROWS_[k] && STORE_ROWS_[k].who === who) || typeof api !== 'function') return;
+  STORE_ROWS_[k] = { who, rows: [] };
+  Promise.resolve(api({ action: 'item', mode: 'read', kind: k })).then(d => {
+    if (!STORE_ROWS_[k] || STORE_ROWS_[k].who !== who) return;
+    STORE_ROWS_[k].rows = d && d.ok && Array.isArray(d.items) ? d.items : [];
+    if (STORE_ROWS_[k].rows.length && typeof lateCame_ === 'function') lateCame_();
+  }).catch(() => { delete STORE_ROWS_[k]; });
+}
+function storeItems_() {
+  return STORE_KINDS_.filter(k => typeof kindSees_ === 'function' && kindSees_({ kind: k })).flatMap(k => {
+    const f = ITEM_KINDS.kinds[k].find, cols = f.facetCols || {};
+    storePull_(k);
+    const entry = (row, id) => { const shape = item_(row, k);
+      return Object.assign({ kind: k, name: shape.name, key: k + ':' + id, sub: '', image: '', row, shape, text: Object.values(row).join(' ') },
+        ...Object.keys(cols).map(c => ({ [c]: String(row[cols[c]] == null ? '' : row[cols[c]]) }))); };
+    const fresh = Object.assign(entry({}, 'new'), { name: f.new, storeNew: true });
+    fresh.shape = Object.assign({}, fresh.shape, { name: f.new });
+    return [fresh].concat(((STORE_ROWS_[k] || {}).rows || []).map(it => entry(it.data || {}, it.id)));
+  });
+}
+/* A ROW'S CARD: its form's fields as lines, a choice said in its own words; the `new` card is the form itself, asked a field a step. */
+function storeLines_(r, k) {
+  const fields = (FORM_SPECS.forms[storeFormOf_(k)] || {}).fields || [];
+  return [{ type: 'list', items: fields.map(x => { const v = String(r[x.f] == null ? '' : r[x.f]), c = (x.options || []).find(o => String(o.v) === v);
+    return { label: x.label || x.f, value: c ? c.t : v }; }).filter(l => l.value.trim()) }];
+}
+function storeSheet_(it, x) {
+  if (!x || !x.storeNew) return it.body;
+  const id = storeFormOf_(it.kind);
+  return id ? [{ type: 'group', look: 'store-form', inner: askArea_(id) }] : [];
+}
+function storeSend_(id, v) {
+  const k = FORM_SPECS.forms[id].item, key = [].concat(ITEM_KINDS.kinds[k].sheet.id)[0], item = Object.assign({}, v);
+  if (!item[key]) item[key] = k + '-' + Date.now().toString(36);
+  return Promise.resolve(api({ action: 'item', mode: 'write', kind: k, item })).then(d => {
+    if (!d || !d.ok) { toast((d && d.error) || 'Not saved.'); return; }
+    askDone_(id); delete STORE_ROWS_[k];
+    if (typeof lateCame_ === 'function') lateCame_();
+    toast('Saved.');
+  }).catch(e => toast(String((e && e.message) || e)));
+}
+STORE_KINDS_.forEach(k => { const id = storeFormOf_(k); if (id) FORM_SEND_[id] = v => storeSend_(id, v); });

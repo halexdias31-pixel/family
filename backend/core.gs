@@ -118,8 +118,10 @@ function storeRead_(name, kinds) {
   /* THE MARKER ROW (id `~moved`, or what `~moved` for an event kind) says the kind has moved and holds its tab's columns, */
   /* so a kind whose last row was deleted stays here (never falls back to its stale old tab) and a new row gets every column. */
   const isMark = r => S(ev ? r.what : r.id) === STORE_MARK, marks = all.filter(isMark), mine = all.filter(r => !isMark(r));
-  /* NO MARKER AND NO ROWS: still the store's (the fallback to the old tab is gone, 17 Nov), with SCHEMA's columns for a first row. */
-  const headers = (!mine.length && !marks.length && typeof SCHEMA === 'object' && SCHEMA[name]) ? SCHEMA[name].slice() : [], rows = [];
+  /* NO MARKER AND NO ROWS: still the store's (the fallback to the old tab is gone, 17 Nov), with SCHEMA's columns for a first row, */
+  /* else the kind's own kinds.json `sheet.columns` (a kind new to the store, with no old tab: the owner's partners, food, tasks, 17 Nov). */
+  const own = kinds.map(k => ITEM_STORE_KINDS.kinds[k].sheet.columns).find(Boolean) || [];
+  const headers = (!mine.length && !marks.length) ? ((typeof SCHEMA === 'object' && SCHEMA[name]) || own).slice() : [], rows = [];
   marks.forEach(r => { let d = {}; try { d = JSON.parse(S(r[col]) || '{}'); } catch (err) { d = {}; } (d._headers || []).forEach(h => { if (h && headers.indexOf(h) < 0) headers.push(h); }); });
   mine.forEach((r, i) => {
     let d = {};
