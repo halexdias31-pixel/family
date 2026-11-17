@@ -706,10 +706,10 @@ function padCheck_(row, pad) {
   row.classList.remove('is-right', 'is-near');
   if (partReady_('draw', say)) { tell_(out, 'info', partReady_('draw', say)); return null; }
   const art = pad.querySelector('.qpad-art > svg:first-child');
-  const r = DRAW_MARK.mark(marks, row.getAttribute('data-draw'), drawFig_(art ? (art.__src || art.outerHTML) : ''), row.getAttribute('data-marks'));
-  if (!r) { tell_(out, 'error', 'Could not mark it \u2014 try again'); return null; }
-  const v = r.of === 1 ? (r.got ? 'right' : 'wrong') : 'rule:' + r.got + '/' + r.of;
-  row.classList.add(r.got >= r.of ? 'is-right' : 'is-near');
+  const r = mark_({ drawAnswer: row.getAttribute('data-draw'), marks: row.getAttribute('data-marks') }, { strokes: marks, fig: drawFig_(art ? (art.__src || art.outerHTML) : '') }, 'graph');
+  if (r.verdict === 'unmarked') { tell_(out, 'error', r.why); return null; }
+  const v = markWord_(r);
+  row.classList.add(r.verdict === 'right' ? 'is-right' : 'is-near');
   tell_(out, 'info', padSaid_(subSay_(v).text));
   subRecord_(row.getAttribute('data-k'), say, v);
   if (typeof answersPush_ === 'function') answersPush_(true);

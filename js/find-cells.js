@@ -240,7 +240,7 @@ on('qp-cells-check', el => {
   if (!x || !out) return;
   const cells = cellsOf_(x), inp = box.querySelector('.qp-ans-in');
   let vals = inp ? [inp.value] : cellsRead_(box);
-  const m = markCells_(vals, cells, markOpt_(x));
+  const v = mark_(x, vals, 'cells'), m = { right: v.marks, of: v.max, each: v.each || [] };
   cellsIn_(box).forEach(c => {
     const v = m.each[+c.getAttribute('data-n')];
     c.classList.toggle('is-right', v === true);
@@ -389,7 +389,7 @@ function ansBox_(x) {
   const k = ansKey_(x);
   const m = markerOf_(x);
   const can = m.kind === 'accept' ? String(x.accept || '').trim() : '';
-  const rule = isWordsMark_(m) ? String(x.markWords || '').trim() : '';
+  const rule = m.kind === 'words' ? String(x.markWords || '').trim() : '';
   const geo = m.kind === 'draw' ? String(x.drawAnswer || '').trim() : '';
   /* ONE KEYPAD THAT TYPES ANYTHING (keypad.js): the answer's shape only picks the layer it opens on */
   const maths = ansMaths_(x);
@@ -398,7 +398,7 @@ function ansBox_(x) {
   /* A DRAWN ANSWER IS MARKED HERE TOO, by its geometry (366): the row carries the pad's key for `padCheck_` */
   const drawAt = geo ? { 'data-k': k, 'data-pad': padKey_(x), 'data-draw': geo, 'data-marks': String(Number(x.marks) || '') } : {};
   /* NO EXACT KEY, NO MARK (owner, 16 Nov): the part saves its work; feedback an earlier AI mark left is still shown under it (`qp-fb`) */
-  const kept = isSaveMark_(m);
+  const kept = !markSchemeOf_(x).length;
   const cls = 'qp-mark qp-compose' + (kept ? ' qp-keep' : '') + (geo ? ' qpad-send' : '');
   const dataAt = Object.assign(can ? { 'data-accept': can } : {}, rule ? { 'data-rule': rule, 'data-marks': String(Number(x.marks) || '') } : {}, drawAt);
   const fb = why => (kept && why ? fcG_('p', 'qp-fb', null, '', why) : '');
@@ -424,7 +424,7 @@ function subBoxSay_(k, val) {
     ? Object.assign({ why: latest.f || '' }, subSay_(latest.v)) : { text: '', cls: '', why: '' };
 }
 
-/* ---------- THE VERDICT, ONE PATH FOR EVERY TYPED PART (owner, 9 Nov): `markPart_` against the scheme; a part with no rule is saved, never marked (owner, 16 Nov). */
+/* ---------- THE VERDICT, ONE PATH FOR EVERY TYPED PART (owner, 9 Nov): `mark_` against the scheme; a part with no rule is saved, `unmarked` (owner, 17 Nov). */
 on('qp-check', (el) => {
   const box = qMark_(el);
   const card = el.closest('.qcard');
@@ -438,11 +438,11 @@ on('qp-check', (el) => {
   if (box.classList.contains('is-busy') || el.disabled) return;
   box.classList.remove('is-right', 'is-near');
   if (partReady_('typed', inp.value)) { tell_(out, 'info', partReady_('typed', inp.value)); return; }
-  const v = x ? markPart_(x, inp.value) : markAnswer_(inp.value, box.getAttribute('data-accept')) === null ? null : { got: markAnswer_(inp.value, box.getAttribute('data-accept')) ? 1 : 0, of: 1 };
-  if (!v) { tell_(out, 'info', partReady_('typed', '')); return; }
-  if (v.save) { ACTIONS['qp-send'](el); return; }
-  if (v.wait) { tell_(out, 'info', v.say); return; }
-  const full = v.got >= v.of;
+  const v = mark_(x || { accept: box.getAttribute('data-accept') || '' }, inp.value, x ? '' : 'accept');
+  if (v.verdict === 'empty') { tell_(out, 'info', partReady_('typed', '')); return; }
+  if (v.verdict === 'unmarked') { ACTIONS['qp-send'](el); return; }
+  if (v.verdict === 'wait') { tell_(out, 'info', v.why); return; }
+  const full = v.verdict === 'right', rules = markTierOf_(v.method) === 'rules';
   box.classList.add(full ? 'is-right' : 'is-near');
   /* PEEL: the level and mark, and under it which elements each box had or missed (`qp-fb`, as a saved verdict draws it) */
   if (v.peel) {
@@ -450,12 +450,13 @@ on('qp-check', (el) => {
     let fb = box.querySelector('.qp-fb') || (box.nextElementSibling && box.nextElementSibling.matches('.qp-fb') ? box.nextElementSibling : null);
     if (!fb) { fb = document.createElement('p'); fb.className = 'qp-fb'; box.appendChild(fb); }
     fb.textContent = v.why;
-    subRecord_(k, inp.value, 'rule:' + v.got + '/' + v.of, undefined, v.why);
+    subRecord_(k, inp.value, markWord_(v), undefined, v.why);
     return;
   }
-  tell_(out, full && !v.words ? 'saved' : 'info', v.points ? v.got + ' of ' + v.of + ' mark' + (v.of === 1 ? '' : 's') : v.words ? v.got + ' of ' + v.of + ' mark' + (v.of === 1 ? '' : 's') + ' · by key words' : full ? (v.typo ? text_('correct-check-the-spelling') + v.typo + ')' : 'Correct') : text_('not-yet-have-another-go'));
+  const marks = v.marks + ' of ' + v.max + ' mark' + (v.max === 1 ? '' : 's');
+  tell_(out, full && v.method !== 'words' ? 'saved' : 'info', v.method === 'words' ? marks + ' · by key words' : rules ? marks : full ? (v.typo ? text_('correct-check-the-spelling') + v.typo + ')' : 'Correct') : text_('not-yet-have-another-go'));
   /* MARKED IS A SUBMISSION, right or not yet (js/submit.js); signed out it is this visit's alone. */
-  subRecord_(k, inp.value, v.words || v.points ? 'rule:' + v.got + '/' + v.of : full ? 'right' : 'wrong');
+  subRecord_(k, inp.value, markWord_(v));
 });
 
 /* ---------- SAVE, WHERE NOTHING CAN MARK IT (owner, 16 Nov): the typed answer as a `sent` submission, and any photos with it (`workSave_`, working.js). */

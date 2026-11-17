@@ -116,10 +116,15 @@ function tdYear_(y) {
   out.push({ name: 'Summer holidays', kind: 'holiday', from: add(jul, 1), to: add(tdYear0_(y + 1), -1) });
   return out;
 }
-/* from js/submit.js */
-function subAiOf_(v) {
-  const m = /^(ai|rule):(\d{1,3})\/(\d{1,3})$/.exec(String(v || ''));
-  return m ? { got: +m[2], of: +m[3], by: m[1] } : null;
+/* from js/find-marking.js */
+function verdictOf_(v) {
+  const t = String(v == null ? '' : v);
+  if (t === 'right' || t === 'wrong') return { verdict: t, marks: t === 'right' ? 1 : 0, max: 1, method: 'dogma', why: '' };
+  if (t === 'sent') return { verdict: 'unmarked', marks: 0, max: 0, method: 'unmarked', why: '' };
+  const m = /^(ai|rule):(\d{1,3})\/(\d{1,3})$/.exec(t);
+  if (!m) return null;
+  const got = +m[2], of = +m[3];
+  return { verdict: got >= of ? 'right' : got > 0 ? 'part' : 'wrong', marks: got, max: of, method: m[1] === 'ai' ? 'ai' : 'rules', why: '' };
 }
 /* from js/find-figures.js */
 const TAG_NAME = /[A-Za-z]/;

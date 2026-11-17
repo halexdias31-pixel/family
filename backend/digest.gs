@@ -785,10 +785,9 @@ function digestLibraryFill_(found) {
 /* A VERDICT AS THE EMAIL MARKS IT — ✓ right, ✗ wrong (the site says "Not yet"; in a list of numbers a cross is the mark a parent reads at a glance), the AI's § */
 function digestMark_(v) {
   const t = S(v);
-  if (t === 'right') return '✓';
-  if (t === 'wrong') return '✗';
-  const ai = subAiOf_(t);
-  return ai ? ai.got + ' of ' + ai.of + ' mark' + (ai.of === 1 ? '' : 's') : 'not marked';
+  const r = verdictOf_(t);
+  if (r && r.method === 'dogma') return r.verdict === 'right' ? '✓' : '✗';
+  return r && r.max ? r.marks + ' of ' + r.max + ' mark' + (r.max === 1 ? '' : 's') : 'not marked';
 }
 
 function digestEsc_(s) {

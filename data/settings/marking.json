@@ -1,0 +1,22 @@
+[
+{"kind":"method","name":"choice","tier":"dogma","says":"Options tapped as a set, against the key (choice_right)."},
+{"kind":"method","name":"order","tier":"dogma","says":"Options in sequence, against every right order (choice_right ways)."},
+{"kind":"method","name":"cells","tier":"dogma","says":"Each blank of a grid or table by its own exact ways (cells)."},
+{"kind":"method","name":"accept","tier":"dogma","says":"Exact keys and aliases: numbers with tolerance, bands and units, fractions, algebra in any order, a forgiven typo (accept)."},
+{"kind":"method","name":"peel","tier":"rules","says":"A long English answer by PEEL elements and the level table below (accept rule:peel)."},
+{"kind":"method","name":"points","tier":"rules","says":"Marking points counted, out of the maximum (accept rule:points)."},
+{"kind":"method","name":"words","tier":"rules","says":"Key words, a point each (mark_words)."},
+{"kind":"method","name":"graph","tier":"rules","says":"Every visual maths answer drawn on the grid or pad (graphs, bar charts, plotted points and lines, shaded regions, constructions, angles, shapes, translations, reflections) held against its key geometrically: points, lines, lengths, angles and areas within tolerance (draw_answer)."},
+{"kind":"method","name":"distilled","tier":"rules","says":"Long essays only (English, RS, History and the like): a rule set distilled offline for one part, rows of kind distilled {key, points}, marked as points. Data only; nothing is asked at run time."},
+{"kind":"method","name":"unmarked","tier":"none","says":"No exact key and no mechanical rule (a photo of handwritten working): saved, verdict unmarked. Never a person, never live AI."},
+{"kind":"box","name":"Introduction","marks":"point"},
+{"kind":"box","name":"Paragraph 1","marks":"point evidence explain link"},
+{"kind":"box","name":"Paragraph 2","marks":"point evidence explain link"},
+{"kind":"box","name":"Paragraph 3","marks":"point evidence explain link"},
+{"kind":"level","level":"1","from":"1","name":"Simple, limited"},
+{"kind":"level","level":"2","from":"4","name":"Some understanding and comment"},
+{"kind":"level","level":"3","from":"7","name":"Clear, relevant"},
+{"kind":"level","level":"4","from":"10","name":"Perceptive, detailed"},
+{"kind":"technique","subject":"English Language","words":"metaphor~metaphors~metaphorical / simile~similes / personification~personifies~personified / alliteration~alliterative / sibilance~sibilant / onomatopoeia~onomatopoeic / imagery / semantic field / adjective~adjectives / adverb~adverbs / verb~verbs / noun~nouns / pronoun~pronouns / repetition~repeats~repeated / hyperbole / juxtaposition~juxtaposes / contrast~contrasts / oxymoron / pathetic fallacy / symbolism~symbol~symbolises / listing / triplet~tricolon / rhetorical question / short sentence~sentences / long sentence~sentences / minor sentence~sentences / complex sentence~sentences / simple sentence~sentences / exclamation~exclamatory / dialogue / tense / sensory language / connotation~connotations / foreshadowing~foreshadows / flashback / cyclical structure / shift~shifts / zooms~zoom / opening / ending~climax / tension / perspective~viewpoint / narrator / irony~ironic / tone"},
+{"kind":"explain","subject":"English Language","words":"suggests~suggest~suggesting / implies~imply / shows~show~showing / conveys~convey / emphasises~emphasise~emphasizes~highlights~highlight / reveals~reveal / creates~create / connotes / makes the reader~makes us / effect~effects / evokes~evoke / reflects~reflect / portrays~portray / presents~present / because / so that / which means / this means"}
+]

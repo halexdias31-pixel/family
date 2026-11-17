@@ -1291,10 +1291,8 @@ const isHiddenBox_ = el => !!el && el.type === 'hidden';
 
 ;
 /* ==== js/predicates-marks.js ==== */
-/* A basket line printed on paper; a question part with no exact key, saved and never marked (owner, 16 Nov); one marked by its own words list (1040). */
+/* A basket line printed on paper (a part's marking method is the engine's: `markSchemeOf_`, find-marking.js). */
 const isPrint_ = c => !!c && c.kind === 'print';
-const isSaveMark_ = m => !!m && m.kind === 'save';
-const isWordsMark_ = m => !!m && m.kind === 'words';
 /* A people column by name: the tutors' cards and the students' (1040). */
 const isTutorsCol_ = col => col === 'tutors';
 const isStudentsCol_ = col => col === 'students';
@@ -4490,7 +4488,7 @@ const SETTINGS_TABS = ['settings/brand', 'settings/laws',
                        'settings/columns',
                        'settings/spotlight', 'settings/widgets-in-find', 'settings/setting-for', 'settings/card-fields',
                        'settings/default-pictures', 'settings/permissions', 'settings/screens-moved', 'settings/labels',
-                       'settings/confusables', 'settings/peel'];
+                       'settings/confusables', 'settings/marking'];
 
 /* `norm` on the backend. § */
 const setNorm_ = v => libS(v).toLowerCase().trim();
@@ -4591,10 +4589,10 @@ function setConfusables_(d, extra) {
   if (confusables && confusables.length) d.confusables = confusables.filter(r => libS(r.words).trim()).map(r => ({ words: libS(r.words) }));
 }
 
-/* PEEL (rule 1.33): a long English answer's boxes, the one AQA level table, and each subject's one list of techniques and of explaining words */
-function setPeel_(d, extra) {
-  const peel = extra['settings/peel'];
-  if (peel && peel.length) d.peel = peel.filter(r => r && libS(r.kind)).map(r => Object.assign({}, r));
+/* THE ONE MARKING ENGINE'S TABLE (data/settings/marking.json): its methods in order, PEEL's boxes, levels and word lists (rule 1.33), distilled rule sets */
+function setMarking_(d, extra) {
+  const rows = extra['settings/marking'];
+  if (rows && rows.length) d.marking = rows.filter(r => r && libS(r.kind)).map(r => Object.assign({}, r));
 }
 
 function setInFind_(d, extra) {
@@ -4656,7 +4654,7 @@ const labelOf_ = (group, key, fallback) => {
 function settingsInto_(d, extra) {
   if (!d || !extra) return d;
   setBrand_(d, extra); setMoved_(d, extra); setLaws_(d, extra); setFacts_(d, extra);
-  setColumns_(d, extra); setSpot_(d, extra); setInFind_(d, extra); setConfusables_(d, extra); setPeel_(d, extra); setFor_(d, extra); setCardFields_(d, extra);
+  setColumns_(d, extra); setSpot_(d, extra); setInFind_(d, extra); setConfusables_(d, extra); setMarking_(d, extra); setFor_(d, extra); setCardFields_(d, extra);
   setDefaultPictures_(d, extra); setPermissions_(d, extra); setLabels_(d, extra);
   return d;
 }

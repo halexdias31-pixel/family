@@ -4129,15 +4129,14 @@ function markPoints_(typed, rule, x, opt) {
   /* `quoted`: quotations found word for word in the source; `unfound`: ones that are not; `sourced`: there was a source to check */
   return { got: Math.min(got, key.max), of: key.max, points: true, quoted: inSource, unfound: notInSource, sourced: !!source };
 }
-/* ---------- PEEL (rule 1.33): a long English answer, by AQA level, mechanically. Its boxes (data/settings/peel.json) are each read
+/* ---------- PEEL (rule 1.33): a long English answer, by AQA level, mechanically. Its boxes (data/settings/marking.json) are each read
    by `markPoints_` for Point (the question's focus in its first sentence), Evidence (a quotation found word for word in the insert),
    Explain (a technique from the subject's one list with an explaining word) and Link (the focus again in its last sentence);
    the count across the answer is a level, and the mark in it, through the one level table. `rule: peel; <focus wordings>` */
 const PEEL_SEP = '\n\n';
 const PEEL_SAY = { point: 'point', evidence: 'evidence', explain: 'explain', link: 'link' };
 function peelRows_(kind, subject) {
-  const rows = (typeof DATA !== 'undefined' && DATA && Array.isArray(DATA.peel)) ? DATA.peel : [];
-  return rows.filter(r => r.kind === kind && (!subject || !r.subject || String(r.subject).toLowerCase() === String(subject).toLowerCase()));
+  return markRows_().filter(r => r.kind === kind && (!subject || !r.subject || String(r.subject).toLowerCase() === String(subject).toLowerCase()));
 }
 const markIsPeel_ = accept => /(^|\|)\s*rule:\s*peel\b/i.test(String(accept || ''));
 const peelBoxes_ = () => peelRows_('box').map(r => ({ name: String(r.name), marks: String(r.marks || '').split(/\s+/).filter(k => PEEL_SAY[k]) }));
@@ -4428,7 +4427,7 @@ function choicePicks_(x, typed) {
   return out.some(n => !n) ? [] : out;
 }
 
-/* EACH MARKER BY ITS KIND: `{got, of}`, or null for nothing typed. */
+/* OPTIONS, AS A SET OR IN ORDER: `{got, of}`, or null for nothing typed. */
 const markChoice_ = (x, typed, ord) => {
   const p = choicePicks_(x, typed);
   if (p === null) return null;
@@ -4436,37 +4435,81 @@ const markChoice_ = (x, typed, ord) => {
   const set = w => (ord ? w : w.slice().sort((a, b) => a - b));
   return { got: markOrder_(set(p), ord ? orderWays_(x) : [set(x.choiceRight || [])]) ? 1 : 0, of: 1 };
 };
-const PART_MARKERS = {
-  choice: (x, typed) => markChoice_(x, typed, false),
-  order: (x, typed) => markChoice_(x, typed, true),
-  accept: (x, typed) => {
-    /* POINTS ARE COUNTED, and the one result is the marks out of the maximum */
-    if (markIsPeel_(x.accept)) return markPeel_(typed, x.accept, x, markOpt_(x));
-    if (markIsPoints_(x.accept)) return markPoints_(typed, markPointsWay_(x.accept), x, markOpt_(x));
-    const o = markOpt_(x), v = markAnswer_(typed, x.accept, false, o);
+/* ---------- ONE MARKING ENGINE (owner, 17 Nov), never live AI: `mark_(x, answer, scheme)` marks a part by the most exact method its
+   scheme supports -- dogma (options, cells, exact keys and aliases, numbers with tolerance and units), then mechanical rules (PEEL,
+   points, key words, a graph's geometry, a rule set distilled offline) -- and else it is `unmarked`: saved, never sent to a person.
+   One verdict everywhere: `{ verdict, marks, max, method, why }`, verdict right | wrong | part | empty | wait | unmarked.
+   The methods, their tiers and their order are the table data/settings/marking.json (`DATA.marking`), with PEEL's rows. */
+const markRows_ = () => ((typeof DATA !== 'undefined' && DATA && Array.isArray(DATA.marking)) ? DATA.marking : []);
+/* A DISTILLED RULE SET (the slot): rows `{kind: 'distilled', key, points}` made offline, run here as marking points */
+const markDistilled_ = x => markRows_().find(r => r.kind === 'distilled' && r.key && (r.key === (x && x.key) || r.key === (x && x.row && x.row.row_id)));
+/* each method: `has(x)` its scheme is on the part; `run(x, answer)` gives `{got, of, ...}`, or null for nothing to mark */
+const MARK_METHODS = {
+  choice: { has: x => markerOf_(x).kind === 'choice', run: (x, a) => markChoice_(x, a, false) },
+  order: { has: x => markerOf_(x).kind === 'order', run: (x, a) => markChoice_(x, a, true) },
+  cells: { has: x => markerOf_(x).kind === 'cells', run: (x, a) => {
+    const m = markCells_(a, cellsOf_(x), markOpt_(x));
+    return m.each.some(v => v === true || v === false) ? { got: m.right, of: m.of, each: m.each } : null;
+  } },
+  accept: { has: x => markerOf_(x).kind === 'accept' && !markIsPeel_(x.accept) && !markIsPoints_(x.accept), run: (x, a) => {
+    const o = markOpt_(x), v = markAnswer_(a, x.accept, false, o);
     if (v === null) return null;
-    const fix = v && !markAnswer_(typed, x.accept, false, { strict: true }) ? markTypo_(typed, x.accept, o) : '';
+    const fix = v && !markAnswer_(a, x.accept, false, { strict: true }) ? markTypo_(a, x.accept, o) : '';
     return fix ? { got: 1, of: 1, typo: fix } : { got: v ? 1 : 0, of: 1 };
-  },
-  words: (x, typed) => {
-    const w = markWords_(typed, x.markWords);
+  } },
+  peel: { has: x => markerOf_(x).kind === 'accept' && markIsPeel_(x.accept), run: (x, a) => markPeel_(a, x.accept, x, markOpt_(x)) },
+  points: { has: x => markerOf_(x).kind === 'accept' && !markIsPeel_(x.accept) && markIsPoints_(x.accept),
+    run: (x, a) => markPoints_(a, markPointsWay_(x.accept), x, markOpt_(x)) },
+  words: { has: x => markerOf_(x).kind === 'words', run: (x, a) => {
+    const w = markWords_(a, x.markWords);
     if (!w) return null;
     const of = Math.max(1, Math.min(w.of, Number(x.marks) || w.of));
-    return { got: Math.min(w.got, of), of, words: true };
-  },
+    return { got: Math.min(w.got, of), of };
+  } },
+  /* a drawing or graph: `answer` is `{ strokes, fig }`, held against `draw_answer` (366) */
+  graph: { has: x => markerOf_(x).kind === 'draw', run: (x, a) => (a && typeof a === 'object' && !Array.isArray(a) ? DRAW_MARK.mark(a.strokes, x.drawAnswer, a.fig, x.marks) : null) || { error: true } },
+  distilled: { has: x => !!markDistilled_(x), run: (x, a) => markPoints_(a, markDistilled_(x).points, x, markOpt_(x)) },
 };
-/* ---------- ONE MARKER FOR EVERY TYPED PART (owner, 9 Nov): the mark scheme — options, order, accepted answers, key words. `{got, of}`; null for nothing typed; `{save:true}` where no rule can mark (saved, never marked: owner, 16 Nov). */
-function markPart_(x, typed) {
-  const m = markerOf_(x || {});
-  const mark = Object.prototype.hasOwnProperty.call(PART_MARKERS, m.kind) ? PART_MARKERS[m.kind] : null;
-  if (mark) return mark(x, typed);
-  return String(typed == null ? '' : typed).trim() ? { save: true } : null;
+/* THE PART'S METHODS, in the table's order: the first whose scheme is on the part marks it */
+function markSchemeOf_(x) {
+  const names = markRows_().filter(r => r.kind === 'method' && MARK_METHODS[r.name]).map(r => r.name);
+  return (names.length ? names : Object.keys(MARK_METHODS)).filter(n => MARK_METHODS[n].has(x || {}));
 }
-
+const markTierOf_ = name => ((markRows_().find(r => r.kind === 'method' && r.name === name) || {}).tier || (name === 'unmarked' ? 'none' : 'rules'));
+function mark_(x, answer, scheme) {
+  x = x || {};
+  const name = scheme || markSchemeOf_(x)[0] || 'unmarked';
+  const max = Math.max(1, Number(x.marks) || 1);
+  const out = (verdict, marks, of, why, more) => Object.assign({ verdict, marks, max: of, method: name, why: why || '' }, more || {});
+  const blank = answer == null || (typeof answer === 'string' && !answer.trim()) || (Array.isArray(answer) && !answer.some(v => String(v == null ? '' : v).trim()));
+  if (!MARK_METHODS[name]) return out(blank ? 'empty' : 'unmarked', 0, max, 'No exact key or mechanical rule for this part yet: saved, not marked.');
+  const r = blank && name !== 'graph' ? null : MARK_METHODS[name].run(x, answer);
+  if (!r || r.empty) return out('empty', 0, r ? r.of : max, '');
+  if (r.error) return out('unmarked', 0, max, 'Could not mark it \u2014 try again');
+  if (r.wait) return out('wait', 0, max, r.say);
+  const more = {};
+  ['typo', 'peel', 'say', 'each', 'stray'].forEach(k => { if (r[k] !== undefined) more[k] = r[k]; });
+  return out(r.got >= r.of ? 'right' : r.got > 0 ? 'part' : 'wrong', r.got, r.of, r.why || '', more);
+}
+/* THE VERDICT AS STORED (`submissions.verdict`): a one-mark exact method or graph right | wrong, a rule's marks `rule:n/m`, unmarked `sent` */
+function markWord_(v) {
+  if (!v || v.verdict === 'unmarked') return 'sent';
+  return (markTierOf_(v.method) === 'dogma' || v.method === 'graph') && v.max === 1 ? (v.marks >= 1 ? 'right' : 'wrong') : 'rule:' + v.marks + '/' + v.max;
+}
+/* AND READ BACK: a stored verdict as the one shape; `ai:` is an old AI mark, read only, never made again */
+function verdictOf_(v) {
+  const t = String(v == null ? '' : v);
+  if (t === 'right' || t === 'wrong') return { verdict: t, marks: t === 'right' ? 1 : 0, max: 1, method: 'dogma', why: '' };
+  if (t === 'sent') return { verdict: 'unmarked', marks: 0, max: 0, method: 'unmarked', why: '' };
+  const m = /^(ai|rule):(\d{1,3})\/(\d{1,3})$/.exec(t);
+  if (!m) return null;
+  const got = +m[2], of = +m[3];
+  return { verdict: got >= of ? 'right' : got > 0 ? 'part' : 'wrong', marks: got, max: of, method: m[1] === 'ai' ? 'ai' : 'rules', why: '' };
+}
 /* ---------- IS THIS ANSWER READY TO SEND: one table, a row per answer surface -- what it holds counts as an answer, and what is said when it does not. */
 const qTrim_ = v => String(v == null ? '' : v).trim();
 const PART_READY = {
-  /* typed boxes: options, order, values, fractions, words -- `markPart_` reads them all */
+  /* typed boxes: options, order, values, fractions, words -- `mark_` reads them all */
   typed: { has: a => !!qTrim_(a), say: () => text_('write-something-first') },
   /* a table's or a sort's cells: one cell the marker can read */
   cells: { has: m => !!m && (m.each || []).some(v => v === true || v === false), say: () => text_('fill-a-cell-first') },
@@ -4779,7 +4822,7 @@ on('qp-cells-check', el => {
   if (!x || !out) return;
   const cells = cellsOf_(x), inp = box.querySelector('.qp-ans-in');
   let vals = inp ? [inp.value] : cellsRead_(box);
-  const m = markCells_(vals, cells, markOpt_(x));
+  const v = mark_(x, vals, 'cells'), m = { right: v.marks, of: v.max, each: v.each || [] };
   cellsIn_(box).forEach(c => {
     const v = m.each[+c.getAttribute('data-n')];
     c.classList.toggle('is-right', v === true);
@@ -4928,7 +4971,7 @@ function ansBox_(x) {
   const k = ansKey_(x);
   const m = markerOf_(x);
   const can = m.kind === 'accept' ? String(x.accept || '').trim() : '';
-  const rule = isWordsMark_(m) ? String(x.markWords || '').trim() : '';
+  const rule = m.kind === 'words' ? String(x.markWords || '').trim() : '';
   const geo = m.kind === 'draw' ? String(x.drawAnswer || '').trim() : '';
   /* ONE KEYPAD THAT TYPES ANYTHING (keypad.js): the answer's shape only picks the layer it opens on */
   const maths = ansMaths_(x);
@@ -4937,7 +4980,7 @@ function ansBox_(x) {
   /* A DRAWN ANSWER IS MARKED HERE TOO, by its geometry (366): the row carries the pad's key for `padCheck_` */
   const drawAt = geo ? { 'data-k': k, 'data-pad': padKey_(x), 'data-draw': geo, 'data-marks': String(Number(x.marks) || '') } : {};
   /* NO EXACT KEY, NO MARK (owner, 16 Nov): the part saves its work; feedback an earlier AI mark left is still shown under it (`qp-fb`) */
-  const kept = isSaveMark_(m);
+  const kept = !markSchemeOf_(x).length;
   const cls = 'qp-mark qp-compose' + (kept ? ' qp-keep' : '') + (geo ? ' qpad-send' : '');
   const dataAt = Object.assign(can ? { 'data-accept': can } : {}, rule ? { 'data-rule': rule, 'data-marks': String(Number(x.marks) || '') } : {}, drawAt);
   const fb = why => (kept && why ? fcG_('p', 'qp-fb', null, '', why) : '');
@@ -4963,7 +5006,7 @@ function subBoxSay_(k, val) {
     ? Object.assign({ why: latest.f || '' }, subSay_(latest.v)) : { text: '', cls: '', why: '' };
 }
 
-/* ---------- THE VERDICT, ONE PATH FOR EVERY TYPED PART (owner, 9 Nov): `markPart_` against the scheme; a part with no rule is saved, never marked (owner, 16 Nov). */
+/* ---------- THE VERDICT, ONE PATH FOR EVERY TYPED PART (owner, 9 Nov): `mark_` against the scheme; a part with no rule is saved, `unmarked` (owner, 17 Nov). */
 on('qp-check', (el) => {
   const box = qMark_(el);
   const card = el.closest('.qcard');
@@ -4977,11 +5020,11 @@ on('qp-check', (el) => {
   if (box.classList.contains('is-busy') || el.disabled) return;
   box.classList.remove('is-right', 'is-near');
   if (partReady_('typed', inp.value)) { tell_(out, 'info', partReady_('typed', inp.value)); return; }
-  const v = x ? markPart_(x, inp.value) : markAnswer_(inp.value, box.getAttribute('data-accept')) === null ? null : { got: markAnswer_(inp.value, box.getAttribute('data-accept')) ? 1 : 0, of: 1 };
-  if (!v) { tell_(out, 'info', partReady_('typed', '')); return; }
-  if (v.save) { ACTIONS['qp-send'](el); return; }
-  if (v.wait) { tell_(out, 'info', v.say); return; }
-  const full = v.got >= v.of;
+  const v = mark_(x || { accept: box.getAttribute('data-accept') || '' }, inp.value, x ? '' : 'accept');
+  if (v.verdict === 'empty') { tell_(out, 'info', partReady_('typed', '')); return; }
+  if (v.verdict === 'unmarked') { ACTIONS['qp-send'](el); return; }
+  if (v.verdict === 'wait') { tell_(out, 'info', v.why); return; }
+  const full = v.verdict === 'right', rules = markTierOf_(v.method) === 'rules';
   box.classList.add(full ? 'is-right' : 'is-near');
   /* PEEL: the level and mark, and under it which elements each box had or missed (`qp-fb`, as a saved verdict draws it) */
   if (v.peel) {
@@ -4989,12 +5032,13 @@ on('qp-check', (el) => {
     let fb = box.querySelector('.qp-fb') || (box.nextElementSibling && box.nextElementSibling.matches('.qp-fb') ? box.nextElementSibling : null);
     if (!fb) { fb = document.createElement('p'); fb.className = 'qp-fb'; box.appendChild(fb); }
     fb.textContent = v.why;
-    subRecord_(k, inp.value, 'rule:' + v.got + '/' + v.of, undefined, v.why);
+    subRecord_(k, inp.value, markWord_(v), undefined, v.why);
     return;
   }
-  tell_(out, full && !v.words ? 'saved' : 'info', v.points ? v.got + ' of ' + v.of + ' mark' + (v.of === 1 ? '' : 's') : v.words ? v.got + ' of ' + v.of + ' mark' + (v.of === 1 ? '' : 's') + ' · by key words' : full ? (v.typo ? text_('correct-check-the-spelling') + v.typo + ')' : 'Correct') : text_('not-yet-have-another-go'));
+  const marks = v.marks + ' of ' + v.max + ' mark' + (v.max === 1 ? '' : 's');
+  tell_(out, full && v.method !== 'words' ? 'saved' : 'info', v.method === 'words' ? marks + ' · by key words' : rules ? marks : full ? (v.typo ? text_('correct-check-the-spelling') + v.typo + ')' : 'Correct') : text_('not-yet-have-another-go'));
   /* MARKED IS A SUBMISSION, right or not yet (js/submit.js); signed out it is this visit's alone. */
-  subRecord_(k, inp.value, v.words || v.points ? 'rule:' + v.got + '/' + v.of : full ? 'right' : 'wrong');
+  subRecord_(k, inp.value, markWord_(v));
 });
 
 /* ---------- SAVE, WHERE NOTHING CAN MARK IT (owner, 16 Nov): the typed answer as a `sent` submission, and any photos with it (`workSave_`, working.js). */
@@ -5981,10 +6025,10 @@ function padCheck_(row, pad) {
   row.classList.remove('is-right', 'is-near');
   if (partReady_('draw', say)) { tell_(out, 'info', partReady_('draw', say)); return null; }
   const art = pad.querySelector('.qpad-art > svg:first-child');
-  const r = DRAW_MARK.mark(marks, row.getAttribute('data-draw'), drawFig_(art ? (art.__src || art.outerHTML) : ''), row.getAttribute('data-marks'));
-  if (!r) { tell_(out, 'error', 'Could not mark it \u2014 try again'); return null; }
-  const v = r.of === 1 ? (r.got ? 'right' : 'wrong') : 'rule:' + r.got + '/' + r.of;
-  row.classList.add(r.got >= r.of ? 'is-right' : 'is-near');
+  const r = mark_({ drawAnswer: row.getAttribute('data-draw'), marks: row.getAttribute('data-marks') }, { strokes: marks, fig: drawFig_(art ? (art.__src || art.outerHTML) : '') }, 'graph');
+  if (r.verdict === 'unmarked') { tell_(out, 'error', r.why); return null; }
+  const v = markWord_(r);
+  row.classList.add(r.verdict === 'right' ? 'is-right' : 'is-near');
   tell_(out, 'info', padSaid_(subSay_(v).text));
   subRecord_(row.getAttribute('data-k'), say, v);
   if (typeof answersPush_ === 'function') answersPush_(true);
@@ -15274,18 +15318,13 @@ function subMigrate_() {
 }
 
 /* ---------- THE WORDS FOR A VERDICT § */
-/* `ai:2/3` MARKED BY THE AI, `rule:2/3` BY THE QUESTION'S KEY WORDS (359) -- which way is kept with the marks. */
-function subAiOf_(v) {
-  const m = /^(ai|rule):(\d{1,3})\/(\d{1,3})$/.exec(String(v || ''));
-  return m ? { got: +m[2], of: +m[3], by: m[1] } : null;
-}
+/* A STORED VERDICT READ AS THE ONE SHAPE (`verdictOf_`, find-marking.js): `rule:2/3` by a mechanical rule, `ai:2/3` an old AI mark, read only. */
 function subSay_(v) {
-  if (v === 'right') return { text: 'Correct', cls: 'is-right' };
-  if (v === 'wrong') return { text: text_('not-yet-have-another-go'), cls: 'is-near' };
-  if (v === 'sent') return { text: 'Sent', cls: '' };
-  const ai = subAiOf_(v);
-  if (ai) return { text: ai.got + ' of ' + ai.of + ' mark' + (ai.of === 1 ? '' : 's') + (ai.by === 'rule' ? ' · by key words' : ' · AI'), cls: ai.got >= ai.of ? 'is-right' : 'is-near' };
-  return { text: '', cls: '' };
+  const r = verdictOf_(v);
+  if (!r) return { text: '', cls: '' };
+  if (r.method === 'unmarked') return { text: 'Sent', cls: '' };
+  if (r.method === 'dogma') return r.verdict === 'right' ? { text: 'Correct', cls: 'is-right' } : { text: text_('not-yet-have-another-go'), cls: 'is-near' };
+  return { text: r.marks + ' of ' + r.max + ' mark' + (r.max === 1 ? '' : 's') + (r.method === 'rules' ? ' · by key words' : ' · AI'), cls: r.marks >= r.max ? 'is-right' : 'is-near' };
 }
 
 /* ---------- THE VERDICT, HEARD § */
@@ -15296,11 +15335,9 @@ function markCanSound_() {
   try { return !!(window.AudioContext || window.webkitAudioContext); } catch (e) { return false; }
 }
 function markKind_(v) {
-  if (v === 'right') return 'right';
-  if (v === 'wrong') return 'wrong';
-  const ai = subAiOf_(v);
-  if (!ai || ai.of < 1) return '';
-  return ai.got >= ai.of ? 'right' : ai.got === 0 ? 'wrong' : '';
+  const r = verdictOf_(v);
+  if (!r || r.max < 1) return '';
+  return r.marks >= r.max ? 'right' : r.marks === 0 ? 'wrong' : '';
 }
 
 /* ---------- THE TWO SOUNDS, AS NOTES ON A CLOCK § */
@@ -16604,7 +16641,7 @@ function partRecPutAt_(pk, field, v) {
 /* WHAT THE LINE UNDER CHECK SAYS, by marker: how this part will be marked, before it is. Never a person. */
 /* ONE LINE UNDER EVERY ROW (owner, 9 Nov): marking is one path for every type, so it says the same words everywhere. */
 const QT_HOW_ALL = 'Marked by its mark scheme where a rule can; otherwise your work is saved, not marked';
-/* the markers `markPart_` (find-marking.js) reads off the typed box: one Check, `qp-check`, for all of them */
+/* the markers `mark_` (find-marking.js) reads off the typed box: one Check, `qp-check`, for all of them */
 const QT_SCHEME_KINDS = { choice: 1, order: 1, accept: 1, words: 1 };
 /* `ready` is false where the marker has nothing to mark against yet (no key, no scheme): Check says so instead of asking */
 const QT_NO_SCHEME = 'No mark scheme yet \u2014 flag it and we will add one';
@@ -16694,7 +16731,7 @@ const QT_TILE = {
   /* SIGNED IN, ON A PAPER: the whole paper downloaded for no connection (offline.js) */
   offline: (t, x) => (typeof window.offOpts_ === 'function' ? window.offOpts_(x) : null),
   /* THE MARKER IS THE QUESTION'S (owner, 15 Nov): photos are saved with a part no rule marks; a rule-marked part never takes them. */
-  photo: (t, x) => (isSaveMark_(markerOf_(x)) ? { icon: t.icon, label: t.label, note: t.note, act: 'qp-work', cls: 'qp-work-go qt-t', data: { k: ansKey_(x), tool: t.id } } : null),
+  photo: (t, x) => (!markSchemeOf_(x).length ? { icon: t.icon, label: t.label, note: t.note, act: 'qp-work', cls: 'qp-work-go qt-t', data: { k: ansKey_(x), tool: t.id } } : null),
 };
 /* THE PAD'S KEY A PEN OR INSTRUMENT TILE READS, '' for the rest; and the tool that pad holds, '' when it is not taking the pen */
 const qtPadKey_ = (t, x) => t && (t.act === 'qt-pen' || t.act === 'qt-inst') && typeof padKey_ === 'function' ? padKey_(x) : '';
