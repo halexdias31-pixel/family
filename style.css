@@ -2425,7 +2425,7 @@ button.prof-tag.is-sm { padding: 0 var(--s2); line-height: 1; font-weight: 500; 
 /* THE SUBJECTS, AS THE ADJECTIVES' CHIPS. § */
 .prof-teach .prof-tag { text-transform: none; letter-spacing: .02em; font-size: var(--tp-fs); }
 /* A COLOUR PER KIND OF PILL (look rules): facts, subjects green, qualifications, places; never the grey line. */
-.prof-tags .prof-tag { border-color: color-mix(in srgb, var(--tag, var(--ink)) 60%, transparent); color: var(--tag, var(--ink));
+.prof-tags .prof-tag { border-color: var(--tag, var(--chip-line)); color: var(--tag, var(--ink));
   background: color-mix(in srgb, var(--tag, var(--ink)) 10%, transparent); }
 .prof-facts { --tag: var(--tag-kind); }
 .prof-teach:not(.prof-facts, .prof-quals, .prof-places) { --tag: var(--green); }

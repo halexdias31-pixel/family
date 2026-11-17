@@ -776,6 +776,7 @@
      "qPart",
      "qSub",
      "marks",
+     "needCalc",
      "needs",
      "myAttempt",
      "source"
