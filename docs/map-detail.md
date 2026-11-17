@@ -48,6 +48,9 @@ any name used but never declared. Run it after every change.
 | `js/find-*.js` | The funnel — the app's main surface, and the engine of both finders (`FINDERS`, `inFinder_`): sixteen files cut in order from one (1040), `find-finder.js` first, `find-measure.js` last; checks read them as one through `tools/find-src.js`. |
 | `js/book-*.js` | Sessions, seats, payment: cut in order from book.js into book-steps, book-rows, book-spine. |
 
+**Since 17 Nov Find is the only screen (docs/history/find-only.md); the paragraph below is history.**
+
+
 Nineteen screens are registered (eighteen for anybody but an admin), in `TAB_ORDER` (js/shell.js),
 grouped by purpose since 21 Oct (docs/history/392), and `data/settings/columns.json` lists the same order
 (`check-doors.js` fails if they part). Social: `feed` (where the app opens, `TAB_HOME`), `spotlight`,
@@ -375,6 +378,8 @@ reports any name used but never declared. **Run it after every change.**
 | `js/boot.js` | Last file loaded. Draws the first screen, then calls `load()`. Nothing may go below it. |
 | `js/find.js` | The funnel — the main surface — and the engine of both finders (`FINDERS`, `inFinder_`). |
 | `js/book-*.js` | Sessions, seats, payment: cut in order from book.js into book-steps, book-rows, book-spine. |
+**Since 17 Nov there is one screen, Find (`stuff`); every name below is an old name that opens its Find branch (data/settings/screens-moved.json, docs/history/find-only.md). What follows is how it stood before.**
+
 
 Screens, in `TAB_ORDER` (392, 461, 730, 790): `spotlight feed reel dm | stuff res saved | booking shop |
 web tutors students parents apprentices | staff site account family apprentice biz`; `data/settings/columns.json` must list the same order
