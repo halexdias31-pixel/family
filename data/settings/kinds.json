@@ -150,29 +150,11 @@
     "card-seat": {
      "attr": "data-pound",
      "draft": false,
-     "say": "the extra seat in pounds, kept as the share in the hidden twin; @family.'s share only for an admin.",
+     "say": "the extra seat in pounds, kept as the share in the hidden twin (type `shown`: `show` draws the stored value, `store` turns what is typed back); @family.'s share only for an admin.",
      "fields": [
-      {
-       "f": "extra_seat_rate",
-       "type": "money"
-      },
-      {
-       "f": "extra_seat_rate",
-       "type": "hidden",
-       "attr": "data-me"
-      },
-      {
-       "f": "extra_seat_cut",
-       "type": "money",
-       "may": "admin"
-      },
-      {
-       "f": "extra_seat_cut",
-       "type": "hidden",
-       "attr": "data-me",
-       "may": "admin"
-      }
-     ]
+      { "f": "extra_seat_rate", "type": "shown", "as": "money", "twin": "data-me", "show": "cardSeatShown_", "store": "cardSeatShare_" },
+      { "f": "extra_seat_cut", "type": "shown", "as": "money", "twin": "data-me", "show": "cardSeatShown_", "store": "cardSeatShare_", "may": "admin" }
+    ]
     },
     "card-where": {
      "attr": "data-me",

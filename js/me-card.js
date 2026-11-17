@@ -443,7 +443,7 @@ function cardRateHtml_(L, val, box, e) {
   const own = !!(e && e.own);
   const u = live ? cardSeatUsual_(rate) : null;
   /* THE POUNDS BOX AND ITS HIDDEN SHARE: forms.json's `card-seat`. */
-  const pound = formOf_('card-seat', (f, x) => x.type === 'hidden' ? val(f) : cardSeatShown_(f, rate, val(f)), { only: ['extra_seat_rate'],
+  const pound = formOf_('card-seat', val, { ctx: rate, only: ['extra_seat_rate'],
     with: () => ({ label: own ? 'yours, £/h' : 'theirs, £/h', readonly: !live,
       extra: `type="number" min="0" max="${live ? pounds2_(rate * STAFF_SEAT_MAX_()) : 0}" step="0.01" placeholder="${esc(cardSeatPh_(rate))}"` }) });
   const bar = own || (typeof may_ === 'function' && may_('admin'))
@@ -461,7 +461,7 @@ function cardCutHtml_(L, val, box) {
   const u = live ? cardSeatUsual_(rate) : null;
   const p = cardSeatParts_(rate, '', val('extra_seat_cut'));
   const body = mayCut
-    ? formOf_('card-seat', (f, x) => x.type === 'hidden' ? val(f) : cardSeatShown_(f, rate, val(f)), { only: ['extra_seat_cut'],
+    ? formOf_('card-seat', val, { ctx: rate, only: ['extra_seat_cut'],
         with: () => ({ label: "@family.'s, £/h", readonly: !live,
           extra: `type="number" min="0" max="${live ? pounds2_(rate * 2) : 0}" step="0.01" inputmode="decimal" placeholder="${esc(cardSeatPh_(rate))}"` }) })
     : '';
@@ -494,7 +494,7 @@ function cardSeatSync_(form, t, ev) {
   const base = CARD_DRAWN.get(form.dataset.draw || '') || {};
   const share = b => {
     const f = b.dataset.pound, h = hid(f);
-    if (h && !h.disabled && rate > 0) h.value = cardSeatShare_(f, b.value, rate, base[f]);
+    if (h && !h.disabled && rate > 0) h.value = formShownStore_('card-seat', f, b.value, rate, base[f]);
   };
   if (t.dataset && t.dataset.pound) {
     t.dataset.typed = '1';

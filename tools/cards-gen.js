@@ -8,6 +8,8 @@ const OUT = path.join(ROOT, 'backend/cards-gen.gs');
 /* WHAT IS SHARED, FROM WHERE: each a top-level `function NAME` or `const NAME =` in a site file, copied as it stands. */
 const TAKE = [
   ['js/data.js', ['nameBesideHandle_', 'capFirst_', 'nameKid_', 'fmtName_']],
+  /* QUESTION ALIASES (answer-ids): the map and the merge the site reads by, as the backend files answers. */
+  ['js/qaliases.js', ['QALIAS', 'qAliasKey_', 'qAliasMine_']],
   ['js/find-figures.js', ['TAG_NAME', 'tagMadeOf_']],
   /* THE WORDS FILE AND THE FORMATTERS (owner rule 1.1): every line a card says in an email goes through these. */
   ['js/core.js', ['WORDS_FILE', 'esc', 'text_', 'fmtTime_', 'fmtHours_', 'fmtMoney_', 'DAYS_SHORT', 'fmtDay_', 'fmtDmy_', 'fmtDate_']],
