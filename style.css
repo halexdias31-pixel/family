@@ -331,9 +331,11 @@
 }
 :where(input, textarea, [contenteditable]:not([contenteditable="false"])) { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
 /* ONE DISABLED LOOK for a control that says "not yet". It still takes the tap, so a tap on it never lands on what is under it; a taken board square is not this and keeps its own look. */
-
+:where(.btn, .tile, .chip, .kt-rung, .cam-shot, .cam-rec):is([disabled], [aria-disabled="true"]) {
+  opacity: var(--disabled); cursor: default;
+}
 /* PAPER IS LIGHT: a white wash would not show on it, so the wash on paper is dark. */
-.paper, .pin-slip, .stmt { --press-wash: var(--press-wash-paper); }
+.paper, .pin-slip, .stmt, .widget-full:has(.cal-head) > .card { --press-wash: var(--press-wash-paper); }
 
 /* THE ONE LINE. 4.1vw between 15 and 17px — so a small phone is legible and a large one uses the
    room, and every rem in the file follows without being told. */
@@ -944,11 +946,19 @@ label.field > .note { display: block; margin-top: var(--s1); text-transform: non
               box-shadow var(--dur-quick) var(--ease-out);
 }
 /* ---------- ONE TICK (owner 63a, 9 Nov): every tick, checkbox and stage box is this square with a ✓ in it, ghosted when off, gold when on. ---------- */
+:is(.check .box, .row.dock-item .box, .bk-tick, .mat-list input[type="checkbox"]) {
+  border-radius: var(--r-ui);
+  border: 1.5px solid color-mix(in srgb, var(--white) 14%, transparent);
+  background: color-mix(in srgb, var(--white) 4%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--white) 5%, transparent);
+  display: inline-flex; align-items: center; justify-content: center; }
 
 /* The ghost of the mark, so an empty box says what would go in it. */
-
+:is(.check .box, .row.dock-item .box, .mat-list input[type="checkbox"])::after { content: '✓'; font-weight: 700; line-height: 1; color: color-mix(in srgb, var(--white) 16%, transparent); }
 .bk-tick { color: color-mix(in srgb, var(--white) 16%, transparent); }
 .check:is(:active, .is-pressed) .box { border-color: var(--gold); }
+:is(.check input:checked + .box, .row.dock-item input:checked + .box, .bk-tick.on, .mat-list input[type="checkbox"]:checked) { background: var(--gold); border-color: var(--gold); box-shadow: none; color: var(--on-gold); }
+:is(.check input:checked + .box, .row.dock-item input:checked + .box, .mat-list input[type="checkbox"]:checked)::after { color: var(--on-gold); }
 
 /* ---------- YOUR ROLES: A TICK WITH ITS MEANING UNDER THE WORD § */
 .notify-card .role-pick { align-items: flex-start; }
@@ -1375,6 +1385,7 @@ button.text-drop { color: var(--bad); }
 /* `.btn.tiny` AND THIS RULE ARE BOTH TWO CLASSES, so the one written later wins — and `.btn.tiny` is ninety lines below, setting `font-size: .8rem`. § */
 
 /* AND AT 320 THAT DOES NOT FIT, MEASURED: § */
+.card.is-widget:has(.tmt-box) { padding-inline: clamp(.4rem, 100vw - 21.6rem, var(--wgt-pad)); }
 
 /* ---------- TOUCH TYPING § */
 /* ---------- VIDEOS: A PILL, A WATCH PAGE, AND A LIST OF PICTURES — YOUTUBE'S SHAPES IN OUR COLOURS § */
@@ -1406,12 +1417,14 @@ button.text-drop { color: var(--bad); }
 /* WIDER THAN TALL, the picture and its words sit side by side: a shape rule, so a desktop window and a turned phone get it alike. */
 
 /* THE ONE THING THE TOP LAYER DOES NOT SHED IS `zoom`. § */
+.pane > :has(.vid-watch.is-fs) { zoom: 1 !important; }
 
 /* THE POSTER IS UNDER EVERY PICTURE, NOT INSTEAD OF ONE: § */
 
 /* AT 320 FIVE 44px RUNGS AND THEIR GAPS ARE 228px IN A 218px SLOT — the timetable's measurement, and
    its answer: the card gives up some of its own inside edge on a narrow phone rather than a rung
    going under 44. */
+.card.is-widget:has(.kt-box) { padding-inline: clamp(.4rem, 100vw - 21.6rem, var(--wgt-pad)); }
 
 /* ---------- FILTER CHIPS § */
 /* ---------- REPORTED AS "the tags don't need to be as big" § */
@@ -1509,7 +1522,7 @@ html.flow .page { width: 100%; min-width: 0; }
 .card-grid { display: block; columns: 1; column-gap: var(--card-gap); }
 .card-grid > * { break-inside: avoid; margin-bottom: var(--card-gap); }
 /* WHAT IS NOT A CARD IN THE LIST — the menu, chips, answers, a form — runs across every column. */
-.card-grid > :not(.is-res) { column-span: all; }
+.card-grid > :not(.is-res), .card-grid > :has(.kc-form, .kc-bookform, .book-form-door, form, .me-form) { column-span: all; }
 .card-grid :is(p, li, .qtext, .doc, form, .me-form) { max-width: var(--measure); }
 /* A CARD IS NO WIDER THAN ITS READING MEASURE (owner, 11 Nov: a card stretched edge to edge is hard on the eyes): ~70 characters a line, the typographic norm. */
 .card-grid > * { max-width: calc(var(--measure) + 2 * var(--s4)); margin-inline: auto; }
@@ -1577,10 +1590,13 @@ html.flow:not(.is-loaded) #s-feed { min-height: 100svh; }   /* the home column h
 }
 /* ---------- A RECEIPT IS ALREADY THE CARD § */
 /* ---------- A PAPER OBJECT IS THE CARD, so the glass behind it steps back § */
+.pane:has(.rc-stub),
 /* ---------- `> .rc` MISSED THE ONE THAT MATTERS MOST § */
-.pane:has(.rc), /* `.pane:has(.pass)` WAS HERE. A staff pass was paper and wanted the glass off; a person is an
+.pane:has(.rc),
+/* `.pane:has(.pass)` WAS HERE. A staff pass was paper and wanted the glass off; a person is an
    ordinary widget now and wants the pane it sits in, which is the whole of what was asked for. */
-.pane:has(.paper), /* THE FIFTH, exactly as the comment above said would happen. § */
+.pane:has(.paper),
+/* THE FIFTH, exactly as the comment above said would happen. § */
 .pane:has(.cpn) {
   background: none;
   backdrop-filter: none;
@@ -1593,6 +1609,7 @@ html.flow:not(.is-loaded) #s-feed { min-height: 100svh; }   /* the home column h
 }
 /* The heading above the paper — "Yours", "Open" — was sitting on the glass and now sits on the
    app itself, so it needs the breathing room the pane's padding used to give it. */
+.pane:has(.rc-stub) > h2 { margin-top: var(--s1); }
 
 /* NOTHING TO SHOW, centred. An empty state pinned to the top of a full-screen page leaves a
    screenful of nothing under one sentence, which reads as content that failed to load rather than
@@ -2747,8 +2764,8 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 @media print {
   /* ---------- THE BODY IS STILL A 26.5rem COLUMN, AND THAT IS WHAT CLIPS THE PAGE § */
   /* ONE PRINTED PAGE, whichever paper is printing: the column let go and everything else hidden. */
-  
-  
+  body:is(.printing-fly, .printing-mat, .printing-stmt, .printing-insh) { max-width: none !important; margin: 0 !important; padding: 0 !important; overflow: visible !important; }
+  body:is(.printing-fly, .printing-mat, .printing-stmt, .printing-insh) * { visibility: hidden !important; }
   @page { size: A4 portrait; margin: 0; }
 }
 
@@ -2875,6 +2892,10 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
    the next row's first cell — a 7mm column — so "less than 90" came out one letter wide. */
 
 /* THE PRINTED FIGURES' INKS, as classes so a colour is a paper token and not a literal in mat.js. */
+:is(.mat-prot, .mat-ang, .mat-graphs) .s-ink { stroke: var(--pa-ink); }
+:is(.mat-prot, .mat-ang, .mat-graphs) .s-mid { stroke: var(--pa-mark); }
+:is(.mat-prot, .mat-ang, .mat-graphs) .s-faint { stroke: var(--pa-line); }
+:is(.mat-prot, .mat-ang, .mat-graphs) .s-red { stroke: var(--paper-red); }
 
 /* ---------- A PIECE THAT IS ALREADY A FINISHED THING § */
 
@@ -3723,14 +3744,22 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 
 /* ---------- ONE REGION INSIDE A WIDGET GIVES UP ITS HEIGHT FIRST § */
 /* ---------- AND IT IS THE WHOLE CHAIN, NOT THE CARD § */
-
+.card.is-widget:has(.widget-squeeze),
+.card.is-widget:has(.widget-squeeze) :has(.widget-squeeze) {
+  display: flex; flex-direction: column;
+  min-height: 0;
+}
 /* THE PANE IS THE CAP. It is already a flex column with a `max-height` in screen units, and a flex
    item shrinks by default — so the card only needs to be allowed to. */
+.card.is-widget:has(.widget-squeeze) { max-height: 100%; }
 
 /* Everything that is NOT on the chain keeps exactly the height it asks for. Stated positively, so a
    child added to one of these widgets later does not silently start absorbing the squeeze. */
+.card.is-widget:has(.widget-squeeze) > *,
+.card.is-widget:has(.widget-squeeze) :has(.widget-squeeze) > * { flex: 0 0 auto; }
 
 /* …except the boxes leading to the region, and the region itself. */
+.card.is-widget:has(.widget-squeeze) :has(.widget-squeeze) { flex: 1 1 auto; }
 
 /* NO TITLE ON A WIDGET (720, owner: "none of the widgets need titles"): its heading stays for a screen reader, and its slot is a region named for it. */
 .card.is-widget .widget-slot > h3:first-child,
@@ -4785,6 +4814,8 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 
 .rd-ref { font: 600 var(--fs-small)/1.3 var(--mono); color: var(--gold); }
 .rd-body { margin: 0 0 var(--s2); }
+.rd-body :is(.bb-v, .wt-text, .qr-en, .tx-text p):not([dir="rtl"]) { margin: 0 0 var(--s2); font-size: var(--fs-body); line-height: 1.6; color: var(--ink); }
+.rd-body :is(.bb-credit, .wt-credit, .qr-credit) { margin: var(--s2) 0 0; font: 400 var(--fs-small)/1.4 var(--mono); color: var(--ink); }
 
 /* A MANUSCRIPT AS IT LOOKS (490): paper tokens for the leaf; papyrus and parchment are this component's own tints of them. */
 .hdb-ms { margin: var(--s2) 0 var(--s1); }
@@ -5011,6 +5042,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .file-view-youtube .file-view-f, .file-view-v { height: auto; aspect-ratio: 16 / 9; }
 .policy-page { padding: var(--s4); border: 1px solid var(--line); border-radius: var(--r-ui); background: var(--bg); color: var(--ink); line-height: 1.5; overflow-wrap: anywhere; }
 
+.policy-page :is(.policy-h4, .policy-h5) .kc-h { margin: var(--s3) 0 var(--s1); font-size: var(--fs-body); }
 .policy-page p, .policy-page ul, .policy-page ol { margin: 0 0 var(--s2); }
 .policy-page ul, .policy-page ol { padding-left: var(--s4); }
 .policy-page a { color: var(--gold); }
@@ -5041,7 +5073,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .card.kc > .kc-pic .hdb-ms svg { height: var(--pic-h); width: auto; max-width: 100%; margin: 0 auto; }
 .card.kc:not(.kc-tutor, .kc-person, .kc-people, .kc-msg) > .kc-pic :is(img, video, svg, figure) { border-radius: var(--r-ui); object-fit: contain; }
 .card.kc > .kc-tags { margin-top: var(--s2); }
-
+.card.kc > .kc-tags :is(.qtags, .prof-tags, .prof-who-tags, .prof-who, .prof-line) { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: var(--s1); }
 .card.kc > .kc-lines { margin-top: var(--s2); }
 /* ONE TEXT SIZE IN A CARD'S CONTENT, THE TAG'S (rule tpl-text-size): body and small both read --fs-tag inside it, so every block follows the one token. */
 .card.kc > :is(.kc-lines, .kc-form) figure > :is(svg:not(.pp), img) { width: min(100%, var(--pic-w)); height: auto; }
@@ -5056,6 +5088,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .card.kc > .kc-lines > * { margin: var(--s0) 0 0; }
 .card.kc > .kc-lines :is(.qtags, .prof-tags, .tile-row, .btn-row) { justify-content: center; }
 /* LONG CONTENT READS LEFT INSIDE ITS CENTRED BLOCK: a passage, a policy, a table, a list, a form. */
+.card.kc > .kc-lines :is(.rd-body, .policy-page, .policy-table, table, ul, ol, pre, blockquote, .insh-sec, .q-text, .qt-body),
 .card.kc > .kc-lines :is(form, .kc-items) { text-align: left; }
 /* THE CONTENT PART IS CENTRED (owner, 11 Nov), with the same side space as the card's other parts: a form, a panel's lines, every label, line and table. */
 .card.kc > .kc-form, .card.kc-panel > .kc-lines { box-sizing: border-box; width: 100%; padding-inline: var(--kc-side, 1rem); text-align: center; }
@@ -5090,6 +5123,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .card.kc > .kc-lines .prof-say { border: 0; padding: 0; }
 /* THE BOOKING FORM'S DOOR, centred like a card. */
 
+.favwrap:has(> .book-form-door) + .tile-row { justify-content: center; }
 /* A CARD REDRAWN INTO THE ONE SHAPE AFTER ITS FIRST DRAW carries its four buttons: the row Find put under the first draw goes. */
 .favwrap:has(.kc-four) + .tile-row { display: none; }
 /* AN EMPTY CARD SAYS SO, CENTRED: never a blank frame. */
