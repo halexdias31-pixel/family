@@ -245,9 +245,8 @@ function graphAxSet_(el, k) {
 /* A TAP ON THE GRID: nearest crossing for Point and Join, the square under it for Shade */
 function graphTap_(el, k, e) {
   const svg = el.querySelector('.qp-graph-svg'), r = svg && svg.getBoundingClientRect(), g = graphRead_(k), T = graphScale_(g.ax);
-  if (!r) return;
-  if (!(r.width > 0)) return;
-  const vx = (e.clientX - r.left) * T.W / r.width, vy = (e.clientY - r.top) * T.H / r.height;
+  if (!r || !(r.width > 0)) return;
+  const [vx, vy] = drawSvgAt_(svg, e, T.W, T.H);
   const gx = g.ax.x0 + (vx - GRAPH_M) / T.S, gy = g.ax.y1 - (vy - GRAPH_M) / T.S;
   const mode = GRAPH_MODE.get(k) || 'point';
   if (mode === 'shade') {

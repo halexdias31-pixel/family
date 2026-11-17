@@ -12518,7 +12518,7 @@ function measSnap_(svg) {
 const MEAS_PT = new Map();   // pointerId -> { p: where it is now, l: the tool's own spot under it } in figure units
 let MEAS_GO = null;          // { o: the overlay, mode: 'drag' | 'turn' | 'end' | 'two', piv: the tool's own spot that stays put }
 const MEAS_GRID_DEG = 15, MEAS_GRID_NEAR = 2;   // within 2° of a multiple of 15° it settles there (0, 15, 30, 45, 90 ...)
-const measAt_ = (svg, e) => { const m = svg.getScreenCTM(); if (!m) return [0, 0]; const q = svg.createSVGPoint(); q.x = e.clientX; q.y = e.clientY; const p = q.matrixTransform(m.inverse()); return [p.x, p.y]; };
+const measAt_ = (svg, e) => drawSvgAt_(svg, e);
 const measRad_ = () => MEAS.rot * Math.PI / 180;
 /* A FIGURE POINT TO THE TOOL'S OWN, AND BACK */
 const measLocal_ = p => { const t = measRad_(), dx = p[0] - MEAS.c[0], dy = p[1] - MEAS.c[1]; return [dx * Math.cos(t) + dy * Math.sin(t), -dx * Math.sin(t) + dy * Math.cos(t)]; };
@@ -12626,33 +12626,20 @@ function measRepaint_() { if (MEAS) { const f = measFig_(MEAS.k); if (f) measDra
 /* A TURNED PHONE OR A RESIZED WINDOW moves the picture: the tool is laid over it again */
 if (typeof addEventListener === 'function') addEventListener('resize', () => { if (MEAS) setTimeout(measRepaint_, 120); });
 /* A FLOATING TOOL (`.floaty`, the calculator) is held the ruler's way: the spot grabbed stays under the finger; it never leaves the window. */
-const FLOAT_GO = new Map();   // pointerId -> { el, dx, dy }: the grabbed spot, from the tool's corner
 function floatPlace_(el, x, y) {
   const r = el.getBoundingClientRect();
   el.style.right = 'auto';
   el.style.left = Math.max(0, Math.min(innerWidth - r.width, x)) + 'px';
   el.style.top = Math.max(0, Math.min(innerHeight - r.height, y)) + 'px';
 }
-document.addEventListener('pointerdown', e => {
+inputDrag_(e => {
   const el = e.target && e.target.closest && e.target.closest('.floaty');
   /* A KEY IS TAPPED, NOT HELD: only the body and the edge carry it */
-  if (!el || e.target.closest('[data-do], button, .mc-display')) return;
-  e.preventDefault();
-  if (el.setPointerCapture) el.setPointerCapture(e.pointerId);
+  if (!el || e.target.closest('[data-do], button, .mc-display')) return null;
   const r = el.getBoundingClientRect();
-  FLOAT_GO.set(e.pointerId, { el, dx: e.clientX - r.left, dy: e.clientY - r.top });
   el.classList.add('held');
-}, true);
-document.addEventListener('pointermove', e => {
-  const g = FLOAT_GO.get(e.pointerId);
-  if (!g) return;
-  if (e.cancelable) e.preventDefault();
-  floatPlace_(g.el, e.clientX - g.dx, e.clientY - g.dy);
-}, { capture: true, passive: false });
-['pointerup', 'pointercancel'].forEach(ev => document.addEventListener(ev, e => {
-  const g = FLOAT_GO.get(e.pointerId);
-  if (g) { g.el.classList.remove('held'); FLOAT_GO.delete(e.pointerId); }
-}, true));
+  return { el, dx: e.clientX - r.left, dy: e.clientY - r.top };
+}, (g, e) => floatPlace_(g.el, e.clientX - g.dx, e.clientY - g.dy), g => g.el.classList.remove('held'), { capture: true, early: true });
 if (typeof addEventListener === 'function') addEventListener('resize', () => { document.querySelectorAll('.floaty').forEach(el => floatPlace_(el, el.offsetLeft, el.offsetTop)); });
 
 ;
@@ -16541,14 +16528,9 @@ function calcPress_(box, v) {
 }
 on('qcalc-key', el => calcPress_(el.closest('.calc'), el.getAttribute('data-mc')));
 /* TYPING ON A LAPTOP, while focus is anywhere inside a calculator */
-document.addEventListener('keydown', e => {
-  const box = e.target && e.target.closest && e.target.closest('.calc[data-key]');
-  if (!box || e.ctrlKey || e.metaKey || e.altKey) return;
-  const k = /^[0-9]$/.test(e.key) ? e.key : CALC_KEYBOARD[e.key];
-  if (!k) return;
-  e.preventDefault();
-  calcPress_(box, k);
-});
+inputKeys_(Object.assign({ 0: '0', 1: '1', 2: '2', 3: '3', 4: '4', 5: '5', 6: '6', 7: '7', 8: '8', 9: '9' }, CALC_KEYBOARD),
+  (k, down, e) => calcPress_(e.target.closest('.calc[data-key]'), k),
+  { when: e => !!(e.target && e.target.closest && e.target.closest('.calc[data-key]')), stop: false, inField: true });
 /* THE QUESTION TOOL ROW'S CALCULATOR (owner, 11 Nov), this face; since 13 Nov a small one floating over the page, dragged like the ruler. */
 const calcAllowed_ = x => ![].concat((x && x.needs) || []).some(v => /^non-calculator$|^no calculator$/i.test(String(v).trim()));
 /* ONE AT A TIME: the part whose calculator floats, or none */
@@ -17050,9 +17032,8 @@ function graphAxSet_(el, k) {
 /* A TAP ON THE GRID: nearest crossing for Point and Join, the square under it for Shade */
 function graphTap_(el, k, e) {
   const svg = el.querySelector('.qp-graph-svg'), r = svg && svg.getBoundingClientRect(), g = graphRead_(k), T = graphScale_(g.ax);
-  if (!r) return;
-  if (!(r.width > 0)) return;
-  const vx = (e.clientX - r.left) * T.W / r.width, vy = (e.clientY - r.top) * T.H / r.height;
+  if (!r || !(r.width > 0)) return;
+  const [vx, vy] = drawSvgAt_(svg, e, T.W, T.H);
   const gx = g.ax.x0 + (vx - GRAPH_M) / T.S, gy = g.ax.y1 - (vy - GRAPH_M) / T.S;
   const mode = GRAPH_MODE.get(k) || 'point';
   if (mode === 'shade') {

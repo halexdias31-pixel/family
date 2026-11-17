@@ -2545,39 +2545,6 @@ on('gs-new', () => { gsNew_(); gsPaint_(); });
 /* ---------- FLABBY PIRD (back 15 Nov 2026 from receipt.js before 133b259): a canvas, a tap or the space bar; the round's count on the glass, nothing kept and no board (rule 1.53). */
 /* THE GAMES AND TOOLS, carried over. § */
 
-/* SIZE A CANVAS TO ITS BOX, or wait until it has one. § */
-function fitCanvas_(canvas, again) {
-  const box = canvas.getBoundingClientRect();
-  if (!box.width || !box.height) {
-    /* NOT AN ERROR, just early. One retry on the next frame, and one more after a beat for the
-       carousel's scroll to settle — after that something is genuinely wrong and retrying for ever
-       would be a loop nobody can see. */
-    if (again && !canvas.dataset.waiting) {
-      canvas.dataset.waiting = '1';
-      requestAnimationFrame(() => {
-        delete canvas.dataset.waiting;
-        again();
-      });
-    }
-    return false;
-  }
-  delete canvas.dataset.waiting;
-
-  /* ON A PHONE THE BOX IS IN CSS PIXELS and the screen has more than that. § */
-  const dpr = Math.min(window.devicePixelRatio || 1, 3);
-  const w = Math.round(box.width), h = Math.round(box.height);
-  if (canvas.width !== w * dpr || canvas.height !== h * dpr) {
-    canvas.width = Math.round(w * dpr);
-    canvas.height = Math.round(h * dpr);
-  }
-  const ctx = canvas.getContext('2d');
-  /* Guarded because a context is not guaranteed — a browser with the canvas turned off returns null, and a harness returns a stub with only what it was asked for. § */
-  if (ctx && ctx.setTransform) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  /* What the game should use for its own maths: the box, not the backing store. */
-  canvas.dataset.w = w;
-  canvas.dataset.h = h;
-  return true;
-}
 /* `still`: DRAWN AHEAD OF ITS ARRIVAL (`flappyStill_`, the widget's declared `draw`) — the board, the canvas fitted to its box and one frame of the scene, and § */
 function flappyStill_() { return initFlappy(true); }
 function initFlappy(still) {
@@ -2589,13 +2556,10 @@ function initFlappy(still) {
   /* THE ELEMENT'S OWN SIZE, not its box. § */
   /* MEASURED WHEN IT HAS A SIZE, and measured again when that changes. § */
   /* A STILL DRAWING DOES NOT WAIT FOR A BOX: § */
-  if (!fitCanvas_(canvas, still ? null : () => initFlappy(still))) return still ? false : undefined;
-
-  const ctx = canvas.getContext('2d');
-  /* THE BOX, not the backing store. Those differ by the pixel ratio now, and using the backing
-     store would put the bird three times too far right on a phone. */
-  const W = Number(canvas.dataset.w) || canvas.width;
-  const H = Number(canvas.dataset.h) || canvas.height;
+  /* draw.js fits the canvas to its box at the pixel ratio; the game draws in the box's CSS pixels, never the backing store's. */
+  const fit = drawFit_(canvas, { again: still ? null : () => initFlappy(still) });
+  if (!fit) return still ? false : undefined;
+  const ctx = fit.ctx, W = fit.w, H = fit.h;
   /* ---------- BLUE SKY, GREEN PIPES, AND A BIRD § */
   const SKY = token_('--fp-sky', 'black');   // the sky, flat, as the original's is
   const CLOUD = token_('--fp-cloud', 'black');
@@ -2615,10 +2579,10 @@ function initFlappy(still) {
   const BEAK = token_('--fp-beak', 'black');
 
   // reset any previous loop — but not from a still drawing, which the builder makes only of a game running nowhere
-  if (!still && flappyState?.raf) cancelAnimationFrame(flappyState.raf);
+  if (!still) drawStop_('flappy');
   const S = flappyState = {
     bird: { x: 60, y: H/2, vy: 0, r: 9 },
-    pipes: [], score: 0, running: false, dead: false, raf: null, frame: 0
+    pipes: [], score: 0, running: false, dead: false, frame: 0
   };
   /* SCALED FROM THE WIDTH, which is the axis this game is played along. § */
   const k = W / 300;
@@ -2640,18 +2604,20 @@ function initFlappy(still) {
     S.pipes.push({ x: W, top, scored: false });
   };
   const flap = () => {
-    if (S.dead) { reset(); S.running = true; $('flappy-msg').textContent = '\u00a0'; loop(); return; }
-    if (!S.running) { S.running = true; $('flappy-msg').textContent = '\u00a0'; loop(); }
+    if (S.dead) { reset(); S.running = true; $('flappy-msg').textContent = '\u00a0'; drawLoop_('flappy', loop); return; }
+    if (!S.running) { S.running = true; $('flappy-msg').textContent = '\u00a0'; drawLoop_('flappy', loop); }
     S.bird.vy = FLAP;
   };
   const gameOver = () => {
     S.dead = true; S.running = false;
+    drawStop_('flappy');
     $('flappy-msg').textContent = `Game over — score ${S.score}. Tap to retry.`;
     /* NOTHING IS SAVED AND THERE IS NO BEST OR BOARD (rule 1.53). */
   };
 
+  /* ONE FRAME IN draw.js's LOOP: the physics is per frame, as the original's. */
   const loop = () => {
-    if (!S.running) return;
+    if (!S.running || flappyState !== S) return false;
     S.frame++;
     // physics
     S.bird.vy += GRAV; S.bird.y += S.bird.vy;
@@ -2671,7 +2637,6 @@ function initFlappy(still) {
     S.pipes.forEach(pipe);
     bird();
     hud();
-    S.raf = requestAnimationFrame(loop);
   };
 
   /* PAINTED RATHER THAN CLEARED — `clearRect` leaves the canvas transparent and the app's black shows through, which is what once made this a bird in a cave. § */
@@ -2835,20 +2800,12 @@ function initFlappy(still) {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     flap();
   };
-  // space/arrow to flap (only when arcade canvas exists)
-  /* ---------- NOT WHILE SOMEBODY IS TYPING § */
-  S.keyHandler = e => {
-    if (e.code !== 'Space' && e.code !== 'ArrowUp') return;
-    const t = e.target;
-    if (t && t.closest && (t.isContentEditable || t.closest('input, textarea, select, [contenteditable]'))) return;
-    if ($('flappy-canvas')) { e.preventDefault(); flap(); }
-  };
-  document.removeEventListener('keydown', window._flappyKey || (()=>{}));
-  window._flappyKey = S.keyHandler;
-  document.addEventListener('keydown', window._flappyKey);
+  S.flap = flap;
 }
+/* SPACE OR UP FLAPS, only while the bird's canvas is here and never while somebody types (input.js's guard). */
+inputKeys_({ ' ': 'flap', ArrowUp: 'flap' }, () => { if (!$('flappy-canvas') || !flappyState || !flappyState.flap) return false; flappyState.flap(); }, { stop: false });
 
-/* THE CONSOLE PLAYS EVERY GAME (441): the person's game files, Flabby Pird and the Colliers Wood racer, one picker — the board games' shape (414). */
+/* THE CONSOLE PLAYS EVERY GAME (441): the person's game files, Flabby Pird and the street racer, one picker — the board games' shape (414). */
 const CONSOLE_GAMES = [
   { k: 'file', name: 'Game files', start: () => { nesPaint_(); nesPadWatch_(); }, still: () => nesPaint_(),
     stop: () => { nesStop_(); nesPadUnwatch_(); },
@@ -2856,12 +2813,12 @@ const CONSOLE_GAMES = [
     <div id="nes-box" class="nes-box"></div>` },
   /* A HANDHELD FOR THE BIRD: the canvas sits in a body of its own, and its tap and space bar are `initFlappy`'s. */
   { k: 'flabby', name: 'Flabby Pird', start: () => initFlappy(), still: () => flappyStill_(),
-    stop: () => { if (flappyState && flappyState.raf) { cancelAnimationFrame(flappyState.raf); flappyState.raf = null; } },
+    stop: () => drawStop_('flappy'),
     body: `<p>Harder than it looks.</p>
     <div class="cs-body cs-hand"><canvas id="flappy-canvas" class="flappy"></canvas>
     <p class="note flappy-msg" id="flappy-msg">Tap to play</p></div>` },
   /* A WIDE SCREEN FOR THE RACER; racer.js draws into `race-box` (426). */
-  { k: 'racer', name: 'Colliers Wood racer', start: () => window.initRacer?.(), still: () => window.raceStill_?.(),
+  { k: 'racer', name: 'Street racer', start: () => window.initRacer?.(), still: () => window.raceStill_?.(),
     stop: () => window.racerStop_?.(),
     body: `<div class="cs-body cs-wide race"><div id="race-box" class="race-box"></div></div>` },
   /* TWO SMALL ONES (570): linked pictures and the guesser; nothing runs between taps, so stopping stops nothing. */

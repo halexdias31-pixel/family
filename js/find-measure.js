@@ -170,7 +170,7 @@ function measSnap_(svg) {
 const MEAS_PT = new Map();   // pointerId -> { p: where it is now, l: the tool's own spot under it } in figure units
 let MEAS_GO = null;          // { o: the overlay, mode: 'drag' | 'turn' | 'end' | 'two', piv: the tool's own spot that stays put }
 const MEAS_GRID_DEG = 15, MEAS_GRID_NEAR = 2;   // within 2° of a multiple of 15° it settles there (0, 15, 30, 45, 90 ...)
-const measAt_ = (svg, e) => { const m = svg.getScreenCTM(); if (!m) return [0, 0]; const q = svg.createSVGPoint(); q.x = e.clientX; q.y = e.clientY; const p = q.matrixTransform(m.inverse()); return [p.x, p.y]; };
+const measAt_ = (svg, e) => drawSvgAt_(svg, e);
 const measRad_ = () => MEAS.rot * Math.PI / 180;
 /* A FIGURE POINT TO THE TOOL'S OWN, AND BACK */
 const measLocal_ = p => { const t = measRad_(), dx = p[0] - MEAS.c[0], dy = p[1] - MEAS.c[1]; return [dx * Math.cos(t) + dy * Math.sin(t), -dx * Math.sin(t) + dy * Math.cos(t)]; };
@@ -278,31 +278,18 @@ function measRepaint_() { if (MEAS) { const f = measFig_(MEAS.k); if (f) measDra
 /* A TURNED PHONE OR A RESIZED WINDOW moves the picture: the tool is laid over it again */
 if (typeof addEventListener === 'function') addEventListener('resize', () => { if (MEAS) setTimeout(measRepaint_, 120); });
 /* A FLOATING TOOL (`.floaty`, the calculator) is held the ruler's way: the spot grabbed stays under the finger; it never leaves the window. */
-const FLOAT_GO = new Map();   // pointerId -> { el, dx, dy }: the grabbed spot, from the tool's corner
 function floatPlace_(el, x, y) {
   const r = el.getBoundingClientRect();
   el.style.right = 'auto';
   el.style.left = Math.max(0, Math.min(innerWidth - r.width, x)) + 'px';
   el.style.top = Math.max(0, Math.min(innerHeight - r.height, y)) + 'px';
 }
-document.addEventListener('pointerdown', e => {
+inputDrag_(e => {
   const el = e.target && e.target.closest && e.target.closest('.floaty');
   /* A KEY IS TAPPED, NOT HELD: only the body and the edge carry it */
-  if (!el || e.target.closest('[data-do], button, .mc-display')) return;
-  e.preventDefault();
-  if (el.setPointerCapture) el.setPointerCapture(e.pointerId);
+  if (!el || e.target.closest('[data-do], button, .mc-display')) return null;
   const r = el.getBoundingClientRect();
-  FLOAT_GO.set(e.pointerId, { el, dx: e.clientX - r.left, dy: e.clientY - r.top });
   el.classList.add('held');
-}, true);
-document.addEventListener('pointermove', e => {
-  const g = FLOAT_GO.get(e.pointerId);
-  if (!g) return;
-  if (e.cancelable) e.preventDefault();
-  floatPlace_(g.el, e.clientX - g.dx, e.clientY - g.dy);
-}, { capture: true, passive: false });
-['pointerup', 'pointercancel'].forEach(ev => document.addEventListener(ev, e => {
-  const g = FLOAT_GO.get(e.pointerId);
-  if (g) { g.el.classList.remove('held'); FLOAT_GO.delete(e.pointerId); }
-}, true));
+  return { el, dx: e.clientX - r.left, dy: e.clientY - r.top };
+}, (g, e) => floatPlace_(g.el, e.clientX - g.dx, e.clientY - g.dy), g => g.el.classList.remove('held'), { capture: true, early: true });
 if (typeof addEventListener === 'function') addEventListener('resize', () => { document.querySelectorAll('.floaty').forEach(el => floatPlace_(el, el.offsetLeft, el.offsetTop)); });

@@ -2616,39 +2616,6 @@ on('gs-new', () => { gsNew_(); gsPaint_(); });
 /* ---------- FLABBY PIRD (back 15 Nov 2026 from receipt.js before 133b259): a canvas, a tap or the space bar; the round's count on the glass, nothing kept and no board (rule 1.53). */
 /* THE GAMES AND TOOLS, carried over. § */
 
-/* SIZE A CANVAS TO ITS BOX, or wait until it has one. § */
-function fitCanvas_(canvas, again) {
-  const box = canvas.getBoundingClientRect();
-  if (!box.width || !box.height) {
-    /* NOT AN ERROR, just early. One retry on the next frame, and one more after a beat for the
-       carousel's scroll to settle — after that something is genuinely wrong and retrying for ever
-       would be a loop nobody can see. */
-    if (again && !canvas.dataset.waiting) {
-      canvas.dataset.waiting = '1';
-      requestAnimationFrame(() => {
-        delete canvas.dataset.waiting;
-        again();
-      });
-    }
-    return false;
-  }
-  delete canvas.dataset.waiting;
-
-  /* ON A PHONE THE BOX IS IN CSS PIXELS and the screen has more than that. § */
-  const dpr = Math.min(window.devicePixelRatio || 1, 3);
-  const w = Math.round(box.width), h = Math.round(box.height);
-  if (canvas.width !== w * dpr || canvas.height !== h * dpr) {
-    canvas.width = Math.round(w * dpr);
-    canvas.height = Math.round(h * dpr);
-  }
-  const ctx = canvas.getContext('2d');
-  /* Guarded because a context is not guaranteed — a browser with the canvas turned off returns null, and a harness returns a stub with only what it was asked for. § */
-  if (ctx && ctx.setTransform) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  /* What the game should use for its own maths: the box, not the backing store. */
-  canvas.dataset.w = w;
-  canvas.dataset.h = h;
-  return true;
-}
 /* `still`: DRAWN AHEAD OF ITS ARRIVAL (`flappyStill_`, the widget's declared `draw`) — the board, the canvas fitted to its box and one frame of the scene, and § */
 function flappyStill_() { return initFlappy(true); }
 function initFlappy(still) {
@@ -2660,13 +2627,10 @@ function initFlappy(still) {
   /* THE ELEMENT'S OWN SIZE, not its box. § */
   /* MEASURED WHEN IT HAS A SIZE, and measured again when that changes. § */
   /* A STILL DRAWING DOES NOT WAIT FOR A BOX: § */
-  if (!fitCanvas_(canvas, still ? null : () => initFlappy(still))) return still ? false : undefined;
-
-  const ctx = canvas.getContext('2d');
-  /* THE BOX, not the backing store. Those differ by the pixel ratio now, and using the backing
-     store would put the bird three times too far right on a phone. */
-  const W = Number(canvas.dataset.w) || canvas.width;
-  const H = Number(canvas.dataset.h) || canvas.height;
+  /* draw.js fits the canvas to its box at the pixel ratio; the game draws in the box's CSS pixels, never the backing store's. */
+  const fit = drawFit_(canvas, { again: still ? null : () => initFlappy(still) });
+  if (!fit) return still ? false : undefined;
+  const ctx = fit.ctx, W = fit.w, H = fit.h;
   /* ---------- BLUE SKY, GREEN PIPES, AND A BIRD § */
   const SKY = token_('--fp-sky', 'black');   // the sky, flat, as the original's is
   const CLOUD = token_('--fp-cloud', 'black');
@@ -2686,10 +2650,10 @@ function initFlappy(still) {
   const BEAK = token_('--fp-beak', 'black');
 
   // reset any previous loop — but not from a still drawing, which the builder makes only of a game running nowhere
-  if (!still && flappyState?.raf) cancelAnimationFrame(flappyState.raf);
+  if (!still) drawStop_('flappy');
   const S = flappyState = {
     bird: { x: 60, y: H/2, vy: 0, r: 9 },
-    pipes: [], score: 0, running: false, dead: false, raf: null, frame: 0
+    pipes: [], score: 0, running: false, dead: false, frame: 0
   };
   /* SCALED FROM THE WIDTH, which is the axis this game is played along. § */
   const k = W / 300;
@@ -2711,18 +2675,20 @@ function initFlappy(still) {
     S.pipes.push({ x: W, top, scored: false });
   };
   const flap = () => {
-    if (S.dead) { reset(); S.running = true; $('flappy-msg').textContent = '\u00a0'; loop(); return; }
-    if (!S.running) { S.running = true; $('flappy-msg').textContent = '\u00a0'; loop(); }
+    if (S.dead) { reset(); S.running = true; $('flappy-msg').textContent = '\u00a0'; drawLoop_('flappy', loop); return; }
+    if (!S.running) { S.running = true; $('flappy-msg').textContent = '\u00a0'; drawLoop_('flappy', loop); }
     S.bird.vy = FLAP;
   };
   const gameOver = () => {
     S.dead = true; S.running = false;
+    drawStop_('flappy');
     $('flappy-msg').textContent = `Game over — score ${S.score}. Tap to retry.`;
     /* NOTHING IS SAVED AND THERE IS NO BEST OR BOARD (rule 1.53). */
   };
 
+  /* ONE FRAME IN draw.js's LOOP: the physics is per frame, as the original's. */
   const loop = () => {
-    if (!S.running) return;
+    if (!S.running || flappyState !== S) return false;
     S.frame++;
     // physics
     S.bird.vy += GRAV; S.bird.y += S.bird.vy;
@@ -2742,7 +2708,6 @@ function initFlappy(still) {
     S.pipes.forEach(pipe);
     bird();
     hud();
-    S.raf = requestAnimationFrame(loop);
   };
 
   /* PAINTED RATHER THAN CLEARED — `clearRect` leaves the canvas transparent and the app's black shows through, which is what once made this a bird in a cave. § */
@@ -2906,20 +2871,12 @@ function initFlappy(still) {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     flap();
   };
-  // space/arrow to flap (only when arcade canvas exists)
-  /* ---------- NOT WHILE SOMEBODY IS TYPING § */
-  S.keyHandler = e => {
-    if (e.code !== 'Space' && e.code !== 'ArrowUp') return;
-    const t = e.target;
-    if (t && t.closest && (t.isContentEditable || t.closest('input, textarea, select, [contenteditable]'))) return;
-    if ($('flappy-canvas')) { e.preventDefault(); flap(); }
-  };
-  document.removeEventListener('keydown', window._flappyKey || (()=>{}));
-  window._flappyKey = S.keyHandler;
-  document.addEventListener('keydown', window._flappyKey);
+  S.flap = flap;
 }
+/* SPACE OR UP FLAPS, only while the bird's canvas is here and never while somebody types (input.js's guard). */
+inputKeys_({ ' ': 'flap', ArrowUp: 'flap' }, () => { if (!$('flappy-canvas') || !flappyState || !flappyState.flap) return false; flappyState.flap(); }, { stop: false });
 
-/* THE CONSOLE PLAYS EVERY GAME (441): the person's game files, Flabby Pird and the Colliers Wood racer, one picker — the board games' shape (414). */
+/* THE CONSOLE PLAYS EVERY GAME (441): the person's game files, Flabby Pird and the street racer, one picker — the board games' shape (414). */
 const CONSOLE_GAMES = [
   { k: 'file', name: 'Game files', start: () => { nesPaint_(); nesPadWatch_(); }, still: () => nesPaint_(),
     stop: () => { nesStop_(); nesPadUnwatch_(); },
@@ -2927,12 +2884,12 @@ const CONSOLE_GAMES = [
     <div id="nes-box" class="nes-box"></div>` },
   /* A HANDHELD FOR THE BIRD: the canvas sits in a body of its own, and its tap and space bar are `initFlappy`'s. */
   { k: 'flabby', name: 'Flabby Pird', start: () => initFlappy(), still: () => flappyStill_(),
-    stop: () => { if (flappyState && flappyState.raf) { cancelAnimationFrame(flappyState.raf); flappyState.raf = null; } },
+    stop: () => drawStop_('flappy'),
     body: `<p>Harder than it looks.</p>
     <div class="cs-body cs-hand"><canvas id="flappy-canvas" class="flappy"></canvas>
     <p class="note flappy-msg" id="flappy-msg">Tap to play</p></div>` },
   /* A WIDE SCREEN FOR THE RACER; racer.js draws into `race-box` (426). */
-  { k: 'racer', name: 'Colliers Wood racer', start: () => window.initRacer?.(), still: () => window.raceStill_?.(),
+  { k: 'racer', name: 'Street racer', start: () => window.initRacer?.(), still: () => window.raceStill_?.(),
     stop: () => window.racerStop_?.(),
     body: `<div class="cs-body cs-wide race"><div id="race-box" class="race-box"></div></div>` },
   /* TWO SMALL ONES (570): linked pictures and the guesser; nothing runs between taps, so stopping stops nothing. */
@@ -3882,8 +3839,9 @@ function csvLine_() {
 
 ;
 /* ==== js/racer.js ==== */
-/* @family. — racer.js THE COLLIERS WOOD RACER (426; back 15 Nov 2026, a Console game): OSM streets at DEM heights in WebGL; plays `?race=1`'s map, else data/race-map.json. */
-/* The map is built by the backend's `buildRaceMap_` and fetched from `?race=1`; until then data/race-map.json plays (464). x metres east, y north, h above sea. */
+/* @family. — racer.js THE RACER (426; back 15 Nov 2026, a Console game): OSM streets at DEM heights in WebGL, any place the one map pipeline built. */
+/* The maps are tools/race_map.py's (owner, 17 Nov: one source, one massager): data/race-maps/index.json lists the places, each its own file;
+   the learner picks one, or "Near me" takes the nearest. Drawn with draw.js, driven with input.js. x metres east, y north, h above sea. */
 
 /* THE LOOP, BY ROAD NAME: each name's middle is a waypoint, visited in order round their centre. Names OSM may not have
    are skipped; with fewer than three the loop goes round the map's major roads instead. */
@@ -3914,40 +3872,54 @@ const RACE_COL = {
 const RACE_SUN = (() => { const v = [0.45, 0.8, 0.35], l = Math.hypot(v[0], v[1], v[2]); return v.map(x => x / l); })();
 
 const RACE = {
-  map: null, world: null, built: null, asking: null, err: '', building: null,
-  gl: null, running: false, raf: 0, last: 0, acc: 0, hudAt: 0,
+  map: null, world: null, asking: null, err: '', places: null, place: '', view: '',
+  gl: null, running: false, acc: 0, hudAt: 0,
   keys: {}, touch: {},
   car: { x: 0, y: 0, th: 0, v: 0, h: 0, pitch: 0, steer: 0 },
   cam: null,
   lap: { next: 1, start: 0, paused: 0, best: 0, last: 0, laps: 0 },
 };
 
-/* ---------- THE MAP, ASKED FOR ONCE ---------- */
-function raceFetch_() {
-  if (RACE.map || RACE.asking) return RACE.asking;
+/* ---------- THE MAPS: the places built, then the one picked (remembered on the device), else the first ---------- */
+const RACE_MAPS = 'data/race-maps/index.json';
+function raceFetch_(file) {
+  if (RACE.asking) return RACE.asking;
+  if (RACE.map && !file) return null;
   RACE.err = '';
-  RACE.asking = fetch(API + '?race=1', { cache: 'no-store' })
-    .then(r => r.json())
-    .then(d => {
-      RACE.built = !!(d && d.built && d.race);
-      /* A BACKEND MAP WITHOUT PARKS AND LANDMARKS loses to the shipped Colliers Wood that has them (500). */
-      if (RACE.built && Array.isArray(d.race.areas)) { raceAdopt_(d.race); return; }
-      if (RACE.built) return raceShipped_().then(() => { if (!RACE.map || RACE.map.practice || !RACE.map.areas) raceAdopt_(d.race); }, () => raceAdopt_(d.race));
-      if (d && d.error) RACE.err = String(d.error);
-      return raceShipped_();
-    }, err => { RACE.err = 'The map could not be loaded — ' + why_(err); return raceShipped_(); })
-    .catch(err => { RACE.err = RACE.err || 'The map could not be loaded — ' + why_(err); })
+  RACE.asking = (RACE.places ? Promise.resolve(RACE.places) : dataFile_(RACE_MAPS, { cache: 'no-cache', fail: true }))
+    .then(list => {
+      RACE.places = Array.isArray(list) ? list.filter(r => r && r.file) : [];
+      const want = file || keep_.get('race-place') || '';
+      const row = RACE.places.find(r => r.file === want) || RACE.places[0];
+      if (!row) throw new Error('no place has been built');
+      return dataFile_(row.file, { cache: 'no-cache', fail: true }).then(m => {
+        if (!(m && Array.isArray(m.pts) && m.pts.length && Array.isArray(m.roads) && m.roads.length)) throw new Error(row.place + ' has no roads');
+        RACE.place = row.file;
+        raceAdopt_(m);
+      });
+    })
+    .catch(err => { RACE.err = 'The map could not be loaded — ' + why_(err); })
     .then(() => { RACE.asking = null; racePaint_(); });
   return RACE.asking;
 }
-
-/* NOTHING BUILT IS NEVER AN EMPTY CARD (464): the repository's map — practice streets, or Colliers Wood once tools/race_map.py has run. */
-function raceShipped_() {
-  return dataFile_(RACE_SHIPPED, { cache: 'no-cache', fail: true }).then(m => {
-    if (m && Array.isArray(m.pts) && m.pts.length && Array.isArray(m.roads) && m.roads.length) raceAdopt_(m);
-  });
+/* ANOTHER PLACE: the drive stops, the new map loads, and the choice is kept. */
+function racePlace_(file) {
+  if (!file || file === RACE.place) return;
+  racePause_();
+  keep_.put('race-place', file);
+  raceFetch_(file);
+  racePaint_();
 }
-const RACE_SHIPPED = 'data/race-map.json';
+/* NEAR ME: the built place nearest where the device is (asked once, never kept or sent). */
+function raceNear_() {
+  if (!navigator.geolocation || !RACE.places || !RACE.places.length) return;
+  navigator.geolocation.getCurrentPosition(pos => {
+    const la = pos.coords.latitude, lo = pos.coords.longitude, k = Math.cos(la * Math.PI / 180);
+    const d = r => Math.hypot(r.at[0] - la, (r.at[1] - lo) * k);
+    const near = RACE.places.filter(r => Array.isArray(r.at)).sort((a, b) => d(a) - d(b))[0];
+    if (near) racePlace_(near.file);
+  }, () => { RACE.err = 'This device would not say where it is.'; racePaint_(); }, { timeout: 15000, maximumAge: 600000 });
+}
 
 
 function raceAdopt_(map) {
@@ -4434,7 +4406,7 @@ function raceSeen_() {
 function raceGateCheck_() {
   const W = RACE.world, c = RACE.car, L = RACE.lap;
   if (!W || W.gates.length < 2) return;
-  const now = raceNow_();
+  const now = drawNow_();
   if (!L.start && Math.abs(c.v) > 0.5) L.start = now;
   const g = W.gates[L.next % W.gates.length];
   if (Math.hypot(c.x - g.x, c.y - g.y) > Math.max(9, g.w / 2 + 4)) return;
@@ -4445,7 +4417,6 @@ function raceGateCheck_() {
   } else L.next++;
 }
 
-const raceNow_ = () => (typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now());
 
 /* ---------- THE RENDERER: one shader, lit vertices, fog ---------- */
 function raceGl_(canvas) {
@@ -4548,12 +4519,11 @@ function raceDraw_() {
   if (!canvas || !RACE.world) return;
   const G = raceGl_(canvas);
   if (G) {
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const w = Math.max(1, Math.round(canvas.clientWidth * dpr)), h = Math.max(1, Math.round(canvas.clientHeight * dpr));
-    if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+    drawFit_(canvas, { cap: 2, gl: true });
+    const w = canvas.width, h = canvas.height;
     const ctx = G.ctx, W = RACE.world, c = raceSeen_();
     /* THE CAMERA EASES AT THE SAME RATE AT ANY FRAME RATE (511): a fixed share per frame shook on a 120 Hz screen and lagged at 30. */
-    const now = raceNow_(), dt = Math.min(0.1, Math.max(0, (now - (RACE.drawAt || now)) / 1000));
+    const now = drawNow_(), dt = Math.min(0.1, Math.max(0, (now - (RACE.drawAt || now)) / 1000));
     RACE.drawAt = now;
     const fx = Math.sin(c.th), fy = Math.cos(c.th);
     const want = [c.x - fx * 9, c.y - fy * 9];
@@ -4610,10 +4580,8 @@ function raceMini_(box) {
   const cv = box.querySelector('.race-mini');
   const W = RACE.world;
   if (!cv || RACE.noMini === cv) return;
-  let ctx = null;
-  try { ctx = cv.getContext('2d'); } catch (e) { ctx = null; }
+  const S = 0.25, px = 96, D = drawFixed_(cv, px, px, 2), ctx = D && D.ctx;
   if (!ctx || !ctx.drawImage) { RACE.noMini = cv; return; }
-  const S = 0.25, px = 96;
   if (!W.miniCanvas) {
     const off = document.createElement('canvas');
     off.width = Math.ceil(W.half[0] * 2 * S) + 2; off.height = Math.ceil(W.half[1] * 2 * S) + 2;
@@ -4632,10 +4600,8 @@ function raceMini_(box) {
     line(W.route.map(i => [W.px[i], W.py[i]]), 2, token_('--race-route', 'gold'));
     W.miniCanvas = off;
   }
-  if (cv.width !== px * 2) { cv.width = px * 2; cv.height = px * 2; }
   const c = RACE.car;
-  ctx.setTransform(2, 0, 0, 2, 0, 0);
-  ctx.clearRect(0, 0, px, px);
+  drawClear_(ctx, px, px);
   ctx.save();
   ctx.translate(px / 2, px / 2);
   ctx.rotate(-c.th);
@@ -4647,7 +4613,7 @@ function raceMini_(box) {
 
 /* THE NUMBERS OVER THE ROAD, ten times a second rather than sixty: text that changes every frame is a layout every frame. */
 function raceHud_(force) {
-  const now = raceNow_();
+  const now = drawNow_();
   if (!force && now - RACE.hudAt < 100) return;
   RACE.hudAt = now;
   const box = $('race-box');
@@ -4668,36 +4634,32 @@ function raceHud_(force) {
   set('time', clock(L.start ? (L.paused || now) - L.start : 0) + (L.best ? ' · best ' + clock(L.best) : ''));
 }
 
-/* ---------- THE LOOP ---------- */
-function raceFrame_(t) {
-  RACE.raf = 0;
-  if (!RACE.running) return;
+/* ---------- THE LOOP: a frame in draw.js's one loop, which also pauses it in a hidden tab ---------- */
+function raceFrame_(now, dt) {
+  if (!RACE.running) return false;
   const box = $('race-box');
-  /* OFF THE GLASS IS PAUSED: another page of Games, another column, or a hidden tab costs nothing. */
-  if (!box || !box.isConnected || document.hidden) { racePause_(); return; }
-  const now = raceNow_();
-  RACE.acc = Math.min(RACE.acc + (now - (RACE.last || now)) / 1000, RACE_DT * 15);
-  RACE.last = now;
+  /* OFF THE GLASS IS PAUSED: another page of Games or another column costs nothing. */
+  if (!box || !box.isConnected) { racePause_(); return false; }
+  RACE.acc = Math.min(RACE.acc + dt, RACE_DT * 15);
   while (RACE.acc >= RACE_DT) { RACE.prev = Object.assign({}, RACE.car); raceStep_(RACE_DT); RACE.acc -= RACE_DT; }
   raceDraw_();
   raceHud_();
-  RACE.raf = requestAnimationFrame(raceFrame_);
 }
 
 function raceGo_() {
   if (!RACE.world || RACE.running) return;
-  RACE.running = true; RACE.last = 0; RACE.acc = 0;
+  RACE.running = true; RACE.acc = 0;
   /* THE LAP CLOCK STOOD STILL WHILE PAUSED. */
-  if (RACE.lap.start && RACE.lap.paused) RACE.lap.start += raceNow_() - RACE.lap.paused;
+  if (RACE.lap.start && RACE.lap.paused) RACE.lap.start += drawNow_() - RACE.lap.paused;
   RACE.lap.paused = 0;
   raceTiles_();
-  RACE.raf = requestAnimationFrame(raceFrame_);
+  drawLoop_('racer', raceFrame_, racePause_);
 }
 function racePause_() {
-  if (RACE.running) RACE.lap.paused = raceNow_();
+  if (RACE.running) RACE.lap.paused = drawNow_();
   RACE.running = false;
-  if (RACE.raf) cancelAnimationFrame(RACE.raf);
-  RACE.raf = 0; RACE.keys = {}; RACE.touch = {};
+  drawStop_('racer');
+  RACE.keys = {}; RACE.touch = {};
   document.querySelectorAll('.race-pad.on').forEach(b => b.classList.remove('on'));
   raceTiles_();
 }
@@ -4716,13 +4678,15 @@ function racePaint_(still) {
   if (!box) return;
   if (!RACE.world) {
     box.dataset.view = RACE.asking ? 'wait' : 'none';
+    RACE.view = '';
     /* NO MAP AT ALL (the backend and the shipped file both failed): the reason, said. */
     box.innerHTML = RACE.asking ? loading_()
       : `<p class="note">${esc(RACE.err || 'The map could not be loaded.')}</p>`;
     return;
   }
-  if (box.dataset.view !== 'drive' || !box.querySelector('.race-gl')) {
+  if (box.dataset.view !== 'drive' || !box.querySelector('.race-gl') || RACE.view !== RACE.place) {
     box.dataset.view = 'drive';
+    RACE.view = RACE.place;
     box.innerHTML = `<div class="race-stage" data-noswipe>
         <canvas class="race-gl" role="button" tabindex="0" data-do="race-go" aria-label="The road ahead"></canvas>
         <canvas class="race-mini" aria-hidden="true"></canvas>
@@ -4736,6 +4700,7 @@ function racePaint_(still) {
         ${tile_({ form: true, look: 'race-pad', attrs: 'data-pad="brake"', aria: 'Brake', label: 'Brake' })}
         ${tile_({ form: true, look: 'race-pad is-go', attrs: 'data-pad="go"', aria: 'Accelerate', label: 'Go' })}
       </div>
+      ${raceWhere_()}
       <p class="race-keys">&#8593; W go · &#8595; S reverse · &#8592; &#8594; A D steer · Space brake</p>
       <div class="tile-row race-tiles"></div>
       ${raceAttr_()}`;
@@ -4750,11 +4715,20 @@ function racePaint_(still) {
   if (!still) requestAnimationFrame(() => { if (!RACE.running) raceDraw_(); });
 }
 
+/* WHERE: every place built, and Near me. */
+function raceWhere_() {
+  const list = RACE.places || [];
+  if (list.length < 2) return '';
+  return `<div class="tile-row race-where"><label class="mat-sel"><select data-do="race-place" aria-label="Where to drive">${
+    list.map(r => `<option value="${esc(r.file)}"${r.file === RACE.place ? ' selected' : ''}>${esc(r.place)}</option>`).join('')}</select></label>${
+    navigator.geolocation ? tile_({ icon: 'compass', label: 'Near me', act: 'race-near' }) : ''}</div>`;
+}
+
 /* WHOSE MAP: OSM's line on a real one; the practice streets say they are invented and that the real map is not built yet. */
 function raceAttr_() {
   const m = RACE.map || {};
   if (m.practice) {
-    return `<p class="race-attr">Practice streets, invented — the Colliers Wood map has not been built yet.</p>`;
+    return `<p class="race-attr">Practice streets, invented — no real map has been built yet.</p>`;
   }
   return `<p class="race-attr"><a href="https://www.openstreetmap.org/copyright" rel="noopener">${
     esc(m.osm || 'Map data © OpenStreetMap contributors (ODbL)')}</a> · heights ${esc(m.dem || 'DEM')}</p>`;
@@ -4775,44 +4749,25 @@ function raceTiles_() {
     + tile_({ icon: 'undo', label: 'Back to the start', act: 'race-restart' });
 }
 
-/* THE PEDALS: pointer events with capture, so a thumb that slides off a pedal still lets go of it. */
+/* THE PEDALS: input.js's held buttons, so a thumb that slides off a pedal still lets go of it. */
 function racePads_(box) {
   const pads = box.querySelector('.race-pads');
   if (!pads) return;
-  const held = new Map();
-  const sync = () => {
-    const t = {};
-    held.forEach(k => { t[k] = true; });
+  inputHold_(pads, 'data-pad', (t, e) => {
+    if (e.type === 'pointerdown') raceGo_();
     RACE.touch = t;
     pads.querySelectorAll('.race-pad').forEach(b => b.classList.toggle('on', !!t[b.dataset.pad]));
-  };
-  pads.addEventListener('pointerdown', e => {
-    const b = e.target.closest('[data-pad]');
-    if (!b) return;
-    e.preventDefault();
-    try { b.setPointerCapture(e.pointerId); } catch (err) {}
-    held.set(e.pointerId, b.dataset.pad);
-    raceGo_();
-    sync();
   });
-  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(n => pads.addEventListener(n, e => { if (held.delete(e.pointerId)) sync(); }));
-  pads.addEventListener('contextmenu', e => e.preventDefault());
 }
 
 const RACE_KEYS = { ArrowUp: 'up', w: 'up', W: 'up', ArrowDown: 'down', s: 'down', S: 'down',
                     ArrowLeft: 'left', a: 'left', A: 'left', ArrowRight: 'right', d: 'right', D: 'right', ' ': 'brake' };
 /* KEYS ONLY WHILE DRIVING, and then the arrows steer rather than turn the column. */
-['keydown', 'keyup'].forEach(type => document.addEventListener(type, e => {
-  if (!RACE.running) return;
-  const k = RACE_KEYS[e.key];
-  if (!k || e.metaKey || e.ctrlKey || e.altKey) return;
-  if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName || '')) return;
-  e.preventDefault(); e.stopPropagation();
-  RACE.keys[k] = type === 'keydown';
-}, true));
-document.addEventListener('visibilitychange', () => { if (document.hidden && RACE.running) racePause_(); });
+inputKeys_(RACE_KEYS, (k, down) => { RACE.keys[k] = down; }, { up: true, capture: true, when: () => RACE.running });
 
 on('race-go', () => raceGo_());
+on('race-place', el => racePlace_(el.value));
+on('race-near', () => raceNear_());
 on('race-pause', () => racePause_());
 on('race-restart', () => { raceReset_(); raceHud_(true); if (!RACE.running) raceDraw_(); });
 
@@ -6129,18 +6084,8 @@ on('bg-pick', el => {
 });
 
 /* THE LOOSE LINES THE BOARDS NEED: the tiles' values, the maze's arrow keys, the Scrabble blank's letter. */
-document.addEventListener('keydown', e => {
-  if (!maze || maze.over) return;
-  if (e.metaKey || e.ctrlKey || e.altKey) return;
-  const t = e.target;
-  if (t && (t.isContentEditable || (t.closest && t.closest('input, textarea, select')))) return;
-  const k = { ArrowUp: 'n', ArrowRight: 'e', ArrowDown: 's', ArrowLeft: 'w' }[e.key];
-  if (!k || !mzInFront_()) return;
-  e.preventDefault();
-  e.stopPropagation();
-  mzMove_(k);
-  mazePaint();
-});
+inputKeys_({ ArrowUp: 'n', ArrowRight: 'e', ArrowDown: 's', ArrowLeft: 'w' }, k => { mzMove_(k); mazePaint(); },
+  { when: () => !!maze && !maze.over && mzInFront_() });
 SCR_SET.forEach(t => { SCR_VALUE[t[0]] = t[2]; });
 document.addEventListener('change', e => {
   const el = e.target && e.target.closest && e.target.closest('[data-do="scr-blank"]');
@@ -6229,7 +6174,6 @@ function saveBlob_(blob, name) {
 }
 
 /* ---------- PAINTING: a press paints the square under it, and a drag paints every square it crosses (the grid takes the drag, never the column). */
-let PXE_DOWN = false;
 function pxeAt_(e) {
   const hit = (document.elementFromPoint && document.elementFromPoint(e.clientX, e.clientY)) || e.target;
   const c = hit && hit.closest ? hit.closest('[data-pxe]') : null;
@@ -6239,17 +6183,12 @@ function pxeAt_(e) {
   PXE.px[i] = v;
   c.style.background = v;
 }
-document.addEventListener('pointerdown', e => {
-  if (!(e.target && e.target.closest && e.target.closest('.pxe-grid'))) return;
+inputDrag_(e => {
+  if (!(e.target && e.target.closest && e.target.closest('.pxe-grid'))) return null;
   pxeLoad_();
-  PXE_DOWN = true;
-  e.preventDefault();
   pxeAt_(e);
-});
-document.addEventListener('pointermove', e => { if (PXE_DOWN) pxeAt_(e); });
-function pxeUp_() { if (!PXE_DOWN) return; PXE_DOWN = false; pxeKeep_(); }
-document.addEventListener('pointerup', pxeUp_);
-document.addEventListener('pointercancel', pxeUp_);
+  return {};
+}, (g, e) => pxeAt_(e), () => pxeKeep_());
 
 /* THE FORM'S TWO ROWS: a new grid size starts a blank picture of that size; the colour is kept as it is picked. */
 document.addEventListener('change', e => {
