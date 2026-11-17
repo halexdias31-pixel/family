@@ -149,9 +149,9 @@ almost never writes to it directly.
   two store tabs (16-17 Nov): `items` (one row per item: `id`, `kind`, its JSON in `data_1..6`) and
   `events_log` (`at, who, kind, what, item, data`). Which kinds, and their columns, is
   `data/settings/kinds.json` `ledger.moved`, with a `~moved` marker row per kind holding its columns;
-  `read(TAB.x)` routes through the store (core.gs), so code still names tabs by `TAB`. `SCHEMA` gives a
-  new kind its first columns. Only `ledger.kept` are tabs of their own: the `lib_*` library tabs, `facts`
-  and `claude_notes` (routed by `WHERE`). The old per-kind tabs are locked and never read.
+  `read(TAB.x)` routes through the store (core.gs), so code still names tabs by `TAB`. `SCHEMA` (else the kind's
+  kinds.json `sheet.columns`) gives a new kind its first columns. Only `ledger.kept` are tabs of their own: the
+  `lib_*` library tabs and `claude_notes` (routed by `WHERE`). The old per-kind tabs are locked and never read.
 
 **A key the site asks for and the backend does not send fails silently.** `|| []` turns it into an
 empty list, which looks exactly like an empty database.
@@ -403,7 +403,7 @@ when it was not told it could", never "is this past the right edge".
 - **One rule for every facet** (396): a facet is a field, a label and its readers (`FACET_KEYS`) — asked by `facetWhy_`,
   sorted by `answerCmp_`, said by `facetSay_`, coloured by `TAG_OF`, and a tag on every card. Never a per-facet flag (check-funnel).
 - **Every other kind** is a row in the Ledger's `items` tab, or `events_log` for a log (kinds.json `ledger`);
-  only `ledger.kept` (library, `facts`, `claude_notes`) are tabs of their own, in `WHERE`.
+  only `ledger.kept` (library, `claude_notes`) are tabs of their own, in `WHERE`.
 - **The library is two halves** (397): `data/questions|textbooks|practicals|projects.json` are the CARDS (ids, facet
   columns, `lib_has`, `function_verified`); words, answers and figures are in the Ledger (`LIB_FILES`, `lib_*` tabs)
   and reach a phone by `libItems` when a card opens. Never commit a private field to `data/` (`check-secrets`); a

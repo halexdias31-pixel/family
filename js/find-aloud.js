@@ -735,6 +735,8 @@ function stuffItemsRaw_() {
     ...(typeof mechItems_ === 'function' ? mechItems_() : []),
     ...(typeof chemItems_ === 'function' ? chemItems_() : []),
     ...(typeof histTopicItems_ === 'function' ? histTopicItems_() : []),
+    /* ---------- THE OWNER'S LIFE AND BUSINESS (kinds.json `find.from: "store"`, form.js), an admin's alone */
+    ...(typeof storeItems_ === 'function' ? storeItems_() : []),
 
     /* ---------- `DATA.films` WAS MAPPED HERE, ONE ITEM PER FILM OR SERIES, AND IS NOT ANY MORE § */
 

@@ -275,6 +275,8 @@ const FACET_READ = {
   /* SUBJECT STRAIGHT AFTER WHAT KIND (494), as the facets tab orders it: "the library should go subject first". */
   /* THE FRONT DOORS' OWN MENUS (batch C, find-doors.js): each item answers only its own. */
   ...Object.fromEntries(['postState', 'postBy', 'postWhen', 'msgWith', 'profileType', 'settingFor', 'vidSubject', 'vidTopic', 'vidChannel', 'vidLevel', 'vidType', 'venueArea', 'venueFor', 'venueSize'].map(f => [f, { of: x => x[f] || '' }])),
+  /* A STORE KIND'S OWN FACETS (kinds.json `find.facetCols`), each read off its row's column when the entry was made (form.js storeItems_). */
+  ...Object.fromEntries(storeFacets_().map(f => [f, { of: x => x[f] || '' }])),
   projectType: { of: x => x.projectType || '' },
   subject: { of: x => x.subject },
   shelf: { of: x => x.shelf || '' },

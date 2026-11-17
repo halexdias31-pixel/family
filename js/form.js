@@ -556,3 +556,94 @@ function askOk_(x, v) {
   toast(x.max != null ? 'A number from ' + (x.min != null ? x.min : 0) + ' to ' + x.max + ', please.' : 'A number from ' + x.min + ' up, please.');
   return false;
 }
+
+/* ---------- THE KINDS FIND READS STRAIGHT FROM THE STORE (kinds.json `find.from: "store"`; owner, 17 Nov: the owner's life and business) ---------- */
+/* Listed only to whom `see.who` lists them (kindSees_). Rows come by the one action `item` (mode read), once a viewer; the kind's `store` form is */
+/* asked on its `new` card and sent as `item` mode write, an id made when none was typed. Nothing here names a kind: kinds.json says it all. */
+const STORE_KINDS_ = Object.keys(ITEM_KINDS.kinds).filter(k => (ITEM_KINDS.kinds[k].find || {}).from === 'store');
+const STORE_ROWS_ = {};
+const storeWho_ = () => (typeof USER === 'object' && USER ? String(USER.personId || USER.name || '') : '');
+const storeFormOf_ = k => Object.keys(ITEM_KINDS.kinds[k].forms || {}).find(id => ITEM_KINDS.kinds[k].forms[id].store) || '';
+const storeFacets_ = () => STORE_KINDS_.flatMap(k => Object.keys(ITEM_KINDS.kinds[k].find.facetCols || {}));
+function storePull_(k) {
+  const who = storeWho_();
+  if ((STORE_ROWS_[k] && STORE_ROWS_[k].who === who) || typeof api !== 'function') return;
+  STORE_ROWS_[k] = { who, rows: [] };
+  Promise.resolve(api({ action: 'item', mode: 'read', kind: k })).then(d => {
+    if (!STORE_ROWS_[k] || STORE_ROWS_[k].who !== who) return;
+    STORE_ROWS_[k].rows = d && d.ok && Array.isArray(d.items) ? d.items : [];
+    if (STORE_ROWS_[k].rows.length && typeof lateCame_ === 'function') lateCame_();
+  }).catch(() => { delete STORE_ROWS_[k]; });
+}
+function storeItems_() {
+  return STORE_KINDS_.filter(k => typeof kindSees_ === 'function' && kindSees_({ kind: k })).flatMap(k => {
+    const f = ITEM_KINDS.kinds[k].find, cols = f.facetCols || {};
+    storePull_(k);
+    const entry = (row, id) => { const shape = item_(row, k);
+      return Object.assign({ kind: k, name: shape.name, key: k + ':' + id, sub: '', image: '', row, shape, text: Object.values(row).join(' ') },
+        ...Object.keys(cols).map(c => ({ [c]: String(row[cols[c]] == null ? '' : row[cols[c]]) }))); };
+    const fresh = Object.assign(entry({}, 'new'), { name: f.new, storeNew: true });
+    fresh.shape = Object.assign({}, fresh.shape, { name: f.new });
+    return [fresh].concat(((STORE_ROWS_[k] || {}).rows || []).map(it => entry(it.data || {}, it.id)));
+  });
+}
+/* A ROW'S CARD: its form's fields as lines, a choice said in its own words; the `new` card is the form itself, asked a field a step. */
+function storeLines_(r, k) {
+  const fields = (FORM_SPECS.forms[storeFormOf_(k)] || {}).fields || [];
+  return [{ type: 'list', items: fields.map(x => { const v = String(r[x.f] == null ? '' : r[x.f]), c = (x.options || []).find(o => String(o.v) === v);
+    return { label: x.label || x.f, value: c ? c.t : v }; }).filter(l => l.value.trim()) }];
+}
+/* A ROW BEING EDITED (its Edit tile): the kind's own form under `form@id`, every field answered from the row, so Save is there at once */
+/* and a chip's tap asks that field again; it saves under the same id. */
+const STORE_EDIT_ = {};
+function storeEditForm_(k, id, row) {
+  const base = storeFormOf_(k), fid = base + '@' + id;
+  if (!FORM_SPECS.forms[fid]) {
+    FORM_SPECS.forms[fid] = Object.assign({}, FORM_SPECS.forms[base]);
+    FORM_SEND_[fid] = v => storeSend_(fid, v, id);
+  }
+  if (!ASK[fid]) {
+    const pre = {};
+    FORM_SPECS.forms[base].fields.forEach(x => { if (row[x.f] != null && row[x.f] !== '') pre[x.f] = String(row[x.f]); });
+    askReset_(fid, pre);
+    FORM_SPECS.forms[base].fields.forEach(x => { ASK[fid].done[x.f] = true; });
+  }
+  return fid;
+}
+function storeSheet_(it, x) {
+  const k = it.kind, id = x && x.key ? String(x.key).slice(k.length + 1) : '';
+  if (x && !x.storeNew && !STORE_EDIT_[k + ':' + id]) return it.body;
+  const fid = x && x.storeNew ? storeFormOf_(k) : storeEditForm_(k, id, it.raw || {});
+  return fid ? [{ type: 'group', look: 'store-form', inner: askArea_(fid) }] : [];
+}
+/* A ROW'S TILES: Edit, and the kind's one-tap tick (kinds.json `card.tick`: {f, on, off, label}) when it has one. */
+function storeTiles_(it, x) {
+  if (!x || x.storeNew) return [];
+  const k = it.kind, id = String(x.key).slice(k.length + 1), t = (ITEM_KINDS.kinds[k].card || {}).tick, on = t && String((it.raw || {})[t.f]) === String(t.on);
+  return [{ icon: 'edit', label: STORE_EDIT_[k + ':' + id] ? 'Close' : 'Edit', act: 'store-edit', data: { kind: k, id } }]
+    .concat(t ? [{ label: (on ? '✓ ' : '') + t.label, act: 'store-tick', pressed: on, data: { kind: k, id } }] : []);
+}
+const storeRow_ = (k, id) => (((STORE_ROWS_[k] || {}).rows || []).find(r => String(r.id) === String(id)) || {}).data || {};
+function storeWrite_(k, item) {
+  return Promise.resolve(api({ action: 'item', mode: 'write', kind: k, item })).then(d => {
+    if (!d || !d.ok) { toast((d && d.error) || 'Not saved.'); return false; }
+    delete STORE_ROWS_[k];
+    if (typeof lateCame_ === 'function') lateCame_();
+    return true;
+  }).catch(e => { toast(String((e && e.message) || e)); return false; });
+}
+function storeSend_(fid, v, id) {
+  const k = FORM_SPECS.forms[fid].item, key = [].concat(ITEM_KINDS.kinds[k].sheet.id)[0], item = Object.assign({}, v);
+  item[key] = id || item[key] || k + '-' + Date.now().toString(36);
+  /* AN EDIT SENDS EVERY FIELD, so one emptied (back, then Skip) is emptied in the row too. */
+  if (id) FORM_SPECS.forms[fid].fields.forEach(x => { if (item[x.f] == null) item[x.f] = ''; });
+  return storeWrite_(k, item).then(ok => { if (!ok) return; askDone_(fid); if (id) { delete ASK[fid]; delete STORE_EDIT_[k + ':' + id]; } toast('Saved.'); });
+}
+STORE_KINDS_.forEach(k => { const id = storeFormOf_(k); if (id) FORM_SEND_[id] = v => storeSend_(id, v); });
+on('store-edit', el => { const key = el.dataset.kind + ':' + el.dataset.id;
+  if (STORE_EDIT_[key]) delete STORE_EDIT_[key]; else STORE_EDIT_[key] = true;
+  delete ASK[storeFormOf_(el.dataset.kind) + '@' + el.dataset.id];
+  if (typeof lateCame_ === 'function') lateCame_(); });
+/* ONE TAP: the tick's field flipped, the rest of the row untouched (itemWrite_ writes only the fields sent). */
+on('store-tick', el => { const k = el.dataset.kind, id = el.dataset.id, t = ITEM_KINDS.kinds[k].card.tick, key = [].concat(ITEM_KINDS.kinds[k].sheet.id)[0];
+  storeWrite_(k, { [key]: id, [t.f]: String(storeRow_(k, id)[t.f]) === String(t.on) ? t.off : t.on }); });

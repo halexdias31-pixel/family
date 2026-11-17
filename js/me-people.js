@@ -383,7 +383,7 @@ document.addEventListener('input', e => {
 /* `{ role, v: typed, picked: [{id, name}], made }`; null until the first tap. */
 let PERSON_ADD_ = null;
 const personAddMay_ = () => peopleMay_() && typeof uiMay_ === 'function' && uiMay_('add-person');
-const PA_ROLES_ = [['student', 'Student'], ['client', 'Parent'], ['tutor', 'Tutor']];
+const PA_ROLES_ = [['student', 'Student'], ['client', 'Parent'], ['tutor', 'Tutor'], ['contact', 'Contact']];
 const paState_ = () => PERSON_ADD_ || (PERSON_ADD_ = { role: 'student', v: {}, picked: [] });
 function paPickedHtml_(F) {
   return pplG_('pa-picked', F.picked.map(x => pplG_('tile-row', [cardBlock_({ type: 'group', tag: 'span', look: 'note', text: x.name }),

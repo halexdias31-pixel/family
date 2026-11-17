@@ -2257,7 +2257,7 @@
     }
    },
    "facts": {
-    "say": "WHAT THE OWNER STATES ABOUT A PERSON (owner, 16 Nov): one row a fact, {who, what, value, as_of}. `what` is one of `keys`; a value may be a range (\"7-8\"). Values age by themselves (`ages`): school_year goes up one each 1 September after as_of, age one each year after as_of. Shown on the person's card to staff (tutors) and admins only (`see`), never to a child or another family. Stored in the facts list (backend payload `personFacts` — `facts` is the fun-facts reel, Ledger tab `facts`) until the events record exists and absorbs it. A PIN is never a fact.",
+    "say": "WHAT THE OWNER STATES ABOUT A PERSON (owner, 16 Nov): one row a fact, {who, what, value, as_of}. `what` is one of `keys`; a value may be a range (\"7-8\"). Values age by themselves (`ages`): school_year goes up one each 1 September after as_of, age one each year after as_of. Shown on the person's card to staff (tutors) and admins only (`see`), never to a child or another family. Sent as backend payload `personFacts`; kept in the items tab as kind `fact` (17 Nov). A PIN is never a fact.",
     "row": {
      "who": "person id (P010)",
      "what": "a key from `keys`",
@@ -2289,7 +2289,8 @@
     "store": {
      "tab": "facts",
      "payload": "personFacts",
-     "until": "events record"
+     "until": "events record",
+     "say": "moved to the items tab (ledger.moved `fact`, 17 Nov): still read and written as core.gs read('facts')"
     }
    }
   },
@@ -2457,9 +2458,449 @@
    "see": {
     "who": "anyone"
    }
+  },
+  "partner": {
+   "source": "the owner's business partners (owner, 17 Nov); rows in the items tab",
+   "sheet": {
+    "tab": "partners",
+    "id": "partner_id",
+    "columns": [
+     "partner_id",
+     "who",
+     "business",
+     "together",
+     "terms",
+     "status"
+    ]
+   },
+   "find": {
+    "group": "Life",
+    "label": "Partners",
+    "under": "Settings",
+    "from": "store",
+    "new": "New partner",
+    "facets": [
+     "forLabel",
+     "kindLabel",
+     "partnerStatus"
+    ],
+    "facetCols": {
+     "partnerStatus": "status"
+    }
+   },
+   "card": {
+    "look": "kc-facts store-card",
+    "lines": true,
+    "body": "storeLines_(row, \"partner\")",
+    "sheet": "storeSheet_(item, entry)",
+    "name": "business",
+    "tags": [
+     "status"
+    ],
+    "links": [
+     "who"
+    ],
+    "tiles": "storeTiles_(item, entry)"
+   },
+   "see": {
+    "who": "admin"
+   },
+   "forms": {
+    "partner-new": {
+     "ask": "find",
+     "store": true,
+     "skip": true,
+     "send": {
+      "t": "Save"
+     },
+     "say": "the \"New partner\" card in Find (form.js storeSend_): one field a step, any left empty, sent as the one action `item` (mode write).",
+     "fields": [
+      {
+       "f": "who",
+       "type": "text",
+       "label": "Who (their person id)"
+      },
+      {
+       "f": "business",
+       "type": "text",
+       "label": "Business"
+      },
+      {
+       "f": "together",
+       "type": "long",
+       "label": "What we could do together"
+      },
+      {
+       "f": "terms",
+       "type": "text",
+       "label": "Terms / %"
+      },
+      {
+       "f": "status",
+       "type": "choice",
+       "label": "Status",
+       "options": [
+        {
+         "v": "idea",
+         "t": "Idea"
+        },
+        {
+         "v": "talking",
+         "t": "Talking"
+        },
+        {
+         "v": "agreed",
+         "t": "Agreed"
+        },
+        {
+         "v": "running",
+         "t": "Running"
+        },
+        {
+         "v": "ended",
+         "t": "Ended"
+        }
+       ]
+      }
+     ]
+    }
+   }
+  },
+  "food": {
+   "source": "the owner's food: what, where, cost, time (owner, 17 Nov); rows in the items tab",
+   "sheet": {
+    "tab": "food",
+    "id": "food_id",
+    "columns": [
+     "food_id",
+     "name",
+     "shop",
+     "price",
+     "minutes",
+     "meal",
+     "how"
+    ]
+   },
+   "find": {
+    "group": "Life",
+    "label": "Food",
+    "under": "Settings",
+    "from": "store",
+    "new": "New food",
+    "facets": [
+     "forLabel",
+     "kindLabel",
+     "foodMeal",
+     "foodShop"
+    ],
+    "facetCols": {
+     "foodMeal": "meal",
+     "foodShop": "shop"
+    }
+   },
+   "card": {
+    "look": "kc-facts store-card",
+    "lines": true,
+    "body": "storeLines_(row, \"food\")",
+    "sheet": "storeSheet_(item, entry)",
+    "name": "name",
+    "tags": [
+     "meal",
+     "shop"
+    ],
+    "tiles": "storeTiles_(item, entry)"
+   },
+   "see": {
+    "who": "admin"
+   },
+   "forms": {
+    "food-new": {
+     "ask": "find",
+     "store": true,
+     "skip": true,
+     "send": {
+      "t": "Save"
+     },
+     "say": "the \"New food\" card in Find (form.js storeSend_): one field a step, any left empty, sent as the one action `item` (mode write).",
+     "fields": [
+      {
+       "f": "name",
+       "type": "text",
+       "label": "Name"
+      },
+      {
+       "f": "shop",
+       "type": "text",
+       "label": "Shop"
+      },
+      {
+       "f": "price",
+       "type": "text",
+       "label": "Price (£)",
+       "min": 0,
+       "step": 0.01
+      },
+      {
+       "f": "minutes",
+       "type": "text",
+       "label": "Minutes to make",
+       "min": 0
+      },
+      {
+       "f": "meal",
+       "type": "choice",
+       "label": "Meal",
+       "options": [
+        {
+         "v": "breakfast",
+         "t": "Breakfast"
+        },
+        {
+         "v": "lunch",
+         "t": "Lunch"
+        },
+        {
+         "v": "dinner",
+         "t": "Dinner"
+        },
+        {
+         "v": "snack",
+         "t": "Snack"
+        }
+       ]
+      },
+      {
+       "f": "how",
+       "type": "long",
+       "label": "How"
+      }
+     ]
+    }
+   }
+  },
+  "task": {
+   "source": "the owner's tasks (owner, 17 Nov); rows in the items tab",
+   "sheet": {
+    "tab": "tasks",
+    "id": "task_id",
+    "columns": [
+     "task_id",
+     "title",
+     "notes",
+     "due",
+     "repeat",
+     "list",
+     "done",
+     "person_id",
+     "booking_id",
+     "item_id"
+    ]
+   },
+   "find": {
+    "group": "Life",
+    "label": "Tasks",
+    "under": "Settings",
+    "from": "store",
+    "new": "New task",
+    "facets": [
+     "forLabel",
+     "kindLabel",
+     "taskList",
+     "taskRepeat",
+     "taskDone"
+    ],
+    "facetCols": {
+     "taskList": "list",
+     "taskRepeat": "repeat",
+     "taskDone": "done"
+    }
+   },
+   "card": {
+    "look": "kc-facts store-card",
+    "lines": true,
+    "body": "storeLines_(row, \"task\")",
+    "sheet": "storeSheet_(item, entry)",
+    "name": "title",
+    "tags": [
+     "list",
+     "due"
+    ],
+    "links": [
+     "person_id",
+     "booking_id",
+     "item_id"
+    ],
+    "tiles": "storeTiles_(item, entry)",
+    "tick": {
+     "f": "done",
+     "on": "yes",
+     "off": "no",
+     "label": "Done"
+    }
+   },
+   "see": {
+    "who": "admin"
+   },
+   "forms": {
+    "task-new": {
+     "ask": "find",
+     "store": true,
+     "skip": true,
+     "send": {
+      "t": "Save"
+     },
+     "say": "the \"New task\" card in Find (form.js storeSend_): one field a step, any left empty, sent as the one action `item` (mode write).",
+     "fields": [
+      {
+       "f": "title",
+       "type": "text",
+       "label": "Title"
+      },
+      {
+       "f": "notes",
+       "type": "long",
+       "label": "Notes"
+      },
+      {
+       "f": "due",
+       "type": "date",
+       "label": "Due"
+      },
+      {
+       "f": "repeat",
+       "type": "choice",
+       "label": "Repeat",
+       "options": [
+        {
+         "v": "never",
+         "t": "Never"
+        },
+        {
+         "v": "daily",
+         "t": "Daily"
+        },
+        {
+         "v": "weekly",
+         "t": "Weekly"
+        },
+        {
+         "v": "monthly",
+         "t": "Monthly"
+        },
+        {
+         "v": "yearly",
+         "t": "Yearly"
+        }
+       ]
+      },
+      {
+       "f": "list",
+       "type": "text",
+       "label": "List"
+      },
+      {
+       "f": "done",
+       "type": "choice",
+       "label": "Done",
+       "options": [
+        {
+         "v": "no",
+         "t": "No"
+        },
+        {
+         "v": "yes",
+         "t": "Yes"
+        }
+       ]
+      },
+      {
+       "f": "person_id",
+       "type": "text",
+       "label": "Person (id)"
+      },
+      {
+       "f": "booking_id",
+       "type": "text",
+       "label": "Booking (id)"
+      },
+      {
+       "f": "item_id",
+       "type": "text",
+       "label": "Item (id)"
+      }
+     ]
+    }
+   }
+  },
+  "drive_area": {
+   "source": "the owner's Google Drive areas (owner, 17 Nov); rows in the items tab",
+   "sheet": {
+    "tab": "drive_areas",
+    "id": "area_id",
+    "columns": [
+     "area_id",
+     "name",
+     "folder_id",
+     "what"
+    ]
+   },
+   "find": {
+    "group": "Life",
+    "label": "Drive",
+    "under": "Settings",
+    "from": "store",
+    "new": "New Drive area",
+    "facets": [
+     "forLabel",
+     "kindLabel"
+    ],
+    "facetCols": {}
+   },
+   "card": {
+    "look": "kc-facts store-card",
+    "lines": true,
+    "body": "storeLines_(row, \"drive_area\")",
+    "sheet": "storeSheet_(item, entry)",
+    "name": "name",
+    "tags": [
+     "folder_id"
+    ],
+    "tiles": "storeTiles_(item, entry)"
+   },
+   "see": {
+    "who": "admin"
+   },
+   "forms": {
+    "drive_area-new": {
+     "ask": "find",
+     "store": true,
+     "skip": true,
+     "send": {
+      "t": "Save"
+     },
+     "say": "the \"New Drive area\" card in Find (form.js storeSend_): one field a step, any left empty, sent as the one action `item` (mode write).",
+     "fields": [
+      {
+       "f": "name",
+       "type": "text",
+       "label": "Name"
+      },
+      {
+       "f": "folder_id",
+       "type": "text",
+       "label": "Folder id"
+      },
+      {
+       "f": "what",
+       "type": "long",
+       "label": "What goes there"
+      }
+     ]
+    }
+   }
   }
  },
- "findSay": "FIND (rule 1.80): a kind's `find` gives its What-for group, its What-kind label, the front door(s) it stands under (`under`), the facets in order, and `draw` (a global that draws its Find card, else findCard). `entries` names the Find entry kinds it covers when they are not the kind itself (an answer page, a timeline, a switched-off door), each overriding those fields. An entry kind named by no kind is never listed or drawn; `see.who` (anyone, signedIn, self, family, staff, admin) decides who is listed it. Labels and order of the facets are data/settings/facets.json.",
+ "findSay": "FIND (rule 1.80): a kind's `find` gives its What-for group, its What-kind label, the front door(s) it stands under (`under`), the facets in order, and `draw` (a global that draws its Find card, else findCard). `entries` names the Find entry kinds it covers when they are not the kind itself (an answer page, a timeline, a switched-off door), each overriding those fields. An entry kind named by no kind is never listed or drawn; `see.who` (anyone, signedIn, self, family, staff, admin) decides who is listed it. Labels and order of the facets are data/settings/facets.json. A kind with `from: \"store\"` (the owner's life and business, 17 Nov) is listed straight from the items tab (form.js storeItems_): a `new` card asking its `store` form, then one card a row, its Edit tile asking the same form prefilled and saving under the same id, and `card.tick` ({f, on, off, label}) a one-tap tile that flips that field; `facetCols` names each facet read off a row's own column.",
  "stored": {
   "qualification": {
    "sheet": {
@@ -3070,18 +3511,22 @@
    "trip",
    "answer",
    "library_card",
-   "client_error"
+   "client_error",
+   "fact",
+   "partner",
+   "food",
+   "task",
+   "drive_area"
   ],
   "movedSay": "THE KINDS KEPT IN THE ITEMS (or events) TAB (owner, 17 Nov): core.gs read/setCell/addRow route a listed kind there; each has a `~moved` marker row holding its columns. Their old tabs are locked and never read. A new kind is listed here and starts with SCHEMA's columns.",
   "kept": {
-   "say": "KEPT ON THEIR OWN TABS, ON PURPOSE (17 Nov): the library is 39,000 rows of chunked JSON read a few rows at a time by row number (library.gs libIndex_/libContent_). In the items tab, every request that reads any moved kind would load all of it; on their own tabs they are already one item a row ({id, checksum, parts, content_1..6}), described here by each kind`s sheet. facts and claude_notes are written directly by sessions.",
+   "say": "KEPT ON THEIR OWN TABS, ON PURPOSE (17 Nov): the library is 39,000 rows of chunked JSON read a few rows at a time by row number (library.gs libIndex_/libContent_). In the items tab, every request that reads any moved kind would load all of it; on their own tabs they are already one item a row ({id, checksum, parts, content_1..6}), described here by each kind`s sheet. claude_notes is written directly by sessions (facts moved to the store, 17 Nov).",
    "tabs": [
     "lib_questions",
     "lib_content",
     "lib_practicals",
     "lib_projects",
     "lib_inserts",
-    "facts",
     "claude_notes"
    ]
   }
