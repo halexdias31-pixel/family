@@ -60,7 +60,7 @@ function kindParts() {
   Object.entries(j.stored || {}).forEach(([k, v]) => take(k, v));
   const L = j.ledger;
   return '/* from data/settings/kinds.json kinds/stored/ledger: each kind\'s sheet, see and edit */\nconst ITEM_STORE_KINDS = '
-    + JSON.stringify({ never: L.never, items: L.items, events: L.events, kinds }) + ';';
+    + JSON.stringify({ moved: L.moved || [], never: L.never, items: L.items, events: L.events, kinds }) + ';';
 }
 /* THE ONE LIBRARY IMPORTER'S FILES (kinds.json `sheet.lib`, rule 1.80): `libImport_` takes a file or a kind by these. */
 function libParts() {
