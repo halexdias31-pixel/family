@@ -172,4 +172,17 @@ function itemAnswer_(body) {
   if (mode === 'event') return itemEvent_(body, v);
   return { error: 'mode is read, write or event.', why: 'mode' };
 }
-function postItem_(body) { return jsonOut(itemAnswer_(body)); }
+/* THE FOLDED DOORS (stage b, 17 Nov): `door` get/save/delete is what readItems/saveItem/deleteItem were, answered by the */
+/* very same handlers (post-learning.gs), so every check, field and side effect of the old door is kept. */
+function postItem_(body, action, began) {
+  const door = S(body.door);
+  if (door === 'get') return postReadItems_(body, 'item', began);
+  if (door === 'save' || door === 'delete') {
+    /* SIGNED IN, as saveItem's own gate was: the token names the person, never the request. */
+    const denied = accessDenied('saveItem', body);
+    if (denied) return jsonOut(denied === 'Please sign in again.' ? { error: denied, why: 'signed-out' } : { error: denied });
+    return itemsWrite_(door, body, began);
+  }
+  if (door) return jsonOut({ error: 'door is get, save or delete.', why: 'door' });
+  return jsonOut(itemAnswer_(body));
+}

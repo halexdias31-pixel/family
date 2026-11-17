@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-11-17-clean-1";
+const DOPOST_VERSION = "2026-11-17-store-4";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -248,10 +248,7 @@ function postActionsAdmin_() {
     linkChild: postLinkChild_,
     adminUnlinkFamily: postAdminUnlinkFamily_,
     deleteJob: postDeleteJob_,
-    readItems: postReadItems_,
     item: postItem_,
-    saveItem: postSaveItem_,
-    deleteItem: postDeleteItem_,
     libExport: postLibExport_,
     libImport: postLibImport_,
     libImportList: postLibImportList_,

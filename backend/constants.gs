@@ -6,19 +6,12 @@ const SHARED_SETTINGS = {"days":[["m","Monday"],["tu","Tuesday"],["w","Wednesday
 /* @family. — backend (hermes) Rewritten against the eleven-tab database. § */
 
 /* BOTH OF THESE IDS POINTED AT AN .xlsx AND `SpreadsheetApp` CANNOT OPEN ONE. § */
-/* THE LEDGER'S ID LIVES IN THE SCRIPT PROPERTY LEDGER_ID, not in this public repo. Order: the property,
-   then (interim, one release) LEDGER_ID_OLD_ seeded into the property, then the bound spreadsheet, else an error.
-   doGet and doPost call this once, so the first request after deploy seeds the property. */
-const LEDGER_ID_OLD_ = "1l26ZSHC5DDvsP-tBkAhxs8blRKjAtuV5Y2g0D4s1Gbo";
+/* THE LEDGER'S ID LIVES IN THE SCRIPT PROPERTY LEDGER_ID, not in this public repo (seeded 17 Nov by the
+   interim release). Order: the property, then the bound spreadsheet, else an error naming the property. */
 let LEDGER_ID_CACHE_ = '';
 function ledgerId_() {
   if (LEDGER_ID_CACHE_) return LEDGER_ID_CACHE_;
-  const props = PropertiesService.getScriptProperties();
-  let id = props.getProperty('LEDGER_ID') || '';
-  if (!id && LEDGER_ID_OLD_) {
-    id = LEDGER_ID_OLD_;
-    try { props.setProperty('LEDGER_ID', id); } catch (err) { /* seeded again next run */ }
-  }
+  let id = PropertiesService.getScriptProperties().getProperty('LEDGER_ID') || '';
   if (!id) { try { const ss = SpreadsheetApp.getActive(); if (ss) id = ss.getId(); } catch (err) { /* standalone project */ } }
   if (!id) throw new Error('No Ledger id: set the Script Property LEDGER_ID (Project Settings > Script properties).');
   return (LEDGER_ID_CACHE_ = id);
@@ -155,7 +148,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-11-17-clean-1";
+const BACKEND_VERSION = "2026-11-17-store-4";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {

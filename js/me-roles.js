@@ -488,7 +488,7 @@ on('notify-pick', el => {
   /* ---------- THIS BOX'S ROW IS LOCKED, NOT THE CARD § */
   /* THE LENS'S PERSON BY `targetId`: the backend lets an admin (or a parent, for a child) choose for somebody else. */
   const W = whose_();
-  send_(Object.assign({ action: 'saveItem', item: 'notify', name: USER.name, personId: USER.personId || '', kind: kind, on: want }, W === USER ? {} : { targetId: W.personId || '' }),
+  send_(Object.assign({ action: 'item', door: 'save', item: 'notify', name: USER.name, personId: USER.personId || '', kind: kind, on: want }, W === USER ? {} : { targetId: W.personId || '' }),
         { where: said || undefined, saying: 'Saving…', lock: el.closest('label') || el })
     .then(d => {
       /* THIS KIND'S ANSWER, MERGED INTO THE LIST WE HOLD — not the reply's whole list. § */

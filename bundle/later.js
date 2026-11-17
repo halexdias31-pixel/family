@@ -9405,7 +9405,7 @@ on('lens-pick', el => {
   const id = (el && el.getAttribute('data-id')) || '';
   if (!may_('admin') || !id) return;
   const card = el.closest('.lens-card'), said = card && card.querySelector('.lens-said');
-  send_({ action: 'readItems', kind: 'profile', ids: [id], name: USER.name, personId: USER.personId || '', targetId: id }, { button: el, where: said || undefined })
+  send_({ action: 'item', door: 'get', kind: 'profile', ids: [id], name: USER.name, personId: USER.personId || '', targetId: id }, { button: el, where: said || undefined })
     .then(d => { if (!may_('admin') || !d || !d.personId) return; LENS = Object.assign({ lens: true }, d); lensRedraw_(); })
     .catch(() => {});
 });
@@ -10983,7 +10983,7 @@ function toggleFav(k, kind) {
     /* THE KEY IS NOT SPLITTABLE, so it is not split. § */
     /* ---------- AND IT WAS STILL CALLING `send` WITH TWO ARGUMENTS § */
     send({
-      action: 'saveItem', item: 'favourite',
+      action: 'item', door: 'save', item: 'favourite',
       name: USER.name, personId: (USER && USER.personId) || '',
       kind: kind || 'item', itemId: key,
       on: FAVS.has(key) ? 'TRUE' : '',
@@ -14359,7 +14359,7 @@ function answersPush_(now, keepalive) {
   ansDirtyKeep_(who);
   if (!items.length) { ansSavedPaint_(); return Promise.resolve(true); }
   /* `personId` AS WELL AS THE TOKEN — the gate overwrites it with the token's person, and `check-post.js` § */
-  const req = api({ action: 'saveItem', item: 'answer', personId: pid, items: items }, keepalive ? { keepalive: true } : undefined);
+  const req = api({ action: 'item', door: 'save', item: 'answer', personId: pid, items: items }, keepalive ? { keepalive: true } : undefined);
   ANS_BUSY = Promise.resolve(req)
     .then(d => ansSavedTake_(d, sent, dirty, who))
     .catch(() => {
@@ -14395,7 +14395,7 @@ function answersPull_(force) {
   if (ANS_PULLING && ANS_PULLING.pid === pid) return ANS_PULLING.p;
   ANS_PULLED = pid;
   ANS_PULL_AT = Date.now();
-  const p = Promise.resolve(api({ action: 'readItems', kind: 'answer', personId: pid }))
+  const p = Promise.resolve(api({ action: 'item', door: 'get', kind: 'answer', personId: pid }))
     .then(d => {
       ANS_PULLING = null;
       if (!d || !d.success || !d.answers || typeof d.answers !== 'object') { ANS_PULLED = ''; return false; }
@@ -22050,7 +22050,7 @@ function layoutSave_(next) {
   const set = v => { try { DATA.layout = v; } catch (e) { /* no payload yet: the device's copy below still holds it */ } layoutKeep_(v); layoutRelayout_(); };
   const val = layoutSane_(next);
   set(val);
-  return send({ action: 'saveItem', item: 'layout', personId: (USER && USER.personId) || '', layout: val })
+  return send({ action: 'item', door: 'save', item: 'layout', personId: (USER && USER.personId) || '', layout: val })
     .then(() => true)
     .catch(err => { set(was); toast(why_(err)); return false; });
 }
@@ -22173,7 +22173,7 @@ function wordsSend_(set, reset) {
   reset.forEach(k => { delete next[k]; });
   const put = v => { try { DATA.words = v; } catch (e) {} wordsEditSet_(WORDS_EDIT); };
   put(next);
-  return send({ action: 'saveItem', item: 'words', personId: (USER && USER.personId) || '', set: set, reset: reset })
+  return send({ action: 'item', door: 'save', item: 'words', personId: (USER && USER.personId) || '', set: set, reset: reset })
     .then(d => { if (d && d.words && typeof d.words === 'object') { try { DATA.words = d.words; } catch (e) {} } toast(text_('saved-for-everyone')); return true; })
     .catch(err => { put(was); toast(why_(err)); return false; });
 }

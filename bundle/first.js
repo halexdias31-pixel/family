@@ -3896,7 +3896,7 @@ const LIB_KIND_ = { q: 'question', ct: 'content', pr: 'practical', pj: 'project'
 function libSend_(ids) {
   ids.forEach(t => { LIB.pending.delete(t); LIB.flying.add(t); });
   const who = libWho_();
-  send(Object.assign({ action: 'readItems', kind: LIB_KIND_[String(ids[0]).split(':')[0]], personId: (USER && USER.personId) || '', ids: ids },
+  send(Object.assign({ action: 'item', door: 'get', kind: LIB_KIND_[String(ids[0]).split(':')[0]], personId: (USER && USER.personId) || '', ids: ids },
     who ? {} : { device: typeof oopsDevice_ === 'function' ? oopsDevice_() : '' }))
     .then(d => {
       if (libWho_() !== who) return;
@@ -9238,7 +9238,7 @@ on('set-listed', el => {
   tileSet_(el, { label: on ? 'Listed' : text_('not-listed'), on,
                  note: on ? 'clients can see them' : 'clients cannot see them' });
 
-  api({ action: 'saveItem', item: 'listed',
+  api({ action: 'item', door: 'save', item: 'listed',
     adminName: USER.name, name: USER.name,
     who: el.dataset.who, whoId: el.dataset.pid || '', on })
     .then(d => {
@@ -10432,7 +10432,7 @@ function loadMessages() {
   const still = () => !!USER && String(USER.personId || USER.name || '') === who;
   /* `send` FOR THE SAME REASON, and the comment below was written as though it already did. § */
   const asking = { who: who, p: null };
-  asking.p = send({ action: 'readItems', kind: 'message', name: USER.name, personId: USER.personId })
+  asking.p = send({ action: 'item', door: 'get', kind: 'message', name: USER.name, personId: USER.personId })
     .then(d => {
       if (!still()) return [];
       MSG_FAILED = false;
@@ -10676,7 +10676,7 @@ function markRead_(msgs) {
     m.read = true;                                   /* so a redraw before the reply does not re-ask */
     /* ---------- AND WHICH ONES THEY WERE STAYS ON THE SCREEN § */
     m.fresh = true;
-    api({ action: 'saveItem', item: 'message', name: USER.name, personId: USER.personId, messageId: m.id })
+    api({ action: 'item', door: 'save', item: 'message', name: USER.name, personId: USER.personId, messageId: m.id })
       .catch(() => { m.read = false; });
   });
 }
@@ -11474,7 +11474,7 @@ on('notify-pick', el => {
   /* ---------- THIS BOX'S ROW IS LOCKED, NOT THE CARD § */
   /* THE LENS'S PERSON BY `targetId`: the backend lets an admin (or a parent, for a child) choose for somebody else. */
   const W = whose_();
-  send_(Object.assign({ action: 'saveItem', item: 'notify', name: USER.name, personId: USER.personId || '', kind: kind, on: want }, W === USER ? {} : { targetId: W.personId || '' }),
+  send_(Object.assign({ action: 'item', door: 'save', item: 'notify', name: USER.name, personId: USER.personId || '', kind: kind, on: want }, W === USER ? {} : { targetId: W.personId || '' }),
         { where: said || undefined, saying: 'Saving…', lock: el.closest('label') || el })
     .then(d => {
       /* THIS KIND'S ANSWER, MERGED INTO THE LIST WE HOLD — not the reply's whole list. § */
@@ -12729,7 +12729,7 @@ function meSave_(el, auto) {
   /* `send_`, NOT `api()`. § */
   /* YOU ASK; `whose_()` IS WHOSE ROW — yours, or the person an admin's lens is on (the backend lets only an admin name another). */
   const W = whose_();
-  send_({ action: 'saveItem', item: 'profile', name: USER.name, personId: USER.personId || '',
+  send_({ action: 'item', door: 'save', item: 'profile', name: USER.name, personId: USER.personId || '',
           target: W.name, targetId: W.personId || '', fields },
         auto ? { where: said } : { button: el, busy: 'Saving…', where: said })
     .then(d => {
@@ -12832,7 +12832,7 @@ function profileRefresh_(loud, onOld) {
   PROFILE_ASKING = true;
   const askedAt = Date.now();
   /* RETURNED, so a caller waiting on a copy it can trust (the card editor, `cardFetch_`) knows when the question has been answered either way — every § */
-  return api({ action: 'readItems', kind: 'profile', name: USER.name, personId: USER.personId || '' })
+  return api({ action: 'item', door: 'get', kind: 'profile', name: USER.name, personId: USER.personId || '' })
     .then(d => {
       PROFILE_ASKING = false;
       /* ---------- AN ANSWER OLDER THAN WHAT THE PHONE NOW KNOWS IS NOT PAINTED § */
@@ -13525,7 +13525,7 @@ function cardFetch_(e) {
     return;
   }
   e.asking = true;
-  api({ action: 'readItems', kind: 'card', ids: [e.pid], name: USER.name, personId: USER.personId || '', target: e.pid })
+  api({ action: 'item', door: 'get', kind: 'card', ids: [e.pid], name: USER.name, personId: USER.personId || '', target: e.pid })
     .then(d => {
       e.asking = false;
       if (CARD_EDIT !== e) return;
@@ -14040,7 +14040,7 @@ function cardSave_(el, auto) {
   const t = ((DATA && DATA.tutors) || []).find(r => r && String(r.personId) === e.pid) || {};
   /* `own` IS `whose_()`'S CARD: yours, or the lens's person's, written to their row by `targetId`. */
   const W = whose_();
-  send_({ action: 'saveItem', item: 'profile', name: USER.name, personId: USER.personId || '',
+  send_({ action: 'item', door: 'save', item: 'profile', name: USER.name, personId: USER.personId || '',
           target: e.own ? W.name : (t.title || ''), targetId: e.pid, fields },
         auto ? { where: said } : { button: el, busy: 'Saving…', where: said, lock: pane })
     .then(d => {
@@ -14078,7 +14078,7 @@ on('card-cancel', el => {
   if (!picBack) { cardClose_(e, pane, sec); return; }
   const form = (card || pane) && (card || pane).querySelector((card ? '' : '.card-ed ') + '.me-form');
   const said = form && form.querySelector('.me-said');
-  send_({ action: 'saveItem', item: 'profile', name: USER.name, personId: USER.personId || '', target: USER.name,
+  send_({ action: 'item', door: 'save', item: 'profile', name: USER.name, personId: USER.personId || '', target: USER.name,
           targetId: e.pid, fields: { photo: was } },
         { button: el, where: said, lock: pane })
     .then(d => {
@@ -14310,7 +14310,7 @@ function peopleRedraw_() {
   PEOPLE_COLS_.forEach(c => { if (typeof AT !== 'undefined' && AT === c) repaint(true); else markStale_(c); });
 }
 function personFetch_(F) {
-  send_({ action: 'readItems', kind: 'person', ids: F.id ? [F.id] : [], personId: (USER && USER.personId) || '', targetId: F.id })
+  send_({ action: 'item', door: 'get', kind: 'person', ids: F.id ? [F.id] : [], personId: (USER && USER.personId) || '', targetId: F.id })
     .then(d => { if (PEOPLE_FORM_ !== F) return; F.data = { person: d.person || null, parents: d.parents || [] }; peopleRedraw_(); })
     .catch(e => { if (PEOPLE_FORM_ !== F) return; F.err = (e && e.message) || 'That could not be opened.'; peopleRedraw_(); });
 }
@@ -14354,7 +14354,7 @@ on('person-save', el => {
   const parentIds = roles.indexOf('student') === -1 ? []
     : [...form.querySelectorAll('[data-pf-parent]')].filter(x => x.checked).map(x => x.getAttribute('data-pf-parent'))
       .concat(val('parent') ? [val('parent')] : []);
-  send_({ action: 'saveItem', item: 'person', personId: USER.personId || '', targetId: F.id, firstName: val('first'),
+  send_({ action: 'item', door: 'save', item: 'person', personId: USER.personId || '', targetId: F.id, firstName: val('first'),
           lastName: val('last'), roles, email: val('email'), dob: val('dob'), parentIds },
         { button: el, where: said, lock: form })
     .then(d => {
@@ -14408,7 +14408,7 @@ on('person-del', el => {
   const id = el.getAttribute('data-id') || '';
   if (!id) return;
   if (!sure_(el, 'Tap again to confirm')) return;
-  send_({ action: 'deleteItem', item: 'person', personId: USER.personId || '', targetId: id }, { button: el })
+  send_({ action: 'item', door: 'delete', item: 'person', personId: USER.personId || '', targetId: id }, { button: el })
     .then(() => {
       peoplePut_(null, id);
       if (PEOPLE_FORM_ && PEOPLE_FORM_.id === id) PEOPLE_FORM_ = null;
@@ -14452,7 +14452,7 @@ on('pe-notify', el => {
   const F = PERSON_ED_, kind = String((el && el.dataset.kind) || ''), want = !!(el && el.checked);
   if (!F || !F.data || !kind || !personEdMay_()) return;
   const said = el.closest('.pe-form') && el.closest('.pe-form').querySelector('.pe-said');
-  send_({ action: 'saveItem', item: 'notify', personId: (USER && USER.personId) || '', targetId: F.id, kind, on: want }, { where: said || undefined, saying: 'Saving…', lock: el.closest('label') || el })
+  send_({ action: 'item', door: 'save', item: 'notify', personId: (USER && USER.personId) || '', targetId: F.id, kind, on: want }, { where: said || undefined, saying: 'Saving…', lock: el.closest('label') || el })
     .then(d => {
       const on = d && typeof d.on === 'boolean' ? d.on : want;
       if (PERSON_ED_ === F && F.data.notify) F.data.notify = Object.assign({}, F.data.notify, { kinds: (F.data.notify.kinds || []).map(k => k.kind === kind ? Object.assign({}, k, { on }) : k) });
@@ -14481,7 +14481,7 @@ function peSave_(form) {
   const fields = peFields_(form), said = form.querySelector('.pe-said'), key = JSON.stringify(fields);
   if (key === F.sent) return;
   form.classList.add('is-sending');
-  send_({ action: 'saveItem', item: 'profile', name: USER.name, personId: USER.personId || '', target: F.name || '', targetId: F.id, fields }, { where: said })
+  send_({ action: 'item', door: 'save', item: 'profile', name: USER.name, personId: USER.personId || '', target: F.name || '', targetId: F.id, fields }, { where: said })
     .then(d => { F.sent = key; F.moved = true; formDraftDrop_('person-edit', { draftId: F.id }); if (said) tell_(said, 'saved', '✓ ' + ((d && d.said) || 'Saved')); })
     .catch(() => {})
     .then(() => form.classList.remove('is-sending'));
@@ -14501,7 +14501,7 @@ on('person-edit', el => {
   if (!id) return;
   const F = PERSON_ED_ = { id, name: el.getAttribute('data-name') || '', data: null };
   peRedraw_();
-  send_({ action: 'readItems', kind: 'person', ids: [id], personId: USER.personId || '', targetId: id })
+  send_({ action: 'item', door: 'get', kind: 'person', ids: [id], personId: USER.personId || '', targetId: id })
     .then(d => { if (PERSON_ED_ !== F) return; F.data = { person: d.person || {}, parents: d.parents || [], notify: d.notify || null }; peRedraw_(); })
     .catch(e => { if (PERSON_ED_ !== F) return; F.err = (e && e.message) || 'Their details could not be opened.'; peRedraw_(); });
 });
@@ -14597,7 +14597,7 @@ on('pa-save', el => {
   if (!val('first') || !val('last')) { if (said) tell_(said, 'info', 'A first name and a last name, please.'); return; }
   if (F.role !== 'student' && !val('email')) { if (said) tell_(said, 'info', 'An email, please — the PIN goes there.'); return; }
   const ids = F.picked.map(x => x.id);
-  send_({ action: 'saveItem', item: 'person', personId: USER.personId || '', targetId: '', firstName: val('first'), lastName: val('last'),
+  send_({ action: 'item', door: 'save', item: 'person', personId: USER.personId || '', targetId: '', firstName: val('first'), lastName: val('last'),
           roles: [F.role], email: val('email'), dob: val('dob'), parentIds: F.role === 'student' ? ids : [], invite: false },
         { button: el, where: said, lock: card })
     .then(d => {
