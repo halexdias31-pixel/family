@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* node tools/word-freq.js [--check] — writes data/word-freq.json, the Rewrite coach's word ranks, counted from the public-domain texts in data/pdtexts (554). --check exits 1 if the file is stale. */
+/* tools/word-freq.js — writes data/word-freq.json, the Rewrite coach's word ranks, counted from the public-domain texts in data/pdtexts (554). tools/build.js runs it. */
 'use strict';
 const fs = require('fs'), path = require('path');
 const ROOT = path.join(__dirname, '..'), DIR = path.join(ROOT, 'data/pdtexts'), OUT = path.join(ROOT, 'data/word-freq.json');
@@ -22,9 +22,10 @@ function build() {
     licence: 'Public domain (counted from public-domain texts; the counts are this repo\'s own)',
     words }) + '\n';
 }
-const out = build();
-if (process.argv.includes('--check')) {
-  const now = fs.existsSync(OUT) ? fs.readFileSync(OUT, 'utf8') : '';
-  if (now !== out) { console.error('data/word-freq.json is stale: run node tools/word-freq.js'); process.exit(1); }
-  console.log('data/word-freq.json is current');
-} else { fs.writeFileSync(OUT, out); console.log('wrote data/word-freq.json, ' + JSON.parse(out).words.length + ' words'); }
+function run() {
+  const out = build(), now = fs.existsSync(OUT) ? fs.readFileSync(OUT, 'utf8') : '';
+  if (now !== out) fs.writeFileSync(OUT, out);
+  console.log('word-freq: ' + (now !== out ? 'wrote' : 'unchanged') + ' data/word-freq.json, ' + JSON.parse(out).words.length + ' words');
+}
+module.exports = { run };
+if (require.main === module) run();

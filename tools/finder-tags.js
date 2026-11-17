@@ -1,14 +1,13 @@
 #!/usr/bin/env node
-/* @family. — tools/finder-tags.js THE FINDER'S FIRST ANSWERS, COUNTED AT BUILD TIME (546). --check: write nothing, exit 1 when stale. */
+/* @family. — tools/finder-tags.js THE FINDER'S FIRST ANSWERS, COUNTED AT BUILD TIME (546). tools/build.js runs it. */
 /* Runs the real app (check/jsdom-app.js) over every file the finder reads and writes js/finder-tags.js: per view of the library (the */
 /* Bible or not, each age line), the question at the start and after each first answer. The phone paints these while its files arrive. */
-/* Run it after changing the library, a writings index, the facets or the kinds; check-all runs `--check` and is red while it is stale. */
 'use strict';
 const fs = require('fs'), path = require('path');
 const ROOT = path.resolve(__dirname, '..');
 const OUT = path.join(ROOT, 'js', 'finder-tags.js');
-const CHECK = process.argv.includes('--check'), FULL = process.argv.includes('--full');
-/* THE INPUTS' FINGERPRINT (CI after be32d73): the walk takes minutes, so --check trusts a stamp of every file the app reads, made by the last full run. */
+const FULL = process.argv.includes('--full');
+/* THE INPUTS' FINGERPRINT (CI after be32d73): the walk takes minutes, so run() skips it on a stamp of every file the app reads, made by the last full run. */
 const STAMP = path.join(ROOT, 'tools', 'finder-tags.stamp');
 /* NOT INPUTS: the checks, the health and stability reports and index.html's BUILD_STAMP are written after this tool and never steer the finder; nor does the rulebook (data/settings/rules.json). */
 const SKIP = f => f === 'js/finder-tags.js' || /^js\/check[-.]/.test(f) || /^data\/(health|health-trend|stability|[\w-]+-health)\.json$/.test(f) || f === 'data/settings/rules.json';
@@ -48,18 +47,12 @@ const render = T => {
     + vs.map(v => JSON.stringify(v) + ': {\n' + own(v).map(k => line(T.views[v], k)).join(',\n') + '\n}').join(',\n') + '\n}};\n';
 };
 
-if (require.main === module) (async () => {
+async function run() {
   /* THE APP LOADS THIS FILE TOO: a first run, or one after a bad merge, starts from an empty one. */
   let had = null;
   try { had = fs.readFileSync(OUT, 'utf8'); } catch (e) { had = null; }
-  if (CHECK && had === null) { console.error('finder-tags: js/finder-tags.js is missing. Run: node tools/finder-tags.js'); process.exit(1); }
   const IN = inputsHash();
-  if (CHECK && !FULL) {
-    let st = ''; try { st = fs.readFileSync(STAMP, 'utf8').trim(); } catch (e) { st = ''; }
-    if (st === IN + ' ' + outHash(had)) { console.log('finder-tags: js/finder-tags.js is current (inputs unchanged since the last full run; --full to re-walk)'); process.exit(0); }
-    /* A STALE STAMP FAILS AT ONCE (round 3): a walk passed here in 4 minutes and timed out in CI at 5; run the tool after every merge. */
-    console.error('finder-tags: its inputs changed since the last full run. Run: node tools/finder-tags.js (or --check --full to walk)'); process.exit(1);
-  }
+  if (!FULL && had !== null && fresh()) { console.log('finder-tags: inputs unchanged since the last walk; js/finder-tags.js kept (--full to re-walk)'); return; }
   if (had === null || !/const FINDER_TAGS = /.test(had)) fs.writeFileSync(OUT, HEAD + 'const FINDER_TAGS = null;\n');
   const { app, tick } = require('./lib/jsdom-app.js');
   /* THE LIBRARY AS THE SITE SERVES IT (check/lib-full.js, words and all), so what is counted here is what a phone counts. */
@@ -71,14 +64,14 @@ if (require.main === module) (async () => {
   const t0 = Date.now();
   ev('inFinder_(FINDERS.stuff, () => stuffItems())');
   while (!ev('LOADED && finderSettled_() && (LIBRARY_ROWS || []).length > 0')) {
-    if (Date.now() - t0 > 240000) { console.error('finder-tags: the app never settled in 240s'); process.exit(2); }
+    if (Date.now() - t0 > 240000) { throw new Error('finder-tags: the app never settled in 240s'); }
     await tick(250);
     ev('inFinder_(FINDERS.stuff, () => stuffItems())');
   }
   /* A COLLECTION SWITCHED OFF (attic/) is simply absent, not failed. */
   const failed = ev('JSON.stringify([["the Bible","BIBLE"],["the Talmud","TALMUD"],["the Quran","QURAN"],["the Hadith","HADITH"],["the works","WORKS"],'
     + '["the texts","TEXTS"],["the pdtexts","PDTEXTS"],["the Orthodox texts","ORTHO"],["the hymns","HYMNS"]].filter(p => { let v = null; try { v = eval(p[1]); } catch (e) { v = null; } return v && v.failed; }).map(p => p[0]))');
-  if (JSON.parse(failed).length) { console.error('finder-tags: these did not load, so nothing is written: ' + JSON.parse(failed).join(', ')); process.exit(2); }
+  if (JSON.parse(failed).length) { throw new Error('finder-tags: these did not load, so nothing is written: ' + JSON.parse(failed).join(', ')); }
 
   /* THE VIEWERS: an admin (the Bible, People and Settings) and a student; no age lines (1040). */
   const viewers = [{ role: 'Admin', roles: ['admin'] }, { role: 'Student', roles: ['student'], profile: {} }];
@@ -119,8 +112,7 @@ if (require.main === module) (async () => {
     const got = { key: key, out: out };
     /* TWO VIEWERS ON ONE KEY MUST SEE ONE LIBRARY, or the key is missing what tells them apart. */
     if (views[got.key] && JSON.stringify(views[got.key]) !== JSON.stringify(got.out)) {
-      console.error('finder-tags: two viewers share the view ' + got.key + ' and see different answers; `finderTagsView_` needs what tells them apart');
-      process.exit(2);
+      throw new Error('finder-tags: two viewers share the view ' + got.key + ' and see different answers; `finderTagsView_` needs what tells them apart');
     }
     views[got.key] = got.out;
   }
@@ -128,13 +120,9 @@ if (require.main === module) (async () => {
   const facets = ev('facetList().map(f => f.field).join(",")');
   A.close();
   const text = render({ views: views, facets: facets });
-  if (CHECK) {
-    if (text === had) { console.log('finder-tags: js/finder-tags.js is current (' + Object.keys(views).length + ' views)'); process.exit(0); }
-    console.error('finder-tags: js/finder-tags.js is STALE — the finder\'s first answers have changed. Run: node tools/finder-tags.js');
-    process.exit(1);
-  }
   fs.writeFileSync(OUT, text);
   fs.writeFileSync(STAMP, IN + ' ' + outHash(text) + '\n');
   console.log('finder-tags: wrote js/finder-tags.js — ' + Object.keys(views).length + ' views, ' + Object.values(views).reduce((n, o) => n + Object.keys(o).length, 0) + ' questions');
-  process.exit(0);
-})().catch(e => { console.error('finder-tags: ' + (e && e.stack || e)); process.exit(2); });
+}
+module.exports.run = run;
+if (require.main === module) run().then(() => process.exit(0), e => { console.error('finder-tags: ' + (e && e.stack || e)); process.exit(2); });

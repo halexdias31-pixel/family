@@ -59,7 +59,7 @@ concurrency:
 jobs:
   push:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     # Never from a fork. A pull_request trigger would not receive secrets anyway, but a public repo
     # deserves the belt as well as the braces.
     if: github.repository == 'halexdias31-pixel/family'
@@ -142,6 +142,14 @@ jobs:
       # --force skips the "are you sure" prompt, which has no answer on a runner. It does NOT mean
       # "overwrite harder" — clasp replaces the project's files either way, which is the thing the
       # header above is careful to say out loud.
+      # THE GENERATED BACKEND IS REBUILT FROM ITS SOURCES FIRST, so a stale copy (cards-gen.gs, the COLUMNS,
+      # ACTIONS and SHARED blocks) never reaches live. It only writes; it never blocks the push (rule 1.75).
+      - name: Build (node tools/build.js)
+        if: steps.secrets.outputs.configured == 'true'
+        run: |
+          npm ci --no-audit --no-fund
+          node tools/build.js
+
       - name: Push backend/ to Apps Script
         if: steps.secrets.outputs.configured == 'true'
         run: clasp push --force

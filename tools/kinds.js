@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* @family. — tools/kinds.js: writes js/kinds.js, the browser's copy of data/settings/kinds.json (every kind) and facets.json (every facet's label and order). */
-/* Edit the JSON, never js/kinds.js. build-stamp.js runs this first. */
+/* Edit the JSON, never js/kinds.js. tools/build.js runs it. */
 'use strict';
 const fs = require('fs'), path = require('path');
 const ROOT = path.resolve(__dirname, '..');
