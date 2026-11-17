@@ -1,4 +1,5 @@
-/* @family. — js/answer-face.js THE ANSWER BOX'S FACES (owner, 16 Nov): text, camera, graph. A tile swaps which face fills the box's
+/* @family. — js/answer-face.js THE ANSWER BOX'S FACES (owner, 16 Nov): text, camera, paper (owner, 17 Nov: one paper face, its grid a
+   setting -- graph, lines or blank). A tile swaps which face fills the box's
    one slot, where the text box stood, the same width and place; nothing opens over the page (rule: nothing opens over the app). */
 
 /* ---------- THE ONE SWAP: every face goes in and out of a box through `ansFace_`, so no tool draws a sheet of its own. */
@@ -7,7 +8,7 @@ const ANS_FACES = {};
 /* THE SLOT: the typed box's row (or several boxes'), an essay's sheet; a box drawn without one takes the face at its top. */
 const ansSlot_ = box => (box && box.querySelector(':scope > .qp-ans-row, :scope > .qp-sheet')) || null;
 const ansFaceOf_ = box => (box && box.querySelector(':scope > .qp-face')) || null;
-function ansFace_(box, face, k) {
+function ansFace_(box, face, k, o) {
   if (!box) return null;
   const was = ansFaceOf_(box);
   if (was) {
@@ -21,12 +22,42 @@ function ansFace_(box, face, k) {
   el.className = 'qp-face qp-face-' + face;
   el.setAttribute('data-face', face);
   el.setAttribute('data-k', k || '');
+  Object.keys(o || {}).forEach(a => el.setAttribute('data-' + a, o[a]));
   if (slot) { slot.hidden = true; slot.insertAdjacentElement('afterend', el); } else box.insertAdjacentElement('afterbegin', el);
   ANS_FACES[face].open(el, k || '', box);
   return el;
 }
-/* BACK TO THE TEXT FACE, from any face's Back tile */
-on('qp-face-text', el => { ansFace_(el.closest('.qp-mark'), 'text'); });
+/* BACK TO THE TEXT FACE, from any face's Back tile -- a pick by hand, kept over the question's own default */
+on('qp-face-text', el => { const f = el.closest('.qp-face'); if (f && f.getAttribute('data-face') === 'paper') ansFacePick_(f.getAttribute('data-k'), 'text');
+  ansFace_(el.closest('.qp-mark'), 'text'); });
+
+/* ---------- WHICH FACE A BOX SHOWS: the one the student picked by hand (the part's record, `face`), else the question's own
+   (`face` on its row: text, graph, lines or blank -- kinds.json question `shape`), else text. A camera is never a default: it asks for the camera. */
+const ansFacePick_ = (k, f) => partRecPutAt_(partKeyOfAns_(k), 'face', f);
+function ansFaceWant_(x) {
+  const own = partRecAt_(partKeyOfAns_(ansKey_(x))).face;
+  const want = own || norm(x.face || (x.row && x.row.face));
+  return PAPER_GRIDS.some(p => p.id === want) ? want : 'text';
+}
+/* A CARD DRAWN (again) gets its box's face back: asked by its tile row as it is drawn (`qtTiles_`), applied once the markup is in. */
+const ANS_FACE_DUE = new Set();
+function ansFaceDue_(x) {
+  if (!x || !x.key || ansFaceWant_(x) === 'text') return;
+  if (!ANS_FACE_DUE.size) setTimeout(ansFacesApply_, 0);
+  ANS_FACE_DUE.add(x.key);
+}
+function ansFacesApply_() {
+  const keys = [...ANS_FACE_DUE];
+  ANS_FACE_DUE.clear();
+  keys.forEach(key => {
+    const x = qtItem_(key);
+    if (!x) return;
+    [...document.querySelectorAll('.qcard [data-key]')].filter(t => t.getAttribute('data-key') === key).forEach(t => {
+      const box = qMark_(t);
+      if (box && !ansFaceOf_(box)) paperOpen_(box, x, ansFaceWant_(x));
+    });
+  });
+}
 
 /* ---------- THE CAMERA FACE: the rear camera live in the slot, a shutter and a back tile. The stream is never kept: each shot
    becomes a page through `workShrink_` into `WORK_PICS` (working.js), exactly where a picked photo goes. */
@@ -116,8 +147,13 @@ function camOpen_(el, k) {
   ansFace_(box, 'camera', k);
 }
 
-/* ---------- THE GRAPH FACE (N-20261115-g1, dr1): a blank grid with axes you set, in the slot. Tap a crossing for a point, join
-   two points with a line, shade a square. Saved in the part's one record (`partRec_`, field `graph`), as text is. */
+/* ---------- THE PAPER FACE (owner, 17 Nov): one face in the slot, its grid a setting -- graph (axes you set; tap a crossing for a point,
+   join two, shade a square: N-20261115-g1), lines, or blank. Every pen tool draws on it through the one drawing layer, the pad
+   (`padWrap_`, find-cells.js: pen, straight line, compass, protractor, Undo, Clear), under its own `pad:` key; the graph's points
+   stay in the part's one record (`partRec_`, field `graph`), as they always were. */
+const PAPER_GRIDS = [{ id: 'graph', icon: 'grid', label: 'Graph' }, { id: 'lines', icon: 'doc', label: 'Lines' }, { id: 'blank', icon: 'figure', label: 'Blank' }];
+/* THE PEN TOOLS ON PAPER: the tool row's own acts and names (qtools.js `QT_TOOLS`), so a tile here and one in the row are one tool */
+const PAPER_PENS = ['pen', 'line', 'compass', 'protractor'];
 const GRAPH_SPAN = 20, GRAPH_SIZE = 340, GRAPH_M = 24;
 const GRAPH_MODES = [{ id: 'point', icon: 'spot', label: 'Point' }, { id: 'join', icon: 'line', label: 'Join' }, { id: 'shade', icon: 'full', label: 'Shade' }];
 const GRAPH_MODE = new Map(), GRAPH_PICK = new Map(), GRAPH_UNDO = new Map();
@@ -168,26 +204,35 @@ function graphSvg_(g, pick) {
   return figDraw_({ el: 'svg', a: { class: 'qp-graph-svg', viewBox: '0 0 ' + T.W + ' ' + T.H, role: 'img', 'aria-label': 'Graph: ' + graphSay_(g) }, kids: out });
 }
 const graphSay_ = g => g.pts.length + ' points, ' + g.lines.length + ' lines, ' + g.shade.length + ' squares shaded';
-function graphPaint_(el, k) {
-  const g = graphRead_(k), mode = GRAPH_MODE.get(k) || 'point';
+/* THE PAPER'S PAD: the part's own key with `~paper`, so a figure's pad and the paper under the same part keep their marks apart */
+const paperItem_ = key => ({ key: key + '~paper' });
+function paperPaint_(el, k) {
+  const grid = el.getAttribute('data-grid') || 'graph', key = el.getAttribute('data-key') || '', graph = grid === 'graph';
+  const g = graph ? graphRead_(k) : null, mode = GRAPH_MODE.get(k) || 'point';
   const field = (n, v) => cardBlock_({ type: 'group', tag: 'label', look: 'qp-graph-ax', text: n + ' ', blocks: [{ type: 'control', tag: 'input',
     attrs: { type: 'text', inputmode: 'numeric', 'data-ax': n.replace(/ /g, ''), value: String(v), size: 3, autocomplete: 'off', 'aria-label': n } }] });
-  el.innerHTML = fcG_('div', 'qp-graph-axes', null, field('x min', g.ax.x0) + field('x max', g.ax.x1) + field('y min', g.ax.y0) + field('y max', g.ax.y1))
-    + fcG_('div', 'qp-graph-art', { 'data-k': k }, graphSvg_(g, GRAPH_PICK.get(k)))
-    + fcG_('p', 'qp-face-say', { role: 'status', 'aria-live': 'polite' }, '', graphSay_(g))
-    + fcG_('div', 'tile-row qp-face-tiles', null, tile_(GRAPH_MODES.map(m => ({ icon: m.icon, label: m.label, act: 'qp-graph-mode', on: mode === m.id, pressed: mode === m.id, data: { k, mode: m.id } }))
-      .concat([{ icon: 'undo', label: 'Undo', act: 'qp-graph-undo', data: { k }, off: !(GRAPH_UNDO.get(k) || []).length },
-        { icon: 'bin', label: 'Clear', act: 'qp-graph-clear', data: { k } },
-        { icon: 'left', label: 'Back', note: 'to typing', act: 'qp-face-text' }])));
+  const pens = PAPER_PENS.map(qtTool_).filter(Boolean).map(t => ({ icon: t.icon, label: t.label, note: t.note, act: t.act, cls: 'qt-t', data: { tool: t.id, key } }));
+  el.innerHTML = fcG_('div', 'tile-row qp-face-tiles qp-paper-grids', { role: 'toolbar', 'aria-label': 'Paper' }, tile_(PAPER_GRIDS.map(p =>
+      ({ icon: p.icon, label: p.label, act: 'qp-paper-grid', on: grid === p.id, pressed: grid === p.id, data: { k, grid: p.id } }))))
+    + (graph ? fcG_('div', 'qp-graph-axes', null, field('x min', g.ax.x0) + field('x max', g.ax.x1) + field('y min', g.ax.y0) + field('y max', g.ax.y1)) : '')
+    + fcG_('div', 'qp-paper-art' + (graph ? ' qp-graph-art' : ''), { 'data-k': k }, padWrap_(paperItem_(key), graph ? graphSvg_(g, GRAPH_PICK.get(k)) : surfaceSvg_(grid)))
+    + fcG_('p', 'qp-face-say', { role: 'status', 'aria-live': 'polite' }, '', graph ? graphSay_(g) : '')
+    + fcG_('div', 'tile-row qp-face-tiles', null, tile_((graph ? GRAPH_MODES.map(m => ({ icon: m.icon, label: m.label, act: 'qp-graph-mode', on: mode === m.id, pressed: mode === m.id, data: { k, mode: m.id } }))
+      .concat([{ icon: 'undo', label: 'Undo', note: 'the last point', act: 'qp-graph-undo', data: { k }, off: !(GRAPH_UNDO.get(k) || []).length },
+        { icon: 'bin', label: 'Clear', note: 'the graph', act: 'qp-graph-clear', data: { k } }]) : [])
+      .concat(pens, [{ icon: 'left', label: 'Back', note: 'to typing', act: 'qp-face-text' }])));
+  if (!graph) return;
   el.querySelectorAll('input[data-ax]').forEach(inp => inp.addEventListener('change', () => graphAxSet_(el, k)));
-  el.querySelector('.qp-graph-art svg').addEventListener('click', e => graphTap_(el, k, e));
+  /* A TAP ON THE GRAPH, through the pad's ink above it: the graph's while no pen tool is in hand, the pen's while one is */
+  const art = el.querySelector('.qpad-art'), pk = padKey_(paperItem_(key));
+  if (art) art.addEventListener('click', e => { if (PAD_ON !== pk) graphTap_(el, k, e); });
 }
 function graphKeep_(el, k, g) {
   const u = GRAPH_UNDO.get(k) || [];
   u.push(JSON.stringify(graphRead_(k)));
   GRAPH_UNDO.set(k, u.slice(-50));
   graphPut_(k, g);
-  graphPaint_(el, k);
+  paperPaint_(el, k);
 }
 function graphAxSet_(el, k) {
   const g = graphRead_(k), v = n => (el.querySelector('input[data-ax="' + n + '"]') || {}).value;
@@ -199,7 +244,8 @@ function graphAxSet_(el, k) {
 }
 /* A TAP ON THE GRID: nearest crossing for Point and Join, the square under it for Shade */
 function graphTap_(el, k, e) {
-  const svg = e.currentTarget, r = svg.getBoundingClientRect(), g = graphRead_(k), T = graphScale_(g.ax);
+  const svg = el.querySelector('.qp-graph-svg'), r = svg && svg.getBoundingClientRect(), g = graphRead_(k), T = graphScale_(g.ax);
+  if (!r) return;
   if (!(r.width > 0)) return;
   const vx = (e.clientX - r.left) * T.W / r.width, vy = (e.clientY - r.top) * T.H / r.height;
   const gx = g.ax.x0 + (vx - GRAPH_M) / T.S, gy = g.ax.y1 - (vy - GRAPH_M) / T.S;
@@ -221,27 +267,57 @@ function graphTap_(el, k, e) {
   /* JOIN: the first point tapped is held, the second draws the line; a crossing with no point gets one */
   if (at === -1) g.pts.push(p);
   const held = GRAPH_PICK.get(k);
-  if (!held || ptSame_(held, p)) { GRAPH_PICK.set(k, held ? null : p); return at === -1 ? graphKeep_(el, k, g) : graphPaint_(el, k); }
+  if (!held || ptSame_(held, p)) { GRAPH_PICK.set(k, held ? null : p); return at === -1 ? graphKeep_(el, k, g) : paperPaint_(el, k); }
   GRAPH_PICK.delete(k);
   if (!g.lines.some(l => (ptSame_(l[0], held) && ptSame_(l[1], p)) || (ptSame_(l[1], held) && ptSame_(l[0], p)))) g.lines.push([held, p]);
   graphKeep_(el, k, g);
 }
-ANS_FACES.graph = { open(el, k) { graphPaint_(el, k); }, close() {} };
-on('qp-graph', el => {
-  const box = qMark_(el), x = qtItem_(el.getAttribute('data-key') || '');
-  if (!box || !x) { tell_(null, 'info', 'This part has no answer box to draw a graph in'); return; }
-  const was = ansFaceOf_(box);
-  if (was && was.getAttribute('data-face') === 'graph') return ansFace_(box, 'text');
+ANS_FACES.paper = { open(el, k) { paperPaint_(el, k); }, close() {} };
+/* THE PAPER OPENED ON A BOX, on the grid asked for (else the one last used on this part, else graph) */
+function paperOpen_(box, x, grid) {
+  const k = ansKey_(x);
   graphCheckWrap_();
-  ansFace_(box, 'graph', ansKey_(x)).setAttribute('data-key', x.key);
+  const was = partRecAt_(partKeyOfAns_(k)).face;
+  const g = PAPER_GRIDS.some(p => p.id === grid) ? grid : PAPER_GRIDS.some(p => p.id === was) ? was : 'graph';
+  return ansFace_(box, 'paper', k, { grid: g, key: x.key });
+}
+/* THE PAPER TILE (`qp-paper`): opens the paper, or back to typing when it is open -- either way the student's pick, kept */
+on('qp-paper', el => {
+  const box = qMark_(el), x = qtItem_(el.getAttribute('data-key') || '');
+  if (!box || !x) { tell_(null, 'info', 'This part has no answer box to draw in'); return; }
+  const was = ansFaceOf_(box);
+  if (was && was.getAttribute('data-face') === 'paper') { ansFacePick_(ansKey_(x), 'text'); return ansFace_(box, 'text'); }
+  const f = paperOpen_(box, x);
+  ansFacePick_(ansKey_(x), f.getAttribute('data-grid'));
 });
-const graphFaceOf_ = el => el.closest('.qp-face-graph');
-on('qp-graph-mode', el => { const k = el.getAttribute('data-k'); GRAPH_MODE.set(k, el.getAttribute('data-mode')); GRAPH_PICK.delete(k); graphPaint_(graphFaceOf_(el), k); });
+/* THE GRID IS A SETTING: the same face drawn again on graph, lines or blank paper, and kept as the student's pick */
+on('qp-paper-grid', el => {
+  const f = el.closest('.qp-face'), grid = el.getAttribute('data-grid');
+  if (!f || !PAPER_GRIDS.some(p => p.id === grid)) return;
+  f.setAttribute('data-grid', grid);
+  ansFacePick_(f.getAttribute('data-k'), grid);
+  paperPaint_(f, f.getAttribute('data-k'));
+});
+/* A PEN TOOL WITH NOTHING TO DRAW ON (no figure, no surface): the paper opens in the answer box and the tool is laid on its pad */
+function paperPadPick_(card, key, tool) {
+  const x = qtItem_(key), box = card && qMark_(card);
+  if (!x || !box) return null;
+  let f = ansFaceOf_(box);
+  if (!f || f.getAttribute('data-face') !== 'paper') { f = paperOpen_(box, x, 'blank'); ansFacePick_(ansKey_(x), 'blank'); }
+  const pad = f && f.querySelector('.qpad');
+  if (pad) padToolPick_(pad, tool || 'pen');
+  return pad;
+}
+const graphFaceOf_ = el => el.closest('.qp-face-paper');
+/* A GRAPH TOOL TAKEN UP PUTS THE PEN DOWN, so the next tap is the graph's */
+on('qp-graph-mode', el => { const k = el.getAttribute('data-k'), f = graphFaceOf_(el), pad = f && f.querySelector('.qpad');
+  if (pad && PAD_ON === pad.getAttribute('data-k')) { padArm_(pad, false); PAD_ON = ''; padDrop_(); }
+  GRAPH_MODE.set(k, el.getAttribute('data-mode')); GRAPH_PICK.delete(k); paperPaint_(f, k); });
 on('qp-graph-undo', el => {
   const k = el.getAttribute('data-k'), u = GRAPH_UNDO.get(k) || [];
   if (!u.length) return;
   graphPut_(k, JSON.parse(u.pop()));
-  graphPaint_(graphFaceOf_(el), k);
+  paperPaint_(graphFaceOf_(el), k);
 });
 on('qp-graph-clear', el => { const k = el.getAttribute('data-k'), g = graphRead_(k); GRAPH_PICK.delete(k); graphKeep_(graphFaceOf_(el), k, Object.assign(g, { pts: [], lines: [], shade: [] })); });
 
@@ -274,10 +350,10 @@ function graphMark_(x, g) {
   const got = Math.max(0, Math.round(marks * Math.max(0, hit - extra) / Math.max(1, want)));
   return { got, marks, right: hit === want && !extra };
 }
-/* EVERY CHECK ACT, wrapped once: while a graph face shows, the Check is the graph's (rule or save); otherwise it goes on as it always has. */
+/* EVERY CHECK ACT, wrapped once: while graph paper shows, the Check is the graph's (rule or save); otherwise it goes on as it always has. */
 function graphCheck_(el) {
   const box = qMark_(el), face = box && ansFaceOf_(box);
-  if (!face || face.getAttribute('data-face') !== 'graph') return false;
+  if (!face || face.getAttribute('data-face') !== 'paper' || face.getAttribute('data-grid') !== 'graph') return false;
   const x = qtItem_(face.getAttribute('data-key') || '');
   const k = face.getAttribute('data-k') || '', g = graphRead_(k);
   const m = x && graphMark_(x, g);
@@ -286,7 +362,7 @@ function graphCheck_(el) {
   tell_(box.querySelector('.qp-verdict'), m.right ? 'saved' : 'error', m.got + ' of ' + m.marks + ' — marked by its rule' + (m.right ? '' : '; check your points, lines and shading'));
   return true;
 }
-/* WRAPPED WHEN A GRAPH FACE FIRST OPENS, not at load: the files that register the Check acts may load after this one. */
+/* WRAPPED WHEN A PAPER FACE FIRST OPENS, not at load: the files that register the Check acts may load after this one. */
 const GRAPH_CHECK_ACTS = ['qp-check', 'qp-noscheme', 'qp-cells-check', 'pad-check'];
 function graphCheckWrap_() {
   GRAPH_CHECK_ACTS.forEach(act => {

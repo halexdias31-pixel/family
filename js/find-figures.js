@@ -39,10 +39,10 @@ function padSurface_(x) {
   return 'blank';
 }
 /* WHAT EACH IS CALLED, where a paper figure is called "Figure": § */
-const SURFACE_NAME = { grid: 'Squared grid', coord: 'Axes', blank: 'Space to draw' };
+const SURFACE_NAME = { grid: 'Squared grid', coord: 'Axes', blank: 'Space to draw', lines: 'Lined paper' };
 
 /* EACH SURFACE IS LAYERS: squares, axes with their numbers, or a dashed frame. */
-const SURFACE_LAYERS = { grid: ['squares'], coord: ['squares', 'axes'], blank: ['frame'] };
+const SURFACE_LAYERS = { grid: ['squares'], coord: ['squares', 'axes'], blank: ['frame'], lines: ['rules'] };
 const SURFACE_DRAW = {
   squares: (out, S, A, B) => {
     for (let v = A; v <= B; v += S) {
@@ -63,6 +63,8 @@ const SURFACE_DRAW = {
     }
     out.push(ax(164, 182, '0', 'end'));
   },
+  /* LINED PAPER (the paper face's `lines`): a rule every two squares, across */
+  rules: (out, S, A, B) => { for (let v = A + 2 * S; v < B; v += 2 * S) out.push({ el: 'line', a: { class: 'grid', x1: A, y1: v, x2: B, y2: v } }); },
   frame: (out, S, A, B) => out.push({ el: 'rect', a: { class: 'axis', x: A, y: A, width: B - A, height: B - A, rx: 8, fill: 'none', 'stroke-dasharray': '6 6' } }),
 };
 
