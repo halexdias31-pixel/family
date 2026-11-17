@@ -252,10 +252,7 @@ function widgetsLater_() {
     const now = performance.now();
     /* A FINGER DOWN AT ALL, NOT ONLY ONE WHOSE DIRECTION IS DECIDED: § */
     /* AND A COLUMN CHANGE NOT YET PLACED (`GLASS.at`). § */
-    const busy = (typeof SETTLE_ON !== 'undefined' && SETTLE_ON && now < SETTLE_ON.until)
-              || (typeof SWIPE !== 'undefined' && SWIPE.live)
-              || (typeof SLIDE_UNTIL !== 'undefined' && now < SLIDE_UNTIL)
-              || (typeof GLASS !== 'undefined' && GLASS.at !== AT);
+    const busy = typeof GLASS !== 'undefined' && GLASS.at !== AT;
     /* BUT NOT FOR EVER. A finger resting on the glass — or a `pointerup` the browser never sent — is `SWIPE.live` with nothing moving, and a column of widgets that § */
     if (busy && !(TOOLS_BUSY_SINCE && now - TOOLS_BUSY_SINCE > 1500)) {
       if (!TOOLS_BUSY_SINCE) TOOLS_BUSY_SINCE = now;
@@ -378,8 +375,6 @@ function aheadDrawWidget_(w, col) {
   delete slot.LENT;
   slot.AHEAD = { who: widgetWho_(), act: ACT_EPOCH, draw: DRAW_EPOCH, ups: WIDGET_UPS[id] || 0, pure: !!w.pure };
   slot.WHO = widgetWho_();
-  /* AND ITS COLUMN PLACED AGAIN, NOW: a widget grows its card as it draws (`widgetsLater_`'s reason). */
-  if (typeof placeOne_ === 'function') placeOne_(col);
 }
 /* THE BUILDER'S WIDGET JOBS — every slot `aheadDrawWidget_` may draw, with how far it is. § */
 function aheadWidgetJobs_() {

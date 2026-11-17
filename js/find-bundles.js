@@ -623,8 +623,7 @@ function stuffWindow_(mode) {
 /* WHERE A PAGE SITS, TO THE FRACTION OF A PIXEL. § */
 function stuffTop_(el) { return el.getBoundingClientRect().top; }
 function stuffKeepPlace_(host, d) {
-  if (FLOW_LAYOUT) { if (d) window.scrollBy(0, -d); return; }
-  try { colShiftNow_(host, d); } catch (e) { /* the column left as it was is the jump this exists to stop, and nothing worse */ }
+  if (d) window.scrollBy(0, -d);
 }
 
 /* EVERY LIBRARY INDEX `paintStuff` asks for, one call each. */

@@ -149,9 +149,8 @@ function tierLazy_(w, slot) {
   };
 }
 
-/* ONE SCROLLING PAGE (900): sections in normal flow, scrolled by the browser. false brings back the sideways columns, the pager and the glass. */
-const FLOW_LAYOUT = true;
-document.documentElement.classList.toggle('flow', FLOW_LAYOUT);
+/* ONE SCROLLING PAGE (900): Find's sections in normal flow, scrolled by the browser; the sideways columns went 17 Nov (Find only). */
+document.documentElement.classList.add('flow');
 
 /* ---------- THE TABS § */
 const TABS = [
@@ -240,7 +239,7 @@ function loading_() {
 
 /* EACH COLUMN'S SHAPE, KEPT ON THE DEVICE (700): page heights in px, no data, so a column waiting next visit holds its final size. */
 const SHAPE_KEY = 'arrival:shape', SHAPE_PAGES = 6;
-const shapeWidth_ = () => { try { return WIDE ? 'w' + Math.round(wideCard_().card) : 'n' + innerWidth; } catch (e) { return ''; } };
+const shapeWidth_ = () => { try { return 'n' + innerWidth; } catch (e) { return ''; } };
 function shapeAll_() { return keep_.json(SHAPE_KEY, {}); }
 /* A SHAPE WITH NO HEIGHT IN IT (nothing laid out, as under jsdom) is no shape: the column keeps its one waiting page. */
 function shapeOf_(id) { const w = shapeWidth_(), all = shapeAll_(), hs = all.at === w && all[id]; return Array.isArray(hs) && hs.some(h => h > 0) ? hs : null; }

@@ -1,127 +1,19 @@
 
 /* ---------- EACH PAGE OF ONE COLUMN, AND ONLY WHAT CHANGED § */
-function placePages_(h, c, pg) {
-  const id = h.id, host = h.host;
-  const r = pg || pagesRead_(host, id, c);
-  if (r.skipped) return;
-  /* A DRAG'S WRITES ARE NOT A RESTING STATE — the blur is left to the finger — so the next placement walks. */
-  host.PG_SIG = c.drag ? null : r.sig;
-  r.pages.forEach((el, pos) => {
-    /* WHICH PAGE THIS ELEMENT IS -- see `logIndex_`. Identical to `pos` on every screen that
-       holds all of its pages, which is all of them but the Find screen. */
-    const p = logIndex_(id, pos);
-    const d = Math.abs(p - c.at);
-    const focused = id === AT && p === c.at;
-    const was = el.PG || null;
-    /* OUT OF FOCUS — see the note over `SOFT_BLUR`. Not during a drag: the classes describe where
-       the cards ARE, and a finger has not moved the focus until it lets go. */
-    /* AND ON A WIDE WINDOW, EVERY CARD ON THE GLASS BUT ONE. § */
-    let soft = was ? was.soft : false, dim = was ? was.dim : null;
-    if (!c.drag) {
-      soft = !focused && (WIDE ? (c.across === 0 || c.onGlass) && d <= 3 : c.across <= 1 && d <= 2);
-      if (soft) dim = softDim_(el);
-    }
-    /* ---------- DRAWN WHILE ITS BOX MEETS THE BAND, AND ONLY THEN § */
-    const box = r.boxes[pos];
-    const inBand = !!box && box[0] < c.hi && box[0] + box[1] > c.lo;
-    /* DIMMING ON A BLACK SCREEN IS DELETING. § */
-    /* A TALL WIDE WINDOW SHOWS A FOURTH CARD DOWN, so there nothing near is faded to nothing —
-       it would be a hole in a column you can otherwise read. The focus is said by `.soft` above. */
-    pageWrite_(el, {
-      on: focused,
-      far: !inBand,
-      soft: soft, dim: dim,
-      op: !inBand ? '0' : WIDE ? '1' : d === 0 ? '1' : d === 1 ? '.9' : '.75',
-      /* ---------- THE CARD IN FRONT, NOT EVERY COLUMN'S CURRENT CARD § */
-      vis: inBand ? 'visible' : 'hidden',
-    });
-  });
-}
-/* THE READING HALF, done in `placeGrid`'s reading pass so no offset is asked after a write: § */
-const PAGE_READ = 12;
-function pagesRead_(host, id, c) {
-  const pages = host.querySelectorAll(':scope > .page');
-  const sig = [c.at, Math.round(c.lo), Math.round(c.hi), c.across, c.onGlass ? 1 : 0, WIDE ? 1 : 0,
-    pages.length, PAGE_LO[id] || 0].join('|');
-  if (c.skip && host.PG_SIG === sig) return { skipped: true };
-  const boxes = [];
-  for (let pos = 0; pos < pages.length; pos++) {
-    const p = logIndex_(id, pos);
-    boxes.push(Math.abs(p - c.at) > PAGE_READ ? null : [pages[pos].offsetTop, pages[pos].offsetHeight]);
-  }
-  return { pages: pages, sig: sig, boxes: boxes };
-}
-
 /* ---------- THE TRAIL, DOWN ONE COLUMN § */
-const TRAIL_CAP = 8;
-function trailY_(host, shift, glassH, now, drag, instant, dur) {
-  const tTop = -shift, tBot = -shift + glassH;
-  const T = host.TRAIL;
-  const run = !!(T && (now < T.until || (!drag && !instant && slideRunning_(host, colProp_('y')))));
-  let top = tTop, bot = tBot;
-  if (run) { top = Math.min(top, T.top); bot = Math.max(bot, T.bot); }
-  else if (!drag && !instant) {
-    const was = colPlaced_(host);
-    if (was) { top = Math.min(top, -was[1]); bot = Math.max(bot, -was[1] + glassH); }
-  }
-  top = Math.max(top, tTop - TRAIL_CAP * glassH);
-  bot = Math.min(bot, tBot + TRAIL_CAP * glassH);
-  const band = { top: top, bot: bot, until: drag || instant ? (run ? T.until : 0) : now + dur + 50 };
-  if (!drag) host.TRAIL = band;
-  if (!drag && !instant) trailFrom_(band, dur);
-  return band;
-}
 /* ---------- A SLIDE ENDS `dur` AFTER THE FRAME IT STARTS IN, NOT AFTER THE WRITE THAT ASKED FOR IT § */
-function trailFrom_(band, dur) {
-  try { requestAnimationFrame(() => { band.until = Math.max(band.until, performance.now() + dur + 50); }); } catch (e) { /* no frame to wait for: the band ends on its own timer */ }
-}
 /* ---------- AND A SLIDE STILL RUNNING IS STILL A SLIDE, WHATEVER THE CLOCK SAYS § */
-function slideRunning_(host, prop) {
-  try {
-    return !!(host && host.getAnimations && host.getAnimations().some(a => a.playState === 'running'
-      && (prop ? a.transitionProperty === prop : a.transitionProperty === 'transform' || a.transitionProperty === 'translate')));
-  } catch (e) { return false; }
-}
 /* AND ACROSS THE ROW: the column indices the row has swept while its sideways slide still runs, the index
    it is leaving and the one it is going to. `at` is the index this placement was for. */
-let TRAIL_X = { lo: 0, hi: 0, at: null, until: 0 };
-function trailX_(ti, now, instant, settle) {
-  const T = TRAIL_X;
-  const run = now < T.until || (!instant && T.at != null && slideRunning_($('s-' + ((TABS[T.at] || {}).id)), colProp_('x')));
-  let lo = ti, hi = ti;
-  if (run) { lo = Math.min(lo, T.lo); hi = Math.max(hi, T.hi); }
-  else if (!instant && T.at != null) { lo = Math.min(lo, T.at); hi = Math.max(hi, T.at); }
-  const moved = T.at !== ti;
-  const dur = settle && settle.axis === 'x' ? settle.dur : 300;
-  const out = { lo: lo, hi: hi, at: ti,
-    until: instant ? (run ? T.until : 0) : moved || run ? now + dur + 50 : T.until };
-  if (!instant && (moved || run)) trailFrom_(out, dur);
-  return out;
-}
-/* ONCE THE SLIDES HAVE ENDED, THE BAND GOES BACK TO THE GLASS. § */
-function trailEnd_() {
-  const now = performance.now();
-  let until = TRAIL_X.until;
-  TABS.forEach(t => { const h = $('s-' + t.id); if (h && h.TRAIL) until = Math.max(until, h.TRAIL.until); });
-  if (until > now) { setTimeout(() => afterSlide_(trailEnd_, 'trail'), Math.ceil(until - now)); return; }
-  /* NOR WHILE A SLIDE IS STILL RUNNING past its clock (`slideRunning_`, above). */
-  if (TABS.some(t => slideRunning_($('s-' + t.id)))) { setTimeout(() => afterSlide_(trailEnd_, 'trail'), 100); return; }
-  const wide = TRAIL_X.lo < TRAIL_X.hi || TABS.some(t => {
-    const h = $('s-' + t.id);
-    const was = h && h.TRAIL && colPlaced_(h);
-    return !!(was && (h.TRAIL.top < -was[1] - 1 || h.TRAIL.bot > -was[1] + (h.clientHeight || innerHeight) + 1));
-  });
-  if (wide) placeCells('y', true);
-}
 /* ONE PAGE'S WRITES, EACH ONLY IF IT DIFFERS FROM WHAT THIS ELEMENT WAS LAST GIVEN. § */
 function pageWrite_(el, st) {
   const was = el.PG;
   if (!was) { el.style.position = 'static'; el.style.transform = 'none'; }
   if (!was || was.on !== st.on) {
     el.classList.toggle('on', st.on);
-    el.style.pointerEvents = st.on || FLOW_LAYOUT ? 'auto' : 'none';
+    el.style.pointerEvents = 'auto';
     /* AND THE KEYBOARD WITH IT (561, U15): a page a finger cannot reach is out of the Tab order too. */
-    el.inert = !st.on && !FLOW_LAYOUT;
+    el.inert = false;
   }
   if (!was || was.far !== st.far) el.classList.toggle('far', st.far);
   if (!was || was.soft !== st.soft) el.classList.toggle('soft', st.soft);
@@ -170,7 +62,7 @@ function flowScrolled_() {
   /* NEAR THE FOOT OF WHAT IS DRAWN, the next few results are drawn (`flowMore_`, find.js). */
   if (typeof flowMore_ === 'function' && document.documentElement.scrollHeight - window.scrollY - innerHeight < innerHeight) flowMore_(id);
 }
-addEventListener('scroll', () => { if (FLOW_LAYOUT && !FLOW_FRAME) FLOW_FRAME = requestAnimationFrame(flowScrolled_); }, { passive: true });
+addEventListener('scroll', () => { if (!FLOW_FRAME) FLOW_FRAME = requestAnimationFrame(flowScrolled_); }, { passive: true });
 /* A PAGE TURNED TO BY A TAP (a question opened, its answer shown) is scrolled to, once the turn's fills have run. */
 function flowShow_(id, n) {
   if (FLOW_TURNING) return;
@@ -187,30 +79,6 @@ function topbarPaint_() {
 }
 
 /* ---------- ONE COLUMN PLACED ON ITS OWN, WITH NOTHING MOVING § */
-function placeOne_(id) {
-  const host = $('s-' + id);
-  if (!host || !PLACED_ONCE || !host.style.transform) return;
-  if (id === AT || GLASS.cols.indexOf(id) !== -1) { placeCells('y', true, 0, id); return; }
-  const tabs = TABS.map(t => t.id);
-  const ti = Math.max(0, tabs.indexOf(AT)), i = tabs.indexOf(id);
-  if (i < 0) return;
-  const stepX = stepX_();
-  const at = PAGE[id] || 0;
-  const shift = columnShift_(host, domIndex_(id, at));
-  const across = Math.abs(i - ti);
-  const onGlass = WIDE && Math.abs((i - ti) * stepX) < appWidth_() / 2 + stepX * 1.5;
-  const glassH = host.clientHeight || innerHeight;
-  /* NOTHING IS SLIDING (the builder's own gate), so the band is this column's glass and one either side. */
-  const band = trailY_(host, shift, glassH, performance.now(), false, true, 0);
-  const c = { at: at, across: across, acrossT: across, onGlass: onGlass, drag: false, skip: false,
-    lo: band.top - glassH, hi: band.bot + glassH };
-  const pg = pagesRead_(host, id, c);
-  colTransition_(host, SLIDE_NONE, SLIDE_NONE, null);
-  colWrite_(host, (i - ti) * stepX, shift);
-  host.PLACED_P = at;
-  placePages_({ id: id, host: host }, c, pg);
-}
-
 /* ONE PLACEMENT PER FRAME, AND ANIMATION WINS § */
 let PLACE_WANT = null;      // { which, instant, id } — what has been asked for this turn
 let PLACED_ONCE = false;    // the very first placement runs now, not next frame
@@ -355,7 +223,6 @@ function pageHome_(id) {
 /* A NUMBER OR A LIST. The names were read by the header and there is no header, so `pagerNames` is only ever asked for its LENGTH -- and `PAGER.stuff` was § */
 /* ---------- AND COUNTED ONCE A HANDLER, NOT FIVE TIMES A FLICK § */
 let COUNT_HOLD = null;
-function countHold_(on) { COUNT_HOLD = on ? new Map() : null; }
 /* ---------- AND NOT BUILT AT ALL WHILE THE COLUMN IS THE ONE IT WAS § */
 const COUNT_MEMO = new Map();
 const pageCount = id => {
@@ -388,11 +255,8 @@ function afterSlide_(fn, key) {
     /* NOT INSIDE A SETTLE, AND NOT UNDER A FINGER. § */
     /* ---------- A FINGER DOWN AT ALL, NOT ONLY ONE THAT HAS CHOSEN ITS AXIS § */
     const now = performance.now();
-    const down = typeof SWIPE !== 'undefined' && !!SWIPE.live;
-    if (!down) AFTER_SLIDE_HELD = 0;
-    else if (!AFTER_SLIDE_HELD) AFTER_SLIDE_HELD = now;
-    const wait = SETTLE_ON && now < SETTLE_ON.until ? Math.ceil(SETTLE_ON.until - now) + 50
-               : down && now - AFTER_SLIDE_HELD < 1500 ? 100 : 0;
+    AFTER_SLIDE_HELD = 0;
+    const wait = 0;
     if (wait) { AFTER_SLIDE = setTimeout(run, wait); return; }
     AFTER_SLIDE_HELD = 0;
     const jobs = [...AFTER_SLIDE_JOBS.values()];
@@ -410,7 +274,7 @@ function afterSlide_(fn, key) {
       if (typeof aheadKick_ === 'function') aheadKick_();
     };
     next();
-  }, FLOW_LAYOUT ? 0 : 300);
+  }, 0);
 }
 
 /* AHEAD: WHAT A FLICK CAN REACH IS DRAWN BEFORE IT GETS THERE § */
@@ -453,9 +317,6 @@ function aheadPreOpen_() {
 function aheadGate_() {
   if (!(AHEAD.open || AHEAD.pre) || document.hidden || window.__aheadHold) return -1;
   const now = performance.now();
-  if (typeof SWIPE !== 'undefined' && SWIPE.live) return 100;
-  if (SETTLE_ON && now < SETTLE_ON.until) return SETTLE_ON.until - now + 20;
-  if (now < SLIDE_UNTIL) return SLIDE_UNTIL - now + 20;
   if (GLASS.at !== AT || PLACE_FRAME) return 50;
   if (AFTER_SLIDE || AFTER_SLIDE_JOBS.size || (typeof TOOLS_WAIT !== 'undefined' && TOOLS_WAIT.length)) return 150;
   /* SOMEBODY WRITING: a box focused anywhere — Find's answer box too, whatever `typingBox_` leaves out for
@@ -519,7 +380,6 @@ function aheadSlice_() {
   if (left || aheadStill_(job)) AHEAD.stuck.add(job.key);
   const log = window.__aheadLog;
   log.push({ key: job.key, ms: Math.round(ms * 10) / 10, t: Math.round(t0), quiet: Math.round(quiet),
-    live: !!(typeof SWIPE !== 'undefined' && SWIPE.live), settle: !!(SETTLE_ON && t0 < SETTLE_ON.until),
     after: !!(AFTER_SLIDE || AFTER_SLIDE_JOBS.size) });
   if (log.length > 200) log.splice(0, log.length - 200);
   aheadKick_(0);
@@ -584,7 +444,6 @@ function aheadPaint_(id) {
   if (F && typeof stuffOnGlass_ === 'function' && stuffOnGlass_(id)) {
     try { finderSoon_(F, () => { if ($(id + '-controls')) stuffBandFill_(); }); } catch (e) { /* a finder gone mid-draw keeps its old band */ }
   }
-  placeOne_(id);
   if (typeof paneWatch_ === 'function') paneWatch_(host);
   drawnScreen_(id);
 }
@@ -659,5 +518,5 @@ function goPageHere_(id, to, instant, F) {
   /* ---------- AFTER THE SLIDE, THE SCREEN'S OWN WORK: the reel being watched, the feed's camera started or put at rest (SCREEN_HOOKS). */
   if (H.slid) H.slid(n);
   paintPager(id);
-  if (FLOW_LAYOUT) flowShow_(id, n);
+  flowShow_(id, n);
 }

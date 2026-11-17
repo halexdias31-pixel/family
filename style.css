@@ -372,15 +372,6 @@ body {
 /* ONE FIELD AT EVERY WIDTH (owner, 8 Nov): the page colour runs edge to edge, so a wide window shows a centred column, never a side panel. */
 html { background: var(--bg); }
 
-/* ---------- THE WIDE WINDOW: THE COLUMN STOPS BEING A PHONE § */
-html.wide body { max-width: none; box-shadow: none; }
-
-/* THE FOCUS, SAID AS ON A PHONE. § */
-/* NOT on a pane that is dimmed rather than blurred (`.soft-dim`, a playing video), and not for
-   somebody who asked for less motion or transparency — there `.soft` is a dim and so is this. */
-@media (prefers-reduced-motion: no-preference) and (prefers-reduced-transparency: no-preference) {
-  html.wide #screen .page.soft:not(.soft-dim).wide-over > .pane { filter: blur(calc(var(--soft-blur, 2px) / 2)); }
-}
 
 .hidden { display: none !important; }
 
@@ -485,17 +476,6 @@ html.wide body { max-width: none; box-shadow: none; }
 
 /* THE SCROLLER LIVED HERE. § */
 
-/* Out of the compositor once it is well off the screen. § */
-.far { visibility: hidden; }
-
-/* ---------- THE CARDS NOT IN FRONT, SLIGHTLY OUT OF FOCUS § */
-.page.soft > .pane { filter: blur(var(--soft-blur, 2px)); }
-/* NO BLUR IN iOS WEBKIT (467): a blurred pane inside a moving column showed a magenta line across the screen mid-swipe; the dim reads the same. */
-@supports (-webkit-touch-callout: none) { .page.soft > .pane, html.wide #screen .page.soft:not(.soft-dim).wide-over > .pane { filter: none; opacity: .85; } }
-.page.soft.soft-dim > .pane { filter: none; opacity: .85; }
-@media (prefers-reduced-motion: reduce), (prefers-reduced-transparency: reduce) {
-  .page.soft > .pane { filter: none; opacity: .85; }
-}
 
 /* A SECTION is two lines across the full width with its name between them. Not a heading floating
    above a boxed group — the rules do the separating, so nothing has to be enclosed to be grouped. */

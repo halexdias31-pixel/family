@@ -73,7 +73,7 @@ function kpShiftPaint_() {
 /* ---------- A TAP BETWEEN KEYS IS THE NEAREST KEY § */
 function kpNear_(e) {
   const pad = e.currentTarget;
-  if (e.target !== pad || !e.detail || PRESS_MOVED || PRESS_SLIDING) return;
+  if (e.target !== pad || !e.detail || PRESS_MOVED) return;
   const ks = [...pad.querySelectorAll('.kp-key')].map(k => ({ k: k, r: k.getBoundingClientRect() }));
   const band = ks.filter(o => e.clientY >= o.r.top - 3 && e.clientY <= o.r.bottom + 3);
   let best = null, bd = Infinity;
@@ -140,7 +140,7 @@ document.addEventListener('click', e => {
   e.preventDefault();
   /* THE CLICK AFTER A HOLD, A DRAG OR A DOUBLE TAP (385) sets no caret: the gesture already put it where it belongs */
   if (Date.now() < KP_SWALLOW) { KP_SWALLOW = 0; return; }
-  if (PRESS_MOVED || PRESS_SLIDING) return;
+  if (PRESS_MOVED) return;
   const show = inp.parentNode && inp.parentNode.querySelector('.kp-show');
   let at = null;
   /* ONLY A TAP IN THE BOX THE PAD IS ALREADY ON places the caret; arriving lands at the end, so ⌫ deletes (454: a tap left of a wrong answer froze ⌫ at 0) */
@@ -253,16 +253,6 @@ document.addEventListener('focusout', e => {
 }));
 
 /* ---------- THE PAD IS THE KEYBOARD FOR EVERY BOX ON THE SITE (528) ---------- */
-/* The owner: "make it so the keyboard is the @family keyboard everywhere". Every other box stays a real field (the browser's caret, selection, paste, a laptop's keys); only the phone's keyboard is shut out. */
-const KP_TEXT_TYPE = /^(|text|search|email|url|tel|password|number)$/;
-/* WHAT TAKES TEXT: a textarea, a text-like input, an editable piece of words (words.js). An answer box is kpField_'s, locked in its markup, and never this. */
-function kpTakesText_(el) {
-  if (!el || el.nodeType !== 1 || !el.classList || el.classList.contains('kp-in')) return false;
-  if (el.tagName === 'TEXTAREA') return true;
-  if (el.tagName === 'INPUT') return KP_TEXT_TYPE.test(String(el.getAttribute('type') || '').trim().toLowerCase());
-  const ce = el.getAttribute('contenteditable');
-  return ce != null && /^(|true|plaintext-only)$/i.test(ce.trim());
-}
 const kpSite_ = el => !!(el && el.nodeType === 1 && el.hasAttribute('data-kpb') && !el.classList.contains('kp-in'));
 const kpIs_ = el => !!(el && el.classList && (el.classList.contains('kp-in') || kpSite_(el)));
 const kpField2_ = el => el.tagName === 'INPUT' || el.tagName === 'TEXTAREA';
@@ -277,19 +267,10 @@ function kpSiteCaps_(el) {
   if (/^(off|none)$/i.test(el.getAttribute('autocapitalize') || '')) return false;
   return el.tagName === 'TEXTAREA' || (el.tagName === 'INPUT' && /^(|text)$/i.test(el.getAttribute('type') || ''));
 }
-/* THE FACE IT OPENS ON, read from what the box says it is: a number, a phone number or digits written as its inputmode → 123; an address → letters with @ . /; else letters */
-function kpSiteLayer_(el) {
-  const ty = String(el.getAttribute('type') || '').toLowerCase(), im = String(el.getAttribute('inputmode') || '').toLowerCase();
-  if (/^(number|tel)$/.test(ty) || /^(numeric|decimal|tel)$/.test(im)) return 'num';
-  if (/^(email|url)$/.test(ty) || /^(email|url)$/.test(im)) return 'mail';
-  return 'abc';
-}
 /* THE ONE BINDING: the face read from the markup, then the phone's keyboard shut out. The only script in js/ that writes `inputmode`, and only ever "none" (check-flow). No `readonly`: a reader still hears a field. */
 function kpBind_(el) {
-  /* THE ONE SCROLLING PAGE (900): an ordinary box keeps the phone's own keyboard; the pad is the answer boxes' alone. */
-  if (FLOW_LAYOUT || !kpTakesText_(el) || el.hasAttribute('data-kpb')) return;
-  el.setAttribute('data-kpb', kpSiteLayer_(el));
-  el.setAttribute('inputmode', 'none');
+  /* THE ONE SCROLLING PAGE (900): an ordinary box keeps the phone's own keyboard; the pad is the answer boxes' alone, so nothing is bound. */
+  void el;
 }
 function kpBindIn_(root) {
   if (!root || root.nodeType !== 1) return;
@@ -324,8 +305,6 @@ document.addEventListener('click', e => {
   const t = kpBoxAt_(e.target);
   if (kpSite_(t) && document.activeElement === t && KP_AT !== t && kpWritable_(t)) kpOpen_(t);
 });
-/* A LAPTOP'S OWN KEYS TYPE STRAIGHT INTO THE FIELD; the box is kept above the pad as it grows */
-document.addEventListener('input', e => { if (KP_AT && e.target === KP_AT && kpSite_(KP_AT)) kpKeepClear_(KP_AT); });
 
 /* A KEY INTO A BOX ELSEWHERE: the browser's own edit where it has one (its `input` event, its undo, maxlength, a number box's rules), else the same splice by hand */
 const KP_PEND = new WeakMap();

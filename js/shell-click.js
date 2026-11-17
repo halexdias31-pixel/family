@@ -688,8 +688,6 @@ function clicks(on) {
 
 /* ---------- A SWIPE IS NOT A PRESS, AND THE BROWSER CANNOT TELL § */
 let PRESS_MOVED = false;
-/* AND A PRESS THAT BEGAN ON A CARD STILL SLIDING — see `SLIDE_UNTIL` above `placeGrid`. § */
-let PRESS_SLIDING = false;
 
 /* THE THING YOU PRESSED STAYS LIT UNTIL THE SCREEN HAS ANSWERED. § */
 let PRESSED = null;
@@ -722,11 +720,6 @@ function pressDone_() {
 addEventListener('pointerdown', e => {
   if (!e.isPrimary) return;
   if (e.pointerType === 'mouse' && e.buttons !== 1) return;
-  /* THE LAST 60ms ARE LET THROUGH — by then the card has all but arrived. § */
-  PRESS_SLIDING = performance.now() < SLIDE_UNTIL - 60
-    && !!(e.target && e.target.closest && e.target.closest('#screen'));
-  /* AND NOTHING IS LIT UNDER A FINGER THAT IS CATCHING A MOVING CARD rather than pressing it. */
-  if (PRESS_SLIDING) { pressClear_(); return; }
   pressMark_(e.target);
 }, { passive: true, capture: true });
 addEventListener('pointercancel', pressClear_, { passive: true });
@@ -739,24 +732,5 @@ addEventListener('pointerup', e => {
 }, { passive: true, capture: true });
 /* iOS PAINTS `:active` ONLY ON A PAGE WITH A TOUCH LISTENER; this one is the app's own promise of that, not the measuring tool's in find.js. */
 document.addEventListener('touchstart', () => {}, { passive: true });
-/* A FIELD ON THE CARD IN FRONT TAKING FOCUS, OR A SELECT OR A BOX CHANGED ON IT, HOLDS IT TOO — see `HOLD_AT`. § */
-document.addEventListener('focusin', e => holdHere_(e.target), true);
-document.addEventListener('change', e => holdHere_(e.target), true);
 
-/* ---------- ON A WIDE WINDOW, PRESSING A CARD BESIDE THE ONE IN FRONT BRINGS IT TO THE FRONT § */
-function wideHit_(x, y) {
-  if (!WIDE) return null;
-  const pages = document.querySelectorAll('#screen > .screen > .page');
-  for (const pg of pages) {
-    if (pg.classList.contains('on') || pg.style.visibility === 'hidden') continue;
-    const host = pg.parentElement;
-    if (!host || host.style.visibility === 'hidden' || host.style.opacity === '0') continue;
-    const r = pg.getBoundingClientRect();
-    if (x < r.left || x > r.right || y < r.top || y > r.bottom) continue;
-    const id = host.id.replace(/^s-/, '');
-    if (!TABS.some(t => t.id === id)) continue;
-    const pos = Array.prototype.indexOf.call(host.querySelectorAll(':scope > .page'), pg);
-    return { id: id, p: logIndex_(id, pos), el: pg };
-  }
-  return null;
-}
+

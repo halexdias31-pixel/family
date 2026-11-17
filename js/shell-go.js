@@ -73,7 +73,7 @@ function go(id, remember, instant) {
   }
   /* After wake, because a page holding a canvas has to exist and be sized before it is moved. § */
   oopsTry_('go:pager', () => paintPager(AT, instant));
-  if (FLOW_LAYOUT) oopsTry_('go:flow', () => { topbarPaint_(); if (was && was !== AT) $('s-' + AT).scrollIntoView({ block: 'start' }); });
+  oopsTry_('go:flow', () => { topbarPaint_(); if (was && was !== AT) $('s-' + AT).scrollIntoView({ block: 'start' }); });
 
 }
 /* DRAW THE SCREEN EITHER SIDE, so a sideways drag reveals one rather than an empty rectangle. § */
@@ -110,7 +110,7 @@ function bootGlass_() {
   if (!PRE_PAYLOAD.size || typeof GLASS === 'undefined') return;
   const ti = TABS.findIndex(t => t.id === AT);
   if (ti < 0) return;
-  const k = WIDE ? Math.max(1, GLASS.reach || 1) : 1;
+  const k = 1;
   TABS.forEach((t, i) => {
     if (t.id === AT || Math.abs(i - ti) > k || !PRE_PAYLOAD.has(t.id) || !STALE[t.id]) return;
     paint(t.id);
@@ -246,8 +246,7 @@ function paint(id, fresh, o) {
   el.PG_SIG = null;
 
   /* ---------- AND THE COLUMN IS CENTRED ON WHAT WAS JUST DRAWN § */
-  if (typeof PLACED_ONCE !== 'undefined' && PLACED_ONCE && !(o && o.ahead)
-      && !(typeof SWIPE !== 'undefined' && SWIPE.live && SWIPE.axis)) {
+  if (typeof PLACED_ONCE !== 'undefined' && PLACED_ONCE && !(o && o.ahead)) {
     placeCells('y', true, 0, id);
   }
 
