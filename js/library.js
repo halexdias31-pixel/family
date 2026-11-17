@@ -239,7 +239,7 @@ function libTbItem_(s) {
 }
 function libChapterBody_(r) {
   const list = v => libS(v).split('|').map(s => s.trim()).filter(Boolean).map(libTbItem_);
-  return { words: list(r.words), formulas: list(r.formulas),
+  return { idea: libS(r.idea).trim(), words: list(r.words), formulas: list(r.formulas),
            points: list(r.points).map(p => ({ text: (p.name ? p.name + ' — ' : '') + p.text, higher: p.higher })),
            diagram: libS(r.diagram), libHas: libS(r.lib_has).trim() };
 }
