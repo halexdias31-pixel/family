@@ -128,23 +128,10 @@ function registerMail_(email, grownUp, first, regHandle, token, asParent) {
   /* THE ACCOUNT'S OWN ADDRESS GETS `linkMail_`, which `resendLink` sends again word for word. */
   if (email) linkMail_({ first_name: first, email: email, handle: regHandle || '' }, token, asParent);
   else mailOut_({ to: grownUp, name: BRAND_NAME,
-        subject: first + ' has made an @family. account',
-        /* THE FIRST NAME, as every email names a child now (the owner, 10 Oct: *"dont show
-           children's last name"*) — the grown-up knows the rest, and `mailOut_` would take it out. */
-        body: 'Hello,\n\n' + first + ' has made an account on @family. and gave this address as '
-            + 'their grown-up\'s, because they have no email of their own.\n\n'
-            + 'Their account works already. If that is right, open this link to confirm your address'
-            + ' (it also puts them on your @family. parent account if you have one and have confirmed it):\n\n'
-            + SITE_URL + '?verify=' + token + '\n\n'
-            + 'They sign in with their handle, ' + said + ', and the PIN they chose. '
-            /* "ONCE YOU HAVE OPENED IT": § */
-            + 'Once you have opened the link, "Forgotten your PIN?" sends a new one to this address '
-            + 'if they forget it.\n\n'
-            /* "AND HAVE CONFIRMED IT" since `verifyEmail` stopped linking a PENDING parent row. */
-            + 'If you have an @family. parent account on this address and have confirmed it, opening the '
-            + 'link also puts ' + first + ' on it. If you do not know who this is, ignore this email and '
-            + 'nothing happens.'
-            + '\n\n— @family.' });
+        /* THE FIRST NAME, as every email names a child now (the owner, 10 Oct) — `mailOut_` would take the rest out. */
+        subject: text_('mail-child-made-subject', { first: first, brand: BRAND_NAME }),
+        body: text_('mail-child-made-body', { first: first, brand: BRAND_NAME, handle: said, link: SITE_URL + '?verify=' + token })
+            + '\n\n' + text_('mail-sign-off', { brand: BRAND_NAME }) });
 }
 
 /* confirming an email address --------------------------------------------------------- The token is the proof: § */
@@ -398,28 +385,17 @@ function postVerifyLogin_(body, action, began) {
 
 /* THE EMAIL `postForgotPin_` sends: to the account's own address with a sign-in link, or to the owner to pass on. */
 function forgotPinMail_(own, tos, r, byHandle, handleSaid, fresh, linkKey) {
+  const link = SITE_URL + '?signin=' + linkKey;
   return own
     ? { to: own, name: BRAND_NAME,
-        subject: 'Your new ' + BRAND_NAME + ' PIN',
-        body: 'Somebody asked for a new PIN on your ' + BRAND_NAME + ' account'
-            + (byHandle && handleSaid ? ', by your handle (' + handleSaid + ')' : '') + '.\n\n'
-            + 'Your new PIN is ' + fresh + '\n\n'
-            + 'Sign in with ' + (handleSaid ? 'your handle, ' + handleSaid + ', or your email' : 'your email')
-            + ' and this PIN. It works for a day; your old PIN keeps working too until you use '
-            + 'this one. Change it under Settings → Signing in.\n\n'
-            + 'Or open this link to sign in with it straight away — it works even if wrong PINs have '
-            + 'locked the account:\n\n' + SITE_URL + '?signin=' + linkKey + '\n\n'
-            + 'If this was not you, do nothing — your PIN has not changed, and whoever asked '
-            + 'cannot read this email.' }
+        subject: text_('mail-pin-subject', { brand: BRAND_NAME }),
+        body: text_('mail-pin-body', { brand: BRAND_NAME, pin: fresh, link: link,
+          byHandle: byHandle && handleSaid ? text_('mail-pin-by-handle', { handle: handleSaid }) : '',
+          signInWith: handleSaid ? text_('mail-pin-with-handle', { handle: handleSaid }) : text_('mail-pin-with-email') }) }
     : { to: tos.join(','), name: BRAND_NAME,
-        subject: 'A forgotten PIN: ' + (handleSaid || S(r.first_name) || 'a learner'),
-        body: (S(r.first_name) || 'A learner') + (handleSaid ? ' (' + handleSaid + ')' : '')
-            + ' has no email of their own and asked for a new PIN.\n\nThe new PIN is ' + fresh + '\n\n'
-            + 'Pass it on to them. They sign in with their handle and this PIN; it works for a day, and their '
-            + 'old PIN keeps working until they use this one. "New PIN" on their card in the people column '
-            + 'gives a fresh one at once.\n\nOr open this link on their device to sign them in as '
-            + (handleSaid || S(r.first_name) || 'them') + ' straight away:\n\n' + SITE_URL + '?signin=' + linkKey + '\n\n'
-            + 'If they did not ask, do nothing — nothing has changed.' };
+        subject: text_('mail-pin-kid-subject', { who: handleSaid || S(r.first_name) || 'a learner' }),
+        body: text_('mail-pin-kid-body', { first: S(r.first_name) || 'A learner', handleSaid: handleSaid ? ' (' + handleSaid + ')' : '',
+          pin: fresh, who: handleSaid || S(r.first_name) || 'them', link: link }) };
 }
 
 /* a forgotten PIN -------------------------------------------------------------------------- ASKED FOR AS § */

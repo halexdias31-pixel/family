@@ -691,22 +691,6 @@ function inboxPart_(b) {
   if (code === 200 || code === 201) { cache.remove(key); return { success: true, done: true, id: S((JSON.parse(put.getContentText()) || {}).id) }; }
   throw new Error('Drive refused that part (' + code + ').');
 }
-/* THE NOTE'S LINE: "Files: Claude inbox/Edexcel 2023 (42 PDFs) — <link>", then the first names. The folder stays private. */
-function inboxLine_(files) {
-  if (!files || typeof files !== 'object') return '';
-  const batch = inboxName_(files.batch);
-  if (!batch) return '';
-  const names = (Array.isArray(files.names) ? files.names : []).map(x => S(x).slice(0, 160)).filter(Boolean);
-  const count = Math.max(names.length, Math.floor(Number(files.count)) || 0);
-  if (!count) return '';
-  let link = '';
-  try { const f = inboxFolderAt_([batch], false); if (f) link = f.getUrl(); } catch (err) { link = ''; }
-  const pdf = names.length && names.every(n => /\.pdf$/i.test(n));
-  const what = count + ' ' + (pdf ? 'PDF' : 'file') + (count === 1 ? '' : 's');
-  const shown = names.slice(0, 20);
-  return 'Files: ' + CLAUDE_INBOX + '/' + batch + ' (' + what + ')' + (link ? ' — ' + link : '')
-    + (shown.length ? '\n  ' + shown.join('\n  ') + (count > shown.length ? '\n  … and ' + (count - shown.length) + ' more' : '') : '');
-}
 /* THE ADDRESSED IDS (498): data/notes-done.json from the site, then GitHub; null when neither answers, so nothing is guessed. */
 function claudeNotesDoneIds_() {
   const urls = [S(SITE_URL).replace(/\/*$/, '/') + CLAUDE_NOTES_DONE_FILE];

@@ -85,7 +85,20 @@ function build() {
     + parts.join('\n') + '\n';
 }
 const body = build();
+/* THE ONE SETTINGS FILE (data/settings/settings.json), as SHARED_SETTINGS at the top of the first file each side loads. */
+const SHARED_RE = /\/\* SHARED:BEGIN[\s\S]*?\/\* SHARED:END \*\//;
+function sharedInto(file) {
+  const j = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/settings/settings.json'), 'utf8'));
+  delete j._about;
+  const block = '/* SHARED:BEGIN — data/settings/settings.json, written by `node tools/cards-gen.js --write`; edit the json, never this. */\n'
+    + 'const SHARED_SETTINGS = ' + JSON.stringify(j) + ';\n/* SHARED:END */';
+  let src = fs.readFileSync(path.join(ROOT, file), 'utf8');
+  src = SHARED_RE.test(src) ? src.replace(SHARED_RE, () => block) : src.replace(/^[^\n]*\n/, m => m + block + '\n');
+  fs.writeFileSync(path.join(ROOT, file), src);
+}
 if (process.argv.includes('--write')) {
+  sharedInto('js/core.js');
+  sharedInto('backend/constants.gs');
   fs.writeFileSync(OUT, body);
   console.log('cards-gen: backend/cards-gen.gs written (' + TAKE.reduce((n, t) => n + t[1].length, 0) + ' names)');
 } else console.log('usage: node tools/cards-gen.js --write');

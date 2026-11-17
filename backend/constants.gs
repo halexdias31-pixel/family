@@ -1,4 +1,7 @@
 /* @family. — 00_constants.gs (1 of 8) THE TOP-LEVEL VALUES IN THE ORIGINAL ORDER (jobs, migrations and ACTION_ACCESS follow in access.gs). § */
+/* SHARED:BEGIN — data/settings/settings.json, written by `node tools/cards-gen.js --write`; edit the json, never this. */
+const SHARED_SETTINGS = {"days":[["m","Monday"],["tu","Tuesday"],["w","Wednesday"],["th","Thursday"],["f","Friday"],["sa","Saturday"],["su","Sunday"]],"hours":[9,10,11,12,13,14,15,16,17,18,19,20],"roleAliases":{"administrator":"admin","teacher":"tutor","parent":"client","guardian":"client","kid":"student","child":"student","pupil":"student"},"submissionsPerPost":25,"answerTextMax":20000};
+/* SHARED:END */
 
 /* @family. — backend (hermes) Rewritten against the eleven-tab database. § */
 
@@ -136,7 +139,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-11-16-card-1";
+const BACKEND_VERSION = "2026-11-16-ssot-2";
 /* THE SWITCH (owner's go, after the copy is checked): 'tabs' reads and writes each kind's own Ledger tab (kinds.json `sheet.tab`); */
 /* 'items' reads and writes the one items tab and the one events tab. The action `item` (items.gs) is the same either way. */
 const ITEM_STORE = 'tabs';
@@ -678,8 +681,6 @@ const AI_SPENT_MAX_S = 21600;
 /* Every tunable, with a plain-English note and a starting value. § */
 /* FAVOURITE LINKS (509): how many one person keeps, and how long a title and an address may be. */
 const FAV_LINKS_MAX = 10, FAV_TITLE_MAX = 80, FAV_URL_MAX = 2000;
-/* THE REWRITE COACH (509): its daily cap when the config cell is blank, and the longest text it reads. */
-const REWRITE_PER_DAY = 10, REWRITE_TEXT_MAX = 6000, REWRITE_MINE_MAX = 6000, REWRITE_FACTS_MAX = 12;
 const CONFIG_DEFAULTS = [
   // M, w and open_rate are gone: a tutor now sets one charge-out rate, the minimum wage is fixed
   // in the code, and the open rate is fixed too. Leaving them here as editable numbers would have
@@ -701,7 +702,6 @@ const CONFIG_DEFAULTS = [
   ['gemini_model', AI_MODEL, 'the Gemini model the assistant and the Rewrite coach ask. Blank (or the old gemini-flash-latest) = ' + AI_MODEL + '. The API KEY never goes here: it is GEMINI_API_KEY in Script Properties'],
   ['gemini_model_fallback', AI_MODEL_FALLBACK, 'the model asked when the first one is full, out of reach or retired (Gemini 429, 5xx or 404). Blank = ' + AI_MODEL_FALLBACK + '. none = no second model'],
   ['assistant_questions_per_day', 5, 'how many questions one person may ask Daive, the assistant in Messages in a day. Blank = 5. 0 switches it off'],
-  ['rewrite_coach_per_day', REWRITE_PER_DAY, 'how many times one person may ask the Rewrite coach (Tools, admin only for now) in a day; reading a text and checking the writing count one each. Blank = ' + REWRITE_PER_DAY + '. 0 switches it off'],
   /* HOW HARD GEMINI THINKS BEFORE IT ANSWERS (12 Oct) -- the note over `AI_THINKING_LEVELS` above, and docs/history/350. § */
   ['ai_thinking', '', 'how hard Gemini thinks before it answers: minimal, low, medium or high (each slower and deeper than the last), or none for the model\'s own default. A model that does not offer a level gets the next one up. Blank = the lowest each model offers ('
     + [AI_MODEL, AI_MODEL_FALLBACK].map(m => (AI_THINKING_LEVELS[m] || ["its own default"])[0] + ' on ' + m).join(', ') + ') -- the fastest'],
@@ -772,12 +772,8 @@ const RULE_IDS = ['mag-items', 'speed-long', 'hear-lang', 'tap-44', 'search-icon
 const RULES_LOCKED = ['hear-lang', 'keep-basket', 'admin-cols', 'people-no-merge', 'items-no-move', 'form-save-row'];
 const RULES_HIST_MAX = 20;
 /* THE WEEKLY PARENT EMAIL'S WORDS (491): config rows an admin edits on the Site column's preview; blank is this default. {child} {parent} {count} {span} are filled in. */
-const DIGEST_WORDS = {
-  digest_subject: '{child}’s week: {count}',
-  digest_greeting: 'Hi {parent},',
-  digest_intro: 'Here’s what {child} worked on this week: {count} ({span}).',
-  digest_footer: 'Don’t want these any more? Just reply and say so.',
-};
+/* THE FOUR LINES' DEFAULTS ARE data/settings/words.json `digest_*`; a config row of the same key overrides one. */
+const DIGEST_WORD_KEYS = ['digest_subject', 'digest_greeting', 'digest_intro', 'digest_footer'];
 const DIGEST_WORD_MAX = 300;
 const LAYOUT_MAX = 8000;
 /* THE SITE'S OWN WORDS (497): one config row of {key: text} an admin types in place over the code's; a piece's longest, and the whole row's. */
@@ -787,9 +783,7 @@ const WORDS_MAX = 40000;
 /* NOTES FOR CLAUDE (484): the plain-text file a session reads by exact title, in the library imports folder, and the longest note. */
 const CLAUDE_NOTES_FILE = 'Notes for Claude';
 /* THE IDS A SESSION HAS ADDRESSED (498), ids only, appended by Claude and read on an admin's open. */
-/* A SUGGESTION'S PICTURE (498): the phone shrinks it to about 300 KB; this refuses anything far past that. */
-const SUGGEST_PIC_MAX = 600 * 1024;
-const CLAUDE_NOTES_DONE_FILE = 'data/notes-done.json';
+const CLAUDE_NOTES_DONE_FILE ='data/notes-done.json';
 /* VIRTUALLY UNLIMITED (562, owner note 119): a sheet cell holds 50,000 characters, so the note stops just short of it. */
 const CLAUDE_NOTE_MAX = 40000;
 
@@ -914,7 +908,7 @@ const ON_ = v => S(v) === '' || TRUE_(v);
 
 /* ---------- AVAILABILITY ---------------------------------------------------------------------
    One cell, "m13,m14,tu09", replacing 77 TRUE/FALSE columns. */
-const AVAIL_DAYS  = [['m','Mon'], ['tu','Tue'], ['w','Wed'], ['th','Thu'], ['f','Fri'], ['sa','Sat'], ['su','Sun']];
+const AVAIL_DAYS  = SHARED_SETTINGS.days.map(([code, day]) => [code, day.slice(0, 3)]);
 /* ---------- THREE LIBRARY CARDS, AS NINE FORM FIELDS OVER ONE CELL § */
 const LIBRARY_CARDS = 5;
 const LIBRARY_FIELDS = (() => {
@@ -984,7 +978,7 @@ const DOB_FIELD = /^dob_[dmy]$/;
 /* ---------- AND THE COLUMNS THAT ARE EDITED AS A DATE PICKER RATHER THAN AS TEXT § */
 const DATE_COLS = ['exam_small_date', 'exam_big_date'];
 /* ---------- NINE TILL NINE, THE SAME SPAN AS THE BOOKING GRID (owner, 11 Nov; codes extended, never renumbered) § */
-const AVAIL_HOURS = [9,10,11,12,13,14,15,16,17,18,19,20];
+const AVAIL_HOURS = SHARED_SETTINGS.hours;
 
 /* ---------- PEOPLE --------------------------------------------------------------------------- */
 const ROLE_LABEL = { admin: 'Admin', tutor: 'Tutor', client: 'Client', student: 'Student' };
@@ -994,14 +988,11 @@ const ROLE_TITLES = {
   'head of boxing': 'Head of Boxing',
 };
 
-/* ONE READER FOR BOTH MAPS, because the roster prints a person's whole role list and the card prints one of them, and two lookups written separately are two § */
-const roleLabel_ = x => ROLE_LABEL[x] || ROLE_TITLES[norm(x)] || x;
 
 /* ---------- THE ROLES A PERSON MAY TICK FOR THEMSELVES, AND THE ONE THEY MAY NOT § */
 const SELF_ROLES = ['tutor', 'client', 'student'];
 /* ONE LIST OF ROLE WORDS (batch G): sent by doGet as `roleAliases`, read by the site's `roleOf`; core.js keeps a copy only until it lands. */
-const ROLE_ALIASES = { administrator: 'admin', teacher: 'tutor', parent: 'client', guardian: 'client',
-                       kid: 'student', child: 'student', pupil: 'student' };
+const ROLE_ALIASES = SHARED_SETTINGS.roleAliases;
 /* THE SAME WORDS, LESS ANY THAT NAMES A ROLE NOBODY MAY TICK FOR THEMSELVES (admin). */
 const SELF_ROLE_ALIASES = Object.fromEntries(Object.entries(ROLE_ALIASES).filter(([, to]) => SELF_ROLES.indexOf(to) !== -1));
 
@@ -1037,7 +1028,7 @@ const POSTS_FOLDER = '1piJQHYQ2h3I_f3ullEmDcNn_RGti4VVw';
 const HOUSE_REACTIONS = ['👍', '❤️', '😂', '😮', '👏', '🎉'];
 
 /* ---------- HOW MANY SUBMISSIONS ONE `submitAnswer` MAY CARRY § */
-const SUBMISSIONS_PER_POST = 25;
+const SUBMISSIONS_PER_POST = SHARED_SETTINGS.submissionsPerPost;
 /* ---------- PHOTOS OF THE WORKING (501): three pages, each shrunk on the phone to about 500 KB (base64 is 4/3 of that, and some room) */
 const WORKING_PHOTOS_MAX = 3, WORKING_PHOTO_CHARS = 760000, WORKING_ROWS_MAX = 10;
 const WORKING_LINK = /^https:\/\/drive\.google\.com\/file\/d\/([\w-]{10,})\/view$/;
@@ -1079,7 +1070,6 @@ const REPORT_REASONS = {
 const REPORT_STATUSES = ['open', 'confirmed', 'dismissed', 'fixed', 'not a problem'];
 /* WHAT CAN BE REPORTED: any card kind or widget — a lower-case word, as the phone's `x.kind`. */
 const REPORT_KIND_RE = /^[a-z]{2,20}$/;
-const REPORT_NOTE_MAX = 300;
 const REPORT_FIELD_MAX = 120;
 /* THE OPEN ONES AN ADMIN IS SENT AT ONCE, newest first; the count is of all of them. */
 const REPORTS_LIST_MAX = 100;
@@ -1095,7 +1085,7 @@ const APPLY_DOC_MAX = 8 * 1048576;
 const APPLY_QUAL_DOCS_MAX = 3;
 
 /* ---------- HOW MUCH OF AN ANSWER THE SHEET KEEPS — SCHEMA.answers AND SCHEMA.submissions § */
-const ANSWER_TEXT_MAX = 20000;
+const ANSWER_TEXT_MAX = SHARED_SETTINGS.answerTextMax;
 const ANSWER_PAD_MAX = 40000;
 const ANSWERS_PER_POST = 25;
 
@@ -1424,12 +1414,6 @@ const BM_EFFECT = {
   Pay:      { mine: BM.PAYING,  theirs: BM.AGREED, clear: ''     }
 };
 
-/* ---------- PAGE COUNTS § */
-const PAGES_MAX_BYTES = 20 * 1024 * 1024;
-/* A CEILING, not a target. § */
-const PAGES_PER_RUN = 400;
-/* Four minutes of a six-minute allowance. § */
-const PAGES_TIME_BUDGET = 4 * 60 * 1000;
 
 /* ---------- COLUMNS (generated) ---------- */
 /* GENERATED by tools/columns_gs.js from data/settings/columns.json and LAYOUT_COL (730): re-run it, never edit by hand. */

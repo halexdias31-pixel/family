@@ -1,7 +1,7 @@
 /* @family. — 30_booking.gs (4 of 8) THE BOOKING MACHINE, and everything that decides who is in a session. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const BOOKING_VERSION = "2026-11-16-card-1";
+const BOOKING_VERSION = "2026-11-16-ssot-2";
 
 
 /* WHEN THE BUSINESS ACTUALLY OPERATES within an interval. § */
@@ -1044,10 +1044,8 @@ function authWrong_(t, r) {
   } catch (err) { /* script properties are best-effort here; the next run tries again */ }
   /* Told on the FIRST rung only — an email per guess is a mailbox nobody reads. */
   if (step !== 0) return;
-  const said = 'Somebody has tried the @family. PIN for '
-    + (S(r.handle) ? '@' + S(r.handle) : personDisplayName(r)) + ' ' + n + ' times and got it wrong.\n\n'
-    + 'Signing in is held up for a minute, and for longer on each wrong answer after that.\n';
-  try { notify(personDisplayName(r), 'Too many sign-in attempts', said + 'If that was not you, reply here.', 'security'); }
+  const said = text_('mail-attempts-said', { brand: BRAND_NAME, who: S(r.handle) ? '@' + S(r.handle) : personDisplayName(r), n: n });
+  try { notify(personDisplayName(r), text_('mail-attempts-subject'), said + text_('mail-attempts-own-tail'), 'security'); }
   catch (err) { /* a failed warning must not block the sign-in throttle */ }
   /* ---------- AND A CHILD WITH NO ADDRESS HAS A GROWN-UP WHO IS TOLD § */
   if (S(r.email)) return;
@@ -1055,9 +1053,8 @@ function authWrong_(t, r) {
   const tos = authGrownUps_(r);
   if (!tos.length) return;
   try {
-    mailOut_({ to: tos.join(','), name: BRAND_NAME, subject: 'Too many sign-in attempts',
-      body: said + 'If that was ' + (S(r.first_name) || 'them') + ', "New PIN" on their card on your '
-          + 'account gives them a new one at once. If it was not, tell us.' });
+    mailOut_({ to: tos.join(','), name: BRAND_NAME, subject: text_('mail-attempts-subject'),
+      body: text_('mail-attempts-kid-body', { said: said, first: S(r.first_name) || 'them' }) });
   } catch (err) { /* a failed courtesy note must not undo the work already done */ }
 }
 
@@ -1271,15 +1268,9 @@ function authMoveFind_(key) {
    mistake, and the account's name and handle are not theirs to be told. Throws as `MailApp` does. */
 function moveMail_(to, key) {
   mailOut_({ to: S(to), name: BRAND_NAME,
-    subject: 'Confirm your new @family. email address',
-    body: 'Hello,\n\nSomebody signed in to an @family. account has asked to use this email address for it.'
-        + '\n\nIf that was you, open this link on a phone or computer where you are signed in to that account:'
-        + '\n\n' + SITE_URL + '?verify=' + key
-        + '\n\nUntil it is opened, the account keeps its old address — sign in with that, or with your handle.'
-        + ' The link works for ' + AUTH.MOVE_DAYS + ' days.'
-        + '\n\nIf it was not you, ignore this email. Nothing changes, and the link does nothing for anybody '
-        + 'who is not signed in to that account.'
-        + '\n\n— @family.' });
+    subject: text_('mail-move-subject', { brand: BRAND_NAME }),
+    body: text_('mail-move-body', { brand: BRAND_NAME, link: SITE_URL + '?verify=' + key, days: AUTH.MOVE_DAYS })
+        + '\n\n' + text_('mail-sign-off', { brand: BRAND_NAME }) });
 }
 
 /* ---------- PERMISSIONS (generated) ---------- */

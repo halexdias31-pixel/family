@@ -14869,7 +14869,7 @@ function answersForget_() {
 /* @family. — submit.js EVERY ANSWER SENT IS AN EVENT, AND WHAT A CHILD SEES IS THE LATEST ONE. § */
 
 /* THE SERVER'S CEILINGS, said again, because the phone must not send what will be refused for ever — `SUBMISSIONS_PER_POST` and `ANSWER_TEXT_MAX` in § */
-const SUB_PER_POST = 25, SUB_ANSWER_MAX = 20000, SUB_TWICE_MS = 1000;
+const SUB_PER_POST = SHARED_SETTINGS.submissionsPerPost, SUB_ANSWER_MAX = SHARED_SETTINGS.answerTextMax, SUB_TWICE_MS = 1000;
 const SUB_LAST = new Map();   // who|key -> the last press made on this page, for the double-tap guard (508)
 /* WHAT A `keepalive` REQUEST MAY CARRY — a browser refuses one over 64 KB (answers.js says the same). */
 const SUB_KEEPALIVE_MAX = 60000;
@@ -17367,12 +17367,10 @@ let ASKED_JOB = '';
 
 
 /* The day codes the availability grids are written in. `m16` is Monday at four. */
-const SLOT_DAYS = [['m', 'Monday'], ['tu', 'Tuesday'], ['w', 'Wednesday'], ['th', 'Thursday'],
-                   ['f', 'Friday'], ['sa', 'Saturday'], ['su', 'Sunday']];
+const SLOT_DAYS = SHARED_SETTINGS.days;
 
 /* ---------- NINE TILL NINE, WRITTEN ONCE (owner, 11 Nov: every grid, one span; the last cell is 20:00–21:00) § */
-const SLOT_HOURS = [];
-for (let h = 9; h <= 20; h++) SLOT_HOURS.push(h);
+const SLOT_HOURS = SHARED_SETTINGS.hours;
 
 /* ---------- MORNING, AFTERNOON, EVENING — THE WAITING LIST'S OWN COLUMNS § */
 /* ---------- `head` IS THE COLUMN LABEL AND `name` IS THE WORD THAT GETS STORED § */
