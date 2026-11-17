@@ -339,7 +339,7 @@ let FAVS = (() => {
 function adoptFavourites_() {
   if (!DATA || !DATA.favourites) return;
   FAVS = new Set(DATA.favourites.map(String));
-  keep_.put('favs', JSON.stringify([...FAVS]));
+  keep_.put('favs', JSON.stringify([...FAVS])); if (typeof finderForgetFound_ === 'function') finderForgetFound_();
 }
 
 const isFav = k => FAVS.has(String(k));
@@ -347,7 +347,7 @@ const isFav = k => FAVS.has(String(k));
 function toggleFav(k, kind) {
   const key = String(k);
   if (FAVS.has(key)) FAVS.delete(key); else FAVS.add(key);
-  keep_.put('favs', JSON.stringify([...FAVS]));
+  keep_.put('favs', JSON.stringify([...FAVS])); if (typeof finderForgetFound_ === 'function') finderForgetFound_();
   /* SAVED QUIETLY. A star is not worth a toast or a spinner — and if the save fails the star is
      still right on this device, which is the part that matters in the moment. */
   if (USER) {
@@ -364,7 +364,7 @@ function toggleFav(k, kind) {
     }).catch(err => {
       /* PUT THE STAR BACK. `.catch(() => {})` was the other half of the disguise: § */
       if (FAVS.has(key)) FAVS.delete(key); else FAVS.add(key);
-      keep_.put('favs', JSON.stringify([...FAVS]));
+      keep_.put('favs', JSON.stringify([...FAVS])); if (typeof finderForgetFound_ === 'function') finderForgetFound_();
       if (typeof repaint === 'function') { try { repaint(); } catch (e) { oops_(e, 'find:toggleFav') } }
       toast(why_(err));
     });

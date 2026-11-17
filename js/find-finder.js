@@ -411,6 +411,8 @@ const FACET_READ = {
   /* HOW YOU DID (463): the viewer's own latest press on a question; an ordinary facet (signed out it is blank, so it cannot split). */
   myAttempt: { of: x => myAttemptOf_(x) },
   myResult: { of: x => myResultOf_(x) },
+  /* WHAT YOU STARRED (17 Nov): the Saved column is this tag now; blank signed out or with nothing saved, so it cannot split. */
+  mySaved: { of: x => typeof FAVS === 'undefined' || !USER || !FAVS.size || !x || !x.key ? '' : FAVS.has(String(x.key)) ? 'Saved' : 'Not saved' },
 };
 
 

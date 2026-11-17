@@ -287,9 +287,11 @@ function findSettings_(type) {
 /* A SWITCHED-OFF COLUMN THAT MOVED INTO FIND (screens-moved.json): Settings for its account type, or its kind's door. */
 function screenGone_(id) {
   const to = String(screenMoved_()[id] || '').split(':');
-  if (to[0] !== 'find' || !to[1] || TABS.some(t => t.id === id)) return false;
+  if (to[0] !== 'find' || TABS.some(t => t.id === id)) return false;
   if (to[1] === 'Settings') { findSettings_(to[2] || ''); return true; }
-  /* `find:<door>:<field>=<value>` opens the door with that tag already chosen (find-only.json): Profiles › Apprentice. */
-  const pick = /^(\w+)=(.+)$/.exec(to.slice(2).join(':')), filters = [{ field: DOOR_FIELD, value: to[1] }].concat(pick ? [{ field: pick[1], value: pick[2] }] : []);
+  /* `find:<door>:<field>=<value>` opens the door with that tag already chosen: Profiles › Apprentice; `find::<field>=<value>` the tag alone (Saved). */
+  const pick = /^(\w+)=(.+)$/.exec(to.slice(2).join(':'));
+  if (!to[1] && !pick) return false;
+  const filters = (to[1] ? [{ field: DOOR_FIELD, value: to[1] }] : []).concat(pick ? [{ field: pick[1], value: pick[2] }] : []);
   finderSet_(FINDERS.stuff, { filters, show: true }); go('stuff'); return true;
 }
