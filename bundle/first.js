@@ -2166,8 +2166,14 @@ if (had === undefined) pool.set(v, v); else r[k] = had;
 });
 return rows;
 }
+async function libStatus_() {
+try { const f = await dataFile_('data/question-status.json', { wait: LIB_ANSWER, what: 'the question status file' }); return (f && f.status) || {}; } catch (e) { return {}; }
+}
+const qStatus_ = x => libS((x && x.row && x.row.q_status) || (x && x.q_status));
+const qOffered_ = x => qStatus_(x) !== 'broken' || (typeof myRole_ === 'function' && myRole_() === 'admin');
 async function libraryRowsAsk_() {
 let rows = null;
+const status = libStatus_();
 try {
 const early = window.BOOT_LIB || null;
 window.BOOT_LIB = null;
@@ -2175,6 +2181,7 @@ rows = await libFile_(early, 'data/questions.json', 'the question file');
 } catch (e) {
 LIBRARY_FAILED = why_(e);
 }
+if (Array.isArray(rows)) { const st = await status; rows.forEach(r => { const v = r && st[r.row_id]; if (v) r.q_status = v; }); }
 LIBRARY_ROWS = Array.isArray(rows) ? libIntern_(libJoinPaper_(rows, LIB_JOIN())) : [];
 if (Array.isArray(rows)) LIBRARY_FAILED = '';
 return LIBRARY_ROWS;

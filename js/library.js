@@ -101,8 +101,18 @@ function libIntern_(rows) {
   });
   return rows;
 }
+/* WHAT THE SITE CAN MARK (owner, 17 Nov): data/question-status.json, written by tools/validate-questions.js — each question's
+   `ok` (marked here), `tutor` (level-marked: the tutor marks it) or `broken` (not offered to a student; an admin sees it "not ready").
+   Stamped on each row as `q_status`; a file that did not come hides nothing. */
+async function libStatus_() {
+  try { const f = await dataFile_('data/question-status.json', { wait: LIB_ANSWER, what: 'the question status file' }); return (f && f.status) || {}; } catch (e) { return {}; }
+}
+const qStatus_ = x => libS((x && x.row && x.row.q_status) || (x && x.q_status));
+/* ONE TEST, read wherever questions are listed for a person: a broken question is an admin's alone */
+const qOffered_ = x => qStatus_(x) !== 'broken' || (typeof myRole_ === 'function' && myRole_() === 'admin');
 async function libraryRowsAsk_() {
   let rows = null;
+  const status = libStatus_();
   /* ---------- A FILE THAT DID NOT ARRIVE IS NOT AN EMPTY LIBRARY § */
   try {
     const early = window.BOOT_LIB || null;
@@ -113,6 +123,7 @@ async function libraryRowsAsk_() {
   }
   /* AN EMPTY ARRAY IS A REAL ANSWER and is left alone — the file legitimately parses to `[]` on a
      fresh clone. Only a throw or a refusal sets the flag, so "empty" and "absent" stay different. */
+  if (Array.isArray(rows)) { const st = await status; rows.forEach(r => { const v = r && st[r.row_id]; if (v) r.q_status = v; }); }
   LIBRARY_ROWS = Array.isArray(rows) ? libIntern_(libJoinPaper_(rows, LIB_JOIN())) : [];
   if (Array.isArray(rows)) LIBRARY_FAILED = '';
   return LIBRARY_ROWS;

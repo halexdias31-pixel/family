@@ -620,7 +620,8 @@ function questionItemsNow_(all) {
          "Paper 31: Statistics — June 2022" is a list nobody can read down. */
       name: 'Q' + r.q + qPartName_(r.part),
       key: 'q:' + r.id,
-      sub: r.name || '',
+      /* NOT READY (tools/validate-questions.js `broken`): only an admin is offered it (`qOffered_`), and it says so */
+      sub: (typeof qStatus_ === 'function' && qStatus_(r) === 'broken' ? 'Not ready \u00b7 ' : '') + (r.name || ''),
       subject: r.subject || '',
       /* THE SAME DERIVATION `allTopics` DID, and the only one it did: a grade is a band value when
          the band is a grade, and blank when it is a stage. Two ladders, one column. */
