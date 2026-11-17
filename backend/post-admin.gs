@@ -256,25 +256,6 @@ function postPinShow_(body, action, began) {
   return jsonOut(pin ? { success: true, pin } : { success: true, pin: '', said: 'No PIN' });
 }
 
-/* ---------- THE ADMIN'S LAYOUT (462, 463): the site-wide order of widgets, one `layout` row on config ---------- */
-/* NO RESET (477): the layout an admin makes is THE layout; nothing empties it. */
-function postLayoutSave_(body, action, began) {
-  const me = findPerson('', S(body.personId));
-  if (!me || !rankAtLeast_(me, 'admin')) return jsonOut({ error: 'Not authorised.' });
-  const raw = body.layout;
-  if (typeof raw === 'string' && raw.length > LAYOUT_MAX) return jsonOut({ error: 'That layout is too big to keep.' });
-  const clean = layoutClean_(raw);
-  if (!clean) return jsonOut({ error: 'That layout could not be read. Nothing was saved.' });
-  const value = JSON.stringify(clean);
-  const t = read(TAB.config);
-  if (!t.sheet) return jsonOut({ error: 'There is no config tab to keep the layout on.' });
-  const row = t.rows.find(r => norm(r.key) === LAYOUT_KEY);
-  if (row) setCell(t, row, 'value', value);
-  else addRow(t, { key: LAYOUT_KEY, value: value, what_it_does: 'The site-wide order of widgets and which are deleted, set by each widget\'s admin tiles (462, 463). Empty: the code\'s own order.' });
-  clearCache();
-  return jsonOut({ success: true, layout: clean });
-}
-
 /* ---------- EDIT WORDS IN PLACE (497): `set: {key: text}` and `reset: [key]` merged into config's one `words` row ---------- */
 function postWordsSave_(body, action, began) {
   const me = findPerson('', S(body.personId));

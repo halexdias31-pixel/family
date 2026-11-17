@@ -1,7 +1,7 @@
 /* @family. — 30_booking.gs (4 of 8) THE BOOKING MACHINE, and everything that decides who is in a session. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const BOOKING_VERSION = "2026-11-17-qdata-1";
+const BOOKING_VERSION = "2026-11-17-tidy-1";
 
 
 /* WHEN THE BUSINESS ACTUALLY OPERATES within an interval. § */
@@ -853,7 +853,7 @@ function closeFinishedJobs() {
   const t = read(TAB.jobs);
   const today = new Date(); today.setHours(0, 0, 0, 0);
   t.rows.forEach(j => {
-    const dates = sessionDatesOf(j).map(parseDate).filter(Boolean).sort((a, b) => a - b);
+    const dates = sessionDatesOf(j).map(sheetDate).filter(Boolean).sort((a, b) => a - b);
     if (!dates.length) return;
     if (dates[dates.length - 1] < today && norm(j.status) !== 'ended') {
       setCell(t, j, 'status', 'ended');
@@ -1313,7 +1313,6 @@ const ITEM_PERMISSIONS = {
   'card:read': ['admin'],
   'content:save': ['admin'],
   'favourite:save': ['member', 'child', 'admin'],
-  'layout:save': ['admin'],
   'library:read': ['anyone', 'member', 'child', 'admin'],
   'listed:save': ['admin'],
   'message:read': ['member', 'child', 'admin'],
@@ -1356,7 +1355,6 @@ function itemDoors_() {
     'favourite:save': { self: postFavourite_ },
     'answer:save': { self: postSaveAnswers_ },
     'answer:read': { self: postMyAnswers_ },
-    'layout:save': { self: postLayoutSave_ },
     'words:save': { self: postWordsSave_ },
     'profile:read': { self: postMyProfile_, other: postLensOpen_, logged: true },
     'notify:save': { self: postSetNotify_ },

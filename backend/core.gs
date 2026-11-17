@@ -721,28 +721,16 @@ function jsonRaw_(body) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-/** DD/MM/YYYY from a Date object, a date string, or anything else. */
+/** DD/MM/YYYY: the site's `fmtDmy_` (cards-gen.gs) with the year written whole; anything unreadable as itself. */
 function fmtDate(v) {
-  if (v instanceof Date && !isNaN(v)) {
-    return ('0' + v.getDate()).slice(-2) + '/' + ('0' + (v.getMonth() + 1)).slice(-2)
-         + '/' + v.getFullYear();
-  }
+  const full = (x, y) => fmtDmy_(x).slice(0, 6) + y;
+  if (v instanceof Date && !isNaN(v)) return full(v, v.getFullYear());
   const s = S(v);
   if (!s) return '';
   const m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
-  if (m) return ('0'+m[1]).slice(-2) + '/' + ('0'+m[2]).slice(-2) + '/' +
-                (m[3].length === 2 ? '20' + m[3] : m[3]);
+  if (m) return full(s, m[3].length === 2 ? '20' + m[3] : m[3]);
   const d = new Date(s);
-  return isNaN(d) ? s : fmtDate(d);
-}
-
-function parseDate(v) {
-  if (v instanceof Date) return isNaN(v) ? null : v;
-  const s = S(v);
-  const m = s.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
-  if (m) { const y = m[3].length === 2 ? '20' + m[3] : m[3]; return new Date(+y, +m[2]-1, +m[1]); }
-  const d = new Date(s);
-  return isNaN(d) ? null : d;
+  return isNaN(d) ? s : full(d, d.getFullYear());
 }
 
 /** "09:00" from a Date, "9:00", "4:30pm" or "9": the site's `fmtTime_` (cards-gen.gs); a sheet's number is an hour. */
@@ -765,8 +753,8 @@ function config() {
 function configPublic_(cfg) {
   const out = {};
   Object.keys(cfg || {}).forEach(k => {
-    /* `layout` is sent once, parsed, as `layout` (462) — not a second time as a string here. */
-    if (CONFIG_PRIVATE.indexOf(norm(k)) === -1 && norm(k) !== LAYOUT_KEY && norm(k) !== WORDS_KEY) out[k] = cfg[k];
+    /* A stale `layout` row (the columns, gone 17 Nov) stays private. */
+    if (CONFIG_PRIVATE.indexOf(norm(k)) === -1 && norm(k) !== 'layout' && norm(k) !== WORDS_KEY) out[k] = cfg[k];
   });
   return out;
 }
@@ -782,7 +770,7 @@ function policyContacts_(cfg) {
 function rulesClean_(v) {
   let o = v;
   if (typeof o === 'string') {
-    if (!o.trim() || o.length > LAYOUT_MAX) return null;
+    if (!o.trim() || o.length > RULES_MAX) return null;
     try { o = JSON.parse(o); } catch (e) { return null; }
   }
   if (!o || typeof o !== 'object' || Array.isArray(o)) return null;
@@ -793,68 +781,6 @@ function rulesClean_(v) {
   const hist = (Array.isArray(o.hist) ? o.hist : []).filter(h => h && typeof h === 'object' && free(h.id) && ok(h.was) && ok(h.to))
     .slice(-RULES_HIST_MAX).map(h => ({ id: String(h.id), was: h.was, to: h.to, at: String(h.at || '').slice(0, 40) }));
   return { set: set, hist: hist };
-}
-
-/* ---------- THE SITE'S LAYOUT (462): one JSON value an admin arranges, checked whole § */
-/* Shapes only, never which ids exist: the site knows its columns and widgets and ignores the rest. null when broken. */
-function layoutClean_(v) {
-  let o = v;
-  if (typeof o === 'string') {
-    if (!o.trim() || o.length > LAYOUT_MAX) return null;
-    try { o = JSON.parse(o); } catch (e) { return null; }
-  }
-  if (!o || typeof o !== 'object' || Array.isArray(o)) return null;
-  /* `#` joins a split card's piece to its card (466). */
-  const ID = /^[A-Za-z0-9_:.#-]{1,64}$/;
-  const ids = (a, max) => (Array.isArray(a) ? a : []).map(x => String(x)).filter(x => ID.test(x))
-    .filter((x, i, all) => all.indexOf(x) === i).slice(0, max);
-  /* WIDGETS AND DELETED ONLY (463): a 462 value's `columns` and `hidden` are cleaned out. */
-  const out = { v: 2, widgets: {}, deleted: ids(o.deleted, 300) };
-  /* ONE-OFF (489): before v2 the festive card's delete left the camera looking deleted; a v1 layout gets the camera back and the festive card deleted. */
-  if ((Number(o.v) || 1) < 2 && out.deleted.indexOf('item:feed:camera') !== -1) {
-    out.deleted = out.deleted.filter(x => x !== 'item:feed:camera');
-    if (out.deleted.indexOf('item:feed:festive') === -1) out.deleted.push('item:feed:festive');
-  }
-  const w = o.widgets && typeof o.widgets === 'object' && !Array.isArray(o.widgets) ? o.widgets : {};
-  Object.keys(w).filter(k => ID.test(k)).slice(0, 40).forEach(k => { out.widgets[k] = ids(w[k], 300); });
-  /* SPLIT CARDS (464): the ids of the settings and Business cards drawn a field a card; presentation only. */
-  const split = ids(o.split, 200).filter(x => /^(set|biz):/.test(x));
-  if (split.length) out.split = split;
-  /* CARDS ON THE RIGHT-HAND COLUMNS (465): `cards: {col: [ids]}` and `start: {col: id}`, the right-hand columns only. */
-  /* AN ADMIN'S OWN COLUMNS (466): `custom: [{id: 'custom-N', admin?|left?|first?}]`, at most twelve; no name since 710, a saved `title` dropped. */
-  const custom = (Array.isArray(o.custom) ? o.custom : []).filter(x => x && typeof x === 'object' && /^custom-\d{1,3}$/.test(String(x.id)))
-    .map(x => { const o2 = { id: String(x.id) }; if (x.admin === true) o2.admin = true; else if (x['left'] === true) o2.left = true; else if (x['first'] === true) o2.first = true; return o2; })
-    .filter((x, i, all) => all.findIndex(y => y.id === x.id) === i).slice(0, 12);
-  if (custom.length) out.custom = custom;
-  /* ANY UNIT ON ANY COLUMN (710): a widget column's `cards` list is its mixed order. */
-  /* THE COLUMNS FROM constants.gs's fixed block (730; columns.json went 17 Nov). */
-  const COLS = LAYOUT_CARD_COLS.concat(LAYOUT_WIDGET_COLS).concat(custom.map(x => x.id));
-  const c = o.cards && typeof o.cards === 'object' && !Array.isArray(o.cards) ? o.cards : {};
-  const cards = {};
-  Object.keys(c).filter(k => COLS.indexOf(k) !== -1).forEach(k => { const l = ids(c[k], 300); if (l.length) cards[k] = l; });
-  if (Object.keys(cards).length) out.cards = cards;
-  const s = o.start && typeof o.start === 'object' && !Array.isArray(o.start) ? o.start : {};
-  const start = {};
-  /* A WIDGET COLUMN'S START HERE TOO (489). */
-  Object.keys(s).filter(k => COLS.indexOf(k) !== -1 && typeof s[k] === 'string' && ID.test(s[k])).forEach(k => { start[k] = s[k]; });
-  if (Object.keys(start).length) out.start = start;
-  /* A COLUMN ORDER (730): `order: [screen ids]` laid over TAB_ORDER, each a column the site has or an admin's own. */
-  const order = ids(o.order, 60).filter(x => LAYOUT_SCREENS.indexOf(x) !== -1 || custom.some(y => y.id === x));
-  if (order.length > 1) out.order = order;
-  /* MERGED CARDS (480): `merged: [[top, …, bottom]]`, two to twelve ids each, an id in one group only, a hundred groups at most. */
-  const used = {};
-  const merged = (Array.isArray(o.merged) ? o.merged : []).filter(g => Array.isArray(g))
-    .map(g => ids(g, 12).filter(x => !used[x])).filter(g => g.length > 1 && g.every(x => (used[x] = 1))).slice(0, 100);
-  if (merged.length) out.merged = merged;
-  /* FRONT DOOR (489): `front: {col, id}`, where everybody lands on opening the app; one at a time. */
-  const fr = o.front && typeof o.front === 'object' && !Array.isArray(o.front) ? o.front : null;
-  if (fr && ID.test(String(fr.col || '')) && ID.test(String(fr.id || ''))) out.front = { col: String(fr.col), id: String(fr.id) };
-  /* WHO SEES WHAT (497): `seen: {id: level}`, a narrowing over the code's own gate; the site asks it, the code's gate still wins. */
-  const sn = o.seen && typeof o.seen === 'object' && !Array.isArray(o.seen) ? o.seen : {}, seen = {};
-  Object.keys(sn).filter(k => ID.test(k) && ['out', 'in', 'student', 'client', 'staff', 'admin'].indexOf(sn[k]) !== -1).slice(0, 300).forEach(k => { seen[k] = sn[k]; });
-  if (Object.keys(seen).length) out.seen = seen;
-  if (JSON.stringify(out).length > LAYOUT_MAX) return null;
-  return out;
 }
 
 /* ---------- THE SITE'S OWN WORDS (497): `{key: text}`, plain text only — the site escapes it when drawn ---------- */
@@ -1291,8 +1217,5 @@ function sheetDate(v) {
  */
 function fmtDateTime(v) {
   const d = sheetDate(v);
-  if (!d) return '';
-  const p = n => String(n).padStart(2, '0');
-  return p(d.getDate()) + '/' + p(d.getMonth() + 1) + '/' + String(d.getFullYear()).slice(-2)
-       + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+  return d ? fmtDmy_(d) + ' ' + fmtTime_(d) : '';
 }

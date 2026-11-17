@@ -6,9 +6,8 @@ Kept so nothing is lost. "Coming soon" widgets on the site are the other half of
 something switched off on purpose (data/settings/tiers.json, history 860) and waiting to be done properly.
 
 ## Nothing is lost — the safety net
-- **Every feature's code is still in the repo.** Switched off, never deleted: screens by `active` in
-  data/settings/columns.json, widgets by data/settings/tiers.json, settings by `SETTINGS_OFF` (js/me.js),
-  layout editing by `LAYOUT_EDIT` (js/layout.js), Find 2 by `res` in columns.json, Find's front cards by `HEALTH_IN_FIND`.
+- **Switched off, not deleted:** widgets by data/settings/tiers.json, settings by `SETTINGS_OFF` (js/me.js),
+  Find's front cards by `HEALTH_IN_FIND`. The columns and the layout editor went on 17 Nov (Find only).
 - **The whole site as it was with every feature on** is commit `389d843` (4 Nov 2026, before the shutdown).
   Any file can be brought back from it with `git checkout 389d843 -- <file>`; the earlier full site before
   Tools/Games moved into Find is `a2397ac`.
@@ -18,7 +17,7 @@ something switched off on purpose (data/settings/tiers.json, history 860) and wa
 - Apple-like: minimal, stable, few features done well. **Find is the core; everything else is secondary.**
 - Organise first, then optimise round by round against the Stability and Logic health scores.
 - Reorganising should take minutes: one-line edits in tiers.json and widgets-in-find.json.
-- Everything browsable lives in Find; only Feed, Messages, Book, the Basket and a few fixed screens stay columns.
+- Everything lives in Find, on one scrolling page (17 Nov).
 
 ## In progress / next
 1. **Settings into Find** under "Settings", by For: Student, Parent, Apprentice, Staff, Admin, Business, Web (stage 3, started).
@@ -69,11 +68,8 @@ something switched off on purpose (data/settings/tiers.json, history 860) and wa
 - H. Favicon = an image from the owner's Drive (owner to say which).
 
 ## Paused, to come back to
-- **One scrolling page instead of sideways columns** (owner agreed it's the long-term move, 4 Nov): the browser's own
-  scrolling, cards loaded as they scroll in, the @family keypad only in maths answer boxes. Its own careful job, with
-  the question pages checked first; not while things are settling.
 - **Fast Find that fits a phone** (805 was reverted: an iPhone tab ran out of memory on Practice). Needs a phone-memory
-  check, then a lighter index (typed arrays, lazy columns, only the visible window).
+  check, then a lighter index (typed arrays, lazy fields, only the visible window).
 - **First-moment check** — every screen with the later files held back (the finderPageCount_ crash on 4 Nov).
 - **Instant return visits** — keep the last screen on the device (owner said yes): no secrets, tied to the account and
   build, cleared on sign-out, writes wait for fresh data.
@@ -89,7 +85,7 @@ e-ink pictures improved (device needs `tools/epaper-verse/build.sh`).
 
 ## Secondary, still on, not polished
 Spotlight, Apprentice screens, placeholder cards (Brownie points, Roadmap, Code of conduct), Logic health, Stability,
-the layout editor (whole columns move, insert a column, any widget anywhere), Mechanics (Clio only), Chemistry, Themes.
+Mechanics (Clio only), Chemistry, Themes.
 
 ## Content and data
 - Mechanics: Renault Clio III only, 68 parts, example part numbers and approximate prices — owner to confirm engine and prices.

@@ -218,7 +218,7 @@ addEventListener('error', e => {
   console.error('[window]', (e && e.error) || msg);
   /* A banner rather than the whole screen. Whatever threw, everything else still works — and if it
      did not, the person can see that for themselves without being told. */
-  banner('Something went wrong: ' + msg
+  banner(text_('something-went-wrong') + msg
     + (/^Script error/i.test(msg)
         /* The browser is withholding it, which it does for any script it treats as cross-origin —
            and opening the app from a file:// path makes every script cross-origin. */
