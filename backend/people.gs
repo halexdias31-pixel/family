@@ -4,22 +4,22 @@
 /* A person may hold SEVERAL roles — a parent who also tutors, an admin who teaches. § */
 function rolesOf(row) {
   const list = S(row && row.role).split(/[,\n]/).map(x => norm(x)).filter(Boolean);
-  return list.length ? list : ['client'];
+  return list.length ? list : [ROLES_.default];
 }
 function hasRole(row, want) { return rolesOf(row).indexOf(norm(want)) !== -1; }
 /* WHO ARE YOU (who-1): one row, ONE QUESTION; twin of `may_` (data-who.js). No row = a guest. */
 /* `admin` admin-only; `prices` never a child (398); else PERMISSIONS (permissions.json). */
 function whoMay_(row, what) {
-  if (what === 'admin') return !!row && hasRole(row, 'admin');
-  if (what === 'prices') return !isChild_(row);
-  const role = !row ? 'anyone' : whoMay_(row, 'admin') ? 'admin' : isChild_(row) ? 'child' : 'member';
+  const role = !row ? ROLES_.guest.tier : rankTier_(rankOf(row));
+  if (what === 'admin') return role === 'admin';
+  if (what === 'prices') return role !== 'child';
   return Object.prototype.hasOwnProperty.call(PERMISSIONS, what) && PERMISSIONS[what].indexOf(role) !== -1;
 }
 /* Which role the site should treat as their MAIN one when it has to pick just one — the most
    privileged they hold, so an admin who is also a parent gets the admin view. */
 function mainRole(row) {
   const r = rolesOf(row);
-  return ['admin', 'tutor', 'client', 'student'].find(x => r.indexOf(x) !== -1) || 'client';
+  return ROLE_IDS.find(x => r.indexOf(x) !== -1) || ROLES_.default;
 }
 
 /* The other half of that cell: § */
@@ -42,24 +42,21 @@ function tutorPending_(row) {
 
 /* ---------- ONE RANK PER ACCOUNT (400): Student < Client < Staff < Admin, each holding everything below ----------
    Read from the `role` cell, so old rows keep working (docs/accounts.md). A pending tutor keeps their other rank. */
-const RANKS = ['student', 'client', 'staff', 'admin'];
+const RANKS = ROLES_.ranks;
 function rankOf(row) {
   if (!row) return '';
-  const held = rolesOf(row).map(roleWord_);
-  if (held.indexOf('admin') !== -1) return 'admin';
-  if (held.indexOf('tutor') !== -1 && norm(row.listed) !== norm(LISTED_PENDING)) return 'staff';
-  if (held.indexOf('client') !== -1) return 'client';
-  if (held.indexOf('student') !== -1) return 'student';
-  return 'client';
+  const held = rolesOf(row).map(roleWord_), pending = norm(row.listed) === norm(LISTED_PENDING);
+  const id = ROLE_IDS.find(x => held.indexOf(x) !== -1 && !(ROLES_.ids[x].pending && pending)) || ROLES_.default;
+  return ROLES_.ids[id].rank;
 }
 /* AT LEAST THIS RANK — the one comparison every gate asks. */
 function rankAtLeast_(row, want) { return RANKS.indexOf(rankOf(row)) >= RANKS.indexOf(want) && !!row; }
 
 /* ---------- WHAT A PERSON IS ALLOWED TO ACT AS, WHICH IS NOT ALWAYS WHAT THE CELL SAYS § */
 function actingRole_(row) {
-  const r = rolesOf(row).filter(x => !(x === 'tutor' && tutorPending_(row)));
-  if (!r.length) return 'student';
-  return ['admin', 'tutor', 'client', 'student'].find(x => r.indexOf(x) !== -1) || 'client';
+  const r = rolesOf(row).filter(x => !(ROLES_.ids[x] && ROLES_.ids[x].pending && tutorPending_(row)));
+  if (!r.length) return ROLE_IDS[ROLE_IDS.length - 1];
+  return ROLE_IDS.find(x => r.indexOf(x) !== -1) || ROLES_.default;
 }
 
 /* ---------- THE SESSIONS SOMEBODY IS STILL SITTING IN AS A TUTOR, OR AS A CLIENT § */
@@ -803,8 +800,7 @@ const KID_PRICE_VARS = ['M', 's', 'c', 'B', 'b', 'a', 'open_tutor_rate', 'waitli
   'travel_on_client', 'card_fee_pct', 'card_fee_fixed', 'materials_markup'];
 /* WHAT A CHILD IS TOLD INSTEAD OF A PRICE, by a refused action and by the phone (`KID_ASK_PARENT`, core.js). */
 const KID_ASK_PARENT = 'A parent books and pays for sessions — ask yours to book this one. Nothing was booked.';
-/* THE ACTIONS THAT SPEND MONEY. A child's phone has no price to send, so these are a parent's. */
-const KID_MONEY_ACTIONS = ['createJob', 'createCheckout', 'finalizePayment', 'joinWaitlist'];
+/* THE ACTIONS THAT SPEND MONEY are those whose actions.json `roles` name member and not child (`permChildDenied_`). */
 const KID_MONEY_MOVES = ['request', 'pay'];
 
 function netViewerIsChild_() { return !!(NET_VIEWER_ && NET_VIEWER_.child); }

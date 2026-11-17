@@ -99,9 +99,8 @@ const body = build();
 const SHARED_RE = /\/\* SHARED:BEGIN[\s\S]*?\/\* SHARED:END \*\//;
 function sharedInto(file) {
   const j = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/settings/settings.json'), 'utf8'));
-  delete j._about;
   const block = '/* SHARED:BEGIN — data/settings/settings.json, written by `node tools/cards-gen.js --write`; edit the json, never this. */\n'
-    + 'const SHARED_SETTINGS = ' + JSON.stringify(j) + ';\n/* SHARED:END */';
+    + 'const SHARED_SETTINGS = ' + JSON.stringify(j, (k, v) => (k === '_about' ? undefined : v)) + ';\n/* SHARED:END */';
   let src = fs.readFileSync(path.join(ROOT, file), 'utf8');
   src = SHARED_RE.test(src) ? src.replace(SHARED_RE, () => block) : src.replace(/^[^\n]*\n/, m => m + block + '\n');
   fs.writeFileSync(path.join(ROOT, file), src);

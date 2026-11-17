@@ -637,7 +637,7 @@ function postSuggest_(body, action, began) {
 
 /* ---------- FILES FOR CLAUDE (515): one part of one file into Drive "Claude inbox". Admin only, at the gate; nothing goes in the sheet. */
 function postSuggestUpload_(body, action, began) {
-  try { return jsonOut(inboxPart_(body)); } catch (err) { return jsonOut({ error: S(err && err.message || err) }); }
+  return jsonTry_(() => inboxPart_(body));
 }
 
 /* ---------- THE SUGGESTIONS WAITING, FOR THE BUSINESS COLUMN (494). Admin only, at the gate. ---------- */

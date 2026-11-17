@@ -574,7 +574,7 @@ function postSetMyRoles_(body, action, began) {
     return jsonOut({ error: 'The people tab has no `role` column. Open the site once as an admin — nothing was saved.' });
   }
   const asked = (Array.isArray(body.roles) ? body.roles : S(body.roles).split(','))
-    .map(x => norm(x)).filter(Boolean).map(x => SELF_ROLE_ALIASES[x] || ROLE_FROM_APP[x] || x);
+    .map(x => norm(x)).filter(Boolean).map(x => selfRoleAlias_(x) || ROLE_FROM_APP[x] || x);
   const stray = asked.filter(x => SELF_ROLES.indexOf(x) === -1);
   if (stray.indexOf('admin') !== -1) {
     return jsonOut({ error: 'Admin is given by @family., not chosen here. Nothing was changed.' });
