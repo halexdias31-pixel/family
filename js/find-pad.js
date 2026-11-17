@@ -64,6 +64,18 @@ function padAid_(g) {
     ? line('qpad-rad', `M${c[0]} ${c[1]}L${Math.round(g.tip[0])} ${Math.round(g.tip[1])}`)
     : '';
   aid.innerHTML = pin + rad + halo;
+  padLenSay_(g);
+}
+/* THE COMPASS'S WIDTH AND THE RULER'S LENGTH, SAID IN CENTIMETRES on a figure drawn to scale (`data-cm`, `padCm_`):
+   a pupil sets a compass to 4 cm off the figure's own scale, as off a ruler on paper (owner's register, 17 Nov). */
+function padLenSay_(g) {
+  const pad = g.ink && g.ink.closest('.qpad'), out = pad && pad.querySelector('.qpad-len');
+  if (!out) return;
+  const cm = Number(pad.getAttribute('data-cm')) || 0;
+  const st = PAD_ST || [];
+  const px = g.tool === 'compass' ? g.r : g.tool === 'ruler' && st.length === 4 ? Math.hypot((st[2] - st[0]) * g.sx, (st[3] - st[1]) * g.sy) : 0;
+  const say = cm && px >= padMinOf_(g) ? (g.tool === 'compass' ? 'radius ' : 'length ') + (px / g.sx / cm).toFixed(1) + ' cm' : '';
+  if (out.textContent !== say) out.textContent = say;
 }
 
 /* A FINGER IS THE PEN, AND TWO FINGERS, A PALM OR A THUMB ARE NOT (docs/history/338). § */
@@ -578,6 +590,8 @@ function padLiveOff_(g) {
   g.ink.querySelectorAll('[data-live]').forEach(p => p.remove());
   const aid = g.ink.querySelector('.qpad-aid');
   if (aid) aid.innerHTML = '';
+  const len = g.ink.closest('.qpad') && g.ink.closest('.qpad').querySelector('.qpad-len');
+  if (len) len.textContent = '';
   padLoupeOff_(true);
 }
 function padLivePath_(g, d) {

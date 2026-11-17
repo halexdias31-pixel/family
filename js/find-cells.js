@@ -680,6 +680,15 @@ function padRoom_(svg) {
   return svg.replace(m[0], `viewBox="${x0} ${y} ${w} ${H}"`);
 }
 
+/* A FIGURE DRAWN TO SCALE SAYS SO: `data-cm` on its <svg> is its own units to one centimetre. Returned in the pad's
+   ink units (340 across), so the compass and the ruler can say a length in centimetres (`padLenSay_`); 0 when unsaid. */
+function padCm_(svg) {
+  const s = String(svg || ''), head = (/^\s*<svg\b[^>]*>/.exec(s) || [''])[0];
+  const cm = Number((/\sdata-cm\s*=\s*["']\s*([\d.]+)/.exec(head) || [])[1]);
+  const w = Number((/viewBox\s*=\s*["']\s*[-\d.eE+]+[\s,]+[-\d.eE+]+[\s,]+([\d.eE+]+)/.exec(head) || [])[1]) || 340;
+  return cm > 0 && isFinite(cm) ? Math.round(cm * 340 / w * 1e4) / 1e4 : 0;
+}
+
 function padWrap_(x, svg, foot) {
   /* THE PICTURE AS THE LIBRARY HAS IT names the parts that share it; the roomier copy is only what is drawn */
   const src = svg;
@@ -701,9 +710,10 @@ function padWrap_(x, svg, foot) {
   const ink = cardBlock_({ type: 'drawing', node: { el: 'svg', a: { class: 'qpad-ink', 'data-noswipe': '1', viewBox: '0 0 340 340', preserveAspectRatio: 'none', 'aria-hidden': 'true' },
     kids: [under.length ? padInk_('qpad-was', was, ka) : null, padInk_('qpad-g', marks, ka), { el: 'g', a: { class: 'qpad-aid' } }].filter(Boolean) } });
   /* the zoom is two numbers set as the pad is drawn, not a look a class could hold */
-  return fcG_('div', 'qpad' + (pen ? ' is-drawing' : '') + (zm ? ' is-zoomed' : ''), { 'data-k': k, 'data-aspect': String(ka),
+  const cm = padCm_(src);
+  return fcG_('div', 'qpad' + (pen ? ' is-drawing' : '') + (zm ? ' is-zoomed' : ''), { 'data-k': k, 'data-aspect': String(ka), 'data-cm': cm ? String(cm) : null,
     'data-under': under.length ? under.map(padKey_).join(' ') : null, style: zm ? '--pad-zoom: ' + padZoomVar_(zm) + '; --pad-zoom-s: ' + zm.s.toFixed(4) : null },
-    fcG_('div', 'qpad-art', null, svg + ink + (padProtOn_(k) ? padProtHtml_(k) : ''))
+    fcG_('div', 'qpad-art', null, svg + ink + (padProtOn_(k) ? padProtHtml_(k) : '') + (cm ? fcG_('span', 'qpad-len', { 'aria-live': 'polite' }, '') : ''))
     + (foot === 'row' ? '' : padBar_(k))
     /* WHERE THE MARKS GO, AND ONLY A `pad:` KEY GOES ANYWHERE: § */
     + fcG_('p', 'qpad-note', { 'data-kept-k': k }, '', padNoteSay_(k)));

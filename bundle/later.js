@@ -5264,6 +5264,15 @@ function padRoom_(svg) {
   return svg.replace(m[0], `viewBox="${x0} ${y} ${w} ${H}"`);
 }
 
+/* A FIGURE DRAWN TO SCALE SAYS SO: `data-cm` on its <svg> is its own units to one centimetre. Returned in the pad's
+   ink units (340 across), so the compass and the ruler can say a length in centimetres (`padLenSay_`); 0 when unsaid. */
+function padCm_(svg) {
+  const s = String(svg || ''), head = (/^\s*<svg\b[^>]*>/.exec(s) || [''])[0];
+  const cm = Number((/\sdata-cm\s*=\s*["']\s*([\d.]+)/.exec(head) || [])[1]);
+  const w = Number((/viewBox\s*=\s*["']\s*[-\d.eE+]+[\s,]+[-\d.eE+]+[\s,]+([\d.eE+]+)/.exec(head) || [])[1]) || 340;
+  return cm > 0 && isFinite(cm) ? Math.round(cm * 340 / w * 1e4) / 1e4 : 0;
+}
+
 function padWrap_(x, svg, foot) {
   /* THE PICTURE AS THE LIBRARY HAS IT names the parts that share it; the roomier copy is only what is drawn */
   const src = svg;
@@ -5285,9 +5294,10 @@ function padWrap_(x, svg, foot) {
   const ink = cardBlock_({ type: 'drawing', node: { el: 'svg', a: { class: 'qpad-ink', 'data-noswipe': '1', viewBox: '0 0 340 340', preserveAspectRatio: 'none', 'aria-hidden': 'true' },
     kids: [under.length ? padInk_('qpad-was', was, ka) : null, padInk_('qpad-g', marks, ka), { el: 'g', a: { class: 'qpad-aid' } }].filter(Boolean) } });
   /* the zoom is two numbers set as the pad is drawn, not a look a class could hold */
-  return fcG_('div', 'qpad' + (pen ? ' is-drawing' : '') + (zm ? ' is-zoomed' : ''), { 'data-k': k, 'data-aspect': String(ka),
+  const cm = padCm_(src);
+  return fcG_('div', 'qpad' + (pen ? ' is-drawing' : '') + (zm ? ' is-zoomed' : ''), { 'data-k': k, 'data-aspect': String(ka), 'data-cm': cm ? String(cm) : null,
     'data-under': under.length ? under.map(padKey_).join(' ') : null, style: zm ? '--pad-zoom: ' + padZoomVar_(zm) + '; --pad-zoom-s: ' + zm.s.toFixed(4) : null },
-    fcG_('div', 'qpad-art', null, svg + ink + (padProtOn_(k) ? padProtHtml_(k) : ''))
+    fcG_('div', 'qpad-art', null, svg + ink + (padProtOn_(k) ? padProtHtml_(k) : '') + (cm ? fcG_('span', 'qpad-len', { 'aria-live': 'polite' }, '') : ''))
     + (foot === 'row' ? '' : padBar_(k))
     /* WHERE THE MARKS GO, AND ONLY A `pad:` KEY GOES ANYWHERE: § */
     + fcG_('p', 'qpad-note', { 'data-kept-k': k }, '', padNoteSay_(k)));
@@ -6181,6 +6191,18 @@ function padAid_(g) {
     ? line('qpad-rad', `M${c[0]} ${c[1]}L${Math.round(g.tip[0])} ${Math.round(g.tip[1])}`)
     : '';
   aid.innerHTML = pin + rad + halo;
+  padLenSay_(g);
+}
+/* THE COMPASS'S WIDTH AND THE RULER'S LENGTH, SAID IN CENTIMETRES on a figure drawn to scale (`data-cm`, `padCm_`):
+   a pupil sets a compass to 4 cm off the figure's own scale, as off a ruler on paper (owner's register, 17 Nov). */
+function padLenSay_(g) {
+  const pad = g.ink && g.ink.closest('.qpad'), out = pad && pad.querySelector('.qpad-len');
+  if (!out) return;
+  const cm = Number(pad.getAttribute('data-cm')) || 0;
+  const st = PAD_ST || [];
+  const px = g.tool === 'compass' ? g.r : g.tool === 'ruler' && st.length === 4 ? Math.hypot((st[2] - st[0]) * g.sx, (st[3] - st[1]) * g.sy) : 0;
+  const say = cm && px >= padMinOf_(g) ? (g.tool === 'compass' ? 'radius ' : 'length ') + (px / g.sx / cm).toFixed(1) + ' cm' : '';
+  if (out.textContent !== say) out.textContent = say;
 }
 
 /* A FINGER IS THE PEN, AND TWO FINGERS, A PALM OR A THUMB ARE NOT (docs/history/338). § */
@@ -6695,6 +6717,8 @@ function padLiveOff_(g) {
   g.ink.querySelectorAll('[data-live]').forEach(p => p.remove());
   const aid = g.ink.querySelector('.qpad-aid');
   if (aid) aid.innerHTML = '';
+  const len = g.ink.closest('.qpad') && g.ink.closest('.qpad').querySelector('.qpad-len');
+  if (len) len.textContent = '';
   padLoupeOff_(true);
 }
 function padLivePath_(g, d) {
