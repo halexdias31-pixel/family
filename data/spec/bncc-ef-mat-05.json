@@ -1,0 +1,316 @@
+{
+ "id": "bncc-ef-mat-05",
+ "board": "MEC",
+ "qualification": "BNCC Ensino Fundamental",
+ "level": "BNCC",
+ "tiers": [
+  "5º ano"
+ ],
+ "subject": "Maths",
+ "code": "Matemática 5º ano",
+ "url": "http://basenacionalcomum.mec.gov.br/images/BNCC_EI_EF_110518_versaofinal_site.pdf",
+ "sections": [
+  {
+   "id": "N",
+   "title": "Números (objetos de conhecimento)"
+  },
+  {
+   "id": "A",
+   "title": "Álgebra (objetos de conhecimento)"
+  },
+  {
+   "id": "G",
+   "title": "Geometria (objetos de conhecimento)"
+  },
+  {
+   "id": "M",
+   "title": "Grandezas e medidas (objetos de conhecimento)"
+  },
+  {
+   "id": "P",
+   "title": "Probabilidade e estatística (objetos de conhecimento)"
+  },
+  {
+   "id": "H",
+   "title": "Habilidades"
+  }
+ ],
+ "points": [
+  {
+   "id": "N.1",
+   "text": "Sistema de numeração decimal: leitura, escrita e ordenação de números naturais (de até seis ordens)",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "N.2",
+   "text": "Números racionais expressos na forma decimal e sua representação na reta numérica",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "N.3",
+   "text": "Representação fracionária dos números racionais: reconhecimento, significados, leitura e representação na reta numérica",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "N.4",
+   "text": "Comparação e ordenação de números racionais na representação decimal e na fracionária utilizando a noção de equivalência",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "N.5",
+   "text": "Cálculo de porcentagens e representação fracionária",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "N.6",
+   "text": "Problemas: adição e subtração de números naturais e números racionais cuja representação decimal é finita",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "N.7",
+   "text": "Problemas: multiplicação e divisão de números racionais cuja representação decimal é finita por números naturais",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "N.8",
+   "text": "Problemas de contagem do tipo: “Se cada objeto de uma coleção A for combinado com todos os elementos de uma coleção B, quantos agrupamentos desse tipo podem ser formados?”",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "A.1",
+   "text": "Propriedades da igualdade e noção de equivalência",
+   "parent": "A",
+   "links": []
+  },
+  {
+   "id": "A.2",
+   "text": "Grandezas diretamente proporcionais",
+   "parent": "A",
+   "links": []
+  },
+  {
+   "id": "A.3",
+   "text": "Problemas envolvendo a partição de um todo em duas partes proporcionais",
+   "parent": "A",
+   "links": []
+  },
+  {
+   "id": "G.1",
+   "text": "Plano cartesiano: coordenadas cartesianas (1º quadrante) e representação de deslocamentos no plano cartesiano",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "G.2",
+   "text": "Figuras geométricas espaciais: reconhecimento, representações, planificações e características",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "G.3",
+   "text": "Figuras geométricas planas: características, representações e ângulos",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "G.4",
+   "text": "Ampliação e redução de figuras poligonais em malhas quadriculadas: reconhecimento da congruência dos ângulos e da proporcionalidade dos lados correspondentes",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "M.1",
+   "text": "Medidas de comprimento, área, massa, tempo, temperatura e capacidade: utilização de unidades convencionais e relações entre as unidades de medida mais usuais",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "M.2",
+   "text": "Áreas e perímetros de figuras poligonais: algumas relações",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "M.3",
+   "text": "Noção de volume",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "P.1",
+   "text": "Espaço amostral: análise de chances de eventos aleatórios",
+   "parent": "P",
+   "links": []
+  },
+  {
+   "id": "P.2",
+   "text": "Cálculo de probabilidade de eventos equiprováveis",
+   "parent": "P",
+   "links": []
+  },
+  {
+   "id": "P.3",
+   "text": "Leitura, coleta, classificação interpretação e representação de dados em tabelas de dupla entrada, gráfico de colunas agrupadas, gráficos pictóricos e gráfico de linhas",
+   "parent": "P",
+   "links": []
+  },
+  {
+   "id": "EF05MA01",
+   "text": "Ler, escrever e ordenar números naturais até a ordem das centenas de milhar com compreensão das principais características do sistema de numeração decimal.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF05MA02",
+   "text": "Ler, escrever e ordenar números racionais na forma decimal com compreensão das principais características do sistema de numeração decimal, utilizando, como recursos, a composição e decomposição e a reta numérica.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF05MA03",
+   "text": "Identificar e representar frações (menores e maiores que a unidade), associando-as ao resultado de uma divisão ou à ideia de parte de um todo, utilizando a reta numérica como recurso.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF05MA04",
+   "text": "Identificar frações equivalentes.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF05MA05",
+   "text": "Comparar e ordenar números racionais positivos (representações fracionária e decimal), relacionando-os a pontos na reta numérica.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF05MA06",
+   "text": "Associar as representações 10%, 25%, 50%, 75% e 100% respectivamente à décima parte, quarta parte, metade, três quartos e um inteiro, para calcular porcentagens, utilizando estratégias pessoais, cálculo mental e calculadora, em contextos de educação financeira, entre outros.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF05MA07",
+   "text": "Resolver e elaborar problemas de adição e subtração com números naturais e com números racionais, cuja representação decimal seja finita, utilizando estratégias diversas, como cálculo por estimativa, cálculo mental e algoritmos.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF05MA08",
+   "text": "Resolver e elaborar problemas de multiplicação e divisão com números naturais e com números racionais cuja representação decimal é finita (com multiplicador natural e divisor natural e diferente de zero), utilizando estratégias diversas, como cálculo por estimativa, cálculo mental e algoritmos.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF05MA09",
+   "text": "Resolver e elaborar problemas simples de contagem envolvendo o princípio multiplicativo, como a determinação do número de agrupamentos possíveis ao se combinar cada elemento de uma coleção com todos os elementos de outra coleção, por meio de diagramas de árvore ou por tabelas.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF05MA10",
+   "text": "Concluir, por meio de investigações, que a relação de igualdade existente entre dois membros permanece ao adicionar, subtrair, multiplicar ou dividir cada um desses membros por um mesmo número, para construir a noção de equivalência.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF05MA11",
+   "text": "Resolver e elaborar problemas cuja conversão em sentença matemática seja uma igualdade com uma operação em que um dos termos é desconhecido.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF05MA12",
+   "text": "Resolver problemas que envolvam variação de proporcionalidade direta entre duas grandezas, para associar a quantidade de um produto ao valor a pagar, alterar as quantidades de ingredientes de receitas, ampliar ou reduzir escala em mapas, entre outros.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF05MA13",
+   "text": "Resolver problemas envolvendo a partilha de uma quantidade em duas partes desiguais, tais como dividir uma quantidade em duas partes, de modo que uma seja o dobro da outra, com compreensão da ideia de razão entre as partes e delas com o todo.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF05MA14",
+   "text": "Utilizar e compreender diferentes representações para a localização de objetos no plano, como mapas, células em planilhas eletrônicas e coordenadas geográficas, a fim de desenvolver as primeiras noções de coordenadas cartesianas.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF05MA15",
+   "text": "Interpretar, descrever e representar a localização ou movimentação de objetos no plano cartesiano (1º quadrante), utilizando coordenadas cartesianas, indicando mudanças de direção e de sentido e giros.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF05MA16",
+   "text": "Associar figuras espaciais a suas planificações (prismas, pirâmides, cilindros e cones) e analisar, nomear e comparar seus atributos.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF05MA17",
+   "text": "Reconhecer, nomear e comparar polígonos, considerando lados, vértices e ângulos, e desenhá-los, utilizando material de desenho ou tecnologias digitais.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF05MA18",
+   "text": "Reconhecer a congruência dos ângulos e a proporcionalidade entre os lados correspondentes de figuras poligonais em situações de ampliação e de redução em malhas quadriculadas e usando tecnologias digitais.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF05MA19",
+   "text": "Resolver e elaborar problemas envolvendo medidas das grandezas comprimento, área, massa, tempo, temperatura e capacidade, recorrendo a transformações entre as unidades mais usuais em contextos socioculturais.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF05MA20",
+   "text": "Concluir, por meio de investigações, que figuras de perímetros iguais podem ter áreas diferentes e que, também, figuras que têm a mesma área podem ter perímetros diferentes.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF05MA21",
+   "text": "Reconhecer volume como grandeza associada a sólidos geométricos e medir volumes por meio de empilhamento de cubos, utilizando, preferencialmente, objetos concretos.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF05MA22",
+   "text": "Apresentar todos os possíveis resultados de um experimento aleatório, estimando se esses resultados são igualmente prováveis ou não.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF05MA23",
+   "text": "Determinar a probabilidade de ocorrência de um resultado em eventos aleatórios, quando todos os resultados possíveis têm a mesma chance de ocorrer (equiprováveis).",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF05MA24",
+   "text": "Interpretar dados estatísticos apresentados em textos, tabelas e gráficos (colunas ou linhas), referentes a outras áreas do conhecimento ou a outros contextos, como saúde e trânsito, e produzir textos com o objetivo de sintetizar conclusões.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF05MA25",
+   "text": "Realizar pesquisa envolvendo variáveis categóricas e numéricas, organizar dados coletados por meio de tabelas, gráficos de colunas, pictóricos e de linhas, com e sem uso de tecnologias digitais, e apresentar texto escrito sobre a finalidade da pesquisa e a síntese dos resultados.",
+   "parent": "H",
+   "links": []
+  }
+ ]
+}

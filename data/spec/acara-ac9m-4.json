@@ -1,0 +1,178 @@
+{
+ "id": "acara-ac9m-4",
+ "board": "ACARA",
+ "qualification": "Australian Curriculum v9.0",
+ "level": "Australian Curriculum",
+ "tiers": [
+  "Year 4"
+ ],
+ "subject": "Maths",
+ "code": "Mathematics Year 4",
+ "url": "https://v9.australiancurriculum.edu.au/downloads/learning-areas",
+ "sections": [
+  {
+   "id": "N",
+   "title": "Number"
+  },
+  {
+   "id": "A",
+   "title": "Algebra"
+  },
+  {
+   "id": "M",
+   "title": "Measurement"
+  },
+  {
+   "id": "SP",
+   "title": "Space"
+  },
+  {
+   "id": "ST",
+   "title": "Statistics"
+  },
+  {
+   "id": "P",
+   "title": "Probability"
+  }
+ ],
+ "points": [
+  {
+   "id": "AC9M4N01",
+   "text": "recognise and extend the application of place value to tenths and hundredths and use the conventions of decimal notation to name and represent decimals",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "AC9M4N02",
+   "text": "explain and use the properties of odd and even numbers",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "AC9M4N03",
+   "text": "find equivalent representations of fractions using related denominators and make connections between fractions and decimal notation",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "AC9M4N04",
+   "text": "count by fractions including mixed numerals; locate and represent these fractions as numbers on number lines",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "AC9M4N05",
+   "text": "solve problems involving multiplying or dividing natural numbers by multiples and powers of 10 without a calculator, using the multiplicative relationship between the place value of digits",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "AC9M4N06",
+   "text": "develop efficient strategies and use appropriate digital tools for solving problems involving addition and subtraction, and multiplication and division where there is no remainder",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "AC9M4N07",
+   "text": "choose and use estimation and rounding to check and explain the reasonableness of calculations including the results of financial transactions",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "AC9M4N08",
+   "text": "use mathematical modelling to solve practical problems involving additive and multiplicative situations including financial contexts; formulate the problems using number sentences and choose efficient calculation strategies, using digital tools where appropriate; interpret and communicate solutions in terms of the situation",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "AC9M4N09",
+   "text": "follow and create algorithms involving a sequence of steps and decisions that use addition or multiplication to generate sets of numbers; identify and describe any emerging patterns",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "AC9M4A01",
+   "text": "find unknown values in numerical equations involving addition and subtraction, using the properties of numbers and operations",
+   "parent": "A",
+   "links": []
+  },
+  {
+   "id": "AC9M4A02",
+   "text": "recall and demonstrate proficiency with multiplication facts up to 10 x 10 and related division facts; extend and apply facts to develop efficient mental strategies for computation with larger numbers without a calculator",
+   "parent": "A",
+   "links": []
+  },
+  {
+   "id": "AC9M4M01",
+   "text": "interpret unmarked and partial units when measuring and comparing attributes of length, mass, capacity, duration and temperature, using scaled and digital instruments and appropriate units",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "AC9M4M02",
+   "text": "recognise ways of measuring and approximating the perimeter and area of shapes and enclosed spaces, using appropriate formal and informal units",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "AC9M4M03",
+   "text": "solve problems involving the duration of time including situations involving “am” and “pm” and conversions between units of time",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "AC9M4M04",
+   "text": "estimate and compare angles using angle names including acute, obtuse, straight angle, reflex and revolution, and recognise their relationship to a right angle",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "AC9M4SP01",
+   "text": "represent and approximate composite shapes and objects in the environment, using combinations of familiar shapes and objects",
+   "parent": "SP",
+   "links": []
+  },
+  {
+   "id": "AC9M4SP02",
+   "text": "create and interpret grid reference systems using grid references and directions to locate and describe positions and pathways",
+   "parent": "SP",
+   "links": []
+  },
+  {
+   "id": "AC9M4SP03",
+   "text": "recognise line and rotational symmetry of shapes and create symmetrical patterns and pictures, using dynamic geometric software where appropriate",
+   "parent": "SP",
+   "links": []
+  },
+  {
+   "id": "AC9M4ST01",
+   "text": "acquire data for categorical and discrete numerical variables to address a question of interest or purpose using digital tools; represent data using many-to-one pictographs, column graphs and other displays or visualisations; interpret and discuss the information that has been created",
+   "parent": "ST",
+   "links": []
+  },
+  {
+   "id": "AC9M4ST02",
+   "text": "analyse the effectiveness of different displays or visualisations in illustrating and comparing data distributions, then discuss the shape of distributions and the variation in the data",
+   "parent": "ST",
+   "links": []
+  },
+  {
+   "id": "AC9M4ST03",
+   "text": "conduct statistical investigations, collecting data through survey responses and other methods; record and display data using digital tools; interpret the data and communicate the results",
+   "parent": "ST",
+   "links": []
+  },
+  {
+   "id": "AC9M4P01",
+   "text": "describe possible everyday events and the possible outcomes of chance experiments and order outcomes or events based on their likelihood of occurring; identify independent or dependent events",
+   "parent": "P",
+   "links": []
+  },
+  {
+   "id": "AC9M4P02",
+   "text": "conduct repeated chance experiments to observe relationships between outcomes; identify and describe the variation in results",
+   "parent": "P",
+   "links": []
+  }
+ ]
+}

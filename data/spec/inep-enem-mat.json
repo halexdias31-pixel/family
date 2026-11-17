@@ -1,0 +1,255 @@
+{
+ "id": "inep-enem-mat",
+ "board": "INEP",
+ "qualification": "ENEM",
+ "level": "ENEM",
+ "subject": "Maths",
+ "code": "Matemática e suas Tecnologias",
+ "url": "https://download.inep.gov.br/download/enem/matriz_referencia.pdf",
+ "sections": [
+  {
+   "id": "C1",
+   "title": "Competência de área 1: Construir significados para os números naturais, inteiros, racionais e reais."
+  },
+  {
+   "id": "C2",
+   "title": "Competência de área 2: Utilizar o conhecimento geométrico para realizar a leitura e a representação da realidade e agir sobre ela."
+  },
+  {
+   "id": "C3",
+   "title": "Competência de área 3: Construir noções de grandezas e medidas para a compreensão da realidade e a solução de problemas do cotidiano."
+  },
+  {
+   "id": "C4",
+   "title": "Competência de área 4: Construir noções de variação de grandezas para a compreensão da realidade e a solução de problemas do cotidiano."
+  },
+  {
+   "id": "C5",
+   "title": "Competência de área 5: Modelar e resolver problemas que envolvem variáveis socioeconômicas ou técnico-científicas, usando representações algébricas."
+  },
+  {
+   "id": "C6",
+   "title": "Competência de área 6: Interpretar informações de natureza científica e social obtidas da leitura de gráficos e tabelas, realizando previsão de tendência, extrapolação, interpolação e interpretação."
+  },
+  {
+   "id": "C7",
+   "title": "Competência de área 7: Compreender o caráter aleatório e não-determinístico dos fenômenos naturais e sociais e utilizar instrumentos adequados para medidas, determinação de amostras e cálculos de probabilidade para interpretar informações de variáveis apresentadas em uma distribuição estatística."
+  },
+  {
+   "id": "O",
+   "title": "Objetos de conhecimento"
+  }
+ ],
+ "points": [
+  {
+   "id": "H1",
+   "text": "Reconhecer, no contexto social, diferentes significados e representações dos números e operações - naturais, inteiros, racionais ou reais.",
+   "parent": "C1",
+   "links": []
+  },
+  {
+   "id": "H2",
+   "text": "Identificar padrões numéricos ou princípios de contagem.",
+   "parent": "C1",
+   "links": []
+  },
+  {
+   "id": "H3",
+   "text": "Resolver situação-problema envolvendo conhecimentos numéricos.",
+   "parent": "C1",
+   "links": []
+  },
+  {
+   "id": "H4",
+   "text": "Avaliar a razoabilidade de um resultado numérico na construção de argumentos sobre afirmações quantitativas.",
+   "parent": "C1",
+   "links": []
+  },
+  {
+   "id": "H5",
+   "text": "Avaliar propostas de intervenção na realidade utilizando conhecimentos numéricos.",
+   "parent": "C1",
+   "links": []
+  },
+  {
+   "id": "H6",
+   "text": "Interpretar a localização e a movimentação de pessoas/objetos no espaço tridimensional e sua representação no espaço bidimensional.",
+   "parent": "C2",
+   "links": []
+  },
+  {
+   "id": "H7",
+   "text": "Identificar características de figuras planas ou espaciais.",
+   "parent": "C2",
+   "links": []
+  },
+  {
+   "id": "H8",
+   "text": "Resolver situação-problema que envolva conhecimentos geométricos de espaço e forma.",
+   "parent": "C2",
+   "links": []
+  },
+  {
+   "id": "H9",
+   "text": "Utilizar conhecimentos geométricos de espaço e forma na seleção de argumentos propostos como solução de problemas do cotidiano.",
+   "parent": "C2",
+   "links": []
+  },
+  {
+   "id": "H10",
+   "text": "Identificar relações entre grandezas e unidades de medida.",
+   "parent": "C3",
+   "links": []
+  },
+  {
+   "id": "H11",
+   "text": "Utilizar a noção de escalas na leitura de representação de situação do cotidiano.",
+   "parent": "C3",
+   "links": []
+  },
+  {
+   "id": "H12",
+   "text": "Resolver situação-problema que envolva medidas de grandezas.",
+   "parent": "C3",
+   "links": []
+  },
+  {
+   "id": "H13",
+   "text": "Avaliar o resultado de uma medição na construção de um argumento consistente.",
+   "parent": "C3",
+   "links": []
+  },
+  {
+   "id": "H14",
+   "text": "Avaliar proposta de intervenção na realidade utilizando conhecimentos geométricos relacionados a grandezas e medidas.",
+   "parent": "C3",
+   "links": []
+  },
+  {
+   "id": "H15",
+   "text": "Identificar a relação de dependência entre grandezas.",
+   "parent": "C4",
+   "links": []
+  },
+  {
+   "id": "H16",
+   "text": "Resolver situação-problema envolvendo a variação de grandezas, direta ou inversamente proporcionais.",
+   "parent": "C4",
+   "links": []
+  },
+  {
+   "id": "H17",
+   "text": "Analisar informações envolvendo a variação de grandezas como recurso para a construção de argumentação.",
+   "parent": "C4",
+   "links": []
+  },
+  {
+   "id": "H18",
+   "text": "Avaliar propostas de intervenção na realidade envolvendo variação de grandezas.",
+   "parent": "C4",
+   "links": []
+  },
+  {
+   "id": "H19",
+   "text": "Identificar representações algébricas que expressem a relação entre grandezas.",
+   "parent": "C5",
+   "links": []
+  },
+  {
+   "id": "H20",
+   "text": "Interpretar gráfico cartesiano que represente relações entre grandezas.",
+   "parent": "C5",
+   "links": []
+  },
+  {
+   "id": "H21",
+   "text": "Resolver situação-problema cuja modelagem envolva conhecimentos algébricos.",
+   "parent": "C5",
+   "links": []
+  },
+  {
+   "id": "H22",
+   "text": "Utilizar conhecimentos algébricos/geométricos como recurso para a construção de argumentação.",
+   "parent": "C5",
+   "links": []
+  },
+  {
+   "id": "H23",
+   "text": "Avaliar propostas de intervenção na realidade utilizando conhecimentos algébricos.",
+   "parent": "C5",
+   "links": []
+  },
+  {
+   "id": "H24",
+   "text": "Utilizar informações expressas em gráficos ou tabelas para fazer inferências.",
+   "parent": "C6",
+   "links": []
+  },
+  {
+   "id": "H25",
+   "text": "Resolver problema com dados apresentados em tabelas ou gráficos.",
+   "parent": "C6",
+   "links": []
+  },
+  {
+   "id": "H26",
+   "text": "Analisar informações expressas em gráficos ou tabelas como recurso para a construção de argumentos.",
+   "parent": "C6",
+   "links": []
+  },
+  {
+   "id": "H27",
+   "text": "Calcular medidas de tendência central ou de dispersão de um conjunto de dados expressos em uma tabela de frequências de dados agrupados (não em classes) ou em gráficos.",
+   "parent": "C7",
+   "links": []
+  },
+  {
+   "id": "H28",
+   "text": "Resolver situação-problema que envolva conhecimentos de estatística e probabilidade.",
+   "parent": "C7",
+   "links": []
+  },
+  {
+   "id": "H29",
+   "text": "Utilizar conhecimentos de estatística e probabilidade como recurso para a construção de argumentação.",
+   "parent": "C7",
+   "links": []
+  },
+  {
+   "id": "H30",
+   "text": "Avaliar propostas de intervenção na realidade utilizando conhecimentos de estatística e probabilidade.",
+   "parent": "C7",
+   "links": []
+  },
+  {
+   "id": "O.1",
+   "text": "Conhecimentos numéricos: operações em conjuntos numéricos (naturais, inteiros, racionais e reais), desigualdades, divisibilidade, fatoração, razões e proporções, porcentagem e juros, relações de dependência entre grandezas, sequências e progressões, princípios de contagem.",
+   "parent": "O",
+   "links": []
+  },
+  {
+   "id": "O.2",
+   "text": "Conhecimentos geométricos: características das figuras geométricas planas e espaciais; grandezas, unidades de medida e escalas; comprimentos, áreas e volumes; ângulos; posições de retas; simetrias de figuras planas ou espaciais; congruência e semelhança de triângulos; teorema de Tales; relações métricas nos triângulos; circunferências; trigonometria do ângulo agudo.",
+   "parent": "O",
+   "links": []
+  },
+  {
+   "id": "O.3",
+   "text": "Conhecimentos de estatística e probabilidade: representação e análise de dados; medidas de tendência central (médias, moda e mediana); desvios e variância; noções de probabilidade.",
+   "parent": "O",
+   "links": []
+  },
+  {
+   "id": "O.4",
+   "text": "Conhecimentos algébricos: gráficos e funções; funções algébricas do 1.º e do 2.º graus, polinomiais, racionais, exponenciais e logarítmicas; equações e inequações; relações no ciclo trigonométrico e funções trigonométricas.",
+   "parent": "O",
+   "links": []
+  },
+  {
+   "id": "O.5",
+   "text": "Conhecimentos algébricos/geométricos: plano cartesiano; retas; circunferências; paralelismo e perpendicularidade, sistemas de equações.",
+   "parent": "O",
+   "links": []
+  }
+ ]
+}

@@ -1,0 +1,406 @@
+{
+ "id": "bncc-ef-mat-06",
+ "board": "MEC",
+ "qualification": "BNCC Ensino Fundamental",
+ "level": "BNCC",
+ "tiers": [
+  "6º ano"
+ ],
+ "subject": "Maths",
+ "code": "Matemática 6º ano",
+ "url": "http://basenacionalcomum.mec.gov.br/images/BNCC_EI_EF_110518_versaofinal_site.pdf",
+ "sections": [
+  {
+   "id": "N",
+   "title": "Números (objetos de conhecimento)"
+  },
+  {
+   "id": "A",
+   "title": "Álgebra (objetos de conhecimento)"
+  },
+  {
+   "id": "G",
+   "title": "Geometria (objetos de conhecimento)"
+  },
+  {
+   "id": "M",
+   "title": "Grandezas e medidas (objetos de conhecimento)"
+  },
+  {
+   "id": "P",
+   "title": "Probabilidade e estatística (objetos de conhecimento)"
+  },
+  {
+   "id": "H",
+   "title": "Habilidades"
+  }
+ ],
+ "points": [
+  {
+   "id": "N.1",
+   "text": "Sistema de numeração decimal: características, leitura, escrita e comparação de números naturais e de números racionais representados na forma decimal",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "N.2",
+   "text": "Operações (adição, subtração, multiplicação, divisão e potenciação) com números naturais",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "N.3",
+   "text": "Divisão euclidiana",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "N.4",
+   "text": "Fluxograma para determinar a paridade de um número natural",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "N.5",
+   "text": "Múltiplos e divisores de um número natural",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "N.6",
+   "text": "Números primos e compostos",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "N.7",
+   "text": "Frações: significados (parte/todo, quociente), equivalência, comparação, adição e subtração; cálculo da fração de um número natural; adição e subtração de frações",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "N.8",
+   "text": "Operações (adição, subtração, multiplicação, divisão e potenciação) com números racionais",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "N.9",
+   "text": "Aproximação de números para múltiplos de potências de 10",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "N.10",
+   "text": "Cálculo de porcentagens por meio de estratégias diversas, sem fazer uso da “regra de três”",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "A.1",
+   "text": "Propriedades da igualdade",
+   "parent": "A",
+   "links": []
+  },
+  {
+   "id": "A.2",
+   "text": "Problemas que tratam da partição de um todo em duas partes desiguais, envolvendo razões entre as partes e entre uma das partes e o todo",
+   "parent": "A",
+   "links": []
+  },
+  {
+   "id": "G.1",
+   "text": "Plano cartesiano: associação dos vértices de um polígono a pares ordenados",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "G.2",
+   "text": "Prismas e pirâmides: planificações e relações entre seus elementos (vértices, faces e arestas)",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "G.3",
+   "text": "Polígonos: classificações quanto ao número de vértices, às medidas de lados e ângulos e ao paralelismo e perpendicularismo dos lados",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "G.4",
+   "text": "Construção de figuras semelhantes: ampliação e redução de figuras planas em malhas quadriculadas",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "G.5",
+   "text": "Construção de retas paralelas e perpendiculares, fazendo uso de réguas, esquadros e softwares",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "M.1",
+   "text": "Problemas sobre medidas envolvendo grandezas como comprimento, massa, tempo, temperatura, área, capacidade e volume",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "M.2",
+   "text": "Ângulos: noção, usos e medida",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "M.3",
+   "text": "Plantas baixas e vistas aéreas",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "M.4",
+   "text": "Perímetro de um quadrado como grandeza proporcional à medida do lado",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "P.1",
+   "text": "Cálculo de probabilidade como a razão entre o número de resultados favoráveis e o total de resultados possíveis em um espaço amostral equiprovável",
+   "parent": "P",
+   "links": []
+  },
+  {
+   "id": "P.2",
+   "text": "Cálculo de probabilidade por meio de muitas repetições de um experimento (frequências de ocorrências e probabilidade frequentista)",
+   "parent": "P",
+   "links": []
+  },
+  {
+   "id": "P.3",
+   "text": "Leitura e interpretação de tabelas e gráficos (de colunas ou barras simples ou múltiplas) referentes a variáveis categóricas e variáveis numéricas",
+   "parent": "P",
+   "links": []
+  },
+  {
+   "id": "P.4",
+   "text": "Coleta de dados, organização e registro",
+   "parent": "P",
+   "links": []
+  },
+  {
+   "id": "P.5",
+   "text": "Construção de diferentes tipos de gráficos para representá-los e interpretação das informações",
+   "parent": "P",
+   "links": []
+  },
+  {
+   "id": "P.6",
+   "text": "Diferentes tipos de representação de informações: gráficos e fluxogramas",
+   "parent": "P",
+   "links": []
+  },
+  {
+   "id": "EF06MA01",
+   "text": "Comparar, ordenar, ler e escrever números naturais e números racionais cuja representação decimal é finita, fazendo uso da reta numérica.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF06MA02",
+   "text": "Reconhecer o sistema de numeração decimal, como o que prevaleceu no mundo ocidental, e destacar semelhanças e diferenças com outros sistemas, de modo a sistematizar suas principais características (base, valor posicional e função do zero), utilizando, inclusive, a composição e decomposição de números naturais e números racionais em sua representação decimal.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF06MA03",
+   "text": "Resolver e elaborar problemas que envolvam cálculos (mentais ou escritos, exatos ou aproximados) com números naturais, por meio de estratégias variadas, com compreensão dos processos neles envolvidos com e sem uso de calculadora.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF06MA04",
+   "text": "Construir algoritmo em linguagem natural e representá-lo por fluxograma que indique a resolução de um problema simples (por exemplo, se um número natural qualquer é par).",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF06MA05",
+   "text": "Classificar números naturais em primos e compostos, estabelecer relações entre números, expressas pelos termos “é múltiplo de”, “é divisor de”, “é fator de”, e estabelecer, por meio de investigações, critérios de divisibilidade por 2, 3, 4, 5, 6, 8, 9, 10, 100 e 1000.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF06MA06",
+   "text": "Resolver e elaborar problemas que envolvam as ideias de múltiplo e de divisor.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF06MA07",
+   "text": "Compreender, comparar e ordenar frações associadas às ideias de partes de inteiros e resultado de divisão, identificando frações equivalentes.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF06MA08",
+   "text": "Reconhecer que os números racionais positivos podem ser expressos nas formas fracionária e decimal, estabelecer relações entre essas representações, passando de uma representação para outra, e relacioná-los a pontos na reta numérica.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF06MA09",
+   "text": "Resolver e elaborar problemas que envolvam o cálculo da fração de uma quantidade e cujo resultado seja um número natural, com e sem uso de calculadora.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF06MA10",
+   "text": "Resolver e elaborar problemas que envolvam adição ou subtração com números racionais positivos na representação fracionária.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF06MA11",
+   "text": "Resolver e elaborar problemas com números racionais positivos na representação decimal, envolvendo as quatro operações fundamentais e a potenciação, por meio de estratégias diversas, utilizando estimativas e arredondamentos para verificar a razoabilidade de respostas, com e sem uso de calculadora.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF06MA12",
+   "text": "Fazer estimativas de quantidades e aproximar números para múltiplos da potência de 10 mais próxima.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF06MA13",
+   "text": "Resolver e elaborar problemas que envolvam porcentagens, com base na ideia de proporcionalidade, sem fazer uso da “regra de três”, utilizando estratégias pessoais, cálculo mental e calculadora, em contextos de educação financeira, entre outros.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF06MA14",
+   "text": "Reconhecer que a relação de igualdade matemática não se altera ao adicionar, subtrair, multiplicar ou dividir os seus dois membros por um mesmo número e utilizar essa noção para determinar valores desconhecidos na resolução de problemas.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF06MA15",
+   "text": "Resolver e elaborar problemas que envolvam a partilha de uma quantidade em duas partes desiguais, envolvendo relações aditivas e multiplicativas, bem como a razão entre as partes e entre uma das partes e o todo.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF06MA16",
+   "text": "Associar pares ordenados de números a pontos do plano cartesiano do 1º quadrante, em situações como a localização dos vértices de um polígono.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF06MA17",
+   "text": "Quantificar e estabelecer relações entre o número de vértices, faces e arestas de prismas e pirâmides, em função do seu polígono da base, para resolver problemas e desenvolver a percepção espacial.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF06MA18",
+   "text": "Reconhecer, nomear e comparar polígonos, considerando lados, vértices e ângulos, e classificá-los em regulares e não regulares, tanto em suas representações no plano como em faces de poliedros.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF06MA19",
+   "text": "Identificar características dos triângulos e classificá-los em relação às medidas dos lados e dos ângulos.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF06MA20",
+   "text": "Identificar características dos quadriláteros, classificá-los em relação a lados e a ângulos e reconhecer a inclusão e a intersecção de classes entre eles.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF06MA21",
+   "text": "Construir figuras planas semelhantes em situações de ampliação e de redução, com o uso de malhas quadriculadas, plano cartesiano ou tecnologias digitais.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF06MA22",
+   "text": "Utilizar instrumentos, como réguas e esquadros, ou softwares para representações de retas paralelas e perpendiculares e construção de quadriláteros, entre outros.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF06MA23",
+   "text": "Construir algoritmo para resolver situações passo a passo (como na construção de dobraduras ou na indicação de deslocamento de um objeto no plano segundo pontos de referência e distâncias fornecidas etc.).",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF06MA24",
+   "text": "Resolver e elaborar problemas que envolvam as grandezas comprimento, massa, tempo, temperatura, área (triângulos e retângulos), capacidade e volume (sólidos formados por blocos retangulares), sem uso de fórmulas, inseridos, sempre que possível, em contextos oriundos de situações reais e/ou relacionadas às outras áreas do conhecimento.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF06MA25",
+   "text": "Reconhecer a abertura do ângulo como grandeza associada às figuras geométricas.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF06MA26",
+   "text": "Resolver problemas que envolvam a noção de ângulo em diferentes contextos e em situações reais, como ângulo de visão.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF06MA27",
+   "text": "Determinar medidas da abertura de ângulos, por meio de transferidor e/ou tecnologias digitais.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF06MA28",
+   "text": "Interpretar, descrever e desenhar plantas baixas simples de residências e vistas aéreas.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF06MA29",
+   "text": "Analisar e descrever mudanças que ocorrem no perímetro e na área de um quadrado ao se ampliarem ou reduzirem, igualmente, as medidas de seus lados, para compreender que o perímetro é proporcional à medida do lado, o que não ocorre com a área.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF06MA30",
+   "text": "Calcular a probabilidade de um evento aleatório, expressando-a por número racional (forma fracionária, decimal e percentual) e comparar esse número com a probabilidade obtida por meio de experimentos sucessivos.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF06MA31",
+   "text": "Identificar as variáveis e suas frequências e os elementos constitutivos (título, eixos, legendas, fontes e datas) em diferentes tipos de gráfico.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF06MA32",
+   "text": "Interpretar e resolver situações que envolvam dados de pesquisas sobre contextos ambientais, sustentabilidade, trânsito, consumo responsável, entre outros, apresentadas pela mídia em tabelas e em diferentes tipos de gráficos e redigir textos escritos com o objetivo de sintetizar conclusões.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF06MA33",
+   "text": "Planejar e coletar dados de pesquisa referente a práticas sociais escolhidas pelos alunos e fazer uso de planilhas eletrônicas para registro, representação e interpretação das informações, em tabelas, vários tipos de gráficos e texto.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF06MA34",
+   "text": "Interpretar e desenvolver fluxogramas simples, identificando as relações entre os objetos representados (por exemplo, posição de cidades considerando as estradas que as unem, hierarquia dos funcionários de uma empresa etc.).",
+   "parent": "H",
+   "links": []
+  }
+ ]
+}

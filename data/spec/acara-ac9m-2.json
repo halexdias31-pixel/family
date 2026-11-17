@@ -1,0 +1,144 @@
+{
+ "id": "acara-ac9m-2",
+ "board": "ACARA",
+ "qualification": "Australian Curriculum v9.0",
+ "level": "Australian Curriculum",
+ "tiers": [
+  "Year 2"
+ ],
+ "subject": "Maths",
+ "code": "Mathematics Year 2",
+ "url": "https://v9.australiancurriculum.edu.au/downloads/learning-areas",
+ "sections": [
+  {
+   "id": "N",
+   "title": "Number"
+  },
+  {
+   "id": "A",
+   "title": "Algebra"
+  },
+  {
+   "id": "M",
+   "title": "Measurement"
+  },
+  {
+   "id": "SP",
+   "title": "Space"
+  },
+  {
+   "id": "ST",
+   "title": "Statistics"
+  }
+ ],
+ "points": [
+  {
+   "id": "AC9M2N01",
+   "text": "recognise, represent and order numbers to at least 1000 using physical and virtual materials, numerals and number lines",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "AC9M2N02",
+   "text": "partition, rearrange, regroup and rename two- and three-digit numbers using standard and non-standard groupings; recognise the role of a zero digit in place value notation",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "AC9M2N03",
+   "text": "recognise and describe one-half as one of 2 equal parts of a whole and connect halves, quarters and eighths through repeated halving",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "AC9M2N04",
+   "text": "add and subtract one- and two-digit numbers, representing problems using number sentences and solve using part-part-whole reasoning and a variety of calculation strategies",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "AC9M2N05",
+   "text": "multiply and divide by one-digit numbers using repeated addition, equal grouping, arrays, and partitioning to support a variety of calculation strategies",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "AC9M2N06",
+   "text": "use mathematical modelling to solve practical problems involving additive and multiplicative situations, including money transactions; represent situations and choose calculation strategies; interpret and communicate solutions in terms of the situation",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "AC9M2A01",
+   "text": "recognise, describe and create additive patterns that increase or decrease by a constant amount, using numbers, shapes and objects, and identify missing elements in the pattern",
+   "parent": "A",
+   "links": []
+  },
+  {
+   "id": "AC9M2A02",
+   "text": "recall and demonstrate proficiency with addition facts to 20; extend and apply facts to develop related subtraction facts",
+   "parent": "A",
+   "links": []
+  },
+  {
+   "id": "AC9M2A03",
+   "text": "recall and demonstrate proficiency with multiplication facts for twos; extend and apply facts to develop the related division facts using doubling and halving",
+   "parent": "A",
+   "links": []
+  },
+  {
+   "id": "AC9M2M01",
+   "text": "measure and compare objects based on length, capacity and mass using appropriate uniform informal units and smaller units for accuracy when necessary",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "AC9M2M02",
+   "text": "identify common uses and represent halves, quarters and eighths in relation to shapes, objects and events",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "AC9M2M03",
+   "text": "identify the date and determine the number of days between events using calendars",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "AC9M2M04",
+   "text": "recognise and read the time represented on an analog clock to the hour, half-hour and quarter-hour",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "AC9M2M05",
+   "text": "identify, describe and demonstrate quarter, half, three-quarter and full measures of turn in everyday situations",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "AC9M2SP01",
+   "text": "recognise, compare and classify shapes, referencing the number of sides and using spatial terms such as “opposite”, “parallel”, “curved” and “straight”",
+   "parent": "SP",
+   "links": []
+  },
+  {
+   "id": "AC9M2SP02",
+   "text": "locate positions in two-dimensional representations of a familiar space; move positions by following directions and pathways",
+   "parent": "SP",
+   "links": []
+  },
+  {
+   "id": "AC9M2ST01",
+   "text": "acquire data for categorical variables through surveys, observation, experiment and using digital tools; sort data into relevant categories and display data using lists and tables",
+   "parent": "ST",
+   "links": []
+  },
+  {
+   "id": "AC9M2ST02",
+   "text": "create different graphical representations of data using software where appropriate; compare the different representations, identify and describe common and distinctive features in response to questions",
+   "parent": "ST",
+   "links": []
+  }
+ ]
+}

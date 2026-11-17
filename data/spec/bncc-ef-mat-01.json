@@ -1,0 +1,298 @@
+{
+ "id": "bncc-ef-mat-01",
+ "board": "MEC",
+ "qualification": "BNCC Ensino Fundamental",
+ "level": "BNCC",
+ "tiers": [
+  "1º ano"
+ ],
+ "subject": "Maths",
+ "code": "Matemática 1º ano",
+ "url": "http://basenacionalcomum.mec.gov.br/images/BNCC_EI_EF_110518_versaofinal_site.pdf",
+ "sections": [
+  {
+   "id": "N",
+   "title": "Números (objetos de conhecimento)"
+  },
+  {
+   "id": "A",
+   "title": "Álgebra (objetos de conhecimento)"
+  },
+  {
+   "id": "G",
+   "title": "Geometria (objetos de conhecimento)"
+  },
+  {
+   "id": "M",
+   "title": "Grandezas e medidas (objetos de conhecimento)"
+  },
+  {
+   "id": "P",
+   "title": "Probabilidade e estatística (objetos de conhecimento)"
+  },
+  {
+   "id": "H",
+   "title": "Habilidades"
+  }
+ ],
+ "points": [
+  {
+   "id": "N.1",
+   "text": "Contagem de rotina",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "N.2",
+   "text": "Contagem ascendente e descendente",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "N.3",
+   "text": "Reconhecimento de números no contexto diário: indicação de quantidades, indicação de ordem ou indicação de código para a organização de informações",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "N.4",
+   "text": "Quantificação de elementos de uma coleção: estimativas, contagem um a um, pareamento ou outros agrupamentos e comparação",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "N.5",
+   "text": "Leitura, escrita e comparação de números naturais (até 100)",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "N.6",
+   "text": "Reta numérica",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "N.7",
+   "text": "Construção de fatos básicos da adição",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "N.8",
+   "text": "Composição e decomposição de números naturais",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "N.9",
+   "text": "Problemas envolvendo diferentes significados da adição e da subtração (juntar, acrescentar, separar, retirar)",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "A.1",
+   "text": "Padrões figurais e numéricos: investigação de regularidades ou padrões em sequências",
+   "parent": "A",
+   "links": []
+  },
+  {
+   "id": "A.2",
+   "text": "Sequências recursivas: observação de regras usadas utilizadas em seriações numéricas (mais 1, mais 2, menos 1, menos 2, por exemplo)",
+   "parent": "A",
+   "links": []
+  },
+  {
+   "id": "G.1",
+   "text": "Localização de objetos e de pessoas no espaço, utilizando diversos pontos de referência e vocabulário apropriado",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "G.2",
+   "text": "Figuras geométricas espaciais: reconhecimento e relações com objetos familiares do mundo físico",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "G.3",
+   "text": "Figuras geométricas planas: reconhecimento do formato das faces de figuras geométricas espaciais",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "M.1",
+   "text": "Medidas de comprimento, massa e capacidade: comparações e unidades de medida não convencionais",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "M.2",
+   "text": "Medidas de tempo: unidades de medida de tempo, suas relações e o uso do calendário",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "M.3",
+   "text": "Sistema monetário brasileiro: reconhecimento de cédulas e moedas",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "P.1",
+   "text": "Noção de acaso",
+   "parent": "P",
+   "links": []
+  },
+  {
+   "id": "P.2",
+   "text": "Leitura de tabelas e de gráficos de colunas simples",
+   "parent": "P",
+   "links": []
+  },
+  {
+   "id": "P.3",
+   "text": "Coleta e organização de informações",
+   "parent": "P",
+   "links": []
+  },
+  {
+   "id": "P.4",
+   "text": "Registros pessoais para comunicação de informações coletadas",
+   "parent": "P",
+   "links": []
+  },
+  {
+   "id": "EF01MA01",
+   "text": "Utilizar números naturais como indicador de quantidade ou de ordem em diferentes situações cotidianas e reconhecer situações em que os números não indicam contagem nem ordem, mas sim código de identificação.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF01MA02",
+   "text": "Contar de maneira exata ou aproximada, utilizando diferentes estratégias como o pareamento e outros agrupamentos.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF01MA03",
+   "text": "Estimar e comparar quantidades de objetos de dois conjuntos (em torno de 20 elementos), por estimativa e/ou por correspondência (um a um, dois a dois) para indicar “tem mais”, “tem menos” ou “tem a mesma quantidade”.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF01MA04",
+   "text": "Contar a quantidade de objetos de coleções até 100 unidades e apresentar o resultado por registros verbais e simbólicos, em situações de seu interesse, como jogos, brincadeiras, materiais da sala de aula, entre outros.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF01MA05",
+   "text": "Comparar números naturais de até duas ordens em situações cotidianas, com e sem suporte da reta numérica.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF01MA06",
+   "text": "Construir fatos básicos da adição e utilizá-los em procedimentos de cálculo para resolver problemas.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF01MA07",
+   "text": "Compor e decompor número de até duas ordens, por meio de diferentes adições, com o suporte de material manipulável, contribuindo para a compreensão de características do sistema de numeração decimal e o desenvolvimento de estratégias de cálculo.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF01MA08",
+   "text": "Resolver e elaborar problemas de adição e de subtração, envolvendo números de até dois algarismos, com os significados de juntar, acrescentar, separar e retirar, com o suporte de imagens e/ou material manipulável, utilizando estratégias e formas de registro pessoais.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF01MA09",
+   "text": "Organizar e ordenar objetos familiares ou representações por figuras, por meio de atributos, tais como cor, forma e medida.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF01MA10",
+   "text": "Descrever, após o reconhecimento e a explicitação de um padrão (ou regularidade), os elementos ausentes em sequências recursivas de números naturais, objetos ou figuras.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF01MA11",
+   "text": "Descrever a localização de pessoas e de objetos no espaço em relação à sua própria posição, utilizando termos como à direita, à esquerda, em frente, atrás.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF01MA12",
+   "text": "Descrever a localização de pessoas e de objetos no espaço segundo um dado ponto de referência, compreendendo que, para a utilização de termos que se referem à posição, como direita, esquerda, em cima, em baixo, é necessário explicitar-se o referencial.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF01MA13",
+   "text": "Relacionar figuras geométricas espaciais (cones, cilindros, esferas e blocos retangulares) a objetos familiares do mundo físico.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF01MA14",
+   "text": "Identificar e nomear figuras planas (círculo, quadrado, retângulo e triângulo) em desenhos apresentados em diferentes disposições ou em contornos de faces de sólidos geométricos.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF01MA15",
+   "text": "Comparar comprimentos, capacidades ou massas, utilizando termos como mais alto, mais baixo, mais comprido, mais curto, mais grosso, mais fino, mais largo, mais pesado, mais leve, cabe mais, cabe menos, entre outros, para ordenar objetos de uso cotidiano.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF01MA16",
+   "text": "Relatar em linguagem verbal ou não verbal sequência de acontecimentos relativos a um dia, utilizando, quando possível, os horários dos eventos.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF01MA17",
+   "text": "Reconhecer e relacionar períodos do dia, dias da semana e meses do ano, utilizando calendário, quando necessário.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF01MA18",
+   "text": "Produzir a escrita de uma data, apresentando o dia, o mês e o ano, e indicar o dia da semana de uma data, consultando calendários.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF01MA19",
+   "text": "Reconhecer e relacionar valores de moedas e cédulas do sistema monetário brasileiro para resolver situações simples do cotidiano do estudante.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF01MA20",
+   "text": "Classificar eventos envolvendo o acaso, tais como “acontecerá com certeza”, “talvez aconteça” e “é impossível acontecer”, em situações do cotidiano.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF01MA21",
+   "text": "Ler dados expressos em tabelas e em gráficos de colunas simples.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF01MA22",
+   "text": "Realizar pesquisa, envolvendo até duas variáveis categóricas de seu interesse e universo de até 30 elementos, e organizar dados por meio de representações pessoais.",
+   "parent": "H",
+   "links": []
+  }
+ ]
+}

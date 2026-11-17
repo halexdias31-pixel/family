@@ -1,0 +1,406 @@
+{
+ "id": "bncc-ef-mat-07",
+ "board": "MEC",
+ "qualification": "BNCC Ensino Fundamental",
+ "level": "BNCC",
+ "tiers": [
+  "7º ano"
+ ],
+ "subject": "Maths",
+ "code": "Matemática 7º ano",
+ "url": "http://basenacionalcomum.mec.gov.br/images/BNCC_EI_EF_110518_versaofinal_site.pdf",
+ "sections": [
+  {
+   "id": "N",
+   "title": "Números (objetos de conhecimento)"
+  },
+  {
+   "id": "A",
+   "title": "Álgebra (objetos de conhecimento)"
+  },
+  {
+   "id": "G",
+   "title": "Geometria (objetos de conhecimento)"
+  },
+  {
+   "id": "M",
+   "title": "Grandezas e medidas (objetos de conhecimento)"
+  },
+  {
+   "id": "P",
+   "title": "Probabilidade e estatística (objetos de conhecimento)"
+  },
+  {
+   "id": "H",
+   "title": "Habilidades"
+  }
+ ],
+ "points": [
+  {
+   "id": "N.1",
+   "text": "Múltiplos e divisores de um número natural",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "N.2",
+   "text": "Cálculo de porcentagens e de acréscimos e decréscimos simples",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "N.3",
+   "text": "Números inteiros: usos, história, ordenação, associação com pontos da reta numérica e operações",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "N.4",
+   "text": "Fração e seus significados: como parte de inteiros, resultado da divisão, razão e operador",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "N.5",
+   "text": "Números racionais na representação fracionária e na decimal: usos, ordenação e associação com pontos da reta numérica e operações",
+   "parent": "N",
+   "links": []
+  },
+  {
+   "id": "A.1",
+   "text": "Linguagem algébrica: variável e incógnita",
+   "parent": "A",
+   "links": []
+  },
+  {
+   "id": "A.2",
+   "text": "Equivalência de expressões algébricas: identificação da regularidade de uma sequência numérica",
+   "parent": "A",
+   "links": []
+  },
+  {
+   "id": "A.3",
+   "text": "Problemas envolvendo grandezas diretamente proporcionais e grandezas inversamente proporcionais",
+   "parent": "A",
+   "links": []
+  },
+  {
+   "id": "A.4",
+   "text": "Equações polinomiais do 1º grau",
+   "parent": "A",
+   "links": []
+  },
+  {
+   "id": "G.1",
+   "text": "Transformações geométricas de polígonos no plano cartesiano: multiplicação das coordenadas por um número inteiro e obtenção de simétricos em relação aos eixos e à origem",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "G.2",
+   "text": "Simetrias de translação, rotação e reflexão",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "G.3",
+   "text": "A circunferência como lugar geométrico",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "G.4",
+   "text": "Relações entre os ângulos formados por retas paralelas intersectadas por uma transversal",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "G.5",
+   "text": "Triângulos: construção, condição de existência e soma das medidas dos ângulos internos",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "G.6",
+   "text": "Polígonos regulares: quadrado e triângulo equilátero",
+   "parent": "G",
+   "links": []
+  },
+  {
+   "id": "M.1",
+   "text": "Problemas envolvendo medições",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "M.2",
+   "text": "Cálculo de volume de blocos retangulares, utilizando unidades de medida convencionais mais usuais",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "M.3",
+   "text": "Equivalência de área de figuras planas: cálculo de áreas de figuras que podem ser decompostas por outras, cujas áreas podem ser facilmente determinadas como triângulos e quadriláteros",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "M.4",
+   "text": "Medida do comprimento da circunferência",
+   "parent": "M",
+   "links": []
+  },
+  {
+   "id": "P.1",
+   "text": "Experimentos aleatórios: espaço amostral e estimativa de probabilidade por meio de frequência de ocorrências",
+   "parent": "P",
+   "links": []
+  },
+  {
+   "id": "P.2",
+   "text": "Estatística: média e amplitude de um conjunto de dados",
+   "parent": "P",
+   "links": []
+  },
+  {
+   "id": "P.3",
+   "text": "Pesquisa amostral e pesquisa censitária",
+   "parent": "P",
+   "links": []
+  },
+  {
+   "id": "P.4",
+   "text": "Planejamento de pesquisa, coleta e organização dos dados, construção de tabelas e gráficos e interpretação das informações",
+   "parent": "P",
+   "links": []
+  },
+  {
+   "id": "P.5",
+   "text": "Gráficos de setores: interpretação, pertinência e construção para representar conjunto de dados",
+   "parent": "P",
+   "links": []
+  },
+  {
+   "id": "EF07MA01",
+   "text": "Resolver e elaborar problemas com números naturais, envolvendo as noções de divisor e de múltiplo, podendo incluir máximo divisor comum ou mínimo múltiplo comum, por meio de estratégias diversas, sem a aplicação de algoritmos.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF07MA02",
+   "text": "Resolver e elaborar problemas que envolvam porcentagens, como os que lidam com acréscimos e decréscimos simples, utilizando estratégias pessoais, cálculo mental e calculadora, no contexto de educação financeira, entre outros.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF07MA03",
+   "text": "Comparar e ordenar números inteiros em diferentes contextos, incluindo o histórico, associá-los a pontos da reta numérica e utilizá-los em situações que envolvam adição e subtração.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF07MA04",
+   "text": "Resolver e elaborar problemas que envolvam operações com números inteiros.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF07MA05",
+   "text": "Resolver um mesmo problema utilizando diferentes algoritmos.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF07MA06",
+   "text": "Reconhecer que as resoluções de um grupo de problemas que têm a mesma estrutura podem ser obtidas utilizando os mesmos procedimentos.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF07MA07",
+   "text": "Representar por meio de um fluxograma os passos utilizados para resolver um grupo de problemas.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF07MA08",
+   "text": "Comparar e ordenar frações associadas às ideias de partes de inteiros, resultado da divisão, razão e operador.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF07MA09",
+   "text": "Utilizar, na resolução de problemas, a associação entre razão e fração, como a fração 2/3 para expressar a razão de duas partes de uma grandeza para três partes da mesma ou três partes de outra grandeza.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF07MA10",
+   "text": "Comparar e ordenar números racionais em diferentes contextos e associá-los a pontos da reta numérica.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF07MA11",
+   "text": "Compreender e utilizar a multiplicação e a divisão de números racionais, a relação entre elas e suas propriedades operatórias.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF07MA12",
+   "text": "Resolver e elaborar problemas que envolvam as operações com números racionais.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF07MA13",
+   "text": "Compreender a ideia de variável, representada por letra ou símbolo, para expressar relação entre duas grandezas, diferenciando-a da ideia de incógnita.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF07MA14",
+   "text": "Classificar sequências em recursivas e não recursivas, reconhecendo que o conceito de recursão está presente não apenas na matemática, mas também nas artes e na literatura.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF07MA15",
+   "text": "Utilizar a simbologia algébrica para expressar regularidades encontradas em sequências numéricas.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF07MA16",
+   "text": "Reconhecer se duas expressões algébricas obtidas para descrever a regularidade de uma mesma sequência numérica são ou não equivalentes.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF07MA17",
+   "text": "Resolver e elaborar problemas que envolvam variação de proporcionalidade direta e de proporcionalidade inversa entre duas grandezas, utilizando sentença algébrica para expressar a relação entre elas.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF07MA18",
+   "text": "Resolver e elaborar problemas que possam ser representados por equações polinomiais de 1º grau, redutíveis à forma ax + b = c, fazendo uso das propriedades da igualdade.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF07MA19",
+   "text": "Realizar transformações de polígonos representados no plano cartesiano, decorrentes da multiplicação das coordenadas de seus vértices por um número inteiro.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF07MA20",
+   "text": "Reconhecer e representar, no plano cartesiano, o simétrico de figuras em relação aos eixos e à origem.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF07MA21",
+   "text": "Reconhecer e construir figuras obtidas por simetrias de translação, rotação e reflexão, usando instrumentos de desenho ou softwares de geometria dinâmica e vincular esse estudo a representações planas de obras de arte, elementos arquitetônicos, entre outros.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF07MA22",
+   "text": "Construir circunferências, utilizando compasso, reconhecê-las como lugar geométrico e utilizá-las para fazer composições artísticas e resolver problemas que envolvam objetos equidistantes.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF07MA23",
+   "text": "Verificar relações entre os ângulos formados por retas paralelas cortadas por uma transversal, com e sem uso de softwares de geometria dinâmica.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF07MA24",
+   "text": "Construir triângulos, usando régua e compasso, reconhecer a condição de existência do triângulo quanto à medida dos lados e verificar que a soma das medidas dos ângulos internos de um triângulo é 180°.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF07MA25",
+   "text": "Reconhecer a rigidez geométrica dos triângulos e suas aplicações, como na construção de estruturas arquitetônicas (telhados, estruturas metálicas e outras) ou nas artes plásticas.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF07MA26",
+   "text": "Descrever, por escrito e por meio de um fluxograma, um algoritmo para a construção de um triângulo qualquer, conhecidas as medidas dos três lados.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF07MA27",
+   "text": "Calcular medidas de ângulos internos de polígonos regulares, sem o uso de fórmulas, e estabelecer relações entre ângulos internos e externos de polígonos, preferencialmente vinculadas à construção de mosaicos e de ladrilhamentos.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF07MA28",
+   "text": "Descrever, por escrito e por meio de um fluxograma, um algoritmo para a construção de um polígono regular (como quadrado e triângulo equilátero), conhecida a medida de seu lado.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF07MA29",
+   "text": "Resolver e elaborar problemas que envolvam medidas de grandezas inseridos em contextos oriundos de situações cotidianas ou de outras áreas do conhecimento, reconhecendo que toda medida empírica é aproximada.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF07MA30",
+   "text": "Resolver e elaborar problemas de cálculo de medida do volume de blocos retangulares, envolvendo as unidades usuais (metro cúbico, decímetro cúbico e centímetro cúbico).",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF07MA31",
+   "text": "Estabelecer expressões de cálculo de área de triângulos e de quadriláteros.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF07MA32",
+   "text": "Resolver e elaborar problemas de cálculo de medida de área de figuras planas que podem ser decompostas por quadrados, retângulos e/ou triângulos, utilizando a equivalência entre áreas.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF07MA33",
+   "text": "Estabelecer o número como a razão entre a medida de uma circunferência e seu diâmetro, para compreender e resolver problemas, inclusive os de natureza histórica.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF07MA34",
+   "text": "Planejar e realizar experimentos aleatórios ou simulações que envolvem cálculo de probabilidades ou estimativas por meio de frequência de ocorrências.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF07MA35",
+   "text": "Compreender, em contextos significativos, o significado de média estatística como indicador da tendência de uma pesquisa, calcular seu valor e relacioná-lo, intuitivamente, com a amplitude do conjunto de dados.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF07MA36",
+   "text": "Planejar e realizar pesquisa envolvendo tema da realidade social, identificando a necessidade de ser censitária ou de usar amostra, e interpretar os dados para comunicá-los por meio de relatório escrito, tabelas e gráficos, com o apoio de planilhas eletrônicas.",
+   "parent": "H",
+   "links": []
+  },
+  {
+   "id": "EF07MA37",
+   "text": "Interpretar e analisar dados apresentados em gráfico de setores divulgados pela mídia e compreender quando é possível ou conveniente sua utilização.",
+   "parent": "H",
+   "links": []
+  }
+ ]
+}
