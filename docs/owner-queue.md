@@ -20,6 +20,9 @@ Order: what a child or parent would notice first, then what stops things driftin
 - ONE LEVEL LADDER (owner, 17 Nov: KS3 and GCSE showed side by side on one menu, which felt wrong; Claude decides): a menu should offer one ladder of levels without overlaps (KS3 is the years before GCSE; GCSE and KS4 overlap) (the same students, the same papers) — evaluate and merge where they are one thing, so a question lives under one level, not two; same check for KS3/KS4 and the other paired levels.
 - PAPER TYPES (owner, 17 Nov): past papers and specimen papers are one kind of thing — one "Exam paper" choice with Past and Specimen inside it (or one step), not two separate tags.
 - 5-A-DAY IS A WORKSHEET (owner, 17 Nov): file 5-a-days as worksheets, not their own document type.
+- STANDING (owner, 17 Nov): Claude optimises objectively — disagrees openly when the owner's idea is worse, never just affirms; the owner's statements are principles (uniform, minimal sources, lean, memorable, fewest features), not orders to apply blindly.
+- LIBRARY TREE: each idea one entry with one "part of" link (subject › topic › subtopic › idea), at most ~3 levels; the same tree drives menus, topic pages, spec links and "revise this".
+- FOR THE OWNER: tick-box parts typed as text cause marking misses (spelling, abbreviations); proposal — the one answer face shows the paper's own options as tap tags when the paper offers options. Owner's rule says text boxes; asked 17 Nov.
 - STANDING (owner, 17 Nov): taxonomy, naming, grouping and cutting features like the four above are Claude's to find and decide over time, without being told.
 
 5. Short rulebook: rules only, history moved to docs/history; first rule 0.1 (literal, universal; Claude owns the site).
