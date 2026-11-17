@@ -1,6 +1,8 @@
 /* @family. — a phone app. § */
 
 :root {
+  /* WHERE A CROPPED PICTURE KEEPS ITS MIDDLE (owner, 17 Nov): a portrait's face is in its top third, so every cover crop keeps the top, never a cut-off head. */
+  --crop-y: 22%;
   --measure: 70ch;   /* the reading measure: ~70 characters a line, the one width text and cards are held to */
   /* WHICH STYLESHEET THIS IS. § */
   --css-version: "2026-11-04-900";
@@ -3239,7 +3241,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .boxer-pic { margin: 0; }
 
 .boxer-img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
-.boxer-img { object-fit: cover; object-position: 50% 30%; background: var(--raised); }
+.boxer-img { object-fit: cover; background: var(--raised); }
 /* THE FOOT OF A PHOTO SINKS INTO THE PAGE. § */
 
 /* ---------- THE RING AND THE FIGHTER IN IT: THE CARD'S OWN DRAWING, IN ITS OWN COLOURS § */
@@ -5558,3 +5560,6 @@ button.scr-sq { cursor: pointer; }
 @keyframes sa-beat { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12); } }
 .sa .mv-pulse { transform-box: fill-box; transform-origin: center; animation: sa-beat 1.6s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .sa [class], .sa.sa-auto > * { animation: none; } }
+
+/* ONE CROP FOR EVERY PICTURE: only matters where `object-fit: cover` cuts one; centred across, kept high down (`--crop-y`). */
+img, video { object-position: 50% var(--crop-y); }
