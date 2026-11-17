@@ -226,7 +226,9 @@ const profPill_ = (text, colour, look) => ({ pill: true, text, colour, look });
 const profNote_ = t => (t.listed === false ? (t.pending ? text_('they-ticked-tutor-in-their-settings')
   : text_('clients-cannot-see-them-the-crossed')) : '');
 /* THE NAME LINE'S PILLS: their name, role and titles, the rate where `it.live` still has it, what they are doing, and why they are off. */
-const profPills_ = (it, t) => [profPill_(fmtName_(t), 0, 'prof-tag-name')].concat([t.role || 'Tutor'].concat(profList_(t.titles)).map(v => profPill_(v, 1)),
+/* WHAT THEY ARE CALLED: their titles (a coach, the head of boxing) when they have one, else their role; staff either way (owner, 17 Nov). */
+const profRoleWords_ = t => (profList_(t.titles).length ? profList_(t.titles) : [t.role || 'Tutor']);
+const profPills_ = (it, t) => [profPill_(fmtName_(t), 0, 'prof-tag-name')].concat(profRoleWords_(t).map(v => profPill_(v, 1)),
   'rate' in ((it.live || {}).money || {}) ? [profPill_(it.live.money.rate, 4, 'prof-tag-rate')] : [], t.activity ? [profPill_(t.activity, 3, 'prof-act')] : [],
   t.listed === false ? [profPill_(t.pending ? 'asked to tutor' : 'not listed', 9, 'prof-off')] : []);
 /* SUBJECTS (main, then also) AND FACTS, a row each. */

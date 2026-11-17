@@ -66,7 +66,7 @@
   --tile: 44px; --tile-i: 16px; --tile-gap: 6px; --tile-send: 44px; --tile-r: 999px; --btn-r: 22px;
   /* ONE PILL SIZE (owner, 1040 r12): a chosen chip, a menu answer and a card tag are drawn alike; a tappable one keeps 44px in an invisible ::before. */
   /* ONE DIAL FOR EVERY TAG'S SIZE (owner, 10 Nov): change this, not each tag. */
-  --tag-scale: 2;
+  --tag-scale: 1.75; /* was 2; a bit smaller everywhere (owner, 17 Nov) */
   --tp-fs: var(--fs-tag); --tp-lh: 1.35; --tp-pad: calc(.18rem * var(--tag-scale)) calc(.65rem * var(--tag-scale)); --tp-h: calc(1.55rem * var(--tag-scale));
   --r-sm:   2px;
 
