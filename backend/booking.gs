@@ -1,7 +1,7 @@
 /* @family. — 30_booking.gs (4 of 8) THE BOOKING MACHINE, and everything that decides who is in a session. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const BOOKING_VERSION = "2026-11-17-actions-1";
+const BOOKING_VERSION = "2026-11-17-actions-2";
 
 
 /* WHEN THE BUSINESS ACTUALLY OPERATES within an interval. § */
@@ -399,6 +399,11 @@ function accessDenied(action, body) {
   // An action nobody has classified is refused. A new handler should be unreachable until
   // somebody has decided who it is for, rather than open until somebody notices.
   if (!need) return 'That action is not recognised.';
+  return gateDenied_(need, body);
+}
+
+/* THE GATE AT ONE LEVEL (anyone, self, admin): '' lets them through; the item door asks it at `self`. */
+function gateDenied_(need, body) {
   if (need === 'anyone') return '';
   /* THE OLD ADMIN CHECK READ A NAME OFF THE REQUEST and is left to the token branch below, which
      resolves the person before asking whether they are an admin. */
@@ -1214,30 +1219,23 @@ const PERMISSIONS = {
   decideApplication: ['admin'],
   decideSuggestion: ['admin'],
   deleteJob: ['admin'],
-  deletePost: ['member', 'child', 'admin'],
   digestPreview: ['admin'],
   digestSendNow: ['admin'],
-  editPost: ['member', 'child', 'admin'],
   factSet: ['admin'],
-  favourite: ['member', 'child', 'admin'],
   filmsSync: ['admin'],
   finalizePayment: ['member', 'admin'],
   findChild: ['member', 'child', 'admin'],
   flagMessage: ['member', 'child', 'admin'],
   forgotPin: ['anyone', 'member', 'child', 'admin'],
-  getProfile: ['admin'],
   googleLogin: ['anyone', 'member', 'child', 'admin'],
   hands: ['member', 'child', 'admin'],
   healthLog: ['anyone', 'member', 'child', 'admin'],
   item: ['anyone', 'member', 'child', 'admin'],
   joinWaitlist: ['member', 'admin'],
-  layoutSave: ['admin'],
-  lensOpen: ['admin'],
   libExport: ['admin'],
   libImport: ['admin'],
   libImportDrive: ['admin'],
   libImportList: ['admin'],
-  libItems: ['member', 'child', 'admin'],
   linkChild: ['admin'],
   listApplications: ['admin'],
   listClientErrors: ['admin'],
@@ -1251,15 +1249,9 @@ const PERMISSIONS = {
   mediaHide: ['admin'],
   mediaSave: ['admin'],
   mediaUpload: ['admin'],
-  messages: ['member', 'child', 'admin'],
   move: ['member', 'child', 'admin'],
-  myAnswers: ['member', 'child', 'admin'],
-  myProfile: ['member', 'child', 'admin'],
   openWaitlist: ['admin'],
   payStatement: ['member', 'child', 'admin'],
-  personDelete: ['admin'],
-  personGet: ['admin'],
-  personSave: ['admin'],
   photoFile: ['member', 'child', 'admin'],
   pinLink: ['anyone', 'member', 'child', 'admin'],
   pinShow: ['admin'],
@@ -1269,39 +1261,28 @@ const PERMISSIONS = {
   pushUnsubscribe: ['member', 'child', 'admin'],
   raiseHand: ['member', 'child', 'admin'],
   reactPost: ['member', 'child', 'admin'],
-  readMessage: ['member', 'child', 'admin'],
   register: ['anyone', 'member', 'child', 'admin'],
   renameAllUsernames: ['admin'],
   report: ['member', 'child', 'admin'],
   reportQuestion: ['member', 'child', 'admin'],
   resendLink: ['member', 'child', 'admin'],
   resetPin: ['member', 'child', 'admin'],
-  saveAnswers: ['member', 'child', 'admin'],
-  saveItem: ['member', 'child', 'admin'],
-  saveNotepad: ['member', 'child', 'admin'],
-  saveOwnerAnswer: ['admin'],
   savePhoto: ['member', 'child', 'admin'],
   saveRecordsPage: ['admin'],
   saveTimetable: ['member', 'child', 'admin'],
-  saveTodo: ['member', 'child', 'admin'],
   sendMessage: ['member', 'child', 'admin'],
-  setListed: ['admin'],
   setMyRoles: ['member', 'child', 'admin'],
-  setNotify: ['member', 'child', 'admin'],
   setRoom: ['member', 'child', 'admin'],
   signAgreement: ['member', 'child', 'admin'],
   signOut: ['member', 'child', 'admin'],
-  spotlight: ['admin'],
   submitAnswer: ['member', 'child', 'admin'],
   suggest: ['member', 'child', 'admin'],
   suggestUpload: ['admin'],
   tidyOldRows: ['admin'],
-  updateProfile: ['member', 'child', 'admin'],
   verifyEmail: ['anyone', 'member', 'child', 'admin'],
   verifyLogin: ['anyone', 'member', 'child', 'admin'],
   videoPart: ['member', 'child', 'admin'],
   votePoll: ['member', 'child', 'admin'],
-  wordsSave: ['admin'],
   workFileDelete: ['member', 'child', 'admin'],
   workFileOpen: ['member', 'child', 'admin'],
   workFileSave: ['member', 'child', 'admin'],
@@ -1355,5 +1336,32 @@ const ITEM_PERMISSIONS = {
 function itemMay_(kind, verb, role) {
   const r = Object.prototype.hasOwnProperty.call(ITEM_PERMISSIONS, kind + ':' + verb) ? ITEM_PERMISSIONS[kind + ':' + verb] : null;
   return !!r && r.indexOf(role) !== -1;
+}
+
+/* WHAT THE ITEM DOOR ANSWERS kind:verb WITH: `self` your own, `other` an admin asking after somebody else (`logged` leaves a lens_log row, `blank` may name nobody). */
+function itemDoors_() {
+  return {
+    'profile:save': { self: postUpdateProfile_ },
+    'notepad:save': { self: postSaveNotepad_ },
+    'todo:save': { self: postSaveTodo_ },
+    'ownerAnswer:save': { self: postListOwnerAnswers_ },
+    'message:read': { self: postMessages_ },
+    'message:save': { self: postReadMessage_ },
+    'spotlight:save': { self: postSpotlight_ },
+    'favourite:save': { self: postFavourite_ },
+    'answer:save': { self: postSaveAnswers_ },
+    'answer:read': { self: postMyAnswers_ },
+    'layout:save': { self: postLayoutSave_ },
+    'words:save': { self: postWordsSave_ },
+    'profile:read': { self: postMyProfile_, other: postLensOpen_, logged: true },
+    'notify:save': { self: postSetNotify_ },
+    'card:read': { other: postGetProfile_ },
+    'post:save': { self: postEditPost_ },
+    'post:delete': { self: postDeletePost_ },
+    'listed:save': { self: postSetListed_ },
+    'person:read': { other: postPersonGet_, blank: true },
+    'person:save': { self: postPersonSave_ },
+    'person:delete': { self: postPersonDelete_ },
+  };
 }
 /* ---------- END PERMISSIONS ---------- */

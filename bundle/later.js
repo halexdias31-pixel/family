@@ -14233,7 +14233,7 @@ function ansSyncs_(k) {
 function answersCan_(what) {
   try {
     return !!(USER && USER.personId && USER.token && DATA && Array.isArray(DATA.features)
-      && DATA.features.indexOf(what || 'saveAnswers') !== -1);
+      && DATA.features.indexOf(what || 'answer:save') !== -1);
   } catch (e) { return false; }
 }
 
@@ -14321,7 +14321,7 @@ function answersPush_(now, keepalive) {
   clearTimeout(ANS_TIMER);
   ANS_TIMER = 0;
   if (!now) { ANS_TIMER = setTimeout(() => answersPush_(true), ANS_WAIT); return Promise.resolve(false); }
-  if (!answersCan_('saveAnswers') || typeof api !== 'function') return Promise.resolve(false);
+  if (!answersCan_('answer:save') || typeof api !== 'function') return Promise.resolve(false);
   if (ANS_BUSY) { ANS_AGAIN = true; return ANS_BUSY; }
   const pid = String(USER.personId), who = 'u:' + pid;
   const dirty = ansDirtySet_(who);
@@ -14379,7 +14379,7 @@ let ANS_PULLED = '';
 let ANS_PULL_AT = 0;
 let ANS_PULLING = null;
 function answersPull_(force) {
-  if (!answersCan_('myAnswers') || typeof api !== 'function') return Promise.resolve(false);
+  if (!answersCan_('answer:read') || typeof api !== 'function') return Promise.resolve(false);
   const pid = String(USER.personId);
   if (!force && ANS_PULLED === pid) return Promise.resolve(false);
   if (ANS_PULLING && ANS_PULLING.pid === pid) return ANS_PULLING.p;
@@ -14566,7 +14566,7 @@ function ansOnAccount_(k) {
       if (ansSentHere_(k)) return true;
       if (answersCan_('submitAnswer')) return false;
     }
-    return answersCan_('saveAnswers') && ansAt_(k) > 0 && !ansDirtySet_(who).has(k);
+    return answersCan_('answer:save') && ansAt_(k) > 0 && !ansDirtySet_(who).has(k);
   } catch (e) { return false; }
 }
 /* ---------- A PRESS THE SERVER HAS ANSWERED FOR IS ON THE ACCOUNT, WHATEVER THE PAYLOAD HAS SAID YET § */
@@ -14742,7 +14742,7 @@ function ansSavedWords_(k) {
     const nm = ansFirstName_();
     return nm ? 'Sent to ' + nm + '’s account' : 'Sent to your account';
   }
-  if (!answersCan_('saveAnswers') || !own) return 'On this device only';
+  if (!answersCan_('answer:save') || !own) return 'On this device only';
   if (ansAt_(k) === ANS_HERE_ONLY) return 'On this device only \u2014 too long for the account';
   if (ansDirtySet_(who).has(k) || !ansAt_(k)) return 'Saving…';
   const name = ansFirstName_();
@@ -14766,7 +14766,7 @@ function ansSavedPaint_() {
 /* THE SAME FACT FOR THE PEN AND THE RINGED WORDS, in the note they already carried. § */
 function padKeptSay_() {
   if (!(typeof whoIs_ === 'function' && whoIs_())) return 'Kept on this device only — sign in to keep it.';
-  if (!answersCan_('saveAnswers')) return 'Kept on this device only.';
+  if (!answersCan_('answer:save')) return 'Kept on this device only.';
   return '';
 }
 

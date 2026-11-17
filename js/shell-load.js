@@ -229,7 +229,7 @@ function loadNotices_(d) {
       if (USER && typeof profileRefresh_ === 'function') profileRefresh_();
       /* NO BANNER FOR A VERSION MISMATCH ANY MORE. § */
       /* `editResource` AND `deleteResource` WERE IN THIS LIST. § */
-      const NEEDS = ['editPost', 'deletePost'];
+      const NEEDS = ['post:save', 'post:delete'];
       const missing = NEEDS.filter(f => (d.features || []).indexOf(f) === -1);
       if (missing.length) {
         /* THE VERSION IT ACTUALLY REACHED, said out loud. § */
