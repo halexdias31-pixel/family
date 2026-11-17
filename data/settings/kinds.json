@@ -548,7 +548,8 @@
      "document_type"
     ],
     "id": "id",
-    "blob": true
+    "blob": true,
+        "lib": {"name": "questions", "order": 1, "file": "data/questions.json", "prefix": "q", "key": ["row_id"], "private": ["html", "lead", "diagram", "answer", "accept", "choices", "choice_right", "order_ends", "cells", "mark_words", "draw_answer", "examiner_note", "examiner_report", "guide"]}
    },
    "find": {
     "group": "Learning",
@@ -669,7 +670,8 @@
      "excluded"
     ],
     "id": "id",
-    "blob": true
+    "blob": true,
+        "lib": {"name": "practicals", "order": 3, "file": "data/practicals.json", "prefix": "pr", "key": ["practical_id"], "private": ["aim", "outcome", "safety", "maths_link", "equipment", "steps", "notes", "science", "log", "variables", "diagram", "risks"]}
    },
    "find": {
     "group": "Learning",
@@ -723,7 +725,8 @@
      "project_type"
     ],
     "id": "id",
-    "blob": true
+    "blob": true,
+        "lib": {"name": "projects", "order": 4, "file": "data/projects.json", "prefix": "pj", "key": ["project_id"], "private": ["materials", "steps", "safety", "share"]}
    },
    "find": {
     "group": "Learning",
@@ -776,7 +779,8 @@
      "tier"
     ],
     "id": "id",
-    "blob": true
+    "blob": true,
+        "lib": {"name": "textbooks", "order": 2, "file": "data/textbooks.json", "prefix": "ct", "key": ["book_id", "chapter"], "skip": "anim", "private": ["words", "points", "formulas", "diagram"]}
    },
    "find": {
     "group": "Learning",
@@ -827,7 +831,8 @@
      "levels"
     ],
     "id": "id",
-    "blob": true
+    "blob": true,
+        "lib": {"name": "inserts", "order": 5, "file": "data/inserts.json", "prefix": "in", "key": ["insert_id"], "newer": true, "private": ["source_text"]}
    },
    "find": {
     "group": "Learning",

@@ -219,22 +219,7 @@ const LIB_SOURCE_COMMIT = 'a237c8a7e4005e72ca22419579d3ff92722921dd';
 const LIB_SOURCE_RAW = 'https://raw.githubusercontent.com/halexdias31-pixel/family/' + LIB_SOURCE_COMMIT + '/';
 /* `prefix` is the item's id on the wire (`q:<row_id>`); `id` the columns that make it; `skip` a column whose rows stay
    public whole (a teaching animation draws the splash for everybody). Order here is the copy's order. */
-const LIB_FILES = {
-  questions:  { tab: 'lib_questions', file: 'data/questions.json', prefix: 'q', id: ['row_id'],
-                private: ['html', 'lead', 'diagram', 'answer', 'accept', 'choices', 'choice_right', 'order_ends', 'cells',
-                          'mark_words', 'draw_answer', 'examiner_note', 'examiner_report', 'guide'] },
-  textbooks:  { tab: 'lib_content', file: 'data/textbooks.json', prefix: 'ct', id: ['book_id', 'chapter'], skip: 'anim',
-                private: ['words', 'points', 'formulas', 'diagram'] },
-  practicals: { tab: 'lib_practicals', file: 'data/practicals.json', prefix: 'pr', id: ['practical_id'],
-                private: ['aim', 'outcome', 'safety', 'maths_link', 'equipment', 'steps', 'notes', 'science', 'log',
-                          'variables', 'diagram', 'risks'] },
-  projects:   { tab: 'lib_projects', file: 'data/projects.json', prefix: 'pj', id: ['project_id'],
-                private: ['materials', 'steps', 'safety', 'share'] },
-  /* A PAPER'S READING INSERT (458): the card is public, `source_text` (the extract, line n as [n]) is not. */
-  /* `newer`: no row of it was at LIB_SOURCE_COMMIT, so the first copy copies nothing; its words come by import. */
-  inserts:    { tab: 'lib_inserts', file: 'data/inserts.json', prefix: 'in', id: ['insert_id'], newer: true,
-                private: ['source_text'] },
-};
+/* LIB_FILES (each library file's tab, id columns and private fields) is written into cards-gen.gs from kinds.json `sheet.lib` by tools/cards-gen.js. */
 /* A CELL HOLDS 50,000 CHARACTERS; an item's JSON is cut at 40,000 into up to six cells (the largest is 87,440). */
 const LIB_PARTS = 6;
 const LIB_CELL = 40000;

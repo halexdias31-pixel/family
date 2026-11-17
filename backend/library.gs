@@ -360,8 +360,12 @@ function libSelfTest_(fileKey, c) {
   return null;
 }
 
-/* AN IMPORT REPLACES THE ROW WITH THAT ID, or adds one at the foot. Only the file's private fields, only text and numbers. */
+/* THE ONE IMPORTER: every way in (the site's upload, tools/lib-private.js, a Drive file or zip) ends here. `fileKey` is a file
+   (`questions`) or its kind in kinds.json (`question`); an import replaces the row with that id, or adds one at the foot.
+   Only the file's private fields, only text and numbers. */
 function libImport_(fileKey, rows) {
+  const k = S(fileKey);
+  if (!LIB_FILES[k]) fileKey = Object.keys(LIB_FILES).find(n => LIB_FILES[n].kind === k) || k;
   const def = LIB_FILES[S(fileKey)];
   if (!def) return { error: 'Which file? One of ' + Object.keys(LIB_FILES).join(', ') + '.' };
   if (!Array.isArray(rows) || !rows.length) return { error: 'No rows sent.' };
