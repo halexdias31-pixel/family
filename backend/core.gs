@@ -562,16 +562,8 @@ function parseDate(v) {
   return isNaN(d) ? null : d;
 }
 
-/** "09:00" from a Date, "9:00", or "9". */
-function fmtTime(v) {
-  if (v instanceof Date && !isNaN(v)) {
-    return ('0'+v.getHours()).slice(-2) + ':' + ('0'+v.getMinutes()).slice(-2);
-  }
-  const s = S(v);
-  const m = s.match(/(\d{1,2}):(\d{2})/);
-  if (m) return ('0'+m[1]).slice(-2) + ':' + m[2];
-  return /^\d{1,2}$/.test(s) ? ('0'+s).slice(-2) + ':00' : s;
-}
+/** "09:00" from a Date, "9:00", "4:30pm" or "9": the site's `fmtTime_` (cards-gen.gs); a sheet's number is an hour. */
+function fmtTime(v) { return fmtTime_(typeof v === 'number' ? String(v) : v); }
 
 /* ---------- CONFIG / OPTIONS / PRICING -------------------------------------------------------
    Three tabs replacing the old `category = variable`, `source_*` columns and surcharge rows. */

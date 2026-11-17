@@ -116,6 +116,11 @@ function tdYear_(y) {
   out.push({ name: 'Summer holidays', kind: 'holiday', from: add(jul, 1), to: add(tdYear0_(y + 1), -1) });
   return out;
 }
+/* from js/submit.js */
+function subAiOf_(v) {
+  const m = /^(ai|rule):(\d{1,3})\/(\d{1,3})$/.exec(String(v || ''));
+  return m ? { got: +m[2], of: +m[3], by: m[1] } : null;
+}
 /* from js/find-figures.js */
 const TAG_NAME = /[A-Za-z]/;
 function tagMadeOf_(text, said) {
@@ -135,6 +140,8 @@ const fmtTime_ = t => {
   if (t instanceof Date || typeof t === 'number') { const d = new Date(t); return isNaN(d) ? '' : String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }
   const s = String(t ?? '').trim();
   if (!s) return '';
+  /* A BARE HOUR ("9", a sheet's 16) IS THAT HOUR ON THE DOT. */
+  if (/^\d{1,2}$/.test(s)) return s.padStart(2, '0') + ':00';
   let h, min;
   const m = s.match(/(\d{1,2}):(\d{2})\s*([ap]m)?/i);
   const a = m ? null : s.match(/^(\d{1,2})\s*([ap]m)$/i);
