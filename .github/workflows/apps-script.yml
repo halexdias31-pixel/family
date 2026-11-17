@@ -142,10 +142,12 @@ jobs:
       # --force skips the "are you sure" prompt, which has no answer on a runner. It does NOT mean
       # "overwrite harder" — clasp replaces the project's files either way, which is the thing the
       # header above is careful to say out loud.
-      # THE GENERATED BACKEND IS REBUILT FROM ITS SOURCES FIRST, so a stale copy (cards-gen.gs, the COLUMNS,
+      # THE GENERATED BACKEND IS REBUILT FROM ITS SOURCES FIRST, so a stale copy (cards-gen.gs, the
       # ACTIONS and SHARED blocks) never reaches live. It only writes; it never blocks the push (rule 1.75).
       - name: Build (node tools/build.js)
         if: steps.secrets.outputs.configured == 'true'
+        # A runner has no data-private/, so the app walks may fail there; the backend generators run first either way.
+        continue-on-error: true
         run: |
           npm ci --no-audit --no-fund
           node tools/build.js

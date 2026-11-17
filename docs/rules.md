@@ -1,6 +1,6 @@
 # The rulebook — the one foundation
 
-<!-- generated — edit data/settings/rules.json, then run: node tools/rules.js --write -->
+<!-- generated — edit data/settings/rules.json, then run: node tools/build.js -->
 
 **One source for every truth: every fact, rule and design lives in exactly one place and everything else is generated from it. Only the safety rules stand beside it. Where the rules don't decide, ask the owner.**
 

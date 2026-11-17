@@ -175,7 +175,8 @@ function text(name) {
       if (here !== String(r.lib_has || '').trim().split(/\s+/).filter(Boolean).join(' ')) behind.add(id);
       if (c) Object.keys(c).forEach(k => { r[k] = c[k]; });
       else if (String(r.lib_has || '').trim() && !pending(r)) lost.push(id);
-      delete r.lib_has;
+      /* A ROW WHOSE WORDS THIS MACHINE LACKS KEEPS ITS `lib_has`, so the app counts it as a phone does before the words arrive (Answers stays asked). */
+      if (!behind.has(id)) delete r.lib_has;
     });
     if (lost.length) {
       throw new Error(lost.length + ' row(s) of ' + def.file + ' have words in the Ledger and none in data-private/' + name + '.json ('

@@ -15,7 +15,10 @@ const inputsHash = () => {
   const crypto = require('crypto'), h = crypto.createHash('sha256');
   const walk = d => fs.readdirSync(path.join(ROOT, d), { withFileTypes: true }).sort((a, b) => a.name < b.name ? -1 : 1)
     .flatMap(e => e.isDirectory() ? walk(d + '/' + e.name) : [d + '/' + e.name]);
-  const list = walk('js').concat(walk('data'), ['index.html', 'tools/lib/jsdom-app.js', 'tools/lib/payload.json', 'tools/finder-tags.js']).filter(f => !SKIP(f));
+  const list = walk('js').concat(walk('data'), ['index.html', 'tools/lib/jsdom-app.js', 'tools/lib/lib-full.js', 'tools/lib/payload.json', 'tools/finder-tags.js']).filter(f => !SKIP(f));
+  /* AND THE WORDS THIS MACHINE HOLDS (data-private/), which lib-full.js puts back into the library the walk counts. */
+  const lib = require('./lib/lib-full.js');
+  lib.NAMES().map(n => path.relative(ROOT, lib.privatePath(n))).filter(f => fs.existsSync(path.join(ROOT, f))).forEach(f => list.push(f));
   list.forEach(f => {
     let b = fs.readFileSync(path.join(ROOT, f));
     if (f === 'index.html') b = Buffer.from(b.toString('utf8').replace(/BUILD_STAMP\s*=\s*['"][^'"]*['"]/, 'BUILD_STAMP=""'));

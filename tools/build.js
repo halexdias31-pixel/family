@@ -15,7 +15,6 @@ const ORDER = [
   'aliases_gs',   // question-aliases.json -> js/qaliases.js (cards-gen copies it on)
   'words',        // words.json -> js/core.js (cards-gen copies it on)
   'cards-gen',    // js/ (words, aliases) -> js/core.js and backend/constants.gs SHARED, backend/cards-gen.gs
-  'columns_gs',   // columns.json + LAYOUT_COL -> backend/constants.gs (may be gone)
   'permissions',  // -> permissions.json and backend/*.gs blocks
   'word-freq',    // data/pdtexts -> data/word-freq.json
   'facet-hues',   // walks the app over every js/ write above -> TAG_OF, data/facet-graph.json
