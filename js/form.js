@@ -2,7 +2,7 @@
 
 /* THE SPECS ARE data/settings/forms.json (field kinds, rules, Settings cards); this is its copy. An item's forms are its kind's, in kinds.json (ITEM_KINDS). */
 const FORM_SPECS = {
-  "kinds": ["text","number","money","choice","toggle","date","time","picture","list","pin","slider","phone","file","tick","hidden","long","ticks","toggles","search","timetable","many","doc","head","subjects","shelf","dob"],
+  "kinds": ["text","number","money","choice","toggle","date","time","picture","list","pin","slider","phone","file","tick","hidden","long","ticks","toggles","search","timetable","many","doc","head","subjects","shelf","dob","shown"],
   "rules": [
     {"kind":"list","match":"^(qual_\\d+|job_\\d+|lib\\d+_|photo_\\d+)|^video$|^venues_ok$"},
     {"kind":"picture","match":"^photo$"},
@@ -97,11 +97,22 @@ function formDraftDrop_(id, o) {
   } catch (e) { /* storage blocked: nothing was kept */ }
 }
 const formName_ = (f, o) => String(f || '').replace(/\{(\w+)\}/g, (m, k) => String(((o && o.vars) || {})[k] == null ? '' : o.vars[k]));
+/* WHAT A `shown` BOX'S TYPED VALUE IS STORED AS: its spec's `store(f, typed, ctx, was)`. */
+function formShownStore_(id, f, typed, ctx, was) {
+  const x = ((FORM_SPECS.forms[id] || {}).fields || []).find(y => y.type === 'shown' && y.f === f);
+  return x ? window[x.store](f, typed, ctx, was) : typed;
+}
 /* ONE BOX OF A FORM, by its type. `v` is what is saved; a "form" draft is kept against `o.was`, and drawn back here. */
 function formFieldOf_(spec, x, v, o, id) {
   const a = x.attr || spec.attr, f = formName_(x.f, o), val = v == null ? '' : String(v), ro = x.readonly ? ' disabled' : '';
   const more = (o.with && o.with(f, x)) || {};
   if (more.label) x = Object.assign({}, x, { label: more.label });
+  /* ONE VALUE SHOWN, ANOTHER STORED (kinds.json `type: "shown"`): the box of type `as` shows `show(f, o.ctx, stored)`, its hidden twin (`twin`) holds
+     the stored value, and `formShownStore_` turns what is typed back by `store`. Without the right to see `as` (a price), only the twin. */
+  if (x.type === 'shown') {
+    const seen = Object.assign({}, x, { type: x.as || 'text' });
+    return (formMay_(seen) ? formFieldOf_(spec, seen, window[x.show](f, o.ctx, val), o, id) : '') + formHidden_(`${x.twin}="${esc(f)}"`, val);
+  }
   const draw = FORM_TYPE_[x.type];
   if (draw) return draw(spec, x, f, val, o, more);
   /* WHAT IS TYPED: a "form" draft is drawn back into the box (draftVal_), and kept as it is typed (data-draft). */

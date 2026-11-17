@@ -465,25 +465,27 @@ const progressDaysSaid_ = n => (n === 0 ? 'today' : n + (n === 1 ? ' day' : ' da
 /* ---------- THE COUNTDOWNS WIDGET ON TOOLS (466): every copy by class, as the Saved column draws it too ---------- */
 /* DAYS TO GO BY DEFAULT; one tile shows each one's date instead (a safe press, owner 12 Nov). */
 
+/* EASTER SUNDAY (Meeus/Butcher), as a local date: the one rule the site and the backend (booking.gs, setup.gs, via tools/cards-gen.js) both date by. */
+function tdEaster_(yy) {
+  const D = (y, m, d) => new Date(y, m, d);
+  const a = yy % 19, b = Math.floor(yy / 100), c = yy % 100, d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25),
+    g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30, i = Math.floor(c / 4), k = c % 4,
+    l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451);
+  return D(yy, Math.floor((h + l - 7 * m + 114) / 31) - 1, ((h + l - 7 * m + 114) % 31) + 1);
+}
 /* ---------- TERM DATES (491): THE YEAR AS INTERVALS — terms, half-terms and holidays, each with its real first and last day ---------- */
-/* The backend's `schoolYear` (booking.gs) in the browser, rule for rule: a term runs Monday to Friday, a holiday Saturday to Sunday; `check-terms` holds the two together. */
+/* THE ONE SCHOOL-YEAR RULE: the backend's `schoolYear` (booking.gs) reads this, copied by tools/cards-gen.js: a term runs Monday to Friday, a holiday Saturday to Sunday; `check-terms` holds the two together. */
 function tdYear_(y) {
   const D = (yy, m, d) => new Date(yy, m, d), add = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
   const nth = (yy, mo, wd, n) => {
     if (n > 0) { const d = D(yy, mo, 1); return add(d, ((wd - d.getDay() + 7) % 7) + 7 * (n - 1)); }
     const d = D(yy, mo + 1, 0); return add(d, -((d.getDay() - wd + 7) % 7));
   };
-  const easter = yy => {
-    const a = yy % 19, b = Math.floor(yy / 100), c = yy % 100, d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25),
-      g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30, i = Math.floor(c / 4), k = c % 4,
-      l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451);
-    return D(yy, Math.floor((h + l - 7 * m + 114) / 31) - 1, ((h + l - 7 * m + 114) % 31) + 1);
-  };
   const fri = d => add(d, -((d.getDay() - 5 + 7) % 7)), mon = d => add(d, (8 - d.getDay()) % 7);
   const octMon = nth(y, 9, 1, -1), octHalf = octMon.getDate() + 4 > 31 ? add(octMon, -7) : octMon;
   let xmas = fri(D(y, 11, 21)); if (xmas.getDate() < 16) xmas = D(y, 11, 20);
   let jan = mon(D(y + 1, 0, 2)); if (jan.getDate() <= 3 && D(y + 1, 0, 1).getDay() % 6 === 0) jan = add(jan, 1);
-  const feb = mon(D(y + 1, 1, 12)), eas = easter(y + 1), gf = add(eas, -2), em = add(eas, 1);
+  const feb = mon(D(y + 1, 1, 12)), eas = tdEaster_(y + 1), gf = add(eas, -2), em = add(eas, 1);
   const floor = mon(em < D(y + 1, 2, 29) ? em : D(y + 1, 2, 29)), early = add(gf, -11), easStart = early > floor ? early : floor;
   const springEnd = gf < easStart ? add(gf, -1) : add(easStart, -3), summer = add(easStart, 14) > em ? add(easStart, 14) : add(em, 1);
   const may = nth(y + 1, 4, 1, -1), jul = tdJul_(y + 1);

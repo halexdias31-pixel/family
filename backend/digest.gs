@@ -787,8 +787,8 @@ function digestMark_(v) {
   const t = S(v);
   if (t === 'right') return '✓';
   if (t === 'wrong') return '✗';
-  const m = /^(?:ai|rule):(\d{1,3})\/(\d{1,3})$/.exec(t);
-  return m ? m[1] + ' of ' + m[2] + ' mark' + (m[2] === '1' ? '' : 's') : 'not marked';
+  const ai = subAiOf_(t);
+  return ai ? ai.got + ' of ' + ai.of + ' mark' + (ai.of === 1 ? '' : 's') : 'not marked';
 }
 
 function digestEsc_(s) {
