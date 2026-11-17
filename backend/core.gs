@@ -78,9 +78,43 @@ function storeCellOut_(v) {
 /* AN EVENT KIND'S ROWS ARE IN THE EVENTS TAB ({at, who, kind, what, item, data}), the old row whole in `data`; an item kind's in `data_1`. */
 const STORE_MARK = '~moved';
 function storeIsEvents_(kinds) { const s = ITEM_STORE_KINDS.kinds[kinds[0]].sheet; return s.to === 'events' ? s : null; }
+/* ---------- ONLY THE ROWS A REQUEST ASKS FOR (17 Nov): the items and events tabs are read as their `kind` column first, */
+/* then just the runs of rows of the kinds asked, so a request that wants the venues never reads the health log. One image */
+/* per tab per request, in the request cache (`clearCache` drops it); writes go through it as through any table. */
+function storeImg_(tab, kinds) {
+  const ck = '~img:' + tab;
+  let img = _cache[ck];
+  if (!img) {
+    const sheet = findSheet_(sheetFor_(tab));
+    img = { sheet: sheet, headers: [], rows: [], kindOf: [], loaded: {} };
+    const lr = sheet ? sheet.getLastRow() : 0, lc = sheet ? sheet.getLastColumn() : 0;
+    if (lr && lc) {
+      img.headers = (sheet.getRange(1, 1, 1, lc).getValues()[0] || []).map(h => String(h).trim());
+      const kc = img.headers.indexOf('kind');
+      if (lr > 1 && kc >= 0) img.kindOf = sheet.getRange(2, kc + 1, lr - 1, 1).getValues().map(r => S(r[0]));
+    }
+    _cache[ck] = img;
+  }
+  const need = [];
+  img.kindOf.forEach((k, i) => { if (kinds.indexOf(k) !== -1 && !img.loaded[i + 2]) need.push(i + 2); });
+  for (let a = 0; a < need.length;) {
+    let b = a;
+    while (b + 1 < need.length && need[b + 1] === need[b] + 1) b++;
+    const vals = img.sheet.getRange(need[a], 1, b - a + 1, img.headers.length).getValues();
+    vals.forEach((v, j) => {
+      const o = { _row: need[a] + j };
+      img.headers.forEach((h, c) => { if (h) o[h] = v[c]; });
+      img.loaded[o._row] = o;
+      img.rows.push(o);
+    });
+    a = b + 1;
+  }
+  return img;
+}
 function storeRead_(name, kinds) {
   const ev = storeIsEvents_(kinds), col = ev ? 'data' : 'data_1';
-  const it = read(ev ? TAB.events_log : TAB.items), all = it.rows.filter(r => kinds.indexOf(S(r.kind)) !== -1);
+  const it = storeImg_(ev ? TAB.events_log : TAB.items, kinds);
+  const all = it.rows.filter(r => kinds.indexOf(S(r.kind)) !== -1).sort((a, b) => a._row - b._row);
   /* THE MARKER ROW (id `~moved`, or what `~moved` for an event kind) says the kind has moved and holds its tab's columns, */
   /* so a kind whose last row was deleted stays here (never falls back to its stale old tab) and a new row gets every column. */
   const isMark = r => S(ev ? r.what : r.id) === STORE_MARK, marks = all.filter(isMark), mine = all.filter(r => !isMark(r));
@@ -97,7 +131,7 @@ function storeRead_(name, kinds) {
     Object.keys(d).forEach(h => { if (headers.indexOf(h) < 0) headers.push(h); row[h] = storeCell_(d[h]); });
     rows.push(row);
   });
-  return { sheet: it.sheet, headers, rows, moved: { name, kinds, items: it, ev } };
+  return { sheet: it.sheet, headers, rows, moved: { name, kinds, items: it, ev, marks } };
 }
 /* `fields` named: only those change, laid over the row AS THE SHEET HOLDS IT NOW (read fresh), so two requests that each */
 /* change a different field of one row (a PIN and an xp) both land, as two cell writes on the old tab did. */
@@ -119,6 +153,8 @@ function storeAdd_(t, obj) {
   const b = sh.kindBy, kind = b && norm(obj[b.column]).indexOf(b.match) !== -1 ? b.kind : home;
   const item = t.moved.ev ? addRow(t.moved.items, { at: '', who: '', kind: home, what: '', item: '', data: '{}' })
                           : addRow(t.moved.items, { id: id, kind: kind, data_1: '{}' });
+  /* AND THE IMAGE KNOWS THE NEW ROW, so a read of that kind later in this request finds it. */
+  if (item && t.moved.items.kindOf) { t.moved.items.kindOf[item._row - 2] = S(item.kind); t.moved.items.loaded[item._row] = item; }
   /* A NEW ROW HAS EVERY COLUMN, blank where not given, as an appended sheet row has. */
   const row = Object.assign({ _row: t.rows.length + 2 }, Object.fromEntries(t.headers.map(h => [h, ''])), obj);
   Object.defineProperty(row, '_item', { value: item, enumerable: false, writable: true });
@@ -126,6 +162,43 @@ function storeAdd_(t, obj) {
   t.rows.push(row);
   return row;
 }
+
+/* ---------- THE LOGS KEEP THEIR LAST N DAYS (17 Nov): health and lens events older than config `store_trim_days` (90 if unset) */
+/* are deleted from the events tab, in runs, newest first so the row numbers below stay true. Run by tidyOldRows. */
+/* A MOVED TAB'S COLUMNS, as ensureSchema_ asks: SCHEMA's that its marker row lacks are added to the marker. */
+function storeSchema_(name, cols) {
+  const t = read(name);
+  if (!t.moved) return 'moved, but the items tab has none of it yet';
+  const mark = (t.moved.marks || [])[0];
+  if (!mark) return 'moved, with no marker row: run the migration for it';
+  const col = t.moved.ev ? 'data' : 'data_1';
+  let d = {};
+  try { d = JSON.parse(S(mark[col]) || '{}'); } catch (err) { d = {}; }
+  const have = d._headers || [], missing = (cols || []).filter(c => have.indexOf(c) === -1);
+  if (!missing.length) return 'in the store, up to date';
+  d._headers = have.concat(missing);
+  setCell(t.moved.items, mark, col, JSON.stringify(d));
+  clearCache();
+  return 'in the store: added ' + missing.length + ' column(s): ' + missing.join(', ');
+}
+const STORE_TRIM_KINDS = ['health', 'lens'];
+function storeTrim_(days) {
+  const keep = Number(days) > 0 ? Number(days) : (Number(config().store_trim_days) > 0 ? Number(config().store_trim_days) : 90);
+  const cut = Date.now() - keep * 864e5, img = storeImg_(TAB.events_log, STORE_TRIM_KINDS);
+  if (!img.sheet || img.headers.indexOf('data') < 0) return { kept: keep, deleted: 0 };
+  const at = r => { const v = storeCell_((() => { try { return JSON.parse(S(r.data) || '{}'); } catch (err) { return {}; } })()[STORE_TRIM_AT[S(r.kind)]]); return v instanceof Date ? v.getTime() : (Date.parse(S(v)) || 0); };
+  const gone = img.rows.filter(r => STORE_TRIM_KINDS.indexOf(S(r.kind)) !== -1 && S(r.what) !== STORE_MARK && at(r) && at(r) < cut)
+    .map(r => r._row).sort((a, b) => b - a);
+  for (let i = 0; i < gone.length;) {
+    let j = i;
+    while (j + 1 < gone.length && gone[j + 1] === gone[j] - 1) j++;
+    img.sheet.deleteRows(gone[j], j - i + 1);
+    i = j + 1;
+  }
+  if (gone.length) { POST_WROTE = true; clearCache(); }
+  return { kept: keep, deleted: gone.length };
+}
+const STORE_TRIM_AT = { health: 'at', lens: 'at' };
 
 function read(name) {
   if (_cache[name]) return _cache[name];

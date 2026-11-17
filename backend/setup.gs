@@ -552,6 +552,8 @@ function seedHolidays(arg) {
 function ensureSchema_() {
   const report = {};
   Object.keys(SCHEMA).forEach(name => {
+    /* A MOVED TAB (kinds.json ledger.moved) IS NOT MADE OR WIDENED: its columns are its marker row's, given SCHEMA's here. */
+    if (storeMoved_(name)) { report[name] = storeSchema_(name, SCHEMA[name]); return; }
     /* THE SAME LOOKUP `read` USES. § */
     const at = sheetFor_(name);
     /* TWO DIFFERENT FAULTS, AND THEY NEED DIFFERENT WORDS. § */

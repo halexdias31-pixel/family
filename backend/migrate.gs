@@ -57,7 +57,7 @@ function migrateOldRows_() {
   try { PropertiesService.getScriptProperties().setProperty(OLD_ROWS_FLAG, new Date().toISOString()); OLD_ROWS_SEEN_ = true; }
   catch (err) { log.push('the flag could not be set, so the old-shape readers stay on: ' + S(err && err.message || err)); }
   try { console.log('migrateOldRows_: ' + log.length + ' change(s)\n' + log.join('\n')); } catch (err) { /* a log is not the job */ }
-  return { changed: log.length, log: log, tidied: oldRowsTidied_() };
+  return { changed: log.length, log: log, tidied: oldRowsTidied_(), trimmed: storeTrim_() };
 }
 
 /* THE ADMIN'S TILE (gated `admin` in ACTION_ACCESS). */
