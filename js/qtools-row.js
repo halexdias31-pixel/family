@@ -73,6 +73,8 @@ function qtTiles_(x, ans) {
   if (!x || !x.key) return [];
   /* A CARD DRAWN AGAIN WHILE ITS RULER IS OUT gets it back on the new figure, once the markup is in */
   if (typeof MEAS !== 'undefined' && MEAS && MEAS.k === x.key && typeof setTimeout === 'function') setTimeout(measRepaint_, 0);
+  /* AND ITS ANSWER BOX'S FACE: the student's pick, else the question's own (answer-face.js) */
+  if (typeof ansFaceDue_ === 'function') ansFaceDue_(x);
   /* QT_ROW ON EVERY PART; the pen's tiles, Undo and Clear only where the pad is already on the card (1020) */
   const art = typeof padReady_ !== 'function' || padReady_(x);
   const ids = QT_ROW.concat(art ? Object.keys(QT_DRAWING) : []);

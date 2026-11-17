@@ -7647,10 +7647,10 @@ function padSurface_(x) {
   return 'blank';
 }
 /* WHAT EACH IS CALLED, where a paper figure is called "Figure": § */
-const SURFACE_NAME = { grid: 'Squared grid', coord: 'Axes', blank: 'Space to draw' };
+const SURFACE_NAME = { grid: 'Squared grid', coord: 'Axes', blank: 'Space to draw', lines: 'Lined paper' };
 
 /* EACH SURFACE IS LAYERS: squares, axes with their numbers, or a dashed frame. */
-const SURFACE_LAYERS = { grid: ['squares'], coord: ['squares', 'axes'], blank: ['frame'] };
+const SURFACE_LAYERS = { grid: ['squares'], coord: ['squares', 'axes'], blank: ['frame'], lines: ['rules'] };
 const SURFACE_DRAW = {
   squares: (out, S, A, B) => {
     for (let v = A; v <= B; v += S) {
@@ -7671,6 +7671,8 @@ const SURFACE_DRAW = {
     }
     out.push(ax(164, 182, '0', 'end'));
   },
+  /* LINED PAPER (the paper face's `lines`): a rule every two squares, across */
+  rules: (out, S, A, B) => { for (let v = A + 2 * S; v < B; v += 2 * S) out.push({ el: 'line', a: { class: 'grid', x1: A, y1: v, x2: B, y2: v } }); },
   frame: (out, S, A, B) => out.push({ el: 'rect', a: { class: 'axis', x: A, y: A, width: B - A, height: B - A, rx: 8, fill: 'none', 'stroke-dasharray': '6 6' } }),
 };
 
@@ -16547,8 +16549,8 @@ const QT_TOOLS = [
   { id: 'protractor', icon: 'protractor', label: 'Protractor',      note: 'measure an angle',         act: 'qt-inst' },
   { id: 'compass',    icon: 'compass',    label: 'Compass',         note: 'press the centre, drag',   act: 'qt-inst' },
   { id: 'photo',      icon: 'photo',      label: 'Photo of working', note: 'up to 3 pages',           act: 'qp-work' },
-  /* THE GRAPH FACE (owner, 16 Nov): a grid with axes in the answer box's slot, marked by rule (answer-face.js) */
-  { id: 'graph',      icon: 'grid',       label: 'Graph',           note: 'a grid in the answer box', act: 'qp-graph' },
+  /* THE PAPER FACE (owner, 17 Nov): graph, lined or blank paper in the answer box's slot, the pen tools on it (answer-face.js) */
+  { id: 'paper',      icon: 'grid',       label: 'Paper',           note: 'graph, lined or blank',    act: 'qp-paper' },
   { id: 'mag',        icon: 'zoom',       label: 'Magnifier',       note: 'hold it over the page',    act: 'q-mag' },
   { id: 'read',       icon: 'speak',      label: 'Read aloud',      note: 'reads the question out',   act: 'read-aloud' },
   { id: 'lock',       icon: 'unlock',     label: 'Lock',            note: 'hold this page still',     act: 'q-lock' },
@@ -16557,7 +16559,7 @@ const QT_TOOLS = [
   { id: 'check',      icon: 'send',       label: 'Check',           note: '',                         act: '' },
 ];
 /* THE ONE ROW EVERY PART SHOWS, identically (owner, 8 Nov); data/settings/qengine.json `row` repeats it (check-answerable) */
-const QT_ROW = ['photo', 'graph', 'mag', 'read', 'lock', 'ruler', 'protractor', 'calc', 'offline'];
+const QT_ROW = ['photo', 'paper', 'mag', 'read', 'lock', 'ruler', 'protractor', 'calc', 'offline'];
 /* THE PEN'S TILES, added only where the part has a figure to draw on (a drawing answer needs its pen) */
 const QT_DRAWING = { pen: 1, line: 1, compass: 1 };
 /* THE PEN'S OWN NAME FOR EACH DRAWING TILE: Straight line is the pad's `ruler` mode (a line from press to lift, `padStroke_`). */
@@ -16614,10 +16616,14 @@ function qtPenOpen_(el, tool) {
   const key = qtKeyOf_(el);
   let card = el.closest('.qcard');
   if (!card) return null;
-  let pad = card.querySelector('.qpad');
+  /* A TILE ON THE PAPER FACE draws on that paper's pad, whatever figure the card has */
+  const face = el.closest('.qp-face');
+  let pad = (face || card).querySelector('.qpad');
   if (!pad) {
     const x = qtItem_(key);
     if (!x) return null;
+    /* NOTHING TO DRAW ON (no figure, no surface): the tool goes on blank paper in the answer box (answer-face.js), never nowhere */
+    if (!padReady_(x)) return paperPadPick_(card, key, tool);
     qtPenSet_(x, true);
     card = qtRedraw_(card, x);
     pad = card && card.querySelector('.qpad');
@@ -16726,6 +16732,8 @@ function qtTiles_(x, ans) {
   if (!x || !x.key) return [];
   /* A CARD DRAWN AGAIN WHILE ITS RULER IS OUT gets it back on the new figure, once the markup is in */
   if (typeof MEAS !== 'undefined' && MEAS && MEAS.k === x.key && typeof setTimeout === 'function') setTimeout(measRepaint_, 0);
+  /* AND ITS ANSWER BOX'S FACE: the student's pick, else the question's own (answer-face.js) */
+  if (typeof ansFaceDue_ === 'function') ansFaceDue_(x);
   /* QT_ROW ON EVERY PART; the pen's tiles, Undo and Clear only where the pad is already on the card (1020) */
   const art = typeof padReady_ !== 'function' || padReady_(x);
   const ids = QT_ROW.concat(art ? Object.keys(QT_DRAWING) : []);
@@ -16758,7 +16766,8 @@ function qtRedraw_(card, x) {
 
 ;
 /* ==== js/answer-face.js ==== */
-/* @family. — js/answer-face.js THE ANSWER BOX'S FACES (owner, 16 Nov): text, camera, graph. A tile swaps which face fills the box's
+/* @family. — js/answer-face.js THE ANSWER BOX'S FACES (owner, 16 Nov): text, camera, paper (owner, 17 Nov: one paper face, its grid a
+   setting -- graph, lines or blank). A tile swaps which face fills the box's
    one slot, where the text box stood, the same width and place; nothing opens over the page (rule: nothing opens over the app). */
 
 /* ---------- THE ONE SWAP: every face goes in and out of a box through `ansFace_`, so no tool draws a sheet of its own. */
@@ -16767,7 +16776,7 @@ const ANS_FACES = {};
 /* THE SLOT: the typed box's row (or several boxes'), an essay's sheet; a box drawn without one takes the face at its top. */
 const ansSlot_ = box => (box && box.querySelector(':scope > .qp-ans-row, :scope > .qp-sheet')) || null;
 const ansFaceOf_ = box => (box && box.querySelector(':scope > .qp-face')) || null;
-function ansFace_(box, face, k) {
+function ansFace_(box, face, k, o) {
   if (!box) return null;
   const was = ansFaceOf_(box);
   if (was) {
@@ -16781,12 +16790,42 @@ function ansFace_(box, face, k) {
   el.className = 'qp-face qp-face-' + face;
   el.setAttribute('data-face', face);
   el.setAttribute('data-k', k || '');
+  Object.keys(o || {}).forEach(a => el.setAttribute('data-' + a, o[a]));
   if (slot) { slot.hidden = true; slot.insertAdjacentElement('afterend', el); } else box.insertAdjacentElement('afterbegin', el);
   ANS_FACES[face].open(el, k || '', box);
   return el;
 }
-/* BACK TO THE TEXT FACE, from any face's Back tile */
-on('qp-face-text', el => { ansFace_(el.closest('.qp-mark'), 'text'); });
+/* BACK TO THE TEXT FACE, from any face's Back tile -- a pick by hand, kept over the question's own default */
+on('qp-face-text', el => { const f = el.closest('.qp-face'); if (f && f.getAttribute('data-face') === 'paper') ansFacePick_(f.getAttribute('data-k'), 'text');
+  ansFace_(el.closest('.qp-mark'), 'text'); });
+
+/* ---------- WHICH FACE A BOX SHOWS: the one the student picked by hand (the part's record, `face`), else the question's own
+   (`face` on its row: text, graph, lines or blank -- kinds.json question `shape`), else text. A camera is never a default: it asks for the camera. */
+const ansFacePick_ = (k, f) => partRecPutAt_(partKeyOfAns_(k), 'face', f);
+function ansFaceWant_(x) {
+  const own = partRecAt_(partKeyOfAns_(ansKey_(x))).face;
+  const want = own || norm(x.face || (x.row && x.row.face));
+  return PAPER_GRIDS.some(p => p.id === want) ? want : 'text';
+}
+/* A CARD DRAWN (again) gets its box's face back: asked by its tile row as it is drawn (`qtTiles_`), applied once the markup is in. */
+const ANS_FACE_DUE = new Set();
+function ansFaceDue_(x) {
+  if (!x || !x.key || ansFaceWant_(x) === 'text') return;
+  if (!ANS_FACE_DUE.size) setTimeout(ansFacesApply_, 0);
+  ANS_FACE_DUE.add(x.key);
+}
+function ansFacesApply_() {
+  const keys = [...ANS_FACE_DUE];
+  ANS_FACE_DUE.clear();
+  keys.forEach(key => {
+    const x = qtItem_(key);
+    if (!x) return;
+    [...document.querySelectorAll('.qcard [data-key]')].filter(t => t.getAttribute('data-key') === key).forEach(t => {
+      const box = qMark_(t);
+      if (box && !ansFaceOf_(box)) paperOpen_(box, x, ansFaceWant_(x));
+    });
+  });
+}
 
 /* ---------- THE CAMERA FACE: the rear camera live in the slot, a shutter and a back tile. The stream is never kept: each shot
    becomes a page through `workShrink_` into `WORK_PICS` (working.js), exactly where a picked photo goes. */
@@ -16876,8 +16915,13 @@ function camOpen_(el, k) {
   ansFace_(box, 'camera', k);
 }
 
-/* ---------- THE GRAPH FACE (N-20261115-g1, dr1): a blank grid with axes you set, in the slot. Tap a crossing for a point, join
-   two points with a line, shade a square. Saved in the part's one record (`partRec_`, field `graph`), as text is. */
+/* ---------- THE PAPER FACE (owner, 17 Nov): one face in the slot, its grid a setting -- graph (axes you set; tap a crossing for a point,
+   join two, shade a square: N-20261115-g1), lines, or blank. Every pen tool draws on it through the one drawing layer, the pad
+   (`padWrap_`, find-cells.js: pen, straight line, compass, protractor, Undo, Clear), under its own `pad:` key; the graph's points
+   stay in the part's one record (`partRec_`, field `graph`), as they always were. */
+const PAPER_GRIDS = [{ id: 'graph', icon: 'grid', label: 'Graph' }, { id: 'lines', icon: 'doc', label: 'Lines' }, { id: 'blank', icon: 'figure', label: 'Blank' }];
+/* THE PEN TOOLS ON PAPER: the tool row's own acts and names (qtools.js `QT_TOOLS`), so a tile here and one in the row are one tool */
+const PAPER_PENS = ['pen', 'line', 'compass', 'protractor'];
 const GRAPH_SPAN = 20, GRAPH_SIZE = 340, GRAPH_M = 24;
 const GRAPH_MODES = [{ id: 'point', icon: 'spot', label: 'Point' }, { id: 'join', icon: 'line', label: 'Join' }, { id: 'shade', icon: 'full', label: 'Shade' }];
 const GRAPH_MODE = new Map(), GRAPH_PICK = new Map(), GRAPH_UNDO = new Map();
@@ -16928,26 +16972,35 @@ function graphSvg_(g, pick) {
   return figDraw_({ el: 'svg', a: { class: 'qp-graph-svg', viewBox: '0 0 ' + T.W + ' ' + T.H, role: 'img', 'aria-label': 'Graph: ' + graphSay_(g) }, kids: out });
 }
 const graphSay_ = g => g.pts.length + ' points, ' + g.lines.length + ' lines, ' + g.shade.length + ' squares shaded';
-function graphPaint_(el, k) {
-  const g = graphRead_(k), mode = GRAPH_MODE.get(k) || 'point';
+/* THE PAPER'S PAD: the part's own key with `~paper`, so a figure's pad and the paper under the same part keep their marks apart */
+const paperItem_ = key => ({ key: key + '~paper' });
+function paperPaint_(el, k) {
+  const grid = el.getAttribute('data-grid') || 'graph', key = el.getAttribute('data-key') || '', graph = grid === 'graph';
+  const g = graph ? graphRead_(k) : null, mode = GRAPH_MODE.get(k) || 'point';
   const field = (n, v) => cardBlock_({ type: 'group', tag: 'label', look: 'qp-graph-ax', text: n + ' ', blocks: [{ type: 'control', tag: 'input',
     attrs: { type: 'text', inputmode: 'numeric', 'data-ax': n.replace(/ /g, ''), value: String(v), size: 3, autocomplete: 'off', 'aria-label': n } }] });
-  el.innerHTML = fcG_('div', 'qp-graph-axes', null, field('x min', g.ax.x0) + field('x max', g.ax.x1) + field('y min', g.ax.y0) + field('y max', g.ax.y1))
-    + fcG_('div', 'qp-graph-art', { 'data-k': k }, graphSvg_(g, GRAPH_PICK.get(k)))
-    + fcG_('p', 'qp-face-say', { role: 'status', 'aria-live': 'polite' }, '', graphSay_(g))
-    + fcG_('div', 'tile-row qp-face-tiles', null, tile_(GRAPH_MODES.map(m => ({ icon: m.icon, label: m.label, act: 'qp-graph-mode', on: mode === m.id, pressed: mode === m.id, data: { k, mode: m.id } }))
-      .concat([{ icon: 'undo', label: 'Undo', act: 'qp-graph-undo', data: { k }, off: !(GRAPH_UNDO.get(k) || []).length },
-        { icon: 'bin', label: 'Clear', act: 'qp-graph-clear', data: { k } },
-        { icon: 'left', label: 'Back', note: 'to typing', act: 'qp-face-text' }])));
+  const pens = PAPER_PENS.map(qtTool_).filter(Boolean).map(t => ({ icon: t.icon, label: t.label, note: t.note, act: t.act, cls: 'qt-t', data: { tool: t.id, key } }));
+  el.innerHTML = fcG_('div', 'tile-row qp-face-tiles qp-paper-grids', { role: 'toolbar', 'aria-label': 'Paper' }, tile_(PAPER_GRIDS.map(p =>
+      ({ icon: p.icon, label: p.label, act: 'qp-paper-grid', on: grid === p.id, pressed: grid === p.id, data: { k, grid: p.id } }))))
+    + (graph ? fcG_('div', 'qp-graph-axes', null, field('x min', g.ax.x0) + field('x max', g.ax.x1) + field('y min', g.ax.y0) + field('y max', g.ax.y1)) : '')
+    + fcG_('div', 'qp-paper-art' + (graph ? ' qp-graph-art' : ''), { 'data-k': k }, padWrap_(paperItem_(key), graph ? graphSvg_(g, GRAPH_PICK.get(k)) : surfaceSvg_(grid)))
+    + fcG_('p', 'qp-face-say', { role: 'status', 'aria-live': 'polite' }, '', graph ? graphSay_(g) : '')
+    + fcG_('div', 'tile-row qp-face-tiles', null, tile_((graph ? GRAPH_MODES.map(m => ({ icon: m.icon, label: m.label, act: 'qp-graph-mode', on: mode === m.id, pressed: mode === m.id, data: { k, mode: m.id } }))
+      .concat([{ icon: 'undo', label: 'Undo', note: 'the last point', act: 'qp-graph-undo', data: { k }, off: !(GRAPH_UNDO.get(k) || []).length },
+        { icon: 'bin', label: 'Clear', note: 'the graph', act: 'qp-graph-clear', data: { k } }]) : [])
+      .concat(pens, [{ icon: 'left', label: 'Back', note: 'to typing', act: 'qp-face-text' }])));
+  if (!graph) return;
   el.querySelectorAll('input[data-ax]').forEach(inp => inp.addEventListener('change', () => graphAxSet_(el, k)));
-  el.querySelector('.qp-graph-art svg').addEventListener('click', e => graphTap_(el, k, e));
+  /* A TAP ON THE GRAPH, through the pad's ink above it: the graph's while no pen tool is in hand, the pen's while one is */
+  const art = el.querySelector('.qpad-art'), pk = padKey_(paperItem_(key));
+  if (art) art.addEventListener('click', e => { if (PAD_ON !== pk) graphTap_(el, k, e); });
 }
 function graphKeep_(el, k, g) {
   const u = GRAPH_UNDO.get(k) || [];
   u.push(JSON.stringify(graphRead_(k)));
   GRAPH_UNDO.set(k, u.slice(-50));
   graphPut_(k, g);
-  graphPaint_(el, k);
+  paperPaint_(el, k);
 }
 function graphAxSet_(el, k) {
   const g = graphRead_(k), v = n => (el.querySelector('input[data-ax="' + n + '"]') || {}).value;
@@ -16959,7 +17012,8 @@ function graphAxSet_(el, k) {
 }
 /* A TAP ON THE GRID: nearest crossing for Point and Join, the square under it for Shade */
 function graphTap_(el, k, e) {
-  const svg = e.currentTarget, r = svg.getBoundingClientRect(), g = graphRead_(k), T = graphScale_(g.ax);
+  const svg = el.querySelector('.qp-graph-svg'), r = svg && svg.getBoundingClientRect(), g = graphRead_(k), T = graphScale_(g.ax);
+  if (!r) return;
   if (!(r.width > 0)) return;
   const vx = (e.clientX - r.left) * T.W / r.width, vy = (e.clientY - r.top) * T.H / r.height;
   const gx = g.ax.x0 + (vx - GRAPH_M) / T.S, gy = g.ax.y1 - (vy - GRAPH_M) / T.S;
@@ -16981,27 +17035,57 @@ function graphTap_(el, k, e) {
   /* JOIN: the first point tapped is held, the second draws the line; a crossing with no point gets one */
   if (at === -1) g.pts.push(p);
   const held = GRAPH_PICK.get(k);
-  if (!held || ptSame_(held, p)) { GRAPH_PICK.set(k, held ? null : p); return at === -1 ? graphKeep_(el, k, g) : graphPaint_(el, k); }
+  if (!held || ptSame_(held, p)) { GRAPH_PICK.set(k, held ? null : p); return at === -1 ? graphKeep_(el, k, g) : paperPaint_(el, k); }
   GRAPH_PICK.delete(k);
   if (!g.lines.some(l => (ptSame_(l[0], held) && ptSame_(l[1], p)) || (ptSame_(l[1], held) && ptSame_(l[0], p)))) g.lines.push([held, p]);
   graphKeep_(el, k, g);
 }
-ANS_FACES.graph = { open(el, k) { graphPaint_(el, k); }, close() {} };
-on('qp-graph', el => {
-  const box = qMark_(el), x = qtItem_(el.getAttribute('data-key') || '');
-  if (!box || !x) { tell_(null, 'info', 'This part has no answer box to draw a graph in'); return; }
-  const was = ansFaceOf_(box);
-  if (was && was.getAttribute('data-face') === 'graph') return ansFace_(box, 'text');
+ANS_FACES.paper = { open(el, k) { paperPaint_(el, k); }, close() {} };
+/* THE PAPER OPENED ON A BOX, on the grid asked for (else the one last used on this part, else graph) */
+function paperOpen_(box, x, grid) {
+  const k = ansKey_(x);
   graphCheckWrap_();
-  ansFace_(box, 'graph', ansKey_(x)).setAttribute('data-key', x.key);
+  const was = partRecAt_(partKeyOfAns_(k)).face;
+  const g = PAPER_GRIDS.some(p => p.id === grid) ? grid : PAPER_GRIDS.some(p => p.id === was) ? was : 'graph';
+  return ansFace_(box, 'paper', k, { grid: g, key: x.key });
+}
+/* THE PAPER TILE (`qp-paper`): opens the paper, or back to typing when it is open -- either way the student's pick, kept */
+on('qp-paper', el => {
+  const box = qMark_(el), x = qtItem_(el.getAttribute('data-key') || '');
+  if (!box || !x) { tell_(null, 'info', 'This part has no answer box to draw in'); return; }
+  const was = ansFaceOf_(box);
+  if (was && was.getAttribute('data-face') === 'paper') { ansFacePick_(ansKey_(x), 'text'); return ansFace_(box, 'text'); }
+  const f = paperOpen_(box, x);
+  ansFacePick_(ansKey_(x), f.getAttribute('data-grid'));
 });
-const graphFaceOf_ = el => el.closest('.qp-face-graph');
-on('qp-graph-mode', el => { const k = el.getAttribute('data-k'); GRAPH_MODE.set(k, el.getAttribute('data-mode')); GRAPH_PICK.delete(k); graphPaint_(graphFaceOf_(el), k); });
+/* THE GRID IS A SETTING: the same face drawn again on graph, lines or blank paper, and kept as the student's pick */
+on('qp-paper-grid', el => {
+  const f = el.closest('.qp-face'), grid = el.getAttribute('data-grid');
+  if (!f || !PAPER_GRIDS.some(p => p.id === grid)) return;
+  f.setAttribute('data-grid', grid);
+  ansFacePick_(f.getAttribute('data-k'), grid);
+  paperPaint_(f, f.getAttribute('data-k'));
+});
+/* A PEN TOOL WITH NOTHING TO DRAW ON (no figure, no surface): the paper opens in the answer box and the tool is laid on its pad */
+function paperPadPick_(card, key, tool) {
+  const x = qtItem_(key), box = card && qMark_(card);
+  if (!x || !box) return null;
+  let f = ansFaceOf_(box);
+  if (!f || f.getAttribute('data-face') !== 'paper') { f = paperOpen_(box, x, 'blank'); ansFacePick_(ansKey_(x), 'blank'); }
+  const pad = f && f.querySelector('.qpad');
+  if (pad) padToolPick_(pad, tool || 'pen');
+  return pad;
+}
+const graphFaceOf_ = el => el.closest('.qp-face-paper');
+/* A GRAPH TOOL TAKEN UP PUTS THE PEN DOWN, so the next tap is the graph's */
+on('qp-graph-mode', el => { const k = el.getAttribute('data-k'), f = graphFaceOf_(el), pad = f && f.querySelector('.qpad');
+  if (pad && PAD_ON === pad.getAttribute('data-k')) { padArm_(pad, false); PAD_ON = ''; padDrop_(); }
+  GRAPH_MODE.set(k, el.getAttribute('data-mode')); GRAPH_PICK.delete(k); paperPaint_(f, k); });
 on('qp-graph-undo', el => {
   const k = el.getAttribute('data-k'), u = GRAPH_UNDO.get(k) || [];
   if (!u.length) return;
   graphPut_(k, JSON.parse(u.pop()));
-  graphPaint_(graphFaceOf_(el), k);
+  paperPaint_(graphFaceOf_(el), k);
 });
 on('qp-graph-clear', el => { const k = el.getAttribute('data-k'), g = graphRead_(k); GRAPH_PICK.delete(k); graphKeep_(graphFaceOf_(el), k, Object.assign(g, { pts: [], lines: [], shade: [] })); });
 
@@ -17034,10 +17118,10 @@ function graphMark_(x, g) {
   const got = Math.max(0, Math.round(marks * Math.max(0, hit - extra) / Math.max(1, want)));
   return { got, marks, right: hit === want && !extra };
 }
-/* EVERY CHECK ACT, wrapped once: while a graph face shows, the Check is the graph's (rule or save); otherwise it goes on as it always has. */
+/* EVERY CHECK ACT, wrapped once: while graph paper shows, the Check is the graph's (rule or save); otherwise it goes on as it always has. */
 function graphCheck_(el) {
   const box = qMark_(el), face = box && ansFaceOf_(box);
-  if (!face || face.getAttribute('data-face') !== 'graph') return false;
+  if (!face || face.getAttribute('data-face') !== 'paper' || face.getAttribute('data-grid') !== 'graph') return false;
   const x = qtItem_(face.getAttribute('data-key') || '');
   const k = face.getAttribute('data-k') || '', g = graphRead_(k);
   const m = x && graphMark_(x, g);
@@ -17046,7 +17130,7 @@ function graphCheck_(el) {
   tell_(box.querySelector('.qp-verdict'), m.right ? 'saved' : 'error', m.got + ' of ' + m.marks + ' — marked by its rule' + (m.right ? '' : '; check your points, lines and shading'));
   return true;
 }
-/* WRAPPED WHEN A GRAPH FACE FIRST OPENS, not at load: the files that register the Check acts may load after this one. */
+/* WRAPPED WHEN A PAPER FACE FIRST OPENS, not at load: the files that register the Check acts may load after this one. */
 const GRAPH_CHECK_ACTS = ['qp-check', 'qp-noscheme', 'qp-cells-check', 'pad-check'];
 function graphCheckWrap_() {
   GRAPH_CHECK_ACTS.forEach(act => {
@@ -17512,210 +17596,82 @@ function joinedJob_() {
   return (openJobs_() || []).find(j => openClassLabel_(j) === v) || null;
 }
 
-const BOOK_STEPS = [
-  /* ---------- WHICH OF THE TWO THINGS THIS IS § */
-  /* ---------- THE TRADE-OFF, SAID PLAINLY § */
-  /* ---------- THE TRADE-OFF, IN ONE LINE EACH § */
-  /* ---------- WHO IT IS FOR IS THE FIRST QUESTION § */
-  /* NO TUTOR TO CHOOSE. The class is priced against a tutor nobody picked, which is precisely
-     what makes the seat cost what it costs. */
-  /* ---------- WHOSE BOOKING IT IS § */
-  /* `set`: WHAT ANSWERING A STEP DOES TO THE OTHERS (book-rows.js). ANOTHER CLIENT, ANOTHER FAMILY: a child the new client does not have is not on their booking (two clients' children showed, 29 Oct). */
-  { id: 'client', label: text_('who-is-this-for'), short: 'For', set: () => bookKidsFor_(),
-    /* WHOEVER IS SIGNED IN, UNTIL SOMEBODY SAYS OTHERWISE. § */
-    fallback: () => (USER && USER.name) || '',
-    options: () => {
-      if (!may_('admin')) return [];
-      const me = (USER && USER.name) || '';
-      /* `DATA.people` AND `hasRole_` BOTH NEVER EXISTED — I wrote them from memory of what a codebase like this usually has. § */
-      const names = (DATA.clients || []).map(p => p.name).filter(Boolean);
-      /* ---------- AND NOBODY AT ALL, WHICH IS HOW A LIST IS OPENED § */
-      const people = [me].concat(names.filter(n => norm(n) !== norm(me))).filter(Boolean);
-      return isWaiting_() ? [NOBODY].concat(people) : people.concat([NOBODY]);
-    },
-
-    /* A SESSION FOR NOBODY IS REFUSED — nobody sits in the chair at a session somebody booked
-       outright, so offering it there would be offering a booking that cannot happen. */
-    why: v => (v === NOBODY && !isWaiting_())
-      ? 'a session needs somebody in it — this opens a waiting list' : '',
-  },
-
-  /* SWITCHING THE KIND CLEARS THE TUTOR only the other kind could have given, and leaving the waiting list unchooses its class. */
-  { id: 'how', label: text_('how-would-you-like-to-book'), short: 'Kind', set: () => { BOOKING.tutor = ''; if (!isWaiting_()) BOOKING.joining = ''; },
-    /* BOTH ARE "START", because both are things you set going — the difference is whether it runs now or waits for company. § */
-    /* THE TWO KINDS, NAMED. § */
-    options: () => [text_('instant-class'), text_('waiting-list-class')],
-  },
-
-  /* ORDER BY DEPENDENCY (owner, 12 Nov): who → what → who teaches → where → how many → when; a row reads only rows above it. */
-  /* ---------- WHOSE CHILDREN ARE THESE? § */
-  /* THE SEATS FOLLOW THE CHILDREN (owner, 7 Nov): picking a child past the count raises it; seats beyond them stay the admin's. */
-  { id: 'kids', label: text_('which-of-your-children-is-this'), short: 'Child', set: list => { if (list && list.length > (Number(BOOKING.n) || 1)) BOOKING.n = String(list.length); },
-    /* EVERY CHILD IS OFFERED. § */
-    /* ---------- WHOSE CHILDREN, WHICH IS NOT ALWAYS YOURS § */
-    options: () => {
-      if (isWaiting_()) return [];
+/* THE BOOKING QUESTIONS ARE DATA (kinds.json bookform › booking: each field's `step`, in `rows` order), read by `formSteps_` (form.js).
+   What is left here is what cannot be data: the named sources, tests and refusals the steps name. */
+const BOOK_FNS = {
+  from: {
+    clients: () => DATA.clients,
+    /* THE CHOSEN CLIENT'S OWN CHILDREN, yourself included (owner, 7 Nov: another client's children were offered); your own list only when you have no row. */
+    children: () => {
       const forWhom = BOOKING.client || (USER && USER.name) || '';
-      /* THE CHOSEN CLIENT'S OWN ROW FIRST, yourself included (owner, 7 Nov: another client's children were offered); your own list only when you have no row. */
       const c = (DATA.clients || []).find(x => norm(x.name) === norm(forWhom));
-      if (c || !USER || norm(forWhom) !== norm(USER.name)) return ((c && c.children) || []).filter(Boolean).concat([UNNAMED]);
-      return (USER.children || USER.kids || []).filter(Boolean).concat([UNNAMED]);
+      if (c || !USER || norm(forWhom) !== norm(USER.name)) return ((c && c.children) || []).filter(Boolean);
+      return (USER.children || USER.kids || []).filter(Boolean);
     },
-    /* ---------- AND ONE UNNAMED SEAT, ALWAYS OFFERED § */
-
-    /* Once you have ticked as many as you paid for, the rest say why. Still there, still readable,
-       and tickable the moment you untick one — which is how you change your mind about which two
-       of three are coming. */
-    /* NO "that is N seats already" (owner, 7 Nov): the seats follow the children picked — see `bookToggle_`. */
-  },
-
-  /* ---------- JOINING ONE, OR STARTING ONE § */
-  /* CHOOSING A CLASS ANSWERS FOUR OTHER QUESTIONS (`joiningSet_`). */
-  { id: 'joining', label: text_('something-already-going-or-a-new'), short: 'Class', set: () => joiningSet_(),
-    /* THE ONES OF THE KIND BEING ASKED FOR. § */
-    options: () => {
-      if (!BOOKING.how) return [];
-      const want = isWaiting_();
-      return [NEW_LIST].concat((openJobs_() || [])
-        .filter(j => isWaitJob_(j) === want)
-        .filter(j => want || j.canAsk)
-        .map(openClassLabel_));
-    } },
-
-  /* A CLASS IS MATHS AND ENGLISH, and that is what the class IS rather than something to pick.
-     Written into the booking below so the receipt and the backend agree without asking. */
-  /* ---------- IT WAS ALWAYS MULTI AND NOTHING ON THE CARD SAID SO § */
-  /* ---------- AND THEN THE SENTENCE CAME OFF AGAIN § */
-  /* ---------- AND A WAITING LIST IS ASKED IT TOO § */
-  /* NO `format`, `practical` OR `trip` STEP (463): trips and practicals are shop items, bought in the basket. */
-  { id: 'subjects', label: text_('what-are-we-working-on'), short: 'Subject',
-    options: () => (subjectRows() || []).map(x => x.name) },
-
-  /* MIXED LEVELS IN ONE BOOKING (owner, 7 Nov): one answer, the highest qualification, and the price follows it. */
-  { id: 'level', label: text_('what-level-the-highest-among-the'), short: 'Level',
-    options: () => ((DATA.dropdowns || {}).levels || []) },
-
-  /* ONE SEAT EACH. The price is the room and the teaching divided by the seats, so a family
-     taking two would be buying half the class at a quarter of the cost. */
-  /* ---------- HOW MANY SEATS, AND WHAT THE REST OF THEM COST YOU § */
-  /* ---------- HOW MANY EXTRA, NOT HOW MANY IN TOTAL § */
-  /* ---------- WHO TEACHES IT IS ASKED EARLY, NOT LAST § */
-  /* ---------- AND AN UNLISTED TUTOR IS THE SERVER'S DECISION, NOT THIS LIST'S § */
-  { id: 'tutor', label: text_('anyone-in-particular'), short: 'Tutor',
-    options: () => isWaiting_() ? [] : [text_('no-preference')].concat(
-      (DATA.tutors || []).filter(t => t.title).map(t => t.title)),
-    label_: v => {
-      const t = (DATA.tutors || []).find(x => norm(x.title) === norm(v));
-      /* NO RATE BESIDE THE NAME (owner, 7 Nov): the price columns already say what the tutor adds. */
-      return v + (t && t.listed === false ? ' · not listed' : '');
-    },
-    /* ---------- A WAITING LIST HAS NO TUTOR YET, AND THE ROW WAS SHOWING THE LAST ONE § */
-    fallback: () => isWaiting_() ? text_('no-preference') : '',
-    why: v => {
-      if (v === text_('no-preference')) return '';
-      const t = (DATA.tutors || []).find(x => norm(x.title) === norm(v));
-      if (!t || !BOOKING.subjects.length) return '';
-      const teaches = (t.teaches || []).map(x => norm(String(x).replace(/\s*\([^)]*\)/, '')));
-      const missing = BOOKING.subjects.filter(sub => teaches.indexOf(norm(sub)) === -1);
-      return missing.length ? 'does not teach ' + missing.join(', ') : '';
-    } },
-  /* AT THE CLIENT'S OWN HOUSE THE SPACE IS THEIRS: an earlier `No` must not stand under a row that cannot be answered. */
-  { id: 'loc', label: 'Where?', short: 'Venue', only: 'wait, tutoring', set: () => { if (takesAllSeats_(BOOKING.loc)) BOOKING.hosting = ''; },
-    options: () => bookableSpaces().map(x => x.label),
-    /* THE ANSWER WRAPS. A room is "Venue — Room", and the three rooms of one building are the same
-       answer until its last word — see the note at the foot of `stepSelect_`. */
-    wrap: true,
-    why: v => {
-      const sp = spaceFor(v);
-      /* A ROOM SMALLER THAN THE CHILDREN ALREADY PICKED says so rather than quietly resetting the count. */
-      if (sp && Number(sp.max) && BOOKING.n > Number(sp.max)) {
-        return 'holds ' + sp.max + ', you asked for ' + BOOKING.n;
-      }
-      return '';
-    } },
-
-  /* "I'LL HOST" IS A CHOICE, and it was an inference — turned on only when somebody picked "At home", so a client who wanted to provide the room at a paid venue § */
-  /* A CLASS IS AT A VENUE. Somebody's front room is not a place three other families are going. */
-  { id: 'hosting', label: text_('are-you-providing-the-space'), short: 'Space', only: 'wait, tutoring',
-    /* AT THE CLIENT'S OWN HOUSE THE CLIENT IS THE SPACE (owner, 29 Oct: "the space field is redundant"): no options, so the row is text, `Yes`. */
-    fallback: () => takesAllSeats_(BOOKING.loc) ? 'Yes' : '',
-    options: () => {
-      if (isWaiting_() || takesAllSeats_(BOOKING.loc)) return [];
-      const rate = venueRate_();
-      /* Nothing to charge means nothing to decide: hosting is already true and asking would be
-         the app consulting somebody about a fact. */
-      return rate > 0 ? ['No', 'Yes'] : ['Yes'];
-    },
-    /* The saving was spelled out here and it is already on the card: the Host row shows
-       − £15.00/h against the venue's + £15.00/h, one line apart. Saying it twice made the option
-       longer to read than the question. */
-    label_: v => v === 'Yes' ? text_('yes-no-room-hire') : text_('no-we-book-the-room') },
-
-  /* ---------- THE NUMBER ON THE ROW IS THE EXTRA SEATS, AND THE ONE IN `BOOKING` IS THE TOTAL § */
-  { id: 'n', label: text_('how-many-extra-seats'), short: text_('extra-seats'),
-    label_: v => String(Math.max(0, Number(v) - 1)),
-    /* ---------- AND A WAITING LIST GETS TO ANSWER IT TOO § */
-    /* ---------- AND IT STARTS AT THE FLOOR, NOT AT ONE § */
-    /* AT HOME THE COUNT IS FIXED (owner, 8 Nov): the select is greyed, still showing every seat the tutor holds. */
-    lock: () => homeSeats_() > 0,
-    options: () => {
+    openJobs: () => openJobs_(),
+    subjects: () => subjectRows(),
+    levels: () => (DATA.dropdowns || {}).levels,
+    tutors: () => DATA.tutors,
+    venues: () => bookableSpaces(),
+    intervals: () => intervals_(),
+    /* ALWAYS FOUR CHOICES, so the control stays put; past the cap is greyed by `overCap`, never hidden (owner, 7 Nov). At home, the tutor's whole capacity. */
+    seats: () => {
       const lim = seatLimits(spaceFor(BOOKING.loc), tutorRow_(), BOOKING.loc);
       if (homeSeats_() > 0) return [String(lim.max)];
       const out = [];
-      /* ALWAYS FOUR CHOICES, so the control stays put; a number past the cap is greyed by `off`, never hidden (owner, 7 Nov). */
       for (let i = lim.min; i <= lim.min + 3; i++) out.push(String(i));
       return out;
     },
-    off: v => {
-      const lim = seatLimits(spaceFor(BOOKING.loc), tutorRow_(), BOOKING.loc);
-      return Number(v) > lim.max ? (lim.why.max || 'the place') + ' holds ' + lim.max : '';
-    },
-    /* THE REFUSALS ONLY: a number outside what the room and the tutor allow. The note that used to
-       sit beside this — what each number means, one sentence per option — is gone with the other
-       three; see `stepRows_`. */
-    /* THE SAME THREE ARGUMENTS AS THE LIST ABOVE, and that is what makes this the refusal for a number the list cannot offer rather than a second opinion about what § */
-    why: v => {
-      const lim = seatLimits(spaceFor(BOOKING.loc), tutorRow_(), BOOKING.loc);
-      if (Number(v) > lim.max) return 'more than ' + (lim.why.max || 'the limit') + ' allows';
-      /* ---------- IN THE ROW'S OWN UNITS, WHICH THIS PRINTED THE OTHER ONE OF § */
-      if (Number(v) < lim.min) {
-        const need = Math.max(0, lim.min - 1);
-        return (lim.why.min || 'the minimum') + ' needs ' + need
-             + ' extra seat' + (need === 1 ? '' : 's');
-      }
-      return '';
-    } },
-
-  /* AND NO TERM, for the same reason as the day. */
-  /* ---------- SEVERAL TERMS, BECAUSE A BOOKING IS RARELY ONE OF THEM § */
-  /* ---------- AND ON A WAITING LIST IT ANSWERS ITSELF § */
-  { id: 'interval', label: text_('over-what-period'), short: 'Term',
-    fallback: () => { const t = isWaiting_() ? waitTerm_() : null;
-                      return t ? (t.label || t.term) : ''; },
-    /* ---------- AND IT IS OFFERED ON BOTH BRANCHES NOW § */
-    options: () => intervals_().map(x => x.label || x.term).filter(Boolean) },
-
-  /* ONE QUESTION WHERE THERE WERE THREE. § */
-  /* NO DAY YET. It is settled when the list fills — a time promised now is a promise about a room
-     nobody has booked, made to four families who have not all joined. */
-  /* `grid: 'hours'` RATHER THAN `true`. § */
-  /* ---------- `week: true` MAKES THIS STEP SEVEN ROWS RATHER THAN ONE § */
-  { id: 'slots', label: 'When?', short: 'When', grid: 'hours', week: true,
-    options: () => isWaiting_() ? [] : slotGrid().rows.length ? ['grid'] : [] },
-
-  /* ---------- WHEN COULD YOU COME? § */
-  /* ---------- "FREE" MEANT FREE OF CHARGE TO EVERY READER § */
-  /* ---------- AND IT IS THE WEEK NOW, NOT FIVE PHRASES § */
-  /* ---------- AND IT IS NOT ON AN ORDINARY BOOKING AT ALL § */
-  { id: 'avail', label: text_('when-could-you-come'), short: text_('when-free'),
-    only: 'wait',
-    grid: 'blocks', week: true, options: () => [], why: () => '' },
-
-  /* ---------- WOULD YOU SHARE WITH SOMEBODY YOU DO NOT KNOW? § */
-
-
-
-];
+    hourGrid: () => slotGrid().rows.length ? ['grid'] : [],
+  },
+  /* conditions (`when`, `unless`) */
+  waiting: () => isWaiting_(),
+  atHome: () => takesAllSeats_(BOOKING.loc),
+  /* tests and labels over one row (`filter`, `label`) */
+  sameKind: j => isWaitJob_(j) === isWaiting_() && (isWaiting_() || !!j.canAsk),
+  openClass: j => openClassLabel_(j),
+  roomCosts: v => v === 'Yes' || venueRate_() > 0,
+  /* the whole list (`then`): yourself first; nobody first on a waiting list, last otherwise */
+  meFirstNobody: names => {
+    const me = (USER && USER.name) || '';
+    const people = [me].concat(names.filter(n => norm(n) !== norm(me))).filter(Boolean);
+    return isWaiting_() ? [NOBODY].concat(people) : people.concat([NOBODY]);
+  },
+  /* shown text (`say`) */
+  tutorListed: v => { const t = (DATA.tutors || []).find(x => norm(x.title) === norm(v)); return v + (t && t.listed === false ? ' · not listed' : ''); },
+  extraSeats: v => String(Math.max(0, Number(v) - 1)),
+  /* `fallback` */
+  me: () => (USER && USER.name) || '',
+  waitNoPreference: () => isWaiting_() ? text_('no-preference') : '',
+  atHomeYes: () => takesAllSeats_(BOOKING.loc) ? 'Yes' : '',
+  waitTerm: () => { const t = isWaiting_() ? waitTerm_() : null; return t ? (t.label || t.term) : ''; },
+  homeSeats: () => homeSeats_() > 0,
+  /* `set`: what answering a step does to the others (book-rows.js) */
+  kidsFor: () => bookKidsFor_(),
+  howSet: () => { BOOKING.tutor = ''; if (!isWaiting_()) BOOKING.joining = ''; },
+  seatsFollowKids: list => { if (list && list.length > (Number(BOOKING.n) || 1)) BOOKING.n = String(list.length); },
+  joiningSet: () => joiningSet_(),
+  homeHostsItself: () => { if (takesAllSeats_(BOOKING.loc)) BOOKING.hosting = ''; },
+  /* refusals (`check`, `off`) */
+  needsSomebody: v => (v === NOBODY && !isWaiting_()) ? 'a session needs somebody in it — this opens a waiting list' : '',
+  teaches: v => {
+    if (v === text_('no-preference')) return '';
+    const t = (DATA.tutors || []).find(x => norm(x.title) === norm(v));
+    if (!t || !BOOKING.subjects.length) return '';
+    const teaches = (t.teaches || []).map(x => norm(String(x).replace(/\s*\([^)]*\)/, '')));
+    const missing = BOOKING.subjects.filter(sub => teaches.indexOf(norm(sub)) === -1);
+    return missing.length ? 'does not teach ' + missing.join(', ') : '';
+  },
+  roomHolds: v => { const sp = spaceFor(v); return sp && Number(sp.max) && BOOKING.n > Number(sp.max) ? 'holds ' + sp.max + ', you asked for ' + BOOKING.n : ''; },
+  overCap: v => { const lim = seatLimits(spaceFor(BOOKING.loc), tutorRow_(), BOOKING.loc); return Number(v) > lim.max ? (lim.why.max || 'the place') + ' holds ' + lim.max : ''; },
+  seatLimits: v => {
+    const lim = seatLimits(spaceFor(BOOKING.loc), tutorRow_(), BOOKING.loc);
+    if (Number(v) > lim.max) return 'more than ' + (lim.why.max || 'the limit') + ' allows';
+    if (Number(v) < lim.min) { const need = Math.max(0, lim.min - 1); return (lim.why.min || 'the minimum') + ' needs ' + need + ' extra seat' + (need === 1 ? '' : 's'); }
+    return '';
+  },
+};
+const BOOK_STEPS = formSteps_('booking', BOOK_FNS);
 
 /* A HOME BOOKING'S SEAT COUNT, the tutor's whole capacity (owner, 8 Nov); 0 when not at home or on a waiting list. */
 function homeSeats_() {

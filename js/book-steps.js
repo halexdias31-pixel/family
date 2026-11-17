@@ -361,210 +361,82 @@ function joinedJob_() {
   return (openJobs_() || []).find(j => openClassLabel_(j) === v) || null;
 }
 
-const BOOK_STEPS = [
-  /* ---------- WHICH OF THE TWO THINGS THIS IS § */
-  /* ---------- THE TRADE-OFF, SAID PLAINLY § */
-  /* ---------- THE TRADE-OFF, IN ONE LINE EACH § */
-  /* ---------- WHO IT IS FOR IS THE FIRST QUESTION § */
-  /* NO TUTOR TO CHOOSE. The class is priced against a tutor nobody picked, which is precisely
-     what makes the seat cost what it costs. */
-  /* ---------- WHOSE BOOKING IT IS § */
-  /* `set`: WHAT ANSWERING A STEP DOES TO THE OTHERS (book-rows.js). ANOTHER CLIENT, ANOTHER FAMILY: a child the new client does not have is not on their booking (two clients' children showed, 29 Oct). */
-  { id: 'client', label: text_('who-is-this-for'), short: 'For', set: () => bookKidsFor_(),
-    /* WHOEVER IS SIGNED IN, UNTIL SOMEBODY SAYS OTHERWISE. § */
-    fallback: () => (USER && USER.name) || '',
-    options: () => {
-      if (!may_('admin')) return [];
-      const me = (USER && USER.name) || '';
-      /* `DATA.people` AND `hasRole_` BOTH NEVER EXISTED — I wrote them from memory of what a codebase like this usually has. § */
-      const names = (DATA.clients || []).map(p => p.name).filter(Boolean);
-      /* ---------- AND NOBODY AT ALL, WHICH IS HOW A LIST IS OPENED § */
-      const people = [me].concat(names.filter(n => norm(n) !== norm(me))).filter(Boolean);
-      return isWaiting_() ? [NOBODY].concat(people) : people.concat([NOBODY]);
-    },
-
-    /* A SESSION FOR NOBODY IS REFUSED — nobody sits in the chair at a session somebody booked
-       outright, so offering it there would be offering a booking that cannot happen. */
-    why: v => (v === NOBODY && !isWaiting_())
-      ? 'a session needs somebody in it — this opens a waiting list' : '',
-  },
-
-  /* SWITCHING THE KIND CLEARS THE TUTOR only the other kind could have given, and leaving the waiting list unchooses its class. */
-  { id: 'how', label: text_('how-would-you-like-to-book'), short: 'Kind', set: () => { BOOKING.tutor = ''; if (!isWaiting_()) BOOKING.joining = ''; },
-    /* BOTH ARE "START", because both are things you set going — the difference is whether it runs now or waits for company. § */
-    /* THE TWO KINDS, NAMED. § */
-    options: () => [text_('instant-class'), text_('waiting-list-class')],
-  },
-
-  /* ORDER BY DEPENDENCY (owner, 12 Nov): who → what → who teaches → where → how many → when; a row reads only rows above it. */
-  /* ---------- WHOSE CHILDREN ARE THESE? § */
-  /* THE SEATS FOLLOW THE CHILDREN (owner, 7 Nov): picking a child past the count raises it; seats beyond them stay the admin's. */
-  { id: 'kids', label: text_('which-of-your-children-is-this'), short: 'Child', set: list => { if (list && list.length > (Number(BOOKING.n) || 1)) BOOKING.n = String(list.length); },
-    /* EVERY CHILD IS OFFERED. § */
-    /* ---------- WHOSE CHILDREN, WHICH IS NOT ALWAYS YOURS § */
-    options: () => {
-      if (isWaiting_()) return [];
+/* THE BOOKING QUESTIONS ARE DATA (kinds.json bookform › booking: each field's `step`, in `rows` order), read by `formSteps_` (form.js).
+   What is left here is what cannot be data: the named sources, tests and refusals the steps name. */
+const BOOK_FNS = {
+  from: {
+    clients: () => DATA.clients,
+    /* THE CHOSEN CLIENT'S OWN CHILDREN, yourself included (owner, 7 Nov: another client's children were offered); your own list only when you have no row. */
+    children: () => {
       const forWhom = BOOKING.client || (USER && USER.name) || '';
-      /* THE CHOSEN CLIENT'S OWN ROW FIRST, yourself included (owner, 7 Nov: another client's children were offered); your own list only when you have no row. */
       const c = (DATA.clients || []).find(x => norm(x.name) === norm(forWhom));
-      if (c || !USER || norm(forWhom) !== norm(USER.name)) return ((c && c.children) || []).filter(Boolean).concat([UNNAMED]);
-      return (USER.children || USER.kids || []).filter(Boolean).concat([UNNAMED]);
+      if (c || !USER || norm(forWhom) !== norm(USER.name)) return ((c && c.children) || []).filter(Boolean);
+      return (USER.children || USER.kids || []).filter(Boolean);
     },
-    /* ---------- AND ONE UNNAMED SEAT, ALWAYS OFFERED § */
-
-    /* Once you have ticked as many as you paid for, the rest say why. Still there, still readable,
-       and tickable the moment you untick one — which is how you change your mind about which two
-       of three are coming. */
-    /* NO "that is N seats already" (owner, 7 Nov): the seats follow the children picked — see `bookToggle_`. */
-  },
-
-  /* ---------- JOINING ONE, OR STARTING ONE § */
-  /* CHOOSING A CLASS ANSWERS FOUR OTHER QUESTIONS (`joiningSet_`). */
-  { id: 'joining', label: text_('something-already-going-or-a-new'), short: 'Class', set: () => joiningSet_(),
-    /* THE ONES OF THE KIND BEING ASKED FOR. § */
-    options: () => {
-      if (!BOOKING.how) return [];
-      const want = isWaiting_();
-      return [NEW_LIST].concat((openJobs_() || [])
-        .filter(j => isWaitJob_(j) === want)
-        .filter(j => want || j.canAsk)
-        .map(openClassLabel_));
-    } },
-
-  /* A CLASS IS MATHS AND ENGLISH, and that is what the class IS rather than something to pick.
-     Written into the booking below so the receipt and the backend agree without asking. */
-  /* ---------- IT WAS ALWAYS MULTI AND NOTHING ON THE CARD SAID SO § */
-  /* ---------- AND THEN THE SENTENCE CAME OFF AGAIN § */
-  /* ---------- AND A WAITING LIST IS ASKED IT TOO § */
-  /* NO `format`, `practical` OR `trip` STEP (463): trips and practicals are shop items, bought in the basket. */
-  { id: 'subjects', label: text_('what-are-we-working-on'), short: 'Subject',
-    options: () => (subjectRows() || []).map(x => x.name) },
-
-  /* MIXED LEVELS IN ONE BOOKING (owner, 7 Nov): one answer, the highest qualification, and the price follows it. */
-  { id: 'level', label: text_('what-level-the-highest-among-the'), short: 'Level',
-    options: () => ((DATA.dropdowns || {}).levels || []) },
-
-  /* ONE SEAT EACH. The price is the room and the teaching divided by the seats, so a family
-     taking two would be buying half the class at a quarter of the cost. */
-  /* ---------- HOW MANY SEATS, AND WHAT THE REST OF THEM COST YOU § */
-  /* ---------- HOW MANY EXTRA, NOT HOW MANY IN TOTAL § */
-  /* ---------- WHO TEACHES IT IS ASKED EARLY, NOT LAST § */
-  /* ---------- AND AN UNLISTED TUTOR IS THE SERVER'S DECISION, NOT THIS LIST'S § */
-  { id: 'tutor', label: text_('anyone-in-particular'), short: 'Tutor',
-    options: () => isWaiting_() ? [] : [text_('no-preference')].concat(
-      (DATA.tutors || []).filter(t => t.title).map(t => t.title)),
-    label_: v => {
-      const t = (DATA.tutors || []).find(x => norm(x.title) === norm(v));
-      /* NO RATE BESIDE THE NAME (owner, 7 Nov): the price columns already say what the tutor adds. */
-      return v + (t && t.listed === false ? ' · not listed' : '');
-    },
-    /* ---------- A WAITING LIST HAS NO TUTOR YET, AND THE ROW WAS SHOWING THE LAST ONE § */
-    fallback: () => isWaiting_() ? text_('no-preference') : '',
-    why: v => {
-      if (v === text_('no-preference')) return '';
-      const t = (DATA.tutors || []).find(x => norm(x.title) === norm(v));
-      if (!t || !BOOKING.subjects.length) return '';
-      const teaches = (t.teaches || []).map(x => norm(String(x).replace(/\s*\([^)]*\)/, '')));
-      const missing = BOOKING.subjects.filter(sub => teaches.indexOf(norm(sub)) === -1);
-      return missing.length ? 'does not teach ' + missing.join(', ') : '';
-    } },
-  /* AT THE CLIENT'S OWN HOUSE THE SPACE IS THEIRS: an earlier `No` must not stand under a row that cannot be answered. */
-  { id: 'loc', label: 'Where?', short: 'Venue', only: 'wait, tutoring', set: () => { if (takesAllSeats_(BOOKING.loc)) BOOKING.hosting = ''; },
-    options: () => bookableSpaces().map(x => x.label),
-    /* THE ANSWER WRAPS. A room is "Venue — Room", and the three rooms of one building are the same
-       answer until its last word — see the note at the foot of `stepSelect_`. */
-    wrap: true,
-    why: v => {
-      const sp = spaceFor(v);
-      /* A ROOM SMALLER THAN THE CHILDREN ALREADY PICKED says so rather than quietly resetting the count. */
-      if (sp && Number(sp.max) && BOOKING.n > Number(sp.max)) {
-        return 'holds ' + sp.max + ', you asked for ' + BOOKING.n;
-      }
-      return '';
-    } },
-
-  /* "I'LL HOST" IS A CHOICE, and it was an inference — turned on only when somebody picked "At home", so a client who wanted to provide the room at a paid venue § */
-  /* A CLASS IS AT A VENUE. Somebody's front room is not a place three other families are going. */
-  { id: 'hosting', label: text_('are-you-providing-the-space'), short: 'Space', only: 'wait, tutoring',
-    /* AT THE CLIENT'S OWN HOUSE THE CLIENT IS THE SPACE (owner, 29 Oct: "the space field is redundant"): no options, so the row is text, `Yes`. */
-    fallback: () => takesAllSeats_(BOOKING.loc) ? 'Yes' : '',
-    options: () => {
-      if (isWaiting_() || takesAllSeats_(BOOKING.loc)) return [];
-      const rate = venueRate_();
-      /* Nothing to charge means nothing to decide: hosting is already true and asking would be
-         the app consulting somebody about a fact. */
-      return rate > 0 ? ['No', 'Yes'] : ['Yes'];
-    },
-    /* The saving was spelled out here and it is already on the card: the Host row shows
-       − £15.00/h against the venue's + £15.00/h, one line apart. Saying it twice made the option
-       longer to read than the question. */
-    label_: v => v === 'Yes' ? text_('yes-no-room-hire') : text_('no-we-book-the-room') },
-
-  /* ---------- THE NUMBER ON THE ROW IS THE EXTRA SEATS, AND THE ONE IN `BOOKING` IS THE TOTAL § */
-  { id: 'n', label: text_('how-many-extra-seats'), short: text_('extra-seats'),
-    label_: v => String(Math.max(0, Number(v) - 1)),
-    /* ---------- AND A WAITING LIST GETS TO ANSWER IT TOO § */
-    /* ---------- AND IT STARTS AT THE FLOOR, NOT AT ONE § */
-    /* AT HOME THE COUNT IS FIXED (owner, 8 Nov): the select is greyed, still showing every seat the tutor holds. */
-    lock: () => homeSeats_() > 0,
-    options: () => {
+    openJobs: () => openJobs_(),
+    subjects: () => subjectRows(),
+    levels: () => (DATA.dropdowns || {}).levels,
+    tutors: () => DATA.tutors,
+    venues: () => bookableSpaces(),
+    intervals: () => intervals_(),
+    /* ALWAYS FOUR CHOICES, so the control stays put; past the cap is greyed by `overCap`, never hidden (owner, 7 Nov). At home, the tutor's whole capacity. */
+    seats: () => {
       const lim = seatLimits(spaceFor(BOOKING.loc), tutorRow_(), BOOKING.loc);
       if (homeSeats_() > 0) return [String(lim.max)];
       const out = [];
-      /* ALWAYS FOUR CHOICES, so the control stays put; a number past the cap is greyed by `off`, never hidden (owner, 7 Nov). */
       for (let i = lim.min; i <= lim.min + 3; i++) out.push(String(i));
       return out;
     },
-    off: v => {
-      const lim = seatLimits(spaceFor(BOOKING.loc), tutorRow_(), BOOKING.loc);
-      return Number(v) > lim.max ? (lim.why.max || 'the place') + ' holds ' + lim.max : '';
-    },
-    /* THE REFUSALS ONLY: a number outside what the room and the tutor allow. The note that used to
-       sit beside this — what each number means, one sentence per option — is gone with the other
-       three; see `stepRows_`. */
-    /* THE SAME THREE ARGUMENTS AS THE LIST ABOVE, and that is what makes this the refusal for a number the list cannot offer rather than a second opinion about what § */
-    why: v => {
-      const lim = seatLimits(spaceFor(BOOKING.loc), tutorRow_(), BOOKING.loc);
-      if (Number(v) > lim.max) return 'more than ' + (lim.why.max || 'the limit') + ' allows';
-      /* ---------- IN THE ROW'S OWN UNITS, WHICH THIS PRINTED THE OTHER ONE OF § */
-      if (Number(v) < lim.min) {
-        const need = Math.max(0, lim.min - 1);
-        return (lim.why.min || 'the minimum') + ' needs ' + need
-             + ' extra seat' + (need === 1 ? '' : 's');
-      }
-      return '';
-    } },
-
-  /* AND NO TERM, for the same reason as the day. */
-  /* ---------- SEVERAL TERMS, BECAUSE A BOOKING IS RARELY ONE OF THEM § */
-  /* ---------- AND ON A WAITING LIST IT ANSWERS ITSELF § */
-  { id: 'interval', label: text_('over-what-period'), short: 'Term',
-    fallback: () => { const t = isWaiting_() ? waitTerm_() : null;
-                      return t ? (t.label || t.term) : ''; },
-    /* ---------- AND IT IS OFFERED ON BOTH BRANCHES NOW § */
-    options: () => intervals_().map(x => x.label || x.term).filter(Boolean) },
-
-  /* ONE QUESTION WHERE THERE WERE THREE. § */
-  /* NO DAY YET. It is settled when the list fills — a time promised now is a promise about a room
-     nobody has booked, made to four families who have not all joined. */
-  /* `grid: 'hours'` RATHER THAN `true`. § */
-  /* ---------- `week: true` MAKES THIS STEP SEVEN ROWS RATHER THAN ONE § */
-  { id: 'slots', label: 'When?', short: 'When', grid: 'hours', week: true,
-    options: () => isWaiting_() ? [] : slotGrid().rows.length ? ['grid'] : [] },
-
-  /* ---------- WHEN COULD YOU COME? § */
-  /* ---------- "FREE" MEANT FREE OF CHARGE TO EVERY READER § */
-  /* ---------- AND IT IS THE WEEK NOW, NOT FIVE PHRASES § */
-  /* ---------- AND IT IS NOT ON AN ORDINARY BOOKING AT ALL § */
-  { id: 'avail', label: text_('when-could-you-come'), short: text_('when-free'),
-    only: 'wait',
-    grid: 'blocks', week: true, options: () => [], why: () => '' },
-
-  /* ---------- WOULD YOU SHARE WITH SOMEBODY YOU DO NOT KNOW? § */
-
-
-
-];
+    hourGrid: () => slotGrid().rows.length ? ['grid'] : [],
+  },
+  /* conditions (`when`, `unless`) */
+  waiting: () => isWaiting_(),
+  atHome: () => takesAllSeats_(BOOKING.loc),
+  /* tests and labels over one row (`filter`, `label`) */
+  sameKind: j => isWaitJob_(j) === isWaiting_() && (isWaiting_() || !!j.canAsk),
+  openClass: j => openClassLabel_(j),
+  roomCosts: v => v === 'Yes' || venueRate_() > 0,
+  /* the whole list (`then`): yourself first; nobody first on a waiting list, last otherwise */
+  meFirstNobody: names => {
+    const me = (USER && USER.name) || '';
+    const people = [me].concat(names.filter(n => norm(n) !== norm(me))).filter(Boolean);
+    return isWaiting_() ? [NOBODY].concat(people) : people.concat([NOBODY]);
+  },
+  /* shown text (`say`) */
+  tutorListed: v => { const t = (DATA.tutors || []).find(x => norm(x.title) === norm(v)); return v + (t && t.listed === false ? ' · not listed' : ''); },
+  extraSeats: v => String(Math.max(0, Number(v) - 1)),
+  /* `fallback` */
+  me: () => (USER && USER.name) || '',
+  waitNoPreference: () => isWaiting_() ? text_('no-preference') : '',
+  atHomeYes: () => takesAllSeats_(BOOKING.loc) ? 'Yes' : '',
+  waitTerm: () => { const t = isWaiting_() ? waitTerm_() : null; return t ? (t.label || t.term) : ''; },
+  homeSeats: () => homeSeats_() > 0,
+  /* `set`: what answering a step does to the others (book-rows.js) */
+  kidsFor: () => bookKidsFor_(),
+  howSet: () => { BOOKING.tutor = ''; if (!isWaiting_()) BOOKING.joining = ''; },
+  seatsFollowKids: list => { if (list && list.length > (Number(BOOKING.n) || 1)) BOOKING.n = String(list.length); },
+  joiningSet: () => joiningSet_(),
+  homeHostsItself: () => { if (takesAllSeats_(BOOKING.loc)) BOOKING.hosting = ''; },
+  /* refusals (`check`, `off`) */
+  needsSomebody: v => (v === NOBODY && !isWaiting_()) ? 'a session needs somebody in it — this opens a waiting list' : '',
+  teaches: v => {
+    if (v === text_('no-preference')) return '';
+    const t = (DATA.tutors || []).find(x => norm(x.title) === norm(v));
+    if (!t || !BOOKING.subjects.length) return '';
+    const teaches = (t.teaches || []).map(x => norm(String(x).replace(/\s*\([^)]*\)/, '')));
+    const missing = BOOKING.subjects.filter(sub => teaches.indexOf(norm(sub)) === -1);
+    return missing.length ? 'does not teach ' + missing.join(', ') : '';
+  },
+  roomHolds: v => { const sp = spaceFor(v); return sp && Number(sp.max) && BOOKING.n > Number(sp.max) ? 'holds ' + sp.max + ', you asked for ' + BOOKING.n : ''; },
+  overCap: v => { const lim = seatLimits(spaceFor(BOOKING.loc), tutorRow_(), BOOKING.loc); return Number(v) > lim.max ? (lim.why.max || 'the place') + ' holds ' + lim.max : ''; },
+  seatLimits: v => {
+    const lim = seatLimits(spaceFor(BOOKING.loc), tutorRow_(), BOOKING.loc);
+    if (Number(v) > lim.max) return 'more than ' + (lim.why.max || 'the limit') + ' allows';
+    if (Number(v) < lim.min) { const need = Math.max(0, lim.min - 1); return (lim.why.min || 'the minimum') + ' needs ' + need + ' extra seat' + (need === 1 ? '' : 's'); }
+    return '';
+  },
+};
+const BOOK_STEPS = formSteps_('booking', BOOK_FNS);
 
 /* A HOME BOOKING'S SEAT COUNT, the tutor's whole capacity (owner, 8 Nov); 0 when not at home or on a waiting list. */
 function homeSeats_() {
