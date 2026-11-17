@@ -33,6 +33,7 @@ function run() {
   if (!m) throw new Error("build-stamp: index.html has no `var BUILD_STAMP = '…';` line — nothing to stamp");
   const { stamp: now, n } = stamp();
   if (m[1] === now) console.log(`build-stamp: ${now} already (${n} files)`);
+  fs.writeFileSync(path.join(path.dirname(HTML), 'stamp.txt'), now + '\n');
   else { fs.writeFileSync(HTML, html.replace(RE, `var BUILD_STAMP = '${now}';`)); console.log(`build-stamp: ${m[1] || '(empty)'} -> ${now} (${n} files)`); }
 }
 module.exports = { run };
