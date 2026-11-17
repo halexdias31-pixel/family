@@ -93,10 +93,16 @@ function storeRead_(name, kinds) {
   });
   return { sheet: it.sheet, headers, rows, moved: { name, kinds, items: it, ev } };
 }
-function storeSave_(t, row) {
-  const d = {};
-  t.headers.forEach(h => { if (row[h] !== undefined) d[h] = storeCellOut_(row[h]); });
-  const data = JSON.stringify(d), it = t.moved.items, ev = t.moved.ev;
+/* `fields` named: only those change, laid over the row AS THE SHEET HOLDS IT NOW (read fresh), so two requests that each */
+/* change a different field of one row (a PIN and an xp) both land, as two cell writes on the old tab did. */
+function storeSave_(t, row, fields) {
+  const it = t.moved.items, ev = t.moved.ev;
+  let d = {};
+  if (fields && !ev) {
+    try { d = JSON.parse(S(it.sheet.getRange(row._item._row, it.headers.indexOf('data_1') + 1).getValue()) || '{}'); } catch (err) { d = {}; }
+    fields.forEach(h => { d[h] = storeCellOut_(row[h]); });
+  } else t.headers.forEach(h => { if (row[h] !== undefined) d[h] = storeCellOut_(row[h]); });
+  const data = JSON.stringify(d);
   if (!ev) { setCell(it, row._item, 'data_1', data); return; }
   setCells(it, row._item, { at: row[ev.at] ?? '', who: row[ev.who] ?? '', what: ev.what ? row[ev.what] ?? '' : '', item: ev.item ? row[ev.item] ?? '' : '', data: data });
 }
@@ -158,7 +164,8 @@ function setCell(t, row, field, value) {
   if (!t.sheet || !row) return false;
   if (t.moved) {
     if (t.headers.indexOf(field) < 0) t.headers.push(field);
-    row[field] = value; storeSave_(t, row); return true;
+    /* THE NET'S SHORTENED NAMES ARE NOT WRITTEN BACK SHORT, and the kid memo goes, as on a tab (below). */
+    row[field] = kidNamesKept_(row[field], value, field); storeSave_(t, row, [field]); kidMemoDrop_(t); return true;
   }
   const c = t.headers.indexOf(field);
   if (c < 0) { missedWrite_(t, field); return false; }
@@ -190,9 +197,11 @@ function cellSafe_(v) {
 function setCells(t, row, values) {
   if (!t.sheet || !row) return [];
   if (t.moved) {
-    const changed = Object.keys(values || {}).filter(f => !sameCell_(row[f], values[f]));
-    changed.forEach(f => { if (t.headers.indexOf(f) < 0) t.headers.push(f); row[f] = values[f]; });
-    if (changed.length) storeSave_(t, row);
+    const want = {};
+    Object.keys(values || {}).forEach(f => { want[f] = kidNamesKept_(row[f], values[f], f); });
+    const changed = Object.keys(want).filter(f => !sameCell_(row[f], want[f]));
+    changed.forEach(f => { if (t.headers.indexOf(f) < 0) t.headers.push(f); row[f] = want[f]; });
+    if (changed.length) { storeSave_(t, row, changed); kidMemoDrop_(t); }
     return changed;
   }
   const cells = [];
@@ -234,7 +243,7 @@ function sameCell_(have, want) {
 /** Append a record. Fields not in the tab are dropped rather than shifting the row. */
 function addRow(t, obj) {
   if (!t.sheet) return null;
-  if (t.moved) return storeAdd_(t, obj || {});
+  if (t.moved) { const r = storeAdd_(t, obj || {}); kidMemoDrop_(t); return r; }
   Object.keys(obj || {}).forEach(k => {
     if (t.headers.indexOf(k) < 0) missedWrite_(t, k);
   });
@@ -252,6 +261,7 @@ function delRow(t, row) {
   if (!t || !t.sheet || !row || !row._row) return false;
   if (t.moved) {
     const ok = delRow(t.moved.items, row._item);
+    kidMemoDrop_(t);
     clearCache();
     return ok;
   }
