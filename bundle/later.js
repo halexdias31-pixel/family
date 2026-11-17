@@ -4038,6 +4038,7 @@ const raw = String(Array.isArray(typed) ? typed.join('\n') : typed == null ? '' 
 if (!raw.trim()) return null;
 const key = markPtRead_(rule);
 const source = markPtSource_(x);
+const essay = !!(opt && opt.essay) || Number(x && x.marks) > 6;
 opt = { strict: !!(opt && opt.strict), others: ((opt && opt.others) || []).concat(MARK_PT_RIVALS) };
 let quotes = 0, inSource = 0, notInSource = 0;
 const text = markPtPlain_(raw).replace(/(^|[\s(\[:,])(["'])((?:(?!\2)[^\n]|'(?=[a-z]))+?)\2(?=[\s.,;:!?)\]]|$)/g, (m, pre, qm, body) => {
@@ -4064,7 +4065,7 @@ return m;
 });
 });
 const glue = toks.filter(t => MARK_PT_GLUE.has(t.w)).length;
-if (!key.phrases && toks.length < 3) return;
+if (!key.phrases && essay && toks.length < 3) return;
 const chunks = [...new Set(toks.map(t => t.c))];
 const clause = c => toks.some(t => t.c === c && (t.quote || MARK_PT_CLAUSE.has(t.w) || (/ed$/.test(t.w) && t.w.length > 4)));
 const scopes = chunks.length >= 4 && chunks.filter(c => !clause(c)).length >= chunks.length - 1
@@ -4082,7 +4083,8 @@ found.forEach(f => f.at.forEach(t => keyWords.add(t)));
 const verbs = toks.filter(t => t.quote || MARK_PT_CLAUSE.has(t.w) || (/ed$/.test(t.w) && t.w.length > 4)).length;
 const tying = toks.filter(t => !keyWords.has(t) && (MARK_PT_GLUE.has(t.w) || t.quote)).length;
 const keyish = toks.filter(t => key.points.some(p => p.ways.some(w => w.some(alts => markPtIs_(t, alts, opt))))).length, own = keyish < toks.length;
-let room = key.phrases ? 1 : keyish > 0.75 * toks.length ? 0 : glue ? Math.min(verbs + 1, tying) : toks.length <= 6 && own ? 1 : 0;
+let room = key.phrases ? 1 : !essay ? (glue || verbs || own ? Infinity : 1)
+: keyish > 0.75 * toks.length ? 0 : glue ? Math.min(verbs + 1, tying) : toks.length <= 6 && own ? 1 : 0;
 const kept = [], perQuote = {};
 found.sort((a, b) => b.n - a.n || b.at.length - a.at.length).forEach(f => {
 if (room <= 0 || credited.has(f.pi)) return;
@@ -4114,6 +4116,7 @@ const subject = (x && (x.subject || (x.row && x.row.subject))) || '';
 const rule = String(accept || '').split('|').find(w => /^\s*rule:\s*peel\b/i.test(w)) || '';
 const focus = rule.replace(/^\s*rule:\s*peel\b\s*;?/i, '').trim();
 const key = ways => 'points 1; ' + ways;
+opt = Object.assign({}, opt, { essay: true });
 const has = (text, ways) => !!ways && !!String(text).trim() && (markPoints_(text, key(ways), x, opt) || { got: 0 }).got >= 1;
 const tech = peelRows_('technique', subject).map(r => r.words).join(' / ');
 const expl = peelRows_('explain', subject).map(r => r.words).join(' / ');
@@ -4387,7 +4390,7 @@ const of = Math.max(1, Math.min(w.of, Number(x.marks) || w.of));
 return { got: Math.min(w.got, of), of };
 } },
 graph: { has: x => markerOf_(x).kind === 'draw', run: (x, a) => (a && typeof a === 'object' && !Array.isArray(a) ? DRAW_MARK.mark(a.strokes, x.drawAnswer, a.fig, x.marks) : null) || { error: true } },
-distilled: { has: x => !!markDistilled_(x), run: (x, a) => markPoints_(a, markDistilled_(x).points, x, markOpt_(x)) },
+distilled: { has: x => !!markDistilled_(x), run: (x, a) => markPoints_(a, markDistilled_(x).points, x, Object.assign({}, markOpt_(x), { essay: true })) },
 };
 function markSchemeOf_(x) {
 const names = markRows_().filter(r => r.kind === 'method' && MARK_METHODS[r.name]).map(r => r.name);
@@ -4544,11 +4547,15 @@ return { got: got, of: points.length };
 }
 const CELL_BLANK = /<(td|th)([^>]*)>(?:\s|&nbsp;|\u00a0)*<\/\1>/g;
 const cellCorner_ = t => /^<table[^>]*>\s*(?:<thead[^>]*>\s*)?(?:<tbody[^>]*>\s*)?<tr[^>]*>\s*<(td|th)[^>]*>(?:\s|&nbsp;|\u00a0)*<\/\1>/.test(t);
+const CELL_ENT = { amp: '&', nbsp: ' ', rsquo: '\u2019', lsquo: '\u2018', rdquo: '\u201d', ldquo: '\u201c', apos: "'", quot: '"', deg: '\u00b0',
+minus: '\u2212', times: '\u00d7', divide: '\u00f7', ndash: '\u2013', mdash: '\u2014', hellip: '\u2026', pound: '\u00a3', micro: '\u00b5', plusmn: '\u00b1', lt: '<', gt: '>' };
 function cellsOf_(x) {
-const raw = String((x && x.cells) || '').trim();
+const raw = String((x && x.cells) || '').replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (m, e) => e[0] === '#'
+? String.fromCodePoint(parseInt(e.slice(e[1] === 'x' || e[1] === 'X' ? 2 : 1), e[1] === 'x' || e[1] === 'X' ? 16 : 10))
+: (CELL_ENT[e.toLowerCase()] || m)).trim();
 if (!raw) return [];
 return raw.split(';').map((c, i) => {
-const m = /^\s*([^=|]{1,12}?)\s*=\s*(.*)$/.exec(c);
+const m = /^\s*([^=|]{1,60}?)\s*=\s*(.*)$/.exec(c);
 const ways = (m ? m[2] : c).trim();
 return { label: m ? m[1].trim() : String(i + 1), ways: ways === '-' ? '' : ways };
 });

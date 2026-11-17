@@ -77,11 +77,16 @@ function markWords_(typed, rule) {
 const CELL_BLANK = /<(td|th)([^>]*)>(?:\s|&nbsp;|\u00a0)*<\/\1>/g;
 const cellCorner_ = t => /^<table[^>]*>\s*(?:<thead[^>]*>\s*)?(?:<tbody[^>]*>\s*)?<tr[^>]*>\s*<(td|th)[^>]*>(?:\s|&nbsp;|\u00a0)*<\/\1>/.test(t);
 /* `cells` READ: one entry a blank, in reading order -- `{ label, ways }`, and `ways` empty for a blank not asked. */
+const CELL_ENT = { amp: '&', nbsp: ' ', rsquo: '\u2019', lsquo: '\u2018', rdquo: '\u201d', ldquo: '\u201c', apos: "'", quot: '"', deg: '\u00b0',
+  minus: '\u2212', times: '\u00d7', divide: '\u00f7', ndash: '\u2013', mdash: '\u2014', hellip: '\u2026', pound: '\u00a3', micro: '\u00b5', plusmn: '\u00b1', lt: '<', gt: '>' };
 function cellsOf_(x) {
-  const raw = String((x && x.cells) || '').trim();
+  /* an HTML entity (`&rsquo;`) is its character first, so its `;` never splits a blank; a label is up to 60 characters (17 Nov) */
+  const raw = String((x && x.cells) || '').replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (m, e) => e[0] === '#'
+    ? String.fromCodePoint(parseInt(e.slice(e[1] === 'x' || e[1] === 'X' ? 2 : 1), e[1] === 'x' || e[1] === 'X' ? 16 : 10))
+    : (CELL_ENT[e.toLowerCase()] || m)).trim();
   if (!raw) return [];
   return raw.split(';').map((c, i) => {
-    const m = /^\s*([^=|]{1,12}?)\s*=\s*(.*)$/.exec(c);
+    const m = /^\s*([^=|]{1,60}?)\s*=\s*(.*)$/.exec(c);
     const ways = (m ? m[2] : c).trim();
     return { label: m ? m[1].trim() : String(i + 1), ways: ways === '-' ? '' : ways };
   });

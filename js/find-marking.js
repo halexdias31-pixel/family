@@ -715,6 +715,7 @@ function markPoints_(typed, rule, x, opt) {
   if (!raw.trim()) return null;
   const key = markPtRead_(rule);
   const source = markPtSource_(x);
+  const essay = !!(opt && opt.essay) || Number(x && x.marks) > 6;
   opt = { strict: !!(opt && opt.strict), others: ((opt && opt.others) || []).concat(MARK_PT_RIVALS) };
   /* A QUOTATION MUST BE IN THE SOURCE: one that is not is taken out, one that is is marked as quoted */
   let quotes = 0, inSource = 0, notInSource = 0;
@@ -744,7 +745,7 @@ function markPoints_(typed, rule, x, opt) {
       });
     });
     const glue = toks.filter(t => MARK_PT_GLUE.has(t.w)).length;
-    if (!key.phrases && toks.length < 3) return;
+    if (!key.phrases && essay && toks.length < 3) return;
     /* A LIST OF KEY WORDS: four or more comma-parts and all but one of them no clause; only the parts that are clauses are read */
     const chunks = [...new Set(toks.map(t => t.c))];
     const clause = c => toks.some(t => t.c === c && (t.quote || MARK_PT_CLAUSE.has(t.w) || (/ed$/.test(t.w) && t.w.length > 4)));
@@ -766,7 +767,10 @@ function markPoints_(typed, rule, x, opt) {
     const tying = toks.filter(t => !keyWords.has(t) && (MARK_PT_GLUE.has(t.w) || t.quote)).length;
     const keyish = toks.filter(t => key.points.some(p => p.ways.some(w => w.some(alts => markPtIs_(t, alts, opt))))).length, own = keyish < toks.length;
     /* and a sentence that is three parts in four key words is a list of them, whatever little word it carries */
-    let room = key.phrases ? 1 : keyish > 0.75 * toks.length ? 0 : glue ? Math.min(verbs + 1, tying) : toks.length <= 6 && own ? 1 : 0;
+    /* that density rule is an ESSAY's (PEEL, a distilled set, a part over six marks: rule 1.33); a short answer's sentence earns every point it
+       makes, verb or not, save a bare run of key words alone (17 Nov) */
+    let room = key.phrases ? 1 : !essay ? (glue || verbs || own ? Infinity : 1)
+      : keyish > 0.75 * toks.length ? 0 : glue ? Math.min(verbs + 1, tying) : toks.length <= 6 && own ? 1 : 0;
     const kept = [], perQuote = {};
     found.sort((a, b) => b.n - a.n || b.at.length - a.at.length).forEach(f => {
       if (room <= 0 || credited.has(f.pi)) return;
@@ -804,6 +808,7 @@ function markPeel_(typed, accept, x, opt) {
   const rule = String(accept || '').split('|').find(w => /^\s*rule:\s*peel\b/i.test(w)) || '';
   const focus = rule.replace(/^\s*rule:\s*peel\b\s*;?/i, '').trim();
   const key = ways => 'points 1; ' + ways;
+  opt = Object.assign({}, opt, { essay: true });
   const has = (text, ways) => !!ways && !!String(text).trim() && (markPoints_(text, key(ways), x, opt) || { got: 0 }).got >= 1;
   const tech = peelRows_('technique', subject).map(r => r.words).join(' / ');
   const expl = peelRows_('explain', subject).map(r => r.words).join(' / ');
@@ -1122,7 +1127,7 @@ const MARK_METHODS = {
   } },
   /* a drawing or graph: `answer` is `{ strokes, fig }`, held against `draw_answer` (366) */
   graph: { has: x => markerOf_(x).kind === 'draw', run: (x, a) => (a && typeof a === 'object' && !Array.isArray(a) ? DRAW_MARK.mark(a.strokes, x.drawAnswer, a.fig, x.marks) : null) || { error: true } },
-  distilled: { has: x => !!markDistilled_(x), run: (x, a) => markPoints_(a, markDistilled_(x).points, x, markOpt_(x)) },
+  distilled: { has: x => !!markDistilled_(x), run: (x, a) => markPoints_(a, markDistilled_(x).points, x, Object.assign({}, markOpt_(x), { essay: true })) },
 };
 /* THE PART'S METHODS, in the table's order: the first whose scheme is on the part marks it */
 function markSchemeOf_(x) {
