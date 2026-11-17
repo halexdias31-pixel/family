@@ -64,7 +64,8 @@ function sheetFormula(m, heads) {
   const last = col(heads.length - 1), H = T + '!A1:' + last + '1', C = 'CHAR(34)';
   /* EACH CELL BY ITS TYPE: a tick true/false, a date {"$d":serial} (a number Sheets shows with / or :), a number bare, text quoted. */
   const val = 'IF(ISLOGICAL(r),IF(r,"true","false"),IF(ISNUMBER(r),IF(REGEXMATCH(TO_TEXT(r),"[/:]"),"{"&' + C + '&"$d"&' + C + '&":"&r&"}",r&""),' + C + '&' + txt('r') + '&' + C + '))';
-  const json = 'BYROW(' + T + '!A2:' + last + ',LAMBDA(r,"{"&TEXTJOIN(",",TRUE,IF(' + H + '="","",' + C + '&' + H + '&' + C + '&":"&' + val + '))&"}"))';
+  const json = 'BYROW(' + T + '!A2:' + last + ',LAMBDA(r,"{"&TEXTJOIN(",",TRUE,IF(' + H + '="","",' + C + '&' + H + '&' + C + '&":"&IFERROR(' + val + ',' + C + '&"#ERROR!"&' + C + ')))&"}"))';
+  /* (IFERROR: a cell holding an error, a broken formula, is written as the text Apps Script reads from it, so one bad cell never blanks a block.) */
   const keyCol = s.to === 'events' ? rng(0) : at(ids(s)[0]);
   const lit = v => 'IF(LEN(' + keyCol + '),"' + v + '")';
   let cols;
