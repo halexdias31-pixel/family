@@ -15,7 +15,7 @@ function sheetFor_(name) {
   const w = WHERE[name];
   if (!w) return { id: '', names: [name], make: name, away: '(not in WHERE)' };
   return { id: FILES[w.file] || '',
-           names: w.alsoTry ? [name, w.alsoTry] : [name],
+           names: [name],
            make: name, away: w.file };
 }
 
@@ -44,7 +44,7 @@ function findSheet_(at) {
 
 /* ---------- THE ONE STORE (owner, 17 Nov): a tab whose kind kinds.json `ledger.moved` lists is read from, and written to, the items tab. */
 /* Every reader still asks `read(tab)` and gets { sheet, headers, rows } shaped as the tab was; setCell/setCells/addRow/delRow see `t.moved`. */
-/* A moved kind is the store's alone: its old tab is never read or written again (kept read-only as the fallback copy, not used). */
+/* A moved kind is the store's alone: its old tab is locked and never read or written again. */
 function storeMoved_(name) {
   const K = ITEM_STORE_KINDS, out = [];
   (K.moved || []).forEach(k => { const s = K.kinds[k] && K.kinds[k].sheet; if (s && s.tab === name && !s.blob) out.push(k); });

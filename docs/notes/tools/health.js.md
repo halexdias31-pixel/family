@@ -8,7 +8,7 @@ Append-only, in the order they were shortened; each entry names what the comment
 top level, before `fs`
 
 ```
-// FIND WORKLIST (920): tag-colour, menu-rule, tag-asked, one-off, each located and taken off the walk's score; --list [n] [--kind k]; --changed is the ratchet (and the structure budgets, tools/structure.js); --plan writes docs/split-plan.md.
+// FIND WORKLIST (920): tag-colour, menu-rule, tag-asked, one-off, each located and taken off the walk's score; --list [n] [--kind k]; --changed is the ratchet (and the structure budgets, tools/structure.js); --plan wrote docs/split-plan.md (now docs/history/).
 ```
 
 ### --fix (920): purely mechanical, behaviour-identical edits only, then js/check.js.

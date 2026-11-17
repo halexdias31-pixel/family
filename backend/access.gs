@@ -163,12 +163,6 @@ const MIGRATIONS = [
     what: 'every handle that does not fit its first name is made again from it',
     run: () => { const r = renameHandles_(); if (r && r.error) throw new Error(r.error); return r; } },
 
-  /* THE OWNER (20 Oct): "delete any old bullshit we don't need anymore". A whole copy of the file first, then the tabs and columns nothing reads (379). */
-  { id: 'tidy-old-tabs',
-    retry: true,
-    what: 'a backup copy of the Ledger, then the attempts, post_likes, widgets and orders tabs and the columns nothing reads are removed',
-    run: () => tidyOldTabs_() },
-
   /* THE OWNER (494): the old reports read, then the table retired — every row not closed becomes a note for Claude, marked `migrated`. */
   { id: 'reports-to-notes',
     retry: true,

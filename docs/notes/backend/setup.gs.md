@@ -495,36 +495,6 @@ in `makeBrandAccount`
      know that. */
 ```
 
-### EVERY OLD LIKE BECOMES A 👍.
-
-top level, before `migrateLikes`
-
-```
-/**
- * EVERY OLD LIKE BECOMES A 👍.
- *
- * Run ONCE from the editor. Likes and reactions were two ways of saying the same thing, and the
- * heart has gone — but a press is a press, and deleting a year of them because the control they
- * belonged to was retired would be throwing away the only record of what anybody thought of a
- * photograph.
- *
- * Idempotent, and careful about the one case that matters: somebody who liked a post AND reacted
- * to it already has an opinion on file, and that one wins. A person gets one reaction per post,
- * so overwriting theirs with a thumb would be the migration deciding they had meant something
- * else.
- */
-```
-
-### No sleep. The id carries `made`, which differs on every row, so two written in the same millisecond were never going to collide — the same thing that was
-
-in `migrateLikes`
-
-```
-/* No sleep. The id carries `made`, which differs on every row, so two written in the same
-       millisecond were never going to collide — the same thing that was slowing the resource ids
-       down to the point of timing the request out. */
-```
-
 ### ---------- FOUR PAPER JOBS WERE HERE, AND CLAUDE.md ALREADY SAID NOT TO RUN THEM
 
 top level, before `seedLandmarks`
@@ -1374,25 +1344,3 @@ in `autoMigrate`
          `retry: true` says this one may be attempted again: it is recorded only if it SUCCEEDS,
          and a job that is safe to repeat is the only kind that may say so. */
 ```
-
-### WHERE IS EVERY TAB, AND IS IT THERE?
-
-top level, before `checkTabs`
-
-```
-/* ==================================================================================================
-   WHERE IS EVERY TAB, AND IS IT THERE?
-
-   The tabs are spread across three spreadsheets, which means several ways for things to go quietly
-   wrong: a blank id in FILES, a tab with no line in WHERE, a renamed tab, a file moved to another
-   Drive account, an id pointing at an .xlsx upload rather than a Google Sheet. None of those throw.
-   They all just make a section empty, and an empty section looks exactly like a section nobody has
-   put anything in yet.
-
-   `check-tabs.js` asks the half of this that can be answered from the source alone, before a
-   deploy. This is the other half — it needs the documents open, so it can only run in here.
-
-   So this asks the question directly. Run it after moving anything.
-================================================================================================== */
-```
-
