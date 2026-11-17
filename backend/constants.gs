@@ -31,7 +31,7 @@ const WHERE = {
   work_files:     { file: 'ledger' },
   /* WHAT THE OWNER STATES ABOUT A PERSON (kinds.json person.facts): one row a fact. */
   facts:          { file: 'ledger' },
-  /* ONE TAB OF ITEMS AND ONE OF EVENTS (owner, 16 Nov; kinds.json `ledger`), filled by tools/ledger-migrate.js; read only once ITEM_STORE says so. */
+  /* ONE TAB OF ITEMS AND ONE OF EVENTS (owner, 16 Nov; kinds.json `ledger`), filled by tools/ledger-migrate.js; read for a kind once kinds.json `ledger.moved` lists it (core.gs `read`). */
   items:          { file: 'ledger' }, events_log: { file: 'ledger' },
   records:        { file: 'ledger' }, biz_checks: { file: 'ledger' }, owner_answers: { file: 'ledger' },
   exams:          { file: 'ledger' },
@@ -139,10 +139,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-11-16-ssot-2";
-/* THE SWITCH (owner's go, after the copy is checked): 'tabs' reads and writes each kind's own Ledger tab (kinds.json `sheet.tab`); */
-/* 'items' reads and writes the one items tab and the one events tab. The action `item` (items.gs) is the same either way. */
-const ITEM_STORE = 'tabs';
+const BACKEND_VERSION = "2026-11-17-store-1";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {

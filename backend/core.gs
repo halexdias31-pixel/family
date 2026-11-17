@@ -42,8 +42,50 @@ function findSheet_(at) {
   return null;
 }
 
+/* ---------- THE ONE STORE (owner, 17 Nov): a tab whose kind kinds.json `ledger.moved` lists is read from, and written to, the items tab. */
+/* Every reader still asks `read(tab)` and gets { sheet, headers, rows } shaped as the tab was; setCell/setCells/addRow/delRow see `t.moved`. */
+/* Until the items tab holds any row of that kind (the migration has not run), the old tab answers, so a deploy before the move loses nothing. */
+function storeMoved_(name) {
+  const K = ITEM_STORE_KINDS, out = [];
+  (K.moved || []).forEach(k => { const s = K.kinds[k] && K.kinds[k].sheet; if (s && s.tab === name && s.to !== 'events' && !s.blob) out.push(k); });
+  /* A KIND THAT RIDES ON A MOVED KIND'S TAB (tutor on people) comes with it. */
+  if (out.length) Object.keys(K.kinds).forEach(k => { const s = K.kinds[k].sheet; if (s.via && out.indexOf(s.via) !== -1 && out.indexOf(k) === -1) out.push(k); });
+  return out.length ? out : null;
+}
+function storeRead_(name, kinds) {
+  const it = read(TAB.items), mine = it.rows.filter(r => kinds.indexOf(S(r.kind)) !== -1);
+  if (!mine.length) return null;
+  const headers = [], rows = [];
+  mine.forEach(r => {
+    let d = {};
+    try { d = JSON.parse(S(r.data_1) || '{}'); } catch (err) { d = {}; }
+    Object.keys(d).forEach(h => { if (headers.indexOf(h) < 0) headers.push(h); });
+    rows.push(Object.assign({ _row: r._row, _item: r }, d));
+  });
+  return { sheet: it.sheet, headers, rows, moved: { name, kinds, items: it } };
+}
+function storeSave_(t, row) {
+  const d = {};
+  t.headers.forEach(h => { if (row[h] !== undefined) d[h] = row[h] instanceof Date ? fmtDateTime(row[h]) : row[h]; });
+  const data = JSON.stringify(d), it = t.moved.items;
+  setCell(it, row._item, 'data_1', data);
+}
+function storeAdd_(t, obj) {
+  const K = ITEM_STORE_KINDS.kinds, home = t.moved.kinds.find(k => !K[k].sheet.via), sh = K[home].sheet;
+  Object.keys(obj).forEach(h => { if (t.headers.indexOf(h) < 0) t.headers.push(h); });
+  const id = [].concat(sh.id || []).map(c => S(obj[c])).join(':');
+  const b = sh.kindBy, kind = b && norm(obj[b.column]).indexOf(b.match) !== -1 ? b.kind : home;
+  const item = addRow(t.moved.items, { id: id, kind: kind, data_1: '{}' });
+  const row = Object.assign({ _row: item._row, _item: item }, obj);
+  storeSave_(t, row);
+  t.rows.push(row);
+  return row;
+}
+
 function read(name) {
   if (_cache[name]) return _cache[name];
+  const moved = storeMoved_(name), fromItems = moved && storeRead_(name, moved);
+  if (fromItems) return (_cache[name] = fromItems);
   /* NO FILE, OR NO TAB UNDER EITHER NAME, is answered the same way — an empty result. § */
   const sheet = findSheet_(sheetFor_(name));
   if (!sheet) return (_cache[name] = { sheet: null, headers: [], rows: [] });
@@ -62,6 +104,7 @@ function read(name) {
 
 /* ---------- SOME COLUMNS OF A TAB, NOT ALL OF THEM § */
 function readCols_(name, cols) {
+  if (storeMoved_(name)) return read(name);
   const sheet = findSheet_(sheetFor_(name));
   if (!sheet) return { sheet: null, headers: [], rows: [] };
   const lastRow = sheet.getLastRow(), lastCol = sheet.getLastColumn();
@@ -80,6 +123,10 @@ function readCols_(name, cols) {
 /** Write one cell and keep the in-memory object in step. Records a column that is not there. */
 function setCell(t, row, field, value) {
   if (!t.sheet || !row) return false;
+  if (t.moved) {
+    if (t.headers.indexOf(field) < 0) t.headers.push(field);
+    row[field] = value; storeSave_(t, row); return true;
+  }
   const c = t.headers.indexOf(field);
   if (c < 0) { missedWrite_(t, field); return false; }
   value = kidNamesKept_(row[field], value, field);
@@ -109,6 +156,12 @@ function cellSafe_(v) {
 /* ---------- SEVERAL CELLS OF ONE ROW, IN AS FEW CALLS AS THE COLUMNS ALLOW § */
 function setCells(t, row, values) {
   if (!t.sheet || !row) return [];
+  if (t.moved) {
+    const changed = Object.keys(values || {}).filter(f => !sameCell_(row[f], values[f]));
+    changed.forEach(f => { if (t.headers.indexOf(f) < 0) t.headers.push(f); row[f] = values[f]; });
+    if (changed.length) storeSave_(t, row);
+    return changed;
+  }
   const cells = [];
   Object.keys(values || {}).forEach(f => {
     const c = t.headers.indexOf(f);
@@ -148,6 +201,7 @@ function sameCell_(have, want) {
 /** Append a record. Fields not in the tab are dropped rather than shifting the row. */
 function addRow(t, obj) {
   if (!t.sheet) return null;
+  if (t.moved) return storeAdd_(t, obj || {});
   Object.keys(obj || {}).forEach(k => {
     if (t.headers.indexOf(k) < 0) missedWrite_(t, k);
   });
@@ -163,6 +217,11 @@ function addRow(t, obj) {
 /* ---------- THE THIRD WAY TO CHANGE A SHEET, AND IT WAS NOT WRITTEN DOWN § */
 function delRow(t, row) {
   if (!t || !t.sheet || !row || !row._row) return false;
+  if (t.moved) {
+    const ok = delRow(t.moved.items, row._item);
+    clearCache();
+    return ok;
+  }
   const at = row._row;
   t.sheet.deleteRow(at);
   POST_WROTE = true;               // the stored payload still has a row the sheet no longer does

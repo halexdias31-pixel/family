@@ -2768,6 +2768,12 @@
   ],
   "unmapped": {
    "_README": "the owner's notes on the file itself, not data"
-  }
+  },
+  "moved": [
+   "venue",
+   "product",
+   "option"
+  ],
+  "movedSay": "THE KINDS NOW KEPT IN THE ITEMS TAB (owner, 17 Nov), one stage at a time: core.gs read/setCell/addRow route a listed kind to the items tab, and the old tab stays as a read-only fallback until the items tab holds that kind. Migrate a tab with tools/ledger-migrate.js right after the deploy that lists it."
  }
 }

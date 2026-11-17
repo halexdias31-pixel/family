@@ -54,7 +54,7 @@ function kindParts() {
   Object.entries(j.stored || {}).forEach(([k, v]) => take(k, v));
   const L = j.ledger;
   return '/* from data/settings/kinds.json kinds/stored/ledger: each kind\'s sheet, see and edit */\nconst ITEM_STORE_KINDS = '
-    + JSON.stringify({ never: L.never, items: L.items, events: L.events, kinds }) + ';';
+    + JSON.stringify({ moved: L.moved || [], never: L.never, items: L.items, events: L.events, kinds }) + ';';
 }
 /* EACH KIND'S LETTER (kinds.json `card.letter`, rule 1.80): the lines, labels and inline styles renderCard writes an email's card by. */
 function letterParts() {
