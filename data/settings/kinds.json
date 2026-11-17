@@ -2499,7 +2499,8 @@
     ],
     "links": [
      "who"
-    ]
+    ],
+    "tiles": "storeTiles_(item, entry)"
    },
    "see": {
     "who": "admin"
@@ -2606,7 +2607,8 @@
     "tags": [
      "meal",
      "shop"
-    ]
+    ],
+    "tiles": "storeTiles_(item, entry)"
    },
    "see": {
     "who": "admin"
@@ -2727,7 +2729,14 @@
      "person_id",
      "booking_id",
      "item_id"
-    ]
+    ],
+    "tiles": "storeTiles_(item, entry)",
+    "tick": {
+     "f": "done",
+     "on": "yes",
+     "off": "no",
+     "label": "Done"
+    }
    },
    "see": {
     "who": "admin"
@@ -2855,7 +2864,8 @@
     "name": "name",
     "tags": [
      "folder_id"
-    ]
+    ],
+    "tiles": "storeTiles_(item, entry)"
    },
    "see": {
     "who": "admin"
@@ -2890,7 +2900,7 @@
    }
   }
  },
- "findSay": "FIND (rule 1.80): a kind's `find` gives its What-for group, its What-kind label, the front door(s) it stands under (`under`), the facets in order, and `draw` (a global that draws its Find card, else findCard). `entries` names the Find entry kinds it covers when they are not the kind itself (an answer page, a timeline, a switched-off door), each overriding those fields. An entry kind named by no kind is never listed or drawn; `see.who` (anyone, signedIn, self, family, staff, admin) decides who is listed it. Labels and order of the facets are data/settings/facets.json. A kind with `from: \"store\"` (the owner's life and business, 17 Nov) is listed straight from the items tab (form.js storeItems_): a `new` card asking its `store` form, then one card a row; `facetCols` names each facet read off a row's own column.",
+ "findSay": "FIND (rule 1.80): a kind's `find` gives its What-for group, its What-kind label, the front door(s) it stands under (`under`), the facets in order, and `draw` (a global that draws its Find card, else findCard). `entries` names the Find entry kinds it covers when they are not the kind itself (an answer page, a timeline, a switched-off door), each overriding those fields. An entry kind named by no kind is never listed or drawn; `see.who` (anyone, signedIn, self, family, staff, admin) decides who is listed it. Labels and order of the facets are data/settings/facets.json. A kind with `from: \"store\"` (the owner's life and business, 17 Nov) is listed straight from the items tab (form.js storeItems_): a `new` card asking its `store` form, then one card a row, its Edit tile asking the same form prefilled and saving under the same id, and `card.tick` ({f, on, off, label}) a one-tap tile that flips that field; `facetCols` names each facet read off a row's own column.",
  "stored": {
   "qualification": {
    "sheet": {
