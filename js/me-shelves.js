@@ -82,6 +82,8 @@ function fieldHtml(name, value, o) {
     o = Object.assign({}, o, { label: (o.readonly && pr.labelLocked) || pr.label,
       extra: (o.extra || '') + ` type="number"${pr.min != null ? ` min="${pr.min}"` : ''}${pr.max != null ? ` max="${pr.max}"` : ''}${pr.step != null ? ` step="${pr.step}"` : ''}${pr.pad ? ` inputmode="${pr.pad}"` : ''}` });
   }
+  /* A TEXT FIELD'S LONGEST (`chars`, kinds.json): the box stops there, and the server cuts there too (updateProfile). */
+  if (pr.chars) o = Object.assign({}, o, { label: o.label || pr.label, extra: (o.extra || '') + ` maxlength="${pr.chars}"` });
   const attr = o.attr || 'data-me';
   const label = o.label || fieldLabel(name);
   const ro = !!o.readonly;

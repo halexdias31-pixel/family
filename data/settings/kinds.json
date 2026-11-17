@@ -417,6 +417,10 @@
     }
    },
    "fields": {
+    "headline": {
+     "label": "one line about you (60 characters)",
+     "chars": 60
+    },
     "extra_seat_rate": {
      "label": "extra seat: share of your rate, 0–1 (0.5 = half)",
      "min": 0,
