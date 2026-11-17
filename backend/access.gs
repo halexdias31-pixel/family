@@ -2,71 +2,27 @@
 
 /* ============================== GET ========================================================== */
 /* ---------- RUNNING A JOB FROM A URL § */
-const RUNNABLE = {
-  /* Forced, and then CHECKED — the report says what it meant to do, and this says what is
-     actually on the sheet afterwards. Those had never been the same question. */
-  ensureSchema:      () => ({ ran: ensureSchema_(), stillMissing: schemaGaps() }),
-  schemaGaps:        () => schemaGaps(),
-  makeBrandAccount:  a => makeBrandAccount(a),
-  installTriggers:   () => installTriggers_(),
-  listTriggers:      () => listTriggers(),
-  /* ---------- THE SPREADSHEET AS THE CONTROL PANEL § */
-  installSheetWatch: () => installSheetWatch_(),
-  sheetWatchStatus:  () => sheetWatchStatus(),
-  clearPayloadCache: () => { clearPayloadCache(); return { cleared: true, generation: payloadGen_(),
-                             means: 'the next request rebuilds from the sheet as it is now' }; },
-  warmPayload:       () => warmPayload(),
-  checkEverything:   () => checkEverything(),
-  checkPostsFolder:  () => checkPostsFolder(),
-  /* THE FILMS SYNC BY HAND, with the editor's budget rather than the phone's — the same run
-     `syncFilms` is in the function dropdown. The report is counts and the folder's name, never a
-     title. */
-  syncFilms:         () => syncFilms(),
-  /* THE LIBRARY'S COPY INTO THE LEDGER (397): one more step now, and where it has got to. Both safe to run whenever. */
-  libraryCopyStep:   () => libraryCopyStep(),
-  libraryStatus:     () => libMigState_(),
-  /* LIBRARY UPDATES WAITING IN THE OWNER'S DRIVE (407), imported as the Business card's tile does. */
-  libImportDrive:    () => libImportDrive_(null),
-  /* Reachable from a URL like everything else — but note that a URL CANNOT grant a scope. This
-     will report what the deployment's existing token can do; raising the consent screen has to be
-     a run from the editor. */
-  authoriseDrive:    () => authoriseDrive(),
-  checkScopes:       () => checkScopes(),
-  /* Turn postcodes into coordinates. Run it after adding a venue; it skips anything already
-     placed, so running it twice costs one request and changes nothing. */
-  geocode:           () => geocodeVenues(),
-  /* THE COLLIERS WOOD RACER'S MAP (426): OSM roads and buildings plus DEM heights, into a Drive file `?race=1` serves. `&arg=s,w,n,e` for another box. */
-  buildRaceMap:      a => buildRaceMap_(a),
-  regeocode:         () => geocodeVenues(true),
-  rename:            a => renameValue_(a),
-  seedOptions:       () => seedOptions(),
-  /* `seedFamilies` WAS HERE, and went with the hand-written map it wrote — see where
-     `KNOWN_FAMILIES` used to be. An admin links a child to a parent from the app (`linkChild`). */
-  /* Fill in the wearable prices the code already holds, for a sheet that ran `seedAvatarItems` before it knew which columns the merged tab had. § */
-  priceWearables:    () => repairShopPrices(),
-  /* ---------- EVERY PERSON GETS A HANDLE, AND ONLY A BLANK CELL IS TOUCHED § */
-  fillHandles:       () => fillHandles(),
-  /* OLD SHEET ROWS INTO TODAY'S SHAPE (owner, 8 Nov), the same job as Business › Tidy old rows. */
-  tidyOldRows:       () => migrateOldRows_(),
-  /* ---------- AND EVERY HANDLE THAT WAS NEVER THE GENERATED SHAPE, ONCE § */
-  renameHandles:     () => renameHandles_(),
-  /* ---------- AND EVERY CHILD'S HANDLE INTO INITIALS AND FOUR DIGITS, PREVIEWED FIRST (342) § */
-  /* `seedPastPapers`, `seedALevelPapers`, `dropOldALevelPapers` and `ensureResourceIds` WERE HERE. § */
-  /* The British holidays of a year, computed. `&arg=2027` for a different one; without an arg it
-     does the year we are in. Safe to run whenever — a row already there is left alone. */
-  seedHolidays:      a => seedHolidays(a),
-  /* FORGET A ONE-OFF JOB, so it runs again on the next request. § */
-  rerun: a => {
-    const props = PropertiesService.getScriptProperties();
-    const id = S(a);
-    if (id === 'schema') { props.deleteProperty('SCHEMA_VERSION'); return 'the schema will rebuild'; }
-    if (!MIGRATIONS.some(m => m.id === id)) {
-      return { error: 'No job called "' + id + '".', jobs: MIGRATIONS.map(m => m.id) };
-    }
-    props.deleteProperty('MIGRATED_' + id);
-    return id + ' will run again on the next request';
-  },
-};
+/* RUNNABLE is generated below from data/settings/actions.json (`run: true`); these are the jobs that are more than one call. */
+/* Forced, and then CHECKED — the report says what it meant to do, and this says what is actually on the sheet afterwards. */
+function runEnsureSchema_() { return { ran: ensureSchema_(), stillMissing: schemaGaps() }; }
+function runClearPayloadCache_() {
+  clearPayloadCache();
+  return { cleared: true, generation: payloadGen_(), means: 'the next request rebuilds from the sheet as it is now' };
+}
+function runRegeocode_() { return geocodeVenues(true); }
+/* LIBRARY UPDATES WAITING IN THE OWNER'S DRIVE (407), imported as the Business card's tile does. */
+function runLibImportDrive_() { return libImportDrive_(null); }
+/* FORGET A ONE-OFF JOB, so it runs again on the next request. § */
+function runRerun_(a) {
+  const props = PropertiesService.getScriptProperties();
+  const id = S(a);
+  if (id === 'schema') { props.deleteProperty('SCHEMA_VERSION'); return 'the schema will rebuild'; }
+  if (!MIGRATIONS.some(m => m.id === id)) {
+    return { error: 'No job called "' + id + '".', jobs: MIGRATIONS.map(m => m.id) };
+  }
+  props.deleteProperty('MIGRATED_' + id);
+  return id + ' will run again on the next request';
+}
 
 /* ---------- THE SHEET CATCHES UP WITH THE CODE, BY ITSELF § */
 /* ---------- THE ONE-OFF JOBS, RUN ONCE, BY THEMSELVES § */
@@ -204,151 +160,155 @@ function handsWrite_(all) {
 }
 
 /* ============================== POST ========================================================= */
-/* ---------- WHO MAY DO WHAT § */
-const ACTION_ACCESS = {
-  // Open by necessity — you cannot be signed in to sign in.
-  register: 'anyone', verifyEmail: 'anyone', verifyLogin: 'anyone',
-  /* ---------- A FORGOTTEN PIN IS ASKED FOR BY SOMEBODY WHO CANNOT SIGN IN § */
-  forgotPin: 'anyone',
-  /* AND THE LINK IN THAT MAIL — `anyone`, for `forgotPin`'s reason: whoever opens it cannot sign in. What
-     stops it being a way in is the key, two UUIDs long and mailed to the account's own address only. */
-  pinLink: 'anyone',
-  /* `broadcast: 'admin'` WAS HERE — one message to everybody — and went with its handler and its
-     card on "remove the note to everyone button". An entry with no handler is a door onto nothing. */
-  /* SIGNING IN WITH GOOGLE. § */
-  googleLogin: 'anyone',
-  /* `self`, so the token is resolved and the session ended belongs to whoever holds it. */
-  signOut: 'self',
-  /* `relogin` WAS HERE, AND IT WAS THE WAY IN. § */
+/* ---------- WHO MAY DO WHAT: ACTION_ACCESS, generated below from data/settings/actions.json. */
 
-  // A person acting on their own record. Each handler still checks WHOSE row it is.
-  /* YOUR OWN INTRO VIDEO, in parts: the handler writes `video_file` on the row the token resolved to. */
+/* ---------- ACTIONS (generated) ---------- */
+/* GENERATED by tools/permissions.js from data/settings/actions.json: edit the json, never this. */
+/* WHO MAY POST EACH ACTION: anyone, self (signed in; the handler checks whose row) or admin. */
+const ACTION_ACCESS = {
+  register: 'anyone',
+  verifyEmail: 'anyone',
+  verifyLogin: 'anyone',
+  forgotPin: 'anyone',
+  pinLink: 'anyone',
+  googleLogin: 'anyone',
+  signOut: 'self',
   videoPart: 'self',
-  /* AN EXTRA PHOTO, uploaded: the handler only keeps the file; the link is saved by `updateProfile`. */
   photoFile: 'self',
-  updateProfile: 'self', saveNotepad: 'self', saveTodo: 'self',
+  updateProfile: 'self',
+  saveNotepad: 'self',
+  saveTodo: 'self',
   saveTimetable: 'self',
-  /* YOUR OWN PICTURE. The handler writes `photo` on the row the token resolved to and nowhere else. */
   savePhoto: 'self',
-  /* YOUR OWN ROLES — the three a person may tick, on the row the token resolved to. § */
   setMyRoles: 'self',
-  /* `likePost` was here. § */
-  votePoll: 'self', reactPost: 'self',
-  /* SAYING SOMETHING UNDER A POST, AND TAKING IT DOWN. § */
+  votePoll: 'self',
+  reactPost: 'self',
   addComment: 'self',
-  /* Reading the folder, to choose a photograph already in it. Admin, because it lists what has not
-     been posted yet — which is a view of your Drive rather than of the site. */
-  /* `orderPrints` WAS HERE and the handler priced a print from the SHEET, deliberately, because a total posted by a browser is a total the client chose. § */
-  /* A parent asks; only the named child may answer. Both `self` — the handlers check WHO, which
-     is the part that matters and the part a gate cannot see. */
-  claimChild: 'self', answerClaim: 'self',
-  /* A child's card by its exact handle (442); the handler gates Client+ and counts. */
+  claimChild: 'self',
+  answerClaim: 'self',
   findChild: 'self',
-  /* A HAND UP FROM A QUESTION (455): the handler checks it is your own, or that Staff+ is lowering it. */
-  raiseHand: 'self', hands: 'self',
-  /* All `self`: each handler checks the message is the asker's own, and the POLICY table decides
-     who may write to whom. The gate cannot know either, so it only checks somebody is signed in. */
-  /* A PERSON FACT, stated by the owner (kinds.json person.facts). */
+  raiseHand: 'self',
+  hands: 'self',
   factSet: 'admin',
-  listRecords: 'admin', saveRecordsPage: 'admin', listOwnerAnswers: 'admin', saveOwnerAnswer: 'admin',
-  sendMessage: 'self', messages: 'self', readMessage: 'self', flagMessage: 'self',
-  /* WHETHER A PHOTOGRAPH IN A MESSAGE CAN BE KEPT — the column, the scope, the folder, a test file. § */
+  listRecords: 'admin',
+  saveRecordsPage: 'admin',
+  listOwnerAnswers: 'admin',
+  saveOwnerAnswer: 'admin',
+  sendMessage: 'self',
+  messages: 'self',
+  readMessage: 'self',
+  flagMessage: 'self',
   checkUploads: 'admin',
-  /* `self`, because it needs the current PIN — the gate cannot check that, only the handler can. § */
-  changePin: 'self', signAgreement: 'self',
-  /* A PARENT MAKING THEIR CHILD'S ACCOUNT, and a NEW PIN FOR SOMEBODY ELSE. § */
-  makeChild: 'self', resetPin: 'self',
-  /* A FRESH CONFIRMATION LINK TO YOUR OWN ADDRESS. § */
+  changePin: 'self',
+  signAgreement: 'self',
+  makeChild: 'self',
+  resetPin: 'self',
   resendLink: 'self',
-  /* A NEW WORD FOR YOUR OWN HANDLE. § */
-  /* The shop window is the business talking, so only the business may change it. */
   spotlight: 'admin',
-  createCheckout: 'self', finalizePayment: 'self',
-  move: 'self', createJob: 'self', answerRequest: 'self',
-  /* JOINING THE LIST. `self` — anybody signed in may put themselves on it, and the handler checks it is their own name they are adding. § */
+  createCheckout: 'self',
+  finalizePayment: 'self',
+  move: 'self',
+  createJob: 'self',
+  answerRequest: 'self',
   joinWaitlist: 'self',
-  /* ---------- OPENING A LIST IS ADMIN, AND HAD TO BE SAID HERE § */
   openWaitlist: 'admin',
-  /* ANYBODY SIGNED IN, FOR THEIR OWN. `self` is the right level: the handler looks the person up
-     from the signed-in name and never trusts a person_id off the body, so one person cannot star
-     something as another. */
   favourite: 'self',
-  /* A PHOTO OF THE WORKING (501), saved and never marked (owner, 16 Nov): sent as yourself; read back by yourself, a linked parent, staff or admin (the handler checks). */
-  markWorking: 'self', workingOf: 'self',
-  /* WORK ON FILE: as yourself; the handler decides whose file (the student, a parent, a booked tutor, the admin). */
-  workFileSave: 'self', workFilesOf: 'self', workFileOpen: 'self', workFileDelete: 'self',
-  /* THE ASSISTANT IN MESSAGES (449): `self`, so the day's count is the token's person's. */
+  markWorking: 'self',
+  workingOf: 'self',
+  workFileSave: 'self',
+  workFilesOf: 'self',
+  workFileOpen: 'self',
+  workFileDelete: 'self',
   askAssistant: 'self',
-  /* WHAT A CHILD WROTE, KEPT ON THEIR ACCOUNT AND READ BACK ON ANOTHER DEVICE. § */
   saveAnswers: 'self',
   myAnswers: 'self',
-  /* AN ANSWER SENT, AND ITS VERDICT (SCHEMA.submissions). § */
   submitAnswer: 'self',
-  /* A QUESTION REPORTED (395): anybody signed in, as the token's person. Reading and closing them is the business's alone — a report is somebody else's words. */
-  reportQuestion: 'self', report: 'self',
-  /* AN ERROR FROM A PHONE: `anyone`, because a screen can break before sign-in; throttled per device and day in the handler. */
-  clientError: 'anyone', listClientErrors: 'admin', tidyOldRows: 'admin', renameAllUsernames: 'admin',
-  /* A SAMPLED VISIT'S FIGURES (920): `anyone`, as an error is; throttled per device and day in the handler. */
+  reportQuestion: 'self',
+  report: 'self',
+  clientError: 'anyone',
+  listClientErrors: 'admin',
+  tidyOldRows: 'admin',
+  renameAllUsernames: 'admin',
   healthLog: 'anyone',
-  suggest: 'self', suggestUpload: 'admin', listSuggestions: 'admin', decideSuggestion: 'admin',
-  /* APPLYING TO TEACH (400): your own application, and the admin's list and decision. */
-  applyTeach: 'self', listApplications: 'admin', decideApplication: 'admin',
-  /* THE STAFF HUB (405): a statement is the asker's own unless they are an admin (the handler says so); the terms register is the admin's. */
-  payStatement: 'self', listStaff: 'admin',
-  /* THE LIBRARY'S WORDS AND ANSWERS (397): anybody signed in, a day's cap each; the tools' copy in and out is the admin's. */
+  suggest: 'self',
+  suggestUpload: 'admin',
+  listSuggestions: 'admin',
+  decideSuggestion: 'admin',
+  applyTeach: 'self',
+  listApplications: 'admin',
+  decideApplication: 'admin',
+  payStatement: 'self',
+  listStaff: 'admin',
   libItems: 'self',
-  /* THE ONE GENERAL ACTION (owner, 16 Nov): `anyone` at the gate; inside, kinds.json `see`/`edit` and permissions.json `item` rows decide (items.gs). */
   item: 'anyone',
-  /* `item` door save/delete asks this word first (signed in); it is no longer an action of its own (stage b, 17 Nov). */
   saveItem: 'self',
-  libExport: 'admin', libImport: 'admin',
-  /* AND UPDATES LEFT IN THE OWNER'S DRIVE BY A SESSION (407): the count and the import, the admin's alone. */
-  libImportList: 'admin', libImportDrive: 'admin',
-  /* WHAT THE WEEKLY PARENT EMAIL WOULD SAY THIS WEEK. Admin and nobody else: the reply is every
-     learner's week and every parent's address. It writes nothing and sends nothing — see
-     backend/digest.gs. */
+  libExport: 'admin',
+  libImport: 'admin',
+  libImportList: 'admin',
+  libImportDrive: 'admin',
   digestPreview: 'admin',
-  /* AN ADMIN'S "SEND LAST WEEK" ON A PARENT'S CARD (378) — it emails a parent, so nobody else. */
   digestSendNow: 'admin',
-  /* ONE PERSON'S PIN, READ ON A TAP OF "SHOW PIN" ON THEIR CARD (452) — never in doGet, never logged. */
   pinShow: 'admin',
-  /* THE ADMIN'S LAYOUT (462, 463): the site-wide order of widgets and which are deleted, one config row. */
   layoutSave: 'admin',
-  /* EDIT WORDS IN PLACE (497): the site's words over the code's, one config row. */
   wordsSave: 'admin',
-  /* NOTES FOR CLAUDE (484): an admin's words on a widget or card, and marking one done. */
-  claudeNoteAdd: 'admin', claudeNoteDone: 'admin',
-  /* THE FILMS, FILLED FROM THE NOTFLIX FOLDER. § */
+  claudeNoteAdd: 'admin',
+  claudeNoteDone: 'admin',
   filmsSync: 'admin',
-  /* AN ADMIN ADDS, EDITS, HIDES OR DELETES A REEL OR A VIDEO (404). */
-  mediaSave: 'admin', mediaUpload: 'admin', mediaHide: 'admin', mediaDelete: 'admin',
-
-  /* YOUR OWN SETTINGS, AS THE SHEET HOLDS THEM. `self`, and the handler reads only the row the token
-     resolved to — see `myProfile` in dopost.gs for why it is a POST rather than part of the payload. */
+  mediaSave: 'admin',
+  mediaUpload: 'admin',
+  mediaHide: 'admin',
+  mediaDelete: 'admin',
   myProfile: 'self',
-  /* WHICH EMAILS YOU WANT (`NOTIFY_KINDS`). § */
   setNotify: 'self',
-  /* PHONE NOTIFICATIONS (492), each on the caller's own devices only — push.gs. */
-  pushState: 'self', pushSubscribe: 'self', pushUnsubscribe: 'self', pushSet: 'self',
-  /* One person's sheet row, for an admin. The books, prices, rooms, invitations and people-list handlers went in 433: nothing called them. */
+  pushState: 'self',
+  pushSubscribe: 'self',
+  pushUnsubscribe: 'self',
+  pushSet: 'self',
   getProfile: 'admin',
-  /* `updateResource`, `editResource` and `deleteResource` WERE HERE. § */
-  /* `self` (413): an author edits their own post while it waits and deletes it any time; each handler checks whose it is. */
-  editPost: 'self', deletePost: 'self',
+  editPost: 'self',
+  deletePost: 'self',
   setListed: 'admin',
-  /* ANYBODY SIGNED IN MAY POST. § */
   addPost: 'self',
-  /* Letting one through, or turning it down. Admin, obviously — this is the whole point of the
-     waiting. */
   approvePost: 'admin',
-  /* THE ROOM IN THE VENUE: `self`, and the handler lets only an admin or the session's tutor write it. */
   setRoom: 'self',
-  /* ENDING A SESSION. Admin only, and deliberately: § */
   deleteJob: 'admin',
-  /* LINKING A CHILD TO A PARENT WITHOUT ASKING THE CHILD. § */
-  linkChild: 'admin', adminUnlinkFamily: 'admin',
-  /* PEOPLE MADE, CHANGED AND REMOVED FROM THE PEOPLE COLUMN (373). */
-  personGet: 'admin', personSave: 'admin', personDelete: 'admin',
-  /* THE ADMIN'S LENS: somebody else's whole settings, read to be drawn and changed — an admin's alone. */
+  linkChild: 'admin',
+  adminUnlinkFamily: 'admin',
+  personGet: 'admin',
+  personSave: 'admin',
+  personDelete: 'admin',
   lensOpen: 'admin',
 };
+
+/* A JOB FROM A URL (`?run=<job>&arg=…`), for an admin who proves name and PIN (getRun_). */
+const RUNNABLE = {
+  ensureSchema: () => runEnsureSchema_(),
+  schemaGaps: () => schemaGaps(),
+  makeBrandAccount: a => makeBrandAccount(a),
+  installTriggers: () => installTriggers_(),
+  listTriggers: () => listTriggers(),
+  installSheetWatch: () => installSheetWatch_(),
+  sheetWatchStatus: () => sheetWatchStatus(),
+  clearPayloadCache: () => runClearPayloadCache_(),
+  warmPayload: () => warmPayload(),
+  checkEverything: () => checkEverything(),
+  checkPostsFolder: () => checkPostsFolder(),
+  syncFilms: () => syncFilms(),
+  libraryCopyStep: () => libraryCopyStep(),
+  libraryStatus: () => libMigState_(),
+  libImportDrive: () => runLibImportDrive_(),
+  authoriseDrive: () => authoriseDrive(),
+  checkScopes: () => checkScopes(),
+  geocode: () => geocodeVenues(),
+  buildRaceMap: a => buildRaceMap_(a),
+  regeocode: () => runRegeocode_(),
+  rename: a => renameValue_(a),
+  seedOptions: () => seedOptions(),
+  priceWearables: () => repairShopPrices(),
+  fillHandles: () => fillHandles(),
+  tidyOldRows: () => migrateOldRows_(),
+  renameHandles: () => renameHandles_(),
+  seedHolidays: a => seedHolidays(a),
+  rerun: a => runRerun_(a),
+};
+/* ---------- END ACTIONS ---------- */

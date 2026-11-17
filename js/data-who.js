@@ -36,7 +36,7 @@ const isWearable = x => {
 };
 /* ---------- WHO ARE YOU (who-1): one person, one permission role, ONE QUESTION ---------- */
 /* Every "may they" asks `may_`; the backend's twin is `whoMay_` (people.gs). Signed out = a guest, a person with no roles. */
-const roleFor_ = (u = USER) => (!u ? 'anyone' : rankAtLeast_('admin', u) ? 'admin' : rank_(u) === 'student' ? 'child' : 'member');
+const roleFor_ = (u = USER) => (!u ? ROLES_.guest.tier : rankTier_(rank_(u)));
 /* `admin` admin-only; `prices` never a child (398); `staff` a tutor or above; `signedIn`; `grownUp` signed in and not a child; anything else a permissions.json action row. */
 const may_ = (what, u = USER) => {
   const r = roleFor_(u);

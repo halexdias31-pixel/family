@@ -112,7 +112,7 @@ function itemMayWrite_(kind, spec, v) {
   if (v.admin) return true;
   if (!v.row) return false;
   if (spec.edit) return S(spec.edit.who || spec.edit).split(',').map(norm).some(w => w === 'signedin' || w === 'self' || (w === 'staff' && v.staff));
-  return itemMay_(kind, 'save', itemRole_(v)) !== null;
+  return itemMay_(kind, 'save', itemRole_(v));
 }
 function itemWrite_(body, v) {
   const kind = S(body.kind), spec = itemKind_(kind), given = body.item;

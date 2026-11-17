@@ -218,13 +218,11 @@ function postReadItems_(body, action, began) {
   if (Object.prototype.hasOwnProperty.call(own, kind)) return readItemsOwn_(kind, own[kind], body, began);
   if (!Object.prototype.hasOwnProperty.call(READ_ITEMS_LIB, kind)) return jsonOut({ error: 'That kind cannot be read here yet.', why: 'kind' });
   const me = who;
-  const hide = itemMay_(READ_ITEMS_SHELF[kind], 'read', readItemsRole_(me));
-  if (!hide) return jsonOut({ error: me ? 'Not authorised.' : 'Sign in first.', why: me ? 'kind' : 'signed-out' });
+  if (!itemMay_(READ_ITEMS_SHELF[kind], 'read', readItemsRole_(me))) return jsonOut({ error: me ? 'Not authorised.' : 'Sign in first.', why: me ? 'kind' : 'signed-out' });
   const pre = READ_ITEMS_LIB[kind] + ':';
   const asked = Array.isArray(body.ids) ? body.ids : [];
   if (asked.some(v => S(v).indexOf(pre) !== 0)) return jsonOut({ error: 'Every id must be a ' + kind + ' (' + pre + '…).' });
   const out = libItemsReply_({ personId: body.personId, ids: asked, guest: me ? '' : S(body.device) || 'unknown' });
-  if (out.items && hide.length) Object.keys(out.items).forEach(id => { const it = out.items[id]; if (it && typeof it === 'object') hide.forEach(f => { delete it[f]; }); });
   out.kind = kind;
   return jsonOut(out);
 }

@@ -19,12 +19,12 @@ function postListOwnerAnswers_(body, action, began) {
 }
 
 /* ---------- AN ERROR FROM A PHONE (O5): counted on its row, and its first sighting is one note for Claude ---------- */
-function postClientError_(body, action, began) {
-  try { return jsonOut(clientError_(body)); } catch (err) { return jsonOut({ error: S(err && err.message || err) }); }
-}
+function postClientError_(body) { return jsonTry_(() => clientError_(body)); }
+function postHealthLog_(body) { return jsonTry_(() => healthLog_(body)); }
 
-function postHealthLog_(body, action, began) {
-  try { return jsonOut(healthLog_(body)); } catch (err) { return jsonOut({ error: S(err && err.message || err) }); }
+/* ONE WRAPPER FOR A HANDLER THAT MAY THROW: its reply as JSON, or the error said after `said`. */
+function jsonTry_(run, said) {
+  try { return jsonOut(run()); } catch (err) { return jsonOut({ error: S(said) + S(err && err.message || err) }); }
 }
 
 function postListClientErrors_(body, action, began) {
@@ -232,22 +232,17 @@ function postDecideApplication_(body, action, began) {
 }
 
 /* ---------- WHAT THE WEEKLY PARENT EMAIL WOULD SAY THIS WEEK § */
-function postDigestPreview_(body, action, began) {
-  try {
-    return jsonOut(digestPreviewOut_(new Date(), body.words && typeof body.words === 'object' ? body.words : null));
-  } catch (err) {
-    return jsonOut({ error: 'The preview could not be built: ' + S(err && err.message || err) });
-  }
+function postDigestPreview_(body) {
+  return jsonTry_(() => digestPreviewOut_(new Date(), body.words && typeof body.words === 'object' ? body.words : null),
+    'The preview could not be built: ');
 }
 
 /* ---------- "SEND LAST WEEK" ON A PARENT'S CARD (378): admin only (`ACTION_ACCESS`), sent whatever weekly_digest says. */
-function postDigestSendNow_(body, action, began) {
-  try {
+function postDigestSendNow_(body) {
+  return jsonTry_(() => {
     const got = digestSendNow_([S(body.targetId)], new Date())[0] || { error: 'No parent was named — nothing was sent.' };
-    return jsonOut(got.error ? { error: got.error } : { success: true, said: got.said, sent: got.sent, questions: got.questions || 0 });
-  } catch (err) {
-    return jsonOut({ error: 'Nothing was sent: ' + S(err && err.message || err) });
-  }
+    return got.error ? { error: got.error } : { success: true, said: got.said, sent: got.sent, questions: got.questions || 0 };
+  }, 'Nothing was sent: ');
 }
 
 /* ---------- "SHOW PIN" ON A PERSON'S CARD (452): the gate already wanted an admin; asked again of the token's row by rank. */

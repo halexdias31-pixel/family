@@ -1,6 +1,6 @@
 /* @family. — 00_constants.gs (1 of 8) THE TOP-LEVEL VALUES IN THE ORIGINAL ORDER (jobs, migrations and ACTION_ACCESS follow in access.gs). § */
 /* SHARED:BEGIN — data/settings/settings.json, written by `node tools/cards-gen.js --write`; edit the json, never this. */
-const SHARED_SETTINGS = {"days":[["m","Monday"],["tu","Tuesday"],["w","Wednesday"],["th","Thursday"],["f","Friday"],["sa","Saturday"],["su","Sunday"]],"hours":[9,10,11,12,13,14,15,16,17,18,19,20],"roleAliases":{"administrator":"admin","teacher":"tutor","parent":"client","guardian":"client","kid":"student","child":"student","pupil":"student"},"submissionsPerPost":25,"answerTextMax":20000};
+const SHARED_SETTINGS = {"days":[["m","Monday"],["tu","Tuesday"],["w","Wednesday"],["th","Thursday"],["f","Friday"],["sa","Saturday"],["su","Sunday"]],"hours":[9,10,11,12,13,14,15,16,17,18,19,20],"roles":{"ids":{"admin":{"label":"Admin","aliases":["administrator"],"rank":"admin","tier":"admin","self":false},"tutor":{"label":"Tutor","aliases":["teacher"],"rank":"staff","tier":"member","self":true,"pending":true},"client":{"label":"Client","aliases":["parent","guardian"],"app":"parent","rank":"client","tier":"member","self":true},"student":{"label":"Student","aliases":["kid","child","pupil"],"app":"kid","rank":"student","tier":"child","self":true}},"default":"client","guest":{"rank":"out","tier":"anyone"},"ranks":["student","client","staff","admin"],"tiers":["anyone","member","child","admin"],"titles":{"head of boxing":"Head of Boxing"}},"submissionsPerPost":25,"answerTextMax":20000};
 /* SHARED:END */
 
 /* @family. — backend (hermes) Rewritten against the eleven-tab database. § */
@@ -85,7 +85,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-11-17-deliver-1";
+const BACKEND_VERSION = "2026-11-17-actions-1";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 /* EVERY TAB NAME CODE READS BY. A kind in kinds.json ledger.moved is read through the items/events store
@@ -901,20 +901,23 @@ const DATE_COLS = ['exam_small_date', 'exam_big_date'];
 const AVAIL_HOURS = SHARED_SETTINGS.hours;
 
 /* ---------- PEOPLE --------------------------------------------------------------------------- */
-const ROLE_LABEL = { admin: 'Admin', tutor: 'Tutor', client: 'Client', student: 'Student' };
-
+/* THE ROLES ARE settings.json `roles` (owner, 17 Nov): ids in order of precedence, each its label, aliases, app word, rank and tier. */
+const ROLES_ = SHARED_SETTINGS.roles;
+const ROLE_IDS = Object.keys(ROLES_.ids);
+const ROLE_LABEL = Object.fromEntries(ROLE_IDS.map(r => [r, ROLES_.ids[r].label]));
 /* ---------- A TITLE IS A ROLE THAT DECIDES NOTHING, AND SAYING SO IS THE WHOLE POINT § */
-const ROLE_TITLES = {
-  'head of boxing': 'Head of Boxing',
-};
-
-
+const ROLE_TITLES = ROLES_.titles;
 /* ---------- THE ROLES A PERSON MAY TICK FOR THEMSELVES, AND THE ONE THEY MAY NOT § */
-const SELF_ROLES = ['tutor', 'client', 'student'];
-/* ONE LIST OF ROLE WORDS (batch G): sent by doGet as `roleAliases`, read by the site's `roleOf`; core.js keeps a copy only until it lands. */
-const ROLE_ALIASES = SHARED_SETTINGS.roleAliases;
-/* THE SAME WORDS, LESS ANY THAT NAMES A ROLE NOBODY MAY TICK FOR THEMSELVES (admin). */
-const SELF_ROLE_ALIASES = Object.fromEntries(Object.entries(ROLE_ALIASES).filter(([, to]) => SELF_ROLES.indexOf(to) !== -1));
+const SELF_ROLES = ROLE_IDS.filter(r => ROLES_.ids[r].self);
+/* ONE LIST OF ROLE WORDS: sent by doGet as `roleAliases`, read by the site's `roleOf`. */
+const ROLE_ALIASES = Object.fromEntries([].concat(...ROLE_IDS.map(r => (ROLES_.ids[r].aliases || []).map(a => [a, r]))));
+/* AN OLD WORD FOR A ROLE A PERSON MAY TICK FOR THEMSELVES, as that role; '' for any other word (admin is never ticked). */
+function selfRoleAlias_(x) { const to = ROLE_ALIASES[x]; return to && SELF_ROLES.indexOf(to) !== -1 ? to : ''; }
+/* THE PERMISSION TIER A RANK HOLDS (actions.json `roles`); no rank is a guest. */
+function rankTier_(rank) {
+  const id = ROLE_IDS.find(r => ROLES_.ids[r].rank === rank);
+  return id ? ROLES_.ids[id].tier : ROLES_.guest.tier;
+}
 
 /* ---------- AND A TICKED TUTOR IS A TUTOR THE BUSINESS HAS NOT SAID YES TO YET § */
 const LISTED_PENDING = 'PENDING';
@@ -1076,8 +1079,8 @@ const MESSAGING = {
 const MESSAGE_GAP_MS = 5 * 60 * 1000;
 
 /* ---------- THE SHEET'S WORDS AND THE APP'S WORDS § */
-const ROLE_TO_APP = { client: 'parent', student: 'kid' };
-const ROLE_FROM_APP = { parent: 'client', kid: 'student' };
+const ROLE_TO_APP = Object.fromEntries(ROLE_IDS.filter(r => ROLES_.ids[r].app).map(r => [r, ROLES_.ids[r].app]));
+const ROLE_FROM_APP = Object.fromEntries(ROLE_IDS.filter(r => ROLES_.ids[r].app).map(r => [ROLES_.ids[r].app, r]));
 
 /* ---------- AVATARS § */
 const AVATAR_ITEMS = [
