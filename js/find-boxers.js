@@ -194,7 +194,7 @@ function pageParts_(x, prev) {
     return [null].concat(infoPoints_(c).length ? ['info'] : [], (c.formulas || []).length ? ['formulas'] : [], (c.anims || []).length || c.diagram ? ['anim'] : []);
   }
   /* THE BIBLE HAS NO BRANCH HERE ANY MORE. § */
-  if (x && x.hdb && x.row && HIST_LINES[x.kind]) return [null].concat(histPages_(x));
+  if (histLinesOf_(x)) return [null].concat(histPages_(x));
   if (!x || !isPractical_(x) || !x.row || x.row.excluded) return [null];
   const p = x.row, out = [null];
   /* THE PICTURE IS ITS OWN PAGE, straight after the card — "across the board of all resources the diagrams should be its own widgets" (204), and the owner asked § */
