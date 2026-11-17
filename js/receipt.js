@@ -225,12 +225,12 @@ on('rc-shot-share', () => {
     .catch(e => { if (!e || e.name !== 'AbortError') toast(text_('could-not-share-it-press-and')); });
 });
 
-function rcHand_(blob, name, rc) {
+function rcHand_(blob, name, rc, title) {
   const file = typeof File === 'function' ? new File([blob], name, { type: 'image/png' }) : null;
   const can = !!(file && navigator.share && navigator.canShare
                  && (() => { try { return navigator.canShare({ files: [file] }); } catch (e) { return false; } })());
   if (!can) return rcSave_(blob, name, rc);
-  return navigator.share({ files: [file], title: 'Booking' }).catch(e => {
+  return navigator.share({ files: [file], title: title || 'Booking' }).catch(e => {
     if (e && e.name === 'AbortError') return;
     rcOffer_(blob, name, rc);
   });
