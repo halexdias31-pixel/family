@@ -7,6 +7,7 @@
 # caption are drawn as two stacked numbers between brackets, the way a paper writes them.
 import math
 import sys, pathlib; sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent)); import anim_row
+import figkit                # the primitives: tools/figkit.py, the one figure kit
 
 P = 'gvec'
 T = 13.0
@@ -15,18 +16,16 @@ O, S = (40, 58), 16                 # the origin and one square
 VA, VB = (3, 2), (1, -4)
 END = T - 0.8
 
-def pc(t): return ('%.2f' % (100 * t / T)).rstrip('0').rstrip('.') + '%'
+def pc(t): return figkit.pc(t, T)
 
-def fade(name, a, b, c, d):
-    return ('@keyframes %s-%s { 0%%, %s { opacity: 0; } %s, %s { opacity: 1; } %s, 100%% { opacity: 0; } }'
-            % (P, name, pc(a), pc(b), pc(c), pc(d)))
+def fade(name, a, b, c, d): return figkit.fade4('%s-%s' % (P, name), a, b, c, d, T)
 
 # A LINE IS HIDDEN UNTIL ITS DRAW BEGINS: a dash of no length still paints its round cap, a dot at the end.
 def draw(name, a, b):
     return ('@keyframes %s-%s { 0%%, %s { stroke-dashoffset: 1; opacity: 0; } %s { stroke-dashoffset: 1; opacity: 1; } %s, %s { stroke-dashoffset: 0; opacity: 1; } 100%% { stroke-dashoffset: 0; opacity: 0; } }'
             % (P, name, pc(a), pc(a + .05), pc(b), pc(END)))
 
-f = lambda v: ('%.2f' % v).rstrip('0').rstrip('.')
+f = figkit.num
 def pt(v): return (O[0] + S * v[0], O[1] - S * v[1])
 def plus(u, v): return (u[0] + v[0], u[1] + v[1])
 

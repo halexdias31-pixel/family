@@ -61,6 +61,7 @@
 #     fades with it, so between stops the caption says "m = rise ÷ run" and nothing is missing.
 import math, re, pathlib
 import sys; sys.path.insert(0, str(__import__('pathlib').Path(__file__).resolve().parent)); import anim_row
+from figkit import num   # the numbers as written: tools/figkit.py, the one figure kit
 
 U = 22.0                          # one unit of the axes, in viewBox units — one square of the grid
 XMIN, XMAX = -1.5, 2.5            # the plot, in the axes' own units
@@ -108,7 +109,7 @@ OX = PADX - XMIN * U
 OY = PAD_T + YMAX * U
 def X(x): return OX + U * x
 def Y(y): return OY - U * y
-def f(v): return ('%.3f' % v).rstrip('0').rstrip('.') if abs(v) >= .0005 else '0'
+def f(v): return num(v, 3)
 P = (X(0), Y(C))                  # THE PIVOT, and the only place it is written
 assert len(set(MS)) == len(MS) and STILL in MS
 
@@ -175,7 +176,7 @@ assert lit(RR, (DARK[0] + DARK[1]) / 2) == 0 and lit(RR, DARK[0]) == 0 and lit(R
 
 # ---- the moving parts, as a function of the angle ------------------------------------------------------
 def tr(q): return 'translate(%spx, %spx)' % (f(q[0]), f(q[1]))
-def sc(sy): return 'scale(1, %s)' % (('%.4f' % sy).rstrip('0').rstrip('.') if abs(sy) >= .00005 else '0')
+def sc(sy): return 'scale(1, %s)' % num(sy, 4)
 kLine = lambda t: tr(P) + ' rotate(%sdeg)' % f(-t)
 kTri = lambda t: tr(P) + ' ' + sc(math.tan(math.radians(t)))
 kRise = lambda t: tr((X(1), Y(C))) + ' ' + sc(math.tan(math.radians(t)) / RISE_MAX)

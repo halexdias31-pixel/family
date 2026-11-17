@@ -50,6 +50,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from svgplot import W, blankgrid           # noqa: E402  the one place the scale lives
+import figkit as F                         # noqa: E402  the primitives: tools/figkit.py
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FILE = os.path.join(HERE, 'data', 'questions.json')
@@ -59,22 +60,18 @@ ID = lambda s: 'Q-1MA1-2406-1F-%s' % s     # noqa: E731
 
 
 def svg(body, h, label):
-    return ('<svg viewBox="0 0 %d %d" role="img" aria-label="%s">%s</svg>'
-            % (W, h, label, body))
+    return F.svg(W, h, label, body)
 
 
 def line(x1, y1, x2, y2, cls='', extra=''):
-    return ('<line x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f" %s%s/>'
-            % (x1, y1, x2, y2,
-               ('class="%s"' % cls) if cls else 'stroke="currentColor" stroke-width="1.4"', extra))
+    return F.line(x1, y1, x2, y2, ' ' + (('class="%s"' % cls) if cls else 'stroke="currentColor" stroke-width="1.4"') + extra)
 
 
 def txt(x, y, s, cls='num', anchor='middle'):
     """INLINE `style`, NOT `text-anchor=`. CSS beats an SVG presentation attribute, so
        `.qsheet .num { text-anchor: middle }` silently wins over the attribute -- CLAUDE.md records
        ten y-axis numbers sitting centred on their axis for exactly that."""
-    return ('<text x="%.1f" y="%.1f" class="%s" style="text-anchor:%s">%s</text>'
-            % (x, y, cls, anchor, s))
+    return F.text(x, y, s, ' class="%s" style="text-anchor:%s"' % (cls, anchor))
 
 
 NOT_SCALE = 'Diagram NOT accurately drawn'

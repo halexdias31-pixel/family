@@ -5,6 +5,7 @@
 import math, sys
 sys.path.insert(0, str(__import__('pathlib').Path(__file__).resolve().parent)); import anim_row
 from anim_row import kf, fade, captions, still_block
+from figkit import barbs
 
 T = 12.0
 AL = math.radians(30)
@@ -26,7 +27,7 @@ CEN = (C0[0] + NRM[0] * BH / 2, C0[1] + NRM[1] * BH / 2)
 def arrow(cls, a, vec, length, head=8):
     b = (a[0] + vec[0] * length, a[1] + vec[1] * length)
     ang = math.atan2(vec[1], vec[0])
-    pts = [(b[0] - head * math.cos(ang + s * 0.45), b[1] - head * math.sin(ang + s * 0.45)) for s in (1, -1)]
+    pts = barbs(b[0], b[1], ang, head, 0.45)
     return ('<g class="%s"><path class="ain-shaft %s-s" d="M%.1f %.1fL%.1f %.1f" pathLength="1"/><path class="ain-head" d="M%.1f %.1fL%.1f %.1fL%.1f %.1fZ"/></g>'
             % (cls, cls, a[0], a[1], b[0], b[1], b[0], b[1], pts[0][0], pts[0][1], pts[1][0], pts[1][1])), b
 

@@ -20,6 +20,7 @@
 # script then calls `anim_row.write_anim`, which finds every rule it wrote already there.
 import json, pathlib, re, sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent)); import anim_row
+from figkit import barbs   # the arrowhead: tools/figkit.py, the one figure kit
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 BOOKS = anim_row.BOOKS                   # the scratch copy anim_row works on (one format, 16 Nov)
@@ -30,8 +31,7 @@ def arrow(x1, y1, x2, y2, cls, head=5):
     """A line with its own arrowhead (a drawing has no <marker>, check-anims.js)."""
     import math
     a = math.atan2(y2 - y1, x2 - x1)
-    p = lambda r, da: (x2 - r * math.cos(a + da), y2 - r * math.sin(a + da))
-    (lx, ly), (rx, ry) = p(head * 1.6, .45), p(head * 1.6, -.45)
+    (lx, ly), (rx, ry) = barbs(x2, y2, a, head * 1.6, .45)
     return ('<g class="%s"><path d="M%s %sL%s %s"/><path class="%s-hd" d="M%s %sL%s %sL%s %sz"/></g>'
             % (cls, r2(x1), r2(y1), r2(x2 - 3 * math.cos(a)), r2(y2 - 3 * math.sin(a)), cls.split()[0].split('-')[0], r2(x2), r2(y2), r2(lx), r2(ly), r2(rx), r2(ry)))
 

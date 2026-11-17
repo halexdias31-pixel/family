@@ -10,18 +10,17 @@
 # (field right, current into the page, motion down). The still (reduced motion) is the first case with
 # its force and caption.
 import sys, pathlib; sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent)); import anim_row
+import figkit                # the primitives: tools/figkit.py, the one figure kit
 
 P = 'phmotor'
 T = 16.0
 W, H = 240, 120
 CX, CY = 120, 58
 
-def pc(t): return ('%.2f' % (100 * t / T)).rstrip('0').rstrip('.') + '%'
-def g(v): return ('%.2f' % v).rstrip('0').rstrip('.') or '0'
+def pc(t): return figkit.pc(t, T)
+g = figkit.num
 
-def fade(name, a, b, c, d):
-    return ('@keyframes %s-%s { 0%%, %s { opacity: 0; } %s, %s { opacity: 1; } %s, 100%% { opacity: 0; } }'
-            % (P, name, pc(a), pc(b), pc(c), pc(d)))
+def fade(name, a, b, c, d): return figkit.fade4('%s-%s' % (P, name), a, b, c, d, T)
 
 SHOW = [  # (class, from, to)
     ('field', .2, 12.2), ('win', 3.0, 9.6), ('wout', 9.6, 12.2), ('fdn', 6.0, 9.6), ('fup', 10.2, 12.2), ('rule', 12.6, 15.7),

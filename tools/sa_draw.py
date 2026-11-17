@@ -2,17 +2,9 @@
 # on the shared mv-* motions, words as `<text class="cap">`, all styled by `.sa` in style.css (ink, `hot` coral,
 # `cool` green). The drawings that were HTML before the format are drawn with this, each by its own script, which
 # writes its row with `anim_row.write_sa`. Coordinates are in a 400-wide view box, as the other drawings in the format.
-import html as H
-
-
-def _f(v):
-    if isinstance(v, str): return v
-    s = ('%.2f' % v).rstrip('0').rstrip('.')
-    return '0' if s in ('-0', '') else s
-
-
-def esc(s):
-    return H.escape(s, quote=False)
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from figkit import num as _f, esc, esc_label, barbs   # noqa: F401  the primitives: tools/figkit.py
 
 
 class Svg:
@@ -61,9 +53,7 @@ class Svg:
 
     def arrow(self, x1, y1, x2, y2, cls='pt', head=5, style=''):
         import math
-        a = math.atan2(y2 - y1, x2 - x1)
-        p = lambda d: (x2 - head * math.cos(a + d), y2 - head * math.sin(a + d))
-        (ax, ay), (bx, by) = p(.5), p(-.5)
+        (ax, ay), (bx, by) = barbs(x2, y2, math.atan2(y2 - y1, x2 - x1), head, .5)
         return self.path('M%s,%s L%s,%s M%s,%s L%s,%s L%s,%s' % tuple(_f(v) for v in (x1, y1, x2, y2, ax, ay, x2, y2, bx, by)), cls, style)
 
     def box(self, x, y, w, h, s, cls='', size=None, rx=4):
@@ -73,4 +63,4 @@ class Svg:
 
     def svg(self, label):
         assert not self._open, 'a group is still open'
-        return '<svg class="sa" viewBox="0 0 %s %s" role="img" aria-label="%s">%s</svg>' % (_f(self.w), _f(self.h), H.escape(label), ''.join(self.out))
+        return '<svg class="sa" viewBox="0 0 %s %s" role="img" aria-label="%s">%s</svg>' % (_f(self.w), _f(self.h), esc_label(label), ''.join(self.out))
