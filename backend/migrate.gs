@@ -12,7 +12,7 @@ function oldRowsTidied_() {
 }
 
 /* A ROLE WORD AS THE READERS TAKE IT: an old word (`parent`, `teacher`, `kid`…) is translated only until the job has rewritten the cells. */
-function roleWord_(x) { return oldRowsTidied_() ? x : (SELF_ROLE_ALIASES[x] || x); }
+function roleWord_(x) { return oldRowsTidied_() ? x : (selfRoleAlias_(x) || x); }
 
 /* WHAT ONE OLD REPORT ROW BECOMES: blank kind is a question, its item is `q:<id>`, blank status is open, `not a problem` is dismissed. */
 function reportTidy_(r) {
@@ -34,7 +34,7 @@ function migrateOldRows_() {
   (pt.rows || []).forEach(r => {
     const list = S(r.role).split(/[,\n]/).map(x => norm(x)).filter(Boolean);
     if (!list.length) return;
-    const now = list.map(x => SELF_ROLE_ALIASES[x] || x).filter((x, i, a) => a.indexOf(x) === i);
+    const now = list.map(x => selfRoleAlias_(x) || x).filter((x, i, a) => a.indexOf(x) === i);
     if (now.join(',') === list.join(',')) return;
     if (setCell(pt, r, 'role', now.join(', '))) log.push('people row ' + r._row + ': role ' + list.join(', ') + ' -> ' + now.join(', '));
   });
