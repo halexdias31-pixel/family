@@ -74,23 +74,27 @@ function profQualChip_(p) {
 /* A LONG LIST SHORTENED TO "+N" (8 Nov): the whole tutor card fits one phone screen; the rest are named in the pill's title. */
 /* EVERY TAG SHOWN, never a "+N" (owner, 17 Nov). */
 const profTagRow_ = (look, tags) => (tags.length ? { type: 'tags', look: 'prof-tags prof-teach ' + look, tags } : null);
+/* WHAT THEY TEACH, AS `subject|level` keys, off the payload's "Maths (A-Level)" words. */
+const profTeachKey_ = (subject, level) => norm(subject) + '|' + norm(level);
+const profTeachKeys_ = t => profList_(t.teaches).concat(profList_(t.teachesSpec)).map(v => { const m = /^(.*?)\s*\((.*)\)\s*$/.exec(v); return m ? profTeachKey_(m[1], m[2]) : profTeachKey_(v, ''); });
+/* ONE TAG A LEVEL (owner, 17 Nov: one screen): "GCSE Maths 9 · English Language 7 · …", a subject they teach in bold, so no separate teaching row repeats it. */
 function profQuals_(t) {
   const parts = Array.isArray(t.qualsParts) ? t.qualsParts.filter(p => p && profQualV_(p.subject)) : [];
-  let chips;
-  if (parts.length) {
-    const at = {}, groups = [];
-    parts.forEach(p => {
-      const k = norm(profQualV_(p.subject));
-      if (!at[k]) groups.push(at[k] = []);
-      at[k].push(p);
-    });
-    chips = [].concat(...groups).map(profQualChip_);
-  } else {
-    chips = profList_(t.quals).map(text => ({ pill: true, text }));
-  }
-  chips = chips;
-  return profTagRow_('prof-quals', chips);
+  if (!parts.length) return profTagRow_('prof-quals', profList_(t.quals).map(text => ({ pill: true, text })));
+  const teach = profTeachKeys_(t), at = {}, levels = [];
+  parts.forEach(p => {
+    const lv = profQualV_(p.level) || 'Other';
+    if (!at[lv]) { at[lv] = []; levels.push(lv); }
+    at[lv].push(p);
+  });
+  return profTagRow_('prof-quals', levels.map(lv => ({ pill: true, look: 'prof-q', say: at[lv].map(profQualSay_).join('; '),
+    text: [lv + ' '].concat(...at[lv].map((p, i) => {
+      const one = [profQualV_(p.subject), profQualV_(p.grade) || (profQualNow_(p) ? 'studying' : '')].filter(Boolean).join(' ');
+      return (i ? [' · '] : []).concat(teach.indexOf(profTeachKey_(p.subject, p.level)) >= 0 ? [{ b: one }] : [one]);
+    })) })));
 }
+/* WHAT A QUALIFICATION TAG ALREADY SAYS THEY TEACH, so the teaching row shows only the rest. */
+const profQualKeys_ = t => (Array.isArray(t.qualsParts) ? t.qualsParts : []).filter(Boolean).map(p => profTeachKey_(p.subject, p.level));
 
 /* ---------- JOBS, CURRENT AND PAST (8 Nov): one pill a job — "Role · Where · 2019–now" — in the jobs colour. */
 const profJobSay_ = j => [j.role, j.where, [j.from, j.to].filter(Boolean).join('–')].map(v => String(v || '').trim()).filter(Boolean).join(' · ');
@@ -102,7 +106,8 @@ function profJobs_(t) {
 /* ---------- "1 to 4 students", NOT `minStudents` AND `maxStudents` § */
 function profRange_(lo, hi, one, many) {
   const a = Number(lo) || 0, b = Number(hi) || 0;
-  if (!a && !b) return '';
+  /* NEVER A DEFAULT (owner, 17 Nov): one or more, with no top, is what everybody already assumes, so it says nothing. */
+  if (a <= 1 && !b) return '';
   const word = n => n === 1 ? one : many;
   /* `1–4 students` and `1+ hour`, ASKED FOR BY NAME over "1 to 4" and "1 hour or more": § */
   if (a && b && a !== b) return a + '–' + b + ' ' + word(b);
@@ -233,7 +238,9 @@ const profPills_ = (it, t) => [profPill_(fmtName_(t), 0, 'prof-tag-name')].conca
   t.listed === false ? [profPill_(t.pending ? 'asked to tutor' : 'not listed', 9, 'prof-off')] : []);
 /* SUBJECTS (main, then also) AND FACTS, a row each. */
 function profTagRows_(t) {
-  const main = profList_(t.teachesSpec || t.teachesMain), also = profList_(t.teaches).filter(v => !main.includes(v));
+  const has = profQualKeys_(t), shown = v => { const m = /^(.*?)\s*\((.*)\)\s*$/.exec(v); return has.indexOf(m ? profTeachKey_(m[1], m[2]) : profTeachKey_(v, '')) < 0; };
+  const main0 = profList_(t.teachesSpec || t.teachesMain);
+  const main = main0.filter(shown), also = profList_(t.teaches).filter(v => !main0.includes(v)).filter(shown);
   return [main.length ? { look: 'prof-tags prof-teach', tags: teachGroups_(main).map(g => teachChip_(g, true)) } : null,
     also.length ? { look: 'prof-tags prof-teach', tags: teachGroups_(also).map(g => teachChip_(g, false)) } : null,
     profTagRow_('prof-facts', profFacts_(t).map(text => ({ pill: true, text })))].filter(Boolean);

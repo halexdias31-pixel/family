@@ -242,6 +242,9 @@ function postUpdateProfile_(body, action, began) {
   if (columnsNo) return jsonOut({ error: columnsNo });
   const valueNo = profileValueRefusal_(fields, allowed, dobSent, photosSent);
   if (valueNo) return jsonOut({ error: valueNo });
+  /* A TEXT FIELD'S LONGEST (`chars`, kinds.json `fields`, the same number the box stops at): refused, not cut, so nobody's words change unseen. */
+  const tooLong = Object.keys(fields).find(f => askProps_(f).chars && S(fields[f]).length > askProps_(f).chars);
+  if (tooLong) return jsonOut({ error: 'That is too long: at most ' + askProps_(tooLong).chars + ' characters (' + tooLong.replace(/_/g, ' ') + '). Nothing was saved.' });
   const wanted = Object.keys(fields)
     .filter(f => !HOUR.test(f) && !LIBRARY_FIELD.test(f) && !QUAL_FIELD.test(f)
               && !PHONE_FIELD.test(f) && !DOB_FIELD.test(f) && !PHOTO_FIELD.test(f) && !JOB_FIELD.test(f)

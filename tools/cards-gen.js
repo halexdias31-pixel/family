@@ -84,12 +84,11 @@ function priceParts() {
     + PRICE_READERS.map(n => grab(core, n, 'js/core.js')).join('\n') + '\n' + price.trim() + '\n'
     + 'return { priceFrom, bookMoney_, bookShares_, parseDMY };\n}';
 }
-/* THE SEAT CEILINGS (kinds.json \`fields\`): the \`askProps_\` the server hands \`priceCore_\`, as the site's form.js reads them. */
+/* EVERY FIELD'S PROPERTIES (kinds.json \`fields\`: bounds, longest text): the server's \`askProps_\`, the same object form.js reads. */
 function seatFieldParts() {
-  const f = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/settings/kinds.json'), 'utf8')).kinds.tutor.fields;
-  const out = {};
-  ['extra_seat_rate', 'extra_seat_cut'].forEach(k => { out[k] = { max: f[k].max }; });
-  return '/* from data/settings/kinds.json tutor.fields */\nconst PRICE_FIELDS = ' + JSON.stringify(out) + ';';
+  const k = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/settings/kinds.json'), 'utf8')).kinds;
+  const out = Object.assign({}, ...Object.keys(k).map(n => k[n].fields || {}));
+  return '/* from data/settings/kinds.json fields */\nconst FIELD_PROPS = ' + JSON.stringify(out) + ';\nconst askProps_ = f => FIELD_PROPS[f] || {};';
 }
 function grab(src, name, file) {
   const lines = src.split('\n');

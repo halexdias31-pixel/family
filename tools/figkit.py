@@ -52,9 +52,10 @@ def esc_label(s):
 
 
 # ---- elements, coordinates to one decimal; `rest` is the attributes after them, as written ----
-def svg(w, h, label, body, cls=''):
-    return ('<svg%s viewBox="0 0 %d %d" role="img" aria-label="%s">%s</svg>'
-            % (' class="%s"' % cls if cls else '', w, h, label, body))
+# `cm`: a figure drawn to scale gives its units to one centimetre, so the pad's compass and ruler say lengths in cm (padCm_)
+def svg(w, h, label, body, cls='', cm=None):
+    return ('<svg%s viewBox="0 0 %d %d"%s role="img" aria-label="%s">%s</svg>'
+            % (' class="%s"' % cls if cls else '', w, h, ' data-cm="%g"' % cm if cm else '', label, body))
 
 
 def line(x1, y1, x2, y2, rest=''):

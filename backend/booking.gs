@@ -679,7 +679,7 @@ function priceData_() {
 }
 /* A BOOKING AS createJob CARRIES IT, PRICED: the figures the phone sends (`bookMoneySend_`, `bookShares_`), worked out here; null when nothing can be priced. */
 function serverPrice_(body, data) {
-  const P = priceCore_(data || priceData_(), f => PRICE_FIELDS[f] || {});
+  const P = priceCore_(data || priceData_(), askProps_);
   const tutor = S(body.requestedTutor);
   const dates = S(body.dates).split(',').map(x => P.parseDMY(x.trim())).filter(Boolean);
   const disc = S(body.discountType) ? { type: S(body.discountType), value: N(body.discountValue), code: S(body.discountCode) } : null;
