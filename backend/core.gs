@@ -545,9 +545,20 @@ function clearPayloadCache() {
 /* ---------- `retirePayloadOf_` WAS HERE — RETIRING A FEW PEOPLE'S PAYLOADS, NOT EVERYBODY'S § */
 /** The generation number, which prefixes every key — see `clearPayloadCache`. */
 function payloadGen_() {
-  try {
-    return PropertiesService.getScriptProperties().getProperty('PAYLOAD_GEN') || '0';
-  } catch (err) { return '0'; }
+  let gen = '0';
+  try { gen = PropertiesService.getScriptProperties().getProperty('PAYLOAD_GEN') || '0'; } catch (err) { gen = '0'; }
+  return gen + '|' + ledgerStamp_();
+}
+/* ANY EDIT TO THE LEDGER, FROM ANYWHERE, IS A NEW COPY (owner, 17 Nov: unify): an edit by hand or by another tool never
+   runs `clearPayloadCache`, so the key also carries the Ledger file's last-changed time, looked up at most once a minute. */
+function ledgerStamp_() {
+  const c = payloadCache_();
+  const had = c ? c.get('LEDGER_STAMP') : null;
+  if (had) return had;
+  let at = '';
+  try { at = String(DriveApp.getFileById(ledgerId_()).getLastUpdated().getTime()); } catch (err) { at = ''; }
+  if (c && at) { try { c.put('LEDGER_STAMP', at, 60); } catch (err) { /* the next ask looks again */ } }
+  return at;
 }
 
 /* THE CACHE IS FILLED BEFORE ANYBODY ASKS, NOT BY THE FIRST PERSON TO ASK. § */
