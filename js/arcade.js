@@ -125,20 +125,11 @@ function widgetsBack_(col, held) {
 }
 
 
-/* ---------- A WIDGET THAT IS A FIND CARD (790): data/settings/widgets-in-find.json names a kind or an id, the id's row winning; before it comes, every tool and game ---------- */
-const FIND_WIDGET_KINDS = ['tool', 'game', 'shop'];
 /* A WIDGET THAT IS ITS OWN FIRST ANSWER IN FIND (batch B): a browsable thing gets a menu pill, not a column or a mini-app. */
 const FIND_WIDGET_GROUPS = { videos: 'Videos', reels: 'Tools', newspaper: 'Tools', shopfind: 'Tools', cart: 'Shop' };
-function widgetInFind_(w) {
-  if (!w) return false;
-  const rows = (typeof DATA !== 'undefined' && DATA && Array.isArray(DATA.widgetsInFind)) ? DATA.widgetsInFind : null;
-  if (!rows) return FIND_WIDGET_KINDS.indexOf(w.kind) !== -1;
-  const said = rows.find(r => r.widget === String(w.id)) || rows.find(r => r.widget === w.kind);
-  return !!said && /^(true|yes|1)$/i.test(String(said.find).trim());   /* a sheet's "FALSE" is a string, so truthiness would keep it */
-}
-/* EVERY WIDGET THAT IS A FIND CARD FOR THIS VIEWER, in the code's order. */
+/* EVERY WIDGET IS A FIND CARD (790) FOR THIS VIEWER, in the code's order — but the reel's: each of its videos is a Find card of its own (kind video). */
 function findWidgetList_() {
-  return allWidgets().filter(w => widgetInFind_(w)).filter(widgetFor_);
+  return allWidgets().filter(w => w && w.kind !== 'reel').filter(widgetFor_);
 }
 /* THE WIDGETS ON A FINDER: the slots its filled pages hold — Find fills only the pages near the glass, so a card not drawn yet has nothing to start. */
 function finderWidgets_(col) {

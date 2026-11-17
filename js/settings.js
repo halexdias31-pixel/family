@@ -4,8 +4,7 @@
 /* `settings/links` WAS ON THIS LIST, fetched on every load — 27 KB for the Links door on Find, its only reader. § */
 const SETTINGS_TABS = ['settings/brand', 'settings/laws',
                        'settings/facts',
-                       'settings/columns',
-                       'settings/spotlight', 'settings/widgets-in-find', 'settings/setting-for', 'settings/card-fields',
+                       'settings/spotlight', 'settings/setting-for', 'settings/card-fields',
                        'settings/default-pictures', 'settings/permissions', 'settings/screens-moved', 'settings/labels',
                        'settings/confusables', 'settings/peel'];
 

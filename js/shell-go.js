@@ -1,6 +1,6 @@
 /* ---------- GOING TO A COLUMN AND PAINTING IT (cut from shell-boot.js; read with the other shell-*.js by tools/piece-src.js). */
 function go(id, remember, instant) {
-  id = screenNow_(id); if (typeof screenGone_ === 'function' && screenGone_(id)) return;  /* a column switched off is a Find door now (batch C) */
+  if (!TABS.some(t => t.id === id) && typeof oldBranch_ === 'function' && oldBranch_(id)) return;  /* an old screen's name opens its Find branch (screens-moved.json) */
   const tab = TABS.find(t => t.id === id)
            || TABS.find(t => t.id === TAB_HOME)
            || TABS[0];

@@ -158,8 +158,7 @@ const TABS = [
   /* ONE SCREEN (owner, 16 Nov: Find is the only way around): every other column is a Find branch (screens-moved.json). */
   { id: 'stuff',   icon: '🔎', label: 'Find',    title: 'Find' },
 ];
-const TAB_ORDER = ['stuff'];
-/* SETTINGS THAT ARE FIND › SETTINGS › <type> NOW (find-only.json): no column, still a card group the layout keys by id and Find draws (CARD_BUILD). */
+/* SETTINGS ARE FIND › SETTINGS › <type>: each a card group Find draws (CARD_BUILD, find-doors.js), its cards keyed by id. */
 const SETTING_GROUPS = [{ id: 'apprentice', label: 'Apprentice settings', cards: true, group: true },
   /* WEB SETTINGS (491, an admin's alone): Find › Settings › Site since 15 Nov. */
   { id: 'site', label: 'Web settings', admin: true, cards: true, group: true },
@@ -170,102 +169,14 @@ const SETTING_GROUPS = [{ id: 'apprentice', label: 'Apprentice settings', cards:
   { id: 'account', label: 'Kids settings', cards: true, group: true },
   { id: 'biz', label: 'Biz settings', admin: true, cards: true, group: true }];
 
-/* ---------- EVERY COLUMN THE BUILD HAS, AND THE ONES THIS VIEWER IS GIVEN § */
-const TABS_BUILT = TABS.slice();
-/* THE CARD COLUMNS (730), left to right: TAB_ORDER and each tab's `cards`, which data/settings/columns.json repeats (check-doors). */
-const CARD_COLS = TAB_ORDER.filter(id => TABS_BUILT.some(t => t.id === id && t.cards)).concat(SETTING_GROUPS.map(g => g.id));
-/* A CARD COLUMN OR SETTINGS GROUP BY ID: its label and whether it is an admin's (layout.js, me-columns.js). */
-const settingGroupOf_ = id => TABS_BUILT.find(t => t.id === id) || SETTING_GROUPS.find(g => g.id === id) || null;
-const COLUMNS = TABS.slice();
-
-/* ---------- WHICH COLUMNS THIS VIEWER IS GIVEN — THE SMALLEST RULE THAT LEAVES ONE OUT § */
-function columnsFor_() {
-  let admin = false;
-  try { admin = typeof may_ === 'function' && may_('admin'); } catch (e) { admin = false; }
-  /* AN ADMIN'S CUSTOM COLUMNS (466, layout.js) put into `COLUMNS` before Business, as the layout in force names them. */
-  const want = COLUMNS.filter(t => !t.admin || admin);
-  const changed = want.length !== TABS.length || want.some((t, i) => TABS[i] !== t);
-  if (changed) {
-    /* WHERE YOU ARE, IF IT IS THE COLUMN GOING — the nearest column left of it that stays. */
-    let at = null;
-    try { at = AT; } catch (e) { at = null; }
-    if (at && !want.some(t => t.id === at) && COLUMNS.some(t => t.id === at)) {
-      const i = COLUMNS.findIndex(t => t.id === at);
-      const left = COLUMNS.slice(0, i).reverse().find(t => want.indexOf(t) !== -1);
-      AT = (left || want.find(t => t.id === TAB_HOME) || want[0]).id;
-    }
-    TABS.length = 0;
-    want.forEach(t => TABS.push(t));
-  }
-  /* AND THE SECTIONS, every time — cheap, and it puts the document right even where `TABS` did not
-     change (the first call, when index.html has just been parsed). */
-  const host = typeof document !== 'undefined' && document.getElementById('screen');
-  if (!host) return changed;
-  /* A CUSTOM COLUMN'S SECTION is made while it is a tab and removed when it is not, like Business's. */
-  host.querySelectorAll(':scope > section[data-custom]').forEach(el => { if (!TABS.some(t => t.custom && 's-' + t.id === el.id)) el.remove(); });
-  TABS.forEach(t => {
-    if (!t.custom || document.getElementById('s-' + t.id)) return;
-    const s = document.createElement('section');
-    s.className = 'screen hidden';
-    s.id = 's-' + t.id;
-    s.setAttribute('data-custom', '');
-    host.appendChild(s);
-  });
-  TABS_BUILT.forEach(t => {
-    if (!t.admin) return;
-    const el = document.getElementById('s-' + t.id);
-    const mine = TABS.indexOf(t) !== -1;
-    if (mine && !el) {
-      const s = document.createElement('section');
-      s.className = 'screen hidden';
-      s.id = 's-' + t.id;
-      host.appendChild(s);
-    } else if (!mine && el) {
-      el.remove();
-    }
-  });
-  return changed;
-}
-
-/* ---------- AND THE SHEET DECIDES, ONCE THERE IS ONE § */
-function applyColumns_() {
-  const rows = (DATA && DATA.columns) || [];
-  if (!rows.length) return;
-
-  const known = {};
-  TABS_BUILT.forEach(t => { known[t.id] = t; });
-
-  const want = rows.map(r => known[String(r.screen || '').trim()])
-                   .filter(Boolean);
-  if (!want.length) return;      /* the sheet names nothing this build has — leave it alone */
-  /* FIND STANDS FIRST WHATEVER ORDER A SHEET GIVES (1070): the one front door; the rest keep their order below it. */
-  want.sort((a, b) => (b.id === TAB_HOME) - (a.id === TAB_HOME));
-
-  /* THE LABEL AND THE ICON COME FROM THE SHEET TOO, where it gives them. A blank cell means "keep
-     what the code says" rather than "make it empty", which is the same rule every other tab in this
-     system follows. */
-  rows.forEach(r => {
-    const t = known[String(r.screen || '').trim()];
-    if (!t) return;
-    if (String(r.label || '').trim()) t.label = String(r.label).trim();
-    if (String(r.icon  || '').trim()) t.icon  = String(r.icon).trim();
-  });
-
-  COLUMNS.length = 0;
-  want.forEach(t => COLUMNS.push(t));
-  columnsFor_();
-
-  /* WHERE `AT` IS NOW. Somebody remembered on a column the sheet has just switched off would be on a
-     screen that no longer exists, and `go` would silently send them home without saying why. */
-  if (!TABS.some(t => t.id === AT)) AT = (TABS.find(t => t.id === TAB_HOME) || TABS[0]).id;
-}
+/* A SETTINGS GROUP BY ID: its label and whether it is an admin's (me-roles.js, find-doors.js). */
+const settingGroupOf_ = id => SETTING_GROUPS.find(g => g.id === id) || null;
 
 /* ---------- WHERE AN UNKNOWN ROUTE LANDS, NAMED RATHER THAN COUNTED § */
 /* THE FIRST THING ANYBODY SEES IS FIND (1070): the core and the one front door; the other columns stand below it. */
 const TAB_HOME = 'stuff';
-/* WHERE A SCREEN THAT MOVED LIVES (461): a column, or `find:<kind>[:<type>]` — data/settings/screens-moved.json, the one table. */
+/* WHERE AN OLD SCREEN'S NAME OPENS (461): its Find branch, `find:<door>[:<type> or :<field>=<value>]` — data/settings/screens-moved.json, the one table. */
 function screenMoved_() { try { return (DATA && DATA.columnsMoved) || {}; } catch (e) { return {}; } }
-const screenNow_ = id => { const to = screenMoved_()[id]; return to && to.indexOf(':') < 0 ? to : id; };
 
 /* ---------- HOW LONG AWAY COUNTS AS OPENING IT AGAIN § */
 const AWAY_AGAIN = 6 * 60 * 1000;
@@ -282,12 +193,9 @@ function screen(id, draw) { SCREENS[id] = { draw }; }
 let AT = TAB_HOME;
 let KEPT_GONE = '';
 /* ---------- REMEMBERED FOR A RELOAD, NOT FOR TOMORROW § */
-/* THE VIEWER'S COLUMNS FIRST — `USER` is already read out of storage (data.js), so an admin reloading on
-   Business is put back on it, and anybody else's remembered `biz` is not a column and is let go. */
-try { columnsFor_(); } catch (e) { oops_(e, 'shell:screen') }
 try {
   const kept = keep_.get('familyTab');
-  const was = kept && screenNow_(kept);
+  const was = kept;
   const when = Number(keep_.get('familyTabAt') || 0);
   if (was && TABS.some(t => t.id === was) && when && Date.now() - when < AWAY_AGAIN) AT = was;
   /* A REMEMBERED COLUMN THAT IS A FIND BRANCH NOW (screens-moved.json `find:`) opens that branch once the payload is in (`loadFinish_`). */

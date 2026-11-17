@@ -232,7 +232,7 @@ function familyPages_() {
   /* NOTHING A PARENT'S ALONE (469): your picture, name and contact are everybody's, so on Student settings. */
   return out.length ? out : [rankOffCard_(title, NOTHING_YET + ' Your details are on ' + tabLabel_('account', 'Kids settings') + '.', null, 'set-none')];
 }
-/* PARENT SETTINGS WAS A COLUMN; it is Find › Settings › Parent now (find-only.json), drawn from CARD_BUILD.family. */
+/* PARENT SETTINGS WAS A COLUMN; it is Find › Settings › Parent now (docs/history/find-only.md), drawn from CARD_BUILD.family. */
 
 /* APPLY TO TEACH IS A CARD OF ITS OWN, not a line on the padlock: Find › Settings skips a padlock, and the owner onboards through Find (1150). */
 function applyCard_() {
@@ -254,16 +254,16 @@ function staffPages_() {
   const out = ownCardSetPage_('staff').concat(top, typeof window.legoCards_ === 'function' ? window.legoCards_() : [], settingsCards_(settingsSplit_().staff, '', 'staff'));
   return out.length ? out : [rankOffCard_('', NOTHING_YET, null, 'rank-off set-none')];
 }
-/* TUTOR SETTINGS WAS A COLUMN; it is Find › Settings › Staff now (find-only.json), drawn from CARD_BUILD.staff. */
+/* TUTOR SETTINGS WAS A COLUMN; it is Find › Settings › Staff now (docs/history/find-only.md), drawn from CARD_BUILD.staff. */
 
 /* ---------- APPRENTICE: WORK EXPERIENCE, A PLACEHOLDER UNTIL IT IS BUILT (570) ---------- */
 function apprenticePages_() {
   return [rolesSet_('appr-set', '', [{ type: 'text', look: 'note', text: brand('apprentice_blurb', 'Work experience with us. Coming soon.') }])];
 }
-/* APPRENTICE SETTINGS WAS A COLUMN; it is Find › Settings › Apprentice now (find-only.json), drawn from CARD_BUILD.apprentice. */
+/* APPRENTICE SETTINGS WAS A COLUMN; it is Find › Settings › Apprentice now (docs/history/find-only.md), drawn from CARD_BUILD.apprentice. */
 
 
-/* APPRENTICE PROFILE WAS A COLUMN (730); it is Find › Profiles › Apprentice now (find-only.json, `profileTypes_`). */
+/* APPRENTICE PROFILE WAS A COLUMN (730); it is Find › Profiles › Apprentice now (docs/history/find-only.md, `profileTypes_`). */
 
 /* ---------- ADMIN: THE BUSINESS CARDS, THEN THE BUILD STAMPS (people management is on the people columns since 453) ---------- */
 function adminPages_() {

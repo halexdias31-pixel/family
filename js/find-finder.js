@@ -129,14 +129,11 @@ function frontSoonOnly_(value) {
     return !b ? soonItems_().some(x => x.top === value) : b.soon;
   } catch (e) { return false; }
 }
-/* EVERY SWITCHED-OFF COLUMN AND WIDGET, from columns.json and tiers.json, so turning one on removes its card. */
+/* EVERY SWITCHED-OFF WIDGET, from tiers.json, so turning one on removes its card. */
 function soonItems_() {
-  /* A COLUMN WHOSE THINGS ARE FIND ITEMS NOW (batch C: settings, reels) is no Coming soon card. */
-  const inFind = c => c.inFind || (typeof screenMoved_ === 'function' && /^find:Settings:/.test(screenMoved_()[c.screen] || ''));
-  const cols = ((DATA && DATA.columnsOff) || []).filter(c => !inFind(c)).map(c => ({ kind: c.soonKind || 'soon', name: c.label, sub: c.what || '', image: '', key: 'soon:' + c.screen, soon: 'column', soonId: c.screen }));
   const ws = (typeof TIER_OFF_WIDGETS !== 'undefined' ? TIER_OFF_WIDGETS : []).map(id => ({ kind: 'soon', name: SOON_WIDGET_NAMES[id] || id,
     sub: SOON_WIDGET_NAMES[id] || id, image: '', key: 'soon:w:' + id, soon: 'widget', soonId: id, top: SOON_WIDGET_UNDER[id] || '' }));
-  return cols.concat(ws).map(x => Object.assign(x, { text: [x.name, x.sub].join(' ') }));
+  return ws.map(x => Object.assign(x, { text: [x.name, x.sub].join(' ') }));
 }
 /* A SWITCHED-OFF THING'S SPEC: "Coming soon" is a tag beside its name, never a line; what it is, below. */
 const soonSpec_ = x => ({ look: 'soon-card', tags: [{ text: x.name, colour: 0 }, { text: brand('comingSoon', 'Coming soon') }],

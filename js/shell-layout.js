@@ -2,9 +2,6 @@
 /** Redraw whatever is showing. What almost everything calls after a change. */
 /* THE ORDER A REDRAW HAPPENS IN, WRITTEN DOWN ONCE § */
 const repaint = (instant) => {
-  /* 00. WHICH COLUMNS THERE ARE, for whoever is signed in now — every sign-in and sign-out ends here, so
-         an admin's column comes and goes with them, without a reload. See `columnsFor_`. */
-  try { columnsFor_(); } catch (e) { oops_(e, 'shell:awaiting_') }
   /* 000. A CHANGE OF PERSON PUTS AWAY WHAT WAS DRAWN FOR THE LAST ONE, NOW — before this returns, with no idle moment in between: § */
   const who = typeof widgetWho_ === 'function' ? widgetWho_() : '';
   if (REPAINT_WHO !== null && who !== REPAINT_WHO) {

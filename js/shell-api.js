@@ -195,9 +195,7 @@ async function filesOnly_() {
   /* A PLAIN OBJECT, NOT THE PROXY. § */
   loadRowsClean_(d);
   DATA = d;
-  /* THE COLUMNS AND THE ICON ARE IN `data/settings/`, so they are knowable here and are the two
-     things that decide what the app looks like before anything is drawn. */
-  try { applyColumns_(); } catch (e) { oops_(e, 'shell:filesOnly_') }
+  /* THE ICON IS IN `data/settings/`, so it is knowable here, before anything is drawn. */
   try { applyBrandIcon_(); } catch (e) { oops_(e, 'shell:filesOnly_') }
 }
 

@@ -273,7 +273,7 @@ function venueShape_(v) {
     : /school|college|academy|universit/i.test(s) ? 'school' : /home|house|flat/i.test(s) ? 'house' : 'hall';
 }
 
-/* AN OLD SETTINGS COLUMN ASKED FOR BY NAME (a tile, a link) opens Find › Settings › its type instead. */
+/* AN OLD SETTINGS NAME ASKED FOR (a tile, a link) opens Find › Settings › its type. */
 function findSettings_(type) {
   try {
     inFinder_(FINDER, () => {
@@ -284,10 +284,10 @@ function findSettings_(type) {
     inFinder_(FINDER, () => paintStuff());
   } catch (e) { oops_(e, 'doors:settings'); }
 }
-/* A SWITCHED-OFF COLUMN THAT MOVED INTO FIND (screens-moved.json): Settings for its account type, or its kind's door. */
-function screenGone_(id) {
+/* AN OLD SCREEN'S NAME (a link, a button, a tab remembered on the phone; screens-moved.json): Settings for its account type, or its door. */
+function oldBranch_(id) {
   const to = String(screenMoved_()[id] || '').split(':');
-  if (to[0] !== 'find' || TABS.some(t => t.id === id)) return false;
+  if (to[0] !== 'find') return false;
   if (to[1] === 'Settings') { findSettings_(to[2] || ''); return true; }
   /* `find:<door>:<field>=<value>` opens the door with that tag already chosen: Profiles › Apprentice; `find::<field>=<value>` the tag alone (Saved). */
   const pick = /^(\w+)=(.+)$/.exec(to.slice(2).join(':'));
@@ -359,7 +359,7 @@ function ownSecReg_() {
     jobs: ['Jobs', 'your jobs', 'Your current and past jobs, shown on your tutor card.'],
     where: ['Where you teach', 'where you teach', 'The venues you teach at and how far you travel.'], week: ['Available', 'your weekly hours', 'The hours you can teach each week.'] };
   const of = OWN_SEC_OF_SET_;
-  /* Each settings column's name from the one table (TABS_BUILT or SETTING_GROUPS, shell-boot.js), never a copy of it. */
+  /* Each settings group's name from the one table (SETTING_GROUPS, shell-boot.js), never a copy of it. */
   const where = c => (settingGroupOf_(c) || {}).label || c;
   return [].concat(...Object.keys(of).map(c => of[c].map(k => ({ id: 'own:' + c + ':' + k, col: c, label: S[k][0] + ' (' + where(c) + ')', only: S[k][1], say: S[k][2] }))));
 }

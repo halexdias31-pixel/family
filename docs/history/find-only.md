@@ -1,5 +1,10 @@
 # Find is the only way around (step 3)
 
+**Done 17 Nov (history).** Every screen is a Find branch; the column and layout code (the column parts of shell-*.js,
+layout.js, layout-moves.js, me-columns.js), columns.json, widgets-in-find.json and tools/columns_gs.js are gone. Saved
+is the Find tag Saved (`mySaved`); Spotlight and Shop open Find › Shop, Web profile Find › Profiles, Resources Find ›
+Library. The survey below is as it stood; its machine copy is docs/history/find-only.json.
+
 The owner approved this on 14 Nov: **settings, messages and tools become parts of Find.** No separate
 screens, no special flows. You get everywhere by choosing tags in Find, and what you arrive at is cards.
 
