@@ -18,5 +18,5 @@ check/sheets*.json
 __pycache__/
 
 # THE LIBRARY'S PRIVATE HALF (397): the words, answers and figures, pulled from the Ledger for the tools and checks.
-# The repository is public and this is exactly what it must never hold. tools/lib-private.js writes it.
+# The repository is public and this is exactly what it must never hold. tools/content.js library writes it.
 data-private/

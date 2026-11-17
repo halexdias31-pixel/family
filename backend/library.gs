@@ -315,7 +315,7 @@ function libContent_(ids) {
   return { items: items, missing: missing };
 }
 
-/* ---------- THE TOOLS' COPY: out a page at a time, and back in (an admin's, from tools/lib-private.js) ---------- */
+/* ---------- THE TOOLS' COPY: out a page at a time, and back in (an admin's, from tools/content.js library) ---------- */
 const LIB_EXPORT_MAX = 500;
 const LIB_IMPORT_MAX = 300;
 function libExport_(fileKey, from, count) {
@@ -360,7 +360,7 @@ function libSelfTest_(fileKey, c) {
   return null;
 }
 
-/* THE ONE IMPORTER: every way in (the site's upload, tools/lib-private.js, a Drive file or zip) ends here. `fileKey` is a file
+/* THE ONE IMPORTER: every way in (the site's upload, tools/content.js library, a Drive file or zip) ends here. `fileKey` is a file
    (`questions`) or its kind in kinds.json (`question`); an import replaces the row with that id, or adds one at the foot.
    Only the file's private fields, only text and numbers. */
 function libImport_(fileKey, rows) {

@@ -132,4 +132,6 @@ function report(all) {
   console.log(n + ' PNG twins in data/diagrams/, ' + (bytes / 1048576).toFixed(1) + ' MB.');
 }
 
-main().catch(e => { console.error(e && e.stack || e); process.exit(1); });
+if (require.main === module) main().catch(e => { console.error(e && e.stack || e); process.exit(1); });
+
+module.exports = { nameOf, pngWH, OUT };

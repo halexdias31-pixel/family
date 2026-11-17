@@ -1,7 +1,7 @@
 """Corbettmaths 5-a-day, Foundation, JULY — 31 days, read off the rendered pages.
 
 Drive 1HHrCcD0CxbgG5D39g4tEw5pQeND-X_qa, 31 pages, one dated day per page (page index = day - 1).
-Every page was RENDERED AND READ rather than extracted, for the reason tools/insert-cbm-5ad-jan-FP.py
+Every page was RENDERED AND READ rather than extracted, for the reason tools/content/specs/cbm-5ad/jan_fp_draft.py
 gives: fractions, indices and the numbers inside pictures are artwork with no usable text layer.
 The five questions are the five ROWS of each page's table, top to bottom.
 

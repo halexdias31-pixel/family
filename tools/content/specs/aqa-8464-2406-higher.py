@@ -70,29 +70,4 @@ for pid, name, spec, paper, date, day, needs, drive in PAPERS:
              source_url='https://drive.google.com/file/d/%s/view' % drive)
     rows.append(r)
 
-p = pathlib.Path(__file__).resolve().parent.parent / 'data' / 'questions.json'
-lines = p.read_text(encoding='utf-8').rstrip('\n').split('\n')
-assert lines[0] == '[' and lines[-1] == ']'
-seen = {json.loads(l.strip().rstrip(','))['row_id'] for l in lines[1:-1]}
-# A ROW ALREADY IN THE FILE IS KEPT. This script is the record of the whole batch, so it grows as
-# the papers arrive one upload at a time - and re-running it must not rewrite a row already there.
-# `add-aqa-english-skeletons.py` records what happens when a generator writes over something
-# somebody typed: "that is the worst thing a generator can do."
-already = sorted(r['row_id'] for r in rows if r['row_id'] in seen)
-rows = [r for r in rows if r['row_id'] not in seen]
-if already:
-    print('already in the file, left alone: %s' % ', '.join(already))
-if not rows:
-    print('nothing new to write')
-    raise SystemExit(0)
-
-lines[-2] += ','
-for r in rows[:-1]:
-    lines.insert(-1, json.dumps(r, ensure_ascii=False) + ',')
-lines.insert(-1, json.dumps(rows[-1], ensure_ascii=False))
-p.write_text('\n'.join(lines) + '\n', encoding='utf-8')
-
-print('wrote %d document row(s), 70 marks each, no questions under any of them' % len(rows))
-print('the series is six papers and %d of them are here' % len(PAPERS))
-print('still missing: Physics Paper 1H, Physics Paper 2H')
-print('and no mark scheme for ANY of them, so nothing can be transcribed yet')
+ROWS = rows
