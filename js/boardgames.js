@@ -1309,18 +1309,8 @@ on('bg-pick', el => {
 });
 
 /* THE LOOSE LINES THE BOARDS NEED: the tiles' values, the maze's arrow keys, the Scrabble blank's letter. */
-document.addEventListener('keydown', e => {
-  if (!maze || maze.over) return;
-  if (e.metaKey || e.ctrlKey || e.altKey) return;
-  const t = e.target;
-  if (t && (t.isContentEditable || (t.closest && t.closest('input, textarea, select')))) return;
-  const k = { ArrowUp: 'n', ArrowRight: 'e', ArrowDown: 's', ArrowLeft: 'w' }[e.key];
-  if (!k || !mzInFront_()) return;
-  e.preventDefault();
-  e.stopPropagation();
-  mzMove_(k);
-  mazePaint();
-});
+inputKeys_({ ArrowUp: 'n', ArrowRight: 'e', ArrowDown: 's', ArrowLeft: 'w' }, k => { mzMove_(k); mazePaint(); },
+  { when: () => !!maze && !maze.over && mzInFront_() });
 SCR_SET.forEach(t => { SCR_VALUE[t[0]] = t[2]; });
 document.addEventListener('change', e => {
   const el = e.target && e.target.closest && e.target.closest('[data-do="scr-blank"]');

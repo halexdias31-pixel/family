@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
-"""tools/race_map.py — writes data/race-map.json, the racer's Colliers Wood, from OpenStreetMap (464, 500, 511).
+"""tools/race_map.py — THE ONE MAP PIPELINE (owner, 17 Nov): any place's roads, buildings, water and parks from
+OpenStreetMap's latest, massaged (`massage`: broken junctions welded, one width per road, bends smoothed) and written to
+data/race-maps/<place>.json with data/race-maps/index.json listing them. The racer and its map read only these (464, 500, 511).
 
 Every road, building, river, railway and park is OSM's own geometry and tags. Where OSM is silent the script fills in
 the typical London value and says so in the row (`real` flags, docs/history/511): a terrace house with no
 `building:levels` is two storeys with a slate gabled roof whose ridge runs along its street. Heights come from a
 DEM when one answers (OpenTopoData's EU-DEM 25 m, then Open-Meteo's Copernicus GLO-90), else the ground is flat.
 
-    python3 tools/race_map.py                          # Overpass (or the OSM API), the DEM, write data/race-map.json
+    python3 tools/race_map.py                          # Colliers Wood: Overpass (or the OSM API), the DEM, write it
+    python3 tools/race_map.py --place "Kingston upon Thames" --osm-api   # any place, by name (Nominatim) ...
+    python3 tools/race_map.py --at 51.41,-0.30 --name Kingston --size 1200  # ... or by its middle
     python3 tools/race_map.py --osm-api [f.osm]        # the OSM editing API's map call (or its saved XML) (500)
     python3 tools/race_map.py --overpass f.json        # an Overpass JSON answer saved earlier
     python3 tools/race_map.py --dem-cache d.json       # keep the DEM's answer, ask it once
@@ -30,7 +34,7 @@ except ImportError:
     sys.exit('tools/race_map.py needs shapely 2.1+: pip install shapely')
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-RACE_BOX = [51.4113, -0.1888, 51.4247, -0.1672]   # south, west, north, east — backend/race.gs's RACE_BOX
+RACE_BOX = [51.4113, -0.1888, 51.4247, -0.1672]   # south, west, north, east: Colliers Wood, the default place
 STEP_M, GRID_M = 15, 25
 DRIVE = set('motorway trunk primary secondary tertiary unclassified residential living_street service road '
             'motorway_link trunk_link primary_link secondary_link tertiary_link'.split())
@@ -179,6 +183,13 @@ MARKS = [('Colliers Wood station', 'tube', lambda t: t.get('building') == 'train
          ('Merton Priory Chapter House', 'old', lambda t: t.get('name', '').startswith('Merton Priory Chapter House')),
          ('Christ Church', 'church', lambda t: t.get('name') == 'Christ Church Colliers Wood'),
          ('Colliers Wood Library', 'civic', lambda t: t.get('name') == 'Colliers Wood Library')]
+# ANYWHERE ELSE, the landmarks a local would name are OSM's own named ones, by kind; the first MARKS_MAX found.
+MARKS_ANY = [('tube', lambda t: t.get('railway') == 'station' or t.get('public_transport') == 'station'),
+             ('church', lambda t: t.get('amenity') == 'place_of_worship'),
+             ('park', lambda t: t.get('leisure') == 'park'),
+             ('civic', lambda t: t.get('amenity') in ('library', 'townhall') or t.get('historic') in ('monument', 'castle')),
+             ('shop', lambda t: t.get('shop') in ('supermarket', 'mall') or t.get('landuse') == 'retail')]
+MARKS_MAX = 10
 
 
 # ---------- BUILDINGS: WHAT OSM SAYS, ELSE WHAT A LONDON STREET USUALLY IS ----------
@@ -317,7 +328,93 @@ def polys(g):
     return [p for p in getattr(g, 'geoms', []) for p in polys(p)]
 
 
-def build(N, WAYS, RELS, box, flat, dem_cache=None, source='OSM'):
+# ---------- THE MASSAGER: what makes OSM's ways look like roads (owner, 17 Nov) ----------
+SNAP_M = 4.0          # a dead end this close to another road's node or line is a junction OSM's mapper missed
+SMOOTH_MIN_M = 8      # a bend is splined on any segment longer than this
+
+
+def massage(raw, XY, stats):
+    """In place, on the raw ways: (1) WELD each dead end within SNAP_M of another road onto it — its node, or a node
+    put on that road's line — so a junction is one shared point, never a gap or an overshoot; (2) ONE WIDTH per road:
+    every piece of a named road takes the median of its pieces' widths,
+    so a street never steps in and out at the joins between OSM's ways."""
+    ends = Counter()
+    for r in raw:
+        ends[r['ids'][0]] += 1
+        ends[r['ids'][-1]] += 1
+    used = Counter(i for r in raw for i in r['ids'])
+    C = 20
+    cell = lambda x, y: (int(math.floor(x / C)), int(math.floor(y / C)))
+    grid = defaultdict(list)
+    for ri, r in enumerate(raw):
+        for k in range(len(r['ids']) - 1):
+            a, b = XY[r['ids'][k]], XY[r['ids'][k + 1]]
+            for cx in range(cell(min(a[0], b[0]) - SNAP_M, 0)[0], cell(max(a[0], b[0]) + SNAP_M, 0)[0] + 1):
+                for cy in range(cell(0, min(a[1], b[1]) - SNAP_M)[1], cell(0, max(a[1], b[1]) + SNAP_M)[1] + 1):
+                    grid[(cx, cy)].append((ri, r['ids'][k], r['ids'][k + 1]))
+    fresh = [max(XY) + 1 if XY else 1]
+    for ri, r in enumerate(raw):
+        for end in (0, -1):
+            nid = r['ids'][end]
+            if used[nid] > 1 or r['ids'][0] == r['ids'][-1]:
+                continue   # already a junction, or a loop
+            p = XY[nid]
+            best = None
+            for (rj, na, nb) in grid.get(cell(*p), []):
+                if rj == ri:
+                    continue
+                a, b = XY[na], XY[nb]
+                dx, dy = b[0] - a[0], b[1] - a[1]
+                L2 = dx * dx + dy * dy or 1e-9
+                t = max(0.0, min(1.0, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / L2))
+                d = math.hypot(p[0] - a[0] - dx * t, p[1] - a[1] - dy * t)
+                if d <= SNAP_M and (best is None or d < best[0]):
+                    best = (d, rj, na, nb, t)
+            if not best:
+                continue
+            d, rj, a, b, t = best
+            q = raw[rj]['ids']
+            k = next((k for k in range(len(q) - 1) if q[k] == a and q[k + 1] == b), None)
+            if k is None:
+                continue   # that piece was split by an earlier weld
+            la = math.dist(XY[a], XY[b]) * t
+            if la <= SNAP_M:
+                to = a
+            elif math.dist(XY[a], XY[b]) - la <= SNAP_M:
+                to = b
+            else:   # a new node on the other road's line, where the dead end meets it
+                to = fresh[0]
+                fresh[0] += 1
+                XY[to] = (XY[a][0] + (XY[b][0] - XY[a][0]) * t, XY[a][1] + (XY[b][1] - XY[a][1]) * t)
+                q.insert(k + 1, to)
+                grid[cell(*p)] += [(rj, a, to), (rj, to, b)]
+                stats['massage_split'] += 1
+            if to == nid:
+                continue
+            # the dead end MOVES onto the junction: an overshoot is cut back and a gap closed, one shared point either way
+            ids = [to] + r['ids'][1:] if end == 0 else r['ids'][:-1] + [to]
+            ids = [i for k2, i in enumerate(ids) if not k2 or i != ids[k2 - 1]]
+            if len(ids) < 2:
+                continue
+            r['ids'] = ids
+            used[to] += 1
+            stats['massage_welded'] += 1
+    # ONE WIDTH PER ROAD
+    groups = defaultdict(list)
+    for r in raw:
+        if r['name']:   # an unnamed way is its own road: its class width, or its own tag
+            groups[(r['name'], r['kind'])].append(r)
+    for g in groups.values():
+        ws = sorted(r['w'] for r in g)
+        mid = ws[len(ws) // 2]
+        for r in g:
+            if abs(r['w'] - mid) > 0.05:
+                stats['massage_width'] += 1
+                r['w'] = mid
+                r['real_w'] = r['real_w'] or any(x['real_w'] for x in g)
+
+
+def build(N, WAYS, RELS, box, flat, dem_cache=None, source='OSM', place='Colliers Wood'):
     s, w, n, e = box
     lat0, lon0 = (s + n) / 2, (w + e) / 2
     m_lat, m_lon = 111320, 111320 * math.cos(lat0 * math.pi / 180)
@@ -370,6 +467,7 @@ def build(N, WAYS, RELS, box, flat, dem_cache=None, source='OSM'):
             ids = ids[::-1]
         raw.append({'ids': ids, 'name': str(t.get('name') or t.get('ref') or ''), 'kind': kind, 'w': width, 'lanes': lanes,
                     'one': one, 'tags': t, 'real_w': bool(wt or lanes)})
+    massage(raw, XY, stats)
     uses = Counter()
     for r in raw:
         for i in (r['ids'][:-1] if r['ids'][0] == r['ids'][-1] else r['ids']):
@@ -426,8 +524,8 @@ def build(N, WAYS, RELS, box, flat, dem_cache=None, source='OSM'):
             ang = lambda a, b, c: abs(math.atan2((b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0]),
                                                  (b[0] - a[0]) * (c[0] - b[0]) + (b[1] - a[1]) * (c[1] - b[1])))
             bend = max(ang(p0, p1, p2) if k else 0, ang(p1, p2, p3) if k + 2 < len(pts) else 0)
-            if L > 20 and math.radians(4) < bend < math.radians(50) and ids[k] not in junction and ids[k + 1] not in junction:
-                parts = min(8, int(L / 6))
+            if L > SMOOTH_MIN_M and math.radians(3) < bend < math.radians(75) and ids[k] not in junction and ids[k + 1] not in junction:
+                parts = min(12, max(2, int(L / 4)))
                 for q in range(1, parts):
                     t = q / parts
                     t2, t3 = t * t, t * t * t
@@ -657,8 +755,17 @@ def build(N, WAYS, RELS, box, flat, dem_cache=None, source='OSM'):
 
     areas, area_layers, marks_out, seen_marks = [], {k: [] for k in AREA_ORDER}, [], set()
 
+    marks = MARKS if place == 'Colliers Wood' else [
+        (None, kind, ok) for kind, ok in MARKS_ANY]
+
     def mark_of(t, p):
-        for name, kind, ok in MARKS:
+        if len(marks_out) >= MARKS_MAX:
+            return
+        for name, kind, ok in marks:
+            if name is None:
+                if not t.get('name') or not ok(t):
+                    continue
+                name = t['name']
             if name not in seen_marks and ok(t) and abs(p[0]) <= half[0] and abs(p[1]) <= half[1]:
                 seen_marks.add(name)
                 marks_out.append([name, kind, dm(p[0]), dm(p[1])])
@@ -867,7 +974,7 @@ def build(N, WAYS, RELS, box, flat, dem_cache=None, source='OSM'):
         pts_out += [dm(p[0]), dm(p[1]), dm(H(*p))]
     # the junction polygons, for the check: every junction node's disc must be covered by the one surface
     js = sorted(junction & set(by_node))
-    return {'v': 2, 'place': 'Colliers Wood', 'built': datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S.000Z'),
+    return {'v': 2, 'place': place, 'built': datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S.000Z'),
             'box': box, 'origin': [lat0, lon0], 'step': STEP_M, 'osm': OSM, 'dem': dem_src, 'src': source,
             'pts': pts_out, 'roads': roads, 'water': water_lines, 'bld': bld_out, 'marks': marks_out,
             'areas': sorted(areas, key=lambda a: AREA_ORDER.index(a[0])),
@@ -878,9 +985,46 @@ def build(N, WAYS, RELS, box, flat, dem_cache=None, source='OSM'):
             'shipped': 'tools/race_map.py'}
 
 
+MAPS = os.path.join(ROOT, 'data', 'race-maps')
+slug = lambda name: re.sub(r'[^a-z0-9]+', '-', name.lower()).strip('-')
+
+
+def where(a):
+    """THE PLACE: a name looked up once (Nominatim), or a middle given, made a box SIZE metres square; else Colliers Wood."""
+    if not a.place and not a.at:
+        return RACE_BOX, 'Colliers Wood'
+    if a.at:
+        lat, lon = (float(v) for v in a.at.split(','))
+        name = a.name or a.at
+    else:
+        got = json.loads(fetch('https://nominatim.openstreetmap.org/search?' + urllib.parse.urlencode({'q': a.place, 'format': 'json', 'limit': 1})))
+        if not got:
+            sys.exit('No place called ' + a.place)
+        lat, lon, name = float(got[0]['lat']), float(got[0]['lon']), a.name or a.place
+    h_lat = a.size / 2 / 111320
+    h_lon = a.size / 2 / (111320 * math.cos(math.radians(lat)))
+    return [round(lat - h_lat, 5), round(lon - h_lon, 5), round(lat + h_lat, 5), round(lon + h_lon, 5)], name
+
+
+def index_write(m, out):
+    """data/race-maps/index.json: every place built, its file and middle, for the racer's picker and "near me"."""
+    path = os.path.join(MAPS, 'index.json')
+    rows = json.load(open(path)) if os.path.exists(path) else []
+    f = os.path.relpath(out, ROOT).replace(os.sep, '/')
+    rows = [r for r in rows if r['file'] != f] + [{'place': m['place'], 'file': f, 'at': [round(v, 5) for v in m['origin']], 'built': m['built']}]
+    rows.sort(key=lambda r: (r['place'] != 'Colliers Wood', r['place']))
+    with open(path, 'w') as fh:
+        json.dump(rows, fh, indent=1, ensure_ascii=False)
+        fh.write('\n')
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--out', default=os.path.join(ROOT, 'data', 'race-map.json'))
+    ap.add_argument('--place', help='a place by name, looked up on Nominatim')
+    ap.add_argument('--at', help='lat,lon: the middle of the map')
+    ap.add_argument('--name', help="the place's name on the map (with --at)")
+    ap.add_argument('--size', type=float, default=1500, help='the box, metres a side (with --place or --at)')
+    ap.add_argument('--out', help='default data/race-maps/<place>.json')
     ap.add_argument('--overpass', help='an Overpass JSON answer saved earlier')
     ap.add_argument('--osm-api', nargs='?', const='', default=None, help='the OSM API (optionally its saved .osm XML)')
     ap.add_argument('--save', help='keep the OSM answer here (XML) for a later --osm-api run')
@@ -888,21 +1032,26 @@ def main():
     ap.add_argument('--dem-cache', help='a JSON file to keep the DEM answer in')
     a = ap.parse_args()
     t0 = time.time()
+    BOX, place = where(a)
+    os.makedirs(MAPS, exist_ok=True)
+    a.out = a.out or os.path.join(MAPS, slug(place) + '.json')
     if a.overpass:
         (N, W, R), src = from_overpass(json.load(open(a.overpass))), 'an Overpass answer'
     elif a.osm_api:
         (N, W, R), src = from_xml(open(a.osm_api, 'rb').read()), 'api.openstreetmap.org/api/0.6/map'
     elif a.osm_api == '':
-        s, w, n, e = RACE_BOX
+        s, w, n, e = BOX
         raw = fetch(OSM_API % (w, s, e, n), timeout=300)
         if a.save:
             open(a.save, 'wb').write(raw)
         (N, W, R), src = from_xml(raw), 'api.openstreetmap.org/api/0.6/map'
     else:
-        (N, W, R), src = download(RACE_BOX)
-    m = build(N, W, R, RACE_BOX, a.flat, a.dem_cache, src)
+        (N, W, R), src = download(BOX)
+    m = build(N, W, R, BOX, a.flat, a.dem_cache, src, place)
     with open(a.out, 'w') as f:
         json.dump(m, f, separators=(',', ':'), ensure_ascii=False)
+    if os.path.dirname(os.path.abspath(a.out)) == MAPS:
+        index_write(m, a.out)
     print('%s: %d roads, %d points, %d buildings, %d areas, %d surface triangles, marks %s, heights %s, %.0f s' % (
         a.out, len(m['roads']), len(m['pts']) // 3, len(m['bld']), len(m['areas']),
         sum(len(L[2]) // 3 for L in m['surf']), ', '.join(k[0] for k in m['marks']), m['dem'], time.time() - t0))

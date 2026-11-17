@@ -142,7 +142,6 @@
   {"name":"authoriseDrive","run":true,"handler":"authoriseDrive","roles":["admin"]},
   {"name":"checkScopes","run":true,"handler":"checkScopes","roles":["admin"]},
   {"name":"geocode","run":true,"handler":"geocodeVenues","roles":["admin"]},
-  {"name":"buildRaceMap","run":true,"handler":"buildRaceMap_","roles":["admin"],"arg":true},
   {"name":"regeocode","run":true,"handler":"runRegeocode_","roles":["admin"]},
   {"name":"rename","run":true,"handler":"renameValue_","roles":["admin"],"arg":true},
   {"name":"seedOptions","run":true,"handler":"seedOptions","roles":["admin"]},
