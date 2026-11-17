@@ -655,7 +655,7 @@ function ssPaint() {
     + (right ? '' : `<div class="ss-chips">`
       + SS.chips.map((w, i) => {
           const used = SS.picked.indexOf(i) !== -1;
-          return tile_({ form: true, look: 'ss-chip' + (used ? ' used' : ''), act: 'ss-word', data: { i }, pressed: used, label: w });
+          return tile_({ form: true, look: 'prof-tag is-sm', act: 'ss-word', data: { i }, pressed: used, label: w });
         }).join('')
       + `</div>`)
     + `<div class="ss-acts">`

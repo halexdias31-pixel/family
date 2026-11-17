@@ -1,10 +1,11 @@
 /* @family. — 60_doGet.gs (7 of 8) THE PAYLOAD. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOGET_VERSION = "2026-11-17-store-2";
+const DOGET_VERSION = "2026-11-17-clean-1";
 
 
 function doGet(e) {
+  try { ledgerId_(); } catch (err) { /* reported where a sheet is opened */ }
   try {
     WRITE_MISSES = [];
     /* NOBODY YET — the last request's viewer is not this one's (`NET_VIEWER_`, constants.gs; 342). */

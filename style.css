@@ -733,9 +733,6 @@ label.field > .note { display: block; margin-top: var(--s1); text-transform: non
 /* THE NOTATION IS THE PROFILE CHIP'S OWN `.prof-iso`, so the two cannot drift: § */
 .q-line .prof-iso { margin: 0; }
 .q-mark { justify-self: end; }
-/* THE CARD'S OWN GOLD CHIP, so `Teach` here and `Teaches` on the profile read as one fact. */
-.q-chip { display: inline-block; padding: var(--s0) var(--s2); border: 1px solid var(--gold); border-radius: var(--r-round);
-  color: var(--ink); font-size: var(--fs-small); }
 .q-can { color: var(--ink); font-size: var(--fs-small); }
 /* ---------- AN OPEN LINE: ITS EDITOR UNDER IT, AND A GOLD RULE DOWN THE LEFT § */
 .q-ed { display: none; }
@@ -1304,7 +1301,6 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
 
 /* Two answers, two buttons — a dropdown for two options is a dropdown nobody opens. The chosen one
    is filled rather than outlined, so which is active is readable without a tick. */
-.btn-row .btn.on { background: var(--gold); color: var(--on-gold); border-color: var(--gold); }
 /* ON WHITE (466) the faint word inside a chosen button reads as the button does. */
 .btn-row .btn.on * { color: inherit; }
 
@@ -2124,7 +2120,7 @@ label.bk-k { cursor: pointer; }
 .bk-row.is-blank .bk-k { color: var(--ink); }
 /* Ticked. Filled rather than outlined, because a run of them has to read as one block at a glance
    — which is exactly what it is. */
-.hr.on { background: var(--gold); border-color: var(--gold); color: var(--on-gold); font-weight: 650; }
+.hr.on { font-weight: 650; }
 /* ---------- TWO HOURS IN A ROW ARE ONE SESSION, SO THEY ARE ONE BAR § */
 .hr.on + .hr.on { border-top-left-radius: 0; border-bottom-left-radius: 0; }
 /* ---------- THE LEFT CELL'S CORNERS ARE SQUARED BY THE BRIDGE, NOT BY A `:has()` § */
@@ -2141,8 +2137,7 @@ label.bk-k { cursor: pointer; }
 /* ---------- IT SAID `width: 0; height: 0` AND THE ELEMENT MEASURED 24 × 44 § */
 .hr input { position: absolute; opacity: 0; width: 0; height: 0; margin: 0; pointer-events: none;
             min-height: 0; padding: 0; border: 0; }
-.hr:has(input:checked) { background: var(--gold); border-color: var(--gold); color: var(--on-gold);
-                         font-weight: 650; }
+.hr:has(input:checked) { font-weight: 650; }
 /* `:has` is recent. Without it the class set when the sheet is drawn still marks the ticked hours —
    they just do not change colour until the sheet is redrawn, which is a lesser failure than a grid
    that shows nothing. */
@@ -2422,11 +2417,18 @@ span[data-do]:is(:active, .is-pressed) { text-decoration-color: var(--gold); }
   aspect-ratio: 1 / 1; background: var(--sunk);
 }
 .prof-shot img { display: block; width: 100%; height: 100%; object-fit: cover; }
+/* THE ONE TAG/CHIP BLOCK: a profile's pills, a question's `Teach`, Sentence Scramble's words (a button). */
 .prof-tag {
-  font-family: var(--mono); font-size: var(--tp-fs); letter-spacing: .08em;
-  padding: var(--tp-pad); border-radius: var(--r-round);
+  display: inline-block; font-family: var(--mono); font-size: var(--tp-fs); letter-spacing: .08em;
+  padding: var(--tp-pad); border-radius: var(--r-round); background: transparent;
   border: 1px solid var(--line); color: var(--ink);
 }
+button.prof-tag { min-height: var(--tap); min-width: var(--tap); cursor: pointer; }
+button.prof-tag[aria-pressed="true"] { border-style: dashed; }
+button.prof-tag:disabled { cursor: default; }
+/* THE SMALL SIZE: a question line's `Teach` and a Scramble word, at the small text size they always had. */
+.prof-tag.is-sm { font-family: var(--font); font-size: var(--fs-small); letter-spacing: normal; padding: var(--s0) var(--s2); }
+button.prof-tag.is-sm { padding: 0 var(--s2); line-height: 1; font-weight: 500; }
 /* THE ROWS NEED AIR ABOVE THEM, or the first one sits against the adjectives as though it were one
    of them. Applied to the first row only, so rows keep their own even spacing among themselves. */
 .is-prof .prof-say + .row, .is-prof .prof-tags + .row, .is-prof .prof-words + .row { margin-top: var(--s3); }
@@ -4420,7 +4422,6 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 
 /* ---------- THE BAR IS A ROW OF TILES § */
 .tile.is-lead { color: var(--gold); border-color: color-mix(in srgb, var(--gold) 35%, transparent); }
-.tile.is-lead.on { background: var(--gold); color: var(--on-gold); border-color: var(--gold); }
 /* TWO GROUPS, AND THE ROW BREAKS BETWEEN THEM: § */
 .qpad-group { display: inline-flex; gap: var(--s1); }
 /* NOT SENT ANYWHERE, AND THE CARD SAYS SO. `ansBox_` makes the same promise in its label; a pad
@@ -4887,7 +4888,6 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 
 /* ---------- THE REWRITE COACH (509) ---------- */
 
-.rw-chips { display: inline-flex; flex-wrap: wrap; gap: var(--s1); }
 
 /* ONE FACT AT A TIME (519): where you are, then the cue and its box. */
 
@@ -5197,7 +5197,6 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .nes-deco .nes-key { min-width: 0; padding: 0 var(--s1); }
 .nes-deco .nes-small { min-width: 2.1em; }
 .nes-deco .nes-mid { flex-direction: row; }
-.nes-key.is-down { background: var(--gold); color: var(--on-gold); }
 .nes-dpad.is-down { --nes-dp: var(--gold); --nes-knob: var(--gold); }
 .nes-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--s1) var(--s4); width: 100%; margin: 0 0 var(--s2); padding: var(--s1) var(--s2); box-sizing: border-box; border-radius: var(--r-ui); background: var(--bg); font: var(--fs-title)/1.3 var(--mono); color: var(--ink); }
 .nes-legend[hidden] { display: none; }
@@ -5224,7 +5223,9 @@ body.nes-on .page.soft > .pane { filter: none; }
 .nes-y { background: var(--nes-y); }
 .nes-c1 { background: var(--nes-c); color: var(--nes-c-ink); }
 .nes-shoulders .nes-key { background: var(--nes-sh); color: var(--nes-sh-ink); }
-.nes-wrap .nes-key.is-down { background: var(--gold); color: var(--on-gold); }
+/* THE ONE GOLD "ON": a chosen button, a ticked hour, a lit lead tile, a held key. Last, so it wins its ties. */
+.btn-row .btn.on, .hr.on, .hr:has(input:checked), .tile.is-lead.on, .nes-key.is-down, .nes-wrap .nes-key.is-down {
+  background: var(--gold); border-color: var(--gold); color: var(--on-gold); }
 .nes-shoulders { order: -1; flex: 1 0 100%; display: flex; justify-content: space-between; gap: var(--k-gap); }
 .nes-face { display: grid; grid-template: repeat(3, var(--k-cell)) / repeat(3, var(--k-cell)); flex: none; }
 .nes-face .nes-round { width: var(--k-cell); height: var(--k-cell); font-size: var(--fs-small); }
@@ -5334,10 +5335,6 @@ body.nes-on .page.soft > .pane { filter: none; }
 .ss-built.is-wrong { border-color: var(--warn); }
 .ss-empty { color: var(--ink); }
 .ss-chips { display: flex; flex-wrap: wrap; gap: var(--s2); margin: var(--s2) 0 0; }
-.ss-chip { min-height: var(--tap); min-width: var(--tap); padding: 0 var(--s2); background: var(--sunk); color: var(--ink); border: 1px solid var(--line); border-radius: var(--r-ui); font: 500 var(--fs-small)/1 var(--font); cursor: pointer;
-}
-.ss-chip.used { color: var(--ink); border-style: dashed; }
-.ss-chip:disabled { cursor: default; }
 .ss-acts { display: flex; gap: var(--s2); margin: var(--s2) 0 0; }
 .ss-acts .btn { width: auto; flex: 1 1 0; padding: 0 var(--s2); }
 .herd-card .herd-q { margin: var(--s4) 0 var(--s2); min-height: 4.5rem; display: flex; align-items: center; justify-content: center; text-align: center; font: 600 var(--fs-title)/1.35 var(--font); color: var(--ink);
