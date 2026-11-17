@@ -127,6 +127,8 @@ function kcFour_(x, rest, main) {
   const pick = test => { const t = all.find(test); if (t) all.splice(all.indexOf(t), 1); return t || ''; };
   main = main || pick(t => first && kcAct_(t) === first) || pick(t => /\bis-(submit|buy)\b/.test(t))
     || pick(t => KC_MAIN_ACTS.indexOf(kcAct_(t)) >= 0) || pick(t => !/^(fav|msg-open|card-share|find-top|rep-flag|game-lock)$/.test(kcAct_(t)) && !/\bis-(admin|danger)\b/.test(t));
+  /* A CARD WITH NO ITEM BEHIND IT (Find's menu) HAS NOTHING TO SHARE, MESSAGE OR SAVE: only its own tiles, never greyed stand-ins (owner, 17 Nov). */
+  if (!(x && x.key)) return cardBlock_({ type: 'group', tag: 'span', look: 'kc-four', inner: String(rest || '').replace(KC_TILE_RE, t => (/\sdisabled[\s>]/.test(t) && !/data-do="rep-flag"/.test(t) ? '' : t)) });
   const r = kcRow_(x), who = r.title || r.name || '';
   const msg = pick(t => kcAct_(t) === 'msg-open')
     || (x && x.key && typeof personTiles_ === 'function' && /^(tutor|person|people)$/.test(x.kind) ? personTiles_(x) : '')
@@ -136,7 +138,7 @@ function kcFour_(x, rest, main) {
   /* A CARD IS STATIC (owner, 10 Nov): with no main of its own, Share leads; the card already shows everything it holds. */
   const lead = main || pick(t => kcAct_(t) === 'card-share') || tile_({ icon: 'share', label: 'Share', act: 'card-share', off: !(x && x.key), data: { key: (x && x.key) || '' } });
   /* ONE BUTTON LAW (owner, 15 Nov): every action is its own visible tile, and all of them flow like words -- fill the line, then wrap. */
-  const left = all.reduce((h, t) => h.replace(t, ''), [main, msg, star].reduce((h, t) => (t ? h.replace(t, '') : h), String(rest || '')));
+  const left = all.reduce((h, t) => h.replace(t, ''), [main, lead, msg, star].reduce((h, t) => (t ? h.replace(t, '') : h), String(rest || '')));
   return cardBlock_({ type: 'group', tag: 'span', look: 'kc-four', inner: lead + msg + star + all.join('') + left });
 }
 /* THE CARD'S OWN ROW when no tool row of its own (a question's `qtRow_`) already carries the four. */
