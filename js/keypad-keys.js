@@ -107,6 +107,8 @@ const KP_DONE_KEY = () => KP_KEYS.find(k => k.v === '!done');
 const KP_MIC = { v: '!mic', a: 'dictate, speak instead of typing', c: ' kp-mode kp-mic', icon: 'mic' };
 const KP_SPACE_KEY = { v: ' ', a: 'space', c: ' kp-space kp-mode', t: 'space' };
 const KP_ABC = [].concat(
+  /* THE NUMBERS ON TOP OF THE LETTERS (owner, 17 Nov): 1–0, one row, so a word answer never needs the 123 face for a digit. */
+  '1234567890'.split('').map(c => kpCh_(c)),
   'qwertyuiop'.split('').map(c => kpCh_(c)),
   'asdfghjkl'.split('').map((c, i) => kpCh_(c, '', 6, i ? 0 : 4)),
   [{ v: '!shift', a: 'capitals', c: ' kp-shift kp-mode', span: 9, t: '\u21e7' }],
