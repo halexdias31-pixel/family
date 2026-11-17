@@ -278,7 +278,7 @@
   "level": "GCSE",
   "keystage": "KS4",
   "board": "AQA, Edexcel, OCR",
-  "tier": "Foundation, Higher",
+  "tier": "",
   "for_subjects": "Physics, Combined Science",
   "for_levels": "GCSE",
   "for_tiers": "",
@@ -549,7 +549,7 @@
   "level": "GCSE",
   "keystage": "KS4",
   "board": "AQA, Edexcel",
-  "tier": "Foundation, Higher",
+  "tier": "",
   "for_subjects": "Chemistry, Combined Science",
   "for_levels": "GCSE",
   "for_tiers": "",
@@ -1175,7 +1175,7 @@
   "level": "GCSE",
   "keystage": "KS4",
   "board": "OCR",
-  "tier": "Foundation, Higher",
+  "tier": "",
   "for_subjects": "Chemistry",
   "for_levels": "GCSE",
   "for_tiers": "",
@@ -2868,7 +2868,7 @@
      {
       "name": "Cosine rule",
       "math": "<i>a</i><sup>2</sup> = <i>b</i><sup>2</sup> + <i>c</i><sup>2</sup> &minus; 2<i>b</i><i>c</i> cos <i>A</i>",
-      "id": "INS-GCSE-MATHS-H-4.3",
+      "id": "INS-ALEVEL-MATHS-2.4",
       "topic": "Trigonometry"
      }
     ]
@@ -3152,7 +3152,7 @@
      {
       "name": "Density",
       "math": "&rho; = <sup><i>m</i></sup>&frasl;<sub><i>V</i></sub>",
-      "id": "INS-GCSE-PHYSICS-4.1",
+      "id": "INS-ALEVEL-PHYSICS-3.4",
       "topic": "Mechanics and materials"
      },
      {
@@ -3486,7 +3486,7 @@
      {
       "name": "Wave speed",
       "math": "<i>v</i> = <i>f</i>&lambda;",
-      "id": "INS-GCSE-PHYSICS-4.3",
+      "id": "INS-OCR-ALEVEL-PHYSICS-3.4",
       "topic": "Electricity and waves"
      },
      {

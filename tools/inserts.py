@@ -396,12 +396,12 @@ ROWS = [
         verified_note=MATHS_NOTE, official=GCSE_MATHS_LINKS, sections=GCSE_MATHS_COMMON + GCSE_MATHS_HIGHER),
     row(insert_id='INS-GCSE-PHYSICS', name='GCSE Physics equation sheet',
         summary='The equations a GCSE Physics or Combined Science candidate is given in the exam, 2025 to 2027.',
-        subject='Physics', level='GCSE', keystage='KS4', board='AQA, Edexcel, OCR', tier='Foundation, Higher',
+        subject='Physics', level='GCSE', keystage='KS4', board='AQA, Edexcel, OCR',
         for_subjects='Physics, Combined Science', for_levels='GCSE',
         verified_note=PHYS_NOTE, official=PHYS_LINKS, sections=PHYS),
     row(insert_id='INS-GCSE-PERIODIC', name='GCSE Chemistry periodic table',
         summary='The periodic table a GCSE Chemistry or Combined Science candidate is given in the exam.',
-        subject='Chemistry', level='GCSE', keystage='KS4', board='AQA, Edexcel', tier='Foundation, Higher',
+        subject='Chemistry', level='GCSE', keystage='KS4', board='AQA, Edexcel', 
         for_subjects='Chemistry, Combined Science', for_levels='GCSE',
         verified_note=('The facts of the periodic table insert AQA prints (docs/history/106): atomic number, symbol, name and relative atomic mass, '
                        'the masses whole except chlorine and copper, and in brackets for an element with no stable isotope. '
@@ -410,7 +410,7 @@ ROWS = [
         table='periodic', elements=ELEMENTS),
     row(insert_id='INS-OCR-GCSE-PERIODIC', name='OCR GCSE Chemistry periodic table',
         summary='The periodic table on the Data Sheet an OCR GCSE Chemistry A (Gateway) candidate is given in the exam.',
-        subject='Chemistry', level='GCSE', keystage='KS4', board='OCR', tier='Foundation, Higher',
+        subject='Chemistry', level='GCSE', keystage='KS4', board='OCR', 
         for_subjects='Chemistry', for_levels='GCSE',
         verified_note=('Copied box by box from the periodic table on OCR’s J248 Data Sheet (Autumn 2021), masses to one decimal place as it prints them, '
                        'and none for an element with no stable isotope; its lanthanoid and actinoid rows are left out, as the GCSE table here leaves them (521). '
@@ -453,13 +453,14 @@ ROWS = [
 ]
 
 def parts(rows):
-    """Each line is a part (rule 1.41): id = sheet id plus its order; a line already on an earlier sheet keeps that one id."""
+    """Each line is a part (rule 1.41): id = sheet id plus its order; a line already on an earlier sheet of the same level keeps that one id
+    (a GCSE line and an A-level line stay two parts, so a part's boards never cross into a level whose sheet lacks it)."""
     seen = {}
     for r in rows:
         for si, s in enumerate(r['sections']):
             for li, ln in enumerate(s['lines']):
                 ln.pop('id', None)
-                key = json.dumps([ln.get('name'), ln.get('math'), ln.get('note', '')], ensure_ascii=False)
+                key = json.dumps([r['level'], ln.get('name'), ln.get('math'), ln.get('note', '')], ensure_ascii=False)
                 ln['id'] = seen.setdefault(key, '%s-%d.%d' % (r['insert_id'], si + 1, li + 1))
                 ln['topic'] = s['head']
 
