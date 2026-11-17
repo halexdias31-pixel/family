@@ -186,13 +186,8 @@ function pageParts_(x, prev) {
     out.push('share');
     return out;
   }
-  /* A CONTENT CARD IS ITSELF, then its Information, Formulas and Animation (408, 16 Nov):
-     one titled page per thing, and a page only where the row has the thing. */
-  if (x && isContent_(x) && x.row) {
-    const c = x.row;
-    /* THE LIBRARY IS INFORMATION AND ANIMATIONS (owner, 16 Nov): the card, its Information, its Formulas, its Animation; no worked examples, no still picture. */
-    return [null].concat(infoPoints_(c).length ? ['info'] : [], (c.formulas || []).length ? ['formulas'] : [], (c.anims || []).length || c.diagram ? ['anim'] : []);
-  }
+  /* A TOPIC CARD IS ONE CARD (rule 1.80): its three slots are its body (contentBody_), no pages after it. */
+  if (x && isContent_(x) && x.row) return [null];
   /* THE BIBLE HAS NO BRANCH HERE ANY MORE. § */
   if (histLinesOf_(x)) return [null].concat(histPages_(x));
   if (!x || !isPractical_(x) || !x.row || x.row.excluded) return [null];

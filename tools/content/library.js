@@ -218,6 +218,11 @@ function drivePack() {
     const now = JSON.parse(fs.readFileSync(p, 'utf8')), base = baseOf(name);
     const pick = Object.keys(now).filter(id => (ids ? ids.indexOf(id) !== -1 : JSON.stringify(now[id]) !== JSON.stringify(base[id])));
     if (!pick.length) continue;
+    /* THE TOPIC CARD IS LEAN (rule 1.80): a card holding what its slots refuse (kinds.json content.card.slots) is not packed. */
+    const slots = (JSON.parse(fs.readFileSync(path.join(L.ROOT, 'data/settings/kinds.json'), 'utf8')).kinds[def.kind] || {}).card || {};
+    const refuse = (slots.slots || {}).refuse || [];
+    const fat = refuse.length ? pick.filter(id => String(now[id].points || '').split('|').some(t => refuse.some(h => new RegExp('^\\s*' + h + '\\b', 'i').test(t)))) : [];
+    if (fat.length) throw new Error(name + ': ' + fat.length + ' card(s) break the topic card (' + refuse.join(', ') + '): ' + fat.slice(0, 5).join(', ') + ' — nothing written');
     /* THE WHOLE PRIVATE HALF, AND null FOR A FIELD THE BASE HAD AND THIS HAS NOT — so merging it is replacing it. */
     pack.files[name] = pick.map(id => {
       found[id] = 1;

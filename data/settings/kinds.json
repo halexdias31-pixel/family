@@ -723,7 +723,20 @@
       "say": "THE PAPER'S CARD, NOT COPIED (owner, 17 Nov): these fields are stored once, on the paper's own row (kind document, same paper_id), and joined onto each of its questions as the file is read (js/library.js libJoinPaper_, the backend's copy in cards-gen.gs). A question keeps one only where it differs (an override); null is none though the paper has one.",
       "from": "document",
       "by": "paper_id",
-      "fields": ["name", "subject", "key_stage", "band_type", "band_value", "company", "exam_board", "level", "document_type", "trackable", "printable", "source_url"]
+      "fields": [
+       "name",
+       "subject",
+       "key_stage",
+       "band_type",
+       "band_value",
+       "company",
+       "exam_board",
+       "level",
+       "document_type",
+       "trackable",
+       "printable",
+       "source_url"
+      ]
      },
      "private": [
       "html",
@@ -1033,6 +1046,7 @@
      ],
      "skip": "anim",
      "private": [
+      "idea",
       "words",
       "points",
       "formulas",
@@ -1071,7 +1085,35 @@
      "tier"
     ],
     "lines": true,
-    "body": "contentBody_(row)"
+    "body": "contentBody_(row)",
+    "slots": {
+     "say": "THE TOPIC CARD (rule 1.80, owner 17 Nov): three slots in this order, an empty one hidden: the idea in one line; the animation or figure; the content, everything the topic needs and nothing else. Read by contentBody_ (find-facets.js); tools/content/library.js drive-pack refuses a card that breaks it.",
+     "order": [
+      "idea",
+      "figure",
+      "content"
+     ],
+     "idea": "idea",
+     "figure": [
+      "anims",
+      "diagram"
+     ],
+     "content": [
+      "words",
+      "formulas",
+      "points"
+     ],
+     "refuse": [
+      "Worked example",
+      "Common mistake",
+      "Check",
+      "Example",
+      "Exam tip",
+      "Tip",
+      "Quick question",
+      "Question"
+     ]
+    }
    },
    "see": {
     "who": "anyone"

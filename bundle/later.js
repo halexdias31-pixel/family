@@ -1338,11 +1338,16 @@ const tbSub_ = s => String(s).split(/([₀-₉ₐₑₒₓₙₛₜ]+)/).map((ru
 /* ONE WIDGET PER THING (408): § */
 const tbMark_ = on => (on ? [' ', { badge: 'H', hint: 'Higher tier only' }] : []);
 /* Drawn by its item map (cards-parts.js). */
+/* THE TOPIC CARD (rule 1.80): kinds.json `content.card.slots` names the three slots and their order — the idea in one line,
+   the animation or figure, the content (key words, formulas, points) — and an empty slot is not drawn. */
+const TOPIC_SLOTS = () => ((((typeof ITEM_KINDS !== 'undefined' && ITEM_KINDS.kinds.content) || {}).card || {}).slots || { order: [] });
 function contentBody_(c) {
-  const words = Array.isArray(c.words) ? c.words : [];
-  return [
-    words.length ? { type: 'section', look: 'tb-words', head: 'Key words', blocks: [{ type: 'list', items: words.map(w => [{ b: w.name }, ' — ', w.text].concat(tbMark_(w.higher))) }] } : null,
-  ].filter(Boolean);
+  const draw = {
+    idea: () => (c.idea ? [{ type: 'text', look: 'fc-kick tb-idea', text: [{ b: c.idea }] }] : []),
+    figure: () => animPage_(c).slice(0, 1),
+    content: () => tbSections_(Object.assign({ words: [], formulas: [] }, c, { points: infoPoints_(c) }), null, {}),
+  };
+  return [].concat(...TOPIC_SLOTS().order.map(s => (draw[s] ? draw[s]() : []))).filter(Boolean);
 }
 
 /* A CONTENT CARD'S OTHER PAGES AND THEIR TITLES, ONE PLACE (408): § */
@@ -1392,8 +1397,9 @@ function specTreeOf_(x) {
   return (x.specTree = { topic: sec ? sec.id + ' ' + sec.title : '', point: pt ? pt.id + ' ' + pt.text : '' });
 }
 /* THE LIBRARY IS INFORMATION AND ANIMATIONS (owner, 16 Nov): no worked examples, no self-tests, no still pictures on its door. */
-const SCI_NOT_INFO = /^(Worked example|Check|Example)\b/i;
-const infoPoints_ = c => (c.points || []).filter(p => !SCI_NOT_INFO.test(String(p.text || '')))
+/* What the topic card refuses (kinds.json `content.card.slots.refuse`) is never drawn, whatever an old row still holds. */
+const sciNotInfo_ = p => (TOPIC_SLOTS().refuse || ['Worked example', 'Check', 'Example']).some(h => new RegExp('^' + h + '\\b', 'i').test(String(p.text || '')));
+const infoPoints_ = c => (c.points || []).filter(p => !sciNotInfo_(p))
   .map(p => Object.assign({}, p, { text: String(p.text || '').replace(/^Explanation\s+—\s+/, '') }));
 /* ONE ANIMATION FORMAT: an `sa` SVG (s1..s8 steps, mv-* motion; style.css). A still diagram plays as one (`sa-auto`). § */
 const saSvg_ = svg => String(svg || '').replace(/^(\s*<svg)\b(?![^>]*class="sa)/, '$1 class="sa sa-auto"');
@@ -2441,13 +2447,8 @@ function pageParts_(x, prev) {
     out.push('share');
     return out;
   }
-  /* A CONTENT CARD IS ITSELF, then its Information, Formulas and Animation (408, 16 Nov):
-     one titled page per thing, and a page only where the row has the thing. */
-  if (x && isContent_(x) && x.row) {
-    const c = x.row;
-    /* THE LIBRARY IS INFORMATION AND ANIMATIONS (owner, 16 Nov): the card, its Information, its Formulas, its Animation; no worked examples, no still picture. */
-    return [null].concat(infoPoints_(c).length ? ['info'] : [], (c.formulas || []).length ? ['formulas'] : [], (c.anims || []).length || c.diagram ? ['anim'] : []);
-  }
+  /* A TOPIC CARD IS ONE CARD (rule 1.80): its three slots are its body (contentBody_), no pages after it. */
+  if (x && isContent_(x) && x.row) return [null];
   /* THE BIBLE HAS NO BRANCH HERE ANY MORE. § */
   if (histLinesOf_(x)) return [null].concat(histPages_(x));
   if (!x || !isPractical_(x) || !x.row || x.row.excluded) return [null];
