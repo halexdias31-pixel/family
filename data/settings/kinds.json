@@ -2898,6 +2898,110 @@
      ]
     }
    }
+  },
+  "session": {
+   "source": "the owner's weekly timetable of sessions (owner, 17 Nov): who, where, which days, start-end, this term; rows in the items tab. Plain record, not a booking: no price, no sync.",
+   "sheet": {
+    "tab": "sessions",
+    "id": "session_id",
+    "columns": [
+     "session_id",
+     "who",
+     "person_id",
+     "place",
+     "address",
+     "days",
+     "start",
+     "end",
+     "term",
+     "notes"
+    ]
+   },
+   "find": {
+    "group": "Life",
+    "label": "Week",
+    "under": "Settings",
+    "from": "store",
+    "new": "New session",
+    "facets": [
+     "forLabel",
+     "kindLabel"
+    ],
+    "facetCols": {}
+   },
+   "card": {
+    "look": "kc-facts store-card",
+    "lines": true,
+    "body": "storeLines_(row, \"session\")",
+    "sheet": "storeSheet_(item, entry)",
+    "name": "who",
+    "tags": [
+     "days",
+     "start"
+    ],
+    "tiles": "storeTiles_(item, entry)"
+   },
+   "see": {
+    "who": "admin"
+   },
+   "forms": {
+    "session-new": {
+     "ask": "find",
+     "store": true,
+     "skip": true,
+     "send": {
+      "t": "Save"
+     },
+     "say": "the \"New session\" card in Find: one field a step, sent as item write.",
+     "fields": [
+      {
+       "f": "who",
+       "type": "text",
+       "label": "Who"
+      },
+      {
+       "f": "person_id",
+       "type": "text",
+       "label": "Person id (if they have a file)"
+      },
+      {
+       "f": "place",
+       "type": "text",
+       "label": "Where"
+      },
+      {
+       "f": "address",
+       "type": "text",
+       "label": "Address"
+      },
+      {
+       "f": "days",
+       "type": "text",
+       "label": "Days (e.g. Mon-Fri, Mon)"
+      },
+      {
+       "f": "start",
+       "type": "text",
+       "label": "Start (HH:MM)"
+      },
+      {
+       "f": "end",
+       "type": "text",
+       "label": "End (HH:MM)"
+      },
+      {
+       "f": "term",
+       "type": "text",
+       "label": "Term"
+      },
+      {
+       "f": "notes",
+       "type": "long",
+       "label": "Notes"
+      }
+     ]
+    }
+   }
   }
  },
  "findSay": "FIND (rule 1.80): a kind's `find` gives its What-for group, its What-kind label, the front door(s) it stands under (`under`), the facets in order, and `draw` (a global that draws its Find card, else findCard). `entries` names the Find entry kinds it covers when they are not the kind itself (an answer page, a timeline, a switched-off door), each overriding those fields. An entry kind named by no kind is never listed or drawn; `see.who` (anyone, signedIn, self, family, staff, admin) decides who is listed it. Labels and order of the facets are data/settings/facets.json. A kind with `from: \"store\"` (the owner's life and business, 17 Nov) is listed straight from the items tab (form.js storeItems_): a `new` card asking its `store` form, then one card a row, its Edit tile asking the same form prefilled and saving under the same id, and `card.tick` ({f, on, off, label}) a one-tap tile that flips that field; `facetCols` names each facet read off a row's own column.",
@@ -3516,7 +3620,8 @@
    "partner",
    "food",
    "task",
-   "drive_area"
+   "drive_area",
+   "session"
   ],
   "movedSay": "THE KINDS KEPT IN THE ITEMS (or events) TAB (owner, 17 Nov): core.gs read/setCell/addRow route a listed kind there; each has a `~moved` marker row holding its columns. Their old tabs are locked and never read. A new kind is listed here and starts with SCHEMA's columns.",
   "kept": {
