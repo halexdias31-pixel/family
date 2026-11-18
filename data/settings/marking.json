@@ -3,7 +3,7 @@
 {"kind":"method","name":"order","tier":"dogma","says":"Options in sequence, against every right order (choice_right ways)."},
 {"kind":"method","name":"cells","tier":"dogma","says":"Each blank of a grid or table by its own exact ways (cells)."},
 {"kind":"method","name":"accept","tier":"dogma","says":"Exact keys and aliases: numbers with tolerance, bands and units, fractions, algebra in any order, a forgiven typo (accept)."},
-{"kind":"setting","name":"units","value":"required","says":"A unit or % the key states is part of the answer: a bare number does not earn it. The key opts out with the unit in brackets, 40.5 (%), or a bare way beside it, 40.5% | 40.5."},
+{"kind":"setting","name":"units","value":"when-asked","says":"A unit or % the key states is part of the answer only when the question asks for it (give units, give your answer in cm, as a percentage) or the row's mark scheme withholds a mark without it (unit required, correct unit, 1 mark for unit); otherwise a bare number earns it, as GCSE and A-level schemes credit it. The key opts out with the unit in brackets, 40.5 (%), or a bare way beside it, 40.5% | 40.5."},
 {"kind":"method","name":"peel","tier":"rules","says":"A long English answer by PEEL elements and the level table below (accept rule:peel)."},
 {"kind":"method","name":"points","tier":"rules","says":"Marking points counted, out of the maximum (accept rule:points)."},
 {"kind":"method","name":"words","tier":"rules","says":"Key words, a point each (mark_words)."},

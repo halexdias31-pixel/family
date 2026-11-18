@@ -4707,7 +4707,14 @@ const strict = [x && x.strictSpelling, x && x.strict_spelling, r.strict_spelling
 || /\b(correct(ly)?\s+spel|spelling\s+(must|is)|spelt\s+correctly)/i.test(said);
 const ch = x && x.choices;
 const others = (Array.isArray(ch) ? ch : String(ch || '').split('|').filter(Boolean)).map(c => String(c).replace(/<[^>]*>/g, ' '));
-return { strict: strict, others: others };
+return { strict: strict, others: others, unitAsked: markUnitAsked_(x, said) };
+}
+const MARK_UNIT_Q = /\b(?:give|state|include|with|write|show)\s+(?:the\s+|your\s+|its\s+|an?\s+|appropriate\s+|correct\s+|suitable\s+)*units?\b|\bunits?\s+(?:must|should)\b|\b(?:give|write)\s+your\s+answer\s+in\s+(?!standard|the\b|a\b|an\b|its\b|simplest|terms|exact|surd|form|figures|words|full|ratio|fraction|decimal)[a-z\u00b0%£$]|\bas\s+a\s+percentage\b/i;
+const MARK_UNIT_MS = /\bunits?\s+(?:required|needed|must|is\s+required|mark)|\bcorrect\s+units?\b|\bmark\s+for\s+(?:the\s+|correct\s+)?units?\b|\b(?:missing|without|omit\w*|wrong|incorrect|penali[sz]e\w*)\s+(?:the\s+|a\s+)?(?:units?|%|percent|per\s?cent)|\bno\s+(?:units?|%)\s*(?:=|scores?|gets?|loses?|max|\d)/i;
+function markUnitAsked_(x, said) {
+const r = (x && x.row) || x || {};
+const q = [x && x.lead, x && x.html, r.html].concat(((x && x.stems) || []).map(t => (t && (t.html || (t.row && t.row.html))) || '')).join(' ').replace(/<[^>]*>/g, ' ');
+return MARK_UNIT_Q.test(q) || MARK_UNIT_MS.test(String(said || '') + ' ' + String(r.markscheme || r.mark_scheme || ''));
 }
 function markAnswer_(typed, accept, again, opt) {
 if (Array.isArray(typed)) typed = typed.map(v => String(v == null ? '' : v).trim()).filter(Boolean).join(', ');
@@ -4747,7 +4754,8 @@ const ways = String(accept || '').split('|').map(w => w.trim()).filter(Boolean)
 const free = !rules.length;
 const pct = v => { const m = /^(-?\d+(?:\.\d+)?)%$/.exec(v), f = m && markFrac_(m[1]); return f && { n: f.n, d: f.d * 100 }; };
 const tTerms = free ? markTerms_(t) : null;
-const bareTyped = !again && markUnitRule_() && /^-?[\d.,\/\s]*\d$/.test(t);
+const unitRule = markUnitRule_();
+const bareTyped = !again && (unitRule === 'required' || (unitRule === 'when-asked' && !!(opt && opt.unitAsked))) && /^-?[\d.,\/\s]*\d$/.test(t);
 for (let i = 0; i < ways.length; i++) {
 const w = ways[i];
 if (tt === tight(markNorm_(w))) return true;
@@ -4813,7 +4821,7 @@ if (p === null) return null;
 const set = w => (ord ? w : w.slice().sort((a, b) => a - b));
 return { got: markOrder_(set(p), ord ? orderWays_(x) : [set(x.choiceRight || [])]) ? 1 : 0, of: 1 };
 };
-const markUnitRule_ = () => markRows_().some(r => r.kind === 'setting' && r.name === 'units' && /required/i.test(String(r.value || '')));
+const markUnitRule_ = () => { const r = markRows_().find(r => r.kind === 'setting' && r.name === 'units'); return r ? String(r.value || '').trim().toLowerCase() : ''; };
 const markRows_ = () => ((typeof DATA !== 'undefined' && DATA && Array.isArray(DATA.marking)) ? DATA.marking : []);
 const markDistilled_ = x => markRows_().find(r => r.kind === 'distilled' && r.key && (r.key === (x && x.key) || r.key === (x && x.row && x.row.row_id)));
 const MARK_METHODS = {

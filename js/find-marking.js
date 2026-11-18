@@ -1043,7 +1043,17 @@ function markOpt_(x) {
     || /\b(correct(ly)?\s+spel|spelling\s+(must|is)|spelt\s+correctly)/i.test(said);
   const ch = x && x.choices;
   const others = (Array.isArray(ch) ? ch : String(ch || '').split('|').filter(Boolean)).map(c => String(c).replace(/<[^>]*>/g, ' '));
-  return { strict: strict, others: others };
+  return { strict: strict, others: others, unitAsked: markUnitAsked_(x, said) };
+}
+/* THE UNIT IS ASKED FOR (18 Nov, `setting units when-asked`): the question asks for it ("give units", "give your answer in cm", "as a
+   percentage"), or the row's own scheme withholds a mark without it ("unit required", "correct unit", "1 mark for unit", "no %");
+   otherwise a bare number is the answer, as GCSE and A-level schemes credit it */
+const MARK_UNIT_Q = /\b(?:give|state|include|with|write|show)\s+(?:the\s+|your\s+|its\s+|an?\s+|appropriate\s+|correct\s+|suitable\s+)*units?\b|\bunits?\s+(?:must|should)\b|\b(?:give|write)\s+your\s+answer\s+in\s+(?!standard|the\b|a\b|an\b|its\b|simplest|terms|exact|surd|form|figures|words|full|ratio|fraction|decimal)[a-z\u00b0%£$]|\bas\s+a\s+percentage\b/i;
+const MARK_UNIT_MS = /\bunits?\s+(?:required|needed|must|is\s+required|mark)|\bcorrect\s+units?\b|\bmark\s+for\s+(?:the\s+|correct\s+)?units?\b|\b(?:missing|without|omit\w*|wrong|incorrect|penali[sz]e\w*)\s+(?:the\s+|a\s+)?(?:units?|%|percent|per\s?cent)|\bno\s+(?:units?|%)\s*(?:=|scores?|gets?|loses?|max|\d)/i;
+function markUnitAsked_(x, said) {
+  const r = (x && x.row) || x || {};
+  const q = [x && x.lead, x && x.html, r.html].concat(((x && x.stems) || []).map(t => (t && (t.html || (t.row && t.row.html))) || '')).join(' ').replace(/<[^>]*>/g, ' ');
+  return MARK_UNIT_Q.test(q) || MARK_UNIT_MS.test(String(said || '') + ' ' + String(r.markscheme || r.mark_scheme || ''));
 }
 
 function markAnswer_(typed, accept, again, opt) {
@@ -1093,9 +1103,10 @@ function markAnswer_(typed, accept, again, opt) {
   const free = !rules.length;
   const pct = v => { const m = /^(-?\d+(?:\.\d+)?)%$/.exec(v), f = m && markFrac_(m[1]); return f && { n: f.n, d: f.d * 100 }; };
   const tTerms = free ? markTerms_(t) : null;
-  /* A UNIT THE KEY STATES IS ASKED FOR (18 Nov, data/settings/marking.json `setting units`): a bare number is not 40.5% or 12 kg, as a mark
+  /* A UNIT THE KEY STATES IS ASKED FOR WHERE THE ROW ASKS (18 Nov, `setting units` when-asked, markUnitAsked_): then a bare number is not 40.5% or 12 kg, as a mark
      scheme that prints the unit withholds the mark; the key opts out by a bracket, 40.5 (%), or by a bare way beside it, 40.5% | 40.5 */
-  const bareTyped = !again && markUnitRule_() && /^-?[\d.,\/\s]*\d$/.test(t);
+  const unitRule = markUnitRule_();
+  const bareTyped = !again && (unitRule === 'required' || (unitRule === 'when-asked' && !!(opt && opt.unitAsked))) && /^-?[\d.,\/\s]*\d$/.test(t);
   for (let i = 0; i < ways.length; i++) {
     const w = ways[i];
     if (tt === tight(markNorm_(w))) return true;
@@ -1178,8 +1189,8 @@ const markChoice_ = (x, typed, ord) => {
    points, key words, a graph's geometry, a rule set distilled offline) -- and else it is `unmarked`: saved, never sent to a person.
    One verdict everywhere: `{ verdict, marks, max, method, why }`, verdict right | wrong | part | empty | wait | unmarked.
    The methods, their tiers and their order are the table data/settings/marking.json (`DATA.marking`), with PEEL's rows. */
-/* `setting units required`: a unit the key states is part of the answer (markAnswer_); absent, a bare number matches it as before */
-const markUnitRule_ = () => markRows_().some(r => r.kind === 'setting' && r.name === 'units' && /required/i.test(String(r.value || '')));
+/* `setting units`: `required`, a unit the key states is always part of the answer (markAnswer_); `when-asked`, only where `markUnitAsked_` finds it asked for; absent, never */
+const markUnitRule_ = () => { const r = markRows_().find(r => r.kind === 'setting' && r.name === 'units'); return r ? String(r.value || '').trim().toLowerCase() : ''; };
 const markRows_ = () => ((typeof DATA !== 'undefined' && DATA && Array.isArray(DATA.marking)) ? DATA.marking : []);
 /* A DISTILLED RULE SET (the slot): rows `{kind: 'distilled', key, points}` made offline, run here as marking points */
 const markDistilled_ = x => markRows_().find(r => r.kind === 'distilled' && r.key && (r.key === (x && x.key) || r.key === (x && x.row && x.row.row_id)));
