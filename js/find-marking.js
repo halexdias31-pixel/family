@@ -1043,7 +1043,31 @@ function markOpt_(x) {
     || /\b(correct(ly)?\s+spel|spelling\s+(must|is)|spelt\s+correctly)/i.test(said);
   const ch = x && x.choices;
   const others = (Array.isArray(ch) ? ch : String(ch || '').split('|').filter(Boolean)).map(c => String(c).replace(/<[^>]*>/g, ' '));
-  return { strict: strict, others: others, unitAsked: markUnitAsked_(x, said) };
+  return { strict: strict, others: others, unitAsked: markUnitAsked_(x, said), formAsked: markFormAsked_(x) };
+}
+/* THE FORM IS ASKED FOR (18 Nov, `setting forms when-asked`): the question, or the key's `form:` option, names a form -- a fraction,
+   standard form, a percentage -- and an equal value in another form is not the answer (19/100 is not 0.19); the form counts only
+   where the key itself is written in it, so a key in another form is never made unreachable */
+const MARK_FORMS = {
+  fraction: { q: /\b(?:as|in(?:to)?)\s+(?:a\s+|its\s+)?(?:single\s+|proper\s+|improper\s+)?fraction\b|\bfraction\s+form\b/i, is: t => /\d\s*\/\s*\d/.test(t) },
+  standard: { q: /\bin\s+standard\s+(?:index\s+)?form\b/i, is: t => /10\s*\^|10[⁰¹²³⁴-⁹⁻]|\de[-+]?\d/.test(t) },
+  percent: { q: /\bas\s+a\s+percentage\b|\bpercentage\s+form\b/i, is: t => /%|per\s?cent/.test(t) }
+};
+const markFormRule_ = () => { const r = markRows_().find(r => r.kind === 'setting' && r.name === 'forms'); return r ? String(r.value || '').trim().toLowerCase() : ''; };
+function markFormAsked_(x) {
+  if (markFormRule_() !== 'when-asked') return '';
+  const r = (x && x.row) || x || {};
+  const flag = String((x && x.form) || r.form || '').trim().toLowerCase();
+  if (MARK_FORMS[flag]) return flag;
+  const q = [x && x.lead, x && x.html, r.html].concat(((x && x.stems) || []).map(t => (t && (t.html || (t.row && t.row.html))) || '')).join(' ').replace(/<[^>]*>/g, ' ');
+  return Object.keys(MARK_FORMS).find(k => MARK_FORMS[k].q.test(q)) || '';
+}
+/* the typed answer, in the form asked, against the key's ways that are in it; null where the form does not apply */
+function markInForm_(typed, accept, form) {
+  const f = MARK_FORMS[form], t = markNorm_(Array.isArray(typed) ? typed.join(', ') : typed);
+  if (!f || !t) return null;
+  const ways = String(accept || '').split('|').map(w => w.trim()).filter(w => w && !/^rule:/i.test(w));
+  return ways.some(w => f.is(markNorm_(w))) ? f.is(t) : null;
 }
 /* THE UNIT IS ASKED FOR (18 Nov, `setting units when-asked`): the question asks for it ("give units", "give your answer in cm", "as a
    percentage"), or the row's own scheme withholds a mark without it ("unit required", "correct unit", "1 mark for unit", "no %");
@@ -1203,8 +1227,9 @@ const MARK_METHODS = {
     return m.each.some(v => v === true || v === false) ? { got: m.right, of: m.of, each: m.each } : null;
   } },
   accept: { has: x => markerOf_(x).kind === 'accept' && !markIsPeel_(x.accept) && !markIsPoints_(x.accept), run: (x, a) => {
-    const o = markOpt_(x), v = markAnswer_(a, x.accept, false, o);
-    if (v === null) return null;
+    const o = markOpt_(x), v0 = markAnswer_(a, x.accept, false, o);
+    if (v0 === null) return null;
+    const v = v0 && markInForm_(a, x.accept, o.formAsked) !== false;
     const fix = v && !markAnswer_(a, x.accept, false, { strict: true }) ? markTypo_(a, x.accept, o) : '';
     return fix ? { got: 1, of: 1, typo: fix } : { got: v ? 1 : 0, of: 1 };
   } },
