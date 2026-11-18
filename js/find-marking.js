@@ -216,7 +216,10 @@ function markNorm_(s) {
     .replace(/\band\b|&/g, ',')
     .replace(/[.\s]+$/, '')
     .replace(/\s+/g, ' ')
-    .trim();
+    .trim()
+    /* A TICK IS A TICK HOWEVER IT IS TYPED (owner, 18 Nov: Finley's √ in a tick-or-cross table was marked wrong): the
+       keypad's √ alone, ✔ or ☑ is ✓; ✘ or × alone is ✗. Only a whole answer or cell, so √9 stays a root. */
+    .replace(/^[√✔☑]$/, '✓').replace(/^[✘×]$/, '✗');
 }
 
 /* A RAISED RUN IS A POWER, 10⁻¹⁴ as 10^-14 and 10²³ as 10^23, as the keypad stores it. */
