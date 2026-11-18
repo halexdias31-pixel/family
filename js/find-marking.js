@@ -605,8 +605,8 @@ const MARK_PT_NOT = new Set(['not', 'no', 'never', 'without', 'nor', 'hardly']);
    (more~greater~higher~increase, less~fewer~lower~smaller~decrease), and a point whose key names one is not scored where its opposite stands */
 const MARK_PT_DIR = (() => {
   const m = new Map();
-  [['up', 'more greater higher increase increases increased increasing bigger larger rise rises raised'],
-    ['down', 'less fewer lower smaller decrease decreases decreased decreasing reduce reduces reduced lesser'],
+  [['up', 'more greater higher increase increases increased increasing bigger larger rise rises raise raises raised'],
+    ['down', 'less fewer lower smaller decrease decreases decreased decreasing reduce reduces reduced lesser lowers lowered lowering'],
     ['fast', 'faster quicker'], ['slow', 'slower']].forEach(([k, ws]) => ws.split(' ').forEach(w => m.set(w, k)));
   return m;
 })();
@@ -622,10 +622,26 @@ function markPtPlain_(s) {
     .replace(/&(rsquo|lsquo|#8217|#8216|apos);/g, "'").replace(/&(rdquo|ldquo|quot|#8220|#8221);/g, '"')
     .replace(/&hellip;/g, '...').replace(/&(mdash|ndash);/g, ' - ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&[a-z]+;|&#\d+;/g, ' ')
     .replace(/[‘’ʼ]/g, "'").replace(/[“”]/g, '"').replace(/…/g, '...')
-    .toLowerCase().replace(/n't\b/g, ' not').replace(/'s\b/g, '');
+    .toLowerCase().replace(/n't\b/g, ' not').replace(/'s\b/g, '')
+    /* A NUMBER IS ONE WORD (18 Nov): 1,000 is 1000, so its comma parts nothing */
+    .replace(/(\d)[,\u2009](?=\d{3}(?!\d))/g, '$1').replace(/(\d)\s*\/\s*(?=\d)/g, '$1/').replace(/(\d)\s*(?:per\s?cent|percent)\b/g, '$1%');
 }
+/* A NUMBER IS ONE WORD (18 Nov): 0.95, -3, 3/4 and 1,000 are read whole, each written one way (0.950 is 0.95), and % (per cent) stays on it, so a key's
+   40.5% asks for the % too; a minus is a sign only where no number stands before it (10 - 15 is a range) */
+const MARK_PT_NUM = /^-?\d+(?:\.\d+)?(?:\/\d+)?%?$/;
+function markPtNumOf_(w) {
+  if (!MARK_PT_NUM.test(w)) return w;
+  const pc = /%$/.test(w) ? '%' : '', f = w.replace('%', '').split('/');
+  return (f.length > 1 ? String(Number(f[0])) + '/' + String(Number(f[1])) : String(Number(f[0]))) + pc;
+}
+/* a number's value, for 3/4 against 0.75; NaN for a word */
+const markPtVal_ = w => { if (!MARK_PT_NUM.test(w)) return NaN; const f = w.replace('%', '').split('/'); return f.length > 1 ? Number(f[0]) / Number(f[1]) : Number(f[0]); };
 function markPtWords_(s) {
-  return String(s).replace(/[-–—\/]/g, ' ').match(/[a-z0-9]+|¤/g) || [];
+  const t = String(s).replace(/(\d)\s*(?:%|per\s?cent|percent)(?![a-z])/g, '$1%')
+    .replace(/(^|[\s(=:])[-−–](?=\d)/g, (m, pre, at, all) => /\d\s*$/.test(all.slice(0, at)) ? m : pre + '¬')
+    .replace(/(\d)\s*\/\s*(?=\d)/g, '$1÷').replace(/(\d\.\d+)(?=[a-z])/g, '$1 ').replace(/[-–—\/]/g, ' ');
+  return (t.match(/¬?\d+(?:\.\d+)?(?:÷\d+)?%?(?![a-z0-9])|[a-z0-9]+|¤/g) || [])
+    .map(w => /^[¬\d]/.test(w) ? markPtNumOf_(w.replace('¬', '-').replace('÷', '/')) : w);
 }
 /* A LIGHT STEM: plurals, -ed, -ing, -ly, -ness and a closing e or y, so ached is ache and heavily is heavy */
 function markPtStem_(w) {
@@ -656,8 +672,12 @@ function markPtRead_(rule) {
   const out = { max: 0, points: [] };
   parts.slice(1).forEach(p => {
     const tag = /^\[(\d*)(q?)\]\s*/i.exec(p);
-    const ways = (tag ? p.slice(tag[0].length) : p).split('/').map(w => w.trim().toLowerCase().replace(/n't\b/g, ' not').split(/\s+/)
-      .map(t => t.split('~').map(a => a.replace(/[^a-z0-9'-]/g, '').replace(/'s$/, '').replace(/-/g, '')).filter(Boolean))
+    /* a / between two digits is a fraction (3/4), not a second wording; a key's number is one word, as an answer's (markPtWords_) */
+    const ways = (tag ? p.slice(tag[0].length) : p).replace(/(\d)\/(?=\d)/g, '$1÷').split('/').map(w => w.trim().toLowerCase()
+      .replace(/n't\b/g, ' not').replace(/(\d),(?=\d{3}(?!\d))/g, '$1').replace(/(\d)\s*(?:%|per\s?cent|percent)(?![a-z])/g, '$1%').replace(/(\d\.\d+)(?=[a-z])/g, '$1 ').split(/\s+/)
+      .map(t => t.split('~').map(a => { const n = a.replace(/[^\d.÷%-]/g, '').replace('÷', '/');
+        return /\d/.test(a) && MARK_PT_NUM.test(n) && !/[a-z]/.test(a) ? markPtNumOf_(n)
+          : a.replace(/[^a-z0-9'-]/g, '').replace(/'s$/, '').replace(/-/g, ''); }).filter(Boolean))
       .map(alts => { const d = alts.map(a => MARK_PT_DIR.get(a)).find(Boolean);
         return d ? [...new Set(alts.concat([...MARK_PT_DIR].filter(e => e[1] === d).map(e => e[0])))] : alts; })
       .filter(alts => alts.length && !(alts.length === 1 && MARK_PT_GLUE.has(alts[0]) && !MARK_PT_NOT.has(alts[0]))))
@@ -685,8 +705,11 @@ function markPtSource_(x) {
 function markPtIs_(tok, alts, opt) {
   for (const a of alts) {
     if (tok.w === a || tok.s === markPtStem_(a)) return true;
-    /* a little word (her, was) is never a near miss of a key word (hear, wax) */
-    if (/^\d+$/.test(a) || /^\d+$/.test(tok.w) || (opt && opt.strict) || MARK_PT_GLUE.has(tok.w)) continue;
+    const va = markPtVal_(a), vt = markPtVal_(tok.w);
+    /* a key's 40.5% asks for the %: a bare 40.5 is not it, though 40.5% is a key's bare 40.5 */
+    if (!isNaN(va) && !isNaN(vt) && Math.abs(va - vt) <= 1e-9 * Math.max(1, Math.abs(va)) && (!/%$/.test(a) || /%$/.test(tok.w))) return true;
+    /* a little word (her, was) is never a near miss of a key word (hear, wax), nor a number of another */
+    if (!isNaN(va) || !isNaN(vt) || (opt && opt.strict) || MARK_PT_GLUE.has(tok.w)) continue;
     if (markTypo_(tok.w, a, opt)) return true;
     const sa = markPtStem_(a);
     if (sa.length >= 4 && tok.s.length >= 4 && markTypo_(tok.s, sa, opt)) return true;
@@ -710,24 +733,50 @@ function markPtFind_(toks, way, opt, quoteOnly) {
   if (at.some(a => !a.length)) return null;
   const span = way.length + 4;
   let best = null;
+  const attached = markPtAttached_(toks, way);
   const walk = (k, used) => {
     if (k === at.length) {
       const lo = Math.min(...used), hi = Math.max(...used);
-      if (hi - lo + 1 <= span && (!best || hi - lo < best.hi - best.lo)) best = { lo, hi, used: used.slice() };
+      if (hi - lo + 1 <= span && (!best || hi - lo < best.hi - best.lo) && attached(used)) best = { lo, hi, used: used.slice() };
       return;
     }
     for (const i of at[k].slice(0, 12)) if (used.indexOf(i) < 0) { used.push(i); walk(k + 1, used); used.pop(); }
   };
   walk(0, []);
-  /* the way names a direction: its opposite in the same comma-part, near it, is the other answer ("less reactive" for "more reactive") */
-  const dirs = way.map(alts => alts.map(a => MARK_PT_DIR.get(a)).find(Boolean)).filter(Boolean);
-  if (best && dirs.length) {
-    const opp = new Set(dirs.map(d => MARK_PT_DIR_OPP[d]));
-    const c = toks[best.used[0]].c;
-    for (let i = Math.max(0, best.lo - 3); i <= Math.min(toks.length - 1, best.hi + 3); i++)
-      if (toks[i].c === c && best.used.indexOf(i) < 0 && opp.has(MARK_PT_DIR.get(toks[i].w))) return null;
-  }
   return best;
+}
+/* A DIRECTION WORD BELONGS TO ITS NOUN (18 Nov): "less reactive" is not "more reactive", and in "blockage increases, flow decreases" each noun
+   has its own. A way that names a direction is found only where (1) each of its other words, in its comma-part, has no opposite direction word
+   nearer to it than the nearest of the way's own kind, and (2) where the key has words both before and after a direction verb ("salt lowers
+   melting point"), an answer's direction verb (-s, -ed) keeps them on the same sides, swapped after "by" ("is lowered by salt"), so
+   "melting point lowers salt" is not it; an adjective ("the melting point is lower with salt") is not held to sides. */
+const markPtDirOf_ = w => MARK_PT_DIR.get(w) || MARK_PT_DIR.get(w.replace(/(?:s|ed|ing)$/, '')) || MARK_PT_DIR.get(w.replace(/(?:s|d)$/, ''));
+function markPtAttached_(toks, way) {
+  const dirAt = way.map(alts => alts.map(a => MARK_PT_DIR.get(a)).find(Boolean));
+  const ks = dirAt.map((d, j) => d ? j : -1).filter(j => j >= 0);
+  if (!ks.length) return () => true;
+  const k = ks[0], d = dirAt[k];
+  const own = new Set(ks.map(j => dirAt[j])), opp = new Set(ks.map(j => MARK_PT_DIR_OPP[dirAt[j]]).filter(e => !own.has(e)));
+  const noun = j => !dirAt[j] && !way[j].some(a => MARK_PT_NOT.has(a));
+  const sides = way.map((alts, j) => noun(j) ? (j < k ? -1 : 1) : 0);
+  const twoSided = ks.length === 1 && sides.includes(-1) && sides.includes(1);
+  return used => {
+    for (let j = 0; j < used.length; j++) {
+      if (!noun(j)) continue;
+      const i = used[j], c = toks[i].c;
+      /* the nearest of the way's own direction words, as found, against the nearest opposite one that is not */
+      let near = Infinity, nearOpp = Infinity;
+      ks.forEach(q => { if (toks[used[q]].c === c) near = Math.min(near, Math.abs(used[q] - i)); });
+      toks.forEach((t, x) => { if (t.c !== c || used.indexOf(x) >= 0) return; const e = markPtDirOf_(t.w);
+        if (e && opp.has(e)) nearOpp = Math.min(nearOpp, Math.abs(x - i)); });
+      if (nearOpp < near) return false;
+    }
+    if (!twoSided) return true;
+    const di = used[k], dw = toks[di].w;
+    if (!/(?:[^s]s|ed)$/.test(dw)) return true;
+    const flip = toks[di + 1] && toks[di + 1].w === 'by' ? -1 : 1;
+    return used.every((i, j) => !sides[j] || Math.sign(i - di) === sides[j] * flip);
+  };
 }
 /* `{ got, of, points: true }`, or null for nothing typed. `x` is the part, for its source; `opt` the typo rule's (`markOpt_`). */
 function markPoints_(typed, rule, x, opt) {
@@ -751,7 +800,7 @@ function markPoints_(typed, rule, x, opt) {
   const credited = new Map();
   let inQuote = 0;
   let units = text.split(key.phrases ? /[.!?]+(?=\s|$)|[;\n•,]+|\s+and\s+/ : /[.!?]+(?=\s|$)|[;\n•]+/);
-  units = units.filter(u => markPtWords_(u.replace(/\u0001\d+|\u0002/g, ' ')).some(w => !/^\d+$/.test(w)));
+  units = units.filter(u => markPtWords_(u.replace(/\u0001\d+|\u0002/g, ' ')).some(w => !/^\d{1,2}$/.test(w)));
   if (key.first) units = units.slice(0, key.first);
   units.forEach(sentence => {
     /* the sentence's words, each with its stem, its comma-part and the quotation it stands in */
@@ -760,7 +809,7 @@ function markPoints_(typed, rule, x, opt) {
       chunk.replace(/\u0001(\d+)|\u0002|[^\s\u0001\u0002]+/g, m => {
         if (m[0] === '\u0001') inQuote = Number(m.slice(1));
         else if (m === '\u0002') inQuote = 0;
-        else markPtWords_(m).forEach(w => toks.push({ w, s: markPtStem_(w), c, quote: inQuote }));
+        else markPtWords_(m).forEach(w => toks.push({ w, s: MARK_PT_NUM.test(w) ? w : markPtStem_(w), c, quote: inQuote }));
         return m;
       });
     });
@@ -994,7 +1043,17 @@ function markOpt_(x) {
     || /\b(correct(ly)?\s+spel|spelling\s+(must|is)|spelt\s+correctly)/i.test(said);
   const ch = x && x.choices;
   const others = (Array.isArray(ch) ? ch : String(ch || '').split('|').filter(Boolean)).map(c => String(c).replace(/<[^>]*>/g, ' '));
-  return { strict: strict, others: others };
+  return { strict: strict, others: others, unitAsked: markUnitAsked_(x, said) };
+}
+/* THE UNIT IS ASKED FOR (18 Nov, `setting units when-asked`): the question asks for it ("give units", "give your answer in cm", "as a
+   percentage"), or the row's own scheme withholds a mark without it ("unit required", "correct unit", "1 mark for unit", "no %");
+   otherwise a bare number is the answer, as GCSE and A-level schemes credit it */
+const MARK_UNIT_Q = /\b(?:give|state|include|with|write|show)\s+(?:the\s+|your\s+|its\s+|an?\s+|appropriate\s+|correct\s+|suitable\s+)*units?\b|\bunits?\s+(?:must|should)\b|\b(?:give|write)\s+your\s+answer\s+in\s+(?!standard|the\b|a\b|an\b|its\b|simplest|terms|exact|surd|form|figures|words|full|ratio|fraction|decimal)[a-z\u00b0%£$]|\bas\s+a\s+percentage\b/i;
+const MARK_UNIT_MS = /\bunits?\s+(?:required|needed|must|is\s+required|mark)|\bcorrect\s+units?\b|\bmark\s+for\s+(?:the\s+|correct\s+)?units?\b|\b(?:missing|without|omit\w*|wrong|incorrect|penali[sz]e\w*)\s+(?:the\s+|a\s+)?(?:units?|%|percent|per\s?cent)|\bno\s+(?:units?|%)\s*(?:=|scores?|gets?|loses?|max|\d)/i;
+function markUnitAsked_(x, said) {
+  const r = (x && x.row) || x || {};
+  const q = [x && x.lead, x && x.html, r.html].concat(((x && x.stems) || []).map(t => (t && (t.html || (t.row && t.row.html))) || '')).join(' ').replace(/<[^>]*>/g, ' ');
+  return MARK_UNIT_Q.test(q) || MARK_UNIT_MS.test(String(said || '') + ' ' + String(r.markscheme || r.mark_scheme || ''));
 }
 
 function markAnswer_(typed, accept, again, opt) {
@@ -1037,14 +1096,23 @@ function markAnswer_(typed, accept, again, opt) {
   /* ---------- AND THE SPACE BETWEEN A NUMBER AND ITS LETTERS SAYS NOTHING § */
   const tight = s => s.replace(/([\dπ])\s+(?=[a-z\u00b0%])/g, '$1');
   const tt = tight(t);
-  const ways = String(accept || '').split('|').map(w => w.trim()).filter(Boolean);
+  /* a unit in brackets is a unit the key lets go: 40.5 (%) is 40.5% or 40.5 */
+  const ways = String(accept || '').split('|').map(w => w.trim()).filter(Boolean)
+    .flatMap(w => { const m = /^(-?[\d.,\/\s]*\d)\s+\(([a-z\u00b0%][a-z\u00b0%\/]*(?:\^-?\d)?)\)$/.exec(markNorm_(w)); return m ? [m[1] + m[2], m[1]] : [w]; });
   /* only where the row names no form rule (O2, O4): a `rule:` way can ask for a form the value does not give */
   const free = !rules.length;
   const pct = v => { const m = /^(-?\d+(?:\.\d+)?)%$/.exec(v), f = m && markFrac_(m[1]); return f && { n: f.n, d: f.d * 100 }; };
   const tTerms = free ? markTerms_(t) : null;
+  /* A UNIT THE KEY STATES IS ASKED FOR WHERE THE ROW ASKS (18 Nov, `setting units` when-asked, markUnitAsked_): then a bare number is not 40.5% or 12 kg, as a mark
+     scheme that prints the unit withholds the mark; the key opts out by a bracket, 40.5 (%), or by a bare way beside it, 40.5% | 40.5 */
+  const unitRule = markUnitRule_();
+  const bareTyped = !again && (unitRule === 'required' || (unitRule === 'when-asked' && !!(opt && opt.unitAsked))) && /^-?[\d.,\/\s]*\d$/.test(t);
   for (let i = 0; i < ways.length; i++) {
     const w = ways[i];
     if (tt === tight(markNorm_(w))) return true;
+    const wn0 = markNorm_(w), unitAsked = bareTyped && !/\(.*\)$/.test(wn0) && /^-?[\d.,\/\s]*\d\s*(?:to\s*-?[\d.]+\s*)?[a-z°%]/.test(wn0)
+      && (markBare_(w) !== wn0 || !!(markRange_(w) && markRange_(w).unit));
+    const bareOf = v => unitAsked ? v + '\u0000' : markBare_(v);
     if (free) {
       /* 25% is 0.25, and 0.25 is 25% (O2) */
       const wn = markNorm_(w), a = pct(t) || markFrac_(t), b = pct(wn) || markFrac_(wn);
@@ -1054,17 +1122,17 @@ function markAnswer_(typed, accept, again, opt) {
     }
     if (markNum_(t) === markNum_(markNorm_(w))) return true;
     /* THE SAME NUMBER WITH A POWER IN IT (owner, 13 Nov): 2^3 is 8, 1e-14 is 10^-14, 6.02×10^23 is 6.02e23 */
-    if (free) { const pv = markPowVal_(typed), wv = markPowVal_(w), tv = pv != null ? pv : markFrac_(t), qv = wv != null ? wv : markFrac_(markBare_(w));
+    if (free) { const pv = markPowVal_(typed), wv = markPowVal_(w), tv = pv != null ? pv : markFrac_(t), qv = wv != null ? wv : markFrac_(bareOf(w));
       const num = v => (v == null ? null : typeof v === 'number' ? v : v.n / v.d), a = num(tv), b = num(qv);
       if ((pv != null || wv != null) && a != null && b != null && Math.abs(a - b) <= 1e-9 * Math.max(Math.abs(a), Math.abs(b))) return true; }
-    if (t === markBare_(w) || markNum_(t) === markNum_(markBare_(w))) return true;
+    if (t === bareOf(w) || markNum_(t) === markNum_(bareOf(w))) return true;
     const a = markParts_(t).map(tight).sort(), b = markParts_(w).map(tight).sort();
     if (a.length && a.length === b.length && a.join('|') === b.join('|')) return true;
     /* the same value written another way -- see `markFrac_` above */
-    const p = markFrac_(t), q = markFrac_(markBare_(w));
+    const p = markFrac_(t), q = markFrac_(bareOf(w));
     if (p && q && p.n * q.d === q.n * p.d) return true;
     /* anywhere inside a band the scheme prints -- see `markRange_` above */
-    const band = markRange_(w);
+    const band = !unitAsked && markRange_(w);
     /* A READING WITH ITS UNIT OR DEGREE SIGN (385): the number inside the band, the unit the band's own or a degree */
     const ru = band && !p && /^(-?\d+(?:\.\d+)?)\s*([a-z\u00b0%]+)\.?$/.exec(t);
     if (ru && (ru[2] === band.unit || /^(\u00b0|degrees?|deg)$/.test(ru[2]))) {
@@ -1121,6 +1189,8 @@ const markChoice_ = (x, typed, ord) => {
    points, key words, a graph's geometry, a rule set distilled offline) -- and else it is `unmarked`: saved, never sent to a person.
    One verdict everywhere: `{ verdict, marks, max, method, why }`, verdict right | wrong | part | empty | wait | unmarked.
    The methods, their tiers and their order are the table data/settings/marking.json (`DATA.marking`), with PEEL's rows. */
+/* `setting units`: `required`, a unit the key states is always part of the answer (markAnswer_); `when-asked`, only where `markUnitAsked_` finds it asked for; absent, never */
+const markUnitRule_ = () => { const r = markRows_().find(r => r.kind === 'setting' && r.name === 'units'); return r ? String(r.value || '').trim().toLowerCase() : ''; };
 const markRows_ = () => ((typeof DATA !== 'undefined' && DATA && Array.isArray(DATA.marking)) ? DATA.marking : []);
 /* A DISTILLED RULE SET (the slot): rows `{kind: 'distilled', key, points}` made offline, run here as marking points */
 const markDistilled_ = x => markRows_().find(r => r.kind === 'distilled' && r.key && (r.key === (x && x.key) || r.key === (x && x.row && x.row.row_id)));
