@@ -246,7 +246,10 @@ function doorItems_() {
 }
 /* SETTINGS AND BOOKING (owner, 13 Nov: a guest books through Find's steps and signs in to Send); no Venues on the signed-out front. */
 /* AND THE LIBRARY (owner, 15 Nov), by ONE permissions row (`item` library:read for `anyone`): never a question, its answer or Practice. */
-function findSignedOut_(x) { return kindTop_(x) === 'Settings' || x.kind === 'bookform' || (guestLibrary_() && libraryCard_(x)); }
+/* AND QUESTIONS AND PRACTICE (owner, 18 Nov: guests do questions too), by the one row `item` question:read for `anyone`. */
+function findSignedOut_(x) { return kindTop_(x) === 'Settings' || x.kind === 'bookform' || (guestLibrary_() && libraryCard_(x)) || (guestPractice_() && practiceCard_(x)); }
+const guestPractice_ = () => typeof can_ === 'function' && can_('anyone', 'item', 'question:read');
+const practiceCard_ = x => !!x && x.kind !== 'answer' && (x.kind === 'question' || asList_(kindTop_(x)).indexOf('Practice') !== -1);
 const guestLibrary_ = () => typeof can_ === 'function' && can_('anyone', 'item', 'library:read');
 /* A LIBRARY CARD: a Learning thing that is not practice — questions, their answers and the Practice widgets are signed in. */
 function libraryCard_(x) {
