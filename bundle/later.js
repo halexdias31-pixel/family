@@ -10084,14 +10084,15 @@ if (SIGN.pin.length < SIGN_PIN_LEN) { signPaint_(); return; }
 const who = SIGN.who, pin = SIGN.pin.join('');
 SIGN.busy = true;
 signPaint_();
-const miss = why => {
-SIGN.busy = false; SIGN.wrong = true;
+const miss = (why, said) => {
+SIGN.busy = false; SIGN.pin = []; SIGN.wrong = false;
 if (why === 'not-an-email' || why === 'no-such-email') SIGN.known = false;
+toast(said || 'Could not sign in — check your connection and try again.');
 signPaint_();
 };
 api({ action: 'verifyLogin', email: who, name: who, pin: pin })
 .then(d2 => {
-if (!d2 || d2.error || !d2.success) { miss(d2 && d2.why); return; }
+if (!d2 || d2.error || !d2.success) { miss(d2 && d2.why, d2 && d2.error); return; }
 const dots = SIGN.pin.length;
 SIGN.busy = false; SIGN.pin = []; SIGN.step = ''; SIGN.wrong = false; SIGN.card = ''; SIGN.who = who; SIGN.dots = dots;
 signedIn_(d2, who);

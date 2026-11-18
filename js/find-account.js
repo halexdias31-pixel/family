@@ -434,7 +434,7 @@ document.addEventListener('keydown', e => {
   e.preventDefault();
   signWho_(t);
 });
-/* THE FOURTH DIGIT SENDS: the same `verifyLogin`, so the server's attempt limits are the ones it always had. Quietly: a refusal shows nothing. */
+/* THE FOURTH DIGIT SENDS: the same `verifyLogin`, so the server's attempt limits are the ones it always had. */
 on('sign-digit', el => {
   const d = String((el && el.dataset && el.dataset.d) || '');
   if (USER || SIGN.step !== 'pin' || SIGN.busy || SIGN.wrong || !SIGN.who || !/^\d$/.test(d) || SIGN.pin.length >= SIGN_PIN_LEN) return;
@@ -443,14 +443,16 @@ on('sign-digit', el => {
   const who = SIGN.who, pin = SIGN.pin.join('');
   SIGN.busy = true;
   signPaint_();
-  const miss = why => {
-    SIGN.busy = false; SIGN.wrong = true;
+  /* A REFUSAL SAYS WHY AND CLEARS THE DIGITS (owner, 18 Nov: four dots and nothing was a dead end). */
+  const miss = (why, said) => {
+    SIGN.busy = false; SIGN.pin = []; SIGN.wrong = false;
     if (why === 'not-an-email' || why === 'no-such-email') SIGN.known = false;
+    toast(said || 'Could not sign in — check your connection and try again.');
     signPaint_();
   };
   api({ action: 'verifyLogin', email: who, name: who, pin: pin })
     .then(d2 => {
-      if (!d2 || d2.error || !d2.success) { miss(d2 && d2.why); return; }
+      if (!d2 || d2.error || !d2.success) { miss(d2 && d2.why, d2 && d2.error); return; }
       const dots = SIGN.pin.length;
       /* THE TAGS STAY (owner, 15 Nov): the name as typed and a ● per digit (`signedIn_`'s quiet sign-out keeps them). */
       SIGN.busy = false; SIGN.pin = []; SIGN.step = ''; SIGN.wrong = false; SIGN.card = ''; SIGN.who = who; SIGN.dots = dots;
