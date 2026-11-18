@@ -14,6 +14,7 @@ Order: what a child or parent would notice first, then what stops things driftin
 
 ## Next (the 12 parts of best practice)
 
+- THE MASTER DECIDES WHAT A CARD SHOWS (owner, 18 Nov): each kind's card in kinds.json declares its fields, order, limits (e.g. current job only, role words hidden, bio length and quotes); the card code only reads it and draws — no show/hide decisions in code. Move today's code-side choices (profRoleWords_, profJobs_, tutorCardOf_ quotes) into kinds.json.
 - ONE CARD, LITERALLY (owner, 17 Nov — most important to them): every card on the site, Settings included, is the same card: same slots in the same order (picture, tags, body, buttons), same look, same behaviour; Settings' forms, week grid and shelves become body blocks of that one card, never their own layouts. Measure it as a count (cards drawn by the one maker with no card-specific layout ÷ all cards), list every card that differs by name, drive it to 100%, then keep the count in the nightly checks.
 
 - FEWER FEATURES (owner, 17 Nov): every button and feature is a cost. Audit them all; cut any a child or tutor can do without; the fewer there are, the more stable and easy the site. Show the before/after button count.
