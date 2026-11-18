@@ -155,6 +155,46 @@ function specBody_(r) { const named = specNamed_(r);
   return [{ type: 'text', look: 'insh-kick', text: [r.board, r.qualification, r.subject, r.code].join(' · ') },
     { type: 'tree', nodes: (r.sections || []).map(s => ({ label: s.title, kids: specNodes_(r, s.id, named) })) },
     { type: 'text', look: 'insh-check', text: 'Short headings; the official specification has the full wording.' }]; }
+/* ---------- PRACTISE THIS AND REVISE THIS (docs/library-structure.md §1, 18 Nov): one key between a lesson and its questions, the
+   part's `spec_ref` (`aqa-8461:4.1.1.2`; tools/spec-tag.js wrote it, tools/spec-links.js the points' `q:` links from it). ---------- */
+const specKeyOfCard_ = c => (c && c.board === 'AQA' && /^846[123]$/.test(String(c.spec)) && c.specRef ? 'aqa-' + c.spec + ':' + c.specRef : '');
+const specKeysOfRow_ = r => String((r && r.spec_ref) || '').split(/\s+/).filter(k => /^aqa-\d{4}:/.test(k));
+/* A POINT'S PARTS: the worksheets' (W-AT) first, each sheet's in its own order, then the past papers'. */
+function specPracticeParts_(k) {
+  let all = [];
+  try { all = (stuffItemsAll_() || []).filter(i => i && isQ_(i) && specKeysOfRow_(i.row).includes(k)); } catch (e) { return []; }
+  const wat = i => (/^W-AT-/.test(String(i.row.paper_id || '')) ? 0 : 1);
+  return all.map((i, n) => ({ i, n })).sort((a, b) => wat(a.i) - wat(b.i) || a.n - b.n).map(o => o.i);
+}
+function specPracticeOpts_(x) {
+  const k = specKeyOfCard_(x && x.row), n = k ? specPracticeParts_(k).length : 0;
+  return n ? { icon: 'edit', label: 'Practise this', note: n + ' part' + (n === 1 ? '' : 's'), act: 'spec-practise', data: { k } } : null;
+}
+/* THE LIST, GROUPED BY WORKSHEET: drawn under the card's tiles on the first tap, put away on the next; each part opens in Find. */
+on('spec-practise', el => {
+  const card = el && el.closest('.card'), k = el && el.getAttribute('data-k');
+  if (!card || !k) return;
+  const was = card.querySelector('.kc-practise');
+  if (was) { was.remove(); return; }
+  const groups = [];
+  specPracticeParts_(k).forEach(i => { const pid = String(i.row.paper_id || ''), g = groups[groups.length - 1];
+    if (g && g.pid === pid) g.items.push(i); else groups.push({ pid, name: i.sub || pid, items: [i] }); });
+  const box = document.createElement('div');
+  box.className = 'kc-practise';
+  box.innerHTML = cardBlocks_([{ type: 'tree', nodes: groups.map(g => ({ label: g.name,
+    tiles: g.items.map(i => ({ icon: 'edit', label: i.name, note: i.row.marks ? i.row.marks + ' mark' + (i.row.marks === '1' ? '' : 's') : '', act: 'find-open', data: { key: i.key } })) })) }]);
+  const row = el.closest('.tile-row');
+  if (row && row.parentNode) row.parentNode.insertBefore(box, row.nextSibling); else card.appendChild(box);
+});
+/* A PART'S LESSON: its main spec point's point-by-point card (the point's `ct:` link), opened in Find. */
+function specReviseOpts_(x) {
+  const k = specKeysOfRow_(x && x.row)[0];
+  if (!k) return null;
+  const [id, pt] = k.split(':'), sp = ((typeof DATA !== 'undefined' && DATA.specs) || []).find(s => s.id === id);
+  const p = sp && (sp.points || []).find(q => q.id === pt), ct = p && (p.links || []).find(l => /^ct:/.test(l));
+  return ct ? { icon: 'book', label: 'Revise this', note: pt + ' ' + p.text, act: 'find-open', data: { key: ct } } : null;
+}
+window.CARD_EXTRAS_MORE = Object.assign(window.CARD_EXTRAS_MORE || {}, { content: specPracticeOpts_, question: specReviseOpts_ });
 const specExtras_ = x => [{ icon: 'open', label: 'Official', note: /\.pdf$/i.test(x.row.url) ? 'specification PDF' : 'the framework page', act: 'file-view', data: { url: x.row.url, title: x.row.board + ' ' + x.row.code } }];
 /* PRINTED ALONE, as a statement is (`stmt-print`): a paper copy of the sheet and nothing else of the app. */
 on('ins-print', el => {

@@ -439,13 +439,12 @@ window.addEventListener('pagehide', () => findPlaceKeep_());
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') findPlaceKeep_(); });
 /* ONE SHARE FOR EVERY CARD (950): the phone's sheet with the card's `?card=` link, else the link copied and said so. */
 const cardByKey_ = k => (k ? stuffItemsAll_().find(i => i && i.key === k) : null), cardUrl_ = k => location.origin + location.pathname + '?card=' + encodeURIComponent(k);
-/* SHARE IS A PICTURE OF ITS CARD (owner, 17 Nov: a universal rule): the receipt's one picture maker (`rcPng_`, receipt.js) on whatever card holds the button; the link only where no picture can be made. */
-on('card-share', el => { const k = el.getAttribute('data-key') || '', url = cardUrl_(k), name = (cardByKey_(k) || {}).name || brand('name', '@family.');
-  const link = () => { if (navigator.share) navigator.share({ title: name, text: name, url }).catch(() => {});
-    else try { navigator.clipboard.writeText(url).then(() => toast(text_('link-copied')), () => toast(url)); } catch (e) { toast(url); } };
+/* SHARE IS A PICTURE OF ITS CARD (owner, 17 Nov: a universal rule): the receipt's one picture maker (`rcPng_`, receipt.js) on whatever card holds the button; never a bare link: a picture that cannot be made is said and logged (`rcShareFail_`). */
+on('card-share', el => { const k = el.getAttribute('data-key') || '', name = (cardByKey_(k) || {}).name || brand('name', '@family.');
   const card = el.closest && el.closest('.card, .qcard');
-  if (!card || typeof rcPng_ !== 'function') return link();
-  rcPng_(card).then(p => rcHand_(p.blob, String(name).replace(/[^\w-]+/g, '-').slice(0, 40) + '.png', card, name)).catch(link); });
+  if (!card) return toast(text_('there-is-nothing-to-share-on'));
+  toast(text_('making-a-picture-of-this-profile'));
+  rcPng_(card).then(p => rcHand_(p.blob, String(name).replace(/[^\w-]+/g, '-').slice(0, 40) + '.png', card, name)).catch(rcShareFail_); });
 /* ARRIVING ON ONE, before any kept place; the link then leaves the address, so a reload keeps its own place. */
 function openSharedCard() { let x = null;
   try { x = cardByKey_(new URLSearchParams(location.search).get('card')); if (x) history.replaceState(null, '', location.pathname + location.hash); } catch (e) { oops_(e, 'find:openSharedCard'); }

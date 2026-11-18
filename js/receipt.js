@@ -5,7 +5,7 @@
 
 /* TWO DEVICE PIXELS TO A CSS PIXEL. A 1x picture of a 330px card is soft on every phone sold this
    decade, and 3x makes a file twice the size for a difference nobody sees in a chat thumbnail. */
-const RC_SNAP_K = 2;
+const RC_SNAP_K = 2, RC_SNAP_MAX = 6e6;
 
 /* ---------- THE FONT, CARRIED IN THE PICTURE § */
 let RC_FONTS_ = null;
@@ -192,11 +192,14 @@ function rcPng_(rc) {
     rc.classList.remove('rc-snap');
   }
   const w = Math.max(1, box.width), h = Math.max(1, box.height);
-  const cw = Math.ceil(w * RC_SNAP_K), ch = Math.ceil(h * RC_SNAP_K);
+  /* AN IPHONE DRAWS NOTHING PAST ITS CANVAS LIMIT (16.7M px, a few hundred MB for every canvas alive at once): the
+     density comes down for a tall card rather than the picture failing (owner, 18 Nov: share is always a picture). */
+  const k = Math.min(RC_SNAP_K, Math.sqrt(RC_SNAP_MAX / (w * h)), 4096 / w, 8192 / h);
+  const cw = Math.max(1, Math.ceil(w * k)), ch = Math.max(1, Math.ceil(h * k));
   return Promise.all([rcFonts_(), rcPics_(xml)]).then(([fonts]) => {
     xml = new XMLSerializer().serializeToString(xml);
     /* `viewBox` IS THE CSS SIZE AND `width`/`height` THE PIXEL SIZE, so the browser lays the HTML out at the width it had on the screen — the same wraps, the same § */
-    const svg = cardBlock_({ type: 'paperSnap', cw, ch, k: RC_SNAP_K, w, h, css: fonts + '\n' + rules.join('\n'), xml });
+    const svg = cardBlock_({ type: 'paperSnap', cw, ch, k, w, h, css: fonts + '\n' + rules.join('\n'), xml });
     /* NEVER A BLANK PICTURE (owner, 18 Nov). WebKit can fire `load` on an SVG image whose inner pictures are not yet
        painted, and the draw comes out as the background alone. So: load, decode, draw, and look — one colour all over
        means draw again after a pause; still blank after the last try is an error, never a black share. */
@@ -209,7 +212,8 @@ function rcPng_(rc) {
     const plain = cv => {
       const s = document.createElement('canvas'); s.width = 32; s.height = 32;
       const g = s.getContext('2d'); g.drawImage(cv, 0, 0, 32, 32);
-      const d = g.getImageData(0, 0, 32, 32).data;
+      let d;
+      try { d = g.getImageData(0, 0, 32, 32).data; } finally { s.width = s.height = 0; }
       for (let i = 4; i < d.length; i += 4)
         if (Math.abs(d[i] - d[0]) + Math.abs(d[i + 1] - d[1]) + Math.abs(d[i + 2] - d[2]) > 24) return false;
       return true;
@@ -219,15 +223,16 @@ function rcPng_(rc) {
       const cv = document.createElement('canvas');
       cv.width = cw; cv.height = ch;
       const g = cv.getContext('2d');
+      if (!g) return Promise.reject(new Error('the browser gave no canvas for a ' + cw + 'x' + ch + ' picture'));
       g.fillStyle = behind;
       g.fillRect(0, 0, cw, ch);
       g.drawImage(img, 0, 0, cw, ch);
       if (plain(cv)) {
+        cv.width = cv.height = 0;   /* released at once: iOS counts every live canvas against one budget */
         if (n >= 5) return Promise.reject(new Error('the browser made an empty picture'));
         return wait(250 * (n + 1)).then(() => n % 2 ? load().then(i => draw(i, n + 1)) : draw(img, n + 1));
       }
-      return new Promise((ok, no) => cv.toBlob(b => b ? ok({ blob: b, w: cw, h: ch, svg })
-                                                    : no(new Error('the browser made an empty picture')), 'image/png'));
+      return new Promise((ok, no) => cv.toBlob(b => { cv.width = cv.height = 0; return b ? ok({ blob: b, w: cw, h: ch, svg }) : no(new Error('the browser made an empty picture')); }, 'image/png'));
     };
     return load().then(img => draw(img, 0));
   });
@@ -279,6 +284,13 @@ on('rc-shot-share', () => {
     .catch(e => { if (!e || e.name !== 'AbortError') toast(text_('could-not-share-it-press-and')); });
 });
 
+/* A PICTURE THAT COULD NOT BE MADE IS SAID AND LOGGED, NEVER SWAPPED FOR A BARE LINK (owner, 18 Nov: share is always a
+   picture of the card). The one answer for every share button. */
+function rcShareFail_(e) {
+  if (typeof oops_ === 'function') oops_(e, 'share:picture');
+  toast(text_('could-not-make-the-picture') + (typeof why_ === 'function' ? why_(e) : String((e && e.message) || e || '')));
+}
+
 function rcHand_(blob, name, rc, title) {
   const file = typeof File === 'function' ? new File([blob], name, { type: 'image/png' }) : null;
   const can = !!(file && navigator.share && navigator.canShare
@@ -303,7 +315,7 @@ on('book-share', el => {
   toast(text_('making-a-picture-of-this-booking'));
   rcPng_(rc)
     .then(p => rcHand_(p.blob, 'family-booking-' + stamp_() + '.png', rc))
-    .catch(e => toast(text_('could-not-make-the-picture') + why_(e)));
+    .catch(rcShareFail_);
 });
 
 /* THE BOOKER IS NOT A SHEET ANY MORE. § */

@@ -451,9 +451,11 @@ function stuffPages_() {
       for (let j = i; j < seq.length && isQ_(seq[j]) && (j === i || (k && qId_(seq[j]) === k)); j++) parts.push(seq[j]);
       let open = new Set(parts.filter(s => hit.has(s) && kept(s, null)));
       /* ANSWERS CHOSEN: no part is kept as a question, so the parts kept for their answers open, or none would be drawn. */
-      if (!open.size) open = new Set(parts.filter(s => hit.has(s) && kept(s, 'ans')));
+      /* AND THEN ONLY THEIR ANSWERS ARE DRAWN (owner, 18 Nov: "it should only show answers"): no question words, no answer box (`only`). */
+      let only = false;
+      if (!open.size) { open = new Set(parts.filter(s => hit.has(s) && kept(s, 'ans'))); only = open.size > 0; }
       if (!open.size && !parts.some(s => kept(s, 'ans'))) return;
-      pages.push({ x: x, part: 'q', parts: parts, open: open, ans: parts.some(s => kept(s, 'ans')) });
+      pages.push({ x: x, part: 'q', parts: parts, open: open, ans: parts.some(s => kept(s, 'ans')), only: only });
       return;
     }
     pageParts_(x, seq[i - 1]).forEach(part => {

@@ -296,8 +296,8 @@ on('tutor-share', el => {
   toast(text_('making-a-picture-of-this-profile'));
   tutorPng_(t)
     .then(blob => tutorPngHand_(blob, handle + '-profile.png', url, t.title || '@' + handle, el.closest && el.closest('.card, .qcard')))
-    /* NO CANVAS (an old browser, a test page): the link alone, as before 412. */
-    .catch(() => tutorLinkOnly_(t.title || '@' + handle, url))
+    /* NO PICTURE: said and logged, never the link alone (owner, 18 Nov). */
+    .catch(rcShareFail_)
     .then(() => { TUTOR_PNG_BUSY = false; }, () => { TUTOR_PNG_BUSY = false; });
 });
 
@@ -306,12 +306,6 @@ function tutorPngMe_() {
   const p = (USER && USER.profile) || {};
   return { handle: USER.handle, title: USER.name, image: p.photo || USER.photo || '', avatar: USER.avatar || '',
            personId: USER.personId, role: 'Tutor', description: p.headline ? '"' + p.headline + '"' : '' };
-}
-
-function tutorLinkOnly_(title, url) {
-  if (navigator.share) return navigator.share({ title, text: title + ' on ' + brand('name', '@family.'), url }).catch(() => {});
-  if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(url).then(() => toast(text_('link-copied'))).catch(() => toast(url));
-  toast(url);
 }
 
 /* THE SHARE SHEET WITH THE FILE AND THE LINK; ELSE THE FILE DOWNLOADED AND THE LINK COPIED. */
@@ -332,7 +326,8 @@ function tutorPngHand_(blob, name, url, title, at) {
   /* THE TAP HAS RUN OUT while the picture was made (iPhone): the picture under the card with its own Share button. */
   const offer = () => (at && typeof rcOffer_ === 'function' ? rcOffer_(blob, name, at, title) : save());
   if (navigator.userActivation && !navigator.userActivation.isActive) return offer();
-  return navigator.share({ files: [file], title, text: url }).catch(e => { if (!e || e.name !== 'AbortError') return e && e.name === 'NotAllowedError' ? offer() : save(); });
+  /* THE FILE ALONE: with a URL in `text`, iPhone apps (Messages, WhatsApp) send the link and drop the picture. */
+  return navigator.share({ files: [file], title }).catch(e => { if (!e || e.name !== 'AbortError') return e && e.name === 'NotAllowedError' ? offer() : save(); });
 }
 
 /* ---------- THE PICTURE IS THE CARD (547): the owner, "when i share a staff profile it shares exactly as is" -- `findCard` draws it, the receipt's snapshot photographs it ---------- */
