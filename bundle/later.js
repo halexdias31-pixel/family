@@ -237,7 +237,7 @@ const FINDER_TAGS = {
 },
 "views": {
 "admin+bible": {
-"": ["kindLabel",[["Practice"],["Library"],["Posts"],["Messages"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]],[32398,189109,2,1,3,5,10,35,67,3],221632,["Practice","Library","Posts","Messages","Profiles","Booking","Shop","Settings","Tools","Games"]],
+"": ["kindLabel",[["Practice"],["Library"],["Posts"],["Messages"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]],[32398,189109,2,1,3,5,10,34,4,3],221568,["Practice","Library","Posts","Messages","Profiles","Booking","Shop","Settings","Tools","Games"]],
 "kindLabel=Practice": ["kindOwn",[["Questions"],["Answers"],["Inserts"]],[32213,31388,185],32398,["Questions","Answers","Inserts"]],
 "kindLabel=Practice&kindOwn=Questions": ["subject",[["Biology"],["Business"],["Chemistry"],["Driving Theory"],["Economics"],["English Language"],["English Literature"],["Geography"],["Greek"],["History"],["Maths"],["Physical Education"],["Physics"],["Politics"],["Portuguese"],["Psychology"],["Religious Studies"],["Sociology"],["Statistics"]],[4658,393,5252,10,131,414,522,522,78,944,11122,322,4538,120,43,1187,1004,436,517],32213,["Biology","Business","Chemistry","Driving Theory","Economics","English Language","English Literature","Geography","Greek","History","Maths","Physical Education","Physics","Politics","Portuguese","Psychology","Religious Studies","Sociology","Statistics"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Biology": ["level",[["A-Level"],["GCSE"]],[1194,3464],4658,["A-Level","GCSE"]],
@@ -840,10 +840,10 @@ const FINDER_TAGS = {
 "kindLabel=Practice&kindOwn=Answers&subject=Statistics&examYear=2020": ["verified",[["Not verified"],["Verified"]],[5,93],98,["Not verified","Verified"]],
 "kindLabel=Practice&kindOwn=Answers&subject=Statistics&examYear=2019": ["verified",[["Not verified"],["Verified"]],[5,38],43,["Not verified","Verified"]],
 "kindLabel=Profiles": ["profileType",[["Student"],["Parent"],["Staff"]],[1,1,1],3,["Student","Parent","Staff"]],
-"kindLabel=Settings": ["settingFor",[["Student"],["Parent"],["Staff"],["Apprentice"],["Admin"],["Business"],["Site"]],[18,8,15,9,10,3,4],35,["Student","Parent","Staff","Apprentice","Admin","Business","Site"]]
+"kindLabel=Settings": ["settingFor",[["Student"],["Parent"],["Staff"],["Apprentice"],["Admin"],["Business"],["Site"]],[18,8,15,9,10,3,4],34,["Student","Parent","Staff","Apprentice","Admin","Business","Site"]]
 },
 "bible": {
-"": ["kindLabel",[["Practice"],["Library"],["Posts"],["Messages"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]],[21191,189109,2,1,1,5,10,30,3,3],210354,["Practice","Library","Posts","Messages","Profiles","Booking","Shop","Settings","Tools","Games"]],
+"": ["kindLabel",[["Practice"],["Library"],["Posts"],["Messages"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]],[21191,189109,2,1,1,5,10,30,4,3],210355,["Practice","Library","Posts","Messages","Profiles","Booking","Shop","Settings","Tools","Games"]],
 "kindLabel=Practice": ["kindOwn",[["Questions"],["Answers"],["Inserts"]],[21006,20613,185],21191,["Questions","Answers","Inserts"]],
 "kindLabel=Practice&kindOwn=Questions": ["subject",[["Biology"],["Business"],["Chemistry"],["Driving Theory"],["Economics"],["English Language"],["English Literature"],["Geography"],["History"],["Maths"],["Physical Education"],["Physics"],["Politics"],["Portuguese"],["Psychology"],["Religious Studies"],["Sociology"],["Statistics"]],[1484,293,2220,10,121,388,522,428,944,9620,321,1730,120,28,928,1004,384,461],21006,["Biology","Business","Chemistry","Driving Theory","Economics","English Language","English Literature","Geography","History","Maths","Physical Education","Physics","Politics","Portuguese","Psychology","Religious Studies","Sociology","Statistics"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Biology": ["level",[["A-Level"],["GCSE"]],[372,1112],1484,["A-Level","GCSE"]],
@@ -15518,10 +15518,14 @@ return mapHtml_('Board games',
 attrs: { id: 'bg-pick', 'data-do': 'bg-pick', 'aria-label': 'Which game' }, inner: window.bgOptions_ ? window.bgOptions_() : '' }] },
 mapBox_('bg-slot', null, { inner: window.bgSlot_ ? window.bgSlot_() : '' }));
 } },
-{ id: 'docket', kind: 'tool', name: 'Docket', admin: true, start: () => dkPaint_(),
+{ id: 'docket', kind: 'tool', name: 'Docket', start: () => dkPaint_(),
 draw: () => dkPaint_(),
 into: 'dk-box', what: 'Your docket',
 get html() { return mapHtml_('Docket', mapBox_('dk-box', 'dk-box')); } },
+{ id: 'assignments', kind: 'tool', name: 'Assignments', start: () => asgPaint_(),
+draw: () => asgPaint_(),
+into: 'asg-box', what: 'Your assignments',
+get html() { return mapHtml_('Assignments', mapBox_('asg-box', 'asg-box')); } },
 { id: 'libcards', kind: 'tool', name: 'Library cards', solid: true, signedIn: true,
 start: () => initLibCards_?.(),
 into: 'lib-box', what: 'Your library cards',
@@ -15632,6 +15636,117 @@ if (it.repeat === 'daily') it.doneOn = el.checked ? dkDay_() : ''; else it.done 
 dkKeep_();
 });
 document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target && e.target.classList && e.target.classList.contains('dk-add') && typeof ACTIONS !== 'undefined' && ACTIONS['dk-add']) { e.preventDefault(); ACTIONS['dk-add'](e.target); } });
+const ASG = { of: '', got: {}, add: false, edit: '', say: '' };
+const ASG_FORM = 'assignment-new';
+const asgMe_ = () => String((typeof USER !== 'undefined' && USER && USER.personId) || '');
+const asgOf_ = () => ASG.of || String(((typeof whose_ === 'function' ? whose_() : USER) || {}).personId || '') || asgMe_();
+const asgMine_ = () => asgOf_() === asgMe_();
+const asgField_ = f => (FORM_SPECS.forms[ASG_FORM].fields || []).find(x => x.f === f) || {};
+const asgSay_ = (f, v) => { const c = (asgField_(f).options || []).find(o => String(o.v) === String(v)); return c ? c.t : String(v || ''); };
+function asgOwnList_() {
+let got = null;
+try { got = JSON.parse(String((typeof USER !== 'undefined' && USER && USER.assignments) || 'null')); } catch (e) { got = null; }
+return got && Array.isArray(got.assignments) ? got.assignments : [];
+}
+function asgLoad_(of) {
+const g = ASG.got[of];
+if (g) return g;
+ASG.got[of] = { rows: of === asgMe_() ? asgOwnList_() : null, others: [], asked: true };
+Promise.resolve(api({ action: 'assignmentsOf', personId: asgMe_(), of })).then(d => {
+if (!d || !d.success) { ASG.say = (d && d.error) || 'Could not load them.'; ASG.got[of].rows = ASG.got[of].rows || []; return asgPaint_(); }
+ASG.got[of].rows = Array.isArray(d.assignments) ? d.assignments : [];
+if (Array.isArray(d.others) && d.others.length) ASG.got[asgMe_()] = Object.assign(ASG.got[asgMe_()] || {}, { others: d.others });
+asgPaint_();
+}).catch(() => { ASG.say = 'You look offline.'; ASG.got[of].rows = ASG.got[of].rows || []; asgPaint_(); });
+return ASG.got[of];
+}
+const asgDay_ = d => { d = d || new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+const asgDaysLeft_ = due => Math.round((Date.parse(due + 'T00:00:00Z') - Date.parse(asgDay_() + 'T00:00:00Z')) / 864e5);
+const asgDone_ = a => a.status === 'submitted' || a.status === 'marked';
+function asgGroups_(rows) {
+const g = { Overdue: [], 'This week': [], Later: [], Done: [] };
+rows.forEach((a, i) => {
+const left = a.due ? asgDaysLeft_(a.due) : null;
+(asgDone_(a) ? g.Done : left != null && left < 0 ? g.Overdue : left != null && left <= 7 ? g['This week'] : g.Later).push(i);
+});
+const by = i => (rows[i].due || '9999-99-99') + ' ' + (rows[i].time || '99:99');
+return Object.keys(g).filter(k => g[k].length).map(k => ({ head: k, rows: g[k].sort((a, b) => by(a).localeCompare(by(b))) }));
+}
+function asgLeftSay_(a) {
+if (!a.due) return '';
+const n = asgDaysLeft_(a.due);
+if (asgDone_(a)) return 'Due ' + dkSayDay_(a.due);
+return n < 0 ? (-n) + ' day' + (n === -1 ? '' : 's') + ' late' : n === 0 ? 'Due today' : n === 1 ? 'Due tomorrow' : n + ' days left';
+}
+function asgItem_(a, i, mine) {
+const size = a.amount !== '' && a.amount != null ? Number(a.amount).toLocaleString('en-GB') + (a.unit ? ' ' + asgSay_('unit', a.unit) : '') : '';
+const tags = [asgLeftSay_(a), a.kind ? asgSay_('kind', a.kind) : '', size, a.weight !== '' && a.weight != null ? a.weight + '%' : '',
+asgSay_('status', a.status || 'not-started') + (a.status === 'marked' && a.mark ? ': ' + a.mark : '')].filter(Boolean);
+const when = [a.course, a.due ? dkSayDay_(a.due) + (a.time ? ', ' + a.time : '') : ''].filter(Boolean).join(' · ');
+const editing = mine && ASG.edit === a.id;
+return { type: 'group', look: 'dk-item asg-item', blocks: [
+{ type: 'text', text: [{ b: a.title || 'Untitled' }] },
+when ? { type: 'text', look: 'note', text: when } : null,
+{ type: 'tags', tags },
+a.note && !editing ? { type: 'text', paras: String(a.note).split(/\n{2,}/) } : null,
+a.link && !editing ? { type: 'text', text: [{ link: 'Open the link', href: a.link, out: true, look: 'link' }] } : null,
+editing ? { type: 'group', look: 'store-form', inner: askArea_(asgEditForm_(a)) } : null].filter(Boolean),
+tiles: mine ? [{ icon: editing ? 'close' : 'edit', label: editing ? 'Close' : 'Edit', act: 'asg-edit', data: { id: a.id } },
+{ icon: 'bin', label: 'Delete', act: 'asg-del', data: { id: a.id } }] : [] };
+}
+function asgEditForm_(a) {
+const fid = storeEditForm_('assignment', a.id, a);
+FORM_SEND_[fid] = v => asgSend_(fid, v, a.id);
+return fid;
+}
+function asgBlocks_() {
+const of = asgOf_(), mine = asgMine_(), g = asgLoad_(of), me = ASG.got[asgMe_()] || {}, out = [];
+if ((me.others || []).length && !(typeof lensOn_ === 'function' && lensOn_()))
+out.push({ type: 'tiles', look: 'dk-lists', tiles: [{ icon: 'list', label: 'Mine', act: 'asg-who', cls: mine ? 'is-submit' : '', data: { id: '' } }]
+.concat(me.others.map(o => ({ icon: 'list', label: o.name, act: 'asg-who', cls: of === String(o.id) ? 'is-submit' : '', data: { id: o.id } }))) });
+if (ASG.say) out.push({ type: 'text', text: ASG.say });
+if (g.rows === null) return out.concat({ type: 'wait', on: true });
+if (mine) {
+out.push({ type: 'tiles', tiles: [{ icon: ASG.add ? 'close' : 'plus', label: ASG.add ? 'Close' : 'Add an assignment', act: 'asg-add', cls: ASG.add ? '' : 'is-submit' }] });
+if (ASG.add) out.push({ type: 'group', look: 'store-form', inner: askArea_(ASG_FORM) });
+}
+if (!g.rows.length) out.push({ type: 'text', text: mine ? 'Nothing yet — add your first assignment.' : 'Nothing written down yet.' });
+asgGroups_(g.rows).forEach(s => out.push({ type: 'section', head: s.head + ' (' + s.rows.length + ')', blocks: s.rows.map(i => asgItem_(g.rows[i], i, mine)) }));
+return out;
+}
+function asgPaint_() {
+const box = $('asg-box');
+if (!box) return;
+box.innerHTML = cardBlocks_(asgBlocks_());
+}
+function asgSave_(rows) {
+const g = ASG.got[asgMe_()];
+if (g) g.rows = rows;
+const cell = JSON.stringify({ v: 1, assignments: rows });
+if (typeof USER !== 'undefined' && USER) { USER.assignments = cell; if (typeof saveUser_ === 'function') saveUser_(); }
+ASG.say = '';
+asgPaint_();
+return Promise.resolve(api({ action: 'assignmentsSave', personId: asgMe_(), assignments: rows }))
+.then(d => { if (!(d && d.success)) { ASG.say = (d && d.error) || 'Not saved — try again.'; asgPaint_(); return false; }
+if (Array.isArray(d.assignments) && g) { g.rows = d.assignments; USER.assignments = JSON.stringify({ v: 1, assignments: d.assignments }); if (typeof saveUser_ === 'function') saveUser_(); asgPaint_(); }
+return true; })
+.catch(() => { ASG.say = 'Not saved — you look offline.'; asgPaint_(); return false; });
+}
+function asgSend_(fid, v, id) {
+if (!String(v.title || '').trim()) { toast('Give it a title first.'); return; }
+const rows = ((ASG.got[asgMe_()] || {}).rows || []).slice(), a = Object.assign({ status: 'not-started' }, id ? rows.find(r => r.id === id) : {}, v);
+if (a.status !== 'marked') a.mark = '';
+if (id) { const at = rows.findIndex(r => r.id === id); rows[at] = a; delete ASK[fid]; ASG.edit = ''; }
+else { a.id = 'a' + Date.now().toString(36); rows.push(a); askDone_(fid); ASG.add = false; }
+asgSave_(rows).then(ok => { if (ok) toast('Saved.'); });
+}
+FORM_SEND_[ASG_FORM] = v => asgSend_(ASG_FORM, v, '');
+on('asg-add', () => { ASG.add = !ASG.add; asgPaint_(); });
+on('asg-who', el => { ASG.of = String(el.dataset.id || ''); ASG.add = false; ASG.edit = ''; asgPaint_(); });
+on('asg-edit', el => { const id = String(el.dataset.id || ''); delete ASK[ASG_FORM + '@' + id]; ASG.edit = ASG.edit === id ? '' : id; asgPaint_(); });
+on('asg-del', el => { const id = String(el.dataset.id || ''), rows = ((ASG.got[asgMe_()] || {}).rows || []), a = rows.find(r => r.id === id);
+if (!a || !confirm('Delete "' + (a.title || 'this assignment') + '"?')) return;
+asgSave_(rows.filter(r => r.id !== id)); });
 ;
 /* js/book-steps.js */
 let OPEN_JOB = '';

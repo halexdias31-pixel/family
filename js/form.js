@@ -328,9 +328,9 @@ function askTags_(id, x, o) {
   const h = askHook_(id), val = o.value != null ? o.value : askOf_(id).v[x.f];
   if (x.type === 'pin') return { look: 'is-grid sign-pin', options: '0123456789'.split('').map(d => ({ text: d, act: o.act || 'ask-digit', data: { form: id, f: x.f, d: d, repeat: true } })) };
   /* TYPED: one line, a date (the calendar), or several lines (`long`); a field with bounds is a number box with them. */
-  if (x.type === 'text' || x.type === 'date' || x.type === 'long') return { look: 'sign-type', box: { id: o.id != null ? o.id : 'ask-' + id + '-' + x.f, cls: o.cls || 'ask-box',
+  if (x.type === 'text' || x.type === 'date' || x.type === 'time' || x.type === 'long') return { look: 'sign-type', box: { id: o.id != null ? o.id : 'ask-' + id + '-' + x.f, cls: o.cls || 'ask-box',
     value: val || '', label: x.label || x.ph || '', placeholder: x.ph || '', inputmode: x.pad || (x.input === 'email' ? 'email' : 'text'),
-    type: x.type === 'date' ? 'date' : x.min != null || x.max != null ? 'number' : 'text', min: x.min, max: x.max, step: x.step, lines: x.type === 'long' ? 3 : 0 } };
+    type: x.type === 'date' || x.type === 'time' ? x.type : x.min != null || x.max != null ? 'number' : 'text', min: x.min, max: x.max, step: x.step, lines: x.type === 'long' ? 3 : 0 } };
   const list = h.options ? h.options(x) : (x.options || []).map(c => ({ v: c.v, text: askSay_(c), on: String(val) === String(c.v) }));
   /* SEVERAL ANSWERS ARE CHOSEN ONE WAY ONLY, "and" / "." (owner, 17 Nov): no ticks — a chosen answer is a tag at the top and leaves the menu.
      An hour grid (`grid`) is a timetable, not a choice of several, and keeps its marks. */
@@ -459,10 +459,10 @@ document.addEventListener('keydown', e => {
   if (!v) { toast(text_('type-your-name-username-or-email')); return; }
   askSet_(rest.slice(0, cut), rest.slice(cut + 1), v);
 });
-/* A DATE PICKED ON THE CALENDAR ANSWERS IT, as Enter does. */
+/* A DATE PICKED ON THE CALENDAR (or a time on the clock) ANSWERS IT, as Enter does. */
 document.addEventListener('change', e => {
   const t = e.target;
-  if (!t || !t.classList || !t.classList.contains('ask-box') || t.type !== 'date' || !t.value) return;
+  if (!t || !t.classList || !t.classList.contains('ask-box') || (t.type !== 'date' && t.type !== 'time') || !t.value) return;
   const rest = String(t.id || '').slice(4), cut = rest.lastIndexOf('-');
   askSet_(rest.slice(0, cut), rest.slice(cut + 1), t.value);
 });

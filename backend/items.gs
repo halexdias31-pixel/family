@@ -12,7 +12,7 @@ function itemKind_(kind) {
 
 /* WHO IS ASKING, as the see-words need them: the token's row, and the ids of their family (accepted links, either way). */
 function itemViewer_(row) {
-  if (!row) return { row: null, id: '', admin: false, child: false, staff: false, family: [] };
+  if (!row) return { row: null, id: '', admin: false, owner: false, child: false, staff: false, family: [] };
   const id = S(row.person_id), fam = [];
   itemRows_('family_link').forEach(it => {
     const r = it.data;
@@ -20,7 +20,7 @@ function itemViewer_(row) {
     if (S(r.parent_id) === id) fam.push(S(r.child_id));
     if (S(r.child_id) === id) fam.push(S(r.parent_id));
   });
-  return { row, id, admin: whoMay_(row, 'admin'), child: isChild_(row), staff: hasRole(row, 'tutor'), family: fam };
+  return { row, id, admin: whoMay_(row, 'admin'), owner: isOwner_(row), child: isChild_(row), staff: hasRole(row, 'tutor'), family: fam };
 }
 /* THE ROLE permissions.json names (anyone, member, child, admin). */
 function itemRole_(v) { return !v.row ? 'anyone' : v.admin ? 'admin' : v.child ? 'child' : 'member'; }
@@ -32,8 +32,10 @@ function itemOwners_(spec, data) {
   return out;
 }
 
-/* THE SEE-WORDS (kinds.json `see.who`): anyone, signedIn, self, family, staff, admin — any one is enough. */
+/* THE SEE-WORDS (kinds.json `see.who`): anyone, signedIn, self, family, staff, admin — any one is enough; `owner` (18 Nov) is the owner alone, no other admin. */
+const itemOwnerOnly_ = spec => S((spec.see || {}).who).split(',').map(norm).indexOf('owner') !== -1;
 function itemMaySee_(spec, data, v) {
+  if (itemOwnerOnly_(spec)) return !!v.owner;
   if (v.admin) return true;
   const words = S((spec.see || {}).who || 'admin').split(',').map(norm);
   if (words.indexOf('anyone') !== -1) return true;
@@ -109,6 +111,7 @@ function itemRead_(body, v) {
 /* ---------- WRITE: one item upserted. The kind's `edit` words, else its permissions.json `save` row, else an admin; */
 /* a non-admin writes only an item that is theirs, never another owner onto it, and never a field they would not be sent. */
 function itemMayWrite_(kind, spec, v) {
+  if (itemOwnerOnly_(spec)) return !!v.owner;
   if (v.admin) return true;
   if (!v.row) return false;
   if (spec.edit) return S(spec.edit.who || spec.edit).split(',').map(norm).some(w => w === 'signedin' || w === 'self' || (w === 'staff' && v.staff));

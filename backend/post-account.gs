@@ -55,7 +55,9 @@ function settingsOf_(me) {
                    role: toAppRole(mainRole(me)), roles: rolesOf(me).map(toAppRole),
                    tutorPending: tutorPending_(me), rank: rankOf(me), application: applicationOf_(me),
                    /* AND WHETHER THE ADDRESS IS PROVED YET — stale on the phone exactly as the role was: § */
-                   pendingEmail: pendingEmailOf_(me) }, familyNamesOf_(me));
+                   pendingEmail: pendingEmailOf_(me),
+                   /* THE OWNER (18 Nov, `isOwner_`): what kinds.json `see.who: "owner"` asks on the phone. */
+                   owner: isOwner_(me) }, familyNamesOf_(me));
 }
 
 function postGetProfile_(body, action, began) {
@@ -646,11 +648,76 @@ function postDocketImport_(body, action, began) {
   const me = findPerson('', S(body.personId));
   if (!me || !S(me.person_id)) return jsonOut({ error: 'Not signed in.' });
   /* THE OWNER'S ALONE (owner, 18 Nov): an admin whose address is the owner's (`ownerEmail_`), never another admin, tutor, parent or student. */
-  if (!rankAtLeast_(me, 'admin') || norm(S(me.email)) !== norm(ownerEmail_())) return jsonOut({ error: 'Docket is the owner\'s alone.' });
+  if (!isOwner_(me)) return jsonOut({ error: 'Docket is the owner\'s alone.' });
   const target = S(me.person_id);
   const lists = docketTidy_(body.lists);
   if (!lists.length) return jsonOut({ error: 'No lists to import — nothing was saved.' });
   const cell = JSON.stringify({ v: 1, lists: lists });
   if (cell.length > DOCKET_CELL_MAX) return jsonOut({ error: 'Those lists are too long to keep in one place — nothing was saved.' });
   return postSavePerson_({ personId: target }, 'todo', cell);
+}
+
+/* ---------- ASSIGNMENTS (owner, 18 Nov): a person's school or uni work — title, course, what it is, size, due, weight, status, mark, note, link —
+   kept in their own `assignments` cell as JSON, as Docket's `todo` is: one person's list, read and saved whole, so no tab of its own.
+   Seen by the person, a parent they accepted, a tutor booked with them and the admin (`workFileMaySee_`, as History is); changed by the person alone. */
+const ASSIGN_CELL_MAX = 49000, ASSIGN_MAX = 300;
+const ASSIGN_STATUS = ['not-started', 'in-progress', 'submitted', 'marked'];
+const assignWord_ = v => norm(S(v).trim()).replace(/[\s_]+/g, '-');
+function assignmentsTidy_(list) {
+  const s = (v, n) => S(v).trim().slice(0, n), num = (v, lo, hi) => { const n = Number(S(v).replace(/[%\s]/g, '')); return S(v).trim() !== '' && isFinite(n) && n >= lo && n <= hi ? n : ''; };
+  return (Array.isArray(list) ? list : []).slice(0, ASSIGN_MAX).map((a, i) => {
+    a = a && typeof a === 'object' ? a : {};
+    const status = ASSIGN_STATUS.indexOf(assignWord_(a.status)) !== -1 ? assignWord_(a.status) : 'not-started';
+    return { id: s(a.id, 40) || 'a' + Date.now().toString(36) + i, title: s(a.title, 200), course: s(a.course, 120),
+      kind: assignWord_(s(a.kind, 30)), amount: num(a.amount, 0, 1e6), unit: assignWord_(s(a.unit, 30)),
+      due: /^\d{4}-\d{2}-\d{2}$/.test(S(a.due)) ? S(a.due) : '', time: /^\d{2}:\d{2}$/.test(S(a.time)) ? S(a.time) : '',
+      weight: num(a.weight, 0, 100), status: status, mark: status === 'marked' ? s(a.mark, 40) : '',
+      note: s(a.note, 4000), link: /^https?:\/\//i.test(S(a.link).trim()) ? s(a.link, 500) : '' };
+  }).filter(a => a.title);
+}
+function assignmentsRead_(r) {
+  let got = null;
+  try { got = JSON.parse(S(r && r.assignments) || 'null'); } catch (err) { got = null; }
+  return assignmentsTidy_(got && Array.isArray(got.assignments) ? got.assignments : []);
+}
+function assignmentsWrite_(me, list) {
+  const cell = JSON.stringify({ v: 1, assignments: list });
+  if (cell.length > ASSIGN_CELL_MAX) return jsonOut({ error: 'That is too much to keep in one place — nothing was saved.' });
+  const t = read(TAB.people);
+  if (t.headers.indexOf('assignments') < 0) return jsonOut({ error: 'The sheet has no `assignments` column. Open the site once as an admin — nothing was saved.' });
+  setCell(t, me, 'assignments', cell);
+  return jsonOut({ success: true, assignments: list });
+}
+/* READ: your own, or a learner's you may see (parent, booked tutor, admin). */
+function postAssignmentsOf_(body) {
+  const me = findPerson('', S(body.personId));
+  if (!me || !S(me.person_id)) return jsonOut({ error: 'Sign in first.' });
+  const of = S(body.of) || S(me.person_id);
+  if (!workFileMaySee_(me, of)) return jsonOut({ error: 'Not yours to see.' });
+  const r = key(of) === key(me.person_id) ? me : findPerson('', of);
+  if (!r) return jsonOut({ error: 'Person not found.' });
+  const mine = key(of) === key(me.person_id);
+  /* WHOSE ELSE YOU MAY OPEN: your accepted children (a parent) and your booked students (a tutor) — the History rule's people. */
+  let others = [];
+  if (mine) {
+    try { others = acceptedChildren(S(me.person_id)).map(c => ({ id: S(c.person_id), name: nameFor_(c) })); } catch (err) { others = []; }
+    workFileOthers_(me).forEach(o => { if (!others.some(x => key(x.id) === key(o.id))) others.push(o); });
+  }
+  return jsonOut({ success: true, of: S(r.person_id), mine: mine, others: others, assignments: assignmentsRead_(r) });
+}
+/* SAVE: your own list, whole — the tool's add, edit and delete. */
+function postAssignmentsSave_(body) {
+  const me = findPerson('', S(body.personId));
+  if (!me || !S(me.person_id)) return jsonOut({ error: 'Sign in first.' });
+  return assignmentsWrite_(me, assignmentsTidy_(body.assignments));
+}
+/* IMPORT: many at once onto your own list (the owner loads his uni work this way); one with the same title, course and due date is replaced, the rest added. */
+function postAssignmentsImport_(body) {
+  const me = findPerson('', S(body.personId));
+  if (!me || !S(me.person_id)) return jsonOut({ error: 'Sign in first.' });
+  const fresh = assignmentsTidy_(body.assignments);
+  if (!fresh.length) return jsonOut({ error: 'No assignments to import (each needs a title) — nothing was saved.' });
+  const sameAs = a => b => norm(a.title) === norm(b.title) && norm(a.course) === norm(b.course) && a.due === b.due;
+  const kept = assignmentsRead_(me).filter(b => !fresh.some(a => sameAs(a)(b)));
+  return assignmentsWrite_(me, assignmentsTidy_(kept.concat(fresh)));
 }

@@ -1403,6 +1403,12 @@ function adminPersonDelete_(t, r) {
   return delRow(t, r);
 }
 
+/* THE OWNER (owner, 18 Nov): the admin whose address is `ownerEmail_`, never another admin. kinds.json `see.who: "owner"` (Docket, food) is
+   theirs alone; the sign-in reply and `myProfile` carry `owner: true` to them, which the phone's may_('owner') reads. */
+function isOwner_(r) {
+  if (!r || !rankAtLeast_(r, 'admin') || !S(r.email)) return false;
+  return norm(S(r.email)) === norm(ownerEmail_());
+}
 /* ---------- THE OWNER'S ADDRESS (400): `owner_email` on the config tab, or the first admin with a proved address ---------- */
 function ownerEmail_() {
   let v = '';

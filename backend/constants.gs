@@ -83,7 +83,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-11-18-history-docket-1";
+const BACKEND_VERSION = "2026-11-18-assignments-owner-1";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 /* EVERY TAB NAME CODE READS BY. A kind in kinds.json ledger.moved is read through the items/events store
@@ -205,6 +205,8 @@ const SCHEMA = {
     /* the app's state, which nobody types into */
     "avatar", "avatar_owned", "xp", "credits", "high_score_flappy", "high_score_tables",
     "friends", "notepad", "todo",
+    /* ASSIGNMENTS (owner, 18 Nov): the person's own school or uni work, JSON, as `todo` is (post-account.gs assignmentsTidy_). */
+    "assignments",
     /* THE TIMETABLE WIDGET'S WEEK — what somebody writes down around their sessions. § */
     "timetable"
   ],

@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-11-18-history-docket-1";
+const DOPOST_VERSION = "2026-11-18-assignments-owner-1";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -186,6 +186,9 @@ function postActions_() {
     workingOf: postWorkingOf_,
     history: postHistory_,
     docketImport: postDocketImport_,
+    assignmentsOf: postAssignmentsOf_,
+    assignmentsSave: postAssignmentsSave_,
+    assignmentsImport: postAssignmentsImport_,
     workFileSave: postWorkFile_,
     workFilesOf: postWorkFile_,
     workFileOpen: postWorkFile_,
@@ -554,6 +557,10 @@ function loginReplyFor_(r, token, extra) {
                 /* THE ADDRESS NOBODY HAS PROVED YET, or blank — see `pendingEmailOf_`. The phone draws
                    "we will email you once you open the link" and the held child card from it. */
                 pendingEmail: pendingEmailOf_(r),
+                /* THE OWNER (18 Nov, `isOwner_`): the admin whose address is the owner's — Docket and food are theirs alone. */
+                owner: isOwner_(r),
+                /* THEIR ASSIGNMENTS (18 Nov): the `assignments` cell, theirs alone, as `todo` is. */
+                assignments: S(r.assignments),
                 /* THE SESSION. Sent once, at sign-in, and never again — the phone keeps it and
                    offers it on every request, and the sheet holds only its digest. */
                 token: token || '',
