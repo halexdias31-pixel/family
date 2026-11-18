@@ -47,7 +47,8 @@ function qtExpr_(w) {
 /* SEVERAL VALUES: the same reading as find.js `multiOf_` (362) — a rule's count or set, a rule with no count, or the first way's short comma list. */
 function qtMulti_(r) {
   for (const b of qtRules_(r)) {
-    if (/(?:^|,)\s*(expr|eqn)\s/.test(b)) continue;
+    /* A POINTS RULE IS WORDS IN ONE BOX (owner, 18 Nov: Finley's typed sentence came out a letter a box), never several values. */
+    if (/(?:^|,)\s*(expr|eqn)\s|(?:^|,)\s*points\b/.test(b)) continue;
     if (/(?:^|,)\s*set\s/.test(b)) return true;
     const c = /(?:^|,)\s*count\s+(\d+)/.exec(b);
     if (!c || +c[1] >= 2) return true;
@@ -137,6 +138,8 @@ function qType_(x) {
   }
   if (/(?:^|,)\s*(expr|eqn)\s/.test(rules)) return 'expr';
   if (/(?:^|,)\s*mixed\b/.test(rules)) return 'fraction';
+  /* A POINTS RULE MARKS WORDS: letter keys, one wrapping box (owner, 18 Nov). */
+  if (/(?:^|,)\s*points\b/.test(rules) && !plain.length) return short ? 'words' : 'reason';
   if (QT_COORD.test(first)) return 'coords';
   if (qtMulti_(r)) return 'multi';
   if (QT_FRAC.test(first)) return 'fraction';

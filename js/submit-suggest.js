@@ -49,6 +49,29 @@ function flagPaint_(kind, id) {
     if (t.getAttribute('data-rk') === kind && t.getAttribute('data-ri') === id) { const v = flagMine_(kind, id); tileSet_(t, { on: v, pressed: v }); }
   });
 }
+/* THE SCREEN AS THE PERSON SEES IT (owner, 18 Nov): the `.screen.on` the tile is in, through the one picture maker
+   (`rcPng_`), cut to the part inside the window and redrawn ≤1000px wide as a JPEG. Resolves a data URL, or '' on any failure or after 6 s. */
+function flagShot_(el) {
+  const scr = el.closest('.screen.on') || document.querySelector('.screen.on');
+  if (!scr || typeof rcPng_ !== 'function') return Promise.resolve('');
+  const r = scr.getBoundingClientRect(), vw = window.innerWidth, vh = window.innerHeight;
+  const x0 = Math.max(0, -r.left), y0 = Math.max(0, -r.top), x1 = Math.min(r.width, vw - r.left), y1 = Math.min(r.height, vh - r.top);
+  if (!(x1 > x0 && y1 > y0)) return Promise.resolve('');
+  const make = rcPng_(scr).then(p => new Promise((ok, no) => {
+    const u = URL.createObjectURL(p.blob), img = new Image();
+    img.onerror = () => { URL.revokeObjectURL(u); no(new Error('flag picture')); };
+    img.onload = () => {
+      const k = p.w / r.width, sw = (x1 - x0) * k, sh = (y1 - y0) * k, f = Math.min(1, 1000 / sw);
+      const cv = document.createElement('canvas'); cv.width = Math.round(sw * f); cv.height = Math.round(sh * f);
+      cv.getContext('2d').drawImage(img, x0 * k, y0 * k, sw, sh, 0, 0, cv.width, cv.height);
+      URL.revokeObjectURL(u);
+      let d = ''; for (const q of [0.7, 0.5, 0.35]) { d = cv.toDataURL('image/jpeg', q); if (d.length < 400000) break; }
+      ok(d.length < 400000 ? d : '');
+    };
+    img.src = u;
+  }));
+  return Promise.race([make, new Promise(ok => setTimeout(() => ok(''), 6000))]).catch(e => { if (typeof oops_ === 'function') oops_(e, 'flag:shot'); return ''; });
+}
 /* ONE TAP: on if off, off if on — at once on the screen, put back if the backend says no. */
 on('rep-flag', el => {
   if (!(typeof may_ === 'function' && may_('signedIn')) || !USER) { toast(text_('sign-in-to-suggest-a-change')); return; }
@@ -63,7 +86,9 @@ on('rep-flag', el => {
   try { finder = (finderAt_(el) || {}).id || ''; } catch (e) { /* outside any finder reads as none */ }
   set(!was);
   el.classList.add('is-sending');
-  send_({ action: 'suggest', flag: was ? 'off' : 'on', personId: USER.personId || '', kind, itemId: id, label, finder, path: reportPath_(el), device: reportDevice_() }, { button: el })
+  const body = { action: 'suggest', flag: was ? 'off' : 'on', personId: USER.personId || '', kind, itemId: id, label, finder, path: reportPath_(el), device: reportDevice_() };
+  /* A FLAG TURNED ON CARRIES A PICTURE OF WHAT WAS SEEN (owner, 18 Nov); a picture that fails or is slow is left out, never the flag. */
+  (was ? Promise.resolve('') : flagShot_(el)).then(shot => send_(shot ? Object.assign(body, { shot }) : body, { button: el }))
     .then(d => {
       if (d && DATA) {
         if (Array.isArray(d.myFlags)) DATA.myFlags = d.myFlags;

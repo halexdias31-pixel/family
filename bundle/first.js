@@ -2787,7 +2787,7 @@ return QT_ALG.test(s) || /^[-−]?\d*[a-z]$/i.test(s) && s.length > 1 || /=/.tes
 }
 function qtMulti_(r) {
 for (const b of qtRules_(r)) {
-if (/(?:^|,)\s*(expr|eqn)\s/.test(b)) continue;
+if (/(?:^|,)\s*(expr|eqn)\s|(?:^|,)\s*points\b/.test(b)) continue;
 if (/(?:^|,)\s*set\s/.test(b)) return true;
 const c = /(?:^|,)\s*count\s+(\d+)/.exec(b);
 if (!c || +c[1] >= 2) return true;
@@ -2865,6 +2865,7 @@ return !/\d/.test(a) && /[a-z]{3,}/i.test(a) ? 'words' : 'value';
 }
 if (/(?:^|,)\s*(expr|eqn)\s/.test(rules)) return 'expr';
 if (/(?:^|,)\s*mixed\b/.test(rules)) return 'fraction';
+if (/(?:^|,)\s*points\b/.test(rules) && !plain.length) return short ? 'words' : 'reason';
 if (QT_COORD.test(first)) return 'coords';
 if (qtMulti_(r)) return 'multi';
 if (QT_FRAC.test(first)) return 'fraction';
