@@ -576,7 +576,7 @@ function postSuggest_(body, action, began) {
   if (item.length > REPORT_FIELD_MAX || !/^[A-Za-z0-9][A-Za-z0-9 _.:|#\/()'&,+-]*$/.test(item) || (kind === 'question' && !/^q:./.test(item)))
     return jsonOut({ error: 'Which one? Nothing was sent.' });
   const people = kind === 'message' || kind === 'post';
-  /* A FLAG IS THE WHOLE SUGGESTION (owner, 16 Nov): no words, no picture, no files. Off withdraws the person's own. */
+  /* A FLAG IS THE WHOLE SUGGESTION (owner, 16 Nov): no words, no files; only the snapshot of the screen (18 Nov). Off withdraws the person's own. */
   const on = norm(body.flag) !== 'off';
   const pid0 = S(me.person_id), key0 = kind + '|' + item;
   if (!on) {
@@ -623,6 +623,9 @@ function postSuggest_(body, action, began) {
   } finally {
     lock.releaseLock();
   }
+  /* THE PICTURE OF WHAT WAS SEEN (owner, 18 Nov) goes to a private "Flag snapshots" folder in the Claude inbox — never shared
+     (children's data) — and its link is added to the note. A picture that fails leaves the flag as it is. */
+  if (made) { try { const link = flagShotKeep_(body.shot, made.note_id); if (link) { const tn = read(TAB.claude_notes); const r = tn.rows.find(x => S(x.note_id) === made.note_id); if (r) setCell(tn, r, 'note', S(r.note) + '\nSnapshot: ' + link); } } catch (err) { out.shotError = S(err && err.message || err); } }
   if (made && admin) { clearCache(); out.notes = claudeNotesOpen_(); try { out.file = claudeNotesWrite_(out.notes); } catch (err) { out.fileError = S(err && err.message || err); } }
   if (out.success) { clearCache(); out.flag = true; out.myFlags = myFlags_(S(me.person_id)); out.reportedItems = reportedItems_(); }
   if (made && !admin && POST_WROTE && !wroteBefore) POST_WROTE = false;
@@ -633,6 +636,15 @@ function postSuggest_(body, action, began) {
       + '\n\nMessage id: ' + item + '\n\nIt is still in the messages tab; it waits on Business → Suggestions.', 'reported');
   }
   return jsonOut(out);
+}
+
+const FLAG_SHOT_MAX = 600000;
+function flagShotKeep_(raw, id) {
+  const v = S(raw);
+  const m = v.match(/^data:(image\/(?:jpeg|png));base64,([A-Za-z0-9+\/=]+)$/);
+  if (!m || v.length > FLAG_SHOT_MAX) return '';
+  const file = inboxFolderAt_(['Flag snapshots'], true).createFile(Utilities.newBlob(Utilities.base64Decode(m[2]), m[1], S(id) + (m[1] === 'image/png' ? '.png' : '.jpg')));
+  return 'https://drive.google.com/file/d/' + file.getId() + '/view';
 }
 
 /* ---------- FILES FOR CLAUDE (515): one part of one file into Drive "Claude inbox". Admin only, at the gate; nothing goes in the sheet. */
