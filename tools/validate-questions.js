@@ -113,6 +113,10 @@ function run() {
   const rows = rowsOf();
   const { ctx, call } = appCode();
   call('qtMarker_(workRow_({row:{}}))');
+  /* names the app reaches only behind a `typeof` (drawFig_'s padGrid_) or inside a try that swallows the miss (cardBlock_'s CARD_BLOCKS,
+     cardDraw_ for a made-up surface): neither throws here, so they are loaded up front, as the page has them */
+  call('padGrid_'); call('CARD_BLOCKS');
+  call('cardDraw_({ el: "svg", a: { viewBox: "0 0 1 1" }, kids: [{ el: "line", a: { x1: 1 } }, { el: "text", a: { x: 1 }, text: "1" }] })');
   /* figures held by a question's preamble rows (same paper, same question number) */
   const stemFig = new Set(), stemSvg = new Map();
   rows.forEach(r => {
@@ -155,7 +159,7 @@ function run() {
     if (kind === 'draw') {
       ctx.__x = x;
       /* the pad's figure: the part's own, else its stem's (qtPenOpen_), read as the pad reads it (drawFig_) */
-      ctx.__svg = S(x.diagram) || stemSvg.get(S(r.paper_id) + '#' + S(r.question)) || '';
+      ctx.__svg = S(x.diagram) || stemSvg.get(S(r.paper_id) + '#' + S(r.question)) || call('padSurface_(__x) ? surfaceSvg_(padSurface_(__x)) : ""');
       const fig = call('drawFig_(__svg)');
       ctx.__f = fig;
       let ex = []; try { ex = call('DRAW_MARK.example(__x.drawAnswer, __f)') || []; } catch (e) { ex = []; }

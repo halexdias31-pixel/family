@@ -12,7 +12,7 @@ Order: what a child or parent would notice first, then what stops things driftin
 2. Typed-in text for the ~2,000 science questions with none: AQA papers from the cards' source_url, mark schemes from AQA's filestore (method: 8461-2306-1F and the seven papers done 17 Nov).
 2b. Papers from the manifest data-private/paper-sources.json (4,284 PDF links: question papers, mark schemes, inserts — Edexcel and AQA, GCSE and A-Level, from the pages the owner gave 17 Nov): fill any paper the library lacks or has without text/keys, subjects the owner's students take first (GCSE Maths, Biology, Chemistry, Physics, English, History). Check each entry's URL matches its labelled subject (some Edexcel pages link the combined-science files).
 3. The 85 questions that refer to a Figure with no diagram (232 → 85, 18 Nov: 147 OCR rows drawn from their papers by tools/draw-figures-q3.py), and the 52 whose figure was not transcribed: draw them with tools/figkit.py. Left: AQA 2022–24 GCSE biology/chemistry (raster figures, to hand-draw), OCR geography (resource booklet), a few micrographs. All 147 are imported (18 Nov, in 5 parts; 7 shrunk to fit).
-4. The 35 keys the check says accept a wrong answer or fail their own drawing.
+4. The 35 keys the check says accept a wrong answer or fail their own drawing. **32 done (18 Nov):** 13 drawings were the check not loading the pad's grid (fixed in `tools/validate-questions.js`); 17 one-mark "Is X correct? Give a reason" keys now need the No *and* the reason — their import file waits for the Drive upload. Left: 3 keys that are right (any odd non-multiple of 7, any multiple of 5 not 10, a cross at ½) where the check's made-up wrong answer happens to be a right one.
 
 ## Next (the 12 parts of best practice)
 
