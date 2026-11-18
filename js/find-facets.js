@@ -646,7 +646,9 @@ function specTreeOf_(x) {
   const c = x.row, ref = String(c.specRef || '').trim();
   const sp = ref && c.spec ? ((typeof DATA !== 'undefined' && DATA.specs) || []).find(s => String(s.code) === String(c.spec) && s.board === c.board) : null;
   if (!sp) return (x.specTree = SPEC_TOPIC_NONE);
-  const a = ref.split('.'), sec = sp.sections.find(s => s.id === a.slice(0, 2).join('.')), pt = (sp.points || []).find(p => p.id === a.slice(0, 3).join('.'));
+  const a = ref.split('.'), pt = (sp.points || []).find(p => p.id === a.slice(0, 3).join('.'));
+  /* A MATHS REFERENCE (N1…S6) IS ONE PART: its section is its point's parent, the letter. */
+  const sec = sp.sections.find(s => s.id === a.slice(0, 2).join('.')) || (a.length === 1 && pt ? sp.sections.find(s => s.id === pt.parent) : null);
   return (x.specTree = { topic: sec ? sec.id + ' ' + sec.title : '', point: pt ? pt.id + ' ' + pt.text : '' });
 }
 /* THE LIBRARY IS INFORMATION AND ANIMATIONS (owner, 16 Nov): no worked examples, no self-tests, no still pictures on its door. */

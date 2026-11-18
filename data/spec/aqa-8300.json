@@ -1,0 +1,2052 @@
+{
+ "id": "aqa-8300",
+ "board": "AQA",
+ "qualification": "GCSE",
+ "level": "GCSE",
+ "subject": "Maths",
+ "code": "8300",
+ "url": "https://filestore.aqa.org.uk/resources/mathematics/specifications/AQA-8300-SP-2015.PDF",
+ "measured": true,
+ "sections": [
+  {
+   "id": "N",
+   "title": "Number",
+   "topic": "Number"
+  },
+  {
+   "id": "A",
+   "title": "Algebra",
+   "topic": "Algebra"
+  },
+  {
+   "id": "R",
+   "title": "Ratio, proportion and rates of change",
+   "topic": "Ratio & Proportion"
+  },
+  {
+   "id": "G",
+   "title": "Geometry and measures",
+   "topic": "Geometry & Measures"
+  },
+  {
+   "id": "P",
+   "title": "Probability",
+   "topic": "Probability"
+  },
+  {
+   "id": "S",
+   "title": "Statistics",
+   "topic": "Statistics"
+  }
+ ],
+ "points": [
+  {
+   "id": "N1",
+   "text": "order positive and negative integers, decimals and fractions; use the symbols =, ≠, <, >, ≤, ≥",
+   "parent": "N",
+   "tier": "Foundation",
+   "topics": [
+    "Ordering Numbers & Decimals",
+    "Ordering Fractions",
+    "Inequalities on a Number Line",
+    "Negative Numbers",
+    "Reading & Writing Numbers",
+    "Roman Numerals",
+    "Place Value & Ordering"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-1",
+    "q:Q-1MA1-SP2-1F-3c",
+    "q:Q-1MA1-SP2-2F-2",
+    "q:Q-1MA1-SP2-3F-20a",
+    "q:Q-1MA1-SAM-1F-1",
+    "q:Q-1MA1-SAM-2F-1",
+    "q:Q-1MA1-SAM-3F-10",
+    "q:Q-AQA-8300-2406-1F-4a",
+    "q:Q-AQA-8300-2406-1F-4b",
+    "q:Q-AQA-8300-2406-1F-12",
+    "q:Q-AQA-8300-2406-1F-26a"
+   ],
+   "asked": 10
+  },
+  {
+   "id": "N2",
+   "text": "apply the four operations, including formal written methods, to integers, decimals and simple fractions (proper and improper), and mixed numbers – all both positive and negative; understand and use place value",
+   "parent": "N",
+   "tier": "Foundation",
+   "topics": [
+    "The Four Operations",
+    "Addition",
+    "Subtraction",
+    "Multiplication",
+    "Division",
+    "Long Multiplication",
+    "Long Division",
+    "Calculating with Decimals",
+    "Adding & Subtracting Fractions",
+    "Multiplying & Dividing Fractions",
+    "Mixed Numbers",
+    "Negative Numbers",
+    "Equivalent & Simplifying Fractions",
+    "Fractions"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-2",
+    "q:Q-1MA1-SP2-1F-3a",
+    "q:Q-1MA1-SP2-1F-3b",
+    "q:Q-1MA1-SP2-1F-3c",
+    "q:Q-1MA1-SP2-1F-9a",
+    "q:Q-1MA1-SP2-1F-9b",
+    "q:Q-1MA1-SP2-1F-9c",
+    "q:Q-1MA1-SP2-1F-20",
+    "q:Q-1MA1-SP2-2F-2",
+    "q:Q-1MA1-SP2-2F-3",
+    "q:Q-1MA1-SP2-2F-7",
+    "q:Q-1MA1-SP2-2F-12",
+    "q:Q-1MA1-SP2-3F-6a",
+    "q:Q-1MA1-SP2-3F-12",
+    "q:Q-1MA1-SP2-3F-15a",
+    "q:Q-1MA1-SAM-1F-5",
+    "q:Q-1MA1-SAM-1F-7",
+    "q:Q-1MA1-SAM-1F-16",
+    "q:Q-1MA1-SAM-1F-18a",
+    "q:Q-1MA1-SAM-1F-18b",
+    "q:Q-1MA1-SAM-1F-21",
+    "q:Q-1MA1-SAM-2F-7",
+    "q:Q-1MA1-SAM-2F-22a",
+    "q:Q-1MA1-SAM-3F-3",
+    "q:Q-1MA1-SAM-3F-5",
+    "q:Q-1MA1-SAM-3F-6a",
+    "q:Q-1MA1-SAM-3F-14",
+    "q:Q-1MA1-SAM-3F-22",
+    "q:Q-1MA1-SAM-3F-23b",
+    "q:Q-AQA-8300-2406-1F-1a",
+    "q:Q-AQA-8300-2406-1F-1b",
+    "q:Q-AQA-8300-2406-1F-4b",
+    "q:Q-AQA-8300-2406-1F-14a",
+    "q:Q-AQA-8300-2406-1F-14b",
+    "q:Q-AQA-8300-2406-1F-14c",
+    "q:Q-AQA-8300-2406-1F-23",
+    "q:Q-AQA-8300-2406-1F-25"
+   ],
+   "asked": 36
+  },
+  {
+   "id": "N3",
+   "text": "recognise and use relationships between operations, including inverse operations (eg cancellation to simplify calculations and expressions); use conventional notation for priority of operations, including brackets, powers, roots and reciprocals",
+   "parent": "N",
+   "tier": "Foundation",
+   "topics": [
+    "Order of Operations"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-3",
+    "q:Q-1MA1-SP2-3F-9b",
+    "q:Q-1MA1-SAM-2F-4"
+   ],
+   "asked": 2
+  },
+  {
+   "id": "N4",
+   "text": "use the concepts and vocabulary of prime numbers, factors (divisors), multiples, common factors, common multiples, highest common factor, lowest common multiple, prime factorisation, including using product notation and the unique factorisation theorem",
+   "parent": "N",
+   "tier": "Foundation",
+   "topics": [
+    "Primes & Prime Factorisation",
+    "HCF & LCM",
+    "Factors & Multiples",
+    "Properties of Number"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-4",
+    "q:Q-1MA1-SP2-1F-11",
+    "q:Q-1MA1-SP2-1F-25",
+    "q:Q-1MA1-SP2-2F-21",
+    "q:Q-1MA1-SP2-3F-3",
+    "q:Q-1MA1-SP2-3F-7",
+    "q:Q-1MA1-SAM-1F-4",
+    "q:Q-1MA1-SAM-2F-6",
+    "q:Q-1MA1-SAM-2F-11a",
+    "q:Q-1MA1-SAM-2F-11b",
+    "q:Q-1MA1-SAM-2F-16",
+    "q:Q-1MA1-SAM-3F-11i",
+    "q:Q-1MA1-SAM-3F-17b",
+    "q:Q-AQA-8300-2406-1F-16"
+   ],
+   "asked": 13
+  },
+  {
+   "id": "N5",
+   "text": "apply systematic listing strategies including use of the product rule for counting",
+   "parent": "N",
+   "tier": "Foundation",
+   "topics": [
+    "Listing Outcomes & Sample Space"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-5",
+    "q:Q-1MA1-SP2-1F-7b",
+    "q:Q-1MA1-SP2-1F-21a",
+    "q:Q-1MA1-SP2-2F-19a",
+    "q:Q-1MA1-SP2-2F-19bi",
+    "q:Q-1MA1-SP2-2F-19bii",
+    "q:Q-1MA1-SAM-1F-11",
+    "q:Q-AQA-8300-2406-1F-7a"
+   ],
+   "asked": 7
+  },
+  {
+   "id": "N6",
+   "text": "use positive integer powers and associated real roots (square, cube and higher), recognise powers of 2, 3, 4, 5",
+   "parent": "N",
+   "tier": "Foundation",
+   "topics": [
+    "Squares & Square Roots",
+    "Cubes & Cube Roots",
+    "Indices"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-6",
+    "q:Q-1MA1-SP2-3F-9a",
+    "q:Q-1MA1-SP2-3F-9b",
+    "q:Q-1MA1-SAM-2F-3",
+    "q:Q-1MA1-SAM-2F-4",
+    "q:Q-1MA1-SAM-3F-11ii",
+    "q:Q-AQA-8300-2406-1F-6a",
+    "q:Q-AQA-8300-2406-1F-6b",
+    "q:Q-AQA-8300-2406-1F-6c"
+   ],
+   "asked": 8
+  },
+  {
+   "id": "N7",
+   "text": "calculate with roots, and with integer and fractional indices",
+   "parent": "N",
+   "tier": "Foundation",
+   "topics": [
+    "Laws of Indices",
+    "Fractional & Negative Indices",
+    "Indices"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-7",
+    "q:Q-1MA1-SP2-1F-3c",
+    "q:Q-1MA1-SP2-1F-19b",
+    "q:Q-1MA1-SP2-1F-19c",
+    "q:Q-1MA1-SP2-2F-4",
+    "q:Q-1MA1-SP2-2F-24b",
+    "q:Q-AQA-8300-2406-1F-6c"
+   ],
+   "asked": 6
+  },
+  {
+   "id": "N8",
+   "text": "calculate exactly with fractions, surds and multiples of π; simplify surd expressions involving squares and rationalise denominators",
+   "parent": "N",
+   "tier": "Foundation",
+   "topics": [
+    "Surds",
+    "Simplifying Surds",
+    "Rationalising the Denominator"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-8"
+   ],
+   "asked": 0
+  },
+  {
+   "id": "N9",
+   "text": "calculate with and interpret standard form A × 10ⁿ, where 1 ≤ A < 10 and n is an integer",
+   "parent": "N",
+   "tier": "Foundation",
+   "topics": [
+    "Standard Form"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-9"
+   ],
+   "asked": 0
+  },
+  {
+   "id": "N10",
+   "text": "work interchangeably with terminating decimals and their corresponding fractions (such as 3.5 and 7/2 or 0.375 and 3/8); change recurring decimals into their corresponding fractions and vice versa",
+   "parent": "N",
+   "tier": "Foundation",
+   "topics": [
+    "Fraction Decimal Percentage Conversion",
+    "Recurring Decimals"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-10",
+    "q:Q-1MA1-SP2-1F-2",
+    "q:Q-1MA1-SP2-2F-3",
+    "q:Q-1MA1-SP2-2F-8b",
+    "q:Q-1MA1-SP2-3F-2",
+    "q:Q-1MA1-SP2-3F-5",
+    "q:Q-1MA1-SAM-1F-2",
+    "q:Q-1MA1-SAM-2F-2",
+    "q:Q-1MA1-SAM-3F-10",
+    "q:Q-AQA-8300-2406-1F-3a"
+   ],
+   "asked": 9
+  },
+  {
+   "id": "N11",
+   "text": "identify and work with fractions in ratio problems",
+   "parent": "N",
+   "tier": "Foundation",
+   "topics": [
+    "Ratio Problems"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-11",
+    "q:Q-1MA1-SP2-2F-27",
+    "q:Q-1MA1-SAM-1F-10",
+    "q:Q-1MA1-SAM-1F-25",
+    "q:Q-1MA1-SAM-2F-23"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "N12",
+   "text": "interpret fractions and percentages as operators",
+   "parent": "N",
+   "tier": "Foundation",
+   "topics": [
+    "Fractions of an Amount",
+    "Percentage of an Amount",
+    "Percentage Increase & Decrease",
+    "Reverse Percentages"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-12",
+    "q:Q-1MA1-SP2-1F-1",
+    "q:Q-1MA1-SP2-1F-12",
+    "q:Q-1MA1-SP2-1F-13",
+    "q:Q-1MA1-SP2-1F-14b",
+    "q:Q-1MA1-SP2-1F-17",
+    "q:Q-1MA1-SP2-1F-23",
+    "q:Q-1MA1-SP2-2F-5",
+    "q:Q-1MA1-SP2-3F-17",
+    "q:Q-1MA1-SP2-3F-29a",
+    "q:Q-1MA1-SAM-1F-8",
+    "q:Q-1MA1-SAM-1F-16",
+    "q:Q-1MA1-SAM-1F-20",
+    "q:Q-1MA1-SAM-1F-25",
+    "q:Q-1MA1-SAM-2F-14",
+    "q:Q-1MA1-SAM-3F-3",
+    "q:Q-1MA1-SAM-3F-9",
+    "q:Q-1MA1-SAM-3F-15",
+    "q:Q-1MA1-SAM-3F-23a",
+    "q:Q-AQA-8300-2406-1F-3b",
+    "q:Q-AQA-8300-2406-1F-10"
+   ],
+   "asked": 20
+  },
+  {
+   "id": "N13",
+   "text": "use standard units of mass, length, time, money and other measures (including standard compound measures) using decimal quantities where appropriate",
+   "parent": "N",
+   "tier": "Foundation",
+   "topics": [
+    "Units & Measures"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-13",
+    "q:Q-1MA1-SP2-1F-6",
+    "q:Q-1MA1-SP2-2F-6a",
+    "q:Q-1MA1-SP2-2F-6b",
+    "q:Q-1MA1-SP2-2F-20",
+    "q:Q-1MA1-SP2-3F-1",
+    "q:Q-1MA1-SP2-3F-8",
+    "q:Q-1MA1-SP2-3F-29a",
+    "q:Q-1MA1-SAM-1F-15",
+    "q:Q-1MA1-SAM-3F-8",
+    "q:Q-1MA1-SAM-3F-16",
+    "q:Q-1MA1-SAM-3F-22",
+    "q:Q-AQA-8300-2406-1F-2a",
+    "q:Q-AQA-8300-2406-1F-2b",
+    "q:Q-AQA-8300-2406-1F-2c"
+   ],
+   "asked": 14
+  },
+  {
+   "id": "N14",
+   "text": "estimate answers; check calculations using approximation and estimation, including answers obtained using technology",
+   "parent": "N",
+   "tier": "Foundation",
+   "topics": [
+    "Estimation"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-14",
+    "q:Q-1MA1-SAM-1F-13a",
+    "q:Q-1MA1-SAM-1F-13b",
+    "q:Q-1MA1-SAM-3F-19c"
+   ],
+   "asked": 3
+  },
+  {
+   "id": "N15",
+   "text": "round numbers and measures to an appropriate degree of accuracy (eg to a specified number of decimal places or significant figures); use inequality notation to specify simple error intervals due to truncation or rounding",
+   "parent": "N",
+   "tier": "Foundation",
+   "topics": [
+    "Rounding",
+    "Significant Figures"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-15",
+    "q:Q-1MA1-SP2-2F-1",
+    "q:Q-1MA1-SAM-3F-1",
+    "q:Q-1MA1-SAM-3F-19a"
+   ],
+   "asked": 3
+  },
+  {
+   "id": "N16",
+   "text": "apply and interpret limits of accuracy, including upper and lower bounds",
+   "parent": "N",
+   "tier": "Foundation",
+   "topics": [
+    "Bounds & Error Intervals"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-16",
+    "q:Q-1MA1-SP2-3F-25",
+    "q:Q-AQA-8300-2406-1F-20a",
+    "q:Q-AQA-8300-2406-1F-20b"
+   ],
+   "asked": 3
+  },
+  {
+   "id": "A1",
+   "text": "use and interpret algebraic notation, including: ab in place of a × b; 3y in place of y + y + y and 3 × y; a² in place of a × a; a/b in place of a ÷ b; coefficients written as fractions rather than as decimals; brackets",
+   "parent": "A",
+   "tier": "Foundation",
+   "topics": [
+    "Simplifying & Collecting Terms"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-17",
+    "q:Q-1MA1-SP2-1F-18",
+    "q:Q-1MA1-SP2-2F-17a",
+    "q:Q-1MA1-SP2-2F-24a",
+    "q:Q-1MA1-SAM-2F-10a",
+    "q:Q-1MA1-SAM-3F-2a",
+    "q:Q-1MA1-SAM-3F-2b",
+    "q:Q-1MA1-SAM-3F-17a",
+    "q:Q-1MA1-SAM-3F-20b"
+   ],
+   "asked": 8
+  },
+  {
+   "id": "A2",
+   "text": "substitute numerical values into formulae and expressions, including scientific formulae",
+   "parent": "A",
+   "tier": "Foundation",
+   "topics": [
+    "Substitution"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-18",
+    "q:Q-1MA1-SP2-1F-10b",
+    "q:Q-1MA1-SP2-1F-24b",
+    "q:Q-1MA1-SP2-3F-14b",
+    "q:Q-1MA1-SP2-3F-27a",
+    "q:Q-1MA1-SAM-2F-18",
+    "q:Q-AQA-8300-2406-1F-11a",
+    "q:Q-AQA-8300-2406-1F-11b"
+   ],
+   "asked": 7
+  },
+  {
+   "id": "A3",
+   "text": "understand and use the concepts and vocabulary of expressions, equations, formulae, identities, inequalities, terms and factors",
+   "parent": "A",
+   "tier": "Foundation",
+   "topics": [
+    "Formulae",
+    "Manipulating Expressions"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-19",
+    "q:Q-1MA1-SP2-3F-14b"
+   ],
+   "asked": 1
+  },
+  {
+   "id": "A4",
+   "text": "simplify and manipulate algebraic expressions by: collecting like terms; multiplying a single term over a bracket; taking out common factors; expanding products of two binomials; factorising quadratic expressions of the form x² + bx + c",
+   "parent": "A",
+   "tier": "Foundation",
+   "topics": [
+    "Expanding Brackets",
+    "Factorising",
+    "Algebraic Fractions",
+    "Manipulating Expressions"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-20",
+    "q:Q-1MA1-SP2-1F-19a",
+    "q:Q-1MA1-SP2-2F-17b",
+    "q:Q-1MA1-SP2-2F-24a",
+    "q:Q-1MA1-SP2-3F-28",
+    "q:Q-1MA1-SAM-1F-22",
+    "q:Q-1MA1-SAM-2F-20a",
+    "q:Q-1MA1-SAM-2F-20b"
+   ],
+   "asked": 7
+  },
+  {
+   "id": "A5",
+   "text": "understand and use standard mathematical formulae; rearrange formulae to change the subject",
+   "parent": "A",
+   "tier": "Foundation",
+   "topics": [
+    "Rearranging Formulae",
+    "Formulae"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-21",
+    "q:Q-1MA1-SP2-3F-14b",
+    "q:Q-1MA1-SP2-3F-24",
+    "q:Q-1MA1-SAM-2F-21"
+   ],
+   "asked": 3
+  },
+  {
+   "id": "A6",
+   "text": "know the difference between an equation and an identity; argue mathematically to show algebraic expressions are equivalent, and use algebra to support and construct arguments",
+   "parent": "A",
+   "tier": "Foundation",
+   "topics": [
+    "Algebraic Proof"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-22",
+    "q:Q-1MA1-SAM-3F-17b"
+   ],
+   "asked": 1
+  },
+  {
+   "id": "A7",
+   "text": "where appropriate, interpret simple expressions as functions with inputs and outputs; interpret the reverse process as the inverse function; interpret the succession of two functions as a composite function",
+   "parent": "A",
+   "tier": "Foundation",
+   "topics": [
+    "Function Machines",
+    "Function Notation",
+    "Composite Functions",
+    "Inverse Functions",
+    "Functions"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-23",
+    "q:Q-1MA1-SP2-3F-14a",
+    "q:Q-1MA1-SAM-3F-7a",
+    "q:Q-1MA1-SAM-3F-7b",
+    "q:Q-1MA1-SAM-3F-7c"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "A8",
+   "text": "work with coordinates in all four quadrants",
+   "parent": "A",
+   "tier": "Foundation",
+   "topics": [
+    "Coordinates"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-24",
+    "q:Q-1MA1-SP2-1F-5a",
+    "q:Q-1MA1-SP2-1F-5b",
+    "q:Q-1MA1-SAM-3F-4a",
+    "q:Q-1MA1-SAM-3F-4b",
+    "q:Q-1MA1-SAM-3F-4c",
+    "q:Q-AQA-8300-2406-1F-5b"
+   ],
+   "asked": 6
+  },
+  {
+   "id": "A9",
+   "text": "plot graphs of equations that correspond to straight-line graphs in the coordinate plane; use the form y = mx + c to identify parallel lines and perpendicular lines; find the equation of the line through two given points, or through one point with a given gradient",
+   "parent": "A",
+   "tier": "Foundation",
+   "figure": [
+    "graph",
+    "plot"
+   ],
+   "topics": [
+    "Straight Line Graphs",
+    "Equation of a Line",
+    "Parallel & Perpendicular Lines",
+    "Graphs"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-25",
+    "q:Q-1MA1-SP2-1F-5c",
+    "q:Q-1MA1-SP2-2F-14",
+    "q:Q-AQA-8300-2406-1F-5a"
+   ],
+   "asked": 3
+  },
+  {
+   "id": "A10",
+   "text": "identify and interpret gradients and intercepts of linear functions graphically and algebraically",
+   "parent": "A",
+   "tier": "Foundation",
+   "topics": [
+    "Equation of a Line"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-26"
+   ],
+   "asked": 0
+  },
+  {
+   "id": "A11",
+   "text": "identify and interpret roots, intercepts, turning points of quadratic functions graphically; deduce roots algebraically and turning points by completing the square",
+   "parent": "A",
+   "tier": "Foundation",
+   "topics": [
+    "Turning Points",
+    "Quadratic Graphs",
+    "Completing the Square"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-27"
+   ],
+   "asked": 0
+  },
+  {
+   "id": "A12",
+   "text": "recognise, sketch and interpret graphs of linear functions, quadratic functions, simple cubic functions, the reciprocal function y = 1/x with x ≠ 0, exponential functions and trigonometric functions",
+   "parent": "A",
+   "tier": "Foundation",
+   "figure": [
+    "graph",
+    "sketch"
+   ],
+   "topics": [
+    "Recognising Graph Shapes",
+    "Quadratic Graphs",
+    "Trigonometric Graphs & Equations"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-28",
+    "q:Q-1MA1-SP2-3F-27b"
+   ],
+   "asked": 1
+  },
+  {
+   "id": "A13",
+   "text": "sketch translations and reflections of a given function",
+   "parent": "A",
+   "tier": "Higher",
+   "ht": true,
+   "figure": [
+    "sketch"
+   ],
+   "topics": [
+    "Transformations of Graphs"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-86"
+   ],
+   "asked": 0
+  },
+  {
+   "id": "A14",
+   "text": "plot and interpret graphs (including reciprocal graphs and exponential graphs) and graphs of non-standard functions in real contexts, to find approximate solutions to problems such as simple kinematic problems involving distance, speed and acceleration",
+   "parent": "A",
+   "tier": "Foundation",
+   "figure": [
+    "graph",
+    "plot"
+   ],
+   "topics": [
+    "Real-Life Graphs"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-29",
+    "q:Q-1MA1-SP2-2F-10a",
+    "q:Q-1MA1-SP2-2F-10b",
+    "q:Q-1MA1-SP2-2F-10c",
+    "q:Q-1MA1-SP2-2F-14",
+    "q:Q-1MA1-SP2-3F-11",
+    "q:Q-1MA1-SAM-2F-12a",
+    "q:Q-1MA1-SAM-2F-12b",
+    "q:Q-1MA1-SAM-3F-21a"
+   ],
+   "asked": 8
+  },
+  {
+   "id": "A15",
+   "text": "calculate or estimate gradients of graphs and areas under graphs (including quadratic and other non-linear graphs), and interpret results in cases such as distance-time graphs, velocity-time graphs and graphs in financial contexts",
+   "parent": "A",
+   "tier": "Higher",
+   "ht": true,
+   "figure": [
+    "graph"
+   ],
+   "topics": [
+    "Gradient of a Curve",
+    "Area Under a Curve"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-87"
+   ],
+   "asked": 0
+  },
+  {
+   "id": "A16",
+   "text": "recognise and use the equation of a circle with centre at the origin; find the equation of a tangent to a circle at a given point",
+   "parent": "A",
+   "tier": "Higher",
+   "ht": true,
+   "topics": [
+    "Equation of a Circle",
+    "Equation of a Tangent"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-88"
+   ],
+   "asked": 0
+  },
+  {
+   "id": "A17",
+   "text": "solve linear equations in one unknown algebraically (including those with the unknown on both sides of the equation); find approximate solutions using a graph",
+   "parent": "A",
+   "tier": "Foundation",
+   "figure": [
+    "graph"
+   ],
+   "topics": [
+    "Linear Equations",
+    "Unknowns on Both Sides",
+    "Equations"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-30",
+    "q:Q-1MA1-SP2-1F-10a",
+    "q:Q-1MA1-SP2-2F-17c",
+    "q:Q-1MA1-SP2-3F-14a",
+    "q:Q-1MA1-SP2-3F-30",
+    "q:Q-1MA1-SAM-1F-19",
+    "q:Q-1MA1-SAM-1F-28",
+    "q:Q-1MA1-SAM-2F-10b",
+    "q:Q-1MA1-SAM-3F-7c",
+    "q:Q-AQA-8300-2406-1F-24"
+   ],
+   "asked": 9
+  },
+  {
+   "id": "A18",
+   "text": "solve quadratic equations (including those that require rearrangement) algebraically by factorising, by completing the square and by using the quadratic formula; find approximate solutions using a graph",
+   "parent": "A",
+   "tier": "Foundation",
+   "figure": [
+    "graph"
+   ],
+   "topics": [
+    "Solving Quadratics",
+    "Completing the Square"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-31"
+   ],
+   "asked": 0
+  },
+  {
+   "id": "A19",
+   "text": "solve two simultaneous equations in two variables (linear/linear or linear/quadratic) algebraically; find approximate solutions using a graph",
+   "parent": "A",
+   "tier": "Foundation",
+   "figure": [
+    "graph"
+   ],
+   "topics": [
+    "Simultaneous Equations"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-32",
+    "q:Q-1MA1-SAM-3F-14",
+    "q:Q-1MA1-SAM-3F-20c"
+   ],
+   "asked": 2
+  },
+  {
+   "id": "A20",
+   "text": "find approximate solutions to equations numerically using iteration",
+   "parent": "A",
+   "tier": "Higher",
+   "ht": true,
+   "topics": [
+    "Iteration"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-89"
+   ],
+   "asked": 0
+  },
+  {
+   "id": "A21",
+   "text": "translate simple situations or procedures into algebraic expressions or formulae; derive an equation (or two simultaneous equations), solve the equation(s) and interpret the solution",
+   "parent": "A",
+   "tier": "Foundation",
+   "topics": [
+    "Formulae",
+    "Equations"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-33",
+    "q:Q-1MA1-SP2-3F-14b"
+   ],
+   "asked": 1
+  },
+  {
+   "id": "A22",
+   "text": "solve linear inequalities in one or two variable(s), and quadratic inequalities in one variable; represent the solution set on a number line, using set notation and on a graph",
+   "parent": "A",
+   "tier": "Foundation",
+   "figure": [
+    "graph"
+   ],
+   "topics": [
+    "Solving Inequalities",
+    "Inequalities on a Number Line",
+    "Quadratic Inequalities",
+    "Inequalities & Regions",
+    "Inequalities"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-34",
+    "q:Q-1MA1-SP2-3F-20a",
+    "q:Q-1MA1-SP2-3F-20b",
+    "q:Q-AQA-8300-2406-1F-26a",
+    "q:Q-AQA-8300-2406-1F-26b"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "A23",
+   "text": "generate terms of a sequence from either a term-to-term or a position-to-term rule",
+   "parent": "A",
+   "tier": "Foundation",
+   "topics": [
+    "Term-to-Term Rules",
+    "Sequences"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-35",
+    "q:Q-1MA1-SP2-2F-11a",
+    "q:Q-1MA1-SP2-2F-11b",
+    "q:Q-1MA1-SP2-2F-11c"
+   ],
+   "asked": 3
+  },
+  {
+   "id": "A24",
+   "text": "recognise and use sequences of triangular, square and cube numbers, simple arithmetic progressions, Fibonacci type sequences, quadratic sequences, and simple geometric progressions (rⁿ where n is an integer, and r is a rational number > 0)",
+   "parent": "A",
+   "tier": "Foundation",
+   "topics": [
+    "Types of Sequence"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-36",
+    "q:Q-1MA1-SP2-1F-24a",
+    "q:Q-1MA1-SP2-1F-24b",
+    "q:Q-1MA1-SAM-1F-3",
+    "q:Q-1MA1-SAM-1F-12a",
+    "q:Q-1MA1-SAM-1F-12b",
+    "q:Q-1MA1-SAM-3F-20a",
+    "q:Q-1MA1-SAM-3F-20b",
+    "q:Q-1MA1-SAM-3F-20c"
+   ],
+   "asked": 8
+  },
+  {
+   "id": "A25",
+   "text": "deduce expressions to calculate the nth term of linear and quadratic sequences",
+   "parent": "A",
+   "tier": "Foundation",
+   "topics": [
+    "nth Term of a Linear Sequence",
+    "Quadratic nth Term"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-37",
+    "q:Q-1MA1-SP2-3F-21",
+    "q:Q-1MA1-SAM-1F-12a",
+    "q:Q-1MA1-SAM-2F-25a",
+    "q:Q-1MA1-SAM-2F-25b",
+    "q:Q-AQA-8300-2406-1F-17"
+   ],
+   "asked": 5
+  },
+  {
+   "id": "R1",
+   "text": "change freely between related standard units (eg time, length, area, volume/capacity, mass) and compound units (eg speed, rates of pay, prices, density, pressure) in numerical and algebraic contexts",
+   "parent": "R",
+   "tier": "Foundation",
+   "topics": [
+    "Units & Measures",
+    "Compound Measures"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-38",
+    "q:Q-1MA1-SP2-1F-6",
+    "q:Q-1MA1-SP2-1F-23",
+    "q:Q-1MA1-SP2-2F-6a",
+    "q:Q-1MA1-SP2-2F-6b",
+    "q:Q-1MA1-SP2-2F-16",
+    "q:Q-1MA1-SP2-2F-20",
+    "q:Q-1MA1-SP2-3F-1",
+    "q:Q-1MA1-SP2-3F-8",
+    "q:Q-1MA1-SP2-3F-29a",
+    "q:Q-1MA1-SP2-3F-29b",
+    "q:Q-1MA1-SAM-1F-7",
+    "q:Q-1MA1-SAM-1F-15",
+    "q:Q-1MA1-SAM-1F-24a",
+    "q:Q-1MA1-SAM-1F-24b",
+    "q:Q-1MA1-SAM-2F-26",
+    "q:Q-1MA1-SAM-3F-8",
+    "q:Q-1MA1-SAM-3F-16",
+    "q:Q-1MA1-SAM-3F-22",
+    "q:Q-AQA-8300-2406-1F-2a",
+    "q:Q-AQA-8300-2406-1F-2b",
+    "q:Q-AQA-8300-2406-1F-2c"
+   ],
+   "asked": 21
+  },
+  {
+   "id": "R2",
+   "text": "use scale factors, scale diagrams and maps",
+   "parent": "R",
+   "tier": "Foundation",
+   "figure": [
+    "diagram"
+   ],
+   "topics": [
+    "Scale Drawings & Maps"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-39",
+    "q:Q-1MA1-SP2-3F-8",
+    "q:Q-1MA1-SAM-2F-15"
+   ],
+   "asked": 2
+  },
+  {
+   "id": "R3",
+   "text": "express one quantity as a fraction of another, where the fraction is less than 1 or greater than 1",
+   "parent": "R",
+   "tier": "Foundation",
+   "topics": [
+    "Fractions of an Amount",
+    "Percentage of an Amount"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-40",
+    "q:Q-1MA1-SP2-1F-1",
+    "q:Q-1MA1-SP2-1F-12",
+    "q:Q-1MA1-SP2-1F-13",
+    "q:Q-1MA1-SP2-1F-14b",
+    "q:Q-1MA1-SP2-1F-23",
+    "q:Q-1MA1-SP2-2F-5",
+    "q:Q-1MA1-SP2-3F-17",
+    "q:Q-1MA1-SP2-3F-29a",
+    "q:Q-1MA1-SAM-1F-8",
+    "q:Q-1MA1-SAM-1F-16",
+    "q:Q-1MA1-SAM-1F-25",
+    "q:Q-1MA1-SAM-2F-14",
+    "q:Q-1MA1-SAM-3F-3",
+    "q:Q-1MA1-SAM-3F-9",
+    "q:Q-1MA1-SAM-3F-15",
+    "q:Q-AQA-8300-2406-1F-3b",
+    "q:Q-AQA-8300-2406-1F-10"
+   ],
+   "asked": 17
+  },
+  {
+   "id": "R4",
+   "text": "use ratio notation, including reduction to simplest form",
+   "parent": "R",
+   "tier": "Foundation",
+   "topics": [
+    "Writing & Simplifying Ratio"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-41",
+    "q:Q-1MA1-SP2-2F-18",
+    "q:Q-1MA1-SP2-3F-15b",
+    "q:Q-AQA-8300-2406-1F-13b"
+   ],
+   "asked": 3
+  },
+  {
+   "id": "R5",
+   "text": "divide a given quantity into two parts in a given part:part or part:whole ratio; express the division of a quantity into two parts as a ratio; apply ratio to real contexts and problems",
+   "parent": "R",
+   "tier": "Foundation",
+   "topics": [
+    "Sharing in a Ratio"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-42",
+    "q:Q-1MA1-SP2-1F-12",
+    "q:Q-1MA1-SP2-2F-27",
+    "q:Q-1MA1-SP2-3F-22",
+    "q:Q-1MA1-SAM-2F-23",
+    "q:Q-AQA-8300-2406-1F-13a"
+   ],
+   "asked": 5
+  },
+  {
+   "id": "R6",
+   "text": "express a multiplicative relationship between two quantities as a ratio or a fraction",
+   "parent": "R",
+   "tier": "Foundation",
+   "topics": [
+    "Ratio Problems"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-43",
+    "q:Q-1MA1-SP2-2F-27",
+    "q:Q-1MA1-SAM-1F-10",
+    "q:Q-1MA1-SAM-1F-25",
+    "q:Q-1MA1-SAM-2F-23"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "R7",
+   "text": "understand and use proportion as equality of ratios",
+   "parent": "R",
+   "tier": "Foundation",
+   "topics": [
+    "Direct Proportion",
+    "Best Value & Unitary Method"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-44",
+    "q:Q-1MA1-SP2-1F-6",
+    "q:Q-1MA1-SP2-1F-8",
+    "q:Q-1MA1-SP2-2F-15a",
+    "q:Q-1MA1-SP2-2F-15b",
+    "q:Q-1MA1-SP2-3F-6a",
+    "q:Q-1MA1-SP2-3F-6b",
+    "q:Q-1MA1-SAM-1F-27",
+    "q:Q-1MA1-SAM-2F-12a",
+    "q:Q-1MA1-SAM-2F-17",
+    "q:Q-1MA1-SAM-2F-19",
+    "q:Q-1MA1-SAM-3F-8",
+    "q:Q-1MA1-SAM-3F-19a",
+    "q:Q-1MA1-SAM-3F-19b",
+    "q:Q-1MA1-SAM-3F-19c",
+    "q:Q-1MA1-SAM-3F-23b"
+   ],
+   "asked": 15
+  },
+  {
+   "id": "R8",
+   "text": "relate ratios to fractions and to linear functions",
+   "parent": "R",
+   "tier": "Foundation",
+   "topics": [
+    "Ratio Problems"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-45",
+    "q:Q-1MA1-SP2-2F-27",
+    "q:Q-1MA1-SAM-1F-10",
+    "q:Q-1MA1-SAM-1F-25",
+    "q:Q-1MA1-SAM-2F-23"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "R9",
+   "text": "define percentage as ‘number of parts per hundred’; interpret percentages and percentage changes as a fraction or a decimal, and interpret these multiplicatively; express one quantity as a percentage of another; compare two quantities using percentages; work with percentages greater than 100%; solve problems involving percentage change, including percentage increase/decrease and original value problems, and simple interest including in financial mathematics",
+   "parent": "R",
+   "tier": "Foundation",
+   "topics": [
+    "Percentages",
+    "Percentage of an Amount",
+    "Percentage Increase & Decrease",
+    "Reverse Percentages",
+    "Simple & Compound Interest"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-46",
+    "q:Q-1MA1-SP2-1F-1",
+    "q:Q-1MA1-SP2-1F-13",
+    "q:Q-1MA1-SP2-1F-14b",
+    "q:Q-1MA1-SP2-1F-17",
+    "q:Q-1MA1-SP2-2F-13",
+    "q:Q-1MA1-SP2-3F-17",
+    "q:Q-1MA1-SP2-3F-29a",
+    "q:Q-1MA1-SAM-1F-8",
+    "q:Q-1MA1-SAM-1F-20",
+    "q:Q-1MA1-SAM-1F-25",
+    "q:Q-1MA1-SAM-2F-14",
+    "q:Q-1MA1-SAM-3F-9",
+    "q:Q-1MA1-SAM-3F-23a",
+    "q:Q-AQA-8300-2406-1F-10"
+   ],
+   "asked": 14
+  },
+  {
+   "id": "R10",
+   "text": "solve problems involving direct and inverse proportion, including graphical and algebraic representations",
+   "parent": "R",
+   "tier": "Foundation",
+   "topics": [
+    "Direct Proportion",
+    "Inverse Proportion"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-47",
+    "q:Q-1MA1-SP2-1F-6",
+    "q:Q-1MA1-SP2-2F-15a",
+    "q:Q-1MA1-SP2-2F-15b",
+    "q:Q-1MA1-SP2-3F-6a",
+    "q:Q-1MA1-SP2-3F-6b",
+    "q:Q-1MA1-SP2-3F-27a",
+    "q:Q-1MA1-SP2-3F-27b",
+    "q:Q-1MA1-SAM-1F-27",
+    "q:Q-1MA1-SAM-2F-12a",
+    "q:Q-1MA1-SAM-2F-19",
+    "q:Q-1MA1-SAM-3F-8",
+    "q:Q-1MA1-SAM-3F-19a",
+    "q:Q-1MA1-SAM-3F-19b",
+    "q:Q-1MA1-SAM-3F-19c"
+   ],
+   "asked": 14
+  },
+  {
+   "id": "R11",
+   "text": "use compound units such as speed, rates of pay, unit pricing, density and pressure",
+   "parent": "R",
+   "tier": "Foundation",
+   "topics": [
+    "Compound Measures",
+    "Best Value & Unitary Method"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-48",
+    "q:Q-1MA1-SP2-1F-8",
+    "q:Q-1MA1-SP2-1F-23",
+    "q:Q-1MA1-SP2-2F-16",
+    "q:Q-1MA1-SP2-2F-20",
+    "q:Q-1MA1-SP2-3F-29b",
+    "q:Q-1MA1-SAM-1F-7",
+    "q:Q-1MA1-SAM-1F-24a",
+    "q:Q-1MA1-SAM-1F-24b",
+    "q:Q-1MA1-SAM-2F-17",
+    "q:Q-1MA1-SAM-2F-26",
+    "q:Q-1MA1-SAM-3F-16",
+    "q:Q-1MA1-SAM-3F-23b"
+   ],
+   "asked": 12
+  },
+  {
+   "id": "R12",
+   "text": "compare lengths, areas and volumes using ratio notation and/or scale factors; make links to similarity (including trigonometric ratios)",
+   "parent": "R",
+   "tier": "Foundation",
+   "topics": [
+    "Similar Areas & Volumes"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-49"
+   ],
+   "asked": 0
+  },
+  {
+   "id": "R13",
+   "text": "understand that X is inversely proportional to Y is equivalent to X is proportional to 1/Y; construct and interpret equations that describe direct and inverse proportion",
+   "parent": "R",
+   "tier": "Higher",
+   "ht": true,
+   "topics": [
+    "Inverse Proportion"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-90",
+    "q:Q-1MA1-SP2-3F-27a",
+    "q:Q-1MA1-SP2-3F-27b"
+   ],
+   "asked": 2
+  },
+  {
+   "id": "R14",
+   "text": "interpret the gradient of a straight line graph as a rate of change; recognise and interpret graphs that illustrate direct and inverse proportion",
+   "parent": "R",
+   "tier": "Foundation",
+   "figure": [
+    "graph"
+   ],
+   "topics": [
+    "Real-Life Graphs"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-50",
+    "q:Q-1MA1-SP2-2F-10a",
+    "q:Q-1MA1-SP2-2F-10b",
+    "q:Q-1MA1-SP2-2F-10c",
+    "q:Q-1MA1-SP2-2F-14",
+    "q:Q-1MA1-SP2-3F-11",
+    "q:Q-1MA1-SAM-2F-12a",
+    "q:Q-1MA1-SAM-2F-12b",
+    "q:Q-1MA1-SAM-3F-21a"
+   ],
+   "asked": 8
+  },
+  {
+   "id": "R15",
+   "text": "interpret the gradient at a point on a curve as the instantaneous rate of change; apply the concepts of average and instantaneous rate of change (gradients of chords and tangents) in numerical, algebraic and graphical contexts",
+   "parent": "R",
+   "tier": "Higher",
+   "ht": true,
+   "topics": [
+    "Gradient of a Curve"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-91"
+   ],
+   "asked": 0
+  },
+  {
+   "id": "R16",
+   "text": "set up, solve and interpret the answers in growth and decay problems, including compound interest and work with general iterative processes",
+   "parent": "R",
+   "tier": "Foundation",
+   "topics": [
+    "Growth & Decay",
+    "Simple & Compound Interest"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-51",
+    "q:Q-1MA1-SP2-2F-13"
+   ],
+   "asked": 1
+  },
+  {
+   "id": "G1",
+   "text": "use conventional terms and notation: points, lines, vertices, edges, planes, parallel lines, perpendicular lines, right angles, polygons, regular polygons and polygons with reflection and/or rotation symmetries; use the standard conventions for labelling and referring to the sides and angles of triangles; draw diagrams from written description",
+   "parent": "G",
+   "tier": "Foundation",
+   "figure": [
+    "diagram",
+    "draw"
+   ],
+   "topics": [
+    "Types of Angle",
+    "2-D Shapes"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-52",
+    "q:Q-1MA1-SP2-3F-4",
+    "q:Q-1MA1-SAM-3F-4c"
+   ],
+   "asked": 2
+  },
+  {
+   "id": "G2",
+   "text": "use the standard ruler and compass constructions (perpendicular bisector of a line segment, constructing a perpendicular to a given line from/at a given point, bisecting a given angle); use these to construct given figures and solve loci problems; know that the perpendicular distance from a point to a line is the shortest distance to the line",
+   "parent": "G",
+   "tier": "Foundation",
+   "figure": [
+    "construction"
+   ],
+   "topics": [
+    "Constructions & Loci"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-53"
+   ],
+   "asked": 0
+  },
+  {
+   "id": "G3",
+   "text": "apply the properties of: angles at a point; angles at a point on a straight line; vertically opposite angles; understand and use alternate and corresponding angles on parallel lines; derive and use the sum of angles in a triangle (eg to deduce and use the angle sum in any polygon, and to derive properties of regular polygons)",
+   "parent": "G",
+   "tier": "Foundation",
+   "topics": [
+    "Angles at a Point & on a Line",
+    "Angles in Parallel Lines",
+    "Angles in Triangles & Quadrilaterals",
+    "Angles in Polygons",
+    "Angles"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-54",
+    "q:Q-1MA1-SP2-1F-16",
+    "q:Q-1MA1-SP2-2F-25",
+    "q:Q-1MA1-SP2-2F-29",
+    "q:Q-1MA1-SP2-3F-13ai",
+    "q:Q-1MA1-SP2-3F-13aii",
+    "q:Q-1MA1-SP2-3F-13b",
+    "q:Q-1MA1-SAM-1F-23",
+    "q:Q-1MA1-SAM-1F-28",
+    "q:Q-1MA1-SAM-2F-13",
+    "q:Q-1MA1-SAM-3F-13ai",
+    "q:Q-1MA1-SAM-3F-13aii",
+    "q:Q-1MA1-SAM-3F-13b"
+   ],
+   "asked": 12
+  },
+  {
+   "id": "G4",
+   "text": "derive and apply the properties and definitions of: special types of quadrilaterals, including square, rectangle, parallelogram, trapezium, kite and rhombus; and triangles and other plane figures using appropriate language",
+   "parent": "G",
+   "tier": "Foundation",
+   "topics": [
+    "2-D Shapes",
+    "Properties of Shapes"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-55",
+    "q:Q-1MA1-SP2-3F-4",
+    "q:Q-1MA1-SAM-3F-4c"
+   ],
+   "asked": 2
+  },
+  {
+   "id": "G5",
+   "text": "use the basic congruence criteria for triangles (SSS, SAS, ASA, RHS)",
+   "parent": "G",
+   "tier": "Foundation",
+   "topics": [
+    "Congruent Triangles",
+    "Similarity & Congruence"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-56",
+    "q:Q-AQA-8300-2406-1F-15"
+   ],
+   "asked": 1
+  },
+  {
+   "id": "G6",
+   "text": "apply angle facts, triangle congruence, similarity and properties of quadrilaterals to conjecture and derive results about angles and sides, including Pythagoras’ theorem and the fact that the base angles of an isosceles triangle are equal, and use known results to obtain simple proofs",
+   "parent": "G",
+   "tier": "Foundation",
+   "topics": [
+    "Angles in Triangles & Quadrilaterals",
+    "Congruent Triangles"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-57",
+    "q:Q-1MA1-SP2-2F-29",
+    "q:Q-1MA1-SP2-3F-13ai",
+    "q:Q-1MA1-SP2-3F-13aii",
+    "q:Q-1MA1-SP2-3F-13b",
+    "q:Q-1MA1-SAM-1F-23",
+    "q:Q-1MA1-SAM-1F-28",
+    "q:Q-1MA1-SAM-2F-13",
+    "q:Q-1MA1-SAM-3F-13b"
+   ],
+   "asked": 8
+  },
+  {
+   "id": "G7",
+   "text": "identify, describe and construct congruent and similar shapes, including on coordinate axes, by considering rotation, reflection, translation and enlargement (including fractional and negative scale factors)",
+   "parent": "G",
+   "tier": "Foundation",
+   "topics": [
+    "Transformations",
+    "Reflections",
+    "Rotations",
+    "Translations",
+    "Enlargements",
+    "Describing a Single Transformation",
+    "Similar Shapes"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-58",
+    "q:Q-1MA1-SP2-2F-9",
+    "q:Q-1MA1-SP2-2F-22",
+    "q:Q-1MA1-SAM-1F-29",
+    "q:Q-AQA-8300-2406-1F-27"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "G8",
+   "text": "describe the changes and invariance achieved by combinations of rotations, reflections and translations",
+   "parent": "G",
+   "tier": "Higher",
+   "ht": true,
+   "topics": [
+    "Describing a Single Transformation"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-92",
+    "q:Q-1MA1-SP2-2F-22",
+    "q:Q-1MA1-SAM-1F-29"
+   ],
+   "asked": 2
+  },
+  {
+   "id": "G9",
+   "text": "identify and apply circle definitions and properties, including: centre, radius, chord, diameter, circumference, tangent, arc, sector and segment",
+   "parent": "G",
+   "tier": "Foundation",
+   "topics": [
+    "Parts of a Circle"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-59"
+   ],
+   "asked": 0
+  },
+  {
+   "id": "G10",
+   "text": "apply and prove the standard circle theorems concerning angles, radii, tangents and chords, and use them to prove related results",
+   "parent": "G",
+   "tier": "Higher",
+   "ht": true,
+   "topics": [
+    "Circle Theorems"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-93"
+   ],
+   "asked": 0
+  },
+  {
+   "id": "G11",
+   "text": "solve geometrical problems on coordinate axes",
+   "parent": "G",
+   "tier": "Foundation",
+   "topics": [
+    "Coordinates"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-60",
+    "q:Q-1MA1-SP2-1F-5a",
+    "q:Q-1MA1-SP2-1F-5b",
+    "q:Q-1MA1-SAM-3F-4a",
+    "q:Q-1MA1-SAM-3F-4b",
+    "q:Q-1MA1-SAM-3F-4c",
+    "q:Q-AQA-8300-2406-1F-5b"
+   ],
+   "asked": 6
+  },
+  {
+   "id": "G12",
+   "text": "identify properties of the faces, surfaces, edges and vertices of: cubes, cuboids, prisms, cylinders, pyramids, cones and spheres",
+   "parent": "G",
+   "tier": "Foundation",
+   "topics": [
+    "3-D Shapes"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-61",
+    "q:Q-1MA1-SP2-1F-4i",
+    "q:Q-1MA1-SP2-1F-4ii",
+    "q:Q-1MA1-SP2-3F-23",
+    "q:Q-1MA1-SAM-1F-26"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "G13",
+   "text": "construct and interpret plans and elevations of 3D shapes",
+   "parent": "G",
+   "tier": "Foundation",
+   "figure": [
+    "elevation",
+    "plan"
+   ],
+   "topics": [
+    "Plans & Elevations",
+    "3-D Shapes"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-62",
+    "q:Q-1MA1-SP2-1F-4i",
+    "q:Q-1MA1-SP2-1F-4ii",
+    "q:Q-1MA1-SP2-3F-23",
+    "q:Q-1MA1-SAM-1F-26"
+   ],
+   "asked": 4
+  },
+  {
+   "id": "G14",
+   "text": "use standard units of measure and related concepts (length, area, volume/capacity, mass, time, money, etc)",
+   "parent": "G",
+   "tier": "Foundation",
+   "topics": [
+    "Units & Measures"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-63",
+    "q:Q-1MA1-SP2-1F-6",
+    "q:Q-1MA1-SP2-2F-6a",
+    "q:Q-1MA1-SP2-2F-6b",
+    "q:Q-1MA1-SP2-2F-20",
+    "q:Q-1MA1-SP2-3F-1",
+    "q:Q-1MA1-SP2-3F-8",
+    "q:Q-1MA1-SP2-3F-29a",
+    "q:Q-1MA1-SAM-1F-15",
+    "q:Q-1MA1-SAM-3F-8",
+    "q:Q-1MA1-SAM-3F-16",
+    "q:Q-1MA1-SAM-3F-22",
+    "q:Q-AQA-8300-2406-1F-2a",
+    "q:Q-AQA-8300-2406-1F-2b",
+    "q:Q-AQA-8300-2406-1F-2c"
+   ],
+   "asked": 14
+  },
+  {
+   "id": "G15",
+   "text": "measure line segments and angles in geometric figures, including interpreting maps and scale drawings and use of bearings",
+   "parent": "G",
+   "tier": "Foundation",
+   "topics": [
+    "Bearings",
+    "Scale Drawings & Maps"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-64",
+    "q:Q-1MA1-SP2-3F-8",
+    "q:Q-1MA1-SP2-3F-18",
+    "q:Q-1MA1-SAM-2F-15"
+   ],
+   "asked": 3
+  },
+  {
+   "id": "G16",
+   "text": "know and apply formulae to calculate: area of triangles, parallelograms, trapezia; volume of cuboids and other right prisms (including cylinders)",
+   "parent": "G",
+   "tier": "Foundation",
+   "topics": [
+    "Area of 2-D Shapes",
+    "Perimeter",
+    "Compound Shapes",
+    "Volume & Surface Area",
+    "Mensuration"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-65",
+    "q:Q-1MA1-SP2-1F-20",
+    "q:Q-1MA1-SP2-1F-22",
+    "q:Q-1MA1-SP2-2F-28",
+    "q:Q-1MA1-SP2-3F-28",
+    "q:Q-1MA1-SP2-3F-29a",
+    "q:Q-1MA1-SP2-3F-30",
+    "q:Q-1MA1-SAM-1F-15",
+    "q:Q-1MA1-SAM-1F-26",
+    "q:Q-1MA1-SAM-2F-7",
+    "q:Q-1MA1-SAM-2F-14",
+    "q:Q-1MA1-SAM-2F-22a",
+    "q:Q-1MA1-SAM-2F-22b",
+    "q:Q-1MA1-SAM-3F-12",
+    "q:Q-1MA1-SAM-3F-17a",
+    "q:Q-1MA1-SAM-3F-18",
+    "q:Q-AQA-8300-2406-1F-18",
+    "q:Q-AQA-8300-2406-1F-22a"
+   ],
+   "asked": 17
+  },
+  {
+   "id": "G17",
+   "text": "know the formulae: circumference of a circle = 2πr = πd, area of a circle = πr²; calculate: perimeters of 2D shapes, including circles; areas of circles and composite shapes; surface area and volume of spheres, pyramids, cones and composite solids",
+   "parent": "G",
+   "tier": "Foundation",
+   "topics": [
+    "Area & Circumference of Circles",
+    "Volume & Surface Area"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-66",
+    "q:Q-1MA1-SP2-3F-29a",
+    "q:Q-1MA1-SAM-1F-26",
+    "q:Q-1MA1-SAM-2F-14",
+    "q:Q-1MA1-SAM-3F-18",
+    "q:Q-AQA-8300-2406-1F-22a",
+    "q:Q-AQA-8300-2406-1F-22b",
+    "q:Q-AQA-8300-2406-1F-22c"
+   ],
+   "asked": 7
+  },
+  {
+   "id": "G18",
+   "text": "calculate arc lengths, angles and areas of sectors of circles",
+   "parent": "G",
+   "tier": "Foundation",
+   "topics": [
+    "Arcs & Sectors"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-67",
+    "q:Q-1MA1-SP2-2F-28"
+   ],
+   "asked": 1
+  },
+  {
+   "id": "G19",
+   "text": "apply the concepts of congruence and similarity, including the relationships between lengths, areas and volumes in similar figures",
+   "parent": "G",
+   "tier": "Foundation",
+   "topics": [
+    "Similar Shapes",
+    "Similar Triangles",
+    "Similar Areas & Volumes",
+    "Congruent Triangles",
+    "Similarity & Congruence"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-68",
+    "q:Q-1MA1-SP2-2F-9",
+    "q:Q-AQA-8300-2406-1F-15"
+   ],
+   "asked": 2
+  },
+  {
+   "id": "G20",
+   "text": "know the formulae for: Pythagoras’ theorem, a² + b² = c², and the trigonometric ratios, sin θ = opposite/hypotenuse, cos θ = adjacent/hypotenuse and tan θ = opposite/adjacent; apply them to find angles and lengths in right-angled triangles and, where possible, general triangles in two and three dimensional figures",
+   "parent": "G",
+   "tier": "Foundation",
+   "topics": [
+    "Pythagoras' Theorem",
+    "Right-Angled Trigonometry",
+    "3-D Pythagoras & Trigonometry",
+    "Trigonometry"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-69",
+    "q:Q-1MA1-SP2-1F-22",
+    "q:Q-1MA1-SAM-2F-24",
+    "q:Q-1MA1-SAM-2F-28"
+   ],
+   "asked": 3
+  },
+  {
+   "id": "G21",
+   "text": "know the exact values of sin θ and cos θ for θ = 0°, 30°, 45°, 60° and 90°; know the exact value of tan θ for θ = 0°, 30°, 45° and 60°",
+   "parent": "G",
+   "tier": "Foundation",
+   "topics": [
+    "Exact Trig Values"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-70"
+   ],
+   "asked": 0
+  },
+  {
+   "id": "G22",
+   "text": "know and apply the sine rule, a/sin A = b/sin B = c/sin C, and cosine rule, a² = b² + c² − 2bc cos A, to find unknown lengths and angles",
+   "parent": "G",
+   "tier": "Higher",
+   "ht": true,
+   "topics": [
+    "The Sine Rule",
+    "The Cosine Rule"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-94"
+   ],
+   "asked": 0
+  },
+  {
+   "id": "G23",
+   "text": "know and apply Area = ½ ab sin C to calculate the area, sides or angles of any triangle",
+   "parent": "G",
+   "tier": "Higher",
+   "ht": true,
+   "topics": [
+    "Area of Any Triangle"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-95"
+   ],
+   "asked": 0
+  },
+  {
+   "id": "G24",
+   "text": "describe translations as 2D vectors",
+   "parent": "G",
+   "tier": "Foundation",
+   "topics": [
+    "Translations",
+    "Vectors"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-71",
+    "q:Q-1MA1-SP2-2F-22",
+    "q:Q-1MA1-SAM-1F-30",
+    "q:Q-AQA-8300-2406-1F-19"
+   ],
+   "asked": 3
+  },
+  {
+   "id": "G25",
+   "text": "apply addition and subtraction of vectors, multiplication of vectors by a scalar, and diagrammatic and column representations of vectors; use vectors to construct geometric arguments and proofs",
+   "parent": "G",
+   "tier": "Foundation",
+   "topics": [
+    "Vectors"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-72",
+    "q:Q-1MA1-SAM-1F-30",
+    "q:Q-AQA-8300-2406-1F-19"
+   ],
+   "asked": 2
+  },
+  {
+   "id": "P1",
+   "text": "record, describe and analyse the frequency of outcomes of probability experiments using tables and frequency trees",
+   "parent": "P",
+   "tier": "Foundation",
+   "topics": [
+    "Relative Frequency & Expectation",
+    "Frequency Trees"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-73",
+    "q:Q-1MA1-SP2-1F-21a",
+    "q:Q-1MA1-SP2-1F-21b",
+    "q:Q-1MA1-SP2-3F-19b"
+   ],
+   "asked": 3
+  },
+  {
+   "id": "P2",
+   "text": "apply ideas of randomness, fairness and equally likely events to calculate expected outcomes of multiple future experiments",
+   "parent": "P",
+   "tier": "Foundation",
+   "topics": [
+    "Relative Frequency & Expectation",
+    "Basic Probability"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-74",
+    "q:Q-1MA1-SP2-1F-7a",
+    "q:Q-1MA1-SP2-1F-21a",
+    "q:Q-1MA1-SP2-1F-21b",
+    "q:Q-1MA1-SP2-2F-19bi",
+    "q:Q-1MA1-SP2-2F-19bii",
+    "q:Q-1MA1-SP2-2F-26b",
+    "q:Q-1MA1-SP2-3F-10c",
+    "q:Q-1MA1-SP2-3F-19a",
+    "q:Q-1MA1-SP2-3F-19b",
+    "q:Q-1MA1-SAM-1F-6i",
+    "q:Q-1MA1-SAM-1F-6ii",
+    "q:Q-1MA1-SAM-1F-9",
+    "q:Q-1MA1-SAM-1F-17b",
+    "q:Q-1MA1-SAM-2F-5",
+    "q:Q-1MA1-SAM-3F-15"
+   ],
+   "asked": 15
+  },
+  {
+   "id": "P3",
+   "text": "relate relative expected frequencies to theoretical probability, using appropriate language and the 0–1 probability scale",
+   "parent": "P",
+   "tier": "Foundation",
+   "topics": [
+    "Relative Frequency & Expectation",
+    "Basic Probability",
+    "Probability"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-75",
+    "q:Q-1MA1-SP2-1F-7a",
+    "q:Q-1MA1-SP2-1F-21a",
+    "q:Q-1MA1-SP2-1F-21b",
+    "q:Q-1MA1-SP2-2F-19bi",
+    "q:Q-1MA1-SP2-2F-19bii",
+    "q:Q-1MA1-SP2-2F-26b",
+    "q:Q-1MA1-SP2-3F-10c",
+    "q:Q-1MA1-SP2-3F-19a",
+    "q:Q-1MA1-SP2-3F-19b",
+    "q:Q-1MA1-SAM-1F-6i",
+    "q:Q-1MA1-SAM-1F-6ii",
+    "q:Q-1MA1-SAM-1F-9",
+    "q:Q-1MA1-SAM-1F-17b",
+    "q:Q-1MA1-SAM-2F-5",
+    "q:Q-1MA1-SAM-3F-15"
+   ],
+   "asked": 15
+  },
+  {
+   "id": "P4",
+   "text": "apply the property that the probabilities of an exhaustive set of outcomes sum to one; apply the property that the probabilities of an exhaustive set of mutually exclusive events sum to one",
+   "parent": "P",
+   "tier": "Foundation",
+   "topics": [
+    "Basic Probability"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-76",
+    "q:Q-1MA1-SP2-1F-7a",
+    "q:Q-1MA1-SP2-2F-19bi",
+    "q:Q-1MA1-SP2-2F-19bii",
+    "q:Q-1MA1-SP2-2F-26b",
+    "q:Q-1MA1-SP2-3F-10c",
+    "q:Q-1MA1-SP2-3F-19a",
+    "q:Q-1MA1-SAM-1F-6i",
+    "q:Q-1MA1-SAM-1F-6ii",
+    "q:Q-1MA1-SAM-1F-9",
+    "q:Q-1MA1-SAM-1F-17b",
+    "q:Q-1MA1-SAM-2F-5",
+    "q:Q-1MA1-SAM-3F-15"
+   ],
+   "asked": 12
+  },
+  {
+   "id": "P5",
+   "text": "understand that empirical unbiased samples tend towards theoretical probability distributions, with increasing sample size",
+   "parent": "P",
+   "tier": "Foundation",
+   "topics": [
+    "Relative Frequency & Expectation"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-77",
+    "q:Q-1MA1-SP2-1F-21a",
+    "q:Q-1MA1-SP2-1F-21b",
+    "q:Q-1MA1-SP2-3F-19b"
+   ],
+   "asked": 3
+  },
+  {
+   "id": "P6",
+   "text": "enumerate sets and combinations of sets systematically, using tables, grids, Venn diagrams and tree diagrams",
+   "parent": "P",
+   "tier": "Foundation",
+   "figure": [
+    "diagram"
+   ],
+   "topics": [
+    "Venn Diagrams & Set Notation",
+    "Tree Diagrams",
+    "Listing Outcomes & Sample Space"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-78",
+    "q:Q-1MA1-SP2-1F-7b",
+    "q:Q-1MA1-SP2-1F-21a",
+    "q:Q-1MA1-SP2-2F-19a",
+    "q:Q-1MA1-SP2-2F-19bi",
+    "q:Q-1MA1-SP2-2F-19bii",
+    "q:Q-1MA1-SP2-2F-26ai",
+    "q:Q-1MA1-SP2-2F-26aii",
+    "q:Q-1MA1-SP2-2F-26b",
+    "q:Q-1MA1-SAM-1F-11",
+    "q:Q-1MA1-SAM-1F-17a",
+    "q:Q-1MA1-SAM-1F-17b",
+    "q:Q-1MA1-SAM-2F-29",
+    "q:Q-AQA-8300-2406-1F-7a"
+   ],
+   "asked": 13
+  },
+  {
+   "id": "P7",
+   "text": "construct theoretical possibility spaces for single and combined experiments with equally likely outcomes and use these to calculate theoretical probabilities",
+   "parent": "P",
+   "tier": "Foundation",
+   "topics": [
+    "Listing Outcomes & Sample Space"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-79",
+    "q:Q-1MA1-SP2-1F-7b",
+    "q:Q-1MA1-SP2-1F-21a",
+    "q:Q-1MA1-SP2-2F-19a",
+    "q:Q-1MA1-SP2-2F-19bi",
+    "q:Q-1MA1-SP2-2F-19bii",
+    "q:Q-1MA1-SAM-1F-11",
+    "q:Q-AQA-8300-2406-1F-7a"
+   ],
+   "asked": 7
+  },
+  {
+   "id": "P8",
+   "text": "calculate the probability of independent and dependent combined events, including using tree diagrams and other representations, and know the underlying assumptions",
+   "parent": "P",
+   "tier": "Foundation",
+   "figure": [
+    "diagram"
+   ],
+   "topics": [
+    "Tree Diagrams"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-80",
+    "q:Q-1MA1-SAM-1F-17a",
+    "q:Q-1MA1-SAM-1F-17b",
+    "q:Q-1MA1-SAM-2F-29"
+   ],
+   "asked": 3
+  },
+  {
+   "id": "P9",
+   "text": "calculate and interpret conditional probabilities through representation using expected frequencies with two-way tables, tree diagrams and Venn diagrams",
+   "parent": "P",
+   "tier": "Higher",
+   "ht": true,
+   "figure": [
+    "diagram"
+   ],
+   "topics": [
+    "Conditional Probability"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-96"
+   ],
+   "asked": 0
+  },
+  {
+   "id": "S1",
+   "text": "infer properties of populations or distributions from a sample, whilst knowing the limitations of sampling",
+   "parent": "S",
+   "tier": "Foundation",
+   "topics": [
+    "Sampling"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-81",
+    "q:Q-1MA1-SAM-1F-27"
+   ],
+   "asked": 1
+  },
+  {
+   "id": "S2",
+   "text": "interpret and construct tables, charts and diagrams, including frequency tables, bar charts, pie charts and pictograms for categorical data, vertical line charts for ungrouped discrete numerical data, tables and line graphs for time series data and know their appropriate use",
+   "parent": "S",
+   "tier": "Foundation",
+   "figure": [
+    "chart",
+    "diagram",
+    "graph"
+   ],
+   "topics": [
+    "Bar Charts & Pictograms",
+    "Pie Charts",
+    "Stem & Leaf Diagrams",
+    "Line Graphs & Time Series",
+    "Frequency Polygons",
+    "Charts & Diagrams"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-82",
+    "q:Q-1MA1-SP2-1F-14a",
+    "q:Q-1MA1-SP2-2F-8c",
+    "q:Q-1MA1-SP2-2F-23a",
+    "q:Q-1MA1-SP2-2F-23bi",
+    "q:Q-1MA1-SP2-2F-23bii",
+    "q:Q-1MA1-SP2-3F-10a",
+    "q:Q-1MA1-SP2-3F-10b",
+    "q:Q-1MA1-SP2-3F-10c",
+    "q:Q-1MA1-SAM-1F-14a",
+    "q:Q-1MA1-SAM-1F-14b",
+    "q:Q-1MA1-SAM-2F-8",
+    "q:Q-1MA1-SAM-3F-6a",
+    "q:Q-1MA1-SAM-3F-6b",
+    "q:Q-1MA1-SAM-3F-6c",
+    "q:Q-AQA-8300-2406-1F-21a",
+    "q:Q-AQA-8300-2406-1F-21b"
+   ],
+   "asked": 16
+  },
+  {
+   "id": "S3",
+   "text": "construct and interpret diagrams for grouped discrete data and continuous data, ie histograms with equal and unequal class intervals and cumulative frequency graphs, and know their appropriate use",
+   "parent": "S",
+   "tier": "Higher",
+   "ht": true,
+   "figure": [
+    "diagram",
+    "graph"
+   ],
+   "topics": [
+    "Histograms",
+    "Cumulative Frequency",
+    "Box Plots & Quartiles"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-97"
+   ],
+   "asked": 0
+  },
+  {
+   "id": "S4",
+   "text": "interpret, analyse and compare the distributions of data sets from univariate empirical distributions through: appropriate graphical representation involving discrete, continuous and grouped data; appropriate measures of central tendency (median, mean, mode and modal class) and spread (range, including consideration of outliers)",
+   "parent": "S",
+   "tier": "Foundation",
+   "topics": [
+    "Averages & Range",
+    "Mean",
+    "Median",
+    "Mode",
+    "Range",
+    "Averages from a Table",
+    "Averages from Grouped Data",
+    "Comparing Distributions",
+    "Reverse Mean"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-83",
+    "q:Q-1MA1-SP2-1F-15a",
+    "q:Q-1MA1-SP2-1F-15b",
+    "q:Q-1MA1-SP2-2F-8a",
+    "q:Q-1MA1-SP2-3F-10a",
+    "q:Q-1MA1-SP2-3F-10b",
+    "q:Q-1MA1-SP2-3F-16a",
+    "q:Q-1MA1-SP2-3F-16b",
+    "q:Q-1MA1-SAM-2F-9",
+    "q:Q-1MA1-SAM-2F-27a",
+    "q:Q-1MA1-SAM-2F-27b",
+    "q:Q-AQA-8300-2406-1F-9a",
+    "q:Q-AQA-8300-2406-1F-9b"
+   ],
+   "asked": 12
+  },
+  {
+   "id": "S5",
+   "text": "apply statistics to describe a population",
+   "parent": "S",
+   "tier": "Foundation",
+   "topics": [
+    "Sampling"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-84",
+    "q:Q-1MA1-SAM-1F-27"
+   ],
+   "asked": 1
+  },
+  {
+   "id": "S6",
+   "text": "use and interpret scatter graphs of bivariate data; recognise correlation and know that it does not indicate causation; draw estimated lines of best fit; make predictions; interpolate and extrapolate apparent trends whilst knowing the dangers of so doing",
+   "parent": "S",
+   "tier": "Foundation",
+   "figure": [
+    "draw",
+    "graph"
+   ],
+   "topics": [
+    "Scatter Graphs & Correlation"
+   ],
+   "links": [
+    "ct:TB-AQA-8300-85",
+    "q:Q-1MA1-SP2-3F-26a",
+    "q:Q-1MA1-SP2-3F-26b",
+    "q:Q-1MA1-SAM-3F-21a",
+    "q:Q-1MA1-SAM-3F-21b"
+   ],
+   "asked": 4
+  }
+ ],
+ "note": "Each reference (N1–S6) is AQA 8300’s subject content as the specification prints it. `tier` is Foundation (both tiers) or Higher (`ht`: Higher tier only; a Foundation point’s Higher-only parts are in the PDF). `topics` is the one table from data/topics.json labels to references: a question’s `spec_ref` (aqa-8300:<ref>) came from its topics through it; `links` and `asked` are read off those `spec_ref`s and the TB-AQA-8300 cards. `figure` as in the science files."
+}
