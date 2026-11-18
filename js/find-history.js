@@ -170,7 +170,7 @@ function specPracticeOpts_(x) {
   const k = specKeyOfCard_(x && x.row), n = k ? specPracticeParts_(k).length : 0;
   return n ? { icon: 'edit', label: 'Practise this', note: n + ' part' + (n === 1 ? '' : 's'), act: 'spec-practise', data: { k } } : null;
 }
-/* THE LIST, GROUPED BY WORKSHEET: drawn under the card's tiles on the first tap, put away on the next; each part opens in Find. */
+/* THE LIST, GROUPED BY WORKSHEET (a headed section a sheet, open): drawn under the card's tiles on the first tap, put away on the next; each part opens in Find. */
 on('spec-practise', el => {
   const card = el && el.closest('.card'), k = el && el.getAttribute('data-k');
   if (!card || !k) return;
@@ -180,11 +180,14 @@ on('spec-practise', el => {
   specPracticeParts_(k).forEach(i => { const pid = String(i.row.paper_id || ''), g = groups[groups.length - 1];
     if (g && g.pid === pid) g.items.push(i); else groups.push({ pid, name: i.sub || pid, items: [i] }); });
   const box = document.createElement('div');
-  box.className = 'kc-practise';
-  box.innerHTML = cardBlocks_([{ type: 'tree', nodes: groups.map(g => ({ label: g.name,
-    tiles: g.items.map(i => ({ icon: 'edit', label: i.name, note: i.row.marks ? i.row.marks + ' mark' + (i.row.marks === '1' ? '' : 's') : '', act: 'find-open', data: { key: i.key } })) })) }]);
-  const row = el.closest('.tile-row');
-  if (row && row.parentNode) row.parentNode.insertBefore(box, row.nextSibling); else card.appendChild(box);
+  box.className = 'kc-lines kc-practise'; /* the card's own lines part, so its rows sit on the card's centre line */
+  /* EACH PART BY ITS OWN NUMBER (1a, 2, 3c), its sheet the section it sits in: forty identical pencils told a child nothing (18 Nov). */
+  const num = r => String(r.question || '') + String(r.part || '');
+  box.innerHTML = cardBlocks_(groups.map(g => ({ type: 'section', head: g.name, blocks: [{ type: 'tiles',
+    tiles: g.items.map(i => ({ label: num(i.row) || i.name, note: [i.name, i.row.marks ? i.row.marks + ' mark' + (i.row.marks === '1' ? '' : 's') : ''].filter(Boolean).join(' · '), act: 'find-open', data: { key: i.key } })) }] })));
+  /* A PART OF THE CARD ITSELF, after the one holding the tile (rule 1.75: a card's children are its kc-* parts). */
+  const part = [...card.children].find(c => c.contains(el));
+  if (part) card.insertBefore(box, part.nextSibling); else card.appendChild(box);
 });
 /* A PART'S LESSON: its main spec point's point-by-point card (the point's `ct:` link), opened in Find. */
 function specReviseOpts_(x) {
