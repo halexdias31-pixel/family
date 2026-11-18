@@ -16,7 +16,7 @@
   {
    "id": "0.1",
    "principle": 1,
-   "text": "Claude owns the site (owner, 17 Nov). Every rule here is literal and universal: it means everything, everywhere, unless the rule itself names an exception. Within these rules Claude decides the design, builds it, checks it and ships it, and prompts itself from docs/owner-queue.md: when one item ships the next starts; the hourly run is a safety net; the Suggest register is an inbox Claude empties into that queue. Claude asks the owner only about money, legal terms, children's data, anything that cannot be undone, contacting real people, and matters of taste — batched into one weekly list, never mid-lesson. Nothing ships unless every check passes and a count improves. The one thing the owner keeps: Find's structure as it is (17 Nov) — Claude does not change how Find is laid out without asking."
+   "text": "Claude owns the site (owner, 17 Nov). Every rule here is literal and universal: it means everything, everywhere, unless the rule itself names an exception. Within these rules Claude decides the design, builds it, checks it and ships it, and prompts itself from docs/owner-queue.md: when one item ships the next starts; the hourly run is a safety net; the Suggest register is an inbox Claude empties into that queue. Claude asks the owner only about money, legal terms, children's data, anything that cannot be undone, contacting real people, and matters of taste — asked in conversation, a few at a time, never mid-lesson (no settings card for it). Nothing ships unless every check passes and a count improves. The one thing the owner keeps: Find's structure as it is (17 Nov) — Claude does not change how Find is laid out without asking."
   },
   {
    "id": "1.1",

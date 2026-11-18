@@ -2,7 +2,7 @@
 
 Claude owns the site (rules.json rule 0.1) and prompts itself from this list: when one item ships, the next starts at once; the hourly run is only the safety net. Claude adds, orders and removes items itself. The owner's Suggest register (Ledger tab `claude_notes`) is an inbox only: anything there is read, turned into an item here (or done at once), and closed.
 
-Order: what a child or parent would notice first, then what stops things drifting, then new content. An item ships only when every check passes and a count goes up. Asks for the owner are batched into one weekly list (bottom).
+Order: what a child or parent would notice first, then what stops things drifting, then new content. An item ships only when every check passes and a count goes up. Questions for the owner are asked in conversation, a few at a time (the list at the bottom is Claude's own memory of them).
 
 ## Now
 
@@ -55,7 +55,7 @@ Order: what a child or parent would notice first, then what stops things driftin
 14. History: more topics built like the Tudors.
 15. Photo marking beyond pie charts (bar charts, graphs) once pies prove themselves in lessons.
 
-## For the owner (weekly, batched)
+## For the owner (ask in conversation)
 
 - NSW HSC: the 2017 syllabus or the 2024 one?
 - English: the copyright-withheld extracts for Nov 2023 P1 (Byatt, Possession) and Nov 2022 P1 (Hemingway) need a full printed copy; papers for June 2021 P2 and Nov 2024 P1/P2 can be added if wanted.
