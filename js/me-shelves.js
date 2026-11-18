@@ -29,12 +29,8 @@ const QUAL_SUBJECTS = [
   'PGCE', 'QTS', 'DBS', 'First Aid', 'DofE Gold',
 ];
 /* ---------- AND THE LEVELS, WHICH STOPPED AT A-LEVEL § */
-const QUAL_LEVELS = [
-  'Entry Level', 'SATs', '11+', 'GCSE', 'IGCSE', 'AS', 'A-Level', 'BTEC', 'T Level',
-  'International Baccalaureate', 'Access to HE', 'Foundation Degree', 'HNC', 'HND',
-  "Bachelor's degree", "Master's degree", 'PGCE', 'Doctorate', 'Diploma', 'Certificate',
-  'Basic', 'Standard', 'Enhanced',
-];
+/* FROM settings.json `levels.quals` (owner, 18 Nov): the one list a qualification's level is chosen from. */
+const QUAL_LEVELS = SHARED_SETTINGS.levels.quals.list;
 /* AND THE GRADES, spelt right ("Distinciton" was on the sheet's list), numbered and lettered, then
    the ones a BTEC and a degree give. */
 const QUAL_GRADES = [
@@ -347,7 +343,7 @@ const QUAL_KEYS = ['', '_level', '_grade', '_board', '_received', '_spec', '_tea
 /* ---------- ONE LINE A QUALIFICATION, AND THE LINE IS THE DOOR § */
 /* THE CERTIFICATES ARE THE TAILS OF THE TWO LISTS — the same tails `QUAL_CERTS` in core.gs copies, and `check-people.js` holds that copy to these. § */
 const QUAL_CERT_SUBJECTS_ = QUAL_SUBJECTS.slice(QUAL_SUBJECTS.indexOf('PGCE'));
-const QUAL_CERT_LEVELS_ = QUAL_LEVELS.slice(QUAL_LEVELS.indexOf('Basic'));
+const QUAL_CERT_LEVELS_ = QUAL_LEVELS.filter(l => ['Basic', 'Standard', 'Enhanced'].indexOf(l) >= 0);
 function qualShelf_(list, value) {
   const nums = [...new Set((list || []).filter(isQualField_)
     .map(f => String(f).match(/^qual_(\d+)/)[1]))];
@@ -398,7 +394,7 @@ function qualSlot_(i, value, o) {
     + cardBlock_({ type: 'group', look: 'q-ed', blocks: [
       { type: 'group', look: 'q-row', blocks: [
         qualPick_({ 'data-me': f(''), class: 'q-name' }, q.subject, QUAL_SUBJECTS, 'Subject', 'Choose', o.mine),
-        qualPick_({ 'data-me': f('_level') }, q.level, QUAL_LEVELS, 'Level', 'Choose')] },
+        qualPick_({ 'data-me': f('_level') }, qualLevel_(q.level), QUAL_LEVELS, 'Level', 'Choose')] },
       { type: 'group', look: 'q-row', blocks: [
         qualPick_({ 'data-me': f('_grade') }, q.grade, QUAL_GRADES, 'Grade', 'None yet', null, 'q-f q-grade'),
         { type: 'field', look: 'q-f', caps: ['Finished', 'Year'], blocks: [{ type: 'control', tag: 'select', attrs: { 'data-me': f('_received') },

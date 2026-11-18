@@ -126,7 +126,6 @@
     "book-rows": "core",
     "book-spine": "core",
     "receipt": "secondary",
-    "one-place": "secondary",
     "overworld": "secondary",
     "select": "core",
     "collections": "secondary",
@@ -367,7 +366,6 @@
     "working",
     "work-file",
     "receipt",
-    "one-place",
     "qr",
     "reader",
     "writings",
@@ -409,7 +407,6 @@
     "pixel"
   ],
   "lazy": [
-    "one-place",
     "games",
     "racer",
     "boardgames",

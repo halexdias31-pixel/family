@@ -13,10 +13,7 @@ function postListRecords_(body, action, began) {
   return jsonOut(recordsAction_(action, body));
 }
 
-/* checker ticks (1050), owner's inbox (1060) */
-function postListOwnerAnswers_(body, action, began) {
-  return jsonOut(ownerAnswersAction_(action, body));
-}
+/* checker ticks (1050) */
 
 /* ---------- AN ERROR FROM A PHONE (O5): counted on its row, and its first sighting is one note for Claude ---------- */
 function postClientError_(body) { return jsonTry_(() => clientError_(body)); }

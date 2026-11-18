@@ -96,7 +96,7 @@ window.KC_OWN = Object.assign(window.KC_OWN || {}, {
   bible: x => bibleCard_(x), talmud: x => window.talmudCard_(x), quran: x => window.quranCard_(x),
   worktext: x => window.worksCard_(x), hadith: x => window.hadithCard_(x), writ: x => textsCard_(x), pdtext: x => pdtextsCard_(x), orthotext: x => window.orthoCard_(x),
   hymn: x => window.hymnsCard_(x), person: x => (x.add && typeof personAddCard_ === 'function' ? personAddCard_() : ''), tool: x => widgetCard_(x), game: x => widgetCard_(x),
-  setting: x => (x.soon ? soonCard_(x) : settingDoorCard_(x)), health: x => (typeof healthCardOf_ === 'function' ? healthCardOf_(x.which) : ''),
+  setting: x => (x.add ? (typeof personAddCard_ === 'function' ? personAddCard_() : '') : x.soon ? soonCard_(x) : settingDoorCard_(x)), health: x => (typeof healthCardOf_ === 'function' ? healthCardOf_(x.which) : ''),
 });
 
 /* WHAT A QUESTION'S ANSWER PAGE IS CALLED, as the kinds tab names it. */

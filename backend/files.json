@@ -1,7 +1,6 @@
 [
   "appsscript.json",
   "workfile.gs",
-  "owneranswers.gs",
   "booking.gs",
   "constants.gs",
   "access.gs",

@@ -566,7 +566,7 @@
  ],
  "sweep": [
   "Read this file; read `docs/history` only for the area in hand (`grep -ril <keyword> docs/history`).",
-  "Read the `owner_answers` tab (the ledger spreadsheet). A specific answer becomes its change, an edit of the rule it touches here and a history note; its question in `data/settings/owner-questions.json` gets `status: \"answered\"`. A general answer (\"always do X\") becomes a rule here. A clash becomes a question (1.3).",
+  "Questions for the owner are asked in conversation (owner, 18 Nov), never on a card; an answer becomes its change, an edit of the rule it touches here and a history note. A general answer (\"always do X\") becomes a rule here. A clash becomes a question (1.3).",
   "Work the one worklist, dearest first, budgets only going down: `node tools/health.js --list`, `--changed`.",
   "Anything the rules don't decide becomes an open question (id, words, options a/b/c), never a guess. Write the guess first; where guesses match the owner's answers ~9 in 10, stop asking there.",
   "Stable = the core (Find, Library, Questions, Settings, Bookings) works on a phone with no errors and CI is green 3 runs running; frozen features return one at a time after that, most-used first. The Apps Script deploy stays the owner's."

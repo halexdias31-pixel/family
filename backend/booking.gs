@@ -1,7 +1,7 @@
 /* @family. — 30_booking.gs (4 of 8) THE BOOKING MACHINE, and everything that decides who is in a session. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const BOOKING_VERSION = "2026-11-17-card-1";
+const BOOKING_VERSION = "2026-11-18-quals-1";
 
 
 /* WHEN THE BUSINESS ACTUALLY OPERATES within an interval. § */
@@ -1244,7 +1244,6 @@ const PERMISSIONS = {
   linkChild: ['admin'],
   listApplications: ['admin'],
   listClientErrors: ['admin'],
-  listOwnerAnswers: ['admin'],
   listRecords: ['admin'],
   listStaff: ['admin'],
   listSuggestions: ['admin'],
@@ -1319,7 +1318,6 @@ const ITEM_PERMISSIONS = {
   'message:save': ['member', 'child', 'admin'],
   'notepad:save': ['member', 'child', 'admin'],
   'notify:save': ['member', 'child', 'admin'],
-  'ownerAnswer:save': ['admin'],
   'person:delete': ['admin'],
   'person:read': ['admin'],
   'person:save': ['admin'],
@@ -1348,7 +1346,6 @@ function itemDoors_() {
     'profile:save': { self: postUpdateProfile_ },
     'notepad:save': { self: postSaveNotepad_ },
     'todo:save': { self: postSaveTodo_ },
-    'ownerAnswer:save': { self: postListOwnerAnswers_ },
     'message:read': { self: postMessages_ },
     'message:save': { self: postReadMessage_ },
     'spotlight:save': { self: postSpotlight_ },

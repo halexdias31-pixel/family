@@ -123,6 +123,26 @@ function rcBehind_(el) {
   return getComputedStyle(document.documentElement).backgroundColor || token_('--bg', 'black');
 }
 
+/* ---------- A PICTURE IN THE SNAPSHOT IS ITS OWN BYTES (owner, 17 Nov). An SVG drawn to a canvas loads nothing from
+   outside, so each <img> becomes a data URL first. A Drive picture is fetched through its lh3 form, which Google serves
+   with `Access-Control-Allow-Origin: *` for any anyone-with-link file; one try more at another size before giving up. */
+const rcDriveId_ = u => (String(u).match(/\/d\/([\w-]{20,})/) || String(u).match(/[?&]id=([\w-]{20,})/) || [])[1] || '';
+function rcPicData_(src) {
+  const id = rcDriveId_(src);
+  const tries = id ? ['https://lh3.googleusercontent.com/d/' + id + '=w800', 'https://lh3.googleusercontent.com/d/' + id] : [src];
+  const get = u => fetch(u, { mode: 'cors', credentials: 'omit' }).then(r => r.ok ? r.blob() : Promise.reject(new Error(r.status)))
+    .then(b => new Promise((ok, no) => { const f = new FileReader(); f.onload = () => ok(f.result); f.onerror = no; f.readAsDataURL(b); }));
+  return tries.reduce((p, u) => p.catch(() => get(u)), Promise.reject());
+}
+function rcPics_(clone) {
+  return Promise.all([...clone.querySelectorAll('img')].map(im => {
+    const src = im.getAttribute('src') || '';
+    if (!src || /^data:/.test(src)) return null;
+    return rcPicData_(src).then(d => { im.setAttribute('src', d); im.removeAttribute('srcset'); im.removeAttribute('loading'); })
+      .catch(e => { if (typeof oops_ === 'function') oops_(e, 'receipt:picture'); });
+  }));
+}
+
 /** The `.rc` as a PNG at `RC_SNAP_K` device pixels per CSS pixel. Resolves `{ blob, w, h, svg }`. */
 function rcPng_(rc) {
   /* ---------- THE SNAPSHOT IS TAKEN IN ONE GO, SYNCHRONOUSLY § */
@@ -145,14 +165,15 @@ function rcPng_(rc) {
       box = { width: box.width / z, height: box.height / z, left: box.left, top: box.top };
     }
     clone.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml');
-    xml = new XMLSerializer().serializeToString(clone);
+    xml = clone;
     behind = rcBehind_(rc);
   } finally {
     rc.classList.remove('rc-snap');
   }
   const w = Math.max(1, box.width), h = Math.max(1, box.height);
   const cw = Math.ceil(w * RC_SNAP_K), ch = Math.ceil(h * RC_SNAP_K);
-  return rcFonts_().then(fonts => {
+  return Promise.all([rcFonts_(), rcPics_(xml)]).then(([fonts]) => {
+    xml = new XMLSerializer().serializeToString(xml);
     /* `viewBox` IS THE CSS SIZE AND `width`/`height` THE PIXEL SIZE, so the browser lays the HTML out at the width it had on the screen — the same wraps, the same § */
     const svg = cardBlock_({ type: 'paperSnap', cw, ch, k: RC_SNAP_K, w, h, css: fonts + '\n' + rules.join('\n'), xml });
     return new Promise((ok, no) => {

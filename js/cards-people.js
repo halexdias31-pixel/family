@@ -74,28 +74,34 @@ function profQualChip_(p) {
 /* A LONG LIST SHORTENED TO "+N" (8 Nov): the whole tutor card fits one phone screen; the rest are named in the pill's title. */
 /* EVERY TAG SHOWN, never a "+N" (owner, 17 Nov). */
 const profTagRow_ = (look, tags) => (tags.length ? { type: 'tags', look: 'prof-tags prof-teach ' + look, tags } : null);
+/* A ROW PER LEVEL, HIGHEST FIRST (owner, 18 Nov: settings.json `levels.quals` order, `qualRank_`); each qualification its own tag, and
+   within a level the subjects stay together in the order they came. Rows, like the jobs' row. */
 function profQuals_(t) {
   const parts = Array.isArray(t.qualsParts) ? t.qualsParts.filter(p => p && profQualV_(p.subject)) : [];
-  let chips;
-  if (parts.length) {
-    const at = {}, groups = [];
-    parts.forEach(p => {
-      const k = norm(profQualV_(p.subject));
-      if (!at[k]) groups.push(at[k] = []);
-      at[k].push(p);
-    });
-    chips = [].concat(...groups).map(profQualChip_);
-  } else {
-    chips = profList_(t.quals).map(text => ({ pill: true, text }));
-  }
-  chips = chips;
-  return profTagRow_('prof-quals', chips);
+  if (!parts.length) return [profTagRow_('prof-quals', profList_(t.quals).map(text => ({ pill: true, text })))];
+  const at = {}, rows = [];
+  parts.map(p => Object.assign({}, p, { level: qualLevel_(p.level) })).forEach(p => {
+    const k = p.level;
+    if (!at[k]) rows.push(at[k] = { rank: qualRank_(k), list: [] });
+    at[k].list.push(p);
+  });
+  return rows.map((r, i) => [r, i]).sort((a, b) => (a[0].rank - b[0].rank) || (a[1] - b[1])).map(([r]) => {
+    /* ONLY THE BEST AT THIS LEVEL (owner, 18 Nov): kinds.json `tutor.card.quals` — how many, and the one grade scale; ties keep stored order. */
+    const Q = (((typeof ITEM_KINDS !== 'undefined' && ITEM_KINDS.kinds.tutor) || {}).card || {}).quals || {}, cap = Number(Q[r.list[0].level]) || 0;
+    const g = p => { const v = (Q.grades || {})[profQualV_(p.grade).toUpperCase()]; return v == null ? -1 : Number(v); };
+    const list = cap ? r.list.map((p, i) => [p, i]).sort((a, b) => (g(b[0]) - g(a[0])) || (a[1] - b[1])).slice(0, cap)
+      .sort((a, b) => a[1] - b[1]).map(a => a[0]) : r.list;
+    const seen = {}, groups = [];
+    list.forEach(p => { const k = norm(profQualV_(p.subject)); if (!seen[k]) groups.push(seen[k] = []); seen[k].push(p); });
+    return profTagRow_('prof-quals', [].concat(...groups).map(profQualChip_));
+  });
 }
 
 /* ---------- JOBS, CURRENT AND PAST (8 Nov): one pill a job — "Role · Where · 2019–now" — in the jobs colour. */
 const profJobSay_ = j => [j.role, j.where, [j.from, j.to].filter(Boolean).join('–')].map(v => String(v || '').trim()).filter(Boolean).join(' · ');
 function profJobs_(t) {
-  const says = (Array.isArray(t.jobs) ? t.jobs : []).map(profJobSay_).filter(Boolean);
+  /* ONLY THE CURRENT JOB (owner, 18 Nov): one with no end date `to`; none current, no job tag. Past jobs stay stored and editable. */
+  const says = (Array.isArray(t.jobs) ? t.jobs : []).filter(j => j && !String(j.to || '').trim()).map(profJobSay_).filter(Boolean);
   return profTagRow_('prof-jobs', says.map(text => ({ pill: true, text })));
 }
 
@@ -184,15 +190,39 @@ function profAvail_(t) {
   /* THE TAUGHT HOURS, SAID AFTER THE FREE ONES — see the note over this function. § */
   const taught = hoursOn(c => c.busy);
   /* LINES, NOT A GRID (467) — the owner: "The tutor profile should fit on a normal phone even with lots of data." Hours in a row merge. */
-  const line = which => days.map(d => {
-    const hs = d.hours.filter(which).map(c => c.h), spans = [];
+  const line = which => profDaysRun_(SD.map(([p, label]) => {
+    const d = days.find(x => x.label === label);
+    const hs = d ? d.hours.filter(which).map(c => c.h) : [], spans = [];
     hs.forEach(h => { const l = spans[spans.length - 1]; if (l && l[1] === h) l[1] = h + 1; else spans.push([h, h + 1]); });
     /* ONE SPAN A DAY AND "+N": a choppy week stays one pill a day; `say` reads every hour. */
-    return spans.length ? fmtDate_(d.label, 'day') + ' ' + profSpan_(spans[0]) + (spans.length > 1 ? ' +' + (spans.length - 1) : '') : '';
-  }).filter(Boolean);
+    return { day: fmtDate_(label, 'day'), hours: spans.length ? profSpan_(spans[0]) + (spans.length > 1 ? ' +' + (spans.length - 1) : '') : '' };
+  }));
   return { type: 'hours', count: ticked.length, free: line(c => c.lit), busy: line(c => c.busy),
     say: (said ? 'Available ' + said : text_('no-free-hours-this-week')) + (taught ? '. Already teaching ' + taught : '') };
 }
+/* THE WEEK'S HOURS, REPEATS SAID ONCE (owner, 18 Nov) — the one rule wherever hours are listed: `week` is the seven days in order, Monday
+   first, each { day, hours } ('' for none). Every day alike → "Every day …"; the five weekdays alike → "Weekdays …"; Saturday and Sunday
+   alike → "Weekends …" (both may stand together); otherwise neighbouring days with the same hours run together ("Mon–Wed …"). */
+function profDaysRun_(week) {
+  const same = list => list.length && list[0].hours && list.every(d => d.hours === list[0].hours);
+  const none = list => list.every(d => !d.hours);
+  if (week.length === 7) {
+    const wd = week.slice(0, 5), we = week.slice(5);
+    if (same(week)) return ['Every day ' + week[0].hours];
+    const W = same(wd) ? 'Weekdays ' + wd[0].hours : '', E = same(we) ? 'Weekends ' + we[0].hours : '';
+    if ((W || none(wd)) && (E || none(we)) && (W || E)) return [W, E].filter(Boolean);
+  }
+  const out = [];
+  week.forEach((d, i) => {
+    const l = out[out.length - 1];
+    if (d.hours && l && l.hours === d.hours && l.at === i - 1) { l.to = d.day; l.at = i; }
+    else if (d.hours) out.push({ from: d.day, to: '', hours: d.hours, at: i });
+  });
+  return out.map(r => r.from + (r.to ? '–' + r.to : '') + ' ' + r.hours);
+}
+/* A BOOKING'S RUNS ({ dayName, hour, hours }) SAID BY THE SAME RULE. */
+const profRunsSay_ = runs => profDaysRun_(((typeof SLOT_DAYS !== 'undefined' && SLOT_DAYS) || []).map(([, label]) => ({ day: fmtDate_(label, 'day'),
+  hours: runs.filter(r => r.dayName === label).map(r => fmtDate_(r.hour, 'hours', r.hour + r.hours)).join(', ') })));
 /* AN HOUR SPAN, 24-hour (owner, 8 Nov): 16:00–19:00. */
 const profSpan_ = ([a, b]) => fmtDate_(a, 'hours', b);
 
@@ -228,7 +258,8 @@ const profNote_ = t => (t.listed === false ? (t.pending ? text_('they-ticked-tut
   : text_('clients-cannot-see-them-the-crossed')) : '');
 /* THE NAME LINE'S PILLS: their name, role and titles, the rate where `it.live` still has it, what they are doing, and why they are off. */
 /* WHAT THEY ARE CALLED: their titles (a coach, the head of boxing) when they have one, else their role; staff either way (owner, 17 Nov). */
-const profRoleWords_ = t => (profList_(t.titles).length ? profList_(t.titles) : [t.role || 'Tutor']);
+/* PLAIN "Tutor" IS NEVER SAID (owner, 17 Nov): it wastes the line; only a real title is. One rule, every role pill. */
+const profRoleWords_ = t => (profList_(t.titles).length ? profList_(t.titles) : [t.role || '']).filter(v => v && !/^tutor$/i.test(String(v).trim()));
 const profPills_ = (it, t) => [profPill_(fmtName_(t), 0, 'prof-tag-name')].concat(profRoleWords_(t).map(v => profPill_(v, 1)),
   'rate' in ((it.live || {}).money || {}) ? [profPill_(it.live.money.rate, 4, 'prof-tag-rate')] : [], t.activity ? [profPill_(t.activity, 3, 'prof-act')] : [],
   t.listed === false ? [profPill_(t.pending ? 'asked to tutor' : 'not listed', 9, 'prof-off')] : []);
@@ -246,5 +277,5 @@ function profBody_(t, L) {
     t.description ? { type: 'text', look: 'prof-say cut2', act: 'cut-open', text: t.description } : null,
     Array.isArray(t.photos) && t.photos.length ? { type: 'photos', srcs: t.photos.map(u => pic(u)), more: 4 } : null,
     words.length ? { type: 'text', look: 'prof-words', text: words.map((v, i) => (i ? [{ i: '·' }, { b: v }] : [{ b: v }])) } : null,
-    profQuals_(t), profJobs_(t), profPlaces_(profList_(t.venues)), profAvail_(t)].filter(Boolean);
+    ...profQuals_(t), profJobs_(t), profPlaces_([String(t.town || '').trim()].filter(Boolean)), profAvail_(t)].filter(Boolean);
 }

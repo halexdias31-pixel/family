@@ -172,6 +172,24 @@ const nameKid_ = p => {
   const rs = [].concat(p.roles || [], p.role || [], p.type || []).map(r => String(r).toLowerCase());
   return p.kid === true || p.child === true || rs.some(r => r === 'kid' || r === 'child' || r === 'student');
 };
+/* A QUALIFICATION'S LEVEL BY ITS ONE NAME (owner, 18 Nov): settings.json `levels.quals` — its list, its `says`, then the library levels' `says`
+   ("Alevel" → "A-Level"); anything else is kept as typed. Copied to the backend by tools/cards-gen.js. */
+function qualLevel_(v) {
+  const t = String(v == null ? '' : v).trim(), k = x => String(x).toLowerCase().replace(/[^a-z0-9+]/g, '');
+  if (!t) return '';
+  const Q = SHARED_SETTINGS.levels.quals, want = k(t);
+  const inList = Q.list.find(x => k(x) === want);
+  if (inList) return inList;
+  const say = Object.keys(Q.says).find(x => k(x) === want);
+  if (say) return Q.says[say];
+  const lib = SHARED_SETTINGS.levels.list.find(l => k(l.level) === want || (l.says || []).some(x => k(x) === want));
+  return lib && Q.list.indexOf(lib.level) >= 0 ? lib.level : t;
+}
+/* ITS PLACE, HIGHEST FIRST; a level off the list goes last. */
+function qualRank_(v) {
+  const i = SHARED_SETTINGS.levels.quals.list.indexOf(qualLevel_(v));
+  return i < 0 ? 999 : i;
+}
 function fmtName_(person, style) {
   const p = person && typeof person === 'object' ? person : { name: person };
   const first = String(p.first_name || p.firstName || '').trim(), last = String(p.last_name || p.lastName || '').trim();

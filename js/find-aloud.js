@@ -556,7 +556,7 @@ function findPeopleItems_() {
     ...(DATA.tutors || []).filter(t => t.title).map(t => ({
       kind: 'tutor', name: t.title, key: t.title, sub: t.subtitle || '', image: t.image,
       cost: priced_(t.rate), off: t.listed === false, row: t,
-      profileType: typeof profileTypes_ === 'function' ? profileTypes_(t, true) : ['Tutor'],
+      profileType: typeof profileTypes_ === 'function' ? profileTypes_(t, true) : ['Staff'],
     })),
     ...(DATA.venues || []).filter(v => v.title).map(v => ({
       kind: 'venue', name: v.title, key: v.title, sub: v.subtitle || '', image: v.image,
@@ -575,8 +575,6 @@ function findPeopleItems_() {
     ...soonItems_(),
     /* POSTS, MESSAGES, PROFILES, SETTINGS AND VIDEOS (batch C): their items and menus are find-doors.js's. */
     ...(typeof doorItems_ === 'function' ? doorItems_() : []),
-    ...(typeof settingMay_ === 'function' && settingMay_('door:checks') ? [{ kind: 'health', name: 'Owner questions', key: 'health:checks', sub: 'Settings', image: '', which: 'checks', settingFor: 'Business',
-      text: 'optimiser checks site health score business checker owner questions what’s missing' }] : []),
     ...(typeof subjectRows === 'function' ? subjectRows() : []).map(x => ({
       kind: 'subject', name: x.name, key: x.name, sub: '', image: '',
       subject: x.name, row: x,

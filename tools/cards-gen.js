@@ -7,7 +7,7 @@ const ROOT = path.join(__dirname, '..');
 const OUT = path.join(ROOT, 'backend/cards-gen.gs');
 /* WHAT IS SHARED, FROM WHERE: each a top-level `function NAME` or `const NAME =` in a site file, copied as it stands. */
 const TAKE = [
-  ['js/data.js', ['nameBesideHandle_', 'capFirst_', 'nameKid_', 'fmtName_']],
+  ['js/data.js', ['nameBesideHandle_', 'capFirst_', 'nameKid_', 'fmtName_', 'qualLevel_', 'qualRank_']],
   /* A QUESTION WEARS ITS PAPER'S CARD (owner, 17 Nov): the email joins the file's rows as the site does, by LIB_FILES.questions.joined. */
   ['js/library.js', ['libJoinPaper_']],
   /* QUESTION ALIASES (answer-ids): the map and the merge the site reads by, as the backend files answers. */
