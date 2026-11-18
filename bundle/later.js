@@ -9078,7 +9078,8 @@ try { if (typeof paintStuff === 'function') inFinder_(FINDER, () => paintStuff(t
 function doorItems_() {
 return [].concat(postDoorItems_(), msgDoorItems_(), profileDoorItems_(), settingDoorItems_());
 }
-function findSignedOut_(x) { return kindTop_(x) === 'Settings' || x.kind === 'bookform' || (guestLibrary_() && libraryCard_(x)) || (guestPractice_() && practiceCard_(x)); }
+const GUEST_DOORS = ['Shop', 'Tools', 'Games'];
+function findSignedOut_(x) { return kindTop_(x) === 'Settings' || asList_(kindTop_(x)).some(t => GUEST_DOORS.indexOf(t) !== -1) || x.kind === 'bookform' || (guestLibrary_() && libraryCard_(x)) || (guestPractice_() && practiceCard_(x)); }
 const guestPractice_ = () => typeof can_ === 'function' && can_('anyone', 'item', 'question:read');
 const practiceCard_ = x => !!x && x.kind !== 'answer' && (x.kind === 'question' || asList_(kindTop_(x)).indexOf('Practice') !== -1);
 const guestLibrary_ = () => typeof can_ === 'function' && can_('anyone', 'item', 'library:read');
