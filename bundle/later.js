@@ -16723,17 +16723,32 @@ return getComputedStyle(document.documentElement).backgroundColor || token_('--b
 const rcDriveId_ = u => (String(u).match(/\/d\/([\w-]{20,})/) || String(u).match(/[?&]id=([\w-]{20,})/) || [])[1] || '';
 function rcPicData_(src) {
 const id = rcDriveId_(src);
-const tries = id ? ['https://lh3.googleusercontent.com/d/' + id + '=w800', 'https://lh3.googleusercontent.com/d/' + id] : [src];
+const one = id ? [...new Set([/lh3\.googleusercontent/.test(src) ? src : '', 'https://lh3.googleusercontent.com/d/' + id + '=w600',
+'https://lh3.googleusercontent.com/d/' + id].filter(Boolean))] : [src];
+const tries = one.concat(one);
 const get = u => fetch(u, { mode: 'cors', credentials: 'omit' }).then(r => r.ok ? r.blob() : Promise.reject(new Error(r.status)))
-.then(b => new Promise((ok, no) => { const f = new FileReader(); f.onload = () => ok(f.result); f.onerror = no; f.readAsDataURL(b); }));
-return tries.reduce((p, u) => p.catch(() => get(u)), Promise.reject());
+.then(b => new Promise((ok, no) => {
+const url = URL.createObjectURL(b), im = new Image();
+im.onload = () => (im.decode ? im.decode().catch(() => {}) : Promise.resolve()).then(() => {
+try {
+const k = Math.min(1, 480 / Math.max(im.naturalWidth || 1, im.naturalHeight || 1));
+const cv = document.createElement('canvas');
+cv.width = Math.max(1, Math.round(im.naturalWidth * k)); cv.height = Math.max(1, Math.round(im.naturalHeight * k));
+cv.getContext('2d').drawImage(im, 0, 0, cv.width, cv.height);
+URL.revokeObjectURL(url); ok(cv.toDataURL('image/jpeg', 0.85));
+} catch (e) { URL.revokeObjectURL(url); no(e); }
+});
+im.onerror = () => { URL.revokeObjectURL(url); no(new Error('picture would not decode')); };
+im.src = url;
+}));
+return tries.reduce((p, u, i) => p.catch(() => new Promise(r => setTimeout(r, i < one.length ? 0 : 800)).then(() => get(u))), Promise.reject());
 }
 function rcPics_(clone) {
 return Promise.all([...clone.querySelectorAll('img')].map(im => {
 const src = im.getAttribute('src') || '';
 if (!src || /^data:/.test(src)) return null;
 return rcPicData_(src).then(d => { im.setAttribute('src', d); im.removeAttribute('srcset'); im.removeAttribute('loading'); })
-.catch(e => { if (typeof oops_ === 'function') oops_(e, 'receipt:picture'); });
+.catch(e => { if (typeof oops_ === 'function') oops_(e, 'receipt:picture'); throw e; });
 }));
 }
 function rcPng_(rc) {
@@ -16764,26 +16779,36 @@ const cw = Math.ceil(w * RC_SNAP_K), ch = Math.ceil(h * RC_SNAP_K);
 return Promise.all([rcFonts_(), rcPics_(xml)]).then(([fonts]) => {
 xml = new XMLSerializer().serializeToString(xml);
 const svg = cardBlock_({ type: 'paperSnap', cw, ch, k: RC_SNAP_K, w, h, css: fonts + '\n' + rules.join('\n'), xml });
-return new Promise((ok, no) => {
+const load = () => new Promise((ok, no) => {
 const img = new Image();
-img.onload = () => {
-const ready = img.decode ? img.decode().catch(() => {}) : Promise.resolve();
-ready.then(() => {
-try {
+img.onload = () => (img.decode ? img.decode().catch(() => {}) : Promise.resolve()).then(() => ok(img));
+img.onerror = () => no(new Error('the browser could not draw the receipt'));
+img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+});
+const plain = cv => {
+const s = document.createElement('canvas'); s.width = 32; s.height = 32;
+const g = s.getContext('2d'); g.drawImage(cv, 0, 0, 32, 32);
+const d = g.getImageData(0, 0, 32, 32).data;
+for (let i = 4; i < d.length; i += 4)
+if (Math.abs(d[i] - d[0]) + Math.abs(d[i + 1] - d[1]) + Math.abs(d[i + 2] - d[2]) > 24) return false;
+return true;
+};
+const wait = t => new Promise(r => setTimeout(r, t));
+const draw = (img, n) => {
 const cv = document.createElement('canvas');
 cv.width = cw; cv.height = ch;
 const g = cv.getContext('2d');
 g.fillStyle = behind;
 g.fillRect(0, 0, cw, ch);
 g.drawImage(img, 0, 0, cw, ch);
-cv.toBlob(b => b ? ok({ blob: b, w: cw, h: ch, svg })
-: no(new Error('the browser made an empty picture')), 'image/png');
-} catch (e) { no(e); }
-});
+if (plain(cv)) {
+if (n >= 5) return Promise.reject(new Error('the browser made an empty picture'));
+return wait(250 * (n + 1)).then(() => n % 2 ? load().then(i => draw(i, n + 1)) : draw(img, n + 1));
+}
+return new Promise((ok, no) => cv.toBlob(b => b ? ok({ blob: b, w: cw, h: ch, svg })
+: no(new Error('the browser made an empty picture')), 'image/png'));
 };
-img.onerror = () => no(new Error('the browser could not draw the receipt'));
-img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
-});
+return load().then(img => draw(img, 0));
 });
 }
 let RC_SHOT = null;
