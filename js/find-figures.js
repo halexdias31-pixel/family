@@ -340,6 +340,8 @@ CARD_EMBEDS.qsheet = a => {
   const x = qPartOf_(a.key);
   if (!x) return '';
   const was = Q_DRAWN.get(x.key) || { stems: [], shown: [x], ans: true };
+  /* ANSWERS ONLY (`questionWhole_`'s `only`): the answer card and nothing of the question. */
+  if (was.only) return questionHasAns_(x) || schemeOwed_(x) ? questionAnsCard_(x, true) : '';
   const stems = was.stems.map(st => qStemWhole_(x, st, was.shown, a.pic ? [] : null)).join('');
   const words = partChunks_(x).map(c => chunkHtml_(c, circOf_(x), x)).join('');
   const has = was.ans && (questionHasAns_(x) || schemeOwed_(x));
@@ -350,7 +352,7 @@ CARD_EMBEDS.qsheet = a => {
 const qWas_ = x => Q_DRAWN.get(x.key) || { stems: [], shown: [x], ans: true };
 /* THE ENTRY, KEPT BY KEY, for its sheet (the embed reads it back). */
 const qCardKeep_ = x => { if (x.key) Q_ITEM.set(x.key, x.item || x); };
-const qCardPic_ = x => { const was = qWas_(x), pic = was.stems.length ? qStemPic_(x, was) : ''; return pic ? { svg: pic } : null; };
+const qCardPic_ = x => { const was = qWas_(x), pic = was.stems.length && !was.only ? qStemPic_(x, was) : ''; return pic ? { svg: pic } : null; };
 const qCardLook_ = x => 'qb favwrap qcard qb-part' + (typeof helpCls_ === 'function' ? helpCls_(x, '') : '') + (isFav(x.key) ? ' is-fav' : '');
 const qCardSheet_ = (x, pic) => [{ type: 'embed', tool: 'qsheet', look: 'qsheet-embed', args: { key: x.key || '', pic: !!pic } }];
 const qCardTiles_ = x => { const was = qWas_(x); try { return qtTiles_(x, was.ans && questionHasAns_(x) && !schemeOwed_(x)); } catch (e) { oops_(e, 'question:spec'); return []; } };
@@ -358,15 +360,15 @@ const qCardTiles_ = x => { const was = qWas_(x); try { return qtTiles_(x, was.an
 function qOneCard_(p, ctx) {
   const stems = (p.stems || []).filter(s => !ctx.carried.has(s) && !ctx.drawn[stemId_(s)]);
   stems.forEach(s => { ctx.drawn[stemId_(s)] = true; });
-  Q_DRAWN.set(p.key, { stems, shown: ctx.shown, ans: ctx.ans });
+  Q_DRAWN.set(p.key, { stems, shown: ctx.shown, ans: ctx.ans, only: ctx.only });
   return findCard(p);
 }
 /* A QUESTION NUMBER: its parts the search kept, one card each, one after another; none indented under another. */
-function questionWhole_(x, parts, open, ans) {
+function questionWhole_(x, parts, open, ans, only) {
   const list = parts && parts.length ? parts : [x];
   const shown = list.filter(p => !open || !open.size || open.has(p));
   /* CARRIED ONLY BY A PART ON SCREEN (owner, 10 Nov): part (a) carried Q8's garden, so (b) found alone drew no stem and no 7.5 m. */
-  const ctx = { ans: ans !== false, drawn: {}, shown: shown, carried: new Set(shown.map(stemCarried_).filter(Boolean)) };
+  const ctx = { ans: ans !== false, only: !!only, drawn: {}, shown: shown, carried: new Set(shown.map(stemCarried_).filter(Boolean)) };
   return figBox_({ look: 'qwhole' + (typeof helpCls_ === 'function' ? helpCls_(x, '') : ''), attrs: { 'data-q': qId_(x) || x.key || '' }, inner: shown.map(p => qOneCard_(p, ctx)).join('') });
 }
 
