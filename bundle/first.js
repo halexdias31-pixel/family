@@ -2538,7 +2538,7 @@ const libMayAsk_ = () => libSigned_() || (typeof guestLibrary_ === 'function' &&
 const libWho_ = () => (libSigned_() ? USER.token : '');
 function libAsk_(ids) {
 if (!libMayAsk_()) return;
-(ids || []).forEach(t => { if (t && (libSigned_() || !/^q:/.test(t)) && !LIB.flying.has(t) && !LIB.gone.has(t)) LIB.pending.add(t); });
+(ids || []).forEach(t => { if (t && (libSigned_() || !/^q:/.test(t) || (typeof guestPractice_ === 'function' && guestPractice_())) && !LIB.flying.has(t) && !LIB.gone.has(t)) LIB.pending.add(t); });
 if (!LIB.pending.size || LIB.timer || LIB.failed) return;
 LIB.timer = setTimeout(libPump_, 0);
 }

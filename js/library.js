@@ -575,10 +575,10 @@ const libSigned_ = () => typeof USER !== 'undefined' && !!USER && !!USER.token;
 const libMayAsk_ = () => libSigned_() || (typeof guestLibrary_ === 'function' && guestLibrary_());
 /* AND WHO ASKED, so a reply for somebody who has since signed in or out is dropped: the token, or '' for a guest. */
 const libWho_ = () => (libSigned_() ? USER.token : '');
-/* ASK FOR THESE (typed ids), a moment from now, with whatever else is asked in the same turn. Nobody who may: nothing; a guest never a question. */
+/* ASK FOR THESE (typed ids), a moment from now, with whatever else is asked in the same turn. Nobody who may: nothing; a guest a question only while question:read is open to `anyone`. */
 function libAsk_(ids) {
   if (!libMayAsk_()) return;
-  (ids || []).forEach(t => { if (t && (libSigned_() || !/^q:/.test(t)) && !LIB.flying.has(t) && !LIB.gone.has(t)) LIB.pending.add(t); });
+  (ids || []).forEach(t => { if (t && (libSigned_() || !/^q:/.test(t) || (typeof guestPractice_ === 'function' && guestPractice_())) && !LIB.flying.has(t) && !LIB.gone.has(t)) LIB.pending.add(t); });
   if (!LIB.pending.size || LIB.timer || LIB.failed) return;
   LIB.timer = setTimeout(libPump_, 0);
 }
