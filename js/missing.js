@@ -24,7 +24,7 @@ const MISSING_ID = 'item:stuff:missing-papers';
 const missingFor_ = () => may_('admin');
 /* THE PAGE ABOVE FIND'S QUESTION (`FINDERS.stuff.lead`, find.js): an admin's only. */
 /* AND SUGGEST A CHANGE (486), as on Daive's card: one row with the item's tiles (`suggestRowIn_`, submit.js). */
-/* IN FIND, NOT ABOVE IT (owner, 4 Nov): the lead page is empty; What's missing is a Find card under Owner questions. */
+/* IN FIND, NOT ABOVE IT (owner, 4 Nov): the lead page is empty. Its card (Owner questions, which held What's missing) was removed (owner, 18 Nov). */
 function missingLead_() { return []; }
 const missingLeadN_ = () => 0;
 function missingLeadCards_() {

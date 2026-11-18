@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-11-17-card-1";
+const DOPOST_VERSION = "2026-11-18-quals-1";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -167,7 +167,6 @@ function postActions_() {
     factSet: postFactSet_,
     listRecords: postListRecords_,
     saveRecordsPage: postListRecords_,
-    listOwnerAnswers: postListOwnerAnswers_,
     sendMessage: postSendMessage_,
     flagMessage: postFlagMessage_,
     checkUploads: postCheckUploads_,

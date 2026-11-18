@@ -58,6 +58,11 @@
    {"level": "BNCC", "rung": 0, "stages": [], "tiers": ["1º ano", "2º ano", "3º ano", "4º ano", "5º ano", "6º ano", "7º ano", "8º ano", "9º ano"], "says": ["Brazil", "Brasil", "Ensino Fundamental"]},
    {"level": "ENEM", "rung": 0, "stages": [], "tiers": [], "says": []},
    {"level": "Australian Curriculum", "rung": 0, "stages": [], "tiers": ["Foundation Year", "Year 1", "Year 2", "Year 3", "Year 4", "Year 5", "Year 6", "Year 7", "Year 8", "Year 9", "Year 10"], "says": ["Australia", "ACARA", "F-10"]}
-  ]
+  ],
+  "quals": {
+   "_about": "A QUALIFICATION'S LEVEL (owner, 18 Nov): always one of `list`, which is in order, highest first — a person's qualifications are sorted by it, so the most important never fall off. A stored spelling in `says`, or any library level's `says` above, is read as its canonical name by qualLevel_ (js/data.js), on the site and the server alike. The qualification form offers `list`.",
+   "list": ["Doctorate", "Master's degree", "PGCE", "Bachelor's degree", "Foundation Degree", "HND", "HNC", "Diploma", "Access to HE", "International Baccalaureate", "A-Level", "T Level", "BTEC", "AS", "IGCSE", "GCSE", "Certificate", "11+", "SATs", "Entry Level", "Enhanced", "Standard", "Basic"],
+   "says": {"Degree": "Bachelor's degree", "BA": "Bachelor's degree", "BSc": "Bachelor's degree", "Undergraduate": "Bachelor's degree", "University": "Bachelor's degree", "Masters": "Master's degree", "MA": "Master's degree", "MSc": "Master's degree", "PhD": "Doctorate", "IB": "International Baccalaureate"}
+  }
  }
 }

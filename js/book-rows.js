@@ -456,8 +456,7 @@ function stepRows_() {
         ? blockSay_(v)
         : st.grid
         /* ---------- THE WHOLE RUN, NOT ITS START § */
-        ? bookRuns().map(r => fmtDate_(r.dayName, 'day') + ' ' + fmtDate_(r.hour, 'hours', r.hour + r.hours))
-            .join(', ')
+        ? profRunsSay_(bookRuns()).join(', ')
         /* A MULTI WITH NOTHING TICKED FALLS BACK LIKE ANY OTHER STEP. § */
         : st.multi ? ((v || []).join(', ') || (st.fallback ? st.fallback() : ''))
         /* ---------- A QUESTION WITH AN OBVIOUS ANSWER SHOWS IT § */

@@ -78,7 +78,7 @@ function bookMenu_() {
 /* WHAT A STEP'S CHIP SAYS: its answer as the summary says it; a bare number names what it counts. */
 function bookSaid_(id) {
   if (id === 'days') return BOOK_FIND.days.map(d => fmtDate_(d, 'day')).join(', ');
-  if (id === 'slots') return bookRuns().map(r => fmtDate_(r.dayName, 'day') + ' ' + fmtDate_(r.hour, 'hours', r.hour + r.hours)).join(', ');
+  if (id === 'slots') return profRunsSay_(bookRuns()).join(', ');
   if (id === 'avail') return blockSay_(BOOKING.avail);
   const st = bookStep_(id), v = BOOKING[id];
   const said = o => String(st.label_ ? st.label_(o) : o);
@@ -370,8 +370,11 @@ function signChips_() {
   /* A * PER DIGIT (owner, 16 Nov); the whole tag is the button that takes that digit off, its × only shows it. */
   const dot = i => ({ base: 'chip', look: 'sm sign-dot', text: '*', act: 'sign-dot-drop', data: { i: i }, label: 'Remove this digit', x: { label: 'Remove this digit' }, colour: false });
   if (USER) {
-    const who = SIGN.who || String(USER.name || USER.handle || '').trim();
-    return [chip(who, 'signout', 'Sign out ' + who)].concat(Array.from({ length: SIGN.dots }, (_, i) => dot(i)));
+    /* THE LOGIN HANDLE, ONE FORM EVERYWHERE (owner, 17 Nov); the ● tags kept on the stored sign-in, so a refresh keeps them. */
+    const h = String(USER.handle || '').replace(/^@/, '').trim();
+    const who = h ? '@' + h : (SIGN.who || String(USER.name || '').trim());
+    const n = USER.pinDots == null ? SIGN_PIN_LEN : USER.pinDots;
+    return [chip(who, 'signout', 'Sign out ' + who)].concat(Array.from({ length: n }, (_, i) => dot(i)));
   }
   if (SIGN.step === 'guest') return [chip('Guest', 'sign-restart', 'Sign in instead')];
   if (SIGN.step === 'join') return [chip('Make an account', 'sign-restart', 'Back to sign in')].concat(askChips_('sign-join'));
@@ -393,7 +396,7 @@ on('sign-restart', () => {
 /* A ● TAG'S ×: that digit off. Signed in, the tag only goes; signed out, the digits ask again. */
 on('sign-dot-drop', el => {
   const i = Number((el && el.dataset && el.dataset.i) || 0);
-  if (USER) { SIGN.dots = Math.max(0, SIGN.dots - 1); signPaint_(); return; }
+  if (USER) { USER.pinDots = Math.max(0, (USER.pinDots == null ? SIGN_PIN_LEN : USER.pinDots) - 1); saveUser_(); signPaint_(); return; }
   if (SIGN.step !== 'pin' || SIGN.busy) return;
   SIGN.pin.splice(i >= 0 && i < SIGN.pin.length ? i : SIGN.pin.length - 1, 1);
   SIGN.wrong = false;
@@ -446,6 +449,7 @@ on('sign-digit', el => {
       /* THE TAGS STAY (owner, 15 Nov): the name as typed and a ● per digit (`signedIn_`'s quiet sign-out keeps them). */
       SIGN.busy = false; SIGN.pin = []; SIGN.step = ''; SIGN.wrong = false; SIGN.card = ''; SIGN.who = who; SIGN.dots = dots;
       signedIn_(d2, who);
+      if (USER) { USER.pinDots = dots; saveUser_(); }
     })
     .catch(() => miss(''));
 });

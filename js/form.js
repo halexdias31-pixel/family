@@ -332,8 +332,11 @@ function askTags_(id, x, o) {
     value: val || '', label: x.label || x.ph || '', placeholder: x.ph || '', inputmode: x.pad || (x.input === 'email' ? 'email' : 'text'),
     type: x.type === 'date' ? 'date' : x.min != null || x.max != null ? 'number' : 'text', min: x.min, max: x.max, step: x.step, lines: x.type === 'long' ? 3 : 0 } };
   const list = h.options ? h.options(x) : (x.options || []).map(c => ({ v: c.v, text: askSay_(c), on: String(val) === String(c.v) }));
-  return { look: askLook_(id) + (x.grid ? ' is-grid' : ''), options: list.map(c => ({
-    text: (x.many && c.on ? '✓ ' : '') + c.text + (c.off ? ' · ' + c.off : c.note ? ' · ' + c.note : ''), act: o.act || 'ask-pick',
+  /* SEVERAL ANSWERS ARE CHOSEN ONE WAY ONLY, "and" / "." (owner, 17 Nov): no ticks — a chosen answer is a tag at the top and leaves the menu.
+     An hour grid (`grid`) is a timetable, not a choice of several, and keeps its marks. */
+  const shown = x.many && !x.grid ? list.filter(c => !c.on) : list;
+  return { look: askLook_(id) + (x.grid ? ' is-grid' : ''), options: shown.map(c => ({
+    text: (x.grid && c.on ? '✓ ' : '') + c.text + (c.off ? ' · ' + c.off : c.note ? ' · ' + c.note : ''), act: o.act || 'ask-pick',
     data: { form: id, f: x.f, v: c.v }, pressed: !!c.on, disabled: !!c.off, look: ((c.on ? 'is-on' : '') + (c.off ? ' is-off' : '')).trim() })) };
 }
 const askSaid_ = (id, x) => {
@@ -348,11 +351,12 @@ function askMenu_(id, o) {
   if (!x) return spec.send ? [{ type: 'choices', ask: o.done || '', rows: [{ look: 'sign-more', options: [{ text: spec.send.say ? text_(spec.send.say) : spec.send.t, act: 'ask-send', data: { form: id } }] }] }] : null;
   /* AFTER EACH CHOICE ON A SEVERAL-ANSWER FIELD: exactly two tags, "and" (another of this) and "." (done, move on). */
   /* THE TWO TAGS ARE AT THE TOP WITH THE ANSWERS (`askChips_`; owner, 17 Nov), so the menu only says what is ticked. */
-  if (askOf_(id).more === x.f) return [{ type: 'choices', ask: askSaid_(id, x) || '', rows: [] }];
+  /* FIND ASKS NO QUESTIONS (owner, 17 Nov): no heading over any step — the tags are the step, as everywhere else in Find. */
+  if (askOf_(id).more === x.f) return [{ type: 'choices', rows: [] }];
   const pin = x.type === 'pin' ? askOf_(id).pin.length : 0, tags = askTags_(id, x);
   /* A FORM WHOSE FIELDS MAY STAY EMPTY (`skip`) offers Skip beside each. */
   const skip = spec.skip ? [{ text: 'Skip', act: 'ask-skip', data: { form: id, f: x.f }, label: 'Leave this empty for now' }] : [];
-  return [{ type: 'choices', ask: [x.ask || (h.label && h.label(x)) || x.label || x.ph, pin ? '*'.repeat(pin) : '', x.note].filter(Boolean).join(' '),
+  return [{ type: 'choices', ask: x.note || '',
     rows: [tags.box ? { look: 'sign-who', options: [tags].concat(skip) } : Object.assign({}, tags, { options: tags.options.concat(skip) })] }];
 }
 /* THE ANSWERS AS CHIPS: a PIN is a * per digit, never the digits. */
@@ -393,6 +397,9 @@ on('ask-pick', el => {
   const id = el.dataset.form, f = el.dataset.f, v = el.dataset.v, x = formAsk_(id, f), h = askHook_(id), s = askOf_(id);
   if (h.pick && h.pick(x, v)) return askPaint_(id);
   if (x.many) {
+    /* NOT A TICK: picking again never takes it off; its tag at the top does (`ask-back`). */
+    const had = h.had ? h.had(x) : (s.v[f] || []);
+    if (!x.grid && had.map(String).indexOf(String(v)) >= 0) { s.more = f; return askPaint_(id); }
     if (h.toggle) h.toggle(x, v);
     else { const list = s.v[f] || [], at = list.indexOf(v); if (at === -1) list.push(v); else list.splice(at, 1); s.v[f] = list; }
     s.more = f;

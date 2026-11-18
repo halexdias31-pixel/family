@@ -2,10 +2,11 @@
 
 Claude owns the site (rules.json rule 0.1) and prompts itself from this list: when one item ships, the next starts at once; the hourly run is only the safety net. Claude adds, orders and removes items itself. The owner's Suggest register (Ledger tab `claude_notes`) is an inbox only: anything there is read, turned into an item here (or done at once), and closed.
 
-Order: what a child or parent would notice first, then what stops things drifting, then new content. An item ships only when every check passes and a count goes up. Asks for the owner are batched into one weekly list (bottom).
+Order: what a child or parent would notice first, then what stops things drifting, then new content. An item ships only when every check passes and a count goes up. Questions for the owner are asked in conversation, a few at a time (the list at the bottom is Claude's own memory of them).
 
 ## Now
 
+0. ONE CARD, LITERALLY — SETTINGS FIRST (owner, 18 Nov: top priority, it angers them) (owner, 17 Nov — most important to them): every card on the site, Settings included, is the same card: same slots in the same order (picture, tags, body, buttons), same look, same behaviour; Settings' forms, week grid and shelves become body blocks of that one card, never their own layouts. Measure it as a count (cards drawn by the one maker with no card-specific layout ÷ all cards), list every card that differs by name, drive it to 100%, then keep the count in the nightly checks.
 1. Marking keys for the ~9,200 questions that have a written answer but no mechanical key (mostly short science "explain" parts): derive `rule: points` / `accept` from each row's own mark-scheme text; each must pass `tools/validate-questions.js`.
 2. Typed-in text for the ~2,000 science questions with none: AQA papers from the cards' source_url, mark schemes from AQA's filestore (method: 8461-2306-1F and the seven papers done 17 Nov).
 2b. Papers from the manifest data-private/paper-sources.json (4,284 PDF links: question papers, mark schemes, inserts — Edexcel and AQA, GCSE and A-Level, from the pages the owner gave 17 Nov): fill any paper the library lacks or has without text/keys, subjects the owner's students take first (GCSE Maths, Biology, Chemistry, Physics, English, History). Check each entry's URL matches its labelled subject (some Edexcel pages link the combined-science files).
@@ -14,7 +15,7 @@ Order: what a child or parent would notice first, then what stops things driftin
 
 ## Next (the 12 parts of best practice)
 
-- ONE CARD, LITERALLY (owner, 17 Nov — most important to them): every card on the site, Settings included, is the same card: same slots in the same order (picture, tags, body, buttons), same look, same behaviour; Settings' forms, week grid and shelves become body blocks of that one card, never their own layouts. Measure it as a count (cards drawn by the one maker with no card-specific layout ÷ all cards), list every card that differs by name, drive it to 100%, then keep the count in the nightly checks.
+- THE MASTER DECIDES WHAT A CARD SHOWS (owner, 18 Nov): each kind's card in kinds.json declares its fields, order, limits (e.g. current job only, role words hidden, bio length and quotes); the card code only reads it and draws — no show/hide decisions in code. Move today's code-side choices (profRoleWords_, profJobs_, tutorCardOf_ quotes) into kinds.json.
 
 - FEWER FEATURES (owner, 17 Nov): every button and feature is a cost. Audit them all; cut any a child or tutor can do without; the fewer there are, the more stable and easy the site. Show the before/after button count.
 - ONE LEVEL LADDER (owner, 17 Nov: KS3 and GCSE showed side by side on one menu, which felt wrong; Claude decides): a menu should offer one ladder of levels without overlaps (KS3 is the years before GCSE; GCSE and KS4 overlap) (the same students, the same papers) — evaluate and merge where they are one thing, so a question lives under one level, not two; same check for KS3/KS4 and the other paired levels.
@@ -30,10 +31,23 @@ Order: what a child or parent would notice first, then what stops things driftin
 8. Preview copy before live.
 9. Marking signals: near-miss wrong marks, all-zero questions, repeated retries, logged automatically.
 10. A one-tap "this mark is wrong" on every marked answer; each report becomes a permanent example in an answer bank the marker must keep passing.
-11. ONE ANSWER FACE (decided 17 Nov): the one text box for every question. Printed options: the marker matches typed text forgivingly to the paper's own options (spelling, abbreviation, letter). Tables: one box, any separator. Drawn answers become the facts that define the drawing (angles, values, points, equation, vertices, inequality, bar heights), typed and marked exactly; the child draws on paper. True drawings (constructions, loci, sketches, shading) are "marked by your tutor". Then remove the drawing pad, photo marking and every other answer button (unless the owner objects).
+11. ANSWER FACES (owner, 17 Nov, revised): REMOVE photo marking. KEEP the drawing pad (coordinate grids, transformations, graphs work well and children need it). One systematic rule for where the answer goes: if the paper draws the answer space inside the figure (grid, axes, shape to reflect, number line), the answer IS drawn on that figure in the pad; otherwise it is the one text box. Printed options: the text box, marked forgivingly against the paper's own options. Tables: one box, any separator. Essays are MARKED MECHANICALLY (PEEL / distilled rules) — never "marked by your tutor"; that label is wrong for essays and must go. Loci/constructions/sketches: keyed geometrically where possible on the pad.
+11b. Drawing tools for children: the line tool and the magnifier are sometimes hard to use; watch it at phone size, find the real friction (hit area, loupe size, snapping), fix at the one pad engine.
 12. One form engine (the profile editor's own boxes join the form maker).
 
+## Find and people (owner, 17 Nov)
+
+- The name at the top of Find is always the person's login handle (never first + last name), one form everywhere; the PIN ● tags stay visible the whole time, including after a refresh.
+- Booking asks no questions ("Who is this for?"): Find never asks questions elsewhere; booking's steps are Find steps like every other menu.
+- Subject step bug: two rules at once — the multiple-choice tick rule and the "and / ." rule. Remove the multiple-choice rule; "and" / "." replaces it everywhere.
+- Staff, not Tutor: everywhere the people category says Tutor it is Staff, with Tutor / Coach / Head of Boxing inside it (George is found under Staff › Coach).
+- "Add a person" sits at the very top of Profiles: place it where it belongs; decide whether Profile and Settings merge (they overlap) — Claude's call.
+- VENUES (owner, 18 Nov): staff no longer pick venues; the system only needs each person's location (town). Booking matches by location instead of per-tutor venue lists; then remove the venue-picking settings and the tutors_happy_here data. (Card already shows the town only.)
+- Examiner reports: find them per board/year (the boards' own sites, Save My Exams, Physics & Maths Tutor), add them to the paper manifest, and use them to sharpen marking (English first).
+
 ## Then (content)
+
+- ONE LIBRARY SHAPE (owner, 18 Nov): History and Religious Studies (and any other subject) have their own irregular branch structures in Library/Find. Examine every subject's branches, pick ONE shape every subject follows (or bring the others to theirs if theirs is better), and move them all to it. Tell the owner what was chosen and why in the weekly list.
 
 - ONE CARD PER IDEA (owner, 17 Nov; Claude's design): the library holds one card per concept, never per board/book; spec points (every board, level, combined/separate) point at concept cards; level depth is marked inside the one card ([H], [A-Level]); questions link to the same cards. Count: near-duplicate cards left → 0. Then every concept card gets one animation showing the real mechanism (memorable, lean); weak existing animations redone.
 
@@ -41,7 +55,7 @@ Order: what a child or parent would notice first, then what stops things driftin
 14. History: more topics built like the Tudors.
 15. Photo marking beyond pie charts (bar charts, graphs) once pies prove themselves in lessons.
 
-## For the owner (weekly, batched)
+## For the owner (ask in conversation)
 
 - NSW HSC: the 2017 syllabus or the 2024 one?
 - English: the copyright-withheld extracts for Nov 2023 P1 (Byatt, Possession) and Nov 2022 P1 (Hemingway) need a full printed copy; papers for June 2021 P2 and Nov 2024 P1/P2 can be added if wanted.

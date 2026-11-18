@@ -189,7 +189,6 @@ const ACTION_ACCESS = {
   factSet: 'admin',
   listRecords: 'admin',
   saveRecordsPage: 'admin',
-  listOwnerAnswers: 'admin',
   sendMessage: 'self',
   flagMessage: 'self',
   checkUploads: 'admin',

@@ -55,7 +55,9 @@ window.KC_AROUND = Object.assign(window.KC_AROUND || {}, { msg: msgDoorCard_ });
 /* ---------- PROFILES: who they are is the menu; admin-only answers are asked by rank ---------- */
 function profileTypes_(p, tutor) {
   const out = [], role = String((p && p.role) || ''), admin = seeMay_('find:admin-tags');
-  if (tutor || /tutor|teacher/i.test(role)) out.push('Tutor');
+  /* STAFF IS THE CATEGORY (owner, 17 Nov); Tutor, Coach, Head of Boxing are roles inside it, so a coach is found under Staff. */
+  const titles = Object.keys(((SHARED_SETTINGS.roles || {}).titles) || {}).join('|');
+  if (tutor || /tutor|teacher|staff/i.test(role) || (titles && new RegExp(titles, 'i').test(role + ' ' + [].concat((p && p.titles) || []).join(' ')))) out.push('Staff');
   if (/student|child/i.test(role)) out.push('Student');
   if (/client|parent/i.test(role)) out.push('Parent');
   if (admin) {
@@ -80,9 +82,9 @@ function profileDoorItems_() {
   /* Tutors are Booking's tutor items, tagged Profiles too (kinds.json `find.under`): never a second card here. */
   ((DATA && DATA.tutors) || []).forEach(t => { if (t) seen[String(t.personId || t.title || t.handle || '')] = 1; });
   if (seeMay_('find:all-people')) ((DATA && DATA.everyone) || []).filter(p => p && p.title).forEach(p => add(p, false));
-  /* ADD A PERSON (add-person): one card for an admin, first among the people, drawn by `personAddCard_` (me-people.js). */
-  if (typeof personAddMay_ === 'function' && personAddMay_()) out.unshift({ kind: 'person', add: true, ownCard: true, name: 'Add a person', key: 'person:add', sub: '',
-    image: '', row: {}, profileType: ['Student', 'Parent', 'Tutor'], text: 'add a person new account student parent tutor' });
+  /* ADD A PERSON (add-person): one card for an admin, in Settings › Admin beside the other admin tools (owner, 17 Nov), not atop Profiles; drawn by `personAddCard_` (me-people.js). */
+  if (typeof personAddMay_ === 'function' && personAddMay_()) out.push({ kind: 'setting', settingFor: 'Admin', add: true, parts: [], ownCard: true, name: 'Add a person', key: 'person:add', sub: '',
+    image: '', row: {}, text: 'add a person new account student parent staff tutor' });
   return out;
 }
 /* A PERSON'S DOOR IS ITS ITEM MAP (ITEM_MAPS.person, cards-parts.js): the face, the name and facets as tags, the handle; an admin's tiles, */

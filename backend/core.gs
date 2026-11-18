@@ -1028,9 +1028,11 @@ function venuesWrites_(p, chosen, venueRows) {
 function qualsList_(r) {
   return ownRows_(TAB.qualifications, r).map(x => {
     const spec = TRUE_(x.teach);
-    return { subject: S(x.subject), level: S(x.level), board: S(x.institution), grade: S(x.grade),
+    return { subject: S(x.subject), level: qualLevel_(x.level), board: S(x.institution), grade: S(x.grade),
              received: S(x.completed), spec: spec, teach: spec || TRUE_(x.can_teach) };
-  }).filter(q => q.subject || q.level || q.board || q.grade || q.received).slice(0, QUAL_MAX);
+  }).filter(q => q.subject || q.level || q.board || q.grade || q.received)
+    /* HIGHEST LEVEL FIRST (owner, 18 Nov: settings.json levels.quals order), the sheet's order within a level, so the cap never drops a degree. */
+    .map((q, i) => [q, i]).sort((a, b) => (qualRank_(a[0].level) - qualRank_(b[0].level)) || (a[1] - b[1])).map(a => a[0]).slice(0, QUAL_MAX);
 }
 function qualsOut(r) {
   const list = qualsList_(r), out = {};
