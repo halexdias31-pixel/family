@@ -42,6 +42,7 @@ Order: what a child or parent would notice first, then what stops things driftin
 - Subject step bug: two rules at once — the multiple-choice tick rule and the "and / ." rule. Remove the multiple-choice rule; "and" / "." replaces it everywhere.
 - Staff, not Tutor: everywhere the people category says Tutor it is Staff, with Tutor / Coach / Head of Boxing inside it (George is found under Staff › Coach).
 - "Add a person" sits at the very top of Profiles: place it where it belongs; decide whether Profile and Settings merge (they overlap) — Claude's call.
+- VENUES (owner, 18 Nov): staff no longer pick venues; the system only needs each person's location (town). Booking matches by location instead of per-tutor venue lists; then remove the venue-picking settings and the tutors_happy_here data. (Card already shows the town only.)
 - Examiner reports: find them per board/year (the boards' own sites, Save My Exams, Physics & Maths Tutor), add them to the paper manifest, and use them to sharpen marking (English first).
 
 ## Then (content)
