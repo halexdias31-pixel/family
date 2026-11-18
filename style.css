@@ -172,6 +172,8 @@
   /* ONE GAP BETWEEN CARDS (owner 62a, 9 Nov): a bare card's padding either side of its rule, a boxed card's margin. */
   --card-gap: .85rem;
   --r-round: 999px;
+  /* A TAG'S CORNER: a pill on one line, a rounded box when its words wrap (owner, 18 Nov: a 3-line degree tag was a giant oval). */
+  --r-tag: calc(var(--tp-h) / 2);
   /* THE CONSOLE'S AND WORD GAMES' OWN COLOURS (owner, 12 Nov: back from docs/history/1110), each a token. */
   --game-c1: #a8a9b2;
   --game-c2: #b4b5bd;
@@ -1435,7 +1437,7 @@ button.text-drop { color: var(--bad); }
 }
 .chip:is(:active, .is-pressed) { transform: scale(var(--press-small)); }
 /* THE FUNNEL'S OWN CHIPS: the tag's padding, but a 44px tap like every control (950); the radius is the one chip token. */
-.chip.sm { min-height: var(--tp-h); padding: var(--tp-pad); position: relative; line-height: var(--tp-lh); gap: var(--s1); }
+.chip.sm { min-height: var(--tp-h); padding: var(--tp-pad); border-radius: var(--r-tag); position: relative; line-height: var(--tp-lh); gap: var(--s1); }
 .chip.sm::before, .row.tap.counted::before { content: ""; position: absolute; inset: calc((var(--tp-h) - 44px) / 2) 0; }
 /* A CHIP OF A KIND IS DRAWN IN ITS COLOUR: § */
 .chip[data-tag] {
@@ -2400,7 +2402,7 @@ span[data-do]:is(:active, .is-pressed) { text-decoration-color: var(--gold); }
 /* THE ONE TAG/CHIP BLOCK: a profile's pills, a question's `Teach`, Sentence Scramble's words (a button). */
 .prof-tag {
   display: inline-block; font-family: var(--mono); font-size: var(--tp-fs); letter-spacing: .08em;
-  padding: var(--tp-pad); border-radius: var(--r-round); background: transparent;
+  padding: var(--tp-pad); border-radius: var(--r-tag); background: transparent;
   border: 1px solid var(--line); color: var(--ink);
 }
 button.prof-tag { min-height: var(--tap); min-width: var(--tap); cursor: pointer; }
@@ -2978,7 +2980,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .qcard-tags { margin: 0; }
 /* THE CHIP'S OWN CORNER (--r-round): a tag is a pill like its menu chip, and check-look allows no third radius. */
 .qtag {
-  display: inline-flex; align-items: center; max-width: 100%; min-height: var(--tp-h); padding: var(--tp-pad); border-radius: var(--r-round);
+  display: inline-flex; align-items: center; max-width: 100%; min-height: var(--tp-h); padding: var(--tp-pad); border-radius: var(--r-tag);
   border: 1px solid var(--tag, var(--chip-line)); color: var(--tag, var(--dim)); background: color-mix(in srgb, var(--tag, var(--chip-line)) 10%, transparent);
   font-size: var(--tp-fs); line-height: var(--tp-lh);
 }
