@@ -1176,8 +1176,10 @@ function choiceList_(x) {
   if (!x || !Array.isArray(x.choices) || x.choices.length < 2) return '';
   const need = Math.max(1, (x.choiceRight || []).length);
   const say = orderIs_(x) ? text_('type-the-letters-in-order-e') : need > 1 ? 'Type ' + need + ' letters, e.g. A, C' : text_('type-the-letter');
+  /* OPTIONS THAT ARE LETTERS ALREADY get no second letter in front ("A J, B K" read as two answers each). */
+  const bare = x.choices.every(c => /^\s*[A-Za-z]\s*$/.test(String(c).replace(/<[^>]*>/g, '')));
   return cardBlocks_([{ type: 'group', tag: 'ol', look: 'qp-optlist', attrs: { type: 'A' }, blocks: x.choices.map((c, i) => ({ type: 'group', tag: 'li', look: 'qp-optline',
-    blocks: [{ type: 'group', tag: 'b', look: 'qp-optl', text: CHOICE_LETTERS[i] || String(i + 1) }], inner: ' ' + typeset_(c) })) },
+    blocks: bare ? [] : [{ type: 'group', tag: 'b', look: 'qp-optl', text: CHOICE_LETTERS[i] || String(i + 1) }], inner: (bare ? '' : ' ') + typeset_(c) })) },
     { type: 'group', tag: 'span', look: 'qp-ans-k', text: say }]);
 }
 /* WHAT WAS TYPED, AS OPTION NUMBERS (1-based): a letter, a number or an option's own words; null for nothing, [] for something that is no option. */
@@ -1187,6 +1189,8 @@ function choicePicks_(x, typed) {
   if (!t) return null;
   const one = p => {
     const w = markNorm_(p);
+    /* AN OPTION THAT IS ITSELF A LETTER (J, K, L, M) is read as itself first, before the A, B, C labels (owner, 18 Nov). */
+    if (opts.indexOf(w) >= 0) return opts.indexOf(w) + 1;
     if (/^[a-z]$/.test(w) && w.charCodeAt(0) - 96 <= opts.length) return w.charCodeAt(0) - 96;
     if (/^\d+$/.test(w) && +w >= 1 && +w <= opts.length) return +w;
     const at = opts.indexOf(w);
