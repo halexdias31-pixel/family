@@ -54,38 +54,10 @@ function digestSpan_(week) {
 function digestPlan_(week, subRows, peopleRows, parentsOf, look) {
   const byId = {};
   (peopleRows || []).forEach(p => { const id = S(p && p.person_id); if (id && !byId[id]) byId[id] = p; });
-
-  /* ONE QUESTION, HOWEVER MANY BOXES IT HAS. § */
-  /* AND NO "60 min" IN A NAME. § */
-  const tidy = v => attemptLabel_(v).split(' · ').filter(x => !/^\d+ min$/.test(x)).join(' · ');
-  /* ---------- EVERY PRESS, FOLDED INTO ONE LINE PER QUESTION § */
-  const joined = {};
-  (subRows || []).forEach(r => digestFold_(joined, r, week, tidy));
-
-  const per = {};
-  Object.keys(joined).forEach(id => {
-    const J = joined[id];
-    if (!J.inWeek) return;
-    const fresh = !J.before;
-    const L = per[J.pid] || (per[J.pid] = { id: J.pid, fresh: [], again: [], days: [] });
-    Object.keys(J.days).forEach(d => { if (L.days.indexOf(d) === -1) L.days.push(d); });
-    /* THE NAME A PARENT CAN READ — see SCHEMA.submissions for why the backend cannot look a key up for itself. § */
-    const label = digestSafe_(J.label) ? J.label : '';
-    /* AND THE QUESTION'S WORDS (SCHEMA.submissions), by the same rule over the whole of them: § */
-    const words = label && DIGEST_KEY_SHAPE.test(J.key) && digestWordsSafe_(J.words) ? J.words : '';
-    /* AND HOW IT WENT, the week's last word on it — a verdict outside the vocabulary prints no mark. */
-    const verdict = SUBMISSION_VERDICT.test(J.verdict) ? J.verdict : '';
-    const answer = Object.keys(J.ans).sort().map(k => J.ans[k].a.trim()).filter(Boolean).join(' ; ');
-    const item = { key: J.key, label: label, words: words, hidden: !label, last: J.last, verdict: verdict, answer: answer };
-    (fresh ? L.fresh : L.again).push(item);
-  });
-
-  const order = (a, b) => (a.last < b.last ? -1 : a.last > b.last ? 1 : a.label < b.label ? -1 : a.label > b.label ? 1 : 0);
+  const per = digestLearners_(week, subRows);
   const learners = [], emails = [], unreachable = [];
   Object.keys(per).forEach(pid => {
     const L = per[pid];
-    L.fresh.sort(order); L.again.sort(order); L.days.sort();
-    L.count = L.fresh.length + L.again.length;
     const me = byId[pid];
     /* `nameFor_` — the admin's Preview names a child by first name like everything else (the owner,
        10 Oct: *"dont show children's last name"*); the email itself only ever said `L.first`. */
@@ -116,6 +88,42 @@ function digestPlan_(week, subRows, peopleRows, parentsOf, look) {
   });
   learners.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
   return { week: week, learners: learners, emails: emails, unreachable: unreachable, look: look || {} };
+}
+
+/* EACH LEARNER'S QUESTIONS IN A SPAN, ONE LINE EACH — the week's email and the History card's one day (`postHistory_`) fold the same way. */
+function digestLearners_(week, subRows) {
+  /* ONE QUESTION, HOWEVER MANY BOXES IT HAS. § */
+  /* AND NO "60 min" IN A NAME. § */
+  const tidy = v => attemptLabel_(v).split(' · ').filter(x => !/^\d+ min$/.test(x)).join(' · ');
+  /* ---------- EVERY PRESS, FOLDED INTO ONE LINE PER QUESTION § */
+  const joined = {};
+  (subRows || []).forEach(r => digestFold_(joined, r, week, tidy));
+
+  const per = {};
+  Object.keys(joined).forEach(id => {
+    const J = joined[id];
+    if (!J.inWeek) return;
+    const fresh = !J.before;
+    const L = per[J.pid] || (per[J.pid] = { id: J.pid, fresh: [], again: [], days: [] });
+    Object.keys(J.days).forEach(d => { if (L.days.indexOf(d) === -1) L.days.push(d); });
+    /* THE NAME A PARENT CAN READ — see SCHEMA.submissions for why the backend cannot look a key up for itself. § */
+    const label = digestSafe_(J.label) ? J.label : '';
+    /* AND THE QUESTION'S WORDS (SCHEMA.submissions), by the same rule over the whole of them: § */
+    const words = label && DIGEST_KEY_SHAPE.test(J.key) && digestWordsSafe_(J.words) ? J.words : '';
+    /* AND HOW IT WENT, the week's last word on it — a verdict outside the vocabulary prints no mark. */
+    const verdict = SUBMISSION_VERDICT.test(J.verdict) ? J.verdict : '';
+    const answer = Object.keys(J.ans).sort().map(k => J.ans[k].a.trim()).filter(Boolean).join(' ; ');
+    const item = { key: J.key, label: label, words: words, hidden: !label, last: J.last, verdict: verdict, answer: answer };
+    (fresh ? L.fresh : L.again).push(item);
+  });
+
+  const order = (a, b) => (a.last < b.last ? -1 : a.last > b.last ? 1 : a.label < b.label ? -1 : a.label > b.label ? 1 : 0);
+  Object.keys(per).forEach(pid => {
+    const L = per[pid];
+    L.fresh.sort(order); L.again.sort(order); L.days.sort();
+    L.count = L.fresh.length + L.again.length;
+  });
+  return per;
 }
 
 /* ONE PRESS INTO ITS QUESTION'S LINE — `digestPlan_`'s fold, one row at a time. */
@@ -1311,4 +1319,26 @@ function sendLastWeekToAll() {
   const out = digestSendNow_(ids, new Date());
   out.forEach(got => console.log(got.id + ': ' + (got.said || got.error)));
   return out;
+}
+
+/* ---------- HISTORY (owner, 18 Nov): one learner's one day, by the Sunday email's own fold and summary over {start: d, end: d}.
+   Seen by the learner, a parent they accepted, a tutor booked with them and the admin (`workFileMaySee_`). */
+function postHistory_(body) {
+  const me = findPerson('', S(body.personId));
+  if (!me || !S(me.person_id)) return jsonOut({ success: false, message: 'Sign in first.' });
+  const of = S(body.of) || S(me.person_id), day = S(body.day);
+  if (!workFileMaySee_(me, of)) return jsonOut({ success: false, message: 'Not yours to see.' });
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return jsonOut({ success: false, message: 'Pick a day.' });
+  const week = { start: day, end: day };
+  const rows = read(TAB.submissions).rows.filter(r => key(r.person_id) === key(of));
+  const L = Object.values(digestLearners_(week, rows))[0] || { fresh: [], again: [], days: [] };
+  const items = L.fresh.concat(L.again);
+  let lib = null;
+  try { lib = digestEmailLibrary_(week, rows, config()); } catch (err) { lib = null; }
+  const sum = digestSummary_(items, L.days, lib, week);
+  const says = {};
+  digestHowSay_().forEach(w => { says[w.id] = w; });
+  return jsonOut({ success: true, of: of, day: day, summary: sum.lines,
+    items: items.map(q => ({ label: q.hidden ? 'A question' : q.label, words: q.words, answer: q.answer,
+                             how: digestHow_(q.verdict), mark: (/(\d+\/\d+)$/.exec(q.verdict) || [])[1] || '', again: L.again.indexOf(q) !== -1 })) });
 }

@@ -628,3 +628,29 @@ function postSetMyRoles_(body, action, began) {
                    tutorPending: tutorPending_(r), rank: rankOf(r), changed: !!(adding.length || dropping.length),
                    notify: notifyOf_(r) });
 }
+
+/* ---------- DOCKET (owner, 18 Nov): named lists of things to do, kept in the person's own `todo` cell as JSON — the cell `saveTodo` writes
+   and the sign-in reply sends back to that person alone. The import loads whole lists at once: your own, or anybody's for the admin. */
+const DOCKET_CELL_MAX = 49000;
+function docketTidy_(lists) {
+  const s = (v, n) => S(v).slice(0, n);
+  return (Array.isArray(lists) ? lists : []).slice(0, 50).map(l => ({ name: s(l && l.name, 80) || 'List',
+    items: (Array.isArray(l && l.items) ? l.items : []).slice(0, 300).map(i => ({ title: s(i && i.title, 300), note: s(i && i.note, 8000),
+      date: /^\d{4}-\d{2}-\d{2}$/.test(S(i && i.date)) ? S(i.date) : '', time: /^\d{2}:\d{2}$/.test(S(i && i.time)) ? S(i.time) : '',
+      /* A REPEATING ITEM keeps the day it was last done (`doneOn`), never a flag: it is undone again the next day with no nightly job. */
+      repeat: S(i && i.repeat) === 'daily' ? 'daily' : '', done: S(i && i.repeat) === 'daily' ? false : !!(i && i.done),
+      doneOn: /^\d{4}-\d{2}-\d{2}$/.test(S(i && i.doneOn)) ? S(i.doneOn) : '' }))
+      .filter(i => i.title || i.note) }));
+}
+function postDocketImport_(body, action, began) {
+  const me = findPerson('', S(body.personId));
+  if (!me || !S(me.person_id)) return jsonOut({ error: 'Not signed in.' });
+  /* THE OWNER'S ALONE (owner, 18 Nov): an admin whose address is the owner's (`ownerEmail_`), never another admin, tutor, parent or student. */
+  if (!rankAtLeast_(me, 'admin') || norm(S(me.email)) !== norm(ownerEmail_())) return jsonOut({ error: 'Docket is the owner\'s alone.' });
+  const target = S(me.person_id);
+  const lists = docketTidy_(body.lists);
+  if (!lists.length) return jsonOut({ error: 'No lists to import — nothing was saved.' });
+  const cell = JSON.stringify({ v: 1, lists: lists });
+  if (cell.length > DOCKET_CELL_MAX) return jsonOut({ error: 'Those lists are too long to keep in one place — nothing was saved.' });
+  return postSavePerson_({ personId: target }, 'todo', cell);
+}

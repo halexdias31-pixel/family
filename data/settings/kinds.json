@@ -325,9 +325,29 @@
     ]
    },
    "card": {
-    "look": "is-widget is-prof tcard",
-    "quals": {"_about": "THE CARD SHOWS ONLY THE BEST AT A LEVEL (owner, 18 Nov): at most this many per level row, by grade (`grades`, higher first; ties keep stored order); a level not named shows all. Everything stays stored.", "A-Level": 2, "GCSE": 5,
-     "grades": {"A*": 8.5, "A": 7, "B": 6, "C": 4.5, "D": 3, "E": 2, "9": 9, "8": 8, "7": 7, "6": 6, "5": 5, "4": 4, "3": 3, "2": 2, "1": 1}},
+    "look": "is-widget is-prof",
+    "quals": {
+     "_about": "THE CARD SHOWS ONLY THE BEST AT A LEVEL (owner, 18 Nov): at most this many per level row, by grade (`grades`, higher first; ties keep stored order); a level not named shows all. Everything stays stored.",
+     "A-Level": 2,
+     "GCSE": 5,
+     "grades": {
+      "A*": 8.5,
+      "A": 7,
+      "B": 6,
+      "C": 4.5,
+      "D": 3,
+      "E": 2,
+      "9": 9,
+      "8": 8,
+      "7": 7,
+      "6": 6,
+      "5": 5,
+      "4": 4,
+      "3": 3,
+      "2": 2,
+      "1": 1
+     }
+    },
     "id": [
      "personId",
      "id"
@@ -1599,6 +1619,12 @@
    },
    "see": {
     "who": "anyone"
+   },
+   "entries": {
+    "docket": {
+     "say": "Docket (owner, 18 Nov): the owner's named lists like Google Tasks — title, note, date, time, daily repeat (`doneOn`); kept in their own `todo` cell (saveTodo), loaded by the `docketImport` action. js/map.js WIDGETS. The owner's alone (admin, as food and task are).",
+     "who": "admin"
+    }
    }
   },
   "game": {
@@ -2347,7 +2373,10 @@
     "label": "Settings",
     "under": "Settings",
     "entries": {
-     "setting": {}
+     "setting": {},
+     "history": {
+      "say": "History (owner, 18 Nov): every student's card in Settings › Student — pick a day, see its questions, marks and the Sunday email's own summary (`history` action: digestLearners_ + digestSummary_ over one day). js/work-file.js historyCard_."
+     }
     }
    },
    "see": {
@@ -3047,6 +3076,31 @@
       }
      ]
     }
+   }
+  },
+  "fooddb": {
+   "source": "data/settings/foods.json (the kind tree and its foods)",
+   "loader": "js/chemistry.js FOOD",
+   "find": {
+    "group": "Tools",
+    "label": "Foods",
+    "under": "Tools",
+    "facets": [
+     "forLabel",
+     "kindLabel"
+    ]
+   },
+   "card": {
+    "look": "kc-facts",
+    "from": "food",
+    "tags": [
+     "path"
+    ],
+    "lines": true,
+    "body": "foodBody_(row)"
+   },
+   "see": {
+    "who": "admin"
    }
   }
  },

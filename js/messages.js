@@ -56,7 +56,7 @@ function dmShownThreads_() {
 function dmShown_() {
   if (typeof AT === 'undefined' || AT !== 'stuff') return false;
   const host = $('s-stuff');
-  return !!(host && host.querySelector('[data-thread], [data-daive], .dm-card'));
+  return !!(host && host.querySelector('[data-thread], [data-daive], .kc-msg'));
 }
 
 /* THE PAYLOAD'S COPY (700): taken as the first answer, and the 20 s poll keeps it fresh from there. A backend that sends none leaves the ask as it was. */
@@ -167,12 +167,13 @@ CARD_EMBEDS['daive'] = () => {
     { type: 'msgForm', k: 'daive', to: DAIVE, rows: 1, max: 1000, off: shut, drafted: draftAttr_('asst', ''), value: ASST_BUSY ? '' : draftVal_('asst', '', ''),
       send: { form: true, look: 'btn msg-go', act: 'daive-send', off: shut, label: 'Send' }, note: ASST_SAID, also: [{ look: 'daive-left', text: said }] }]);
 };
-const daiveHtml_ = () => renderCard({ kind: 'msg', look: 'daive', name: DAIVE, data: { daive: 1 }, body: [{ type: 'embed', tool: 'daive' }] });
 /* DAIVE IS AN ITEM (487): an admin's Delete and Note on it; deleted, it is gone for everyone. Its id keeps the old column's name, so a delete already made stands. */
-const daiveItem_ = () => {
-  const h = typeof itemMark_ === 'function' ? itemMark_('item:dm:daive', daiveHtml_()) : daiveHtml_();
-  return h ? suggestRowIn_(h, 'widget', 'daive', DAIVE) : '';
-};
+/* ONE MAKER (owner, 18 Nov): Suggest and the admin's Edit words are tiles in the card's own row, never a row hung on after it. */
+const DAIVE_ID = 'item:dm:daive';
+const daiveHtml_ = () => renderCard({ kind: 'msg', name: DAIVE, tags: [{ text: DAIVE, colour: 0 }, { text: 'Assistant', colour: false }], data: { daive: 1, item: DAIVE_ID },
+  tiles: [].concat(typeof suggestOpts_ === 'function' ? [suggestOpts_('widget', 'daive', DAIVE)] : [], (typeof wordsOpts_ === 'function' && wordsOpts_(DAIVE_ID)) || []).filter(Boolean),
+  body: [{ type: 'embed', tool: 'daive' }] });
+const daiveItem_ = () => (typeof wordsIn_ === 'function' ? wordsIn_(DAIVE_ID, daiveHtml_()) : daiveHtml_());
 /* REDRAWN IN PLACE in Find, and Find forgets what it drew, so a later paint never judges against the old card. */
 function asstRedraw_() {
   const col = $('s-stuff'), card = col && col.querySelector('[data-daive]');

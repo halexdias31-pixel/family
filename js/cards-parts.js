@@ -22,7 +22,7 @@ const KC_FIELDS = {
 const kcField_ = k => KC_FIELDS[k] || (window.KC_FIELDS_MORE || {})[k];
 /* THE FILE'S ROWS BEFORE IT ARRIVES (or if it never does): the same rows, held equal to the file by check-card-shape. */
 const KC_DEFAULT = {
-  tutor: { cls: 'is-widget is-prof tcard', pic: [], title: [], tags: [], lines: [], tiles: ['book-with:book:Book', 'msg-open:chat:Message'] },
+  tutor: { cls: 'is-widget is-prof', pic: [], title: [], tags: [], lines: [], tiles: ['book-with:book:Book', 'msg-open:chat:Message'] },
   venue: { cls: 'venue-door', pic: [], title: [], tags: [], lines: [], tiles: [] },
   level: { cls: 'is-level', pic: [], title: [], tags: [], lines: [], tiles: ['book-with:book:Book'] },
   subject: { cls: 'is-subject', pic: [], title: [], tags: [], lines: [], tiles: ['book-with:book:Book'] },

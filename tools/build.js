@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* @family. — tools/build.js THE ONE BUILD (owner, 17 Nov): every generator's run(), in the order each reads what the last wrote, then the bundles, then the stamp. */
-/* It writes; it never gates (rule 1.75). Run it last, after any change to a source. The apps-script workflow runs it before clasp push. */
+/* It writes, then its checks (rule 1.75, owner 17 Nov) fail it if a child or parent would notice something wrong. Run it last, after any change to a source. The apps-script workflow runs it before clasp push. */
 'use strict';
 const fs = require('fs'), path = require('path'), { spawnSync } = require('child_process');
 /* THE APP WALKS (facet-hues, finder-tags) hold the whole library in jsdom: one re-run with a bigger heap, not a crash at the default. */
@@ -22,6 +22,7 @@ const ORDER = [
   'rules',        // rules.json -> docs/rules.md
   'validate-questions', // the questions marked by the site's own marker -> data/question-status.json (ok / tutor / broken)
   'bundle',       // js/ in index.html's order -> bundle/*.js
+  'one-card',     // the one-card check (rule 1.75): every Find card by the one maker, no CSS of its own; fails the build
   'build-stamp',  // everything served -> index.html's BUILD_STAMP; last
 ];
 (async () => {

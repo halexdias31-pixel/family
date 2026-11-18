@@ -156,3 +156,53 @@ on('wf-see', el => {
   box.innerHTML = cardBlocks_(wfBody_(pid));
   row.insertAdjacentElement('afterend', box);
 });
+
+/* ---------- HISTORY (owner, 18 Nov): pick a day, see that day's questions and marks and the Sunday email's own summary of it (`history`, digest.gs). */
+/* The backend decides who may see, as for Work on file: the student, a parent they accepted, a booked tutor, the admin. */
+const HIST = {};
+const histOf_ = of => HIST[of] || (HIST[of] = { day: '', got: null, busy: false, say: '' });
+const histToday_ = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+const HIST_HOW = { right: '✓ Right', part: 'Part marks', wrong: '✗ Not right', open: 'Not marked yet' };
+function historyCard_(pid) {
+  const of = String(pid || (USER && USER.personId) || '');
+  if (!of || !USER || USER.lockedPreview) return '';
+  return renderCard(histSpec_(of));
+}
+const histSpec_ = of => ({ kind: 'setting', name: 'History', tags: [{ text: 'History' }], data: { of, hist: 1 }, body: histBody_(of) });
+function histBody_(of) {
+  const s = histOf_(of);
+  const pick = { type: 'formRow', label: 'Day', control: { kind: 'date', look: 'hist-day', value: s.day, data: { of }, aria: 'Which day' } };
+  if (s.busy) return [pick, { type: 'wait', on: true }];
+  if (s.say) return [pick, { type: 'text', text: s.say }];
+  if (!s.got) return [pick, { type: 'text', text: 'Pick a day to see its questions and marks.' }];
+  const items = s.got.items || [];
+  if (!items.length) return [pick, { type: 'text', text: 'No questions answered that day.' }];
+  return [pick, { type: 'text', paras: s.got.summary || [] },
+    { type: 'list', items: items.map(q => ({ label: q.label || 'A question',
+      value: (q.mark ? q.mark + ' · ' : '') + (HIST_HOW[q.how] || '') + (q.answer ? ' · answered ' + q.answer : '') + (q.again ? ' · again' : ''),
+      tone: q.how === 'right' ? 'is-good' : q.how === 'wrong' ? 'is-bad' : '' })) }];
+}
+function histPaint_(of) {
+  document.querySelectorAll('.card[data-hist][data-of]').forEach(el => {
+    if (el.getAttribute('data-of') !== of) return;
+    const t = document.createElement('template'); t.innerHTML = renderCard(histSpec_(of));
+    if (t.content.firstElementChild) el.replaceWith(t.content.firstElementChild);
+  });
+}
+function histLoad_(of, day) {
+  const s = histOf_(of);
+  Object.assign(s, { day, busy: true, say: '', got: null });
+  histPaint_(of);
+  Promise.resolve(api({ action: 'history', personId: (USER && USER.personId) || '', of, day })).then(d => {
+    s.busy = false;
+    if (s.day !== day) return;
+    if (d && d.success) s.got = d; else s.say = (d && (d.message || d.error)) || 'That day could not be fetched.';
+    histPaint_(of);
+  }).catch(() => { s.busy = false; s.say = 'That day could not be fetched — try again.'; histPaint_(of); });
+}
+document.addEventListener('change', e => {
+  const el = e.target;
+  if (!el || !el.classList || !el.classList.contains('hist-day')) return;
+  const of = el.getAttribute('data-of') || '';
+  if (of && /^\d{4}-\d{2}-\d{2}$/.test(el.value)) histLoad_(of, el.value);
+});
