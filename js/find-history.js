@@ -157,8 +157,11 @@ function specBody_(r) { const named = specNamed_(r);
     { type: 'text', look: 'insh-check', text: 'Short headings; the official specification has the full wording.' }]; }
 /* ---------- PRACTISE THIS AND REVISE THIS (docs/library-structure.md §1, 18 Nov): one key between a lesson and its questions, the
    part's `spec_ref` (`aqa-8461:4.1.1.2`; tools/spec-tag.js wrote it, tools/spec-links.js the points' `q:` links from it). ---------- */
-const specKeyOfCard_ = c => (c && c.board === 'AQA' && /^846[123]$/.test(String(c.spec)) && c.specRef ? 'aqa-' + c.spec + ':' + c.specRef : '');
-const specKeysOfRow_ = r => String((r && r.spec_ref) || '').split(/\s+/).filter(k => /^aqa-\d{4}:/.test(k));
+/* ANY SPEC THE SITE HOLDS (18 Nov): the card's board and spec name the spec file (`aqa-8300`), its point the key; no subject is special. */
+const specKeyOfCard_ = c => { const id = c && c.board && c.spec && c.specRef ? String(c.board).toLowerCase() + '-' + c.spec : '';
+  return id && ((typeof DATA !== 'undefined' && DATA.specs) || []).some(s => s.id === id) ? id + ':' + c.specRef : ''; };
+/* A ROW'S KEYS, spaces or commas between them (Maths rows read `aqa-8300:N12, aqa-8300:R3`). */
+const specKeysOfRow_ = r => String((r && r.spec_ref) || '').split(/[\s,]+/).filter(k => /^[a-z]+-\w+:\S/.test(k));
 /* A POINT'S PARTS: the worksheets' (W-AT) first, each sheet's in its own order, then the past papers'. */
 function specPracticeParts_(k) {
   let all = [];
