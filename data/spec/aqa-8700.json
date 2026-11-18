@@ -10,6 +10,14 @@
   {
    "id": "3.1",
    "title": "Scope of study"
+  },
+  {
+   "id": "P1",
+   "title": "Paper 1 Explorations in creative reading and writing"
+  },
+  {
+   "id": "P2",
+   "title": "Paper 2 Writers’ viewpoints and perspectives"
   }
  ],
  "points": [
@@ -30,6 +38,217 @@
    "text": "Spoken language",
    "parent": "3.1",
    "links": []
+  },
+  {
+   "id": "P1Q1",
+   "text": "Identify and interpret explicit and implicit information and ideas: list four things from a named part of the fiction source",
+   "parent": "P1",
+   "short": "Retrieve information",
+   "ao": [
+    "AO1"
+   ],
+   "marks": 4,
+   "minutes": 5,
+   "topics": [
+    "Paper 1 Reading"
+   ],
+   "links": [
+    "ct:TB-AQA-8700-1",
+    "ct:TB-GCSE-ENGLANG-1",
+    "q:Q-AQA-8700-2306-1-1",
+    "q:Q-P-AQA-8700-2506-1-1"
+   ],
+   "asked": 2
+  },
+  {
+   "id": "P1Q2",
+   "text": "Explain, comment on and analyse how writers use language to achieve effects, using relevant subject terminology",
+   "parent": "P1",
+   "short": "Analyse language",
+   "ao": [
+    "AO2"
+   ],
+   "marks": 8,
+   "minutes": 10,
+   "topics": [
+    "Paper 1 Reading",
+    "Language Techniques"
+   ],
+   "links": [
+    "ct:TB-AQA-8700-2",
+    "ct:TB-GCSE-ENGLANG-2",
+    "q:Q-AQA-8700-2306-1-2",
+    "q:Q-P-AQA-8700-2506-1-2"
+   ],
+   "asked": 2
+  },
+  {
+   "id": "P1Q3",
+   "text": "Explain, comment on and analyse how writers use structure to achieve effects: the whole fiction source, its beginning, shifts of focus and ending",
+   "parent": "P1",
+   "short": "Analyse structure",
+   "ao": [
+    "AO2"
+   ],
+   "marks": 8,
+   "minutes": 10,
+   "topics": [
+    "Paper 1 Reading",
+    "Structure in Texts"
+   ],
+   "links": [
+    "ct:TB-AQA-8700-3",
+    "ct:TB-GCSE-ENGLANG-3",
+    "q:Q-AQA-8700-2306-1-3",
+    "q:Q-P-AQA-8700-2506-1-3"
+   ],
+   "asked": 2
+  },
+  {
+   "id": "P1Q4",
+   "text": "Evaluate texts critically and support this with appropriate textual references: agree or disagree with a statement about part of the fiction source",
+   "parent": "P1",
+   "short": "Evaluate a text",
+   "ao": [
+    "AO4"
+   ],
+   "marks": 20,
+   "minutes": 20,
+   "topics": [
+    "Paper 1 Reading"
+   ],
+   "links": [
+    "ct:TB-AQA-8700-4",
+    "ct:TB-GCSE-ENGLANG-4",
+    "q:Q-AQA-8700-2306-1-4",
+    "q:Q-P-AQA-8700-2506-1-4"
+   ],
+   "asked": 2
+  },
+  {
+   "id": "P1Q5",
+   "text": "Write a description or a story, communicating clearly, imaginatively and in an organised way (AO5, 24 marks) with a range of vocabulary and sentences and accurate spelling and punctuation (AO6, 16 marks)",
+   "parent": "P1",
+   "short": "Descriptive or narrative writing",
+   "ao": [
+    "AO5",
+    "AO6"
+   ],
+   "marks": 40,
+   "minutes": 45,
+   "topics": [
+    "Paper 1 Writing"
+   ],
+   "links": [
+    "ct:TB-AQA-8700-5",
+    "ct:TB-GCSE-ENGLANG-5",
+    "q:Q-AQA-8700-2306-1-5",
+    "q:Q-P-AQA-8700-2506-1-5"
+   ],
+   "asked": 2
+  },
+  {
+   "id": "P2Q1",
+   "text": "Identify and interpret explicit and implicit information and ideas: choose four true statements about a named part of one non-fiction source",
+   "parent": "P2",
+   "short": "Choose true statements",
+   "ao": [
+    "AO1"
+   ],
+   "marks": 4,
+   "minutes": 5,
+   "topics": [
+    "Paper 2 Reading"
+   ],
+   "links": [
+    "ct:TB-AQA-8700-6",
+    "ct:TB-GCSE-ENGLANG-6",
+    "q:Q-AQA-8700-2306-2-1"
+   ],
+   "asked": 1
+  },
+  {
+   "id": "P2Q2",
+   "text": "Select and synthesise evidence from different texts: write a summary of the differences or similarities between the two sources",
+   "parent": "P2",
+   "short": "Summarise differences",
+   "ao": [
+    "AO1"
+   ],
+   "marks": 8,
+   "minutes": 10,
+   "topics": [
+    "Paper 2 Reading"
+   ],
+   "links": [
+    "ct:TB-AQA-8700-7",
+    "ct:TB-GCSE-ENGLANG-6",
+    "q:Q-AQA-8700-2306-2-2"
+   ],
+   "asked": 1
+  },
+  {
+   "id": "P2Q3",
+   "text": "Explain, comment on and analyse how writers use language to achieve effects, using relevant subject terminology: one non-fiction source",
+   "parent": "P2",
+   "short": "Analyse language in non-fiction",
+   "ao": [
+    "AO2"
+   ],
+   "marks": 12,
+   "minutes": 15,
+   "topics": [
+    "Paper 2 Reading",
+    "Language Techniques"
+   ],
+   "links": [
+    "ct:TB-AQA-8700-8",
+    "ct:TB-GCSE-ENGLANG-7",
+    "q:Q-AQA-8700-2306-2-3"
+   ],
+   "asked": 1
+  },
+  {
+   "id": "P2Q4",
+   "text": "Compare writers’ ideas and perspectives, as well as how these are conveyed, across two or more texts",
+   "parent": "P2",
+   "short": "Compare viewpoints",
+   "ao": [
+    "AO3"
+   ],
+   "marks": 16,
+   "minutes": 20,
+   "topics": [
+    "Paper 2 Reading"
+   ],
+   "links": [
+    "ct:TB-AQA-8700-9",
+    "ct:TB-GCSE-ENGLANG-7",
+    "q:Q-AQA-8700-2306-2-4"
+   ],
+   "asked": 1
+  },
+  {
+   "id": "P2Q5",
+   "text": "Write to present a viewpoint, communicating clearly, effectively and in an organised way for the form, audience and purpose given (AO5, 24 marks) with a range of vocabulary and sentences and accurate spelling and punctuation (AO6, 16 marks)",
+   "parent": "P2",
+   "short": "Write a viewpoint",
+   "ao": [
+    "AO5",
+    "AO6"
+   ],
+   "marks": 40,
+   "minutes": 45,
+   "topics": [
+    "Paper 2 Writing"
+   ],
+   "links": [
+    "ct:TB-AQA-8700-10",
+    "ct:TB-GCSE-ENGLANG-8",
+    "q:Q-AQA-8700-2306-2-5"
+   ],
+   "asked": 1
   }
- ]
+ ],
+ "note": "The 3.1 points are the specification’s scope of study. The ten P1Q1–P2Q5 points are one per exam question, the skill it tests (library-structure.md §4): `ao` the assessment objectives AQA maps to it, `marks` and `minutes` (a suggested time; Paper 1 and Paper 2 are 1 hour 45 minutes each). A question part’s `spec_ref` (aqa-8700:P1Q2) is the key; `links` are its TB-AQA-8700 card, the matching TB-GCSE-ENGLANG chapter and the parts that carry it."
 }
