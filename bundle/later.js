@@ -4179,11 +4179,12 @@ const MARK_PT_CLAUSE = new Set(('is are was were be been being has have had do d
 + 'turns turn becomes become became forms form changes change gives give gave shows show produces produce means mean leads lead '
 + 'takes take took keeps keep kept lets let stops stop needs need uses use add adds put puts feels feel felt sees see saw').split(' '));
 const MARK_PT_NOT = new Set(['not', 'no', 'never', 'without', 'nor', 'hardly']);
+const MARK_PT_KEEP = new Set('up down all every both each out over under into onto through before after'.split(' '));
 const MARK_PT_DIR = (() => {
 const m = new Map();
-[['up', 'more greater higher increase increases increased increasing bigger larger rise rises raise raises raised'],
-['down', 'less fewer lower smaller decrease decreases decreased decreasing reduce reduces reduced lesser lowers lowered lowering'],
-['fast', 'faster quicker'], ['slow', 'slower']].forEach(([k, ws]) => ws.split(' ').forEach(w => m.set(w, k)));
+[['up', 'more greater higher increase increases increased increasing bigger larger rise rises raise raises raised most greatest highest biggest largest'],
+['down', 'less fewer lower smaller decrease decreases decreased decreasing reduce reduces reduced lesser lowers lowered lowering least fewest lowest smallest'],
+['fast', 'faster quicker fastest quickest'], ['slow', 'slower slowest']].forEach(([k, ws]) => ws.split(' ').forEach(w => m.set(w, k)));
 return m;
 })();
 const MARK_PT_DIR_OPP = { up: 'down', down: 'up', fast: 'slow', slow: 'fast' };
@@ -4247,7 +4248,14 @@ return /\d/.test(a) && MARK_PT_NUM.test(n) && !/[a-z]/.test(a) ? markPtNumOf_(n)
 : a.replace(/[^a-z0-9'-]/g, '').replace(/'s$/, '').replace(/-/g, ''); }).filter(Boolean))
 .map(alts => { const d = alts.map(a => MARK_PT_DIR.get(a)).find(Boolean);
 return d ? [...new Set(alts.concat([...MARK_PT_DIR].filter(e => e[1] === d).map(e => e[0])))] : alts; })
-.filter(alts => alts.length && !(alts.length === 1 && MARK_PT_GLUE.has(alts[0]) && !MARK_PT_NOT.has(alts[0]))))
+.filter(alts => alts.length))
+.map(way => {
+const little = alts => alts.length === 1 && MARK_PT_GLUE.has(alts[0]) && !MARK_PT_NOT.has(alts[0]) && !MARK_PT_KEEP.has(alts[0]);
+const th = way.findIndex(alts => alts.length === 1 && alts[0] === 'than');
+const kept = way.every(little) ? way : way.filter(alts => !little(alts));
+if (th > 0) kept.than = way.slice(0, th).filter(alts => kept.indexOf(alts) >= 0).length;
+return kept;
+})
 .filter(w => w.length);
 if (ways.length) out.points.push({ n: tag && tag[1] ? Number(tag[1]) : 1, q: !!(tag && tag[2]), ways });
 });
@@ -4270,7 +4278,7 @@ for (const a of alts) {
 if (tok.w === a || tok.s === markPtStem_(a)) return true;
 const va = markPtVal_(a), vt = markPtVal_(tok.w);
 if (!isNaN(va) && !isNaN(vt) && Math.abs(va - vt) <= 1e-9 * Math.max(1, Math.abs(va)) && (!/%$/.test(a) || /%$/.test(tok.w))) return true;
-if (!isNaN(va) || !isNaN(vt) || (opt && opt.strict) || MARK_PT_GLUE.has(tok.w)) continue;
+if (!isNaN(va) || !isNaN(vt) || (opt && opt.strict) || MARK_PT_GLUE.has(tok.w) || !markEndsKept_(tok.w, a)) continue;
 if (markTypo_(tok.w, a, opt)) return true;
 const sa = markPtStem_(a);
 if (sa.length >= 4 && tok.s.length >= 4 && markTypo_(tok.s, sa, opt)) return true;
@@ -4296,7 +4304,8 @@ const attached = markPtAttached_(toks, way);
 const walk = (k, used) => {
 if (k === at.length) {
 const lo = Math.min(...used), hi = Math.max(...used);
-if (hi - lo + 1 <= span && (!best || hi - lo < best.hi - best.lo) && attached(used)) best = { lo, hi, used: used.slice() };
+const sided = !(way.than > 0 && way.than < way.length) || Math.max(...used.slice(0, way.than)) < Math.min(...used.slice(way.than));
+if (hi - lo + 1 <= span && sided && (!best || hi - lo < best.hi - best.lo) && attached(used)) best = { lo, hi, used: used.slice() };
 return;
 }
 for (const i of at[k].slice(0, 12)) if (used.indexOf(i) < 0) { used.push(i); walk(k + 1, used); used.pop(); }
@@ -4316,7 +4325,7 @@ const sides = way.map((alts, j) => noun(j) ? (j < k ? -1 : 1) : 0);
 const twoSided = ks.length === 1 && sides.includes(-1) && sides.includes(1);
 return used => {
 for (let j = 0; j < used.length; j++) {
-if (!noun(j)) continue;
+if (!noun(j) || (way.than > 0 && j >= way.than)) continue;
 const i = used[j], c = toks[i].c;
 let near = Infinity, nearOpp = Infinity;
 ks.forEach(q => { if (toks[used[q]].c === c) near = Math.min(near, Math.abs(used[q] - i)); });
@@ -4324,6 +4333,7 @@ toks.forEach((t, x) => { if (t.c !== c || used.indexOf(x) >= 0) return; const e 
 if (e && opp.has(e)) nearOpp = Math.min(nearOpp, Math.abs(x - i)); });
 if (nearOpp < near) return false;
 }
+if (ks.some(q => own.has(MARK_PT_DIR_OPP[dirAt[q]])) && !used.every((i, j) => (!noun(j) && !dirAt[j]) || ks.every(q => Math.sign(i - used[q]) === Math.sign(j - q)))) return false;
 if (!twoSided) return true;
 const di = used[k], dw = toks[di].w;
 if (!/(?:[^s]s|ed)$/.test(dw)) return true;
@@ -4354,7 +4364,7 @@ units = units.filter(u => markPtWords_(u.replace(/\u0001\d+|\u0002/g, ' ')).some
 if (key.first) units = units.slice(0, key.first);
 units.forEach(sentence => {
 const toks = [];
-sentence.split(/,|\s+(?=and\s)|\s+-\s+/).forEach((chunk, c) => {
+sentence.split(/,|\s+(?=(?:and|but|whereas|while)\s)|\s+-\s+/).forEach((chunk, c) => {
 chunk.replace(/\u0001(\d+)|\u0002|[^\s\u0001\u0002]+/g, m => {
 if (m[0] === '\u0001') inQuote = Number(m.slice(1));
 else if (m === '\u0002') inQuote = 0;
@@ -4491,6 +4501,8 @@ return sign + m[2] + m[3].match(/[a-z](?:\^\d+)?/g).sort().join('');
 }).join('=');
 }
 const MARK_TYPO_OF = n => (n >= 8 ? 2 : n >= 4 ? 1 : 0);
+const MARK_CHEM_END = /(ane|ene|yne|anol|ol|al|oic|one|ate|ite|ide|ine)$/;
+const markEndsKept_ = (t, w) => { const a = MARK_CHEM_END.exec(t), b = MARK_CHEM_END.exec(w); return !a || !b || a[1] === b[1]; };
 function markEdits_(a, b, cap) {
 if (Math.abs(a.length - b.length) > cap) return cap + 1;
 const d = [];
@@ -4536,7 +4548,7 @@ const tj = tw.join('').replace(/-/g, ''), wj = ww.join('').replace(/-/g, '');
 const cap = MARK_TYPO_OF(wj.length);
 if (tj === wj) return markNorm_(ways[k]);
 if (ww.length !== tw.length) {
-if (cap && tj[0] === wj[0] && markEdits_(tj, wj, cap) <= cap && !rivals.some(r => r.replace(/-/g, '') !== wj && markEdits_(tj, r.replace(/-/g, ''), MARK_TYPO_OF(r.length)) <= MARK_TYPO_OF(r.length))) return markNorm_(ways[k]);
+if (cap && tj[0] === wj[0] && markEndsKept_(tj, wj) && markEdits_(tj, wj, cap) <= cap && !rivals.some(r => r.replace(/-/g, '') !== wj && markEdits_(tj, r.replace(/-/g, ''), MARK_TYPO_OF(r.length)) <= MARK_TYPO_OF(r.length))) return markNorm_(ways[k]);
 continue;
 }
 }
@@ -4545,7 +4557,7 @@ const ok = ww.every((w, i) => {
 const t = tw[i];
 if (t === w) return true;
 const cap = MARK_TYPO_OF(w.length);
-if (!cap || t[0] !== w[0] || markEdits_(t, w, cap) > cap) return false;
+if (!cap || t[0] !== w[0] || !markEndsKept_(t, w) || markEdits_(t, w, cap) > cap) return false;
 if (rivals.some(r => r !== w && markEdits_(t, r, MARK_TYPO_OF(r.length)) <= MARK_TYPO_OF(r.length))) return false;
 near = true;
 return true;
@@ -4640,8 +4652,8 @@ const wn0 = markNorm_(w), unitAsked = bareTyped && !/\(.*\)$/.test(wn0) && /^-?[
 const bareOf = v => unitAsked ? v + '\u0000' : markBare_(v);
 if (free) {
 const wn = markNorm_(w), a = pct(t) || markFrac_(t), b = pct(wn) || markFrac_(wn);
-if ((pct(t) || pct(wn)) && !(pct(t) && pct(wn)) && a && b && a.n * b.d === b.n * a.d) return true;
-if (tTerms && !/^[a-z]{4,}$/.test(t) && tTerms === markTerms_(w)) return true;
+if (pct(t) && !pct(wn) && a && b && a.n * b.d === b.n * a.d) return true;
+if (tTerms && !/[a-z]{4,}/.test(t) && tTerms === markTerms_(w)) return true;
 }
 if (markNum_(t) === markNum_(markNorm_(w))) return true;
 if (free) { const pv = markPowVal_(typed), wv = markPowVal_(w), tv = pv != null ? pv : markFrac_(t), qv = wv != null ? wv : markFrac_(bareOf(w));

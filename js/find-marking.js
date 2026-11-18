@@ -604,13 +604,16 @@ const MARK_PT_CLAUSE = new Set(('is are was were be been being has have had do d
   + 'turns turn becomes become became forms form changes change gives give gave shows show produces produce means mean leads lead '
   + 'takes take took keeps keep kept lets let stops stop needs need uses use add adds put puts feels feel felt sees see saw').split(' '));
 const MARK_PT_NOT = new Set(['not', 'no', 'never', 'without', 'nor', 'hardly']);
+/* LITTLE WORDS THAT ARE THE POINT (18 Nov): "up and down", "all directions", "given out" are not "down", "directions", "given" -- kept in a key,
+   as is every word of a way that is nothing but little words */
+const MARK_PT_KEEP = new Set('up down all every both each out over under into onto through before after'.split(' '));
 /* DIRECTION WORDS CARRY THE MEANING ("more reactive" is not "less reactive", 18 Nov): kept in a key though little, each read with its kind
    (more~greater~higher~increase, less~fewer~lower~smaller~decrease), and a point whose key names one is not scored where its opposite stands */
 const MARK_PT_DIR = (() => {
   const m = new Map();
-  [['up', 'more greater higher increase increases increased increasing bigger larger rise rises raise raises raised'],
-    ['down', 'less fewer lower smaller decrease decreases decreased decreasing reduce reduces reduced lesser lowers lowered lowering'],
-    ['fast', 'faster quicker'], ['slow', 'slower']].forEach(([k, ws]) => ws.split(' ').forEach(w => m.set(w, k)));
+  [['up', 'more greater higher increase increases increased increasing bigger larger rise rises raise raises raised most greatest highest biggest largest'],
+    ['down', 'less fewer lower smaller decrease decreases decreased decreasing reduce reduces reduced lesser lowers lowered lowering least fewest lowest smallest'],
+    ['fast', 'faster quicker fastest quickest'], ['slow', 'slower slowest']].forEach(([k, ws]) => ws.split(' ').forEach(w => m.set(w, k)));
   return m;
 })();
 const MARK_PT_DIR_OPP = { up: 'down', down: 'up', fast: 'slow', slow: 'fast' };
@@ -683,7 +686,15 @@ function markPtRead_(rule) {
           : a.replace(/[^a-z0-9'-]/g, '').replace(/'s$/, '').replace(/-/g, ''); }).filter(Boolean))
       .map(alts => { const d = alts.map(a => MARK_PT_DIR.get(a)).find(Boolean);
         return d ? [...new Set(alts.concat([...MARK_PT_DIR].filter(e => e[1] === d).map(e => e[0])))] : alts; })
-      .filter(alts => alts.length && !(alts.length === 1 && MARK_PT_GLUE.has(alts[0]) && !MARK_PT_NOT.has(alts[0]))))
+      .filter(alts => alts.length))
+      .map(way => {
+        const little = alts => alts.length === 1 && MARK_PT_GLUE.has(alts[0]) && !MARK_PT_NOT.has(alts[0]) && !MARK_PT_KEEP.has(alts[0]);
+        /* A THAN KEEPS ITS SIDES (18 Nov): "chlorine more reactive than bromine" is found only with chlorine before bromine */
+        const th = way.findIndex(alts => alts.length === 1 && alts[0] === 'than');
+        const kept = way.every(little) ? way : way.filter(alts => !little(alts));
+        if (th > 0) kept.than = way.slice(0, th).filter(alts => kept.indexOf(alts) >= 0).length;
+        return kept;
+      })
       .filter(w => w.length);
     if (ways.length) out.points.push({ n: tag && tag[1] ? Number(tag[1]) : 1, q: !!(tag && tag[2]), ways });
   });
@@ -712,7 +723,7 @@ function markPtIs_(tok, alts, opt) {
     /* a key's 40.5% asks for the %: a bare 40.5 is not it, though 40.5% is a key's bare 40.5 */
     if (!isNaN(va) && !isNaN(vt) && Math.abs(va - vt) <= 1e-9 * Math.max(1, Math.abs(va)) && (!/%$/.test(a) || /%$/.test(tok.w))) return true;
     /* a little word (her, was) is never a near miss of a key word (hear, wax), nor a number of another */
-    if (!isNaN(va) || !isNaN(vt) || (opt && opt.strict) || MARK_PT_GLUE.has(tok.w)) continue;
+    if (!isNaN(va) || !isNaN(vt) || (opt && opt.strict) || MARK_PT_GLUE.has(tok.w) || !markEndsKept_(tok.w, a)) continue;
     if (markTypo_(tok.w, a, opt)) return true;
     const sa = markPtStem_(a);
     if (sa.length >= 4 && tok.s.length >= 4 && markTypo_(tok.s, sa, opt)) return true;
@@ -740,7 +751,8 @@ function markPtFind_(toks, way, opt, quoteOnly) {
   const walk = (k, used) => {
     if (k === at.length) {
       const lo = Math.min(...used), hi = Math.max(...used);
-      if (hi - lo + 1 <= span && (!best || hi - lo < best.hi - best.lo) && attached(used)) best = { lo, hi, used: used.slice() };
+      const sided = !(way.than > 0 && way.than < way.length) || Math.max(...used.slice(0, way.than)) < Math.min(...used.slice(way.than));
+      if (hi - lo + 1 <= span && sided && (!best || hi - lo < best.hi - best.lo) && attached(used)) best = { lo, hi, used: used.slice() };
       return;
     }
     for (const i of at[k].slice(0, 12)) if (used.indexOf(i) < 0) { used.push(i); walk(k + 1, used); used.pop(); }
@@ -752,7 +764,9 @@ function markPtFind_(toks, way, opt, quoteOnly) {
    has its own. A way that names a direction is found only where (1) each of its other words, in its comma-part, has no opposite direction word
    nearer to it than the nearest of the way's own kind, and (2) where the key has words both before and after a direction verb ("salt lowers
    melting point"), an answer's direction verb (-s, -ed) keeps them on the same sides, swapped after "by" ("is lowered by salt"), so
-   "melting point lowers salt" is not it; an adjective ("the melting point is lower with salt") is not held to sides. */
+   "melting point lowers salt" is not it; an adjective ("the melting point is lower with salt") is not held to sides; and (3) a way with opposite
+   directions in it ("salt increases, open stomata decreases", "rises then falls") keeps every noun, and each direction, on the same side of each of
+   them, so the two are not swapped. */
 const markPtDirOf_ = w => MARK_PT_DIR.get(w) || MARK_PT_DIR.get(w.replace(/(?:s|ed|ing)$/, '')) || MARK_PT_DIR.get(w.replace(/(?:s|d)$/, ''));
 function markPtAttached_(toks, way) {
   const dirAt = way.map(alts => alts.map(a => MARK_PT_DIR.get(a)).find(Boolean));
@@ -765,7 +779,8 @@ function markPtAttached_(toks, way) {
   const twoSided = ks.length === 1 && sides.includes(-1) && sides.includes(1);
   return used => {
     for (let j = 0; j < used.length; j++) {
-      if (!noun(j)) continue;
+      /* the words after a than are what is compared with, not what the direction is said of */
+      if (!noun(j) || (way.than > 0 && j >= way.than)) continue;
       const i = used[j], c = toks[i].c;
       /* the nearest of the way's own direction words, as found, against the nearest opposite one that is not */
       let near = Infinity, nearOpp = Infinity;
@@ -774,6 +789,7 @@ function markPtAttached_(toks, way) {
         if (e && opp.has(e)) nearOpp = Math.min(nearOpp, Math.abs(x - i)); });
       if (nearOpp < near) return false;
     }
+    if (ks.some(q => own.has(MARK_PT_DIR_OPP[dirAt[q]])) && !used.every((i, j) => (!noun(j) && !dirAt[j]) || ks.every(q => Math.sign(i - used[q]) === Math.sign(j - q)))) return false;
     if (!twoSided) return true;
     const di = used[k], dw = toks[di].w;
     if (!/(?:[^s]s|ed)$/.test(dw)) return true;
@@ -808,7 +824,8 @@ function markPoints_(typed, rule, x, opt) {
   units.forEach(sentence => {
     /* the sentence's words, each with its stem, its comma-part and the quotation it stands in */
     const toks = [];
-    sentence.split(/,|\s+(?=and\s)|\s+-\s+/).forEach((chunk, c) => {
+    /* "but", "whereas" and "while" part a sentence as "and" does: "lower than heavy fuel oil but higher than kerosene" is two parts (18 Nov) */
+    sentence.split(/,|\s+(?=(?:and|but|whereas|while)\s)|\s+-\s+/).forEach((chunk, c) => {
       chunk.replace(/\u0001(\d+)|\u0002|[^\s\u0001\u0002]+/g, m => {
         if (m[0] === '\u0001') inQuote = Number(m.slice(1));
         else if (m === '\u0002') inQuote = 0;
@@ -964,6 +981,9 @@ function markTerms_(s) {
 
 /* ---------- A TYPO IS FORGIVEN, A DIFFERENT ANSWER NEVER (owner, 13 Nov): edits allowed by word length, 1-3 letters none, 4-7 one, 8+ two */
 const MARK_TYPO_OF = n => (n >= 8 ? 2 : n >= 4 ? 1 : 0);
+/* A SLIP NEVER CHANGES A CHEMICAL ENDING (18 Nov): propane is not propene, ethanol not ethanoic, sulfate not sulfite */
+const MARK_CHEM_END = /(ane|ene|yne|anol|ol|al|oic|one|ate|ite|ide|ine)$/;
+const markEndsKept_ = (t, w) => { const a = MARK_CHEM_END.exec(t), b = MARK_CHEM_END.exec(w); return !a || !b || a[1] === b[1]; };
 /* Damerau-Levenshtein (adjacent swap is one edit), stopped early past `cap` */
 function markEdits_(a, b, cap) {
   if (Math.abs(a.length - b.length) > cap) return cap + 1;
@@ -1016,7 +1036,7 @@ function markTypo_(typed, accept, opt) {
       const cap = MARK_TYPO_OF(wj.length);
       if (tj === wj) return markNorm_(ways[k]);
       if (ww.length !== tw.length) {
-        if (cap && tj[0] === wj[0] && markEdits_(tj, wj, cap) <= cap && !rivals.some(r => r.replace(/-/g, '') !== wj && markEdits_(tj, r.replace(/-/g, ''), MARK_TYPO_OF(r.length)) <= MARK_TYPO_OF(r.length))) return markNorm_(ways[k]);
+        if (cap && tj[0] === wj[0] && markEndsKept_(tj, wj) && markEdits_(tj, wj, cap) <= cap && !rivals.some(r => r.replace(/-/g, '') !== wj && markEdits_(tj, r.replace(/-/g, ''), MARK_TYPO_OF(r.length)) <= MARK_TYPO_OF(r.length))) return markNorm_(ways[k]);
         continue;
       }
     }
@@ -1026,7 +1046,7 @@ function markTypo_(typed, accept, opt) {
       if (t === w) return true;
       const cap = MARK_TYPO_OF(w.length);
       /* A SLIP KEEPS THE FIRST LETTER: increases/decreases, efficient/inefficient, elastic/inelastic are other words, not typos. */
-      if (!cap || t[0] !== w[0] || markEdits_(t, w, cap) > cap) return false;
+      if (!cap || t[0] !== w[0] || !markEndsKept_(t, w) || markEdits_(t, w, cap) > cap) return false;
       /* a near miss as near to another answer is that answer, typed: wrong */
       if (rivals.some(r => r !== w && markEdits_(t, r, MARK_TYPO_OF(r.length)) <= MARK_TYPO_OF(r.length))) return false;
       near = true;
@@ -1141,11 +1161,12 @@ function markAnswer_(typed, accept, again, opt) {
       && (markBare_(w) !== wn0 || !!(markRange_(w) && markRange_(w).unit));
     const bareOf = v => unitAsked ? v + '\u0000' : markBare_(v);
     if (free) {
-      /* 25% is 0.25, and 0.25 is 25% (O2) */
+      /* 25% typed is a key's 0.25 (O2); a key's 95% asks for the %, so 0.95 is not it (18 Nov), as `markPtIs_` reads a key's % */
       const wn = markNorm_(w), a = pct(t) || markFrac_(t), b = pct(wn) || markFrac_(wn);
-      if ((pct(t) || pct(wn)) && !(pct(t) && pct(wn)) && a && b && a.n * b.d === b.n * a.d) return true;
-      /* a plain word of 4+ letters is a word, not a product of letters: "recieve" is not "receive" in another order */
-      if (tTerms && !/^[a-z]{4,}$/.test(t) && tTerms === markTerms_(w)) return true;
+      if (pct(t) && !pct(wn) && a && b && a.n * b.d === b.n * a.d) return true;
+      /* a plain word of 4+ letters is a word, not a product of letters: "recieve" is not "receive" in another order, and words keep
+         their order ("chlorine is more reactive than bromine" is not "bromine is more reactive than chlorine", 18 Nov) */
+      if (tTerms && !/[a-z]{4,}/.test(t) && tTerms === markTerms_(w)) return true;
     }
     if (markNum_(t) === markNum_(markNorm_(w))) return true;
     /* THE SAME NUMBER WITH A POWER IN IT (owner, 13 Nov): 2^3 is 8, 1e-14 is 10^-14, 6.02×10^23 is 6.02e23 */
