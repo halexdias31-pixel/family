@@ -10316,7 +10316,7 @@ const url = tutorLink_({ handle });
 TUTOR_PNG_BUSY = true;
 toast(text_('making-a-picture-of-this-profile'));
 tutorPng_(t)
-.then(blob => tutorPngHand_(blob, handle + '-profile.png', url, t.title || '@' + handle))
+.then(blob => tutorPngHand_(blob, handle + '-profile.png', url, t.title || '@' + handle, el.closest && el.closest('.card, .qcard')))
 .catch(() => tutorLinkOnly_(t.title || '@' + handle, url))
 .then(() => { TUTOR_PNG_BUSY = false; }, () => { TUTOR_PNG_BUSY = false; });
 });
@@ -10330,7 +10330,7 @@ if (navigator.share) return navigator.share({ title, text: title + ' on ' + bran
 if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(url).then(() => toast(text_('link-copied'))).catch(() => toast(url));
 toast(url);
 }
-function tutorPngHand_(blob, name, url, title) {
+function tutorPngHand_(blob, name, url, title, at) {
 const file = typeof File === 'function' ? new File([blob], name, { type: 'image/png' }) : null;
 const can = !!(file && navigator.share && navigator.canShare
 && (() => { try { return navigator.canShare({ files: [file] }); } catch (e) { return false; } })());
@@ -10344,7 +10344,9 @@ const copy = navigator.clipboard && navigator.clipboard.writeText ? navigator.cl
 return copy.then(() => toast(text_('image-saved-link-copied')), () => toast('Image saved · ' + url));
 };
 if (!can) return save();
-return navigator.share({ files: [file], title, text: url }).catch(e => { if (!e || e.name !== 'AbortError') return save(); });
+const offer = () => (at && typeof rcOffer_ === 'function' ? rcOffer_(blob, name, at, title) : save());
+if (navigator.userActivation && !navigator.userActivation.isActive) return offer();
+return navigator.share({ files: [file], title, text: url }).catch(e => { if (!e || e.name !== 'AbortError') return e && e.name === 'NotAllowedError' ? offer() : save(); });
 }
 function tutorPng_(t) {
 const host = document.createElement('div');
