@@ -4329,6 +4329,14 @@ const MARK_PT_CLAUSE = new Set(('is are was were be been being has have had do d
 + 'turns turn becomes become became forms form changes change gives give gave shows show produces produce means mean leads lead '
 + 'takes take took keeps keep kept lets let stops stop needs need uses use add adds put puts feels feel felt sees see saw').split(' '));
 const MARK_PT_NOT = new Set(['not', 'no', 'never', 'without', 'nor', 'hardly']);
+const MARK_PT_DIR = (() => {
+const m = new Map();
+[['up', 'more greater higher increase increases increased increasing bigger larger rise rises raised'],
+['down', 'less fewer lower smaller decrease decreases decreased decreasing reduce reduces reduced lesser'],
+['fast', 'faster quicker'], ['slow', 'slower']].forEach(([k, ws]) => ws.split(' ').forEach(w => m.set(w, k)));
+return m;
+})();
+const MARK_PT_DIR_OPP = { up: 'down', down: 'up', fast: 'slow', slow: 'fast' };
 const MARK_PT_RIVALS = ('increase increases increased increasing decrease decreases decreased decreasing higher lower inhale exhale import export '
 + 'inside outside above below before after maximum minimum positive negative endothermic exothermic absorb absorbs absorbed emit emits '
 + 'emitted gain gains gained loses lost oxidised reduced oxidation reduction anode cathode acid alkali alkaline insulator conductor '
@@ -4372,6 +4380,8 @@ parts.slice(1).forEach(p => {
 const tag = /^\[(\d*)(q?)\]\s*/i.exec(p);
 const ways = (tag ? p.slice(tag[0].length) : p).split('/').map(w => w.trim().toLowerCase().replace(/n't\b/g, ' not').split(/\s+/)
 .map(t => t.split('~').map(a => a.replace(/[^a-z0-9'-]/g, '').replace(/'s$/, '').replace(/-/g, '')).filter(Boolean))
+.map(alts => { const d = alts.map(a => MARK_PT_DIR.get(a)).find(Boolean);
+return d ? [...new Set(alts.concat([...MARK_PT_DIR].filter(e => e[1] === d).map(e => e[0])))] : alts; })
 .filter(alts => alts.length && !(alts.length === 1 && MARK_PT_GLUE.has(alts[0]) && !MARK_PT_NOT.has(alts[0]))))
 .filter(w => w.length);
 if (ways.length) out.points.push({ n: tag && tag[1] ? Number(tag[1]) : 1, q: !!(tag && tag[2]), ways });
@@ -4424,6 +4434,13 @@ return;
 for (const i of at[k].slice(0, 12)) if (used.indexOf(i) < 0) { used.push(i); walk(k + 1, used); used.pop(); }
 };
 walk(0, []);
+const dirs = way.map(alts => alts.map(a => MARK_PT_DIR.get(a)).find(Boolean)).filter(Boolean);
+if (best && dirs.length) {
+const opp = new Set(dirs.map(d => MARK_PT_DIR_OPP[d]));
+const c = toks[best.used[0]].c;
+for (let i = Math.max(0, best.lo - 3); i <= Math.min(toks.length - 1, best.hi + 3); i++)
+if (toks[i].c === c && best.used.indexOf(i) < 0 && opp.has(MARK_PT_DIR.get(toks[i].w))) return null;
+}
 return best;
 }
 function markPoints_(typed, rule, x, opt) {
@@ -4461,7 +4478,8 @@ const glue = toks.filter(t => MARK_PT_GLUE.has(t.w)).length;
 if (!key.phrases && essay && toks.length < 3) return;
 const chunks = [...new Set(toks.map(t => t.c))];
 const clause = c => toks.some(t => t.c === c && (t.quote || MARK_PT_CLAUSE.has(t.w) || (/ed$/.test(t.w) && t.w.length > 4)));
-const scopes = chunks.length >= 4 && chunks.filter(c => !clause(c)).length >= chunks.length - 1
+const item = c => !clause(c) && toks.filter(t => t.c === c).length <= 3;
+const scopes = chunks.length >= 4 && chunks.filter(item).length >= chunks.length - 1
 ? chunks.filter(clause).map(c => toks.filter(t => t.c === c)) : [toks];
 const found = [];
 scopes.forEach(sc => key.points.forEach((p, pi) => {
