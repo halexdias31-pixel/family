@@ -10,6 +10,7 @@ if (!process.execArgv.some(a => a.startsWith('--max-old-space-size'))) {
   process.exit(r.status === null ? 1 : r.status);
 }
 const ORDER = [
+  'spec-links',   // questions' spec_ref -> data/spec/aqa-846x.json q: links, data/specs.json; fails on a tag that opens no card
   'kinds',        // data/settings/kinds.json, facets.json -> js/kinds.js
   'tiers',        // tiers.json -> shell piece, js/find-finder.js, index.html's LATER/LAZY/OFF
   'aliases_gs',   // question-aliases.json -> js/qaliases.js (cards-gen copies it on)
