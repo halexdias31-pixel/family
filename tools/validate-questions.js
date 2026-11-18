@@ -143,6 +143,8 @@ function run() {
     /* ONLY IN THE LEDGER: not hidden for that alone (owner's call, 17 Nov) -- kept when the Ledger says it holds a key, so a question that works is never hidden for being unchecked here. */
     if (!plain(r.html) && !plain(r.lead) && !S(r.diagram) && !S(r.choices)) {
       if (/\b(accept|cells|draw_answer|choice_right|mark_words|order_ends)\b/.test(S(r.lib_has))) { add(r, 'ok', 'words and key only in the Ledger (not checked here)'); continue; }
+      /* AND ONE WHOSE LEDGER HOLDS AN ANSWER BUT NO KEY: the tutor's, as below (owner, 18 Nov). */
+      if (/\banswer\b/.test(S(r.lib_has)) && /\bhtml\b/.test(S(r.lib_has))) { add(r, 'tutor', 'answer only in the Ledger, no key yet'); continue; }
       add(r, 'broken', S(r.lib_has) ? 'words only in the Ledger, no key listed' : 'no question text'); continue; }
     const fig = figureMissing(r, stemFig.has(S(r.paper_id) + '#' + S(r.question)));
     if (fig) { add(r, 'broken', fig); continue; }
@@ -151,8 +153,10 @@ function run() {
     const kind = call('markerOf_(libQuestion_(__r)).kind');
     if (kind === 'save') {
       const marks = Number(r.marks) || 0;
-      if (plain(r.answer) && (marks >= 6 || LEVELS.test(S(r.answer)) || /essay/i.test(S(r.answer_type)))) add(r, 'tutor');
-      else add(r, 'broken', plain(r.answer) ? 'no mechanical key (has an answer)' : 'no key and no answer');
+      /* AN ANSWER WITH NO KEY IS THE TUTOR'S TO MARK, NOT HIDDEN (owner, 18 Nov: a part vanished mid-question on Finley's
+         Waves worksheet). The child answers, sees the scheme's answer, and the tutor marks it; a key makes it the site's later. */
+      if (plain(r.answer)) add(r, 'tutor', marks >= 6 || LEVELS.test(S(r.answer)) || /essay/i.test(S(r.answer_type)) ? '' : 'no mechanical key yet');
+      else add(r, 'broken', 'no key and no answer');
       continue;
     }
     let right = false, wrongOk = false;
