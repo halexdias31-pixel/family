@@ -47,6 +47,8 @@ Order: what a child or parent would notice first, then what stops things driftin
 
 ## Then (content)
 
+- ONE LIBRARY SHAPE (owner, 18 Nov): History and Religious Studies (and any other subject) have their own irregular branch structures in Library/Find. Examine every subject's branches, pick ONE shape every subject follows (or bring the others to theirs if theirs is better), and move them all to it. Tell the owner what was chosen and why in the weekly list.
+
 - ONE CARD PER IDEA (owner, 17 Nov; Claude's design): the library holds one card per concept, never per board/book; spec points (every board, level, combined/separate) point at concept cards; level depth is marked inside the one card ([H], [A-Level]); questions link to the same cards. Count: near-duplicate cards left → 0. Then every concept card gets one animation showing the real mechanism (memorable, lean); weak existing animations redone.
 
 13. Topic cards: rest of QAA MSOR, then BNCC/ENEM/Australian Curriculum topics; Victoria VCE; BNCC Ensino Médio; NSW HSC once the syllabus version is chosen.
