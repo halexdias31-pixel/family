@@ -1622,8 +1622,12 @@
    },
    "entries": {
     "docket": {
-     "say": "Docket (owner, 18 Nov): the owner's named lists like Google Tasks — title, note, date, time, daily repeat (`doneOn`); kept in their own `todo` cell (saveTodo), loaded by the `docketImport` action. js/map.js WIDGETS. The owner's alone (admin, as food and task are).",
-     "who": "admin"
+     "say": "Docket (owner, 18 Nov): the owner's named lists like Google Tasks — title, note, date, time, daily repeat (`doneOn`); kept in their own `todo` cell (saveTodo), loaded by the `docketImport` action. js/map.js WIDGETS. The owner's alone (owner, 18 Nov: `owner` is the admin whose address is the backend's ownerEmail_, never another admin; the sign-in reply's `owner` flag, may_('owner')).",
+     "who": "owner"
+    },
+    "assignments": {
+     "say": "Assignments (owner, 18 Nov): anybody signed in keeps their school or uni work — its fields, lists and form are the `assignment` kind below; kept in their own `assignments` cell (assignmentsSave), loaded many at once by `assignmentsImport`, read by `assignmentsOf` for a parent, a booked tutor or the admin. js/map.js WIDGETS.",
+     "who": "signedIn"
     }
    }
   },
@@ -2686,7 +2690,7 @@
     "tiles": "storeTiles_(item, entry)"
    },
    "see": {
-    "who": "admin"
+    "who": "owner"
    },
    "forms": {
     "food-new": {
@@ -3100,7 +3104,49 @@
     "body": "foodBody_(row)"
    },
    "see": {
-    "who": "admin"
+    "who": "owner"
+   }
+  },
+  "assignment": {
+   "source": "the person's own `assignments` cell (JSON), drawn by the Assignments tool (js/map.js asg*); no Find card of its own",
+   "say": "ONE ASSIGNMENT (owner, 18 Nov). Its `kind`, `unit` and `status` are the fixed lists in the form's options (a choice, never free text); the backend keeps whatever word it is sent (post-account.gs assignmentsTidy_), status one of the four. The tool groups them Overdue / This week / Later / Done by `due`.",
+   "see": {
+    "who": "self, family, staff, admin"
+   },
+   "forms": {
+    "assignment-new": {
+     "ask": "card",
+     "store": true,
+     "skip": true,
+     "back": "one",
+     "send": {
+      "t": "Save"
+     },
+     "say": "the Assignments tool's form (js/map.js asgSend_): one field a step, any but the title left empty; the whole list is sent as `assignmentsSave`.",
+     "fields": [
+      { "f": "title", "type": "text", "label": "Title", "ph": "Title" },
+      { "f": "course", "type": "text", "label": "Subject or module", "ph": "Subject or module" },
+      { "f": "kind", "label": "What it is", "options": [
+        { "v": "essay", "t": "Essay" }, { "v": "coursework", "t": "Coursework" }, { "v": "project", "t": "Project" },
+        { "v": "exam", "t": "Exam" }, { "v": "test", "t": "Test" }, { "v": "homework", "t": "Homework" },
+        { "v": "presentation", "t": "Presentation" }, { "v": "report", "t": "Report" }, { "v": "lab", "t": "Lab" },
+        { "v": "reading", "t": "Reading" }, { "v": "revision", "t": "Revision" }, { "v": "other", "t": "Other" }] },
+      { "f": "amount", "type": "text", "label": "How much (a number)", "ph": "How much", "min": 0 },
+      { "f": "unit", "label": "Of what", "options": [
+        { "v": "words", "t": "words" }, { "v": "pages", "t": "pages" }, { "v": "slides", "t": "slides" },
+        { "v": "minutes", "t": "minutes" }, { "v": "hours", "t": "hours" }, { "v": "questions", "t": "questions" },
+        { "v": "marks", "t": "marks" }, { "v": "chapters", "t": "chapters" }] },
+      { "f": "due", "type": "date", "label": "Due" },
+      { "f": "time", "type": "time", "label": "Due time" },
+      { "f": "weight", "type": "text", "label": "% of the grade", "ph": "% of the grade", "min": 0, "max": 100 },
+      { "f": "status", "label": "Status", "options": [
+        { "v": "not-started", "t": "Not started" }, { "v": "in-progress", "t": "In progress" },
+        { "v": "submitted", "t": "Submitted" }, { "v": "marked", "t": "Marked" }] },
+      { "f": "mark", "type": "text", "label": "Mark", "ph": "Mark, e.g. 68% or A", "only": { "status": "marked" } },
+      { "f": "note", "type": "long", "label": "Note", "ph": "Note" },
+      { "f": "link", "type": "text", "label": "Link", "ph": "https://…", "pad": "url" }
+     ]
+    }
    }
   }
  },

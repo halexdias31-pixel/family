@@ -16,6 +16,9 @@ function widgetFor_(w) {
   if (w.admin && !(typeof may_ === 'function' && may_('admin'))) return false;
   if (w.tutor && !(typeof may_ === 'function' && may_('staff'))) return false;
   if (w.signedIn && !(typeof USER !== 'undefined' && USER)) return false;
+  /* AND kinds.json, THE ONE PLACE A TOOL IS SHOWN OR HIDDEN (18 Nov): its entry's `who` (`tool.entries.<id>.who`), asked through may_. */
+  const e = typeof ITEM_KINDS === 'object' && ((ITEM_KINDS.kinds[w.kind] || {}).entries || {})[w.id];
+  if (e && e.who && e.who !== 'anyone' && !String(e.who).split(',').some(x => typeof may_ === 'function' && may_(x.trim()))) return false;
   /* WHO SEES THIS (497, words.js): an admin's narrowing, asked after the code's own gates, which always win. */
   return true;
 }

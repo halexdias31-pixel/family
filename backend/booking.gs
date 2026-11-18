@@ -1,7 +1,7 @@
 /* @family. — 30_booking.gs (4 of 8) THE BOOKING MACHINE, and everything that decides who is in a session. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const BOOKING_VERSION = "2026-11-18-history-docket-1";
+const BOOKING_VERSION = "2026-11-18-assignments-owner-1";
 
 
 /* WHEN THE BUSINESS ACTUALLY OPERATES within an interval. § */
@@ -1213,6 +1213,9 @@ const PERMISSIONS = {
   applyTeach: ['member', 'child', 'admin'],
   approvePost: ['admin'],
   askAssistant: ['member', 'child', 'admin'],
+  assignmentsImport: ['member', 'child', 'admin'],
+  assignmentsOf: ['member', 'child', 'admin'],
+  assignmentsSave: ['member', 'child', 'admin'],
   changePin: ['member', 'child', 'admin'],
   checkUploads: ['admin'],
   claimChild: ['member', 'child', 'admin'],

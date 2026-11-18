@@ -37,10 +37,12 @@ const isWearable = x => {
 /* ---------- WHO ARE YOU (who-1): one person, one permission role, ONE QUESTION ---------- */
 /* Every "may they" asks `may_`; the backend's twin is `whoMay_` (people.gs). Signed out = a guest, a person with no roles. */
 const roleFor_ = (u = USER) => (!u ? ROLES_.guest.tier : rankTier_(rank_(u)));
-/* `admin` admin-only; `prices` never a child (398); `staff` a tutor or above; `signedIn`; `grownUp` signed in and not a child; anything else a permissions.json action row. */
+/* `admin` admin-only; `owner` the one owner; `prices` never a child (398); `staff` a tutor or above; `signedIn`; `grownUp` signed in and not a child; anything else a permissions.json action row. */
 const may_ = (what, u = USER) => {
   const r = roleFor_(u);
   if (what === 'admin') return r === 'admin';
+  /* THE OWNER (18 Nov): the admin the backend marks `owner` (its ownerEmail_), never another admin — kinds.json `who: "owner"` (Docket, food). */
+  if (what === 'owner') return r === 'admin' && !!(u && u.owner);
   /* A locked card's stand-in (`lockedAs_`) is not who is looking: money is the REAL viewer's call, so a child never sees a price box. */
   if (what === 'prices') return u && u.lockedPreview ? may_('prices', u.realViewer) : r !== 'child';
   if (what === 'staff') return rankAtLeast_('staff', u);

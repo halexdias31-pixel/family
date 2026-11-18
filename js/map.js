@@ -73,10 +73,16 @@ const WIDGETS = [
         mapBox_('bg-slot', null, { inner: window.bgSlot_ ? window.bgSlot_() : '' }));
     } },
   /* ---------- DOCKET (owner, 18 Nov): named lists like Google Tasks, kept on your own account (the `todo` cell) — the code is below. */
-  { id: 'docket', kind: 'tool', name: 'Docket', admin: true, start: () => dkPaint_(),
+  /* WHO SEES IT is kinds.json's alone (`tool.entries.docket.who: "owner"`, asked by widgetFor_). */
+  { id: 'docket', kind: 'tool', name: 'Docket', start: () => dkPaint_(),
     draw: () => dkPaint_(),
     into: 'dk-box', what: 'Your docket',
     get html() { return mapHtml_('Docket', mapBox_('dk-box', 'dk-box')); } },
+  /* ---------- ASSIGNMENTS (owner, 18 Nov): anybody's school or uni work, kept on their own account (the `assignments` cell) — the code is below; who sees it, kinds.json. */
+  { id: 'assignments', kind: 'tool', name: 'Assignments', start: () => asgPaint_(),
+    draw: () => asgPaint_(),
+    into: 'asg-box', what: 'Your assignments',
+    get html() { return mapHtml_('Assignments', mapBox_('asg-box', 'asg-box')); } },
   /* ---------- YOUR LIBRARY CARDS (docs/history/339) § */
   { id: 'libcards', kind: 'tool', name: 'Library cards', solid: true, signedIn: true,
     start: () => initLibCards_?.(),
@@ -200,3 +206,123 @@ document.addEventListener('change', e => {
   dkKeep_();
 });
 document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target && e.target.classList && e.target.classList.contains('dk-add') && typeof ACTIONS !== 'undefined' && ACTIONS['dk-add']) { e.preventDefault(); ACTIONS['dk-add'](e.target); } });
+
+
+/* ---------- ASSIGNMENTS (owner, 18 Nov): one list a person, sorted by due date and grouped Overdue / This week / Later / Done, each with its days left,
+   size and weight as tags. Added and edited through the one form engine (kinds.json `assignment-new`, asked a field a step), saved whole by `assignmentsSave`.
+   A parent sees each child's, a tutor each booked student's (`others`, from `assignmentsOf`), the admin anybody's through the lens; only the person changes theirs. */
+const ASG = { of: '', got: {}, add: false, edit: '', say: '' };
+const ASG_FORM = 'assignment-new';
+const asgMe_ = () => String((typeof USER !== 'undefined' && USER && USER.personId) || '');
+const asgOf_ = () => ASG.of || String(((typeof whose_ === 'function' ? whose_() : USER) || {}).personId || '') || asgMe_();
+const asgMine_ = () => asgOf_() === asgMe_();
+const asgField_ = f => (FORM_SPECS.forms[ASG_FORM].fields || []).find(x => x.f === f) || {};
+const asgSay_ = (f, v) => { const c = (asgField_(f).options || []).find(o => String(o.v) === String(v)); return c ? c.t : String(v || ''); };
+function asgOwnList_() {
+  let got = null;
+  try { got = JSON.parse(String((typeof USER !== 'undefined' && USER && USER.assignments) || 'null')); } catch (e) { got = null; }
+  return got && Array.isArray(got.assignments) ? got.assignments : [];
+}
+/* WHOSE LIST: your own from the sign-in reply at once, then fresh from `assignmentsOf` (which also names whose else you may open). */
+function asgLoad_(of) {
+  const g = ASG.got[of];
+  if (g) return g;
+  ASG.got[of] = { rows: of === asgMe_() ? asgOwnList_() : null, others: [], asked: true };
+  Promise.resolve(api({ action: 'assignmentsOf', personId: asgMe_(), of })).then(d => {
+    if (!d || !d.success) { ASG.say = (d && d.error) || 'Could not load them.'; ASG.got[of].rows = ASG.got[of].rows || []; return asgPaint_(); }
+    ASG.got[of].rows = Array.isArray(d.assignments) ? d.assignments : [];
+    if (Array.isArray(d.others) && d.others.length) ASG.got[asgMe_()] = Object.assign(ASG.got[asgMe_()] || {}, { others: d.others });
+    asgPaint_();
+  }).catch(() => { ASG.say = 'You look offline.'; ASG.got[of].rows = ASG.got[of].rows || []; asgPaint_(); });
+  return ASG.got[of];
+}
+const asgDay_ = d => { d = d || new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+const asgDaysLeft_ = due => Math.round((Date.parse(due + 'T00:00:00Z') - Date.parse(asgDay_() + 'T00:00:00Z')) / 864e5);
+const asgDone_ = a => a.status === 'submitted' || a.status === 'marked';
+/* THE FOUR GROUPS: Overdue (past due, not handed in), This week (due within 7 days), Later (further off, or no date), Done (submitted or marked). */
+function asgGroups_(rows) {
+  const g = { Overdue: [], 'This week': [], Later: [], Done: [] };
+  rows.forEach((a, i) => {
+    const left = a.due ? asgDaysLeft_(a.due) : null;
+    (asgDone_(a) ? g.Done : left != null && left < 0 ? g.Overdue : left != null && left <= 7 ? g['This week'] : g.Later).push(i);
+  });
+  const by = i => (rows[i].due || '9999-99-99') + ' ' + (rows[i].time || '99:99');
+  return Object.keys(g).filter(k => g[k].length).map(k => ({ head: k, rows: g[k].sort((a, b) => by(a).localeCompare(by(b))) }));
+}
+function asgLeftSay_(a) {
+  if (!a.due) return '';
+  const n = asgDaysLeft_(a.due);
+  if (asgDone_(a)) return 'Due ' + dkSayDay_(a.due);
+  return n < 0 ? (-n) + ' day' + (n === -1 ? '' : 's') + ' late' : n === 0 ? 'Due today' : n === 1 ? 'Due tomorrow' : n + ' days left';
+}
+function asgItem_(a, i, mine) {
+  const size = a.amount !== '' && a.amount != null ? Number(a.amount).toLocaleString('en-GB') + (a.unit ? ' ' + asgSay_('unit', a.unit) : '') : '';
+  const tags = [asgLeftSay_(a), a.kind ? asgSay_('kind', a.kind) : '', size, a.weight !== '' && a.weight != null ? a.weight + '%' : '',
+    asgSay_('status', a.status || 'not-started') + (a.status === 'marked' && a.mark ? ': ' + a.mark : '')].filter(Boolean);
+  const when = [a.course, a.due ? dkSayDay_(a.due) + (a.time ? ', ' + a.time : '') : ''].filter(Boolean).join(' · ');
+  const editing = mine && ASG.edit === a.id;
+  return { type: 'group', look: 'dk-item asg-item', blocks: [
+    { type: 'text', text: [{ b: a.title || 'Untitled' }] },
+    when ? { type: 'text', look: 'note', text: when } : null,
+    { type: 'tags', tags },
+    a.note && !editing ? { type: 'text', paras: String(a.note).split(/\n{2,}/) } : null,
+    a.link && !editing ? { type: 'text', text: [{ link: 'Open the link', href: a.link, out: true, look: 'link' }] } : null,
+    editing ? { type: 'group', look: 'store-form', inner: askArea_(asgEditForm_(a)) } : null].filter(Boolean),
+    tiles: mine ? [{ icon: editing ? 'close' : 'edit', label: editing ? 'Close' : 'Edit', act: 'asg-edit', data: { id: a.id } },
+      { icon: 'bin', label: 'Delete', act: 'asg-del', data: { id: a.id } }] : [] };
+}
+/* AN EDIT IS THE SAME FORM, prefilled under `assignment-new@id` (form.js storeEditForm_), its send this list's. */
+function asgEditForm_(a) {
+  const fid = storeEditForm_('assignment', a.id, a);
+  FORM_SEND_[fid] = v => asgSend_(fid, v, a.id);
+  return fid;
+}
+function asgBlocks_() {
+  const of = asgOf_(), mine = asgMine_(), g = asgLoad_(of), me = ASG.got[asgMe_()] || {}, out = [];
+  if ((me.others || []).length && !(typeof lensOn_ === 'function' && lensOn_()))
+    out.push({ type: 'tiles', look: 'dk-lists', tiles: [{ icon: 'list', label: 'Mine', act: 'asg-who', cls: mine ? 'is-submit' : '', data: { id: '' } }]
+      .concat(me.others.map(o => ({ icon: 'list', label: o.name, act: 'asg-who', cls: of === String(o.id) ? 'is-submit' : '', data: { id: o.id } }))) });
+  if (ASG.say) out.push({ type: 'text', text: ASG.say });
+  if (g.rows === null) return out.concat({ type: 'wait', on: true });
+  if (mine) {
+    out.push({ type: 'tiles', tiles: [{ icon: ASG.add ? 'close' : 'plus', label: ASG.add ? 'Close' : 'Add an assignment', act: 'asg-add', cls: ASG.add ? '' : 'is-submit' }] });
+    if (ASG.add) out.push({ type: 'group', look: 'store-form', inner: askArea_(ASG_FORM) });
+  }
+  if (!g.rows.length) out.push({ type: 'text', text: mine ? 'Nothing yet — add your first assignment.' : 'Nothing written down yet.' });
+  asgGroups_(g.rows).forEach(s => out.push({ type: 'section', head: s.head + ' (' + s.rows.length + ')', blocks: s.rows.map(i => asgItem_(g.rows[i], i, mine)) }));
+  return out;
+}
+function asgPaint_() {
+  const box = $('asg-box');
+  if (!box) return;
+  box.innerHTML = cardBlocks_(asgBlocks_());
+}
+function asgSave_(rows) {
+  const g = ASG.got[asgMe_()];
+  if (g) g.rows = rows;
+  const cell = JSON.stringify({ v: 1, assignments: rows });
+  if (typeof USER !== 'undefined' && USER) { USER.assignments = cell; if (typeof saveUser_ === 'function') saveUser_(); }
+  ASG.say = '';
+  asgPaint_();
+  return Promise.resolve(api({ action: 'assignmentsSave', personId: asgMe_(), assignments: rows }))
+    .then(d => { if (!(d && d.success)) { ASG.say = (d && d.error) || 'Not saved — try again.'; asgPaint_(); return false; }
+      if (Array.isArray(d.assignments) && g) { g.rows = d.assignments; USER.assignments = JSON.stringify({ v: 1, assignments: d.assignments }); if (typeof saveUser_ === 'function') saveUser_(); asgPaint_(); }
+      return true; })
+    .catch(() => { ASG.say = 'Not saved — you look offline.'; asgPaint_(); return false; });
+}
+/* THE FORM'S SEND: a new one added, an edited one replaced in place; a title is the one thing it needs. */
+function asgSend_(fid, v, id) {
+  if (!String(v.title || '').trim()) { toast('Give it a title first.'); return; }
+  const rows = ((ASG.got[asgMe_()] || {}).rows || []).slice(), a = Object.assign({ status: 'not-started' }, id ? rows.find(r => r.id === id) : {}, v);
+  if (a.status !== 'marked') a.mark = '';
+  if (id) { const at = rows.findIndex(r => r.id === id); rows[at] = a; delete ASK[fid]; ASG.edit = ''; }
+  else { a.id = 'a' + Date.now().toString(36); rows.push(a); askDone_(fid); ASG.add = false; }
+  asgSave_(rows).then(ok => { if (ok) toast('Saved.'); });
+}
+FORM_SEND_[ASG_FORM] = v => asgSend_(ASG_FORM, v, '');
+on('asg-add', () => { ASG.add = !ASG.add; asgPaint_(); });
+on('asg-who', el => { ASG.of = String(el.dataset.id || ''); ASG.add = false; ASG.edit = ''; asgPaint_(); });
+on('asg-edit', el => { const id = String(el.dataset.id || ''); delete ASK[ASG_FORM + '@' + id]; ASG.edit = ASG.edit === id ? '' : id; asgPaint_(); });
+on('asg-del', el => { const id = String(el.dataset.id || ''), rows = ((ASG.got[asgMe_()] || {}).rows || []), a = rows.find(r => r.id === id);
+  if (!a || !confirm('Delete "' + (a.title || 'this assignment') + '"?')) return;
+  asgSave_(rows.filter(r => r.id !== id)); });

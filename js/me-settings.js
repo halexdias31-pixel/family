@@ -385,11 +385,13 @@ function profileRefresh_(loud, onOld) {
       /* ---------- AND THE ROLE, WHICH WENT STALE THE SAME WAY § */
       /* `pendingEmail` RIDES WITH THE ROLE, for the role's reason: § */
       /* ---------- AND THE NAMES, WHICH WENT STALE THE SAME WAY § */
-      const roleWas = JSON.stringify([USER.rank, USER.role, USER.roles, !!USER.tutorPending, String(USER.pendingEmail || ''),
+      const roleWas = JSON.stringify([!!USER.owner, USER.rank, USER.role, USER.roles, !!USER.tutorPending, String(USER.pendingEmail || ''),
         String(USER.name || ''), USER.children, USER.kids, String(USER.handle || '')]);
       if (d.role) USER.role = d.role;
       if (Array.isArray(d.roles) && d.roles.length) USER.roles = d.roles;
       if (d.tutorPending !== undefined) USER.tutorPending = !!d.tutorPending;
+      /* THE OWNER FLAG (18 Nov): may_('owner'), for kinds.json `who: "owner"`. */
+      if (d.owner !== undefined) USER.owner = !!d.owner;
       if (d.rank) USER.rank = String(d.rank);
       if (d.application !== undefined) USER.application = d.application;
       if (d.pendingEmail !== undefined) USER.pendingEmail = String(d.pendingEmail || '');
@@ -401,7 +403,7 @@ function profileRefresh_(loud, onOld) {
         try { toast('Your handle is @' + d.handle + ' now'); } catch (e) { oops_(e, 'me:profileRefresh_') }
       }
       if (d.handle) USER.handle = String(d.handle);
-      const roleMoved = JSON.stringify([USER.rank, USER.role, USER.roles, !!USER.tutorPending, String(USER.pendingEmail || ''),
+      const roleMoved = JSON.stringify([!!USER.owner, USER.rank, USER.role, USER.roles, !!USER.tutorPending, String(USER.pendingEmail || ''),
         String(USER.name || ''), USER.children, USER.kids, String(USER.handle || '')]) !== roleWas;
       saveUser_();
       /* BOTH THROUGH `landRepaint_` (shell.js), because this is a reply landing like the payload is: § */

@@ -237,7 +237,7 @@ const FINDER_TAGS = {
 },
 "views": {
 "admin+bible": {
-  "": ["kindLabel",[["Practice"],["Library"],["Posts"],["Messages"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]],[32398,189109,2,1,3,5,10,35,67,3],221632,["Practice","Library","Posts","Messages","Profiles","Booking","Shop","Settings","Tools","Games"]],
+  "": ["kindLabel",[["Practice"],["Library"],["Posts"],["Messages"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]],[32398,189109,2,1,3,5,10,34,4,3],221568,["Practice","Library","Posts","Messages","Profiles","Booking","Shop","Settings","Tools","Games"]],
   "kindLabel=Practice": ["kindOwn",[["Questions"],["Answers"],["Inserts"]],[32213,31388,185],32398,["Questions","Answers","Inserts"]],
   "kindLabel=Practice&kindOwn=Questions": ["subject",[["Biology"],["Business"],["Chemistry"],["Driving Theory"],["Economics"],["English Language"],["English Literature"],["Geography"],["Greek"],["History"],["Maths"],["Physical Education"],["Physics"],["Politics"],["Portuguese"],["Psychology"],["Religious Studies"],["Sociology"],["Statistics"]],[4658,393,5252,10,131,414,522,522,78,944,11122,322,4538,120,43,1187,1004,436,517],32213,["Biology","Business","Chemistry","Driving Theory","Economics","English Language","English Literature","Geography","Greek","History","Maths","Physical Education","Physics","Politics","Portuguese","Psychology","Religious Studies","Sociology","Statistics"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Biology": ["level",[["A-Level"],["GCSE"]],[1194,3464],4658,["A-Level","GCSE"]],
@@ -840,10 +840,10 @@ const FINDER_TAGS = {
   "kindLabel=Practice&kindOwn=Answers&subject=Statistics&examYear=2020": ["verified",[["Not verified"],["Verified"]],[5,93],98,["Not verified","Verified"]],
   "kindLabel=Practice&kindOwn=Answers&subject=Statistics&examYear=2019": ["verified",[["Not verified"],["Verified"]],[5,38],43,["Not verified","Verified"]],
   "kindLabel=Profiles": ["profileType",[["Student"],["Parent"],["Staff"]],[1,1,1],3,["Student","Parent","Staff"]],
-  "kindLabel=Settings": ["settingFor",[["Student"],["Parent"],["Staff"],["Apprentice"],["Admin"],["Business"],["Site"]],[18,8,15,9,10,3,4],35,["Student","Parent","Staff","Apprentice","Admin","Business","Site"]]
+  "kindLabel=Settings": ["settingFor",[["Student"],["Parent"],["Staff"],["Apprentice"],["Admin"],["Business"],["Site"]],[18,8,15,9,10,3,4],34,["Student","Parent","Staff","Apprentice","Admin","Business","Site"]]
 },
 "bible": {
-  "": ["kindLabel",[["Practice"],["Library"],["Posts"],["Messages"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]],[21191,189109,2,1,1,5,10,30,3,3],210354,["Practice","Library","Posts","Messages","Profiles","Booking","Shop","Settings","Tools","Games"]],
+  "": ["kindLabel",[["Practice"],["Library"],["Posts"],["Messages"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]],[21191,189109,2,1,1,5,10,30,4,3],210355,["Practice","Library","Posts","Messages","Profiles","Booking","Shop","Settings","Tools","Games"]],
   "kindLabel=Practice": ["kindOwn",[["Questions"],["Answers"],["Inserts"]],[21006,20613,185],21191,["Questions","Answers","Inserts"]],
   "kindLabel=Practice&kindOwn=Questions": ["subject",[["Biology"],["Business"],["Chemistry"],["Driving Theory"],["Economics"],["English Language"],["English Literature"],["Geography"],["History"],["Maths"],["Physical Education"],["Physics"],["Politics"],["Portuguese"],["Psychology"],["Religious Studies"],["Sociology"],["Statistics"]],[1484,293,2220,10,121,388,522,428,944,9620,321,1730,120,28,928,1004,384,461],21006,["Biology","Business","Chemistry","Driving Theory","Economics","English Language","English Literature","Geography","History","Maths","Physical Education","Physics","Politics","Portuguese","Psychology","Religious Studies","Sociology","Statistics"]],
   "kindLabel=Practice&kindOwn=Questions&subject=Biology": ["level",[["A-Level"],["GCSE"]],[372,1112],1484,["A-Level","GCSE"]],
