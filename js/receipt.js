@@ -158,7 +158,9 @@ function rcPics_(clone) {
     const src = im.getAttribute('src') || '';
     if (!src || /^data:/.test(src)) return null;
     return rcPicData_(src).then(d => { im.setAttribute('src', d); im.removeAttribute('srcset'); im.removeAttribute('loading'); })
-      .catch(e => { if (typeof oops_ === 'function') oops_(e, 'receipt:picture'); throw e; });  /* no picture, no share of a card without it */
+      /* A PHOTO THAT WILL NOT LOAD IS LEFT OUT, NOT THE SHARE (owner, 18 Nov: "it should be an image it shares"): the card
+         is drawn without it rather than falling back to a link. */
+      .catch(e => { if (typeof oops_ === 'function') oops_(e, 'receipt:picture'); im.remove(); });
   }));
 }
 
@@ -247,17 +249,18 @@ function rcSave_(blob, name, rc) {
   toast(text_('saved-a-picture-of-this-booking'));
 }
 
-function rcOffer_(blob, name, rc) {
+function rcOffer_(blob, name, rc, title) {
   if (RC_SHOT && RC_SHOT.url) URL.revokeObjectURL(RC_SHOT.url);
   const file = typeof File === 'function' ? new File([blob], name, { type: 'image/png' }) : blob;
-  RC_SHOT = { file, url: URL.createObjectURL(blob), name };
+  RC_SHOT = { file, url: URL.createObjectURL(blob), name, title: title || 'Booking' };
   const can = !!(navigator.share && navigator.canShare && navigator.canShare({ files: [file] }));
   /* NO SHEET (owner, 7 Nov): the picture lands under its own receipt, outside the paper so the next picture does not hold it. */
   const at = rc || document.querySelector('.screen.on .rc') || document.querySelector('.rc');
+  const said = title ? title + ', as a picture' : text_('this-booking-as-a-picture');
   if (!at) { toast(text_('there-is-no-booking-on-screen')); return; }
   document.querySelectorAll('.rc-shot-box').forEach(x => x.remove());
-  at.insertAdjacentHTML('afterend', renderCard({ kind: 'shot', look: 'rc-shot-box', name: text_('this-booking-as-a-picture'),
-    picture: { src: RC_SHOT.url, alt: text_('this-booking-as-a-picture') },
+  at.insertAdjacentHTML('afterend', renderCard({ kind: 'shot', look: 'rc-shot-box', name: said,
+    picture: { src: RC_SHOT.url, alt: said },
     body: [{ type: 'text', look: 'note', text: can ? text_('press-share-to-send-it') : text_('press-and-hold-the-picture-to') }],
     tiles: [can ? { label: 'Share', act: 'rc-shot-share', tone: 'buy' } : null, { label: 'Save', act: 'rc-shot-save', data: { name } }].filter(Boolean) }));
 }
@@ -272,7 +275,7 @@ on('rc-shot-save', el => {
 
 on('rc-shot-share', () => {
   if (!RC_SHOT || !navigator.share) return;
-  navigator.share({ files: [RC_SHOT.file], title: 'Booking' })
+  navigator.share({ files: [RC_SHOT.file], title: RC_SHOT.title })
     .catch(e => { if (!e || e.name !== 'AbortError') toast(text_('could-not-share-it-press-and')); });
 });
 
@@ -281,9 +284,11 @@ function rcHand_(blob, name, rc, title) {
   const can = !!(file && navigator.share && navigator.canShare
                  && (() => { try { return navigator.canShare({ files: [file] }); } catch (e) { return false; } })());
   if (!can) return rcSave_(blob, name, rc);
+  if (navigator.userActivation && !navigator.userActivation.isActive) return rcOffer_(blob, name, rc, title);
   return navigator.share({ files: [file], title: title || 'Booking' }).catch(e => {
     if (e && e.name === 'AbortError') return;
-    rcOffer_(blob, name, rc);
+    /* THE TAP HAS RUN OUT (iPhone: the picture took too long, NotAllowedError): the picture with its own Share button. */
+    rcOffer_(blob, name, rc, title);
   });
 }
 

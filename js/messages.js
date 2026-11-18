@@ -295,7 +295,7 @@ on('tutor-share', el => {
   TUTOR_PNG_BUSY = true;
   toast(text_('making-a-picture-of-this-profile'));
   tutorPng_(t)
-    .then(blob => tutorPngHand_(blob, handle + '-profile.png', url, t.title || '@' + handle))
+    .then(blob => tutorPngHand_(blob, handle + '-profile.png', url, t.title || '@' + handle, el.closest && el.closest('.card, .qcard')))
     /* NO CANVAS (an old browser, a test page): the link alone, as before 412. */
     .catch(() => tutorLinkOnly_(t.title || '@' + handle, url))
     .then(() => { TUTOR_PNG_BUSY = false; }, () => { TUTOR_PNG_BUSY = false; });
@@ -315,7 +315,7 @@ function tutorLinkOnly_(title, url) {
 }
 
 /* THE SHARE SHEET WITH THE FILE AND THE LINK; ELSE THE FILE DOWNLOADED AND THE LINK COPIED. */
-function tutorPngHand_(blob, name, url, title) {
+function tutorPngHand_(blob, name, url, title, at) {
   const file = typeof File === 'function' ? new File([blob], name, { type: 'image/png' }) : null;
   const can = !!(file && navigator.share && navigator.canShare
                  && (() => { try { return navigator.canShare({ files: [file] }); } catch (e) { return false; } })());
@@ -329,7 +329,10 @@ function tutorPngHand_(blob, name, url, title) {
     return copy.then(() => toast(text_('image-saved-link-copied')), () => toast('Image saved · ' + url));
   };
   if (!can) return save();
-  return navigator.share({ files: [file], title, text: url }).catch(e => { if (!e || e.name !== 'AbortError') return save(); });
+  /* THE TAP HAS RUN OUT while the picture was made (iPhone): the picture under the card with its own Share button. */
+  const offer = () => (at && typeof rcOffer_ === 'function' ? rcOffer_(blob, name, at, title) : save());
+  if (navigator.userActivation && !navigator.userActivation.isActive) return offer();
+  return navigator.share({ files: [file], title, text: url }).catch(e => { if (!e || e.name !== 'AbortError') return e && e.name === 'NotAllowedError' ? offer() : save(); });
 }
 
 /* ---------- THE PICTURE IS THE CARD (547): the owner, "when i share a staff profile it shares exactly as is" -- `findCard` draws it, the receipt's snapshot photographs it ---------- */
