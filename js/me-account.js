@@ -178,7 +178,7 @@ document.addEventListener('input', e => {
   if (isSignInBox_(t) && t.hasAttribute('aria-invalid')) t.removeAttribute('aria-invalid');
 });
 
-on('signout', () => {
+function signOut_() {
   /* ---------- SIGNING OUT ENDS THE SESSION ON THE SERVER TOO § */
   const tok = USER && USER.token;
   let last = Promise.resolve();
@@ -191,7 +191,8 @@ on('signout', () => {
   Promise.all([Promise.resolve(last).catch(() => {}), Promise.resolve(subs).catch(() => {})]).then(() => { try { if (tok) api({ action: 'signOut', token: tok }); } catch (err) { /* sign out goes on even if the server call cannot be made */ } });
   signedOut_();
   toast(text_('signed-out'));
-});
+}
+on('signout', () => signOut_());
 
 /* ONE WAY IN AND ONE WAY OUT. § */
 function signedOut_(opts) {

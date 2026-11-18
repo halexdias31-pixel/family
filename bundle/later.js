@@ -237,7 +237,7 @@ const FINDER_TAGS = {
 },
 "views": {
 "admin+bible": {
-"": ["kindLabel",[["Practice"],["Library"],["Posts"],["Messages"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]],[32398,189109,2,1,3,5,10,35,3,3],221568,["Practice","Library","Posts","Messages","Profiles","Booking","Shop","Settings","Tools","Games"]],
+"": ["kindLabel",[["Practice"],["Library"],["Posts"],["Messages"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]],[32398,189109,2,1,3,5,10,35,67,3],221632,["Practice","Library","Posts","Messages","Profiles","Booking","Shop","Settings","Tools","Games"]],
 "kindLabel=Practice": ["kindOwn",[["Questions"],["Answers"],["Inserts"]],[32213,31388,185],32398,["Questions","Answers","Inserts"]],
 "kindLabel=Practice&kindOwn=Questions": ["subject",[["Biology"],["Business"],["Chemistry"],["Driving Theory"],["Economics"],["English Language"],["English Literature"],["Geography"],["Greek"],["History"],["Maths"],["Physical Education"],["Physics"],["Politics"],["Portuguese"],["Psychology"],["Religious Studies"],["Sociology"],["Statistics"]],[4658,393,5252,10,131,414,522,522,78,944,11122,322,4538,120,43,1187,1004,436,517],32213,["Biology","Business","Chemistry","Driving Theory","Economics","English Language","English Literature","Geography","Greek","History","Maths","Physical Education","Physics","Politics","Portuguese","Psychology","Religious Studies","Sociology","Statistics"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Biology": ["level",[["A-Level"],["GCSE"]],[1194,3464],4658,["A-Level","GCSE"]],
@@ -843,7 +843,7 @@ const FINDER_TAGS = {
 "kindLabel=Settings": ["settingFor",[["Student"],["Parent"],["Staff"],["Apprentice"],["Admin"],["Business"],["Site"]],[18,8,15,9,10,3,4],35,["Student","Parent","Staff","Apprentice","Admin","Business","Site"]]
 },
 "bible": {
-"": ["kindLabel",[["Practice"],["Library"],["Posts"],["Messages"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]],[21191,189109,2,1,1,5,10,29,3,3],210353,["Practice","Library","Posts","Messages","Profiles","Booking","Shop","Settings","Tools","Games"]],
+"": ["kindLabel",[["Practice"],["Library"],["Posts"],["Messages"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]],[21191,189109,2,1,1,5,10,30,3,3],210354,["Practice","Library","Posts","Messages","Profiles","Booking","Shop","Settings","Tools","Games"]],
 "kindLabel=Practice": ["kindOwn",[["Questions"],["Answers"],["Inserts"]],[21006,20613,185],21191,["Questions","Answers","Inserts"]],
 "kindLabel=Practice&kindOwn=Questions": ["subject",[["Biology"],["Business"],["Chemistry"],["Driving Theory"],["Economics"],["English Language"],["English Literature"],["Geography"],["History"],["Maths"],["Physical Education"],["Physics"],["Politics"],["Portuguese"],["Psychology"],["Religious Studies"],["Sociology"],["Statistics"]],[1484,293,2220,10,121,388,522,428,944,9620,321,1730,120,28,928,1004,384,461],21006,["Biology","Business","Chemistry","Driving Theory","Economics","English Language","English Literature","Geography","History","Maths","Physical Education","Physics","Politics","Portuguese","Psychology","Religious Studies","Sociology","Statistics"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Biology": ["level",[["A-Level"],["GCSE"]],[372,1112],1484,["A-Level","GCSE"]],
@@ -1182,7 +1182,7 @@ const FINDER_TAGS = {
 "kindLabel=Practice&kindOwn=Answers&subject=Statistics&examYear=2021": ["paperId",[["P-8382-2111-1F","Paper 1"],["P-8382-2111-2F","Paper 2"]],[37,49],86,["Paper 1","Paper 2"]],
 "kindLabel=Practice&kindOwn=Answers&subject=Statistics&examYear=2020": ["paperId",[["P-8382-2011-1F","Paper 1"],["P-8382-2011-2F","Paper 2"]],[46,47],93,["Paper 1","Paper 2"]],
 "kindLabel=Practice&kindOwn=Answers&subject=Statistics&examYear=2019": ["qNumber",[["Q1"],["Q2"],["Q3"],["Q4"],["Q5"],["Q6"],["Q7"],["Q8"],["Q9"],["Q10"],["Q11"],["Q12"]],[1,1,2,3,3,2,2,4,11,4,3,2],38,["Q1","Q2","Q3","Q4","Q5","Q6","Q7","Q8","Q9","Q10","Q11","Q12"]],
-"kindLabel=Settings": ["settingFor",[["Student"],["Parent"],["Staff"],["Apprentice"],["Admin"]],[20,8,17,8,7],29,["Student","Parent","Staff","Apprentice","Admin"]]
+"kindLabel=Settings": ["settingFor",[["Student"],["Parent"],["Staff"],["Apprentice"],["Admin"]],[21,8,17,8,7],30,["Student","Parent","Staff","Apprentice","Admin"]]
 }
 }};
 ;
@@ -8753,6 +8753,7 @@ return [
 ...(typeof window.hymnsItems_ === 'function' ? window.hymnsItems_() : []),
 ...(typeof mechItems_ === 'function' ? mechItems_() : []),
 ...(typeof chemItems_ === 'function' ? chemItems_() : []),
+...(typeof foodItems_ === 'function' && typeof may_ === 'function' && may_('admin') ? foodItems_() : []),
 ...(typeof histTopicItems_ === 'function' ? histTopicItems_() : []),
 ...(typeof storeItems_ === 'function' ? storeItems_() : []),
 ...questionItems().filter(x => typeof qOffered_ !== 'function' || qOffered_(x)),
@@ -8808,8 +8809,8 @@ function msgDoorCard_(x, draw) {
 if (typeof dmWatch_ === 'function') setTimeout(dmWatch_, 0);
 if (x.daive) return daiveItem_();
 const t = (typeof messageThreads_ === 'function' ? messageThreads_() : []).find(t2 => t2.id === x.thread);
-if (!t && x.to) return card_(cardBlock_({ type: 'group', look: 'dm-card', blocks: [{ type: 'group', look: 'dm-head', blocks: [{ type: 'msgHead', text: x.name }] }],
-inner: msgForm_(x.to.name, x.to.id) }));
+if (!t && x.to) return renderCard({ kind: 'msg', name: x.name, tags: [{ text: x.name, colour: 0 }], body: [{ type: 'group', look: 'dm-head', blocks: [{ type: 'msgHead', text: x.name }] },
+{ type: 'group', inner: msgForm_(x.to.name, x.to.id) }] });
 if (!t) return renderCard({ kind: 'msg', tags: [{ text: x.name, colour: 0 }] });
 return msgFindCard_(x, t, draw);
 }
@@ -9015,6 +9016,7 @@ const CARD_REG = [
 { id: 'acct:signed-in', col: 'account', label: 'Signed in', re: /^<div class="card signed-in"/, say: 'Sign in, or who is signed in on this phone and Sign out.' },
 { id: 'acct:brownie', col: 'account', label: 'Brownie points', re: /^<div class="card soon-card soon-brownie/, say: 'A placeholder: points for good work.' },
 { id: 'acct:workfile', col: 'account', label: 'Work on file', re: /^<div class="card [^"]*\bworkfile-card\b/, say: 'Pages you scanned or photographed, kept on your account.' },
+{ id: 'acct:history', col: 'account', label: 'History', re: /^<div class="card [^"]*\bkc-setting\b[^>]*data-hist=/, say: 'Pick a day: its questions, their marks and a summary.' },
 { id: 'acct:roadmap', col: 'account', label: 'Roadmap', re: /^<div class="card soon-card soon-roadmap/, say: 'A placeholder: how much of the syllabus is left.' },
 { id: 'acct:conduct', col: 'account', label: 'Code of conduct', re: /^<div class="card soon-card soon-conduct/, say: 'A placeholder: the code of conduct.' },
 { id: 'acct:pin', col: 'account', label: 'Signing in', re: /data-ask="pin-change"/, only: 'your PIN', say: 'Change the PIN you sign in with.' },
@@ -9931,7 +9933,12 @@ signPaint_();
 });
 on('sign-dot-drop', el => {
 const i = Number((el && el.dataset && el.dataset.i) || 0);
-if (USER) { USER.pinDots = Math.max(0, (USER.pinDots == null ? SIGN_PIN_LEN : USER.pinDots) - 1); saveUser_(); signPaint_(); return; }
+if (USER) {
+const h = String(USER.handle || '').replace(/^@/, '').trim(), who = h || SIGN.who || String(USER.name || '').trim();
+signOut_();
+SIGN.who = who; SIGN.step = 'pin'; SIGN.pin = []; SIGN.wrong = false; SIGN.known = true; SIGN.card = '';
+signPaint_(); return;
+}
 if (SIGN.step !== 'pin' || SIGN.busy) return;
 SIGN.pin.splice(i >= 0 && i < SIGN.pin.length ? i : SIGN.pin.length - 1, 1);
 SIGN.wrong = false;
@@ -14387,6 +14394,53 @@ box.setAttribute('data-of', pid);
 box.innerHTML = cardBlocks_(wfBody_(pid));
 row.insertAdjacentElement('afterend', box);
 });
+const HIST = {};
+const histOf_ = of => HIST[of] || (HIST[of] = { day: '', got: null, busy: false, say: '' });
+const histToday_ = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+const HIST_HOW = { right: '✓ Right', part: 'Part marks', wrong: '✗ Not right', open: 'Not marked yet' };
+function historyCard_(pid) {
+const of = String(pid || (USER && USER.personId) || '');
+if (!of || !USER || USER.lockedPreview) return '';
+return renderCard(histSpec_(of));
+}
+const histSpec_ = of => ({ kind: 'setting', name: 'History', tags: [{ text: 'History' }], data: { of, hist: 1 }, body: histBody_(of) });
+function histBody_(of) {
+const s = histOf_(of);
+const pick = { type: 'formRow', label: 'Day', control: { kind: 'date', look: 'hist-day', value: s.day, data: { of }, aria: 'Which day' } };
+if (s.busy) return [pick, { type: 'wait', on: true }];
+if (s.say) return [pick, { type: 'text', text: s.say }];
+if (!s.got) return [pick, { type: 'text', text: 'Pick a day to see its questions and marks.' }];
+const items = s.got.items || [];
+if (!items.length) return [pick, { type: 'text', text: 'No questions answered that day.' }];
+return [pick, { type: 'text', paras: s.got.summary || [] },
+{ type: 'list', items: items.map(q => ({ label: q.label || 'A question',
+value: (q.mark ? q.mark + ' · ' : '') + (HIST_HOW[q.how] || '') + (q.answer ? ' · answered ' + q.answer : '') + (q.again ? ' · again' : ''),
+tone: q.how === 'right' ? 'is-good' : q.how === 'wrong' ? 'is-bad' : '' })) }];
+}
+function histPaint_(of) {
+document.querySelectorAll('.card[data-hist][data-of]').forEach(el => {
+if (el.getAttribute('data-of') !== of) return;
+const t = document.createElement('template'); t.innerHTML = renderCard(histSpec_(of));
+if (t.content.firstElementChild) el.replaceWith(t.content.firstElementChild);
+});
+}
+function histLoad_(of, day) {
+const s = histOf_(of);
+Object.assign(s, { day, busy: true, say: '', got: null });
+histPaint_(of);
+Promise.resolve(api({ action: 'history', personId: (USER && USER.personId) || '', of, day })).then(d => {
+s.busy = false;
+if (s.day !== day) return;
+if (d && d.success) s.got = d; else s.say = (d && (d.message || d.error)) || 'That day could not be fetched.';
+histPaint_(of);
+}).catch(() => { s.busy = false; s.say = 'That day could not be fetched — try again.'; histPaint_(of); });
+}
+document.addEventListener('change', e => {
+const el = e.target;
+if (!el || !el.classList || !el.classList.contains('hist-day')) return;
+const of = el.getAttribute('data-of') || '';
+if (of && /^\d{4}-\d{2}-\d{2}$/.test(el.value)) histLoad_(of, el.value);
+});
 ;
 /* js/calc-engine.js */
 const MK = (w, kids) => ({ el: 'svg', a: { class: 'mk', viewBox: `0 0 ${w} 20`, width: `${w / 20}em`, height: '1em', fill: 'none', stroke: 'currentColor',
@@ -15464,12 +15518,120 @@ return mapHtml_('Board games',
 attrs: { id: 'bg-pick', 'data-do': 'bg-pick', 'aria-label': 'Which game' }, inner: window.bgOptions_ ? window.bgOptions_() : '' }] },
 mapBox_('bg-slot', null, { inner: window.bgSlot_ ? window.bgSlot_() : '' }));
 } },
+{ id: 'docket', kind: 'tool', name: 'Docket', admin: true, start: () => dkPaint_(),
+draw: () => dkPaint_(),
+into: 'dk-box', what: 'Your docket',
+get html() { return mapHtml_('Docket', mapBox_('dk-box', 'dk-box')); } },
 { id: 'libcards', kind: 'tool', name: 'Library cards', solid: true, signedIn: true,
 start: () => initLibCards_?.(),
 into: 'lib-box', what: 'Your library cards',
 get html() { return cardBlocks_(mapBox_('lib-box')); } },
 ];
 tierGuardWidgets_(WIDGETS);
+const DK = { lists: null, at: 0, edit: -1, rename: false, showDone: false, say: '' };
+const dkDay_ = d => { d = d || new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+const dkDone_ = i => (i.repeat === 'daily' ? i.doneOn === dkDay_() : !!i.done);
+function dkLoad_() {
+if (DK.lists) return DK.lists;
+const raw = String((typeof USER !== 'undefined' && USER && USER.todo) || '');
+let got = null;
+try { got = JSON.parse(raw); } catch (e) { got = null; }
+DK.lists = got && Array.isArray(got.lists) ? got.lists
+: raw.trim() ? [{ name: 'Docket', items: raw.split('\n').map(t => t.trim()).filter(Boolean).map(title => ({ title })) }] : [];
+return DK.lists;
+}
+function dkSave_() {
+const todo = JSON.stringify({ v: 1, lists: DK.lists });
+if (typeof USER !== 'undefined' && USER) { USER.todo = todo; if (typeof saveUser_ === 'function') saveUser_(); }
+Promise.resolve(api({ action: 'item', door: 'save', item: 'todo', personId: (USER && USER.personId) || '', todo }))
+.then(d => { if (!(d && d.success)) { DK.say = (d && d.error) || 'Not saved — try again.'; dkPaint_(); } })
+.catch(() => { DK.say = 'Not saved — you look offline.'; dkPaint_(); });
+}
+const DK_MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const dkSayDay_ = d => (+d.slice(8, 10)) + ' ' + DK_MON[+d.slice(5, 7) - 1];
+function dkGroups_(items) {
+const today = dkDay_(), g = {};
+items.forEach((it, i) => {
+if (dkDone_(it)) return;
+const d = it.repeat === 'daily' ? today : it.date || '';
+const k = !d ? '~' : d < today ? '!' : d;
+(g[k] = g[k] || []).push(i);
+});
+return Object.keys(g).sort().map(k => ({ head: k === '~' ? 'No date' : k === '!' ? 'Past' : k === today ? 'Today' : dkSayDay_(k),
+rows: g[k].sort((a, b) => String(items[a].time || '99').localeCompare(String(items[b].time || '99'))) }));
+}
+const dkPicked_ = it => (it.pick && (it.repeat !== 'daily' || it.pickOn === dkDay_()) ? it.pick : '');
+function dkItem_(it, i) {
+const fk = typeof foodKindOf_ === 'function' ? foodKindOf_(it.title) : null, picked = dkPicked_(it);
+const tags = [it.repeat === 'daily' ? 'Daily' : it.date ? dkSayDay_(it.date) : '', it.time || ''].filter(Boolean);
+const row = { type: 'group', look: 'dk-item', blocks: [
+{ type: 'tick', text: (it.title || 'Untitled') + (picked ? ': ' + picked.toLowerCase() : ''), attrs: { 'data-dk': i, checked: dkDone_(it), 'aria-label': 'Done: ' + (it.title || '') } },
+tags.length ? { type: 'tags', tags } : null,
+fk && !dkDone_(it) ? { type: 'tiles', tiles: foodsOf_(fk).map(f => ({ label: f.name, note: f.note || '', act: 'dk-food', cls: f.name === picked ? 'is-submit' : '', data: { i, f: f.name } })) } : null,
+it.note && DK.edit !== i ? { type: 'text', paras: String(it.note).split(/\n{2,}/) } : null].filter(Boolean),
+tiles: [{ icon: 'edit', label: 'Edit', act: 'dk-edit', data: { i } }, { icon: 'bin', label: 'Delete', act: 'dk-del', data: { i } }] };
+if (DK.edit !== i) return row;
+const f = (cap, b) => ({ type: 'field', cap, blocks: [b] });
+return { type: 'group', look: 'dk-editing', blocks: [row,
+f('Title', { type: 'control', attrs: { class: 'dk-f', 'data-f': 'title', value: it.title || '', maxlength: 300 } }),
+f('Note', { type: 'control', tag: 'textarea', value: it.note || '', attrs: { class: 'dk-f', 'data-f': 'note', rows: 4, maxlength: 8000 } }),
+f('Date', { type: 'control', attrs: { type: 'date', class: 'dk-f', 'data-f': 'date', value: it.date || '' } }),
+f('Time', { type: 'control', attrs: { type: 'time', class: 'dk-f', 'data-f': 'time', value: it.time || '' } }),
+f('Repeats', { type: 'control', tag: 'select', attrs: { class: 'dk-f', 'data-f': 'repeat' }, options: [{ value: '', text: 'Never', on: !it.repeat }, { value: 'daily', text: 'Daily', on: it.repeat === 'daily' }] })],
+tiles: [{ icon: 'save', label: 'Save', act: 'dk-keep', cls: 'is-submit', data: { i } }] };
+}
+function dkBlocks_() {
+const lists = dkLoad_();
+if (DK.at >= lists.length) DK.at = Math.max(0, lists.length - 1);
+const L = lists[DK.at];
+const out = [{ type: 'group', look: 'tile-row dk-lists', tiles: lists.map((l, i) => ({ icon: 'list', label: l.name, act: 'dk-list', cls: i === DK.at ? 'is-submit' : '', data: { i } }))
+.concat({ icon: 'plus', label: 'New list', act: 'dk-newlist' }) }];
+if (DK.say) out.push({ type: 'text', text: DK.say });
+if (!L) return out.concat({ type: 'text', text: 'Make a list to start.' });
+out.push({ type: 'group', look: 'tile-row', tiles: [{ icon: 'edit', label: 'Rename', act: 'dk-rename' }, { icon: 'up', label: 'Earlier', act: 'dk-move', data: { by: -1 }, off: DK.at === 0 },
+{ icon: 'down', label: 'Later', act: 'dk-move', data: { by: 1 }, off: DK.at === lists.length - 1 }, { icon: 'bin', label: 'Delete list', act: 'dk-droplist', tone: 'danger' }] });
+if (DK.rename) out.push({ type: 'field', cap: 'List name', blocks: [{ type: 'control', attrs: { class: 'dk-name', value: L.name, maxlength: 80 } }] },
+{ type: 'tiles', tiles: [{ icon: 'save', label: 'Save name', act: 'dk-named', cls: 'is-submit' }] });
+out.push({ type: 'field', cap: 'Add an item', blocks: [{ type: 'control', attrs: { class: 'dk-add', placeholder: 'What to do', maxlength: 300, enterkeyhint: 'done' } }] },
+{ type: 'tiles', tiles: [{ icon: 'plus', label: 'Add', act: 'dk-add', cls: 'is-submit' }] });
+dkGroups_(L.items).forEach(g => out.push({ type: 'section', head: g.head, blocks: g.rows.map(i => dkItem_(L.items[i], i)) }));
+const done = L.items.map((it, i) => (dkDone_(it) ? i : -1)).filter(i => i >= 0);
+if (done.length) out.push({ type: 'tiles', tiles: [{ icon: DK.showDone ? 'close' : 'open', label: (DK.showDone ? 'Hide' : 'Show') + ' done (' + done.length + ')', act: 'dk-showdone' }] });
+if (DK.showDone) done.forEach(i => out.push(dkItem_(L.items[i], i)));
+return out;
+}
+function dkPaint_() {
+const box = $('dk-box');
+if (!box) return;
+box.innerHTML = cardBlocks_(dkBlocks_());
+}
+const dkList_ = () => dkLoad_()[DK.at];
+const dkKeep_ = () => { DK.say = ''; dkSave_(); dkPaint_(); };
+on('dk-list', el => { DK.at = +el.getAttribute('data-i') || 0; DK.edit = -1; DK.rename = false; dkPaint_(); });
+on('dk-newlist', () => { const L = dkLoad_(); L.push({ name: 'List ' + (L.length + 1), items: [] }); DK.at = L.length - 1; DK.rename = true; dkKeep_(); });
+on('dk-rename', () => { DK.rename = !DK.rename; dkPaint_(); });
+on('dk-named', () => { const v = ($('dk-box').querySelector('.dk-name') || {}).value; if (dkList_() && String(v || '').trim()) dkList_().name = String(v).trim().slice(0, 80); DK.rename = false; dkKeep_(); });
+on('dk-move', el => { const L = dkLoad_(), by = +el.getAttribute('data-by'), j = DK.at + by; if (j < 0 || j >= L.length) return; L.splice(j, 0, L.splice(DK.at, 1)[0]); DK.at = j; dkKeep_(); });
+on('dk-droplist', () => { const L = dkLoad_(); if (!L[DK.at] || !confirm('Delete the list "' + L[DK.at].name + '" and everything on it?')) return; L.splice(DK.at, 1); DK.at = 0; dkKeep_(); });
+on('dk-add', () => { const inp = $('dk-box').querySelector('.dk-add'), t = String((inp && inp.value) || '').trim(); if (!t || !dkList_()) return; dkList_().items.push({ title: t.slice(0, 300) }); dkKeep_(); const again = $('dk-box').querySelector('.dk-add'); if (again) again.focus(); });
+on('dk-edit', el => { const i = +el.getAttribute('data-i'); DK.edit = DK.edit === i ? -1 : i; dkPaint_(); });
+on('dk-del', el => { const L = dkList_(); if (!L) return; L.items.splice(+el.getAttribute('data-i'), 1); DK.edit = -1; dkKeep_(); });
+on('dk-keep', el => { const it = dkList_() && dkList_().items[+el.getAttribute('data-i')]; if (!it) return;
+$('dk-box').querySelectorAll('.dk-editing .dk-f').forEach(f => { it[f.getAttribute('data-f')] = String(f.value || '').trim(); });
+if (it.repeat !== 'daily') delete it.repeat;
+DK.edit = -1; dkKeep_(); });
+on('dk-food', el => { const it = dkList_() && dkList_().items[+el.getAttribute('data-i')]; if (!it) return;
+const f = el.getAttribute('data-f') || ''; if (dkPicked_(it) === f) { it.pick = ''; it.pickOn = ''; } else { it.pick = f; it.pickOn = dkDay_(); } dkKeep_(); });
+on('dk-showdone', () => { DK.showDone = !DK.showDone; dkPaint_(); });
+document.addEventListener('change', e => {
+const el = e.target;
+if (!el || !el.closest || !el.closest('#dk-box') || !el.hasAttribute('data-dk')) return;
+const it = dkList_() && dkList_().items[+el.getAttribute('data-dk')];
+if (!it) return;
+if (it.repeat === 'daily') it.doneOn = el.checked ? dkDay_() : ''; else it.done = el.checked;
+dkKeep_();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target && e.target.classList && e.target.classList.contains('dk-add') && typeof ACTIONS !== 'undefined' && ACTIONS['dk-add']) { e.preventDefault(); ACTIONS['dk-add'](e.target); } });
 ;
 /* js/book-steps.js */
 let OPEN_JOB = '';
@@ -17940,6 +18102,49 @@ const facts = [['Symbol', r.symbol], ['Atomic number', r.number], ['Relative ato
 ['Discovered', r.discovered], ['Also called', r.also], ['Formula', r.formula], ['Use', r.use], ['Hazard', r.hazard], ['Pattern', r.pattern],
 ['Conditions', r.conditions], ['Observations', r.observations]].filter(f => has(f[1])).map(([k, v]) => k + ' ' + v);
 return [{ type: 'text', paras: facts.concat((r.examples || []).map(e => String(e.equation || '')), r.source || '') }]; }
+const FOOD = { data: null, asking: null, failed: false, items: null };
+function foodIndex_() {
+if (FOOD.data) return FOOD.data;
+if (FOOD.asking || FOOD.failed || typeof fetch !== 'function') return null;
+FOOD.asking = Promise.resolve(dataFile_('data/settings/foods.json')).then(d => {
+FOOD.asking = null;
+if (!d || !Array.isArray(d.kinds) || !Array.isArray(d.foods)) { FOOD.failed = true; return null; }
+FOOD.data = d;
+if (typeof lateCame_ === 'function') lateCame_();
+if (typeof dkPaint_ === 'function') dkPaint_();
+return d;
+}).catch(() => { FOOD.asking = null; FOOD.failed = true; return null; });
+return null;
+}
+const foodSay_ = t => String(t || '').trim().toLowerCase().replace(/[^a-z ]/g, '').replace(/\s+/g, ' ');
+function foodKindOf_(title) {
+const d = foodIndex_(), t = foodSay_(title);
+if (!d || !t) return null;
+return d.kinds.find(k => [k.name, k.id].concat(k.spellings || []).some(s => { const w = foodSay_(s); return w === t || w + 's' === t || w === t + 's'; })) || null;
+}
+const foodPath_ = k => { const d = FOOD.data, out = []; for (let at = k, n = 0; at && n < 9; n++) { out.unshift(at.name); at = d.kinds.find(p => p.id === at.parent); } return out.join(' › '); };
+function foodsOf_(k) {
+const d = FOOD.data; if (!d || !k) return [];
+const ids = [k.id];
+for (let i = 0; i < ids.length; i++) d.kinds.forEach(c => { if (c.parent === ids[i] && ids.indexOf(c.id) < 0) ids.push(c.id); });
+return d.foods.filter(f => ids.indexOf(f.kind) >= 0);
+}
+function foodItems_() {
+const d = foodIndex_();
+if (!d) return [];
+if (FOOD.items) return FOOD.items;
+const byId = {}; d.kinds.forEach(k => { byId[k.id] = k; });
+FOOD.items = d.kinds.map(k => ({ kind: 'fooddb', key: 'fooddb:k:' + k.id, name: k.name, image: '', row: null,
+text: [k.name].concat(k.spellings || []).join(' '), food: { name: k.name, path: foodPath_(k), foods: foodsOf_(k).map(f => f.name) } }))
+.concat(d.foods.map(f => ({ kind: 'fooddb', key: 'fooddb:f:' + foodSay_(f.name).replace(/ /g, '-'), name: f.name, image: '', row: null,
+text: f.name + ' ' + (byId[f.kind] ? byId[f.kind].name : ''), food: { name: f.name, path: byId[f.kind] ? foodPath_(byId[f.kind]) : '', note: f.note || '' } })));
+return FOOD.items;
+}
+function foodBody_(r) {
+r = r || {};
+return [r.path ? { type: 'text', text: r.path } : null, r.note ? { type: 'text', text: r.note } : null,
+(r.foods || []).length ? { type: 'tags', tags: r.foods } : null].filter(Boolean);
+}
 ;
 /* js/history-topics.js */
 const HTOP = { data: null, asking: null, failed: false, items: null, from: null };

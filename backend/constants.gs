@@ -83,7 +83,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-11-18-quals-1";
+const BACKEND_VERSION = "2026-11-18-history-docket-1";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 /* EVERY TAB NAME CODE READS BY. A kind in kinds.json ledger.moved is read through the items/events store

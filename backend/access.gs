@@ -206,6 +206,8 @@ const ACTION_ACCESS = {
   openWaitlist: 'admin',
   markWorking: 'self',
   workingOf: 'self',
+  history: 'self',
+  docketImport: 'admin',
   workFileSave: 'self',
   workFilesOf: 'self',
   workFileOpen: 'self',

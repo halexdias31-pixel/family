@@ -677,7 +677,9 @@ function studentSetPages_() {
   const prog = all.map(c => String(c).replace(/^(\s*<div class=")/, '$1prog-w ')), wait = coming.length || !(typeof progressComing_ === 'function' && progressComing_()) ? coming : [loading_()];
   return [top].concat(ownCardSetPage_('account'), youSettingsPages_(),
     /* WORK ON FILE (owner, 11 Nov): a student's own scanned pages; a tutor's opens each booked student's. */
-    /^(student|staff)$/.test(rank_(whose_())) && typeof workFileCard_ === 'function' ? [workFileCard_()].filter(Boolean) : [], soonCards_(),
+    /^(student|staff)$/.test(rank_(whose_())) && typeof workFileCard_ === 'function' ? [workFileCard_()].filter(Boolean) : [],
+    /* HISTORY (owner, 18 Nov): a student's day, its questions and marks. */
+    rank_(whose_()) === 'student' && typeof historyCard_ === 'function' ? [historyCard_(whose_() && whose_().personId)].filter(Boolean) : [], soonCards_(),
     prog, wait);
 }
 /* PLACEHOLDERS (562, owner notes 116, 118, 114): one card each, its title and one line, until the thing is built; each in CARD_REG so it moves and deletes. */

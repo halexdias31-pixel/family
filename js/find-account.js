@@ -396,7 +396,13 @@ on('sign-restart', () => {
 /* A ● TAG'S ×: that digit off. Signed in, the tag only goes; signed out, the digits ask again. */
 on('sign-dot-drop', el => {
   const i = Number((el && el.dataset && el.dataset.i) || 0);
-  if (USER) { USER.pinDots = Math.max(0, (USER.pinDots == null ? SIGN_PIN_LEN : USER.pinDots) - 1); saveUser_(); signPaint_(); return; }
+  /* SIGNED IN, A ● OFF IS A STEP BACK like any tag (owner, 18 Nov): signed out, back on the PIN step under the same name. */
+  if (USER) {
+    const h = String(USER.handle || '').replace(/^@/, '').trim(), who = h || SIGN.who || String(USER.name || '').trim();
+    signOut_();
+    SIGN.who = who; SIGN.step = 'pin'; SIGN.pin = []; SIGN.wrong = false; SIGN.known = true; SIGN.card = '';
+    signPaint_(); return;
+  }
   if (SIGN.step !== 'pin' || SIGN.busy) return;
   SIGN.pin.splice(i >= 0 && i < SIGN.pin.length ? i : SIGN.pin.length - 1, 1);
   SIGN.wrong = false;

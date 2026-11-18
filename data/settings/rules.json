@@ -519,7 +519,7 @@
   {
    "id": "1.75",
    "principle": 1,
-   "text": "No checks (owner, 16 Nov: \"delete them all\"): the repo has no tests, journeys, gates, ratchets or optimiser scores. A rule is kept by being stated here and built once, at its single source — never by a script that tests for it.",
+   "text": "Checks, best practice (owner, 17 Nov, lifting 16 Nov's ban): only for what a child or parent would notice, one check per rule, counted site-wide; each is a tools/ script tools/build.js runs, and nothing ships unless they pass.",
    "since": "2026-11-16"
   },
   {

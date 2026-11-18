@@ -74,6 +74,8 @@
   {"name":"openWaitlist","handler":"postOpenWaitlist_","roles":["admin"],"feature":true},
   {"name":"markWorking","handler":"postSaveWorking_","roles":["member","child","admin"]},
   {"name":"workingOf","handler":"postWorkingOf_","roles":["member","child","admin"]},
+  {"name":"history","handler":"postHistory_","roles":["member","child","admin"],"feature":true},
+  {"name":"docketImport","handler":"postDocketImport_","roles":["admin"],"feature":true},
   {"name":"workFileSave","handler":"postWorkFile_","roles":["member","child","admin"]},
   {"name":"workFilesOf","handler":"postWorkFile_","roles":["member","child","admin"]},
   {"name":"workFileOpen","handler":"postWorkFile_","roles":["member","child","admin"]},

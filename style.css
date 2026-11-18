@@ -66,7 +66,7 @@
   --tile: 44px; --tile-i: 16px; --tile-gap: 6px; --tile-send: 44px; --tile-r: 999px; --btn-r: 22px;
   /* ONE PILL SIZE (owner, 1040 r12): a chosen chip, a menu answer and a card tag are drawn alike; a tappable one keeps 44px in an invisible ::before. */
   /* ONE DIAL FOR EVERY TAG'S SIZE (owner, 10 Nov): change this, not each tag. */
-  --tag-scale: 1.75; /* was 2; a bit smaller everywhere (owner, 17 Nov) */
+  --tag-scale: 1.25; /* was 1.75; smaller everywhere so a staff card fits one phone screen (owner, 18 Nov) */
   --tp-fs: var(--fs-tag); --tp-lh: 1.35; --tp-pad: calc(.18rem * var(--tag-scale)) calc(.65rem * var(--tag-scale)); --tp-h: calc(1.55rem * var(--tag-scale));
   --r-sm:   2px;
 
@@ -4628,7 +4628,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 
 /* DAIVE (449, 461): a conversation drawn as any other; only the disc is filled gold, and the composer greys while it waits. */
 .dm-av.daive-av { background: var(--gold); color: var(--on-gold); }
-.daive .msg-text:disabled, .daive .msg-go:disabled { opacity: .5; }
+.msg-text:disabled, .msg-go:disabled { opacity: .5; }
 
 /* ---------- A HAND UP (455): the card a tutor can see from across the room, and the tutor's list ---------- */
 .qcard { --help-red: var(--alert); --help-wash: color-mix(in srgb, var(--alert) 28%, transparent); --help-ink: var(--white); }
@@ -4915,20 +4915,20 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .pane:has(> .favwrap > .lib-c) > .tile-row { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
 /* ---------- THE TUTOR CARD FITS ONE PHONE SCREEN (8 Nov): small face, name and rate on one line, tight pills, short map, hours as day pills. */
 
-.tcard .prof-pic { width: 2.75rem; height: 2.75rem; }
+.card.kc .prof-pic { width: 2.75rem; height: 2.75rem; }
 
-.tcard .prof-tags { gap: var(--s1); margin-top: var(--s1); }
-.tcard .prof-cap { margin: var(--s2) 0 var(--s0); }
-.tcard .prof-say { margin-top: var(--s2); font-size: var(--fs-small); line-height: 1.35; }
-.tcard .prof-words { margin: var(--s1) 0 0; font-size: var(--fs-body); }
-.tcard .prof-photos { grid-template-columns: repeat(5, 2.6rem); margin-top: var(--s2); }
-.tcard .prof-heat { height: 64px; margin: var(--s0) 0 var(--s1); }
-.tcard .prof-busy { margin: var(--s1) 0 0; font-size: var(--fs-small); }
-.tcard .prof-tags > * { padding-top: var(--s0); padding-bottom: var(--s0); }
-.tcard .prof-hours .prof-hour-line { display: flex; flex-wrap: wrap; font-size: var(--fs-small); gap: var(--s0); }
-.tcard .prof-hours .prof-hour-line .prof-day { display: inline-block; padding: 0 var(--s1); border: 1px solid var(--line); border-radius: var(--r-round); }
+.card.kc .prof-tags { gap: var(--s1); margin-top: var(--s1); }
+.card.kc .prof-cap { margin: var(--s2) 0 var(--s0); }
+.card.kc .prof-say { margin-top: var(--s2); font-size: var(--fs-small); line-height: 1.35; }
+.card.kc .prof-words { margin: var(--s1) 0 0; font-size: var(--fs-body); }
+.card.kc .prof-photos { grid-template-columns: repeat(5, 2.6rem); margin-top: var(--s2); }
+.card.kc .prof-heat { height: 64px; margin: var(--s0) 0 var(--s1); }
+.card.kc .prof-busy { margin: var(--s1) 0 0; font-size: var(--fs-small); }
+.card.kc .prof-tags > * { padding-top: var(--s0); padding-bottom: var(--s0); }
+.card.kc .prof-hours .prof-hour-line { display: flex; flex-wrap: wrap; font-size: var(--fs-small); gap: var(--s0); }
+.card.kc .prof-hours .prof-hour-line .prof-day { display: inline-block; padding: 0 var(--s1); border: 1px solid var(--line); border-radius: var(--r-round); }
 
-.tcard .prof-who { gap: 0; flex: 1; min-width: 0; }
+.card.kc .prof-who { gap: 0; flex: 1; min-width: 0; }
 
 /* ONE CARD SHAPE (owner, 8 Nov): picture, title, tags, lines; an empty part takes no room. */
 .card.kc > :empty { display: none; }
@@ -4941,17 +4941,16 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .card.kc .kc-who { margin: var(--s1) 0 0; }
 /* EXTREMES STAY ONE SCREEN (8 Nov): name and rate on one line (a long name cut), a long handle, words and a long pill one line each, cut with an ellipsis. */
 
-.tcard .prof-handle { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tcard .prof-say { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.tcard .prof-quals .prof-tag, .tcard .prof-jobs .prof-tag, .tcard .prof-places .prof-tag { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card.kc .prof-handle { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card.kc .prof-say { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.card.kc .prof-quals .prof-tag, .card.kc .prof-jobs .prof-tag, .card.kc .prof-places .prof-tag { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* A PILL'S LEVEL AND GRADE ON ITS OWN LINE, IN ITS OWN SIZE (owner, 9 Nov: "A-Level" spilled out of the pill): read "Maths A-Level, GCSE"; a long one wraps inside. */
-.tcard .prof-tags .prof-tag { max-width: 100%; min-width: 0; overflow-wrap: anywhere; }
-.tcard .prof-tags .prof-lv { font-size: inherit; line-height: inherit; vertical-align: baseline; }
-.tcard .prof-quals .prof-tag { white-space: normal; text-overflow: clip; }
-.tcard .prof-tags .prof-iso { display: inline; margin: 0 0 0 1ch; font-size: inherit; line-height: inherit; vertical-align: baseline; color: inherit; }
-.tcard .prof-tags .prof-iso :is(sup, sub) { display: inline; margin: 0; }
-.tcard .prof-tags .prof-iso sup + sub { margin-left: 1ch; }
-.tcard h3 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card.kc .prof-tags .prof-tag { max-width: 100%; min-width: 0; overflow-wrap: anywhere; }
+.card.kc .prof-tags .prof-lv { font-size: inherit; line-height: inherit; vertical-align: baseline; }
+.card.kc .prof-quals .prof-tag { white-space: normal; text-overflow: clip; }
+.card.kc .prof-tags .prof-iso { display: inline; margin: 0 0 0 1ch; font-size: inherit; line-height: inherit; vertical-align: baseline; color: inherit; }
+.card.kc .prof-tags .prof-iso :is(sup, sub) { display: inline; margin: 0; }
+.card.kc .prof-tags .prof-iso sup + sub { margin-left: 1ch; }
 
 /* ---------- BOOKING CARD AT 390px (owner 7 Nov: no grey text; read like the tutor card) ---------- */
 /* Words in ink: greyed is kept only for unticked ticks and a "—" that does not apply. */

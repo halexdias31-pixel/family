@@ -1,0 +1,379 @@
+{
+ "say": "THE FOOD TREE (owner, 18 Nov): kinds as a small tree (`parent`), each with the spellings a list item may use for it; each food a name, its kind and an optional one-line note. Read by js/chemistry.js (FOOD) for the owner's Tools alone: Docket offers a kind's foods (its children's too) under an item named for the kind, and Find › Tools has a card for each kind and each food (kinds.json fooddb).",
+ "kinds": [
+  {
+   "id": "carb",
+   "name": "Carbs",
+   "parent": "",
+   "spellings": [
+    "carb",
+    "carbs",
+    "carbohydrate",
+    "carbohydrates",
+    "starch",
+    "starches"
+   ]
+  },
+  {
+   "id": "protein",
+   "name": "Protein",
+   "parent": "",
+   "spellings": [
+    "protein",
+    "proteins"
+   ]
+  },
+  {
+   "id": "meat",
+   "name": "Meat",
+   "parent": "protein",
+   "spellings": [
+    "meat",
+    "meats"
+   ]
+  },
+  {
+   "id": "fish",
+   "name": "Fish",
+   "parent": "protein",
+   "spellings": [
+    "fish",
+    "fishes",
+    "seafood"
+   ]
+  },
+  {
+   "id": "eggs",
+   "name": "Eggs",
+   "parent": "protein",
+   "spellings": [
+    "egg",
+    "eggs"
+   ]
+  },
+  {
+   "id": "pulses",
+   "name": "Beans and pulses",
+   "parent": "protein",
+   "spellings": [
+    "bean",
+    "beans",
+    "pulse",
+    "pulses",
+    "legume",
+    "legumes"
+   ]
+  },
+  {
+   "id": "dairy",
+   "name": "Dairy",
+   "parent": "",
+   "spellings": [
+    "dairy",
+    "milk products"
+   ]
+  },
+  {
+   "id": "fruit",
+   "name": "Fruit",
+   "parent": "",
+   "spellings": [
+    "fruit",
+    "fruits"
+   ]
+  },
+  {
+   "id": "veg",
+   "name": "Vegetables",
+   "parent": "",
+   "spellings": [
+    "veg",
+    "veggie",
+    "veggies",
+    "vegetable",
+    "vegetables",
+    "greens"
+   ]
+  },
+  {
+   "id": "fats",
+   "name": "Fats",
+   "parent": "",
+   "spellings": [
+    "fat",
+    "fats",
+    "healthy fat",
+    "healthy fats",
+    "oil",
+    "oils"
+   ]
+  }
+ ],
+ "foods": [
+  {
+   "name": "Rice",
+   "kind": "carb",
+   "note": ""
+  },
+  {
+   "name": "Bread",
+   "kind": "carb",
+   "note": ""
+  },
+  {
+   "name": "Pasta",
+   "kind": "carb",
+   "note": ""
+  },
+  {
+   "name": "Potato",
+   "kind": "carb",
+   "note": ""
+  },
+  {
+   "name": "Sweet potato",
+   "kind": "carb",
+   "note": ""
+  },
+  {
+   "name": "Oats",
+   "kind": "carb",
+   "note": "porridge or overnight"
+  },
+  {
+   "name": "Cereal",
+   "kind": "carb",
+   "note": ""
+  },
+  {
+   "name": "Couscous",
+   "kind": "carb",
+   "note": ""
+  },
+  {
+   "name": "Noodles",
+   "kind": "carb",
+   "note": ""
+  },
+  {
+   "name": "Wrap",
+   "kind": "carb",
+   "note": ""
+  },
+  {
+   "name": "Beef",
+   "kind": "meat",
+   "note": ""
+  },
+  {
+   "name": "Pork",
+   "kind": "meat",
+   "note": ""
+  },
+  {
+   "name": "Chicken",
+   "kind": "meat",
+   "note": ""
+  },
+  {
+   "name": "Lamb",
+   "kind": "meat",
+   "note": ""
+  },
+  {
+   "name": "Turkey",
+   "kind": "meat",
+   "note": ""
+  },
+  {
+   "name": "Tuna",
+   "kind": "fish",
+   "note": ""
+  },
+  {
+   "name": "Salmon",
+   "kind": "fish",
+   "note": ""
+  },
+  {
+   "name": "Cod",
+   "kind": "fish",
+   "note": ""
+  },
+  {
+   "name": "Mackerel",
+   "kind": "fish",
+   "note": ""
+  },
+  {
+   "name": "Sardines",
+   "kind": "fish",
+   "note": ""
+  },
+  {
+   "name": "Prawns",
+   "kind": "fish",
+   "note": ""
+  },
+  {
+   "name": "Eggs",
+   "kind": "eggs",
+   "note": "boiled, scrambled or fried"
+  },
+  {
+   "name": "Lentils",
+   "kind": "pulses",
+   "note": ""
+  },
+  {
+   "name": "Chickpeas",
+   "kind": "pulses",
+   "note": ""
+  },
+  {
+   "name": "Kidney beans",
+   "kind": "pulses",
+   "note": ""
+  },
+  {
+   "name": "Baked beans",
+   "kind": "pulses",
+   "note": ""
+  },
+  {
+   "name": "Tofu",
+   "kind": "pulses",
+   "note": ""
+  },
+  {
+   "name": "Milk",
+   "kind": "dairy",
+   "note": ""
+  },
+  {
+   "name": "Yoghurt",
+   "kind": "dairy",
+   "note": ""
+  },
+  {
+   "name": "Cheese",
+   "kind": "dairy",
+   "note": ""
+  },
+  {
+   "name": "Greek yoghurt",
+   "kind": "dairy",
+   "note": ""
+  },
+  {
+   "name": "Cottage cheese",
+   "kind": "dairy",
+   "note": ""
+  },
+  {
+   "name": "Apple",
+   "kind": "fruit",
+   "note": ""
+  },
+  {
+   "name": "Banana",
+   "kind": "fruit",
+   "note": ""
+  },
+  {
+   "name": "Orange",
+   "kind": "fruit",
+   "note": ""
+  },
+  {
+   "name": "Grapes",
+   "kind": "fruit",
+   "note": ""
+  },
+  {
+   "name": "Berries",
+   "kind": "fruit",
+   "note": ""
+  },
+  {
+   "name": "Pear",
+   "kind": "fruit",
+   "note": ""
+  },
+  {
+   "name": "Mango",
+   "kind": "fruit",
+   "note": ""
+  },
+  {
+   "name": "Broccoli",
+   "kind": "veg",
+   "note": ""
+  },
+  {
+   "name": "Carrots",
+   "kind": "veg",
+   "note": ""
+  },
+  {
+   "name": "Spinach",
+   "kind": "veg",
+   "note": ""
+  },
+  {
+   "name": "Peas",
+   "kind": "veg",
+   "note": ""
+  },
+  {
+   "name": "Peppers",
+   "kind": "veg",
+   "note": ""
+  },
+  {
+   "name": "Tomatoes",
+   "kind": "veg",
+   "note": ""
+  },
+  {
+   "name": "Cucumber",
+   "kind": "veg",
+   "note": ""
+  },
+  {
+   "name": "Salad leaves",
+   "kind": "veg",
+   "note": ""
+  },
+  {
+   "name": "Green beans",
+   "kind": "veg",
+   "note": ""
+  },
+  {
+   "name": "Avocado",
+   "kind": "fats",
+   "note": ""
+  },
+  {
+   "name": "Nuts",
+   "kind": "fats",
+   "note": "a small handful"
+  },
+  {
+   "name": "Olive oil",
+   "kind": "fats",
+   "note": ""
+  },
+  {
+   "name": "Peanut butter",
+   "kind": "fats",
+   "note": ""
+  },
+  {
+   "name": "Seeds",
+   "kind": "fats",
+   "note": ""
+  }
+ ]
+}

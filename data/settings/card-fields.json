@@ -1,5 +1,5 @@
 [
-{"kind": "tutor", "cls": "is-widget is-prof tcard", "pic": "", "title": "", "tags": "", "lines": "", "tiles": "book-with:book:Book,msg-open:chat:Message", "notes": "the compact one-screen tutor card (547): rate on the name line, subject pills, the map, day pills", "facts": false, "icon": ""},
+{"kind": "tutor", "cls": "is-widget is-prof", "pic": "", "title": "", "tags": "", "lines": "", "tiles": "book-with:book:Book,msg-open:chat:Message", "notes": "the compact one-screen tutor card (547): rate on the name line, subject pills, the map, day pills", "facts": false, "icon": ""},
 {"kind": "venue", "cls": "venue-door", "pic": "", "title": "", "tags": "", "lines": "", "tiles": "", "notes": "drawn from its spec (cardKind_, master template)", "facts": false, "icon": "home"},
 {"kind": "level", "cls": "is-level", "pic": "", "title": "", "tags": "", "lines": "", "tiles": "book-with:book:Book", "notes": "drawn from its spec (cardKind_, master template)", "facts": false, "icon": "ruler"},
 {"kind": "subject", "cls": "is-subject", "pic": "", "title": "", "tags": "", "lines": "", "tiles": "book-with:book:Book", "notes": "drawn from its spec (cardKind_, master template)", "facts": false, "icon": "book"},

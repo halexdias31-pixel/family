@@ -736,6 +736,8 @@ function stuffItemsRaw_() {
     ...(typeof window.hymnsItems_ === 'function' ? window.hymnsItems_() : []),
     ...(typeof mechItems_ === 'function' ? mechItems_() : []),
     ...(typeof chemItems_ === 'function' ? chemItems_() : []),
+    /* THE OWNER'S FOOD TREE (kinds.json fooddb, under Tools): an admin's alone. */
+    ...(typeof foodItems_ === 'function' && typeof may_ === 'function' && may_('admin') ? foodItems_() : []),
     ...(typeof histTopicItems_ === 'function' ? histTopicItems_() : []),
     /* ---------- THE OWNER'S LIFE AND BUSINESS (kinds.json `find.from: "store"`, form.js), an admin's alone */
     ...(typeof storeItems_ === 'function' ? storeItems_() : []),
