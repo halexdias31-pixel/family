@@ -2227,8 +2227,9 @@ function specBody_(r) { const named = specNamed_(r);
 return [{ type: 'text', look: 'insh-kick', text: [r.board, r.qualification, r.subject, r.code].join(' · ') },
 { type: 'tree', nodes: (r.sections || []).map(s => ({ label: s.title, kids: specNodes_(r, s.id, named) })) },
 { type: 'text', look: 'insh-check', text: 'Short headings; the official specification has the full wording.' }]; }
-const specKeyOfCard_ = c => (c && c.board === 'AQA' && /^846[123]$/.test(String(c.spec)) && c.specRef ? 'aqa-' + c.spec + ':' + c.specRef : '');
-const specKeysOfRow_ = r => String((r && r.spec_ref) || '').split(/\s+/).filter(k => /^aqa-\d{4}:/.test(k));
+const specKeyOfCard_ = c => { const id = c && c.board && c.spec && c.specRef ? String(c.board).toLowerCase() + '-' + c.spec : '';
+return id && ((typeof DATA !== 'undefined' && DATA.specs) || []).some(s => s.id === id) ? id + ':' + c.specRef : ''; };
+const specKeysOfRow_ = r => String((r && r.spec_ref) || '').split(/[\s,]+/).filter(k => /^[a-z]+-\w+:\S/.test(k));
 function specPracticeParts_(k) {
 let all = [];
 try { all = (stuffItemsAll_() || []).filter(i => i && isQ_(i) && specKeysOfRow_(i.row).includes(k)); } catch (e) { return []; }
