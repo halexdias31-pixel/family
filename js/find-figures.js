@@ -341,7 +341,7 @@ CARD_EMBEDS.qsheet = a => {
   if (!x) return '';
   const was = Q_DRAWN.get(x.key) || { stems: [], shown: [x], ans: true };
   /* ANSWERS ONLY (`questionWhole_`'s `only`): the answer card and nothing of the question. */
-  if (was.only) return questionHasAns_(x) || schemeOwed_(x) ? questionAnsCard_(x, true) : '';
+  if (was.only) return questionHasAns_(x) || schemeOwed_(x) ? questionAnsCard_(x, true, true) : '';
   const stems = was.stems.map(st => qStemWhole_(x, st, was.shown, a.pic ? [] : null)).join('');
   const words = partChunks_(x).map(c => chunkHtml_(c, circOf_(x), x)).join('');
   const has = was.ans && (questionHasAns_(x) || schemeOwed_(x));
@@ -709,16 +709,18 @@ const qaToggleOpts_ = (k, open) => open
   ? { icon: 'hide', label: 'Hide the answer', note: 'one tap', act: 'qa-hide', cls: 'qa-toggle', data: { k: k } }
   : { icon: 'show', label: 'Show the answer', note: 'one tap', act: 'qa-show', cls: 'qa-toggle', data: { k: k } };
 const qaToggle_ = (k, open) => tile_(qaToggleOpts_(k, open));
-/* `inRow`: a part of a whole question, whose toggle and Help are in its one tool row, so this card holds no row of its own */
-function questionAnsCard_(x, inRow) {
+/* `inRow`: a part of a whole question, whose toggle and Help are in its one tool row, so this card holds no row of its own;
+   `bare`: drawn inside a card that already wears the part's tags (Answers only), so not a second tag row under the first (18 Nov). */
+function questionAnsCard_(x, inRow, bare) {
+  const tags = bare ? '' : tagRow_(x, 'ans');
   const id = (x.row && x.row.row_id) || x.key || '';
-  if (schemeOwed_(x)) return figBox_({ look: 'qcard qans-card', attrs: { 'data-of': id }, inner: tagRow_(x, 'ans')
+  if (schemeOwed_(x)) return figBox_({ look: 'qcard qans-card', attrs: { 'data-of': id }, inner: tags
     + figBox_({ tag: 'p', look: 'qans-none', text: 'No checked answer yet: this paper\'s mark scheme has not been added.' }) });
   const k = ansKey_(x);
   const open = ansOpen_(x);
   /* ---------- ONE TILE, IN ONE PLACE, AND IT SAYS WHICH WAY IT GOES § */
   return figBox_({ look: 'qcard qans-card' + (open ? '' : ' is-hidden') + (typeof helpCls_ === 'function' ? helpCls_(x, 'ans') : ''), attrs: { 'data-of': id, 'data-k': k },
-    inner: tagRow_(x, 'ans')
+    inner: tags
       + (inRow ? '' : figBox_({ look: 'tile-row qans-tiles', inner: qaToggle_(k, open)
         /* "ANSWER HIDDEN", AND NOT "HAVE A GO FIRST". § */
         + (open ? '' : figBox_({ tag: 'span', look: 'qans-wait-k', text: 'Answer hidden' })) }))
