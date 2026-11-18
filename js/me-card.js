@@ -218,11 +218,11 @@ function cardEditHtml_(t) {
   const base = cardBaseNow_(e);
   if (!base) {
     if (!e.err) setTimeout(() => cardFetch_(e), 0);
-    return meCard_(mcG_('div', 'is-widget is-prof card-ed', { attrs: { 'data-pid': pid }, inner: head + (e.err ? mcNote_('me-said', e.err) : loading_()) })
+    return meCard_(mcG_('div', 'is-widget card-ed', { attrs: { 'data-pid': pid }, inner: head + (e.err ? mcNote_('me-said', e.err) : loading_()) })
       + cardBlock_({ type: 'tiles', look: 'ce-tiles', tiles: cardSaveOpts_(pid, true) }));
   }
   const { vals, held } = cardValues_(e, base);
-  return meCard_(mcG_('div', 'is-widget is-prof card-ed', { attrs: { 'data-pid': pid }, inner: head
+  return meCard_(mcG_('div', 'is-widget card-ed', { attrs: { 'data-pid': pid }, inner: head
     + mcG_('div', 'me-form', { attrs: { 'data-draw': cardDrawn_(base) }, inner: cardEditForm_(t, e, vals) + mcNote_('me-said', held ? SET_HELD_SAY : '') }) })
     + cardBlock_({ type: 'tiles', look: 'ce-tiles', tiles: cardSaveOpts_(pid, false) }));
 }
@@ -234,7 +234,7 @@ function cardEditCards_(t, e, secs, setCol) {
   return secs.map(s => {
     /* EVERY CARD TITLED, ONE SHAPE (8 Nov): title and one line per field, saved as typed (`autosaveHear_`) — `setCard_`. */
     const title = OWN_SEC_TITLE_[s.id] || s.cap || s.id;
-    const card = { title, cls: 'is-prof card-ed own-sec',
+    const card = { title, cls: 'card-ed',
       attrs: ` data-pid="${esc(pid)}" data-sec="${esc(s.id)}" data-lay-card="own:${esc(setCol)}:${esc(s.id)}" aria-label="${esc(title)}"` };
     if (!base) return setCard_(Object.assign(card, { body: e.err ? mcNote_('me-said', e.err) : loading_(), save: cardCancelTile_(pid) }));
     const { vals, held } = cardValues_(e, base, s.id);

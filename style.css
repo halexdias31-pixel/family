@@ -940,23 +940,23 @@ label.field > .note { display: block; margin-top: var(--s1); text-transform: non
 :is(.check input:checked + .box, .row.dock-item input:checked + .box, .mat-list input[type="checkbox"]:checked)::after { color: var(--on-gold); }
 
 /* ---------- YOUR ROLES: A TICK WITH ITS MEANING UNDER THE WORD § */
-.notify-card .role-pick { align-items: flex-start; }
-.notify-card .role-pick .box { margin-top: var(--s0); }
+.kc-embed .role-pick { align-items: flex-start; }
+.kc-embed .role-pick .box { margin-top: var(--s0); }
 .role-pick-say { display: flex; flex-direction: column; gap: var(--s0); min-width: 0; }
 .role-pick-say .note { font-size: var(--fs-body); line-height: 1.35; }
-.roles-card .roles-said { margin: var(--s2) 0 0; }
+.kc-embed .roles-said { margin: var(--s2) 0 0; }
 /* ONE OF TWO (432): one row with the phone's own picker, each choice's meaning in a faint line under it. */
 
 /* ---------- NOTIFICATIONS: THE ROLES CARD'S TICKS, AND WHAT IS ALWAYS SENT AS WORDS § */
 .notify-always { list-style: none; margin: 0; padding: 0; font-size: var(--fs-body); line-height: 1.45; color: var(--ink); }
 .notify-always li { display: inline; }
 .notify-always li + li::before { content: ' · '; color: var(--ink); }
-.notify-card .notify-cap { margin: var(--s3) 0 var(--s1); }
-.notify-card .notify-said { margin: var(--s2) 0 0; }
-.notify-card .notify-said:empty { margin: 0; }
+.kc-embed .notify-cap { margin: var(--s3) 0 var(--s1); }
+.kc-embed .notify-said { margin: var(--s2) 0 0; }
+.kc-embed .notify-said:empty { margin: 0; }
 /* THE BOX BEING SAVED LOOKS IT. § */
-.notify-card .check input:disabled + .box { opacity: .45; }
-.notify-card .check:has(input:disabled) { cursor: progress; }
+.kc-embed .check input:disabled + .box { opacity: .45; }
+.kc-embed .check:has(input:disabled) { cursor: progress; }
 
 /* ---------- SMALL THINGS ------------------------------------------------------------------------ */
 .note  { color: var(--ink); font-size: var(--fs-body); }
@@ -1363,7 +1363,6 @@ button.text-drop { color: var(--bad); }
 /* `.btn.tiny` AND THIS RULE ARE BOTH TWO CLASSES, so the one written later wins — and `.btn.tiny` is ninety lines below, setting `font-size: .8rem`. § */
 
 /* AND AT 320 THAT DOES NOT FIT, MEASURED: § */
-.card.is-widget:has(.tmt-box) { padding-inline: clamp(.4rem, 100vw - 21.6rem, var(--wgt-pad)); }
 
 /* ---------- TOUCH TYPING § */
 /* ---------- VIDEOS: A PILL, A WATCH PAGE, AND A LIST OF PICTURES — YOUTUBE'S SHAPES IN OUR COLOURS § */
@@ -1402,7 +1401,6 @@ button.text-drop { color: var(--bad); }
 /* AT 320 FIVE 44px RUNGS AND THEIR GAPS ARE 228px IN A 218px SLOT — the timetable's measurement, and
    its answer: the card gives up some of its own inside edge on a narrow phone rather than a rung
    going under 44. */
-.card.is-widget:has(.kt-box) { padding-inline: clamp(.4rem, 100vw - 21.6rem, var(--wgt-pad)); }
 
 /* ---------- FILTER CHIPS § */
 /* ---------- REPORTED AS "the tags don't need to be as big" § */
@@ -2377,7 +2375,6 @@ span[data-do]:is(:active, .is-pressed) { text-decoration-color: var(--gold); }
 .prof-who { display: flex; flex-direction: column; gap: var(--s1); min-width: 0; }
 /* WRAPS. `.pass-name` was one line with `text-overflow: ellipsis` on the lines under it, because a pass is a fixed object and a name that does not fit gets cut. § */
 /* ---------- THE ONE RED THIS CARD USES, DECLARED ONCE AND RAISED TO READABLE § */
-.is-prof { --prof-warn: var(--bad); }
 
 /* ---------- THE HANDLE, IN GOLD AND SMALLER THAN THE NAME § */
 .prof-handle { font: 400 var(--fs-small)/1.2 var(--mono); color: var(--gold); overflow-wrap: anywhere; }
@@ -2414,15 +2411,15 @@ button.prof-tag:disabled { cursor: default; }
 button.prof-tag.is-sm { padding: 0 var(--s2); line-height: 1; font-weight: 500; }
 /* THE ROWS NEED AIR ABOVE THEM, or the first one sits against the adjectives as though it were one
    of them. Applied to the first row only, so rows keep their own even spacing among themselves. */
-.is-prof .prof-say + .row, .is-prof .prof-tags + .row, .is-prof .prof-words + .row { margin-top: var(--s3); }
+.kc-lines .prof-say + .row, .kc-lines .prof-tags + .row, .kc-lines .prof-words + .row { margin-top: var(--s3); }
 /* THE ADJECTIVES — bold words rather than chips; see `findCard`. The dots are gold and faint so the
    words carry the line. */
 .prof-words { margin: var(--s2) 0 0; font-size: var(--fs-body); line-height: 1.3; color: var(--ink); }
 .prof-words b { font-weight: 800; }
 .prof-words i { font-style: normal; color: var(--ink); margin: 0 var(--s2); }
 /* ---------- AND THE ROWS ARE A NOTCH SMALLER THAN AN ORDINARY ROW, because a profile has twice as § */
-.is-prof .row { padding: var(--s1) 0; font-size: var(--fs-small); }
-.is-prof .prof-say { font-size: var(--fs-small); line-height: 1.35; }
+.kc-lines .row { padding: var(--s1) 0; font-size: var(--fs-small); }
+.kc-lines .prof-say { font-size: var(--fs-small); line-height: 1.35; }
 /* THE SUBJECTS, AS THE ADJECTIVES' CHIPS. § */
 .prof-teach .prof-tag { text-transform: none; letter-spacing: .02em; font-size: var(--tp-fs); }
 /* A COLOUR PER KIND OF PILL (look rules): facts, subjects green, qualifications, places; never the grey line. */
@@ -2438,9 +2435,8 @@ button.prof-tag.is-sm { padding: 0 var(--s2); line-height: 1; font-weight: 500; 
 .job-slot > .job-when { display: flex; align-items: center; gap: var(--s1); flex: 1 1 10rem; }
 .job-slot > .set-drop { flex: 0 0 auto; }
 /* ONE SETTINGS-CARD SHAPE (8 Nov, `setCard_`): one box a line, the Save row at the foot, every list's Add tile alike. */
-.set-shape > .field, .set-shape > .me-form > .field { display: block; margin-bottom: var(--s2); }
-.set-shape .tile-row.set-save { margin-top: var(--s2); }
-.set-shape .tile-row.set-adds { margin: var(--s1) 0 var(--s2); }
+.kc-embed .tile-row.set-save { margin-top: var(--s2); }
+.kc-embed .tile-row.set-adds { margin: var(--s1) 0 var(--s2); }
 .job-dash { flex: 0 0 auto; }
 /* THE INTRO VIDEO: the Drive player at 16:9, on the card and on the Photos card. */
 .vid-frame { position: relative; width: 100%; aspect-ratio: 16 / 9; margin: var(--s2) 0; border-radius: var(--r-ui); overflow: hidden; background: var(--bg); }
@@ -2483,7 +2479,7 @@ button.prof-tag.is-sm { padding: 0 var(--s2); line-height: 1; font-weight: 500; 
 }
 .prof-cap + .prof-tags { margin-top: 0; }
 /* ---------- A CARD BEING EDITED — `cardEditHtml_` in me.js (docs/history/330) § */
-.card-ed .ce-what { color: var(--gold); }
+.kc-embed .ce-what { color: var(--gold); }
 /* `.kid-sec` IS "MANAGE YOUR CHILD"'S SECTION (docs/history/339) — the children linked to you, then making an account, then linking one — and it is drawn as the § */
 .ce-sec + .ce-sec, .kid-sec + .kid-sec, .kid-sec + .kc-embed > .kid-sec:first-child { margin-top: var(--s3); padding-top: var(--s2); border-top: 1px solid var(--line-soft); }
 .ce-sec > .prof-cap:first-child { margin-top: 0; }
@@ -2494,65 +2490,65 @@ button.prof-tag.is-sm { padding: 0 var(--s2); line-height: 1; font-weight: 500; 
 .ce-pic { display: flex; gap: var(--s3); align-items: center; }
 .ce-pic .ce-note { margin: 0; }
 /* ---------- THE CARD'S EDIT ON ONE PHONE SCREEN: ONE LINE A THING, LABEL LEFT, VALUE RIGHT (docs/history/425) § */
-.card-ed { --ce-row: 32px; --ce-k: 6.6rem; }
-.card-ed .me-form { line-height: 1.25; }
-.card-ed .ce-sec + .ce-sec { margin-top: 0; padding-top: 0; border-top: 0; }
-.card-ed .ce-sec > .prof-cap:first-child { margin: var(--s2) 0 var(--s1); }
+.kc-embed { --ce-row: 32px; --ce-k: 6.6rem; }
+.kc-embed .me-form { line-height: 1.25; }
+.kc-embed .ce-sec + .ce-sec { margin-top: 0; padding-top: 0; border-top: 0; }
+.kc-embed .ce-sec > .prof-cap:first-child { margin: var(--s2) 0 var(--s1); }
 /* A LINE: a label at a fixed width, the box taking the rest; the label is the 32px target (`ACCEPTED_TAP`, check/ui.js). */
-.card-ed label.field, .card-ed .f-rowwrap, .card-ed .field.many, .card-ed .ce-line {
+.kc-embed label.field, .kc-embed .f-rowwrap, .kc-embed .field.many, .kc-embed .ce-line {
   display: flex; align-items: center; gap: var(--s2); min-height: var(--ce-row); margin: 0;
   border-bottom: 1px solid var(--line-soft); }
-.card-ed label.field > span, .card-ed .f-rowwrap > .dob-cap, .card-ed .many-cap, .card-ed .ce-k {
-  flex: 0 0 var(--ce-k); margin: 0; font-size: var(--fs-small); letter-spacing: .04em;
+.kc-embed label.field > span, .kc-embed .f-rowwrap > .dob-cap, .kc-embed .many-cap, .kc-embed .ce-k {
+  flex: 1 1 40%; margin: 0; text-align: left; font-size: var(--fs-small); letter-spacing: .04em;
   line-height: 1.1; color: var(--ink); overflow: hidden; }
-.card-ed label.field > input, .card-ed label.field > select, .card-ed .many-sum {
-  flex: 1 1 auto; min-width: 0; min-height: 0; height: 28px; padding: 0 var(--s2); }
-.card-ed label.field > select, .card-ed .many-sum { padding-right: calc(var(--sel-at) + var(--sel-tri) + .3rem); }
-.card-ed .many-sum { line-height: 26px; }
+.kc-embed label.field > input, .kc-embed label.field > select, .kc-embed .many-sum {
+  flex: 1 1 55%; min-width: 0; min-height: 0; height: 28px; padding: 0 var(--s2); }
+.kc-embed label.field > select, .kc-embed .many-sum { padding-right: calc(var(--sel-at) + var(--sel-tri) + .3rem); }
+.kc-embed .many-sum { line-height: 26px; }
 /* THE VENUES' OWN SUMMARY IS THE FOLD'S LINE — the ticks are drawn open inside it (`ceWhere_`). */
-.card-ed .ce-fold .field.many { display: block; border: 0; min-height: 0; }
-.card-ed .ce-fold .many-cap, .card-ed .ce-fold .many-sum { display: none; }
-.card-ed .f-row { display: block; }
-.card-ed .f-rowwrap > .f-row { display: grid; flex: 1 1 auto; min-width: 0; gap: var(--s1); }
-.card-ed .f-rowwrap .f-row label.field { border: 0; min-height: 0; margin: 0; }
-.card-ed .f-row.is-range .f-dash { margin: 0; }
-.card-ed .f-row.is-range { align-items: center; }
-.card-ed .field.many { flex-wrap: wrap; }
-.card-ed .many-d { flex: 1 1 0; min-width: 0; }
-.card-ed .many-d[open] { flex-basis: 100%; padding-bottom: var(--s2); }
-.card-ed .many-list { margin-top: var(--s1); }
+.kc-embed .ce-fold .field.many { display: block; border: 0; min-height: 0; }
+.kc-embed .ce-fold .many-cap, .kc-embed .ce-fold .many-sum { display: none; }
+.kc-embed .f-row { display: block; }
+.kc-embed .f-rowwrap > .f-row { display: grid; flex: 1 1 auto; min-width: 0; gap: var(--s1); }
+.kc-embed .f-rowwrap .f-row label.field { border: 0; min-height: 0; margin: 0; }
+.kc-embed .f-row.is-range .f-dash { margin: 0; }
+.kc-embed .f-row.is-range { align-items: center; }
+.kc-embed .field.many { flex-wrap: wrap; }
+.kc-embed .many-d { flex: 1 1 0; min-width: 0; }
+.kc-embed .many-d[open] { flex-basis: 100%; padding-bottom: var(--s2); }
+.kc-embed .many-list { margin-top: var(--s1); }
 /* A FOLD: its line is a summary, the value right-aligned; open, its inside sits under the line. */
-.card-ed .ce-fold > summary { list-style: none; cursor: default; }
-.card-ed .ce-fold > summary::-webkit-details-marker { display: none; }
-.card-ed .ce-v { flex: 1 1 auto; min-width: 0; display: block; text-align: right;
+.kc-embed .ce-fold > summary { list-style: none; cursor: default; }
+.kc-embed .ce-fold > summary::-webkit-details-marker { display: none; }
+.kc-embed .ce-v { flex: 1 1 auto; min-width: 0; display: block; text-align: right;
   font-size: var(--fs-body); line-height: 1.4; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.card-ed .ce-line::after { content: ''; flex: none; width: 6px; height: 6px; margin-left: var(--s0);
+.kc-embed .ce-line::after { content: ''; flex: none; width: 6px; height: 6px; margin-left: var(--s0);
   border-right: 1.5px solid var(--dim); border-bottom: 1.5px solid var(--dim); transform: rotate(45deg) translateY(-2px); }
-.card-ed .ce-fold > .ce-line::after { content: none; }   /* always open (487): no chevron to promise a fold */
-.card-ed .ce-fold[open] > .ce-line { border-bottom-color: transparent; }
-.card-ed .ce-body, .card-ed details.pfp > :not(summary) { padding: var(--s1) 0 var(--s2); }
-.card-ed .ce-fold[open] { border-bottom: 1px solid var(--line-soft); }
-.card-ed .ce-body > label.field:last-of-type { border-bottom: 0; }
-.card-ed .ce-seat, .card-ed .ce-seat .prof-seat { font-size: var(--fs-small); color: var(--ink); }
-.card-ed .handle-now { margin: 0; font-size: var(--fs-body); }
-.card-ed .handle-said { margin: 0; font-size: var(--fs-small); }
+.kc-embed .ce-fold > .ce-line::after { content: none; }   /* always open (487): no chevron to promise a fold */
+.kc-embed .ce-fold[open] > .ce-line { border-bottom-color: transparent; }
+.kc-embed .ce-body, .kc-embed details.pfp > :not(summary) { padding: var(--s1) 0 var(--s2); }
+.kc-embed .ce-fold[open] { border-bottom: 1px solid var(--line-soft); }
+.kc-embed .ce-body > label.field:last-of-type { border-bottom: 0; }
+.kc-embed .ce-seat, .kc-embed .ce-seat .prof-seat { font-size: var(--fs-small); color: var(--ink); }
+.kc-embed .handle-now { margin: 0; font-size: var(--fs-body); }
+.kc-embed .handle-said { margin: 0; font-size: var(--fs-small); }
 /* THE PICTURE'S LINE: the face at 28px, at 44 once open; the picker keeps its own grid under it. */
-.card-ed details.pfp { display: block; margin: 0; }
-.card-ed .ce-v .handle-now { display: inline-flex; }
-.card-ed details.pfp > .ce-line { justify-content: space-between; }
-.card-ed details.pfp > .ce-line .ce-k { flex: 1 1 auto; }
-.card-ed details.pfp .pfp-face { width: 28px; height: 28px; border-radius: var(--r-ui); }
-.card-ed details.pfp[open] .pfp-face { width: var(--tap); height: var(--tap); }
-.card-ed details.pfp .pfp-none { font-size: var(--fs-body); }
+.kc-embed details.pfp { display: block; margin: 0; }
+.kc-embed .ce-v .handle-now { display: inline-flex; }
+.kc-embed details.pfp > .ce-line { justify-content: space-between; }
+.kc-embed details.pfp > .ce-line .ce-k { flex: 1 1 auto; }
+.kc-embed details.pfp .pfp-face { width: 28px; height: 28px; border-radius: var(--r-ui); }
+.kc-embed details.pfp[open] .pfp-face { width: var(--tap); height: var(--tap); }
+.kc-embed details.pfp .pfp-none { font-size: var(--fs-body); }
 
-.card-ed details.pfp > .pfp-said { margin: 0; padding-top: 0; }
-.card-ed .q-shelf { margin: 0; }
-.card-ed .ph-shelf { margin-top: var(--s1); }
+.kc-embed details.pfp > .pfp-said { margin: 0; padding-top: 0; }
+.kc-embed .q-shelf { margin: 0; }
+.kc-embed .ph-shelf { margin-top: var(--s1); }
 /* THE WEEK, SMALLER: 20px rows instead of square cells, so seven days are a fifth of the screen (`.hr` in `ACCEPTED_TAP`). */
-.card-ed .me-week { margin-top: var(--s1); }
-.card-ed .me-week .slot-grid { gap: 2px; margin: 0; }
-.card-ed .me-week .hr { aspect-ratio: auto; min-height: 0; height: 20px; }
-.card-ed .ce-tiles { margin-top: var(--s2); }
+.kc-embed .me-week { margin-top: var(--s1); }
+.kc-embed .me-week .slot-grid { gap: 2px; margin: 0; }
+.kc-embed .me-week .hr { aspect-ratio: auto; min-height: 0; height: 20px; }
+.kc-embed .ce-tiles { margin-top: var(--s2); }
 
 /* ITS FORM, AND THE PEOPLE COLUMN'S EDIT — `personFormHtml_` in me.js. */
 .person-form .pf-roles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--s2); }
@@ -2601,21 +2597,20 @@ button.prof-tag.is-sm { padding: 0 var(--s2); line-height: 1; font-weight: 500; 
   box-shadow: 0 -1px 0 var(--line-soft);
 }
 /* A SECTION'S OWN CARD (468) is short, so its Save and Cancel are a plain row under it, not a bar stuck to the pane. */
-.own-sec > .tile-row.ce-tiles { position: static; padding: 0; margin-top: var(--s2); background: none; box-shadow: none; }
 /* QUALIFICATIONS, AS CHIPS. Same pill as the subjects; a free-typed extra is dashed, because it is
    what somebody wrote rather than a subject, level and grade the form asked for. */
 /* SWITCHED OFF. The whole card dims (in colour: see `.card.is-off`) and the heading says so in words — a tutor hidden from the
    public list is a state an admin has to be able to see at a glance without reading a row. */
 /* A LOCKED GAME (461, `gameLockTile_`): the card ringed in gold, and while it holds nothing on the page pans or overscrolls. */
-.card.is-widget.is-locked { box-shadow: inset 0 0 0 2px var(--gold); }
+.card.kc.is-locked { box-shadow: inset 0 0 0 2px var(--gold); }
 /* HELD BY ITS PADLOCK (498): not dimmed, and its words selectable for copy and paste. */
-.card.is-widget.is-locked > * { --ink: inherit; --gold: inherit; }
+.card.kc.is-locked > * { --ink: inherit; --gold: inherit; }
 .is-held, .is-held * { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
 .favwrap.is-held { box-shadow: inset 0 0 0 2px var(--gold); border-radius: var(--r-ui); }
 html.padlocked, html.padlocked * { touch-action: none !important; overscroll-behavior: none !important; }
-.prof-off { color: var(--prof-warn); }
+.prof-off { color: var(--bad); }
 /* AND THE ONE LINE THAT SAYS WHAT THE MARK MEANS. § */
-.prof-hid { color: var(--prof-warn); font-style: normal; }
+.prof-hid { color: var(--bad); font-style: normal; }
 
 /* ---------- AND THE ASK, which is not under the receipt any more ---------------------------------- */
 /* `.join` AND `.join-say` STOOD HERE — the block a stranger saw under somebody else's session, with the seats, the price, the list's tally and a gold button. § */
@@ -3705,59 +3700,49 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
    the header's word on every card in this family. It wraps on its middots, which is where it reads. */
 
 /* ---------- ONE BOXED CARD: a widget, a question card and the bundle card share one surface; a widget's padding is its own. § */
-.qcard, .card.qcard.bundle, .card.is-widget {
+.qcard, .card.qcard.bundle {
   background: var(--raised); border: 1px solid var(--line); border-radius: var(--r-ui);
   padding: var(--s3); margin-bottom: var(--card-gap);
 }
-.card.is-widget { padding: var(--wgt-pad); }
 /* ---------- THE LIBRARY CARDS' WIDGET GIVES ITS FACES THE FRAME'S SIDES (docs/history/339) § */
-.card.is-widget:has(.lib-shelf) { padding-left: var(--s2); padding-right: var(--s2); }
-.card.is-widget:last-child { margin-bottom: 0; }
 
 /* ---------- ONE REGION INSIDE A WIDGET GIVES UP ITS HEIGHT FIRST § */
 /* ---------- AND IT IS THE WHOLE CHAIN, NOT THE CARD § */
-.card.is-widget:has(.widget-squeeze),
-.card.is-widget:has(.widget-squeeze) :has(.widget-squeeze) {
+.card.kc:has(.widget-squeeze),
+.card.kc:has(.widget-squeeze) :has(.widget-squeeze) {
   display: flex; flex-direction: column;
   min-height: 0;
 }
 /* THE PANE IS THE CAP. It is already a flex column with a `max-height` in screen units, and a flex
    item shrinks by default — so the card only needs to be allowed to. */
-.card.is-widget:has(.widget-squeeze) { max-height: 100%; }
+.card.kc:has(.widget-squeeze) { max-height: 100%; }
 
 /* Everything that is NOT on the chain keeps exactly the height it asks for. Stated positively, so a
    child added to one of these widgets later does not silently start absorbing the squeeze. */
-.card.is-widget:has(.widget-squeeze) > *,
-.card.is-widget:has(.widget-squeeze) :has(.widget-squeeze) > * { flex: 0 0 auto; }
+.card.kc:has(.widget-squeeze) > *,
+.card.kc:has(.widget-squeeze) :has(.widget-squeeze) > * { flex: 0 0 auto; }
 
 /* …except the boxes leading to the region, and the region itself. */
-.card.is-widget:has(.widget-squeeze) :has(.widget-squeeze) { flex: 1 1 auto; }
+.card.kc:has(.widget-squeeze) :has(.widget-squeeze) { flex: 1 1 auto; }
 
 /* NO TITLE ON A WIDGET (720, owner: "none of the widgets need titles"): its heading stays for a screen reader, and its slot is a region named for it. */
-.card.is-widget .widget-slot > h3:first-child,
-.card.is-widget .widget-slot > .card:first-child > h3:first-child {
+.widget-slot > h3:first-child,
+.widget-slot > .card:first-child > h3:first-child {
   position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden;
   clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; border: 0;
 }
-.card.is-widget > h3 {
-  margin: 0 0 var(--s2);
-  font: 700 var(--fs-small)/1 var(--mono);
-  letter-spacing: .14em; color: var(--ink);
-}
 /* THE SLOT IS ALWAYS FULL, so it needs no minimum height and no empty state — the widget is in it
    from the moment the screen is drawn. */
-.card.is-widget .widget-slot { display: block; }
+.widget-slot { display: block; }
 /* ONE PLACE FOR A WIDGET'S TILES (472): after its content, one row — star, padlock, then the admin's group; check/tiles.js holds every widget to it. */
-.card.is-widget { --wgt-pad: .7rem; }
-.card.is-widget > .wgt-foot { margin: var(--s2) 0 0; }
 
-.card.is-widget > .wgt-foot > .tile-group { display: contents; }
-.card.is-widget .widget-slot > .card:only-child { padding-block: 0; border-bottom: 0; }
+
+.widget-slot > .card:only-child { padding-block: 0; border-bottom: 0; }
 
 /* ---------- ONE SURFACE, AND IT IS THE PANE (690): what sits in it is flat, set apart by space and a hairline, as an iOS grouped list. */
-.pane :is(.card.is-widget, .qcard, .card:has(> .msg-body, > .kc-lines > .msg-body)) {
+.pane :is(.qcard, .card:has(> .msg-body, > .kc-lines > .msg-body)) {
   background: none; border: 0; border-radius: 0; padding-inline: 0; margin-inline: 0; }
-.pane :is(.card.is-widget, .qcard) + :is(.card.is-widget, .qcard) {
+.pane .qcard + .qcard {
   border-top: 1px solid var(--line-soft); padding-top: var(--card-gap); margin-top: 0; }
 
 /* THE CAMERA CARD. The 📷 column drew "＋ New post" — a card describing a photograph rather than a way to take one, and the identical card sat one swipe away at § */
@@ -4441,19 +4426,18 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 /* ---------- ON ITS SIDE, THE BOARD TAKES THE HEIGHT AND EVERYTHING ELSE GOES BESIDE IT § */
 @media (max-height: 500px) and (min-aspect-ratio: 1/1) {
   .wb { --wb-side: calc(7px + 3.65rem); }
-  .card.is-widget:has(.wb) {
+  .card.kc:has(.wb) {
     display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto auto auto 1fr;
     column-gap: var(--s4); align-items: start;
   }
-  .card.is-widget:has(.wb) .widget-slot, .card.is-widget:has(.wb) .wb, .card.is-widget:has(.wb) .wb .qpad { display: contents; }
-  .card.is-widget:has(.wb) > .wgt-foot { grid-area: 1 / 2; margin-top: 0; }
-  .card.is-widget:has(.wb) .widget-slot > h3 { grid-area: 2 / 2; margin: var(--s2) 0 0; }
-  .card.is-widget:has(.wb) .wb .qpad-art {
+  .card.kc:has(.wb) .widget-slot, .card.kc:has(.wb) .wb, .card.kc:has(.wb) .wb .qpad { display: contents; }
+  .card.kc:has(.wb) .widget-slot > h3 { grid-area: 2 / 2; margin: var(--s2) 0 0; }
+  .card.kc:has(.wb) .wb .qpad-art {
     grid-area: 1 / 1 / -1 / 2; margin: 0;
     width: calc((100dvh - var(--bar) - var(--safe-bottom) - 2.5rem - var(--wb-side)) * 3 / 4);
   }
-  .card.is-widget:has(.wb) .wb .qpad-bar { grid-area: 3 / 2; justify-content: flex-start; margin-top: var(--s2); }
-  .card.is-widget:has(.wb) .wb .qpad-note { grid-area: 4 / 2; text-align: left; }
+  .card.kc:has(.wb) .wb .qpad-bar { grid-area: 3 / 2; justify-content: flex-start; margin-top: var(--s2); }
+  .card.kc:has(.wb) .wb .qpad-note { grid-area: 4 / 2; text-align: left; }
 }
 
 /* ---------- A PASSAGE THAT IS ITS OWN ANSWER SURFACE: RING A WORD BY TAPPING IT § */
@@ -4745,7 +4729,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .prof-hours .prof-hour-line .prof-sep { display: none; }
 .prof-hours .prof-key { margin: var(--s1) 0 0; font-size: var(--fs-small); }
 /* A SHORTER MAP on a person's card, so a full card fits a phone's height (467). */
-.is-prof .prof-heat { height: 130px; }
+.kc-lines .prof-heat { height: 130px; }
 
 /* ---------- THE TALMUD (473): THE VILNA PAGE ---------- */
 /* Noto Serif Hebrew for the Gemara's square letters, Noto Rashi Hebrew for the commentaries' — both OFL, self-hosted (fonts/README.md). */
@@ -4847,7 +4831,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 /* THE PICTURE'S CARD STANDS IN THE SITE CARD'S OWN SLOT, at its width; its margin is the column's, not the picture's. */
 .tpng-host > .card { margin: 0; }
 /* FLAT AS IN THE PANE (690), so the picture is the card exactly as seen: no box, no inset. */
-.tpng-host > .card.is-widget { background: none; border: 0; border-radius: 0; padding-inline: 0; }
+.tpng-host > .card.kc { background: none; border: 0; border-radius: 0; padding-inline: 0; }
 
 /* SPOTIFY (510, spotify.js): now playing, one line per playlist, a search pill. */
 
@@ -5079,7 +5063,6 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .kc-four { display: contents; }
 .prof-tag-name { color: var(--ink); }
 /* ONE FRAME FOR EVERY KIND: a widget's own surface, and a frame its maker drew inside, never box a one-shape card twice. */
-.card.kc.is-widget { background: none; border: 0; border-bottom: 1px solid var(--line-soft); border-radius: 0; padding: var(--card-gap) 0; }
 .card.kc > .kc-lines .card { background: none; border: 0; border-radius: 0; padding: 0; margin: 0; box-shadow: none; }
 /* A TUTOR'S PHOTOS, WORDS, HOURS AND MAP sit on the same centre line as everything else. */
 .card.kc > .kc-lines :is(.prof-photos, .prof-hour-line, .prof-busy, .prof-week) { justify-content: center; }
