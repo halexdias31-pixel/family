@@ -245,6 +245,8 @@ function drawShapes_(g) { const { H, R, near, dirOf, dDir, straights } = g;
     square: (p, s, a) => p.length === 4 && same(Math.min.apply(null, s), Math.max.apply(null, s), 0.07) && a.every(x => Math.abs(x - 90) <= 4),
     /* two lines of symmetry and no more: a rectangle or a rhombus that is not a square */
     twosym: (p, s, a) => p.length === 4 && !SHAPE.square(p, s, a) && (a.every(x => Math.abs(x - 90) <= 4) || same(Math.min.apply(null, s), Math.max.apply(null, s), 0.07)),
+    /* four right angles: a rectangle (a square is one too), never a parallelogram that leans */
+    rectangle: (p, s, a) => p.length === 4 && a.every(x => Math.abs(x - 90) <= 4),
     perpdiag: (p, s, a) => p.length === 4 && !SHAPE.square(p, s, a) && dDir(dirOf(p[0], p[2]), dirOf(p[1], p[3])) >= 86,
     notperpdiag: (p) => p.length === 4 && dDir(dirOf(p[0], p[2]), dirOf(p[1], p[3])) < 84,
     isosceles: (p, s) => p.length === 3 && (same(s[0], s[1], 0.06) || same(s[1], s[2], 0.06) || same(s[0], s[2], 0.06)),
