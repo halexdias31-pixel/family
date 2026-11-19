@@ -718,7 +718,9 @@ function libItemByKey_(k) {
 }
 /* WHAT A WAITING CARD SAYS UNDER ITS TAGS: sign in, the dots, or why it did not come and Try again. */
 function libSay_(x) {
-  if (typeof USER === 'undefined' || !USER || !USER.token) {
+  /* A GUEST WHO MAY READ IT (question:read / library:read for `anyone`) waits like anybody else: the dots, not "sign in" (live test, 19 Nov). */
+  const guestMay = typeof libMayAsk_ === 'function' && libMayAsk_() && libIdsFor_(x).every(t => !/^q:/.test(t) || (typeof guestPractice_ === 'function' && guestPractice_()));
+  if ((typeof USER === 'undefined' || !USER || !USER.token) && !guestMay) {
     return cardBlock_({ type: 'paperNote', look: 'lib-sign', text: 'Sign in to see this — your account is a few screens to the right.' });
   }
   /* A CARD NEWER THAN ITS WORDS (`lib_pending`, docs/library.md): the Ledger has not had them imported yet. */
