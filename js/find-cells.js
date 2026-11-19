@@ -286,6 +286,8 @@ function multiOf_(x) {
   for (const r of all.filter(w => /^rule:/i.test(w))) {
     const body = r.replace(/^rule:\s*/i, '');
     if (/(?:^|,)\s*(expr|eqn)\s/.test(body)) continue;   /* one expression, one box */
+    /* A POINTS RULE IS WORDS, ONE BOX (owner, 19 Nov: "why do some questions have double boxes"); qtypes.js qtMulti_ says the same. */
+    if (/(?:^|,)\s*points\b/.test(body)) continue;
     const set = /(?:^|,)\s*set\s+([^,]+)/.exec(body);
     if (set) return { n: set[1].split('/').length, words: true, wrap: '', labels: [] };
     const c = /(?:^|,)\s*count\s+(\d+)/.exec(body);
