@@ -250,6 +250,8 @@ function drawShapes_(g) { const { H, R, near, dirOf, dDir, straights } = g;
     isosceles: (p, s) => p.length === 3 && (same(s[0], s[1], 0.06) || same(s[1], s[2], 0.06) || same(s[0], s[2], 0.06)),
     /* both pairs of opposite sides parallel: a rectangle, rhombus or square is one too (439) */
     parallelogram: (p) => p.length === 4 && dDir(dirOf(p[0], p[1]), dirOf(p[3], p[2])) <= 4 && dDir(dirOf(p[1], p[2]), dirOf(p[0], p[3])) <= 4,
+    /* rotational symmetry of order 2 and no line of symmetry: a parallelogram that is not a rectangle, rhombus or square */
+    slant: (p, s, a) => SHAPE.parallelogram(p) && !SHAPE.twosym(p, s, a) && !SHAPE.square(p, s, a),
   };
   return { polygons, sides, corners, same, SHAPE };
 }
