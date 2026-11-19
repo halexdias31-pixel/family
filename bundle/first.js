@@ -5241,10 +5241,11 @@ profTagRow_('prof-facts', profFacts_(t).map(text => ({ pill: true, text })))].fi
 function profBody_(t, L) {
 const note = ((L || {}).say || {}).note || '', words = profList_(t.tags).slice(0, 3);
 return [note ? { type: 'text', look: 'prof-say prof-hid', text: note } : null,
+profPlaces_([String(t.town || '').trim()].filter(Boolean)), profAvail_(t),
 t.description ? { type: 'text', look: 'prof-say cut2', act: 'cut-open', text: t.description } : null,
-Array.isArray(t.photos) && t.photos.length ? { type: 'photos', srcs: t.photos.map(u => pic(u)), more: 4 } : null,
 words.length ? { type: 'text', look: 'prof-words', text: words.map((v, i) => (i ? [{ i: '·' }, { b: v }] : [{ b: v }])) } : null,
-...profQuals_(t), profJobs_(t), profPlaces_([String(t.town || '').trim()].filter(Boolean)), profAvail_(t)].filter(Boolean);
+Array.isArray(t.photos) && t.photos.length ? { type: 'photos', srcs: t.photos.map(u => pic(u)), more: 4 } : null,
+profJobs_(t), ...profQuals_(t)].filter(Boolean);
 }
 ;
 /* js/cards-parts.js */

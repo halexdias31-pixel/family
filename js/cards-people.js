@@ -273,9 +273,11 @@ function profTagRows_(t) {
 /* ITS LINES: the note (if `it.live` kept it), the description, photos, words, qualifications, jobs, places, hours. */
 function profBody_(t, L) {
   const note = ((L || {}).say || {}).note || '', words = profList_(t.tags).slice(0, 3);
+  /* WHAT A PARENT ASKS FIRST, FIRST (owner, 19 Nov: "location should be at top"): where and when, then who they are, then the record. */
   return [note ? { type: 'text', look: 'prof-say prof-hid', text: note } : null,
+    profPlaces_([String(t.town || '').trim()].filter(Boolean)), profAvail_(t),
     t.description ? { type: 'text', look: 'prof-say cut2', act: 'cut-open', text: t.description } : null,
-    Array.isArray(t.photos) && t.photos.length ? { type: 'photos', srcs: t.photos.map(u => pic(u)), more: 4 } : null,
     words.length ? { type: 'text', look: 'prof-words', text: words.map((v, i) => (i ? [{ i: '·' }, { b: v }] : [{ b: v }])) } : null,
-    ...profQuals_(t), profJobs_(t), profPlaces_([String(t.town || '').trim()].filter(Boolean)), profAvail_(t)].filter(Boolean);
+    Array.isArray(t.photos) && t.photos.length ? { type: 'photos', srcs: t.photos.map(u => pic(u)), more: 4 } : null,
+    profJobs_(t), ...profQuals_(t)].filter(Boolean);
 }

@@ -138,11 +138,13 @@ const FINDER_TAGS = {
 "kindLabel=Practice&kindOwn=Questions&subject=Maths&level=GCSE&documentType=Specimen paper": ["tier",[["Foundation"],["Higher"]],[243,193],436,["Foundation","Higher"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Maths&level=GCSE&documentType=Specimen paper&tier=Foundation": ["paperId",[["P-1MA1-SAM-1F","Paper 1"],["P-1MA1-SP2-1F","Paper 1 (Non-calculator) —… 2"],["P-1MA1-SAM-2F","Paper 2"],["P-1MA1-SP2-2F","Paper 2 (Calculator) —… 2"],["P-1MA1-SAM-3F","Paper 3"],["P-1MA1-SP2-3F","Paper 3 (Calculator) —… 2"]],[37,40,36,46,40,44],243,["Paper 1","Paper 1","Paper 2","Paper 2","Paper 3","Paper 3"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Maths&level=GCSE&documentType=Specimen paper&tier=Higher": ["paperId",[["P-1MA1-SAM-1H","Paper 1"],["P-1MA1-SP2-1H","Paper 1 (Non-calculator) —… 2"],["P-1MA1-SAM-2H","Paper 2"],["P-1MA1-SP2-2H","Paper 2 (Calculator) —… 2"],["P-1MA1-SAM-3H","Paper 3"],["P-1MA1-SP2-3H","Paper 3 (Calculator) —… 2"]],[31,29,30,38,34,31],193,["Paper 1","Paper 1","Paper 2","Paper 2","Paper 3","Paper 3"]],
-"kindLabel=Practice&kindOwn=Questions&subject=Maths&level=GCSE&documentType=Worksheet": ["bandValue",[["Grade 1"],["Grade 2"],["Grade 3"],["Grade 4"],["Grade 5"],["Grade 6"],["Grade 7"],["Grade 8"]],[27,115,248,279,626,108,388,168],1959,["Grade 1","Grade 2","Grade 3","Grade 4","Grade 5","Grade 6","Grade 7","Grade 8"]],
-"kindLabel=Practice&kindOwn=Questions&subject=Maths&level=GCSE&documentType=Worksheet&bandValue=Grade 1": ["qNumber",[["Q1"],["Q2"],["Q3"],["Q4"],["Q5"],["Q6"],["Q7"],["Q8"],["Q9"],["Q10"],["Q11"],["Q12"],["Q13"],["Q14"],["Q15"],["Q16"],["Q17"],["Q18"],["Q19"],["Q20"],["Q21"],["Q22"],["Q23"],["Q24"],["Q25"],["Q26"],["Q27"]],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],27,["Q1","Q2","Q3","Q4","Q5","Q6","Q7","Q8","Q9","Q10","Q11","Q12","Q13","Q14","Q15","Q16","Q17","Q18","Q19","Q20","Q21","Q22","Q23","Q24","Q25","Q26","Q27"]],
-"kindLabel=Practice&kindOwn=Questions&subject=Maths&level=GCSE&documentType=Worksheet&bandValue=Grade 2": ["paperId",[["P-1CM-AVGRANGE","Averages and the Range"],["W-1CM-percentage-of-an-amount","Percentage of an Amount"],["W-1CM-term-to-term-rule","Term to term rule"],["W-1CM-writing-and-simplifying-ratio","Writing and Simplifying Ratio"]],[36,35,19,25],115,["Averages and the Range","Percentage of an Amount","Term to term rule","Writing and Simplifying Ratio"]],
-"kindLabel=Practice&kindOwn=Questions&subject=Maths&level=GCSE&documentType=Worksheet&bandValue=Grade 3": ["paperId",[["W-1CM-area-and-circumference-of-circles","Area and Circumference of…"],["W-1CM-area-of-shapes","Area of Shapes"],["W-1CM-drawing-pie-charts","Drawing Pie Charts"],["W-1CM-generating-sequences","Generating Sequences"],["W-1CM-inequality-diagrams","Inequality Diagrams"],["P-1CM-LINEQ2","Linear Equations"],["W-1CM-ordering-fractions","Ordering Fractions"],["W-1CM-percentage-increase-decrease","Percentage increase decrease"],["W-1CM-stem-and-leaf-diagrams","Stem and Leaf Diagrams"],["W-1CM-volume-and-surface-area-cuboids","Volume and Surface Area…"],["W-1CM-working-with-ratio","Working with Ratio"]],[29,30,8,29,26,20,12,19,20,19,36],248,["Area and Circumference of…","Area of Shapes","Drawing Pie Charts","Generating Sequences","Inequality Diagrams","Linear Equations","Ordering Fractions","Percentage increase decrease","Stem and Leaf Diagrams","Volume and Surface Area…","Working with Ratio"]],
-"kindLabel=Practice&kindOwn=Questions&subject=Maths&level=GCSE&documentType=Worksheet&bandValue=Grade 4": ["paperId",[["W-1CM-averages-from-tables","Averages from Tables"],["W-1CM-compound-shapes","Compound Shapes"],["W-1CM-diagram-sequences","Diagram Sequences"],["W-1CM-enlargements","Enlargements"],["W-1CM-hcf-and-lcm","HCF and LCM"],["P-1CM-NTHLIN","Nth term of Linear Sequences"],["W-1CM-prime-factorisation","Prime Factorisation"],["W-1CM-reflections","Reflections"],["W-1CM-similar-shapes","Similar Shapes"],["W-1CM-solving-inequalities","Solving Inequalities"],["W-1CM-straight-line-graphs","Straight Line Graphs"],["W-1CM-translations","Translations"],["W-1CM-types-of-sequences","Types of Sequences"]],[21,14,27,32,36,22,12,26,7,30,16,13,23],279,["Averages from Tables","Compound Shapes","Diagram Sequences","Enlargements","HCF and LCM","Nth term of Linear Sequences","Prime Factorisation","Reflections","Similar Shapes","Solving Inequalities","Straight Line Graphs","Translations","Types of Sequences"]],
+"kindLabel=Practice&kindOwn=Questions&subject=Maths&level=GCSE&documentType=Worksheet": ["bandValue",[["Grade 1"],["Grade 2"],["Grade 3"],["Grade 4"],["Grade 5"],["Grade 6"],["Grade 7"],["Grade 8"]],[53,335,413,342,626,108,388,168],2433,["Grade 1","Grade 2","Grade 3","Grade 4","Grade 5","Grade 6","Grade 7","Grade 8"]],
+"kindLabel=Practice&kindOwn=Questions&subject=Maths&level=GCSE&documentType=Worksheet&bandValue=Grade 1": ["verified",[["Not verified"],["Verified"]],[27,26],53,["Not verified","Verified"]],
+"kindLabel=Practice&kindOwn=Questions&subject=Maths&level=GCSE&documentType=Worksheet&bandValue=Grade 2": ["verified",[["Not verified"],["Verified"]],[115,220],335,["Not verified","Verified"]],
+"kindLabel=Practice&kindOwn=Questions&subject=Maths&level=GCSE&documentType=Worksheet&bandValue=Grade 3": ["verified",[["Not verified"],["Verified"]],[249,164],413,["Not verified","Verified"]],
+"kindLabel=Practice&kindOwn=Questions&subject=Maths&level=GCSE&documentType=Worksheet&bandValue=Grade 3&verified=Not verified": ["paperId",[["W-1CM-area-and-circumference-of-circles","Area and Circumference of…"],["W-1CM-area-of-shapes","Area of Shapes"],["W-1CM-drawing-pie-charts","Drawing Pie Charts"],["W-1CM-generating-sequences","Generating Sequences"],["W-1CM-inequality-diagrams","Inequality Diagrams"],["P-1CM-LINEQ2","Linear Equations"],["W-1CM-ordering-fractions","Ordering Fractions"],["W-1CM-percentage-increase-decrease","Percentage increase decrease"],["W-1CM-stem-and-leaf-diagrams","Stem and Leaf Diagrams"],["W-1CM-triangular-numbers","Triangular Numbers"],["W-1CM-volume-and-surface-area-cuboids","Volume and Surface Area…"],["W-1CM-working-with-ratio","Working with Ratio"]],[29,30,8,29,26,20,12,19,20,1,19,36],249,["Area and Circumference of…","Area of Shapes","Drawing Pie Charts","Generating Sequences","Inequality Diagrams","Linear Equations","Ordering Fractions","Percentage increase decrease","Stem and Leaf Diagrams","Triangular Numbers","Volume and Surface Area…","Working with Ratio"]],
+"kindLabel=Practice&kindOwn=Questions&subject=Maths&level=GCSE&documentType=Worksheet&bandValue=Grade 3&verified=Verified": ["paperId",[["W-1CM-cube-numbers","Cube Numbers and Cube Roots"],["W-1CM-fraction-of-amounts","Fractions of Amounts"],["W-1CM-indices","Indices"],["W-1CM-midpoint-of-two-numbers","Midpoint of Two Numbers"],["W-1CM-significant-figures","Significant Figures"],["W-1CM-triangular-numbers","Triangular Numbers"]],[24,30,26,22,45,17],164,["Cube Numbers and Cube Roots","Fractions of Amounts","Indices","Midpoint of Two Numbers","Significant Figures","Triangular Numbers"]],
+"kindLabel=Practice&kindOwn=Questions&subject=Maths&level=GCSE&documentType=Worksheet&bandValue=Grade 4": ["verified",[["Not verified"],["Verified"]],[279,63],342,["Not verified","Verified"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Maths&level=GCSE&documentType=Worksheet&bandValue=Grade 5": ["paperId",[["W-1CM-angles-in-polygons","Angles in Polygons"],["W-1CM-averages-from-grouped-tables","Averages from Grouped Tables"],["W-1CM-bearings","Bearings"],["W-1CM-compound-interest","Compound Interest"],["P-1CM-INTEREST","Compound/Simple Interest"],["W-1CM-equation-of-a-line","Equation of a Line"],["W-1CM-equations-with-unknowns-on-both-sides","Equations with Unknowns on…"],["W-1CM-error-intervals","Error Intervals"],["W-1CM-exact-trig-values","Exact Trig Values"],["W-1CM-loci","Loci"],["W-1CM-parallel-lines","Parallel Lines"],["W-1CM-percentage-change","Percentage Change"],["W-1CM-probability-tree-diagrams","Probability Tree Diagrams"],["W-1CM-reverse-mean","Reverse Mean"],["W-1CM-reverse-percentages","Reverse Percentages"],["W-1CM-sectors","Sectors"],["W-1CM-similar-triangles","Similar Triangles"],["W-1CM-simultaneous-equations","Simultaneous Equations"],["W-1CM-sohcahtoa","SOHCAHTOA"],["W-1CM-standard-form","Standard Form"],["W-1CM-venn-diagrams","Venn Diagrams"],["W-1CM-volume-and-surface-area-cylinders","Volume and Surface Area…"],["W-1CM-volume-and-surface-area-of-cones","Volume and Surface Area of…"],["W-1CM-volume-and-surface-area-of-prisms","Volume and Surface… of Prisms"],["W-1CM-volume-and-surface-area-of-pyramids","Volume and… of Pyramids"],["W-1CM-volume-and-surface-area-of-spheres","Volume and… of Spheres"]],[36,21,33,24,24,35,19,24,21,14,14,23,30,25,21,19,19,35,17,50,49,18,10,18,13,14],626,["Angles in Polygons","Averages from Grouped Tables","Bearings","Compound Interest","Compound/Simple Interest","Equation of a Line","Equations with Unknowns on…","Error Intervals","Exact Trig Values","Loci","Parallel Lines","Percentage Change","Probability Tree Diagrams","Reverse Mean","Reverse Percentages","Sectors","Similar Triangles","Simultaneous Equations","SOHCAHTOA","Standard Form","Venn Diagrams","Volume and Surface… Cylinders","Volume and Surface Area of…","Volume and Surface… of Prisms","Volume and… of Pyramids","Volume and… of Spheres"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Maths&level=GCSE&documentType=Worksheet&bandValue=Grade 5&paperId=W-1CM-angles-in-polygons": ["qNumber",[["Q1"],["Q2"],["Q3"],["Q4"],["Q5"],["Q6"],["Q7"],["Q8"],["Q9"],["Q10"],["Q11"],["Q12"],["Q13"],["Q14"],["Q15"],["Q16"],["Q17"],["Q18"],["Q19"],["Q20"],["Q21"],["Q22"],["Q23"],["Q24"],["Q25"],["Q26"],["Q27"],["Q28"],["Q29"]],[1,1,1,1,1,1,2,2,2,1,1,1,1,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1],36,["Q1","Q2","Q3","Q4","Q5","Q6","Q7","Q8","Q9","Q10","Q11","Q12","Q13","Q14","Q15","Q16","Q17","Q18","Q19","Q20","Q21","Q22","Q23","Q24","Q25","Q26","Q27","Q28","Q29"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Maths&level=GCSE&documentType=Worksheet&bandValue=Grade 5&paperId=W-1CM-averages-from-grouped-tables": ["qNumber",[["Q1"],["Q2"],["Q3"],["Q4"],["Q5"],["Q6"]],[2,3,3,3,3,7],21,["Q1","Q2","Q3","Q4","Q5","Q6"]],
@@ -447,11 +449,13 @@ const FINDER_TAGS = {
 "kindLabel=Practice&kindOwn=Answers&subject=Maths&level=GCSE&documentType=Specimen paper": ["tier",[["Foundation"],["Higher"]],[243,193],436,["Foundation","Higher"]],
 "kindLabel=Practice&kindOwn=Answers&subject=Maths&level=GCSE&documentType=Specimen paper&tier=Foundation": ["paperId",[["P-1MA1-SAM-1F","Paper 1"],["P-1MA1-SP2-1F","Paper 1 (Non-calculator) —… 2"],["P-1MA1-SAM-2F","Paper 2"],["P-1MA1-SP2-2F","Paper 2 (Calculator) —… 2"],["P-1MA1-SAM-3F","Paper 3"],["P-1MA1-SP2-3F","Paper 3 (Calculator) —… 2"]],[37,40,36,46,40,44],243,["Paper 1","Paper 1","Paper 2","Paper 2","Paper 3","Paper 3"]],
 "kindLabel=Practice&kindOwn=Answers&subject=Maths&level=GCSE&documentType=Specimen paper&tier=Higher": ["paperId",[["P-1MA1-SAM-1H","Paper 1"],["P-1MA1-SP2-1H","Paper 1 (Non-calculator) —… 2"],["P-1MA1-SAM-2H","Paper 2"],["P-1MA1-SP2-2H","Paper 2 (Calculator) —… 2"],["P-1MA1-SAM-3H","Paper 3"],["P-1MA1-SP2-3H","Paper 3 (Calculator) —… 2"]],[31,29,30,38,34,31],193,["Paper 1","Paper 1","Paper 2","Paper 2","Paper 3","Paper 3"]],
-"kindLabel=Practice&kindOwn=Answers&subject=Maths&level=GCSE&documentType=Worksheet": ["bandValue",[["Grade 1"],["Grade 2"],["Grade 3"],["Grade 4"],["Grade 5"],["Grade 6"],["Grade 7"],["Grade 8"]],[27,115,248,279,626,108,388,168],1959,["Grade 1","Grade 2","Grade 3","Grade 4","Grade 5","Grade 6","Grade 7","Grade 8"]],
-"kindLabel=Practice&kindOwn=Answers&subject=Maths&level=GCSE&documentType=Worksheet&bandValue=Grade 1": ["qNumber",[["Q1"],["Q2"],["Q3"],["Q4"],["Q5"],["Q6"],["Q7"],["Q8"],["Q9"],["Q10"],["Q11"],["Q12"],["Q13"],["Q14"],["Q15"],["Q16"],["Q17"],["Q18"],["Q19"],["Q20"],["Q21"],["Q22"],["Q23"],["Q24"],["Q25"],["Q26"],["Q27"]],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],27,["Q1","Q2","Q3","Q4","Q5","Q6","Q7","Q8","Q9","Q10","Q11","Q12","Q13","Q14","Q15","Q16","Q17","Q18","Q19","Q20","Q21","Q22","Q23","Q24","Q25","Q26","Q27"]],
-"kindLabel=Practice&kindOwn=Answers&subject=Maths&level=GCSE&documentType=Worksheet&bandValue=Grade 2": ["paperId",[["P-1CM-AVGRANGE","Averages and the Range"],["W-1CM-percentage-of-an-amount","Percentage of an Amount"],["W-1CM-term-to-term-rule","Term to term rule"],["W-1CM-writing-and-simplifying-ratio","Writing and Simplifying Ratio"]],[36,35,19,25],115,["Averages and the Range","Percentage of an Amount","Term to term rule","Writing and Simplifying Ratio"]],
-"kindLabel=Practice&kindOwn=Answers&subject=Maths&level=GCSE&documentType=Worksheet&bandValue=Grade 3": ["paperId",[["W-1CM-area-and-circumference-of-circles","Area and Circumference of…"],["W-1CM-area-of-shapes","Area of Shapes"],["W-1CM-drawing-pie-charts","Drawing Pie Charts"],["W-1CM-generating-sequences","Generating Sequences"],["W-1CM-inequality-diagrams","Inequality Diagrams"],["P-1CM-LINEQ2","Linear Equations"],["W-1CM-ordering-fractions","Ordering Fractions"],["W-1CM-percentage-increase-decrease","Percentage increase decrease"],["W-1CM-stem-and-leaf-diagrams","Stem and Leaf Diagrams"],["W-1CM-volume-and-surface-area-cuboids","Volume and Surface Area…"],["W-1CM-working-with-ratio","Working with Ratio"]],[29,30,8,29,26,20,12,19,20,19,36],248,["Area and Circumference of…","Area of Shapes","Drawing Pie Charts","Generating Sequences","Inequality Diagrams","Linear Equations","Ordering Fractions","Percentage increase decrease","Stem and Leaf Diagrams","Volume and Surface Area…","Working with Ratio"]],
-"kindLabel=Practice&kindOwn=Answers&subject=Maths&level=GCSE&documentType=Worksheet&bandValue=Grade 4": ["paperId",[["W-1CM-averages-from-tables","Averages from Tables"],["W-1CM-compound-shapes","Compound Shapes"],["W-1CM-diagram-sequences","Diagram Sequences"],["W-1CM-enlargements","Enlargements"],["W-1CM-hcf-and-lcm","HCF and LCM"],["P-1CM-NTHLIN","Nth term of Linear Sequences"],["W-1CM-prime-factorisation","Prime Factorisation"],["W-1CM-reflections","Reflections"],["W-1CM-similar-shapes","Similar Shapes"],["W-1CM-solving-inequalities","Solving Inequalities"],["W-1CM-straight-line-graphs","Straight Line Graphs"],["W-1CM-translations","Translations"],["W-1CM-types-of-sequences","Types of Sequences"]],[21,14,27,32,36,22,12,26,7,30,16,13,23],279,["Averages from Tables","Compound Shapes","Diagram Sequences","Enlargements","HCF and LCM","Nth term of Linear Sequences","Prime Factorisation","Reflections","Similar Shapes","Solving Inequalities","Straight Line Graphs","Translations","Types of Sequences"]],
+"kindLabel=Practice&kindOwn=Answers&subject=Maths&level=GCSE&documentType=Worksheet": ["bandValue",[["Grade 1"],["Grade 2"],["Grade 3"],["Grade 4"],["Grade 5"],["Grade 6"],["Grade 7"],["Grade 8"]],[53,335,413,342,626,108,388,168],2433,["Grade 1","Grade 2","Grade 3","Grade 4","Grade 5","Grade 6","Grade 7","Grade 8"]],
+"kindLabel=Practice&kindOwn=Answers&subject=Maths&level=GCSE&documentType=Worksheet&bandValue=Grade 1": ["verified",[["Not verified"],["Verified"]],[27,26],53,["Not verified","Verified"]],
+"kindLabel=Practice&kindOwn=Answers&subject=Maths&level=GCSE&documentType=Worksheet&bandValue=Grade 2": ["verified",[["Not verified"],["Verified"]],[115,220],335,["Not verified","Verified"]],
+"kindLabel=Practice&kindOwn=Answers&subject=Maths&level=GCSE&documentType=Worksheet&bandValue=Grade 3": ["verified",[["Not verified"],["Verified"]],[249,164],413,["Not verified","Verified"]],
+"kindLabel=Practice&kindOwn=Answers&subject=Maths&level=GCSE&documentType=Worksheet&bandValue=Grade 3&verified=Not verified": ["paperId",[["W-1CM-area-and-circumference-of-circles","Area and Circumference of…"],["W-1CM-area-of-shapes","Area of Shapes"],["W-1CM-drawing-pie-charts","Drawing Pie Charts"],["W-1CM-generating-sequences","Generating Sequences"],["W-1CM-inequality-diagrams","Inequality Diagrams"],["P-1CM-LINEQ2","Linear Equations"],["W-1CM-ordering-fractions","Ordering Fractions"],["W-1CM-percentage-increase-decrease","Percentage increase decrease"],["W-1CM-stem-and-leaf-diagrams","Stem and Leaf Diagrams"],["W-1CM-triangular-numbers","Triangular Numbers"],["W-1CM-volume-and-surface-area-cuboids","Volume and Surface Area…"],["W-1CM-working-with-ratio","Working with Ratio"]],[29,30,8,29,26,20,12,19,20,1,19,36],249,["Area and Circumference of…","Area of Shapes","Drawing Pie Charts","Generating Sequences","Inequality Diagrams","Linear Equations","Ordering Fractions","Percentage increase decrease","Stem and Leaf Diagrams","Triangular Numbers","Volume and Surface Area…","Working with Ratio"]],
+"kindLabel=Practice&kindOwn=Answers&subject=Maths&level=GCSE&documentType=Worksheet&bandValue=Grade 3&verified=Verified": ["paperId",[["W-1CM-cube-numbers","Cube Numbers and Cube Roots"],["W-1CM-fraction-of-amounts","Fractions of Amounts"],["W-1CM-indices","Indices"],["W-1CM-midpoint-of-two-numbers","Midpoint of Two Numbers"],["W-1CM-significant-figures","Significant Figures"],["W-1CM-triangular-numbers","Triangular Numbers"]],[24,30,26,22,45,17],164,["Cube Numbers and Cube Roots","Fractions of Amounts","Indices","Midpoint of Two Numbers","Significant Figures","Triangular Numbers"]],
+"kindLabel=Practice&kindOwn=Answers&subject=Maths&level=GCSE&documentType=Worksheet&bandValue=Grade 4": ["verified",[["Not verified"],["Verified"]],[279,63],342,["Not verified","Verified"]],
 "kindLabel=Practice&kindOwn=Answers&subject=Maths&level=GCSE&documentType=Worksheet&bandValue=Grade 5": ["paperId",[["W-1CM-angles-in-polygons","Angles in Polygons"],["W-1CM-averages-from-grouped-tables","Averages from Grouped Tables"],["W-1CM-bearings","Bearings"],["W-1CM-compound-interest","Compound Interest"],["P-1CM-INTEREST","Compound/Simple Interest"],["W-1CM-equation-of-a-line","Equation of a Line"],["W-1CM-equations-with-unknowns-on-both-sides","Equations with Unknowns on…"],["W-1CM-error-intervals","Error Intervals"],["W-1CM-exact-trig-values","Exact Trig Values"],["W-1CM-loci","Loci"],["W-1CM-parallel-lines","Parallel Lines"],["W-1CM-percentage-change","Percentage Change"],["W-1CM-probability-tree-diagrams","Probability Tree Diagrams"],["W-1CM-reverse-mean","Reverse Mean"],["W-1CM-reverse-percentages","Reverse Percentages"],["W-1CM-sectors","Sectors"],["W-1CM-similar-triangles","Similar Triangles"],["W-1CM-simultaneous-equations","Simultaneous Equations"],["W-1CM-sohcahtoa","SOHCAHTOA"],["W-1CM-standard-form","Standard Form"],["W-1CM-venn-diagrams","Venn Diagrams"],["W-1CM-volume-and-surface-area-cylinders","Volume and Surface Area…"],["W-1CM-volume-and-surface-area-of-cones","Volume and Surface Area of…"],["W-1CM-volume-and-surface-area-of-prisms","Volume and Surface… of Prisms"],["W-1CM-volume-and-surface-area-of-pyramids","Volume and… of Pyramids"],["W-1CM-volume-and-surface-area-of-spheres","Volume and… of Spheres"]],[36,21,33,24,24,35,19,24,21,14,14,23,30,25,21,19,19,35,17,50,49,18,10,18,13,14],626,["Angles in Polygons","Averages from Grouped Tables","Bearings","Compound Interest","Compound/Simple Interest","Equation of a Line","Equations with Unknowns on…","Error Intervals","Exact Trig Values","Loci","Parallel Lines","Percentage Change","Probability Tree Diagrams","Reverse Mean","Reverse Percentages","Sectors","Similar Triangles","Simultaneous Equations","SOHCAHTOA","Standard Form","Venn Diagrams","Volume and Surface… Cylinders","Volume and Surface Area of…","Volume and Surface… of Prisms","Volume and… of Pyramids","Volume and… of Spheres"]],
 "kindLabel=Practice&kindOwn=Answers&subject=Maths&level=GCSE&documentType=Worksheet&bandValue=Grade 5&paperId=W-1CM-angles-in-polygons": ["qNumber",[["Q1"],["Q2"],["Q3"],["Q4"],["Q5"],["Q6"],["Q7"],["Q8"],["Q9"],["Q10"],["Q11"],["Q12"],["Q13"],["Q14"],["Q15"],["Q16"],["Q17"],["Q18"],["Q19"],["Q20"],["Q21"],["Q22"],["Q23"],["Q24"],["Q25"],["Q26"],["Q27"],["Q28"],["Q29"]],[1,1,1,1,1,1,2,2,2,1,1,1,1,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1],36,["Q1","Q2","Q3","Q4","Q5","Q6","Q7","Q8","Q9","Q10","Q11","Q12","Q13","Q14","Q15","Q16","Q17","Q18","Q19","Q20","Q21","Q22","Q23","Q24","Q25","Q26","Q27","Q28","Q29"]],
 "kindLabel=Practice&kindOwn=Answers&subject=Maths&level=GCSE&documentType=Worksheet&bandValue=Grade 5&paperId=W-1CM-averages-from-grouped-tables": ["qNumber",[["Q1"],["Q2"],["Q3"],["Q4"],["Q5"],["Q6"]],[2,3,3,3,3,7],21,["Q1","Q2","Q3","Q4","Q5","Q6"]],
@@ -691,9 +695,9 @@ const FINDER_TAGS = {
 },
 "views": {
 "admin+bible": {
-"": ["kindLabel",[["Practice"],["Library"],["Posts"],["Messages"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]],[33018,189261,2,1,3,5,10,34,4,3],222340,["Practice","Library","Posts","Messages","Profiles","Booking","Shop","Settings","Tools","Games"]],
-"kindLabel=Practice": ["kindOwn",[["Questions"],["Answers"],["Inserts"]],[32823,32136,195],33018,["Questions","Answers","Inserts"]],
-"kindLabel=Practice&kindOwn=Questions": ["subject",[["Biology"],["Business"],["Chemistry"],["Driving Theory"],["Economics"],["English Language"],["English Literature"],["Geography"],["Greek"],["History"],["Maths"],["Physical Education"],["Physics"],["Politics"],["Portuguese"],["Psychology"],["Religious Studies"],["Sociology"],["Statistics"]],[4710,393,5292,10,131,464,522,522,78,944,11590,322,4538,120,43,1187,1004,436,517],32823,["Biology","Business","Chemistry","Driving Theory","Economics","English Language","English Literature","Geography","Greek","History","Maths","Physical Education","Physics","Politics","Portuguese","Psychology","Religious Studies","Sociology","Statistics"]],
+"": ["kindLabel",[["Practice"],["Library"],["Posts"],["Messages"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]],[33492,189261,2,1,3,5,10,34,4,3],222814,["Practice","Library","Posts","Messages","Profiles","Booking","Shop","Settings","Tools","Games"]],
+"kindLabel=Practice": ["kindOwn",[["Questions"],["Answers"],["Inserts"]],[33297,32610,195],33492,["Questions","Answers","Inserts"]],
+"kindLabel=Practice&kindOwn=Questions": ["subject",[["Biology"],["Business"],["Chemistry"],["Driving Theory"],["Economics"],["English Language"],["English Literature"],["Geography"],["Greek"],["History"],["Maths"],["Physical Education"],["Physics"],["Politics"],["Portuguese"],["Psychology"],["Religious Studies"],["Sociology"],["Statistics"]],[4710,393,5292,10,131,464,522,522,78,944,12064,322,4538,120,43,1187,1004,436,517],33297,["Biology","Business","Chemistry","Driving Theory","Economics","English Language","English Literature","Geography","Greek","History","Maths","Physical Education","Physics","Politics","Portuguese","Psychology","Religious Studies","Sociology","Statistics"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Biology": ["level",[["A-Level"],["GCSE"]],[1194,3516],4710,["A-Level","GCSE"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Biology&level=A-Level": ["examBoard",[["AQA"],["OCR"]],[529,665],1194,["AQA","OCR"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Biology&level=A-Level&examBoard=OCR": ["examYear",[["2025"],["2024"],["2023"],["2022"],["2021"],["2020"],["2019"],["2018"],["2017"]],[54,78,124,78,101,42,49,95,44],665,["2025","2024","2023","2022","2021","2020","2019","2018","2017"]],
@@ -753,11 +757,11 @@ const FINDER_TAGS = {
 "kindLabel=Practice&kindOwn=Questions&subject=Geography": ["level",[["A-Level"],["GCSE"]],[292,230],522,["A-Level","GCSE"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Geography&level=A-Level": ["examBoard",[["AQA"],["OCR"]],[140,152],292,["AQA","OCR"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Greek": ["tier",[["Foundation"],["Higher"]],[37,41],78,["Foundation","Higher"]],
-"kindLabel=Practice&kindOwn=Questions&subject=Maths": ["level",[["11+"],["A-Level"],["Functional Skills L2"],["GCSE"],["KS3"],["SATs"]],[202,2621,24,6631,1027,2112],11590,["11+","A-Level","Functional Skills L2","GCSE","KS3","SATs"]],
+"kindLabel=Practice&kindOwn=Questions&subject=Maths": ["level",[["11+"],["A-Level"],["Functional Skills L2"],["GCSE"],["KS3"],["SATs"]],[202,2621,24,7105,1027,2112],12064,["11+","A-Level","Functional Skills L2","GCSE","KS3","SATs"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Maths&level=A-Level": ["examBoard",[["AQA"],["Edexcel"],["OCR"]],[959,910,752],2621,["AQA","Edexcel","OCR"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Maths&level=A-Level&examBoard=Edexcel": ["examYear",[["2024"],["2023"],["2022"],["2021"],["2020"],["2019"],["2018"]],[128,126,117,116,109,104,103],910,["2024","2023","2022","2021","2020","2019","2018"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Maths&level=A-Level&examBoard=Edexcel&examYear=2024": ["paperId",[["RS1786302107764-487","Paper 1"],["RS1786302107764-488","Paper 2"],["P-9MA0-2406-31","Paper 3",["P-9MA0-2406-32"]]],[40,44,44],128,["Paper 1","Paper 2","Paper 3"]],
-"kindLabel=Practice&kindOwn=Questions&subject=Maths&level=GCSE": ["documentType",[["5-a-day"],["Past paper"],["Specimen paper"],["Worksheet"]],[1355,2881,436,1959],6631,["5-a-day","Past paper","Specimen paper","Worksheet"]],
+"kindLabel=Practice&kindOwn=Questions&subject=Maths&level=GCSE": ["documentType",[["5-a-day"],["Past paper"],["Specimen paper"],["Worksheet"]],[1355,2881,436,2433],7105,["5-a-day","Past paper","Specimen paper","Worksheet"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Maths&level=GCSE&documentType=Past paper": ["examBoard",[["AQA"],["Edexcel"]],[358,2523],2881,["AQA","Edexcel"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Maths&level=GCSE&documentType=Past paper&examBoard=Edexcel": ["tier",[["Foundation"],["Higher"]],[1323,1200],2523,["Foundation","Higher"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Maths&level=GCSE&documentType=Past paper&examBoard=Edexcel&tier=Higher": ["examYear",[["2024"],["2023"],["2022"],["2021"],["2020"],["2019"],["2018"],["2017"]],[182,93,184,94,97,186,181,183],1200,["2024","2023","2022","2021","2020","2019","2018","2017"]],
@@ -795,7 +799,7 @@ const FINDER_TAGS = {
 "kindLabel=Practice&kindOwn=Questions&subject=Physics&level=GCSE&documentType=Past paper&examBoard=OCR&tier=Higher": ["examYear",[["2024"],["2022"],["2021"],["2020"],["2019"],["2018"]],[41,45,41,39,88,40],294,["2024","2022","2021","2020","2019","2018"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Physics&level=GCSE&documentType=Worksheet": ["paperId",[["W-AT-P-radiation","Atoms and Nuclear Radiation"],["W-AT-P-black-body","Black Body Radiation"],["W-AT-P-change-of-state","Change of State and Specific…"],["W-AT-P-energy-conservation","Conservation and Transfer of…"],["W-AT-P-electricity","Electricity"],["W-AT-P-electricity-home","Electricity in the Home"],["W-AT-P-em-radiation","Electromagnetic Radiation"],["W-AT-P-energy","Energy"],["W-AT-P-energy-resources","Energy Resources"],["W-AT-P-forces","Forces"],["W-AT-P-forces-motion","Forces and Motion"],["W-AT-P-half-life","Half-Life and Uses of…"],["W-AT-P-moments","Moments"],["W-AT-P-momentum","Momentum"],["W-AT-P-fission-fusion","Nuclear Fission and Fusion"],["W-AT-P-density","Particle Model of Matter"],["W-AT-P-gas-pressure","Particle Model of… Pressure"],["W-AT-P-magnetism","Permanent and Induced…"],["W-AT-P-pressure-fluids","Pressure in Fluids"],["W-AT-P-red-shift","Red Shift"],["W-AT-P-solar-system","Solar System"],["W-AT-P-static","Static Electricity"],["W-AT-P-motor-effect","The Motor Effect"],["W-AT-P-transformers","Transformers and the…"],["W-AT-P-waves","Waves"]],[34,26,30,27,27,32,41,21,30,29,36,29,28,28,35,10,24,29,28,26,33,23,25,32,33],716,["Atoms and Nuclear Radiation","Black Body Radiation","Change of State and Specific…","Conservation and Transfer of…","Electricity","Electricity in the Home","Electromagnetic Radiation","Energy","Energy Resources","Forces","Forces and Motion","Half-Life and Uses of…","Moments","Momentum","Nuclear Fission and Fusion","Particle Model of… Density","Particle Model of… Pressure","Permanent and Induced…","Pressure in Fluids","Red Shift","Solar System","Static Electricity","The Motor Effect","Transformers and the…","Waves"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Physics&level=GCSE&documentType=Worksheet&paperId=W-AT-P-forces-motion": ["qNumber",[["Q1"],["Q2"],["Q3"],["Q4"],["Q5"],["Q6"]],[4,7,7,6,5,7],36,["Q1","Q2","Q3","Q4","Q5","Q6"]],
-"kindLabel=Practice&kindOwn=Answers": ["subject",[["Biology"],["Business"],["Chemistry"],["Driving Theory"],["Economics"],["English Language"],["English Literature"],["Geography"],["History"],["Maths"],["Physical Education"],["Physics"],["Politics"],["Portuguese"],["Psychology"],["Religious Studies"],["Sociology"],["Statistics"]],[4674,393,5261,10,131,463,522,522,944,11092,322,4495,120,43,1187,1004,436,517],32136,["Biology","Business","Chemistry","Driving Theory","Economics","English Language","English Literature","Geography","History","Maths","Physical Education","Physics","Politics","Portuguese","Psychology","Religious Studies","Sociology","Statistics"]],
+"kindLabel=Practice&kindOwn=Answers": ["subject",[["Biology"],["Business"],["Chemistry"],["Driving Theory"],["Economics"],["English Language"],["English Literature"],["Geography"],["History"],["Maths"],["Physical Education"],["Physics"],["Politics"],["Portuguese"],["Psychology"],["Religious Studies"],["Sociology"],["Statistics"]],[4674,393,5261,10,131,463,522,522,944,11566,322,4495,120,43,1187,1004,436,517],32610,["Biology","Business","Chemistry","Driving Theory","Economics","English Language","English Literature","Geography","History","Maths","Physical Education","Physics","Politics","Portuguese","Psychology","Religious Studies","Sociology","Statistics"]],
 "kindLabel=Practice&kindOwn=Answers&subject=Biology": ["level",[["A-Level"],["GCSE"]],[1182,3492],4674,["A-Level","GCSE"]],
 "kindLabel=Practice&kindOwn=Answers&subject=Biology&level=A-Level": ["examBoard",[["AQA"],["OCR"]],[529,653],1182,["AQA","OCR"]],
 "kindLabel=Practice&kindOwn=Answers&subject=Biology&level=A-Level&examBoard=OCR": ["examYear",[["2025"],["2024"],["2023"],["2022"],["2021"],["2020"],["2019"],["2018"],["2017"]],[54,78,115,78,101,42,49,92,44],653,["2025","2024","2023","2022","2021","2020","2019","2018","2017"]],
@@ -824,8 +828,8 @@ const FINDER_TAGS = {
 "kindLabel=Practice&kindOwn=Answers&subject=Chemistry&level=GCSE&documentType=Past paper&examBoard=AQA&tier=Higher&examYear=2023": ["paperId",[["P-AQA-8462-2306-1H","Paper 1"],["P-AQA-8464C-2306-1H","Paper 1 Chemistry"],["P-AQA-8462-2306-2H","Paper 2"],["P-AQA-8464C-2306-2H","Paper 2 Chemistry"]],[37,27,47,32],143,["Paper 1","Paper 1","Paper 2","Paper 2"]],
 "kindLabel=Practice&kindOwn=Answers&subject=Geography": ["level",[["A-Level"],["GCSE"]],[292,230],522,["A-Level","GCSE"]],
 "kindLabel=Practice&kindOwn=Answers&subject=Geography&level=A-Level": ["examBoard",[["AQA"],["OCR"]],[140,152],292,["AQA","OCR"]],
-"kindLabel=Practice&kindOwn=Answers&subject=Maths": ["level",[["A-Level"],["Functional Skills L2"],["GCSE"],["KS3"],["SATs"]],[2588,24,6576,1027,1904],11092,["A-Level","Functional Skills L2","GCSE","KS3","SATs"]],
-"kindLabel=Practice&kindOwn=Answers&subject=Maths&level=GCSE": ["documentType",[["5-a-day"],["Past paper"],["Specimen paper"],["Worksheet"]],[1355,2826,436,1959],6576,["5-a-day","Past paper","Specimen paper","Worksheet"]],
+"kindLabel=Practice&kindOwn=Answers&subject=Maths": ["level",[["A-Level"],["Functional Skills L2"],["GCSE"],["KS3"],["SATs"]],[2588,24,7050,1027,1904],11566,["A-Level","Functional Skills L2","GCSE","KS3","SATs"]],
+"kindLabel=Practice&kindOwn=Answers&subject=Maths&level=GCSE": ["documentType",[["5-a-day"],["Past paper"],["Specimen paper"],["Worksheet"]],[1355,2826,436,2433],7050,["5-a-day","Past paper","Specimen paper","Worksheet"]],
 "kindLabel=Practice&kindOwn=Answers&subject=Maths&level=GCSE&documentType=Past paper": ["examBoard",[["AQA"],["Edexcel"]],[358,2468],2826,["AQA","Edexcel"]],
 "kindLabel=Practice&kindOwn=Answers&subject=Maths&level=GCSE&documentType=Past paper&examBoard=Edexcel": ["tier",[["Foundation"],["Higher"]],[1323,1145],2468,["Foundation","Higher"]],
 "kindLabel=Practice&kindOwn=Answers&subject=Maths&level=GCSE&documentType=Past paper&examBoard=Edexcel&tier=Higher": ["examYear",[["2024"],["2023"],["2022"],["2021"],["2020"],["2019"],["2018"],["2017"]],[173,93,160,72,97,186,181,183],1145,["2024","2023","2022","2021","2020","2019","2018","2017"]],
@@ -848,9 +852,9 @@ const FINDER_TAGS = {
 "kindLabel=Settings": ["settingFor",[["Student"],["Parent"],["Staff"],["Apprentice"],["Admin"],["Business"],["Site"]],[18,8,15,9,10,3,4],34,["Student","Parent","Staff","Apprentice","Admin","Business","Site"]]
 },
 "bible": {
-"": ["kindLabel",[["Practice"],["Library"],["Posts"],["Messages"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]],[32361,189261,2,1,1,5,10,30,4,3],221677,["Practice","Library","Posts","Messages","Profiles","Booking","Shop","Settings","Tools","Games"]],
-"kindLabel=Practice": ["kindOwn",[["Questions"],["Answers"],["Inserts"]],[32166,31767,195],32361,["Questions","Answers","Inserts"]],
-"kindLabel=Practice&kindOwn=Questions": ["subject",[["Biology"],["Business"],["Chemistry"],["Driving Theory"],["Economics"],["English Language"],["English Literature"],["Geography"],["History"],["Maths"],["Physical Education"],["Physics"],["Politics"],["Portuguese"],["Psychology"],["Religious Studies"],["Sociology"],["Statistics"]],[4642,392,5238,10,131,463,522,481,944,11248,322,4466,120,43,1187,1004,436,517],32166,["Biology","Business","Chemistry","Driving Theory","Economics","English Language","English Literature","Geography","History","Maths","Physical Education","Physics","Politics","Portuguese","Psychology","Religious Studies","Sociology","Statistics"]],
+"": ["kindLabel",[["Practice"],["Library"],["Posts"],["Messages"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]],[32835,189261,2,1,1,5,10,30,4,3],222151,["Practice","Library","Posts","Messages","Profiles","Booking","Shop","Settings","Tools","Games"]],
+"kindLabel=Practice": ["kindOwn",[["Questions"],["Answers"],["Inserts"]],[32640,32241,195],32835,["Questions","Answers","Inserts"]],
+"kindLabel=Practice&kindOwn=Questions": ["subject",[["Biology"],["Business"],["Chemistry"],["Driving Theory"],["Economics"],["English Language"],["English Literature"],["Geography"],["History"],["Maths"],["Physical Education"],["Physics"],["Politics"],["Portuguese"],["Psychology"],["Religious Studies"],["Sociology"],["Statistics"]],[4642,392,5238,10,131,463,522,481,944,11722,322,4466,120,43,1187,1004,436,517],32640,["Biology","Business","Chemistry","Driving Theory","Economics","English Language","English Literature","Geography","History","Maths","Physical Education","Physics","Politics","Portuguese","Psychology","Religious Studies","Sociology","Statistics"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Biology": ["level",[["A-Level"],["GCSE"]],[1165,3477],4642,["A-Level","GCSE"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Biology&level=A-Level": ["examBoard",[["AQA"],["OCR"]],[529,636],1165,["AQA","OCR"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Biology&level=A-Level&examBoard=OCR": ["examYear",[["2025"],["2024"],["2023"],["2022"],["2021"],["2020"],["2019"],["2018"],["2017"]],[54,78,110,73,97,42,49,89,44],636,["2025","2024","2023","2022","2021","2020","2019","2018","2017"]],
@@ -909,11 +913,11 @@ const FINDER_TAGS = {
 "kindLabel=Practice&kindOwn=Questions&subject=English Language&level=SATs": ["qNumber",[["Q1"],["Q2"],["Q3"],["Q4"],["Q5"],["Q6"],["Q7"],["Q8"],["Q9"],["Q10"],["Q11"],["Q12"],["Q13"],["Q14"],["Q15"],["Q16"],["Q17"],["Q18"],["Q19"],["Q20"],["Q21"],["Q23"],["Q24"],["Q25"],["Q26"],["Q27"],["Q28"],["Q29"],["Q30"],["Q31"],["Q32"],["Q33"],["Q34"],["Q35"],["Q36"],["Q37"],["Q38"],["Q39"],["Q40"],["Q41"],["Q42"],["Q43"],["Q44"],["Q45"],["Q46"],["Q47"],["Q48"],["Q49"],["Q50"]],[1,1,1,4,1,1,2,1,1,1,3,1,1,1,1,1,1,1,1,4,1,1,1,3,4,1,1,1,1,1,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],65,["Q1","Q2","Q3","Q4","Q5","Q6","Q7","Q8","Q9","Q10","Q11","Q12","Q13","Q14","Q15","Q16","Q17","Q18","Q19","Q20","Q21","Q23","Q24","Q25","Q26","Q27","Q28","Q29","Q30","Q31","Q32","Q33","Q34","Q35","Q36","Q37","Q38","Q39","Q40","Q41","Q42","Q43","Q44","Q45","Q46","Q47","Q48","Q49","Q50"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Geography": ["level",[["A-Level"],["GCSE"]],[251,230],481,["A-Level","GCSE"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Geography&level=A-Level": ["examBoard",[["AQA"],["OCR"]],[140,111],251,["AQA","OCR"]],
-"kindLabel=Practice&kindOwn=Questions&subject=Maths": ["level",[["11+"],["A-Level"],["Functional Skills L2"],["GCSE"],["KS3"],["SATs"]],[202,2588,24,6336,1027,2098],11248,["11+","A-Level","Functional Skills L2","GCSE","KS3","SATs"]],
+"kindLabel=Practice&kindOwn=Questions&subject=Maths": ["level",[["11+"],["A-Level"],["Functional Skills L2"],["GCSE"],["KS3"],["SATs"]],[202,2588,24,6810,1027,2098],11722,["11+","A-Level","Functional Skills L2","GCSE","KS3","SATs"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Maths&level=A-Level": ["examBoard",[["AQA"],["Edexcel"],["OCR"]],[959,877,752],2588,["AQA","Edexcel","OCR"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Maths&level=A-Level&examBoard=Edexcel": ["examYear",[["2024"],["2023"],["2022"],["2021"],["2020"],["2019"],["2018"]],[95,126,117,116,109,104,103],877,["2024","2023","2022","2021","2020","2019","2018"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Maths&level=A-Level&examBoard=Edexcel&examYear=2024": ["paperId",[["RS1786302107764-487","Paper 1"],["RS1786302107764-488","Paper 2"],["P-9MA0-2406-31","Paper 3",["P-9MA0-2406-32"]]],[28,26,41],95,["Paper 1","Paper 2","Paper 3"]],
-"kindLabel=Practice&kindOwn=Questions&subject=Maths&level=GCSE": ["documentType",[["5-a-day"],["Past paper"],["Specimen paper"],["Worksheet"]],[1355,2586,436,1959],6336,["5-a-day","Past paper","Specimen paper","Worksheet"]],
+"kindLabel=Practice&kindOwn=Questions&subject=Maths&level=GCSE": ["documentType",[["5-a-day"],["Past paper"],["Specimen paper"],["Worksheet"]],[1355,2586,436,2433],6810,["5-a-day","Past paper","Specimen paper","Worksheet"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Maths&level=GCSE&documentType=Past paper": ["examBoard",[["AQA"],["Edexcel"]],[358,2228],2586,["AQA","Edexcel"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Maths&level=GCSE&documentType=Past paper&examBoard=Edexcel": ["tier",[["Foundation"],["Higher"]],[1323,905],2228,["Foundation","Higher"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Maths&level=GCSE&documentType=Past paper&examBoard=Edexcel&tier=Higher": ["examYear",[["2024"],["2023"],["2022"],["2021"],["2020"],["2019"],["2018"],["2017"]],[97,93,66,2,97,186,181,183],905,["2024","2023","2022","2021","2020","2019","2018","2017"]],
@@ -951,7 +955,7 @@ const FINDER_TAGS = {
 "kindLabel=Practice&kindOwn=Questions&subject=Physics&level=GCSE&documentType=Past paper&examBoard=OCR&tier=Higher": ["examYear",[["2024"],["2022"],["2021"],["2020"],["2019"],["2018"]],[37,45,41,39,88,40],290,["2024","2022","2021","2020","2019","2018"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Physics&level=GCSE&documentType=Worksheet": ["paperId",[["W-AT-P-radiation","Atoms and Nuclear Radiation"],["W-AT-P-black-body","Black Body Radiation"],["W-AT-P-change-of-state","Change of State and Specific…"],["W-AT-P-energy-conservation","Conservation and Transfer of…"],["W-AT-P-electricity","Electricity"],["W-AT-P-electricity-home","Electricity in the Home"],["W-AT-P-em-radiation","Electromagnetic Radiation"],["W-AT-P-energy","Energy"],["W-AT-P-energy-resources","Energy Resources"],["W-AT-P-forces","Forces"],["W-AT-P-forces-motion","Forces and Motion"],["W-AT-P-half-life","Half-Life and Uses of…"],["W-AT-P-moments","Moments"],["W-AT-P-momentum","Momentum"],["W-AT-P-fission-fusion","Nuclear Fission and Fusion"],["W-AT-P-density","Particle Model of Matter"],["W-AT-P-gas-pressure","Particle Model of… Pressure"],["W-AT-P-magnetism","Permanent and Induced…"],["W-AT-P-pressure-fluids","Pressure in Fluids"],["W-AT-P-red-shift","Red Shift"],["W-AT-P-solar-system","Solar System"],["W-AT-P-static","Static Electricity"],["W-AT-P-motor-effect","The Motor Effect"],["W-AT-P-transformers","Transformers and the…"],["W-AT-P-waves","Waves"]],[34,26,30,27,27,32,41,21,30,29,35,29,28,28,35,10,24,29,28,26,33,23,25,32,33],715,["Atoms and Nuclear Radiation","Black Body Radiation","Change of State and Specific…","Conservation and Transfer of…","Electricity","Electricity in the Home","Electromagnetic Radiation","Energy","Energy Resources","Forces","Forces and Motion","Half-Life and Uses of…","Moments","Momentum","Nuclear Fission and Fusion","Particle Model of… Density","Particle Model of… Pressure","Permanent and Induced…","Pressure in Fluids","Red Shift","Solar System","Static Electricity","The Motor Effect","Transformers and the…","Waves"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Physics&level=GCSE&documentType=Worksheet&paperId=W-AT-P-forces-motion": ["qNumber",[["Q1"],["Q2"],["Q3"],["Q4"],["Q5"],["Q6"]],[4,7,7,5,5,7],35,["Q1","Q2","Q3","Q4","Q5","Q6"]],
-"kindLabel=Practice&kindOwn=Answers": ["subject",[["Biology"],["Business"],["Chemistry"],["Driving Theory"],["Economics"],["English Language"],["English Literature"],["Geography"],["History"],["Maths"],["Physical Education"],["Physics"],["Politics"],["Portuguese"],["Psychology"],["Religious Studies"],["Sociology"],["Statistics"]],[4641,392,5238,10,131,463,522,481,944,10852,322,4464,120,43,1187,1004,436,517],31767,["Biology","Business","Chemistry","Driving Theory","Economics","English Language","English Literature","Geography","History","Maths","Physical Education","Physics","Politics","Portuguese","Psychology","Religious Studies","Sociology","Statistics"]],
+"kindLabel=Practice&kindOwn=Answers": ["subject",[["Biology"],["Business"],["Chemistry"],["Driving Theory"],["Economics"],["English Language"],["English Literature"],["Geography"],["History"],["Maths"],["Physical Education"],["Physics"],["Politics"],["Portuguese"],["Psychology"],["Religious Studies"],["Sociology"],["Statistics"]],[4641,392,5238,10,131,463,522,481,944,11326,322,4464,120,43,1187,1004,436,517],32241,["Biology","Business","Chemistry","Driving Theory","Economics","English Language","English Literature","Geography","History","Maths","Physical Education","Physics","Politics","Portuguese","Psychology","Religious Studies","Sociology","Statistics"]],
 "kindLabel=Practice&kindOwn=Answers&subject=Biology": ["level",[["A-Level"],["GCSE"]],[1165,3476],4641,["A-Level","GCSE"]],
 "kindLabel=Practice&kindOwn=Answers&subject=Biology&level=A-Level": ["examBoard",[["AQA"],["OCR"]],[529,636],1165,["AQA","OCR"]],
 "kindLabel=Practice&kindOwn=Answers&subject=Biology&level=A-Level&examBoard=OCR": ["examYear",[["2025"],["2024"],["2023"],["2022"],["2021"],["2020"],["2019"],["2018"],["2017"]],[54,78,110,73,97,42,49,89,44],636,["2025","2024","2023","2022","2021","2020","2019","2018","2017"]],
@@ -980,8 +984,8 @@ const FINDER_TAGS = {
 "kindLabel=Practice&kindOwn=Answers&subject=Chemistry&level=GCSE&documentType=Past paper&examBoard=AQA&tier=Higher&examYear=2023": ["paperId",[["P-AQA-8462-2306-1H","Paper 1"],["P-AQA-8464C-2306-1H","Paper 1 Chemistry"],["P-AQA-8462-2306-2H","Paper 2"],["P-AQA-8464C-2306-2H","Paper 2 Chemistry"]],[37,27,45,32],141,["Paper 1","Paper 1","Paper 2","Paper 2"]],
 "kindLabel=Practice&kindOwn=Answers&subject=Geography": ["level",[["A-Level"],["GCSE"]],[251,230],481,["A-Level","GCSE"]],
 "kindLabel=Practice&kindOwn=Answers&subject=Geography&level=A-Level": ["examBoard",[["AQA"],["OCR"]],[140,111],251,["AQA","OCR"]],
-"kindLabel=Practice&kindOwn=Answers&subject=Maths": ["level",[["A-Level"],["Functional Skills L2"],["GCSE"],["KS3"],["SATs"]],[2588,24,6336,1027,1904],10852,["A-Level","Functional Skills L2","GCSE","KS3","SATs"]],
-"kindLabel=Practice&kindOwn=Answers&subject=Maths&level=GCSE": ["documentType",[["5-a-day"],["Past paper"],["Specimen paper"],["Worksheet"]],[1355,2586,436,1959],6336,["5-a-day","Past paper","Specimen paper","Worksheet"]],
+"kindLabel=Practice&kindOwn=Answers&subject=Maths": ["level",[["A-Level"],["Functional Skills L2"],["GCSE"],["KS3"],["SATs"]],[2588,24,6810,1027,1904],11326,["A-Level","Functional Skills L2","GCSE","KS3","SATs"]],
+"kindLabel=Practice&kindOwn=Answers&subject=Maths&level=GCSE": ["documentType",[["5-a-day"],["Past paper"],["Specimen paper"],["Worksheet"]],[1355,2586,436,2433],6810,["5-a-day","Past paper","Specimen paper","Worksheet"]],
 "kindLabel=Practice&kindOwn=Answers&subject=Maths&level=GCSE&documentType=Past paper": ["examBoard",[["AQA"],["Edexcel"]],[358,2228],2586,["AQA","Edexcel"]],
 "kindLabel=Practice&kindOwn=Answers&subject=Maths&level=GCSE&documentType=Past paper&examBoard=Edexcel": ["tier",[["Foundation"],["Higher"]],[1323,905],2228,["Foundation","Higher"]],
 "kindLabel=Practice&kindOwn=Answers&subject=Maths&level=GCSE&documentType=Past paper&examBoard=Edexcel&tier=Higher": ["examYear",[["2024"],["2023"],["2022"],["2021"],["2020"],["2019"],["2018"],["2017"]],[97,93,66,2,97,186,181,183],905,["2024","2023","2022","2021","2020","2019","2018","2017"]],
@@ -17031,7 +17035,7 @@ return rcPicData_(src).then(d => { im.setAttribute('src', d); im.removeAttribute
 .catch(e => { if (typeof oops_ === 'function') oops_(e, 'receipt:picture'); im.remove(); });
 }));
 }
-function rcPng_(rc) {
+function rcPngSvg_(rc) {
 rc.classList.add('rc-snap');
 let box, xml, behind;
 const rules = [];
@@ -17092,6 +17096,237 @@ return wait(250 * (n + 1)).then(() => n % 2 ? load().then(i => draw(i, n + 1)) :
 return new Promise((ok, no) => cv.toBlob(b => { cv.width = cv.height = 0; return b ? ok({ blob: b, w: cw, h: ch, svg }) : no(new Error('the browser made an empty picture')); }, 'image/png'));
 };
 return load().then(img => draw(img, 0));
+});
+}
+const rcWebKit_ = () => {
+if (/[?&]paint=1\b/.test(location.search)) return true;
+const ua = navigator.userAgent || '';
+return /iP(hone|ad|od)/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)
+|| (/AppleWebKit/.test(ua) && !/Chrom(e|ium)|Android|Edg\//.test(ua));
+};
+let RC_PAINT_ = null;
+const rcClear_ = c => !c || /^(transparent|rgba\(\s*0,\s*0,\s*0,\s*0\s*\))$/.test(c);
+const rcRadii_ = (cs, w, h) => ['TopLeft', 'TopRight', 'BottomRight', 'BottomLeft'].map(c => {
+const v = (cs['border' + c + 'Radius'] || '0').split(' ')[0];
+const n = parseFloat(v) || 0;
+return Math.min(/%$/.test(v) ? n / 100 * Math.min(w, h) : n, w / 2, h / 2);
+});
+function rcPath_(g, x, y, w, h, r) {
+g.beginPath();
+if (r.some(Boolean) && g.roundRect) g.roundRect(x, y, w, h, r); else g.rect(x, y, w, h);
+}
+const RC_SVG_PROPS_ = ['fill', 'fill-opacity', 'stroke', 'stroke-width', 'stroke-opacity', 'stroke-linecap', 'stroke-linejoin',
+'stroke-dasharray', 'opacity', 'font-family', 'font-size', 'font-weight', 'font-style', 'text-anchor', 'dominant-baseline', 'visibility', 'display'];
+function rcPaintList_(rc, box, z) {
+const ops = [];
+const at = r => ({ x: (r.left - box.left) / z, y: (r.top - box.top) / z, w: r.width / z, h: r.height / z });
+const words = (t, cs) => {
+const s = t.nodeValue;
+if (!/\S/.test(s)) return;
+const font = [cs.fontStyle, cs.fontWeight, cs.fontSize, cs.fontFamily].join(' ');
+const up = cs.textTransform === 'uppercase' ? x => x.toUpperCase() : cs.textTransform === 'lowercase' ? x => x.toLowerCase() : x => x;
+const ink = cs.getPropertyValue('-webkit-text-fill-color') || cs.color;
+const sp = parseFloat(cs.letterSpacing) || 0;
+const pe = t.parentElement, ps = getComputedStyle(pe);
+const lim = ps.textOverflow === 'ellipsis' && ps.overflow !== 'visible'
+? at(pe.getBoundingClientRect()).x + (pe.clientLeft + pe.clientWidth - (parseFloat(ps.paddingRight) || 0)) : Infinity;
+let cut = false;
+const rg = document.createRange();
+const re = /\S+/g;
+let m;
+while ((m = re.exec(s))) {
+rg.setStart(t, m.index); rg.setEnd(t, m.index + m[0].length);
+const rs = [...rg.getClientRects()].filter(r => r.width > 0 && r.height > 0);
+if (!rs.length) continue;
+if (rs.length === 1) {
+const r = at(rs[0]);
+if (cut || r.x >= lim) continue;
+if (r.x + r.w > lim) cut = true;
+ops.push({ t: 'word', s: up(m[0]), font, ink, sp, ell: cut ? lim : 0, ...r });
+continue;
+}
+for (let i = 0; i < m[0].length; i++) {
+rg.setStart(t, m.index + i); rg.setEnd(t, m.index + i + 1);
+const r = rg.getClientRects()[0];
+if (r && r.width > 0) ops.push({ t: 'word', s: up(m[0][i]), font, ink, sp, ...at(r) });
+}
+}
+};
+const walk = (el, alpha) => {
+if (el.nodeType === 3) return words(el, getComputedStyle(el.parentElement));
+if (el.nodeType !== 1) return;
+const cs = getComputedStyle(el);
+if (cs.display === 'none') return;
+const a = alpha * (parseFloat(cs.opacity) || 0);
+if (a <= 0.01) return;
+const r = at(el.getBoundingClientRect());
+const seen = cs.visibility !== 'hidden';
+const rad = rcRadii_(cs, r.w, r.h);
+let pushed = false;
+if (a < 1) { ops.push({ t: 'save' }, { t: 'alpha', a }); pushed = true; }
+if (seen) {
+if (!rcClear_(cs.backgroundColor)) ops.push({ t: 'fill', c: cs.backgroundColor, rad, ...r });
+const g = /linear-gradient\(/.test(cs.backgroundImage) && cs.backgroundImage.match(/rgba?\([^)]*\)/g);
+if (g && g.length > 1) ops.push({ t: 'grad', cs: g, rad, ...r });
+const sides = ['Top', 'Right', 'Bottom', 'Left'].map(s => ({
+w: cs['border' + s + 'Style'] === 'none' || cs['border' + s + 'Style'] === 'hidden' ? 0 : parseFloat(cs['border' + s + 'Width']) || 0,
+c: cs['border' + s + 'Color'] }));
+if (sides.some(s => s.w > 0 && !rcClear_(s.c))) {
+const one = sides.every(s => s.w === sides[0].w && s.c === sides[0].c);
+ops.push(one ? { t: 'ring', bw: sides[0].w, c: sides[0].c, rad, ...r } : { t: 'sides', sides, ...r });
+}
+}
+const tag = el.tagName;
+if (seen && tag === 'IMG') {
+ops.push({ t: 'img', src: el.currentSrc || el.getAttribute('src') || '', fit: cs.objectFit, pos: cs.objectPosition, rad, ...r });
+} else if (seen && tag.toLowerCase() === 'svg') {
+const c = el.cloneNode(true), from = [el, ...el.querySelectorAll('*')], to = [c, ...c.querySelectorAll('*')];
+from.forEach((n, i) => {
+const ns = getComputedStyle(n);
+to[i].setAttribute('style', RC_SVG_PROPS_.map(p => p + ':' + ns.getPropertyValue(p)).join(';') + ';color:' + ns.color + ';animation:none');
+});
+c.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+c.setAttribute('width', r.w); c.setAttribute('height', r.h);
+if (!c.getAttribute('viewBox') && el.viewBox && el.viewBox.baseVal && el.viewBox.baseVal.width)
+c.setAttribute('viewBox', [0, 0, el.viewBox.baseVal.width, el.viewBox.baseVal.height].join(' '));
+ops.push({ t: 'svg', xml: new XMLSerializer().serializeToString(c), ...r });
+} else if (/^(INPUT|SELECT|TEXTAREA)$/.test(tag)) {
+if (seen && !/^(checkbox|radio|range|color|file|image|button|submit|reset|hidden)$/i.test(el.type || '')) {
+const o = tag === 'SELECT' ? el.options[el.selectedIndex] : null;
+const s = tag === 'SELECT' ? (o ? o.text : '') : el.value || el.placeholder || '';
+const ph = !el.value && tag !== 'SELECT' ? getComputedStyle(el, '::placeholder') : cs;
+const pl = parseFloat(cs.paddingLeft) + (parseFloat(cs.borderLeftWidth) || 0);
+if (s) ops.push({ t: 'line', s, font: [cs.fontStyle, cs.fontWeight, cs.fontSize, cs.fontFamily].join(' '),
+ink: ph.color, x: r.x + pl, y: r.y, w: r.w - 2 * pl, h: r.h, al: cs.textAlign });
+}
+} else {
+const clip = cs.overflow !== 'visible' || cs.overflowX !== 'visible';
+if (clip) { ops.push({ t: 'save' }, { t: 'clip', rad, ...r }); }
+[...el.childNodes].forEach(n => walk(n, 1));
+if (clip) ops.push({ t: 'restore' });
+}
+if (pushed) ops.push({ t: 'restore' });
+};
+walk(rc, 1);
+return ops;
+}
+function rcPaint_(rc) {
+rc.classList.add('rc-snap');
+let box, ops, behind, z = 1;
+try {
+box = rc.getBoundingClientRect();
+const cw0 = parseFloat(getComputedStyle(rc).width);
+z = cw0 > 0 && box.width > 0 && Math.abs(box.width / cw0 - 1) > 0.01 ? box.width / cw0 : 1;
+ops = rcPaintList_(rc, box, z);
+behind = rcBehind_(rc);
+} finally {
+rc.classList.remove('rc-snap');
+}
+const w = Math.max(1, box.width / z), h = Math.max(1, box.height / z);
+const k = Math.min(RC_SNAP_K, Math.sqrt(RC_SNAP_MAX / (w * h)), 4096 / w, 8192 / h);
+const cw = Math.max(1, Math.ceil(w * k)), ch = Math.max(1, Math.ceil(h * k));
+const load = src => new Promise((ok, no) => {
+const im = new Image();
+im.onload = () => (im.decode ? im.decode().catch(() => {}) : Promise.resolve()).then(() => ok(im));
+im.onerror = () => no(new Error('picture would not decode'));
+im.src = src;
+});
+const pics = ops.map(o => {
+if (o.t === 'img') {
+if (!o.src) return null;
+const same = !/^https?:/.test(o.src) || new URL(o.src, location.href).origin === location.origin;
+return (same ? Promise.resolve(o.src) : rcPicData_(o.src)).then(load).then(im => { o.im = im; })
+.catch(e => { if (typeof oops_ === 'function') oops_(e, 'receipt:picture'); });
+}
+if (o.t === 'svg')
+return load('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(o.xml)).then(im => { o.im = im; }).catch(() => {});
+return null;
+});
+return Promise.all([document.fonts ? document.fonts.ready : null, ...pics]).then(() => {
+const cv = document.createElement('canvas');
+cv.width = cw; cv.height = ch;
+const g = cv.getContext('2d');
+if (!g) return Promise.reject(new Error('the browser gave no canvas for a ' + cw + 'x' + ch + ' picture'));
+g.fillStyle = behind;
+g.fillRect(0, 0, cw, ch);
+g.scale(cw / w, ch / h);
+g.textBaseline = 'alphabetic';
+ops.forEach(o => {
+switch (o.t) {
+case 'save': g.save(); break;
+case 'restore': g.restore(); break;
+case 'alpha': g.globalAlpha *= o.a; break;
+case 'clip': rcPath_(g, o.x, o.y, o.w, o.h, o.rad); g.clip(); break;
+case 'fill': g.fillStyle = o.c; rcPath_(g, o.x, o.y, o.w, o.h, o.rad); g.fill(); break;
+case 'grad': {
+const l = g.createLinearGradient(o.x, o.y, o.x, o.y + o.h);
+o.cs.forEach((c, i) => l.addColorStop(i / (o.cs.length - 1), c));
+g.fillStyle = l; rcPath_(g, o.x, o.y, o.w, o.h, o.rad); g.fill(); break;
+}
+case 'ring': {
+const b = o.bw / 2;
+g.strokeStyle = o.c; g.lineWidth = o.bw;
+rcPath_(g, o.x + b, o.y + b, o.w - o.bw, o.h - o.bw, o.rad.map(v => Math.max(0, v - b))); g.stroke(); break;
+}
+case 'sides': {
+const [t, r, btm, l] = o.sides;
+[[t, o.x, o.y, o.w, t.w], [r, o.x + o.w - r.w, o.y, r.w, o.h], [btm, o.x, o.y + o.h - btm.w, o.w, btm.w], [l, o.x, o.y, l.w, o.h]]
+.forEach(([s, x, y, sw, sh]) => { if (s.w > 0 && !rcClear_(s.c)) { g.fillStyle = s.c; g.fillRect(x, y, sw, sh); } });
+break;
+}
+case 'img': {
+if (!o.im) break;
+const iw = o.im.naturalWidth || o.w, ih = o.im.naturalHeight || o.h;
+let sx = 0, sy = 0, sw = iw, sh = ih;
+if (o.fit === 'cover') {
+const s = Math.max(o.w / iw, o.h / ih);
+sw = o.w / s; sh = o.h / s;
+const [px, py] = (o.pos || '50% 50%').split(' ').map(v => /%$/.test(v) ? parseFloat(v) / 100 : 0.5);
+sx = (iw - sw) * px; sy = (ih - sh) * py;
+}
+g.save(); rcPath_(g, o.x, o.y, o.w, o.h, o.rad); g.clip();
+if (o.fit === 'contain') {
+const s = Math.min(o.w / iw, o.h / ih);
+g.drawImage(o.im, o.x + (o.w - iw * s) / 2, o.y + (o.h - ih * s) / 2, iw * s, ih * s);
+} else g.drawImage(o.im, sx, sy, sw, sh, o.x, o.y, o.w, o.h);
+g.restore(); break;
+}
+case 'svg': if (o.im) g.drawImage(o.im, o.x, o.y, o.w, o.h); break;
+case 'word': case 'line': {
+g.font = o.font; g.fillStyle = o.ink;
+if ('letterSpacing' in g) g.letterSpacing = (o.sp || 0) + 'px';
+const m = g.measureText(o.s);
+const asc = m.fontBoundingBoxAscent || m.actualBoundingBoxAscent || parseFloat(o.font) * 0.8;
+const dsc = m.fontBoundingBoxDescent || m.actualBoundingBoxDescent || parseFloat(o.font) * 0.2;
+if (o.t === 'line') {
+g.save(); rcPath_(g, o.x, o.y, o.w, o.h, [0, 0, 0, 0]); g.clip();
+const al = /center/.test(o.al) ? 'center' : /right|end/.test(o.al) ? 'right' : 'left';
+g.textAlign = al;
+g.fillText(o.s, al === 'center' ? o.x + o.w / 2 : al === 'right' ? o.x + o.w : o.x, o.y + (o.h - asc - dsc) / 2 + asc);
+g.restore();
+} else {
+let s = o.s;
+if (o.ell) {
+const room = o.ell - o.x;
+while (s && g.measureText(s + '…').width > room) s = s.slice(0, -1);
+s += '…';
+}
+g.fillText(s, o.x, o.y + (o.h - asc - dsc) / 2 + asc);
+}
+break;
+}
+}
+});
+return new Promise((ok, no) => cv.toBlob(b => { cv.width = cv.height = 0; return b ? ok({ blob: b, w: cw, h: ch }) : no(new Error('the browser made an empty picture')); }, 'image/png'));
+});
+}
+function rcPng_(rc) {
+if (RC_PAINT_ === null) RC_PAINT_ = rcWebKit_();
+if (RC_PAINT_) return rcPaint_(rc);
+return rcPngSvg_(rc).catch(e => {
+if (!/empty picture|could not draw/.test(String(e && e.message))) return Promise.reject(e);
+RC_PAINT_ = true;
+return rcPaint_(rc);
 });
 }
 let RC_SHOT = null;

@@ -164,8 +164,8 @@ function rcPics_(clone) {
   }));
 }
 
-/** The `.rc` as a PNG at `RC_SNAP_K` device pixels per CSS pixel. Resolves `{ blob, w, h, svg }`. */
-function rcPng_(rc) {
+/** The `.rc` through an SVG <foreignObject>, as a PNG. Resolves `{ blob, w, h, svg }`. */
+function rcPngSvg_(rc) {
   /* ---------- THE SNAPSHOT IS TAKEN IN ONE GO, SYNCHRONOUSLY § */
   rc.classList.add('rc-snap');
   let box, xml, behind;
@@ -235,6 +235,254 @@ function rcPng_(rc) {
       return new Promise((ok, no) => cv.toBlob(b => { cv.width = cv.height = 0; return b ? ok({ blob: b, w: cw, h: ch, svg }) : no(new Error('the browser made an empty picture')); }, 'image/png'));
     };
     return load().then(img => draw(img, 0));
+  });
+}
+
+/* ---------- THE SECOND PAINTER: THE CARD WALKED AND DRAWN, NO SVG AROUND IT (owner screenshot, 19 Nov: "the browser made
+   an empty picture" on an iPhone). WebKit draws an SVG holding a <foreignObject> blank, so on Safari and every iPhone browser
+   the picture is painted box by box: each visible element's background, border and corners at its place on the screen,
+   each photo through `rcPicData_`, each line of words at the place the browser laid it out, each icon or diagram as an SVG
+   of its own (plain SVG does draw in WebKit). Used always on WebKit, and wherever the first painter comes back empty. */
+const rcWebKit_ = () => {
+  if (/[?&]paint=1\b/.test(location.search)) return true;
+  const ua = navigator.userAgent || '';
+  return /iP(hone|ad|od)/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)
+    || (/AppleWebKit/.test(ua) && !/Chrom(e|ium)|Android|Edg\//.test(ua));
+};
+let RC_PAINT_ = null;   /* true once the SVG painter has come back empty here; asked of the browser once */
+
+const rcClear_ = c => !c || /^(transparent|rgba\(\s*0,\s*0,\s*0,\s*0\s*\))$/.test(c);
+/* The four corners as px, a percentage taken of the box it rounds. */
+const rcRadii_ = (cs, w, h) => ['TopLeft', 'TopRight', 'BottomRight', 'BottomLeft'].map(c => {
+  const v = (cs['border' + c + 'Radius'] || '0').split(' ')[0];
+  const n = parseFloat(v) || 0;
+  return Math.min(/%$/.test(v) ? n / 100 * Math.min(w, h) : n, w / 2, h / 2);
+});
+function rcPath_(g, x, y, w, h, r) {
+  g.beginPath();
+  if (r.some(Boolean) && g.roundRect) g.roundRect(x, y, w, h, r); else g.rect(x, y, w, h);
+}
+const RC_SVG_PROPS_ = ['fill', 'fill-opacity', 'stroke', 'stroke-width', 'stroke-opacity', 'stroke-linecap', 'stroke-linejoin',
+  'stroke-dasharray', 'opacity', 'font-family', 'font-size', 'font-weight', 'font-style', 'text-anchor', 'dominant-baseline', 'visibility', 'display'];
+
+/** The walk: synchronous, while `.rc-snap` holds the card as it will be pictured. A list of drawing steps, in paint order. */
+function rcPaintList_(rc, box, z) {
+  const ops = [];
+  const at = r => ({ x: (r.left - box.left) / z, y: (r.top - box.top) / z, w: r.width / z, h: r.height / z });
+  const words = (t, cs) => {
+    const s = t.nodeValue;
+    if (!/\S/.test(s)) return;
+    const font = [cs.fontStyle, cs.fontWeight, cs.fontSize, cs.fontFamily].join(' ');
+    const up = cs.textTransform === 'uppercase' ? x => x.toUpperCase() : cs.textTransform === 'lowercase' ? x => x.toLowerCase() : x => x;
+    const ink = cs.getPropertyValue('-webkit-text-fill-color') || cs.color;
+    const sp = parseFloat(cs.letterSpacing) || 0;
+    /* AN ELLIPSIS DRAWN, NOT THE WORDS UNDER IT: a box that cuts its line with `…` ends its words at its content edge. */
+    const pe = t.parentElement, ps = getComputedStyle(pe);
+    const lim = ps.textOverflow === 'ellipsis' && ps.overflow !== 'visible'
+      ? at(pe.getBoundingClientRect()).x + (pe.clientLeft + pe.clientWidth - (parseFloat(ps.paddingRight) || 0)) : Infinity;
+    let cut = false;
+    const rg = document.createRange();
+    const re = /\S+/g;
+    let m;
+    while ((m = re.exec(s))) {
+      rg.setStart(t, m.index); rg.setEnd(t, m.index + m[0].length);
+      const rs = [...rg.getClientRects()].filter(r => r.width > 0 && r.height > 0);
+      if (!rs.length) continue;
+      if (rs.length === 1) {
+        const r = at(rs[0]);
+        if (cut || r.x >= lim) continue;
+        if (r.x + r.w > lim) cut = true;
+        ops.push({ t: 'word', s: up(m[0]), font, ink, sp, ell: cut ? lim : 0, ...r });
+        continue;
+      }
+      /* A WORD BROKEN ACROSS LINES is placed letter by letter. */
+      for (let i = 0; i < m[0].length; i++) {
+        rg.setStart(t, m.index + i); rg.setEnd(t, m.index + i + 1);
+        const r = rg.getClientRects()[0];
+        if (r && r.width > 0) ops.push({ t: 'word', s: up(m[0][i]), font, ink, sp, ...at(r) });
+      }
+    }
+  };
+  const walk = (el, alpha) => {
+    if (el.nodeType === 3) return words(el, getComputedStyle(el.parentElement));
+    if (el.nodeType !== 1) return;
+    const cs = getComputedStyle(el);
+    if (cs.display === 'none') return;
+    const a = alpha * (parseFloat(cs.opacity) || 0);
+    if (a <= 0.01) return;
+    const r = at(el.getBoundingClientRect());
+    const seen = cs.visibility !== 'hidden';
+    const rad = rcRadii_(cs, r.w, r.h);
+    let pushed = false;
+    if (a < 1) { ops.push({ t: 'save' }, { t: 'alpha', a }); pushed = true; }
+    if (seen) {
+      if (!rcClear_(cs.backgroundColor)) ops.push({ t: 'fill', c: cs.backgroundColor, rad, ...r });
+      const g = /linear-gradient\(/.test(cs.backgroundImage) && cs.backgroundImage.match(/rgba?\([^)]*\)/g);
+      if (g && g.length > 1) ops.push({ t: 'grad', cs: g, rad, ...r });
+      const sides = ['Top', 'Right', 'Bottom', 'Left'].map(s => ({
+        w: cs['border' + s + 'Style'] === 'none' || cs['border' + s + 'Style'] === 'hidden' ? 0 : parseFloat(cs['border' + s + 'Width']) || 0,
+        c: cs['border' + s + 'Color'] }));
+      if (sides.some(s => s.w > 0 && !rcClear_(s.c))) {
+        const one = sides.every(s => s.w === sides[0].w && s.c === sides[0].c);
+        ops.push(one ? { t: 'ring', bw: sides[0].w, c: sides[0].c, rad, ...r } : { t: 'sides', sides, ...r });
+      }
+    }
+    const tag = el.tagName;
+    if (seen && tag === 'IMG') {
+      ops.push({ t: 'img', src: el.currentSrc || el.getAttribute('src') || '', fit: cs.objectFit, pos: cs.objectPosition, rad, ...r });
+    } else if (seen && tag.toLowerCase() === 'svg') {
+      const c = el.cloneNode(true), from = [el, ...el.querySelectorAll('*')], to = [c, ...c.querySelectorAll('*')];
+      from.forEach((n, i) => {
+        const ns = getComputedStyle(n);
+        to[i].setAttribute('style', RC_SVG_PROPS_.map(p => p + ':' + ns.getPropertyValue(p)).join(';') + ';color:' + ns.color + ';animation:none');
+      });
+      c.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+      c.setAttribute('width', r.w); c.setAttribute('height', r.h);
+      if (!c.getAttribute('viewBox') && el.viewBox && el.viewBox.baseVal && el.viewBox.baseVal.width)
+        c.setAttribute('viewBox', [0, 0, el.viewBox.baseVal.width, el.viewBox.baseVal.height].join(' '));
+      ops.push({ t: 'svg', xml: new XMLSerializer().serializeToString(c), ...r });
+    } else if (/^(INPUT|SELECT|TEXTAREA)$/.test(tag)) {
+      if (seen && !/^(checkbox|radio|range|color|file|image|button|submit|reset|hidden)$/i.test(el.type || '')) {
+        const o = tag === 'SELECT' ? el.options[el.selectedIndex] : null;
+        const s = tag === 'SELECT' ? (o ? o.text : '') : el.value || el.placeholder || '';
+        const ph = !el.value && tag !== 'SELECT' ? getComputedStyle(el, '::placeholder') : cs;
+        const pl = parseFloat(cs.paddingLeft) + (parseFloat(cs.borderLeftWidth) || 0);
+        if (s) ops.push({ t: 'line', s, font: [cs.fontStyle, cs.fontWeight, cs.fontSize, cs.fontFamily].join(' '),
+                          ink: ph.color, x: r.x + pl, y: r.y, w: r.w - 2 * pl, h: r.h, al: cs.textAlign });
+      }
+    } else {
+      const clip = cs.overflow !== 'visible' || cs.overflowX !== 'visible';
+      if (clip) { ops.push({ t: 'save' }, { t: 'clip', rad, ...r }); }
+      [...el.childNodes].forEach(n => walk(n, 1));
+      if (clip) ops.push({ t: 'restore' });
+    }
+    if (pushed) ops.push({ t: 'restore' });
+  };
+  walk(rc, 1);
+  return ops;
+}
+
+function rcPaint_(rc) {
+  rc.classList.add('rc-snap');
+  let box, ops, behind, z = 1;
+  try {
+    box = rc.getBoundingClientRect();
+    const cw0 = parseFloat(getComputedStyle(rc).width);
+    z = cw0 > 0 && box.width > 0 && Math.abs(box.width / cw0 - 1) > 0.01 ? box.width / cw0 : 1;
+    ops = rcPaintList_(rc, box, z);
+    behind = rcBehind_(rc);
+  } finally {
+    rc.classList.remove('rc-snap');
+  }
+  const w = Math.max(1, box.width / z), h = Math.max(1, box.height / z);
+  const k = Math.min(RC_SNAP_K, Math.sqrt(RC_SNAP_MAX / (w * h)), 4096 / w, 8192 / h);
+  const cw = Math.max(1, Math.ceil(w * k)), ch = Math.max(1, Math.ceil(h * k));
+  const load = src => new Promise((ok, no) => {
+    const im = new Image();
+    im.onload = () => (im.decode ? im.decode().catch(() => {}) : Promise.resolve()).then(() => ok(im));
+    im.onerror = () => no(new Error('picture would not decode'));
+    im.src = src;
+  });
+  /* EACH PICTURE ITS OWN BYTES FIRST, as in the SVG painter: a canvas that drew a picture from elsewhere cannot be saved. */
+  const pics = ops.map(o => {
+    if (o.t === 'img') {
+      if (!o.src) return null;
+      const same = !/^https?:/.test(o.src) || new URL(o.src, location.href).origin === location.origin;
+      return (same ? Promise.resolve(o.src) : rcPicData_(o.src)).then(load).then(im => { o.im = im; })
+        .catch(e => { if (typeof oops_ === 'function') oops_(e, 'receipt:picture'); });
+    }
+    if (o.t === 'svg')
+      return load('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(o.xml)).then(im => { o.im = im; }).catch(() => {});
+    return null;
+  });
+  return Promise.all([document.fonts ? document.fonts.ready : null, ...pics]).then(() => {
+    const cv = document.createElement('canvas');
+    cv.width = cw; cv.height = ch;
+    const g = cv.getContext('2d');
+    if (!g) return Promise.reject(new Error('the browser gave no canvas for a ' + cw + 'x' + ch + ' picture'));
+    g.fillStyle = behind;
+    g.fillRect(0, 0, cw, ch);
+    g.scale(cw / w, ch / h);
+    g.textBaseline = 'alphabetic';
+    ops.forEach(o => {
+      switch (o.t) {
+        case 'save': g.save(); break;
+        case 'restore': g.restore(); break;
+        case 'alpha': g.globalAlpha *= o.a; break;
+        case 'clip': rcPath_(g, o.x, o.y, o.w, o.h, o.rad); g.clip(); break;
+        case 'fill': g.fillStyle = o.c; rcPath_(g, o.x, o.y, o.w, o.h, o.rad); g.fill(); break;
+        case 'grad': {
+          const l = g.createLinearGradient(o.x, o.y, o.x, o.y + o.h);
+          o.cs.forEach((c, i) => l.addColorStop(i / (o.cs.length - 1), c));
+          g.fillStyle = l; rcPath_(g, o.x, o.y, o.w, o.h, o.rad); g.fill(); break;
+        }
+        case 'ring': {
+          const b = o.bw / 2;
+          g.strokeStyle = o.c; g.lineWidth = o.bw;
+          rcPath_(g, o.x + b, o.y + b, o.w - o.bw, o.h - o.bw, o.rad.map(v => Math.max(0, v - b))); g.stroke(); break;
+        }
+        case 'sides': {
+          const [t, r, btm, l] = o.sides;
+          [[t, o.x, o.y, o.w, t.w], [r, o.x + o.w - r.w, o.y, r.w, o.h], [btm, o.x, o.y + o.h - btm.w, o.w, btm.w], [l, o.x, o.y, l.w, o.h]]
+            .forEach(([s, x, y, sw, sh]) => { if (s.w > 0 && !rcClear_(s.c)) { g.fillStyle = s.c; g.fillRect(x, y, sw, sh); } });
+          break;
+        }
+        case 'img': {
+          if (!o.im) break;
+          const iw = o.im.naturalWidth || o.w, ih = o.im.naturalHeight || o.h;
+          let sx = 0, sy = 0, sw = iw, sh = ih;
+          if (o.fit === 'cover') {
+            const s = Math.max(o.w / iw, o.h / ih);
+            sw = o.w / s; sh = o.h / s;
+            const [px, py] = (o.pos || '50% 50%').split(' ').map(v => /%$/.test(v) ? parseFloat(v) / 100 : 0.5);
+            sx = (iw - sw) * px; sy = (ih - sh) * py;
+          }
+          g.save(); rcPath_(g, o.x, o.y, o.w, o.h, o.rad); g.clip();
+          if (o.fit === 'contain') {
+            const s = Math.min(o.w / iw, o.h / ih);
+            g.drawImage(o.im, o.x + (o.w - iw * s) / 2, o.y + (o.h - ih * s) / 2, iw * s, ih * s);
+          } else g.drawImage(o.im, sx, sy, sw, sh, o.x, o.y, o.w, o.h);
+          g.restore(); break;
+        }
+        case 'svg': if (o.im) g.drawImage(o.im, o.x, o.y, o.w, o.h); break;
+        case 'word': case 'line': {
+          g.font = o.font; g.fillStyle = o.ink;
+          if ('letterSpacing' in g) g.letterSpacing = (o.sp || 0) + 'px';
+          const m = g.measureText(o.s);
+          const asc = m.fontBoundingBoxAscent || m.actualBoundingBoxAscent || parseFloat(o.font) * 0.8;
+          const dsc = m.fontBoundingBoxDescent || m.actualBoundingBoxDescent || parseFloat(o.font) * 0.2;
+          if (o.t === 'line') {
+            g.save(); rcPath_(g, o.x, o.y, o.w, o.h, [0, 0, 0, 0]); g.clip();
+            const al = /center/.test(o.al) ? 'center' : /right|end/.test(o.al) ? 'right' : 'left';
+            g.textAlign = al;
+            g.fillText(o.s, al === 'center' ? o.x + o.w / 2 : al === 'right' ? o.x + o.w : o.x, o.y + (o.h - asc - dsc) / 2 + asc);
+            g.restore();
+          } else {
+            let s = o.s;
+            if (o.ell) {
+              const room = o.ell - o.x;
+              while (s && g.measureText(s + '…').width > room) s = s.slice(0, -1);
+              s += '…';
+            }
+            g.fillText(s, o.x, o.y + (o.h - asc - dsc) / 2 + asc);
+          }
+          break;
+        }
+      }
+    });
+    return new Promise((ok, no) => cv.toBlob(b => { cv.width = cv.height = 0; return b ? ok({ blob: b, w: cw, h: ch }) : no(new Error('the browser made an empty picture')); }, 'image/png'));
+  });
+}
+
+/** The `.rc` as a PNG at `RC_SNAP_K` device pixels per CSS pixel. Resolves `{ blob, w, h }`. WebKit is painted box by box;
+    elsewhere the SVG painter, and the box painter after it if that came back empty (remembered for the next share). */
+function rcPng_(rc) {
+  if (RC_PAINT_ === null) RC_PAINT_ = rcWebKit_();
+  if (RC_PAINT_) return rcPaint_(rc);
+  return rcPngSvg_(rc).catch(e => {
+    if (!/empty picture|could not draw/.test(String(e && e.message))) return Promise.reject(e);
+    RC_PAINT_ = true;
+    return rcPaint_(rc);
   });
 }
 
