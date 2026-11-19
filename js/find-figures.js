@@ -360,8 +360,18 @@ const qCardTiles_ = x => { const was = qWas_(x); try { return qtTiles_(x, was.an
 function qOneCard_(p, ctx) {
   const stems = (p.stems || []).filter(s => !ctx.carried.has(s) && !ctx.drawn[stemId_(s)]);
   stems.forEach(s => { ctx.drawn[stemId_(s)] = true; });
-  Q_DRAWN.set(p.key, { stems, shown: ctx.shown, ans: ctx.ans, only: ctx.only });
-  return findCard(p);
+  const q = { stems, shown: ctx.shown, ans: false, only: false };
+  const a = { stems: [], shown: ctx.shown, ans: true, only: true };
+  /* ANSWERS ONLY: the answer card alone, as yesterday (18 Nov). */
+  if (ctx.only) { Q_DRAWN.set(p.key, Object.assign(a, { stems })); return findCard(p); }
+  /* ANSWER IS ITS OWN CARD (owner, 19 Nov): the question card holds no answer; its answer follows as a card of the same maker, its gate as it was (`ansOpen_`). */
+  Q_DRAWN.set(p.key, q);
+  const qHtml = findCard(p);
+  if (!ctx.ans || !(questionHasAns_(p) || schemeOwed_(p))) return qHtml;
+  Q_DRAWN.set(p.key, a);
+  const aHtml = findCard(p);
+  Q_DRAWN.set(p.key, q);
+  return qHtml + aHtml;
 }
 /* A QUESTION NUMBER: its parts the search kept, one card each, one after another; none indented under another. */
 function questionWhole_(x, parts, open, ans, only) {
@@ -724,6 +734,8 @@ function questionAnsCard_(x, inRow, bare) {
       + (inRow ? '' : figBox_({ look: 'tile-row qans-tiles', inner: qaToggle_(k, open)
         /* "ANSWER HIDDEN", AND NOT "HAVE A GO FIRST". § */
         + (open ? '' : figBox_({ tag: 'span', look: 'qans-wait-k', text: 'Answer hidden' })) }))
+      /* ITS OWN CARD SAYS WHERE ITS GATE STANDS (owner, 19 Nov): the toggle is in the row, the words here. */
+      + (inRow && !open ? figBox_({ tag: 'p', look: 'qans-wait-k', text: 'Answer hidden' }) : '')
       + (open ? answerBlock_(x) : '')
       + (!inRow && typeof helpRow_ === 'function' ? helpRow_(x, 'ans') : '') });
 }
@@ -744,7 +756,7 @@ function ansSet_(x, open) {
     if (el.getAttribute('data-k') !== k) return;
     const t = document.createElement('div');
     const part = el.closest('.qb-part');
-    t.innerHTML = questionAnsCard_(x, !!part);
+    t.innerHTML = questionAnsCard_(x, !!part, !!part);
     const card = t.firstElementChild;
     if (!card) return;
     const row = part ? [].find.call(part.querySelectorAll('.qa-toggle'), b => b.getAttribute('data-k') === k) : null;

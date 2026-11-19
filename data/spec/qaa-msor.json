@@ -59,37 +59,49 @@
    "id": "L4",
    "text": "FHEQ Level 4: Certificate of Higher Education, an early exit award (2.15)",
    "parent": "L",
-   "links": []
+   "links": [
+    "ct:TB-QAA-MSOR-2"
+   ]
   },
   {
    "id": "L5",
    "text": "FHEQ Level 5: Diploma of Higher Education or Foundation Degree, an early exit award (2.15)",
    "parent": "L",
-   "links": []
+   "links": [
+    "ct:TB-QAA-MSOR-3"
+   ]
   },
   {
    "id": "L6",
    "text": "FHEQ Level 6: bachelor's degree with honours (2.12); threshold standards 4.5",
    "parent": "L",
-   "links": []
+   "links": [
+    "ct:TB-QAA-MSOR-4"
+   ]
   },
   {
    "id": "L7",
    "text": "FHEQ Level 7: integrated master's, e.g. MMath, about one more full-time year (2.6, 2.14; threshold 4.6), and taught master's (4.7)",
    "parent": "L",
-   "links": []
+   "links": [
+    "ct:TB-QAA-MSOR-5"
+   ]
   },
   {
    "id": "3.8.1",
    "text": "Calculus",
    "parent": "3.8",
-   "links": []
+   "links": [
+    "ct:TB-QAA-MSOR-6"
+   ]
   },
   {
    "id": "3.8.2",
    "text": "Linear algebra",
    "parent": "3.8",
-   "links": []
+   "links": [
+    "ct:TB-QAA-MSOR-7"
+   ]
   },
   {
    "id": "3.8.3",
@@ -103,229 +115,305 @@
    "id": "3.8.4",
    "text": "Constrained optimisation and allocating scarce resources (operational research)",
    "parent": "3.8",
-   "links": []
+   "links": [
+    "ct:TB-QAA-MSOR-8"
+   ]
   },
   {
    "id": "3.8.5",
    "text": "Modelling decision-making processes (operational research)",
    "parent": "3.8",
-   "links": []
+   "links": [
+    "ct:TB-QAA-MSOR-9"
+   ]
   },
   {
    "id": "3.8.6",
    "text": "Methods for differential equations (applications in physics or engineering)",
    "parent": "3.8",
-   "links": []
+   "links": [
+    "ct:TB-QAA-MSOR-10"
+   ]
   },
   {
    "id": "3.10.1",
    "text": "Algebra",
    "parent": "3.10",
-   "links": []
+   "links": [
+    "ct:TB-QAA-MSOR-11"
+   ]
   },
   {
    "id": "3.10.2",
    "text": "Analysis",
    "parent": "3.10",
-   "links": []
+   "links": [
+    "ct:TB-QAA-MSOR-12"
+   ]
   },
   {
    "id": "3.10.3",
    "text": "Geometry",
    "parent": "3.10",
-   "links": []
+   "links": [
+    "ct:TB-QAA-MSOR-13"
+   ]
   },
   {
    "id": "3.10.4",
    "text": "Number theory",
    "parent": "3.10",
-   "links": []
+   "links": [
+    "ct:TB-QAA-MSOR-14"
+   ]
   },
   {
    "id": "3.10.5",
    "text": "Differential equations",
    "parent": "3.10",
-   "links": []
+   "links": [
+    "ct:TB-QAA-MSOR-15"
+   ]
   },
   {
    "id": "3.10.6",
    "text": "Continuum mechanics and mathematical physics",
    "parent": "3.10",
-   "links": []
+   "links": [
+    "ct:TB-QAA-MSOR-16"
+   ]
   },
   {
    "id": "3.10.7",
    "text": "Mathematical models: how and when they can be applied",
    "parent": "3.10",
-   "links": []
+   "links": [
+    "ct:TB-QAA-MSOR-17"
+   ]
   },
   {
    "id": "3.11.1",
    "text": "Exploratory data analysis",
    "parent": "3.11",
-   "links": []
+   "links": [
+    "ct:TB-QAA-MSOR-18"
+   ]
   },
   {
    "id": "3.11.2",
    "text": "Inference",
    "parent": "3.11",
-   "links": []
+   "links": [
+    "ct:TB-QAA-MSOR-19"
+   ]
   },
   {
    "id": "3.11.3",
    "text": "Likelihood",
    "parent": "3.11",
-   "links": []
+   "links": [
+    "ct:TB-QAA-MSOR-20"
+   ]
   },
   {
    "id": "3.11.4",
    "text": "Linear models",
    "parent": "3.11",
-   "links": []
+   "links": [
+    "ct:TB-QAA-MSOR-21"
+   ]
   },
   {
    "id": "3.11.5",
    "text": "Stochastic processes",
    "parent": "3.11",
-   "links": []
+   "links": [
+    "ct:TB-QAA-MSOR-22"
+   ]
   },
   {
    "id": "3.11.6",
    "text": "Time series",
    "parent": "3.11",
-   "links": []
+   "links": [
+    "ct:TB-QAA-MSOR-23"
+   ]
   },
   {
    "id": "3.11.7",
    "text": "Data analytics",
    "parent": "3.11",
-   "links": []
+   "links": [
+    "ct:TB-QAA-MSOR-24"
+   ]
   },
   {
    "id": "3.11.8",
    "text": "Using a statistical package for data analysis",
    "parent": "3.11",
-   "links": []
+   "links": [
+    "ct:TB-QAA-MSOR-25"
+   ]
   },
   {
    "id": "3.12.1",
    "text": "Applications such as healthcare, transportation, logistics, strategic planning, manufacturing and retail distribution",
    "parent": "3.12",
-   "links": []
+   "links": [
+    "ct:TB-QAA-MSOR-26"
+   ]
   },
   {
    "id": "3.24.3",
    "text": "Formulating complex optimisation problems and interpreting solutions in their original context (3.24)",
    "parent": "3.12",
-   "links": []
+   "links": [
+    "ct:TB-QAA-MSOR-27"
+   ]
   },
   {
    "id": "3.13.1",
    "text": "Assumptions: where they are used and the consequences of their violation; validity of assumptions versus validity of arguments",
    "parent": "3.13",
-   "links": []
+   "links": [
+    "ct:TB-QAA-MSOR-28"
+   ]
   },
   {
    "id": "3.14.1",
    "text": "Generalisation and abstraction in developing theories and methods",
    "parent": "3.13",
-   "links": []
+   "links": [
+    "ct:TB-QAA-MSOR-29"
+   ]
   },
   {
    "id": "3.14.2",
    "text": "Logical argument, deductive reasoning and formal proof",
    "parent": "3.13",
-   "links": []
+   "links": [
+    "ct:TB-QAA-MSOR-30"
+   ]
   },
   {
    "id": "3.15.1",
    "text": "Axiomatic approaches to advanced pure mathematics",
    "parent": "3.13",
-   "links": []
+   "links": [
+    "ct:TB-QAA-MSOR-31"
+   ]
   },
   {
    "id": "3.16.1",
    "text": "Processes and pitfalls of numerical approximation",
    "parent": "3.16",
-   "links": []
+   "links": [
+    "ct:TB-QAA-MSOR-32"
+   ]
   },
   {
    "id": "3.17.1",
    "text": "At least one programming language; specialist software and the algorithms behind it",
    "parent": "3.16",
-   "links": []
+   "links": [
+    "ct:TB-QAA-MSOR-33"
+   ]
   },
   {
    "id": "3.18.1",
    "text": "Mathematical and statistical modelling as abstract representations of processes",
    "parent": "3.18",
-   "links": []
+   "links": [
+    "ct:TB-QAA-MSOR-34"
+   ]
   },
   {
    "id": "3.19.1",
    "text": "A range of modelling techniques, their conditions and limitations; validating and revising models",
    "parent": "3.18",
-   "links": []
+   "links": [
+    "ct:TB-QAA-MSOR-35"
+   ]
   },
   {
    "id": "3.19.2",
    "text": "Using models to analyse problems and scenarios, and interpreting and communicating the results",
    "parent": "3.18",
-   "links": []
+   "links": [
+    "ct:TB-QAA-MSOR-36"
+   ]
   },
   {
    "id": "3.20.1",
    "text": "History of mathematics",
    "parent": "3.20",
-   "links": []
+   "links": [
+    "ct:TB-QAA-MSOR-37"
+   ]
   },
   {
    "id": "3.20.2",
    "text": "Mathematics education",
    "parent": "3.20",
-   "links": []
+   "links": [
+    "ct:TB-QAA-MSOR-38"
+   ]
   },
   {
    "id": "3.20.3",
    "text": "Career development skills",
    "parent": "3.20",
-   "links": []
+   "links": [
+    "ct:TB-QAA-MSOR-39"
+   ]
   },
   {
    "id": "4.5.1",
    "text": "Honours threshold: the basic body of knowledge, normally calculus, linear algebra and probability/statistics",
    "parent": "4",
-   "links": []
+   "links": [
+    "ct:TB-QAA-MSOR-40"
+   ]
   },
   {
    "id": "4.5.2",
    "text": "Honours threshold: calculation, manipulation and problem solving within it; logical reasoning with stated assumptions",
    "parent": "4",
-   "links": []
+   "links": [
+    "ct:TB-QAA-MSOR-41"
+   ]
   },
   {
    "id": "4.5.3",
    "text": "Honours threshold: formulate problems mathematically, solve them and draw valid inferences; communicate arguments and uncertainty",
    "parent": "4",
-   "links": []
+   "links": [
+    "ct:TB-QAA-MSOR-42"
+   ]
   },
   {
    "id": "4.5.4",
    "text": "Honours threshold: at least one programming language and other MSOR technology",
    "parent": "4",
-   "links": []
+   "links": [
+    "ct:TB-QAA-MSOR-43"
+   ]
   },
   {
    "id": "4.6.1",
    "text": "Integrated master's threshold: the main body of knowledge including advanced topics, in loosely defined contexts",
    "parent": "4",
-   "links": []
+   "links": [
+    "ct:TB-QAA-MSOR-44"
+   ]
   },
   {
    "id": "4.6.2",
    "text": "Integrated master's threshold: planning and conducting an advanced project",
    "parent": "4",
-   "links": []
+   "links": [
+    "ct:TB-QAA-MSOR-45"
+   ]
   }
  ]
 }
