@@ -17111,6 +17111,7 @@ const v = (cs['border' + c + 'Radius'] || '0').split(' ')[0];
 const n = parseFloat(v) || 0;
 return Math.min(/%$/.test(v) ? n / 100 * Math.min(w, h) : n, w / 2, h / 2);
 });
+const rcDash_ = (d, w) => d === 'dashed' ? [3 * w, 3 * w] : d === 'dotted' ? [w, w] : [];
 function rcPath_(g, x, y, w, h, r) {
 g.beginPath();
 if (r.some(Boolean) && g.roundRect) g.roundRect(x, y, w, h, r); else g.rect(x, y, w, h);
@@ -17170,10 +17171,10 @@ const g = /linear-gradient\(/.test(cs.backgroundImage) && cs.backgroundImage.mat
 if (g && g.length > 1) ops.push({ t: 'grad', cs: g, rad, ...r });
 const sides = ['Top', 'Right', 'Bottom', 'Left'].map(s => ({
 w: cs['border' + s + 'Style'] === 'none' || cs['border' + s + 'Style'] === 'hidden' ? 0 : parseFloat(cs['border' + s + 'Width']) || 0,
-c: cs['border' + s + 'Color'] }));
+c: cs['border' + s + 'Color'], d: cs['border' + s + 'Style'] }));
 if (sides.some(s => s.w > 0 && !rcClear_(s.c))) {
-const one = sides.every(s => s.w === sides[0].w && s.c === sides[0].c);
-ops.push(one ? { t: 'ring', bw: sides[0].w, c: sides[0].c, rad, ...r } : { t: 'sides', sides, ...r });
+const one = sides.every(s => s.w === sides[0].w && s.c === sides[0].c && s.d === sides[0].d);
+ops.push(one ? { t: 'ring', bw: sides[0].w, c: sides[0].c, d: sides[0].d, rad, ...r } : { t: 'sides', sides, ...r });
 }
 }
 const tag = el.tagName;
@@ -17200,6 +17201,18 @@ if (s) ops.push({ t: 'line', s, font: [cs.fontStyle, cs.fontWeight, cs.fontSize,
 ink: ph.color, x: r.x + pl, y: r.y, w: r.w - 2 * pl, h: r.h, al: cs.textAlign });
 }
 } else {
+if (seen && !/\S/.test(el.textContent)) ['::before', '::after'].forEach(pp => {
+const ps = getComputedStyle(el, pp), ct = ps.getPropertyValue('content');
+const q = /^"((?:[^"\\]|\\.)*)"$/.exec(ct || '');
+if (!q || !q[1] || ps.display === 'none') return;
+const bl = (parseFloat(cs.borderLeftWidth) || 0) + (parseFloat(cs.paddingLeft) || 0);
+const br = (parseFloat(cs.borderRightWidth) || 0) + (parseFloat(cs.paddingRight) || 0);
+const bt = (parseFloat(cs.borderTopWidth) || 0) + (parseFloat(cs.paddingTop) || 0);
+const bb = (parseFloat(cs.borderBottomWidth) || 0) + (parseFloat(cs.paddingBottom) || 0);
+const up = ps.textTransform === 'uppercase' ? x => x.toUpperCase() : x => x;
+ops.push({ t: 'line', s: up(q[1].replace(/\\(.)/g, '$1')), font: [ps.fontStyle, ps.fontWeight, ps.fontSize, ps.fontFamily].join(' '),
+ink: ps.color, x: r.x + bl, y: r.y + bt, w: r.w - bl - br, h: r.h - bt - bb, al: cs.textAlign });
+});
 const clip = cs.overflow !== 'visible' || cs.overflowX !== 'visible';
 if (clip) { ops.push({ t: 'save' }, { t: 'clip', rad, ...r }); }
 [...el.childNodes].forEach(n => walk(n, 1));
@@ -17265,13 +17278,20 @@ g.fillStyle = l; rcPath_(g, o.x, o.y, o.w, o.h, o.rad); g.fill(); break;
 }
 case 'ring': {
 const b = o.bw / 2;
-g.strokeStyle = o.c; g.lineWidth = o.bw;
-rcPath_(g, o.x + b, o.y + b, o.w - o.bw, o.h - o.bw, o.rad.map(v => Math.max(0, v - b))); g.stroke(); break;
+g.strokeStyle = o.c; g.lineWidth = o.bw; g.setLineDash(rcDash_(o.d, o.bw));
+rcPath_(g, o.x + b, o.y + b, o.w - o.bw, o.h - o.bw, o.rad.map(v => Math.max(0, v - b))); g.stroke(); g.setLineDash([]); break;
 }
 case 'sides': {
 const [t, r, btm, l] = o.sides;
 [[t, o.x, o.y, o.w, t.w], [r, o.x + o.w - r.w, o.y, r.w, o.h], [btm, o.x, o.y + o.h - btm.w, o.w, btm.w], [l, o.x, o.y, l.w, o.h]]
-.forEach(([s, x, y, sw, sh]) => { if (s.w > 0 && !rcClear_(s.c)) { g.fillStyle = s.c; g.fillRect(x, y, sw, sh); } });
+.forEach(([s, x, y, sw, sh]) => {
+if (!(s.w > 0) || rcClear_(s.c)) return;
+if (!/dashed|dotted/.test(s.d)) { g.fillStyle = s.c; g.fillRect(x, y, sw, sh); return; }
+const across = sw > sh;
+g.strokeStyle = s.c; g.lineWidth = s.w; g.setLineDash(rcDash_(s.d, s.w)); g.beginPath();
+if (across) { g.moveTo(x, y + sh / 2); g.lineTo(x + sw, y + sh / 2); } else { g.moveTo(x + sw / 2, y); g.lineTo(x + sw / 2, y + sh); }
+g.stroke(); g.setLineDash([]);
+});
 break;
 }
 case 'img': {
