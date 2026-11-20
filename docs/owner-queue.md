@@ -87,6 +87,7 @@ ORDER OF BOARDS (owner, 20 Nov): OCR is the least used board, so it comes last. 
 - Personal (raise when there's a gap): organise tasks/folders/bedroom; a DIY room scan (photos/LiDAR → 3D) to plan the room; a private "food" list of easy meals (first: microwave sushi rice + salmon + soy); turn what the owner enjoys (family trips to Australia/Brazil) into business angles (those countries' curricula).
 
 ## For the owner (ask in conversation)
+- PRIVATE REPO (20 Nov): make the repository private so the source, notes, tools and backend are no longer public; host via GitHub Pro (~$4/month) or Cloudflare Pages (free, needs the owner to make an account once). Then minify/obfuscate the bundle and move more content behind sign-in. Waiting on the owner's choice.
 
 - NSW HSC: the 2017 syllabus or the 2024 one?
 - English: the copyright-withheld extracts for Nov 2023 P1 (Byatt, Possession) and Nov 2022 P1 (Hemingway) need a full printed copy; papers for June 2021 P2 and Nov 2024 P1/P2 can be added if wanted.
