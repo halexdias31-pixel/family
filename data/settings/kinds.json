@@ -1631,6 +1631,24 @@
     }
    }
   },
+  "docket": {
+   "source": "the owner's docket lists (owner, 20 Nov): their own `todo` cell, read by js/map.js dkItems_ — an item a card, drawn by dkCard_: the title, the list and its date, time or Daily as tags, a Done tick saved as the widget saves it (`doneOn` for a daily item), and the note",
+   "find": {
+    "group": "Tools",
+    "label": "Docket",
+    "under": "Tools",
+    "draw": "dkCard_",
+    "facets": [
+     "forLabel",
+     "kindLabel",
+     "toolName",
+     "docketList"
+    ]
+   },
+   "see": {
+    "who": "owner"
+   }
+  },
   "game": {
    "source": "js/map.js WIDGETS (kind game)",
    "find": {

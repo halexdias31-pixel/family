@@ -572,6 +572,8 @@ function findPeopleItems_() {
       /* A SHOP WIDGET (the Basket) IS ITS OWN ANSWER UNDER SHOP (batch C), beside the things' categories. */
       shopKind: isShop_(w) ? (w.name || '') : '',
     })).filter(x => typeof TIER_OFF_WIDGETS === 'undefined' || TIER_OFF_WIDGETS.indexOf(String(x.widget.id)) === -1),
+    /* THE OWNER'S DOCKET (kinds.json kind `docket`): an item a card, under Tools › Docket › its list. */
+    ...(typeof dkItems_ === 'function' ? dkItems_() : []),
     ...soonItems_(),
     /* POSTS, MESSAGES, PROFILES, SETTINGS AND VIDEOS (batch C): their items and menus are find-doors.js's. */
     ...(typeof doorItems_ === 'function' ? doorItems_() : []),
