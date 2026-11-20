@@ -8097,7 +8097,7 @@ return stems + figBox_({ look: 'qsheet qtext', inner: qWordsOr_(x, cellsHere_(x,
 const qWas_ = x => Q_DRAWN.get(x.key) || { stems: [], shown: [x], ans: true };
 const qCardKeep_ = x => { if (x.key) Q_ITEM.set(x.key, x.item || x); };
 const qCardPic_ = x => { const was = qWas_(x), pic = was.stems.length && !was.only ? qStemPic_(x, was) : ''; return pic ? { svg: pic } : null; };
-const qCardLook_ = x => 'qb favwrap qcard qb-part' + (typeof helpCls_ === 'function' ? helpCls_(x, '') : '') + (isFav(x.key) ? ' is-fav' : '');
+const qCardLook_ = x => 'qb favwrap qcard qb-part' + (isFav(x.key) ? ' is-fav' : '');
 const qCardSheet_ = (x, pic) => [{ type: 'embed', tool: 'qsheet', look: 'qsheet-embed', args: { key: x.key || '', pic: !!pic } }];
 const qCardTiles_ = x => { const was = qWas_(x); try { return qtTiles_(x, was.ans && questionHasAns_(x) && !schemeOwed_(x)); } catch (e) { oops_(e, 'question:spec'); return []; } };
 function qOneCard_(p, ctx) {
@@ -8118,7 +8118,7 @@ function questionWhole_(x, parts, open, ans, only) {
 const list = parts && parts.length ? parts : [x];
 const shown = list.filter(p => !open || !open.size || open.has(p));
 const ctx = { ans: ans !== false, only: !!only, drawn: {}, shown: shown, carried: new Set(shown.map(stemCarried_).filter(Boolean)) };
-return figBox_({ look: 'qwhole' + (typeof helpCls_ === 'function' ? helpCls_(x, '') : ''), attrs: { 'data-q': qId_(x) || x.key || '' }, inner: shown.map(p => qOneCard_(p, ctx)).join('') });
+return figBox_({ look: 'qwhole', attrs: { 'data-q': qId_(x) || x.key || '' }, inner: shown.map(p => qOneCard_(p, ctx)).join('') });
 }
 const stemId_ = p => (p && (p.id || (p.row && p.row.row_id) || p.html || p.diagram)) || '';
 const stemHasFig_ = p => !!(p && (p.diagram || figImgs_(p.images).length));
@@ -8399,7 +8399,7 @@ if (schemeOwed_(x)) return figBox_({ look: 'qcard qans-card', attrs: { 'data-of'
 + figBox_({ tag: 'p', look: 'qans-none', text: 'No checked answer yet: this paper\'s mark scheme has not been added.' }) });
 const k = ansKey_(x);
 const open = ansOpen_(x);
-return figBox_({ look: 'qcard qans-card' + (open ? '' : ' is-hidden') + (typeof helpCls_ === 'function' ? helpCls_(x, 'ans') : ''), attrs: { 'data-of': id, 'data-k': k },
+return figBox_({ look: 'qcard qans-card' + (open ? '' : ' is-hidden'), attrs: { 'data-of': id, 'data-k': k },
 inner: tags
 + (inRow ? '' : figBox_({ look: 'tile-row qans-tiles', inner: qaToggle_(k, open)
 + (open ? '' : figBox_({ tag: 'span', look: 'qans-wait-k', text: 'Answer hidden' })) }))
@@ -18833,27 +18833,19 @@ function helpHere_(x, pg) {
 const h = helpGet_();
 return !!h && h.q === helpQ_(x) && String(h.pg || '') === String(pg || '');
 }
-const helpCls_ = (x, pg) => (helpHere_(x, pg) ? ' is-help' : '');
 function helpOpts_(x, pg) {
 const on = helpHere_(x, pg);
 const data = { q: helpQ_(x), pg: String(pg || ''), label: x ? String(x.name || x.title || '') : '' };
 return on
-? { icon: 'hand', label: 'I’m OK now', note: 'put my hand down', act: 'help-hand', cls: 'help-hand', on: true, data: data }
-: { icon: 'hand', label: 'Help', note: 'ask the tutor over', act: 'help-hand', cls: 'help-hand', data: data };
+? { icon: 'hand', label: 'I’m OK now', note: 'put my hand down', act: 'help-hand', cls: 'help-hand', on: true, pressed: true, data: data }
+: { icon: 'hand', label: 'Help', note: 'ask the tutor over', act: 'help-hand', cls: 'help-hand', pressed: false, data: data };
 }
-const helpSay_ = () => cardBlock_({ type: 'group', tag: 'span', look: 'qhelp-say', text: 'Waiting for help' });
 function helpRow_(x, pg) {
-return cardBlock_({ type: 'group', look: 'tile-row qhelp-tiles', inner: tile_(helpOpts_(x, pg)) + (helpHere_(x, pg) ? helpSay_() : '') });
+return cardBlock_({ type: 'group', look: 'tile-row qhelp-tiles', inner: tile_(helpOpts_(x, pg)) });
 }
 function helpPaint_() {
 document.querySelectorAll('.help-hand').forEach(t => {
 const x = { key: t.getAttribute('data-q') || '', name: t.getAttribute('data-label') || '' }, pg = t.getAttribute('data-pg') || '';
-const row = t.closest('.tile-row'), prev = row && row.previousElementSibling;
-const here = helpHere_(x, pg), card = t.closest('.qcard') || (prev && prev.querySelector('.qwhole, .qcard'));
-if (card) card.classList.toggle('is-help', here);
-const say = t.parentElement && t.parentElement.querySelector('.qhelp-say');
-if (say && !here) say.remove();
-if (!say && here) t.insertAdjacentHTML('afterend', helpSay_());
 t.outerHTML = tile_(helpOpts_(x, pg));
 });
 }

@@ -353,7 +353,7 @@ const qWas_ = x => Q_DRAWN.get(x.key) || { stems: [], shown: [x], ans: true };
 /* THE ENTRY, KEPT BY KEY, for its sheet (the embed reads it back). */
 const qCardKeep_ = x => { if (x.key) Q_ITEM.set(x.key, x.item || x); };
 const qCardPic_ = x => { const was = qWas_(x), pic = was.stems.length && !was.only ? qStemPic_(x, was) : ''; return pic ? { svg: pic } : null; };
-const qCardLook_ = x => 'qb favwrap qcard qb-part' + (typeof helpCls_ === 'function' ? helpCls_(x, '') : '') + (isFav(x.key) ? ' is-fav' : '');
+const qCardLook_ = x => 'qb favwrap qcard qb-part' + (isFav(x.key) ? ' is-fav' : '');
 const qCardSheet_ = (x, pic) => [{ type: 'embed', tool: 'qsheet', look: 'qsheet-embed', args: { key: x.key || '', pic: !!pic } }];
 const qCardTiles_ = x => { const was = qWas_(x); try { return qtTiles_(x, was.ans && questionHasAns_(x) && !schemeOwed_(x)); } catch (e) { oops_(e, 'question:spec'); return []; } };
 /* ONE PART'S CARD: the stems not drawn yet by an earlier part go with it. */
@@ -379,7 +379,7 @@ function questionWhole_(x, parts, open, ans, only) {
   const shown = list.filter(p => !open || !open.size || open.has(p));
   /* CARRIED ONLY BY A PART ON SCREEN (owner, 10 Nov): part (a) carried Q8's garden, so (b) found alone drew no stem and no 7.5 m. */
   const ctx = { ans: ans !== false, only: !!only, drawn: {}, shown: shown, carried: new Set(shown.map(stemCarried_).filter(Boolean)) };
-  return figBox_({ look: 'qwhole' + (typeof helpCls_ === 'function' ? helpCls_(x, '') : ''), attrs: { 'data-q': qId_(x) || x.key || '' }, inner: shown.map(p => qOneCard_(p, ctx)).join('') });
+  return figBox_({ look: 'qwhole', attrs: { 'data-q': qId_(x) || x.key || '' }, inner: shown.map(p => qOneCard_(p, ctx)).join('') });
 }
 
 /* ---------- THE STEM, ITS OWN PAGE IN FRONT OF ITS PARTS § */
@@ -729,7 +729,7 @@ function questionAnsCard_(x, inRow, bare) {
   const k = ansKey_(x);
   const open = ansOpen_(x);
   /* ---------- ONE TILE, IN ONE PLACE, AND IT SAYS WHICH WAY IT GOES § */
-  return figBox_({ look: 'qcard qans-card' + (open ? '' : ' is-hidden') + (typeof helpCls_ === 'function' ? helpCls_(x, 'ans') : ''), attrs: { 'data-of': id, 'data-k': k },
+  return figBox_({ look: 'qcard qans-card' + (open ? '' : ' is-hidden'), attrs: { 'data-of': id, 'data-k': k },
     inner: tags
       + (inRow ? '' : figBox_({ look: 'tile-row qans-tiles', inner: qaToggle_(k, open)
         /* "ANSWER HIDDEN", AND NOT "HAVE A GO FIRST". § */

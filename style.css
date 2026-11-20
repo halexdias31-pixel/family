@@ -4577,16 +4577,10 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .dm-av.daive-av { background: var(--gold); color: var(--on-gold); }
 .msg-text:disabled, .msg-go:disabled { opacity: .5; }
 
-/* ---------- A HAND UP (455): the card a tutor can see from across the room, and the tutor's list ---------- */
-.qcard { --help-red: var(--alert); --help-wash: color-mix(in srgb, var(--alert) 28%, transparent); --help-ink: var(--white); }
-.qcard.is-help { border: 4px solid var(--help-red); background: var(--help-wash); box-shadow: 0 0 0 3px var(--help-red); }
+/* ---------- A HAND UP (455): the hand wears the ordinary pressed plate, nothing red (owner, 20 Nov); and the tutor's list ---------- */
 .qhelp-tiles { margin-top: var(--s2); align-items: center; }
 /* EVERY QUESTION PAGE'S FOOT ON A LINE OF ITS OWN (owner, 1 Nov: "buttons to all appear in the same place"): Help, the star, Suggest, Back to top, under the page's own tiles. */
 .tile-row > .tile-group.qans-tiles::after { content: ""; flex-basis: 100%; height: 0; margin-top: calc(-1 * var(--tile-gap)); }
-.qhelp-say { color: var(--help-ink); background: var(--help-red); font-weight: 700; font-size: var(--fs-body);
-             padding: var(--s1) var(--s3); border-radius: var(--r-ui); }
-.qcard.is-help .tile.help-hand { color: var(--help-ink); background: var(--help-red); border-color: var(--help-red); }
-.help-list { --help-red: var(--alert); border-color: var(--help-red); }
 .help-list .help-line { margin: var(--s1) 0; }
 .help-list .help-none { margin: var(--s1) 0; }
 /* ---------- AN EXAM INSERT (455): A SHEET OF PAPER ON THE BLACK SCREEN, because it stands for the one handed out in the exam. ---------- */
