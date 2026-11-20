@@ -211,7 +211,7 @@ function kcPicOr_(x, html) {
   if (html.trim()) return html;
   const art = typeof PFP_ART === 'object' && PFP_ART ? PFP_ART : {};
   const named = (typeof DATA !== 'undefined' && DATA && Array.isArray(DATA.defaultPictures) ? DATA.defaultPictures : []).filter(n => art[n]);
-  const list = named.length ? named : Object.keys(art);
+  const list = named.length ? named : (typeof PFP_PICTURES !== 'undefined' ? PFP_PICTURES : []).filter(n => art[n]);
   if (!list.length || typeof pfpArt_ !== 'function') return '';
   const r = kcRow_(x), k = String(r.personId || (x && (x.key || x.name)) || ''); let h = 0;
   for (let i = 0; i < k.length; i++) h = (h * 31 + k.charCodeAt(i)) >>> 0;

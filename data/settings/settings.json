@@ -16,7 +16,29 @@
   "guest": {"rank": "out", "tier": "anyone"},
   "ranks": ["contact", "student", "client", "staff", "admin"],
   "tiers": ["anyone", "member", "child", "admin"],
-  "titles": {"head of boxing": "Head of Boxing", "coach": "Coach"}
+  "titles": {"head of boxing": "Head of Boxing", "coach": "Coach"},
+  "messaging": {
+   "_about": "WHO MAY MESSAGE WHOM (owner, 20 Nov: one place), by `ranks`: each rank the ranks it may write to. The backend's `mayMessage` and the phone's Message tiles (`msgMay_`) both read it; `seesPerson_` then says which people. The backend's rule won: a student writes to an admin and a tutor; no tutor writes to a tutor.",
+   "admin": ["admin", "staff", "client", "student"],
+   "staff": ["admin", "client", "student"],
+   "client": ["admin", "staff"],
+   "student": ["admin", "staff"]
+  }
+ },
+ "limits": {
+  "_about": "LIMITS BOTH SIDES KEEP (owner, 20 Nov): how many photos, jobs and library cards a profile holds, favourite links and their title and address lengths, and the weekly email's word cap. Backend constants read these; the site reads SHARED_SETTINGS.limits.",
+  "photoMax": 8,
+  "jobMax": 6,
+  "libraryCards": 5,
+  "favLinksMax": 10,
+  "favTitleMax": 80,
+  "favUrlMax": 2000,
+  "digestWordMax": 300
+ },
+ "siteRules": {
+  "_about": "THE RULES' IDS (496; owner, 20 Nov): every id js/rules.js registers, and those `locked` (never universal, each with its `lock` reason in rules.js). The backend's RULE_IDS and RULES_LOCKED read this; tools/shared-lists.js holds js/rules.js to it.",
+  "ids": ["mag-items", "speed-long", "hear-lang", "tap-44", "search-icon", "whole-widgets", "library-one-card", "tell-admin", "kjv-admin", "finder-members", "keep-basket", "admin-cols", "people-no-merge", "items-no-move", "form-save-row"],
+  "locked": ["hear-lang", "keep-basket", "admin-cols", "people-no-merge", "items-no-move", "form-save-row"]
  },
  "submissionsPerPost": 25,
  "answerTextMax": 20000,
