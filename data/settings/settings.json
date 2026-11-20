@@ -1,5 +1,6 @@
 {
  "_about": "THE ONE SETTINGS FILE (owner, 16 Nov: single source of truth): values the site and the backend must agree on. tools/cards-gen.js --write copies it as SHARED_SETTINGS into js/core.js and backend/constants.gs; edit here, never there. Never an id, a secret or anybody's data.",
+ "tz": "Europe/London",
  "days": [["m", "Monday"], ["tu", "Tuesday"], ["w", "Wednesday"], ["th", "Thursday"], ["f", "Friday"], ["sa", "Saturday"], ["su", "Sunday"]],
  "hours": [9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
  "roles": {

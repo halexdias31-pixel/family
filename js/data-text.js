@@ -74,26 +74,7 @@ const MONTH_NAMES = ['January','February','March','April','May','June',
                      'July','August','September','October','November','December'];
 
 /* A timestamp WITH its time. § */
-function parseWhen(v) {
-  if (typeof v === 'number' && v > 0) return new Date(v);      // the payload's `at`, in ms
-  const t = String(v ?? '').trim();
-  if (!t) return null;
-  /* ---------- AN ISO DATE IS READ FIRST, AND IT USED TO BE READ BACKWARDS § */
-  const iso = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[\sT]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
-  if (iso) {
-    const d0 = new Date(+iso[1], +iso[2] - 1, +iso[3],
-                        +(iso[4] || 0), +(iso[5] || 0), +(iso[6] || 0));
-    return isNaN(d0) ? null : d0;
-  }
-  const m = t.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})(?:[\sT]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
-  if (m) {
-    const y = m[3].length === 2 ? 2000 + (+m[3]) : +m[3];
-    const d = new Date(y, +m[2] - 1, +m[1], +(m[4] || 0), +(m[5] || 0), +(m[6] || 0));
-    return isNaN(d) ? null : d;
-  }
-  const d = new Date(t);
-  return isNaN(d) ? null : d;
-}
+function parseWhen(v) { return dateOf_(v, true); }   // the one reader, js/core.js `dateOf_`
 
 
 /* The ladder. Singulars are words rather than numbers — "a minute ago", not "1 minute ago", because nobody counts to one — and "yesterday" for the same reason. § */

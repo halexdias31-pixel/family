@@ -247,7 +247,7 @@ function aiTally_(change, busy, prop) {
   if (!lock.tryLock(5000)) return busy;
   try {
     const props = PropertiesService.getScriptProperties();
-    const day = Utilities.formatDate(new Date(), 'Europe/London', 'yyyy-MM-dd');
+    const day = todayIso_();
     let tally = {};
     try { tally = JSON.parse(props.getProperty(name) || '{}') || {}; } catch (e) { tally = {}; }
     if (tally.day !== day || !tally.n) tally = { day: day, n: {} };
@@ -759,7 +759,7 @@ function reportCut_(v, max) {
 }
 /* THE LONDON DAY A REPORT WAS MADE ON — one a day per person per question; a cell typed as text reads as its own date. */
 function reportDay_(v) {
-  if (v instanceof Date && !isNaN(v)) return Utilities.formatDate(v, DIGEST_TZ, 'yyyy-MM-dd');
+  if (v instanceof Date && !isNaN(v)) return todayIso_(v);
   const m = S(v).match(/^\d{4}-\d{2}-\d{2}/);
   return m ? m[0] : '';
 }

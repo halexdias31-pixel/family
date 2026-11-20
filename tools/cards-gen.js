@@ -19,6 +19,8 @@ const TAKE = [
   ['js/find-figures.js', ['TAG_NAME', 'tagMadeOf_']],
   /* THE WORDS FILE AND THE FORMATTERS (owner rule 1.1): every line a card says in an email goes through these. */
   ['js/core.js', ['WORDS_FILE', 'esc', 'text_', 'fmtTime_', 'fmtHours_', 'fmtMoney_', 'DAYS_SHORT', 'fmtDay_', 'fmtDmy_', 'fmtDate_',
+    /* ONE DATE READER, ONE TODAY (owner, 20 Nov): tools/date-cases.js holds this copy to the site's. */
+    'dateOf_', 'tz_', 'todayIso_',
     /* ONE PERSON ROW, ONE TUTOR CARD (owner, 17 Nov): get-people.gs `tutorOut_` and me-card.js `cardPatchTutor_` read a row by it. */
     'ageRank_', 'ageOut_', 'tutorCardOf_']],
   /* THE ONE CARD MAKER (owner, 16 Nov: one card maker everywhere): renderCard and the blocks it draws; an email calls it with its inline setting. */

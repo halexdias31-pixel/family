@@ -619,7 +619,7 @@ function claudeNotesOpen_() {
 }
 /* THE WORDS OF THE FILE: one block per open note, so a session reads them all at once. */
 function claudeNotesText_(notes) {
-  const day = ms => ms ? Utilities.formatDate(new Date(ms), 'Europe/London', 'yyyy-MM-dd') : '';
+  const day = ms => ms ? todayIso_(ms) : '';
   const head = CLAUDE_NOTES_FILE + ' — the open notes from the site\'s Suggest a change tiles (Ledger tab claude_notes). Rewritten on every add and done.\n\n';
   if (!notes.length) return head + 'No open notes.\n';
   return head + notes.map(n => '[' + n.id + '] ' + (n.column || '?') + ' › ' + (n.itemLabel || n.itemId) + ' (' + n.itemId + ') — ' + day(n.at) + '\n' + n.note).join('\n\n') + '\n';
@@ -733,7 +733,7 @@ function claudeNotesReopen_(day) {
   let n = 0;
   t.rows.forEach(r => {
     if (norm(r.status) !== 'done' || addressed[S(r.note_id)]) return;
-    const v = r.done_at, d = v instanceof Date ? Utilities.formatDate(v, 'Europe/London', 'yyyy-MM-dd') : S(v).slice(0, 10);
+    const v = r.done_at, d = v instanceof Date ? todayIso_(v) : S(v).slice(0, 10);
     if (d !== day) return;
     setCells(t, r, { status: 'open', done_at: '' });
     n++;
