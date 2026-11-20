@@ -23,7 +23,10 @@ const ORDER = [
   'rules',        // rules.json -> docs/rules.md
   'validate-questions', // the questions marked by the site's own marker -> data/question-status.json (ok / tutor / broken)
   'marker-cases', // the marker's known traps (rule 1.75, queue 4c): right answers pass, wrong ones fail; a wrong mark fails the build
+  'essay-cases',  // the essay check (rule 1.33, 1.75; ESSAYS, DISTILLED): AQA's examiner-marked 8700 exemplars through rule: levels; agreement printed, below 80% within one level fails the build
+  'source-lines', // the source-lines check (rule 1.75, owner 20 Nov): an English row naming "Source X, lines N to M" gets source_lines, shows them off its insert or is withheld; fails the build
   'one-box',      // the one-box check (rule 1.75, owner 20 Nov): every answer face by qtFace_; more than one box outside a table fails the build
+  'digest-clip',  // the digest-clip check (rule 1.75, owner 20 Nov): large weeks through the Sunday email's digestRender_; a part over Gmail's clip or a question without its words fails the build
   'bundle',       // js/ in index.html's order -> bundle/*.js
   'one-card',     // the one-card check (rule 1.75): every Find card by the one maker, no CSS of its own; fails the build
   'build-stamp',  // everything served -> index.html's BUILD_STAMP; last

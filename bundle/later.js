@@ -2483,13 +2483,14 @@ return (DATA.inserts || []).filter(r => (r.forPapers || []).length ? r.forPapers
 : has(r.forSubjects, x.subject) && has(r.forLevels, levelOf_(x)) && has(r.forTiers, x.tier) && has(r.boards, x.examBoard));
 }
 const insReading_ = r => !!r && (!!(r.forPapers || []).length || !!r.sourceText || !!r.libHas);
-function insSource_(r, from, to) {
+function insSource_(r, from, to, src) {
 const lines = !!r.lineNumbers, cut = from != null;
-let at = 0;
+let at = 0, cur = '';
+const inCut = () => !cut || (at >= from && at <= to && (!src || !cur || cur === src));
 return cardBlocks_(String(r.sourceText || '').split(/\n\s*\n/).map(p => p.trim()).filter(Boolean).map(p => {
-if (/^# /.test(p)) return cut ? null : { type: 'text', look: 'insrc-h', text: { b: p.slice(2) } };
+if (/^# /.test(p)) { const m = /^# Source ([A-Z])\b/i.exec(p); if (m) { cur = m[1].toUpperCase(); at = 0; } return cut ? null : { type: 'text', look: 'insrc-h', text: { b: p.slice(2) } }; }
 if (/^> /.test(p)) return cut ? null : { type: 'text', look: 'insrc-note', text: p.replace(/^> /gm, '') };
-const runs = p.split(/\[(\d{1,3})\]\s*/).map((t, i) => (i % 2 ? (at = +t, (!cut || (at >= from && at <= to)) && lines ? { ln: t } : '') : (!cut || (at >= from && at <= to) ? t : '')));
+const runs = p.split(/\[(\d{1,3})\]\s*/).map((t, i) => (i % 2 ? (at = +t, inCut() && lines ? { ln: t } : '') : (inCut() ? t : '')));
 return !cut || runs.some(t => t && typeof t === 'string' && t.trim()) ? { type: 'text', look: 'insrc-p', text: runs } : null;
 }).filter(Boolean));
 }
@@ -2498,12 +2499,31 @@ const t = String(say || '').replace(/&ndash;|&mdash;/g, '–');
 const m = /^\s*lines?\s+(\d{1,3})\s*(?:[–—-]|to)\s*(\d{1,3}|the end)\s*\.?\s*$/i.exec(t);
 return m ? { from: +m[1], to: /end/i.test(m[2]) ? 999 : +m[2] } : null;
 }
-function insStemLines_(x, p) {
-const span = insLines_(p && p.lines), r = span && insertsFor_(x).find(insReading_);
+function insSpan_(v) {
+const m = /^([A-Z]):(\d{1,3})-(\d{1,3}|end)$/.exec(String(v || '').trim());
+return m ? { src: m[1], from: +m[2], to: m[3] === 'end' ? 999 : +m[3] } : null;
+}
+const insRowSpan_ = o => !o || String(o.sourceLinesWithheld || (o.row && o.row.source_lines_withheld) || '').trim() ? null
+: insSpan_(o.sourceLines || (o.row && o.row.source_lines));
+function insLinesBox_(x, span) {
+const r = span && insertsFor_(x).find(i => insReading_(i) && (!span.src || !(i.sources || []).length || i.sources.indexOf(span.src) !== -1));
 if (!r) return null;
 insWant_(r);
-return figBox_({ look: 'insrc' + (r.lineNumbers ? ' has-lines' : '') + (r.sourceText ? '' : ' insrc-wait'), attrs: { 'data-ins': r.id, 'data-from': span.from, 'data-to': span.to },
-inner: r.sourceText ? insSource_(r, span.from, span.to) : insSay_(r) });
+return figBox_({ look: 'insrc insrc-q' + (r.lineNumbers ? ' has-lines' : '') + (r.sourceText ? '' : ' insrc-wait'),
+attrs: { 'data-ins': r.id, 'data-from': span.from, 'data-to': span.to, 'data-src': span.src || '' },
+inner: r.sourceText ? insSource_(r, span.from, span.to, span.src) : insSay_(r) });
+}
+function insStemLines_(x, p) {
+if (p && String(p.sourceLinesWithheld || (p.row && p.row.source_lines_withheld) || '').trim()) return null;
+const own = insRowSpan_(p), say = insLines_(p && p.lines);
+return insLinesBox_(x, own || (say && Object.assign({ src: '' }, say)));
+}
+function insPartLines_(x) {
+const span = insRowSpan_(x);
+if (!span) return '';
+const same = s => { const t = s && (insRowSpan_(s) || insLines_(s.lines)); return !!t && t.from === span.from && t.to === span.to && (!t.src || t.src === span.src); };
+if ((x.stems || []).some(same)) return '';
+return insLinesBox_(x, span) || '';
 }
 function insSay_(r) {
 if (typeof USER === 'undefined' || !USER || !USER.token) return cardBlock_({ type: 'paperNote', look: 'lib-sign', text: 'Sign in to read the source — your account is a few screens to the right.' });
@@ -2519,8 +2539,8 @@ function insLanded_() {
 document.querySelectorAll('.insrc-wait[data-ins]').forEach(el => {
 const r = insertRow_(el.getAttribute('data-ins'));
 if (!r) return;
-const f = el.getAttribute('data-from'), t = el.getAttribute('data-to');
-if (r.sourceText) { el.classList.remove('insrc-wait'); el.innerHTML = f ? insSource_(r, +f, +t) : insSource_(r); }
+const f = el.getAttribute('data-from'), t = el.getAttribute('data-to'), src = el.getAttribute('data-src') || '';
+if (r.sourceText) { el.classList.remove('insrc-wait'); el.innerHTML = f ? insSource_(r, +f, +t, src) : insSource_(r); }
 else el.innerHTML = insSay_(r);
 });
 }
@@ -4634,6 +4654,7 @@ if (!markPtIs_(toks[i], alts, opt)) return false;
 if (quoteOnly && !toks[i].quote) return false;
 if (negWay) return true;
 for (let j = i - 1, k = 0; j >= 0 && k < 3; j--, k++) {
+if (toks[j].c !== toks[i].c || toks[j].w === 'because') break;
 if (MARK_PT_NOT.has(toks[j].w)) return false;
 if (!MARK_PT_GLUE.has(toks[j].w)) break;
 }
@@ -4812,6 +4833,157 @@ mark = Math.min(hi, lo + Math.floor((count - lv.from) * (hi - lo + 1) / Math.max
 const head = lv ? 'Level ' + lv.level + ' (' + lv.name + '): ' + mark + ' of ' + of + ' marks, from ' + count + ' of ' + made + ' PEEL elements.'
 : 'No level yet: 0 of ' + of + ' marks, from 0 of ' + made + ' PEEL elements.';
 return { got: mark, of: of, points: true, peel: { level: lv ? lv.level : 0, count, made }, say: head, why: said.join(' ') };
+}
+const markIsLevels_ = accept => /(^|\|)\s*rule:\s*levels\b/i.test(String(accept || ''));
+const levelsRow_ = (type, ao) => markRows_().filter(r => r.kind === 'levels' && r.name === type && (!ao || r.ao === ao));
+const levelsList_ = name => { const r = markRows_().find(r => r.kind === 'levels-words' && r.name === name); return r ? String(r.words).split('/').map(w => w.trim().toLowerCase()).filter(Boolean) : []; };
+let LEVELS_FREQ = null, LEVELS_FREQ_ASKED = false;
+function levelsFreq_() {
+if (LEVELS_FREQ) return LEVELS_FREQ;
+if (typeof DATA !== 'undefined' && DATA && Array.isArray(DATA.wordFreq)) return (LEVELS_FREQ = new Map(DATA.wordFreq.map((w, i) => [w, i])));
+if (!LEVELS_FREQ_ASKED && typeof fetch === 'function') {
+LEVELS_FREQ_ASKED = true;
+fetch('data/word-freq.json').then(r => r.json()).then(j => { LEVELS_FREQ = new Map((j.words || []).map((w, i) => [w, i])); }).catch(() => { LEVELS_FREQ_ASKED = false; });
+}
+return null;
+}
+function levelsKnown_(w, F) {
+if (F.has(w)) return true;
+const tries = [w.replace(/'s$/, ''), w.replace(/s$/, ''), w.replace(/es$/, ''), w.replace(/ies$/, 'y'), w.replace(/ed$/, ''), w.replace(/ed$/, 'e'), w.replace(/d$/, ''),
+w.replace(/ing$/, ''), w.replace(/ing$/, 'e'), w.replace(/([a-z])\1ing$/, '$1'), w.replace(/([a-z])\1ed$/, '$1'), w.replace(/ly$/, ''), w.replace(/ily$/, 'y'),
+w.replace(/er$/, ''), w.replace(/est$/, ''), w.replace(/ier$/, 'y'), w.replace(/iest$/, 'y'), w.replace(/ness$/, ''), w.replace(/ful$/, ''), w.replace(/less$/, ''),
+w.replace(/^un/, ''), w.replace(/^re/, ''), w.replace(/ment$/, ''), w.replace(/ise$/, 'ize'), w.replace(/ised$/, 'ized'), w.replace(/our$/, 'or')];
+return tries.some(t => t !== w && t.length > 2 && F.has(t)) || /^\d/.test(w);
+}
+function levelsQuotes_(raw) {
+const out = [];
+String(raw).replace(/(^|[^a-z0-9])(["“‘']|&lsquo;|&ldquo;)([^"“”‘’\n]{1,200}?)(["”’']|&rsquo;|&rdquo;)(?![a-z])/gi, (m, pre, o, body) => { if (/[a-z]/i.test(body)) out.push(body); return m; });
+return out;
+}
+function levelsSource_(x) {
+const ins = typeof insertsFor_ === 'function' ? insertsFor_(x).filter(insReading_) : [];
+const span = typeof insRowSpan_ === 'function' ? insRowSpan_(x) : null;
+const text = (x && x.levelsSource) || ins.map(r => String(r.sourceText || '')).join('\n\n');
+if (!text.trim()) return { all: '', span: '', wait: ins.some(r => !r.sourceText) };
+const words = s => ' ' + markPtWords_(markPtPlain_(s.replace(/\[\d{1,3}\]/g, ' '))).join(' ') + ' ';
+let cut = '';
+if (span) {
+let at = 0, cur = '';
+String(text).split(/\n\s*\n/).forEach(p => {
+const m = /^# Source ([A-Z])\b/i.exec(p.trim());
+if (m) { cur = m[1].toUpperCase(); at = 0; return; }
+p.split(/\[(\d{1,3})\]\s*/).forEach((t, i) => { if (i % 2) at = +t; else if ((!span.src || !cur || cur === span.src) && at >= span.from && at <= span.to) cut += ' ' + t; });
+});
+}
+return { all: words(text), span: span && cut.trim() ? words(cut) : '' };
+}
+const LEVELS_SAY = { quote: 'quote short phrases from the source (in quotation marks)', inlines: 'quote from the lines the question names',
+term: 'name the methods with subject terms', analysis: 'say what each quotation suggests or makes the reader feel', content: 'cover more of the key moments and ideas',
+evaluate: 'judge how far you agree with the statement, and how well the writer does it', compare: 'compare the two sources point by point (whereas, similarly)',
+words: 'write more: develop each point', paras: 'organise your writing into paragraphs', rare: 'choose more ambitious, precise words',
+varied: 'vary your sentences: short, long, questions, openings', punct: 'use a wider range of punctuation (; : — ? !)', spell: 'check your spelling',
+demarc: 'start each sentence with a capital and end it with a full stop', imagery: 'add imagery: similes, metaphors, the senses', focus: 'keep to what the question asks about' };
+function levelsSignals_(raw, key, x) {
+const F = levelsFreq_();
+const text = String(raw).replace(/<[^>]*>/g, ' ').replace(/&[a-z]+;|&#\d+;/g, ' ');
+const low = ' ' + markPtPlain_(raw).replace(/[’‘]/g, "'").replace(/[^a-z0-9'\s]/g, ' ').replace(/\s+/g, ' ') + ' ';
+const sents = (text.replace(/\s+/g, ' ').match(/[^.!?]+[.!?]*["”’']?/g) || []).map(s => s.trim()).filter(s => /[a-z]/i.test(s));
+const words = text.match(/[A-Za-z][A-Za-z'’-]*/g) || [];
+const has = (s, list) => { const t = ' ' + s.toLowerCase().replace(/[’‘]/g, "'").replace(/[^a-z0-9'\s]/g, ' ').replace(/\s+/g, ' ') + ' '; return list.filter(w => t.indexOf(' ' + w + ' ') >= 0 || (w.length > 5 && t.indexOf(' ' + w) >= 0)); };
+const src = levelsSource_(x);
+const qs = levelsQuotes_(raw).map(q => markPtWords_(markPtPlain_(q)).join(' ')).filter(Boolean);
+const qIn = src.all ? qs.filter(q => q.split(/\.\.\.+/).every(p => src.all.indexOf(' ' + p.trim() + ' ') >= 0)) : qs;
+const qSpan = src.span ? qIn.filter(q => src.span.indexOf(' ' + q + ' ') >= 0) : qIn;
+const s = {};
+s.quote = new Set(qIn).size;
+s.inlines = src.span ? new Set(qSpan).size : s.quote;
+s.term = new Set(has(text, levelsList_(key.terms || 'language'))).size;
+s.analysis = sents.filter(t => has(t, levelsList_('analysis')).length).length;
+s.evaluate = sents.filter(t => has(t, levelsList_('evaluate')).length).length;
+s.compare = sents.filter(t => has(t, levelsList_('compare')).length).length;
+s.imagery = sents.filter(t => has(t, levelsList_('imagery')).length).length;
+s.content = key.points.filter(p => p.some(w => { const cw = markPtWords_(markPtPlain_(w)).filter(t => t.length >= 4 && !MARK_PT_GLUE.has(t));
+return cw.length && cw.filter(t => low.indexOf(' ' + t) >= 0).length >= Math.ceil(cw.length / 2); })).length;
+s.points = key.points.length;
+s.words = words.length;
+s.paras = String(raw).split(/\n\s*\n|\n(?=\s*\S)/).filter(p => (p.match(/[A-Za-z]+/g) || []).length >= 8).length;
+const lens = sents.map(t => (t.match(/[A-Za-z']+/g) || []).length).filter(n => n);
+const mean = lens.reduce((a, b) => a + b, 0) / Math.max(1, lens.length);
+const sd = Math.sqrt(lens.reduce((a, b) => a + (b - mean) * (b - mean), 0) / Math.max(1, lens.length));
+const openers = new Set(sents.map(t => (t.match(/[A-Za-z']+/) || [''])[0].toLowerCase()));
+s.varied = lens.length >= 3 ? Math.min(1, sd / Math.max(1, mean)) * 0.6 + Math.min(1, openers.size / lens.length) * 0.4 : 0;
+s.punct = [/;/, /:/, /[—–]|\s-\s/, /\?/, /!/, /["“”]/, /\(/, /\.\.\.|…/, /,/].filter(r => r.test(text)).length;
+s.demarc = sents.length ? sents.filter(t => /^["“‘']?[A-Z0-9]/.test(t)).length / sents.length - (text.match(/(^|\s)i(?=[\s',.])/g) || []).length / Math.max(1, sents.length) : 0;
+if (F) {
+const lw = words.filter((w, i) => !(/^[A-Z]/.test(w) && i > 0)).map(w => w.toLowerCase().replace(/[’']s?$/, '').replace(/[’'-]/g, ''));
+const known = lw.filter(w => levelsKnown_(w, F));
+s.spell = lw.length ? known.length / lw.length : 0;
+const content = [...new Set(known.filter(w => w.length > 3 && !MARK_PT_GLUE.has(w)))];
+s.rare = content.length ? content.filter(w => (F.get(w) || 0) > 3000).length / content.length : 0;
+}
+return s;
+}
+function levelsWeights_(spec) {
+return String(spec || '').split(';').map(t => /^\s*([a-z]+)\s+([\d.]+)\s*@\s*([\d.]+)\s*$/i.exec(t)).filter(Boolean).map(m => ({ sig: m[1], w: +m[2], at: +m[3] }));
+}
+function levelsShare_(sig, wt) {
+const v = sig[wt.sig];
+if (v === undefined) return null;
+if (wt.sig === 'spell' || wt.sig === 'demarc') return Math.max(0, Math.min(1, (v - wt.at) / (1 - wt.at)));
+return Math.max(0, Math.min(1, v / wt.at));
+}
+function levelsScore_(sig, row) {
+const wts = levelsWeights_(row.weights).filter(w => !(w.sig === 'content' && !sig.points));
+let got = 0, tot = 0;
+const gaps = [];
+wts.forEach(w => { const sh = levelsShare_(sig, w); if (sh === null) return; got += w.w * sh; tot += w.w; gaps.push({ sig: w.sig, lift: w.w * (1 - sh) }); });
+let share = tot ? got / tot : 0;
+const cuts = String(row.cuts || '0.1 0.3 0.5 0.7').split(/\s+/).map(Number);
+let cap = 4;
+if (sig.words < (+row.short || 40)) cap = 1;
+if (/quote|inlines/.test(row.weights) && !sig.quote) cap = Math.min(cap, 2);
+let level = 0;
+cuts.forEach((c, i) => { if (share >= c) level = i + 1; });
+if (!sig.words) level = 0;
+level = Math.min(level, cap);
+const of = +row.of || 0, band = of / 4;
+let mark = 0;
+if (level) {
+const lo = cuts[level - 1], hi = level < 4 ? cuts[level] : 1;
+const into = Math.max(0, Math.min(0.999, (share - lo) / Math.max(0.01, hi - lo)));
+mark = Math.min(of, Math.floor((level - 1) * band) + 1 + Math.floor(into * (Math.round(level * band) - Math.floor((level - 1) * band))));
+if (level < 4 && share >= hi) mark = Math.round(level * band);
+}
+gaps.sort((a, b) => b.lift - a.lift);
+return { ao: row.ao, of, level, mark, share, next: gaps.filter(g => g.lift > 0.05).slice(0, 2).map(g => g.sig) };
+}
+function markLevelsRead_(accept) {
+const way = String(accept || '').split('|').find(w => /^\s*rule:\s*levels\b/i.test(w)) || '';
+const parts = way.replace(/^\s*rule:\s*levels\b/i, '').split(';').map(p => p.trim());
+const head = (parts.shift() || '').split(/\s+/).filter(Boolean);
+return { type: (head[0] || '').toLowerCase(), terms: head[1] || '', points: parts.filter(Boolean).map(p => p.split('/').map(w => w.trim()).filter(Boolean)) };
+}
+function markLevels_(typed, accept, x) {
+const raw = String(Array.isArray(typed) ? typed.join('\n') : typed == null ? '' : typed);
+if (!raw.trim()) return null;
+const key = markLevelsRead_(accept);
+const rows = levelsRow_(key.type);
+if (!rows.length) return { error: true };
+if (!key.terms) key.terms = rows[0].terms || 'language';
+if (/quote|inlines/.test(rows.map(r => r.weights).join(' ')) && levelsSource_(x).wait) {
+const r = insertsFor_(x).find(insReading_);
+if (r && typeof insWant_ === 'function') insWant_(r);
+return { wait: true, say: 'The extract is still loading; press Check again in a moment.' };
+}
+if (/spell|rare/.test(rows.map(r => r.weights).join(' ')) && !levelsFreq_()) return { wait: true, say: 'The spelling list is still loading; press Check again in a moment.' };
+const sig = levelsSignals_(raw, key, x);
+const each = rows.map(r => levelsScore_(sig, r));
+const got = each.reduce((a, e) => a + e.mark, 0), of = each.reduce((a, e) => a + e.of, 0) || Number(x && x.marks) || 0;
+const name = ['no level yet', 'simple, limited', 'some', 'clear', 'perceptive, detailed'];
+const say = each.map(e => (each.length > 1 ? e.ao + ' ' : '') + (e.level ? 'Level ' + e.level + ' (' + name[e.level] + '): ' : 'No level yet: ') + e.mark + ' of ' + e.of + ' marks.').join(' ');
+const next = [...new Set([].concat(...each.filter(e => e.level < 4).map(e => e.next)))].slice(0, 2);
+const why = next.length ? 'To reach the next level: ' + next.map(n => LEVELS_SAY[n] || n).join('; ') + '.' : 'Top level.';
+return { got: Math.min(got, of), of, points: true, levels: { each: each.map(e => ({ ao: e.ao, level: e.level, mark: e.mark, of: e.of })), signals: sig }, say, why };
 }
 function markIsPoints_(accept) {
 return /(^|\|)\s*rule:\s*points\b/i.test(String(accept || ''));
@@ -4996,6 +5168,11 @@ if (tSides) {
 const phr = ways.map(markOrderSides_).filter(sd => sd && !sd.every(num));
 if (phr.length && phr.some(sd => shuffled(tSides, sd)) && !phr.some(sd => sd.length === tSides.length && tSides.every((v, i) => same(v, sd[i])))) return true;
 }
+if (String(accept || '').split('|').some(w => /^\s*rule:(?:.*[\s,;])?ordered\b/i.test(w))) {
+const got = markList_(markNorm_(raw.replace(/[−–—]/g, '-')));
+const lists = ways.map(w => markList_(markNorm_(w.replace(/[−–—]/g, '-')))).filter(l => l.length >= 2);
+if (lists.length && lists.some(l => shuffled(got, l)) && !lists.some(l => l.length === got.length && got.every((v, i) => same(v, l[i])))) return true;
+}
 if (/^([a-z])\1$/i.test(raw) && ways.some(w => /^([a-z])\1$/i.test(w) && /[A-Z]/.test(w)) && !ways.some(w => w === raw || w.split('').sort().join('') === raw.split('').sort().join(''))) return true;
 return false;
 }
@@ -5152,6 +5329,7 @@ const v = v0 && markInForm_(a, x.accept, o.formAsked) !== false;
 const fix = v && !markAnswer_(a, x.accept, false, { strict: true }) ? markTypo_(a, x.accept, o) : '';
 return fix ? { got: 1, of: 1, typo: fix } : { got: v ? 1 : 0, of: 1 };
 } },
+levels: { has: x => markerOf_(x).kind === 'accept' && markIsLevels_(x.accept), run: (x, a) => markLevels_(a, x.accept, x) },
 peel: { has: x => markerOf_(x).kind === 'accept' && markIsPeel_(x.accept), run: (x, a) => markPeel_(a, x.accept, x, markOpt_(x)) },
 points: { has: x => markerOf_(x).kind === 'accept' && !markIsPeel_(x.accept) && markIsPoints_(x.accept),
 run: (x, a) => markPoints_(a, markPointsWay_(x.accept), x, markOpt_(x)) },
@@ -5181,7 +5359,7 @@ if (!r || r.empty) return out('empty', 0, r ? r.of : max, '');
 if (r.error) return out('unmarked', 0, max, 'Could not mark it \u2014 try again');
 if (r.wait) return out('wait', 0, max, r.say);
 const more = {};
-['typo', 'peel', 'say', 'each', 'stray'].forEach(k => { if (r[k] !== undefined) more[k] = r[k]; });
+['typo', 'peel', 'levels', 'say', 'each', 'stray'].forEach(k => { if (r[k] !== undefined) more[k] = r[k]; });
 return out(r.got >= r.of ? 'right' : r.got > 0 ? 'part' : 'wrong', r.got, r.of, r.why || '', more);
 }
 function markWord_(v) {
@@ -5537,7 +5715,7 @@ if (v.verdict === 'unmarked') { ACTIONS['qp-send'](el); return; }
 if (v.verdict === 'wait') { tell_(out, 'info', v.why); return; }
 const full = v.verdict === 'right', rules = markTierOf_(v.method) === 'rules';
 box.classList.add(full ? 'is-right' : 'is-near');
-if (v.peel) {
+if (v.peel || v.levels) {
 tell_(out, full ? 'saved' : 'info', v.say);
 let fb = box.querySelector('.qp-fb') || (box.nextElementSibling && box.nextElementSibling.matches('.qp-fb') ? box.nextElementSibling : null);
 if (!fb) { fb = document.createElement('p'); fb.className = 'qp-fb'; box.appendChild(fb); }
@@ -8375,7 +8553,8 @@ let top = '', sbs = [];
 const sbFlush = () => { if (sbs.length) top += figBox_({ look: 'qsheet-stem qtext is-over', inner: qTables_(typeset_(sbs.join(''))) }); sbs = []; };
 head.forEach(b => { if (b.k === 'sb') sbs.push(b.h); else { sbFlush(); top += figHtml_(x, b); } });
 sbFlush();
-return top + (lead ? figBox_({ look: 'qsheet-lead', inner: qTables_(typeset_(lead)) }) : '')
+const ext = x && typeof insPartLines_ === 'function' && c.some(b => b.k === 'lead' || b.k === 'pb') ? insPartLines_(x) : '';
+return top + (lead ? figBox_({ look: 'qsheet-lead', inner: qTables_(typeset_(lead)) }) : '') + ext
 + figBox_({ look: 'qsheet-part' + (circ ? ' is-text' : ''), attrs: circ ? { 'data-circ': circ.k } : null, inner: figBox_({ look: 'qsheet-pb', inner: pb }) })
 + (circ && words.length ? figBox_({ tag: 'p', look: 'qpad-note qw-note', text: 'Tap a word to ring it, and again to take the ring off. ',
 blocks: [{ type: 'group', tag: 'span', attrs: { 'data-kept-k': circ.k }, text: padNoteSay_(circ.k) }] }) : '');

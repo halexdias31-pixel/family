@@ -614,7 +614,9 @@ function chunkHtml_(chunk, circ, x) {
   const sbFlush = () => { if (sbs.length) top += figBox_({ look: 'qsheet-stem qtext is-over', inner: qTables_(typeset_(sbs.join(''))) }); sbs = []; };
   head.forEach(b => { if (b.k === 'sb') sbs.push(b.h); else { sbFlush(); top += figHtml_(x, b); } });
   sbFlush();
-  return top + (lead ? figBox_({ look: 'qsheet-lead', inner: qTables_(typeset_(lead)) }) : '')
+  /* THE SOURCE LINES IT NAMES, under its caption and above its words (`insPartLines_`, find-history.js) */
+  const ext = x && typeof insPartLines_ === 'function' && c.some(b => b.k === 'lead' || b.k === 'pb') ? insPartLines_(x) : '';
+  return top + (lead ? figBox_({ look: 'qsheet-lead', inner: qTables_(typeset_(lead)) }) : '') + ext
     + figBox_({ look: 'qsheet-part' + (circ ? ' is-text' : ''), attrs: circ ? { 'data-circ': circ.k } : null, inner: figBox_({ look: 'qsheet-pb', inner: pb }) })
     + (circ && words.length ? figBox_({ tag: 'p', look: 'qpad-note qw-note', text: 'Tap a word to ring it, and again to take the ring off. ',
       blocks: [{ type: 'group', tag: 'span', attrs: { 'data-kept-k': circ.k }, text: padNoteSay_(circ.k) }] }) : '');

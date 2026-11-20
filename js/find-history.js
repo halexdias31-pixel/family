@@ -53,14 +53,16 @@ function insertsFor_(x) {
 /* ---------- A READING INSERT'S EXTRACT (458): private, so asked for when it is opened and drawn when it lands ---------- */
 const insReading_ = r => !!r && (!!(r.forPapers || []).length || !!r.sourceText || !!r.libHas);
 /* THE TEXT IS PARAGRAPHS (a blank line between), `# ` a heading, `> ` the paper's note above it, `[n]` where the paper prints line n */
-function insSource_(r, from, to) {
+function insSource_(r, from, to, src) {
   const lines = !!r.lineNumbers, cut = from != null;
-  /* A QUESTION'S LINES (owner, 16 Nov: "it should sync from the extract"): only the printed lines from..to, read off the one copy, the insert's. */
-  let at = 0;
+  /* A QUESTION'S LINES (owner, 16 Nov: "it should sync from the extract"): only the printed lines from..to, read off the one copy, the insert's.
+     `src` (20 Nov) keeps them to one source: a two-source insert numbers Source B from 1 again, after its `# Source B`. */
+  let at = 0, cur = '';
+  const inCut = () => !cut || (at >= from && at <= to && (!src || !cur || cur === src));
   return cardBlocks_(String(r.sourceText || '').split(/\n\s*\n/).map(p => p.trim()).filter(Boolean).map(p => {
-    if (/^# /.test(p)) return cut ? null : { type: 'text', look: 'insrc-h', text: { b: p.slice(2) } };
+    if (/^# /.test(p)) { const m = /^# Source ([A-Z])\b/i.exec(p); if (m) { cur = m[1].toUpperCase(); at = 0; } return cut ? null : { type: 'text', look: 'insrc-h', text: { b: p.slice(2) } }; }
     if (/^> /.test(p)) return cut ? null : { type: 'text', look: 'insrc-note', text: p.replace(/^> /gm, '') };
-    const runs = p.split(/\[(\d{1,3})\]\s*/).map((t, i) => (i % 2 ? (at = +t, (!cut || (at >= from && at <= to)) && lines ? { ln: t } : '') : (!cut || (at >= from && at <= to) ? t : '')));
+    const runs = p.split(/\[(\d{1,3})\]\s*/).map((t, i) => (i % 2 ? (at = +t, inCut() && lines ? { ln: t } : '') : (inCut() ? t : '')));
     return !cut || runs.some(t => t && typeof t === 'string' && t.trim()) ? { type: 'text', look: 'insrc-p', text: runs } : null;
   }).filter(Boolean));
 }
@@ -70,13 +72,36 @@ function insLines_(say) {
   const m = /^\s*lines?\s+(\d{1,3})\s*(?:[–—-]|to)\s*(\d{1,3}|the end)\s*\.?\s*$/i.exec(t);
   return m ? { from: +m[1], to: /end/i.test(m[2]) ? 999 : +m[2] } : null;
 }
-/* A STEM THAT NAMES LINES OF ITS PAPER'S READING INSERT draws those lines from the insert, never words of its own (one copy: the insert). */
-function insStemLines_(x, p) {
-  const span = insLines_(p && p.lines), r = span && insertsFor_(x).find(insReading_);
+/* A ROW'S `source_lines` ("A:8-14", "A:18-end"; tools/source-lines.js writes it once from the row's words): its source and printed span. */
+function insSpan_(v) {
+  const m = /^([A-Z]):(\d{1,3})-(\d{1,3}|end)$/.exec(String(v || '').trim());
+  return m ? { src: m[1], from: +m[2], to: m[3] === 'end' ? 999 : +m[3] } : null;
+}
+const insRowSpan_ = o => !o || String(o.sourceLinesWithheld || (o.row && o.row.source_lines_withheld) || '').trim() ? null
+  : insSpan_(o.sourceLines || (o.row && o.row.source_lines));
+/* THE EXTRACT BOX: those lines off the paper's reading insert that holds that source, asked for if not here yet; '' when there is none. */
+function insLinesBox_(x, span) {
+  const r = span && insertsFor_(x).find(i => insReading_(i) && (!span.src || !(i.sources || []).length || i.sources.indexOf(span.src) !== -1));
   if (!r) return null;
   insWant_(r);
-  return figBox_({ look: 'insrc' + (r.lineNumbers ? ' has-lines' : '') + (r.sourceText ? '' : ' insrc-wait'), attrs: { 'data-ins': r.id, 'data-from': span.from, 'data-to': span.to },
-    inner: r.sourceText ? insSource_(r, span.from, span.to) : insSay_(r) });
+  return figBox_({ look: 'insrc insrc-q' + (r.lineNumbers ? ' has-lines' : '') + (r.sourceText ? '' : ' insrc-wait'),
+    attrs: { 'data-ins': r.id, 'data-from': span.from, 'data-to': span.to, 'data-src': span.src || '' },
+    inner: r.sourceText ? insSource_(r, span.from, span.to, span.src) : insSay_(r) });
+}
+/* A STEM THAT NAMES LINES OF ITS PAPER'S READING INSERT draws those lines from the insert, never words of its own (one copy: the insert). */
+function insStemLines_(x, p) {
+  if (p && String(p.sourceLinesWithheld || (p.row && p.row.source_lines_withheld) || '').trim()) return null;
+  const own = insRowSpan_(p), say = insLines_(p && p.lines);
+  return insLinesBox_(x, own || (say && Object.assign({ src: '' }, say)));
+}
+/* A QUESTION THAT NAMES SOURCE LINES ("Source A, lines 8 to 14", owner 20 Nov): the lines above its words, as the exam prints them --
+   unless a stem on its card already draws the same span. Drawn once, by `chunkHtml_`, for every question. */
+function insPartLines_(x) {
+  const span = insRowSpan_(x);
+  if (!span) return '';
+  const same = s => { const t = s && (insRowSpan_(s) || insLines_(s.lines)); return !!t && t.from === span.from && t.to === span.to && (!t.src || t.src === span.src); };
+  if ((x.stems || []).some(same)) return '';
+  return insLinesBox_(x, span) || '';
 }
 /* WHAT A READING INSERT SAYS UNTIL ITS WORDS COME: sign in, the dots, coming soon, or why not */
 function insSay_(r) {
@@ -95,8 +120,8 @@ function insLanded_() {
   document.querySelectorAll('.insrc-wait[data-ins]').forEach(el => {
     const r = insertRow_(el.getAttribute('data-ins'));
     if (!r) return;
-    const f = el.getAttribute('data-from'), t = el.getAttribute('data-to');
-    if (r.sourceText) { el.classList.remove('insrc-wait'); el.innerHTML = f ? insSource_(r, +f, +t) : insSource_(r); }
+    const f = el.getAttribute('data-from'), t = el.getAttribute('data-to'), src = el.getAttribute('data-src') || '';
+    if (r.sourceText) { el.classList.remove('insrc-wait'); el.innerHTML = f ? insSource_(r, +f, +t, src) : insSource_(r); }
     else el.innerHTML = insSay_(r);
   });
 }

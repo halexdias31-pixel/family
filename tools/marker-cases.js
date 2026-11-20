@@ -77,6 +77,18 @@ const CASES = [
   ['it isn\'t alive', 'rule: points max 1; alive', false, 'isn\'t alive is not alive'],
   ['doesn\'t dissolve', 'does not dissolve', true, 'doesn\'t is does not, plain key'],
   ['it isn\'t alive', 'it is alive', false, 'isn\'t alive is not "it is alive"'],
+  /* a not stays in its own clause (queue 4d) */
+  ['No, because 99.9% is reflected', 'rule: points max 1; 99.9%~99.9 reflected~reflect', true, '"No, because" does not negate the reason'],
+  ['No. Because 99.9% is reflected', 'rule: points max 1; 99.9%~99.9 reflected~reflect', true, '"No. Because" does not negate the reason'],
+  ['not, because it is reflected', 'rule: points max 1; reflected~reflect', true, 'a not before a comma stays in its clause'],
+  ['it is not reflected', 'rule: points max 1; reflected~reflect', false, 'a not in its own clause still negates'],
+  ['No, it is not reflected', 'rule: points max 1; reflected~reflect', false, 'a not after "No," still negates its clause'],
+  /* a comma-keyed sequence marked `rule: ordered` keeps its order (queue 4d) */
+  ['red, orange, yellow', 'red, orange, yellow | rule: ordered', true, 'an ordered sequence as keyed'],
+  ['yellow, orange, red', 'red, orange, yellow | rule: ordered', false, 'an ordered sequence reversed'],
+  ['3, 1, 2', '1, 2, 3 | rule: ordered', false, 'an ordered list of numbers shuffled'],
+  ['1, 2, 3', '1, 2, 3 | rule: ordered', true, 'an ordered list of numbers as keyed'],
+  ['yellow, orange, red', 'red, orange, yellow', true, 'without rule: ordered a bare list is still a set'],
   /* single values are untouched */
   ['9', '9', true, 'a single value'],
   ['5', '9', false, 'a single wrong value'],

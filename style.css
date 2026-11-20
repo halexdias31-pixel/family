@@ -4605,6 +4605,9 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .insrc-p { position: relative; margin: 0 0 var(--s3); }
 .insrc-p .kc-ln { position: absolute; left: calc(-1 * var(--s6)); width: var(--s5); text-align: right; font: var(--fs-small)/2.2 var(--mono); color: var(--paper-faint); }
 .insrc-wait { min-height: 3rem; font-family: inherit; }
+/* ON A QUESTION'S CARD (owner, 20 Nov): the lines it names, quoted in the card's own ink with a rule down the side, not on paper */
+.insrc-q { color: var(--ink); text-align: left; border-left: 2px solid var(--line); margin: 0 0 var(--s3); }
+.insrc-q .insrc-p .kc-ln { color: var(--faint); }
 /* THE TABLE SCROLLS SIDEWAYS INSIDE ITS OWN BOX — eighteen columns do not fit 320px, and the box says it may. */
 .kc-grid-wrap { overflow-x: auto; }
 .kc-grid { display: grid; grid-template-columns: repeat(18, minmax(2.6rem, 1fr)); gap: 2px; min-width: 48rem; }

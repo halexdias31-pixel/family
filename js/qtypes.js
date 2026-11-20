@@ -69,7 +69,7 @@ function qtSplit_(s) {
 function qtValues_(r) {
   for (const b of qtRules_(r)) {
     /* an expression is one value; a points rule is words (owner, 18-19 Nov) */
-    if (/(?:^|,)\s*(expr|eqn)\s|(?:^|,)\s*points\b|^peel\b/.test(b)) continue;
+    if (/(?:^|,)\s*(expr|eqn)\s|(?:^|,)\s*points\b|^peel\b|^levels\b/.test(b)) continue;
     const set = /(?:^|,)\s*set\s+([^,]+)/.exec(b);
     if (set) return set[1].split('/').length;
     const c = /(?:^|,)\s*count\s+(\d+)/.exec(b);
@@ -99,7 +99,7 @@ function qtFace_(x, html) {
   }
   if (choices.length >= 2) return { face: 'choice', boxes: 1, values: values };
   if (qtS_(r.draw_answer || r.drawAnswer)) return { face: 'draw', boxes: 1, values: 1 };
-  if (qtRules_(r).some(b => /^peel\b/i.test(b))) return { face: 'essay', boxes: 1, values: 1 };
+  if (qtRules_(r).some(b => /^(peel|levels)\b/i.test(b))) return { face: 'essay', boxes: 1, values: 1 };
   return { face: 'one', boxes: 1, values: values };
 }
 

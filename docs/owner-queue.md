@@ -21,6 +21,14 @@ ORDER OF BOARDS (owner, 20 Nov): OCR is the least used board, so it comes last. 
 4b. MISALIGNED MARK SCHEMES (20 Nov): ~150 A-level/OCR rows hold the next or previous part's scheme, or only boilerplate ("Marking of lists…"). Re-align each row's answer from its paper's mark scheme, then key it. Lists: scratchpad k/skip-log.txt and the batch reports.
 4c. MARKER ORDER (20 Nov): a plain accept list ignores order, so "x = 9, y = 5" passes for "x = 5, y = 9" and "Y to X" for "X to Y". Make named values and ordered phrases order-aware at the one marker; add the cases to the marker self-test.
 
+4d. MARKER: "No, because X" (20 Nov): the marker reads "No" as negating the next points, so a right answer starting "No, because…" loses marks. Limit the negation to the clause, add marker-cases. Also: ordered lists with no "to/then" are marked in any order.
+
+4e. HISTORY SHOWS EMPTY BOXES (owner, 20 Nov): an old multi-box answer shows as ", , , , , , T". History (and any answer echo) shows only what was typed, or "(no answer)".
+4f. WRONG TOPIC: W-1CM-parallel-lines is tagged "Angles in Parallel Lines" but is gradients / y = mx + c. Retag at the source; check other 1CM sheets for the same.
+
+4g. ONE HISTORY CARD (owner, 20 Nov): on a student's profile, merge every history-like card (History, Recent activity, Questions stats, Work on next, the per-source worksheet/past-paper progress cards, Grade estimate) into ONE card: progress by source, with the day view inside it. One maker, one place.
+4h. STUDENT PROFILE SHOWS STAFF FORMS (seen 20 Nov on Finley's): Apply to teach, availability grid, rate and group size, qualifications, jobs, photos, intro video, staff hub, and date of birth 01/01/2000. A child sees only child cards; the master (kinds.json) decides by role.
+
 ## Next (the 12 parts of best practice)
 
 - THE MASTER DECIDES WHAT A CARD SHOWS (owner, 18 Nov): each kind's card in kinds.json declares its fields, order, limits (e.g. current job only, role words hidden, bio length and quotes); the card code only reads it and draws — no show/hide decisions in code. Move today's code-side choices (profRoleWords_, profJobs_, tutorCardOf_ quotes) into kinds.json.
@@ -66,7 +74,7 @@ ORDER OF BOARDS (owner, 20 Nov): OCR is the least used board, so it comes last. 
 ## Suggestions (from the Ledger Suggest register, 18 Nov)
 
 - MARKING AS ONE SYSTEM (owner): exact keys first, spreading to cover everything; where keys haven't reached, rules distilled once offline (mechanical, instant at run time); never live AI; re-distil and tighten over time. Items 1, 4, 9, 10 are its steps.
-- ESSAYS, DISTILLED (owner approved): build-time only, a big AI reads hundreds of examiner-marked essays (AQA exemplars first) and derives rules/word lists/weights per band; ship only the rules; cap content below the top band. Start with AQA 8700 Paper 1 Q5.
+- ESSAYS, DISTILLED (owner approved): build-time only, a big AI reads hundreds of examiner-marked essays (AQA exemplars first) and derives rules/word lists/weights per band; ship only the rules; cap content below the top band. Start with AQA 8700 Paper 1 Q5. Status 20 Nov: all 52 AQA 8700 Q2-Q5 rows keyed `rule: levels <type>`, rubrics in marking.json (kind levels) distilled from 135 AQA exemplars (MS indicative standards + 2026 answers and commentaries); tools/essay-cases.js reports agreement each build. Next: more Q5 exemplars (only 6 so far), real student scripts with examiner marks.
 - ONE TOPIC-CARD TEMPLATE (owner law, 17 Nov; LEAN): 3 slots in fixed order, empty hidden: the idea in one line; animation/figure; the content the spec point needs, nothing else (no worked examples, common mistakes, quick questions, exam tips). Pipeline enforces; every card conformed at source.
 - RACER ROADS: always pull the latest, most complete map data; a much better road massager; any location (the learner's own or chosen); one map source + one massager, no per-place code.
 - AUTOMATE THE UN-AUTOMATABLE (code, no AI): first, a tutor emails qualifications → Apps Script reads it, OCRs attachments via Drive convert, matches names/grades/DBS numbers against fixed lists, fills the profile; owner approves. Then find other manual jobs.

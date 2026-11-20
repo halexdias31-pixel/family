@@ -162,6 +162,9 @@ function run() {
       else add(r, 'broken', 'no key and no answer');
       continue;
     }
+    /* A LEVELS KEY (rule 1.33) marks by its question type's distilled rubric, held to AQA's examiner-marked exemplars by tools/essay-cases.js:
+       the site's to mark once that rubric is in data/settings/marking.json */
+    if (call('markIsLevels_(__x.accept)')) { add(r, call('levelsRow_(markLevelsRead_(__x.accept).type).length') ? 'ok' : 'broken', 'levels key names no rubric'); continue; }
     let right = false, wrongOk = false;
     if (kind === 'draw') {
       ctx.__x = x;
