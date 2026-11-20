@@ -6,7 +6,7 @@ Order: what a child or parent would notice first, then what stops things driftin
 
 ## Now
 
-STANDING (owner, 21 Nov): THE UNIFY ADVENTURE. Keep reducing the number of sources of truth, without end: each round, audit for anything decided, defined or drawn in two places; merge the top items into one source with a build check that stops them drifting; repeat. When nothing else is urgent, this is the default work.
+STANDING (owner, 21 Nov): THE UNIFY ADVENTURE. Keep reducing the number of sources of truth, without end: each round, audit for anything decided, defined or drawn in two places; merge the top items into one source with a build check that stops them drifting; repeat. When nothing else is urgent, this is the default work. HOW (owner OK, 21 Nov): run 5–6 merges at once in separate worktrees (only ones that touch different files), then merge them together and run ONE full build for the batch, then release.
 
 STANDING (owner, 20 Nov): a new request from the owner goes into this queue at the place it deserves; Claude need not drop current work for it. Only urgent child-facing breakage jumps the queue.
 
