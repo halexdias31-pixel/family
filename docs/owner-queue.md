@@ -6,6 +6,8 @@ Order: what a child or parent would notice first, then what stops things driftin
 
 ## Now
 
+STANDING (owner, 21 Nov): THE UNIFY ADVENTURE. Keep reducing the number of sources of truth, without end: each round, audit for anything decided, defined or drawn in two places; merge the top items into one source with a build check that stops them drifting; repeat. When nothing else is urgent, this is the default work.
+
 STANDING (owner, 20 Nov): a new request from the owner goes into this queue at the place it deserves; Claude need not drop current work for it. Only urgent child-facing breakage jumps the queue.
 
 ORDER OF BOARDS (owner, 20 Nov): OCR is the least used board, so it comes last. Work AQA first, then Edexcel, then OCR, in every content and marking item.
