@@ -1048,6 +1048,12 @@ const DIGEST_WORDS_REFUSE = [
   /\b\d\d-\d\d-\d\d\b/,
 ];
 
+/* THE MOST ONE SUNDAY EMAIL'S HTML WEIGHS, IN UTF-8 BYTES: Gmail clips past about 102 KB (hides the rest behind "View entire message", footer and all); 90 000 leaves room for the headers and the encoding. */
+const DIGEST_CLIP_BYTES = 90000;
+/* AND WHAT IT DOES BEFORE SPLITTING A WEEK INTO PARTS: each question's words to their first sentence, or this many characters, ending "…" (`digestFirst_`). */
+const DIGEST_TRIM_CHARS = 160;
+/* THE MOST THE SHARED <style> BLOCK MAY GROW BY (`digestSlim_`): Gmail drops a <style> past 16 KB whole, and every colour with it. */
+const DIGEST_STYLE_MAX = 9000;
 /* HOW MUCH OF A QUESTION'S WORDS THE WEEKLY EMAIL PRINTS — its own ask, and the stem it shares with its other parts, printed once above them (`digestQuestions_`). § */
 const DIGEST_WORDS_SHOWN = 400;
 const DIGEST_STEM_SHOWN = 300;

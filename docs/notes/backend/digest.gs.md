@@ -327,18 +327,44 @@ in `make`
        the count stays true, and the parent is told why there is nothing under it. */
 ```
 
-### ---------- AND UNDER GMAIL'S CLIP, EVERY QUESTION KEPT
+### ---------- EVERY QUESTION WITH ITS WORDS, AND UNDER GMAIL'S CLIP (owner, 20 Nov)
 
 in `digestRender_`
 
 ```
-/* ---------- AND UNDER GMAIL'S CLIP, EVERY QUESTION KEPT ------------------------------------------------------
+/* ---------- EVERY QUESTION WITH ITS WORDS, AND UNDER GMAIL'S CLIP (owner, 20 Nov) ------------------------------
      Past about 102 KB of HTML Gmail shows "[Message clipped]", and what is behind it — the end of the list and
-     the footer that says how to stop — nobody reads. Whole words for a week of whole papers can pass it, so the
-     longest SHARED SOURCE TEXTS go first, said as "(the source text is on the site)", then, only if that is not
-     enough, the longest parts' words, as "(the question’s words are on the site)" — each question still listed
-     with its number, its picture and its mark. A picture is a link and weighs nothing here. Cut a few at a time,
-     by what they weigh against what is over, so it is a render or two and not one per question. */
+     the footer that says how to stop — nobody reads. Until 16 Nov a long week swapped the longest source texts
+     and then the longest questions' words for a line saying they were on the site; on 16 Nov every card went whole and Gmail clipped it. The owner, 20 Nov, angry at questions
+     with no wording: EVERY QUESTION IN THE DIGEST ALWAYS SHOWS ITS WORDS, and the email still fits. In order:
+       1. LIGHTER HTML (`digestSlim_`): every inline style said more than once is said once, in the head's
+          <style>, as a class (`z0`, `z1`, …), and a table's `border="0"` goes. The same email, about a third
+          lighter (a whole Foundation paper: 123.6 KB to 84.2 KB). Every question whole, if that fits.
+       2. TRIMMED (`o.trim`, `digestFirst_`): each question's words to their first sentence, or DIGEST_TRIM_CHARS
+          (160) characters, ending "…"; a shared source text the same, with a link to the site for the whole.
+          Never a placeholder in place of words.
+       3. PARTS: still too big, the week goes as several emails — "(part 1 of 3)" in the subject, "Part 1 of 3."
+          under the greeting — as many questions to a part as fit (a guess from the trimmed whole, then a tenth
+          smaller or larger), in the order the list prints them. The summary is in the first part, "…and N more"
+          (the unnamed) in the last, and the footer that says how to stop in EVERY part. `digestMail_` sends the
+          parts in order under one receipt.
+     The cap of DIGEST_WEEK_LIST_MAX no longer applies here: every named question is listed, in one part or
+     another. DIGEST_CLIP_BYTES (90 000) is the budget, under 102 KB for the headers and encoding.
+     tools/digest-clip.js (run by tools/build.js) renders large weeks from data/questions.json and fails the
+     build on a part over the budget, a part without the footer, or a question listed without its words. */
+```
+
+### ---------- LIGHTER HTML, THE SAME EMAIL
+
+top level, before `digestSlim_`
+
+```
+/* ---------- LIGHTER HTML, THE SAME EMAIL --------------------------------------------------------------------
+     The cards say every colour inline (Outlook and the dark-mode rules need them said), and a week of fifty
+     cards says the same twenty styles thousands of times. Each `style="…"` that occurs more than once, and
+     saves bytes, becomes a class in the <style> the head already has (`digestDarkDoc_`) — the most saving
+     first, and never past DIGEST_STYLE_MAX characters, because Gmail drops a <style> over 16 KB whole. A
+     style said once stays inline. A table's `border="0"` is the default and goes. */
 ```
 
 ### ---------- THE QUESTIONS, EACH WITH ITS OWN WORDS
@@ -375,8 +401,8 @@ top level, before `digestQuestions_`
    one the email parents get (295).
 
    PURE. `items` are `digestPlan_`'s (`key`, `label`, `words`, `hidden`, `verdict`); `o` is `{ lib, site, kid,
-   cut }` — the library's rows, the site's address, the child's first name and what the clip said as "on the
-   site" (`digestRender_`). Returns
+   trim }` — the library's rows, the site's address, the child's first name and whether each question's words
+   go to their first sentence to fit Gmail's clip (`digestRender_`). Returns
      lines    the plain body's lines for the list — per paper its heading, its questions and a blank
               line, then "…and N more." and a blank line when something was left out of a list that
               named anything
@@ -384,17 +410,16 @@ top level, before `digestQuestions_`
      printed  how many questions it names (a one-segment name with no words names its one question)
      marks    the mark of each one it names — what the lead's key is built from
      more     how many it does not: hidden, only a key, or past `max`
-     fromLib  how many it printed from the library, as the site draws them
-     sizes    what the clip may say as "on the site" instead — each stem and part printed whole, and its bytes */
+     fromLib  how many it printed from the library, as the site draws them */
 ```
 
-### THE LIBRARY'S ROWS FOR THE WEEK (`digestEmailLibrary_`), and what the clip has asked to be said as "on the site" (`digestRender_`):
+### THE LIBRARY'S ROWS FOR THE WEEK (`digestEmailLibrary_`), and `o.trim`: each question's words to their first sentence (`digestRender_`):
 
 in `digestQuestions_`
 
 ```
-/* THE LIBRARY'S ROWS FOR THE WEEK (`digestEmailLibrary_`), and what the clip has asked to be said as "on
-     the site" (`digestRender_`): `stem:<row_id>` and `part:<key>`. No library — a run that could not fetch
+/* THE LIBRARY'S ROWS FOR THE WEEK (`digestEmailLibrary_`), and `o.trim`: each question's words to their first
+     sentence, or 160 characters, to fit Gmail's clip (`digestRender_`). No library — a run that could not fetch
      it, the admin's Preview, a check — is every question by its words cell, as before 18 Oct. */
 ```
 
@@ -427,8 +452,9 @@ top level, before `digestPartOut_`
 
    NULL WHEN THE ROW CANNOT BE PRINTED SO — its words hold what `DIGEST_WORDS_REFUSE` turns away (a link, an
    address, a number shaped like an account), which in a parent's inbox is a link a tutor sent — and the
-   question goes as its words cell, as before. A STEM SO REFUSED, or one the clip took (`said`), is "(the
-   source text is on the site)": the parts still read in order, and the picture, a link, still shows. */
+   question goes as its words cell, as before. A STEM SO REFUSED, or one trimmed to fit the clip (`trim`), is its
+   first sentence (when that is safe) and a link, "Read the whole source text": the parts still read in order, and
+   the picture, a link, still shows. TRIMMED, the part's own words are their first sentence (`digestFirst_`). */
 ```
 
 ### THE ROW A KEY NAMES, WHEN THE CARD WOULD DRAW IT:
