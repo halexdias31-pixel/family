@@ -100,8 +100,17 @@ tierGuardWidgets_(WIDGETS);
 /* ---------- DOCKET (owner, 18 Nov): lists in your order; each item a title, an optional note, date, time and daily repeat; ticked items fold away.
    A daily item keeps the day it was last done (`doneOn`), so it is undone again tomorrow with no job anywhere. Saved whole to your own `todo` cell. */
 const DK = { lists: null, at: 0, edit: -1, rename: false, showDone: false, say: '' };
-const dkDay_ = d => { d = d || new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+/* THE OWNER'S DAY (owner, 20 Nov): midnight is London's, whatever the device's clock says. */
+const dkDay_ = d => { d = d || new Date(); try { return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/London', year: 'numeric', month: '2-digit', day: '2-digit' }).format(d); }
+  catch (e) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); } };
+/* DONE IS READ FROM `doneOn` AND THE DAY, never a timer (owner, 20 Nov): a daily item is undone again after midnight; a one-off stays ticked until midnight, then goes (dkTidy_). */
 const dkDone_ = i => (i.repeat === 'daily' ? i.doneOn === dkDay_() : !!i.done);
+const dkGone_ = i => i.repeat !== 'daily' && !!i.done && !!i.doneOn && i.doneOn < dkDay_();
+/* ON EVERY LOAD: a one-off ticked before today leaves its list (the backend's postSaveTodo_ does the same on each save); one ticked before `doneOn` existed is dated today, so it goes at the next midnight. */
+function dkTidy_(lists) {
+  lists.forEach(L => { L.items = (L.items || []).filter(it => !dkGone_(it)); L.items.forEach(it => { if (it.repeat !== 'daily' && it.done && !it.doneOn) it.doneOn = dkDay_(); }); });
+  return lists;
+}
 function dkLoad_() {
   if (DK.lists) return DK.lists;
   const raw = String((typeof USER !== 'undefined' && USER && USER.todo) || '');
@@ -110,9 +119,11 @@ function dkLoad_() {
   /* AN OLD DOCKET WAS LINES OF TEXT: each line an item of one list. */
   DK.lists = got && Array.isArray(got.lists) ? got.lists
     : raw.trim() ? [{ name: 'Docket', items: raw.split('\n').map(t => t.trim()).filter(Boolean).map(title => ({ title })) }] : [];
-  return DK.lists;
+  return dkTidy_(DK.lists);
 }
 function dkSave_() {
+  /* FIND'S DOCKET CARDS ARE MADE FROM THESE LISTS (dkItems_): a list changed is a list made again. */
+  if (typeof stuffForget_ === 'function') stuffForget_(true);
   const todo = JSON.stringify({ v: 1, lists: DK.lists });
   if (typeof USER !== 'undefined' && USER) { USER.todo = todo; if (typeof saveUser_ === 'function') saveUser_(); }
   Promise.resolve(api({ action: 'item', door: 'save', item: 'todo', personId: (USER && USER.personId) || '', todo }))
@@ -202,7 +213,28 @@ document.addEventListener('change', e => {
   if (!el || !el.closest || !el.closest('#dk-box') || !el.hasAttribute('data-dk')) return;
   const it = dkList_() && dkList_().items[+el.getAttribute('data-dk')];
   if (!it) return;
-  if (it.repeat === 'daily') it.doneOn = el.checked ? dkDay_() : ''; else it.done = el.checked;
+  if (it.repeat === 'daily') it.doneOn = el.checked ? dkDay_() : ''; else { it.done = el.checked; it.doneOn = el.checked ? dkDay_() : ''; }
+  dkKeep_();
+});
+/* THE DOCKET IN FIND (owner, 20 Nov): Tools › Docket › a list › its items, each its own card (kinds.json kind `docket`, drawn by `dkCard_` through the one maker).
+   The steps are the funnel's: `toolName` names the tool, `docketList` the list (facets.json). A tick here saves as the widget's does (`doneOn` for a daily item). */
+function dkItems_() {
+  if (typeof may_ !== 'function' || !may_('owner')) return [];
+  return dkLoad_().flatMap((L, li) => (L.items || []).map((it, i) => ({ kind: 'docket', name: it.title || 'Untitled', key: 'dk:' + li + ':' + i, sub: L.name || '', image: '',
+    dkList: L.name || '', dkAt: li + ':' + i, row: it, text: [it.title, it.note, L.name].filter(Boolean).join(' ') })));
+}
+function dkCard_(x) {
+  const it = x.row || {}, when = [it.repeat === 'daily' ? 'Daily' : it.date ? dkSayDay_(it.date) : '', it.time || ''].filter(Boolean);
+  return renderCard({ kind: 'docket', name: it.title || 'Untitled', tags: [it.title || 'Untitled', x.dkList].concat(when).filter(Boolean),
+    body: [{ type: 'tick', text: 'Done', attrs: { 'data-dkf': x.dkAt, checked: dkDone_(it), 'aria-label': 'Done: ' + (it.title || '') } },
+      it.note ? { type: 'text', paras: String(it.note).split(/\n{2,}/) } : null].filter(Boolean) });
+}
+document.addEventListener('change', e => {
+  const el = e.target, at = el && el.getAttribute && el.getAttribute('data-dkf');
+  if (!at) return;
+  const [li, i] = at.split(':').map(Number), L = dkLoad_()[li], it = L && L.items[i];
+  if (!it) return;
+  if (it.repeat === 'daily') it.doneOn = el.checked ? dkDay_() : ''; else { it.done = el.checked; it.doneOn = el.checked ? dkDay_() : ''; }
   dkKeep_();
 });
 document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target && e.target.classList && e.target.classList.contains('dk-add') && typeof ACTIONS !== 'undefined' && ACTIONS['dk-add']) { e.preventDefault(); ACTIONS['dk-add'](e.target); } });

@@ -391,7 +391,16 @@ function postSaveNotepad_(body, action, began) {
 
 /* `saveExam` AND `deleteExam` WERE HERE — no screen posted either; exam dates live on the profile (Settings) (431). */
 function postSaveTodo_(body, action, began) {
-  return postSavePerson_(body, 'todo', S(body.todo));
+  return postSavePerson_(body, 'todo', todoTidy_(S(body.todo)));
+}
+/* THE DOCKET'S TIDY (owner, 20 Nov), as js/map.js dkTidy_: a one-off ticked before today (London's) leaves its list; a daily item keeps its `doneOn`, which is simply not today any more. */
+function todoTidy_(raw) {
+  let t = null;
+  try { t = JSON.parse(raw); } catch (e) { return raw; }
+  if (!t || !Array.isArray(t.lists)) return raw;
+  const today = Utilities.formatDate(new Date(), 'Europe/London', 'yyyy-MM-dd');
+  t.lists.forEach(function (L) { L.items = (L.items || []).filter(function (it) { return it.repeat === 'daily' || !it.done || !it.doneOn || String(it.doneOn) >= today; }); });
+  return JSON.stringify(t);
 }
 
 /* ---------- THE TIMETABLE, KEPT ON THE ACCOUNT § */
