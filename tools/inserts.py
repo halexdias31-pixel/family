@@ -21,8 +21,10 @@ def rad(x):
     return '&radic;<span class="insh-rad">%s</span>' % x
 
 
-def L(name, math, higher=False, only='', note=''):
+def L(name, math, sym='', higher=False, only='', note=''):
     d = {'name': name, 'math': math}
+    if sym:
+        d['sym'] = sym
     if higher:
         d['higher'] = 'True'
     if only:
@@ -74,41 +76,44 @@ MATHS_NOTE = ('Every board gives the same list, the one the November 2024 Ofqual
 # ---------- GCSE Physics: the DfE equations, which every board's 2025 to 2027 sheet carries ----------
 PHYS = [
     {'head': 'Forces and motion', 'lines': [
-        L('Weight', 'weight = mass &times; gravitational field strength &nbsp; ' + i('W') + ' = ' + i('m') + i('g')),
-        L('Work done', 'work done = force &times; distance along the line of the force &nbsp; ' + i('W') + ' = ' + i('F') + i('s')),
-        L('Hooke’s law', 'force = spring constant &times; extension &nbsp; ' + i('F') + ' = ' + i('k') + i('e')),
-        L('Moment', 'moment = force &times; perpendicular distance from the pivot &nbsp; ' + i('M') + ' = ' + i('F') + i('d'), only='Physics'),
-        L('Pressure', 'pressure = ' + F('force normal to a surface', 'area') + ' &nbsp; ' + i('p') + ' = ' + F(i('F'), i('A')), only='Physics'),
-        L('Pressure in a liquid', 'pressure = column height &times; density &times; ' + i('g') + ' &nbsp; ' + i('p') + ' = ' + i('h') + '&rho;' + i('g'), higher=True, only='Physics'),
-        L('Speed', 'distance = speed &times; time &nbsp; ' + i('s') + ' = ' + i('v') + i('t')),
-        L('Acceleration', 'acceleration = ' + F('change in velocity', 'time taken') + ' &nbsp; ' + i('a') + ' = ' + F(D + i('v'), i('t'))),
-        L('Uniform acceleration', i('v') + '<sup>2</sup> &minus; ' + i('u') + '<sup>2</sup> = 2' + i('a') + i('s'), note='v the final velocity, u the initial velocity, s the distance'),
-        L('Newton’s second law', 'force = mass &times; acceleration &nbsp; ' + i('F') + ' = ' + i('m') + i('a')),
-        L('Momentum', 'momentum = mass &times; velocity &nbsp; ' + i('p') + ' = ' + i('m') + i('v'), higher=True),
-        L('Force and momentum', 'force = ' + F('change in momentum', 'time taken') + ' &nbsp; ' + i('F') + ' = ' + F(i('m') + D + i('v'), D + i('t')), higher=True, only='Physics')]},
+        L('Weight', 'weight = mass &times; gravitational field strength', i('W') + ' = ' + i('m') + i('g')),
+        L('Work done', 'work done = force &times; distance along the line of the force', i('W') + ' = ' + i('F') + i('s')),
+        L('Hooke’s law', 'force = spring constant &times; extension', i('F') + ' = ' + i('k') + i('e')),
+        L('Moment', 'moment = force &times; perpendicular distance from the pivot', i('M') + ' = ' + i('F') + i('d'), only='Physics'),
+        L('Pressure', 'pressure = ' + F('force normal to a surface', 'area of the surface'), i('p') + ' = ' + F(i('F'), i('A')), only='Physics'),
+        L('Pressure in a liquid', 'pressure = column height &times; density &times; gravitational field strength', i('p') + ' = ' + i('h') + '&rho;' + i('g'), higher=True, only='Physics'),
+        L('Speed', 'distance = speed &times; time', i('s') + ' = ' + i('v') + i('t')),
+        L('Acceleration', 'acceleration = ' + F('change in velocity', 'time taken'), i('a') + ' = ' + F(D + i('v'), i('t'))),
+        L('Uniform acceleration', '(final velocity)<sup>2</sup> &minus; (initial velocity)<sup>2</sup> = 2 &times; acceleration &times; distance',
+          i('v') + '<sup>2</sup> &minus; ' + i('u') + '<sup>2</sup> = 2' + i('a') + i('s')),
+        L('Newton’s second law', 'force = mass &times; acceleration', i('F') + ' = ' + i('m') + i('a')),
+        L('Momentum', 'momentum = mass &times; velocity', i('p') + ' = ' + i('m') + i('v'), higher=True),
+        L('Force and momentum', 'force = ' + F('change in momentum', 'time taken'), i('F') + ' = ' + F(i('m') + D + i('v'), D + i('t')), higher=True, only='Physics')]},
     {'head': 'Energy', 'lines': [
-        L('Kinetic energy', i('E') + '<sub>k</sub> = ' + HALF + i('m') + i('v') + '<sup>2</sup>'),
-        L('Gravitational potential energy', i('E') + '<sub>p</sub> = ' + i('m') + i('g') + i('h')),
-        L('Elastic potential energy', i('E') + '<sub>e</sub> = ' + HALF + i('k') + i('e') + '<sup>2</sup>', note='while the limit of proportionality is not passed'),
-        L('Specific heat capacity', D + i('E') + ' = ' + i('m') + i('c') + D + '&theta;', note='thermal energy change = mass × specific heat capacity × temperature change'),
-        L('Specific latent heat', i('E') + ' = ' + i('m') + i('L'), note='energy for a change of state = mass × specific latent heat'),
-        L('Power from energy', i('P') + ' = ' + F(i('E'), i('t'))),
-        L('Power from work', i('P') + ' = ' + F(i('W'), i('t'))),
+        L('Kinetic energy', 'kinetic energy = 0.5 &times; mass &times; speed<sup>2</sup>', i('E') + '<sub>k</sub> = ' + HALF + i('m') + i('v') + '<sup>2</sup>'),
+        L('Gravitational potential energy', 'GPE = mass &times; gravitational field strength &times; height', i('E') + '<sub>p</sub> = ' + i('m') + i('g') + i('h')),
+        L('Elastic potential energy', 'elastic potential energy = 0.5 &times; spring constant &times; extension<sup>2</sup>', i('E') + '<sub>e</sub> = ' + HALF + i('k') + i('e') + '<sup>2</sup>'),
+        L('Specific heat capacity', 'change in thermal energy = mass &times; specific heat capacity &times; temperature change', D + i('E') + ' = ' + i('m') + i('c') + D + '&theta;'),
+        L('Specific latent heat', 'energy for a change of state = mass &times; specific latent heat', i('E') + ' = ' + i('m') + i('L')),
+        L('Power from energy', 'power = ' + F('energy transferred', 'time'), i('P') + ' = ' + F(i('E'), i('t'))),
+        L('Power from work', 'power = ' + F('work done', 'time'), i('P') + ' = ' + F(i('W'), i('t'))),
         L('Efficiency', 'efficiency = ' + F('useful output energy transfer', 'total input energy transfer') + ' = ' + F('useful power output', 'total power input'))]},
     {'head': 'Electricity and magnetism', 'lines': [
-        L('Charge', i('Q') + ' = ' + i('I') + i('t'), note='charge = current × time'),
-        L('Potential difference', i('V') + ' = ' + i('I') + i('R'), note='potential difference = current × resistance'),
-        L('Electrical power', i('P') + ' = ' + i('V') + i('I') + ' = ' + i('I') + '<sup>2</sup>' + i('R')),
-        L('Energy from power', i('E') + ' = ' + i('P') + i('t')),
-        L('Energy from charge', i('E') + ' = ' + i('Q') + i('V')),
-        L('Force on a wire', i('F') + ' = ' + i('B') + i('I') + i('l'), higher=True, note='force = magnetic flux density × current × length'),
-        L('Transformer turns', F(i('V') + '<sub>p</sub>', i('V') + '<sub>s</sub>') + ' = ' + F(i('n') + '<sub>p</sub>', i('n') + '<sub>s</sub>'), higher=True, only='Physics'),
-        L('Transformer power', i('V') + '<sub>s</sub>' + i('I') + '<sub>s</sub> = ' + i('V') + '<sub>p</sub>' + i('I') + '<sub>p</sub>', note='a transformer that wastes no energy')]},
+        L('Charge', 'charge flow = current &times; time', i('Q') + ' = ' + i('I') + i('t')),
+        L('Potential difference', 'potential difference = current &times; resistance', i('V') + ' = ' + i('I') + i('R')),
+        L('Electrical power', 'power = potential difference &times; current = current<sup>2</sup> &times; resistance', i('P') + ' = ' + i('V') + i('I') + ' = ' + i('I') + '<sup>2</sup>' + i('R')),
+        L('Energy from power', 'energy transferred = power &times; time', i('E') + ' = ' + i('P') + i('t')),
+        L('Energy from charge', 'energy transferred = charge flow &times; potential difference', i('E') + ' = ' + i('Q') + i('V')),
+        L('Force on a wire', 'force = magnetic flux density &times; current &times; length', i('F') + ' = ' + i('B') + i('I') + i('l'), higher=True),
+        L('Transformer turns', F('p.d. across primary', 'p.d. across secondary') + ' = ' + F('turns on primary', 'turns on secondary'),
+          F(i('V') + '<sub>p</sub>', i('V') + '<sub>s</sub>') + ' = ' + F(i('n') + '<sub>p</sub>', i('n') + '<sub>s</sub>'), higher=True, only='Physics'),
+        L('Transformer power', 'p.d. &times; current in primary = p.d. &times; current in secondary',
+          i('V') + '<sub>p</sub>' + i('I') + '<sub>p</sub> = ' + i('V') + '<sub>s</sub>' + i('I') + '<sub>s</sub>', higher=True, only='Physics')]},
     {'head': 'Matter and waves', 'lines': [
-        L('Density', '&rho; = ' + F(i('m'), i('V'))),
-        L('Gas at constant temperature', i('p') + i('V') + ' = constant', only='Physics'),
-        L('Wave speed', i('v') + ' = ' + i('f') + '&lambda;'),
-        L('Period', i('T') + ' = ' + F(1, i('f'))),
+        L('Density', 'density = ' + F('mass', 'volume'), '&rho; = ' + F(i('m'), i('V'))),
+        L('Gas at constant temperature', 'pressure &times; volume = constant', i('p') + i('V') + ' = constant', only='Physics'),
+        L('Wave speed', 'wave speed = frequency &times; wavelength', i('v') + ' = ' + i('f') + '&lambda;'),
+        L('Period', 'period = ' + F(1, 'frequency'), i('T') + ' = ' + F(1, i('f'))),
         L('Magnification', 'magnification = ' + F('image height', 'object height'), only='Physics')]},
 ]
 PHYS_LINKS = [
@@ -116,9 +121,8 @@ PHYS_LINKS = [
     {'label': 'OCR sheets, 2025 to 2027', 'url': 'https://www.ocr.org.uk/administration/support-and-tools/subject-updates/formulae-equation-sheets-723889/'},
     {'label': 'Edexcel GCSE sciences', 'url': 'https://qualifications.pearson.com/en/qualifications/edexcel-gcses/sciences-2016.html'},
 ]
-PHYS_NOTE = ('The equations in the DfE GCSE physics content, which AQA, Edexcel and OCR each print on their own 2025 to 2027 sheet in their own '
-             'order and words. H marks Higher tier; “Physics only” marks one not asked in Combined Science. Not yet compared line by line '
-             'with each board’s PDF, so marked unverified.')
+PHYS_NOTE = ('Checked line by line, 20 Nov 2026, against Appendix A (Physics equations) of AQA’s 8463 specification, the list its '
+             'equation sheet prints; H and Physics only as AQA marks them (transformers are not in Combined Science).')
 
 # ---------- GCSE Chemistry: the periodic table (106) ----------
 PT = ('1 H Hydrogen 1 1 1|2 He Helium 4 18 1|3 Li Lithium 7 1 2|4 Be Beryllium 9 2 2|5 B Boron 11 13 2|6 C Carbon 12 14 2|'
@@ -398,7 +402,7 @@ ROWS = [
         summary='The equations a GCSE Physics or Combined Science candidate is given in the exam, 2025 to 2027.',
         subject='Physics', level='GCSE', keystage='KS4', board='AQA, Edexcel, OCR',
         for_subjects='Physics, Combined Science', for_levels='GCSE',
-        verified_note=PHYS_NOTE, official=PHYS_LINKS, sections=PHYS),
+        verified='True', verified_note=PHYS_NOTE, official=PHYS_LINKS, sections=PHYS),
     row(insert_id='INS-GCSE-PERIODIC', name='GCSE Chemistry periodic table',
         summary='The periodic table a GCSE Chemistry or Combined Science candidate is given in the exam.',
         subject='Chemistry', level='GCSE', keystage='KS4', board='AQA, Edexcel', 

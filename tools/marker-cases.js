@@ -89,6 +89,10 @@ const CASES = [
   ['3, 1, 2', '1, 2, 3 | rule: ordered', false, 'an ordered list of numbers shuffled'],
   ['1, 2, 3', '1, 2, 3 | rule: ordered', true, 'an ordered list of numbers as keyed'],
   ['yellow, orange, red', 'red, orange, yellow', true, 'without rule: ordered a bare list is still a set'],
+  /* a read-off tolerance: the scheme's "430 years (420–440)" keyed as a range (queue, 20 Nov) */
+  ['432.6', '430 | rule: count 1, sum 420..440', true, 'a value inside a range rule'],
+  ['432.6 years', '430 | rule: count 1, sum 420..440', true, 'a value inside a range rule, with its unit'],
+  ['445', '430 | rule: count 1, sum 420..440', false, 'a value outside a range rule'],
   /* single values are untouched */
   ['9', '9', true, 'a single value'],
   ['5', '9', false, 'a single wrong value'],
