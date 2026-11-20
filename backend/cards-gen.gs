@@ -215,6 +215,37 @@ function fmtDate_(v, style, b) {
   if (style === 'hours') return fmtHours_(v, b);
   return fmtDmy_(v);
 }
+function dateOf_(v, keepTime) {
+  if (v == null || v === '') return null;
+  let d = null;
+  if (v instanceof Date) d = new Date(v.getTime());
+  else if (typeof v === 'number') d = v > 0 ? new Date(v) : null;
+  else {
+    const t = String(v).trim();
+    const at = (y, mo, da, h, mi, se) => {
+      const x = new Date(y, mo - 1, da, +(h || 0), +(mi || 0), +(se || 0));
+      return x.getFullYear() === y && x.getMonth() === mo - 1 && x.getDate() === da ? x : null;
+    };
+    const iso = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[\sT]+(\d{1,2}):(\d{2})(?::(\d{2}))?(?:\.\d+)?)?(Z|[+-]\d{2}:?\d{2})?$/i);
+    const dmy = t.match(/^(?:[A-Za-z]+,?\s+)?(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2}|\d{4})(?:[\s,T]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+    /* A day written inside other words ("25/10/2026 (half term)"); never the tail of an ISO date, which once read 2026-10-25 as 26/10/25. */
+    const loose = !iso && !dmy && t.match(/(?:^|[^\d\/\-.])(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4}|\d{2})(?![\d\/\-.])/);
+    if (iso && iso[7]) d = new Date(t);
+    else if (iso) d = at(+iso[1], +iso[2], +iso[3], iso[4], iso[5], iso[6]);
+    else if (dmy) d = at(dmy[3].length === 2 ? 2000 + (+dmy[3]) : +dmy[3], +dmy[2], +dmy[1], dmy[4], dmy[5], dmy[6]);
+    else if (loose) d = at(loose[3].length === 2 ? 2000 + (+loose[3]) : +loose[3], +loose[2], +loose[1]);
+    else if (!/[A-Za-z]/.test(t)) d = null;            // digits we cannot read day-first: never new Date()'s month-first guess
+    else d = new Date(t);                              // a sheet's Date as text ("Sun Oct 25 2026 …"), "25 Oct 2026"
+  }
+  if (!d || isNaN(d)) return null;
+  if (!keepTime) d.setHours(0, 0, 0, 0);
+  return d;
+}
+const tz_ = () => SHARED_SETTINGS.tz;
+function todayIso_(at) {
+  const d = at == null ? new Date() : (at instanceof Date ? at : new Date(at));
+  return new Intl.DateTimeFormat('en-CA', { timeZone: tz_(), year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
+}
 function ageRank_(v) {
   const s = String(v ?? '').trim();
   if (!s) return null;
@@ -616,16 +647,21 @@ function num(raw) {
   if (t.endsWith('%')) { const p = parseFloat(t); return isNaN(p) ? NaN : p / 100; }
   return parseFloat(t);
 }
-function parseDMY(s) {
-  if (!s) return null;
-  const m = String(s).match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
-  let d;
-  if (m) { const y = m[3].length === 2 ? '20' + m[3] : m[3]; d = new Date(+y, +m[2] - 1, +m[1]); }
-  else { d = new Date(s); }
-  if (isNaN(d)) return null;
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
+function parseDMY(s) { return dateOf_(s); }
+
+
+/* Dates always DD/MM/YY (08/11/26), from a Date, ms, ISO or an already-British string. */
+const fmtDmy_ = v => {
+  if (v instanceof Date || typeof v === 'number') { const d = new Date(v); return isNaN(d) ? '' : `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getFullYear()).slice(-2)}`; }
+  const s = String(v ?? '').trim();
+  if (!s) return '';
+  const iso = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (iso) return `${iso[3].padStart(2,'0')}/${iso[2].padStart(2,'0')}/${iso[1].slice(-2)}`;
+  const m = s.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);   // already DD/MM/YYYY
+  if (m) { const y = m[3].slice(-2); return `${m[1].padStart(2,'0')}/${m[2].padStart(2,'0')}/${y}`; }
+  const d = new Date(s);
+  return isNaN(d) ? s : fmtDmy_(d);
+};
 let CLOSED_ = { of: null, at: {} };
 function closedOn_(d) {
   const list = (typeof DATA !== 'undefined' && DATA && Array.isArray(DATA.closures)) ? DATA.closures : [];

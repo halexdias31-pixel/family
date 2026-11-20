@@ -116,7 +116,7 @@ document.addEventListener('error', e => {
    A conversation like any other — the same head, bubbles and composer — kept on this device; `data-daive` marks its card. */
 let ASST_BUSY = false, ASST_SAID = '';
 const ASST_KEEP = 40, DAIVE = 'Daive';
-const asstDay_ = () => { try { return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/London' }).format(new Date()); } catch (e) { return new Date().toISOString().slice(0, 10); } };
+const asstDay_ = () => todayIso_();   // the one today, js/core.js
 function asstCap_() {
   const v = (DATA && DATA.constants && DATA.constants.vars) || {};
   const c = v.assistant_questions_per_day;
