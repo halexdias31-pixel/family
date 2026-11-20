@@ -7665,7 +7665,7 @@ const all = typeof progressCards_ === 'function' ? progressCards_() : [];
 const prog = all.map(c => String(c).replace(/^(\s*<div class=")/, '$1prog-w ')), wait = coming.length || !(typeof progressComing_ === 'function' && progressComing_()) ? coming : [loading_()];
 return [top].concat(ownCardSetPage_('account'), youSettingsPages_(),
 /^(student|staff)$/.test(rank_(whose_())) && typeof workFileCard_ === 'function' ? [workFileCard_()].filter(Boolean) : [],
-rank_(whose_()) === 'student' && typeof historyCard_ === 'function' ? [historyCard_(whose_() && whose_().personId)].filter(Boolean) : [], soonCards_(),
+soonCards_(),
 prog, wait);
 }
 const SOON_CARDS = [
@@ -11335,29 +11335,7 @@ return { n: presses.length, right: right, got: got, of: of, topics: list, weak: 
 series: seriesList, recent: recent.slice(0, 3), streak: streak, week: week, weekDays: weekDays };
 }
 const progressPct_ = (a, b) => (b > 0 ? Math.round(100 * a / b) : 0);
-function progressAnsweredCard_(st) {
-if (!st.n) return emptyCard_('Questions');
-const bar = pct => ({ type: 'drawing', node: { el: 'svg', a: { class: 'prog-bar', viewBox: '0 0 100 1', preserveAspectRatio: 'none', 'aria-hidden': 'true' },
-kids: [{ el: 'rect', a: { width: String(pct), height: '1' } }] } });
-const rows = st.topics.slice(0, 12).map(o => ({ type: 'group', look: 'prog-topic', blocks: [progRow_(o.topic, o.marked ? o.right + ' of ' + o.marked + ' right' : o.n + ' tried'),
-bar(o.marked ? progressPct_(o.right, o.marked) : 0)] }));
-return progressCard_('prog-answered', 'Questions', [progRow_('Answered', st.n, '', 'prog-tot'), progRow_('Right', st.right, '', 'prog-tot'),
-progRow_('Marks', st.of ? st.got + ' of ' + st.of + ' (' + progressPct_(st.got, st.of) + '%)' : 'none marked yet', '', 'prog-tot')].concat(rows));
-}
 const progressCard_ = (look, name, body, more) => renderCard(Object.assign({ kind: 'panel', look, name, tags: [name], body }, more || {}));
-function progressActivityCard_(st) {
-if (!st.n) return emptyCard_('Recent activity');
-const said = p => !p.sc ? 'sent' : p.ok ? 'right' : p.sc.of > 1 ? p.sc.got + '/' + p.sc.of : 'wrong';
-const last = st.recent.map(r => progRow_((r.x && (r.x.sub ? r.x.sub + ' · ' : '') + (r.x.name || '')) || 'A question',
-said(r), `prog-v${r.ok ? ' is-good' : r.sc ? ' is-bad' : ''}`));
-return progressCard_('prog-activity', 'Recent activity', [progRow_('Streak', st.streak ? progressDaysSaid_(st.streak) : 'none yet'),
-progRow_('Last 7 days', `${st.week} on ${progressDaysSaid_(st.weekDays)}`)].concat(last));
-}
-function progressWeakCard_(st) {
-if (!st.weak.length) return emptyCard_('Work on next');
-return progressCard_('prog-weakest', 'Work on next', st.weak.map(o => ({ type: 'group', look: 'prog-weak', blocks: [progRow_(o.topic, `${progressPct_(o.got, o.of)}% of marks`),
-{ type: 'tiles', tiles: [{ icon: 'search', label: 'Practise', note: o.topic + ' in Find', act: 'prog-practise', data: { topic: o.topic, key: (o.miss && o.miss.key) || '' } }] }] })));
-}
 const PROG_OPEN = new Set();
 document.addEventListener('toggle', e => {
 const el = e.target;
@@ -11368,24 +11346,27 @@ if (el.open) PROG_OPEN.add(k); else PROG_OPEN.delete(k);
 function progressPaperName_(x) {
 return String((x.row && x.row.name) || x.sub || x.name || 'A paper');
 }
-function progressSeriesCard_(sr) {
+function progressSourceRow_(sr) {
+let got = 0, of = 0, left = 0;
 const lines = sr.papers.slice(0, 15).map(pp => {
-const total = pp.all.length, done = Object.keys(pp.done).length, left = Math.max(0, total - done);
-const sums = (pp.of ? pp.got + '/' + pp.of + ' marks · ' : '') + (left ? left + ' left' : 'all done');
+const total = pp.all.length, done = Object.keys(pp.done).length, l = Math.max(0, total - done);
+got += pp.got; of += pp.of; left += l;
+const sums = (pp.of ? pp.got + '/' + pp.of + ' marks · ' : '') + (l ? l + ' left' : 'all done');
 const qs = pp.all.map(q => {
 const k = String(q.key || q.name), sc = pp.done[k];
 const v = !sc ? 'not done' : sc.sent ? 'sent' : sc.of > 1 ? sc.got + '/' + sc.of : sc.got ? 'right' : 'wrong';
 const tone = !sc || sc.sent ? '' : sc.got === sc.of ? ' is-good' : ' is-bad';
 return progRow_('Q' + (q.qNumber != null && q.qNumber !== '' ? q.qNumber + (q.qPart || '') : q.name), v, `prog-v${tone}`);
 });
-const sum = progRow_(progressPaperName_(pp.x), sums);
-return { type: 'group', tag: 'details', look: 'prog-paper', attrs: { 'data-paper': String(pp.id), open: PROG_OPEN.has(pp.id) },
-blocks: [Object.assign(sum, { tag: 'summary' }), { type: 'group', look: 'prog-qs', blocks: qs }] };
+return progressOpen_('paper:' + pp.id, progRow_(progressPaperName_(pp.x), sums), [{ type: 'group', look: 'prog-qs', blocks: qs }]);
 });
-const untouched = sr.untouched ? [progRow_('Not started', sr.untouched)] : [];
-const lid = 'prog:series:' + String(sr.name || 'x').toLowerCase().replace(/[^a-z0-9_.-]+/g, '-').replace(/^-|-$/g, '').slice(0, 48);
-return progressCard_('prog-series', sr.name.charAt(0).toUpperCase() + sr.name.slice(1), lines.concat(untouched), { data: { 'lay-card': lid } });
+const untouched = sr.untouched ? [progRow_('Not started', sr.untouched + (sr.untouched === 1 ? ' paper' : ' papers'))] : [];
+const name = sr.name.charAt(0).toUpperCase() + sr.name.slice(1);
+const sums = (of ? progressPct_(got, of) + '% marks · ' : '') + (left ? left + ' left' : 'all done');
+return progressOpen_('src:' + sr.name, progRow_(name, sums), [{ type: 'group', look: 'prog-qs', blocks: lines.concat(untouched) }], 'prog-src');
 }
+const progressOpen_ = (k, sum, blocks, look) => ({ type: 'group', tag: 'details', look: 'prog-paper' + (look ? ' ' + look : ''), attrs: { 'data-paper': k, open: PROG_OPEN.has(k) },
+blocks: [Object.assign(sum, { tag: 'summary' })].concat(blocks) });
 const PROG_GCSE_STEPS = [[80, '9'], [70, '8'], [60, '7'], [50, '6'], [40, '5'], [30, '4'], [20, '3'], [12, '2'], [5, '1']];
 const PROG_ALEVEL_STEPS = [[80, 'A*'], [70, 'A'], [60, 'B'], [50, 'C'], [40, 'D'], [30, 'E']];
 const PROG_SATS_STEPS = [[75, 'greater depth'], [55, 'expected standard']];
@@ -11401,7 +11382,7 @@ function progressGrade_(steps, pct, low) {
 const s = steps.find(([at]) => pct >= at);
 return s ? s[1] : low;
 }
-function progressGradeCard_(st) {
+function progressGrades_(st) {
 const by = {};
 Object.keys(st.papers).forEach(pid => {
 const pp = st.papers[pid];
@@ -11423,10 +11404,9 @@ const g = o.lv === 'gcse' ? 'grade ' + progressGrade_(PROG_GCSE_STEPS, pct, 'U')
 : o.lv === 'sats' ? progressGrade_(PROG_SATS_STEPS, pct, 'working towards')
 : 'working at grade ' + o.best;
 const label = o.subj + (o.lv === 'gcse' ? ' GCSE' : o.lv === 'alevel' ? ' A-level' : o.lv === 'sats' ? ' SATs' : ' worksheets');
-return progRow_(label, g);
+return [label, g];
 });
-if (!rows.length) return emptyCard_('Grade estimate');
-return progressCard_('prog-grade', 'Grade estimate', rows);
+return rows;
 }
 function progressSessions_() {
 const jobs = typeof myJobs_ === 'function' ? myJobs_() : [];
@@ -11453,36 +11433,29 @@ return progressCard_('prog-sessions', 'Sessions', ss.ahead.map(row).concat(ss.pa
 }
 function progressCards_() {
 const signed = typeof USER !== 'undefined' && !!USER;
+return [progressAllCard_(), progressSessionsCard_(signed ? progressSessions_() : { ahead: [], past: [] })];
+}
+const progressOfWhom_ = () => (typeof USER !== 'undefined' && USER && !USER.lockedPreview && rank_(whose_()) === 'student' ? String((whose_() && whose_().personId) || USER.personId || '') : '');
+function progressAllSpec_(of) {
+const signed = typeof USER !== 'undefined' && !!USER;
 const st = signed ? progressStats_() : { n: 0, weak: [], series: [], papers: {}, topics: [], recent: [] };
-const cards = [progressAnsweredCard_(st), progressActivityCard_(st), progressWeakCard_(st),
-progressGradeCard_(st)];
-if (st.series.length) st.series.slice(0, 6).forEach(sr => cards.push(progressSeriesCard_(sr)));
-else cards.push(emptyCard_('Papers and worksheets'));
-cards.push(progressSessionsCard_(signed ? progressSessions_() : { ahead: [], past: [] }));
-return cards;
+of = of == null ? progressOfWhom_() : of;
+const top = st.n ? [progRow_('Streak', st.streak ? progressDaysSaid_(st.streak) : 'none yet'),
+progRow_('Last 7 days', `${st.week} on ${progressDaysSaid_(st.weekDays)}`),
+progRow_('Marks', st.of ? st.got + ' of ' + st.of + ' (' + progressPct_(st.got, st.of) + '%)' : 'none marked yet', '', 'prog-tot')]
+.concat(progressGrades_(st).map(([k, g]) => progRow_('Grade · ' + k, g, '', 'prog-tot')),
+st.weak.length ? [progRow_('Work on next', st.weak.map(o => o.topic).join(', '))] : []) : [];
+const src = st.series.slice(0, 8).map(progressSourceRow_);
+const day = of && typeof histBody_ === 'function' ? [{ type: 'group', look: 'prog-day', blocks: [{ type: 'msgHead', text: 'Day by day' }].concat(histBody_(of)) }] : [];
+if (!top.length && !src.length && !day.length) return null;
+return { kind: 'panel', look: 'prog-all', name: 'Progress', tags: ['Progress'], data: of ? { of, hist: 1 } : {}, body: top.concat(src, day) };
+}
+function progressAllCard_(of) {
+const spec = progressAllSpec_(of);
+return spec ? renderCard(spec) : emptyCard_('Progress');
 }
 const progressComing_ = () => typeof USER !== 'undefined' && !!USER && ((typeof awaiting_ === 'function' && awaiting_())
 || (typeof LIBRARY_ROWS !== 'undefined' && LIBRARY_ROWS === null && !LIBRARY_FAILED));
-on('prog-practise', el => {
-const topic = String((el && el.dataset.topic) || ''), key = String((el && el.dataset.key) || '');
-if (!topic || typeof FINDERS === 'undefined') return;
-const F = FINDERS.stuff;
-let n = 0;
-finderSet_(F, { filters: [{ field: 'topic', value: topic }], paint: false });
-inFinder_(F, () => { try { n = stuffFiltered().length; } catch (e) { n = 0; } });
-if (!n) finderSet_(F, { paint: false });
-if (!n) {
-const x = key ? (stuffItemsAll_() || []).find(y => y && y.kind === 'question' && String(y.key || y.name) === key.replace(/#[^#]*$/, '')) : null;
-if (x && typeof finderOpen_ === 'function') { finderOpen_(x, null, F); return; }
-toast('Nothing in Find on ' + topic + ' yet.');
-return;
-}
-inFinder_(F, () => {
-paintStuff();
-if (AT !== F.id) go(F.id);
-goPage(F.id, stuffFirstResult_());
-});
-});
 on('prog-sessions', () => { go('booking'); });
 ;
 /* js/overworld.js */
