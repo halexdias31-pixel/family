@@ -152,7 +152,9 @@ CARD_EMBEDS['ins-source'] = a => { const r = insertRow_(a.id); return !r ? '' : 
 /* ITS CARD IS ITS ITEM MAP (ITEM_MAPS.insert, cards-parts.js): these blocks are its body, its sheets tags after its facets. */
 const insertSheet_ = r => renderCard({ kind: 'insert', look: 'insh', name: r.name, tags: [{ text: r.name, colour: 0 }], body: insertBody_(r) });
 /* EXTRAS ON A CARD'S ONE ROW (`CARD_EXTRAS_`): an insert's Print and official copies. */
-function insertExtras_(x) { return [{ icon: 'print', label: 'Print', note: 'or save as PDF', act: 'ins-print', data: { id: x.row.id } }]
+/* A FORMULA'S PRINT IS ITS WHOLE SHEET, one per sheet it is on: the sheet is drawn only on paper, never as a card to browse (owner, 20 Nov). */
+function insertExtras_(x) { const on = (x.row.parents || []).length ? x.row.parents : [x.row.id];
+  return on.map(id => ({ icon: 'print', label: 'Print', note: on.length > 1 || id !== x.row.id ? 'the ' + ((insertSheetRow_(id) || {}).name || id) : 'or save as PDF', act: 'ins-print', data: { id: id } }))
   .concat((x.row.official || []).map(o => ({ icon: 'open', label: 'Official', note: o.label, act: 'file-view', data: { url: o.url, title: o.label } }))); }
 /* ---------- A SPECIFICATION (owner, 12 Nov): one card per board's spec, data/spec/<id>.json via data/specs.json (tools/coverage.js). ---------- */
 function specItem_(r) {

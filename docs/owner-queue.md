@@ -6,6 +6,8 @@ Order: what a child or parent would notice first, then what stops things driftin
 
 ## Now
 
+STANDING (owner, 20 Nov): a new request from the owner goes into this queue at the place it deserves; Claude need not drop current work for it. Only urgent child-facing breakage jumps the queue.
+
 ORDER OF BOARDS (owner, 20 Nov): OCR is the least used board, so it comes last. Work AQA first, then Edexcel, then OCR, in every content and marking item.
 
 0d. HELP BUTTON (owner, 20 Nov): the "I need help" hand does nothing but stay toggled on and play a sound when it is raised. No red anywhere (not the widget, not the button). One look, one sound.
@@ -62,6 +64,7 @@ ORDER OF BOARDS (owner, 20 Nov): OCR is the least used board, so it comes last. 
 - Examiner reports: find them per board/year (the boards' own sites, Save My Exams, Physics & Maths Tutor), add them to the paper manifest, and use them to sharpen marking (English first).
 
 ## Then (content)
+- @FAMILY SCIENCE QUESTIONS FROM THE LIBRARY (owner, 20 Nov): the library is the single source, and there is ONE question kind (owner: no two types). Each library card holds its facts with permanent ids. A question is one record: its wording may point at facts (`{fact id}`) instead of copying them, and its answer comes from the facts it names (`tests: [fact ids]`). How "written" or "generated" a question is depends only on how many facts it points at. Ids for life; each saved answer keeps the question version, wording and answer the student saw, so a library edit never loses or re-marks an answer; a change in meaning makes a new version. Checks: every fact has at least one question; every answer is backed by its facts. Order: (1) split the library into one idea per card, (2) fact ids, (3) the question kind and versioned answers, (4) Biology, Chemistry, Physics questions (AQA 8461/2/3/8464 first). Access Tuition stays as it is.
 
 - ONE LIBRARY SHAPE (owner, 18 Nov): History and Religious Studies (and any other subject) have their own irregular branch structures in Library/Find. Examine every subject's branches, pick ONE shape every subject follows (or bring the others to theirs if theirs is better), and move them all to it. Tell the owner what was chosen and why in the weekly list.
 
@@ -84,6 +87,7 @@ ORDER OF BOARDS (owner, 20 Nov): OCR is the least used board, so it comes last. 
 - Personal (raise when there's a gap): organise tasks/folders/bedroom; a DIY room scan (photos/LiDAR → 3D) to plan the room; a private "food" list of easy meals (first: microwave sushi rice + salmon + soy); turn what the owner enjoys (family trips to Australia/Brazil) into business angles (those countries' curricula).
 
 ## For the owner (ask in conversation)
+- PRIVATE REPO (20 Nov): make the repository private so the source, notes, tools and backend are no longer public; host via GitHub Pro (~$4/month) or Cloudflare Pages (free, needs the owner to make an account once). Then minify/obfuscate the bundle and move more content behind sign-in. Waiting on the owner's choice.
 
 - NSW HSC: the 2017 syllabus or the 2024 one?
 - English: the copyright-withheld extracts for Nov 2023 P1 (Byatt, Possession) and Nov 2022 P1 (Hemingway) need a full printed copy; papers for June 2021 P2 and Nov 2024 P1/P2 can be added if wanted.
