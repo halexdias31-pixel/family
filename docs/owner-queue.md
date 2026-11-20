@@ -6,6 +6,8 @@ Order: what a child or parent would notice first, then what stops things driftin
 
 ## Now
 
+STANDING (owner, 20 Nov): a new request from the owner goes into this queue at the place it deserves; Claude need not drop current work for it. Only urgent child-facing breakage jumps the queue.
+
 ORDER OF BOARDS (owner, 20 Nov): OCR is the least used board, so it comes last. Work AQA first, then Edexcel, then OCR, in every content and marking item.
 
 0d. HELP BUTTON (owner, 20 Nov): the "I need help" hand does nothing but stay toggled on and play a sound when it is raised. No red anywhere (not the widget, not the button). One look, one sound.
