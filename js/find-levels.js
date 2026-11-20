@@ -354,9 +354,10 @@ function stuffSorted_(items) {
 /* ---------- AND THE PAPER ITSELF STRAIGHT AFTER ITS NAME, THEN THE PART BY `qPartKey` § */
 /* ---------- CONTENT CARDS AFTER THE REST, IN THE ORDER THEY TEACH — AND FIRST ONLY WHEN THEY ARE ASKED FOR § */
 /* A SETTING THAT IS NOT YOURS (shut, greyed) comes after all of yours; one marked `first` (the admin's lens) before them all. */
+/* AN ITEM IN A PLANNED ORDER (`seq`: the docket's Now, Next, dkPlan_) keeps that order under its list, before its name is asked. */
 const sortKey_ = x => [
   x.first ? '0' : isContent_(x) ? '2' + String((x.row && x.row.bookId) || '') + '\u0000' + padNums_(String((x.row && x.row.n) || 0)) : x.mine === false ? '3' : '1',
-  padNums_(String(x.sub || x.name || '').toLowerCase()),
+  padNums_(String(x.sub || x.name || '').toLowerCase()) + (x.seq != null ? '\u0001' + padNums_(String(x.seq)) : ''),
   isQ_(x) ? String(paperIdOf_(x.row) || '').toLowerCase() : '',
   padNums_(String(x.qNumber == null ? '' : x.qNumber)),
   x.qPartKey != null ? x.qPartKey : String(x.qPart || '').toLowerCase(),

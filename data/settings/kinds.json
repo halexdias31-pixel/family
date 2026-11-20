@@ -1632,7 +1632,7 @@
    }
   },
   "docket": {
-   "source": "the owner's docket lists (owner, 20 Nov): their own `todo` cell, read by js/map.js dkItems_ — an item a card, drawn by dkCard_: the title, the list and its date, time or Daily as tags, a Done tick saved as the widget saves it (`doneOn` for a daily item), and the note",
+   "source": "the owner's docket lists (owner, 20 Nov): their own `todo` cell, read by js/map.js dkItems_ — an item a card, drawn by dkCard_: the title, the list and its date, time or Daily as tags, a Done tick saved as the widget saves it (`doneOn` for a daily item), and the note; its attributes (minutes, runs by itself, effort, fun, importance, place, a fixed time or a deadline) are the form `docket-item`, the order dkPlan_ (rules.json 1.82), the first two unticked tagged Now and Next",
    "find": {
     "group": "Tools",
     "label": "Docket",
@@ -1647,6 +1647,167 @@
    },
    "see": {
     "who": "owner"
+   },
+   "forms": {
+    "docket-item": {
+     "draft": false,
+     "attr": "data-dke",
+     "say": "a docket item in Find (owner, 20 Nov: NOW, NEXT): its Edit tile opens this form on the card, Save and Delete under it, saved whole through dkSave_. Each field is a fixed choice with a `default`, so an item added by its title alone is complete; js/map.js dkFill_ fills the defaults and dkPlan_ orders a list from them (rules.json 1.82).",
+     "fields": [
+      {
+       "f": "title",
+       "type": "text",
+       "label": "Title"
+      },
+      {
+       "f": "minutes",
+       "type": "number",
+       "label": "Minutes it takes",
+       "input": "number",
+       "min": 1,
+       "step": 1,
+       "default": 5
+      },
+      {
+       "f": "runs",
+       "type": "number",
+       "label": "Runs by itself (minutes)",
+       "input": "number",
+       "min": 0,
+       "step": 1,
+       "default": 0
+      },
+      {
+       "f": "effort",
+       "type": "choice",
+       "label": "Effort",
+       "default": "easy",
+       "options": [
+        {
+         "v": "easy",
+         "t": "Easy"
+        },
+        {
+         "v": "medium",
+         "t": "Medium"
+        },
+        {
+         "v": "hard",
+         "t": "Hard"
+        }
+       ]
+      },
+      {
+       "f": "fun",
+       "type": "choice",
+       "label": "Fun",
+       "default": "neutral",
+       "options": [
+        {
+         "v": "dread",
+         "t": "Dread"
+        },
+        {
+         "v": "neutral",
+         "t": "Neutral"
+        },
+        {
+         "v": "enjoy",
+         "t": "Enjoy"
+        }
+       ]
+      },
+      {
+       "f": "importance",
+       "type": "choice",
+       "label": "Importance",
+       "default": "normal",
+       "options": [
+        {
+         "v": "low",
+         "t": "Low"
+        },
+        {
+         "v": "normal",
+         "t": "Normal"
+        },
+        {
+         "v": "high",
+         "t": "High"
+        },
+        {
+         "v": "must",
+         "t": "Must"
+        }
+       ]
+      },
+      {
+       "f": "place",
+       "type": "choice",
+       "label": "Place",
+       "default": "anywhere",
+       "options": [
+        {
+         "v": "home",
+         "t": "Home"
+        },
+        {
+         "v": "out",
+         "t": "Out"
+        },
+        {
+         "v": "anywhere",
+         "t": "Anywhere"
+        }
+       ]
+      },
+      {
+       "f": "date",
+       "type": "date",
+       "label": "Date",
+       "input": "date"
+      },
+      {
+       "f": "time",
+       "type": "text",
+       "label": "Time",
+       "input": "time"
+      },
+      {
+       "f": "timeIs",
+       "type": "choice",
+       "label": "The time is",
+       "default": "at",
+       "options": [
+        {
+         "v": "at",
+         "t": "A fixed time"
+        },
+        {
+         "v": "by",
+         "t": "Done before it"
+        }
+       ]
+      },
+      {
+       "f": "repeat",
+       "type": "choice",
+       "label": "Repeats",
+       "default": "",
+       "options": [
+        {
+         "v": "daily",
+         "t": "Daily"
+        }
+       ]
+      },
+      {
+       "f": "note",
+       "type": "long",
+       "label": "Note"
+      }
+     ]
+    }
    }
   },
   "game": {
