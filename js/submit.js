@@ -95,11 +95,9 @@ function subRecord_(k, answer, verdict, sound, feedback) {
   answer = answer === null || answer === undefined ? '' : String(answer);
   if (!/^ans:/.test(k) || !answer.trim() || !verdict) return null;
   const who = ansWhoOf_(k);
-  /* NOBODY TO RECORD IT FOR -- a card still keyed to a person whose session has ended (Find is held while a child writes, so the box keeps its key). § */
-  if (who && !(typeof whoIs_ === 'function' && whoIs_() === who)) {
-    if (sound !== 'none') markPlay_(String(verdict), sound === 'late');
-    return null;
-  }
+  /* A CARD STILL KEYED TO A PERSON WHOSE SESSION HAS ENDED (Find is held while a child writes, so the box keeps its key). */
+  /* NEVER DROPPED (owner, 20 Nov): the press is kept in THAT person's drawer and queue, and goes up when they next sign in (`subAdopt_`). */
+  const here = !who || (typeof whoIs_ === 'function' && whoIs_() === who);
   const key = subKeyOf_(k);
   /* ONE PRESS, ONE SUBMISSION (508): the same answer and verdict again within a second is a double tap, not a second try. */
   const prev = SUB_LAST.get(who + '|' + key);
@@ -109,7 +107,8 @@ function subRecord_(k, answer, verdict, sound, feedback) {
   if (said) e.f = said;
   SUB_LAST.set(who + '|' + key, { e: e, t: e.at });
   /* SIGNED IN WITH AN ID: the account's. Over the account's ceiling it stays here and says so. */
-  const pid = who && typeof USER === 'object' && USER && USER.personId && who === 'u:' + String(USER.personId) ? String(USER.personId) : '';
+  const pid = !here ? (/^u:(.+)$/.exec(who) || [])[1] || ''
+    : who && typeof USER === 'object' && USER && USER.personId && who === 'u:' + String(USER.personId) ? String(USER.personId) : '';
   if (pid) {
     if (answer.length > SUB_ANSWER_MAX) e.far = 1;
     else {
@@ -128,10 +127,13 @@ function subRecord_(k, answer, verdict, sound, feedback) {
   const all = subAll_(who);
   all[key] = e;
   subAllKeep_(who, all);
-  subPaint_(k);
-  /* AND YOUR RESULT TAG (463) is read again */
-  if (typeof myResultNew_ === 'function') myResultNew_(k);
-  if (e.q) subPush_(true);
+  if (here) {
+    subPaint_(k);
+    /* AND YOUR RESULT TAG (463) is read again */
+    if (typeof myResultNew_ === 'function') myResultNew_(k);
+    if (e.q) subPush_(true);
+    subWaitSay_();
+  }
   /* LAST, AFTER EVERYTHING ELSE THE PRESS DOES, so a sound that cannot play costs nothing it was for. */
   if (sound !== 'none') markPlay_(e.v, sound === 'late');
   return e;
@@ -587,7 +589,28 @@ function subPaint_(k) {
 function subPaintAll_() {
   if (typeof ansSavedPaint_ === 'function') ansSavedPaint_();
   if (typeof window.offFrontPaint_ === 'function') window.offFrontPaint_();
+  subWaitSay_();
 }
+/* ---------- ANSWERS WAITING TO SEND, SAID CALMLY (owner, 20 Nov) */
+/* Only once a send has failed or the device is offline (a press that goes at once says nothing), in the site's own toast; and
+   "Answers sent" when the last of them has gone. */
+let SUB_WAIT_SAID = 0;
+function subWaitCount_() {
+  if (typeof USER !== 'object' || !USER || !USER.personId) return 0;
+  return subQueue_('u:' + String(USER.personId)).length;
+}
+const subWaitWords_ = n => n === 1 ? '1 answer waiting to send' : n + ' answers waiting to send';
+function subWaitSay_() {
+  try {
+    if (typeof toast !== 'function') return;
+    const n = subWaitCount_(), off = typeof navigator === 'object' && navigator.onLine === false;
+    if (n && (SUB_BACKOFF || off)) {
+      if (n !== SUB_WAIT_SAID) { SUB_WAIT_SAID = n; toast(subWaitWords_(n)); }
+    } else if (!n && SUB_WAIT_SAID) { SUB_WAIT_SAID = 0; toast('Answers sent'); }
+  } catch (e) { oops_(e, 'submit:subWaitSay_') }
+}
+/* BACK ONLINE: what waited goes now, not at the next backoff. */
+window.addEventListener('online', () => { clearTimeout(SUB_RETRY); SUB_BACKOFF = 0; subPush_(true).then(subWaitSay_, subWaitSay_); });
 /* A BOX'S VERDICT LINE, FROM THE STORE: § */
 function subVerdictPaint_(mark, inp) {
   if (!mark || !inp || mark.classList.contains('is-busy')) return;
@@ -624,4 +647,5 @@ function subForget_() {
   clearTimeout(SUB_RETRY);
   SUB_BACKOFF = 0;
   SUB_AGAIN = false;
+  SUB_WAIT_SAID = 0;
 }

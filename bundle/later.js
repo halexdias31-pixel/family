@@ -13801,10 +13801,7 @@ k = String(k || '');
 answer = answer === null || answer === undefined ? '' : String(answer);
 if (!/^ans:/.test(k) || !answer.trim() || !verdict) return null;
 const who = ansWhoOf_(k);
-if (who && !(typeof whoIs_ === 'function' && whoIs_() === who)) {
-if (sound !== 'none') markPlay_(String(verdict), sound === 'late');
-return null;
-}
+const here = !who || (typeof whoIs_ === 'function' && whoIs_() === who);
 const key = subKeyOf_(k);
 const prev = SUB_LAST.get(who + '|' + key);
 if (prev && prev.e.a === answer && prev.e.v === String(verdict) && Date.now() - prev.t < SUB_TWICE_MS) return prev.e;
@@ -13812,7 +13809,8 @@ const e = { a: answer, v: String(verdict), at: Date.now(), id: subId_() };
 const said = String(feedback == null ? '' : feedback).trim().slice(0, SUB_FEEDBACK_MAX);
 if (said) e.f = said;
 SUB_LAST.set(who + '|' + key, { e: e, t: e.at });
-const pid = who && typeof USER === 'object' && USER && USER.personId && who === 'u:' + String(USER.personId) ? String(USER.personId) : '';
+const pid = !here ? (/^u:(.+)$/.exec(who) || [])[1] || ''
+: who && typeof USER === 'object' && USER && USER.personId && who === 'u:' + String(USER.personId) ? String(USER.personId) : '';
 if (pid) {
 if (answer.length > SUB_ANSWER_MAX) e.far = 1;
 else {
@@ -13829,9 +13827,12 @@ subQueueKeep_(who, q);
 const all = subAll_(who);
 all[key] = e;
 subAllKeep_(who, all);
+if (here) {
 subPaint_(k);
 if (typeof myResultNew_ === 'function') myResultNew_(k);
 if (e.q) subPush_(true);
+subWaitSay_();
+}
 if (sound !== 'none') markPlay_(e.v, sound === 'late');
 return e;
 }
@@ -14230,7 +14231,24 @@ if (typeof ansSavedPaint_ === 'function') ansSavedPaint_();
 function subPaintAll_() {
 if (typeof ansSavedPaint_ === 'function') ansSavedPaint_();
 if (typeof window.offFrontPaint_ === 'function') window.offFrontPaint_();
+subWaitSay_();
 }
+let SUB_WAIT_SAID = 0;
+function subWaitCount_() {
+if (typeof USER !== 'object' || !USER || !USER.personId) return 0;
+return subQueue_('u:' + String(USER.personId)).length;
+}
+const subWaitWords_ = n => n === 1 ? '1 answer waiting to send' : n + ' answers waiting to send';
+function subWaitSay_() {
+try {
+if (typeof toast !== 'function') return;
+const n = subWaitCount_(), off = typeof navigator === 'object' && navigator.onLine === false;
+if (n && (SUB_BACKOFF || off)) {
+if (n !== SUB_WAIT_SAID) { SUB_WAIT_SAID = n; toast(subWaitWords_(n)); }
+} else if (!n && SUB_WAIT_SAID) { SUB_WAIT_SAID = 0; toast('Answers sent'); }
+} catch (e) { oops_(e, 'submit:subWaitSay_') }
+}
+window.addEventListener('online', () => { clearTimeout(SUB_RETRY); SUB_BACKOFF = 0; subPush_(true).then(subWaitSay_, subWaitSay_); });
 function subVerdictPaint_(mark, inp) {
 if (!mark || !inp || mark.classList.contains('is-busy')) return;
 const out = mark.querySelector('.qp-verdict');
@@ -14261,6 +14279,7 @@ SUBQ_MEM.clear();
 clearTimeout(SUB_RETRY);
 SUB_BACKOFF = 0;
 SUB_AGAIN = false;
+SUB_WAIT_SAID = 0;
 }
 ;
 /* js/submit-suggest.js */
@@ -14877,8 +14896,14 @@ const items = s.got.items || [];
 if (!items.length) return [pick, { type: 'text', text: 'No questions answered that day.' }];
 return [pick, { type: 'text', paras: s.got.summary || [] },
 { type: 'list', items: items.map(q => ({ label: q.label || 'A question',
-value: (q.mark ? q.mark + ' · ' : '') + (HIST_HOW[q.how] || '') + (q.answer ? ' · answered ' + q.answer : '') + (q.again ? ' · again' : ''),
+value: (q.mark ? q.mark + ' · ' : '') + (HIST_HOW[q.how] || '') + ' · ' + histTyped_(q.answer) + (q.tries > 1 ? ' · ' + q.tries + ' tries' : '') + (q.again ? ' · again' : ''),
 tone: q.how === 'right' ? 'is-good' : q.how === 'wrong' ? 'is-bad' : '' })) }];
+}
+function histTyped_(a) {
+const t = String(a == null ? '' : a).trim();
+if (!/[^\s,;]/.test(t)) return '(no answer)';
+const bits = /\u27ee|^\d{1,2}(?:,\d{0,2})*$/.test(t) ? [t] : t.split(/\s*[,;]\s*/);
+return 'answered ' + (bits.some(b => !b) ? bits.filter(Boolean).join(/;/.test(t) ? ' ; ' : ', ') : t);
 }
 function histPaint_(of) {
 document.querySelectorAll('.card[data-hist][data-of]').forEach(el => {

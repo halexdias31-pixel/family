@@ -113,7 +113,7 @@ function digestLearners_(week, subRows) {
     /* AND HOW IT WENT, the week's last word on it — a verdict outside the vocabulary prints no mark. */
     const verdict = SUBMISSION_VERDICT.test(J.verdict) ? J.verdict : '';
     const answer = Object.keys(J.ans).sort().map(k => J.ans[k].a.trim()).filter(Boolean).join(' ; ');
-    const item = { key: J.key, label: label, words: words, hidden: !label, last: J.last, verdict: verdict, answer: answer };
+    const item = { key: J.key, label: label, words: words, hidden: !label, last: J.last, verdict: verdict, answer: answer, tries: Object.keys(J.tries).length };
     (fresh ? L.fresh : L.again).push(item);
   });
 
@@ -137,7 +137,7 @@ function digestFold_(joined, r, week, tidy) {
   if (day > week.end) return;
   const id = pid + '\u0001' + q;
   const J = joined[id] || (joined[id] = { pid: pid, key: q, before: false, inWeek: false, at: -1, last: '',
-                                          verdict: '', label: '', labelAt: -1, words: '', wordsAt: -1, ans: {}, days: {} });
+                                          verdict: '', label: '', labelAt: -1, words: '', wordsAt: -1, ans: {}, days: {}, tries: {} });
   const l = tidy(r.label), w = attemptWords_(r.words);
   if (l && ms >= J.labelAt) { J.label = l; J.labelAt = ms; }
   if (w && ms >= J.wordsAt) { J.words = w; J.wordsAt = ms; }
@@ -146,10 +146,22 @@ function digestFold_(joined, r, week, tidy) {
   if (day < week.start) { J.before = true; return; }
   J.inWeek = true;
   J.days[day] = 1;
+  /* HOW MANY TRIES (owner, 20 Nov, 4e): one per press, whose boxes share its moment. */
+  J.tries[ms] = 1;
   if (ms >= J.at) { J.at = ms; J.last = day; J.verdict = S(r.verdict); }
   /* WHAT THE CHILD LAST SENT, box by box — a worksheet's three boxes are one question (380). */
   const had = J.ans[slot];
-  if (!had || ms >= had.ms) J.ans[slot] = { ms: ms, a: S(r.answer).replace(/^'/, '') };
+  if (!had || ms >= had.ms) J.ans[slot] = { ms: ms, a: answerTyped_(S(r.answer).replace(/^'/, '')) };
+}
+
+/* ONLY WHAT WAS TYPED (owner, 20 Nov, 4e): an old many-box answer was kept as one string, ", , , , , , T";
+   its empty slots go, and one made only of separators is blank. A choice list ("1,3") and a vector (⟮5,⟯) are left whole. */
+function answerTyped_(a) {
+  const t = S(a).trim();
+  if (!/[^\s,;]/.test(t)) return '';
+  if (/\u27ee/.test(t) || /^\d{1,2}(?:,\d{0,2})*$/.test(t)) return t;
+  const bits = t.split(/\s*[,;]\s*/);
+  return bits.some(b => !b) ? bits.filter(Boolean).join(/;/.test(t) ? ' ; ' : ', ') : t;
 }
 
 /* ---------- WHICH OF A LEARNER'S PARENTS IS TOLD, AND WHY NOT THE REST § */
@@ -1437,6 +1449,6 @@ function postHistory_(body) {
   const says = {};
   digestHowSay_().forEach(w => { says[w.id] = w; });
   return jsonOut({ success: true, of: of, day: day, summary: sum.lines,
-    items: items.map(q => ({ label: q.hidden ? 'A question' : q.label, words: q.words, answer: q.answer,
+    items: items.map(q => ({ label: q.hidden ? 'A question' : q.label, words: q.words, answer: q.answer, tries: q.tries || 1,
                              how: digestHow_(q.verdict), mark: (/(\d+\/\d+)$/.exec(q.verdict) || [])[1] || '', again: L.again.indexOf(q) !== -1 })) });
 }
