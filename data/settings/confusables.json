@@ -31,5 +31,8 @@
 {"words": "allele | alleles"},
 {"words": "hypothesis | hypotheses"},
 {"words": "nucleus | nuclei"},
-{"words": "isotope | isotopes"}
+{"words": "isotope | isotopes"},
+{"words": "amylase | amylose"},
+{"words": "intracellular | intercellular"},
+{"words": "intramolecular | intermolecular"}
 ]

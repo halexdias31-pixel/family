@@ -4964,12 +4964,48 @@ const left = want.slice();
 return got.every(v => { const i = left.findIndex(u => one(v, u)); return i >= 0 && left.splice(i, 1); });
 });
 }
+const MARK_ORDER_SPLIT = /\s+(?:to|then|into|becomes)\s+|\s*(?:→|->|⟶|=>)\s*/;
+function markOrderSides_(s) {
+const t = String(s).toLowerCase().replace(/[−–—]/g, '-').replace(/^\s*(?:it\s+)?(?:goes\s+|changes\s+|moves\s+)?from\s+/, '').trim();
+const sides = t.split(MARK_ORDER_SPLIT).map(v => v.trim());
+return sides.length >= 2 && sides.every(Boolean) ? sides : null;
+}
+function markOrderBroken_(typed, accept, opt) {
+const raw = String(typed || '').trim();
+const ways = String(accept || '').split('|').map(w => w.trim()).filter(w => w && !/^rule:/i.test(w));
+if (/^(?:(?:i\s+)?(?:do\s*n[o']?t|dont)\s+know|(?:i\s+have\s+)?no\s+idea|dunno)[.!]?$/i.test(raw.replace(/[‘’]/g, "'")) && !ways.some(w => /know|idea|sure/i.test(w))) return true;
+if (!ways.length) return false;
+const o = Object.assign({}, opt, { listed: true });
+const same = (a, b) => !!markAnswer_(a, b, false, o);
+const shuffled = (got, want) => {
+if (got.length !== want.length || got.length < 2) return false;
+if (got.every((v, i) => same(v, want[i]))) return false;
+const left = want.slice();
+return got.every(v => { const i = left.findIndex(u => same(v, u)); return i >= 0 && left.splice(i, 1); });
+};
+const tup = ways.filter(w => /^\([^()]*,[^()]*\)$/.test(markNorm_(w)));
+if (tup.length) {
+const got = markList_(markNorm_(raw.replace(/[−–—]/g, '-')));
+if (got.length >= 2 && tup.some(w => shuffled(got, markList_(markNorm_(w))))
+&& !tup.some(w => { const want = markList_(markNorm_(w)); return want.length === got.length && got.every((v, i) => same(v, want[i])); })) return true;
+}
+const num = v => /^[-+]?\d[\d.,\/]*\s*[a-z°%\/^0-9]{0,6}$/.test(v.trim());
+const tSides = markOrderSides_(raw);
+if (tSides) {
+const phr = ways.map(markOrderSides_).filter(sd => sd && !sd.every(num));
+if (phr.length && phr.some(sd => shuffled(tSides, sd)) && !phr.some(sd => sd.length === tSides.length && tSides.every((v, i) => same(v, sd[i])))) return true;
+}
+if (/^([a-z])\1$/i.test(raw) && ways.some(w => /^([a-z])\1$/i.test(w) && /[A-Z]/.test(w)) && !ways.some(w => w === raw || w.split('').sort().join('') === raw.split('').sort().join(''))) return true;
+return false;
+}
 function markAnswer_(typed, accept, again, opt) {
 if (Array.isArray(typed)) typed = typed.map(v => String(v == null ? '' : v).trim()).filter(Boolean).join(', ');
 const t = markNorm_(typed);
 if (!t) return null;
 if (!(opt && opt.listed)) {
-const o = Object.assign({}, opt, { listed: true }), first = markAnswer_(typed, accept, again, o);
+const o = Object.assign({}, opt, { listed: true });
+if (!again && markOrderBroken_(typed, accept, opt)) return false;
+const first = markAnswer_(typed, accept, again, o);
 return first || (again ? first : markListed_(String(typed).replace(/\s*[\r\n;]+\s*/g, ', ').replace(/[\u2212\u2013\u2014]/g, '-').toLowerCase(), accept, o) || first);
 }
 const said = !again && markSpoken_(t);
