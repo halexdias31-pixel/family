@@ -4547,14 +4547,12 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .rsvp-speed input[type=range]::-moz-range-thumb { width: 24px; height: 24px; border-radius: 50%; background: var(--gold); border: 0; }
 
 /* ================= PROGRESS (435): one line per thing on the black and gold; a paper opens in place ================= */
-.prog-topic .row { border-bottom: 0; padding-bottom: var(--s1); }
-.prog-bar { display: block; width: 100%; height: .3rem; margin-bottom: var(--s2); border-radius: var(--r-ui); background: var(--line); overflow: hidden; }
-.prog-bar > rect { fill: var(--gold); }
 .prog-tot .v { color: var(--gold); font-weight: 620; }
 .prog-v.is-good { color: var(--good); }
 .prog-v.is-bad { color: var(--bad); }
-.prog-weak + .prog-weak { margin-top: var(--s2); }
-.prog-weak .row { border-bottom: 0; }
+/* THE ONE PROGRESS CARD (4g): its day view under the source rows. */
+.prog-day { margin-top: var(--s3); }
+.prog-all .prog-day .row .k, .prog-all .prog-day .row .v { flex: initial; min-width: 0; }
 .prog-sessions .note { margin: var(--s2) 0 0; }
 
 .prog-paper > summary, .miss-q > summary { min-height: var(--tap); cursor: pointer; list-style: none; align-items: center; }
@@ -4565,10 +4563,10 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .prog-qs .row, .miss-gaps .row { font-size: var(--fs-body); }
 /* WHAT'S MISSING (525): a complete qualification lines up with the folded ones beside it. */
 .miss-done .k::before { content: ""; display: inline-block; width: 1rem; }
-.prog-topic .v, .prog-weak .v, .prog-paper > summary .v, .prog-activity .prog-v { white-space: nowrap; }
+.prog-paper > summary .v { white-space: nowrap; }
 /* A LONG PAPER OR TOPIC NAME WRAPS ON ITS OWN SIDE; the value keeps its line and never leaves the card. */
-.prog-answered .row .k, .prog-activity .row .k, .prog-weakest .row .k, .prog-grade .row .k, .prog-series .row .k, .prog-sessions .row .k, .miss-card .row .k { flex: 1 1 auto; min-width: 0; }
-.prog-answered .row .v, .prog-activity .row .v, .prog-weakest .row .v, .prog-grade .row .v, .prog-series .row .v, .prog-sessions .row .v, .miss-q > summary .v, .miss-done .v { flex: 0 0 auto; }
+.prog-all .row .k, .prog-sessions .row .k, .miss-card .row .k { flex: 1 1 auto; min-width: 0; }
+.prog-all .row .v, .prog-sessions .row .v, .miss-q > summary .v, .miss-done .v { flex: 0 0 auto; }
 /* THE CARD IS ONE LINE UNTIL ITS TILE OPENS THE LIST (660). */
 .miss-card .miss-sum { margin: var(--s1) 0 var(--s1); font-size: var(--fs-body); }
 .miss-card > h3 { margin-bottom: var(--s1); }

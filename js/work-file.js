@@ -163,12 +163,6 @@ const HIST = {};
 const histOf_ = of => HIST[of] || (HIST[of] = { day: '', got: null, busy: false, say: '' });
 const histToday_ = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
 const HIST_HOW = { right: '✓ Right', part: 'Part marks', wrong: '✗ Not right', open: 'Not marked yet' };
-function historyCard_(pid) {
-  const of = String(pid || (USER && USER.personId) || '');
-  if (!of || !USER || USER.lockedPreview) return '';
-  return renderCard(histSpec_(of));
-}
-const histSpec_ = of => ({ kind: 'setting', name: 'History', tags: [{ text: 'History' }], data: { of, hist: 1 }, body: histBody_(of) });
 function histBody_(of) {
   const s = histOf_(of);
   const pick = { type: 'formRow', label: 'Day', control: { kind: 'date', look: 'hist-day', value: s.day, data: { of }, aria: 'Which day' } };
@@ -192,8 +186,13 @@ function histTyped_(a) {
 function histPaint_(of) {
   document.querySelectorAll('.card[data-hist][data-of]').forEach(el => {
     if (el.getAttribute('data-of') !== of) return;
-    const t = document.createElement('template'); t.innerHTML = renderCard(histSpec_(of));
-    if (t.content.firstElementChild) el.replaceWith(t.content.firstElementChild);
+    const spec = typeof progressAllSpec_ === 'function' && progressAllSpec_(of);
+    if (!spec) return;
+    /* THE DAY VIEW LIVES IN THE ONE PROGRESS CARD (4g): the whole card is drawn again, its open lines kept (PROG_OPEN). */
+    const t = document.createElement('template'); t.innerHTML = renderCard(spec);
+    const node = t.content.firstElementChild;
+    if (node && el.classList.contains('prog-w')) node.classList.add('prog-w');
+    if (node) el.replaceWith(node);
   });
 }
 function histLoad_(of, day) {

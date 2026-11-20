@@ -313,18 +313,13 @@ const CARD_REG = [
   { id: 'acct:signed-in', col: 'account', label: 'Signed in', re: /^<div class="card signed-in"/, say: 'Sign in, or who is signed in on this phone and Sign out.' },
   { id: 'acct:brownie', col: 'account', label: 'Brownie points', re: /^<div class="card soon-card soon-brownie/, say: 'A placeholder: points for good work.' },
   { id: 'acct:workfile', col: 'account', label: 'Work on file', re: /^<div class="card [^"]*\bworkfile-card\b/, say: 'Pages you scanned or photographed, kept on your account.' },
-  { id: 'acct:history', col: 'account', label: 'History', re: /^<div class="card [^"]*\bkc-setting\b[^>]*data-hist=/, say: 'Pick a day: its questions, their marks and a summary.' },
   { id: 'acct:roadmap', col: 'account', label: 'Roadmap', re: /^<div class="card soon-card soon-roadmap/, say: 'A placeholder: how much of the syllabus is left.' },
   { id: 'acct:conduct', col: 'account', label: 'Code of conduct', re: /^<div class="card soon-card soon-conduct/, say: 'A placeholder: the code of conduct.' },
   { id: 'acct:pin', col: 'account', label: 'Signing in', re: /data-ask="pin-change"/, only: 'your PIN', say: 'Change the PIN you sign in with.' },
   { id: 'acct:roles', col: 'account', label: 'Your role', re: /^<div class="card roles-card/, only: 'your role', say: 'Whether this account is a student\'s or a parent\'s.' },
   { id: 'acct:notify', col: 'account', label: 'Notifications', re: /^<div class="card notify-card/, only: 'which emails you get', say: 'Which emails we send you.' },
   { id: 'acct:voice', col: 'account', label: 'Reading aloud', re: /^<div class="card voice-card/, say: 'How questions sound when they are read aloud on this device.' },
-  { id: 'acct:prog-answered', col: 'account', label: 'Progress: answered', re: /^<div class="card prog-w prog-answered/, say: 'How many questions you have answered, and how many were right.' },
-  { id: 'acct:prog-activity', col: 'account', label: 'Progress: activity', re: /^<div class="card prog-w prog-activity/, say: 'What you have done lately.' },
-  { id: 'acct:prog-weakest', col: 'account', label: 'Progress: weakest topics', re: /^<div class="card prog-w prog-weakest/, say: 'The topics to practise next.' },
-  { id: 'acct:prog-series', col: 'account', label: 'Papers and worksheets', re: /^<div class="card prog-w prog-series/, say: 'How far you are through each paper and worksheet.' },
-  { id: 'acct:prog-grade', col: 'account', label: 'Progress: grade', re: /^<div class="card prog-w prog-grade/, say: 'A rough grade from the questions you have answered.' },
+  { id: 'acct:progress', col: 'account', label: 'Progress', re: /^<div class="card prog-w prog-all/, say: 'Your streak, marks and grade, each source question by question, and any day\'s answers.' },
   { id: 'acct:prog-sessions', col: 'account', label: 'Progress: sessions', re: /^<div class="card prog-w prog-sessions/, say: 'Your booked and past sessions.' },
   { id: 'staff:apply', col: 'staff', label: 'Apply to teach', re: /^<div class="card apply-card/, say: 'Ask to teach with us; the admin says yes or no.' },
   { id: 'staff:lego', col: 'staff', label: 'LEGO piece check', say: 'Count a trade-in set\'s pieces from photos, against its parts list.' },
@@ -374,12 +369,11 @@ function ownSecReg_() {
   const where = c => (settingGroupOf_(c) || {}).label || c;
   return [].concat(...Object.keys(of).map(c => of[c].map(k => ({ id: 'own:' + c + ':' + k, col: c, label: S[k][0] + ' (' + where(c) + ')', only: S[k][1], say: S[k][2] }))));
 }
-const PROG_EMPTY_ = { 'Questions': 'acct:prog-answered', 'Recent activity': 'acct:prog-activity', 'Work on next': 'acct:prog-weakest',
-  'Grade estimate': 'acct:prog-grade', 'Papers and worksheets': 'acct:prog-series', 'Sessions': 'acct:prog-sessions' };
+const PROG_EMPTY_ = { 'Progress': 'acct:progress', 'Sessions': 'acct:prog-sessions' };
 const cardReg_ = id => CARD_REG.find(r => r.id === id);
 /* A SETTINGS GROUP (`set:<col>:<group>`) or a Business record card (`biz:rec:<page>`, `biz:profit-terms`) is known by its id alone. */
-/* A SPLIT CARD'S PIECE is `<card>#<field>` (466); a progress series card is `prog:series:<name>`. */
-const CARD_DYN = /^(item:[a-z]+:[A-Za-z0-9_.-]{1,48}|(set:(family|staff|account):[A-Za-z0-9_:.-]+|biz:rec:[A-Za-z0-9_:.-]+|biz:profit-terms)(#[A-Za-z0-9_.-]{1,40})?|prog:series:[A-Za-z0-9_.-]{1,48})$/;
+/* A SPLIT CARD'S PIECE is `<card>#<field>` (466). */
+const CARD_DYN = /^(item:[a-z]+:[A-Za-z0-9_.-]{1,48}|(set:(family|staff|account):[A-Za-z0-9_:.-]+|biz:rec:[A-Za-z0-9_:.-]+|biz:profit-terms)(#[A-Za-z0-9_.-]{1,40})?)$/;
 const cardIs_ = id => !!(cardReg_(id) || CARD_DYN.test(String(id || '')));
 /* A MARK FOR A CARD WITH NO ROOT OF ITS OWN (a people list is a page a person): each page carries the list's id. */
 const cardMark_ = (id, list) => (list || []).filter(Boolean).map(h => '<!--card:' + id + '-->' + h);
