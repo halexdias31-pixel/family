@@ -397,7 +397,8 @@ if (v.link != null) { const h = String(v.href || ''); if (!/^(https:|mailto:|tel
 return `<a${v.look === 'link' ? ' class="link"' : ''} href="${esc(h)}"${v.out ? ' target="_blank" rel="noopener"' : ''}${v.act ? ` data-do="${esc(v.act)}"` : ''}>${cardRuns_(v.link)}</a>`; }
 if (v.br) return '<br>';
 if (v.ln != null) return `<span class="kc-ln" aria-label="line ${esc(String(v.ln))}">${esc(String(v.ln))}</span>`;
-if (v.typeset != null && !v.frac && cardHasMarkup_(v.typeset)) return `<span class="kc-math">${cardRuns_(cardMarkupRuns_(v.typeset))}</span>`;
+if (v.typeset != null && !v.frac && cardHasMarkup_(v.typeset)) { const h = cardRuns_(cardMarkupRuns_(v.typeset));
+return `<span class="kc-math">${typeof typeset_ === 'function' ? typeset_(h) : h}</span>`; }
 if (v.typeset != null) return `<span class="kc-math">${v.frac ? cardFrac_(String(v.typeset)) : typeof typeset_ === 'function' ? typeset_(esc(String(v.typeset))) : esc(String(v.typeset))}</span>`;
 if (v.badge != null) return `<span class="kc-badge"${v.hint ? ` title="${esc(v.hint)}"` : ''}>${esc(String(v.badge))}</span>`;
 if (v.marked != null) return typeof mark === 'function' ? mark(String(v.marked)) : esc(String(v.marked));
@@ -409,12 +410,12 @@ return cardRuns_(v.text);
 const CARD_ENT = { frasl: '\u2044', times: '\u00d7', pi: '\u03c0', minus: '\u2212', ne: '\u2260', nbsp: '\u00a0', plusmn: '\u00b1', radic: '\u221a',
 rho: '\u03c1', theta: '\u03b8', lambda: '\u03bb', infin: '\u221e', lt: '<', gt: '>', amp: '&', hellip: '\u2026', rarr: '\u2192', prime: '\u2032',
 int: '\u222b', asymp: '\u2248', cup: '\u222a', cap: '\u2229', mu: '\u03bc', sigma: '\u03c3', epsilon: '\u03b5', alpha: '\u03b1', phi: '\u03c6',
-omega: '\u03c9', tau: '\u03c4', ndash: '\u2013', le: '\u2264', ge: '\u2265', deg: '\u00b0', frac12: '\u00bd', divide: '\u00f7', quot: '"' };
+omega: '\u03c9', tau: '\u03c4', Delta: '\u0394', Phi: '\u03a6', rsquo: '\u2019', lsquo: '\u2018', delta: '\u03b4', Omega: '\u03a9', Sigma: '\u03a3', eta: '\u03b7', gamma: '\u03b3', beta: '\u03b2', nu: '\u03bd', psi: '\u03c8', ndash: '\u2013', le: '\u2264', ge: '\u2265', deg: '\u00b0', frac12: '\u00bd', divide: '\u00f7', quot: '"' };
 const cardHasMarkup_ = s => /<\/?(i|b|sup|sub|span)\b[^>]*>|&[a-z]+;|&#\d+;/i.test(String(s || ''));
 function cardMarkupRuns_(s) {
 const top = [], stack = [{ runs: top }];
 const put = r => stack[stack.length - 1].runs.push(r);
-const txt = t => t && put(t.replace(/&([a-z]+);|&#(\d+);/gi, (m, n, d) => d ? String.fromCharCode(Number(d)) : (CARD_ENT[n.toLowerCase()] != null ? CARD_ENT[n.toLowerCase()] : m)));
+const txt = t => t && put(t.replace(/&([a-z]+);|&#(\d+);/gi, (m, n, d) => d ? String.fromCharCode(Number(d)) : (CARD_ENT[n] != null ? CARD_ENT[n] : CARD_ENT[n.toLowerCase()] != null ? CARD_ENT[n.toLowerCase()] : m)));
 String(s || '').split(/(<\/?[a-z]+\b[^>]*>)/i).forEach(part => {
 const t = /^<(\/?)([a-z]+)\b([^>]*)>$/i.exec(part);
 if (!t) return txt(part);

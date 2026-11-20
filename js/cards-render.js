@@ -26,7 +26,9 @@ function cardRuns_(v) {
   /* A LINE NUMBER in a margin, as a printed text numbers its lines: read aloud as `line n`. */
   if (v.ln != null) return `<span class="kc-ln" aria-label="line ${esc(String(v.ln))}">${esc(String(v.ln))}</span>`;
   /* MATHS AS TYPED (`x^2`, `a/b`): escaped first, then the typesetter raises and stacks it. */
-  if (v.typeset != null && !v.frac && cardHasMarkup_(v.typeset)) return `<span class="kc-math">${cardRuns_(cardMarkupRuns_(v.typeset))}</span>`;
+  /* then typeset_ like any maths, so a printed `<sup>a</sup>&frasl;<sub>b</sub>` is stacked over its line, not left as a slash (owner, 20 Nov). */
+  if (v.typeset != null && !v.frac && cardHasMarkup_(v.typeset)) { const h = cardRuns_(cardMarkupRuns_(v.typeset));
+    return `<span class="kc-math">${typeof typeset_ === 'function' ? typeset_(h) : h}</span>`; }
   if (v.typeset != null) return `<span class="kc-math">${v.frac ? cardFrac_(String(v.typeset)) : typeof typeset_ === 'function' ? typeset_(esc(String(v.typeset))) : esc(String(v.typeset))}</span>`;
   /* A SMALL MARK BESIDE A WORD (Higher tier's `H`, `only Foundation`): text, one fixed class. */
   if (v.badge != null) return `<span class="kc-badge"${v.hint ? ` title="${esc(v.hint)}"` : ''}>${esc(String(v.badge))}</span>`;
@@ -44,12 +46,12 @@ function cardRuns_(v) {
 const CARD_ENT = { frasl: '\u2044', times: '\u00d7', pi: '\u03c0', minus: '\u2212', ne: '\u2260', nbsp: '\u00a0', plusmn: '\u00b1', radic: '\u221a',
   rho: '\u03c1', theta: '\u03b8', lambda: '\u03bb', infin: '\u221e', lt: '<', gt: '>', amp: '&', hellip: '\u2026', rarr: '\u2192', prime: '\u2032',
   int: '\u222b', asymp: '\u2248', cup: '\u222a', cap: '\u2229', mu: '\u03bc', sigma: '\u03c3', epsilon: '\u03b5', alpha: '\u03b1', phi: '\u03c6',
-  omega: '\u03c9', tau: '\u03c4', ndash: '\u2013', le: '\u2264', ge: '\u2265', deg: '\u00b0', frac12: '\u00bd', divide: '\u00f7', quot: '"' };
+  omega: '\u03c9', tau: '\u03c4', Delta: '\u0394', Phi: '\u03a6', rsquo: '\u2019', lsquo: '\u2018', delta: '\u03b4', Omega: '\u03a9', Sigma: '\u03a3', eta: '\u03b7', gamma: '\u03b3', beta: '\u03b2', nu: '\u03bd', psi: '\u03c8', ndash: '\u2013', le: '\u2264', ge: '\u2265', deg: '\u00b0', frac12: '\u00bd', divide: '\u00f7', quot: '"' };
 const cardHasMarkup_ = s => /<\/?(i|b|sup|sub|span)\b[^>]*>|&[a-z]+;|&#\d+;/i.test(String(s || ''));
 function cardMarkupRuns_(s) {
   const top = [], stack = [{ runs: top }];
   const put = r => stack[stack.length - 1].runs.push(r);
-  const txt = t => t && put(t.replace(/&([a-z]+);|&#(\d+);/gi, (m, n, d) => d ? String.fromCharCode(Number(d)) : (CARD_ENT[n.toLowerCase()] != null ? CARD_ENT[n.toLowerCase()] : m)));
+  const txt = t => t && put(t.replace(/&([a-z]+);|&#(\d+);/gi, (m, n, d) => d ? String.fromCharCode(Number(d)) : (CARD_ENT[n] != null ? CARD_ENT[n] : CARD_ENT[n.toLowerCase()] != null ? CARD_ENT[n.toLowerCase()] : m)));
   String(s || '').split(/(<\/?[a-z]+\b[^>]*>)/i).forEach(part => {
     const t = /^<(\/?)([a-z]+)\b([^>]*)>$/i.exec(part);
     if (!t) return txt(part);

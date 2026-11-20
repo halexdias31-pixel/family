@@ -282,8 +282,8 @@
   "for_subjects": "Physics, Combined Science",
   "for_levels": "GCSE",
   "for_tiers": "",
-  "verified": "False",
-  "verified_note": "The equations in the DfE GCSE physics content, which AQA, Edexcel and OCR each print on their own 2025 to 2027 sheet in their own order and words. H marks Higher tier; “Physics only” marks one not asked in Combined Science. Not yet compared line by line with each board’s PDF, so marked unverified.",
+  "verified": "True",
+  "verified_note": "Checked line by line, 20 Nov 2026, against Appendix A (Physics equations) of AQA’s 8463 specification, the list its equation sheet prints; H and Physics only as AQA marks them (transformers are not in Combined Science).",
   "official": [
    {
     "label": "AQA sheets, 2025 to 2027",
@@ -304,39 +304,45 @@
     "lines": [
      {
       "name": "Weight",
-      "math": "weight = mass &times; gravitational field strength &nbsp; <i>W</i> = <i>m</i><i>g</i>",
+      "math": "weight = mass &times; gravitational field strength",
+      "sym": "<i>W</i> = <i>m</i><i>g</i>",
       "id": "INS-GCSE-PHYSICS-1.1",
       "topic": "Forces and motion"
      },
      {
       "name": "Work done",
-      "math": "work done = force &times; distance along the line of the force &nbsp; <i>W</i> = <i>F</i><i>s</i>",
+      "math": "work done = force &times; distance along the line of the force",
+      "sym": "<i>W</i> = <i>F</i><i>s</i>",
       "id": "INS-GCSE-PHYSICS-1.2",
       "topic": "Forces and motion"
      },
      {
       "name": "Hooke’s law",
-      "math": "force = spring constant &times; extension &nbsp; <i>F</i> = <i>k</i><i>e</i>",
+      "math": "force = spring constant &times; extension",
+      "sym": "<i>F</i> = <i>k</i><i>e</i>",
       "id": "INS-GCSE-PHYSICS-1.3",
       "topic": "Forces and motion"
      },
      {
       "name": "Moment",
-      "math": "moment = force &times; perpendicular distance from the pivot &nbsp; <i>M</i> = <i>F</i><i>d</i>",
+      "math": "moment = force &times; perpendicular distance from the pivot",
+      "sym": "<i>M</i> = <i>F</i><i>d</i>",
       "only": "Physics",
       "id": "INS-GCSE-PHYSICS-1.4",
       "topic": "Forces and motion"
      },
      {
       "name": "Pressure",
-      "math": "pressure = <sup>force normal to a surface</sup>&frasl;<sub>area</sub> &nbsp; <i>p</i> = <sup><i>F</i></sup>&frasl;<sub><i>A</i></sub>",
+      "math": "pressure = <sup>force normal to a surface</sup>&frasl;<sub>area of the surface</sub>",
+      "sym": "<i>p</i> = <sup><i>F</i></sup>&frasl;<sub><i>A</i></sub>",
       "only": "Physics",
       "id": "INS-GCSE-PHYSICS-1.5",
       "topic": "Forces and motion"
      },
      {
       "name": "Pressure in a liquid",
-      "math": "pressure = column height &times; density &times; <i>g</i> &nbsp; <i>p</i> = <i>h</i>&rho;<i>g</i>",
+      "math": "pressure = column height &times; density &times; gravitational field strength",
+      "sym": "<i>p</i> = <i>h</i>&rho;<i>g</i>",
       "higher": "True",
       "only": "Physics",
       "id": "INS-GCSE-PHYSICS-1.6",
@@ -344,39 +350,44 @@
      },
      {
       "name": "Speed",
-      "math": "distance = speed &times; time &nbsp; <i>s</i> = <i>v</i><i>t</i>",
+      "math": "distance = speed &times; time",
+      "sym": "<i>s</i> = <i>v</i><i>t</i>",
       "id": "INS-GCSE-PHYSICS-1.7",
       "topic": "Forces and motion"
      },
      {
       "name": "Acceleration",
-      "math": "acceleration = <sup>change in velocity</sup>&frasl;<sub>time taken</sub> &nbsp; <i>a</i> = <sup>&Delta;<i>v</i></sup>&frasl;<sub><i>t</i></sub>",
+      "math": "acceleration = <sup>change in velocity</sup>&frasl;<sub>time taken</sub>",
+      "sym": "<i>a</i> = <sup>&Delta;<i>v</i></sup>&frasl;<sub><i>t</i></sub>",
       "id": "INS-GCSE-PHYSICS-1.8",
       "topic": "Forces and motion"
      },
      {
       "name": "Uniform acceleration",
-      "math": "<i>v</i><sup>2</sup> &minus; <i>u</i><sup>2</sup> = 2<i>a</i><i>s</i>",
-      "note": "v the final velocity, u the initial velocity, s the distance",
+      "math": "(final velocity)<sup>2</sup> &minus; (initial velocity)<sup>2</sup> = 2 &times; acceleration &times; distance",
+      "sym": "<i>v</i><sup>2</sup> &minus; <i>u</i><sup>2</sup> = 2<i>a</i><i>s</i>",
       "id": "INS-GCSE-PHYSICS-1.9",
       "topic": "Forces and motion"
      },
      {
       "name": "Newton’s second law",
-      "math": "force = mass &times; acceleration &nbsp; <i>F</i> = <i>m</i><i>a</i>",
+      "math": "force = mass &times; acceleration",
+      "sym": "<i>F</i> = <i>m</i><i>a</i>",
       "id": "INS-GCSE-PHYSICS-1.10",
       "topic": "Forces and motion"
      },
      {
       "name": "Momentum",
-      "math": "momentum = mass &times; velocity &nbsp; <i>p</i> = <i>m</i><i>v</i>",
+      "math": "momentum = mass &times; velocity",
+      "sym": "<i>p</i> = <i>m</i><i>v</i>",
       "higher": "True",
       "id": "INS-GCSE-PHYSICS-1.11",
       "topic": "Forces and motion"
      },
      {
       "name": "Force and momentum",
-      "math": "force = <sup>change in momentum</sup>&frasl;<sub>time taken</sub> &nbsp; <i>F</i> = <sup><i>m</i>&Delta;<i>v</i></sup>&frasl;<sub>&Delta;<i>t</i></sub>",
+      "math": "force = <sup>change in momentum</sup>&frasl;<sub>time taken</sub>",
+      "sym": "<i>F</i> = <sup><i>m</i>&Delta;<i>v</i></sup>&frasl;<sub>&Delta;<i>t</i></sub>",
       "higher": "True",
       "only": "Physics",
       "id": "INS-GCSE-PHYSICS-1.12",
@@ -389,46 +400,50 @@
     "lines": [
      {
       "name": "Kinetic energy",
-      "math": "<i>E</i><sub>k</sub> = <sup>1</sup>&frasl;<sub>2</sub> <i>m</i><i>v</i><sup>2</sup>",
+      "math": "kinetic energy = 0.5 &times; mass &times; speed<sup>2</sup>",
+      "sym": "<i>E</i><sub>k</sub> = <sup>1</sup>&frasl;<sub>2</sub> <i>m</i><i>v</i><sup>2</sup>",
       "id": "INS-GCSE-PHYSICS-2.1",
       "topic": "Energy"
      },
      {
       "name": "Gravitational potential energy",
-      "math": "<i>E</i><sub>p</sub> = <i>m</i><i>g</i><i>h</i>",
+      "math": "GPE = mass &times; gravitational field strength &times; height",
+      "sym": "<i>E</i><sub>p</sub> = <i>m</i><i>g</i><i>h</i>",
       "id": "INS-GCSE-PHYSICS-2.2",
       "topic": "Energy"
      },
      {
       "name": "Elastic potential energy",
-      "math": "<i>E</i><sub>e</sub> = <sup>1</sup>&frasl;<sub>2</sub> <i>k</i><i>e</i><sup>2</sup>",
-      "note": "while the limit of proportionality is not passed",
+      "math": "elastic potential energy = 0.5 &times; spring constant &times; extension<sup>2</sup>",
+      "sym": "<i>E</i><sub>e</sub> = <sup>1</sup>&frasl;<sub>2</sub> <i>k</i><i>e</i><sup>2</sup>",
       "id": "INS-GCSE-PHYSICS-2.3",
       "topic": "Energy"
      },
      {
       "name": "Specific heat capacity",
-      "math": "&Delta;<i>E</i> = <i>m</i><i>c</i>&Delta;&theta;",
-      "note": "thermal energy change = mass × specific heat capacity × temperature change",
+      "math": "change in thermal energy = mass &times; specific heat capacity &times; temperature change",
+      "sym": "&Delta;<i>E</i> = <i>m</i><i>c</i>&Delta;&theta;",
       "id": "INS-GCSE-PHYSICS-2.4",
       "topic": "Energy"
      },
      {
       "name": "Specific latent heat",
-      "math": "<i>E</i> = <i>m</i><i>L</i>",
-      "note": "energy for a change of state = mass × specific latent heat",
+      "math": "energy for a change of state = mass &times; specific latent heat",
+      "sym": "<i>E</i> = <i>m</i><i>L</i>",
       "id": "INS-GCSE-PHYSICS-2.5",
       "topic": "Energy"
      },
      {
       "name": "Power from energy",
-      "math": "<i>P</i> = <sup><i>E</i></sup>&frasl;<sub><i>t</i></sub>",
+      "math": "power = <sup>energy transferred</sup>&frasl;<sub>time</sub>",
+      "sym": "<i>P</i> = <sup><i>E</i></sup>&frasl;<sub><i>t</i></sub>",
       "id": "INS-GCSE-PHYSICS-2.6",
       "topic": "Energy"
      },
      {
       "name": "Power from work",
-      "math": "<i>P</i> = <sup><i>W</i></sup>&frasl;<sub><i>t</i></sub>",
+      "math": "power = <sup>work done</sup>&frasl;<sub>time</sub>",
+      "sym": "<i>P</i> = <sup><i>W</i></sup>&frasl;<sub><i>t</i></sub>",
       "id": "INS-GCSE-PHYSICS-2.7",
       "topic": "Energy"
      },
@@ -445,47 +460,51 @@
     "lines": [
      {
       "name": "Charge",
-      "math": "<i>Q</i> = <i>I</i><i>t</i>",
-      "note": "charge = current × time",
+      "math": "charge flow = current &times; time",
+      "sym": "<i>Q</i> = <i>I</i><i>t</i>",
       "id": "INS-GCSE-PHYSICS-3.1",
       "topic": "Electricity and magnetism"
      },
      {
       "name": "Potential difference",
-      "math": "<i>V</i> = <i>I</i><i>R</i>",
-      "note": "potential difference = current × resistance",
+      "math": "potential difference = current &times; resistance",
+      "sym": "<i>V</i> = <i>I</i><i>R</i>",
       "id": "INS-GCSE-PHYSICS-3.2",
       "topic": "Electricity and magnetism"
      },
      {
       "name": "Electrical power",
-      "math": "<i>P</i> = <i>V</i><i>I</i> = <i>I</i><sup>2</sup><i>R</i>",
+      "math": "power = potential difference &times; current = current<sup>2</sup> &times; resistance",
+      "sym": "<i>P</i> = <i>V</i><i>I</i> = <i>I</i><sup>2</sup><i>R</i>",
       "id": "INS-GCSE-PHYSICS-3.3",
       "topic": "Electricity and magnetism"
      },
      {
       "name": "Energy from power",
-      "math": "<i>E</i> = <i>P</i><i>t</i>",
+      "math": "energy transferred = power &times; time",
+      "sym": "<i>E</i> = <i>P</i><i>t</i>",
       "id": "INS-GCSE-PHYSICS-3.4",
       "topic": "Electricity and magnetism"
      },
      {
       "name": "Energy from charge",
-      "math": "<i>E</i> = <i>Q</i><i>V</i>",
+      "math": "energy transferred = charge flow &times; potential difference",
+      "sym": "<i>E</i> = <i>Q</i><i>V</i>",
       "id": "INS-GCSE-PHYSICS-3.5",
       "topic": "Electricity and magnetism"
      },
      {
       "name": "Force on a wire",
-      "math": "<i>F</i> = <i>B</i><i>I</i><i>l</i>",
+      "math": "force = magnetic flux density &times; current &times; length",
+      "sym": "<i>F</i> = <i>B</i><i>I</i><i>l</i>",
       "higher": "True",
-      "note": "force = magnetic flux density × current × length",
       "id": "INS-GCSE-PHYSICS-3.6",
       "topic": "Electricity and magnetism"
      },
      {
       "name": "Transformer turns",
-      "math": "<sup><i>V</i><sub>p</sub></sup>&frasl;<sub><i>V</i><sub>s</sub></sub> = <sup><i>n</i><sub>p</sub></sup>&frasl;<sub><i>n</i><sub>s</sub></sub>",
+      "math": "<sup>p.d. across primary</sup>&frasl;<sub>p.d. across secondary</sub> = <sup>turns on primary</sup>&frasl;<sub>turns on secondary</sub>",
+      "sym": "<sup><i>V</i><sub>p</sub></sup>&frasl;<sub><i>V</i><sub>s</sub></sub> = <sup><i>n</i><sub>p</sub></sup>&frasl;<sub><i>n</i><sub>s</sub></sub>",
       "higher": "True",
       "only": "Physics",
       "id": "INS-GCSE-PHYSICS-3.7",
@@ -493,8 +512,10 @@
      },
      {
       "name": "Transformer power",
-      "math": "<i>V</i><sub>s</sub><i>I</i><sub>s</sub> = <i>V</i><sub>p</sub><i>I</i><sub>p</sub>",
-      "note": "a transformer that wastes no energy",
+      "math": "p.d. &times; current in primary = p.d. &times; current in secondary",
+      "sym": "<i>V</i><sub>p</sub><i>I</i><sub>p</sub> = <i>V</i><sub>s</sub><i>I</i><sub>s</sub>",
+      "higher": "True",
+      "only": "Physics",
       "id": "INS-GCSE-PHYSICS-3.8",
       "topic": "Electricity and magnetism"
      }
@@ -505,26 +526,30 @@
     "lines": [
      {
       "name": "Density",
-      "math": "&rho; = <sup><i>m</i></sup>&frasl;<sub><i>V</i></sub>",
+      "math": "density = <sup>mass</sup>&frasl;<sub>volume</sub>",
+      "sym": "&rho; = <sup><i>m</i></sup>&frasl;<sub><i>V</i></sub>",
       "id": "INS-GCSE-PHYSICS-4.1",
       "topic": "Matter and waves"
      },
      {
       "name": "Gas at constant temperature",
-      "math": "<i>p</i><i>V</i> = constant",
+      "math": "pressure &times; volume = constant",
+      "sym": "<i>p</i><i>V</i> = constant",
       "only": "Physics",
       "id": "INS-GCSE-PHYSICS-4.2",
       "topic": "Matter and waves"
      },
      {
       "name": "Wave speed",
-      "math": "<i>v</i> = <i>f</i>&lambda;",
+      "math": "wave speed = frequency &times; wavelength",
+      "sym": "<i>v</i> = <i>f</i>&lambda;",
       "id": "INS-GCSE-PHYSICS-4.3",
       "topic": "Matter and waves"
      },
      {
       "name": "Period",
-      "math": "<i>T</i> = <sup>1</sup>&frasl;<sub><i>f</i></sub>",
+      "math": "period = <sup>1</sup>&frasl;<sub>frequency</sub>",
+      "sym": "<i>T</i> = <sup>1</sup>&frasl;<sub><i>f</i></sub>",
       "id": "INS-GCSE-PHYSICS-4.4",
       "topic": "Matter and waves"
      },

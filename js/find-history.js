@@ -128,9 +128,9 @@ function insLanded_() {
 /* NO INSERT TILE ON A QUESTION (463): the owner, "they can open it in their 2nd finder" -- an insert is Library, found like any card. */
 const insertRow_ = id => insertSheetRow_(id) || insertParts_().find(r => r.id === id) || null;
 /* THE SHEET ITSELF, on paper: each line a name and its formula, typeset as a question's maths is (`typeset_`). */
-/* AN INSERT AS BLOCKS: its kicker, a reading's source (filled when its words come) or the sheet's sections, and whether it was checked. */
+/* AN INSERT AS BLOCKS: its kicker (one quiet `unverified` if not yet checked), a reading's source (filled when its words come) or the sheet's sections. */
 function insertBody_(r) {
-  const kick = { type: 'text', look: 'insh-kick', text: ['Insert'].concat(r.boards || []).join(' · ') };
+  const kick = { type: 'text', look: 'insh-kick', text: ['Insert'].concat(r.boards || [], r.verified || insReading_(r) ? [] : ['unverified']).join(' · ') };
   if (insReading_(r)) return [kick, { type: 'text', look: 'insh-sum', text: r.summary || '' },
     { type: 'embed', tool: 'ins-source', look: 'insrc' + (r.sourceText ? '' : ' insrc-wait') + (r.lineNumbers ? ' has-lines' : ''), data: r.sourceText ? null : { ins: r.id }, args: { id: r.id } }];
   const mark = l => [l.higher ? { badge: 'H', hint: 'Higher tier only' } : '', l.only ? { badge: l.only + ' only' } : ''];
@@ -138,9 +138,15 @@ function insertBody_(r) {
     cells: (r.elements || []).map(e => ({ col: e[4], row: e[5], parts: [e[3], e[1], e[2], e[0]] })) },
     { type: 'text', look: 'insh-key', text: 'In each box: relative atomic mass, symbol, name, atomic number.' }] : [])
     .concat((r.sections || []).map(s => ({ type: 'section', look: 'insh-sec', head: s.head || '', blocks: [{ type: 'tree',
-      nodes: (s.lines || []).map(l => ({ label: [l.name || ''].concat(mark(l)), text: [{ typeset: String(l.math || '') }].concat(l.note ? [' ', { i: l.note }] : []) })) }] })),
-    { type: 'text', look: 'insh-check', text: [{ b: r.verified ? 'Checked' : 'Not yet checked' }, ' ', r.verifiedNote || ''] });
+      nodes: (s.lines || []).map(insLine_(mark)) }] })));
 }
+/* ONE LINE OF A SHEET (owner, 20 Nov: "just give me formulas"): its name once -- dropped when the word equation already starts with it --
+   its tags, the word equation and the symbol one under it. Whether it was checked is data (`verifiedNote`), never words on the card. */
+const insLine_ = mark => l => {
+  const name = String(l.name || ''), math = String(l.math || ''), said = math.replace(/<[^>]*>|&[a-z]+;/gi, ' ').trim().toLowerCase();
+  const same = name && said.indexOf(name.toLowerCase() + ' ') === 0;
+  return { label: [same ? '' : name].concat(mark(l)), text: [{ typeset: math }].concat(l.sym ? [{ br: true }, { typeset: String(l.sym) }] : [], l.note ? [' ', { i: l.note }] : []) };
+};
 /* A READING INSERT'S SOURCE, drawn when its words are here; until then what it waits on (`insSay_`). */
 CARD_EMBEDS['ins-source'] = a => { const r = insertRow_(a.id); return !r ? '' : r.sourceText ? insSource_(r) : insSay_(r); };
 /* ITS CARD IS ITS ITEM MAP (ITEM_MAPS.insert, cards-parts.js): these blocks are its body, its sheets tags after its facets. */
