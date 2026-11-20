@@ -5710,7 +5710,7 @@ return latest && latest.a === String(val == null ? '' : val) && typeof subSay_ =
 on('qp-check', (el) => {
 const box = qMark_(el);
 const card = el.closest('.qcard');
-const inp = (box && box.querySelector('.qp-multi-val, .qp-ans-in')) || (card && card.querySelector('.qp-multi-val, .qp-ans-in'));
+const inp = (box && box.querySelector('.qp-ans-in')) || (card && card.querySelector('.qp-ans-in'));
 const out = box && box.querySelector('.qp-verdict');
 if (!box || !inp || !out) return;
 const k = inp.getAttribute('data-k');
@@ -5738,7 +5738,7 @@ subRecord_(k, inp.value, markWord_(v));
 });
 on('qp-send', (el) => {
 const box = qMark_(el);
-const inp = box && box.querySelector('.qp-multi-val, .qp-ans-in');
+const inp = box && box.querySelector('.qp-ans-in');
 const out = box && box.querySelector('.qp-verdict');
 if (!inp || !out || el.disabled) return;
 box.classList.remove('is-right', 'is-near');
@@ -12057,12 +12057,12 @@ return (vec ? KP_VEC_KEYS : []).concat(signs ? KP_SIGN_KEYS : []).concat(KP_KEYS
 }
 const KP_HOLE = '\u03d9', KP_CARET = '\u03db';
 const KP_BOX_KINDS = { essay: { essay: true, words: true }, words: { words: true } };
-function kpField_(k, val, kind, signs, name, multi, more) {
+function kpField_(k, val, kind, signs, name, more) {
 const box = Object.prototype.hasOwnProperty.call(KP_BOX_KINDS, kind) ? KP_BOX_KINDS[kind] : {};
 const essay = !!box.essay;
 const words = !!box.words;
 const v = val == null ? '' : String(val);
-const lock = { class: 'qp-ans-in kp-in', 'data-do': multi ? 'qp-multi' : 'qp-ans', 'data-n': multi ? multi.n : null, 'data-mk': multi ? multi.k : null,
+const lock = { class: 'qp-ans-in kp-in', 'data-do': 'qp-ans',
 'data-k': k, 'data-kp': words ? 'words' : 'maths', 'data-kp-signs': signs & 1 ? '1' : null, 'data-kp-vec': signs & 2 ? '1' : null, 'data-kp-essay': essay ? '1' : null,
 'aria-label': name || 'Your answer', readonly: true, inputmode: 'none', autocomplete: 'off', autocapitalize: 'off', autocorrect: 'off', spellcheck: 'false',
 enterkeyhint: essay ? 'enter' : 'done' };
@@ -12229,7 +12229,6 @@ pad.innerHTML = kpPadHtml_(KP_LAYER, words, signs, essay, vec, site);
 pad.setAttribute('data-sig', sig);
 }
 pad.classList.toggle('is-site', !!site);
-kpNextPaint_(pad, inp);
 pad.classList.toggle('is-abc', KP_LAYER === 'abc');
 pad.classList.toggle('is-sym', KP_LAYER === 'sym');
 pad.setAttribute('data-layer', KP_LAYER);
@@ -12237,15 +12236,6 @@ pad.setAttribute('aria-label', KP_LAYER === 'abc' ? 'Letters keypad' : KP_LAYER 
 kpShiftPaint_();
 if (!pad.hidden) kpPadH_(pad);
 return pad;
-}
-function kpNextPaint_(pad, inp) {
-const d = pad.querySelector('.kp-key.kp-done:not(.kp-done-k)');
-if (!d) return;
-const nx = !!(inp && typeof multiNext_ === 'function' && multiNext_(inp));
-if (d.classList.contains('is-next') === nx) return;
-d.classList.toggle('is-next', nx);
-d.setAttribute('aria-label', nx ? 'next box' : 'done, put the keypad away');
-d.textContent = nx ? 'next' : 'done';
 }
 function kpLayer_(name, inp) {
 KP_LAYER = name;
@@ -12473,18 +12463,12 @@ c = c.toUpperCase();
 if (KP_SHIFT === 'once') KP_SHIFT = 'off';
 }
 if (words && KP_WORD_SIGN[c]) c = KP_WORD_SIGN[c];
-if (c === ',' && inp.getAttribute('data-do') === 'qp-multi') {
-const nx = typeof multiNext_ === 'function' ? multiNext_(inp) : null;
-if (nx) return kpTake_(nx);
-}
 KP_SHIFT_AT = 0;
 kpEdit_(inp, c);
 kpAfter_(inp, c);
 }
 function kpAfter_(inp, c) {
 kpRender_(inp);
-const pad = document.getElementById('kp');
-if (pad && inp.getAttribute('data-do') === 'qp-multi') kpNextPaint_(pad, inp);
 if (!/^!(left|right|home|end|top|bottom)$/.test(c)) kpAutoShift_(inp);
 kpShiftPaint_();
 kpSay_(inp);
@@ -12525,8 +12509,6 @@ try { r.start(); KP_MIC_ON = r; kpMicPaint_(true); } catch (e) { KP_MIC_ON = nul
 }
 function kpDone_(inp) {
 if (kpSite_(inp)) return kpSiteDone_(inp);
-const nx = typeof multiNext_ === 'function' ? multiNext_(inp) : null;
-if (nx) return kpTake_(nx);
 inp.blur();
 kpClose_();
 }
@@ -13438,14 +13420,13 @@ function ansRefresh_(keys) {
 const want = new Set(keys);
 const has = k => want.has(k) && !ansHeld_(k);
 try {
-document.querySelectorAll('[data-do="qp-ans"][data-k], .qp-multi-val[data-k]').forEach(el => {
+document.querySelectorAll('[data-do="qp-ans"][data-k]').forEach(el => {
 const k = el.getAttribute('data-k');
 if (!has(k)) return;
 const v = typeof ansRead_ === 'function' ? ansRead_(k) : (ansValue_(k) || '');
 if (el.value === v) return;
 el.value = v;
 if (el.classList.contains('kp-in') && typeof kpRender_ === 'function') kpRender_(el);
-if (el.classList.contains('qp-multi-val') && typeof multiFill_ === 'function') multiFill_(el);
 const card = el.closest('.qcard');
 [card && card.querySelector('.qp-mark[data-accept]'), card && card.querySelector('.qp-keep')].forEach(m => {
 if (!m) return;
@@ -13663,7 +13644,7 @@ if (!answersCan_('answer:save')) return 'Kept on this device only.';
 return '';
 }
 document.addEventListener('focusout', e => {
-const el = e.target && e.target.closest && e.target.closest('[data-do="qp-ans"], [data-do="qp-multi"]');
+const el = e.target && e.target.closest && e.target.closest('[data-do="qp-ans"]');
 if (el) answersPush_(true);
 });
 document.addEventListener('click', e => {
@@ -13683,11 +13664,10 @@ if (typeof KEEP_UNKEPT !== 'undefined') KEEP_UNKEPT.delete(k);
 ANS_MEM.delete(k);
 if (ansIsRing_(k) && typeof CIRC_HELD !== 'undefined') CIRC_HELD.delete(k);
 const v = e.newValue === null ? '' : String(e.newValue);
-document.querySelectorAll('[data-do="qp-ans"][data-k], .qp-multi-val[data-k]').forEach(el => {
+document.querySelectorAll('[data-do="qp-ans"][data-k]').forEach(el => {
 if (el.getAttribute('data-k') !== k || el.value === v) return;
 el.value = v;
 if (el.classList.contains('kp-in') && typeof kpRender_ === 'function') kpRender_(el);
-if (el.classList.contains('qp-multi-val') && typeof multiFill_ === 'function') multiFill_(el);
 });
 if (typeof KP_UNDO !== 'undefined' && KP_UNDO && typeof KP_UNDO.delete === 'function') KP_UNDO.delete(k);
 ansRefresh_([k]);
@@ -14271,7 +14251,7 @@ if (out.textContent !== say.text) tell_(out, 'info', say.text);
 }
 function subBoxPaint_(k) {
 try {
-document.querySelectorAll('.qp-ans-in[data-k], .qp-multi-val[data-k]').forEach(inp => {
+document.querySelectorAll('.qp-ans-in[data-k]').forEach(inp => {
 if (inp.getAttribute('data-k') === k) subVerdictPaint_(inp.closest('.qp-mark'), inp);
 });
 } catch (e) { }

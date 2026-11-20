@@ -628,7 +628,7 @@ function subVerdictPaint_(mark, inp) {
 }
 function subBoxPaint_(k) {
   try {
-    document.querySelectorAll('.qp-ans-in[data-k], .qp-multi-val[data-k]').forEach(inp => {
+    document.querySelectorAll('.qp-ans-in[data-k]').forEach(inp => {
       if (inp.getAttribute('data-k') === k) subVerdictPaint_(inp.closest('.qp-mark'), inp);
     });
   } catch (e) { /* a box gone mid-paint is painted on its next draw */ }

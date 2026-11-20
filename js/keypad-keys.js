@@ -184,15 +184,14 @@ function kpPadHtml_(layer, words, signs, essay, vec, site) {
 /* ---------- THE BOX § */
 const KP_HOLE = '\u03d9', KP_CARET = '\u03db';
 /* `kind` 'essay' IS A WORDED BOX THAT IS A SHEET (`ansEssay_`): § */
-/* `multi` IS ONE OF SEVERAL BOXES FOR ONE ANSWER (find.js `multiBoxes_`, 362): `{ n, k }`, the box's place and the answer's key. */
 /* `more` ARE A BOX'S OWN ATTRIBUTES over the answer's (a game's box: its id and its own data-do, so it is never stored as an answer). */
 const KP_BOX_KINDS = { essay: { essay: true, words: true }, words: { words: true } };
-function kpField_(k, val, kind, signs, name, multi, more) {
+function kpField_(k, val, kind, signs, name, more) {
   const box = Object.prototype.hasOwnProperty.call(KP_BOX_KINDS, kind) ? KP_BOX_KINDS[kind] : {};
   const essay = !!box.essay;
   const words = !!box.words;
   const v = val == null ? '' : String(val);
-  const lock = { class: 'qp-ans-in kp-in', 'data-do': multi ? 'qp-multi' : 'qp-ans', 'data-n': multi ? multi.n : null, 'data-mk': multi ? multi.k : null,
+  const lock = { class: 'qp-ans-in kp-in', 'data-do': 'qp-ans',
     'data-k': k, 'data-kp': words ? 'words' : 'maths', 'data-kp-signs': signs & 1 ? '1' : null, 'data-kp-vec': signs & 2 ? '1' : null, 'data-kp-essay': essay ? '1' : null,
     'aria-label': name || 'Your answer', readonly: true, inputmode: 'none', autocomplete: 'off', autocapitalize: 'off', autocorrect: 'off', spellcheck: 'false',
     enterkeyhint: essay ? 'enter' : 'done' };
@@ -388,7 +387,6 @@ function kpLayout_(inp) {
     pad.setAttribute('data-sig', sig);
   }
   pad.classList.toggle('is-site', !!site);
-  kpNextPaint_(pad, inp);
   pad.classList.toggle('is-abc', KP_LAYER === 'abc');
   pad.classList.toggle('is-sym', KP_LAYER === 'sym');
   pad.setAttribute('data-layer', KP_LAYER);
@@ -397,16 +395,6 @@ function kpLayout_(inp) {
   /* A FACE OF ANOTHER HEIGHT (123 to abc) re-measures the room the page leaves under it, or the taller pad sits over the page's foot */
   if (!pad.hidden) kpPadH_(pad);
   return pad;
-}
-/* DONE READS "next" IN A BOX WITH ANOTHER AFTER IT (one box per value, 362), and "done" on the last. It never sends: the question's Check tile is the one submit (owner, 16 Nov). */
-function kpNextPaint_(pad, inp) {
-  const d = pad.querySelector('.kp-key.kp-done:not(.kp-done-k)');
-  if (!d) return;
-  const nx = !!(inp && typeof multiNext_ === 'function' && multiNext_(inp));
-  if (d.classList.contains('is-next') === nx) return;
-  d.classList.toggle('is-next', nx);
-  d.setAttribute('aria-label', nx ? 'next box' : 'done, put the keypad away');
-  d.textContent = nx ? 'next' : 'done';
 }
 /* `abc` AND `123`: the same pad turned over, the box keeping its focus and its caret. § */
 function kpLayer_(name, inp) {
@@ -672,11 +660,6 @@ function kpType_(inp, cmd, typed) {
     if (KP_SHIFT === 'once') KP_SHIFT = 'off';
   }
   if (words && KP_WORD_SIGN[c]) c = KP_WORD_SIGN[c];
-  /* A COMMA BETWEEN VALUES IS THE NEXT BOX, where each value has its own (362). */
-  if (c === ',' && inp.getAttribute('data-do') === 'qp-multi') {
-    const nx = typeof multiNext_ === 'function' ? multiNext_(inp) : null;
-    if (nx) return kpTake_(nx);
-  }
   /* A KEY BETWEEN TWO ⇧ MAKES THEM TWO PRESSES, NOT A DOUBLE TAP -- ⇧ a ⇧ typed quickly is two capitals,
      never caps lock. */
   KP_SHIFT_AT = 0;
@@ -687,8 +670,6 @@ function kpType_(inp, cmd, typed) {
    screen reader hears. Undo comes through here too. */
 function kpAfter_(inp, c) {
   kpRender_(inp);
-  const pad = document.getElementById('kp');
-  if (pad && inp.getAttribute('data-do') === 'qp-multi') kpNextPaint_(pad, inp);
   if (!/^!(left|right|home|end|top|bottom)$/.test(c)) kpAutoShift_(inp);
   kpShiftPaint_();
   kpSay_(inp);

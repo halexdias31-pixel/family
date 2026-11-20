@@ -2968,7 +2968,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .qwhole .qb-part .qsheet { margin-top: var(--s2); }
 /* ---------- A QUESTION IS A CARD LIKE ANY OTHER (owner, 10-11 Nov): picture, tags, words, answer, round buttons, all on one centre line. */
 :is(.qwhole > .qb, .qcard) { text-align: center; }
-:is(.qwhole > .qb, .qcard) :is(.qtags, .tile-row, .qp-choices, .qp-multi, .qsheet-part) { justify-content: center; }
+:is(.qwhole > .qb, .qcard) :is(.qtags, .tile-row, .qp-choices, .qsheet-part) { justify-content: center; }
 :is(.qwhole > .qb, .qcard) :is(.qsheet, .qb-stem) { margin-left: auto; margin-right: auto; }
 .qwhole .qb-stem:empty { display: none; }
 :is(.qwhole > .qb, .qcard) .qtext :is(table, figure, p) { margin-left: auto; margin-right: auto; }
@@ -3840,30 +3840,14 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .qp-bar > .qp-ans > .kp-field { flex: 1 1 auto; min-width: 0; }
 .qp-bar > .tile { flex: none; }
 /* A WORDED ANSWER IN THE BAR: § */
-.qp-bar > .qp-ans:focus-within, .qp-multi > .qp-ans:focus-within { box-shadow: 0 0 0 3px var(--gold); }
+.qp-bar > .qp-ans:focus-within { box-shadow: 0 0 0 3px var(--gold); }
 /* THE RING TAKES THE VERDICT'S COLOUR, so what was marked and what it was marked as are joined on the screen, not only in the sentence under it. § */
 .qp-mark.is-right > .qp-bar > .qp-ans { box-shadow: 0 0 0 3px var(--good); }
 .qp-mark.is-near > .qp-bar > .qp-ans { box-shadow: 0 0 0 3px var(--warn); }
-/* ONE BOX PER VALUE (362): the bar's paper field, once per value, side by side and wrapping. */
-.qp-multi { flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); color: var(--ink); }
-.qp-multi > .qp-ans {
-  flex: 0 1 var(--ans-w); margin: 0; display: flex; align-items: center;
-  min-height: var(--pill-h); padding: 2px var(--s3); box-sizing: border-box; cursor: text;
-  background: var(--paper); color: var(--paper-ink); border: 1px solid var(--paper); border-radius: var(--r-box); font: var(--fs-body)/1.3 var(--font);
-}
 /* THE ANSWER IN THE BAR IS ON THE CREAM PILL (1030), so its words take the paper's ink. */
-.qp-bar .kp-show, .qp-multi .kp-show { color: var(--paper-ink); font: var(--fs-body)/1.3 var(--font); min-height: calc(1.3em + 2 * var(--s1)); }
+.qp-bar .kp-show { color: var(--paper-ink); font: var(--fs-body)/1.3 var(--font); min-height: calc(1.3em + 2 * var(--s1)); }
 /* ONE LINE TALL EMPTY OR NOT (owner, 17 Nov: "inputs are offset"): the bare caret was 3px shorter than the placeholder, so the box jumped as the pad opened and again at the first key. */
-.qp-bar .kp-show:empty::before, .qp-multi .kp-show:empty::before { color: var(--paper-dim); }
-.qp-multi > .qp-ans > .kp-field { flex: 1 1 auto; min-width: 0; }
-.qp-multi .kp-show:empty::before { content: "\2026"; }
-.qp-multi-l { flex: none; margin-right: var(--s1); font: 600 var(--fs-body)/1 var(--font); color: var(--paper-dim); }
-.qp-multi.is-pair::before { content: "("; font-size: var(--fs-title); }
-.qp-multi.is-pair::after { content: ")"; font-size: var(--fs-title); }
-.qp-multi > .qp-ans:focus-within { box-shadow: 0 0 0 3px var(--gold); }
-.qp-mark.is-right .qp-multi > .qp-ans { box-shadow: 0 0 0 3px var(--good); }
-.qp-mark.is-near .qp-multi > .qp-ans { box-shadow: 0 0 0 3px var(--warn); }
-.kp-key.kp-done.is-next { font: 700 var(--fs-body)/1 var(--font); }
+.qp-bar .kp-show:empty::before { color: var(--paper-dim); }
 /* THE VERDICT'S LINE, reserved: one line of `.qp-verdict` tall when it is empty, and it wraps rather
    than cutting a sentence off when one is longer. Set in from the edge to sit under the field's words. */
 .qp-compose > .qp-verdict { display: block; min-height: 1.3em; margin: var(--s1) var(--s3) 0; }
