@@ -31,6 +31,8 @@ ORDER OF BOARDS (owner, 20 Nov): OCR is the least used board, so it comes last. 
 4g. ONE HISTORY CARD (owner, 20 Nov): on a student's profile, merge every history-like card (History, Recent activity, Questions stats, Work on next, the per-source worksheet/past-paper progress cards, Grade estimate) into ONE card: progress by source, with the day view inside it. One maker, one place.
 4h. STUDENT PROFILE SHOWS STAFF FORMS (seen 20 Nov on Finley's): Apply to teach, availability grid, rate and group size, qualifications, jobs, photos, intro video, staff hub, and date of birth 01/01/2000. A child sees only child cards; the master (kinds.json) decides by role.
 
+4i. MARKER TRAPS FOUND 21 Nov (scratchpad k/traps-21.txt): (1) a point mixing up/down words is cancelled by either direction; (2) one answer word scores only one point; (3) comma lists of key words earn little in points rules; (6) the typo rule passes different words (phototrophism/phototropism, flatter/fatter); (7) [2] only works at the head of a point; (8) "high to low" points ignore order. Fix at the one marker; each becomes a marker-cases case.
+
 ## Next (the 12 parts of best practice)
 
 - THE MASTER DECIDES WHAT A CARD SHOWS (owner, 18 Nov): each kind's card in kinds.json declares its fields, order, limits (e.g. current job only, role words hidden, bio length and quotes); the card code only reads it and draws — no show/hide decisions in code. Move today's code-side choices (profRoleWords_, profJobs_, tutorCardOf_ quotes) into kinds.json.
