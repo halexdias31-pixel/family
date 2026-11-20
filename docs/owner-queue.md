@@ -26,6 +26,9 @@ ORDER OF BOARDS (owner, 20 Nov): OCR is the least used board, so it comes last. 
 4e. HISTORY SHOWS EMPTY BOXES (owner, 20 Nov): an old multi-box answer shows as ", , , , , , T". History (and any answer echo) shows only what was typed, or "(no answer)".
 4f. WRONG TOPIC: W-1CM-parallel-lines is tagged "Angles in Parallel Lines" but is gradients / y = mx + c. Retag at the source; check other 1CM sheets for the same.
 
+4g. ONE HISTORY CARD (owner, 20 Nov): on a student's profile, merge every history-like card (History, Recent activity, Questions stats, Work on next, the per-source worksheet/past-paper progress cards, Grade estimate) into ONE card: progress by source, with the day view inside it. One maker, one place.
+4h. STUDENT PROFILE SHOWS STAFF FORMS (seen 20 Nov on Finley's): Apply to teach, availability grid, rate and group size, qualifications, jobs, photos, intro video, staff hub, and date of birth 01/01/2000. A child sees only child cards; the master (kinds.json) decides by role.
+
 ## Next (the 12 parts of best practice)
 
 - THE MASTER DECIDES WHAT A CARD SHOWS (owner, 18 Nov): each kind's card in kinds.json declares its fields, order, limits (e.g. current job only, role words hidden, bio length and quotes); the card code only reads it and draws — no show/hide decisions in code. Move today's code-side choices (profRoleWords_, profJobs_, tutorCardOf_ quotes) into kinds.json.
