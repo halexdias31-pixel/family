@@ -64,6 +64,7 @@ ORDER OF BOARDS (owner, 20 Nov): OCR is the least used board, so it comes last. 
 - Examiner reports: find them per board/year (the boards' own sites, Save My Exams, Physics & Maths Tutor), add them to the paper manifest, and use them to sharpen marking (English first).
 
 ## Then (content)
+- @FAMILY SCIENCE QUESTIONS FROM THE LIBRARY (owner, 20 Nov; design agreed by Claude): the library is the single source. Each library card holds its facts as small ids. Every @family question names the facts it tests (`tests: [fact ids]`). Two kinds: (1) generated from the library: recall, equations with fresh numbers, unit and rearrangement practice, rebuilt whenever a card changes; (2) hand-written exam-style questions (context, data, required practicals, 6-markers) that cite their facts and are flagged for review when a cited fact changes. Checks: every fact has at least one question; every question's answer is supported by its facts. Biology, Chemistry, Physics (AQA 8461/2/3 and 8464 first). Access Tuition stays as it is.
 
 - ONE LIBRARY SHAPE (owner, 18 Nov): History and Religious Studies (and any other subject) have their own irregular branch structures in Library/Find. Examine every subject's branches, pick ONE shape every subject follows (or bring the others to theirs if theirs is better), and move them all to it. Tell the owner what was chosen and why in the weekly list.
 
