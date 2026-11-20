@@ -118,7 +118,9 @@ function build() {
 const SHARED_RE = /\/\* SHARED:BEGIN[\s\S]*?\/\* SHARED:END \*\//;
 function sharedInto(file) {
   const j = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/settings/settings.json'), 'utf8'));
-  const block = '/* SHARED:BEGIN — data/settings/settings.json, written by `node tools/build.js`; edit the json, never this. */\n'
+  /* AND OUR PICTURES' NAMES (owner, 20 Nov): data/settings/default-pictures.json, the one list, as `pictures` (PFP_PICTURES, PFP_ART's keys). */
+  j.pictures = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/settings/default-pictures.json'), 'utf8')).map(r => String(r.picture || '').trim()).filter(Boolean);
+  const block = '/* SHARED:BEGIN — data/settings/settings.json (and default-pictures.json as `pictures`), written by `node tools/build.js`; edit the json, never this. */\n'
     + 'const SHARED_SETTINGS = ' + JSON.stringify(j, (k, v) => (k === '_about' ? undefined : v)) + ';\n/* SHARED:END */';
   let src = fs.readFileSync(path.join(ROOT, file), 'utf8');
   src = SHARED_RE.test(src) ? src.replace(SHARED_RE, () => block) : src.replace(/^[^\n]*\n/, m => m + block + '\n');

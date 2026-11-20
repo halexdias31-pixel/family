@@ -1,6 +1,6 @@
 /* @family. — 00_constants.gs (1 of 8) THE TOP-LEVEL VALUES IN THE ORIGINAL ORDER (jobs, migrations and ACTION_ACCESS follow in access.gs). § */
-/* SHARED:BEGIN — data/settings/settings.json, written by `node tools/build.js`; edit the json, never this. */
-const SHARED_SETTINGS = {"days":[["m","Monday"],["tu","Tuesday"],["w","Wednesday"],["th","Thursday"],["f","Friday"],["sa","Saturday"],["su","Sunday"]],"hours":[9,10,11,12,13,14,15,16,17,18,19,20],"roles":{"ids":{"admin":{"label":"Admin","aliases":["administrator"],"rank":"admin","tier":"admin","self":false},"tutor":{"label":"Tutor","aliases":["teacher"],"rank":"staff","tier":"member","self":true,"pending":true},"client":{"label":"Client","aliases":["parent","guardian"],"app":"parent","rank":"client","tier":"member","self":true},"student":{"label":"Student","aliases":["kid","child","pupil"],"app":"kid","rank":"student","tier":"child","self":true},"contact":{"label":"Contact","aliases":[],"rank":"contact","tier":"anyone","self":false,"signIn":false}},"default":"client","guest":{"rank":"out","tier":"anyone"},"ranks":["contact","student","client","staff","admin"],"tiers":["anyone","member","child","admin"],"titles":{"head of boxing":"Head of Boxing","coach":"Coach"}},"submissionsPerPost":25,"answerTextMax":20000,"calendar":{"breaks":[{"name":"October half-term","sheet":"October Half Term","kind":"half","starts":"10-26"},{"name":"Christmas holidays","sheet":"Christmas Holiday","kind":"holiday","starts":"12-19"},{"name":"February half-term","sheet":"February Half Term","kind":"half","starts":"02-13"},{"name":"Easter holidays","sheet":"Easter Holiday","kind":"holiday","starts":"03-27"},{"name":"May half-term","sheet":"May Half Term","kind":"half","starts":"05-22"},{"name":"Summer holidays","sheet":"Summer Holiday","kind":"holiday","starts":"07-22"}],"kinds":{"term":{"say":"term","words":[]},"half-term":{"say":"half term","also":["half term"],"words":["half\\s*term"]},"holiday":{"say":"holiday","words":["holiday","christmas","easter","summer break","break"]}},"exams":[{"id":"sats","name":"SATs","key":"exam_sats_start","at":"05-11"},{"id":"elevenplus","name":"11+","key":"exam_11plus_start","at":"09-12"},{"id":"gcse","name":"GCSE exams","key":"exam_gcse_start","at":"05-11"},{"id":"alevel","name":"A-level exams","key":"exam_alevel_start","at":"05-11"}]},"levels":{"list":[{"level":"SATs","rung":1,"stages":["KS1","KS2"],"tiers":[],"says":["KS1","KS2","KS1 SATs","KS2 SATs"]},{"level":"11+","rung":0,"stages":["KS2"],"tiers":[],"says":[]},{"level":"KS3","rung":2,"stages":["KS3"],"tiers":[],"says":[]},{"level":"GCSE","rung":3,"stages":["KS4"],"tiers":["Foundation","Higher","Foundation Plus","Higher Plus"],"says":["KS4"]},{"level":"Functional Skills L2","rung":0,"stages":[],"tiers":[],"says":[]},{"level":"Level 2 Certificate","rung":0,"stages":["KS4"],"tiers":[],"says":["L2 Certificate"]},{"level":"A-Level","rung":4,"stages":["KS5"],"tiers":[],"says":["Alevel","A level","KS5"]},{"level":"AS","rung":0,"stages":["KS5"],"tiers":[],"says":["AS level","AS-level"]},{"level":"Theory test","rung":0,"stages":[],"tiers":[],"says":[]},{"level":"ESL","rung":0,"stages":[],"tiers":["A1","A2","B1","B2","C1","C2"],"says":["EFL","ESOL","CEFR"]},{"level":"University","rung":5,"stages":[],"tiers":["FHEQ 4","FHEQ 5","FHEQ 6","FHEQ 7"],"says":["Degree","Undergraduate","FHEQ","MSOR"]},{"level":"BNCC","rung":0,"stages":[],"tiers":["1º ano","2º ano","3º ano","4º ano","5º ano","6º ano","7º ano","8º ano","9º ano"],"says":["Brazil","Brasil","Ensino Fundamental"]},{"level":"ENEM","rung":0,"stages":[],"tiers":[],"says":[]},{"level":"Australian Curriculum","rung":0,"stages":[],"tiers":["Foundation Year","Year 1","Year 2","Year 3","Year 4","Year 5","Year 6","Year 7","Year 8","Year 9","Year 10"],"says":["Australia","ACARA","F-10"]}],"quals":{"list":["Doctorate","Master's degree","PGCE","Bachelor's degree","Foundation Degree","HND","HNC","Diploma","Access to HE","International Baccalaureate","A-Level","T Level","BTEC","AS","IGCSE","GCSE","Certificate","11+","SATs","Entry Level","Enhanced","Standard","Basic"],"says":{"Degree":"Bachelor's degree","BA":"Bachelor's degree","BSc":"Bachelor's degree","Undergraduate":"Bachelor's degree","University":"Bachelor's degree","Masters":"Master's degree","MA":"Master's degree","MSc":"Master's degree","PhD":"Doctorate","IB":"International Baccalaureate"}}}};
+/* SHARED:BEGIN — data/settings/settings.json (and default-pictures.json as `pictures`), written by `node tools/build.js`; edit the json, never this. */
+const SHARED_SETTINGS = {"days":[["m","Monday"],["tu","Tuesday"],["w","Wednesday"],["th","Thursday"],["f","Friday"],["sa","Saturday"],["su","Sunday"]],"hours":[9,10,11,12,13,14,15,16,17,18,19,20],"roles":{"ids":{"admin":{"label":"Admin","aliases":["administrator"],"rank":"admin","tier":"admin","self":false},"tutor":{"label":"Tutor","aliases":["teacher"],"rank":"staff","tier":"member","self":true,"pending":true},"client":{"label":"Client","aliases":["parent","guardian"],"app":"parent","rank":"client","tier":"member","self":true},"student":{"label":"Student","aliases":["kid","child","pupil"],"app":"kid","rank":"student","tier":"child","self":true},"contact":{"label":"Contact","aliases":[],"rank":"contact","tier":"anyone","self":false,"signIn":false}},"default":"client","guest":{"rank":"out","tier":"anyone"},"ranks":["contact","student","client","staff","admin"],"tiers":["anyone","member","child","admin"],"titles":{"head of boxing":"Head of Boxing","coach":"Coach"},"messaging":{"admin":["admin","staff","client","student"],"staff":["admin","client","student"],"client":["admin","staff"],"student":["admin","staff"]}},"limits":{"photoMax":8,"jobMax":6,"libraryCards":5,"favLinksMax":10,"favTitleMax":80,"favUrlMax":2000,"digestWordMax":300},"siteRules":{"ids":["mag-items","speed-long","hear-lang","tap-44","search-icon","whole-widgets","library-one-card","tell-admin","kjv-admin","finder-members","keep-basket","admin-cols","people-no-merge","items-no-move","form-save-row"],"locked":["hear-lang","keep-basket","admin-cols","people-no-merge","items-no-move","form-save-row"]},"submissionsPerPost":25,"answerTextMax":20000,"calendar":{"breaks":[{"name":"October half-term","sheet":"October Half Term","kind":"half","starts":"10-26"},{"name":"Christmas holidays","sheet":"Christmas Holiday","kind":"holiday","starts":"12-19"},{"name":"February half-term","sheet":"February Half Term","kind":"half","starts":"02-13"},{"name":"Easter holidays","sheet":"Easter Holiday","kind":"holiday","starts":"03-27"},{"name":"May half-term","sheet":"May Half Term","kind":"half","starts":"05-22"},{"name":"Summer holidays","sheet":"Summer Holiday","kind":"holiday","starts":"07-22"}],"kinds":{"term":{"say":"term","words":[]},"half-term":{"say":"half term","also":["half term"],"words":["half\\s*term"]},"holiday":{"say":"holiday","words":["holiday","christmas","easter","summer break","break"]}},"exams":[{"id":"sats","name":"SATs","key":"exam_sats_start","at":"05-11"},{"id":"elevenplus","name":"11+","key":"exam_11plus_start","at":"09-12"},{"id":"gcse","name":"GCSE exams","key":"exam_gcse_start","at":"05-11"},{"id":"alevel","name":"A-level exams","key":"exam_alevel_start","at":"05-11"}]},"levels":{"list":[{"level":"SATs","rung":1,"stages":["KS1","KS2"],"tiers":[],"says":["KS1","KS2","KS1 SATs","KS2 SATs"]},{"level":"11+","rung":0,"stages":["KS2"],"tiers":[],"says":[]},{"level":"KS3","rung":2,"stages":["KS3"],"tiers":[],"says":[]},{"level":"GCSE","rung":3,"stages":["KS4"],"tiers":["Foundation","Higher","Foundation Plus","Higher Plus"],"says":["KS4"]},{"level":"Functional Skills L2","rung":0,"stages":[],"tiers":[],"says":[]},{"level":"Level 2 Certificate","rung":0,"stages":["KS4"],"tiers":[],"says":["L2 Certificate"]},{"level":"A-Level","rung":4,"stages":["KS5"],"tiers":[],"says":["Alevel","A level","KS5"]},{"level":"AS","rung":0,"stages":["KS5"],"tiers":[],"says":["AS level","AS-level"]},{"level":"Theory test","rung":0,"stages":[],"tiers":[],"says":[]},{"level":"ESL","rung":0,"stages":[],"tiers":["A1","A2","B1","B2","C1","C2"],"says":["EFL","ESOL","CEFR"]},{"level":"University","rung":5,"stages":[],"tiers":["FHEQ 4","FHEQ 5","FHEQ 6","FHEQ 7"],"says":["Degree","Undergraduate","FHEQ","MSOR"]},{"level":"BNCC","rung":0,"stages":[],"tiers":["1º ano","2º ano","3º ano","4º ano","5º ano","6º ano","7º ano","8º ano","9º ano"],"says":["Brazil","Brasil","Ensino Fundamental"]},{"level":"ENEM","rung":0,"stages":[],"tiers":[],"says":[]},{"level":"Australian Curriculum","rung":0,"stages":[],"tiers":["Foundation Year","Year 1","Year 2","Year 3","Year 4","Year 5","Year 6","Year 7","Year 8","Year 9","Year 10"],"says":["Australia","ACARA","F-10"]}],"quals":{"list":["Doctorate","Master's degree","PGCE","Bachelor's degree","Foundation Degree","HND","HNC","Diploma","Access to HE","International Baccalaureate","A-Level","T Level","BTEC","AS","IGCSE","GCSE","Certificate","11+","SATs","Entry Level","Enhanced","Standard","Basic"],"says":{"Degree":"Bachelor's degree","BA":"Bachelor's degree","BSc":"Bachelor's degree","Undergraduate":"Bachelor's degree","University":"Bachelor's degree","Masters":"Master's degree","MA":"Master's degree","MSc":"Master's degree","PhD":"Doctorate","IB":"International Baccalaureate"}}},"pictures":["fox","owl","cat","dino","robot","rocket","planet","football","guitar","palette"]};
 /* SHARED:END */
 
 /* @family. — backend (hermes) Rewritten against the eleven-tab database. § */
@@ -596,7 +596,7 @@ const AI_SPENT_MAX_S = 21600;
 
 /* Every tunable, with a plain-English note and a starting value. § */
 /* FAVOURITE LINKS (509): how many one person keeps, and how long a title and an address may be. */
-const FAV_LINKS_MAX = 10, FAV_TITLE_MAX = 80, FAV_URL_MAX = 2000;
+const FAV_LINKS_MAX = SHARED_SETTINGS.limits.favLinksMax, FAV_TITLE_MAX = SHARED_SETTINGS.limits.favTitleMax, FAV_URL_MAX = SHARED_SETTINGS.limits.favUrlMax;
 const CONFIG_DEFAULTS = [
   // M, w and open_rate are gone: a tutor now sets one charge-out rate, the minimum wage is fixed
   // in the code, and the open rate is fixed too. Leaving them here as editable numbers would have
@@ -679,14 +679,14 @@ const OWNER_EMAIL_KEY = 'owner_email';
 const CONFIG_PRIVATE = [FILMS_FOLDER_KEY, OWNER_EMAIL_KEY];
 /* THE RULES (496): config's `rules` row, `{set, hist}`; js/rules.js registers each rule. A locked one is in RULES_LOCKED and never saved universal. */
 const RULES_KEY = 'rules';
-const RULE_IDS = ['mag-items', 'speed-long', 'hear-lang', 'tap-44', 'search-icon', 'whole-widgets', 'library-one-card', 'tell-admin', 'kjv-admin', 'finder-members',
-  'keep-basket', 'admin-cols', 'people-no-merge', 'items-no-move', 'form-save-row'];
-const RULES_LOCKED = ['hear-lang', 'keep-basket', 'admin-cols', 'people-no-merge', 'items-no-move', 'form-save-row'];
+/* THE IDS AND THE LOCKED ONES ARE settings.json `siteRules` (SHARED_SETTINGS); tools/shared-lists.js holds js/rules.js to them. */
+const RULE_IDS = SHARED_SETTINGS.siteRules.ids;
+const RULES_LOCKED = SHARED_SETTINGS.siteRules.locked;
 const RULES_HIST_MAX = 20;
 /* THE WEEKLY PARENT EMAIL'S WORDS (491): config rows an admin edits on the Site column's preview; blank is this default. {child} {parent} {count} {span} are filled in. */
 /* THE FOUR LINES' DEFAULTS ARE data/settings/words.json `digest_*`; a config row of the same key overrides one. */
 const DIGEST_WORD_KEYS = ['digest_subject', 'digest_greeting', 'digest_intro', 'digest_footer'];
-const DIGEST_WORD_MAX = 300;
+const DIGEST_WORD_MAX = SHARED_SETTINGS.limits.digestWordMax;
 /* The rules row's longest (it once shared the layout's cap). */
 const RULES_MAX = 8000;
 /* THE SITE'S OWN WORDS (497): one config row of {key: text} an admin types in place over the code's; a piece's longest, and the whole row's. */
@@ -823,7 +823,7 @@ const ON_ = v => S(v) === '' || TRUE_(v);
    One cell, "m13,m14,tu09", replacing 77 TRUE/FALSE columns. */
 const AVAIL_DAYS  = SHARED_SETTINGS.days.map(([code, day]) => [code, day.slice(0, 3)]);
 /* ---------- THREE LIBRARY CARDS, AS NINE FORM FIELDS OVER ONE CELL § */
-const LIBRARY_CARDS = 5;
+const LIBRARY_CARDS = SHARED_SETTINGS.limits.libraryCards;
 const LIBRARY_FIELDS = (() => {
   const out = [];
   for (let i = 1; i <= LIBRARY_CARDS; i++) out.push('lib' + i + '_name', 'lib' + i + '_no', 'lib' + i + '_pin');
@@ -833,7 +833,7 @@ const LIBRARY_FIELDS = (() => {
 const LIBRARY_FIELD = /^lib\d+_(name|no|pin)$/;
 
 /* ---------- EIGHT MORE PHOTOGRAPHS, AS EIGHT FORM FIELDS OVER ONE CELL § */
-const PHOTO_MAX = 8;
+const PHOTO_MAX = SHARED_SETTINGS.limits.photoMax;
 const PHOTO_FIELDS = (() => {
   const out = [];
   for (let i = 1; i <= PHOTO_MAX; i++) out.push('photos_' + i);
@@ -842,7 +842,8 @@ const PHOTO_FIELDS = (() => {
 const PHOTO_FIELD = /^photos_\d+$/;
 
 /* ---------- YOUR PICTURE CAN BE ONE OF OURS, OR YOUR OWN FIGURE § */
-const PFP_PICTURES = ['fox', 'owl', 'cat', 'dino', 'robot', 'rocket', 'planet', 'football', 'guitar', 'palette'];
+/* OURS ARE data/settings/default-pictures.json, as SHARED_SETTINGS.pictures (cards-gen); js/links.js PFP_ART draws each. */
+const PFP_PICTURES = SHARED_SETTINGS.pictures;
 const PFP_AVATAR = 'pfp:avatar';
 const PFP_CHOICES = [PFP_AVATAR].concat(PFP_PICTURES.map(p => 'pfp:' + p));
 
@@ -855,7 +856,7 @@ const QUAL_FIELDS = (() => {
   return out;
 })();
 /* ---------- UP TO SIX JOBS, FOUR BOXES EACH OVER ONE CELL (8 Nov): role, where, from, to (or "now"). */
-const JOB_MAX = 6;
+const JOB_MAX = SHARED_SETTINGS.limits.jobMax;
 const JOB_PARTS = ['role', 'where', 'from', 'to'];
 const JOB_FIELDS = (() => {
   const out = [];
@@ -1066,13 +1067,8 @@ const DIGEST_PNG_WIDTH = 340;
 const BRAND_NAME = '@family.';
 
 /* ---------- WHO MAY MESSAGE WHOM § */
-const MESSAGING = {
-  admin:   { admin: true,  tutor: true,  client: true,  student: true  },
-  /* WHICH ROLES, and `seesPerson_` says which people (10 Nov): a tutor only their own students and parents, a student only their own tutors. */
-  tutor:   { admin: true,  tutor: false, client: true,  student: true  },
-  client:  { admin: true,  tutor: true,  client: false, student: false },
-  student: { admin: true,  tutor: true,  client: false, student: false },
-};
+/* settings.json `roles.messaging` (SHARED_SETTINGS), by rank: which RANKS each may write to; `seesPerson_` says which people (10 Nov). The phone's Message tiles read the same. */
+const MESSAGING = SHARED_SETTINGS.roles.messaging;
 
 /* How often anybody may send. § */
 const MESSAGE_GAP_MS = 5 * 60 * 1000;
