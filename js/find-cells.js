@@ -329,8 +329,8 @@ on('qp-check', (el) => {
   if (v.verdict === 'wait') { tell_(out, 'info', v.why); return; }
   const full = v.verdict === 'right', rules = markTierOf_(v.method) === 'rules';
   box.classList.add(full ? 'is-right' : 'is-near');
-  /* PEEL: the level and mark, and under it which elements each box had or missed (`qp-fb`, as a saved verdict draws it) */
-  if (v.peel) {
+  /* PEEL and LEVELS: the level and mark, and under it which elements each box had or missed, or what lifts it to the next level (`qp-fb`, as a saved verdict draws it) */
+  if (v.peel || v.levels) {
     tell_(out, full ? 'saved' : 'info', v.say);
     let fb = box.querySelector('.qp-fb') || (box.nextElementSibling && box.nextElementSibling.matches('.qp-fb') ? box.nextElementSibling : null);
     if (!fb) { fb = document.createElement('p'); fb.className = 'qp-fb'; box.appendChild(fb); }

@@ -468,6 +468,8 @@ function libQuestion_(r) {
     lead: libS(r.lead), html: libS(r.html),
     /* ---------- AN INSERT IS SEVERAL THINGS, AND IT USED TO BE ONE § */
     lines: libS(r.lines), order: libN(r.sort_order),
+    /* THE INSERT LINES IT NAMES ("A:8-14", tools/source-lines.js), drawn from the insert above its words; `withheld` when they cannot be. */
+    sourceLines: libS(r.source_lines).trim(), sourceLinesWithheld: libS(r.source_lines_withheld).trim(),
     company: libS(r.company),
     answer: libS(r.answer), answerType: norm(r.answer_type),
     /* ---------- WHAT A MARK IS MADE ON, WHEN THE ANSWER IS A MARK § */

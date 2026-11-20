@@ -737,8 +737,10 @@ function markPtFind_(toks, way, opt, quoteOnly) {
     if (!markPtIs_(toks[i], alts, opt)) return false;
     if (quoteOnly && !toks[i].quote) return false;
     if (negWay) return true;
-    /* "she was not tired" is not "she was tired" */
+    /* "she was not tired" is not "she was tired"; a not stays in its own clause (queue 4d): "No, because 99.9% is reflected" keeps its point,
+       so the look back stops at a comma or a because */
     for (let j = i - 1, k = 0; j >= 0 && k < 3; j--, k++) {
+      if (toks[j].c !== toks[i].c || toks[j].w === 'because') break;
       if (MARK_PT_NOT.has(toks[j].w)) return false;
       if (!MARK_PT_GLUE.has(toks[j].w)) break;
     }
@@ -947,6 +949,177 @@ function markPeel_(typed, accept, x, opt) {
   const head = lv ? 'Level ' + lv.level + ' (' + lv.name + '): ' + mark + ' of ' + of + ' marks, from ' + count + ' of ' + made + ' PEEL elements.'
     : 'No level yet: 0 of ' + of + ' marks, from 0 of ' + made + ' PEEL elements.';
   return { got: mark, of: of, points: true, peel: { level: lv ? lv.level : 0, count, made }, say: head, why: said.join(' ') };
+}
+/* ---------- LEVELS (rule 1.33; queue ESSAYS, DISTILLED, 20 Nov): a long answer by AQA level, mechanically, no AI at run time.
+   `rule: levels p1q4; funny rather than frightening; 'ran in circles' / circles; ...` -- the head names the question type, a row of kind
+   `levels` in data/settings/marking.json per type and objective (Q5 has two: AO5 and AO6, added); the rest are the indicative points,
+   `;` parting them, `/` a point's wordings. Each row weighs signals a script can see (`LEVELS_SIGNALS`) against a target each,
+   `quote 3 @2` (weight 3, full at 2); the weighted share is a level through the row's `cuts`, and the mark is placed in the level by
+   how far the share runs into it. Weights, targets and cuts were distilled offline from AQA's examiner-marked exemplars
+   (tools/essay-cases.js scores them on every build). The feedback is the level and the two signals that would lift it most. */
+const markIsLevels_ = accept => /(^|\|)\s*rule:\s*levels\b/i.test(String(accept || ''));
+const levelsRow_ = (type, ao) => markRows_().filter(r => r.kind === 'levels' && r.name === type && (!ao || r.ao === ao));
+const levelsList_ = name => { const r = markRows_().find(r => r.kind === 'levels-words' && r.name === name); return r ? String(r.words).split('/').map(w => w.trim().toLowerCase()).filter(Boolean) : []; };
+/* THE WORD RANKS (data/word-freq.json): asked for once, lazily, for spelling and ambitious vocabulary; a node check hands them in as DATA.wordFreq */
+let LEVELS_FREQ = null, LEVELS_FREQ_ASKED = false;
+function levelsFreq_() {
+  if (LEVELS_FREQ) return LEVELS_FREQ;
+  if (typeof DATA !== 'undefined' && DATA && Array.isArray(DATA.wordFreq)) return (LEVELS_FREQ = new Map(DATA.wordFreq.map((w, i) => [w, i])));
+  if (!LEVELS_FREQ_ASKED && typeof fetch === 'function') {
+    LEVELS_FREQ_ASKED = true;
+    fetch('data/word-freq.json').then(r => r.json()).then(j => { LEVELS_FREQ = new Map((j.words || []).map((w, i) => [w, i])); }).catch(() => { LEVELS_FREQ_ASKED = false; });
+  }
+  return null;
+}
+/* A WORD IS KNOWN in the ranks as it stands, or as a regular form of one that is (walks, walked, walking, quickly, happier, cities) */
+function levelsKnown_(w, F) {
+  if (F.has(w)) return true;
+  const tries = [w.replace(/'s$/, ''), w.replace(/s$/, ''), w.replace(/es$/, ''), w.replace(/ies$/, 'y'), w.replace(/ed$/, ''), w.replace(/ed$/, 'e'), w.replace(/d$/, ''),
+    w.replace(/ing$/, ''), w.replace(/ing$/, 'e'), w.replace(/([a-z])\1ing$/, '$1'), w.replace(/([a-z])\1ed$/, '$1'), w.replace(/ly$/, ''), w.replace(/ily$/, 'y'),
+    w.replace(/er$/, ''), w.replace(/est$/, ''), w.replace(/ier$/, 'y'), w.replace(/iest$/, 'y'), w.replace(/ness$/, ''), w.replace(/ful$/, ''), w.replace(/less$/, ''),
+    w.replace(/^un/, ''), w.replace(/^re/, ''), w.replace(/ment$/, ''), w.replace(/ise$/, 'ize'), w.replace(/ised$/, 'ized'), w.replace(/our$/, 'or')];
+  return tries.some(t => t !== w && t.length > 2 && F.has(t)) || /^\d/.test(w);
+}
+/* THE QUOTATIONS: '…', ‘…’, "…", “…”; an apostrophe inside a word (don't, hyena's) is no quotation mark */
+function levelsQuotes_(raw) {
+  const out = [];
+  String(raw).replace(/(^|[^a-z0-9])(["“‘']|&lsquo;|&ldquo;)([^"“”‘’\n]{1,200}?)(["”’']|&rsquo;|&rdquo;)(?![a-z])/gi, (m, pre, o, body) => { if (/[a-z]/i.test(body)) out.push(body); return m; });
+  return out;
+}
+/* THE SOURCE'S WORDS, only the printed lines the part names where it names them (`source_lines`, A:10-19) */
+function levelsSource_(x) {
+  const ins = typeof insertsFor_ === 'function' ? insertsFor_(x).filter(insReading_) : [];
+  const span = typeof insRowSpan_ === 'function' ? insRowSpan_(x) : null;
+  const text = (x && x.levelsSource) || ins.map(r => String(r.sourceText || '')).join('\n\n');
+  if (!text.trim()) return { all: '', span: '', wait: ins.some(r => !r.sourceText) };
+  const words = s => ' ' + markPtWords_(markPtPlain_(s.replace(/\[\d{1,3}\]/g, ' '))).join(' ') + ' ';
+  let cut = '';
+  if (span) {
+    let at = 0, cur = '';
+    String(text).split(/\n\s*\n/).forEach(p => {
+      const m = /^# Source ([A-Z])\b/i.exec(p.trim());
+      if (m) { cur = m[1].toUpperCase(); at = 0; return; }
+      p.split(/\[(\d{1,3})\]\s*/).forEach((t, i) => { if (i % 2) at = +t; else if ((!span.src || !cur || cur === span.src) && at >= span.from && at <= span.to) cut += ' ' + t; });
+    });
+  }
+  return { all: words(text), span: span && cut.trim() ? words(cut) : '' };
+}
+const LEVELS_SAY = { quote: 'quote short phrases from the source (in quotation marks)', inlines: 'quote from the lines the question names',
+  term: 'name the methods with subject terms', analysis: 'say what each quotation suggests or makes the reader feel', content: 'cover more of the key moments and ideas',
+  evaluate: 'judge how far you agree with the statement, and how well the writer does it', compare: 'compare the two sources point by point (whereas, similarly)',
+  words: 'write more: develop each point', paras: 'organise your writing into paragraphs', rare: 'choose more ambitious, precise words',
+  varied: 'vary your sentences: short, long, questions, openings', punct: 'use a wider range of punctuation (; : — ? !)', spell: 'check your spelling',
+  demarc: 'start each sentence with a capital and end it with a full stop', imagery: 'add imagery: similes, metaphors, the senses', focus: 'keep to what the question asks about' };
+/* EVERY SIGNAL, read once off the answer */
+function levelsSignals_(raw, key, x) {
+  const F = levelsFreq_();
+  /* the answer as typed, case and punctuation kept (capitals, demarcation and punctuation range read it); `low` for word lookups */
+  const text = String(raw).replace(/<[^>]*>/g, ' ').replace(/&[a-z]+;|&#\d+;/g, ' ');
+  const low = ' ' + markPtPlain_(raw).replace(/[’‘]/g, "'").replace(/[^a-z0-9'\s]/g, ' ').replace(/\s+/g, ' ') + ' ';
+  const sents = (text.replace(/\s+/g, ' ').match(/[^.!?]+[.!?]*["”’']?/g) || []).map(s => s.trim()).filter(s => /[a-z]/i.test(s));
+  const words = text.match(/[A-Za-z][A-Za-z'’-]*/g) || [];
+  const has = (s, list) => { const t = ' ' + s.toLowerCase().replace(/[’‘]/g, "'").replace(/[^a-z0-9'\s]/g, ' ').replace(/\s+/g, ' ') + ' '; return list.filter(w => t.indexOf(' ' + w + ' ') >= 0 || (w.length > 5 && t.indexOf(' ' + w) >= 0)); };
+  const src = levelsSource_(x);
+  const qs = levelsQuotes_(raw).map(q => markPtWords_(markPtPlain_(q)).join(' ')).filter(Boolean);
+  const qIn = src.all ? qs.filter(q => q.split(/\.\.\.+/).every(p => src.all.indexOf(' ' + p.trim() + ' ') >= 0)) : qs;
+  const qSpan = src.span ? qIn.filter(q => src.span.indexOf(' ' + q + ' ') >= 0) : qIn;
+  const s = {};
+  s.quote = new Set(qIn).size;
+  s.inlines = src.span ? new Set(qSpan).size : s.quote;
+  s.term = new Set(has(text, levelsList_(key.terms || 'language'))).size;
+  s.analysis = sents.filter(t => has(t, levelsList_('analysis')).length).length;
+  s.evaluate = sents.filter(t => has(t, levelsList_('evaluate')).length).length;
+  s.compare = sents.filter(t => has(t, levelsList_('compare')).length).length;
+  s.imagery = sents.filter(t => has(t, levelsList_('imagery')).length).length;
+  /* an indicative point is covered when half its content words (four letters up) stand in the answer, quoted or not */
+  s.content = key.points.filter(p => p.some(w => { const cw = markPtWords_(markPtPlain_(w)).filter(t => t.length >= 4 && !MARK_PT_GLUE.has(t));
+    return cw.length && cw.filter(t => low.indexOf(' ' + t) >= 0).length >= Math.ceil(cw.length / 2); })).length;
+  s.points = key.points.length;
+  s.words = words.length;
+  s.paras = String(raw).split(/\n\s*\n|\n(?=\s*\S)/).filter(p => (p.match(/[A-Za-z]+/g) || []).length >= 8).length;
+  const lens = sents.map(t => (t.match(/[A-Za-z']+/g) || []).length).filter(n => n);
+  const mean = lens.reduce((a, b) => a + b, 0) / Math.max(1, lens.length);
+  const sd = Math.sqrt(lens.reduce((a, b) => a + (b - mean) * (b - mean), 0) / Math.max(1, lens.length));
+  const openers = new Set(sents.map(t => (t.match(/[A-Za-z']+/) || [''])[0].toLowerCase()));
+  s.varied = lens.length >= 3 ? Math.min(1, sd / Math.max(1, mean)) * 0.6 + Math.min(1, openers.size / lens.length) * 0.4 : 0;
+  s.punct = [/;/, /:/, /[—–]|\s-\s/, /\?/, /!/, /["“”]/, /\(/, /\.\.\.|…/, /,/].filter(r => r.test(text)).length;
+  /* demarcation: sentences that open with a capital, a lone "i" a miss */
+  s.demarc = sents.length ? sents.filter(t => /^["“‘']?[A-Z0-9]/.test(t)).length / sents.length - (text.match(/(^|\s)i(?=[\s',.])/g) || []).length / Math.max(1, sents.length) : 0;
+  /* spelling and range need the word ranks; without them both are left out of the sum, not counted wrong */
+  if (F) {
+    const lw = words.filter((w, i) => !(/^[A-Z]/.test(w) && i > 0)).map(w => w.toLowerCase().replace(/[’']s?$/, '').replace(/[’'-]/g, ''));
+    const known = lw.filter(w => levelsKnown_(w, F));
+    s.spell = lw.length ? known.length / lw.length : 0;
+    const content = [...new Set(known.filter(w => w.length > 3 && !MARK_PT_GLUE.has(w)))];
+    s.rare = content.length ? content.filter(w => (F.get(w) || 0) > 3000).length / content.length : 0;
+  }
+  return s;
+}
+/* `quote 3 @2; analysis 3 @4 ...` read as [{ sig, w, at }]; `spell` and `demarc` are rates, read from `@` low to full at 1 */
+function levelsWeights_(spec) {
+  return String(spec || '').split(';').map(t => /^\s*([a-z]+)\s+([\d.]+)\s*@\s*([\d.]+)\s*$/i.exec(t)).filter(Boolean).map(m => ({ sig: m[1], w: +m[2], at: +m[3] }));
+}
+function levelsShare_(sig, wt) {
+  const v = sig[wt.sig];
+  if (v === undefined) return null;
+  if (wt.sig === 'spell' || wt.sig === 'demarc') return Math.max(0, Math.min(1, (v - wt.at) / (1 - wt.at)));
+  return Math.max(0, Math.min(1, v / wt.at));
+}
+/* ONE OBJECTIVE: its share, level and mark, and what would lift it most */
+function levelsScore_(sig, row) {
+  const wts = levelsWeights_(row.weights).filter(w => !(w.sig === 'content' && !sig.points));
+  let got = 0, tot = 0;
+  const gaps = [];
+  wts.forEach(w => { const sh = levelsShare_(sig, w); if (sh === null) return; got += w.w * sh; tot += w.w; gaps.push({ sig: w.sig, lift: w.w * (1 - sh) }); });
+  let share = tot ? got / tot : 0;
+  const cuts = String(row.cuts || '0.1 0.3 0.5 0.7').split(/\s+/).map(Number);
+  /* CAPS the descriptors set: too short to show the skill is Level 1; an analysis with no quotation from the source is Level 2 at most */
+  let cap = 4;
+  if (sig.words < (+row.short || 40)) cap = 1;
+  if (/quote|inlines/.test(row.weights) && !sig.quote) cap = Math.min(cap, 2);
+  let level = 0;
+  cuts.forEach((c, i) => { if (share >= c) level = i + 1; });
+  if (!sig.words) level = 0;
+  level = Math.min(level, cap);
+  const of = +row.of || 0, band = of / 4;
+  let mark = 0;
+  if (level) {
+    const lo = cuts[level - 1], hi = level < 4 ? cuts[level] : 1;
+    const into = Math.max(0, Math.min(0.999, (share - lo) / Math.max(0.01, hi - lo)));
+    mark = Math.min(of, Math.floor((level - 1) * band) + 1 + Math.floor(into * (Math.round(level * band) - Math.floor((level - 1) * band))));
+    if (level < 4 && share >= hi) mark = Math.round(level * band);
+  }
+  gaps.sort((a, b) => b.lift - a.lift);
+  return { ao: row.ao, of, level, mark, share, next: gaps.filter(g => g.lift > 0.05).slice(0, 2).map(g => g.sig) };
+}
+function markLevelsRead_(accept) {
+  const way = String(accept || '').split('|').find(w => /^\s*rule:\s*levels\b/i.test(w)) || '';
+  const parts = way.replace(/^\s*rule:\s*levels\b/i, '').split(';').map(p => p.trim());
+  const head = (parts.shift() || '').split(/\s+/).filter(Boolean);
+  return { type: (head[0] || '').toLowerCase(), terms: head[1] || '', points: parts.filter(Boolean).map(p => p.split('/').map(w => w.trim()).filter(Boolean)) };
+}
+function markLevels_(typed, accept, x) {
+  const raw = String(Array.isArray(typed) ? typed.join('\n') : typed == null ? '' : typed);
+  if (!raw.trim()) return null;
+  const key = markLevelsRead_(accept);
+  const rows = levelsRow_(key.type);
+  if (!rows.length) return { error: true };
+  if (!key.terms) key.terms = rows[0].terms || 'language';
+  /* WITH THE SOURCE OR THE WORD RANKS STILL ON THEIR WAY, nothing is marked: they are asked for, and Check says to wait */
+  if (/quote|inlines/.test(rows.map(r => r.weights).join(' ')) && levelsSource_(x).wait) {
+    const r = insertsFor_(x).find(insReading_);
+    if (r && typeof insWant_ === 'function') insWant_(r);
+    return { wait: true, say: 'The extract is still loading; press Check again in a moment.' };
+  }
+  if (/spell|rare/.test(rows.map(r => r.weights).join(' ')) && !levelsFreq_()) return { wait: true, say: 'The spelling list is still loading; press Check again in a moment.' };
+  const sig = levelsSignals_(raw, key, x);
+  const each = rows.map(r => levelsScore_(sig, r));
+  const got = each.reduce((a, e) => a + e.mark, 0), of = each.reduce((a, e) => a + e.of, 0) || Number(x && x.marks) || 0;
+  const name = ['no level yet', 'simple, limited', 'some', 'clear', 'perceptive, detailed'];
+  const say = each.map(e => (each.length > 1 ? e.ao + ' ' : '') + (e.level ? 'Level ' + e.level + ' (' + name[e.level] + '): ' : 'No level yet: ') + e.mark + ' of ' + e.of + ' marks.').join(' ');
+  const next = [...new Set([].concat(...each.filter(e => e.level < 4).map(e => e.next)))].slice(0, 2);
+  const why = next.length ? 'To reach the next level: ' + next.map(n => LEVELS_SAY[n] || n).join('; ') + '.' : 'Top level.';
+  return { got: Math.min(got, of), of, points: true, levels: { each: each.map(e => ({ ao: e.ao, level: e.level, mark: e.mark, of: e.of })), signals: sig }, say, why };
 }
 function markIsPoints_(accept) {
   return /(^|\|)\s*rule:\s*points\b/i.test(String(accept || ''));
@@ -1168,6 +1341,12 @@ function markOrderBroken_(typed, accept, opt) {
     const phr = ways.map(markOrderSides_).filter(sd => sd && !sd.every(num));
     if (phr.length && phr.some(sd => shuffled(tSides, sd)) && !phr.some(sd => sd.length === tSides.length && tSides.every((v, i) => same(v, sd[i])))) return true;
   }
+  /* A LIST THE KEY MARKS `rule: ordered` KEEPS ITS ORDER (queue 4d): "red, orange, yellow | rule: ordered" is a sequence, not a set */
+  if (String(accept || '').split('|').some(w => /^\s*rule:(?:.*[\s,;])?ordered\b/i.test(w))) {
+    const got = markList_(markNorm_(raw.replace(/[−–—]/g, '-')));
+    const lists = ways.map(w => markList_(markNorm_(w.replace(/[−–—]/g, '-')))).filter(l => l.length >= 2);
+    if (lists.length && lists.some(l => shuffled(got, l)) && !lists.some(l => l.length === got.length && got.every((v, i) => same(v, l[i])))) return true;
+  }
   /* A PAIR OF ALLELES IS READ IN ITS CASE: Tt is not tt or TT */
   if (/^([a-z])\1$/i.test(raw) && ways.some(w => /^([a-z])\1$/i.test(w) && /[A-Z]/.test(w)) && !ways.some(w => w === raw || w.split('').sort().join('') === raw.split('').sort().join(''))) return true;
   return false;
@@ -1363,6 +1542,7 @@ const MARK_METHODS = {
     const fix = v && !markAnswer_(a, x.accept, false, { strict: true }) ? markTypo_(a, x.accept, o) : '';
     return fix ? { got: 1, of: 1, typo: fix } : { got: v ? 1 : 0, of: 1 };
   } },
+  levels: { has: x => markerOf_(x).kind === 'accept' && markIsLevels_(x.accept), run: (x, a) => markLevels_(a, x.accept, x) },
   peel: { has: x => markerOf_(x).kind === 'accept' && markIsPeel_(x.accept), run: (x, a) => markPeel_(a, x.accept, x, markOpt_(x)) },
   points: { has: x => markerOf_(x).kind === 'accept' && !markIsPeel_(x.accept) && markIsPoints_(x.accept),
     run: (x, a) => markPoints_(a, markPointsWay_(x.accept), x, markOpt_(x)) },
@@ -1394,7 +1574,7 @@ function mark_(x, answer, scheme) {
   if (r.error) return out('unmarked', 0, max, 'Could not mark it \u2014 try again');
   if (r.wait) return out('wait', 0, max, r.say);
   const more = {};
-  ['typo', 'peel', 'say', 'each', 'stray'].forEach(k => { if (r[k] !== undefined) more[k] = r[k]; });
+  ['typo', 'peel', 'levels', 'say', 'each', 'stray'].forEach(k => { if (r[k] !== undefined) more[k] = r[k]; });
   return out(r.got >= r.of ? 'right' : r.got > 0 ? 'part' : 'wrong', r.got, r.of, r.why || '', more);
 }
 /* THE VERDICT AS STORED (`submissions.verdict`): a one-mark exact method or graph right | wrong, a rule's marks `rule:n/m`, unmarked `sent` */
