@@ -23,6 +23,9 @@ ORDER OF BOARDS (owner, 20 Nov): OCR is the least used board, so it comes last. 
 
 4d. MARKER: "No, because X" (20 Nov): the marker reads "No" as negating the next points, so a right answer starting "No, because…" loses marks. Limit the negation to the clause, add marker-cases. Also: ordered lists with no "to/then" are marked in any order.
 
+4e. HISTORY SHOWS EMPTY BOXES (owner, 20 Nov): an old multi-box answer shows as ", , , , , , T". History (and any answer echo) shows only what was typed, or "(no answer)".
+4f. WRONG TOPIC: W-1CM-parallel-lines is tagged "Angles in Parallel Lines" but is gradients / y = mx + c. Retag at the source; check other 1CM sheets for the same.
+
 ## Next (the 12 parts of best practice)
 
 - THE MASTER DECIDES WHAT A CARD SHOWS (owner, 18 Nov): each kind's card in kinds.json declares its fields, order, limits (e.g. current job only, role words hidden, bio length and quotes); the card code only reads it and draws — no show/hide decisions in code. Move today's code-side choices (profRoleWords_, profJobs_, tutorCardOf_ quotes) into kinds.json.
@@ -68,7 +71,7 @@ ORDER OF BOARDS (owner, 20 Nov): OCR is the least used board, so it comes last. 
 ## Suggestions (from the Ledger Suggest register, 18 Nov)
 
 - MARKING AS ONE SYSTEM (owner): exact keys first, spreading to cover everything; where keys haven't reached, rules distilled once offline (mechanical, instant at run time); never live AI; re-distil and tighten over time. Items 1, 4, 9, 10 are its steps.
-- ESSAYS, DISTILLED (owner approved): build-time only, a big AI reads hundreds of examiner-marked essays (AQA exemplars first) and derives rules/word lists/weights per band; ship only the rules; cap content below the top band. Start with AQA 8700 Paper 1 Q5.
+- ESSAYS, DISTILLED (owner approved): build-time only, a big AI reads hundreds of examiner-marked essays (AQA exemplars first) and derives rules/word lists/weights per band; ship only the rules; cap content below the top band. Start with AQA 8700 Paper 1 Q5. Status 20 Nov: all 52 AQA 8700 Q2-Q5 rows keyed `rule: levels <type>`, rubrics in marking.json (kind levels) distilled from 135 AQA exemplars (MS indicative standards + 2026 answers and commentaries); tools/essay-cases.js reports agreement each build. Next: more Q5 exemplars (only 6 so far), real student scripts with examiner marks.
 - ONE TOPIC-CARD TEMPLATE (owner law, 17 Nov; LEAN): 3 slots in fixed order, empty hidden: the idea in one line; animation/figure; the content the spec point needs, nothing else (no worked examples, common mistakes, quick questions, exam tips). Pipeline enforces; every card conformed at source.
 - RACER ROADS: always pull the latest, most complete map data; a much better road massager; any location (the learner's own or chosen); one map source + one massager, no per-place code.
 - AUTOMATE THE UN-AUTOMATABLE (code, no AI): first, a tutor emails qualifications → Apps Script reads it, OCRs attachments via Drive convert, matches names/grades/DBS numbers against fixed lists, fills the profile; owner approves. Then find other manual jobs.
