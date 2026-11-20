@@ -73,9 +73,7 @@ function markWords_(typed, rule) {
 }
 
 /* ---------- A GRID OR TABLE WITH BLANKS IS FILLED IN WHERE IT STANDS, A CELL AT A TIME (359) */
-/* a blank is empty however many spaces the transcriber left in it (`&nbsp;&nbsp;&nbsp;&nbsp;` is one blank) */
-const CELL_BLANK = /<(td|th)([^>]*)>(?:\s|&nbsp;|\u00a0)*<\/\1>/g;
-const cellCorner_ = t => /^<table[^>]*>\s*(?:<thead[^>]*>\s*)?(?:<tbody[^>]*>\s*)?<tr[^>]*>\s*<(td|th)[^>]*>(?:\s|&nbsp;|\u00a0)*<\/\1>/.test(t);
+/* a blank is empty however many spaces the transcriber left in it (`&nbsp;&nbsp;&nbsp;&nbsp;` is one blank): qtypes.js `QT_CELL_BLANK`, read by the one face (`qtFace_`) */
 /* `cells` READ: one entry a blank, in reading order -- `{ label, ways }`, and `ways` empty for a blank not asked. */
 const CELL_ENT = { amp: '&', nbsp: ' ', rsquo: '\u2019', lsquo: '\u2018', rdquo: '\u201d', ldquo: '\u201c', apos: "'", quot: '"', deg: '\u00b0',
   minus: '\u2212', times: '\u00d7', divide: '\u00f7', ndash: '\u2013', mdash: '\u2014', hellip: '\u2026', pound: '\u00a3', micro: '\u00b5', plusmn: '\u00b1', lt: '<', gt: '>' };
@@ -181,23 +179,18 @@ function cellsTable_(x, html) {
   const cells = cellsOf_(x);
   if (!cells.length) return '';
   const k = ansKey_(x), vals = cellsVals_(ansRead_(k));
-  let n = 0;
-  /* THE FIRST TABLE WHOSE BLANKS ARE THE CELLS: a part's words can show a results table before the one to complete. */
-  const out = String(html || '').replace(/<table[\s\S]*?<\/table>/g, t => {
-    if (n) return t;
-    const blanks = (t.match(CELL_BLANK) || []).length;
-    /* AN EMPTY TOP-LEFT CORNER heads both the rows and the columns: it is never a blank to fill. */
-    const corner = blanks === cells.length + 1 && cellCorner_(t);
-    if (blanks !== cells.length && !corner) return t;
-    let skip = corner;
-    return t.replace(CELL_BLANK, (m, tag, at) => {
-      if (skip) { skip = false; return m; }
-      const i = n++;
-      /* the question's own cell keeps its tag and attributes; only its class and its box are added */
-      return m.slice(0, 1 + tag.length + at.length) + ' class="qp-cell-at">' + cellInput_(k, cells[i], i, vals[i]) + m.slice(m.lastIndexOf('</'));
-    }).replace(/^<table/, '$& data-cells="1"');
-  });
-  return n ? out : '';
+  /* THE FIRST TABLE WHOSE BLANKS ARE THE CELLS, as the one face finds it (qtypes.js `qtCellTable_`) */
+  const t = qtCellTable_(html, cells.length);
+  if (!t) return '';
+  let n = 0, skip = (t.match(QT_CELL_BLANK) || []).length === cells.length + 1;
+  const filled = t.replace(QT_CELL_BLANK, (m, tag, at) => {
+    if (skip) { skip = false; return m; }
+    const i = n++;
+    /* the question's own cell keeps its tag and attributes; only its class and its box are added */
+    return m.slice(0, 1 + tag.length + at.length) + ' class="qp-cell-at">' + cellInput_(k, cells[i], i, vals[i]) + m.slice(m.lastIndexOf('</'));
+  }).replace(/^<table/, '$& data-cells="1"');
+  const at = String(html).indexOf(t);
+  return String(html).slice(0, at) + filled + String(html).slice(at + t.length);
 }
 /* THE BOX UNDER IT: Check marks every cell; with no table to fill, the cells stand in a row of their own. */
 const cellsHere_ = (x, html) => (cellsOf_(x).length && cellsTable_(x, html)) || html;
@@ -212,10 +205,10 @@ function cellsHint_(cells) {
   return text_('write-the') + asked.length + ' answers in order' + (named.length === asked.length ? ': ' + named.join(', ') : '');
 }
 /* EVERY GAP IN ONE BOX (owner, 13 Nov), the one answer box; a table's blanks are still filled where they stand. */
-function cellsBox_(x) {
+function cellsBox_(x, face) {
   const cells = cellsOf_(x), k = ansKey_(x);
   /* IN THE TABLE ON THIS CARD, not merely in the part's words: a long part's table on a page in front had no box anywhere (457) */
-  const inTable = !!cellsTable_(x, cellsCardHtml_(x));
+  const inTable = (face || qtFace_(x, cellsCardHtml_(x))).face === 'table';
   const val = String(ansRead_(k) || '').replace(/(?:\s*;\s*)+$/, '');
   const maths = cells.filter(c => c.ways).every(c => /^[-\d.,\s|£$%°/]+$/.test(c.ways));
   const one = inTable ? '' : fcG_('p', 'q-hint', null, '', cellsHint_(cells)) + fcG_('div', 'qp-ans-row qp-bar', null,
@@ -268,121 +261,6 @@ on('qp-cells-check', el => {
   subRecord_(box.getAttribute('data-k'), vals.join(' ; '), all ? 'right' : 'wrong');
 });
 
-/* "and" parts values only between numbers or letters ("36 and 48", "C and D"), never "two hundred and nine" */
-function multiSplit_(s) {
-  return [].concat(...String(s).split(/\s*,\s*/).map(v => (/\d|^[a-z]{1,2}\s+(and|&)\s+[a-z]{1,2}$/i.test(v)
-    ? v.replace(/^and\s+/i, '').split(/\s+and\s+|\s*&\s*/) : [v])));
-}
-/* ---------- ONE BOX PER VALUE (362): an answer of several values gets a box each, not one box and commas to type. */
-/* How many, from `accept`: a rule's `count N`, a `set`'s groups, a way's comma list; a rule with no count grows a box at a time. */
-function multiOf_(x) {
-  const all = String((x && x.accept) || '').split('|').map(w => w.trim()).filter(Boolean);
-  const ways = all.filter(w => !/^rule:/i.test(w));
-  /* PEEL (rule 1.33): a box for the introduction and each paragraph, named, joined by a blank line */
-  if (all.some(w => /^rule:\s*peel\b/i.test(w)) && typeof peelBoxes_ === 'function') {
-    const heads = peelBoxes_().map(b => b.name);
-    if (heads.length) return { n: heads.length, paras: true, heads, wrap: '', labels: [] };
-  }
-  for (const r of all.filter(w => /^rule:/i.test(w))) {
-    const body = r.replace(/^rule:\s*/i, '');
-    if (/(?:^|,)\s*(expr|eqn)\s/.test(body)) continue;   /* one expression, one box */
-    /* A POINTS RULE IS WORDS, ONE BOX (owner, 19 Nov: "why do some questions have double boxes"); qtypes.js qtMulti_ says the same. */
-    if (/(?:^|,)\s*points\b/.test(body)) continue;
-    const set = /(?:^|,)\s*set\s+([^,]+)/.exec(body);
-    if (set) return { n: set[1].split('/').length, words: true, wrap: '', labels: [] };
-    const c = /(?:^|,)\s*count\s+(\d+)/.exec(body);
-    if (c && +c[1] >= 2) return { n: +c[1], wrap: '', labels: [] };
-    if (!c) return { n: 0, grow: true, wrap: '', labels: [] };
-  }
-  /* a way splits only into short values: never a thousands comma (1,000) or a sentence */
-  const split = w => {
-    const p = /^\((.*)\)$/.exec(w), s = p ? p[1] : w;
-    if (/\d,\d{3}(?!\d)/.test(s) || !/,|\sand\s|&/.test(s)) return null;
-    const parts = multiSplit_(s);
-    if (parts.length < 2 || parts.some(v => !/^[-a-z]{0,2}\s*=?\s*[-\d.\/£$%°a-z²³√π ]{1,14}$/i.test(v) || v.split(' ').length > 3)) return null;
-    return { parts: parts, wrap: p ? '()' : '' };
-  };
-  const first = ways.length ? split(ways[0]) : null;
-  if (!first || first.parts.length > 16 || ways.map(split).some(g => g && g.parts.length !== first.parts.length)) return null;
-  return { n: first.parts.length, wrap: first.wrap, labels: first.parts.map(v => (/^([a-z])\s*=/i.exec(v) || [])[1] || '') };
-}
-/* A SAVED ANSWER INTO ITS BOXES — an old one typed with commas too: brackets and `x =` off, split at the commas. */
-function multiVals_(val, m) {
-  let s = String(val == null ? '' : val).trim();
-  if (m.paras) return s ? s.split(PEEL_SEP) : [];
-  if (m.wrap) s = s.replace(/^\((.*)\)$/, '$1');
-  const out = s ? multiSplit_(s).map((v, i) => (m.labels[i] ? v.replace(new RegExp('^' + m.labels[i] + '\\s*=\\s*', 'i'), '') : v)) : [];
-  return out;
-}
-/* AND THE BOXES INTO ONE ANSWER: what the marker and the account receive, written as the scheme writes it. */
-function multiJoin_(vals, m) {
-  const v = vals.map(s => String(s == null ? '' : s).trim());
-  while (v.length && !v[v.length - 1]) v.pop();
-  if (!v.length) return '';
-  if (m.paras) return v.map(s => s.replace(/\n\s*\n/g, '\n')).join(PEEL_SEP);
-  const s = v.map((s, i) => (m.labels[i] ? m.labels[i] + ' = ' + s : s)).join(', ');
-  return m.wrap ? '(' + s + ')' : s;
-}
-function multiField_(k, i, v, kind, signs) {
-  return kpField_(k + '#' + i, v, kind, signs, 'Answer ' + (i + 1), { n: i, k: k });
-}
-function multiBoxes_(x, k, val, m, maths, signs) {
-  const vals = multiVals_(val, m);
-  const n = m.grow ? vals.filter(Boolean).length + 1 : m.n;
-  const kind = m.paras ? 'essay' : m.words || !maths ? 'words' : 'maths';
-  const one = i => m.paras ? fcG_('label', 'qp-ans qp-sheet qp-multi-f', null, fcG_('span', 'qp-multi-h', null, '', m.heads[i]) + kpField_(k + '#' + i, vals[i] || '', kind, signs, m.heads[i], { n: i, k: k }))
-    : multiLabel_(m.labels[i], multiField_(k, i, vals[i] || '', kind, signs));
-  const boxes = [];
-  for (let i = 0; i < n; i++) boxes.push(one(i));
-  /* the joined answer, first in the box, is what Check, Send and every verdict painter read in place of `.qp-ans-in` */
-  return fcG_('div', 'qp-multi' + (m.wrap ? ' is-pair' : ''), { 'data-mk': k, 'data-m': JSON.stringify(m), 'data-kind': kind,
-    'data-signs': signs ? String(+signs) : null, 'data-grow': m.grow ? '1' : null },
-    cardBlock_({ type: 'control', attrs: { type: 'hidden', class: 'qp-multi-val', 'data-k': k, value: multiJoin_(vals, m) } }) + boxes.join(''));
-}
-/* ONE BOX OF SEVERAL, its name (`x =`) before it where the scheme gives one. */
-const multiLabel_ = (label, field) => fcG_('label', 'qp-ans qp-multi-f', null, (label ? fcG_('span', 'qp-multi-l', null, '', label + ' =') : '') + field);
-const multiIns_ = box => [].slice.call(box.querySelectorAll('.kp-in[data-do="qp-multi"]'));
-/* EVERY KEY IN A BOX: the joined answer kept under the question's own key, and a filled last box grows another where the count is open. */
-document.addEventListener('input', e => {
-  const el = e.target && e.target.closest && e.target.closest('[data-do="qp-multi"]');
-  const box = el && el.closest('.qp-multi');
-  if (!box) return;
-  let m;
-  try { m = JSON.parse(box.getAttribute('data-m')); } catch (err) { return; }
-  const ins = multiIns_(box), all = box.querySelector('.qp-multi-val');
-  const v = multiJoin_(ins.map(i => i.value), m);
-  if (all) all.value = v;
-  ansStore_(box.getAttribute('data-mk') || '', v);
-  if (box.hasAttribute('data-grow') && ins.length && ins[ins.length - 1] === el && el.value.trim()) {
-    const at = document.createElement('div');
-    const kind = box.getAttribute('data-kind');
-    at.innerHTML = multiLabel_('', multiField_(box.getAttribute('data-mk'), ins.length, '', kind, +box.getAttribute('data-signs') || 0));
-    box.appendChild(at.firstChild);
-  }
-  const mark = box.closest('.qp-mark');
-  if (mark && all && typeof subVerdictPaint_ === 'function') subVerdictPaint_(mark, all);
-});
-/* AN ANSWER ARRIVING FROM ANOTHER DEVICE OR TAB (answers.js) lands on the joined value; its boxes take it too. */
-function multiFill_(all) {
-  const box = all && all.closest && all.closest('.qp-multi');
-  if (!box) return;
-  let m;
-  try { m = JSON.parse(box.getAttribute('data-m')); } catch (err) { return; }
-  const vals = multiVals_(all.value, m);
-  multiIns_(box).forEach((inp, i) => {
-    if (inp.value === (vals[i] || '')) return;
-    inp.value = vals[i] || '';
-    if (typeof kpRender_ === 'function') kpRender_(inp);
-  });
-}
-/* THE BOX AFTER THIS ONE, for ✓ and the comma key on the pad: one tap from box to box. */
-function multiNext_(inp) {
-  const box = inp && inp.closest && inp.closest('.qp-multi');
-  if (!box) return null;
-  const ins = multiIns_(box), i = ins.indexOf(inp);
-  return i >= 0 && i < ins.length - 1 ? ins[i + 1] : null;
-}
-
 /* A TILE'S ANSWER BOX: the box is in the card's sheet and its Check in the card's one tile row (rule 1.26), so a tile asks its card. */
 function qMark_(el, sel) {
   const s = sel || '.qp-mark', own = el && el.closest && el.closest(s);
@@ -390,8 +268,10 @@ function qMark_(el, sel) {
   const card = el && el.closest && el.closest('.qcard');
   return card ? card.querySelector(s) : null;
 }
+/* THE FACE IS THE ONE SOURCE'S (qtypes.js `qtFace_`, owner 20 Nov): one box, but a box a cell in the part's own table. */
 function ansBox_(x) {
-  if (cellsOf_(x).length) return cellsBox_(x);
+  const face = qtFace_(x, cellsCardHtml_(x));
+  if (face.face === 'table' || face.face === 'gaps') return cellsBox_(x, face);
   const opts = choiceList_(x);
   const k = ansKey_(x);
   const m = markerOf_(x);
@@ -410,15 +290,13 @@ function ansBox_(x) {
   const dataAt = Object.assign(can ? { 'data-accept': can } : {}, rule ? { 'data-rule': rule, 'data-marks': String(Number(x.marks) || '') } : {}, drawAt);
   const fb = why => (kept && why ? fcG_('p', 'qp-fb', null, '', why) : '');
   /* ---------- AN ESSAY IS WRITTEN ON A SHEET: the same one box, bigger § */
-  if (ansEssay_(x) && !markIsPeel_(can)) {
+  if (ansEssay_(x) || face.face === 'essay') {
     const said = subBoxSay_(k, val);
     return fcG_('div', cls + ' qp-essay' + (said.cls ? ' ' + said.cls : ''), dataAt,
       fcG_('label', 'qp-ans qp-sheet', { 'aria-label': text_('your-answer') }, kpField_(k, val, 'essay', 3)) + fcG_('p', 'qp-words', null, '', kpWordsSay_(val))
       + ws + fcVerdict_(said.text) + fcSaved_(k)) + fb(said.why);
   }
-  const many = can ? multiOf_(x) : null;
-  const bar = opts + (many ? fcG_('div', 'qp-ans-row qp-bar qp-multi-bar', null, multiBoxes_(x, k, val, many, maths, 3))
-    : fcG_('div', 'qp-ans-row qp-bar', null, fcG_('label', 'qp-ans' + (maths ? ' qp-ans-maths' : ''), { 'aria-label': text_('your-answer') }, kpField_(k, val, maths ? 'maths' : 'words', 3))));
+  const bar = opts + fcG_('div', 'qp-ans-row qp-bar', null, fcG_('label', 'qp-ans' + (maths ? ' qp-ans-maths' : ''), { 'aria-label': text_('your-answer') }, kpField_(k, val, maths ? 'maths' : 'words', 3)));
   /* THE VERDICT IS THE LATEST SUBMISSION'S, WHILE THE BOX HOLDS WHAT WAS SENT -- on this device or on the account, next sign-in § */
   const said = geo ? subBoxSay_(k, padSay_(padRead_(padKey_(x)))) : subBoxSay_(k, val);
   return fcG_('div', cls + (said.cls ? ' ' + said.cls : ''), dataAt,

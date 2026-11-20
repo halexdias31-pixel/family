@@ -882,7 +882,6 @@ function markPoints_(typed, rule, x, opt) {
    by `markPoints_` for Point (the question's focus in its first sentence), Evidence (a quotation found word for word in the insert),
    Explain (a technique from the subject's one list with an explaining word) and Link (the focus again in its last sentence);
    the count across the answer is a level, and the mark in it, through the one level table. `rule: peel; <focus wordings>` */
-const PEEL_SEP = '\n\n';
 const PEEL_SAY = { point: 'point', evidence: 'evidence', explain: 'explain', link: 'link' };
 function peelRows_(kind, subject) {
   return markRows_().filter(r => r.kind === kind && (!subject || !r.subject || String(r.subject).toLowerCase() === String(subject).toLowerCase()));
@@ -905,7 +904,8 @@ function markPeel_(typed, accept, x, opt) {
   const expl = peelRows_('explain', subject).map(r => r.words).join(' / ');
   const boxes = peelBoxes_(), levels = peelRows_('level').map(r => ({ level: +r.level, from: +r.from, name: r.name })).sort((a, b) => a.from - b.from);
   const of = Number(x && x.marks) || 0;
-  const parts = raw.split(PEEL_SEP);
+  /* ONE SHEET (owner, 20 Nov): its paragraphs are its blank lines, or its lines where it has none */
+  const parts = /\n\s*\n/.test(raw) ? raw.split(/\n\s*\n/) : raw.split(/\n+/);
   let count = 0, made = 0, wait = false;
   const said = boxes.map((b, i) => {
     const text = String(parts[i] || '').trim(), s = peelSentences_(text);
@@ -1103,11 +1103,41 @@ function markUnitAsked_(x, said) {
   return MARK_UNIT_Q.test(q) || MARK_UNIT_MS.test(String(said || '') + ' ' + String(r.markscheme || r.mark_scheme || ''));
 }
 
+/* ---------- SEVERAL VALUES IN THE ONE BOX (owner, 20 Nov: one box, never a box a value): its values, as a child parts them --
+   commas, "and", semicolons or line breaks (markNorm_ makes those commas), or only spaces; brackets off, `x = 3` kept as `x=3`. */
+function markList_(t) {
+  const s = String(t).replace(/^\((.*)\)$/, '$1').replace(/\b([a-z])\s*=\s*/g, '$1=').trim();
+  return (/,|\sand\s|&/.test(s) ? s.split(/\s*,\s*|\s+and\s+|\s*&\s*/) : s.split(/\s+/)).filter(Boolean);
+}
+/* A LIST THE KEY WRITES ("x = 3, y = -4", "(3, -11)", "53° and 127°") IS EVERY VALUE OF IT, typed with spaces or commas, its names
+   (`x =`) left off in the key's order, or in any order where the key names none; a `rule:` reads the values comma-listed. */
+function markListed_(t, accept, opt) {
+  const got = markList_(t);
+  /* spaces part values only where each is a number ("3 -4"), never a sentence's words */
+  if (got.length < 2 || got.length > 16 || !/,|\sand\s|&/.test(t) && got.some(v => !/\d/.test(v))) return false;
+  const all = String(accept || '').split('|').map(w => w.trim()).filter(Boolean), joined = got.join(', ');
+  if (joined !== t && all.some(w => /^rule:/i.test(w) && markRule_(joined, w))) return true;
+  const bare = v => v.replace(/^[a-z]=/, ''), one = (a, w) => !!markAnswer_(a, w, false, opt);
+  return all.filter(w => !/^rule:/i.test(w)).some(w => {
+    const want = markList_(markNorm_(w));
+    if (want.length !== got.length) return false;
+    const named = got.every(v => /^[a-z]=/.test(v));
+    if (want.every((v, i) => one(named ? got[i] : bare(got[i]), named ? v : bare(v)))) return true;
+    if (want.some(v => /^[a-z]=/.test(v))) return false;
+    const left = want.slice();
+    return got.every(v => { const i = left.findIndex(u => one(v, u)); return i >= 0 && left.splice(i, 1); });
+  });
+}
 function markAnswer_(typed, accept, again, opt) {
-  /* ONE BOX PER VALUE hands the values as a list (362): read as the comma list the scheme writes. */
   if (Array.isArray(typed)) typed = typed.map(v => String(v == null ? '' : v).trim()).filter(Boolean).join(', ');
   const t = markNorm_(typed);
   if (!t) return null;                              /* nothing typed is not a wrong answer */
+  /* AS TYPED FIRST; THEN, NOT RIGHT, AS THE KEY'S LIST OF VALUES (markListed_) */
+  if (!(opt && opt.listed)) {
+    const o = Object.assign({}, opt, { listed: true }), first = markAnswer_(typed, accept, again, o);
+    /* the typed words, not markNorm_'s: it reads "3 -4" as the sum 3-4 */
+    return first || (again ? first : markListed_(String(typed).replace(/\s*[\r\n;]+\s*/g, ', ').replace(/[\u2212\u2013\u2014]/g, '-').toLowerCase(), accept, o) || first);
+  }
   const said = !again && markSpoken_(t);   /* "fifteen" IS 15: the words read as digits are tried first */
   if (said && said !== t && markAnswer_(said, accept)) return true;
   /* A `rule:` WAY IS TESTED, NOT MATCHED (markRule_); the other ways are matched as before. */

@@ -117,14 +117,16 @@ const cPow = (a, b) => {
   return cChk(Math.pow(x, y));
 };
 const cMathErr = () => { throw { calc: 'Math ERROR' }; };
+/* DEGREES, OR RADIANS (owner, 20 Nov): the turn one unit makes, set from the sum's own `rad` while it is worked out (`calcKey`'s =). */
+let CALC_UNIT = Math.PI / 180;
 const CALC_FNS = {
-  sin: x => cSnap(Math.sin(cF(x) * Math.PI / 180)),
-  cos: x => cSnap(Math.cos(cF(x) * Math.PI / 180)),
-  tan: x => { const d = cF(x); if (Math.abs(((d % 180) + 180) % 180 - 90) < 1e-12) cMathErr();
-              return cSnap(Math.tan(d * Math.PI / 180)); },
-  asin: x => Math.abs(cF(x)) > 1 ? cMathErr() : cSnap(Math.asin(cF(x)) * 180 / Math.PI),
-  acos: x => Math.abs(cF(x)) > 1 ? cMathErr() : cSnap(Math.acos(cF(x)) * 180 / Math.PI),
-  atan: x => cSnap(Math.atan(cF(x)) * 180 / Math.PI),
+  sin: x => cSnap(Math.sin(cF(x) * CALC_UNIT)),
+  cos: x => cSnap(Math.cos(cF(x) * CALC_UNIT)),
+  tan: x => { const d = cF(x) * CALC_UNIT; if (Math.abs((((d / Math.PI) % 1) + 1) % 1 - 0.5) < 1e-12) cMathErr();
+              return cSnap(Math.tan(d)); },
+  asin: x => Math.abs(cF(x)) > 1 ? cMathErr() : cSnap(Math.asin(cF(x)) / CALC_UNIT),
+  acos: x => Math.abs(cF(x)) > 1 ? cMathErr() : cSnap(Math.acos(cF(x)) / CALC_UNIT),
+  atan: x => cSnap(Math.atan(cF(x)) / CALC_UNIT),
   log: x => cF(x) <= 0 ? cMathErr() : cSnap(Math.log10(cF(x))),
   ln: x => cF(x) <= 0 ? cMathErr() : cSnap(Math.log(cF(x))),
 };
@@ -403,6 +405,7 @@ function calcKey(st, k) {
   else if (sh && calcLegend(k)) { st.note = 'SHIFT ' + calcLegend(k) + ' is not on this calculator'; return st; }
   k = CALC_AS[k] || k;
   if (k !== 'up' && k !== 'down') st.back = -1;
+  if (k === 'drg') { st.rad = !st.rad; return st; }
   if (k === 'C') { const root = []; Object.assign(st, { root, cur: { row: root, i: 0 }, fresh: false, val: null, err: '', menu: null }); return st; }
   /* FORMAT (491) OPENS THE CASIO'S LIST for the answer on the glass: ▲▼ or FORMAT again to move, OK/EXE or the item's digit to choose, AC to leave. */
   if (st.menu) {
@@ -420,8 +423,10 @@ function calcKey(st, k) {
     const was = calcClone(st.root);
     if (JSON.stringify(st.past[st.past.length - 1]) !== JSON.stringify(was)) st.past.push(was);
     if (st.past.length > 30) st.past.shift();
+    CALC_UNIT = st.rad ? 1 : Math.PI / 180;
     try { st.val = calcEval(st.root, st.ans); st.ans = st.val; st.err = ''; st.fresh = true; st.dec = false; }
     catch (e) { if (!e || !e.calc) throw e; st.err = e.calc; st.val = null; st.fresh = false; }
+    finally { CALC_UNIT = Math.PI / 180; }
     return st;
   }
   if (k === 'up' || k === 'down') {

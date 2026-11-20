@@ -32,7 +32,7 @@ const QT_TILE = {
     return o || { icon: t.icon, label: t.label, note: 'not on this device', act: 'read-aloud', cls: 'read-aloud', off: true, data: { key } };
   },
   /* ONLY WHERE A CALCULATOR IS ALLOWED: a Non-calculator paper never shows it; unknown shows it (owner, 11 Nov) */
-  calc: (t, x, key) => calcAllowed_(x) ? { icon: t.icon, label: t.label, note: t.note, act: t.act, cls: 'qt-t qt-calc', on: QCALC_OPEN.has(key), pressed: QCALC_OPEN.has(key), data: { tool: t.id, key } } : null,
+  calc: (t, x, key) => calcAllowed_(x) ? { icon: t.icon, label: t.label, note: t.note, act: t.act, cls: 'qt-t qt-calc', on: floatIs_('calc', key), pressed: floatIs_('calc', key), data: { tool: t.id, key } } : null,
   /* SIGNED IN, ON A PAPER: the whole paper downloaded for no connection (offline.js) */
   offline: (t, x) => (typeof window.offOpts_ === 'function' ? window.offOpts_(x) : null),
   /* THE MARKER IS THE QUESTION'S (owner, 15 Nov): photos are saved with a part no rule marks; a rule-marked part never takes them. */
@@ -50,19 +50,17 @@ function qtToolOpts_(t, x) {
   const cls = 'qt-t' + (isMeasureTool_(t.id) ? ' q-meast' : '');
   return { icon: t.icon, label: t.label, note: t.note, act: t.act, cls, on, pressed: on, data: { tool: t.id, key } };
 }
-/* IS THIS TOOL IN HAND, the one rule: Ruler or Protractor laid on a figure (MEAS), the protractor on the pad, the rest the pad's tool */
-/* A MEASURING TOOL NOT LAID ON A FIGURE: the ruler is then out of hand; the protractor may still be on the pad. */
-const MEASURE_ON_PAD = { ruler: () => false, protractor: pk => !!(pk && padProtOn_(pk)) };
+/* IS THIS TOOL IN HAND, the one rule: the calculator, Ruler or Protractor floating for this part (`floatIs_`, find-measure.js), the rest the pad's tool */
 function qtToolOn_(id, key, pk, inHand) {
-  if (isMeasureTool_(id) && typeof MEAS !== 'undefined' && MEAS && MEAS.k === key && MEAS.tool === id) return true;
-  if (Object.prototype.hasOwnProperty.call(MEASURE_ON_PAD, id)) return MEASURE_ON_PAD[id](pk);
+  if ((isMeasureTool_(id) || id === 'calc') && typeof floatIs_ === 'function' && floatIs_(id, key)) return true;
+  if (id === 'calc' || isMeasureTool_(id)) return false;
   if (!pk || !inHand) return false;
   return inHand === QT_PAD_TOOL[id];
 }
 /* EVERY PEN/INSTRUMENT TILE UNDER `root` LIT AGAIN BY `qtToolOn_`, in place; `inHand` stands in for the tool of a pad being armed */
 function qtLight_(root, inHand) {
   if (!root || !root.querySelectorAll) return;
-  root.querySelectorAll('.qt-row .qt-t[data-do="qt-inst"], .qt-row .qt-t[data-do="qt-pen"]').forEach(t => {
+  root.querySelectorAll('.qt-row .qt-t[data-do="qt-inst"], .qt-row .qt-t[data-do="qt-pen"], .qt-row .qt-t[data-do="qt-calc"]').forEach(t => {
     const card = t.closest('.qcard'), pad = card && card.querySelector('.qpad');
     const pk = (pad && pad.getAttribute('data-k')) || '';
     const lit = qtToolOn_(t.getAttribute('data-tool'), t.getAttribute('data-key') || '', pk, inHand !== undefined ? inHand : qtInHand_(pk));
@@ -72,8 +70,6 @@ function qtLight_(root, inHand) {
 /* A PART'S TILES AS DATA, Check first (rule 1.26): its tools, the pen's Undo and Clear, Show the answer, Help. ONE MARK BUTTON (owner, 15 Nov): no second one for photos. */
 function qtTiles_(x, ans) {
   if (!x || !x.key) return [];
-  /* A CARD DRAWN AGAIN WHILE ITS RULER IS OUT gets it back on the new figure, once the markup is in */
-  if (typeof MEAS !== 'undefined' && MEAS && MEAS.k === x.key && typeof setTimeout === 'function') setTimeout(measRepaint_, 0);
   /* AND ITS ANSWER BOX'S FACE: the student's pick, else the question's own (answer-face.js) */
   if (typeof ansFaceDue_ === 'function') ansFaceDue_(x);
   /* QT_ROW ON EVERY PART; the pen's tiles, Undo and Clear only where the pad is already on the card (1020) */

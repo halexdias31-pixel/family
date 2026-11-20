@@ -22,6 +22,7 @@ const ORDER = [
   'finder-tags',  // walks it again, TAG_OF included -> js/finder-tags.js
   'rules',        // rules.json -> docs/rules.md
   'validate-questions', // the questions marked by the site's own marker -> data/question-status.json (ok / tutor / broken)
+  'one-box',      // the one-box check (rule 1.75, owner 20 Nov): every answer face by qtFace_; more than one box outside a table fails the build
   'bundle',       // js/ in index.html's order -> bundle/*.js
   'one-card',     // the one-card check (rule 1.75): every Find card by the one maker, no CSS of its own; fails the build
   'build-stamp',  // everything served -> index.html's BUILD_STAMP; last

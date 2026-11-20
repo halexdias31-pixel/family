@@ -235,9 +235,10 @@ function readAloudLines_(x) {
     if (need > 1) out.push('Choose ' + need + '.');
     said.forEach((c, i) => out.push(String.fromCharCode(65 + i) + ': ' + c + (/[?!:]$/.test(c) ? '' : '.')));
   } else {
-    let m = null;
-    try { m = String(x.accept || '').trim() ? multiOf_(x) : null; } catch (e) { m = null; }
-    if (m && m.n >= 2) out.push('Give ' + m.n + ' answers.');
+    /* HOW MANY THE KEY WANTS, as the one face reads it (qtypes.js `qtFace_`): all typed in the one box */
+    const f = String(x.accept || '').trim() ? qtFace_(x) : { face: 'one', values: 1 };
+    const n = f.values;
+    if (f.face === 'one' && n >= 2) out.push('Give ' + n + ' answers.');
   }
   return out;
 }
