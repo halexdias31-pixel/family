@@ -179,8 +179,15 @@ function histBody_(of) {
   if (!items.length) return [pick, { type: 'text', text: 'No questions answered that day.' }];
   return [pick, { type: 'text', paras: s.got.summary || [] },
     { type: 'list', items: items.map(q => ({ label: q.label || 'A question',
-      value: (q.mark ? q.mark + ' · ' : '') + (HIST_HOW[q.how] || '') + (q.answer ? ' · answered ' + q.answer : '') + (q.again ? ' · again' : ''),
+      value: (q.mark ? q.mark + ' · ' : '') + (HIST_HOW[q.how] || '') + ' · ' + histTyped_(q.answer) + (q.tries > 1 ? ' · ' + q.tries + ' tries' : '') + (q.again ? ' · again' : ''),
       tone: q.how === 'right' ? 'is-good' : q.how === 'wrong' ? 'is-bad' : '' })) }];
+}
+/* ONLY WHAT WAS TYPED (owner, 20 Nov, 4e): the backend's `answerTyped_` already trims an old ", , , T"; an older backend's copy is trimmed here too. */
+function histTyped_(a) {
+  const t = String(a == null ? '' : a).trim();
+  if (!/[^\s,;]/.test(t)) return '(no answer)';
+  const bits = /\u27ee|^\d{1,2}(?:,\d{0,2})*$/.test(t) ? [t] : t.split(/\s*[,;]\s*/);
+  return 'answered ' + (bits.some(b => !b) ? bits.filter(Boolean).join(/;/.test(t) ? ' ; ' : ', ') : t);
 }
 function histPaint_(of) {
   document.querySelectorAll('.card[data-hist][data-of]').forEach(el => {

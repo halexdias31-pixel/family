@@ -177,7 +177,7 @@ top level, before `subRecord_`
    played only through the sound its press unlocked; `'none'`, not at all. */
 ```
 
-### NOBODY TO RECORD IT FOR -- a card still keyed to a person whose session has ended (Find is held while a child writes, so the box keeps its key).
+### (retired 20 Nov: such a press is now kept for its person and sent at their next sign-in) NOBODY TO RECORD IT FOR -- a card still keyed to a person whose session has ended (Find is held while a child writes, so the box keeps its key).
 
 in `subRecord_`
 

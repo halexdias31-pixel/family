@@ -110,6 +110,23 @@ async function run() {
   });
   /* AND THE SAME HEAVIEST WEEK WITH NO LIBRARY — a run that could not fetch it: every question by its words cell. */
   one('six heaviest papers, no library', W.weeks[W.weeks.length - 1].items, null);
+  /* AND WHAT A LINE ECHOES (owner, 20 Nov, 4e): only what was typed, never an old many-box string's empty slots, and the tries counted. */
+  const hist = [
+    { name: 'empty boxes', presses: [', , , , , , T'], answer: 'T', tries: 1 },
+    { name: 'only separators', presses: [', , ;'], answer: '', tries: 1 },
+    { name: 'two tries', presses: ['4', 'x = 5'], answer: 'x = 5', tries: 2 },
+    { name: 'a vector', presses: ['\u27ee5,\u27ef'], answer: '\u27ee5,\u27ef', tries: 1 },
+  ];
+  /* Apps Script's date formatter, as the backend calls it: the day in UTC is enough here. */
+  B.ctx.Utilities = { formatDate: d => new Date(d).toISOString().slice(0, 10) };
+  hist.forEach(h => {
+    questions++;
+    const rows = h.presses.map((a, i) => ({ person_id: 'p1', key: 'q:R1', answer: a, verdict: 'wrong', event_id: 'e' + i,
+      submitted_at: '2026-11-10T10:0' + i + ':00Z', pressed_at: '2026-11-10T10:0' + i + ':00Z' }));
+    const L = B.call('digestLearners_(__a[0], __a[1])', [week, rows]).p1;
+    const q = L && L.fresh[0];
+    if (!q || q.answer !== h.answer || q.tries !== h.tries) bad.push('history "' + h.name + '": shows ' + JSON.stringify(q && q.answer) + ' in ' + (q && q.tries) + ' tries, not ' + JSON.stringify(h.answer) + ' in ' + h.tries);
+  });
   const big = sizes.reduce((a, b) => (Math.max(...b.parts) > Math.max(...a.parts) ? b : a));
   console.log('digest-clip: ' + (questions - bad.filter(b => / is (not listed|listed without)/.test(b)).length) + '/' + questions + ' questions with their words, '
     + emails + ' email part(s) at most ' + Math.max(...[].concat(...sizes.map(s => s.parts))) + ' of ' + limit + ' bytes'
