@@ -188,6 +188,8 @@ function kindMap_() {
   });
   return (KIND_LIVE = out);
 }
+const toolNameOf_ = x => { const door = ((ITEM_KINDS.kinds.tool || {}).find || {}).under;
+  return door && asList_(kindTop_(x)).indexOf(door) !== -1 ? String((x.widget && (x.widget.name || x.widget.id)) || kindOf_(x).label || '') : ''; };
 /* WHO IS LISTED AN ENTRY (kinds.json `see.who`): a kind named nowhere never; `self` and `family` rows reach only their own, as the backend sends no one else's. */
 const kindSees_ = x => { const m = x && kindMap_()[x.kind];
   return !!m && String(m.see).split(',').map(w => w.trim()).some(w => w === 'anyone' || may_(/^(self|family)$/.test(w) ? 'signedIn' : w)); };
@@ -268,6 +270,10 @@ const FACET_READ = {
   ...Object.fromEntries(['postState', 'postBy', 'postWhen', 'msgWith', 'profileType', 'settingFor', 'vidSubject', 'vidTopic', 'vidChannel', 'vidLevel', 'vidType', 'venueArea', 'venueFor', 'venueSize'].map(f => [f, { of: x => x[f] || '' }])),
   /* A STORE KIND'S OWN FACETS (kinds.json `find.facetCols`), each read off its row's column when the entry was made (form.js storeItems_). */
   ...Object.fromEntries(storeFacets_().map(f => [f, { of: x => x[f] || '' }])),
+  /* WHICH TOOL (owner, 20 Nov): under the tool kind's door (kinds.json `tool.find.under`), each tool its own tag — a widget by its name, any other kind there by its label (Docket, Foods). */
+  toolName: { of: x => toolNameOf_(x), choose: true },
+  /* A DOCKET LIST (owner, 20 Nov): the owner's own list names, from their `todo` cell. */
+  docketList: { of: x => x.dkList || '' },
   projectType: { of: x => x.projectType || '' },
   subject: { of: x => x.subject },
   shelf: { of: x => x.shelf || '' },
