@@ -205,5 +205,5 @@ function run() {
   if (process.argv.includes('--papers')) Object.keys(tally).sort().forEach(s => Object.entries(tally[s].papers).forEach(([p, t]) => console.log(s + '\t' + p + '\t' + t.ok + '\t' + t.tutor + '\t' + t.broken)));
   return { status, tally, why };
 }
-module.exports = { run };
+module.exports = { run, appCode, rowsOf };
 if (require.main === module) run();

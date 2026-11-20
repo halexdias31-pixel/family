@@ -3,8 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 const NAMES = ['MARK_SYNONYMS', 'markNorm_', 'markParts_', 'markNum_', 'MARK_NUM', 'MARK_SYM', 'MARK_POW', 'MARK_BARE', 'markBare_', 'markFrac_',
-               'markRange_', 'markRuleNums_', 'markRuleVal_', 'markNear_', 'markPrime_', 'MARK_RULE_TESTS', 'markRuleIs_', 'markRuleSet_', 'markRuleSeq_', 'markExprParse_', 'MARK_EXPR_OPS', 'markExprVal_', 'MARK_NUM_WORDS', 'MARK_TENS', 'MARK_OP_WORDS', 'markSpoken_', 'markExprRead_', 'markExprGrad_', 'markExpr_', 'markRule_', 'MARK_WORD', 'MARK_UNIT', 'MARK_UNIT_OF', 'markUnitOff_', 'markTerms_', 'MARK_TYPO_OF', 'markEdits_', 'markTypoWords_', 'markRivals_', 'markTypo_', 'MARK_PT_GLUE', 'MARK_PT_CLAUSE', 'MARK_PT_NOT', 'MARK_PT_RIVALS', 'markPtPlain_', 'markPtWords_', 'markPtStem_', 'markPtRead_', 'markPtSource_', 'markPtIs_', 'markPtFind_', 'markPoints_', 'markIsPoints_', 'markPointsWay_', 'markOpt_', 'MARK_SUPS', 'markPowVal_', 'markAnswer_',
-               'multiSplit_', 'multiOf_', 'multiVals_', 'multiJoin_'];
+               'markRange_', 'markRuleNums_', 'markRuleVal_', 'markNear_', 'markPrime_', 'MARK_RULE_TESTS', 'markRuleIs_', 'markRuleSet_', 'markRuleSeq_', 'markExprParse_', 'MARK_EXPR_OPS', 'markExprVal_', 'MARK_NUM_WORDS', 'MARK_TENS', 'MARK_OP_WORDS', 'markSpoken_', 'markExprRead_', 'markExprGrad_', 'markExpr_', 'markRule_', 'MARK_WORD', 'MARK_UNIT', 'MARK_UNIT_OF', 'markUnitOff_', 'markTerms_', 'MARK_TYPO_OF', 'markEdits_', 'markTypoWords_', 'markRivals_', 'markTypo_', 'MARK_PT_GLUE', 'MARK_PT_CLAUSE', 'MARK_PT_NOT', 'MARK_PT_RIVALS', 'markPtPlain_', 'markPtWords_', 'markPtStem_', 'markPtRead_', 'markPtSource_', 'markPtIs_', 'markPtFind_', 'markPoints_', 'markIsPoints_', 'markPointsWay_', 'markOpt_', 'MARK_SUPS', 'markPowVal_', 'markAnswer_'];
 
 function cutFrom(src, name) {
   let i = src.indexOf('function ' + name + '(');

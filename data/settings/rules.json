@@ -207,7 +207,7 @@
   {
    "id": "1.32",
    "principle": 1,
-   "text": "Marking is mechanical and fair: one typed box, one marker per checker, every accept marked right against itself and typeable on the pad. A worded answer of up to about six marks is marked by the distinct points it makes (`rule: points`): each point's words close together in a real sentence, a list of key words earning nothing, a quotation counted only if it is in the source, and one result shown, the marks out of the maximum.",
+   "text": "One answer box for one answer (owner, 20 Nov): a list, a pair, a coordinate or \"x = , y =\" is typed in the one box with commas or spaces, and marked from it; a box a cell only in a table or grid the part shows its blanks in. qtypes.js `qtFace_` decides, and `tools/one-box.js` counts it site-wide. Marking is mechanical and fair: one typed box, one marker per checker, every accept marked right against itself and typeable on the pad. A worded answer of up to about six marks is marked by the distinct points it makes (`rule: points`): each point's words close together in a real sentence, a list of key words earning nothing, a quotation counted only if it is in the source, and one result shown, the marks out of the maximum.",
    "since": "2026-11-12"
   },
   {

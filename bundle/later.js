@@ -4750,7 +4750,6 @@ kept.forEach(f => credited.set(f.pi, f.n));
 const got = [...credited.values()].reduce((s, n) => s + n, 0);
 return { got: Math.min(got, key.max), of: key.max, points: true, quoted: inSource, unfound: notInSource, sourced: !!source };
 }
-const PEEL_SEP = '\n\n';
 const PEEL_SAY = { point: 'point', evidence: 'evidence', explain: 'explain', link: 'link' };
 function peelRows_(kind, subject) {
 return markRows_().filter(r => r.kind === kind && (!subject || !r.subject || String(r.subject).toLowerCase() === String(subject).toLowerCase()));
@@ -4772,7 +4771,7 @@ const tech = peelRows_('technique', subject).map(r => r.words).join(' / ');
 const expl = peelRows_('explain', subject).map(r => r.words).join(' / ');
 const boxes = peelBoxes_(), levels = peelRows_('level').map(r => ({ level: +r.level, from: +r.from, name: r.name })).sort((a, b) => a.from - b.from);
 const of = Number(x && x.marks) || 0;
-const parts = raw.split(PEEL_SEP);
+const parts = /\n\s*\n/.test(raw) ? raw.split(/\n\s*\n/) : raw.split(/\n+/);
 let count = 0, made = 0, wait = false;
 const said = boxes.map((b, i) => {
 const text = String(parts[i] || '').trim(), s = peelSentences_(text);
@@ -4945,10 +4944,34 @@ const r = (x && x.row) || x || {};
 const q = [x && x.lead, x && x.html, r.html].concat(((x && x.stems) || []).map(t => (t && (t.html || (t.row && t.row.html))) || '')).join(' ').replace(/<[^>]*>/g, ' ');
 return MARK_UNIT_Q.test(q) || MARK_UNIT_MS.test(String(said || '') + ' ' + String(r.markscheme || r.mark_scheme || ''));
 }
+function markList_(t) {
+const s = String(t).replace(/^\((.*)\)$/, '$1').replace(/\b([a-z])\s*=\s*/g, '$1=').trim();
+return (/,|\sand\s|&/.test(s) ? s.split(/\s*,\s*|\s+and\s+|\s*&\s*/) : s.split(/\s+/)).filter(Boolean);
+}
+function markListed_(t, accept, opt) {
+const got = markList_(t);
+if (got.length < 2 || got.length > 16 || !/,|\sand\s|&/.test(t) && got.some(v => !/\d/.test(v))) return false;
+const all = String(accept || '').split('|').map(w => w.trim()).filter(Boolean), joined = got.join(', ');
+if (joined !== t && all.some(w => /^rule:/i.test(w) && markRule_(joined, w))) return true;
+const bare = v => v.replace(/^[a-z]=/, ''), one = (a, w) => !!markAnswer_(a, w, false, opt);
+return all.filter(w => !/^rule:/i.test(w)).some(w => {
+const want = markList_(markNorm_(w));
+if (want.length !== got.length) return false;
+const named = got.every(v => /^[a-z]=/.test(v));
+if (want.every((v, i) => one(named ? got[i] : bare(got[i]), named ? v : bare(v)))) return true;
+if (want.some(v => /^[a-z]=/.test(v))) return false;
+const left = want.slice();
+return got.every(v => { const i = left.findIndex(u => one(v, u)); return i >= 0 && left.splice(i, 1); });
+});
+}
 function markAnswer_(typed, accept, again, opt) {
 if (Array.isArray(typed)) typed = typed.map(v => String(v == null ? '' : v).trim()).filter(Boolean).join(', ');
 const t = markNorm_(typed);
 if (!t) return null;
+if (!(opt && opt.listed)) {
+const o = Object.assign({}, opt, { listed: true }), first = markAnswer_(typed, accept, again, o);
+return first || (again ? first : markListed_(String(typed).replace(/\s*[\r\n;]+\s*/g, ', ').replace(/[\u2212\u2013\u2014]/g, '-').toLowerCase(), accept, o) || first);
+}
 const said = !again && markSpoken_(t);
 if (said && said !== t && markAnswer_(said, accept)) return true;
 const rules = String(accept || '').split('|').filter(w => /^\s*rule:/i.test(w));
@@ -5234,8 +5257,6 @@ const points = String(rule || '').split(';').map(p => p.trim()).filter(Boolean);
 const got = points.filter(p => p.split('|').some(way => way.split('+').every(term => mwHas_(toks, term)))).length;
 return { got: got, of: points.length };
 }
-const CELL_BLANK = /<(td|th)([^>]*)>(?:\s|&nbsp;|\u00a0)*<\/\1>/g;
-const cellCorner_ = t => /^<table[^>]*>\s*(?:<thead[^>]*>\s*)?(?:<tbody[^>]*>\s*)?<tr[^>]*>\s*<(td|th)[^>]*>(?:\s|&nbsp;|\u00a0)*<\/\1>/.test(t);
 const CELL_ENT = { amp: '&', nbsp: ' ', rsquo: '\u2019', lsquo: '\u2018', rdquo: '\u201d', ldquo: '\u201c', apos: "'", quot: '"', deg: '\u00b0',
 minus: '\u2212', times: '\u00d7', divide: '\u00f7', ndash: '\u2013', mdash: '\u2014', hellip: '\u2026', pound: '\u00a3', micro: '\u00b5', plusmn: '\u00b1', lt: '<', gt: '>' };
 function cellsOf_(x) {
@@ -5327,20 +5348,16 @@ function cellsTable_(x, html) {
 const cells = cellsOf_(x);
 if (!cells.length) return '';
 const k = ansKey_(x), vals = cellsVals_(ansRead_(k));
-let n = 0;
-const out = String(html || '').replace(/<table[\s\S]*?<\/table>/g, t => {
-if (n) return t;
-const blanks = (t.match(CELL_BLANK) || []).length;
-const corner = blanks === cells.length + 1 && cellCorner_(t);
-if (blanks !== cells.length && !corner) return t;
-let skip = corner;
-return t.replace(CELL_BLANK, (m, tag, at) => {
+const t = qtCellTable_(html, cells.length);
+if (!t) return '';
+let n = 0, skip = (t.match(QT_CELL_BLANK) || []).length === cells.length + 1;
+const filled = t.replace(QT_CELL_BLANK, (m, tag, at) => {
 if (skip) { skip = false; return m; }
 const i = n++;
 return m.slice(0, 1 + tag.length + at.length) + ' class="qp-cell-at">' + cellInput_(k, cells[i], i, vals[i]) + m.slice(m.lastIndexOf('</'));
 }).replace(/^<table/, '$& data-cells="1"');
-});
-return n ? out : '';
+const at = String(html).indexOf(t);
+return String(html).slice(0, at) + filled + String(html).slice(at + t.length);
 }
 const cellsHere_ = (x, html) => (cellsOf_(x).length && cellsTable_(x, html)) || html;
 const cellsCardHtml_ = x => {
@@ -5351,9 +5368,9 @@ function cellsHint_(cells) {
 const asked = cells.filter(c => c.ways), named = asked.filter(c => !/^\d+$/.test(c.label)).map(c => c.label);
 return text_('write-the') + asked.length + ' answers in order' + (named.length === asked.length ? ': ' + named.join(', ') : '');
 }
-function cellsBox_(x) {
+function cellsBox_(x, face) {
 const cells = cellsOf_(x), k = ansKey_(x);
-const inTable = !!cellsTable_(x, cellsCardHtml_(x));
+const inTable = (face || qtFace_(x, cellsCardHtml_(x))).face === 'table';
 const val = String(ansRead_(k) || '').replace(/(?:\s*;\s*)+$/, '');
 const maths = cells.filter(c => c.ways).every(c => /^[-\d.,\s|£$%°/]+$/.test(c.ways));
 const one = inTable ? '' : fcG_('p', 'q-hint', null, '', cellsHint_(cells)) + fcG_('div', 'qp-ans-row qp-bar', null,
@@ -5404,107 +5421,6 @@ box.classList.add(all ? 'is-right' : 'is-near');
 tell_(out, all ? 'saved' : 'info', all ? text_('correct-every') + (inp ? 'answer' : 'cell') : m.right + ' of ' + m.of + (inp ? ' answers' : ' cells') + ' right');
 subRecord_(box.getAttribute('data-k'), vals.join(' ; '), all ? 'right' : 'wrong');
 });
-function multiSplit_(s) {
-return [].concat(...String(s).split(/\s*,\s*/).map(v => (/\d|^[a-z]{1,2}\s+(and|&)\s+[a-z]{1,2}$/i.test(v)
-? v.replace(/^and\s+/i, '').split(/\s+and\s+|\s*&\s*/) : [v])));
-}
-function multiOf_(x) {
-const all = String((x && x.accept) || '').split('|').map(w => w.trim()).filter(Boolean);
-const ways = all.filter(w => !/^rule:/i.test(w));
-if (all.some(w => /^rule:\s*peel\b/i.test(w)) && typeof peelBoxes_ === 'function') {
-const heads = peelBoxes_().map(b => b.name);
-if (heads.length) return { n: heads.length, paras: true, heads, wrap: '', labels: [] };
-}
-for (const r of all.filter(w => /^rule:/i.test(w))) {
-const body = r.replace(/^rule:\s*/i, '');
-if (/(?:^|,)\s*(expr|eqn)\s/.test(body)) continue;
-if (/(?:^|,)\s*points\b/.test(body)) continue;
-const set = /(?:^|,)\s*set\s+([^,]+)/.exec(body);
-if (set) return { n: set[1].split('/').length, words: true, wrap: '', labels: [] };
-const c = /(?:^|,)\s*count\s+(\d+)/.exec(body);
-if (c && +c[1] >= 2) return { n: +c[1], wrap: '', labels: [] };
-if (!c) return { n: 0, grow: true, wrap: '', labels: [] };
-}
-const split = w => {
-const p = /^\((.*)\)$/.exec(w), s = p ? p[1] : w;
-if (/\d,\d{3}(?!\d)/.test(s) || !/,|\sand\s|&/.test(s)) return null;
-const parts = multiSplit_(s);
-if (parts.length < 2 || parts.some(v => !/^[-a-z]{0,2}\s*=?\s*[-\d.\/£$%°a-z²³√π ]{1,14}$/i.test(v) || v.split(' ').length > 3)) return null;
-return { parts: parts, wrap: p ? '()' : '' };
-};
-const first = ways.length ? split(ways[0]) : null;
-if (!first || first.parts.length > 16 || ways.map(split).some(g => g && g.parts.length !== first.parts.length)) return null;
-return { n: first.parts.length, wrap: first.wrap, labels: first.parts.map(v => (/^([a-z])\s*=/i.exec(v) || [])[1] || '') };
-}
-function multiVals_(val, m) {
-let s = String(val == null ? '' : val).trim();
-if (m.paras) return s ? s.split(PEEL_SEP) : [];
-if (m.wrap) s = s.replace(/^\((.*)\)$/, '$1');
-const out = s ? multiSplit_(s).map((v, i) => (m.labels[i] ? v.replace(new RegExp('^' + m.labels[i] + '\\s*=\\s*', 'i'), '') : v)) : [];
-return out;
-}
-function multiJoin_(vals, m) {
-const v = vals.map(s => String(s == null ? '' : s).trim());
-while (v.length && !v[v.length - 1]) v.pop();
-if (!v.length) return '';
-if (m.paras) return v.map(s => s.replace(/\n\s*\n/g, '\n')).join(PEEL_SEP);
-const s = v.map((s, i) => (m.labels[i] ? m.labels[i] + ' = ' + s : s)).join(', ');
-return m.wrap ? '(' + s + ')' : s;
-}
-function multiField_(k, i, v, kind, signs) {
-return kpField_(k + '#' + i, v, kind, signs, 'Answer ' + (i + 1), { n: i, k: k });
-}
-function multiBoxes_(x, k, val, m, maths, signs) {
-const vals = multiVals_(val, m);
-const n = m.grow ? vals.filter(Boolean).length + 1 : m.n;
-const kind = m.paras ? 'essay' : m.words || !maths ? 'words' : 'maths';
-const one = i => m.paras ? fcG_('label', 'qp-ans qp-sheet qp-multi-f', null, fcG_('span', 'qp-multi-h', null, '', m.heads[i]) + kpField_(k + '#' + i, vals[i] || '', kind, signs, m.heads[i], { n: i, k: k }))
-: multiLabel_(m.labels[i], multiField_(k, i, vals[i] || '', kind, signs));
-const boxes = [];
-for (let i = 0; i < n; i++) boxes.push(one(i));
-return fcG_('div', 'qp-multi' + (m.wrap ? ' is-pair' : ''), { 'data-mk': k, 'data-m': JSON.stringify(m), 'data-kind': kind,
-'data-signs': signs ? String(+signs) : null, 'data-grow': m.grow ? '1' : null },
-cardBlock_({ type: 'control', attrs: { type: 'hidden', class: 'qp-multi-val', 'data-k': k, value: multiJoin_(vals, m) } }) + boxes.join(''));
-}
-const multiLabel_ = (label, field) => fcG_('label', 'qp-ans qp-multi-f', null, (label ? fcG_('span', 'qp-multi-l', null, '', label + ' =') : '') + field);
-const multiIns_ = box => [].slice.call(box.querySelectorAll('.kp-in[data-do="qp-multi"]'));
-document.addEventListener('input', e => {
-const el = e.target && e.target.closest && e.target.closest('[data-do="qp-multi"]');
-const box = el && el.closest('.qp-multi');
-if (!box) return;
-let m;
-try { m = JSON.parse(box.getAttribute('data-m')); } catch (err) { return; }
-const ins = multiIns_(box), all = box.querySelector('.qp-multi-val');
-const v = multiJoin_(ins.map(i => i.value), m);
-if (all) all.value = v;
-ansStore_(box.getAttribute('data-mk') || '', v);
-if (box.hasAttribute('data-grow') && ins.length && ins[ins.length - 1] === el && el.value.trim()) {
-const at = document.createElement('div');
-const kind = box.getAttribute('data-kind');
-at.innerHTML = multiLabel_('', multiField_(box.getAttribute('data-mk'), ins.length, '', kind, +box.getAttribute('data-signs') || 0));
-box.appendChild(at.firstChild);
-}
-const mark = box.closest('.qp-mark');
-if (mark && all && typeof subVerdictPaint_ === 'function') subVerdictPaint_(mark, all);
-});
-function multiFill_(all) {
-const box = all && all.closest && all.closest('.qp-multi');
-if (!box) return;
-let m;
-try { m = JSON.parse(box.getAttribute('data-m')); } catch (err) { return; }
-const vals = multiVals_(all.value, m);
-multiIns_(box).forEach((inp, i) => {
-if (inp.value === (vals[i] || '')) return;
-inp.value = vals[i] || '';
-if (typeof kpRender_ === 'function') kpRender_(inp);
-});
-}
-function multiNext_(inp) {
-const box = inp && inp.closest && inp.closest('.qp-multi');
-if (!box) return null;
-const ins = multiIns_(box), i = ins.indexOf(inp);
-return i >= 0 && i < ins.length - 1 ? ins[i + 1] : null;
-}
 function qMark_(el, sel) {
 const s = sel || '.qp-mark', own = el && el.closest && el.closest(s);
 if (own) return own;
@@ -5512,7 +5428,8 @@ const card = el && el.closest && el.closest('.qcard');
 return card ? card.querySelector(s) : null;
 }
 function ansBox_(x) {
-if (cellsOf_(x).length) return cellsBox_(x);
+const face = qtFace_(x, cellsCardHtml_(x));
+if (face.face === 'table' || face.face === 'gaps') return cellsBox_(x, face);
 const opts = choiceList_(x);
 const k = ansKey_(x);
 const m = markerOf_(x);
@@ -5527,15 +5444,13 @@ const kept = !markSchemeOf_(x).length;
 const cls = 'qp-mark qp-compose' + (kept ? ' qp-keep' : '') + (geo ? ' qpad-send' : '');
 const dataAt = Object.assign(can ? { 'data-accept': can } : {}, rule ? { 'data-rule': rule, 'data-marks': String(Number(x.marks) || '') } : {}, drawAt);
 const fb = why => (kept && why ? fcG_('p', 'qp-fb', null, '', why) : '');
-if (ansEssay_(x) && !markIsPeel_(can)) {
+if (ansEssay_(x) || face.face === 'essay') {
 const said = subBoxSay_(k, val);
 return fcG_('div', cls + ' qp-essay' + (said.cls ? ' ' + said.cls : ''), dataAt,
 fcG_('label', 'qp-ans qp-sheet', { 'aria-label': text_('your-answer') }, kpField_(k, val, 'essay', 3)) + fcG_('p', 'qp-words', null, '', kpWordsSay_(val))
 + ws + fcVerdict_(said.text) + fcSaved_(k)) + fb(said.why);
 }
-const many = can ? multiOf_(x) : null;
-const bar = opts + (many ? fcG_('div', 'qp-ans-row qp-bar qp-multi-bar', null, multiBoxes_(x, k, val, many, maths, 3))
-: fcG_('div', 'qp-ans-row qp-bar', null, fcG_('label', 'qp-ans' + (maths ? ' qp-ans-maths' : ''), { 'aria-label': text_('your-answer') }, kpField_(k, val, maths ? 'maths' : 'words', 3))));
+const bar = opts + fcG_('div', 'qp-ans-row qp-bar', null, fcG_('label', 'qp-ans' + (maths ? ' qp-ans-maths' : ''), { 'aria-label': text_('your-answer') }, kpField_(k, val, maths ? 'maths' : 'words', 3)));
 const said = geo ? subBoxSay_(k, padSay_(padRead_(padKey_(x)))) : subBoxSay_(k, val);
 return fcG_('div', cls + (said.cls ? ' ' + said.cls : ''), dataAt,
 bar + ws + fcVerdict_(geo ? padSaid_(said.text) : said.text) + fcSaved_(k)) + fb(said.text ? said.why : '');
@@ -8746,9 +8661,9 @@ const need = (x.choiceRight || []).length;
 if (need > 1) out.push('Choose ' + need + '.');
 said.forEach((c, i) => out.push(String.fromCharCode(65 + i) + ': ' + c + (/[?!:]$/.test(c) ? '' : '.')));
 } else {
-let m = null;
-try { m = String(x.accept || '').trim() ? multiOf_(x) : null; } catch (e) { m = null; }
-if (m && m.n >= 2) out.push('Give ' + m.n + ' answers.');
+const f = String(x.accept || '').trim() ? qtFace_(x) : { face: 'one', values: 1 };
+const n = f.values;
+if (f.face === 'one' && n >= 2) out.push('Give ' + n + ' answers.');
 }
 return out;
 }
@@ -11575,7 +11490,6 @@ return String(tagRow_(BUNDLE_ITEM) || cardBlock_({ type: 'group', look: 'qtags q
 }
 ;
 /* js/find-measure.js */
-let MEAS = null;
 const MEAS_SNAP_PX = 14;
 const MEAS_TURN_DEG = 8;
 function measGeom_(svg) {
@@ -11604,68 +11518,6 @@ const pts = [];
 segs.forEach(s => [[s[0], s[1]], [s[2], s[3]]].forEach(p => { if (!pts.some(q => Math.hypot(q[0] - p[0], q[1] - p[1]) < 1)) pts.push(p); }));
 return { pts, segs };
 }
-function measDraw_(fig) {
-fig.querySelectorAll('.meas').forEach(o => o.remove());
-if (!MEAS) return;
-const svg = [...fig.children].find(c => c.tagName.toLowerCase() === 'svg' && !c.classList.contains('meas'));
-if (!svg) return;
-const vb = (svg.getAttribute('viewBox') || '0 0 340 340').split(/[\s,]+/).map(Number);
-const r = svg.getBoundingClientRect(), u = r.width ? vb[2] / r.width : 1;
-const g = MEAS, R = g.R, T = 'translate(' + g.c[0].toFixed(2) + ' ' + g.c[1].toFixed(2) + ') rotate(' + g.rot.toFixed(2) + ')';
-const body = [], P = (cls, d) => body.push({ el: 'path', a: { class: cls, d } }),
-N = (cls, x, y, fs, t) => body.push({ el: 'text', a: { class: cls, x: x.toFixed(2), y: y.toFixed(2), 'font-size': fs.toFixed(2) }, text: String(t) });
-if (g.tool === 'protractor') {
-P('meas-body', `M ${-R} 0 A ${R} ${R} 0 0 1 ${R} 0 Z`);
-for (let a = 0; a <= 180; a += 5) {
-const t = a * Math.PI / 180, c = Math.cos(t), s = -Math.sin(t), L = a % 10 ? 0.05 : a % 30 ? 0.08 : 0.12;
-P('meas-tick', `M ${(R * c).toFixed(2)} ${(R * s).toFixed(2)} L ${(R * (1 - L) * c).toFixed(2)} ${(R * (1 - L) * s).toFixed(2)}`);
-if (!(a % 30)) {
-const o = R * 0.83, i = R * 0.7;
-N('meas-num', o * c, o * s, R * 0.05, a);
-N('meas-num meas-in', i * c, i * s, R * 0.045, 180 - a);
-}
-}
-P('meas-tick', `M ${-R} 0 L ${R} 0 M 0 ${-R * 0.06} L 0 ${R * 0.06} M ${-R * 0.06} 0 L ${R * 0.06} 0`);
-} else {
-const W = g.L, H = Math.max(8, 30 * u), cm = g.cm;
-body.push({ el: 'rect', a: { class: 'meas-body', x: '0', y: '0', width: W.toFixed(2), height: H.toFixed(2) } });
-for (let mm = 0, x = 0; x <= W + 1e-6; mm++, x = mm * cm / 10) {
-const L = mm % 10 ? (mm % 5 ? 0.25 : 0.4) : 0.55;
-P('meas-tick', `M ${x.toFixed(2)} 0 L ${x.toFixed(2)} ${(H * L).toFixed(2)}`);
-if (!(mm % 10)) N('meas-num', x, H * 0.85, H * 0.32, mm / 10);
-}
-}
-const reach = 30 * u, m = svg.getScreenCTM();
-const spots = g.tool === 'protractor' ? [[-R - reach, 0], [R + reach, 0], [0, -R - reach], [-R * 0.45, -R * 0.3], [R * 0.45, -R * 0.3]]
-: [[g.L + reach, 0], [-reach, 0], [g.L / 2, -reach], [g.L * 0.75, 20 * u]];
-const box = r;
-const onGlass = p => {
-if (!m) return true;
-const t = g.rot * Math.PI / 180, q = svg.createSVGPoint();
-q.x = g.c[0] + p[0] * Math.cos(t) - p[1] * Math.sin(t); q.y = g.c[1] + p[0] * Math.sin(t) + p[1] * Math.cos(t);
-const z = q.matrixTransform(m);
-return z.x > Math.max(26, box.left + 24) && z.x < Math.min(innerWidth - 26, box.right - 24) && z.y > Math.max(26, box.top + 24) && z.y < Math.min(innerHeight - 26, box.bottom - 24);
-};
-if (!g.hold) g.h = spots.find(onGlass) || spots[spots.length - 1];
-const hx = g.h[0], hy = g.h[1];
-body.push({ el: 'circle', a: { class: 'meas-turn', cx: hx.toFixed(2), cy: hy.toFixed(2), r: (24 * u).toFixed(2) } });
-P('meas-turn-i', `M ${(hx - 8 * u).toFixed(2)} ${hy.toFixed(2)} A ${(8 * u).toFixed(2)} ${(8 * u).toFixed(2)} 0 1 1 ${hx.toFixed(2)} ${(hy + 8 * u).toFixed(2)}`);
-const o = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-o.setAttribute('class', 'meas');
-o.setAttribute('viewBox', vb.join(' '));
-o.setAttribute('data-noswipe', '');
-o.setAttribute('data-tool', g.tool);
-o.setAttribute('data-c', g.c.map(v => v.toFixed(2)).join(','));
-o.setAttribute('data-rot', g.rot.toFixed(2));
-o.setAttribute('aria-label', g.tool === 'protractor' ? 'Protractor: drag it, turn it with 2 fingers or the round handle' : 'Ruler: drag it, turn it with 2 fingers or the round handle');
-o.innerHTML = cardBlocks_({ type: 'drawing', node: { el: 'g', a: { transform: T }, kids: body } });
-fig.classList.add('meas-host');
-const hr = fig.getBoundingClientRect();
-o.style.left = (r.left - hr.left) + 'px'; o.style.top = (r.top - hr.top) + 'px';
-o.style.width = r.width + 'px'; o.style.height = r.height + 'px';
-o.setAttribute('preserveAspectRatio', svg.getAttribute('preserveAspectRatio') || 'xMidYMid meet');
-fig.appendChild(o);
-}
 function measFig_(k) {
 const card = [...document.querySelectorAll('#screen .page.on .qcard, .qcard')].find(c => c.querySelector(`[data-k="${CSS.escape(k)}"]`) || c.querySelector(`.q-meast[data-key="${CSS.escape(k)}"]`));
 const pick = c => c && ([...c.querySelectorAll('figure svg')].find(s => !s.classList.contains('meas') && !s.closest('svg.meas') && s.parentNode.closest('figure'))
@@ -11677,165 +11529,148 @@ if (prev && prev.classList.contains('page') && /continued on the next page/i.tes
 }
 return svg ? svg.parentNode : null;
 }
-function measOpen_(el) {
-const k = el.getAttribute('data-key') || '', tool = el.getAttribute('data-tool');
-const again = MEAS && MEAS.k === k && MEAS.tool === tool;
-const was = MEAS && measFig_(MEAS.k);
-MEAS = null;
-if (was) measDraw_(was);
-qtLight_(document);
-if (again) return;
-const fig = measFig_(k), svg = fig && fig.querySelector('svg');
-if (!svg) return;
-const pg = fig.closest('.page'), here = el.closest('.page');
-if (pg && here && pg !== here && typeof goPage === 'function') { const all = [...pg.parentNode.children].filter(c => c.classList.contains('page')); goPage('stuff', all.indexOf(pg), true); }
-const vb = (svg.getAttribute('viewBox') || '0 0 340 340').split(/[\s,]+/).map(Number);
-const G = measGeom_(svg);
+function measCmPx_(k) {
+const fig = measFig_(k), svg = fig && [...fig.children].find(c => c.tagName.toLowerCase() === 'svg');
+if (!svg) return 38;
+const vb = (svg.getAttribute('viewBox') || '0 0 340 340').split(/[\s,]+/).map(Number), r = svg.getBoundingClientRect();
+if (!r.width || !vb[2]) return 38;
 let x = null;
 try { x = stuffItemsAll_().find(i => i && i.key === k) || null; } catch (e) { x = null; }
 let cm = vb[2] / 10;
-const band = /(\d+(?:\.\d+)?)\s*(?:to|-|–)\s*(\d+(?:\.\d+)?)\s*(cm|mm)/i.exec(String(x && (x.accept || (x.row || {}).accept) || ''));
+const G = measGeom_(svg), band = /(\d+(?:\.\d+)?)\s*(?:to|-|–)\s*(\d+(?:\.\d+)?)\s*(cm|mm)/i.exec(String(x && (x.accept || (x.row || {}).accept) || ''));
 if (band && G.segs.length) {
 const len = Math.max(...G.segs.map(s => Math.hypot(s[2] - s[0], s[3] - s[1])));
 const want = (+band[1] + +band[2]) / 2 / (band[3].toLowerCase() === 'mm' ? 10 : 1);
 if (len > 0 && want > 0) cm = len / want;
 }
-MEAS = { k, tool, rot: 0, R: Math.min(vb[2], vb[3] * 2) * 0.36, cm, L: Math.min(vb[2] * 0.9, cm * Math.max(5, Math.floor(vb[2] * 0.9 / cm))),
-c: tool === 'protractor' ? [vb[0] + vb[2] / 2, vb[1] + vb[3] * 0.7] : [vb[0] + vb[2] * 0.05, vb[1] + vb[3] * 0.75], geom: G, vb };
-qtLight_(document);
-measDraw_(fig);
+const px = cm * r.width / vb[2];
+return px >= 12 && px <= 200 ? px : 38;
 }
-function measSnap_(svg) {
-const g = MEAS, r = svg.getBoundingClientRect(), u = r.width ? g.vb[2] / r.width : 1;
-const near = g.geom.pts.map(p => ({ p, d: Math.hypot(p[0] - g.c[0], p[1] - g.c[1]) })).sort((a, b) => a.d - b.d)[0];
-if (!near || near.d > MEAS_SNAP_PX * u) return;
-g.c = near.p.slice();
+const MEAS_M = 10;
+function measShape_(tool, k) {
+const body = [], P = (cls, d) => body.push({ el: 'path', a: { class: cls, d } }),
+N = (cls, x, y, fs, t) => body.push({ el: 'text', a: { class: cls, x: x.toFixed(1), y: y.toFixed(1), 'font-size': fs }, text: String(t) });
+const M = MEAS_M, room = Math.min(innerWidth || 390, 560) - 64;
+let w, h, pin;
+if (tool === 'protractor') {
+const R = Math.max(90, Math.min(150, room / 2)), cx = R + M, cy = R + M;
+w = 2 * R + 2 * M; h = R + 2 * M; pin = [cx, cy];
+P('meas-body', `M ${cx - R} ${cy} A ${R} ${R} 0 0 1 ${cx + R} ${cy} Z`);
+for (let a = 0; a <= 180; a += 5) {
+const t = a * Math.PI / 180, c = Math.cos(t), s = -Math.sin(t), L = a % 10 ? 0.05 : a % 30 ? 0.08 : 0.12;
+P('meas-tick', `M ${(cx + R * c).toFixed(1)} ${(cy + R * s).toFixed(1)} L ${(cx + R * (1 - L) * c).toFixed(1)} ${(cy + R * (1 - L) * s).toFixed(1)}`);
+if (!(a % 30)) {
+N('meas-num', cx + R * 0.8 * c, cy + R * 0.8 * s, 10, a);
+N('meas-num meas-in', cx + R * 0.64 * c, cy + R * 0.64 * s, 9, 180 - a);
+}
+}
+P('meas-tick', `M ${cx - R} ${cy} L ${cx + R} ${cy} M ${cx} ${cy - 10} L ${cx} ${cy}`);
+} else {
+const cmPx = measCmPx_(k), n = Math.max(3, Math.floor((room - 2 * M) / cmPx)), L = n * cmPx;
+w = L + 2 * M; h = 46; pin = [M, 0];
+body.push({ el: 'rect', a: { class: 'meas-body', x: '0', y: '0', width: w.toFixed(1), height: String(h), rx: '4' } });
+for (let mm = 0; mm <= n * 10; mm++) {
+const x = M + mm * cmPx / 10, t = mm % 10 ? (mm % 5 ? 0.2 : 0.32) : 0.45;
+P('meas-tick', `M ${x.toFixed(1)} 0 L ${x.toFixed(1)} ${(h * t).toFixed(1)}`);
+if (!(mm % 10)) N('meas-num', x, h * 0.72, 11, mm / 10);
+}
+}
+return { w, h, pin, body };
+}
+const FLOATS = new Map();
+const floatIs_ = (kind, key) => { const f = FLOATS.get(kind); return !!f && (key == null || f.key === key); };
+const floatLight_ = () => { if (typeof qtLight_ === 'function') qtLight_(document); };
+function floatClose_(kind) {
+const f = FLOATS.get(kind);
+if (!f) return;
+FLOATS.delete(kind);
+f.el.remove();
+floatLight_();
+}
+function floatToggle_(kind, key, html) {
+const again = floatIs_(kind, key);
+floatClose_(kind);
+if (again) return null;
+document.body.insertAdjacentHTML('beforeend', html);
+const el = document.body.lastElementChild;
+el.classList.add('floaty', 'float-' + kind);
+el.setAttribute('data-float', kind);
+el.setAttribute('data-key', key);
+el.insertAdjacentHTML('beforeend', tile_({ form: true, look: 'float-x', act: 'float-close', aria: 'Close', label: '✕' }));
+FLOATS.set(kind, { key, el });
+floatLight_();
+return el;
+}
+on('float-close', el => { const f = el.closest('[data-float]'); if (f) floatClose_(f.getAttribute('data-float')); });
+function measOpen_(el) {
+const k = el.getAttribute('data-key') || '', tool = el.getAttribute('data-tool') === 'protractor' ? 'protractor' : 'ruler';
+const S = measShape_(tool, k);
+const html = `<div class="meas-float" role="group" aria-label="${tool === 'protractor' ? 'Protractor: drag it over an angle; turn it by the round handle' : 'Ruler: drag it; turn it by the round handle'}" style="width:${S.w.toFixed(1)}px;height:${S.h.toFixed(1)}px;transform-origin:${S.pin[0].toFixed(1)}px ${S.pin[1].toFixed(1)}px" data-rot="0">`
++ `<svg class="meas" viewBox="0 0 ${S.w.toFixed(1)} ${S.h.toFixed(1)}" width="${S.w.toFixed(1)}" height="${S.h.toFixed(1)}" aria-hidden="true">${cardBlocks_({ type: 'drawing', node: { el: 'g', kids: S.body } })}</svg>`
++ `<i class="float-pin" style="left:${S.pin[0].toFixed(1)}px;top:${S.pin[1].toFixed(1)}px" aria-hidden="true"></i>`
++ tile_({ form: true, look: 'float-turn', aria: 'Turn the ' + tool, html: '<span aria-hidden="true">⟳</span>' }) + '</div>';
+const f = floatToggle_(tool, k, html);
+if (!f) return;
+const fig = measFig_(k), r = fig && fig.getBoundingClientRect(), seen = r && r.bottom > 40 && r.top < innerHeight - 40;
+const cx = seen ? r.left + r.width / 2 : innerWidth / 2, cy = seen ? Math.min(innerHeight - 60, Math.max(80, r.top + r.height * 0.6)) : innerHeight / 2;
+floatPlace_(f, cx - S.w / 2, tool === 'protractor' ? cy - S.pin[1] + S.h * 0.3 : cy);
+}
+const MEAS_GRID_DEG = 15, MEAS_GRID_NEAR = 3;
+const measGridSnap_ = a => { const n = Math.round(a / MEAS_GRID_DEG) * MEAS_GRID_DEG; return Math.abs(a - n) <= MEAS_GRID_NEAR ? n : a; };
+const measRot_ = (el, a) => { a = ((a % 360) + 360) % 360; el.setAttribute('data-rot', a.toFixed(1)); el.style.transform = 'rotate(' + a.toFixed(2) + 'deg)'; };
+function measSnap_(el) {
+const kind = el.getAttribute('data-float'), fig = measFig_(el.getAttribute('data-key') || ''), pinEl = el.querySelector('.float-pin');
+const svg = fig && [...fig.children].find(c => c.tagName.toLowerCase() === 'svg'), m = svg && svg.getScreenCTM && svg.getScreenCTM();
+if (!m || !pinEl) return;
+const toScr = (x, y) => { const q = svg.createSVGPoint(); q.x = x; q.y = y; const z = q.matrixTransform(m); return [z.x, z.y]; };
+const G = measGeom_(svg), pr = pinEl.getBoundingClientRect(), pin = [pr.left, pr.top];
+const near = G.pts.map(p => { const s = toScr(p[0], p[1]); return { p, s, d: Math.hypot(s[0] - pin[0], s[1] - pin[1]) }; }).sort((a, b) => a.d - b.d)[0];
+if (!near || near.d > MEAS_SNAP_PX * 1.5) return;
+floatPlace_(el, el.offsetLeft + near.s[0] - pin[0], el.offsetTop + near.s[1] - pin[1], true);
 const dirs = [];
-g.geom.segs.forEach(s => {
-if (Math.hypot(s[0] - g.c[0], s[1] - g.c[1]) < 1) dirs.push(Math.atan2(s[3] - s[1], s[2] - s[0]) * 180 / Math.PI);
-if (Math.hypot(s[2] - g.c[0], s[3] - g.c[1]) < 1) dirs.push(Math.atan2(s[1] - s[3], s[0] - s[2]) * 180 / Math.PI);
+G.segs.forEach(s => {
+const a = toScr(s[0], s[1]), b = toScr(s[2], s[3]);
+if (Math.hypot(a[0] - near.s[0], a[1] - near.s[1]) < 2) dirs.push(Math.atan2(b[1] - a[1], b[0] - a[0]) * 180 / Math.PI);
+if (Math.hypot(b[0] - near.s[0], b[1] - near.s[1]) < 2) dirs.push(Math.atan2(a[1] - b[1], a[0] - b[0]) * 180 / Math.PI);
 });
-const diff = (a, b) => { let d = ((a - b) % 360 + 540) % 360 - 180; return d; };
+const rot = +el.getAttribute('data-rot') || 0, diff = (a, b) => Math.abs(((a - b) % 360 + 540) % 360 - 180);
 let best = null;
 dirs.forEach(a => [0, 180].forEach(f => {
-if (g.tool === 'ruler' && f) return;
-const d = Math.abs(diff(g.rot, a + f));
+if (kind === 'ruler' && f) return;
+const d = diff(rot, a + f);
 if (d <= MEAS_TURN_DEG && (!best || d < best.d)) best = { d, a: a + f };
 }));
-if (best) g.rot = ((best.a % 360) + 360) % 360;
+if (best) measRot_(el, best.a);
 }
-const MEAS_PT = new Map();
-let MEAS_GO = null;
-const MEAS_GRID_DEG = 15, MEAS_GRID_NEAR = 2;
-const measAt_ = (svg, e) => drawSvgAt_(svg, e);
-const measRad_ = () => MEAS.rot * Math.PI / 180;
-const measLocal_ = p => { const t = measRad_(), dx = p[0] - MEAS.c[0], dy = p[1] - MEAS.c[1]; return [dx * Math.cos(t) + dy * Math.sin(t), -dx * Math.sin(t) + dy * Math.cos(t)]; };
-const measWorld_ = l => { const t = measRad_(); return [MEAS.c[0] + l[0] * Math.cos(t) - l[1] * Math.sin(t), MEAS.c[1] + l[0] * Math.sin(t) + l[1] * Math.cos(t)]; };
-const measGridSnap_ = a => { const n = Math.round(a / MEAS_GRID_DEG) * MEAS_GRID_DEG; return Math.abs(a - n) <= MEAS_GRID_NEAR ? n : a; };
-function measPin_(rot, l, p) { MEAS.rot = rot; const w = measWorld_(l); MEAS.c = [MEAS.c[0] + p[0] - w[0], MEAS.c[1] + p[1] - w[1]]; }
-function measPose_(o) {
-const g = o && o.querySelector(':scope > g');
-if (!g || !MEAS) return;
-g.setAttribute('transform', 'translate(' + MEAS.c[0].toFixed(2) + ' ' + MEAS.c[1].toFixed(2) + ') rotate(' + MEAS.rot.toFixed(2) + ')');
-o.setAttribute('data-c', MEAS.c.map(v => v.toFixed(2)).join(','));
-o.setAttribute('data-rot', MEAS.rot.toFixed(2));
-}
-function measAnchor_() { MEAS_PT.forEach(v => { v.l = measLocal_(v.p); }); }
-function measMode_(o, target) {
-const n = MEAS_PT.size;
-if (n >= 2) return { o, mode: 'two' };
-if (target && target.closest('.meas-turn, .meas-turn-i')) return { o, mode: 'turn', piv: [0, 0] };
-const f = [...MEAS_PT.values()][0];
-if (MEAS.tool === 'ruler' && f) {
-const r = o.getBoundingClientRect(), u = r.width ? MEAS.vb[2] / r.width : 1, E = Math.min(MEAS.L * 0.125, 40 * u);
-if (f.l[0] <= E) return { o, mode: 'end', piv: [MEAS.L, 0] };
-if (f.l[0] >= MEAS.L - E) return { o, mode: 'end', piv: [0, 0] };
-}
-return { o, mode: 'drag' };
-}
-document.addEventListener('pointerdown', e => {
-const o = e.target && e.target.closest && e.target.closest('svg.meas');
-const host = !o && MEAS_PT.size && e.target && e.target.closest && e.target.closest('.meas-host');
-if ((!o && !host) || !MEAS) return;
-const onTool = o && e.target.closest('.meas-body, .meas-tick, .meas-num, .meas-turn, .meas-turn-i');
-if (!onTool && !MEAS_PT.size) return;
-const ov = o || host.querySelector('svg.meas');
-if (!ov) return;
-e.preventDefault();
-e.stopPropagation();
-try { ov.setPointerCapture(e.pointerId); } catch (err) { }
-const p = measAt_(ov, e);
-MEAS_PT.set(e.pointerId, { p, l: measLocal_(p) });
-measAnchor_();
-MEAS.hold = true;
-MEAS_GO = measMode_(ov, e.target);
-}, true);
-document.addEventListener('pointermove', e => {
-const G = MEAS_GO;
-if (!G || !MEAS || !MEAS_PT.has(e.pointerId)) return;
-if (e.cancelable) e.preventDefault();
-const me = MEAS_PT.get(e.pointerId);
-me.p = measAt_(G.o, e);
-if (G.mode === 'two') {
-const [a, b] = [...MEAS_PT.values()];
-const want = Math.atan2(b.p[1] - a.p[1], b.p[0] - a.p[0]) - Math.atan2(b.l[1] - a.l[1], b.l[0] - a.l[0]);
-const mid = [(a.p[0] + b.p[0]) / 2, (a.p[1] + b.p[1]) / 2], lmid = [(a.l[0] + b.l[0]) / 2, (a.l[1] + b.l[1]) / 2];
-measPin_(measGridSnap_(want * 180 / Math.PI), lmid, mid);
-} else if (G.mode === 'drag') {
-measPin_(MEAS.rot, me.l, me.p);
-} else {
-const pw = measWorld_(G.piv);
-const want = Math.atan2(me.p[1] - pw[1], me.p[0] - pw[0]) - Math.atan2(me.l[1] - G.piv[1], me.l[0] - G.piv[0]);
-measPin_(measGridSnap_(want * 180 / Math.PI), G.piv, pw);
-}
-measPose_(G.o);
-}, { capture: true, passive: false });
-const measUp_ = e => {
-if (!MEAS_PT.has(e.pointerId)) return;
-MEAS_PT.delete(e.pointerId);
-const G = MEAS_GO;
-if (!G || !MEAS) { MEAS_GO = null; MEAS_PT.clear(); return; }
-if (MEAS_PT.size) {
-measAnchor_();
-MEAS_GO = { o: G.o, mode: MEAS_PT.size >= 2 ? 'two' : 'drag' };
-return;
-}
-MEAS.hold = false;
-MEAS_GO = null;
-const fig = G.o.parentNode, svg = fig && [...fig.children].find(c => c.tagName.toLowerCase() === 'svg' && !c.classList.contains('meas'));
-if (svg) measSnap_(svg);
-if (fig) measDraw_(fig);
-};
-['pointerup', 'pointercancel'].forEach(ev => document.addEventListener(ev, measUp_, true));
-['touchstart', 'touchmove'].forEach(ev => document.addEventListener(ev, e => {
-if (!MEAS) return;
-const t = e.target, on = t && t.closest && (t.closest('svg.meas .meas-body, svg.meas .meas-tick, svg.meas .meas-num, svg.meas .meas-turn, svg.meas .meas-turn-i') || (MEAS_PT.size && t.closest('.meas-host')));
-if ((on || MEAS_PT.size) && e.cancelable) e.preventDefault();
-}, { capture: true, passive: false }));
-document.addEventListener('wheel', e => {
-const o = e.target && e.target.closest && e.target.closest('svg.meas');
-if (!o || !MEAS) return;
-e.preventDefault();
-MEAS.rot += (e.deltaY > 0 ? 1 : -1) * (e.shiftKey ? 0.2 : 1);
-const fig = o.parentNode, svg = [...fig.children].find(c => c.tagName.toLowerCase() === 'svg' && !c.classList.contains('meas'));
-if (svg) measSnap_(svg);
-measDraw_(fig);
-}, { passive: false });
-function measRepaint_() { if (MEAS) { const f = measFig_(MEAS.k); if (f) measDraw_(f); } }
-if (typeof addEventListener === 'function') addEventListener('resize', () => { if (MEAS) setTimeout(measRepaint_, 120); });
-function floatPlace_(el, x, y) {
-const r = el.getBoundingClientRect();
+function floatPlace_(el, x, y, free) {
+const w = el.offsetWidth, h = el.offsetHeight, whole = el.getAttribute('data-float') === 'calc', keep = 64;
 el.style.right = 'auto';
-el.style.left = Math.max(0, Math.min(innerWidth - r.width, x)) + 'px';
-el.style.top = Math.max(0, Math.min(innerHeight - r.height, y)) + 'px';
+el.style.left = (free ? x : whole ? Math.max(0, Math.min(innerWidth - w, x)) : Math.max(keep - w, Math.min(innerWidth - keep, x))) + 'px';
+el.style.top = (free ? y : whole ? Math.max(0, Math.min(innerHeight - h, y)) : Math.max(keep - h, Math.min(innerHeight - keep, y))) + 'px';
 }
 inputDrag_(e => {
 const el = e.target && e.target.closest && e.target.closest('.floaty');
-if (!el || e.target.closest('[data-do], button, .mc-display')) return null;
-const r = el.getBoundingClientRect();
+if (!el) return null;
+if (e.target.closest('.float-turn')) {
+const p = el.querySelector('.float-pin').getBoundingClientRect();
+const a0 = Math.atan2(e.clientY - p.top, e.clientX - p.left) * 180 / Math.PI;
 el.classList.add('held');
-return { el, dx: e.clientX - r.left, dy: e.clientY - r.top };
-}, (g, e) => floatPlace_(g.el, e.clientX - g.dx, e.clientY - g.dy), g => g.el.classList.remove('held'), { capture: true, early: true });
+return { el, turn: true, c: [p.left, p.top], from: (+el.getAttribute('data-rot') || 0) - a0 };
+}
+if (e.target.closest('[data-do], button, .mc-display')) return null;
+el.classList.add('held');
+return { el, dx: e.clientX - el.offsetLeft, dy: e.clientY - el.offsetTop };
+}, (g, e) => {
+if (g.turn) measRot_(g.el, measGridSnap_(g.from + Math.atan2(e.clientY - g.c[1], e.clientX - g.c[0]) * 180 / Math.PI));
+else floatPlace_(g.el, e.clientX - g.dx, e.clientY - g.dy);
+}, g => { g.el.classList.remove('held'); if (g.el.querySelector('.float-pin')) measSnap_(g.el); }, { capture: true, early: true });
+document.addEventListener('wheel', e => {
+const el = e.target && e.target.closest && e.target.closest('.floaty[data-float="ruler"], .floaty[data-float="protractor"]');
+if (!el) return;
+e.preventDefault();
+measRot_(el, (+el.getAttribute('data-rot') || 0) + (e.deltaY > 0 ? 1 : -1) * (e.shiftKey ? 0.2 : 1));
+}, { passive: false });
+document.addEventListener('touchmove', e => { const t = e.target; if (t && t.closest && t.closest('.floaty.held') && e.cancelable) e.preventDefault(); }, { capture: true, passive: false });
 if (typeof addEventListener === 'function') addEventListener('resize', () => { document.querySelectorAll('.floaty').forEach(el => floatPlace_(el, el.offsetLeft, el.offsetTop)); });
 ;
 /* js/keypad-keys.js */
@@ -14937,14 +14772,15 @@ if (x < 0 && !Number.isInteger(y)) throw { calc: 'Math ERROR' };
 return cChk(Math.pow(x, y));
 };
 const cMathErr = () => { throw { calc: 'Math ERROR' }; };
+let CALC_UNIT = Math.PI / 180;
 const CALC_FNS = {
-sin: x => cSnap(Math.sin(cF(x) * Math.PI / 180)),
-cos: x => cSnap(Math.cos(cF(x) * Math.PI / 180)),
-tan: x => { const d = cF(x); if (Math.abs(((d % 180) + 180) % 180 - 90) < 1e-12) cMathErr();
-return cSnap(Math.tan(d * Math.PI / 180)); },
-asin: x => Math.abs(cF(x)) > 1 ? cMathErr() : cSnap(Math.asin(cF(x)) * 180 / Math.PI),
-acos: x => Math.abs(cF(x)) > 1 ? cMathErr() : cSnap(Math.acos(cF(x)) * 180 / Math.PI),
-atan: x => cSnap(Math.atan(cF(x)) * 180 / Math.PI),
+sin: x => cSnap(Math.sin(cF(x) * CALC_UNIT)),
+cos: x => cSnap(Math.cos(cF(x) * CALC_UNIT)),
+tan: x => { const d = cF(x) * CALC_UNIT; if (Math.abs((((d / Math.PI) % 1) + 1) % 1 - 0.5) < 1e-12) cMathErr();
+return cSnap(Math.tan(d)); },
+asin: x => Math.abs(cF(x)) > 1 ? cMathErr() : cSnap(Math.asin(cF(x)) / CALC_UNIT),
+acos: x => Math.abs(cF(x)) > 1 ? cMathErr() : cSnap(Math.acos(cF(x)) / CALC_UNIT),
+atan: x => cSnap(Math.atan(cF(x)) / CALC_UNIT),
 log: x => cF(x) <= 0 ? cMathErr() : cSnap(Math.log10(cF(x))),
 ln: x => cF(x) <= 0 ? cMathErr() : cSnap(Math.log(cF(x))),
 };
@@ -15205,6 +15041,7 @@ if (sh && CALC_SHIFT[k]) { k = CALC_SHIFT[k]; sh = false; }
 else if (sh && calcLegend(k)) { st.note = 'SHIFT ' + calcLegend(k) + ' is not on this calculator'; return st; }
 k = CALC_AS[k] || k;
 if (k !== 'up' && k !== 'down') st.back = -1;
+if (k === 'drg') { st.rad = !st.rad; return st; }
 if (k === 'C') { const root = []; Object.assign(st, { root, cur: { row: root, i: 0 }, fresh: false, val: null, err: '', menu: null }); return st; }
 if (st.menu) {
 const L = st.menu, d = /^[1-9]$/.test(k) ? Number(k) - 1 : -1;
@@ -15221,8 +15058,10 @@ if (!st.root.length) return st;
 const was = calcClone(st.root);
 if (JSON.stringify(st.past[st.past.length - 1]) !== JSON.stringify(was)) st.past.push(was);
 if (st.past.length > 30) st.past.shift();
+CALC_UNIT = st.rad ? 1 : Math.PI / 180;
 try { st.val = calcEval(st.root, st.ans); st.ans = st.val; st.err = ''; st.fresh = true; st.dec = false; }
 catch (e) { if (!e || !e.calc) throw e; st.err = e.calc; st.val = null; st.fresh = false; }
+finally { CALC_UNIT = Math.PI / 180; }
 return st;
 }
 if (k === 'up' || k === 'down') {
@@ -15295,24 +15134,33 @@ const calcHtml = st => { const r = calcRuns(st); return { input: cardRuns_(r.inp
 /* js/calc.js */
 const CALC_KEYBOARD = { Enter: '=', '=': '=', Backspace: 'del', Delete: 'C', Escape: 'C', ArrowLeft: 'left', ArrowRight: 'right',
 ArrowUp: 'up', ArrowDown: 'down', '*': '×', x: '×', '/': '÷', '-': '−', '+': '+', '^': 'pow', '(': '(', ')': ')', '.': '.',
-p: 'pi', s: 'sin', c: 'cos', t: 'tan', r: 'sqrt', f: 'frac', a: 'Ans', Shift: null };
+p: 'pi', s: 'sin', c: 'cos', t: 'tan', r: 'sqrt', f: 'frac', a: 'Ans', d: 'drg', Shift: null };
 const CALC_ST = new Map();
 const calcOf_ = key => { if (!CALC_ST.has(key)) CALC_ST.set(key, calcNew()); return CALC_ST.get(key); };
+const CALC_FACE = [
+[['shift', 'SHIFT', null, null, 'shift'], ['sin', 'sin', 'asin', ['sin', { sup: '−1' }]], ['cos', 'cos', 'acos', ['cos', { sup: '−1' }]], ['tan', 'tan', 'atan', ['tan', { sup: '−1' }]], ['(', '(', null, null, 'open bracket']],
+[['sq', ['x', { sup: '2' }], 'cube', ['x', { sup: '3' }], 'squared'], ['pow', ['x', { sup: '■' }], 'inv', ['x', { sup: '−1' }], 'power'], ['sqrt', '√', 'cbrt', '∛', 'square root'], ['frac', 'a/b', null, null, 'fraction'], [')', ')', null, null, 'close bracket']],
+[['pi', 'π', 'e', { i: 'e' }, 'pi'], ['log', 'log', 'ln', 'ln', 'log'], ['left', '◀', 'up', '▲', 'left'], ['right', '▶', 'down', '▼', 'right'], ['sd', 'S⇔D', 'approx', '≈', 'format']],
+[['7', '7'], ['8', '8'], ['9', '9'], ['del', '⌫', null, null, 'delete'], ['C', 'AC', null, null, 'all clear']],
+[['4', '4'], ['5', '5'], ['6', '6'], ['×', '×', null, null, 'times'], ['÷', '÷', null, null, 'divide']],
+[['1', '1'], ['2', '2'], ['3', '3'], ['+', '+', null, null, 'plus'], ['−', '−', null, null, 'minus']],
+[['0', '0'], ['.', '.', null, null, 'point'], ['e10', ['×10', { sup: 'x' }], null, null, 'times 10 to the power'], ['Ans', 'Ans'], ['=', '=', null, null, 'equals']],
+];
 function calcScreen_(st) {
-const h = calcHtml(st), mark = (i, on) => ({ type: 'group', tag: 'b', look: on ? 'on' : null, attrs: { 'data-i': i } });
-return cardBlocks_([{ type: 'group', look: 'mc-stat', attrs: { 'aria-hidden': 'true' }, blocks: [mark('S', st.shift), mark('D', true), mark('Math', true)].concat(st.past.length ? [mark('▲', true)] : []) },
+const h = calcHtml(st);
+return cardBlocks_([{ type: 'group', look: 'mc-stat', attrs: { 'aria-hidden': 'true' }, inner: (st.shift ? '<b>SHIFT</b>' : '') + (st.past.length ? '<b>▲</b>' : '') },
 { type: 'group', look: 'mc-in', inner: h.input }, { type: 'group', look: 'mc-out', inner: h.output || (st.root.length ? '' : '0') }]);
 }
-const calcFace_ = v => [].concat(v == null ? [] : v).map(x => x && x.el ? cardDraw_(x) : cardRuns_(x)).join('');
+const calcKeyHtml_ = (k, row) => tile_({ form: true, look: 'mc-btn' + (row > 2 ? ' mc-n' : ' mc-f') + (/^[0-9.]$/.test(k[0]) ? ' mc-d' : '') + (k[0] === '=' ? ' mc-eq' : '') + (k[0] === 'shift' ? ' mc-sh' : '') + (k[0] === 'C' || k[0] === 'del' ? ' mc-clr' : ''),
+act: 'qcalc-key', data: Object.assign({ mc: k[0] }, k[2] ? { alt: k[2] } : {}), aria: k[4] || k[0],
+html: '<span class="mc-lab">' + cardRuns_(k[1]) + '</span>' + (k[2] ? '<span class="mc-alt">' + cardRuns_(k[3]) + '</span>' : '') });
 function calcFaceHtml_(key) {
-const st = calcOf_(key), pad = look => ({ type: 'group', tag: 'i', look, attrs: { 'aria-hidden': 'true' } });
-const keys = ([['top', 'calc-top', [pad('calc-pad'), pad('calc-pad calc-pad-v')]], ['fn', 'calc-fn', []], ['num', 'calc-num', []]]).map(([part, cls, extra]) =>
-({ type: 'group', look: cls, blocks: extra, inner: CALC_KEYS.filter(k => k[2].split(' ')[0] === part).map(([v, label, kc, legend, name]) =>
-tile_({ form: true, look: 'mc-btn ' + kc + (/^\w+$/.test(v) ? ' mc-k-' + v : ''), act: 'qcalc-key', data: { mc: v }, aria: name || v,
-html: cardBlocks_((/pad|pg/.test(kc) ? [] : [{ type: 'group', tag: 'small', look: 'mc-alt', inner: calcFace_(legend) }]).concat({ type: 'group', tag: 'span', look: 'mc-lab', inner: calcFace_(label) })) })).join('') }));
-return cardBlock_({ type: 'group', look: 'calc' + (st.shift ? ' mc-shifted' : ''), attrs: { 'data-key': key, role: 'group', 'aria-label': 'Calculator' }, blocks: [
-{ type: 'group', look: 'calc-bezel', blocks: [{ type: 'group', look: 'mc-display', attrs: { tabindex: '0', 'aria-live': 'polite', 'aria-label': 'Calculator display' }, inner: calcScreen_(st) },
-{ type: 'group', look: 'calc-label', text: brand('name', '@family.') }] }].concat(keys) });
+const st = calcOf_(key);
+return '<div class="calc' + (st.shift ? ' mc-shifted' : '') + '" data-key="' + esc(key) + '" role="group" aria-label="Calculator">'
++ '<div class="calc-head"><span class="calc-grip" aria-hidden="true"></span>'
++ tile_({ form: true, look: 'mc-drg', act: 'qcalc-key', data: { mc: 'drg' }, aria: 'Degrees or radians', label: st.rad ? 'RAD' : 'DEG' }) + '</div>'
++ '<div class="mc-display" tabindex="0" aria-live="polite" aria-label="Calculator display">' + calcScreen_(st) + '</div>'
++ CALC_FACE.map((r, i) => '<div class="calc-row' + (i === 2 ? ' calc-row-last' : '') + '">' + r.map(k => calcKeyHtml_(k, i)).join('') + '</div>').join('') + '</div>';
 }
 function calcPaint_(box) {
 const disp = box && box.querySelector('.mc-display');
@@ -15320,35 +15168,27 @@ if (!disp) return;
 const st = calcOf_(box.getAttribute('data-key') || '');
 disp.innerHTML = calcScreen_(st);
 box.classList.toggle('mc-shifted', !!st.shift);
+const drg = box.querySelector('.mc-drg');
+if (drg) drg.textContent = st.rad ? 'RAD' : 'DEG';
 const inp = disp.querySelector('.mc-in');
 if (inp) inp.scrollLeft = inp.scrollWidth;
 }
-function calcPress_(box, v) {
+function calcPress_(box, v, alt) {
 if (!box || !v) return;
-calcKey(calcOf_(box.getAttribute('data-key') || ''), v);
+const st = calcOf_(box.getAttribute('data-key') || '');
+if (st.shift && alt) { st.shift = false; calcKey(st, alt); } else calcKey(st, v);
 calcPaint_(box);
 }
-on('qcalc-key', el => calcPress_(el.closest('.calc'), el.getAttribute('data-mc')));
+on('qcalc-key', el => calcPress_(el.closest('.calc'), el.getAttribute('data-mc'), el.getAttribute('data-alt')));
 inputKeys_(Object.assign({ 0: '0', 1: '1', 2: '2', 3: '3', 4: '4', 5: '5', 6: '6', 7: '7', 8: '8', 9: '9' }, CALC_KEYBOARD),
 (k, down, e) => calcPress_(e.target.closest('.calc[data-key]'), k),
 { when: e => !!(e.target && e.target.closest && e.target.closest('.calc[data-key]')), stop: false, inField: true });
 const calcAllowed_ = x => ![].concat((x && x.needs) || []).some(v => /^non-calculator$|^no calculator$/i.test(String(v).trim()));
-const QCALC_OPEN = new Set();
 on('qt-calc', el => {
 const key = qtKeyOf_(el);
 if (!key) return;
-const open = !QCALC_OPEN.has(key);
-QCALC_OPEN.clear();
-document.querySelectorAll('.calc-float').forEach(e => e.remove());
-document.querySelectorAll('.qt-calc[aria-pressed="true"]').forEach(t => { if (t !== el) tileSet_(t, { on: false, pressed: false }); });
-if (open) {
-QCALC_OPEN.add(key);
-document.body.insertAdjacentHTML('beforeend', calcFaceHtml_(key));
-const box = document.body.lastElementChild;
-box.classList.add('calc-float', 'floaty');
-calcPaint_(box);
-}
-tileSet_(el, { on: open, pressed: open });
+const box = floatToggle_('calc', key, calcFaceHtml_(key));
+if (box) { floatPlace_(box, innerWidth - box.offsetWidth - 12, 64); calcPaint_(box); }
 });
 ;
 /* js/qtools.js */
@@ -15424,16 +15264,7 @@ return pad;
 on('qt-pen', el => { qtPenOpen_(el, QT_PAD_TOOL[el.getAttribute('data-tool')] || 'pen'); });
 on('qt-inst', el => {
 const tool = el.getAttribute('data-tool') || 'ruler';
-const card = el.closest('.qcard');
-const pad = card && card.querySelector('.qpad');
-if (tool === 'ruler') {
-if (card && card.querySelector('figure svg, .qpad-art > svg')) return measOpen_(el);
-const key = qtKeyOf_(el), made = qtPenOpen_(el, 'pen'), host = made && made.closest('.qcard');
-const t = host && [...host.querySelectorAll('.q-meast')].find(e => e.getAttribute('data-tool') === 'ruler' && e.getAttribute('data-key') === key);
-if (t) measOpen_(t);
-return;
-}
-if (!pad && tool === 'protractor' && card && card.querySelector('figure svg')) return measOpen_(el);
+if (isMeasureTool_(tool)) return measOpen_(el);
 qtPenOpen_(el, tool);
 });
 on('qp-noscheme', el => {
@@ -15467,7 +15298,7 @@ const o = typeof readAloudOpts_ === 'function' ? readAloudOpts_(x) : null;
 if (o) o.data = Object.assign({}, o.data, { part: 1 });
 return o || { icon: t.icon, label: t.label, note: 'not on this device', act: 'read-aloud', cls: 'read-aloud', off: true, data: { key } };
 },
-calc: (t, x, key) => calcAllowed_(x) ? { icon: t.icon, label: t.label, note: t.note, act: t.act, cls: 'qt-t qt-calc', on: QCALC_OPEN.has(key), pressed: QCALC_OPEN.has(key), data: { tool: t.id, key } } : null,
+calc: (t, x, key) => calcAllowed_(x) ? { icon: t.icon, label: t.label, note: t.note, act: t.act, cls: 'qt-t qt-calc', on: floatIs_('calc', key), pressed: floatIs_('calc', key), data: { tool: t.id, key } } : null,
 offline: (t, x) => (typeof window.offOpts_ === 'function' ? window.offOpts_(x) : null),
 photo: (t, x) => (!markSchemeOf_(x).length ? { icon: t.icon, label: t.label, note: t.note, act: 'qp-work', cls: 'qp-work-go qt-t', data: { k: ansKey_(x), tool: t.id } } : null),
 };
@@ -15481,16 +15312,15 @@ const on = qtToolOn_(t.id, key, pk, qtInHand_(pk));
 const cls = 'qt-t' + (isMeasureTool_(t.id) ? ' q-meast' : '');
 return { icon: t.icon, label: t.label, note: t.note, act: t.act, cls, on, pressed: on, data: { tool: t.id, key } };
 }
-const MEASURE_ON_PAD = { ruler: () => false, protractor: pk => !!(pk && padProtOn_(pk)) };
 function qtToolOn_(id, key, pk, inHand) {
-if (isMeasureTool_(id) && typeof MEAS !== 'undefined' && MEAS && MEAS.k === key && MEAS.tool === id) return true;
-if (Object.prototype.hasOwnProperty.call(MEASURE_ON_PAD, id)) return MEASURE_ON_PAD[id](pk);
+if ((isMeasureTool_(id) || id === 'calc') && typeof floatIs_ === 'function' && floatIs_(id, key)) return true;
+if (id === 'calc' || isMeasureTool_(id)) return false;
 if (!pk || !inHand) return false;
 return inHand === QT_PAD_TOOL[id];
 }
 function qtLight_(root, inHand) {
 if (!root || !root.querySelectorAll) return;
-root.querySelectorAll('.qt-row .qt-t[data-do="qt-inst"], .qt-row .qt-t[data-do="qt-pen"]').forEach(t => {
+root.querySelectorAll('.qt-row .qt-t[data-do="qt-inst"], .qt-row .qt-t[data-do="qt-pen"], .qt-row .qt-t[data-do="qt-calc"]').forEach(t => {
 const card = t.closest('.qcard'), pad = card && card.querySelector('.qpad');
 const pk = (pad && pad.getAttribute('data-k')) || '';
 const lit = qtToolOn_(t.getAttribute('data-tool'), t.getAttribute('data-key') || '', pk, inHand !== undefined ? inHand : qtInHand_(pk));
@@ -15499,7 +15329,6 @@ tileSet_(t, { on: lit, pressed: lit });
 }
 function qtTiles_(x, ans) {
 if (!x || !x.key) return [];
-if (typeof MEAS !== 'undefined' && MEAS && MEAS.k === x.key && typeof setTimeout === 'function') setTimeout(measRepaint_, 0);
 if (typeof ansFaceDue_ === 'function') ansFaceDue_(x);
 const art = typeof padReady_ !== 'function' || padReady_(x);
 const ids = QT_ROW.concat(art ? Object.keys(QT_DRAWING) : []);
