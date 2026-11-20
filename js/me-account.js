@@ -33,7 +33,7 @@ const APP_SUBJECT_ROWS = 3;
 function profileAge_(p) {
   const q = p || {};
   const y = Number(q.dob_y), m = Number(q.dob_m) || 1, d = Number(q.dob_d) || 1;
-  if (y > 1900) {
+  if (y > 1900 && (typeof dobReal_ !== 'function' || dobReal_(q))) {
     const now = new Date();
     return now.getFullYear() - y - ((now.getMonth() + 1 < m || (now.getMonth() + 1 === m && now.getDate() < d)) ? 1 : 0);
   }
@@ -62,7 +62,7 @@ const APPLY_QUAL_SLOTS = 3;
 function applyKnown_() {
   const q = (whose_() && whose_().profile) || {};
   const pad = n => String(n).padStart(2, '0');
-  const dob = Number(q.dob_y) > 1900 ? q.dob_y + '-' + pad(Number(q.dob_m) || 1) + '-' + pad(Number(q.dob_d) || 1) : '';
+  const dob = Number(q.dob_y) > 1900 && (typeof dobReal_ !== 'function' || dobReal_(q)) ? q.dob_y + '-' + pad(Number(q.dob_m) || 1) + '-' + pad(Number(q.dob_d) || 1) : '';
   return { fullName: [q.first_name, q.last_name].filter(Boolean).join(' '), email: q.email || '', phone: q.phone || '', dob };
 }
 function applyFormHtml_() { return cardBlock_(applyFormSpec_()); }

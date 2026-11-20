@@ -9361,7 +9361,7 @@ return out;
 const personDoorBody_ = t => [t.handle ? { type: 'text', text: '@' + t.handle } : null,
 typeof PERSON_ED_ !== 'undefined' && PERSON_ED_ && String(PERSON_ED_.id) === String(t.personId) ? { type: 'embed', tool: 'person-edit', args: { row: t } } : null].filter(Boolean);
 CARD_EMBEDS['person-edit'] = a => (typeof personEdHtml_ === 'function' ? personEdHtml_(a.row) : '');
-const SETTING_TYPES_FALLBACK = [['Student', 'account', 1], ['Parent', 'family', 1], ['Staff', 'staff', 1], ['Apprentice', 'apprentice', 1], ['Admin', ''],
+const SETTING_TYPES_FALLBACK = [['Student', 'account'], ['Parent', 'family'], ['Staff', 'staff'], ['Apprentice', 'apprentice'], ['Admin', ''],
 ['Business', 'biz'], ['Site', 'site']].map(([type, col, peek]) => ({ type, col, peek: !!peek }));
 function settingTypes_() {
 let rows = [];
@@ -9416,6 +9416,7 @@ if (settingNone_(html) || (g.id && seen[g.id])) return;
 if (g.id) seen[g.id] = 1;
 const name = settingName_(html, g.id, tags[g.id]);
 const own = !g.id || !settingSeeRow_(g.id) || settingMay_(g.id);
+if (!own) return;
 if (name) add(name, g.id, { col: col, at: i, id: g.id || '' }, type, own && (ok || /^\s*<div\b[^>]*\bdata-yours="1"/.test(html)) && !/^\s*<div\b[^>]*\bis-locked\b/.test(html));
 });
 });

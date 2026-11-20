@@ -526,17 +526,19 @@ const can_ = (role, kind, action) => {
 };
 
 /* THREE ROLES FOR WHO SEES A SETTING (93): § */
-const ROLE_THREE_ = { student: 'family', client: 'family', member: 'family', family: 'family',
+/* AND A CHILD'S OWN (4h, owner 20 Nov): a student is `child`, so a child is answered by the child rows alone. */
+const ROLE_THREE_ = { student: 'child', client: 'family', member: 'family', family: 'family',
   staff: 'tutor', tutor: 'tutor', apprentice: 'tutor', admin: 'admin', business: 'admin', site: 'admin' };
-const SEE_ROLES = ['family', 'tutor', 'admin'];
+const SEE_ROLES = ['child', 'family', 'tutor', 'admin'];
 const roleThree_ = w => ROLE_THREE_[roleOf(String(w || '').trim())] || '';
-/* THE VIEWER'S THREE ROLES: § */
+/* THE VIEWER'S SEE ROLES (4h): each role it holds and no other — every `see` row is its own role's whole answer, nothing inherited, */
+/* so Apply to teach can be a grown-up's without being staff's. An account ranked student is a child and holds only `child`. */
 function seeRoles_() {
   if (!USER) return [];
   let words = [];
   try { words = [rank_()].concat(heldRoles().filter(h => roleThree_(h) !== 'tutor' || !USER.tutorPending)); } catch (e) { words = []; }
-  const top = Math.max(0, ...words.map(w => SEE_ROLES.indexOf(roleThree_(w))));
-  return SEE_ROLES.slice(0, top + 1);
+  if (roleThree_(rank_()) === 'child') return ['child'];
+  return SEE_ROLES.filter(r => r !== 'child' && words.some(w => roleThree_(w) === r));
 }
 /* MAY THE VIEWER SEE THIS SETTINGS CARD OR ACCOUNT TYPE: § */
 const seeMay_ = key => seeRoles_().some(r => can_(r, 'see', key));

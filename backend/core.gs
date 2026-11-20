@@ -1137,6 +1137,8 @@ function dobOut(cellValue) {
   const d = (cellValue instanceof Date && !isNaN(cellValue)) ? cellValue
           : (/^\d{1,2}[\/\-.]\d{1,2}[\/\-.]\d{4}$/.test(S(cellValue)) ? sheetDate(cellValue) : null);
   if (!d) return { dob_d: S(cellValue), dob_m: '', dob_y: '' };
+  /* EMPTY MEANS EMPTY (4h, owner 20 Nov): 1 January 2000 is the placeholder a cell was filled with, not a birthday; sent as no date. */
+  if (d.getDate() === 1 && d.getMonth() === 0 && d.getFullYear() === 2000) return { dob_d: '', dob_m: '', dob_y: '' };
   return { dob_d: String(d.getDate()), dob_m: String(d.getMonth() + 1), dob_y: String(d.getFullYear()) };
 }
 
