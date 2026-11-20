@@ -21,6 +21,8 @@ ORDER OF BOARDS (owner, 20 Nov): OCR is the least used board, so it comes last. 
 4b. MISALIGNED MARK SCHEMES (20 Nov): ~150 A-level/OCR rows hold the next or previous part's scheme, or only boilerplate ("Marking of lists…"). Re-align each row's answer from its paper's mark scheme, then key it. Lists: scratchpad k/skip-log.txt and the batch reports.
 4c. MARKER ORDER (20 Nov): a plain accept list ignores order, so "x = 9, y = 5" passes for "x = 5, y = 9" and "Y to X" for "X to Y". Make named values and ordered phrases order-aware at the one marker; add the cases to the marker self-test.
 
+4d. MARKER: "No, because X" (20 Nov): the marker reads "No" as negating the next points, so a right answer starting "No, because…" loses marks. Limit the negation to the clause, add marker-cases. Also: ordered lists with no "to/then" are marked in any order.
+
 ## Next (the 12 parts of best practice)
 
 - THE MASTER DECIDES WHAT A CARD SHOWS (owner, 18 Nov): each kind's card in kinds.json declares its fields, order, limits (e.g. current job only, role words hidden, bio length and quotes); the card code only reads it and draws — no show/hide decisions in code. Move today's code-side choices (profRoleWords_, profJobs_, tutorCardOf_ quotes) into kinds.json.
