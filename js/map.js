@@ -218,26 +218,98 @@ document.addEventListener('change', e => {
 });
 /* THE DOCKET IN FIND (owner, 20 Nov): Tools › Docket › a list › its items, each its own card (kinds.json kind `docket`, drawn by `dkCard_` through the one maker).
    The steps are the funnel's: `toolName` names the tool, `docketList` the list (facets.json). A tick here saves as the widget's does (`doneOn` for a daily item). */
+/* NOW, NEXT (owner, 20 Nov; rules.json 1.82): a list's order by fixed rules, no AI. Pure: the same items and `now` ('YYYY-MM-DD HH:MM', London's) give the same order.
+   Returns the items' indexes: (a) a fixed time kept, the rest flowing round it; (b) runs by itself first, the longest first; (c) the closest deadline; (d) must, then high;
+   (e) a hard or dread item, then an easy or enjoy one, in turn, the shorter first; (f) then place. Done items last. tools/docket-plan.js checks it. */
+function dkPlan_(items, now) {
+  now = String(now || '');
+  const day = now.slice(0, 10), hm = s => { const m = /^(\d\d?):(\d\d)/.exec(String(s || '')); return m ? +m[1] * 60 + +m[2] : -1; };
+  const IMP = { must: 0, high: 1, normal: 2, low: 3 }, PLACE = { home: 0, anywhere: 1, out: 2 };
+  const done = it => (it.repeat === 'daily' ? it.doneOn === day : !!it.done);
+  const mins = it => Math.max(1, +it.minutes || 5), runs = it => Math.max(0, +it.runs || 0);
+  const fixed = it => hm(it.time) >= 0 && it.timeIs !== 'by' && (it.repeat === 'daily' || !it.date || it.date === day);
+  const due = it => { const d = it.repeat === 'daily' ? '' : String(it.date || ''), t = hm(it.time) >= 0 ? String(it.time) : '';
+    return t && it.timeIs === 'by' ? (d || day) + ' ' + t : d ? d + ' ' + (t || '99:99') : '~'; };
+  const heavy = it => it.effort === 'hard' || it.fun === 'dread';
+  const all = (items || []).map((it, i) => ({ it: it || {}, i }));
+  const open = all.filter(x => !done(x.it)), fix = open.filter(x => fixed(x.it)).sort((a, b) => hm(a.it.time) - hm(b.it.time) || a.i - b.i);
+  const key = x => [runs(x.it) ? 0 : 1, -runs(x.it), due(x.it), IMP[x.it.importance] == null ? 2 : IMP[x.it.importance]];
+  const cmpKey = (a, b) => { const p = key(a), q = key(b); for (let k = 0; k < p.length; k++) if (p[k] !== q[k]) return p[k] < q[k] ? -1 : 1; return 0; };
+  const tie = (a, b) => mins(a.it) - mins(b.it) || (PLACE[a.it.place] == null ? 1 : PLACE[a.it.place]) - (PLACE[b.it.place] == null ? 1 : PLACE[b.it.place])
+    || String(a.it.title || '').localeCompare(String(b.it.title || '')) || a.i - b.i;
+  const flex = open.filter(x => !fixed(x.it)).sort((a, b) => cmpKey(a, b) || tie(a, b)), order = [];
+  /* (e) WITHIN ONE TIE (same runs, deadline and importance): heavy and light in turn, a heavy one first while you are fresh. */
+  for (let s = 0; s < flex.length;) {
+    let e = s; while (e < flex.length && !cmpKey(flex[s], flex[e])) e++;
+    const h = flex.slice(s, e).filter(x => heavy(x.it)), l = flex.slice(s, e).filter(x => !heavy(x.it));
+    while (h.length || l.length) { if (h.length) order.push(h.shift()); if (l.length) order.push(l.shift()); }
+    s = e;
+  }
+  /* (a) A FIXED TIME: it goes in before the item that would run past it; one whose time has come goes first. Runs-by-itself time is not yours, so only `minutes` count. */
+  const out = []; let t = Math.max(0, hm(now.slice(11)));
+  const putFixed = x => { out.push(x); t = Math.max(t, hm(x.it.time)) + mins(x.it); };
+  order.forEach(x => { while (fix.length && hm(fix[0].it.time) < t + mins(x.it)) putFixed(fix.shift()); out.push(x); t += mins(x.it); });
+  fix.forEach(putFixed);
+  return out.map(x => x.i).concat(all.filter(x => done(x.it)).map(x => x.i));
+}
+/* LONDON'S MOMENT, as dkPlan_ reads it. */
+const dkNow_ = () => { let t = ''; try { t = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/London', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date()); } catch (e) { t = ''; }
+  return dkDay_() + ' ' + (t || '00:00'); };
+/* AN ITEM'S ATTRIBUTES ARE kinds.json docket form `docket-item`: what is not set is that field's `default`, so a title alone is a whole item. */
+const dkFields_ = () => ((((ITEM_KINDS.kinds.docket || {}).forms || {})['docket-item'] || {}).fields || []);
+const dkFill_ = it => Object.assign({}, ...dkFields_().filter(x => x.default != null).map(x => ({ [x.f]: x.default })),
+  ...Object.keys(it || {}).filter(k => it[k] !== '' && it[k] != null).map(k => ({ [k]: it[k] })));
+const DKF = { edit: '' };
 function dkItems_() {
   if (typeof may_ !== 'function' || !may_('owner')) return [];
-  return dkLoad_().flatMap((L, li) => (L.items || []).map((it, i) => ({ kind: 'docket', name: it.title || 'Untitled', key: 'dk:' + li + ':' + i, sub: L.name || '', image: '',
-    dkList: L.name || '', dkAt: li + ':' + i, row: it, text: [it.title, it.note, L.name].filter(Boolean).join(' ') })));
+  const now = dkNow_();
+  return dkLoad_().flatMap((L, li) => {
+    const items = L.items || [], order = dkPlan_(items.map(dkFill_), now), firsts = order.filter(i => !dkDone_(items[i])).slice(0, 2);
+    /* THE QUICK-ADD CARD heads its list: a title and Enter; the defaults fill the rest. */
+    return [{ kind: 'docket', name: 'Add to ' + (L.name || 'the list'), key: 'dk:' + li + ':new', sub: L.name || '', image: '', dkList: L.name || '', dkNew: li, seq: 0, row: {}, text: 'add new ' + (L.name || '') }]
+      .concat(order.map((i, n) => { const it = items[i];
+        return { kind: 'docket', name: it.title || 'Untitled', key: 'dk:' + li + ':' + i, seq: n + 1, sub: L.name || '', image: '', dkMark: ['Now', 'Next'][firsts.indexOf(i)] || '',
+          dkList: L.name || '', dkAt: li + ':' + i, row: it, text: [it.title, it.note, L.name].filter(Boolean).join(' ') }; }));
+  });
 }
 function dkCard_(x) {
-  const it = x.row || {}, when = [it.repeat === 'daily' ? 'Daily' : it.date ? dkSayDay_(it.date) : '', it.time || ''].filter(Boolean);
-  return renderCard({ kind: 'docket', name: it.title || 'Untitled', tags: [it.title || 'Untitled', x.dkList].concat(when).filter(Boolean),
+  if (x.dkNew != null) return renderCard({ kind: 'docket', name: x.name, tags: [x.name, x.dkList],
+    body: [{ type: 'field', cap: 'Add an item', blocks: [{ type: 'control', attrs: { class: 'dk-qadd', 'data-li': x.dkNew, placeholder: 'What to do, then Enter', maxlength: 300, enterkeyhint: 'done' } }] }],
+    tiles: [{ icon: 'plus', label: 'Add', act: 'dk-qadd', cls: 'is-submit', data: { li: x.dkNew } }] });
+  const it = x.row || {}, a = dkFill_(it), when = [it.repeat === 'daily' ? 'Daily' : it.date ? dkSayDay_(it.date) : '', it.time ? (it.timeIs === 'by' ? 'by ' : '') + it.time : ''].filter(Boolean);
+  const open = DKF.edit === x.dkAt, spec = dkFields_();
+  const form = open ? [{ type: 'group', look: 'dk-form', inner: formOf_('docket-item', a, { options: f => ((spec.find(y => y.f === f) || {}).options || []) }) }] : [];
+  return renderCard({ kind: 'docket', name: it.title || 'Untitled', tags: [it.title || 'Untitled', x.dkMark, a.minutes + ' min', +a.runs ? 'Runs by itself ' + a.runs + ' min' : '', x.dkList].concat(when).filter(Boolean),
     body: [{ type: 'tick', text: 'Done', attrs: { 'data-dkf': x.dkAt, checked: dkDone_(it), 'aria-label': 'Done: ' + (it.title || '') } },
-      it.note ? { type: 'text', paras: String(it.note).split(/\n{2,}/) } : null].filter(Boolean) });
+      it.note && !open ? { type: 'text', paras: String(it.note).split(/\n{2,}/) } : null].concat(form).filter(Boolean),
+    tiles: open ? [{ icon: 'save', label: 'Save', act: 'dk-fsave', cls: 'is-submit', data: { at: x.dkAt } }, { icon: 'bin', label: 'Delete', act: 'dk-fdel', tone: 'danger', data: { at: x.dkAt } },
+      { icon: 'close', label: 'Close', act: 'dk-fedit', data: { at: x.dkAt } }] : [{ icon: 'edit', label: 'Edit', act: 'dk-fedit', data: { at: x.dkAt } }] });
 }
+const dkAt_ = at => { const [li, i] = String(at || '').split(':').map(Number), L = dkLoad_()[li]; return { L, i, it: L && L.items[i] }; };
+/* A CHANGE IN FIND IS SAVED AS THE WIDGET'S IS (dkSave_, the backend's todoTidy_), and Find draws its list again in the new order. */
+const dkFindKeep_ = () => { dkKeep_(); if (typeof lateCame_ === 'function') lateCame_(); };
+on('dk-fedit', el => { const at = el.getAttribute('data-at') || ''; DKF.edit = DKF.edit === at ? '' : at; if (typeof lateCame_ === 'function') lateCame_(); });
+/* SAVE KEEPS ONLY WHAT DIFFERS FROM A DEFAULT, so an item's cell stays one line and an old item is never broken. */
+on('dk-fsave', el => { const { it } = dkAt_(el.getAttribute('data-at')), card = el.closest('.card'); if (!it || !card) return;
+  card.querySelectorAll('[data-dke]').forEach(b => { const f = b.getAttribute('data-dke'), x = dkFields_().find(y => y.f === f) || {}, v = String(b.value || '').trim();
+    if (f === 'title') { if (v) it.title = v.slice(0, 300); return; }
+    if (v === '' || (x.default != null && v === String(x.default))) delete it[f]; else it[f] = x.type === 'number' ? Math.max(0, Math.round(+v) || 0) : v.slice(0, 8000); });
+  if (it.repeat !== 'daily') delete it.repeat;
+  DKF.edit = ''; dkFindKeep_(); });
+on('dk-fdel', el => { const { L, i, it } = dkAt_(el.getAttribute('data-at')); if (!it || !confirm('Delete "' + (it.title || 'this item') + '"?')) return; L.items.splice(i, 1); DKF.edit = ''; dkFindKeep_(); });
+on('dk-qadd', el => { const card = el.closest('.card'), inp = card && card.querySelector('.dk-qadd'), li = +el.getAttribute('data-li'), L = dkLoad_()[li], t = String((inp && inp.value) || '').trim();
+  if (!t || !L) return; L.items.push({ title: t.slice(0, 300) }); dkFindKeep_();
+  setTimeout(() => { const again = document.querySelector('.dk-qadd[data-li="' + li + '"]'); if (again) again.focus(); }, 400); });
 document.addEventListener('change', e => {
   const el = e.target, at = el && el.getAttribute && el.getAttribute('data-dkf');
   if (!at) return;
-  const [li, i] = at.split(':').map(Number), L = dkLoad_()[li], it = L && L.items[i];
+  const { it } = dkAt_(at);
   if (!it) return;
   if (it.repeat === 'daily') it.doneOn = el.checked ? dkDay_() : ''; else { it.done = el.checked; it.doneOn = el.checked ? dkDay_() : ''; }
-  dkKeep_();
+  dkFindKeep_();
 });
-document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target && e.target.classList && e.target.classList.contains('dk-add') && typeof ACTIONS !== 'undefined' && ACTIONS['dk-add']) { e.preventDefault(); ACTIONS['dk-add'](e.target); } });
+document.addEventListener('keydown', e => { const c = e.target && e.target.classList; if (e.key !== 'Enter' || !c || typeof ACTIONS === 'undefined') return;
+  const act = c.contains('dk-add') ? 'dk-add' : c.contains('dk-qadd') ? 'dk-qadd' : ''; if (act && ACTIONS[act]) { e.preventDefault(); ACTIONS[act](e.target); } });
 
 
 /* ---------- ASSIGNMENTS (owner, 18 Nov): one list a person, sorted by due date and grouped Overdue / This week / Later / Done, each with its days left,
