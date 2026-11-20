@@ -1183,6 +1183,426 @@
    ],
    "why": "merged into Q-CBM-sequences-4 as its cell 1 of 2 (re-import; last seen 5f347d4ea)"
   },
+  "Q-P-AQA-8700-2506-1-1": {
+   "to": "Q-AQA-8700-2506-1-1",
+   "why": "Jun 2025 Paper 1 placeholder id, re-imported as Q-AQA-8700-2506-1-1 (last seen 2b30bc7); no submissions on it (Ledger scan, 20 Nov)"
+  },
+  "Q-P-AQA-8700-2506-1-2": {
+   "to": "Q-AQA-8700-2506-1-2",
+   "why": "Jun 2025 Paper 1 placeholder id, re-imported as Q-AQA-8700-2506-1-2 (last seen 2b30bc7); no submissions on it (Ledger scan, 20 Nov)"
+  },
+  "Q-P-AQA-8700-2506-1-3": {
+   "to": "Q-AQA-8700-2506-1-3",
+   "why": "Jun 2025 Paper 1 placeholder id, re-imported as Q-AQA-8700-2506-1-3 (last seen 2b30bc7); no submissions on it (Ledger scan, 20 Nov)"
+  },
+  "Q-P-AQA-8700-2506-1-4": {
+   "to": "Q-AQA-8700-2506-1-4",
+   "why": "Jun 2025 Paper 1 placeholder id, re-imported as Q-AQA-8700-2506-1-4 (last seen 2b30bc7); no submissions on it (Ledger scan, 20 Nov)"
+  },
+  "Q-P-AQA-8700-2506-1-5": {
+   "to": "Q-AQA-8700-2506-1-5",
+   "why": "Jun 2025 Paper 1 placeholder id, re-imported as Q-AQA-8700-2506-1-5 (last seen 2b30bc7); no submissions on it (Ledger scan, 20 Nov)"
+  },
+  "Q-R0372-1": {
+   "to": "Q-AQA-8700-2406-2-1",
+   "why": "AQA 8700 duplicate copy R0372 retired (active False, 20 Nov); P-AQA-8700-2406-2 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0372-2": {
+   "to": "Q-AQA-8700-2406-2-2",
+   "why": "AQA 8700 duplicate copy R0372 retired (active False, 20 Nov); P-AQA-8700-2406-2 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0372-3": {
+   "to": "Q-AQA-8700-2406-2-3",
+   "why": "AQA 8700 duplicate copy R0372 retired (active False, 20 Nov); P-AQA-8700-2406-2 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0372-4": {
+   "to": "Q-AQA-8700-2406-2-4",
+   "why": "AQA 8700 duplicate copy R0372 retired (active False, 20 Nov); P-AQA-8700-2406-2 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0372-5": {
+   "to": "Q-AQA-8700-2406-2-5",
+   "why": "AQA 8700 duplicate copy R0372 retired (active False, 20 Nov); P-AQA-8700-2406-2 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0373-1": {
+   "to": "Q-AQA-8700-2406-1-1",
+   "why": "AQA 8700 duplicate copy R0373 retired (active False, 20 Nov); P-AQA-8700-2406-1 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0373-2": {
+   "to": "Q-AQA-8700-2406-1-2",
+   "why": "AQA 8700 duplicate copy R0373 retired (active False, 20 Nov); P-AQA-8700-2406-1 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0373-3": {
+   "to": "Q-AQA-8700-2406-1-3",
+   "why": "AQA 8700 duplicate copy R0373 retired (active False, 20 Nov); P-AQA-8700-2406-1 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0373-4": {
+   "to": "Q-AQA-8700-2406-1-4",
+   "why": "AQA 8700 duplicate copy R0373 retired (active False, 20 Nov); P-AQA-8700-2406-1 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0373-5": {
+   "to": "Q-AQA-8700-2406-1-5",
+   "why": "AQA 8700 duplicate copy R0373 retired (active False, 20 Nov); P-AQA-8700-2406-1 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0375-1": {
+   "to": "Q-AQA-8700-2311-2-1",
+   "why": "AQA 8700 duplicate copy R0375 retired (active False, 20 Nov); P-AQA-8700-2311-2 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0375-2": {
+   "to": "Q-AQA-8700-2311-2-2",
+   "why": "AQA 8700 duplicate copy R0375 retired (active False, 20 Nov); P-AQA-8700-2311-2 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0375-3": {
+   "to": "Q-AQA-8700-2311-2-3",
+   "why": "AQA 8700 duplicate copy R0375 retired (active False, 20 Nov); P-AQA-8700-2311-2 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0375-4": {
+   "to": "Q-AQA-8700-2311-2-4",
+   "why": "AQA 8700 duplicate copy R0375 retired (active False, 20 Nov); P-AQA-8700-2311-2 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0375-5": {
+   "to": "Q-AQA-8700-2311-2-5",
+   "why": "AQA 8700 duplicate copy R0375 retired (active False, 20 Nov); P-AQA-8700-2311-2 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0376-1": {
+   "to": "Q-AQA-8700-2311-1-1",
+   "why": "AQA 8700 duplicate copy R0376 retired (active False, 20 Nov); P-AQA-8700-2311-1 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0376-2": {
+   "to": "Q-AQA-8700-2311-1-2",
+   "why": "AQA 8700 duplicate copy R0376 retired (active False, 20 Nov); P-AQA-8700-2311-1 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0376-3": {
+   "to": "Q-AQA-8700-2311-1-3",
+   "why": "AQA 8700 duplicate copy R0376 retired (active False, 20 Nov); P-AQA-8700-2311-1 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0376-4": {
+   "to": "Q-AQA-8700-2311-1-4",
+   "why": "AQA 8700 duplicate copy R0376 retired (active False, 20 Nov); P-AQA-8700-2311-1 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0376-5": {
+   "to": "Q-AQA-8700-2311-1-5",
+   "why": "AQA 8700 duplicate copy R0376 retired (active False, 20 Nov); P-AQA-8700-2311-1 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0377-1": {
+   "to": "Q-AQA-8700-2011-2-1",
+   "why": "AQA 8700 duplicate copy R0377 retired (active False, 20 Nov); P-AQA-8700-2011-2 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0377-2": {
+   "to": "Q-AQA-8700-2011-2-2",
+   "why": "AQA 8700 duplicate copy R0377 retired (active False, 20 Nov); P-AQA-8700-2011-2 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0377-3": {
+   "to": "Q-AQA-8700-2011-2-3",
+   "why": "AQA 8700 duplicate copy R0377 retired (active False, 20 Nov); P-AQA-8700-2011-2 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0377-4": {
+   "to": "Q-AQA-8700-2011-2-4",
+   "why": "AQA 8700 duplicate copy R0377 retired (active False, 20 Nov); P-AQA-8700-2011-2 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0377-5": {
+   "to": "Q-AQA-8700-2011-2-5",
+   "why": "AQA 8700 duplicate copy R0377 retired (active False, 20 Nov); P-AQA-8700-2011-2 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0378-1": {
+   "to": "Q-AQA-8700-2011-1-1",
+   "why": "AQA 8700 duplicate copy R0378 retired (active False, 20 Nov); P-AQA-8700-2011-1 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0378-2": {
+   "to": "Q-AQA-8700-2011-1-2",
+   "why": "AQA 8700 duplicate copy R0378 retired (active False, 20 Nov); P-AQA-8700-2011-1 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0378-3": {
+   "to": "Q-AQA-8700-2011-1-3",
+   "why": "AQA 8700 duplicate copy R0378 retired (active False, 20 Nov); P-AQA-8700-2011-1 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0378-4": {
+   "to": "Q-AQA-8700-2011-1-4",
+   "why": "AQA 8700 duplicate copy R0378 retired (active False, 20 Nov); P-AQA-8700-2011-1 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0378-5": {
+   "to": "Q-AQA-8700-2011-1-5",
+   "why": "AQA 8700 duplicate copy R0378 retired (active False, 20 Nov); P-AQA-8700-2011-1 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0379-1": {
+   "to": "Q-AQA-8700-1811-2-1",
+   "why": "AQA 8700 duplicate copy R0379 retired (active False, 20 Nov); P-AQA-8700-1811-2 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0379-2": {
+   "to": "Q-AQA-8700-1811-2-2",
+   "why": "AQA 8700 duplicate copy R0379 retired (active False, 20 Nov); P-AQA-8700-1811-2 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0379-3": {
+   "to": "Q-AQA-8700-1811-2-3",
+   "why": "AQA 8700 duplicate copy R0379 retired (active False, 20 Nov); P-AQA-8700-1811-2 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0379-4": {
+   "to": "Q-AQA-8700-1811-2-4",
+   "why": "AQA 8700 duplicate copy R0379 retired (active False, 20 Nov); P-AQA-8700-1811-2 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0379-5": {
+   "to": "Q-AQA-8700-1811-2-5",
+   "why": "AQA 8700 duplicate copy R0379 retired (active False, 20 Nov); P-AQA-8700-1811-2 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0380-1": {
+   "to": "Q-AQA-8700-1811-1-1",
+   "why": "AQA 8700 duplicate copy R0380 retired (active False, 20 Nov); P-AQA-8700-1811-1 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0380-2": {
+   "to": "Q-AQA-8700-1811-1-2",
+   "why": "AQA 8700 duplicate copy R0380 retired (active False, 20 Nov); P-AQA-8700-1811-1 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0380-3": {
+   "to": "Q-AQA-8700-1811-1-3",
+   "why": "AQA 8700 duplicate copy R0380 retired (active False, 20 Nov); P-AQA-8700-1811-1 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0380-4": {
+   "to": "Q-AQA-8700-1811-1-4",
+   "why": "AQA 8700 duplicate copy R0380 retired (active False, 20 Nov); P-AQA-8700-1811-1 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0380-5": {
+   "to": "Q-AQA-8700-1811-1-5",
+   "why": "AQA 8700 duplicate copy R0380 retired (active False, 20 Nov); P-AQA-8700-1811-1 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0383-1": {
+   "to": "Q-AQA-8700-2211-2-1",
+   "why": "AQA 8700 duplicate copy R0383 retired (active False, 20 Nov); P-AQA-8700-2211-2 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0383-2": {
+   "to": "Q-AQA-8700-2211-2-2",
+   "why": "AQA 8700 duplicate copy R0383 retired (active False, 20 Nov); P-AQA-8700-2211-2 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0383-3": {
+   "to": "Q-AQA-8700-2211-2-3",
+   "why": "AQA 8700 duplicate copy R0383 retired (active False, 20 Nov); P-AQA-8700-2211-2 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0383-4": {
+   "to": "Q-AQA-8700-2211-2-4",
+   "why": "AQA 8700 duplicate copy R0383 retired (active False, 20 Nov); P-AQA-8700-2211-2 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0383-5": {
+   "to": "Q-AQA-8700-2211-2-5",
+   "why": "AQA 8700 duplicate copy R0383 retired (active False, 20 Nov); P-AQA-8700-2211-2 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0384-1": {
+   "to": "Q-AQA-8700-2206-2-1",
+   "why": "AQA 8700 duplicate copy R0384 retired (active False, 20 Nov); P-AQA-8700-2206-2 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0384-2": {
+   "to": "Q-AQA-8700-2206-2-2",
+   "why": "AQA 8700 duplicate copy R0384 retired (active False, 20 Nov); P-AQA-8700-2206-2 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0384-3": {
+   "to": "Q-AQA-8700-2206-2-3",
+   "why": "AQA 8700 duplicate copy R0384 retired (active False, 20 Nov); P-AQA-8700-2206-2 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0384-4": {
+   "to": "Q-AQA-8700-2206-2-4",
+   "why": "AQA 8700 duplicate copy R0384 retired (active False, 20 Nov); P-AQA-8700-2206-2 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0384-5": {
+   "to": "Q-AQA-8700-2206-2-5",
+   "why": "AQA 8700 duplicate copy R0384 retired (active False, 20 Nov); P-AQA-8700-2206-2 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0388-1": {
+   "to": "Q-AQA-8700-2211-1-1",
+   "why": "AQA 8700 duplicate copy R0388 retired (active False, 20 Nov); P-AQA-8700-2211-1 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0388-2": {
+   "to": "Q-AQA-8700-2211-1-2",
+   "why": "AQA 8700 duplicate copy R0388 retired (active False, 20 Nov); P-AQA-8700-2211-1 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0388-3": {
+   "to": "Q-AQA-8700-2211-1-3",
+   "why": "AQA 8700 duplicate copy R0388 retired (active False, 20 Nov); P-AQA-8700-2211-1 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0388-4": {
+   "to": "Q-AQA-8700-2211-1-4",
+   "why": "AQA 8700 duplicate copy R0388 retired (active False, 20 Nov); P-AQA-8700-2211-1 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0388-5": {
+   "to": "Q-AQA-8700-2211-1-5",
+   "why": "AQA 8700 duplicate copy R0388 retired (active False, 20 Nov); P-AQA-8700-2211-1 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0389-1": {
+   "to": "Q-AQA-8700-2206-1-1",
+   "why": "AQA 8700 duplicate copy R0389 retired (active False, 20 Nov); P-AQA-8700-2206-1 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0389-2": {
+   "to": "Q-AQA-8700-2206-1-2",
+   "why": "AQA 8700 duplicate copy R0389 retired (active False, 20 Nov); P-AQA-8700-2206-1 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0389-3": {
+   "to": "Q-AQA-8700-2206-1-3",
+   "why": "AQA 8700 duplicate copy R0389 retired (active False, 20 Nov); P-AQA-8700-2206-1 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0389-4": {
+   "to": "Q-AQA-8700-2206-1-4",
+   "why": "AQA 8700 duplicate copy R0389 retired (active False, 20 Nov); P-AQA-8700-2206-1 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0389-5": {
+   "to": "Q-AQA-8700-2206-1-5",
+   "why": "AQA 8700 duplicate copy R0389 retired (active False, 20 Nov); P-AQA-8700-2206-1 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0390-1": {
+   "to": "Q-AQA-8700-1911-2-1",
+   "why": "AQA 8700 duplicate copy R0390 retired (active False, 20 Nov); P-AQA-8700-1911-2 is the one copy of that paper and its answers land there (R0391/R0390 were labelled Nov 2021 but carry the Nov 2019 sources)"
+  },
+  "Q-R0390-2": {
+   "to": "Q-AQA-8700-1911-2-2",
+   "why": "AQA 8700 duplicate copy R0390 retired (active False, 20 Nov); P-AQA-8700-1911-2 is the one copy of that paper and its answers land there (R0391/R0390 were labelled Nov 2021 but carry the Nov 2019 sources)"
+  },
+  "Q-R0390-3": {
+   "to": "Q-AQA-8700-1911-2-3",
+   "why": "AQA 8700 duplicate copy R0390 retired (active False, 20 Nov); P-AQA-8700-1911-2 is the one copy of that paper and its answers land there (R0391/R0390 were labelled Nov 2021 but carry the Nov 2019 sources)"
+  },
+  "Q-R0390-4": {
+   "to": "Q-AQA-8700-1911-2-4",
+   "why": "AQA 8700 duplicate copy R0390 retired (active False, 20 Nov); P-AQA-8700-1911-2 is the one copy of that paper and its answers land there (R0391/R0390 were labelled Nov 2021 but carry the Nov 2019 sources)"
+  },
+  "Q-R0390-5": {
+   "to": "Q-AQA-8700-1911-2-5",
+   "why": "AQA 8700 duplicate copy R0390 retired (active False, 20 Nov); P-AQA-8700-1911-2 is the one copy of that paper and its answers land there (R0391/R0390 were labelled Nov 2021 but carry the Nov 2019 sources)"
+  },
+  "Q-R0391-1": {
+   "to": "Q-AQA-8700-1911-1-1",
+   "why": "AQA 8700 duplicate copy R0391 retired (active False, 20 Nov); P-AQA-8700-1911-1 is the one copy of that paper and its answers land there (R0391/R0390 were labelled Nov 2021 but carry the Nov 2019 sources)"
+  },
+  "Q-R0391-2": {
+   "to": "Q-AQA-8700-1911-1-2",
+   "why": "AQA 8700 duplicate copy R0391 retired (active False, 20 Nov); P-AQA-8700-1911-1 is the one copy of that paper and its answers land there (R0391/R0390 were labelled Nov 2021 but carry the Nov 2019 sources)"
+  },
+  "Q-R0391-3": {
+   "to": "Q-AQA-8700-1911-1-3",
+   "why": "AQA 8700 duplicate copy R0391 retired (active False, 20 Nov); P-AQA-8700-1911-1 is the one copy of that paper and its answers land there (R0391/R0390 were labelled Nov 2021 but carry the Nov 2019 sources)"
+  },
+  "Q-R0391-4": {
+   "to": "Q-AQA-8700-1911-1-4",
+   "why": "AQA 8700 duplicate copy R0391 retired (active False, 20 Nov); P-AQA-8700-1911-1 is the one copy of that paper and its answers land there (R0391/R0390 were labelled Nov 2021 but carry the Nov 2019 sources)"
+  },
+  "Q-R0391-5": {
+   "to": "Q-AQA-8700-1911-1-5",
+   "why": "AQA 8700 duplicate copy R0391 retired (active False, 20 Nov); P-AQA-8700-1911-1 is the one copy of that paper and its answers land there (R0391/R0390 were labelled Nov 2021 but carry the Nov 2019 sources)"
+  },
+  "Q-R0393-1": {
+   "to": "Q-AQA-8700-1711-2-1",
+   "why": "AQA 8700 duplicate copy R0393 retired (active False, 20 Nov); P-AQA-8700-1711-2 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0393-2": {
+   "to": "Q-AQA-8700-1711-2-2",
+   "why": "AQA 8700 duplicate copy R0393 retired (active False, 20 Nov); P-AQA-8700-1711-2 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0393-3": {
+   "to": "Q-AQA-8700-1711-2-3",
+   "why": "AQA 8700 duplicate copy R0393 retired (active False, 20 Nov); P-AQA-8700-1711-2 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0393-4": {
+   "to": "Q-AQA-8700-1711-2-4",
+   "why": "AQA 8700 duplicate copy R0393 retired (active False, 20 Nov); P-AQA-8700-1711-2 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0393-5": {
+   "to": "Q-AQA-8700-1711-2-5",
+   "why": "AQA 8700 duplicate copy R0393 retired (active False, 20 Nov); P-AQA-8700-1711-2 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0394-1": {
+   "to": "Q-AQA-8700-1806-2-1",
+   "why": "AQA 8700 duplicate copy R0394 retired (active False, 20 Nov); P-AQA-8700-1806-2 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0394-2": {
+   "to": "Q-AQA-8700-1806-2-2",
+   "why": "AQA 8700 duplicate copy R0394 retired (active False, 20 Nov); P-AQA-8700-1806-2 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0394-3": {
+   "to": "Q-AQA-8700-1806-2-3",
+   "why": "AQA 8700 duplicate copy R0394 retired (active False, 20 Nov); P-AQA-8700-1806-2 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0394-4": {
+   "to": "Q-AQA-8700-1806-2-4",
+   "why": "AQA 8700 duplicate copy R0394 retired (active False, 20 Nov); P-AQA-8700-1806-2 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0394-5": {
+   "to": "Q-AQA-8700-1806-2-5",
+   "why": "AQA 8700 duplicate copy R0394 retired (active False, 20 Nov); P-AQA-8700-1806-2 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0395-1": {
+   "to": "Q-AQA-8700-1706-2-1",
+   "why": "AQA 8700 duplicate copy R0395 retired (active False, 20 Nov); P-AQA-8700-1706-2 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0395-2": {
+   "to": "Q-AQA-8700-1706-2-2",
+   "why": "AQA 8700 duplicate copy R0395 retired (active False, 20 Nov); P-AQA-8700-1706-2 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0395-3": {
+   "to": "Q-AQA-8700-1706-2-3",
+   "why": "AQA 8700 duplicate copy R0395 retired (active False, 20 Nov); P-AQA-8700-1706-2 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0395-4": {
+   "to": "Q-AQA-8700-1706-2-4",
+   "why": "AQA 8700 duplicate copy R0395 retired (active False, 20 Nov); P-AQA-8700-1706-2 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0395-5": {
+   "to": "Q-AQA-8700-1706-2-5",
+   "why": "AQA 8700 duplicate copy R0395 retired (active False, 20 Nov); P-AQA-8700-1706-2 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0396-1": {
+   "to": "Q-AQA-8700-1711-1-1",
+   "why": "AQA 8700 duplicate copy R0396 retired (active False, 20 Nov); P-AQA-8700-1711-1 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0396-2": {
+   "to": "Q-AQA-8700-1711-1-2",
+   "why": "AQA 8700 duplicate copy R0396 retired (active False, 20 Nov); P-AQA-8700-1711-1 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0396-3": {
+   "to": "Q-AQA-8700-1711-1-3",
+   "why": "AQA 8700 duplicate copy R0396 retired (active False, 20 Nov); P-AQA-8700-1711-1 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0396-4": {
+   "to": "Q-AQA-8700-1711-1-4",
+   "why": "AQA 8700 duplicate copy R0396 retired (active False, 20 Nov); P-AQA-8700-1711-1 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0396-5": {
+   "to": "Q-AQA-8700-1711-1-5",
+   "why": "AQA 8700 duplicate copy R0396 retired (active False, 20 Nov); P-AQA-8700-1711-1 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0397-1": {
+   "to": "Q-AQA-8700-1806-1-1",
+   "why": "AQA 8700 duplicate copy R0397 retired (active False, 20 Nov); P-AQA-8700-1806-1 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0397-2": {
+   "to": "Q-AQA-8700-1806-1-2",
+   "why": "AQA 8700 duplicate copy R0397 retired (active False, 20 Nov); P-AQA-8700-1806-1 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0397-3": {
+   "to": "Q-AQA-8700-1806-1-3",
+   "why": "AQA 8700 duplicate copy R0397 retired (active False, 20 Nov); P-AQA-8700-1806-1 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0397-4": {
+   "to": "Q-AQA-8700-1806-1-4",
+   "why": "AQA 8700 duplicate copy R0397 retired (active False, 20 Nov); P-AQA-8700-1806-1 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0397-5": {
+   "to": "Q-AQA-8700-1806-1-5",
+   "why": "AQA 8700 duplicate copy R0397 retired (active False, 20 Nov); P-AQA-8700-1806-1 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0398-1": {
+   "to": "Q-AQA-8700-1706-1-1",
+   "why": "AQA 8700 duplicate copy R0398 retired (active False, 20 Nov); P-AQA-8700-1706-1 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0398-2": {
+   "to": "Q-AQA-8700-1706-1-2",
+   "why": "AQA 8700 duplicate copy R0398 retired (active False, 20 Nov); P-AQA-8700-1706-1 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0398-3": {
+   "to": "Q-AQA-8700-1706-1-3",
+   "why": "AQA 8700 duplicate copy R0398 retired (active False, 20 Nov); P-AQA-8700-1706-1 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0398-4": {
+   "to": "Q-AQA-8700-1706-1-4",
+   "why": "AQA 8700 duplicate copy R0398 retired (active False, 20 Nov); P-AQA-8700-1706-1 is the one copy of that paper and its answers land there"
+  },
+  "Q-R0398-5": {
+   "to": "Q-AQA-8700-1706-1-5",
+   "why": "AQA 8700 duplicate copy R0398 retired (active False, 20 Nov); P-AQA-8700-1706-1 is the one copy of that paper and its answers land there"
+  },
   "Q-STA-KS1-2026-P2-15b": {
    "to": "Q-STA-KS1-2026-P2-15",
    "slot": 1,
