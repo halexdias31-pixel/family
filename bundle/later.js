@@ -2563,7 +2563,8 @@ return { label: [same ? '' : name].concat(mark(l)), text: [{ typeset: math }].co
 };
 CARD_EMBEDS['ins-source'] = a => { const r = insertRow_(a.id); return !r ? '' : r.sourceText ? insSource_(r) : insSay_(r); };
 const insertSheet_ = r => renderCard({ kind: 'insert', look: 'insh', name: r.name, tags: [{ text: r.name, colour: 0 }], body: insertBody_(r) });
-function insertExtras_(x) { return [{ icon: 'print', label: 'Print', note: 'or save as PDF', act: 'ins-print', data: { id: x.row.id } }]
+function insertExtras_(x) { const on = (x.row.parents || []).length ? x.row.parents : [x.row.id];
+return on.map(id => ({ icon: 'print', label: 'Print', note: on.length > 1 || id !== x.row.id ? 'the ' + ((insertSheetRow_(id) || {}).name || id) : 'or save as PDF', act: 'ins-print', data: { id: id } }))
 .concat((x.row.official || []).map(o => ({ icon: 'open', label: 'Official', note: o.label, act: 'file-view', data: { url: o.url, title: o.label } }))); }
 function specItem_(r) {
 return {
