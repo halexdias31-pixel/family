@@ -95,20 +95,10 @@ function qtPenOpen_(el, tool) {
   return pad;
 }
 on('qt-pen', el => { qtPenOpen_(el, QT_PAD_TOOL[el.getAttribute('data-tool')] || 'pen'); });
-/* THE RULER ALWAYS MEASURES: laid on the figure, or on the pen's page -- made first where the part has only a surface. */
-/* THE PROTRACTOR lies on the figure when there is one and no pen; under a pen it is the pen's; with neither, it opens the pen. */
+/* THE RULER AND THE PROTRACTOR FLOAT OVER THE PAGE like the calculator (owner, 20 Nov): no pen, no new screen (`measOpen_`, find-measure.js). The compass is the pen's. */
 on('qt-inst', el => {
   const tool = el.getAttribute('data-tool') || 'ruler';
-  const card = el.closest('.qcard');
-  const pad = card && card.querySelector('.qpad');
-  if (tool === 'ruler') {
-    if (card && card.querySelector('figure svg, .qpad-art > svg')) return measOpen_(el);
-    const key = qtKeyOf_(el), made = qtPenOpen_(el, 'pen'), host = made && made.closest('.qcard');
-    const t = host && [...host.querySelectorAll('.q-meast')].find(e => e.getAttribute('data-tool') === 'ruler' && e.getAttribute('data-key') === key);
-    if (t) measOpen_(t);
-    return;
-  }
-  if (!pad && tool === 'protractor' && card && card.querySelector('figure svg')) return measOpen_(el);
+  if (isMeasureTool_(tool)) return measOpen_(el);
   qtPenOpen_(el, tool);
 });
 /* ---------- CHECK WITH NO MARK SCHEME: nothing is sent; the verdict line says what is missing, for a missing key too. */
