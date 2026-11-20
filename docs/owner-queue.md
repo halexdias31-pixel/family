@@ -16,6 +16,9 @@ Order: what a child or parent would notice first, then what stops things driftin
 3. The 85 questions that refer to a Figure with no diagram (232 → 85, 18 Nov: 147 OCR rows drawn from their papers by tools/draw-figures-q3.py), and the 52 whose figure was not transcribed: draw them with tools/figkit.py. Left: AQA 2022–24 GCSE biology/chemistry (raster figures, to hand-draw), OCR geography (resource booklet), a few micrographs. All 147 are imported (18 Nov, in 5 parts; 7 shrunk to fit).
 4. The 35 keys the check says accept a wrong answer or fail their own drawing. **32 done (18 Nov):** 13 drawings were the check not loading the pad's grid (fixed in `tools/validate-questions.js`); 17 one-mark "Is X correct? Give a reason" keys now need the No *and* the reason — their import file waits for the Drive upload. Left: 3 keys that are right (any odd non-multiple of 7, any multiple of 5 not 10, a cross at ½) where the check's made-up wrong answer happens to be a right one.
 
+4b. MISALIGNED MARK SCHEMES (20 Nov): ~150 A-level/OCR rows hold the next or previous part's scheme, or only boilerplate ("Marking of lists…"). Re-align each row's answer from its paper's mark scheme, then key it. Lists: scratchpad k/skip-log.txt and the batch reports.
+4c. MARKER ORDER (20 Nov): a plain accept list ignores order, so "x = 9, y = 5" passes for "x = 5, y = 9" and "Y to X" for "X to Y". Make named values and ordered phrases order-aware at the one marker; add the cases to the marker self-test.
+
 ## Next (the 12 parts of best practice)
 
 - THE MASTER DECIDES WHAT A CARD SHOWS (owner, 18 Nov): each kind's card in kinds.json declares its fields, order, limits (e.g. current job only, role words hidden, bio length and quotes); the card code only reads it and draws — no show/hide decisions in code. Move today's code-side choices (profRoleWords_, profJobs_, tutorCardOf_ quotes) into kinds.json.
