@@ -29,6 +29,7 @@ const ORDER = [
   'one-paper',    // the one-paper check (rule 1.75, 20 Nov): no two active past papers share board, spec, series and paper number; fails the build
   'source-lines', // the source-lines check (rule 1.75, owner 20 Nov): an English row naming "Source X, lines N to M" gets source_lines, shows them off its insert or is withheld; fails the build
   'one-box',      // the one-box check (rule 1.75, owner 20 Nov): every answer face by qtFace_; more than one box outside a table fails the build
+  'email-ink',    // the email-ink check (rule 1.75, 20 Nov): the Sunday email's colours equal style.css tokens, its esc and the card maker's cardUnesc_ round-trip; fails the build
   'digest-clip',  // the digest-clip check (rule 1.75, owner 20 Nov): large weeks through the Sunday email's digestRender_; a part over Gmail's clip or a question without its words fails the build
   'bundle',       // js/ in index.html's order -> bundle/*.js
   'one-card',     // the one-card check (rule 1.75): every Find card by the one maker, no CSS of its own; fails the build

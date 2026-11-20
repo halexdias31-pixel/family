@@ -301,6 +301,14 @@
   --gm-28: #00000022;
   --gm-29: #00000033;
   --gm-30: rgb(158, 199, 230);
+  /* THE EMAIL'S OWN COLOURS (20 Nov): where the Sunday email cannot take a site token. White `--gold` is lost when a client
+     whitens the page, so the email's links stay amber; pane, rim, rule and answer box are its table fills. tools/cards-gen.js
+     writes these and the site tokens into backend/cards-gen.gs DIGEST_INK; tools/email-ink.js holds them to it. */
+  --email-gold: #ffb454;
+  --email-pane: #101010;
+  --email-pane-line: #383838;
+  --email-chip: #3d3d3d;
+  --email-box: #1a1a1a;
 }
 /* LESS MOTION ASKED FOR: movement takes no time, but a highlight that says where something is (`--dur-mark`) stays (D14). */
 @media (prefers-reduced-motion: reduce) {
