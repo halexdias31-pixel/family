@@ -1172,6 +1172,30 @@ function markOrderBroken_(typed, accept, opt) {
   if (/^([a-z])\1$/i.test(raw) && ways.some(w => /^([a-z])\1$/i.test(w) && /[A-Z]/.test(w)) && !ways.some(w => w === raw || w.split('').sort().join('') === raw.split('').sort().join(''))) return true;
   return false;
 }
+/* GENOTYPES ARE READ ALLELE BY ALLELE (20 Nov): IAIO, Tt, XᴴXʰ keep their case and symbols; the two alleles of one genotype may come
+   in either order (IOIA = IAIO, tT = Tt; TT is not Tt); a list of genotypes holds exactly the key's genotypes, any order. Returns
+   true/false when both the typed answer and a key way are all genotypes, else null (the other ways of marking decide). */
+const MARK_GENOTYPE = [/^(I[^\sI,;])(I[^\sI,;])$/u, /^([XY][^\sXY,;]?)([XY][^\sXY,;]?)$/u, /^([A-Za-z])([A-Za-z])$/];
+function markGenotype_(g) {
+  for (const re of MARK_GENOTYPE) {
+    const m = g.match(re);
+    if (m && (re !== MARK_GENOTYPE[2] || m[1].toLowerCase() === m[2].toLowerCase())) return [m[1], m[2]].sort().join('|');
+  }
+  return null;
+}
+function markGenotypes_(s) {
+  const toks = String(s || '').normalize('NFC').replace(/\(\s*\d+\s*\)/g, ' ').split(/\s*(?:[,;\/&]|\band\b)\s*|\s+/).filter(Boolean);
+  if (!toks.length) return null;
+  const gs = toks.map(markGenotype_);
+  return gs.every(Boolean) ? gs.sort().join(' ') : null;
+}
+function markGenotypeList_(typed, accept) {
+  const keys = String(accept || '').split('|').map(w => w.trim()).filter(w => w && !/^rule:/i.test(w)).map(markGenotypes_).filter(Boolean);
+  if (!keys.length) return null;
+  const got = markGenotypes_(typed);
+  if (got == null) return markGenotypes_(String(typed || '').toUpperCase()) ? false : null;   /* iaio: genotypes in the wrong case */
+  return keys.includes(got);
+}
 function markAnswer_(typed, accept, again, opt) {
   if (Array.isArray(typed)) typed = typed.map(v => String(v == null ? '' : v).trim()).filter(Boolean).join(', ');
   const t = markNorm_(typed);
@@ -1180,6 +1204,8 @@ function markAnswer_(typed, accept, again, opt) {
   if (!(opt && opt.listed)) {
     const o = Object.assign({}, opt, { listed: true });
     if (!again && markOrderBroken_(typed, accept, opt)) return false;
+    const geno = Array.isArray(typed) ? null : markGenotypeList_(typed, accept);
+    if (geno != null) return geno;
     const first = markAnswer_(typed, accept, again, o);
     /* the typed words, not markNorm_'s: it reads "3 -4" as the sum 3-4 */
     return first || (again ? first : markListed_(String(typed).replace(/\s*[\r\n;]+\s*/g, ', ').replace(/[\u2212\u2013\u2014]/g, '-').toLowerCase(), accept, o) || first);
