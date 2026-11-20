@@ -855,14 +855,6 @@ top level, before `ROLE_THREE_`
 /* THREE ROLES FOR WHO SEES A SETTING (93): keyed by the role a word means (`roleOf`), so teacher, parent, kid… are ROLE_ALIASES' alone. */
 ```
 
-### THE VIEWER'S THREE ROLES:
-
-top level, before `seeRoles_`
-
-```
-/* THE VIEWER'S THREE ROLES: rank and held roles mapped, a higher role holding the lower ones as ranks always have; a pending tutor is not one yet. */
-```
-
 ### MAY THE VIEWER SEE THIS SETTINGS CARD OR ACCOUNT TYPE:
 
 top level, before `seeMay_`

@@ -260,11 +260,22 @@ const RETIRED_FIELDS_ = ['library_note'];
 /* ---------- AND A DATE OF BIRTH IS THREE BOXES, NOT ONE § */
 const isDobBox_ = f => /^dob_[dmy]$/.test(String(f || ''));
 const isDob_ = list => (list || []).some(isDobBox_);
+/* EMPTY MEANS EMPTY (4h, owner 20 Nov: Finley's showed 01/01/2000): the boxes show a birthday only when all three make a real past date, */
+/* and 1 January 2000 — the placeholder a sheet cell was filled with — is nobody's birthday here. */
+function dobReal_(value) {
+  const n = f => Number(String((typeof value === 'function' ? value(f) : (value || {})[f]) || '').replace(/\D/g, ''));
+  const d = n('dob_d'), m = n('dob_m'), y = n('dob_y');
+  if (!d || !m || y < 1900) return false;
+  const when = new Date(y, m - 1, d);
+  if (when.getMonth() !== m - 1 || when.getDate() !== d || when.getTime() > Date.now()) return false;
+  return !(d === 1 && m === 1 && y === 2000);
+}
 
 function dobBoxes_(value) {
   /* NO SAVED BIRTHDAY OFFERED (383) — no field suggests; `maxlength` stops a third digit in a two-digit box. */
   /* THE THREE BOXES ARE forms.json's `dob` form. */
-  const box = f => formOf_('dob', value, { only: [f] });
+  const real = dobReal_(value);
+  const box = f => formOf_('dob', g => (real ? value(g) : ''), { only: [f] });
   return cardBlock_({ type: 'group', look: 'dob-row', attrs: { role: 'group', 'aria-label': 'Date of birth' }, blocks: [
     { type: 'group', tag: 'span', look: 'dob-cap', text: 'date of birth' },
     { type: 'group', look: 'dob-boxes', inner: box('dob_d') + box('dob_m') + box('dob_y') }] });

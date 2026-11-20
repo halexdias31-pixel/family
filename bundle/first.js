@@ -1943,16 +1943,16 @@ if (row && typeof row[role] === 'boolean') return row[role];
 } catch (e) { }
 return role === 'admin';
 };
-const ROLE_THREE_ = { student: 'family', client: 'family', member: 'family', family: 'family',
+const ROLE_THREE_ = { student: 'child', client: 'family', member: 'family', family: 'family',
 staff: 'tutor', tutor: 'tutor', apprentice: 'tutor', admin: 'admin', business: 'admin', site: 'admin' };
-const SEE_ROLES = ['family', 'tutor', 'admin'];
+const SEE_ROLES = ['child', 'family', 'tutor', 'admin'];
 const roleThree_ = w => ROLE_THREE_[roleOf(String(w || '').trim())] || '';
 function seeRoles_() {
 if (!USER) return [];
 let words = [];
 try { words = [rank_()].concat(heldRoles().filter(h => roleThree_(h) !== 'tutor' || !USER.tutorPending)); } catch (e) { words = []; }
-const top = Math.max(0, ...words.map(w => SEE_ROLES.indexOf(roleThree_(w))));
-return SEE_ROLES.slice(0, top + 1);
+if (roleThree_(rank_()) === 'child') return ['child'];
+return SEE_ROLES.filter(r => r !== 'child' && words.some(w => roleThree_(w) === r));
 }
 const seeMay_ = key => seeRoles_().some(r => can_(r, 'see', key));
 const uiMay_ = key => { try { if (!((DATA && DATA.permissions) || {}).ui) return rankAtLeast_('client'); } catch (e) { return false; } return can_(myRole_(), 'ui', key); };
@@ -6307,7 +6307,7 @@ const APP_SUBJECT_ROWS = 3;
 function profileAge_(p) {
 const q = p || {};
 const y = Number(q.dob_y), m = Number(q.dob_m) || 1, d = Number(q.dob_d) || 1;
-if (y > 1900) {
+if (y > 1900 && (typeof dobReal_ !== 'function' || dobReal_(q))) {
 const now = new Date();
 return now.getFullYear() - y - ((now.getMonth() + 1 < m || (now.getMonth() + 1 === m && now.getDate() < d)) ? 1 : 0);
 }
@@ -6333,7 +6333,7 @@ const APPLY_QUAL_SLOTS = 3;
 function applyKnown_() {
 const q = (whose_() && whose_().profile) || {};
 const pad = n => String(n).padStart(2, '0');
-const dob = Number(q.dob_y) > 1900 ? q.dob_y + '-' + pad(Number(q.dob_m) || 1) + '-' + pad(Number(q.dob_d) || 1) : '';
+const dob = Number(q.dob_y) > 1900 && (typeof dobReal_ !== 'function' || dobReal_(q)) ? q.dob_y + '-' + pad(Number(q.dob_m) || 1) + '-' + pad(Number(q.dob_d) || 1) : '';
 return { fullName: [q.first_name, q.last_name].filter(Boolean).join(' '), email: q.email || '', phone: q.phone || '', dob };
 }
 function applyFormHtml_() { return cardBlock_(applyFormSpec_()); }
@@ -7919,8 +7919,17 @@ const isLibraryCard_ = f => /^lib\d+_(name|no|pin)$/.test(String(f || ''));
 const RETIRED_FIELDS_ = ['library_note'];
 const isDobBox_ = f => /^dob_[dmy]$/.test(String(f || ''));
 const isDob_ = list => (list || []).some(isDobBox_);
+function dobReal_(value) {
+const n = f => Number(String((typeof value === 'function' ? value(f) : (value || {})[f]) || '').replace(/\D/g, ''));
+const d = n('dob_d'), m = n('dob_m'), y = n('dob_y');
+if (!d || !m || y < 1900) return false;
+const when = new Date(y, m - 1, d);
+if (when.getMonth() !== m - 1 || when.getDate() !== d || when.getTime() > Date.now()) return false;
+return !(d === 1 && m === 1 && y === 2000);
+}
 function dobBoxes_(value) {
-const box = f => formOf_('dob', value, { only: [f] });
+const real = dobReal_(value);
+const box = f => formOf_('dob', g => (real ? value(g) : ''), { only: [f] });
 return cardBlock_({ type: 'group', look: 'dob-row', attrs: { role: 'group', 'aria-label': 'Date of birth' }, blocks: [
 { type: 'group', tag: 'span', look: 'dob-cap', text: 'date of birth' },
 { type: 'group', look: 'dob-boxes', inner: box('dob_d') + box('dob_m') + box('dob_y') }] });

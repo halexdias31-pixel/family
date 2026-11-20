@@ -96,7 +96,7 @@ CARD_EMBEDS['person-edit'] = a => (typeof personEdHtml_ === 'function' ? personE
 /* ---------- SETTINGS BY ACCOUNT TYPE: each settings card has one home, Find › Settings › its type ---------- */
 /* WHICH COLUMN'S CARDS ANSWER WHICH TYPE, IN THE MENU'S ORDER: setting-for.json's `type:` rows; who opens each is permissions.json's `see` rows. */
 /* Used only while setting-for.json has no `type:` rows, so an empty sheet still has its Settings doors; who opens them is still the table. */
-const SETTING_TYPES_FALLBACK = [['Student', 'account', 1], ['Parent', 'family', 1], ['Staff', 'staff', 1], ['Apprentice', 'apprentice', 1], ['Admin', ''],
+const SETTING_TYPES_FALLBACK = [['Student', 'account'], ['Parent', 'family'], ['Staff', 'staff'], ['Apprentice', 'apprentice'], ['Admin', ''],
   ['Business', 'biz'], ['Site', 'site']].map(([type, col, peek]) => ({ type, col, peek: !!peek }));
 function settingTypes_() {
   let rows = [];
@@ -166,6 +166,8 @@ function settingDoorItems_() {
       const name = settingName_(html, g.id, tags[g.id]);
       /* A CARD WITH ITS OWN `see` ROWS IS YOURS ONLY IF THEY LET YOU (86a); one without keeps its type's answer. */
       const own = !g.id || !settingSeeRow_(g.id) || settingMay_(g.id);
+      /* NOT YOURS, NOT SHOWN (4h, owner 20 Nov): a card its own rows deny is left out, never drawn shut — a child sees only child cards. */
+      if (!own) return;
       if (name) add(name, g.id, { col: col, at: i, id: g.id || '' }, type, own && (ok || /^\s*<div\b[^>]*\bdata-yours="1"/.test(html)) && !/^\s*<div\b[^>]*\bis-locked\b/.test(html));
     });
   });
