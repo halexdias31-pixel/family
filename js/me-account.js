@@ -73,22 +73,7 @@ function applyFormSpec_() {
     + cardBlock_({ type: 'group', tag: 'p', look: 'note me-said apply-said', attrs: { 'aria-live': 'polite' } }) };
 }
 /* WHAT IS STILL MISSING, in the backend's words (`postApplyTeach_` asks the same), so the phone says it before anything is sent. */
-function applyMissing_(b) {
-  const mail = v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v || '');
-  const refOk = n => b['ref' + n + 'Name'] && b['ref' + n + 'Relationship'] && mail(b['ref' + n + 'Email']) && b['ref' + n + 'Phone'];
-  return [
-    [b.fullName, 'your full name'], [b.phone, 'your phone number'], [mail(b.email), 'your email address'],
-    [b.address && /^[A-Z]{1,2}\d[A-Z\d]? ?\d[A-Z]{2}$/i.test(b.postcode || ''), 'your home address and postcode'],
-    [/^\d{4}-\d\d-\d\d$/.test(b.dob || ''), 'your date of birth'], [b.idDoc, 'a photo of your ID'],
-    [b.rtwDoc, 'a photo of your right-to-work document'], [b.subjects, 'the subjects and levels you teach'],
-    [b.qualifications && b.qualDocs.length, 'your qualifications, listed and with at least one photo'],
-    [b.rightToWork, 'whether you have the right to work in the UK'],
-    [b.dbsNeeded || (b.dbsNumber && b.dbsUpdate), 'your enhanced DBS number and the Update Service tick, or "I need one"'],
-    [refOk(1) && refOk(2), '2 references, each with a name, relationship, email and phone'],
-    [b.availability, 'when you can teach'], [Number(b.rate) > 0, 'your hourly rate'], [b.statement, 'a short statement'],
-    [b.consent, 'the consent tick'],
-  ].filter(x => !x[0]).map(x => x[1]);
-}
+const applyMissing_ = b => formGaps_(FORM_SPECS.forms['apply-teach'].gaps, b);
 /* MAY THIS ACCOUNT FILL THE FORM NOW: an adult with no application waiting. The form is in its card from the start (no sheet, owner 8 Nov). */
 function applyFormOpen_() {
   if (!whose_() || whoseAtLeast_('staff') || profileAge_(whose_().profile) === null || !applyAdult_()) return false;
