@@ -77,19 +77,13 @@ function libImportList_() {
 /* THE PUBLIC CARDS' IDS FOR A FILE, from the site (or GitHub) — asked only for an id the tab has no row for. */
 function libPublicIds_(def, memo) {
   if (memo[def.file]) return memo[def.file];
-  const urls = [S(SITE_URL).replace(/\/*$/, '/') + def.file];
-  try { urls.push(RAW + def.file); } catch (err) { /* sync.gs is not in this scope */ }
-  let got = null;
-  for (let i = 0; i < urls.length && !got; i++) {
-    try {
-      const res = UrlFetchApp.fetch(urls[i] + '?v=' + Date.now(), { muteHttpExceptions: true, followRedirects: true });
-      if (res.getResponseCode() !== 200) continue;
-      const rows = JSON.parse(String(res.getContentText('UTF-8')));
-      if (!Array.isArray(rows)) continue;
-      got = {};
-      rows.forEach(r => { const id = libIdOf_(def, r); if (id) got[id] = 1; });
-    } catch (err) { got = null; }
-  }
+  const got = fetchSiteThenRaw_(def.file, text => {
+    const rows = JSON.parse(text);
+    if (!Array.isArray(rows)) return null;
+    const ids = {};
+    rows.forEach(r => { const id = libIdOf_(def, r); if (id) ids[id] = 1; });
+    return ids;
+  }).got;
   memo[def.file] = got || {};
   return memo[def.file];
 }

@@ -1174,6 +1174,12 @@ function autoMigrate_() {
    Schema and run-once jobs (cheap when nothing is pending), and the Sunday email's hour, checked at most
    every ten minutes. Never throws. */
 const SETUP_CHECK_MS = 10 * 60 * 1000;
+/* THE KEEP-BOOKED JOBS, one table: run on admin load (FAILED_<id> on error), shown on the setup card, and named in setupTriggerWhen_. */
+const KEEP_BOOKED = [
+  { id: 'sunday-email-hour', fn: () => digestKeepBooked_(), what: 'the Sunday email kept at weekly_digest_hour', when: {} },
+  { id: 'library-import-hourly', fn: () => libImportKeepBooked_(), what: 'the hourly library import kept booked', when: { libImportHourly: 'every hour' } },
+  { id: 'keep-warm', fn: () => keepWarmKeepBooked_(), what: 'the five-minute keep-warm kept booked', when: { keepWarm: 'every 5 minutes' } }
+];
 function setupOnAdminLoad_() {
   try { autoMigrate_(); } catch (err) { Logger.log('setup: ' + err); }
   try {
@@ -1181,14 +1187,12 @@ function setupOnAdminLoad_() {
     const at = Number(props.getProperty('SETUP_CHECKED_AT') || 0);
     if (Date.now() - at < SETUP_CHECK_MS) return;
     props.setProperty('SETUP_CHECKED_AT', String(Date.now()));
-    try { digestKeepBooked_(); props.deleteProperty('FAILED_sunday-email-hour'); }
-    catch (err) { props.setProperty('FAILED_sunday-email-hour', String((err && err.message) || err).slice(0, 300)); }
-    /* THE NOTES A SESSION ADDRESSED (498), marked done from data/notes-done.json. */
-    try { claudeNotesDoneSync_(); } catch (err) { Logger.log('notes done: ' + err); }
-    try { libImportKeepBooked_(); props.deleteProperty('FAILED_library-import-hourly'); }
-    catch (err) { props.setProperty('FAILED_library-import-hourly', String((err && err.message) || err).slice(0, 300)); }
-    try { keepWarmKeepBooked_(); props.deleteProperty('FAILED_keep-warm'); }
-    catch (err) { props.setProperty('FAILED_keep-warm', String((err && err.message) || err).slice(0, 300)); }
+    KEEP_BOOKED.forEach(job => {
+      try { job.fn(); props.deleteProperty('FAILED_' + job.id); }
+      catch (err) { props.setProperty('FAILED_' + job.id, String((err && err.message) || err).slice(0, 300)); }
+      /* THE NOTES A SESSION ADDRESSED (498), marked done from data/notes-done.json, after the Sunday hour as before. */
+      if (job.id === 'sunday-email-hour') { try { claudeNotesDoneSync_(); } catch (err) { Logger.log('notes done: ' + err); } }
+    });
   } catch (err) { Logger.log('setup: ' + err); }
 }
 
@@ -1196,7 +1200,8 @@ function setupOnAdminLoad_() {
 function setupTriggerWhen_(fn, hour) {
   const said = { closeFinishedJobs: 'every day, about 3am', geocodeVenues: 'every day, about 3am',
     refreshPageCounts: 'every day, about 3am', onSheetChange: 'whenever a spreadsheet is edited',
-    warmAfterEdit: 'once, a minute after an edit', warmPayload: 'every 5 minutes', libImportHourly: 'every hour', keepWarm: 'every 5 minutes' };
+    warmAfterEdit: 'once, a minute after an edit', warmPayload: 'every 5 minutes', };
+  KEEP_BOOKED.forEach(job => Object.assign(said, job.when));
   return digestTriggerWhen_(fn, hour) || said[fn] || 'booked';
 }
 
@@ -1226,13 +1231,9 @@ function setupStatus_() {
     }
     out.jobs.push(job);
   });
-  if (seen['FAILED_library-import-hourly']) {
-    out.jobs.push({ id: 'library-import-hourly', what: 'the hourly library import kept booked', ran: '', error: S(seen['FAILED_library-import-hourly']) });
-  }
-  if (seen['FAILED_sunday-email-hour']) {
-    out.jobs.push({ id: 'sunday-email-hour', what: 'the Sunday email kept at weekly_digest_hour', ran: '',
-      error: S(seen['FAILED_sunday-email-hour']) });
-  }
+  KEEP_BOOKED.forEach(job => {
+    if (seen['FAILED_' + job.id]) out.jobs.push({ id: job.id, what: job.what, ran: '', error: S(seen['FAILED_' + job.id]) });
+  });
   let cfg = {};
   try { cfg = config(); } catch (err) { cfg = {}; }
   const hour = digestBookedHour_(cfg);

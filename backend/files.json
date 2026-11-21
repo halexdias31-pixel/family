@@ -8,6 +8,7 @@
   "films.gs",
   "library.gs",
   "library-drive.gs",
+  "fetch-site.gs",
   "media.gs",
   "core.gs",
   "write-lock.gs",
