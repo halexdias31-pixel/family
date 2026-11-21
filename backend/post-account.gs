@@ -131,7 +131,7 @@ function profileRefused_(r, wanted, fields, iAmAdmin) {
   const refused = [];
   const leaveOut = (list, why) => {
     list.forEach(f => { const i = wanted.indexOf(f); if (i !== -1) wanted.splice(i, 1); delete priceAsked[f]; });
-    refused.push([list, S(why).replace(/\s*Nothing was saved\.$/, '')]);
+    refused.push([list, S(why)]);
   };
   const priceNo = pricingRefusal_(r, priceAsked, iAmAdmin);
   if (priceNo) leaveOut(PRICING_FIELDS.filter(f => wanted.indexOf(f) !== -1), priceNo);
@@ -244,7 +244,7 @@ function postUpdateProfile_(body, action, began) {
   if (valueNo) return jsonOut({ error: valueNo });
   /* A TEXT FIELD'S LONGEST (`chars`, kinds.json `fields`, the same number the box stops at): refused, not cut, so nobody's words change unseen. */
   const tooLong = Object.keys(fields).find(f => askProps_(f).chars && S(fields[f]).length > askProps_(f).chars);
-  if (tooLong) return jsonOut({ error: 'That is too long: at most ' + askProps_(tooLong).chars + ' characters (' + tooLong.replace(/_/g, ' ') + '). Nothing was saved.' });
+  if (tooLong) return jsonOut({ error: nothingSaved_('That is too long: at most ' + askProps_(tooLong).chars + ' characters (' + tooLong.replace(/_/g, ' ') + ').') });
   const wanted = Object.keys(fields)
     .filter(f => !HOUR.test(f) && !LIBRARY_FIELD.test(f) && !QUAL_FIELD.test(f)
               && !PHONE_FIELD.test(f) && !DOB_FIELD.test(f) && !PHOTO_FIELD.test(f) && !JOB_FIELD.test(f)
@@ -259,7 +259,7 @@ function postUpdateProfile_(body, action, began) {
   const priceAsked = asked.priceAsked, refused = asked.refused;
   const elseSent = availSent || photosSent || jobsSent || phoneSent || dobSent || qualsSent || libSent || !!venueTab;
   if (refused.length && !wanted.length && !elseSent) {
-    return jsonOut({ error: refused.map(p => p[1]).join(' ') + ' Nothing was saved.' });
+    return jsonOut({ error: nothingSaved_(refused.map(p => p[1]).join(' ')) });
   }
   const rowNo = profileRowNo_(r, has, wanted, fields, priceAsked);
   if (rowNo) return jsonOut({ error: rowNo });

@@ -196,7 +196,7 @@ function filmsWalk_(folder, season, acc, depth, stopAt) {
 /** The address a row opens: a file's viewer, or a series' folder — `file_kind` says which (note 068). */
 function filmsUrl_(d) {
   return d.fileKind === 'folder' ? 'https://drive.google.com/drive/folders/' + d.id
-                                 : 'https://drive.google.com/file/d/' + d.id + '/view';
+                                 : driveFileUrl_(d.id);
 }
 
 /* ---------- ONE THING INTO THE TAB § */
@@ -268,10 +268,7 @@ function filmsSync_(opts) {
   const looked = filmsLook_(todo, t0, budget, ceiling), done = looked.done, more = looked.more;
 
   const tally = { added: 0, refreshed: 0, adopted: 0, off: 0, empty: 0 };
-  const wroteBefore = POST_WROTE;
-  const lock = LockService.getScriptLock();
-  if (!lock.tryLock(10000)) return { error: 'Busy — press Sync from Drive again in a minute.', why: 'busy' };
-  try {
+  return withWriteLock_(() => {
     /* FRESH ROWS UNDER THE LOCK, `submitAnswer`'s rule: a copy read before it was the copy another run was
        about to change. */
     clearCache();
@@ -289,10 +286,7 @@ function filmsSync_(opts) {
     return Object.assign({ done: !more, more: more, folder: root.name, how: root.how, found: found,
                            looked: at, of: list.things.length, skipped: list.skipped, unknown: list.unknown,
                            ms: filmsClock_() - t0, message: message }, tally);
-  } finally {
-    lock.releaseLock();
-    if (POST_WROTE && !wroteBefore) POST_WROTE = false;
-  }
+  }, { wait: 10000, keepPayload: true, busy: () => ({ error: 'Busy — press Sync from Drive again in a minute.', why: 'busy' }) });
 }
 
 /* EACH THING DESCRIBED, OUTSIDE THE LOCK, until the time runs out; `more` says the pass is not finished. */

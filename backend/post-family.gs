@@ -97,9 +97,7 @@ function postRaiseHand_(body, action, began) {
   const me = findPerson(S(body.name), S(body.personId));
   if (!me) return refuse_('err-not-signed-in', 'not-signed-in');
   const staff = rankAtLeast_(me, 'staff');
-  const lock = LockService.getScriptLock();
-  try { lock.waitLock(5000); } catch (e) { /* the lock lapses on its own; going ahead unlocked is the old behaviour */ }
-  try {
+  return withWriteLock_(() => {
     const all = handsRead_();
     if (action === 'raiseHand') {
       /* YOUR OWN HAND ONLY; staff may lower anybody's (the tutor's Done), never raise one for them. */
@@ -117,7 +115,7 @@ function postRaiseHand_(body, action, began) {
     const vis = staff ? seesWhom_(me) : null;
     if (staff) out.hands = Object.keys(all).map(k => all[k]).filter(h => !vis || vis[S(h.personId)]).sort((a, b) => a.at - b.at);
     return jsonOut(out);
-  } finally { try { lock.releaseLock(); } catch (e) { /* the lock lapses on its own; going ahead unlocked is the old behaviour */ } }
+  }, { block: true });
 }
 
 /* The child answering. Only the child named in the row, and only once. */
@@ -245,7 +243,7 @@ function postPersonSave_(body, action, began) {
   const lacking = ['handle', 'pin', 'date_of_birth'].filter(c => t.headers.indexOf(c) === -1);
   if (lacking.length) return refuse_('err-no-column-setup', 'no-column', { cols: lacking.join(', ') });
   const said = adminPersonRefusal_(t, body, r);
-  if (said) return jsonOut({ error: said + ' Nothing was saved.' });
+  if (said) return jsonOut({ error: nothingSaved_(said) });
   const first = S(body.firstName), last = S(body.lastName), email = S(body.email);
   const put = { first_name: first, last_name: last, role: adminRolesIn_(body.roles).join(', '),
                 email: email, date_of_birth: dobIn(adminDobFields_(body.dob)) };

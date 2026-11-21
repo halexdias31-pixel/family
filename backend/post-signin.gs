@@ -67,7 +67,7 @@ function postRegister_(body, action, began) {
 function registerWrong_(first, last, email, pin, grownUp, asParent) {
   if (!first || !last) return 'Please give a first and last name.';
   if (asParent && !email) {
-    return 'A parent\'s account needs your own email address — it is what you sign in with. Nothing was saved.';
+    return nothingSaved_('A parent\'s account needs your own email address — it is what you sign in with.');
   }
   if (!email && !grownUp) {
     return 'Please give your email address — or, with no email of your own, a grown-up\'s.';

@@ -56,19 +56,19 @@ function mediaRowOf_(t, kind, id) {
 /* ONE WRITER FOR ALL THREE ACTIONS, under the script lock with the rows read fresh. Returns the reply object. */
 function mediaWrite_(action, body) {
   const kind = S(body.kind);
-  if (MEDIA_KINDS.indexOf(kind) === -1) return { error: 'Is it a reel or a video? Nothing was saved.' };
+  if (MEDIA_KINDS.indexOf(kind) === -1) return { error: nothingSaved_('Is it a reel or a video?') };
   /* AN EDIT OF AN UPLOADED REEL NAMES ITS ID; a new upload makes one, after the file is in Drive. */
   const fileId = MEDIA_FILE_RE.test(S(body.id)) ? S(body.id) : '';
   let id = action === 'mediaUpload' ? 'f' + new Date().getTime()
     : action === 'mediaSave' ? (mediaYtId_(body.url) || fileId) : S(body.id);
-  if (!mediaIdOk_(id)) return { error: 'That is not a YouTube link. Nothing was saved.' };
+  if (!mediaIdOk_(id)) return { error: nothingSaved_('That is not a YouTube link.') };
   const put = {};
   if (action === 'mediaUpload') {
-    if (kind !== 'reel') return { error: 'Only a reel can be uploaded as a file. Nothing was saved.' };
+    if (kind !== 'reel') return { error: nothingSaved_('Only a reel can be uploaded as a file.') };
     const data = S(body.data);
-    if (!/^data:video\//i.test(data)) return { error: 'That file is not a video. Nothing was saved.' };
+    if (!/^data:video\//i.test(data)) return { error: nothingSaved_('That file is not a video.') };
     /* THE CAMERA'S LIMIT (`CAM_VID_MAX`, posts.js): twenty megabytes a clip, base64 being a third bigger. */
-    if ((data.length - data.indexOf(',') - 1) * 3 / 4 > POST_FILE_MAX) return { error: 'That video is over 20 MB. Nothing was saved.' };
+    if ((data.length - data.indexOf(',') - 1) * 3 / 4 > POST_FILE_MAX) return { error: nothingSaved_('That video is over 20 MB.') };
     if (!S(body.title)) return errOf_('err-needs-title', 'no-title');
     const folder = getPostFolder();
     if (!folder) return { error: 'No posts folder. Add a row to the config tab: key `posts_folder`, value the id from the folder URL.' };
@@ -81,10 +81,10 @@ function mediaWrite_(action, body) {
     put.hidden = 'FALSE';
   } else if (action === 'mediaSave') {
     const too = Object.keys(MEDIA_CAP).filter(function (k) { return S(body[k]).length > MEDIA_CAP[k]; });
-    if (too.length) return { error: 'Too long: ' + too.join(', ') + '. Nothing was saved.' };
+    if (too.length) return { error: nothingSaved_('Too long: ' + too.join(', ') + '.') };
     if (!S(body.title)) return errOf_('err-needs-title', 'no-title');
     const thumb = S(body.thumb);
-    if (thumb && !/^https:\/\/i\.ytimg\.com\//.test(thumb)) return { error: 'The picture must be YouTube\'s own. Nothing was saved.' };
+    if (thumb && !/^https:\/\/i\.ytimg\.com\//.test(thumb)) return { error: nothingSaved_('The picture must be YouTube\'s own.') };
     Object.keys(MEDIA_CAP).forEach(function (k) { put[k] = S(body[k]); });
     /* WHOLE YEARS, OR BLANK FOR EVERYONE (406). */
     put.age = mediaAgeOf_(body.age) ? String(mediaAgeOf_(body.age)) : '';
@@ -94,12 +94,10 @@ function mediaWrite_(action, body) {
   } else if (action === 'mediaHide') {
     put.hidden = body.hidden === false ? 'FALSE' : 'TRUE';
   }
-  const lock = LockService.getScriptLock();
-  if (!lock.tryLock(5000)) return errOf_('err-busy', 'busy');
-  try {
+  const early = withWriteLock_(() => {
     clearCache();
     const t = read(TAB.media);
-    if (!t.sheet) return { error: 'The media tab is not there yet — open the site once as an admin so setup makes it. Nothing was saved.' };
+    if (!t.sheet) return { error: nothingSaved_('The media tab is not there yet — open the site once as an admin so setup makes it.') };
     const r = mediaRowOf_(t, kind, id);
     const by = S(body.personId), now = new Date();
     if (action === 'mediaDelete') {
@@ -110,15 +108,14 @@ function mediaWrite_(action, body) {
       setCells(t, r, put);
     } else {
       if (action === 'mediaHide' && put.hidden === 'FALSE') return { error: 'Nothing to show again.' };
-      if (action === 'mediaSave' && MEDIA_FILE_RE.test(id)) return { error: 'That uploaded reel is not there any more. Nothing was saved.' };
+      if (action === 'mediaSave' && MEDIA_FILE_RE.test(id)) return { error: nothingSaved_('That uploaded reel is not there any more.') };
       if (!addRow(t, Object.assign({ media_id: kind + ':' + id, kind: kind, yt_id: id, added_by: by, added_on: now, updated_on: now }, put))) {
         return { error: 'The media tab could not be opened — nothing was saved.' };
       }
     }
     try { SpreadsheetApp.flush(); } catch (err) { /* flush is an early write; Apps Script writes at the end anyway */ }
-  } finally {
-    lock.releaseLock();
-  }
+  }, { busy: () => errOf_('err-busy', 'busy') });
+  if (early) return early;
   clearCache();
   return { success: true, kind: kind, id: id, media: mediaOut_(Infinity) };
 }
