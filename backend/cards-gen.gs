@@ -670,6 +670,213 @@ function handleFold_(v) {
     .replace(/0/g, 'o').replace(/1/g, 'i').replace(/3/g, 'e').replace(/4/g, 'a')
     .replace(/5/g, 's').replace(/7/g, 't').replace(/8/g, 'b').replace(/9/g, 'g');
 }
+/* from js/data-text.js */
+const MONTH_NAMES = ['January','February','March','April','May','June',
+                     'July','August','September','October','November','December'];
+/* from js/find-aloud.js */
+const LEVEL_TABLE = SHARED_SETTINGS.levels.list;
+/* from js/find-finder.js */
+const SPELL_KEYS = new Map();
+const spellKey_ = v => {
+  const raw = String(v == null ? '' : v);
+  let k = SPELL_KEYS.get(raw);
+  if (k === undefined) {
+    k = raw.toLowerCase().replace(/[^a-z0-9]/g, '');
+    SPELL_KEYS.set(raw, k);
+  }
+  return k;
+};
+/* from js/find-levels.js */
+function levelsIn_(cell) {
+  const key = v => String(v == null ? '' : v).toLowerCase().replace(/[^a-z0-9+]/g, '');
+  const find = v => LEVEL_TABLE.find(l => key(l.level) === key(v) || l.says.some(s => key(s) === key(v)));
+  const out = [];
+  const add = v => { if (v && out.indexOf(v) === -1) out.push(v); };
+  /* TWO KNOWN LEVELS JOINED: by a dash, `to` or a slash (a list), or a bare hyphen at any point where both sides are levels. */
+  const pair = t => {
+    const e = t.split(/\s*[–—/]\s*|\s+-\s+|\s+to\s+/i);
+    if (e.length === 2 && find(e[0]) && find(e[1])) return [find(e[0]), find(e[1]), t.indexOf('/') !== -1];
+    for (let i = t.indexOf('-'); i > 0; i = t.indexOf('-', i + 1)) {
+      const a = find(t.slice(0, i)), b = find(t.slice(i + 1));
+      if (a && b) return [a, b, false];
+    }
+    return null;
+  };
+  String(Array.isArray(cell) ? cell.join(',') : cell == null ? '' : cell).split(',').forEach(atom => {
+    const t = atom.trim();
+    if (!t) return;
+    const l = find(t);
+    if (l) { add(l.level); return; }
+    const p = pair(t);
+    if (!p) { add(t); return; }
+    const [a, b, list] = p;
+    /* Only two rungs of the ladder span the levels between; a slash, or an end off the ladder (AS, 11+), is just the two. */
+    if (list || !a.rung || !b.rung) { add(a.level); add(b.level); return; }
+    const lo = Math.min(a.rung, b.rung), hi = Math.max(a.rung, b.rung);
+    LEVEL_TABLE.filter(e => e.rung >= lo && e.rung <= hi).forEach(e => add(e.level));
+  });
+  return out;
+}
+const LEVELS_IN = new Map();
+const levelsMemo_ = cell => {
+  const k = Array.isArray(cell) ? cell.join(',') : String(cell == null ? '' : cell);
+  let v = LEVELS_IN.get(k);
+  if (!v) { v = Object.freeze(levelsIn_(k)); LEVELS_IN.set(k, v); }
+  return v;
+};
+function levelsOf_(x) {
+  const band = (x && x.bandType === 'stage' && x.bandValue) ? String(x.bandValue) : '';
+  const own = levelsMemo_(band || (x && x.level) || (x && x.row && x.row.level) || '');
+  return own.length ? own : levelsMemo_(ksFallback_(x));
+}
+function satsStagesOf_(x) {
+  /* ONLY A SATs ROW (owner, as its note says): a KS3 sheet taught across `KS2, KS3` keeps both (unify batch 7, the email's rule). */
+  if (levelsOf_(x).indexOf('SATs') === -1) return [];
+  const yr = (x && x.bandType === 'year') ? Number(x.bandValue) : NaN;
+  if (yr >= 1 && yr <= 6) return [yr <= 2 ? 'KS1' : 'KS2'];
+  const named = /\bks\s*([12])\b/i.exec(String((x && x.bandType === 'stage' && x.bandValue)
+    || (x && x.level) || (x && x.row && x.row.level) || ''));
+  if (named) return ['KS' + named[1]];
+  const out = [];
+  keyStagesOf_(x).forEach(k => {
+    const m = /^ks\s*([12])$/i.exec(k);
+    if (m && out.indexOf('KS' + m[1]) < 0) out.push('KS' + m[1]);
+  });
+  return out.sort();
+}
+function ksLevel_(k) {
+  const l = LEVEL_TABLE.find(e => e.rung && e.stages.some(s => spellKey_(s) === spellKey_(k)));
+  return l ? l.level : String(k || '');
+}
+function keyStagesOf_(x) {
+  return String((x && x.keystage) || '').split(',').map(s => s.trim()).filter(Boolean);
+}
+function ksFallback_(x) {
+  const yr = (x && x.bandType === 'year') ? Number(x.bandValue) : NaN;
+  if (yr >= 1 && yr <= 11) return yr <= 6 ? 'SATs' : yr <= 9 ? 'KS3' : 'GCSE';
+  const ks = keyStagesOf_(x).filter(k => /^ks[1-5]$/i.test(k)).sort();
+  return ks.length ? ksLevel_(ks[ks.length - 1]) : '';
+}
+function yearOf(x) {
+  const own = String((x && x.year) || '').trim();
+
+  /* ---------- THE COLUMN HOLDS DATES, NOT YEARS § */
+  const inOwn = own.match(/\b(19|20)\d{2}\b/);
+  if (inOwn) return inOwn[0];
+
+  /* A short label that is not a date and not a year — "Spec", "Sample" — is somebody being
+     deliberate, so it is kept. Anything long enough to be a sentence is not a year, and passing it
+     through is what produced the mess above. */
+  if (own && own.length <= 9 && !/\s/.test(own)) return own;
+
+  const m = String((x && x.examWave) || '').match(/\b(19|20)\d{2}\b/);
+  return m ? m[0] : '';
+}
+function seriesOf_(m) {
+  /* `MONTH_NAMES` FROM data.js — this file had TWO private copies of the twelve months and games.js
+     had a third until somebody deleted it with a note saying why. One list, one place. */
+  const MONTH = MONTH_NAMES;
+  const n = Number(m);
+  if (!isFinite(n) || n < 1 || n > 12) return '';
+  if (n >= 5 && n <= 7) return SERIES_SUMMER;
+  if (n >= 10 && n <= 12) return SERIES_AUTUMN;
+  return MONTH[n - 1];
+}
+const SERIES_SUMMER = 'Summer';
+const SERIES_AUTUMN = 'Autumn';
+function waveOf(x) {
+  const raw = String((x && x.examWave) || '').trim();
+  if (!raw) return waveFromDoc_(x);
+
+  const MONTH = MONTH_NAMES;
+
+  /* ---------- A PHASE WORD IS A THIRD SPELLING OF THE SAME THING § */
+  const phase = raw.match(/^(first|second|third)\s+wave$/i);
+  if (phase) {
+    const mth = Number((x && x.month) || (x && x.row && x.row.month) || 0);
+    const yr  = yearOf(x);
+    const series = seriesOf_(mth) || (/^first$/i.test(phase[1]) ? SERIES_SUMMER : SERIES_AUTUMN);
+    return yr ? series + ' ' + yr : raw;
+  }
+
+  /* ALREADY A SITTING. "June 2024", "Nov 2023" — somebody typed what they meant. */
+  const said = raw.match(/^([A-Za-z]{3,9})\s+((?:19|20)\d{2})$/);
+  if (said) {
+    const i = MONTH.findIndex(m => m.toLowerCase().startsWith(said[1].toLowerCase().slice(0, 3)));
+    return i < 0 ? raw : seriesOf_(i + 1) + ' ' + said[2];
+  }
+
+  /* A DATE THAT CAME THROUGH AS TEXT. § */
+  const long = raw.match(/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\b[^]*?\b((?:19|20)\d{2})\b/);
+  if (long) {
+    const i = MONTH.findIndex(m => m.slice(0, 3) === long[1]);
+    return i < 0 ? long[2] : seriesOf_(i + 1) + ' ' + long[2];
+  }
+
+  const iso = raw.match(/\b((?:19|20)\d{2})-(\d{2})-\d{2}\b/);
+  if (iso) {
+    return seriesOf_(parseInt(iso[2], 10)) + ' ' + iso[1];
+  }
+
+  /* Nothing recognisable but a year in it somewhere — better than the whole string. */
+  const bare = raw.match(/\b(19|20)\d{2}\b/);
+  return bare ? bare[0] : raw;
+}
+function waveFromDoc_(x) {
+  const r = (x && x.row) || x || {};
+  const type = String((x && x.documentType) || r.document_type || '').toLowerCase();
+  if (type !== 'past paper') return '';
+  const doc = docById_(paperIdOf_(r)) || {};
+  /* AND THE NAME, WHICH IS WHAT THE COVER PRINTS. § */
+  const named = /\s[\u2014\u2013]\s([A-Za-z]{3,9})\s+((?:19|20)\d{2})\s*$/.exec(String(doc.name || r.name || ''));
+  const fromName = named ? MONTH_NAMES.findIndex(m => m.toLowerCase().startsWith(named[1].toLowerCase().slice(0, 3))) + 1 : 0;
+  const mth = Number((x && x.month) || r.month || doc.month || 0) || fromName;
+  const yr = yearOf(x) || String(doc.year || '').trim() || (named ? named[2] : '');
+  /* A YEAR WITH NO MONTH IS NOT A SITTING, and it is refused rather than returned bare: § */
+  const series = seriesOf_(mth);
+  return series && /^(19|20)\d{2}$/.test(yr) ? series + ' ' + yr : '';
+}
+/* from js/find-parts.js */
+const ROMAN_ONLY = /^(i{1,3}|iv|vi{0,3}|ix|xi{0,3})$/i;
+const NUM_ROMAN = /^(\d+)(i{1,3}|iv|vi{0,3}|ix|xi{0,3})$/i;
+const partBare_ = p => String(p == null ? '' : p).trim().toLowerCase().replace(/[()\s]/g, '');
+function partSplit_(part, numerals) {
+  const s = partBare_(part);
+  if (!s) return { part: '', sub: '' };
+  if (/^\d+$/.test(s)) return { part: '.' + Number(s), sub: '' };
+  if (numerals && ROMAN_ONLY.test(s)) return { part: '', sub: s };
+  const n = NUM_ROMAN.exec(s);
+  if (n) return { part: '.' + Number(n[1]), sub: n[2] };
+  const m = /^([a-z])(i{1,3}|iv|vi{0,3}|ix|xi{0,3})?$/.exec(s);
+  return m ? { part: m[1], sub: m[2] || '' } : null;
+}
+/* from js/find-cells.js */
+const CELL_ENT = { amp: '&', nbsp: ' ', rsquo: '\u2019', lsquo: '\u2018', rdquo: '\u201d', ldquo: '\u201c', apos: "'", quot: '"', deg: '\u00b0',
+  minus: '\u2212', times: '\u00d7', divide: '\u00f7', ndash: '\u2013', mdash: '\u2014', hellip: '\u2026', pound: '\u00a3', micro: '\u00b5', plusmn: '\u00b1', lt: '<', gt: '>' };
+function cellsOf_(x) {
+  /* an HTML entity (`&rsquo;`) is its character first, so its `;` never splits a blank; a label is up to 60 characters (17 Nov) */
+  const raw = String((x && x.cells) || '').replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (m, e) => e[0] === '#'
+    ? String.fromCodePoint(parseInt(e.slice(e[1] === 'x' || e[1] === 'X' ? 2 : 1), e[1] === 'x' || e[1] === 'X' ? 16 : 10))
+    : (CELL_ENT[e.toLowerCase()] || m)).trim();
+  if (!raw) return [];
+  return raw.split(';').map((c, i) => {
+    const m = /^\s*([^=|]{1,60}?)\s*=\s*(.*)$/.exec(c);
+    const ways = (m ? m[2] : c).trim();
+    return { label: m ? m[1].trim() : String(i + 1), ways: ways === '-' ? '' : ways };
+  });
+}
+/* from js/rules.js */
+function rulesSane_(v) {
+  let o = v;
+  if (typeof o === 'string') { try { o = JSON.parse(o); } catch (e) { return null; } }
+  if (!o || typeof o !== 'object' || Array.isArray(o)) return null;
+  const set = {}, s = o.set && typeof o.set === 'object' ? o.set : {};
+  Object.keys(s).forEach(k => { const r = RULE_OF_(k); if (r && !r.lock && s[k] === 'universal') set[k] = 'universal'; });
+  const ok = x => x === 'exception' || x === 'universal';
+  const hist = (Array.isArray(o.hist) ? o.hist : []).filter(h => h && RULE_OF_(h.id) && !RULE_OF_(h.id).lock && ok(h.was) && ok(h.to))
+    .slice(-RULES_HIST_MAX).map(h => ({ id: String(h.id), was: h.was, to: h.to, at: String(h.at || '').slice(0, 40) }));
+  return { set: set, hist: hist };
+}
 /* from js/predicates-fig.js */
 const FIG_WORDS = /\b(grid|diagrams?|shapes?|tables?|graphs?|charts?|histogram|pictogram|figure|drawn|shown|below|number line|axes|axis|scatter|spinner|protractor|coordinate grid|scale drawing)\b/i;
 const FIG_NOT_WORDS = /\b(in figures|national grid|periodic tables?|below (?:the )?(?:surface|water|sea|ground|zero|freezing)|[xy]\s*-?\s*axis|significant figures?|figures? (?:on|of) )/gi;

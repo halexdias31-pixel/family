@@ -56,8 +56,6 @@ const digestTagHue_ = f => 'h' + (TAG_OF[f] || 0);
 /* `LIB_SOURCES` (js/find.js): a worksheet maker is a Source and its sheet has no exam board (O3). */
 const DIGEST_SOURCES = ['1st Class Maths', 'Corbettmaths', 'Access Tuition', 'GL Assessment'];
 const digestTagSource_ = q => DIGEST_SOURCES.find(s => digestSpell_(s) === digestSpell_(digestLibS_(q.company))) || '';
-const DIGEST_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-const DIGEST_ROMAN = /^(i{1,3}|iv|vi{0,3}|ix|xi{0,3})$/i;
 
 /* THE LIBRARY FOR THE TAGS, IN ONE PASS OVER THE FILE: § */
 function digestTagIndex_(text, pids, facets) {
@@ -100,104 +98,18 @@ function digestTagItem_(q) {
            bandType: digestLibS_(q.band_type), bandValue: digestLibS_(q.band_value), tier: digestLibS_(q.tier),
            examBoard: digestTagSource_(q) ? '' : digestLibS_(q.exam_board), examWave: digestLibS_(q.exam_wave), year: digestLibS_(q.year), sub: digestLibS_(q.name) };
 }
-/* `levelOf_` and `ksFallback_`. */
-function digestTagLevel_(it) {
-  const band = it.bandType === 'stage' && it.bandValue ? String(it.bandValue) : '';
-  let own = band || String(it.src.level || '').trim();
-  if (!own) {
-    const yr = it.bandType === 'year' ? Number(it.bandValue) : NaN;
-    if (yr >= 1 && yr <= 11) own = yr <= 6 ? 'SATs' : yr <= 9 ? 'KS3' : 'GCSE';
-    else {
-      const ks = digestTagStages_(it).filter(k => /^ks[1-5]$/i.test(k)).sort();
-      const k = ks.length ? ks[ks.length - 1] : '';
-      own = k ? ({ ks1: 'SATs', ks2: 'SATs', ks3: 'KS3', ks4: 'GCSE', ks5: 'A-Level' }[digestSpell_(k)] || k) : '';
-    }
-  }
-  const l = digestLevelsIn_(own);
-  return l.length > 1 ? l : (l[0] || '');
-}
-/* THE LEVELS ARE data/settings/settings.json `levels` (owner, 17 Nov), here as SHARED_SETTINGS (constants.gs) — the site's LEVEL_TABLE. */
-/* Read when called, so the order Apps Script loads its files in never matters. */
-const digestLevels_ = () => SHARED_SETTINGS.levels.list;
-function digestLevelsIn_(cell) {
-  const key = v => String(v == null ? '' : v).toLowerCase().replace(/[^a-z0-9+]/g, '');
-  const find = v => digestLevels_().find(l => key(l.level) === key(v) || l.says.some(s => key(s) === key(v)));
-  const out = [];
-  const add = v => { if (v && out.indexOf(v) === -1) out.push(v); };
-  const pair = t => {
-    const e = t.split(/\s*[–—/]\s*|\s+-\s+|\s+to\s+/i);
-    if (e.length === 2 && find(e[0]) && find(e[1])) return [find(e[0]), find(e[1]), t.indexOf('/') !== -1];
-    for (let i = t.indexOf('-'); i > 0; i = t.indexOf('-', i + 1)) {
-      const a = find(t.slice(0, i)), b = find(t.slice(i + 1));
-      if (a && b) return [a, b, false];
-    }
-    return null;
-  };
-  String(Array.isArray(cell) ? cell.join(',') : cell == null ? '' : cell).split(',').forEach(atom => {
-    const t = atom.trim();
-    if (!t) return;
-    const l = find(t);
-    if (l) { add(l.level); return; }
-    const p = pair(t);
-    if (!p) { add(t); return; }
-    const a = p[0], b = p[1];
-    if (p[2] || !a.rung || !b.rung) { add(a.level); add(b.level); return; }
-    const lo = Math.min(a.rung, b.rung), hi = Math.max(a.rung, b.rung);
-    digestLevels_().filter(e => e.rung >= lo && e.rung <= hi).forEach(e => add(e.level));
-  });
-  return out;
-}
-const digestTagStages_ = it => String(it.keystage || '').split(',').map(s => s.trim()).filter(Boolean);
-/* `satsStagesOf_`, asked only of a SATs row. */
-function digestTagSats_(it) {
-  if (digestList_(digestTagLevel_(it)).indexOf('SATs') === -1) return [];
-  const yr = it.bandType === 'year' ? Number(it.bandValue) : NaN;
-  if (yr >= 1 && yr <= 6) return [yr <= 2 ? 'KS1' : 'KS2'];
-  const named = /\bks\s*([12])\b/i.exec(String((it.bandType === 'stage' && it.bandValue) || it.src.level || ''));
-  if (named) return ['KS' + named[1]];
-  const out = [];
-  digestTagStages_(it).forEach(k => { const m = /^ks\s*([12])$/i.exec(k); if (m && out.indexOf('KS' + m[1]) < 0) out.push('KS' + m[1]); });
-  return out.sort();
-}
-/* `yearOf`, `seriesOf_`, `waveOf` and `waveFromDoc_`: the sitting as "Summer 2024", read as `sittingOf_` splits it. */
-function digestTagYearOf_(it) {
-  const own = String(it.year || '').trim(), inOwn = own.match(/\b(19|20)\d{2}\b/);
-  if (inOwn) return inOwn[0];
-  if (own && own.length <= 9 && !/\s/.test(own)) return own;
-  const m = String(it.examWave || '').match(/\b(19|20)\d{2}\b/);
-  return m ? m[0] : '';
-}
-function digestTagSeries_(m) {
-  const n = Number(m);
-  if (!isFinite(n) || n < 1 || n > 12) return '';
-  return n >= 5 && n <= 7 ? 'Summer' : n >= 10 && n <= 12 ? 'Autumn' : DIGEST_MONTHS[n - 1];
-}
-const digestTagMonthAt_ = w => DIGEST_MONTHS.findIndex(m => m.toLowerCase().startsWith(String(w).toLowerCase().slice(0, 3)));
+/* THE ITEM AS THE SITE'S `questionItems` HANDS IT TO ITS READERS (unify batch 7): the cells by the item's names, the row as `row`. */
+/* The level, key stage and sitting are then the site's own `levelsOf_`, `satsStagesOf_` and `waveOf` (cards-gen.gs), never a port. */
+const digestSiteItem_ = it => ({ bandType: it.bandType, bandValue: it.bandValue, keystage: it.keystage, examWave: it.examWave, year: it.year,
+  documentType: it.documentType, row: it.src });
+/* `levelOf_` (find-levels.js; booking.gs has its own `levelOf_`, of roles): one level as itself, several as a list. */
+const digestTagLevel_ = it => { const l = levelsOf_(digestSiteItem_(it)); return l.length > 1 ? l : (l[0] || ''); };
+/* `waveFromDoc_` asks `docById_` for the paper's row: here, the library the tags were indexed from (`digestTagWave_` sets it). */
+let DIGEST_DOCS_ = {};
+const docById_ = id => DIGEST_DOCS_[S(id)] || null;
 function digestTagWave_(it, T) {
-  const raw = String(it.examWave || '').trim(), q = it.src;
-  if (!raw) {
-    if (String(it.documentType || q.document_type || '').toLowerCase() !== 'past paper') return '';
-    const doc = T.docs[S(q.paper_id)] || {};
-    const named = /\s[—–]\s([A-Za-z]{3,9})\s+((?:19|20)\d{2})\s*$/.exec(String(doc.name || q.name || ''));
-    const mth = Number(q.month || doc.month || 0) || (named ? digestTagMonthAt_(named[1]) + 1 : 0);
-    const yr = digestTagYearOf_(it) || String(doc.year || '').trim() || (named ? named[2] : '');
-    const series = digestTagSeries_(mth);
-    return series && /^(19|20)\d{2}$/.test(yr) ? series + ' ' + yr : '';
-  }
-  const phase = raw.match(/^(first|second|third)\s+wave$/i);
-  if (phase) {
-    const yr = digestTagYearOf_(it);
-    const series = digestTagSeries_(Number(q.month || 0)) || (/^first$/i.test(phase[1]) ? 'Summer' : 'Autumn');
-    return yr ? series + ' ' + yr : raw;
-  }
-  const said = raw.match(/^([A-Za-z]{3,9})\s+((?:19|20)\d{2})$/);
-  if (said) { const i = digestTagMonthAt_(said[1]); return i < 0 ? raw : digestTagSeries_(i + 1) + ' ' + said[2]; }
-  const long = raw.match(/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\b[^]*?\b((?:19|20)\d{2})\b/);
-  if (long) { const i = DIGEST_MONTHS.findIndex(m => m.slice(0, 3) === long[1]); return i < 0 ? long[2] : digestTagSeries_(i + 1) + ' ' + long[2]; }
-  const iso = raw.match(/\b((?:19|20)\d{2})-(\d{2})-\d{2}\b/);
-  if (iso) return digestTagSeries_(parseInt(iso[2], 10)) + ' ' + iso[1];
-  const bare = raw.match(/\b(19|20)\d{2}\b/);
-  return bare ? bare[0] : raw;
+  DIGEST_DOCS_ = (T && T.docs) || {};
+  return waveOf(digestSiteItem_(it));
 }
 function digestTagYear_(it, T) {
   const w = String(digestTagWave_(it, T) || '').trim();
@@ -210,7 +122,7 @@ function digestTagMonth_(it, T) {
   const q = it.src, doc = T.docs[S(q.paper_id)] || {};
   const ofDate = v => { const m = /\b(?:19|20)\d{2}-(\d{2})-\d{2}\b/.exec(String(v || '')); return m ? Number(m[1]) : 0; };
   const ofWord = v => {
-    const i = DIGEST_MONTHS.findIndex(n => n.slice(0, 3).toLowerCase() === String(v || '').slice(0, 3).toLowerCase());
+    const i = MONTH_NAMES.findIndex(n => n.slice(0, 3).toLowerCase() === String(v || '').slice(0, 3).toLowerCase());
     return i < 0 ? 0 : i + 1;
   };
   const ofName = v => { const m = /\s[—–]\s(?:\d{1,2}\s+)?([A-Za-z]{3,9})\s+(?:19|20)\d{2}\s*$/.exec(String(v || '')); return m ? ofWord(m[1]) : 0; };
@@ -231,15 +143,15 @@ function digestTagMonth_(it, T) {
   }
   const k = digestSittingKey_(Object.assign({}, doc, q), digestTagYear_(it, T), own);
   const n = Math.max(own, (k && T.sittingLast[k]) || 0);
-  return n >= 1 && n <= 12 ? DIGEST_MONTHS[n - 1] : '';
+  return n >= 1 && n <= 12 ? MONTH_NAMES[n - 1] : '';
 }
 function digestSittingKey_(r, year, m) {
-  const ser = digestTagSeries_(m), lc = v => S(v).toLowerCase();
+  const ser = seriesOf_(m), lc = v => S(v).toLowerCase();
   return ser && year ? [lc(r.subject), lc(r.exam_board || r.company), lc(r.level || r.band_value), S(year), lc(ser)].join('|') : '';
 }
 /* `facetSay_`'s one way of saying a value: its first letter capitalised, unless it is a single lower-case letter or a roman numeral. */
 const digestSay_ = v => { const t = String(v == null ? '' : v).trim(); return /^(?:[a-z]|[ivx]+)$/.test(t) ? t : t.charAt(0).toUpperCase() + t.slice(1); };
-const digestTagKeystage_ = it => { const s = digestTagSats_(it); return s.length ? s : digestTagStages_(it); };
+const digestTagKeystage_ = it => { const x = digestSiteItem_(it), s = satsStagesOf_(x); return s.length ? s : keyStagesOf_(x); };
 /* `paperSectionOf_` (js/find-finder.js, 770): a paper sat in sections is its real number — Paper 3, Section A, never Paper 31 — read from its id or its title. */
 function digestPaperSection_(doc) {
   const id = S((doc && (doc.paper_id || doc.paperId)) || '');
@@ -277,9 +189,9 @@ function digestTagFit_(f, text, T) {
 function digestTagDate_(q) {
   const iso = /^\s*(?:19|20)\d{2}-(\d{2})-(\d{2})\b/.exec(S(q.date || q.exam_date || ''));
   const named = /\s[\u2014\u2013]\s(\d{1,2})\s+([A-Za-z]{3,9})\s*$/.exec(S(q.name || ''));
-  const mi = iso ? Number(iso[1]) : named ? DIGEST_MONTHS.findIndex(n => n.slice(0, 3).toLowerCase() === named[2].slice(0, 3).toLowerCase()) + 1 : 0;
+  const mi = iso ? Number(iso[1]) : named ? MONTH_NAMES.findIndex(n => n.slice(0, 3).toLowerCase() === named[2].slice(0, 3).toLowerCase()) + 1 : 0;
   const day = iso ? Number(iso[2]) : named ? Number(named[1]) : 0;
-  return mi >= 1 && mi <= 12 && day >= 1 && day <= 31 ? { month: DIGEST_MONTHS[mi - 1], day: String(day) } : {};
+  return mi >= 1 && mi <= 12 && day >= 1 && day <= 31 ? { month: MONTH_NAMES[mi - 1], day: String(day) } : {};
 }
 /* `verifyTags_` (js/find-levels.js): checked against the scheme, machine-marked, and nothing it names undrawn (`figUndrawn_`, cards-gen.gs) */
 /* — beside its stems and the part it `uses`. */
@@ -300,21 +212,10 @@ function digestTagVerified_(q, T) {
 }
 /* `partSplit_`, with the question's own numeral decision (`partNumerals_`): `ai` is [a] [i], AQA's `1` is [.1], a lone `ii` a numeral when every part of the question is one. */
 function digestTagSplit_(q, T) {
-  const bare = p => String(p == null ? '' : p).trim().toLowerCase().replace(/[()\s]/g, '');
   const sib = (T.rows[S(q.paper_id)] || [q]).filter(o => o.kind !== 'preamble' && o.kind !== 'document' && digestLibOn_(o.active)
     && digestLibS_(o.question) === digestLibS_(q.question));
-  const numerals = sib.every(o => { const s = bare(o.part); return !s || DIGEST_ROMAN.test(s); });
-  const split = (part, num) => {
-    const s = bare(part);
-    if (!s) return { part: '', sub: '' };
-    if (/^\d+$/.test(s)) return { part: '.' + Number(s), sub: '' };
-    if (num && DIGEST_ROMAN.test(s)) return { part: '', sub: s };
-    const n = /^(\d+)(i{1,3}|iv|vi{0,3}|ix|xi{0,3})$/i.exec(s);
-    if (n) return { part: '.' + Number(n[1]), sub: n[2] };
-    const m = /^([a-z])(i{1,3}|iv|vi{0,3}|ix|xi{0,3})?$/.exec(s);
-    return m ? { part: m[1], sub: m[2] || '' } : null;
-  };
-  return split(q.part, numerals) || split(q.part, true) || { part: '', sub: '' };
+  const numerals = sib.every(o => { const s = partBare_(o.part); return !s || ROMAN_ONLY.test(s); });
+  return partSplit_(q.part, numerals) || partSplit_(q.part, true) || { part: '', sub: '' };
 }
 /* `needsIndex_`/`needsOf_`: the paper's kit, then the question's, then the printed sheet — the calculator in `NEED_WORDS`' words. */
 function digestTagNeeds_(q, T) {
