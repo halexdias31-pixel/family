@@ -369,7 +369,7 @@ function levelOpts_(x) {
 
 /* ---------- WHO MAY WRITE TO WHOM: settings.json `roles.messaging` (ROLES_), the server's `mayMessage` too, so no Message tile is one it refuses ---------- */
 /* THEIR RANK BY `rank_` over the role(s) named, as the server's `ROLES_.ids[role].rank`. */
-const msgMay_ = role => !!USER && (ROLES_.messaging[rank_()] || []).indexOf(rank_({ roles: String(role || '').split(/\s*,\s*/).filter(Boolean) })) !== -1;
+const msgMay_ = role => !!USER && rankMayMessage_(rank_(), rank_({ roles: String(role || '').split(/\s*,\s*/).filter(Boolean) }));
 const msgTile_ = (name, id) => tile_({ icon: 'chat', label: 'Message ' + fmtName_(name, 'first'), note: 'a note to them', act: 'msg-open', data: { to: name, id: id || '' } });
 /* THE PEOPLE ON A SESSION BESIDES YOU: its families and its tutor, each with the role the server judges by (1040 friction). */
 function jobPeople_(j) {

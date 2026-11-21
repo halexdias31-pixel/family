@@ -26,11 +26,11 @@ function oops_(err, where, host, o) {
     try { toast(text_('something-went-wrong-there')); } catch (e) { /* the report still goes */ }
   }
   const key = msg + '|' + where;
-  if (OOPS.sent.has(key) || OOPS.n >= OOPS.max || typeof API !== 'string' || typeof fetch !== 'function') return;
+  if (OOPS.sent.has(key) || OOPS.n >= OOPS.max || typeof API !== 'string' || typeof fetch !== 'function' || typeof backendFetch_ !== 'function') return;
   OOPS.sent.add(key); OOPS.n++;
   const body = { action: 'clientError', message: msg, where: where, version: typeof SITE_VERSION === 'string' ? SITE_VERSION : '',
                  screen: typeof AT === 'string' ? AT : '', device: oopsDevice_() };
-  try { Promise.resolve(fetch(API, { method: 'POST', cache: 'no-store', body: JSON.stringify(body) })).catch(() => {}); }
+  try { backendFetch_(body, { quiet: true }); }
   catch (e) { /* a report that cannot leave is only lost */ }
 }
 window.addEventListener('error', e => oops_(e && (e.error || e.message), 'onerror', null, { toast: true }));
@@ -51,14 +51,14 @@ function fieldRow_() {
     heap_mb: performance.memory ? Math.round(performance.memory.usedJSHeapSize / 104857.6) / 10 : '', errors: OOPS.n };
 }
 function fieldSend_(final) {
-  if (!FIELD.on || FIELD.sent || typeof API !== 'string' || typeof fetch !== 'function') return;
+  if (!FIELD.on || FIELD.sent || typeof API !== 'string' || typeof fetch !== 'function' || typeof backendFetch_ !== 'function') return;
   FIELD.sent = true;
   let q = [];
   q = keep_.json('familyField', []);
   q.push(fieldRow_());
   if (q.length < 3 && !final) { if (!keep_.put('familyField', JSON.stringify(q.slice(-5)))) FIELD.lost = (FIELD.lost || 0) + 1; return; }
   if (!keep_.del('familyField')) FIELD.lost = (FIELD.lost || 0) + 1;
-  try { Promise.resolve(fetch(API, { method: 'POST', cache: 'no-store', keepalive: true, body: JSON.stringify({ action: 'healthLog', device: fieldDevice_(), rows: q.slice(-5) }) })).catch(() => {}); }
+  try { backendFetch_({ action: 'healthLog', device: fieldDevice_(), rows: q.slice(-5) }, { quiet: true, keepalive: true }); }
   catch (e) { FIELD.lost = (FIELD.lost || 0) + 1; }
 }
 if (FIELD.on) {

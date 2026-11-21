@@ -4,7 +4,7 @@
  "days": [["m", "Monday"], ["tu", "Tuesday"], ["w", "Wednesday"], ["th", "Thursday"], ["f", "Friday"], ["sa", "Saturday"], ["su", "Sunday"]],
  "hours": [9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
  "roles": {
-  "_about": "THE ROLES (owner, 17 Nov), one place: `ids` in order of precedence (the first a person holds is their main role) — each its label, the old words that mean it (`aliases`), what the app calls it (`app`), its rank (people.gs rankOf; a `pending` tutor keeps their other rank), the permission tier its rank maps to (actions.json `roles`), whether a person may tick it for themselves (`self`), and `signIn: false` for a role that never signs in (a contact, owner 17 Nov: a person with no account, never listed, who may have facts; authWhoIs_ gives such a row no token). `default` is a blank role cell; `guest` is nobody signed in. `titles` decide nothing. `tiers` and `ranks` are each in order, lowest first.",
+  "_about": "THE ROLES (owner, 17 Nov), one place: `ids` in order of precedence (the first a person holds is their main role) — each its label, the old words that mean it (`aliases`), what the app calls it (`app`), its rank (people.gs rankOf; a `pending` tutor keeps their other rank), the permission tier its rank maps to (actions.json `roles`), whether a person may tick it for themselves (`self`), and `signIn: false` for a role that never signs in (a contact, owner 17 Nov: a person with no account, never listed, who may have facts; authWhoIs_ gives such a row no token). `default` is a blank role cell; `guest` is nobody signed in. `titles` decide nothing. `tiers` and `ranks` are each in order, lowest first. `notify`: the roles an email reaches somebody by (constants.gs NOTIFY_ALL_ROLES). `form`: the roles the admin's people form ticks, in the order it draws them (people.gs PEOPLE_ROLES_).",
   "ids": {
    "admin": {"label": "Admin", "aliases": ["administrator"], "rank": "admin", "tier": "admin", "self": false},
    "tutor": {"label": "Tutor", "aliases": ["teacher"], "rank": "staff", "tier": "member", "self": true, "pending": true},
@@ -23,7 +23,23 @@
    "staff": ["admin", "client", "student"],
    "client": ["admin", "staff"],
    "student": ["admin", "staff"]
-  }
+  },
+  "may": {
+   "_about": "ONE ROLE CHECK (owner, 21 Nov): the fixed words the site's `may_` and the backend's `whoMay_` answer before permissions.json's action rows, both by the shared `mayWord_` (data/settings/roles.js). Each holds when the viewer's tier is in `tiers`, or is not in `notTiers`, or their rank is at least `rank`; `owner` also wants the one owner. Any other word is a permissions.json row.",
+   "admin": {"tiers": ["admin"]},
+   "owner": {"tiers": ["admin"], "owner": true},
+   "prices": {"notTiers": ["child"]},
+   "staff": {"rank": "staff"},
+   "signedIn": {"notTiers": ["anyone"]},
+   "grownUp": {"tiers": ["member", "admin"]}
+  },
+  "see": {
+   "_about": "THE FOUR SEE ROLES (93, 4h): permissions.json's `see` rows are by these; `words` is the role word (after aliases) each comes from. The site's `seeRoles_` reads it.",
+   "roles": ["child", "family", "tutor", "admin"],
+   "words": {"student": "child", "client": "family", "member": "family", "family": "family", "staff": "tutor", "tutor": "tutor", "apprentice": "tutor", "admin": "admin", "business": "admin", "site": "admin"}
+  },
+  "notify": ["client", "student", "tutor", "admin"],
+  "form": ["student", "client", "tutor", "admin", "contact"]
  },
  "limits": {
   "_about": "LIMITS BOTH SIDES KEEP (owner, 20 Nov): how many photos, jobs and library cards a profile holds, favourite links and their title and address lengths, and the weekly email's word cap. Backend constants read these; the site reads SHARED_SETTINGS.limits.",

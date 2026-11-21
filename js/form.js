@@ -1,27 +1,26 @@
 /* @family. — form.js ONE FORM MAKER (84a): every Settings card is drawn here from a spec, so spacing, buttons and labels cannot drift card to card. */
 
-/* THE SPECS ARE data/settings/forms.json (field kinds, rules, Settings cards); this is its copy. An item's forms are its kind's, in kinds.json (ITEM_KINDS). */
-const FORM_SPECS = {
-  "kinds": ["text","number","money","choice","toggle","date","time","picture","list","pin","slider","phone","file","tick","hidden","long","ticks","toggles","search","timetable","many","doc","head","subjects","shelf","dob","shown"],
-  "rules": [
-    {"kind":"list","match":"^(qual_\\d+|job_\\d+|lib\\d+_|photo_\\d+)|^video$|^venues_ok$"},
-    {"kind":"picture","match":"^photo$"},
-    {"kind":"toggle","match":"^(dbs|active|listed|is_|has_|allow|paid|trackable|stealable)"},
-    {"kind":"date","match":"_date$|^date_of_birth$|^dob_[dmy]$"},
-    {"kind":"time","match":"^(m|tu|w|th|f|sa|su)\\d\\d$"},
-    {"kind":"money","match":"rate|price|cost|fee|seat_cut"},
-    {"kind":"number","match":"hours|km|fraction|pages|year|students|days|weeks|count|level_required|age_|_cut$"},
-    {"kind":"choice","match":"^(borough|city|town|focus|favourite_colour)$"},
-    {"kind":"text","match":""}
-  ],
-  "cards": {
-    "signing-in": {
-      "title": "Signing in",
-      "ask": "pin-change",
-      "said": "pin-said"
-    }
-  }
+/* THE SPECS ARE data/settings/forms.json (field kinds, rules, Settings cards), copied in below. An item's forms are its kind's, in kinds.json (ITEM_KINDS). */
+/* FORMS:BEGIN — data/settings/forms.json, written by `node tools/build.js` (tools/cards-gen.js); edit the json, never this. */
+const FORM_SPECS = {"kinds":["text","number","money","choice","toggle","date","time","picture","list","pin","slider","phone","file","tick","hidden","long","ticks","toggles","search","timetable","many","doc","head","subjects","shelf","dob","shown"],"rules":[{"kind":"list","match":"^(qual_\\d+|job_\\d+|lib\\d+_|photo_\\d+)|^video$|^venues_ok$"},{"kind":"picture","match":"^photo$"},{"kind":"toggle","match":"^(dbs|active|listed|is_|has_|allow|paid|trackable|stealable)"},{"kind":"date","match":"_date$|^date_of_birth$|^dob_[dmy]$"},{"kind":"time","match":"^(m|tu|w|th|f|sa|su)\\d\\d$"},{"kind":"money","match":"rate|price|cost|fee|seat_cut"},{"kind":"number","match":"hours|km|fraction|pages|year|students|days|weeks|count|level_required|age_|_cut$"},{"kind":"choice","match":"^(borough|city|town|focus|favourite_colour)$"},{"kind":"text","match":""}],"cards":{"signing-in":{"title":"Signing in","ask":"pin-change","said":"pin-said"}}};
+/* FORMS:END */
+/* WHAT A FORM STILL LACKS (job G: one form engine): its kind's form `gaps` in kinds.json, each a `say` and `all` (or `any` of lists) of "field:test". */
+/* The phone asks it before sending and the backend again on receipt (tools/cards-gen.js copies these two into backend/cards-gen.gs, with FORM_GAPS). */
+const FORM_TESTS = {
+  filled: v => String(v == null ? '' : v).trim() !== '',
+  email: v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v || '').trim()),
+  postcode: v => /^[A-Z]{1,2}\d[A-Z\d]? ?\d[A-Z]{2}$/i.test(String(v || '').trim()),
+  isodate: v => /^\d{4}-\d\d-\d\d$/.test(String(v || '').trim()),
+  image: v => /^data:image\//i.test(String(v || '')),
+  pics: v => [].concat(v || []).some(x => /^data:image\//i.test(String(x || ''))),
+  yes: v => v === true || /^true$/i.test(String(v || '')),
+  yesno: v => /^(yes|no)$/i.test(String(v || '').trim()),
+  rate: v => Number(v) > 0 && Number(v) < 1000,
 };
+function formGaps_(gaps, body) {
+  const ok = t => { const [f, test] = t.split(':'); return FORM_TESTS[test](body[f]); };
+  return (gaps || []).filter(g => !(g.any ? g.any.some(l => l.every(ok)) : (g.all || []).every(ok))).map(g => g.say);
+}
 
 /* WHICH OF THE KINDS A FIELD IS, by the first rule its name matches; the last rule catches everything as text. */
 /* EVERY FORM IS ITS KIND'S (data/settings/kinds.json `forms`): read from KINDS, each told the kind it fills. */

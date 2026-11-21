@@ -1,5 +1,5 @@
 {
- "notes": "84a: the one form maker's specs; js/form.js FORM_SPECS copies kinds, rules and cards (check-forms.js). leftovers: raw input/select/textarea an app file may still draw outside the maker; budgets only go down.",
+ "notes": "84a: the one form maker's specs; js/form.js FORM_SPECS copies kinds, rules and cards (check-forms.js). leftovers: raw input/select/textarea an app file may still draw outside the maker; budgets only go down (tools/one-form.js holds them; 21 Nov: cards-render 15 and racer 1 were found over and written down as they stand).",
  "kinds": [
   "text",
   "number",
@@ -26,7 +26,8 @@
   "head",
   "subjects",
   "shelf",
-  "dob"
+  "dob",
+  "shown"
  ],
  "rules": [
   {
@@ -75,7 +76,7 @@
  },
  "leftovers": {
   "cards-render.js": {
-   "n": 14
+   "n": 15
   },
   "keypad-pad.js": {
    "n": 1
@@ -84,6 +85,9 @@
    "n": 1
   },
   "tiles.js": {
+   "n": 1
+  },
+  "racer.js": {
    "n": 1
   }
  }

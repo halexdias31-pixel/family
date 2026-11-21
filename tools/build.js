@@ -16,6 +16,8 @@ const ORDER = [
   'aliases_gs',   // question-aliases.json -> js/qaliases.js (cards-gen copies it on)
   'words',        // words.json -> js/core.js (cards-gen copies it on)
   'cards-gen',    // js/ (words, aliases) -> js/core.js and backend/constants.gs SHARED, backend/cards-gen.gs
+  'one-form',     // the one-form check (rule 1.75, job G): every form from data/settings, the phone and the backend refusing on the same gaps; fails the build
+  'one-role',     // the one-role check (rule 1.75, owner 21 Nov): role words, ranks, the Message table and may_ rules only in settings.json `roles` and data/settings/roles.js; a twin fails the build
   'permissions',  // -> permissions.json and backend/*.gs blocks
   'word-freq',    // data/pdtexts -> data/word-freq.json
   'facet-hues',   // walks the app over every js/ write above -> TAG_OF, data/facet-graph.json
@@ -33,8 +35,10 @@ const ORDER = [
   'email-ink',    // the email-ink check (rule 1.75, 20 Nov): the Sunday email's colours equal style.css tokens, its esc and the card maker's cardUnesc_ round-trip; fails the build
   'digest-clip',  // the digest-clip check (rule 1.75, owner 20 Nov): large weeks through the Sunday email's digestRender_; a part over Gmail's clip or a question without its words fails the build
   'bundle',       // js/ in index.html's order -> bundle/*.js
+  'one-request',  // the one-request check (rule 1.75, unify H): one fetch to the backend (backendFetch_), every posted action in actions.json, one dispatcher; fails the build
   'one-card',     // the one-card check (rule 1.75): every Find card by the one maker, no CSS of its own; fails the build
   'dead-css',     // the dead-css check (rule 1.75, owner 20 Nov): classes in style.css nothing writes, counted against a budget; a rise fails the build
+  'css-tokens',   // the css-tokens check (rule 1.75, unify batch 2): no raw colour (hex, rgb(), a colour keyword) in style.css outside :root; fails the build
   'profile-roles', // the profile-roles check (rule 1.75, queue 4h): each role's Settings cards held against permissions.json's see rows; a card out of place fails the build
   'shared-lists', // the shared-lists check (rule 1.1 by 1.75, owner 20 Nov): every list or limit both sides keep comes from settings.json via SHARED_SETTINGS, and each rank's Message tiles match mayMessage; fails the build
   'build-stamp',  // everything served -> index.html's BUILD_STAMP; last

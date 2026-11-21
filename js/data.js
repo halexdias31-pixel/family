@@ -527,9 +527,7 @@ const can_ = (role, kind, action) => {
 
 /* THREE ROLES FOR WHO SEES A SETTING (93): § */
 /* AND A CHILD'S OWN (4h, owner 20 Nov): a student is `child`, so a child is answered by the child rows alone. */
-const ROLE_THREE_ = { student: 'child', client: 'family', member: 'family', family: 'family',
-  staff: 'tutor', tutor: 'tutor', apprentice: 'tutor', admin: 'admin', business: 'admin', site: 'admin' };
-const SEE_ROLES = ['child', 'family', 'tutor', 'admin'];
+/* ROLE_THREE_ and SEE_ROLES are settings.json `roles.see`, in the SHARED block (js/core.js). */
 const roleThree_ = w => ROLE_THREE_[roleOf(String(w || '').trim())] || '';
 /* THE VIEWER'S SEE ROLES (4h): each role it holds and no other — every `see` row is its own role's whole answer, nothing inherited, */
 /* so Apply to teach can be a grown-up's without being staff's. An account ranked student is a child and holds only `child`. */

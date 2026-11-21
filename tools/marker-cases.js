@@ -93,6 +93,43 @@ const CASES = [
   ['432.6', '430 | rule: count 1, sum 420..440', true, 'a value inside a range rule'],
   ['432.6 years', '430 | rule: count 1, sum 420..440', true, 'a value inside a range rule, with its unit'],
   ['445', '430 | rule: count 1, sum 420..440', false, 'a value outside a range rule'],
+  /* queue 4i: a direction word across a clause word is that clause's, not a contradiction of the point */
+  ['limits the fish caught so more fish survive', 'rule: points max 2; limit~fewer~less fish caught; more fish survive~reproduce', true, 'an opposite direction in the next clause does not cancel the point'],
+  ['fewer fish caught so more fish survive', 'rule: points max 2; limit~fewer~less fish caught; more fish survive~reproduce', true, 'both directions, each in its clause'],
+  ['more fish caught so fewer fish survive', 'rule: points max 2; limit~fewer~less fish caught; more fish survive~reproduce', false, 'both directions swapped between the clauses'],
+  ['more fish are caught', 'rule: points max 1; fewer~less fish caught', false, 'the opposite direction on the point itself still cancels it'],
+  /* queue 4i: one word serves every point it is part of; the very same words never two */
+  ['decomposed by bacteria', 'rule: points max 2; decomposed~decayed bacteria~microbes; bacteria~microbes', true, 'bacteria is the decay point and the bacteria point'],
+  ['bacteria', 'rule: points max 2; decomposed~decayed bacteria~microbes; bacteria~microbes', false, 'bacteria alone is one point, not the decay point'],
+  ['microbes', 'rule: points max 2; microbes~bacteria; bacteria~microbes', false, 'one word found as the same words for two points farms nothing'],
+  /* queue 4i: a comma list in a short answer scores each point it names */
+  ['bacteria, fungi', 'rule: points max 2; bacteria; fungi', true, 'a list of two key words, two points'],
+  ['temperature, moisture, predators', 'rule: points max 3; temperature; moisture; predators', true, 'a list of three key words, three points'],
+  ['bacteria, bacteria', 'rule: points max 2; bacteria; fungi', false, 'the same item twice is one point'],
+  ['viruses, bacteria', 'rule: points max 2; bacteria; fungi', false, 'a list with a wrong item'],
+  ['light, water, soil', 'rule: points max 3; temperature; moisture; predators', false, 'a list of wrong items'],
+  ['rotation. 180. (4, -1).', 'rule: points max 3; rotation / rotate / rotated; 180; (4, -1) / (4,-1)', true, 'a coordinate\'s comma is no list'],
+  ['no and 72', 'rule: points max 1; no and 72', true, 'an "and" between a no and a number is no list'],
+  /* queue 4i: a real word is not a slip of another */
+  ['flatter', 'fatter', false, 'flatter is not fatter'],
+  ['fatter', 'fatter', true, 'fatter as keyed'],
+  ['phototrophism', 'phototropism', false, 'phototrophism is not phototropism'],
+  ['phototropism', 'phototropism', true, 'phototropism as keyed'],
+  ['evaparation', 'evaporation', true, 'a slip that is no word still counts'],
+  ['cells', 'cell', true, 'a plural of the key is the key'],
+  ['particles move from low to high concentration', 'rule: points max 1; particles high~higher to low~lower concentration', false, 'move is not more, low to high is not high to low'],
+  /* queue 4i: a [2] tag anywhere in a point */
+  ['the cell wall', 'rule: points max 2; cell wall [2]', true, 'a [2] at the end is the point\'s marks, not a word 2'],
+  ['the cell wall 2', 'rule: points max 3; cell wall [2]; nucleus', false, 'a 2 typed is not a [2] point\'s second mark'],
+  ['the cell wall and a nucleus', 'rule: points max 3; cell wall [2]; nucleus', true, 'a [2] at the end gives two marks'],
+  ['the wall and a nucleus', 'rule: points max 3; [2] cell wall / [2] wall; nucleus', true, 'a [2] on each wording'],
+  ['a nucleus', 'rule: points max 3; [2] cell wall / [2] wall; nucleus', false, 'a [2] point not made'],
+  /* queue 4i: an ordered phrase inside a point keeps its order */
+  ['particles move from high to low concentration', 'rule: points max 1; particles high~higher to low~lower concentration', true, 'high to low inside a point, as keyed'],
+  ['particles spread from low to high concentration', 'rule: points max 1; particles high~higher to low~lower concentration', false, 'low to high inside a point is reversed'],
+  ['kinetic energy to thermal energy', 'rule: points max 1; kinetic → thermal', true, 'an arrow inside a point, as keyed'],
+  ['thermal energy to kinetic energy', 'rule: points max 1; kinetic → thermal', false, 'an arrow inside a point, reversed'],
+  ['between 16.2 to 16.1', 'rule: points max 1; 16.1 to 16.2', true, 'a band of numbers inside a point is a band'],
   /* single values are untouched */
   ['9', '9', true, 'a single value'],
   ['5', '9', false, 'a single wrong value'],

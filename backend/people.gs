@@ -7,12 +7,12 @@ function rolesOf(row) {
   return list.length ? list : [ROLES_.default];
 }
 function hasRole(row, want) { return rolesOf(row).indexOf(norm(want)) !== -1; }
-/* WHO ARE YOU (who-1): one row, ONE QUESTION; twin of `may_` (data-who.js). No row = a guest. */
-/* `admin` admin-only; `prices` never a child (398); else PERMISSIONS (permissions.json). */
+/* WHO ARE YOU (who-1): one row, ONE QUESTION, as the site's `may_` (data-who.js). No row = a guest. */
+/* The fixed words are settings.json `roles.may` by the shared `mayWord_`; else PERMISSIONS (permissions.json). */
 function whoMay_(row, what) {
   const role = !row ? ROLES_.guest.tier : rankTier_(rankOf(row));
-  if (what === 'admin') return role === 'admin';
-  if (what === 'prices') return role !== 'child';
+  const fixed = mayWord_(what, role, rankOf(row), what === 'owner' && !!row && !!S(row.email) && norm(row.email) === norm(ownerEmail_()));
+  if (fixed !== undefined) return fixed;
   return Object.prototype.hasOwnProperty.call(PERMISSIONS, what) && PERMISSIONS[what].indexOf(role) !== -1;
 }
 /* Which role the site should treat as their MAIN one when it has to pick just one — the most
@@ -42,7 +42,6 @@ function tutorPending_(row) {
 
 /* ---------- ONE RANK PER ACCOUNT (400): Student < Client < Staff < Admin, each holding everything below ----------
    Read from the `role` cell, so old rows keep working (docs/accounts.md). A pending tutor keeps their other rank. */
-const RANKS = ROLES_.ranks;
 function rankOf(row) {
   if (!row) return '';
   const held = rolesOf(row).map(roleWord_), pending = norm(row.listed) === norm(LISTED_PENDING);
@@ -626,8 +625,7 @@ function brandName() {
 function mayMessage(fromRole, toRole) {
   /* BY RANK (settings.json `roles.messaging`): each sheet role's `rank`, as the phone's `msgMay_`. */
   const rankOf = r => (ROLES_.ids[norm(r)] || {}).rank || '';
-  const f = rankOf(fromRole), t = rankOf(toRole);
-  return !!f && !!t && (MESSAGING[f] || []).indexOf(t) !== -1;
+  return rankMayMessage_(rankOf(fromRole), rankOf(toRole));
 }
 
 /** What the app calls this role. */
@@ -1311,7 +1309,7 @@ function avatarUnlocks(row) {
 function levelFromXp(xp) { return Math.floor((N(xp) || 0) / 10); }
 /* ---------- PEOPLE MADE, CHANGED AND REMOVED BY AN ADMIN (373) ---------- */
 /* THE FOUR ROLES THE FORM TICKS, in the order it draws them. `client` is the sheet's word for a parent. */
-const PEOPLE_ROLES_ = ['student', 'client', 'tutor', 'admin', 'contact'];
+const PEOPLE_ROLES_ = SHARED_SETTINGS.roles.form;
 function adminRolesIn_(v) {
   const list = (Array.isArray(v) ? v : S(v).split(',')).map(x => norm(x) === 'parent' ? 'client' : norm(x));
   return PEOPLE_ROLES_.filter(r => list.indexOf(r) !== -1);

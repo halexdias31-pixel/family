@@ -7,8 +7,8 @@
 'use strict';
 const fs = require('fs'), path = require('path');
 const ROOT = path.join(__dirname, '..');
-/* THE BUDGET: today's count (20 Nov). Lower it as classes go; the build fails if the count rises above it. */
-const BUDGET = 77;
+/* THE BUDGET: today's count (21 Nov, unify batch 2 cut 69; the six mv- are drawn by data/textbooks.json, sp-sig by tools/cent.py). Lower it as classes go; the build fails if the count rises above it. */
+const BUDGET = 7;
 
 function files_(dir, re, out) {
   if (!fs.existsSync(dir)) return out;
