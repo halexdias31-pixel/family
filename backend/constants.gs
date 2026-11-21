@@ -624,9 +624,9 @@ const AI_SPENT_MAX_S = 21600;
 /* FAVOURITE LINKS (509): how many one person keeps, and how long a title and an address may be. */
 const FAV_LINKS_MAX = SHARED_SETTINGS.limits.favLinksMax, FAV_TITLE_MAX = SHARED_SETTINGS.limits.favTitleMax, FAV_URL_MAX = SHARED_SETTINGS.limits.favUrlMax;
 const CONFIG_DEFAULTS = [
-  // M, w and open_rate are gone: a tutor now sets one charge-out rate, the minimum wage is fixed
-  // in the code, and the open rate is fixed too. Leaving them here as editable numbers would have
-  // meant two places claiming to decide the same price.
+  // M, w and open_rate are gone: a tutor now sets one charge-out rate and the minimum wage is fixed
+  // in the code. The open rate is ONE row, `open_tutor_rate` below (owner, 21 Nov), which
+  // core-price.js reads for No preference bookings and waitlist seats alike.
   ['s', 0, 'each extra subject adds this FRACTION of the base rate. 0.15 = +15%'],
   ['c', 0, "each extra seat adds this fraction — the tutor's share of it. 0.15 = +15%"],
   /* B IS THE DEFAULT NOW, NOT THE CUT (docs/history/345): § */
@@ -660,7 +660,7 @@ const CONFIG_DEFAULTS = [
   /* PRINTING. The file is free and always will be; this is paper and toner, at cost. § */
   /* ---------- THE WAITLIST SESSION § */
   ['waitlist_seats', 4, 'how many seats a waitlist session has. The price divides by this'],
-  ['open_tutor_rate', 14, "the hourly rate for a tutor nobody chose — what a waitlist seat is priced against"],
+  ['open_tutor_rate', 10, "the hourly rate for a tutor nobody chose (No preference bookings and waitlist seats alike)"],
   ['waitlist_extra_seat', 3, 'added to the HOURLY total for each seat after the first. 3 = £3'],
 
   /* ---------- WHO CARRIES THE TRAVEL § */
