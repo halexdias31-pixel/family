@@ -14,6 +14,8 @@
   "all-ages": "All ages",
   "already-in-your-basket": "Already in your basket",
   "already-teaching": "Already teaching",
+  "email-does-not-look-right": "That email address does not look right.",
+  "handle-shape": "A handle is 3 to 30 characters, starts with a letter, and holds only letters, numbers, underscores and hyphens.",
   "an-email-address-please-the-link": "An email address, please — the link goes to it.",
   "anyone-in-particular": "Anyone in particular?",
   "anything-else-we-should-know": "Anything else we should know",

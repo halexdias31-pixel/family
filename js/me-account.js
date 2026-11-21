@@ -340,7 +340,7 @@ FORM_SEND_['sign-join'] = (v, el) => {
   const kid = who === 'student' && v.kid === 'grown-up';
   if (who !== 'parent' && who !== 'student') { toast(text_('say-who-the-account-is-for')); return askBack_('sign-join', 'who'); }
   if (!first || !last) { toast(text_('your-first-and-last-name-please')); return askBack_('sign-join', first ? 'last' : 'first'); }
-  if (email.indexOf('@') < 0) {
+  if (!FORM_TESTS.email(email)) {
     toast(kid ? 'A grown-up\'s email address, please — the link goes to them.' : text_('an-email-address-please-the-link'));
     return askBack_('sign-join', 'email');
   }

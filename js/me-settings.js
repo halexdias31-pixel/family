@@ -74,10 +74,10 @@ on('qual-drop', el => {
 /* ---------- WHEN IT WAS RECEIVED, AND WHETHER YOU TEACH IT § */
 /* ---------- *"phone: have field for country code, then number."* § */
 function phoneField_(value) {
-  const cc = String(value('phone_cc') || '') || '+44';
+  const cc = String(value('phone_cc') || '') || phoneCodes_()[0];
   /* THE NUMBER IS A DRAFT UNTIL SAVED, as every box of your own row is (`fieldHtml`; 317). */
   const phoneNo = String(value('phone_no') || (value('phone_cc') ? '' : value('phone')) || '');
-  const codes = (Array.isArray(DATA && DATA.phoneCodes) && DATA.phoneCodes.length) ? DATA.phoneCodes.slice() : ['+44'];
+  const codes = phoneCodes_().slice();
   if (codes.indexOf(cc) === -1) codes.unshift(cc);
   return fieldCap_('phone', formPhone_('phone_cc', 'phone_no', kcfOpts_(codes.map(x => ({ value: x, on: x === cc }))),
     `placeholder="Number" value="${esc(draftVal_('set', 'phone_no', phoneNo))}"${draftAttr_('set', 'phone_no', phoneNo)}`), ' is-phone', 2);
