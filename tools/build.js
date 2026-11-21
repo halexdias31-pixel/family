@@ -43,6 +43,7 @@ const ORDER = [
   'dead-css',     // the dead-css check (rule 1.75, owner 20 Nov): classes in style.css nothing writes, counted against a budget; a rise fails the build
   'css-tokens',   // the css-tokens check (rule 1.75, unify batch 2): no raw colour (hex, rgb(), a colour keyword) in style.css outside :root; fails the build
   'profile-roles', // the profile-roles check (rule 1.75, queue 4h): each role's Settings cards held against permissions.json's see rows; a card out of place fails the build
+  'hist-db',      // the one-history-shape check (rule 1.75, unify batch 4): the four history kinds come from js/library.js HIST_DB and labels.json hist-link/hist-kind; a prefix list, kind label or link-column list written elsewhere fails the build
   'shared-lists', // the shared-lists check (rule 1.1 by 1.75, owner 20 Nov): every list or limit both sides keep comes from settings.json via SHARED_SETTINGS, and each rank's Message tiles match mayMessage; fails the build
   'build-stamp',  // everything served -> index.html's BUILD_STAMP; last
 ];
