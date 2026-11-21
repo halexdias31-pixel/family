@@ -131,6 +131,44 @@ const CASES = [
   ['kinetic energy to thermal energy', 'rule: points max 1; kinetic → thermal', true, 'an arrow inside a point, as keyed'],
   ['thermal energy to kinetic energy', 'rule: points max 1; kinetic → thermal', false, 'an arrow inside a point, reversed'],
   ['between 16.2 to 16.1', 'rule: points max 1; 16.1 to 16.2', true, 'a band of numbers inside a point is a band'],
+  /* 21 Nov: a point naming two things keeps their roles (labels A-H, named substances, than) -- said the other way round with the
+     direction turned over it is the same point, swapped it is not */
+  ['polymer A has crosslinks', 'rule: points max 1; polymer A has crosslinks', true, 'a labelled point as keyed'],
+  ['polymer a has crosslinks', 'rule: points max 1; polymer A has crosslinks', true, 'a label typed in lower case'],
+  ['polymer B has crosslinks', 'rule: points max 1; polymer A has crosslinks', false, 'another label is not the key\'s label'],
+  ['A is more reactive than B', 'rule: points max 1; A is more reactive than B', true, 'a labelled comparison as keyed'],
+  ['A reacts more vigorously than B', 'rule: points max 1; A is more reactive than B', true, 'a labelled comparison in other words, the same roles'],
+  ['B is less reactive than A', 'rule: points max 1; A is more reactive than B', true, 'a comparison turned round with its direction turned over'],
+  ['B is more reactive than A', 'rule: points max 1; A is more reactive than B', false, 'a labelled comparison reversed'],
+  ['A is less reactive than B', 'rule: points max 1; A is more reactive than B', false, 'a labelled comparison with its direction wrong'],
+  ['zinc is less reactive than magnesium', 'rule: points max 1; magnesium more reactive than zinc', true, 'a named comparison turned round'],
+  ['zinc is more reactive than magnesium', 'rule: points max 1; magnesium more reactive than zinc', false, 'a named comparison reversed'],
+  ['A has crosslinks but B does not', 'rule: points max 1; A crosslinks B not', true, 'two labels in the key\'s roles'],
+  ['B has crosslinks but A does not', 'rule: points max 1; A crosslinks B not', false, 'two labels swapped'],
+  /* the three real questions, in generic words: Q-AQA-8462-1906-1H-076 (a direction without a than) */
+  ['X forms instead because M is more reactive than X', 'substance X forms instead, because metal M is more reactive than X | rule: points max 2; x forms~formed~instead; m more~most reactive~reactivity / x less reactive', true, 'Q-AQA-8462-1906-1H-076 shape: right'],
+  ['X forms because X is less reactive than M', 'substance X forms instead, because metal M is more reactive than X | rule: points max 2; x forms~formed~instead; m more~most reactive~reactivity / x less reactive', true, 'Q-AQA-8462-1906-1H-076 shape: said the other way round'],
+  ['X forms because M is less reactive than X', 'substance X forms instead, because metal M is more reactive than X | rule: points max 2; x forms~formed~instead; m more~most reactive~reactivity / x less reactive', false, 'Q-AQA-8462-1906-1H-076 shape: the comparison reversed'],
+  /* Q-AQA-8462-2206-1H-071: a point with no than, answered with one */
+  ['P is less reactive than Q', 'metal P is less reactive than metal Q | rule: points max 2; [2] p less~lower reactive~reactivity / p below~under q', true, 'Q-AQA-8462-2206-1H-071 shape: right'],
+  ['Q is more reactive than P', 'metal P is less reactive than metal Q | rule: points max 2; [2] p less~lower reactive~reactivity / p below~under q', true, 'Q-AQA-8462-2206-1H-071 shape: said the other way round'],
+  ['Q is less reactive than P', 'metal P is less reactive than metal Q | rule: points max 2; [2] p less~lower reactive~reactivity / p below~under q', false, 'Q-AQA-8462-2206-1H-071 shape: the key\'s subject after the than'],
+  ['P is below Q', 'metal P is less reactive than metal Q | rule: points max 2; [2] p less~lower reactive~reactivity / p below~under q', true, 'Q-AQA-8462-2206-1H-071 shape: below as keyed'],
+  ['Q is below P', 'metal P is less reactive than metal Q | rule: points max 2; [2] p less~lower reactive~reactivity / p below~under q', false, 'Q-AQA-8462-2206-1H-071 shape: below reversed'],
+  /* Q-AQA-8462-2011-2F-067: a way with no label is said of the label the key's answer names */
+  ['polymer A has crosslinks between the chains', 'polymer A has crosslinks | rule: points max 1; has crosslinks / b no crosslinks', true, 'Q-AQA-8462-2011-2F-067 shape: right'],
+  ['polymer B has no crosslinks', 'polymer A has crosslinks | rule: points max 1; has crosslinks / b no crosslinks', true, 'Q-AQA-8462-2011-2F-067 shape: the other label\'s way'],
+  ['polymer B has crosslinks', 'polymer A has crosslinks | rule: points max 1; has crosslinks / b no crosslinks', false, 'Q-AQA-8462-2011-2F-067 shape: the label swapped'],
+  /* a synonym of several words is written with _ (remove~get_rid water) */
+  ['remove the water', 'rule: points max 1; remove~get_rid water', true, 'the one-word synonym'],
+  ['get rid of the water', 'rule: points max 1; remove~get_rid water', true, 'the several-word synonym'],
+  ['get the water', 'rule: points max 1; remove~get_rid water', false, 'part of a several-word synonym is not it'],
+  /* `rule: standard form`: the value in standard form */
+  ['8.9 × 10^8', '8.9 × 10^8 | rule: standard form', true, 'standard form as keyed'],
+  ['8.9e8', '8.9 × 10^8 | rule: standard form', true, 'standard form as e-notation'],
+  ['89 × 10^7', '8.9 × 10^8 | rule: standard form', false, 'the same value not in standard form'],
+  ['890000000', '8.9 × 10^8 | rule: standard form', false, 'the same value as an ordinary number'],
+  ['7.1 × 10^8', '8.9 × 10^8 | rule: standard form', false, 'a wrong value in standard form'],
   /* single values are untouched */
   ['9', '9', true, 'a single value'],
   ['5', '9', false, 'a single wrong value'],

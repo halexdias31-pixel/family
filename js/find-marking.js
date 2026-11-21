@@ -503,10 +503,10 @@ function markExpr_(typed, want, eqn, fns) {
   }
   return used >= 3;
 }
-function markRule_(typed, rule) {
+function markRule_(typed, rule, head) {
   const body = String(rule || '').replace(/^\s*rule:\s*/i, '');
   /* `points`: worded points counted (`markPoints_`); as a yes or no, all of the marks */
-  if (/^points\b/i.test(body)) { const p = markPoints_(typed, rule); return !!p && p.got >= p.of; }
+  if (/^points\b/i.test(body)) { const p = markPoints_(typed, rule, null, head ? { head } : null); return !!p && p.got >= p.of; }
   /* `expr`/`eqn` is the whole rule but for `nobracket` (multiplied out), `fn g`, `parallel` and `not E` (any but that one) */
   const ex = /(?:^|,)\s*(expr|eqn)\s+([^,]+)/.exec(body);
   if (ex) {
@@ -591,7 +591,8 @@ function markRule_(typed, rule) {
 
 /* ---------- A WORDED ANSWER OF UP TO ABOUT SIX MARKS, MARKED BY THE POINTS IT MAKES (owner, 16 Nov) */
 /* `rule: points max 4; her head ached / headache; [2] limbs heavy~weighed; [q] heat intolerable`: `;` parts the points, `/` a point's
-   wordings, `~` a word's synonyms and spellings, `[2]` a point's marks (1 if none; anywhere in the point), `[q]` a quotation only; after `max N` the head may
+   wordings, `~` a word's synonyms and spellings (a space ends a synonym list, so a synonym of several words joins them with `_`:
+   `remove~get_rid water`), `[2]` a point's marks (1 if none; anywhere in the point), `[q]` a quotation only; after `max N` the head may
    say `first N` (only the first N answers read) and `phrases` (a short phrase is an answer, one point each). The distinct points found
    are added up to `max`. A wording's words, stemmed and with the typo rule (`markTypo_`), must stand close, in any order, in one
    sentence that is a sentence: a bare list of key words, a sentence of nothing but key words, and a long copied passage earn little. */
@@ -622,13 +623,30 @@ const MARK_PT_RIVALS = ('increase increases increased increasing decrease decrea
   + 'inside outside above below before after maximum minimum positive negative endothermic exothermic absorb absorbs absorbed emit emits '
   + 'emitted gain gains gained loses lost oxidised reduced oxidation reduction anode cathode acid alkali alkaline insulator conductor '
   + 'diffusion osmosis mitosis meiosis').split(' ');
+/* A LETTER THAT NAMES A THING IS THAT THING (21 Nov): "polymer A has crosslinks" is not "polymer B has crosslinks", so a label A-H
+   (polymer B, test tube C) is read as its own word, qzbq, never the article a nor a slip of another label; an A is a label after a
+   word that is no little word, or before a verb, a than or the end ("flask A stays", "A has", "than A"), and always in a key; b-h are labels */
+const MARK_PT_SUBJ = /^qz[a-h]q$/;
+function markPtSubjects_(s, key) {
+  return String(s).replace(/(^|[^A-Za-z0-9°'’\-.\/^_])([A-Ha-h])(?![A-Za-z0-9'’\-\/^+⁺⁻²³₀-₉_=(]|\.[A-Za-z0-9])/g, (m, pre, l, at, all) => {
+    if (/\d\s*$/.test(all.slice(0, at + pre.length))) return m;
+    const prev = (/([A-Za-z]+)[^A-Za-z.!?;]*$/.exec(all.slice(0, at + pre.length)) || [])[1];
+    const next = (/^[\s,]*([A-Za-z]+|[.!?;:)]|$)/.exec(all.slice(at + pre.length + 1)) || [])[1];
+    if (/[b-h]/i.test(l)) return /[b-h]/.test(l) && prev && /^(?:vitamin|part|grade|line|row|column|option|answer)$/i.test(prev) ? m : pre + 'qz' + l.toLowerCase() + 'q';
+    if (key === true && l === 'A') return pre + 'qzaq';
+    const verbish = next === '' || /^[.!?;:),]$/.test(next) || /^(?:than|and|or|but|to|then|with|is|was|has|had|does|did|will|would|can|could|reacts|reacted|contains|forms|gives|makes|shows|produces|needs)$/i.test(next || '')
+      || /^[a-z]{2,}(?:[^su's]s|ed)$/.test(next || '');
+    const after = prev && !MARK_PT_GLUE.has(prev.toLowerCase());
+    return verbish && (after || (l === 'A' && (!prev || /^(?:than|and|or|but|so|because|while|whereas|then)$/i.test(prev)))) ? pre + 'qzaq' : m;
+  });
+}
 /* the words of a source or an answer as they are read: entities, curly quotes and n't made plain */
 function markPtPlain_(s) {
   return String(s == null ? '' : s).replace(/<br\s*\/?>|<\/(p|li|div|h\d|tr)>/gi, '\n').replace(/<[^>]*>/g, ' ')
     .replace(/&(rsquo|lsquo|#8217|#8216|apos);/g, "'").replace(/&(rdquo|ldquo|quot|#8220|#8221);/g, '"')
     .replace(/&hellip;/g, '...').replace(/&(mdash|ndash);/g, ' - ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&[a-z]+;|&#\d+;/g, ' ')
     .replace(/[‘’ʼ]/g, "'").replace(/[“”]/g, '"').replace(/…/g, '...')
-    .toLowerCase().replace(/n't\b/g, ' not').replace(/'s\b/g, '')
+    .replace(/[^]*/, markPtSubjects_).toLowerCase().replace(/n't\b/g, ' not').replace(/'s\b/g, '')
     /* A NUMBER IS ONE WORD (18 Nov): 1,000 is 1000, so its comma parts nothing */
     .replace(/(\d)[,\u2009](?=\d{3}(?!\d))/g, '$1').replace(/(\d)\s*\/\s*(?=\d)/g, '$1/').replace(/(\d)\s*(?:per\s?cent|percent)\b/g, '$1%');
 }
@@ -681,11 +699,11 @@ function markPtRead_(rule) {
     const tags = [...p.matchAll(/\[(\d*)(q?)\]/gi)];
     const tag = tags.length ? [tags[0][0], String(Math.max(0, ...tags.map(t => Number(t[1]) || 0)) || ''), tags.some(t => t[2]) ? 'q' : ''] : null;
     /* a / between two digits is a fraction (3/4), not a second wording; a key's number is one word, as an answer's (markPtWords_) */
-    const ways = (tags.length ? p.replace(/\[(\d*)(q?)\]/gi, ' ') : p).replace(/\s*(?:→|->|⟶|=>)\s*/g, ' to ').replace(/(\d)\/(?=\d)/g, '$1÷').split('/').map(w => w.trim().toLowerCase()
+    const ways = (tags.length ? p.replace(/\[(\d*)(q?)\]/gi, ' ') : p).replace(/\s*(?:→|->|⟶|=>)\s*/g, ' to ').replace(/[^]*/, m => markPtSubjects_(m, true)).replace(/(\d)\/(?=\d)/g, '$1÷').split('/').map(w => w.trim().toLowerCase()
       .replace(/n't\b/g, ' not').replace(/(\d),(?=\d{3}(?!\d))/g, '$1').replace(/(\d)\s*(?:%|per\s?cent|percent)(?![a-z])/g, '$1%').replace(/(\d\.\d+)(?=[a-z])/g, '$1 ').split(/\s+/)
       .map(t => t.split('~').map(a => { const n = a.replace(/[^\d.÷%-]/g, '').replace('÷', '/');
         return /\d/.test(a) && MARK_PT_NUM.test(n) && !/[a-z]/.test(a) ? markPtNumOf_(n)
-          : a.replace(/[^a-z0-9'-]/g, '').replace(/'s$/, '').replace(/-/g, ''); }).filter(Boolean))
+          : a.replace(/[^a-z0-9'_-]/g, '').replace(/'s$/, '').replace(/-/g, '').replace(/^_+|_+$/g, ''); }).filter(Boolean))
       .map(alts => { const d = alts.map(a => MARK_PT_DIR.get(a)).find(Boolean);
         return d ? [...new Set(alts.concat([...MARK_PT_DIR].filter(e => e[1] === d).map(e => e[0])))] : alts; })
       .filter(alts => alts.length))
@@ -703,9 +721,14 @@ function markPtRead_(rule) {
           const b = way.slice(0, j).filter(a => kept.indexOf(a) >= 0).length;
           if (b > 0 && b < kept.length && !(MARK_PT_NUM.test(kept[b - 1][0]) && MARK_PT_NUM.test(kept[b][0]))) kept.order.push(b);
         });
+        /* "silicon below carbon" keeps its sides as a than does (21 Nov): carbon below silicon is the other way round */
+        kept.forEach((alts, b) => { if (alts.some(a => /^(?:below|above)$/.test(a))) { if (b > 0) kept.order.push(b); if (b + 1 < kept.length) kept.order.push(b + 1); } });
+        /* TWO LABELS KEEP THEIR ROLES (21 Nov): "A has crosslinks but B has none" is found only with A before B */
+        kept.subj = kept.map((alts, j) => alts.some(a => MARK_PT_SUBJ.test(a)) ? j : -1).filter(j => j >= 0);
         return kept;
       })
-      .filter(w => w.length);
+      .filter(w => w.length)
+      .flatMap(markPtMirror_);
     if (ways.length) out.points.push({ n: tag && tag[1] ? Number(tag[1]) : 1, q: !!(tag && tag[2]), ways });
   });
   const m = /max\s+(\d+)/i.exec(head ? head[1] : '') || /^\s*(\d+)/.exec(head ? head[1] : '');
@@ -715,6 +738,28 @@ function markPtRead_(rule) {
   out.phrases = /\bphrases\b/i.test(head ? head[1] : '');
   memo.set(rule, out);
   return out;
+}
+/* A COMPARISON SAID THE OTHER WAY ROUND IS THE SAME POINT (21 Nov): "A more reactive than B" is "B less reactive than A", and
+   "silicon less reactive" is "carbon more reactive than silicon"; never "B more reactive than A" nor "carbon less reactive than silicon".
+   A way with a direction word and the words of its subject before it gets its mirror: the direction turned over and the subject found
+   after the answer's than (the key's than, or one the answer writes); the way itself, with no than, keeps its subject before any than */
+function markPtMirror_(way) {
+  const dirs = way.map((alts, j) => alts.map(a => MARK_PT_DIR.get(a)).find(Boolean) ? j : -1).filter(j => j >= 0);
+  if (dirs.length !== 1) return [way];
+  const k = dirs[0], d = way[k].map(a => MARK_PT_DIR.get(a)).find(Boolean), o = MARK_PT_DIR_OPP[d];
+  if (k < 1 || (way.than > 0 && (way.than <= k || way.than >= way.length))) return [way];
+  const flip = [...new Set([...MARK_PT_DIR].filter(e => e[1] === o).map(e => e[0]))];
+  const props = w => { w.order = []; w.subj = w.map((alts, j) => alts.some(a => MARK_PT_SUBJ.test(a)) ? j : -1).filter(j => j >= 0); return w; };
+  if (way.than > 0) {
+    const subj = way.slice(0, k), pred = way.slice(k, way.than), other = way.slice(way.than);
+    const m = props(other.concat([flip], pred.slice(1), subj));
+    m.than = other.length + pred.length;
+    return [way, m];
+  }
+  way.thanSide = { subj: k, dir: k, after: false };
+  const m = props(way.map((alts, j) => j === k ? flip : alts));
+  m.thanSide = { subj: k, dir: k, after: true };
+  return [way, m];
 }
 /* THE SOURCE A QUOTATION IS CHECKED AGAINST: the question's own words, its lead and the stems above it; '' where there is none to check */
 function markPtSource_(x) {
@@ -733,6 +778,12 @@ function markPtIs_(tok, alts, opt) {
     /* a key's 40.5% asks for the %: a bare 40.5 is not it, though 40.5% is a key's bare 40.5 */
     if (!isNaN(va) && !isNaN(vt) && Math.abs(va - vt) <= 1e-9 * Math.max(1, Math.abs(va)) && (!/%$/.test(a) || /%$/.test(tok.w))) return true;
     /* a little word (her, was) is never a near miss of a key word (hear, wax), nor a number of another */
+    /* reactive is reacts, conductive conducts: an -ive word is its verb (21 Nov) */
+    const sk = markPtStem_(a);
+    if (sk.length >= 6 && /iv$/.test(sk) && tok.s === sk.slice(0, -2)) return true;
+    if (tok.s.length >= 6 && /iv$/.test(tok.s) && sk === tok.s.slice(0, -2)) return true;
+    /* a label is only itself: B is never a slip of A */
+    if (MARK_PT_SUBJ.test(a) || MARK_PT_SUBJ.test(tok.w)) continue;
     if (!isNaN(va) || !isNaN(vt) || (opt && opt.strict) || MARK_PT_GLUE.has(tok.w) || !markEndsKept_(tok.w, a)) continue;
     if (markTypo_(tok.w, a, opt)) return true;
     const sa = markPtStem_(a);
@@ -743,8 +794,14 @@ function markPtIs_(tok, alts, opt) {
 /* ONE WORDING IN A RUN OF WORDS: the closest set of places that holds every word of it, or null */
 function markPtFind_(toks, way, opt, quoteOnly) {
   const negWay = way.some(a => a.some(b => MARK_PT_NOT.has(b)));
+  /* A SYNONYM OF SEVERAL WORDS (21 Nov) is written with _ between them, `remove~get_rid~take_out water`: found as those words in a row */
+  const alt = (alts, i) => markPtIs_(toks[i], alts.filter(a => a.indexOf('_') < 0), opt)
+    || alts.some(a => a.indexOf('_') >= 0 && a.split('_').filter(Boolean).every((w, n) => toks[i + n] && toks[i + n].c === toks[i].c && markPtIs_(toks[i + n], [w], opt)));
+  /* a way that names no label, in a key that names one (`polymer A has crosslinks | rule: points max 1; has crosslinks`), is said of
+     that label: an answer that names another label and not it ("polymer B has crosslinks") does not make it */
+  if (opt && opt.subj && !(way.subj || []).length && toks.some(t => MARK_PT_SUBJ.test(t.w)) && !toks.some(t => t.w === opt.subj)) return null;
   const at = way.map(alts => toks.map((t, i) => i).filter(i => {
-    if (!markPtIs_(toks[i], alts, opt)) return false;
+    if (!alt(alts, i)) return false;
     if (quoteOnly && !toks[i].quote) return false;
     if (negWay) return true;
     /* "she was not tired" is not "she was tired"; a not stays in its own clause (queue 4d): "No, because 99.9% is reflected" keeps its point,
@@ -764,7 +821,9 @@ function markPtFind_(toks, way, opt, quoteOnly) {
     if (k === at.length) {
       const lo = Math.min(...used), hi = Math.max(...used);
       const sided = (!(way.than > 0 && way.than < way.length) || Math.max(...used.slice(0, way.than)) < Math.min(...used.slice(way.than)))
-        && (way.order || []).every(b => used[b - 1] < used[b]);
+        && (way.order || []).every(b => used[b - 1] < used[b])
+        && (way.subj || []).every((j, n, a) => !n || used[a[n - 1]] < used[j])
+        && markPtThanSide_(toks, way, used);
       if (hi - lo + 1 <= span && sided && (!best || hi - lo < best.hi - best.lo) && attached(used)) best = { lo, hi, used: used.slice() };
       return;
     }
@@ -772,6 +831,17 @@ function markPtFind_(toks, way, opt, quoteOnly) {
   };
   walk(0, []);
   return best;
+}
+/* the subject of a way with no than (`markPtMirror_`) against a than the answer writes after its direction word, in the same comma-part */
+function markPtThanSide_(toks, way, used) {
+  const ts = way.thanSide;
+  if (!ts) return true;
+  const di = used[ts.dir], c = toks[di].c;
+  const than = toks.findIndex((t, i) => i > di && t.c === c && t.w === 'than');
+  const subj = used.slice(0, ts.subj);
+  /* and where the answer compares, the subject is the one of that comparison, not a word across a because or a so before it */
+  if (!ts.after) return than < 0 || subj.every(i => i < than && !toks.some((t, y) => y > i && y < di && MARK_PT_JOIN.has(t.w)));
+  return than >= 0 && subj.every(i => i > than);
 }
 /* A DIRECTION WORD BELONGS TO ITS NOUN (18 Nov): "less reactive" is not "more reactive", and in "blockage increases, flow decreases" each noun
    has its own. A way that names a direction is found only where (1) each of its other words, in its comma-part, has no opposite direction word
@@ -821,7 +891,10 @@ function markPoints_(typed, rule, x, opt) {
   const key = markPtRead_(rule);
   const source = markPtSource_(x);
   const essay = !!(opt && opt.essay) || Number(x && x.marks) > 6;
-  opt = { strict: !!(opt && opt.strict), others: ((opt && opt.others) || []).concat(MARK_PT_RIVALS) };
+  /* the one label the key's written answer names, if it names one (`markPtFind_`) */
+  const head = String((opt && opt.head) || (x && x.accept) || '').split('|').filter(w => !/^\s*rule:/i.test(w)).join(' ');
+  const labels = [...new Set(markPtWords_(markPtPlain_(head)).filter(w => MARK_PT_SUBJ.test(w)))];
+  opt = { strict: !!(opt && opt.strict), others: ((opt && opt.others) || []).concat(MARK_PT_RIVALS), subj: labels.length === 1 ? labels[0] : '' };
   /* A QUOTATION MUST BE IN THE SOURCE: one that is not is taken out, one that is is marked as quoted */
   let quotes = 0, inSource = 0, notInSource = 0;
   const text = markPtPlain_(raw).replace(/(^|[\s(\[:,])(["'])((?:(?!\2)[^\n]|'(?=[a-z]))+?)\2(?=[\s.,;:!?)\]]|$)/g, (m, pre, qm, body) => {
@@ -1408,10 +1481,21 @@ function markGenotypeList_(typed, accept) {
   if (got == null) return markGenotypes_(String(typed || '').toUpperCase()) ? false : null;   /* iaio: genotypes in the wrong case */
   return keys.includes(got);
 }
+const MARK_STD_RULE = /(?:^|\|)\s*rule:\s*standard(?:\s+(?:index\s+)?form)?\s*(?=\||$)/i;
+function markStdForm_(typed) {
+  const v = String(typed == null ? '' : typed).replace(/[\u2212\u2013]/g, '-').replace(/\s+/g, ' ').trim();
+  return /^-?\s*[1-9](?:\.\d+)?\s*(?:[x×*·]|\\times)\s*10\s*(?:\^\s*\(?\s*[-+]?\s*\d+\s*\)?|[⁻⁺]?[⁰¹²³⁴⁵⁶⁷⁸⁹]+)(?![\d.])(?:\s*[^\d\s].*)?$/i.test(v)
+    || /^-?[1-9](?:\.\d+)?e[-+]?\d+(?:\s*[^\d\s].*)?$/i.test(v);
+}
 function markAnswer_(typed, accept, again, opt) {
   if (Array.isArray(typed)) typed = typed.map(v => String(v == null ? '' : v).trim()).filter(Boolean).join(', ');
   const t = markNorm_(typed);
   if (!t) return null;                              /* nothing typed is not a wrong answer */
+  /* `rule: standard form` (21 Nov): the value in standard form, one non-zero digit before the point, so 89 × 10^7 is not 8.9 × 10^8 */
+  if (MARK_STD_RULE.test(String(accept || ''))) {
+    if (!markStdForm_(typed)) return false;
+    accept = String(accept).split('|').filter(w => !MARK_STD_RULE.test('|' + w + '|')).join('|');
+  }
   /* AS TYPED FIRST; THEN, NOT RIGHT, AS THE KEY'S LIST OF VALUES (markListed_) */
   if (!(opt && opt.listed)) {
     const o = Object.assign({}, opt, { listed: true });
@@ -1427,7 +1511,7 @@ function markAnswer_(typed, accept, again, opt) {
   /* A `rule:` WAY IS TESTED, NOT MATCHED (markRule_); the other ways are matched as before. */
   const rules = String(accept || '').split('|').filter(w => /^\s*rule:/i.test(w));
   if (rules.length) {
-    if (rules.some(w => markRule_(typed, w))) return true;
+    if (rules.some(w => markRule_(typed, w, accept))) return true;
     accept = String(accept).split('|').filter(w => !/^\s*rule:/i.test(w)).join('|');
     /* a form asked for (`mixed`, `decimal`) is not given by the value: beside it a written way counts only as written, so 28/5 is not 5 3/5 (376) */
     if (rules.some(w => /(?:^|[:,])\s*(mixed|decimal|lowest)\s*(?:,|$)/i.test(w))) {
