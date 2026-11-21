@@ -26,7 +26,7 @@ const TAKE = [
   /* THE ONE CARD MAKER (owner, 16 Nov: one card maker everywhere): renderCard and the blocks it draws; an email calls it with its inline setting. */
   ['js/cards-render.js', ['cardRuns_', 'CARD_ENT', 'cardHasMarkup_', 'cardMarkupRuns_', 'CARD_SUB', 'cardSub_', 'cardFrac_', 'cardLastGap_', 'cardAttrs_',
     'cardPic_', 'pixSvg_', 'cardTag_', 'renderTags', 'cardControl_', 'cardAnswer_', 'CARD_EMBEDS', 'cardEmbed_', 'cardTree_', 'cardGrid_', 'cardChoice_',
-    'cardChoices_', 'CARD_BLOCKS', 'CARD_DRAW_ELS', 'cardDraw_', 'cardBlock_', 'cardBlocks_', 'renderCard', 'cardLetterOf_', 'cardLetterLines_', 'cardLetter_',
+    'cardChoices_', 'CARD_BLOCKS', 'CARD_DRAW_ELS', 'cardDraw_', 'cardBlock_', 'cardBlocks_', 'renderCard', 'cardLetterOf_', 'cardLetterRow_','cardLetterLines_', 'cardLetter_',
     'answerTag_', 'answersRow_', 'answerBox_']],
   /* EACH FACET'S HUE (tools/facet-hues.js): a card's tag is `h` + TAG_OF[field], and so is the email's. */
   ['js/find-bundles.js', ['TAG_OF']],

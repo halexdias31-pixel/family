@@ -44,10 +44,9 @@ function chemItems_() {
 
 /* ONE LINE PER THING (421): a fact a line, its examples, then where the facts came from (a spec, master template). */
 /* The body of its item (ITEM_MAPS.chem, cards-parts.js), which draws its card. */
-function chemBody_(r) { const has = v => v || v === 0;
-  const facts = [['Symbol', r.symbol], ['Atomic number', r.number], ['Relative atomic mass', r.mass], ['Block', r.block], ['Electron configuration', r.config],
-    ['Discovered', r.discovered], ['Also called', r.also], ['Formula', r.formula], ['Use', r.use], ['Hazard', r.hazard], ['Pattern', r.pattern],
-    ['Conditions', r.conditions], ['Observations', r.observations]].filter(f => has(f[1])).map(([k, v]) => k + ' ' + v);
+function chemBody_(r) {
+  /* ITS FACTS ARE kinds.json chem `card.fields` (unify job J). */
+  const facts = cardFieldsOf_('chem', r).map(x => x.label + ' ' + x.value);
   return [{ type: 'text', paras: facts.concat((r.examples || []).map(e => String(e.equation || '')), r.source || '') }]; }
 
 /* ================= FOOD (owner, 18 Nov): data/settings/foods.json's kind tree, read once here for both of its readers — Find › Library

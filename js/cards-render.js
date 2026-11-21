@@ -305,6 +305,16 @@ function renderCard(spec) {
 /* `inline: 'text'` writes the kind's lines as plain text; an ink object (the email's colours, `hues` its tag inks) writes a table with every style inline, */
 /* as mail clients read no stylesheet. The lines, labels, sizes and styles are the kind's `card.letter` in kinds.json and nowhere else. */
 const cardLetterOf_ = kind => (((ITEM_KINDS.kinds[kind] || {}).card || {}).letter || {});
+/* THE MASTER DECIDES CARD FIELDS (unify job J): the row a letter is written from carries the fields its lines `need`, read from `src`, and no list of our own. */
+/* `use` names one of the letter's `rows` (fewer fields); a field the row lacks is read by its `aliases`. */
+function cardLetterRow_(kind, src, use) {
+  const L = cardLetterOf_(kind), s = src || {}, al = L.aliases || {};
+  const want = use ? ((L.rows || {})[use] || []) : [...new Set((L.lines || []).flatMap(l => l.need || []))];
+  return Object.assign({}, ...want.map(f => ({ [f]: s[f] !== undefined ? s[f] : s[[].concat(al[f] || []).find(a => s[a] !== undefined)] })));
+}
+/* A KIND'S FACT LINES (kinds.json `card.fields.list`): each `label` with the row's `f`, in that order, an empty one left out. */
+const cardFieldsOf_ = (kind, row) => ((((ITEM_KINDS.kinds[kind] || {}).card || {}).fields || {}).list || [])
+  .map(x => ({ label: x.label, value: (row || {})[x.f] })).filter(x => x.value || x.value === 0);
 /* A KIND'S LINES FROM ITS ROW, each through the words file; a `price` line is never said to a child (`see.kid` or a kid role) or with `see.prices === false`. */
 function cardLetterLines_(L, row, see) {
   const r = row || {}, s = see || {}, str = v => String(v == null ? '' : v).trim();
@@ -416,7 +426,7 @@ Object.assign(CARD_BLOCKS, { paperRow: paperRow_, paperDoc: paperDoc_, paperRost
 const paperSnap_ = b => `<svg xmlns="http://www.w3.org/2000/svg" width="${Number(b.cw) || 1}" height="${Number(b.ch) || 1}" viewBox="0 0 ${(Number(b.cw) || 1) / (Number(b.k) || 1)} ${(Number(b.ch) || 1) / (Number(b.k) || 1)}">`
   + `<style>${String(b.css || '').replace(/<\//g, '<\\/')}</style><foreignObject x="0" y="0" width="${Number(b.w) || 1}" height="${Number(b.h) || 1}">${b.xml || ''}</foreignObject></svg>`;
 /* TURNING A REQUEST DOWN asks why, in one optional line. */
-const paperWhy_ = b => `<form class="req-why" data-id="${esc(b.id)}"><label>Why not? <input name="why" maxlength="200" placeholder="optional, one line" autocomplete="off"></label>${tile_({ form: true, submit: true, label: 'Decline' })}</form>`;
+const paperWhy_ = b => `<form class="req-why" data-id="${esc(b.id)}"><label>Why not? ${formInput_('name="why" maxlength="200" placeholder="optional, one line" autocomplete="off"')}</label>${tile_({ form: true, submit: true, label: 'Decline' })}</form>`;
 Object.assign(CARD_BLOCKS, { paperSnap: paperSnap_, paperWhy: paperWhy_ });
 /* A SETTINGS FORM'S PARTS (me-shelves): a control, a captioned field, a tick, a several-of-a-list and a plain group, all from data. */
 /* ATTRIBUTES ARE DATA: { name: value | true }, each escaped; an `on…` handler is never written. */
