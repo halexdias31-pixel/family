@@ -9615,6 +9615,7 @@ const LIB_SOURCES = ['1st Class Maths', 'Corbettmaths', 'Access Tuition', 'GL As
 const sourceOf_ = x => LIB_SOURCES.find(s => spellKey_(s) === spellKey_(x && x.company)) || '';
 const boardOf_ = x => (sourceOf_(x) ? '' : (x && x.examBoard) || '');
 function satsStagesOf_(x) {
+if (levelsOf_(x).indexOf('SATs') === -1) return [];
 const yr = (x && x.bandType === 'year') ? Number(x.bandValue) : NaN;
 if (yr >= 1 && yr <= 6) return [yr <= 2 ? 'KS1' : 'KS2'];
 const named = /\bks\s*([12])\b/i.exec(String((x && x.bandType === 'stage' && x.bandValue)
