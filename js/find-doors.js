@@ -95,14 +95,11 @@ CARD_EMBEDS['person-edit'] = a => (typeof personEdHtml_ === 'function' ? personE
 
 /* ---------- SETTINGS BY ACCOUNT TYPE: each settings card has one home, Find › Settings › its type ---------- */
 /* WHICH COLUMN'S CARDS ANSWER WHICH TYPE, IN THE MENU'S ORDER: setting-for.json's `type:` rows; who opens each is permissions.json's `see` rows. */
-/* Used only while setting-for.json has no `type:` rows, so an empty sheet still has its Settings doors; who opens them is still the table. */
-const SETTING_TYPES_FALLBACK = [['Student', 'account'], ['Parent', 'family'], ['Staff', 'staff'], ['Apprentice', 'apprentice'], ['Admin', ''],
-  ['Business', 'biz'], ['Site', 'site']].map(([type, col, peek]) => ({ type, col, peek: !!peek }));
 function settingTypes_() {
   let rows = [];
   try { const t = (DATA && DATA.settingFor) || {}; rows = Object.keys(t).filter(k => /^type:/.test(k)).sort((a, b) => (t[a].rank || 0) - (t[b].rank || 0))
     .map(k => ({ type: k.slice(5), col: t[k].col || '', peek: !!t[k].peek })); } catch (e) { rows = []; }
-  return rows.length ? rows : SETTING_TYPES_FALLBACK;
+  return rows;
 }
 /* WHO MAY SEE A SETTING, A DOOR OR A TYPE IS DATA (86a): one question, `seeMay_` (data.js); absent a row, an admin's only. */
 const settingMay_ = key => typeof seeMay_ === 'function' && seeMay_(key);
@@ -324,7 +321,7 @@ function ownSecReg_() {
     jobs: ['Jobs', 'your jobs', 'Your current and past jobs, shown on your tutor card.'],
     where: ['Where you teach', 'where you teach', 'The venues you teach at and how far you travel.'], week: ['Available', 'your weekly hours', 'The hours you can teach each week.'] };
   const of = OWN_SEC_OF_SET_;
-  /* Each settings group's name from the one table (SETTING_GROUPS, shell-boot.js), never a copy of it. */
+  /* Each settings group's name from the one table (setting-for.json's type rows, settingGroupOf_), never a copy of it. */
   const where = c => (settingGroupOf_(c) || {}).label || c;
   return [].concat(...Object.keys(of).map(c => of[c].map(k => ({ id: 'own:' + c + ':' + k, col: c, label: S[k][0] + ' (' + where(c) + ')', only: S[k][1], say: S[k][2] }))));
 }

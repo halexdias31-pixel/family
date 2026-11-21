@@ -9,9 +9,7 @@
    "on the site" instead of its words, or leaves a listed question without words. Run by tools/build.js. `--sizes` prints each week's bytes. */
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm');
-const ROOT = path.join(__dirname, '..');
-const read = f => { try { return JSON.parse(fs.readFileSync(path.join(ROOT, f), 'utf8')); } catch (e) { return null; } };
-const S = v => String(v == null ? '' : v).trim();
+const { ROOT, read, S } = require('./lib/gen.js');
 
 /* ---------- THE BACKEND'S OWN CODE, a name at a time (as tools/validate-questions.js loads the app's) */
 function backend() {

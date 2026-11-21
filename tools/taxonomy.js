@@ -7,8 +7,7 @@
    comes back in the Find/library code. tools/build.js runs it before the bundle. */
 'use strict';
 const fs = require('fs'), path = require('path');
-const ROOT = path.join(__dirname, '..');
-const S = v => String(v == null ? '' : v).trim();
+const { ROOT, S, blockInto, writeIfChanged } = require('./lib/gen.js');
 const TAX_FILE = path.join(ROOT, 'data/settings/taxonomy.json');
 const ENGINE = 'js/find-finder.js';
 const WATCHED = ['js/history-topics.js', 'js/find-history.js', ENGINE];
@@ -19,9 +18,8 @@ function taxonomy() { const t = JSON.parse(fs.readFileSync(TAX_FILE, 'utf8')); d
 
 function write(t) {
   const file = path.join(ROOT, ENGINE), src = fs.readFileSync(file, 'utf8');
-  if (!BLOCK_RE.test(src)) throw new Error('taxonomy: no TAXONOMY block in ' + ENGINE);
-  const out = src.replace(BLOCK_RE, (m, a, b) => a + 'const TAXONOMY = ' + JSON.stringify(t) + ';\n' + b);
-  if (out !== src) fs.writeFileSync(file, out);
+  writeIfChanged(file, blockInto(src, '/* TAXONOMY:start', '/* TAXONOMY:end */', 'const TAXONOMY = ' + JSON.stringify(t) + ';\n',
+    () => { throw new Error('taxonomy: no TAXONOMY block in ' + ENGINE); }));
 }
 
 function paperProblems(t, rows) {
