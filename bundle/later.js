@@ -15994,7 +15994,7 @@ into: 'lib-box', what: 'Your library cards',
 get html() { return cardBlocks_(mapBox_('lib-box')); } },
 ];
 tierGuardWidgets_(WIDGETS);
-const DK = { lists: null, at: 0, edit: -1, rename: false, showDone: false, say: '' };
+const DK = { lists: null, at: 0, edit: -1, rename: false, showDone: false, say: '', addr: null };
 const dkDay_ = d => todayIso_(d);
 const dkDone_ = i => (i.repeat === 'daily' ? i.doneOn === dkDay_() : !!i.done);
 const dkGone_ = i => i.repeat !== 'daily' && !!i.done && !!i.doneOn && i.doneOn < dkDay_();
@@ -16059,6 +16059,12 @@ const L = lists[DK.at];
 const out = dkNowNext_(lists).concat({ type: 'group', look: 'tile-row dk-lists', tiles: lists.map((l, i) => ({ icon: 'list', label: l.name + (l.start ? ' ' + l.start : ''), act: 'dk-list', cls: i === DK.at ? 'is-submit' : '', data: { i } }))
 .concat({ icon: 'plus', label: 'New list', act: 'dk-newlist' }) });
 if (DK.say) out.push({ type: 'text', text: DK.say });
+if (typeof may_ === 'function' && may_('owner')) {
+out.push({ type: 'tiles', tiles: [{ icon: 'key', label: text_('dk-addr-show'), act: 'dk-addr', cls: DK.addr != null ? 'is-submit' : '' }] });
+if (DK.addr != null) out.push({ type: 'section', head: text_('dk-addr-head'), blocks: [{ type: 'text', text: text_('dk-addr-say') },
+{ type: 'group', look: 'dk-form', inner: formOf_('docket-address', { address: DK.addr }) },
+{ type: 'tiles', tiles: [{ icon: 'again', label: text_('dk-addr-new'), act: 'dk-addr-new', tone: 'danger' }] }] });
+}
 if (!L) return out.concat({ type: 'text', text: 'Make a list to start.' });
 out.push({ type: 'group', look: 'tile-row', tiles: [{ icon: 'edit', label: 'Rename', act: 'dk-rename' }, { icon: 'up', label: 'Earlier', act: 'dk-move', data: { by: -1 }, off: DK.at === 0 },
 { icon: 'down', label: 'Later', act: 'dk-move', data: { by: 1 }, off: DK.at === lists.length - 1 }, { icon: 'bin', label: 'Delete list', act: 'dk-droplist', tone: 'danger' }] });
@@ -16075,10 +16081,21 @@ return out;
 function dkNowNextOf_(lists, p) {
 if (!p) return null;
 const L = lists[p.cur], N = p.next == null ? null : lists[p.next];
-return { head: text_('dk-now-at', { name: L.name, at: p.at }), done: text_('dk-day-done'),
+return { name: L.name, head: text_('dk-now-at', { name: L.name, at: p.at }), done: text_('dk-day-done'),
 next: N ? text_('dk-next', { name: N.name, at: p.nextAt }) : text_('dk-next-none'),
 rows: p.rows.map(r => { const it = lists[r.li].items[r.i];
 return { at: r.li + ':' + r.i, title: it.title || 'Untitled', missed: r.missed, tags: [r.missed ? text_('dk-missed') : '', r.missed ? lists[r.li].name : '', it.time || ''].filter(Boolean) }; }) };
+}
+function dkSay_(m) {
+if (!m) return text_('dk-eink-none');
+const now = m.rows.length ? text_('dk-say-now', { name: m.name, first: m.rows[0].title, left: m.rows.length }) : text_('dk-say-over', { name: m.name });
+return now + ' ' + m.next;
+}
+function dkMatch_(titles, what) {
+const ws = s => String(s || '').toLowerCase().match(/[a-z0-9]+/g) || [], said = ws(what);
+let best = -1, most = 0;
+titles.forEach((t, k) => { const has = new Set(ws(t)), n = said.filter(w => has.has(w)).length; if (n > most) { most = n; best = k; } });
+return best;
 }
 function dkNowNext_(lists, p) {
 const m = dkNowNextOf_(lists, p === undefined ? dkPhase_(lists, dkNow_(), dkFill_) : p);
@@ -16131,6 +16148,11 @@ if (it.repeat !== 'daily') delete it.repeat;
 DK.edit = -1; dkKeep_(); });
 on('dk-food', el => { const it = dkList_() && dkList_().items[+el.getAttribute('data-i')]; if (!it) return;
 const f = el.getAttribute('data-f') || ''; if (dkPicked_(it) === f) { it.pick = ''; it.pickOn = ''; } else { it.pick = f; it.pickOn = dkDay_(); } dkKeep_(); });
+const dkAddr_ = renew => Promise.resolve(api({ action: 'docketAddress', personId: (USER && USER.personId) || '', renew: renew ? 1 : '' }))
+.then(d => { if (d && d.token) DK.addr = API + '?docket=' + d.token; else { DK.addr = null; DK.say = (d && d.error) || text_('err-docket-saved'); } dkPaint_(); })
+.catch(() => { DK.addr = null; DK.say = 'Not saved — you look offline.'; dkPaint_(); });
+on('dk-addr', () => { if (DK.addr != null) { DK.addr = null; dkPaint_(); } else { DK.addr = ''; dkPaint_(); dkAddr_(false); } });
+on('dk-addr-new', () => { if (confirm(text_('dk-addr-new') + '? The old address stops working.')) dkAddr_(true); });
 on('dk-showdone', () => { DK.showDone = !DK.showDone; dkPaint_(); });
 document.addEventListener('change', e => {
 const el = e.target;
