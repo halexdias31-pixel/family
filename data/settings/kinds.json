@@ -1676,7 +1676,13 @@
     "who": "owner"
    },
    "forms": {
-    "docket-list": {
+    "docket-address": {
+          "draft": false,
+          "attr": "data-dka",
+          "say": "the owner's private plain-text address (owner, 21 Nov: NOW, NEXT step 3): the Docket's Private address tile opens it; the backend's doGet `?docket=<token>` answers Now/Next as text, `&do=done&what=` ticks, `&do=add&what=` adds. Make a new address (action docketAddress, renew) kills the old token.",
+          "fields": [{ "f": "address", "type": "text", "label": "Your private address", "input": "url" }]
+        },
+        "docket-list": {
      "draft": false,
      "attr": "data-dkl",
      "say": "a docket list's name and usual start (owner, 21 Nov: NOW, NEXT): the widget's Rename opens it. A list with a `start` (HH:MM, London's) is a phase of the day; js/map.js dkPhase_ picks the current one by the clock and the ticks.",

@@ -182,6 +182,7 @@ function postActions_() {
     workingOf: postWorkingOf_,
     history: postHistory_,
     docketImport: postDocketImport_,
+    docketAddress: postDocketAddress_,
     assignmentsOf: postAssignmentsOf_,
     assignmentsSave: postAssignmentsSave_,
     assignmentsImport: postAssignmentsImport_,
