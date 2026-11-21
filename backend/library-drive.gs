@@ -234,29 +234,23 @@ function libPackApply_(parsed, memo) {
 function libImport_(pack, by) {
   const parsed = libPackCheck_(pack);
   if (parsed.error) return { error: parsed.error + ' — nothing was written' };
-  const lock = LockService.getScriptLock();
-  if (!lock.tryLock(10000)) return errOf_('err-busy', 'busy');
-  try {
+  return withWriteLock_(() => {
     const one = libPackApply_(parsed, {});
     if (one.error) return one;
     if (one.written) libGenBump_();
     libDriveLog_(by, 'tools push', Object.assign({ note: parsed.note }, one));
     return { success: true, counts: one.counts, written: one.written, flagged: one.flagged };
-  } finally {
-    lock.releaseLock();
-  }
+  }, { wait: 10000, busy: () => errOf_('err-busy', 'busy') });
 }
 
 /* THE PRESS (and `?run=libImportDrive`): every waiting file, oldest first, each whole or not at all; a done file moves to `imported`. */
 /* `auto` (the hourly run, 443): the same press, but it makes no folder, and an empty folder or a busy lock leaves no trace. */
 function libImportDrive_(by, auto) {
-  const lock = LockService.getScriptLock();
-  if (!lock.tryLock(auto ? 5000 : 30000)) return { error: 'Busy — another import or write is running. Try again in a moment.', why: 'busy' };
-  const wroteBefore = POST_WROTE;
+  /* NO PAYLOAD CARRIES THE LIBRARY'S WORDS OR THE LOG, so the stored payload stands (keepPayload). */
+  return withWriteLock_(() => {
   const t0 = Date.now();
   const report = { success: true, at: new Date().toISOString(), files: [], imported: 0, failed: 0, left: 0 };
   if (auto) report.auto = true;
-  try {
     let folder, done, files;
     try {
       folder = auto ? libDriveFind_(DriveApp.getFoldersByName(LIB_DRIVE_FOLDER)) : libDriveFolder_();
@@ -294,11 +288,7 @@ function libImportDrive_(by, auto) {
     try { PropertiesService.getScriptProperties().setProperty(LIB_DRIVE_LAST, JSON.stringify(report).slice(0, 8000)); } catch (err) { /* script properties are best-effort here; the next run tries again */ }
     if (auto) try { PropertiesService.getScriptProperties().setProperty(LIB_DRIVE_AUTO, JSON.stringify(report).slice(0, 8000)); } catch (err) { /* script properties are best-effort here; the next run tries again */ }
     return report;
-  } finally {
-    lock.releaseLock();
-    /* NO PAYLOAD CARRIES THE LIBRARY'S WORDS OR THE LOG, so the stored payload stands. */
-    if (POST_WROTE && !wroteBefore) POST_WROTE = false;
-  }
+  }, { wait: auto ? 5000 : 30000, keepPayload: true, busy: () => ({ error: 'Busy — another import or write is running. Try again in a moment.', why: 'busy' }) });
 }
 /* THE HOURLY TRIGGER'S HANDLER (443): no person, so the log's handle says `hourly`. Public — a trigger cannot call a name ending _. */
 function libImportHourly() {

@@ -82,9 +82,7 @@ function postFinalizePayment_(body, action, began) {
   const ref = S(body.ref);
   if (!ref) return jsonOut({ error: 'That payment link has no reference, so nothing was booked.' });
   /* ONE RETURN AT A TIME (430): a refresh and the first load racing each read the ref before either deleted it, and both wrote Confirm and mailed twice. */
-  const lock = LockService.getScriptLock();
-  if (!lock.tryLock(10000)) return jsonOut({ error: 'Busy — open the site again in a moment to finish.', why: 'busy' });
-  try {
+  return withWriteLock_(() => {
     clearCache();
     /* ALREADY HANDLED IS THE CONFIRM EVENT THIS REF WROTE, not a missing property — so a refresh answers with the job to open (430). */
     const done = read(TAB.events).rows.find(r => S(r.request_id) === ref && S(r.action) === 'Confirm');
@@ -131,7 +129,7 @@ function postFinalizePayment_(body, action, began) {
     if (tutor) notify(tutor, 'Paid: a place is confirmed',
       fmtName_(findPerson(payer) || payer) + ' has paid and is confirmed in the class.\n\n— @family.', 'bookings');
     return jsonOut({ success: true, jobId: S(jobId) });
-  } finally { lock.releaseLock(); }
+  }, { wait: 10000, busy: () => jsonOut({ error: 'Busy — open the site again in a moment to finish.', why: 'busy' }) });
 }
 
 /* MARKING A SESSION PAID, BY HAND ------------------------------------------------------- PEOPLE PAY IN CASH. § */
@@ -387,10 +385,8 @@ function postAnswerRequest_(body, action, began) {
   const asker = findPerson('', S(body.personId));
   if (!asker) return refuse_('err-sign-in-first', 'not-signed-in');
   const yes = TRUE_(body.yes), reason = S(body.reason).slice(0, 200);
-  const lock = LockService.getScriptLock();
-  if (!lock.tryLock(10000)) return jsonOut({ error: 'Busy — please press again in a moment.' });
   let j = null, tutorName = '', clients = [], status = '';
-  try {
+  const early = withWriteLock_(() => {
     clearCache();
     const t = read(TAB.jobs);
     j = t.rows.find(x => S(x.job_id) === S(body.jobId) || String(x._row) === S(body.jobId));
@@ -420,9 +416,8 @@ function postAnswerRequest_(body, action, began) {
     }
     status = jobStatusOf(jobId);
     setCell(t, j, 'status', status);
-  } finally {
-    lock.releaseLock();
-  }
+  }, { wait: 10000, busy: () => jsonOut({ error: 'Busy — please press again in a moment.' }) });
+  if (early) return early;
   clients.forEach(c => deliver_(c.name, 'bookings', { push: { title: (yes ? 'Accepted: ' : 'Declined: ') + S(j.subject),
     body: tutorName + (yes ? ' accepted. Open to pay and confirm.' : ' cannot take it.'), link: 'job:' + (S(j.job_id) || String(j._row)) } }));
   clients.forEach(c => notify(c.name,
@@ -485,9 +480,7 @@ function postCreateJob_(body, action, began) {
   const noDiscount = discountRefusal_(body, !!(asker && whoMay_(asker, 'admin')), codeRow, new Date());
   if (noDiscount) return jsonOut({ error: noDiscount });
   /* THE CLASH TESTS AND THE WRITE IN ONE HOLD (434): two phones pressing Book in the same second must not both pass. */
-  const bookLock = LockService.getScriptLock();
-  if (!bookLock.tryLock(10000)) return jsonOut({ error: 'Busy — please press Book again in a moment.' });
-  try {
+  const early = withWriteLock_(() => {
     /* Fresh rows under the lock: a copy read before it may lack the booking that just took the hour. */
     clearCache();
     /* A TUTOR'S WEEK NO LONGER REFUSES (488): any day and hour may be asked; the tutor answers it (`answerRequest`). */
@@ -505,9 +498,8 @@ function postCreateJob_(body, action, began) {
       logEvent({ jobId, actor: S(body.requestedTutor), role: 'tutor', action: ACT.REQUEST,
                  message: 'requested directly by the family' });
     }
-  } finally {
-    bookLock.releaseLock();
-  }
+  }, { wait: 10000, busy: () => jsonOut({ error: 'Busy — please press Book again in a moment.' }) });
+  if (early) return early;
 
   createJobNotify_(body, me, jobId, named);
   const receipt = createJobReceipt_(body, me, jobId, chargeTravel, travel);

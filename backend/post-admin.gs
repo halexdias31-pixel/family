@@ -81,10 +81,8 @@ function postApplyTeach_(body, action, began) {
   } catch (err) {
     return jsonOut({ error: 'The photos could not be kept — please try again. Nothing was sent.', why: 'drive' });
   }
-  const lock = LockService.getScriptLock();
-  if (!lock.tryLock(5000)) return refuse_('err-busy', 'busy');
   let out = {};
-  try {
+  const busy = withWriteLock_(() => {
     clearCache();
     const t = read(TAB.applications);
     if (!t.sheet) out = { error: 'Applications are not set up yet — an admin opening the site sets them up.', why: 'no-tab' };
@@ -95,9 +93,8 @@ function postApplyTeach_(body, action, began) {
         at: new Date(), person_id: S(me.person_id), status: 'new', status_at: '' }, f));
       out = { success: true };
     }
-  } finally {
-    lock.releaseLock();
-  }
+  });
+  if (busy) return busy;
   if (!out.success) return jsonOut(out);
   /* THE OWNER IS TOLD — the application itself is read in the Business column, so the mail carries no references or DBS number. */
   const owner = ownerEmail_();
@@ -128,7 +125,7 @@ function applyKeep_(folder, raw, name) {
   const type = ((parts[0] || '').match(/data:([^;]+)/) || [])[1] || 'image/jpeg';
   const ext = (type.split('/')[1] || 'jpg').replace(/[^a-z0-9]/gi, '');
   const blob = Utilities.newBlob(Utilities.base64Decode(parts[1] || ''), type, name + '.' + ext);
-  return 'https://drive.google.com/file/d/' + folder.createFile(blob).getId() + '/view';
+  return driveFileUrl_(folder.createFile(blob).getId());
 }
 
 function postListApplications_(body, action, began) {
@@ -176,10 +173,8 @@ function postListStaff_(body, action, began) {
 function postDecideApplication_(body, action, began) {
   const status = norm(body.status);
   if (APPLICATION_STATUSES.indexOf(status) < 0 || status === 'new') return jsonOut({ error: 'Not a decision an application can have.' });
-  const lock = LockService.getScriptLock();
-  if (!lock.tryLock(5000)) return refuse_('err-busy', 'busy');
   let out = {}, who = null;
-  try {
+  const busy = withWriteLock_(() => {
     clearCache();
     const t = read(TAB.applications);
     const row = t.sheet ? t.rows.find(r => S(r.application_id) && S(r.application_id) === S(body.id)) : null;
@@ -195,9 +190,8 @@ function postDecideApplication_(body, action, began) {
         out = { success: true, id: S(row.application_id), status: status };
       }
     }
-  } finally {
-    lock.releaseLock();
-  }
+  });
+  if (busy) return busy;
   if (!out.success) return jsonOut(out);
   /* THE TUTOR LIST IS IN THE STORED PAYLOAD — `setListed`'s reason. */
   if (status === 'approved') clearCache();

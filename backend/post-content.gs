@@ -259,9 +259,7 @@ function postReactPost_(body, action, began) {
   if ((emoji || !setting) && allowed.indexOf(emoji) === -1) return jsonOut({ error: 'That is not one of them.' });
 
   /* ---------- UNDER THE SCRIPT LOCK, AND OVER EVERY ROW OF YOURS § */
-  const lock = LockService.getScriptLock();
-  if (!lock.tryLock(5000)) return refuse_('err-busy-press', 'busy');
-  try {
+  return withWriteLock_(() => {
     clearCache();
     const t = read(TAB.post_reactions);
     const mine = t.rows.filter(x => S(x.post_id) === S(body.postId)
@@ -285,9 +283,7 @@ function postReactPost_(body, action, began) {
     }
     clearCache();
     return jsonOut({ success: true, emoji: to });
-  } finally {
-    lock.releaseLock();
-  }
+  }, { busy: () => refuse_('err-busy-press', 'busy') });
 }
 
 /* saying something under a post ------------------------------------------------------------ THE SAME SHAPE AS A REACTION AND A VOTE, one column wider: § */
@@ -347,9 +343,7 @@ function postVotePoll_(body, action, began) {
   if ((choice || !setting) && opts.indexOf(choice) === -1) return jsonOut({ error: 'That is not one of the answers.' });
 
   /* UNDER THE LOCK AND OVER EVERY ROW OF YOURS, as a reaction is. */
-  const lock = LockService.getScriptLock();
-  if (!lock.tryLock(5000)) return refuse_('err-busy-press', 'busy');
-  try {
+  return withWriteLock_(() => {
     clearCache();
     const t = read(TAB.post_votes);
     const mine = t.rows.filter(x => S(x.post_id) === S(body.postId)
@@ -374,9 +368,7 @@ function postVotePoll_(body, action, began) {
     }
     clearCache();
     return jsonOut({ success: true, choice: to });
-  } finally {
-    lock.releaseLock();
-  }
+  }, { busy: () => refuse_('err-busy-press', 'busy') });
 }
 
 /* messages ------------------------------------------------------------------------------ Send, read, and flag. § */
@@ -580,13 +572,12 @@ function postSuggest_(body, action, began) {
   const on = norm(body.flag) !== 'off';
   const pid0 = S(me.person_id), key0 = kind + '|' + item;
   if (!on) {
-    const lock0 = LockService.getScriptLock();
-    if (!lock0.tryLock(5000)) return refuse_('err-busy', 'busy');
-    try {
+    const busy0 = withWriteLock_(() => {
       clearCache();
       const t0 = read(TAB.claude_notes);
       t0.rows.filter(r => S(r.made_by) === pid0 && S(r.item_id) === key0 && flagRow_(r)).forEach(r => setCells(t0, r, { status: 'withdrawn', done_at: new Date() }));
-    } finally { lock0.releaseLock(); }
+    });
+    if (busy0) return busy0;
     clearCache();
     return jsonOut({ success: true, flag: false, myFlags: myFlags_(pid0), reportedItems: reportedItems_() });
   }
@@ -602,11 +593,9 @@ function postSuggest_(body, action, began) {
   const path = S(body.path).replace(/\s+/g, ' ').trim().slice(0, 300);
   const device = /^(phone|tablet|computer)$/.test(S(body.device)) ? S(body.device) : '';
   const noteAll = [note, path ? 'Path: ' + path : '', device ? 'Seen on: ' + device : ''].filter(Boolean).join('\n');
-  const lock = LockService.getScriptLock();
-  if (!lock.tryLock(5000)) return refuse_('err-busy', 'busy');
   let out = {}, made = null;
   const wroteBefore = POST_WROTE;
-  try {
+  const busy = withWriteLock_(() => {
     clearCache();
     const t = read(TAB.claude_notes);
     if (!t.sheet) out = { error: 'Suggestions are not set up yet — an admin opening the site sets them up.', why: 'no-tab' };
@@ -620,9 +609,8 @@ function postSuggest_(body, action, began) {
         out = { success: true, serious: admin, id: made.note_id };
       }
     }
-  } finally {
-    lock.releaseLock();
-  }
+  });
+  if (busy) return busy;
   /* THE PICTURE OF WHAT WAS SEEN (owner, 18 Nov) goes to a private "Flag snapshots" folder in the Claude inbox — never shared
      (children's data) — and its link is added to the note. A picture that fails leaves the flag as it is. */
   if (made) { try { const link = flagShotKeep_(body.shot, made.note_id); if (link) { const tn = read(TAB.claude_notes); const r = tn.rows.find(x => S(x.note_id) === made.note_id); if (r) setCell(tn, r, 'note', S(r.note) + '\nSnapshot: ' + link); } } catch (err) { out.shotError = S(err && err.message || err); } }
@@ -644,7 +632,7 @@ function flagShotKeep_(raw, id) {
   const m = v.match(/^data:(image\/(?:jpeg|png));base64,([A-Za-z0-9+\/=]+)$/);
   if (!m || v.length > FLAG_SHOT_MAX) return '';
   const file = inboxFolderAt_(['Flag snapshots'], true).createFile(Utilities.newBlob(Utilities.base64Decode(m[2]), m[1], S(id) + (m[1] === 'image/png' ? '.png' : '.jpg')));
-  return 'https://drive.google.com/file/d/' + file.getId() + '/view';
+  return driveFileUrl_(file.getId());
 }
 
 /* ---------- FILES FOR CLAUDE (515): one part of one file into Drive "Claude inbox". Admin only, at the gate; nothing goes in the sheet. */
@@ -672,10 +660,8 @@ function postDecideSuggestion_(body, action, began) {
     clearCache();
     return jsonOut({ success: true, id: S(mr.message_id), kind: 'message' });
   }
-  const lock = LockService.getScriptLock();
-  if (!lock.tryLock(5000)) return refuse_('err-busy', 'busy');
   let out = {};
-  try {
+  const busy = withWriteLock_(() => {
     clearCache();
     const t = read(TAB.claude_notes);
     const row = t.sheet ? t.rows.find(r => S(r.note_id) && S(r.note_id) === S(body.id) && norm(r.status) === 'pending') : null;
@@ -684,9 +670,8 @@ function postDecideSuggestion_(body, action, began) {
       setCells(t, row, how === 'confirm' ? { status: 'open' } : { status: 'dismissed', done_at: new Date() });
       out = { success: true, id: S(row.note_id), decision: how };
     }
-  } finally {
-    lock.releaseLock();
-  }
+  });
+  if (busy) return busy;
   if (out.success) {
     clearCache();
     out.notes = claudeNotesOpen_();
@@ -700,10 +685,8 @@ function postDecideSuggestion_(body, action, began) {
 function postClaudeNoteAdd_(body, action, began) {
   const me = findPerson('', S(body.personId));
   if (!me || !rankAtLeast_(me, 'admin')) return refuse_('err-not-authorised', 'not-allowed');
-  const lock = LockService.getScriptLock();
-  if (!lock.tryLock(5000)) return refuse_('err-busy', 'busy');
   let out = {};
-  try {
+  const busy = withWriteLock_(() => {
     clearCache();
     const t = read(TAB.claude_notes);
     if (!t.sheet) out = { error: 'Notes are not set up yet — an admin opening the site sets them up.', why: 'no-tab' };
@@ -722,9 +705,8 @@ function postClaudeNoteAdd_(body, action, began) {
       if (!row) out = { error: 'That note is not there any more.' };
       else { setCells(t, row, { status: 'done', done_at: new Date() }); out = { success: true, id: S(row.note_id) }; }
     }
-  } finally {
-    lock.releaseLock();
-  }
+  });
+  if (busy) return busy;
   if (out.success) {
     clearCache();
     out.notes = claudeNotesOpen_();
