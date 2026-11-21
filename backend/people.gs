@@ -117,13 +117,7 @@ function emailRefusal_(want, me) {
 
 /* ONE FUNCTION THAT SAYS WHY A HANDLE IS REFUSED, OR NOTHING AT ALL. § */
 
-/* WHAT A HANDLE MEANS RATHER THAN HOW IT IS SPELLED. § */
-function handleFold_(v) {
-  return String(v == null ? '' : v).toLowerCase()
-    .replace(/[^a-z0-9]/g, '')
-    .replace(/0/g, 'o').replace(/1/g, 'i').replace(/3/g, 'e').replace(/4/g, 'a')
-    .replace(/5/g, 's').replace(/7/g, 't').replace(/8/g, 'b').replace(/9/g, 'g');
-}
+/* WHAT A HANDLE MEANS RATHER THAN HOW IT IS SPELLED: handleFold_ and HANDLE_SHAPE are js/form.js's (cards-gen.gs). */
 
 /**
  * Why `want` may not be this person's handle — '' when it may.
@@ -135,8 +129,7 @@ function handleTrouble_(want, me, wordsOnly) {
   const raw = shown.toLowerCase();
   if (!raw) return 'Type the name you want.';
   if (!HANDLE_SHAPE.test(raw)) {
-    return 'A handle is 3 to 30 characters, starts with a letter, and holds only letters, '
-         + 'numbers, underscores and hyphens.';
+    return text_('handle-shape');
   }
 
   const folded = handleFold_(raw);
@@ -1352,7 +1345,7 @@ function adminPersonRefusal_(t, body, r) {
   if (!first || !last) return 'A first name and a last name, please.';
   const roles = adminRolesIn_(body.roles);
   if (!roles.length) return 'Tick at least one role.';
-  if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return 'That email address does not look right.';
+  if (email && !(r && norm(r.email) === norm(email)) && !FORM_TESTS.email(email)) return text_('email-does-not-look-right');
   const mine = x => !!r && S(x.person_id) === S(r.person_id);
   if (email && t.rows.some(x => !mine(x) && norm(x.email) === norm(email))) return 'Somebody else already has that email address.';
   const clash = findPerson((first + ' ' + last).trim());

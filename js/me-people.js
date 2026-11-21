@@ -24,7 +24,7 @@ const PSEARCH_ALL_ = {};
 const psState_ = col => PSEARCH_ALL_[col] || (PSEARCH_ALL_[col] = { q: '', asked: '', child: null, busy: false });
 /* THE OLD NAME, Students' state, for anything that still reads it. */
 const PSEARCH_ = psState_('students');
-const psFold_ = v => String(v || '').trim().replace(/^@/, '').toLowerCase();
+const psFold_ = handleTyped_;
 /* EVERY CARD THE COLUMN ALREADY SHOWS THIS PERSON — public, so a prefix may find them. Never a child's. */
 function psPublic_() {
   const pool = [].concat(DATA.tutors || [], (typeof may_ === 'function' && may_('admin') && Array.isArray(DATA.everyone)) ? DATA.everyone : [],
@@ -96,7 +96,7 @@ function psFind_(el) {
   const S = psState_(col), card = el && el.closest ? el.closest('.ps-card') : null, box = card && card.querySelector('[data-psearch]');
   if (box) S.q = box.value;
   const q = psFold_(S.q);
-  if (q.length < 3) { toast('A handle is at least 3 letters'); return; }
+  if (!HANDLE_SHAPE.test(q)) { toast(text_('handle-shape')); return; }
   Object.assign(S, { asked: q, child: null, busy: true });
   psPaint_(col);
   send_({ action: 'findChild', personId: USER.personId || '', handle: q }, { button: box || el })
@@ -306,7 +306,7 @@ function peFields_(form) {
   const out = {};
   PE_BOXES_.forEach(([f]) => { if (f !== 'phone' && v(f) !== null) out[f] = v(f); });
   const ph = v('phone');
-  if (ph !== null) { const m = /^(\+\d{1,4})\s+(.*)$/.exec(ph); out.phone_cc = m ? m[1] : '+44'; out.phone_no = m ? m[2] : ph; }
+  if (ph !== null) Object.assign(out, phoneOut(ph));
   const dob = v('dob');
   if (dob !== null) { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dob) || ['', '', '', '']; out.dob_y = m[1]; out.dob_m = m[2]; out.dob_d = m[3]; }
   return out;

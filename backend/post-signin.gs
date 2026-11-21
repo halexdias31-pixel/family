@@ -72,7 +72,7 @@ function registerWrong_(first, last, email, pin, grownUp, asParent) {
   if (!email && !grownUp) {
     return 'Please give your email address — or, with no email of your own, a grown-up\'s.';
   }
-  if ((email || grownUp).indexOf('@') < 0) return 'Please give a real email address.';
+  if (!FORM_TESTS.email(email || grownUp)) return text_('email-does-not-look-right');
   if (!/^\d{4}$/.test(pin)) return 'Choose a PIN of 4 digits.';
   /* THE SAME RULE `changePin` HAS — see `pinWeak_`. A form that let you choose 0000 and then
      refused it when you tried to change it was two rules for one PIN. */

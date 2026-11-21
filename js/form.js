@@ -21,6 +21,46 @@ function formGaps_(gaps, body) {
   const ok = t => { const [f, test] = t.split(':'); return FORM_TESTS[test](body[f]); };
   return (gaps || []).filter(g => !(g.any ? g.any.some(l => l.every(ok)) : (g.all || []).every(ok))).map(g => g.say);
 }
+/* ONE PHONE, HANDLE AND EMAIL RULE (unify lane D, 21 Nov): the site and the backend (cards-gen.gs copies these) read and refuse by these alone; tools/one-contact.js fails a second copy. */
+/* THE CODES OFFERED, the first the default: constants.gs PHONE_CODES on the backend, get-start's `phoneCodes` on the site. */
+function phoneCodes_() {
+  const c = typeof PHONE_CODES !== 'undefined' ? PHONE_CODES : (typeof DATA !== 'undefined' && DATA ? DATA.phoneCodes : null);
+  return Array.isArray(c) && c.length ? c : ['+44'];
+}
+/* THE PHONE CELL AS TWO BOXES (code, number). */
+function phoneOut(cellValue) {
+  const codes = phoneCodes_();
+  let v = String(cellValue == null ? '' : cellValue).trim().replace(/^00/, '+');
+  if (!v) return { phone_cc: codes[0], phone_no: '' };
+  if (v[0] === '+') {
+    const digits = v.slice(1).replace(/\D/g, '');
+    const cc = codes.filter(c => digits.indexOf(c.slice(1)) === 0).sort((a, b) => b.length - a.length)[0];
+    if (cc) return { phone_cc: cc, phone_no: v.replace(/^\+\s*/, '').replace(new RegExp('^' + cc.slice(1)), '').trim() };
+    const m = v.match(/^\+(\d{1,4})\s*(.*)$/);
+    return { phone_cc: m ? '+' + m[1] : codes[0], phone_no: m ? m[2].trim() : v };
+  }
+  return { phone_cc: codes[0], phone_no: v.replace(/^0(?=\d)/, '') };
+}
+/* TWO BOXES BACK AS ONE CELL: digits and spaces, a code typed twice dropped, one trunk 0 off (Italy keeps it). */
+function phoneIn(fields) {
+  const t = x => String(x == null ? '' : x).trim();
+  const cc = /^\+\d{1,4}$/.test(t(fields.phone_cc)) ? t(fields.phone_cc) : phoneCodes_()[0];
+  let no = t(fields.phone_no);
+  const ccd = cc.slice(1);
+  if (/^(\+|00)/.test(no)) no = no.replace(/^(\+|00)\s*/, '').replace(new RegExp('^' + ccd + '\\s*'), '');
+  no = no.replace(/[^\d ]/g, ' ').replace(/\s+/g, ' ').trim();
+  if (cc !== '+39') no = no.replace(/^0(?=\d)/, '');
+  return no ? cc + ' ' + no : '';
+}
+/* A HANDLE: 3 to 30, a letter first, then letters, numbers, _ and -. As typed (no @, lower case), and as meant (look-alike digits folded). */
+const HANDLE_SHAPE = /^[a-z][a-z0-9_-]{2,29}$/;
+const handleTyped_ = v => String(v == null ? '' : v).trim().replace(/^@/, '').toLowerCase();
+function handleFold_(v) {
+  return String(v == null ? '' : v).toLowerCase()
+    .replace(/[^a-z0-9]/g, '')
+    .replace(/0/g, 'o').replace(/1/g, 'i').replace(/3/g, 'e').replace(/4/g, 'a')
+    .replace(/5/g, 's').replace(/7/g, 't').replace(/8/g, 'b').replace(/9/g, 'g');
+}
 
 /* WHICH OF THE KINDS A FIELD IS, by the first rule its name matches; the last rule catches everything as text. */
 /* EVERY FORM IS ITS KIND'S (data/settings/kinds.json `forms`): read from KINDS, each told the kind it fills. */
