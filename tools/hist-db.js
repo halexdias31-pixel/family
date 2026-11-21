@@ -51,9 +51,10 @@ function find() {
   return { bad, count, kinds: DB.length };
 }
 
-if (require.main === module) {
+function run() {
   const { bad, kinds } = find();
   console.log('hist-db: ' + kinds + ' history kinds from HIST_DB; ' + bad.length + ' cop' + (bad.length === 1 ? 'y' : 'ies') + ' outside the source');
-  if (bad.length) { bad.forEach(b => console.error('  ' + b)); process.exit(1); }
+  if (bad.length) throw new Error('hist-db: FAILED\n  ' + bad.join('\n  '));
 }
-module.exports = { find };
+module.exports = { find, run };
+if (require.main === module) { try { run(); } catch (e) { console.error(e.message); process.exit(1); } }

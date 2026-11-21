@@ -9,6 +9,7 @@ const fs = require('fs'), path = require('path');
 const ROOT = path.join(__dirname, '..');
 const ENGINE = 'js/find-finder.js';
 const BYS = ['row', 'writing', 'hist', 'mech', 'own'];
+function run() {
 
 const src = fs.readFileSync(path.join(ROOT, ENGINE), 'utf8');
 const facets = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/settings/facets.json'), 'utf8'));
@@ -31,5 +32,8 @@ facets.forEach(f => {
   if (f.read.by === 'own' && !/^\w+\.\w+$/.test(f.read.col)) bad.push('facets.json ' + f.field + ': an "own" col is table.column');
   if (hand.has(f.field)) bad.push(ENGINE + ': ' + f.field + ' is read by facets.json and again by hand in FACET_READ');
 });
-if (bad.length) { console.error('facet-readers: FAILED\n  ' + bad.join('\n  ')); process.exit(1); }
+if (bad.length) throw new Error('facet-readers: FAILED\n  ' + bad.join('\n  '));
 console.log('facet-readers: ok — ' + facets.filter(f => f.read).length + ' facets read as data, no one-line column reader in FACET_READ');
+}
+module.exports = { run };
+if (require.main === module) { try { run(); } catch (e) { console.error(e.message); process.exit(1); } }
