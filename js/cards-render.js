@@ -171,7 +171,7 @@ function cardEmbed_(b) {
 function cardTree_(nodes, fold, top) {
   const one = n => { const head = `<span class="kc-tree-k">${cardRuns_(n.label)}</span>`;
     const inner = (n.text != null && n.text !== '' ? `<span class="kc-tree-v">${cardRuns_(n.text)}</span>` : '')
-      + ((n.tiles || []).length ? `<div class="tile-row">${tile_(n.tiles)}</div>` : '')
+      + ((n.tiles || []).length ? tileWrap_(tile_(n.tiles)) : '')
       + (n.more ? `<p class="kc-tree-more">${cardRuns_(n.more)}</p>` : '') + cardTree_(n.kids, false, false);
     return fold && top ? `<details class="kc-tree-sec"><summary class="kc-h">${cardRuns_(n.label)}</summary>${inner}</details>`
       : `<li class="kc-tree-n">${head}${inner}</li>`; };
@@ -239,10 +239,10 @@ const CARD_BLOCKS = {
   /* A WHOLE CARD AMONG THE BLOCKS (Make an account inside Find's menu): its spec, drawn by `renderCard`. */
   card: b => (b.spec ? renderCard(b.spec) : ''),
   /* A ROW OF TILES among the lines (`tile_` specs), its look added to `tile-row`. */
-  tiles: b => ((b.tiles || []).length ? `<div class="tile-row${b.look ? ' ' + esc(b.look) : ''}">${tile_(b.tiles)}</div>` : ''),
+  tiles: b => ((b.tiles || []).length ? tileWrap_(tile_(b.tiles), b.look ? esc(b.look) : '') : ''),
   /* A PERSON ON ONE LINE: their face (`personFace_`'s who and options), name, @handle, then their tiles. */
   who: b => `<div class="row${b.look ? ' ' + esc(b.look) : ''}">${b.face && typeof personFace_ === 'function' ? personFace_(b.face.who || {}, b.face.o || {}) : ''}<p class="${esc(b.whoLook || 'who')}"><b>${cardRuns_(b.name)}</b>${
-    b.handle ? `<span class="prof-handle">@${esc(b.handle)}</span>` : ''}</p>${(b.tiles || []).length ? `<div class="tile-row">${tile_(b.tiles)}</div>` : ''}</div>`,
+    b.handle ? `<span class="prof-handle">@${esc(b.handle)}</span>` : ''}</p>${(b.tiles || []).length ? tileWrap_(tile_(b.tiles)) : ''}</div>`,
   /* ONE TICK BOX in a labelled cell (an hour on a week you tick): `control` is `cardControl_`'s. */
   tickCell: b => `<label class="${esc(b.look || '')}"${b.label ? ` aria-label="${esc(b.label)}"` : ''}>${cardControl_(Object.assign({ kind: 'check' }, b.control || {}))}</label>`,
   /* A FILE SHOWN IN PLACE: a page framed, a clip with its controls, or a picture; `look` names its size. */
@@ -293,7 +293,7 @@ function renderCard(spec) {
   const tr = spec.toolRow ? { look: 'qt-row', key: spec.toolRow.key || '' } : null;
   /* `cut` (a card holding a tool, cardOfItem_'s `tool`): its laid-out lines after the body, its open form (`kc-form`), its lifted tiles in the row. */
   const cut = spec.cut || {}, lines = body + (cut.lines || '');
-  try { row = typeof kcActRow_ === 'function' ? kcActRow_(x, '', tile_(spec.tiles || []) + (cut.tiles || ''), tr) : `<div class="tile-row kc-row">${tile_(spec.tiles || [])}</div>`; } catch (e) { if (typeof oops_ === 'function') oops_(e, 'card:tiles'); }
+  try { row = typeof kcActRow_ === 'function' ? kcActRow_(x, '', tile_(spec.tiles || []) + (cut.tiles || ''), tr) : tileWrap_(tile_(spec.tiles || []), 'kc-row'); } catch (e) { if (typeof oops_ === 'function') oops_(e, 'card:tiles'); }
   const cls = 'card fc kc kc-' + kind + (spec.look ? ' ' + spec.look : '') + (spec.off ? ' is-off' : '');
   return `<div class="${esc(cls)}"${spec.id ? ` id="${esc(spec.id)}"` : ''}${spec.card ? ` data-card="${esc(spec.card)}"` : ''}${cardAttrs_(spec.data)} aria-label="${esc(typeof name === 'string' ? name : '')}">`
     + `<div class="kc-pic">${cardPic_(spec.picture)}</div><div class="kc-head"></div>`
@@ -361,6 +361,9 @@ function cardOfKind_(x) {
 /* A QUESTION'S TABLE SCROLLS IN A BOX OF ITS OWN and stays a real table: as `display:block` Safari laid the iPad's isotope table out a row out of line (13 Nov). */
 const qTables_ = h => String(h).replace(/<table\b/gi, '<div class="q-tscroll"><table').replace(/<\/table>/gi, '</table></div>');
 /* THE BOOKING PAPER (one master template): a receipt's rows, controls, week and roster are drawn here from data the booking hands over. */
+/* THE SIX BK-* CELLS of a paper row (n, k, v, m, r, t: drawn HTML); `kTag` stands for the label cell, `tail` follows the cells. */
+const paperCells_ = (cls, c, kTag, tail) => `<div class="bk-row ${cls}"><span class="bk-n">${c[0]}</span>${kTag || `<span class="bk-k">${c[1]}</span>`}`
+  + `<span class="bk-v">${c[2]}</span><span class="bk-m">${c[3]}</span><span class="bk-r">${c[4]}</span><span class="bk-t">${c[5]}</span>${tail || ''}</div>`;
 function paperRow_(r) {
   const cls = [r.blank ? 'is-blank' : '', r.day ? 'bk-day' : '', r.end ? 'bk-end' : '', r.free ? 'bk-free' : '', r.wide ? 'is-wide' : '',
     r.strip ? 'bk-wk' : '', r.strip && r.shut ? 'is-shut' : '', r.strip && r.off ? 'is-off' : '', r.tally ? 'bk-tally' : '', r.cls || ''].filter(Boolean).join(' ');
@@ -372,14 +375,13 @@ function paperRow_(r) {
     : r.dates ? `<span class="bk-dates">${esc(r.v)}</span>` : esc(r.v);
   const bare = (!r.id || !!r.open || !!r.strip) && !has(r.mul) && !has(r.rate) && !has(r.total);
   const heads = !!r.open || !!r.strip || !!r.tally;
-  return `<div class="bk-row ${esc(cls)}${bare ? ' is-bare' : ''}${heads ? ' is-head' : ''}"><span class="bk-n">${esc(r.n)}</span>`
-    + (r.ctl && r.sel ? `<label for="${esc(r.ctl)}" class="bk-k">${esc(r.k)}</label>` : `<span class="bk-k">${esc(r.k)}</span>`)
-    + `<span class="bk-v">${heads && r.dash != null && String(r.v) === r.dash ? '' : value}</span><span class="bk-m">${esc(r.mul)}</span>`
-    + `<span class="bk-r">${esc(r.rate)}</span><span class="bk-t">${esc(r.total)}</span>${r.open || ''}</div>`
+  return paperCells_(esc(cls) + (bare ? ' is-bare' : '') + (heads ? ' is-head' : ''),
+    [esc(r.n), esc(r.k), heads && r.dash != null && String(r.v) === r.dash ? '' : value, esc(r.mul), esc(r.rate), esc(r.total)],
+    r.ctl && r.sel ? `<label for="${esc(r.ctl)}" class="bk-k">${esc(r.k)}</label>` : '', r.open || '')
     + (r.say ? `<p class="bk-say${r.say.warn ? ' is-warn' : ''}">${esc(r.say.text)}</p>` : '');
 }
-const paperTotal_ = (k, t, cls) => `<div class="bk-row rc-total${cls ? ' ' + esc(cls) : ''}"><span class="bk-n"></span><span class="bk-k">${esc(k)}</span><span class="bk-v"></span><span class="bk-m"></span><span class="bk-r"></span><span class="bk-t">${esc(t)}</span></div>`;
-const paperHead_ = () => '<div class="bk-row is-cols"><span class="bk-n"></span><span class="bk-k"></span><span class="bk-v"></span><span class="bk-m">×</span><span class="bk-r">+/h</span><span class="bk-t">=</span></div>';
+const paperTotal_ = (k, t, cls) => paperCells_('rc-total' + (cls ? ' ' + esc(cls) : ''), ['', esc(k), '', '', '', esc(t)]);
+const paperHead_ = () => paperCells_('is-cols', ['', '', '', '×', '+/h', '=']);
 /* `rows`, `before`, `roster` and `foot` arrive already drawn by these same paper blocks. */
 function paperDoc_(r) {
   const head = !!(r.cols && (r.rows || []).length);

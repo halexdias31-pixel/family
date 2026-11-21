@@ -63,28 +63,24 @@ function libraryRows_() {
 /* A QUESTION WEARS ITS PAPER'S CARD (owner, 17 Nov): kinds.json `sheet.lib.joined` names the card fields (name, subject, level …) a row
    takes from its paper's own row (`kind` document, the same paper_id) instead of keeping a copy. A field a row does keep is its own
    (an override); null is "none here though the paper has one". The backend joins the same way (cards-gen.gs). */
-function libJoinPaper_(rows, join) {
+function libPaperEach_(rows, join, each) {
   if (!join || !Array.isArray(join.fields) || !Array.isArray(rows)) return rows;
   const card = new Map();
   rows.forEach(r => { if (r && r.kind === join.from) card.set(r[join.by], r); });
   rows.forEach(r => {
     const c = r && r.kind !== join.from && card.get(r[join.by]);
-    if (c) join.fields.forEach(f => { if (r[f] === null) delete r[f]; else if (r[f] === undefined && c[f] !== undefined) r[f] = c[f]; });
+    if (c) join.fields.forEach(f => each(r, c, f));
   });
   return rows;
 }
+function libJoinPaper_(rows, join) {
+  return libPaperEach_(rows, join, (r, c, f) => { if (r[f] === null) delete r[f]; else if (r[f] === undefined && c[f] !== undefined) r[f] = c[f]; });
+}
 /* AND THE WAY BACK, for whatever writes the file (tools/content.js import): a copy equal to its paper's goes; an absent one is null. */
 function libStripPaper_(rows, join) {
-  if (!join || !Array.isArray(join.fields) || !Array.isArray(rows)) return rows;
-  const card = new Map();
-  rows.forEach(r => { if (r && r.kind === join.from) card.set(r[join.by], r); });
-  rows.forEach(r => {
-    const c = r && r.kind !== join.from && card.get(r[join.by]);
-    if (c) join.fields.forEach(f => {
-      if (r[f] === undefined) { if (c[f] !== undefined) r[f] = null; } else if (r[f] === c[f]) delete r[f];
-    });
+  return libPaperEach_(rows, join, (r, c, f) => {
+    if (r[f] === undefined) { if (c[f] !== undefined) r[f] = null; } else if (r[f] === c[f]) delete r[f];
   });
-  return rows;
 }
 const LIB_JOIN = () => (((((typeof ITEM_KINDS !== 'undefined' && ITEM_KINDS.kinds.question) || {}).sheet || {}).lib || {}).joined || null);
 /* ONE COPY OF EACH SHORT CELL ("True", "GCSE", "AQA"): a parsed file holds a fresh string per row, a hundred thousand of each. */
@@ -633,22 +629,26 @@ function libSend_(ids) {
 function libLedgerGen_() {
   return String(LIB.ledger || (typeof DATA !== 'undefined' && DATA && DATA.libGen) || '');
 }
+/* THE ONE INDEXEDDB WRAPPER (library, kept game file, console saves): opens `db` (version 1, `store` made on first open with `opts`), runs `fn(store)` in one transaction, closes. Resolves the request's `result` (true when `fn` returns none); rejects with the error. */
+function idbTx_(db, store, mode, fn, opts) {
+  return new Promise((ok, no) => {
+    const rq = indexedDB.open(db, 1);
+    rq.onupgradeneeded = () => { try { rq.result.createObjectStore(store, opts); } catch (e) { /* the store is already there */ } };
+    rq.onerror = () => no(rq.error);
+    rq.onsuccess = () => {
+      try {
+        const t = rq.result.transaction(store, mode), r = fn(t.objectStore(store));
+        t.oncomplete = () => { ok(r && 'result' in r ? r.result : true); rq.result.close(); };
+        t.onerror = t.onabort = () => { no(t.error); rq.result.close(); };
+      } catch (e) { no(e); }
+    };
+  });
+}
 /* THE STORE: IndexedDB here; anything with the same three promises stands in for it in a check. Null when there is none. */
 function libDisk_() {
   try {
     if (typeof indexedDB === 'undefined' || !indexedDB) return null;
-    const open = () => new Promise((ok, no) => {
-      const rq = indexedDB.open(LIB_DISK_DB, 1);
-      rq.onupgradeneeded = () => { try { rq.result.createObjectStore('items', { keyPath: 'id' }); } catch (e) { /* the store is already there */ } };
-      rq.onsuccess = () => ok(rq.result);
-      rq.onerror = () => no(rq.error);
-    });
-    const tx = (mode, fn) => open().then(db => new Promise((ok, no) => {
-      const t = db.transaction('items', mode), st = t.objectStore('items');
-      const out = fn(st);
-      t.oncomplete = () => { ok(out && out.result); db.close(); };
-      t.onerror = t.onabort = () => { no(t.error); db.close(); };
-    }));
+    const tx = (mode, fn) => Promise.resolve().then(() => idbTx_(LIB_DISK_DB, 'items', mode, fn, { keyPath: 'id' }));
     return {
       all: () => tx('readonly', st => st.getAll()),
       put: recs => tx('readwrite', st => { recs.forEach(r => st.put(r)); }),

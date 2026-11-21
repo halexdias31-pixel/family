@@ -293,7 +293,7 @@ document.addEventListener('input', e => {
 document.addEventListener('keydown', e => {
   const b = e.target;
   if (e.key !== 'Enter' || e.shiftKey || e.isComposing || !b || !b.matches || !b.matches('.msg-text')) return;
-  if (!(window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches)) return;
+  if (!(window.matchMedia && matchMedia(CAN_HOVER_).matches)) return;
   const go = b.closest('.msg-form') && b.closest('.msg-form').querySelector('.msg-go');
   if (go) { e.preventDefault(); go.click(); }
 });
