@@ -1319,6 +1319,7 @@ const ITEM_PERMISSIONS = {
   'card:read': ['admin'],
   'content:save': ['admin'],
   'favourite:save': ['member', 'child', 'admin'],
+  'games:read': ['anyone', 'member', 'child', 'admin'],
   'library:read': ['anyone', 'member', 'child', 'admin'],
   'listed:save': ['admin'],
   'message:read': ['member', 'child', 'admin'],
@@ -1336,8 +1337,10 @@ const ITEM_PERMISSIONS = {
   'project:save': ['admin'],
   'question:read': ['anyone', 'member', 'child', 'admin'],
   'question:save': ['admin'],
+  'shop:read': ['anyone', 'member', 'child', 'admin'],
   'spotlight:save': ['admin'],
   'todo:save': ['member', 'child', 'admin'],
+  'tools:read': ['anyone', 'member', 'child', 'admin'],
   'words:save': ['admin'],
 };
 
