@@ -2165,6 +2165,24 @@
     },
     "apply-teach": {
      "attr": "data-app",
+     "gaps": [
+      {"say":"your full name","all":["fullName:filled"]},
+      {"say":"your phone number","all":["phone:filled"]},
+      {"say":"your email address","all":["email:email"]},
+      {"say":"your home address and postcode","all":["address:filled","postcode:postcode"]},
+      {"say":"your date of birth","all":["dob:isodate"]},
+      {"say":"a photo of your ID","all":["idDoc:image"]},
+      {"say":"a photo of your right-to-work document","all":["rtwDoc:image"]},
+      {"say":"the subjects and levels you teach","all":["subjects:filled"]},
+      {"say":"your qualifications, listed and with at least one photo","all":["qualifications:filled","qualDocs:pics"]},
+      {"say":"whether you have the right to work in the UK","all":["rightToWork:yesno"]},
+      {"say":"your enhanced DBS number and the Update Service tick, or \"I need one\"","any":[["dbsNeeded:yes"],["dbsNumber:filled","dbsUpdate:yes"]]},
+      {"say":"2 references, each with a name, relationship, email and phone","all":["ref1Name:filled","ref1Relationship:filled","ref1Email:email","ref1Phone:filled","ref2Name:filled","ref2Relationship:filled","ref2Email:email","ref2Phone:filled"]},
+      {"say":"when you can teach","all":["availability:filled"]},
+      {"say":"your hourly rate","all":["rate:rate"]},
+      {"say":"a short statement","all":["statement:filled"]},
+      {"say":"the consent tick","all":["consent:yes"]}
+     ],
      "draft": "form",
      "say": "Apply to teach (400): one sheet, kept as drafts until it is sent.",
      "fields": [

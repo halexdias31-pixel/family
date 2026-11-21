@@ -51,28 +51,9 @@ function applyFields_(body) {
   f.ref2_contact = [f.ref2_email, f.ref2_phone].filter(Boolean).join(' · ');
   return f;
 }
-/* WHAT AN APPLICATION STILL LACKS, in words the phone shows as they are (`applyMissing_` asks the same first). */
+/* WHAT AN APPLICATION STILL LACKS: kinds.json's `apply-teach` gaps by the site's own formGaps_ (cards-gen.gs), the words the phone said first. */
 function applyGaps_(f, body, pics) {
-  const mail = v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
-  const missing = [];
-  if (!f.full_name) missing.push('your full name');
-  if (!f.phone) missing.push('your phone number');
-  if (!mail(f.email)) missing.push('your email address');
-  if (!f.address || !/^[A-Z]{1,2}\d[A-Z\d]? ?\d[A-Z]{2}$/.test(f.postcode)) missing.push('your home address and postcode');
-  if (!/^\d{4}-\d\d-\d\d$/.test(f.dob)) missing.push('your date of birth');
-  if (!/^data:image\//i.test(S(body.idDoc))) missing.push('a photo of your ID');
-  if (!/^data:image\//i.test(S(body.rtwDoc))) missing.push('a photo of your right-to-work document');
-  if (!f.subjects) missing.push('the subjects and levels you teach');
-  if (!f.qualifications || !pics.length) missing.push('your qualifications, listed and with at least one photo');
-  if (!f.right_to_work) missing.push('whether you have the right to work in the UK');
-  if (f.dbs_needed !== 'TRUE' && !(f.dbs_number && f.dbs_update_consent === 'TRUE')) missing.push('your enhanced DBS number and the Update Service tick, or "I need one"');
-  if (!(f.ref1_name && f.ref1_relationship && mail(f.ref1_email) && f.ref1_phone && f.ref2_name && f.ref2_relationship && mail(f.ref2_email) && f.ref2_phone))
-    missing.push('2 references, each with a name, relationship, email and phone');
-  if (!f.availability) missing.push('when you can teach');
-  if (!f.rate) missing.push('your hourly rate');
-  if (!f.statement) missing.push('a short statement');
-  if (f.consent !== 'TRUE') missing.push('the consent tick');
-  return missing;
+  return formGaps_(FORM_GAPS['apply-teach'], Object.assign({}, body, { qualDocs: pics }));
 }
 /* ---------- APPLYING TO TEACH (400): Staff only by application and an admin's yes ---------- */
 function postApplyTeach_(body, action, began) {
