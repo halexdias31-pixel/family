@@ -4,6 +4,7 @@
    siteLink_(param, value). Counted site-wide over backend/*.gs: a whole `error: '…'` message written by hand in two places, or a hand-built
    SITE_URL + '?…' link outside siteLink_, fails the build. A literal followed by `+` is a fragment of a built message and is not counted. */
 'use strict';
+const { main } = require('./lib/gen.js');
 const fs = require('fs'), path = require('path');
 const ROOT = path.join(__dirname, '..');
 const DIR = path.join(ROOT, 'backend');
@@ -25,6 +26,4 @@ function run() {
   console.log('one-refusal: ' + Object.keys(seen).length + ' hand messages, none repeated; every site link through siteLink_');
 }
 module.exports = { run };
-if (require.main === module) {
-  try { run(); } catch (e) { console.error(e.message); process.exit(1); }
-}
+main(module, run);

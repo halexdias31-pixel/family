@@ -1736,14 +1736,38 @@ out[lv.facet] = { of: x => x[lv.field] || (i === 0 && w && w.kinds.indexOf(x.kin
 });
 return out;
 }
+const FACET_FN = {
+mechScope_: x => mechScope_(x),
+decadesOf_: x => decadesOf_(x),
+boutWinner_: x => boutWinner_(x),
+boutDate_: x => boutDate_(x),
+histErasOf_: x => histErasOf_(x),
+personYears_: x => personYears_(x),
+msFound_: x => msFound_(x),
+msDated_: x => msDated_(x),
+levelOf_: x => levelOf_(x),
+boardOf_: x => boardOf_(x),
+sourceOf_: x => sourceOf_(x),
+myAttemptOf_: x => myAttemptOf_(x),
+myResultOf_: x => myResultOf_(x),
+verifyTags_: x => verifyTags_(x),
+sittingOf_: x => sittingOf_(x),
+itemDate_: x => itemDate_(x),
+qSplitOf_: x => qSplitOf_(x),
+toolNameOf_: x => toolNameOf_(x),
+};
+const facetFn_ = c => { const [f, k] = c.split('.'); return k ? x => (FACET_FN[f](x) || {})[k] : FACET_FN[f]; };
 const FACET_BY_READ_ = {
 row: c => ({ of: x => x[c] || '' }),
 writing: c => ({ of: x => writingAt_(x, c) }),
 hist: c => ({ of: x => histCol_(x, c) }),
 mech: c => ({ of: x => mechFit_(x, c), tagOf: x => mechFitTag_(x, c) }),
 own: c => { const [t, k] = c.split('.'); return { of: x => mechOwn_(x, t, k) }; },
+fight: c => ({ of: x => (isFight_(x) && x.row && String(x.row[c] || '').trim()) || '' }),
+fn: c => ({ of: facetFn_(c) }),
 };
-const facetReadData_ = () => Object.fromEntries(ITEM_KINDS.facets.filter(f => f.read && FACET_BY_READ_[f.read.by]).map(f => [f.field, FACET_BY_READ_[f.read.by](f.read.col)]));
+const facetReadData_ = () => Object.fromEntries(ITEM_KINDS.facets.filter(f => f.read && FACET_BY_READ_[f.read.by]).map(f => [f.field,
+Object.assign(FACET_BY_READ_[f.read.by](f.read.col), f.read.tag === false ? { tagOf: () => '' } : {}, f.read.choose ? { choose: true } : {})]));
 const FACET_READ = {
 ...facetReadData_(),
 forLabel: { of: x => x.groups || kindOf_(x).group },
@@ -1752,57 +1776,35 @@ tagOf: (x, page) => kindTopTag_(x) || (page === 'ans' && isQ_(x) ? ansKind_() : 
 kindOwn: { of: x => !kindTop_(x) ? '' : notTop_(x, isQ_(x) && questionHasAns_(x) ? [kindOf_(x).label, ansKind_()] : (x.kindLabel || kindOf_(x).label)),
 tagOf: (x, page) => !kindTop_(x) ? '' : notTop_(x, page === 'ans' && isQ_(x) ? ansKind_() : (x.kindLabel || kindOf_(x).label)) },
 ...Object.fromEntries(storeFacets_().map(f => [f, { of: x => x[f] || '' }])),
-toolName: { of: x => toolNameOf_(x), choose: true },
 wLanguage: { of: x => writingLanguageOf_(writingAt_(x, 'text')) || histCol_(x, 'language') },
 wText: { of: x => writingVersionOf_(writingAt_(x, 'text')) },
-mScope: { of: x => mechScope_(x), tagOf: () => '', choose: true },
 mKind: { of: x => x.mKind || (specTreeOf_(x).topic ? 'Exam topics' : '') },
 mPart: { of: x => (x.kind === 'mech' && x.mFile !== 'models' && x.name) || '' },
 fighter: { of: x => isFight_(x) && x.row ? [x.row.a, x.row.b].filter(Boolean) : isBoxer_(x) ? x.name : '' },
 personName: { of: x => (isPerson_(x) ? x.name : '') },
-boutMonth: { of: x => boutDate_(x).month },
-boutYear: { of: x => boutDate_(x).year },
-decade: { of: x => decadesOf_(x) },
 boutRound: { of: x => isFight_(x) && x.row && Number(x.row.endRound) > 0 ? 'Round ' + Number(x.row.endRound) : '' },
-boutMethod: { of: x => (isFight_(x) && x.row && String(x.row.method || '').trim()) || '' },
-boutWinner: { of: x => boutWinner_(x) },
-boutEvent: { of: x => (isFight_(x) && x.row && String(x.row.event || '').trim()) || '' },
 ...taxonomyRead_(),
-histEra: { of: x => histErasOf_(x) },
 histRole: { of: x => (isPerson_(x) ? x.roles || [] : histCol_(x, 'roles')) },
-personYears: { of: x => personYears_(x) },
 personFrom: { of: x => (isPerson_(x) && x.from) || '' },
-histFound: { of: x => msFound_(x) },
-histDated: { of: x => msDated_(x) },
 required: { of: x => !isPractical_(x) || !x.row ? '' : PRAC_NEED[x.row.excluded ? 2 : x.row.required ? 0 : 1] },
-level: { of: x => levelOf_(x) },
 keystage: { of: x => { const s = satsStagesOf_(x); return s.length ? s : keyStagesAt_(x); } },
 yearGroup: { of: x => x.bandValue && x.bandType === 'year' ? 'Year ' + x.bandValue : (x.years || []).map(y => 'Year ' + y) },
 bandValue: { of: x => x.bandValue && x.bandType === 'grade' ? 'Grade ' + x.bandValue : '' },
 topic: { of: x => topicShown_(x) && !specTreeOf_(x).topic ? (x.topic || topicOf_(x)) : [] },
-examBoard: { of: x => boardOf_(x) },
 specTopic: { full: true, of: x => specTreeOf_(x).topic },
 specPoint: { full: true, of: x => specTreeOf_(x).point },
 tier: { of: x => [...new Set(String(x.tier || '').split(',').map(t => t.trim().replace(/\s+Plus$/i, '')).filter(Boolean))] },
-examYear: { of: x => sittingOf_(x).year },
 examMonth: { of: x => sittingMonth_(x) || itemDate_(x).month },
-examDay: { of: x => itemDate_(x).day },
-verified: { of: x => verifyTags_(x).verified },
 paperId: { of: x => (x.row && x.row.paper_id) || '',
 showOf: id => paperTag_(id) || paperLabel_(id), tagSay: id => paperTag_(id),
 nameOf: id => { const t = paperLabel_(id); return [t.replace(/\s+—\s+[^—]+$/, ''), t]; } },
 paperSection: { of: x => { const r = paperSectionOf_(x && x.row); return r ? r.section + (r.topic ? ': ' + r.topic : '') : paperNameSection_(x); } },
 qNumber: { of: x => isQ_(x) && x.qNumber != null && String(x.qNumber) !== '' ? 'Q' + x.qNumber : '' },
-qPart: { of: x => qSplitOf_(x).part },
-qSub: { of: x => qSplitOf_(x).sub },
-marks: { of: x => Number(x && x.marks) > 0 ? Number(x.marks) + ' mark' + (Number(x.marks) === 1 ? '' : 's') : '',
+marks: { of: x => Number(x && x.marks) > 0 ? Number(x.marks) + ' ' + plural_(Number(x.marks), 'mark') : '',
 showOf: v => { const m = /^(\d+) marks?$/.exec(String(v)); return m ? '[' + m[1] + ']' : v; } },
-source: { of: x => sourceOf_(x) },
 needCalc: { of: x => asList_(x.needs).filter(v => NEED_CALC_[v]) },
 needs: { of: x => asList_(x.needs).filter(v => !NEED_CALC_[v]) },
-myAttempt: { of: x => myAttemptOf_(x) },
-myResult: { of: x => myResultOf_(x) },
-mySaved: { of: x => typeof FAVS === 'undefined' || !USER || !FAVS.size || !x || !x.key ? '' : FAVS.has(String(x.key)) ? 'Saved' : 'Not saved' },
+mySaved: { of: x => typeof FAVS === 'undefined' || !USER || !FAVS.size || !x || !x.key ? '' : FAVS.has(String(x.key)) ? 'Saved' : text_('not-saved') },
 };
 let FACET_LIVE = null;
 function facetList() {
@@ -1970,9 +1972,10 @@ if (!labels.has(m[k].label)) labels.set(m[k].label, labels.size);
 const groups = new Map(groupOrder_().map((g, i) => [g, i]));
 return { labels, groups };
 }
-const FRONT_ORDER = ['Practice', 'Library', 'Videos', 'Coming soon', 'Posts', 'Messages', 'Profiles', 'Booking', 'Shop', 'Settings', 'Tools', 'Games'];
+const FRONT_ORDER = ITEM_KINDS.doors.map(d => d.name);
+const DOOR_WORDS = { postState: ['Approved', 'Waiting for approval', 'Deleted'], when: ['Today', 'This week', 'This month', 'This year', 'Older'] };
 const ANSWER_ORDERS = [FRONT_ORDER, ['Student', 'Parent', 'Staff', 'Apprentice', 'Admin', 'Business', 'Site'], ['Parent', 'Over 18', 'Under 18', 'Student', 'Tutor', 'Apprentice', 'Admin'],
-['Approved', 'Waiting for approval', 'Deleted'], ['Today', 'This week', 'This month', 'This year', 'Older']];
+DOOR_WORDS.postState, DOOR_WORDS.when];
 function answerCmp_(texts) {
 const every = test => texts.length > 0 && texts.every(test);
 if (every(t => yearKey_(t) !== null)) return (a, b) => yearKey_(b) - yearKey_(a);
@@ -2548,7 +2551,7 @@ return (r.points || []).filter(p => p.parent === parent).map(p => {
 const shown = (p.links || []).filter(k => /^q:/.test(k)).length, more = (p.asked || 0) - shown;
 return { label: p.id, text: p.text, kids: specNodes_(r, p.id, named),
 tiles: (p.links || []).filter(k => named[k]).map(k => ({ icon: /^q:/.test(k) ? 'edit' : 'book', label: /^q:/.test(k) ? 'Question' : 'Lesson', note: named[k], act: 'find-open', data: { key: String(k) } })),
-more: more > 0 ? 'and ' + more + ' more question' + (more === 1 ? '' : 's') + ' on this point' : '' };
+more: more > 0 ? 'and ' + more + ' more ' + plural_(more, 'question') + ' on this point' : '' };
 });
 }
 function specNamed_(r) {
@@ -2572,7 +2575,7 @@ return all.map((i, n) => ({ i, n })).sort((a, b) => wat(a.i) - wat(b.i) || a.n -
 }
 function specPracticeOpts_(x) {
 const k = specKeyOfCard_(x && x.row), n = k ? specPracticeParts_(k).length : 0;
-return n ? { icon: 'edit', label: 'Practise this', note: n + ' part' + (n === 1 ? '' : 's'), act: 'spec-practise', data: { k } } : null;
+return n ? { icon: 'edit', label: 'Practise this', note: n + ' ' + plural_(n, 'part'), act: 'spec-practise', data: { k } } : null;
 }
 on('spec-practise', el => {
 const card = el && el.closest('.card'), k = el && el.getAttribute('data-k');
@@ -2586,7 +2589,7 @@ const box = document.createElement('div');
 box.className = 'kc-lines kc-practise';
 const num = r => String(r.question || '') + String(r.part || '');
 box.innerHTML = cardBlocks_(groups.map(g => ({ type: 'section', head: g.name, blocks: [{ type: 'tiles',
-tiles: g.items.map(i => ({ label: num(i.row) || i.name, note: [i.name, i.row.marks ? i.row.marks + ' mark' + (i.row.marks === '1' ? '' : 's') : ''].filter(Boolean).join(' · '), act: 'find-open', data: { key: i.key } })) }] })));
+tiles: g.items.map(i => ({ label: num(i.row) || i.name, note: [i.name, i.row.marks ? i.row.marks + ' ' + plural_(i.row.marks === '1' ? 1 : 0, 'mark') : ''].filter(Boolean).join(' · '), act: 'find-open', data: { key: i.key } })) }] })));
 const part = [...card.children].find(c => c.contains(el));
 if (part) card.insertBefore(box, part.nextSibling); else card.appendChild(box);
 });
@@ -2686,12 +2689,11 @@ text: plainText_(Object.keys(r).filter(k => k !== 'px').map(k => r[k]).join(' ')
 row: r,
 };
 }
-const MS_SIDE_SAY = { front: 'Front (recto)', back: 'Back (verso)' };
 function histItems_(kind, r) {
 const one = histItem_(kind, r), L = kind === 'manuscript' && MS_LOOK[r.id];
 if (!L || !L.sides) return [one];
 return L.sides.map((sd, i) => Object.assign({}, one, { key: i ? one.key + ':' + (sd.side || i) : one.key,
-msSide: labelOf_('hist-side', sd.side, MS_SIDE_SAY[sd.side] || ''), msSideIx: i, sub: [labelOf_('hist-side', sd.side, MS_SIDE_SAY[sd.side] || ''), one.sub].filter(Boolean).join(' · ') }));
+msSide: labelOf_('hist-side', sd.side, ''), msSideIx: i, sub: [labelOf_('hist-side', sd.side, ''), one.sub].filter(Boolean).join(' · ') }));
 }
 const HIST_LINES = {
 manuscript: [['Also known as', 'catalog_ids'], ['Repository', 'repository'], ['City', 'city'], ['Shelfmark', 'shelfmark'],
@@ -5712,7 +5714,7 @@ fb.textContent = v.why;
 subRecord_(k, inp.value, markWord_(v), undefined, v.why);
 return;
 }
-const marks = v.marks + ' of ' + v.max + ' mark' + (v.max === 1 ? '' : 's');
+const marks = v.marks + ' of ' + v.max + ' ' + plural_(v.max, 'mark');
 tell_(out, full && v.method !== 'words' ? 'saved' : 'info', v.method === 'words' ? marks + ' · by key words' : rules ? marks : full ? (v.typo ? text_('correct-check-the-spelling') + v.typo + ')' : 'Correct') : text_('not-yet-have-another-go'));
 subRecord_(k, inp.value, markWord_(v));
 });
@@ -5922,7 +5924,7 @@ if (!n) return '';
 let h = 0;
 const raw = JSON.stringify(marks);
 for (let i = 0; i < raw.length; i++) h = (h * 31 + raw.charCodeAt(i)) | 0;
-return 'drawing \u00b7 ' + n + ' mark' + (n === 1 ? '' : 's') + ' \u00b7 #' + (h >>> 0).toString(36);
+return 'drawing \u00b7 ' + n + ' ' + plural_(n, 'mark') + ' \u00b7 #' + (h >>> 0).toString(36);
 }
 const padSaid_ = t => String(t || '').replace(/ \u00b7 by key words$/, ' \u00b7 by the drawing');
 function padOfRow_(row) {
@@ -8677,7 +8679,6 @@ if (!MAG_ITEM_KINDS[x.kind] && (typeof ruleOn_ !== 'function' || ruleOn_('mag-it
 return magOpts_();
 }
 function magStray_() { if (MAG.on && MAG.on !== qLockHere_()) { MAG.on = ''; magHide_(); magPaint_(); } }
-const magBusy_ = () => !!MAG.live;
 function magPageAt_(t) {
 const page = MAG.on && t && t.closest ? t.closest('.page') : null;
 return page && page.querySelector('.q-mag') ? page : null;
@@ -9141,7 +9142,7 @@ profileType: typeof profileTypes_ === 'function' ? profileTypes_(t, true) : ['St
 kind: 'venue', name: v.title, key: v.title, sub: v.subtitle || '', image: v.image,
 cost: priced_(v.bestRate), row: v, borough: v.borough || v.city || '',
 venueArea: v.borough || v.city || '', venueFor: v.focus || [],
-venueSize: [Number(v.maxCapacity) ? 'Up to ' + v.maxCapacity : '', (v.rooms || []).length ? (v.rooms || []).length + ' room' + ((v.rooms || []).length === 1 ? '' : 's') : ''].filter(Boolean),
+venueSize: [Number(v.maxCapacity) ? 'Up to ' + v.maxCapacity : '', (v.rooms || []).length ? (v.rooms || []).length + ' ' + plural_((v.rooms || []).length, 'room') : ''].filter(Boolean),
 })),
 ...(typeof allWidgets === 'function' && typeof findWidgetList_ === 'function' ? findWidgetList_() : []).map(w => ({
 kind: w.kind, name: w.name || w.title || w.label || String(w.id), sub: w.what || '', image: '',
@@ -9159,7 +9160,7 @@ subject: x.name, row: x,
 }
 function findMineItems_() {
 return [
-{ kind: 'bookform', name: 'Booking form', key: 'bookform', sub: '', image: '' },
+{ kind: 'bookform', name: text_('booking-form'), key: 'bookform', sub: '', image: '' },
 ...(typeof myJobs_ === 'function' ? myJobs_() : []).map(j => ({
 kind: 'receipt',
 name: [j.subject || 'Session', j.level].filter(Boolean).join(' · '),
@@ -9190,7 +9191,7 @@ return [
 ...(DATA.boxers || []).filter(b => b.name).map(b => ({
 kind: 'people', name: b.name, key: 'bx:' + (b.id || b.name), pixId: b.id,
 sub: [b.bestDivision, b.country].filter(Boolean).join(' · '), image: '',
-born: personYear_(b.dob), died: personYear_(b.dod), from: b.country || '', roles: ['Boxer'], histKind: 'People',
+born: personYear_(b.dob), died: personYear_(b.dod), from: b.country || '', roles: ['Boxer'], histKind: labelOf_('hist-kind', 'figure', ''),
 boxKind: 'Fighters', shelf: 'Boxing',
 subject: 'Physical Education', division: divisionOf_(b.bestDivision), row: b,
 })),
@@ -9278,16 +9279,17 @@ const LEVEL_TABLE = SHARED_SETTINGS.levels.list;
 ;
 /* js/find-doors.js */
 const DOOR_FIELD = 'kindLabel';
-function postState_(p) { return !p ? '' : p.active === false ? 'Deleted' : (p.waiting || p.refused) ? 'Waiting for approval' : 'Approved'; }
+function postState_(p) { const [ok, waiting, gone] = DOOR_WORDS.postState; return !p ? '' : p.active === false ? gone : (p.waiting || p.refused) ? waiting : ok; }
 function whenBand_(v) {
 const d = v ? parseWhen(v) : null, t = d && !isNaN(d) ? d.getTime() : 0;
 if (!t) return '';
 const days = (Date.now() - t) / 864e5;
-return days < 1 ? 'Today' : days < 7 ? 'This week' : days < 31 ? 'This month' : days < 366 ? 'This year' : 'Older';
+const [today, week, month, year, older] = DOOR_WORDS.when;
+return days < 1 ? today : days < 7 ? week : days < 31 ? month : days < 366 ? year : older;
 }
 function postDoorItems_() {
 const admin = seeMay_('find:all-posts');
-return ((DATA && DATA.posts) || []).filter(p => p && p.id && (admin || postState_(p) === 'Approved' || p.mine)).map(p => {
+return ((DATA && DATA.posts) || []).filter(p => p && p.id && (admin || postState_(p) === DOOR_WORDS.postState[0] || p.mine)).map(p => {
 const who = (typeof profileOf_ === 'function' && (profileOf_(p.authorId) || {}).handle) || p.handle || p.author || '';
 return { kind: 'post', name: String(p.text || p.caption || p.title || 'Post').slice(0, 80), key: 'post:' + p.id, sub: who, image: '', row: p,
 postState: postState_(p), postBy: who, postWhen: whenBand_(p.at || p.when),
@@ -9381,7 +9383,7 @@ return (row && row.name) || plain_(cardTitle_(html)) || plain_((String(html).mat
 }
 const settingNone_ = h => /^\s*<div\b[^>]*\sdata-card="-"/.test(h);
 function settingDoorItems_() {
-if (!USER) return [{ kind: 'setting', name: 'Make an account', key: 'set:join', sub: '', image: '', join: true, open: true, text: 'join make an account' }];
+if (!USER) return [{ kind: 'setting', name: text_('make-an-account'), key: 'set:join', sub: '', image: '', join: true, open: true, text: 'join make an account' }];
 const tags = (DATA && DATA.settingFor) || {}, out = [], byName = {}, seen = {};
 try { if (typeof lazyFiles_ === 'function' && !lazyFiles_.in) doorAsk_(lazyFiles_()); } catch (e) { oops_(e, 'find:doorAsk'); }
 const add = (name, id, part, type, mine) => {
@@ -9470,8 +9472,8 @@ try { if (typeof paintStuff === 'function') inFinder_(FINDER, () => paintStuff(t
 function doorItems_() {
 return [].concat(postDoorItems_(), msgDoorItems_(), profileDoorItems_(), settingDoorItems_());
 }
-const GUEST_DOORS = ['Shop', 'Tools', 'Games'];
-function findSignedOut_(x) { return kindTop_(x) === 'Settings' || asList_(kindTop_(x)).some(t => GUEST_DOORS.indexOf(t) !== -1) || x.kind === 'bookform' || (guestLibrary_() && libraryCard_(x)) || (guestPractice_() && practiceCard_(x)); }
+const guestDoors_ = () => typeof can_ !== 'function' ? [] : FRONT_ORDER.filter(d => d !== 'Library' && d !== 'Practice' && can_('anyone', 'item', d.toLowerCase() + ':read'));
+function findSignedOut_(x) { const doors = guestDoors_(); return kindTop_(x) === 'Settings' || asList_(kindTop_(x)).some(t => doors.indexOf(t) !== -1) || x.kind === 'bookform' || (guestLibrary_() && libraryCard_(x)) || (guestPractice_() && practiceCard_(x)); }
 const guestPractice_ = () => typeof can_ === 'function' && can_('anyone', 'item', 'question:read');
 const practiceCard_ = x => !!x && x.kind !== 'answer' && (x.kind === 'question' || asList_(kindTop_(x)).indexOf('Practice') !== -1);
 const guestLibrary_ = () => typeof can_ === 'function' && can_('anyone', 'item', 'library:read');
@@ -10040,7 +10042,7 @@ const own = typeof jobOpts_ === 'function' ? tile_(jobOpts_({ row: j })) : '';
 const pays = own.indexOf('job-pay') !== -1;
 const tiles = (typeof jobMsgTiles_ === 'function' ? jobMsgTiles_({ row: j }) : '')
 + own
-+ tile_({ icon: 'share', label: 'Share this booking', act: 'book-share' })
++ tile_({ icon: 'share', label: text_('share-this-booking'), act: 'book-share' })
 + (typeof suggestOpts_ === 'function' && j && j.id ? tile_(suggestOpts_('session', String(j.id), 'Booking')) : '')
 + (admin && typeof jobAdminOpts_ === 'function' ? tile_(jobAdminOpts_(j, stage, yes && !pays)) : '');
 const said = typeof requestSaid_ === 'function' ? requestSaid_(j) : '';
@@ -10099,7 +10101,7 @@ function bookFindStart_() {
 if (typeof bookPrefill_ === 'function') bookPrefill_();
 if (!BOOK_FIND.started) {
 BOOK_FIND.started = true;
-if (!BOOKING.how) BOOKING.how = 'Instant class';
+if (!BOOKING.how) BOOKING.how = text_('instant-class');
 if (!BOOKING.joining) BOOKING.joining = NEW_LIST;
 }
 if (typeof bookKidsFor_ === 'function' && !(typeof awaiting_ === 'function' && awaiting_())) bookKidsFor_();
@@ -10219,7 +10221,7 @@ const said = f && f.querySelector('.room-said');
 el.disabled = true;
 api({ action: 'setRoom', jobId: el.dataset.id, room, name: USER.name, personId: USER.personId })
 .then(d => {
-if (!d || d.error) { if (said) said.textContent = (d && d.error) || 'Not saved'; el.disabled = false; return; }
+if (!d || d.error) { if (said) said.textContent = (d && d.error) || text_('not-saved'); el.disabled = false; return; }
 const j = (DATA.liveJobs || DATA.jobs || []).find(x => String(x.id) === String(el.dataset.id));
 if (j) j.room = room;
 toast(text_('room-saved')); repaint();
@@ -10349,9 +10351,9 @@ if (SIGN.step === 'pin') {
 if (SIGN.card === 'forgot' && typeof signForgotSpec_ === 'function') return [{ type: 'card', spec: signForgotSpec_() }];
 if (SIGN.card === 'join') return join();
 if (SIGN.wrong || SIGN.pin.length >= SIGN_PIN_LEN) return SIGN.known === false && !SIGN.busy
-? [{ type: 'choices', rows: [{ look: 'sign-more', options: [{ text: 'Make an account', act: 'sign-join-card' }] }] }] : [];
+? [{ type: 'choices', rows: [{ look: 'sign-more', options: [{ text: text_('make-an-account'), act: 'sign-join-card' }] }] }] : [];
 const more = [SIGN.pin.length ? null : { text: 'Forgot PIN', act: 'sign-forgot' },
-SIGN.known === false ? { text: 'Make an account', act: 'sign-join-card' } : null].filter(Boolean);
+SIGN.known === false ? { text: text_('make-an-account'), act: 'sign-join-card' } : null].filter(Boolean);
 return [{ type: 'choices', rows: [
 askTags_('sign-in', signField_('pin'), { act: 'sign-digit' })]
 .concat(more.length ? [{ look: 'sign-more', options: more }] : []) }];
@@ -10370,10 +10372,10 @@ const n = USER.pinDots == null ? SIGN_PIN_LEN : USER.pinDots;
 return [chip(who, 'signout', 'Sign out ' + who)].concat(Array.from({ length: n }, (_, i) => dot(i)));
 }
 if (SIGN.step === 'guest') return [chip('Guest', 'sign-restart', 'Sign in instead')];
-if (SIGN.step === 'join') return [chip('Make an account', 'sign-restart', 'Back to sign in')].concat(askChips_('sign-join'));
+if (SIGN.step === 'join') return [chip(text_('make-an-account'), 'sign-restart', 'Back to sign in')].concat(askChips_('sign-join'));
 if (SIGN.step !== 'pin') return [];
 const card = SIGN.card === 'forgot' ? [chip('Forgot PIN', 'sign-card-off', 'Back to the PIN')]
-: SIGN.card === 'join' ? [chip('Make an account', 'sign-card-off', 'Back to the PIN')].concat(askChips_('sign-join')) : [];
+: SIGN.card === 'join' ? [chip(text_('make-an-account'), 'sign-card-off', 'Back to the PIN')].concat(askChips_('sign-join')) : [];
 return [chip(SIGN.who, 'sign-restart', 'Not ' + SIGN.who)].concat(SIGN.pin.map((_, i) => dot(i)), card);
 }
 on('sign-guest', () => { SIGN.step = 'guest'; SIGN.pin = []; signPaint_(); });
@@ -10523,7 +10525,7 @@ function bundleNoun_(papers, n) {
 const types = papers.map(p => String(p.type || '').toLowerCase());
 const one = types.every(t => /paper/.test(t)) ? 'paper'
 : types.every(t => t === 'worksheet') ? 'worksheet' : 'document';
-return n + ' ' + one + (n === 1 ? '' : 's');
+return n + ' ' + plural_(n, one);
 }
 const BUNDLE_MEMO = new WeakMap();
 function bundleOf_() {
@@ -10625,10 +10627,10 @@ const bits = [];
 if (s.questions) {
 const named = (s.papers || []).slice(0, 3).join(', ');
 const more = (s.papers || []).length - 3;
-bits.push(s.questions + ' question' + (s.questions === 1 ? '' : 's') + ' from '
+bits.push(s.questions + ' ' + plural_(s.questions, 'question') + ' from '
 + named + (more > 0 ? ' and ' + more + ' more' : ''));
 }
-if (s.other) bits.push(s.other + ' thing' + (s.other === 1 ? '' : 's') + ' that ' + (s.other === 1 ? 'is' : 'are')
+if (s.other) bits.push(s.other + ' ' + plural_(s.other, 'thing') + ' that ' + (s.other === 1 ? 'is' : 'are')
 + ' not a paper');
 return bits.length ? 'Also on this list and not in the bundle: ' + bits.join('; ') + '.' : '';
 }
@@ -10657,7 +10659,7 @@ return groups.map(g => [{ span: 'bundle-when', text: g.group }, ' '].concat(...g
 })()
 : b.printable.map(named);
 const stray = bundleStrayLine_(b);
-const tiles = [{ icon: 'cart', label: inCart ? 'In your basket' : 'Add to basket', note: note, act: 'cart-add', on: inCart, off: inCart, tone: 'buy',
+const tiles = [{ icon: 'cart', label: inCart ? text_('in-your-basket') : text_('add-to-basket'), note: note, act: 'cart-add', on: inCart, off: inCart, tone: 'buy',
 data: { kind: 'bundle', ids: b.ids.join(','), key: b.title || '' } },
 { icon: 'open', label: 'See your basket', act: 'cart-open' }]
 .concat(typeof suggestOpts_ === 'function' ? [suggestOpts_('bundle', 'b:' + String(b.ids[0] || 'x').replace(/[^A-Za-z0-9_.:-]/g, '') + ':' + b.ids.length, b.title || 'Bundle')] : []);
@@ -10742,19 +10744,16 @@ if (AT === 'saved') { repaint(true); return; }
 const F = finderOf_(AT);
 if (F && $('s-' + F.id)) paintFinder_(F.id, true);
 });
-const SHOP_HOW = { buy: 'Buy', ticks: 'Earn with ticks', level: 'Unlock by level', loan: 'Borrow', issued: 'Given out' };
-const SHOP_KIND_SAY = { bundle: 'Bundle', game: 'Game', kit: 'Kit', equipment: 'Equipment', stationery: 'Stationery', consumable: 'Consumable',
-service: 'Made to order', thing: 'Thing', trip: 'Trip' };
 function shopTags_(r) {
 const k = String(r.kindRaw || 'thing').trim().toLowerCase();
 const how = String(r.acquire || 'buy').trim().toLowerCase();
 const p = priced_(r.price), pence = String(r.unit || '').trim() === 'p';
 const band = how === 'level' ? 'Level ' + (Number(r.level) || 1)
-: p === undefined ? 'Not priced yet' : p === 0 ? 'Free'
+: p === undefined ? text_('not-priced-yet') : p === 0 ? 'Free'
 : !pence ? 'Credits'
 : p < 500 ? 'Under £5' : p <= 2000 ? '£5 to £20' : 'Over £20';
 const who = String(r.audience || 'all').trim().toLowerCase();
-return { shopKind: SHOP_KIND_SAY[k] || (k.charAt(0).toUpperCase() + k.slice(1)), shopHow: SHOP_HOW[how] || '', shopPrice: band,
+return { shopKind: labelOf_('shop-kind', k, k.charAt(0).toUpperCase() + k.slice(1)), shopHow: labelOf_('shop-how', how, ''), shopPrice: band,
 shopBrand: String((r.fields && r.fields.brand) || r.brand || '').trim(),
 shopTheme: String(r.theme || (r.fields && r.fields.theme) || '').trim(),
 shopFor: who === 'all' ? '' : who === 'tutor' ? 'Tutors' : who === 'admin' ? 'Admins' : who.charAt(0).toUpperCase() + who.slice(1) };
@@ -11461,7 +11460,6 @@ const values = facetValues(items, facet);
 const sw = scriptureWait_(items);
 return [facetAnswersSpec_(facet, values, [sw != null ? sw : typeof awaiting_ === 'function' && awaiting_() ? { type: 'wait', on: true } : ''])];
 }
-function facetAnswersHtml_(facet, values) { return cardBlock_(facetAnswersSpec_(facet, values)); }
 function facetAnswersSpec_(facet, values, then) {
 const skip = { text: 'Doesn\'t matter', act: 'facet-skip', data: { field: facet.field }, look: 'is-skip' };
 const grid = numberedRun_(values);
@@ -11575,7 +11573,7 @@ if (SAYS_BUILT.has(items)) return SAYS_BUILT.get(items);
 let out = null;
 try {
 const view = finderSettled_() ? finderTagsView_() : null, said = view && view['#says'];
-if (said && ['Practice', 'Library'].every(v => finderTagsSame_(view, { field: 'kindLabel', value: v }))) {
+if (said && FRONT_WARM.at.every(v => finderTagsSame_(view, { field: 'kindLabel', value: v }))) {
 out = {};
 Object.keys(said).forEach(f => { const m = out[f] = new Map(); Object.keys(said[f]).forEach(v => m.set(spellKey_(v), said[f][v])); });
 }
@@ -11607,7 +11605,7 @@ a.push(x);
 per[field] = { facet: facet, gen: LIB.gen, by: by };
 return by;
 }
-const FRONT_WARM = { list: [], for: null, at: ['Practice', 'Library'] };
+const FRONT_WARM = { list: [], for: null, at: ITEM_KINDS.doors.filter(d => d.built).map(d => d.name) };
 function frontWarm_() {
 if (typeof finderSettled_ !== 'function' || !finderSettled_()) return;
 const F = FINDERS.stuff, all = inFinder_(F, () => stuffItems());
@@ -11992,7 +11990,7 @@ const words = !!box.words;
 const v = val == null ? '' : String(val);
 const lock = { class: 'qp-ans-in kp-in', 'data-do': 'qp-ans',
 'data-k': k, 'data-kp': words ? 'words' : 'maths', 'data-kp-signs': signs & 1 ? '1' : null, 'data-kp-vec': signs & 2 ? '1' : null, 'data-kp-essay': essay ? '1' : null,
-'aria-label': name || 'Your answer', readonly: true, inputmode: 'none', autocomplete: 'off', autocapitalize: 'off', autocorrect: 'off', spellcheck: 'false',
+'aria-label': name || text_('your-answer'), readonly: true, inputmode: 'none', autocomplete: 'off', autocapitalize: 'off', autocorrect: 'off', spellcheck: 'false',
 enterkeyhint: essay ? 'enter' : 'done' };
 if (more) Object.assign(lock, more);
 return cardBlocks_({ type: 'group', tag: 'span', look: 'kp-field kp-' + (words ? 'words' : 'maths') + (essay ? ' kp-essay' + (v ? '' : ' is-blank') : ''), blocks: [
@@ -14000,7 +13998,7 @@ const r = verdictOf_(v);
 if (!r) return { text: '', cls: '' };
 if (r.method === 'unmarked') return { text: 'Sent', cls: '' };
 if (r.method === 'dogma') return r.verdict === 'right' ? { text: 'Correct', cls: 'is-right' } : { text: text_('not-yet-have-another-go'), cls: 'is-near' };
-return { text: r.marks + ' of ' + r.max + ' mark' + (r.max === 1 ? '' : 's') + (r.method === 'rules' ? ' · by key words' : ' · AI'), cls: r.marks >= r.max ? 'is-right' : 'is-near' };
+return { text: r.marks + ' of ' + r.max + ' ' + plural_(r.max, 'mark') + (r.method === 'rules' ? ' · by key words' : ' · AI'), cls: r.marks >= r.max ? 'is-right' : 'is-near' };
 }
 keep_.del('mark-sound');
 function markCanSound_() {
@@ -14399,7 +14397,7 @@ label: typeof doneLabel_ === 'function' ? (doneLabel_(k) || '') : '', answer: ty
 el.disabled = false;
 tell_(el, '');
 if (!d || !d.success) { tell_(out, 'error', (d && (d.message || d.error)) || 'Your working could not be saved just now \u2014 try again later'); return; }
-tell_(out, 'saved', 'Saved, with ' + pics.length + ' photo' + (pics.length === 1 ? '' : 's'));
+tell_(out, 'saved', 'Saved, with ' + pics.length + ' ' + plural_(pics.length, 'photo'));
 })
 .catch(() => { el.disabled = false; tell_(el, ''); tell_(out, 'error', 'Could not reach the server \u2014 your photos are still here'); });
 }
@@ -14426,7 +14424,7 @@ box.innerHTML = cardBlocks_(rows.map(r => ({ type: 'group', look: 'work-seen-row
 { type: 'group', tag: 'p', look: 'work-seen-say', text: `${r.label || r.key} · ${workVerdictSay_(r.verdict)}` },
 { type: 'group', look: 'qp-work-pics', blocks: (r.photos || []).map((u, i) => ({ type: 'group', tag: 'a', look: 'qp-work-pic',
 attrs: { href: u, 'data-do': 'file-view', target: '_blank', rel: 'noopener' }, blocks: [{ type: 'group', tag: 'img', attrs: { src: u, alt: `Page ${i + 1}` } }] })) }] })));
-}).catch(() => { loaded_(box); box.textContent = 'Could not reach the server'; });
+}).catch(() => { loaded_(box); box.textContent = text_('could-not-reach-the-server'); });
 });
 function workVerdictSay_(v) {
 const m = /^ai:(\d+)\/(\d+)$/.exec(String(v || ''));
@@ -14662,7 +14660,7 @@ body: wfBody_(of, true), tiles: wfTeach_(of) ? [] : wfTiles_(of) });
 const wfTeach_ = of => !!USER && String(of) === String(USER.personId || '') && typeof rank_ === 'function' && rank_() === 'staff';
 const wfNote_ = text => ({ type: 'group', tag: 'p', look: 'note', text });
 const wfTiles_ = of => { const s = wfOf_(of);
-return (s.pending.length ? [{ icon: 'save', label: 'Save to file', note: s.pending.length + ' page' + (s.pending.length === 1 ? '' : 's'), act: 'wf-save', cls: 'is-submit', data: { of } }] : [])
+return (s.pending.length ? [{ icon: 'save', label: 'Save to file', note: s.pending.length + ' ' + plural_(s.pending.length, 'page'), act: 'wf-save', cls: 'is-submit', data: { of } }] : [])
 .concat({ icon: 'photo', label: 'Scan a page', note: 'camera or photos', act: 'wf-pick', data: { of } }); };
 function wfBody_(of, inCard) {
 const s = wfOf_(of);
@@ -14688,7 +14686,7 @@ const span = (look, text) => ({ type: 'group', tag: 'span', look, text });
 return [{ type: 'group', look: 'wf-rows', attrs: { role: 'list' }, blocks: s.rows.map(r => ({ type: 'group', look: 'row wf-item', attrs: { role: 'listitem' },
 blocks: [r.thumb ? { type: 'media', kind: 'image', look: 'wf-thumb', src: r.thumb } : { type: 'group', tag: 'span', look: 'wf-thumb', attrs: { 'aria-hidden': 'true' } },
 { type: 'group', tag: 'span', look: 'wf-what', blocks: [span('wf-name', r.title || r.subject || 'Scanned work'),
-span('wf-when note', wfDate_(r.at) + (r.subject && r.title ? ' · ' + r.subject : '') + ' · ' + String(r.pages || 1) + ' page' + (r.pages === 1 ? '' : 's') + (r.by && r.by !== 'you' ? ' · by ' + r.by : ''))] }],
+span('wf-when note', wfDate_(r.at) + (r.subject && r.title ? ' · ' + r.subject : '') + ' · ' + String(r.pages || 1) + ' ' + plural_(r.pages, 'page') + (r.by && r.by !== 'you' ? ' · by ' + r.by : ''))] }],
 tiles: [{ icon: 'open', label: 'Open', note: 'see the pages', act: 'wf-open', data: { id: r.id, title: r.title || 'Scanned work' } }]
 .concat(s.mayDelete ? [{ icon: 'bin', label: 'Delete', note: 'from your file', act: 'wf-del', data: { id: r.id, of } }] : []) })) }];
 }
@@ -14712,7 +14710,7 @@ apiKept_({ action: 'workFilesOf', personId: USER.personId || '', of }, d => {
 if (!d || !d.success) { s.rows = []; s.say = (d && (d.message || d.error)) || 'Could not load the work on file'; }
 else { s.rows = Array.isArray(d.work) ? d.work : []; s.mayDelete = !!d.mayDelete; s.others = Array.isArray(d.others) ? d.others : []; }
 wfPaint_(of);
-}).catch(() => { s.rows = []; s.say = 'Could not reach the server'; wfPaint_(of); });
+}).catch(() => { s.rows = []; s.say = text_('could-not-reach-the-server'); wfPaint_(of); });
 }
 const wfAgain_ = of => { const s = wfOf_(of); s.asked = false; s.rows = null; wfLoad_(of); };
 on('wf-pick', el => {
@@ -14766,7 +14764,7 @@ if (!box) return;
 loaded_(box);
 if (!d || !d.success) { box.textContent = (d && (d.message || d.error)) || 'Could not open it'; return; }
 box.innerHTML = cardBlocks_((d.pages || []).length ? d.pages.map((u, i) => ({ type: 'media', kind: 'image', look: 'wf-page', src: u, title: 'Page ' + (i + 1) })) : [wfNote_('No pages could be read.')]);
-}).catch(() => { const box = document.querySelector('.wf-pages'); if (box) { loaded_(box); box.textContent = 'Could not reach the server'; } });
+}).catch(() => { const box = document.querySelector('.wf-pages'); if (box) { loaded_(box); box.textContent = text_('could-not-reach-the-server'); } });
 });
 on('wf-del', el => {
 const id = el.getAttribute('data-id'), of = el.getAttribute('data-of');
@@ -14793,7 +14791,6 @@ row.insertAdjacentElement('afterend', box);
 });
 const HIST = {};
 const histOf_ = of => HIST[of] || (HIST[of] = { day: '', got: null, busy: false, say: '' });
-const histToday_ = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
 const HIST_HOW = { right: '✓ Right', part: 'Part marks', wrong: '✗ Not right', open: 'Not marked yet' };
 function histBody_(of) {
 const s = histOf_(of);
@@ -16158,7 +16155,7 @@ function asgLeftSay_(a) {
 if (!a.due) return '';
 const n = asgDaysLeft_(a.due);
 if (asgDone_(a)) return 'Due ' + dkSayDay_(a.due);
-return n < 0 ? (-n) + ' day' + (n === -1 ? '' : 's') + ' late' : n === 0 ? 'Due today' : n === 1 ? 'Due tomorrow' : n + ' days left';
+return n < 0 ? (-n) + ' ' + plural_(-n, 'day') + ' late' : n === 0 ? 'Due today' : n === 1 ? 'Due tomorrow' : n + ' days left';
 }
 function asgItem_(a, i, mine) {
 const size = a.amount !== '' && a.amount != null ? Number(a.amount).toLocaleString('en-GB') + (a.unit ? ' ' + asgSay_('unit', a.unit) : '') : '';
@@ -16503,7 +16500,7 @@ overCap: v => { const lim = seatLimits(spaceFor(BOOKING.loc), tutorRow_(), BOOKI
 seatLimits: v => {
 const lim = seatLimits(spaceFor(BOOKING.loc), tutorRow_(), BOOKING.loc);
 if (Number(v) > lim.max) return 'more than ' + (lim.why.max || 'the limit') + ' allows';
-if (Number(v) < lim.min) { const need = Math.max(0, lim.min - 1); return (lim.why.min || 'the minimum') + ' needs ' + need + ' extra seat' + (need === 1 ? '' : 's'); }
+if (Number(v) < lim.min) { const need = Math.max(0, lim.min - 1); return (lim.why.min || 'the minimum') + ' needs ' + need + ' extra ' + plural_(need, 'seat'); }
 return '';
 },
 };
@@ -17168,10 +17165,10 @@ push('Room', j.room || 'set by us');
 push('Space', takesAllSeats_(j.venue || j.location || '') ? 'Yes'
 : TRUEish_(j.clientHosts) ? text_('yes-no-room-hire') : text_('no-we-book-the-room'));
 jobWeekRows_(j).forEach(r => rows.push(r));
-if (wait) push(text_('per-session'), j.hours ? j.hours + ' hour' + (Number(j.hours) === 1 ? '' : 's') : '');
+if (wait) push(text_('per-session'), j.hours ? j.hours + ' ' + plural_(Number(j.hours), 'hour') : '');
 push('Term', j.term || '');
 const going = Number(j.seatsGoing) || 0;
-const seatsFree = text_('open') + going + ' seat' + (going === 1 ? '' : 's') + ' free';
+const seatsFree = text_('open') + going + ' ' + plural_(going, 'seat') + ' free';
 push('Split', norm(j.kind) === 'waitlist'
 ? (going > 0 ? seatsFree : 'Full')
 : (j.splitEmails
@@ -18277,7 +18274,7 @@ document.querySelectorAll('.cart-box').forEach(el => { el.innerHTML = cartCard_(
 document.querySelectorAll('[data-do="cart-add"][data-kind="bundle"]').forEach(el => {
 const ids = String(el.dataset.ids || '').split(',').filter(Boolean);
 const all = ids.length && ids.every(id => CART.some(c => c.kind === 'print' && String(c.key) === id));
-tileSet_(el, all ? { label: 'In your basket', on: true, off: true }
+tileSet_(el, all ? { label: text_('in-your-basket'), on: true, off: true }
 : { label: 'Add bundle to basket', on: false, off: false });
 });
 }

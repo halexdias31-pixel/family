@@ -3,6 +3,7 @@
 /* Edit the JSON, never js/kinds.js. tools/build.js runs it. */
 'use strict';
 const fs = require('fs'), path = require('path');
+const { main } = require('./lib/gen.js');
 const ROOT = path.resolve(__dirname, '..');
 function run() {
   const j = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/settings/kinds.json'), 'utf8'));
@@ -22,4 +23,4 @@ function run() {
   return have !== want;
 }
 module.exports = { run };
-if (require.main === module) { try { console.log('kinds: ' + (run() ? 'wrote' : 'unchanged') + ' js/kinds.js; every find.under is one of kinds.json doors'); } catch (e) { console.error(e.message); process.exit(1); } }
+main(module, () => console.log('kinds: ' + (run() ? 'wrote' : 'unchanged') + ' js/kinds.js; every find.under is one of kinds.json doors'));

@@ -5,6 +5,7 @@
    (strings count, so 'name' dispatch and window[...] are alive); a name whose only appearances are its own definitions fails.
    Run by tools/build.js. */
 'use strict';
+const { main } = require('./lib/gen.js');
 const fs = require('fs'), path = require('path');
 const ROOT = path.join(__dirname, '..');
 
@@ -39,4 +40,4 @@ function run() {
   console.log('dead-fn: ' + defs.size + ' top-level functions in js/, every one named somewhere');
 }
 module.exports = { run };
-if (require.main === module) { try { run(); } catch (e) { console.error(e.message); process.exit(1); } }
+main(module, run);
