@@ -16,6 +16,7 @@ const ORDER = [
   'aliases_gs',   // question-aliases.json -> js/qaliases.js (cards-gen copies it on)
   'words',        // words.json -> js/core.js (cards-gen copies it on)
   'cards-gen',    // js/ (words, aliases) -> js/core.js and backend/constants.gs SHARED, backend/cards-gen.gs
+  'one-role',     // the one-role check (rule 1.75, owner 21 Nov): role words, ranks, the Message table and may_ rules only in settings.json `roles` and data/settings/roles.js; a twin fails the build
   'permissions',  // -> permissions.json and backend/*.gs blocks
   'word-freq',    // data/pdtexts -> data/word-freq.json
   'facet-hues',   // walks the app over every js/ write above -> TAG_OF, data/facet-graph.json
