@@ -1341,10 +1341,18 @@ function checkSundayWeek_(plan, week, hour, say) {
    parent by first name. */
 function digestWhyNot_(L) {
   if (!(L.skipped || []).length) return /people tab/.test(S(L.why)) ? 'not on the people tab' : 'no parent has accepted a link to them';
-  const said = { 'no email address': 'has no email address', 'email not confirmed': 'has not confirmed their email address',
-                 'asked not to get it': 'said no to these emails', 'same address as another parent': 'shares an address with another parent' };
-  return L.skipped.map(p => 'parent ' + (S(p.first) || 'with no first name') + ' ' + (said[p.why] || p.why)).join('; ');
+  return L.skipped.map(p => 'parent ' + (S(p.first) || 'with no first name') + ' ' + ((DIGEST_SKIP[p.why] || {}).short || p.why)).join('; ');
 }
+/* WHY A PARENT IS SKIPPED, ONE MAP — keyed on `digestRecipients_`'s why: `short` for the owner's list, `long(first)` for Send last week. */
+const DIGEST_SKIP = {
+  'no email address': { short: 'has no email address' },
+  'email not confirmed': { short: 'has not confirmed their email address',
+    long: first => first + '’s email address is not confirmed yet — nothing was sent' },
+  'asked not to get it': { short: 'said no to these emails',
+    long: first => first + ' asked not to get these emails (Settings → Notifications) — nothing was sent' },
+  'same address as another parent': { short: 'shares an address with another parent',
+    long: first => first + ' shares an email address with another parent, who gets it — nothing was sent' },
+};
 
 
 /* ---------- "SEND LAST WEEK": AN ADMIN'S PRESS ON A PARENT'S CARD, AND THE EDITOR'S TWO (378) ---------- */
@@ -1376,10 +1384,8 @@ function digestSendNow_(parentIds, now) {
     if (!mine.length) {
       /* A CHILD WHO WORKED BUT CANNOT BE SENT TO THIS PARENT says why; otherwise it was a quiet week. */
       const held = plan.learners.map(L => (L.skipped || []).find(p => p.id === id)).filter(Boolean)[0];
-      const why = { 'email not confirmed': first + '’s email address is not confirmed yet — nothing was sent',
-                    'asked not to get it': first + ' asked not to get these emails (Settings → Notifications) — nothing was sent',
-                    'same address as another parent': first + ' shares an email address with another parent, who gets it — nothing was sent' };
-      if (held) return { id: id, error: why[held.why] || (first + ': ' + held.why + ' — nothing was sent') };
+      const skip = held && DIGEST_SKIP[held.why];
+      if (held) return { id: id, error: skip && skip.long ? skip.long(first) : (first + ': ' + held.why + ' — nothing was sent') };
       return { id: id, success: true, sent: 0, said: 'Nothing to send: ' + names(kids.map(kidName)) + ' did no questions ' + span };
     }
     const mailed = digestMail_(mine, {
