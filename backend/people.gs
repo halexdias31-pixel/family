@@ -624,8 +624,10 @@ function brandName() {
 
 /** May this person write to that one? Roles in the SHEET's words. */
 function mayMessage(fromRole, toRole) {
-  const f = norm(fromRole), t = norm(toRole);
-  return !!(MESSAGING[f] && MESSAGING[f][t]);
+  /* BY RANK (settings.json `roles.messaging`): each sheet role's `rank`, as the phone's `msgMay_`. */
+  const rankOf = r => (ROLES_.ids[norm(r)] || {}).rank || '';
+  const f = rankOf(fromRole), t = rankOf(toRole);
+  return !!f && !!t && (MESSAGING[f] || []).indexOf(t) !== -1;
 }
 
 /** What the app calls this role. */

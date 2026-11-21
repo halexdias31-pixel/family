@@ -425,7 +425,7 @@ function submissionsBuild_(pid, people) {
     out.people = {};
     Object.keys(sum).forEach(who => {
       out.people[who] = { n: Object.keys(sum[who].qs).length,
-                          last: sum[who].at ? Utilities.formatDate(new Date(sum[who].at), DIGEST_TZ, 'yyyy-MM-dd') : '' };
+                          last: sum[who].at ? todayIso_(sum[who].at) : '' };
     });
   }
   return out;

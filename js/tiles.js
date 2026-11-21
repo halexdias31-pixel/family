@@ -335,8 +335,8 @@ function tutorOpts_(x) {
     /* THEIR INTRO VIDEO: the uploaded one plays on the card (`intro-play`); an older row's link still goes out. */
     String(t.videoFile || '').trim() ? { icon: 'play', label: text_('watch-intro'), act: 'intro-play', data: { file: t.videoFile } }
       : /^https?:\/\//i.test(String(t.mediaUrl || '')) ? { icon: 'play', label: text_('watch-intro'), href: t.mediaUrl } : null,
-    /* NOT FOR A CHILD, unless they are the business (405): `MESSAGING` lets a student write to an admin only — no tile the server refuses. */
-    USER && !isMe_(x) && (!!may_('prices') || /admin/i.test(String(t.role || ''))) ? { icon: 'chat', label: 'Message',
+    /* BY settings.json `roles.messaging` (`msgMay_`), as the server's `mayMessage` — no tile the server refuses. */
+    USER && !isMe_(x) && msgMay_(t.role || 'tutor') ? { icon: 'chat', label: 'Message',
       note: 'a note to them', act: 'msg-open', data: { to: x.name, id: (x.row && x.row.personId) || '' } } : null,
     typeof cardEditOpts_ === 'function' ? cardEditOpts_(x) : null,
     /* SHARE MY PROFILE (400, 412): on your own tutor card, in Find › Profiles › Tutor since its column went (16 Nov). */
@@ -367,10 +367,9 @@ function levelOpts_(x) {
 }
 
 
-/* ---------- WHO MAY WRITE TO WHOM, THE SERVER'S `MESSAGING` (constants.gs) read on the phone, so no Message tile is one it refuses ---------- */
-const MSG_MAY_ = { admin: ['admin', 'staff', 'client', 'student'], staff: ['admin', 'staff', 'client'], client: ['admin', 'staff'], student: ['admin'] };
-const msgRankOf_ = role => /admin/i.test(role) ? 'admin' : /tutor|teacher|staff/i.test(role) ? 'staff' : /student|child|kid/i.test(role) ? 'student' : 'client';
-const msgMay_ = role => !!USER && (MSG_MAY_[rank_()] || []).indexOf(msgRankOf_(String(role || ''))) !== -1;
+/* ---------- WHO MAY WRITE TO WHOM: settings.json `roles.messaging` (ROLES_), the server's `mayMessage` too, so no Message tile is one it refuses ---------- */
+/* THEIR RANK BY `rank_` over the role(s) named, as the server's `ROLES_.ids[role].rank`. */
+const msgMay_ = role => !!USER && (ROLES_.messaging[rank_()] || []).indexOf(rank_({ roles: String(role || '').split(/\s*,\s*/).filter(Boolean) })) !== -1;
 const msgTile_ = (name, id) => tile_({ icon: 'chat', label: 'Message ' + fmtName_(name, 'first'), note: 'a note to them', act: 'msg-open', data: { to: name, id: id || '' } });
 /* THE PEOPLE ON A SESSION BESIDES YOU: its families and its tutor, each with the role the server judges by (1040 friction). */
 function jobPeople_(j) {

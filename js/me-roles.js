@@ -678,8 +678,8 @@ function studentSetPages_() {
   return [top].concat(ownCardSetPage_('account'), youSettingsPages_(),
     /* WORK ON FILE (owner, 11 Nov): a student's own scanned pages; a tutor's opens each booked student's. */
     /^(student|staff)$/.test(rank_(whose_())) && typeof workFileCard_ === 'function' ? [workFileCard_()].filter(Boolean) : [],
-    /* HISTORY (owner, 18 Nov): a student's day, its questions and marks. */
-    rank_(whose_()) === 'student' && typeof historyCard_ === 'function' ? [historyCard_(whose_() && whose_().personId)].filter(Boolean) : [], soonCards_(),
+    /* HISTORY IS IN THE ONE PROGRESS CARD (4g, owner 20 Nov): its day view, with every source's progress. */
+    soonCards_(),
     prog, wait);
 }
 /* PLACEHOLDERS (562, owner notes 116, 118, 114): one card each, its title and one line, until the thing is built; each in kinds.json setting.cards so it moves and deletes. */

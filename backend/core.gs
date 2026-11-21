@@ -734,14 +734,9 @@ function jsonRaw_(body) {
 
 /** DD/MM/YYYY: the site's `fmtDmy_` (cards-gen.gs) with the year written whole; anything unreadable as itself. */
 function fmtDate(v) {
-  const full = (x, y) => fmtDmy_(x).slice(0, 6) + y;
-  if (v instanceof Date && !isNaN(v)) return full(v, v.getFullYear());
-  const s = S(v);
-  if (!s) return '';
-  const m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
-  if (m) return full(s, m[3].length === 2 ? '20' + m[3] : m[3]);
-  const d = new Date(s);
-  return isNaN(d) ? s : full(d, d.getFullYear());
+  if (v instanceof Date) return isNaN(v) ? '' : fmtDmy_(v).slice(0, 6) + v.getFullYear();
+  const d = dateOf_(v);                                  // the one reader (cards-gen.gs, from js/core.js)
+  return d ? fmtDmy_(d).slice(0, 6) + d.getFullYear() : S(v);
 }
 
 /** "09:00" from a Date, "9:00", "4:30pm" or "9": the site's `fmtTime_` (cards-gen.gs); a sheet's number is an hour. */
@@ -1170,14 +1165,8 @@ function dobRefusal_(fields) {
 /* ---------- A DATE AS `yyyy-mm-dd`, WHICH IS THE ONE FORM A DATE PICKER SPEAKS § */
 function isoDate_(v) {
   const p = n => ('0' + n).slice(-2);
-  if (v instanceof Date && !isNaN(v)) {
-    return v.getFullYear() + '-' + p(v.getMonth() + 1) + '-' + p(v.getDate());
-  }
-  const t = S(v);
-  if (/^\d{4}-\d{2}-\d{2}$/.test(t)) return t;
-  const dmy = t.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
-  if (dmy) return dmy[3] + '-' + p(dmy[2]) + '-' + p(dmy[1]);
-  return '';
+  const d = dateOf_(v);                                  // the one reader (cards-gen.gs, from js/core.js)
+  return d ? d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) : '';
 }
 
 /* ---------- AND WHY IT MAY NOT BE WRITTEN, AS A SENTENCE § */
@@ -1199,16 +1188,7 @@ function isoRefusal_(v, what) {
     became zero sessions. */
 function sheetDate(v) {
   if (v instanceof Date) return isNaN(v) ? null : v;
-  const t = String(v || '').trim();
-  if (!t) return null;
-  const dmy = t.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/);
-  if (dmy) {
-    const yr = Number(dmy[3]) < 100 ? 2000 + Number(dmy[3]) : Number(dmy[3]);
-    const d = new Date(yr, Number(dmy[2]) - 1, Number(dmy[1]));
-    return isNaN(d) ? null : d;
-  }
-  const d = new Date(t);
-  return isNaN(d) ? null : d;
+  return dateOf_(v, true);                               // the one reader (cards-gen.gs, from js/core.js)
 }
 
 /**

@@ -101,8 +101,7 @@ tierGuardWidgets_(WIDGETS);
    A daily item keeps the day it was last done (`doneOn`), so it is undone again tomorrow with no job anywhere. Saved whole to your own `todo` cell. */
 const DK = { lists: null, at: 0, edit: -1, rename: false, showDone: false, say: '' };
 /* THE OWNER'S DAY (owner, 20 Nov): midnight is London's, whatever the device's clock says. */
-const dkDay_ = d => { d = d || new Date(); try { return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/London', year: 'numeric', month: '2-digit', day: '2-digit' }).format(d); }
-  catch (e) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); } };
+const dkDay_ = d => todayIso_(d);   // the one today, js/core.js
 /* DONE IS READ FROM `doneOn` AND THE DAY, never a timer (owner, 20 Nov): a daily item is undone again after midnight; a one-off stays ticked until midnight, then goes (dkTidy_). */
 const dkDone_ = i => (i.repeat === 'daily' ? i.doneOn === dkDay_() : !!i.done);
 const dkGone_ = i => i.repeat !== 'daily' && !!i.done && !!i.doneOn && i.doneOn < dkDay_();
@@ -253,7 +252,7 @@ function dkPlan_(items, now) {
   return out.map(x => x.i).concat(all.filter(x => done(x.it)).map(x => x.i));
 }
 /* LONDON'S MOMENT, as dkPlan_ reads it. */
-const dkNow_ = () => { let t = ''; try { t = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/London', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date()); } catch (e) { t = ''; }
+const dkNow_ = () => { let t = ''; try { t = new Intl.DateTimeFormat('en-GB', { timeZone: tz_(), hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date()); } catch (e) { t = ''; }
   return dkDay_() + ' ' + (t || '00:00'); };
 /* AN ITEM'S ATTRIBUTES ARE kinds.json docket form `docket-item`: what is not set is that field's `default`, so a title alone is a whole item. */
 const dkFields_ = () => ((((ITEM_KINDS.kinds.docket || {}).forms || {})['docket-item'] || {}).fields || []);

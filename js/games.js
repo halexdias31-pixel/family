@@ -2353,7 +2353,7 @@ const WORD_GAMES = [
         tile_({ form: true, look: 'btn', id: 'tt-play', act: 'tt-begin', label: 'Start' })] },
       { type: 'box', id: 'tt-question', look: 'hidden tt', parts: [
         { type: 'box', tag: 'p', id: 'tt-q', look: 'mono tt-big', text: '—' },
-        kpField_('tt', '', 'maths', 0, 'answer', null, { id: 'tt-answer', 'data-do': 'tt-answer' }),
+        kpField_('tt', '', 'maths', 0, 'answer', { id: 'tt-answer', 'data-do': 'tt-answer' }),
         { type: 'box', tag: 'p', id: 'tt-feedback', look: 'note game-said' },
         rowLive('Time', '60', 'tt-time'), rowLive('Right', '0', 'tt-score'),
         tile_({ form: true, look: 'btn quiet', act: 'tt-stop', label: 'Give up' })] },

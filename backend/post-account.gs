@@ -398,7 +398,7 @@ function todoTidy_(raw) {
   let t = null;
   try { t = JSON.parse(raw); } catch (e) { return raw; }
   if (!t || !Array.isArray(t.lists)) return raw;
-  const today = Utilities.formatDate(new Date(), 'Europe/London', 'yyyy-MM-dd');
+  const today = todayIso_();
   t.lists.forEach(function (L) { L.items = (L.items || []).filter(function (it) { return it.repeat === 'daily' || !it.done || !it.doneOn || String(it.doneOn) >= today; }); });
   return JSON.stringify(t);
 }

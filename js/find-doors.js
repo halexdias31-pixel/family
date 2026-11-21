@@ -330,8 +330,8 @@ function ownSecReg_() {
 }
 const cardReg_ = id => SETTING_CARDS_().find(r => r.id === id);
 /* A SETTINGS GROUP (`set:<col>:<group>`) or a Business record card (`biz:rec:<page>`, `biz:profit-terms`) is known by its id alone. */
-/* A SPLIT CARD'S PIECE is `<card>#<field>` (466); a progress series card is `prog:series:<name>`. */
-const CARD_DYN = /^(item:[a-z]+:[A-Za-z0-9_.-]{1,48}|(set:(family|staff|account):[A-Za-z0-9_:.-]+|biz:rec:[A-Za-z0-9_:.-]+|biz:profit-terms)(#[A-Za-z0-9_.-]{1,40})?|prog:series:[A-Za-z0-9_.-]{1,48})$/;
+/* A SPLIT CARD'S PIECE is `<card>#<field>` (466). */
+const CARD_DYN = /^(item:[a-z]+:[A-Za-z0-9_.-]{1,48}|(set:(family|staff|account):[A-Za-z0-9_:.-]+|biz:rec:[A-Za-z0-9_:.-]+|biz:profit-terms)(#[A-Za-z0-9_.-]{1,40})?)$/;
 const cardIs_ = id => !!(cardReg_(id) || CARD_DYN.test(String(id || '')));
 /* A MARK FOR A CARD WITH NO ROOT OF ITS OWN (a people list is a page a person): each page carries the list's id. */
 const cardMark_ = (id, list) => (list || []).filter(Boolean).map(h => '<!--card:' + id + '-->' + h);

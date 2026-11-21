@@ -6,6 +6,8 @@ Order: what a child or parent would notice first, then what stops things driftin
 
 ## Now
 
+STANDING (owner, 21 Nov): THE UNIFY ADVENTURE. Keep reducing the number of sources of truth, without end: each round, audit for anything decided, defined or drawn in two places; merge the top items into one source with a build check that stops them drifting; repeat. When nothing else is urgent, this is the default work. HOW (owner OK, 21 Nov): run 5–6 merges at once in separate worktrees (only ones that touch different files), then merge them together and run ONE full build for the batch, then release.
+
 STANDING (owner, 20 Nov): a new request from the owner goes into this queue at the place it deserves; Claude need not drop current work for it. Only urgent child-facing breakage jumps the queue.
 
 ORDER OF BOARDS (owner, 20 Nov): OCR is the least used board, so it comes last. Work AQA first, then Edexcel, then OCR, in every content and marking item.
@@ -30,6 +32,8 @@ ORDER OF BOARDS (owner, 20 Nov): OCR is the least used board, so it comes last. 
 
 4g. ONE HISTORY CARD (owner, 20 Nov): on a student's profile, merge every history-like card (History, Recent activity, Questions stats, Work on next, the per-source worksheet/past-paper progress cards, Grade estimate) into ONE card: progress by source, with the day view inside it. One maker, one place.
 4h. STUDENT PROFILE SHOWS STAFF FORMS (seen 20 Nov on Finley's): Apply to teach, availability grid, rate and group size, qualifications, jobs, photos, intro video, staff hub, and date of birth 01/01/2000. A child sees only child cards; the master (kinds.json) decides by role.
+
+4i. MARKER TRAPS FOUND 21 Nov (scratchpad k/traps-21.txt): (1) a point mixing up/down words is cancelled by either direction; (2) one answer word scores only one point; (3) comma lists of key words earn little in points rules; (6) the typo rule passes different words (phototrophism/phototropism, flatter/fatter); (7) [2] only works at the head of a point; (8) "high to low" points ignore order. Fix at the one marker; each becomes a marker-cases case.
 
 ## Next (the 12 parts of best practice)
 
@@ -64,6 +68,7 @@ ORDER OF BOARDS (owner, 20 Nov): OCR is the least used board, so it comes last. 
 - Examiner reports: find them per board/year (the boards' own sites, Save My Exams, Physics & Maths Tutor), add them to the paper manifest, and use them to sharpen marking (English first).
 
 ## Then (content)
+- ONE LIBRARY SHAPE BY TAXONOMY (owner idea, 21 Nov; design agreed): every subject has a taxonomy, declared as data (one settings file: levels, e.g. maths strand>topic>idea, history period>event (+person, place), mechanics make>model>part, chemistry group>element (+property)). Every library entry is one shape: id, part-of, subject, labels. One engine draws menus, topic pages, part-of links, revise-this and hues from the taxonomies; the history/mech/chem special kinds and the three history sources go. Check: every entry reachable in a few taps; no hand-built subject cases. Do it one subject at a time (history first), keeping every child's place.
 - @FAMILY SCIENCE QUESTIONS FROM THE LIBRARY (owner, 20 Nov): the library is the single source, and there is ONE question kind (owner: no two types). Each library card holds its facts with permanent ids. A question is one record: its wording may point at facts (`{fact id}`) instead of copying them, and its answer comes from the facts it names (`tests: [fact ids]`). How "written" or "generated" a question is depends only on how many facts it points at. Ids for life; each saved answer keeps the question version, wording and answer the student saw, so a library edit never loses or re-marks an answer; a change in meaning makes a new version. Checks: every fact has at least one question; every answer is backed by its facts. Order: (1) split the library into one idea per card, (2) fact ids, (3) the question kind and versioned answers, (4) Biology, Chemistry, Physics questions (AQA 8461/2/3/8464 first). Access Tuition stays as it is.
 
 - ONE LIBRARY SHAPE (owner, 18 Nov): History and Religious Studies (and any other subject) have their own irregular branch structures in Library/Find. Examine every subject's branches, pick ONE shape every subject follows (or bring the others to theirs if theirs is better), and move them all to it. Tell the owner what was chosen and why in the weekly list.
