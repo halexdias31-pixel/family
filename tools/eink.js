@@ -12,7 +12,9 @@ function drawers() {
   const text_ = (k, v) => { const s = typeof words[k] === 'string' ? words[k] : k; return v ? s.replace(/\{(\w+)\}/g, (a, x) => (v[x] == null ? a : String(v[x]))) : s; };
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const fns = ['dkPlan_', 'dkPhase_', 'dkNowNextOf_', 'dkNowNext_', 'dkEinkHtml_'].map(n => fnOf(src, n)).join('');
-  return new Function('text_', 'esc', fns + '; return { dkPhase_, dkNowNext_, dkEinkHtml_ };')(text_, esc);
+  /* the tick box is the form maker's (js/form.js formInput_); here only its attributes matter, so a plain input stands in for it */
+  const formInput_ = a => '<input ' + a + '>';
+  return new Function('text_', 'esc', 'formInput_', fns + '; return { dkPhase_, dkNowNext_, dkEinkHtml_ };')(text_, esc, formInput_);
 }
 const unesc = s => String(s).replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
 /* WHAT EACH SHOWS, as lines: the heading, one line per item ('at|title|tags'), the Next line. */
