@@ -331,7 +331,7 @@ const HIST_KIND_ELSE = { chip: 'writing', say: 'Writings', sub: r => [r.reposito
 function histItem_(kind, r) {
   if (kind === 'figure') return { kind: 'people', rowKind: kind, hdb: true, name: histName_(r), key: 'hdb:' + r.id, pixId: r.id, image: '', sub: '', histKind: labelOf_('hist-kind', 'figure', 'People'),
     born: personYear_(r.born_year), died: personYear_(r.died_year), from: r.born_place || '', roles: histList_(r.roles),
-    shelf: 'History', subject: 'History', text: plainText_(Object.keys(r).map(k => r[k]).join(' ')), row: r };
+    shelf: TAXONOMY.History.subject, subject: TAXONOMY.History.subject, text: plainText_(Object.keys(r).map(k => r[k]).join(' ')), row: r };
   const K = Object.prototype.hasOwnProperty.call(HIST_KIND_ROW, kind) ? HIST_KIND_ROW[kind] : HIST_KIND_ELSE;
   /* LOADED AS THE ONE ITEM SHAPE (item_, cards-parts.js) where the kind is migrated; its card is drawn from `shape`. */
   const shape = typeof ITEM_MAPS === 'object' && ITEM_MAPS[kind] ? item_(r, kind) : null;
@@ -339,7 +339,7 @@ function histItem_(kind, r) {
     kind: kind, rowKind: kind, hdb: true, name: shape ? shape.name : histName_(r), key: 'hdb:' + (shape ? shape.id : r.id), image: '', shape,
     sub: K.sub(r).filter(Boolean).join(' · '),
     histKind: labelOf_('hist-kind', K.chip, K.say),
-    shelf: K.shelf ? K.shelf() : 'History', subject: 'History',
+    shelf: K.shelf ? K.shelf() : TAXONOMY.History.subject, subject: TAXONOMY.History.subject,
     text: plainText_(Object.keys(r).filter(k => k !== 'px').map(k => r[k]).join(' ')),
     row: r,
   };
