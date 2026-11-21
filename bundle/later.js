@@ -15991,14 +15991,14 @@ function dkBlocks_() {
 const lists = dkLoad_();
 if (DK.at >= lists.length) DK.at = Math.max(0, lists.length - 1);
 const L = lists[DK.at];
-const out = [{ type: 'group', look: 'tile-row dk-lists', tiles: lists.map((l, i) => ({ icon: 'list', label: l.name, act: 'dk-list', cls: i === DK.at ? 'is-submit' : '', data: { i } }))
-.concat({ icon: 'plus', label: 'New list', act: 'dk-newlist' }) }];
+const out = dkNowNext_(lists).concat({ type: 'group', look: 'tile-row dk-lists', tiles: lists.map((l, i) => ({ icon: 'list', label: l.name + (l.start ? ' ' + l.start : ''), act: 'dk-list', cls: i === DK.at ? 'is-submit' : '', data: { i } }))
+.concat({ icon: 'plus', label: 'New list', act: 'dk-newlist' }) });
 if (DK.say) out.push({ type: 'text', text: DK.say });
 if (!L) return out.concat({ type: 'text', text: 'Make a list to start.' });
 out.push({ type: 'group', look: 'tile-row', tiles: [{ icon: 'edit', label: 'Rename', act: 'dk-rename' }, { icon: 'up', label: 'Earlier', act: 'dk-move', data: { by: -1 }, off: DK.at === 0 },
 { icon: 'down', label: 'Later', act: 'dk-move', data: { by: 1 }, off: DK.at === lists.length - 1 }, { icon: 'bin', label: 'Delete list', act: 'dk-droplist', tone: 'danger' }] });
-if (DK.rename) out.push({ type: 'field', cap: 'List name', blocks: [{ type: 'control', attrs: { class: 'dk-name', value: L.name, maxlength: 80 } }] },
-{ type: 'tiles', tiles: [{ icon: 'save', label: 'Save name', act: 'dk-named', cls: 'is-submit' }] });
+if (DK.rename) out.push({ type: 'group', look: 'dk-form', inner: formOf_('docket-list', { name: L.name, start: L.start || '' }) },
+{ type: 'tiles', tiles: [{ icon: 'save', label: 'Save', act: 'dk-named', cls: 'is-submit' }] });
 out.push({ type: 'field', cap: 'Add an item', blocks: [{ type: 'control', attrs: { class: 'dk-add', placeholder: 'What to do', maxlength: 300, enterkeyhint: 'done' } }] },
 { type: 'tiles', tiles: [{ icon: 'plus', label: 'Add', act: 'dk-add', cls: 'is-submit' }] });
 dkGroups_(L.items).forEach(g => out.push({ type: 'section', head: g.head, blocks: g.rows.map(i => dkItem_(L.items[i], i)) }));
@@ -16006,6 +16006,17 @@ const done = L.items.map((it, i) => (dkDone_(it) ? i : -1)).filter(i => i >= 0);
 if (done.length) out.push({ type: 'tiles', tiles: [{ icon: DK.showDone ? 'close' : 'open', label: (DK.showDone ? 'Hide' : 'Show') + ' done (' + done.length + ')', act: 'dk-showdone' }] });
 if (DK.showDone) done.forEach(i => out.push(dkItem_(L.items[i], i)));
 return out;
+}
+function dkNowNext_(lists) {
+const p = dkPhase_(lists, dkNow_(), dkFill_);
+if (!p) return [];
+const L = lists[p.cur], N = p.next == null ? null : lists[p.next];
+const rows = p.rows.map(r => { const it = lists[r.li].items[r.i], tags = [r.missed ? text_('dk-missed') : '', r.missed ? lists[r.li].name : '', it.time || ''].filter(Boolean);
+return { type: 'group', look: 'dk-item', blocks: [{ type: 'tick', text: it.title || 'Untitled', attrs: { 'data-dkf': r.li + ':' + r.i, checked: false, 'aria-label': 'Done: ' + (it.title || '') } },
+tags.length ? { type: 'tags', tags } : null].filter(Boolean) }; });
+return [{ type: 'section', head: text_('dk-now-at', { name: L.name, at: p.at }),
+blocks: (rows.length ? rows : [{ type: 'text', text: text_('dk-day-done') }])
+.concat({ type: 'text', text: N ? text_('dk-next', { name: N.name, at: p.nextAt }) : text_('dk-next-none') }) }];
 }
 function dkPaint_() {
 const box = $('dk-box');
@@ -16017,7 +16028,10 @@ const dkKeep_ = () => { DK.say = ''; dkSave_(); dkPaint_(); };
 on('dk-list', el => { DK.at = +el.getAttribute('data-i') || 0; DK.edit = -1; DK.rename = false; dkPaint_(); });
 on('dk-newlist', () => { const L = dkLoad_(); L.push({ name: 'List ' + (L.length + 1), items: [] }); DK.at = L.length - 1; DK.rename = true; dkKeep_(); });
 on('dk-rename', () => { DK.rename = !DK.rename; dkPaint_(); });
-on('dk-named', () => { const v = ($('dk-box').querySelector('.dk-name') || {}).value; if (dkList_() && String(v || '').trim()) dkList_().name = String(v).trim().slice(0, 80); DK.rename = false; dkKeep_(); });
+on('dk-named', () => { const L = dkList_(), box = $('dk-box'), v = f => String((box.querySelector('[data-dkl="' + f + '"]') || {}).value || '').trim(); if (!L) return;
+if (v('name')) L.name = v('name').slice(0, 80);
+if (/^\d\d:\d\d$/.test(v('start'))) L.start = v('start'); else delete L.start;
+DK.rename = false; dkKeep_(); });
 on('dk-move', el => { const L = dkLoad_(), by = +el.getAttribute('data-by'), j = DK.at + by; if (j < 0 || j >= L.length) return; L.splice(j, 0, L.splice(DK.at, 1)[0]); DK.at = j; dkKeep_(); });
 on('dk-droplist', () => { const L = dkLoad_(); if (!L[DK.at] || !confirm('Delete the list "' + L[DK.at].name + '" and everything on it?')) return; L.splice(DK.at, 1); DK.at = 0; dkKeep_(); });
 on('dk-add', () => { const inp = $('dk-box').querySelector('.dk-add'), t = String((inp && inp.value) || '').trim(); if (!t || !dkList_()) return; dkList_().items.push({ title: t.slice(0, 300) }); dkKeep_(); const again = $('dk-box').querySelector('.dk-add'); if (again) again.focus(); });
@@ -16066,6 +16080,21 @@ const putFixed = x => { out.push(x); t = Math.max(t, hm(x.it.time)) + mins(x.it)
 order.forEach(x => { while (fix.length && hm(fix[0].it.time) < t + mins(x.it)) putFixed(fix.shift()); out.push(x); t += mins(x.it); });
 fix.forEach(putFixed);
 return out.map(x => x.i).concat(all.filter(x => done(x.it)).map(x => x.i));
+}
+function dkPhase_(lists, now, fill) {
+now = String(now || ''); fill = fill || (x => x);
+const day = now.slice(0, 10), hm = s => { const m = /^(\d\d?):(\d\d)$/.exec(String(s || '').trim()); return m ? +m[1] * 60 + +m[2] : -1; }, t = Math.max(0, hm(now.slice(11)));
+const done = it => (it.repeat === 'daily' ? it.doneOn === day : !!it.done);
+const ph = (lists || []).map((L, li) => ({ L: L || {}, li, at: hm((L || {}).start) })).filter(x => x.at >= 0).sort((a, b) => a.at - b.at || a.li - b.li);
+if (!ph.length) return null;
+const open = x => (x.L.items || []).map((it, i) => ({ it: it || {}, i })).filter(y => !done(y.it));
+const plan = x => dkPlan_((x.L.items || []).map(fill), now).filter(i => !done((x.L.items || [])[i] || {}));
+let c = 0; ph.forEach((x, k) => { if (x.at <= t) c = k; });
+while (c < ph.length - 1 && !open(ph[c]).length) c++;
+const rows = plan(ph[c]).map(i => ({ li: ph[c].li, i, missed: false }));
+ph.slice(0, c).forEach(x => plan(x).forEach(i => rows.push({ li: x.li, i, missed: true })));
+const hh = x => x.L.start.trim().padStart(5, '0');
+return { cur: ph[c].li, at: hh(ph[c]), next: ph[c + 1] ? ph[c + 1].li : null, nextAt: ph[c + 1] ? hh(ph[c + 1]) : '', rows, over: !rows.length };
 }
 const dkNow_ = () => { let t = ''; try { t = new Intl.DateTimeFormat('en-GB', { timeZone: tz_(), hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date()); } catch (e) { t = ''; }
 return dkDay_() + ' ' + (t || '00:00'); };
