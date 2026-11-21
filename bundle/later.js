@@ -4424,9 +4424,9 @@ used++;
 }
 return used >= 3;
 }
-function markRule_(typed, rule) {
+function markRule_(typed, rule, head) {
 const body = String(rule || '').replace(/^\s*rule:\s*/i, '');
-if (/^points\b/i.test(body)) { const p = markPoints_(typed, rule); return !!p && p.got >= p.of; }
+if (/^points\b/i.test(body)) { const p = markPoints_(typed, rule, null, head ? { head } : null); return !!p && p.got >= p.of; }
 const ex = /(?:^|,)\s*(expr|eqn)\s+([^,]+)/.exec(body);
 if (ex) {
 const eqn = ex[1] === 'eqn', fns = (/(?:^|,)\s*fn\s+([a-z]+)/.exec(body) || [])[1] || '';
@@ -4524,12 +4524,26 @@ const MARK_PT_RIVALS = ('increase increases increased increasing decrease decrea
 + 'inside outside above below before after maximum minimum positive negative endothermic exothermic absorb absorbs absorbed emit emits '
 + 'emitted gain gains gained loses lost oxidised reduced oxidation reduction anode cathode acid alkali alkaline insulator conductor '
 + 'diffusion osmosis mitosis meiosis').split(' ');
+const MARK_PT_SUBJ = /^qz[a-h]q$/;
+function markPtSubjects_(s, key) {
+return String(s).replace(/(^|[^A-Za-z0-9°'’\-.\/^_])([A-Ha-h])(?![A-Za-z0-9'’\-\/^+⁺⁻²³₀-₉_=(]|\.[A-Za-z0-9])/g, (m, pre, l, at, all) => {
+if (/\d\s*$/.test(all.slice(0, at + pre.length))) return m;
+const prev = (/([A-Za-z]+)[^A-Za-z.!?;]*$/.exec(all.slice(0, at + pre.length)) || [])[1];
+const next = (/^[\s,]*([A-Za-z]+|[.!?;:)]|$)/.exec(all.slice(at + pre.length + 1)) || [])[1];
+if (/[b-h]/i.test(l)) return /[b-h]/.test(l) && prev && /^(?:vitamin|part|grade|line|row|column|option|answer)$/i.test(prev) ? m : pre + 'qz' + l.toLowerCase() + 'q';
+if (key === true && l === 'A') return pre + 'qzaq';
+const verbish = next === '' || /^[.!?;:),]$/.test(next) || /^(?:than|and|or|but|to|then|with|is|was|has|had|does|did|will|would|can|could|reacts|reacted|contains|forms|gives|makes|shows|produces|needs)$/i.test(next || '')
+|| /^[a-z]{2,}(?:[^su's]s|ed)$/.test(next || '');
+const after = prev && !MARK_PT_GLUE.has(prev.toLowerCase());
+return verbish && (after || (l === 'A' && (!prev || /^(?:than|and|or|but|so|because|while|whereas|then)$/i.test(prev)))) ? pre + 'qzaq' : m;
+});
+}
 function markPtPlain_(s) {
 return String(s == null ? '' : s).replace(/<br\s*\/?>|<\/(p|li|div|h\d|tr)>/gi, '\n').replace(/<[^>]*>/g, ' ')
 .replace(/&(rsquo|lsquo|#8217|#8216|apos);/g, "'").replace(/&(rdquo|ldquo|quot|#8220|#8221);/g, '"')
 .replace(/&hellip;/g, '...').replace(/&(mdash|ndash);/g, ' - ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&[a-z]+;|&#\d+;/g, ' ')
 .replace(/[‘’ʼ]/g, "'").replace(/[“”]/g, '"').replace(/…/g, '...')
-.toLowerCase().replace(/n't\b/g, ' not').replace(/'s\b/g, '')
+.replace(/[^]*/, markPtSubjects_).toLowerCase().replace(/n't\b/g, ' not').replace(/'s\b/g, '')
 .replace(/(\d)[,\u2009](?=\d{3}(?!\d))/g, '$1').replace(/(\d)\s*\/\s*(?=\d)/g, '$1/').replace(/(\d)\s*(?:per\s?cent|percent)\b/g, '$1%');
 }
 const MARK_PT_NUM = /^-?\d+(?:\.\d+)?(?:\/\d+)?%?$/;
@@ -4574,11 +4588,11 @@ const out = { max: 0, points: [] };
 parts.slice(1).forEach(p => {
 const tags = [...p.matchAll(/\[(\d*)(q?)\]/gi)];
 const tag = tags.length ? [tags[0][0], String(Math.max(0, ...tags.map(t => Number(t[1]) || 0)) || ''), tags.some(t => t[2]) ? 'q' : ''] : null;
-const ways = (tags.length ? p.replace(/\[(\d*)(q?)\]/gi, ' ') : p).replace(/\s*(?:→|->|⟶|=>)\s*/g, ' to ').replace(/(\d)\/(?=\d)/g, '$1÷').split('/').map(w => w.trim().toLowerCase()
+const ways = (tags.length ? p.replace(/\[(\d*)(q?)\]/gi, ' ') : p).replace(/\s*(?:→|->|⟶|=>)\s*/g, ' to ').replace(/[^]*/, m => markPtSubjects_(m, true)).replace(/(\d)\/(?=\d)/g, '$1÷').split('/').map(w => w.trim().toLowerCase()
 .replace(/n't\b/g, ' not').replace(/(\d),(?=\d{3}(?!\d))/g, '$1').replace(/(\d)\s*(?:%|per\s?cent|percent)(?![a-z])/g, '$1%').replace(/(\d\.\d+)(?=[a-z])/g, '$1 ').split(/\s+/)
 .map(t => t.split('~').map(a => { const n = a.replace(/[^\d.÷%-]/g, '').replace('÷', '/');
 return /\d/.test(a) && MARK_PT_NUM.test(n) && !/[a-z]/.test(a) ? markPtNumOf_(n)
-: a.replace(/[^a-z0-9'-]/g, '').replace(/'s$/, '').replace(/-/g, ''); }).filter(Boolean))
+: a.replace(/[^a-z0-9'_-]/g, '').replace(/'s$/, '').replace(/-/g, '').replace(/^_+|_+$/g, ''); }).filter(Boolean))
 .map(alts => { const d = alts.map(a => MARK_PT_DIR.get(a)).find(Boolean);
 return d ? [...new Set(alts.concat([...MARK_PT_DIR].filter(e => e[1] === d).map(e => e[0])))] : alts; })
 .filter(alts => alts.length))
@@ -4593,9 +4607,12 @@ if (j < 1 || j >= way.length - 1 || alts.length !== 1 || !/^(?:to|then|into|beco
 const b = way.slice(0, j).filter(a => kept.indexOf(a) >= 0).length;
 if (b > 0 && b < kept.length && !(MARK_PT_NUM.test(kept[b - 1][0]) && MARK_PT_NUM.test(kept[b][0]))) kept.order.push(b);
 });
+kept.forEach((alts, b) => { if (alts.some(a => /^(?:below|above)$/.test(a))) { if (b > 0) kept.order.push(b); if (b + 1 < kept.length) kept.order.push(b + 1); } });
+kept.subj = kept.map((alts, j) => alts.some(a => MARK_PT_SUBJ.test(a)) ? j : -1).filter(j => j >= 0);
 return kept;
 })
-.filter(w => w.length);
+.filter(w => w.length)
+.flatMap(markPtMirror_);
 if (ways.length) out.points.push({ n: tag && tag[1] ? Number(tag[1]) : 1, q: !!(tag && tag[2]), ways });
 });
 const m = /max\s+(\d+)/i.exec(head ? head[1] : '') || /^\s*(\d+)/.exec(head ? head[1] : '');
@@ -4604,6 +4621,24 @@ out.first = Number((/first\s+(\d+)/i.exec(head ? head[1] : '') || [])[1]) || 0;
 out.phrases = /\bphrases\b/i.test(head ? head[1] : '');
 memo.set(rule, out);
 return out;
+}
+function markPtMirror_(way) {
+const dirs = way.map((alts, j) => alts.map(a => MARK_PT_DIR.get(a)).find(Boolean) ? j : -1).filter(j => j >= 0);
+if (dirs.length !== 1) return [way];
+const k = dirs[0], d = way[k].map(a => MARK_PT_DIR.get(a)).find(Boolean), o = MARK_PT_DIR_OPP[d];
+if (k < 1 || (way.than > 0 && (way.than <= k || way.than >= way.length))) return [way];
+const flip = [...new Set([...MARK_PT_DIR].filter(e => e[1] === o).map(e => e[0]))];
+const props = w => { w.order = []; w.subj = w.map((alts, j) => alts.some(a => MARK_PT_SUBJ.test(a)) ? j : -1).filter(j => j >= 0); return w; };
+if (way.than > 0) {
+const subj = way.slice(0, k), pred = way.slice(k, way.than), other = way.slice(way.than);
+const m = props(other.concat([flip], pred.slice(1), subj));
+m.than = other.length + pred.length;
+return [way, m];
+}
+way.thanSide = { subj: k, dir: k, after: false };
+const m = props(way.map((alts, j) => j === k ? flip : alts));
+m.thanSide = { subj: k, dir: k, after: true };
+return [way, m];
 }
 function markPtSource_(x) {
 if (!x) return '';
@@ -4617,6 +4652,10 @@ for (const a of alts) {
 if (tok.w === a || tok.s === markPtStem_(a)) return true;
 const va = markPtVal_(a), vt = markPtVal_(tok.w);
 if (!isNaN(va) && !isNaN(vt) && Math.abs(va - vt) <= 1e-9 * Math.max(1, Math.abs(va)) && (!/%$/.test(a) || /%$/.test(tok.w))) return true;
+const sk = markPtStem_(a);
+if (sk.length >= 6 && /iv$/.test(sk) && tok.s === sk.slice(0, -2)) return true;
+if (tok.s.length >= 6 && /iv$/.test(tok.s) && sk === tok.s.slice(0, -2)) return true;
+if (MARK_PT_SUBJ.test(a) || MARK_PT_SUBJ.test(tok.w)) continue;
 if (!isNaN(va) || !isNaN(vt) || (opt && opt.strict) || MARK_PT_GLUE.has(tok.w) || !markEndsKept_(tok.w, a)) continue;
 if (markTypo_(tok.w, a, opt)) return true;
 const sa = markPtStem_(a);
@@ -4626,8 +4665,11 @@ return false;
 }
 function markPtFind_(toks, way, opt, quoteOnly) {
 const negWay = way.some(a => a.some(b => MARK_PT_NOT.has(b)));
+const alt = (alts, i) => markPtIs_(toks[i], alts.filter(a => a.indexOf('_') < 0), opt)
+|| alts.some(a => a.indexOf('_') >= 0 && a.split('_').filter(Boolean).every((w, n) => toks[i + n] && toks[i + n].c === toks[i].c && markPtIs_(toks[i + n], [w], opt)));
+if (opt && opt.subj && !(way.subj || []).length && toks.some(t => MARK_PT_SUBJ.test(t.w)) && !toks.some(t => t.w === opt.subj)) return null;
 const at = way.map(alts => toks.map((t, i) => i).filter(i => {
-if (!markPtIs_(toks[i], alts, opt)) return false;
+if (!alt(alts, i)) return false;
 if (quoteOnly && !toks[i].quote) return false;
 if (negWay) return true;
 for (let j = i - 1, k = 0; j >= 0 && k < 3; j--, k++) {
@@ -4645,7 +4687,9 @@ const walk = (k, used) => {
 if (k === at.length) {
 const lo = Math.min(...used), hi = Math.max(...used);
 const sided = (!(way.than > 0 && way.than < way.length) || Math.max(...used.slice(0, way.than)) < Math.min(...used.slice(way.than)))
-&& (way.order || []).every(b => used[b - 1] < used[b]);
+&& (way.order || []).every(b => used[b - 1] < used[b])
+&& (way.subj || []).every((j, n, a) => !n || used[a[n - 1]] < used[j])
+&& markPtThanSide_(toks, way, used);
 if (hi - lo + 1 <= span && sided && (!best || hi - lo < best.hi - best.lo) && attached(used)) best = { lo, hi, used: used.slice() };
 return;
 }
@@ -4653,6 +4697,15 @@ for (const i of at[k].slice(0, 12)) if (used.indexOf(i) < 0) { used.push(i); wal
 };
 walk(0, []);
 return best;
+}
+function markPtThanSide_(toks, way, used) {
+const ts = way.thanSide;
+if (!ts) return true;
+const di = used[ts.dir], c = toks[di].c;
+const than = toks.findIndex((t, i) => i > di && t.c === c && t.w === 'than');
+const subj = used.slice(0, ts.subj);
+if (!ts.after) return than < 0 || subj.every(i => i < than && !toks.some((t, y) => y > i && y < di && MARK_PT_JOIN.has(t.w)));
+return than >= 0 && subj.every(i => i > than);
 }
 const MARK_PT_JOIN = new Set('so because which who that when while then since therefore thus whereas until unless meaning causing'.split(' '));
 const markPtDirOf_ = w => MARK_PT_DIR.get(w) || MARK_PT_DIR.get(w.replace(/(?:s|ed|ing)$/, '')) || MARK_PT_DIR.get(w.replace(/(?:s|d)$/, ''));
@@ -4690,7 +4743,9 @@ if (!raw.trim()) return null;
 const key = markPtRead_(rule);
 const source = markPtSource_(x);
 const essay = !!(opt && opt.essay) || Number(x && x.marks) > 6;
-opt = { strict: !!(opt && opt.strict), others: ((opt && opt.others) || []).concat(MARK_PT_RIVALS) };
+const head = String((opt && opt.head) || (x && x.accept) || '').split('|').filter(w => !/^\s*rule:/i.test(w)).join(' ');
+const labels = [...new Set(markPtWords_(markPtPlain_(head)).filter(w => MARK_PT_SUBJ.test(w)))];
+opt = { strict: !!(opt && opt.strict), others: ((opt && opt.others) || []).concat(MARK_PT_RIVALS), subj: labels.length === 1 ? labels[0] : '' };
 let quotes = 0, inSource = 0, notInSource = 0;
 const text = markPtPlain_(raw).replace(/(^|[\s(\[:,])(["'])((?:(?!\2)[^\n]|'(?=[a-z]))+?)\2(?=[\s.,;:!?)\]]|$)/g, (m, pre, qm, body) => {
 const parts = body.split(/\.\.\.+/).map(p => markPtWords_(p)).filter(p => p.length);
@@ -5188,10 +5243,20 @@ const got = markGenotypes_(typed);
 if (got == null) return markGenotypes_(String(typed || '').toUpperCase()) ? false : null;
 return keys.includes(got);
 }
+const MARK_STD_RULE = /(?:^|\|)\s*rule:\s*standard(?:\s+(?:index\s+)?form)?\s*(?=\||$)/i;
+function markStdForm_(typed) {
+const v = String(typed == null ? '' : typed).replace(/[\u2212\u2013]/g, '-').replace(/\s+/g, ' ').trim();
+return /^-?\s*[1-9](?:\.\d+)?\s*(?:[x×*·]|\\times)\s*10\s*(?:\^\s*\(?\s*[-+]?\s*\d+\s*\)?|[⁻⁺]?[⁰¹²³⁴⁵⁶⁷⁸⁹]+)(?![\d.])(?:\s*[^\d\s].*)?$/i.test(v)
+|| /^-?[1-9](?:\.\d+)?e[-+]?\d+(?:\s*[^\d\s].*)?$/i.test(v);
+}
 function markAnswer_(typed, accept, again, opt) {
 if (Array.isArray(typed)) typed = typed.map(v => String(v == null ? '' : v).trim()).filter(Boolean).join(', ');
 const t = markNorm_(typed);
 if (!t) return null;
+if (MARK_STD_RULE.test(String(accept || ''))) {
+if (!markStdForm_(typed)) return false;
+accept = String(accept).split('|').filter(w => !MARK_STD_RULE.test('|' + w + '|')).join('|');
+}
 if (!(opt && opt.listed)) {
 const o = Object.assign({}, opt, { listed: true });
 if (!again && markOrderBroken_(typed, accept, opt)) return false;
@@ -5204,7 +5269,7 @@ const said = !again && markSpoken_(t);
 if (said && said !== t && markAnswer_(said, accept)) return true;
 const rules = String(accept || '').split('|').filter(w => /^\s*rule:/i.test(w));
 if (rules.length) {
-if (rules.some(w => markRule_(typed, w))) return true;
+if (rules.some(w => markRule_(typed, w, accept))) return true;
 accept = String(accept).split('|').filter(w => !/^\s*rule:/i.test(w)).join('|');
 if (rules.some(w => /(?:^|[:,])\s*(mixed|decimal|lowest)\s*(?:,|$)/i.test(w))) {
 const tight = v => v.replace(/(\d)\s+(?=[a-z])/g, '$1');
