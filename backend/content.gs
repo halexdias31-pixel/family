@@ -249,7 +249,7 @@ function driveKeep_(folder, raw, name) {
   const file = folder.createFile(blob);
   file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
   /* `#video` IS HOW THE PHONE KNOWS WHICH ELEMENT TO DRAW. A Drive address names no type. */
-  return 'https://drive.google.com/file/d/' + file.getId() + '/view'
+  return driveFileUrl_(file.getId())
     + (/^video\//i.test(type) ? '#video' : '');
 }
 
@@ -498,7 +498,7 @@ function msgAttachSave_(files, admin) {
       const file = got.folder.createFile(b.blob);
       made.push(file);
       file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-      out.push({ url: 'https://drive.google.com/file/d/' + file.getId() + '/view',
+      out.push({ url: driveFileUrl_(file.getId()),
                  type: b.type, name: b.name });
     });
   } catch (err) {

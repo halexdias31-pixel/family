@@ -7,8 +7,8 @@
 'use strict';
 const { text, srcFiles, report, main } = require('./lib/gen.js');
 const HOME = 'backend/write-lock.gs';
-/* digest.gs is another lane's; setup.gs and content.gs are lane-locked (unify batch 7). */
-const OWED = { lock: ['backend/digest.gs', 'backend/setup.gs'], url: ['backend/content.gs'] };
+/* Nothing owed: digest.gs, setup.gs and content.gs moved over (unify batch 8). */
+const OWED = { lock: [], url: [] };
 const RULES = [
   ['lock', /\.releaseLock\s*\(/, 'releases the script lock by hand (take withWriteLock_ from ' + HOME + ')'],
   ['saved', /[.!?]\s*Nothing was saved\.['"`]/, 'types " Nothing was saved." by hand (take nothingSaved_ from ' + HOME + ')'],

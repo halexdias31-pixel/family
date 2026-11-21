@@ -72,19 +72,19 @@ function textsBody_(x) {
       { type: 'group', tag: 'p', look: 'wt-credit', text: (t.source || '') + ' · ' + (t.licence || '') }]);
   }
   if (TEXTS.missed[x.tx.file] && !TEXTS.loading[x.tx.file]) return cardBlock_({ type: 'group', tag: 'p', look: 'fc-note', text: 'This text did not arrive.' });
-  if (!TEXTS.loading[x.tx.file]) textsLoad_(x.tx.file).then(() => textsRedraw_(x.tx.file));
+  if (!TEXTS.loading[x.tx.file]) textsLoad_(x.tx.file).then(() => txRedraw_(x.tx.file, TEXTS.items, textsBody_));
   return loading_();
 }
 function textsCard_(x) {
   return readingCard_(x, { cls: 'wt', bodyCls: 'wt-body tx-body', body: x.tx ? textsBody_(x) : '', data: { tx: x.tx ? x.tx.file : '', k: x.key } });
 }
-/* ITS WORDS CAME: every card of that file on screen is filled where it stands. */
-function textsRedraw_(file) {
+/* ITS WORDS CAME: every card of that file (or public-domain text, pdtexts.js) on screen is filled where it stands. */
+function txRedraw_(id, items, body) {
   if (typeof document === 'undefined') return;
-  document.querySelectorAll('.tx-body[data-tx="' + file + '"]').forEach(el => {
-    const x = (TEXTS.items || []).find(i => i.key === el.getAttribute('data-k'));
+  document.querySelectorAll('.tx-body[data-tx="' + id + '"]').forEach(el => {
+    const x = (items || []).find(i => i.key === el.getAttribute('data-k'));
     if (!x) return;
-    el.innerHTML = textsBody_(x);
+    el.innerHTML = body(x);
     const pane = el.closest('.pane');
     if (pane && typeof paneReach_ === 'function') { try { paneReach_([pane]); } catch (e) {} }
   });

@@ -5,13 +5,14 @@
    Prints the count; a card outside the rule fails the build. Run by tools/build.js after the bundles. */
 'use strict';
 const fs = require('fs'), http = require('http'), path = require('path');
+const { bare, text } = require('./lib/gen.js');
 const ROOT = path.join(__dirname, '..'), PORT = 8131;
 /* THE ONE MAKER'S OWN CLASSES, and the state classes every card may wear. */
 const BASE = /^(card|fc|kc|kc-[\w-]+|is-empty|is-off|is-locked|tap)$/;
 const MIME = { '.js': 'text/javascript', '.css': 'text/css', '.html': 'text/html', '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml' };
 
 async function run() {
-  const css = fs.readFileSync(path.join(ROOT, 'style.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+  const css = bare(text('style.css'), { comments: true });
   const styled = c => new RegExp('\\.' + c.replace(/-/g, '\\-') + '(?![\\w-])').test(css);
   const payload = fs.readFileSync(path.join(ROOT, 'tools/lib/payload.json'), 'utf8');
   const { chromium, devices } = require('playwright');

@@ -12,7 +12,7 @@ const CARDS = 'backend/cards-gen.gs';
 const RETIRED = [
   ['digestLevelsIn_', 'levelsIn_'], ['digestLevels_', 'LEVEL_TABLE'], ['digestTagSats_', 'satsStagesOf_'], ['digestTagStages_', 'keyStagesOf_'],
   ['digestTagYearOf_', 'yearOf'], ['digestTagSeries_', 'seriesOf_'], ['digestTagMonthAt_', 'waveOf'], ['DIGEST_MONTHS', 'MONTH_NAMES'],
-  ['DIGEST_ROMAN', 'ROMAN_ONLY'],
+  ['DIGEST_ROMAN', 'ROMAN_ONLY'], ['digestCells_', 'cellsOf_'],
 ];
 /* THE BACKEND NAMES KEPT AS THIN WRAPPERS: [file, name, the site function it must call]. */
 const WRAPPERS = [

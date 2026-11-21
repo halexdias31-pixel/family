@@ -1,6 +1,8 @@
 
 /* Wrap a screen's cards into a vertical strip of pages. § */
 /* A SCREEN'S PAGES, all of them, in one scroller. § */
+/* THE TWO POINTER QUERIES, one spelling each: a mouse that hovers, and a finger. */
+const CAN_HOVER_ = '(hover: hover) and (pointer: fine)', COARSE_ = '(pointer: coarse)';
 /* THE CELL AND THE GLASS ARE TWO THINGS. § */
 /* ---------- THE MARKS, ADOPTED FROM THE PAYLOAD JUST LANDED § */
 function adoptMarks_() {

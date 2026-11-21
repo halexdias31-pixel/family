@@ -5,24 +5,8 @@ const CHEM = { data: null, asking: null, failed: false, items: null, from: null 
 const CHEM_FILES = { elements: 'Element', substances: 'Substance', reactions: 'Reaction' };
 const CHEM_SUBJECT = 'Chemistry';
 
-function chemIndex_() {
-  if (CHEM.data) return CHEM.data;
-  if (CHEM.asking || CHEM.failed || typeof fetch !== 'function') return null;
-  const get = f => dataFile_('data/chemistry/' + f + '.json');
-  const names = Object.keys(CHEM_FILES);
-  CHEM.asking = Promise.all(names.map(get)).then(all => {
-    CHEM.asking = null;
-    const d = {};
-    /* A ROW IS A CARD ONLY WITH AN ID AND A SOURCE (check-chemistry): a payload's list of the same name is not ours. */
-    const ours = r => r && r.id && r.source;
-    names.forEach((n, i) => { d[n] = all[i] && Array.isArray(all[i][n]) ? all[i][n].filter(ours) : []; });
-    if (!names.some(n => d[n].length)) { CHEM.failed = true; return null; }
-    CHEM.data = d;
-    if (typeof lateCame_ === 'function') lateCame_();
-    return d;
-  });
-  return null;
-}
+/* A ROW IS A CARD ONLY WITH AN ID AND A SOURCE (check-chemistry). */
+const chemIndex_ = () => libFilesIndex_(CHEM, 'chemistry', CHEM_FILES, r => r && r.id && r.source);
 
 /* ONE ITEM A ROW: Card type is `mKind`, the Library's one card-type question (548); the rest read the row's own fields. */
 function chemItems_() {

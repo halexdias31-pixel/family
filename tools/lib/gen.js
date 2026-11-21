@@ -56,6 +56,38 @@ function srcFiles(dirs, ext, opts) {
   [].concat(dirs).forEach(walk);
   return out.slice();
 }
+/* THE ONE STRIPPER (unify batch 8): the text a check should look at, with the parts it must not blanked to spaces (every
+   newline kept, so line and column numbers hold). comments: true blanks block comments; 'js' also `//` line comments, read by a
+   scanner that knows strings and templates. strings: blanks '…' and "…" (one line each). generated: blanks the generated blocks,
+   the X:BEGIN … X:END blocks (SHARED among them) and the ---------- NAME (generated) ---------- … END NAME blocks. */
+const COMMENT_RE = /\/\*[\s\S]*?\*\//g;
+const STRING_RE = /"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'/g;
+const SHARED_RE = /\/\* SHARED:BEGIN[\s\S]*?\/\* SHARED:END \*\//;
+const BLOCK_RE = /\/\*\s*([A-Z-]+):BEGIN[\s\S]*?\/\*\s*\1:END\s*\*\//g;
+const GENERATED_RE = /\/\* -{10} (.+?) \(generated\) -{10} \*\/[\s\S]*?\/\* -{10} END \1 -{10} \*\//g;
+const blank = m => m.replace(/[^\n]/g, ' ');
+function uncommentJs(t) {
+  let o = '', i = 0, q = null;
+  while (i < t.length) {
+    const c = t[i];
+    if (q) { o += c; if (c === '\\') { o += t[i + 1] || ''; i += 2; continue; } if (c === q || (c === '\n' && q !== '`')) q = null; i++; continue; }
+    if (c === '/' && t[i + 1] === '*') { const e = t.indexOf('*/', i + 2), end = e < 0 ? t.length : e + 2; o += blank(t.slice(i, end)); i = end; continue; }
+    if (c === '/' && t[i + 1] === '/') { const e = t.indexOf('\n', i); const end = e < 0 ? t.length : e; o += ' '.repeat(end - i); i = end; continue; }
+    if (c === "'" || c === '"' || c === '`') q = c;
+    o += c; i++;
+  }
+  return o;
+}
+function bare(src, opts) {
+  const o = opts || {};
+  let t = String(src);
+  if (o.generated) t = t.replace(BLOCK_RE, blank).replace(GENERATED_RE, blank);
+  if (o.comments === 'js') t = uncommentJs(t);
+  if (o.comments === true && o.strings) t = t.replace(new RegExp(COMMENT_RE.source + '|' + STRING_RE.source, 'g'), blank);
+  else if (o.comments === true) t = t.replace(COMMENT_RE, blank);
+  else if (o.strings) t = t.replace(STRING_RE, blank);
+  return t;
+}
 /* THE ONE REPORT: each problem on its own line, then a throw naming the check and the count (`hint` ends the message). */
 function report(name, bad, hint, log) {
   if (!bad.length) return;
@@ -68,4 +100,4 @@ function main(mod, run) {
   const fail = e => { console.error(e && e.message || e); process.exit(1); };
   try { const p = run(); if (p && typeof p.then === 'function') p.catch(fail); } catch (e) { fail(e); }
 }
-module.exports = { ROOT, read, S, blockInto, writeIfChanged, text, srcFiles, report, main };
+module.exports = { ROOT, read, S, blockInto, writeIfChanged, text, srcFiles, report, main, bare, SHARED_RE, BLOCK_RE, GENERATED_RE, COMMENT_RE, STRING_RE };

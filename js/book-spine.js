@@ -610,7 +610,7 @@ function patchNode_(old, fresh) {
 function bookFocusOf_(card) {
   const a = document.activeElement;
   if (!card || !a || a === document.body || !card.contains(a) || !a.dataset || !a.dataset.do) return null;
-  const fine = !!(window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches);
+  const fine = !!(window.matchMedia && matchMedia(CAN_HOVER_).matches);
   const tick = a.tagName === 'INPUT' && a.type === 'checkbox';
   if (!(tick || a.tagName === 'BUTTON' || (a.tagName === 'SELECT' && fine))) return null;
   return { tag: a.tagName, data: bookDataOf_(a), value: tick ? a.value : null };

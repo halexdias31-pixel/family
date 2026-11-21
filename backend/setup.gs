@@ -1113,11 +1113,8 @@ function autoMigrate_() {
   if (!schemaStale && !pending.length) return null;
 
   /* One at a time. Two people opening the site in the same second after a deploy would otherwise both run it, and both would be adding the same columns to the same § */
-  const lock = LockService.getScriptLock();
-  try { lock.waitLock(10000); } catch (err) { return { skipped: 'another request is doing it' }; }
-
+  return withWriteLock_(() => {
   const out = { version: BACKEND_VERSION };
-  try {
     /* MARKED BEFORE THE WORK, every time. § */
     if (schemaStale) {
       /* MARKED ONLY IF IT WORKED, and "worked" is checked rather than assumed. § */
@@ -1165,9 +1162,7 @@ function autoMigrate_() {
 
     Logger.log('auto-migrated: ' + JSON.stringify(out));
     return out;
-  } finally {
-    try { lock.releaseLock(); } catch (err2) { /* the lock lapses on its own; going ahead unlocked is the old behaviour */ }
-  }
+  }, { wait: 10000, busy: () => ({ skipped: 'another request is doing it' }) });
 }
 
 /* ---------- ON AN ADMIN'S PAGE LOAD, WHAT USED TO BE RUN BY HAND (361) ----------

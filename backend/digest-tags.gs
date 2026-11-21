@@ -3,24 +3,10 @@
 /* THE LIBRARY, FOR THE EMAIL — EACH QUESTION PRINTED AS IT IS ON THE SITE (18 Oct, docs/history/351) § */
 /* THE FILE ITSELF: the site's copy first — the one the phones read — then raw.githubusercontent.com § */
 function digestLibrary_(site) {
-  const urls = [S(site || SITE_URL).replace(/\/*$/, '/') + DIGEST_LIBRARY_PATH];
-  try { urls.push(RAW + DIGEST_LIBRARY_PATH); } catch (err) { /* sync.gs is not in this scope */ }
-  const said = [];
-  for (let i = 0; i < urls.length; i++) {
-    const t = Date.now();
-    try {
-      const res = UrlFetchApp.fetch(urls[i] + '?v=' + Date.now(), { muteHttpExceptions: true, followRedirects: true });
-      const code = res.getResponseCode();
-      const text = code === 200 ? String(res.getContentText('UTF-8')) : '';
-      if (code === 200 && /^\s*\[/.test(text.slice(0, 50)) && text.indexOf('"row_id":"') !== -1) {
-        return { text: text, url: urls[i], ms: Date.now() - t, size: text.length };
-      }
-      said.push(urls[i] + ' answered ' + code + (code === 200 ? ' with something that is not the library' : ''));
-    } catch (err) {
-      said.push(urls[i] + ' could not be reached (' + S(err && err.message || err).slice(0, 120) + ')');
-    }
-  }
-  return { error: 'the question library could not be fetched, so each question goes as its words — ' + said.join('; ') };
+  const t = Date.now();
+  const r = fetchSiteThenRaw_(DIGEST_LIBRARY_PATH, text => (/^\s*\[/.test(text.slice(0, 50)) && text.indexOf('"row_id":"') !== -1 ? text : null), site);
+  if (r.got === null) return { error: 'the question library could not be fetched, so each question goes as its words — ' + r.said.join('; ') };
+  return { text: r.got, url: r.url, ms: Date.now() - t, size: r.got.length };
 }
 
 /* ---------- THE CARD'S TAGS, AS THE SITE DRAWS THEM (20 Oct, docs/history/380): `tagRow_` (js/find.js) for a question, ported § */
@@ -31,17 +17,10 @@ function digestLibrary_(site) {
 const DIGEST_FACETS_PATH = 'data/settings/facets.json';
 /* THE FACETS FILE THE PHONE ORDERS ITS TAGS BY (546): the site's copy first, then raw.githubusercontent.com; null when neither answers. */
 function digestFacetOrder_(site) {
-  const urls = [S(site || SITE_URL).replace(/\/*$/, '/') + DIGEST_FACETS_PATH];
-  try { urls.push(RAW + DIGEST_FACETS_PATH); } catch (err) { /* sync.gs is not in this scope */ }
-  for (let i = 0; i < urls.length; i++) {
-    try {
-      const res = UrlFetchApp.fetch(urls[i] + '?v=' + Date.now(), { muteHttpExceptions: true, followRedirects: true });
-      if (res.getResponseCode() !== 200) continue;
-      const rows = JSON.parse(String(res.getContentText('UTF-8')));
-      if (Array.isArray(rows) && rows.some(r => r && r.field)) return rows;
-    } catch (err) { /* the next URL, then the fallback order */ }
-  }
-  return null;
+  return fetchSiteThenRaw_(DIGEST_FACETS_PATH, text => {
+    const rows = JSON.parse(text);
+    return Array.isArray(rows) && rows.some(r => r && r.field) ? rows : null;
+  }, site).got;
 }
 /* THE EMAIL'S TAG FACETS IN THE FILE'S ORDER — one order, the card's: a facet the file switches off is not said; one it does not list keeps its place. */
 function digestTagFacets_(rows) {

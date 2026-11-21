@@ -7,8 +7,8 @@
    OWED lists the files another lane still has to move onto the helper; each is printed. tools/build.js runs it. */
 'use strict';
 const { text, srcFiles, report, main } = require('./lib/gen.js');
-/* digest-tags.gs is lane-locked (unify batch 7): digestLibrary_ and digestFacetOrder_ keep their own loops until its owner moves them. */
-const OWED = ['backend/digest-tags.gs'];
+/* Nothing owed: digest-tags.gs moved to fetchSiteThenRaw_ (unify batch 8). */
+const OWED = [];
 const HELPER = 'backend/fetch-site.gs';
 const WHYS = ['email not confirmed', 'asked not to get it', 'same address as another parent'];
 

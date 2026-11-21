@@ -4,24 +4,12 @@
    generated BEGIN…END block, is the same text written twice and fails the build. OWED lists the other lanes' files still to do; printed as owed. */
 'use strict';
 const fs = require('fs'), path = require('path');
+const { bare } = require('./lib/gen.js');
 const ROOT = path.join(__dirname, '..');
 const MIN = +process.env.ONE_WORD_MIN || 12; // 12+ characters: shorter words (Open, Tutor) are too often data
 const OWED = ['find-bundles.js', 'find-finder.js', 'find-doors.js', 'find-pages.js', 'find-facets.js', 'find-quick.js', 'find-history.js', 'cards-make.js', 'draw.js', 'find-figures.js'];
 
-/* COMMENTS BLANKED (strings kept), so a word quoted in a comment is not a second copy. */
-function uncomment_(t) {
-  let o = '', i = 0, q = null;
-  while (i < t.length) {
-    const c = t[i];
-    if (q) { o += c; if (c === '\\') { o += t[i + 1] || ''; i += 2; continue; } if (c === q || (c === '\n' && q !== '`')) q = null; i++; continue; }
-    if (c === '/' && t[i + 1] === '*') { const e = t.indexOf('*/', i + 2), end = e < 0 ? t.length : e + 2; o += t.slice(i, end).replace(/[^\n]/g, ' '); i = end; continue; }
-    if (c === '/' && t[i + 1] === '/') { const e = t.indexOf('\n', i); const end = e < 0 ? t.length : e; o += ' '.repeat(end - i); i = end; continue; }
-    if (c === "'" || c === '"' || c === '`') q = c;
-    o += c; i++;
-  }
-  return o;
-}
-
+/* COMMENTS BLANKED (strings kept) by gen.js bare, so a word quoted in a comment is not a second copy. */
 function scan() {
   const words = require(path.join(ROOT, 'data/settings/words.json')).words;
   const byText = new Map();
@@ -30,7 +18,7 @@ function scan() {
   for (const f of fs.readdirSync(path.join(ROOT, 'js')).filter(f => f.endsWith('.js')).sort()) {
     const raw = fs.readFileSync(path.join(ROOT, 'js', f), 'utf8');
     if (/^\/\*[^\n]*WRITTEN BY tools\//.test(raw)) continue; // a generated file is its json's copy
-    const src = uncomment_(raw.replace(/\/\*\s*([A-Z-]+):BEGIN[\s\S]*?\/\*\s*\1:END\s*\*\//g, m => m.replace(/[^\n]/g, ' ')));
+    const src = bare(raw, { generated: true, comments: 'js' });
     const lines = src.split('\n');
     lines.forEach((line, i) => {
       const re = /'((?:[^'\\\n]|\\.)*)'|"((?:[^"\\\n]|\\.)*)"|`((?:[^`\\$]|\\.)*)`/g; let m;

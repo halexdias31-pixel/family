@@ -9,7 +9,7 @@ const OUT = path.join(ROOT, 'backend/cards-gen.gs');
 const TAKE = [
   ['js/data.js', ['nameBesideHandle_', 'capFirst_', 'nameKid_', 'fmtName_', 'qualLevel_', 'qualRank_']],
   /* A QUESTION WEARS ITS PAPER'S CARD (owner, 17 Nov): the email joins the file's rows as the site does, by LIB_FILES.questions.joined. */
-  ['js/library.js', ['libJoinPaper_']],
+  ['js/library.js', ['libPaperEach_', 'libJoinPaper_']],
   /* QUESTION ALIASES (answer-ids): the map and the merge the site reads by, as the backend files answers. */
   ['js/qaliases.js', ['QALIAS', 'qAliasKey_', 'qAliasMine_']],
   /* THE SCHOOL YEAR AND EASTER (491): booking.gs `schoolYear` and setup.gs `easterOf_` date by the site's rule. */
@@ -173,7 +173,7 @@ function build() {
     + parts.join('\n') + '\n';
 }
 /* THE ONE SETTINGS FILE (data/settings/settings.json), as SHARED_SETTINGS at the top of the first file each side loads. */
-const SHARED_RE = /\/\* SHARED:BEGIN[\s\S]*?\/\* SHARED:END \*\//;
+const { SHARED_RE } = require('./lib/gen.js');
 function sharedInto(file) {
   const j = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/settings/settings.json'), 'utf8'));
   /* AND OUR PICTURES' NAMES (owner, 20 Nov): data/settings/default-pictures.json, the one list, as `pictures` (PFP_PICTURES, PFP_ART's keys). */

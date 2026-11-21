@@ -27,7 +27,7 @@ function reportDevice_() {
   try {
     /* `screen` IS shell.js's column maker in this scope, so the window's size, not the display's. */
     const w = Math.min(innerWidth, innerHeight);
-    const touch = matchMedia('(pointer: coarse)').matches;
+    const touch = matchMedia(COARSE_).matches;
     return !touch ? 'computer' : w < 600 ? 'phone' : 'tablet';
   } catch (e) { return ''; }
 }

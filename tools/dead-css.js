@@ -5,7 +5,7 @@
    under a prefix the code builds at run time ('pp-' + x, `is-${x}`, look: 'kc-' + x), it is alive. The rest are counted.
    The count may not rise above BUDGET; lower BUDGET whenever classes are removed. Run by tools/build.js. */
 'use strict';
-const { ROOT, main } = require('./lib/gen.js');
+const { ROOT, main, bare } = require('./lib/gen.js');
 const fs = require('fs'), path = require('path');
 /* THE BUDGET: today's count (21 Nov, unify batch 2 cut 69; the six mv- are drawn by data/textbooks.json, sp-sig by tools/cent.py). Lower it as classes go; the build fails if the count rises above it. */
 const BUDGET = 7;
@@ -19,10 +19,9 @@ function files_(dir, re, out) {
   return out;
 }
 function classesOf_(css) {
-  const bare = css.replace(/\/\*[\s\S]*?\*\//g, '').replace(/"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/g, '""');
   const set = new Set();
   /* SELECTORS ONLY: the text before each `{`, not values (1.5em, url(x.png)) */
-  for (const m of bare.matchAll(/([^{}]+)\{/g)) {
+  for (const m of bare(css, { comments: true, strings: true }).matchAll(/([^{}]+)\{/g)) {
     if (/^\s*@/.test(m[1])) continue;
     for (const c of m[1].matchAll(/\.(-?[_a-zA-Z][\w-]*)/g)) set.add(c[1]);
   }
