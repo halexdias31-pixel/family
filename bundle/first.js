@@ -828,7 +828,6 @@ Object.assign(CARD_BLOCKS, { msgAtt: msgAtt_, msgLinks: msgLinks_, msgChips: msg
 msgText: msgText_, msgPic: msgPic_, upReport: upReport_ });
 ;
 /* js/core-price.js */
-const OPEN_RATE = 10;
 function activePromoFactor(ctx) {
 const promos = DATA.promotions || [];
 let factor = 1;
@@ -977,7 +976,8 @@ if (group === 'levels') return levelMult(value);
 const x = num((m[group] || {})[value]);
 return (isNaN(x) || x <= 0) ? 1 : x;
 };
-return { cv, cvD, sur };
+const openRate = () => cvD('open_tutor_rate', 10);
+return { cv, cvD, sur, openRate };
 }
 function priceSpec_(spec) {
 const endDate = spec.endDate || '';
@@ -1007,7 +1007,7 @@ const venueRate = space ? space.rate : (venue ? (parseFloat(venue.bestRate) || 0
 const V = q.hosting ? 0 : venueRate;
 const tutorRow = spec.tutorRow || (q.tutor ? (DATA.tutors || []).find(t => norm(t.title) === norm(q.tutor)) : null);
 const tutorRate = Number(tutorRow && tutorRow.rate) || 0;
-const chargeRate = tutorRate > 0 ? tutorRate : OPEN_RATE;
+const chargeRate = tutorRate > 0 ? tutorRate : knobs.openRate();
 const usingTutorRate = tutorRate > 0;
 const M = tutorRate || cv('M', 'minimum wage', 'min wage', 'μ', 'mu');
 const wMul = cvD('w', 1, 'wage multiplier', 'W', 'λ', 'lambda');
@@ -1064,9 +1064,20 @@ const seatSource = ignored.length
 const fSeats = 1 + (cUsed + bUsed) * (n - 1);
 return { cUsed, bUsed, seatSource, fSeats };
 }
+function priceWaitlist_(spec, knobs) {
+const seats = Math.max(1, parseInt(spec.seats) || 1);
+const tutor = knobs.openRate();
+if (tutor <= 0) return null;
+const hourly = (num(spec.room) || 0) + tutor + knobs.cv('waitlist_extra_seat') * (seats - 1);
+const hours = knobs.cv('h') || 2;
+const perSeatHour = Math.round((hourly / seats) * 100) / 100;
+return { seats, hours, hourlyWhole: Math.round(hourly * 100) / 100, perSeatHour,
+perSeatSession: Math.round(perSeatHour * hours * 100) / 100 };
+}
 function priceFrom(spec) {
 spec = spec || {};
 const knobs = priceKnobs_();
+if (spec.waitlist) return priceWaitlist_(spec, knobs);
 const q = priceSpec_(spec);
 const { subjects, n, weeks, interval, endDate, startDate, lastSun, loc, day, time, level, tutor, splitOthers, i, hosting } = q;
 const { venueRate, V, tutorRow, chargeRate, usingTutorRate, M, wMul, L, D, T, k, avgSubject, s, c, B, b, a, h } = priceRates_(spec, q, knobs);

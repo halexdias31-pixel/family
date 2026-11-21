@@ -510,6 +510,8 @@ const CARD_BLOCKS = {
     return `<iframe${look} src="${esc(u)}" title="${name}" loading="lazy" allow="${esc(b.allow || 'encrypted-media; picture-in-picture')}"${b.full ? ' allowfullscreen' : ''}></iframe>`; },
   /* A DRAWING AS DATA: shapes `{ el, a: { attrs }, text, kids }`, each a vector element of a fixed set, every value escaped. */
   drawing: b => cardDraw_(b.node),
+  /* A STATUS LINE (what was saved, what went wrong, what is waiting): its room kept from the start; `saved` marks the one a form's autosave writes to. */
+  status: b => `<p class="note${b.saved ? ' me-said' : ''}${b.look ? ' ' + esc(b.look) : ''}"${b.id ? ` id="${esc(b.id)}"` : ''}${b.live ? ' aria-live="polite"' : ''}>${cardRuns_(b.text == null ? '' : b.text)}</p>`,
   wait: b => `<div class="kc-wait${b.look ? ' ' + esc(b.look) : ''}"${cardAttrs_(b.data)}${b.on ? ' aria-busy="true"' : ''}>${b.on && typeof loading_ === 'function' ? loading_() : ''}</div>`,
 };
 const CARD_DRAW_ELS = /^(svg|g|defs|clipPath|path|rect|line|circle|ellipse|polygon|polyline|text|figure|div|image)$/;
@@ -992,7 +994,7 @@ function spaceFor(label) {
 /* Pure: it reads DATA, `num`, `norm`, `askProps_`, `spaceFor` and `computeSessionDates`, and the server hands it its own of each. */
 
 /* R is the hourly rate, and it is the tutor's own. § */
-const OPEN_RATE = 10;
+/* THE OPEN RATE is config `open_tutor_rate` (owner, 21 Nov: one value, default 10 in CONFIG_DEFAULTS), read by `priceKnobs_().openRate`. */
 
 
 function activePromoFactor(ctx) {
@@ -1178,7 +1180,8 @@ function priceKnobs_() {
     const x = num((m[group] || {})[value]);
     return (isNaN(x) || x <= 0) ? 1 : x;
   };
-  return { cv, cvD, sur };
+  const openRate = () => cvD('open_tutor_rate', 10);
+  return { cv, cvD, sur, openRate };
 }
 
 /* The booking as asked for, every field defaulted, so an empty spec still prices. */
@@ -1224,16 +1227,15 @@ function priceRates_(spec, q, knobs) {
   /* WHAT THE CLIENT PAYS PER HOUR, before any multiplier. § */
   // Two ways to book, two rates:
   //   a named tutor  -> that tutor's own rate_per_hour
-  //   No preference  -> the `open_rate` in config
-  // open_rate falls back to the HIGHEST rate any tutor charges, because whoever ends up taking an
-  // open job has to be covered by the price already agreed. Set it below the dearest tutor and the
-  // difference comes out of your margin every time they're the one who applies.
+  //   No preference  -> config `open_tutor_rate` (one value, the owner's to change; default 10)
+  // Whoever ends up taking an open job is paid from the price already agreed, so an open rate
+  // below the dearest tutor's comes out of the margin every time they're the one who applies.
   /* `spec.tutorRow`: a row not yet saved — the Staff hub's pricing (405) asks this same sum of the figures being typed. */
   const tutorRow = spec.tutorRow || (q.tutor ? (DATA.tutors || []).find(t => norm(t.title) === norm(q.tutor)) : null);
   const tutorRate = Number(tutorRow && tutorRow.rate) || 0;
   // Named tutor: their own charge-out rate. No preference: the open rate, which is fixed because a
   // job nobody has claimed can't be priced on the rate of a tutor who hasn't taken it yet.
-  const chargeRate = tutorRate > 0 ? tutorRate : OPEN_RATE;
+  const chargeRate = tutorRate > 0 ? tutorRate : knobs.openRate();
   const usingTutorRate = tutorRate > 0;
   const M = tutorRate || cv('M', 'minimum wage', 'min wage', 'μ', 'mu');   // tutor's £/hr
   const wMul = cvD('w', 1, 'wage multiplier', 'W', 'λ', 'lambda');  // wage multiplier (default 1)
@@ -1319,9 +1321,24 @@ function priceSeats_(tutorRow, c, B, n) {
   return { cUsed, bUsed, seatSource, fSeats };
 }
 
+/* A WAITLIST SEAT (`spec.waitlist`): the room plus the open rate plus `waitlist_extra_seat` £ per seat after the first, an hour, shared by `spec.seats`, over `h` hours. */
+function priceWaitlist_(spec, knobs) {
+  const seats = Math.max(1, parseInt(spec.seats) || 1);
+  const tutor = knobs.openRate();
+  /* No teaching rate is an unpriced session, not a cheap one. */
+  if (tutor <= 0) return null;
+  const hourly = (num(spec.room) || 0) + tutor + knobs.cv('waitlist_extra_seat') * (seats - 1);
+  const hours = knobs.cv('h') || 2;
+  /* Rounded to the penny at the seat, not at the total, so the seats add up to what each is charged. */
+  const perSeatHour = Math.round((hourly / seats) * 100) / 100;
+  return { seats, hours, hourlyWhole: Math.round(hourly * 100) / 100, perSeatHour,
+           perSeatSession: Math.round(perSeatHour * hours * 100) / 100 };
+}
+
 function priceFrom(spec) {
   spec = spec || {};
   const knobs = priceKnobs_();
+  if (spec.waitlist) return priceWaitlist_(spec, knobs);
   const q = priceSpec_(spec);
   const { subjects, n, weeks, interval, endDate, startDate, lastSun, loc, day, time, level, tutor, splitOthers, i, hosting } = q;
   const { venueRate, V, tutorRow, chargeRate, usingTutorRate, M, wMul, L, D, T, k, avgSubject, s, c, B, b, a, h } = priceRates_(spec, q, knobs);
