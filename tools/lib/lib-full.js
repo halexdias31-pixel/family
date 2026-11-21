@@ -222,11 +222,13 @@ function paperFns() {
   const src = fs.readFileSync(path.join(ROOT, 'js', 'library.js'), 'utf8');
   const grab = n => { const m = new RegExp('^function ' + n + '\\([\\s\\S]*?\\n}\\n', 'm').exec(src); if (!m) throw new Error('js/library.js has no ' + n); return m[0]; };
   const ctx = vm.createContext({});
-  vm.runInContext(grab('libJoinPaper_') + grab('libStripPaper_') + 'this.__P = { join: libJoinPaper_, strip: libStripPaper_ };', ctx, { filename: 'library.js (extract)' });
+  vm.runInContext(grab('libPaperEach_') + grab('libJoinPaper_') + grab('libStripPaper_') + 'this.__P = { join: libJoinPaper_, strip: libStripPaper_ };', ctx, { filename: 'library.js (extract)' });
   PAPER = ctx.__P;
   return PAPER;
 }
 const joinPaper = rows => paperFns().join(rows, defs().files.questions.joined);
-const stripPaper = rows => paperFns().strip(rows, defs().files.questions.joined);
+/* A SOURCE THAT IS THE PAPER ITSELF (21 Nov): source_id is read as `source_id || paper_id`, so one equal to paper_id is not kept. */
+const dropOwnSource = rows => { rows.forEach(r => { if (r && r.source_id === r.paper_id) delete r.source_id; }); return rows; };
+const stripPaper = rows => paperFns().strip(dropOwnSource(rows), defs().files.questions.joined);
 module.exports = { ABSENT, needWords, fixture: () => FIXTURE, skipParts, isAbsent, behind, waits, pendingTwins, TWIN_LIST, ROOT, PRIVATE_DIR, defs, NAMES, isLib, idOf, privateOf, pending, styleOf, rowText, fileText,
                    privatePath, readPrivate, writePrivate, pinnedMap, seedFromGit, text, rows, serve, joinPaper, stripPaper };
