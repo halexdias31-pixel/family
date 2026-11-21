@@ -641,6 +641,15 @@
     "letter": {
      "say": "THE BOOKING AS AN EMAIL SAYS IT (owner, 16 Nov: one card maker): renderCard with inline \"text\" writes these lines, each through the words file; a line marked price is never said to a child or when prices are off.",
      "bullet": "• ",
+     "aliases": {
+      "say": "A FIELD BY ANOTHER COLUMN'S NAME (unify job J): cardLetterRow_ reads the field, or failing it the first of these the row has (a Jobs row says weekday and start_time).",
+      "day": ["weekday"],
+      "time": ["start_time"]
+     },
+     "rows": {
+      "say": "A LETTER THAT SAYS LESS (unify job J): cardLetterRow_(kind, src, name) picks only these fields; without a name it picks every line's `need`.",
+      "cancelled": ["subject", "day", "time"]
+     },
      "lines": [
       {
        "word": "card-subject-level",

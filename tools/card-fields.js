@@ -29,7 +29,7 @@ function run() {
     }
     if (c.letter && c.letter.lines) {
       n++;
-      letters.push([k, [...new Set(c.letter.lines.flatMap(l => l.need || []))]]);
+      letters.push([k, [...new Set(c.letter.lines.flatMap(l => l.need || []))], c.letter.aliases || {}]);
     }
   });
   /* 2. NO HAND LIST: label/field pairs, or a letter's row built field by field, anywhere a card is drawn from. */
@@ -38,9 +38,11 @@ function run() {
     const pairs = s.match(/\[\s*'[A-Z][^'\n]*'\s*,\s*[a-z]\w*\.\w+\s*\]\s*,\s*\[\s*'[A-Z][^'\n]*'\s*,\s*[a-z]\w*\.\w+\s*\]\s*,\s*\[\s*'[A-Z][^'\n]*'\s*,\s*[a-z]\w*\.\w+\s*\]/g);
     if (pairs) bad.push(f + ' lists a card\'s fields by hand (' + pairs[0].slice(0, 60) + '…): put them in kinds.json `card.fields.list`');
     for (const m of s.matchAll(/\{([^{}]{0,400})\}/g)) {
-      const keys = new Set([...m[1].matchAll(/(?:^|[,\s])(\w+)\s*:\s*\w+\.(\w+)/g)].filter(x => x[1] === x[2]).map(x => x[1]));
-      letters.forEach(([k, need]) => {
-        if (need.filter(x => keys.has(x)).length >= 4) bad.push(f + ' builds a ' + k + ' letter\'s row by hand ({' + [...keys].join(', ') + '}): use cardLetterRow_(\'' + k + '\', src)');
+      const got = [...m[1].matchAll(/(?:^|[,\s])(\w+)\s*:\s*\w+\.(\w+)/g)];
+      letters.forEach(([k, need, al]) => {
+        /* A KEY TAKEN FROM ITS OWN NAME OR ONE OF ITS ALIASES (`day: j.weekday`) is a letter field written by hand; three make a hand row. */
+        const keys = new Set(got.filter(x => x[1] === x[2] || [].concat(al[x[1]] || []).includes(x[2])).map(x => x[1]));
+        if (need.filter(x => keys.has(x)).length >= 3) bad.push(f + ' builds a ' + k + ' letter\'s row by hand ({' + [...keys].join(', ') + '}): use cardLetterRow_(\'' + k + '\', src)');
       });
     }
   });

@@ -306,7 +306,12 @@ function renderCard(spec) {
 /* as mail clients read no stylesheet. The lines, labels, sizes and styles are the kind's `card.letter` in kinds.json and nowhere else. */
 const cardLetterOf_ = kind => (((ITEM_KINDS.kinds[kind] || {}).card || {}).letter || {});
 /* THE MASTER DECIDES CARD FIELDS (unify job J): the row a letter is written from carries the fields its lines `need`, read from `src`, and no list of our own. */
-const cardLetterRow_ = (kind, src) => Object.assign({}, ...(cardLetterOf_(kind).lines || []).flatMap(l => l.need || []).map(f => ({ [f]: (src || {})[f] })));
+/* `use` names one of the letter's `rows` (fewer fields); a field the row lacks is read by its `aliases`. */
+function cardLetterRow_(kind, src, use) {
+  const L = cardLetterOf_(kind), s = src || {}, al = L.aliases || {};
+  const want = use ? ((L.rows || {})[use] || []) : [...new Set((L.lines || []).flatMap(l => l.need || []))];
+  return Object.assign({}, ...want.map(f => ({ [f]: s[f] !== undefined ? s[f] : s[[].concat(al[f] || []).find(a => s[a] !== undefined)] })));
+}
 /* A KIND'S FACT LINES (kinds.json `card.fields.list`): each `label` with the row's `f`, in that order, an empty one left out. */
 const cardFieldsOf_ = (kind, row) => ((((ITEM_KINDS.kinds[kind] || {}).card || {}).fields || {}).list || [])
   .map(x => ({ label: x.label, value: (row || {})[x.f] })).filter(x => x.value || x.value === 0);

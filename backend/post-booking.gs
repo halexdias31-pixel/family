@@ -816,7 +816,7 @@ function postDeleteJob_(body, action, began) {
   /* TELL THEM. A session vanishing from somebody's screen with no word is the worst version of
      this: they turn up, or they do not turn up and never know why. */
   before.forEach(pp => notify(pp.name, 'Cancelled: ' + S(j.subject),
-    renderCard({ kind: 'booking', inline: 'text', row: { subject: j.subject, day: j.weekday, time: j.start_time }, see: { prices: false } })
+    renderCard({ kind: 'booking', inline: 'text', row: cardLetterRow_('booking', j, 'cancelled'), see: { prices: false } })
     + '\n\nThis is not going ahead.\n\nIf that is a surprise, reply to this message.\n\n— @family.', 'booked'));
 
   return jsonOut({ success: true, ended: before.length,
