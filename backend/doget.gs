@@ -17,6 +17,8 @@ function doGet(e) {
     const p = (e && e.parameter) || {};
     /* THE KEEP-AWAKE PING (`keepWarm`, core.gs): answered before any sheet, cache or sign-in work (by `jsonRaw_`: jsonOut's strips read sheets, and a ping carries no name), so it costs milliseconds. */
     if (p.ping) return jsonRaw_(JSON.stringify({ ok: true, ping: 1, v: DOGET_VERSION }));
+    /* THE OWNER'S PLAIN-TEXT DOCKET (NOW, NEXT step 3; post-account.gs docketAddress_): `?docket=` (or a `do=` without it) is answered as text, never the payload. */
+    if (p.docket != null || p.do != null) return docketAddress_(p);
 
     /* WHO IS LOOKING, AND IT IS THE SESSION TOKEN THAT SAYS SO THIS FUNCTION DECIDED WHO YOU ARE FROM `?name=`. § */
     let ASKED_BY = undefined;

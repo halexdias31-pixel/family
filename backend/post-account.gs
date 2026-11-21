@@ -675,13 +675,81 @@ function postDocketImport_(body, action, began) {
   const me = findPerson('', S(body.personId));
   if (!me || !S(me.person_id)) return refuse_('err-not-signed-in', 'not-signed-in');
   /* THE OWNER'S ALONE (owner, 18 Nov): an admin whose address is the owner's (`ownerEmail_`), never another admin, tutor, parent or student. */
-  if (!isOwner_(me)) return jsonOut({ error: 'Docket is the owner\'s alone.' });
+  if (!isOwner_(me)) return refuse_('err-docket-owner', 'not-owner');
   const target = S(me.person_id);
   const lists = docketTidy_(body.lists);
   if (!lists.length) return jsonOut({ error: 'No lists to import — nothing was saved.' });
   const cell = JSON.stringify({ v: 1, lists: lists });
   if (cell.length > DOCKET_CELL_MAX) return jsonOut({ error: 'Those lists are too long to keep in one place — nothing was saved.' });
   return postSavePerson_({ personId: target }, 'todo', cell);
+}
+
+/* ---------- THE PRIVATE PLAIN-TEXT ADDRESS (owner, 21 Nov: NOW, NEXT step 3): `?docket=<token>` answers the owner's Now/Next as plain text for
+   Siri Shortcuts, ChatGPT or Gemini; `&do=done&what=<words>` ticks the best match, `&do=add&what=<words>[&list=<name>]` adds. The plan is the site's
+   (dkPhase_, dkNowNextOf_, dkSay_, dkMatch_: js/map.js, copied into cards-gen.gs). The token lives in Script Properties only, never in the repo or a log;
+   the owner sees it, or makes a new one, on the Docket (action docketAddress). tools/docket-address.js checks it. */
+const DOCKET_TOKEN_KEY = 'DOCKET_TOKEN';
+/* AN ITEM AS THE PLANNER READS IT: each planner field's kinds.json default where the item has none (the site's dkFill_). */
+const docketFill_ = it => { const o = {}; Object.keys(DOCKET_PLAN_FIELDS).forEach(k => { o[k] = DOCKET_PLAN_FIELDS[k].def; });
+  Object.keys(it || {}).forEach(k => { if (it[k] !== '' && it[k] != null) o[k] = it[k]; }); return o; };
+/* Pure: the lists (changed in place), London's 'YYYY-MM-DD HH:MM', the query ({ do, what, list }) and the fill; { say, lists, changed }. */
+function docketAnswer_(lists, now, q, fill) {
+  const day = String(now).slice(0, 10), act = S(q && q.do).toLowerCase(), what = S(q && q.what).slice(0, 300), plan = () => dkPhase_(lists, now, fill);
+  let said = '', changed = false;
+  if (act === 'done' || act === 'add') {
+    if (!what) said = text_('dk-say-what');
+    else if (act === 'done') {
+      const p = plan(), rows = p ? p.rows : [];
+      const k = dkMatch_(rows.map(r => lists[r.li].items[r.i].title), what);
+      if (k < 0) said = text_('dk-say-no-match', { what: what });
+      else { const it = lists[rows[k].li].items[rows[k].i]; it.doneOn = day; if (it.repeat !== 'daily') it.done = true; changed = true; said = text_('dk-say-ticked', { title: it.title }); }
+    } else {
+      const named = S(q.list), p = named ? null : plan();
+      let L = named ? lists.find(x => S(x && x.name).toLowerCase() === named.toLowerCase()) : p ? lists[p.cur] : lists[0];
+      if (!L && !named) { L = { name: 'Docket', items: [] }; lists.push(L); }
+      if (!L) said = text_('dk-say-no-list', { what: named });
+      else { L.items = L.items || []; L.items.push({ title: what }); changed = true; said = text_('dk-say-added', { title: what, name: L.name }); }
+    }
+  }
+  return { say: (said ? said + ' ' : '') + dkSay_(dkNowNextOf_(lists, plan())), lists: lists, changed: changed };
+}
+const docketNow_ = () => Utilities.formatDate(new Date(), tz_(), 'yyyy-MM-dd HH:mm');
+/* The same length and every character compared, so a near miss takes as long as a far one. */
+function docketSame_(a, b) {
+  a = S(a); b = S(b);
+  if (!b || a.length !== b.length) return false;
+  let d = 0; for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return d === 0;
+}
+/* doGet's `?docket=`: plain text always, a refusal for a wrong or missing token; a tick or add saved as saveTodo saves (todoTidy_, postSavePerson_). */
+function docketAddress_(p) {
+  const say = s => ContentService.createTextOutput(s).setMimeType(ContentService.MimeType.TEXT);
+  if (!docketSame_(p.docket, PropertiesService.getScriptProperties().getProperty(DOCKET_TOKEN_KEY))) return say(text_('err-docket-token'));
+  const me = read(TAB.people).rows.find(r => isOwner_(r));
+  if (!me || !S(me.person_id)) return say(text_('err-docket-owner'));
+  let got = null;
+  try { got = JSON.parse(S(me.todo)); } catch (e) { got = null; }
+  const r = docketAnswer_(got && Array.isArray(got.lists) ? got.lists : [], docketNow_(), p, docketFill_);
+  if (r.changed) {
+    const cell = todoTidy_(JSON.stringify({ v: 1, lists: r.lists }));
+    if (cell.length > DOCKET_CELL_MAX) return say(text_('err-docket-saved'));
+    const out = JSON.parse(postSavePerson_({ personId: S(me.person_id) }, 'todo', cell).getContent());
+    if (!out.success) return say(text_('err-docket-saved'));
+  }
+  return say(r.say);
+}
+/* THE OWNER ASKS FOR THEIR ADDRESS (`docketAddress`): the token, made on first ask; `renew` makes a new one, and the old stops working at once. */
+function postDocketAddress_(body, action, began) {
+  const me = findPerson('', S(body.personId));
+  if (!me || !S(me.person_id)) return refuse_('err-not-signed-in', 'not-signed-in');
+  if (!isOwner_(me)) return refuse_('err-docket-owner', 'not-owner');
+  const props = PropertiesService.getScriptProperties();
+  let token = S(props.getProperty(DOCKET_TOKEN_KEY));
+  if (!token || S(body.renew)) {
+    token = (Utilities.getUuid() + Utilities.getUuid()).replace(/-/g, '');
+    props.setProperty(DOCKET_TOKEN_KEY, token);
+  }
+  return jsonOut({ success: true, token: token });
 }
 
 /* ---------- ASSIGNMENTS (owner, 18 Nov): a person's school or uni work — title, course, what it is, size, due, weight, status, mark, note, link —

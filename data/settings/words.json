@@ -287,6 +287,20 @@
   "dk-day-done": "Every list is done for today.",
   "dk-from": "from {at}",
   "dk-eink-sign-in": "Sign in",
-  "dk-eink-none": "No list has a start time yet."
+  "dk-eink-none": "No list has a start time yet.",
+  "dk-say-now": "Now: {name} — {first}, {left} left.",
+  "dk-say-over": "Now: {name} — all done.",
+  "dk-say-ticked": "Ticked {title}.",
+  "dk-say-added": "Added {title} to {name}.",
+  "dk-say-no-match": "Nothing unticked matches \"{what}\".",
+  "dk-say-no-list": "There is no list called \"{what}\".",
+  "dk-say-what": "Say what, after what=.",
+  "dk-addr-head": "Your private address",
+  "dk-addr-say": "Siri Shortcuts, ChatGPT or Gemini can read this address for your Now and Next. Add &do=done&what=shower to tick, &do=add&what=milk to add. Keep it secret; a new one stops the old one working.",
+  "dk-addr-new": "Make a new address",
+  "dk-addr-show": "Private address",
+  "err-docket-token": "That is not your docket address.",
+  "err-docket-owner": "Docket is the owner's alone.",
+  "err-docket-saved": "That was not saved — try again."
  }
 }

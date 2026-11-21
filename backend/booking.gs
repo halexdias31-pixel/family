@@ -1206,6 +1206,7 @@ const PERMISSIONS = {
   deleteJob: ['admin'],
   digestPreview: ['admin'],
   digestSendNow: ['admin'],
+  docketAddress: ['admin'],
   docketImport: ['admin'],
   factSet: ['admin'],
   filmsSync: ['admin'],
