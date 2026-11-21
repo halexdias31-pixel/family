@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* @family. — tools/build.js THE ONE BUILD (owner, 17 Nov): every generator's run(), in the order each reads what the last wrote, then the bundles, then the stamp. */
-/* It writes, then its checks (rule 1.75, owner 17 Nov) fail it if a child or parent would notice something wrong. Run it last, after any change to a source. The apps-script workflow runs it before clasp push. */
+/* It writes, then its checks (rule 1.75, owner 17 Nov) fail it if a child or parent would notice something wrong. Run it last, after any change to a source. The backend deploys one way only: pullFromGitHub (backend/sync.gs) from main (tools/one-import.js). */
 'use strict';
 const fs = require('fs'), path = require('path'), { spawnSync } = require('child_process');
 /* THE APP WALKS (facet-hues, finder-tags) hold the whole library in jsdom: one re-run with a bigger heap, not a crash at the default. */
@@ -17,9 +17,11 @@ const ORDER = [
   'words',        // words.json -> js/core.js (cards-gen copies it on)
   'cards-gen',    // js/ (words, aliases) -> js/core.js and backend/constants.gs SHARED, backend/cards-gen.gs
   'one-form',     // the one-form check (rule 1.75, job G): every form from data/settings, the phone and the backend refusing on the same gaps; fails the build
-  'one-role',     // the one-role check (rule 1.75, owner 21 Nov): role words, ranks, the Message table and may_ rules only in settings.json `roles` and data/settings/roles.js; a twin fails the build
+  'card-fields',  // the card-fields check (rule 1.75, job J): which fields a card shows, in what order and labelled how, only in kinds.json; a hand list fails the build
+  'one-role',    // the one-role check (rule 1.75, owner 21 Nov): role words, ranks, the Message table and may_ rules only in settings.json `roles` and data/settings/roles.js; a twin fails the build
   'permissions',  // -> permissions.json and backend/*.gs blocks
   'word-freq',    // data/pdtexts -> data/word-freq.json
+  'taxonomy',     // the one-taxonomy check (rule 1.75, owner 21 Nov): data/settings/taxonomy.json -> js/find-finder.js TAXONOMY; a History paper or topic part outside it, or a subject case in the engine, fails the build
   'facet-hues',   // walks the app over every js/ write above -> TAG_OF, data/facet-graph.json
   'finder-tags',  // walks it again, TAG_OF included -> js/finder-tags.js
   'rules',        // rules.json -> docs/rules.md
@@ -36,6 +38,7 @@ const ORDER = [
   'digest-clip',  // the digest-clip check (rule 1.75, owner 20 Nov): large weeks through the Sunday email's digestRender_; a part over Gmail's clip or a question without its words fails the build
   'bundle',       // js/ in index.html's order -> bundle/*.js
   'one-request',  // the one-request check (rule 1.75, unify H): one fetch to the backend (backendFetch_), every posted action in actions.json, one dispatcher; fails the build
+  'one-import',   // the one-import check (rule 1.75, unify K): one pack validator and applier (libPackCheck_, libPackApply_), one pack maker, one deploy (pullFromGitHub), the emptying guard on fixed cases; fails the build
   'one-card',     // the one-card check (rule 1.75): every Find card by the one maker, no CSS of its own; fails the build
   'dead-css',     // the dead-css check (rule 1.75, owner 20 Nov): classes in style.css nothing writes, counted against a budget; a rise fails the build
   'css-tokens',   // the css-tokens check (rule 1.75, unify batch 2): no raw colour (hex, rgb(), a colour keyword) in style.css outside :root; fails the build

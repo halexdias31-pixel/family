@@ -236,7 +236,7 @@ function postLibExport_(body, action, began) {
 }
 
 function postLibImport_(body, action, began) {
-  return jsonOut(libImport_(body.file, body.rows));
+  return jsonOut(libImport_(body.pack, findPerson('', S(body.personId))));
 }
 
 /* UPDATES A SESSION LEFT IN THE OWNER'S DRIVE (407): how many wait, and the press that imports them. Admin only, at the gate. */

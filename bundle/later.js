@@ -1725,6 +1725,17 @@ SPELL_KEYS.set(raw, k);
 }
 return k;
 };
+const TAXONOMY = {"History":{"subject":"History","library":{"levels":[{"facet":"histKind","label":"Topic","field":"histKind"},{"facet":"histPart","label":"Part","field":"histPart"}],"parts":{"timeline":"Timeline","people":"People","sources":"Sources","items":"Items"},"writings":{"kinds":["pdtext","worktext","writ","writing","content"],"answer":"Writings"}},"questions":{"levels":["exam_board","level","spec_code"],"boards":[{"board":"AQA","specs":[{"code":"8145","level":"GCSE","spec":"aqa-8145","components":[{"code":"8145/1AA","name":"Paper 1 Section A Option A America, 1840-1895: Expansion and consolidation"},{"code":"8145/1AB","name":"Paper 1 Section A Option B Germany, 1890-1945: Democracy and dictatorship"},{"code":"8145/1AC","name":"Paper 1 Section A Option C Russia, 1894-1945: Tsardom and communism"},{"code":"8145/1AD","name":"Paper 1 Section A Option D America, 1920-1973: Opportunity and inequality"},{"code":"8145/2AA","name":"Paper 2 Section A Option A Britain: Health and the people: c1000 to the present day"},{"code":"8145/2AB","name":"Paper 2 Section A Option B Britain: Power and the people: c1170 to the present day"},{"code":"8145/2AC","name":"Paper 2 Section A Option C Britain: Migration, empires and the people: c790 to the present day"},{"code":"8145/2BA","name":"Paper 2 Section B Option A Norman England, c1066-c1100"},{"code":"8145/2BB","name":"Paper 2 Section B Option B Medieval England: the reign of Edward I, 1272-1307"},{"code":"8145/2BC","name":"Paper 2 Section B Option C Elizabethan England, c1568-1603"},{"code":"8145/2BD","name":"Paper 2 Section B Option D Restoration England, 1660-1685"}]},{"code":"7042","level":"A-Level","spec":"aqa-7042","components":[{"code":"7042/1A","name":"Component 1A The Age of the Crusades, c1071-1204"},{"code":"7042/1B","name":"Component 1B Spain in the Age of Discovery, 1469-1598"},{"code":"7042/1C","name":"Component 1C The Tudors: England, 1485-1603"},{"code":"7042/1D","name":"Component 1D Stuart Britain and the Crisis of Monarchy, 1603-1702"},{"code":"7042/1E","name":"Component 1E Russia in the Age of Absolutism and Englightenment, 1682-1796"},{"code":"7042/1F","name":"Component 1F Industrialisation and the people: Britain, c1783-1885"},{"code":"7042/1G","name":"Component 1G Challenge and transformation: Britain, c1851-1964"},{"code":"7042/1H","name":"Component 1H Tsarist and Communist Russia, 1855-1964"},{"code":"7042/1J","name":"Component 1J The British Empire, c1857-1967"},{"code":"7042/1K","name":"Component 1K The making of a Superpower: USA, 1865-1975"},{"code":"7042/1L","name":"Component 1L The quest for political stability: Germany, 1871-1991"},{"code":"7042/2A","name":"Component 2A Royal Authority and the Angevin Kings, 1154-1216"},{"code":"7042/2B","name":"Component 2B The Wars of the Roses, 1450-1499"},{"code":"7042/2C","name":"Component 2C The Reformation in Europe, c1500-1564"},{"code":"7042/2D","name":"Component 2D Religious conflict and the Church in England, c1529-1570"},{"code":"7042/2E","name":"Component 2E The English Revolution, 1625-1660"},{"code":"7042/2F","name":"Component 2F The Sun King: Louis XIV, France and Europe, 1643-1715"},{"code":"7042/2G","name":"Component 2G The Birth of the USA, 1760-1801"},{"code":"7042/2H","name":"Component 2H France in Revolution, 1774-1815"},{"code":"7042/2J","name":"Component 2J America: A Nation Divided, c1845-1877"},{"code":"7042/2K","name":"Component 2K International Relations and Global Conflict, c1890-1941"},{"code":"7042/2L","name":"Component 2L Italy and Fascism, c1900-1945"},{"code":"7042/2M","name":"Component 2M Wars and Welfare: Britain in Transition, 1906-1957"},{"code":"7042/2N","name":"Component 2N Revolution and dictatorship: Russia, 1917-1953"},{"code":"7042/2O","name":"Component 2O Democracy and Nazism: Germany, 1918-1945"},{"code":"7042/2P","name":"Component 2P The Transformation of China, 1936-1997"},{"code":"7042/2Q","name":"Component 2Q The American Dream: reality and illusion, 1945-1980"},{"code":"7042/2R","name":"Component 2R The Cold War, c1945-1991"},{"code":"7042/2S","name":"Component 2S The Making of Modern Britain, 1951-2007"},{"code":"7042/2T","name":"Component 2T The Crisis of Communism: The USSR and the Soviet Empire, 1953-2000"}]}]},{"board":"Edexcel","specs":[]},{"board":"OCR","specs":[]}]}}};
+function taxonomyRead_() {
+const out = {};
+Object.keys(TAXONOMY).filter(k => TAXONOMY[k] && TAXONOMY[k].library).forEach(k => {
+const T = TAXONOMY[k], L = T.library, w = L.writings;
+(L.levels || []).forEach((lv, i) => {
+out[lv.facet] = { of: x => x[lv.field] || (i === 0 && w && w.kinds.indexOf(x.kind) >= 0 && [].concat(x.subject || []).indexOf(T.subject) >= 0 ? w.answer : '') };
+});
+});
+return out;
+}
 const FACET_READ = {
 forLabel: { of: x => x.groups || kindOf_(x).group },
 kindLabel: { of: x => kindTop_(x) || x.kindLabel || kindOf_(x).label,
@@ -1787,8 +1798,7 @@ boutRound: { of: x => isFight_(x) && x.row && Number(x.row.endRound) > 0 ? 'Roun
 boutMethod: { of: x => (isFight_(x) && x.row && String(x.row.method || '').trim()) || '' },
 boutWinner: { of: x => boutWinner_(x) },
 boutEvent: { of: x => (isFight_(x) && x.row && String(x.row.event || '').trim()) || '' },
-histKind: { of: x => x.histKind || (/^(pdtext|worktext|writ|writing|content)$/.test(x.kind) && [].concat(x.subject || []).indexOf('History') >= 0 ? 'Writings' : '') },
-histPart: { of: x => x.histPart || '' },
+...taxonomyRead_(),
 histEra: { of: x => histErasOf_(x) },
 histMaterial: { of: x => histCol_(x, 'material') },
 histFormat: { of: x => histCol_(x, 'format') },
@@ -2715,14 +2725,14 @@ const HIST_KIND_ELSE = { chip: 'writing', say: 'Writings', sub: r => [r.reposito
 function histItem_(kind, r) {
 if (kind === 'figure') return { kind: 'people', rowKind: kind, hdb: true, name: histName_(r), key: 'hdb:' + r.id, pixId: r.id, image: '', sub: '', histKind: labelOf_('hist-kind', 'figure', 'People'),
 born: personYear_(r.born_year), died: personYear_(r.died_year), from: r.born_place || '', roles: histList_(r.roles),
-shelf: 'History', subject: 'History', text: plainText_(Object.keys(r).map(k => r[k]).join(' ')), row: r };
+shelf: TAXONOMY.History.subject, subject: TAXONOMY.History.subject, text: plainText_(Object.keys(r).map(k => r[k]).join(' ')), row: r };
 const K = Object.prototype.hasOwnProperty.call(HIST_KIND_ROW, kind) ? HIST_KIND_ROW[kind] : HIST_KIND_ELSE;
 const shape = typeof ITEM_MAPS === 'object' && ITEM_MAPS[kind] ? item_(r, kind) : null;
 return {
 kind: kind, rowKind: kind, hdb: true, name: shape ? shape.name : histName_(r), key: 'hdb:' + (shape ? shape.id : r.id), image: '', shape,
 sub: K.sub(r).filter(Boolean).join(' · '),
 histKind: labelOf_('hist-kind', K.chip, K.say),
-shelf: K.shelf ? K.shelf() : 'History', subject: 'History',
+shelf: K.shelf ? K.shelf() : TAXONOMY.History.subject, subject: TAXONOMY.History.subject,
 text: plainText_(Object.keys(r).filter(k => k !== 'px').map(k => r[k]).join(' ')),
 row: r,
 };
@@ -18997,10 +19007,8 @@ chem: r,
 CHEM.items = list; CHEM.from = d;
 return list;
 }
-function chemBody_(r) { const has = v => v || v === 0;
-const facts = [['Symbol', r.symbol], ['Atomic number', r.number], ['Relative atomic mass', r.mass], ['Block', r.block], ['Electron configuration', r.config],
-['Discovered', r.discovered], ['Also called', r.also], ['Formula', r.formula], ['Use', r.use], ['Hazard', r.hazard], ['Pattern', r.pattern],
-['Conditions', r.conditions], ['Observations', r.observations]].filter(f => has(f[1])).map(([k, v]) => k + ' ' + v);
+function chemBody_(r) {
+const facts = cardFieldsOf_('chem', r).map(x => x.label + ' ' + x.value);
 return [{ type: 'text', paras: facts.concat((r.examples || []).map(e => String(e.equation || '')), r.source || '') }]; }
 const FOOD = { data: null, asking: null, failed: false, items: null };
 function foodIndex_() {
@@ -19049,7 +19057,7 @@ return [r.path ? { type: 'text', text: r.path } : null, r.note ? { type: 'text',
 /* js/history-topics.js */
 const HTOP = { data: null, asking: null, failed: false, items: null, from: null };
 const HTOP_DIR = 'data/library/history/';
-const HTOP_PARTS = { timeline: 'Timeline', people: 'People', sources: 'Sources', items: 'Items' };
+const HTOP_TAX = () => TAXONOMY.History;
 function histTopicsIndex_() {
 if (HTOP.data) return HTOP.data;
 if (HTOP.asking || HTOP.failed || typeof fetch !== 'function') return null;
@@ -19078,10 +19086,10 @@ if (HTOP.items && HTOP.from === d) return HTOP.items;
 const list = [];
 d.forEach(t => {
 const one = (part, r, name, words) => list.push({
-kind: 'hist', key: 'hist:' + t.id + ':' + (part === 'timeline' ? 'timeline' : part + ':' + r.id), name, subject: 'History', image: '', row: null,
-level: t.level || '', keystage: t.keystage || '', histKind: t.name, histPart: HTOP_PARTS[part],
+kind: 'hist', key: 'hist:' + t.id + ':' + (part === 'timeline' ? 'timeline' : part + ':' + r.id), name, subject: HTOP_TAX().subject, image: '', row: null,
+level: t.level || '', keystage: t.keystage || '', histKind: t.name, histPart: HTOP_TAX().library.parts[part],
 text: [t.name, t.title, name].concat(words).filter(Boolean).join(' '),
-hist: { id: t.id + '-' + (r.id || part), name, part, topic: t, row: r, topicName: t.name, partName: HTOP_PARTS[part] },
+hist: { id: t.id + '-' + (r.id || part), name, part, topic: t, row: r, topicName: t.name, partName: HTOP_TAX().library.parts[part] },
 });
 one('timeline', { id: 'timeline' }, t.title + ': timeline', htopEvents_(t).map(e => e.date_from + ' ' + e.name));
 (t.people || []).forEach(r => one('people', r, r.name, [r.role].concat(r.facts || [])));

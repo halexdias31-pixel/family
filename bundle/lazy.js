@@ -4114,8 +4114,8 @@ if (!still) requestAnimationFrame(() => { if (!RACE.running) raceDraw_(); });
 function raceWhere_() {
 const list = RACE.places || [];
 if (list.length < 2) return '';
-return `<div class="tile-row race-where"><label class="mat-sel"><select data-do="race-place" aria-label="Where to drive">${
-list.map(r => `<option value="${esc(r.file)}"${r.file === RACE.place ? ' selected' : ''}>${esc(r.place)}</option>`).join('')}</select></label>${
+return `<div class="tile-row race-where"><label class="mat-sel">${formSelect_('data-do="race-place" aria-label="Where to drive"',
+list.map(r => `<option value="${esc(r.file)}"${r.file === RACE.place ? ' selected' : ''}>${esc(r.place)}</option>`).join(''))}</label>${
 navigator.geolocation ? tile_({ icon: 'compass', label: 'Near me', act: 'race-near' }) : ''}</div>`;
 }
 function raceAttr_() {

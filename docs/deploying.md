@@ -54,9 +54,8 @@ There are two ways `backend/` reaches Apps Script and they run in opposite direc
   anywhere, nothing to configure beyond the API switch. `previewFromGitHub` does the same read and
   writes nothing — run it first, every time, because it is the only thing that shows a **deletion**
   before it happens.
-- **`.github/workflows/apps-script.yml`** — `clasp push` on every push to `main`. Better in
-  principle (nobody has to remember to run it) and unused in practice, because `clasp login` needs a
-  terminal.
+- **The clasp workflow is gone** (unify K, 21 Nov): `pullFromGitHub` is the one deploy route, and tools/one-import.js
+  fails the build if a second (clasp, a workflow, a tool that writes the project) appears. The history below is why.
 
 **The workflow failed nine times out of nine and every failure was the same line**: `SCRIPT_ID` and
 `CLASP_CREDENTIALS` are not set. They are not set because that route was never taken. It now

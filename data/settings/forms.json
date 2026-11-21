@@ -76,7 +76,7 @@
  },
  "leftovers": {
   "cards-render.js": {
-   "n": 15
+   "n": 14
   },
   "keypad-pad.js": {
    "n": 1
@@ -85,9 +85,6 @@
    "n": 1
   },
   "tiles.js": {
-   "n": 1
-  },
-  "racer.js": {
    "n": 1
   }
  }

@@ -108,10 +108,8 @@ function apiTrouble_(res) {
              + 'not, the account-level switch at https://script.google.com/home/usersettings is '
              + 'the one, and toggling it off and on again is worth trying before anything else.\n\n'
              + 'IF THAT LINK SAYS YOU DO NOT HAVE ACCESS TO THE PROJECT, it is a default Cloud '
-             + 'project and no permission will fix it. Use one of the other two routes instead — '
-             + 'the GitHub Assistant extension in the editor toolbar, or the clasp workflow in '
-             + '.github/workflows/apps-script.yml, neither of which calls this API as this '
-             + 'project. Moving the script to a standard Cloud project also works and is the last '
+             + 'project and no permission will fix it. This is the one deploy route (unify K: the '
+             + 'clasp workflow is gone), so the fix is the project: moving the script to a standard Cloud project also works and is the last '
              + 'resort: it needs an OAuth consent screen, and re-authorising a web app that runs '
              + 'as USER_DEPLOYING with ANYONE_ANONYMOUS access means every visitor is relying on '
              + 'that authorisation being back in place. See CLAUDE.md.';

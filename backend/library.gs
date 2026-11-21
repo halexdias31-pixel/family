@@ -317,6 +317,7 @@ function libContent_(ids) {
 
 /* ---------- THE TOOLS' COPY: out a page at a time, and back in (an admin's, from tools/content.js library) ---------- */
 const LIB_EXPORT_MAX = 500;
+/* ONE PACK, AT MOST THIS MANY ROWS, whichever door it comes by (libPackCheck_). */
 const LIB_IMPORT_MAX = 300;
 function libExport_(fileKey, from, count) {
   const def = LIB_FILES[S(fileKey)];
@@ -360,70 +361,18 @@ function libSelfTest_(fileKey, c) {
   return null;
 }
 
-/* THE ONE IMPORTER: every way in (the site's upload, tools/content.js library, a Drive file or zip) ends here. `fileKey` is a file
-   (`questions`) or its kind in kinds.json (`question`); an import replaces the row with that id, or adds one at the foot.
-   Only the file's private fields, only text and numbers. */
-function libImport_(fileKey, rows) {
-  const k = S(fileKey);
-  if (!LIB_FILES[k]) fileKey = Object.keys(LIB_FILES).find(n => LIB_FILES[n].kind === k) || k;
-  const def = LIB_FILES[S(fileKey)];
-  if (!def) return { error: 'Which file? One of ' + Object.keys(LIB_FILES).join(', ') + '.' };
-  if (!Array.isArray(rows) || !rows.length) return { error: 'No rows sent.' };
-  if (rows.length > LIB_IMPORT_MAX) return { error: 'At most ' + LIB_IMPORT_MAX + ' rows at a time.' };
-  const items = [], flagged = [];
-  for (let i = 0; i < rows.length; i++) {
-    const one = rows[i] || {}, id = S(one.id), c = one.content;
-    if (!id || id.length > 160) return { error: 'Row ' + (i + 1) + ' has no id.' };
-    if (!c || typeof c !== 'object' || Array.isArray(c)) return { error: id + ' has no content object.' };
-    const odd = Object.keys(c).filter(k => def.private.indexOf(k) === -1 || (c[k] !== null && typeof c[k] === 'object'));
-    if (odd.length) return { error: id + ' carries ' + odd.join(', ') + ' — not a private field of ' + def.file + ', or not text.' };
-    const content = {};
-    def.private.forEach(f => { if (Object.prototype.hasOwnProperty.call(c, f)) content[f] = c[f]; });
-    const json = JSON.stringify(content);
-    try { libCells_(json); } catch (err) { return { error: id + ': ' + err.message }; }
-    const self = libSelfTest_(fileKey, content);
-    if (self && self.refuse) return { error: id + ': ' + self.refuse + ' — nothing was written' };
-    if (self && self.flag) flagged.push(id + ': ' + self.flag);
-    items.push({ id: id, json: json, sum: libSum_(json) });
-  }
-  const lock = LockService.getScriptLock();
-  if (!lock.tryLock(10000)) return { error: 'Busy — try again in a moment.', why: 'busy' };
-  try {
-    const sh = libSheet_(def, 0);
-    const at = libIndex_(def, sh, '', null);
-    let foot = Math.max(1, sh.getLastRow());
-    let added = 0, replaced = 0;
-    items.forEach(it => {
-      let row = at[it.id];
-      if (row) replaced++;
-      else { foot++; row = foot; at[it.id] = row; added++; libSheet_(def, row); }
-      sh.getRange(row, 1, 1, 3 + LIB_PARTS).setValues([libRowOut_(it)]);
-    });
-    libGenBump_();
-    return { success: true, file: S(fileKey), added: added, replaced: replaced, flagged: flagged };
-  } finally {
-    lock.releaseLock();
-  }
-}
-
-
 /* ---------- LIBRARY UPDATES FROM DRIVE (407): a session leaves lib-import-*.json in the owner's Drive; an admin's tile imports them ----------
    A session reaches Drive, not this script. docs/library.md. */
 const LIB_DRIVE_FOLDER = 'family-library-imports';
 const LIB_DRIVE_DONE = 'imported';
 const LIB_DRIVE_NAME = /^lib-import-[A-Za-z0-9._:-]{1,80}\.json$/;
-/* ONE FILE AT MOST THIS MANY ITEMS, and a press stops starting files after this long, inside Apps Script's six minutes. */
-const LIB_DRIVE_MAX = 3000;
+/* A PRESS STOPS STARTING FILES after this long, inside Apps Script's six minutes (a pack is at most LIB_IMPORT_MAX rows). */
 const LIB_DRIVE_MS = 4 * 60 * 1000;
 const LIB_DRIVE_LAST = 'LIB_IMPORT_LAST';
 /* THE HOURLY RUN (443): its handler, and the property holding what the last automatic import that found files did. */
 const LIB_DRIVE_HOURLY = 'libImportHourly';
 const LIB_DRIVE_AUTO = 'LIB_IMPORT_AUTO';
-/* ONE ZIP OF MANY FILES: lib-import-*.zip in the folder is unpacked into lib-import-*.json beside it, then moved to `imported`. Over Apps Script's blob limit (~50 MB) it is refused. */
-const LIB_DRIVE_ZIP = /^lib-import-[A-Za-z0-9._:-]{1,80}\.zip$/;
-const LIB_DRIVE_ZIP_BYTES = 45 * 1024 * 1024;
-const LIB_DRIVE_ZIP_FILES = 500;
-/* THE WALK DOWN (an unzipped bundle is a subfolder): at most this many folders and files looked at a run; the rest wait for the next. */
+/* THE WALK DOWN (a subfolder of packs): at most this many folders and files looked at a run; the rest wait for the next. */
 const LIB_DRIVE_WALK_FOLDERS = 20;
 const LIB_DRIVE_WALK_FILES = 2000;
 

@@ -585,8 +585,8 @@ function createJobRow_(body, ctx) {
 function createJobNotify_(body, me, jobId, named) {
   /* THE CLIENT'S RECEIPT — `booked`, essential: it carries the total they asked to pay. THE ONE CARD MAKER (`renderCard`, copied
      from the site by tools/cards-gen.js) with the email's `inline: 'text'`, never lines of our own; read as its reader, so a child's carries no price. */
-  const card = { subject: body.subject, level: body.level, day: body.day, time: body.time,
-                 location: body.location, dates: body.dates, price: body.price };
+  /* ITS FIELDS ARE THE LETTER'S (kinds.json booking `card.letter` lines' `need`), picked from the body by `cardLetterRow_`. */
+  const card = cardLetterRow_('booking', body);
   const mine = findPerson(me);
   notify(me, 'Booking received 🎉',
     'Thanks for requesting ' + S(body.subject) + ' with @family.\n\n' +
@@ -816,7 +816,7 @@ function postDeleteJob_(body, action, began) {
   /* TELL THEM. A session vanishing from somebody's screen with no word is the worst version of
      this: they turn up, or they do not turn up and never know why. */
   before.forEach(pp => notify(pp.name, 'Cancelled: ' + S(j.subject),
-    renderCard({ kind: 'booking', inline: 'text', row: { subject: j.subject, day: j.weekday, time: j.start_time }, see: { prices: false } })
+    renderCard({ kind: 'booking', inline: 'text', row: cardLetterRow_('booking', j, 'cancelled'), see: { prices: false } })
     + '\n\nThis is not going ahead.\n\nIf that is a surprise, reply to this message.\n\n— @family.', 'booked'));
 
   return jsonOut({ success: true, ended: before.length,

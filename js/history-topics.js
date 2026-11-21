@@ -4,7 +4,8 @@
 
 const HTOP = { data: null, asking: null, failed: false, items: null, from: null };
 const HTOP_DIR = 'data/library/history/';
-const HTOP_PARTS = { timeline: 'Timeline', people: 'People', sources: 'Sources', items: 'Items' };
+/* The four parts' names are data/settings/taxonomy.json History.library.parts (TAXONOMY, find-finder.js). */
+const HTOP_TAX = () => TAXONOMY.History;
 
 function histTopicsIndex_() {
   if (HTOP.data) return HTOP.data;
@@ -39,10 +40,10 @@ function histTopicItems_() {
   const list = [];
   d.forEach(t => {
     const one = (part, r, name, words) => list.push({
-      kind: 'hist', key: 'hist:' + t.id + ':' + (part === 'timeline' ? 'timeline' : part + ':' + r.id), name, subject: 'History', image: '', row: null,
-      level: t.level || '', keystage: t.keystage || '', histKind: t.name, histPart: HTOP_PARTS[part],
+      kind: 'hist', key: 'hist:' + t.id + ':' + (part === 'timeline' ? 'timeline' : part + ':' + r.id), name, subject: HTOP_TAX().subject, image: '', row: null,
+      level: t.level || '', keystage: t.keystage || '', histKind: t.name, histPart: HTOP_TAX().library.parts[part],
       text: [t.name, t.title, name].concat(words).filter(Boolean).join(' '),
-      hist: { id: t.id + '-' + (r.id || part), name, part, topic: t, row: r, topicName: t.name, partName: HTOP_PARTS[part] },
+      hist: { id: t.id + '-' + (r.id || part), name, part, topic: t, row: r, topicName: t.name, partName: HTOP_TAX().library.parts[part] },
     });
     one('timeline', { id: 'timeline' }, t.title + ': timeline', htopEvents_(t).map(e => e.date_from + ' ' + e.name));
     (t.people || []).forEach(r => one('people', r, r.name, [r.role].concat(r.facts || [])));
