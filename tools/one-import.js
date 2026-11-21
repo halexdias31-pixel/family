@@ -4,7 +4,8 @@
    - a pack validator or row applier other than backend/library-drive.gs `libPackCheck_` and `libPackApply_` (a second `version` 1
      test, a second write of `libRowOut_` rows, a zip unpacked, a new *Import* function the list below has not been told of);
    - a pack made anywhere but tools/content/library.js `packsOf`, or a `libImport` post from anywhere else;
-   - a second deploy route: only backend/sync.gs `pullFromGitHub` writes the project (no clasp, no workflow, no tool that pushes code);
+   - a second deploy route: only .github/workflows/apps-script.yml (clasp, on every release) pushes the backend; no tool pushes code
+     (pullFromGitHub stays as the by-hand fallback from the editor);
    - THE EMPTYING GUARD: `libMayEmpty_` is run here on fixed cases. The importer empties Ledger rows whose ids the live public file
      lacks, so it must never empty while the repository holds public rows the site has not released. Run by tools/build.js. */
 'use strict';
@@ -85,20 +86,23 @@ function run() {
       const at = p + ':' + (i + 1);
       if (/\bversion:\s*1\b/.test(l) && !(p === MAKER && /pack = \{ version: 1/.test(l))) bad.push(at + ': a pack made outside ' + MAKER + ' packsOf');
       if (/action:\s*'libImport'/.test(l) && p !== MAKER) bad.push(at + ': a libImport post outside ' + MAKER);
-      if (/\bclasp\b|script\.googleapis\.com/.test(l)) bad.push(at + ': a tool that pushes backend code — the one deploy is pullFromGitHub');
+      if (/\bclasp\b|script\.googleapis\.com/.test(l)) bad.push(at + ': a tool that pushes backend code — the one deploy is .github/workflows/apps-script.yml');
     });
   }
   if (makers !== 1) bad.push(MAKER + ': ' + makers + ' packsOf (the one pack maker), not one');
   /* ---- DEPLOY: no workflow that pushes the backend ---- */
   const wf = path.join(ROOT, '.github/workflows');
   if (fs.existsSync(wf)) for (const f of fs.readdirSync(wf)) {
-    if (/\bclasp\b|script\.googleapis\.com/.test(text('.github/workflows/' + f))) bad.push('.github/workflows/' + f + ': a second deploy route — the one is pullFromGitHub (backend/sync.gs)');
+    if (f !== 'apps-script.yml' && /\bclasp\b|script\.googleapis\.com/.test(text('.github/workflows/' + f))) bad.push('.github/workflows/' + f + ': a second deploy route — the one is .github/workflows/apps-script.yml');
+  }
+  if (!fs.existsSync(path.join(wf, 'apps-script.yml'))) bad.push('.github/workflows/apps-script.yml: missing — the backend would never reach Apps Script');
+  {
   }
   if (!/^function pullFromGitHub\(/m.test(text('backend/sync.gs'))) bad.push('backend/sync.gs: no pullFromGitHub — the one deploy');
   /* ---- THE GUARD ---- */
   const guard = guardCases();
   bad.push(...guard);
-  console.log('one-import: ' + checks + ' pack validator, ' + applies + ' applier, ' + makers + ' pack maker, 1 deploy (pullFromGitHub); emptying guard on 8 cases' + (guard.length ? '' : ', all held'));
+  console.log('one-import: ' + checks + ' pack validator, ' + applies + ' applier, ' + makers + ' pack maker, 1 deploy (apps-script.yml); emptying guard on 8 cases' + (guard.length ? '' : ', all held'));
   report('one-import', bad, 'second path(s) or broken guard', console.error);
 }
 module.exports = { run };

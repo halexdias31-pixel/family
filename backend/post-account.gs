@@ -390,13 +390,31 @@ function postSaveNotepad_(body, action, began) {
 function postSaveTodo_(body, action, began) {
   return postSavePerson_(body, 'todo', todoTidy_(S(body.todo)));
 }
+/* THE PLANNER'S FIELDS (kinds.json docket-item, as DOCKET_PLAN_FIELDS in cards-gen.gs): a valid one is kept, a default or a wrong one left out so the cell stays small. */
+function docketPlanTidy_(it) {
+  if (!it || typeof it !== 'object') return it;
+  Object.keys(DOCKET_PLAN_FIELDS).forEach(function (k) {
+    const F = DOCKET_PLAN_FIELDS[k], v = it[k];
+    let keep = null;
+    if (F.options) keep = F.options.indexOf(S(v)) >= 0 ? S(v) : null;
+    else if (v !== undefined && v !== null && v !== '' && isFinite(Number(v)) && Number(v) >= F.min) keep = Math.min(Math.round(Number(v)), 100000);
+    if (keep === null || keep === F.def) delete it[k]; else it[k] = keep;
+  });
+  return it;
+}
+/* Only the planner's fields of an item, tidied (docketImport builds its item afresh). */
+function docketPlanOf_(i) {
+  const t = docketPlanTidy_(Object.assign({}, i || {})), out = {};
+  Object.keys(DOCKET_PLAN_FIELDS).forEach(function (k) { if (k in t) out[k] = t[k]; });
+  return out;
+}
 /* THE DOCKET'S TIDY (owner, 20 Nov), as js/map.js dkTidy_: a one-off ticked before today (London's) leaves its list; a daily item keeps its `doneOn`, which is simply not today any more. */
 function todoTidy_(raw) {
   let t = null;
   try { t = JSON.parse(raw); } catch (e) { return raw; }
   if (!t || !Array.isArray(t.lists)) return raw;
   const today = todayIso_();
-  t.lists.forEach(function (L) { L.items = (L.items || []).filter(function (it) { return it.repeat === 'daily' || !it.done || !it.doneOn || String(it.doneOn) >= today; }); });
+  t.lists.forEach(function (L) { L.items = (L.items || []).map(docketPlanTidy_).filter(function (it) { return it.repeat === 'daily' || !it.done || !it.doneOn || String(it.doneOn) >= today; }); });
   return JSON.stringify(t);
 }
 
@@ -647,7 +665,8 @@ function docketTidy_(lists) {
       date: /^\d{4}-\d{2}-\d{2}$/.test(S(i && i.date)) ? S(i.date) : '', time: /^\d{2}:\d{2}$/.test(S(i && i.time)) ? S(i.time) : '',
       /* A REPEATING ITEM keeps the day it was last done (`doneOn`), never a flag: it is undone again the next day with no nightly job. */
       repeat: S(i && i.repeat) === 'daily' ? 'daily' : '', done: S(i && i.repeat) === 'daily' ? false : !!(i && i.done),
-      doneOn: /^\d{4}-\d{2}-\d{2}$/.test(S(i && i.doneOn)) ? S(i.doneOn) : '' }))
+      doneOn: /^\d{4}-\d{2}-\d{2}$/.test(S(i && i.doneOn)) ? S(i.doneOn) : '',
+      ...docketPlanOf_(i) }))
       .filter(i => i.title || i.note) }));
 }
 function postDocketImport_(body, action, began) {
