@@ -105,28 +105,38 @@ function formField_(f, value, o) {
   return fieldHtml(f, value, o);
 }
 /* A TICK THAT SAVES THE MOMENT IT IS TICKED, with a bold name and a faint note: `t.act` is its handler, `t.data` its data- attributes. */
-function formToggle_(t) {
+const formToggle_ = t => cardBlock_(formToggleB_(t));
+function formToggleB_(t) {
   const attrs = { type: 'checkbox', 'data-do': t.act == null ? '' : String(t.act) };
   Object.keys(t.data || {}).forEach(k => { attrs['data-' + k] = String(t.data[k] == null ? '' : t.data[k]); });
   attrs.checked = !!t.on;
-  return cardBlock_({ type: 'group', tag: 'label', look: 'check role-pick' + (t.cls ? ' ' + t.cls : ''), blocks: [{ type: 'control', attrs },
+  if (t.off) attrs.disabled = true;
+  return ({ type: 'group', tag: 'label', look: 'check role-pick' + (t.cls ? ' ' + t.cls : ''), blocks: [{ type: 'control', attrs },
     { type: 'group', tag: 'span', look: 'box' },
     { type: 'group', tag: 'span', look: 'role-pick-say', text: [{ b: t.label }, ' ', { span: 'qtag', text: t.note || '' }] }] });
 }
 
 /* THE CARD: a title, then `groups` (backend field lists, forms.json's `settings` form), `ask` (a kinds.json form asked a field a step) or `toggles`; `spec.id` fills it from FORM_SPECS.cards. */
 /* Saving as you type is `autosaveHear_`, which hears every `.set-shape .me-form` this draws. */
+/* `mode`: 'edit' (the default: boxes that save as you type) or 'read' (every box shown and none taken, no Save, no status line). */
 function formCard_(spec) {
+  return setCard_(formCardSpec_(spec));
+}
+/* THE SAME CARD AS DATA: setCard_'s spec, its `form` or `body` a block list (the field lines, the ticks, the status line). */
+function formCardSpec_(spec) {
   const s = Object.assign({}, (spec && spec.id && FORM_SPECS.cards[spec.id]) || {}, spec || {});
-  const fields = s.groups ? formOf_('settings', null, Object.assign({ head: false, attr: 'data-me', groups: s.groups }, s.fieldOpts || {})) : '';
+  const read = s.mode === 'read';
+  const all = read ? [].concat(...Object.keys(s.groups || {}).map(g => s.groups[g] || [])) : null;
+  const opts = Object.assign({ head: false, attr: 'data-me', groups: s.groups }, s.fieldOpts || {}, read ? { readonly: all } : {});
+  const fields = s.groups ? formOf_('settings', null, opts) : '';
   /* A CARD THAT IS A FORM ASKED A FIELD A STEP (`ask`, kinds.json): the same chips and menu as Find's, its send the last step. */
   const asked = s.ask ? askArea_(s.ask) : '';
-  const ticks = (s.toggles || []).map(formToggle_).join('');
-  const save = s.save && s.save.act ? tile_(s.save) : s.save;
-  const after = (s.said ? cardBlock_({ type: 'group', tag: 'p', look: 'note', id: s.said }) : '') + (s.after || '');
+  const ticks = (s.toggles || []).map(t => formToggleB_(read ? Object.assign({}, t, { off: true }) : t));
+  const save = read ? '' : s.save && s.save.act ? tile_(s.save) : s.save;
+  const after = [s.said ? { type: 'status', id: s.said } : '', s.after || ''];
   const card = { card: s.card, title: s.title, cls: s.cls, attrs: s.attrs, lead: s.lead, save: save, after: after };
-  if (s.groups) return setCard_(Object.assign(card, { form: fields, formAttrs: s.formAttrs, foot: s.foot }));
-  return setCard_(Object.assign(card, { body: (s.body || '') + asked + ticks + (s.tail || '') }));
+  if (s.groups) return Object.assign(card, { form: [fields], formAttrs: s.formAttrs, foot: read ? '' : s.foot });
+  return Object.assign(card, { body: [s.body || '', asked, ticks, s.tail || ''] });
 }
 
 /* THE RAW BOXES: every input, menu and text area on a Settings screen is written by these, so a box has one shape everywhere. `a` is its attribute text. */
