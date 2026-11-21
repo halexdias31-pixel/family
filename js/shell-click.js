@@ -369,6 +369,17 @@ function why_(err) {
 /* `opts.keepalive` — a request the browser finishes after the page has gone, for the last answers sent as
    an iPad's cover closes (`answersPush_` in js/answers.js). Nothing else passes it. */
 /* ONE WAY TO THE SERVER (step 2): `readItems`, `saveItem` and `deleteItem` are the only doors for what they fold in (slice 5, 15 Nov): no `old:` fallback, a keepalive flush included. */
+/* ---------- THE ONE REQUEST TO THE BACKEND (unify H, 21 Nov): every ask of API goes through here — `api` below for a reply,
+   `oops_`/`fieldSend_` (shell-boot.js) with o.quiet for a report nobody waits on, `load` (shell-load.js) with o.query for the payload GET.
+   tools/one-request.js fails the build on any other fetch to API. A POST without o.query; o.keepalive outlives the page; o.signal aborts. */
+function backendFetch_(body, o) {
+  o = o || {};
+  const opt = body == null ? { cache: 'no-store' } : { method: 'POST', cache: 'no-store', body: JSON.stringify(body) };
+  if (o.keepalive) opt.keepalive = true;
+  if (o.signal) opt.signal = o.signal;
+  const asked = fetch(API + (o.query || ''), opt);
+  return o.quiet ? Promise.resolve(asked).catch(() => null) : asked;
+}
 function api(body, opts) {
   /* ---------- THE TOKEN GOES ON EVERY REQUEST, FROM ONE PLACE § */
   const b = Object.assign({}, body);
@@ -385,8 +396,7 @@ function api(body, opts) {
     try { if (stop) stop.abort(); } catch (err) { /* already settled */ }
     no(e);
   }, wait); });
-  const asked = fetch(API, Object.assign({ method: 'POST', cache: 'no-store', body: JSON.stringify(b) },
-                                         keep ? { keepalive: true } : {}, stop ? { signal: stop.signal } : {}))
+  const asked = backendFetch_(b, { keepalive: keep, signal: stop ? stop.signal : null })
     /* ---------- A REPLY THAT IS NOT JSON IS STILL A REPLY § */
     .then(r => r.text().then(txt => {
       try { return JSON.parse(txt); } catch (e) { /* a bad stored value reads as none */ }

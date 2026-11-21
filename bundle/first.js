@@ -3086,11 +3086,11 @@ OOPS.told = Date.now();
 try { toast(text_('something-went-wrong-there')); } catch (e) { }
 }
 const key = msg + '|' + where;
-if (OOPS.sent.has(key) || OOPS.n >= OOPS.max || typeof API !== 'string' || typeof fetch !== 'function') return;
+if (OOPS.sent.has(key) || OOPS.n >= OOPS.max || typeof API !== 'string' || typeof fetch !== 'function' || typeof backendFetch_ !== 'function') return;
 OOPS.sent.add(key); OOPS.n++;
 const body = { action: 'clientError', message: msg, where: where, version: typeof SITE_VERSION === 'string' ? SITE_VERSION : '',
 screen: typeof AT === 'string' ? AT : '', device: oopsDevice_() };
-try { Promise.resolve(fetch(API, { method: 'POST', cache: 'no-store', body: JSON.stringify(body) })).catch(() => {}); }
+try { backendFetch_(body, { quiet: true }); }
 catch (e) { }
 }
 window.addEventListener('error', e => oops_(e && (e.error || e.message), 'onerror', null, { toast: true }));
@@ -3110,14 +3110,14 @@ load_ms: Math.round(nav.loadEventEnd || 0), find_ms: FIELD.find, long_tasks: FIE
 heap_mb: performance.memory ? Math.round(performance.memory.usedJSHeapSize / 104857.6) / 10 : '', errors: OOPS.n };
 }
 function fieldSend_(final) {
-if (!FIELD.on || FIELD.sent || typeof API !== 'string' || typeof fetch !== 'function') return;
+if (!FIELD.on || FIELD.sent || typeof API !== 'string' || typeof fetch !== 'function' || typeof backendFetch_ !== 'function') return;
 FIELD.sent = true;
 let q = [];
 q = keep_.json('familyField', []);
 q.push(fieldRow_());
 if (q.length < 3 && !final) { if (!keep_.put('familyField', JSON.stringify(q.slice(-5)))) FIELD.lost = (FIELD.lost || 0) + 1; return; }
 if (!keep_.del('familyField')) FIELD.lost = (FIELD.lost || 0) + 1;
-try { Promise.resolve(fetch(API, { method: 'POST', cache: 'no-store', keepalive: true, body: JSON.stringify({ action: 'healthLog', device: fieldDevice_(), rows: q.slice(-5) }) })).catch(() => {}); }
+try { backendFetch_({ action: 'healthLog', device: fieldDevice_(), rows: q.slice(-5) }, { quiet: true, keepalive: true }); }
 catch (e) { FIELD.lost = (FIELD.lost || 0) + 1; }
 }
 if (FIELD.on) {
@@ -4179,6 +4179,14 @@ return offline
 ? 'No connection — this phone is offline. Nothing was saved.'
 : 'The server did not answer, so nothing was saved. Try again in a minute.';
 }
+function backendFetch_(body, o) {
+o = o || {};
+const opt = body == null ? { cache: 'no-store' } : { method: 'POST', cache: 'no-store', body: JSON.stringify(body) };
+if (o.keepalive) opt.keepalive = true;
+if (o.signal) opt.signal = o.signal;
+const asked = fetch(API + (o.query || ''), opt);
+return o.quiet ? Promise.resolve(asked).catch(() => null) : asked;
+}
 function api(body, opts) {
 const b = Object.assign({}, body);
 if (!b.token && typeof USER === 'object' && USER && USER.token) b.token = USER.token;
@@ -4193,8 +4201,7 @@ e.name = 'TimeoutError';
 try { if (stop) stop.abort(); } catch (err) { }
 no(e);
 }, wait); });
-const asked = fetch(API, Object.assign({ method: 'POST', cache: 'no-store', body: JSON.stringify(b) },
-keep ? { keepalive: true } : {}, stop ? { signal: stop.signal } : {}))
+const asked = backendFetch_(b, { keepalive: keep, signal: stop ? stop.signal : null })
 .then(r => r.text().then(txt => {
 try { return JSON.parse(txt); } catch (e) { }
 const m = txt.match(/<div[^>]*>([^<]{10,400})<\/div>/i)
@@ -4828,10 +4835,10 @@ res = await Promise.race([
 early
 ? early.then(r => (r && r.ok ? r : (location.protocol === 'file:'
 ? jsonp(API + who + bust)
-: fetch(API + who + bust, { cache: 'no-store' }))))
+: backendFetch_(null, { query: who + bust }))))
 : location.protocol === 'file:'
 ? jsonp(API + who + bust)
-: fetch(API + who + bust, { cache: 'no-store' }),
+: backendFetch_(null, { query: who + bust }),
 deadline]);
 } finally {
 clearTimeout(bell);
