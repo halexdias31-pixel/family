@@ -342,12 +342,11 @@ function histItem_(kind, r) {
   };
 }
 /* A DRAWN MANUSCRIPT IS ONE CARD A SIDE (507), tagged Front (recto) or Back (verso); the first drawn keeps the bare key, so a saved key still opens. */
-const MS_SIDE_SAY = { front: 'Front (recto)', back: 'Back (verso)' };
 function histItems_(kind, r) {
   const one = histItem_(kind, r), L = kind === 'manuscript' && MS_LOOK[r.id];
   if (!L || !L.sides) return [one];
   return L.sides.map((sd, i) => Object.assign({}, one, { key: i ? one.key + ':' + (sd.side || i) : one.key,
-    msSide: labelOf_('hist-side', sd.side, MS_SIDE_SAY[sd.side] || ''), msSideIx: i, sub: [labelOf_('hist-side', sd.side, MS_SIDE_SAY[sd.side] || ''), one.sub].filter(Boolean).join(' · ') }));
+    msSide: labelOf_('hist-side', sd.side, ''), msSideIx: i, sub: [labelOf_('hist-side', sd.side, ''), one.sub].filter(Boolean).join(' · ') }));
 }
 
 /* THE LINES OF A CARD, one thing each (421): a label and the row's column, said as written. */

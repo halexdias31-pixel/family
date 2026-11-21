@@ -950,21 +950,10 @@ function rateBase(L, key) {
 }
 
 /* ---------- A PRICE THAT NOBODY HAS TYPED IS NOT A PRICE OF ZERO § */
-function priced_(v) {
-  if (v === null || v === undefined || String(v).trim() === '') return undefined;
-  const n = Number(String(v).replace(/[^0-9.-]/g, ''));
-  return isFinite(n) ? n : undefined;
-}
 
 /* ---------- THREE CARDS, ONE PRICE (620): n students pay x + k·x·(n−1) + g·x·(n−1) an hour — x the rate, k the tutor's share, g @family.'s ---------- */
 /* THE PARTS AS PRICED, through `seatShare_` (the booking's own reader): a blank is the config's usual. */
-function cardSeatParts_(rate, seat, cut) {
-  const s = seatShare_({ extraSeat: seat, extraSeatCut: cut });
-  return { k: s.cUsed, g: s.bUsed, kOwn: s.seatOwn, gOwn: s.cutOwn, kx: pence_(rate * s.cUsed), gx: pence_(rate * s.bUsed) };
-}
 /* WHAT n STUDENTS PAY AN HOUR: the booking's own seat line (`priceSeats_`, `runningAfter`), before subjects, level, day and time multiply it. */
-const cardGroupTotal_ = (rate, seat, cut, n) => runningAfter('students',
-  { chargeRate: rate, fChildrenAll: priceSeats_({ extraSeat: seat, extraSeatCut: cut }, undefined, undefined, Math.max(1, n)).fSeats });
 
 /* The config readers priceFrom's helpers share: a constant by any of its names, and a surcharge lookup. */
 function priceKnobs_() {

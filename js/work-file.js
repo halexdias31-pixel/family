@@ -161,7 +161,6 @@ on('wf-see', el => {
 /* The backend decides who may see, as for Work on file: the student, a parent they accepted, a booked tutor, the admin. */
 const HIST = {};
 const histOf_ = of => HIST[of] || (HIST[of] = { day: '', got: null, busy: false, say: '' });
-const histToday_ = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
 const HIST_HOW = { right: '✓ Right', part: 'Part marks', wrong: '✗ Not right', open: 'Not marked yet' };
 function histBody_(of) {
   const s = histOf_(of);

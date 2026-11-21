@@ -252,7 +252,7 @@ function bundleCard_(b) {
     : b.printable.map(named);
   const stray = bundleStrayLine_(b);
   /* THE ONE CARD (owner, 9 Nov): picture, name as a tag, two lines closed, Add to basket / Message / Star / ⋯; the papers show open. */
-  const tiles = [{ icon: 'cart', label: inCart ? 'In your basket' : 'Add to basket', note: note, act: 'cart-add', on: inCart, off: inCart, tone: 'buy',
+  const tiles = [{ icon: 'cart', label: inCart ? text_('in-your-basket') : text_('add-to-basket'), note: note, act: 'cart-add', on: inCart, off: inCart, tone: 'buy',
       data: { kind: 'bundle', ids: b.ids.join(','), key: b.title || '' } },
     { icon: 'open', label: 'See your basket', act: 'cart-open' }]
     .concat(typeof suggestOpts_ === 'function' ? [suggestOpts_('bundle', 'b:' + String(b.ids[0] || 'x').replace(/[^A-Za-z0-9_.:-]/g, '') + ':' + b.ids.length, b.title || 'Bundle')] : []);
@@ -396,19 +396,16 @@ on('fav', el => {
 });
 
 /* A SHOP ITEM'S TAGS (499), every one from a field the row already has: what it is, how you get it, a price band, the brand, who it is for. */
-const SHOP_HOW = { buy: 'Buy', ticks: 'Earn with ticks', level: 'Unlock by level', loan: 'Borrow', issued: 'Given out' };
-const SHOP_KIND_SAY = { bundle: 'Bundle', game: 'Game', kit: 'Kit', equipment: 'Equipment', stationery: 'Stationery', consumable: 'Consumable',
-                        service: 'Made to order', thing: 'Thing', trip: 'Trip' };
 function shopTags_(r) {
   const k = String(r.kindRaw || 'thing').trim().toLowerCase();
   const how = String(r.acquire || 'buy').trim().toLowerCase();
   const p = priced_(r.price), pence = String(r.unit || '').trim() === 'p';
   const band = how === 'level' ? 'Level ' + (Number(r.level) || 1)
-    : p === undefined ? 'Not priced yet' : p === 0 ? 'Free'
+    : p === undefined ? text_('not-priced-yet') : p === 0 ? 'Free'
     : !pence ? 'Credits'
     : p < 500 ? 'Under £5' : p <= 2000 ? '£5 to £20' : 'Over £20';
   const who = String(r.audience || 'all').trim().toLowerCase();
-  return { shopKind: SHOP_KIND_SAY[k] || (k.charAt(0).toUpperCase() + k.slice(1)), shopHow: SHOP_HOW[how] || '', shopPrice: band,
+  return { shopKind: labelOf_('shop-kind', k, k.charAt(0).toUpperCase() + k.slice(1)), shopHow: labelOf_('shop-how', how, ''), shopPrice: band,
            shopBrand: String((r.fields && r.fields.brand) || r.brand || '').trim(),
            shopTheme: String(r.theme || (r.fields && r.fields.theme) || '').trim(),
            shopFor: who === 'all' ? '' : who === 'tutor' ? 'Tutors' : who === 'admin' ? 'Admins' : who.charAt(0).toUpperCase() + who.slice(1) };

@@ -569,8 +569,7 @@ function stuffQuestionBlocks_() {
 }
 /* NO "SHOW SO FAR" ARROW (owner, 9 Nov: "remove it"): cards come when the menus finish (`findPeek_` went). */
 /* THE OTHER HALF OF A YES-OR-NO, AT 0 (770), `facetNoneHtml_`, went: switched off since 5 Nov ("Accuracy verified 0" read as noise). */
-/* ONE QUESTION'S ANSWERS AS CHIPS, whether counted now or by the build (`finderTagsAt_`): a choices block; `then` is the blocks after them. */
-function facetAnswersHtml_(facet, values) { return cardBlock_(facetAnswersSpec_(facet, values)); }
+/* ONE QUESTION'S ANSWERS AS CHIPS (`facetAnswersSpec_`), whether counted now or by the build (`finderTagsAt_`): a choices block; `then` is the blocks after them. */
 function facetAnswersSpec_(facet, values, then) {
   /* `counted` TAKES THE CHEVRON OFF. § */
   /* ---------- "DOESN'T MATTER", UNDER EVERY QUESTION § */
