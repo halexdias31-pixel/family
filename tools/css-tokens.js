@@ -4,8 +4,8 @@
    else (a hex, rgb()/hsl(), or a colour keyword) is a second copy that drifts. Comments and quoted strings are skipped; ALLOW holds
    the few keywords that are not a colour of ours. Fails the build on any raw colour outside `:root`. Run by tools/build.js. */
 'use strict';
+const { ROOT, main } = require('./lib/gen.js');
 const fs = require('fs'), path = require('path');
-const ROOT = path.join(__dirname, '..');
 /* NOT A COLOUR OF OURS: these name no hue, so they may stand anywhere. */
 const ALLOW = new Set(['transparent', 'currentcolor', 'inherit', 'initial', 'unset', 'none']);
 const NAMED = ['black', 'white', 'red', 'green', 'blue', 'yellow', 'orange', 'purple', 'pink', 'gray', 'grey', 'silver', 'gold',
@@ -37,4 +37,4 @@ function run() {
   return bad.length;
 }
 module.exports = { run };
-if (require.main === module) { try { run(); } catch (e) { console.error(e.message); process.exit(1); } }
+main(module, run);

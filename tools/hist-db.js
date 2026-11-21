@@ -6,17 +6,16 @@
    label, or a list of link columns written anywhere but the source fails the build; so does a kind or prefix the labels do not name.
    tools/build.js runs it. */
 'use strict';
-const fs = require('fs'), path = require('path'), vm = require('vm');
-const ROOT = path.join(__dirname, '..');
-const read = f => fs.readFileSync(path.join(ROOT, f), 'utf8');
+const vm = require('vm');
+const { text, srcFiles, main } = require('./lib/gen.js');
 
 function find() {
   const bad = [];
-  const lib = read('js/library.js');
+  const lib = text('js/library.js');
   const m = /\nconst HIST_DB = \[[\s\S]*?\n\];\n/.exec(lib);
   if (!m) return { bad: ['js/library.js has no HIST_DB'], count: 0 };
   const DB = vm.runInNewContext(m[0].replace('const HIST_DB =', '').trim().replace(/;$/, ''));
-  const labels = JSON.parse(read('data/settings/labels.json'));
+  const labels = JSON.parse(text('data/settings/labels.json'));
   const rows = Array.isArray(labels) ? labels : labels.rows || Object.values(labels).find(Array.isArray) || [];
   const has = (g, k) => rows.some(r => r.group === g && r.key === k && r.active !== false);
   const FIELDS = ['file', 'prefix', 'kind', 'years', 'icon', 'sub', 'links'];
@@ -39,8 +38,9 @@ function find() {
     ['a link column list', new RegExp('\\[\\s*\'(' + cols.join('|') + ')\'\\s*,\\s*\'(' + cols.join('|') + ')\'')],
   ];
   let count = 0;
-  for (const f of fs.readdirSync(path.join(ROOT, 'js')).filter(f => f.endsWith('.js')).sort()) {
-    let s = read('js/' + f);
+  for (const p of srcFiles('js', /\.js$/)) {
+    const f = p.slice(3);
+    let s = text(p);
     if (f === 'library.js') s = s.replace(m[0], '\n');
     s.split('\n').forEach((line, i) => {
       for (const [what, re] of RULES) if (re.test(line)) { count++; bad.push('js/' + f + ':' + (i + 1) + ': ' + what + ' outside HIST_DB / labels.json'); }
@@ -55,4 +55,4 @@ function run() {
   if (bad.length) throw new Error('hist-db: FAILED\n  ' + bad.join('\n  '));
 }
 module.exports = { find, run };
-if (require.main === module) { try { run(); } catch (e) { console.error(e.message); process.exit(1); } }
+main(module, run);

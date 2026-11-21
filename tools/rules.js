@@ -1,13 +1,11 @@
 #!/usr/bin/env node
 /* @family. — tools/rules.js: writes docs/rules.md from data/settings/rules.json, the one source of the rulebook, and prints the one-place report. No checks (rule 1.75). */
 'use strict';
+const { ROOT, read, text } = require('./lib/gen.js');
 const fs = require('fs'), path = require('path');
-const ROOT = path.resolve(__dirname, '..');
-const read = f => { try { return fs.readFileSync(path.join(ROOT, f), 'utf8'); } catch (e) { return ''; } };
-const jread = f => { try { return JSON.parse(read(f)); } catch (e) { return null; } };
 
 const SRC = 'data/settings/rules.json', PAGE = 'docs/rules.md';
-const book = () => jread(SRC) || { principles: [], rules: [], sweep: [] };
+const book = () => read(SRC) || { principles: [], rules: [], sweep: [] };
 function rules() { return (book().rules || []).map(r => ({ n: r.id, text: r.text || '' })); }
 /* THE PAGE: docs/rules.md is written from the JSON, never edited. */
 function render() {
@@ -20,8 +18,8 @@ function render() {
 }
 /* ONE PLACE (rule 1.63), report-only: each business function is yes when all its evidence is in the code, partly when some, else no. */
 function onePlace() {
-  const j = jread('data/settings/one-place.json');
-  return ((j && j.functions) || []).map(f => { const ev = f.evidence || [], got = ev.filter(([file, has]) => read(file).indexOf(has) >= 0).length;
+  const j = read('data/settings/one-place.json');
+  return ((j && j.functions) || []).map(f => { const ev = f.evidence || [], got = ev.filter(([file, has]) => text(file, '').indexOf(has) >= 0).length;
     return { id: f.id, name: f.name, status: !ev.length || !got ? 'no' : got === ev.length ? 'yes' : 'partly', found: got, of: ev.length }; });
 }
 function run() { fs.writeFileSync(path.join(ROOT, PAGE), render()); console.log('rules: wrote ' + PAGE + ' from ' + SRC); }

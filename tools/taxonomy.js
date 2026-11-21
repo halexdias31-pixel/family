@@ -7,7 +7,7 @@
    comes back in the Find/library code. tools/build.js runs it before the bundle. */
 'use strict';
 const fs = require('fs'), path = require('path');
-const { ROOT, S, blockInto, writeIfChanged } = require('./lib/gen.js');
+const { ROOT, S, blockInto, writeIfChanged, main } = require('./lib/gen.js');
 const TAX_FILE = path.join(ROOT, 'data/settings/taxonomy.json');
 const ENGINE = 'js/find-finder.js';
 const WATCHED = ['js/history-topics.js', 'js/find-history.js', ENGINE];
@@ -76,4 +76,4 @@ function run() {
   console.log('taxonomy: ' + Object.keys(t).length + ' subject(s) as data; ' + papers + ' History papers and every topic part inside it; no subject case in the engine');
 }
 module.exports = { run, paperProblems, topicProblems, codeProblems, taxonomy };
-if (require.main === module) { try { run(); } catch (e) { console.error(e.message); process.exit(1); } }
+main(module, run);

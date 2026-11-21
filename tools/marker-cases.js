@@ -4,6 +4,7 @@
    wrong one that must fail. Prints "marker-cases: N/M"; any case that goes wrong fails the build. A case the marker cannot yet get right
    is listed with `known: true`, counted apart, and does not fail it; one that starts passing is reported, to drop the flag. Run by tools/build.js. */
 'use strict';
+const { report, main } = require('./lib/gen.js');
 const VQ = require('./validate-questions.js');
 
 /* [typed, key, right?, what it guards, known?] */
@@ -149,9 +150,8 @@ function run() {
   const n = CASES.length - known;
   console.log('marker-cases: ' + pass + '/' + n + ' right' + (known ? '; ' + known + ' known-failing' : ''));
   fixed.forEach(f => console.log('  now right, drop its known flag: ' + f));
-  bad.forEach(b => console.log('  ' + b));
-  if (bad.length) throw new Error('marker-cases: ' + bad.length + ' case(s) marked wrongly');
+  report('marker-cases', bad, 'case(s) marked wrongly');
   return { pass, n, known };
 }
 module.exports = { run, CASES };
-if (require.main === module) { try { run(); } catch (e) { console.error(e.message); process.exit(1); } }
+main(module, run);

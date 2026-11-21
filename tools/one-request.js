@@ -5,21 +5,19 @@
    same URL as js/data.js's API); an action the front end posts that data/settings/actions.json does not list; and a backend whose
    dispatch is not the one generated table (one `doPost`, `postActions_` naming exactly actions.json's rows). Run by tools/build.js. */
 'use strict';
-const fs = require('fs'), path = require('path');
-const ROOT = path.join(__dirname, '..');
-const read = p => fs.readFileSync(path.join(ROOT, p), 'utf8');
+const { text, srcFiles, report, main } = require('./lib/gen.js');
 
 function run() {
   const bad = [];
-  const rows = JSON.parse(read('data/settings/actions.json')).actions;
+  const rows = JSON.parse(text('data/settings/actions.json')).actions;
   /* A ROW IS A POST (`postActions_`) OR A `?run=` JOB (`RUNNABLE`), as tools/permissions.js writes them; a phone may name either. */
   const names = new Set(rows.map(a => a.name)), posted = new Set(rows.filter(a => !a.run).map(a => a.name)), runs = new Set(rows.filter(a => a.run).map(a => a.name));
-  const js = fs.readdirSync(path.join(ROOT, 'js')).filter(f => f.endsWith('.js'));
-  const api = (read('js/data.js').match(/const API = '([^']+)'/) || [])[1];
+  const js = srcFiles('js', /\.js$/).map(p => p.slice(3));
+  const api = (text('js/data.js').match(/const API = '([^']+)'/) || [])[1];
   if (!api) bad.push('js/data.js: no `const API = \'...\'`');
   let fetches = 0, acts = 0;
   for (const f of js) {
-    const src = read('js/' + f);
+    const src = text('js/' + f);
     src.split('\n').forEach((l, i) => {
       const at = 'js/' + f + ':' + (i + 1);
       if (/\bfetch\(\s*API\b/.test(l)) {
@@ -34,15 +32,15 @@ function run() {
     }
   }
   if (fetches !== 1) bad.push('js/: ' + fetches + ' fetches to API, not the one in backendFetch_');
-  const html = read('index.html');
+  const html = text('index.html');
   const urls = html.match(/https:\/\/script\.google\.com\/macros\/[^'"\s]+/g) || [];
   if (urls.length > 1) bad.push('index.html: the backend URL written ' + urls.length + ' times');
   if (urls.length && urls[0] !== api) bad.push('index.html: the head asks a different backend from js/data.js\'s API');
   /* THE BACKEND: one doPost, one table, and the table is actions.json's. */
-  const gs = fs.readdirSync(path.join(ROOT, 'backend')).filter(f => f.endsWith('.gs'));
+  const gs = srcFiles('backend', /\.gs$/).map(p => p.slice(8));
   let posts = 0, tables = 0;
   for (const f of gs) {
-    const src = read('backend/' + f);
+    const src = text('backend/' + f);
     posts += (src.match(/^function doPost\(/mg) || []).length;
     tables += (src.match(/=\s*postActions_\(\)/g) || []).length;
     if (f === 'dopost.gs') {
@@ -52,14 +50,14 @@ function run() {
       for (const k of keys) if (!posted.has(k)) bad.push('backend/dopost.gs: postActions_ has \'' + k + '\', which actions.json does not list');
     }
   }
-  const job = (read('backend/access.gs').match(/const RUNNABLE = \{([\s\S]*?)\};/) || [])[1] || '';
+  const job = (text('backend/access.gs').match(/const RUNNABLE = \{([\s\S]*?)\};/) || [])[1] || '';
   const jobs = new Set([...job.matchAll(/^\s*(\w+):/mg)].map(m => m[1]));
   for (const n of runs) if (!jobs.has(n)) bad.push('backend/access.gs: RUNNABLE has no \'' + n + '\'');
   for (const k of jobs) if (!runs.has(k)) bad.push('backend/access.gs: RUNNABLE has \'' + k + '\', which actions.json does not list');
   if (posts !== 1) bad.push('backend/: ' + posts + ' doPost functions, not one');
   if (tables !== 1) bad.push('backend/: postActions_() dispatched from ' + tables + ' places, not one');
   /* ONE PERMISSION TABLE (unify 4): PERMISSIONS only, the gate's level computed by levelOf_ (booking.gs), the same as tools/permissions.js `levelOf` for every action. */
-  const allGs = fs.readdirSync(path.join(ROOT, "backend")).filter(f => f.endsWith(".gs")).map(f => read("backend/" + f)).join("\n");
+  const allGs = srcFiles('backend', /\.gs$/).map(f => text(f)).join("\n");
   if (/\bACTION_ACCESS\b/.test(allGs.replace(/\/\*[\s\S]*?\*\//g, ''))) bad.push('backend/: ACTION_ACCESS is back; the one table is PERMISSIONS');
   const lv = allGs.match(/function levelOf_\(roles\) \{[\s\S]*?\n\}/), pm = allGs.match(/const PERMISSIONS = (\{[\s\S]*?\n\});/);
   let levels = 0;
@@ -70,7 +68,7 @@ function run() {
   }
   console.log('one-request: ' + levels + ' action levels by levelOf_ agree');
   console.log('one-request: ' + fetches + ' fetch to the backend, ' + acts + ' posted action names against ' + names.size + ' listed, ' + posts + ' dispatcher');
-  if (bad.length) { bad.forEach(b => console.error('  ' + b)); throw new Error('one-request: ' + bad.length + ' second path(s)'); }
+  report('one-request', bad, 'second path(s)', console.error);
 }
 module.exports = { run };
-if (require.main === module) { try { run(); } catch (e) { console.error(e.message); process.exit(1); } }
+main(module, run);

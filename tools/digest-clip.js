@@ -9,14 +9,14 @@
    "on the site" instead of its words, or leaves a listed question without words. Run by tools/build.js. `--sizes` prints each week's bytes. */
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm');
-const { ROOT, read, S } = require('./lib/gen.js');
+const { ROOT, read, S, text, srcFiles, main } = require('./lib/gen.js');
 
 /* ---------- THE BACKEND'S OWN CODE, a name at a time (as tools/validate-questions.js loads the app's) */
 function backend() {
   const acorn = require(path.join(ROOT, 'node_modules', 'acorn'));
   const decl = {};
-  fs.readdirSync(path.join(ROOT, 'backend')).filter(f => f.endsWith('.gs')).sort().forEach(f => {
-    const src = fs.readFileSync(path.join(ROOT, 'backend', f), 'utf8');
+  srcFiles('backend', /\.gs$/).forEach(f => {
+    const src = text(f);
     const ast = acorn.parse(src, { ecmaVersion: 2022 });
     for (const n of ast.body) {
       if (n.type === 'FunctionDeclaration') decl[n.id.name] = src.slice(n.start, n.end);
@@ -134,4 +134,4 @@ async function run() {
   if (bad.length) throw new Error('digest-clip: ' + bad.length + ' problem(s) in the Sunday email (biggest week: ' + big.name + ')');
 }
 module.exports = { run };
-if (require.main === module) run().catch(e => { console.error(e && e.stack || e); process.exit(1); });
+main(module, run);

@@ -6,14 +6,11 @@
    by hand (an object naming four or more of a kind's letter fields); a kind's `fields.list` names a field twice or has no label; or the
    browser's or the email's copy of kinds.json lacks what the source says. Prints the count of kinds whose fields come from the source. */
 'use strict';
-const fs = require('fs'), path = require('path');
-const ROOT = path.join(__dirname, '..');
-const read = f => fs.readFileSync(path.join(ROOT, f), 'utf8');
-const files = (dir, ext) => fs.readdirSync(path.join(ROOT, dir)).filter(f => f.endsWith(ext)).map(f => dir + '/' + f);
+const { text, srcFiles, report, main } = require('./lib/gen.js');
 const MADE = new Set(['js/kinds.js', 'backend/cards-gen.gs']);
 
 function run() {
-  const bad = [], kinds = JSON.parse(read('data/settings/kinds.json')).kinds;
+  const bad = [], kinds = JSON.parse(text('data/settings/kinds.json')).kinds;
   let n = 0;
   /* 1. THE SOURCE IS WHOLE: every field once, every one labelled. */
   const letters = [];
@@ -33,8 +30,8 @@ function run() {
     }
   });
   /* 2. NO HAND LIST: label/field pairs, or a letter's row built field by field, anywhere a card is drawn from. */
-  files('js', '.js').concat(files('backend', '.gs')).filter(f => !MADE.has(f)).forEach(f => {
-    const s = read(f);
+  srcFiles(['js', 'backend'], /\.(js|gs)$/).filter(f => !MADE.has(f)).forEach(f => {
+    const s = text(f);
     const pairs = s.match(/\[\s*'[A-Z][^'\n]*'\s*,\s*[a-z]\w*\.\w+\s*\]\s*,\s*\[\s*'[A-Z][^'\n]*'\s*,\s*[a-z]\w*\.\w+\s*\]\s*,\s*\[\s*'[A-Z][^'\n]*'\s*,\s*[a-z]\w*\.\w+\s*\]/g);
     if (pairs) bad.push(f + ' lists a card\'s fields by hand (' + pairs[0].slice(0, 60) + '…): put them in kinds.json `card.fields.list`');
     for (const m of s.matchAll(/\{([^{}]{0,400})\}/g)) {
@@ -48,16 +45,16 @@ function run() {
   });
   /* 3. BOTH COPIES CARRY IT: the browser's js/kinds.js and the email's backend/cards-gen.gs. */
   const ctx = src => { const m = src.match(/^const ITEM_KINDS = (.*);$/m); return m ? JSON.parse(m[1]).kinds : {}; };
-  const site = ctx(read('js/kinds.js')), mail = ctx(read('backend/cards-gen.gs'));
+  const site = ctx(text('js/kinds.js')), mail = ctx(text('backend/cards-gen.gs'));
   Object.entries(kinds).forEach(([k, v]) => {
     const c = v.card || {};
     if (c.fields && JSON.stringify(((site[k] || {}).card || {}).fields) !== JSON.stringify(c.fields)) bad.push('js/kinds.js ' + k + ' card.fields is not kinds.json\'s (run tools/kinds.js)');
     if (c.letter && JSON.stringify(((mail[k] || {}).card || {}).letter) !== JSON.stringify(c.letter)) bad.push('backend/cards-gen.gs ' + k + ' card.letter is not kinds.json\'s (run tools/cards-gen.js)');
   });
-  ['cardFieldsOf_', 'cardLetterRow_'].forEach(fn => files('js', '.js').concat(files('backend', '.gs')).filter(f => f !== 'js/cards-render.js' && f !== 'backend/cards-gen.gs')
-    .forEach(f => { if (new RegExp('^(const|function) ' + fn + '\\b', 'm').test(read(f))) bad.push(f + ' defines ' + fn + ' outside js/cards-render.js'); }));
+  ['cardFieldsOf_', 'cardLetterRow_'].forEach(fn => srcFiles(['js', 'backend'], /\.(js|gs)$/).filter(f => f !== 'js/cards-render.js' && f !== 'backend/cards-gen.gs')
+    .forEach(f => { if (new RegExp('^(const|function) ' + fn + '\\b', 'm').test(text(f))) bad.push(f + ' defines ' + fn + ' outside js/cards-render.js'); }));
   console.log('card-fields: ' + n + ' card field lists from kinds.json; ' + bad.length + ' wrong');
-  if (bad.length) { bad.forEach(b => console.log('  ' + b)); throw new Error('card-fields: ' + bad.length + ' card field list(s) outside the one source'); }
+  report('card-fields', bad, 'card field list(s) outside the one source');
 }
 module.exports = { run };
-if (require.main === module) { try { run(); } catch (e) { console.error(e.message); process.exit(1); } }
+main(module, run);

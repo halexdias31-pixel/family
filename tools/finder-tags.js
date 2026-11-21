@@ -4,7 +4,7 @@
 /* Bible or not, each age line), the question at the start and after each first answer. The phone paints these while its files arrive. */
 'use strict';
 const fs = require('fs'), path = require('path');
-const ROOT = path.resolve(__dirname, '..');
+const { ROOT, srcFiles } = require('./lib/gen.js');
 const OUT = path.join(ROOT, 'js', 'finder-tags.js');
 const FULL = process.argv.includes('--full');
 /* THE INPUTS' FINGERPRINT (CI after be32d73): the walk takes minutes, so run() skips it on a stamp of every file the app reads, made by the last full run. */
@@ -13,9 +13,7 @@ const STAMP = path.join(ROOT, 'tools', 'finder-tags.stamp');
 const SKIP = f => f === 'js/finder-tags.js' || /^js\/check[-.]/.test(f) || /^data\/(health|health-trend|stability|[\w-]+-health)\.json$/.test(f) || f === 'data/settings/rules.json';
 const inputsHash = () => {
   const crypto = require('crypto'), h = crypto.createHash('sha256');
-  const walk = d => fs.readdirSync(path.join(ROOT, d), { withFileTypes: true }).sort((a, b) => a.name < b.name ? -1 : 1)
-    .flatMap(e => e.isDirectory() ? walk(d + '/' + e.name) : [d + '/' + e.name]);
-  const list = walk('js').concat(walk('data'), ['index.html', 'tools/lib/jsdom-app.js', 'tools/lib/lib-full.js', 'tools/lib/payload.json', 'tools/finder-tags.js']).filter(f => !SKIP(f));
+  const list = srcFiles(['js', 'data'], /(?:)/, { deep: true }).concat(['index.html', 'tools/lib/jsdom-app.js', 'tools/lib/lib-full.js', 'tools/lib/payload.json', 'tools/finder-tags.js']).filter(f => !SKIP(f));
   /* AND THE WORDS THIS MACHINE HOLDS (data-private/), which lib-full.js puts back into the library the walk counts. */
   const lib = require('./lib/lib-full.js');
   lib.NAMES().map(n => path.relative(ROOT, lib.privatePath(n))).filter(f => fs.existsSync(path.join(ROOT, f))).forEach(f => list.push(f));
