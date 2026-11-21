@@ -6,14 +6,13 @@
    quoted column, a plain `x.col || ''`, a bout's trimmed row column, or one helper's answer `x => helper_(x)` / `helper_(x).key`) comes
    back in FACET_READ, an `fn` names a helper missing from the explicit registry FACET_FN (batch 6), a `read` names an unknown `by`, or a facet is read twice. */
 'use strict';
-const fs = require('fs'), path = require('path');
-const ROOT = path.join(__dirname, '..');
+const { text, report, main } = require('./lib/gen.js');
 const ENGINE = 'js/find-finder.js';
 const BYS = ['row', 'writing', 'hist', 'mech', 'own', 'fight', 'fn'];
 function run() {
 
-const src = fs.readFileSync(path.join(ROOT, ENGINE), 'utf8');
-const facets = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/settings/facets.json'), 'utf8'));
+const src = text(ENGINE);
+const facets = JSON.parse(text('data/settings/facets.json'));
 const bad = [];
 const m = /\nconst FACET_READ = \{\n([\s\S]*?)\n\};\n/.exec(src);
 if (!m) bad.push(ENGINE + ': FACET_READ not found');
@@ -39,8 +38,8 @@ facets.forEach(f => {
   if (f.read.by === 'fn' && !fns.has(f.read.col.split('.')[0])) bad.push('facets.json ' + f.field + ': fn ' + f.read.col + ' is not in FACET_FN');
   if (hand.has(f.field)) bad.push(ENGINE + ': ' + f.field + ' is read by facets.json and again by hand in FACET_READ');
 });
-if (bad.length) throw new Error('facet-readers: FAILED\n  ' + bad.join('\n  '));
+report('facet-readers', bad, 'problem(s) — FAILED');
 console.log('facet-readers: ok — ' + facets.filter(f => f.read).length + ' facets read as data, no one-line column reader in FACET_READ');
 }
 module.exports = { run };
-if (require.main === module) { try { run(); } catch (e) { console.error(e.message); process.exit(1); } }
+main(module, run);

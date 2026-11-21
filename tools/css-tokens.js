@@ -2,9 +2,10 @@
 /* @family. — tools/css-tokens.js THE CSS-TOKENS CHECK (rule 1.75, unify batch 2, 21 Nov): one rule, counted site-wide.
    A colour a child sees is named once, in a style.css `:root` block, and every rule draws it by its token. A raw colour anywhere
    else (a hex, rgb()/hsl(), or a colour keyword) is a second copy that drifts. Comments and quoted strings are skipped; ALLOW holds
-   the few keywords that are not a colour of ours. Fails the build on any raw colour outside `:root`. Run by tools/build.js. */
+   the few keywords that are not a colour of ours. Fails the build on any raw colour outside `:root`. Layering too (unify batch 8):
+   a z-index outside `:root` draws a --z-* token (or auto), so what sits over what is decided once. Run by tools/build.js. */
 'use strict';
-const { ROOT, main } = require('./lib/gen.js');
+const { ROOT, main, bare: strip } = require('./lib/gen.js');
 const fs = require('fs'), path = require('path');
 /* NOT A COLOUR OF OURS: these name no hue, so they may stand anywhere. */
 const ALLOW = new Set(['transparent', 'currentcolor', 'inherit', 'initial', 'unset', 'none']);
@@ -16,8 +17,8 @@ const RAW = new RegExp('#[0-9a-fA-F]{3,8}\\b|\\b(?:rgba?|hsla?|hwb|lab|lch|oklab
 function run() {
   const css = fs.readFileSync(path.join(ROOT, 'style.css'), 'utf8');
   /* BLANK comments and strings, keeping every newline so line numbers hold. */
-  const bare = css.replace(/\/\*[\s\S]*?\*\/|"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'/g, m => m.replace(/[^\n]/g, ' '));
-  const bad = []; const stack = []; let sel = '', line = 1, decl = '';
+  const bare = strip(css, { comments: true, strings: true });
+  const bad = [], zbad = []; const stack = []; let sel = '', line = 1, decl = '';
   for (let i = 0; i < bare.length; i++) {
     const c = bare[i];
     if (c === '\n') line++;
@@ -29,12 +30,16 @@ function run() {
     if (stack.some(s => /^:root$/.test(s)) || !stack.length) return;
     const val = text.slice(text.indexOf(':') + 1);
     if (text.indexOf(':') < 0) return;
+    if (/^\s*z-index\s*$/i.test(text.slice(0, text.indexOf(':'))) && !/^\s*(?:var\(--z-[\w-]+\)|auto)\s*$/.test(val)) zbad.push(at + ': ' + text.trim().replace(/\s+/g, ' ').slice(0, 80));
     for (const m of val.matchAll(RAW)) if (!ALLOW.has(m[0].toLowerCase())) bad.push(at + ': ' + m[0] + '  in ' + text.trim().replace(/\s+/g, ' ').slice(0, 80));
   }
   console.log('css-tokens: ' + bad.length + ' raw colour(s) outside :root');
   bad.forEach(b => console.log('  style.css:' + b));
+  console.log('css-tokens: ' + zbad.length + ' raw z-index(es) outside :root');
+  zbad.forEach(b => console.log('  style.css:' + b));
   if (bad.length) throw new Error('css-tokens: ' + bad.length + ' raw colour(s) outside :root — name each as a token in :root and draw it by var()');
-  return bad.length;
+  if (zbad.length) throw new Error('css-tokens: ' + zbad.length + ' raw z-index(es) outside :root — draw each from a --z-* token in :root');
+  return bad.length + zbad.length;
 }
 module.exports = { run };
 main(module, run);

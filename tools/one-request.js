@@ -5,7 +5,7 @@
    same URL as js/data.js's API); an action the front end posts that data/settings/actions.json does not list; and a backend whose
    dispatch is not the one generated table (one `doPost`, `postActions_` naming exactly actions.json's rows). Run by tools/build.js. */
 'use strict';
-const { text, srcFiles, report, main } = require('./lib/gen.js');
+const { text, srcFiles, report, main, bare } = require('./lib/gen.js');
 
 function run() {
   const bad = [];
@@ -58,7 +58,7 @@ function run() {
   if (tables !== 1) bad.push('backend/: postActions_() dispatched from ' + tables + ' places, not one');
   /* ONE PERMISSION TABLE (unify 4): PERMISSIONS only, the gate's level computed by levelOf_ (booking.gs), the same as tools/permissions.js `levelOf` for every action. */
   const allGs = srcFiles('backend', /\.gs$/).map(f => text(f)).join("\n");
-  if (/\bACTION_ACCESS\b/.test(allGs.replace(/\/\*[\s\S]*?\*\//g, ''))) bad.push('backend/: ACTION_ACCESS is back; the one table is PERMISSIONS');
+  if (/\bACTION_ACCESS\b/.test(bare(allGs, { comments: true }))) bad.push('backend/: ACTION_ACCESS is back; the one table is PERMISSIONS');
   const lv = allGs.match(/function levelOf_\(roles\) \{[\s\S]*?\n\}/), pm = allGs.match(/const PERMISSIONS = (\{[\s\S]*?\n\});/);
   let levels = 0;
   if (!lv || !pm) bad.push('backend/: no levelOf_ or no PERMISSIONS');

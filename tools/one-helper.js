@@ -4,16 +4,18 @@
    data/settings/setting-for.json's `type:` rows (col, label, admin); a list of them anywhere in js/ or backend/ fails the build.
    The tools' shared helpers live once, in tools/lib/gen.js; a tool defining its own S, blockInto, file read (`read`), file walk (`walk`
    over readdirSync) or run-it-myself tail (`require.main === module` with its own try/exit) fails the build: take text, srcFiles and main.
+   So does its own stripper (unify batch 8): a comment or BEGIN/END/(generated) block blanked by an inline regex, an uncomment
+   function or a SHARED_RE of its own; take bare() and the block regexes.
    OWED lists the files another lane is still moving onto gen.js; each is printed, and dropping off the list is the goal. tools/build.js runs it. */
 'use strict';
 const { read, S, text, srcFiles, report, main } = require('./lib/gen.js');
-/* tools/facet-readers.js is lane-locked (unify batch 6): its own tail stays until its owner moves it. */
-const OWED = ['tools/facet-readers.js'];
+const OWED = [];
 const HELPERS = [
   [/^\s*(?:const|let|var|function)\s+(S|blockInto)\b/m, m => m[1]],
   [/^\s*(?:const|let|var)\s+read\s*=[^\n]*readFileSync/m, () => 'read'],
   [/^\s*(?:(?:const|let|var)\s+walk\s*=|function\s+walk\s*\()[^\n]*(?:\n[^\n]*){0,1}readdirSync/m, () => 'walk'],
   [/require\.main\s*===\s*module\)\s*\{\s*try\b/, () => 'main tail'],
+  [/\.replace\(\s*\/\\\/\\\*|\.replace\([^\n]*:BEGIN\[|\.replace\([^\n]*\\\(generated\\\)|^\s*function\s+uncomment|^\s*(?:const|let|var)\s+SHARED_RE\s*=/m, () => 'stripper'],
 ];
 
 function helperProblems() {
@@ -42,8 +44,8 @@ function groupProblems() {
 
 function run() {
   const h = helperProblems(), g = groupProblems(), bad = h.concat(g.bad);
-  console.log('one-helper: ' + g.groups + ' settings groups from setting-for.json; ' + h.length + ' tool(s) with their own S/blockInto/read/walk/main tail'
-    + '; owed: ' + OWED.join(', '));
+  console.log('one-helper: ' + g.groups + ' settings groups from setting-for.json; ' + h.length + ' tool(s) with their own S/blockInto/read/walk/main tail/stripper'
+    + '; owed: ' + (OWED.join(', ') || 'none'));
   report('one-helper', bad);
 }
 module.exports = { run };
