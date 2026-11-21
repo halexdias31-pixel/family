@@ -278,6 +278,13 @@
   "err-busy-press": "Busy — press it again in a moment.",
   "err-busy-resend": "Busy — it will be sent again.",
   "err-no-people-tab": "no people tab",
-  "err-not-in-session": "You're not part of this session."
+  "err-not-in-session": "You're not part of this session.",
+  "dk-now": "Now: {name}",
+  "dk-now-at": "Now: {name} (from {at})",
+  "dk-next": "Next: {name} at {at}",
+  "dk-next-none": "Nothing after this today.",
+  "dk-missed": "Missed",
+  "dk-day-done": "Every list is done for today.",
+  "dk-from": "from {at}"
  }
 }

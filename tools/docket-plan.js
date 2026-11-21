@@ -2,14 +2,17 @@
 /* @family. — tools/docket-plan.js THE NOW, NEXT CHECK (rule 1.75, 1.82; owner 20 Nov): the owner follows the docket's order without deciding, so the order
    must keep its rules. js/map.js dkPlan_ is run as served on fixed sample lists: an item at a fixed time keeps it, what runs by itself goes first (the longest
    first), a deadline beats no deadline, must beats normal, a hard item is followed by an easy one, done items go last, and the same input gives the same order.
+   THE WHOLE DAY (owner, 21 Nov): dkPhase_ on fixed phase lists (eyes open, feet on floor, shower, desk): the clock picks the list, ticking a list's last item
+   moves on, a list skipped moves on when its time passes and its unticked items carry over marked missed, a list with no start is no phase.
    Counted: every case printed; one broken fails the build. Run by tools/build.js. */
 'use strict';
 const { ROOT, report, main } = require('./lib/gen.js');
 const fs = require('fs'), path = require('path');
+const fnOf = (src, name) => { const m = new RegExp('\\nfunction ' + name + '\\([^)]*\\) \\{[\\s\\S]*?\\n\\}\\n').exec(src);
+  if (!m) throw new Error('docket-plan: no ' + name + ' in js/map.js'); return m[0]; };
 function planner() {
-  const src = fs.readFileSync(path.join(ROOT, 'js', 'map.js'), 'utf8'), m = /\nfunction dkPlan_\(items, now\) \{[\s\S]*?\n\}\n/.exec(src);
-  if (!m) throw new Error('docket-plan: no dkPlan_ in js/map.js');
-  return new Function(m[0] + '; return dkPlan_;')();
+  const src = fs.readFileSync(path.join(ROOT, 'js', 'map.js'), 'utf8');
+  return new Function(fnOf(src, 'dkPlan_') + fnOf(src, 'dkPhase_') + '; return [dkPlan_, dkPhase_];')();
 }
 const NOW = '2026-11-20 09:00';
 /* Each case: a list, and what must hold of its order (titles). */
@@ -31,16 +34,49 @@ const CASES = [
   { name: 'done items last', items: [{ title: 'gone', done: true, doneOn: '2026-11-20' }, { title: 'daily done', repeat: 'daily', doneOn: '2026-11-20' }, { title: 'left' }],
     ok: o => o[0] === 'left' },
 ];
+/* THE DAY'S PHASES: a fresh copy per case; `tick` names the titles done today (London's day of NOW). */
+const DAY = () => [
+  { name: 'Eyes open', start: '06:30', items: [{ title: 'water', repeat: 'daily' }, { title: 'pills', repeat: 'daily' }] },
+  { name: 'Feet on floor', start: '07:00', items: [{ title: 'bed', repeat: 'daily' }, { title: 'stretch', repeat: 'daily', minutes: 10 }] },
+  { name: 'Shopping', items: [{ title: 'milk' }] },
+  { name: 'Shower', start: '07:30', items: [{ title: 'shower', repeat: 'daily', minutes: 10 }] },
+  { name: 'Desk', start: '9:00', items: [{ title: 'email', repeat: 'daily' }, { title: 'tax', effort: 'hard', minutes: 30 }] },
+];
+const PHASES = [
+  { name: 'before the first start, the first list', at: '05:10', want: 'Eyes open', next: 'Feet on floor', missed: [] },
+  { name: 'the clock picks the list', at: '07:10', tick: ['water', 'pills'], want: 'Feet on floor', next: 'Shower', missed: [] },
+  { name: 'ticking the last item moves to the next before its time', at: '06:40', tick: ['water', 'pills'], want: 'Feet on floor', next: 'Shower', missed: [] },
+  { name: 'a skipped list moves on when its time passes, its items carried over missed', at: '07:35', tick: ['water'], want: 'Shower', next: 'Desk', missed: ['pills', 'bed', 'stretch'] },
+  { name: 'missed come after the current list, in plan order', at: '09:05', tick: ['water', 'pills', 'bed', 'stretch', 'shower'], want: 'Desk', next: '', order: 'tax,email' },
+  { name: 'a list with no start is no phase', at: '08:00', tick: ['water', 'pills', 'bed', 'stretch'], want: 'Shower', next: 'Desk', missed: [] },
+  { name: 'yesterday\'s ticks are not today\'s', at: '07:05', tick: ['water', 'pills'], tickOn: '2026-11-19', want: 'Feet on floor', missed: ['pills', 'water'] },
+  { name: 'all done: the last list, nothing left', at: '10:00', tick: ['water', 'pills', 'bed', 'stretch', 'shower', 'email', 'tax'], want: 'Desk', next: '', over: true },
+];
+function phaseCase(phase, c) {
+  const lists = DAY(), day = NOW.slice(0, 10);
+  lists.forEach(L => L.items.forEach(it => { if ((c.tick || []).includes(it.title)) { it.doneOn = c.tickOn || day; if (it.repeat !== 'daily') it.done = true; } }));
+  const p = phase(lists, day + ' ' + c.at), name = li => (li == null ? '' : lists[li].name);
+  if (!p) return 'no phase found';
+  const own = p.rows.filter(r => !r.missed).map(r => lists[r.li].items[r.i].title), miss = p.rows.filter(r => r.missed).map(r => lists[r.li].items[r.i].title);
+  const ok = name(p.cur) === c.want && (c.next == null || name(p.next) === c.next) && (!c.missed || miss.join() === c.missed.join())
+    && (!c.order || own.join() === c.order) && (c.over == null || p.over === c.over)
+    && JSON.stringify(p) === JSON.stringify(phase(JSON.parse(JSON.stringify(lists)), day + ' ' + c.at));
+  return ok ? '' : 'at ' + c.at + ': ' + name(p.cur) + ' [' + own.join(', ') + '] missed [' + miss.join(', ') + '], next ' + name(p.next);
+}
 function run() {
-  const plan = planner(), bad = [];
+  const [plan, phase] = planner(), bad = [];
   CASES.forEach(c => {
     const a = plan(c.items, NOW), b = plan(JSON.parse(JSON.stringify(c.items)), NOW), o = a.map(i => c.items[i].title);
     const whole = a.length === c.items.length && new Set(a).size === a.length;
     if (!whole || a.join() !== b.join() || !c.ok(o)) bad.push(c.name + ': ' + o.join(', '));
   });
-  console.log('docket-plan: ' + CASES.length + ' sample lists through dkPlan_; ' + (CASES.length - bad.length) + ' keep the order rules, ' + bad.length + ' break them');
+  const nPlan = bad.length;
+  PHASES.forEach(c => { const why = phaseCase(phase, c); if (why) bad.push(c.name + ': ' + why); });
+  if (phase([{ name: 'x', items: [] }], NOW) !== null) bad.push('lists with no start: a phase was found');
+  console.log('docket-plan: ' + CASES.length + ' sample lists through dkPlan_; ' + (CASES.length - nPlan) + ' keep the order rules, ' + nPlan + ' break them');
+  console.log('docket-plan: ' + PHASES.length + ' clock times through dkPhase_; ' + (bad.length - nPlan ? PHASES.length - (bad.length - nPlan) : PHASES.length) + ' pick the right list, ' + (bad.length - nPlan) + ' do not');
   report('docket-plan', bad, 'list(s) out of order');
-  return { n: CASES.length, bad: bad.length };
+  return { n: CASES.length + PHASES.length, bad: bad.length };
 }
 module.exports = { run };
 main(module, run);
