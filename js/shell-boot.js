@@ -158,18 +158,12 @@ const TABS = [
   { id: 'stuff',   icon: '🔎', label: 'Find',    title: 'Find' },
 ];
 /* SETTINGS ARE FIND › SETTINGS › <type>: each a card group Find draws (CARD_BUILD, find-doors.js), its cards keyed by id. */
-const SETTING_GROUPS = [{ id: 'apprentice', label: 'Apprentice settings', cards: true, group: true },
-  /* WEB SETTINGS (491, an admin's alone): Find › Settings › Site since 15 Nov. */
-  { id: 'site', label: 'Web settings', admin: true, cards: true, group: true },
-  /* PARENT SETTINGS (453, a parent's or payer's own): Find › Settings › Parent since 15 Nov. */
-  { id: 'family', label: 'Parent settings', cards: true, group: true },
-  /* TUTOR, KIDS AND BIZ SETTINGS: Find › Settings › Staff / Student / Business since 16 Nov; Biz an admin's alone. */
-  { id: 'staff', label: 'Tutor settings', cards: true, group: true },
-  { id: 'account', label: 'Kids settings', cards: true, group: true },
-  { id: 'biz', label: 'Biz settings', admin: true, cards: true, group: true }];
+/* THE GROUPS ARE setting-for.json's `type:` rows (col, label, admin), never a list here. */
+const settingGroupList_ = () => { let t = {}; try { t = (DATA && DATA.settingFor) || {}; } catch (e) { t = {}; }
+  return Object.keys(t).filter(k => /^type:/.test(k) && t[k].col).map(k => ({ id: t[k].col, label: t[k].label || '', admin: !!t[k].admin, cards: true, group: true })); };
 
 /* A SETTINGS GROUP BY ID: its label and whether it is an admin's (me-roles.js, find-doors.js). */
-const settingGroupOf_ = id => SETTING_GROUPS.find(g => g.id === id) || null;
+const settingGroupOf_ = id => settingGroupList_().find(g => g.id === id) || null;
 
 /* ---------- WHERE AN UNKNOWN ROUTE LANDS, NAMED RATHER THAN COUNTED § */
 /* THE FIRST THING ANYBODY SEES IS FIND (1070): the core and the one front door; the other columns stand below it. */

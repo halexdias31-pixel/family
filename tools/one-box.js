@@ -6,7 +6,7 @@
 'use strict';
 const fs = require('fs'), path = require('path');
 const VQ = require('./validate-questions.js');
-const S = v => String(v == null ? '' : v).trim();
+const { S } = require('./lib/gen.js');
 
 function run() {
   if (!fs.existsSync(path.join(__dirname, '..', 'data-private', 'questions.json'))) { console.log('one-box: no data-private/questions.json here, skipped'); return null; }

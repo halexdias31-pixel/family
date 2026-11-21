@@ -5,8 +5,7 @@
    data/settings/question-aliases.json, so saved answers follow the kept one. Prints the count; a pair fails the build. tools/build.js runs it. */
 'use strict';
 const fs = require('fs'), path = require('path');
-const ROOT = path.join(__dirname, '..');
-const S = v => String(v == null ? '' : v).trim();
+const { ROOT, S } = require('./lib/gen.js');
 
 function season(m) { m = +m; return m >= 4 && m <= 7 ? 'summer' : m >= 10 ? 'november' : m ? 'm' + m : ''; }
 function keyOf(d) {

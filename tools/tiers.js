@@ -2,7 +2,7 @@
 /* @family. — tools/tiers.js writes data/settings/tiers.json into the code (860): shell.js's TIER_* lists and index.html's LATER and OFF. Turning a widget on is its line in tiers.json, then this. tools/build.js runs it. */
 'use strict';
 const fs = require('fs'), path = require('path');
-const ROOT = path.join(__dirname, '..');
+const { ROOT, writeIfChanged } = require('./lib/gen.js');
 const T = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/settings/tiers.json'), 'utf8'));
 const of = (sec, t) => Object.keys(T[sec] || {}).filter(k => T[sec][k] === t);
 /* A FILE IS OFF when every widget it serves is off (`widgetFiles`); its code stays in the repo and in FILES, and is never fetched. */
@@ -40,9 +40,8 @@ function run() {
   Object.keys(want).forEach(f => {
     const p = path.join(ROOT, f);
     let s = fs.readFileSync(p, 'utf8');
-    const was = s;
     want[f].forEach(([re, line]) => { if (!re.test(s)) throw new Error('tiers: ' + f + ' has no ' + re.source.split(' =')[0]); s = s.replace(re, line); });
-    if (s !== was) { wrote.push(f); fs.writeFileSync(p, s); }
+    if (writeIfChanged(p, s)) wrote.push(f);
   });
   console.log('tiers: wrote ' + (wrote.join(', ') || 'nothing (already current)') + '; off files: ' + offFiles.join(', '));
 }
