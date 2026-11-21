@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* EVERY ACTION FROM ONE FILE (owner, 17 Nov): data/settings/actions.json → permissions.json and the generated blocks Apps Script reads (it cannot read the repo): */
-/* ACTION_ACCESS and RUNNABLE (access.gs), postActions_ (dopost.gs), payloadFeatures_ (get-start.gs), PERMISSIONS and ITEM_PERMISSIONS (booking.gs). */
+/* RUNNABLE (access.gs), postActions_ (dopost.gs), payloadFeatures_ (get-start.gs), PERMISSIONS and ITEM_PERMISSIONS (booking.gs). */
 'use strict';
 const fs = require('fs'), path = require('path');
 const ROOT = path.join(__dirname, '..');
@@ -48,9 +48,7 @@ function jsonRows() {
 
 const q = s => "'" + s + "'";
 function accessGs() {
-  return '/* WHO MAY POST EACH ACTION: anyone, self (signed in; the handler checks whose row) or admin. */\n'
-    + 'const ACTION_ACCESS = {\n' + POSTS.map(a => '  ' + a.name + ': ' + q(levelOf(a.roles)) + ',').join('\n') + '\n};\n\n'
-    + '/* A JOB FROM A URL (`?run=<job>&arg=…`), for an admin who proves name and PIN (getRun_). */\n'
+  return '/* A JOB FROM A URL (`?run=<job>&arg=…`), for an admin who proves name and PIN (getRun_). */\n'
     + 'const RUNNABLE = {\n' + RUNS.map(a => '  ' + a.name + ': ' + (a.arg ? 'a => ' + a.handler + '(a)' : '() => ' + a.handler + '()') + ',').join('\n') + '\n};\n';
 }
 function dopostGs() {
@@ -72,7 +70,11 @@ function bookingGs(rows) {
     + 'const PERMISSIONS = {\n' + Object.keys(by).sort().map(a => '  ' + a + ': [' + by[a].map(q).join(', ') + '],').join('\n') + '\n};\n\n'
     + '/* THE GATE\'S LEVEL FOR AN ACTION: anyone, self or admin; \'\' refuses it. */\n'
     + 'function permNeed_(action) {\n'
-    + '  return Object.prototype.hasOwnProperty.call(ACTION_ACCESS, action) ? ACTION_ACCESS[action] : \'\';\n'
+    + '  return Object.prototype.hasOwnProperty.call(PERMISSIONS, action) ? levelOf_(PERMISSIONS[action]) : \'\';\n'
+    + '}\n\n'
+    + '/* THE LEVEL FROM THE TIERS (tools/permissions.js `levelOf`, the same words): anyone, self (signed in; the handler checks whose row) or admin. */\n'
+    + 'function levelOf_(roles) {\n'
+    + "  return roles.indexOf('anyone') !== -1 ? 'anyone' : roles.indexOf('member') !== -1 ? 'self' : roles.indexOf('admin') !== -1 ? 'admin' : '';\n"
     + '}\n\n'
     + '/* A CHILD REFUSED WHAT A MEMBER MAY DO (398, money): the action\'s tiers name member and not child. */\n'
     + 'function permChildDenied_(action) {\n'

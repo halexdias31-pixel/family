@@ -60,7 +60,7 @@ function migrateOldRows_() {
   return { changed: log.length, log: log, tidied: oldRowsTidied_(), trimmed: storeTrim_() };
 }
 
-/* THE ADMIN'S TILE (gated `admin` in ACTION_ACCESS). */
+/* THE ADMIN'S TILE (gated `admin` in PERMISSIONS). */
 function postTidyOldRows_(body, action, began) {
   try { return jsonOut(Object.assign({ success: true }, migrateOldRows_())); }
   catch (err) { return jsonOut({ error: S(err && err.message || err) }); }
