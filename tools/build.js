@@ -44,6 +44,7 @@ const ORDER = [
   'one-import',   // the one-import check (rule 1.75, unify K): one pack validator and applier (libPackCheck_, libPackApply_), one pack maker, one deploy (pullFromGitHub), the emptying guard on fixed cases; fails the build
   'one-word',     // the one-word check (rule 1.75, unify batch 6 lane B): a js literal of 12+ characters equal to a words.json value is read through text_(key); another lane's owed file is printed as owed; fails the build
   'one-plural',   // the one-plural check (rule 1.75, unify batch 5 job R): every count's word by js/core.js plural_ (copied to the backend); an inline n === 1 ? '' : 's' or a changed fixed case fails the build
+  'one-price',    // the one-price check (rule 1.75, owner 21 Nov): one price formula and one open rate (config open_tutor_rate) in js/core-price.js; a hand rate or second sum fails the build
   'one-lock',     // the one-lock check (rule 1.75, unify batch 7): the backend's write lock, "Nothing was saved." and Drive file links only in backend/write-lock.gs; fails the build
   'one-table',    // the one-table check (rule 1.75, unify batch 7): keep-booked jobs, digest skip reasons and the site-then-raw fetch each live once; fails the build
   'one-wrapper',  // the one-wrapper check (rule 1.75, unify batch 8): one IndexedDB wrapper, one tile-row wrap, one spelling of the pointer queries; fails the build
