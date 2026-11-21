@@ -184,7 +184,7 @@ document.addEventListener('change', e => {
   const sum = field.querySelector('summary');
   const cap = field.querySelector('.many-cap');
   if (sum) {
-    sum.textContent = box.value || 'Tap to choose';
+    sum.textContent = box.value || text_('tap-to-choose');
     sum.classList.toggle('is-unset', !got.length);
     sum.setAttribute('aria-label', ((cap && cap.textContent) || '') + ': ' + (box.value || 'nothing chosen'));
   }
@@ -406,7 +406,7 @@ function qualSlot_(i, value, o) {
         qualPick_({ 'data-me': f(''), class: 'q-name' }, q.subject, QUAL_SUBJECTS, 'Subject', 'Choose', o.mine),
         qualPick_({ 'data-me': f('_level') }, qualLevel_(q.level), QUAL_LEVELS, 'Level', 'Choose')] },
       { type: 'group', look: 'q-row', blocks: [
-        qualPick_({ 'data-me': f('_grade') }, q.grade, QUAL_GRADES, 'Grade', 'None yet', null, 'q-f q-grade'),
+        qualPick_({ 'data-me': f('_grade') }, q.grade, QUAL_GRADES, 'Grade', text_('none-yet'), null, 'q-f q-grade'),
         { type: 'field', look: 'q-f', caps: ['Finished', 'Year'], blocks: [{ type: 'control', tag: 'select', attrs: { 'data-me': f('_received') },
           options: qualYears_(q.received).map(y => ({ value: y, text: y === 'Present' ? 'Still studying' : y, on: y === q.received }))
             .concat([{ value: '', text: 'Not sure', on: !q.received }]) }] },

@@ -63,7 +63,7 @@ on('cart-add', el => {
 
   cartSave();
   /* ---------- THE SHAPE FILLS, AND NOTHING ELSE MOVES § */
-  tileSet_(el, { label: 'In your basket', note: '', on: true, off: true });
+  tileSet_(el, { label: text_('in-your-basket'), note: '', on: true, off: true });
   toast('In your basket — ' + CART.length + ' ' + plural_(CART.length, 'item'));
 });
 
@@ -91,8 +91,8 @@ function cartAddBundle_(el) {
   if (!added && !had) { toast(text_('nothing-in-that-bundle-can-be')); return; }
   cartSave();
   if (typeof cartPaint_ === 'function') cartPaint_();
-  tileSet_(el, { label: 'In your basket', note: '', on: true, off: true });
-  toast(!added ? 'Already in your basket'
+  tileSet_(el, { label: text_('in-your-basket'), note: '', on: true, off: true });
+  toast(!added ? text_('already-in-your-basket')
       : added + ' ' + plural_(added, 'paper') + ' in your basket'
         + (had ? ' — ' + had + ' already there' : ''));
 }

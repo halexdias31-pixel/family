@@ -239,8 +239,8 @@ const FORM_TYPE_ = {
   /* A DOCUMENT PHOTO: its name, Choose photo, what was picked, and the hidden file box; the photo lives in `o.docs` until sent. */
   doc: (s, x, f, v, o) => cardBlock_({ type: 'group', look: 'field apply-doc', attrs: { 'data-doc': f }, blocks: [
     { type: 'group', tag: 'span', look: null, text: x.label },
-    { type: 'group', look: 'btn-row', tiles: [{ form: true, kind: 'quiet', label: (o.docs || {})[f] ? 'Change photo' : 'Choose photo', act: x.act || 'apply-pick' }] },
-    { type: 'group', tag: 'p', look: 'note apply-doc-said', text: (o.docs || {})[f] ? 'Photo ready.' : '' },
+    { type: 'group', look: 'btn-row', tiles: [{ form: true, kind: 'quiet', label: (o.docs || {})[f] ? text_('change-photo') : 'Choose photo', act: x.act || 'apply-pick' }] },
+    { type: 'group', tag: 'p', look: 'note apply-doc-said', text: (o.docs || {})[f] ? text_('photo-ready') : '' },
     { type: 'control', attrs: { type: 'file', class: 'apply-in', accept: 'image/*', hidden: true } }] }),
   /* THE WEEK'S HOURS (availGrid_, me-roles.js), else a line of words when the backend sent no hour codes. */
   timetable: (s, x, f, v, o) => {

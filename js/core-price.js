@@ -127,7 +127,7 @@ function bookMoney_(m) {
   const net = Math.round((charged - tutorPayout - venue - cardFees - managerTotal) * 100) / 100;
   return { managers, managerTotal, seatMoney,
     gross, discount, discountType, discountValue, discountCode: String(d.code || ''),
-    absorbedBy: discount ? 'Shared with tutor' : '',
+    absorbedBy: discount ? text_('shared-with-tutor') : '',
     charged, teaching, tutorPayout, venue, cardFees, net, margin: charged > 0 ? net / charged : 0,
   };
 }

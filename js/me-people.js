@@ -277,7 +277,7 @@ function personEdHtml_(p) {
   const qv = f => f === 'handle' ? (q.handle ? '@' + q.handle : '') : q[(PE_BOXES_.find(b => b[0] === f) || [f, f])[1]] || '';
   return pplG_('pe-form', [formOf_('person-edit', qv, { draftId: F.id }),
     peFamHtml_(F), peNotifyHtml_(F),
-    tutor ? pplP_('note pe-fam', (q.listed === '' || TRUEish_(q.listed) ? 'Listed' : 'Not listed') + ': the eye on their tutor card changes it') : '',
+    tutor ? pplP_('note pe-fam', (q.listed === '' || TRUEish_(q.listed) ? 'Listed' : text_('not-listed')) + ': the eye on their tutor card changes it') : '',
     pplP_('note pe-said', '', { attrs: { 'aria-live': 'polite' } }), done], at);
 }
 /* THEIR NOTIFICATIONS: the kinds their own card shows, ticked as the sheet says; each tick is `setNotify` with targetId (admin-checked there). */

@@ -427,7 +427,7 @@ function profileRefresh_(loud, onOld) {
 FORM_SEND_['pin-change'] = (v, el) => {
   const said = $('pin-said');
   /* SIGNED OUT, OR A BLANK NEW PIN, SENDS NOTHING — a blank pair "matches" and would post an empty PIN. */
-  if (!USER) { if (said) tell_(said, 'error', 'Sign in first.'); return; }
+  if (!USER) { if (said) tell_(said, 'error', text_('sign-in-first-2')); return; }
   if (!v.now || !v.new) { if (said) tell_(said, 'info', 'Type your PIN now and the new one.'); return; }
   /* Typed twice, checked here before the server sees it — a PIN you cannot see and typed once is
      a PIN you get locked out by. */

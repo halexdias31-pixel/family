@@ -27,7 +27,7 @@ function bookFindStart_() {
   /* ONCE A FORM: a chip's × on either asks it, and the next draw must not answer it again. */
   if (!BOOK_FIND.started) {
     BOOK_FIND.started = true;
-    if (!BOOKING.how) BOOKING.how = 'Instant class';
+    if (!BOOKING.how) BOOKING.how = text_('instant-class');
     if (!BOOKING.joining) BOOKING.joining = NEW_LIST;
   }
   /* A CHILD THE CHOSEN CLIENT DOES NOT HAVE IS NEVER ON THE BOOKING, as the form's draw made sure. */
@@ -164,7 +164,7 @@ on('job-room', el => {
   el.disabled = true;
   api({ action: 'setRoom', jobId: el.dataset.id, room, name: USER.name, personId: USER.personId })
     .then(d => {
-      if (!d || d.error) { if (said) said.textContent = (d && d.error) || 'Not saved'; el.disabled = false; return; }
+      if (!d || d.error) { if (said) said.textContent = (d && d.error) || text_('not-saved'); el.disabled = false; return; }
       const j = (DATA.liveJobs || DATA.jobs || []).find(x => String(x.id) === String(el.dataset.id));
       if (j) j.room = room;
       toast(text_('room-saved')); repaint();
@@ -349,9 +349,9 @@ function signMenu_() {
     /* FOUR PICKED AND NOT IN: nothing at all, as a path that matches nothing. */
     /* A NAME NO ACCOUNT ANSWERS TO keeps Make an account on offer, and nothing else. */
     if (SIGN.wrong || SIGN.pin.length >= SIGN_PIN_LEN) return SIGN.known === false && !SIGN.busy
-      ? [{ type: 'choices', rows: [{ look: 'sign-more', options: [{ text: 'Make an account', act: 'sign-join-card' }] }] }] : [];
+      ? [{ type: 'choices', rows: [{ look: 'sign-more', options: [{ text: text_('make-an-account'), act: 'sign-join-card' }] }] }] : [];
     const more = [SIGN.pin.length ? null : { text: 'Forgot PIN', act: 'sign-forgot' },
-      SIGN.known === false ? { text: 'Make an account', act: 'sign-join-card' } : null].filter(Boolean);
+      SIGN.known === false ? { text: text_('make-an-account'), act: 'sign-join-card' } : null].filter(Boolean);
     return [{ type: 'choices', rows: [
       askTags_('sign-in', signField_('pin'), { act: 'sign-digit' })]
       .concat(more.length ? [{ look: 'sign-more', options: more }] : []) }];
@@ -377,10 +377,10 @@ function signChips_() {
     return [chip(who, 'signout', 'Sign out ' + who)].concat(Array.from({ length: n }, (_, i) => dot(i)));
   }
   if (SIGN.step === 'guest') return [chip('Guest', 'sign-restart', 'Sign in instead')];
-  if (SIGN.step === 'join') return [chip('Make an account', 'sign-restart', 'Back to sign in')].concat(askChips_('sign-join'));
+  if (SIGN.step === 'join') return [chip(text_('make-an-account'), 'sign-restart', 'Back to sign in')].concat(askChips_('sign-join'));
   if (SIGN.step !== 'pin') return [];
   const card = SIGN.card === 'forgot' ? [chip('Forgot PIN', 'sign-card-off', 'Back to the PIN')]
-    : SIGN.card === 'join' ? [chip('Make an account', 'sign-card-off', 'Back to the PIN')].concat(askChips_('sign-join')) : [];
+    : SIGN.card === 'join' ? [chip(text_('make-an-account'), 'sign-card-off', 'Back to the PIN')].concat(askChips_('sign-join')) : [];
   return [chip(SIGN.who, 'sign-restart', 'Not ' + SIGN.who)].concat(SIGN.pin.map((_, i) => dot(i)), card);
 }
 on('sign-guest', () => { SIGN.step = 'guest'; SIGN.pin = []; signPaint_(); });
