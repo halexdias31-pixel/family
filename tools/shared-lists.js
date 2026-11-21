@@ -5,10 +5,9 @@
    takes more than the server keeps. Counted site-wide over every list in LISTS; then each rank's Message tiles are walked against the
    backend's own `mayMessage`. Prints the count; a hand mirror or a tile the server disagrees with fails the build. tools/build.js runs it. */
 'use strict';
-const fs = require('fs'), path = require('path'), vm = require('vm');
-const ROOT = path.join(__dirname, '..');
-const read = f => fs.readFileSync(path.join(ROOT, f), 'utf8');
-const json = f => JSON.parse(read(f));
+const vm = require('vm');
+const { text, srcFiles, main } = require('./lib/gen.js');
+const json = f => JSON.parse(text(f));
 
 /* EACH SHARED LIST OR LIMIT: the backend constant and where SHARED_SETTINGS holds it. */
 const LISTS = [
@@ -21,7 +20,7 @@ const LISTS = [
 const at = (o, p) => p.split('.').reduce((x, k) => (x == null ? x : x[k]), o);
 /* THE GENERATED BLOCK, as each side carries it. */
 function sharedOf(file) {
-  const m = /const SHARED_SETTINGS = (\{.*\});\n/.exec(read(file));
+  const m = /const SHARED_SETTINGS = (\{.*\});\n/.exec(text(file));
   if (!m) throw new Error('shared-lists: ' + file + ' has no SHARED block');
   return JSON.parse(m[1]);
 }
@@ -38,7 +37,7 @@ function grab(src, name, file) {
 
 function find() {
   const bad = [];
-  const gs = read('backend/constants.gs');
+  const gs = text('backend/constants.gs');
   const want = json('data/settings/settings.json');
   want.pictures = json('data/settings/default-pictures.json').map(r => String(r.picture || '').trim()).filter(Boolean);
   const strip = o => JSON.parse(JSON.stringify(o, (k, v) => (k === '_about' ? undefined : v)));
@@ -52,28 +51,27 @@ function find() {
     if (line.indexOf('SHARED_SETTINGS.' + p) === -1) bad.push(name + ': backend/constants.gs mirrors it by hand');
   }
   /* AND NO HAND COPY ON THE SITE: no js/ file names a backend constant with a literal, nor the old Message table. */
-  const js = fs.readdirSync(path.join(ROOT, 'js')).filter(f => f.endsWith('.js'));
-  for (const f of js) {
-    const s = read('js/' + f);
+  for (const p of srcFiles('js', /\.js$/)) {
+    const f = p.slice(3), s = text(p);
     for (const [name] of LISTS) if (new RegExp('\\b(const|let|var)\\s+' + name + '\\s*=\\s*[\\[{\\d\'"]').test(s)) bad.push(name + ': js/' + f + ' mirrors it by hand');
     if (/\bMSG_MAY_\s*=|\bmsgRankOf_\s*=/.test(s)) bad.push('messaging: js/' + f + ' keeps its own Message table');
   }
   /* PICTURES: links.js draws exactly the source's, and reads the list from SHARED_SETTINGS. */
-  const links = read('js/links.js');
+  const links = text('js/links.js');
   const art = Object.keys(vm.runInNewContext('(' + /const PFP_ART = (\{[\s\S]*?\n\});/.exec(links)[1] + ')'));
   if (art.join() !== want.pictures.join()) bad.push('pictures: js/links.js PFP_ART draws ' + art.join(',') + ', the source is ' + want.pictures.join(','));
   if (!/const PFP_PICTURES = SHARED_SETTINGS\.pictures;/.test(links)) bad.push('pictures: js/links.js does not read SHARED_SETTINGS.pictures');
   /* RULES: js/rules.js registers exactly the source's ids, a `lock` on exactly the locked ones. */
-  const rules = vm.runInNewContext('(' + /const RULES = (\[[\s\S]*?\n\]);/.exec(read('js/rules.js'))[1] + ')');
+  const rules = vm.runInNewContext('(' + /const RULES = (\[[\s\S]*?\n\]);/.exec(text('js/rules.js'))[1] + ')');
   const ids = rules.map(r => r.id).sort(), lockd = rules.filter(r => r.lock).map(r => r.id).sort();
   if (ids.join() !== want.siteRules.ids.slice().sort().join()) bad.push('rules: js/rules.js registers ' + ids.join(',') + ', the source has ' + want.siteRules.ids.slice().sort().join(','));
   if (lockd.join() !== want.siteRules.locked.slice().sort().join()) bad.push('rules: js/rules.js locks ' + lockd.join(',') + ', the source locks ' + want.siteRules.locked.slice().sort().join(','));
 
   /* 2. EACH RANK'S MESSAGE TILES AGAINST THE SERVER: the site's `msgMay_` (tiles.js, over core.js's rank_) and the backend's `mayMessage`, run as written. */
-  const core = read('js/core.js'), tiles = read('js/tiles.js'), people = read('backend/people.gs');
+  const core = text('js/core.js'), tiles = text('js/tiles.js'), people = text('backend/people.gs');
   const site = vm.createContext({ SHARED_SETTINGS: sides['js/core.js'], DATA: null, USER: null });
   /* THE ROLE HELPERS BOTH SIDES CARRY IN THEIR SHARED BLOCK (data/settings/roles.js, one-role). */
-  const roleHelpers = read('data/settings/roles.js') + '\n';
+  const roleHelpers = text('data/settings/roles.js') + '\n';
   vm.runInContext(roleHelpers + ['norm', 'roleAliases_', 'roleOf', 'heldRoles', 'hasRole', 'rank_'].map(n => grab(core, n, 'js/core.js')).join('\n')
     + '\n' + grab(tiles, 'msgMay_', 'js/tiles.js') + '\nthis.msgMay_ = msgMay_; this.setUser = u => { USER = u; };', site);
   const server = vm.createContext({ SHARED_SETTINGS: sides['backend/constants.gs'] });
@@ -100,4 +98,4 @@ function run() {
   if (bad.length) throw new Error('shared-lists: ' + bad.length + ' problem(s); write each in data/settings/settings.json and run cards-gen');
 }
 module.exports = { run, find };
-if (require.main === module) { try { run(); } catch (e) { console.error(e.message); process.exit(1); } }
+main(module, run);

@@ -5,26 +5,24 @@
    formGaps_ is written by hand; backend/cards-gen.gs's gaps or gap tests differ from the site's; the phone and the backend say different things
    for the same body; or a file draws more raw input/select/textarea than forms.json `leftovers` allows. Prints the count of forms. */
 'use strict';
-const fs = require('fs'), path = require('path'), vm = require('vm');
-const ROOT = path.join(__dirname, '..');
-const read = f => fs.readFileSync(path.join(ROOT, f), 'utf8');
-const jsFiles = () => fs.readdirSync(path.join(ROOT, 'js')).filter(f => f.endsWith('.js')).map(f => 'js/' + f);
-const gsFiles = () => fs.readdirSync(path.join(ROOT, 'backend')).filter(f => f.endsWith('.gs')).map(f => 'backend/' + f);
+const path = require('path'), vm = require('vm');
+const { text, srcFiles, report, main } = require('./lib/gen.js');
+const jsFiles = () => srcFiles('js', /\.js$/), gsFiles = () => srcFiles('backend', /\.gs$/);
 
 function run() {
   const bad = [], gen = require('./cards-gen.js');
-  const FJ = JSON.parse(read('data/settings/forms.json')), KJ = JSON.parse(read('data/settings/kinds.json'));
+  const FJ = JSON.parse(text('data/settings/forms.json')), KJ = JSON.parse(text('data/settings/kinds.json'));
   const forms = {};
   Object.values(KJ.kinds).forEach(k => Object.entries(k.forms || {}).forEach(([id, f]) => {
     if (forms[id]) bad.push('form "' + id + '" is described twice in kinds.json'); forms[id] = f;
   }));
   /* 1. THE FRONT END'S SPECS ARE forms.json's, as written. */
-  const formJs = read('js/form.js'), block = (formJs.match(gen.FORMS_RE) || [])[0];
+  const formJs = text('js/form.js'), block = (formJs.match(gen.FORMS_RE) || [])[0];
   if (block !== gen.formsBlock()) bad.push('js/form.js FORMS block is not data/settings/forms.json (run tools/cards-gen.js)');
   /* 2. NO FORM DESCRIBED OUTSIDE THE SOURCE: one FORM_SPECS, FORM_TESTS, formGaps_, FORM_GAPS each; every form named is in the source. */
   const defs = [[/^const FORM_SPECS\b/m, 'js/form.js'], [/^const FORM_TESTS\b/m, 'js/form.js'], [/^function formGaps_\b/m, 'js/form.js']];
   jsFiles().forEach(f => {
-    const s = read(f);
+    const s = text(f);
     defs.forEach(([re, home]) => { if (f !== home && re.test(s)) bad.push(f + ' defines ' + re.source.replace(/\^|\\b/g, '') + ' outside ' + home); });
     if (/^const FORM_GAPS\b/m.test(s)) bad.push(f + ' defines FORM_GAPS by hand');
     for (const m of s.matchAll(/\bformOf_\(\s*'([^']+)'/g)) if (!forms[m[1]] && !FJ.cards[m[1]]) bad.push(f + ' draws form "' + m[1] + '", not in kinds.json forms');
@@ -32,14 +30,14 @@ function run() {
   });
   gsFiles().forEach(f => {
     if (f === 'backend/cards-gen.gs') return;
-    const s = read(f);
+    const s = text(f);
     if (/^(const|let|var) (FORM_GAPS|FORM_TESTS|FORM_SPECS)\b|^function formGaps_\b/m.test(s)) bad.push(f + ' writes a form engine piece by hand (cards-gen.gs carries it)');
     for (const m of s.matchAll(/FORM_GAPS\[\s*'([^']+)'\s*\]/g)) if (!(forms[m[1]] || {}).gaps) bad.push(f + ' checks form "' + m[1] + '", which has no gaps in kinds.json');
     /* A HAND LIST OF WHAT A FORM LACKS ("your full name", …) is the drift this replaced. */
     if (/missing\.push\(\s*'your /.test(s)) bad.push(f + ' lists a form\'s gaps by hand: put them in kinds.json `gaps`');
   });
   /* 3. THE BACKEND'S COPY IS THE SITE'S: the same gaps, the same tests, the same words for the same body. */
-  const gs = read('backend/cards-gen.gs'), want = {};
+  const gs = text('backend/cards-gen.gs'), want = {};
   Object.entries(forms).forEach(([id, f]) => { if (f.gaps) want[id] = f.gaps; });
   const grab = (src, start) => { const i = src.indexOf(start); if (i < 0) return null; const e = src.indexOf('\n}', i); return src.slice(i, e + 2); };
   ['const FORM_TESTS = {', 'function formGaps_('].forEach(h => {
@@ -74,11 +72,11 @@ function run() {
   /* 4. RAW CONTROLS OUTSIDE THE MAKER: no more than forms.json `leftovers` allows, per file. */
   const left = FJ.leftovers || {};
   jsFiles().forEach(f => {
-    const n = (read(f).match(/<(input|select|textarea)\b/g) || []).length, cap = (left[path.basename(f)] || {}).n || 0;
+    const n = (text(f).match(/<(input|select|textarea)\b/g) || []).length, cap = (left[path.basename(f)] || {}).n || 0;
     if (f !== 'js/form.js' && n > cap) bad.push(f + ' draws ' + n + ' raw input/select/textarea, forms.json leftovers allows ' + cap);
   });
   console.log('one-form: ' + Object.keys(forms).length + ' forms from kinds.json, ' + Object.keys(want).length + ' with gaps, ' + say + ' bodies asked both sides; ' + bad.length + ' wrong');
-  if (bad.length) { bad.forEach(b => console.log('  ' + b)); throw new Error('one-form: ' + bad.length + ' form(s) outside the one source'); }
+  report('one-form', bad, 'form(s) outside the one source');
 }
 module.exports = { run };
-if (require.main === module) { try { run(); } catch (e) { console.error(e.message); process.exit(1); } }
+main(module, run);

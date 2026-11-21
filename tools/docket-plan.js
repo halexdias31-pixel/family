@@ -4,8 +4,8 @@
    first), a deadline beats no deadline, must beats normal, a hard item is followed by an easy one, done items go last, and the same input gives the same order.
    Counted: every case printed; one broken fails the build. Run by tools/build.js. */
 'use strict';
+const { ROOT, report, main } = require('./lib/gen.js');
 const fs = require('fs'), path = require('path');
-const ROOT = path.join(__dirname, '..');
 function planner() {
   const src = fs.readFileSync(path.join(ROOT, 'js', 'map.js'), 'utf8'), m = /\nfunction dkPlan_\(items, now\) \{[\s\S]*?\n\}\n/.exec(src);
   if (!m) throw new Error('docket-plan: no dkPlan_ in js/map.js');
@@ -39,9 +39,8 @@ function run() {
     if (!whole || a.join() !== b.join() || !c.ok(o)) bad.push(c.name + ': ' + o.join(', '));
   });
   console.log('docket-plan: ' + CASES.length + ' sample lists through dkPlan_; ' + (CASES.length - bad.length) + ' keep the order rules, ' + bad.length + ' break them');
-  bad.forEach(s => console.log('  ' + s));
-  if (bad.length) throw new Error('docket-plan: ' + bad.length + ' list(s) out of order');
+  report('docket-plan', bad, 'list(s) out of order');
   return { n: CASES.length, bad: bad.length };
 }
 module.exports = { run };
-if (require.main === module) { try { run(); } catch (e) { console.error(e.message); process.exit(1); } }
+main(module, run);

@@ -5,8 +5,8 @@
    under a prefix the code builds at run time ('pp-' + x, `is-${x}`, look: 'kc-' + x), it is alive. The rest are counted.
    The count may not rise above BUDGET; lower BUDGET whenever classes are removed. Run by tools/build.js. */
 'use strict';
+const { ROOT, main } = require('./lib/gen.js');
 const fs = require('fs'), path = require('path');
-const ROOT = path.join(__dirname, '..');
 /* THE BUDGET: today's count (21 Nov, unify batch 2 cut 69; the six mv- are drawn by data/textbooks.json, sp-sig by tools/cent.py). Lower it as classes go; the build fails if the count rises above it. */
 const BUDGET = 7;
 
@@ -45,4 +45,4 @@ function run() {
   return dead.length;
 }
 module.exports = { run };
-if (require.main === module) { try { run(); } catch (e) { console.error(e.message); process.exit(1); } }
+main(module, run);

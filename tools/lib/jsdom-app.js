@@ -1,17 +1,15 @@
 /* @family. — tools/lib/jsdom-app.js: the real app in jsdom as an Admin, every POST recorded. Read by the build tools that walk the app (finder-tags, facet-data, facet-hues). */
-const fs = require('fs'), path = require('path');
 const { JSDOM, VirtualConsole } = require('jsdom');
-const ROOT = path.join(__dirname, '..', '..');
-const read = f => fs.readFileSync(path.join(ROOT, f), 'utf8');
+const { ROOT, text } = require('./gen.js');
 const order = () => {
-  const m = /window\.FILES\s*=\s*\[([\s\S]*?)\]/.exec(read('index.html'));
+  const m = /window\.FILES\s*=\s*\[([\s\S]*?)\]/.exec(text('index.html'));
   if (!m) { console.error('cannot read window.FILES out of index.html'); process.exit(2); }
   return [...m[1].matchAll(/'([^']+)'/g)].map(x => x[1]);
 };
 const tick = ms => new Promise(o => setTimeout(o, ms));
 /* `payload` is what doGet sends; `rows(name, json)` may rewrite a data/*.json reply. */
 async function app(payload, rows) {
-  const html = read('index.html').replace(/<script[\s\S]*?<\/script>/g, '');
+  const html = text('index.html').replace(/<script[\s\S]*?<\/script>/g, '');
   const dom = new JSDOM(html, { runScripts: 'outside-only', pretendToBeVisual: true, url: 'https://example.org/', virtualConsole: new VirtualConsole() });
   const w = dom.window;
   w.matchMedia = () => ({ matches: false, addEventListener() {}, removeEventListener() {} });
@@ -33,7 +31,7 @@ async function app(payload, rows) {
     const f = /(data\/[a-z0-9_\-\/]+\.json)/.exec(String(u));
     if (f) {
       let j = null;
-      try { j = JSON.parse(read(f[1])); } catch (e) { j = null; }
+      try { j = JSON.parse(text(f[1])); } catch (e) { j = null; }
       if (j !== null) return Promise.resolve(reply(rows ? rows(f[1], j) : j));
     }
     return Promise.resolve(reply(payload));
@@ -42,7 +40,7 @@ async function app(payload, rows) {
   /* A BROWSER FIRES `unhandledrejection` ON THE WINDOW; jsdom leaves it to node, so it is handed back here. */
   const rej = r => { const ev = new w.Event('unhandledrejection'); ev.reason = r; w.dispatchEvent(ev); };
   process.on('unhandledRejection', rej);
-  const src = order().map(n => read('js/' + n + '.js')).join('\n');
+  const src = order().map(n => text('js/' + n + '.js')).join('\n');
   /* `__ev` READS THE APP'S OWN SCOPE: its `let`s and `const`s live inside this one eval, out of reach of another. */
   w.eval(src + '\n;window.__h={TABS,paint,go,SCREENS,on};window.__ev=function(s){return eval(s);};');
   await tick(1500);

@@ -4,9 +4,8 @@
    Fails the build on a hand-written phone split, a '+44' literal, a handle regex or an email regex anywhere else in js/ or backend/,
    or when the site's copy and the backend's answer a fixed case differently (or wrongly). */
 'use strict';
-const fs = require('fs'), path = require('path'), vm = require('vm');
-const ROOT = path.join(__dirname, '..');
-const read = f => fs.readFileSync(path.join(ROOT, f), 'utf8');
+const vm = require('vm');
+const { text, srcFiles, report, main } = require('./lib/gen.js');
 const SHARED = ['js/form.js', 'backend/cards-gen.gs'];
 /* WHAT A SECOND COPY LOOKS LIKE. PHONE_CODES (constants.gs) is the list itself, so its own line may say '+44'. */
 const TWINS = [
@@ -41,16 +40,16 @@ function answers(src, file, globals) {
 }
 function run() {
   const bad = [];
-  const codes = eval(read('backend/constants.gs').match(/^const PHONE_CODES = (\[[\s\S]*?\]);/m)[1]);
-  const files = [].concat(...['js', 'backend'].map(d => fs.readdirSync(path.join(ROOT, d)).filter(f => /\.(js|gs)$/.test(f)).map(f => d + '/' + f)));
+  const codes = eval(text('backend/constants.gs').match(/^const PHONE_CODES = (\[[\s\S]*?\]);/m)[1]);
+  const files = srcFiles(['js', 'backend'], /\.(js|gs)$/);
   let n = 0;
-  files.filter(f => SHARED.indexOf(f) < 0).forEach(f => read(f).split('\n').forEach((l, i) => {
+  files.filter(f => SHARED.indexOf(f) < 0).forEach(f => text(f).split('\n').forEach((l, i) => {
     if (/^const PHONE_CODES = /.test(l) || /^\s*'\+/.test(l) && f === 'backend/constants.gs') return;
     TWINS.forEach(([re, what]) => { if (re.test(l)) bad.push(f + ':' + (i + 1) + ' has ' + what); });
     n++;
   }));
-  const site = answers(read('js/form.js'), 'js/form.js', { DATA: { phoneCodes: codes } });
-  const back = answers(read('backend/cards-gen.gs'), 'backend/cards-gen.gs', { PHONE_CODES: codes });
+  const site = answers(text('js/form.js'), 'js/form.js', { DATA: { phoneCodes: codes } });
+  const back = answers(text('backend/cards-gen.gs'), 'backend/cards-gen.gs', { PHONE_CODES: codes });
   let asked = 0;
   for (const k in CASES) CASES[k].forEach(([i, want], j) => {
     asked++;
@@ -58,7 +57,7 @@ function run() {
     else if (site[k][j] !== JSON.stringify(want)) bad.push(k + '(' + JSON.stringify(i) + ') is ' + site[k][j] + ', not ' + JSON.stringify(want));
   });
   console.log('one-contact: ' + files.length + ' files (' + n + ' lines) read for twins, ' + asked + ' fixed cases asked both sides; ' + bad.length + ' wrong');
-  if (bad.length) { bad.forEach(b => console.log('  ' + b)); throw new Error('one-contact: ' + bad.length + ' phone/handle/email rule(s) outside js/form.js'); }
+  report('one-contact', bad, 'phone/handle/email rule(s) outside js/form.js');
 }
 module.exports = { run };
-if (require.main === module) { try { run(); } catch (e) { console.error(e.message); process.exit(1); } }
+main(module, run);

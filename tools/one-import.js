@@ -9,8 +9,7 @@
      lacks, so it must never empty while the repository holds public rows the site has not released. Run by tools/build.js. */
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm');
-const ROOT = path.join(__dirname, '..');
-const read = p => fs.readFileSync(path.join(ROOT, p), 'utf8');
+const { ROOT, text, srcFiles, report, main } = require('./lib/gen.js');
 const ONE = 'backend/library-drive.gs';
 /* EVERY *Import* FUNCTION THE BACKEND MAY HAVE: the library's doors into the one importer, and two that are not the library's
    (a docket and a class's assignments, rows of their own tabs). A new one is a second importer until it is listed here. */
@@ -24,7 +23,7 @@ function owners(src) {
 }
 
 function guardCases() {
-  const src = read(ONE);
+  const src = text(ONE);
   const fn = (src.match(/^function libMayEmpty_\([\s\S]*?\n}\n/m) || [])[0];
   const min = (src.match(/^const LIB_EMPTY_MIN = (\d+);/m) || [])[1];
   if (!fn || !min) return [ONE + ': no libMayEmpty_ (or LIB_EMPTY_MIN) — the emptying guard must stay explicit'];
@@ -57,9 +56,8 @@ function run() {
   const bad = [];
   let checks = 0, applies = 0;
   /* ---- THE BACKEND: one validator, one applier, both in library-drive.gs ---- */
-  const gs = fs.readdirSync(path.join(ROOT, 'backend')).filter(f => f.endsWith('.gs'));
-  for (const f of gs) {
-    const p = 'backend/' + f, src = read(p), lines = src.split('\n'), who = owners(src);
+  for (const p of srcFiles('backend', /\.gs$/)) {
+    const src = text(p), lines = src.split('\n'), who = owners(src);
     lines.forEach((l, i) => {
       const at = p + ':' + (i + 1) + ' (' + (who[i] || 'top') + ')';
       const def = l.match(/^function (\w+)\s*\(/);
@@ -71,19 +69,17 @@ function run() {
       if (/\.version\)?\s*!==?\s*1\b|version\s*===?\s*1\b/.test(l) && !(p === ONE && who[i] === 'libPackCheck_')) bad.push(at + ': a pack version test outside libPackCheck_ — a second pack validator');
       if (/libRowOut_\(/.test(l) && !(p === ONE && who[i] === 'libPackApply_') && !/^function libRowOut_/.test(l) && !/libCopy_/.test(who[i])) bad.push(at + ': library rows written outside libPackApply_ — a second place that applies rows');
       if (/Utilities\.unzip\b/.test(l)) bad.push(at + ': a zip unpacked — packs come one file at a time');
-      if (/script\.googleapis\.com\/v1\/projects/.test(l) && f !== 'sync.gs') bad.push(at + ': the project written outside backend/sync.gs pullFromGitHub — a second deploy');
+      if (/script\.googleapis\.com\/v1\/projects/.test(l) && p !== 'backend/sync.gs') bad.push(at + ': the project written outside backend/sync.gs pullFromGitHub — a second deploy');
     });
   }
   if (checks !== 1) bad.push(ONE + ': ' + checks + ' libPackCheck_ (the one pack validator), not one');
   if (applies !== 1) bad.push(ONE + ': ' + applies + ' libPackApply_ (the one place rows are applied), not one');
   /* ---- THE TOOLS: one pack maker, one poster ---- */
-  const walk = d => fs.readdirSync(path.join(ROOT, d), { withFileTypes: true }).flatMap(e =>
-    e.isDirectory() ? (['node_modules', 'data', 'greek'].includes(e.name) ? [] : walk(d + '/' + e.name)) : /\.(js|py|sh|mjs|cjs)$/.test(e.name) ? [d + '/' + e.name] : []);
   const MAKER = 'tools/content/library.js';
   let makers = 0;
-  for (const p of walk('tools')) {
+  for (const p of srcFiles('tools', /\.(js|py|sh|mjs|cjs)$/, { deep: true, skip: ['data', 'greek'] })) {
     if (p === 'tools/one-import.js') continue;
-    const src = read(p);
+    const src = text(p);
     if (p === MAKER) makers = (src.match(/^function packsOf\(/mg) || []).length;
     src.split('\n').forEach((l, i) => {
       const at = p + ':' + (i + 1);
@@ -96,14 +92,14 @@ function run() {
   /* ---- DEPLOY: no workflow that pushes the backend ---- */
   const wf = path.join(ROOT, '.github/workflows');
   if (fs.existsSync(wf)) for (const f of fs.readdirSync(wf)) {
-    if (/\bclasp\b|script\.googleapis\.com/.test(read('.github/workflows/' + f))) bad.push('.github/workflows/' + f + ': a second deploy route — the one is pullFromGitHub (backend/sync.gs)');
+    if (/\bclasp\b|script\.googleapis\.com/.test(text('.github/workflows/' + f))) bad.push('.github/workflows/' + f + ': a second deploy route — the one is pullFromGitHub (backend/sync.gs)');
   }
-  if (!/^function pullFromGitHub\(/m.test(read('backend/sync.gs'))) bad.push('backend/sync.gs: no pullFromGitHub — the one deploy');
+  if (!/^function pullFromGitHub\(/m.test(text('backend/sync.gs'))) bad.push('backend/sync.gs: no pullFromGitHub — the one deploy');
   /* ---- THE GUARD ---- */
   const guard = guardCases();
   bad.push(...guard);
   console.log('one-import: ' + checks + ' pack validator, ' + applies + ' applier, ' + makers + ' pack maker, 1 deploy (pullFromGitHub); emptying guard on 8 cases' + (guard.length ? '' : ', all held'));
-  if (bad.length) { bad.forEach(b => console.error('  ' + b)); throw new Error('one-import: ' + bad.length + ' second path(s) or broken guard'); }
+  report('one-import', bad, 'second path(s) or broken guard', console.error);
 }
 module.exports = { run };
-if (require.main === module) { try { run(); } catch (e) { console.error(e.message); process.exit(1); } }
+main(module, run);

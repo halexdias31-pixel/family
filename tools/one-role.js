@@ -6,24 +6,22 @@
    outside the SHARED block: a shared role name defined again, a literal list of role words, or a may rule answered by a hand-written tier
    comparison fails the build. tools/build.js runs it after cards-gen. */
 'use strict';
-const fs = require('fs'), path = require('path'), vm = require('vm');
-const ROOT = path.join(__dirname, '..');
-const read = f => fs.readFileSync(path.join(ROOT, f), 'utf8');
+const vm = require('vm');
+const { text, srcFiles, report, main } = require('./lib/gen.js');
 const SHARED_RE = /\/\* SHARED:BEGIN[\s\S]*?\/\* SHARED:END \*\//;
 /* THE NAMES ONLY THE SHARED BLOCK DEFINES. */
 const NAMES = ['ROLES_', 'ROLE_IDS', 'RANKS', 'ROLE_ALIASES', 'SEE_ROLES', 'ROLE_THREE_', 'rankTier_', 'mayWord_', 'rankMayMessage_'];
 
 function find() {
   const bad = [];
-  const roles = JSON.parse(read('data/settings/settings.json')).roles, helpers = read('data/settings/roles.js').replace(/\n*$/, '\n');
+  const roles = JSON.parse(text('data/settings/settings.json')).roles, helpers = text('data/settings/roles.js').replace(/\n*$/, '\n');
   /* EVERY ROLE WORD: ids, aliases, app words, ranks, tiers and see roles. */
   const words = new Set([].concat(Object.keys(roles.ids), ...Object.values(roles.ids).map(r => [r.rank, r.tier, r.app].concat(r.aliases || [])),
     roles.ranks, roles.tiers, roles.see.roles, Object.keys(roles.see.words)).filter(Boolean));
-  const files = fs.readdirSync(path.join(ROOT, 'js')).filter(f => f.endsWith('.js')).map(f => 'js/' + f)
-    .concat(fs.readdirSync(path.join(ROOT, 'backend')).filter(f => f.endsWith('.gs')).map(f => 'backend/' + f));
+  const files = srcFiles('js', /\.js$/).concat(srcFiles('backend', /\.gs$/));
   let count = 0;
   for (const f of files) {
-    const src = read(f), block = SHARED_RE.exec(src);
+    const src = text(f), block = SHARED_RE.exec(src);
     /* 1. BOTH SIDES CARRY THE HELPERS AS THEY STAND. */
     if (f === 'js/core.js' || f === 'backend/constants.gs') {
       if (!block || block[0].indexOf(helpers) === -1) bad.push(f + ': SHARED block lacks data/settings/roles.js as it stands (run cards-gen)');
@@ -62,7 +60,7 @@ function find() {
 function run() {
   const { bad, files, lists } = find();
   console.log('one-role: ' + files + ' files, ' + lists + ' string lists looked at, ' + bad.length + ' role twins');
-  if (bad.length) { bad.forEach(b => console.log('  ' + b)); throw new Error('one-role: ' + bad.length + ' role rule(s) defined outside settings.json `roles` / data/settings/roles.js'); }
+  report('one-role', bad, 'role rule(s) defined outside settings.json `roles` / data/settings/roles.js');
 }
 module.exports = { run, find };
-if (require.main === module) { try { run(); } catch (e) { console.error(e.message); process.exit(1); } }
+main(module, run);

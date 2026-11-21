@@ -5,7 +5,7 @@
    data/settings/question-aliases.json, so saved answers follow the kept one. Prints the count; a pair fails the build. tools/build.js runs it. */
 'use strict';
 const fs = require('fs'), path = require('path');
-const { ROOT, S } = require('./lib/gen.js');
+const { ROOT, S, main } = require('./lib/gen.js');
 
 function season(m) { m = +m; return m >= 4 && m <= 7 ? 'summer' : m >= 10 ? 'november' : m ? 'm' + m : ''; }
 function keyOf(d) {
@@ -35,4 +35,4 @@ function run() {
   if (twins.length) throw new Error('one-paper: ' + twins.length + ' sitting(s) carried by more than one active paper; keep one, retire the other (active False) and alias its part ids');
 }
 module.exports = { run, find };
-if (require.main === module) { try { run(); } catch (e) { console.error(e.message); process.exit(1); } }
+main(module, run);
