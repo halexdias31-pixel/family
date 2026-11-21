@@ -2610,21 +2610,8 @@ return nesKeyRows_(sys).map(([what, keys]) =>
 }
 function nesDb_(mode, fn) {
 NES_.fullDb = false;
-const quota = e => { if (e && /quota/i.test(e.name || '')) NES_.fullDb = true; };
-return new Promise(res => {
-try {
-const rq = indexedDB.open(NES_DB, 1);
-rq.onupgradeneeded = () => rq.result.createObjectStore('rom');
-rq.onerror = () => res(null);
-rq.onsuccess = () => {
-try {
-const tx = rq.result.transaction('rom', mode), r = fn(tx.objectStore('rom'));
-tx.oncomplete = () => { res(r && 'result' in r ? r.result : true); rq.result.close(); };
-tx.onerror = tx.onabort = () => { quota(tx.error); res(null); rq.result.close(); };
-} catch (e) { quota(e); res(null); }
-};
-} catch (e) { res(null); }
-});
+return Promise.resolve().then(() => idbTx_(NES_DB, 'rom', mode, fn))
+.catch(e => { if (e && /quota/i.test(e.name || '')) NES_.fullDb = true; return null; });
 }
 const nesKept_ = () => nesDb_('readonly', s => s.get('last'));
 const nesKeep_ = (bytes, kind) => nesDb_('readwrite', s => { s.put(kind || 'nes', 'kind'); return s.put(bytes, 'last'); });
@@ -2867,7 +2854,7 @@ function nesPadUnwatch_() { cancelAnimationFrame(NES_.watch); NES_.watch = 0; }
 function nesMode_() {
 if (!NES_.mode) {
 let coarse = false;
-try { coarse = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches); } catch (e) {}
+try { coarse = !!(window.matchMedia && matchMedia(COARSE_).matches); } catch (e) {}
 const touch = (navigator.maxTouchPoints || 0) > 0 || 'ontouchstart' in window;
 NES_.mode = coarse && touch ? 'touch' : 'keys';
 }
@@ -3258,22 +3245,7 @@ if (!(window.crypto && crypto.subtle)) return fnv();
 return crypto.subtle.digest('SHA-256', u8).then(d => [...new Uint8Array(d)].slice(0, 16).map(x => ('0' + x.toString(16)).slice(-2)).join('')).catch(fnv);
 } catch (e) { return fnv(); }
 }
-function csvDb_(mode, fn) {
-return new Promise(res => {
-try {
-const rq = indexedDB.open(CSV_DB, 1);
-rq.onupgradeneeded = () => rq.result.createObjectStore('save');
-rq.onerror = () => res(null);
-rq.onsuccess = () => {
-try {
-const tx = rq.result.transaction('save', mode), r = fn(tx.objectStore('save'));
-tx.oncomplete = () => { res(r && 'result' in r ? r.result : true); rq.result.close(); };
-tx.onerror = tx.onabort = () => { res(null); rq.result.close(); };
-} catch (e) { res(null); }
-};
-} catch (e) { res(null); }
-});
-}
+const csvDb_ = (mode, fn) => Promise.resolve().then(() => idbTx_(CSV_DB, 'save', mode, fn)).catch(() => null);
 function csvCapture_() {
 if (!CSV_.hash) return null;
 let sram = null, state = null;

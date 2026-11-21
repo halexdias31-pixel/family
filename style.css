@@ -2463,7 +2463,7 @@ button.prof-tag.is-sm { padding: 0 var(--s2); line-height: 1; font-weight: 500; 
 
 /* ---------- THE CARD'S EDIT ON ONE PHONE SCREEN: ONE LINE A THING, LABEL LEFT, VALUE RIGHT (docs/history/425) § */
 :is(.kc-embed, .kc-set) { --ce-row: 32px; --ce-k: 6.6rem; }
-.kc-set > .kc-fields, .kc-embed [data-draw] { line-height: 1.25; }
+.kc-set > .kc-fields, :is(.kc-embed, .kc-set) [data-draw] { line-height: 1.25; }
 :is(.kc-embed, .kc-set) .ce-sec + .ce-sec { margin-top: 0; padding-top: 0; border-top: 0; }
 :is(.kc-embed, .kc-set) .ce-sec > .prof-cap:first-child { margin: var(--s2) 0 var(--s1); }
 /* A LINE: a label at a fixed width, the box taking the rest; the label is the 32px target (`ACCEPTED_TAP`, check/ui.js). */

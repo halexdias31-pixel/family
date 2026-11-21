@@ -215,7 +215,9 @@ const FIELD_ROWS = [
   { fields: ['min_hours', 'max_hours'], cap: 'session, in hours', ph: ['shortest', 'longest'], dash: true },
 ];
 /* A ROW'S OWN CAPTION, where its column name is not the word: labels.json `row-label` (`photo` has none — no box on your own settings, see `photoPicker_`). */
-const ROW_LABEL = new Proxy({}, { get: (t, k) => (typeof k === 'string' ? labelOf_('row-label', k) : undefined) });
+/* Before labels.json lands a row-labelled field says its column name in words, never nothing; after, a field with no row keeps `fieldLabel`'s. */
+const ROW_LABEL = new Proxy({}, { get: (t, k) => (typeof k !== 'string' ? undefined
+  : labelOf_('row-label', k, typeof DATA !== 'undefined' && DATA && DATA.labels && DATA.labels['row-label'] ? undefined : k.replace(/_/g, ' '))) });
 /* WHO MAY BE YOUR MANAGER: every other tutor the site was sent, by name; the admin is the blank line. */
 const MANAGER_NONE = '@family. (the admin)';
 function managerOptions_(self) {
@@ -305,17 +307,9 @@ CARD_EMBEDS['me-form'] = a => (a && typeof a.draw === 'function' ? String(a.draw
 /* A WRAPPER'S data-* ATTRIBUTES (data-lay-card, data-pid) stay on the card, read as data by `cardAttrsOf_`. */
 const cardDataOf_ = attrs => { const a = cardAttrsOf_(attrs || ''), d = {};
   Object.keys(a).forEach(k => { if (/^data-/.test(k)) d[k.slice(5)] = a[k] === true ? '' : a[k]; }); return d; };
-/* A CARD STILL HANDED OVER AS ONE <div> WITH A HEADING (me-card.js, me-people.js, the signed-in card: later jobs) becomes a spec: the heading its name, the class its look, the rest its embed. */
-function meSpec_(html, called) {
-  const cut = typeof kcSplit_ === 'function' ? kcSplit_(String(html || '').trim()) : null;
-  if (!cut) return { kind: 'setting', name: String(called || ''), body: [{ type: 'embed', tool: 'me-form', args: { draw: () => String(html || '') } }] };
-  const name = cardUnesc_(String(cut.head || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()) || String(called || '');
-  const id = (/\sid="([^"]*)"/.exec(cut.attrs || '') || [])[1];
-  return { kind: 'setting', look: cut.cls || '', name, tags: name ? [name] : [], data: cardDataOf_(cut.attrs), id: id ? cardUnesc_(id) : '',
-    body: [{ type: 'embed', tool: 'me-form', args: { draw: () => (cut.pic || '') + (cut.tags || '') + (cut.lines || '') } }] };
-}
-cardKind_('me-card', x => meSpec_(x && x.html, x && x.name));
-const meCard_ = (html, kind, called) => renderCard(meSpec_(html, called));
+/* A SETTINGS CARD THAT IS NOT A FORM (signed in, a card being edited): its look, name and data, its body ordinary blocks in the `kc-set` group. */
+const setPlainCard_ = o => renderCard({ kind: 'setting', card: o.card || '', look: o.look || '', name: o.name || '', tags: o.name ? [o.name] : [], data: o.data || {},
+  body: [{ type: 'group', look: 'kc-set', parts: o.parts || [] }] });
 const shelfFilled_ = (value, names) => names.some(f => String(value(f) ?? '').trim() !== '');
 
 on('shelf-more', el => {

@@ -12,12 +12,11 @@ const BASE = /^(card|fc|kc|kc-[\w-]+|is-empty|is-off|is-locked|tap)$/;
 const MIME = { '.js': 'text/javascript', '.css': 'text/css', '.html': 'text/html', '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml' };
 
 /* A SETTINGS CARD IS ORDINARY BLOCKS TOO (unify batch 9): no CSS keyed on `.me-form` (the class stays only as autosave's hook), and the line that says
-   what was saved is the maker's `status` block — a `me-said` paragraph written by hand fails. The files still listed are later jobs' to convert; shrink it. */
-const SAID_LATER = ['me-account.js', 'me-card.js', 'me-roles.js'];
+   what was saved is the maker's `status` block — a `me-said` paragraph written by hand fails, in every file. */
 function settingsByHand(css) {
   const bad = [];
   css.replace(/[^{}]+\{/g, sel => { if (/\.me-form(?![\w-])/.test(sel)) bad.push('style.css: ' + sel.replace(/\s+/g, ' ').trim().slice(0, 100)); return sel; });
-  fs.readdirSync(path.join(ROOT, 'js')).filter(f => /\.js$/.test(f) && !/\.min\.js$/.test(f) && f !== 'cards-render.js' && SAID_LATER.indexOf(f) === -1).forEach(f => {
+  fs.readdirSync(path.join(ROOT, 'js')).filter(f => /\.js$/.test(f) && !/\.min\.js$/.test(f) && f !== 'cards-render.js').forEach(f => {
     text('js/' + f).split('\n').forEach((l, i) => { if (/['"`][^'"`]*(?<![.\w-])me-said\b/.test(l)) bad.push('js/' + f + ':' + (i + 1) + ' a hand me-said paragraph (use a `status` block)'); });
   });
   return bad;

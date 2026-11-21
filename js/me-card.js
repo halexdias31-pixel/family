@@ -214,17 +214,17 @@ const mcNote_ = (look, text) => cardBlock_({ type: 'msgText', look: 'note ' + lo
 function cardEditHtml_(t) {
   const e = cardEditNow_();
   const pid = String(t.personId);
-  const head = cardBlock_({ type: 'msgHead', text: [(profRoleWords_(t).join(' · ') || 'Profile') + ' ', { span: 'ce-what', text: '· editing' }] });
+  const head = { type: 'msgHead', text: [(profRoleWords_(t).join(' · ') || 'Profile') + ' ', { span: 'ce-what', text: '· editing' }] };
   const base = cardBaseNow_(e);
+  /* WAITING FOR THEIR COPY: the maker's wait, or what went wrong as the card's status line. */
+  const card = inner => setPlainCard_({ parts: [{ type: 'group', look: 'is-widget card-ed', attrs: { 'data-pid': pid }, parts: inner },
+    { type: 'tiles', look: 'ce-tiles', tiles: cardSaveOpts_(pid, !base) }] });
   if (!base) {
     if (!e.err) setTimeout(() => cardFetch_(e), 0);
-    return meCard_(mcG_('div', 'is-widget card-ed', { attrs: { 'data-pid': pid }, inner: head + (e.err ? mcNote_('me-said', e.err) : loading_()) })
-      + cardBlock_({ type: 'tiles', look: 'ce-tiles', tiles: cardSaveOpts_(pid, true) }));
+    return card([head, e.err ? meSaidB_(e.err) : { type: 'wait', on: true }]);
   }
   const { vals, held } = cardValues_(e, base);
-  return meCard_(mcG_('div', 'is-widget card-ed', { attrs: { 'data-pid': pid }, inner: head
-    + mcG_('div', 'me-form', { attrs: { 'data-draw': cardDrawn_(base) }, inner: cardEditForm_(t, e, vals) + mcNote_('me-said', held ? SET_HELD_SAY : '') }) })
-    + cardBlock_({ type: 'tiles', look: 'ce-tiles', tiles: cardSaveOpts_(pid, false) }));
+  return card([head, { type: 'group', look: 'me-form', attrs: { 'data-draw': cardDrawn_(base) }, parts: [cardEditForm_(t, e, vals), meSaidB_(held ? SET_HELD_SAY : '')] }]);
 }
 /* YOUR OWN CARD'S EDIT, ONE CARD PER SECTION (468): each its own form, draft, Save and layout id — the owner, "settings is purely editing". */
 function cardEditCards_(t, e, secs, setCol) {
@@ -236,10 +236,10 @@ function cardEditCards_(t, e, secs, setCol) {
     const title = OWN_SEC_TITLE_[s.id] || s.cap || s.id;
     const card = { title, cls: 'card-ed',
       attrs: ` data-pid="${esc(pid)}" data-sec="${esc(s.id)}" data-lay-card="own:${esc(setCol)}:${esc(s.id)}" aria-label="${esc(title)}"` };
-    if (!base) return setCard_(Object.assign(card, { body: e.err ? mcNote_('me-said', e.err) : loading_(), save: cardCancelTile_(pid) }));
+    if (!base) return setCard_(Object.assign(card, { body: e.err ? meSaidB_(e.err) : { type: 'wait', on: true }, save: cardCancelTile_(pid) }));
     const { vals, held } = cardValues_(e, base, s.id);
     return setCard_(Object.assign(card, { form: cardEditForm_(t, e, vals, [s]), formAttrs: ` data-draw="${cardDrawn_(base)}"`,
-      save: cardCancelTile_(pid), foot: mcNote_('me-said', held ? SET_HELD_SAY : '') }));
+      save: cardCancelTile_(pid), foot: meSaidB_(held ? SET_HELD_SAY : '') }));
   });
 }
 function cardSaveOpts_(pid, saveOff) {

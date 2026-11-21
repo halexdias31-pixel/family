@@ -48,7 +48,7 @@ const ORDER = [
   'one-lock',     // the one-lock check (rule 1.75, unify batch 7): the backend's write lock, "Nothing was saved." and Drive file links only in backend/write-lock.gs; fails the build
   'one-table',    // the one-table check (rule 1.75, unify batch 7): keep-booked jobs, digest skip reasons and the site-then-raw fetch each live once; fails the build
   'one-wrapper',  // the one-wrapper check (rule 1.75, unify batch 8): one IndexedDB wrapper, one tile-row wrap, one spelling of the pointer queries; fails the build
-  'one-helper',   // the one-helper check (rule 1.75, unify batch 4): settings groups only in setting-for.json, tool helpers only in tools/lib/gen.js; fails the build
+  'one-helper',   // the one-helper check (rule 1.75, unify batch 4): settings groups only in kinds.json setting.cards, tool helpers only in tools/lib/gen.js; fails the build
   'one-twin',     // the one-twin check (rule 1.75, unify batch 7): no backend twin of a site function cards-gen.gs copies, the copies current; fails the build
   'one-card',     // the one-card check (rule 1.75): every Find card by the one maker, no CSS of its own; fails the build
   'dead-css',     // the dead-css check (rule 1.75, owner 20 Nov): classes in style.css nothing writes, counted against a budget; a rise fails the build

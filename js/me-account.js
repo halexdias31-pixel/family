@@ -70,7 +70,7 @@ function applyFormHtml_() { return cardBlock_(applyFormSpec_()); }
 function applyFormSpec_() {
   return { type: 'group', look: 'me-form app-form', inner: formOf_('apply-teach', applyKnown_(), { docs: APPLY_DOCS, draftId: String((whose_() && whose_().personId) || '') })
     + cardBlock_({ type: 'group', look: 'btn-row', tiles: [{ form: true, label: text_('send-my-application'), act: 'apply-send' }] })
-    + cardBlock_({ type: 'group', tag: 'p', look: 'note me-said apply-said', attrs: { 'aria-live': 'polite' } }) };
+    + cardBlock_({ type: 'status', saved: true, look: 'apply-said', live: true }) };
 }
 /* WHAT IS STILL MISSING, in the backend's words (`postApplyTeach_` asks the same), so the phone says it before anything is sent. */
 const applyMissing_ = b => formGaps_(FORM_SPECS.forms['apply-teach'].gaps, b);

@@ -9519,7 +9519,11 @@ const filters = (to[1] ? [{ field: DOOR_FIELD, value: to[1] }] : []).concat(pick
 finderSet_(FINDERS.stuff, { filters, show: true }); go('stuff'); return true;
 }
 let SETTING_CARDS_ON_ = null;
-const SETTING_CARDS_ = () => SETTING_CARDS_ON_ || (SETTING_CARDS_ON_ = ((ITEM_KINDS.kinds.setting || {}).cards || []).concat(ownSecReg_()));
+const SETTING_CARDS_ = () => SETTING_CARDS_ON_ || (SETTING_CARDS_ON_ = (() => {
+const reg = ((ITEM_KINDS.kinds.setting || {}).cards || []).map(r => Object.assign({}, r)), at = {};
+reg.forEach(r => { at[r.id] = r; });
+ownSecReg_().forEach(o => { if (at[o.id]) Object.keys(o).forEach(k => { if (!(k in at[o.id])) at[o.id][k] = o[k]; }); else reg.push(o); });
+return reg; })());
 function ownSecReg_() {
 const S = { picture: ['Picture', 'your picture', 'The picture beside your name.'], figure: ['Your figure', 'your figure', 'The figure that stands for you in games.'],
 name: ['Name', 'your name', 'Your first and last name.'], handle: ['Handle', 'your handle', 'The @name people find you by.'],
@@ -14216,7 +14220,7 @@ return suggestOpts_(x.soon || x.kind, x.soon ? String(x.soonId) : x.key, [x.name
 function reportDevice_() {
 try {
 const w = Math.min(innerWidth, innerHeight);
-const touch = matchMedia('(pointer: coarse)').matches;
+const touch = matchMedia(COARSE_).matches;
 return !touch ? 'computer' : w < 600 ? 'phone' : 'tablet';
 } catch (e) { return ''; }
 }
@@ -17365,7 +17369,7 @@ else if (document.activeElement !== old && old.value !== (fresh.getAttribute('va
 function bookFocusOf_(card) {
 const a = document.activeElement;
 if (!card || !a || a === document.body || !card.contains(a) || !a.dataset || !a.dataset.do) return null;
-const fine = !!(window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches);
+const fine = !!(window.matchMedia && matchMedia(CAN_HOVER_).matches);
 const tick = a.tagName === 'INPUT' && a.type === 'checkbox';
 if (!(tick || a.tagName === 'BUTTON' || (a.tagName === 'SELECT' && fine))) return null;
 return { tag: a.tagName, data: bookDataOf_(a), value: tick ? a.value : null };
@@ -18742,18 +18746,18 @@ return cardBlocks_([{ type: 'group', tag: 'p', look: 'wt-text', attrs: { lang: x
 { type: 'group', tag: 'p', look: 'wt-credit', text: (t.source || '') + ' · ' + (t.licence || '') }]);
 }
 if (TEXTS.missed[x.tx.file] && !TEXTS.loading[x.tx.file]) return cardBlock_({ type: 'group', tag: 'p', look: 'fc-note', text: 'This text did not arrive.' });
-if (!TEXTS.loading[x.tx.file]) textsLoad_(x.tx.file).then(() => textsRedraw_(x.tx.file));
+if (!TEXTS.loading[x.tx.file]) textsLoad_(x.tx.file).then(() => txRedraw_(x.tx.file, TEXTS.items, textsBody_));
 return loading_();
 }
 function textsCard_(x) {
 return readingCard_(x, { cls: 'wt', bodyCls: 'wt-body tx-body', body: x.tx ? textsBody_(x) : '', data: { tx: x.tx ? x.tx.file : '', k: x.key } });
 }
-function textsRedraw_(file) {
+function txRedraw_(id, items, body) {
 if (typeof document === 'undefined') return;
-document.querySelectorAll('.tx-body[data-tx="' + file + '"]').forEach(el => {
-const x = (TEXTS.items || []).find(i => i.key === el.getAttribute('data-k'));
+document.querySelectorAll('.tx-body[data-tx="' + id + '"]').forEach(el => {
+const x = (items || []).find(i => i.key === el.getAttribute('data-k'));
 if (!x) return;
-el.innerHTML = textsBody_(x);
+el.innerHTML = body(x);
 const pane = el.closest('.pane');
 if (pane && typeof paneReach_ === 'function') { try { paneReach_([pane]); } catch (e) {} }
 });
@@ -18823,21 +18827,11 @@ return cardBlocks_([{ type: 'group', look: 'tx-text', attrs: { lang }, blocks: w
 { type: 'group', tag: 'p', look: 'wt-credit', text: src }]);
 }
 if (PDTEXTS.missed[x.tx.id] && !PDTEXTS.loading[x.tx.id]) return cardBlock_({ type: 'group', tag: 'p', look: 'fc-note', text: 'This text did not arrive.' });
-if (!PDTEXTS.loading[x.tx.id]) pdtextsLoad_(x.tx.id, x.tx.file).then(() => pdtextsRedraw_(x.tx.id));
+if (!PDTEXTS.loading[x.tx.id]) pdtextsLoad_(x.tx.id, x.tx.file).then(() => txRedraw_(x.tx.id, PDTEXTS.items, pdtextsBody_));
 return loading_();
 }
 function pdtextsCard_(x) {
 return readingCard_(x, { cls: 'tx', bodyCls: 'tx-body', body: x.tx ? pdtextsBody_(x) : '', data: { tx: x.tx ? x.tx.id : '', k: x.key } });
-}
-function pdtextsRedraw_(id) {
-if (typeof document === 'undefined') return;
-document.querySelectorAll('.tx-body[data-tx="' + id + '"]').forEach(el => {
-const x = (PDTEXTS.items || []).find(i => i.key === el.getAttribute('data-k'));
-if (!x) return;
-el.innerHTML = pdtextsBody_(x);
-const pane = el.closest('.pane');
-if (pane && typeof paneReach_ === 'function') { try { paneReach_([pane]); } catch (e) {} }
-});
 }
 ;
 /* js/mechanics.js */
@@ -18849,24 +18843,24 @@ const MECH_FILE_SHELF = { pc: 'PC parts' };
 const MECH_CAR = { mMake: 'make', mModel: 'model', mGen: 'gen', mEngine: 'code', mPhase: 'phase', mMarket: 'market', mYears: 'years',
 mSize: 'size', mValves: 'valves', mBadge: 'badge', mFuel: 'fuel' };
 const MECH_PART = 'Car part', MECH_ONE = 'Car';
-function mechIndex_() {
-if (MECH.data) return MECH.data;
-if (MECH.asking || MECH.failed || typeof fetch !== 'function') return null;
-const get = f => dataFile_('data/mechanics/' + f + '.json');
-const names = Object.keys(MECH_FILES);
-MECH.asking = Promise.all(names.map(get)).then(all => {
-MECH.asking = null;
+function libFilesIndex_(st, dir, files, ours, then) {
+if (st.data) return st.data;
+if (st.asking || st.failed || typeof fetch !== 'function') return null;
+const names = Object.keys(files);
+st.asking = Promise.all(names.map(f => dataFile_('data/' + dir + '/' + f + '.json'))).then(all => {
+st.asking = null;
 const d = {};
-const ours = r => r && r.id && r.name && Array.isArray(r.px);
 names.forEach((n, i) => { d[n] = all[i] && Array.isArray(all[i][n]) ? all[i][n].filter(ours) : []; });
-if (!names.some(n => d[n].length)) { MECH.failed = true; return null; }
-MECH.data = d;
-MECH.cars = new Map(d.models.map(c => [c.code, c]));
+if (!names.some(n => d[n].length)) { st.failed = true; return null; }
+st.data = d;
+if (then) then(d);
 if (typeof lateCame_ === 'function') lateCame_();
 return d;
 });
 return null;
 }
+const mechIndex_ = () => libFilesIndex_(MECH, 'mechanics', MECH_FILES, r => r && r.id && r.name && Array.isArray(r.px),
+d => { MECH.cars = new Map(d.models.map(c => [c.code, c])); });
 function mechItems_() {
 const d = MECH.data;
 if (!d) return [];
@@ -18919,23 +18913,7 @@ finderSet_(finderAt_(el), { filters: [{ field: 'kindLabel', value: 'Library' }, 
 const CHEM = { data: null, asking: null, failed: false, items: null, from: null };
 const CHEM_FILES = { elements: 'Element', substances: 'Substance', reactions: 'Reaction' };
 const CHEM_SUBJECT = 'Chemistry';
-function chemIndex_() {
-if (CHEM.data) return CHEM.data;
-if (CHEM.asking || CHEM.failed || typeof fetch !== 'function') return null;
-const get = f => dataFile_('data/chemistry/' + f + '.json');
-const names = Object.keys(CHEM_FILES);
-CHEM.asking = Promise.all(names.map(get)).then(all => {
-CHEM.asking = null;
-const d = {};
-const ours = r => r && r.id && r.source;
-names.forEach((n, i) => { d[n] = all[i] && Array.isArray(all[i][n]) ? all[i][n].filter(ours) : []; });
-if (!names.some(n => d[n].length)) { CHEM.failed = true; return null; }
-CHEM.data = d;
-if (typeof lateCame_ === 'function') lateCame_();
-return d;
-});
-return null;
-}
+const chemIndex_ = () => libFilesIndex_(CHEM, 'chemistry', CHEM_FILES, r => r && r.id && r.source);
 function chemItems_() {
 const d = CHEM.data;
 if (!d) return [];

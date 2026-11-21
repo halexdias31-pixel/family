@@ -172,7 +172,7 @@ function libCardsDraw_(into) {
     return;
   }
   const p = whose_().profile || {};
-  into.innerHTML = cardBlock_({ type: 'group', look: 'me-form', inner: libraryShelf_(list, f => p[f] ?? '') + cardBlock_(ME_SAID_) });
+  into.innerHTML = cardBlock_({ type: 'group', look: 'me-form', inner: libraryShelf_(list, f => p[f] ?? '') + cardBlock_(meSaidB_('')) });
 }
 function initLibCards_() { libCardsDraw_($('lib-box')); }
 /* EVERY COPY ON THE PAGE — Tools' and, starred, Saved's — for `myProfile` landing (`profileRefresh_`): § */
