@@ -620,7 +620,7 @@ function digestRightAnswer_(q) {
     const list = way.map(k => opts[k - 1]), sep = order ? ', ' : ' and ';
     return out(list.map(digestHtml_).join(sep), list.map(digestText_).join(sep));
   }
-  const cells = digestCells_(q);
+  const cells = cellsOf_(q);
   if (cells.length) {
     const got = cells.filter(c => c.ways).map(c => ({ label: c.label, v: c.ways.split('|')[0].trim(), num: /^\d+$/.test(c.label) }));
     return out(got.map(c => (c.num ? '' : esc(S(c.label)) + ' = ') + digestHtml_(c.v)).join('; '),
@@ -638,17 +638,6 @@ function digestRightAnswer_(q) {
   const acc = S(q.accept).split('|')[0].trim();
   return acc ? out(digestHtml_(acc), digestText_(acc)) : null;
 }
-/* A ROW'S `cells` AS `cellsOf_` (js/find.js) READS THEM: `label = ways; …`, a cell with no label numbered, `-` a blank nothing fills. */
-function digestCells_(q) {
-  const raw = S(q && q.cells).trim();
-  if (!raw) return [];
-  /* an entity's `;` (`&rsquo;`) never splits a blank; a label is up to 60 characters */
-  return raw.split(/(?<!&#?\w+);/).map((c, i) => {
-    const m = /^\s*([^=|]{1,60}?)\s*=\s*(.*)$/.exec(c);
-    const ways = (m ? m[2] : c).trim();
-    return { label: m ? m[1].trim() : String(i + 1), ways: ways === '-' ? '' : ways };
-  });
-}
 /* ---------- WHAT THE CHILD LAST SENT (380): a tapped option as its words, a cell by its label, a drawing said as one, the rest as typed */
 function digestTheirAnswer_(q, a) {
   let t = S(a).trim();
@@ -665,7 +654,7 @@ function digestTheirAnswer_(q, a) {
       const list = t.split(',').map(k => opts[parseInt(k, 10) - 1] || ''), sep = order ? ', ' : ' and ';
       return { text: list.map(x => (x ? digestText_(x) : '?')).join(sep), html: list.map(x => (x ? digestHtml_(x) : '?')).join(sep) };
     }
-    const cells = digestCells_(q);
+    const cells = cellsOf_(q);
     if (cells.length > 1 && t.indexOf(' ; ') !== -1) {
       const vals = t.split(' ; ');
       const got = cells.map((c, i) => ({ c: c, v: S(vals[i]).trim() })).filter(x => x.c.ways && x.v);
@@ -1055,9 +1044,7 @@ function digestRun_(now) {
 
 /* ---------- UNDER THE LOCK, BRIEFLY § */
 function digestLocked_(readLog, fn) {
-  const lock = LockService.getScriptLock();
-  if (!lock.tryLock(30000)) return null;
-  try { return fn(readLog()); } finally { lock.releaseLock(); }
+  return withWriteLock_(() => fn(readLog()), { wait: 30000, busy: () => null });
 }
 
 /* ---------- CLAIM, SEND, RECEIPT § */
