@@ -183,6 +183,7 @@ const fmtTime_ = t => {
   return String(h).padStart(2, '0') + ':' + String(min).padStart(2, '0');
 };
 const fmtHours_ = (a, b) => fmtTime_(a + ':00') + '–' + fmtTime_(b + ':00');
+const plural_ = (n, one, many) => (n === 1 ? one : many || one + 's');
 function fmtMoney_(n, style) {
   const v = Number(n) || 0, m = (v < 0 ? '−' : '') + '£' + Math.abs(v).toFixed(2);
   return style === 'hour' ? m + '/h' : m;

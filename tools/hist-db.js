@@ -38,14 +38,12 @@ function find() {
     ['a hist-kind label by hand', new RegExp('(say|histKind)\\s*:\\s*[\'"](' + kindLabels.map(esc).join('|') + ')[\'"]|labelOf_\\(\'hist-(kind|link)\',[^)]*,\\s*\'[^\']+\'\\)')],
     ['a link column list', new RegExp('\\[\\s*\'(' + cols.join('|') + ')\'\\s*,\\s*\'(' + cols.join('|') + ')\'')],
   ];
-  /* KNOWN, OUTSIDE THIS LANE'S FILES: a boxer's card says People by hand (find-aloud.js); it should read labelOf_('hist-kind', 'figure'). */
-  const ALLOW = [['js/find-aloud.js', /roles: \['Boxer'\], histKind: 'People'/]];
   let count = 0;
   for (const f of fs.readdirSync(path.join(ROOT, 'js')).filter(f => f.endsWith('.js')).sort()) {
     let s = read('js/' + f);
     if (f === 'library.js') s = s.replace(m[0], '\n');
     s.split('\n').forEach((line, i) => {
-      for (const [what, re] of RULES) if (re.test(line) && !ALLOW.some(([af, ar]) => af === 'js/' + f && ar.test(line))) { count++; bad.push('js/' + f + ':' + (i + 1) + ': ' + what + ' outside HIST_DB / labels.json'); }
+      for (const [what, re] of RULES) if (re.test(line)) { count++; bad.push('js/' + f + ':' + (i + 1) + ': ' + what + ' outside HIST_DB / labels.json'); }
     });
   }
   return { bad, count, kinds: DB.length };

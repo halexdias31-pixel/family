@@ -424,7 +424,7 @@ function subSay_(v) {
   if (!r) return { text: '', cls: '' };
   if (r.method === 'unmarked') return { text: 'Sent', cls: '' };
   if (r.method === 'dogma') return r.verdict === 'right' ? { text: 'Correct', cls: 'is-right' } : { text: text_('not-yet-have-another-go'), cls: 'is-near' };
-  return { text: r.marks + ' of ' + r.max + ' mark' + (r.max === 1 ? '' : 's') + (r.method === 'rules' ? ' · by key words' : ' · AI'), cls: r.marks >= r.max ? 'is-right' : 'is-near' };
+  return { text: r.marks + ' of ' + r.max + ' ' + plural_(r.max, 'mark') + (r.method === 'rules' ? ' · by key words' : ' · AI'), cls: r.marks >= r.max ? 'is-right' : 'is-near' };
 }
 
 /* ---------- THE VERDICT, HEARD § */

@@ -150,6 +150,8 @@ function token_(name, or) {
 const dash_ = v => (v === undefined || v === null || String(v).trim() === '' ? '—' : v);
 /* A whole-hour span, 24-hour: 09:00–10:00. */
 const fmtHours_ = (a, b) => fmtTime_(a + ':00') + '–' + fmtTime_(b + ':00');
+/* ONE PLURAL (job R, 21 Nov): the word for n of a thing, `many` for an irregular (copy, copies); tools/one-plural.js keeps it the only one. */
+const plural_ = (n, one, many) => (n === 1 ? one : many || one + 's');
 /* Money always with pence: £12.00, and a minus sign before the pound. */
 /* ONE FORMATTER FOR MONEY (foundation 3): `fmtMoney_(n)` £12.00; `fmtMoney_(n, 'hour')` £12.00/h. A price shown at all is the caller's may_('prices'). */
 function fmtMoney_(n, style) {

@@ -432,7 +432,7 @@ const BOOK_FNS = {
   seatLimits: v => {
     const lim = seatLimits(spaceFor(BOOKING.loc), tutorRow_(), BOOKING.loc);
     if (Number(v) > lim.max) return 'more than ' + (lim.why.max || 'the limit') + ' allows';
-    if (Number(v) < lim.min) { const need = Math.max(0, lim.min - 1); return (lim.why.min || 'the minimum') + ' needs ' + need + ' extra seat' + (need === 1 ? '' : 's'); }
+    if (Number(v) < lim.min) { const need = Math.max(0, lim.min - 1); return (lim.why.min || 'the minimum') + ' needs ' + need + ' extra ' + plural_(need, 'seat'); }
     return '';
   },
 };

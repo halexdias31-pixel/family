@@ -359,7 +359,7 @@ const FACET_READ = {
   qNumber: { of: x => isQ_(x) && x.qNumber != null && String(x.qNumber) !== '' ? 'Q' + x.qNumber : '' },
   qPart: { of: x => qSplitOf_(x).part },
   qSub: { of: x => qSplitOf_(x).sub },
-  marks: { of: x => Number(x && x.marks) > 0 ? Number(x.marks) + ' mark' + (Number(x.marks) === 1 ? '' : 's') : '',
+  marks: { of: x => Number(x && x.marks) > 0 ? Number(x.marks) + ' ' + plural_(Number(x.marks), 'mark') : '',
     /* SAID AS THE PAPER PRINTS IT (owner 8 Nov, 28b): "[1]", while the value stays "1 mark". */
     showOf: v => { const m = /^(\d+) marks?$/.exec(String(v)); return m ? '[' + m[1] + ']' : v; } },
   /* A WORKSHEET'S MAKER (O3): Publisher went, being the exam board twice or this. */

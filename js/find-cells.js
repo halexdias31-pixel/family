@@ -338,7 +338,7 @@ on('qp-check', (el) => {
     subRecord_(k, inp.value, markWord_(v), undefined, v.why);
     return;
   }
-  const marks = v.marks + ' of ' + v.max + ' mark' + (v.max === 1 ? '' : 's');
+  const marks = v.marks + ' of ' + v.max + ' ' + plural_(v.max, 'mark');
   tell_(out, full && v.method !== 'words' ? 'saved' : 'info', v.method === 'words' ? marks + ' · by key words' : rules ? marks : full ? (v.typo ? text_('correct-check-the-spelling') + v.typo + ')' : 'Correct') : text_('not-yet-have-another-go'));
   /* MARKED IS A SUBMISSION, right or not yet (js/submit.js); signed out it is this visit's alone. */
   subRecord_(k, inp.value, markWord_(v));
@@ -615,7 +615,7 @@ function padSay_(marks) {
   let h = 0;
   const raw = JSON.stringify(marks);
   for (let i = 0; i < raw.length; i++) h = (h * 31 + raw.charCodeAt(i)) | 0;
-  return 'drawing \u00b7 ' + n + ' mark' + (n === 1 ? '' : 's') + ' \u00b7 #' + (h >>> 0).toString(36);
+  return 'drawing \u00b7 ' + n + ' ' + plural_(n, 'mark') + ' \u00b7 #' + (h >>> 0).toString(36);
 }
 /* a drawing's verdict line: marks counted by the drawing say so */
 const padSaid_ = t => String(t || '').replace(/ \u00b7 by key words$/, ' \u00b7 by the drawing');

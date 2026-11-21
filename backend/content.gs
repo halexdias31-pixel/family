@@ -379,7 +379,7 @@ function reportsMigrate_() {
   });
   clearCache();
   try { claudeNotesWrite_(claudeNotesOpen_()); } catch (err) { /* the notes sheet is optional; the edit itself already landed */ }
-  return moved + ' old report' + (moved === 1 ? '' : 's') + ' moved to Notes for Claude';
+  return moved + ' old ' + plural_(moved, 'report') + ' moved to Notes for Claude';
 }
 
 /* A CHILD UPLOADS NO PICTURE (413): rank Student, refused at every door that would keep one. */
@@ -739,5 +739,5 @@ function claudeNotesReopen_(day) {
     n++;
   });
   if (n) { clearCache(); try { claudeNotesWrite_(); } catch (err) { Logger.log('notes file: ' + err); } }
-  return n + ' note' + (n === 1 ? '' : 's') + ' open again';
+  return n + ' ' + plural_(n, 'note') + ' open again';
 }

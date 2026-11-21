@@ -384,8 +384,8 @@ function filmsMessage_(root, list, todo, done, more, found, tally, warn) {
   const message = more
     ? 'Part-way through ' + where + ': ' + at + ' of ' + list.things.length
       + ' looked at. The rest follow on the next run.'
-    : 'Synced from ' + where + ': ' + found.films + ' film' + (found.films === 1 ? '' : 's') + ', '
-      + found.series + ' series, ' + found.documentaries + ' documentar' + (found.documentaries === 1 ? 'y' : 'ies')
+    : 'Synced from ' + where + ': ' + found.films + ' ' + plural_(found.films, 'film') + ', '
+      + found.series + ' series, ' + found.documentaries + ' ' + plural_(found.documentaries, 'documentary', 'documentaries')
       + (found.placeholders ? ', ' + found.placeholders + ' not uploaded' : '') + '. '
       + tally.added + ' new, ' + tally.refreshed + ' updated, ' + tally.off + ' switched off.' + warn;
   return { at, message };

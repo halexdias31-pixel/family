@@ -477,7 +477,7 @@ function postCreateJob_(body, action, began) {
   }
   /* AT HOME THE BOOKING TAKES EVERY SEAT (owner, 8 Nov): fewer than the cap is refused, so nobody pays for one seat of a private session. */
   if (takesAllSeats_(body.location) && seatCap > 0 && (N(body.n) || 1) !== seatCap) {
-    return jsonOut({ error: 'A booking at home takes all ' + seatCap + ' seat' + (seatCap === 1 ? '' : 's') + ' and is priced for each. Nothing has been booked.' });
+    return jsonOut({ error: 'A booking at home takes all ' + seatCap + ' ' + plural_(seatCap, 'seat') + ' and is priced for each. Nothing has been booked.' });
   }
   /* AN ADMIN'S DISCOUNT, AND NOBODY ELSE'S — asked before anything is written, like the refusals above (`discountRefusal_`, booking.gs). § */
   const codes = S(body.discountCode) ? read(TAB.promo_codes) : null;

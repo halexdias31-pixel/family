@@ -1,7 +1,8 @@
 /* @family. — check/library-schema.js THE LIBRARY'S ONE SCHEMA (R4, R5): each card file's columns and closed vocabularies, and
    `validate(row, file)`. Read by every tool that writes a row. */
 'use strict';
-const fs = require('fs'), path = require('path'), vm = require('vm'), cp = require('child_process');
+const vm = require('vm'), cp = require('child_process');
+const { ROOT, read, S } = require('./gen');
 const L = require('./lib-full.js');
 
 /* ---------- THE LEVEL TABLE (settings.json `levels`) AND, OUT OF js/find.js, levelsIn_ and the sources — one copy each ---------- */
@@ -17,7 +18,7 @@ function app() {
   const ctx = vm.createContext({});
   vm.runInContext([
     /* THE LEVELS ARE data/settings/settings.json `levels` (owner, 17 Nov), as the app reads them (LEVEL_TABLE) */
-    'const LEVEL_TABLE = ' + JSON.stringify(JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', 'data', 'settings', 'settings.json'), 'utf8')).levels.list) + ';',
+    'const LEVEL_TABLE = ' + JSON.stringify(read('data/settings/settings.json').levels.list) + ';',
     grab(/^function levelsIn_\([\s\S]*?\n}\n/m, '`function levelsIn_(cell) { … }`'),
     grab(/^const LIB_SOURCES = \[[^\]]*\];\n/m, '`const LIB_SOURCES = [ … ];`'),
     'this.__A = { LEVEL_TABLE: LEVEL_TABLE, levelsIn: levelsIn_, LIB_SOURCES: LIB_SOURCES };',
@@ -132,7 +133,7 @@ let TOPICS = null;
 function topicWords() {
   if (TOPICS) return TOPICS;
   TOPICS = new Set();
-  JSON.parse(fs.readFileSync(path.join(L.ROOT, 'data', 'topics.json'), 'utf8')).forEach(t => {
+  read('data/topics.json').forEach(t => {
     if (!t) return;
     if (t.label) TOPICS.add(String(t.label).trim());
     String(t.aliases || '').split(',').map(s => s.trim()).filter(Boolean).forEach(a => TOPICS.add(a));
@@ -140,7 +141,6 @@ function topicWords() {
   return TOPICS;
 }
 
-const S = v => (v === undefined || v === null ? '' : String(v)).trim();
 const atoms = v => (Array.isArray(v) ? v.map(S) : S(v).split(',').map(s => s.trim())).filter(Boolean);
 
 /* AN ANSWER THE MATHS KEYPAD CAN TYPE: its head (the bold words, or up to the dash), or an accepted way, holds a digit or
@@ -376,7 +376,7 @@ function committed(file, map) {
   const def = L.defs().files[file];
   let rows;
   try {
-    rows = JSON.parse(cp.execFileSync('git', ['show', 'HEAD:' + def.file], { cwd: L.ROOT, maxBuffer: 512 * 1024 * 1024, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }));
+    rows = JSON.parse(cp.execFileSync('git', ['show', 'HEAD:' + def.file], { cwd: ROOT, maxBuffer: 512 * 1024 * 1024, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }));
   } catch (e) { return []; }
   const words = map || L.readPrivate(file) || {};
   return rows.map(r => {

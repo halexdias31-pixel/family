@@ -500,8 +500,7 @@ function testCache() {
   /* THE QUESTION THAT MATTERS IS NO LONGER "is the warmer on". § */
   const watching = ScriptApp.getProjectTriggers()
     .filter(t => t.getHandlerFunction() === 'onSheetChange').length;
-  out.push(watching ? ('edit watch installed (' + watching + ' spreadsheet'
-                       + (watching === 1 ? '' : 's') + ')')
+  out.push(watching ? ('edit watch installed (' + watching + ' ' + plural_(watching, 'spreadsheet') + ')')
                     : 'WARNING — nothing is watching the spreadsheet, so an edit typed into a tab '
                       + 'will not reach the site for up to six hours. Open /exec?triggers=1 '
                       + '(it is also installed by itself after a deploy).');

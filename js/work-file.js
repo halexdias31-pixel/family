@@ -18,7 +18,7 @@ const wfSpec_ = of => ({ kind: 'panel', card: 'acct:workfile', look: 'workfile-c
 const wfTeach_ = of => !!USER && String(of) === String(USER.personId || '') && typeof rank_ === 'function' && rank_() === 'staff';
 const wfNote_ = text => ({ type: 'group', tag: 'p', look: 'note', text });
 const wfTiles_ = of => { const s = wfOf_(of);
-  return (s.pending.length ? [{ icon: 'save', label: 'Save to file', note: s.pending.length + ' page' + (s.pending.length === 1 ? '' : 's'), act: 'wf-save', cls: 'is-submit', data: { of } }] : [])
+  return (s.pending.length ? [{ icon: 'save', label: 'Save to file', note: s.pending.length + ' ' + plural_(s.pending.length, 'page'), act: 'wf-save', cls: 'is-submit', data: { of } }] : [])
     .concat({ icon: 'photo', label: 'Scan a page', note: 'camera or photos', act: 'wf-pick', data: { of } }); };
 /* THE INSIDES AS BLOCKS: `inCard` leaves the scan and save tiles to the card's row. */
 function wfBody_(of, inCard) {
@@ -45,7 +45,7 @@ function wfList_(of) {
   return [{ type: 'group', look: 'wf-rows', attrs: { role: 'list' }, blocks: s.rows.map(r => ({ type: 'group', look: 'row wf-item', attrs: { role: 'listitem' },
     blocks: [r.thumb ? { type: 'media', kind: 'image', look: 'wf-thumb', src: r.thumb } : { type: 'group', tag: 'span', look: 'wf-thumb', attrs: { 'aria-hidden': 'true' } },
       { type: 'group', tag: 'span', look: 'wf-what', blocks: [span('wf-name', r.title || r.subject || 'Scanned work'),
-        span('wf-when note', wfDate_(r.at) + (r.subject && r.title ? ' · ' + r.subject : '') + ' · ' + String(r.pages || 1) + ' page' + (r.pages === 1 ? '' : 's') + (r.by && r.by !== 'you' ? ' · by ' + r.by : ''))] }],
+        span('wf-when note', wfDate_(r.at) + (r.subject && r.title ? ' · ' + r.subject : '') + ' · ' + String(r.pages || 1) + ' ' + plural_(r.pages, 'page') + (r.by && r.by !== 'you' ? ' · by ' + r.by : ''))] }],
     tiles: [{ icon: 'open', label: 'Open', note: 'see the pages', act: 'wf-open', data: { id: r.id, title: r.title || 'Scanned work' } }]
       .concat(s.mayDelete ? [{ icon: 'bin', label: 'Delete', note: 'from your file', act: 'wf-del', data: { id: r.id, of } }] : []) })) }];
 }
