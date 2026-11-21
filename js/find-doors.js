@@ -95,7 +95,7 @@ const personDoorBody_ = t => [t.handle ? { type: 'text', text: '@' + t.handle } 
 CARD_EMBEDS['person-edit'] = a => (typeof personEdHtml_ === 'function' ? personEdHtml_(a.row) : '');
 
 /* ---------- SETTINGS BY ACCOUNT TYPE: each settings card has one home, Find › Settings › its type ---------- */
-/* WHICH COLUMN'S CARDS ANSWER WHICH TYPE, IN THE MENU'S ORDER: setting-for.json's `type:` rows; who opens each is permissions.json's `see` rows. */
+/* WHICH COLUMN'S CARDS ANSWER WHICH TYPE, IN THE MENU'S ORDER: the registry's `type:` rows (kinds.json setting.cards); who opens each is permissions.json's `see` rows. */
 function settingTypes_() {
   let rows = [];
   try { const t = (DATA && DATA.settingFor) || {}; rows = Object.keys(t).filter(k => /^type:/.test(k)).sort((a, b) => (t[a].rank || 0) - (t[b].rank || 0))
@@ -105,7 +105,7 @@ function settingTypes_() {
 /* WHO MAY SEE A SETTING, A DOOR OR A TYPE IS DATA (86a): one question, `seeMay_` (data.js); absent a row, an admin's only. */
 const settingMay_ = key => typeof seeMay_ === 'function' && seeMay_(key);
 /* AN ITEM'S ACCOUNT-TYPE TAGS (owner, 15 Nov): always its home column's type, so every card registered to Site is under Find › Settings › Site; */
-/* setting-for.json's `under` (menu grouping, not who sees it) adds more places, never takes the home away. */
+/* the registry's `under` (menu grouping, not who sees it) adds more places, never takes the home away. */
 function settingTagsOf_(id, home) {
   let row = null; try { row = ((DATA && DATA.settingFor) || {})[id] || null; } catch (e) { row = null; }
   const under = row && row.under && row.under.length ? [].concat(row.under) : [];
@@ -170,7 +170,7 @@ function settingDoorItems_() {
     });
   });
   if (settingMay_('door:notify') && !lensOn_()) add('Notifications', 'set:notify', { notify: true }, 'Business', true);
-  /* ORDER IS DATA (setting-for.json's rows, types too); an untagged card keeps its column's place after them. */
+  /* ORDER IS DATA (the registry's rows, types too); an untagged card keeps its column's place after them. */
   out.sort((a, b) => a.rank - b.rank);
   const order = settingTypes_().map(t => t.type);
   out.forEach(x => { x.settingFor.sort((a, b) => order.indexOf(a) - order.indexOf(b)); x.text = x.name + ' ' + x.settingFor.join(' ') + ' settings'; });
@@ -309,7 +309,12 @@ function oldBranch_(id) {
 /* THE REGISTRY IS DATA (job E, 20 Nov): kinds.json's setting.cards — id, its account type's group, name, and `only` when it is the only place
    a setting is edited (Delete's second step says so). Each card says which it is by its own `data-card` (renderCard's spec.card), never by its classes. */
 let SETTING_CARDS_ON_ = null;
-const SETTING_CARDS_ = () => SETTING_CARDS_ON_ || (SETTING_CARDS_ON_ = ((ITEM_KINDS.kinds.setting || {}).cards || []).concat(ownSecReg_()));
+/* A ROW THAT ONLY TAGS ONE OF YOUR OWN CARD'S SECTIONS (`own:account:picture`) takes that section's label, place and line from `ownSecReg_`. */
+const SETTING_CARDS_ = () => SETTING_CARDS_ON_ || (SETTING_CARDS_ON_ = (() => {
+  const reg = ((ITEM_KINDS.kinds.setting || {}).cards || []).map(r => Object.assign({}, r)), at = {};
+  reg.forEach(r => { at[r.id] = r; });
+  ownSecReg_().forEach(o => { if (at[o.id]) Object.keys(o).forEach(k => { if (!(k in at[o.id])) at[o.id][k] = o[k]; }); else reg.push(o); });
+  return reg; })());
 /* YOUR OWN CARD'S SECTIONS, A CARD EACH (468): `own:<col>:<section>`, the col the lowest rank it applies to, the same for everyone (469). */
 function ownSecReg_() {
   const S = { picture: ['Picture', 'your picture', 'The picture beside your name.'], figure: ['Your figure', 'your figure', 'The figure that stands for you in games.'],
@@ -323,12 +328,12 @@ function ownSecReg_() {
     jobs: ['Jobs', 'your jobs', 'Your current and past jobs, shown on your tutor card.'],
     where: ['Where you teach', 'where you teach', 'The venues you teach at and how far you travel.'], week: ['Available', 'your weekly hours', 'The hours you can teach each week.'] };
   const of = OWN_SEC_OF_SET_;
-  /* Each settings group's name from the one table (setting-for.json's type rows, settingGroupOf_), never a copy of it. */
+  /* Each settings group's name from the one table (the registry's type rows, settingGroupOf_), never a copy of it. */
   const where = c => (settingGroupOf_(c) || {}).label || c;
   return [].concat(...Object.keys(of).map(c => of[c].map(k => ({ id: 'own:' + c + ':' + k, col: c, label: S[k][0] + ' (' + where(c) + ')', only: S[k][1], say: S[k][2] }))));
 }
 const cardReg_ = id => SETTING_CARDS_().find(r => r.id === id);
-/* A SETTINGS GROUP (`set:<col>:<group>`) or a Business record card (`biz:rec:<page>`, `biz:profit-terms`) is known by its id alone. */
+/* A SETTINGS GROUP (`set:<col>:<group>`) the registry does not list yet, or a Business record card (`biz:rec:<page>`, `biz:profit-terms`), is known by its id alone: the fallback. */
 /* A SPLIT CARD'S PIECE is `<card>#<field>` (466). */
 const CARD_DYN = /^(item:[a-z]+:[A-Za-z0-9_.-]{1,48}|(set:(family|staff|account):[A-Za-z0-9_:.-]+|biz:rec:[A-Za-z0-9_:.-]+|biz:profit-terms)(#[A-Za-z0-9_.-]{1,40})?)$/;
 const cardIs_ = id => !!(cardReg_(id) || CARD_DYN.test(String(id || '')));

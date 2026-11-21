@@ -9519,7 +9519,11 @@ const filters = (to[1] ? [{ field: DOOR_FIELD, value: to[1] }] : []).concat(pick
 finderSet_(FINDERS.stuff, { filters, show: true }); go('stuff'); return true;
 }
 let SETTING_CARDS_ON_ = null;
-const SETTING_CARDS_ = () => SETTING_CARDS_ON_ || (SETTING_CARDS_ON_ = ((ITEM_KINDS.kinds.setting || {}).cards || []).concat(ownSecReg_()));
+const SETTING_CARDS_ = () => SETTING_CARDS_ON_ || (SETTING_CARDS_ON_ = (() => {
+const reg = ((ITEM_KINDS.kinds.setting || {}).cards || []).map(r => Object.assign({}, r)), at = {};
+reg.forEach(r => { at[r.id] = r; });
+ownSecReg_().forEach(o => { if (at[o.id]) Object.keys(o).forEach(k => { if (!(k in at[o.id])) at[o.id][k] = o[k]; }); else reg.push(o); });
+return reg; })());
 function ownSecReg_() {
 const S = { picture: ['Picture', 'your picture', 'The picture beside your name.'], figure: ['Your figure', 'your figure', 'The figure that stands for you in games.'],
 name: ['Name', 'your name', 'Your first and last name.'], handle: ['Handle', 'your handle', 'The @name people find you by.'],

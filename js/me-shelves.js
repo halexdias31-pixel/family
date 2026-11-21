@@ -66,9 +66,11 @@ const SET_HELD_SAY = 'Not saved yet — what you typed here before is still in i
 /* AN ATTRIBUTE STRING (a caller's `extra`, a draft's `data-draft…`) AS DATA for the form blocks: `k="v"` or a bare `k`; the first of a name wins, as in HTML. */
 const meAttrs_ = (...parts) => { const a = {};
   parts.join(' ').replace(/([\w:-]+)(?:="([^"]*)")?/g, (m, k, v) => { if (!(k in a)) a[k] = v == null ? true : cardUnesc_(v); return m; }); return a; };
-const meSaid_ = text => cardBlock_({ type: 'paperNote', look: 'me-said', text });
+/* THE LINE UNDER A SETTINGS FORM THAT SAYS WHAT WAS SAVED: a `status` block (`saved` is the one autosave finds). */
+const meSaidB_ = text => ({ type: 'status', saved: true, text });
 function setHeldSay_(html) {
-  return /\sdata-draft-held\b/.test(html) ? html.replace(meSaid_(''), meSaid_(SET_HELD_SAY)) : html;
+  const empty = cardBlock_(meSaidB_(''));
+  return /\sdata-draft-held\b/.test(html) ? html.replace(empty, cardBlock_(meSaidB_(SET_HELD_SAY))) : html;
 }
 function fieldHtml(name, value, o) {
   o = o || {};
@@ -212,14 +214,10 @@ const FIELD_ROWS = [
   /* AND HOW LONG A SESSION IS, THE THIRD RANGE — two selects off `SESSION_OPTIONS` (constants.gs), whole hours, the same `[ ] – [ ]`. § */
   { fields: ['min_hours', 'max_hours'], cap: 'session, in hours', ph: ['shortest', 'longest'], dash: true },
 ];
-const ROW_LABEL = {
-  years_experience: 'years teaching',
-  /* `photo` HAS NO LABEL because it has no box any more on your own settings — see `photoPicker_`. */
-  video: 'video link',
-  travel_km: 'will travel (km)', favourite_colour: 'favourite colour',
-  venues_ok: 'venues you teach at',
-  manager: 'your manager',
-};
+/* A ROW'S OWN CAPTION, where its column name is not the word: labels.json `row-label` (`photo` has none — no box on your own settings, see `photoPicker_`). */
+/* Before labels.json lands a row-labelled field says its column name in words, never nothing; after, a field with no row keeps `fieldLabel`'s. */
+const ROW_LABEL = new Proxy({}, { get: (t, k) => (typeof k !== 'string' ? undefined
+  : labelOf_('row-label', k, typeof DATA !== 'undefined' && DATA && DATA.labels && DATA.labels['row-label'] ? undefined : k.replace(/_/g, ' '))) });
 /* WHO MAY BE YOUR MANAGER: every other tutor the site was sent, by name; the admin is the blank line. */
 const MANAGER_NONE = '@family. (the admin)';
 function managerOptions_(self) {
@@ -295,32 +293,23 @@ const shelfAdd_ = (noun, act, o, row) => cardBlock_({ type: 'group', look: 'tile
   act: act || 'shelf-more', cls: act ? '' : 'shelf-more' }, o || {})] });
 const shelfDrop_ = (noun, act) => tile_({ icon: 'bin', label: 'Remove ' + noun, act: act || 'shelf-drop', cls: 'set-drop' });
 /* A CARD: its title and one line per field, saving as you type (owner, 8 Nov: no Save button, `autosaveHear_`). `o.save` is any other tile for the foot. */
+/* ONE TEMPLATE FOR SETTINGS AND ACCOUNT CARDS (owner, 13 Nov; unify batch 9): a spec through renderCard, its body ordinary blocks — the `.me-form` a group */
+/* (autosave hears it), its status line a `status` block. `o.form`/`o.body` are blocks (formCard_'s) or parts another maker drew already. */
 function setCard_(o) {
-  const save = o.save ? cardBlock_({ type: 'group', look: 'tile-row set-save', inner: o.save }) : '';
-  const body = o.form == null ? (o.body || '') + save
-    : cardBlock_({ type: 'group', look: 'me-form', attrs: meAttrs_(o.formAttrs || ''), inner: o.form + save + (o.foot == null ? meSaid_('') : o.foot) });
-  return renderCard({ kind: 'setting', card: o.card || '', look: 'set-shape' + (o.cls ? ' ' + o.cls : ''), name: o.title || '', tags: [o.title || ''], data: meData_(o.attrs),
-    body: [{ type: 'embed', tool: 'me-form', args: { draw: () => (o.lead || '') + body + (o.after || '') } }] });
+  const save = o.save ? { type: 'group', look: 'tile-row set-save', inner: o.save } : '';
+  const body = o.form == null ? [o.body, save]
+    : { type: 'group', look: 'me-form kc-fields', attrs: meAttrs_(o.formAttrs || ''), parts: [o.form, save, o.foot == null ? meSaidB_('') : o.foot] };
+  return renderCard({ kind: 'setting', card: o.card || '', look: 'set-shape' + (o.cls ? ' ' + o.cls : ''), name: o.title || '', tags: [o.title || ''], data: cardDataOf_(o.attrs),
+    body: [{ type: 'group', look: 'kc-set', parts: [o.lead, body, o.after] }] });
 }
-/* ONE TEMPLATE FOR SETTINGS AND ACCOUNT CARDS (owner, 13 Nov): a spec through renderCard; the form is its one embed, drawn by a function so no spec string holds markup. */
+/* THE ONE KIND OF EMBED LEFT ON A SETTINGS CARD: a widget another file draws (photos, the library shelf, a timetable), by a function so no spec string holds markup. */
 CARD_EMBEDS['me-form'] = a => (a && typeof a.draw === 'function' ? String(a.draw() || '') : '');
-/* A WRAPPER'S data-* ATTRIBUTES (data-lay-card, data-pid) stay on the card, which renderCard escapes again. */
-function meData_(attrs) {
-  const d = {};
-  String(attrs || '').replace(/\sdata-([\w-]+)="([^"]*)"/g, (m, k, v) => { d[k] = cardUnesc_(v); return m; });
-  return d;
-}
-/* A SETTINGS CARD WRITTEN AS ONE <div> WITH A HEADING becomes a spec: the heading its name, the class its look, the rest its embed. */
-function meSpec_(html, called) {
-  const cut = typeof kcSplit_ === 'function' ? kcSplit_(String(html || '').trim()) : null;
-  if (!cut) return { kind: 'setting', name: String(called || ''), body: [{ type: 'embed', tool: 'me-form', args: { draw: () => String(html || '') } }] };
-  const name = cardUnesc_(String(cut.head || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()) || String(called || '');
-  const id = (/\sid="([^"]*)"/.exec(cut.attrs || '') || [])[1];
-  return { kind: 'setting', look: cut.cls || '', name, tags: name ? [name] : [], data: meData_(cut.attrs), id: id ? cardUnesc_(id) : '',
-    body: [{ type: 'embed', tool: 'me-form', args: { draw: () => (cut.pic || '') + (cut.tags || '') + (cut.lines || '') } }] };
-}
-cardKind_('me-card', x => meSpec_(x && x.html, x && x.name));
-const meCard_ = (html, kind, called) => renderCard(meSpec_(html, called));
+/* A WRAPPER'S data-* ATTRIBUTES (data-lay-card, data-pid) stay on the card, read as data by `cardAttrsOf_`. */
+const cardDataOf_ = attrs => { const a = cardAttrsOf_(attrs || ''), d = {};
+  Object.keys(a).forEach(k => { if (/^data-/.test(k)) d[k.slice(5)] = a[k] === true ? '' : a[k]; }); return d; };
+/* A SETTINGS CARD THAT IS NOT A FORM (signed in, a card being edited): its look, name and data, its body ordinary blocks in the `kc-set` group. */
+const setPlainCard_ = o => renderCard({ kind: 'setting', card: o.card || '', look: o.look || '', name: o.name || '', tags: o.name ? [o.name] : [], data: o.data || {},
+  body: [{ type: 'group', look: 'kc-set', parts: o.parts || [] }] });
 const shelfFilled_ = (value, names) => names.some(f => String(value(f) ?? '').trim() !== '');
 
 on('shelf-more', el => {

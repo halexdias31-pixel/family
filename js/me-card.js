@@ -98,12 +98,12 @@ function cardSame_(f, a, b) {
 }
 /* EVERY BOX OF THE CARD'S FORM, as `meSave_` gathers a Settings card: a tick is TRUE or FALSE, and
    `Something else…` not yet typed is no answer. */
-function cardFormVals_(form) {
+function cardFormVals_(form, raw) {
   const out = {};
   form.querySelectorAll('[data-me]').forEach(b => {
     if (b.disabled) return;
     const v = isCheckbox_(b) ? (b.checked ? 'TRUE' : 'FALSE') : String(b.value || '').trim();
-    out[b.dataset.me] = v === QUAL_OTHER ? '' : v;
+    out[b.dataset.me] = v === QUAL_OTHER && !raw ? '' : v;
   });
   return out;
 }
@@ -214,17 +214,17 @@ const mcNote_ = (look, text) => cardBlock_({ type: 'msgText', look: 'note ' + lo
 function cardEditHtml_(t) {
   const e = cardEditNow_();
   const pid = String(t.personId);
-  const head = cardBlock_({ type: 'msgHead', text: [(profRoleWords_(t).join(' · ') || 'Profile') + ' ', { span: 'ce-what', text: '· editing' }] });
+  const head = { type: 'msgHead', text: [(profRoleWords_(t).join(' · ') || 'Profile') + ' ', { span: 'ce-what', text: '· editing' }] };
   const base = cardBaseNow_(e);
+  /* WAITING FOR THEIR COPY: the maker's wait, or what went wrong as the card's status line. */
+  const card = inner => setPlainCard_({ parts: [{ type: 'group', look: 'is-widget card-ed', attrs: { 'data-pid': pid }, parts: inner },
+    { type: 'tiles', look: 'ce-tiles', tiles: cardSaveOpts_(pid, !base) }] });
   if (!base) {
     if (!e.err) setTimeout(() => cardFetch_(e), 0);
-    return meCard_(mcG_('div', 'is-widget card-ed', { attrs: { 'data-pid': pid }, inner: head + (e.err ? mcNote_('me-said', e.err) : loading_()) })
-      + cardBlock_({ type: 'tiles', look: 'ce-tiles', tiles: cardSaveOpts_(pid, true) }));
+    return card([head, e.err ? meSaidB_(e.err) : { type: 'wait', on: true }]);
   }
   const { vals, held } = cardValues_(e, base);
-  return meCard_(mcG_('div', 'is-widget card-ed', { attrs: { 'data-pid': pid }, inner: head
-    + mcG_('div', 'me-form', { attrs: { 'data-draw': cardDrawn_(base) }, inner: cardEditForm_(t, e, vals) + mcNote_('me-said', held ? SET_HELD_SAY : '') }) })
-    + cardBlock_({ type: 'tiles', look: 'ce-tiles', tiles: cardSaveOpts_(pid, false) }));
+  return card([head, { type: 'group', look: 'me-form', attrs: { 'data-draw': cardDrawn_(base) }, parts: [cardEditForm_(t, e, vals), meSaidB_(held ? SET_HELD_SAY : '')] }]);
 }
 /* YOUR OWN CARD'S EDIT, ONE CARD PER SECTION (468): each its own form, draft, Save and layout id — the owner, "settings is purely editing". */
 function cardEditCards_(t, e, secs, setCol) {
@@ -236,10 +236,10 @@ function cardEditCards_(t, e, secs, setCol) {
     const title = OWN_SEC_TITLE_[s.id] || s.cap || s.id;
     const card = { title, cls: 'card-ed',
       attrs: ` data-pid="${esc(pid)}" data-sec="${esc(s.id)}" data-lay-card="own:${esc(setCol)}:${esc(s.id)}" aria-label="${esc(title)}"` };
-    if (!base) return setCard_(Object.assign(card, { body: e.err ? mcNote_('me-said', e.err) : loading_(), save: cardCancelTile_(pid) }));
+    if (!base) return setCard_(Object.assign(card, { body: e.err ? meSaidB_(e.err) : { type: 'wait', on: true }, save: cardCancelTile_(pid) }));
     const { vals, held } = cardValues_(e, base, s.id);
     return setCard_(Object.assign(card, { form: cardEditForm_(t, e, vals, [s]), formAttrs: ` data-draw="${cardDrawn_(base)}"`,
-      save: cardCancelTile_(pid), foot: mcNote_('me-said', held ? SET_HELD_SAY : '') }));
+      save: cardCancelTile_(pid), foot: meSaidB_(held ? SET_HELD_SAY : '') }));
   });
 }
 function cardSaveOpts_(pid, saveOff) {
@@ -297,7 +297,7 @@ function ceAreas_() {
 }
 function ceWhere_(L, val, box) {
   const got = profList_(val('venues_ok')), by = ceAreas_(), has = t => got.some(g => norm(g) === norm(t));
-  const ro = (((typeof DATA !== 'undefined' && DATA && DATA.profileReadonly) || []).indexOf('venues_ok') !== -1);
+  const ro = fieldReadonly_('venues_ok');
   /* forms.json's `card-where`: the hidden venues_ok and an area a tick. */
   const ticks = L.indexOf('venues_ok') === -1 ? '' : formOf_('card-where', { venues_ok: got.join(', ') }, { locked: ro,
     options: { areas: Object.keys(by).sort().map(a => [a, { html: mcG_('span', null, { text: a }) + ' ' + qtag_(esc(ceCount_(by[a].length, 'venue', 'venues'))) }, by[a].some(has)]) } });
@@ -349,7 +349,7 @@ function cardEditForm_(t, e, vals, only) {
   const ro = (DATA && DATA.profileReadonly) || [];
   /* EACH BOX IS forms.json's `card-edit` form, one name at a time (its sections lay them out); a price only for may_('prices'). */
   const box = (f, extra) => formOf_('card-edit', val, { fields: [f], options: fieldOptions_, with: () => Object.assign({ label: ROW_LABEL[f],
-    readonly: ro.indexOf(f) !== -1 || (f === 'extra_seat_cut' && !may_('admin')),
+    readonly: fieldReadonly_(f),
     raw: { person_id: (t && t.personId) || (whose_() || {}).personId || '' } }, extra) });
   /* YOUR OWN CARD'S SECTIONS ARE YOUR ROLE'S (`ownCardSections_`), with the figure and the handle;
      somebody else's are the tutor's card, as an admin has always edited it. */
@@ -649,45 +649,25 @@ on('card-save', el => { cardSave_(el, false); });
 /* `auto`: a Settings section saving as typed (`autosaveHear_`) — nothing locks, closes or says "Nothing had changed". */
 function cardSave_(el, auto) {
   const e = cardEditNow_();
-  { const f0 = el.closest('.card-ed'), f1 = f0 && f0.querySelector('.me-form'); if (f1) clearTimeout(AUTOSAVE_T.get(f1)); }
   const pane = el.closest('.pane');
   /* THE CARD THE SAVE IS ON — your own card is a card per section (468). */
   const card = (el.closest('.card-ed')) || (pane && pane.querySelector('.card-ed'));
   const form = card && card.querySelector('.me-form');
   const sec = (card && card.dataset.sec) || '';
   if (!e || !USER || !form || card.dataset.pid !== e.pid || String(el.dataset.pid || card.dataset.pid || '') !== e.pid) return;
-  const said = form.querySelector('.me-said');
   const base = CARD_DRAWN.get(form.dataset.draw || '');
-  if (!base) { cardRepaint_(); return; }
-  /* ---------- NOT WHILE A SECTION THAT SAVES ITSELF IS ON THE WIRE (the review of docs/history/339) § */
-  const busy = form.querySelector('.pfp.is-sending') ? 'Your picture is still saving'
-    : form.querySelector('.is-sending') || form.classList.contains('is-sending') ? 'Part of your card is still saving' : '';
-  if (busy) { if (auto) { autosaveLater_(form); return; } toast(busy + ' — Save once it has.'); if (said) tell_(said, 'info', busy + ' — Save once it has.'); return; }
-  if (qualNameless_(form)) { toast(QUAL_NAMELESS_SAY_); if (said) tell_(said, 'info', QUAL_NAMELESS_SAY_); return; }
-  if (cardQualHole_(form, base)) { toast(CARD_LEVELLESS_SAY_); if (said) tell_(said, 'info', CARD_LEVELLESS_SAY_); return; }
-  const fields = cardChanged_(base, cardFormVals_(form));
-  const seatNo = cardSeatRefusal_(form, fields);
-  if (seatNo && !Object.keys(fields).length) { toast(seatNo + ' Nothing was saved.'); if (said) tell_(said, 'error', seatNo + ' Nothing was saved.'); return; }
-  /* NOTHING TYPED — BUT A SECTION THAT SAVES ITSELF MAY HAVE BEEN (`cardSelfSaved_`): § */
-  if (!Object.keys(fields).length) { if (auto) return; toast(cardSelfSay_(e) || 'Nothing had changed'); cardClose_(e, pane, sec); return; }
+  if (!base) { clearTimeout(AUTOSAVE_T.get(form)); cardRepaint_(); return; }
   const t = ((DATA && DATA.tutors) || []).find(r => r && String(r.personId) === e.pid) || {};
-  /* `own` IS `whose_()`'S CARD: yours, or the lens's person's, written to their row by `targetId`. */
+  /* `own` IS `whose_()`'S CARD: yours, or the lens's person's, written to their row by `targetId`. The checks, the send and
+     your own copy are `profileSave_`'s; what is left here is the card's wrap-up. */
   const W = whose_();
-  send_({ action: 'item', door: 'save', item: 'profile', name: USER.name, personId: USER.personId || '',
-          target: e.own ? W.name : (t.title || ''), targetId: e.pid, fields },
-        auto ? { where: said } : { button: el, busy: 'Saving…', where: said, lock: pane })
-    .then(d => {
-      if (e.own) {
-        W.profile = (d && d.profile) ? d.profile : Object.assign({}, W.profile || {}, fields);
-        if (d && d.name) W.name = d.name;
-        if (W === USER) saveUser_();
-        /* YOUR OWN COPY CHANGED, and the Progress column's journey card is drawn from it — see `meSave_`. */
-      }
+  profileSave_(form, { el, auto, base, own: e.own, lock: pane, target: { name: e.own ? W.name : (t.title || ''), id: e.pid },
+    done: ({ fields }) => {
       cardPatchTutor_(e.pid, Object.assign({}, base, fields), fields);
-      /* A PART LEFT OUT, HERE OR BY THE SERVER, IS SAID BESIDE WHAT WAS SAVED (620). */
-      const word = ((d && d.said) || 'Saved') + (seatNo ? (d && d.refused ? ' ' : ' — the rest. Not saved: ') + seatNo : '');
-      toast(word);
-      if (auto) { CARD_DRAWN.set(form.dataset.draw || '', Object.assign({}, base, fields)); autosaveTick_(form, word); return; }
+      if (auto) CARD_DRAWN.set(form.dataset.draw || '', Object.assign({}, base, fields));
+    },
+    after: ({ d, word, seatNo }) => {
+      if (auto) return;
       cardClose_(e, pane, sec);
       /* A SAVE THAT WROTE NOTHING LEAVES THE STORED PAYLOAD ALONE — see `meSave_`; a part left out stays said under the card. */
       const part = (d && d.refused) || seatNo;
@@ -695,8 +675,9 @@ function cardSave_(el, auto) {
         if (part) sayAfterLoad_(() => document.querySelector('.card-ed[data-pid="' + e.pid + '"][data-sec="' + sec + '"] .me-said'), word);
         else { try { load(); } catch (x) { oops_(x, 'me:cardSelfSay_') } }
       }
-    })
-    .catch(err => { /* `send_` has written the refusal under the form, which is still open. */ if (auto) autosaveFailed_(err); });
+    } })
+    /* NOTHING TYPED — BUT A SECTION THAT SAVES ITSELF MAY HAVE BEEN (`cardSelfSaved_`): § */
+    .then(r => { if (r && r.nothing && !auto) { toast(cardSelfSay_(e) || 'Nothing had changed'); cardClose_(e, pane, sec); } });
 }
 
 /* ---------- CANCEL: WHAT WAS THERE COMES BACK — THE PICTURE TOO § */
@@ -711,21 +692,20 @@ on('card-cancel', el => {
   if (!picBack) { cardClose_(e, pane, sec); return; }
   const form = (card || pane) && (card || pane).querySelector((card ? '' : '.card-ed ') + '.me-form');
   const said = form && form.querySelector('.me-said');
-  send_({ action: 'item', door: 'save', item: 'profile', name: USER.name, personId: USER.personId || '', target: USER.name,
-          targetId: e.pid, fields: { photo: was } },
-        { button: el, where: said, lock: pane })
-    .then(d => {
+  /* THE ONE PROFILE SAVE (`profileSave_`), with the one field it puts back and no box checks. */
+  profileSave_(form, { fields: { photo: was }, target: { name: USER.name, id: e.pid }, said, how: { button: el, where: said, lock: pane }, toast: false, tick: null,
+    done: ({ d }) => {
       const got = (d && d.profile && d.profile.photo != null) ? String(d.profile.photo) : was;
       if (d && d.profile) USER.profile = Object.assign({}, USER.profile || {}, d.profile);
       pfpTake_(null, got);
       cardClose_(e, pane, sec);
       toast(text_('put-back-as-it-was-your'));
-    })
-    .catch(() => {
+    },
+    failed: () => {
       const why = String((said && said.textContent) || '').trim();
       cardClose_(e, pane, sec);
       toast('Everything else is put back, but not your picture' + (why ? ': ' + why : '.'));
-    });
+    } });
 });
 
 /* ---------- EVERY BOX ON THE CARD: HELD, KEPT, AND THE MAP FOLLOWS THE TICKS § */

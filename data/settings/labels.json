@@ -30,5 +30,13 @@
 {"group": "facet-show:boutEvent", "key": "World Boxing Super Series Final", "label": "WBSS Final", "sort_order": 3, "active": true},
 {"group": "facet-show:histDated", "key": "C. 1147 BC, 20th Dynasty, reign of Ramesses V", "label": "c. 1147 BC, Ramesses V", "sort_order": 1, "active": true},
 {"group": "facet-show:mPart", "key": "Number plate and interior bulbs", "label": "Number plate & interior bulbs", "sort_order": 1, "active": true},
-{"group": "facet-show:wText", "key": "National Archives transcription", "label": "National Archives", "sort_order": 1, "active": true}
+{"group": "facet-show:wText", "key": "National Archives transcription", "label": "National Archives", "sort_order": 1, "active": true},
+{"group": "row-label", "key": "years_experience", "label": "years teaching", "sort_order": 1, "active": true},
+{"group": "row-label", "key": "video", "label": "video link", "sort_order": 2, "active": true},
+{"group": "row-label", "key": "travel_km", "label": "will travel (km)", "sort_order": 3, "active": true},
+{"group": "row-label", "key": "favourite_colour", "label": "favourite colour", "sort_order": 4, "active": true},
+{"group": "row-label", "key": "venues_ok", "label": "venues you teach at", "sort_order": 5, "active": true},
+{"group": "row-label", "key": "manager", "label": "your manager", "sort_order": 6, "active": true},
+{"group": "staff-group", "key": "Contact & address", "label": "Where you teach", "sort_order": 7, "active": true},
+{"group": "staff-group", "key": "About you", "label": "About you as a tutor", "sort_order": 8, "active": true}
 ]

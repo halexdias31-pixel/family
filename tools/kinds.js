@@ -13,6 +13,14 @@ function run() {
   doors.forEach((d, i) => { if (!d || doors.indexOf(d) !== i) bad.push('doors[' + i + '] ' + JSON.stringify(d) + ' is blank or twice'); });
   const under = (k, f) => String((f && f.under) || '').split(',').map(t => t.trim()).filter(Boolean).forEach(t => { if (doors.indexOf(t) < 0) bad.push(k + ': under ' + t + ' is not in kinds.json doors'); });
   Object.keys(j.kinds || {}).forEach(k => { const f = (j.kinds[k] || {}).find; under(k, f); Object.keys((f && f.entries) || {}).forEach(e => under(k + '.' + e, f.entries[e])); });
+  /* THE SETTINGS REGISTRY IS ONE LIST (unify batch 9, setting-for.json folded in): each id once; a `type:` row names its group's col and label
+     (a type with no col is a tag only); every `under` is a type it names, so a card is never filed under a type Find has no menu for. */
+  const reg = ((j.kinds.setting || {}).cards || []), ids = {}, types = reg.filter(r => /^type:/.test(r.id || '')).map(r => r.id.slice(5));
+  reg.forEach((r, i) => { if (!r.id || ids[r.id]) bad.push('setting.cards[' + i + '] ' + JSON.stringify(r.id) + ' is blank or twice'); ids[r.id] = 1;
+    if (/^type:/.test(r.id) && r.col && !r.label) bad.push('setting.cards ' + r.id + ' has a col and no label');
+    if (r.under != null && !Array.isArray(r.under)) bad.push('setting.cards ' + r.id + ': under is a list');
+    [].concat(r.under || []).forEach(t => { if (types.indexOf(t) < 0) bad.push('setting.cards ' + r.id + ': under ' + t + ' is not a type: row'); }); });
+  if (!types.length) bad.push('setting.cards has no type: rows');
   if (bad.length) throw new Error('kinds: FAILED\n  ' + bad.join('\n  '));
   const want = '/* @family. — js/kinds.js: WRITTEN BY tools/kinds.js FROM data/settings/kinds.json and facets.json; edit those. */\n'
     + 'const ITEM_KINDS = ' + JSON.stringify({ kinds: j.kinds, doors: j.doors, facets: JSON.parse(fs.readFileSync(path.join(ROOT, 'data/settings/facets.json'), 'utf8')) }) + ';\n';
@@ -23,4 +31,4 @@ function run() {
   return have !== want;
 }
 module.exports = { run };
-main(module, () => console.log('kinds: ' + (run() ? 'wrote' : 'unchanged') + ' js/kinds.js; every find.under is one of kinds.json doors'));
+main(module, () => console.log('kinds: ' + (run() ? 'wrote' : 'unchanged') + ' js/kinds.js; every find.under is one of kinds.json doors; the settings registry is whole'));

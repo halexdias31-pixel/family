@@ -552,9 +552,7 @@ function parentOnly_(f) {
   const c = DATA.clientFields, k = DATA.studentFields, has = x => x && Object.keys(x).length, inn = x => Object.keys(x).some(g => (x[g] || []).indexOf(f) !== -1);
   return !!(has(c) && has(k) && inn(c) && !inn(k));
 }
-/* WHAT A SPLIT GROUP IS CALLED UNDER STAFF, where "Contact & address" would mislead. */
-const STAFF_GROUP_NAMES_ = { 'Contact & address': 'Where you teach', 'About you': 'About you as a tutor' };
-/* YOUR SETTINGS' GROUPS, SPLIT: `{ you, staff }`, each `{ group: [fields] }`, card fields already taken out. */
+/* YOUR SETTINGS' GROUPS, SPLIT: `{ you, staff }`, each `{ group: [fields] }`, card fields already taken out; a split group's name under Staff is labels.json `staff-group`. */
 function settingsSplit_() {
   const shown = notLibrary_(cardSettingsGroups_(myGroups_(), ownCardFields_()));
   /* AND STAFF SET THEIR WEEK ON THE AVAILABLE CARD (487), so it is not drawn twice — but that card needs a tutor row, which a new tutor lacks. */
@@ -566,19 +564,17 @@ function settingsSplit_() {
     const kid = mine.filter(f => !parentOnly_(f)), par = mine.filter(parentOnly_);
     if (kid.length) out.you[g] = kid;
     if (par.length) out.parent[g] = par;
-    if (staff.length) out.staff[mine.length ? (STAFF_GROUP_NAMES_[g] || g) : g] = staff;
+    if (staff.length) out.staff[mine.length ? labelOf_('staff-group', g, g) : g] = staff;
   });
   return out;
 }
 /* ONE GROUP, ONE CARD, ITS OWN SAVE — `meSave_` posts the boxes of the card it is pressed in.
-   `col` names the account type's group, so each card has its id (`set:<col>:<group>`, setting-for.json). */
-/* THE LINE UNDER A SETTINGS FORM THAT SAYS WHAT WAS SAVED: one shape, here and on the library shelf (me-settings.js). */
-const ME_SAID_ = { type: 'group', tag: 'p', look: 'note me-said' };
+   `col` names the account type's group, so each card has its id (`set:<col>:<group>`, kinds.json setting.cards). */
 function settingsCards_(shown, moved, col) {
   const p = whose_().profile || {};
   /* THE BUSINESS'S CUT OF AN EXTRA SEAT IS SHOWN TO A TUTOR AND NOT OFFERED (docs/history/345) — an
      admin's to set, and `seatCutRefusal_` refuses it from anybody else; a disabled box is one `meSave_` never posts. */
-  const readonly = (DATA.profileReadonly || []).concat(may_('admin') ? [] : ['extra_seat_cut']);
+  const readonly = (DATA.profileReadonly || []).concat('extra_seat_cut').filter(fieldReadonly_);
   /* ONE SHAPE FOR EVERY CARD (8 Nov; 84a): `formCard_` — the title, one line per field, saved as you type. */
   const mail = list => (list || []).indexOf('email') !== -1;
   const one = (g, list, top, lid) => setHeldSay_(formCard_({ title: g, cls: lid ? 'set-card' : '', lead: (top || '') + shareBarFor_(list, p),
@@ -592,7 +588,7 @@ function settingsCards_(shown, moved, col) {
       options: fieldOptions_,
     },
     save: mail(list) && p.email_moving ? tile_(RESEND_LINK) : false,
-    foot: (mail(list) ? movingNote_(p) : '') + cardBlock_(ME_SAID_) }));
+    foot: (mail(list) ? movingNote_(p) : '') + cardBlock_(meSaidB_('')) }));
   const out = [];
   Object.keys(shown).forEach((g, k) => {
     const list = shown[g] || [], top = k === 0 ? moved : '';
@@ -600,7 +596,7 @@ function settingsCards_(shown, moved, col) {
   });
   return out;
 }
-/* A SETTINGS CARD'S ID: `set:<type's group>:<group, in words>` (setting-for.json keys its tags by it). */
+/* A SETTINGS CARD'S ID: `set:<type's group>:<group, in words>` (the registry, kinds.json setting.cards, keys its tags by it). */
 const setCardId_ = (col, g) => 'set:' + [col, g].map(x => String(x).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 28) || 'x').join(':');
 /* ---------- EACH ACCOUNT TYPE'S NAME, AND THE PEOPLE YOU BELONG WITH (453) ----------
    The owner: "A user in theory could appear in each of these 3 categories" and "split account settings into 3". */
@@ -664,10 +660,10 @@ function studentSetPages_() {
   }
   const who = nameBesideHandle_(whose_().name, whose_().handle) || 'you';
   /* SIGNED IN AS, AND SIGN OUT — off your card since 453, because it is a setting of every account. */
-  let top = renderCard(Object.assign(meSpec_(cardBlock_({ type: 'group', look: 'signed-in', blocks: [{ type: 'msgHead', text: 'Signed in' }], inner: tileRow_(tile_({ icon: 'out', label: 'Sign out', act: 'signout' })
-      + (typeof pendingAddr_ === 'function' && pendingAddr_() && typeof RESEND_LINK !== 'undefined' ? tile_(RESEND_LINK) : ''), '', true)
+  let top = setPlainCard_({ card: 'acct:signed-in', look: 'signed-in', name: 'Signed in', parts: [tileRow_(tile_({ icon: 'out', label: 'Sign out', act: 'signout' })
+      + (typeof pendingAddr_ === 'function' && pendingAddr_() && typeof RESEND_LINK !== 'undefined' ? tile_(RESEND_LINK) : ''), '', true),
     /* "WE WILL EMAIL YOU ONCE YOU OPEN THE LINK" — one line under Sign out and Send the link again while your address is unproved. */
-    + (typeof mailHeldNote_ === 'function' ? mailHeldNote_() : '') })), { card: 'acct:signed-in' }));
+    typeof mailHeldNote_ === 'function' ? mailHeldNote_() : ''] });
   const coming = typeof awaiting_ === 'function' && awaiting_() ? [loading_()] : [];
   /* IN THE LENS, SIGN OUT IS THE ADMIN'S OWN SESSION: shut, greyed not hidden (the fixed tile rule). */
   if (lensOn_()) top = lockCard_(top);

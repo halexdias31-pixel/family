@@ -172,7 +172,7 @@ function libCardsDraw_(into) {
     return;
   }
   const p = whose_().profile || {};
-  into.innerHTML = cardBlock_({ type: 'group', look: 'me-form', inner: libraryShelf_(list, f => p[f] ?? '') + cardBlock_(ME_SAID_) });
+  into.innerHTML = cardBlock_({ type: 'group', look: 'me-form', inner: libraryShelf_(list, f => p[f] ?? '') + cardBlock_(meSaidB_('')) });
 }
 function initLibCards_() { libCardsDraw_($('lib-box')); }
 /* EVERY COPY ON THE PAGE — Tools' and, starred, Saved's — for `myProfile` landing (`profileRefresh_`): § */
@@ -217,67 +217,105 @@ function autosaveFailed_(err) {
 }
 document.addEventListener('input', autosaveHear_, true);
 document.addEventListener('change', autosaveHear_, true);
-/* ---------- THE SAVE ITSELF, LIFTED OUT SO THE QUALIFICATION EDITORS CAN CALL IT § */
-function meSave_(el, auto) {
+/* ---------- ONE PROFILE SAVE (unify batch 9): the one place `item: 'profile'` is sent (tools/one-profile-save.js).
+   `form` holds the boxes. o.base: only what moved from it is sent (the card editor); without it every box is (Settings — the
+   live backend is old, and its "would wipe" guard below was written against a card that sends all of them). o.fields: sent as
+   given, the box checks skipped (Cancel's picture, the people editor). o.gate(fields, go, stop): may hold the send back.
+   Resolves null when nothing was sent, `{ nothing: true }` when nothing had moved, else `{ d, fields, word, seatNo }`. */
+function profileSave_(form, o) {
+  o = o || {};
   return new Promise(resolve => {
   /* A PRESS OR A SAVE IN HAND MAKES THE WAITING ONE MOOT. */
-  { const f0 = el && el.closest && el.closest('.me-form'); if (f0) clearTimeout(AUTOSAVE_T.get(f0)); }
+  [form, o.el].forEach(x => { const f0 = x && x.closest && x.closest('.me-form'); if (f0) clearTimeout(AUTOSAVE_T.get(f0)); });
   /* SIGNED OUT (the session ended under an open card): nothing to save to, and `USER.name` would throw. */
-  if (!USER) { toast(text_('sign-in-first-2')); return resolve(false); }
-  /* AND A THIRD SURFACE, WHICH IS THE SETTINGS COLUMN. § */
-  const box = el.closest('.me-form') || el.closest('#sheet-body') || el.closest('.widget-slot') || document.body;
-  const said = box.querySelector('.me-said');
-  /* GATHERED BEFORE `send_` LOCKS THE CARD. § */
-  const fields = {};
-  box.querySelectorAll('[data-me]').forEach(box => {
-    if (box.disabled) return;
-    fields[box.dataset.me] = isCheckbox_(box) ? (box.checked ? 'TRUE' : 'FALSE')
-                                                     : String(box.value || '').trim();
-  });
-  /* A QUALIFICATION WITH NO SUBJECT. § */
-  /* ASKED OF EACH SLOT: its `qual_N` box (the subject's select) is the name that is saved, and any visible box with an answer in it is a qualification. § */
-  if (qualNameless_(box)) { if (auto) { if (said) tell_(said, 'info', QUAL_NAMELESS_SAY_); } else toast(QUAL_NAMELESS_SAY_); return resolve(false); }
-  /* ---------- NOT FROM A COPY OF YOUR SETTINGS THAT CANNOT BE TRUE § */
-  /* ---------- AND WHEN THE SERVER IS OLDER THAN THIS SITE § */
-  if (!profileShapeOk_()) {
-    const packed = Object.keys(fields).some(k => PACKED_FIELD_.test(k));
-    const blocked = () => { if (said) said.textContent = OLD_SERVER_SAY_
-      + ' Until then this card is not sent, because its boxes may be empty and saving would wipe what the sheet holds.'; };
-    if (PROFILE_SERVER_OLD) { if (packed) { blocked(); return resolve(false); } return saveNow(); }
-    if (said) tell_(said, 'error', 'Your saved details are still loading from the sheet, so nothing was sent. Try again in a moment.');
-    profileRefresh_(true, () => (packed ? (blocked(), resolve(false)) : saveNow()));
-    /* NOT SENT YET, AND THE CALLER IS TOLD SO — a refresh that ends in `saveNow` saves the card, but an editor waiting on this would otherwise wait for § */
-    resolve(false);
-    return;
+  if (!USER) { toast(text_('sign-in-first-2')); return resolve(null); }
+  const said = Object.prototype.hasOwnProperty.call(o, 'said') ? o.said : (form && form.querySelector('.me-said'));
+  const say = (cls, msg) => { if (!o.auto) toast(msg); if (said) tell_(said, cls, msg); };
+  let fields = o.fields, seatNo = '';
+  if (!fields) {
+    /* ---------- THE ONE CHECK LIST, the same for Settings and the card editor ---------- */
+    /* NOT WHILE A PART THAT SAVES ITSELF IS ON THE WIRE (the review of docs/history/339) § */
+    const busy = form === document.body ? '' : form.querySelector('.pfp.is-sending') ? 'Your picture is still saving'
+      : form.querySelector('.is-sending') || form.classList.contains('is-sending') ? 'Part of your card is still saving' : '';
+    if (busy) { if (o.auto) autosaveLater_(form); else say('info', busy + ' — Save once it has.'); return resolve(null); }
+    /* A QUALIFICATION WITH NO SUBJECT, OR NO LEVEL. § */
+    if (qualNameless_(form)) { say('info', QUAL_NAMELESS_SAY_); return resolve(null); }
+    if (cardQualHole_(form, o.base || (whose_() || {}).profile || {})) { say('info', CARD_LEVELLESS_SAY_); return resolve(null); }
+    /* GATHERED BEFORE `send_` LOCKS THE CARD. The card editor reads `Something else…` not yet typed as no answer; Settings sends
+       its boxes as they stand, as it always has. § */
+    const now = cardFormVals_(form, !o.base);
+    fields = o.base ? cardChanged_(o.base, now) : now;
+    seatNo = cardSeatRefusal_(form, fields);
+    if (seatNo && !Object.keys(fields).length) { say('error', seatNo + ' Nothing was saved.'); return resolve(null); }
+    if (o.base && !Object.keys(fields).length) return resolve({ nothing: true });
   }
-  saveNow();
-  function saveNow() {
-  /* `send_`, NOT `api()`. § */
   /* YOU ASK; `whose_()` IS WHOSE ROW — yours, or the person an admin's lens is on (the backend lets only an admin name another). */
   const W = whose_();
-  send_({ action: 'item', door: 'save', item: 'profile', name: USER.name, personId: USER.personId || '',
-          target: W.name, targetId: W.personId || '', fields },
-        auto ? { where: said } : { button: el, busy: 'Saving…', where: said })
-    .then(d => {
-      /* THE SERVER'S OWN READING OF THE ROW, NOT WHAT WAS TYPED. § */
-      W.profile = (d && d.profile) ? d.profile : Object.assign({}, W.profile || {}, fields);
+  const go = () => {
+    /* `send_`, NOT `api()`. § */
+    send_({ action: 'item', door: 'save', item: 'profile', name: USER.name, personId: USER.personId || '',
+            target: o.target.name, targetId: o.target.id, fields },
+          o.how || (o.auto ? { where: said } : Object.assign({ button: o.el || form, busy: 'Saving…', where: said }, o.lock ? { lock: o.lock } : {})))
+      .then(d => {
+        /* THE SERVER'S OWN READING OF THE ROW, NOT WHAT WAS TYPED. § */
+        if (o.own) { W.profile = (d && d.profile) ? d.profile : Object.assign({}, W.profile || {}, fields); if (d && d.name) W.name = d.name; }
+        /* A PART LEFT OUT, HERE OR BY THE SERVER, IS SAID BESIDE WHAT WAS SAVED (620). */
+        const word = ((d && d.said) || 'Saved') + (seatNo ? (d && d.refused ? ' ' : ' — the rest. Not saved: ') + seatNo : '');
+        const r = { d, fields, word, seatNo };
+        if (o.done) o.done(r);
+        if (o.own && W === USER) saveUser_();
+        if (o.toast !== false) toast(word);
+        const tick = Object.prototype.hasOwnProperty.call(o, 'tick') ? o.tick : form;
+        if (o.auto && tick) autosaveTick_(tick, word);
+        if (o.after) o.after(r);
+        resolve(r);
+      })
+      .catch(err => { /* `send_` has already written the refusal under the card. */ if (o.auto) autosaveFailed_(err); if (o.failed) o.failed(err); resolve(null); });
+  };
+  if (o.gate) o.gate(fields, go, () => resolve(null), said); else go();
+  });
+}
+/* A BOX NOBODY HERE MAY CHANGE: the sheet's read-only list, and @family.'s cut of an extra seat to all but an admin
+   (`seatCutRefusal_`). The one rule — Settings (me-roles.js) and the card editor both ask it. */
+function fieldReadonly_(f) {
+  return (((typeof DATA !== 'undefined' && DATA && DATA.profileReadonly) || []).indexOf(f) !== -1) || (f === 'extra_seat_cut' && !may_('admin'));
+}
+/* ---------- THE SAVE ITSELF, LIFTED OUT SO THE QUALIFICATION EDITORS CAN CALL IT § */
+function meSave_(el, auto) {
+  /* AND A THIRD SURFACE, WHICH IS THE SETTINGS COLUMN. § */
+  const box = el.closest('.me-form') || el.closest('#sheet-body') || el.closest('.widget-slot') || document.body;
+  const form = el.closest('.me-form');
+  /* NOT ON THE QUALIFICATIONS CARD, WHICH SAVES ON EVERY ANSWER. § */
+  const quiet = !!box.querySelector('.q-shelf');
+  const W = whose_() || {};
+  return profileSave_(box, { el, auto, own: true, target: { name: W.name, id: W.personId || '' }, tick: !quiet && form,
+    /* ---------- NOT FROM A COPY OF YOUR SETTINGS THAT CANNOT BE TRUE § */
+    /* ---------- AND WHEN THE SERVER IS OLDER THAN THIS SITE § */
+    gate: (fields, go, stop, said) => {
+      if (profileShapeOk_()) return go();
+      const packed = Object.keys(fields).some(k => PACKED_FIELD_.test(k));
+      const blocked = () => { if (said) said.textContent = OLD_SERVER_SAY_
+        + ' Until then this card is not sent, because its boxes may be empty and saving would wipe what the sheet holds.'; };
+      if (PROFILE_SERVER_OLD) { if (packed) { blocked(); return stop(); } return go(); }
+      if (said) tell_(said, 'error', 'Your saved details are still loading from the sheet, so nothing was sent. Try again in a moment.');
+      profileRefresh_(true, () => (packed ? blocked() : go()));
+      /* NOT SENT YET, AND THE CALLER IS TOLD SO — a refresh that ends in `go` saves the card, but an editor waiting on this would otherwise wait for § */
+      stop();
+    },
+    done: ({ d, fields, word }) => {
+      const W = whose_();
       /* ON THE SHEET NOW, SO EACH FIELD SENT IS NO LONGER A DRAFT (`fieldHtml`; 317). */
       Object.keys(fields).forEach(f => { try { draftDrop_('set', f); } catch (e) { oops_(e, 'me:meSave_') } });
-      if (d && d.name) W.name = d.name;
       /* A CORRECTED PENDING ADDRESS IS STILL PENDING, at the new address — the held cards say which. */
       if (d && d.pendingEmail !== undefined) { accountChanged_(); W.pendingEmail = String(d.pendingEmail || ''); }
       /* ---------- "SAVED" IS NOT THE WHOLE STORY WHEN AN ADDRESS WAS TYPED § */
-      const word = (d && d.said) || 'Saved';
-      if (W === USER) saveUser_();
       if (box.closest('#sheet-body') && !auto) closeSheet();
       /* THIS CARD IS CLEAN NOW, so a repaint may redraw it — see `settingsKeep_` — unless the caret is still in it. */
-      const form = el.closest('.me-form');
       if (form && !(auto && form.contains(document.activeElement))) delete form.dataset.dirty;
-      /* NOT ON THE QUALIFICATIONS CARD, WHICH SAVES ON EVERY ANSWER. § */
-      const quiet = !!box.querySelector('.q-shelf');
+      const said = box.querySelector('.me-said');
       if (said) tell_(said, 'info', quiet ? '' : word);
-      toast(word);
-      if (auto && form && !quiet) autosaveTick_(form, word);
+    },
+    after: ({ d, word }) => {
       /* WHICH COLUMN THE CARD IS ON (453): a settings column, or a people column's card editor. */
       const col = colOfEl_(form) || 'account';
       const at = [...document.querySelectorAll('#s-' + col + ' .me-form')].indexOf(form);
@@ -290,11 +328,7 @@ function meSave_(el, auto) {
       }
       /* THE PUBLIC CARD IS BUILT BY `doGet`, so it only moves when the payload does — but only when something was written. § */
       if (!d || d.changed === undefined || d.changed > 0) sayAfterLoad_(lineAt, quiet ? '' : word);
-      resolve(true);
-    })
-    .catch(err => { /* `send_` has already written the refusal under the card. */ if (auto) autosaveFailed_(err); resolve(false); });
-  }
-  });
+    } }).then(r => !!r);
 }
 
 /* A QUALIFICATION WITH NO SUBJECT, ASKED OF A FORM — lifted out of `meSave_` so the card's own Save (`card-save`) refuses exactly what a Settings § */

@@ -254,6 +254,8 @@ const CARD_BLOCKS = {
     return `<iframe${look} src="${esc(u)}" title="${name}" loading="lazy" allow="${esc(b.allow || 'encrypted-media; picture-in-picture')}"${b.full ? ' allowfullscreen' : ''}></iframe>`; },
   /* A DRAWING AS DATA: shapes `{ el, a: { attrs }, text, kids }`, each a vector element of a fixed set, every value escaped. */
   drawing: b => cardDraw_(b.node),
+  /* A STATUS LINE (what was saved, what went wrong, what is waiting): its room kept from the start; `saved` marks the one a form's autosave writes to. */
+  status: b => `<p class="note${b.saved ? ' me-said' : ''}${b.look ? ' ' + esc(b.look) : ''}"${b.id ? ` id="${esc(b.id)}"` : ''}${b.live ? ' aria-live="polite"' : ''}>${cardRuns_(b.text == null ? '' : b.text)}</p>`,
   wait: b => `<div class="kc-wait${b.look ? ' ' + esc(b.look) : ''}"${cardAttrs_(b.data)}${b.on ? ' aria-busy="true"' : ''}>${b.on && typeof loading_ === 'function' ? loading_() : ''}</div>`,
 };
 /* THE PADLOCK a shut card wears, first inside it. */
@@ -449,7 +451,9 @@ const kcfOpts_ = opts => (opts || []).map(o => (o && o.group != null ? `<optgrou
   : `<option value="${esc(o.value == null ? '' : o.value)}"${cardAttrs_(o.data)}${o.on ? ' selected' : ''}${o.off ? ' disabled' : ''}>${esc(o.text == null ? (o.value == null ? '' : o.value) : o.text)}</option>`)).join('');
 /* `textarea` holds its `value` as text; a select's `inner` is options another maker drew already (a game picker's). */
 const kcfControl_ = b => (b.tag === 'select' ? `<select${kcfAttrs_(b.attrs)}>${b.options ? kcfOpts_(b.options) : (b.inner || '')}</select>` : b.tag === 'textarea' ? `<textarea${kcfAttrs_(b.attrs)}>${esc(b.value == null ? '' : b.value)}</textarea>` : `<input${kcfAttrs_(b.attrs)}>`);
-const kcfKids_ = b => (b.text != null ? cardRuns_(b.text) : '') + cardBlocks_(b.blocks) + (b.inner || '');
+/* `parts`, in order: blocks, or parts another maker drew already (a string), nested lists flattened. */
+const kcfPart_ = x => (Array.isArray(x) ? x.map(kcfPart_).join('') : x == null || x === false ? '' : typeof x === 'string' ? x : cardBlock_(x));
+const kcfKids_ = b => (b.text != null ? cardRuns_(b.text) : '') + cardBlocks_(b.blocks) + (b.inner || '') + kcfPart_(b.parts || []);
 const kcfField_ = b => `<label class="field${b.look ? ' ' + esc(b.look) : ''}"${kcfAttrs_(b.attrs)}>${
   b.caps ? b.caps.map((c, i) => `<span class="${i ? 'q-cap-cert' : 'q-cap-std'}">${esc(c)}</span>`).join('') : b.cap != null && b.cap !== '' ? `<span>${esc(b.cap)}</span>` : ''}${kcfKids_(b)}</label>`;
 const kcfTickB_ = b => `<label class="check${b.look ? ' ' + esc(b.look) : ''}"${kcfAttrs_(b.labelAttrs)}><input${kcfAttrs_(Object.assign({ type: 'checkbox' }, b.attrs))}><span class="box"></span><span>${cardRuns_(b.text)}</span></label>`;
