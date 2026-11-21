@@ -21,9 +21,9 @@ const pages = (id, cards) =>
 /* ---------- AN EMPTY WIDGET IS ITS TITLE AND NOTHING ELSE (414) ---------- */
 /* One empty state for every list with nothing in it — Spotlight, Saved, the shop, the reels: no sentence explaining the emptiness, the owner's ask. */
 /* AND ITS ONE TILE, Suggest a change (486): the owner, of an empty Saved, "why is there no buttons on 'saved' widget" (1 Nov). */
-const emptyCard_ = title => {
+const emptyCard_ = (title, card) => {
   const t = String(title || ''), s = typeof suggestOpts_ === 'function' ? suggestOpts_('widget', 'empty:' + t.toLowerCase().replace(/[^a-z0-9]+/g, '-'), t) : null;
-  return renderCard({ kind: 'empty', look: 'is-empty', tags: [{ text: t, colour: 0 }], tiles: [].concat(s || []) });
+  return renderCard({ kind: 'empty', card: card || '', look: 'is-empty', tags: [{ text: t, colour: 0 }], tiles: [].concat(s || []) });
 };
 
 /* ---------- ALL OF THEM ON ONE, WHICH IS WHAT A LIST IS § */

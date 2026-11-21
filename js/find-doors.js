@@ -134,8 +134,8 @@ function settingName_(html, id, row) {
   return (row && row.name) || plain_(cardTitle_(html)) || plain_((String(html).match(/^\s*<div\b[^>]*\saria-label="([^"]+)"/) || [])[1])
     || (reg && reg.label) || '';
 }
-/* A COLUMN'S PADLOCK, "NOTHING HERE" LINE OR A TITLE-ONLY PLACEHOLDER IS NOT A SETTING. */
-const settingNone_ = h => /^\s*<div class="card [^"]*\b(?:rank-off|set-none|own-lock)\b/.test(h);
+/* A COLUMN'S PADLOCK, "NOTHING HERE" LINE OR A TITLE-ONLY PLACEHOLDER IS NOT A SETTING: each says so as data-card="-". */
+const settingNone_ = h => /^\s*<div\b[^>]*\sdata-card="-"/.test(h);
 /* EVERY SETTING ONCE (owner, 7 Nov): its `see` rows tag it with each account type; one of the same name joins it. */
 /* A type you do not hold still shows its cards, shut (`lockedAs_`); Business and Site hold the business's own data, so stay an admin's. */
 function settingDoorItems_() {
@@ -307,51 +307,10 @@ function oldBranch_(id) {
 }
 
 /* ---------- WHICH CARD A SETTINGS PAGE IS (465, from the layout, gone 17 Nov): its id, its name, and each account type's builder ---------- */
-/* THE REGISTRY: id, its account type's group, name, how its root is known (`re`; else `data-lay-card` or a `<!--card:id-->` mark), and `only`
-   when it is the only place a setting is edited (Delete's second step says so). */
-const CARD_REG = [
-  { id: 'acct:signed-in', col: 'account', label: 'Signed in', re: /^<div class="card signed-in"/, say: 'Sign in, or who is signed in on this phone and Sign out.' },
-  { id: 'acct:brownie', col: 'account', label: 'Brownie points', re: /^<div class="card soon-card soon-brownie/, say: 'A placeholder: points for good work.' },
-  { id: 'acct:workfile', col: 'account', label: 'Work on file', re: /^<div class="card [^"]*\bworkfile-card\b/, say: 'Pages you scanned or photographed, kept on your account.' },
-  { id: 'acct:roadmap', col: 'account', label: 'Roadmap', re: /^<div class="card soon-card soon-roadmap/, say: 'A placeholder: how much of the syllabus is left.' },
-  { id: 'acct:conduct', col: 'account', label: 'Code of conduct', re: /^<div class="card soon-card soon-conduct/, say: 'A placeholder: the code of conduct.' },
-  { id: 'acct:pin', col: 'account', label: 'Signing in', re: /data-ask="pin-change"/, only: 'your PIN', say: 'Change the PIN you sign in with.' },
-  { id: 'acct:roles', col: 'account', label: 'Your role', re: /^<div class="card roles-card/, only: 'your role', say: 'Whether this account is a student\'s or a parent\'s.' },
-  { id: 'acct:notify', col: 'account', label: 'Notifications', re: /^<div class="card notify-card/, only: 'which emails you get', say: 'Which emails we send you.' },
-  { id: 'acct:voice', col: 'account', label: 'Reading aloud', re: /^<div class="card voice-card/, say: 'How questions sound when they are read aloud on this device.' },
-  { id: 'acct:progress', col: 'account', label: 'Progress', re: /^<div class="card prog-w prog-all/, say: 'Your streak, marks and grade, each source question by question, and any day\'s answers.' },
-  { id: 'acct:prog-sessions', col: 'account', label: 'Progress: sessions', re: /^<div class="card prog-w prog-sessions/, say: 'Your booked and past sessions.' },
-  { id: 'staff:apply', col: 'staff', label: 'Apply to teach', re: /^<div class="card apply-card/, say: 'Ask to teach with us; the admin says yes or no.' },
-  { id: 'staff:lego', col: 'staff', label: 'LEGO piece check', say: 'Count a trade-in set\'s pieces from photos, against its parts list.' },
-  { id: 'staff:hub', col: 'staff', label: 'Staff hub', re: /^<div class="card staff-top/, only: 'your rate and hours', say: 'Your terms, weekly hours, prices and statement as a tutor.' },
-  { id: 'ppl:students:help', col: 'students', label: 'Needs help', say: 'Students who have asked for help with a question.' },
-  { id: 'ppl:students:add', col: 'students', label: 'Add a student', say: 'Make an account for a new student.' },
-  { id: 'ppl:students:search', col: 'students', label: 'Find by handle', say: 'Find a student by their handle, to add them as your child.' },
-  { id: 'ppl:students:family', col: 'students', label: 'You and your family (students)', say: 'You and the children linked to you.' },
-  { id: 'ppl:students:manage', col: 'students', label: 'Manage your child', say: 'Link your child\'s account to yours, or answer a link.' },
-  { id: 'ppl:students:all', col: 'students', label: 'Every student', say: 'Every student account.' },
-  { id: 'ppl:parents:add', col: 'parents', label: 'Add a parent', say: 'Make an account for a new parent.' },
-  { id: 'ppl:parents:you', col: 'parents', label: 'Your card (Parent profiles)', say: 'Your own card as a parent.' },
-  { id: 'ppl:parents:family', col: 'parents', label: 'You and your family (parents)', say: 'The parents linked to you.' },
-  { id: 'ppl:parents:claims', col: 'parents', label: 'Parent claims', say: 'Parents asking to be linked to a child.' },
-  { id: 'ppl:parents:all', col: 'parents', label: 'Every parent', say: 'Every parent account.' },
-  /* NO `say` ON THE TWO PUBLIC FACES (730): the web card and the window are read by everybody, and a line about the card is for an admin. */
-  { id: 'appr:blurb', col: 'apprentice', label: 'Apprentice settings', re: /^<div class="card appr-set/, say: 'Work experience with us: a placeholder until it is built.' },
-  { id: 'biz:profit-sum', col: 'biz', label: 'Profit', re: /data-profit="sum"/, say: 'What came in and went out, and what is left.' },
-  { id: 'biz:posts', col: 'site', label: 'Posts waiting', re: /^<div class="card biz posts-wait/, say: 'Posts waiting for you to approve.' },
-  { id: 'biz:apps', col: 'biz', label: 'Applications to teach', re: /^<div class="card biz apps/, say: 'People asking to teach, to approve or decline.' },
-  { id: 'biz:errs', col: 'biz', label: 'Error log', re: /^<div class="card biz errs/, say: 'What broke on people\'s screens, counted once per error.' },
-  { id: 'biz:staff', col: 'biz', label: 'Staff', re: /^<div class="card biz staff-card/, say: 'Who teaches, whether they agreed the terms, and their statements.' },
-  { id: 'biz:settings', col: 'biz', label: 'Business settings', re: /^<div class="card biz biz-settings/, say: 'Every price rule in one list: share, fees, discounts, rates, then venues and rooms.' },
-  { id: 'biz:reports', col: 'site', label: 'Suggestions', re: /^<div class="card biz reports/, say: 'Changes people have suggested, waiting for Confirm or Dismiss.' },
-  { id: 'biz:libimp', col: 'site', label: 'Library import', re: /^<div class="card biz libimp/, say: 'Bring new questions and their words into the library.' },
-  { id: 'site:digest', col: 'site', label: 'Weekly email', re: /^<div class="card biz digest-look/, say: 'How Sunday\'s email to parents looks, live.' },
-  { id: 'site:digest-words', col: 'site', label: 'Weekly email\'s words', re: /^<div class="card biz digest-words/, only: 'the weekly email\'s words', say: 'The subject, greeting, first and last lines of Sunday\'s email.' },
-  { id: 'site:template', col: 'site', label: 'Card template', re: /^<div class="card [^"]*\btpl-card\b/, say: 'The one template every card is drawn by, and the fixed sizes and colours.' },
-  { id: 'site:stability', col: 'site', label: 'Stability', re: /^<div class="card biz stability-card/, say: 'How stable the code is, scored from its exceptions, special cases and dead code.' },
-  { id: 'site:inbox', col: 'site', label: 'Email', re: /^<div class="card biz inbox-card/, say: 'The admin Gmail, read-only.' },
-  { id: 'biz:build', col: 'site', label: 'Build', re: /class="me-build"/, say: 'Which version of the site and backend is running.' },
-].concat(ownSecReg_());
+/* THE REGISTRY IS DATA (job E, 20 Nov): kinds.json's setting.cards — id, its account type's group, name, and `only` when it is the only place
+   a setting is edited (Delete's second step says so). Each card says which it is by its own `data-card` (renderCard's spec.card), never by its classes. */
+let SETTING_CARDS_ON_ = null;
+const SETTING_CARDS_ = () => SETTING_CARDS_ON_ || (SETTING_CARDS_ON_ = ((ITEM_KINDS.kinds.setting || {}).cards || []).concat(ownSecReg_()));
 /* YOUR OWN CARD'S SECTIONS, A CARD EACH (468): `own:<col>:<section>`, the col the lowest rank it applies to, the same for everyone (469). */
 function ownSecReg_() {
   const S = { picture: ['Picture', 'your picture', 'The picture beside your name.'], figure: ['Your figure', 'your figure', 'The figure that stands for you in games.'],
@@ -369,8 +328,7 @@ function ownSecReg_() {
   const where = c => (settingGroupOf_(c) || {}).label || c;
   return [].concat(...Object.keys(of).map(c => of[c].map(k => ({ id: 'own:' + c + ':' + k, col: c, label: S[k][0] + ' (' + where(c) + ')', only: S[k][1], say: S[k][2] }))));
 }
-const PROG_EMPTY_ = { 'Progress': 'acct:progress', 'Sessions': 'acct:prog-sessions' };
-const cardReg_ = id => CARD_REG.find(r => r.id === id);
+const cardReg_ = id => SETTING_CARDS_().find(r => r.id === id);
 /* A SETTINGS GROUP (`set:<col>:<group>`) or a Business record card (`biz:rec:<page>`, `biz:profit-terms`) is known by its id alone. */
 /* A SPLIT CARD'S PIECE is `<card>#<field>` (466). */
 const CARD_DYN = /^(item:[a-z]+:[A-Za-z0-9_.-]{1,48}|(set:(family|staff|account):[A-Za-z0-9_:.-]+|biz:rec:[A-Za-z0-9_:.-]+|biz:profit-terms)(#[A-Za-z0-9_.-]{1,40})?)$/;
@@ -379,22 +337,17 @@ const cardIs_ = id => !!(cardReg_(id) || CARD_DYN.test(String(id || '')));
 const cardMark_ = (id, list) => (list || []).filter(Boolean).map(h => '<!--card:' + id + '-->' + h);
 /* AND A PERSON'S PAGE ITS PERSON (`person:<id>`). */
 const personMark_ = (pid, h) => h && pid ? '<!--person:' + String(pid).replace(/[^A-Za-z0-9_.-]/g, '') + '-->' + h : h;
-/* WHICH CARD A PAGE IS — its mark, its `data-lay-card`, then the registry; '' for a group's own line (a padlock, a wait). */
+/* WHICH CARD A PAGE IS — its mark, its `data-lay-card`, then its `data-card`; '' for a group's own line (a padlock, a wait). */
 function cardIdOf_(html) {
   const h = String(html || '');
   let m = /^\s*<!--card:([A-Za-z0-9_:.-]{1,64})-->/.exec(h);
   if (m) return m[1];
-  /* ITS OWN ID (`data-lay-card`): a settings group's `set:<type>:<group>`. */
   const tag = (/^\s*<div[^>]*>/.exec(h) || [''])[0];
+  /* ITS OWN ID (`data-lay-card`): a settings group's `set:<type>:<group>`, a progress series. */
   m = /\sdata-lay-card="([^"]+)"/.exec(tag);
   if (m && cardIs_(m[1])) return m[1];
-  /* A CARD BUILT BY THE ONE TEMPLATE (card_) IS READ BY ITS OWN MAKER'S CLASSES, in the order the registry names them. */
-  const t = h.trim().replace(/^(<div class=")([^"]*)"/, (x, open, c) => open + ['card'].concat(c.split(/\s+/).filter(k => k && !/^(card|fc|kc|kc-[\w-]+)$/.test(k))).join(' ') + '"');
-  /* AN EMPTY PROGRESS WIDGET IS ITS TITLE ALONE (414), so its title says which it is. */
-  m = /^<div class="card prog-w is-empty"[^>]*aria-label="([^"]*)"/.exec(t) || /^<div class="card prog-w is-empty"><h3>([^<]*)<\/h3>/.exec(t);
-  if (m && PROG_EMPTY_[m[1]]) return PROG_EMPTY_[m[1]];
-  const r = CARD_REG.find(x => x.re && x.re.test(t));
-  return r ? r.id : '';
+  m = /\sdata-card="([^"]+)"/.exec(tag);
+  return m && cardIs_(m[1]) ? m[1] : '';
 }
 /* EACH ACCOUNT TYPE'S OWN BUILDER — the code's cards for whoever is signed in, role gates and all. */
 const CARD_BUILD = {
