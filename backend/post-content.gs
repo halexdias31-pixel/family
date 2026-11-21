@@ -11,7 +11,7 @@ function postEditPost_(body, action, began) {
   const r = rowById_(t, 'post_id', body.id, body.rowIndex);
   if (!r) return jsonOut({ error: 'No post with that id — it may have been deleted.' });
   const me = findPerson(S(body.name), S(body.personId));
-  if (!me) return jsonOut({ error: 'Not signed in.' });
+  if (!me) return refuse_('err-not-signed-in', 'not-signed-in');
   const admin = rankAtLeast_(me, 'admin');
   const state = postState_(r);
   const fields0 = body.fields || {};
@@ -79,7 +79,7 @@ function postEditPost_(body, action, began) {
 function postApprovePost_(body, action, began) {
   const t = read(TAB.posts);
   const r = rowById_(t, 'post_id', body.id, body.rowIndex);
-  if (!r) return jsonOut({ error: 'No post with that id.' });
+  if (!r) return refuse_('err-no-post', 'not-found');
   if (t.headers.indexOf('approved') < 0) {
     return jsonOut({ error: 'The posts tab has no `approved` column. Open the site once as an admin — '
       + 'nothing was changed.' });
@@ -109,10 +109,10 @@ function postApprovePost_(body, action, began) {
 function postDeletePost_(body, action, began) {
   const t = read(TAB.posts);
   const r = rowById_(t, 'post_id', body.id, body.rowIndex);
-  if (!r) return jsonOut({ error: 'No post with that id.' });
+  if (!r) return refuse_('err-no-post', 'not-found');
   /* AN ADMIN, ANY POST; ANYBODY ELSE, THEIR OWN — and only to take it down; putting one back is the admin's (413). */
   const me = findPerson(S(body.name), S(body.personId));
-  if (!me) return jsonOut({ error: 'Not signed in.' });
+  if (!me) return refuse_('err-not-signed-in', 'not-signed-in');
   const on = TRUE_(body.on);
   if (!rankAtLeast_(me, 'admin') && (on || !postIsBy_(r, me))) {
     return jsonOut({ error: 'Only the person who posted it, or an admin, can delete a post.' });
@@ -178,7 +178,7 @@ function postAddNotify_(body, me, iAmAdmin) {
 function postAddPost_(body, action, began) {
   /* WHO IT IS, FIRST — BEFORE A BYTE GOES INTO DRIVE. § */
   const me = findPerson(S(body.name), S(body.personId));
-  if (!me) return jsonOut({ error: 'Not signed in.' });
+  if (!me) return refuse_('err-not-signed-in', 'not-signed-in');
   const iAmAdmin = rankAtLeast_(me, 'admin');
   if (!rankAtLeast_(me, 'client')) return jsonOut({ error: CHILD_NO_UPLOAD, why: 'child' });
   /* A FOLDER ONLY FOR PICTURES (448): a words-only post keeps nothing in Drive. */
@@ -233,7 +233,7 @@ function postAddPost_(body, action, began) {
 function postSetListed_(body, action, began) {
   const t = read(TAB.people);
   const who = findPerson(S(body.who), S(body.whoId));
-  if (!who) return jsonOut({ error: 'No such person.' });
+  if (!who) return refuse_('err-no-such-person', 'not-found');
   /* Written as the word rather than as a blank when off — blank already MEANS listed, for
      every row that predates the column, so an empty cell cannot also mean hidden. */
   setCell(t, who, 'listed', TRUE_(body.on) ? 'TRUE' : 'FALSE');
@@ -249,7 +249,7 @@ function postReactPost_(body, action, began) {
   if (!me) return jsonOut({ error: 'Sign in to react.' });
 
   const post = read(TAB.posts).rows.find(x => S(x.post_id) === S(body.postId));
-  if (!post) return jsonOut({ error: 'That post is gone.' });
+  if (!post) return refuse_('err-post-gone', 'not-found');
 
   /* The emoji must be one this post OFFERS. § */
   const allowed = reactionSet(post);
@@ -260,7 +260,7 @@ function postReactPost_(body, action, began) {
 
   /* ---------- UNDER THE SCRIPT LOCK, AND OVER EVERY ROW OF YOURS § */
   const lock = LockService.getScriptLock();
-  if (!lock.tryLock(5000)) return jsonOut({ error: 'Busy — press it again in a moment.', why: 'busy' });
+  if (!lock.tryLock(5000)) return refuse_('err-busy-press', 'busy');
   try {
     clearCache();
     const t = read(TAB.post_reactions);
@@ -302,7 +302,7 @@ function postAddComment_(body, action, began) {
     && S(findPerson(S(post.author)).person_id) === S(me.person_id);
   const seen = !!post && ON_(post.active) && state !== 'refused'
     && (state !== 'pending' || theirs || isAdminPerson(S(body.name)));
-  if (!seen) return jsonOut({ error: 'That post is gone.' });
+  if (!seen) return refuse_('err-post-gone', 'not-found');
 
   const text = S(body.body).trim();
   if (!text) return jsonOut({ error: 'Nothing to say?' });
@@ -335,7 +335,7 @@ function postVotePoll_(body, action, began) {
   if (!me) return jsonOut({ error: 'Sign in to vote.' });
 
   const post = read(TAB.posts).rows.find(x => S(x.post_id) === S(body.postId));
-  if (!post) return jsonOut({ error: 'That post is gone.' });
+  if (!post) return refuse_('err-post-gone', 'not-found');
 
   const opts = S(post.poll).split(',').map(x => x.trim()).filter(Boolean);
   /* `want` IS THE ANSWER TO END ON ('' for none), SET RATHER THAN TOGGLED, and `choice` alone the
@@ -348,7 +348,7 @@ function postVotePoll_(body, action, began) {
 
   /* UNDER THE LOCK AND OVER EVERY ROW OF YOURS, as a reaction is. */
   const lock = LockService.getScriptLock();
-  if (!lock.tryLock(5000)) return jsonOut({ error: 'Busy — press it again in a moment.', why: 'busy' });
+  if (!lock.tryLock(5000)) return refuse_('err-busy-press', 'busy');
   try {
     clearCache();
     const t = read(TAB.post_votes);
@@ -382,7 +382,7 @@ function postVotePoll_(body, action, began) {
 /* messages ------------------------------------------------------------------------------ Send, read, and flag. § */
 function postSendMessage_(body, action, began) {
   const me = findPerson(S(body.name), S(body.personId));
-  if (!me) return jsonOut({ error: 'Not signed in.' });
+  if (!me) return refuse_('err-not-signed-in', 'not-signed-in');
 
   const to = findPerson(S(body.to), S(body.toId));
   if (!to) return jsonOut({ error: 'We could not find who that was meant for.' });
@@ -472,7 +472,7 @@ function postCheckUploads_(body, action, began) {
    sheet, deliberately, rather than through an endpoint that could be pointed anywhere. */
 function postMessages_(body, action, began) {
   const me = findPerson(S(body.name), S(body.personId));
-  if (!me) return jsonOut({ error: 'Not signed in.' });
+  if (!me) return refuse_('err-not-signed-in', 'not-signed-in');
   const rows = messagesOf_(me);
   return jsonOut({ success: true, messages: rows, gapMs: MESSAGE_GAP_MS });
 }
@@ -481,10 +481,10 @@ function postMessages_(body, action, began) {
    make the tick mean nothing. */
 function postReadMessage_(body, action, began) {
   const me = findPerson(S(body.name), S(body.personId));
-  if (!me) return jsonOut({ error: 'Not signed in.' });
+  if (!me) return refuse_('err-not-signed-in', 'not-signed-in');
   const t = read(TAB.messages);
   const r = t.rows.find(x => S(x.message_id) === S(body.messageId));
-  if (!r) return jsonOut({ error: 'Not found.' });
+  if (!r) return refuse_('err-not-found', 'not-found');
   if (S(r.to_id) !== S(me.person_id)) return jsonOut({ error: 'Not yours to open.' });
   if (!sheetDate(r.read_at)) { setCell(t, r, 'read_at', new Date()); clearCache(); }
   return jsonOut({ success: true });
@@ -502,7 +502,7 @@ function postFlagMessage_(body, action, began) {
 /* ---------- THE SHOP WINDOW, AND WHY A ROW IS SWITCHED OFF RATHER THAN DELETED § */
 function postSpotlight_(body, action, began) {
   const me = findPerson(S(body.name), S(body.personId));
-  if (!me) return jsonOut({ error: 'Sign in first.' });
+  if (!me) return refuse_('err-sign-in-first', 'not-signed-in');
   if (!isAdminPerson(S(body.name))) return jsonOut({ error: 'Admins only.' });
   const kind = norm(body.kind), itemId = S(body.itemId);
   if (!kind || !itemId) return jsonOut({ error: 'Nothing to spotlight.' });
@@ -526,7 +526,7 @@ function postSpotlight_(body, action, began) {
 
 function postFavourite_(body, action, began) {
   const me = findPerson(S(body.name), S(body.personId));
-  if (!me) return jsonOut({ error: 'Sign in first.' });
+  if (!me) return refuse_('err-sign-in-first', 'not-signed-in');
   const kind = norm(body.kind), itemId = S(body.itemId);
   if (!kind || !itemId) return jsonOut({ error: 'Nothing to favourite.' });
 
@@ -568,7 +568,7 @@ function postReport_(body, action, began) {
 
 function postSuggest_(body, action, began) {
   const me = findPerson('', S(body.personId));
-  if (!me || !S(me.person_id) || !rankAtLeast_(me, 'student')) return jsonOut({ error: 'Sign in first.' });
+  if (!me || !S(me.person_id) || !rankAtLeast_(me, 'student')) return refuse_('err-sign-in-first', 'not-signed-in');
   const kind = norm(body.kind);
   if (!REPORT_KIND_RE.test(kind)) return jsonOut({ error: 'Which thing? Nothing was sent.' });
   const item = S(body.itemId).trim();
@@ -581,7 +581,7 @@ function postSuggest_(body, action, began) {
   const pid0 = S(me.person_id), key0 = kind + '|' + item;
   if (!on) {
     const lock0 = LockService.getScriptLock();
-    if (!lock0.tryLock(5000)) return jsonOut({ error: 'Busy — try again in a moment.', why: 'busy' });
+    if (!lock0.tryLock(5000)) return refuse_('err-busy', 'busy');
     try {
       clearCache();
       const t0 = read(TAB.claude_notes);
@@ -595,7 +595,7 @@ function postSuggest_(body, action, began) {
   let msg = null;
   if (kind === 'message') {
     msg = read(TAB.messages).rows.find(x => S(x.message_id) === item);
-    if (!msg) return jsonOut({ error: 'Not found.' });
+    if (!msg) return refuse_('err-not-found', 'not-found');
     if (S(msg.to_id) !== S(me.person_id) && !admin) return jsonOut({ error: 'Not yours to send on.' });
   }
   /* AND THE FUNNEL PATH ON FIND (498) and the screen it was seen on, so the owner can find the same thing. */
@@ -603,7 +603,7 @@ function postSuggest_(body, action, began) {
   const device = /^(phone|tablet|computer)$/.test(S(body.device)) ? S(body.device) : '';
   const noteAll = [note, path ? 'Path: ' + path : '', device ? 'Seen on: ' + device : ''].filter(Boolean).join('\n');
   const lock = LockService.getScriptLock();
-  if (!lock.tryLock(5000)) return jsonOut({ error: 'Busy — try again in a moment.', why: 'busy' });
+  if (!lock.tryLock(5000)) return refuse_('err-busy', 'busy');
   let out = {}, made = null;
   const wroteBefore = POST_WROTE;
   try {
@@ -673,7 +673,7 @@ function postDecideSuggestion_(body, action, began) {
     return jsonOut({ success: true, id: S(mr.message_id), kind: 'message' });
   }
   const lock = LockService.getScriptLock();
-  if (!lock.tryLock(5000)) return jsonOut({ error: 'Busy — try again in a moment.', why: 'busy' });
+  if (!lock.tryLock(5000)) return refuse_('err-busy', 'busy');
   let out = {};
   try {
     clearCache();
@@ -699,9 +699,9 @@ function postDecideSuggestion_(body, action, began) {
 /* ---------- NOTES FOR CLAUDE (484): an admin's words on one widget or card, a row in `claude_notes` and the Drive file rewritten ---------- */
 function postClaudeNoteAdd_(body, action, began) {
   const me = findPerson('', S(body.personId));
-  if (!me || !rankAtLeast_(me, 'admin')) return jsonOut({ error: 'Not authorised.' });
+  if (!me || !rankAtLeast_(me, 'admin')) return refuse_('err-not-authorised', 'not-allowed');
   const lock = LockService.getScriptLock();
-  if (!lock.tryLock(5000)) return jsonOut({ error: 'Busy — try again in a moment.', why: 'busy' });
+  if (!lock.tryLock(5000)) return refuse_('err-busy', 'busy');
   let out = {};
   try {
     clearCache();

@@ -235,7 +235,7 @@ function libImport_(pack, by) {
   const parsed = libPackCheck_(pack);
   if (parsed.error) return { error: parsed.error + ' — nothing was written' };
   const lock = LockService.getScriptLock();
-  if (!lock.tryLock(10000)) return { error: 'Busy — try again in a moment.', why: 'busy' };
+  if (!lock.tryLock(10000)) return errOf_('err-busy', 'busy');
   try {
     const one = libPackApply_(parsed, {});
     if (one.error) return one;

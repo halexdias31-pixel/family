@@ -58,7 +58,7 @@ function applyGaps_(f, body, pics) {
 /* ---------- APPLYING TO TEACH (400): Staff only by application and an admin's yes ---------- */
 function postApplyTeach_(body, action, began) {
   const me = findPerson('', S(body.personId));
-  if (!me || !S(me.person_id)) return jsonOut({ error: 'Sign in first.' });
+  if (!me || !S(me.person_id)) return refuse_('err-sign-in-first', 'not-signed-in');
   if (rankAtLeast_(me, 'staff')) return jsonOut({ error: 'You teach here already.' });
   /* NO DATE OF BIRTH IS UNDERAGE (450): asked for, rather than refused as a child. */
   if (personAge_(me) === null) return jsonOut({ error: 'Applications to teach are for adults: add your date of birth on You first.', why: 'dob' });
@@ -82,7 +82,7 @@ function postApplyTeach_(body, action, began) {
     return jsonOut({ error: 'The photos could not be kept — please try again. Nothing was sent.', why: 'drive' });
   }
   const lock = LockService.getScriptLock();
-  if (!lock.tryLock(5000)) return jsonOut({ error: 'Busy — try again in a moment.', why: 'busy' });
+  if (!lock.tryLock(5000)) return refuse_('err-busy', 'busy');
   let out = {};
   try {
     clearCache();
@@ -151,7 +151,7 @@ function postListApplications_(body, action, began) {
 function postPayStatement_(body, action, began) {
   clearCache();
   const me = findPerson('', S(body.personId));
-  if (!me) return jsonOut({ error: 'Please sign in again.' });
+  if (!me) return refuse_('err-sign-in-again', 'session-gone');
   const admin = whoMay_(me, 'admin');
   const want = S(body.tutorId);
   if (!admin && !rankAtLeast_(me, 'staff')) return jsonOut({ error: 'Statements are for tutors.', why: 'staff' });
@@ -177,7 +177,7 @@ function postDecideApplication_(body, action, began) {
   const status = norm(body.status);
   if (APPLICATION_STATUSES.indexOf(status) < 0 || status === 'new') return jsonOut({ error: 'Not a decision an application can have.' });
   const lock = LockService.getScriptLock();
-  if (!lock.tryLock(5000)) return jsonOut({ error: 'Busy — try again in a moment.', why: 'busy' });
+  if (!lock.tryLock(5000)) return refuse_('err-busy', 'busy');
   let out = {}, who = null;
   try {
     clearCache();
@@ -226,7 +226,7 @@ function postDigestSendNow_(body) {
 /* ---------- "SHOW PIN" ON A PERSON'S CARD (452): the gate already wanted an admin; asked again of the token's row by rank. */
 function postPinShow_(body, action, began) {
   const me = findPerson('', S(body.personId));
-  if (!me || !rankAtLeast_(me, 'admin')) return jsonOut({ error: 'Not authorised.' });
+  if (!me || !rankAtLeast_(me, 'admin')) return refuse_('err-not-authorised', 'not-allowed');
   const who = S(body.targetId) ? findPerson('', S(body.targetId)) : null;
   if (!who || key(who.person_id) !== key(body.targetId)) return jsonOut({ error: 'Nobody by that id is on the people tab.' });
   /* A CELL THE SHEET MADE A NUMBER lost its leading zeros (`authPinLost_`); four digits are put back. */
@@ -237,7 +237,7 @@ function postPinShow_(body, action, began) {
 /* ---------- EDIT WORDS IN PLACE (497): `set: {key: text}` and `reset: [key]` merged into config's one `words` row ---------- */
 function postWordsSave_(body, action, began) {
   const me = findPerson('', S(body.personId));
-  if (!me || !rankAtLeast_(me, 'admin')) return jsonOut({ error: 'Not authorised.' });
+  if (!me || !rankAtLeast_(me, 'admin')) return refuse_('err-not-authorised', 'not-allowed');
   const t = read(TAB.config);
   if (!t.sheet) return jsonOut({ error: 'There is no config tab to keep the words on.' });
   const row = t.rows.find(r => norm(r.key) === WORDS_KEY);
@@ -257,7 +257,7 @@ function postWordsSave_(body, action, began) {
 /* A PERSON FACT (kinds.json person.facts): admin only by PERMISSIONS; one row appended, `what` from PERSON_FACT_KEYS, as_of today unless given. */
 function postFactSet_(body, action, began) {
   const who = S(body.who).trim(), what = S(body.what).trim(), value = S(body.value).trim();
-  if (!who || !findPerson(who)) return jsonOut({ error: 'No such person.' });
+  if (!who || !findPerson(who)) return refuse_('err-no-such-person', 'not-found');
   if (PERSON_FACT_KEYS.indexOf(what) < 0) return jsonOut({ error: 'Not a fact this site keeps: ' + what });
   if (!value) return jsonOut({ error: 'A fact needs a value.' });
   const asOf = /^\d{4}-\d{2}-\d{2}$/.test(S(body.as_of)) ? S(body.as_of) : isoDate_(new Date());

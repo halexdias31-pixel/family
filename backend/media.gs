@@ -69,7 +69,7 @@ function mediaWrite_(action, body) {
     if (!/^data:video\//i.test(data)) return { error: 'That file is not a video. Nothing was saved.' };
     /* THE CAMERA'S LIMIT (`CAM_VID_MAX`, posts.js): twenty megabytes a clip, base64 being a third bigger. */
     if ((data.length - data.indexOf(',') - 1) * 3 / 4 > POST_FILE_MAX) return { error: 'That video is over 20 MB. Nothing was saved.' };
-    if (!S(body.title)) return { error: 'It needs a title. Nothing was saved.' };
+    if (!S(body.title)) return errOf_('err-needs-title', 'no-title');
     const folder = getPostFolder();
     if (!folder) return { error: 'No posts folder. Add a row to the config tab: key `posts_folder`, value the id from the folder URL.' };
     let url = '';
@@ -82,7 +82,7 @@ function mediaWrite_(action, body) {
   } else if (action === 'mediaSave') {
     const too = Object.keys(MEDIA_CAP).filter(function (k) { return S(body[k]).length > MEDIA_CAP[k]; });
     if (too.length) return { error: 'Too long: ' + too.join(', ') + '. Nothing was saved.' };
-    if (!S(body.title)) return { error: 'It needs a title. Nothing was saved.' };
+    if (!S(body.title)) return errOf_('err-needs-title', 'no-title');
     const thumb = S(body.thumb);
     if (thumb && !/^https:\/\/i\.ytimg\.com\//.test(thumb)) return { error: 'The picture must be YouTube\'s own. Nothing was saved.' };
     Object.keys(MEDIA_CAP).forEach(function (k) { put[k] = S(body[k]); });
@@ -95,7 +95,7 @@ function mediaWrite_(action, body) {
     put.hidden = body.hidden === false ? 'FALSE' : 'TRUE';
   }
   const lock = LockService.getScriptLock();
-  if (!lock.tryLock(5000)) return { error: 'Busy — try again in a moment.', why: 'busy' };
+  if (!lock.tryLock(5000)) return errOf_('err-busy', 'busy');
   try {
     clearCache();
     const t = read(TAB.media);

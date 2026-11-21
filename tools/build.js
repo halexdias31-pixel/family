@@ -19,6 +19,7 @@ const ORDER = [
   'one-form',     // the one-form check (rule 1.75, job G): every form from data/settings, the phone and the backend refusing on the same gaps; fails the build
   'card-fields',  // the card-fields check (rule 1.75, job J): which fields a card shows, in what order and labelled how, only in kinds.json; a hand list fails the build
   'one-contact', // the one-contact check (rule 1.75, lane D, 21 Nov): phone split, '+44', handle and email rules only in js/form.js; a twin or a site/backend disagreement fails the build
+  'one-refusal', // the one-refusal check (rule 1.75, unify batch 6 lane A): a refusal written once (words.json err-*, refuse_), a site link built once (siteLink_); a repeated hand error or a hand SITE_URL link fails the build
   'one-role',    // the one-role check (rule 1.75, owner 21 Nov): role words, ranks, the Message table and may_ rules only in settings.json `roles` and data/settings/roles.js; a twin fails the build
   'permissions',  // -> permissions.json and backend/*.gs blocks
   'word-freq',    // data/pdtexts -> data/word-freq.json

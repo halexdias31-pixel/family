@@ -78,7 +78,7 @@ function repairShopPrices() {
 /* EVERY PERSON HAS A HANDLE, AND THE ONES THAT CANNOT BE GENERATED ARE REPORTED RATHER THAN INVENTED. § */
 function fillHandles() {
   const t = read(TAB.people);
-  if (!t.sheet) return { error: 'no people tab' };
+  if (!t.sheet) return errOf_('err-no-people-tab', 'no-tab');
   for (const col of ['handle']) {
     /* NAMED, NOT SKIPPED. `setCell` writes to a header that is not there and loses the value with no error anywhere — the fault every `noColumn` refusal in this § */
     if (t.headers.indexOf(col) === -1) {
@@ -117,7 +117,7 @@ function fillHandles() {
 /* EVERY HANDLE INTO THE TEMPLATE (367) — the `handles-initial-year` migration, and `?run=renameHandles`. Earliest joiner first, then person id, so a clash always goes the same way; a handle already in the shape stays. */
 function renameHandles_() {
   const t = read(TAB.people);
-  if (!t.sheet) return { error: 'no people tab' };
+  if (!t.sheet) return errOf_('err-no-people-tab', 'no-tab');
   /* ALL THREE BEFORE ANYTHING — a handle moved with nowhere to put the old one is somebody whose slip no longer signs them in. */
   const lacking = handleColsLacking_(t);
   if (lacking.length) {
@@ -174,7 +174,7 @@ function renameAllPlan_(rows, seed) {
 }
 function postRenameAllUsernames_(body, action, began) {
   const t = read(TAB.people);
-  if (!t.sheet) return jsonOut({ error: 'no people tab' });
+  if (!t.sheet) return refuse_('err-no-people-tab', 'no-tab');
   const lacking = handleColsLacking_(t);
   if (lacking.length) return jsonOut({ error: 'the people tab has no ' + lacking.join(', ') + ' column. Run ?setup=1 first — nothing was changed.' });
   const dry = body.dryRun !== false;

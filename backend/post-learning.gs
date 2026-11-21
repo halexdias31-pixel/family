@@ -95,11 +95,11 @@ function aiCapGiveBack_(who, took, prop) {
 /* ---------- AN ANSWER SENT, KEPT AS AN EVENT § */
 function postSubmitAnswer_(body, action, began) {
   const me = findPerson('', S(body.personId));
-  if (!me || !S(me.person_id)) return jsonOut({ error: 'Sign in first.' });
+  if (!me || !S(me.person_id)) return refuse_('err-sign-in-first', 'not-signed-in');
   const items = (Array.isArray(body.items) ? body.items : []).slice(0, SUBMISSIONS_PER_POST);
   if (!items.length) return jsonOut({ error: 'No answer to send.' });
   const lock = LockService.getScriptLock();
-  if (!lock.tryLock(5000)) return jsonOut({ error: 'Busy — it will be sent again.', why: 'busy' });
+  if (!lock.tryLock(5000)) return refuse_('err-busy-resend', 'busy');
   let out = {};
   const wroteBefore = POST_WROTE;
   try {
@@ -123,11 +123,11 @@ function postSubmitAnswer_(body, action, began) {
 /* ---------- WHAT THE CHILD WROTE, KEPT ON THEIR ACCOUNT § */
 function postSaveAnswers_(body, action, began) {
   const me = findPerson('', S(body.personId));
-  if (!me || !S(me.person_id)) return jsonOut({ error: 'Sign in first.' });
+  if (!me || !S(me.person_id)) return refuse_('err-sign-in-first', 'not-signed-in');
   const items = (Array.isArray(body.items) ? body.items : []).slice(0, ANSWERS_PER_POST);
   if (!items.length) return jsonOut({ error: 'No answer to save.' });
   const lock = LockService.getScriptLock();
-  if (!lock.tryLock(5000)) return jsonOut({ error: 'Busy — it will be sent again.', why: 'busy' });
+  if (!lock.tryLock(5000)) return refuse_('err-busy-resend', 'busy');
   let out = {};
   const wroteBefore = POST_WROTE;
   try {
@@ -145,7 +145,7 @@ function postSaveAnswers_(body, action, began) {
 /* ---------- AND READ BACK, BY THE PERSON WHO WROTE THEM AND NOBODY ELSE § */
 function postMyAnswers_(body, action, began) {
   const me = findPerson('', S(body.personId));
-  if (!me || !S(me.person_id)) return jsonOut({ error: 'Sign in first.' });
+  if (!me || !S(me.person_id)) return refuse_('err-sign-in-first', 'not-signed-in');
   return jsonOut({ success: true, for: S(me.person_id), answers: answersFor_(S(me.person_id)) });
 }
 
@@ -157,7 +157,7 @@ function libItemsReply_(body) {
   /* A GUEST (owner, 15 Nov) reads by the device she says she is — questions too (owner, 17 Nov: kinds.json `see.who: anyone`). */
   const guest = S(body.guest).replace(/[^A-Za-z0-9-]/g, '').slice(0, 40);
   const me = findPerson('', S(body.personId)) || (guest ? { person_id: 'guest:' + guest, roles: '' } : null);
-  if (!me || !S(me.person_id)) return { error: 'Sign in first.' };
+  if (!me || !S(me.person_id)) return errOf_('err-sign-in-first', 'not-signed-in');
   const asked = Array.isArray(body.ids) ? body.ids : [];
   const ids = [];
   asked.forEach(v => { const t = S(v); if (/^(q|ct|pr|pj):[A-Za-z0-9][A-Za-z0-9 _.:#|()-]{0,159}$/.test(t) && ids.indexOf(t) === -1) ids.push(t); });
@@ -183,7 +183,7 @@ function readItemsRole_(me) {
 function readItemsOwn_(kind, how, body, began) {
   const me = findPerson('', S(body.personId));
   const role = readItemsRole_(me);
-  if (!me || !S(me.person_id) || !itemMay_(kind, 'read', role)) return jsonOut({ error: 'Not authorised.', why: 'refused' });
+  if (!me || !S(me.person_id) || !itemMay_(kind, 'read', role)) return refuse_('err-not-authorised', 'refused');
   const ids = Array.isArray(body.ids) ? body.ids.map(S).filter(Boolean) : [];
   if (ids.length > 1) return jsonOut({ error: 'One at a time.' });
   const self = S(me.person_id), want = ids[0] || '';
@@ -202,7 +202,7 @@ function readItemsOwn_(kind, how, body, began) {
 function postReadItems_(body, action, began) {
   /* THE GATE IS `anyone` (15 Nov), so WHO ASKS IS THE TOKEN'S, never a personId the request names; a dead token is signed out, not a guest. */
   const who = S(body.token) ? authWhoIs_(body.token) : null;
-  if (S(body.token) && !who) return jsonOut({ error: 'Please sign in again.', why: 'signed-out' });
+  if (S(body.token) && !who) return refuse_('err-sign-in-again', 'signed-out');
   body = Object.assign({}, body, { personId: who ? S(who.person_id) : '', name: who ? personDisplayName(who) : '' });
   const kind = S(body.kind);
   const doors = itemDoors_();
@@ -226,7 +226,7 @@ function itemsWrite_(verb, body, began) {
   const b = Object.assign({}, body, { action: item + ':' + verb });
   delete b.item;
   const me = findPerson('', S(b.personId));
-  if (!me || !S(me.person_id) || !itemMay_(item, verb, readItemsRole_(me))) return jsonOut({ error: 'Not authorised.' });
+  if (!me || !S(me.person_id) || !itemMay_(item, verb, readItemsRole_(me))) return refuse_('err-not-authorised', 'not-allowed');
   return how.self(b, item + ':' + verb, began);
 }
 

@@ -17,7 +17,7 @@ function postRegister_(body, action, began) {
   /* ASKED BEFORE ANYTHING IS WRITTEN: an account whose grown-up's address had nowhere to go would
      be a child with nobody to confirm them and nobody to send a forgotten PIN to. */
   if (grownUp && t.headers.indexOf('parent_email') === -1) {
-    return jsonOut({ error: 'The sheet has no column for: parent_email. Run ?setup=1 — nothing was saved.' });
+    return refuse_('err-no-column-setup', 'no-column', { cols: 'parent_email' });
   }
   /* ---------- THE ADDRESS FIRST, AND A NAME CLASH THAT DOES NOT SAY IT IS ONE (342, the review) § */
   if (email && t.rows.some(r => S(r.email) && norm(r.email) === norm(email))) {
@@ -37,7 +37,7 @@ function postRegister_(body, action, began) {
   /* WITH NO ADDRESS THE HANDLE IS THE ONLY WAY IN, so an account the generator could not name
      would be an account nobody can sign in to. Said now, with nothing written. */
   if (!email && !regHandle) {
-    return jsonOut({ error: 'No free handle could be made just now. Nothing was saved — try again.' });
+    return refuse_('err-no-free-handle', 'no-handle');
   }
   addRow(t, registerRow_(body, regId, regHandle, first, last, email, pin, grownUp, asParent, arrivedWith, inviter, token));
 
@@ -127,11 +127,8 @@ function registerMail_(email, grownUp, first, regHandle, token, asParent) {
   const said = regHandle ? '@' + regHandle : '';
   /* THE ACCOUNT'S OWN ADDRESS GETS `linkMail_`, which `resendLink` sends again word for word. */
   if (email) linkMail_({ first_name: first, email: email, handle: regHandle || '' }, token, asParent);
-  else deliverOrThrow_(null, 'access', { to: grownUp,
-        /* THE FIRST NAME, as every email names a child now (the owner, 10 Oct) — `mailOut_` would take the rest out. */
-        subject: text_('mail-child-made-subject', { first: first, brand: BRAND_NAME }),
-        body: text_('mail-child-made-body', { first: first, brand: BRAND_NAME, handle: said, link: SITE_URL + '?verify=' + token })
-            + '\n\n' + text_('mail-sign-off', { brand: BRAND_NAME }) });
+  /* THE FIRST NAME, as every email names a child now (the owner, 10 Oct) — `mailOut_` would take the rest out. */
+  else accessMail_(grownUp, 'mail-child-made', { first: first, handle: said, link: siteLink_('verify', token) });
 }
 
 /* confirming an email address --------------------------------------------------------- The token is the proof: § */
@@ -213,7 +210,7 @@ function postVerifyEmail_(body, action, began) {
 function postResendLink_(body, action, began) {
   const t = read(TAB.people);
   const me = t.rows.find(x => S(x.person_id) === S(body.personId));
-  if (!me) return jsonOut({ error: 'We could not find your account.' });
+  if (!me) return refuse_('err-no-account', 'not-found');
   /* ---------- OR THE LINK FOR A NEW ADDRESS WAITING TO BE PROVED (`authMove*_`) § */
   const move = authMoveGet_(me);
   const own = S(me.email);
@@ -295,8 +292,7 @@ function postGoogleLogin_(body, action, began) {
   /* THE SAME READING OF THE ADDRESS AS `verifyLogin`, and the same refusal of two rows on one: § */
   const googleHits = t.rows.filter(x => norm(x.email) === norm(email));
   if (googleHits.length > 1) {
-    return jsonOut({ success: false,
-      error: 'That email address is on more than one account — ask us to sort it out.' });
+    return refuse_('err-email-on-many', 'many-accounts');
   }
   const r = googleHits[0] || null;
   if (!r) {
@@ -371,18 +367,16 @@ function postVerifyLogin_(body, action, began) {
   }
   const hits = t0.rows.filter(x => norm(x.email) === mail);
   if (hits.length > 1) {
-    return jsonOut({ success: false,
-      error: 'That email address is on more than one account — ask us to sort it out.' });
+    return refuse_('err-email-on-many', 'many-accounts');
   }
   const r = hits[0] || null;
-  if (!r) return jsonOut({ success: false, why: 'no-such-email',
-    error: 'No account has that email address.' });
+  if (!r) return refuse_('err-no-such-email', 'no-such-email');
   return signInRow_(t0, r, body);
 }
 
 /* THE EMAIL `postForgotPin_` sends: to the account's own address with a sign-in link, or to the owner to pass on. */
 function forgotPinMail_(own, tos, r, byHandle, handleSaid, fresh, linkKey) {
-  const link = SITE_URL + '?signin=' + linkKey;
+  const link = siteLink_('signin', linkKey);
   return own
     ? { to: own, name: BRAND_NAME,
         subject: text_('mail-pin-subject', { brand: BRAND_NAME }),
@@ -411,7 +405,7 @@ function postForgotPin_(body, action, began) {
   if (!hits.length) {
     return jsonOut(byHandle
       ? { error: 'No account has that handle. It is on your card once you are in — ask a parent or your tutor for it.', why: 'not-an-email' }
-      : { error: 'No account has that email address.', why: 'no-such-email' });
+      : errOf_('err-no-such-email', 'no-such-email'));
   }
   if (hits.length > 1) {
     return jsonOut({ error: 'That ' + (byHandle ? 'handle' : 'email address')
@@ -507,7 +501,7 @@ function postPinLink_(body, action, began) {
 /* ---------- THE TUTOR AGREEMENT: A TICK THAT STAYS TICKED § */
 function postSignAgreement_(body, action, began) {
   const me = findPerson(S(body.name), S(body.personId));
-  if (!me) return jsonOut({ error: 'We could not find your account.' });
+  if (!me) return refuse_('err-no-account', 'not-found');
   if (!hasRole(me, 'tutor') && !whoMay_(me, 'admin'))
     return jsonOut({ error: 'The tutor agreement is for tutors.' });
   const version = S(body.version).slice(0, 40);
@@ -520,7 +514,7 @@ function postSignAgreement_(body, action, began) {
   /* BOTH COLUMNS BEFORE EITHER IS WRITTEN. § */
   const lacking = ['agreement_signed_at', 'agreement_version'].filter(c => t.headers.indexOf(c) === -1);
   if (lacking.length)
-    return jsonOut({ error: 'The sheet has no column for: ' + lacking.join(', ') + '. Run ?setup=1 — nothing was saved.' });
+    return refuse_('err-no-column-setup', 'no-column', { cols: lacking.join(', ') });
   const row = t.rows.find(x => x._row === me._row) || me;
   const at = fmtDateTime(new Date());
   setCells(t, row, { agreement_signed_at: at, agreement_version: version });
@@ -530,11 +524,11 @@ function postSignAgreement_(body, action, began) {
 /* ---------- A NEW PIN FOR SOMEBODY ELSE: THEIR PARENT, OR AN ADMIN § */
 function postResetPin_(body, action, began) {
   const me = findPerson('', S(body.personId));
-  if (!me) return jsonOut({ error: 'Not signed in.' });
+  if (!me) return refuse_('err-not-signed-in', 'not-signed-in');
   const t = read(TAB.people);
   const want = S(body.targetId);
   const kid = want ? t.rows.find(x => S(x.person_id) === want) : null;
-  if (!kid) return jsonOut({ error: 'We could not find that account.' });
+  if (!kid) return refuse_('err-no-that-account', 'not-found');
   if (want === S(me.person_id)) {
     return jsonOut({ error: 'Your own PIN is under Settings → Signing in.' });
   }
@@ -575,7 +569,7 @@ function postResetPin_(body, action, began) {
 
 function postChangePin_(body, action, began) {
   const r = findPerson(S(body.name), S(body.personId));
-  if (!r) return jsonOut({ error: 'Not signed in.' });
+  if (!r) return refuse_('err-not-signed-in', 'not-signed-in');
 
   const now = S(body.currentPin), next = S(body.newPin);
 

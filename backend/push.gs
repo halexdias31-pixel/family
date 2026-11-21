@@ -82,7 +82,7 @@ function pushTo_(personOrName, kind, title, body, link) {
 /* THE CARD'S FOUR ACTIONS. `me` is the signed-in person (PERMISSIONS level 'self'). */
 function pushAction_(action, body) {
   const me = findPerson('', S(body.personId));
-  if (!me) return { error: 'Sign in first.' };
+  if (!me) return errOf_('err-sign-in-first', 'not-signed-in');
   const t = read(TAB.push_tokens);
   const mine = () => pushRowsOf_(t, me.person_id);
   const state = () => {
