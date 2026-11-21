@@ -328,12 +328,12 @@ function jobRows(j) {
     : TRUEish_(j.clientHosts) ? text_('yes-no-room-hire') : text_('no-we-book-the-room'));
   /* ---------- SEVEN DAY ROWS WHERE THE `When` ROW WAS § */
   jobWeekRows_(j).forEach(r => rows.push(r));
-  if (wait) push(text_('per-session'), j.hours ? j.hours + ' hour' + (Number(j.hours) === 1 ? '' : 's') : '');
+  if (wait) push(text_('per-session'), j.hours ? j.hours + ' ' + plural_(Number(j.hours), 'hour') : '');
   push('Term', j.term || '');
   /* "JUST YOU" IS WRONG ON A WAITING LIST, and on an open one it is the opposite of true: § */
   /* ---------- AND ON AN OPEN SESSION IT WAS THE OPPOSITE OF TRUE TOO § */
   const going = Number(j.seatsGoing) || 0;
-  const seatsFree = text_('open') + going + ' seat' + (going === 1 ? '' : 's') + ' free';
+  const seatsFree = text_('open') + going + ' ' + plural_(going, 'seat') + ' free';
   push('Split', norm(j.kind) === 'waitlist'
     ? (going > 0 ? seatsFree : 'Full')
     : (j.splitEmails

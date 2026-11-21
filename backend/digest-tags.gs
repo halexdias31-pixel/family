@@ -342,7 +342,7 @@ function digestCardTags_(q, T) {
     examBoard: () => it.examBoard, tier: () => it.tier,
     examYear: () => digestTagYear_(it, T), examMonth: () => digestTagMonth_(it, T) || digestTagDate_(q).month, examDay: () => digestTagDate_(q).day,
     paperId: () => pid, paperSection: () => digestTagSection_(q, T), qNumber: () => (digestLibS_(q.question) ? 'Q' + digestLibS_(q.question) : ''), qPart: () => split.part, qSub: () => split.sub,
-    marks: () => (marks > 0 ? marks + ' mark' + (marks === 1 ? '' : 's') : ''), needs: () => digestTagNeeds_(q, T),
+    marks: () => (marks > 0 ? marks + ' ' + plural_(marks, 'mark') : ''), needs: () => digestTagNeeds_(q, T),
     verified: () => digestTagVerified_(q, T), source: () => digestTagSource_(q),
   };
   /* SAID AS THE CARD SAYS THEM: the paper by `paperTag_`, the marks as the paper prints them, "[1]". */

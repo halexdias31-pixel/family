@@ -87,7 +87,7 @@ function bundleNoun_(papers, n) {
   const types = papers.map(p => String(p.type || '').toLowerCase());
   const one = types.every(t => /paper/.test(t)) ? 'paper'
     : types.every(t => t === 'worksheet') ? 'worksheet' : 'document';
-  return n + ' ' + one + (n === 1 ? '' : 's');
+  return n + ' ' + plural_(n, one);
 }
 
 const BUNDLE_MEMO = new WeakMap();
@@ -212,10 +212,10 @@ function bundleStrayLine_(b) {
   if (s.questions) {
     const named = (s.papers || []).slice(0, 3).join(', ');
     const more = (s.papers || []).length - 3;
-    bits.push(s.questions + ' question' + (s.questions === 1 ? '' : 's') + ' from '
+    bits.push(s.questions + ' ' + plural_(s.questions, 'question') + ' from '
       + named + (more > 0 ? ' and ' + more + ' more' : ''));
   }
-  if (s.other) bits.push(s.other + ' thing' + (s.other === 1 ? '' : 's') + ' that ' + (s.other === 1 ? 'is' : 'are')
+  if (s.other) bits.push(s.other + ' ' + plural_(s.other, 'thing') + ' that ' + (s.other === 1 ? 'is' : 'are')
     + ' not a paper');
   return bits.length ? 'Also on this list and not in the bundle: ' + bits.join('; ') + '.' : '';
 }

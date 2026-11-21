@@ -123,7 +123,7 @@ function workSave_(k, typed, el, out) {
       el.disabled = false;
       tell_(el, '');
       if (!d || !d.success) { tell_(out, 'error', (d && (d.message || d.error)) || 'Your working could not be saved just now \u2014 try again later'); return; }
-      tell_(out, 'saved', 'Saved, with ' + pics.length + ' photo' + (pics.length === 1 ? '' : 's'));
+      tell_(out, 'saved', 'Saved, with ' + pics.length + ' ' + plural_(pics.length, 'photo'));
     })
     .catch(() => { el.disabled = false; tell_(el, ''); tell_(out, 'error', 'Could not reach the server \u2014 your photos are still here'); });
 }

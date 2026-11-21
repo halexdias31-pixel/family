@@ -37,7 +37,7 @@ function postEditPost_(body, action, began) {
       const cast = read(TAB.post_votes).rows
         .filter(v => S(v.post_id) === S(r.post_id)).length;
       if (cast) {
-        return jsonOut({ error: 'This poll has ' + cast + ' vote' + (cast === 1 ? '' : 's')
+        return jsonOut({ error: 'This poll has ' + cast + ' ' + plural_(cast, 'vote')
           + '. Changing the options would strand them — delete the post and repost, or leave '
           + 'the options as they are.' });
       }
@@ -426,7 +426,7 @@ function postSendMessage_(body, action, began) {
     if (waited < MESSAGE_GAP_MS) {
       const left = Math.ceil((MESSAGE_GAP_MS - waited) / 60000);
       return jsonOut({ error: '1 message every 5 minutes — ' + left
-        + ' minute' + (left === 1 ? '' : 's') + ' to go.' });
+        + ' ' + plural_(left, 'minute') + ' to go.' });
     }
   }
 
@@ -451,7 +451,7 @@ function postSendMessage_(body, action, began) {
 
   // They find out by email, because nobody sits on a tutoring site waiting for a message.
   const extra = saved.list.length
-    ? '\n\n(' + saved.list.length + ' attachment' + (saved.list.length === 1 ? '' : 's')
+    ? '\n\n(' + saved.list.length + ' ' + plural_(saved.list.length, 'attachment')
       + ' — open it on the site.)' : '';
   /* `messages` — theirs to turn off (`messages_email`): the message is in their inbox on the site
      either way, and the sender is not told which. */

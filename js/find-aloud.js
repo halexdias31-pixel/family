@@ -562,7 +562,7 @@ function findPeopleItems_() {
       kind: 'venue', name: v.title, key: v.title, sub: v.subtitle || '', image: v.image,
       cost: priced_(v.bestRate), row: v, borough: v.borough || v.city || '',
       venueArea: v.borough || v.city || '', venueFor: v.focus || [],
-      venueSize: [Number(v.maxCapacity) ? 'Up to ' + v.maxCapacity : '', (v.rooms || []).length ? (v.rooms || []).length + ' room' + ((v.rooms || []).length === 1 ? '' : 's') : ''].filter(Boolean),
+      venueSize: [Number(v.maxCapacity) ? 'Up to ' + v.maxCapacity : '', (v.rooms || []).length ? (v.rooms || []).length + ' ' + plural_((v.rooms || []).length, 'room') : ''].filter(Boolean),
     })),
     /* The widgets, findable like everything else. § */
     /* ---------- THE WIDGETS ARE IN THE FUNNEL AGAIN (790): every widget but the reel's is a card, its kind's group (Tools, Games) its first answer. */
@@ -641,7 +641,7 @@ function findBoxingItems_() {
     ...(DATA.boxers || []).filter(b => b.name).map(b => ({
       kind: 'people', name: b.name, key: 'bx:' + (b.id || b.name), pixId: b.id,
       sub: [b.bestDivision, b.country].filter(Boolean).join(' · '), image: '',
-      born: personYear_(b.dob), died: personYear_(b.dod), from: b.country || '', roles: ['Boxer'], histKind: 'People',
+      born: personYear_(b.dob), died: personYear_(b.dod), from: b.country || '', roles: ['Boxer'], histKind: labelOf_('hist-kind', 'figure', ''),
       /* ---------- A DIVISION IS NOT A SUBJECT § */
       /* WHICH OF THE TWO, asked before the weight. § */
       boxKind: 'Fighters', shelf: 'Boxing',

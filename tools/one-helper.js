@@ -7,7 +7,7 @@
 'use strict';
 const fs = require('fs'), path = require('path');
 const { ROOT, read, S } = require('./lib/gen.js');
-const OWED = ['tools/permissions.js', 'tools/lib/library-schema.js'];
+const OWED = [];
 const HELPER_RE = /^\s*(?:const|let|var|function)\s+(S|blockInto)\b/m;
 
 function walk(dir, ext, out) {
