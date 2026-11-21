@@ -591,7 +591,7 @@ function markRule_(typed, rule) {
 
 /* ---------- A WORDED ANSWER OF UP TO ABOUT SIX MARKS, MARKED BY THE POINTS IT MAKES (owner, 16 Nov) */
 /* `rule: points max 4; her head ached / headache; [2] limbs heavy~weighed; [q] heat intolerable`: `;` parts the points, `/` a point's
-   wordings, `~` a word's synonyms and spellings, `[2]` a point's marks (1 if none), `[q]` a quotation only; after `max N` the head may
+   wordings, `~` a word's synonyms and spellings, `[2]` a point's marks (1 if none; anywhere in the point), `[q]` a quotation only; after `max N` the head may
    say `first N` (only the first N answers read) and `phrases` (a short phrase is an answer, one point each). The distinct points found
    are added up to `max`. A wording's words, stemmed and with the typo rule (`markTypo_`), must stand close, in any order, in one
    sentence that is a sentence: a bare list of key words, a sentence of nothing but key words, and a long copied passage earn little. */
@@ -677,9 +677,11 @@ function markPtRead_(rule) {
   const head = /^points\b(.*)$/i.exec(parts[0] || '');
   const out = { max: 0, points: [] };
   parts.slice(1).forEach(p => {
-    const tag = /^\[(\d*)(q?)\]\s*/i.exec(p);
+    /* A TAG ANYWHERE IN THE POINT (queue 4i): "[2] a / [2] b" and "a [2]" are the point's marks, never a word "2"; the most it names */
+    const tags = [...p.matchAll(/\[(\d*)(q?)\]/gi)];
+    const tag = tags.length ? [tags[0][0], String(Math.max(0, ...tags.map(t => Number(t[1]) || 0)) || ''), tags.some(t => t[2]) ? 'q' : ''] : null;
     /* a / between two digits is a fraction (3/4), not a second wording; a key's number is one word, as an answer's (markPtWords_) */
-    const ways = (tag ? p.slice(tag[0].length) : p).replace(/(\d)\/(?=\d)/g, '$1÷').split('/').map(w => w.trim().toLowerCase()
+    const ways = (tags.length ? p.replace(/\[(\d*)(q?)\]/gi, ' ') : p).replace(/\s*(?:→|->|⟶|=>)\s*/g, ' to ').replace(/(\d)\/(?=\d)/g, '$1÷').split('/').map(w => w.trim().toLowerCase()
       .replace(/n't\b/g, ' not').replace(/(\d),(?=\d{3}(?!\d))/g, '$1').replace(/(\d)\s*(?:%|per\s?cent|percent)(?![a-z])/g, '$1%').replace(/(\d\.\d+)(?=[a-z])/g, '$1 ').split(/\s+/)
       .map(t => t.split('~').map(a => { const n = a.replace(/[^\d.÷%-]/g, '').replace('÷', '/');
         return /\d/.test(a) && MARK_PT_NUM.test(n) && !/[a-z]/.test(a) ? markPtNumOf_(n)
@@ -693,6 +695,14 @@ function markPtRead_(rule) {
         const th = way.findIndex(alts => alts.length === 1 && alts[0] === 'than');
         const kept = way.every(little) ? way : way.filter(alts => !little(alts));
         if (th > 0) kept.than = way.slice(0, th).filter(alts => kept.indexOf(alts) >= 0).length;
+        /* AN ORDERED PHRASE KEEPS ITS ORDER INSIDE A POINT (queue 4i), as markOrderBroken_ reads one alone: "high to low concentration",
+           "A then B", "A → B" are found only with the word before the to ahead of the word after it; numbers either side are a band */
+        kept.order = [];
+        way.forEach((alts, j) => {
+          if (j < 1 || j >= way.length - 1 || alts.length !== 1 || !/^(?:to|then|into|becomes)$/.test(alts[0])) return;
+          const b = way.slice(0, j).filter(a => kept.indexOf(a) >= 0).length;
+          if (b > 0 && b < kept.length && !(MARK_PT_NUM.test(kept[b - 1][0]) && MARK_PT_NUM.test(kept[b][0]))) kept.order.push(b);
+        });
         return kept;
       })
       .filter(w => w.length);
@@ -753,7 +763,8 @@ function markPtFind_(toks, way, opt, quoteOnly) {
   const walk = (k, used) => {
     if (k === at.length) {
       const lo = Math.min(...used), hi = Math.max(...used);
-      const sided = !(way.than > 0 && way.than < way.length) || Math.max(...used.slice(0, way.than)) < Math.min(...used.slice(way.than));
+      const sided = (!(way.than > 0 && way.than < way.length) || Math.max(...used.slice(0, way.than)) < Math.min(...used.slice(way.than)))
+        && (way.order || []).every(b => used[b - 1] < used[b]);
       if (hi - lo + 1 <= span && sided && (!best || hi - lo < best.hi - best.lo) && attached(used)) best = { lo, hi, used: used.slice() };
       return;
     }
@@ -769,6 +780,7 @@ function markPtFind_(toks, way, opt, quoteOnly) {
    "melting point lowers salt" is not it; an adjective ("the melting point is lower with salt") is not held to sides; and (3) a way with opposite
    directions in it ("salt increases, open stomata decreases", "rises then falls") keeps every noun, and each direction, on the same side of each of
    them, so the two are not swapped. */
+const MARK_PT_JOIN = new Set('so because which who that when while then since therefore thus whereas until unless meaning causing'.split(' '));
 const markPtDirOf_ = w => MARK_PT_DIR.get(w) || MARK_PT_DIR.get(w.replace(/(?:s|ed|ing)$/, '')) || MARK_PT_DIR.get(w.replace(/(?:s|d)$/, ''));
 function markPtAttached_(toks, way) {
   const dirAt = way.map(alts => alts.map(a => MARK_PT_DIR.get(a)).find(Boolean));
@@ -786,8 +798,11 @@ function markPtAttached_(toks, way) {
       const i = used[j], c = toks[i].c;
       /* the nearest of the way's own direction words, as found, against the nearest opposite one that is not */
       let near = Infinity, nearOpp = Infinity;
-      ks.forEach(q => { if (toks[used[q]].c === c) near = Math.min(near, Math.abs(used[q] - i)); });
-      toks.forEach((t, x) => { if (t.c !== c || used.indexOf(x) >= 0) return; const e = markPtDirOf_(t.w);
+      /* a direction across a clause word ("limits the fish caught SO more fish survive") is the other clause's, not this point's:
+         neither the way's own nor an opposite one counts there (queue 4i) */
+      const across = x => toks.some((t, y) => y > Math.min(x, i) && y < Math.max(x, i) && MARK_PT_JOIN.has(t.w));
+      ks.forEach(q => { if (toks[used[q]].c === c && !across(used[q])) near = Math.min(near, Math.abs(used[q] - i)); });
+      toks.forEach((t, x) => { if (t.c !== c || used.indexOf(x) >= 0 || across(x)) return; const e = markPtDirOf_(t.w);
         if (e && opp.has(e)) nearOpp = Math.min(nearOpp, Math.abs(x - i)); });
       if (nearOpp < near) return false;
     }
@@ -842,14 +857,19 @@ function markPoints_(typed, rule, x, opt) {
     const clause = c => toks.some(t => t.c === c && (t.quote || MARK_PT_CLAUSE.has(t.w) || (/ed$/.test(t.w) && t.w.length > 4)));
     /* a list's items are short: a long part with no verb the list knows ("split into two smaller nuclei") is still prose (18 Nov) */
     const item = c => !clause(c) && toks.filter(t => t.c === c).length <= 3;
-    const scopes = chunks.length >= 4 && chunks.filter(item).length >= chunks.length - 1
+    /* A LIST ANSWER IN A SHORT ANSWER (queue 4i): "bacteria, fungi" names two points, each item read alone for at most one of them;
+       an essay's list of key words is still the density rule's below */
+    const listed = !essay && !key.phrases && chunks.length >= 2 && chunks.every(item) && chunks.every(c => toks.some(t => t.c === c && /^[a-z]{2,}$/.test(t.w) && !MARK_PT_GLUE.has(t.w)));
+    let scopes = listed ? chunks.map(c => toks.filter(t => t.c === c))
+      : chunks.length >= 4 && chunks.filter(item).length >= chunks.length - 1
       ? chunks.filter(clause).map(c => toks.filter(t => t.c === c)) : [toks];
+    if (listed && key.first) scopes = scopes.slice(0, key.first);
     const found = [];
-    scopes.forEach(sc => key.points.forEach((p, pi) => {
+    scopes.forEach((sc, si) => key.points.forEach((p, pi) => {
       if (p.q && !source) return;
       for (const way of p.ways) {
         const f = markPtFind_(sc, way, opt, p.q);
-        if (f) { found.push({ pi, n: p.n, at: f.used.map(i => sc[i]) }); break; }
+        if (f) { found.push({ pi, n: p.n, si, at: f.used.map(i => sc[i]) }); break; }
       }
     }));
     /* NO MORE POINTS FROM A SENTENCE THAN IT HAS LITTLE TYING WORDS (the, she, so), NOR MORE THAN ONE PAST ITS VERBS; the same words never two points, a long quotation one */
@@ -862,12 +882,16 @@ function markPoints_(typed, rule, x, opt) {
     /* and a sentence that is three parts in four key words is a list of them, whatever little word it carries */
     /* that density rule is an ESSAY's (PEEL, a distilled set, a part over six marks: rule 1.33); a short answer's sentence earns every point it
        makes, verb or not, save a bare run of key words alone (17 Nov) */
-    let room = key.phrases ? 1 : !essay ? (glue || verbs || own ? Infinity : 1)
+    let room = key.phrases ? 1 : listed ? scopes.length : !essay ? (glue || verbs || own ? Infinity : 1)
       : keyish > 0.75 * toks.length ? 0 : glue ? Math.min(verbs + 1, tying) : toks.length <= 6 && own ? 1 : 0;
-    const kept = [], perQuote = {};
+    const kept = [], perQuote = {}, items = new Set();
     found.sort((a, b) => b.n - a.n || b.at.length - a.at.length).forEach(f => {
       if (room <= 0 || credited.has(f.pi)) return;
-      if (kept.some(k => f.at.every(t => k.at.indexOf(t) >= 0))) return;
+      if (listed && items.has(f.si)) return;
+      /* ONE WORD SERVES EVERY POINT IT IS PART OF (queue 4i): "decomposed by bacteria, which respire" is the decay point and the
+         bacteria point; what is never two points is the very same words found again, one word or phrase farming a second mark */
+      if (kept.some(k => k.at.length === f.at.length && f.at.every(t => k.at.indexOf(t) >= 0))) return;
+      if (listed) items.add(f.si);
       const q = f.at.every(t => t.quote && t.quote === f.at[0].quote) ? f.at[0].quote : 0;
       if (q && toks.filter(t => t.quote === q).length > 15 && perQuote[q]) return;
       if (q) perQuote[q] = 1;
@@ -1190,6 +1214,12 @@ function markRivals_(opt) {
   ((opt && opt.others) || []).forEach(o => String(o || '').split('|').forEach(v => (markTypoWords_(v, v) || []).forEach(w => out.push(w))));
   return out;
 }
+/* a British or an American spelling (vaporise, vaporize; colour, color; centre, center) is the same word, not a rival */
+const markSpellOf_ = x => markPtStem_(x).replace(/z/g, 's').replace(/our/g, 'or').replace(/re$/, 'er').replace(/ae|oe/g, 'e').replace(/ogue$/, 'og').replace(/ll/g, 'l');
+function markRealWord_(t, w) {
+  const F = levelsFreq_();
+  return !!F && t.length >= 4 && t !== w && markSpellOf_(t) !== markSpellOf_(w) && levelsKnown_(t, F);
+}
 /* THE SPELLING THE SCHEME WANTS when `typed` is a forgiven near miss of a way; '' when it is not one (or is exact) */
 function markTypo_(typed, accept, opt) {
   if (opt && opt.strict) return '';
@@ -1220,6 +1250,9 @@ function markTypo_(typed, accept, opt) {
       const cap = MARK_TYPO_OF(w.length);
       /* A SLIP KEEPS THE FIRST LETTER: increases/decreases, efficient/inefficient, elastic/inelastic are other words, not typos. */
       if (!cap || t[0] !== w[0] || !markEndsKept_(t, w) || markEdits_(t, w, cap) > cap) return false;
+      /* A REAL WORD IS NOT A SLIP OF ANOTHER (queue 4i): flatter is not fatter, move not more -- a typed word the word ranks know
+         (data/word-freq.json, `levelsKnown_`) is that word, unless it is a form of the key's own (cells, cell) */
+      if (markRealWord_(t, w)) return false;
       /* a near miss as near to another answer is that answer, typed: wrong */
       if (rivals.some(r => r !== w && markEdits_(t, r, MARK_TYPO_OF(r.length)) <= MARK_TYPO_OF(r.length))) return false;
       near = true;

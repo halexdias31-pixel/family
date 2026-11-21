@@ -33,6 +33,8 @@ function appCode() {
   const DATA = { confusables: (read('data/settings/confusables.json') || []).map(r => ({ words: S(r.words) })) };
   const peel = read('data/settings/peel.json'); if (peel) DATA.peel = peel;
   const marking = read('data/settings/marking.json'); if (marking) DATA.marking = marking;
+  /* the word ranks the typo rule reads (find-marking.js markRealWord_), as the page fetches them */
+  const freq = read('data/word-freq.json'); if (freq && Array.isArray(freq.words)) DATA.wordFreq = freq.words;
   const ctx = vm.createContext({ console: { log() {}, warn() {}, error() {} }, DATA });
   const loaded = new Set();
   const retry = run => {
