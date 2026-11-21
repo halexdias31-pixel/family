@@ -553,7 +553,7 @@ return `<div class="kc-embed${b.look ? ' ' + esc(b.look) : ''}" data-embed="${es
 function cardTree_(nodes, fold, top) {
 const one = n => { const head = `<span class="kc-tree-k">${cardRuns_(n.label)}</span>`;
 const inner = (n.text != null && n.text !== '' ? `<span class="kc-tree-v">${cardRuns_(n.text)}</span>` : '')
-+ ((n.tiles || []).length ? `<div class="tile-row">${tile_(n.tiles)}</div>` : '')
++ ((n.tiles || []).length ? tileWrap_(tile_(n.tiles)) : '')
 + (n.more ? `<p class="kc-tree-more">${cardRuns_(n.more)}</p>` : '') + cardTree_(n.kids, false, false);
 return fold && top ? `<details class="kc-tree-sec"><summary class="kc-h">${cardRuns_(n.label)}</summary>${inner}</details>`
 : `<li class="kc-tree-n">${head}${inner}</li>`; };
@@ -608,9 +608,9 @@ timeline: b => ((b.events || []).length ? `<ol class="kc-tl"${b.label ? ` aria-l
 grid: cardGrid_,
 choices: cardChoices_,
 card: b => (b.spec ? renderCard(b.spec) : ''),
-tiles: b => ((b.tiles || []).length ? `<div class="tile-row${b.look ? ' ' + esc(b.look) : ''}">${tile_(b.tiles)}</div>` : ''),
+tiles: b => ((b.tiles || []).length ? tileWrap_(tile_(b.tiles), b.look ? esc(b.look) : '') : ''),
 who: b => `<div class="row${b.look ? ' ' + esc(b.look) : ''}">${b.face && typeof personFace_ === 'function' ? personFace_(b.face.who || {}, b.face.o || {}) : ''}<p class="${esc(b.whoLook || 'who')}"><b>${cardRuns_(b.name)}</b>${
-b.handle ? `<span class="prof-handle">@${esc(b.handle)}</span>` : ''}</p>${(b.tiles || []).length ? `<div class="tile-row">${tile_(b.tiles)}</div>` : ''}</div>`,
+b.handle ? `<span class="prof-handle">@${esc(b.handle)}</span>` : ''}</p>${(b.tiles || []).length ? tileWrap_(tile_(b.tiles)) : ''}</div>`,
 tickCell: b => `<label class="${esc(b.look || '')}"${b.label ? ` aria-label="${esc(b.label)}"` : ''}>${cardControl_(Object.assign({ kind: 'check' }, b.control || {}))}</label>`,
 media: b => { const u = String(b.src || ''), look = b.look ? ` class="${esc(b.look)}"` : '', name = esc(b.title || '');
 if (!/^(https:|data\/|docs\/|[\w-]+\.(png|jpe?g|svg|webp|gif)$)/i.test(u) && !(b.kind === 'image' && /^(http:|data:image\/)/i.test(u))) return '';
@@ -649,7 +649,7 @@ const x = Object.assign({}, spec.item || {}, { kind, key: spec.key || '', row: s
 let row = '';
 const tr = spec.toolRow ? { look: 'qt-row', key: spec.toolRow.key || '' } : null;
 const cut = spec.cut || {}, lines = body + (cut.lines || '');
-try { row = typeof kcActRow_ === 'function' ? kcActRow_(x, '', tile_(spec.tiles || []) + (cut.tiles || ''), tr) : `<div class="tile-row kc-row">${tile_(spec.tiles || [])}</div>`; } catch (e) { if (typeof oops_ === 'function') oops_(e, 'card:tiles'); }
+try { row = typeof kcActRow_ === 'function' ? kcActRow_(x, '', tile_(spec.tiles || []) + (cut.tiles || ''), tr) : tileWrap_(tile_(spec.tiles || []), 'kc-row'); } catch (e) { if (typeof oops_ === 'function') oops_(e, 'card:tiles'); }
 const cls = 'card fc kc kc-' + kind + (spec.look ? ' ' + spec.look : '') + (spec.off ? ' is-off' : '');
 return `<div class="${esc(cls)}"${spec.id ? ` id="${esc(spec.id)}"` : ''}${spec.card ? ` data-card="${esc(spec.card)}"` : ''}${cardAttrs_(spec.data)} aria-label="${esc(typeof name === 'string' ? name : '')}">`
 + `<div class="kc-pic">${cardPic_(spec.picture)}</div><div class="kc-head"></div>`
@@ -705,6 +705,8 @@ try { spec = CARD_KINDS[x.kind](x); } catch (e) { if (typeof oops_ === 'function
 return spec ? renderCard(Object.assign({ kind: x.kind, key: x.key, row: x.row, item: x }, spec)) : '';
 }
 const qTables_ = h => String(h).replace(/<table\b/gi, '<div class="q-tscroll"><table').replace(/<\/table>/gi, '</table></div>');
+const paperCells_ = (cls, c, kTag, tail) => `<div class="bk-row ${cls}"><span class="bk-n">${c[0]}</span>${kTag || `<span class="bk-k">${c[1]}</span>`}`
++ `<span class="bk-v">${c[2]}</span><span class="bk-m">${c[3]}</span><span class="bk-r">${c[4]}</span><span class="bk-t">${c[5]}</span>${tail || ''}</div>`;
 function paperRow_(r) {
 const cls = [r.blank ? 'is-blank' : '', r.day ? 'bk-day' : '', r.end ? 'bk-end' : '', r.free ? 'bk-free' : '', r.wide ? 'is-wide' : '',
 r.strip ? 'bk-wk' : '', r.strip && r.shut ? 'is-shut' : '', r.strip && r.off ? 'is-off' : '', r.tally ? 'bk-tally' : '', r.cls || ''].filter(Boolean).join(' ');
@@ -716,14 +718,13 @@ const value = r.tick !== undefined
 : r.dates ? `<span class="bk-dates">${esc(r.v)}</span>` : esc(r.v);
 const bare = (!r.id || !!r.open || !!r.strip) && !has(r.mul) && !has(r.rate) && !has(r.total);
 const heads = !!r.open || !!r.strip || !!r.tally;
-return `<div class="bk-row ${esc(cls)}${bare ? ' is-bare' : ''}${heads ? ' is-head' : ''}"><span class="bk-n">${esc(r.n)}</span>`
-+ (r.ctl && r.sel ? `<label for="${esc(r.ctl)}" class="bk-k">${esc(r.k)}</label>` : `<span class="bk-k">${esc(r.k)}</span>`)
-+ `<span class="bk-v">${heads && r.dash != null && String(r.v) === r.dash ? '' : value}</span><span class="bk-m">${esc(r.mul)}</span>`
-+ `<span class="bk-r">${esc(r.rate)}</span><span class="bk-t">${esc(r.total)}</span>${r.open || ''}</div>`
+return paperCells_(esc(cls) + (bare ? ' is-bare' : '') + (heads ? ' is-head' : ''),
+[esc(r.n), esc(r.k), heads && r.dash != null && String(r.v) === r.dash ? '' : value, esc(r.mul), esc(r.rate), esc(r.total)],
+r.ctl && r.sel ? `<label for="${esc(r.ctl)}" class="bk-k">${esc(r.k)}</label>` : '', r.open || '')
 + (r.say ? `<p class="bk-say${r.say.warn ? ' is-warn' : ''}">${esc(r.say.text)}</p>` : '');
 }
-const paperTotal_ = (k, t, cls) => `<div class="bk-row rc-total${cls ? ' ' + esc(cls) : ''}"><span class="bk-n"></span><span class="bk-k">${esc(k)}</span><span class="bk-v"></span><span class="bk-m"></span><span class="bk-r"></span><span class="bk-t">${esc(t)}</span></div>`;
-const paperHead_ = () => '<div class="bk-row is-cols"><span class="bk-n"></span><span class="bk-k"></span><span class="bk-v"></span><span class="bk-m">×</span><span class="bk-r">+/h</span><span class="bk-t">=</span></div>';
+const paperTotal_ = (k, t, cls) => paperCells_('rc-total' + (cls ? ' ' + esc(cls) : ''), ['', esc(k), '', '', '', esc(t)]);
+const paperHead_ = () => paperCells_('is-cols', ['', '', '', '×', '+/h', '=']);
 function paperDoc_(r) {
 const head = !!(r.cols && (r.rows || []).length);
 const lines = (r.lines || []).filter(Boolean).length && typeof qtag_ === 'function'
@@ -2167,27 +2168,23 @@ if (LIBRARY_ROWS) return Promise.resolve(LIBRARY_ROWS);
 if (!LIBRARY_ASK) LIBRARY_ASK = libraryRowsAsk_().finally(() => { LIBRARY_ASK = null; });
 return LIBRARY_ASK;
 }
-function libJoinPaper_(rows, join) {
+function libPaperEach_(rows, join, each) {
 if (!join || !Array.isArray(join.fields) || !Array.isArray(rows)) return rows;
 const card = new Map();
 rows.forEach(r => { if (r && r.kind === join.from) card.set(r[join.by], r); });
 rows.forEach(r => {
 const c = r && r.kind !== join.from && card.get(r[join.by]);
-if (c) join.fields.forEach(f => { if (r[f] === null) delete r[f]; else if (r[f] === undefined && c[f] !== undefined) r[f] = c[f]; });
+if (c) join.fields.forEach(f => each(r, c, f));
 });
 return rows;
 }
+function libJoinPaper_(rows, join) {
+return libPaperEach_(rows, join, (r, c, f) => { if (r[f] === null) delete r[f]; else if (r[f] === undefined && c[f] !== undefined) r[f] = c[f]; });
+}
 function libStripPaper_(rows, join) {
-if (!join || !Array.isArray(join.fields) || !Array.isArray(rows)) return rows;
-const card = new Map();
-rows.forEach(r => { if (r && r.kind === join.from) card.set(r[join.by], r); });
-rows.forEach(r => {
-const c = r && r.kind !== join.from && card.get(r[join.by]);
-if (c) join.fields.forEach(f => {
+return libPaperEach_(rows, join, (r, c, f) => {
 if (r[f] === undefined) { if (c[f] !== undefined) r[f] = null; } else if (r[f] === c[f]) delete r[f];
 });
-});
-return rows;
 }
 const LIB_JOIN = () => (((((typeof ITEM_KINDS !== 'undefined' && ITEM_KINDS.kinds.question) || {}).sheet || {}).lib || {}).joined || null);
 function libIntern_(rows) {
@@ -2603,21 +2600,24 @@ if (LIB.pending.size && !LIB.failed) LIB.timer = setTimeout(libPump_, 0);
 function libLedgerGen_() {
 return String(LIB.ledger || (typeof DATA !== 'undefined' && DATA && DATA.libGen) || '');
 }
+function idbTx_(db, store, mode, fn, opts) {
+return new Promise((ok, no) => {
+const rq = indexedDB.open(db, 1);
+rq.onupgradeneeded = () => { try { rq.result.createObjectStore(store, opts); } catch (e) { } };
+rq.onerror = () => no(rq.error);
+rq.onsuccess = () => {
+try {
+const t = rq.result.transaction(store, mode), r = fn(t.objectStore(store));
+t.oncomplete = () => { ok(r && 'result' in r ? r.result : true); rq.result.close(); };
+t.onerror = t.onabort = () => { no(t.error); rq.result.close(); };
+} catch (e) { no(e); }
+};
+});
+}
 function libDisk_() {
 try {
 if (typeof indexedDB === 'undefined' || !indexedDB) return null;
-const open = () => new Promise((ok, no) => {
-const rq = indexedDB.open(LIB_DISK_DB, 1);
-rq.onupgradeneeded = () => { try { rq.result.createObjectStore('items', { keyPath: 'id' }); } catch (e) { } };
-rq.onsuccess = () => ok(rq.result);
-rq.onerror = () => no(rq.error);
-});
-const tx = (mode, fn) => open().then(db => new Promise((ok, no) => {
-const t = db.transaction('items', mode), st = t.objectStore('items');
-const out = fn(st);
-t.oncomplete = () => { ok(out && out.result); db.close(); };
-t.onerror = t.onabort = () => { no(t.error); db.close(); };
-}));
+const tx = (mode, fn) => Promise.resolve().then(() => idbTx_(LIB_DISK_DB, 'items', mode, fn, { keyPath: 'id' }));
 return {
 all: () => tx('readonly', st => st.getAll()),
 put: recs => tx('readwrite', st => { recs.forEach(r => st.put(r)); }),
@@ -3923,6 +3923,7 @@ flowShow_(id, n);
 }
 ;
 /* js/shell-click.js */
+const CAN_HOVER_ = '(hover: hover) and (pointer: fine)', COARSE_ = '(pointer: coarse)';
 function adoptMarks_() {
 try { if (typeof adoptFavourites_ === 'function') adoptFavourites_(); } catch (e) { oops_(e, 'shell:adoptMarks_') }
 try { if (typeof subAdopt_ === 'function') subAdopt_(); } catch (e) { oops_(e, 'shell:adoptMarks_') }
@@ -6841,7 +6842,7 @@ b.style.height = b.scrollHeight + 2 + 'px';
 document.addEventListener('keydown', e => {
 const b = e.target;
 if (e.key !== 'Enter' || e.shiftKey || e.isComposing || !b || !b.matches || !b.matches('.msg-text')) return;
-if (!(window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches)) return;
+if (!(window.matchMedia && matchMedia(CAN_HOVER_).matches)) return;
 const go = b.closest('.msg-form') && b.closest('.msg-form').querySelector('.msg-go');
 if (go) { e.preventDefault(); go.click(); }
 });
@@ -12027,9 +12028,10 @@ if (/\bclass="tile\b[^"]*\bis-danger\b/.test(t)) return 99;
 const i = TILE_ADMIN_ORDER_.indexOf(tileAct_(t));
 return i === -1 ? TILE_ADMIN_ORDER_.length : i;
 }
+const tileWrap_ = (inner, cls) => `<div class="tile-row${cls ? ' ' + cls : ''}">${inner}</div>`;
 function tileRow_(html, cls, own) {
 const src = String(html || '');
-const wrap = inner => `<div class="tile-row${cls ? ' ' + cls : ''}">${inner}</div>`;
+const wrap = inner => tileWrap_(inner, cls);
 const all = src.match(TILE_RE_) || [];
 const admin = own ? [] : all.filter(tileIsAdmin_);
 if (!admin.length) return wrap(src);
