@@ -270,7 +270,17 @@ function taxonomyRead_() {
   });
   return out;
 }
+/* ONE-LINE COLUMN READERS ARE DATA (batch 4): a facets.json row's `read` {by, col} names one of these; FACET_READ keeps only facets with real code. */
+const FACET_BY_READ_ = {
+  row: c => ({ of: x => x[c] || '' }),
+  writing: c => ({ of: x => writingAt_(x, c) }),
+  hist: c => ({ of: x => histCol_(x, c) }),
+  mech: c => ({ of: x => mechFit_(x, c), tagOf: x => mechFitTag_(x, c) }),
+  own: c => { const [t, k] = c.split('.'); return { of: x => mechOwn_(x, t, k) }; },
+};
+const facetReadData_ = () => Object.fromEntries(ITEM_KINDS.facets.filter(f => f.read && FACET_BY_READ_[f.read.by]).map(f => [f.field, FACET_BY_READ_[f.read.by](f.read.col)]));
 const FACET_READ = {
+  ...facetReadData_(),
   forLabel: { of: x => x.groups || kindOf_(x).group },
   /* `Answers` BESIDE THE ITEM'S OWN KIND: a question with an answer is found by either, and its answer page carries the tag. */
   /* A KIND UNDER ANOTHER (kinds.json `find.under`, 610) ANSWERS ONLY THAT ONE HERE: Questions are reached through Practice, a Timeline through Library. */
@@ -280,75 +290,28 @@ const FACET_READ = {
   kindOwn: { of: x => !kindTop_(x) ? '' : notTop_(x, isQ_(x) && questionHasAns_(x) ? [kindOf_(x).label, ansKind_()] : (x.kindLabel || kindOf_(x).label)),
     tagOf: (x, page) => !kindTop_(x) ? '' : notTop_(x, page === 'ans' && isQ_(x) ? ansKind_() : (x.kindLabel || kindOf_(x).label)) },
   /* SUBJECT STRAIGHT AFTER WHAT KIND (494), as the facets tab orders it: "the library should go subject first". */
-  /* THE FRONT DOORS' OWN MENUS (batch C, find-doors.js): each item answers only its own. */
-  ...Object.fromEntries(['postState', 'postBy', 'postWhen', 'msgWith', 'profileType', 'settingFor', 'vidSubject', 'vidTopic', 'vidChannel', 'vidLevel', 'vidType', 'venueArea', 'venueFor', 'venueSize'].map(f => [f, { of: x => x[f] || '' }])),
   /* A STORE KIND'S OWN FACETS (kinds.json `find.facetCols`), each read off its row's column when the entry was made (form.js storeItems_). */
   ...Object.fromEntries(storeFacets_().map(f => [f, { of: x => x[f] || '' }])),
   /* WHICH TOOL (owner, 20 Nov): under the tool kind's door (kinds.json `tool.find.under`), each tool its own tag — a widget by its name, any other kind there by its label (Docket, Foods). */
   toolName: { of: x => toolNameOf_(x), choose: true },
-  /* A DOCKET LIST (owner, 20 Nov): the owner's own list names, from their `todo` cell. */
-  docketList: { of: x => x.dkList || '' },
-  projectType: { of: x => x.projectType || '' },
-  subject: { of: x => x.subject },
-  shelf: { of: x => x.shelf || '' },
   /* ONE FACET SET FOR EVERY WRITTEN WORK (520): the Bible, the Quran, the Talmud, the Hadith, the hymns and every other text
      answer the same questions, read off `writingOf_` (writings.js) — no loader has a private one. */
-  /* ONE KIND OF VALUE A FACET (546): the religion, the language and whose translation are three questions, never one menu. */
-  wReligion: { of: x => writingAt_(x, 'religion') },
-  /* A COLLECTION IS A GROUP OF WORKS (600), so it is asked before Work: Rabbinic, Second Temple, Kabbalah; New Testament; Hadith. */
-  wCollection: { of: x => writingAt_(x, 'collection') },
-  /* WHAT IT IS BEFORE HOW IT IS WRITTEN (590): the work and the section a passage sits in, then its source, language and translation. */
-  wWork: { of: x => writingAt_(x, 'work') },
-  wSection: { of: x => writingAt_(x, 'section') },
-  wSource: { of: x => writingAt_(x, 'source') },
   /* ONE LANGUAGE QUESTION FOR EVERYTHING WRITTEN (546): a text's language and a manuscript's (the history database) are one kind of answer. */
   wLanguage: { of: x => writingLanguageOf_(writingAt_(x, 'text')) || histCol_(x, 'language') },
   wText: { of: x => writingVersionOf_(writingAt_(x, 'text')) },
-  wTradition: { of: x => writingAt_(x, 'tradition') },
-  wBook: { of: x => writingAt_(x, 'book') },
-  wChapter: { of: x => writingAt_(x, 'chapter') },
-  wUnit: { of: x => writingAt_(x, 'unit') },
-  wAuthor: { of: x => writingAt_(x, 'author') },
-  wForm: { of: x => writingAt_(x, 'form') },
-  wPrimacy: { of: x => writingAt_(x, 'primacy') },
   /* MECHANICS (548): a car's facts as tags, read off the row; a row answers only what it has. */
   /* BATCH E: one exact car or any first (`choose`: asked however lopsided), then each car attribute its own question and tag. */
   mScope: { of: x => mechScope_(x), tagOf: () => '', choose: true },
-  mMake: { of: x => mechFit_(x, 'mMake'), tagOf: x => mechFitTag_(x, 'mMake') },
-  mModel: { of: x => mechFit_(x, 'mModel'), tagOf: x => mechFitTag_(x, 'mModel') },
-  mGen: { of: x => mechFit_(x, 'mGen'), tagOf: x => mechFitTag_(x, 'mGen') },
-  mEngine: { of: x => mechFit_(x, 'mEngine'), tagOf: x => mechFitTag_(x, 'mEngine') },
   /* A LESSON WRITTEN TO A SPEC IS ONE TYPE BESIDE CHEMISTRY'S ELEMENTS AND SUBSTANCES (16 Nov): Library › Chemistry › Exam topics › GCSE › AQA. */
   mKind: { of: x => x.mKind || (specTreeOf_(x).topic ? 'Exam topics' : '') },
-  mSystem: { of: x => x.mSystem || '' },
-  mPhase: { of: x => mechFit_(x, 'mPhase'), tagOf: x => mechFitTag_(x, 'mPhase') },
-  mMarket: { of: x => mechFit_(x, 'mMarket'), tagOf: x => mechFitTag_(x, 'mMarket') },
-  mYears: { of: x => mechFit_(x, 'mYears'), tagOf: x => mechFitTag_(x, 'mYears') },
-  mSize: { of: x => mechFit_(x, 'mSize'), tagOf: x => mechFitTag_(x, 'mSize') },
-  mValves: { of: x => mechFit_(x, 'mValves'), tagOf: x => mechFitTag_(x, 'mValves') },
-  mBadge: { of: x => mechFit_(x, 'mBadge'), tagOf: x => mechFitTag_(x, 'mBadge') },
-  mFuel: { of: x => mechFit_(x, 'mFuel'), tagOf: x => mechFitTag_(x, 'mFuel') },
   mPart: { of: x => (x.kind === 'mech' && x.mFile !== 'models' && x.name) || '' },
-  mPrice: { of: x => mechOwn_(x, 'parts', 'value') },
-  /* A PC PART (batch E): what it is, its socket or form factor, the interfaces it uses and what it plugs into. */
-  pcType: { of: x => mechOwn_(x, 'pc', 'type') },
-  pcSocket: { of: x => mechOwn_(x, 'pc', 'socket') },
-  pcIface: { of: x => mechOwn_(x, 'pc', 'iface') },
-  pcLinks: { of: x => mechOwn_(x, 'pc', 'links') },
-  /* CHEMISTRY (550): an element's category or a substance's or reaction's type, then group, period and state, off the row. */
-  cCategory: { of: x => x.cCategory || '' },
-  cGroup: { of: x => x.cGroup || '' },
-  cPeriod: { of: x => x.cPeriod || '' },
-  cState: { of: x => x.cState || '' },
   /* BATCH D: one people kind; a person's name, years and home are tags (the card has no title). */
-  boxKind: { of: x => x.boxKind || '' },
   /* A BOUT'S FACTS ARE TAGS (445), like a question's: who, when, how. A boxer answers Fighter too, so his name finds him and his bouts. */
   fighter: { of: x => isFight_(x) && x.row ? [x.row.a, x.row.b].filter(Boolean) : isBoxer_(x) ? x.name : '' },
   personName: { of: x => (isPerson_(x) ? x.name : '') },
   boutMonth: { of: x => boutDate_(x).month },
   boutYear: { of: x => boutDate_(x).year },
   decade: { of: x => decadesOf_(x) },
-  division: { of: x => x.division || '' },
   boutRound: { of: x => isFight_(x) && x.row && Number(x.row.endRound) > 0 ? 'Round ' + Number(x.row.endRound) : '' },
   boutMethod: { of: x => (isFight_(x) && x.row && String(x.row.method || '').trim()) || '' },
   /* THE TITLE THE FIGHT CARD LOST (490) said who won and which night: tags now, like everything else. */
@@ -358,32 +321,12 @@ const FACET_READ = {
   /* ITS LIBRARY LEVELS (topic, part) ARE DATA: data/settings/taxonomy.json, read by `taxonomyRead_` below, never a subject case here. */
   ...taxonomyRead_(),
   histEra: { of: x => histErasOf_(x) },
-  histMaterial: { of: x => histCol_(x, 'material') },
-  histFormat: { of: x => histCol_(x, 'format') },
-  histGenre: { of: x => histCol_(x, 'genre') },
   histRole: { of: x => (isPerson_(x) ? x.roles || [] : histCol_(x, 'roles')) },
   personYears: { of: x => personYears_(x) },
   personFrom: { of: x => (isPerson_(x) && x.from) || '' },
-  histTheme: { of: x => histCol_(x, 'themes') },
-  histRepository: { of: x => histCol_(x, 'repository') },
   histFound: { of: x => msFound_(x) },
   histDated: { of: x => msDated_(x) },
-  /* ONE SIDE A CARD (507): the owner, "make front a tag and back a tag, so each widget displays one side". */
-  histSide: { of: x => x.msSide || '' },
-  histTheatre: { of: x => histCol_(x, 'theatre') },
-  /* A WRITING'S OWN WORDS (499): which work, which chapter, which language. */
-  /* A SHOP ITEM'S TAGS (499): what it is, how you get it, its price band, the brand, who it is for. */
-  shopKind: { of: x => x.shopKind || '' },
-  shopHow: { of: x => x.shopHow || '' },
-  shopPrice: { of: x => x.shopPrice || '' },
-  shopBrand: { of: x => x.shopBrand || '' },
-  shopFor: { of: x => x.shopFor || '' },
-  /* A THEME (740): "just tags for items in shops… like history", from the shop tab's `theme` column. */
-  shopTheme: { of: x => x.shopTheme || '' },
-  practicalType: { of: x => x.practicalType || '' },
   required: { of: x => !isPractical_(x) || !x.row ? '' : PRAC_NEED[x.row.excluded ? 2 : x.row.required ? 0 : 1] },
-  /* ONE TYPE QUESTION (owner, 15 Nov): a card's own type, no type under another; a 5-a-day answers the ordinary facets. */
-  documentType: { of: x => x.documentType || '' },
   level: { of: x => levelOf_(x) },
   /* A RESOURCE CAN BELONG TO MORE THAN ONE KEY STAGE; a SATs row's is read off its year when the cell is blank. */
   keystage: { of: x => { const s = satsStagesOf_(x); return s.length ? s : keyStagesAt_(x); } },
