@@ -21,7 +21,7 @@ const LISTS = [
 const at = (o, p) => p.split('.').reduce((x, k) => (x == null ? x : x[k]), o);
 /* THE GENERATED BLOCK, as each side carries it. */
 function sharedOf(file) {
-  const m = /const SHARED_SETTINGS = (\{.*\});\n\/\* SHARED:END/.exec(read(file));
+  const m = /const SHARED_SETTINGS = (\{.*\});\n/.exec(read(file));
   if (!m) throw new Error('shared-lists: ' + file + ' has no SHARED block');
   return JSON.parse(m[1]);
 }
@@ -72,10 +72,12 @@ function find() {
   /* 2. EACH RANK'S MESSAGE TILES AGAINST THE SERVER: the site's `msgMay_` (tiles.js, over core.js's rank_) and the backend's `mayMessage`, run as written. */
   const core = read('js/core.js'), tiles = read('js/tiles.js'), people = read('backend/people.gs');
   const site = vm.createContext({ SHARED_SETTINGS: sides['js/core.js'], DATA: null, USER: null });
-  vm.runInContext(['norm', 'ROLES_', 'ROLE_IDS', 'ROLE_ALIASES', 'roleAliases_', 'roleOf', 'heldRoles', 'hasRole', 'RANKS', 'rank_'].map(n => grab(core, n, 'js/core.js')).join('\n')
+  /* THE ROLE HELPERS BOTH SIDES CARRY IN THEIR SHARED BLOCK (data/settings/roles.js, one-role). */
+  const roleHelpers = read('data/settings/roles.js') + '\n';
+  vm.runInContext(roleHelpers + ['norm', 'roleAliases_', 'roleOf', 'heldRoles', 'hasRole', 'rank_'].map(n => grab(core, n, 'js/core.js')).join('\n')
     + '\n' + grab(tiles, 'msgMay_', 'js/tiles.js') + '\nthis.msgMay_ = msgMay_; this.setUser = u => { USER = u; };', site);
   const server = vm.createContext({ SHARED_SETTINGS: sides['backend/constants.gs'] });
-  vm.runInContext('const S = v => String(v == null ? "" : v);\n' + ['norm', 'ROLES_', 'MESSAGING'].map(n => grab(gs, n, 'backend/constants.gs')).join('\n')
+  vm.runInContext('const S = v => String(v == null ? "" : v);\n' + roleHelpers + ['norm', 'MESSAGING'].map(n => grab(gs, n, 'backend/constants.gs')).join('\n')
     + '\n' + grab(people, 'mayMessage', 'backend/people.gs') + '\nthis.mayMessage = mayMessage;', server);
   const roleIds = Object.keys(want.roles.ids);
   let walked = 0;

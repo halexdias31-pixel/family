@@ -35,19 +35,15 @@ const isWearable = x => {
   return k === 'wearable' || k === 'avatar';
 };
 /* ---------- WHO ARE YOU (who-1): one person, one permission role, ONE QUESTION ---------- */
-/* Every "may they" asks `may_`; the backend's twin is `whoMay_` (people.gs). Signed out = a guest, a person with no roles. */
+/* Every "may they" asks `may_`; the backend's `whoMay_` (people.gs) answers the same fixed words by the shared `mayWord_`. Signed out = a guest, a person with no roles. */
 const roleFor_ = (u = USER) => (!u ? ROLES_.guest.tier : rankTier_(rank_(u)));
-/* `admin` admin-only; `owner` the one owner; `prices` never a child (398); `staff` a tutor or above; `signedIn`; `grownUp` signed in and not a child; anything else a permissions.json action row. */
+/* The fixed words (`admin`, `owner`, `prices` never a child (398), `staff`, `signedIn`, `grownUp`) are settings.json `roles.may`; anything else a permissions.json action row. */
 const may_ = (what, u = USER) => {
-  const r = roleFor_(u);
-  if (what === 'admin') return r === 'admin';
-  /* THE OWNER (18 Nov): the admin the backend marks `owner` (its ownerEmail_), never another admin — kinds.json `who: "owner"` (Docket, food). */
-  if (what === 'owner') return r === 'admin' && !!(u && u.owner);
   /* A locked card's stand-in (`lockedAs_`) is not who is looking: money is the REAL viewer's call, so a child never sees a price box. */
-  if (what === 'prices') return u && u.lockedPreview ? may_('prices', u.realViewer) : r !== 'child';
-  if (what === 'staff') return rankAtLeast_('staff', u);
-  if (what === 'signedIn') return r !== 'anyone';
-  if (what === 'grownUp') return r === 'member' || r === 'admin';
+  if (what === 'prices' && u && u.lockedPreview) return may_('prices', u.realViewer);
+  /* THE FIXED WORDS ARE settings.json `roles.may`, by the shared `mayWord_`; the owner (18 Nov) is the admin the backend marks `owner`. */
+  const r = roleFor_(u), fixed = mayWord_(what, r, u ? rank_(u) : '', !!(u && u.owner));
+  if (fixed !== undefined) return fixed;
   return typeof can_ === 'function' ? can_(r, 'action', what) : r === 'admin';
 };
 /* WHOSE SETTINGS (the admin's lens): every settings card reads `whose_()`, never USER, so one path draws anybody's. */
