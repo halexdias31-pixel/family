@@ -1,8 +1,9 @@
-/* @family. — library-drive.gs THE LIBRARY IMPORT FROM DRIVE: lib-import files and zips found, parsed, applied and logged */
+/* @family. — library-drive.gs THE ONE LIBRARY IMPORTER (unify K, 21 Nov): one pack validator (libPackCheck_), one place rows are applied (libPackApply_);
+   its two doors are a lib-import-*.json pack in the owner's Drive and the tools' `libImport` post (libImport_). tools/one-import.js holds it to one. */
 
-/* EVERY lib-import FILE AND ZIP in the folder and its subfolders, any depth, but never `imported`; this account's own, as {f, parent, name, top}. */
+/* EVERY lib-import FILE in the folder and its subfolders, any depth, but never `imported`; this account's own, as {f, parent, name, top}. */
 function libDriveWalk_(folder) {
-  const out = { json: [], zip: [], capped: '' }, queue = [folder];
+  const out = { json: [], capped: '' }, queue = [folder];
   let folders = 0, files = 0;
   while (queue.length && !out.capped) {
     const d = queue.shift();
@@ -11,8 +12,7 @@ function libDriveWalk_(folder) {
     while (it.hasNext()) {
       if (++files > LIB_DRIVE_WALK_FILES) { out.capped = 'more than ' + LIB_DRIVE_WALK_FILES + ' files'; break; }
       const f = it.next(), name = S(f.getName());
-      const kind = LIB_DRIVE_NAME.test(name) ? 'json' : LIB_DRIVE_ZIP.test(name) ? 'zip' : '';
-      if (kind && libDriveMine_(f)) out[kind].push({ f: f, parent: d, name: name, top: d === folder });
+      if (LIB_DRIVE_NAME.test(name) && libDriveMine_(f)) out.json.push({ f: f, parent: d, name: name, top: d === folder });
     }
     const sub = typeof d.getFolders === 'function' ? d.getFolders() : null;
     while (sub && sub.hasNext()) { const x = sub.next(); if (S(x.getName()) !== LIB_DRIVE_DONE && libDriveMine_(x)) queue.push(x); }
@@ -40,57 +40,10 @@ function libDrivePick_(entries, done) {
   list.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
   return { list: list, skipped: skipped };
 }
-/* THE FILES AND ZIPS WAITING, the walk picked; `have` is every lib-import name already in Drive, for the unzip to skip. */
+/* THE FILES WAITING, the walk picked. */
 function libDriveWaiting_(folder, done) {
-  const w = libDriveWalk_(folder), names = libDriveNames_(done);
-  const zips = libDrivePick_(w.zip, names), files = libDrivePick_(w.json, names);
-  const have = Object.assign({}, names);
-  w.json.forEach(e => { have[e.name] = 1; });
-  return { zips: zips.list, files: files.list, skipped: zips.skipped + files.skipped, capped: w.capped, have: have };
-}
-/* A ZIP'S lib-import-*.json FILES as {name, text}: only the name after the last slash, nothing else in it read, nothing run. {error} when too big or too many. */
-function libDriveZipRead_(z) {
-  const size = Number(z.getSize && z.getSize()) || 0, mb = n => (n / 1048576).toFixed(1) + ' MB';
-  if (size > LIB_DRIVE_ZIP_BYTES) return { error: 'it is ' + mb(size) + ' — a zip may be at most ' + mb(LIB_DRIVE_ZIP_BYTES) + ' (Apps Script cannot unpack more); split it' };
-  const blob = z.getBlob();
-  try { if (typeof blob.setContentType === 'function') blob.setContentType('application/zip'); } catch (err) { /* the zip still downloads without its content type */ }
-  let inner;
-  try { inner = Utilities.unzip(blob) || []; } catch (err) { return { error: 'it could not be unzipped — ' + S(err && err.message || err).slice(0, 120) }; }
-  if (inner.length > LIB_DRIVE_ZIP_FILES) return { error: 'it holds ' + inner.length + ' files — at most ' + LIB_DRIVE_ZIP_FILES + ' a zip' };
-  const parts = [];
-  let total = 0;
-  for (let i = 0; i < inner.length; i++) {
-    const name = S(inner[i].getName()).split(/[\\/]/).pop();
-    if (!LIB_DRIVE_NAME.test(name)) continue;
-    const text = String(inner[i].getDataAsString('UTF-8'));
-    total += text.length;
-    if (total > LIB_DRIVE_ZIP_BYTES) return { error: 'its files come to more than ' + mb(LIB_DRIVE_ZIP_BYTES) + ' unpacked; split it' };
-    parts.push({ name: name, text: text });
-  }
-  return { parts: parts };
-}
-/* EVERY WAITING ZIP UNPACKED into the folder: a name already in Drive (`have`) is skipped, the zip then moves to `imported`. A refused zip stays, said in the log. */
-function libDriveUnzip_(folder, done, zips, have) {
-  return zips.map(e => {
-    const z = e.f, name = e.name;
-    try {
-      const r = libDriveZipRead_(z);
-      if (r.error) { Logger.log('library import: ' + name + ' refused — ' + r.error); return { name: name, error: r.error }; }
-      let made = 0, skipped = 0;
-      r.parts.forEach(p => {
-        if (have[p.name]) { skipped++; return; }
-        folder.createFile(p.name, p.text, 'application/json');
-        have[p.name] = 1;
-        made++;
-      });
-      libDriveMove_(z, e.parent, done);
-      return { name: name, unzipped: made, skipped: skipped };
-    } catch (err) {
-      const why = S(err && err.message || err).slice(0, 160);
-      Logger.log('library import: ' + name + ' failed — ' + why);
-      return { name: name, error: why };
-    }
-  });
+  const w = libDriveWalk_(folder), files = libDrivePick_(w.json, libDriveNames_(done));
+  return { files: files.list, skipped: files.skipped, capped: w.capped };
 }
 /* A FILE'S TEXT. Drive may have made a Google Doc of an upload; that is exported as plain text rather than refused. */
 function libDriveText_(f) {
@@ -114,16 +67,7 @@ function libImportList_() {
   try { folder = libDriveFolder_(); } catch (err) { return { error: 'Drive could not be read — ' + S(err && err.message || err).slice(0, 160) + '. Run authoriseDrive once from the Apps Script editor.' }; }
   const wait = libDriveWaiting_(folder, libDriveFind_(folder.getFoldersByName(LIB_DRIVE_DONE)));
   const where = e => e.top ? {} : { folder: S(e.parent.getName()) };
-  /* A ZIP IS ONE LINE: how many lib-import files it holds, or why it will be refused. */
-  const zips = wait.zips.map(e => {
-    const z = e.f;
-    let r;
-    try { r = libDriveZipRead_(z); } catch (err) { r = { error: S(err && err.message || err).slice(0, 160) }; }
-    const n = r.error ? 0 : r.parts.length;
-    return Object.assign({ name: e.name, size: Number(z.getSize && z.getSize()) || 0, zip: true, files: n,
-             said: r.error ? 'zip refused — ' + r.error : 'zip waiting (' + n + (n === 1 ? ' file)' : ' files)'), error: r.error || undefined }, where(e));
-  });
-  const pending = zips.concat(wait.files.map(e => Object.assign({ name: e.name, size: Number(e.f.getSize && e.f.getSize()) || 0 }, where(e))));
+  const pending = wait.files.map(e => Object.assign({ name: e.name, size: Number(e.f.getSize && e.f.getSize()) || 0 }, where(e)));
   let last = null, auto = null;
   try { last = JSON.parse(PropertiesService.getScriptProperties().getProperty(LIB_DRIVE_LAST) || 'null'); } catch (err) { last = null; }
   try { auto = JSON.parse(PropertiesService.getScriptProperties().getProperty(LIB_DRIVE_AUTO) || 'null'); } catch (err) { auto = null; }
@@ -150,10 +94,12 @@ function libPublicIds_(def, memo) {
   return memo[def.file];
 }
 
-/* ONE FILE'S WORDS, CHECKED BEFORE A CELL IS TOUCHED: its shape, every field private, every value text, a number or null. */
-function libDriveParse_(text) {
-  let d;
-  try { d = JSON.parse(text); } catch (err) { return { error: 'it is not whole JSON' }; }
+/* THE ONE PACK VALIDATOR — a pack {version: 1, made, note, files: {questions: [{id, …private fields}]}, cards?, public?}, as text
+   (a Drive file) or an object (the tools' post), CHECKED BEFORE A CELL IS TOUCHED: its shape, every field private, every value text,
+   a number or null, at most LIB_IMPORT_MAX rows. `public` is what the repository's public file held when the pack was made (libMayEmpty_). */
+function libPackCheck_(pack) {
+  let d = pack;
+  if (typeof pack === 'string') { try { d = JSON.parse(pack); } catch (err) { return { error: 'it is not whole JSON' }; } }
   if (!d || typeof d !== 'object' || Number(d.version) !== 1) return { error: 'it is not version 1 (`{version: 1, files: {...}}`)' };
   if (!d.files || typeof d.files !== 'object' || Array.isArray(d.files)) return { error: 'it has no `files` object' };
   const plan = {};
@@ -182,7 +128,7 @@ function libDriveParse_(text) {
     }
   }
   if (!n) return { error: 'it has no items' };
-  if (n > LIB_DRIVE_MAX) return { error: 'it has ' + n + ' items — at most ' + LIB_DRIVE_MAX + ' a file' };
+  if (n > LIB_IMPORT_MAX) return { error: 'it has ' + n + ' items — at most ' + LIB_IMPORT_MAX + ' a pack' };
   /* NEW PUBLIC CARDS STILL COME BY GIT; `cards` only vouches that an id the site has not got yet is meant. */
   const cards = {};
   const c = d.cards && typeof d.cards === 'object' ? d.cards : {};
@@ -192,11 +138,28 @@ function libDriveParse_(text) {
     cards[key] = {};
     c[key].forEach(r => { const id = (r && libIdOf_(def, r)) || S(r && r.id); if (id) cards[key][id] = 1; });
   });
-  return { plan: plan, cards: cards, n: n, note: S(d.note).slice(0, 300) };
+  const declared = {}, pd = d.public && typeof d.public === 'object' ? d.public : {};
+  Object.keys(pd).forEach(key => { const v = Number(pd[key] && pd[key].n); if (LIB_FILES[key] && v > 0) declared[key] = v; });
+  return { plan: plan, cards: cards, declared: declared, n: n, note: S(d.note).slice(0, 300) };
 }
 
-/* ONE FILE INTO THE LEDGER: merge per id, write, read every row back; any row that does not read back puts every row of the file back as it was. */
-function libDriveApply_(parsed, memo) {
+/* THE GUARD ON EMPTYING (owner, 17 Nov; kept explicit, unify K). The importer empties a Ledger row whose id the LIVE public file has
+   not got — so it must NEVER run while the repository holds public rows the site has not released: those rows' words would be wiped.
+   '' when it may empty; otherwise why not. It may only when: the pack says how many ids the repository's public file held (`public`),
+   the live file read whole (at least LIB_EMPTY_MIN ids) and holds at least that many (else the release lags the repository), the pack
+   vouches for no card the site has not got (`cards`: unreleased by definition), and only a few rows would go. tools/one-import.js runs it. */
+function libMayEmpty_(live, declared, unreleased, gone) {
+  if (!(declared > 0)) return 'the pack does not say what the repository\'s public file holds';
+  if (!(live >= LIB_EMPTY_MIN)) return 'the live public file read ' + (live || 0) + ' ids, not whole';
+  if (live < declared) return 'the live public file has ' + live + ' ids and the repository ' + declared + ': unreleased public rows';
+  if (unreleased > 0) return 'the pack carries ' + unreleased + ' card(s) the site has not released';
+  if (gone > Math.max(20, Math.ceil(live / 100))) return gone + ' rows not in the live file (too many to empty at once)';
+  return '';
+}
+const LIB_EMPTY_MIN = 100;
+
+/* THE ONE PLACE ROWS ARE APPLIED — one checked pack into the Ledger: merge per id, write, read every row back; any row that does not read back puts every row of the file back as it was. */
+function libPackApply_(parsed, memo) {
   const counts = {}, writes = [], flagged = [], index = {};
   const keys = Object.keys(parsed.plan);
   /* PLAN EVERYTHING FIRST, so a refusal leaves the Ledger untouched. */
@@ -252,19 +215,36 @@ function libDriveApply_(parsed, memo) {
     });
     return { error: bad + (restored ? ' — every row of this file was put back as it was' : ' — AND PUTTING THE ROWS BACK FAILED: check the lib_ tabs') };
   }
-  /* THE LEDGER MIRRORS THE LIBRARY (owner, 17 Nov: unify): a row whose id the public file no longer has (a part folded into
-     another, a card removed) is emptied, so nothing the site dropped lives on. Only when the public file read whole, and never
-     more than a few rows at once, so a bad read can never empty a tab. */
+  /* THE LEDGER MIRRORS THE LIBRARY (owner, 17 Nov: unify): a row whose id the live public file no longer has is emptied — only past libMayEmpty_. */
+  const unreleased = Object.keys(parsed.cards).reduce((t, key) => t + Object.keys(parsed.cards[key]).length, 0);
   keys.forEach(key => {
-    const def = LIB_FILES[key], pub = libPublicIds_(def, memo) || {}, n = Object.keys(pub).length, at = index[key];
-    if (n < 100) return;
-    const gone = Object.keys(at).filter(id => !pub[id] && !(parsed.cards[key] && parsed.cards[key][id]));
-    if (!gone.length || gone.length > Math.max(20, Math.ceil(n / 100))) { if (gone.length) flagged.push(def.tab + ': ' + gone.length + ' rows not in ' + def.file + ' (too many to empty at once; left)'); return; }
+    const def = LIB_FILES[key], pub = libPublicIds_(def, memo) || {}, at = index[key];
+    const gone = Object.keys(at).filter(id => !pub[id]);
+    if (!gone.length) return;
+    const why = libMayEmpty_(Object.keys(pub).length, parsed.declared[key], unreleased, gone.length);
+    if (why) { flagged.push(def.tab + ': ' + gone.length + ' rows not in ' + def.file + ' left — ' + why); return; }
     const sh = libSheet_(def, 0), blank = new Array(3 + LIB_PARTS).fill('');
     gone.forEach(id => sh.getRange(at[id], 1, 1, 3 + LIB_PARTS).setValues([blank]));
     counts[key].emptied = gone.length;
   });
   return { counts: counts, written: writes.length, flagged: flagged };
+}
+
+/* THE TOOLS' DOOR (`libImport`, tools/content.js library push): the same pack a Drive file is, through the same validator and applier. */
+function libImport_(pack, by) {
+  const parsed = libPackCheck_(pack);
+  if (parsed.error) return { error: parsed.error + ' — nothing was written' };
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(10000)) return { error: 'Busy — try again in a moment.', why: 'busy' };
+  try {
+    const one = libPackApply_(parsed, {});
+    if (one.error) return one;
+    if (one.written) libGenBump_();
+    libDriveLog_(by, 'tools push', Object.assign({ note: parsed.note }, one));
+    return { success: true, counts: one.counts, written: one.written, flagged: one.flagged };
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 /* THE PRESS (and `?run=libImportDrive`): every waiting file, oldest first, each whole or not at all; a done file moves to `imported`. */
@@ -280,19 +260,12 @@ function libImportDrive_(by, auto) {
     let folder, done, files;
     try {
       folder = auto ? libDriveFind_(DriveApp.getFoldersByName(LIB_DRIVE_FOLDER)) : libDriveFolder_();
-      /* ZIPS FIRST, so the files they hold are imported by this same run; then the walk again, for the files they made. */
-      let wait = folder ? libDriveWaiting_(folder, libDriveFind_(folder.getFoldersByName(LIB_DRIVE_DONE))) : null;
-      if (wait && wait.zips.length) {
-        done = libDriveDone_(folder);
-        report.zips = libDriveUnzip_(folder, done, wait.zips, wait.have);
-        wait = libDriveWaiting_(folder, done);
-      }
+      const wait = folder ? libDriveWaiting_(folder, libDriveFind_(folder.getFoldersByName(LIB_DRIVE_DONE))) : null;
       files = wait ? wait.files : [];
       if (wait && wait.skipped) report.skipped = wait.skipped;
       if (wait && wait.capped) report.capped = wait.capped;
-      const unzipped = (report.zips || []).some(z => !z.error);
-      if (auto && !files.length && !unzipped) return { success: true, auto: true, at: report.at, files: [], imported: 0, failed: 0, left: 0, nothing: true, zips: report.zips };
-      done = done || libDriveDone_(folder);
+      if (auto && !files.length) return { success: true, auto: true, at: report.at, files: [], imported: 0, failed: 0, left: 0, nothing: true };
+      done = libDriveDone_(folder);
     }
     catch (err) { return { error: 'Drive could not be read — ' + S(err && err.message || err).slice(0, 160) + '. Run authoriseDrive once from the Apps Script editor.' }; }
     const memo = {};
@@ -302,8 +275,8 @@ function libImportDrive_(by, auto) {
       if (Date.now() - t0 > LIB_DRIVE_MS) { report.left = files.length - i; break; }
       let one;
       try {
-        const parsed = libDriveParse_(libDriveText_(f));
-        one = parsed.error ? { error: parsed.error + ' — nothing was written' } : libDriveApply_(parsed, memo);
+        const parsed = libPackCheck_(libDriveText_(f));
+        one = parsed.error ? { error: parsed.error + ' — nothing was written' } : libPackApply_(parsed, memo);
         if (!one.error) one.note = parsed.note;
       } catch (err) { one = { error: S(err && err.message || err).slice(0, 200) }; }
       if (one.error) { report.failed++; report.files.push({ name: name, error: one.error }); continue; }

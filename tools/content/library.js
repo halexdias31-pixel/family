@@ -156,97 +156,125 @@ async function pull(name) {
   }
   L.writePrivate(name, map);
   /* WHAT THE LEDGER HOLDS IS NOW KNOWN, so `push` and `drive-pack` send only what changes after this. */
-  let sent = {};
-  try { sent = JSON.parse(fs.readFileSync(SENT, 'utf8')); } catch (e) { sent = {}; }
+  const sent = readSent();
   sent[name] = {};
   Object.keys(map).forEach(id => { sent[name][id] = JSON.stringify(map[id]); });
   fs.writeFileSync(SENT, JSON.stringify(sent));
   console.log('data-private/' + name + '.json: ' + Object.keys(map).length + ' item(s) from the Ledger (' + def.tab + ')');
 }
-/* WHAT WAS LAST PULLED OR PUSHED, so `push` sends only what changed here. */
+/* WHAT WAS LAST PULLED OR PUSHED, so `push` and `drive-pack` send only what changed here. */
 const SENT = path.join(L.PRIVATE_DIR, '.pushed.json');
-async function push(name) {
-  const map = L.readPrivate(name);
-  if (!map) throw new Error('no data-private/' + name + '.json to push');
-  let sent = {};
-  try { sent = JSON.parse(fs.readFileSync(SENT, 'utf8')); } catch (e) { sent = {}; }
-  const was = sent[name] || {};
-  const all = args.includes('--all');
-  const ids = Object.keys(map).filter(id => all || was[id] !== JSON.stringify(map[id]));
-  for (let i = 0; i < ids.length; i += 200) {
-    const part = ids.slice(i, i + 200);
-    const d = await post({ action: 'libImport', file: name, rows: part.map(id => ({ id: id, content: map[id] })) });
-    part.forEach(id => { was[id] = JSON.stringify(map[id]); });
-    console.log(name + ': ' + (d.added || 0) + ' added, ' + (d.replaced || 0) + ' replaced');
-    /* AND WHAT THE LEDGER TOOK BUT CANNOT MARK YET (457, libSelfTest_) */
-    (d.flagged || []).forEach(f => console.log('  waiting for a scheme: ' + f));
-  }
-  sent[name] = was;
-  fs.mkdirSync(L.PRIVATE_DIR, { recursive: true });
-  fs.writeFileSync(SENT, JSON.stringify(sent));
-  if (!ids.length) console.log(name + ': nothing changed since the last push');
-}
+const readSent = () => { try { return JSON.parse(fs.readFileSync(SENT, 'utf8')); } catch (e) { return {}; } };
+/* ONE PACK AT MOST THIS MANY ROWS — backend/library.gs LIB_IMPORT_MAX, which libPackCheck_ holds every pack to. */
+const PACK_MAX = 300;
 
-/* ---------- DRIVE-PACK (407): an import file for the owner's Drive, for a session that cannot reach the Ledger itself ---------- */
+/* ---------- THE ONE PACK MAKER (unify K, 21 Nov): `push` posts its packs to `libImport`, `drive-pack` writes them for the owner's
+   Drive; the backend checks and applies both the same way (backend/library-drive.gs libPackCheck_, libPackApply_). ---------- */
 /* THE LEDGER AS THIS MACHINE KNOWS IT: the pinned commit, with what this machine last pushed on top. */
 function baseOf(name) {
-  const map = L.pinnedMap(name) || {};
-  let sent = {};
-  try { sent = JSON.parse(fs.readFileSync(SENT, 'utf8')); } catch (e) { sent = {}; }
+  const map = L.pinnedMap(name) || {}, sent = readSent();
   Object.keys(sent[name] || {}).forEach(id => { try { map[id] = JSON.parse(sent[name][id]); } catch (e) {} });
   return map;
 }
+/* ONE FILE'S ROWS for a pack: the whole private half, and null for a field the base had and this has not (so merging is replacing);
+   an id the base has not got carries its public card (`cards`). The topic card is lean (rule 1.80): a fat one refuses the lot. */
+function rowsOf(name, now, base, pick) {
+  const def = L.defs().files[name];
+  const slots = (JSON.parse(fs.readFileSync(path.join(L.ROOT, 'data/settings/kinds.json'), 'utf8')).kinds[def.kind] || {}).card || {};
+  const refuse = (slots.slots || {}).refuse || [];
+  const fat = refuse.length ? pick.filter(id => String(now[id].points || '').split('|').some(t => refuse.some(h => new RegExp('^\\s*' + h + '\\b', 'i').test(t)))) : [];
+  if (fat.length) throw new Error(name + ': ' + fat.length + ' card(s) break the topic card (' + refuse.join(', ') + '): ' + fat.slice(0, 5).join(', ') + ' — nothing written');
+  const rows = pick.map(id => {
+    const one = { id: id };
+    def.private.forEach(f => { if (Object.prototype.hasOwnProperty.call(now[id], f)) one[f] = now[id][f]; else if (base[id] && Object.prototype.hasOwnProperty.call(base[id], f)) one[f] = null; });
+    return one;
+  });
+  const pub = readRows(name).rows, fresh = pick.filter(id => !base[id]);
+  const cards = {};
+  if (fresh.length) pub.forEach(r => {
+    const id = L.idOf(def, r);
+    if (fresh.indexOf(id) === -1) return;
+    const c = {};
+    Object.keys(r).forEach(k => { if (def.private.indexOf(k) === -1) c[k] = r[k]; });
+    cards[id] = c;
+  });
+  return { rows: rows, cards: cards, fresh: fresh.length, n: new Set(pub.map(r => L.idOf(def, r)).filter(Boolean)).size };
+}
+/* THE PACKS: {name: rowsOf(...)} cut into version-1 packs of at most PACK_MAX rows. `public` says how many ids each public file held
+   here, so the backend empties nothing while the live site lags this repository (libMayEmpty_). */
+function packsOf(parts, note) {
+  const packs = [];
+  let pack = null, room = 0;
+  Object.keys(parts).forEach(name => {
+    const p = parts[name];
+    p.rows.forEach(row => {
+      if (!room) { pack = { version: 1, made: new Date().toISOString(), note: note || '', files: {}, cards: {}, public: {} }; packs.push(pack); room = PACK_MAX; }
+      (pack.files[name] = pack.files[name] || []).push(row);
+      pack.public[name] = { n: p.n };
+      if (p.cards[row.id]) (pack.cards[name] = pack.cards[name] || []).push(p.cards[row.id]);
+      room--;
+    });
+  });
+  packs.forEach(k => { if (!Object.keys(k.cards).length) delete k.cards; });
+  return packs;
+}
+
+async function push(name) {
+  const map = L.readPrivate(name);
+  if (!map) throw new Error('no data-private/' + name + '.json to push');
+  const sent = readSent(), was = sent[name] || {};
+  const all = args.includes('--all');
+  const ids = Object.keys(map).filter(id => all || was[id] !== JSON.stringify(map[id]));
+  if (!ids.length) { console.log(name + ': nothing changed since the last push'); return; }
+  for (const pack of packsOf({ [name]: rowsOf(name, map, baseOf(name), ids) }, 'tools push')) {
+    const d = await post({ action: 'libImport', pack: pack });
+    pack.files[name].forEach(r => { was[r.id] = JSON.stringify(map[r.id]); });
+    const c = (d.counts || {})[name] || {};
+    console.log(name + ': ' + (c.added || 0) + ' added, ' + (c.replaced || 0) + ' replaced, ' + (c.same || 0) + ' the same' + (c.emptied ? ', ' + c.emptied + ' emptied' : ''));
+    /* AND WHAT THE LEDGER TOOK BUT CANNOT MARK YET (457, libSelfTest_), and what it would not empty (libMayEmpty_) */
+    (d.flagged || []).forEach(f => console.log('  flagged: ' + f));
+    sent[name] = was;
+    fs.mkdirSync(L.PRIVATE_DIR, { recursive: true });
+    fs.writeFileSync(SENT, JSON.stringify(sent));
+  }
+}
+
+/* ---------- DRIVE-PACK (407): the same packs as files for the owner's Drive, for a session that cannot reach the Ledger itself ---------- */
 function drivePack() {
   const pos = args.slice(1).filter((a, i, all) => !a.startsWith('--') && !(i > 0 && /^--(ids|private|note)$/.test(all[i - 1])));
   const opt = k => { const i = args.indexOf('--' + k); return i === -1 ? null : String(args[i + 1] || ''); };
   if (!pos[0]) throw new Error('drive-pack <out.json | out-dir/> [--ids a,b] [--private <dir>] [--note "…"]');
-  let out = path.resolve(pos[0]);
+  const out = path.resolve(pos[0]);
   const stamp = new Date().toISOString().replace(/\.\d+Z$/, 'Z').replace(/:/g, '-');
-  if (pos[0].endsWith('/') || (fs.existsSync(out) && fs.statSync(out).isDirectory())) out = path.join(out, 'lib-import-' + stamp + '.json');
+  const toDir = pos[0].endsWith('/') || (fs.existsSync(out) && fs.statSync(out).isDirectory());
   /* NEVER INTO THE REPOSITORY — it is public, and this file is the words. */
   const rel = path.relative(L.ROOT, out);
   if (!rel.startsWith('..') && !path.isAbsolute(rel) && !rel.split(path.sep)[0].startsWith('data-private')) throw new Error(out + ' is inside the repository, which is public — write it outside (or under data-private/)');
   const dir = opt('private') ? path.resolve(opt('private')) : L.PRIVATE_DIR;
   const ids = opt('ids') ? opt('ids').split(',').map(s => s.trim()).filter(Boolean) : null;
-  const pack = { version: 1, made: new Date().toISOString(), note: opt('note') || '', files: {}, cards: {} };
-  const found = {};
-  let n = 0;
+  const parts = {}, found = {};
   for (const name of L.NAMES()) {
     const p = path.join(dir, name + '.json');
     if (!fs.existsSync(p)) continue;
-    const def = L.defs().files[name];
     const now = JSON.parse(fs.readFileSync(p, 'utf8')), base = baseOf(name);
     const pick = Object.keys(now).filter(id => (ids ? ids.indexOf(id) !== -1 : JSON.stringify(now[id]) !== JSON.stringify(base[id])));
     if (!pick.length) continue;
-    /* THE TOPIC CARD IS LEAN (rule 1.80): a card holding what its slots refuse (kinds.json content.card.slots) is not packed. */
-    const slots = (JSON.parse(fs.readFileSync(path.join(L.ROOT, 'data/settings/kinds.json'), 'utf8')).kinds[def.kind] || {}).card || {};
-    const refuse = (slots.slots || {}).refuse || [];
-    const fat = refuse.length ? pick.filter(id => String(now[id].points || '').split('|').some(t => refuse.some(h => new RegExp('^\\s*' + h + '\\b', 'i').test(t)))) : [];
-    if (fat.length) throw new Error(name + ': ' + fat.length + ' card(s) break the topic card (' + refuse.join(', ') + '): ' + fat.slice(0, 5).join(', ') + ' — nothing written');
-    /* THE WHOLE PRIVATE HALF, AND null FOR A FIELD THE BASE HAD AND THIS HAS NOT — so merging it is replacing it. */
-    pack.files[name] = pick.map(id => {
-      found[id] = 1;
-      const one = { id: id };
-      def.private.forEach(f => { if (Object.prototype.hasOwnProperty.call(now[id], f)) one[f] = now[id][f]; else if (base[id] && Object.prototype.hasOwnProperty.call(base[id], f)) one[f] = null; });
-      return one;
-    });
-    /* AN ID THE BASE HAS NOT GOT carries its public card, so the import takes it before the site does. */
-    const fresh = pick.filter(id => !base[id]);
-    if (fresh.length) {
-      const cards = readRows(name).rows.filter(r => fresh.indexOf(L.idOf(def, r)) !== -1)
-        .map(r => { const c = {}; Object.keys(r).forEach(k => { if (def.private.indexOf(k) === -1) c[k] = r[k]; }); return c; });
-      if (cards.length) pack.cards[name] = cards;
-    }
-    n += pick.length;
-    console.log(name + ': ' + pick.length + ' item(s)' + (fresh.length ? ', ' + fresh.length + ' new' : ''));
+    pick.forEach(id => { found[id] = 1; });
+    parts[name] = rowsOf(name, now, base, pick);
+    console.log(name + ': ' + pick.length + ' item(s)' + (parts[name].fresh ? ', ' + parts[name].fresh + ' new' : ''));
   }
   const missing = (ids || []).filter(id => !found[id]);
   if (missing.length) throw new Error('not in ' + dir + ': ' + missing.join(', ') + ' — nothing written');
-  if (!n) { console.log('nothing differs from the Ledger as this machine knows it — no file written'); return; }
-  if (!Object.keys(pack.cards).length) delete pack.cards;
-  fs.mkdirSync(path.dirname(out), { recursive: true });
-  fs.writeFileSync(out, JSON.stringify(pack, null, 1) + '\n');
-  console.log(out + ': ' + n + ' item(s). Upload it, named lib-import-<time>.json, into the Drive folder family-library-imports; the owner taps Import library updates on Business.');
+  const packs = packsOf(parts, opt('note'));
+  if (!packs.length) { console.log('nothing differs from the Ledger as this machine knows it — no file written'); return; }
+  if (packs.length > 1 && !toDir) throw new Error(packs.length + ' packs of at most ' + PACK_MAX + ' rows — give a directory (out-dir/), not one file');
+  packs.forEach((pack, i) => {
+    const file = toDir ? path.join(out, 'lib-import-' + stamp + (packs.length > 1 ? '-' + String(i + 1).padStart(2, '0') : '') + '.json') : out;
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, JSON.stringify(pack, null, 1) + '\n');
+    const n = Object.keys(pack.files).reduce((t, k) => t + pack.files[k].length, 0);
+    console.log(file + ': ' + n + ' item(s). Upload it, named lib-import-<time>.json, into the Drive folder family-library-imports; the owner taps Import library updates on Business.');
+  });
 }
 
 function status(name) {
