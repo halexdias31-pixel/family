@@ -794,7 +794,6 @@ function magCardOpts_(x) {
 }
 /* PUT AWAY WHEN A TAB OR A LINK LEAVES THE PAGE IT WAS TAKEN OUT ON, as the padlock is (`qLockStray_`) */
 function magStray_() { if (MAG.on && MAG.on !== qLockHere_()) { MAG.on = ''; magHide_(); magPaint_(); } }
-const magBusy_ = () => !!MAG.live;
 /* WHICH PAGE A POINT IS OVER, if it is a question's page with the magnifier on */
 function magPageAt_(t) {
   const page = MAG.on && t && t.closest ? t.closest('.page') : null;

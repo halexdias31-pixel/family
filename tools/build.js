@@ -45,6 +45,7 @@ const ORDER = [
   'one-helper',   // the one-helper check (rule 1.75, unify batch 4): settings groups only in setting-for.json, tool helpers only in tools/lib/gen.js; fails the build
   'one-card',     // the one-card check (rule 1.75): every Find card by the one maker, no CSS of its own; fails the build
   'dead-css',     // the dead-css check (rule 1.75, owner 20 Nov): classes in style.css nothing writes, counted against a budget; a rise fails the build
+  'dead-fn',      // the dead-fn check (rule 1.75, unify batch 6 lane E): a top-level function in js/ that nothing in js/, index.html, backend/, tools/ or data/ names fails the build
   'css-tokens',   // the css-tokens check (rule 1.75, unify batch 2): no raw colour (hex, rgb(), a colour keyword) in style.css outside :root; fails the build
   'profile-roles', // the profile-roles check (rule 1.75, queue 4h): each role's Settings cards held against permissions.json's see rows; a card out of place fails the build
   'hist-db',      // the one-history-shape check (rule 1.75, unify batch 4): the four history kinds come from js/library.js HIST_DB and labels.json hist-link/hist-kind; a prefix list, kind label or link-column list written elsewhere fails the build

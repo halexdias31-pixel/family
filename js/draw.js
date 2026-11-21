@@ -73,7 +73,6 @@ function drawStop_(key) {
   DRAW_LOOPS.delete(key);
   if (!DRAW_LOOPS.size && DRAW_RAF) { cancelAnimationFrame(DRAW_RAF); DRAW_RAF = 0; DRAW_LAST = 0; }
 }
-const drawRunning_ = key => DRAW_LOOPS.has(key);
 if (typeof document !== 'undefined') document.addEventListener('visibilitychange', () => {
   if (!document.hidden) return;
   [...DRAW_LOOPS].forEach(([key, L]) => { drawStop_(key); if (L.stop) L.stop(); });
