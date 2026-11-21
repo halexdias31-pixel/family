@@ -550,6 +550,7 @@ function renderCard(spec) {
     + `<div class="kc-act">${row}</div></div>`;
 }
 const cardLetterOf_ = kind => (((ITEM_KINDS.kinds[kind] || {}).card || {}).letter || {});
+const cardLetterRow_ = (kind, src) => Object.assign({}, ...(cardLetterOf_(kind).lines || []).flatMap(l => l.need || []).map(f => ({ [f]: (src || {})[f] })));
 function cardLetterLines_(L, row, see) {
   const r = row || {}, s = see || {}, str = v => String(v == null ? '' : v).trim();
   const kid = s.kid === true || s.child === true || [].concat(s.roles || [], s.role || []).join(',').split(/[,\s]+/).some(v => /^(kid|child|student)$/i.test(v));

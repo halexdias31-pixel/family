@@ -1573,7 +1573,25 @@
      "state"
     ],
     "lines": true,
-    "body": "chemBody_(row)"
+    "body": "chemBody_(row)",
+    "fields": {
+     "say": "THE CARD'S FACT LINES (unify job J, master decides card fields): in this order, each `label` then the row's `f`, an empty one left out. Read by chemBody_ through cardFieldsOf_ (js/cards-render.js); tools/card-fields.js fails a field list written anywhere else.",
+     "list": [
+      {"label": "Symbol", "f": "symbol"},
+      {"label": "Atomic number", "f": "number"},
+      {"label": "Relative atomic mass", "f": "mass"},
+      {"label": "Block", "f": "block"},
+      {"label": "Electron configuration", "f": "config"},
+      {"label": "Discovered", "f": "discovered"},
+      {"label": "Also called", "f": "also"},
+      {"label": "Formula", "f": "formula"},
+      {"label": "Use", "f": "use"},
+      {"label": "Hazard", "f": "hazard"},
+      {"label": "Pattern", "f": "pattern"},
+      {"label": "Conditions", "f": "conditions"},
+      {"label": "Observations", "f": "observations"}
+     ]
+    }
    },
    "see": {
     "who": "anyone"
