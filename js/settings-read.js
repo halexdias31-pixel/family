@@ -26,7 +26,7 @@ function setFor_(d, extra) {
   const setFor = extra['settings/setting-for'];
   /* THE ROWS' ORDER IS THE ITEMS' ORDER, account types first (their menu order); `under` is only which menu types list it. */
   if (setFor && setFor.length) d.settingFor = Object.fromEntries(setFor.filter(r => libS(r.card).trim())
-    .map((r, i) => [libS(r.card).trim(), { under: libS(r.under).split(',').map(t => t.trim()).filter(Boolean), name: libS(r.name).trim(), rank: i, col: libS(r.col).trim(), peek: r.peek === true || libOn(r.peek) }]));
+    .map((r, i) => [libS(r.card).trim(), { under: libS(r.under).split(',').map(t => t.trim()).filter(Boolean), name: libS(r.name).trim(), rank: i, col: libS(r.col).trim(), label: libS(r.label).trim(), admin: r.admin === true || libOn(r.admin), peek: r.peek === true || libOn(r.peek) }]));
 }
 
 function setCardFields_(d, extra) {

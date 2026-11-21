@@ -255,12 +255,14 @@ on('ins-print', el => {
 });
 
 /* ---------- THE HISTORY DATABASE (459): MANUSCRIPTS, FIGURES, WRITINGS — ONE CARD A ROW, LINKED BY ID. docs/history-db.md ---------- */
-/* A list cell is split on " | "; an id is MS-, FIG- or WR- and digits, and any cell may name one. */
-const HIST_ID = /^(MS|FIG|WR|EV)-\d+$/;
+/* A list cell is split on " | "; an id is a HIST_DB prefix (library.js) and digits, and any cell may name one. */
+const HIST_TABLES_ = () => (typeof HIST_DB === 'undefined' ? [] : HIST_DB);
+const HIST_ID = { test: id => HIST_TABLES_().some(t => new RegExp('^' + t.prefix + '\\d+$').test(String(id))) };
+const histTableOf_ = id => HIST_TABLES_().find(s => String(id).indexOf(s.prefix) === 0) || null;
 const histList_ = v => String(v == null ? '' : v).split('|').map(t => t.trim()).filter(Boolean);
 /* THE ROW AN ID NAMES, in whichever table its prefix says. */
 function histRow_(id) {
-  const t = (typeof HIST_DB === 'undefined' ? [] : HIST_DB).find(s => String(id).indexOf(s.prefix) === 0);
+  const t = histTableOf_(id);
   return t ? (DATA[t.file] || []).find(r => r.id === id) || null : null;
 }
 const histName_ = r => (r && (r.name || r.title_english || r.title_original || r.id)) || '';
@@ -301,20 +303,17 @@ function histLinks_(r) {
     if (!to || seen.has(id) || id === r.id) return;
     seen.add(id); out.push({ id: id, label: label, row: to });
   };
-  const K = { MS: 'Manuscript', FIG: /^EV-/.test(r.id) ? 'Figure' : 'Author', WR: 'Writing', EV: 'Event' };
-  const kindOfId = id => { const p = String(id).split('-')[0]; return labelOf_('hist-link', p === 'FIG' && /^EV-/.test(r.id) ? 'FIG-EV' : p, K[p] || ''); };
-  ['writings', 'manuscripts', 'author_id', 'figures', 'events'].forEach(c => histList_(r[c]).forEach(id => { if (HIST_ID.test(id)) add(id, kindOfId(id)); }));
+  /* THE LABEL IS labels.json `hist-link` by the id's prefix; a figure named from an event reads `FIG-EV`. */
+  const fromEv = (histTableOf_(r.id) || {}).kind === 'event';
+  const kindOfId = id => { const t = histTableOf_(id), p = t ? t.prefix.slice(0, -1) : ''; return labelOf_('hist-link', t && t.kind === 'figure' && fromEv ? 'FIG-EV' : p, ''); };
+  const own = histTableOf_(r.id), cols = own ? own.links : HIST_TABLES_().reduce((a, t) => a.concat(t.links.filter(c => a.indexOf(c) < 0)), []);
+  cols.forEach(c => histList_(r[c]).forEach(id => { if (HIST_ID.test(id)) add(id, kindOfId(id)); }));
   histList_(r.relations).forEach(p => {
     const m = /^([^:]+):\s*(.+)$/.exec(p);
     if (m && HIST_ID.test(m[2].trim())) add(m[2].trim(), histCap_(m[1]));
   });
-  (DATA.writings || []).forEach(w => {
-    if (w.author_id === r.id || histList_(w.manuscripts).indexOf(r.id) >= 0) add(w.id, labelOf_('hist-link', 'WR', 'Writing'));
-  });
-  (DATA.manuscripts || []).forEach(m => { if (histList_(m.writings).indexOf(r.id) >= 0) add(m.id, labelOf_('hist-link', 'MS', 'Manuscript')); });
-  (DATA.figures || []).forEach(f => { if (histList_(f.writings).indexOf(r.id) >= 0) add(f.id, labelOf_('hist-link', 'FIG', 'Author')); });
-  (DATA.timeline || []).forEach(e => { if (histList_(e.figures).concat(histList_(e.writings)).indexOf(r.id) >= 0) add(e.id, labelOf_('hist-link', 'EV', 'Event')); });
-  (DATA.figures || []).forEach(f => { if (histList_(f.events).indexOf(r.id) >= 0) add(f.id, labelOf_('hist-link', 'FIG-EV', 'Figure')); });
+  /* WHAT NAMES IT: every row of every table whose link columns hold this id. */
+  HIST_TABLES_().forEach(t => (DATA[t.file] || []).forEach(x => { if (t.links.some(c => histList_(x[c]).indexOf(r.id) >= 0)) add(x.id, kindOfId(x.id)); }));
   return out;
 }
 const histCap_ = s => { const t = String(s || '').trim(); return t ? t[0].toUpperCase() + t.slice(1) : ''; };
@@ -322,23 +321,21 @@ const histCap_ = s => { const t = String(s || '').trim(); return t ? t[0].toUppe
 /* THE ITEM: Library, on the History shelf, as boxers are on Boxing's. */
 /* EACH HISTORY KIND'S CHIP, LINE AND SHELF; a kind not named reads as a writing kept in a repository.
    A writing is on the Writings shelf wherever it came from (600). */
-const HIST_KIND_ROW = {
-  event: { chip: 'event', say: 'Events', sub: r => [r.date_text, r.theatre] },
-  manuscript: { chip: 'manuscript', say: 'Manuscripts', sub: r => [r.repository, r.date_text] },
-  writing: { chip: 'writing', say: 'Writings', sub: r => [r.title_original, r.date_text], shelf: () => WRITINGS_SHELF },
+const HIST_KIND_ROW_ = kind => {
+  const t = HIST_TABLES_().find(x => x.kind === kind), sub = r => (t ? t.sub : ['repository', 'date_text']).map(c => r[c]);
+  return { chip: t ? kind : 'writing', sub, shelf: kind === 'writing' ? () => WRITINGS_SHELF : null, years: t ? t.years : [] };
 };
-const HIST_KIND_ELSE = { chip: 'writing', say: 'Writings', sub: r => [r.repository, r.date_text] };
 function histItem_(kind, r) {
-  if (kind === 'figure') return { kind: 'people', rowKind: kind, hdb: true, name: histName_(r), key: 'hdb:' + r.id, pixId: r.id, image: '', sub: '', histKind: labelOf_('hist-kind', 'figure', 'People'),
-    born: personYear_(r.born_year), died: personYear_(r.died_year), from: r.born_place || '', roles: histList_(r.roles),
+  if (kind === 'figure') return { kind: 'people', rowKind: kind, hdb: true, name: histName_(r), key: 'hdb:' + r.id, pixId: r.id, image: '', sub: '', histKind: labelOf_('hist-kind', kind, ''),
+    born: personYear_(r[HIST_KIND_ROW_(kind).years[0]]), died: personYear_(r[HIST_KIND_ROW_(kind).years[1]]), from: r.born_place || '', roles: histList_(r.roles),
     shelf: TAXONOMY.History.subject, subject: TAXONOMY.History.subject, text: plainText_(Object.keys(r).map(k => r[k]).join(' ')), row: r };
-  const K = Object.prototype.hasOwnProperty.call(HIST_KIND_ROW, kind) ? HIST_KIND_ROW[kind] : HIST_KIND_ELSE;
+  const K = HIST_KIND_ROW_(kind);
   /* LOADED AS THE ONE ITEM SHAPE (item_, cards-parts.js) where the kind is migrated; its card is drawn from `shape`. */
   const shape = typeof ITEM_MAPS === 'object' && ITEM_MAPS[kind] ? item_(r, kind) : null;
   return {
     kind: kind, rowKind: kind, hdb: true, name: shape ? shape.name : histName_(r), key: 'hdb:' + (shape ? shape.id : r.id), image: '', shape,
     sub: K.sub(r).filter(Boolean).join(' · '),
-    histKind: labelOf_('hist-kind', K.chip, K.say),
+    histKind: labelOf_('hist-kind', K.chip, ''),
     shelf: K.shelf ? K.shelf() : TAXONOMY.History.subject, subject: TAXONOMY.History.subject,
     text: plainText_(Object.keys(r).filter(k => k !== 'px').map(k => r[k]).join(' ')),
     row: r,
@@ -515,7 +512,7 @@ function histFactsPart_(x, part) {
 /* THE ESSENTIALS (498): "don't need so many" -- three links and one source, on the card's one row (`CARD_EXTRAS_`). */
 function histExtras_(x) {
   const r = x.row || {}, read = isWriting_(x) && typeof window.worksFirstKey_ === 'function' ? window.worksFirstKey_(r.id) : '';
-  const icon = l => (l.id.indexOf('MS-') === 0 ? 'doc' : l.id.indexOf('WR-') === 0 ? 'book' : 'flag');
+  const icon = l => (histTableOf_(l.id) || { icon: 'flag' }).icon;
   return [read ? { icon: 'book', label: 'Read it', note: 'a page a chapter', act: 'find-open', data: { key: read } } : null]
     .concat(histLinks_(r).slice(0, HIST_TILE_LINKS).map(l => ({ icon: icon(l), label: l.label, note: histName_(l.row), act: 'find-open', data: { key: l.row.key || 'hdb:' + l.id } })),
       histList_(r.sources).filter(u => /^https:\/\//.test(u)).slice(0, 1).map(u => ({ icon: 'ext', label: 'Source', note: u.replace(/^https:\/\/(www\.)?/, '').split('/')[0], act: 'file-view', data: { url: u, title: 'Source' } }))); }

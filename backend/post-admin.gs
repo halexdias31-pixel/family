@@ -7,7 +7,7 @@ function postPushState_(body, action, began) {
 }
 
 /* --- admin: everyone ---------------------------------------------------------------------- */
-/* THE BUSINESS RECORDS — admin only by `ACTION_ACCESS`, and read by a POST rather than sent in
+/* THE BUSINESS RECORDS — admin only by `PERMISSIONS`, and read by a POST rather than sent in
    the payload, because the payload is cached and goes to every visitor. See records.gs. */
 function postListRecords_(body, action, began) {
   return jsonOut(recordsAction_(action, body));
@@ -215,7 +215,7 @@ function postDigestPreview_(body) {
     'The preview could not be built: ');
 }
 
-/* ---------- "SEND LAST WEEK" ON A PARENT'S CARD (378): admin only (`ACTION_ACCESS`), sent whatever weekly_digest says. */
+/* ---------- "SEND LAST WEEK" ON A PARENT'S CARD (378): admin only (`PERMISSIONS`), sent whatever weekly_digest says. */
 function postDigestSendNow_(body) {
   return jsonTry_(() => {
     const got = digestSendNow_([S(body.targetId)], new Date())[0] || { error: 'No parent was named — nothing was sent.' };
@@ -254,7 +254,7 @@ function postWordsSave_(body, action, began) {
 }
 
 
-/* A PERSON FACT (kinds.json person.facts): admin only by ACTION_ACCESS; one row appended, `what` from PERSON_FACT_KEYS, as_of today unless given. */
+/* A PERSON FACT (kinds.json person.facts): admin only by PERMISSIONS; one row appended, `what` from PERSON_FACT_KEYS, as_of today unless given. */
 function postFactSet_(body, action, began) {
   const who = S(body.who).trim(), what = S(body.what).trim(), value = S(body.value).trim();
   if (!who || !findPerson(who)) return jsonOut({ error: 'No such person.' });

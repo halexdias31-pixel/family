@@ -905,7 +905,7 @@ const QUAL_FIELD = /^qual_\d+(_level|_board|_grade|_received|_teach|_spec)?$/;
 
 /* ---------- A DATE OF BIRTH IS THREE NUMBERS SOMEBODY REMEMBERS, NOT A DATE THEY PICK § */
 /* THE PHONE AS A COUNTRY CODE AND A NUMBER, one cell (`phone`, "+44 7700 900123") — see
-   `phoneOut`/`phoneIn` in core.gs. The list is the codes offered; the first is the default. */
+   `phoneOut`/`phoneIn` in js/form.js (cards-gen.gs). The list is the codes offered; the first is the default. */
 const PHONE_FIELDS = ['phone_cc', 'phone_no'];
 const PHONE_FIELD = /^phone_(cc|no)$/;
 const PHONE_CODES = ['+44', '+1', '+353', '+33', '+49', '+34', '+39', '+351', '+48', '+40',
@@ -1250,8 +1250,7 @@ const PROFILE_READONLY = ['dbs_checked', 'role'];
 /* ---------- A MONTH ON WHAT A TUTOR CHARGES § */
 const PRICING_COOLDOWN_DAYS = 30;
 
-/* THREE TO TWENTY, LOWER CASE, LETTERS DIGITS AND UNDERSCORE, STARTING WITH A LETTER. § */
-const HANDLE_SHAPE = /^[a-z][a-z0-9_-]{2,29}$/;
+/* A HANDLE'S SHAPE (HANDLE_SHAPE) is js/form.js's, copied into cards-gen.gs. */
 
 /* NAMES THAT WOULD SPEAK FOR THE BUSINESS. Someone called @office or @admin messaging a parent is
    not rude, it is a person with the school's voice — and the roles system cannot help, because the

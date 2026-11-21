@@ -11,10 +11,8 @@
    never offers a broken question to a student. Prints the counts by subject and paper. tools/build.js runs it. */
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm');
-const ROOT = path.join(__dirname, '..');
+const { ROOT, read, S } = require('./lib/gen.js');
 const OUT = path.join(ROOT, 'data', 'question-status.json');
-const read = f => { try { return JSON.parse(fs.readFileSync(path.join(ROOT, f), 'utf8')); } catch (e) { return null; } };
-const S = v => String(v == null ? '' : v).trim();
 
 /* ---------- THE APP'S OWN CODE: every top-level declaration in index.html's files, run into the vm the first time something names it */
 function appCode() {

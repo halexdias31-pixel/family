@@ -58,6 +58,17 @@ function run() {
   for (const k of jobs) if (!runs.has(k)) bad.push('backend/access.gs: RUNNABLE has \'' + k + '\', which actions.json does not list');
   if (posts !== 1) bad.push('backend/: ' + posts + ' doPost functions, not one');
   if (tables !== 1) bad.push('backend/: postActions_() dispatched from ' + tables + ' places, not one');
+  /* ONE PERMISSION TABLE (unify 4): PERMISSIONS only, the gate's level computed by levelOf_ (booking.gs), the same as tools/permissions.js `levelOf` for every action. */
+  const allGs = fs.readdirSync(path.join(ROOT, "backend")).filter(f => f.endsWith(".gs")).map(f => read("backend/" + f)).join("\n");
+  if (/\bACTION_ACCESS\b/.test(allGs.replace(/\/\*[\s\S]*?\*\//g, ''))) bad.push('backend/: ACTION_ACCESS is back; the one table is PERMISSIONS');
+  const lv = allGs.match(/function levelOf_\(roles\) \{[\s\S]*?\n\}/), pm = allGs.match(/const PERMISSIONS = (\{[\s\S]*?\n\});/);
+  let levels = 0;
+  if (!lv || !pm) bad.push('backend/: no levelOf_ or no PERMISSIONS');
+  else {
+    const levelOf_ = new Function(lv[0] + '; return levelOf_;')(), P = new Function('return ' + pm[1])(), want = require('./permissions.js').levelOf;
+    rows.filter(a => !a.run).forEach(a => { levels++; if (!P[a.name]) bad.push('PERMISSIONS: no row for ' + a.name); else if (levelOf_(P[a.name]) !== want(a.roles)) bad.push('levelOf_(' + a.name + ') = ' + levelOf_(P[a.name]) + ', not ' + want(a.roles)); });
+  }
+  console.log('one-request: ' + levels + ' action levels by levelOf_ agree');
   console.log('one-request: ' + fetches + ' fetch to the backend, ' + acts + ' posted action names against ' + names.size + ' listed, ' + posts + ' dispatcher');
   if (bad.length) { bad.forEach(b => console.error('  ' + b)); throw new Error('one-request: ' + bad.length + ' second path(s)'); }
 }

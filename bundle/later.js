@@ -1736,91 +1736,45 @@ out[lv.facet] = { of: x => x[lv.field] || (i === 0 && w && w.kinds.indexOf(x.kin
 });
 return out;
 }
+const FACET_BY_READ_ = {
+row: c => ({ of: x => x[c] || '' }),
+writing: c => ({ of: x => writingAt_(x, c) }),
+hist: c => ({ of: x => histCol_(x, c) }),
+mech: c => ({ of: x => mechFit_(x, c), tagOf: x => mechFitTag_(x, c) }),
+own: c => { const [t, k] = c.split('.'); return { of: x => mechOwn_(x, t, k) }; },
+};
+const facetReadData_ = () => Object.fromEntries(ITEM_KINDS.facets.filter(f => f.read && FACET_BY_READ_[f.read.by]).map(f => [f.field, FACET_BY_READ_[f.read.by](f.read.col)]));
 const FACET_READ = {
+...facetReadData_(),
 forLabel: { of: x => x.groups || kindOf_(x).group },
 kindLabel: { of: x => kindTop_(x) || x.kindLabel || kindOf_(x).label,
 tagOf: (x, page) => kindTopTag_(x) || (page === 'ans' && isQ_(x) ? ansKind_() : (x.kindLabel || kindOf_(x).label)) },
 kindOwn: { of: x => !kindTop_(x) ? '' : notTop_(x, isQ_(x) && questionHasAns_(x) ? [kindOf_(x).label, ansKind_()] : (x.kindLabel || kindOf_(x).label)),
 tagOf: (x, page) => !kindTop_(x) ? '' : notTop_(x, page === 'ans' && isQ_(x) ? ansKind_() : (x.kindLabel || kindOf_(x).label)) },
-...Object.fromEntries(['postState', 'postBy', 'postWhen', 'msgWith', 'profileType', 'settingFor', 'vidSubject', 'vidTopic', 'vidChannel', 'vidLevel', 'vidType', 'venueArea', 'venueFor', 'venueSize'].map(f => [f, { of: x => x[f] || '' }])),
 ...Object.fromEntries(storeFacets_().map(f => [f, { of: x => x[f] || '' }])),
 toolName: { of: x => toolNameOf_(x), choose: true },
-docketList: { of: x => x.dkList || '' },
-projectType: { of: x => x.projectType || '' },
-subject: { of: x => x.subject },
-shelf: { of: x => x.shelf || '' },
-wReligion: { of: x => writingAt_(x, 'religion') },
-wCollection: { of: x => writingAt_(x, 'collection') },
-wWork: { of: x => writingAt_(x, 'work') },
-wSection: { of: x => writingAt_(x, 'section') },
-wSource: { of: x => writingAt_(x, 'source') },
 wLanguage: { of: x => writingLanguageOf_(writingAt_(x, 'text')) || histCol_(x, 'language') },
 wText: { of: x => writingVersionOf_(writingAt_(x, 'text')) },
-wTradition: { of: x => writingAt_(x, 'tradition') },
-wBook: { of: x => writingAt_(x, 'book') },
-wChapter: { of: x => writingAt_(x, 'chapter') },
-wUnit: { of: x => writingAt_(x, 'unit') },
-wAuthor: { of: x => writingAt_(x, 'author') },
-wForm: { of: x => writingAt_(x, 'form') },
-wPrimacy: { of: x => writingAt_(x, 'primacy') },
 mScope: { of: x => mechScope_(x), tagOf: () => '', choose: true },
-mMake: { of: x => mechFit_(x, 'mMake'), tagOf: x => mechFitTag_(x, 'mMake') },
-mModel: { of: x => mechFit_(x, 'mModel'), tagOf: x => mechFitTag_(x, 'mModel') },
-mGen: { of: x => mechFit_(x, 'mGen'), tagOf: x => mechFitTag_(x, 'mGen') },
-mEngine: { of: x => mechFit_(x, 'mEngine'), tagOf: x => mechFitTag_(x, 'mEngine') },
 mKind: { of: x => x.mKind || (specTreeOf_(x).topic ? 'Exam topics' : '') },
-mSystem: { of: x => x.mSystem || '' },
-mPhase: { of: x => mechFit_(x, 'mPhase'), tagOf: x => mechFitTag_(x, 'mPhase') },
-mMarket: { of: x => mechFit_(x, 'mMarket'), tagOf: x => mechFitTag_(x, 'mMarket') },
-mYears: { of: x => mechFit_(x, 'mYears'), tagOf: x => mechFitTag_(x, 'mYears') },
-mSize: { of: x => mechFit_(x, 'mSize'), tagOf: x => mechFitTag_(x, 'mSize') },
-mValves: { of: x => mechFit_(x, 'mValves'), tagOf: x => mechFitTag_(x, 'mValves') },
-mBadge: { of: x => mechFit_(x, 'mBadge'), tagOf: x => mechFitTag_(x, 'mBadge') },
-mFuel: { of: x => mechFit_(x, 'mFuel'), tagOf: x => mechFitTag_(x, 'mFuel') },
 mPart: { of: x => (x.kind === 'mech' && x.mFile !== 'models' && x.name) || '' },
-mPrice: { of: x => mechOwn_(x, 'parts', 'value') },
-pcType: { of: x => mechOwn_(x, 'pc', 'type') },
-pcSocket: { of: x => mechOwn_(x, 'pc', 'socket') },
-pcIface: { of: x => mechOwn_(x, 'pc', 'iface') },
-pcLinks: { of: x => mechOwn_(x, 'pc', 'links') },
-cCategory: { of: x => x.cCategory || '' },
-cGroup: { of: x => x.cGroup || '' },
-cPeriod: { of: x => x.cPeriod || '' },
-cState: { of: x => x.cState || '' },
-boxKind: { of: x => x.boxKind || '' },
 fighter: { of: x => isFight_(x) && x.row ? [x.row.a, x.row.b].filter(Boolean) : isBoxer_(x) ? x.name : '' },
 personName: { of: x => (isPerson_(x) ? x.name : '') },
 boutMonth: { of: x => boutDate_(x).month },
 boutYear: { of: x => boutDate_(x).year },
 decade: { of: x => decadesOf_(x) },
-division: { of: x => x.division || '' },
 boutRound: { of: x => isFight_(x) && x.row && Number(x.row.endRound) > 0 ? 'Round ' + Number(x.row.endRound) : '' },
 boutMethod: { of: x => (isFight_(x) && x.row && String(x.row.method || '').trim()) || '' },
 boutWinner: { of: x => boutWinner_(x) },
 boutEvent: { of: x => (isFight_(x) && x.row && String(x.row.event || '').trim()) || '' },
 ...taxonomyRead_(),
 histEra: { of: x => histErasOf_(x) },
-histMaterial: { of: x => histCol_(x, 'material') },
-histFormat: { of: x => histCol_(x, 'format') },
-histGenre: { of: x => histCol_(x, 'genre') },
 histRole: { of: x => (isPerson_(x) ? x.roles || [] : histCol_(x, 'roles')) },
 personYears: { of: x => personYears_(x) },
 personFrom: { of: x => (isPerson_(x) && x.from) || '' },
-histTheme: { of: x => histCol_(x, 'themes') },
-histRepository: { of: x => histCol_(x, 'repository') },
 histFound: { of: x => msFound_(x) },
 histDated: { of: x => msDated_(x) },
-histSide: { of: x => x.msSide || '' },
-histTheatre: { of: x => histCol_(x, 'theatre') },
-shopKind: { of: x => x.shopKind || '' },
-shopHow: { of: x => x.shopHow || '' },
-shopPrice: { of: x => x.shopPrice || '' },
-shopBrand: { of: x => x.shopBrand || '' },
-shopFor: { of: x => x.shopFor || '' },
-shopTheme: { of: x => x.shopTheme || '' },
-practicalType: { of: x => x.practicalType || '' },
 required: { of: x => !isPractical_(x) || !x.row ? '' : PRAC_NEED[x.row.excluded ? 2 : x.row.required ? 0 : 1] },
-documentType: { of: x => x.documentType || '' },
 level: { of: x => levelOf_(x) },
 keystage: { of: x => { const s = satsStagesOf_(x); return s.length ? s : keyStagesAt_(x); } },
 yearGroup: { of: x => x.bandValue && x.bandType === 'year' ? 'Year ' + x.bandValue : (x.years || []).map(y => 'Year ' + y) },
@@ -2662,10 +2616,12 @@ window.addEventListener('afterprint', done);
 setTimeout(done, 4000);
 window.print();
 });
-const HIST_ID = /^(MS|FIG|WR|EV)-\d+$/;
+const HIST_TABLES_ = () => (typeof HIST_DB === 'undefined' ? [] : HIST_DB);
+const HIST_ID = { test: id => HIST_TABLES_().some(t => new RegExp('^' + t.prefix + '\\d+$').test(String(id))) };
+const histTableOf_ = id => HIST_TABLES_().find(s => String(id).indexOf(s.prefix) === 0) || null;
 const histList_ = v => String(v == null ? '' : v).split('|').map(t => t.trim()).filter(Boolean);
 function histRow_(id) {
-const t = (typeof HIST_DB === 'undefined' ? [] : HIST_DB).find(s => String(id).indexOf(s.prefix) === 0);
+const t = histTableOf_(id);
 return t ? (DATA[t.file] || []).find(r => r.id === id) || null : null;
 }
 const histName_ = r => (r && (r.name || r.title_english || r.title_original || r.id)) || '';
@@ -2699,39 +2655,32 @@ const to = histRow_(id) || (typeof window.worksRowOf_ === 'function' ? window.wo
 if (!to || seen.has(id) || id === r.id) return;
 seen.add(id); out.push({ id: id, label: label, row: to });
 };
-const K = { MS: 'Manuscript', FIG: /^EV-/.test(r.id) ? 'Figure' : 'Author', WR: 'Writing', EV: 'Event' };
-const kindOfId = id => { const p = String(id).split('-')[0]; return labelOf_('hist-link', p === 'FIG' && /^EV-/.test(r.id) ? 'FIG-EV' : p, K[p] || ''); };
-['writings', 'manuscripts', 'author_id', 'figures', 'events'].forEach(c => histList_(r[c]).forEach(id => { if (HIST_ID.test(id)) add(id, kindOfId(id)); }));
+const fromEv = (histTableOf_(r.id) || {}).kind === 'event';
+const kindOfId = id => { const t = histTableOf_(id), p = t ? t.prefix.slice(0, -1) : ''; return labelOf_('hist-link', t && t.kind === 'figure' && fromEv ? 'FIG-EV' : p, ''); };
+const own = histTableOf_(r.id), cols = own ? own.links : HIST_TABLES_().reduce((a, t) => a.concat(t.links.filter(c => a.indexOf(c) < 0)), []);
+cols.forEach(c => histList_(r[c]).forEach(id => { if (HIST_ID.test(id)) add(id, kindOfId(id)); }));
 histList_(r.relations).forEach(p => {
 const m = /^([^:]+):\s*(.+)$/.exec(p);
 if (m && HIST_ID.test(m[2].trim())) add(m[2].trim(), histCap_(m[1]));
 });
-(DATA.writings || []).forEach(w => {
-if (w.author_id === r.id || histList_(w.manuscripts).indexOf(r.id) >= 0) add(w.id, labelOf_('hist-link', 'WR', 'Writing'));
-});
-(DATA.manuscripts || []).forEach(m => { if (histList_(m.writings).indexOf(r.id) >= 0) add(m.id, labelOf_('hist-link', 'MS', 'Manuscript')); });
-(DATA.figures || []).forEach(f => { if (histList_(f.writings).indexOf(r.id) >= 0) add(f.id, labelOf_('hist-link', 'FIG', 'Author')); });
-(DATA.timeline || []).forEach(e => { if (histList_(e.figures).concat(histList_(e.writings)).indexOf(r.id) >= 0) add(e.id, labelOf_('hist-link', 'EV', 'Event')); });
-(DATA.figures || []).forEach(f => { if (histList_(f.events).indexOf(r.id) >= 0) add(f.id, labelOf_('hist-link', 'FIG-EV', 'Figure')); });
+HIST_TABLES_().forEach(t => (DATA[t.file] || []).forEach(x => { if (t.links.some(c => histList_(x[c]).indexOf(r.id) >= 0)) add(x.id, kindOfId(x.id)); }));
 return out;
 }
 const histCap_ = s => { const t = String(s || '').trim(); return t ? t[0].toUpperCase() + t.slice(1) : ''; };
-const HIST_KIND_ROW = {
-event: { chip: 'event', say: 'Events', sub: r => [r.date_text, r.theatre] },
-manuscript: { chip: 'manuscript', say: 'Manuscripts', sub: r => [r.repository, r.date_text] },
-writing: { chip: 'writing', say: 'Writings', sub: r => [r.title_original, r.date_text], shelf: () => WRITINGS_SHELF },
+const HIST_KIND_ROW_ = kind => {
+const t = HIST_TABLES_().find(x => x.kind === kind), sub = r => (t ? t.sub : ['repository', 'date_text']).map(c => r[c]);
+return { chip: t ? kind : 'writing', sub, shelf: kind === 'writing' ? () => WRITINGS_SHELF : null, years: t ? t.years : [] };
 };
-const HIST_KIND_ELSE = { chip: 'writing', say: 'Writings', sub: r => [r.repository, r.date_text] };
 function histItem_(kind, r) {
-if (kind === 'figure') return { kind: 'people', rowKind: kind, hdb: true, name: histName_(r), key: 'hdb:' + r.id, pixId: r.id, image: '', sub: '', histKind: labelOf_('hist-kind', 'figure', 'People'),
-born: personYear_(r.born_year), died: personYear_(r.died_year), from: r.born_place || '', roles: histList_(r.roles),
+if (kind === 'figure') return { kind: 'people', rowKind: kind, hdb: true, name: histName_(r), key: 'hdb:' + r.id, pixId: r.id, image: '', sub: '', histKind: labelOf_('hist-kind', kind, ''),
+born: personYear_(r[HIST_KIND_ROW_(kind).years[0]]), died: personYear_(r[HIST_KIND_ROW_(kind).years[1]]), from: r.born_place || '', roles: histList_(r.roles),
 shelf: TAXONOMY.History.subject, subject: TAXONOMY.History.subject, text: plainText_(Object.keys(r).map(k => r[k]).join(' ')), row: r };
-const K = Object.prototype.hasOwnProperty.call(HIST_KIND_ROW, kind) ? HIST_KIND_ROW[kind] : HIST_KIND_ELSE;
+const K = HIST_KIND_ROW_(kind);
 const shape = typeof ITEM_MAPS === 'object' && ITEM_MAPS[kind] ? item_(r, kind) : null;
 return {
 kind: kind, rowKind: kind, hdb: true, name: shape ? shape.name : histName_(r), key: 'hdb:' + (shape ? shape.id : r.id), image: '', shape,
 sub: K.sub(r).filter(Boolean).join(' · '),
-histKind: labelOf_('hist-kind', K.chip, K.say),
+histKind: labelOf_('hist-kind', K.chip, ''),
 shelf: K.shelf ? K.shelf() : TAXONOMY.History.subject, subject: TAXONOMY.History.subject,
 text: plainText_(Object.keys(r).filter(k => k !== 'px').map(k => r[k]).join(' ')),
 row: r,
@@ -2887,7 +2836,7 @@ return rows.length ? cardBlock_({ type: 'section', look: 'fc hdb hdb-more', head
 }
 function histExtras_(x) {
 const r = x.row || {}, read = isWriting_(x) && typeof window.worksFirstKey_ === 'function' ? window.worksFirstKey_(r.id) : '';
-const icon = l => (l.id.indexOf('MS-') === 0 ? 'doc' : l.id.indexOf('WR-') === 0 ? 'book' : 'flag');
+const icon = l => (histTableOf_(l.id) || { icon: 'flag' }).icon;
 return [read ? { icon: 'book', label: 'Read it', note: 'a page a chapter', act: 'find-open', data: { key: read } } : null]
 .concat(histLinks_(r).slice(0, HIST_TILE_LINKS).map(l => ({ icon: icon(l), label: l.label, note: histName_(l.row), act: 'find-open', data: { key: l.row.key || 'hdb:' + l.id } })),
 histList_(r.sources).filter(u => /^https:\/\//.test(u)).slice(0, 1).map(u => ({ icon: 'ext', label: 'Source', note: u.replace(/^https:\/\/(www\.)?/, '').split('/')[0], act: 'file-view', data: { url: u, title: 'Source' } }))); }
@@ -9401,13 +9350,11 @@ return out;
 const personDoorBody_ = t => [t.handle ? { type: 'text', text: '@' + t.handle } : null,
 typeof PERSON_ED_ !== 'undefined' && PERSON_ED_ && String(PERSON_ED_.id) === String(t.personId) ? { type: 'embed', tool: 'person-edit', args: { row: t } } : null].filter(Boolean);
 CARD_EMBEDS['person-edit'] = a => (typeof personEdHtml_ === 'function' ? personEdHtml_(a.row) : '');
-const SETTING_TYPES_FALLBACK = [['Student', 'account'], ['Parent', 'family'], ['Staff', 'staff'], ['Apprentice', 'apprentice'], ['Admin', ''],
-['Business', 'biz'], ['Site', 'site']].map(([type, col, peek]) => ({ type, col, peek: !!peek }));
 function settingTypes_() {
 let rows = [];
 try { const t = (DATA && DATA.settingFor) || {}; rows = Object.keys(t).filter(k => /^type:/.test(k)).sort((a, b) => (t[a].rank || 0) - (t[b].rank || 0))
 .map(k => ({ type: k.slice(5), col: t[k].col || '', peek: !!t[k].peek })); } catch (e) { rows = []; }
-return rows.length ? rows : SETTING_TYPES_FALLBACK;
+return rows;
 }
 const settingMay_ = key => typeof seeMay_ === 'function' && seeMay_(key);
 function settingTagsOf_(id, home) {

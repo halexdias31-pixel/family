@@ -139,12 +139,14 @@ async function libraryRowsAsk_() {
 const LIB_EXTRA = ['boxers', 'fights', 'cheatsheet', 'practicals', 'projects', 'textbooks', 'inserts',
                    'manuscripts', 'figures', 'writings', 'timeline', 'portraits', 'timelines', 'specs'];
 let LIBRARY_EXTRA = null;
-/* THE TABLES (459, 461): their file, id prefix, Find kind and the columns that are years (negative is BC). */
+/* THE TABLES (459, 461): THE ONE SOURCE of the history kinds — file, id prefix, Find kind, the columns that are years (negative is BC),
+   the tile icon, the card's sub-line columns and the columns that name other ids (in reading order). Labels are labels.json `hist-link`/`hist-kind`.
+   find-history.js builds HIST_ID, the link labels, icons and back-links from it; tools/hist-db.js fails a copy. */
 const HIST_DB = [
-  { file: 'manuscripts', prefix: 'MS-', kind: 'manuscript', years: ['date_from', 'date_to'] },
-  { file: 'figures', prefix: 'FIG-', kind: 'figure', years: ['born_year', 'died_year'] },
-  { file: 'writings', prefix: 'WR-', kind: 'writing', years: ['date_from', 'date_to'] },
-  { file: 'timeline', prefix: 'EV-', kind: 'event', years: ['date_from', 'date_to'] },
+  { file: 'manuscripts', prefix: 'MS-', kind: 'manuscript', years: ['date_from', 'date_to'], icon: 'doc', sub: ['repository', 'date_text'], links: ['writings'] },
+  { file: 'figures', prefix: 'FIG-', kind: 'figure', years: ['born_year', 'died_year'], icon: 'flag', sub: [], links: ['writings', 'events'] },
+  { file: 'writings', prefix: 'WR-', kind: 'writing', years: ['date_from', 'date_to'], icon: 'book', sub: ['title_original', 'date_text'], links: ['manuscripts', 'author_id'] },
+  { file: 'timeline', prefix: 'EV-', kind: 'event', years: ['date_from', 'date_to'], icon: 'flag', sub: ['date_text', 'theatre'], links: ['writings', 'figures'] },
 ];
 
 /* One fetch per tab, started by boot.js once the first screen is drawn (630). § */

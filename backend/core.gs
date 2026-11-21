@@ -1097,36 +1097,7 @@ function qualSentence_(p) {
 }
 
 /* ---------- A DATE OF BIRTH, AS THREE BOXES AND BACK § */
-/* THE PHONE CELL AS TWO BOXES. § */
-function phoneOut(cellValue) {
-  let v = S(cellValue).replace(/^00/, '+');
-  if (!v) return { phone_cc: PHONE_CODES[0], phone_no: '' };
-  if (v[0] === '+') {
-    const digits = v.slice(1).replace(/\D/g, '');
-    const cc = PHONE_CODES.filter(c => digits.indexOf(c.slice(1)) === 0)
-                          .sort((a, b) => b.length - a.length)[0];
-    if (cc) {
-      /* The rest keeps the spacing it was typed with, minus the code itself. */
-      const rest = v.replace(/^\+\s*/, '').replace(new RegExp('^' + cc.slice(1)), '').trim();
-      return { phone_cc: cc, phone_no: rest };
-    }
-    const m = v.match(/^\+(\d{1,4})\s*(.*)$/);
-    return { phone_cc: m ? '+' + m[1] : PHONE_CODES[0], phone_no: m ? S(m[2]) : v };
-  }
-  return { phone_cc: PHONE_CODES[0], phone_no: v.replace(/^0(?=\d)/, '') };
-}
-function phoneIn(fields) {
-  const cc = /^\+\d{1,4}$/.test(S(fields.phone_cc)) ? S(fields.phone_cc) : PHONE_CODES[0];
-  /* Digits and spaces only, and one trunk 0 off the front — `+44 07700` is not a number anybody
-     can dial. Italy keeps it, because there the 0 is part of the number. */
-  let no = S(fields.phone_no).trim();
-  /* A NUMBER TYPED WITH ITS OWN CODE — `+44 7700 900123`, or `0044 …` — had the code put on a second time: § */
-  const ccd = cc.slice(1);
-  if (/^(\+|00)/.test(no)) no = no.replace(/^(\+|00)\s*/, '').replace(new RegExp('^' + ccd + '\\s*'), '');
-  no = no.replace(/[^\d ]/g, ' ').replace(/\s+/g, ' ').trim();
-  if (cc !== '+39') no = no.replace(/^0(?=\d)/, '');
-  return no ? cc + ' ' + no : '';
-}
+/* THE PHONE CELL AS TWO BOXES: phoneOut/phoneIn are js/form.js's, copied into cards-gen.gs. */
 function dobOut(cellValue) {
   /* ---------- A REAL DATE, OR THE ONE WRITTEN FORM — AND NOTHING ELSE § */
   const d = (cellValue instanceof Date && !isNaN(cellValue)) ? cellValue

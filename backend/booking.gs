@@ -392,7 +392,7 @@ function sessionDatesOf(j) {
 
 /** Refuse anything this person may not do — once, before any handler runs. */
 function accessDenied(action, body) {
-  /* THE ONE TABLE FIRST (86a, permissions.gs), ACTION_ACCESS where it has no row. */
+  /* THE ONE TABLE (86a): PERMISSIONS, its level by levelOf_. */
   const need = permNeed_(action);
   // An action nobody has classified is refused. A new handler should be unreachable until
   // somebody has decided who it is for, rather than open until somebody notices.
@@ -1301,7 +1301,12 @@ const PERMISSIONS = {
 
 /* THE GATE'S LEVEL FOR AN ACTION: anyone, self or admin; '' refuses it. */
 function permNeed_(action) {
-  return Object.prototype.hasOwnProperty.call(ACTION_ACCESS, action) ? ACTION_ACCESS[action] : '';
+  return Object.prototype.hasOwnProperty.call(PERMISSIONS, action) ? levelOf_(PERMISSIONS[action]) : '';
+}
+
+/* THE LEVEL FROM THE TIERS (tools/permissions.js `levelOf`, the same words): anyone, self (signed in; the handler checks whose row) or admin. */
+function levelOf_(roles) {
+  return roles.indexOf('anyone') !== -1 ? 'anyone' : roles.indexOf('member') !== -1 ? 'self' : roles.indexOf('admin') !== -1 ? 'admin' : '';
 }
 
 /* A CHILD REFUSED WHAT A MEMBER MAY DO (398, money): the action's tiers name member and not child. */

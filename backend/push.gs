@@ -79,7 +79,7 @@ function pushTo_(personOrName, kind, title, body, link) {
   }
 }
 
-/* THE CARD'S FOUR ACTIONS. `me` is the signed-in person (ACTION_ACCESS 'self'). */
+/* THE CARD'S FOUR ACTIONS. `me` is the signed-in person (PERMISSIONS level 'self'). */
 function pushAction_(action, body) {
   const me = findPerson('', S(body.personId));
   if (!me) return { error: 'Sign in first.' };

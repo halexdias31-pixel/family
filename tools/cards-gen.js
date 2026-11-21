@@ -36,7 +36,7 @@ const TAKE = [
   /* A VALUE TOO LONG FOR A TAG IS SAID AS THE MENU SAYS IT (`showForms_`, `SHOW_MAX`): "Section A: Modern prose or…". */
   ['js/find-facets.js', ['SHOW_MAX', 'showForms_']],
   /* ONE FORM ENGINE (job G): the gap tests a form is sent by; the backend asks them again over FORM_GAPS. */
-  ['js/form.js', ['FORM_TESTS', 'formGaps_']],
+  ['js/form.js', ['FORM_TESTS', 'formGaps_', 'phoneCodes_', 'phoneOut', 'phoneIn', 'HANDLE_SHAPE', 'handleTyped_', 'handleFold_']],
   ['js/predicates-fig.js', ['FIG_WORDS', 'FIG_NOT_WORDS', 'figWords_', 'figPictured_', 'figUndrawn_']],
 ];
 /* THE EMAIL'S COLOURS, FROM style.css `:root` (20 Nov): DIGEST_INK, each email name as the token it draws; `--email-*` where the email needs its own. */
