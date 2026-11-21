@@ -12,7 +12,7 @@ function workFileCard_(pid) {
   return renderCard(wfSpec_(of));
 }
 /* ITS SPEC: the scan and save tiles stand in the card's own tile row; under someone else's student they sit among the lines (`wfBody_`). */
-const wfSpec_ = of => ({ kind: 'panel', look: 'workfile-card', name: 'Work on file', tags: [{ text: 'Work on file' }], data: { of },
+const wfSpec_ = of => ({ kind: 'panel', card: 'acct:workfile', look: 'workfile-card', name: 'Work on file', tags: [{ text: 'Work on file' }], data: { of },
   body: wfBody_(of, true), tiles: wfTeach_(of) ? [] : wfTiles_(of) });
 /* A TUTOR'S OWN CARD holds no scans of theirs: it opens each booked student's file (`others`, from the backend). */
 const wfTeach_ = of => !!USER && String(of) === String(USER.personId || '') && typeof rank_ === 'function' && rank_() === 'staff';
@@ -168,7 +168,7 @@ function historyCard_(pid) {
   if (!of || !USER || USER.lockedPreview) return '';
   return renderCard(histSpec_(of));
 }
-const histSpec_ = of => ({ kind: 'setting', name: 'History', tags: [{ text: 'History' }], data: { of, hist: 1 }, body: histBody_(of) });
+const histSpec_ = of => ({ kind: 'setting', card: 'acct:history', name: 'History', tags: [{ text: 'History' }], data: { of, hist: 1 }, body: histBody_(of) });
 function histBody_(of) {
   const s = histOf_(of);
   const pick = { type: 'formRow', label: 'Day', control: { kind: 'date', look: 'hist-day', value: s.day, data: { of }, aria: 'Which day' } };

@@ -85,7 +85,7 @@ function formCard_(spec) {
   const ticks = (s.toggles || []).map(formToggle_).join('');
   const save = s.save && s.save.act ? tile_(s.save) : s.save;
   const after = (s.said ? cardBlock_({ type: 'group', tag: 'p', look: 'note', id: s.said }) : '') + (s.after || '');
-  const card = { title: s.title, cls: s.cls, attrs: s.attrs, lead: s.lead, save: save, after: after };
+  const card = { card: s.card, title: s.title, cls: s.cls, attrs: s.attrs, lead: s.lead, save: save, after: after };
   if (s.groups) return setCard_(Object.assign(card, { form: fields, formAttrs: s.formAttrs, foot: s.foot }));
   return setCard_(Object.assign(card, { body: (s.body || '') + asked + ticks + (s.tail || '') }));
 }

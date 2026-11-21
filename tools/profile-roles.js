@@ -46,8 +46,23 @@ async function run() {
       await pg.goto('http://localhost:' + PORT + '/');
       await pg.waitForFunction(() => typeof DATA !== 'undefined' && DATA && (DATA.tutors || []).length && DATA.permissions && DATA.settingFor, null, { timeout: 90000 });
       await pg.waitForTimeout(1500);
-      return await pg.evaluate(() => settingDoorItems_().filter(x => x.parts).map(x => ({ name: x.name,
-        parts: x.parts.filter(p => !p.lens).map(p => ({ col: p.col || '', id: p.id || (p.notify ? 'door:notify' : '') })) })));
+      return await pg.evaluate(() => {
+        /* EVERY SETTINGS CARD DRAWN SAYS WHICH IT IS (job E): its data-card (or data-lay-card, or a list's mark) is an id the registry knows
+           (kinds.json setting.cards, or a set:/own:/prog:series: id); a padlock or a wait says data-card="-" or is a wait. */
+        const unknown = [];
+        settingTypes_().forEach(({ col }) => {
+          if (!col) return;
+          settingGroups_(col).forEach(g => {
+            const h = g.pages.join(''), tag = (/^\s*(?:<!--[^>]*-->)?\s*<div[^>]*>/.exec(h) || [''])[0];
+            const said = (/\sdata-card="([^"]*)"/.exec(tag) || [])[1];
+            if (settingNone_(h)) return;
+            if (said && !cardIs_(said)) unknown.push(col + ': data-card="' + said + '" is not in the registry');
+            else if (!g.id && !/\bis-wait\b|\bwait\b|kc-empty|loading/.test(tag)) unknown.push(col + ': a card with no data-card: ' + tag.slice(0, 120));
+          });
+        });
+        return { unknown, items: settingDoorItems_().filter(x => x.parts).map(x => ({ name: x.name,
+          parts: x.parts.filter(p => !p.lens).map(p => ({ col: p.col || '', id: p.id || (p.notify ? 'door:notify' : '') })) })) };
+      });
     } finally { await c.close(); }
   };
   try {
@@ -55,7 +70,8 @@ async function run() {
     const bad = [];
     let cards = 0;
     ROLES.forEach((role, i) => {
-      const items = got[i];
+      const items = got[i].items;
+      got[i].unknown.forEach(u => bad.push(role.see + ' › ' + u));
       if (!items.length) bad.push(role.see + ': no cards drawn — the app did not start');
       items.forEach(x => x.parts.forEach(p => {
         cards++;
@@ -66,7 +82,7 @@ async function run() {
       }));
     });
     console.log('profile-roles: ' + ROLES.length + ' roles, ' + bad.length + ' cards out of place');
-    console.log('  by role: ' + ROLES.map((r, i) => r.see + ' ' + got[i].length).join(', ') + ' (' + cards + ' cards)');
+    console.log('  by role: ' + ROLES.map((r, i) => r.see + ' ' + got[i].items.length).join(', ') + ' (' + cards + ' cards)');
     bad.forEach(x => console.log('  ' + x));
     if (bad.length) throw new Error('profile-roles: ' + bad.length + ' card(s) out of place');
   } finally { await b.close(); srv.close(); }

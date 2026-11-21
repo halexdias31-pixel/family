@@ -641,7 +641,7 @@ function progressStats_() {
 }
 const progressPct_ = (a, b) => (b > 0 ? Math.round(100 * a / b) : 0);
 function progressAnsweredCard_(st) {
-  if (!st.n) return emptyCard_('Questions');
+  if (!st.n) return emptyCard_('Questions', 'acct:prog-answered');
   /* A TOPIC'S BAR: a drawing as wide as the share it got right, its colour the stylesheet's. */
   const bar = pct => ({ type: 'drawing', node: { el: 'svg', a: { class: 'prog-bar', viewBox: '0 0 100 1', preserveAspectRatio: 'none', 'aria-hidden': 'true' },
     kids: [{ el: 'rect', a: { width: String(pct), height: '1' } }] } });
@@ -651,9 +651,9 @@ function progressAnsweredCard_(st) {
     progRow_('Marks', st.of ? st.got + ' of ' + st.of + ' (' + progressPct_(st.got, st.of) + '%)' : 'none marked yet', '', 'prog-tot')].concat(rows));
 }
 /* A PROGRESS CARD from its blocks, through the one card maker; its name is its first tag. */
-const progressCard_ = (look, name, body, more) => renderCard(Object.assign({ kind: 'panel', look, name, tags: [name], body }, more || {}));
+const progressCard_ = (look, name, body, more) => renderCard(Object.assign({ kind: 'panel', card: 'acct:' + look, look, name, tags: [name], body }, more || {}));
 function progressActivityCard_(st) {
-  if (!st.n) return emptyCard_('Recent activity');
+  if (!st.n) return emptyCard_('Recent activity', 'acct:prog-activity');
   const said = p => !p.sc ? 'sent' : p.ok ? 'right' : p.sc.of > 1 ? p.sc.got + '/' + p.sc.of : 'wrong';
   const last = st.recent.map(r => progRow_((r.x && (r.x.sub ? r.x.sub + ' · ' : '') + (r.x.name || '')) || 'A question',
     said(r), `prog-v${r.ok ? ' is-good' : r.sc ? ' is-bad' : ''}`));
@@ -661,7 +661,7 @@ function progressActivityCard_(st) {
     progRow_('Last 7 days', `${st.week} on ${progressDaysSaid_(st.weekDays)}`)].concat(last));
 }
 function progressWeakCard_(st) {
-  if (!st.weak.length) return emptyCard_('Work on next');
+  if (!st.weak.length) return emptyCard_('Work on next', 'acct:prog-weakest');
   return progressCard_('prog-weakest', 'Work on next', st.weak.map(o => ({ type: 'group', look: 'prog-weak', blocks: [progRow_(o.topic, `${progressPct_(o.got, o.of)}% of marks`),
     { type: 'tiles', tiles: [{ icon: 'search', label: 'Practise', note: o.topic + ' in Find', act: 'prog-practise', data: { topic: o.topic, key: (o.miss && o.miss.key) || '' } }] }] })));
 }
@@ -740,7 +740,7 @@ function progressGradeCard_(st) {
     const label = o.subj + (o.lv === 'gcse' ? ' GCSE' : o.lv === 'alevel' ? ' A-level' : o.lv === 'sats' ? ' SATs' : ' worksheets');
     return progRow_(label, g);
   });
-  if (!rows.length) return emptyCard_('Grade estimate');
+  if (!rows.length) return emptyCard_('Grade estimate', 'acct:prog-grade');
   return progressCard_('prog-grade', 'Grade estimate', rows);
 }
 
@@ -763,7 +763,7 @@ function progressSessions_() {
   return { ahead: ahead.slice(0, 3), past: past.slice(0, 3) };
 }
 function progressSessionsCard_(ss) {
-  if (!ss.ahead.length && !ss.past.length) return emptyCard_('Sessions');
+  if (!ss.ahead.length && !ss.past.length) return emptyCard_('Sessions', 'acct:prog-sessions');
   const when = s => fmtDate_(s.d, 'day') + ' ' + fmtDate_(s.d) + (s.j.time ? ' · ' + fmtDate_(s.j.time, 'time') : '');
   const row = s => progRow_(when(s), s.j.title || s.j.subject || 'Session');
   return progressCard_('prog-sessions', 'Sessions', ss.ahead.map(row).concat(ss.past.map(row)),
@@ -777,7 +777,7 @@ function progressCards_() {
   const cards = [progressAnsweredCard_(st), progressActivityCard_(st), progressWeakCard_(st),
     progressGradeCard_(st)];
   if (st.series.length) st.series.slice(0, 6).forEach(sr => cards.push(progressSeriesCard_(sr)));
-  else cards.push(emptyCard_('Papers and worksheets'));
+  else cards.push(emptyCard_('Papers and worksheets', 'acct:prog-series'));
   cards.push(progressSessionsCard_(signed ? progressSessions_() : { ahead: [], past: [] }));
   return cards;
 }

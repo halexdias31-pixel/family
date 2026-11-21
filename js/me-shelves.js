@@ -299,7 +299,7 @@ function setCard_(o) {
   const save = o.save ? cardBlock_({ type: 'group', look: 'tile-row set-save', inner: o.save }) : '';
   const body = o.form == null ? (o.body || '') + save
     : cardBlock_({ type: 'group', look: 'me-form', attrs: meAttrs_(o.formAttrs || ''), inner: o.form + save + (o.foot == null ? meSaid_('') : o.foot) });
-  return renderCard({ kind: 'setting', look: 'set-shape' + (o.cls ? ' ' + o.cls : ''), name: o.title || '', tags: [o.title || ''], data: meData_(o.attrs),
+  return renderCard({ kind: 'setting', card: o.card || '', look: 'set-shape' + (o.cls ? ' ' + o.cls : ''), name: o.title || '', tags: [o.title || ''], data: meData_(o.attrs),
     body: [{ type: 'embed', tool: 'me-form', args: { draw: () => (o.lead || '') + body + (o.after || '') } }] });
 }
 /* ONE TEMPLATE FOR SETTINGS AND ACCOUNT CARDS (owner, 13 Nov): a spec through renderCard; the form is its one embed, drawn by a function so no spec string holds markup. */
