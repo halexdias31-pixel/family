@@ -16007,17 +16007,40 @@ if (done.length) out.push({ type: 'tiles', tiles: [{ icon: DK.showDone ? 'close'
 if (DK.showDone) done.forEach(i => out.push(dkItem_(L.items[i], i)));
 return out;
 }
-function dkNowNext_(lists) {
-const p = dkPhase_(lists, dkNow_(), dkFill_);
-if (!p) return [];
+function dkNowNextOf_(lists, p) {
+if (!p) return null;
 const L = lists[p.cur], N = p.next == null ? null : lists[p.next];
-const rows = p.rows.map(r => { const it = lists[r.li].items[r.i], tags = [r.missed ? text_('dk-missed') : '', r.missed ? lists[r.li].name : '', it.time || ''].filter(Boolean);
-return { type: 'group', look: 'dk-item', blocks: [{ type: 'tick', text: it.title || 'Untitled', attrs: { 'data-dkf': r.li + ':' + r.i, checked: false, 'aria-label': 'Done: ' + (it.title || '') } },
-tags.length ? { type: 'tags', tags } : null].filter(Boolean) }; });
-return [{ type: 'section', head: text_('dk-now-at', { name: L.name, at: p.at }),
-blocks: (rows.length ? rows : [{ type: 'text', text: text_('dk-day-done') }])
-.concat({ type: 'text', text: N ? text_('dk-next', { name: N.name, at: p.nextAt }) : text_('dk-next-none') }) }];
+return { head: text_('dk-now-at', { name: L.name, at: p.at }), done: text_('dk-day-done'),
+next: N ? text_('dk-next', { name: N.name, at: p.nextAt }) : text_('dk-next-none'),
+rows: p.rows.map(r => { const it = lists[r.li].items[r.i];
+return { at: r.li + ':' + r.i, title: it.title || 'Untitled', missed: r.missed, tags: [r.missed ? text_('dk-missed') : '', r.missed ? lists[r.li].name : '', it.time || ''].filter(Boolean) }; }) };
 }
+function dkNowNext_(lists, p) {
+const m = dkNowNextOf_(lists, p === undefined ? dkPhase_(lists, dkNow_(), dkFill_) : p);
+if (!m) return [];
+const rows = m.rows.map(r => ({ type: 'group', look: 'dk-item', blocks: [{ type: 'tick', text: r.title, attrs: { 'data-dkf': r.at, checked: false, 'aria-label': 'Done: ' + r.title } },
+r.tags.length ? { type: 'tags', tags: r.tags } : null].filter(Boolean) }));
+return [{ type: 'section', head: m.head, blocks: (rows.length ? rows : [{ type: 'text', text: m.done }]).concat({ type: 'text', text: m.next }) }];
+}
+function dkEinkHtml_(lists, p) {
+const m = dkNowNextOf_(lists, p);
+if (!m) return '<p class="ek-say">' + esc(text_('dk-eink-none')) + '</p>';
+const row = r => '<li class="ek-row' + (r.missed ? ' is-missed' : '') + '"><label class="ek-tick">' + formInput_('type="checkbox" data-dkf="' + esc(r.at) + '" aria-label="' + esc('Done: ' + r.title) + '"')
++ '<span class="ek-t">' + esc(r.title) + '</span>' + (r.tags.length ? '<span class="ek-tags">' + esc(r.tags.join(' · ')) + '</span>' : '') + '</label></li>';
+return '<h1 class="ek-now">' + esc(m.head) + '</h1>' + (m.rows.length ? '<ol class="ek-rows">' + m.rows.map(row).join('') + '</ol>' : '<p class="ek-say">' + esc(m.done) + '</p>')
++ '<p class="ek-next">' + esc(m.next) + '</p>';
+}
+const EINK = /(?:^|[?&])eink(?:[=&]|$)/.test(location.search);
+function dkEinkPaint_() {
+let box = $('eink');
+if (!box) { box = document.createElement('main'); box.id = 'eink'; document.body.appendChild(box); document.documentElement.classList.add('eink'); }
+const owner = typeof may_ === 'function' && may_('owner');
+const html = owner ? dkEinkHtml_(dkLoad_(), dkPhase_(dkLoad_(), dkNow_(), dkFill_))
+: '<p class="ek-say"><a class="ek-sign" href="' + esc(location.pathname) + '">' + esc(text_('dk-eink-sign-in')) + '</a></p>';
+if (box.getAttribute('data-was') !== html) { box.innerHTML = html; box.setAttribute('data-was', html); }
+}
+const dkEinkTry_ = () => { try { dkEinkPaint_(); } catch (e) { if (typeof oops_ === 'function') oops_(e, 'map:eink'); } };
+if (EINK) { setTimeout(dkEinkTry_, 0); setInterval(dkEinkTry_, 60000); }
 function dkPaint_() {
 const box = $('dk-box');
 if (!box) return;
@@ -16127,7 +16150,7 @@ tiles: open ? [{ icon: 'save', label: 'Save', act: 'dk-fsave', cls: 'is-submit',
 { icon: 'close', label: 'Close', act: 'dk-fedit', data: { at: x.dkAt } }] : [{ icon: 'edit', label: 'Edit', act: 'dk-fedit', data: { at: x.dkAt } }] });
 }
 const dkAt_ = at => { const [li, i] = String(at || '').split(':').map(Number), L = dkLoad_()[li]; return { L, i, it: L && L.items[i] }; };
-const dkFindKeep_ = () => { dkKeep_(); if (typeof lateCame_ === 'function') lateCame_(); };
+const dkFindKeep_ = () => { dkKeep_(); if (typeof lateCame_ === 'function') lateCame_(); if (EINK) dkEinkTry_(); };
 on('dk-fedit', el => { const at = el.getAttribute('data-at') || ''; DKF.edit = DKF.edit === at ? '' : at; if (typeof lateCame_ === 'function') lateCame_(); });
 on('dk-fsave', el => { const { it } = dkAt_(el.getAttribute('data-at')), card = el.closest('.card'); if (!it || !card) return;
 card.querySelectorAll('[data-dke]').forEach(b => { const f = b.getAttribute('data-dke'), x = dkFields_().find(y => y.f === f) || {}, v = String(b.value || '').trim();

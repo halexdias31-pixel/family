@@ -30,6 +30,9 @@
   --coral:     var(--hue-0);
   --white:  #ffffff;   /* plain white and black, for shadows and highlights mixed from tokens */
   --black:  #000000;
+  /* THE E-INK PAGE (?eink, js/map.js dkEinkPaint_): pure black on white, nothing between. */
+  --eink-ink:   var(--black);
+  --eink-paper: var(--white);
   --gold:      var(--white);   /* the one action: white on black since 466 (the name stays) */
   /* WHO CAN SEE IT, not what it is. See the tile rules at the end of this file. */
   --admin:     #f2d24b;   /* a yellow for content (a game's key, a chess move); never a marker for admin (11a) */
@@ -5345,3 +5348,25 @@ button.scr-sq { cursor: pointer; }
 
 /* ONE CROP FOR EVERY PICTURE: only matters where `object-fit: cover` cuts one; centred across, kept high down (`--crop-y`). */
 img, video { object-position: 50% var(--crop-y); }
+
+/* THE E-INK PAGE (owner, 21 Nov: NOW, NEXT step 2; ?eink, js/map.js dkEinkPaint_): the Docket's Now/Next alone, pure black on white, large, still.
+   Everything else the app draws is hidden; sizes follow the screen's shorter side, so 800×480 and 758×1024 both fit. */
+html.eink, html.eink body { background: var(--eink-paper); color: var(--eink-ink); }
+html.eink body > :not(#eink) { display: none !important; }
+html.eink *, html.eink *::before, html.eink *::after { animation: none !important; transition: none !important; box-shadow: none; text-shadow: none; }
+#eink { display: block; box-sizing: border-box; min-height: 100vh; padding: 3vmin 4vmin; font: 700 clamp(18px, 5.2vmin, 48px)/1.25 system-ui, sans-serif;
+  background: var(--eink-paper); color: var(--eink-ink); overflow-wrap: anywhere; }
+#eink .ek-now { font-size: 1.25em; margin: 0 0 .5em; padding-bottom: .3em; border-bottom: .12em solid var(--eink-ink); }
+#eink .ek-rows { list-style: none; margin: 0; padding: 0; }
+#eink .ek-row { border-bottom: 2px solid var(--eink-ink); }
+#eink .ek-tick { display: flex; flex-wrap: wrap; align-items: center; gap: 0 .5em; padding: .35em 0; min-height: 1.6em; cursor: pointer; }
+#eink .ek-tick input { appearance: none; -webkit-appearance: none; flex: none; box-sizing: border-box; width: 1.1em; min-width: 1.1em; height: 1.1em; min-height: 0; margin: 0; padding: 0; border-radius: 0; border: .12em solid var(--eink-ink); background: var(--eink-paper); }
+#eink .ek-tick input:checked { background: var(--eink-ink); }
+#eink .ek-t { flex: 1 1 auto; min-width: 0; }
+#eink .is-missed .ek-t { font-style: italic; text-decoration: underline; text-decoration-thickness: .08em; }
+#eink .ek-tags { flex-basis: 100%; padding-left: 1.6em; font-size: .7em; font-weight: 400; }
+#eink .ek-next { margin: .7em 0 0; padding-top: .3em; border-top: .12em solid var(--eink-ink); }
+#eink .ek-say { margin: 0; }
+#eink .ek-sign { color: var(--eink-ink); text-decoration: underline; }
+@media (max-height: 600px) { #eink .ek-tick { padding: .15em 0; } #eink .ek-tags { flex-basis: auto; padding-left: 0; } #eink .ek-now { margin-bottom: .2em; } #eink .ek-next { margin-top: .3em; } }
+#eink .ek-rows + .ek-next { border-top: 0; }

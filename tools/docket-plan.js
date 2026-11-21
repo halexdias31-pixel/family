@@ -78,5 +78,5 @@ function run() {
   report('docket-plan', bad, 'list(s) out of order');
   return { n: CASES.length + PHASES.length, bad: bad.length };
 }
-module.exports = { run };
+module.exports = { run, fnOf, NOW, DAY, PHASES };
 main(module, run);

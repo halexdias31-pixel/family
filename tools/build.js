@@ -34,6 +34,7 @@ const ORDER = [
   'essay-cases',  // the essay check (rule 1.33, 1.75; ESSAYS, DISTILLED): AQA's examiner-marked 8700 exemplars through rule: levels; agreement printed, below 80% within one level fails the build
   'date-cases',   // the date check (rule 1.75, owner 20 Nov): js/core.js dateOf_/todayIso_ and backend/cards-gen.gs's copies on one table (DD/MM, ISO, BST days, London midnight); a wrong day or a disagreement fails the build
   'docket-plan',  // the Now, Next check (rule 1.75, 1.82, owner 20 Nov): js/map.js dkPlan_ on fixed lists keeps the order rules and is deterministic; fails the build
+  'eink',         // the e-ink check (rule 1.75, owner 21 Nov: NOW, NEXT step 2): ?eink's page and the Docket widget show the same Now/Next on docket-plan's day; fails the build
   'one-paper',    // the one-paper check (rule 1.75, 20 Nov): no two active past papers share board, spec, series and paper number; fails the build
   'source-lines', // the source-lines check (rule 1.75, owner 20 Nov): an English row naming "Source X, lines N to M" gets source_lines, shows them off its insert or is withheld; fails the build
   'one-box',      // the one-box check (rule 1.75, owner 20 Nov): every answer face by qtFace_; more than one box outside a table fails the build
