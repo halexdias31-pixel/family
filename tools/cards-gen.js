@@ -173,7 +173,7 @@ function build() {
     + parts.join('\n') + '\n';
 }
 /* THE ONE SETTINGS FILE (data/settings/settings.json), as SHARED_SETTINGS at the top of the first file each side loads. */
-const SHARED_RE = /\/\* SHARED:BEGIN[\s\S]*?\/\* SHARED:END \*\//;
+const { SHARED_RE } = require('./lib/gen.js');
 function sharedInto(file) {
   const j = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/settings/settings.json'), 'utf8'));
   /* AND OUR PICTURES' NAMES (owner, 20 Nov): data/settings/default-pictures.json, the one list, as `pictures` (PFP_PICTURES, PFP_ART's keys). */

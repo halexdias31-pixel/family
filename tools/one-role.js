@@ -7,8 +7,7 @@
    comparison fails the build. tools/build.js runs it after cards-gen. */
 'use strict';
 const vm = require('vm');
-const { text, srcFiles, report, main } = require('./lib/gen.js');
-const SHARED_RE = /\/\* SHARED:BEGIN[\s\S]*?\/\* SHARED:END \*\//;
+const { text, srcFiles, report, main, bare, SHARED_RE } = require('./lib/gen.js');
 /* THE NAMES ONLY THE SHARED BLOCK DEFINES. */
 const NAMES = ['ROLES_', 'ROLE_IDS', 'RANKS', 'ROLE_ALIASES', 'SEE_ROLES', 'ROLE_THREE_', 'rankTier_', 'mayWord_', 'rankMayMessage_'];
 
@@ -26,13 +25,10 @@ function find() {
     if (f === 'js/core.js' || f === 'backend/constants.gs') {
       if (!block || block[0].indexOf(helpers) === -1) bad.push(f + ': SHARED block lacks data/settings/roles.js as it stands (run cards-gen)');
     }
-    /* THE GENERATED BLOCKS ARE THE SOURCE'S OWN COPIES (SHARED here, the permissions.json tables by tools/permissions.js): kept, not looked at. */
-    const blank = m => m.replace(/[^\n]/g, '');
-    const rest = (block ? src.replace(block[0], () => blank(block[0])) : src)
-      .replace(/\/\* -{10} (.+?) \(generated\) -{10} \*\/[\s\S]*?\/\* -{10} END \1 -{10} \*\//g, blank);
-    rest.split('\n').forEach((line, i) => {
+    /* THE GENERATED BLOCKS ARE THE SOURCE'S OWN COPIES (SHARED here, the permissions.json tables by tools/permissions.js): kept, not looked at;
+       comments are blanked too. */
+    bare(src, { generated: true, comments: 'js' }).split('\n').forEach((code, i) => {
       const at = f + ':' + (i + 1);
-      const code = line.replace(/\/\*.*?\*\/|\/\/.*$/g, '');
       /* 2. A SHARED NAME DEFINED AGAIN. */
       for (const n of NAMES) if (new RegExp('^\\s*(?:const|let|var|function)\\s+' + n.replace('$', '\\$') + '\\b').test(code)) bad.push(at + ': defines ' + n + ' again (it is the SHARED block\'s)');
       /* 3. A LITERAL LIST OF ROLE WORDS (two or more, nothing else). */
