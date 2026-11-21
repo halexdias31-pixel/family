@@ -152,10 +152,10 @@ async function loadFetch_(who) {
         early
           ? early.then(r => (r && r.ok ? r : (location.protocol === 'file:'
               ? jsonp(API + who + bust)
-              : fetch(API + who + bust, { cache: 'no-store' }))))
+              : backendFetch_(null, { query: who + bust }))))
           : location.protocol === 'file:'
           ? jsonp(API + who + bust)
-          : fetch(API + who + bust, { cache: 'no-store' }),
+          : backendFetch_(null, { query: who + bust }),
         deadline]);
     } finally {
       /* Cleared whichever way it went, or a load that answered at 59 seconds leaves a timer running
