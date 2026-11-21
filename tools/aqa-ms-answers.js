@@ -72,12 +72,7 @@ for (const id of ids) {
 const changed = out.filter(r => r.answer !== r.was);
 console.log('aqa-ms-answers: ' + out.length + ' cells read, ' + changed.length + ' differ from the stored answer' + (miss.length ? ', ' + miss.length + ' not read:' : ''));
 miss.forEach(x => console.log('  ' + x));
-if (outF) {
-  fs.writeFileSync(outF, JSON.stringify({ version: 1, made: new Date().toISOString(),
-    note: 'AQA 8462/8464 answers re-read from each question\'s own mark-scheme cell (tools/aqa-ms-answers.js): the 28 Oct split gave the top half of a cell to the question before it.',
-    files: { questions: changed.map(r => ({ id: r.id, answer: r.answer })) } }, null, 1));
-  console.log('  wrote ' + outF);
-}
+/* No pack is made here: --apply patches data-private, and tools/content/library.js packsOf is the one pack maker. */
 if (apply) {
   changed.forEach(r => { priv[r.id] = Object.assign(priv[r.id] || {}, { answer: r.answer }); });
   fs.writeFileSync(PRIV, '{\n' + Object.keys(priv).map(k => JSON.stringify(k) + ':' + JSON.stringify(priv[k])).join(',\n') + '\n}\n');
