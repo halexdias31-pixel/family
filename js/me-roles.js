@@ -578,7 +578,7 @@ function settingsCards_(shown, moved, col) {
   const p = whose_().profile || {};
   /* THE BUSINESS'S CUT OF AN EXTRA SEAT IS SHOWN TO A TUTOR AND NOT OFFERED (docs/history/345) — an
      admin's to set, and `seatCutRefusal_` refuses it from anybody else; a disabled box is one `meSave_` never posts. */
-  const readonly = (DATA.profileReadonly || []).concat(may_('admin') ? [] : ['extra_seat_cut']);
+  const readonly = (DATA.profileReadonly || []).concat('extra_seat_cut').filter(fieldReadonly_);
   /* ONE SHAPE FOR EVERY CARD (8 Nov; 84a): `formCard_` — the title, one line per field, saved as you type. */
   const mail = list => (list || []).indexOf('email') !== -1;
   const one = (g, list, top, lid) => setHeldSay_(formCard_({ title: g, cls: lid ? 'set-card' : '', lead: (top || '') + shareBarFor_(list, p),

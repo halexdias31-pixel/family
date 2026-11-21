@@ -320,9 +320,9 @@ function peSave_(form) {
   const fields = peFields_(form), said = form.querySelector('.pe-said'), key = JSON.stringify(fields);
   if (key === F.sent) return;
   form.classList.add('is-sending');
-  send_({ action: 'item', door: 'save', item: 'profile', name: USER.name, personId: USER.personId || '', target: F.name || '', targetId: F.id, fields }, { where: said })
-    .then(d => { F.sent = key; F.moved = true; formDraftDrop_('person-edit', { draftId: F.id }); if (said) tell_(said, 'saved', '✓ ' + ((d && d.said) || 'Saved')); })
-    .catch(() => {})
+  /* THE ONE PROFILE SAVE (`profileSave_`, me-settings.js): these boxes are gathered here, in `updateProfile`'s names. */
+  profileSave_(form, { fields, target: { name: F.name || '', id: F.id }, said, how: { where: said }, toast: false, tick: null,
+    done: ({ word }) => { F.sent = key; F.moved = true; formDraftDrop_('person-edit', { draftId: F.id }); if (said) tell_(said, 'saved', '✓ ' + word); } })
     .then(() => form.classList.remove('is-sending'));
 }
 ['input', 'change'].forEach(ev => document.addEventListener(ev, e => {

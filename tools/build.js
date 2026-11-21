@@ -40,6 +40,7 @@ const ORDER = [
   'email-ink',    // the email-ink check (rule 1.75, 20 Nov): the Sunday email's colours equal style.css tokens, its esc and the card maker's cardUnesc_ round-trip; fails the build
   'digest-clip',  // the digest-clip check (rule 1.75, owner 20 Nov): large weeks through the Sunday email's digestRender_; a part over Gmail's clip or a question without its words fails the build
   'bundle',       // js/ in index.html's order -> bundle/*.js
+  'one-profile-save', // the one-profile-save check (rule 1.75, unify batch 9 job A): one profile send (profileSave_), one fieldReadonly_; fails the build
   'one-request',  // the one-request check (rule 1.75, unify H): one fetch to the backend (backendFetch_), every posted action in actions.json, one dispatcher; fails the build
   'one-import',   // the one-import check (rule 1.75, unify K): one pack validator and applier (libPackCheck_, libPackApply_), one pack maker, one deploy (pullFromGitHub), the emptying guard on fixed cases; fails the build
   'one-word',     // the one-word check (rule 1.75, unify batch 6 lane B): a js literal of 12+ characters equal to a words.json value is read through text_(key); another lane's owed file is printed as owed; fails the build
