@@ -239,9 +239,7 @@ function postActions_() {
 /* THE TALLY, READ AND WRITTEN UNDER THE LOCK, FOR BOTH OF THEM, AND IN ONE HOLD: § */
 function aiTally_(change, busy, prop) {
   const name = prop || 'AI_MARKS';
-  const lock = LockService.getScriptLock();
-  if (!lock.tryLock(5000)) return busy;
-  try {
+  return withWriteLock_(() => {
     const props = PropertiesService.getScriptProperties();
     const day = todayIso_();
     let tally = {};
@@ -250,9 +248,7 @@ function aiTally_(change, busy, prop) {
     const out = change(tally);
     if (out) props.setProperty(name, JSON.stringify(tally));
     return out;
-  } finally {
-    lock.releaseLock();
-  }
+  }, { busy: () => busy });
 }
 
 /* ---------- THE ASSISTANT'S QUESTION, ASKED OF GEMINI (449). The facts are the phone's map of the site, fenced as data; site help only (547). */
@@ -773,7 +769,7 @@ function workingFolder_() {
 function workingKeep_(folder, raw, name) {
   const v = S(raw).split(',');
   const file = folder.createFile(Utilities.newBlob(Utilities.base64Decode(v[1] || ''), 'image/jpeg', S(name) + '.jpg'));
-  return 'https://drive.google.com/file/d/' + file.getId() + '/view';
+  return driveFileUrl_(file.getId());
 }
 /* WHO MAY SEE A STUDENT'S WORKING: themselves, staff or admin (the business), and a parent they accepted. */
 function workingMaySee_(me, of) {
@@ -847,10 +843,8 @@ function clientError_(body) {
   if (cache) { try { cache.put(ck, String(sent + 1), 86400); cache.put(ak, String(all + 1), 86400); } catch (err) { /* a full cache only loosens the throttle */ } }
   /* KEYED ON message+where ONLY: a new deploy updates the row's version, it does not file the same error again. */
   const key = Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, message + '|' + where)).slice(0, 16);
-  const lock = LockService.getScriptLock();
-  if (!lock.tryLock(5000)) return { error: 'Busy', why: 'busy' };
   let fresh = false;
-  try {
+  const early = withWriteLock_(() => {
     clearCache();
     const t = read(TAB.client_errors);
     if (!t.sheet) return { error: 'No error log yet — an admin opening the site sets it up.', why: 'no-tab' };
@@ -873,9 +867,8 @@ function clientError_(body) {
       const tn = read(TAB.claude_notes);
       if (tn.sheet) suggestRow_(tn, 'site', 'error', key, where + ' @ ' + version, '[error] ' + message + (screen ? ' (screen ' + screen + ')' : ''), 'open');
     }
-  } finally {
-    lock.releaseLock();
-  }
+  }, { busy: () => ({ error: 'Busy', why: 'busy' }) });
+  if (early) return early;
   if (fresh) { clearCache(); try { claudeNotesWrite_(claudeNotesOpen_()); } catch (err) { /* the tab row stands; the Drive file catches up on the next add */ } }
   return { success: true, fresh: fresh };
 }

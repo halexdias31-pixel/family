@@ -59,6 +59,8 @@ const boardOf_ = x => (sourceOf_(x) ? '' : (x && x.examBoard) || '');
 
 /* ---------- WHICH KEY STAGE A SATs ROW IS, AND ONLY A SATs ROW § */
 function satsStagesOf_(x) {
+  /* ONLY A SATs ROW (owner, as its note says): a KS3 sheet taught across `KS2, KS3` keeps both (unify batch 7, the email's rule). */
+  if (levelsOf_(x).indexOf('SATs') === -1) return [];
   const yr = (x && x.bandType === 'year') ? Number(x.bandValue) : NaN;
   if (yr >= 1 && yr <= 6) return [yr <= 2 ? 'KS1' : 'KS2'];
   const named = /\bks\s*([12])\b/i.exec(String((x && x.bandType === 'stage' && x.bandValue)

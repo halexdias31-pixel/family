@@ -5058,7 +5058,7 @@ if (!o || typeof o !== 'object' || Array.isArray(o)) return null;
 const set = {}, s = o.set && typeof o.set === 'object' ? o.set : {};
 Object.keys(s).forEach(k => { const r = RULE_OF_(k); if (r && !r.lock && s[k] === 'universal') set[k] = 'universal'; });
 const ok = x => x === 'exception' || x === 'universal';
-const hist = (Array.isArray(o.hist) ? o.hist : []).filter(h => h && RULE_OF_(h.id) && ok(h.was) && ok(h.to))
+const hist = (Array.isArray(o.hist) ? o.hist : []).filter(h => h && RULE_OF_(h.id) && !RULE_OF_(h.id).lock && ok(h.was) && ok(h.to))
 .slice(-RULES_HIST_MAX).map(h => ({ id: String(h.id), was: h.was, to: h.to, at: String(h.at || '').slice(0, 40) }));
 return { set: set, hist: hist };
 }

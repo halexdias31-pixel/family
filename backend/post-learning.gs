@@ -19,16 +19,13 @@ function postSaveWorking_(body, action, began) {
   let saved = false;
   try {
     const links = pics.map((x, i) => workingKeep_(folder, x, 'working-' + pid + '-' + id + '-' + (i + 1)));
-    const lock = LockService.getScriptLock();
-    if (lock.tryLock(5000)) {
-      try {
+    withWriteLock_(() => {
         clearCache();
         const out = submissionsAppend_(pid, [{ id: id, key: k, answer: typed.trim() || WORKING_ANSWER, verdict: 'sent',
           label: S(body.label), words: S(body.words), at: body.sent, photos: links.join(' ') }], body.sent);
         if (out.wrote) { try { SpreadsheetApp.flush(); } catch (err) { /* flush is an early write; Apps Script writes at the end anyway */ } submissionsTouched_(pid); }
         saved = !out.error;
-      } finally { lock.releaseLock(); }
-    }
+    }, { busy: () => null });
   } catch (err) { saved = false; }
   if (!saved) return jsonOut({ success: false, message: 'Your working could not be saved just now — your photos are still here, so try again later.' });
   return jsonOut({ success: true, saved: true, photos: pics.length });
@@ -94,50 +91,35 @@ function aiCapGiveBack_(who, took, prop) {
 
 /* ---------- AN ANSWER SENT, KEPT AS AN EVENT § */
 function postSubmitAnswer_(body, action, began) {
-  const me = findPerson('', S(body.personId));
-  if (!me || !S(me.person_id)) return refuse_('err-sign-in-first', 'not-signed-in');
-  const items = (Array.isArray(body.items) ? body.items : []).slice(0, SUBMISSIONS_PER_POST);
-  if (!items.length) return jsonOut({ error: 'No answer to send.' });
-  const lock = LockService.getScriptLock();
-  if (!lock.tryLock(5000)) return refuse_('err-busy-resend', 'busy');
-  let out = {};
-  const wroteBefore = POST_WROTE;
-  try {
+  return answersLocked_(body, SUBMISSIONS_PER_POST, 'No answer to send.', pid => {
     /* FRESH ROWS UNDER THE LOCK. A copy read before the lock was taken is the copy the other
        request was about to change — and the ids already written are what this asks of it. */
-    clearCache();
-    out = submissionsAppend_(S(me.person_id), items, body.sent);
+    const out = submissionsAppend_(pid, body.items.slice(0, SUBMISSIONS_PER_POST), body.sent);
     /* WRITTEN, THEN FLUSHED, THEN SAID — the stamp `submissionsFor_` keys this child's copy by moves only once the rows are on the sheet for another request to read § */
     if (out.wrote) {
       try { SpreadsheetApp.flush(); } catch (err) { /* flush is an early write; Apps Script writes at the end anyway */ }
-      submissionsTouched_(S(me.person_id));
+      submissionsTouched_(pid);
     }
-  } finally {
-    lock.releaseLock();
-  }
-  if (POST_WROTE && !wroteBefore) POST_WROTE = false;
-  if (out.error) return jsonOut({ error: out.error });
-  return jsonOut({ success: true, saved: out.saved });
+    return out;
+  });
 }
 
 /* ---------- WHAT THE CHILD WROTE, KEPT ON THEIR ACCOUNT § */
 function postSaveAnswers_(body, action, began) {
+  /* FRESH ROWS UNDER THE LOCK, as `submitAnswer` reads them. */
+  return answersLocked_(body, ANSWERS_PER_POST, 'No answer to save.', pid => answersUpsert_(pid, body.items.slice(0, ANSWERS_PER_POST)));
+}
+
+/* BOTH OF THEM: signed in, some items, then `write(personId)` under the lock on fresh rows; the stored payload stands. */
+function answersLocked_(body, most, none, write) {
   const me = findPerson('', S(body.personId));
   if (!me || !S(me.person_id)) return refuse_('err-sign-in-first', 'not-signed-in');
-  const items = (Array.isArray(body.items) ? body.items : []).slice(0, ANSWERS_PER_POST);
-  if (!items.length) return jsonOut({ error: 'No answer to save.' });
-  const lock = LockService.getScriptLock();
-  if (!lock.tryLock(5000)) return refuse_('err-busy-resend', 'busy');
+  const items = (Array.isArray(body.items) ? body.items : []).slice(0, most);
+  if (!items.length) return jsonOut({ error: none });
   let out = {};
-  const wroteBefore = POST_WROTE;
-  try {
-    /* FRESH ROWS UNDER THE LOCK, as `submitAnswer` reads them. */
-    clearCache();
-    out = answersUpsert_(S(me.person_id), items);
-  } finally {
-    lock.releaseLock();
-  }
-  if (POST_WROTE && !wroteBefore) POST_WROTE = false;
+  const busy = withWriteLock_(() => { clearCache(); out = write(S(me.person_id)); },
+    { keepPayload: 'after', busy: () => refuse_('err-busy-resend', 'busy') });
+  if (busy) return busy;
   if (out.error) return jsonOut({ error: out.error });
   return jsonOut({ success: true, saved: out.saved });
 }

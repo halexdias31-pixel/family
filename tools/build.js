@@ -44,7 +44,10 @@ const ORDER = [
   'one-import',   // the one-import check (rule 1.75, unify K): one pack validator and applier (libPackCheck_, libPackApply_), one pack maker, one deploy (pullFromGitHub), the emptying guard on fixed cases; fails the build
   'one-word',     // the one-word check (rule 1.75, unify batch 6 lane B): a js literal of 12+ characters equal to a words.json value is read through text_(key); another lane's owed file is printed as owed; fails the build
   'one-plural',   // the one-plural check (rule 1.75, unify batch 5 job R): every count's word by js/core.js plural_ (copied to the backend); an inline n === 1 ? '' : 's' or a changed fixed case fails the build
+  'one-lock',     // the one-lock check (rule 1.75, unify batch 7): the backend's write lock, "Nothing was saved." and Drive file links only in backend/write-lock.gs; fails the build
+  'one-table',    // the one-table check (rule 1.75, unify batch 7): keep-booked jobs, digest skip reasons and the site-then-raw fetch each live once; fails the build
   'one-helper',   // the one-helper check (rule 1.75, unify batch 4): settings groups only in setting-for.json, tool helpers only in tools/lib/gen.js; fails the build
+  'one-twin',     // the one-twin check (rule 1.75, unify batch 7): no backend twin of a site function cards-gen.gs copies, the copies current; fails the build
   'one-card',     // the one-card check (rule 1.75): every Find card by the one maker, no CSS of its own; fails the build
   'dead-css',     // the dead-css check (rule 1.75, owner 20 Nov): classes in style.css nothing writes, counted against a budget; a rise fails the build
   'dead-fn',      // the dead-fn check (rule 1.75, unify batch 6 lane E): a top-level function in js/ that nothing in js/, index.html, backend/, tools/ or data/ names fails the build

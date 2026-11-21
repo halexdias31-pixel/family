@@ -438,17 +438,17 @@ function pricingRefusal_(me, fields, isAdmin) {
   /* A RATE THAT IS NOT A PRICE (405): a word, a minus, or past `RATE_MAX`. Blank stays allowed — it is the open rate. */
   const rate = S(got('rate_per_hour'));
   if (rate !== '' && !(/^\d*\.?\d+$/.test(rate) && Number(rate) <= RATE_MAX)) {
-    return 'The rate is pounds an hour, 0 to ' + RATE_MAX + ' — "' + rate.slice(0, 12) + '" is not one. Nothing was saved.';
+    return 'The rate is pounds an hour, 0 to ' + RATE_MAX + ' — "' + rate.slice(0, 12) + '" is not one.';
   }
   const seat = S(got('extra_seat_rate'));
   if (seat !== '' && !(N(seat) >= 0 && N(seat) <= SEAT_RATE_MAX && !isNaN(Number(seat)))) {
     /* "THE" RATE, NOT "YOUR" RATE: an admin on somebody else's row is told this too (the review of 345). */
     return 'An extra seat costs at most what the first student does — as a share of the rate, 0 to ' + SEAT_RATE_MAX
-         + ', where 0.5 is half the rate for each extra student. Nothing was saved.';
+         + ', where 0.5 is half the rate for each extra student.';
   }
   const lo = S(got('min_students')), hi = S(got('max_students'));
   if (lo !== '' && hi !== '' && N(lo) > N(hi)) {
-    return 'The fewest students (' + lo + ') is more than the most (' + hi + '). Nothing was saved.';
+    return 'The fewest students (' + lo + ') is more than the most (' + hi + ').';
   }
   /* AN ADMIN FIXING A TUTOR'S RATE OR CAP IS THE REMEDY RATHER THAN THE THING BEING BRAKED — the
      same exemption, for the same reason, the handle cooldown had while there was one. */
@@ -462,7 +462,7 @@ function pricingRefusal_(me, fields, isAdmin) {
   /* WHAT IT SAYS IS THE GROUP, NOT THE FIELD THAT HAPPENED TO MOVE. Naming one of the four would
      read as an invitation to change the other three, which is exactly what one clock refuses. */
   return 'You changed what you charge and the class sizes you take on ' + fmtDate(last)
-       + '. You can change them again on ' + fmtDate(next) + '. Nothing was saved.';
+       + '. You can change them again on ' + fmtDate(next) + '.';
 }
 
 /* THE BUSINESS'S CUT OF AN EXTRA SEAT, PER TUTOR — AN ADMIN'S TO SET, AND ONE READER FOR WHAT IS SENT. § */
@@ -478,12 +478,12 @@ function seatCutRefusal_(me, asked, isAdmin) {
   const want = S(asked[SEAT_CUT_FIELD]), was = S(me[SEAT_CUT_FIELD]);
   const cut = seatCutOut_(want);
   if (want === was || (cut !== '' && cut === seatCutOut_(was))) return '';
-  if (!isAdmin) return 'Only @family. sets its share of an extra seat. Nothing was saved.';
+  if (!isAdmin) return 'Only @family. sets its share of an extra seat.';
   /* WORDED FOR EITHER BOX: Settings draws the cut as a share and the card in pounds (the card refuses a part past
      twice the rate itself, in pounds, before it posts — `cardSeatRefusal_`, me.js). */
   if (want !== '' && cut === '') {
     return "@family.'s share of an extra seat is at most twice the tutor's hourly rate — as a share, 0 to 2, where "
-         + '0.1 is a tenth of the rate; blank is the usual share. Nothing was saved.';
+         + '0.1 is a tenth of the rate; blank is the usual share.';
   }
   return '';
 }
@@ -493,9 +493,9 @@ function managerRefusal_(me, asked) {
   if (!me || !asked || !Object.prototype.hasOwnProperty.call(asked, MANAGER_FIELD)) return '';
   const want = S(asked[MANAGER_FIELD]);
   if (!want || want === S(me[MANAGER_FIELD])) return '';
-  if (key(want) === key(me.person_id)) return 'You cannot be your own manager. Nothing was saved.';
+  if (key(want) === key(me.person_id)) return 'You cannot be your own manager.';
   const row = read(TAB.people).rows.find(r => key(r.person_id) === key(want));
-  if (!row || !(hasRole(row, 'tutor') || whoMay_(row, 'admin'))) return 'Your manager has to be one of the tutors. Nothing was saved.';
+  if (!row || !(hasRole(row, 'tutor') || whoMay_(row, 'admin'))) return 'Your manager has to be one of the tutors.';
   return '';
 }
 
@@ -510,13 +510,13 @@ function ageRefusal_(me, asked) {
   if (off) {
     return 'The ' + end(off) + ' age has to be one from the list — ' + AGE_OPTIONS[0] + ' to '
          + AGE_OPTIONS[AGE_OPTIONS.length - 2] + ', or ' + AGE_OPTIONS[AGE_OPTIONS.length - 1]
-         + '. Nothing was saved.';
+         + '.';
   }
   const got = f => has(f) ? asked[f] : me[f];
   const lo = ageRank_(got('age_min')), hi = ageRank_(got('age_max'));
   if (lo != null && hi != null && !isNaN(lo) && !isNaN(hi) && lo > hi) {
     return 'The youngest age you teach (' + ageOut_(got('age_min')) + ') is older than the oldest ('
-         + ageOut_(got('age_max')) + '). Nothing was saved.';
+         + ageOut_(got('age_max')) + ').';
   }
   return '';
 }
@@ -537,14 +537,14 @@ function hoursRefusal_(me, asked) {
   const off = moved.find(f => S(asked[f]) !== '' && SESSION_OPTIONS.indexOf(S(asked[f])) === -1);
   if (off) {
     return 'The ' + end(off) + ' session has to be a whole number of hours from ' + SESSION_OPTIONS[0] + ' to '
-         + SESSION_OPTIONS[SESSION_OPTIONS.length - 1] + '. Nothing was saved.';
+         + SESSION_OPTIONS[SESSION_OPTIONS.length - 1] + '.';
   }
   const got = f => has(f) ? asked[f] : me[f];
   const lo = hoursRank_(got('min_hours')), hi = hoursRank_(got('max_hours'));
   const low = lo == null ? 1 : lo;
   if (hi != null && !isNaN(low) && !isNaN(hi) && low > hi) {
     return 'The shortest session (' + low + (low === 1 ? ' hour' : ' hours') + ') is longer than the longest ('
-         + hi + (hi === 1 ? ' hour' : ' hours') + '). Nothing was saved.';
+         + hi + (hi === 1 ? ' hour' : ' hours') + ').';
   }
   return '';
 }

@@ -693,17 +693,10 @@ function inboxPart_(b) {
 }
 /* THE ADDRESSED IDS (498): data/notes-done.json from the site, then GitHub; null when neither answers, so nothing is guessed. */
 function claudeNotesDoneIds_() {
-  const urls = [S(SITE_URL).replace(/\/*$/, '/') + CLAUDE_NOTES_DONE_FILE];
-  try { urls.push(RAW + CLAUDE_NOTES_DONE_FILE); } catch (err) { /* sync.gs is not in this scope */ }
-  for (let i = 0; i < urls.length; i++) {
-    try {
-      const res = UrlFetchApp.fetch(urls[i] + '?v=' + Date.now(), { muteHttpExceptions: true, followRedirects: true });
-      if (res.getResponseCode() !== 200) continue;
-      const ids = JSON.parse(String(res.getContentText('UTF-8')));
-      if (Array.isArray(ids)) return ids.map(S).filter(Boolean);
-    } catch (err) { /* the next url */ }
-  }
-  return null;
+  return fetchSiteThenRaw_(CLAUDE_NOTES_DONE_FILE, text => {
+    const ids = JSON.parse(text);
+    return Array.isArray(ids) ? ids.map(S).filter(Boolean) : null;
+  }).got;
 }
 /* MARKED DONE ON AN ADMIN'S OPEN (498): each listed id still open becomes done, and the Drive file is rewritten once. Twice does what once did. */
 function claudeNotesDoneSync_(ids) {

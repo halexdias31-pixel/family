@@ -37,6 +37,18 @@ const TAKE = [
   ['js/find-facets.js', ['SHOW_MAX', 'showForms_']],
   /* ONE FORM ENGINE (job G): the gap tests a form is sent by; the backend asks them again over FORM_GAPS. */
   ['js/form.js', ['FORM_TESTS', 'formGaps_', 'phoneCodes_', 'phoneOut', 'phoneIn', 'HANDLE_SHAPE', 'handleTyped_', 'handleFold_']],
+  /* ONE LEVEL, KEY STAGE, SITTING AND PART READER (unify batch 7): the Sunday email's `digestTag*_` (digest-tags.gs) ask these of a */
+  /* site-shaped item, so the email tags a question as the site's card does. LEVEL_TABLE and spellKey_ with them; `docById_` is digest-tags.gs's. */
+  ['js/data-text.js', ['MONTH_NAMES']],
+  ['js/find-aloud.js', ['LEVEL_TABLE']],
+  ['js/find-finder.js', ['SPELL_KEYS', 'spellKey_']],
+  ['js/find-levels.js', ['levelsIn_', 'LEVELS_IN', 'levelsMemo_', 'levelsOf_', 'satsStagesOf_', 'ksLevel_', 'keyStagesOf_', 'ksFallback_',
+    'yearOf', 'seriesOf_', 'SERIES_SUMMER', 'SERIES_AUTUMN', 'waveOf', 'waveFromDoc_']],
+  ['js/find-parts.js', ['ROMAN_ONLY', 'NUM_ROMAN', 'partBare_', 'partSplit_']],
+  /* A ROW'S `cells` (owner, batch 7): the site's reader, for digest.gs to switch its `digestCells_` to. */
+  ['js/find-cells.js', ['CELL_ENT', 'cellsOf_']],
+  /* THE RULES' ONE SHAPE (496): core.gs `rulesClean_` is its length cap and this; `RULE_OF_` is core.gs's, off RULE_IDS/RULES_LOCKED. */
+  ['js/rules.js', ['rulesSane_']],
   ['js/predicates-fig.js', ['FIG_WORDS', 'FIG_NOT_WORDS', 'figWords_', 'figPictured_', 'figUndrawn_']],
 ];
 /* THE EMAIL'S COLOURS, FROM style.css `:root` (20 Nov): DIGEST_INK, each email name as the token it draws; `--email-*` where the email needs its own. */
