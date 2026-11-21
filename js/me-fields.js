@@ -12,7 +12,7 @@ function photoShelf_(list, value, o) {
       return cardBlock_({ type: 'group', look: 'lib-card ph-slot', attrs: { hidden: !!hide },
         inner: cardBlock_({ type: 'group', tag: 'span', look: 'ph-thumb', blocks: [v ? phThumb_(v) : null] })
         + fieldHtml('photos_' + i, v, { placeholder: 'Photo', draft: (o || {}).draft, extra: 'type="hidden"' })
-        + cardBlock_({ type: 'group', look: 'tile-row', inner: tile_({ icon: 'plus', label: v ? 'Change photo' : 'Choose photo', act: 'ph-pick' }) + shelfDrop_('photo') })
+        + cardBlock_({ type: 'group', look: 'tile-row', inner: tile_({ icon: 'plus', label: v ? text_('change-photo') : 'Choose photo', act: 'ph-pick' }) + shelfDrop_('photo') })
         + cardBlock_({ type: 'group', tag: 'p', look: 'note ph-said' }) + formFile_('ph-in', 'image/*') });
     }, 'photo') });
 }
@@ -55,9 +55,9 @@ document.addEventListener('change', e => {
   if (!file || !slot || !whose_()) return;
   const said = slot.querySelector('.ph-said'), say = m => { if (said) tell_(said, 'info', m); };
   if (!/^image\//.test(file.type || '')) { say('That is not a picture. Choose a photo from your phone.'); return; }
-  say('Getting the photo ready…');
+  say(text_('getting-the-photo-ready'));
   photoShrink_(file).then(data => {
-    if (!data || !/^data:image\/jpeg/.test(data)) { say('The phone could not read that photo. Try another.'); return; }
+    if (!data || !/^data:image\/jpeg/.test(data)) { say(text_('the-phone-could-not-read-that')); return; }
     return send_({ action: 'photoFile', name: USER.name, personId: USER.personId, data },
       { button: slot.querySelector('[data-do="ph-pick"]'), where: said, saying: 'Uploading…', lock: slot }).then(d => {
       const url = String((d && d.url) || ''), box = slot.querySelector('input[data-me]');

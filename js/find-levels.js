@@ -636,7 +636,7 @@ function jobPage_(j) {
   const tiles = (typeof jobMsgTiles_ === 'function' ? jobMsgTiles_({ row: j }) : '')
     + own
     /* ---------- AND SHARE, WHICH THE FORM HAD AND THE BOOKING ITSELF DID NOT § */
-    + tile_({ icon: 'share', label: 'Share this booking', act: 'book-share' })
+    + tile_({ icon: 'share', label: text_('share-this-booking'), act: 'book-share' })
     + (typeof suggestOpts_ === 'function' && j && j.id ? tile_(suggestOpts_('session', String(j.id), 'Booking')) : '')
     + (admin && typeof jobAdminOpts_ === 'function' ? tile_(jobAdminOpts_(j, stage, yes && !pays)) : '');
   /* THE REQUEST'S STANDING, one paragraph under the row (488). */

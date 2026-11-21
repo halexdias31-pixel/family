@@ -70,7 +70,7 @@ function wfLoad_(of) {
     if (!d || !d.success) { s.rows = []; s.say = (d && (d.message || d.error)) || 'Could not load the work on file'; }
     else { s.rows = Array.isArray(d.work) ? d.work : []; s.mayDelete = !!d.mayDelete; s.others = Array.isArray(d.others) ? d.others : []; }
     wfPaint_(of);
-  }).catch(() => { s.rows = []; s.say = 'Could not reach the server'; wfPaint_(of); });
+  }).catch(() => { s.rows = []; s.say = text_('could-not-reach-the-server'); wfPaint_(of); });
 }
 const wfAgain_ = of => { const s = wfOf_(of); s.asked = false; s.rows = null; wfLoad_(of); };
 
@@ -128,7 +128,7 @@ on('wf-open', el => {
     loaded_(box);
     if (!d || !d.success) { box.textContent = (d && (d.message || d.error)) || 'Could not open it'; return; }
     box.innerHTML = cardBlocks_((d.pages || []).length ? d.pages.map((u, i) => ({ type: 'media', kind: 'image', look: 'wf-page', src: u, title: 'Page ' + (i + 1) })) : [wfNote_('No pages could be read.')]);
-  }).catch(() => { const box = document.querySelector('.wf-pages'); if (box) { loaded_(box); box.textContent = 'Could not reach the server'; } });
+  }).catch(() => { const box = document.querySelector('.wf-pages'); if (box) { loaded_(box); box.textContent = text_('could-not-reach-the-server'); } });
 });
 
 on('wf-del', el => {

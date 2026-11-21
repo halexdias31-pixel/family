@@ -94,6 +94,6 @@ on('pxe-clear', () => { const p = pxeLoad_(); p.px = new Array(p.n * p.n).fill('
 on('pxe-png', () => {
   const cv = pxeCanvas_();
   try {
-    cv.toBlob(b => { if (b) { saveBlob_(b, 'pixel-art-' + PXE.n + 'x' + PXE.n + '.png'); toast('Picture saved'); } }, 'image/png');
+    cv.toBlob(b => { if (b) { saveBlob_(b, 'pixel-art-' + PXE.n + 'x' + PXE.n + '.png'); toast(text_('picture-saved')); } }, 'image/png');
   } catch (e) { toast('The picture could not be made here.'); }
 });

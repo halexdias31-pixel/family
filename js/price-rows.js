@@ -23,7 +23,7 @@ const PRICE_ROWS = [
 
   { key: 'base',    label: 'Tuition',  kind: 'rate-add',  group: 'rate',
     control: 'l-tutor',
-    value: L => L.tutor || 'No preference',
+    value: L => L.tutor || text_('no-preference'),
     perHour: L => L.chargeRate || 0,
     // The rate itself, not an addition to it — so it shows unsigned, and its total is the tuition
     // component of the price rather than a "+".
@@ -36,7 +36,7 @@ const PRICE_ROWS = [
     mult:  L => L.avgSubject,
     of:    L => rateBase(L, 'subject') },
 
-  { key: 'complexity', label: 'Extra subjects', row: 'Extra subj.', kind: 'rate-mult', group: 'rate',
+  { key: 'complexity', label: 'Extra subjects', row: text_('extra-subj'), kind: 'rate-mult', group: 'rate',
     control: null,
     value: L => String(Math.max(0, (L.k || 1) - 1)),
     mult:  L => L.fSubjectCount,
@@ -56,7 +56,7 @@ const PRICE_ROWS = [
     of:    L => rateBase(L, 'daytime'),
     show:  () => false },
 
-  { key: 'students', label: 'Extra seats', kind: 'rate-mult', group: 'rate',
+  { key: 'students', label: text_('extra-seats'), kind: 'rate-mult', group: 'rate',
     control: 'l-qty',
     /* Says WHERE the fraction came from, for an admin. § */
     value: L => String(Math.max(0, (L.n || 1) - 1))

@@ -115,7 +115,7 @@ on('kid-pin-go', el => {
   if (!USER) { toast(text_('sign-in-first')); return; }
   const id = el.getAttribute('data-id') || '';
   send_({ action: 'resetPin', personId: USER.personId || '', targetId: id },
-        { button: el, busy: 'Making it…' })
+        { button: el, busy: text_('making-it') })
     .then(d => {
       const body = el.closest('.kid-pin-ask');
       if (body) body.innerHTML = pinSlip_(d.first || el.getAttribute('data-name'), d.handle, d.pin)
@@ -238,7 +238,7 @@ function familyPages_() {
 function applyCard_() {
   const open = typeof applyFormOpen_ === 'function' && applyFormOpen_();
   const body = open ? applyFormHtml_() : typeof applyOpts_ === 'function' && applyOpts_() ? tileRow_(tile_(applyOpts_()), 'apply-tiles') : '';
-  const h = body ? rolesSet_('apply-card', 'Apply to teach', [{ type: 'text', look: 'note', text: 'Teach with us: tell us what you teach, and we will be in touch.' }, rolesDrawn_(() => body)], { card: 'staff:apply', data: { yours: '1' } }) : '';
+  const h = body ? rolesSet_('apply-card', text_('apply-to-teach'), [{ type: 'text', look: 'note', text: 'Teach with us: tell us what you teach, and we will be in touch.' }, rolesDrawn_(() => body)], { card: 'staff:apply', data: { yours: '1' } }) : '';
   /* AN APPLICATION IS THE ASKER'S OWN (`applyTeach`), so in the lens it is shown shut. */
   return h ? [lensOn_() ? lockCard_(h) : h] : [];
 }
@@ -405,7 +405,7 @@ on('roles-save', el => {
          is redrawn from the server's list with them. An older backend sends none and the card keeps its own. */
       if (d.notify) USER.profile = Object.assign({}, USER.profile || {}, { notify: d.notify });
       saveUser_();
-      toast(d.changed ? 'Role saved' : 'Nothing changed');
+      toast(d.changed ? 'Role saved' : text_('nothing-changed'));
       /* THE COLUMN IS DRAWN FROM THE ROLE — which pages of fields, the agreement card — so it is
          drawn again; then the payload, because who is a tutor is in it. */
       if (d.changed) { try { repaint(true); } catch (e) { oops_(e, 'me:rolesCard_') } try { load(); } catch (e) { oops_(e, 'me:rolesCard_') } }

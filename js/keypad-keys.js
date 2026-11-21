@@ -193,7 +193,7 @@ function kpField_(k, val, kind, signs, name, more) {
   const v = val == null ? '' : String(val);
   const lock = { class: 'qp-ans-in kp-in', 'data-do': 'qp-ans',
     'data-k': k, 'data-kp': words ? 'words' : 'maths', 'data-kp-signs': signs & 1 ? '1' : null, 'data-kp-vec': signs & 2 ? '1' : null, 'data-kp-essay': essay ? '1' : null,
-    'aria-label': name || 'Your answer', readonly: true, inputmode: 'none', autocomplete: 'off', autocapitalize: 'off', autocorrect: 'off', spellcheck: 'false',
+    'aria-label': name || text_('your-answer'), readonly: true, inputmode: 'none', autocomplete: 'off', autocapitalize: 'off', autocorrect: 'off', spellcheck: 'false',
     enterkeyhint: essay ? 'enter' : 'done' };
   if (more) Object.assign(lock, more);
   return cardBlocks_({ type: 'group', tag: 'span', look: 'kp-field kp-' + (words ? 'words' : 'maths') + (essay ? ' kp-essay' + (v ? '' : ' is-blank') : ''), blocks: [
