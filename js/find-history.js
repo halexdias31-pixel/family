@@ -173,7 +173,7 @@ function specNodes_(r, parent, named) {
     const shown = (p.links || []).filter(k => /^q:/.test(k)).length, more = (p.asked || 0) - shown;
     return { label: p.id, text: p.text, kids: specNodes_(r, p.id, named),
       tiles: (p.links || []).filter(k => named[k]).map(k => ({ icon: /^q:/.test(k) ? 'edit' : 'book', label: /^q:/.test(k) ? 'Question' : 'Lesson', note: named[k], act: 'find-open', data: { key: String(k) } })),
-      more: more > 0 ? 'and ' + more + ' more question' + (more === 1 ? '' : 's') + ' on this point' : '' };
+      more: more > 0 ? 'and ' + more + ' more ' + plural_(more, 'question') + ' on this point' : '' };
   });
 }
 /* WHAT EACH LINKED KEY IS CALLED in Find now, looked up once per card. */
@@ -204,7 +204,7 @@ function specPracticeParts_(k) {
 }
 function specPracticeOpts_(x) {
   const k = specKeyOfCard_(x && x.row), n = k ? specPracticeParts_(k).length : 0;
-  return n ? { icon: 'edit', label: 'Practise this', note: n + ' part' + (n === 1 ? '' : 's'), act: 'spec-practise', data: { k } } : null;
+  return n ? { icon: 'edit', label: 'Practise this', note: n + ' ' + plural_(n, 'part'), act: 'spec-practise', data: { k } } : null;
 }
 /* THE LIST, GROUPED BY WORKSHEET (a headed section a sheet, open): drawn under the card's tiles on the first tap, put away on the next; each part opens in Find. */
 on('spec-practise', el => {
@@ -220,7 +220,7 @@ on('spec-practise', el => {
   /* EACH PART BY ITS OWN NUMBER (1a, 2, 3c), its sheet the section it sits in: forty identical pencils told a child nothing (18 Nov). */
   const num = r => String(r.question || '') + String(r.part || '');
   box.innerHTML = cardBlocks_(groups.map(g => ({ type: 'section', head: g.name, blocks: [{ type: 'tiles',
-    tiles: g.items.map(i => ({ label: num(i.row) || i.name, note: [i.name, i.row.marks ? i.row.marks + ' mark' + (i.row.marks === '1' ? '' : 's') : ''].filter(Boolean).join(' · '), act: 'find-open', data: { key: i.key } })) }] })));
+    tiles: g.items.map(i => ({ label: num(i.row) || i.name, note: [i.name, i.row.marks ? i.row.marks + ' ' + plural_(i.row.marks === '1' ? 1 : 0, 'mark') : ''].filter(Boolean).join(' · '), act: 'find-open', data: { key: i.key } })) }] })));
   /* A PART OF THE CARD ITSELF, after the one holding the tile (rule 1.75: a card's children are its kc-* parts). */
   const part = [...card.children].find(c => c.contains(el));
   if (part) card.insertBefore(box, part.nextSibling); else card.appendChild(box);
@@ -342,12 +342,11 @@ function histItem_(kind, r) {
   };
 }
 /* A DRAWN MANUSCRIPT IS ONE CARD A SIDE (507), tagged Front (recto) or Back (verso); the first drawn keeps the bare key, so a saved key still opens. */
-const MS_SIDE_SAY = { front: 'Front (recto)', back: 'Back (verso)' };
 function histItems_(kind, r) {
   const one = histItem_(kind, r), L = kind === 'manuscript' && MS_LOOK[r.id];
   if (!L || !L.sides) return [one];
   return L.sides.map((sd, i) => Object.assign({}, one, { key: i ? one.key + ':' + (sd.side || i) : one.key,
-    msSide: labelOf_('hist-side', sd.side, MS_SIDE_SAY[sd.side] || ''), msSideIx: i, sub: [labelOf_('hist-side', sd.side, MS_SIDE_SAY[sd.side] || ''), one.sub].filter(Boolean).join(' · ') }));
+    msSide: labelOf_('hist-side', sd.side, ''), msSideIx: i, sub: [labelOf_('hist-side', sd.side, ''), one.sub].filter(Boolean).join(' · ') }));
 }
 
 /* THE LINES OF A CARD, one thing each (421): a label and the row's column, said as written. */

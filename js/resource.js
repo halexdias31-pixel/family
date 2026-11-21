@@ -63,8 +63,8 @@ on('cart-add', el => {
 
   cartSave();
   /* ---------- THE SHAPE FILLS, AND NOTHING ELSE MOVES § */
-  tileSet_(el, { label: 'In your basket', note: '', on: true, off: true });
-  toast('In your basket — ' + CART.length + ' item' + (CART.length === 1 ? '' : 's'));
+  tileSet_(el, { label: text_('in-your-basket'), note: '', on: true, off: true });
+  toast('In your basket — ' + CART.length + ' ' + plural_(CART.length, 'item'));
 });
 
 /* ---------- A BUNDLE GOES IN AS ONE LINE PER PAPER, NOT AS ONE LINE § */
@@ -91,9 +91,9 @@ function cartAddBundle_(el) {
   if (!added && !had) { toast(text_('nothing-in-that-bundle-can-be')); return; }
   cartSave();
   if (typeof cartPaint_ === 'function') cartPaint_();
-  tileSet_(el, { label: 'In your basket', note: '', on: true, off: true });
-  toast(!added ? 'Already in your basket'
-      : added + ' paper' + (added === 1 ? '' : 's') + ' in your basket'
+  tileSet_(el, { label: text_('in-your-basket'), note: '', on: true, off: true });
+  toast(!added ? text_('already-in-your-basket')
+      : added + ' ' + plural_(added, 'paper') + ' in your basket'
         + (had ? ' — ' + had + ' already there' : ''));
 }
 
@@ -144,7 +144,7 @@ function orderLine_(c, i, full, under) {
   if (isPrint_(c)) {
     if (full) {
       const p = cartPrint_(c);
-      bits.push(c.pages ? c.pages + ' page' + (c.pages === 1 ? '' : 's') : 'pages not counted yet');
+      bits.push(c.pages ? c.pages + ' ' + plural_(c.pages, 'page') : 'pages not counted yet');
       bits.push(p === null ? 'priced when sent' : fmtMoney_(p));
     }
     if (c.laminate) {
@@ -152,7 +152,7 @@ function orderLine_(c, i, full, under) {
       bits.push('laminated' + (full && lam !== null ? ' (+' + fmtMoney_(lam) + ')' : ''));
     }
   } else if (c.cost) {
-    bits.push(c.cost + ' credit' + (c.cost === 1 ? '' : 's'));
+    bits.push(c.cost + ' ' + plural_(c.cost, 'credit'));
   } else if (full && Number(c.money) > 0) {
     bits.push(fmtMoney_(Number(c.money)));
   }

@@ -31,7 +31,10 @@
   "content:delete": {"roles":[]},
   "practical:delete": {"roles":[]},
   "project:delete": {"roles":[]},
-  "library:read": {"roles":["anyone","member","child","admin"],"library":true}
+  "library:read": {"roles":["anyone","member","child","admin"],"library":true},
+  "shop:read": {"roles":["anyone","member","child","admin"],"door":"Shop"},
+  "tools:read": {"roles":["anyone","member","child","admin"],"door":"Tools"},
+  "games:read": {"roles":["anyone","member","child","admin"],"door":"Games"}
  },
  "actions": [
   {"name":"register","handler":"postRegister_","roles":["anyone","member","child","admin"],"feature":true},

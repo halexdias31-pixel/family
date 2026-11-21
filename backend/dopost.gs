@@ -86,12 +86,8 @@ function signInRow_(t0, r, body, by, was) {
 function linkMail_(r, token, asParent) {
   const said = S(r.handle) ? '@' + S(r.handle) : '';
   /* THE WORDS ARE data/settings/words.json `mail-confirm-*`; the parent's next step is the link's second half (`confirmFirst_`). */
-  deliverOrThrow_(null, 'access', { to: S(r.email),
-    subject: text_('mail-confirm-subject', { brand: BRAND_NAME }),
-    body: text_('mail-confirm-body', { first: S(r.first_name), link: SITE_URL + '?verify=' + token,
-                                       handleSaid: said ? text_('mail-confirm-or-handle', { handle: said }) : '' })
-        + (asParent ? text_('mail-confirm-parent-next') : '')
-        + '\n\n' + text_('mail-sign-off', { brand: BRAND_NAME }) });
+  accessMail_(S(r.email), 'mail-confirm', { first: S(r.first_name), link: siteLink_('verify', token),
+    handleSaid: said ? text_('mail-confirm-or-handle', { handle: said }) : '' }, asParent ? text_('mail-confirm-parent-next') : '');
 }
 
 function doPost(e) {

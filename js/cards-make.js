@@ -147,18 +147,6 @@ function card_(html, kind, called) {
   return findCard({ kind: kind || 'panel', kcOwn: cut, kcPanel: true, name: name || String(called || '') });
 }
 
-/* A CARD WHOSE INSIDES ARRIVE LATER (a list fetched after the screen drew) is built again round them, kept as the same element so its attributes stay. */
-function cardFill_(el, inner, kind) {
-  if (!el || typeof document === 'undefined') return;
-  const cls = [...el.classList].filter(c => !/^(card|fc|kc|kc-[\w-]+)$/.test(c)).join(' ');
-  const t = document.createElement('template');
-  t.innerHTML = card_(cardBlock_({ type: 'group', look: cls, inner: inner || '' }), kind);
-  const fresh = t.content.firstElementChild;
-  if (!fresh) return;
-  el.className = fresh.className;
-  el.replaceChildren(...fresh.childNodes);
-}
-
 /* Tapping one opens a sheet rather than expanding the card. § */
 
 /* The switch. Admin only — a tutor who could list themselves could put themselves in front of

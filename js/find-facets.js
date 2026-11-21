@@ -95,11 +95,13 @@ function kindRank_() {
   return { labels, groups };
 }
 /* LISTS WHOSE OWN ORDER IS THE ORDER (473): § */
-/* FIND'S FRONT MENU, in the owner's order (4 Nov): the first question's answers, whatever kinds stand under them. */
-const FRONT_ORDER = ['Practice', 'Library', 'Videos', 'Coming soon', 'Posts', 'Messages', 'Profiles', 'Booking', 'Shop', 'Settings', 'Tools', 'Games'];
+/* FIND'S FRONT MENU, in the owner's order (4 Nov): the first question's answers, whatever kinds stand under them — kinds.json `doors`. */
+const FRONT_ORDER = ITEM_KINDS.doors.map(d => d.name);
+/* THE DOORS' OWN BUCKETS (batch C), said once: a post's state and its time frame (find-doors.js postState_, whenBand_), in their order. */
+const DOOR_WORDS = { postState: ['Approved', 'Waiting for approval', 'Deleted'], when: ['Today', 'This week', 'This month', 'This year', 'Older'] };
 /* THE DOORS' OWN MENUS IN THE OWNER'S ORDER (batch C): account types, who, which posts, when. */
 const ANSWER_ORDERS = [FRONT_ORDER, ['Student', 'Parent', 'Staff', 'Apprentice', 'Admin', 'Business', 'Site'], ['Parent', 'Over 18', 'Under 18', 'Student', 'Tutor', 'Apprentice', 'Admin'],
-  ['Approved', 'Waiting for approval', 'Deleted'], ['Today', 'This week', 'This month', 'This year', 'Older']];
+  DOOR_WORDS.postState, DOOR_WORDS.when];
 function answerCmp_(texts) {
   const every = test => texts.length > 0 && texts.every(test);
   if (every(t => yearKey_(t) !== null)) return (a, b) => yearKey_(b) - yearKey_(a);

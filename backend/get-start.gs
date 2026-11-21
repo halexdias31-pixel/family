@@ -40,7 +40,7 @@ function getReceipts_(p, askedBy_) {
   /* BY ID WHERE THE SITE KNOWS IT. § */
   /* AND THE TOKEN DECIDES WHOSE. § */
   const who = askedBy_();
-  if (!who) return jsonOut({ error: 'Please sign in again.' });
+  if (!who) return refuse_('err-sign-in-again', 'session-gone');
   /* THEIR OWN, SO THEIR OWN NAME STAYS WHOLE IN THEM (342). */
   netViewerSet_(who);
   /* A RECEIPT IS NOTHING BUT MONEY, so a child is sent none (398). */

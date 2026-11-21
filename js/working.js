@@ -123,7 +123,7 @@ function workSave_(k, typed, el, out) {
       el.disabled = false;
       tell_(el, '');
       if (!d || !d.success) { tell_(out, 'error', (d && (d.message || d.error)) || 'Your working could not be saved just now \u2014 try again later'); return; }
-      tell_(out, 'saved', 'Saved, with ' + pics.length + ' photo' + (pics.length === 1 ? '' : 's'));
+      tell_(out, 'saved', 'Saved, with ' + pics.length + ' ' + plural_(pics.length, 'photo'));
     })
     .catch(() => { el.disabled = false; tell_(el, ''); tell_(out, 'error', 'Could not reach the server \u2014 your photos are still here'); });
 }
@@ -153,7 +153,7 @@ on('work-see', el => {
       { type: 'group', tag: 'p', look: 'work-seen-say', text: `${r.label || r.key} · ${workVerdictSay_(r.verdict)}` },
       { type: 'group', look: 'qp-work-pics', blocks: (r.photos || []).map((u, i) => ({ type: 'group', tag: 'a', look: 'qp-work-pic',
         attrs: { href: u, 'data-do': 'file-view', target: '_blank', rel: 'noopener' }, blocks: [{ type: 'group', tag: 'img', attrs: { src: u, alt: `Page ${i + 1}` } }] })) }] })));
-  }).catch(() => { loaded_(box); box.textContent = 'Could not reach the server'; });
+  }).catch(() => { loaded_(box); box.textContent = text_('could-not-reach-the-server'); });
 });
 /* AN OLD AI SCORE IS STILL READ (kept, never made again: owner, 16 Nov) */
 function workVerdictSay_(v) {

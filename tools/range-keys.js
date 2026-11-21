@@ -4,8 +4,8 @@
    around them ("(a–b)", "a to b", "accept/allow a–b", "between a and b", "a ± b") carries a range rule (`rule: count 1, sum a..b`), or is
    listed below as not a tolerance. Counted site-wide over data-private/questions.json; one unlisted row fails the build. Run by tools/build.js. */
 'use strict';
+const { ROOT, main } = require('./lib/gen.js');
 const fs = require('fs'), path = require('path');
-const ROOT = path.join(__dirname, '..');
 /* NOT A TOLERANCE: the range in the answer is working, a rounding bound, a data span or a list of whole answers, not a read-off allowance. */
 const EXCEPT = new Set([
   'Q-9MA031-2206-2b', 'Q-1MA1-2406-2H-9a', 'Q-STA-KS2-2024-P2-6', 'Q-1CM-averages-from-tables-8', 'Q-1CM-reverse-mean-2',
@@ -51,4 +51,4 @@ function run() {
   return { n: rs.length, bad: bad.length };
 }
 module.exports = { run };
-if (require.main === module) { try { run(); } catch (e) { console.error(e.message); process.exit(1); } }
+main(module, run);

@@ -4,17 +4,18 @@
 /* THE FRONT DOOR'S FIELD (batch C): Booking, Posts, Practice… are answers to it; `forIs_`, `book-with` and the receipts set and read this, never a literal. */
 const DOOR_FIELD = 'kindLabel';
 
-function postState_(p) { return !p ? '' : p.active === false ? 'Deleted' : (p.waiting || p.refused) ? 'Waiting for approval' : 'Approved'; }
+function postState_(p) { const [ok, waiting, gone] = DOOR_WORDS.postState; return !p ? '' : p.active === false ? gone : (p.waiting || p.refused) ? waiting : ok; }
 /* A TIME FRAME, NOT A DATE: five answers however many posts there are. */
 function whenBand_(v) {
   const d = v ? parseWhen(v) : null, t = d && !isNaN(d) ? d.getTime() : 0;
   if (!t) return '';
   const days = (Date.now() - t) / 864e5;
-  return days < 1 ? 'Today' : days < 7 ? 'This week' : days < 31 ? 'This month' : days < 366 ? 'This year' : 'Older';
+  const [today, week, month, year, older] = DOOR_WORDS.when;
+  return days < 1 ? today : days < 7 ? week : days < 31 ? month : days < 366 ? year : older;
 }
 function postDoorItems_() {
   const admin = seeMay_('find:all-posts');
-  return ((DATA && DATA.posts) || []).filter(p => p && p.id && (admin || postState_(p) === 'Approved' || p.mine)).map(p => {
+  return ((DATA && DATA.posts) || []).filter(p => p && p.id && (admin || postState_(p) === DOOR_WORDS.postState[0] || p.mine)).map(p => {
     const who = (typeof profileOf_ === 'function' && (profileOf_(p.authorId) || {}).handle) || p.handle || p.author || '';
     return { kind: 'post', name: String(p.text || p.caption || p.title || 'Post').slice(0, 80), key: 'post:' + p.id, sub: who, image: '', row: p,
       postState: postState_(p), postBy: who, postWhen: whenBand_(p.at || p.when),
@@ -137,7 +138,7 @@ const settingNone_ = h => /^\s*<div\b[^>]*\sdata-card="-"/.test(h);
 /* A type you do not hold still shows its cards, shut (`lockedAs_`); Business and Site hold the business's own data, so stay an admin's. */
 function settingDoorItems_() {
   /* JOIN IS A FORM (owner, 10 Nov), drawn open; signing in is Find's first menu (`signMenu_`, owner 13 Nov). */
-  if (!USER) return [{ kind: 'setting', name: 'Make an account', key: 'set:join', sub: '', image: '', join: true, open: true, text: 'join make an account' }];
+  if (!USER) return [{ kind: 'setting', name: text_('make-an-account'), key: 'set:join', sub: '', image: '', join: true, open: true, text: 'join make an account' }];
   const tags = (DATA && DATA.settingFor) || {}, out = [], byName = {}, seen = {};
   /* RECORDS ARE LAZY (the weekly email's cards): until that batch lands they are missing, so Find is drawn again once it does. */
   try { if (typeof lazyFiles_ === 'function' && !lazyFiles_.in) doorAsk_(lazyFiles_()); } catch (e) { oops_(e, 'find:doorAsk'); }
@@ -248,8 +249,9 @@ function doorItems_() {
 /* AND QUESTIONS AND PRACTICE (owner, 18 Nov: guests do questions too), by the one row `item` question:read for `anyone`. */
 /* AND EVERY DOOR THAT HOLDS NOBODY'S PERSONAL DATA (owner, 18 Nov: "guests see everything"): Shop, Tools, Games. Posts, Messages and
    Profiles stay signed in — they hold children's names and words (rule: a child's data only to the child, parents, tutors, admins). */
-const GUEST_DOORS = ['Shop', 'Tools', 'Games'];
-function findSignedOut_(x) { return kindTop_(x) === 'Settings' || asList_(kindTop_(x)).some(t => GUEST_DOORS.indexOf(t) !== -1) || x.kind === 'bookform' || (guestLibrary_() && libraryCard_(x)) || (guestPractice_() && practiceCard_(x)); }
+/* Each by its own permissions row, `item` <door>:read for `anyone` (actions.json); Library and Practice answer by card below, not by door. */
+const guestDoors_ = () => typeof can_ !== 'function' ? [] : FRONT_ORDER.filter(d => d !== 'Library' && d !== 'Practice' && can_('anyone', 'item', d.toLowerCase() + ':read'));
+function findSignedOut_(x) { const doors = guestDoors_(); return kindTop_(x) === 'Settings' || asList_(kindTop_(x)).some(t => doors.indexOf(t) !== -1) || x.kind === 'bookform' || (guestLibrary_() && libraryCard_(x)) || (guestPractice_() && practiceCard_(x)); }
 const guestPractice_ = () => typeof can_ === 'function' && can_('anyone', 'item', 'question:read');
 const practiceCard_ = x => !!x && x.kind !== 'answer' && (x.kind === 'question' || asList_(kindTop_(x)).indexOf('Practice') !== -1);
 const guestLibrary_ = () => typeof can_ === 'function' && can_('anyone', 'item', 'library:read');

@@ -201,7 +201,7 @@ function digestRender_(L, P, week, look) {
   const W = (look && look.words) || digestWords_({});
   const items = (L.fresh || []).concat(L.again || []);
   const n = items.length;
-  const qs = x => x + ' question' + (x === 1 ? '' : 's');
+  const qs = x => x + ' ' + plural_(x, 'question');
   /* "WORKED ON", NOT "DID". § */
   const hour = look && typeof look.hour === 'number' ? look.hour : -1;
   const minute = look && typeof look.minute === 'number' && look.minute > 0 && look.minute < 60 ? look.minute : 0;
@@ -605,7 +605,7 @@ function digestLabelTags_(bits, num, libRow) {
   if (b.length) out.push({ kind: 'paper', text: b.join(' · ') });
   if (num) out.push({ kind: 'paper', text: num });
   const m = Number(libRow && libRow.marks);
-  if (m > 0) out.push({ kind: '', text: m + ' mark' + (m === 1 ? '' : 's') });
+  if (m > 0) out.push({ kind: '', text: m + ' ' + plural_(m, 'mark') });
   return out;
 }
 
@@ -697,7 +697,7 @@ function digestPartOut_(it, pre, done, site, trim) {
   const before = at >= 0 ? html.slice(0, at) : '', after = at >= 0 ? html.slice(at).replace(mark, '') : html;
   const piece = h => (S(h).replace(/<!--[\s\S]*?-->/g, '').trim() ? '<div style="margin:0 0 6px">' + digestHtml_(h) + '</div>' : '');
   const out = { stems: [], lines: [], html: '',
-                marks: Number(q.marks) > 0 ? Number(q.marks) + ' mark' + (Number(q.marks) === 1 ? '' : 's') : '' };
+                marks: Number(q.marks) > 0 ? Number(q.marks) + ' ' + plural_(Number(q.marks), 'mark') : '' };
   digestStemRows_(q, pre).forEach(p => {
     const id = 'stem:' + (S(p.row_id) || S(p.html).slice(0, 80));
     if (done[id]) return;
@@ -899,7 +899,7 @@ function digestMark_(v) {
   const t = S(v);
   const r = verdictOf_(t);
   if (r && r.method === 'dogma') return r.verdict === 'right' ? '✓' : '✗';
-  return r && r.max ? r.marks + ' of ' + r.max + ' mark' + (r.max === 1 ? '' : 's') : 'not marked';
+  return r && r.max ? r.marks + ' of ' + r.max + ' ' + plural_(r.max, 'mark') : 'not marked';
 }
 
 /* ---------- TEXT THAT CAME OFF A PHONE, AND MAY GO OUT UNDER THE BUSINESS'S NAME § */
@@ -1152,7 +1152,7 @@ function installWeeklyDigest_() {
            means: mode === 'off' ? 'it runs and does nothing until weekly_digest on the config tab is preview or send'
                 : mode === 'preview' ? 'it writes what it would send to the digest_log tab and sends nothing'
                 : 'it EMAILS PARENTS',
-           retired: old ? 'removed ' + old + ' old trigger' + (old === 1 ? '' : 's') + ' that nothing runs any more: '
+           retired: old ? 'removed ' + old + ' old ' + plural_(old, 'trigger') + ' that nothing runs any more: '
                           + fns.map(fn => fn + ' ×' + gone.retired[fn]).join(', ') : 'no old trigger was booked',
            next: 'run checkSundayEmail to see that everything is ready' };
   Logger.log(JSON.stringify(out, null, 2));
@@ -1249,7 +1249,6 @@ function digestWordsOver_(base, words) {
 function checkSundayEmail() {
   const lines = [];
   const say = s => { lines.push(s); };
-  const plural = (n, w) => n + ' ' + w + (n === 1 ? '' : 's');
   const now = new Date();
   let cfg = {};
   try { cfg = config(); } catch (err) { say('The config tab could not be read (' + S(err && err.message || err) + '), so this is the defaults.'); }
@@ -1276,7 +1275,7 @@ function checkSundayEmail() {
   say('THE TRIGGER: the Sunday email is ' + (sun === null ? 'unknown (the triggers could not be listed)'
       : sun === 1 ? 'installed' : sun ? 'installed ' + sun + ' times (the next admin page load leaves one)'
       : 'NOT installed (the next admin page load books it)') + ', and it is the only trigger the email has. '
-    + (old ? 'WARNING: ' + plural(old, 'old trigger') + ' that nothing runs any more (' + DIGEST_RETIRED_RUNS.join(', ')
+    + (old ? 'WARNING: ' + old + ' old ' + plural_(old, 'trigger') + ' that nothing runs any more (' + DIGEST_RETIRED_RUNS.join(', ')
         + ') ' + (old === 1 ? 'is' : 'are') + ' still booked and will fail — the next admin page load removes '
         + (old === 1 ? 'it' : 'them') + '.'
       : 'No old trigger is booked.'));
@@ -1293,7 +1292,7 @@ function checkSundayEmail() {
       : 'nothing is booked yet; the next admin page load books ' + cellHour + ':00 (weekly_digest_hour on the config tab).'));
 
   const quota = mailQuota_(true);
-  say('MAIL: ' + plural(quota, 'email') + ' left in today’s quota; the Sunday run keeps ' + reserve + ' back for PIN resets and notices.');
+  say('MAIL: ' + quota + ' ' + plural_(quota, 'email') + ' left in today’s quota; the Sunday run keeps ' + reserve + ' back for PIN resets and notices.');
 
   /* THE LIBRARY, AS THE RUN FETCHES IT — the one part of this nobody can see from the editor, and what
      prints each question as it is on the site. */
@@ -1310,17 +1309,17 @@ function checkSundayEmail() {
     let plan = null;
     try { plan = digestPlanNow_(week); }
     catch (err) { say('THIS WEEK: could not be planned (' + S(err && err.message || err) + ').'); }
-    if (plan) checkSundayWeek_(plan, week, hour, say, plural);
+    if (plan) checkSundayWeek_(plan, week, hour, say);
   }
   say('Nothing was changed: no row written, no email sent, no trigger booked.');
   Logger.log(lines.join('\n'));
   return { lines: lines };
 }
 /* THIS WEEK'S LINES OF `checkSundayEmail`: who is reached, who is not, who has sent nothing yet. */
-function checkSundayWeek_(plan, week, hour, say, plural) {
+function checkSundayWeek_(plan, week, hour, say) {
   const reached = plan.learners.filter(L => !L.why);
-  say('THIS WEEK (' + digestSpan_(week) + ', so far): ' + plural(plan.learners.length, 'learner') + ' sent answers; '
-    + reached.length + ' of them will have a parent emailed (' + plural(plan.emails.length, 'email') + ').');
+  say('THIS WEEK (' + digestSpan_(week) + ', so far): ' + plan.learners.length + ' ' + plural_(plan.learners.length, 'learner') + ' sent answers; '
+    + reached.length + ' of them will have a parent emailed (' + plan.emails.length + ' ' + plural_(plan.emails.length, 'email') + ').');
   plan.learners.filter(L => L.why).forEach(L => {
     say('  NOT REACHED — ' + (fmtName_({ first_name: S(L.first), kid: true }, 'first') || 'a learner with no first name') + ': ' + digestWhyNot_(L) + '.');
   });
@@ -1392,7 +1391,7 @@ function digestSendNow_(parentIds, now) {
     const count = mine.reduce((n, m) => n + (Number(m.count) || 0), 0);
     if (mailed.sent === mine.length) {
       return { id: id, success: true, sent: mailed.sent, questions: count,
-               said: 'Sent to ' + first + ' — ' + count + ' question' + (count === 1 ? '' : 's') + ' (' + span + ')' };
+               said: 'Sent to ' + first + ' — ' + count + ' ' + plural_(count, 'question') + ' (' + span + ')' };
     }
     const part = mailed.sent ? ' (' + mailed.sent + ' of ' + mine.length + ' went)' : '';
     if (mailed.held) return { id: id, error: 'Not sent to ' + first + ' — today’s mail quota is used up; press again tomorrow' + part };

@@ -6,7 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const acorn = require('acorn');
 
-const ROOT = path.join(__dirname, '..');
+const { ROOT, text, srcFiles } = require('./lib/gen.js');
 const LIMIT = 240;        // a comment's whole source text, delimiters included
 const HEAD = 160;         // the most a headline may run to
 const MARK = ' §';
@@ -25,22 +25,9 @@ const KEEP = [
 const kept = (body) => KEEP.some(k => k.re.test(body));
 
 /* ---------- WHICH FILES ---------- */
-function walk(dir, ext, deep, out) {
-  let names = [];
-  try { names = fs.readdirSync(path.join(ROOT, dir), { withFileTypes: true }); } catch (e) { return out; }
-  for (const d of names) {
-    const rel = dir ? dir + '/' + d.name : d.name;
-    if (d.isDirectory()) { if (deep && d.name !== 'node_modules') walk(rel, ext, deep, out); }
-    else if (ext.some(x => d.name.endsWith(x))) out.push(rel);
-  }
-  return out;
-}
 function files() {
   const out = [];
-  walk('js', ['.js'], false, out);
-  walk('check', ['.js'], false, out);
-  walk('tools', ['.js'], true, out);
-  walk('backend', ['.gs'], false, out);
+  out.push(...srcFiles(['js', 'check'], /\.js$/), ...srcFiles('tools', /\.js$/, { deep: true }), ...srcFiles('backend', /\.gs$/));
   for (const f of ['sw.js', 'sync.js', 'style.css', 'index.html']) if (fs.existsSync(path.join(ROOT, f))) out.push(f);
   return out.sort();
 }
@@ -334,22 +321,21 @@ function noteHeader(rel) {
 
 /* ---------- RUN ---------- */
 function plan(rel) {
-  const src = fs.readFileSync(path.join(ROOT, rel), 'utf8');
+  const src = text(rel);
   const all = commentsOf(rel, src);
   const long = all.filter(c => tooLong(src, c));
   return { rel, src, all, long };
 }
 
-const readRel_ = f => { try { return fs.readFileSync(path.join(__dirname, '..', f), 'utf8'); } catch (e) { return ''; } };
 /* A TOMBSTONE: a comment that only says what used to be there. Its story belongs in docs/history, not beside living code. */
 const TOMB = /\/\*[- ]*(?:`[^`]+`|THE [A-Z'` ]+|[A-Z`'_ ]+) (?:IS|ARE) GONE\b|\b(?:WAS|WERE) HERE\b|\bused to be (?:written|booked|measured|drawn|here)\b|\bremoved at the owner/i;
 const TOMB_KEEP = /THAT IS GONE|BEFORE IT IS GONE|WHEN IT IS GONE|IF IT IS GONE|ONCE IT IS GONE|TYPED BOX IS GONE FROM|DELETED IS GONE EVERYWHERE|MARKING PASS IS GONE|DELETED POST IS GONE|TYPED PATH IS GONE|@family\./i;
 /* THE FILES HELD TO NO TOMBSTONE: js/ (less `_` files) and style.css; the backend and tools keep theirs until a sweep. */
-const tombFiles = () => fs.readdirSync(path.join(__dirname, '..', 'js')).filter(f => f.endsWith('.js') && !f.startsWith('_')).sort().map(f => 'js/' + f).concat(['style.css']);
+const tombFiles = () => srcFiles('js', /^[^_].*\.js$/).concat(['style.css']);
 /* Every tombstone in the files given (paths from the repo root), each with where and what it says; read by tools/ai-cost.js too. */
 function tombstones(files = tombFiles()) {
   const out = [];
-  files.forEach(f => readRel_(f).split('\n').forEach((l, i) => { const s = l.trim();
+  files.forEach(f => text(f, '').split('\n').forEach((l, i) => { const s = l.trim();
     const one = (s.startsWith('/*') && s.endsWith('*/') && s.split('*/').length === 2) || (s.startsWith('//') && f.endsWith('.js'));
     if (one && TOMB.test(s) && !TOMB_KEEP.test(s)) out.push({ where: f + ':' + (i + 1), say: s.slice(0, 120) }); }));
   return out;

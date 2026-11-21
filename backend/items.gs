@@ -145,7 +145,7 @@ function itemWrite_(body, v) {
 
 /* ---------- EVENT: one row appended, {at, who, kind, what, item, data}. `who` is the token's person (an admin may name another). */
 function itemEvent_(body, v) {
-  if (!v.row) return { error: 'Sign in first.', why: 'signed-out' };
+  if (!v.row) return errOf_('err-sign-in-first', 'signed-out');
   const kind = S(body.kind), spec = itemKind_(kind);
   if (!spec || spec.sheet.to !== 'events') return { error: 'There is no event called ' + kind + '.', why: 'kind' };
   const ev = { at: new Date(), who: v.admin && S(body.who) ? S(body.who) : v.id, kind, what: S(body.what), item: S(body.item),
@@ -164,7 +164,7 @@ function itemEvent_(body, v) {
 /* THE HANDLER: `anyone` at the gate (access.gs); the token, not the request, says who asks. */
 function itemAnswer_(body) {
   const row = S(body.token) ? authWhoIs_(body.token) : null;
-  if (S(body.token) && !row) return { error: 'Please sign in again.', why: 'signed-out' };
+  if (S(body.token) && !row) return errOf_('err-sign-in-again', 'signed-out');
   const v = itemViewer_(row), mode = S(body.mode || 'read');
   if (mode === 'read') return itemRead_(body, v);
   if (mode === 'write') return itemWrite_(body, v);

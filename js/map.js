@@ -356,7 +356,7 @@ function asgLeftSay_(a) {
   if (!a.due) return '';
   const n = asgDaysLeft_(a.due);
   if (asgDone_(a)) return 'Due ' + dkSayDay_(a.due);
-  return n < 0 ? (-n) + ' day' + (n === -1 ? '' : 's') + ' late' : n === 0 ? 'Due today' : n === 1 ? 'Due tomorrow' : n + ' days left';
+  return n < 0 ? (-n) + ' ' + plural_(-n, 'day') + ' late' : n === 0 ? 'Due today' : n === 1 ? 'Due tomorrow' : n + ' days left';
 }
 function asgItem_(a, i, mine) {
   const size = a.amount !== '' && a.amount != null ? Number(a.amount).toLocaleString('en-GB') + (a.unit ? ' ' + asgSay_('unit', a.unit) : '') : '';

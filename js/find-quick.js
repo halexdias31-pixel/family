@@ -45,7 +45,7 @@ function answerSaysBuilt_(items) {
   let out = null;
   try {
     const view = finderSettled_() ? finderTagsView_() : null, said = view && view['#says'];
-    if (said && ['Practice', 'Library'].every(v => finderTagsSame_(view, { field: 'kindLabel', value: v }))) {
+    if (said && FRONT_WARM.at.every(v => finderTagsSame_(view, { field: 'kindLabel', value: v }))) {
       out = {};
       Object.keys(said).forEach(f => { const m = out[f] = new Map(); Object.keys(said[f]).forEach(v => m.set(spellKey_(v), said[f][v])); });
     }
@@ -83,7 +83,7 @@ function narrowIndex_(items, field, make) {
 }
 
 /* THE FRONT ANSWERS' LISTS, NARROWED WHILE NOTHING ELSE RUNS (1100), one an idle moment, so the first tap on Practice or § */
-const FRONT_WARM = { list: [], for: null, at: ['Practice', 'Library'] };
+const FRONT_WARM = { list: [], for: null, at: ITEM_KINDS.doors.filter(d => d.built).map(d => d.name) };
 function frontWarm_() {
   if (typeof finderSettled_ !== 'function' || !finderSettled_()) return;
   const F = FINDERS.stuff, all = inFinder_(F, () => stuffItems());

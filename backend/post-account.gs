@@ -7,7 +7,7 @@
 function postSavePerson_(body, field, value) {
   const t = read(TAB.people);
   const r = findPerson(S(body.name), S(body.personId));
-  if (!r) return jsonOut({ error: 'Person not found.' });
+  if (!r) return refuse_('err-person-not-found', 'not-found');
   if (t.headers.indexOf(field) < 0) {
     /* setCell returns false for a column that does not exist and says nothing. § */
     return jsonOut({ error: 'The sheet has no `' + field + '` column. Open the site once as an admin — '
@@ -22,7 +22,7 @@ function postSavePerson_(body, field, value) {
 /* ---------- AND YOUR ROLES, WHICH WENT STALE THE SAME WAY § */
 function postMyProfile_(body, action, began) {
   const me = findPerson('', S(body.personId));
-  if (!me) return jsonOut({ error: 'We could not find your account.' });
+  if (!me) return refuse_('err-no-account', 'not-found');
   return jsonOut(settingsOf_(me));
 }
 /* ---------- THE ADMIN'S LENS: SOMEBODY ELSE'S SETTINGS, IN THE SHAPE `myProfile` SENDS YOURS ----------
@@ -31,7 +31,7 @@ function postLensOpen_(body, action, began) {
   const me = findPerson('', S(body.personId));
   if (!me || !rankAtLeast_(me, 'admin')) return jsonOut({ error: 'Only an admin can open somebody else\'s settings.' });
   const r = read(TAB.people).rows.find(x => S(x.person_id) === S(body.targetId));
-  if (!r) return jsonOut({ error: 'We could not find that person.' });
+  if (!r) return refuse_('err-no-that-person', 'not-found');
   /* NO SECRETS: the PIN, its hash and the session token are never in this shape (`profileOf_` sends the editable fields alone). */
   return jsonOut(settingsOf_(r));
 }
@@ -62,7 +62,7 @@ function settingsOf_(me) {
 
 function postGetProfile_(body, action, began) {
   const r = findPerson(body.target);
-  if (!r) return jsonOut({ error: 'Person not found.' });
+  if (!r) return refuse_('err-person-not-found', 'not-found');
   const appRole = toAppRole(mainRole(r));
   const out = profileOf_(r);
   return jsonOut({ success: true, profile: out, role: appRole, name: personDisplayName(r),
@@ -111,8 +111,7 @@ function profileColumnsNo_(has, venueTab, availSent, phoneSent, dobSent, photosS
                          dobSent && 'date_of_birth', photosSent && 'photos', jobsSent && 'jobs']
     .filter(c => c && !has(c));
   if (packedMissing.length) {
-    return ('The sheet has no column for: ' + packedMissing.join(', ')
-      + '. Open the site once as an admin to add it — nothing was saved.');
+    return text_('err-no-column-admin', { cols: packedMissing.join(', ') });
   }
   /* QUALIFICATIONS AND LIBRARY CARDS ARE ROWS ON TABS OF THEIR OWN now (see `SCHEMA.people`), so the question is whether the TAB is there — a tab `ensureSchema` § */
   const tabMissing = [qualsSent && !read(TAB.qualifications).sheet && 'qualifications',
@@ -149,8 +148,7 @@ function profileRowNo_(r, has, wanted, fields, priceAsked) {
   const priceMoved = pricingMoved_(r, priceAsked).length > 0;
   /* THE STAMP'S COLUMN IS CHECKED HERE NOW. § */
   if (priceMoved && !has('pricing_changed_at')) {
-    return ('The sheet has no column for: pricing_changed_at. '
-      + 'Open the site once as an admin to add it — nothing was saved.');
+    return text_('err-no-column-admin', { cols: 'pricing_changed_at' });
   }
   /* ---------- AND THE AGE RANGE, WHICH IS NOT THE QUOTE AND HAS NO CLOCK § */
   const ageNo = ageRefusal_(r, priceAsked);
@@ -254,8 +252,7 @@ function postUpdateProfile_(body, action, began) {
   /* A field with no column vanishes silently: § */
   const noColumn = wanted.filter(f => !has(f));
   if (noColumn.length) {
-    return jsonOut({ error: 'The sheet has no column for: ' + noColumn.join(', ')
-      + '. Open the site once as an admin to add it — nothing was saved.' });
+    return refuse_('err-no-column-admin', 'no-column', { cols: noColumn.join(', ') });
   }
   /* ---------- WHAT A TUTOR CHARGES MOVES ONCE A MONTH, ALL FOUR FIELDS TOGETHER § */
   const asked = profileRefused_(r, wanted, fields, iAmAdmin);
@@ -418,7 +415,7 @@ function postSaveTimetable_(body, action, began) {
 /* ---------- WHICH EMAILS YOU WANT: ONE TICK ON THE NOTIFICATIONS CARD § */
 function postSetNotify_(body, action, began) {
   const me = findPerson('', S(body.personId));
-  if (!me) return jsonOut({ error: 'Not signed in.' });
+  if (!me) return refuse_('err-not-signed-in', 'not-signed-in');
   const kind = S(body.kind);
   const K = Object.prototype.hasOwnProperty.call(NOTIFY_KINDS, kind) ? NOTIFY_KINDS[kind] : null;
   if (!K) return jsonOut({ error: 'There is no email called "' + kind + '" to turn on or off. Nothing was changed.' });
@@ -430,7 +427,7 @@ function postSetNotify_(body, action, began) {
   let r = t.rows.find(x => S(x.person_id) === S(me.person_id)) || me;
   if (want && want !== S(me.person_id)) {
     const kid = t.rows.find(x => S(x.person_id) === want);
-    if (!kid) return jsonOut({ error: 'We could not find that account.' });
+    if (!kid) return refuse_('err-no-that-account', 'not-found');
     const mine = acceptedChildren(S(me.person_id)).some(c => S(c.person_id) === want);
     if (!whoMay_(me, 'admin') && !mine) {
       return jsonOut({ error: 'Only their parent or an admin can choose what they are emailed. Nothing was changed.' });
@@ -466,7 +463,7 @@ function postSetNotify_(body, action, began) {
 function postSavePhoto_(body, action, began) {
   const t = read(TAB.people);
   const r = findPerson(S(body.name), S(body.personId));
-  if (!r) return jsonOut({ error: 'Person not found.' });
+  if (!r) return refuse_('err-person-not-found', 'not-found');
   if (t.headers.indexOf('photo') < 0) {
     return jsonOut({ error: 'The people tab has no `photo` column. Open the site once as an admin — nothing was saved.' });
   }
@@ -484,11 +481,11 @@ function postSavePhoto_(body, action, began) {
   const raw = S(body.data).trim();
   if (!rankAtLeast_(r, 'client')) return jsonOut({ error: CHILD_NO_UPLOAD + ' Choose one of the pictures instead.' });
   if (!/^data:image\/[\w.+-]+;base64,/i.test(raw)) {
-    return jsonOut({ error: 'That is not a picture. Choose a photo from your phone.' });
+    return refuse_('err-not-a-picture', 'not-a-picture');
   }
   /* A CAP, IN DECODED BYTES, for a body the phone has already redrawn at 600px — about 60KB. § */
   const bytes = Math.floor(raw.split(',')[1].length * 3 / 4);
-  if (bytes > 5 * 1048576) return jsonOut({ error: 'That picture is too big. Try a smaller one.' });
+  if (bytes > 5 * 1048576) return refuse_('err-picture-too-big', 'too-big');
   const folder = getPhotoFolder_();
   if (!folder) {
     return jsonOut({ error: 'No folder for pictures. Add a row to the config tab: key '
@@ -518,11 +515,11 @@ function propFolder_(prop, name) {
 /* A TUTOR'S EXTRA PHOTO, UPLOADED (8 Nov): one JPEG the phone has redrawn at 1200px; the link goes back to the box and Save keeps it. */
 function postPhotoFile_(body, action, began) {
   const r = findPerson(S(body.name), S(body.personId));
-  if (!r) return jsonOut({ error: 'Person not found.' });
+  if (!r) return refuse_('err-person-not-found', 'not-found');
   if (!(hasRole(r, 'tutor') || whoMay_(r, 'admin'))) return jsonOut({ error: 'Only a tutor has extra photos.' });
   const raw = S(body.data).trim();
-  if (!/^data:image\/[\w.+-]+;base64,/i.test(raw)) return jsonOut({ error: 'That is not a picture. Choose a photo from your phone.' });
-  if (Math.floor(raw.split(',')[1].length * 3 / 4) > PHOTO_FILE_MAX_BYTES) return jsonOut({ error: 'That picture is too big. Try a smaller one.' });
+  if (!/^data:image\/[\w.+-]+;base64,/i.test(raw)) return refuse_('err-not-a-picture', 'not-a-picture');
+  if (Math.floor(raw.split(',')[1].length * 3 / 4) > PHOTO_FILE_MAX_BYTES) return refuse_('err-picture-too-big', 'too-big');
   try {
     const url = driveKeep_(propFolder_(PHOTO_FOLDER_PROP, PHOTO_FOLDER_NAME), raw, 'photo-' + (S(r.person_id) || 'tutor') + '-' + Date.now());
     return jsonOut({ success: true, url });
@@ -533,7 +530,7 @@ function postPhotoFile_(body, action, began) {
 function postVideoPart_(body, action, began) {
   const t = read(TAB.people);
   const r = findPerson(S(body.name), S(body.personId));
-  if (!r) return jsonOut({ error: 'Person not found.' });
+  if (!r) return refuse_('err-person-not-found', 'not-found');
   if (t.headers.indexOf('video_file') < 0) {
     return jsonOut({ error: 'The people tab has no `video_file` column. Open the site once as an admin — nothing was saved.' });
   }
@@ -583,7 +580,7 @@ function postVideoPart_(body, action, began) {
 function postSetMyRoles_(body, action, began) {
   const t = read(TAB.people);
   const r = findPerson('', S(body.personId));
-  if (!r) return jsonOut({ error: 'Person not found.' });
+  if (!r) return refuse_('err-person-not-found', 'not-found');
   if (t.headers.indexOf('role') < 0) {
     return jsonOut({ error: 'The people tab has no `role` column. Open the site once as an admin — nothing was saved.' });
   }
@@ -655,7 +652,7 @@ function docketTidy_(lists) {
 }
 function postDocketImport_(body, action, began) {
   const me = findPerson('', S(body.personId));
-  if (!me || !S(me.person_id)) return jsonOut({ error: 'Not signed in.' });
+  if (!me || !S(me.person_id)) return refuse_('err-not-signed-in', 'not-signed-in');
   /* THE OWNER'S ALONE (owner, 18 Nov): an admin whose address is the owner's (`ownerEmail_`), never another admin, tutor, parent or student. */
   if (!isOwner_(me)) return jsonOut({ error: 'Docket is the owner\'s alone.' });
   const target = S(me.person_id);
@@ -700,11 +697,11 @@ function assignmentsWrite_(me, list) {
 /* READ: your own, or a learner's you may see (parent, booked tutor, admin). */
 function postAssignmentsOf_(body) {
   const me = findPerson('', S(body.personId));
-  if (!me || !S(me.person_id)) return jsonOut({ error: 'Sign in first.' });
+  if (!me || !S(me.person_id)) return refuse_('err-sign-in-first', 'not-signed-in');
   const of = S(body.of) || S(me.person_id);
   if (!workFileMaySee_(me, of)) return jsonOut({ error: 'Not yours to see.' });
   const r = key(of) === key(me.person_id) ? me : findPerson('', of);
-  if (!r) return jsonOut({ error: 'Person not found.' });
+  if (!r) return refuse_('err-person-not-found', 'not-found');
   const mine = key(of) === key(me.person_id);
   /* WHOSE ELSE YOU MAY OPEN: your accepted children (a parent) and your booked students (a tutor) — the History rule's people. */
   let others = [];
@@ -717,13 +714,13 @@ function postAssignmentsOf_(body) {
 /* SAVE: your own list, whole — the tool's add, edit and delete. */
 function postAssignmentsSave_(body) {
   const me = findPerson('', S(body.personId));
-  if (!me || !S(me.person_id)) return jsonOut({ error: 'Sign in first.' });
+  if (!me || !S(me.person_id)) return refuse_('err-sign-in-first', 'not-signed-in');
   return assignmentsWrite_(me, assignmentsTidy_(body.assignments));
 }
 /* IMPORT: many at once onto your own list (the owner loads his uni work this way); one with the same title, course and due date is replaced, the rest added. */
 function postAssignmentsImport_(body) {
   const me = findPerson('', S(body.personId));
-  if (!me || !S(me.person_id)) return jsonOut({ error: 'Sign in first.' });
+  if (!me || !S(me.person_id)) return refuse_('err-sign-in-first', 'not-signed-in');
   const fresh = assignmentsTidy_(body.assignments);
   if (!fresh.length) return jsonOut({ error: 'No assignments to import (each needs a title) — nothing was saved.' });
   const sameAs = a => b => norm(a.title) === norm(b.title) && norm(a.course) === norm(b.course) && a.due === b.due;

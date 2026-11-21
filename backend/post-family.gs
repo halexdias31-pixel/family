@@ -4,7 +4,7 @@
 /* claiming a child ------------------------------------------------------------------ A parent types a first and last name. § */
 function postClaimChild_(body, action, began) {
   const me = findPerson(S(body.name), S(body.personId));
-  if (!me) return jsonOut({ error: 'Not signed in.' });
+  if (!me) return refuse_('err-not-signed-in', 'not-signed-in');
   /* HELD, NOT MAIN. The card is drawn for anybody who HOLDS client or admin (`mayAddChild_` reads `heldRoles`), and this asked for the MAIN role — so a person who § */
   if (!hasRole(me, 'client') && !whoMay_(me, 'admin')) {
     return jsonOut({ error: 'Only a parent can add a child.' });
@@ -74,7 +74,7 @@ function postClaimChild_(body, action, began) {
 /* FINDING YOUR CHILD BY HANDLE (442) -------------------------------------------------- A child is never listed; one exact handle, one card. */
 function postFindChild_(body, action, began) {
   const me = findPerson(S(body.name), S(body.personId));
-  if (!me) return jsonOut({ error: 'Not signed in.' });
+  if (!me) return refuse_('err-not-signed-in', 'not-signed-in');
   if (!rankAtLeast_(me, 'client')) return jsonOut({ error: 'Only a parent can look up a child.' });
   /* TWENTY LOOKUPS IN TEN MINUTES per account, so the handle space cannot be walked. */
   try {
@@ -95,7 +95,7 @@ function postFindChild_(body, action, began) {
 /* ---------- A HAND UP (455): "help me" from a question, for the tutor in the room. Script properties, 30 minutes; no sheet tab. */
 function postRaiseHand_(body, action, began) {
   const me = findPerson(S(body.name), S(body.personId));
-  if (!me) return jsonOut({ error: 'Not signed in.' });
+  if (!me) return refuse_('err-not-signed-in', 'not-signed-in');
   const staff = rankAtLeast_(me, 'staff');
   const lock = LockService.getScriptLock();
   try { lock.waitLock(5000); } catch (e) { /* the lock lapses on its own; going ahead unlocked is the old behaviour */ }
@@ -123,11 +123,11 @@ function postRaiseHand_(body, action, began) {
 /* The child answering. Only the child named in the row, and only once. */
 function postAnswerClaim_(body, action, began) {
   const me = findPerson(S(body.name), S(body.personId));
-  if (!me) return jsonOut({ error: 'Not signed in.' });
+  if (!me) return refuse_('err-not-signed-in', 'not-signed-in');
 
   const t = read(TAB.family);
   const r = t.rows.find(x => x._row === Number(body.rowIndex));
-  if (!r) return jsonOut({ error: 'Not found.' });
+  if (!r) return refuse_('err-not-found', 'not-found');
   /* THE CHILD, and nobody else — not the parent who asked, not another student, not an admin.
      A consent somebody else can give on your behalf is not a consent. */
   if (S(r.child_id) !== S(me.person_id)) {
@@ -228,7 +228,7 @@ function postAdminUnlinkFamily_(body, action, began) {
 function postPersonGet_(body, action, began) {
   const want = S(body.targetId);
   const r = want ? read(TAB.people).rows.find(x => S(x.person_id) === want) : null;
-  if (want && !r) return jsonOut({ error: 'We could not find that person.' });
+  if (want && !r) return refuse_('err-no-that-person', 'not-found');
   /* THEIR NOTIFICATIONS, AS THEIR OWN CARD DRAWS THEM: an admin ticks them on the Edit form through `setNotify` with targetId. */
   let notify = null;
   try { notify = r && !whoMay_(r, 'admin') ? notifyOf_(r) : null; } catch (err) { notify = null; }
@@ -243,7 +243,7 @@ function postPersonSave_(body, action, began) {
   if (want && !r) return jsonOut({ error: 'We could not find that person — nothing was saved.' });
   if (r && S(r.person_id) === S(body.personId)) return jsonOut({ error: 'Your own card is changed with Edit on it.' });
   const lacking = ['handle', 'pin', 'date_of_birth'].filter(c => t.headers.indexOf(c) === -1);
-  if (lacking.length) return jsonOut({ error: 'The sheet has no column for: ' + lacking.join(', ') + '. Run ?setup=1 — nothing was saved.' });
+  if (lacking.length) return refuse_('err-no-column-setup', 'no-column', { cols: lacking.join(', ') });
   const said = adminPersonRefusal_(t, body, r);
   if (said) return jsonOut({ error: said + ' Nothing was saved.' });
   const first = S(body.firstName), last = S(body.lastName), email = S(body.email);
@@ -264,7 +264,7 @@ function postPersonSave_(body, action, began) {
     const id = 'P' + Date.now() + '-a';
     const draft = Object.assign({ person_id: id, joined_on: new Date() }, put);
     const handle = handleMake_(draft);
-    if (!handle) return jsonOut({ error: 'No free handle could be made just now. Nothing was saved — try again.' });
+    if (!handle) return refuse_('err-no-free-handle', 'no-handle');
     pin = authFreshPin_();
     row = addRow(t, Object.assign(draft, { handle: handle, pin: pin, credits: 0, xp: 0,
       came_from: 'admin', invited_by: S(body.personId), verified: 'TRUE' }));
@@ -283,9 +283,7 @@ function postPersonSave_(body, action, began) {
 /* THE NEW ACCOUNT'S HANDLE AND PIN MAILED TO THEIR OWN ADDRESS (`invite`): false when it could not go, so the admin is shown the PIN instead. */
 function adminInvite_(r, pin) {
   try {
-    deliverOrThrow_(null, 'access', { to: S(r.email), subject: text_('mail-invite-subject', { brand: BRAND_NAME }),
-      body: text_('mail-invite-body', { first: S(r.first_name), brand: BRAND_NAME, site: SITE_URL, handle: S(r.handle), pin: pin })
-          + '\n\n' + text_('mail-sign-off', { brand: BRAND_NAME }) });
+    accessMail_(S(r.email), 'mail-invite', { first: S(r.first_name), site: SITE_URL, handle: S(r.handle), pin: pin });
     return true;
   } catch (err) { return false; }
 }

@@ -1195,10 +1195,7 @@ function authMoveFind_(key) {
 /* THE LINK TO THE NEW ADDRESS. It names nobody: the reader may be a stranger whose address was typed by
    mistake, and the account's name and handle are not theirs to be told. Throws as `MailApp` does. */
 function moveMail_(to, key) {
-  deliverOrThrow_(null, 'access', { to: S(to),
-    subject: text_('mail-move-subject', { brand: BRAND_NAME }),
-    body: text_('mail-move-body', { brand: BRAND_NAME, link: SITE_URL + '?verify=' + key, days: AUTH.MOVE_DAYS })
-        + '\n\n' + text_('mail-sign-off', { brand: BRAND_NAME }) });
+  accessMail_(S(to), 'mail-move', { link: siteLink_('verify', key), days: AUTH.MOVE_DAYS });
 }
 
 /* ---------- PERMISSIONS (generated) ---------- */
@@ -1322,6 +1319,7 @@ const ITEM_PERMISSIONS = {
   'card:read': ['admin'],
   'content:save': ['admin'],
   'favourite:save': ['member', 'child', 'admin'],
+  'games:read': ['anyone', 'member', 'child', 'admin'],
   'library:read': ['anyone', 'member', 'child', 'admin'],
   'listed:save': ['admin'],
   'message:read': ['member', 'child', 'admin'],
@@ -1339,8 +1337,10 @@ const ITEM_PERMISSIONS = {
   'project:save': ['admin'],
   'question:read': ['anyone', 'member', 'child', 'admin'],
   'question:save': ['admin'],
+  'shop:read': ['anyone', 'member', 'child', 'admin'],
   'spotlight:save': ['admin'],
   'todo:save': ['member', 'child', 'admin'],
+  'tools:read': ['anyone', 'member', 'child', 'admin'],
   'words:save': ['admin'],
 };
 

@@ -131,7 +131,7 @@ function cartPaint_() {
   document.querySelectorAll('[data-do="cart-add"][data-kind="bundle"]').forEach(el => {
     const ids = String(el.dataset.ids || '').split(',').filter(Boolean);
     const all = ids.length && ids.every(id => CART.some(c => c.kind === 'print' && String(c.key) === id));
-    tileSet_(el, all ? { label: 'In your basket', on: true, off: true }
+    tileSet_(el, all ? { label: text_('in-your-basket'), on: true, off: true }
                      : { label: 'Add bundle to basket', on: false, off: false });
   });
 }

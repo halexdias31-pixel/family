@@ -6,10 +6,8 @@
    and the mean mark difference (the examiner mark taken as the middle of the level), site-wide and per question type; fails the build if
    within-one-level agreement falls below 80%. Without the private files (a CI checkout) it says so and passes. Run by tools/build.js. */
 'use strict';
-const fs = require('fs'), path = require('path');
+const { read, main } = require('./lib/gen.js');
 const VQ = require('./validate-questions.js');
-const ROOT = path.join(__dirname, '..');
-const read = f => { try { return JSON.parse(fs.readFileSync(path.join(ROOT, f), 'utf8')); } catch (e) { return null; } };
 const FLOOR = 0.8;
 
 function run() {
@@ -45,4 +43,4 @@ function run() {
   return all;
 }
 module.exports = { run };
-if (require.main === module) { try { run(); } catch (e) { console.error(e.message); process.exit(1); } }
+main(module, run);

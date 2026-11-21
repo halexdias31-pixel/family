@@ -3,12 +3,13 @@
    A facet that only reads one column says so in data/settings/facets.json (`read`: {by, col}), read by js/find-finder.js's one
    table FACET_BY_READ_; a hand reader for it in FACET_READ is a second place to forget one, and a child would see a menu that
    answers differently from its twin. This fails the build if a one-line column reader (writingAt_/histCol_/mechFit_/mechOwn_ of a
-   quoted column, or a plain `x.col || ''`) comes back in FACET_READ, a `read` names an unknown `by`, or a facet is read twice. */
+   quoted column, a plain `x.col || ''`, a bout's trimmed row column, or one helper's answer `x => helper_(x)` / `helper_(x).key`) comes
+   back in FACET_READ, an `fn` names a helper missing from the explicit registry FACET_FN (batch 6), a `read` names an unknown `by`, or a facet is read twice. */
 'use strict';
 const fs = require('fs'), path = require('path');
 const ROOT = path.join(__dirname, '..');
 const ENGINE = 'js/find-finder.js';
-const BYS = ['row', 'writing', 'hist', 'mech', 'own'];
+const BYS = ['row', 'writing', 'hist', 'mech', 'own', 'fight', 'fn'];
 function run() {
 
 const src = fs.readFileSync(path.join(ROOT, ENGINE), 'utf8');
@@ -20,8 +21,13 @@ if (!/const FACET_BY_READ_ = \{/.test(src) || !/\.\.\.facetReadData_\(\)/.test(s
 const ONE_LINE = [
   /^\s+(\w+): \{ of: x => (?:writingAt_|histCol_|mechFit_|mechOwn_)\(x(?:, '[^']*')+\)(?:, tagOf: x => mechFitTag_\(x, '[^']*'\))? \},?$/,
   /^\s+(\w+): \{ of: x => \(?x\.\w+ \|\| ''\)? \},?$/,
+  /^\s+(\w+): \{ of: x => \(?isFight_\(x\) && x\.row && String\(x\.row\.\w+ \|\| ''\)\.trim\(\)\)? \|\| '' \},?$/,
+  /^\s+(\w+): \{ of: x => \w+_\(x\)(?:\.\w+)?(?:, tagOf: \(\) => '')?(?:, choose: true)? \},?$/,
 ];
 const hand = new Set();
+const reg = /\nconst FACET_FN = \{\n([\s\S]*?)\n\};\n/.exec(src), fns = new Set();
+if (!reg) bad.push(ENGINE + ': the helper registry FACET_FN is gone');
+else reg[1].split('\n').forEach(l => { const k = /^  (\w+): x => (\w+)\(x\),$/.exec(l); if (k && k[1] === k[2]) fns.add(k[1]); else if (l.trim()) bad.push(ENGINE + ': FACET_FN line is not `name_: x => name_(x),`: ' + l.trim()); });
 if (m) m[1].split('\n').forEach(l => {
   const k = /^  (\w+):/.exec(l); if (k) hand.add(k[1]);
   ONE_LINE.forEach(re => { const h = re.exec(l); if (h) bad.push(ENGINE + ': FACET_READ.' + h[1] + ' is a one-line column reader; give its facets.json row a "read" instead'); });
@@ -30,6 +36,7 @@ facets.forEach(f => {
   if (!f.read) return;
   if (BYS.indexOf(f.read.by) < 0 || !f.read.col) bad.push('facets.json ' + f.field + ': read ' + JSON.stringify(f.read) + ' (by one of ' + BYS.join('|') + ', and a col)');
   if (f.read.by === 'own' && !/^\w+\.\w+$/.test(f.read.col)) bad.push('facets.json ' + f.field + ': an "own" col is table.column');
+  if (f.read.by === 'fn' && !fns.has(f.read.col.split('.')[0])) bad.push('facets.json ' + f.field + ': fn ' + f.read.col + ' is not in FACET_FN');
   if (hand.has(f.field)) bad.push(ENGINE + ': ' + f.field + ' is read by facets.json and again by hand in FACET_READ');
 });
 if (bad.length) throw new Error('facet-readers: FAILED\n  ' + bad.join('\n  '));

@@ -562,7 +562,7 @@ function findPeopleItems_() {
       kind: 'venue', name: v.title, key: v.title, sub: v.subtitle || '', image: v.image,
       cost: priced_(v.bestRate), row: v, borough: v.borough || v.city || '',
       venueArea: v.borough || v.city || '', venueFor: v.focus || [],
-      venueSize: [Number(v.maxCapacity) ? 'Up to ' + v.maxCapacity : '', (v.rooms || []).length ? (v.rooms || []).length + ' room' + ((v.rooms || []).length === 1 ? '' : 's') : ''].filter(Boolean),
+      venueSize: [Number(v.maxCapacity) ? 'Up to ' + v.maxCapacity : '', (v.rooms || []).length ? (v.rooms || []).length + ' ' + plural_((v.rooms || []).length, 'room') : ''].filter(Boolean),
     })),
     /* The widgets, findable like everything else. § */
     /* ---------- THE WIDGETS ARE IN THE FUNNEL AGAIN (790): every widget but the reel's is a card, its kind's group (Tools, Games) its first answer. */
@@ -592,7 +592,7 @@ function findMineItems_() {
        kind above for why nobody else joins it. */
     /* ---------- WHAT YOU ARE IN, WHAT YOU ARE WAITING FOR, AND WHAT IS DONE § */
     /* ON EVERY FRONT, A GUEST'S TOO (owner, 13 Nov): it is what puts Booking on the menu; its steps are Find's (find-account.js). */
-    { kind: 'bookform', name: 'Booking form', key: 'bookform', sub: '', image: '' },
+    { kind: 'bookform', name: text_('booking-form'), key: 'bookform', sub: '', image: '' },
     ...(typeof myJobs_ === 'function' ? myJobs_() : []).map(j => ({
       /* ONE KIND FOR ALL OF THEM — see the note on `receipt` above. `jobIsPast_` and `isWaitJob_`
          still decide how a card DRAWS and how the widgets split their lists; they no longer decide
@@ -641,7 +641,7 @@ function findBoxingItems_() {
     ...(DATA.boxers || []).filter(b => b.name).map(b => ({
       kind: 'people', name: b.name, key: 'bx:' + (b.id || b.name), pixId: b.id,
       sub: [b.bestDivision, b.country].filter(Boolean).join(' · '), image: '',
-      born: personYear_(b.dob), died: personYear_(b.dod), from: b.country || '', roles: ['Boxer'], histKind: 'People',
+      born: personYear_(b.dob), died: personYear_(b.dod), from: b.country || '', roles: ['Boxer'], histKind: labelOf_('hist-kind', 'figure', ''),
       /* ---------- A DIVISION IS NOT A SUBJECT § */
       /* WHICH OF THE TWO, asked before the weight. § */
       boxKind: 'Fighters', shelf: 'Boxing',

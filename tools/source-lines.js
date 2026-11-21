@@ -8,7 +8,7 @@
       the site's own `insSource_` cuts non-empty lines from it) or is withheld. Prints the count; anything else fails the build. */
 'use strict';
 const fs = require('fs'), path = require('path');
-const { ROOT, read, S } = require('./lib/gen.js');
+const { ROOT, read, S, main } = require('./lib/gen.js');
 const plain = h => S(h).replace(/<[^>]*>/g, ' ').replace(/&ndash;|&mdash;/g, '–').replace(/&nbsp;/g, ' ').replace(/&[a-z]+;/g, ' ').replace(/\s+/g, ' ');
 const LINES = /\blines?\s+(\d{1,3})\s*(?:to|–|—|-)\s*(\d{1,3}|the end)\b/i;
 const ENGLISH = /^P-AQA-870[02]-/;
@@ -102,4 +102,4 @@ function run() {
   return n;
 }
 module.exports = { run, spanOf };
-if (require.main === module) { try { run(); } catch (e) { console.error(e.message); process.exit(1); } }
+main(module, run);

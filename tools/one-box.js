@@ -6,7 +6,7 @@
 'use strict';
 const fs = require('fs'), path = require('path');
 const VQ = require('./validate-questions.js');
-const { S } = require('./lib/gen.js');
+const { S, main } = require('./lib/gen.js');
 
 function run() {
   if (!fs.existsSync(path.join(__dirname, '..', 'data-private', 'questions.json'))) { console.log('one-box: no data-private/questions.json here, skipped'); return null; }
@@ -36,4 +36,4 @@ function run() {
   return n;
 }
 module.exports = { run };
-if (require.main === module) { try { run(); } catch (e) { console.error(e.message); process.exit(1); } }
+main(module, run);

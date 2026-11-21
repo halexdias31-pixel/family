@@ -18,7 +18,7 @@ const wfSpec_ = of => ({ kind: 'panel', card: 'acct:workfile', look: 'workfile-c
 const wfTeach_ = of => !!USER && String(of) === String(USER.personId || '') && typeof rank_ === 'function' && rank_() === 'staff';
 const wfNote_ = text => ({ type: 'group', tag: 'p', look: 'note', text });
 const wfTiles_ = of => { const s = wfOf_(of);
-  return (s.pending.length ? [{ icon: 'save', label: 'Save to file', note: s.pending.length + ' page' + (s.pending.length === 1 ? '' : 's'), act: 'wf-save', cls: 'is-submit', data: { of } }] : [])
+  return (s.pending.length ? [{ icon: 'save', label: 'Save to file', note: s.pending.length + ' ' + plural_(s.pending.length, 'page'), act: 'wf-save', cls: 'is-submit', data: { of } }] : [])
     .concat({ icon: 'photo', label: 'Scan a page', note: 'camera or photos', act: 'wf-pick', data: { of } }); };
 /* THE INSIDES AS BLOCKS: `inCard` leaves the scan and save tiles to the card's row. */
 function wfBody_(of, inCard) {
@@ -45,7 +45,7 @@ function wfList_(of) {
   return [{ type: 'group', look: 'wf-rows', attrs: { role: 'list' }, blocks: s.rows.map(r => ({ type: 'group', look: 'row wf-item', attrs: { role: 'listitem' },
     blocks: [r.thumb ? { type: 'media', kind: 'image', look: 'wf-thumb', src: r.thumb } : { type: 'group', tag: 'span', look: 'wf-thumb', attrs: { 'aria-hidden': 'true' } },
       { type: 'group', tag: 'span', look: 'wf-what', blocks: [span('wf-name', r.title || r.subject || 'Scanned work'),
-        span('wf-when note', wfDate_(r.at) + (r.subject && r.title ? ' · ' + r.subject : '') + ' · ' + String(r.pages || 1) + ' page' + (r.pages === 1 ? '' : 's') + (r.by && r.by !== 'you' ? ' · by ' + r.by : ''))] }],
+        span('wf-when note', wfDate_(r.at) + (r.subject && r.title ? ' · ' + r.subject : '') + ' · ' + String(r.pages || 1) + ' ' + plural_(r.pages, 'page') + (r.by && r.by !== 'you' ? ' · by ' + r.by : ''))] }],
     tiles: [{ icon: 'open', label: 'Open', note: 'see the pages', act: 'wf-open', data: { id: r.id, title: r.title || 'Scanned work' } }]
       .concat(s.mayDelete ? [{ icon: 'bin', label: 'Delete', note: 'from your file', act: 'wf-del', data: { id: r.id, of } }] : []) })) }];
 }
@@ -70,7 +70,7 @@ function wfLoad_(of) {
     if (!d || !d.success) { s.rows = []; s.say = (d && (d.message || d.error)) || 'Could not load the work on file'; }
     else { s.rows = Array.isArray(d.work) ? d.work : []; s.mayDelete = !!d.mayDelete; s.others = Array.isArray(d.others) ? d.others : []; }
     wfPaint_(of);
-  }).catch(() => { s.rows = []; s.say = 'Could not reach the server'; wfPaint_(of); });
+  }).catch(() => { s.rows = []; s.say = text_('could-not-reach-the-server'); wfPaint_(of); });
 }
 const wfAgain_ = of => { const s = wfOf_(of); s.asked = false; s.rows = null; wfLoad_(of); };
 
@@ -128,7 +128,7 @@ on('wf-open', el => {
     loaded_(box);
     if (!d || !d.success) { box.textContent = (d && (d.message || d.error)) || 'Could not open it'; return; }
     box.innerHTML = cardBlocks_((d.pages || []).length ? d.pages.map((u, i) => ({ type: 'media', kind: 'image', look: 'wf-page', src: u, title: 'Page ' + (i + 1) })) : [wfNote_('No pages could be read.')]);
-  }).catch(() => { const box = document.querySelector('.wf-pages'); if (box) { loaded_(box); box.textContent = 'Could not reach the server'; } });
+  }).catch(() => { const box = document.querySelector('.wf-pages'); if (box) { loaded_(box); box.textContent = text_('could-not-reach-the-server'); } });
 });
 
 on('wf-del', el => {
@@ -161,7 +161,6 @@ on('wf-see', el => {
 /* The backend decides who may see, as for Work on file: the student, a parent they accepted, a booked tutor, the admin. */
 const HIST = {};
 const histOf_ = of => HIST[of] || (HIST[of] = { day: '', got: null, busy: false, say: '' });
-const histToday_ = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
 const HIST_HOW = { right: '✓ Right', part: 'Part marks', wrong: '✗ Not right', open: 'Not marked yet' };
 function histBody_(of) {
   const s = histOf_(of);

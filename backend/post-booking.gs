@@ -21,10 +21,10 @@ function postCreateCheckout_(body, action, began) {
 
   const t = read(TAB.jobs);
   const j = t.rows.find(x => S(x.job_id) === S(body.jobId));
-  if (!j) return jsonOut({ error: 'Job not found.' });
+  if (!j) return refuse_('err-job-not-found', 'not-found');
   const me = S(body.name);
   const mine = participantsOf(S(j.job_id)).find(p2 => key(p2.name) === key(me));
-  if (!mine) return jsonOut({ error: "You're not part of this session." });
+  if (!mine) return refuse_('err-not-in-session', 'not-yours');
   if (mine.status !== BM.AGREED) {
     return jsonOut({ error: 'Nothing to pay for yet — the terms have to be agreed first.' });
   }
@@ -48,8 +48,8 @@ function postCreateCheckout_(body, action, began) {
   const dates = sessionDatesOf(j);
   const params = {
     'mode': 'payment',
-    'success_url': SITE_URL + '?paid=1&ref=' + ref,
-    'cancel_url': SITE_URL + '?paid=0',
+    'success_url': siteLink_('paid', '1') + '&ref=' + ref,
+    'cancel_url': siteLink_('paid', '0'),
     'client_reference_id': ref,
     'line_items[0][price_data][currency]': 'gbp',
     'line_items[0][price_data][product_data][name]':
@@ -138,10 +138,10 @@ function postFinalizePayment_(body, action, began) {
 /* THE ROOM IN THE VENUE, written by staff after booking; the family never picks it. */
 function postSetRoom_(body, action, began) {
   const me = findPerson(S(body.name), S(body.personId));
-  if (!me) return jsonOut({ error: 'Not signed in.' });
+  if (!me) return refuse_('err-not-signed-in', 'not-signed-in');
   const t = read(TAB.jobs);
   const j = t.rows.find(x => S(x.job_id) === S(body.jobId) || String(x._row) === S(body.jobId));
-  if (!j) return jsonOut({ error: 'No session with that id.' });
+  if (!j) return refuse_('err-no-session', 'not-found');
   /* A PERSON ROW HAS NO `name` CELL: who they are is `personDisplayName`, as the roster spells the tutor. */
   const teaches = participantsOf(S(j.job_id)).some(p2 => p2.role === 'tutor' && key(p2.name) === key(personDisplayName(me)));
   if (!rankAtLeast_(me, 'admin') && !teaches) return jsonOut({ error: 'Only an admin or the tutor can set the room.' });
@@ -217,7 +217,7 @@ function moveStatus_(t, j, jobId, act) {
 function postMove_(body, action, began) {
   const t = read(TAB.jobs);
   const j = t.rows.find(x => S(x.job_id) === S(body.jobId) || String(x._row) === S(body.jobId));
-  if (!j) return jsonOut({ error: 'Job not found.' });
+  if (!j) return refuse_('err-job-not-found', 'not-found');
   const jobId = S(j.job_id) || String(j._row);
   if (body.requestId && seenRequest(body.requestId)) {
     return jsonOut({ success: true, duplicate: true });   // a double tap, already handled
@@ -238,7 +238,7 @@ function postMove_(body, action, began) {
 
   // Joining is a Request from someone not yet involved. Everything else needs you in already.
   if (!mine && !asAdmin && act !== ACT.REQUEST) {
-    return jsonOut({ error: "You're not part of this session." });
+    return refuse_('err-not-in-session', 'not-yours');
   }
   if (!mine && !asAdmin) {
     const joinNo = moveJoinRefusal_(j, jobId, role, me, before, body);
@@ -385,7 +385,7 @@ function moveTell_(j, act, me, text, target, others) {
 /* --- A TUTOR ANSWERING A REQUEST (488) ----------------------------------------------------- the named tutor, or an admin, says yes or no in one press. */
 function postAnswerRequest_(body, action, began) {
   const asker = findPerson('', S(body.personId));
-  if (!asker) return jsonOut({ error: 'Sign in first.' });
+  if (!asker) return refuse_('err-sign-in-first', 'not-signed-in');
   const yes = TRUE_(body.yes), reason = S(body.reason).slice(0, 200);
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(10000)) return jsonOut({ error: 'Busy — please press again in a moment.' });
@@ -394,7 +394,7 @@ function postAnswerRequest_(body, action, began) {
     clearCache();
     const t = read(TAB.jobs);
     j = t.rows.find(x => S(x.job_id) === S(body.jobId) || String(x._row) === S(body.jobId));
-    if (!j) return jsonOut({ error: 'Job not found.' });
+    if (!j) return refuse_('err-job-not-found', 'not-found');
     const jobId = S(j.job_id) || String(j._row);
     const me = personDisplayName(asker), admin = rankAtLeast_(asker, 'admin');
     const pending = tutorsIn(jobId).filter(p2 => p2.status === BM.WAITING);
@@ -477,7 +477,7 @@ function postCreateJob_(body, action, began) {
   }
   /* AT HOME THE BOOKING TAKES EVERY SEAT (owner, 8 Nov): fewer than the cap is refused, so nobody pays for one seat of a private session. */
   if (takesAllSeats_(body.location) && seatCap > 0 && (N(body.n) || 1) !== seatCap) {
-    return jsonOut({ error: 'A booking at home takes all ' + seatCap + ' seat' + (seatCap === 1 ? '' : 's') + ' and is priced for each. Nothing has been booked.' });
+    return jsonOut({ error: 'A booking at home takes all ' + seatCap + ' ' + plural_(seatCap, 'seat') + ' and is priced for each. Nothing has been booked.' });
   }
   /* AN ADMIN'S DISCOUNT, AND NOBODY ELSE'S — asked before anything is written, like the refusals above (`discountRefusal_`, booking.gs). § */
   const codes = S(body.discountCode) ? read(TAB.promo_codes) : null;
@@ -629,12 +629,12 @@ function createJobReceipt_(body, me, jobId, chargeTravel, travel) {
 
 function postOpenWaitlist_(body, action, began) {
   const me = findPerson(S(body.name), S(body.personId));
-  if (!me) return jsonOut({ error: 'Not signed in.' });
+  if (!me) return refuse_('err-not-signed-in', 'not-signed-in');
   if (!isAdminPerson(personDisplayName(me))) {
     return jsonOut({ error: 'Only an admin can open a waiting list.' });
   }
   const venue = S(body.venue);
-  if (!venue) return jsonOut({ error: 'Which venue?' });
+  if (!venue) return refuse_('err-which-venue', 'no-venue');
 
   const t = read(TAB.jobs);
   /* ONE PER VENUE AND LEVEL. Two open lists for the same class split the families between them
@@ -651,7 +651,7 @@ function postOpenWaitlist_(body, action, began) {
      takes the venue alone — the level does not change what a seat costs on a shared class. */
   const price = waitlistPrice(venue);
   if (!price) {
-    return jsonOut({ error: 'That venue has no price set for a shared session yet.' });
+    return refuse_('err-venue-no-price', 'no-price');
   }
   const jobId = 'W-' + Date.now();
   addRow(t, {
@@ -683,16 +683,16 @@ function postOpenWaitlist_(body, action, began) {
 
 function postJoinWaitlist_(body, action, began) {
   const me = findPerson(S(body.name), S(body.personId));
-  if (!me) return jsonOut({ error: 'Not signed in.' });
+  if (!me) return refuse_('err-not-signed-in', 'not-signed-in');
 
   const venue = S(body.venue);
-  if (!venue) return jsonOut({ error: 'Which venue?' });
+  if (!venue) return refuse_('err-which-venue', 'no-venue');
 
   const price = waitlistPrice(venue);
   /* NOT PRICED IS NOT FREE. A venue with no rate, or an open tutor rate nobody has set, means
      the seat cannot be costed — and putting somebody on a list at £0.00 is a promise. */
   if (!price) {
-    return jsonOut({ error: 'That venue has no price set for a shared session yet.' });
+    return refuse_('err-venue-no-price', 'no-price');
   }
 
   const t = read(TAB.jobs);
@@ -784,7 +784,7 @@ function postDeleteJob_(body, action, began) {
   const t = read(TAB.jobs);
   const j = t.rows.find(x => S(x.job_id) === S(body.jobId)
                           || String(x._row) === S(body.jobId));
-  if (!j) return jsonOut({ error: 'No session with that id.' });
+  if (!j) return refuse_('err-no-session', 'not-found');
   const jobId = S(j.job_id) || String(j._row);
   const by = S(body.adminName) || S(body.name);
 

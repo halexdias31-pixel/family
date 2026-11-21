@@ -18,7 +18,7 @@ const TAKE = [
   ['js/find-marking.js', ['verdictOf_']],
   ['js/find-figures.js', ['TAG_NAME', 'tagMadeOf_']],
   /* THE WORDS FILE AND THE FORMATTERS (owner rule 1.1): every line a card says in an email goes through these. */
-  ['js/core.js', ['WORDS_FILE', 'esc', 'text_', 'fmtTime_', 'fmtHours_', 'fmtMoney_', 'DAYS_SHORT', 'fmtDay_', 'fmtDmy_', 'fmtDate_',
+  ['js/core.js', ['WORDS_FILE', 'esc', 'text_', 'fmtTime_', 'fmtHours_', 'plural_', 'fmtMoney_', 'DAYS_SHORT', 'fmtDay_', 'fmtDmy_', 'fmtDate_',
     /* ONE DATE READER, ONE TODAY (owner, 20 Nov): tools/date-cases.js holds this copy to the site's. */
     'dateOf_', 'tz_', 'todayIso_',
     /* ONE PERSON ROW, ONE TUTOR CARD (owner, 17 Nov): get-people.gs `tutorOut_` and me-card.js `cardPatchTutor_` read a row by it. */
@@ -122,9 +122,12 @@ function letterParts() {
 /* THE ONE PRICE (owner, 17 Nov): js/core-price.js whole, inside \`priceCore_(DATA, askProps_)\` with the core.js readers it leans on, */
 /* so createJob prices a booking over the sheet's own rows by the site's own lines (booking.gs \`serverPrice_\`); nothing leaks into the backend's globals. */
 const PRICE_READERS = ['norm', 'num', 'parseDMY', 'CLOSED_', 'closedOn_', 'computeSessionDates', 'bookableSpaces', 'spaceFor'];
+const PRICE_PHONE_ONLY = ['priced_', 'cardSeatParts_', 'cardGroupTotal_'];
 function priceParts() {
   const core = fs.readFileSync(path.join(ROOT, 'js/core.js'), 'utf8');
-  const price = fs.readFileSync(path.join(ROOT, 'js/core-price.js'), 'utf8');
+  /* PHONE-ONLY (job E, 21 Nov): the card's own sums, which nothing in backend/ calls, stay out of the copy. */
+  const price = PRICE_PHONE_ONLY.reduce((s, n) => s.replace(grab(s, n, 'js/core-price.js') + '\n', ''),
+    fs.readFileSync(path.join(ROOT, 'js/core-price.js'), 'utf8'));
   return '/* from js/core.js (its readers) and js/core-price.js (whole) */\nfunction priceCore_(DATA, askProps_) {\n'
     + PRICE_READERS.map(n => grab(core, n, 'js/core.js')).join('\n') + '\n' + price.trim() + '\n'
     + 'return { priceFrom, bookMoney_, bookShares_, parseDMY };\n}';
