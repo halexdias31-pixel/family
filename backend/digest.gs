@@ -238,9 +238,9 @@ function digestRender_(L, P, week, look) {
     /* THE KEY IS FOR THE PLAIN BODY: in the HTML each card says its verdict in words (380). */
     const lead = (k === 1 ? first : partSay) + (said ? (Q.fromLib ? ' How each one went: ' : ' Beside each one is how it went: ') + said + '.' : '') + (k === 1 ? unnamed : '');
     const p = (t, st) => '<p style="margin:0 0 12px;' + (st || '') + '">' + t + '</p>';
-    const body = p(digestEsc_(hi)) + (k === 1 ? p(digestEsc_(first + unnamed)) + (partSay ? p(digestEsc_(partSay)) : '') + S0.html : p(digestEsc_(partSay)))
-      + Q.html + (moreSay ? p(digestEsc_(moreSay)) : '')
-      + p(digestEsc_(foot), 'margin:24px 0 0;color:' + ink.dim + ';font-size:12px');
+    const body = p(esc(S(hi))) + (k === 1 ? p(esc(S(first + unnamed))) + (partSay ? p(esc(S(partSay))) : '') + S0.html : p(esc(S(partSay))))
+      + Q.html + (moreSay ? p(esc(S(moreSay))) : '')
+      + p(esc(S(foot)), 'margin:24px 0 0;color:' + ink.dim + ';font-size:12px');
     return {
       subject: subject + (of > 1 ? ' (part ' + k + ' of ' + of + ')' : ''),
       text: [hi, '', lead].concat(k === 1 && partSay ? [partSay] : [], k === 1 ? S0.lines : [], ['']).concat(Q.lines, moreSay ? [moreSay, ''] : [], [foot]).join('\n'),
@@ -335,11 +335,9 @@ function digestSlim_(html) {
   return html.slice(0, end) + css + body;
 }
 
-/* THE EMAIL'S COLOURS: the site's black-and-gold screen (style.css `:root`) — page, pane, card, ink, verdicts; no paper, even for the answer box (25 Oct, 457). */
+/* THE EMAIL'S COLOURS: the site's black-and-gold screen (style.css `:root`, as DIGEST_INK in cards-gen.gs by tools/cards-gen.js; `--email-*` where an email needs its own) — page, pane, card, ink, verdicts; no paper, even for the answer box (25 Oct, 457). */
 function digestInk_() {
-  return { page: '#000', pane: '#101010', paneLine: '#383838', card: '#0b0b0b', line: '#232323', ink: '#e6e6e6', dim: '#9a9a9a',
-           faint: '#848484', chip: '#3d3d3d', gold: '#ffb454', right: '#3ddc84', wrong: '#ff5f56',
-           box: '#1a1a1a', mono: "ui-monospace,'SF Mono','Cascadia Mono',Menlo,Consolas,'Courier New',monospace" };
+  return Object.assign({}, DIGEST_INK, { mono: "ui-monospace,'SF Mono','Cascadia Mono',Menlo,Consolas,'Courier New',monospace" });
 }
 
 /* DARK EVERYWHERE (the owner, 20 Oct): said dark to every client, Outlook's [data-ogsb]/[data-ogsc] held; no Gmail-app gradient, which keeps the black but not the white words (380). */
@@ -430,16 +428,16 @@ function digestSummary_(items, days, lib, week) {
   for (let i = 0; i < cells.length; i += per) rows.push(cells.slice(i, i + per));
   const cell = c => '<td width="' + wide + '%" valign="top" style="padding:0 6px 10px 0">'
     + '<div' + (c.tone === ink.ink ? '' : ' class="gi"') + ' style="font-size:24px;line-height:1.1;font-weight:bold;color:' + c.tone + '">' + c.n + '</div>'
-    + '<div style="font-size:11px;line-height:1.3;color:' + ink.dim + '">' + digestEsc_(c.say) + '</div></td>';
+    + '<div style="font-size:11px;line-height:1.3;color:' + ink.dim + '">' + esc(S(c.say)) + '</div></td>';
   const small = (label, text) => '<p style="margin:4px 0 0;font-size:13px;line-height:1.45;color:' + ink.ink + '">'
-    + '<span style="color:' + ink.dim + '">' + label + '</span> ' + digestEsc_(text) + '</p>';
+    + '<span style="color:' + ink.dim + '">' + label + '</span> ' + esc(S(text)) + '</p>';
   /* THE SITE'S PANE — `.pane`, #101010 inside a faint rim, rounded — every fill said, so a dark inbox has nothing to invert into mud. */
   const html = '<table role="presentation" class="kp" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="' + ink.pane + '" style="border:1px solid ' + ink.paneLine
     + ';border-radius:14px;margin:4px 0 16px"><tr><td style="padding:16px 14px">'
     /* A HEADING NOBODY SCROLLS PAST (the owner missed the first one, 20 Oct): the size of a title, then the topics before any figure. */
     + '<p class="gi" style="margin:0 0 10px;font-size:17px;line-height:1.3;font-weight:bold;color:' + ink.gold + '">Summary of the week</p>'
-    + (said ? '<p style="margin:0 0 8px">' + digestEsc_(said) + '</p>' : '')
-    + (topicSay.length ? '<p style="margin:0 0 12px"><b>Topics:</b> ' + digestEsc_(digestAnd_(topicSay)) + '</p>' : '')
+    + (said ? '<p style="margin:0 0 8px">' + esc(S(said)) + '</p>' : '')
+    + (topicSay.length ? '<p style="margin:0 0 12px"><b>Topics:</b> ' + esc(S(digestAnd_(topicSay))) + '</p>' : '')
     + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">'
     + rows.map(r => '<tr>' + r.map(cell).join('') + (r.length < per ? '<td width="' + wide * (per - r.length) + '%" colspan="' + (per - r.length) + '"></td>' : '') + '</tr>').join('')
     + '</table>'
@@ -579,7 +577,7 @@ function digestShown_(heads, max) {
 function digestCardMaker_(ink, says, cut) {
   const C = cardLetterOf_('question'), most = C.cut * C.perLine;
   /* LONG TEXT IS CUT TO 2 LINES, as the site clamps it; short text keeps its markup (a power, a fraction). */
-  const short = a => (S(a.text).length > most ? digestEsc_(cut(a.text, most)) : a.html);
+  const short = a => (S(a.text).length > most ? esc(S(cut(a.text, most))) : a.html);
   const marksOf = it => { const q = it.row || {}; return Number(q.marks) || 0; };
   return {
     /* THE HEADING: its number and its marks as [n] (owner, 9 Nov); a name of one segment is its heading alone. */
@@ -625,7 +623,7 @@ function digestRightAnswer_(q) {
   const cells = digestCells_(q);
   if (cells.length) {
     const got = cells.filter(c => c.ways).map(c => ({ label: c.label, v: c.ways.split('|')[0].trim(), num: /^\d+$/.test(c.label) }));
-    return out(got.map(c => (c.num ? '' : digestEsc_(c.label) + ' = ') + digestHtml_(c.v)).join('; '),
+    return out(got.map(c => (c.num ? '' : esc(S(c.label)) + ' = ') + digestHtml_(c.v)).join('; '),
                got.map(c => (c.num ? '' : c.label + ' = ') + digestText_(c.v)).join('; '));
   }
   const ans = S(q.answer).trim();
@@ -635,7 +633,7 @@ function digestRightAnswer_(q) {
     /* NO <b> OF ITS OWN: the card sets the whole answer in bold. */
     if (text.length <= 300) return out(digestHtml_(lead).replace(/<\/?(?:p|div|b|strong)\b[^>]*>/g, ' ').replace(/\s+/g, ' ').trim(), text);
     const short = text.slice(0, 280).replace(/\s+\S*$/, '') + '…';
-    return out(digestEsc_(short), short);
+    return out(esc(S(short)), short);
   }
   const acc = S(q.accept).split('|')[0].trim();
   return acc ? out(digestHtml_(acc), digestText_(acc)) : null;
@@ -657,7 +655,7 @@ function digestTheirAnswer_(q, a) {
   if (!t) return null;
   /* A COLUMN VECTOR TYPED ON THE KEYPAD (`⟮5,-4⟯`, 385) stacked in one pair of brackets, as the site draws it */
   const vec = /\u27ee([^\u27ee\u27ef,]*),([^\u27ee\u27ef]*)\u27ef/g;
-  const plain = s => ({ text: s.replace(vec, '($1 over $2)'), html: digestEsc_(s).replace(vec,
+  const plain = s => ({ text: s.replace(vec, '($1 over $2)'), html: esc(S(s)).replace(vec,
     '<span style="display:inline-block;vertical-align:middle;text-align:center;line-height:1.15;padding:0 4px;border-left:1.5px solid currentColor;border-right:1.5px solid currentColor;border-radius:7px/16px">$1<br>$2</span>') });
   if (/^drawing · /.test(t)) return { text: 'a drawing (it is on the site)', html: '<i>a drawing (it is on the site)</i>' };
   if (q) {
@@ -713,13 +711,13 @@ function digestPartOut_(it, pre, done, site, trim) {
     const box = TRUE_(p.placeholder) ? 'border:1px dashed ' + ink.dim + ';padding:6px 8px;' : 'border-bottom:1px dashed ' + ink.chip + ';padding:0 0 6px;';
     const before = pat >= 0 ? ph.slice(0, pat) : ph, after = pat >= 0 ? ph.slice(pat).replace(mark, '') : '';
     const l = S(p.lines) ? [S(p.lines)] : [];
-    let h = S(p.lines) ? '<p style="margin:0 0 4px"><i>' + digestEsc_(p.lines) + '</i></p>' : '';
+    let h = S(p.lines) ? '<p style="margin:0 0 4px"><i>' + esc(S(p.lines)) + '</i></p>' : '';
     /* A SOURCE TEXT THE REFUSAL STOPS (a link or a number in it), or one trimmed to fit the clip: its first sentence when that is safe, and a link to the whole. */
     if (gone || trim) {
       const first = digestFirst_(text);
       const safe = first && !refused(first);
-      const link = '<a href="' + digestEsc_(site) + '" style="color:' + ink.gold + '">Read the whole source text</a>';
-      h += (safe ? '<p style="margin:0 0 6px">' + digestEsc_(first) + '</p>' : '') + (text ? '<p style="margin:0 0 6px">' + link + '</p>' : '') + (pf ? pf.html : '');
+      const link = '<a href="' + esc(S(site)) + '" style="color:' + ink.gold + '">Read the whole source text</a>';
+      h += (safe ? '<p style="margin:0 0 6px">' + esc(S(first)) + '</p>' : '') + (text ? '<p style="margin:0 0 6px">' + link + '</p>' : '') + (pf ? pf.html : '');
       if (safe) l.push(first);
       if (text) l.push('Read the whole source text: ' + site);
       if (pf) l.push(pf.text);
@@ -740,7 +738,7 @@ function digestPartOut_(it, pre, done, site, trim) {
   /* TRIMMED TO FIT THE CLIP: the question's own words to their first sentence — never nothing, never "on the site". */
   if (trim) {
     const said = digestFirst_(out.lines.filter(x => !fig || x !== fig.text).join(' '));
-    out.html = said ? '<div style="margin:0 0 6px">' + digestEsc_(said) + '</div>' : '';
+    out.html = said ? '<div style="margin:0 0 6px">' + esc(S(said)) + '</div>' : '';
     out.lines = (fig ? [fig.text] : []).concat(said ? [said] : []);
   }
   return out;
@@ -758,9 +756,9 @@ function digestHtml_(html) {
   const src = digestPrep_(html);
   const KEEP = /^(p|br|b|strong|i|em|sup|sub|ul|ol|li|table|thead|tbody|tr|th|td|span|div)$/;
   const SAY = { p: 'margin:0 0 8px', ul: 'margin:0 0 8px;padding-left:24px', ol: 'margin:0 0 8px;padding-left:24px',
-                table: 'border-collapse:collapse;margin:4px 0 10px;font-size:11px', th: 'border:1px solid #3d3d3d;padding:3px 4px;text-align:left',
-                td: 'border:1px solid #3d3d3d;padding:3px 4px' };
-  const AS = { blockquote: ['<div style="margin:0 0 8px 12px;padding-left:10px;border-left:3px solid #3d3d3d">', '</div>'],
+                table: 'border-collapse:collapse;margin:4px 0 10px;font-size:11px', th: 'border:1px solid ' + DIGEST_INK.chip + ';padding:3px 4px;text-align:left',
+                td: 'border:1px solid ' + DIGEST_INK.chip + ';padding:3px 4px' };
+  const AS = { blockquote: ['<div style="margin:0 0 8px 12px;padding-left:10px;border-left:3px solid ' + DIGEST_INK.chip + '">', '</div>'],
                u: ['<span style="text-decoration:underline">', '</span>'], s: ['<span style="text-decoration:line-through">', '</span>'] };
   const VOID = /^(img|hr|input|wbr|col|area|source|meta|link|base|embed|param|track)$/;
   const text = t => t
@@ -854,7 +852,7 @@ function digestDiagram_(svg, site) {
   if (hash.length !== DIGEST_PNG_HEX) return { html: '', text: '[Picture: ' + alt + ']', alt: alt, width: width, src: '' };
   const src = S(site || SITE_URL).replace(/\/*$/, '/') + DIGEST_PNG_DIR + hash + '.png';
   return { src: src, alt: alt, width: width, hash: hash, text: '[Picture: ' + alt + ']',
-           html: '<div class="gi" style="margin:8px 0;background:#000"><img src="' + digestEsc_(src) + '" width="' + width + '" alt="' + digestEsc_(alt)
+           html: '<div class="gi" style="margin:8px 0;background:#000"><img src="' + esc(S(src)) + '" width="' + width + '" alt="' + esc(S(alt))
                  + '" style="display:block;width:100%;max-width:' + width + 'px;height:auto;border:0"></div>' };
 }
 
@@ -902,11 +900,6 @@ function digestMark_(v) {
   const r = verdictOf_(t);
   if (r && r.method === 'dogma') return r.verdict === 'right' ? '✓' : '✗';
   return r && r.max ? r.marks + ' of ' + r.max + ' mark' + (r.max === 1 ? '' : 's') : 'not marked';
-}
-
-function digestEsc_(s) {
-  return S(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 /* ---------- TEXT THAT CAME OFF A PHONE, AND MAY GO OUT UNDER THE BUSINESS'S NAME § */

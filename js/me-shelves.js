@@ -65,7 +65,7 @@ const setDraftOk_ = name => typeof draftAttr_ === 'function'
 const SET_HELD_SAY = 'Not saved yet — what you typed here before is still in its box. Save keeps it.';
 /* AN ATTRIBUTE STRING (a caller's `extra`, a draft's `data-draft…`) AS DATA for the form blocks: `k="v"` or a bare `k`; the first of a name wins, as in HTML. */
 const meAttrs_ = (...parts) => { const a = {};
-  parts.join(' ').replace(/([\w:-]+)(?:="([^"]*)")?/g, (m, k, v) => { if (!(k in a)) a[k] = v == null ? true : meUnesc_(v); return m; }); return a; };
+  parts.join(' ').replace(/([\w:-]+)(?:="([^"]*)")?/g, (m, k, v) => { if (!(k in a)) a[k] = v == null ? true : cardUnesc_(v); return m; }); return a; };
 const meSaid_ = text => cardBlock_({ type: 'paperNote', look: 'me-said', text });
 function setHeldSay_(html) {
   return /\sdata-draft-held\b/.test(html) ? html.replace(meSaid_(''), meSaid_(SET_HELD_SAY)) : html;
@@ -299,25 +299,24 @@ function setCard_(o) {
   const save = o.save ? cardBlock_({ type: 'group', look: 'tile-row set-save', inner: o.save }) : '';
   const body = o.form == null ? (o.body || '') + save
     : cardBlock_({ type: 'group', look: 'me-form', attrs: meAttrs_(o.formAttrs || ''), inner: o.form + save + (o.foot == null ? meSaid_('') : o.foot) });
-  return renderCard({ kind: 'setting', look: 'set-shape' + (o.cls ? ' ' + o.cls : ''), name: o.title || '', tags: [o.title || ''], data: meData_(o.attrs),
+  return renderCard({ kind: 'setting', card: o.card || '', look: 'set-shape' + (o.cls ? ' ' + o.cls : ''), name: o.title || '', tags: [o.title || ''], data: meData_(o.attrs),
     body: [{ type: 'embed', tool: 'me-form', args: { draw: () => (o.lead || '') + body + (o.after || '') } }] });
 }
 /* ONE TEMPLATE FOR SETTINGS AND ACCOUNT CARDS (owner, 13 Nov): a spec through renderCard; the form is its one embed, drawn by a function so no spec string holds markup. */
 CARD_EMBEDS['me-form'] = a => (a && typeof a.draw === 'function' ? String(a.draw() || '') : '');
-const meUnesc_ = v => String(v).replace(/&quot;/g, '"').replace(/&#0*39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
 /* A WRAPPER'S data-* ATTRIBUTES (data-lay-card, data-pid) stay on the card, which renderCard escapes again. */
 function meData_(attrs) {
   const d = {};
-  String(attrs || '').replace(/\sdata-([\w-]+)="([^"]*)"/g, (m, k, v) => { d[k] = meUnesc_(v); return m; });
+  String(attrs || '').replace(/\sdata-([\w-]+)="([^"]*)"/g, (m, k, v) => { d[k] = cardUnesc_(v); return m; });
   return d;
 }
 /* A SETTINGS CARD WRITTEN AS ONE <div> WITH A HEADING becomes a spec: the heading its name, the class its look, the rest its embed. */
 function meSpec_(html, called) {
   const cut = typeof kcSplit_ === 'function' ? kcSplit_(String(html || '').trim()) : null;
   if (!cut) return { kind: 'setting', name: String(called || ''), body: [{ type: 'embed', tool: 'me-form', args: { draw: () => String(html || '') } }] };
-  const name = meUnesc_(String(cut.head || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()) || String(called || '');
+  const name = cardUnesc_(String(cut.head || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()) || String(called || '');
   const id = (/\sid="([^"]*)"/.exec(cut.attrs || '') || [])[1];
-  return { kind: 'setting', look: cut.cls || '', name, tags: name ? [name] : [], data: meData_(cut.attrs), id: id ? meUnesc_(id) : '',
+  return { kind: 'setting', look: cut.cls || '', name, tags: name ? [name] : [], data: meData_(cut.attrs), id: id ? cardUnesc_(id) : '',
     body: [{ type: 'embed', tool: 'me-form', args: { draw: () => (cut.pic || '') + (cut.tags || '') + (cut.lines || '') } }] };
 }
 cardKind_('me-card', x => meSpec_(x && x.html, x && x.name));

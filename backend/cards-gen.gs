@@ -215,6 +215,37 @@ function fmtDate_(v, style, b) {
   if (style === 'hours') return fmtHours_(v, b);
   return fmtDmy_(v);
 }
+function dateOf_(v, keepTime) {
+  if (v == null || v === '') return null;
+  let d = null;
+  if (v instanceof Date) d = new Date(v.getTime());
+  else if (typeof v === 'number') d = v > 0 ? new Date(v) : null;
+  else {
+    const t = String(v).trim();
+    const at = (y, mo, da, h, mi, se) => {
+      const x = new Date(y, mo - 1, da, +(h || 0), +(mi || 0), +(se || 0));
+      return x.getFullYear() === y && x.getMonth() === mo - 1 && x.getDate() === da ? x : null;
+    };
+    const iso = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[\sT]+(\d{1,2}):(\d{2})(?::(\d{2}))?(?:\.\d+)?)?(Z|[+-]\d{2}:?\d{2})?$/i);
+    const dmy = t.match(/^(?:[A-Za-z]+,?\s+)?(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2}|\d{4})(?:[\s,T]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+    /* A day written inside other words ("25/10/2026 (half term)"); never the tail of an ISO date, which once read 2026-10-25 as 26/10/25. */
+    const loose = !iso && !dmy && t.match(/(?:^|[^\d\/\-.])(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4}|\d{2})(?![\d\/\-.])/);
+    if (iso && iso[7]) d = new Date(t);
+    else if (iso) d = at(+iso[1], +iso[2], +iso[3], iso[4], iso[5], iso[6]);
+    else if (dmy) d = at(dmy[3].length === 2 ? 2000 + (+dmy[3]) : +dmy[3], +dmy[2], +dmy[1], dmy[4], dmy[5], dmy[6]);
+    else if (loose) d = at(loose[3].length === 2 ? 2000 + (+loose[3]) : +loose[3], +loose[2], +loose[1]);
+    else if (!/[A-Za-z]/.test(t)) d = null;            // digits we cannot read day-first: never new Date()'s month-first guess
+    else d = new Date(t);                              // a sheet's Date as text ("Sun Oct 25 2026 …"), "25 Oct 2026"
+  }
+  if (!d || isNaN(d)) return null;
+  if (!keepTime) d.setHours(0, 0, 0, 0);
+  return d;
+}
+const tz_ = () => SHARED_SETTINGS.tz;
+function todayIso_(at) {
+  const d = at == null ? new Date() : (at instanceof Date ? at : new Date(at));
+  return new Intl.DateTimeFormat('en-CA', { timeZone: tz_(), year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
+}
 function ageRank_(v) {
   const s = String(v ?? '').trim();
   if (!s) return null;
@@ -512,7 +543,7 @@ function renderCard(spec) {
   const cut = spec.cut || {}, lines = body + (cut.lines || '');
   try { row = typeof kcActRow_ === 'function' ? kcActRow_(x, '', tile_(spec.tiles || []) + (cut.tiles || ''), tr) : `<div class="tile-row kc-row">${tile_(spec.tiles || [])}</div>`; } catch (e) { if (typeof oops_ === 'function') oops_(e, 'card:tiles'); }
   const cls = 'card fc kc kc-' + kind + (spec.look ? ' ' + spec.look : '') + (spec.off ? ' is-off' : '');
-  return `<div class="${esc(cls)}"${spec.id ? ` id="${esc(spec.id)}"` : ''}${cardAttrs_(spec.data)} aria-label="${esc(typeof name === 'string' ? name : '')}">`
+  return `<div class="${esc(cls)}"${spec.id ? ` id="${esc(spec.id)}"` : ''}${spec.card ? ` data-card="${esc(spec.card)}"` : ''}${cardAttrs_(spec.data)} aria-label="${esc(typeof name === 'string' ? name : '')}">`
     + `<div class="kc-pic">${cardPic_(spec.picture)}</div><div class="kc-head"></div>`
     + `<div class="kc-tags"${spec.tagsId ? ` id="${esc(spec.tagsId)}"` : ''}>${renderTags(tags, spec.tagLook, spec.tagsKeep)}${(spec.tagRows || []).map(CARD_BLOCKS.tags).join('')}</div>`
     + `<div class="kc-lines">${lines || (spec.empty ? `<p class="kc-line kc-empty">${esc(spec.empty)}</p>` : '')}</div>${cut.form ? `<div class="kc-form">${cut.form}</div>` : ''}`
@@ -590,6 +621,8 @@ const figPictured_ = r => !!r && ((typeof r.diagram === 'string' && r.diagram.tr
   (' ' + String(r.lib_has || '') + ' ').indexOf(' diagram ') !== -1 ||
   /<(table|svg|img)\b/i.test(String(r.html || '') + String(r.lead || '')) || !!r.cells || !!r.surface || figPictured_(r.row));
 const figUndrawn_ = (r, around) => figWords_(r) && !figPictured_(r) && !(around || []).some(figPictured_);
+/* from style.css :root (tools/cards-gen.js DIGEST_INK_TOKENS) */
+const DIGEST_INK = {"page": "#000000", "pane": "#101010", "paneLine": "#383838", "card": "#0b0b0b", "line": "#232323", "ink": "#e6e6e6", "dim": "#9a9a9a", "faint": "#848484", "chip": "#3d3d3d", "gold": "#ffb454", "right": "#3ddc84", "wrong": "#ff5f56", "box": "#1a1a1a"};
 /* from data/settings/facets.json and style.css --hue-N */
 const DIGEST_TAG_FIELDS = ["forLabel", "kindLabel", "toolName", "docketList", "kindOwn", "mySaved", "postState", "postBy", "postWhen", "msgWith", "profileType", "settingFor", "vidSubject", "vidTopic", "vidChannel", "vidLevel", "vidType", "venueArea", "venueFor", "venueSize", "partnerStatus", "foodMeal", "foodShop", "taskList", "taskRepeat", "taskDone", "projectType", "subject", "shelf", "wReligion", "histKind", "wCollection", "histPart", "wWork", "wSection", "wSource", "wLanguage", "wForm", "wAuthor", "wText", "wTradition", "wBook", "wChapter", "wUnit", "wPrimacy", "mScope", "mMake", "mModel", "mGen", "mEngine", "mKind", "mSystem", "pcType", "pcSocket", "pcIface", "pcLinks", "mPhase", "mMarket", "mYears", "mSize", "mValves", "mBadge", "mFuel", "mPart", "mPrice", "cCategory", "cGroup", "cPeriod", "cState", "boxKind", "fighter", "boutMonth", "boutYear", "decade", "division", "boutRound", "boutMethod", "boutWinner", "boutEvent", "histEra", "histMaterial", "histFormat", "histGenre", "histRole", "personName", "personYears", "personFrom", "histTheme", "histRepository", "histSide", "histFound", "histDated", "histTheatre", "practicalType", "shopKind", "shopHow", "shopPrice", "shopBrand", "shopFor", "shopTheme", "required", "level", "documentType", "keystage", "yearGroup", "bandValue", "topic", "examBoard", "specTopic", "specPoint", "tier", "examYear", "examMonth", "examDay", "verified", "paperId", "paperSection", "qNumber", "qPart", "qSub", "marks", "needCalc", "needs", "myAttempt", "myResult", "source"];
 const DIGEST_TAG_INK = {"h0": "#ff7b72", "h1": "#6cb6ff", "h2": "#c3e88d", "h3": "#c8a2ff", "h4": "#ffb454", "h5": "#4fd1c5", "h6": "#ff8fc4", "h7": "#f0f08a", "h8": "#9ec5e8", "h9": "#ff9e64", "h10": "#7ee787", "h11": "#e2cfa6"};
@@ -616,16 +649,21 @@ function num(raw) {
   if (t.endsWith('%')) { const p = parseFloat(t); return isNaN(p) ? NaN : p / 100; }
   return parseFloat(t);
 }
-function parseDMY(s) {
-  if (!s) return null;
-  const m = String(s).match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
-  let d;
-  if (m) { const y = m[3].length === 2 ? '20' + m[3] : m[3]; d = new Date(+y, +m[2] - 1, +m[1]); }
-  else { d = new Date(s); }
-  if (isNaN(d)) return null;
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
+function parseDMY(s) { return dateOf_(s); }
+
+
+/* Dates always DD/MM/YY (08/11/26), from a Date, ms, ISO or an already-British string. */
+const fmtDmy_ = v => {
+  if (v instanceof Date || typeof v === 'number') { const d = new Date(v); return isNaN(d) ? '' : `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getFullYear()).slice(-2)}`; }
+  const s = String(v ?? '').trim();
+  if (!s) return '';
+  const iso = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (iso) return `${iso[3].padStart(2,'0')}/${iso[2].padStart(2,'0')}/${iso[1].slice(-2)}`;
+  const m = s.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);   // already DD/MM/YYYY
+  if (m) { const y = m[3].slice(-2); return `${m[1].padStart(2,'0')}/${m[2].padStart(2,'0')}/${y}`; }
+  const d = new Date(s);
+  return isNaN(d) ? s : fmtDmy_(d);
+};
 let CLOSED_ = { of: null, at: {} };
 function closedOn_(d) {
   const list = (typeof DATA !== 'undefined' && DATA && Array.isArray(DATA.closures)) ? DATA.closures : [];

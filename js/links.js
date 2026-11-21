@@ -7,6 +7,8 @@
 /* `NAMED_COLOURS` lived here — a word in a link's `colour` column became a hex for the coloured square it filled. § */
 
 
+/* OUR PICTURES, BY NAME: data/settings/default-pictures.json as SHARED_SETTINGS.pictures (cards-gen), the backend's PFP_PICTURES too; PFP_ART draws each (shared-lists holds the keys to it). */
+const PFP_PICTURES = SHARED_SETTINGS.pictures;
 /* A PERSON'S PICTURE — TEN OF OURS, A PHOTOGRAPH, OR THEIR INITIAL (the figure went, 9 Nov: a stored `pfp:avatar` is no choice). */
 const PFP_PREFIX = 'pfp:';
 const PFP_ART = {
@@ -112,7 +114,7 @@ const PFP_ART = {
 function pfpChoice_(v) {
   const m = /^pfp:([a-z]+)$/.exec(String(v == null ? '' : v).trim().toLowerCase());
   if (!m) return '';
-  return Object.prototype.hasOwnProperty.call(PFP_ART, m[1]) ? m[1] : '';
+  return PFP_PICTURES.indexOf(m[1]) !== -1 && Object.prototype.hasOwnProperty.call(PFP_ART, m[1]) ? m[1] : '';
 }
 
 /* ---------- WHAT KIND OF PICTURE A STORED VALUE IS § */
@@ -136,7 +138,7 @@ function pfpArt_(name, size) {
 function pfpDefault_(key) {
   const k = String(key || ''); if (!k) return '';
   const named = (typeof DATA !== 'undefined' && DATA && Array.isArray(DATA.defaultPictures) ? DATA.defaultPictures : []).filter(n => PFP_ART[n]);
-  const list = named.length ? named : Object.keys(PFP_ART);
+  const list = named.length ? named : PFP_PICTURES.filter(n => PFP_ART[n]);
   let h = 0; for (let i = 0; i < k.length; i++) h = (h * 31 + k.charCodeAt(i)) >>> 0;
   return list.length ? list[h % list.length] : '';
 }

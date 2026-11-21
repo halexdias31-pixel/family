@@ -314,7 +314,7 @@ on('qp-check', (el) => {
   const box = qMark_(el);
   const card = el.closest('.qcard');
   /* ITS OWN BOX'S FIELD FIRST (508): a card with two boxes marked the first one's. */
-  const inp = (box && box.querySelector('.qp-multi-val, .qp-ans-in')) || (card && card.querySelector('.qp-multi-val, .qp-ans-in'));
+  const inp = (box && box.querySelector('.qp-ans-in')) || (card && card.querySelector('.qp-ans-in'));
   const out = box && box.querySelector('.qp-verdict');
   if (!box || !inp || !out) return;
   const k = inp.getAttribute('data-k');
@@ -347,7 +347,7 @@ on('qp-check', (el) => {
 /* ---------- SAVE, WHERE NOTHING CAN MARK IT (owner, 16 Nov): the typed answer as a `sent` submission, and any photos with it (`workSave_`, working.js). */
 on('qp-send', (el) => {
   const box = qMark_(el);
-  const inp = box && box.querySelector('.qp-multi-val, .qp-ans-in');
+  const inp = box && box.querySelector('.qp-ans-in');
   const out = box && box.querySelector('.qp-verdict');
   if (!inp || !out || el.disabled) return;
   box.classList.remove('is-right', 'is-near');
