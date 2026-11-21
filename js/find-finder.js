@@ -270,6 +270,28 @@ function taxonomyRead_() {
   });
   return out;
 }
+/* THE HELPERS A facets.json `read` {by: "fn"} MAY NAME (batch 6): const arrows in other files, so each is called through here, never looked up on window; `col` "name.key" reads one key of its answer. */
+const FACET_FN = {
+  mechScope_: x => mechScope_(x),
+  decadesOf_: x => decadesOf_(x),
+  boutWinner_: x => boutWinner_(x),
+  boutDate_: x => boutDate_(x),
+  histErasOf_: x => histErasOf_(x),
+  personYears_: x => personYears_(x),
+  msFound_: x => msFound_(x),
+  msDated_: x => msDated_(x),
+  levelOf_: x => levelOf_(x),
+  boardOf_: x => boardOf_(x),
+  sourceOf_: x => sourceOf_(x),
+  myAttemptOf_: x => myAttemptOf_(x),
+  myResultOf_: x => myResultOf_(x),
+  verifyTags_: x => verifyTags_(x),
+  sittingOf_: x => sittingOf_(x),
+  itemDate_: x => itemDate_(x),
+  qSplitOf_: x => qSplitOf_(x),
+  toolNameOf_: x => toolNameOf_(x),
+};
+const facetFn_ = c => { const [f, k] = c.split('.'); return k ? x => (FACET_FN[f](x) || {})[k] : FACET_FN[f]; };
 /* ONE-LINE COLUMN READERS ARE DATA (batch 4): a facets.json row's `read` {by, col} names one of these; FACET_READ keeps only facets with real code. */
 const FACET_BY_READ_ = {
   row: c => ({ of: x => x[c] || '' }),
@@ -277,8 +299,13 @@ const FACET_BY_READ_ = {
   hist: c => ({ of: x => histCol_(x, c) }),
   mech: c => ({ of: x => mechFit_(x, c), tagOf: x => mechFitTag_(x, c) }),
   own: c => { const [t, k] = c.split('.'); return { of: x => mechOwn_(x, t, k) }; },
+  /* A BOUT'S OWN COLUMN (445), trimmed; nothing on anything that is not a fight. */
+  fight: c => ({ of: x => (isFight_(x) && x.row && String(x.row[c] || '').trim()) || '' }),
+  fn: c => ({ of: facetFn_(c) }),
 };
-const facetReadData_ = () => Object.fromEntries(ITEM_KINDS.facets.filter(f => f.read && FACET_BY_READ_[f.read.by]).map(f => [f.field, FACET_BY_READ_[f.read.by](f.read.col)]));
+/* `tag: false` is asked but never a card's tag; `choose` is asked however lopsided (mScope). */
+const facetReadData_ = () => Object.fromEntries(ITEM_KINDS.facets.filter(f => f.read && FACET_BY_READ_[f.read.by]).map(f => [f.field,
+  Object.assign(FACET_BY_READ_[f.read.by](f.read.col), f.read.tag === false ? { tagOf: () => '' } : {}, f.read.choose ? { choose: true } : {})]));
 const FACET_READ = {
   ...facetReadData_(),
   forLabel: { of: x => x.groups || kindOf_(x).group },
@@ -292,16 +319,12 @@ const FACET_READ = {
   /* SUBJECT STRAIGHT AFTER WHAT KIND (494), as the facets tab orders it: "the library should go subject first". */
   /* A STORE KIND'S OWN FACETS (kinds.json `find.facetCols`), each read off its row's column when the entry was made (form.js storeItems_). */
   ...Object.fromEntries(storeFacets_().map(f => [f, { of: x => x[f] || '' }])),
-  /* WHICH TOOL (owner, 20 Nov): under the tool kind's door (kinds.json `tool.find.under`), each tool its own tag — a widget by its name, any other kind there by its label (Docket, Foods). */
-  toolName: { of: x => toolNameOf_(x), choose: true },
   /* ONE FACET SET FOR EVERY WRITTEN WORK (520): the Bible, the Quran, the Talmud, the Hadith, the hymns and every other text
      answer the same questions, read off `writingOf_` (writings.js) — no loader has a private one. */
   /* ONE LANGUAGE QUESTION FOR EVERYTHING WRITTEN (546): a text's language and a manuscript's (the history database) are one kind of answer. */
   wLanguage: { of: x => writingLanguageOf_(writingAt_(x, 'text')) || histCol_(x, 'language') },
   wText: { of: x => writingVersionOf_(writingAt_(x, 'text')) },
   /* MECHANICS (548): a car's facts as tags, read off the row; a row answers only what it has. */
-  /* BATCH E: one exact car or any first (`choose`: asked however lopsided), then each car attribute its own question and tag. */
-  mScope: { of: x => mechScope_(x), tagOf: () => '', choose: true },
   /* A LESSON WRITTEN TO A SPEC IS ONE TYPE BESIDE CHEMISTRY'S ELEMENTS AND SUBSTANCES (16 Nov): Library › Chemistry › Exam topics › GCSE › AQA. */
   mKind: { of: x => x.mKind || (specTreeOf_(x).topic ? 'Exam topics' : '') },
   mPart: { of: x => (x.kind === 'mech' && x.mFile !== 'models' && x.name) || '' },
@@ -309,25 +332,13 @@ const FACET_READ = {
   /* A BOUT'S FACTS ARE TAGS (445), like a question's: who, when, how. A boxer answers Fighter too, so his name finds him and his bouts. */
   fighter: { of: x => isFight_(x) && x.row ? [x.row.a, x.row.b].filter(Boolean) : isBoxer_(x) ? x.name : '' },
   personName: { of: x => (isPerson_(x) ? x.name : '') },
-  boutMonth: { of: x => boutDate_(x).month },
-  boutYear: { of: x => boutDate_(x).year },
-  decade: { of: x => decadesOf_(x) },
   boutRound: { of: x => isFight_(x) && x.row && Number(x.row.endRound) > 0 ? 'Round ' + Number(x.row.endRound) : '' },
-  boutMethod: { of: x => (isFight_(x) && x.row && String(x.row.method || '').trim()) || '' },
-  /* THE TITLE THE FIGHT CARD LOST (490) said who won and which night: tags now, like everything else. */
-  boutWinner: { of: x => boutWinner_(x) },
-  boutEvent: { of: x => (isFight_(x) && x.row && String(x.row.event || '').trim()) || '' },
   /* THE HISTORY DATABASE'S (459): which table, the era its years touch, and its columns as ordinary tags (`histCol_`). */
   /* ITS LIBRARY LEVELS (topic, part) ARE DATA: data/settings/taxonomy.json, read by `taxonomyRead_` below, never a subject case here. */
   ...taxonomyRead_(),
-  histEra: { of: x => histErasOf_(x) },
   histRole: { of: x => (isPerson_(x) ? x.roles || [] : histCol_(x, 'roles')) },
-  personYears: { of: x => personYears_(x) },
   personFrom: { of: x => (isPerson_(x) && x.from) || '' },
-  histFound: { of: x => msFound_(x) },
-  histDated: { of: x => msDated_(x) },
   required: { of: x => !isPractical_(x) || !x.row ? '' : PRAC_NEED[x.row.excluded ? 2 : x.row.required ? 0 : 1] },
-  level: { of: x => levelOf_(x) },
   /* A RESOURCE CAN BELONG TO MORE THAN ONE KEY STAGE; a SATs row's is read off its year when the cell is blank. */
   keystage: { of: x => { const s = satsStagesOf_(x); return s.length ? s : keyStagesAt_(x); } },
   /* A CHAPTER TAUGHT OVER SEVERAL YEARS ANSWERS EACH (770: "it should ask what year, no?" under KS2). */
@@ -335,19 +346,14 @@ const FACET_READ = {
   bandValue: { of: x => x.bandValue && x.bandType === 'grade' ? 'Grade ' + x.bandValue : '' },
   /* A CARD WRITTEN TO A SPEC ANSWERS THE SPEC'S OWN HEADINGS INSTEAD (16 Nov), asked after its board: Library › Biology › AQA › 4.1 Cell biology. */
   topic: { of: x => topicShown_(x) && !specTreeOf_(x).topic ? (x.topic || topicOf_(x)) : [] },
-  examBoard: { of: x => boardOf_(x) },
   specTopic: { full: true, of: x => specTreeOf_(x).topic },
   specPoint: { full: true, of: x => specTreeOf_(x).point },
   /* A "PLUS" TIER IS ITS OWN TIER'S (owner, 15 Nov): Foundation Plus is Foundation, Higher Plus is Higher. */
   /* A COMMA PARTS TIERS (owner, 17 Nov, N-20261117-tiertag): `Foundation,Higher` is two tags, as a key stage list is. */
   tier: { of: x => [...new Set(String(x.tier || '').split(',').map(t => t.trim().replace(/\s+Plus$/i, '')).filter(Boolean))] },
   /* THE YEAR, THEN THE MONTH, THEN THE PAPER — like the folders they came from. */
-  examYear: { of: x => sittingOf_(x).year },
   /* MONTH AND DAY READ ANY ITEM'S DATE (owner, 15 Nov): a sitting's month, else the item's own date (`itemDate_`) — a 5-a-day's "5 October". */
   examMonth: { of: x => sittingMonth_(x) || itemDate_(x).month },
-  examDay: { of: x => itemDate_(x).day },
-  /* ONE TAG ON EVERY QUESTION (388; owner 10 Nov): answer checked against the scheme and type machine-marked, or not -- asked before Paper (529). */
-  verified: { of: x => verifyTags_(x).verified },
   /* THE ID DECIDES WHO ANSWERS; its cover code is what is said (owner 8 Nov) — year, month, tier, board are their own facets, and tellApart_ adds one where two collide. */
   paperId: { of: x => (x.row && x.row.paper_id) || '',
     showOf: id => paperTag_(id) || paperLabel_(id), tagSay: id => paperTag_(id),
@@ -357,21 +363,14 @@ const FACET_READ = {
   paperSection: { of: x => { const r = paperSectionOf_(x && x.row); return r ? r.section + (r.topic ? ': ' + r.topic : '') : paperNameSection_(x); } },
   /* WHICH QUESTION, WHICH PART, HOW MANY MARKS: the words are the value, so the card and the button agree. */
   qNumber: { of: x => isQ_(x) && x.qNumber != null && String(x.qNumber) !== '' ? 'Q' + x.qNumber : '' },
-  qPart: { of: x => qSplitOf_(x).part },
-  qSub: { of: x => qSplitOf_(x).sub },
   marks: { of: x => Number(x && x.marks) > 0 ? Number(x.marks) + ' ' + plural_(Number(x.marks), 'mark') : '',
     /* SAID AS THE PAPER PRINTS IT (owner 8 Nov, 28b): "[1]", while the value stays "1 mark". */
     showOf: v => { const m = /^(\d+) marks?$/.exec(String(v)); return m ? '[' + m[1] + ']' : v; } },
-  /* A WORKSHEET'S MAKER (O3): Publisher went, being the exam board twice or this. */
-  source: { of: x => sourceOf_(x) },
   /* THE CALCULATOR IS ITS OWN STEP (owner, R204): Calculator allowed or Non-calculator; What you need keeps the rest (compasses, the printed sheet), so both can be wanted. */
   needCalc: { of: x => asList_(x.needs).filter(v => NEED_CALC_[v]) },
   needs: { of: x => asList_(x.needs).filter(v => !NEED_CALC_[v]) },
-  /* HOW YOU DID (463): the viewer's own latest press on a question; an ordinary facet (signed out it is blank, so it cannot split). */
-  myAttempt: { of: x => myAttemptOf_(x) },
-  myResult: { of: x => myResultOf_(x) },
   /* WHAT YOU STARRED (17 Nov): the Saved column is this tag now; blank signed out or with nothing saved, so it cannot split. */
-  mySaved: { of: x => typeof FAVS === 'undefined' || !USER || !FAVS.size || !x || !x.key ? '' : FAVS.has(String(x.key)) ? 'Saved' : 'Not saved' },
+  mySaved: { of: x => typeof FAVS === 'undefined' || !USER || !FAVS.size || !x || !x.key ? '' : FAVS.has(String(x.key)) ? 'Saved' : text_('not-saved') },
 };
 
 
