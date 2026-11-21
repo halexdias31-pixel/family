@@ -15,25 +15,25 @@
   --line-soft: #171717;
   /* EVERY VIDEO'S LETTERBOX, a player's and a clip's in a message alike: black, not `--bg`, because the
      bars round a picture are black on every screen there is, whatever colour the page around them. */
-  --letterbox: #000;
+  --letterbox: var(--black);
 
   --ink:       #e6e6e6;
   --dim:       #9a9a9a;
   /* ---------- FAINT, BUT STILL READABLE § */
   --faint:     #848484;
 
-  --green:     #3ddc84;   /* a subject. Reserved — nothing else uses it. */
+  --green:     var(--good);   /* a subject. Reserved — nothing else uses it. */
   --purple:    #b98cff;   /* a venue */
   /* Something you WEAR. Warm rather than cold so it does not read as a second purple — the two sit beside each other on the Stuff list, and a venue and a cape must § */
-  --pink:      #ff8fc4;
+  --pink:      var(--hue-6);
   /* A TUTOR, and a paper tag. § */
-  --coral:     #ff7b72;
+  --coral:     var(--hue-0);
   --white:  #ffffff;   /* plain white and black, for shadows and highlights mixed from tokens */
   --black:  #000000;
-  --gold:      #ffffff;   /* the one action: white on black since 466 (the name stays) */
+  --gold:      var(--white);   /* the one action: white on black since 466 (the name stays) */
   /* WHO CAN SEE IT, not what it is. See the tile rules at the end of this file. */
   --admin:     #f2d24b;   /* a yellow for content (a game's key, a chess move); never a marker for admin (11a) */
-  --warn:      #ffb454;
+  --warn:      var(--hue-4);
   --good:      #3ddc84;
   --bad:       #ff5f56;
   /* SOMETHING IN THE BUSINESS COLUMN NEEDS YOU (400) — the glow, the count line and the dot. */
@@ -42,18 +42,18 @@
   --hue-0: #ff7b72; --hue-1: #6cb6ff; --hue-2: #c3e88d; --hue-3: #c8a2ff; --hue-4: #ffb454; --hue-5: #4fd1c5; --hue-6: #ff8fc4; --hue-7: #f0f08a; --hue-8: #9ec5e8; --hue-9: #ff9e64; --hue-10: #7ee787; --hue-11: #e2cfa6;
   /* ---------- A COLOUR PER KIND OF TAG § */
   --tag-paper:   var(--coral);
-  --tag-level:   #6cb6ff;
-  --tag-sitting: #c8a2ff;
-  --tag-board:   #4fd1c5;
-  --tag-type:    #c3e88d;
-  --tag-topic:   #ff9e64;
+  --tag-level:   var(--hue-1);
+  --tag-sitting: var(--hue-3);
+  --tag-board:   var(--hue-5);
+  --tag-type:    var(--hue-2);
+  --tag-topic:   var(--hue-9);
   /* ---------- AND THE FOUR A QUESTION'S PAGE ADDED § */
-  --tag-needs:   #f0f08a;
+  --tag-needs:   var(--hue-7);
   /* AND THE REST, SO EVERY FACET HAS A COLOUR (396): what it is, a claim about it, and any facet the sheet invents. */
-  --tag-kind:    #e2cfa6;
-  --tag-check:   #9ec5e8;
+  --tag-kind:    var(--hue-11);
+  --tag-check:   var(--hue-8);
   /* A TUTOR'S JOBS (8 Nov), warm beside the qualifications' blue. */
-  --tag-job:     #ffb454;
+  --tag-job:     var(--warn);
   --tag-other:   #bdbdbd;
   /* YOUR RESULT (463): attempted, correct and so on, yours alone. */
   --tag-mine:    #ffcf70;
@@ -63,7 +63,7 @@
      decides whether the look lands or reads as an app in fancy dress. */
   --r:      3px;
   /* ONE TILE SPEC (467, 487, 508): a 36px plate, a 16px mark, 6px apart -- 487 halved it to 22px and kids missed taps (508). */
-  --tile: 44px; --tile-i: 16px; --tile-gap: 6px; --tile-send: 44px; --tile-r: 999px; --btn-r: 22px;
+  --tile: 44px; --tile-i: 16px; --tile-gap: 6px; --tile-send: 44px; --tile-r: var(--r-round); --btn-r: 22px;
   /* ONE PILL SIZE (owner, 1040 r12): a chosen chip, a menu answer and a card tag are drawn alike; a tappable one keeps 44px in an invisible ::before. */
   /* ONE DIAL FOR EVERY TAG'S SIZE (owner, 10 Nov): change this, not each tag. */
   --tag-scale: 1.25; /* was 1.75; smaller everywhere so a staff card fits one phone screen (owner, 18 Nov) */
@@ -157,7 +157,7 @@
 
   /* RADIUS, in px: a panel's corner does not grow with the type. `--r` and `--r-sm` above stay the controls'. */
   --r-surface: 14px;
-  --r-pill: 999px;
+  --r-pill: var(--r-round);
   /* A TEXT BOX'S CORNER (owner, 15 Nov): one small rounding for every box you write in, so a tall box never clips its words. */
   --r-box: 8px;
   /* ONE CORNER (owner 57a, 9 Nov): a card's corner, which is square; a round tile or a pill's end is `--r-round`. */
@@ -174,6 +174,12 @@
   --r-round: 999px;
   /* A TAG'S CORNER: a pill on one line, a rounded box when its words wrap (owner, 18 Nov: a 3-line degree tag was a giant oval). */
   --r-tag: calc(var(--tp-h) / 2);
+  /* ONE NAME PER REPEATED VALUE (unify batch 2, job I): a circle, a calculator key, the focus rings, letter-spacing and line-height steps. */
+  --r-circle: 50%; --r-key: 10px;
+  --ring-gold: 0 0 0 3px var(--gold); --ring-gold-thin: 0 0 0 2px var(--gold); --ring-good: 0 0 0 3px var(--good);
+  --ring-warn: 0 0 0 3px var(--warn); --ring-bad: 0 0 0 3px var(--bad); --inset-gold: inset 0 0 0 2px var(--gold);
+  --ls-1: .02em; --ls-2: .04em; --ls-3: .06em; --ls-4: .08em; --ls-5: .12em;
+  --lh-close: 1.3; --lh-snug: 1.35; --lh-mid: 1.4; --lh-loose: 1.5;
   /* THE CONSOLE'S AND WORD GAMES' OWN COLOURS (owner, 12 Nov: back from docs/history/1110), each a token. */
   --game-c1: #a8a9b2;
   --game-c2: #b4b5bd;
@@ -201,13 +207,13 @@
   --edge-surface: 1px solid rgb(255 255 255 / .16);
   --shadow-1: inset 0 1px 0 rgb(255 255 255 / .2), 0 10px 30px rgb(0 0 0 / .5);
   --shadow-press: inset 0 1px 3px rgb(0 0 0 / .5);
-  --on-gold: #000;
-  --toast-bg: #e6e6e6;
+  --on-gold: var(--black);
+  --toast-bg: var(--ink);
 
   /* ---------- A CONTROL LAID OVER A MOVING PICTURE § */
   --over-wash: rgb(0 0 0 / .55);
   --over-edge: rgb(255 255 255 / .28);
-  --over-ink:  #fff;
+  --over-ink:  var(--white);
 
   /* ---------- THE TEN DEFAULT PICTURES' PALETTE (js/links.js PFP_ART names these; they paint nothing else). The site is dark-only: one set. */
   --pfp-aerial:       #5b6574;
@@ -245,7 +251,7 @@
   --pfp-string:       #fde6c4;
   --pfp-teal:         #2e8b7a;
   --pfp-violet:       #5b3d8f;
-  --pfp-white:        #ffffff;
+  --pfp-white:        var(--white);
   --pfp-window:       #5ec8f2;
   --pfp-wood:         #6b3f1d;
   --pfp-wood-dark:    #3d2412;
@@ -265,8 +271,8 @@
   --fp-edge: #39301f;
   --fp-body: #f8d030;
   --fp-belly: #fdf0c0;
-  --fp-wing: #ffffff;
-  --fp-eye: #ffffff;
+  --fp-wing: var(--white);
+  --fp-eye: var(--white);
   --fp-beak: #f4761e;
   --race-water: #40739e;
   --race-road: #c8c8c8;
@@ -343,11 +349,11 @@
 }
 :where(input, textarea, [contenteditable]:not([contenteditable="false"])) { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
 /* ONE DISABLED LOOK for a control that says "not yet". It still takes the tap, so a tap on it never lands on what is under it; a taken board square is not this and keeps its own look. */
-:where(.btn, .tile, .chip, .kt-rung, .cam-shot, .cam-rec):is([disabled], [aria-disabled="true"]) {
+:where(.btn, .tile, .chip):is([disabled], [aria-disabled="true"]) {
   opacity: var(--disabled); cursor: default;
 }
 /* PAPER IS LIGHT: a white wash would not show on it, so the wash on paper is dark. */
-.paper, .pin-slip, .stmt, .widget-full:has(.cal-head) > .card { --press-wash: var(--press-wash-paper); }
+.paper, .pin-slip { --press-wash: var(--press-wash-paper); }
 
 /* THE ONE LINE. 4.1vw between 15 and 17px — so a small phone is legible and a large one uses the
    room, and every rem in the file follows without being told. */
@@ -384,7 +390,6 @@ body {
 /* ONE FIELD AT EVERY WIDTH (owner, 8 Nov): the page colour runs edge to edge, so a wide window shows a centred column, never a side panel. */
 html { background: var(--bg); }
 
-
 .hidden { display: none !important; }
 
 /* ---------- HEADER, BAR, SHEET: anchored to the app column, not the window § */
@@ -410,7 +415,7 @@ html { background: var(--bg); }
   top: calc(var(--top) + var(--safe-top)); z-index: 50;
   padding: var(--s2) var(--pad);
   background: var(--warn); color: var(--on-gold);
-  font-size: var(--fs-body); line-height: 1.4;
+  font-size: var(--fs-body); line-height: var(--lh-mid);
   max-height: 40dvh; overflow: auto;
 }
 
@@ -488,7 +493,6 @@ html { background: var(--bg); }
 
 /* THE SCROLLER LIVED HERE. § */
 
-
 /* A SECTION is two lines across the full width with its name between them. Not a heading floating
    above a boxed group — the rules do the separating, so nothing has to be enclosed to be grouped. */
 .screen h2 {
@@ -497,7 +501,7 @@ html { background: var(--bg); }
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
   font-size: var(--fs-small); font-weight: 500;
-  letter-spacing: .12em; color: var(--ink);
+  letter-spacing: var(--ls-5); color: var(--ink);
   display: flex; justify-content: space-between; align-items: baseline;
 }
 .screen h2:first-child { margin-top: 0; }
@@ -508,7 +512,7 @@ html { background: var(--bg); }
   margin: var(--s4) 0 var(--s1); padding: 0;
   border: 0;
   font-size: var(--fs-small); font-weight: 500;
-  letter-spacing: .12em; color: var(--ink);
+  letter-spacing: var(--ls-5); color: var(--ink);
   overflow-wrap: anywhere;
 }
 /* AND A HEADING IN THE SHEET MAY HOLD AN ADDRESS, which has nothing to break at. § */
@@ -649,10 +653,10 @@ textarea { min-height: 5.8rem; resize: vertical; }
 /* ONE VISIBLE RING FOR EVERY CONTROL REACHED BY KEYBOARD (561, U15): zero specificity, so a control's own ring still wins. */
 :where(:focus-visible) { outline: 2px solid var(--gold); outline-offset: 2px; }
 input:focus, select:focus, textarea:focus, .many-sum:focus-visible, details[open] > .many-sum {
-  outline: 0; box-shadow: 0 0 0 3px var(--gold); }
+  outline: 0; box-shadow: var(--ring-gold); }
 label.field { display: block; margin-bottom: var(--s3); }
 /* ---------- A WRONG PIN SAYS WHICH BOX § */
-input[aria-invalid="true"], input[aria-invalid="true"]:focus { box-shadow: 0 0 0 3px var(--bad); }
+input[aria-invalid="true"], input[aria-invalid="true"]:focus { box-shadow: var(--ring-bad); }
 /* ---------- THE PIN, AS DOTS, WITHOUT BEING A PASSWORD § */
 .pin-dots { -webkit-text-security: disc; text-security: disc; letter-spacing: .2em; }
 /* `.dob-cap` IS IN THIS GROUP RATHER THAN BESIDE IT. § */
@@ -678,10 +682,10 @@ label.field > .note { display: block; margin-top: var(--s1); text-transform: non
   padding: var(--s3) var(--s4); margin: var(--s3) 0 var(--s2); min-width: 0;
 }
 .pin-slip-k {
-  margin: 0; font-size: var(--fs-small); letter-spacing: .06em; color: var(--paper-dim);
+  margin: 0; font-size: var(--fs-small); letter-spacing: var(--ls-3); color: var(--paper-dim);
 }
 .pin-slip-v {
-  margin: var(--s0) 0 var(--s2); font-size: var(--fs-title); font-weight: 700; line-height: 1.2;
+  margin: var(--s0) 0 var(--s2); font-size: var(--fs-title); font-weight: 700; line-height: var(--lh-tight);
   overflow-wrap: anywhere; font-variant-numeric: tabular-nums;
 }
 .pin-slip-v:last-child { margin-bottom: 0; }
@@ -690,7 +694,7 @@ label.field > .note { display: block; margin-top: var(--s1); text-transform: non
 .lib-shelf { display: flex; flex-direction: column; }
 /* ---------- THE QUALIFICATIONS CARD — see `qualShelf_` in me.js § */
 .q-shelf { display: flex; flex-direction: column; }
-.q-hint { margin: 0 0 var(--s1); font-size: var(--fs-small); color: var(--ink); line-height: 1.4; }
+.q-hint { margin: 0 0 var(--s1); font-size: var(--fs-small); color: var(--ink); line-height: var(--lh-mid); }
 .q-list:empty { display: none; }
 /* A HAIRLINE BETWEEN SUBJECTS AND NONE BETWEEN ONE SUBJECT'S LINES — the grouping is said once. */
 .q-subj + .q-subj { border-top: 1px dashed var(--line); }
@@ -856,7 +860,7 @@ label.field > .note { display: block; margin-top: var(--s1); text-transform: non
    `--paper-dim`, not `--paper-faint`: 5.3:1 against 3.4, and a caption this small needs the 4.5. */
 .lib-cap, .lib-shelf .lib-face label.field > span {
   display: block; margin: 0 0 var(--s0);
-  font-size: var(--fs-small); line-height: 1.2; letter-spacing: .14em;
+  font-size: var(--fs-small); line-height: var(--lh-tight); letter-spacing: .14em;
   color: var(--paper-dim);
 }
 .lib-shelf .lib-pin label.field > span { text-align: right; }
@@ -905,11 +909,11 @@ label.field > .note { display: block; margin-top: var(--s1); text-transform: non
 .pfp-side .tile-row { margin: 0; }
 /* THE LINE IS UNDER THE GRID NOW, across both columns: it says what a tap in the grid did, and a line
    beside the tiles would be a reply printed above the question. */
-.pfp-said { grid-column: 1 / -1; margin: 0; font-size: var(--fs-small); line-height: 1.3; }
+.pfp-said { grid-column: 1 / -1; margin: 0; font-size: var(--fs-small); line-height: var(--lh-close); }
 /* ---------- THE ELEVEN, AS AN XBOX GAMERPIC PICKER LAYS THEM OUT § */
 
 .pfp-opt { width: 100%; min-width: var(--tap); min-height: var(--tap); aspect-ratio: 1; padding: var(--s0); margin: 0;
-           border: 0; border-radius: 50%; background: none; display: grid; place-items: center;
+           border: 0; border-radius: var(--r-circle); background: none; display: grid; place-items: center;
            cursor: pointer; opacity: .82; }
 .pfp-opt > svg { display: block; width: 100%; height: 100%; overflow: visible; }
 .pfp-opt.on { opacity: 1; box-shadow: inset 0 0 0 3px var(--gold); }
@@ -935,7 +939,7 @@ label.field > .note { display: block; margin-top: var(--s1); text-transform: non
               box-shadow var(--dur-quick) var(--ease-out);
 }
 /* ---------- ONE TICK (owner 63a, 9 Nov): every tick, checkbox and stage box is this square with a ✓ in it, ghosted when off, gold when on. ---------- */
-:is(.check .box, .row.dock-item .box, .bk-tick, .mat-list input[type="checkbox"]) {
+:is(.check .box, .bk-tick) {
   border-radius: var(--r-ui);
   border: 1.5px solid color-mix(in srgb, var(--white) 14%, transparent);
   background: color-mix(in srgb, var(--white) 4%, transparent);
@@ -943,22 +947,22 @@ label.field > .note { display: block; margin-top: var(--s1); text-transform: non
   display: inline-flex; align-items: center; justify-content: center; }
 
 /* The ghost of the mark, so an empty box says what would go in it. */
-:is(.check .box, .row.dock-item .box, .mat-list input[type="checkbox"])::after { content: '✓'; font-weight: 700; line-height: 1; color: color-mix(in srgb, var(--white) 16%, transparent); }
+:is(.check .box)::after { content: '✓'; font-weight: 700; line-height: 1; color: color-mix(in srgb, var(--white) 16%, transparent); }
 .bk-tick { color: color-mix(in srgb, var(--white) 16%, transparent); }
 .check:is(:active, .is-pressed) .box { border-color: var(--gold); }
-:is(.check input:checked + .box, .row.dock-item input:checked + .box, .bk-tick.on, .mat-list input[type="checkbox"]:checked) { background: var(--gold); border-color: var(--gold); box-shadow: none; color: var(--on-gold); }
-:is(.check input:checked + .box, .row.dock-item input:checked + .box, .mat-list input[type="checkbox"]:checked)::after { color: var(--on-gold); }
+:is(.check input:checked + .box, .bk-tick.on) { background: var(--gold); border-color: var(--gold); box-shadow: none; color: var(--on-gold); }
+:is(.check input:checked + .box)::after { color: var(--on-gold); }
 
 /* ---------- YOUR ROLES: A TICK WITH ITS MEANING UNDER THE WORD § */
 .kc-embed .role-pick { align-items: flex-start; }
 .kc-embed .role-pick .box { margin-top: var(--s0); }
 .role-pick-say { display: flex; flex-direction: column; gap: var(--s0); min-width: 0; }
-.role-pick-say .note { font-size: var(--fs-body); line-height: 1.35; }
+.role-pick-say .note { font-size: var(--fs-body); line-height: var(--lh-snug); }
 .kc-embed .roles-said { margin: var(--s2) 0 0; }
 /* ONE OF TWO (432): one row with the phone's own picker, each choice's meaning in a faint line under it. */
 
 /* ---------- NOTIFICATIONS: THE ROLES CARD'S TICKS, AND WHAT IS ALWAYS SENT AS WORDS § */
-.notify-always { list-style: none; margin: 0; padding: 0; font-size: var(--fs-body); line-height: 1.45; color: var(--ink); }
+.notify-always { list-style: none; margin: 0; padding: 0; font-size: var(--fs-body); line-height: var(--lh-body); color: var(--ink); }
 .notify-always li { display: inline; }
 .notify-always li + li::before { content: ' · '; color: var(--ink); }
 .kc-embed .notify-cap { margin: var(--s3) 0 var(--s1); }
@@ -1028,7 +1032,7 @@ code   { font-family: var(--mono); font-size: var(--fs-body); color: var(--ink);
   margin: 0; max-width: calc(100% - 2rem);
   padding: var(--s1) var(--s3); border: 1px solid var(--line); border-radius: var(--r-ui);
   background: var(--raised); color: var(--ink);
-  font-size: var(--fs-small); line-height: 1.35; text-align: center;
+  font-size: var(--fs-small); line-height: var(--lh-snug); text-align: center;
   pointer-events: none;
 }
 #reconnect:empty { padding: 0; border: 0; }
@@ -1045,7 +1049,7 @@ code   { font-family: var(--mono); font-size: var(--fs-body); color: var(--ink);
 /* ---------- ANCHORS § */
 a { color: inherit; text-decoration: none; }
 /* Except in running prose, where a link that looks like text is a link nobody finds. */
-.post-body a, .msg-body a, .note a { color: var(--gold); text-decoration: underline; }
+.msg-body a, .note a { color: var(--gold); text-decoration: underline; }
 
 /* ---------- THE FEED ---------------------------------------------------------------------------- */
 /* THE SHAPE OF A REEL, not of a thumbnail. § */
@@ -1055,8 +1059,6 @@ a { color: inherit; text-decoration: none; }
 /* ---------- CALENDAR § */
 
 /* ---------- 44px, IN px, AND IT WAS 31x36 § */
-
-.cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: var(--s0); text-align: center; }
 
 /* ---------- TIMES TABLES AND FLAPPY --------------------------------------------------------------- */
 #tt-answer { text-align: center; font-size: var(--fs-title); }
@@ -1139,24 +1141,19 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
    photograph with a border. */
 /* NO BACKGROUND. It was `--sunk`, and inside the fixed 4:5 box below that ink WAS the black band above and below every landscape photograph and either side of § */
 /* `height: auto` HERE AND NOT ONLY ON `.page .post-pic` BELOW, because the element carries `width="800" height="1000"` and a height attribute IS a height: § */
-.post-pic { display: block; width: calc(100% + 2 * var(--pad)); margin-left: calc(-1 * var(--pad));
-            height: auto; }
+
 /* ---------- SEVERAL PICTURES ON ONE POST, AS A GRID § */
-.post-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2px;
-             width: calc(100% + 2 * var(--pad)); margin-left: calc(-1 * var(--pad)); }
-.post-grid .post-cell { display: block; width: 100%; aspect-ratio: 1; object-fit: cover;
-                        min-width: 0; background: var(--sunk); }
+
 /* THE BLEED INSIDE A PANE IS THE PANE'S OWN PADDING, NOT `--pad`. § */
-.pane .post-pic, .pane .post-grid {
-  width: calc(100% + 2 * var(--pane-pad)); margin-left: calc(-1 * var(--pane-pad)); }
+
 /* AND THE POST ITSELF TAKES THE PANE'S PADDING AS ITS OWN, so the bleed lands inside the post's padding box rather than past its edge. § */
 .pane > .post { margin-inline: calc(-1 * var(--pane-pad)); padding-inline: var(--pane-pad); }
-.post-grid.is-odd > :first-child { grid-column: 1 / -1; aspect-ratio: 4 / 3; }
+
 /* A CLIP IS A PICTURE THAT MOVES and takes the same box; its controls are the browser's own. */
 /* THE INK IS ONLY EVER SEEN BEFORE THE FIRST FRAME: § */
 .post-vid { background: var(--sunk); }
 /* ITS OWN SHAPE, LIKE A PHOTOGRAPH, and 4:5 only until the file says what that is. § */
-.post-pic.post-vid { aspect-ratio: auto 4 / 5; }
+
 /* AND ONE DRIVE WOULD NOT HAND OVER IS A LINK, in the same box, so the grid does not close up round
    a gap. 44px is the floor because it is a control. */
 
@@ -1165,44 +1162,23 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
 
 /* ---------- THE PICTURES ARE DRAWN AS THEY WERE TAKEN § */
 /* THE PICTURE IS SHOWN WHOLE. § */
-.page .post-pic {
-  flex: 0 0 auto;          /* never grows to fill the page — that is what forced a crop */
-  height: auto;            /* its own height, from its own proportions */
-  max-height: none;        /* and never capped, which would crop it a second way */
-  max-width: none;
-  /* ITS OWN PROPORTIONS, EDGE TO EDGE, AND 4:5 ONLY WHILE IT IS ON ITS WAY. § */
-  aspect-ratio: auto 4 / 5;
-}
-.page .post-by, .page .post-acts, .page .post-cap,
+
+.page .post-acts,
 .page .post-when, .page .poll, .page .note { flex: none; }
 /* `.post-act` WAS THE SHARE CONTROL in the reactions row, and it is a tile now — see `postTiles_`. § */
 
 /* ---------- A POST, AS INSTAGRAM ARRANGES ONE § */
-.post-by { display: flex; align-items: center; gap: var(--s2); padding: var(--s0) 0 var(--s2); }
-.post-face { width: 1.9rem; height: 1.9rem; border-radius: 50%; object-fit: cover;
-             background: var(--sunk); border: 1px solid var(--line); flex: none; }
-.post-face.none { display: flex; align-items: center; justify-content: center;
-                  font-size: var(--fs-small); color: var(--ink); }
-.post-who { font-size: var(--fs-body); font-weight: 600; }
 
 /* The username with the place under it, which is where Instagram puts it and where it reads as a detail about the picture rather than a second heading. § */
-.post-nm { display: flex; flex-direction: column; gap: 0; min-width: 0; }
-.post-where { color: var(--ink); }
-.post-by .post-where { font-size: var(--fs-small); color: var(--ink); margin: 0; }
-.post-where::before { content: '📍'; font-size: var(--fs-small); margin-right: var(--s0); }
 
 /* Where and when, on one line under a photograph. The place first, because it is the thing
    somebody actually reads — a date is a fact you check, a place is a thing you recognise. */
 
 /* The edit control. At the END of the header row, small — a post is looked at a hundred times for every time it is edited, and a control sized for the rare case § */
-.post-edit { margin-left: auto; padding: var(--s1) var(--s2); color: var(--ink);
-             font-size: var(--fs-title); line-height: 1; cursor: pointer; flex: none; }
-.post-edit:is(:active, .is-pressed) { color: var(--gold); }
 
 /* ---------- THE SLOT FOR THE FACES, UNDER THE PICTURE § */
 .post-acts { padding: var(--s1) 0 var(--s0); }
-.post-cap { margin: var(--s0) 0 0; font-size: var(--fs-body); line-height: 1.5; }
-.post-cap b { font-weight: 600; margin-right: var(--s1); }
+
 /* ---------- WHEN, AND HOW MANY § */
 .post-when { display: flex; align-items: center; flex-wrap: wrap; gap: 0 var(--s2);
              min-height: var(--tap); margin: 0; }
@@ -1212,7 +1188,6 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
 /* AND `.is-pressed`: Safari withholds `:active` on touch — see `.react.is-pressed` below. */
 
 /* WHAT PEOPLE SAID UNDER A POST. § */
-.post-said { margin: var(--s2) 0 0; padding: var(--s2) 0 0; border-top: 1px solid var(--line-soft); }
 
 /* YOURS IS MARKED BY THE RULE DOWN THE LEFT that messages gave up when they became bubbles — which is the shape that rule was always right for: § */
 
@@ -1220,21 +1195,18 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
 
 /* The note and the server's refusal are one element — see `msgForm_` for the argument — and an
    empty one under every post in the feed is a margin nobody asked for. */
-.cmt-said { flex: 1 0 100%; margin: var(--s1) 0 0; }
-.cmt-said:empty { display: none; }
 
 /* A post arrived at from a shared link. Marked briefly so it is obvious which one was meant —
    landing in a feed with no idea which photograph somebody sent you is the failure a deep link
    exists to prevent. */
-.post-lit { animation: lit var(--dur-mark) var(--ease-out); }
+
 @keyframes lit {
-  0%, 60% { box-shadow: 0 0 0 2px var(--gold); }
+  0%, 60% { box-shadow: var(--ring-gold-thin); }
   100%    { box-shadow: 0 0 0 2px transparent; }
 }
 
 /* ---------- CHOOSING A PHOTOGRAPH ALREADY IN THE FOLDER § */
-.pickers { display: flex; gap: var(--s2); overflow-x: auto; padding: var(--s0) 0 var(--s2);
-           -webkit-overflow-scrolling: touch; }
+
 .picker {
   flex: 0 0 auto; width: 5.2rem;
   display: flex; flex-direction: column; gap: var(--s1);
@@ -1298,11 +1270,9 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
 
 /* ---------- REACTIONS § */
 /* "YOURS" IS A GOLD TINT, AND IT IS THIS COMPONENT'S OWN. § */
-.reacts {
-  --react-mine: color-mix(in srgb, var(--gold) 16%, transparent);
-}
+
 /* ---------- SIX EQUAL COLUMNS, WHATEVER THE COUNTS ARE § */
-.reacts { display: grid; grid-template-columns: repeat(auto-fit, minmax(max(44px, calc(100% / 6)), 1fr)); max-width: calc(22.5rem + 4px); gap: 0; margin: 0 -2px; }
+.reacts { --react-mine: color-mix(in srgb, var(--gold) 16%, transparent);  display: grid; grid-template-columns: repeat(auto-fit, minmax(max(44px, calc(100% / 6)), 1fr)); max-width: calc(22.5rem + 4px); gap: 0; margin: 0 -2px; }
 /* SIX ACROSS WHILE A SIXTH IS A FINGERTIP, else fingertip columns that wrap — one rule at every width. */
 /* ---------- THE CELL IS THE BUTTON, THE PILL IS DRAWN INSIDE IT § */
 .react {
@@ -1376,12 +1346,12 @@ button.text-drop { color: var(--bad); }
 
 /* ---------- TOUCH TYPING § */
 /* ---------- VIDEOS: A PILL, A WATCH PAGE, AND A LIST OF PICTURES — YOUTUBE'S SHAPES IN OUR COLOURS § */
+
+/* THE CARD'S LAST MARGIN STAYS INSIDE IT (`flow-root`), so the box's `offsetHeight` is the room the card takes. § */
 .vid-box { --vid-r: 8px;
            --vid-scrim: color-mix(in srgb, var(--bg) 80%, transparent);
            --vid-frame: color-mix(in srgb, var(--ink) 11%, var(--raised));
-           --vid-mark: var(--faint); }
-/* THE CARD'S LAST MARGIN STAYS INSIDE IT (`flow-root`), so the box's `offsetHeight` is the room the card takes. § */
-.vid-box { display: flow-root; }
+           --vid-mark: var(--faint);  display: flow-root; }
 
 /* THE PILL. The magnifier sits inside the box at the left and is not a target — `pointer-events: none`, and the `<label>` round both hands a tap on it to the box. § */
 .search-pill { position: relative; display: block; }
@@ -1404,7 +1374,6 @@ button.text-drop { color: var(--bad); }
 /* WIDER THAN TALL, the picture and its words sit side by side: a shape rule, so a desktop window and a turned phone get it alike. */
 
 /* THE ONE THING THE TOP LAYER DOES NOT SHED IS `zoom`. § */
-.pane > :has(.vid-watch.is-fs) { zoom: 1 !important; }
 
 /* THE POSTER IS UNDER EVERY PICTURE, NOT INSTEAD OF ONE: § */
 
@@ -1432,7 +1401,7 @@ button.text-drop { color: var(--bad); }
 .chips:has(.chip) { padding-bottom: var(--s2); border-bottom: 1px solid var(--chip-line); }
 /* THE LAST LINE OF THE FUNNEL — "Nothing left to narrow", "That is the paper" — was an inline
    `style="margin:.6rem 0 0"` in `--faint`. Its own class now: dim, with the instruction in ink. */
-.find-end { margin: var(--s1) 0 0; font-size: var(--fs-small); line-height: 1.5; color: var(--ink); }
+.find-end { margin: var(--s1) 0 0; font-size: var(--fs-small); line-height: var(--lh-loose); color: var(--ink); }
 .find-end b { color: var(--ink); font-weight: 600; }
 .chip {
   display: flex; align-items: center; gap: var(--s1);
@@ -1463,7 +1432,7 @@ button.text-drop { color: var(--bad); }
 
 .btn.tiny { min-height: var(--tap); min-width: var(--tap); padding: 0 var(--s2); font-size: var(--fs-small); }
 
-.dot { display: inline-block; width: 4px; height: 4px; border-radius: 50%; }
+.dot { display: inline-block; width: 4px; height: 4px; border-radius: var(--r-circle); }
 .row .dot { margin-right: var(--s1); vertical-align: middle; }
 
 /* ---------- A REEL CARD § */
@@ -1474,8 +1443,6 @@ button.text-drop { color: var(--bad); }
 /* The subject's initial, enormous and barely there. § */
 
 /* A FACT ABOUT THE LONGEST WORD IN THE DICTIONARY CONTAINS IT, which is the one thing a slide's own text can do that its box cannot survive: § */
-.feed-head { margin: var(--s1) 0 var(--s2); font-size: var(--fs-title); line-height: var(--lh-tight); font-weight: 700;
-             overflow-wrap: anywhere; }
 
 /* WHOSE PICTURE IT IS. Small, top-left, and only there when there is one — Commons images carry
    a licence that expects the photographer to be named, and a credit that appears before the
@@ -1508,7 +1475,7 @@ html.flow .page { width: 100%; min-width: 0; }
 .card-grid { display: block; columns: 1; column-gap: var(--card-gap); }
 .card-grid > * { break-inside: avoid; margin-bottom: var(--card-gap); }
 /* WHAT IS NOT A CARD IN THE LIST — the menu, chips, answers, a form — runs across every column. */
-.card-grid > :not(.is-res), .card-grid > :has(.kc-form, .kc-bookform, .book-form-door, form, .me-form) { column-span: all; }
+.card-grid > :not(.is-res) { column-span: all; }
 .card-grid :is(p, li, .qtext, .doc, form, .me-form) { max-width: var(--measure); }
 /* A CARD IS NO WIDER THAN ITS READING MEASURE (owner, 11 Nov: a card stretched edge to edge is hard on the eyes): ~70 characters a line, the typographic norm. */
 .card-grid > * { max-width: calc(var(--measure) + 2 * var(--s4)); margin-inline: auto; }
@@ -1576,7 +1543,6 @@ html.flow:not(.is-loaded) #s-feed { min-height: 100svh; }   /* the home column h
 }
 /* ---------- A RECEIPT IS ALREADY THE CARD § */
 /* ---------- A PAPER OBJECT IS THE CARD, so the glass behind it steps back § */
-.pane:has(.rc-stub),
 /* ---------- `> .rc` MISSED THE ONE THAT MATTERS MOST § */
 .pane:has(.rc),
 /* `.pane:has(.pass)` WAS HERE. A staff pass was paper and wanted the glass off; a person is an
@@ -1595,7 +1561,6 @@ html.flow:not(.is-loaded) #s-feed { min-height: 100svh; }   /* the home column h
 }
 /* The heading above the paper — "Yours", "Open" — was sitting on the glass and now sits on the
    app itself, so it needs the breathing room the pane's padding used to give it. */
-.pane:has(.rc-stub) > h2 { margin-top: var(--s1); }
 
 /* NOTHING TO SHOW, centred. An empty state pinned to the top of a full-screen page leaves a
    screenful of nothing under one sentence, which reads as content that failed to load rather than
@@ -1649,7 +1614,7 @@ html.flow:not(.is-loaded) #s-feed { min-height: 100svh; }   /* the home column h
 .msg.mine:not(.run-top) .msg-bub { border-top-right-radius: 6px; }
 .msg.mine:not(.run-end) .msg-bub { border-bottom-right-radius: 6px; }
 /* The TEXT of a message. § */
-.msg-body-text { margin: 0; font-size: var(--fs-body); line-height: 1.45; overflow-wrap: break-word; }
+.msg-body-text { margin: 0; font-size: var(--fs-body); line-height: var(--lh-body); overflow-wrap: break-word; }
 
 /* The widget's own space: the thread, scrolling inside the case. */
 /* `dvh`, FOR THE REASON STATED ON `body`: § */
@@ -1672,7 +1637,7 @@ html.flow:not(.is-loaded) #s-feed { min-height: 100svh; }   /* the home column h
   /* HALF THE 44px FLOOR, so an empty box is a pill and a box of six lines is a rounded slab with the
      same corners — and the same shape as the two buttons either side of it. */
   background: var(--sunk); border: 1px solid var(--line); border-radius: var(--r-ui);
-  color: var(--ink); font: inherit; font-size: var(--fs-body); line-height: 1.4;
+  color: var(--ink); font: inherit; font-size: var(--fs-body); line-height: var(--lh-mid);
   resize: none;
 }
 .msg-text:focus { outline: 0; border-color: var(--gold); }
@@ -1687,12 +1652,12 @@ html.flow:not(.is-loaded) #s-feed { min-height: 100svh; }   /* the home column h
 
 /* ---------- THE THREAD'S OWN FURNITURE § */
 .msg-day { display: flex; align-items: center; gap: var(--s2); margin: var(--s3) 0 var(--s2);
-           color: var(--ink); font-size: var(--fs-small); letter-spacing: .06em; }
+           color: var(--ink); font-size: var(--fs-small); letter-spacing: var(--ls-3); }
 .msg-day::before, .msg-day::after { content: ''; flex: 1; border-top: 1px solid var(--line); }
 .msg-day:first-child { margin-top: 0; }
 .dm-head { display: flex; align-items: center; gap: var(--s2); margin: 0 0 var(--s2); }
 .dm-head h3 { margin: 0; min-width: 0; overflow-wrap: anywhere; }
-.dm-av { flex: 0 0 auto; width: 2rem; height: 2rem; border-radius: 50%;
+.dm-av { flex: 0 0 auto; width: 2rem; height: 2rem; border-radius: var(--r-circle);
          display: grid; place-items: center;
          background: var(--sunk); border: 1px solid var(--gold); color: var(--gold);
          font-weight: 700; font-size: var(--fs-body); }
@@ -1706,7 +1671,7 @@ html.flow:not(.is-loaded) #s-feed { min-height: 100svh; }   /* the home column h
 /* ---------- A REFUSAL SITS UNDER THE BUBBLE IT REFUSED § */
 .msg-fail { color: var(--bad); display: flex; flex-wrap: wrap; align-items: center;
             justify-content: flex-end; gap: 0 var(--s1); max-width: 78%; text-align: right;
-            line-height: 1.35; }
+            line-height: var(--lh-snug); }
 /* `pre-line` AND `anywhere` FOR AN ADMIN'S REFUSAL, which carries the fix: a few lines and a
    consent address with no space in it for a hundred characters, in a column 78% of 320px wide. */
 .msg-fail-why { flex: 1 0 100%; white-space: pre-line; overflow-wrap: anywhere; }
@@ -1733,8 +1698,8 @@ html.flow:not(.is-loaded) #s-feed { min-height: 100svh; }   /* the home column h
 /* 16rem wide whatever the picture's own size — a bubble shrinks to its content, so a small image
    would otherwise make a bubble the width of a thumbnail. The track above caps it. */
 .msg-pic, .msg-vid { display: block; width: 16rem; max-width: 100%; min-width: 0; border-radius: var(--r-ui); }
-.msg-pic img { display: block; width: 100%; border-radius: var(--r-ui); }
-.msg-pic img { height: auto; max-height: 20rem; object-fit: cover; background: var(--sunk); }
+
+.msg-pic img { display: block; width: 100%; border-radius: var(--r-ui);  height: auto; max-height: 20rem; object-fit: cover; background: var(--sunk); }
 .msg-vid { max-height: 20rem; background: var(--letterbox); }
 /* A CLIP THAT WOULD NOT PLAY becomes a link (`postVidFail_` in posts.js) and kept `.msg-vid` — so it was a 16rem black slab with an underlined gold line at its § */
 .msg-body a.msg-vid { display: flex; align-items: center; min-height: var(--tap); max-height: none;
@@ -1744,11 +1709,11 @@ html.flow:not(.is-loaded) #s-feed { min-height: 100svh; }   /* the home column h
 .msg-body a.msg-file, .msg-file { display: flex; align-items: center; gap: var(--s2); min-height: var(--tap);
             min-width: 0; padding: var(--s1) var(--s3) var(--s1) var(--s2); border-radius: var(--r-ui);
             background: var(--sunk); border: 1px solid var(--line); color: var(--ink);
-            text-decoration: none; font-size: var(--fs-small); line-height: 1.3; }
+            text-decoration: none; font-size: var(--fs-small); line-height: var(--lh-close); }
 .msg-file span { min-width: 0; overflow-wrap: anywhere;
                  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
                  line-clamp: 2; overflow: hidden; }
-.msg-file b, .msg-chip b { flex: 0 0 auto; font-size: var(--fs-small); letter-spacing: .04em;
+.msg-file b, .msg-chip b { flex: 0 0 auto; font-size: var(--fs-small); letter-spacing: var(--ls-2);
             color: var(--gold); }
 .msg-file b { display: grid; place-items: center; min-width: 2.3rem; height: 2.3rem;
               padding: 0 var(--s1); border-radius: var(--r-ui); border: 1px solid var(--line); }
@@ -1769,7 +1734,7 @@ html.flow:not(.is-loaded) #s-feed { min-height: 100svh; }   /* the home column h
 .msg-chip-x { min-width: var(--tap); min-height: var(--tap); background: none; border: 0;
               color: var(--ink); font-size: var(--fs-title); cursor: pointer; }
 .msg-form .btn.msg-clip { width: var(--tap); flex: 0 0 auto; min-width: var(--tap); min-height: var(--tap);
-                          height: var(--tap); padding: 0; border-radius: 50%; font-size: var(--fs-title);
+                          height: var(--tap); padding: 0; border-radius: var(--r-circle); font-size: var(--fs-title);
                           color: var(--gold); }
 
 /* ---------- THE RECEIPT § */
@@ -1789,7 +1754,7 @@ html.flow:not(.is-loaded) #s-feed { min-height: 100svh; }   /* the home column h
 .rc-head { padding: 0 0 var(--s1); }
 /* `.rc-head h2` HELD `@FAMILY.` and is deleted rather than left to sit — the markup that made it
    went in the same change, and `check-css` names an orphan the moment nothing produces it. */
-.rc-head p { margin: 0; font-size: var(--fs-small); color: var(--ink); line-height: 1.35; }
+.rc-head p { margin: 0; font-size: var(--fs-small); color: var(--ink); line-height: var(--lh-snug); }
 
 /* IT WAS DASHED, because a till roll's separators are printed rather than drawn — which was the right reason for as long as this was a till roll. § */
 .rc-rule { border-top: 1px solid var(--line-soft); margin: var(--s1) 0; }
@@ -1814,12 +1779,12 @@ html.flow:not(.is-loaded) #s-feed { min-height: 100svh; }   /* the home column h
 /* The tutor is not a seat. A line above the slot says so without needing a different shape. */
 .rost-slot.tut { border-top: 2px solid var(--rost-tutor); }
 .rost-pic { width: 18px; height: 18px; display: grid; place-items: center; }
-.rost-pic svg { width: 100%; height: 100%; border-radius: 50%; }
+.rost-pic svg { width: 100%; height: 100%; border-radius: var(--r-circle); }
 .rost-plus { font-size: var(--fs-title); color: var(--paper-faint); line-height: 1; }
 .rost-name { font-size: var(--fs-small); font-weight: 700; color: var(--paper-ink); max-width: 100%;
              overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* `--paper-dim` RATHER THAN `--paper-faint`, MEASURED AT 3.19:1 AGAINST THE SLOT'S OWN FILL. § */
-.rost-role { font-size: var(--fs-small); letter-spacing: .06em;
+.rost-role { font-size: var(--fs-small); letter-spacing: var(--ls-3);
              color: var(--paper-dim); }
 /* ---------- THE STUB: A WHOLE DOCUMENT TYPE, STYLED, THAT NOTHING DRAWS § */
 /* THE LINE THAT PAYS. Bigger, and the only thing on the paper in full ink — a receipt has one
@@ -1835,7 +1800,7 @@ html.flow:not(.is-loaded) #s-feed { min-height: 100svh; }   /* the home column h
    small caps the column heads use, so it reads as a summary of the column rather than another
    question in it. */
 .rc-total .bk-k { color: var(--ink); font-weight: 700;
-                  letter-spacing: .06em; }
+                  letter-spacing: var(--ls-3); }
 .rc-total .bk-t { font-weight: 700; color: var(--ink); }
 /* ---------- AN ADMIN'S TWO MORE MONEY ROWS, UNDER THE FIRST AND PART OF IT § */
 .rc-total.rc-more { margin-top: 0; padding-top: 0; border-top: 0; }
@@ -1886,8 +1851,8 @@ html.flow:not(.is-loaded) #s-feed { min-height: 100svh; }   /* the home column h
 .bk, .bk-row { font-size: var(--fs-small); }
 /* BREAK A WORD ONLY WHEN IT WILL NOT FIT, and hyphenate it when it does break. § */
 /* BUT NOT ON THE LABEL. § */
-.bk-k { line-height: 1.35; }
-.bk-v { overflow-wrap: break-word; hyphens: auto; line-height: 1.35; }
+.bk-k { line-height: var(--lh-snug); }
+.bk-v { overflow-wrap: break-word; hyphens: auto; line-height: var(--lh-snug); }
 /* Right-aligned, all three, so the columns are edges rather than ragged starts. A number column
    aligned left is a column you have to read across to compare. */
 .bk-m, .bk-r, .bk-t { text-align: right; white-space: nowrap; }
@@ -1911,7 +1876,7 @@ html.flow:not(.is-loaded) #s-feed { min-height: 100svh; }   /* the home column h
   width: 100%; height: auto; min-height: 0;
   --sel-tri: 4px; --sel-at: 4px;   /* whole pixels: the two halves of the arrow must meet on one */
   padding: 0 calc(var(--sel-tri) * 2 + .3em) 0 0; margin: 0;
-  font: inherit; line-height: 1.35;
+  font: inherit; line-height: var(--lh-snug);
   text-align: right; text-align-last: right;
   color: inherit; background-color: transparent; border: 0; border-radius: 0;
   cursor: pointer;
@@ -1936,7 +1901,7 @@ label.bk-k { cursor: pointer; }
 .bk-in {
   width: 100%; height: auto; min-height: 0;
   padding: 0; margin: 0;
-  font: inherit; line-height: 1.35;
+  font: inherit; line-height: var(--lh-snug);
   text-align: right;
   color: inherit; background: none; border: 0; border-radius: 0;
 }
@@ -1949,7 +1914,7 @@ label.bk-k { cursor: pointer; }
 /* ---------- AND AN OPEN ANSWER THAT ONLY ITS END TELLS APART WRAPS TOO § */
 .bk-face { position: relative; display: block; }
 .bk-said {
-  display: block; text-align: right; line-height: 1.35;
+  display: block; text-align: right; line-height: var(--lh-snug);
   padding-right: calc(4px * 2 + .3em);
   overflow-wrap: break-word;
 }
@@ -1968,7 +1933,7 @@ label.bk-k { cursor: pointer; }
 /* `.bk-open` WAS THE WEEK'S OWN BOX AND THERE IS NO WEEK'S OWN BOX ANY MORE. § */
 /* ---------- WHAT THE ROW ABOVE MEANS, OR WHY IT CANNOT BE ANSWERED THAT WAY § */
 .bk-say {
-  margin: 0 0 var(--s0); font-size: var(--fs-small); line-height: 1.3;
+  margin: 0 0 var(--s0); font-size: var(--fs-small); line-height: var(--lh-close);
   color: var(--ink); text-align: left;
 }
 /* A REFUSAL IS NOT AN ASIDE. `--gold` is what this app means by "the thing to attend to", and an
@@ -1992,7 +1957,7 @@ label.bk-k { cursor: pointer; }
 /* A ROW WHOSE ANSWER IS THE GRID UNDER IT — see `receiptRow`'s `is-head`. No dashed line, because
    the line means "an answer goes here" and here it goes in the week two pixels below. */
 .bk-row.is-head .bk-v { border-bottom: 0; }
-.bk-dates { font-size: var(--fs-small); line-height: 1.5; color: var(--ink); }
+.bk-dates { font-size: var(--fs-small); line-height: var(--lh-loose); color: var(--ink); }
 
 /* ---------- THE FIVE STAGE TICKS § */
 .bk-tick {
@@ -2054,7 +2019,7 @@ label.bk-k { cursor: pointer; }
 
 .slot-grid { display: flex; flex-direction: column; gap: 1px; margin: var(--s0) 0 0; }
 .slot-row { display: flex; align-items: center; gap: var(--s1); }
-.slot-day { flex: 0 0 1.5rem; font-size: var(--fs-small); color: var(--ink); letter-spacing: .04em; }
+.slot-day { flex: 0 0 1.5rem; font-size: var(--fs-small); color: var(--ink); letter-spacing: var(--ls-2); }
 /* WRAPS rather than scrolls sideways. A row that scrolls can hide an hour, and an hour you cannot
    see is one you will not book. */
 /* THIN AND TALL. Fourteen hours at a 38px square is two lines on any phone, and a day that wraps stops reading as a day. § */
@@ -2161,8 +2126,6 @@ label.bk-k { cursor: pointer; }
 
 /* A month with room in it. `1fr` rows spread the weeks down the card instead of leaving a fortnight
    of empty space under a squashed grid. */
-.widget-full .cal { flex: 1 1 auto; min-height: 0; grid-auto-rows: minmax(2rem, 1fr);
-                    align-content: stretch; }
 
 /* THE REEL STATES ITS OWN SIZE, like the board and the game either side of it. § */
 .widget-full .feed { flex: 0 0 auto; max-height: 60dvh; }   /* dvh — see `.msg-body` */
@@ -2195,10 +2158,10 @@ label.bk-k { cursor: pointer; }
    pages still move and still fade, because that is the layout rather than the decoration — it just
    arrives rather than travelling. */
 @media (prefers-reduced-motion: reduce) {
-  .screen, .page { transition: none; }
+
   /* A cell still moves and still fades — that is the layout rather than the decoration. It simply
      arrives rather than travelling. */
-  .screen, .page { transition: none; }
+  .screen, .page { transition: none;  transition: none; }
 }
 
 /* A WIDGET IS AN OBJECT, AND AN OBJECT HAS AN EDGE § */
@@ -2264,8 +2227,7 @@ label.bk-k { cursor: pointer; }
 .card:has(> .msg-body, > .kc-lines > .msg-body) .msg-body { max-height: 22rem; overflow-y: auto; scrollbar-width: none; }
 .msg-form .msg-said { flex: 1 0 100%; }
 
-.widget-full #timer-display {
-  /* THE SIZE COMES FROM THE FIRST RULE for this selector, further up: § */
+.widget-full #timer-display { /* THE SIZE COMES FROM THE FIRST RULE for this selector, further up: § */
   /* THE PANEL the numerals sit on — darker than the case, the way the glass of a clock is. */
   background: var(--raised);
   border: 1px solid var(--line);
@@ -2280,11 +2242,9 @@ label.bk-k { cursor: pointer; }
   place-items: center;
 
   font-variant-numeric: tabular-nums;
-  letter-spacing: .06em;
+  letter-spacing: var(--ls-3);
   line-height: 1.1;
-  color: var(--ink);
-}
-.widget-full #timer-display { grid-area: clock; }
+  color: var(--ink);  grid-area: clock; }
 .widget-full:has(#timer-display) .btn:is(:active, .is-pressed) { background-image: linear-gradient(var(--press-wash), var(--press-wash)); }
 
 /* ---------- THE THINGS THAT KEEP THE FINGER FOR THEMSELVES § */
@@ -2338,7 +2298,7 @@ textarea { touch-action: none; }
 /* ---------- THE ONES INSIDE A LINE OF TEXT § */
 /* `.post-edit` WAS IN THIS EXCEPTION LIST and there is no `.post-edit` — the post's ⋯ became a tile with everything else you can do to a post. § */
 /* `.qw` IS NOT UNDERLINED EITHER: § */
-span[data-do]:not(.act):not(.chip):not(.react):not(.cal-arrow):not(.qw),
+span[data-do]:not(.act):not(.chip):not(.react):not(.qw),
 .text-action, .text-drop {
   text-decoration: underline;
   text-decoration-style: dotted;
@@ -2352,10 +2312,10 @@ span[data-do]:is(:active, .is-pressed) { text-decoration-color: var(--gold); }
 .act, .picker { text-decoration: none; }
 
 /* ---------- A POST THAT IS WAITING § */
-.post-wait { color: var(--gold); font-weight: 600; }
+
 /* WAITING FOR APPROVAL (413): dotted, inset so a picture that bleeds to the edge cannot cover it; the line says what the dots mean. */
 .post.is-pending { outline: 2px dotted var(--gold); outline-offset: -2px; border-radius: var(--r-ui); padding-top: var(--s2); }
-.post-pending { margin: 0 0 var(--s2); font-size: var(--fs-small); color: var(--gold); font-weight: 600; letter-spacing: .02em; }
+
 /* A RECEIVED MESSAGE AND ITS REPORT TILE, side by side (413), at full strength always: no button changes on hover. */
 .msg-line { display: flex; align-items: flex-end; gap: var(--s1); width: 100%; }
 .msg-line .msg-flag { flex: 0 0 auto; }
@@ -2372,7 +2332,7 @@ span[data-do]:is(:active, .is-pressed) { text-decoration-color: var(--gold); }
 .prof-pic {
   width: 4.2rem; height: 4.2rem; flex: none; /* A BIT BIGGER (562, owner note 126). */
   object-fit: cover;
-  border-radius: 50%;
+  border-radius: var(--r-circle);
   border: 1px solid var(--line);
   background: var(--bg);
 }
@@ -2382,7 +2342,7 @@ span[data-do]:is(:active, .is-pressed) { text-decoration-color: var(--gold); }
   display: grid; place-items: center;
   font-size: var(--fs-title); font-weight: 700; color: var(--ink);
 }
-.prof-who { display: flex; flex-direction: column; gap: var(--s1); min-width: 0; }
+
 /* WRAPS. `.pass-name` was one line with `text-overflow: ellipsis` on the lines under it, because a pass is a fixed object and a name that does not fit gets cut. § */
 /* ---------- THE ONE RED THIS CARD USES, DECLARED ONCE AND RAISED TO READABLE § */
 
@@ -2396,7 +2356,7 @@ span[data-do]:is(:active, .is-pressed) { text-decoration-color: var(--gold); }
 .prof-say {
   margin: var(--s3) 0 0; padding-left: var(--s2);
   border-left: 2px solid var(--line);
-  font-style: italic; color: var(--ink); font-size: var(--fs-body); line-height: 1.45;
+  font-style: italic; color: var(--ink); font-size: var(--fs-body); line-height: var(--lh-body);
 }
 .prof-tags { display: flex; flex-wrap: wrap; gap: var(--s1); margin-top: var(--s2); }
 /* A TUTOR'S OTHER PHOTOGRAPHS — `findCard`. § */
@@ -2409,7 +2369,7 @@ span[data-do]:is(:active, .is-pressed) { text-decoration-color: var(--gold); }
 .prof-shot img { display: block; width: 100%; height: 100%; object-fit: cover; }
 /* THE ONE TAG/CHIP BLOCK: a profile's pills, a question's `Teach`, Sentence Scramble's words (a button). */
 .prof-tag {
-  display: inline-block; font-family: var(--mono); font-size: var(--tp-fs); letter-spacing: .08em;
+  display: inline-block; font-family: var(--mono); font-size: var(--tp-fs); letter-spacing: var(--ls-4);
   padding: var(--tp-pad); border-radius: var(--r-tag); background: transparent;
   border: 1px solid var(--line); color: var(--ink);
 }
@@ -2424,14 +2384,14 @@ button.prof-tag.is-sm { padding: 0 var(--s2); line-height: 1; font-weight: 500; 
 .kc-lines .prof-say + .row, .kc-lines .prof-tags + .row, .kc-lines .prof-words + .row { margin-top: var(--s3); }
 /* THE ADJECTIVES — bold words rather than chips; see `findCard`. The dots are gold and faint so the
    words carry the line. */
-.prof-words { margin: var(--s2) 0 0; font-size: var(--fs-body); line-height: 1.3; color: var(--ink); }
+.prof-words { margin: var(--s2) 0 0; font-size: var(--fs-body); line-height: var(--lh-close); color: var(--ink); }
 .prof-words b { font-weight: 800; }
 .prof-words i { font-style: normal; color: var(--ink); margin: 0 var(--s2); }
 /* ---------- AND THE ROWS ARE A NOTCH SMALLER THAN AN ORDINARY ROW, because a profile has twice as § */
 .kc-lines .row { padding: var(--s1) 0; font-size: var(--fs-small); }
-.kc-lines .prof-say { font-size: var(--fs-small); line-height: 1.35; }
+.kc-lines .prof-say { font-size: var(--fs-small); line-height: var(--lh-snug); }
 /* THE SUBJECTS, AS THE ADJECTIVES' CHIPS. § */
-.prof-teach .prof-tag { text-transform: none; letter-spacing: .02em; font-size: var(--tp-fs); }
+.prof-teach .prof-tag { text-transform: none; letter-spacing: var(--ls-1); font-size: var(--tp-fs); }
 /* A COLOUR PER KIND OF PILL (look rules): facts, subjects green, qualifications, places; never the grey line. */
 .prof-tags .prof-tag { border-color: var(--tag, var(--chip-line)); color: var(--tag, var(--ink));
   background: color-mix(in srgb, var(--tag, var(--ink)) 10%, transparent); }
@@ -2453,7 +2413,7 @@ button.prof-tag.is-sm { padding: 0 var(--s2); line-height: 1; font-weight: 500; 
 .vid-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
 /* THE VIDEO LINE ON A SETTINGS CARD reads "Intro video ... none" as on the card editor, not run together. */
 .vid-pick > .ce-line { display: flex; justify-content: space-between; gap: var(--s2); margin: var(--s2) 0; }
-.vid-pick > .ce-line .ce-k { font-size: var(--fs-small); letter-spacing: .04em; color: var(--ink); }
+.vid-pick > .ce-line .ce-k { font-size: var(--fs-small); letter-spacing: var(--ls-2); color: var(--ink); }
 .prof-places { --tag: var(--tag-board); }
 .prof-tags .prof-lv { color: inherit; }
 .prof-hours .prof-busy { color: var(--gold); }
@@ -2485,7 +2445,7 @@ button.prof-tag.is-sm { padding: 0 var(--s2); line-height: 1; font-weight: 500; 
 
 /* A CAPTION OVER EACH ROW OF CHIPS — "Teaches", "Qualifications", "Tutors at" — because two rows of identical pills could not be told apart: § */
 .prof-cap {
-  margin: var(--s2) 0 var(--s1); font: 400 var(--fs-small)/1 var(--mono); letter-spacing: .12em; color: var(--ink);
+  margin: var(--s2) 0 var(--s1); font: 400 var(--fs-small)/1 var(--mono); letter-spacing: var(--ls-5); color: var(--ink);
 }
 .prof-cap + .prof-tags { margin-top: 0; }
 /* ---------- A CARD BEING EDITED — `cardEditHtml_` in me.js (docs/history/330) § */
@@ -2495,10 +2455,10 @@ button.prof-tag.is-sm { padding: 0 var(--s2); line-height: 1; font-weight: 500; 
 .ce-sec > .prof-cap:first-child { margin-top: 0; }
 /* ITS TWO FORMS ARE HEADED, NOT CAPTIONED (the review of docs/history/339). § */
 .kid-sec > .kid-h { margin: 0 0 var(--s2); font-size: var(--fs-body); font-weight: 600; letter-spacing: -.005em; color: var(--ink); }
-.ce-note { margin: var(--s1) 0 0; line-height: 1.35; }
+
 /* SOMEBODY ELSE'S PICTURE, ON AN ADMIN'S EDIT: the card's own circle, and why it is not offered. */
 .ce-pic { display: flex; gap: var(--s3); align-items: center; }
-.ce-pic .ce-note { margin: 0; }
+
 /* ---------- THE CARD'S EDIT ON ONE PHONE SCREEN: ONE LINE A THING, LABEL LEFT, VALUE RIGHT (docs/history/425) § */
 .kc-embed { --ce-row: 32px; --ce-k: 6.6rem; }
 .kc-embed .me-form { line-height: 1.25; }
@@ -2509,7 +2469,7 @@ button.prof-tag.is-sm { padding: 0 var(--s2); line-height: 1; font-weight: 500; 
   display: flex; align-items: center; gap: var(--s2); min-height: var(--ce-row); margin: 0;
   border-bottom: 1px solid var(--line-soft); }
 .kc-embed label.field > span, .kc-embed .f-rowwrap > .dob-cap, .kc-embed .many-cap, .kc-embed .ce-k {
-  flex: 1 1 40%; margin: 0; text-align: left; font-size: var(--fs-small); letter-spacing: .04em;
+  flex: 1 1 40%; margin: 0; text-align: left; font-size: var(--fs-small); letter-spacing: var(--ls-2);
   line-height: 1.1; color: var(--ink); overflow: hidden; }
 .kc-embed label.field > input, .kc-embed label.field > select, .kc-embed .many-sum {
   flex: 1 1 55%; min-width: 0; min-height: 0; height: 28px; padding: 0 var(--s2); }
@@ -2531,7 +2491,7 @@ button.prof-tag.is-sm { padding: 0 var(--s2); line-height: 1; font-weight: 500; 
 .kc-embed .ce-fold > summary { list-style: none; cursor: default; }
 .kc-embed .ce-fold > summary::-webkit-details-marker { display: none; }
 .kc-embed .ce-v { flex: 1 1 auto; min-width: 0; display: block; text-align: right;
-  font-size: var(--fs-body); line-height: 1.4; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  font-size: var(--fs-body); line-height: var(--lh-mid); color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .kc-embed .ce-line::after { content: ''; flex: none; width: 6px; height: 6px; margin-left: var(--s0);
   border-right: 1.5px solid var(--dim); border-bottom: 1.5px solid var(--dim); transform: rotate(45deg) translateY(-2px); }
 .kc-embed .ce-fold > .ce-line::after { content: none; }   /* always open (487): no chevron to promise a fold */
@@ -2584,7 +2544,7 @@ button.prof-tag.is-sm { padding: 0 var(--s2); line-height: 1; font-weight: 500; 
 .row.kid-item { flex-direction: row; align-items: center; justify-content: flex-start; gap: var(--s2); }
 .kid-face {
   width: var(--pic-s); height: var(--pic-s); flex: none; object-fit: cover;
-  border-radius: 50%; border: 1px solid var(--line); background: var(--bg);
+  border-radius: var(--r-circle); border: 1px solid var(--line); background: var(--bg);
 }
 .kid-face.prof-none { font-size: var(--fs-body); }
 .kid-who { display: flex; flex-direction: column; gap: var(--s0); min-width: 0; flex: 1; margin: 0; overflow-wrap: anywhere; }
@@ -2612,11 +2572,11 @@ button.prof-tag.is-sm { padding: 0 var(--s2); line-height: 1; font-weight: 500; 
 /* SWITCHED OFF. The whole card dims (in colour: see `.card.is-off`) and the heading says so in words — a tutor hidden from the
    public list is a state an admin has to be able to see at a glance without reading a row. */
 /* A LOCKED GAME (461, `gameLockTile_`): the card ringed in gold, and while it holds nothing on the page pans or overscrolls. */
-.card.kc.is-locked { box-shadow: inset 0 0 0 2px var(--gold); }
+.card.kc.is-locked { box-shadow: var(--inset-gold); }
 /* HELD BY ITS PADLOCK (498): not dimmed, and its words selectable for copy and paste. */
 .card.kc.is-locked > * { --ink: inherit; --gold: inherit; }
 .is-held, .is-held * { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
-.favwrap.is-held { box-shadow: inset 0 0 0 2px var(--gold); border-radius: var(--r-ui); }
+.favwrap.is-held { box-shadow: var(--inset-gold); border-radius: var(--r-ui); }
 html.padlocked, html.padlocked * { touch-action: none !important; overscroll-behavior: none !important; }
 .prof-off { color: var(--bad); }
 /* AND THE ONE LINE THAT SAYS WHAT THE MARK MEANS. § */
@@ -2738,10 +2698,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 }
 
 /* THE SCARCITY, and it is the only thing on the card allowed to be loud besides the price. */
-.cpn-left {
-  display: inline-block; margin-top: var(--s2); font-size: var(--fs-small); font-weight: 700;
-  color: var(--gold); letter-spacing: .02em;
-}
+
 /* THE STUB, divided by a dashed line — the part you tear off, which is where the price lives. */
 
 .cpn:is(:active, .is-pressed) { transform: scale(var(--press-card)); }
@@ -2754,8 +2711,8 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 @media print {
   /* ---------- THE BODY IS STILL A 26.5rem COLUMN, AND THAT IS WHAT CLIPS THE PAGE § */
   /* ONE PRINTED PAGE, whichever paper is printing: the column let go and everything else hidden. */
-  body:is(.printing-fly, .printing-mat, .printing-stmt, .printing-insh) { max-width: none !important; margin: 0 !important; padding: 0 !important; overflow: visible !important; }
-  body:is(.printing-fly, .printing-mat, .printing-stmt, .printing-insh) * { visibility: hidden !important; }
+  body:is(.printing-insh) { max-width: none !important; margin: 0 !important; padding: 0 !important; overflow: visible !important; }
+  body:is(.printing-insh) * { visibility: hidden !important; }
   @page { size: A4 portrait; margin: 0; }
 }
 
@@ -2787,9 +2744,6 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 
 /* THE BAR GROWS BY SCALE (537): a width change lays the card out again every frame, a scale is the compositor's alone. */
 
-.mat-said { margin: var(--s1) 0 var(--s2); font-size: var(--fs-small); color: var(--ink); }
-.mat-said b { color: var(--ink); }
-.mat-said.over b { color: var(--bad); }
 /* PRINT AND THE TROLLEY ON ONE ROW. The button keeps the width it had less one tile and a gap; the
    tile is the app's own 44px plate (`.tile`), so nothing here sets a tap size. */
 
@@ -2882,10 +2836,6 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
    the next row's first cell — a 7mm column — so "less than 90" came out one letter wide. */
 
 /* THE PRINTED FIGURES' INKS, as classes so a colour is a paper token and not a literal in mat.js. */
-:is(.mat-prot, .mat-ang, .mat-graphs) .s-ink { stroke: var(--pa-ink); }
-:is(.mat-prot, .mat-ang, .mat-graphs) .s-mid { stroke: var(--pa-mark); }
-:is(.mat-prot, .mat-ang, .mat-graphs) .s-faint { stroke: var(--pa-line); }
-:is(.mat-prot, .mat-ang, .mat-graphs) .s-red { stroke: var(--paper-red); }
 
 /* ---------- A PIECE THAT IS ALREADY A FINISHED THING § */
 
@@ -2927,9 +2877,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 /* ---------- PRINTING FROM INSIDE THE APP § */
 /* THE PAPER IS A COPY AT THE END OF THE BODY, not the sheet inside the card. § */
 @media print {
-  
-  
-  
+
   @page { size: A4 portrait; margin: 0; }
 }
 
@@ -2953,7 +2901,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .qans-head {
   display: block; margin-bottom: var(--s2);
   font: 600 var(--fs-small)/1 var(--font); color: var(--ink);
-  letter-spacing: .08em;
+  letter-spacing: var(--ls-4);
 }
 /* THE ANSWER READS AS THE PAPER DOES, because it is the same material — see `answerBlock_`. § */
 /* THE RESULT, LARGE. It is the one thing on this page, and 259 cut it to a word or a line -- median seven characters, none past 120 -- so it can be the size of a § */
@@ -3002,11 +2950,11 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .qcard .qsheet { margin-top: var(--s3); }
 
 /* ---------- THE TYPESETTING, AND IT HAS MOVED TWICE § */
-.qsheet { font-family: var(--font); line-height: 1.5; overflow-wrap: break-word; }
+.qsheet { font-family: var(--font); line-height: var(--lh-loose); overflow-wrap: break-word; }
 /* ---------- A PREAMBLE THAT IS STANDING IN FOR THE REAL ONE § */
 .qsheet-stem.is-standin { border: 1px dashed var(--line); border-radius: var(--r-ui);
   padding: var(--s3) var(--s3); }
-.qsheet-stem.is-standin h4 { margin: 0 0 var(--s2); font-size: var(--fs-body); letter-spacing: .04em; color: var(--ink); }
+.qsheet-stem.is-standin h4 { margin: 0 0 var(--s2); font-size: var(--fs-body); letter-spacing: var(--ls-2); color: var(--ink); }
 /* ---------- A BLANK THE PAPER FILLS IN § */
 .qsheet .gap {
   color: var(--ink);
@@ -3022,7 +2970,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 /* ---------- A STEM CARRIED ONTO THE CARD OF THE PART THAT DRAWS ON ITS FIGURE (381) reads as the paper prints it: its words, the figure, the part */
 .qsheet-stem.is-over { color: var(--ink); border-bottom: 0; padding-bottom: 0; margin-bottom: var(--s4); }
 /* WHICH SPAN OF THE SOURCE A PART COVERS — "Lines 10–19". § */
-.qsheet-lines { margin: 0 0 var(--s1); font-size: var(--fs-small); letter-spacing: .06em; color: color-mix(in srgb, var(--gold) 90%, var(--bg)); }
+.qsheet-lines { margin: 0 0 var(--s1); font-size: var(--fs-small); letter-spacing: var(--ls-3); color: color-mix(in srgb, var(--gold) 90%, var(--bg)); }
 .qsheet-lead { color: var(--ink); margin-bottom: var(--s2); }
 
 /* THE PART LETTER SITS OUTSIDE THE TEXT, in the margin, the way it is printed — indented body text under a hanging (a) is what makes a multi-part question § */
@@ -3035,7 +2983,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .qsheet ol.parts, .qsheet ol.roman { padding-left: var(--s6); }
 .qsheet ol.roman { list-style: lower-roman; }
 .qsheet ul { padding-left: var(--s4); }
-.qsheet .stat { text-align: center; margin: var(--s4) 0; }
+
 /* ---------- A WIDE TABLE SCROLLS IN ITS OWN BOX, AND NOTHING ELSE DOES § */
 /* ONE RULE FOR EVERY TABLE IN A QUESTION'S WORDS: `.qtext` is on each box question html is drawn into (js/check-tables.js). */
 .qtext table { border-collapse: collapse; margin: var(--s4) auto; }
@@ -3064,7 +3012,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 
 /* ---------- A DRAWING'S LABELS ARE SERIF, AND THAT IS MEASURED RATHER THAN PREFERRED § */
 /* `.qp-area` TOO: WHATEVER THE PEN IS ON INKS ITSELF ON THE CARD. § */
-.qsheet .lbl, .qb-stem .lbl, .gd .lbl, .qp-area .lbl, .pad-loupe .lbl { font: italic 700 var(--fs-small) var(--fig-font); fill: currentColor; text-anchor: middle; }
+
 .qsheet .num, .qb-stem .num, .gd .num, .qp-area .num, .pad-loupe .num { font: 600 var(--fs-small) var(--fig-font); fill: currentColor; text-anchor: middle; }
 .qsheet .ax, .qb-stem .ax, .gd .ax, .qp-area .ax, .pad-loupe .ax { font: italic 600 var(--fs-small) var(--fig-font); fill: currentColor; }
 .qsheet .axis, .qb-stem .axis, .gd .axis, .qp-area .axis, .pad-loupe .axis { stroke: currentColor; }
@@ -3118,26 +3066,26 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 /* ---------- `min-width: 0`, AND WITHOUT IT FOUR CARDS RAN PAST THE COLUMN § */
 .fc-head h3 { margin: 0; min-width: 0; overflow-wrap: break-word; }
 /* ONE TITLE SIZE FOR A CARD THAT OWNS A PAGE, and a part page's title is one too — "Steps" under its kicker is the page's name exactly as § */
-.fc .fc-head h3, .fc.prac-part > h3 { font-size: var(--fs-title); font-weight: 600; line-height: 1.3;
+.fc .fc-head h3, .fc.prac-part > h3 { font-size: var(--fs-title); font-weight: 600; line-height: var(--lh-close);
                                       letter-spacing: -.01em; }
 /* THE LINE UNDER THE TITLE SITS UNDER IT. § */
 .fc .fc-head + .note { margin: var(--fc-in) 0 0; }
-.fc-lede { margin: var(--fc-line) 0 0; font-size: var(--fs-body); line-height: 1.5; }
+.fc-lede { margin: var(--fc-line) 0 0; font-size: var(--fs-body); line-height: var(--lh-loose); }
 /* HOW LONG, HOW MANY, WHERE, AND WHETHER IT CAN HAPPEN AT ALL — the four facts that decide whether
    you run this today, on one line, in the mono face the rest of the app uses for measurements. */
 
-.fc-say { margin: var(--fc-line) 0 0; font-size: var(--fs-small); line-height: 1.45; color: var(--ink); }
+.fc-say { margin: var(--fc-line) 0 0; font-size: var(--fs-small); line-height: var(--lh-body); color: var(--ink); }
 .prac-kit, .prac-steps, .fc-sec { margin: var(--fc-group) 0 0; }
 .prac-kit h4, .prac-steps h4, .fc-sec h4 { margin: 0 0 var(--fc-in); font: 600 var(--fs-small)/1 var(--mono);
-                               letter-spacing: .06em; color: var(--ink); }
+                               letter-spacing: var(--ls-3); color: var(--ink); }
 /* `.prac-kit` IS BACK ON THESE THREE GROUPS, because it holds a list again. § */
 
 /* ---------- A NUMBER IS WIDER THAN A BULLET, AND `10.` IS WIDER STILL § */
 
-.prac-kit li, .prac-steps li, .fc-sec li { font-size: var(--fs-small); line-height: 1.5; color: var(--ink); }
+.prac-kit li, .prac-steps li, .fc-sec li { font-size: var(--fs-small); line-height: var(--lh-loose); color: var(--ink); }
 .prac-kit li, .fc-sec li { margin: 0; }
 .prac-steps li { margin: 0 0 var(--s1); }
-.fc-note { margin: var(--fc-line) 0 0; font-size: var(--fs-small); line-height: 1.45; color: var(--ink); }
+.fc-note { margin: var(--fc-line) 0 0; font-size: var(--fs-small); line-height: var(--lh-body); color: var(--ink); }
 
 /* THE HOME EXPERIMENTS. § */
 
@@ -3146,13 +3094,13 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 /* ONE COLUMN ON EVERY SCREEN SIZE (owner 59a, 9 Nov): the two halves stack, wide or narrow. */
 /* A COLUMN LABEL, NOT A SECTION HEAD, AND IT WAS DRAWN AS BOTH. § */
 .fc-sec .prac-tab .qtags { margin: var(--s1) 0 0; justify-content: center; }
-.prac-tab li { font-size: var(--fs-small); line-height: 1.5; color: var(--ink); }
+.prac-tab li { font-size: var(--fs-small); line-height: var(--lh-loose); color: var(--ink); }
 
 /* ---------- ONE SENTENCE THAT BELONGED TO THE VENUE, NOT TO ANY ROW § */
-.prac-cost { margin: var(--s2) 0 0; font-size: var(--fs-small); line-height: 1.45; color: var(--ink); }
+.prac-cost { margin: var(--s2) 0 0; font-size: var(--fs-small); line-height: var(--lh-body); color: var(--ink); }
 
 /* ---------- A PRACTICAL'S OTHER THREE PAGES — WHOSE PAGE IT IS, THEN WHAT IT IS § */
-.fc-kick { margin: 0 0 var(--fc-in); font: 600 var(--fs-small)/1.3 var(--mono); letter-spacing: .06em; color: var(--ink); overflow-wrap: anywhere; }
+.fc-kick { margin: 0 0 var(--fc-in); font: 600 var(--fs-small)/1.3 var(--mono); letter-spacing: var(--ls-3); color: var(--ink); overflow-wrap: anywhere; }
 .prac-part > h3 { margin: 0 0 var(--fc-line); }
 /* `.prac-safety b` AND `.prac-maths b` WERE IN THIS SELECTOR and went with their two rules above.
    `.fc-say` is the card's own "You end up with", which is untouched. */
@@ -3176,7 +3124,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .bb-miss { color: var(--warn); }
 
 /* ---------- THE VERSE § */
-.bb-v { margin: var(--fc-line) 0 0; font-size: var(--fs-title); line-height: 1.5; color: var(--ink); }
+.bb-v { margin: var(--fc-line) 0 0; font-size: var(--fs-title); line-height: var(--lh-loose); color: var(--ink); }
 /* `.bb-v.is-wait` WAS HERE — a faint ellipsis where the verse would be while its book was on its way.
    The verse waits under the one loader now, as every card does (`loading_`, shell.js). */
 /* THE 1611 PILCROW, where a paragraph starts — printed in front of the verse, quietly, as the
@@ -3193,8 +3141,8 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .gd > :first-child { margin-top: 0; }
 
 /* ---------- THE QUESTION, AND THE LINE THAT SAYS WHY IT IS BEING ASKED § */
-.gd-ask { display: block; font-size: var(--fs-small); line-height: 1.45; font-weight: 600; color: var(--ink); }
-.gd-hint { display: block; margin: var(--s0) 0 var(--s1); font-size: var(--fs-small); line-height: 1.45;
+.gd-ask { display: block; font-size: var(--fs-small); line-height: var(--lh-body); font-weight: 600; color: var(--ink); }
+.gd-hint { display: block; margin: var(--s0) 0 var(--s1); font-size: var(--fs-small); line-height: var(--lh-body);
            color: var(--ink); }
 
 /* ---------- A BOX PER SECTION, AND THE FLOOR IS A FINGERTIP § */
@@ -3202,7 +3150,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .gd-box .kp-field {
   background: var(--paper); border: 1px solid var(--paper); border-radius: var(--r-box); padding: 0 var(--s3);
 }
-.gd-box .kp-field:focus-within { box-shadow: 0 0 0 3px var(--gold); }
+.gd-box .kp-field:focus-within { box-shadow: var(--ring-gold); }
 .gd-box .kp-field.kp-words > .kp-show {
   min-height: max(44px, 4.2rem); max-height: 12rem; padding: var(--s2) var(--s2);
   color: var(--paper-ink); font: var(--fs-body)/1.3 var(--font);
@@ -3245,8 +3193,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 /* ---------- THE PHOTO § */
 .boxer-pic { margin: 0; }
 
-.boxer-img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
-.boxer-img { object-fit: cover; background: var(--raised); }
+.boxer-img { position: absolute; inset: 0; display: block; width: 100%; height: 100%;  object-fit: cover; background: var(--raised); }
 /* THE FOOT OF A PHOTO SINKS INTO THE PAGE. § */
 
 /* ---------- THE RING AND THE FIGHTER IN IT: THE CARD'S OWN DRAWING, IN ITS OWN COLOURS § */
@@ -3276,8 +3223,8 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .hdb-lines dl > div { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s3);
                        padding: var(--s1) 0; border-bottom: 1px solid var(--line-soft); }
 .hdb-lines dl > div:last-child { border-bottom: 0; }
-.hdb-lines dt { flex: 0 0 auto; font: 600 var(--fs-small)/1.5 var(--mono); letter-spacing: .08em; color: var(--ink); }
-.hdb-lines dd { margin: 0; min-width: 0; text-align: right; font-size: var(--fs-small); line-height: 1.4;
+.hdb-lines dt { flex: 0 0 auto; font: 600 var(--fs-small)/1.5 var(--mono); letter-spacing: var(--ls-4); color: var(--ink); }
+.hdb-lines dd { margin: 0; min-width: 0; text-align: right; font-size: var(--fs-small); line-height: var(--lh-mid);
                  color: var(--ink); overflow-wrap: anywhere; }
 
 /* ---------- THE BELTS AND THE HONOURS § */
@@ -3374,7 +3321,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .tile-i { width: var(--tile-i); height: var(--tile-i); flex: 0 0 auto; }
 /* THE FALLBACK WORD, for a tile somebody adds without giving it a mark — see `tile_`. Nothing emits
    one today, and a blank 44px square would be worse than an ugly one. */
-.tile-k { font-size: var(--fs-small); letter-spacing: .02em; }
+.tile-k { font-size: var(--fs-small); letter-spacing: var(--ls-1); }
 /* TAP AGAIN TO CONFIRM (420, `sure_`): an armed tile says so in words, in place of a pop-up, and widens to fit them. */
 .tile.is-submit { width: var(--tile-send); height: var(--tile-send); }
 .tile.is-sure { width: auto; padding: 0 var(--s2); color: var(--bad); border-color: var(--bad); white-space: nowrap; }
@@ -3461,7 +3408,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
   margin: var(--s0) 0 0;
   text-align: center;
   font-size: var(--fs-small);
-  line-height: 1.4;
+  line-height: var(--lh-mid);
   color: var(--ink);
 }
 
@@ -3514,7 +3461,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 
 .doc p  { margin: 0 0 var(--s2); line-height: 1.55; }
 .doc ul { margin: 0 0 var(--s2); padding-left: var(--s4); }
-.doc li { margin: 0 0 var(--s1); line-height: 1.5; }
+.doc li { margin: 0 0 var(--s1); line-height: var(--lh-loose); }
 .doc b  { font-weight: 700; }
 
 /* THE STATE LINE ON A DOCUMENT CARD. `ok` and `warn` already exist and are used elsewhere; nothing
@@ -3634,10 +3581,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .feed-art.is-clip::before { z-index: 1; }
 .feed-art.is-clip .feed-credit { z-index: 2; }
 
-.feed-yt { position: absolute; inset: 0; z-index: 0; overflow: hidden; container-type: size; }
-
 /* A SOUND TILE ON A SHORT THAT CANNOT PLAY would be a control for nothing. */
-.reel:has(.feed-art.is-dead) .reel-sound { display: none; }
 
 /* ---------- A STOPPED REEL SAYS SO § */
 .reel.is-held::after {
@@ -3646,7 +3590,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
   transform: translate(-50%, -50%);
   width: 4rem; height: 4rem;
   display: flex; align-items: center; justify-content: center;
-  border-radius: 50%;
+  border-radius: var(--r-circle);
   background: var(--over-wash);
   color: var(--over-ink); font-size: var(--fs-title); line-height: 1;
   /* The glyph's own bearing sits it left of centre in its box; a video's play mark is centred on
@@ -3656,7 +3600,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 }
 
 /* ---------- THE SOUND IS A TILE, AND THIS RULE ONLY SAYS WHERE IT SITS § */
-.reel-sound { position: absolute; z-index: 3; top: .6rem; right: .6rem; }
+
 /* ---------- A TILE ON A PICTURE WEARS THE PICTURE'S WASH § */
 .tile.is-over { background: var(--over-wash); border-color: var(--over-edge); color: var(--over-ink); }
 .tile.is-over:is(:active, .is-pressed) { background-image: linear-gradient(var(--press-wash), var(--press-wash)); border-color: var(--over-ink); }
@@ -3673,7 +3617,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .search::placeholder { color: var(--paper-dim); }
 /* THE EDGE LIGHTS, NOTHING MOVES. A field that grows or glows when you tap it shifts the words you
    were about to read. */
-.search:focus { outline: 0; box-shadow: 0 0 0 3px var(--gold); }
+.search:focus { outline: 0; box-shadow: var(--ring-gold); }
 /* ---------- THE BOX AND THE BIN, ONE ROW § */
 
 #stuff-clear, #res-clear { display: flex; flex: 0 0 auto; }
@@ -3700,7 +3644,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 /* ---------- A BUNDLE: THE PAPERS ON THE SCREEN, LISTED § */
 .card.bundle .bundle-list {
   margin: var(--s1) 0 var(--s1); padding-left: var(--s5);
-  font-size: var(--fs-small); line-height: 1.3; color: var(--ink);
+  font-size: var(--fs-small); line-height: var(--lh-close); color: var(--ink);
 }
 .card.bundle .bundle-list li { margin: 0 0 var(--s0); overflow-wrap: anywhere; }
 .card.bundle .bundle-list li::marker { color: var(--ink); font-family: var(--mono); }
@@ -3718,22 +3662,14 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 
 /* ---------- ONE REGION INSIDE A WIDGET GIVES UP ITS HEIGHT FIRST § */
 /* ---------- AND IT IS THE WHOLE CHAIN, NOT THE CARD § */
-.card.kc:has(.widget-squeeze),
-.card.kc:has(.widget-squeeze) :has(.widget-squeeze) {
-  display: flex; flex-direction: column;
-  min-height: 0;
-}
+
 /* THE PANE IS THE CAP. It is already a flex column with a `max-height` in screen units, and a flex
    item shrinks by default — so the card only needs to be allowed to. */
-.card.kc:has(.widget-squeeze) { max-height: 100%; }
 
 /* Everything that is NOT on the chain keeps exactly the height it asks for. Stated positively, so a
    child added to one of these widgets later does not silently start absorbing the squeeze. */
-.card.kc:has(.widget-squeeze) > *,
-.card.kc:has(.widget-squeeze) :has(.widget-squeeze) > * { flex: 0 0 auto; }
 
 /* …except the boxes leading to the region, and the region itself. */
-.card.kc:has(.widget-squeeze) :has(.widget-squeeze) { flex: 1 1 auto; }
 
 /* NO TITLE ON A WIDGET (720, owner: "none of the widgets need titles"): its heading stays for a screen reader, and its slot is a region named for it. */
 .widget-slot > h3:first-child,
@@ -3745,7 +3681,6 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
    from the moment the screen is drawn. */
 .widget-slot { display: block; }
 /* ONE PLACE FOR A WIDGET'S TILES (472): after its content, one row — star, padlock, then the admin's group; check/tiles.js holds every widget to it. */
-
 
 .widget-slot > .card:only-child { padding-block: 0; border-bottom: 0; }
 
@@ -3777,39 +3712,19 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
    a word squeezed into it is a word nobody reads. */
 
 /* ---------- THE SHUTTER AND THE RECORD DISC § */
-.cam-shot {
-  flex: 0 0 auto; padding: 0;
-  display: grid; place-items: center;
-  border-radius: 50%;
-  cursor: pointer;
-  transition: transform var(--dur-quick) var(--ease-out), opacity var(--dur-quick) var(--ease-out);
-}
-.cam-shot {
-  width: 64px; height: 64px;
-  background: var(--cam-white);
-  border: 3px solid var(--cam-white);
-  box-shadow: inset 0 0 0 3px var(--raised);
-}
+
 /* THE RECORD DISC IS A RING WITH A RED DOT IN IT, and recording turns the dot into a square (537): two layers trading
    scale and opacity, so the ring keeps its shape and nothing is laid out or repainted as it changes. */
 
-.cam-shot:is(:active, .is-pressed) { transform: scale(var(--press-small)); }
 /* ---------- A CAMERA STARTING UP SHOWS A GREYED SHUTTER § */
-.cam-shot:disabled:active { transform: none; }
 
 /* PHOTOS AND WRITE A POST ARE DISCS TOO (448), outlined so the white shutter and red record stay the loudest; the word under each. */
 
 /* A 320px PHONE: the four discs fit one row only a little smaller (check/ui.js measured 4px over). */
- 
 
 /* THE COMPOSER STANDS WHERE THE CAMERA WAS — the same card, no overlay. */
 
-.post-compose #poll-more { margin: 0 0 var(--s2); min-height: var(--tap); }
-.post-compose .btn-row .btn { min-height: var(--tap); }
-
 /* RECORDING IS A SQUARE. § */
-
-.cam-card #cam-said:empty { display: none; }
 
 /* `hidden` HAS TO ACTUALLY HIDE. § */
 [hidden] { display: none !important; }
@@ -3833,7 +3748,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
    line. The bar is that line now (`.qp-bar`); the class stays on it as the name the checks find the
    Figure tile's line by. */
 .qp-ans-k { display: block; font: 600 var(--fs-small)/1 var(--font); color: var(--ink);
-            letter-spacing: .08em; margin-bottom: var(--s2); }
+            letter-spacing: var(--ls-4); margin-bottom: var(--s2); }
 /* THE RULE UNDER THE BOX TOOK THE VERDICT'S COLOUR here, through `.qcard:has(> .qp-mark.is-right)`, because the verdict came after the box. § */
 
 /* ---------- THE ANSWER BAR: A PAPER FIELD, AND SEND BESIDE IT § */
@@ -3848,10 +3763,10 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .qp-bar > .qp-ans > .kp-field { flex: 1 1 auto; min-width: 0; }
 .qp-bar > .tile { flex: none; }
 /* A WORDED ANSWER IN THE BAR: § */
-.qp-bar > .qp-ans:focus-within { box-shadow: 0 0 0 3px var(--gold); }
+.qp-bar > .qp-ans:focus-within { box-shadow: var(--ring-gold); }
 /* THE RING TAKES THE VERDICT'S COLOUR, so what was marked and what it was marked as are joined on the screen, not only in the sentence under it. § */
-.qp-mark.is-right > .qp-bar > .qp-ans { box-shadow: 0 0 0 3px var(--good); }
-.qp-mark.is-near > .qp-bar > .qp-ans { box-shadow: 0 0 0 3px var(--warn); }
+.qp-mark.is-right > .qp-bar > .qp-ans { box-shadow: var(--ring-good); }
+.qp-mark.is-near > .qp-bar > .qp-ans { box-shadow: var(--ring-warn); }
 /* THE ANSWER IN THE BAR IS ON THE CREAM PILL (1030), so its words take the paper's ink. */
 .qp-bar .kp-show { color: var(--paper-ink); font: var(--fs-body)/1.3 var(--font); min-height: calc(1.3em + 2 * var(--s1)); }
 /* ONE LINE TALL EMPTY OR NOT (owner, 17 Nov: "inputs are offset"): the bare caret was 3px shorter than the placeholder, so the box jumped as the pad opened and again at the first key. */
@@ -3874,9 +3789,9 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 }
 /* THE RING, AS ON THE BAR: gold while it is written in, green or amber once marked -- outside the paper,
    on the card, where each reads at about 11:1. */
-.qp-sheet:focus-within { box-shadow: 0 0 0 3px var(--gold); }
-.qp-mark.is-right > .qp-sheet { box-shadow: 0 0 0 3px var(--good); }
-.qp-mark.is-near > .qp-sheet { box-shadow: 0 0 0 3px var(--warn); }
+.qp-sheet:focus-within { box-shadow: var(--ring-gold); }
+.qp-mark.is-right > .qp-sheet { box-shadow: var(--ring-good); }
+.qp-mark.is-near > .qp-sheet { box-shadow: var(--ring-warn); }
 /* THE WRITING AREA, ON THE CREAM PILL (1030): no ruled lines, as no other answer box has them. */
 .qp-sheet > .kp-field.kp-essay > .kp-show {
   padding: 0; font: 400 var(--fs-body)/var(--sheet-line) var(--font);
@@ -3891,7 +3806,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
   position: absolute; top: 0; left: 0; right: 0; color: var(--paper-dim); pointer-events: none;
 }
 /* THE ROW UNDER IT: the tiles at the start, the word count at the far end, where a glance finds it. */
-.qp-sheet-foot { margin: var(--s2) 0 0; }
+
 .qp-words {
   margin-left: auto; padding: 0 var(--s1); white-space: nowrap;
   font: 600 var(--fs-small)/1.3 var(--font); color: var(--ink); font-variant-numeric: tabular-nums;
@@ -3991,7 +3906,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .kp-handle::before { content: ""; position: absolute; left: -21px; width: var(--tap); height: var(--tap); }
 .kp-handle-a::before { top: -36px; }
 .kp-handle-b::before { bottom: -36px; }
-.kp-handle::after { content: ""; position: absolute; left: -5px; width: 12px; height: 12px; border-radius: 50%; background: var(--paper-ink); }
+.kp-handle::after { content: ""; position: absolute; left: -5px; width: 12px; height: 12px; border-radius: var(--r-circle); background: var(--paper-ink); }
 .kp-handle-a::after { top: -11px; }
 .kp-handle-b::after { bottom: -11px; }
 
@@ -4062,7 +3977,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 /* AN ESSAY'S RETURN (`KP_RETURN`, keypad.js): § */
 .kp-key.kp-ret { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
 .kp-ret-i { font: 600 var(--fs-title)/1 var(--font); }
-.kp-ret-k { font: 600 var(--fs-small)/1 var(--font); letter-spacing: .02em; }
+.kp-ret-k { font: 600 var(--fs-small)/1 var(--font); letter-spacing: var(--ls-1); }
 /* AT A SIXTH OF THE ROW (562) the return key is its mark alone; the word comes back where there is room. */
 #kp { container-type: inline-size; }
 @container (max-width: 40rem) { .kp-ret-k { display: none; } }
@@ -4071,7 +3986,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .kp-key.kp-mic.is-on { background: var(--kp-face); color: var(--kp-ink); }
 /* AND AN ESSAY'S ✓ SAYS "done" (`KP_DONE_ESSAY`, keypad.js): on an essay it only puts the pad away, and
    the paper aeroplane it wears elsewhere is Send's mark. */
-.kp-key.kp-done-k { font: 700 var(--fs-body)/1 var(--font); letter-spacing: .02em; }
+.kp-key.kp-done-k { font: 700 var(--fs-body)/1 var(--font); letter-spacing: var(--ls-1); }
 /* ---------- THE LETTER UNDER THE FINGER, SHOWN ABOVE IT § */
 .kp-key.kp-ch.is-pressed, .kp-key.kp-ch:active { filter: none; transform: none; }
 .kp-key.kp-ch.is-pressed::after {
@@ -4098,7 +4013,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .qp-work-pic { position: relative; display: block; width: 5.5rem; height: 7rem; border: 1px solid var(--line); border-radius: var(--r-ui); overflow: hidden; }
 .qp-work-pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .qp-work-read { display: block; max-width: 100%; max-height: 16rem; margin-top: var(--s2); border-radius: var(--r-ui); }
-.qp-work-x { position: absolute; top: 2px; right: 2px; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--line);
+.qp-work-x { position: absolute; top: 2px; right: 2px; width: 32px; height: 32px; border-radius: var(--r-circle); border: 1px solid var(--line);
   background: var(--bg); color: var(--ink); font: 400 var(--fs-title)/1 var(--font); padding: 0; cursor: pointer; }
 .qp-work-say { margin: var(--s1) 0 0; font: 400 var(--fs-small)/1.45 var(--font); color: var(--ink); white-space: pre-line; }
 .qp-work-say:empty { display: none; }
@@ -4165,17 +4080,17 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .mc-box .mc-caret { height: .9em; }
 .calc { --calc-key: var(--raised); --calc-key-fn: var(--sunk); --calc-gap: 6px; --calc-key-h: 44px;
         width: min(21rem, calc(100vw - 24px)); box-sizing: border-box; padding: 0 var(--s2) var(--s2); margin-inline: auto;
-        background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 14px;
+        background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: var(--r-surface);
         box-shadow: 0 16px 40px color-mix(in srgb, var(--black) 70%, transparent);
         font: 500 var(--fs-body)/1 var(--font); display: flex; flex-direction: column; gap: var(--calc-gap); }
 /* THE TOP EDGE IS THE HANDLE: a grip to carry it by, DEG/RAD, and the ✕ (find-measure.js puts it there) */
 .calc-head { display: flex; align-items: center; justify-content: space-between; height: 36px; padding-right: 40px; }
-.calc-grip { width: 36px; height: 4px; border-radius: 2px; background: var(--line); margin-left: calc(50% - 18px); position: absolute; left: 0; top: 10px; }
-.mc-drg { min-height: 28px; padding: 0 10px; border: 1px solid var(--line); border-radius: 999px; background: none; color: var(--dim);
-          font: 600 var(--fs-small)/1 var(--font); letter-spacing: .06em; cursor: pointer; }
-.calc .mc-display { background: var(--raised); border: 1px solid var(--line-soft); border-radius: 10px; padding: 6px 12px 8px; height: 5.6rem; box-sizing: border-box; font-family: var(--font);
+.calc-grip { width: 36px; height: 4px; border-radius: var(--r-sm); background: var(--line); margin-left: calc(50% - 18px); position: absolute; left: 0; top: 10px; }
+.mc-drg { min-height: 28px; padding: 0 10px; border: 1px solid var(--line); border-radius: var(--r-round); background: none; color: var(--dim);
+          font: 600 var(--fs-small)/1 var(--font); letter-spacing: var(--ls-3); cursor: pointer; }
+.calc .mc-display { background: var(--raised); border: 1px solid var(--line-soft); border-radius: var(--r-key); padding: 6px 12px 8px; height: 5.6rem; box-sizing: border-box; font-family: var(--font);
                     min-height: 0; overflow: hidden; color: var(--ink); }
-.calc .mc-stat { flex: none; display: flex; gap: var(--s2); height: .8rem; font: 700 10px/1 var(--font); letter-spacing: .08em; color: var(--hue-1); }
+.calc .mc-stat { flex: none; display: flex; gap: var(--s2); height: .8rem; font: 700 10px/1 var(--font); letter-spacing: var(--ls-4); color: var(--hue-1); }
 .calc .mc-in { flex: none; height: 1.9rem; line-height: 1.9rem; font-size: var(--fs-body); color: var(--dim); overflow: auto hidden; scrollbar-width: none; }
 .calc .mc-out { flex: none; height: 2.4rem; line-height: 2.4rem; font-size: 1.6rem; font-weight: 600; overflow: auto hidden; scrollbar-width: none; }
 .calc .mc-in::-webkit-scrollbar, .calc .mc-out::-webkit-scrollbar { display: none; }
@@ -4184,13 +4099,13 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .calc .mc-menu b { background: var(--ink); color: var(--bg); padding: 0 var(--s1); }
 .calc-row { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--calc-gap); }
 .calc-row-last { padding-bottom: 4px; border-bottom: 1px solid var(--line-soft); margin-bottom: 2px; }
-.mc-btn { position: relative; height: var(--calc-key-h); min-width: 0; padding: 0; border: 0; border-radius: 10px; cursor: pointer;
+.mc-btn { position: relative; height: var(--calc-key-h); min-width: 0; padding: 0; border: 0; border-radius: var(--r-key); cursor: pointer;
           background: var(--calc-key); color: var(--ink); font: 500 1.05rem/1 var(--font); display: grid; place-items: center; }
 .mc-btn.mc-f { --calc-key-h: 40px; background: var(--calc-key-fn); color: var(--dim); font-size: .95rem; }
 .mc-btn.mc-d { font-size: 1.3rem; }
 .mc-btn.mc-clr { color: var(--warn); }
 .mc-btn.mc-eq { background: var(--gold); color: var(--bg); font-size: 1.4rem; font-weight: 700; }
-.mc-btn.mc-sh { font-size: var(--fs-small); letter-spacing: .06em; color: var(--hue-1); }
+.mc-btn.mc-sh { font-size: var(--fs-small); letter-spacing: var(--ls-3); color: var(--hue-1); }
 .mc-btn sup { font-size: .65em; vertical-align: .55em; line-height: 0; }
 .mc-btn:is(:active, .is-pressed) { filter: brightness(1.6); }
 .mc-btn:focus-visible { outline: 2px solid var(--hue-1); outline-offset: 1px; }
@@ -4214,7 +4129,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 /* ONE FLOATING TOOL (owner, 20 Nov): the calculator, the ruler and the protractor over the page (`floatToggle_`, find-measure.js); carried by the body, keys stay taps. */
 .floaty { position: fixed; z-index: 60; left: 0; top: 0; margin: 0; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
 .floaty.held { cursor: grabbing; }
-.float-x { position: absolute; z-index: 2; top: 4px; right: 4px; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 50%;
+.float-x { position: absolute; z-index: 2; top: 4px; right: 4px; width: 32px; height: 32px; padding: 0; border: 0; border-radius: var(--r-circle);
            background: var(--raised); color: var(--ink); font: 600 .95rem/1 var(--font); cursor: pointer; box-shadow: 0 0 0 1px var(--line); }
 .calc.floaty { position: fixed; }
 /* THE RULER AND THE PROTRACTOR: see-through, so the figure under them reads; the round handle turns them about their zero or centre */
@@ -4223,7 +4138,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .meas-float .meas-body, .meas-float .meas-tick, .meas-float .meas-num { pointer-events: auto; }
 .meas-float .float-x { top: -14px; right: auto; left: -14px; pointer-events: auto; }
 .float-pin { position: absolute; width: 0; height: 0; }
-.float-turn { position: absolute; z-index: 2; right: -22px; top: 50%; translate: 0 -50%; width: 40px; height: 40px; padding: 0; border-radius: 50%;
+.float-turn { position: absolute; z-index: 2; right: -22px; top: 50%; translate: 0 -50%; width: 40px; height: 40px; padding: 0; border-radius: var(--r-circle);
               border: 1px solid var(--gold); background: color-mix(in srgb, var(--gold) 22%, var(--bg)); color: var(--gold); font: 600 1.15rem/1 var(--font);
               cursor: alias; pointer-events: auto; touch-action: none; }
 .float-protractor .float-turn { top: auto; bottom: -6px; translate: 0 0; }
@@ -4234,7 +4149,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .page.mag-host { position: relative; }
 /* BACK TO TOP (463): under every result of a finder, its last row. */
 .find-top { margin-top: var(--s4); }
-.mag { position: absolute; z-index: 30; width: 160px; height: 160px; border-radius: 50%; overflow: hidden;
+.mag { position: absolute; z-index: 30; width: 160px; height: 160px; border-radius: var(--r-circle); overflow: hidden;
   pointer-events: none; background: var(--bg); border: 2px solid var(--gold); box-shadow: 0 6px 24px color-mix(in srgb, var(--black) 55%, transparent); }
 .mag-in { position: absolute; left: 0; top: 0; transform-origin: 0 0; display: flex; flex-direction: column; justify-content: center; }
 body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
@@ -4293,7 +4208,7 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
   background: var(--bg); padding: 0 var(--s1); border-radius: var(--r); pointer-events: none; }
 .qpad-len:empty { display: none; }
 .qpad-aid .qpad-pred { stroke-width: 2.5; stroke-linejoin: round; }
-.wb .qpad-aid .qpad-pred { stroke: var(--paper-ink); }
+
 .qpad-aid .qpad-halo { fill: none; stroke: var(--gold); stroke-width: 1.5; opacity: .6; }
 /* ---------- THE PROTRACTOR (458): see-through so the figure shows; the body and the knob take the finger, the rest of the box lets it through */
 .qpad-prot { position: absolute; width: 72%; line-height: 0; pointer-events: none; touch-action: none; z-index: 2; }
@@ -4305,11 +4220,9 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 .qpad-prot .qprot-stem { stroke: var(--gold); stroke-width: 1; }
 .qpad-prot .qprot-hit { fill: transparent; pointer-events: auto; cursor: grab; }
 .qpad-prot .qprot-knob { fill: var(--gold); stroke: var(--bg); stroke-width: 1.5; pointer-events: auto; cursor: grab; }
-.wb .qpad-prot .qprot-body { fill: color-mix(in srgb, var(--paper-ink) 8%, transparent); stroke: var(--paper-ink); }
-.wb .qpad-prot :is(.qprot-ticks, .qprot-stem) { stroke: var(--paper-ink); }
-.wb .qpad-prot :is(.qprot-nums text, .qprot-pin) { fill: var(--paper-ink); }
+
 /* ---------- THE LOUPE (357, `padLoupe_`) § */
-.pad-loupe { position: fixed; left: 0; top: 0; width: 128px; height: 128px; border-radius: 50%; overflow: hidden;
+.pad-loupe { position: fixed; left: 0; top: 0; width: 128px; height: 128px; border-radius: var(--r-circle); overflow: hidden;
   pointer-events: none; z-index: 60; display: none; contain: strict; background: var(--raised); color: var(--ink);
   border: 2px solid var(--gold); box-shadow: 0 6px 18px color-mix(in srgb, var(--black) 45%, transparent); }
 .pad-loupe.on { display: block; }
@@ -4331,7 +4244,7 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 /* SILENT WHEN SAVED (368): the pen's note takes no room until it has a failure to say; the box's saved line keeps its reserved line, so words arriving move nothing (261) */
 .qpad-note:empty { display: none; }
 .qpad-note { margin: var(--s1) 0 0; font: 400 var(--fs-small)/1.4 var(--font); color: var(--ink);
-             line-height: 1.4; }
+             line-height: var(--lh-mid); }
 
 /* ---------- AN EARLIER PART'S MARKS, WHICH THIS PAGE CANNOT CHANGE § */
 .qseen { margin: var(--s4) 0; }
@@ -4345,39 +4258,10 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 /* ---------- THE WHITEBOARD: THE PEN ABOVE, ON A BLANK SHEET OF PAPER § */
 /* AND `--bar` AND `--safe-bottom` BESIDE IT, because the pane's own cap subtracts both (`.pane`): the
    number above was measured where both are nought, and on an iPhone with a home bar the second is not. */
-.wb { --wb-chrome: calc(88px + 13.6rem); }
-.wb .qpad { margin: var(--s1) 0 0; }
-.wb .qpad-art {
-  display: block; margin: 0 auto;
-  width: min(100%, calc((100dvh - var(--bar) - var(--safe-bottom) - var(--wb-chrome)) * 3 / 4));
-  aspect-ratio: 3 / 4;
-  background: var(--paper);
-  border: 1px solid var(--paper-rule); border-radius: var(--r-ui);
-  /* A LINE THAT RUNS OFF THE PAPER STOPS AT ITS EDGE, as a pen does at the edge of a sheet. § */
-  overflow: hidden;
-}
-.wb .qpad-art > svg:first-child { width: 100%; height: 100%; }
-.wb .qpad-g path { stroke: var(--paper-ink); }
-.wb .qpad-note { text-align: center; }
+
 /* CLEAR OF THE FRAME. Locked, the gold outline stands 6px outside the paper (`outline-offset: 4px`, 2px wide), and the tile row's own .5rem left it a pixel from § */
-.wb .qpad-bar { justify-content: center; margin-top: var(--s3); }
 
 /* ---------- ON ITS SIDE, THE BOARD TAKES THE HEIGHT AND EVERYTHING ELSE GOES BESIDE IT § */
-@media (max-height: 500px) and (min-aspect-ratio: 1/1) {
-  .wb { --wb-side: calc(7px + 3.65rem); }
-  .card.kc:has(.wb) {
-    display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto auto auto 1fr;
-    column-gap: var(--s4); align-items: start;
-  }
-  .card.kc:has(.wb) .widget-slot, .card.kc:has(.wb) .wb, .card.kc:has(.wb) .wb .qpad { display: contents; }
-  .card.kc:has(.wb) .widget-slot > h3 { grid-area: 2 / 2; margin: var(--s2) 0 0; }
-  .card.kc:has(.wb) .wb .qpad-art {
-    grid-area: 1 / 1 / -1 / 2; margin: 0;
-    width: calc((100dvh - var(--bar) - var(--safe-bottom) - 2.5rem - var(--wb-side)) * 3 / 4);
-  }
-  .card.kc:has(.wb) .wb .qpad-bar { grid-area: 3 / 2; justify-content: flex-start; margin-top: var(--s2); }
-  .card.kc:has(.wb) .wb .qpad-note { grid-area: 4 / 2; text-align: left; }
-}
 
 /* ---------- A PASSAGE THAT IS ITS OWN ANSWER SURFACE: RING A WORD BY TAPPING IT § */
 /* THE HIT AREA IS A PSEUDO-ELEMENT AND NOT PADDING, because an outline is drawn round the padding box: § */
@@ -4397,8 +4281,7 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 /* THE PICTURE IN THE SHEET, when the share sheet refused or there is none — see `rcOffer_`. Its
    own width, never wider than its card, and a hairline so a dark card does not vanish into a dark
    card. */
-.rc-shot { display: block; width: 100%; height: auto; margin: 0 0 var(--s2);
-           border: 1px solid var(--line); border-radius: var(--r-ui); }
+
 /* THE FORMS ON A RECEIPT'S FOOT (Set the room) and the picture under it: no sheet, owner 7 Nov. */
 .rc-form, .rc-shot-box { margin-top: var(--s3); }
 
@@ -4414,8 +4297,6 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
  /* min-width comes from `.lib-row label.field` */
 
 /* ---------- REPORTING A QUESTION (395): the sheet's reasons, its note, and the Business column's list — js/submit.js, js/records.js. */
-
-.rep-note-said { margin: 0 0 var(--s1); font-size: var(--fs-small); color: var(--ink); overflow-wrap: anywhere; }
 
 /* THE REPORT BOX IN PLACE under a tile row (486), and the two heads of the admin's Reports card. */
 .rep-box { margin: var(--s2) 0; padding-top: var(--s2); border-top: 1px solid var(--line); }
@@ -4435,15 +4316,10 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 
 /* THE STATEMENT IS PAPER: the paper palette, a table that fits a phone, and the same sheet printed. */
 
-.stmt { background: var(--paper); color: var(--paper-ink); border-radius: var(--r-ui); padding: var(--s4) var(--s3); }
-
 /* A SUM IS NEVER BROKEN ACROSS TWO LINES: £135.00 split at 320px read as two numbers. */
 
 @media print {
-  
-  
-  
-  
+
   @page { size: A4 portrait; margin: 0; }
 }
 
@@ -4453,20 +4329,20 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 .up-mark { flex: 0 0 1rem; text-align: center; font-weight: 700; }
 .row.up-item.is-ok .up-mark { color: var(--good); }
 .row.up-item.is-bad .up-mark { color: var(--bad); }
-.up-k { display: block; font-size: var(--fs-body); line-height: 1.3; }
-.up-v { display: block; font-size: var(--fs-small); line-height: 1.35; color: var(--ink); overflow-wrap: anywhere; }
-.up-said { margin: var(--s2) 0 var(--s1); font-size: var(--fs-body); line-height: 1.35; overflow-wrap: anywhere; }
+.up-k { display: block; font-size: var(--fs-body); line-height: var(--lh-close); }
+.up-v { display: block; font-size: var(--fs-small); line-height: var(--lh-snug); color: var(--ink); overflow-wrap: anywhere; }
+.up-said { margin: var(--s2) 0 var(--s1); font-size: var(--fs-body); line-height: var(--lh-snug); overflow-wrap: anywhere; }
 .up-said.up-good { color: var(--good); }
 .up-said.up-bad { color: var(--bad); }
-.up-steps { margin: 0 0 var(--s2); padding-left: var(--s4); font-size: var(--fs-small); line-height: 1.4; overflow-wrap: anywhere; }
+.up-steps { margin: 0 0 var(--s2); padding-left: var(--s4); font-size: var(--fs-small); line-height: var(--lh-mid); overflow-wrap: anywhere; }
 .up-steps li + li { margin-top: var(--s1); }
 
 /* ---------- WHERE A TUTOR TUTORS, AS A HEAT MAP — see `profHeat_` in cards.js § */
 .prof-heat { position: relative; height: 200px; margin: var(--s0) 0 var(--s2); overflow: hidden;
              border-radius: var(--r-ui); background: var(--sunk); border: 1px solid var(--line); }
 /* TWO LAYERS, because the tiles are filtered and the glows must not be. § */
-.prof-heat .heat-tiles { position: absolute; inset: 0; pointer-events: none; }
-.prof-heat .heat-tiles { filter: invert(1) hue-rotate(180deg) brightness(.85) contrast(.9) saturate(.4); }
+
+.prof-heat .heat-tiles { position: absolute; inset: 0; pointer-events: none;  filter: invert(1) hue-rotate(180deg) brightness(.85) contrast(.9) saturate(.4); }
 
 /* ---------- A TUTOR'S WEEK ON THEIR CARD — see `profAvail_` in cards.js § */
 .prof-week .slot-grid { gap: 2px; margin: var(--s0) 0 var(--s1); }
@@ -4482,7 +4358,7 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
                 color-mix(in srgb, var(--gold) 45%, transparent) 2px 3.5px), var(--sunk);
 }
 .prof-key { display: flex; align-items: center; gap: var(--s1); margin: 0 0 var(--s1);
-            font-size: var(--fs-small); line-height: 1.2; color: var(--ink); }
+            font-size: var(--fs-small); line-height: var(--lh-tight); color: var(--ink); }
 /* THE SWATCH IS A CELL, so it is the cell's look by construction and cannot drift from it. `.hr` is
    `flex: 1 1 0` to share a row with nine others; alone in the key it would take the whole line. */
 .prof-week .prof-key .hr { flex: 0 0 1.6rem; }
@@ -4494,13 +4370,13 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
   border: 1px solid var(--line); border-radius: var(--r-ui); background: transparent; color: inherit;
   font: 600 var(--fs-body)/1 var(--font); text-align: center; }
 .qp-cell:focus { outline: 2px solid var(--gold); outline-offset: 1px; }
-.qp-cell.is-right { box-shadow: 0 0 0 3px var(--good); }
-.qp-cell.is-near { box-shadow: 0 0 0 3px var(--warn); }
+.qp-cell.is-right { box-shadow: var(--ring-good); }
+.qp-cell.is-near { box-shadow: var(--ring-warn); }
 td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 /* centred over the left the question card gives its other boxes */
 .qcard :is(td, th).qp-cell-at > .qp-cell { text-align: center; }
 /* EVERY GAP IN ONE BOX (owner, 13 Nov): the one line over it says to write the answers in order. */
-.qp-compose > .q-hint { font-size: var(--fs-body); line-height: 1.3; text-align: center; }
+.qp-compose > .q-hint { font-size: var(--fs-body); line-height: var(--lh-close); text-align: center; }
 
 /* IN THE CARD a long maths answer stops at four lines and scrolls, where it used to push the card taller. */
 .qp-bar .kp-field.kp-maths > .kp-show { max-height: 9.5rem; overflow-y: auto; }
@@ -4523,20 +4399,20 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .rsvp-tick-t { top: 0; }
 .rsvp-tick-b { bottom: 0; }
 .rsvp-word { display: grid; grid-template-columns: 1fr auto 1fr; align-items: baseline; min-height: 3rem;
-  font-family: var(--mono, monospace); font-size: var(--fs-title); line-height: 1.5; color: var(--ink); white-space: pre; }
+  font-family: var(--mono, monospace); font-size: var(--fs-title); line-height: var(--lh-loose); color: var(--ink); white-space: pre; }
 .rsvp-word > [aria-busy], .rsvp-word > .empty, .rsvp-word > p { grid-column: 1 / -1; white-space: normal; font-size: var(--fs-body); text-align: center; }
 .rsvp-pre { text-align: right; overflow: hidden; }
 .rsvp-orp { color: var(--gold); font-weight: 700; }
 .rsvp-post { text-align: left; overflow: hidden; }
 .rsvp-at { text-align: center; margin: var(--s2) 0; }
 .rsvp-speed { display: flex; flex-direction: column; gap: var(--s1); margin-top: var(--s3); }
-.rsvp-speed input[type=range] { width: 100%; height: var(--tap); padding: 0; border: 0; background: none; accent-color: var(--gold); }
-.rsvp-speed input[type=range] { -webkit-appearance: none; appearance: none; }
+
+.rsvp-speed input[type=range] { width: 100%; height: var(--tap); padding: 0; border: 0; background: none; accent-color: var(--gold);  -webkit-appearance: none; appearance: none; }
 .rsvp-speed input[type=range]::-webkit-slider-runnable-track { height: 4px; border-radius: var(--r-ui); background: var(--line); }
 .rsvp-speed input[type=range]::-moz-range-track { height: 4px; border-radius: var(--r-ui); background: var(--line); }
 .rsvp-speed input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; margin-top: -10px;
-  border-radius: 50%; background: var(--gold); border: 0; }
-.rsvp-speed input[type=range]::-moz-range-thumb { width: 24px; height: 24px; border-radius: 50%; background: var(--gold); border: 0; }
+  border-radius: var(--r-circle); background: var(--gold); border: 0; }
+.rsvp-speed input[type=range]::-moz-range-thumb { width: 24px; height: 24px; border-radius: var(--r-circle); background: var(--gold); border: 0; }
 
 /* ================= PROGRESS (435): one line per thing on the black and gold; a paper opens in place ================= */
 .prog-tot .v { color: var(--gold); font-weight: 620; }
@@ -4575,7 +4451,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .help-list .help-none { margin: var(--s1) 0; }
 /* ---------- AN EXAM INSERT (455): A SHEET OF PAPER ON THE BLACK SCREEN, because it stands for the one handed out in the exam. ---------- */
 
-.insh-kick { margin: 0 0 var(--s1); font: 600 var(--fs-small)/1.3 var(--mono); letter-spacing: .06em; color: var(--paper-dim); }
+.insh-kick { margin: 0 0 var(--s1); font: 600 var(--fs-small)/1.3 var(--mono); letter-spacing: var(--ls-3); color: var(--paper-dim); }
 .insh-sec :is(h4, .kc-h) { margin: var(--s3) 0 var(--s1); padding-bottom: var(--s1); font-size: var(--fs-small); color: var(--paper-dim);
   border-bottom: 1px solid var(--paper-rule); }
 .insh-sec ul { margin: 0; padding: 0; list-style: none; }
@@ -4583,10 +4459,10 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 
 .insh-rad { border-top: 1px solid currentColor; padding-top: 0; }
 .kc-over { text-decoration: overline; }
-.insh-check { margin: var(--s3) 0 0; font-size: var(--fs-small); line-height: 1.4; color: var(--paper-dim); }
+.insh-check { margin: var(--s3) 0 0; font-size: var(--fs-small); line-height: var(--lh-mid); color: var(--paper-dim); }
 .insh-check b { color: var(--paper-ink); }
 /* ---------- A READING INSERT'S SOURCE (458): the extract as printed, a line number in the margin where the paper prints one */
-.insh-sum { margin: 0 0 var(--s3); font-size: var(--fs-small); line-height: 1.45; color: var(--paper-dim); }
+.insh-sum { margin: 0 0 var(--s3); font-size: var(--fs-small); line-height: var(--lh-body); color: var(--paper-dim); }
 .insrc { font-family: Georgia, 'Times New Roman', serif; font-size: var(--fs-body); line-height: 1.6; color: var(--paper-ink); }
 .insrc.has-lines { padding-left: var(--s6); }
 .insrc-h { margin: var(--s4) 0 var(--s1); font: 700 var(--fs-small)/1.3 var(--mono); color: var(--paper-ink); }
@@ -4640,7 +4516,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 @media print {
   body.printing-insh .insh-paper, body.printing-insh .insh-paper * { visibility: visible !important; }
   body.printing-insh .insh-paper { display: block; position: absolute; left: 0; top: 0; width: 190mm; margin: 10mm; }
-  
+
   @page { size: A4 portrait; margin: 0; }
 }
 
@@ -4654,11 +4530,11 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .card-lock svg { width: 18px; height: 18px; display: block; }
 .is-locked > h3 { padding-right: var(--s5); }
 /* WHAT A CARD IS FOR, one faint line under its title. */
-.card-say { margin: var(--s0) 0 var(--s2); font-size: var(--fs-body); line-height: 1.35; }
+.card-say { margin: var(--s0) 0 var(--s2); font-size: var(--fs-body); line-height: var(--lh-snug); }
 /* A CARD'S SAY IS KEPT FOR THE WORDS EDITOR AND THE JOURNEYS, NOT SHOWN: the owner never saw it, and a card's tiles say what it does. */
 .card .card-say { display: none; }
 /* A TUTOR'S HOURS AS LINES (467). */
-.prof-hours .prof-hour-line { margin: 0; line-height: 1.45; font-size: var(--fs-body); }
+.prof-hours .prof-hour-line { margin: 0; line-height: var(--lh-body); font-size: var(--fs-body); }
 .prof-hours .prof-hour-line .prof-day { display: block; }
 .prof-hours .prof-hour-line .prof-sep { display: none; }
 .prof-hours .prof-key { margin: var(--s1) 0 0; font-size: var(--fs-small); }
@@ -4702,15 +4578,15 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 /* A WRITING'S REFERENCES (504): the bibliography, small and quiet under the credit. */
 .wt-refs { margin: var(--s2) 0 0; }
 .wt-refs-h { margin: 0 0 var(--s0); font: 600 var(--fs-small)/1.2 var(--mono); color: var(--ink); letter-spacing: .05em; }
-.wt-refs ol { margin: 0; padding-left: var(--s5); font-size: var(--fs-small); line-height: 1.4; color: var(--ink); }
+.wt-refs ol { margin: 0; padding-left: var(--s5); font-size: var(--fs-small); line-height: var(--lh-mid); color: var(--ink); }
 .tx-text p { margin: 0 0 var(--s3); font-size: var(--fs-body); line-height: 1.55; white-space: pre-line; overflow-wrap: anywhere; }
 
 /* ONE READING LAYOUT (owner, 8 Nov, `readingCard_`): title, its reference, then the text in one type for every tradition. */
 
 .rd-ref { font: 600 var(--fs-small)/1.3 var(--mono); color: var(--gold); }
 .rd-body { margin: 0 0 var(--s2); }
-.rd-body :is(.bb-v, .wt-text, .qr-en, .tx-text p):not([dir="rtl"]) { margin: 0 0 var(--s2); font-size: var(--fs-body); line-height: 1.6; color: var(--ink); }
-.rd-body :is(.bb-credit, .wt-credit, .qr-credit) { margin: var(--s2) 0 0; font: 400 var(--fs-small)/1.4 var(--mono); color: var(--ink); }
+.rd-body :is(.bb-v, .wt-text, .tx-text p):not([dir="rtl"]) { margin: 0 0 var(--s2); font-size: var(--fs-body); line-height: 1.6; color: var(--ink); }
+.rd-body :is(.bb-credit, .wt-credit) { margin: var(--s2) 0 0; font: 400 var(--fs-small)/1.4 var(--mono); color: var(--ink); }
 
 /* A MANUSCRIPT AS IT LOOKS (490): paper tokens for the leaf; papyrus and parchment are this component's own tints of them. */
 .hdb-ms { margin: var(--s2) 0 var(--s1); }
@@ -4731,7 +4607,6 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .hdb-ms .mfr-band { fill: none; stroke: var(--ms-red); stroke-width: 5; stroke-dasharray: 2 4; }
 .hdb-ms .mfr-spray { fill: none; stroke: var(--ms-red); stroke-width: 2.5; }
 .hdb-ms .mfr-edge { fill: none; stroke: var(--paper-dim); stroke-width: 2; }
-
 
 /* A SUGGESTION'S PICTURE (498), shown small in the box before it is sent. */
 
@@ -4771,7 +4646,6 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 
 /* ---------- THE REWRITE COACH (509) ---------- */
 
-
 /* ONE FACT AT A TIME (519): where you are, then the cue and its box. */
 
 /* FILES FOR CLAUDE (515): the chosen files, one line each, scrolled when a whole folder is chosen. */
@@ -4781,21 +4655,10 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 /* MECHANICS PICTURES (548): a 64x64 drawing on each card, scaled whole and crisp. */
 
 /* THE TIMELINES (batch F): a scene of fixed height, the tiles under it never moving, then an axis that pans (a transform, so nothing reflows). */
-.tl-anim { overflow: hidden; } .tl-scene { height: 10rem; display: flex; flex-direction: column; align-items: center; text-align: center; } .tl-scene > * { animation: tl-pop var(--dur-enter) var(--ease-out); }
-.tl-pic { margin: var(--s1) 0 0; width: 5.5rem; height: 5.5rem; } .tl-big, .tl-mini { width: 100%; height: 100%; display: block; } .tl-year { margin: var(--s1) 0 0; font: 600 var(--fs-small)/1.2 var(--mono); color: var(--gold); }
-.tl-label { margin: var(--s0) 0 0; font-weight: 700; font-size: var(--fs-body); line-height: 1.2; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-.tl-view { position: relative; height: 3.4rem; margin: var(--s2) 0 var(--s1); overflow: hidden; border-bottom: 2px solid var(--line); } .tl-track { position: absolute; left: 0; top: 0; bottom: 0; transition: transform var(--dur-pan) var(--ease-out); will-change: transform; }
-.tl-tick { position: absolute; bottom: 0; height: .5rem; border-left: 1px solid var(--line); } .tl-tick i { position: absolute; bottom: .55rem; left: 0; transform: translateX(-50%); font: 400 var(--fs-small)/1 var(--mono); font-style: normal; color: var(--ink); white-space: nowrap; }
-.tl-ev { position: absolute; top: .2rem; width: 1.25rem; height: 1.25rem; margin-left: -.625rem; filter: opacity(.45); transition: filter var(--dur-enter), transform var(--dur-enter); } .tl-ev.past { filter: opacity(.8); } .tl-ev.on { filter: none; transform: translateY(-.1rem) scale(1.35); } .tl-pin { position: absolute; left: 50%; bottom: 0; width: 0; height: 1rem; border-left: 3px solid var(--gold); margin-left: -1.5px; }
+
 /* A TIMELINE'S PICTURE IS ITS ANIMATION (owner, 11 Nov): scene over axis, fitted to the one picture height. */
-.card.kc > .kc-pic > .tl-anim { display: flex; flex-direction: column; width: 100%; height: 100%; }
-.card.kc-timeline .tl-anim .tl-scene { flex: 1 1 auto; height: auto; min-height: 0; justify-content: center; }
-.card.kc-timeline .tl-anim figure.tl-pic { flex: none; width: 4.5rem; height: 4.5rem; margin: 0; }
-.card.kc-timeline .tl-anim .tl-label { font-size: var(--fs-small); }
-.card.kc-timeline .tl-anim .tl-view { flex: none; height: 2.2rem; margin: var(--s0) 0 0; }
-.card.kc-timeline .tl-anim .tl-ev { width: 1rem; height: 1rem; margin-left: -.5rem; top: 0; }
+
 @keyframes tl-pop { from { opacity: 0; transform: translateY(.4rem) scale(.9); } to { opacity: 1; transform: none; } }
-@media (prefers-reduced-motion: reduce) { .tl-scene > *, .tl-track, .tl-ev { animation: none; transition: none; } }
 
 /* THE WEB PROFILE (730): the business card's logo, small, beside its lines. */
 
@@ -4808,7 +4671,6 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 /* PICTURE FIRST (batch C): a profile card and a video card lead with the picture, the name under it; the facts are the tags above. */
 
 /* A POST IN FIND (batch C): its state is the tag above it, so the line saying so is not drawn twice. */
-.post-door .post-pending { display: none; } .post-door > .post { border: 0; padding: 0; }
 
 /* ---------- FIND › BOOKING, FINISHED (owner, 7 Nov): no box, tags on top, cream-pill answers, two columns when nothing is priced ---------- */
 #bookr .rc, .page .rc { background: none; border: 0; border-radius: 0; padding: var(--s1) 0 var(--s2); }
@@ -4836,7 +4698,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .rc .bk-v > .bk-in { text-align: left; }
 
 /* ---------- LIBRARY CARDS, ONE LOOK (owner's look rule): picture first, facts as tags, no grey text, the tiles on one line ---------- */
-.lib-c .fc-say, .lib-c .fc-lede, .lib-c h4, .lib-c li, .hdb-more .hdb-lines dt, .lib-c .tl-tick i { color: var(--ink); }
+.lib-c .fc-say, .lib-c .fc-lede, .lib-c h4, .lib-c li, .hdb-more .hdb-lines dt { color: var(--ink); }
 .lib-c > .person-pic { margin: var(--s1) auto var(--s2); }
 /* MESSAGES AND POSTS AS FIND CARDS (36a): the picture, the title, two lines of what was said. */
 .msg-fc-pic { margin: var(--s2) auto var(--s2); width: min(100%, 8rem); background: var(--raised); border-radius: var(--r-ui); padding: var(--s2); overflow: hidden; }
@@ -4853,7 +4715,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 
 .card.kc .prof-tags { gap: var(--s1); margin-top: var(--s1); }
 .card.kc .prof-cap { margin: var(--s2) 0 var(--s0); }
-.card.kc .prof-say { margin-top: var(--s2); font-size: var(--fs-small); line-height: 1.35; }
+.card.kc .prof-say { margin-top: var(--s2); font-size: var(--fs-small); line-height: var(--lh-snug); }
 .card.kc .prof-words { margin: var(--s1) 0 0; font-size: var(--fs-body); }
 .card.kc .prof-photos { grid-template-columns: repeat(5, 2.6rem); margin-top: var(--s2); }
 .card.kc .prof-heat { height: 64px; margin: var(--s0) 0 var(--s1); }
@@ -4861,8 +4723,6 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .card.kc .prof-tags > * { padding-top: var(--s0); padding-bottom: var(--s0); }
 .card.kc .prof-hours .prof-hour-line { display: flex; flex-wrap: wrap; font-size: var(--fs-small); gap: var(--s0); }
 .card.kc .prof-hours .prof-hour-line .prof-day { display: inline-block; padding: 0 var(--s1); border: 1px solid var(--line); border-radius: var(--r-round); }
-
-.card.kc .prof-who { gap: 0; flex: 1; min-width: 0; }
 
 /* ONE CARD SHAPE (owner, 8 Nov): picture, title, tags, lines; an empty part takes no room. */
 .card.kc > :empty { display: none; }
@@ -4921,7 +4781,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .file-view-f, .file-view-v, .file-view-i { display: block; width: 100%; border: 1px solid var(--line); border-radius: var(--r-ui); background: var(--bg); }
 .file-view-f { height: 70vh; }
 .file-view-youtube .file-view-f, .file-view-v { height: auto; aspect-ratio: 16 / 9; }
-.policy-page { padding: var(--s4); border: 1px solid var(--line); border-radius: var(--r-ui); background: var(--bg); color: var(--ink); line-height: 1.5; overflow-wrap: anywhere; }
+.policy-page { padding: var(--s4); border: 1px solid var(--line); border-radius: var(--r-ui); background: var(--bg); color: var(--ink); line-height: var(--lh-loose); overflow-wrap: anywhere; }
 
 .policy-page :is(.policy-h4, .policy-h5) .kc-h { margin: var(--s3) 0 var(--s1); font-size: var(--fs-body); }
 .policy-page p, .policy-page ul, .policy-page ol { margin: 0 0 var(--s2); }
@@ -4944,8 +4804,8 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .card.kc { display: flex; flex-direction: column; align-items: center; text-align: center; }
 .card.kc > * { width: 100%; max-width: 70ch; margin-left: auto; margin-right: auto; box-sizing: border-box; }
 .card.kc > .kc-head { display: none; }
-.card.kc > .kc-pic { flex: none; width: var(--pic-h); border-radius: 50%; }
-.card.kc > .kc-pic > * { max-width: none; width: 100%; height: 100%; border-radius: 50%; }
+.card.kc > .kc-pic { flex: none; width: var(--pic-h); border-radius: var(--r-circle); }
+.card.kc > .kc-pic > * { max-width: none; width: 100%; height: 100%; border-radius: var(--r-circle); }
 /* NO REAL PICTURE, NO PICTURE PART (owner, 10 Nov late): the tags lead. A thing's own photo or figure is its shape, not a circle. */
 .card.kc > .kc-pic:empty { display: none; }
 .card.kc:not(.kc-tutor, .kc-person, .kc-people, .kc-msg) > .kc-pic { width: 100%; border-radius: var(--r-ui); }
@@ -4954,7 +4814,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .card.kc > .kc-pic .hdb-ms svg { height: var(--pic-h); width: auto; max-width: 100%; margin: 0 auto; }
 .card.kc:not(.kc-tutor, .kc-person, .kc-people, .kc-msg) > .kc-pic :is(img, video, svg, figure) { border-radius: var(--r-ui); object-fit: contain; }
 .card.kc > .kc-tags { margin-top: var(--s2); }
-.card.kc > .kc-tags :is(.qtags, .prof-tags, .prof-who-tags, .prof-who, .prof-line) { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: var(--s1); }
+.card.kc > .kc-tags :is(.qtags, .prof-tags, .prof-who-tags) { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: var(--s1); }
 .card.kc > .kc-lines { margin-top: var(--s2); }
 /* ONE TEXT SIZE IN A CARD'S CONTENT, THE TAG'S (rule tpl-text-size): body and small both read --fs-tag inside it, so every block follows the one token. */
 .card.kc > :is(.kc-lines, .kc-form) figure > :is(svg:not(.pp), img) { width: min(100%, var(--pic-w)); height: auto; }
@@ -4969,7 +4829,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .card.kc > .kc-lines > * { margin: var(--s0) 0 0; }
 .card.kc > .kc-lines :is(.qtags, .prof-tags, .tile-row, .btn-row) { justify-content: center; }
 /* LONG CONTENT READS LEFT INSIDE ITS CENTRED BLOCK: a passage, a policy, a table, a list, a form. */
-.card.kc > .kc-lines :is(.rd-body, .policy-page, .policy-table, table, ul, ol, pre, blockquote, .insh-sec, .q-text, .qt-body),
+.card.kc > .kc-lines :is(.rd-body, .policy-page, .policy-table, table, ul, ol, pre, blockquote, .insh-sec),
 .card.kc > .kc-lines :is(form, .kc-items) { text-align: left; }
 /* THE CONTENT PART IS CENTRED (owner, 11 Nov), with the same side space as the card's other parts: a form, a panel's lines, every label, line and table. */
 .card.kc > .kc-form, .card.kc-panel > .kc-lines { box-sizing: border-box; width: 100%; padding-inline: var(--kc-side, var(--s4)); text-align: center; }
@@ -4992,7 +4852,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .card.kc-panel > .kc-lines { align-self: stretch; }
 .card.kc > .kc-act { margin-top: var(--s2); }
 .card.kc > .kc-act > .tile-row { justify-content: center; flex-wrap: wrap; margin-top: 0; }
-.card.kc.kc-facts > .kc-lines > .kc-line { margin: var(--s0) 0 0; font-size: var(--fs-body); line-height: 1.5; overflow-wrap: anywhere; }
+.card.kc.kc-facts > .kc-lines > .kc-line { margin: var(--s0) 0 0; font-size: var(--fs-body); line-height: var(--lh-loose); overflow-wrap: anywhere; }
 .kc-four { display: contents; }
 .prof-tag-name { color: var(--ink); }
 /* ONE FRAME FOR EVERY KIND: a widget's own surface, and a frame its maker drew inside, never box a one-shape card twice. */
@@ -5003,16 +4863,15 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .card.kc > .kc-lines .prof-say { border: 0; padding: 0; }
 /* THE BOOKING FORM'S DOOR, centred like a card. */
 
-.favwrap:has(> .book-form-door) + .tile-row { justify-content: center; }
 /* A CARD REDRAWN INTO THE ONE SHAPE AFTER ITS FIRST DRAW carries its four buttons: the row Find put under the first draw goes. */
 .favwrap:has(.kc-four) + .tile-row { display: none; }
 /* AN EMPTY CARD SAYS SO, CENTRED: never a blank frame. */
 .card.kc .empty { padding: 0; margin: 0; text-align: center; }
 /* ONE TAG, ONE LINE, ON EVERY CARD: a tag wraps inside the card, never clips; every line is body size, upright. */
 .card.kc :is(.qtag, .prof-tag) { max-width: 100%; min-width: 0; white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; text-align: center; }
-.card.kc > .kc-lines :is(.prof-say, .prof-words, .prof-busy, .prof-key, .prof-nohours, .kc-credit) { font-size: var(--fs-body); font-style: normal; line-height: 1.45; }
+.card.kc > .kc-lines :is(.prof-say, .prof-words, .prof-busy, .prof-key, .prof-nohours, .kc-credit) { font-size: var(--fs-body); font-style: normal; line-height: var(--lh-body); }
 .card.kc .prof-hours .prof-hour-line { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--s1); font-size: var(--tp-fs); }
-.card.kc .prof-hours .prof-hour-line .prof-day { display: inline-flex; align-items: center; min-height: var(--tp-h); padding: var(--tp-pad); border: 1px solid var(--line); border-radius: var(--r-round); font-size: var(--tp-fs); letter-spacing: .02em; }
+.card.kc .prof-hours .prof-hour-line .prof-day { display: inline-flex; align-items: center; min-height: var(--tp-h); padding: var(--tp-pad); border: 1px solid var(--line); border-radius: var(--r-round); font-size: var(--tp-fs); letter-spacing: var(--ls-1); }
 .card.kc .prof-photos { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--s1); }
 .card.kc .prof-photos > * { flex: 0 0 4rem; width: 4rem; aspect-ratio: 1; }
 .card.kc .prof-q-end { white-space: normal; }
@@ -5031,8 +4890,6 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .pxe-line select, .pxe-line input { min-height: var(--tap); min-width: var(--tap); max-width: 60%; }
 .pxe-grid { display: grid; width: 100%; max-width: 70vh; aspect-ratio: 1; margin: var(--s2) auto; border: 1px solid var(--line); background: repeating-conic-gradient(var(--paper) 0 25%, var(--paper-strip) 0 50%) 0 0 / 16px 16px; touch-action: none; user-select: none; -webkit-user-select: none; cursor: crosshair; }
 .pxe-c { box-shadow: inset 0 0 0 .5px var(--paper-rule); }
-
-.kt-said { min-height: 1.3em; margin: var(--s2) 0 0; }
 
 /* SUNDAY FUNDAY: a head in gold over its line, the answer under it once shown. */
 
@@ -5185,7 +5042,7 @@ body.nes-on .nes-wrap *, body.nes-on .nes-wrap *::before, body.nes-on .nes-wrap 
 .nes-wrap[data-sys="nds"] .nes-face .nes-round { width: calc(var(--k-cell) - 1px); height: calc(var(--k-cell) - 1px); min-width: 0; min-height: 0; justify-self: center; align-self: center; color: var(--nes-ink); font-size: var(--fs-small); box-shadow: inset 0 -.4cqw 0 var(--game-c8), 0 0 0 1px var(--nes-edge); }
 .nes-wrap[data-sys="nds"] .nes-pad .nes-mid { flex-direction: column; gap: 2.4cqw; left: auto; right: 4.5cqw; top: calc((var(--ds-mid) + var(--ds-sh) / 2 - 7.4) * 1cqw); }
 .nes-wrap[data-sys="nds"] .nes-mid .nes-key { min-width: 0; min-height: 0; width: 3.6cqw; height: 3.6cqw; padding: 0; border-radius: var(--r-ui); font-size: var(--fs-small); }
-.nes-wrap[data-sys="nds"] .nes-mid .nes-key::after { content: attr(data-k); position: absolute; top: 50%; right: calc(100% + 1.2cqw); transform: translateY(-50%); font: 600 max(.45rem, 1.9cqw) var(--font); letter-spacing: .04em; color: var(--nes-mid-ink); }
+.nes-wrap[data-sys="nds"] .nes-mid .nes-key::after { content: attr(data-k); position: absolute; top: 50%; right: calc(100% + 1.2cqw); transform: translateY(-50%); font: 600 max(.45rem, 1.9cqw) var(--font); letter-spacing: var(--ls-2); color: var(--nes-mid-ink); }
 .nes-wrap[data-sys="nds"] .nes-pad .nes-shoulders { inset: auto 2cqw auto 2cqw; top: calc((var(--ds-lid) + var(--ds-hh) - 1.6) * 1cqw); height: 0; padding: 0; display: block; }
 .nes-wrap[data-sys="nds"] .nes-pad .nes-shoulders .nes-key { position: absolute; top: 0; height: 2.6cqw; min-height: 0; min-width: 0; width: 17cqw; padding: 0; border-radius: var(--r-ui); font-size: var(--fs-small); line-height: 2.6cqw; }
 .nes-wrap[data-sys="nds"] .nes-pad .nes-shoulders .nes-l { left: 0; }
@@ -5203,7 +5060,7 @@ body.nes-on .nes-wrap *, body.nes-on .nes-wrap *::before, body.nes-on .nes-wrap 
 .ws-c { aspect-ratio: 1; min-width: 0; min-height: 0; padding: 0; display: flex; align-items: center; justify-content: center; background: var(--sunk); color: var(--ink); border: 0; border-radius: var(--r-ui); font: 600 var(--fs-title)/1 var(--mono); cursor: pointer;
 }
 .ws-c.got { background: color-mix(in srgb, var(--gold) 34%, var(--sunk)); }
-.ws-c.sel { box-shadow: inset 0 0 0 2px var(--gold); color: var(--gold); }
+.ws-c.sel { box-shadow: var(--inset-gold); color: var(--gold); }
 .ws-c:disabled { cursor: default; }
 .ws-list { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--s0) var(--s4); margin: var(--s2) 0 0; padding: 0; list-style: none; font: 500 var(--fs-small)/1.35 var(--font); color: var(--ink);
 }
@@ -5244,7 +5101,7 @@ body.nes-on .nes-wrap *, body.nes-on .nes-wrap *::before, body.nes-on .nes-wrap 
 .party-acts .btn-row + .btn { margin-top: var(--s2); }
 .party-sum { margin: 0; font: 400 var(--fs-small)/1.35 var(--font); color: var(--ink); }
 .party-of { font-size: var(--fs-small); color: var(--ink); }
-.btn.party-call { flex-direction: column; gap: var(--s1); min-height: 52px; padding: var(--s1) var(--s1); font: 600 var(--fs-small)/1 var(--font); letter-spacing: .02em;
+.btn.party-call { flex-direction: column; gap: var(--s1); min-height: 52px; padding: var(--s1) var(--s1); font: 600 var(--fs-small)/1 var(--font); letter-spacing: var(--ls-1);
 }
 .btn.party-call b { font: 700 var(--fs-title)/1 var(--mono); }
 .tab-ban { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: var(--s1) var(--s1); max-width: 18rem; }
@@ -5271,7 +5128,7 @@ body.nes-on .nes-wrap *, body.nes-on .nes-wrap *::before, body.nes-on .nes-wrap 
 .chess .wp { color: var(--chess-white); -webkit-text-stroke: .045em var(--chess-black); paint-order: stroke fill; text-shadow: 0 .05em .08em var(--chess-drop); }
 .chess .bp { color: var(--chess-black); -webkit-text-stroke: .045em var(--chess-white); paint-order: stroke fill; text-shadow: 0 .05em .08em var(--chess-drop); }
 .chess .pick { box-shadow: inset 0 0 0 3px var(--good); }
-.chess .can::after { content: ''; position: absolute; width: 26%; height: 26%; border-radius: 50%; background: var(--gold); opacity: .75; }
+.chess .can::after { content: ''; position: absolute; width: 26%; height: 26%; border-radius: var(--r-circle); background: var(--gold); opacity: .75; }
 .chess .take { box-shadow: inset 0 0 0 3px var(--gm-11); }
 .chess .last { background-image: linear-gradient(var(--chess-last), var(--chess-last)); }
 .chess .chk { background-image: radial-gradient(circle, var(--chess-check) 0 40%, transparent 72%); }
@@ -5284,11 +5141,11 @@ body.nes-on .nes-wrap *, body.nes-on .nes-wrap *::before, body.nes-on .nes-wrap 
 .chess.is-flipped .pc, .chess.is-flipped::before { rotate: -180deg; }
 .chess::after { content: ''; position: absolute; inset: 0; z-index: 4; pointer-events: none; background: none; }
 .chess .chk { z-index: 2; }
-.chess .chk::before { content: ''; position: absolute; inset: 6%; border-radius: 50%; pointer-events: none; box-shadow: 0 0 0 .14em var(--chess-check); opacity: 0; }
+.chess .chk::before { content: ''; position: absolute; inset: 6%; border-radius: var(--r-circle); pointer-events: none; box-shadow: 0 0 0 .14em var(--chess-check); opacity: 0; }
 .chess .chk.is-new::before { animation: chess-ring var(--dur-pan) var(--ease-out) var(--dur-enter) 3; }
 @keyframes chess-ring { from { opacity: .95; transform: scale(.7); } to { opacity: 0; transform: scale(1.3); } }
 .chess.is-over::after { background: radial-gradient(circle at 50% 50%, var(--gm-12) 0, var(--chess-dim) 100%); }
-.chess.is-over::before { content: attr(data-end); position: absolute; inset: 0; z-index: 7; pointer-events: none; display: flex; align-items: center; justify-content: center; font: 700 10cqw/1 var(--font); letter-spacing: .06em; color: var(--gold); text-shadow: 0 .04em .4em var(--gm-13), 0 0 .12em var(--gm-14); }
+.chess.is-over::before { content: attr(data-end); position: absolute; inset: 0; z-index: 7; pointer-events: none; display: flex; align-items: center; justify-content: center; font: 700 10cqw/1 var(--font); letter-spacing: var(--ls-3); color: var(--gold); text-shadow: 0 .04em .4em var(--gm-13), 0 0 .12em var(--gm-14); }
 .chess.is-over:not(.is-mate)::before { color: var(--ink); font-size: 8cqw; }
 .chess .sq.fell { z-index: 6; }
 .chess .pc.fallen { transform-origin: 50% 90%; transform: rotate(84deg); }
@@ -5308,20 +5165,20 @@ body.nes-on .nes-wrap *, body.nes-on .nes-wrap *::before, body.nes-on .nes-wrap 
 .chess-say { text-align: center; margin: var(--s1) 0 var(--s1); font: 600 var(--fs-body)/1.3 var(--font); color: var(--gold); }
 .chess-say.is-note { font-weight: 400; }
 .chess-ctl, .chess-promo { margin-top: var(--s0); justify-content: center; }
-.chess-promo .chess-pro { min-height: var(--tap); font-size: var(--fs-title); line-height: 1; padding: 0; background: var(--chess-light); }
-.chess-promo .chess-pro { font-family: 'DejaVu Sans', 'Segoe UI Symbol', 'Noto Sans Symbols 2', serif; font-variant-emoji: text; }
+
+.chess-promo .chess-pro { min-height: var(--tap); font-size: var(--fs-title); line-height: 1; padding: 0; background: var(--chess-light);  font-family: 'DejaVu Sans', 'Segoe UI Symbol', 'Noto Sans Symbols 2', serif; font-variant-emoji: text; }
 .chess-promo .chess-pro.wp { color: var(--chess-white); -webkit-text-stroke: .045em var(--chess-black); paint-order: stroke fill; }
 .chess-promo .chess-pro.bp { color: var(--chess-black); }
 #sheet-body .chess { width: 100%; aspect-ratio: 1; }
 .c4, .oth { display: grid; gap: var(--s0); margin: var(--s2) auto 0; width: 100%; background: var(--line); padding: var(--s0); border-radius: var(--r-ui); }
 .c4 { grid-template-columns: repeat(7, 1fr); grid-template-rows: repeat(6, 1fr); aspect-ratio: 7 / 6; max-width: 22rem; }
 .oth { grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr); aspect-ratio: 1; max-width: 24rem; }
-.c4-cell, .oth-cell { min-width: 0; min-height: 0; width: 100%; height: 100%; padding: 0; border: 0; border-radius: 50%; background: var(--sunk); cursor: pointer; transition: transform var(--dur-quick) var(--ease-out), background var(--dur-quick) var(--ease-out); }
+.c4-cell, .oth-cell { min-width: 0; min-height: 0; width: 100%; height: 100%; padding: 0; border: 0; border-radius: var(--r-circle); background: var(--sunk); cursor: pointer; transition: transform var(--dur-quick) var(--ease-out), background var(--dur-quick) var(--ease-out); }
 .c4-cell[disabled], .oth-cell[disabled] { cursor: default; }
 .c4-cell:not([disabled]):is(:active, .is-pressed), .oth-cell:not([disabled]):is(:active, .is-pressed) { transform: scale(var(--press-small)); }
 .c4, .c4-turn { --c4-a: var(--gm-15); --c4-b: var(--gm-16); }
 .c4-cell { position: relative; }
-.c4-cell.p1::after, .c4-cell.p2::after { content: ''; position: absolute; inset: 0; border-radius: 50%; }
+.c4-cell.p1::after, .c4-cell.p2::after { content: ''; position: absolute; inset: 0; border-radius: var(--r-circle); }
 .c4-cell.p1::after { background: var(--c4-a); }
 .c4-cell.p2::after { background: var(--c4-b); }
 .c4 { overflow: hidden; }
@@ -5336,7 +5193,7 @@ body.nes-on .nes-wrap *, body.nes-on .nes-wrap *::before, body.nes-on .nes-wrap 
 }
 @media (prefers-reduced-motion: reduce) { .c4-cell.c4-new::after { animation: none; } }
 .c4-cell.c4-win::after { box-shadow: inset 0 0 0 3px var(--ink), 0 0 0 2px var(--ink); }
-.c4-turn { display: inline-block; width: .85em; height: .85em; border-radius: 50%; margin-right: var(--s2); vertical-align: -.08em; }
+.c4-turn { display: inline-block; width: .85em; height: .85em; border-radius: var(--r-circle); margin-right: var(--s2); vertical-align: -.08em; }
 .c4-turn.p1 { background: var(--c4-a); }
 .c4-turn.p2 { background: var(--c4-b); }
 .oth { border-radius: var(--r-ui); --oth-a: var(--gm-15); --oth-b: var(--gm-17); }
@@ -5350,7 +5207,7 @@ body.nes-on .nes-wrap *, body.nes-on .nes-wrap *::before, body.nes-on .nes-wrap 
 .mz-cell.mz-s { border-bottom: 2px solid var(--mz-wall); }
 .mz-cell.mz-w { border-left: 2px solid var(--mz-wall); }
 .mz-cell.been { background: var(--mz-trail); }
-.mz-cell.out { box-shadow: inset 0 0 0 2px var(--gold); }
+.mz-cell.out { box-shadow: var(--inset-gold); }
 .mz-cell.you { background: var(--gold); }
 .mz-pad { display: grid; gap: var(--s2); justify-content: center; margin: var(--s2) 0 0; grid-template-columns: repeat(3, 44px); grid-template-rows: repeat(2, 44px); }
 /* ONE GAME BUTTON: the maze's keys, the scramble's actions and the racer's pads share one face; each keeps its own size. */
@@ -5371,7 +5228,7 @@ button.scr-sq { cursor: pointer; }
 .scr-sq.mid:not(.has) { box-shadow: inset 0 0 0 2px var(--scr-tw); }
 .scr-sq.has { background: var(--scr-tile); }
 .scr-sq.has:not(.new) { box-shadow: inset 0 0 0 1px var(--gm-28); }
-.scr-sq.new { box-shadow: inset 0 0 0 2px var(--gold); }
+.scr-sq.new { box-shadow: var(--inset-gold); }
 .scr-sq i { position: absolute; right: 1px; bottom: 0; font-size: var(--fs-small); font-style: normal; color: color-mix(in srgb, currentColor 75%, transparent); }
 .scr-who { display: flex; flex-wrap: wrap; gap: var(--s0) var(--s3); justify-content: center; margin: var(--s1) 0 0; font-size: var(--fs-small); }
 .scr-p b { color: var(--ink); font-weight: 650; }
@@ -5382,7 +5239,7 @@ button.scr-sq { cursor: pointer; }
 .scr-rack { display: flex; flex-wrap: wrap; gap: var(--s1); justify-content: center; }
 .scr-tile { position: relative; min-width: var(--tap); min-height: var(--tap); padding: 0; background: var(--scr-tile, var(--gm-27)); color: var(--gm-22); border: 1px solid var(--gm-29); border-radius: var(--r-ui); font: 700 var(--fs-body)/1 var(--font); cursor: pointer; transition: transform var(--dur-quick) var(--ease-out), box-shadow var(--dur-quick) var(--ease-out); }
 .scr-tile i { position: absolute; right: 3px; bottom: 1px; font-size: var(--fs-small); font-style: normal; color: color-mix(in srgb, currentColor 75%, transparent); }
-.scr-tile.on { box-shadow: 0 0 0 2px var(--gold); transform: translateY(-3px); }
+.scr-tile.on { box-shadow: var(--ring-gold-thin); transform: translateY(-3px); }
 .scr-tile.mark { background: color-mix(in srgb, var(--scr-tile) 55%, transparent); box-shadow: inset 0 0 0 2px var(--scr-tw, var(--gm-26)); }
 .scr-tile.used { background: none; border-style: dashed; border-color: var(--line); color: transparent; }
 .scr-tile.used i { display: none; }
@@ -5397,7 +5254,7 @@ button.scr-sq { cursor: pointer; }
 .cs-wide .race-stage { margin-top: 0; }
 .race-stage { --race-sky: var(--gm-30); position: relative; width: 100%; aspect-ratio: 4 / 3; margin: var(--s2) 0 0; overflow: hidden; background: var(--race-sky); border-radius: var(--r-ui); touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 .race-gl { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: pointer; }
-.race-mini { position: absolute; top: 8px; right: 8px; width: 96px; height: 96px; border-radius: 50%; background: color-mix(in srgb, var(--bg) 55%, transparent); border: 1px solid var(--line); pointer-events: none; }
+.race-mini { position: absolute; top: 8px; right: 8px; width: 96px; height: 96px; border-radius: var(--r-circle); background: color-mix(in srgb, var(--bg) 55%, transparent); border: 1px solid var(--line); pointer-events: none; }
 .race-hud, .race-lap { position: absolute; left: 8px; display: flex; flex-direction: column; gap: var(--s0); max-width: calc(100% - 120px); padding: var(--s1) var(--s2); border-radius: var(--r-ui); pointer-events: none; background: color-mix(in srgb, var(--bg) 62%, transparent); color: var(--ink); font: var(--fs-small)/1.25 var(--mono); }
 .race-hud { top: 8px; }
 .race-hud b { color: var(--gold); font-size: var(--fs-title); font-variant-numeric: tabular-nums; }
@@ -5421,7 +5278,7 @@ button.scr-sq { cursor: pointer; }
 .kc-tl { list-style: none; margin: 0; padding: 0 0 0 var(--s4); position: relative; }
 .kc-tl::before { content: ""; position: absolute; left: 0.3em; top: 0.4em; bottom: 0.4em; width: 2px; background: var(--line); transform-origin: top; }
 .kc-tl-stop { position: relative; display: grid; grid-template-columns: max-content 1fr; gap: var(--s2); padding: 0 0 var(--s3); text-align: left; }
-.kc-tl-stop::before { content: ""; position: absolute; left: calc(var(--s1) - var(--s4) - 4px); top: 0.35em; width: 10px; height: 10px; border-radius: 50%; background: var(--hue-4); }
+.kc-tl-stop::before { content: ""; position: absolute; left: calc(var(--s1) - var(--s4) - 4px); top: 0.35em; width: 10px; height: 10px; border-radius: var(--r-circle); background: var(--hue-4); }
 .kc-tl-when { font-weight: 700; color: var(--hue-4); font-variant-numeric: tabular-nums; }
 .kc-tl-what b { display: block; }
 .kc-tl-what p { margin: 0; }
