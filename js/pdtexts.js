@@ -72,20 +72,9 @@ function pdtextsBody_(x) {
       { type: 'group', tag: 'p', look: 'wt-credit', text: src }]);
   }
   if (PDTEXTS.missed[x.tx.id] && !PDTEXTS.loading[x.tx.id]) return cardBlock_({ type: 'group', tag: 'p', look: 'fc-note', text: 'This text did not arrive.' });
-  if (!PDTEXTS.loading[x.tx.id]) pdtextsLoad_(x.tx.id, x.tx.file).then(() => pdtextsRedraw_(x.tx.id));
+  if (!PDTEXTS.loading[x.tx.id]) pdtextsLoad_(x.tx.id, x.tx.file).then(() => txRedraw_(x.tx.id, PDTEXTS.items, pdtextsBody_));
   return loading_();
 }
 function pdtextsCard_(x) {
   return readingCard_(x, { cls: 'tx', bodyCls: 'tx-body', body: x.tx ? pdtextsBody_(x) : '', data: { tx: x.tx ? x.tx.id : '', k: x.key } });
-}
-/* ITS WORDS CAME: every card of that text on screen is filled where it stands. */
-function pdtextsRedraw_(id) {
-  if (typeof document === 'undefined') return;
-  document.querySelectorAll('.tx-body[data-tx="' + id + '"]').forEach(el => {
-    const x = (PDTEXTS.items || []).find(i => i.key === el.getAttribute('data-k'));
-    if (!x) return;
-    el.innerHTML = pdtextsBody_(x);
-    const pane = el.closest('.pane');
-    if (pane && typeof paneReach_ === 'function') { try { paneReach_([pane]); } catch (e) {} }
-  });
 }

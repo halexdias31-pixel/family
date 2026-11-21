@@ -13,26 +13,28 @@ const MECH_CAR = { mMake: 'make', mModel: 'model', mGen: 'gen', mEngine: 'code',
   mSize: 'size', mValves: 'valves', mBadge: 'badge', mFuel: 'fuel' };
 const MECH_PART = 'Car part', MECH_ONE = 'Car';
 
-function mechIndex_() {
-  if (MECH.data) return MECH.data;
-  if (MECH.asking || MECH.failed || typeof fetch !== 'function') return null;
-  const get = f => dataFile_('data/mechanics/' + f + '.json');
-  const names = Object.keys(MECH_FILES);
-  MECH.asking = Promise.all(names.map(get)).then(all => {
-    MECH.asking = null;
+/* A LIBRARY SOURCE OF SEVERAL FILES (mechanics, chemistry): `st` is its { data, asking, failed } state, each file under data/<dir>/ asked once;
+   a row is a card only when `ours` says so (a payload's list of the same name is not ours). `then(d)` runs once it came. */
+function libFilesIndex_(st, dir, files, ours, then) {
+  if (st.data) return st.data;
+  if (st.asking || st.failed || typeof fetch !== 'function') return null;
+  const names = Object.keys(files);
+  st.asking = Promise.all(names.map(f => dataFile_('data/' + dir + '/' + f + '.json'))).then(all => {
+    st.asking = null;
     const d = {};
-    /* A ROW IS A CARD ONLY WITH AN ID AND A NAME (check-mechanics): any other `parts` list, the payload's, is not ours. */
-    const ours = r => r && r.id && r.name && Array.isArray(r.px);
     names.forEach((n, i) => { d[n] = all[i] && Array.isArray(all[i][n]) ? all[i][n].filter(ours) : []; });
-    if (!names.some(n => d[n].length)) { MECH.failed = true; return null; }
-    MECH.data = d;
-    MECH.cars = new Map(d.models.map(c => [c.code, c]));
+    if (!names.some(n => d[n].length)) { st.failed = true; return null; }
+    st.data = d;
+    if (then) then(d);
     /* A SOURCE THAT CAME LATE joins the list at the next paint, as the writings' do (520). */
     if (typeof lateCame_ === 'function') lateCame_();
     return d;
   });
   return null;
 }
+/* A ROW IS A CARD ONLY WITH AN ID, A NAME AND A DRAWING (check-mechanics). */
+const mechIndex_ = () => libFilesIndex_(MECH, 'mechanics', MECH_FILES, r => r && r.id && r.name && Array.isArray(r.px),
+  d => { MECH.cars = new Map(d.models.map(c => [c.code, c])); });
 
 function mechItems_() {
   const d = MECH.data;

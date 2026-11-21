@@ -434,9 +434,11 @@ function tileAdminRank_(t) {
   const i = TILE_ADMIN_ORDER_.indexOf(tileAct_(t));
   return i === -1 ? TILE_ADMIN_ORDER_.length : i;
 }
+/* THE ONE `.tile-row` WRAPPER: `cls` arrives already escaped; tiles as given, never regrouped (that is `tileRow_`). */
+const tileWrap_ = (inner, cls) => `<div class="tile-row${cls ? ' ' + cls : ''}">${inner}</div>`;
 function tileRow_(html, cls, own) {
   const src = String(html || '');
-  const wrap = inner => `<div class="tile-row${cls ? ' ' + cls : ''}">${inner}</div>`;
+  const wrap = inner => tileWrap_(inner, cls);
   const all = src.match(TILE_RE_) || [];
   const admin = own ? [] : all.filter(tileIsAdmin_);
   if (!admin.length) return wrap(src);
