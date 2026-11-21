@@ -285,6 +285,8 @@
   "dk-next-none": "Nothing after this today.",
   "dk-missed": "Missed",
   "dk-day-done": "Every list is done for today.",
-  "dk-from": "from {at}"
+  "dk-from": "from {at}",
+  "dk-eink-sign-in": "Sign in",
+  "dk-eink-none": "No list has a start time yet."
  }
 }

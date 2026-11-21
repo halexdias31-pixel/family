@@ -184,18 +184,47 @@ function dkBlocks_() {
   if (DK.showDone) done.forEach(i => out.push(dkItem_(L.items[i], i)));
   return out;
 }
-/* NOW, NEXT AT THE TOP (owner, 21 Nov): the current phase's items, each ticked as Find's are (`data-dkf`), the missed ones after; then the next phase and its time. */
-function dkNowNext_(lists) {
-  const p = dkPhase_(lists, dkNow_(), dkFill_);
-  if (!p) return [];
+/* NOW, NEXT, ONCE (owner, 21 Nov; Docket step 2): what the widget and the e-ink page both show, worked out here and drawn by each, so the two cannot differ.
+   `p` is dkPhase_'s answer; null with no phases. Each row: its `at` ('li:i', the tick's address), title and tags (Missed and its list for a missed one, its time). */
+function dkNowNextOf_(lists, p) {
+  if (!p) return null;
   const L = lists[p.cur], N = p.next == null ? null : lists[p.next];
-  const rows = p.rows.map(r => { const it = lists[r.li].items[r.i], tags = [r.missed ? text_('dk-missed') : '', r.missed ? lists[r.li].name : '', it.time || ''].filter(Boolean);
-    return { type: 'group', look: 'dk-item', blocks: [{ type: 'tick', text: it.title || 'Untitled', attrs: { 'data-dkf': r.li + ':' + r.i, checked: false, 'aria-label': 'Done: ' + (it.title || '') } },
-      tags.length ? { type: 'tags', tags } : null].filter(Boolean) }; });
-  return [{ type: 'section', head: text_('dk-now-at', { name: L.name, at: p.at }),
-    blocks: (rows.length ? rows : [{ type: 'text', text: text_('dk-day-done') }])
-      .concat({ type: 'text', text: N ? text_('dk-next', { name: N.name, at: p.nextAt }) : text_('dk-next-none') }) }];
+  return { head: text_('dk-now-at', { name: L.name, at: p.at }), done: text_('dk-day-done'),
+    next: N ? text_('dk-next', { name: N.name, at: p.nextAt }) : text_('dk-next-none'),
+    rows: p.rows.map(r => { const it = lists[r.li].items[r.i];
+      return { at: r.li + ':' + r.i, title: it.title || 'Untitled', missed: r.missed, tags: [r.missed ? text_('dk-missed') : '', r.missed ? lists[r.li].name : '', it.time || ''].filter(Boolean) }; }) };
 }
+/* NOW, NEXT AT THE TOP (owner, 21 Nov): the current phase's items, each ticked as Find's are (`data-dkf`), the missed ones after; then the next phase and its time. */
+function dkNowNext_(lists, p) {
+  const m = dkNowNextOf_(lists, p === undefined ? dkPhase_(lists, dkNow_(), dkFill_) : p);
+  if (!m) return [];
+  const rows = m.rows.map(r => ({ type: 'group', look: 'dk-item', blocks: [{ type: 'tick', text: r.title, attrs: { 'data-dkf': r.at, checked: false, 'aria-label': 'Done: ' + r.title } },
+    r.tags.length ? { type: 'tags', tags: r.tags } : null].filter(Boolean) }));
+  return [{ type: 'section', head: m.head, blocks: (rows.length ? rows : [{ type: 'text', text: m.done }]).concat({ type: 'text', text: m.next }) }];
+}
+/* THE E-INK PAGE (owner, 21 Nov: NOW, NEXT step 2; open the site with ?eink): the widget's Now/Next alone, black on white, large, still. Drawn from dkNowNextOf_
+   as the widget is; a tick is the widget's (`data-dkf`, saved by the change handler below). Owner-only: anybody else sees only the way to sign in.
+   Redrawn each minute in place (only #eink's inside, and only when it changed), so the screen does not flash. tools/eink.js checks it matches the widget. */
+function dkEinkHtml_(lists, p) {
+  const m = dkNowNextOf_(lists, p);
+  if (!m) return '<p class="ek-say">' + esc(text_('dk-eink-none')) + '</p>';
+  const row = r => '<li class="ek-row' + (r.missed ? ' is-missed' : '') + '"><label class="ek-tick"><input type="checkbox" data-dkf="' + esc(r.at) + '" aria-label="' + esc('Done: ' + r.title) + '">'
+    + '<span class="ek-t">' + esc(r.title) + '</span>' + (r.tags.length ? '<span class="ek-tags">' + esc(r.tags.join(' · ')) + '</span>' : '') + '</label></li>';
+  return '<h1 class="ek-now">' + esc(m.head) + '</h1>' + (m.rows.length ? '<ol class="ek-rows">' + m.rows.map(row).join('') + '</ol>' : '<p class="ek-say">' + esc(m.done) + '</p>')
+    + '<p class="ek-next">' + esc(m.next) + '</p>';
+}
+const EINK = /(?:^|[?&])eink(?:[=&]|$)/.test(location.search);
+function dkEinkPaint_() {
+  let box = $('eink');
+  if (!box) { box = document.createElement('main'); box.id = 'eink'; document.body.appendChild(box); document.documentElement.classList.add('eink'); }
+  const owner = typeof may_ === 'function' && may_('owner');
+  const html = owner ? dkEinkHtml_(dkLoad_(), dkPhase_(dkLoad_(), dkNow_(), dkFill_))
+    : '<p class="ek-say"><a class="ek-sign" href="' + esc(location.pathname) + '">' + esc(text_('dk-eink-sign-in')) + '</a></p>';
+  if (box.getAttribute('data-was') !== html) { box.innerHTML = html; box.setAttribute('data-was', html); }
+}
+/* AFTER THE WHOLE FILE HAS RUN (its consts, dkNow_ among them, exist only then); a throw here never stops the app beneath. */
+const dkEinkTry_ = () => { try { dkEinkPaint_(); } catch (e) { if (typeof oops_ === 'function') oops_(e, 'map:eink'); } };
+if (EINK) { setTimeout(dkEinkTry_, 0); setInterval(dkEinkTry_, 60000); }
 function dkPaint_() {
   const box = $('dk-box');
   if (!box) return;
@@ -321,7 +350,7 @@ function dkCard_(x) {
 }
 const dkAt_ = at => { const [li, i] = String(at || '').split(':').map(Number), L = dkLoad_()[li]; return { L, i, it: L && L.items[i] }; };
 /* A CHANGE IN FIND IS SAVED AS THE WIDGET'S IS (dkSave_, the backend's todoTidy_), and Find draws its list again in the new order. */
-const dkFindKeep_ = () => { dkKeep_(); if (typeof lateCame_ === 'function') lateCame_(); };
+const dkFindKeep_ = () => { dkKeep_(); if (typeof lateCame_ === 'function') lateCame_(); if (EINK) dkEinkTry_(); };
 on('dk-fedit', el => { const at = el.getAttribute('data-at') || ''; DKF.edit = DKF.edit === at ? '' : at; if (typeof lateCame_ === 'function') lateCame_(); });
 /* SAVE KEEPS ONLY WHAT DIFFERS FROM A DEFAULT, so an item's cell stays one line and an old item is never broken. */
 on('dk-fsave', el => { const { it } = dkAt_(el.getAttribute('data-at')), card = el.closest('.card'); if (!it || !card) return;
