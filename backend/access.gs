@@ -25,6 +25,50 @@ function runRerun_(a) {
 }
 
 /* ---------- THE SHEET CATCHES UP WITH THE CODE, BY ITSELF § */
+/* THE OWNER'S DOCKET, TIDIED (owner, 21 Nov): rules and generic words only — the docket itself stays in the owner's cell. Pure, so
+   tools/docket-tidy-21nov.js runs it as served. (1) no item keeps `time`; (2) one "Jesus prayer" opens every list; (3) the "arrived home"
+   list's teeth and room items become one daily "brush teeth" and one daily "clean room"; (4) planner estimates, set only where a field is
+   missing, the first rule whose words match the title winning. The order rules are the planner's (js/map.js dkPlan_), not the data's. */
+const DK21_OPENER = 'jesus prayer';
+const DK21_ESTIMATES = [
+  [/\bjog\w*/, { minutes: 20, effort: 'hard', place: 'out' }],
+  [/\b(pull ?ups?|curls?|ohp|dips?|rows?|rdls?|push ?ups?|sit ?ups?)\b/, { minutes: 10, effort: 'hard', place: 'home' }],
+  [/\bshower\w*/, { minutes: 10, place: 'home' }],
+  [/\blaundr\w*/, { minutes: 5, runs: 60, place: 'home' }],
+  [/\brice\b/, { minutes: 2, place: 'home' }],
+  [/\bmeat\b/, { minutes: 15, place: 'home' }],
+  [/\b(shopping|shop)\b/, { minutes: 20, place: 'out' }],
+  [/\binstruments?\b/, { minutes: 20, place: 'home' }],
+  [/\bbrush teeth\b/, { minutes: 3, place: 'home' }],
+  [/\bfloss\w*/, { minutes: 2, place: 'home' }],
+  [/\b(clean room|tidy)\b/, { minutes: 10, place: 'home' }],
+  [/\bcharge\w*/, { minutes: 1, runs: 120, place: 'home' }],
+  [/\bjesus prayer\b/, { minutes: 2, place: 'anywhere' }],
+  [(t, i) => /\b(prayers?|trisagion|creed|intercessions?)\b/.test(t) || String((i && i.note) || '').length > 200, { minutes: 5, place: 'anywhere' }],
+];
+function docketOwnerTidy21Nov_(lists) {
+  const key = i => String((i && i.title) || '').trim().toLowerCase();
+  return (Array.isArray(lists) ? lists : []).map(L => {
+    L = Object.assign({}, L || {});
+    let items = (Array.isArray(L.items) ? L.items : []).map(i => { const o = Object.assign({}, i || {}); delete o.time; return o; });
+    if (String(L.name || '').trim().toLowerCase() === 'arrived home') {
+      const gone = ['clean room', 'brush teeth & clean room', 'brush teeth'];
+      const at = items.findIndex(i => gone.indexOf(key(i)) >= 0);
+      const fresh = [{ title: 'brush teeth', repeat: 'daily' }, { title: 'clean room', repeat: 'daily' }];
+      items = items.filter(i => gone.indexOf(key(i)) < 0);
+      items.splice(at < 0 ? items.length : at, 0, ...fresh);
+    }
+    const first = items.find(i => key(i) === DK21_OPENER) || { title: 'Jesus prayer', repeat: 'daily' };
+    items = [first].concat(items.filter(i => key(i) !== DK21_OPENER));
+    items.forEach(i => {
+      const t = key(i), hit = DK21_ESTIMATES.find(([m]) => (typeof m === 'function' ? m(t, i) : m.test(t)));
+      if (hit) Object.keys(hit[1]).forEach(k => { if (i[k] === undefined || i[k] === null || i[k] === '') i[k] = hit[1][k]; });
+    });
+    L.items = items;
+    return L;
+  });
+}
+
 /* ---------- THE ONE-OFF JOBS, RUN ONCE, BY THEMSELVES § */
 const MIGRATIONS = [
   /* EVERY PIN FOUR DIGITS (owner, 10 Nov): a longer one keeps its first four; signing in with the old one still works (authCheckPin_). */
@@ -143,6 +187,24 @@ const MIGRATIONS = [
     retry: true,
     what: 'the notes ticked done on 28 October that no session addressed are open again',
     run: () => claudeNotesReopen_('2026-10-28') },
+
+  /* THE OWNER'S DOCKET, TIDIED (owner, 21 Nov): only the `todo` cell of the person isOwner_ matches, through docketOwnerTidy21Nov_ above, then
+     docketTidy_ (which keeps the planner's fields) and postSavePerson_, as docketImport saves it. Thrown when it cannot, so it is asked again. */
+  { id: 'docket-owner-tidy-21nov',
+    what: "the owner's docket: no times, one Jesus prayer first in each list, planner estimates where missing",
+    run: () => {
+      const me = read(TAB.people).rows.find(r => isOwner_(r));
+      if (!me || !S(me.person_id)) throw new Error('no owner found');
+      let got = null;
+      try { got = JSON.parse(S(me.todo)); } catch (e) { got = null; }
+      if (!got || !Array.isArray(got.lists)) return 'the owner has no docket lists - nothing to tidy';
+      const lists = docketTidy_(docketOwnerTidy21Nov_(got.lists));
+      const cell = JSON.stringify({ v: 1, lists: lists });
+      if (cell.length > DOCKET_CELL_MAX) throw new Error('the tidied docket is too long for its cell - nothing was saved');
+      const out = JSON.parse(postSavePerson_({ personId: S(me.person_id) }, 'todo', cell).getContent());
+      if (!out.success) throw new Error(out.error || 'not saved');
+      return lists.length + ' list(s), ' + lists.reduce((n, L) => n + L.items.length, 0) + ' item(s) tidied';
+    } },
 ];
 
 /* HANDS UP (455): who wants the tutor, kept 30 minutes in one script property, pruned on every read. */

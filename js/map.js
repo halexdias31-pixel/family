@@ -289,6 +289,19 @@ function dkPlan_(items, now) {
     while (h.length || l.length) { if (h.length) order.push(h.shift()); if (l.length) order.push(l.shift()); }
     s = e;
   }
+  /* (f) BY TITLE (owner, 21 Nov), after (b)–(e): the Jesus prayer opens the list; eating comes before the first workout; a shower comes after the last. */
+  const is = (re, x) => re.test(String(x.it.title || '').trim().toLowerCase());
+  const OPEN = /^jesus prayer$/, EAT = /\b(meat|rice|food|salmon|beef|eat|carbs?|eggs?|tuna)\b/, WASH = /\bshower\w*/;
+  const WORK = /\b(jog\w*|pull ?ups?|curls?|ohp|dips?|rows?|rdls?|push ?ups?|sit ?ups?)\b/;
+  const lift = (arr, pick, at) => { const moved = arr.filter(pick), rest = arr.filter(x => !pick(x)); rest.splice(at(rest), 0, ...moved); return rest; };
+  let seq = order.filter(x => is(OPEN, x)).concat(order.filter(x => !is(OPEN, x)));
+  const w0 = seq.findIndex(x => is(WORK, x));
+  if (w0 >= 0) {
+    seq = lift(seq, x => seq.indexOf(x) > w0 && is(EAT, x) && !is(WORK, x), r => r.findIndex(x => is(WORK, x)));
+    const w1 = seq.length - 1 - seq.slice().reverse().findIndex(x => is(WORK, x));
+    seq = lift(seq, x => seq.indexOf(x) < w1 && is(WASH, x) && !is(WORK, x), r => r.length - r.slice().reverse().findIndex(x => is(WORK, x)));
+  }
+  order.splice(0, order.length, ...seq);
   /* (a) A FIXED TIME: it goes in before the item that would run past it; one whose time has come goes first. Runs-by-itself time is not yours, so only `minutes` count. */
   const out = []; let t = Math.max(0, hm(now.slice(11)));
   const putFixed = x => { out.push(x); t = Math.max(t, hm(x.it.time)) + mins(x.it); };
