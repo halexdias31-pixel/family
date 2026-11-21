@@ -21,12 +21,13 @@ function setMarking_(d, extra) {
 }
 
 
-function setFor_(d, extra) {
-  /* ---------- EACH SETTING'S NAME AND PLACE; who sees it is permissions.json's `see` rows (86a), never this file ---------- */
-  const setFor = extra['settings/setting-for'];
-  /* THE ROWS' ORDER IS THE ITEMS' ORDER, account types first (their menu order); `under` is only which menu types list it. */
-  if (setFor && setFor.length) d.settingFor = Object.fromEntries(setFor.filter(r => libS(r.card).trim())
-    .map((r, i) => [libS(r.card).trim(), { under: libS(r.under).split(',').map(t => t.trim()).filter(Boolean), name: libS(r.name).trim(), rank: i, col: libS(r.col).trim(), label: libS(r.label).trim(), admin: r.admin === true || libOn(r.admin), peek: r.peek === true || libOn(r.peek) }]));
+function setFor_(d) {
+  /* ---------- EACH SETTING'S NAME AND PLACE: kinds.json setting.cards, the one registry; who sees it is permissions.json's `see` rows (86a), never this ---------- */
+  /* ITS ORDER IS THE ITEMS' ORDER, account types first (their menu order); `under` is only which menu types list it. A card with no `under` and no type has no row. */
+  const cards = (typeof ITEM_KINDS !== 'undefined' && (ITEM_KINDS.kinds.setting || {}).cards) || [];
+  const rows = cards.filter(r => r && r.id && (/^type:/.test(r.id) || (r.under || []).length));
+  if (rows.length) d.settingFor = Object.fromEntries(rows.map((r, i) => { const t = /^type:/.test(r.id);
+    return [r.id, { under: [].concat(r.under || []), name: r.find || '', rank: i, col: t ? r.col || '' : '', label: t ? r.label || '' : '', admin: t && r.admin === true, peek: t && r.peek === true }]; }));
 }
 
 function setCardFields_(d, extra) {
@@ -72,7 +73,7 @@ const labelOf_ = (group, key, fallback) => {
 function settingsInto_(d, extra) {
   if (!d || !extra) return d;
   setBrand_(d, extra); setMoved_(d, extra); setLaws_(d, extra); setFacts_(d, extra);
-  setSpot_(d, extra); setConfusables_(d, extra); setMarking_(d, extra); setFor_(d, extra); setCardFields_(d, extra);
+  setSpot_(d, extra); setConfusables_(d, extra); setMarking_(d, extra); setFor_(d); setCardFields_(d, extra);
   setDefaultPictures_(d, extra); setPermissions_(d, extra); setLabels_(d, extra);
   return d;
 }

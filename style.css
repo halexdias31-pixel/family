@@ -534,8 +534,8 @@ html { background: var(--bg); }
   position: relative;
 }
 .card:last-child { border-bottom: 0; }
-/* A SETTINGS CARD'S TITLE IS ONE LEVEL DOWN, inside its `.me-form`, so `.card > h3` never reached it and it took the browser's own h3 margin — 17px above the § */
-.card > h3, .card > .me-form > h3:first-child {
+/* A CARD'S OWN h3 (a settings card's title is its renderCard name now, so no form-nested h3 is reached here). */
+.card > h3 {
   margin: 0 0 var(--s2); font-size: var(--fs-body); font-weight: var(--fw-title, 600); line-height: var(--lh-tight); letter-spacing: -.01em; }
 .card .note { color: var(--ink); font-size: var(--fs-body); margin: 0 0 var(--s2); }
 
@@ -956,23 +956,23 @@ label.field > .note { display: block; margin-top: var(--s1); text-transform: non
 :is(.check input:checked + .box)::after { color: var(--on-gold); }
 
 /* ---------- YOUR ROLES: A TICK WITH ITS MEANING UNDER THE WORD § */
-.kc-embed .role-pick { align-items: flex-start; }
-.kc-embed .role-pick .box { margin-top: var(--s0); }
+:is(.kc-embed, .kc-set) .role-pick { align-items: flex-start; }
+:is(.kc-embed, .kc-set) .role-pick .box { margin-top: var(--s0); }
 .role-pick-say { display: flex; flex-direction: column; gap: var(--s0); min-width: 0; }
 .role-pick-say .note { font-size: var(--fs-body); line-height: var(--lh-snug); }
-.kc-embed .roles-said { margin: var(--s2) 0 0; }
+:is(.kc-embed, .kc-set) .roles-said { margin: var(--s2) 0 0; }
 /* ONE OF TWO (432): one row with the phone's own picker, each choice's meaning in a faint line under it. */
 
 /* ---------- NOTIFICATIONS: THE ROLES CARD'S TICKS, AND WHAT IS ALWAYS SENT AS WORDS § */
 .notify-always { list-style: none; margin: 0; padding: 0; font-size: var(--fs-body); line-height: var(--lh-body); color: var(--ink); }
 .notify-always li { display: inline; }
 .notify-always li + li::before { content: ' · '; color: var(--ink); }
-.kc-embed .notify-cap { margin: var(--s3) 0 var(--s1); }
-.kc-embed .notify-said { margin: var(--s2) 0 0; }
-.kc-embed .notify-said:empty { margin: 0; }
+:is(.kc-embed, .kc-set) .notify-cap { margin: var(--s3) 0 var(--s1); }
+:is(.kc-embed, .kc-set) .notify-said { margin: var(--s2) 0 0; }
+:is(.kc-embed, .kc-set) .notify-said:empty { margin: 0; }
 /* THE BOX BEING SAVED LOOKS IT. § */
-.kc-embed .check input:disabled + .box { opacity: .45; }
-.kc-embed .check:has(input:disabled) { cursor: progress; }
+:is(.kc-embed, .kc-set) .check input:disabled + .box { opacity: .45; }
+:is(.kc-embed, .kc-set) .check:has(input:disabled) { cursor: progress; }
 
 /* ---------- SMALL THINGS ------------------------------------------------------------------------ */
 .note  { color: var(--ink); font-size: var(--fs-body); }
@@ -1478,7 +1478,7 @@ html.flow .page { width: 100%; min-width: 0; }
 .card-grid > * { break-inside: avoid; margin-bottom: var(--card-gap); }
 /* WHAT IS NOT A CARD IN THE LIST — the menu, chips, answers, a form — runs across every column. */
 .card-grid > :not(.is-res) { column-span: all; }
-.card-grid :is(p, li, .qtext, .doc, form, .me-form) { max-width: var(--measure); }
+.card-grid :is(p, li, .qtext, .doc, form, .kc-fields, [data-draw]) { max-width: var(--measure); }
 /* A CARD IS NO WIDER THAN ITS READING MEASURE (owner, 11 Nov: a card stretched edge to edge is hard on the eyes): ~70 characters a line, the typographic norm. */
 .card-grid > * { max-width: calc(var(--measure) + 2 * var(--s4)); margin-inline: auto; }
 /* A LIST, NOT CARDS (owner, 4 Nov): no frame per result, a hairline between rows, the tags one small line. */
@@ -2407,8 +2407,8 @@ button.prof-tag.is-sm { padding: 0 var(--s2); line-height: 1; font-weight: 500; 
 .job-slot > .job-when { display: flex; align-items: center; gap: var(--s1); flex: 1 1 10rem; }
 .job-slot > .set-drop { flex: 0 0 auto; }
 /* ONE SETTINGS-CARD SHAPE (8 Nov, `setCard_`): one box a line, the Save row at the foot, every list's Add tile alike. */
-.kc-embed .tile-row.set-save { margin-top: var(--s2); }
-.kc-embed .tile-row.set-adds { margin: var(--s1) 0 var(--s2); }
+:is(.kc-embed, .kc-set) .tile-row.set-save { margin-top: var(--s2); }
+:is(.kc-embed, .kc-set) .tile-row.set-adds { margin: var(--s1) 0 var(--s2); }
 .job-dash { flex: 0 0 auto; }
 /* THE INTRO VIDEO: the Drive player at 16:9, on the card and on the Photos card. */
 .vid-frame { position: relative; width: 100%; aspect-ratio: 16 / 9; margin: var(--s2) 0; border-radius: var(--r-ui); overflow: hidden; background: var(--bg); }
@@ -2451,7 +2451,7 @@ button.prof-tag.is-sm { padding: 0 var(--s2); line-height: 1; font-weight: 500; 
 }
 .prof-cap + .prof-tags { margin-top: 0; }
 /* ---------- A CARD BEING EDITED — `cardEditHtml_` in me.js (docs/history/330) § */
-.kc-embed .ce-what { color: var(--gold); }
+:is(.kc-embed, .kc-set) .ce-what { color: var(--gold); }
 /* `.kid-sec` IS "MANAGE YOUR CHILD"'S SECTION (docs/history/339) — the children linked to you, then making an account, then linking one — and it is drawn as the § */
 .ce-sec + .ce-sec, .kid-sec + .kid-sec, .kid-sec + .kc-embed > .kid-sec:first-child { margin-top: var(--s3); padding-top: var(--s2); border-top: 1px solid var(--line-soft); }
 .ce-sec > .prof-cap:first-child { margin-top: 0; }
@@ -2462,65 +2462,65 @@ button.prof-tag.is-sm { padding: 0 var(--s2); line-height: 1; font-weight: 500; 
 .ce-pic { display: flex; gap: var(--s3); align-items: center; }
 
 /* ---------- THE CARD'S EDIT ON ONE PHONE SCREEN: ONE LINE A THING, LABEL LEFT, VALUE RIGHT (docs/history/425) § */
-.kc-embed { --ce-row: 32px; --ce-k: 6.6rem; }
-.kc-embed .me-form { line-height: 1.25; }
-.kc-embed .ce-sec + .ce-sec { margin-top: 0; padding-top: 0; border-top: 0; }
-.kc-embed .ce-sec > .prof-cap:first-child { margin: var(--s2) 0 var(--s1); }
+:is(.kc-embed, .kc-set) { --ce-row: 32px; --ce-k: 6.6rem; }
+.kc-set > .kc-fields, :is(.kc-embed, .kc-set) [data-draw] { line-height: 1.25; }
+:is(.kc-embed, .kc-set) .ce-sec + .ce-sec { margin-top: 0; padding-top: 0; border-top: 0; }
+:is(.kc-embed, .kc-set) .ce-sec > .prof-cap:first-child { margin: var(--s2) 0 var(--s1); }
 /* A LINE: a label at a fixed width, the box taking the rest; the label is the 32px target (`ACCEPTED_TAP`, check/ui.js). */
-.kc-embed label.field, .kc-embed .f-rowwrap, .kc-embed .field.many, .kc-embed .ce-line {
+:is(.kc-embed, .kc-set) label.field, :is(.kc-embed, .kc-set) .f-rowwrap, :is(.kc-embed, .kc-set) .field.many, :is(.kc-embed, .kc-set) .ce-line {
   display: flex; align-items: center; gap: var(--s2); min-height: var(--ce-row); margin: 0;
   border-bottom: 1px solid var(--line-soft); }
-.kc-embed label.field > span, .kc-embed .f-rowwrap > .dob-cap, .kc-embed .many-cap, .kc-embed .ce-k {
+:is(.kc-embed, .kc-set) label.field > span, :is(.kc-embed, .kc-set) .f-rowwrap > .dob-cap, :is(.kc-embed, .kc-set) .many-cap, :is(.kc-embed, .kc-set) .ce-k {
   flex: 1 1 40%; margin: 0; text-align: left; font-size: var(--fs-small); letter-spacing: var(--ls-2);
   line-height: 1.1; color: var(--ink); overflow: hidden; }
-.kc-embed label.field > input, .kc-embed label.field > select, .kc-embed .many-sum {
+:is(.kc-embed, .kc-set) label.field > input, :is(.kc-embed, .kc-set) label.field > select, :is(.kc-embed, .kc-set) .many-sum {
   flex: 1 1 55%; min-width: 0; min-height: 0; height: 28px; padding: 0 var(--s2); }
-.kc-embed label.field > select, .kc-embed .many-sum { padding-right: calc(var(--sel-at) + var(--sel-tri) + .3rem); }
-.kc-embed .many-sum { line-height: 26px; }
+:is(.kc-embed, .kc-set) label.field > select, :is(.kc-embed, .kc-set) .many-sum { padding-right: calc(var(--sel-at) + var(--sel-tri) + .3rem); }
+:is(.kc-embed, .kc-set) .many-sum { line-height: 26px; }
 /* THE VENUES' OWN SUMMARY IS THE FOLD'S LINE — the ticks are drawn open inside it (`ceWhere_`). */
-.kc-embed .ce-fold .field.many { display: block; border: 0; min-height: 0; }
-.kc-embed .ce-fold .many-cap, .kc-embed .ce-fold .many-sum { display: none; }
-.kc-embed .f-row { display: block; }
-.kc-embed .f-rowwrap > .f-row { display: grid; flex: 1 1 auto; min-width: 0; gap: var(--s1); }
-.kc-embed .f-rowwrap .f-row label.field { border: 0; min-height: 0; margin: 0; }
-.kc-embed .f-row.is-range .f-dash { margin: 0; }
-.kc-embed .f-row.is-range { align-items: center; }
-.kc-embed .field.many { flex-wrap: wrap; }
-.kc-embed .many-d { flex: 1 1 0; min-width: 0; }
-.kc-embed .many-d[open] { flex-basis: 100%; padding-bottom: var(--s2); }
-.kc-embed .many-list { margin-top: var(--s1); }
+:is(.kc-embed, .kc-set) .ce-fold .field.many { display: block; border: 0; min-height: 0; }
+:is(.kc-embed, .kc-set) .ce-fold .many-cap, :is(.kc-embed, .kc-set) .ce-fold .many-sum { display: none; }
+:is(.kc-embed, .kc-set) .f-row { display: block; }
+:is(.kc-embed, .kc-set) .f-rowwrap > .f-row { display: grid; flex: 1 1 auto; min-width: 0; gap: var(--s1); }
+:is(.kc-embed, .kc-set) .f-rowwrap .f-row label.field { border: 0; min-height: 0; margin: 0; }
+:is(.kc-embed, .kc-set) .f-row.is-range .f-dash { margin: 0; }
+:is(.kc-embed, .kc-set) .f-row.is-range { align-items: center; }
+:is(.kc-embed, .kc-set) .field.many { flex-wrap: wrap; }
+:is(.kc-embed, .kc-set) .many-d { flex: 1 1 0; min-width: 0; }
+:is(.kc-embed, .kc-set) .many-d[open] { flex-basis: 100%; padding-bottom: var(--s2); }
+:is(.kc-embed, .kc-set) .many-list { margin-top: var(--s1); }
 /* A FOLD: its line is a summary, the value right-aligned; open, its inside sits under the line. */
-.kc-embed .ce-fold > summary { list-style: none; cursor: default; }
-.kc-embed .ce-fold > summary::-webkit-details-marker { display: none; }
-.kc-embed .ce-v { flex: 1 1 auto; min-width: 0; display: block; text-align: right;
+:is(.kc-embed, .kc-set) .ce-fold > summary { list-style: none; cursor: default; }
+:is(.kc-embed, .kc-set) .ce-fold > summary::-webkit-details-marker { display: none; }
+:is(.kc-embed, .kc-set) .ce-v { flex: 1 1 auto; min-width: 0; display: block; text-align: right;
   font-size: var(--fs-body); line-height: var(--lh-mid); color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.kc-embed .ce-line::after { content: ''; flex: none; width: 6px; height: 6px; margin-left: var(--s0);
+:is(.kc-embed, .kc-set) .ce-line::after { content: ''; flex: none; width: 6px; height: 6px; margin-left: var(--s0);
   border-right: 1.5px solid var(--dim); border-bottom: 1.5px solid var(--dim); transform: rotate(45deg) translateY(-2px); }
-.kc-embed .ce-fold > .ce-line::after { content: none; }   /* always open (487): no chevron to promise a fold */
-.kc-embed .ce-fold[open] > .ce-line { border-bottom-color: transparent; }
-.kc-embed .ce-body, .kc-embed details.pfp > :not(summary) { padding: var(--s1) 0 var(--s2); }
-.kc-embed .ce-fold[open] { border-bottom: 1px solid var(--line-soft); }
-.kc-embed .ce-body > label.field:last-of-type { border-bottom: 0; }
-.kc-embed .ce-seat, .kc-embed .ce-seat .prof-seat { font-size: var(--fs-small); color: var(--ink); }
-.kc-embed .handle-now { margin: 0; font-size: var(--fs-body); }
-.kc-embed .handle-said { margin: 0; font-size: var(--fs-small); }
+:is(.kc-embed, .kc-set) .ce-fold > .ce-line::after { content: none; }   /* always open (487): no chevron to promise a fold */
+:is(.kc-embed, .kc-set) .ce-fold[open] > .ce-line { border-bottom-color: transparent; }
+:is(.kc-embed, .kc-set) .ce-body, :is(.kc-embed, .kc-set) details.pfp > :not(summary) { padding: var(--s1) 0 var(--s2); }
+:is(.kc-embed, .kc-set) .ce-fold[open] { border-bottom: 1px solid var(--line-soft); }
+:is(.kc-embed, .kc-set) .ce-body > label.field:last-of-type { border-bottom: 0; }
+:is(.kc-embed, .kc-set) .ce-seat, :is(.kc-embed, .kc-set) .ce-seat .prof-seat { font-size: var(--fs-small); color: var(--ink); }
+:is(.kc-embed, .kc-set) .handle-now { margin: 0; font-size: var(--fs-body); }
+:is(.kc-embed, .kc-set) .handle-said { margin: 0; font-size: var(--fs-small); }
 /* THE PICTURE'S LINE: the face at 28px, at 44 once open; the picker keeps its own grid under it. */
-.kc-embed details.pfp { display: block; margin: 0; }
-.kc-embed .ce-v .handle-now { display: inline-flex; }
-.kc-embed details.pfp > .ce-line { justify-content: space-between; }
-.kc-embed details.pfp > .ce-line .ce-k { flex: 1 1 auto; }
-.kc-embed details.pfp .pfp-face { width: 28px; height: 28px; border-radius: var(--r-ui); }
-.kc-embed details.pfp[open] .pfp-face { width: var(--tap); height: var(--tap); }
-.kc-embed details.pfp .pfp-none { font-size: var(--fs-body); }
+:is(.kc-embed, .kc-set) details.pfp { display: block; margin: 0; }
+:is(.kc-embed, .kc-set) .ce-v .handle-now { display: inline-flex; }
+:is(.kc-embed, .kc-set) details.pfp > .ce-line { justify-content: space-between; }
+:is(.kc-embed, .kc-set) details.pfp > .ce-line .ce-k { flex: 1 1 auto; }
+:is(.kc-embed, .kc-set) details.pfp .pfp-face { width: 28px; height: 28px; border-radius: var(--r-ui); }
+:is(.kc-embed, .kc-set) details.pfp[open] .pfp-face { width: var(--tap); height: var(--tap); }
+:is(.kc-embed, .kc-set) details.pfp .pfp-none { font-size: var(--fs-body); }
 
-.kc-embed details.pfp > .pfp-said { margin: 0; padding-top: 0; }
-.kc-embed .q-shelf { margin: 0; }
-.kc-embed .ph-shelf { margin-top: var(--s1); }
+:is(.kc-embed, .kc-set) details.pfp > .pfp-said { margin: 0; padding-top: 0; }
+:is(.kc-embed, .kc-set) .q-shelf { margin: 0; }
+:is(.kc-embed, .kc-set) .ph-shelf { margin-top: var(--s1); }
 /* THE WEEK, SMALLER: 20px rows instead of square cells, so seven days are a fifth of the screen (`.hr` in `ACCEPTED_TAP`). */
-.kc-embed .me-week { margin-top: var(--s1); }
-.kc-embed .me-week .slot-grid { gap: 2px; margin: 0; }
-.kc-embed .me-week .hr { aspect-ratio: auto; min-height: 0; height: 20px; }
-.kc-embed .ce-tiles { margin-top: var(--s2); }
+:is(.kc-embed, .kc-set) .me-week { margin-top: var(--s1); }
+:is(.kc-embed, .kc-set) .me-week .slot-grid { gap: 2px; margin: 0; }
+:is(.kc-embed, .kc-set) .me-week .hr { aspect-ratio: auto; min-height: 0; height: 20px; }
+:is(.kc-embed, .kc-set) .ce-tiles { margin-top: var(--s2); }
 
 /* ITS FORM, AND THE PEOPLE COLUMN'S EDIT — `personFormHtml_` in me.js. */
 .person-form .pf-roles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--s2); }

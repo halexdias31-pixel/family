@@ -712,28 +712,8 @@ function waitlistPrice(venueName) {
   if (seats < 1) return null;
 
   const room = sp.terms ? sp.terms.rate : N(v.cost_per_hour);
-  const tutor = N(cfg.open_tutor_rate);
-  /* THE TUTOR IS THE PART THAT MUST BE SET. A room can honestly be free — Online is, and a client's
-     own house nearly is — but a session with no teaching rate is not a cheap session, it is an
-     unpriced one. */
-  if (tutor <= 0) return null;
-
-  const extra = N(cfg.waitlist_extra_seat) * (seats - 1);
-  const hourly = room + tutor + extra;
-  const hours = N(cfg.h) || 2;
-
-  /* Rounded to the penny at the seat, not at the total — the seat is what somebody is charged, and
-     rounding the total first leaves four seats that do not add up to it. */
-  const perSeatHour = Math.round((hourly / seats) * 100) / 100;
-  return {
-    seats: seats,
-    hours: hours,
-    hourlyWhole: Math.round(hourly * 100) / 100,
-    perSeatHour: perSeatHour,
-    /* WHAT ONE FAMILY PAYS for one session of it. How many sessions a term holds is not decided
-       here — the dates do not exist until the list fills and you make it a job. */
-    perSeatSession: Math.round(perSeatHour * hours * 100) / 100,
-  };
+  /* THE ONE PRICE (owner, 21 Nov): the sum is `priceFrom`'s, asked for a waitlist seat; the open rate is config `open_tutor_rate`. */
+  return priceCore_(priceData_(), askProps_).priceFrom({ waitlist: true, room: room, seats: seats });
 }
 
 /* THE LIFE OF A WAITLIST THE NUMBERS ARE HERE AND NOWHERE ELSE. § */

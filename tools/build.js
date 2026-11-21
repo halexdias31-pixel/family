@@ -40,14 +40,16 @@ const ORDER = [
   'email-ink',    // the email-ink check (rule 1.75, 20 Nov): the Sunday email's colours equal style.css tokens, its esc and the card maker's cardUnesc_ round-trip; fails the build
   'digest-clip',  // the digest-clip check (rule 1.75, owner 20 Nov): large weeks through the Sunday email's digestRender_; a part over Gmail's clip or a question without its words fails the build
   'bundle',       // js/ in index.html's order -> bundle/*.js
+  'one-profile-save', // the one-profile-save check (rule 1.75, unify batch 9 job A): one profile send (profileSave_), one fieldReadonly_; fails the build
   'one-request',  // the one-request check (rule 1.75, unify H): one fetch to the backend (backendFetch_), every posted action in actions.json, one dispatcher; fails the build
   'one-import',   // the one-import check (rule 1.75, unify K): one pack validator and applier (libPackCheck_, libPackApply_), one pack maker, one deploy (pullFromGitHub), the emptying guard on fixed cases; fails the build
   'one-word',     // the one-word check (rule 1.75, unify batch 6 lane B): a js literal of 12+ characters equal to a words.json value is read through text_(key); another lane's owed file is printed as owed; fails the build
   'one-plural',   // the one-plural check (rule 1.75, unify batch 5 job R): every count's word by js/core.js plural_ (copied to the backend); an inline n === 1 ? '' : 's' or a changed fixed case fails the build
+  'one-price',    // the one-price check (rule 1.75, owner 21 Nov): one price formula and one open rate (config open_tutor_rate) in js/core-price.js; a hand rate or second sum fails the build
   'one-lock',     // the one-lock check (rule 1.75, unify batch 7): the backend's write lock, "Nothing was saved." and Drive file links only in backend/write-lock.gs; fails the build
   'one-table',    // the one-table check (rule 1.75, unify batch 7): keep-booked jobs, digest skip reasons and the site-then-raw fetch each live once; fails the build
   'one-wrapper',  // the one-wrapper check (rule 1.75, unify batch 8): one IndexedDB wrapper, one tile-row wrap, one spelling of the pointer queries; fails the build
-  'one-helper',   // the one-helper check (rule 1.75, unify batch 4): settings groups only in setting-for.json, tool helpers only in tools/lib/gen.js; fails the build
+  'one-helper',   // the one-helper check (rule 1.75, unify batch 4): settings groups only in kinds.json setting.cards, tool helpers only in tools/lib/gen.js; fails the build
   'one-twin',     // the one-twin check (rule 1.75, unify batch 7): no backend twin of a site function cards-gen.gs copies, the copies current; fails the build
   'one-card',     // the one-card check (rule 1.75): every Find card by the one maker, no CSS of its own; fails the build
   'dead-css',     // the dead-css check (rule 1.75, owner 20 Nov): classes in style.css nothing writes, counted against a budget; a rise fails the build

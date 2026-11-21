@@ -158,7 +158,7 @@ const TABS = [
   { id: 'stuff',   icon: '🔎', label: 'Find',    title: 'Find' },
 ];
 /* SETTINGS ARE FIND › SETTINGS › <type>: each a card group Find draws (CARD_BUILD, find-doors.js), its cards keyed by id. */
-/* THE GROUPS ARE setting-for.json's `type:` rows (col, label, admin), never a list here. */
+/* THE GROUPS ARE the registry's `type:` rows (kinds.json setting.cards: col, label, admin), never a list here. */
 const settingGroupList_ = () => { let t = {}; try { t = (DATA && DATA.settingFor) || {}; } catch (e) { t = {}; }
   return Object.keys(t).filter(k => /^type:/.test(k) && t[k].col).map(k => ({ id: t[k].col, label: t[k].label || '', admin: !!t[k].admin, cards: true, group: true })); };
 

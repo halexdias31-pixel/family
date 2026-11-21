@@ -63,9 +63,9 @@ function psResults_(col) {
 function peopleSearchPage_(col) {
   if (!USER) return '';
   const c = col || 'students', S = psState_(c);
-  return meCard_(pplG_('ps-card', [
+  return pplCard_('ps-card', '', [
     pplG_('ps-bar', searchPill_(`data-psearch aria-label="Find someone by handle" placeholder="@handle" autocapitalize="off" spellcheck="false" enterkeyhint="search" value="${esc(S.q)}"`)),
-    pplG_('ps-out', psResults_(c), { attrs: { 'aria-live': 'polite' } })], { attrs: { 'data-ps-col': c } }));
+    pplG_('ps-out', psResults_(c), { attrs: { 'aria-live': 'polite' } })], { 'ps-col': c });
 }
 const psColOf_ = el => { const card = el && el.closest ? el.closest('.ps-card') : null; return (card && card.getAttribute('data-ps-col')) || 'students'; };
 /* ITS OWN CARD'S RESULTS, AND ONE RELAYOUT WHEN THE TYPING STOPS (770): re-placing every column on each key was the jump the owner saw. */
@@ -320,9 +320,9 @@ function peSave_(form) {
   const fields = peFields_(form), said = form.querySelector('.pe-said'), key = JSON.stringify(fields);
   if (key === F.sent) return;
   form.classList.add('is-sending');
-  send_({ action: 'item', door: 'save', item: 'profile', name: USER.name, personId: USER.personId || '', target: F.name || '', targetId: F.id, fields }, { where: said })
-    .then(d => { F.sent = key; F.moved = true; formDraftDrop_('person-edit', { draftId: F.id }); if (said) tell_(said, 'saved', '✓ ' + ((d && d.said) || 'Saved')); })
-    .catch(() => {})
+  /* THE ONE PROFILE SAVE (`profileSave_`, me-settings.js): these boxes are gathered here, in `updateProfile`'s names. */
+  profileSave_(form, { fields, target: { name: F.name || '', id: F.id }, said, how: { where: said }, toast: false, tick: null,
+    done: ({ word }) => { F.sent = key; F.moved = true; formDraftDrop_('person-edit', { draftId: F.id }); if (said) tell_(said, 'saved', '✓ ' + word); } })
     .then(() => form.classList.remove('is-sending'));
 }
 ['input', 'change'].forEach(ev => document.addEventListener(ev, e => {

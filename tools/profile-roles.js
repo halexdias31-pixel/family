@@ -2,7 +2,7 @@
 /* @family. — tools/profile-roles.js THE PROFILE-ROLES CHECK (rule 1.75, queue 4h, owner 20 Nov): a child's own profile showed staff cards (Apply to
    teach, the availability grid, rate, qualifications, photos, staff hub). For each role, the served app (bundles, tools/lib/payload.json as the
    backend's answer, an iPhone 13) is signed in as that role and its Find › Settings cards listed (`settingDoorItems_`); every card is held against
-   the master: its own `see` row in data/settings/permissions.json, else its account type's (`type:<T>`, setting-for.json's `col`). A card the role
+   the master: its own `see` row in data/settings/permissions.json, else its account type's (`type:<T>`, its `col` in kinds.json setting.cards). A card the role
    may not see, a child shown Apply to teach, or a role shown no cards at all fails the build. Run by tools/build.js after the bundles. */
 'use strict';
 const fs = require('fs'), http = require('http'), path = require('path');
@@ -23,8 +23,8 @@ function master() {
   perms.forEach(r => { (see[r.action] = see[r.action] || {})[r.role] = r.allow === true; });
   const may = (key, role) => (see[key] && typeof see[key][role] === 'boolean' ? see[key][role] : role === 'admin');
   const typeOfCol = {};
-  JSON.parse(fs.readFileSync(path.join(ROOT, 'data/settings/setting-for.json'), 'utf8'))
-    .filter(r => /^type:/.test(r.card) && r.col).forEach(r => { typeOfCol[r.col] = r.card; });
+  JSON.parse(fs.readFileSync(path.join(ROOT, 'data/settings/kinds.json'), 'utf8')).kinds.setting.cards
+    .filter(r => /^type:/.test(r.id) && r.col).forEach(r => { typeOfCol[r.col] = r.id; });
   return { see, may, typeOfCol };
 }
 
