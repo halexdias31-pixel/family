@@ -8,8 +8,10 @@ function pinSlip_(first, handle, pin) {
 }
 /* A SETTINGS CARD AS A SPEC (owner, 13 Nov: one template): its name the one tag, its look its old class, its body blocks. */
 const rolesSet_ = (look, name, body, more) => renderCard(Object.assign({ kind: 'setting', look: look || '', name: name || '', tags: name ? [name] : [], body: body || [] }, more || {}));
-/* MARKUP ANOTHER MAKER DREW (a hub, a form, the build line), carried as the one embed. */
-const rolesDrawn_ = (draw, look) => ({ type: 'embed', tool: 'me-form', look: look || '', args: { draw } });
+/* MARKUP ANOTHER MAKER DREW (a hub, a form, the build line), carried in the settings card's `kc-set` group (unify batch 10). */
+const rolesDrawn_ = (draw, look) => { let inner = '';
+  try { inner = String(draw() || ''); } catch (e) { if (typeof oops_ === 'function') oops_(e, 'settings:drawn'); }
+  return { type: 'group', look: 'kc-set' + (look ? ' ' + look : ''), inner }; };
 
 /* ---------- AN ADDRESS NOBODY HAS PROVED: THE MAIL IT IS NOT SENT, AND THE CHILD IT CANNOT HOLD YET § */
 function pendingAddr_() { return (whose_() && whose_().pendingEmail) ? String(whose_().pendingEmail) : ''; }

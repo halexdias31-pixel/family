@@ -7216,7 +7216,9 @@ return cardBlock_({ type: 'section', look: 'pin-slip', live: true, blocks: [
 { type: 'text', look: 'pin-slip-k', text: 'and the PIN' }, { type: 'text', look: 'pin-slip-v', text: String(pin) }] });
 }
 const rolesSet_ = (look, name, body, more) => renderCard(Object.assign({ kind: 'setting', look: look || '', name: name || '', tags: name ? [name] : [], body: body || [] }, more || {}));
-const rolesDrawn_ = (draw, look) => ({ type: 'embed', tool: 'me-form', look: look || '', args: { draw } });
+const rolesDrawn_ = (draw, look) => { let inner = '';
+try { inner = String(draw() || ''); } catch (e) { if (typeof oops_ === 'function') oops_(e, 'settings:drawn'); }
+return { type: 'group', look: 'kc-set' + (look ? ' ' + look : ''), inner }; };
 function pendingAddr_() { return (whose_() && whose_().pendingEmail) ? String(whose_().pendingEmail) : ''; }
 const RESEND_LINK = { icon: 'send', label: 'Send the link again', note: 'to confirm your email', act: 'resend-link' };
 function mailHeldNote_() {
@@ -7995,7 +7997,6 @@ const body = o.form == null ? [o.body, save]
 return renderCard({ kind: 'setting', card: o.card || '', look: 'set-shape' + (o.cls ? ' ' + o.cls : ''), name: o.title || '', tags: [o.title || ''], data: cardDataOf_(o.attrs),
 body: [{ type: 'group', look: 'kc-set', parts: [o.lead, body, o.after] }] });
 }
-CARD_EMBEDS['me-form'] = a => (a && typeof a.draw === 'function' ? String(a.draw() || '') : '');
 const cardDataOf_ = attrs => { const a = cardAttrsOf_(attrs || ''), d = {};
 Object.keys(a).forEach(k => { if (/^data-/.test(k)) d[k.slice(5)] = a[k] === true ? '' : a[k]; }); return d; };
 const setPlainCard_ = o => renderCard({ kind: 'setting', card: o.card || '', look: o.look || '', name: o.name || '', tags: o.name ? [o.name] : [], data: o.data || {},
@@ -9733,8 +9734,7 @@ if (line) line.textContent = chainSay_(null, t.value);
 /* js/me-people.js */
 const pplG_ = (look, inner, more) => cardBlock_(Object.assign({ type: 'group', look, inner: [].concat(inner == null ? [] : inner).join('') }, more || {}));
 const pplP_ = (look, text, more) => cardBlock_(Object.assign({ type: 'group', tag: 'p', look, text }, more || {}));
-const pplCard_ = (look, name, parts, data) => renderCard({ kind: 'setting', look, name, tags: name ? [name] : [], data: data || {},
-body: [{ type: 'embed', tool: 'me-form', args: { draw: () => [].concat(parts).join('') } }] });
+const pplCard_ = (look, name, parts, data) => setPlainCard_({ look, name, data, parts: [].concat(parts) });
 function peopleAddPage_(col) {
 if (!peopleMay_()) return '';
 col = PEOPLE_ADD_[col] ? col : 'students';

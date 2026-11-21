@@ -1,9 +1,8 @@
 /* THE PEOPLE CARDS ARE DATA (owner, 14 Nov: one card maker): a part is a `group` block, a line a `p` group, drawn by cards-render. */
 const pplG_ = (look, inner, more) => cardBlock_(Object.assign({ type: 'group', look, inner: [].concat(inner == null ? [] : inner).join('') }, more || {}));
 const pplP_ = (look, text, more) => cardBlock_(Object.assign({ type: 'group', tag: 'p', look, text }, more || {}));
-/* A HEADED PEOPLE CARD: its heading the name and one tag, its look and data on the card, its parts the one embed. */
-const pplCard_ = (look, name, parts, data) => renderCard({ kind: 'setting', look, name, tags: name ? [name] : [], data: data || {},
-  body: [{ type: 'embed', tool: 'me-form', args: { draw: () => [].concat(parts).join('') } }] });
+/* A HEADED PEOPLE CARD: its heading the name and one tag, its look and data on the card, its parts the `kc-set` group (unify batch 10). */
+const pplCard_ = (look, name, parts, data) => setPlainCard_({ look, name, data, parts: [].concat(parts) });
 function peopleAddPage_(col) {
   if (!peopleMay_()) return '';
   col = PEOPLE_ADD_[col] ? col : 'students';

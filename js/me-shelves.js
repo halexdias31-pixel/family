@@ -302,8 +302,6 @@ function setCard_(o) {
   return renderCard({ kind: 'setting', card: o.card || '', look: 'set-shape' + (o.cls ? ' ' + o.cls : ''), name: o.title || '', tags: [o.title || ''], data: cardDataOf_(o.attrs),
     body: [{ type: 'group', look: 'kc-set', parts: [o.lead, body, o.after] }] });
 }
-/* THE ONE KIND OF EMBED LEFT ON A SETTINGS CARD: a widget another file draws (photos, the library shelf, a timetable), by a function so no spec string holds markup. */
-CARD_EMBEDS['me-form'] = a => (a && typeof a.draw === 'function' ? String(a.draw() || '') : '');
 /* A WRAPPER'S data-* ATTRIBUTES (data-lay-card, data-pid) stay on the card, read as data by `cardAttrsOf_`. */
 const cardDataOf_ = attrs => { const a = cardAttrsOf_(attrs || ''), d = {};
   Object.keys(a).forEach(k => { if (/^data-/.test(k)) d[k.slice(5)] = a[k] === true ? '' : a[k]; }); return d; };

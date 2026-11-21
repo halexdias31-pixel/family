@@ -2397,16 +2397,17 @@ function wgSlot_() {
 }
 
 /* THE PICKER AND THE CHOSEN GAME'S CARD, AND NOTHING THAT RUNS — the widget's declared `draw`, which the builder uses to draw it before anybody arrives § */
-function wgPaint_() {
-  const slots = document.querySelectorAll('#wg-slot');
+const wgPaint_ = () => pickerPaint_('wg', () => wgGame_(wgChosen_()), wgOptions_, wgSlot_);
+/* ONE PICKER PAINT FOR WORD GAMES AND THE CONSOLE: every copy of `#<pre>-pick` and `#<pre>-slot` (the Games card and a starred one on Saved, 441),
+   so a pick on one is not undone by the other; a slot rebuilt only when the game changed, so a running game keeps its box. § */
+function pickerPaint_(pre, chosen, options, slotHtml) {
+  const slots = document.querySelectorAll('#' + pre + '-slot');
   if (!slots.length) return false;
-  const g = wgGame_(wgChosen_());
-  /* EVERY COPY, the Games card and a starred one on Saved (441), so a pick on one is not undone by the other. */
-  document.querySelectorAll('#wg-pick').forEach(sel => { if (sel.value !== g.k) sel.innerHTML = wgOptions_(); });
-  /* REBUILT ONLY WHEN THE GAME CHANGED. § */
+  const g = chosen();
+  document.querySelectorAll('#' + pre + '-pick').forEach(sel => { if (sel.value !== g.k) sel.innerHTML = options(); });
   slots.forEach(slot => {
     const now = slot.firstElementChild;
-    if (!now || now.getAttribute('data-g') !== g.k) slot.innerHTML = wgSlot_();
+    if (!now || now.getAttribute('data-g') !== g.k) slot.innerHTML = slotHtml();
   });
   return g;
 }
@@ -2846,19 +2847,8 @@ function csSlot_() {
   const g = csGame_(csChosen_());
   return `<div data-g="${esc(g.k)}" class="cs-game">${g.body}</div>`;
 }
-/* THE PICKER AND THE CHOSEN GAME'S MARKUP; rebuilt only when the game changed, so a running emulator keeps its box. */
-/* EVERY COPY — the Games card and a starred one on Saved — so a pick on one is not undone by the other. */
-function csPaint_() {
-  const slots = document.querySelectorAll('#cs-slot');
-  if (!slots.length) return false;
-  const g = csGame_(csChosen_());
-  document.querySelectorAll('#cs-pick').forEach(sel => { if (sel.value !== g.k) sel.innerHTML = csOptions_(); });
-  slots.forEach(slot => {
-    const now = slot.firstElementChild;
-    if (!now || now.getAttribute('data-g') !== g.k) slot.innerHTML = csSlot_();
-  });
-  return g;
-}
+/* THE PICKER AND THE CHOSEN GAME'S MARKUP (`pickerPaint_`, as Word games). */
+const csPaint_ = () => pickerPaint_('cs', () => csGame_(csChosen_()), csOptions_, csSlot_);
 function initConsole() { const g = csPaint_(); if (g) g.start(); }
 function consoleStill_() { const g = csPaint_(); if (g) g.still(); }
 function consoleStop_() {
@@ -2994,17 +2984,19 @@ function nesRowPaint_() {
 
 const nesSay_ = s => { const p = $('nes-say'); if (p) p.textContent = s || ''; };
 
+/* ONE ENGINE SCRIPT TAG (the NES player's, EmulatorJS's files): settles when it loads; one that fails takes itself away. `async` false keeps several in order. */
+const engineScript_ = (src, async) => new Promise((ok, no) => {
+  const s = document.createElement('script');
+  s.src = src; s.async = async; s.crossOrigin = 'anonymous';
+  s.onload = ok;
+  s.onerror = () => { s.remove(); no(new Error('engine did not load')); };
+  document.head.appendChild(s);
+});
 /* THE SCRIPT, ONCE, from the pinned CDN and then its mirror. */
 function nesLib_() {
   if (window.jsnes && window.jsnes.NES) return Promise.resolve(window.jsnes);
   if (NES_.lib) return NES_.lib;
-  const one = src => new Promise((ok, no) => {
-    const s = document.createElement('script');
-    s.src = src; s.async = true; s.crossOrigin = 'anonymous';
-    s.onload = () => (window.jsnes && window.jsnes.NES ? ok(window.jsnes) : no(new Error('no engine')));
-    s.onerror = () => { s.remove(); no(new Error('engine did not load')); };
-    document.head.appendChild(s);
-  });
+  const one = src => engineScript_(src, true).then(() => (window.jsnes && window.jsnes.NES ? window.jsnes : Promise.reject(new Error('no engine'))));
   NES_.lib = one(NES_LIB).catch(() => one(NES_LIB_2)).catch(e => { NES_.lib = null; throw e; });
   return NES_.lib;
 }
@@ -3483,14 +3475,7 @@ const EMU_ = { ejs: null, ready: false, sys: null, key: '', base: null, lib: nul
 function emuLib_() {
   if (window.EmulatorJS && EMU_.base) return Promise.resolve(EMU_.base);
   if (EMU_.lib) return EMU_.lib;
-  const one = src => new Promise((ok, no) => {
-    const s = document.createElement('script');
-    s.src = src; s.async = false; s.crossOrigin = 'anonymous';
-    s.onload = ok;
-    s.onerror = () => { s.remove(); no(new Error('engine did not load')); };
-    document.head.appendChild(s);
-  });
-  const from = cdn => EMU_SRC.reduce((p, f) => p.then(() => one(cdn + '@emulatorjs/emulatorjs@' + EMU_VER + '/data/src/' + f)), Promise.resolve())
+  const from = cdn => EMU_SRC.reduce((p, f) => p.then(() => engineScript_(cdn + '@emulatorjs/emulatorjs@' + EMU_VER + '/data/src/' + f, false)), Promise.resolve())
     .then(() => { if (!window.EmulatorJS) throw new Error('no engine'); emuQuiet_(); EMU_.base = cdn; return cdn; });
   EMU_.lib = from(EMU_CDN[0]).catch(() => from(EMU_CDN[1])).catch(e => { EMU_.lib = null; throw e; });
   return EMU_.lib;

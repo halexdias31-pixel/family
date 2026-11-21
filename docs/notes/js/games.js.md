@@ -3119,3 +3119,13 @@ top level, before `w`
    while it is on. A block that has left the document (the card drawn again) lets go here too. */
 ```
 
+
+### ONE PICKER PAINT FOR WORD GAMES AND THE CONSOLE: every copy of `#<pre>-pick` and `#<pre>-slot` (the Games card and a starred one on Saved, 441),
+
+before `pickerPaint_` (unify batch 10: `wgPaint_` and `csPaint_` were two copies of it)
+
+```
+/* REBUILT ONLY WHEN THE GAME CHANGED. A repaint runs `start` on markup `paint` has just replaced,
+     so the slot is empty and gets its body; a start on a slot already holding this game's body (a
+     second start without a repaint) leaves it alone, which is what keeps a button under a finger. */
+```
