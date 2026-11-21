@@ -20,6 +20,7 @@ const ORDER = [
   'one-role',     // the one-role check (rule 1.75, owner 21 Nov): role words, ranks, the Message table and may_ rules only in settings.json `roles` and data/settings/roles.js; a twin fails the build
   'permissions',  // -> permissions.json and backend/*.gs blocks
   'word-freq',    // data/pdtexts -> data/word-freq.json
+  'taxonomy',     // the one-taxonomy check (rule 1.75, owner 21 Nov): data/settings/taxonomy.json -> js/find-finder.js TAXONOMY; a History paper or topic part outside it, or a subject case in the engine, fails the build
   'facet-hues',   // walks the app over every js/ write above -> TAG_OF, data/facet-graph.json
   'finder-tags',  // walks it again, TAG_OF included -> js/finder-tags.js
   'rules',        // rules.json -> docs/rules.md
