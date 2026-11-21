@@ -33,6 +33,15 @@ const CASES = [
     ok: o => o.join() === 'sweep,read,shop' },
   { name: 'done items last', items: [{ title: 'gone', done: true, doneOn: '2026-11-20' }, { title: 'daily done', repeat: 'daily', doneOn: '2026-11-20' }, { title: 'left' }],
     ok: o => o[0] === 'left' },
+  /* THE OWNER'S ORDER RULES (21 Nov), from the planner, not the data. */
+  { name: 'the Jesus prayer opens the list', items: [{ title: 'email' }, { title: 'laundry', runs: 60 }, { title: 'Jesus prayer', minutes: 2 }, { title: 'call', importance: 'must' }],
+    ok: o => o[0] === 'Jesus prayer' },
+  { name: 'what runs by itself starts first, after the opener', items: [{ title: 'curls', effort: 'hard', minutes: 10 }, { title: 'charge phone', runs: 120, minutes: 1 }, { title: 'Jesus prayer' }],
+    ok: o => o.join() === 'Jesus prayer,charge phone,curls' },
+  { name: 'eat before training', items: [{ title: 'pull ups', effort: 'hard', minutes: 10, importance: 'must' }, { title: 'rows', effort: 'hard', minutes: 10 }, { title: 'cook rice', minutes: 2 }, { title: 'eggs' }],
+    ok: o => Math.max(o.indexOf('cook rice'), o.indexOf('eggs')) < Math.min(o.indexOf('pull ups'), o.indexOf('rows')) },
+  { name: 'workout before shower', items: [{ title: 'shower', minutes: 10 }, { title: 'dips', effort: 'hard', minutes: 10 }, { title: 'read', minutes: 3 }, { title: 'jog', effort: 'hard', minutes: 20, place: 'out' }],
+    ok: o => o.indexOf('shower') > Math.max(o.indexOf('dips'), o.indexOf('jog')) },
 ];
 /* THE DAY'S PHASES: a fresh copy per case; `tick` names the titles done today (London's day of NOW). */
 const DAY = () => [

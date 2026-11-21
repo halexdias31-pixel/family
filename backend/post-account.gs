@@ -660,7 +660,9 @@ function postSetMyRoles_(body, action, began) {
 const DOCKET_CELL_MAX = 49000;
 function docketTidy_(lists) {
   const s = (v, n) => S(v).slice(0, n);
+  /* A LIST'S USUAL START (`start`, form `docket-list`) is kept, or a save loses the day's phases (dkPhase_). */
   return (Array.isArray(lists) ? lists : []).slice(0, 50).map(l => ({ name: s(l && l.name, 80) || 'List',
+    ...(/^\d{1,2}:\d{2}$/.test(S(l && l.start)) ? { start: S(l.start) } : {}),
     items: (Array.isArray(l && l.items) ? l.items : []).slice(0, 300).map(i => ({ title: s(i && i.title, 300), note: s(i && i.note, 8000),
       date: /^\d{4}-\d{2}-\d{2}$/.test(S(i && i.date)) ? S(i.date) : '', time: /^\d{2}:\d{2}$/.test(S(i && i.time)) ? S(i.time) : '',
       /* A REPEATING ITEM keeps the day it was last done (`doneOn`), never a flag: it is undone again the next day with no nightly job. */
