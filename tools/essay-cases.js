@@ -39,6 +39,13 @@ function run() {
   console.log('essay-cases: ' + say('all', res).replace(/^all\s+/, ''));
   [...new Set(res.map(r => r.q))].sort().forEach(q => console.log('  ' + say(q, res.filter(r => r.q === q))));
   if (miss.length) console.log('  ' + miss.length + ' exemplar(s) not marked (their row has no levels key): ' + miss.slice(0, 6).join(', '));
+  /* EVERY LEVEL-MARKED ROW HAS ITS LEVELS (Language and Literature, 22 Nov): a `rule: levels <type>` naming no row in marking.json is an answer
+     a child would see marked with an error */
+  const keyed = [...rows.values()].filter(r => /rule:\s*levels\b/i.test(String(r.accept || '')));
+  const types = [...new Set(keyed.map(r => (/rule:\s*levels\s+(\w+)/i.exec(r.accept) || [])[1]).filter(Boolean))];
+  const none = types.filter(t => !call('levelsRow_(' + JSON.stringify(t.toLowerCase()) + ').length'));
+  console.log('  ' + keyed.length + ' rows level-marked across ' + types.length + ' question types');
+  if (none.length) throw new Error('essay-cases: question type(s) with no levels row in data/settings/marking.json: ' + none.join(', '));
   if (all.one < FLOOR) throw new Error('essay-cases: within-one-level agreement ' + (100 * all.one).toFixed(0) + '% is below ' + 100 * FLOOR + '%');
   return all;
 }
