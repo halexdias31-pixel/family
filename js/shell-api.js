@@ -59,7 +59,7 @@ function pressAfterPaint_(doer, e) {
     PRESS_SOON_ = null;
     /* REDRAWN MEANWHILE (a payload landing, a fill): the press goes to the same control as drawn now (`pressKey_`), not lost (owner, 16 Nov:
        "sometimes a tap doesn't register"); only a control that is gone from the screen does nothing. */
-    const live = doer.isConnected ? doer : [...document.querySelectorAll('[data-do="' + doer.dataset.do + '"]')].find(c => pressKey_(c) === key);
+    const live = pressLive_(doer, key);
     if (live) pressAct_(live, e);
     else if (CLICK_LOG) console.log('[click] dropped — its control is no longer on the screen');
   }, 0));

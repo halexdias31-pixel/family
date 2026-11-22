@@ -5628,83 +5628,38 @@ const each = cells.map((c, i) => c.ways ? markAnswer_(vals[i] || '', c.ways, fal
 const asked = each.filter(v => v !== undefined);
 return { right: asked.filter(v => v === true).length, of: asked.length, each: each };
 }
-const cellsVals_ = v => String(v == null ? '' : v).split(' ; ');
-function cellInput_(k, c, i, v) {
-if (!c.ways) return '';
-const num = /^[-\d.,\s|£$%°/]+$/.test(c.ways) && !/,\s/.test(c.ways);
-return cardBlock_({ type: 'control', attrs: { class: 'qp-cell kp-in', 'data-k': k, 'data-n': String(i), 'aria-label': 'Blank ' + c.label, autocomplete: 'off',
-'data-kp': num ? 'maths' : 'words', readonly: true, inputmode: 'none', autocapitalize: 'off', autocorrect: 'off', spellcheck: 'false', enterkeyhint: 'done', value: v || '' } });
-}
 const fcG_ = (tag, look, attrs, inner, text) => cardBlock_({ type: 'group', tag, look, attrs, inner, text });
 const fcVerdict_ = t => fcG_('span', 'qp-verdict', { role: 'status', 'aria-live': 'polite' }, '', t);
 const fcSaved_ = k => fcG_('span', 'qp-saved', { 'data-k': k }, '', ansSavedSay_(k));
-function cellsTable_(x, html) {
-const cells = cellsOf_(x);
-if (!cells.length) return '';
-const k = ansKey_(x), vals = cellsVals_(ansRead_(k));
-const t = qtCellTable_(html, cells.length);
-if (!t) return '';
-let n = 0, skip = (t.match(QT_CELL_BLANK) || []).length === cells.length + 1;
-const filled = t.replace(QT_CELL_BLANK, (m, tag, at) => {
-if (skip) { skip = false; return m; }
-const i = n++;
-return m.slice(0, 1 + tag.length + at.length) + ' class="qp-cell-at">' + cellInput_(k, cells[i], i, vals[i]) + m.slice(m.lastIndexOf('</'));
-}).replace(/^<table/, '$& data-cells="1"');
-const at = String(html).indexOf(t);
-return String(html).slice(0, at) + filled + String(html).slice(at + t.length);
+function cellsHint_(cells, maths) {
+const asked = cells.filter(c => c.ways), named = asked.filter(c => !/^\(?(\d+|[a-z]|[ivx]+)\)?$/i.test(c.label)).map(c => c.label);
+const say = 'Give ' + asked.length + (maths ? ' numbers' : ' answers') + ' in order, separated by commas';
+return named.length === asked.length ? named.join(', ') + ' \u2014 ' + say.charAt(0).toLowerCase() + say.slice(1) : say;
 }
-const cellsHere_ = (x, html) => (cellsOf_(x).length && cellsTable_(x, html)) || html;
-const cellsCardHtml_ = x => {
-try { const c = partChunks_(x); return c.length ? chunkHtml_(c[c.length - 1], null, x) : String((x && x.html) || ''); }
-catch (e) { return String((x && x.html) || ''); }
-};
-function cellsHint_(cells) {
-const asked = cells.filter(c => c.ways), named = asked.filter(c => !/^\d+$/.test(c.label)).map(c => c.label);
-return text_('write-the') + asked.length + ' answers in order' + (named.length === asked.length ? ': ' + named.join(', ') : '');
-}
-function cellsBox_(x, face) {
+function cellsBox_(x) {
 const cells = cellsOf_(x), k = ansKey_(x);
-const inTable = (face || qtFace_(x, cellsCardHtml_(x))).face === 'table';
 const val = String(ansRead_(k) || '').replace(/(?:\s*;\s*)+$/, '');
 const maths = cells.filter(c => c.ways).every(c => /^[-\d.,\s|£$%°/]+$/.test(c.ways));
-const one = inTable ? '' : fcG_('p', 'q-hint', null, '', cellsHint_(cells)) + fcG_('div', 'qp-ans-row qp-bar', null,
-fcG_('label', 'qp-ans' + (maths ? ' qp-ans-maths' : ''), { 'aria-label': text_('your-answers-in-order') }, kpField_(k, val, maths ? 'maths' : 'words', 3)));
 const said = subBoxSay_(k, val);
 return fcG_('div', 'qp-mark qp-compose qp-cells-box' + (said.cls ? ' ' + said.cls : ''), { 'data-k': k },
-one + workStrip_(x) + fcVerdict_(said.text) + fcSaved_(k));
+fcG_('p', 'q-hint', null, '', cellsHint_(cells, maths)) + fcG_('div', 'qp-ans-row qp-bar', null,
+fcG_('label', 'qp-ans' + (maths ? ' qp-ans-maths' : ''), { 'aria-label': text_('your-answers-in-order') }, kpField_(k, val, maths ? 'maths' : 'words', 3)))
++ workStrip_(x) + fcVerdict_(said.text) + fcSaved_(k));
 }
-const cellsIn_ = el => { const card = el && el.closest('.qcard'); return card ? [].slice.call(card.querySelectorAll('.qp-cell')) : []; };
-function cellsRead_(el) {
-const vals = [];
-cellsIn_(el).forEach(c => { vals[+c.getAttribute('data-n')] = c.value; });
-return vals;
-}
-document.addEventListener('input', e => {
-const el = e.target && e.target.classList && e.target.classList.contains('qp-cell') ? e.target : null;
-if (!el) return;
-const vals = cellsRead_(el);
-for (let i = 0; i < vals.length; i++) if (vals[i] == null) vals[i] = '';
-ansStore_(el.getAttribute('data-k') || '', vals.join(' ; '));
-el.classList.remove('is-right', 'is-near');
-});
 on('qp-cells-check', el => {
 const box = qMark_(el, '.qp-cells-box');
 const out = box && box.querySelector('.qp-verdict');
 const x = box && stuffItemsAll_().find(it => ansKey_(it) === box.getAttribute('data-k'));
-if (!x || !out) return;
-const cells = cellsOf_(x), inp = box.querySelector('.qp-ans-in');
-let vals = inp ? [inp.value] : cellsRead_(box);
+const inp = box && box.querySelector('.qp-ans-in');
+if (!x || !out || !inp) return;
+const cells = cellsOf_(x);
+let vals = [inp.value];
 const v = mark_(x, vals, 'cells'), m = { right: v.marks, of: v.max, each: v.each || [] };
-cellsIn_(box).forEach(c => {
-const v = m.each[+c.getAttribute('data-n')];
-c.classList.toggle('is-right', v === true);
-c.classList.toggle('is-near', v === false);
-});
 box.classList.remove('is-right', 'is-near');
 const notYet = partReady_('cells', m);
 if (notYet) { tell_(out, 'info', notYet); return; }
-const got = inp ? cellsOneBox_(vals, cells) : vals;
-if (inp && cells.every((c, i) => !c.ways || String(got[i] || '').trim())) {
+const got = cellsOneBox_(vals, cells);
+if (cells.every((c, i) => !c.ways || String(got[i] || '').trim())) {
 inp.value = got.join(' ; ');
 if (typeof kpRender_ === 'function') kpRender_(inp);
 ansStore_(box.getAttribute('data-k'), inp.value, inp.getAttribute('data-kp') === 'words');
@@ -5712,7 +5667,7 @@ vals = [inp.value];
 }
 const all = m.right === m.of;
 box.classList.add(all ? 'is-right' : 'is-near');
-tell_(out, all ? 'saved' : 'info', all ? text_('correct-every') + (inp ? 'answer' : 'cell') : m.right + ' of ' + m.of + (inp ? ' answers' : ' cells') + ' right');
+tell_(out, all ? 'saved' : 'info', all ? text_('correct-every') + 'answer' : m.right + ' of ' + m.of + ' answers right');
 subRecord_(box.getAttribute('data-k'), vals.join(' ; '), all ? 'right' : 'wrong');
 });
 function qMark_(el, sel) {
@@ -5722,8 +5677,8 @@ const card = el && el.closest && el.closest('.qcard');
 return card ? card.querySelector(s) : null;
 }
 function ansBox_(x) {
-const face = qtFace_(x, cellsCardHtml_(x));
-if (face.face === 'table' || face.face === 'gaps') return cellsBox_(x, face);
+const face = qtFace_(x);
+if (face.face === 'gaps') return cellsBox_(x);
 const opts = choiceList_(x);
 const k = ansKey_(x);
 const m = markerOf_(x);
@@ -8188,10 +8143,10 @@ const over = () => pane.scrollHeight - pane.clientHeight;
 let by = over();
 if (!(by > 2)) return;
 const words = [];
-const keep = e => e.matches(FIG_KEEP) || (e.tagName === 'TABLE' && !!e.querySelector('.qp-cell'));
+const keep = e => e.matches(FIG_KEEP);
 const walk = el => [].forEach.call(el.children, e => {
 if (keep(e)) return;
-if (figs.some(f => e.contains(f)) || e.querySelector(FIG_KEEP + ', .qp-cell')) walk(e); else words.push(e);
+if (figs.some(f => e.contains(f)) || e.querySelector(FIG_KEEP)) walk(e); else words.push(e);
 });
 walk(card);
 const hw = words.reduce((n, e) => n + e.getBoundingClientRect().height, 0);
@@ -8386,7 +8341,7 @@ if (was.only) return questionHasAns_(x) || schemeOwed_(x) ? questionAnsCard_(x, 
 const stems = was.stems.map(st => qStemWhole_(x, st, was.shown, a.pic ? [] : null)).join('');
 const words = partChunks_(x).map(c => chunkHtml_(c, circOf_(x), x)).join('');
 const has = was.ans && (questionHasAns_(x) || schemeOwed_(x));
-return stems + figBox_({ look: 'qsheet qtext', inner: qWordsOr_(x, cellsHere_(x, words)) }) + ansArea_(x) + (has ? questionAnsCard_(x, true) : '');
+return stems + figBox_({ look: 'qsheet qtext', inner: qWordsOr_(x, words) }) + ansArea_(x) + (has ? questionAnsCard_(x, true) : '');
 };
 const qWas_ = x => Q_DRAWN.get(x.key) || { stems: [], shown: [x], ans: true };
 const qCardKeep_ = x => { if (x.key) Q_ITEM.set(x.key, x.item || x); };
@@ -12585,7 +12540,7 @@ say.textContent = inp.getAttribute('data-kp') === 'words' || kpSite_(inp)
 }, 600);
 }
 const kpOfTap_ = t => {
-const lab = t && t.closest && t.closest('label.qp-ans, .qp-cell-at');
+const lab = t && t.closest && t.closest('label.qp-ans');
 return lab ? lab.querySelector('.kp-in') : null;
 };
 document.addEventListener('mousedown', e => { if (kpOfTap_(e.target)) e.preventDefault(); }, true);
