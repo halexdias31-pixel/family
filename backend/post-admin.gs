@@ -89,11 +89,18 @@ function postApplyTeach_(body, action, began) {
   const owner = ownerEmail_();
   if (owner) {
     try {
-      deliverOrThrow_(null, 'applied', { to: owner, subject: text_('mail-apply-owner-subject'),
-        body: text_('mail-apply-owner-body', { who: personDisplayName(me) + (S(me.handle) ? ' (@' + S(me.handle) + ')' : ''), subjects: f.subjects, site: SITE_URL }) });
+      deliverOrThrow_(null, 'applied', applyOwnerMail_(owner, personDisplayName(me) + (S(me.handle) ? ' (@' + S(me.handle) + ')' : ''), f.subjects));
     } catch (err) { /* a failed courtesy note must not undo the work already done */ }
   }
   return jsonOut({ success: true, application: applicationOf_(me) });
+}
+
+/* THE TWO APPLICATION EMAILS: the owner told of one, and the applicant told what was decided. */
+function applyOwnerMail_(to, who, subjects) {
+  return { to: to, email: { subject: text_('mail-apply-owner-subject'), lines: emailLines_(text_('mail-apply-owner-body', { who: who, subjects: subjects, site: SITE_URL })) } };
+}
+function applyDecidedMail_(to, first, said) {
+  return { to: to, email: { subject: text_('mail-apply-subject'), lines: emailLines_(text_('mail-apply-body', { first: first, said: said, site: SITE_URL })) } };
 }
 
 /* THE APPLICANTS' PRIVATE FOLDER (Script Property APPLY_FOLDER, never in the repo); unset, one is made unshared and its id kept. Null only when Drive refuses. */
@@ -184,7 +191,7 @@ function postDecideApplication_(body, action, began) {
   if (status === 'approved') clearCache();
   const said = ['approved', 'interview', 'declined'].indexOf(status) === -1 ? undefined : text_('mail-apply-' + status, { brand: BRAND_NAME });
   if (who && S(who.email) && !addressPending_(who)) {
-    try { deliverOrThrow_(null, 'applied', { to: S(who.email), subject: text_('mail-apply-subject'), body: text_('mail-apply-body', { first: S(who.first_name) || '', said: said, site: SITE_URL }) }); out.emailed = true; } catch (err) { /* a failed courtesy note must not undo the work already done */ }
+    try { deliverOrThrow_(null, 'applied', applyDecidedMail_(S(who.email), S(who.first_name) || '', said)); out.emailed = true; } catch (err) { /* a failed courtesy note must not undo the work already done */ }
   }
   out.rank = rankOf(who);
   return jsonOut(out);

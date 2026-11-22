@@ -237,20 +237,15 @@ function digestRender_(L, P, week, look) {
     const moreSay = more > 0 && named.length ? '…and ' + more + ' more.' : '';
     /* THE KEY IS FOR THE PLAIN BODY: in the HTML each card says its verdict in words (380). */
     const lead = (k === 1 ? first : partSay) + (said ? (Q.fromLib ? ' How each one went: ' : ' Beside each one is how it went: ') + said + '.' : '') + (k === 1 ? unnamed : '');
-    const p = (t, st) => '<p style="margin:0 0 12px;' + (st || '') + '">' + t + '</p>';
+    const p = emailP_;
     const body = p(esc(S(hi))) + (k === 1 ? p(esc(S(first + unnamed))) + (partSay ? p(esc(S(partSay))) : '') + S0.html : p(esc(S(partSay))))
       + Q.html + (moreSay ? p(esc(S(moreSay))) : '')
       + p(esc(S(foot)), 'margin:24px 0 0;color:' + ink.dim + ';font-size:12px');
     return {
       subject: subject + (of > 1 ? ' (part ' + k + ' of ' + of + ')' : ''),
       text: [hi, '', lead].concat(k === 1 && partSay ? [partSay] : [], k === 1 ? S0.lines : [], ['']).concat(Q.lines, moreSay ? [moreSay, ''] : [], [foot]).join('\n'),
-      /* ONE TABLE THE WIDTH OF A PHONE, AT MOST 600 — the `width` for Outlook, which reads no max-width; every colour said, so a dark inbox inverts all of it or none (380). */
-      /* LIGHTENED (`digestSlim_`, 20 Nov): each style said more than once is said once, in the head, as a class. */
-      html: digestSlim_(digestDarkDoc_(ink, '<table role="presentation" class="kb" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="' + ink.page + '" style="background:' + ink.page + '">'
-        + '<tr><td align="center" class="kb" bgcolor="' + ink.page + '" style="padding:12px 8px;background:' + ink.page + '">'
-        + '<table role="presentation" class="kb" width="600" cellpadding="0" cellspacing="0" border="0" bgcolor="' + ink.page + '" style="width:100%;max-width:600px">'
-        + '<tr><td class="kb" bgcolor="' + ink.page + '" style="font-family:' + ink.mono + ';font-size:14px;line-height:1.5;color:' + ink.ink + ';text-align:left">'
-        + '<div class="gs"><div class="gd">' + body + '</div></div></td></tr></table></td></tr></table>')),
+      /* THE ONE EMAIL FRAME (email.gs `emailFrame_`), the frame every email the site sends is in. */
+      html: emailFrame_(body),
     };
   };
   /* ---------- EVERY QUESTION WITH ITS WORDS, AND UNDER GMAIL'S CLIP (owner, 20 Nov) § */
@@ -338,19 +333,6 @@ function digestSlim_(html) {
 /* THE EMAIL'S COLOURS: the site's black-and-gold screen (style.css `:root`, as DIGEST_INK in cards-gen.gs by tools/cards-gen.js; `--email-*` where an email needs its own) — page, pane, card, ink, verdicts; no paper, even for the answer box (25 Oct, 457). */
 function digestInk_() {
   return Object.assign({}, DIGEST_INK, { mono: "ui-monospace,'SF Mono','Cascadia Mono',Menlo,Consolas,'Courier New',monospace" });
-}
-
-/* DARK EVERYWHERE (the owner, 20 Oct): said dark to every client, Outlook's [data-ogsb]/[data-ogsc] held; no Gmail-app gradient, which keeps the black but not the white words (380). */
-function digestDarkDoc_(ink, inner) {
-  const k = '.kb{background:' + ink.page + '}.kp{background:' + ink.pane + '}.kc{background:' + ink.card + '}';
-  return '<!DOCTYPE html><html lang="en" style="background:' + ink.page + '"><head><meta charset="utf-8">'
-    + '<meta name="color-scheme" content="dark"><meta name="supported-color-schemes" content="dark">'
-    + '<style>:root{color-scheme:dark;supported-color-schemes:dark}html,body{background:' + ink.page + '!important;color:' + ink.ink + '}' + k
-    + '[data-ogsb] .kb{background-color:' + ink.page + '!important}[data-ogsb] .kp{background-color:' + ink.pane + '!important}[data-ogsb] .kc{background-color:' + ink.card + '!important}'
-    + '[data-ogsc] .kb{color:' + ink.ink + '!important}'
-    /* THE GMAIL APP'S DARK MODE INVERTS A DARK EMAIL TO LIGHT (the owner's screenshot, 25 Oct, 457): screen then difference undo it; `.gi` undoes it again for a picture or a colour. */
-    + 'u+.body .kb{background-image:linear-gradient(#000,#000)}u+.body .gs{background:#000;mix-blend-mode:screen}u+.body .gd{background:#000;mix-blend-mode:difference}u+.body .gi{mix-blend-mode:difference}</style></head>'
-    + '<body class="body" bgcolor="' + ink.page + '" style="margin:0;padding:0;background:' + ink.page + ';color:' + ink.ink + '">' + inner + '</body></html>';
 }
 
 /* HOW ONE QUESTION WENT, by the week's last word on it: right, part marks, not right, not marked — never how many goes it took (the owner, 20 Oct). */

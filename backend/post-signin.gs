@@ -378,15 +378,15 @@ function postVerifyLogin_(body, action, began) {
 function forgotPinMail_(own, tos, r, byHandle, handleSaid, fresh, linkKey) {
   const link = siteLink_('signin', linkKey);
   return own
-    ? { to: own, name: BRAND_NAME,
+    ? { to: own, name: BRAND_NAME, email: {
         subject: text_('mail-pin-subject', { brand: BRAND_NAME }),
-        body: text_('mail-pin-body', { brand: BRAND_NAME, pin: fresh, link: link,
+        lines: emailLines_(text_('mail-pin-body', { brand: BRAND_NAME, pin: fresh, link: link,
           byHandle: byHandle && handleSaid ? text_('mail-pin-by-handle', { handle: handleSaid }) : '',
-          signInWith: handleSaid ? text_('mail-pin-with-handle', { handle: handleSaid }) : text_('mail-pin-with-email') }) }
-    : { to: tos.join(','), name: BRAND_NAME,
+          signInWith: handleSaid ? text_('mail-pin-with-handle', { handle: handleSaid }) : text_('mail-pin-with-email') })) } }
+    : { to: tos.join(','), name: BRAND_NAME, email: {
         subject: text_('mail-pin-kid-subject', { who: handleSaid || S(r.first_name) || 'a learner' }),
-        body: text_('mail-pin-kid-body', { first: S(r.first_name) || 'A learner', handleSaid: handleSaid ? ' (' + handleSaid + ')' : '',
-          pin: fresh, who: handleSaid || S(r.first_name) || 'them', link: link }) };
+        lines: emailLines_(text_('mail-pin-kid-body', { first: S(r.first_name) || 'A learner', handleSaid: handleSaid ? ' (' + handleSaid + ')' : '',
+          pin: fresh, who: handleSaid || S(r.first_name) || 'them', link: link })) } };
 }
 
 /* a forgotten PIN -------------------------------------------------------------------------- ASKED FOR AS § */

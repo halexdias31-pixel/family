@@ -16,6 +16,7 @@
   "cards-gen.gs",
   "digest.gs",
   "digest-tags.gs",
+  "email.gs",
   "doget.gs",
   "get-start.gs",
   "get-people.gs",

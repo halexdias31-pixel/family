@@ -48,6 +48,7 @@ const ORDER = [
   'one-cells',    // the one-cells check (rule 1.75, owner 22 Nov): a question with cells draws one box and a hint, its right answers in order mark full; fails the build
   'email-ink',    // the email-ink check (rule 1.75, 20 Nov): the Sunday email's colours equal style.css tokens, its esc and the card maker's cardUnesc_ round-trip; fails the build
   'digest-clip',  // the digest-clip check (rule 1.75, owner 20 Nov): large weeks through the Sunday email's digestRender_; a part over Gmail's clip or a question without its words fails the build
+  'one-email',    // the one-email check (rule 1.75, queue step 8, 22 Nov): every email the backend builds, MailApp stubbed, through one card (email.gs emailOf_) with the same recipients, words and links as before (tools/data/one-email.json); fails the build
   'bundle',       // js/ in index.html's order -> bundle/*.js
   'one-profile-save', // the one-profile-save check (rule 1.75, unify batch 9 job A): one profile send (profileSave_), one fieldReadonly_; fails the build
   'one-request',  // the one-request check (rule 1.75, unify H): one fetch to the backend (backendFetch_), every posted action in actions.json, one dispatcher; fails the build
