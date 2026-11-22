@@ -4011,20 +4011,14 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .qp-fb { margin: var(--s0) var(--s3) var(--s1); font: 400 var(--fs-small)/1.45 var(--font); color: var(--ink); white-space: pre-line; }
 .qp-essay + .qp-fb { margin-inline: var(--s1); }
 .qp-fb:empty { display: none; }
-/* A PHOTO OF THE WORKING (501): the pages as thumbnails under the box, each with its remove; Mark my working in its own tile row. */
-.qp-work { margin: var(--s1) var(--s3) var(--s1); }
-.qp-work[hidden] { display: none; }
+/* OLD SAVED WORKING (501), as thumbnails, each with its remove (work-file.js; no photo is taken at a question any more: owner, 22 Nov) */
 .qp-work-pics { display: flex; flex-wrap: wrap; gap: var(--s2); }
 .qp-work-pic { position: relative; display: block; width: 5.5rem; height: 7rem; border: 1px solid var(--line); border-radius: var(--r-ui); overflow: hidden; }
 .qp-work-pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.qp-work-read { display: block; max-width: 100%; max-height: 16rem; margin-top: var(--s2); border-radius: var(--r-ui); }
 .qp-work-x { position: absolute; top: 2px; right: 2px; width: 32px; height: 32px; border-radius: var(--r-circle); border: 1px solid var(--line);
   background: var(--bg); color: var(--ink); font: 400 var(--fs-title)/1 var(--font); padding: 0; cursor: pointer; }
-.qp-work-say { margin: var(--s1) 0 0; font: 400 var(--fs-small)/1.45 var(--font); color: var(--ink); white-space: pre-line; }
-.qp-work-say:empty { display: none; }
 /* THE ANSWER BOX'S FACES (owner, 16 Nov): camera or graph in the text box's own slot, in the page's flow -- never over it */
 .qp-face { position: static; margin: var(--s1) var(--s3); min-height: 3rem; display: flex; flex-direction: column; gap: var(--s2); }
-.qp-cam-view { display: block; width: 100%; max-height: 60svh; aspect-ratio: 3 / 4; object-fit: cover; background: var(--line-soft); border: 1px solid var(--line); border-radius: var(--r-ui); }
 .qp-face-say { margin: 0; font: 400 var(--fs-small)/1.45 var(--font); color: var(--ink); }
 .qp-face-say:empty { display: none; }
 .qp-graph-axes { display: flex; flex-wrap: wrap; gap: var(--s2); font: 400 var(--fs-small)/1.45 var(--font); color: var(--ink); }

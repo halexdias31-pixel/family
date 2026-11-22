@@ -5645,7 +5645,7 @@ const said = subBoxSay_(k, val);
 return fcG_('div', 'qp-mark qp-compose qp-cells-box' + (said.cls ? ' ' + said.cls : ''), { 'data-k': k },
 fcG_('p', 'q-hint', null, '', cellsHint_(cells, maths)) + fcG_('div', 'qp-ans-row qp-bar', null,
 fcG_('label', 'qp-ans' + (maths ? ' qp-ans-maths' : ''), { 'aria-label': text_('your-answers-in-order') }, kpField_(k, val, maths ? 'maths' : 'words', 3)))
-+ workStrip_(x) + fcVerdict_(said.text) + fcSaved_(k));
++ fcVerdict_(said.text) + fcSaved_(k));
 }
 on('qp-cells-check', el => {
 const box = qMark_(el, '.qp-cells-box');
@@ -5679,7 +5679,7 @@ return card ? card.querySelector(s) : null;
 }
 function ansBox_(x) {
 const face = qtFace_(x);
-if (face.face === 'gaps') return cellsBox_(x);
+if (face.cells) return cellsBox_(x);
 const opts = choiceList_(x);
 const k = ansKey_(x);
 const m = markerOf_(x);
@@ -5688,22 +5688,21 @@ const rule = m.kind === 'words' ? String(x.markWords || '').trim() : '';
 const geo = m.kind === 'draw' ? String(x.drawAnswer || '').trim() : '';
 const maths = ansMaths_(x);
 const val = ansRead_(k);
-const ws = workStrip_(x);
 const drawAt = geo ? { 'data-k': k, 'data-pad': padKey_(x), 'data-draw': geo, 'data-marks': String(Number(x.marks) || '') } : {};
 const kept = !markSchemeOf_(x).length;
 const cls = 'qp-mark qp-compose' + (kept ? ' qp-keep' : '') + (geo ? ' qpad-send' : '');
 const dataAt = Object.assign(can ? { 'data-accept': can } : {}, rule ? { 'data-rule': rule, 'data-marks': String(Number(x.marks) || '') } : {}, drawAt);
 const fb = why => (kept && why ? fcG_('p', 'qp-fb', null, '', why) : '');
-if (ansEssay_(x) || face.face === 'essay') {
+if (ansEssay_(x) || face.sheet) {
 const said = subBoxSay_(k, val);
 return fcG_('div', cls + ' qp-essay' + (said.cls ? ' ' + said.cls : ''), dataAt,
 fcG_('label', 'qp-ans qp-sheet', { 'aria-label': text_('your-answer') }, kpField_(k, val, 'essay', 3)) + fcG_('p', 'qp-words', null, '', kpWordsSay_(val))
-+ ws + fcVerdict_(said.text) + fcSaved_(k)) + fb(said.why);
++ fcVerdict_(said.text) + fcSaved_(k)) + fb(said.why);
 }
 const bar = opts + fcG_('div', 'qp-ans-row qp-bar', null, fcG_('label', 'qp-ans' + (maths ? ' qp-ans-maths' : ''), { 'aria-label': text_('your-answer') }, kpField_(k, val, maths ? 'maths' : 'words', 3)));
 const said = geo ? subBoxSay_(k, padSay_(padRead_(padKey_(x)))) : subBoxSay_(k, val);
 return fcG_('div', cls + (said.cls ? ' ' + said.cls : ''), dataAt,
-bar + ws + fcVerdict_(geo ? padSaid_(said.text) : said.text) + fcSaved_(k)) + fb(said.text ? said.why : '');
+bar + fcVerdict_(geo ? padSaid_(said.text) : said.text) + fcSaved_(k)) + fb(said.text ? said.why : '');
 }
 function subBoxSay_(k, val) {
 const latest = typeof subLatest_ === 'function' ? subLatest_(k) : null;
@@ -5746,10 +5745,8 @@ const out = box && box.querySelector('.qp-verdict');
 if (!inp || !out || el.disabled) return;
 box.classList.remove('is-right', 'is-near');
 const k = inp.getAttribute('data-k');
-const pics = typeof WORK_PICS === 'object' && WORK_PICS ? (WORK_PICS[k] || []).length : 0;
-const notYet = partReady_('save', { typed: inp.value, pics });
+const notYet = partReady_('save', { typed: inp.value });
 if (notYet) { tell_(out, 'info', notYet); return; }
-if (pics && typeof workSave_ === 'function') { workSave_(k, inp.value, el, out); return; }
 const sent = subRecord_(k, inp.value, 'sent');
 const x = typeof qStatus_ === 'function' ? stuffItemsAll_().find(it => ansKey_(it) === k) : null;
 const tutor = !!x && qStatus_(x) === 'tutor';
@@ -8910,9 +8907,9 @@ const need = (x.choiceRight || []).length;
 if (need > 1) out.push('Choose ' + need + '.');
 said.forEach((c, i) => out.push(String.fromCharCode(65 + i) + ': ' + c + (/[?!:]$/.test(c) ? '' : '.')));
 } else {
-const f = String(x.accept || '').trim() ? qtFace_(x) : { face: 'one', values: 1 };
+const f = String(x.accept || '').trim() ? qtFace_(x) : { face: 'type', values: 1 };
 const n = f.values;
-if (f.face === 'one' && n >= 2) out.push('Give ' + n + ' answers.');
+if (f.face === 'type' && !f.cells && n >= 2) out.push('Give ' + n + ' answers.');
 }
 return out;
 }
@@ -14298,40 +14295,12 @@ flagPaint_(kind, id);
 });
 ;
 /* js/working.js */
-const WORK_MAX = 3, WORK_EDGE = 1600, WORK_BYTES = 500 * 1024;
-const WORK_PICS = {};
+const WORK_EDGE = 1600, WORK_BYTES = 500 * 1024;
 function workRow_(x) {
 const r = (x && x.row) || {};
 return Object.assign({}, r, { lead: x.lead, html: x.html, answer: x.answer, answer_type: x.answerType || r.answer_type,
 accept: x.accept || '', mark_words: x.markWords || '', cells: x.cells || '', draw_answer: x.drawAnswer || '',
 choices: (x.choices || []).join('|'), choice_right: (x.choiceRight || []).join('|'), marks: x.marks, subject: x.subject || r.subject });
-}
-function workStrip_(x) {
-if (!x || !isQ_(x)) return '';
-const k = ansKey_(x);
-workLoad_(k);
-return cardBlock_({ type: 'group', look: 'qp-work', attrs: { 'data-k': k, hidden: !(WORK_PICS[k] || []).length }, inner: workStripInner_(k) });
-}
-function workStripInner_(k) {
-const pics = WORK_PICS[k] || [];
-return cardBlocks_([{ type: 'group', look: 'qp-work-pics', blocks: pics.map((p, i) => ({ type: 'group', tag: 'span', look: 'qp-work-pic',
-blocks: [{ type: 'group', tag: 'img', attrs: { src: p.url, alt: `Page ${i + 1} of your working` } }],
-tiles: [{ form: true, look: 'qp-work-x', act: 'qp-work-x', data: { k: k, i: i }, aria: 'Remove page ' + (i + 1), label: '×' }] })) },
-{ type: 'group', tag: 'p', look: 'qp-work-say', attrs: { role: 'status', 'aria-live': 'polite' } }]);
-}
-function workPaint_(k) {
-document.querySelectorAll('.qp-work').forEach(el => {
-if (el.getAttribute('data-k') !== k) return;
-el.innerHTML = workStripInner_(k);
-el.hidden = !(WORK_PICS[k] || []).length;
-});
-}
-function workSay_(k, text) {
-document.querySelectorAll('.qp-work').forEach(el => {
-if (el.getAttribute('data-k') !== k) return;
-const p = el.querySelector('.qp-work-say');
-if (p) p.textContent = text;
-});
 }
 function workShrink_(file) {
 return new Promise((ok, bad) => {
@@ -14358,63 +14327,6 @@ img.src = url;
 });
 }
 const workBytes_ = d => Math.floor((String(d).length - String(d).indexOf(',') - 1) * 3 / 4);
-on('qp-work', el => {
-const k = el.getAttribute('data-k');
-if (!k) return;
-if (typeof whoIs_ === 'function' && !whoIs_()) { toast(text_('sign-in-to-send-your-working')); return; }
-if ((WORK_PICS[k] || []).length >= WORK_MAX) { workPaint_(k); workSay_(k, WORK_MAX + ' pages at most — remove one to add another'); return; }
-if (typeof camOpen_ === 'function') camOpen_(el, k); else workPick_(k);
-});
-function workPick_(k) {
-const inp = document.createElement('input');
-inp.type = 'file';
-inp.accept = 'image/*';
-inp.multiple = true;
-if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '')) inp.setAttribute('capture', 'environment');
-inp.className = 'qp-work-file';
-inp.hidden = true;
-inp.addEventListener('change', () => { workAdd_(k, [].slice.call(inp.files || [])); inp.remove(); });
-document.body.appendChild(inp);
-inp.click();
-}
-function workAdd_(k, files) {
-const room = WORK_MAX - (WORK_PICS[k] || []).length;
-const take = files.filter(f => f && /^image\//.test(f.type || 'image/')).slice(0, Math.max(0, room));
-if (!take.length) return Promise.resolve();
-workPaint_(k);
-workSay_(k, '');
-return Promise.all(take.map(f => workShrink_(f).then(url => ({ url }), () => null))).then(got => {
-const ok = got.filter(Boolean);
-WORK_PICS[k] = (WORK_PICS[k] || []).concat(ok).slice(0, WORK_MAX);
-workKeep_(k);
-workPaint_(k);
-if (ok.length) workDrawRead_(k, ok[ok.length - 1].url);
-if (ok.length < take.length) workSay_(k, 'A photo could not be read — try taking it again');
-else if (files.length > take.length) workSay_(k, WORK_MAX + ' pages at most — the rest were left out');
-});
-}
-on('qp-work-x', el => {
-const k = el.getAttribute('data-k'), i = Number(el.getAttribute('data-i'));
-(WORK_PICS[k] || []).splice(i, 1);
-workKeep_(k);
-workPaint_(k);
-});
-function workSave_(k, typed, el, out) {
-const pics = WORK_PICS[k] || [];
-if (!pics.length || el.disabled) return;
-if (typeof USER !== 'object' || !USER || !USER.token) { tell_(out, 'error', text_('sign-in-to-send-your-working')); return; }
-el.disabled = true;
-tell_(el, 'busy');
-api({ action: 'markWorking', personId: USER.personId || '', id: subId_(), sent: Date.now(), key: k,
-label: typeof doneLabel_ === 'function' ? (doneLabel_(k) || '') : '', answer: typed || '', photos: pics.map(p => p.url) })
-.then(d => {
-el.disabled = false;
-tell_(el, '');
-if (!d || !d.success) { tell_(out, 'error', (d && (d.message || d.error)) || 'Your working could not be saved just now \u2014 try again later'); return; }
-tell_(out, 'saved', 'Saved, with ' + pics.length + ' ' + plural_(pics.length, 'photo'));
-})
-.catch(() => { el.disabled = false; tell_(el, ''); tell_(out, 'error', 'Could not reach the server \u2014 your photos are still here'); });
-}
 function workSeeOpts_(pid, asParent) {
 if (!pid || !(asParent === true || may_('admin'))) return null;
 return ({ icon: 'photo', label: 'Working photos', note: 'saved with the answer', act: 'work-see', data: { id: pid } });
@@ -14443,221 +14355,6 @@ attrs: { href: u, 'data-do': 'file-view', target: '_blank', rel: 'noopener' }, b
 function workVerdictSay_(v) {
 const m = /^ai:(\d+)\/(\d+)$/.exec(String(v || ''));
 return m ? m[1] + ' of ' + m[2] + ' by AI' : 'saved, not marked';
-}
-const WORK_TAG = 'Working ';
-const workTitle_ = k => (WORK_TAG + (typeof ansServerKey_ === 'function' ? ansServerKey_(k) : k)).slice(0, 80);
-const workRecKey_ = k => partKeyOfAns_(k);
-let WORK_ROWS = null;
-function workLoad_(k) {
-if (!k || WORK_PICS[k]) return;
-const rec = partRecAt_(workRecKey_(k));
-const urls = (Array.isArray(rec.photos) ? rec.photos : []).filter(u => /^data:image\/jpeg;base64,/.test(String(u || ''))).slice(0, WORK_MAX);
-WORK_PICS[k] = urls.map(url => ({ url }));
-if (!urls.length) workFromAccount_(k);
-}
-function workSignedIn_() { return typeof USER !== 'undefined' && USER && USER.token && USER.personId && !USER.lockedPreview; }
-function workRows_() {
-if (WORK_ROWS) return WORK_ROWS;
-WORK_ROWS = api({ action: 'workFilesOf', personId: USER.personId, of: USER.personId })
-.then(d => (d && d.success && Array.isArray(d.work) ? d.work : []), () => { WORK_ROWS = null; return []; });
-return WORK_ROWS;
-}
-function workFromAccount_(k) {
-if (!workSignedIn_() || typeof api !== 'function') return;
-workRows_().then(rows => {
-const row = rows.find(r => r && r.title === workTitle_(k));
-if (!row) return;
-return api({ action: 'workFileOpen', personId: USER.personId, id: row.id }).then(d => {
-if (!d || !d.success || (WORK_PICS[k] || []).length) return;
-WORK_PICS[k] = (d.pages || []).filter(u => /^data:image\/jpeg;base64,/.test(String(u || ''))).slice(0, WORK_MAX).map(url => ({ url }));
-partRecPutAt_(workRecKey_(k), 'photoFile', row.id);
-workKeepHere_(k);
-workPaint_(k);
-});
-}).catch(() => { });
-}
-function workKeepHere_(k) {
-const urls = (WORK_PICS[k] || []).map(p => p.url);
-partRecPutAt_(workRecKey_(k), 'photos', urls.length ? urls : null);
-}
-const WORK_SYNC = new Map();
-function workSend_(k) {
-const pages = (WORK_PICS[k] || []).map(p => p.url);
-const old = partRecAt_(workRecKey_(k)).photoFile || '';
-const drop = () => (old ? api({ action: 'workFileDelete', personId: USER.personId, id: old }).catch(() => null) : Promise.resolve());
-if (!pages.length) { drop().then(() => partRecPutAt_(workRecKey_(k), 'photoFile', null)); WORK_ROWS = null; return; }
-api({ action: 'workFileSave', personId: USER.personId, of: USER.personId, title: workTitle_(k), subject: 'Question working', pages })
-.then(d => {
-if (!d || !d.success) { workSay_(k, (d && d.message) || 'Not saved to your account yet — kept on this device'); return; }
-drop();
-partRecPutAt_(workRecKey_(k), 'photoFile', d.id);
-WORK_ROWS = null;
-})
-.catch(() => workSay_(k, 'Could not reach the server — the photos are kept on this device'));
-}
-function workKeep_(k) {
-workKeepHere_(k);
-if (!workSignedIn_() || typeof api !== 'function') return;
-clearTimeout(WORK_SYNC.get(k));
-WORK_SYNC.set(k, setTimeout(() => workSend_(k), 1200));
-}
-function photoInk_(gray, w, h) {
-const R = Math.max(4, Math.round(Math.max(w, h) / 40)), I = new Float64Array((w + 1) * (h + 1));
-for (let y = 0; y < h; y++) for (let x = 0, s = 0; x < w; x++) { s += gray[y * w + x]; I[(y + 1) * (w + 1) + x + 1] = I[y * (w + 1) + x + 1] + s; }
-const d = new Float64Array(w * h), hist = new Array(256).fill(0);
-for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-const x0 = Math.max(0, x - R), x1 = Math.min(w, x + R + 1), y0 = Math.max(0, y - R), y1 = Math.min(h, y + R + 1);
-const m = (I[y1 * (w + 1) + x1] - I[y0 * (w + 1) + x1] - I[y1 * (w + 1) + x0] + I[y0 * (w + 1) + x0]) / ((x1 - x0) * (y1 - y0));
-const v = Math.max(0, Math.min(255, m * 1.04 - gray[y * w + x]));
-d[y * w + x] = v; hist[v | 0]++;
-}
-let sum = 0, n = w * h, sB = 0, wB = 0, best = 0, cut = 20;
-hist.forEach((c, i) => { sum += i * c; });
-for (let t = 0; t < 256; t++) {
-wB += hist[t]; if (!wB || wB === n) continue;
-sB += t * hist[t];
-const mB = sB / wB, mF = (sum - sB) / (n - wB), v = wB * (n - wB) * (mB - mF) * (mB - mF);
-if (v > best) { best = v; cut = t; }
-}
-cut = Math.max(10, cut);
-const pts = [];
-for (let i = 0; i < w * h; i++) if (d[i] > cut) pts.push([i % w, (i / w) | 0]);
-return pts;
-}
-function photoConic_(P0) {
-if (P0.length < 10) return null;
-const ox = P0.reduce((s, p) => s + p[0], 0) / P0.length, oy = P0.reduce((s, p) => s + p[1], 0) / P0.length;
-const P = P0.map(p => [p[0] - ox, p[1] - oy]), A = [0, 1, 2, 3, 4].map(() => new Array(6).fill(0));
-P.forEach(p => { const r = [p[0] * p[0], p[0] * p[1], p[1] * p[1], p[0], p[1]]; for (let i = 0; i < 5; i++) { for (let j = 0; j < 5; j++) A[i][j] += r[i] * r[j]; A[i][5] += r[i]; } });
-for (let i = 0; i < 5; i++) {
-let p = i; for (let r = i + 1; r < 5; r++) if (Math.abs(A[r][i]) > Math.abs(A[p][i])) p = r;
-[A[i], A[p]] = [A[p], A[i]];
-if (!A[i][i]) return null;
-for (let r = 0; r < 5; r++) if (r !== i) { const f = A[r][i] / A[i][i]; for (let c = i; c < 6; c++) A[r][c] -= f * A[i][c]; }
-}
-const [a, b, c, d, e] = A.map((r, i) => r[5] / r[i]);
-const det = a * c - b * b / 4;
-if (!(det > 0)) return null;
-const cx = (b * e / 2 - c * d) / (2 * det), cy = (b * d / 2 - a * e) / (2 * det);
-const k = 1 + a * cx * cx + b * cx * cy + c * cy * cy;
-if (!(k > 0) || a < 0) return null;
-const tr = a + c, q = Math.sqrt(Math.max(0, tr * tr / 4 - det)), l1 = tr / 2 + q, l2 = tr / 2 - q;
-if (!(l2 > 0) || l2 / l1 < 0.35) return null;
-const th = Math.abs(b) < 1e-12 ? (a >= c ? 0 : Math.PI / 2) : Math.atan2(l1 - a, b / 2), co = Math.cos(th), si = Math.sin(th);
-const s1 = Math.sqrt(l1 / k), s2 = Math.sqrt(l2 / k);
-const m = [co * co * s1 + si * si * s2, co * si * (s1 - s2), si * si * s1 + co * co * s2];
-return { c: [cx + ox, cy + oy], r: Math.sqrt(k / Math.sqrt(l1 * l2)), to: p => { const x = p[0] - ox - cx, y = p[1] - oy - cy; return [m[0] * x + m[1] * y, m[1] * x + m[2] * y]; } };
-}
-function photoPie_(gray, w, h) {
-const all = photoInk_(gray, w, h);
-if (all.length < 50) return { ok: false, why: 'no ink was found' };
-let seed = 12345;
-const rnd = n => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed % n; };
-const P = all.length > 6000 ? Array.from({ length: 6000 }, () => all[rnd(all.length)]) : all;
-const minR = Math.min(w, h) * 0.12, maxR = Math.max(w, h) * 0.6;
-let best = null;
-for (let t = 0; t < 1500; t++) {
-const a = P[rnd(P.length)], b = P[rnd(P.length)], c = P[rnd(P.length)];
-const D = 2 * (a[0] * (b[1] - c[1]) + b[0] * (c[1] - a[1]) + c[0] * (a[1] - b[1]));
-if (Math.abs(D) < 1e-6) continue;
-const s = [a, b, c].map(p => p[0] * p[0] + p[1] * p[1]);
-const x = (s[0] * (b[1] - c[1]) + s[1] * (c[1] - a[1]) + s[2] * (a[1] - b[1])) / D, y = (s[0] * (c[0] - b[0]) + s[1] * (a[0] - c[0]) + s[2] * (b[0] - a[0])) / D;
-const r = Math.hypot(a[0] - x, a[1] - y);
-if (r < minR || r > maxR) continue;
-const band = Math.max(2, r * 0.03);
-let n = 0;
-for (let i = 0; i < P.length; i += 3) if (Math.abs(Math.hypot(P[i][0] - x, P[i][1] - y) - r) < band) n++;
-if (!best || n > best.n) best = { x, y, r, n };
-}
-if (!best) return { ok: false, why: 'no circle was found' };
-let E = null, ring = all.filter(p => Math.abs(Math.hypot(p[0] - best.x, p[1] - best.y) - best.r) < best.r * 0.12);
-for (let t = 0; t < 2; t++) {
-const e = photoConic_(ring);
-if (!e) break;
-E = e;
-ring = all.filter(p => { const q = e.to(p); return Math.abs(Math.hypot(q[0], q[1]) - 1) < 0.07; });
-}
-if (!E) { const r = best.r; E = { c: [best.x, best.y], r, to: p => [(p[0] - best.x) / r, (p[1] - best.y) / r] }; }
-const N = all.map(p => ({ p, q: E.to(p) }));
-const round = new Array(72).fill(0);
-N.forEach(o => { const d = Math.hypot(o.q[0], o.q[1]); if (Math.abs(d - 1) < 0.07) round[((Math.atan2(o.q[0], -o.q[1]) * 180 / Math.PI + 360) % 360 / 5) | 0] = 1; });
-const cover = round.reduce((s, v) => s + v, 0) / 72;
-if (cover < 0.8) return { ok: false, why: 'the circle was not clear all the way round', cover };
-const thick = Math.max(1, ring.length / (2 * Math.PI * E.r));
-const H = new Array(360).fill(0), inner = N.filter(o => { const d = Math.hypot(o.q[0], o.q[1]); return d > 0.2 && d < 0.9; });
-inner.forEach(o => { H[Math.round((Math.atan2(o.q[0], -o.q[1]) * 180 / Math.PI + 360) % 360) % 360]++; });
-const S = H.map((v, i) => [-2, -1, 0, 1, 2].reduce((s, j) => s + H[(i + j + 360) % 360], 0));
-const full = 0.7 * E.r * thick, peaks = [];
-S.map((v, i) => [v, i]).sort((a, b) => b[0] - a[0]).forEach(([v, i]) => {
-if (v < full * 0.45) return;
-if (peaks.some(p => Math.abs(((p - i + 540) % 360) - 180) < 8)) return;
-peaks.push(i);
-});
-const lines = peaks.map(g0 => {
-const pts = inner.filter(o => Math.abs((((Math.atan2(o.q[0], -o.q[1]) * 180 / Math.PI) - g0 + 540) % 360) - 180) < 5).map(o => o.q);
-const n = pts.length, mx = pts.reduce((s, p) => s + p[0], 0) / n, my = pts.reduce((s, p) => s + p[1], 0) / n;
-let xx = 0, xy = 0, yy = 0;
-pts.forEach(p => { xx += (p[0] - mx) ** 2; xy += (p[0] - mx) * (p[1] - my); yy += (p[1] - my) ** 2; });
-const th = 0.5 * Math.atan2(2 * xy, xx - yy);
-let dx = Math.cos(th), dy = Math.sin(th);
-if (dx * mx + dy * my < 0) { dx = -dx; dy = -dy; }
-return Math.round(((Math.atan2(dx, -dy) * 180 / Math.PI + 360) % 360) * 10) / 10;
-}).sort((a, b) => a - b);
-if (!lines.length) return { ok: false, why: 'no lines from the centre were found', cover };
-if (lines.length > 10) return { ok: false, why: 'too much stray ink to tell the lines apart', cover };
-const inv = q => { let p = E.c.slice(); for (let i = 0; i < 30; i++) { const z = E.to(p); p = [p[0] + (q[0] - z[0]) * E.r, p[1] + (q[1] - z[1]) * E.r]; } return p; };
-const at = g => inv([Math.sin(g * Math.PI / 180), -Math.cos(g * Math.PI / 180)]);
-return { ok: true, lines, cover, c: E.c, r: E.r, at };
-}
-function photoPieStrokes_(read, spec, fig) {
-const it = (spec.items || []).find(i => i.k === 'pie');
-if (!it || !read.ok) return null;
-const F = DRAW_MARK.frameOf(spec, fig), c = F.v(it.c), r = Math.abs(it.r * F.u[0]), vb = F.vb;
-let turn = 0;
-if (it.given && it.given.length) {
-const off = g => ((g - it.given[0] + 540) % 360) - 180, near = read.lines.slice().sort((a, b) => Math.abs(off(a)) - Math.abs(off(b)))[0];
-if (Math.abs(off(near)) < 45) turn = -off(near);
-}
-const at = (g, d) => [c[0] + d * Math.sin(g * Math.PI / 180), c[1] - d * Math.cos(g * Math.PI / 180)];
-const flat = pl => [].concat.apply([], pl.map(p => [(p[0] - vb[0]) / vb[2] * 340, (p[1] - vb[1]) / vb[3] * 340]));
-const ring = []; for (let g = 0; g <= 360; g += 10) ring.push(at(g, r));
-return [flat(ring)].concat(read.lines.map(g => flat([c, at(g + turn, r)])));
-}
-const PHOTO_READ = { pie: { read: photoPie_, strokes: photoPieStrokes_ } };
-function workDrawRead_(k, url) {
-const row = [].find.call(document.querySelectorAll('.qpad-send'), r => r.getAttribute('data-k') === k);
-if (!row || typeof DRAW_MARK !== 'object') return;
-let spec = row.getAttribute('data-draw') || '';
-try { spec = JSON.parse(spec); } catch (e) { return; }
-const kind = spec && (spec.items || []).map(i => i.k).find(x => PHOTO_READ[x]);
-if (!kind) { workSay_(k, 'A photo of this kind of drawing is not read yet — it is kept for your tutor'); return; }
-const img = new Image();
-img.onload = () => {
-const s = Math.min(1, 480 / Math.max(img.naturalWidth, img.naturalHeight)), w = Math.round(img.naturalWidth * s), h = Math.round(img.naturalHeight * s);
-const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
-const g = cv.getContext('2d'); g.drawImage(img, 0, 0, w, h);
-const px = g.getImageData(0, 0, w, h).data, gray = new Uint8Array(w * h);
-for (let i = 0; i < w * h; i++) gray[i] = (px[i * 4] * 0.299 + px[i * 4 + 1] * 0.587 + px[i * 4 + 2] * 0.114) | 0;
-const R = PHOTO_READ[kind], read = R.read(gray, w, h);
-if (!read.ok) { workSay_(k, 'The drawing in the photo could not be read clearly (' + read.why + ') — it is left unmarked for your tutor'); return; }
-const pad = typeof padOfRow_ === 'function' ? padOfRow_(row) : null, art = pad && pad.querySelector('.qpad-art > svg:first-child');
-const fig = drawFig_(art ? (art.__src || art.outerHTML) : ''), strokes = R.strokes(read, spec, fig);
-const res = strokes && DRAW_MARK.mark(strokes, spec, fig, row.getAttribute('data-marks'));
-g.lineWidth = Math.max(2, w / 160); g.strokeStyle = token_('--accent', '#d33');
-g.beginPath(); for (let a = 0; a <= 360; a += 5) { const p = read.at(a); a ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]); } g.stroke();
-read.lines.forEach(a => { const p = read.at(a); g.beginPath(); g.moveTo(read.c[0], read.c[1]); g.lineTo(p[0], p[1]); g.stroke(); });
-const say = !res ? 'The drawing was read but could not be marked' : res.got + ' of ' + res.of + ' marks, from the lines read in your photo';
-document.querySelectorAll('.qp-work').forEach(el => {
-if (el.getAttribute('data-k') !== k) return;
-const p = el.querySelector('.qp-work-say');
-if (!p) return;
-p.textContent = say;
-const im = document.createElement('img');
-im.src = cv.toDataURL('image/jpeg', 0.8); im.alt = 'The lines read from your photo'; im.className = 'qp-work-read';
-p.appendChild(document.createElement('br')); p.appendChild(im);
-});
-};
-img.src = url;
 }
 ;
 /* js/work-file.js */
@@ -15390,7 +15087,6 @@ const QT_TOOLS = [
 { id: 'ruler', icon: 'ruler', label: 'Ruler', note: 'measure a length', act: 'qt-inst' },
 { id: 'protractor', icon: 'protractor', label: 'Protractor', note: 'measure an angle', act: 'qt-inst' },
 { id: 'compass', icon: 'compass', label: 'Compass', note: 'press the centre, drag', act: 'qt-inst' },
-{ id: 'photo', icon: 'photo', label: 'Photo of working', note: 'up to 3 pages', act: 'qp-work' },
 { id: 'paper', icon: 'grid', label: 'Paper', note: 'graph, lined or blank', act: 'qp-paper' },
 { id: 'mag', icon: 'zoom', label: 'Magnifier', note: 'hold it over the page', act: 'q-mag' },
 { id: 'read', icon: 'speak', label: 'Read aloud', note: 'reads the question out', act: 'read-aloud' },
@@ -15492,7 +15188,6 @@ return o || { icon: t.icon, label: t.label, note: 'not on this device', act: 're
 },
 calc: (t, x, key) => calcAllowed_(x) ? { icon: t.icon, label: t.label, note: t.note, act: t.act, cls: 'qt-t qt-calc', on: floatIs_('calc', key), pressed: floatIs_('calc', key), data: { tool: t.id, key } } : null,
 offline: (t, x) => (typeof window.offOpts_ === 'function' ? window.offOpts_(x) : null),
-photo: (t, x) => (!markSchemeOf_(x).length ? { icon: t.icon, label: t.label, note: t.note, act: 'qp-work', cls: 'qp-work-go qt-t', data: { k: ansKey_(x), tool: t.id } } : null),
 };
 const qtPadKey_ = (t, x) => t && (t.act === 'qt-pen' || t.act === 'qt-inst') && typeof padKey_ === 'function' ? padKey_(x) : '';
 const qtInHand_ = pk => pk && typeof PAD_ON !== 'undefined' && PAD_ON === pk ? (PAD_TOOL.get(pk) || 'pen') : '';
@@ -15576,8 +15271,7 @@ ansFace_(el.closest('.qp-mark'), 'text'); });
 const ansFacePick_ = (k, f) => partRecPutAt_(partKeyOfAns_(k), 'face', f);
 function ansFaceWant_(x) {
 const own = partRecAt_(partKeyOfAns_(ansKey_(x))).face;
-const want = own || norm(x.face || (x.row && x.row.face));
-return PAPER_GRIDS.some(p => p.id === want) ? want : 'text';
+return PAPER_GRIDS.some(p => p.id === own) ? own : 'text';
 }
 const ANS_FACE_DUE = new Set();
 function ansFaceDue_(x) {
@@ -15596,84 +15290,6 @@ const box = qMark_(t);
 if (box && !ansFaceOf_(box)) paperOpen_(box, x, ansFaceWant_(x));
 });
 });
-}
-const CAM = { stream: null, el: null, timer: 0, refused: '' };
-function camStop_() {
-if (CAM.stream) CAM.stream.getTracks().forEach(t => { try { t.stop(); } catch (e) { } });
-const v = CAM.el && CAM.el.querySelector('video');
-if (v) v.srcObject = null;
-if (CAM.timer) clearInterval(CAM.timer);
-CAM.stream = null; CAM.el = null; CAM.timer = 0;
-}
-function camWhy_(e) {
-const n = e && e.name;
-if (n === 'NotAllowedError' || n === 'SecurityError') return 'The camera was not allowed — choose or take a photo instead';
-if (n === 'NotFoundError' || n === 'OverconstrainedError') return 'No camera was found — choose a photo instead';
-return 'The camera could not start — choose or take a photo instead';
-}
-const camRoom_ = k => WORK_MAX - (WORK_PICS[k] || []).length;
-ANS_FACES.camera = {
-open(el, k) {
-el.innerHTML = fcG_('p', 'qp-face-say', { role: 'status', 'aria-live': 'polite' }, '', '')
-+ fcG_('div', 'tile-row qp-face-tiles', null, tile_([
-{ icon: 'photo', label: 'Take photo', note: camRoom_(k) + ' of ' + WORK_MAX + ' pages left', act: 'qp-cam-shot', data: { k } },
-{ icon: 'left', label: 'Back', note: 'to typing', act: 'qp-face-text' }]));
-const v = document.createElement('video');
-v.className = 'qp-cam-view';
-v.setAttribute('aria-label', 'Camera');
-v.setAttribute('playsinline', '');
-v.muted = true; v.autoplay = true; v.playsInline = true;
-el.insertAdjacentElement('afterbegin', v);
-camStop_();
-CAM.el = el;
-CAM.timer = setInterval(() => { if (CAM.el && !CAM.el.isConnected) camStop_(); }, 1000);
-navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false }).then(s => {
-if (CAM.el !== el || !el.isConnected) { s.getTracks().forEach(t => t.stop()); return; }
-CAM.stream = s;
-v.srcObject = s;
-const p = v.play && v.play();
-if (p && p.catch) p.catch(() => {});
-}).catch(e => { CAM.refused = camWhy_(e); camFallback_(el.closest('.qp-mark'), k, CAM.refused); });
-},
-close(el) { if (CAM.el === el) camStop_(); },
-};
-function camFallback_(box, k, why) {
-ansFace_(box, 'text');
-tell_(null, 'info', why);
-workPick_(k);
-}
-on('qp-cam-shot', el => {
-const face = el.closest('.qp-face'), k = el.getAttribute('data-k') || '';
-const v = face && face.querySelector('video');
-const say = face && face.querySelector('.qp-face-say');
-if (!v || !CAM.stream || !(v.videoWidth > 0)) { tell_(say, 'info', 'The camera is still starting'); return; }
-if (camRoom_(k) <= 0) { ansFace_(face.closest('.qp-mark'), 'text'); return; }
-const c = document.createElement('canvas');
-c.width = v.videoWidth; c.height = v.videoHeight;
-c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
-tell_(say, 'busy', 'Saving the page…');
-c.toBlob(b => {
-if (!b) { tell_(say, 'error', 'That photo could not be made — try again'); return; }
-workAdd_(k, [b]).then(() => {
-const left = camRoom_(k);
-if (left <= 0) { ansFace_(face.closest('.qp-mark'), 'text'); return; }
-tell_(say, 'saved', 'Page taken — ' + left + ' more allowed');
-});
-}, 'image/jpeg', 0.9);
-});
-const camAway_ = () => { if (CAM.el) { const box = CAM.el.closest('.qp-mark'); camStop_(); if (box) ansFace_(box, 'text'); } };
-document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') camAway_(); });
-window.addEventListener('pagehide', camAway_);
-function camOpen_(el, k) {
-const box = qMark_(el);
-const live = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
-if (!box || !live || CAM.refused) {
-tell_(null, 'info', CAM.refused || (box ? 'This device has no live camera here — choose or take a photo instead' : ''));
-return workPick_(k);
-}
-const was = ansFaceOf_(box);
-if (was && was.getAttribute('data-face') === 'camera') return ansFace_(box, 'text');
-ansFace_(box, 'camera', k);
 }
 const PAPER_GRIDS = [{ id: 'graph', icon: 'grid', label: 'Graph' }, { id: 'lines', icon: 'doc', label: 'Lines' }, { id: 'blank', icon: 'figure', label: 'Blank' }];
 const PAPER_PENS = ['pen', 'line', 'compass', 'protractor'];

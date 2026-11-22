@@ -1,9 +1,9 @@
-/* @family. — js/answer-face.js THE ANSWER BOX'S FACES (owner, 16 Nov): text, camera, paper (owner, 17 Nov: one paper face, its grid a
-   setting -- graph, lines or blank). A tile swaps which face fills the box's
+/* @family. — js/answer-face.js THE ANSWER BOX'S FACES: text, and paper to draw on (owner, 17 Nov: one paper face, its grid a
+   setting -- graph, lines or blank). No camera (owner, 22 Nov: no more photo marking). A tile swaps which face fills the box's
    one slot, where the text box stood, the same width and place; nothing opens over the page (rule: nothing opens over the app). */
 
 /* ---------- THE ONE SWAP: every face goes in and out of a box through `ansFace_`, so no tool draws a sheet of its own. */
-/* `open(el, k, box)` fills a face made empty in the slot; `close(el)` lets go of what it holds (a camera stream) before it goes. */
+/* `open(el, k, box)` fills a face made empty in the slot; `close(el)` lets go of what it holds before it goes. */
 const ANS_FACES = {};
 /* THE SLOT: the typed box's row (or several boxes'), an essay's sheet; a box drawn without one takes the face at its top. */
 const ansSlot_ = box => (box && box.querySelector(':scope > .qp-ans-row, :scope > .qp-sheet')) || null;
@@ -31,13 +31,12 @@ function ansFace_(box, face, k, o) {
 on('qp-face-text', el => { const f = el.closest('.qp-face'); if (f && f.getAttribute('data-face') === 'paper') ansFacePick_(f.getAttribute('data-k'), 'text');
   ansFace_(el.closest('.qp-mark'), 'text'); });
 
-/* ---------- WHICH FACE A BOX SHOWS: the one the student picked by hand (the part's record, `face`), else the question's own
-   (`face` on its row: text, graph, lines or blank -- kinds.json question `rowFields`), else text. A camera is never a default: it asks for the camera. */
+/* ---------- WHICH FACE A BOX SHOWS: the one the student picked by hand (the part's record, `face`), else text. The question's own
+   face is qtypes.js `qtFace_` (type, pick or draw), never a row field. */
 const ansFacePick_ = (k, f) => partRecPutAt_(partKeyOfAns_(k), 'face', f);
 function ansFaceWant_(x) {
   const own = partRecAt_(partKeyOfAns_(ansKey_(x))).face;
-  const want = own || norm(x.face || (x.row && x.row.face));
-  return PAPER_GRIDS.some(p => p.id === want) ? want : 'text';
+  return PAPER_GRIDS.some(p => p.id === own) ? own : 'text';
 }
 /* A CARD DRAWN (again) gets its box's face back: asked by its tile row as it is drawn (`qtTiles_`), applied once the markup is in. */
 const ANS_FACE_DUE = new Set();
@@ -57,94 +56,6 @@ function ansFacesApply_() {
       if (box && !ansFaceOf_(box)) paperOpen_(box, x, ansFaceWant_(x));
     });
   });
-}
-
-/* ---------- THE CAMERA FACE: the rear camera live in the slot, a shutter and a back tile. The stream is never kept: each shot
-   becomes a page through `workShrink_` into `WORK_PICS` (working.js), exactly where a picked photo goes. */
-const CAM = { stream: null, el: null, timer: 0, refused: '' };
-function camStop_() {
-  if (CAM.stream) CAM.stream.getTracks().forEach(t => { try { t.stop(); } catch (e) { /* already stopped */ } });
-  const v = CAM.el && CAM.el.querySelector('video');
-  if (v) v.srcObject = null;
-  if (CAM.timer) clearInterval(CAM.timer);
-  CAM.stream = null; CAM.el = null; CAM.timer = 0;
-}
-/* WHY THERE IS NO LIVE CAMERA, said once with `tell_`; the phone's own picker is used instead */
-function camWhy_(e) {
-  const n = e && e.name;
-  if (n === 'NotAllowedError' || n === 'SecurityError') return 'The camera was not allowed — choose or take a photo instead';
-  if (n === 'NotFoundError' || n === 'OverconstrainedError') return 'No camera was found — choose a photo instead';
-  return 'The camera could not start — choose or take a photo instead';
-}
-const camRoom_ = k => WORK_MAX - (WORK_PICS[k] || []).length;
-ANS_FACES.camera = {
-  open(el, k) {
-    el.innerHTML = fcG_('p', 'qp-face-say', { role: 'status', 'aria-live': 'polite' }, '', '')
-      + fcG_('div', 'tile-row qp-face-tiles', null, tile_([
-        { icon: 'photo', label: 'Take photo', note: camRoom_(k) + ' of ' + WORK_MAX + ' pages left', act: 'qp-cam-shot', data: { k } },
-        { icon: 'left', label: 'Back', note: 'to typing', act: 'qp-face-text' }]));
-    const v = document.createElement('video');
-    v.className = 'qp-cam-view';
-    v.setAttribute('aria-label', 'Camera');
-    v.setAttribute('playsinline', '');
-    v.muted = true; v.autoplay = true; v.playsInline = true;
-    el.insertAdjacentElement('afterbegin', v);
-    camStop_();
-    CAM.el = el;
-    /* LEAVING THE CARD (drawn again, the page moved on) stops it: a face no longer on the page holds no camera */
-    CAM.timer = setInterval(() => { if (CAM.el && !CAM.el.isConnected) camStop_(); }, 1000);
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false }).then(s => {
-      if (CAM.el !== el || !el.isConnected) { s.getTracks().forEach(t => t.stop()); return; }
-      CAM.stream = s;
-      v.srcObject = s;
-      const p = v.play && v.play();
-      if (p && p.catch) p.catch(() => {});
-    }).catch(e => { CAM.refused = camWhy_(e); camFallback_(el.closest('.qp-mark'), k, CAM.refused); });
-  },
-  close(el) { if (CAM.el === el) camStop_(); },
-};
-/* NO LIVE CAMERA: back to the text face, the reason said, and the picker working.js has always had */
-function camFallback_(box, k, why) {
-  ansFace_(box, 'text');
-  tell_(null, 'info', why);
-  workPick_(k);
-}
-/* THE SHUTTER: the frame drawn once to a canvas, made a JPEG, and handed on as a picked photo would be */
-on('qp-cam-shot', el => {
-  const face = el.closest('.qp-face'), k = el.getAttribute('data-k') || '';
-  const v = face && face.querySelector('video');
-  const say = face && face.querySelector('.qp-face-say');
-  if (!v || !CAM.stream || !(v.videoWidth > 0)) { tell_(say, 'info', 'The camera is still starting'); return; }
-  if (camRoom_(k) <= 0) { ansFace_(face.closest('.qp-mark'), 'text'); return; }
-  const c = document.createElement('canvas');
-  c.width = v.videoWidth; c.height = v.videoHeight;
-  c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
-  tell_(say, 'busy', 'Saving the page…');
-  c.toBlob(b => {
-    if (!b) { tell_(say, 'error', 'That photo could not be made — try again'); return; }
-    workAdd_(k, [b]).then(() => {
-      const left = camRoom_(k);
-      /* THE LAST PAGE ALLOWED: the camera stops and the box is a text box again */
-      if (left <= 0) { ansFace_(face.closest('.qp-mark'), 'text'); return; }
-      tell_(say, 'saved', 'Page taken — ' + left + ' more allowed');
-    });
-  }, 'image/jpeg', 0.9);
-});
-/* PAGE HIDDEN: the camera stops and its face goes back to typing */
-const camAway_ = () => { if (CAM.el) { const box = CAM.el.closest('.qp-mark'); camStop_(); if (box) ansFace_(box, 'text'); } };
-document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') camAway_(); });
-window.addEventListener('pagehide', camAway_);
-/* THE CAMERA TILE (`qp-work`): the live face where the device has one and has not refused it; the picker otherwise. */
-function camOpen_(el, k) {
-  const box = qMark_(el);
-  const live = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
-  if (!box || !live || CAM.refused) {
-    tell_(null, 'info', CAM.refused || (box ? 'This device has no live camera here — choose or take a photo instead' : ''));
-    return workPick_(k);
-  }
-  const was = ansFaceOf_(box);
-  if (was && was.getAttribute('data-face') === 'camera') return ansFace_(box, 'text');
-  ansFace_(box, 'camera', k);
 }
 
 /* ---------- THE PAPER FACE (owner, 17 Nov): one face in the slot, its grid a setting -- graph (axes you set; tap a crossing for a point,

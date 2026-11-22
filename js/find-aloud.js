@@ -236,9 +236,9 @@ function readAloudLines_(x) {
     said.forEach((c, i) => out.push(String.fromCharCode(65 + i) + ': ' + c + (/[?!:]$/.test(c) ? '' : '.')));
   } else {
     /* HOW MANY THE KEY WANTS, as the one face reads it (qtypes.js `qtFace_`): all typed in the one box */
-    const f = String(x.accept || '').trim() ? qtFace_(x) : { face: 'one', values: 1 };
+    const f = String(x.accept || '').trim() ? qtFace_(x) : { face: 'type', values: 1 };
     const n = f.values;
-    if (f.face === 'one' && n >= 2) out.push('Give ' + n + ' answers.');
+    if (f.face === 'type' && !f.cells && n >= 2) out.push('Give ' + n + ' answers.');
   }
   return out;
 }

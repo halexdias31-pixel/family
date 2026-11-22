@@ -179,7 +179,7 @@ function cellsBox_(x) {
   return fcG_('div', 'qp-mark qp-compose qp-cells-box' + (said.cls ? ' ' + said.cls : ''), { 'data-k': k },
     fcG_('p', 'q-hint', null, '', cellsHint_(cells, maths)) + fcG_('div', 'qp-ans-row qp-bar', null,
       fcG_('label', 'qp-ans' + (maths ? ' qp-ans-maths' : ''), { 'aria-label': text_('your-answers-in-order') }, kpField_(k, val, maths ? 'maths' : 'words', 3)))
-    + workStrip_(x) + fcVerdict_(said.text) + fcSaved_(k));
+    + fcVerdict_(said.text) + fcSaved_(k));
 }
 on('qp-cells-check', el => {
   const box = qMark_(el, '.qp-cells-box');
@@ -217,7 +217,7 @@ function qMark_(el, sel) {
 /* THE FACE IS THE ONE SOURCE'S (qtypes.js `qtFace_`, owner 20 Nov): one box for every question (22 Nov). */
 function ansBox_(x) {
   const face = qtFace_(x);
-  if (face.face === 'gaps') return cellsBox_(x);
+  if (face.cells) return cellsBox_(x);
   const opts = choiceList_(x);
   const k = ansKey_(x);
   const m = markerOf_(x);
@@ -227,7 +227,6 @@ function ansBox_(x) {
   /* ONE KEYPAD THAT TYPES ANYTHING (keypad.js): the answer's shape only picks the layer it opens on */
   const maths = ansMaths_(x);
   const val = ansRead_(k);
-  const ws = workStrip_(x);
   /* A DRAWN ANSWER IS MARKED HERE TOO, by its geometry (366): the row carries the pad's key for `padCheck_` */
   const drawAt = geo ? { 'data-k': k, 'data-pad': padKey_(x), 'data-draw': geo, 'data-marks': String(Number(x.marks) || '') } : {};
   /* NO EXACT KEY, NO MARK (owner, 16 Nov): the part saves its work; feedback an earlier AI mark left is still shown under it (`qp-fb`) */
@@ -236,17 +235,17 @@ function ansBox_(x) {
   const dataAt = Object.assign(can ? { 'data-accept': can } : {}, rule ? { 'data-rule': rule, 'data-marks': String(Number(x.marks) || '') } : {}, drawAt);
   const fb = why => (kept && why ? fcG_('p', 'qp-fb', null, '', why) : '');
   /* ---------- AN ESSAY IS WRITTEN ON A SHEET: the same one box, bigger § */
-  if (ansEssay_(x) || face.face === 'essay') {
+  if (ansEssay_(x) || face.sheet) {
     const said = subBoxSay_(k, val);
     return fcG_('div', cls + ' qp-essay' + (said.cls ? ' ' + said.cls : ''), dataAt,
       fcG_('label', 'qp-ans qp-sheet', { 'aria-label': text_('your-answer') }, kpField_(k, val, 'essay', 3)) + fcG_('p', 'qp-words', null, '', kpWordsSay_(val))
-      + ws + fcVerdict_(said.text) + fcSaved_(k)) + fb(said.why);
+      + fcVerdict_(said.text) + fcSaved_(k)) + fb(said.why);
   }
   const bar = opts + fcG_('div', 'qp-ans-row qp-bar', null, fcG_('label', 'qp-ans' + (maths ? ' qp-ans-maths' : ''), { 'aria-label': text_('your-answer') }, kpField_(k, val, maths ? 'maths' : 'words', 3)));
   /* THE VERDICT IS THE LATEST SUBMISSION'S, WHILE THE BOX HOLDS WHAT WAS SENT -- on this device or on the account, next sign-in § */
   const said = geo ? subBoxSay_(k, padSay_(padRead_(padKey_(x)))) : subBoxSay_(k, val);
   return fcG_('div', cls + (said.cls ? ' ' + said.cls : ''), dataAt,
-    bar + ws + fcVerdict_(geo ? padSaid_(said.text) : said.text) + fcSaved_(k)) + fb(said.text ? said.why : '');
+    bar + fcVerdict_(geo ? padSaid_(said.text) : said.text) + fcSaved_(k)) + fb(said.text ? said.why : '');
 }
 /* WHAT A BOX'S VERDICT LINE SAYS AS IT IS DRAWN: the latest submission's verdict, if the box holds it. */
 function subBoxSay_(k, val) {
@@ -290,7 +289,7 @@ on('qp-check', (el) => {
   subRecord_(k, inp.value, markWord_(v));
 });
 
-/* ---------- SAVE, WHERE NOTHING CAN MARK IT (owner, 16 Nov): the typed answer as a `sent` submission, and any photos with it (`workSave_`, working.js). */
+/* ---------- SAVE, WHERE NOTHING CAN MARK IT (owner, 16 Nov): the typed answer as a `sent` submission, nothing else with it (photo marking is gone: owner, 22 Nov). */
 on('qp-send', (el) => {
   const box = qMark_(el);
   const inp = box && box.querySelector('.qp-ans-in');
@@ -298,10 +297,8 @@ on('qp-send', (el) => {
   if (!inp || !out || el.disabled) return;
   box.classList.remove('is-right', 'is-near');
   const k = inp.getAttribute('data-k');
-  const pics = typeof WORK_PICS === 'object' && WORK_PICS ? (WORK_PICS[k] || []).length : 0;
-  const notYet = partReady_('save', { typed: inp.value, pics });
+  const notYet = partReady_('save', { typed: inp.value });
   if (notYet) { tell_(out, 'info', notYet); return; }
-  if (pics && typeof workSave_ === 'function') { workSave_(k, inp.value, el, out); return; }
   const sent = subRecord_(k, inp.value, 'sent');
   /* LEVEL-MARKED (tools/validate-questions.js `tutor`): never a silent save -- the tutor marks it */
   const x = typeof qStatus_ === 'function' ? stuffItemsAll_().find(it => ansKey_(it) === k) : null;
