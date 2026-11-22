@@ -1090,7 +1090,9 @@ function mailOut_(o) {
       const who = (S(r.first_name) || 'a parent') + (S(r.handle) ? ' (@' + S(r.handle) + ')' : '');
       const said = 'This email was meant for ' + who + ', at ' + a + '. Parents get no email from the site for now, so please pass it on.';
       const c = Object.assign({}, o, { to: admin, subject: 'For ' + who + ': ' + S(o.subject), body: said + '\n\n' + S(o.body) });
-      if (typeof o.htmlBody === 'string') c.htmlBody = '<p>' + said.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</p>' + o.htmlBody;
+      /* THE NOTE GOES INSIDE THE CARD (`emailFrame_`), first, never ahead of the document. */
+      if (typeof o.htmlBody === 'string') { const at = o.htmlBody.indexOf('<div class="gd">'), p = emailP_(esc(said));
+        c.htmlBody = at === -1 ? p + o.htmlBody : o.htmlBody.slice(0, at + 16) + p + o.htmlBody.slice(at + 16); }
       mailSend_(c, bare, r);
     });
     if (!keep.length) return;
@@ -1219,7 +1221,7 @@ function notifyOf_(r) {
    1. the kind, from `NOTIFY_KINDS` — an `always` kind is sent whatever the prefs say (a PIN, a link, a warning);
    2. the person's prefs — `wants_` for email (a parent's blank is no), the push card's `off` for push (in `pushTo_`);
    3. the mail quota, read here and nowhere else (`mailQuota_`);
-   4. the channel: `msg.push` {title, body, link} goes by `pushTo_`; `msg.subject` by `mailOut_`.
+   4. the channel: `msg.push` {title, body, link} goes by `pushTo_`; `msg.email` (email.gs) or `msg.subject` by `mailOut_`.
    `person` is a row or a name; null only for an `always` kind sent to `msg.to`, an address nobody owns yet.
    `msg.to` overrides the person's address (only `always` kinds may name one); `msg.need` is how many
    emails of quota it takes (default one per address); `msg.reserve` is held back (the Sunday run's).
@@ -1231,6 +1233,8 @@ function deliver_(person, kind, msg) {
   msg = msg || {};
   let p = null;
   try { p = person && typeof person === 'object' ? person : (person ? findPerson(S(person)) : null); } catch (err) { p = null; }
+  /* AN EMAIL IS DATA (`emailOf_`, email.gs): {subject, heading, cards, lines, button, footer}, made into its text and its card here. */
+  if (msg.email) { const m = emailOf_(msg.email); msg = Object.assign({}, msg, { subject: m.subject, body: m.body, htmlBody: m.htmlBody }); delete msg.email; }
   if (msg.push) out.push = pushTo_(p || S(person), S(kind), msg.push.title, msg.push.body, msg.push.link);
   if (!msg.subject) return out;
   const to = (K.always && msg.to) ? S(msg.to) : S(p && p.email);
@@ -1262,7 +1266,7 @@ function mailQuota_(strict) {
 
 /* ---------- `kind` IS WHICH OF `NOTIFY_KINDS` THIS IS, AND EVERY CALLER NAMES ONE — through `deliver_`. True when it went. */
 function notify(name, subject, body, kind) {
-  return deliver_(name, kind, { subject: subject, body: body }).email;
+  return deliver_(name, kind, { email: { subject: subject, lines: emailLines_(body) } }).email;
 }
 
 /* The catalogue as the SHEET has it, falling back to the code list until the tab is seeded. § */

@@ -381,8 +381,8 @@ function siteLink_(param, value) { return SITE_URL + '?' + param + '=' + value; 
 /* THE ONE ACCESS EMAIL: words.json `<key>-subject` and `<key>-body` (brand filled in), then `tail`, then the sign-off. Throws as `MailApp` does. */
 function accessMail_(to, key, vars, tail) {
   const v = Object.assign({ brand: BRAND_NAME }, vars || {});
-  deliverOrThrow_(null, 'access', { to: to, subject: text_(key + '-subject', v),
-    body: text_(key + '-body', v) + (tail || '') + '\n\n' + text_('mail-sign-off', { brand: BRAND_NAME }) });
+  deliverOrThrow_(null, 'access', { to: to, email: { subject: text_(key + '-subject', v),
+    lines: emailLines_(text_(key + '-body', v) + (tail || '')), footer: text_('mail-sign-off', { brand: BRAND_NAME }) } });
 }
 
 function jsonOut(obj) {

@@ -959,8 +959,8 @@ function authWrong_(t, r) {
   const tos = authGrownUps_(r);
   if (!tos.length) return;
   try {
-    deliverOrThrow_(null, 'security', { to: tos.join(','), subject: text_('mail-attempts-subject'),
-      body: text_('mail-attempts-kid-body', { said: said, first: S(r.first_name) || 'them' }) });
+    deliverOrThrow_(null, 'security', { to: tos.join(','), email: { subject: text_('mail-attempts-subject'),
+      lines: emailLines_(text_('mail-attempts-kid-body', { said: said, first: S(r.first_name) || 'them' })) } });
   } catch (err) { /* a failed courtesy note must not undo the work already done */ }
 }
 

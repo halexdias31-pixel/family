@@ -1,0 +1,201 @@
+[
+ {
+  "name": "notify: a booking note to a tutor",
+  "threw": "",
+  "mails": [
+   {
+    "to": "ada@x.test",
+    "name": "@family.",
+    "subject": "Paid: a place is confirmed",
+    "body": "Hello Ada,\n\nKit is booked in for Maths.\n\nSee it at https://example.org/?tab=book\n\n— the site",
+    "links": [
+     "https://example.org/?tab=book"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "notify: a message alert to a learner",
+  "threw": "",
+  "mails": [
+   {
+    "to": "kit@x.test",
+    "name": "@family.",
+    "subject": "A message from Ada Test",
+    "body": "Ada Test sent you a message:\n\n\"See you <Tuesday> & bring a pen\"",
+    "links": []
+   }
+  ]
+ },
+ {
+  "name": "accessMail_: confirm an address",
+  "threw": "",
+  "mails": [
+   {
+    "to": "kit@x.test",
+    "name": "@family.",
+    "subject": "Confirm your @family. account",
+    "body": "Hello Kit,\n\nConfirm your email address by opening this link:\n\nhttps://halexdias31-pixel.github.io/family/?verify=TOKEN1\n\nYou can already sign in with this email address (or @kit) and the PIN you chose — the link only confirms the address is yours. Until it is opened we send nothing else to this address.\n\nIf you did not make this account, do not open the link: use \"Forgotten your PIN?\" with this address instead — it takes the account over and signs everyone else out.\n\n— @family.",
+    "links": [
+     "https://halexdias31-pixel.github.io/family/?verify=TOKEN1"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "accessMail_: an invite",
+  "threw": "",
+  "mails": [
+   {
+    "to": "kit@x.test",
+    "name": "@family.",
+    "subject": "Your @family. account",
+    "body": "Hello Kit,\n\nAn account has been made for you on @family..\n\nSign in at {site} with your email (or your handle, @kit) and the PIN 4321\n\nChange the PIN under Settings → Signing in.\n\n— @family.",
+    "links": []
+   }
+  ]
+ },
+ {
+  "name": "accessMail_: a move of address",
+  "threw": "",
+  "mails": [
+   {
+    "to": "new@x.test",
+    "name": "@family.",
+    "subject": "Confirm your new @family. email address",
+    "body": "Hello,\n\nSomebody signed in to an @family. account has asked to use this email address for it.\n\nIf that was you, open this link on a phone or computer where you are signed in to that account:\n\nhttps://halexdias31-pixel.github.io/family/?verify=MOVEKEY\n\nUntil it is opened, the account keeps its old address — sign in with that, or with your handle. The link works for 3 days.\n\nIf it was not you, ignore this email. Nothing changes, and the link does nothing for anybody who is not signed in to that account.\n\n— @family.",
+    "links": [
+     "https://halexdias31-pixel.github.io/family/?verify=MOVEKEY"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "accessMail_: a child made",
+  "threw": "",
+  "mails": [
+   {
+    "to": "ann@x.test",
+    "name": "@family.",
+    "subject": "For Cara (@cara): Finn has made an @family. account",
+    "body": "This email was meant for Cara (@cara), at cara@x.test. Parents get no email from the site for now, so please pass it on.\n\nHello,\n\nFinn has made an account on @family. and gave this address as their grown-up's, because they have no email of their own.\n\nTheir account works already. If that is right, open this link to confirm your address (it also puts them on your @family. parent account if you have one and have confirmed it):\n\nhttps://halexdias31-pixel.github.io/family/?verify=KIDTOK\n\nThey sign in with their handle, @finn, and the PIN they chose. Once you have opened the link, \"Forgotten your PIN?\" sends a new one to this address if they forget it.\n\nIf you have an @family. parent account on this address and have confirmed it, opening the link also puts Finn on it. If you do not know who this is, ignore this email and nothing happens.\n\n— @family.",
+    "links": [
+     "https://halexdias31-pixel.github.io/family/?verify=KIDTOK"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "forgotPinMail_: their own",
+  "threw": "",
+  "mails": [
+   {
+    "to": "kit@x.test",
+    "name": "@family.",
+    "subject": "Your new @family. PIN",
+    "body": "Somebody asked for a new PIN on your @family. account, by your handle (@kit).\n\nYour new PIN is 1111\n\nSign in with your handle, @kit, or your email and this PIN. It works for a day; your old PIN keeps working too until you use this one. Change it under Settings → Signing in.\n\nOr open this link to sign in with it straight away — it works even if wrong PINs have locked the account:\n\nhttps://halexdias31-pixel.github.io/family/?signin=LK1\n\nIf this was not you, do nothing — your PIN has not changed, and whoever asked cannot read this email.",
+    "links": [
+     "https://halexdias31-pixel.github.io/family/?signin=LK1"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "forgotPinMail_: a child with no address",
+  "threw": "",
+  "mails": [
+   {
+    "to": "ann@x.test",
+    "name": "@family.",
+    "subject": "For Cara (@cara): A forgotten PIN: @finn",
+    "body": "This email was meant for Cara (@cara), at cara@x.test. Parents get no email from the site for now, so please pass it on.\n\nFinn (@finn) has no email of their own and asked for a new PIN.\n\nThe new PIN is 2222\n\nPass it on to them. They sign in with their handle and this PIN; it works for a day, and their old PIN keeps working until they use this one. \"New PIN\" on their card in the people column gives a fresh one at once.\n\nOr open this link on their device to sign them in as @finn straight away:\n\nhttps://halexdias31-pixel.github.io/family/?signin=LK2\n\nIf they did not ask, do nothing — nothing has changed.",
+    "links": [
+     "https://halexdias31-pixel.github.io/family/?signin=LK2"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "authWrong_: a child with no address, told to the grown-up",
+  "threw": "",
+  "mails": [
+   {
+    "to": "ann@x.test",
+    "name": "@family.",
+    "subject": "For Cara (@cara): Too many sign-in attempts",
+    "body": "This email was meant for Cara (@cara), at cara@x.test. Parents get no email from the site for now, so please pass it on.\n\nSomebody has tried the @family. PIN for @finn 1 times and got it wrong.\n\nSigning in is held up for a minute, and for longer on each wrong answer after that.\nIf that was Finn, \"New PIN\" on their card on your account gives them a new one at once. If it was not, tell us.",
+    "links": []
+   }
+  ]
+ },
+ {
+  "name": "authWrong_: their own",
+  "threw": "",
+  "mails": [
+   {
+    "to": "kit@x.test",
+    "name": "@family.",
+    "subject": "Too many sign-in attempts",
+    "body": "Somebody has tried the @family. PIN for @kit 1 times and got it wrong.\n\nSigning in is held up for a minute, and for longer on each wrong answer after that.\nIf that was not you, reply here.",
+    "links": []
+   }
+  ]
+ },
+ {
+  "name": "applyMail_: the owner told",
+  "threw": "",
+  "mails": [
+   {
+    "to": "ann@x.test",
+    "name": "@family.",
+    "subject": "A new application to teach",
+    "body": "Kit (@kit) has applied to teach: Maths.\n\nRead it and say yes, interview or no in the Business column:\n\nhttps://halexdias31-pixel.github.io/family/",
+    "links": [
+     "https://halexdias31-pixel.github.io/family/"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "applyMail_: the applicant told",
+  "threw": "",
+  "mails": [
+   {
+    "to": "kit@x.test",
+    "name": "@family.",
+    "subject": "Your application to teach",
+    "body": "Hello Kit,\n\nYes, welcome.\n\nhttps://halexdias31-pixel.github.io/family/",
+    "links": [
+     "https://halexdias31-pixel.github.io/family/"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "mailOut_: a parent's mail goes to the owner",
+  "threw": "",
+  "mails": [
+   {
+    "to": "cara@x.test",
+    "name": "@family.",
+    "subject": "Accepted: Maths",
+    "body": "Your request was accepted.\n\nhttps://example.org/",
+    "links": [
+     "https://example.org/"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "digest: the Sunday email",
+  "threw": "",
+  "mails": [
+   {
+    "to": "cara@x.test",
+    "subject": "Finn’s week: 1 question",
+    "body": "Hi Cara,\n\nHere’s what Finn worked on this week: 1 question (9 Nov – 15 Nov, up to 6pm on Sunday). Beside each one is how it went: ✓ right.\n1 right.\nTopics: Maths.\nDays: Tuesday.\n\nMaths · Paper 1\nQ3 ✓: What is 2 + 2?\nTheir answer: 4\n\nDon’t want these any more? Just reply and say so.",
+    "links": []
+   }
+  ]
+ }
+]
