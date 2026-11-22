@@ -6,13 +6,14 @@
    THE CHECK (rule 1.75): every tagged part opens a card — its spec point exists and has a point-by-point card (`ct:`). A part that would open
    nothing fails the build. Run by tools/build.js. */
 'use strict';
+const SD = require('./lib/site-data.js');
 const fs = require('fs'), path = require('path');
 const ROOT = path.join(__dirname, '..');
 const CODES = ['8461', '8462', '8463'];
 const KEY = /^aqa-(846[123]):([\d.]+)$/;
 
 function run() {
-  const qs = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/questions.json'), 'utf8'));
+  const qs = SD.questions();
   const files = {}, bad = [];
   CODES.forEach(c => { const f = path.join(ROOT, 'data/spec/aqa-' + c + '.json'); files[c] = { f, raw: fs.readFileSync(f, 'utf8') }; files[c].s = JSON.parse(files[c].raw); });
   const want = {};

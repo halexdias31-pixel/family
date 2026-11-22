@@ -5,7 +5,7 @@
    and its right answers typed in order with commas must mark full (a wrong one must not). Then every active `cells` question here draws
    one box and a hint. Run by tools/build.js after one-box; any miss fails the build. */
 'use strict';
-const fs = require('fs'), path = require('path');
+const SD = require('./lib/site-data.js');
 const VQ = require('./validate-questions.js');
 const { S, main } = require('./lib/gen.js');
 
@@ -41,7 +41,7 @@ function run() {
   if (swapped.verdict === 'right') fails.push('two answers swapped still mark right');
   /* SITE-WIDE: every active question with cells, one box and a hint */
   let n = 0;
-  if (fs.existsSync(path.join(__dirname, '..', 'data-private', 'questions.json'))) {
+  if (SD.hasPrivate()) {
     for (const r of VQ.rowsOf()) {
       if (r.kind !== 'question' || !S(r.cells) || !(r.active === true || /^true$/i.test(S(r.active)))) continue;
       ctx.__r = r;

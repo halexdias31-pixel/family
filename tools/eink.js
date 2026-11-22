@@ -4,12 +4,13 @@
    fixed day at each of its clock times: the same heading, the same items in the same order with the same tick address and tags (missed ones marked), the
    same Next. Counted: every clock time printed; one that differs fails the build. Run by tools/build.js. */
 'use strict';
-const { ROOT, read, report, main } = require('./lib/gen.js');
+const SD = require('./lib/site-data.js');
+const { ROOT, report, main } = require('./lib/gen.js');
 const fs = require('fs'), path = require('path');
 const { fnOf, NOW, DAY, PHASES } = require('./docket-plan.js');
 function drawers() {
-  const src = fs.readFileSync(path.join(ROOT, 'js', 'map.js'), 'utf8'), words = (read('data/settings/words.json') || {}).words || {};
-  const text_ = (k, v) => { const s = typeof words[k] === 'string' ? words[k] : k; return v ? s.replace(/\{(\w+)\}/g, (a, x) => (v[x] == null ? a : String(v[x]))) : s; };
+  const src = fs.readFileSync(path.join(ROOT, 'js', 'map.js'), 'utf8');
+  const text_ = SD.textOf();
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const fns = ['dkPlan_', 'dkPhase_', 'dkNowNextOf_', 'dkNowNext_', 'dkEinkHtml_'].map(n => fnOf(src, n)).join('');
   /* the tick box is the form maker's (js/form.js formInput_); here only its attributes matter, so a plain input stands in for it */

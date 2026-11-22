@@ -5,12 +5,13 @@
    (kind document, same paper_id), or a source_id equal to its paper_id (read as `source_id || paper_id`), fails; so does a backend join list
    (backend/cards-gen.gs LIB_FILES) or a client one (js/kinds.js) that is not kinds.json's. tools/content.js import strips them (L.stripPaper). */
 'use strict';
+const SD = require('./lib/site-data.js');
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const { ROOT, main } = require('./lib/gen.js');
 
 const want = j => JSON.stringify({ from: j.from, by: j.by, fields: j.fields });
 function lists() {
-  const kinds = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/settings/kinds.json'), 'utf8'));
+  const kinds = SD.json('data/settings/kinds.json');
   const src = want(kinds.kinds.question.sheet.lib.joined);
   const ctx = file => { const c = vm.createContext({}); vm.runInContext(fs.readFileSync(path.join(ROOT, file), 'utf8').replace(/^const (\w+) =/gm, 'this.$1 ='), c); return c; };
   const back = /^const LIB_FILES = (.*);$/m.exec(fs.readFileSync(path.join(ROOT, 'backend/cards-gen.gs'), 'utf8'));
@@ -20,7 +21,7 @@ function lists() {
 }
 function find() {
   const L = lists(), J = L.join;
-  const rows = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/questions.json'), 'utf8'));
+  const rows = SD.questions();
   const card = new Map();
   rows.forEach(r => { if (r && r.kind === J.from) card.set(r[J.by], r); });
   const copies = {}, eg = [];

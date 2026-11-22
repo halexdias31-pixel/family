@@ -4,12 +4,12 @@
    in a vm as tools/validate-questions.js loads the app. Boxes are counted in what it draws; a table's blanks are one box too (owner, 22 Nov).
    Prints the count site-wide; any other question with more than one box fails the build. Run by tools/build.js after validate-questions. */
 'use strict';
-const fs = require('fs'), path = require('path');
+const SD = require('./lib/site-data.js');
 const VQ = require('./validate-questions.js');
 const { S, main } = require('./lib/gen.js');
 
 function run() {
-  if (!fs.existsSync(path.join(__dirname, '..', 'data-private', 'questions.json'))) { console.log('one-box: no data-private/questions.json here, skipped'); return null; }
+  if (!SD.hasPrivate()) { console.log('one-box: no data-private/questions.json here, skipped'); return null; }
   const { ctx, call } = VQ.appCode();
   call('qtFace_'); call('CARD_BLOCKS'); call('padGrid_');
   const n = { one: 0, bad: 0, unseen: 0 }, faces = {}, bad = [];

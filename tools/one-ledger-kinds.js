@@ -4,45 +4,12 @@
    in-memory one. Every old row must be in the backup tab, gone from items, every other kind read the same before and after, and a
    second run must change nothing. Run by tools/build.js. */
 'use strict';
-const fs = require('fs'), path = require('path'), vm = require('vm');
-const { ROOT, report, main } = require('./lib/gen.js');
+const { report, main } = require('./lib/gen.js');
+const { load, book } = require('./lib/backend-vm.js');
 
 /* THE MIGRATIONS HELD HERE: its id, the kinds it moves out, the backup tab it must fill. */
 const CASES = [{ id: 'dead-kinds-22nov', kinds: ['invite', 'biz_check', 'owner_answer', 'landmark', 'landmark_part', 'map_shape'], backup: 'backup_dead_kinds_22nov' }];
 
-function load() {
-  const dir = path.join(ROOT, 'backend');
-  const files = fs.readdirSync(dir).filter(f => f.endsWith('.gs')).sort();
-  const stub = new Proxy(function () {}, { get: (t, k) => (k === Symbol.toPrimitive ? () => '' : stub), apply: () => stub, construct: () => stub });
-  const ctx = { console };
-  ['Logger', 'PropertiesService', 'SpreadsheetApp', 'DriveApp', 'ScriptApp', 'Utilities', 'ContentService', 'HtmlService', 'CacheService',
-    'LockService', 'MailApp', 'GmailApp', 'UrlFetchApp', 'Session', 'CalendarApp', 'DocumentApp', 'FormApp', 'Drive'].forEach(k => { ctx[k] = stub; });
-  vm.createContext(ctx);
-  vm.runInContext(files.map(f => fs.readFileSync(path.join(dir, f), 'utf8')).join('\n'), ctx, { filename: 'backend' });
-  return ctx;
-}
-
-/* AN IN-MEMORY SPREADSHEET: just what the store and the migration call. */
-function book() {
-  const tabs = {};
-  const ss = { getSheetByName: n => tabs[n] || null, insertSheet: n => (tabs[n] = sheet(n)) };
-  function sheet(name, vals) {
-    const v = vals || [];
-    const sh = {
-      name, v,
-      getParent: () => ss,
-      getLastRow: () => v.length,
-      getLastColumn: () => v.reduce((m, r) => Math.max(m, r.length), 0),
-      getRange: (r, c, nr, nc) => ({
-        getValues: () => Array.from({ length: nr }, (_, i) => Array.from({ length: nc }, (_, j) => ((v[r - 1 + i] || [])[c - 1 + j] ?? ''))),
-        setValues: rows => rows.forEach((row, i) => { const at = r - 1 + i; while (v.length <= at) v.push([]); row.forEach((x, j) => { v[at][c - 1 + j] = x; }); }),
-      }),
-      deleteRows: (r, n) => { v.splice(r - 1, n); },
-    };
-    return sh;
-  }
-  return { tabs, ss, sheet };
-}
 
 function madeUp(kinds) {
   const H = ['id', 'kind', 'data_1', 'data_2', 'data_3', 'data_4', 'data_5', 'data_6'];
@@ -64,7 +31,7 @@ function madeUp(kinds) {
 function run() {
   const bad = [];
   const ctx = load();
-  const K = vm.runInContext('ITEM_STORE_KINDS', ctx), TABS = vm.runInContext('TAB', ctx), MIG = vm.runInContext('MIGRATIONS', ctx);
+  const K = ctx.$('ITEM_STORE_KINDS'), TABS = ctx.$('TAB'), MIG = ctx.$('MIGRATIONS');
   CASES.forEach(C => {
     const m = MIG.find(x => x.id === C.id);
     if (!m) { bad.push(C.id + ': no such migration in backend/access.gs'); return; }

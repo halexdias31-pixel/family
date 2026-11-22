@@ -2,6 +2,7 @@
 /* @family. — tools/cards-gen.js ONE CARD RULE, TWO PLACES (owner, 16 Nov): the Sunday email drifted from the site's cards. */
 /* run() copies the site's card maker (renderCard and its blocks), name formatter, words and tag dedupe verbatim into backend/cards-gen.gs. */
 'use strict';
+const SD = require('./lib/site-data.js');
 const fs = require('fs'), path = require('path');
 const ROOT = path.join(__dirname, '..');
 const OUT = path.join(ROOT, 'backend/cards-gen.gs');
@@ -92,12 +93,12 @@ function tagParts() {
 }
 /* THE PERSON FACT KEYS (kinds.json person.facts.keys, rule 1.80): the backend drops any fact whose `what` is not one. */
 function factParts() {
-  const keys = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/settings/kinds.json'), 'utf8')).kinds.person.facts.keys;
+  const keys = SD.kinds().person.facts.keys;
   return '/* from data/settings/kinds.json person.facts.keys */\nconst PERSON_FACT_KEYS = ' + JSON.stringify(keys).replace(/","/g, '", "') + ';';
 }
 /* EVERY KIND'S STORE AND WHO SEES IT (kinds.json `kinds`, `stored`, `ledger`; owner, 16 Nov): the one general action `item` reads this. */
 function kindParts() {
-  const j = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/settings/kinds.json'), 'utf8')), kinds = {};
+  const j = SD.json('data/settings/kinds.json'), kinds = {};
   const take = (k, v) => { if (v.sheet && v.sheet.tab) kinds[k] = { sheet: v.sheet, see: v.see || {}, edit: v.edit || null }; };
   Object.entries(j.kinds).forEach(([k, v]) => take(k, v));
   Object.entries(j.stored || {}).forEach(([k, v]) => take(k, v));
@@ -107,13 +108,13 @@ function kindParts() {
 }
 /* THE DOCKET ITEM'S PLANNER FIELDS (kinds.json docket forms.docket-item, rule 1.82): each choice's options, each number's min, each default; the tidies keep these and leave out a default. */
 function docketPlanParts() {
-  const f = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/settings/kinds.json'), 'utf8')).kinds.docket.forms['docket-item'].fields, out = {};
+  const f = SD.kinds().docket.forms['docket-item'].fields, out = {};
   f.filter(x => 'default' in x && x.f !== 'repeat').forEach(x => { out[x.f] = x.type === 'number' ? { def: x.default, min: x.min || 0 } : { def: x.default, options: x.options.map(o => o.v) }; });
   return '/* from data/settings/kinds.json docket forms.docket-item fields */\nconst DOCKET_PLAN_FIELDS = ' + JSON.stringify(out) + ';';
 }
 /* EACH FORM'S GAPS (kinds.json `forms.<id>.gaps`, job G): what the backend refuses a form without, as the phone does. */
 function formGapParts() {
-  const kinds = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/settings/kinds.json'), 'utf8')).kinds, out = {};
+  const kinds = SD.kinds(), out = {};
   Object.values(kinds).forEach(k => Object.entries(k.forms || {}).forEach(([id, f]) => { if (f.gaps) out[id] = f.gaps; }));
   return '/* from data/settings/kinds.json forms.<id>.gaps */\nconst FORM_GAPS = ' + JSON.stringify(out) + ';';
 }
@@ -135,7 +136,7 @@ function libParts() {
 }
 /* EACH KIND'S LETTER (kinds.json `card.letter`, rule 1.80): the lines, labels and inline styles renderCard writes an email's card by. */
 function letterParts() {
-  const kinds = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/settings/kinds.json'), 'utf8')).kinds, out = {};
+  const kinds = SD.kinds(), out = {};
   Object.keys(kinds).forEach(k => { const c = kinds[k].card; if (c && c.letter) out[k] = { card: { letter: c.letter } }; });
   return '/* from data/settings/kinds.json card.letter */\nconst ITEM_KINDS = ' + JSON.stringify({ kinds: out }) + ';';
 }
@@ -154,7 +155,7 @@ function priceParts() {
 }
 /* EVERY FIELD'S PROPERTIES (kinds.json \`fields\`: bounds, longest text): the server's \`askProps_\`, the same object form.js reads. */
 function seatFieldParts() {
-  const k = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/settings/kinds.json'), 'utf8')).kinds;
+  const k = SD.kinds();
   const out = Object.assign({}, ...Object.keys(k).map(n => k[n].fields || {}));
   return '/* from data/settings/kinds.json fields */\nconst FIELD_PROPS = ' + JSON.stringify(out) + ';\nconst askProps_ = f => FIELD_PROPS[f] || {};';
 }
@@ -186,7 +187,7 @@ function build() {
 /* THE ONE SETTINGS FILE (data/settings/settings.json), as SHARED_SETTINGS at the top of the first file each side loads. */
 const { SHARED_RE } = require('./lib/gen.js');
 function sharedInto(file) {
-  const j = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/settings/settings.json'), 'utf8'));
+  const j = SD.settings();
   /* AND OUR PICTURES' NAMES (owner, 20 Nov): data/settings/default-pictures.json, the one list, as `pictures` (PFP_PICTURES, PFP_ART's keys). */
   j.pictures = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/settings/default-pictures.json'), 'utf8')).map(r => String(r.picture || '').trim()).filter(Boolean);
   const block = '/* SHARED:BEGIN — data/settings/settings.json (and default-pictures.json as `pictures`), written by `node tools/build.js`; edit the json, never this. */\n'

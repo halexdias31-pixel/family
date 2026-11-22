@@ -1269,9 +1269,9 @@ const FINDER_TAGS = {
 "kindLabel=Settings": ["settingFor",[["Student"],["Parent"],["Staff"],["Apprentice"],["Admin"],["Business"],["Site"]],[14,9,16,10,10,3,4],30,["Student","Parent","Staff","Apprentice","Admin","Business","Site"]]
 },
 "bible": {
-"": ["kindLabel",[["Practice"],["Library"],["Posts"],["Messages"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]],[37920,189261,2,1,1,5,10,15,4,3],227221,["Practice","Library","Posts","Messages","Profiles","Booking","Shop","Settings","Tools","Games"]],
-"kindLabel=Practice": ["kindOwn",[["Questions"],["Answers"],["Inserts"]],[37726,37327,194],37920,["Questions","Answers","Inserts"]],
-"kindLabel=Practice&kindOwn=Questions": ["subject",[["Biology"],["Business"],["Chemistry"],["Driving Theory"],["Economics"],["English Language"],["English Literature"],["Geography"],["History"],["Maths"],["Physical Education"],["Physics"],["Politics"],["Portuguese"],["Psychology"],["Religious Studies"],["Sociology"],["Statistics"]],[4635,392,5214,10,131,458,522,481,944,16850,322,4460,120,43,1187,1004,436,517],37726,["Biology","Business","Chemistry","Driving Theory","Economics","English Language","English Literature","Geography","History","Maths","Physical Education","Physics","Politics","Portuguese","Psychology","Religious Studies","Sociology","Statistics"]],
+"": ["kindLabel",[["Practice"],["Library"],["Posts"],["Messages"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]],[38091,189261,2,1,1,5,10,15,4,3],227392,["Practice","Library","Posts","Messages","Profiles","Booking","Shop","Settings","Tools","Games"]],
+"kindLabel=Practice": ["kindOwn",[["Questions"],["Answers"],["Inserts"]],[37897,37498,194],38091,["Questions","Answers","Inserts"]],
+"kindLabel=Practice&kindOwn=Questions": ["subject",[["Biology"],["Business"],["Chemistry"],["Driving Theory"],["Economics"],["English Language"],["English Literature"],["Geography"],["History"],["Maths"],["Physical Education"],["Physics"],["Politics"],["Portuguese"],["Psychology"],["Religious Studies"],["Sociology"],["Statistics"]],[4635,392,5214,10,131,458,522,481,944,17021,322,4460,120,43,1187,1004,436,517],37897,["Biology","Business","Chemistry","Driving Theory","Economics","English Language","English Literature","Geography","History","Maths","Physical Education","Physics","Politics","Portuguese","Psychology","Religious Studies","Sociology","Statistics"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Biology": ["level",[["GCSE"],["A-Level"]],[3470,1165],4635,["GCSE","A-Level"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Biology&level=GCSE": ["documentType",[["End of topic test"],["Exam paper"],["Worksheet"]],[167,2708,595],3470,["End of topic test","Exam paper","Worksheet"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Biology&level=GCSE&documentType=Exam paper": ["examBoard",[["AQA"],["OCR"]],[1824,884],2708,["AQA","OCR"]],
@@ -1333,19 +1333,19 @@ const FINDER_TAGS = {
 "kindLabel=Practice&kindOwn=Questions&subject=English Language&level=SATs": ["qNumber",[["Q1"],["Q2"],["Q3"],["Q4"],["Q5"],["Q6"],["Q7"],["Q8"],["Q9"],["Q10"],["Q11"],["Q12"],["Q13"],["Q14"],["Q15"],["Q16"],["Q17"],["Q18"],["Q19"],["Q20"],["Q21"],["Q23"],["Q24"],["Q25"],["Q26"],["Q27"],["Q28"],["Q29"],["Q30"],["Q31"],["Q32"],["Q33"],["Q34"],["Q35"],["Q36"],["Q37"],["Q38"],["Q39"],["Q40"],["Q41"],["Q42"],["Q43"],["Q44"],["Q45"],["Q46"],["Q47"],["Q48"],["Q49"],["Q50"]],[1,1,1,4,1,1,2,1,1,1,3,1,1,1,1,1,1,1,1,4,1,1,1,3,4,1,1,1,1,1,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],65,["Q1","Q2","Q3","Q4","Q5","Q6","Q7","Q8","Q9","Q10","Q11","Q12","Q13","Q14","Q15","Q16","Q17","Q18","Q19","Q20","Q21","Q23","Q24","Q25","Q26","Q27","Q28","Q29","Q30","Q31","Q32","Q33","Q34","Q35","Q36","Q37","Q38","Q39","Q40","Q41","Q42","Q43","Q44","Q45","Q46","Q47","Q48","Q49","Q50"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Geography": ["level",[["GCSE"],["A-Level"]],[230,251],481,["GCSE","A-Level"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Geography&level=A-Level": ["examBoard",[["AQA"],["OCR"]],[140,111],251,["AQA","OCR"]],
-"kindLabel=Practice&kindOwn=Questions&subject=Maths": ["level",[["11+"],["SATs"],["KS3"],["GCSE"],["A-Level"],["Functional Skills L2"]],[202,2098,1787,11178,2588,24],16850,["11+","SATs","KS3","GCSE","A-Level","Functional Skills L2"]],
+"kindLabel=Practice&kindOwn=Questions&subject=Maths": ["level",[["11+"],["SATs"],["KS3"],["GCSE"],["A-Level"],["Functional Skills L2"]],[202,2098,1787,11349,2588,24],17021,["11+","SATs","KS3","GCSE","A-Level","Functional Skills L2"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Maths&level=SATs": ["documentType",[["Exam paper"],["Worksheet"]],[719,1379],2098,["Exam paper","Worksheet"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Maths&level=SATs&documentType=Exam paper": ["keystage",[["KS1"],["KS2"]],[169,550],719,["KS1","KS2"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Maths&level=SATs&documentType=Exam paper&keystage=KS1": ["examYear",[["2026"],["2025"],["2024"]],[59,57,53],169,["2026","2025","2024"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Maths&level=SATs&documentType=Exam paper&keystage=KS2": ["examYear",[["2025"],["2024"],["2023"],["2022"],["2019"],["2018"]],[89,101,91,87,97,85],550,["2025","2024","2023","2022","2019","2018"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Maths&level=SATs&documentType=Exam paper&keystage=KS2&examYear=2024": ["paperId",[["P-STA-KS2-2024-P1","Paper 1"],["P-STA-KS2-2024-P2","Paper 2"],["P-STA-KS2-2024-P3","Paper 3"]],[36,33,32],101,["Paper 1","Paper 2","Paper 3"]],
-"kindLabel=Practice&kindOwn=Questions&subject=Maths&level=GCSE": ["documentType",[["5-a-day"],["Exam paper"],["Worksheet"]],[1355,3273,6429],11178,["5-a-day","Exam paper","Worksheet"]],
-"kindLabel=Practice&kindOwn=Questions&subject=Maths&level=GCSE&documentType=Exam paper": ["examBoard",[["AQA"],["Edexcel"]],[358,2915],3273,["AQA","Edexcel"]],
-"kindLabel=Practice&kindOwn=Questions&subject=Maths&level=GCSE&documentType=Exam paper&examBoard=Edexcel": ["tier",[["Foundation"],["Higher"]],[1817,1098],2915,["Foundation","Higher"]],
-"kindLabel=Practice&kindOwn=Questions&subject=Maths&level=GCSE&documentType=Exam paper&examBoard=Edexcel&tier=Higher": ["examYear",[["2024"],["2023"],["2022"],["2021"],["2020"],["2019"],["2018"],["2017"]],[97,93,66,2,97,186,181,183],1098,["2024","2023","2022","2021","2020","2019","2018","2017"]],
-"kindLabel=Practice&kindOwn=Questions&subject=Maths&level=GCSE&documentType=Exam paper&examBoard=Edexcel&tier=Higher&examYear=2024": ["paperId",[["RS1786302107764-416","Paper 1"],["RS1786302107764-412","Paper 2",["RS1786302107764-418"]],["RS1786302107764-420","Paper 3"]],[33,33,31],97,["Paper 1","Paper 2","Paper 3"]],
-"kindLabel=Practice&kindOwn=Questions&subject=Maths&level=GCSE&documentType=Exam paper&examBoard=Edexcel&tier=Higher&examYear=2022": ["examMonth",[["June"],["November"]],[2,64],66,["June","November"]],
-"kindLabel=Practice&kindOwn=Questions&subject=Maths&level=GCSE&documentType=Exam paper&examBoard=Edexcel&tier=Higher&examYear=2021": ["qNumber",[["Q1"],["Q4"]],[1,1],2,["Q1","Q4"]],
+"kindLabel=Practice&kindOwn=Questions&subject=Maths&level=GCSE": ["documentType",[["5-a-day"],["Exam paper"],["Worksheet"]],[1355,3444,6429],11349,["5-a-day","Exam paper","Worksheet"]],
+"kindLabel=Practice&kindOwn=Questions&subject=Maths&level=GCSE&documentType=Exam paper": ["examBoard",[["AQA"],["Edexcel"]],[358,3086],3444,["AQA","Edexcel"]],
+"kindLabel=Practice&kindOwn=Questions&subject=Maths&level=GCSE&documentType=Exam paper&examBoard=Edexcel": ["tier",[["Foundation"],["Higher"]],[1817,1269],3086,["Foundation","Higher"]],
+"kindLabel=Practice&kindOwn=Questions&subject=Maths&level=GCSE&documentType=Exam paper&examBoard=Edexcel&tier=Higher": ["examYear",[["2024"],["2023"],["2022"],["2021"],["2020"],["2019"],["2018"],["2017"]],[149,93,133,54,97,186,181,183],1269,["2024","2023","2022","2021","2020","2019","2018","2017"]],
+"kindLabel=Practice&kindOwn=Questions&subject=Maths&level=GCSE&documentType=Exam paper&examBoard=Edexcel&tier=Higher&examYear=2024": ["examMonth",[["June"],["November"]],[96,53],149,["June","November"]],
+"kindLabel=Practice&kindOwn=Questions&subject=Maths&level=GCSE&documentType=Exam paper&examBoard=Edexcel&tier=Higher&examYear=2022": ["examMonth",[["June"],["November"]],[52,81],133,["June","November"]],
+"kindLabel=Practice&kindOwn=Questions&subject=Maths&level=GCSE&documentType=Exam paper&examBoard=Edexcel&tier=Higher&examYear=2021": ["paperId",[["RS1786302107764-446","Paper 1"],["RS1786302107764-448","Paper 2"],["RS1786302107764-450","Paper 3"]],[16,21,17],54,["Paper 1","Paper 2","Paper 3"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Maths&level=A-Level": ["examBoard",[["AQA"],["Edexcel"],["OCR"]],[959,877,752],2588,["AQA","Edexcel","OCR"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Maths&level=A-Level&examBoard=Edexcel": ["examYear",[["2024"],["2023"],["2022"],["2021"],["2020"],["2019"],["2018"]],[95,126,117,116,109,104,103],877,["2024","2023","2022","2021","2020","2019","2018"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Maths&level=A-Level&examBoard=Edexcel&examYear=2024": ["paperId",[["RS1786302107764-487","Paper 1"],["RS1786302107764-488","Paper 2"],["P-9MA0-2406-31","Paper 3",["P-9MA0-2406-32"]]],[28,26,41],95,["Paper 1","Paper 2","Paper 3"]],
@@ -1375,7 +1375,7 @@ const FINDER_TAGS = {
 "kindLabel=Practice&kindOwn=Questions&subject=Physics&level=A-Level&examBoard=AQA&examYear=2025": ["paperId",[["P-AQA-7408-2506-1","Paper 1"],["P-AQA-7408-2506-2","Paper 2"],["P-AQA-7408-2506-3A","Paper 3 Section A"],["P-AQA-7408-2506-3BA","Paper 3 Section B Option A…"],["P-AQA-7408-2506-3BB","Paper 3 Section B Option B…"],["P-AQA-7408-2506-3BC","Paper 3 Section B Option C…"],["P-AQA-7408-2506-3BD","Paper 3 Section B Option D…"],["P-AQA-7408-2506-3BE","Paper 3 Section B Option E…"]],[34,33,8,12,6,10,9,6],118,["Paper 1","Paper 2","Paper 3","Paper 3","Paper 3","Paper 3","Paper 3","Paper 3"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Physics&level=A-Level&examBoard=AQA&examYear=2024": ["examDay",[["6"],["17"],["24"]],[51,22,55],172,["6","17","24"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Physics&level=A-Level&examBoard=OCR": ["examYear",[["2025"],["2023"],["2021"],["2019"],["2018"]],[63,90,35,97,25],310,["2025","2023","2021","2019","2018"]],
-"kindLabel=Practice&kindOwn=Answers": ["subject",[["Biology"],["Business"],["Chemistry"],["Driving Theory"],["Economics"],["English Language"],["English Literature"],["Geography"],["History"],["Maths"],["Physical Education"],["Physics"],["Politics"],["Portuguese"],["Psychology"],["Religious Studies"],["Sociology"],["Statistics"]],[4634,392,5214,10,131,458,522,481,944,16454,322,4458,120,43,1187,1004,436,517],37327,["Biology","Business","Chemistry","Driving Theory","Economics","English Language","English Literature","Geography","History","Maths","Physical Education","Physics","Politics","Portuguese","Psychology","Religious Studies","Sociology","Statistics"]],
+"kindLabel=Practice&kindOwn=Answers": ["subject",[["Biology"],["Business"],["Chemistry"],["Driving Theory"],["Economics"],["English Language"],["English Literature"],["Geography"],["History"],["Maths"],["Physical Education"],["Physics"],["Politics"],["Portuguese"],["Psychology"],["Religious Studies"],["Sociology"],["Statistics"]],[4634,392,5214,10,131,458,522,481,944,16625,322,4458,120,43,1187,1004,436,517],37498,["Biology","Business","Chemistry","Driving Theory","Economics","English Language","English Literature","Geography","History","Maths","Physical Education","Physics","Politics","Portuguese","Psychology","Religious Studies","Sociology","Statistics"]],
 "kindLabel=Practice&kindOwn=Answers&subject=Biology": ["level",[["GCSE"],["A-Level"]],[3469,1165],4634,["GCSE","A-Level"]],
 "kindLabel=Practice&kindOwn=Answers&subject=Biology&level=GCSE": ["documentType",[["End of topic test"],["Exam paper"],["Worksheet"]],[167,2707,595],3469,["End of topic test","Exam paper","Worksheet"]],
 "kindLabel=Practice&kindOwn=Answers&subject=Biology&level=GCSE&documentType=Exam paper": ["examBoard",[["AQA"],["OCR"]],[1824,883],2707,["AQA","OCR"]],
@@ -1402,14 +1402,14 @@ const FINDER_TAGS = {
 "kindLabel=Practice&kindOwn=Answers&subject=Chemistry&level=GCSE&documentType=Exam paper&examBoard=AQA&tier=Higher&examYear=2024": ["examDay",[["11"],["17"]],[79,68],147,["11","17"]],
 "kindLabel=Practice&kindOwn=Answers&subject=Geography": ["level",[["GCSE"],["A-Level"]],[230,251],481,["GCSE","A-Level"]],
 "kindLabel=Practice&kindOwn=Answers&subject=Geography&level=A-Level": ["examBoard",[["AQA"],["OCR"]],[140,111],251,["AQA","OCR"]],
-"kindLabel=Practice&kindOwn=Answers&subject=Maths": ["level",[["SATs"],["KS3"],["GCSE"],["A-Level"],["Functional Skills L2"]],[1904,1787,11178,2588,24],16454,["SATs","KS3","GCSE","A-Level","Functional Skills L2"]],
-"kindLabel=Practice&kindOwn=Answers&subject=Maths&level=GCSE": ["documentType",[["5-a-day"],["Exam paper"],["Worksheet"]],[1355,3273,6429],11178,["5-a-day","Exam paper","Worksheet"]],
-"kindLabel=Practice&kindOwn=Answers&subject=Maths&level=GCSE&documentType=Exam paper": ["examBoard",[["AQA"],["Edexcel"]],[358,2915],3273,["AQA","Edexcel"]],
-"kindLabel=Practice&kindOwn=Answers&subject=Maths&level=GCSE&documentType=Exam paper&examBoard=Edexcel": ["tier",[["Foundation"],["Higher"]],[1817,1098],2915,["Foundation","Higher"]],
-"kindLabel=Practice&kindOwn=Answers&subject=Maths&level=GCSE&documentType=Exam paper&examBoard=Edexcel&tier=Higher": ["examYear",[["2024"],["2023"],["2022"],["2021"],["2020"],["2019"],["2018"],["2017"]],[97,93,66,2,97,186,181,183],1098,["2024","2023","2022","2021","2020","2019","2018","2017"]],
-"kindLabel=Practice&kindOwn=Answers&subject=Maths&level=GCSE&documentType=Exam paper&examBoard=Edexcel&tier=Higher&examYear=2024": ["paperId",[["RS1786302107764-416","Paper 1"],["RS1786302107764-412","Paper 2",["RS1786302107764-418"]],["RS1786302107764-420","Paper 3"]],[33,33,31],97,["Paper 1","Paper 2","Paper 3"]],
-"kindLabel=Practice&kindOwn=Answers&subject=Maths&level=GCSE&documentType=Exam paper&examBoard=Edexcel&tier=Higher&examYear=2022": ["examMonth",[["June"],["November"]],[2,64],66,["June","November"]],
-"kindLabel=Practice&kindOwn=Answers&subject=Maths&level=GCSE&documentType=Exam paper&examBoard=Edexcel&tier=Higher&examYear=2021": ["qNumber",[["Q1"],["Q4"]],[1,1],2,["Q1","Q4"]],
+"kindLabel=Practice&kindOwn=Answers&subject=Maths": ["level",[["SATs"],["KS3"],["GCSE"],["A-Level"],["Functional Skills L2"]],[1904,1787,11349,2588,24],16625,["SATs","KS3","GCSE","A-Level","Functional Skills L2"]],
+"kindLabel=Practice&kindOwn=Answers&subject=Maths&level=GCSE": ["documentType",[["5-a-day"],["Exam paper"],["Worksheet"]],[1355,3444,6429],11349,["5-a-day","Exam paper","Worksheet"]],
+"kindLabel=Practice&kindOwn=Answers&subject=Maths&level=GCSE&documentType=Exam paper": ["examBoard",[["AQA"],["Edexcel"]],[358,3086],3444,["AQA","Edexcel"]],
+"kindLabel=Practice&kindOwn=Answers&subject=Maths&level=GCSE&documentType=Exam paper&examBoard=Edexcel": ["tier",[["Foundation"],["Higher"]],[1817,1269],3086,["Foundation","Higher"]],
+"kindLabel=Practice&kindOwn=Answers&subject=Maths&level=GCSE&documentType=Exam paper&examBoard=Edexcel&tier=Higher": ["examYear",[["2024"],["2023"],["2022"],["2021"],["2020"],["2019"],["2018"],["2017"]],[149,93,133,54,97,186,181,183],1269,["2024","2023","2022","2021","2020","2019","2018","2017"]],
+"kindLabel=Practice&kindOwn=Answers&subject=Maths&level=GCSE&documentType=Exam paper&examBoard=Edexcel&tier=Higher&examYear=2024": ["examMonth",[["June"],["November"]],[96,53],149,["June","November"]],
+"kindLabel=Practice&kindOwn=Answers&subject=Maths&level=GCSE&documentType=Exam paper&examBoard=Edexcel&tier=Higher&examYear=2022": ["examMonth",[["June"],["November"]],[52,81],133,["June","November"]],
+"kindLabel=Practice&kindOwn=Answers&subject=Maths&level=GCSE&documentType=Exam paper&examBoard=Edexcel&tier=Higher&examYear=2021": ["paperId",[["RS1786302107764-446","Paper 1"],["RS1786302107764-448","Paper 2"],["RS1786302107764-450","Paper 3"]],[16,21,17],54,["Paper 1","Paper 2","Paper 3"]],
 "kindLabel=Practice&kindOwn=Answers&subject=Physics": ["level",[["GCSE"],["A-Level"]],[3250,1208],4458,["GCSE","A-Level"]],
 "kindLabel=Practice&kindOwn=Answers&subject=Physics&level=GCSE": ["documentType",[["End of topic test"],["Exam paper"],["Worksheet"]],[149,2388,713],3250,["End of topic test","Exam paper","Worksheet"]],
 "kindLabel=Practice&kindOwn=Answers&subject=Physics&level=GCSE&documentType=Exam paper": ["examBoard",[["AQA"],["OCR"]],[1837,551],2388,["AQA","OCR"]],
@@ -4950,6 +4950,7 @@ const ins = typeof insertsFor_ === 'function' ? insertsFor_(x).filter(insReading
 const span = typeof insRowSpan_ === 'function' ? insRowSpan_(x) : null;
 const text = (x && x.levelsSource) || ins.map(r => String(r.sourceText || '')).join('\n\n');
 if (!text.trim()) return { all: '', span: '', wait: ins.some(r => !r.sourceText) };
+if (!/\[\d{1,3}\]/.test(text)) return { all: '', span: '' };
 const words = s => ' ' + markPtWords_(markPtPlain_(s.replace(/\[\d{1,3}\]/g, ' '))).join(' ') + ' ';
 let cut = '';
 if (span) {
@@ -5027,20 +5028,22 @@ const cuts = String(row.cuts || '0.1 0.3 0.5 0.7').split(/\s+/).map(Number);
 let cap = 4;
 if (sig.words < (+row.short || 40)) cap = 1;
 if (/quote|inlines/.test(row.weights) && !sig.quote) cap = Math.min(cap, 2);
+const n = cuts.length;
+if (n > 4 && cap < 4) cap = Math.round(cap * n / 4);
 let level = 0;
 cuts.forEach((c, i) => { if (share >= c) level = i + 1; });
 if (!sig.words) level = 0;
 level = Math.min(level, cap);
-const of = +row.of || 0, band = of / 4;
+const of = +row.of || 0, band = of / n;
 let mark = 0;
 if (level) {
-const lo = cuts[level - 1], hi = level < 4 ? cuts[level] : 1;
+const lo = cuts[level - 1], hi = level < n ? cuts[level] : 1;
 const into = Math.max(0, Math.min(0.999, (share - lo) / Math.max(0.01, hi - lo)));
 mark = Math.min(of, Math.floor((level - 1) * band) + 1 + Math.floor(into * (Math.round(level * band) - Math.floor((level - 1) * band))));
-if (level < 4 && share >= hi) mark = Math.round(level * band);
+if (level < n && share >= hi) mark = Math.round(level * band);
 }
 gaps.sort((a, b) => b.lift - a.lift);
-return { ao: row.ao, of, level, mark, share, next: gaps.filter(g => g.lift > 0.05).slice(0, 2).map(g => g.sig) };
+return { ao: row.ao, of, level, top: n, names: row.names ? ['no level yet'].concat(String(row.names).split('/').map(s => s.trim())) : null, mark, share, next: gaps.filter(g => g.lift > 0.05).slice(0, 2).map(g => g.sig) };
 }
 function markLevelsRead_(accept) {
 const way = String(accept || '').split('|').find(w => /^\s*rule:\s*levels\b/i.test(w)) || '';
@@ -5065,8 +5068,8 @@ const sig = levelsSignals_(raw, key, x);
 const each = rows.map(r => levelsScore_(sig, r));
 const got = each.reduce((a, e) => a + e.mark, 0), of = each.reduce((a, e) => a + e.of, 0) || Number(x && x.marks) || 0;
 const name = ['no level yet', 'simple, limited', 'some', 'clear', 'perceptive, detailed'];
-const say = each.map(e => (each.length > 1 ? e.ao + ' ' : '') + (e.level ? 'Level ' + e.level + ' (' + name[e.level] + '): ' : 'No level yet: ') + e.mark + ' of ' + e.of + ' marks.').join(' ');
-const next = [...new Set([].concat(...each.filter(e => e.level < 4).map(e => e.next)))].slice(0, 2);
+const say = each.map(e => (each.length > 1 ? e.ao + ' ' : '') + (e.level ? 'Level ' + e.level + ' (' + (e.names || name)[e.level] + '): ' : 'No level yet: ') + e.mark + ' of ' + e.of + ' marks.').join(' ');
+const next = [...new Set([].concat(...each.filter(e => e.level < e.top).map(e => e.next)))].slice(0, 2);
 const why = next.length ? 'To reach the next level: ' + next.map(n => LEVELS_SAY[n] || n).join('; ') + '.' : 'Top level.';
 return { got: Math.min(got, of), of, points: true, levels: { each: each.map(e => ({ ao: e.ao, level: e.level, mark: e.mark, of: e.of })), signals: sig }, say, why };
 }

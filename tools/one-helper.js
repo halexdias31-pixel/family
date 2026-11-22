@@ -18,6 +18,25 @@ const HELPERS = [
   [/\.replace\(\s*\/\\\/\\\*|\.replace\([^\n]*:BEGIN\[|\.replace\([^\n]*\\\(generated\\\)|^\s*function\s+uncomment|^\s*(?:const|let|var)\s+SHARED_RE\s*=/m, () => 'stripper'],
 ];
 
+/* THE CHECKS' HARNESSES (UNIFY NEXT 1, 22 Nov) live once in tools/lib/: the backend in a vm (backend-vm.js), the site on a phone (site-browser.js),
+   the site's data (site-data.js). A tool that stubs Google and runs the .gs files itself, serves the site to a browser or launches one itself, or
+   reads kinds/settings/words/permissions/questions json by hand fails the build. HARNESS_OWED: tools that are not build checks, still on their own. */
+const HARNESS_OWED = ['tools/gallery.js', 'tools/wait.js', 'tools/diagram_png.js'];
+const HARNESS = [
+  ['tools/lib/backend-vm.js', src => /(['"])SpreadsheetApp\1\s*,\s*(['"])DriveApp/.test(src) || (/readdirSync\([^\n]*backend/.test(src) && /\.gs['"]/.test(src) && /vm\.runIn/.test(src)), 'backend vm'],
+  ['tools/lib/site-browser.js', src => /http\.createServer/.test(src) && /playwright/.test(src), 'site server'],
+  ['tools/lib/site-browser.js', src => /\b(?:chromium|webkit|firefox)\.launch\(|\]\.launch\(/.test(src), 'browser launch'],
+  ['tools/lib/site-data.js', src => /(?:readFileSync|require)\([^)\n]*(?:settings\/(?:kinds|settings|words|permissions)|questions)\.json/.test(src), 'data read'],
+];
+function harnessProblems() {
+  const out = [];
+  srcFiles('tools', /\.js$/, { deep: true }).filter(f => !/^tools\/lib\//.test(f) && HARNESS_OWED.indexOf(f) === -1).forEach(f => {
+    const src = text(f);
+    HARNESS.forEach(([lib, hit, name]) => { if (hit(src)) out.push(f + ' rolls its own ' + name + ' (take it from ' + lib + ')'); });
+  });
+  return out;
+}
+
 function helperProblems() {
   const out = [];
   srcFiles('tools', /\.js$/, { deep: true }).filter(f => f !== 'tools/lib/gen.js' && OWED.indexOf(f) === -1).forEach(f => {
@@ -44,9 +63,9 @@ function groupProblems() {
 }
 
 function run() {
-  const h = helperProblems(), g = groupProblems(), bad = h.concat(g.bad);
+  const h = helperProblems(), x = harnessProblems(), g = groupProblems(), bad = h.concat(x, g.bad);
   console.log('one-helper: ' + g.groups + ' settings groups from kinds.json setting.cards; ' + h.length + ' tool(s) with their own S/blockInto/read/walk/main tail/stripper'
-    + '; owed: ' + (OWED.join(', ') || 'none'));
+    + '; ' + x.length + ' check(s) with a harness of their own; owed: ' + (OWED.concat(HARNESS_OWED).join(', ') || 'none'));
   report('one-helper', bad);
 }
 module.exports = { run };

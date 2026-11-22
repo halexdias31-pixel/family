@@ -4,16 +4,15 @@
    Counted site-wide on an iPhone 13, each Find door opened at once on the served bundles with tools/lib/payload.json as the backend's answer.
    Prints the count; a card outside the rule fails the build. Run by tools/build.js after the bundles. */
 'use strict';
-const fs = require('fs'), http = require('http'), path = require('path');
-const { bare, text } = require('./lib/gen.js');
-const ROOT = path.join(__dirname, '..'), PORT = 8131;
+const fs = require('fs'), path = require('path');
+const { ROOT, bare, text } = require('./lib/gen.js');
+const SB = require('./lib/site-browser.js'), SD = require('./lib/site-data.js');
 /* THE ONE MAKER'S OWN CLASSES, and the state classes every card may wear. */
 const BASE = /^(card|fc|kc|kc-[\w-]+|is-empty|is-off|is-locked|tap)$/;
 /* NO CARD WAITS ON A LATER SHAPE NOW (owner, 22 Nov, CARD SHAPES: Learning: Question, the last step): the question card's `qcard` and `lib-wait`, a
    receipt's `rc`, `is-done` and a conversation's `msg-fc`, `unread` were styled here; each is now a shape (`[data-shape="Question"]`) or a shape
    state (`data-state`: wait, receipt, done, one, unread) the one maker writes, and the classes stay only as handlers' hooks. Empty, so any card with CSS of its own fails. */
 const LATER = {};
-const MIME = { '.js': 'text/javascript', '.css': 'text/css', '.html': 'text/html', '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml' };
 
 /* A SETTINGS CARD IS ORDINARY BLOCKS TOO (unify batch 9): no CSS keyed on `.me-form` (the class stays only as autosave's hook), and the line that says
    what was saved is the maker's `status` block — a `me-said` paragraph written by hand fails, in every file. No `me-form` embed either (unify batch 10):
@@ -48,37 +47,19 @@ async function run() {
   hand.forEach(x => console.log('  ' + x));
   if (hand.length) throw new Error('one-card: ' + hand.length + ' settings part(s) drawn by hand');
   const styled = c => new RegExp('\\.' + c.replace(/-/g, '\\-') + '(?![\\w-])').test(css);
-  const payload = withActivity(JSON.parse(fs.readFileSync(path.join(ROOT, 'tools/lib/payload.json'), 'utf8')));
-  const { chromium, devices } = require('playwright');
-  /* THE LIBRARY WITH ITS WORDS where this machine has them (as tools/share-picture.js serves it): Practice then draws its question cards, not only
+  const payload = withActivity(JSON.parse(SB.PAYLOAD()));
+  /* THE LIBRARY WITH ITS WORDS where this machine has them (tools/lib/site-browser.js serves it): Practice then draws its question cards, not only
      their waiting cards, so the Question shape is looked at as a child sees it (Learning: Question, 22 Nov). */
-  const lib = require('./lib/lib-full.js');
-  const srv = http.createServer((q, s) => {
-    let p = decodeURIComponent(q.url.split('?')[0]); if (p.endsWith('/')) p += 'index.html';
-    let body = null; try { body = lib.serve(path.join(ROOT, p)); } catch (e) { body = null; }
-    if (body !== null) { s.writeHead(200, { 'content-type': 'application/json' }); return s.end(body); }
-    fs.readFile(path.join(ROOT, p), (e, b) => { if (e) { s.writeHead(404); return s.end(); } s.writeHead(200, { 'content-type': MIME[path.extname(p)] || 'application/octet-stream' }); s.end(b); });
-  }).listen(PORT);
-  const b = await chromium.launch();
-  const open = async () => {
-    const c = await b.newContext({ ...devices['iPhone 13']});
-    const pg = await c.newPage();
-    await pg.addInitScript(() => { try { localStorage.setItem('familyUser', JSON.stringify({ name: 'Test Admin', handle: 'testadmin', personId: 'P001', role: 'admin', token: 'tok' })); } catch (e) {} });
-    await pg.route(/script\.google\.com/, r => r.fulfill({ status: 200, contentType: 'application/json', body: payload }));
-    await pg.goto('http://localhost:' + PORT + '/');
-    await pg.waitForFunction(() => typeof DATA !== 'undefined' && DATA && (DATA.tutors || []).length, null, { timeout: 90000 });
-    await pg.waitForTimeout(1500);
-    return pg;
-  };
-  const click = async (pg, t) => { try { await pg.getByText(t, { exact: true }).locator('visible=true').first().click({ timeout: 4000 }); await pg.waitForTimeout(1500); } catch (e) { /* a door with no second step */ } };
+  const open = () => SB.open({ user: { name: 'Test Admin', handle: 'testadmin', personId: 'P001', role: 'admin', token: 'tok' }, payload });
+  const click = SB.tap;
   try {
     const first = await open();
     await first.waitForSelector('#stuff-groups [data-value]', { state: 'attached', timeout: 30000 }).catch(() => {});
     const doors = await first.evaluate(() => [...document.querySelectorAll('#stuff-groups [data-value]')].map(e => e.dataset.value).filter(Boolean));
-    await first.context().close();
+    await first.close();
     /* THREE DOORS AT ONCE: more and a phone-sized page under load misses its taps. */
     const MUST_DRAW = { Posts: 'kc-post', Practice: 'kc-question', Booking: 'kc-receipt', Messages: 'kc-msg' };
-    const look = async (d, tries = 2) => {
+    const look = async d => {
       const pg = await open();
       /* EVERY STEP SKIPPED (22 Nov): Practice, Library and Shop ask several steps before their cards, so "Doesn't matter" is tapped until it is gone. */
       await click(pg, d);
@@ -89,15 +70,15 @@ async function run() {
       if (d === 'Practice') await pg.waitForFunction(() => document.querySelector('#screen .kc-question') && !document.querySelector('#screen .lib-wait'), null, { timeout: 45000 }).catch(() => {});
       /* A DOOR THAT MUST DRAW ITS OWN KIND IS WAITED FOR (22 Nov: Posts and Practice sometimes came back empty under load — a missed tap, not the site). */
       const must = MUST_DRAW[d];
-      if (must && !(await pg.$('#screen .' + must))) { await pg.context().close(); return tries ? look(d, tries - 1) : []; }
+      if (must && !(await pg.$('#screen .' + must))) { await pg.close(); return null; }
       const cards = await pg.evaluate(() => [...document.querySelectorAll('#screen .card')].filter(e => !e.parentElement.closest('.card')).slice(0, 60)
         .map(e => ({ n: e.getAttribute('aria-label') || e.innerText.slice(0, 30), c: e.className, sh: e.dataset.shape || '', ik: e.dataset.itemKind || '', set: e.matches('.kc-setting'),
           kc: e.matches('.fc.kc') && [...e.children].every(k => /^kc-/.test(k.className)) })));
-      await pg.context().close();
+      await pg.close();
       return cards.filter(x => x.n !== 'Find').map(x => ({ door: d, n: x.n, c: x.c, kc: x.kc, sh: x.sh, ik: x.ik, set: x.set, own: x.c.split(/\s+/).filter(c => c && !BASE.test(c) && styled(c)) }));
     };
-    const per = [], todo = doors.slice();
-    await Promise.all([0, 1, 2].map(async () => { while (todo.length) per.push(await look(todo.shift())); }));
+    /* A MISSED TAP IS TRIED AGAIN, twice at most (SB.retry); a door that never draws its kind counts no cards. */
+    const per = await SB.pool(doors, 3, async d => (await SB.retry(() => look(d), r => r !== null, 2)) || []);
     if (!doors.length) throw new Error('one-card: Find showed no doors — the app did not start');
     const all = [].concat(...per), later = all.filter(x => x.kc && x.own.length && x.own.every(c => LATER[c])), bad = all.filter(x => (!x.kc || x.own.length) && later.indexOf(x) < 0);
     console.log('one-card: ' + (all.length - bad.length - later.length) + '/' + all.length + ' cards drawn by the one maker with no CSS of their own');
@@ -115,7 +96,7 @@ async function run() {
     if (unshaped.length) throw new Error('one-card: ' + unshaped.length + ' settings card(s) with no shape');
     if (shapes.length > 4) throw new Error('one-card: Settings uses ' + shapes.length + ' shapes; four at most');
     /* THE PERSON, ITEM, REFERENCE, RECORD, THREAD AND QUESTION SHAPES (owner, 22 Nov, CARD SHAPES): every card of a kind kinds.json gives a Person, Item, Learning: Reference or Question, or Activity: Record or Thread `shape` wears exactly that one, and only that one. */
-    const KINDS = require('../data/settings/kinds.json').kinds;
+    const KINDS = SD.kinds();
     ['Person', 'Item', 'Reference', 'Record', 'Thread', 'Question'].forEach(h => {
       const kinds = Object.keys(KINDS).filter(k => KINDS[k].shape === h), mine = all.filter(x => kinds.indexOf(x.ik) >= 0);
       const worn = [...new Set(mine.map(x => x.sh))], wrong = mine.filter(x => x.sh !== h);
@@ -136,7 +117,7 @@ async function run() {
     /* EVERY DOOR DRAWS (22 Nov): a door with no cards is a door the check never looked behind. */
     const none = doors.filter(d => !all.some(x => x.door === d));
     if (none.length) throw new Error('one-card: ' + none.join(', ') + ' drew no cards');
-  } finally { await b.close(); srv.close(); }
+  } finally { await SB.done(); }
 }
 module.exports = { run };
 if (require.main === module) run().catch(e => { console.error(e.message || e); process.exit(1); });

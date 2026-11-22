@@ -2,11 +2,12 @@
 /* @family. — tools/kinds.js: writes js/kinds.js, the browser's copy of data/settings/kinds.json (every kind, and the front doors in order) and facets.json (every facet's label and order). */
 /* Edit the JSON, never js/kinds.js. tools/build.js runs it. */
 'use strict';
+const SD = require('./lib/site-data.js');
 const fs = require('fs'), path = require('path');
 const { main } = require('./lib/gen.js');
 const ROOT = path.resolve(__dirname, '..');
 function run() {
-  const j = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/settings/kinds.json'), 'utf8'));
+  const j = SD.json('data/settings/kinds.json');
   /* THE FRONT DOORS ARE SAID ONCE (rule 1.75, batch 6): every `find.under` (a kind's or an entry's) is a `doors` name, each named once,
      so Find's first menu never shows a door out of the owner's order. */
   const doors = (j.doors || []).map(d => d && d.name), bad = [];

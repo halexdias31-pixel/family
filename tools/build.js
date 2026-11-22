@@ -77,6 +77,9 @@ const ORDER = [
 ];
 (async () => {
   const t0 = Date.now();
+  /* ONE SERVER AND ONE BROWSER PER ENGINE for every browser check (tools/lib/site-browser.js), closed once at the end. */
+  const SB = require('./lib/site-browser.js');
+  SB.share();
   for (const name of ORDER) {
     const file = path.join(__dirname, name + '.js');
     if (!fs.existsSync(file)) { console.log(name + ': gone, skipped'); continue; }
@@ -84,6 +87,7 @@ const ORDER = [
     await require(file).run();
     console.log('  (' + name + ' ' + ((Date.now() - t) / 1000).toFixed(1) + 's)');
   }
+  await SB.closeAll();
   console.log('build: done in ' + ((Date.now() - t0) / 1000).toFixed(1) + 's');
   process.exit(0);
 })().catch(e => { console.error('build: ' + (e && e.stack || e)); process.exit(1); });

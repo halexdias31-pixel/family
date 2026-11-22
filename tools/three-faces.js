@@ -4,6 +4,7 @@
    and keypad), pick (choices) or draw (the drawing pad); and every question type in data/settings/qengine.json carries one of the
    three as its `face`. No camera, no photo: their code must not come back. Prints the count site-wide; anything else fails the build. */
 'use strict';
+const SD = require('./lib/site-data.js');
 const fs = require('fs'), path = require('path');
 const VQ = require('./validate-questions.js');
 const { ROOT, S, main } = require('./lib/gen.js');
@@ -21,7 +22,7 @@ function run() {
     (src.match(/getUserMedia|ANS_FACES\.camera|qp-cam-|'qp-work'|PHOTO_READ|WORK_PICS/g) || []).forEach(m => bad.push(f + ' still has ' + m));
   });
   const counts = {};
-  if (fs.existsSync(path.join(ROOT, 'data-private', 'questions.json'))) {
+  if (SD.hasPrivate()) {
     for (const r of VQ.rowsOf()) {
       if (r.kind !== 'question' || !(r.active === true || /^true$/i.test(S(r.active)))) continue;
       ctx.__r = r;
