@@ -33,11 +33,11 @@ function bibleOpts_(x) {
   if (!bibleFor_() || !x) return [];
   if (!x.bb) {
     if (BIBLE.index) return [{ icon: 'open', label: 'Open', note: BIBLE.index.translation, act: 'bible-go' }];
-    return BIBLE.failed ? [{ icon: 'undo', label: 'Try again', note: 'the list of books', act: 'bible-retry' }] : [];
+    return BIBLE.failed ? [{ icon: 'undo', label: text_('try-again'), note: 'the list of books', act: 'bible-retry' }] : [];
   }
   const bb = x.bb;
   return [BIBLE.missed[bb.slot] && !BIBLE.loading[bb.slot]
-    ? { icon: 'undo', label: 'Try again', note: bb.book, act: 'bible-retry', data: { n: bb.slot } } : null,
+    ? { icon: 'undo', label: text_('try-again'), note: bb.book, act: 'bible-retry', data: { n: bb.slot } } : null,
   bibleHere_(x) ? null : { icon: 'book', label: 'Chapter', note: bibleCite_(bb, x.ch), act: 'bible-go', data: { key: x.key } }];
 }
 /* IN THIS VERSE'S CHAPTER ALREADY: its Book and Chapter answered and no Verse answer — the strip is

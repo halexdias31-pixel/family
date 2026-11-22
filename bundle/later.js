@@ -1845,7 +1845,7 @@ marks: { of: x => Number(x && x.marks) > 0 ? Number(x.marks) + ' ' + plural_(Num
 showOf: v => { const m = /^(\d+) marks?$/.exec(String(v)); return m ? '[' + m[1] + ']' : v; } },
 needCalc: { of: x => asList_(x.needs).filter(v => NEED_CALC_[v]) },
 needs: { of: x => asList_(x.needs).filter(v => !NEED_CALC_[v]) },
-mySaved: { of: x => typeof FAVS === 'undefined' || !USER || !FAVS.size || !x || !x.key ? '' : FAVS.has(String(x.key)) ? 'Saved' : text_('not-saved') },
+mySaved: { of: x => typeof FAVS === 'undefined' || !USER || !FAVS.size || !x || !x.key ? '' : FAVS.has(String(x.key)) ? text_('saved') : text_('not-saved') },
 };
 let FACET_LIVE = null;
 function facetList() {
@@ -2545,7 +2545,7 @@ function insSay_(r) {
 if (typeof USER === 'undefined' || !USER || !USER.token) return cardBlock_({ type: 'paperNote', look: 'lib-sign', text: 'Sign in to read the source — your account is a few screens to the right.' });
 const t = 'in:' + r.id;
 if (LIB.gone.has(t)) return empty_(r.pending ? 'Coming soon.' : 'Not in the library yet.');
-if (LIB.failed) return `${empty_('Couldn’t load this.')}${tileRow_(tile_({ icon: 'again', label: 'Try again', act: 'lib-retry' }))}`;
+if (LIB.failed) return `${empty_('Couldn’t load this.')}${tileRow_(tile_({ icon: 'again', label: text_('try-again'), act: 'lib-retry' }))}`;
 return loading_();
 }
 function insWant_(r) {
@@ -3232,11 +3232,11 @@ function bibleOpts_(x) {
 if (!bibleFor_() || !x) return [];
 if (!x.bb) {
 if (BIBLE.index) return [{ icon: 'open', label: 'Open', note: BIBLE.index.translation, act: 'bible-go' }];
-return BIBLE.failed ? [{ icon: 'undo', label: 'Try again', note: 'the list of books', act: 'bible-retry' }] : [];
+return BIBLE.failed ? [{ icon: 'undo', label: text_('try-again'), note: 'the list of books', act: 'bible-retry' }] : [];
 }
 const bb = x.bb;
 return [BIBLE.missed[bb.slot] && !BIBLE.loading[bb.slot]
-? { icon: 'undo', label: 'Try again', note: bb.book, act: 'bible-retry', data: { n: bb.slot } } : null,
+? { icon: 'undo', label: text_('try-again'), note: bb.book, act: 'bible-retry', data: { n: bb.slot } } : null,
 bibleHere_(x) ? null : { icon: 'book', label: 'Chapter', note: bibleCite_(bb, x.ch), act: 'bible-go', data: { key: x.key } }];
 }
 function bibleHere_(x) {
@@ -3981,7 +3981,7 @@ return cardBlock_({ type: 'paperNote', look: 'lib-sign', text: 'Sign in to see t
 if (libIdsFor_(x).some(t => LIB.gone.has(t))) return empty_(x && x.row && (x.row.pending === true || libTrue(x.row.lib_pending)) ? 'Coming soon.' : 'Not in the library yet.');
 if (LIB.failed) {
 return `${empty_('Couldn’t load this. ' + LIB.failed)}
-      ${tileRow_(tile_({ icon: 'again', label: 'Try again', act: 'lib-retry' }))}`;
+      ${tileRow_(tile_({ icon: 'again', label: text_('try-again'), act: 'lib-retry' }))}`;
 }
 return loading_();
 }
@@ -5797,7 +5797,7 @@ if (notYet) { tell_(out, 'info', notYet); return; }
 const sent = subRecord_(k, inp.value, 'sent');
 const x = typeof qStatus_ === 'function' ? stuffItemsAll_().find(it => ansKey_(it) === k) : null;
 const tutor = !!x && qStatus_(x) === 'tutor';
-tell_(out, sent ? 'saved' : 'error', sent ? (box.classList.contains('qp-keep') ? 'Saved' : 'Sent') + (tutor ? ' \u2014 marked by your tutor' : '') : text_('sign-in-to-send-it'));
+tell_(out, sent ? 'saved' : 'error', sent ? (box.classList.contains('qp-keep') ? text_('saved') : 'Sent') + (tutor ? ' \u2014 marked by your tutor' : '') : text_('sign-in-to-send-it'));
 });
 document.addEventListener('input', e => {
 const el = e.target && e.target.closest && e.target.closest('[data-do="qp-ans"]');
@@ -10797,7 +10797,7 @@ toggleFav(el.getAttribute('data-key'), el.getAttribute('data-kind'));
 const on = isFav(el.getAttribute('data-key'));
 const wrap = el.closest('.favwrap');
 if (wrap) wrap.classList.toggle('is-fav', on);
-tileSet_(el, { label: on ? 'Saved' : 'Save', on: on });
+tileSet_(el, { label: on ? text_('saved') : text_('save'), on: on });
 markStale_(TABS.map(t => t.id).filter(id => id !== AT));
 if (AT === 'saved') { repaint(true); return; }
 const F = finderOf_(AT);
@@ -11520,7 +11520,7 @@ const sw = scriptureWait_(items);
 return [facetAnswersSpec_(facet, values, [sw != null ? sw : typeof awaiting_ === 'function' && awaiting_() ? { type: 'wait', on: true } : ''])];
 }
 function facetAnswersSpec_(facet, values, then) {
-const skip = { text: 'Doesn\'t matter', act: 'facet-skip', data: { field: facet.field }, look: 'is-skip' };
+const skip = { text: text_('doesnt-matter'), act: 'facet-skip', data: { field: facet.field }, look: 'is-skip' };
 const grid = numberedRun_(values);
 const opts = values.map(v => ({ text: v.show != null ? v.show : v.say != null ? v.say : answerSay_(facet, v.value), marked: true, act: 'facet-pick',
 data: Object.assign({ tag: tagOf_(facet.field), field: facet.field, value: v.value }, v.also && v.also.length ? { also: JSON.stringify(v.also) } : {}),
@@ -15223,7 +15223,7 @@ if (QT_SCHEME_KINDS[m.kind] && m.ready) return { send: true, act: 'qp-check', cl
 if (m.kind === 'cells') return { send: true, act: 'qp-cells-check', cls: 'qp-check' };
 if (m.kind === 'draw') return { send: true, act: 'pad-check', cls: 'qp-check' };
 if (!m.ready) return { send: true, act: 'qp-noscheme', cls: 'qp-check', data: { key: (x && x.key) || '' } };
-return Object.assign({ send: true, label: 'Save', act: 'qp-send', cls: 'qp-send' }, typeof qStatus_ === 'function' && qStatus_(x) === 'tutor' ? { note: 'marked by your tutor' } : {});
+return Object.assign({ send: true, label: text_('save'), act: 'qp-send', cls: 'qp-send' }, typeof qStatus_ === 'function' && qStatus_(x) === 'tutor' ? { note: 'marked by your tutor' } : {});
 }
 const PEN_OPEN = new Set();
 const QT_TILE = {
@@ -15648,7 +15648,7 @@ if (typeof stuffForget_ === 'function') stuffForget_(true);
 const todo = JSON.stringify({ v: 1, lists: DK.lists });
 if (typeof USER !== 'undefined' && USER) { USER.todo = todo; if (typeof saveUser_ === 'function') saveUser_(); }
 Promise.resolve(api({ action: 'item', door: 'save', item: 'todo', personId: (USER && USER.personId) || '', todo }))
-.then(d => { if (!(d && d.success)) { DK.say = (d && d.error) || 'Not saved — try again.'; dkPaint_(); } })
+.then(d => { if (!(d && d.success)) { DK.say = (d && d.error) || text_('not-saved-try-again'); dkPaint_(); } })
 .catch(() => { DK.say = 'Not saved — you look offline.'; dkPaint_(); });
 }
 const DK_MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -15682,7 +15682,7 @@ f('Note', { type: 'control', tag: 'textarea', value: it.note || '', attrs: { cla
 f('Date', { type: 'control', attrs: { type: 'date', class: 'dk-f', 'data-f': 'date', value: it.date || '' } }),
 f('Time', { type: 'control', attrs: { type: 'time', class: 'dk-f', 'data-f': 'time', value: it.time || '' } }),
 f('Repeats', { type: 'control', tag: 'select', attrs: { class: 'dk-f', 'data-f': 'repeat' }, options: [{ value: '', text: 'Never', on: !it.repeat }, { value: 'daily', text: 'Daily', on: it.repeat === 'daily' }] })],
-tiles: [{ icon: 'save', label: 'Save', act: 'dk-keep', cls: 'is-submit', data: { i } }] };
+tiles: [{ icon: 'save', label: text_('save'), act: 'dk-keep', cls: 'is-submit', data: { i } }] };
 }
 function dkBlocks_() {
 const lists = dkLoad_();
@@ -15701,7 +15701,7 @@ if (!L) return out.concat({ type: 'text', text: 'Make a list to start.' });
 out.push({ type: 'group', look: 'tile-row', tiles: [{ icon: 'edit', label: 'Rename', act: 'dk-rename' }, { icon: 'up', label: 'Earlier', act: 'dk-move', data: { by: -1 }, off: DK.at === 0 },
 { icon: 'down', label: 'Later', act: 'dk-move', data: { by: 1 }, off: DK.at === lists.length - 1 }, { icon: 'bin', label: 'Delete list', act: 'dk-droplist', tone: 'danger' }] });
 if (DK.rename) out.push({ type: 'group', look: 'dk-form', inner: formOf_('docket-list', { name: L.name, start: L.start || '' }) },
-{ type: 'tiles', tiles: [{ icon: 'save', label: 'Save', act: 'dk-named', cls: 'is-submit' }] });
+{ type: 'tiles', tiles: [{ icon: 'save', label: text_('save'), act: 'dk-named', cls: 'is-submit' }] });
 out.push({ type: 'field', cap: 'Add an item', blocks: [{ type: 'control', attrs: { class: 'dk-add', placeholder: 'What to do', maxlength: 300, enterkeyhint: 'done' } }] },
 { type: 'tiles', tiles: [{ icon: 'plus', label: 'Add', act: 'dk-add', cls: 'is-submit' }] });
 dkGroups_(L.items).forEach(g => out.push({ type: 'section', head: g.head, blocks: g.rows.map(i => dkItem_(L.items[i], i)) }));
@@ -15877,7 +15877,7 @@ const form = open ? [{ type: 'group', look: 'dk-form', inner: formOf_('docket-it
 return renderCard(shapeCard_('docket', { kind: 'docket', name: it.title || 'Untitled', tags: [it.title || 'Untitled', x.dkMark, a.minutes + ' min', +a.runs ? 'Runs by itself ' + a.runs + ' min' : '', x.dkList].concat(when).filter(Boolean),
 body: [{ type: 'tick', text: 'Done', attrs: { 'data-dkf': x.dkAt, checked: dkDone_(it), 'aria-label': 'Done: ' + (it.title || '') } },
 it.note && !open ? { type: 'text', paras: String(it.note).split(/\n{2,}/) } : null].concat(form).filter(Boolean),
-tiles: open ? [{ icon: 'save', label: 'Save', act: 'dk-fsave', cls: 'is-submit', data: { at: x.dkAt } }, { icon: 'bin', label: 'Delete', act: 'dk-fdel', tone: 'danger', data: { at: x.dkAt } },
+tiles: open ? [{ icon: 'save', label: text_('save'), act: 'dk-fsave', cls: 'is-submit', data: { at: x.dkAt } }, { icon: 'bin', label: 'Delete', act: 'dk-fdel', tone: 'danger', data: { at: x.dkAt } },
 { icon: 'close', label: 'Close', act: 'dk-fedit', data: { at: x.dkAt } }] : [{ icon: 'edit', label: 'Edit', act: 'dk-fedit', data: { at: x.dkAt } }] }));
 }
 const dkAt_ = at => { const [li, i] = String(at || '').split(':').map(Number), L = dkLoad_()[li]; return { L, i, it: L && L.items[i] }; };
@@ -15994,7 +15994,7 @@ if (typeof USER !== 'undefined' && USER) { USER.assignments = cell; if (typeof s
 ASG.say = '';
 asgPaint_();
 return Promise.resolve(api({ action: 'assignmentsSave', personId: asgMe_(), assignments: rows }))
-.then(d => { if (!(d && d.success)) { ASG.say = (d && d.error) || 'Not saved — try again.'; asgPaint_(); return false; }
+.then(d => { if (!(d && d.success)) { ASG.say = (d && d.error) || text_('not-saved-try-again'); asgPaint_(); return false; }
 if (Array.isArray(d.assignments) && g) { g.rows = d.assignments; USER.assignments = JSON.stringify({ v: 1, assignments: d.assignments }); if (typeof saveUser_ === 'function') saveUser_(); asgPaint_(); }
 return true; })
 .catch(() => { ASG.say = 'Not saved — you look offline.'; asgPaint_(); return false; });
@@ -16005,7 +16005,7 @@ const rows = ((ASG.got[asgMe_()] || {}).rows || []).slice(), a = Object.assign({
 if (a.status !== 'marked') a.mark = '';
 if (id) { const at = rows.findIndex(r => r.id === id); rows[at] = a; delete ASK[fid]; ASG.edit = ''; }
 else { a.id = 'a' + Date.now().toString(36); rows.push(a); askDone_(fid); ASG.add = false; }
-asgSave_(rows).then(ok => { if (ok) toast('Saved.'); });
+asgSave_(rows).then(ok => { if (ok) toast(text_('saved')); });
 }
 FORM_SEND_[ASG_FORM] = v => asgSend_(ASG_FORM, v, '');
 on('asg-add', () => { ASG.add = !ASG.add; asgPaint_(); });
@@ -17632,7 +17632,7 @@ document.querySelectorAll('.rc-shot-box').forEach(x => x.remove());
 at.insertAdjacentHTML('afterend', renderCard({ kind: 'shot', look: 'rc-shot-box', name: said,
 picture: { src: RC_SHOT.url, alt: said },
 body: [{ type: 'text', look: 'note', text: can ? text_('press-share-to-send-it') : text_('press-and-hold-the-picture-to') }],
-tiles: [can ? { label: 'Share', act: 'rc-shot-share', tone: 'buy' } : null, { label: 'Save', act: 'rc-shot-save', data: { name } }].filter(Boolean) }));
+tiles: [can ? { label: 'Share', act: 'rc-shot-share', tone: 'buy' } : null, { label: text_('save'), act: 'rc-shot-save', data: { name } }].filter(Boolean) }));
 }
 on('rc-shot-save', el => {
 if (!RC_SHOT) return;

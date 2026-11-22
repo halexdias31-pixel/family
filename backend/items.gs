@@ -140,7 +140,7 @@ function itemWrite_(body, v) {
   const kind = S(body.kind), spec = itemKind_(kind), given = body.item;
   if (!spec || spec.sheet.to === 'events' || spec.sheet.blob) return { error: 'That kind cannot be written here.', why: 'kind' };
   if (!given || typeof given !== 'object' || Array.isArray(given)) return { error: 'Send the item as an object.', why: 'item' };
-  if (!itemMayWrite_(kind, spec, v)) return { error: v.row ? 'Not authorised.' : 'Sign in first.', why: v.row ? 'kind' : 'signed-out' };
+  if (!itemMayWrite_(kind, spec, v)) return { error: v.row ? text_('err-not-authorised') : text_('err-sign-in-first'), why: v.row ? 'kind' : 'signed-out' };
   const home = spec.sheet.via ? itemKind_(spec.sheet.via).sheet : spec.sheet;
   const t = read(home.tab);
   const id = itemIdOf_(home, given);
@@ -198,7 +198,7 @@ function postItem_(body, action, began) {
   if (door === 'save' || door === 'delete') {
     /* SIGNED IN: the token names the person, never the request. */
     const denied = gateDenied_('self', body);
-    if (denied) return jsonOut(denied === 'Please sign in again.' ? { error: denied, why: 'signed-out' } : { error: denied });
+    if (denied) return jsonOut(denied === text_('err-sign-in-again') ? { error: denied, why: 'signed-out' } : { error: denied });
     return itemsWrite_(door, body, began);
   }
   if (door) return jsonOut({ error: 'door is get, list, save or delete.', why: 'door' });

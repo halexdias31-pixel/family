@@ -108,7 +108,7 @@ function insSay_(r) {
   if (typeof USER === 'undefined' || !USER || !USER.token) return cardBlock_({ type: 'paperNote', look: 'lib-sign', text: 'Sign in to read the source — your account is a few screens to the right.' });
   const t = 'in:' + r.id;
   if (LIB.gone.has(t)) return empty_(r.pending ? 'Coming soon.' : 'Not in the library yet.');
-  if (LIB.failed) return `${empty_('Couldn’t load this.')}${tileRow_(tile_({ icon: 'again', label: 'Try again', act: 'lib-retry' }))}`;
+  if (LIB.failed) return `${empty_('Couldn’t load this.')}${tileRow_(tile_({ icon: 'again', label: text_('try-again'), act: 'lib-retry' }))}`;
   return loading_();
 }
 /* ASKED FOR, if it has words in the Ledger and they are not here yet */

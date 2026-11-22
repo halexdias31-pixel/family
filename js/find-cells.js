@@ -303,7 +303,7 @@ on('qp-send', (el) => {
   /* LEVEL-MARKED (tools/validate-questions.js `tutor`): never a silent save -- the tutor marks it */
   const x = typeof qStatus_ === 'function' ? stuffItemsAll_().find(it => ansKey_(it) === k) : null;
   const tutor = !!x && qStatus_(x) === 'tutor';
-  tell_(out, sent ? 'saved' : 'error', sent ? (box.classList.contains('qp-keep') ? 'Saved' : 'Sent') + (tutor ? ' \u2014 marked by your tutor' : '') : text_('sign-in-to-send-it'));
+  tell_(out, sent ? 'saved' : 'error', sent ? (box.classList.contains('qp-keep') ? text_('saved') : 'Sent') + (tutor ? ' \u2014 marked by your tutor' : '') : text_('sign-in-to-send-it'));
 });
 
 /* ---------- WHO IS WORKING § */

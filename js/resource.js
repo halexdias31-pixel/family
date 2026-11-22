@@ -46,7 +46,7 @@ function cartUnits_() {
 /* A KIND THAT GOES IN THE BASKET ITS OWN WAY: a bundle is papers, so it goes in as papers. */
 const CART_ADD_OWN = { bundle: el => cartAddBundle_(el) };
 on('cart-add', el => {
-  if (!USER) { toast(text_('sign-in-first')); go('account'); return; }
+  if (!USER) { toast(text_('err-sign-in-first')); go('account'); return; }
   /* A BUNDLE IS PAPERS, SO IT GOES IN AS PAPERS — see `cartAddBundle_` below. */
   if (Object.prototype.hasOwnProperty.call(CART_ADD_OWN, el.dataset.kind)) { CART_ADD_OWN[el.dataset.kind](el); return; }
   const key = el.dataset.key;
@@ -207,7 +207,7 @@ function orderText_(cart) {
 }
 
 on('cart-send', el => {
-  if (!USER) { toast(text_('sign-in-first')); go('account'); return; }
+  if (!USER) { toast(text_('err-sign-in-first')); go('account'); return; }
   if (!CART.length) return;
   const to = orderTo_();
   if (!to) {

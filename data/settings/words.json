@@ -166,8 +166,6 @@
   "share-this-booking": "Share this booking",
   "shared-by": "Shared by",
   "shared-with-tutor": "Shared with tutor",
-  "sign-in-first": "Sign in first",
-  "sign-in-first-2": "Sign in first.",
   "sign-in-to-book-your-account": "Sign in to book — your account is a few screens to the right.",
   "sign-in-to-finish-your-booking": "Sign in to finish your booking — your payment is safe.",
   "sign-in-to-open-a-session": "Sign in to open a session",
@@ -301,6 +299,18 @@
   "dk-addr-show": "Private address",
   "err-docket-token": "That is not your docket address.",
   "err-docket-owner": "Docket is the owner's alone.",
-  "err-docket-saved": "That was not saved — try again."
+  "err-docket-saved": "That was not saved — try again.",
+  "save": "Save",
+  "saved": "Saved",
+  "try-again": "Try again",
+  "not-saved-try-again": "Not saved — try again.",
+  "daive-busy": "Daive is busy — try again in a minute.",
+  "too-many-wrong-pins-try-again-in": "Too many wrong PINs. Try again in ",
+  "could-not-save-the-picture": "Could not save the picture. "
+ },
+ "aliases": {
+  "_about": "OLD KEY → THE ONE KEY it merged into (UNIFY NEXT 4): tools/words.js writes each alias into WORDS_FILE with its key’s text, so a name read from data or a sheet still works. tools/one-word.js fails a value written under two keys.",
+  "sign-in-first": "err-sign-in-first",
+  "sign-in-first-2": "err-sign-in-first"
  }
 }

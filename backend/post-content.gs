@@ -214,7 +214,7 @@ function postAddPost_(body, action, began) {
     url = keep_(S(body.data));
     rest.forEach(x => { const u = keep_(x); if (u) more.push(u); });
   } catch (err) {
-    return jsonOut({ error: 'Could not save the picture. ' + driveTrouble_(err, iAmAdmin) });
+    return jsonOut({ error: text_('could-not-save-the-picture') + driveTrouble_(err, iAmAdmin) });
   }
   /* THE FIRST MAY HAVE COME IN THE LIST, from a phone that sent nothing else. */
   if (!url && more.length) url = more.shift();
@@ -397,7 +397,7 @@ function postSendMessage_(body, action, began) {
   if (!text && !files.length) return jsonOut({ error: 'Nothing to send.' });
   if (files.length && !rankAtLeast_(me, 'client')) return jsonOut({ error: CHILD_NO_UPLOAD, why: 'files' });
   if (text.length > 2000) {
-    return jsonOut({ error: 'That is longer than a message should be — 2,000 characters.' });
+    return jsonOut({ error: text_('that-is-longer-than-a-message') });
   }
 
   /* One every five minutes. Measured from THIS sender's last message to anybody, so a burst

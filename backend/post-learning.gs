@@ -34,7 +34,7 @@ function postSaveWorking_(body, action, began) {
 /* ---------- AND THE PHOTOS READ BACK (501): by the student, their accepted parents, and staff or admin -- nobody else, and never in doGet ---------- */
 function postWorkingOf_(body, action, began) {
   const me = findPerson('', S(body.personId));
-  if (!me || !S(me.person_id)) return jsonOut({ success: false, message: 'Sign in first.' });
+  if (!me || !S(me.person_id)) return jsonOut({ success: false, message: text_('err-sign-in-first') });
   const of = S(body.of) || S(me.person_id);
   if (!workingMaySee_(me, of)) return jsonOut({ success: false, message: 'Not yours to see.' });
   return jsonOut({ success: true, of: of, work: workingRowsOf_(of, S(body.key)) });
@@ -55,7 +55,7 @@ function postAskAssistant_(body, action, began) {
   if (question.length > ASSIST_QUESTION_MAX) return jsonOut({ success: false,
     message: 'That is too long — ' + ASSIST_QUESTION_MAX + ' characters at most.' });
   const took = aiCapTake_(who, cap, 'AI_ASSIST');
-  if (took && took.busy) return jsonOut({ success: false, why: 'busy', message: 'Daive is busy — try again in a minute.' });
+  if (took && took.busy) return jsonOut({ success: false, why: 'busy', message: text_('daive-busy') });
   if (!took) return jsonOut({ success: false, why: 'ai-cap', left: 0, cap: cap,
     message: cap ? 'That is today’s ' + cap + ' questions used — they come back tomorrow.' : 'Daive is paused.' });
   let got = null;
@@ -194,7 +194,7 @@ function postReadItems_(body, action, began, verb) {
   if (Object.prototype.hasOwnProperty.call(doors, kind + ':' + verb)) return readItemsOwn_(kind, doors[kind + ':' + verb], body, began, verb);
   if (verb === 'list' || !Object.prototype.hasOwnProperty.call(READ_ITEMS_LIB, kind)) return jsonOut({ error: 'That kind cannot be read here yet.', why: 'kind' });
   const me = who;
-  if (!itemMay_(READ_ITEMS_SHELF[kind], 'read', readItemsRole_(me))) return jsonOut({ error: me ? 'Not authorised.' : 'Sign in first.', why: me ? 'kind' : 'signed-out' });
+  if (!itemMay_(READ_ITEMS_SHELF[kind], 'read', readItemsRole_(me))) return jsonOut({ error: me ? text_('err-not-authorised') : text_('err-sign-in-first'), why: me ? 'kind' : 'signed-out' });
   const pre = READ_ITEMS_LIB[kind] + ':';
   const asked = Array.isArray(body.ids) ? body.ids : [];
   if (asked.some(v => S(v).indexOf(pre) !== 0)) return jsonOut({ error: 'Every id must be a ' + kind + ' (' + pre + '…).' });

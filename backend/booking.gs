@@ -409,11 +409,11 @@ function gateDenied_(need, body) {
   /* ---------- BEING SIGNED IN IS A TOKEN, NOT A NAME § */
   if (need === 'self' || need === 'admin') {
     const who = authWhoIs_(body.token);
-    if (!who) return 'Please sign in again.';
+    if (!who) return text_('err-sign-in-again');
     body.name = personDisplayName(who);
     body.personId = S(who.person_id);
     /* ADMIN IS ASKED OF THE ROW THE TOKEN RESOLVED TO, not of its display name looked up again. § */
-    if (need === 'admin' && !whoMay_(who, 'admin')) return 'Not authorised.';
+    if (need === 'admin' && !whoMay_(who, 'admin')) return text_('err-not-authorised');
     /* NAMING SOMEBODY ELSE AS THE ADMIN IS OVER. Anything reading `adminName` gets the signed-in
        person, so the two can no longer disagree. */
     if (S(body.adminName)) body.adminName = body.name;

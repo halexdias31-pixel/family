@@ -359,7 +359,7 @@ on('msg-send', el => {
   const key  = msgKey_(el.dataset.to, el.dataset.id);
   const queue = (MSG_QUEUE[key] || []).slice();
   if (!text && !queue.length) { box && box.focus(); return; }
-  if (!USER) { if (said) tell_(said, 'error', text_('sign-in-first-2')); return; }
+  if (!USER) { if (said) tell_(said, 'error', text_('err-sign-in-first')); return; }
   if (text.length > 2000) { toast(text_('that-is-longer-than-a-message')); return; }
 
   const p = {

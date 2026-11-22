@@ -126,7 +126,7 @@ function dkSave_() {
   const todo = JSON.stringify({ v: 1, lists: DK.lists });
   if (typeof USER !== 'undefined' && USER) { USER.todo = todo; if (typeof saveUser_ === 'function') saveUser_(); }
   Promise.resolve(api({ action: 'item', door: 'save', item: 'todo', personId: (USER && USER.personId) || '', todo }))
-    .then(d => { if (!(d && d.success)) { DK.say = (d && d.error) || 'Not saved — try again.'; dkPaint_(); } })
+    .then(d => { if (!(d && d.success)) { DK.say = (d && d.error) || text_('not-saved-try-again'); dkPaint_(); } })
     .catch(() => { DK.say = 'Not saved — you look offline.'; dkPaint_(); });
 }
 const DK_MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -162,7 +162,7 @@ function dkItem_(it, i) {
     f('Date', { type: 'control', attrs: { type: 'date', class: 'dk-f', 'data-f': 'date', value: it.date || '' } }),
     f('Time', { type: 'control', attrs: { type: 'time', class: 'dk-f', 'data-f': 'time', value: it.time || '' } }),
     f('Repeats', { type: 'control', tag: 'select', attrs: { class: 'dk-f', 'data-f': 'repeat' }, options: [{ value: '', text: 'Never', on: !it.repeat }, { value: 'daily', text: 'Daily', on: it.repeat === 'daily' }] })],
-    tiles: [{ icon: 'save', label: 'Save', act: 'dk-keep', cls: 'is-submit', data: { i } }] };
+    tiles: [{ icon: 'save', label: text_('save'), act: 'dk-keep', cls: 'is-submit', data: { i } }] };
 }
 function dkBlocks_() {
   const lists = dkLoad_();
@@ -182,7 +182,7 @@ function dkBlocks_() {
   out.push({ type: 'group', look: 'tile-row', tiles: [{ icon: 'edit', label: 'Rename', act: 'dk-rename' }, { icon: 'up', label: 'Earlier', act: 'dk-move', data: { by: -1 }, off: DK.at === 0 },
     { icon: 'down', label: 'Later', act: 'dk-move', data: { by: 1 }, off: DK.at === lists.length - 1 }, { icon: 'bin', label: 'Delete list', act: 'dk-droplist', tone: 'danger' }] });
   if (DK.rename) out.push({ type: 'group', look: 'dk-form', inner: formOf_('docket-list', { name: L.name, start: L.start || '' }) },
-    { type: 'tiles', tiles: [{ icon: 'save', label: 'Save', act: 'dk-named', cls: 'is-submit' }] });
+    { type: 'tiles', tiles: [{ icon: 'save', label: text_('save'), act: 'dk-named', cls: 'is-submit' }] });
   out.push({ type: 'field', cap: 'Add an item', blocks: [{ type: 'control', attrs: { class: 'dk-add', placeholder: 'What to do', maxlength: 300, enterkeyhint: 'done' } }] },
     { type: 'tiles', tiles: [{ icon: 'plus', label: 'Add', act: 'dk-add', cls: 'is-submit' }] });
   dkGroups_(L.items).forEach(g => out.push({ type: 'section', head: g.head, blocks: g.rows.map(i => dkItem_(L.items[i], i)) }));
@@ -385,7 +385,7 @@ function dkCard_(x) {
   return renderCard(shapeCard_('docket', { kind: 'docket', name: it.title || 'Untitled', tags: [it.title || 'Untitled', x.dkMark, a.minutes + ' min', +a.runs ? 'Runs by itself ' + a.runs + ' min' : '', x.dkList].concat(when).filter(Boolean),
     body: [{ type: 'tick', text: 'Done', attrs: { 'data-dkf': x.dkAt, checked: dkDone_(it), 'aria-label': 'Done: ' + (it.title || '') } },
       it.note && !open ? { type: 'text', paras: String(it.note).split(/\n{2,}/) } : null].concat(form).filter(Boolean),
-    tiles: open ? [{ icon: 'save', label: 'Save', act: 'dk-fsave', cls: 'is-submit', data: { at: x.dkAt } }, { icon: 'bin', label: 'Delete', act: 'dk-fdel', tone: 'danger', data: { at: x.dkAt } },
+    tiles: open ? [{ icon: 'save', label: text_('save'), act: 'dk-fsave', cls: 'is-submit', data: { at: x.dkAt } }, { icon: 'bin', label: 'Delete', act: 'dk-fdel', tone: 'danger', data: { at: x.dkAt } },
       { icon: 'close', label: 'Close', act: 'dk-fedit', data: { at: x.dkAt } }] : [{ icon: 'edit', label: 'Edit', act: 'dk-fedit', data: { at: x.dkAt } }] }));
 }
 const dkAt_ = at => { const [li, i] = String(at || '').split(':').map(Number), L = dkLoad_()[li]; return { L, i, it: L && L.items[i] }; };
@@ -512,7 +512,7 @@ function asgSave_(rows) {
   ASG.say = '';
   asgPaint_();
   return Promise.resolve(api({ action: 'assignmentsSave', personId: asgMe_(), assignments: rows }))
-    .then(d => { if (!(d && d.success)) { ASG.say = (d && d.error) || 'Not saved — try again.'; asgPaint_(); return false; }
+    .then(d => { if (!(d && d.success)) { ASG.say = (d && d.error) || text_('not-saved-try-again'); asgPaint_(); return false; }
       if (Array.isArray(d.assignments) && g) { g.rows = d.assignments; USER.assignments = JSON.stringify({ v: 1, assignments: d.assignments }); if (typeof saveUser_ === 'function') saveUser_(); asgPaint_(); }
       return true; })
     .catch(() => { ASG.say = 'Not saved — you look offline.'; asgPaint_(); return false; });
@@ -524,7 +524,7 @@ function asgSend_(fid, v, id) {
   if (a.status !== 'marked') a.mark = '';
   if (id) { const at = rows.findIndex(r => r.id === id); rows[at] = a; delete ASK[fid]; ASG.edit = ''; }
   else { a.id = 'a' + Date.now().toString(36); rows.push(a); askDone_(fid); ASG.add = false; }
-  asgSave_(rows).then(ok => { if (ok) toast('Saved.'); });
+  asgSave_(rows).then(ok => { if (ok) toast(text_('saved')); });
 }
 FORM_SEND_[ASG_FORM] = v => asgSend_(ASG_FORM, v, '');
 on('asg-add', () => { ASG.add = !ASG.add; asgPaint_(); });

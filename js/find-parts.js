@@ -728,7 +728,7 @@ function libSay_(x) {
   if (LIB.failed) {
     /* THE REASON IS SAID (432): a deploy to do, or a Ledger still filling, is not the same wait as a dropped line. */
     return `${empty_('Couldn’t load this. ' + LIB.failed)}
-      ${tileRow_(tile_({ icon: 'again', label: 'Try again', act: 'lib-retry' }))}`;
+      ${tileRow_(tile_({ icon: 'again', label: text_('try-again'), act: 'lib-retry' }))}`;
   }
   return loading_();
 }
