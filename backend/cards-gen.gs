@@ -549,7 +549,7 @@ function renderCard(spec) {
   const cut = spec.cut || {}, lines = body + (cut.lines || '');
   try { row = typeof kcActRow_ === 'function' ? kcActRow_(x, '', tile_(spec.tiles || []) + (cut.tiles || ''), tr) : tileWrap_(tile_(spec.tiles || []), 'kc-row'); } catch (e) { if (typeof oops_ === 'function') oops_(e, 'card:tiles'); }
   const cls = 'card fc kc kc-' + kind + (spec.look ? ' ' + spec.look : '') + (spec.off ? ' is-off' : '');
-  return `<div class="${esc(cls)}"${spec.id ? ` id="${esc(spec.id)}"` : ''}${spec.card ? ` data-card="${esc(spec.card)}"` : ''}${cardAttrs_(spec.data)} aria-label="${esc(typeof name === 'string' ? name : '')}">`
+  return `<div class="${esc(cls)}"${spec.id ? ` id="${esc(spec.id)}"` : ''}${spec.card ? ` data-card="${esc(spec.card)}"` : ''}${spec.shape ? ` data-shape="${esc(spec.shape)}"` : ''}${cardAttrs_(spec.data)} aria-label="${esc(typeof name === 'string' ? name : '')}">`
     + `<div class="kc-pic">${cardPic_(spec.picture)}</div><div class="kc-head"></div>`
     + `<div class="kc-tags"${spec.tagsId ? ` id="${esc(spec.tagsId)}"` : ''}>${renderTags(tags, spec.tagLook, spec.tagsKeep)}${(spec.tagRows || []).map(CARD_BLOCKS.tags).join('')}</div>`
     + `<div class="kc-lines">${lines || (spec.empty ? `<p class="kc-line kc-empty">${esc(spec.empty)}</p>` : '')}</div>${cut.form ? `<div class="kc-form">${cut.form}</div>` : ''}`

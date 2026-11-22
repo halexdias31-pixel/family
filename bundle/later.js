@@ -1677,7 +1677,7 @@ if (!f.group) return;
 Object.keys(f.entries || { [(K.card || {}).card || k]: 1 }).forEach(e => {
 if (out[e]) return;
 const o = Object.assign({ kind: k, group: f.group, label: f.label, under: f.under || '', draw: f.draw || '', see: (K.see || {}).who || 'anyone' }, (f.entries || {})[e]);
-out[e] = Object.assign(o, { at: (Object.keys(out).length + 1) * 10, card: (x, c) => { const d = o.draw && kindGlobal_(o.draw); return d ? d(x, c) : findCard(x, c); } });
+out[e] = Object.assign(o, { at: (Object.keys(out).length + 1) * 10, card: (x, c) => { if (o.draw === 'none') return ''; const d = o.draw && kindGlobal_(o.draw); return d ? d(x, c) : findCard(x, c); } });
 });
 });
 return (KIND_LIVE = out);
@@ -10120,7 +10120,6 @@ const sum = bookFindAt_() ? '' : bookerCard();
 return [sum + (typeof askedBlock_ === 'function' ? askedBlock_() || '' : '')].filter(Boolean)
 .concat(USER && typeof myJobPages_ === 'function' ? myJobPages_() : []);
 }
-const bookFormCard_ = () => '';
 const BOOK_FIND_DOORS = [DOOR_FIELD, 'forLabel'];
 const bookFindOn_ = () => { const fs = STUFF.filters || [];
 return fs.some(f => BOOK_FIND_DOORS.indexOf(f.field) !== -1 && norm(f.value) === 'booking') && fs.every(f => BOOK_FIND_DOORS.indexOf(f.field) !== -1); };
@@ -14680,10 +14679,10 @@ const wfOf_ = pid => WF[pid] || (WF[pid] = { rows: null, asked: false, mayDelete
 function workFileCard_(pid) {
 const of = String(pid || (USER && USER.personId) || '');
 if (!of || !USER || USER.lockedPreview) return '';
-return renderCard(wfSpec_(of));
+return setCard_(wfSpec_(of));
 }
-const wfSpec_ = of => ({ kind: 'panel', card: 'acct:workfile', look: 'workfile-card', name: 'Work on file', tags: [{ text: 'Work on file' }], data: { of },
-body: wfBody_(of, true), tiles: wfTeach_(of) ? [] : wfTiles_(of) });
+const wfSpec_ = of => ({ card: 'acct:workfile', hook: 'workfile-card', title: 'Work on file', data: { of },
+body: wfBody_(of, true), actions: wfTeach_(of) ? [] : wfTiles_(of) });
 const wfTeach_ = of => !!USER && String(of) === String(USER.personId || '') && typeof rank_ === 'function' && rank_() === 'staff';
 const wfNote_ = text => ({ type: 'group', tag: 'p', look: 'note', text });
 const wfTiles_ = of => { const s = wfOf_(of);
@@ -14724,7 +14723,7 @@ if (el.getAttribute('data-of') !== of) return;
 const keep = {};
 el.querySelectorAll('.wf-title, .wf-subject').forEach(i => { keep[i.className] = i.value; });
 if (el.classList.contains('wf-seen')) el.innerHTML = cardBlocks_(wfBody_(of));
-else { const t = document.createElement('template'); t.innerHTML = renderCard(wfSpec_(of));
+else { const t = document.createElement('template'); t.innerHTML = setCard_(wfSpec_(of));
 const fresh = t.content.firstElementChild; if (fresh) { el.className = fresh.className; el.replaceChildren(...fresh.childNodes); } }
 el.querySelectorAll('.wf-title, .wf-subject').forEach(i => { if (keep[i.className]) i.value = keep[i.className]; });
 });
@@ -14843,7 +14842,7 @@ document.querySelectorAll('.card[data-hist][data-of]').forEach(el => {
 if (el.getAttribute('data-of') !== of) return;
 const spec = typeof progressAllSpec_ === 'function' && progressAllSpec_(of);
 if (!spec) return;
-const t = document.createElement('template'); t.innerHTML = renderCard(spec);
+const t = document.createElement('template'); t.innerHTML = setCard_(spec);
 const node = t.content.firstElementChild;
 if (node && el.classList.contains('prog-w')) node.classList.add('prog-w');
 if (node) el.replaceWith(node);

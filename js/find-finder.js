@@ -183,7 +183,7 @@ function kindMap_() {
     Object.keys(f.entries || { [(K.card || {}).card || k]: 1 }).forEach(e => {
       if (out[e]) return;
       const o = Object.assign({ kind: k, group: f.group, label: f.label, under: f.under || '', draw: f.draw || '', see: (K.see || {}).who || 'anyone' }, (f.entries || {})[e]);
-      out[e] = Object.assign(o, { at: (Object.keys(out).length + 1) * 10, card: (x, c) => { const d = o.draw && kindGlobal_(o.draw); return d ? d(x, c) : findCard(x, c); } });
+      out[e] = Object.assign(o, { at: (Object.keys(out).length + 1) * 10, card: (x, c) => { if (o.draw === 'none') return ''; const d = o.draw && kindGlobal_(o.draw); return d ? d(x, c) : findCard(x, c); } });
     });
   });
   return (KIND_LIVE = out);

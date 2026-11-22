@@ -2,7 +2,7 @@
 const pplG_ = (look, inner, more) => cardBlock_(Object.assign({ type: 'group', look, inner: [].concat(inner == null ? [] : inner).join('') }, more || {}));
 const pplP_ = (look, text, more) => cardBlock_(Object.assign({ type: 'group', tag: 'p', look, text }, more || {}));
 /* A HEADED PEOPLE CARD: its heading the name and one tag, its look and data on the card, its parts the `kc-set` group (unify batch 10). */
-const pplCard_ = (look, name, parts, data) => setPlainCard_({ look, name, data, parts: [].concat(parts) });
+const pplCard_ = (hook, title, body, data) => setCard_({ hook, title, data, body: [].concat(body) });
 function peopleAddPage_(col) {
   if (!peopleMay_()) return '';
   col = PEOPLE_ADD_[col] ? col : 'students';

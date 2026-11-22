@@ -134,7 +134,7 @@ function formCardSpec_(spec) {
   const ticks = (s.toggles || []).map(t => formToggleB_(read ? Object.assign({}, t, { off: true }) : t));
   const save = read ? '' : s.save && s.save.act ? tile_(s.save) : s.save;
   const after = [s.said ? { type: 'status', id: s.said } : '', s.after || ''];
-  const card = { card: s.card, title: s.title, cls: s.cls, attrs: s.attrs, lead: s.lead, save: save, after: after };
+  const card = { card: s.card, title: s.title, attrs: s.attrs, state: s.state, lead: s.lead, save: save, after: after };
   if (s.groups) return Object.assign(card, { form: [fields], formAttrs: s.formAttrs, foot: read ? '' : s.foot });
   return Object.assign(card, { body: [s.body || '', asked, ticks, s.tail || ''] });
 }
