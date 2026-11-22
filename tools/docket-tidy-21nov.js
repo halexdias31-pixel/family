@@ -13,8 +13,8 @@ const constOf = (src, name, file) => { const m = new RegExp('\\nconst ' + name +
 function tidies() {
   const acc = text('backend/access.gs'), be = text('backend/post-account.gs'), gen = text('backend/cards-gen.gs');
   return new Function('const S = v => (v == null ? "" : String(v)).trim();'
-    + constOf(gen, 'DOCKET_PLAN_FIELDS', 'backend/cards-gen.gs') + constOf(acc, 'DK21_OPENER', 'backend/access.gs') + constOf(acc, 'DK21_ESTIMATES', 'backend/access.gs')
-    + fnOf(acc, 'docketOwnerTidy21Nov_', 'backend/access.gs') + ['docketPlanTidy_', 'docketPlanOf_', 'docketTidy_'].map(n => fnOf(be, n, 'backend/post-account.gs')).join('')
+    + constOf(gen, 'DOCKET_PLAN_FIELDS', 'backend/cards-gen.gs') + constOf(gen, 'LIST_KINDS', 'backend/cards-gen.gs') + constOf(acc, 'DK21_OPENER', 'backend/access.gs') + constOf(acc, 'DK21_ESTIMATES', 'backend/access.gs')
+    + fnOf(acc, 'docketOwnerTidy21Nov_', 'backend/access.gs') + ['listTidy_', 'listItemTidy_', 'docketTidy_'].map(n => fnOf(be, n, 'backend/post-account.gs')).join('')
     + 'return [docketOwnerTidy21Nov_, docketTidy_];')();
 }
 const SAMPLE = () => [

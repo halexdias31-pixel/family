@@ -1673,6 +1673,66 @@
   },
   "docket": {
    "shape": "Item",
+   "list": {
+    "name": "Docket",
+    "say": "ONE LIST KIND (owner, 22 Nov, UNIFY NEXT 6): the owner's own lists are one kind of list, each item tidied by the one tidy (post-account.gs listTidy_) and drawn as an Item (js/map.js listItem_, or dkCard_ in Find). The Docket keeps its storage, the owner's `todo` cell as { v, lists: [{ name, start, items }] }; a save keeps what the cell had (`save: as-is`), the import makes each item whole; a one-off ticked before today leaves its list (`gone`); the planner's fields are form `docket-item` (`plan`).",
+    "store": {
+     "cell": "todo",
+     "wrap": "lists"
+    },
+    "most": 300,
+    "need": [
+     "title",
+     "note"
+    ],
+    "save": "as-is",
+    "plan": "docket-item",
+    "gone": {
+     "done": "done",
+     "on": "doneOn",
+     "daily": "repeat"
+    },
+    "fields": [
+     {
+      "f": "title",
+      "type": "text",
+      "max": 300
+     },
+     {
+      "f": "note",
+      "type": "text",
+      "max": 8000
+     },
+     {
+      "f": "date",
+      "type": "date"
+     },
+     {
+      "f": "time",
+      "type": "time"
+     },
+     {
+      "f": "repeat",
+      "type": "choice",
+      "options": [
+       "daily"
+      ],
+      "def": ""
+     },
+     {
+      "f": "done",
+      "type": "flag",
+      "off": {
+       "f": "repeat",
+       "is": "daily"
+      }
+     },
+     {
+      "f": "doneOn",
+      "type": "date"
+     }
+    ]
+   },
    "source": "the owner's docket lists (owner, 20 Nov): their own `todo` cell, read by js/map.js dkItems_ — an item a card, drawn by dkCard_: the title, the list and its date, time or Daily as tags, a Done tick saved as the widget saves it (`doneOn` for a daily item), and the note; its attributes (minutes, runs by itself, effort, fun, importance, place, a fixed time or a deadline) are the form `docket-item`, the order dkPlan_ (rules.json 1.82), the first two unticked tagged Now and Next; a list with a usual start (`start`, form `docket-list`) is a phase of the day, and the widget heads with Now and Next (dkPhase_)",
    "find": {
     "group": "Tools",
@@ -2973,6 +3033,52 @@
   },
   "food": {
    "shape": "Item",
+   "list": {
+    "name": "Food",
+    "say": "ONE LIST KIND (UNIFY NEXT 6): kept as rows of the items tab (`food`), each write tidied by listTidy_ as it is sent (`save: as-is`, only the fields sent).",
+    "store": {
+     "tab": "food"
+    },
+    "save": "as-is",
+    "fields": [
+     {
+      "f": "name",
+      "type": "text",
+      "max": 300
+     },
+     {
+      "f": "shop",
+      "type": "text",
+      "max": 200
+     },
+     {
+      "f": "price",
+      "type": "text",
+      "max": 40
+     },
+     {
+      "f": "minutes",
+      "type": "text",
+      "max": 40
+     },
+     {
+      "f": "meal",
+      "type": "choice",
+      "options": [
+       "breakfast",
+       "lunch",
+       "dinner",
+       "snack"
+      ],
+      "def": ""
+     },
+     {
+      "f": "how",
+      "type": "text",
+      "max": 8000
+     }
+    ]
+   },
    "source": "the owner's food: what, where, cost, time (owner, 17 Nov); rows in the items tab",
    "sheet": {
     "tab": "food",
@@ -3083,6 +3189,56 @@
   },
   "task": {
    "shape": "Item",
+   "list": {
+    "name": "Tasks",
+    "say": "ONE LIST KIND (UNIFY NEXT 6): kept as rows of the items tab (`tasks`), each write tidied by listTidy_ as it is sent (`save: as-is`, only the fields sent).",
+    "store": {
+     "tab": "tasks"
+    },
+    "save": "as-is",
+    "fields": [
+     {
+      "f": "title",
+      "type": "text",
+      "max": 300
+     },
+     {
+      "f": "notes",
+      "type": "text",
+      "max": 8000
+     },
+     {
+      "f": "due",
+      "type": "date"
+     },
+     {
+      "f": "repeat",
+      "type": "choice",
+      "options": [
+       "never",
+       "daily",
+       "weekly",
+       "monthly",
+       "yearly"
+      ],
+      "def": ""
+     },
+     {
+      "f": "list",
+      "type": "text",
+      "max": 80
+     },
+     {
+      "f": "done",
+      "type": "choice",
+      "options": [
+       "no",
+       "yes"
+      ],
+      "def": ""
+     }
+    ]
+   },
    "source": "the owner's tasks (owner, 17 Nov); rows in the items tab",
    "sheet": {
     "tab": "tasks",
@@ -3428,6 +3584,103 @@
   },
   "assignment": {
    "shape": "Item",
+   "list": {
+    "name": "Assignments",
+    "say": "ONE LIST KIND (UNIFY NEXT 6): kept in the person's own `assignments` cell as { v, assignments: [...] }, saved whole (`save: whole`): every field written, a status one of the four, a mark only once marked. `trackOnly` courses (owner: HPRS4905, no generative AI) are tracked here and nothing more: the card says so and nothing on the site helps with their content.",
+    "store": {
+     "cell": "assignments",
+     "wrap": "assignments"
+    },
+    "most": 300,
+    "need": [
+     "title"
+    ],
+    "save": "whole",
+    "trackOnly": [
+     {
+      "course": "HPRS4905",
+      "say": "No generative AI: tracked only, never help with its content"
+     }
+    ],
+    "fields": [
+     {
+      "f": "id",
+      "type": "id",
+      "max": 40
+     },
+     {
+      "f": "title",
+      "type": "text",
+      "max": 200
+     },
+     {
+      "f": "course",
+      "type": "text",
+      "max": 120
+     },
+     {
+      "f": "kind",
+      "type": "word",
+      "max": 30
+     },
+     {
+      "f": "amount",
+      "type": "number",
+      "min": 0,
+      "max": 1000000
+     },
+     {
+      "f": "unit",
+      "type": "word",
+      "max": 30
+     },
+     {
+      "f": "due",
+      "type": "date"
+     },
+     {
+      "f": "time",
+      "type": "time"
+     },
+     {
+      "f": "weight",
+      "type": "number",
+      "min": 0,
+      "max": 100
+     },
+     {
+      "f": "status",
+      "type": "choice",
+      "word": true,
+      "options": [
+       "not-started",
+       "in-progress",
+       "submitted",
+       "marked"
+      ],
+      "def": "not-started"
+     },
+     {
+      "f": "mark",
+      "type": "text",
+      "max": 40,
+      "only": {
+       "f": "status",
+       "is": "marked"
+      }
+     },
+     {
+      "f": "note",
+      "type": "text",
+      "max": 4000
+     },
+     {
+      "f": "link",
+      "type": "url",
+      "max": 500
+     }
+    ]
+   },
    "source": "the person's own `assignments` cell (JSON), drawn by the Assignments tool (js/map.js asg*); no Find card of its own",
    "say": "ONE ASSIGNMENT (owner, 18 Nov). Its `kind`, `unit` and `status` are the fixed lists in the form's options (a choice, never free text); the backend keeps whatever word it is sent (post-account.gs assignmentsTidy_), status one of the four. The tool groups them Overdue / This week / Later / Done by `due`.",
    "see": {

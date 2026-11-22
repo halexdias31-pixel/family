@@ -137,10 +137,13 @@ function itemMayWrite_(kind, spec, v) {
   return itemMay_(kind, 'save', itemRole_(v));
 }
 function itemWrite_(body, v) {
-  const kind = S(body.kind), spec = itemKind_(kind), given = body.item;
+  const kind = S(body.kind), spec = itemKind_(kind);
+  let given = body.item;
   if (!spec || spec.sheet.to === 'events' || spec.sheet.blob) return { error: 'That kind cannot be written here.', why: 'kind' };
   if (!given || typeof given !== 'object' || Array.isArray(given)) return { error: 'Send the item as an object.', why: 'item' };
   if (!itemMayWrite_(kind, spec, v)) return { error: v.row ? text_('err-not-authorised') : text_('err-sign-in-first'), why: v.row ? 'kind' : 'signed-out' };
+  /* A LIST KIND'S ROW (task, food: kinds.json `list`) goes through the one tidy as it is sent (post-account.gs listTidy_, `as-is`). */
+  if (LIST_KINDS[kind]) given = listTidy_(kind, [given], 'as-is')[0];
   const home = spec.sheet.via ? itemKind_(spec.sheet.via).sheet : spec.sheet;
   const t = read(home.tab);
   const id = itemIdOf_(home, given);
