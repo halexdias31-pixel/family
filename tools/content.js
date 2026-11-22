@@ -27,6 +27,7 @@ const USAGE = `
   node tools/content.js markscheme <ids file> <pdf dir> [--overrides f.json] [--apply]   cells → answers → words (AQA schemes)
   node tools/content.js keypack <lib-import.json> [--apply]                             validate → apply (a key pack onto the words)
   node tools/content.js insert                                                          sheets → write (tools/inserts.py's sheets)
+  node tools/content.js ideas [--out <dir>]                                             measure → tag (maths cards: part_of, specs, idea_id; tools/lib/ideas.js)
 
   node tools/content.js library <split|join|seed|pull|push|status|drive-pack|help> …   the library's private half (397)
 `;
@@ -337,6 +338,35 @@ const INSERT = {
   },
 };
 
+/* ONE CARD PER IDEA, MATHS PILOT (queue step 10): the duplicate report into data/settings/taxonomy.json Maths, then the three fields onto the
+   maths cards of data/textbooks.json. --out <dir> writes both there and touches nothing. Only adds: no card is merged or deleted. */
+const IDEAS = {
+  measure(c) {
+    const ID = require('./lib/ideas.js');
+    c.tb = IM.cards('textbooks');
+    c.m = ID.measure(c.tb.rows);
+    const file = path.join(ROOT, 'data', 'settings', 'taxonomy.json'), tax = JSON.parse(fs.readFileSync(file, 'utf8'));
+    const files = c.m.cards.map(x => ({ board: x.board, spec: x.spec, level: x.level })).filter(x => x.board && x.spec);
+    const boards = ['AQA', 'Edexcel', 'OCR'].filter(b => files.some(x => x.board === b)).map(b => ({ board: b,
+      specs: [...new Set(files.filter(x => x.board === b).map(x => x.spec))].map(code => ({ code, level: files.find(x => x.board === b && x.spec === code).level,
+        spec: (c.m.cards.find(x => x.board === b && x.spec === code).specs[0] || '').split(':')[0] })) }));
+    tax.Maths = { subject: ID.SUBJECT, cards: { levels: ['part_of', 'idea_id'], tree: 'data/topics.json', boards }, ideas: ID.report(c.m) };
+    c.tax = JSON.stringify(tax, null, 1) + '\n';
+    const n = c.m.groups.filter(g => g.cards.length > 1).length;
+    console.log('ideas: ' + c.m.cards.length + ' maths cards, ' + c.m.groups.length + ' ideas, ' + n + ' groups of the same idea');
+    const out = argOut();
+    if (out) { fs.mkdirSync(out, { recursive: true }); fs.writeFileSync(path.join(out, 'taxonomy.json'), c.tax); }
+    else fs.writeFileSync(file, c.tax);
+  },
+  tag(c) {
+    const n = require('./lib/ideas.js').tag(c.tb.rows, c.m), out = argOut();
+    if (out) IM.writeOut(out, 'textbooks', { cards: c.tb.rows, words: {} });
+    else IM.writeCards('textbooks', c.tb.rows, c.tb.style);
+    console.log('ideas: ' + n + ' field(s) set on ' + c.m.cards.length + ' maths cards' + (out ? ' (in ' + out + ')' : ''));
+  },
+};
+const argOut = () => { const i = process.argv.indexOf('--out'); return i === -1 ? null : process.argv[i + 1]; };
+
 /* ---------- THE RUN: a source's step list (data/settings/content.json sources) ---------- */
 async function main(argv) {
   if (argv[0] === 'library') return LIB.main(argv.slice(1));
@@ -356,6 +386,7 @@ async function main(argv) {
     return IM.run('keypack', KEYS, { file: pos[1], pack: JSON.parse(fs.readFileSync(pos[1], 'utf8')), apply: argv.includes('--apply') }, only);
   }
   if (what === 'insert') return IM.run('insert', INSERT, {}, only);
+  if (what === 'ideas') return IM.run('ideas', IDEAS, {}, only);
   const want = only || STAGES;
   const bad = want.filter(s => !STAGES.includes(s));
   if (bad.length) throw new Error('no stage ' + bad.join(', ') + ' — ' + STAGES.join(', '));

@@ -104,7 +104,8 @@ const FILES = {
   },
   textbooks: {
     cols: ['book_id', 'chapter', 'title', 'summary', 'subject', 'level', 'keystage', 'board', 'spec', 'tier', 'topics',
-      'active', 'spec_ref', 'idea', 'words', 'points', 'formulas', 'diagram', 'anim', 'about', 'html', 'css', 'lib_pending', 'lib_has', 'year_group'],
+      'active', 'spec_ref', 'idea', 'words', 'points', 'formulas', 'diagram', 'anim', 'about', 'html', 'css', 'lib_pending', 'lib_has', 'year_group',
+      'part_of', 'specs', 'idea_id'],
     level: 'level', keystage: 'keystage', tier: 'tier', board: 'board', topics: 'topics',
   },
   practicals: {
