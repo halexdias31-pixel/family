@@ -88,6 +88,19 @@ function docketOwnerTidyRun_() {
   return lists.length + ' list(s), ' + lists.reduce((n, L) => n + L.items.length, 0) + ' item(s) tidied';
 }
 
+/* NO-AI MARKS (one list kind, 22 Nov): an assignment whose own note says no generative AI gets `noAI`, so the rule names no course. */
+function assignNoAiRun_() {
+  const t = read(TAB.people); let n = 0;
+  t.rows.forEach(r => {
+    let got = null; try { got = JSON.parse(S(r.assignments)); } catch (e) { got = null; }
+    if (!got || !Array.isArray(got.assignments)) return;
+    let hit = false;
+    got.assignments.forEach(a => { if (a && !a.noAI && /no generative ai/i.test(S(a.note))) { a.noAI = true; hit = true; n++; } });
+    if (hit && !setCell(t, r, 'assignments', JSON.stringify(got))) throw new Error('the people tab has no assignments column - nothing was saved');
+  });
+  return n + ' assignment(s) marked noAI';
+}
+
 /* ---------- THE ONE-OFF JOBS, RUN ONCE, BY THEMSELVES § */
 const MIGRATIONS = [
   /* EVERY PIN FOUR DIGITS (owner, 10 Nov): a longer one keeps its first four; signing in with the old one still works (authCheckPin_). */
@@ -220,6 +233,10 @@ const MIGRATIONS = [
   { id: 'dead-kinds-22nov',
     what: 'the items rows of six kinds nothing reads, kept in backup_dead_kinds_22nov, then deleted',
     run: () => storeDropKinds_(DEAD_KINDS_22NOV, DEAD_KINDS_BACKUP) },
+  { id: 'assign-noai-22nov',
+    retry: true,
+    what: 'assignments whose note says no generative AI marked noAI (tracked only)',
+    run: () => assignNoAiRun_() },
 ];
 
 /* ---------- MOVING ROWS OUT OF THE ITEMS TAB, NEVER LOSING ONE (queue step 7, 22 Nov) ----------
