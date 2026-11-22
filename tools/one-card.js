@@ -88,16 +88,16 @@ async function run() {
     unshaped.forEach(x => console.log('  Settings › ' + String(x.n).replace(/\n/g, ' ') + ' [no shape]'));
     if (unshaped.length) throw new Error('one-card: ' + unshaped.length + ' settings card(s) with no shape');
     if (shapes.length > 4) throw new Error('one-card: Settings uses ' + shapes.length + ' shapes; four at most');
-    /* THE PERSON AND ITEM SHAPES (owner, 22 Nov, CARD SHAPES): every card of a kind kinds.json gives a Person or Item `shape` wears exactly that one. */
+    /* THE PERSON, ITEM AND REFERENCE SHAPES (owner, 22 Nov, CARD SHAPES): every card of a kind kinds.json gives a Person, Item or Learning: Reference `shape` wears exactly that one, and only that one. */
     const KINDS = require('../data/settings/kinds.json').kinds;
-    ['Person', 'Item'].forEach(h => {
+    ['Person', 'Item', 'Reference'].forEach(h => {
       const kinds = Object.keys(KINDS).filter(k => KINDS[k].shape === h), mine = all.filter(x => kinds.indexOf(x.ik) >= 0);
       const worn = [...new Set(mine.map(x => x.sh))], wrong = mine.filter(x => x.sh !== h);
       console.log('one-card: ' + h + ' — ' + mine.length + ' card(s) of ' + [...new Set(mine.map(x => x.ik))].sort().join(', ') + ' in ' + worn.length + ' shape(s)');
       wrong.forEach(x => console.log('  ' + x.door + ' › ' + String(x.n).replace(/\n/g, ' ') + ' [' + x.ik + ' wears ' + (x.sh || 'no shape') + ']'));
       if (wrong.length || worn.length > 1) throw new Error('one-card: ' + h + ' kinds draw in ' + worn.length + ' shapes; exactly one');
     });
-    const loose = all.filter(x => (x.sh === 'Person' || x.sh === 'Item') && (!x.ik || KINDS[x.ik].shape !== x.sh));
+    const loose = all.filter(x => ['Person', 'Item', 'Reference'].indexOf(x.sh) >= 0 && (!x.ik || KINDS[x.ik].shape !== x.sh));
     loose.forEach(x => console.log('  ' + x.door + ' › ' + String(x.n).replace(/\n/g, ' ') + ' [' + x.sh + ' on ' + (x.ik || 'no kind') + ']'));
     if (loose.length) throw new Error('one-card: ' + loose.length + ' card(s) wear a shape their kind does not declare');
     if (!all.length) throw new Error('one-card: no cards drawn — the app did not start');

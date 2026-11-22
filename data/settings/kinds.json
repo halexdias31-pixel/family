@@ -34,7 +34,7 @@
    "say": "Ids of other items it points at (a manuscript's writings, an event's figures)."
   }
  },
- "shapesSay": "THE PERSON AND ITEM SHAPES (owner, 22 Nov, CARD SHAPES): a kind that draws as a Person (picture, name, role tags, fact lines, links) or an Item (title, tags — list, due, meal, price —, lines, tiles, sheet) says so in its `shape`; cardOfItem_ (and dkCard_, meCard, the assignment rows) draw it through shapeCard_ (js/cards-parts.js), which keeps only that shape's slots and marks the card data-shape. tools/one-card.js checks each kind wears its one shape.",
+ "shapesSay": "THE PERSON, ITEM AND REFERENCE SHAPES (owner, 22 Nov, CARD SHAPES): a kind that draws as a Person (picture, name, role tags, fact lines, links), an Item (title, tags — list, due, meal, price —, lines, tiles, sheet) or a Learning: Reference (tags, fact lines, picture, links; its body is its `card.parts`, drawn by referenceBody_) says so in its `shape`; cardOfItem_ (and dkCard_, meCard, the assignment rows) draw it through shapeCard_ (js/cards-parts.js), which keeps only that shape's slots and marks the card data-shape. tools/one-card.js checks each kind wears its one shape.",
  "kinds": {
   "bookform": {
    "source": "the booking form (js/book-*.js)",
@@ -493,6 +493,7 @@
      "venueSize"
     ]
    },
+   "shape": "Reference",
    "card": {
     "look": "venue-door",
     "tags": [
@@ -502,7 +503,7 @@
      "tags"
     ],
     "lines": true,
-    "body": "kcVenueBody_(row, live)",
+    "parts": [{"list": ["rooms"]}],
     "picture": "kcVenuePic_(item, entry)"
    },
    "live": {
@@ -528,6 +529,7 @@
     "under": "Booking",
     "facets": []
    },
+   "shape": "Reference",
    "card": {
     "look": "is-subject",
     "tags": [
@@ -538,7 +540,7 @@
     "liveTags": {
      "tutors": 3
     },
-    "body": "kcSubjectBody_(row, live)"
+    "parts": [{"list": ["surcharge", "levels", "noTutors"]}]
    },
    "live": {
     "levels": "kcLevels_(row)",
@@ -561,6 +563,7 @@
      "kindOwn"
     ]
    },
+   "shape": "Reference",
    "card": {
     "look": "is-level",
     "tags": [
@@ -571,7 +574,7 @@
     "liveTags": {
      "tutors": 3
     },
-    "body": "kcLevelBody_(row, live)"
+    "parts": [{"list": ["surcharge", "subjects", "tutors", "listed"]}]
    },
    "live": {
     "subjects": "kcSubjects_(row)",
@@ -974,6 +977,7 @@
      "needs"
     ]
    },
+   "shape": "Reference",
    "card": {
     "look": "prac kc-facts",
     "id": [
@@ -990,7 +994,7 @@
     ],
     "lines": true,
     "off": "excluded",
-    "body": "practicalBody_(row)"
+    "parts": ["practical"]
    },
    "see": {
     "who": "anyone"
@@ -1041,6 +1045,7 @@
      "examBoard"
     ]
    },
+   "shape": "Reference",
    "card": {
     "look": "prac proj lib-c kc-facts",
     "id": [
@@ -1056,7 +1061,7 @@
      "project_type"
     ],
     "lines": true,
-    "body": "projectBody_(row)"
+    "parts": ["project"]
    },
    "see": {
     "who": "anyone"
@@ -1117,6 +1122,7 @@
      "tier"
     ]
    },
+   "shape": "Reference",
    "card": {
     "look": "prac tb ct lib-c",
     "id": "kcContentId_(row)",
@@ -1128,7 +1134,7 @@
      "tier"
     ],
     "lines": true,
-    "body": "contentBody_(row)",
+    "parts": ["topic"],
     "slots": {
      "say": "THE TOPIC CARD (rule 1.80, owner 17 Nov): three slots in this order, an empty one hidden: the idea in one line; the animation or figure; the content, everything the topic needs and nothing else. Read by contentBody_ (find-facets.js) and histTopicBody_ (history-topics.js, each History card: its `idea`, the timeline or picture, the content); tools/content/library.js drive-pack refuses a card that breaks it.",
      "order": [
@@ -1203,6 +1209,7 @@
     ],
     "under": "Practice"
    },
+   "shape": "Reference",
    "card": {
     "look": "insh",
     "id": [
@@ -1223,7 +1230,7 @@
     "entryTags": {
      "sheets": 2
     },
-    "body": "kcInsertBody_(row)"
+    "parts": ["insert"]
    },
    "see": {
     "who": "anyone"
@@ -1247,6 +1254,7 @@
      "tier"
     ]
    },
+   "shape": "Reference",
    "card": {
     "look": "insh spec-sheet",
     "name": "code",
@@ -1257,7 +1265,7 @@
      "level"
     ],
     "lines": true,
-    "body": "specBody_(row)"
+    "parts": ["spec"]
    },
    "see": {
     "who": "anyone"
@@ -1285,6 +1293,7 @@
      "histDated"
     ]
    },
+   "shape": "Reference",
    "card": {
     "look": "hdb hdb-msc lib-c",
     "tags": [
@@ -1392,6 +1401,7 @@
     "label": "Library",
     "facets": []
    },
+   "shape": "Reference",
    "card": {
     "look": "hdb lib-c",
     "tags": [
@@ -1430,6 +1440,7 @@
      "histTheatre"
     ]
    },
+   "shape": "Reference",
    "card": {
     "look": "hdb lib-c",
     "tags": [
@@ -1547,6 +1558,7 @@
      "mPrice"
     ]
    },
+   "shape": "Reference",
    "card": {
     "look": "mech",
     "from": "mech",
@@ -1561,7 +1573,7 @@
     "nameTag": false,
     "lines": true,
     "picture": "kcMechPic_(item)",
-    "body": "kcMechBody_(row)"
+    "parts": [{"text": "does", "look": "mech-does"}]
    },
    "see": {
     "who": "anyone"
@@ -1584,6 +1596,7 @@
      "cState"
     ]
    },
+   "shape": "Reference",
    "card": {
     "look": "tx kc-facts",
     "from": "chem",
@@ -1594,7 +1607,7 @@
      "state"
     ],
     "lines": true,
-    "body": "chemBody_(row)",
+    "parts": [{"paras": ["fields", {"each": "examples", "f": "equation"}, "source"]}],
     "fields": {
      "say": "THE CARD'S FACT LINES (unify job J, master decides card fields): in this order, each `label` then the row's `f`, an empty one left out. Read by chemBody_ through cardFieldsOf_ (js/cards-render.js); tools/card-fields.js fails a field list written anywhere else.",
      "list": [
@@ -1634,6 +1647,7 @@
      "keystage"
     ]
    },
+   "shape": "Reference",
    "card": {
     "look": "lib-c kc-facts",
     "from": "hist",
@@ -1643,7 +1657,7 @@
     ],
     "lines": true,
     "picture": "histTopicPic_(raw)",
-    "body": "histTopicBody_(row)"
+    "parts": ["history"]
    },
    "see": {
     "who": "anyone"
@@ -3409,6 +3423,7 @@
      "kindLabel"
     ]
    },
+   "shape": "Reference",
    "card": {
     "look": "kc-facts",
     "from": "food",
@@ -3416,7 +3431,7 @@
      "path"
     ],
     "lines": true,
-    "body": "foodBody_(row)"
+    "parts": [{"text": "path"}, {"text": "note"}, {"tags": "foods"}]
    },
    "see": {
     "who": "owner"
