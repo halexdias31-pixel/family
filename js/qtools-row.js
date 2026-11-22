@@ -99,3 +99,32 @@ function qtRedraw_(card, x) {
   card.replaceWith(next);
   return next;
 }
+/* ---------- SIX AND MORE (owner, 22 Nov, queue step 5): the row's tiles split by data/settings/qengine.json `visible`, `more` and `cut`. */
+/* At most six tiles shown, in `visible` order (a|b either act); the rest stay in the card, hidden, behind one More tile; `cut` ones are not drawn. */
+const QT_VISIBLE = (QENGINE.visible || []).map(s => String(s).split('|'));
+const qtTileAct_ = t => (/\bdata-do="([^"]*)"/.exec(t) || [])[1] || '';
+function qtSplit_(html) {
+  const all = (String(html || '').match(/<(button|a)\b[^>]*\bclass="tile\b[^"]*"[^>]*>[\s\S]*?<\/\1>/g) || []).filter(t => (QENGINE.cut || []).indexOf(qtTileAct_(t)) < 0);
+  const shown = QT_VISIBLE.map(acts => { const t = all.find(u => acts.indexOf(qtTileAct_(u)) >= 0); if (t) all.splice(all.indexOf(t), 1); return t || ''; }).filter(Boolean);
+  const rank = t => { const i = (QENGINE.more || []).indexOf(qtTileAct_(t)); return i < 0 ? 999 : i; };
+  const rest = all.map((t, i) => [t, i]).sort((a, b) => rank(a[0]) - rank(b[0]) || a[1] - b[1]).map(p => p[0]);
+  if (!rest.length) return shown.join('');
+  return shown.join('') + tile_({ icon: 'more', label: 'More', note: rest.length + ' more tools', act: 'qt-more' })
+    + `<span class="kc-more" hidden>${rest.join('')}</span>`;
+}
+/* MORE OPENS THE ONE SHEET (`openSheet`), the hidden tiles drawn there as they stand now; a tap there closes it and presses the card's own tile. */
+let QT_MORE_FROM = [];
+on('qt-more', el => {
+  const box = el.parentNode && el.parentNode.querySelector('.kc-more');
+  QT_MORE_FROM = box ? [...box.querySelectorAll('.tile')] : [];
+  /* A COPY ANSWERS ONLY TO ITS PLACE: its hook classes (`.help-hand`, `.qt-calc`) dropped, so no painter redraws it as the real tile. */
+  const tiles = QT_MORE_FROM.map((t, i) => t.outerHTML.replace(/\bdata-do="[^"]*"/, 'data-do="qt-more-go" data-i="' + i + '"')
+    .replace(/\bclass="([^"]*)"/, (m, c) => 'class="' + c.split(/\s+/).filter(k => /^(tile|on|is-[\w-]+)$/.test(k)).join(' ') + '"')).join('');
+  openSheet('More', tileWrap_(tiles, ''));
+});
+on('qt-more-go', el => {
+  const t = QT_MORE_FROM[+el.getAttribute('data-i')];
+  closeSheet();
+  /* AFTER THIS PRESS ENDS: a press inside a press is dropped as the same one (`pressAgain_`). */
+  setTimeout(() => { if (t && t.isConnected) t.click(); }, 0);
+});

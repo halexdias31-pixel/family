@@ -320,7 +320,8 @@ function stuffPageHtml(n) {
   /* ONE TILE ROW PER THING (489, 495): a card's own row holds `Top` (950); a part page without one gets this one. */
   const html = pg.part === 'q' && pg.parts ? questionWhole_(pg.x, pg.parts, pg.open, pg.ans, pg.only)
     : pg.part ? partCard_(pg.x, pg.part) : stuffCard(pg.x, credits);
-  return rowsOne_(html + (/data-do="find-top"/.test(html) ? '' : findTopRow_()));
+  /* NO TOP ON A QUESTION (owner, 22 Nov, queue step 5): qengine.json `cut` drops its card's Top, and the page adds none back. */
+  return rowsOne_(html + (pg.part === 'q' || /data-do="find-top"/.test(html) ? '' : findTopRow_()));
 }
 /* BACK TO TOP (463): "a button to scroll back to the top of the finder"; on a kept card outside one, its column scrolls up. */
 const findTopRow_ = () => cardBlock_({ type: 'tiles', look: 'find-top', tiles: [{ icon: 'up', label: 'Back to top', note: 'the first page of this finder', act: 'find-top' }] });
