@@ -27,6 +27,7 @@ const widthOf = svg => {
 
 /* THE WHOLE LIBRARY, words and all (check/lib-full.js) — data/questions.json alone has no drawing, which once deleted every twin (439). */
 const LIB = require('./lib/lib-full.js');
+const IM = require('./lib/import.js');
 let ROWS = [];
 function drawings() {
   const rows = ROWS = LIB.rows('questions');
@@ -102,10 +103,9 @@ async function main() {
    inline drawing still shows its picture. A row with no words here keeps its value. */
 const pngWH = f => { try { const b = fs.readFileSync(f); return Math.round(b.readUInt32BE(16) / SCALE) + 'x' + Math.round(b.readUInt32BE(20) / SCALE); } catch (e) { return ''; } };
 function twinColumn(all) {
-  const L = LIB, def = L.defs().files.questions, file = path.join(REPO, def.file);
-  const raw = fs.readFileSync(file, 'utf8'), rows = JSON.parse(raw);
+  const L = LIB, { def, rows } = IM.cards('questions');
   const whole = new Map(ROWS.map(r => [L.idOf(def, r), r]));
-  const priv = L.readPrivate('questions') || {};
+  const priv = IM.words('questions');
   let set = 0, cleared = 0, changed = false;
   rows.forEach(r => {
     const id = L.idOf(def, r), w = whole.get(id);
@@ -121,7 +121,7 @@ function twinColumn(all) {
       delete r.diagram_twin; delete r.diagram_twin_wh; changed = true; cleared++;
     }
   });
-  if (changed) fs.writeFileSync(file, L.fileText(rows, L.styleOf(raw)));
+  if (changed) IM.writeCards('questions', rows);
   console.log(set + ' card(s) point at their twin; ' + cleared + ' pointer(s) cleared' + (changed ? '' : '; data/questions.json unchanged') + '.');
 }
 

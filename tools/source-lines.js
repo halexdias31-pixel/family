@@ -9,6 +9,7 @@
 'use strict';
 const fs = require('fs'), path = require('path');
 const { ROOT, read, S, main } = require('./lib/gen.js');
+const IM = require('./lib/import.js');
 const plain = h => S(h).replace(/<[^>]*>/g, ' ').replace(/&ndash;|&mdash;/g, '–').replace(/&nbsp;/g, ' ').replace(/&[a-z]+;/g, ' ').replace(/\s+/g, ' ');
 const LINES = /\blines?\s+(\d{1,3})\s*(?:to|–|—|-)\s*(\d{1,3}|the end)\b/i;
 const ENGLISH = /^P-AQA-870[02]-/;
@@ -31,7 +32,6 @@ const insFor = (inserts, paper, src) => inserts.find(i => S(i.for_papers).split(
   && (!S(i.sources) || S(i.sources).split(/[\s,]+/).indexOf(src) !== -1));
 
 function run() {
-  const pubPath = path.join(ROOT, 'data', 'questions.json');
   const rows = read('data/questions.json') || [], inserts = read('data/inserts.json') || [];
   const priv = read('data-private/questions.json'), privIns = read('data-private/inserts.json');
   /* the site's own cutter, to see the lines come out */
@@ -77,7 +77,7 @@ function run() {
       if (span) { r.source_lines = span; const w = why(r, span); if (w) r.source_lines_withheld = w; }
       if (S(r.source_lines) + '|' + S(r.source_lines_withheld) !== was) changed++;
     }
-    if (changed) fs.writeFileSync(pubPath, '[\n' + rows.map(r => JSON.stringify(r)).join(',\n') + '\n]\n');
+    if (changed) IM.writeCards('questions', rows);
     console.log('source-lines: ' + changed + ' row(s) rewritten');
   } else console.log('source-lines: no data-private/questions.json here, rows left as they are');
   /* 2. CHECK */

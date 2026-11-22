@@ -6,7 +6,6 @@ re-run it (`python3 tools/inserts.py`); never hand-edit the file.
 """
 import json, os
 
-OUT = os.path.join(os.path.dirname(__file__), '..', 'data', 'inserts.json')
 
 
 def F(n, d):
@@ -472,14 +471,10 @@ def parts(rows):
 parts(ROWS)
 
 if __name__ == '__main__':
-    # a reading insert (458) is written by its own tool, so a row this script does not write is kept as it stands
-    mine = {r['insert_id'] for r in ROWS}
-    try:
-        with open(OUT, encoding='utf-8') as f:
-            ROWS = ROWS + [r for r in json.load(f) if r.get('insert_id') not in mine]
-    except (OSError, ValueError):
-        pass
-    with open(OUT, 'w', encoding='utf-8') as f:
-        json.dump(ROWS, f, ensure_ascii=False, indent=1)
-        f.write('\n')
-    print('inserts: %d written to data/inserts.json' % len(ROWS))
+    # `--rows`: the sheets as JSON for the importer's `insert` source (tools/content.js insert), which writes data/inserts.json
+    # and keeps every row this script does not write (a reading insert, 458). Run bare, this is that source's alias.
+    import subprocess, sys
+    if '--rows' in sys.argv:
+        json.dump(ROWS, sys.stdout, ensure_ascii=False)
+    else:
+        sys.exit(subprocess.call(['node', os.path.join(os.path.dirname(__file__), 'content.js'), 'insert']))

@@ -1,5 +1,12 @@
 {
 "about": "THE CONTENT PIPELINE'S BOARD/PAPER TABLE (tools/content.js). One row a family of papers, matched by paper_id prefix: its board, its qualification (the label in expected-papers.json; a family with one takes its board, subject, level and exam board from that line and its key stage from settings.json levels, never copied here: tools/one-list.js), the card fields every row of it carries, and where its transcription modules are. A new board or qualification is a new row here, never code. docs/notes/tools/content.md.",
+"sources": {
+"about": "THE ONE IMPORTER'S SOURCES (UNIFY NEXT 5, 22 Nov): each source a step list, run in order by `node tools/content.js <source> …`; the steps' shared parts (fetch, split, text, figures, write the cards, write the words, pack for the Ledger) live once in tools/lib/import.js.",
+"paper": {"steps": ["source", "spec", "parts", "figures", "keys", "card", "import"], "what": "a past paper or worksheet: a transcription module, a family, library:<paper_id> or a spec"},
+"markscheme": {"steps": ["cells", "answers", "words"], "what": "an AQA mark scheme: each row's answer from its own cell (aqa-ms-cells), applied to the words with --apply"},
+"keypack": {"steps": ["validate", "apply"], "what": "a version-1 key pack (lib-import-*.json): checked by the backend's own libPackCheck_, then its fields set on the words"},
+"insert": {"steps": ["sheets", "write"], "what": "the formulae and equation sheets (tools/inserts.py), written into data/inserts.json beside the reading inserts"}
+},
 "families": [
 {"family":"P-1CM-","board":"1st Class Maths","qualification":"","card":{"subject":"Maths","band_type":"grade","company":"1st Class Maths"}},
 {"family":"P-1CMP-","board":"","qualification":"","card":{"subject":"Maths","key_stage":"KS2","document_type":"Worksheet","active":"True"}},

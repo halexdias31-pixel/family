@@ -22,12 +22,12 @@ const SD = require('../lib/site-data.js');
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const L = require('../lib/lib-full.js');
 const SC = require('../lib/library-schema.js');
+const IM = require('../lib/import.js');
 
 /* `node tools/content.js library <cmd> [files] [--flags]` — content.js hands its arguments to main(). */
 let args = [], cmd = 'status', names = [];
 
-const fileOf = name => path.join(L.ROOT, L.defs().files[name].file);
-const readRows = name => { const t = fs.readFileSync(fileOf(name), 'utf8'); return { rows: JSON.parse(t), style: L.styleOf(t) }; };
+const readRows = name => IM.cards(name);
 
 /* FUNCTION VERIFIED (388), worked out here from the whole row — the site cannot, while the words are in the Ledger. */
 let QT = null;
@@ -99,9 +99,9 @@ function split(name) {
     if (one.moved) moved++; else if (Object.prototype.hasOwnProperty.call(r, 'lib_has')) kept++;
     return one.row;
   });
-  L.writePrivate(name, map);
+  IM.writeWords(name, map);
   /* NOTHING MOVED, NOTHING WRITTEN: a file kept in its own layout (data/inserts.json, 458) is not reflowed for nothing */
-  if (moved) fs.writeFileSync(fileOf(name), L.fileText(out, style));
+  if (moved) IM.writeCards(name, out, style);
   console.log(def.file + ': ' + moved + ' row(s) split, ' + kept + ' already split; data-private/' + name + '.json holds ' + Object.keys(map).length);
 }
 
@@ -114,8 +114,7 @@ function join(name) {
   const map = L.readPrivate(name) || {};
   const rows = JSON.parse(L.text(name));
   rows.forEach(r => { const id = L.idOf(def, r); if (has.has(id) && !map[id]) r.lib_has = has.get(id); });
-  const t = L.fileText(rows, style);
-  fs.writeFileSync(fileOf(name), t);
+  IM.writeCards(name, rows, style);
   const n = rows.length;
   console.log(def.file + ': ' + n + ' whole row(s). Split it again before committing — check-secrets refuses a file with words in it.');
 }
@@ -155,7 +154,7 @@ async function pull(name) {
     if (!(d.rows || []).length) break;
     from += 500;
   }
-  L.writePrivate(name, map);
+  IM.writeWords(name, map);
   /* WHAT THE LEDGER HOLDS IS NOW KNOWN, so `push` and `drive-pack` send only what changes after this. */
   const sent = readSent();
   sent[name] = {};

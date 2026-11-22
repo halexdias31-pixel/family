@@ -23,6 +23,11 @@ const USAGE = `
              rows where they were; --out <dir> writes the result there instead and touches nothing; --ledger <dir>
              also writes the libImport_ file (lib-import-<time>.json) for the owner's Drive folder
 
+  the other sources (data/settings/content.json sources: each a step list; the steps' shared parts are tools/lib/import.js)
+  node tools/content.js markscheme <ids file> <pdf dir> [--overrides f.json] [--apply]   cells → answers → words (AQA schemes)
+  node tools/content.js keypack <lib-import.json> [--apply]                             validate → apply (a key pack onto the words)
+  node tools/content.js insert                                                          sheets → write (tools/inserts.py's sheets)
+
   node tools/content.js library <split|join|seed|pull|push|status|drive-pack|help> …   the library's private half (397)
 `;
 'use strict';
@@ -30,6 +35,7 @@ const fs = require('fs'), path = require('path'), cp = require('child_process');
 const L = require('./lib/lib-full.js');
 const SC = require('./lib/library-schema.js');
 const LIB = require('./content/library.js');
+const IM = require('./lib/import.js');
 
 const ROOT = L.ROOT;
 const STAGES = ['source', 'spec', 'parts', 'figures', 'keys', 'card', 'import'];
@@ -55,26 +61,12 @@ const blank = v => v === undefined || v === null || String(v) === '';
 
 /* ---------- SOURCE: the documents a spec is read from ---------- */
 function source(spec) {
-  (spec.sources || []).forEach(s => {
-    if (s.zip) {
-      const dir = path.join(L.PRIVATE_DIR, 'sources', path.basename(s.zip, '.zip'));
-      fs.mkdirSync(dir, { recursive: true });
-      cp.execFileSync('unzip', ['-o', '-q', s.zip, '-d', dir]);
-      s.dir = dir;
-      console.log('source: ' + s.zip + ' → ' + path.relative(ROOT, dir));
-    } else if (s.drive) console.log('source: Drive file ' + s.drive + ' (https://drive.google.com/file/d/' + s.drive + '/view)');
-    else if (s.pdf) console.log('source: ' + s.pdf + (fs.existsSync(s.pdf) ? '' : ' — not on this machine'));
-  });
+  (spec.sources || []).forEach(s => { const said = IM.fetch(s); if (said) console.log(said); });
   return spec;
 }
 
 /* ---------- SPEC: the paper as rows ---------- */
-function joined() {
-  const def = L.defs().files.questions;
-  const cards = JSON.parse(fs.readFileSync(path.join(ROOT, def.file), 'utf8'));
-  const words = L.readPrivate('questions') || {};
-  return { def, cards, words };
-}
+const joined = () => IM.joined('questions');
 function fromLibrary(pid) {
   const { def, cards, words } = joined();
   const rows = cards.filter(r => r.paper_id === pid).map(r => {
@@ -89,19 +81,16 @@ function fromLibrary(pid) {
   L.joinPaper(rows);
   const doc = rows.find(r => r.kind === 'document');
   /* THE PAPER'S OWN INSERT (an English source booklet: data/inserts.json, for_papers), words and all */
-  const idef = L.defs().files.inserts, iwords = L.readPrivate('inserts') || {};
-  const inserts = JSON.parse(fs.readFileSync(path.join(ROOT, idef.file), 'utf8'))
+  const { def: idef, rows: irows, words: iwords } = IM.joined('inserts');
+  const inserts = irows
     .filter(r => String(r.for_papers || '').split(',').map(x => x.trim()).includes(pid))
     .map(r => Object.assign({}, r, iwords[L.idOf(idef, r)] || {}));
-  return { name: pid, from: 'library', inserts, sources: doc && doc.source_url ? [/drive\.google\.com\/file\/d\/([^/]+)/.test(doc.source_url) ? { drive: RegExp.$1 } : { url: doc.source_url }] : [], rows };
+  return { name: pid, from: 'library', inserts, sources: doc && doc.source_url ? [IM.driveOf(doc.source_url) ? { drive: IM.driveOf(doc.source_url) } : { url: doc.source_url }] : [], rows };
 }
 function fromModule(file) {
   /* a module's rows with kind 'insert' are its paper's inserts (data/inserts.json) */
-  const out = cp.execFileSync('python3', [path.join(__dirname, 'content', 'emit.py'), file], { maxBuffer: 512 * 1024 * 1024, encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] });
-  const rows = JSON.parse(out);
-  const docs = rows.filter(r => r.kind === 'document');
-  const sources = [];
-  docs.forEach(d => { if (/drive\.google\.com\/file\/d\/([^/]+)/.test(d.source_url || '')) sources.push({ drive: RegExp.$1 }); });
+  const rows = IM.moduleRows(file);
+  const sources = rows.filter(r => r.kind === 'document' && IM.driveOf(r.source_url)).map(d => ({ drive: IM.driveOf(d.source_url) }));
   return { name: path.basename(file, '.py'), from: path.relative(ROOT, path.resolve(file)), sources,
     rows: rows.filter(r => r.kind !== 'insert'), inserts: rows.filter(r => r.kind === 'insert').map(r => { const o = Object.assign({}, r); delete o.kind; return o; }) };
 }
@@ -141,14 +130,10 @@ function figures(spec) {
   let drawn = 0, twins = 0, waiting = 0;
   spec.rows.forEach(r => {
     if (r.figure_from) {
-      const f = r.figure_from;
-      const py = 'import json,sys; sys.path.insert(0, "tools"); from pdf_figure import figure; a = json.loads(sys.argv[1]); '
-        + 'print(figure(a.pop("pdf"), a.pop("page"), tuple(a.pop("clip")), a.pop("label"), **a), end="")';
-      r.diagram = cp.execFileSync('python3', ['-c', py, JSON.stringify(f)], { cwd: ROOT, encoding: 'utf8' });
+      r.diagram = IM.figure(r.figure_from);
       delete r.figure_from; r.diagram_by = 'family'; drawn++;
     } else if (r.figure_script) {
-      const [script, ...a] = String(r.figure_script).split(' ');
-      r.diagram = cp.execFileSync('python3', [path.join(ROOT, script), ...a], { cwd: ROOT, encoding: 'utf8' }).trim();
+      r.diagram = IM.script(r.figure_script);
       delete r.figure_script; r.diagram_by = 'family'; drawn++;
     }
     if (typeof r.diagram !== 'string' || !/^\s*<svg\b/i.test(r.diagram)) return;
@@ -180,7 +165,7 @@ function card(spec) {
     if (fam && doc && doc !== r) (fam.cover || []).forEach(k => { if (!has(r, k) && !blank(doc[k])) r[k] = doc[k]; });
   });
   /* THE INSERTS IT IS SAT WITH: its own (for_papers) and the shared sheets its subject and level take (for_subjects/for_levels) */
-  const all = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'inserts.json'), 'utf8')).concat(spec.inserts || []);
+  const all = IM.cards('inserts').rows.concat(spec.inserts || []);
   const list = v => String(v || '').split(',').map(x => x.trim()).filter(Boolean);
   docs.forEach(d => {
     const ins = all.filter(i => list(i.for_papers).includes(d.paper_id)
@@ -233,28 +218,20 @@ function importRows(spec, opt) {
   const mine = {};
   slim.forEach(r => { if (map[r.row_id]) mine[r.row_id] = map[r.row_id]; });
   if (opt.out) {
-    fs.mkdirSync(opt.out, { recursive: true });
-    fs.writeFileSync(path.join(opt.out, spec.name + '.cards.json'), L.fileText(slim, 'compact'));
-    fs.writeFileSync(path.join(opt.out, spec.name + '.words.json'), JSON.stringify(mine));
-    if (ins.slim.length) {
-      fs.writeFileSync(path.join(opt.out, spec.name + '.inserts.json'), JSON.stringify(ins.slim, null, 1) + '\n');
-      fs.writeFileSync(path.join(opt.out, spec.name + '.insert-words.json'), JSON.stringify(ins.mine));
-    }
+    IM.writeOut(opt.out, spec.name, { cards: slim, words: mine, inserts: ins.slim, insertWords: ins.mine });
     console.log('import: ' + slim.length + ' rows, ' + ins.slim.length + ' insert(s) → ' + opt.out + ' (data/ untouched)');
     return;
   }
-  const raw = fs.readFileSync(path.join(ROOT, def.file), 'utf8');
-  fs.writeFileSync(path.join(ROOT, def.file), L.fileText(rows, L.styleOf(raw)));
-  L.writePrivate('questions', map);
-  if (ins.slim.length) { fs.writeFileSync(ins.file, JSON.stringify(ins.rows, null, 1) + '\n'); L.writePrivate('inserts', ins.map); }
+  IM.writeCards('questions', rows);
+  IM.writeWords('questions', map);
+  if (ins.slim.length) { IM.writeCards('inserts', ins.rows, 'indent'); IM.writeWords('inserts', ins.map); }
   console.log('import: ' + [...pids].join(', ') + ': ' + slim.length + ' rows (replacing ' + before.length + ')');
-  if (opt.ledger) LIB.main(['drive-pack', opt.ledger.endsWith('/') ? opt.ledger : opt.ledger + '/', '--ids', Object.keys(mine).join(','), '--note', spec.name]);
+  if (opt.ledger) IM.pack(opt.ledger, Object.keys(mine), spec.name);
 }
 
 /* THE PAPER'S INSERTS: each replaced where it was in data/inserts.json (its own layout, 458), a new one at the end */
 function importInserts(list) {
-  const def = L.defs().files.inserts, file = path.join(ROOT, def.file);
-  const rows = JSON.parse(fs.readFileSync(file, 'utf8')), map = Object.assign({}, L.readPrivate('inserts') || {});
+  const { def, rows, words } = IM.joined('inserts'), map = Object.assign({}, words);
   const slim = list.map(r => LIB.splitRow('inserts', Object.assign({}, r), map).row);
   const mine = {};
   slim.forEach(r => {
@@ -262,28 +239,140 @@ function importInserts(list) {
     if (i < 0) rows.push(r); else rows[i] = r;
     if (map[id]) mine[id] = map[id];
   });
-  return { file, rows, map, slim, mine };
+  return { rows, map, slim, mine };
 }
 
-/* ---------- THE RUN ---------- */
+/* ---------- MARK SCHEMES: each AQA row's answer from its own cell (21 Nov; tools/aqa-ms-answers.js is the alias) ----------
+   The AQA science rows imported 28 Oct took their `answer` from the scheme's text split at each question number's line; AQA prints
+   that number in the vertical middle of its cell, so the split gave the top half of every cell to the question before it. This reads
+   a row's answer from its cell as tools/aqa-ms-cells.py bounds it by the table's own rules, in the same "point | note; point" form. */
+/* A CELL'S PRINTED LINES AS POINTS: a new point where the Mark column has a number, at a bullet, an "any n from", an "or",
+   an "(improvement)"-style heading, or after a line that ends a sentence; any other line continues the one above. A note in the
+   Extra information column starts at allow / ignore / do not / max / if / must …, else continues the note above. The table's own
+   header words, repeated on a page a cell runs onto, are dropped. */
+const NOTE = /^(allow |ignore |do not |accept |reject |max |if |must |dependent|MP\d|or$|an answer|scores |the mark|alternative|approach|correct |ecf|award|credit)/i;
+const HEAD = /^(Answers|Extra|information|Mark|Marks|AO|\/|Spec\.|Ref\.|Extra information|\s)*$/;
+function flow(rows) {
+  const pts = [];
+  let cur = null;
+  for (let [a, e, m] of rows) {
+    a = a.replace(/\s*\bAnswers$/, '').trim();
+    e = e.replace(/\s*\b(Extra information|Extra|information)$/, '').replace(/^(Extra information|information)$/, '').trim();
+    if (HEAD.test(a) && HEAD.test(e) && HEAD.test(m || '')) continue;
+    if (a) {
+      const fresh = !cur || /^\d/.test((m || '').trim()) || /^(•|any |or$|either|approach|alternative|\(\w+\):?$)/i.test(a) || /[.:]$/.test(cur.a);
+      if (fresh) { cur = { a, e: [] }; pts.push(cur); } else cur.a += ' ' + a;
+    }
+    if (e) {
+      if (!cur) { cur = { a: '', e: [] }; pts.push(cur); }
+      if (!cur.e.length || NOTE.test(e)) cur.e.push(e); else cur.e[cur.e.length - 1] += ' ' + e;
+    }
+  }
+  return pts.map(p => [p.a, ...p.e].filter(Boolean).join(' | ')).join('; ')
+    .replace(/\( +/g, '(').replace(/ +\)/g, ')').replace(/\s+/g, ' ').trim();
+}
+
+const MS = {
+  cells(c) {
+    c.out = []; c.miss = [];
+    for (const id of c.ids) {
+      const m = /^Q-AQA-(\w+)-(\d{4})-(\d\w)-(\d\d)(\d)$/.exec(id);
+      if (!m) { c.miss.push(id + ' (id not in the <spec>-<yymm>-<paper>-<qq><p> form)'); continue; }
+      if (c.overrides[id] != null) { c.out.push({ id, answer: c.overrides[id] }); continue; }
+      const f = path.join(c.pdfDir, m[1] + '-' + m[2] + '-' + m[3] + '.pdf'), q = m[4] + '.' + m[5];
+      if (!fs.existsSync(f)) { c.miss.push(id + ' (no ' + path.basename(f) + ')'); continue; }
+      const cell = IM.cells(f)[q];
+      if (!cell) { c.miss.push(id + ' (no cell ' + q + ')'); continue; }
+      c.out.push({ id, cell });
+    }
+  },
+  answers(c) {
+    c.out.forEach(r => { if (r.cell) { r.answer = flow(r.cell); delete r.cell; } });
+    c.out = c.out.filter(r => { if (!r.answer) c.miss.push(r.id + ' (empty cell)'); return !!r.answer; });
+    c.priv = IM.words('questions');
+    c.changed = c.out.filter(r => r.answer !== ((c.priv[r.id] || {}).answer || ''));
+    console.log('aqa-ms-answers: ' + c.out.length + ' cells read, ' + c.changed.length + ' differ from the stored answer' + (c.miss.length ? ', ' + c.miss.length + ' not read:' : ''));
+    c.miss.forEach(x => console.log('  ' + x));
+  },
+  words(c) {
+    if (!c.apply) return;
+    c.changed.forEach(r => { c.priv[r.id] = Object.assign(c.priv[r.id] || {}, { answer: r.answer }); });
+    IM.writeWords('questions', c.priv);
+    console.log('  applied ' + c.changed.length + ' to data-private/questions.json');
+  },
+};
+
+/* ---------- KEY PACKS: a version-1 pack (lib-import-*.json) onto this machine's words, as the Ledger's libPackApply_ takes it ---------- */
+const KEYS = {
+  validate(c) {
+    const plan = IM.checkPack(c.pack);
+    if (plan.error) throw new Error(c.file + ': ' + plan.error);
+    c.plan = plan.plan;
+    const n = Object.keys(c.plan).reduce((t, k) => t + c.plan[k].length, 0);
+    console.log('keypack: ' + c.file + ' — ' + n + ' item(s) in ' + Object.keys(c.plan).join(', ') + (c.apply ? '' : ' (checked; --apply sets them)'));
+  },
+  apply(c) {
+    if (!c.apply) return;
+    Object.keys(c.plan).forEach(name => {
+      const map = IM.words(name);
+      c.plan[name].forEach(({ id, set }) => {
+        const w = Object.assign(map[id] || {}, set);
+        Object.keys(set).forEach(k => { if (set[k] === null) delete w[k]; });
+        map[id] = w;
+      });
+      IM.writeWords(name, map);
+      console.log('keypack: ' + c.plan[name].length + ' set in data-private/' + name + '.json');
+    });
+  },
+};
+
+/* ---------- INSERTS: our own formulae and equation sheets (tools/inserts.py), beside the reading inserts it does not write ---------- */
+const INSERT = {
+  sheets(c) { c.rows = IM.insertSheets(); },
+  write(c) {
+    const mine = new Set(c.rows.map(r => r.insert_id));
+    const rows = c.rows.concat(IM.cards('inserts').rows.filter(r => !mine.has(r.insert_id)));
+    IM.writeCards('inserts', rows, 'indent');
+    console.log('inserts: ' + rows.length + ' written to data/inserts.json');
+  },
+};
+
+/* ---------- THE RUN: a source's step list (data/settings/content.json sources) ---------- */
 async function main(argv) {
   if (argv[0] === 'library') return LIB.main(argv.slice(1));
   const opt = k => { const i = argv.indexOf('--' + k); return i === -1 ? null : argv[i + 1]; };
-  const what = argv.find((a, i) => !a.startsWith('--') && !(i && argv[i - 1].startsWith('--')));
+  const pos = argv.filter((a, i) => !a.startsWith('--') && !(i && /^--(stage|out|ledger|overrides)$/.test(argv[i - 1])));
+  const what = pos[0];
   if (!what || what === 'help' || what === '--help') { console.log(USAGE); return; }
-  const want = opt('stage') ? opt('stage').split(',') : STAGES;
+  const only = opt('stage') ? opt('stage').split(',') : null;
+  if (what === 'markscheme') {
+    if (!pos[1] || !pos[2]) throw new Error('usage: node tools/content.js markscheme <ids file> <pdf dir> [--overrides f.json] [--apply]');
+    const over = opt('overrides');
+    return IM.run('markscheme', MS, { ids: fs.readFileSync(pos[1], 'utf8').split(/\s+/).filter(Boolean), pdfDir: pos[2],
+      overrides: over ? JSON.parse(fs.readFileSync(over, 'utf8')) : {}, apply: argv.includes('--apply') }, only);
+  }
+  if (what === 'keypack') {
+    if (!pos[1]) throw new Error('usage: node tools/content.js keypack <lib-import.json> [--apply]');
+    return IM.run('keypack', KEYS, { file: pos[1], pack: JSON.parse(fs.readFileSync(pos[1], 'utf8')), apply: argv.includes('--apply') }, only);
+  }
+  if (what === 'insert') return IM.run('insert', INSERT, {}, only);
+  const want = only || STAGES;
   const bad = want.filter(s => !STAGES.includes(s));
   if (bad.length) throw new Error('no stage ' + bad.join(', ') + ' — ' + STAGES.join(', '));
-  for (let spec of specs(what)) {
+  /* A PAPER'S STEPS: a transform asked for without `import` leaves its spec in data-private/specs/ */
+  const PAPER = {
+    source, spec: saveSpec, parts, figures, keys, card,
+    import(spec) {
+      if (['parts', 'figures', 'keys', 'card'].some(s => want.includes(s)) && !want.includes('import')) saveSpec(spec);
+      if (want.includes('import')) importRows(spec, { out: opt('out'), ledger: opt('ledger') });
+    },
+  };
+  for (const spec of specs(what)) {
     console.log('— ' + spec.name + ' (' + spec.from + ')');
-    if (want.includes('source')) source(spec);
-    if (want.includes('spec')) saveSpec(spec);
-    for (const [s, f] of [['parts', parts], ['figures', figures], ['keys', keys], ['card', card]]) if (want.includes(s)) spec = f(spec);
-    if (want.some(s => ['parts', 'figures', 'keys', 'card'].includes(s)) && !want.includes('import')) saveSpec(spec);
-    if (want.includes('import')) importRows(spec, { out: opt('out'), ledger: opt('ledger') });
+    await IM.run('paper', PAPER, spec, want.includes('import') ? want : want.concat(['import']));
   }
 }
 
 if (require.main === module) main(process.argv.slice(2)).catch(e => { console.error(String((e && e.message) || e)); process.exit(1); });
 
-module.exports = { STAGES, familyOf, parts, figures, keys, card };
+module.exports = { STAGES, familyOf, parts, figures, keys, card, flow, main };

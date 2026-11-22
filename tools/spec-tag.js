@@ -16,6 +16,7 @@
    The check list: sheets whose best point scored low, or barely beat the next. */
 'use strict';
 const SD = require('./lib/site-data.js');
+const IM = require('./lib/import.js');
 const fs = require('fs'), path = require('path');
 const ROOT = path.join(__dirname, '..');
 const SUBJ = { B: '8461', C: '8462', P: '8463' };
@@ -184,7 +185,7 @@ function setSheet(pid, point) {
   save(qs);
   console.log('spec-tag: ' + pid + ' -> aqa-' + code + ':' + point + ' on ' + n + ' parts');
 }
-const save = qs => fs.writeFileSync(path.join(ROOT, 'data/questions.json'), '[\n' + qs.map(r => JSON.stringify(r)).join(',\n') + '\n]\n');
+const save = qs => IM.writeCards('questions', qs);
 
 const FORCE = process.argv.includes('--all');
 function write() {
