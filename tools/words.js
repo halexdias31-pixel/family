@@ -5,7 +5,9 @@
 const fs = require('fs'), path = require('path');
 const { ROOT, blockInto, writeIfChanged } = require('./lib/gen.js');
 const WF = path.join(ROOT, 'data/settings/words.json'), CORE = path.join(ROOT, 'js/core.js');
-const words = JSON.parse(fs.readFileSync(WF, 'utf8')).words || {};
+const WJ = JSON.parse(fs.readFileSync(WF, 'utf8')), words = Object.assign({}, WJ.words || {});
+/* AN OLD KEY READS ITS ONE KEY'S TEXT (`aliases`, UNIFY NEXT 4), so a name kept in data or a sheet still works. */
+for (const [old, to] of Object.entries(WJ.aliases || {})) if (old[0] !== '_' && typeof words[to] === 'string') words[old] = words[to];
 const B = '/* WORDS:BEGIN', HEAD = B + ' — a copy of data/settings/words.json, written by `node tools/build.js`; edit the json, never this. */\n';
 const E = '/* WORDS:END */', BODY = 'const WORDS_FILE = ' + JSON.stringify(words) + ';\n';
 function run() {

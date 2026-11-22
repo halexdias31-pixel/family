@@ -83,7 +83,7 @@ function heldBy_(err) {
 }
 
 on('resend-link', el => {
-  if (!USER) { toast(text_('sign-in-first')); return; }
+  if (!USER) { toast(text_('err-sign-in-first')); return; }
   send_({ action: 'resendLink', personId: USER.personId || '' }, { button: el })
     .then(d => {
       toast(d.message || 'A new link is on its way.');
@@ -112,7 +112,7 @@ on('kid-pin', el => {
 });
 
 on('kid-pin-go', el => {
-  if (!USER) { toast(text_('sign-in-first')); return; }
+  if (!USER) { toast(text_('err-sign-in-first')); return; }
   const id = el.getAttribute('data-id') || '';
   send_({ action: 'resetPin', personId: USER.personId || '', targetId: id },
         { button: el, busy: text_('making-it') })
@@ -129,7 +129,7 @@ on('sheet-done', () => closeSheet());
    is two places to fix when the call changes, and the second one is always the one forgotten. */
 const answerClaim_ = (el, accept) => {
   /* THE THIRD OF THE THREE. § */
-  if (!USER) { toast(text_('sign-in-first')); return; }
+  if (!USER) { toast(text_('err-sign-in-first')); return; }
   const row = el.getAttribute('data-row');
   /* `send_` RATHER THAN `send`, for the same reason as every form here: it locks both buttons while the answer
      is on the wire, so a second tap cannot answer twice, and it says a refusal as a toast. */
@@ -374,7 +374,7 @@ function rolesCard_() {
   const can = rolesPickable_() ? ROLE_PICKS.filter(([r]) => r !== 'tutor') : [];
   const picks = can.length ? [{ type: 'formRow', label: 'You are', control: { kind: 'select', look: 'role-pick-in', aria: 'Your role', value: 'client',
       options: can.map(([r, label]) => ({ value: r, text: label, data: { 'role-pick': r } })) } },
-    { type: 'tiles', tiles: [{ icon: 'save', label: 'Save', act: 'roles-save' }] }] : [];
+    { type: 'tiles', tiles: [{ icon: 'save', label: text_('save'), act: 'roles-save' }] }] : [];
   const said = rolesSaid_();
   return setCard_({ card: 'acct:roles', title: 'Your roles', state: lensOn_() ? 'locked' : '', body: picks.concat(picks.length || said ? [{ type: 'paperNote', look: 'roles-said', live: true, text: said }] : []) });
 }
@@ -410,7 +410,7 @@ on('roles-save', el => {
          drawn again; then the payload, because who is a tutor is in it. */
       if (d.changed) { try { repaint(true); } catch (e) { oops_(e, 'me:rolesCard_') } try { load(); } catch (e) { oops_(e, 'me:rolesCard_') } }
       const now = document.querySelector('.roles-card .roles-said');
-      if (now) now.textContent = d.changed && rolesPickable_() && !USER.tutorPending ? 'Saved.' : rolesSaid_();
+      if (now) now.textContent = d.changed && rolesPickable_() && !USER.tutorPending ? text_('saved') : rolesSaid_();
     })
     /* A REFUSAL PUTS THE CHOICE BACK TO WHAT YOU HOLD — Client, the only rank the card is drawn with a choice for. */
     .catch(err => {
@@ -503,7 +503,7 @@ on('notify-pick', el => {
       if (box) box.checked = on;
       const line = live && live.querySelector('.notify-said');
       if (line) line.textContent = NOTIFY_SAID.text;
-      toast('Saved');
+      toast(text_('saved'));
     })
     /* ---------- A FAILURE PUTS THE TICK BACK TO WHAT THE SERVER HAS — REFUSED OR LOST § */
     .catch(() => {

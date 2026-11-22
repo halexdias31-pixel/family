@@ -604,7 +604,7 @@ function storeSend_(fid, v, id) {
   item[key] = id || item[key] || k + '-' + Date.now().toString(36);
   /* AN EDIT SENDS EVERY FIELD, so one emptied (back, then Skip) is emptied in the row too. */
   if (id) FORM_SPECS.forms[fid].fields.forEach(x => { if (item[x.f] == null) item[x.f] = ''; });
-  return storeWrite_(k, item).then(ok => { if (!ok) return; askDone_(fid); if (id) { delete ASK[fid]; delete STORE_EDIT_[k + ':' + id]; } toast('Saved.'); });
+  return storeWrite_(k, item).then(ok => { if (!ok) return; askDone_(fid); if (id) { delete ASK[fid]; delete STORE_EDIT_[k + ':' + id]; } toast(text_('saved')); });
 }
 STORE_KINDS_.forEach(k => { const id = storeFormOf_(k); if (id) FORM_SEND_[id] = v => storeSend_(id, v); });
 on('store-edit', el => { const key = el.dataset.kind + ':' + el.dataset.id;

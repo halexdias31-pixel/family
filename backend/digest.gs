@@ -1402,7 +1402,7 @@ function sendLastWeekToAll() {
    Seen by the learner, a parent they accepted, a tutor booked with them and the admin (`workFileMaySee_`). */
 function postHistory_(body) {
   const me = findPerson('', S(body.personId));
-  if (!me || !S(me.person_id)) return jsonOut({ success: false, message: 'Sign in first.' });
+  if (!me || !S(me.person_id)) return jsonOut({ success: false, message: text_('err-sign-in-first') });
   const of = S(body.of) || S(me.person_id), day = S(body.day);
   if (!workFileMaySee_(me, of)) return jsonOut({ success: false, message: 'Not yours to see.' });
   if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return jsonOut({ success: false, message: 'Pick a day.' });

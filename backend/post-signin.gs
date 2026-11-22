@@ -392,7 +392,7 @@ function forgotPinMail_(own, tos, r, byHandle, handleSaid, fresh, linkKey) {
 /* a forgotten PIN -------------------------------------------------------------------------- ASKED FOR AS § */
 function postForgotPin_(body, action, began) {
   const asked = norm(body.who).replace(/^@+/, '');   // `@halex_kind42` as cards print it — see verifyLogin
-  if (!asked) return jsonOut({ error: 'Type your email address or your handle first.' });
+  if (!asked) return jsonOut({ error: text_('type-your-email-address-or-your') });
 
   const tPeople = read(TAB.people);
   /* ---------- THE SAME TWO DOORS AS SIGNING IN, READ THE SAME WAY § */

@@ -215,7 +215,7 @@ function nothingHere(whenEmpty, needsLibrary) {
   if (asking && !LIBRARY_FAILED) return loading_();
   const why = (asking ? '' : LOAD_FAILED) || LIBRARY_FAILED;
   if (why) {
-    return empty_('Couldn’t load.') + tileRow_(tile_({ icon: 'again', label: 'Try again', act: 'retry' }));
+    return empty_('Couldn’t load.') + tileRow_(tile_({ icon: 'again', label: text_('try-again'), act: 'retry' }));
   }
   /* ---------- AND STILL COMING IS NOT THE SAME AS EMPTY § */
   /* ---------- AND THE WAIT IS THE ONE LOADER NOW, NOT A SENTENCE OF ITS OWN § */

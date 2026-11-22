@@ -243,7 +243,7 @@ function cardEditCards_(t, e, secs, setCol) {
   });
 }
 function cardSaveOpts_(pid, saveOff) {
-  return [{ icon: 'save', label: 'Save', note: 'every change', act: 'card-save', off: !!saveOff, data: { pid } }, cardCancelOpts_(pid)];
+  return [{ icon: 'save', label: text_('save'), note: 'every change', act: 'card-save', off: !!saveOff, data: { pid } }, cardCancelOpts_(pid)];
 }
 /* A SETTINGS SECTION KEEPS ITS CANCEL (what it puts back is the last save) and has no Save: it saves as typed (owner, 8 Nov). */
 const cardCancelOpts_ = pid => ({ icon: 'close', label: 'Cancel', note: 'put it back', act: 'card-cancel', data: { pid } });

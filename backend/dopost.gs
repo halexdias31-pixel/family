@@ -34,7 +34,7 @@ function signInRow_(t0, r, body, by, was) {
     const now = authResetGet_(r);
     return jsonOut({ success: false,
       error: (wait === 1 ? 'Too many wrong PINs. Try again in a minute.'
-                         : 'Too many wrong PINs. Try again in ' + wait + ' minutes.')
+                         : text_('too-many-wrong-pins-try-again-in') + wait + ' minutes.')
            + (now && now.dead ? ' If you asked for a new PIN, open the sign-in link in that email — it works now.' : '') });
   }
   /* HASHED, AND OLD ROWS MOVED ACROSS AS THEY ARRIVE — see `authCheckPin_`. The emailed PIN is
@@ -108,7 +108,7 @@ function doPost(e) {
     /* ONE GATE, before anything runs. § */
     const denied = accessDenied(action, body);
     /* A DEAD SESSION SAYS SO IN A WORD THE PHONE CAN READ. § */
-    if (denied) return jsonOut(denied === 'Please sign in again.'
+    if (denied) return jsonOut(denied === text_('err-sign-in-again')
       ? { error: denied, why: 'signed-out' } : { error: denied });
     /* ---------- WHO THE REPLY IS FOR (342) § */
     {
@@ -273,7 +273,7 @@ function assistAsk_(key, models, question, history, facts, child) {
     systemInstruction: { parts: [{ text: rules }] },
     contents: [{ role: 'user', parts: [{ text: ask }] }],
   }), aiThinking_(models));
-  if (sent.error) return { error: sent.why === 'busy' ? 'Daive is busy — try again in a minute.' : 'Daive could not answer just now.' };
+  if (sent.error) return { error: sent.why === 'busy' ? text_('daive-busy') : 'Daive could not answer just now.' };
   let answer = '';
   try {
     const d = JSON.parse(sent.body);

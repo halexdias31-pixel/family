@@ -208,12 +208,12 @@ function autosaveNow_(form) {
 /* THE SMALL TICK: under the card, beside the fading toast that already says Saved. */
 function autosaveTick_(form, word) {
   const said = form.querySelector('.me-said');
-  if (said) tell_(said, 'saved', '\u2713 ' + (word || 'Saved'));
+  if (said) tell_(said, 'saved', '\u2713 ' + (word || text_('saved')));
   form.classList.add('is-saved');
   if (!form.contains(document.activeElement)) delete form.dataset.dirty;
 }
 function autosaveFailed_(err) {
-  toast(typeof why_ === 'function' ? why_(err) : 'Not saved — try again.');
+  toast(typeof why_ === 'function' ? why_(err) : text_('not-saved-try-again'));
 }
 document.addEventListener('input', autosaveHear_, true);
 document.addEventListener('change', autosaveHear_, true);
@@ -228,7 +228,7 @@ function profileSave_(form, o) {
   /* A PRESS OR A SAVE IN HAND MAKES THE WAITING ONE MOOT. */
   [form, o.el].forEach(x => { const f0 = x && x.closest && x.closest('.me-form'); if (f0) clearTimeout(AUTOSAVE_T.get(f0)); });
   /* SIGNED OUT (the session ended under an open card): nothing to save to, and `USER.name` would throw. */
-  if (!USER) { toast(text_('sign-in-first-2')); return resolve(null); }
+  if (!USER) { toast(text_('err-sign-in-first')); return resolve(null); }
   const said = Object.prototype.hasOwnProperty.call(o, 'said') ? o.said : (form && form.querySelector('.me-said'));
   const say = (cls, msg) => { if (!o.auto) toast(msg); if (said) tell_(said, cls, msg); };
   let fields = o.fields, seatNo = '';
@@ -260,7 +260,7 @@ function profileSave_(form, o) {
         /* THE SERVER'S OWN READING OF THE ROW, NOT WHAT WAS TYPED. § */
         if (o.own) { W.profile = (d && d.profile) ? d.profile : Object.assign({}, W.profile || {}, fields); if (d && d.name) W.name = d.name; }
         /* A PART LEFT OUT, HERE OR BY THE SERVER, IS SAID BESIDE WHAT WAS SAVED (620). */
-        const word = ((d && d.said) || 'Saved') + (seatNo ? (d && d.refused ? ' ' : ' — the rest. Not saved: ') + seatNo : '');
+        const word = ((d && d.said) || text_('saved')) + (seatNo ? (d && d.refused ? ' ' : ' — the rest. Not saved: ') + seatNo : '');
         const r = { d, fields, word, seatNo };
         if (o.done) o.done(r);
         if (o.own && W === USER) saveUser_();
@@ -461,7 +461,7 @@ function profileRefresh_(loud, onOld) {
 FORM_SEND_['pin-change'] = (v, el) => {
   const said = $('pin-said');
   /* SIGNED OUT, OR A BLANK NEW PIN, SENDS NOTHING — a blank pair "matches" and would post an empty PIN. */
-  if (!USER) { if (said) tell_(said, 'error', text_('sign-in-first-2')); return; }
+  if (!USER) { if (said) tell_(said, 'error', text_('err-sign-in-first')); return; }
   if (!v.now || !v.new) { if (said) tell_(said, 'info', 'Type your PIN now and the new one.'); return; }
   /* Typed twice, checked here before the server sees it — a PIN you cannot see and typed once is
      a PIN you get locked out by. */

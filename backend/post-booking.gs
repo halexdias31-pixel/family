@@ -179,7 +179,7 @@ function moveRefusal_(j, act, role, mine, asAdmin, target, others, before) {
   /* A NAMED TUTOR ANSWERS FOR THEMSELVES (488): a family cannot accept them on their behalf while they are still asked. */
   if (!asAdmin && role === 'client' && act === ACT.ACCEPT && target && target.role === 'tutor'
       && target.status === BM.WAITING && !TRUE_(j.stealable)) {
-    return 'Waiting for ' + target.name + ' to accept or decline.';
+    return text_('waiting-for') + target.name + ' to accept or decline.';
   }
   // Permission is judged against whoever is on the other side of the lobby, named or not —
   // that's what decides whether the client may pay. Only the WRITE is targeted.

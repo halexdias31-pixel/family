@@ -14,7 +14,7 @@ function getRun_(p, migrated) {
   const tRun = read(TAB.people);
   const runWait = who ? authWaitMins_(who) : 0;
   if (runWait > 0) {
-    return jsonOut({ error: 'Too many wrong PINs. Try again in ' + runWait
+    return jsonOut({ error: text_('too-many-wrong-pins-try-again-in') + runWait
                           + (runWait === 1 ? ' minute.' : ' minutes.') });
   }
   if (!who || !whoMay_(who, 'admin') || !authCheckPin_(tRun, who, S(p.pin))) {

@@ -64,7 +64,7 @@ function workFileWho_(me, id) {
 function postWorkFile_(body, action) {
   const verb = S(action).split(':')[1];
   const me = findPerson('', S(body.personId));
-  if (!me || !S(me.person_id)) return jsonOut({ success: false, message: 'Sign in first.' });
+  if (!me || !S(me.person_id)) return jsonOut({ success: false, message: text_('err-sign-in-first') });
   const t = read(TAB.work_files);
   if (!t.sheet) return jsonOut({ success: false, message: 'Work on file is not set up yet — the admin opens the site with ?setup=1.' });
   if (verb === 'read' || verb === 'delete') {

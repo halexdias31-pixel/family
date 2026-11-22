@@ -538,7 +538,7 @@ function rcOffer_(blob, name, rc, title) {
   at.insertAdjacentHTML('afterend', renderCard({ kind: 'shot', look: 'rc-shot-box', name: said,
     picture: { src: RC_SHOT.url, alt: said },
     body: [{ type: 'text', look: 'note', text: can ? text_('press-share-to-send-it') : text_('press-and-hold-the-picture-to') }],
-    tiles: [can ? { label: 'Share', act: 'rc-shot-share', tone: 'buy' } : null, { label: 'Save', act: 'rc-shot-save', data: { name } }].filter(Boolean) }));
+    tiles: [can ? { label: 'Share', act: 'rc-shot-share', tone: 'buy' } : null, { label: text_('save'), act: 'rc-shot-save', data: { name } }].filter(Boolean) }));
 }
 
 /* SAVE IS A FORM BUTTON LIKE SHARE (one way only): the download link is made and clicked here, never written as markup. */

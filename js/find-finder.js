@@ -374,7 +374,7 @@ const FACET_READ = {
   needCalc: { of: x => asList_(x.needs).filter(v => NEED_CALC_[v]) },
   needs: { of: x => asList_(x.needs).filter(v => !NEED_CALC_[v]) },
   /* WHAT YOU STARRED (17 Nov): the Saved column is this tag now; blank signed out or with nothing saved, so it cannot split. */
-  mySaved: { of: x => typeof FAVS === 'undefined' || !USER || !FAVS.size || !x || !x.key ? '' : FAVS.has(String(x.key)) ? 'Saved' : text_('not-saved') },
+  mySaved: { of: x => typeof FAVS === 'undefined' || !USER || !FAVS.size || !x || !x.key ? '' : FAVS.has(String(x.key)) ? text_('saved') : text_('not-saved') },
 };
 
 

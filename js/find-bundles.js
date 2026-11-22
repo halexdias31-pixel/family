@@ -382,7 +382,7 @@ on('fav', el => {
   if (wrap) wrap.classList.toggle('is-fav', on);
   /* THE TILE'S OWN LABEL, not a glyph — the same correction `on('spot')` needed when it was still
      writing ✦ over a control that had become two spans. */
-  tileSet_(el, { label: on ? 'Saved' : 'Save', on: on });
+  tileSet_(el, { label: on ? text_('saved') : text_('save'), on: on });
 
   /* ---------- AND THE PAGES IN FRONT OF THE QUESTION § */
   /* STAY ON THE CARD YOU STARRED. A star adds or removes a page in front of the question, so the

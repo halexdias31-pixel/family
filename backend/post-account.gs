@@ -291,7 +291,7 @@ function postUpdateProfile_(body, action, began) {
   /* WHAT WAS LEFT OUT, IN WORDS, beside what was saved (620). */
   if (refused.length) {
     out.refused = refused.map(p => ({ fields: p[0], said: p[1] }));
-    out.said = (out.said || 'Saved') + ' — the rest. Not saved: ' + refused.map(p => p[1]).join(' ');
+    out.said = (out.said || text_('saved')) + ' — the rest. Not saved: ' + refused.map(p => p[1]).join(' ');
   }
   return jsonOut(out);
 }
@@ -513,7 +513,7 @@ function postSavePhoto_(body, action, began) {
   try {
     url = driveKeep_(folder, raw, 'photo-' + (S(r.person_id) || 'person') + '-' + new Date().getTime());
   } catch (err) {
-    return jsonOut({ error: 'Could not save the picture. ' + driveTrouble_(err, whoMay_(r, 'admin')) });
+    return jsonOut({ error: text_('could-not-save-the-picture') + driveTrouble_(err, whoMay_(r, 'admin')) });
   }
   setCell(t, r, 'photo', url);
   return jsonOut({ success: true, photo: url });

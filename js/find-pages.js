@@ -574,7 +574,7 @@ function facetAnswersSpec_(facet, values, then) {
   /* `counted` TAKES THE CHEVRON OFF. § */
   /* ---------- "DOESN'T MATTER", UNDER EVERY QUESTION § */
   /* `counted` WITHOUT A COUNT, which is not a contradiction: § */
-  const skip = { text: 'Doesn\'t matter', act: 'facet-skip', data: { field: facet.field }, look: 'is-skip' };
+  const skip = { text: text_('doesnt-matter'), act: 'facet-skip', data: { field: facet.field }, look: 'is-skip' };
   /* THE "and N more" LINE WENT WITH THE TRIM. § */
   /* `data-value` IS THE FULL NAME (`filterHit` matches it); THE TEXT IS `show`, what tells it apart from the answers beside it, as
      its chip says it (1180: SATs said `Paper 1 · Maths · SATs · KS2`). */

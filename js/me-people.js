@@ -104,7 +104,7 @@ function psFind_(el) {
     .then(() => { S.busy = false; psPaint_(col); });
 }
 on('ps-add-child', el => {
-  if (!USER || !psMayChild_()) { toast(text_('sign-in-first')); return; }
+  if (!USER || !psMayChild_()) { toast(text_('err-sign-in-first')); return; }
   const handle = el.getAttribute('data-handle') || '';
   if (!handle) return;
   send_({ action: 'claimChild', name: USER.name, personId: USER.personId || '', handle }, { button: el })
@@ -139,7 +139,7 @@ function personFormHtml_(F) {
     pplG_('pf-parents', formOf_('person-form', pv, Object.assign({ only: ['parents', 'parent'],
       with: f => f === 'parent' && has.length ? { label: 'Another parent' } : {} }, fo)), { attrs: { hidden: !kid } }),
     pplP_('note pf-said', '', { attrs: { 'aria-live': 'polite' } }),
-    pplG_('pf-go', [tile_({ form: true, label: F.id ? 'Save' : 'Add them', act: 'person-save' }),
+    pplG_('pf-go', [tile_({ form: true, label: F.id ? text_('save') : 'Add them', act: 'person-save' }),
       tile_({ form: true, label: 'Cancel', act: 'person-cancel', kind: 'quiet' })])], pid);
 }
 
@@ -199,7 +199,7 @@ on('person-save', el => {
       peoplePut_(d.person);
       formDraftDrop_('person-form', { draftId: F.id || 'new' });
       if (!F.id) { PEOPLE_FORM_ = { id: '', made: { first: d.first || val('first'), handle: d.handle || '', pin: d.pin || '' } }; }
-      else { PEOPLE_FORM_ = null; toast('Saved.'); }
+      else { PEOPLE_FORM_ = null; toast(text_('saved')); }
       peopleRedraw_();
       load();
     })
@@ -295,7 +295,7 @@ on('pe-notify', el => {
       const on = d && typeof d.on === 'boolean' ? d.on : want;
       if (PERSON_ED_ === F && F.data.notify) F.data.notify = Object.assign({}, F.data.notify, { kinds: (F.data.notify.kinds || []).map(k => k.kind === kind ? Object.assign({}, k, { on }) : k) });
       el.checked = on;
-      if (said) tell_(said, 'saved', 'Saved.');
+      if (said) tell_(said, 'saved', text_('saved'));
     })
     .catch(e => { el.checked = !want; if (said) tell_(said, 'error', why_(e)); });
 });

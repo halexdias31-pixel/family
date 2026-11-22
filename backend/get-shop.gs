@@ -252,7 +252,7 @@ function jobCardWho_(j, x, meAskedName, viewerIsAdmin, vis, venuesTab) {
     client: iAmIn && namesOk ? ((cs[0] && cs[0].name) || '') : '',
     tutor:  iAmIn ? ((confirmedTutor && confirmedTutor.name)
                      || (ts[0] && ts[0].name) || '') : '',
-    requestedTutor: (confirmedTutor && confirmedTutor.name) || 'No preference',
+    requestedTutor: (confirmedTutor && confirmedTutor.name) || text_('no-preference'),
     tutorStatus: tutorStatusOf(jobId),
     /* ---------- WHO BOOKS THE ROOM, WHICH THE RECEIPT HAS BEEN ANSWERING FOR ITSELF § */
     clientHosts: TRUE_(j.client_hosts),
