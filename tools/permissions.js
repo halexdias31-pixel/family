@@ -8,6 +8,18 @@ const JSON_PATH = path.join(ROOT, 'data', 'settings', 'permissions.json');
 const ACTIONS = read('data/settings/actions.json');
 /* THE PERMISSION TIERS, lowest first: settings.json `roles.tiers`. */
 const ROLES = read('data/settings/settings.json').roles.tiers;
+/* A ROW'S `roles` BY NAME (UNIFY NEXT 2, 22 Nov): "tiers" is every tier, any other word a settings.json `roles.may` word (signedIn, grownUp…), */
+/* so actions.json never writes a tier list out again; an array is still read as it is. */
+const MAY = read('data/settings/settings.json').roles.may;
+function tiersOf(r, at) {
+  if (Array.isArray(r)) return r;
+  if (r === 'tiers') return ROLES.slice();
+  const m = MAY[r];
+  if (!m || m.rank || m.owner) throw new Error('actions.json ' + at + ': roles "' + r + '" is not "tiers" or a settings.json roles.may word by tier');
+  return ROLES.filter(t => (m.tiers ? m.tiers.indexOf(t) !== -1 : true) && (m.notTiers ? m.notTiers.indexOf(t) === -1 : true));
+}
+Object.keys(ACTIONS.items).forEach(k => { ACTIONS.items[k].roles = tiersOf(ACTIONS.items[k].roles, k); });
+ACTIONS.actions.forEach(a => { if (a.roles !== undefined) a.roles = tiersOf(a.roles, a.name); });
 const RUNS = ACTIONS.actions.filter(a => a.run);
 
 /* ONE GENERATED BLOCK IN A .gs FILE, replaced where it is, else appended. */
