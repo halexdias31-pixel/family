@@ -6399,10 +6399,13 @@ const f = DATA.fileVersions || {};
 const names = Object.keys(f);
 const newest = names.map(k => f[k]).sort().pop();
 const stale = names.length < 2 ? [] : names.filter(k => f[k] !== newest);
+const failed = ((DATA.setup && DATA.setup.jobs) || []).filter(j => j && j.error);
 return cardBlocks_([{ type: 'group', tag: 'p', look: 'build-said', text: ['@family. · Merton & Wandsworth', { br: true },
 'site ' + SITE_VERSION + ' · css ' + cssVersion(), { br: true }, 'backend ' + dash_(DATA.version)] },
 stale.length ? { type: 'group', tag: 'p', look: 'build-said is-warn', text: text_('not-deployed') + stale.map(k => k + '.gs (' + f[k] + ')').join(', ')
-+ '. Paste ' + (stale.length === 1 ? 'that file' : 'those files') + ' into Apps Script.' } : null]);
++ '. Paste ' + (stale.length === 1 ? 'that file' : 'those files') + ' into Apps Script.' } : null,
+failed.length ? { type: 'group', tag: 'p', look: 'build-said is-warn', text: 'Failing: ' + failed.map(j => j.id + ' (' + String(j.error).slice(0, 120) + ')').join('; ')
++ '.' } : null]);
 }
 const APP_SUBJECT_ROWS = 3;
 function profileAge_(p) {
