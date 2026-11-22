@@ -5,7 +5,8 @@
 "paper": {"steps": ["source", "spec", "parts", "figures", "keys", "card", "import"], "what": "a past paper or worksheet: a transcription module, a family, library:<paper_id> or a spec"},
 "markscheme": {"steps": ["cells", "answers", "words"], "what": "an AQA mark scheme: each row's answer from its own cell (aqa-ms-cells), applied to the words with --apply"},
 "keypack": {"steps": ["validate", "apply"], "what": "a version-1 key pack (lib-import-*.json): checked by the backend's own libPackCheck_, then its fields set on the words"},
-"insert": {"steps": ["sheets", "write"], "what": "the formulae and equation sheets (tools/inserts.py), written into data/inserts.json beside the reading inserts"}
+"insert": {"steps": ["sheets", "write"], "what": "the formulae and equation sheets (tools/inserts.py), written into data/inserts.json beside the reading inserts"},
+"ideas": {"steps": ["measure", "tag"], "what": "one card per idea, maths pilot (queue step 10): the duplicate report into data/settings/taxonomy.json Maths.ideas, then part_of, specs and idea_id onto the maths cards of data/textbooks.json (tools/lib/ideas.js); only adds"}
 },
 "families": [
 {"family":"P-1CM-","board":"1st Class Maths","qualification":"","card":{"subject":"Maths","band_type":"grade","company":"1st Class Maths"}},

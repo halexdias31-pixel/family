@@ -17,7 +17,10 @@ const BOARD_ORDER = ['AQA', 'Edexcel', 'OCR'];
 
 function taxonomy() { const t = JSON.parse(fs.readFileSync(TAX_FILE, 'utf8')); delete t._note; return t; }
 
+/* THE ENGINE GETS THE LEVELS, NOT A SUBJECT'S IDEA REPORT (Maths.ideas, tools/lib/ideas.js): that is build-time data, checked by tools/one-idea.js. */
 function write(t) {
+  t = JSON.parse(JSON.stringify(t));
+  Object.keys(t).forEach(k => { if (t[k]) delete t[k].ideas; });
   const file = path.join(ROOT, ENGINE), src = fs.readFileSync(file, 'utf8');
   writeIfChanged(file, blockInto(src, '/* TAXONOMY:start', '/* TAXONOMY:end */', 'const TAXONOMY = ' + JSON.stringify(t) + ';\n',
     () => { throw new Error('taxonomy: no TAXONOMY block in ' + ENGINE); }));
