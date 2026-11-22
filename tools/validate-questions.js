@@ -34,13 +34,13 @@ function appCode() {
   /* the word ranks the typo rule reads (find-marking.js markRealWord_), as the page fetches them */
   const freq = read('data/word-freq.json'); if (freq && Array.isArray(freq.words)) DATA.wordFreq = freq.words;
   const ctx = vm.createContext({ console: { log() {}, warn() {}, error() {} }, DATA });
-  const loaded = new Set();
+  const loaded = new Set(), missing = new Set();
   const retry = run => {
     for (let i = 0; i < 400; i++) {
       try { return run(); } catch (e) {
         const m = /^(\w+) is not defined/.exec(e && e.message);
         if (!m) throw e;
-        if (!need(m[1])) vm.runInContext('var ' + m[1] + ' = undefined', ctx);
+        if (!need(m[1])) missing.add(m[1]), vm.runInContext('var ' + m[1] + ' = undefined', ctx);
       }
     }
     throw new Error('validate-questions: too many missing names');
@@ -51,7 +51,7 @@ function appCode() {
     retry(() => vm.runInContext(decl[name], ctx));
     return true;
   }
-  return { ctx, call: expr => retry(() => vm.runInContext(expr, ctx)) };
+  return { ctx, call: expr => retry(() => vm.runInContext(expr, ctx)), decl, loaded, missing, files };
 }
 
 /* ---------- THE ROWS A STUDENT CAN REACH: active questions, public joined with private, each with its paper's card */
@@ -109,17 +109,52 @@ function figureMissing(r, stemHasFig) {
   return '';
 }
 
-function run() {
+/* ---------- THE CACHE (queue step 2, 22 Nov: the build waited 35 minutes here). A verdict depends only on the question's joined row (public +
+   private + its paper's card), its stem's figure, and the code that marks it; so each verdict is kept under a hash of exactly those, and only a
+   question whose hash is new is marked again. THE CODE'S HASH: this tool, tools/lib/gen.js, the settings appCode reads, index.html's file list,
+   and the source of every app declaration a run has loaded (or found missing); any change there marks everything again. The cache holds hashes
+   and verdicts only, in a git-ignored file; missing or unreadable, it is a full run, and --full ignores it. tools/validate-cache.js checks it. */
+const CACHE = path.join(ROOT, '.cache', 'validate-questions.json');
+const sha = s => require('crypto').createHash('sha256').update(s).digest('hex');
+function codeHash(app, names, salt) {
+  const parts = [salt || ''];
+  ['tools/validate-questions.js', 'tools/lib/gen.js', 'data/settings/confusables.json', 'data/settings/peel.json', 'data/settings/marking.json',
+    'data/word-freq.json', 'data/settings/kinds.json', 'node_modules/acorn/package.json'].forEach(f => {
+    let t; try { t = fs.readFileSync(path.join(ROOT, f), 'utf8'); } catch (e) { t = '\u0000missing'; }
+    parts.push(f + '\u0000' + t);
+  });
+  parts.push(app.files.join(','));
+  names.forEach(n => parts.push(n + '\u0000' + (app.decl[n] === undefined ? '\u0000none' : app.decl[n])));
+  return sha(parts.join('\u0001'));
+}
+function cacheRead(file) {
+  try { const c = JSON.parse(fs.readFileSync(file, 'utf8')); if (c && c.v === 1 && typeof c.code === 'string' && Array.isArray(c.names) && c.rows && typeof c.rows === 'object') return c; } catch (e) { /* a full run */ }
+  return null;
+}
+
+/* opts, for tools/validate-cache.js: rows (joined rows, made up), out, cache (paths), salt (stands in for a code change), full, quiet */
+function run(opts) {
+  opts = opts || {};
   const t0 = Date.now();
+  const OUTF = opts.out || OUT, CACHEF = opts.cache || CACHE, log = opts.quiet ? () => {} : console.log;
   /* WITHOUT THE PRIVATE HALF (a CI checkout) every answer is missing: the file already written stands */
-  if (!fs.existsSync(path.join(ROOT, 'data-private', 'questions.json'))) { console.log('validate-questions: no data-private/questions.json here, data/question-status.json left as it is'); return null; }
-  const rows = rowsOf();
-  const { ctx, call } = appCode();
-  call('qtMarker_(workRow_({row:{}}))');
-  /* names the app reaches only behind a `typeof` (drawFig_'s padGrid_) or inside a try that swallows the miss (cardBlock_'s CARD_BLOCKS,
-     cardDraw_ for a made-up surface): neither throws here, so they are loaded up front, as the page has them */
-  call('padGrid_'); call('CARD_BLOCKS');
-  call('cardDraw_({ el: "svg", a: { viewBox: "0 0 1 1" }, kids: [{ el: "line", a: { x1: 1 } }, { el: "text", a: { x: 1 }, text: "1" }] })');
+  if (!opts.rows && !fs.existsSync(path.join(ROOT, 'data-private', 'questions.json'))) { console.log('validate-questions: no data-private/questions.json here, data/question-status.json left as it is'); return null; }
+  const rows = opts.rows || rowsOf();
+  const app = appCode();
+  const { ctx, call } = app;
+  const was = opts.full || process.argv.includes('--full') ? null : cacheRead(CACHEF);
+  const codeWas = !!was && codeHash(app, was.names, opts.salt) === was.code;
+  const kept = codeWas ? was.rows : {};
+  let readied = false;
+  const ready = () => {
+    if (readied) return;
+    readied = true;
+    call('qtMarker_(workRow_({row:{}}))');
+    /* names the app reaches only behind a `typeof` (drawFig_'s padGrid_) or inside a try that swallows the miss (cardBlock_'s CARD_BLOCKS,
+       cardDraw_ for a made-up surface): neither throws here, so they are loaded up front, as the page has them */
+    call('padGrid_'); call('CARD_BLOCKS');
+    call('cardDraw_({ el: "svg", a: { viewBox: "0 0 1 1" }, kids: [{ el: "line", a: { x1: 1 } }, { el: "text", a: { x: 1 }, text: "1" }] })');
+  };
   /* figures held by a question's preamble rows (same paper, same question number) */
   const stemFig = new Set(), stemSvg = new Map();
   rows.forEach(r => {
@@ -140,17 +175,18 @@ function run() {
     if (v === 'broken') why[reason] = (why[reason] || 0) + 1;
   };
   const verdict = (x, a) => { ctx.__a = a; try { return call('mark_(__x, __a)'); } catch (e) { return { verdict: 'error', why: e.message }; } };
-  for (const r of rows) {
-    if (r.kind !== 'question' || !(r.active === true || /^true$/i.test(S(r.active)))) continue;
+  /* ONE QUESTION'S VERDICT, [ok | tutor | broken, why] */
+  const judge = r => {
     /* words still only in the Ledger (`lib_has`, 397): the site fetches them later, but nothing here can see or check them */
     /* ONLY IN THE LEDGER: not hidden for that alone (owner's call, 17 Nov) -- kept when the Ledger says it holds a key, so a question that works is never hidden for being unchecked here. */
     if (!plain(r.html) && !plain(r.lead) && !S(r.diagram) && !S(r.choices)) {
-      if (/\b(accept|cells|draw_answer|choice_right|mark_words|order_ends)\b/.test(S(r.lib_has))) { add(r, 'ok', 'words and key only in the Ledger (not checked here)'); continue; }
+      if (/\b(accept|cells|draw_answer|choice_right|mark_words|order_ends)\b/.test(S(r.lib_has))) return ['ok', 'words and key only in the Ledger (not checked here)'];
       /* AND ONE WHOSE LEDGER HOLDS AN ANSWER BUT NO KEY: the tutor's, as below (owner, 18 Nov). */
-      if (/\banswer\b/.test(S(r.lib_has)) && /\bhtml\b/.test(S(r.lib_has))) { add(r, 'tutor', 'answer only in the Ledger, no key yet'); continue; }
-      add(r, 'broken', S(r.lib_has) ? 'words only in the Ledger, no key listed' : 'no question text'); continue; }
+      if (/\banswer\b/.test(S(r.lib_has)) && /\bhtml\b/.test(S(r.lib_has))) return ['tutor', 'answer only in the Ledger, no key yet'];
+      return ['broken', S(r.lib_has) ? 'words only in the Ledger, no key listed' : 'no question text']; }
     const fig = figureMissing(r, stemFig.has(S(r.paper_id) + '#' + S(r.question)));
-    if (fig) { add(r, 'broken', fig); continue; }
+    if (fig) return ['broken', fig];
+    ready();
     ctx.__r = r;
     const x = call('__x = libQuestion_(__r)');
     const kind = call('markerOf_(libQuestion_(__r)).kind');
@@ -158,13 +194,12 @@ function run() {
       const marks = Number(r.marks) || 0;
       /* AN ANSWER WITH NO KEY IS THE TUTOR'S TO MARK, NOT HIDDEN (owner, 18 Nov: a part vanished mid-question on Finley's
          Waves worksheet). The child answers, sees the scheme's answer, and the tutor marks it; a key makes it the site's later. */
-      if (plain(r.answer)) add(r, 'tutor', marks >= 6 || LEVELS.test(S(r.answer)) || /essay/i.test(S(r.answer_type)) ? '' : 'no mechanical key yet');
-      else add(r, 'broken', 'no key and no answer');
-      continue;
+      if (plain(r.answer)) return ['tutor', marks >= 6 || LEVELS.test(S(r.answer)) || /essay/i.test(S(r.answer_type)) ? '' : 'no mechanical key yet'];
+      return ['broken', 'no key and no answer'];
     }
     /* A LEVELS KEY (rule 1.33) marks by its question type's distilled rubric, held to AQA's examiner-marked exemplars by tools/essay-cases.js:
        the site's to mark once that rubric is in data/settings/marking.json */
-    if (call('markIsLevels_(__x.accept)')) { add(r, call('levelsRow_(markLevelsRead_(__x.accept).type).length') ? 'ok' : 'broken', 'levels key names no rubric'); continue; }
+    if (call('markIsLevels_(__x.accept)')) return [call('levelsRow_(markLevelsRead_(__x.accept).type).length') ? 'ok' : 'broken', 'levels key names no rubric'];
     let right = false, wrongOk = false;
     if (kind === 'draw') {
       ctx.__x = x;
@@ -177,7 +212,7 @@ function run() {
       right = !!v && v.verdict === 'right';
       const w = verdict(x, { strokes: [[170, 170, 171, 171]], fig });
       wrongOk = w.verdict !== 'right';
-      if (!ex.length) { add(r, 'broken', 'drawing key has no example drawing'); continue; }
+      if (!ex.length) return ['broken', 'drawing key has no example drawing'];
     } else {
       /* a table's blanks are typed in the one box, in order with commas (22 Nov): the key's own first way in each */
       const cellModel = kind === 'cells' ? [call('cellsOf_(__x).filter(c => c.ways).map(c => c.ways.split("|")[0].trim()).join(", ")')] : [];
@@ -186,27 +221,45 @@ function run() {
         ? [(x.choiceRight || []).length ? L[((x.choiceRight[0] || 1) % Math.max(2, (x.choices || []).length))] : 'Z']
         : kind === 'cells' ? [call('cellsOf_(__x).filter(c => c.ways).map(c => ' + JSON.stringify(WRONG) + ').join(", ")')] : [WRONG];
       /* PEEL marks an essay by its levels: its model is a band descriptor, not an essay, so it is the tutor's to mark */
-      if (!right && call('markIsPeel_(__x.accept)') && plain(r.answer)) { add(r, 'tutor'); continue; }
+      if (!right && call('markIsPeel_(__x.accept)') && plain(r.answer)) return ['tutor', ''];
       wrongOk = wrongs.every(a => verdict(x, a).verdict !== 'right');
     }
     if (!right && process.env.VQ_DEBUG) console.log('FAIL', r.row_id, kind, JSON.stringify(models(r)).slice(0, 300), '| choices', S(r.choices).slice(0, 80), S(r.choice_right), '| cells', S(r.cells).slice(0, 120));
-    if (!right && (kind === 'choice' || kind === 'order') && !S(r.choice_right)) add(r, 'broken', 'options with no key');
-    else if (!right) add(r, 'broken', 'key fails its own model answer (' + kind + ')');
-    else if (!wrongOk) add(r, 'broken', 'key accepts a wrong answer (' + kind + ')');
-    else add(r, 'ok');
+    if (!right && (kind === 'choice' || kind === 'order') && !S(r.choice_right)) return ['broken', 'options with no key'];
+    if (!right) return ['broken', 'key fails its own model answer (' + kind + ')'];
+    if (!wrongOk) return ['broken', 'key accepts a wrong answer (' + kind + ')'];
+    return ['ok', ''];
+  };
+  /* each active question: its kept verdict while its hash stands, else marked now */
+  const fresh = {}, rechecked = [];
+  for (const r of rows) {
+    if (r.kind !== 'question' || !(r.active === true || /^true$/i.test(S(r.active)))) continue;
+    const k = S(r.paper_id) + '#' + S(r.question);
+    const h = sha(JSON.stringify([r, stemFig.has(k), stemSvg.get(k) || '']));
+    let got = kept[h] || fresh[h];
+    if (!got) { got = judge(r); rechecked.push(r.row_id); }
+    fresh[h] = got;
+    add(r, got[0], got[1]);
   }
   const ids = Object.keys(status).sort();
   const file = { say: 'Generated by tools/validate-questions.js — do not edit. ok: marked by the site; tutor: level-marked, marked by your tutor; broken: not offered to students.', status: {} };
   ids.forEach(id => { file.status[id] = status[id]; });
-  fs.writeFileSync(OUT, JSON.stringify(file));
+  fs.writeFileSync(OUTF, JSON.stringify(file));
+  /* the names this run loaded or found missing, with the last run's while its code stands */
+  const names = [...new Set([...(codeWas ? was.names : []), ...app.loaded, ...app.missing])].sort();
+  try {
+    fs.mkdirSync(path.dirname(CACHEF), { recursive: true });
+    fs.writeFileSync(CACHEF, JSON.stringify({ v: 1, code: codeHash(app, names, opts.salt), names, rows: fresh }));
+  } catch (e) { log('validate-questions: cache not written (' + e.message + ')'); }
   const n = { ok: 0, tutor: 0, broken: 0 };
   ids.forEach(id => n[status[id]]++);
-  console.log('validate-questions: ' + ids.length + ' questions — ' + n.ok + ' markable, ' + n.tutor + ' marked by tutor, ' + n.broken + ' broken (' + ((Date.now() - t0) / 1000).toFixed(1) + 's)');
-  Object.keys(tally).sort().forEach(s => { const t = tally[s]; console.log('  ' + s.padEnd(30) + ' ok ' + String(t.ok).padStart(5) + '  tutor ' + String(t.tutor).padStart(5) + '  broken ' + String(t.broken).padStart(5)); });
-  console.log('  broken because:');
-  Object.entries(why).sort((a, b) => b[1] - a[1]).forEach(([k, v]) => console.log('    ' + String(v).padStart(6) + '  ' + k));
-  if (process.argv.includes('--papers')) Object.keys(tally).sort().forEach(s => Object.entries(tally[s].papers).forEach(([p, t]) => console.log(s + '\t' + p + '\t' + t.ok + '\t' + t.tutor + '\t' + t.broken)));
-  return { status, tally, why };
+  log('validate-questions: ' + ids.length + ' questions — ' + n.ok + ' markable, ' + n.tutor + ' marked by tutor, ' + n.broken + ' broken; ' + rechecked.length + ' marked afresh'
+    + (codeWas ? '' : was ? ', the code changed' : ', no cache') + ' (' + ((Date.now() - t0) / 1000).toFixed(1) + 's)');
+  Object.keys(tally).sort().forEach(s => { const t = tally[s]; log('  ' + s.padEnd(30) + ' ok ' + String(t.ok).padStart(5) + '  tutor ' + String(t.tutor).padStart(5) + '  broken ' + String(t.broken).padStart(5)); });
+  log('  broken because:');
+  Object.entries(why).sort((a, b) => b[1] - a[1]).forEach(([k, v]) => log('    ' + String(v).padStart(6) + '  ' + k));
+  if (process.argv.includes('--papers')) Object.keys(tally).sort().forEach(s => Object.entries(tally[s].papers).forEach(([p, t]) => log(s + '\t' + p + '\t' + t.ok + '\t' + t.tutor + '\t' + t.broken)));
+  return { status, tally, why, rechecked, full: !codeWas };
 }
 module.exports = { run, appCode, rowsOf };
 if (require.main === module) run();
