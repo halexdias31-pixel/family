@@ -26,12 +26,6 @@ function chemItems_() {
   return list;
 }
 
-/* ONE LINE PER THING (421): a fact a line, its examples, then where the facts came from (a spec, master template). */
-/* The body of its item (ITEM_MAPS.chem, cards-parts.js), which draws its card. */
-function chemBody_(r) {
-  /* ITS FACTS ARE kinds.json chem `card.fields` (unify job J). */
-  const facts = cardFieldsOf_('chem', r).map(x => x.label + ' ' + x.value);
-  return [{ type: 'text', paras: facts.concat((r.examples || []).map(e => String(e.equation || '')), r.source || '') }]; }
 
 /* ================= FOOD (owner, 18 Nov): data/settings/foods.json's kind tree, read once here for both of its readers — Find › Library
    (a card a kind and a card a food) and Docket (an item named for a kind offers its foods as tags). ================= */
@@ -75,10 +69,4 @@ function foodItems_() {
     .concat(d.foods.map(f => ({ kind: 'fooddb', key: 'fooddb:f:' + foodSay_(f.name).replace(/ /g, '-'), name: f.name, image: '', row: null,
       text: f.name + ' ' + (byId[f.kind] ? byId[f.kind].name : ''), food: { name: f.name, path: byId[f.kind] ? foodPath_(byId[f.kind]) : '', note: f.note || '' } })));
   return FOOD.items;
-}
-/* THE BODY OF ITS CARD (kinds.json fooddb `card.body`): the kind's path, its note, its foods. */
-function foodBody_(r) {
-  r = r || {};
-  return [r.path ? { type: 'text', text: r.path } : null, r.note ? { type: 'text', text: r.note } : null,
-    (r.foods || []).length ? { type: 'tags', tags: r.foods } : null].filter(Boolean);
 }

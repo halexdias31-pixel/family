@@ -19037,9 +19037,6 @@ chem: r,
 CHEM.items = list; CHEM.from = d;
 return list;
 }
-function chemBody_(r) {
-const facts = cardFieldsOf_('chem', r).map(x => x.label + ' ' + x.value);
-return [{ type: 'text', paras: facts.concat((r.examples || []).map(e => String(e.equation || '')), r.source || '') }]; }
 const FOOD = { data: null, asking: null, failed: false, items: null };
 function foodIndex_() {
 if (FOOD.data) return FOOD.data;
@@ -19077,11 +19074,6 @@ text: [k.name].concat(k.spellings || []).join(' '), food: { name: k.name, path: 
 .concat(d.foods.map(f => ({ kind: 'fooddb', key: 'fooddb:f:' + foodSay_(f.name).replace(/ /g, '-'), name: f.name, image: '', row: null,
 text: f.name + ' ' + (byId[f.kind] ? byId[f.kind].name : ''), food: { name: f.name, path: byId[f.kind] ? foodPath_(byId[f.kind]) : '', note: f.note || '' } })));
 return FOOD.items;
-}
-function foodBody_(r) {
-r = r || {};
-return [r.path ? { type: 'text', text: r.path } : null, r.note ? { type: 'text', text: r.note } : null,
-(r.foods || []).length ? { type: 'tags', tags: r.foods } : null].filter(Boolean);
 }
 ;
 /* js/history-topics.js */

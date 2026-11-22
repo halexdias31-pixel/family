@@ -222,15 +222,18 @@ const kcRealPic_ = h => /<(img|video|picture)\b|mfrclip-|class="(mech|tl)-pic"/.
 /* ---------- THE BOOKING KINDS (subject, level, venue) ARE ITEM MAPS (slice 3): their lines read the fields the payload computed live (`live`). ---------- */
 const kcSurcharge_ = (t, kind) => { if (kind === 'level' && !t.priced) return { label: 'Surcharge', value: text_('not-priced-yet'), tone: 'bad' };
   return kcPct_(t.mult) || t.mult === 1 ? { label: t.mult === 1 ? text_('no-surcharge') : 'Surcharge', value: kcPct_(t.mult) } : null; };
-const kcSubjectBody_ = (t, L) => [{ type: 'list', items: [kcSurcharge_(t, 'subject'), L.levels.length ? { label: 'Levels', value: L.levels.join(', ') } : null,
-  L.tutors.length ? null : { label: 'Tutors', value: text_('none-yet'), tone: 'bad' }].filter(Boolean) }];
-const kcLevelBody_ = (t, L) => { const s = L.subjects, n = L.tutors.length;
-  return [{ type: 'list', items: [kcSurcharge_(t, 'level'), s.length ? { label: 'Subjects', value: s.map((v, i) => [i ? ', ' : '', { word: 'subject', text: v }]) } : { label: 'Subjects', value: text_('none-yet'), tone: 'bad' },
-    { label: 'Tutors', value: n ? String(n) : (typeof NO_TUTOR === 'string' ? NO_TUTOR : text_('none-yet')), tone: n ? '' : 'bad' },
-    t.listed ? null : { label: text_('booking-form'), value: text_('not-offered'), tone: 'bad' }].filter(Boolean) }]; };
-/* A VENUE'S ROOMS AS FACTS: seats, and the price unless the map's `childHides` took it (a child is told the seats and not the price, 398). */
-const kcVenueBody_ = (t, L) => [{ type: 'list', items: L.rooms.map(o => { const say = [o.seats ? 'up to ' + o.seats : '', 'price' in o ? (o.price ? fmtMoney_(o.price, 'hour') : 'free') : ''].filter(Boolean).join(' · ');
-  return say ? { label: o.label, value: say } : null; }).filter(Boolean) }];
+/* THEIR FACT LINES (kinds.json `card.parts` {list: [...]}, drawn by referenceBody_): each a line, several or none, off the row and its live counts. */
+/* A venue's rooms say seats, and the price unless the map's `childHides` took it (a child is told the seats and not the price, 398). */
+const REFERENCE_LINES_ = {
+  surcharge: (t, L, k) => kcSurcharge_(t, k),
+  levels: (t, L) => (L.levels.length ? { label: 'Levels', value: L.levels.join(', ') } : null),
+  noTutors: (t, L) => (L.tutors.length ? null : { label: 'Tutors', value: text_('none-yet'), tone: 'bad' }),
+  subjects: (t, L) => (L.subjects.length ? { label: 'Subjects', value: L.subjects.map((v, i) => [i ? ', ' : '', { word: 'subject', text: v }]) } : { label: 'Subjects', value: text_('none-yet'), tone: 'bad' }),
+  tutors: (t, L) => { const n = L.tutors.length; return { label: 'Tutors', value: n ? String(n) : (typeof NO_TUTOR === 'string' ? NO_TUTOR : text_('none-yet')), tone: n ? '' : 'bad' }; },
+  listed: t => (t.listed ? null : { label: text_('booking-form'), value: text_('not-offered'), tone: 'bad' }),
+  rooms: (t, L) => L.rooms.map(o => { const say = [o.seats ? 'up to ' + o.seats : '', 'price' in o ? (o.price ? fmtMoney_(o.price, 'hour') : 'free') : ''].filter(Boolean).join(' · ');
+    return say ? { label: o.label, value: say } : null; })
+};
 const kcListOf_ = v => (Array.isArray(v) ? v : []).filter(Boolean);
 /* ONE ITEM SHAPE, ONE DICTIONARY OF KINDS (owner, 16 Nov, the four step 1): every item is { id, kind, name, tags, body, links }, and every kind is */
 /* described once, in data/settings/kinds.json (ITEM_KINDS, js/kinds.js): its columns, Find's facets, its card, its live fields, who sees what, its forms. */
@@ -267,7 +270,7 @@ function itemMapOfKind_(k) {
   ['picture', 'pills', 'tagRows', 'tiles', 'keep', 'data', 'tool', 'sheet'].forEach(f => { if (c[f]) { const h = H(f); M[f] = (it, x, pic) => h(kindCtx_(it, x, pic)); } });
   /* THE ONE PERSON AND ITEM BODIES (CARD SHAPES): a Person draws its kind's `parts` (personBody_); a stored Item its form's lines, its sheet */
   /* and its tiles (form.js); a plain `picture` is the entry's column as a photo; `price` adds the price tag after Find's facets. */
-  if (c.parts) M.body = (r, live) => personBody_(r, live, k);
+  if (c.parts) M.body = (r, live) => (K.shape === 'Reference' ? referenceBody_ : personBody_)(r, live, k);
   else if ((K.find || {}).from === 'store') { M.body = r => itemLines_(r, k); M.sheet = (it, x) => storeSheet_(it, x); M.tiles = (it, x) => storeTiles_(it, x); }
   if (c.picture && !/\(/.test(c.picture)) M.picture = (it, x) => (x[c.picture] && typeof pic === 'function' ? { src: pic(x[c.picture]), look: 'thing-pic', alt: '' } : null);
   else if (!c.picture && K.shape === 'Person') M.picture = it => (typeof personPicSpec_ === 'function' ? personPicSpec_(it.raw.id, it.name) : null);
@@ -278,9 +281,7 @@ function itemMapOfKind_(k) {
 const ITEM_MAPS = Object.fromEntries(Object.keys(ITEM_KINDS.kinds).filter(k => ITEM_KINDS.kinds[k].card).map(k => [k, itemMapOfKind_(k)]));
 /* ---------- KIND HOOKS: the few slots kinds.json names that no kind's own file already draws. ---------- */
 function kcMsPic_(it, x) { const svg = typeof msFragSvg_ === 'function' ? msFragSvg_(it.raw, x && x.msSideIx) : ''; return svg ? { svg, alt: it.name } : null; }
-function kcInsertBody_(r) { if (typeof insWant_ === 'function') insWant_(r); return typeof insertBody_ === 'function' ? insertBody_(r) : []; }
 function kcMechPic_(it) { return Array.isArray(it.raw.px) && typeof mechPic_ === 'function' ? { svg: mechPic_(it.raw.px, it.name), alt: it.name } : null; }
-function kcMechBody_(r) { return r.does ? [{ type: 'text', text: r.does, look: 'mech-does' }] : []; }
 function kcFightName_(r) { return [r.a || r.boxer_a, r.b || r.boxer_b].filter(Boolean).join(' and '); }
 function kcContentId_(r) { return r.id || [r.bookId || r.book_id, r.n == null ? r.chapter : r.n].filter(v => v != null && v !== '').join('-'); }
 function kcLevels_(r) { return kcListOf_(r.levels); }
@@ -353,10 +354,12 @@ function cardOfItem_(it, x) {
 }
 /* THE PERSON AND ITEM SHAPES (owner, 22 Nov, CARD SHAPES): which one a kind wears is kinds.json `shape`, never code. A Person is its picture, name,
    role tags, fact lines and links (tutor, person, figure, boxer); an Item its title, tags, lines, tiles and sheet (docket, task, food, partner,
-   session, drive_area, assignment, product). Each keeps only its own slots and is marked `data-shape` (and `data-item-kind`, read by tools/one-card.js). */
+   session, drive_area, assignment, product); a Reference its tags, fact lines, picture and links (spec, insert, content, practical, project,
+   hist, manuscript, writing, event, chem, fooddb, venue, subject, level, mech). Each keeps only its own slots and is marked `data-shape` (and `data-item-kind`, read by tools/one-card.js). */
 const kindShape_ = k => { const h = ((typeof ITEM_KINDS !== 'undefined' && ITEM_KINDS.kinds[k]) || {}).shape; return typeof h === 'string' ? h : ''; };
 const CARD_SLOTS_ = { Person: ['look', 'name', 'row', 'off', 'picture', 'tags', 'tagLook', 'tagRows', 'body', 'tiles'],
-  Item: ['look', 'name', 'row', 'off', 'picture', 'tags', 'tagLook', 'body', 'tiles', 'cut', 'empty'] };
+  Item: ['look', 'name', 'row', 'off', 'picture', 'tags', 'tagLook', 'body', 'tiles', 'cut', 'empty'],
+  Reference: ['look', 'name', 'row', 'off', 'picture', 'tags', 'body'] };
 function shapeCard_(kind, s) {
   const shape = kindShape_(kind), keep = CARD_SLOTS_[shape];
   if (!keep) return s;
@@ -428,4 +431,18 @@ const PERSON_PARTS_ = {
   facts: (t, L, k) => { const F = ITEM_KINDS.kinds[k].facts, facts = typeof may_ === 'function' && F.see.some(w => may_(w)) ? personFacts_(t.personId || t.id) : [];
     return facts.length ? { type: 'list', items: facts.map(f => ({ label: f.what.replace(/_/g, ' '), value: f.value })) } : null; }
 };
+/* ONE REFERENCE BODY (CARD SHAPES, Learning: Reference): its kind's `card.parts` in order. A part is data — {text: col, look} the row's column */
+/* as a line, {tags: col} its words as tags, {paras: [col | "fields" | {each, f}]} one paragraph each (`fields` the kind's `card.fields`), {list: */
+/* [line]} REFERENCE_LINES_ — or the name of the drawer a structured row's own file keeps (a spec's tree, an insert's sheet, the topic card's */
+/* slots, a practical, a project, a history card). A drawer whose file is not loaded yet draws nothing. */
+const REFERENCE_DRAWERS_ = { spec: 'specBody_', insert: 'insertBody_', topic: 'contentBody_', practical: 'practicalBody_', project: 'projectBody_', history: 'histTopicBody_' };
+const referencePart_ = (p, r, L, k) => {
+  if (typeof p === 'string') { if (p === 'insert' && typeof insWant_ === 'function') insWant_(r); const f = kindGlobal_(REFERENCE_DRAWERS_[p]); return f ? f(r) : []; }
+  if (p.text) return r[p.text] ? Object.assign({ type: 'text', text: r[p.text] }, p.look ? { look: p.look } : {}) : null;
+  if (p.tags) return (r[p.tags] || []).length ? { type: 'tags', tags: r[p.tags] } : null;
+  if (p.paras) return { type: 'text', paras: [].concat(...p.paras.map(q => (q === 'fields' ? cardFieldsOf_(k, r).map(x => x.label + ' ' + x.value)
+    : typeof q === 'object' ? (r[q.each] || []).map(e => String(e[q.f] || '')) : [r[q] || '']))) };
+  return p.list ? { type: 'list', items: [].concat(...p.list.map(n => [].concat(REFERENCE_LINES_[n](r, L, k)))).filter(Boolean) } : null;
+};
+const referenceBody_ = (r, live, k) => ITEM_KINDS.kinds[k].card.parts.flatMap(p => [].concat(referencePart_(p, r, live, k))).filter(Boolean);
 const personBody_ = (r, live, k) => ITEM_KINDS.kinds[k].card.parts.flatMap(p => [].concat(PERSON_PARTS_[p](r, live, k))).filter(Boolean);
