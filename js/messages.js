@@ -395,5 +395,5 @@ function openSharedTutor() {
   if (!t) return;
   TUTOR_LINK_DONE = true;
   const item = { kind: 'tutor', name: t.title, key: t.title, row: t };
-  openSheet(t.title, cardBlock_({ type: 'group', look: 'tutor-link', inner: (typeof findCard === 'function' ? findCard(item) : '') + tileRow_(tile_(tutorOpts_(item))) }));
+  openStep_({ title: t.title, html: cardBlock_({ type: 'group', look: 'tutor-link', inner: (typeof findCard === 'function' ? findCard(item) : '') + tileRow_(tile_(tutorOpts_(item))) }) });
 }

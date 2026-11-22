@@ -226,7 +226,7 @@ function signedOut_(opts) {
   try { if (typeof window.camStop_ === 'function') window.camStop_(); } catch (e) { oops_(e, 'me:signedOut_') }
   /* AND THE KEYPAD'S UNDO (`KP_UNDO`, keypad.js), as the pen's held Clears go (`padWhoChanged_`). § */
   try { if (typeof KP_UNDO !== 'undefined') KP_UNDO.clear(); } catch (e) { oops_(e, 'me:signedOut_') }
-  try { if (typeof closeSheet === 'function') closeSheet(); } catch (e) { oops_(e, 'me:signedOut_') }
+  try { if (typeof closeStep_ === 'function') closeStep_(); } catch (e) { oops_(e, 'me:signedOut_') }
   /* THE PAYLOAD'S PER-PERSON KEYS. Each is already hidden from the next person by its `for` check, so
      this is not what stops a leak — it is what stops the last person's data sitting on the device. */
   try {

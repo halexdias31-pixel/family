@@ -530,16 +530,17 @@ function rcOffer_(blob, name, rc, title) {
   const file = typeof File === 'function' ? new File([blob], name, { type: 'image/png' }) : blob;
   RC_SHOT = { file, url: URL.createObjectURL(blob), name, title: title || 'Booking' };
   const can = !!(navigator.share && navigator.canShare && navigator.canShare({ files: [file] }));
-  /* NO SHEET (owner, 7 Nov): the picture lands under its own receipt, outside the paper so the next picture does not hold it. */
+  /* A STEP (owner, 22 Nov, ONE WAY TO OPEN): the picture is the Share step's own, beside its card, so Back takes it away. */
   const at = rc || document.querySelector('.screen.on .rc') || document.querySelector('.rc');
   const said = title ? title + ', as a picture' : text_('this-booking-as-a-picture');
   if (!at) { toast(text_('there-is-no-booking-on-screen')); return; }
-  document.querySelectorAll('.rc-shot-box').forEach(x => x.remove());
-  at.insertAdjacentHTML('afterend', renderCard({ kind: 'shot', look: 'rc-shot-box', name: said,
+  openStep_({ title: 'Share', el: at, beside: true, html: renderCard({ kind: 'shot', look: 'rc-shot-box', name: said,
     picture: { src: RC_SHOT.url, alt: said },
     body: [{ type: 'text', look: 'note', text: can ? text_('press-share-to-send-it') : text_('press-and-hold-the-picture-to') }],
-    tiles: [can ? { label: 'Share', act: 'rc-shot-share', tone: 'buy' } : null, { label: text_('save'), act: 'rc-shot-save', data: { name } }].filter(Boolean) }));
+    tiles: [can ? { label: 'Share', act: 'rc-shot-share', tone: 'buy' } : null, { label: text_('save'), act: 'rc-shot-save', data: { name } }].filter(Boolean) }) });
 }
+/* THE SHARE STEP OPENS AT THE PRESS, the picture still being made of the card it stands beside. */
+function rcShareStep_(at) { openStep_({ title: 'Share', el: at, beside: true, html: cardBlock_({ type: 'wait', look: 'rc-shot-wait', on: true }) }); }
 
 /* SAVE IS A FORM BUTTON LIKE SHARE (one way only): the download link is made and clicked here, never written as markup. */
 on('rc-shot-save', el => {
@@ -559,6 +560,8 @@ on('rc-shot-share', () => {
    picture of the card). The one answer for every share button. */
 function rcShareFail_(e) {
   if (typeof oops_ === 'function') oops_(e, 'share:picture');
+  /* THE SHARE STEP STILL WAITING goes: nothing came to show in it. */
+  if (document.querySelector('#sheet-body .rc-shot-wait')) closeStep_();
   toast(text_('could-not-make-the-picture') + (typeof why_ === 'function' ? why_(e) : String((e && e.message) || e || '')));
 }
 
@@ -566,12 +569,14 @@ function rcHand_(blob, name, rc, title) {
   const file = typeof File === 'function' ? new File([blob], name, { type: 'image/png' }) : null;
   const can = !!(file && navigator.share && navigator.canShare
                  && (() => { try { return navigator.canShare({ files: [file] }); } catch (e) { return false; } })());
+  /* THE PICTURE IS SHOWN IN ITS STEP whatever the phone then does with it. */
+  rcOffer_(blob, name, rc, title);
   if (!can) return rcSave_(blob, name, rc);
-  if (navigator.userActivation && !navigator.userActivation.isActive) return rcOffer_(blob, name, rc, title);
+  if (navigator.userActivation && !navigator.userActivation.isActive) return;
   return navigator.share({ files: [file], title: title || 'Booking' }).catch(e => {
     if (e && e.name === 'AbortError') return;
     /* THE TAP HAS RUN OUT (iPhone: the picture took too long, NotAllowedError): the picture with its own Share button. */
-    rcOffer_(blob, name, rc, title);
+    /* (it is in its step already) */
   });
 }
 
@@ -584,6 +589,7 @@ on('book-share', el => {
   /* SAID AT ONCE, because the picture takes a moment and a press that answers nothing for half a
      second gets pressed again. */
   toast(text_('making-a-picture-of-this-booking'));
+  rcShareStep_(rc);
   rcPng_(rc)
     .then(p => rcHand_(p.blob, 'family-booking-' + stamp_() + '.png', rc))
     .catch(rcShareFail_);
@@ -846,7 +852,7 @@ on('job-answer', el => {
       el.disabled = false;
       if (d && d.error) { toast(d.error); return; }
       toast(yes ? 'Accepted' : 'Declined');
-      closeSheet();
+      closeStep_();
       load();
     })
     .catch(err => { el.disabled = false; toast(why_(err)); });
@@ -879,7 +885,7 @@ on('job-request-answer', el => {
         el.disabled = false;
         if (d && d.error) { toast(d.error); return; }
         toast(yes ? text_('accepted-the-family-can-pay-and') : text_('declined-the-family-has-been-told'));
-        closeSheet();
+        closeStep_();
         load();
       })
       .catch(err => { el.disabled = false; toast(why_(err)); });
@@ -925,7 +931,7 @@ on('job-take-seat', el => {
   BOOKING.joining  = openClassLabel_(j);
   /* THE SAME RULE AS CHOOSING IT ON THE FORM: the class answers subject, level, place and seats (`joiningSet_`). */
   joiningSet_();
-  closeSheet();
+  closeStep_();
   finderSet_(FINDERS.stuff, { filters: [{ field: DOOR_FIELD, value: 'Booking' }], show: true });
   go('stuff');
   /* ONE PAGE ON FROM THE QUESTION, which is the form. */
@@ -943,7 +949,7 @@ on('job-join', el => {
   BOOKING.joining  = openClassLabel_(j);
   /* THE SAME RULE AS CHOOSING IT ON THE FORM: the class answers subject, level, place and seats (`joiningSet_`). */
   joiningSet_();
-  closeSheet();
+  closeStep_();
   finderSet_(FINDERS.stuff, { filters: [{ field: DOOR_FIELD, value: 'Booking' }], show: true });
   go('stuff');
   PAGE.stuff = stuffQuestionPage_() + 1;
@@ -958,7 +964,7 @@ on('job-delete', el => {
   api({ action: 'deleteJob', adminName: USER.name, name: USER.name, jobId: id })
     .then(d => {
       if (d && d.error) { el.disabled = false; toast(d.error); return; }
-      closeSheet();
+      closeStep_();
       toast(text_('session-ended'));
       load();
     })

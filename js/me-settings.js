@@ -309,7 +309,7 @@ function meSave_(el, auto) {
       /* A CORRECTED PENDING ADDRESS IS STILL PENDING, at the new address — the held cards say which. */
       if (d && d.pendingEmail !== undefined) { accountChanged_(); W.pendingEmail = String(d.pendingEmail || ''); }
       /* ---------- "SAVED" IS NOT THE WHOLE STORY WHEN AN ADDRESS WAS TYPED § */
-      if (box.closest('#sheet-body') && !auto) closeSheet();
+      if (box.closest('#sheet-body') && !auto) closeStep_();
       /* THIS CARD IS CLEAN NOW, so a repaint may redraw it — see `settingsKeep_` — unless the caret is still in it. */
       if (form && !(auto && form.contains(document.activeElement))) delete form.dataset.dirty;
       const said = box.querySelector('.me-said');
@@ -480,7 +480,7 @@ FORM_SEND_['pin-change'] = (v, el) => {
       askDone_('pin-change'); askPaint_('pin-change');
       if (said) tell_(said, 'saved', 'Changed.');
       toast('PIN changed');
-      if (el && el.closest && el.closest('#sheet-body')) closeSheet();
+      if (el && el.closest && el.closest('#sheet-body')) closeStep_();
     })
     .catch(() => {});
 };

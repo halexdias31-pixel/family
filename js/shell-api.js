@@ -30,7 +30,7 @@ document.addEventListener('click', e => {
   const tab = e.target.closest('.tab');
   if (tab) { go(tab.dataset.tab); return; }
 
-  if (e.target.closest('#sheet-close')) { closeSheet(); return; }
+  if (e.target.closest('#sheet-close')) { closeStep_(); return; }
 
   const doer = e.target.closest('[data-do]');
   /* A SELECT AND A CHECKBOX SPEAK THROUGH `change`, NOT `click`. § */
@@ -87,7 +87,7 @@ addEventListener('keydown', e => {
     e.preventDefault(); e.target.click(); return;
   }
   /* ESCAPE SHUT `#drop` FIRST while there was one. § */
-  if (e.key === 'Escape' && !$('sheet').classList.contains('hidden')) { closeSheet(); return; }
+  if (e.key === 'Escape' && !$('sheet').classList.contains('hidden')) { closeStep_(); return; }
 
   /* THE ARROWS ARE THE BROWSER'S: they scroll the one page (900). */
 });

@@ -253,23 +253,27 @@ function dkPaint_() {
 }
 const dkList_ = () => dkLoad_()[DK.at];
 const dkKeep_ = () => { DK.say = ''; dkSave_(); dkPaint_(); };
-on('dk-list', el => { DK.at = +el.getAttribute('data-i') || 0; DK.edit = -1; DK.rename = false; dkPaint_(); });
+/* A LIST IS A STEP (owner, 22 Nov, ONE WAY TO OPEN): Back returns to the list that was open. */
+on('dk-list', el => { const i = +el.getAttribute('data-i') || 0, was = DK.at; if (i === was) return;
+  openStep_({ el, draw: () => { DK.at = i; DK.edit = -1; DK.rename = false; dkPaint_(); }, undo: () => { DK.at = was; DK.edit = -1; DK.rename = false; dkPaint_(); } }); });
 on('dk-newlist', () => { const L = dkLoad_(); L.push({ name: 'List ' + (L.length + 1), items: [] }); DK.at = L.length - 1; DK.rename = true; dkKeep_(); });
-on('dk-rename', () => { DK.rename = !DK.rename; dkPaint_(); });
+on('dk-rename', el => { if (DK.rename) { closeStep_(DK.renameStep); DK.rename = false; dkPaint_(); return; }
+  DK.renameStep = openStep_({ el, draw: () => { DK.rename = true; dkPaint_(); }, undo: () => { DK.rename = false; dkPaint_(); } }); });
 /* A LIST'S NAME AND USUAL START (form `docket-list`): the start kept as 'HH:MM' on the list itself, gone when cleared, so an old list stays as it was. */
 on('dk-named', () => { const L = dkList_(), box = $('dk-box'), v = f => String((box.querySelector('[data-dkl="' + f + '"]') || {}).value || '').trim(); if (!L) return;
   if (v('name')) L.name = v('name').slice(0, 80);
   if (/^\d\d:\d\d$/.test(v('start'))) L.start = v('start'); else delete L.start;
-  DK.rename = false; dkKeep_(); });
+  DK.rename = false; stepDone_(DK.renameStep, false); dkKeep_(); });
 on('dk-move', el => { const L = dkLoad_(), by = +el.getAttribute('data-by'), j = DK.at + by; if (j < 0 || j >= L.length) return; L.splice(j, 0, L.splice(DK.at, 1)[0]); DK.at = j; dkKeep_(); });
 on('dk-droplist', () => { const L = dkLoad_(); if (!L[DK.at] || !confirm('Delete the list "' + L[DK.at].name + '" and everything on it?')) return; L.splice(DK.at, 1); DK.at = 0; dkKeep_(); });
 on('dk-add', () => { const inp = $('dk-box').querySelector('.dk-add'), t = String((inp && inp.value) || '').trim(); if (!t || !dkList_()) return; dkList_().items.push({ title: t.slice(0, 300) }); dkKeep_(); const again = $('dk-box').querySelector('.dk-add'); if (again) again.focus(); });
-on('dk-edit', el => { const i = +el.getAttribute('data-i'); DK.edit = DK.edit === i ? -1 : i; dkPaint_(); });
-on('dk-del', el => { const L = dkList_(); if (!L) return; L.items.splice(+el.getAttribute('data-i'), 1); DK.edit = -1; dkKeep_(); });
+on('dk-edit', el => { const i = +el.getAttribute('data-i'); if (DK.edit === i) { DK.edit = -1; stepDone_(DK.editStep, false); dkPaint_(); return; }
+  DK.editStep = openStep_({ el, draw: () => { DK.edit = i; dkPaint_(); }, undo: () => { if (DK.edit === i) { DK.edit = -1; dkPaint_(); } } }); });
+on('dk-del', el => { const L = dkList_(); if (!L) return; L.items.splice(+el.getAttribute('data-i'), 1); DK.edit = -1; stepDone_(DK.editStep, false); dkKeep_(); });
 on('dk-keep', el => { const it = dkList_() && dkList_().items[+el.getAttribute('data-i')]; if (!it) return;
   $('dk-box').querySelectorAll('.dk-editing .dk-f').forEach(f => { it[f.getAttribute('data-f')] = String(f.value || '').trim(); });
   if (it.repeat !== 'daily') delete it.repeat;
-  DK.edit = -1; dkKeep_(); });
+  DK.edit = -1; stepDone_(DK.editStep, false); dkKeep_(); });
 on('dk-food', el => { const it = dkList_() && dkList_().items[+el.getAttribute('data-i')]; if (!it) return;
   const f = el.getAttribute('data-f') || ''; if (dkPicked_(it) === f) { it.pick = ''; it.pickOn = ''; } else { it.pick = f; it.pickOn = dkDay_(); } dkKeep_(); });
 /* ASKED, NOT KEPT: the token comes from the backend each time, the address is the backend's own URL (API) with it; a new one stops the old. */
@@ -391,15 +395,17 @@ function dkCard_(x) {
 const dkAt_ = at => { const [li, i] = String(at || '').split(':').map(Number), L = dkLoad_()[li]; return { L, i, it: L && L.items[i] }; };
 /* A CHANGE IN FIND IS SAVED AS THE WIDGET'S IS (dkSave_, the backend's todoTidy_), and Find draws its list again in the new order. */
 const dkFindKeep_ = () => { dkKeep_(); if (typeof lateCame_ === 'function') lateCame_(); if (EINK) dkEinkTry_(); };
-on('dk-fedit', el => { const at = el.getAttribute('data-at') || ''; DKF.edit = DKF.edit === at ? '' : at; if (typeof lateCame_ === 'function') lateCame_(); });
+const dkFindDraw_ = () => { if (typeof lateCame_ === 'function') lateCame_(); };
+on('dk-fedit', el => { const at = el.getAttribute('data-at') || ''; if (DKF.edit === at) { DKF.edit = ''; stepDone_(DKF.step, false); dkFindDraw_(); return; }
+  DKF.step = openStep_({ el, draw: () => { DKF.edit = at; dkFindDraw_(); }, undo: () => { if (DKF.edit === at) { DKF.edit = ''; dkFindDraw_(); } } }); });
 /* SAVE KEEPS ONLY WHAT DIFFERS FROM A DEFAULT, so an item's cell stays one line and an old item is never broken. */
 on('dk-fsave', el => { const { it } = dkAt_(el.getAttribute('data-at')), card = el.closest('.card'); if (!it || !card) return;
   card.querySelectorAll('[data-dke]').forEach(b => { const f = b.getAttribute('data-dke'), x = dkFields_().find(y => y.f === f) || {}, v = String(b.value || '').trim();
     if (f === 'title') { if (v) it.title = v.slice(0, 300); return; }
     if (v === '' || (x.default != null && v === String(x.default))) delete it[f]; else it[f] = x.type === 'number' ? Math.max(0, Math.round(+v) || 0) : v.slice(0, 8000); });
   if (it.repeat !== 'daily') delete it.repeat;
-  DKF.edit = ''; dkFindKeep_(); });
-on('dk-fdel', el => { const { L, i, it } = dkAt_(el.getAttribute('data-at')); if (!it || !confirm('Delete "' + (it.title || 'this item') + '"?')) return; L.items.splice(i, 1); DKF.edit = ''; dkFindKeep_(); });
+  DKF.edit = ''; stepDone_(DKF.step, false); dkFindKeep_(); });
+on('dk-fdel', el => { const { L, i, it } = dkAt_(el.getAttribute('data-at')); if (!it || !confirm('Delete "' + (it.title || 'this item') + '"?')) return; L.items.splice(i, 1); DKF.edit = ''; stepDone_(DKF.step, false); dkFindKeep_(); });
 on('dk-qadd', el => { const card = el.closest('.card'), inp = card && card.querySelector('.dk-qadd'), li = +el.getAttribute('data-li'), L = dkLoad_()[li], t = String((inp && inp.value) || '').trim();
   if (!t || !L) return; L.items.push({ title: t.slice(0, 300) }); dkFindKeep_();
   setTimeout(() => { const again = document.querySelector('.dk-qadd[data-li="' + li + '"]'); if (again) again.focus(); }, 400); });

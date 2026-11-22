@@ -81,7 +81,7 @@ function speedOpen_(title, text, x) {
   SPEED.x = x || null;
   SPEED.words = [];
   SPEED.i = 0;
-  openSheet(title || 'Speed read', speedSheet_(), speedClose_);
+  openStep_({ title: title || 'Speed read', html: speedSheet_(), onClose: speedClose_ });
   if (text) speedLoad_(text);
   else speedAwait_(x);
 }

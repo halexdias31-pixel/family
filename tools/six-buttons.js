@@ -11,7 +11,7 @@ const { text, report, main } = require('./lib/gen.js');
 function run() {
   const Q = JSON.parse(text('data/settings/qengine.json'));
   const src = text('js/qtools-row.js'), tools = text('js/qtools.js');
-  const from = src.indexOf('const QT_VISIBLE'), to = src.indexOf('/* MORE OPENS THE ONE SHEET');
+  const from = src.indexOf('const QT_VISIBLE'), to = src.indexOf('/* MORE IS A STEP');
   if (from < 0 || to < 0) return report('six-buttons', ['js/qtools-row.js has no qtSplit_ block'], 'missing splitter');
   const ctx = { QENGINE: { visible: Q.visible, more: Q.more, cut: Q.cut },
     tile_: o => `<button type="button" class="tile" data-do="${o.act}">${o.label}</button>` };

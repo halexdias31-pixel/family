@@ -445,6 +445,7 @@ on('card-share', el => { const k = el.getAttribute('data-key') || '', name = (ca
   const card = el.closest && el.closest('.card, .qcard');
   if (!card) return toast(text_('there-is-nothing-to-share-on'));
   toast(text_('making-a-picture-of-this-profile'));
+  rcShareStep_(card);
   rcPng_(card).then(p => rcHand_(p.blob, String(name).replace(/[^\w-]+/g, '-').slice(0, 40) + '.png', card, name)).catch(rcShareFail_); });
 /* ARRIVING ON ONE, before any kept place; the link then leaves the address, so a reload keeps its own place. */
 function openSharedCard() { let x = null;

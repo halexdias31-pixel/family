@@ -9115,6 +9115,7 @@ on('card-share', el => { const k = el.getAttribute('data-key') || '', name = (ca
 const card = el.closest && el.closest('.card, .qcard');
 if (!card) return toast(text_('there-is-nothing-to-share-on'));
 toast(text_('making-a-picture-of-this-profile'));
+rcShareStep_(card);
 rcPng_(card).then(p => rcHand_(p.blob, String(name).replace(/[^\w-]+/g, '-').slice(0, 40) + '.png', card, name)).catch(rcShareFail_); });
 function openSharedCard() { let x = null;
 try { x = cardByKey_(new URLSearchParams(location.search).get('card')); if (x) history.replaceState(null, '', location.pathname + location.hash); } catch (e) { oops_(e, 'find:openSharedCard'); }
@@ -10871,22 +10872,32 @@ colour: f.any ? false : tagOf_(f.field) };
 }).filter(Boolean), bookChips_());
 }
 function filterClear_() { return ''; }
-on('facet-pick', el => inFinder_(finderAt_(el), () => {
+function findStep_(el, make) {
+const F = finderAt_(el);
+let added = [];
+const id = openStep_({ draw: () => inFinder_(F, () => {
 writingFreeze_();
+added = make();
+STUFF.filters.push(...added);
+paintStuffSoon_();
+}), undo: () => inFinder_(F, () => {
+STUFF.filters = STUFF.filters.filter(g => added.indexOf(g) === -1);
+paintStuffSoon_();
+}) });
+added.forEach(f => { Object.defineProperty(f, 'step', { value: id, writable: true, configurable: true }); });
+}
+on('facet-pick', el => findStep_(el, () => {
 let also = [];
 try { also = el.dataset.also ? JSON.parse(el.dataset.also) : []; } catch (e) { also = []; }
-[el.dataset.value].concat(also).forEach(v => STUFF.filters.push({ field: el.dataset.field, value: v }));
-paintStuffSoon_();
+return [el.dataset.value].concat(also).map(v => ({ field: el.dataset.field, value: v }));
 }));
-on('facet-skip', el => inFinder_(finderAt_(el), () => {
-writingFreeze_();
-STUFF.filters.push({ field: el.dataset.field, any: true });
-paintStuffSoon_();
-}));
+on('facet-skip', el => findStep_(el, () => [{ field: el.dataset.field, any: true }]));
 on('filter-drop', el => inFinder_(finderAt_(el), () => {
 const i = Number(el.dataset.i), f = STUFF.filters[i];
 const say = f && !f.any ? spellKey_(chipText_(f, i)) : null;
-STUFF.filters = STUFF.filters.filter((g, j) => j !== i && !(say && g.field === f.field && !g.any && spellKey_(chipText_(g, j)) === say));
+const keep = STUFF.filters.filter((g, j) => j !== i && !(say && g.field === f.field && !g.any && spellKey_(chipText_(g, j)) === say));
+STUFF.filters.filter(g => keep.indexOf(g) === -1 && g.step).forEach(g => { if (keep.every(k => k.step !== g.step)) stepDone_(g.step, false); });
+STUFF.filters = keep;
 paintStuffSoon_();
 }));
 on('filter-clear', el => inFinder_(finderAt_(el), () => { STUFF.filters = []; paintStuff(); }));
@@ -14516,7 +14527,7 @@ wfPaint_(of);
 on('wf-open', el => {
 const id = el.getAttribute('data-id'), title = el.getAttribute('data-title') || 'Scanned work';
 if (!id || !USER || !USER.token) return;
-openSheet(title, cardBlock_({ type: 'wait', look: 'wf-pages', on: true }));
+openStep_({ title, el, html: cardBlock_({ type: 'wait', look: 'wf-pages', on: true }) });
 api({ action: 'workFileOpen', personId: USER.personId || '', id }).then(d => {
 const box = document.querySelector('.wf-pages');
 if (!box) return;
@@ -15307,11 +15318,11 @@ const box = el.parentNode && el.parentNode.querySelector('.kc-more');
 QT_MORE_FROM = box ? [...box.querySelectorAll('.tile')] : [];
 const tiles = QT_MORE_FROM.map((t, i) => t.outerHTML.replace(/\bdata-do="[^"]*"/, 'data-do="qt-more-go" data-i="' + i + '"')
 .replace(/\bclass="([^"]*)"/, (m, c) => 'class="' + c.split(/\s+/).filter(k => /^(tile|on|is-[\w-]+)$/.test(k)).join(' ') + '"')).join('');
-openSheet('More', tileWrap_(tiles, ''));
+openStep_({ title: 'More', el, html: tileWrap_(tiles, '') });
 });
 on('qt-more-go', el => {
 const t = QT_MORE_FROM[+el.getAttribute('data-i')];
-closeSheet();
+closeStep_();
 setTimeout(() => { if (t && t.isConnected) t.click(); }, 0);
 });
 ;
@@ -15762,22 +15773,25 @@ box.innerHTML = cardBlocks_(dkBlocks_());
 }
 const dkList_ = () => dkLoad_()[DK.at];
 const dkKeep_ = () => { DK.say = ''; dkSave_(); dkPaint_(); };
-on('dk-list', el => { DK.at = +el.getAttribute('data-i') || 0; DK.edit = -1; DK.rename = false; dkPaint_(); });
+on('dk-list', el => { const i = +el.getAttribute('data-i') || 0, was = DK.at; if (i === was) return;
+openStep_({ el, draw: () => { DK.at = i; DK.edit = -1; DK.rename = false; dkPaint_(); }, undo: () => { DK.at = was; DK.edit = -1; DK.rename = false; dkPaint_(); } }); });
 on('dk-newlist', () => { const L = dkLoad_(); L.push({ name: 'List ' + (L.length + 1), items: [] }); DK.at = L.length - 1; DK.rename = true; dkKeep_(); });
-on('dk-rename', () => { DK.rename = !DK.rename; dkPaint_(); });
+on('dk-rename', el => { if (DK.rename) { closeStep_(DK.renameStep); DK.rename = false; dkPaint_(); return; }
+DK.renameStep = openStep_({ el, draw: () => { DK.rename = true; dkPaint_(); }, undo: () => { DK.rename = false; dkPaint_(); } }); });
 on('dk-named', () => { const L = dkList_(), box = $('dk-box'), v = f => String((box.querySelector('[data-dkl="' + f + '"]') || {}).value || '').trim(); if (!L) return;
 if (v('name')) L.name = v('name').slice(0, 80);
 if (/^\d\d:\d\d$/.test(v('start'))) L.start = v('start'); else delete L.start;
-DK.rename = false; dkKeep_(); });
+DK.rename = false; stepDone_(DK.renameStep, false); dkKeep_(); });
 on('dk-move', el => { const L = dkLoad_(), by = +el.getAttribute('data-by'), j = DK.at + by; if (j < 0 || j >= L.length) return; L.splice(j, 0, L.splice(DK.at, 1)[0]); DK.at = j; dkKeep_(); });
 on('dk-droplist', () => { const L = dkLoad_(); if (!L[DK.at] || !confirm('Delete the list "' + L[DK.at].name + '" and everything on it?')) return; L.splice(DK.at, 1); DK.at = 0; dkKeep_(); });
 on('dk-add', () => { const inp = $('dk-box').querySelector('.dk-add'), t = String((inp && inp.value) || '').trim(); if (!t || !dkList_()) return; dkList_().items.push({ title: t.slice(0, 300) }); dkKeep_(); const again = $('dk-box').querySelector('.dk-add'); if (again) again.focus(); });
-on('dk-edit', el => { const i = +el.getAttribute('data-i'); DK.edit = DK.edit === i ? -1 : i; dkPaint_(); });
-on('dk-del', el => { const L = dkList_(); if (!L) return; L.items.splice(+el.getAttribute('data-i'), 1); DK.edit = -1; dkKeep_(); });
+on('dk-edit', el => { const i = +el.getAttribute('data-i'); if (DK.edit === i) { DK.edit = -1; stepDone_(DK.editStep, false); dkPaint_(); return; }
+DK.editStep = openStep_({ el, draw: () => { DK.edit = i; dkPaint_(); }, undo: () => { if (DK.edit === i) { DK.edit = -1; dkPaint_(); } } }); });
+on('dk-del', el => { const L = dkList_(); if (!L) return; L.items.splice(+el.getAttribute('data-i'), 1); DK.edit = -1; stepDone_(DK.editStep, false); dkKeep_(); });
 on('dk-keep', el => { const it = dkList_() && dkList_().items[+el.getAttribute('data-i')]; if (!it) return;
 $('dk-box').querySelectorAll('.dk-editing .dk-f').forEach(f => { it[f.getAttribute('data-f')] = String(f.value || '').trim(); });
 if (it.repeat !== 'daily') delete it.repeat;
-DK.edit = -1; dkKeep_(); });
+DK.edit = -1; stepDone_(DK.editStep, false); dkKeep_(); });
 on('dk-food', el => { const it = dkList_() && dkList_().items[+el.getAttribute('data-i')]; if (!it) return;
 const f = el.getAttribute('data-f') || ''; if (dkPicked_(it) === f) { it.pick = ''; it.pickOn = ''; } else { it.pick = f; it.pickOn = dkDay_(); } dkKeep_(); });
 const dkAddr_ = renew => Promise.resolve(api({ action: 'docketAddress', personId: (USER && USER.personId) || '', renew: renew ? 1 : '' }))
@@ -15882,14 +15896,16 @@ tiles: open ? [{ icon: 'save', label: text_('save'), act: 'dk-fsave', cls: 'is-s
 }
 const dkAt_ = at => { const [li, i] = String(at || '').split(':').map(Number), L = dkLoad_()[li]; return { L, i, it: L && L.items[i] }; };
 const dkFindKeep_ = () => { dkKeep_(); if (typeof lateCame_ === 'function') lateCame_(); if (EINK) dkEinkTry_(); };
-on('dk-fedit', el => { const at = el.getAttribute('data-at') || ''; DKF.edit = DKF.edit === at ? '' : at; if (typeof lateCame_ === 'function') lateCame_(); });
+const dkFindDraw_ = () => { if (typeof lateCame_ === 'function') lateCame_(); };
+on('dk-fedit', el => { const at = el.getAttribute('data-at') || ''; if (DKF.edit === at) { DKF.edit = ''; stepDone_(DKF.step, false); dkFindDraw_(); return; }
+DKF.step = openStep_({ el, draw: () => { DKF.edit = at; dkFindDraw_(); }, undo: () => { if (DKF.edit === at) { DKF.edit = ''; dkFindDraw_(); } } }); });
 on('dk-fsave', el => { const { it } = dkAt_(el.getAttribute('data-at')), card = el.closest('.card'); if (!it || !card) return;
 card.querySelectorAll('[data-dke]').forEach(b => { const f = b.getAttribute('data-dke'), x = dkFields_().find(y => y.f === f) || {}, v = String(b.value || '').trim();
 if (f === 'title') { if (v) it.title = v.slice(0, 300); return; }
 if (v === '' || (x.default != null && v === String(x.default))) delete it[f]; else it[f] = x.type === 'number' ? Math.max(0, Math.round(+v) || 0) : v.slice(0, 8000); });
 if (it.repeat !== 'daily') delete it.repeat;
-DKF.edit = ''; dkFindKeep_(); });
-on('dk-fdel', el => { const { L, i, it } = dkAt_(el.getAttribute('data-at')); if (!it || !confirm('Delete "' + (it.title || 'this item') + '"?')) return; L.items.splice(i, 1); DKF.edit = ''; dkFindKeep_(); });
+DKF.edit = ''; stepDone_(DKF.step, false); dkFindKeep_(); });
+on('dk-fdel', el => { const { L, i, it } = dkAt_(el.getAttribute('data-at')); if (!it || !confirm('Delete "' + (it.title || 'this item') + '"?')) return; L.items.splice(i, 1); DKF.edit = ''; stepDone_(DKF.step, false); dkFindKeep_(); });
 on('dk-qadd', el => { const card = el.closest('.card'), inp = card && card.querySelector('.dk-qadd'), li = +el.getAttribute('data-li'), L = dkLoad_()[li], t = String((inp && inp.value) || '').trim();
 if (!t || !L) return; L.items.push({ title: t.slice(0, 300) }); dkFindKeep_();
 setTimeout(() => { const again = document.querySelector('.dk-qadd[data-li="' + li + '"]'); if (again) again.focus(); }, 400); });
@@ -17628,12 +17644,12 @@ const can = !!(navigator.share && navigator.canShare && navigator.canShare({ fil
 const at = rc || document.querySelector('.screen.on .rc') || document.querySelector('.rc');
 const said = title ? title + ', as a picture' : text_('this-booking-as-a-picture');
 if (!at) { toast(text_('there-is-no-booking-on-screen')); return; }
-document.querySelectorAll('.rc-shot-box').forEach(x => x.remove());
-at.insertAdjacentHTML('afterend', renderCard({ kind: 'shot', look: 'rc-shot-box', name: said,
+openStep_({ title: 'Share', el: at, beside: true, html: renderCard({ kind: 'shot', look: 'rc-shot-box', name: said,
 picture: { src: RC_SHOT.url, alt: said },
 body: [{ type: 'text', look: 'note', text: can ? text_('press-share-to-send-it') : text_('press-and-hold-the-picture-to') }],
-tiles: [can ? { label: 'Share', act: 'rc-shot-share', tone: 'buy' } : null, { label: text_('save'), act: 'rc-shot-save', data: { name } }].filter(Boolean) }));
+tiles: [can ? { label: 'Share', act: 'rc-shot-share', tone: 'buy' } : null, { label: text_('save'), act: 'rc-shot-save', data: { name } }].filter(Boolean) }) });
 }
+function rcShareStep_(at) { openStep_({ title: 'Share', el: at, beside: true, html: cardBlock_({ type: 'wait', look: 'rc-shot-wait', on: true }) }); }
 on('rc-shot-save', el => {
 if (!RC_SHOT) return;
 const a = document.createElement('a');
@@ -17647,23 +17663,25 @@ navigator.share({ files: [RC_SHOT.file], title: RC_SHOT.title })
 });
 function rcShareFail_(e) {
 if (typeof oops_ === 'function') oops_(e, 'share:picture');
+if (document.querySelector('#sheet-body .rc-shot-wait')) closeStep_();
 toast(text_('could-not-make-the-picture') + (typeof why_ === 'function' ? why_(e) : String((e && e.message) || e || '')));
 }
 function rcHand_(blob, name, rc, title) {
 const file = typeof File === 'function' ? new File([blob], name, { type: 'image/png' }) : null;
 const can = !!(file && navigator.share && navigator.canShare
 && (() => { try { return navigator.canShare({ files: [file] }); } catch (e) { return false; } })());
+rcOffer_(blob, name, rc, title);
 if (!can) return rcSave_(blob, name, rc);
-if (navigator.userActivation && !navigator.userActivation.isActive) return rcOffer_(blob, name, rc, title);
+if (navigator.userActivation && !navigator.userActivation.isActive) return;
 return navigator.share({ files: [file], title: title || 'Booking' }).catch(e => {
 if (e && e.name === 'AbortError') return;
-rcOffer_(blob, name, rc, title);
 });
 }
 on('book-share', el => {
 const rc = el && el.closest && (el.closest('.rc') || (el.closest('.card') && el.closest('.card').querySelector('.rc')));
 if (!rc) return toast(text_('there-is-nothing-to-share-on'));
 toast(text_('making-a-picture-of-this-booking'));
+rcShareStep_(rc);
 rcPng_(rc)
 .then(p => rcHand_(p.blob, 'family-booking-' + stamp_() + '.png', rc))
 .catch(rcShareFail_);
@@ -17829,7 +17847,7 @@ requestId: 'ans-' + el.dataset.id + '-' + Date.now() })
 el.disabled = false;
 if (d && d.error) { toast(d.error); return; }
 toast(yes ? 'Accepted' : 'Declined');
-closeSheet();
+closeStep_();
 load();
 })
 .catch(err => { el.disabled = false; toast(why_(err)); });
@@ -17858,7 +17876,7 @@ name: USER.name, personId: (USER && USER.personId) || '' })
 el.disabled = false;
 if (d && d.error) { toast(d.error); return; }
 toast(yes ? text_('accepted-the-family-can-pay-and') : text_('declined-the-family-has-been-told'));
-closeSheet();
+closeStep_();
 load();
 })
 .catch(err => { el.disabled = false; toast(why_(err)); });
@@ -17894,7 +17912,7 @@ if (!j) { toast(text_('that-class-has-gone')); return; }
 BOOKING.how = text_('waiting-list-class');
 BOOKING.joining = openClassLabel_(j);
 joiningSet_();
-closeSheet();
+closeStep_();
 finderSet_(FINDERS.stuff, { filters: [{ field: DOOR_FIELD, value: 'Booking' }], show: true });
 go('stuff');
 PAGE.stuff = stuffQuestionPage_() + 1;
@@ -17907,7 +17925,7 @@ if (!j) { toast(text_('that-class-has-gone')); return; }
 BOOKING.how = text_('instant-class');
 BOOKING.joining = openClassLabel_(j);
 joiningSet_();
-closeSheet();
+closeStep_();
 finderSet_(FINDERS.stuff, { filters: [{ field: DOOR_FIELD, value: 'Booking' }], show: true });
 go('stuff');
 PAGE.stuff = stuffQuestionPage_() + 1;
@@ -17920,7 +17938,7 @@ el.disabled = true;
 api({ action: 'deleteJob', adminName: USER.name, name: USER.name, jobId: id })
 .then(d => {
 if (d && d.error) { el.disabled = false; toast(d.error); return; }
-closeSheet();
+closeStep_();
 toast(text_('session-ended'));
 load();
 })
@@ -18137,7 +18155,7 @@ speedStop_();
 SPEED.x = x || null;
 SPEED.words = [];
 SPEED.i = 0;
-openSheet(title || 'Speed read', speedSheet_(), speedClose_);
+openStep_({ title: title || 'Speed read', html: speedSheet_(), onClose: speedClose_ });
 if (text) speedLoad_(text);
 else speedAwait_(x);
 }

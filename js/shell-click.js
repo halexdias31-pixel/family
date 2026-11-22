@@ -61,7 +61,7 @@ let sheetOnClose = null;
 /* ---------- WHAT THE SHEET IS ONE OF § */
 let sheetStep = null;
 
-/* THE LAST THING PRESSED, read by `openSheet` to find its card. Capture phase, so it is set before any handler. */
+/* THE LAST THING PRESSED, read by `openStep_` to find its card. Capture phase, so it is set before any handler. */
 let PRESSED_ = null;
 ['pointerdown', 'click', 'keydown'].forEach(t => addEventListener(t, e => {
   const el = e.target;
@@ -88,6 +88,8 @@ function sheetWhere_() {
   /* NOTHING PRESSED ON THIS SCREEN (a sign-in answered, a booking confirmed): the card in front. */
   if (!host) host = sheetFront_();
   const swap = !!(want && want.swap);
+  /* BESIDE: the step goes after its card, not into it (a share: the picture is made of the card alone). */
+  if (want && want.beside && host) return { host, after: host, swap: false };
   const row = host && from && from.closest('.tile-row, .post-acts, .post-when');
   const after = !swap && row && host.contains(row) && row !== host ? row : null;
   return { host, after, swap };
@@ -120,9 +122,9 @@ try {
   new MutationObserver(sheetKeep_).observe(document.documentElement, { childList: true, subtree: true });
 } catch (err) { /* no MutationObserver: an open sheet is not kept across a redraw */ }
 
-function openSheet(title, html, onClose, step) {
+function sheetShow_(title, html, onClose, step) {
   /* A SHEET OPENED OVER A SHEET. § */
-  if (sheetOnClose) { const f = sheetOnClose; sheetOnClose = null; try { f(); } catch (err) { oops_(err, 'shell:openSheet') } }
+  if (sheetOnClose) { const f = sheetOnClose; sheetOnClose = null; try { f(); } catch (err) { oops_(err, 'shell:sheetShow_') } }
 
   /* SET AFTER the old sheet's `onClose` above, which may itself open a sheet. */
   sheetStep = typeof step === 'function' ? step : null;
@@ -143,7 +145,7 @@ function openSheet(title, html, onClose, step) {
   else fill();
   sheetOnClose = onClose || null;
   try { sh.scrollIntoView({ block: 'nearest' }); } catch (err) { /* an element no longer on the page is not scrolled */ }
-  try { placeCells(undefined, true); } catch (err) { oops_(err, 'shell:openSheet') }
+  try { placeCells(undefined, true); } catch (err) { oops_(err, 'shell:sheetShow_') }
 }
 
 /* ---------- CLOSING IT: THE CARD AS IT WAS ---------- */
@@ -154,7 +156,7 @@ function sheetOutStop_(sh) {
   SHEET_OUT_.cancel(); SHEET_OUT_ = null;
   sh.classList.remove('is-leaving');
 }
-function closeSheet() {
+function sheetHide_() {
   sheetStep = null;
   const sh = sheetEl_();
   if (SHEET_OUT_) return;             /* already leaving: its exit finishes the close */
@@ -169,7 +171,7 @@ function closeSheet() {
     document.querySelectorAll('.sheet-host').forEach(h => h.classList.remove('sheet-host', 'sheet-swap'));
     if ($('sheet-home')) $('sheet-home').after(sh);
   };
-  const placed = () => { if (was) { try { placeCells(undefined, true); } catch (err) { oops_(err, 'shell:closeSheet') } } };
+  const placed = () => { if (was) { try { placeCells(undefined, true); } catch (err) { oops_(err, 'shell:sheetHide_') } } };
   if (!sh.classList.contains('hidden')) { placed(); return; }
   const host = sh.closest('.sheet-host');
   if (!was || !sh.closest('#screen') || !expandMoves_(sh) || !MOTION_.exit) { home(); placed(); return; }
@@ -184,6 +186,101 @@ function closeSheet() {
     home();
   }, { anchors: [sh], content: swap ? () => [...host.children].filter(c => c !== sh) : null, done: placed });
 }
+
+/* ---------- ONE WAY TO OPEN (owner, 22 Nov, UNIFY NEXT 3; "least dynamic wins") ----------
+   Every tap that opens something pushes ONE step, the same way: a history entry, the scroll beneath kept, the one motion (`expand_`).
+   Back (the browser's, a swipe, Escape, the sheet's close) pops exactly one, and the scroll of the step below comes back.
+   A step is DRAWN (`title` + `html`: the card and form code's markup, shown in `#sheet` under the card pressed: share, More, a message)
+   or IN PLACE (`draw` + `undo`: the card's own state changes, so it redraws as its form or its open list: an edit, a Docket list, a fold).
+   `openStep_` returns the step's id; `stepDone_(id)` says it closed itself (Save, Cancel) so its undo is not run; `closeStep_()` is Back. */
+const STEPS_ = [];
+let STEP_SEQ_ = 0, STEP_QUIET_ = 0, STEP_SHEET_ = 0;
+const stepScroll_ = () => {
+  const root = document.scrollingElement || document.documentElement;
+  const out = [[root, root.scrollTop]];
+  document.querySelectorAll('#s-' + AT + ' .pane, #s-' + AT + ' .page.on').forEach(el => { if (el.scrollTop) out.push([el, el.scrollTop]); });
+  return out;
+};
+const stepScrollBack_ = list => (list || []).forEach(([el, top]) => { try { if (el && el.isConnected) el.scrollTop = top; } catch (e) { /* gone */ } });
+const stepTop_ = () => (STEPS_.length ? STEPS_[STEPS_.length - 1] : null);
+function openStep_(o) {
+  const opt = o || {};
+  const scroll = stepScroll_();
+  /* A DRAWN STEP OVER A DRAWN STEP SAYS SOMETHING NEW IN THE SAME PLACE (a confirmation after a send): the same step, not a second. */
+  if (opt.html != null && STEP_SHEET_ && STEPS_.some(s => s.id === STEP_SHEET_)) {
+    if (opt.el) SHEET_HERE_ = { el: opt.el, beside: !!opt.beside };
+    sheetShow_(opt.title || '', opt.html, opt.onClose, opt.wheel);
+    return STEP_SHEET_;
+  }
+  const id = ++STEP_SEQ_;
+  const step = { id, scroll, undo: opt.undo || null, sheet: opt.html != null, dead: false };
+  STEPS_.push(step);
+  stepPushHist_(id);
+  if (step.sheet) { STEP_SHEET_ = id; if (opt.el) SHEET_HERE_ = { el: opt.el, beside: !!opt.beside }; sheetShow_(opt.title || '', opt.html, opt.onClose, opt.wheel); }
+  else if (typeof opt.draw === 'function') {
+    const host = (opt.el && opt.el.closest && opt.el.closest(SHEET_HOSTS_)) || null;
+    if (host && host.isConnected) expand_([host], opt.draw, { content: () => (host.isConnected ? [host] : []) }); else opt.draw();
+  }
+  return id;
+}
+/* THE STEP GOES: its undo (a drawn step's `onClose` and exit), then the scroll it opened over. */
+function stepRun_(s, undo) {
+  if (s.sheet) { if (STEP_SHEET_ === s.id) { STEP_SHEET_ = 0; if (undo) sheetHide_(); } }
+  else if (undo && typeof s.undo === 'function') { try { s.undo(); } catch (e) { oops_(e, 'shell:stepRun_'); } }
+  const sc = s.scroll;
+  stepScrollBack_(sc);
+  /* AND AGAIN ONCE A REDRAW THE UNDO ASKED FOR HAS LANDED (Find paints late). */
+  requestAnimationFrame(() => stepScrollBack_(sc));
+  [250, 600].forEach(ms => setTimeout(() => stepScrollBack_(sc), ms));
+}
+/* ITS HISTORY ENTRY, after any quiet Back still on its way (a More tile that closes More and opens Share), so the two never cross. */
+const STEP_WAIT_ = [];
+function stepPushHist_(id) {
+  if (STEP_QUIET_) { STEP_WAIT_.push(id); return; }
+  try { history.pushState({ familyStep: id }, ''); } catch (e) { /* no history (a sandbox): the step still opens; its close tile is Back */ }
+}
+/* OUR OWN `history.back()` IS QUIET: the step is already gone when its popstate arrives. */
+function stepBackQuiet_() { STEP_QUIET_++; try { history.back(); } catch (e) { STEP_QUIET_--; } }
+function stepDone_(id, undo) {
+  const i = STEPS_.findIndex(s => s.id === id && !s.dead);
+  if (i < 0) return;
+  const s = STEPS_[i];
+  if (i === STEPS_.length - 1) {
+    STEPS_.pop();
+    /* DEAD STEPS NOW ON TOP go with it, one quiet Back each. */
+    let n = 1;
+    while (STEPS_.length && stepTop_().dead) { STEPS_.pop(); n++; }
+    stepRun_(s, undo);
+    for (let k = 0; k < n; k++) stepBackQuiet_();
+  } else { s.dead = true; stepRun_(s, undo); }
+}
+/* BACK PRESSED IN THE PAGE (the sheet's close, Escape, a tile whose work is done): the step named, else the drawn step; none open, nothing. */
+function closeStep_(id) {
+  const want = id || STEP_SHEET_;
+  if (want) stepDone_(want, true);
+  else if (!sheetEl_().classList.contains('hidden')) sheetHide_();
+}
+/* THE BROWSER'S BACK AND THE SWIPE: exactly one step, the live one on top (a step already closed is passed over). */
+addEventListener('popstate', () => {
+  if (STEP_QUIET_) {
+    STEP_QUIET_--;
+    if (!STEP_QUIET_) STEP_WAIT_.splice(0).forEach(id => { if (STEPS_.some(s => s.id === id && !s.dead)) stepPushHist_(id); });
+    return;
+  }
+  let s = STEPS_.pop();
+  while (s && s.dead) s = STEPS_.pop();
+  if (s) stepRun_(s, true);
+});
+/* A FOLD IS A STEP TOO (a list's section, a paper's lines): opened by its summary, shut by Back or by its summary. */
+function foldStep_(d) {
+  if (d.stepId) return;
+  d.stepId = openStep_({ undo: () => {
+    d.stepId = 0;
+    if (!d.isConnected || !d.open) return;
+    d.expandOut = expandOut_([...d.children].filter(c => c.tagName !== 'SUMMARY'), () => { d.open = false; }, { anchors: [d] });
+  } });
+}
+function foldShut_(d) { const id = d.stepId; d.stepId = 0; if (id) stepDone_(id, false); }
 
 /* ---------- A HEIGHT THAT CHANGES ON THE GLASS MOVES, IT DOES NOT JUMP (537, U6) ---------- */
 /* What is below a change, at most this many boxes, is slid from where it stood (FLIP); the rest of the page is out of sight anyway. */
@@ -253,13 +350,15 @@ addEventListener('click', e => {
   /* A CONTROL INSIDE THE SUMMARY is pressed, not the fold. */
   const ctl = e.target.closest('a, button, input, textarea');
   if (ctl && s.contains(ctl)) return;
-  if (!expandMoves_(d) || !d.isConnected) return;
+  if (!d.isConnected) return;
+  /* NO MOTION: the browser toggles it, and the step follows what it did. */
+  if (!expandMoves_(d)) { const was = d.open; setTimeout(() => { if (d.open && !was) foldStep_(d); else if (!d.open && was) foldShut_(d); }, 0); return; }
   e.preventDefault();
   /* PRESSED AGAIN WHILE IT CLOSES: it stays open. */
   if (d.expandOut && !d.expandOut.done) { d.expandOut.cancel(); d.expandOut = null; return; }
   const kids = () => [...d.children].filter(c => c !== s);
-  if (!d.open) expand_([d], () => { d.open = true; }, { content: kids });
-  else d.expandOut = expandOut_(kids(), () => { d.open = false; }, { anchors: [d] });
+  if (!d.open) { expand_([d], () => { d.open = true; }, { content: kids }); foldStep_(d); }
+  else { d.expandOut = expandOut_(kids(), () => { d.open = false; }, { anchors: [d] }); foldShut_(d); }
 });
 
 /* ---------- MOTION IS ONE SYSTEM (531) ---------- */

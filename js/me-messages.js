@@ -30,14 +30,14 @@ function verifyFromLink_(again) {
       if (d && d.noEmail && d.parentPending) {
         /* ---------- `parentPending`: A SHEET THEY CLOSE, NOT A TOAST THAT CLOSES ITSELF § */
         const who = first || 'They';
-        openSheet('Confirmed — one more step', cardBlock_({ type: 'text', look: 'note', paras: [
+        openStep_({ title: 'Confirmed — one more step', html: cardBlock_({ type: 'text', look: 'note', paras: [
           [who + ' can sign in now', d.handle ? [' as ', { b: '@' + d.handle }] : '', ' with their PIN.'],
           [{ b: 'They are not on your account yet.' }, ' The @family. account on your email has not been confirmed, so we did not put '
             + (first || 'them') + ' on it.'],
           'Open the "Confirm your @family. account" email we sent you — or sign in and press "Send the link again" — then add '
             + (first || 'them') + ' with "Add your child" on Students. They say yes, and they are on your account.',
           'Did you never make an account here? Then somebody else did, with your email. Use "Forgotten your PIN?" with your email to take it back — it signs them out.'] })
-          + tile_({ form: true, label: 'Done', act: 'sheet-done', kind: 'quiet' }));
+          + tile_({ form: true, label: 'Done', act: 'sheet-done', kind: 'quiet' }) });
         try { if (USER) load(); } catch (e) { oops_(e, 'me:verifyFromLink_') }
       } else if (d && d.noEmail) {
         toast('Confirmed — ' + (first || 'they') + ' can sign in now'
@@ -78,9 +78,8 @@ function accountChanged_() { ACCOUNT_AT_ = Date.now(); }
 /* ---------- WHAT EVERY DOOR IN DOES ONCE IT IS IN § */
 function afterSignIn_(d) {
   if (d && (d.childrenHeld || d.pinCleared || d.pinLink || d.moveDropped || d.handleMoved) && d.message) {
-    openSheet(d.pinCleared ? 'Your PIN has changed' : d.childrenHeld ? 'Signed in — one thing to know'
-              : d.handleMoved ? 'Your handle has changed' : 'Signed in',
-      cardBlock_({ type: 'text', look: 'note', text: d.message }) + tile_({ form: true, label: 'Done', act: 'sheet-done', kind: 'quiet' }));
+    openStep_({ title: d.pinCleared ? 'Your PIN has changed' : d.childrenHeld ? 'Signed in — one thing to know'
+              : d.handleMoved ? 'Your handle has changed' : 'Signed in', html: cardBlock_({ type: 'text', look: 'note', text: d.message }) + tile_({ form: true, label: 'Done', act: 'sheet-done', kind: 'quiet' }) });
   }
   let waiting = '';
   waiting = keep_.get('familyVerify') || ''; keep_.del('familyVerify');
@@ -192,9 +191,9 @@ function loadMessages() {
 /* WRITING ONE — THE HALF THAT HAS NEVER EXISTED. § */
 /* THE SHEET IS THE SAME FORM IN A SHEET. § */
 function messageSheet(to, toId) {
-  openSheet('Message ' + to, msgForm_(to, toId,
+  openStep_({ title: 'Message ' + to, html: msgForm_(to, toId,
     '1 message every 5 minutes. It goes to their e-mail and appears in Messages for both '
-  + 'of you.', 5));
+  + 'of you.', 5) });
 }
 
 on('msg-open', el => messageSheet(el.dataset.to, el.dataset.id));
@@ -372,7 +371,7 @@ on('msg-send', el => {
   MSG_PENDING.push(p);
   delete MSG_QUEUE[key];
   if (box) { box.value = ''; box.style.height = ''; }
-  if (p.inSheet) { closeSheet(); toast('Sending to ' + fmtName_(p.withName) + '…'); }
+  if (p.inSheet) { closeStep_(); toast('Sending to ' + fmtName_(p.withName) + '…'); }
   dmRedraw_(p.withId);
   msgPost_(p);
 });
