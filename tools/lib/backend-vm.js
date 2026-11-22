@@ -50,6 +50,8 @@ function book() {
       getLastColumn: () => v.reduce((m, r) => Math.max(m, r.length), 0),
       getRange: (r, c, nr, nc) => ({
         getValues: () => Array.from({ length: nr }, (_, i) => Array.from({ length: nc }, (_, j) => ((v[r - 1 + i] || [])[c - 1 + j] ?? ''))),
+        getValue: () => ((v[r - 1] || [])[c - 1] ?? ''),
+        setValue: x => { while (v.length < r) v.push([]); v[r - 1][c - 1] = x; },
         setValues: rows => rows.forEach((row, i) => { const at = r - 1 + i; while (v.length <= at) v.push([]); row.forEach((x, j) => { v[at][c - 1 + j] = x; }); }),
       }),
       deleteRows: (r, n) => { v.splice(r - 1, n); },

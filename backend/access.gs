@@ -69,6 +69,25 @@ function docketOwnerTidy21Nov_(lists) {
   });
 }
 
+/* THE OWNER'S DOCKET, TIDIED IN PLACE: the owner's row's `todo` cell, written directly (no request, token or JSONP answer); thrown when it
+   cannot, so autoMigrate_ records FAILED_ and asks again. */
+function docketOwnerTidyRun_() {
+  const t = read(TAB.people), me = t.rows.find(r => isOwner_(r));
+  if (!me || !S(me.person_id)) throw new Error('no owner found (owner_email on the config tab, an admin row with that address)');
+  let got = null;
+  try { got = JSON.parse(S(me.todo)); } catch (e) { got = null; }
+  if (!got || !Array.isArray(got.lists)) return 'the owner has no docket lists - nothing to tidy';
+  /* AN EMPTY FIELD IS LEFT OUT ('' or false: every reader takes a missing field so), or ten lists of long prayers, each one more item and its
+     estimates, outgrow DOCKET_CELL_MAX that the untidied docket fitted. */
+  const lists = docketTidy_(docketOwnerTidy21Nov_(got.lists)).map(L => Object.assign({}, L, {
+    items: L.items.map(i => { const o = {}; Object.keys(i).forEach(k => { if (i[k] !== '' && i[k] !== false && i[k] != null) o[k] = i[k]; }); return o; }) }));
+  const cell = JSON.stringify({ v: 1, lists: lists });
+  if (cell === S(me.todo)) return 'already tidy - nothing changed';
+  if (cell.length > DOCKET_CELL_MAX) throw new Error('the tidied docket is ' + cell.length + ' characters, over ' + DOCKET_CELL_MAX + ' - nothing was saved');
+  if (!setCell(t, me, 'todo', cell)) throw new Error('the people tab has no todo column - nothing was saved');
+  return lists.length + ' list(s), ' + lists.reduce((n, L) => n + L.items.length, 0) + ' item(s) tidied';
+}
+
 /* ---------- THE ONE-OFF JOBS, RUN ONCE, BY THEMSELVES § */
 const MIGRATIONS = [
   /* EVERY PIN FOUR DIGITS (owner, 10 Nov): a longer one keeps its first four; signing in with the old one still works (authCheckPin_). */
@@ -188,24 +207,15 @@ const MIGRATIONS = [
     what: 'the notes ticked done on 28 October that no session addressed are open again',
     run: () => claudeNotesReopen_('2026-10-28') },
 
-  /* THE OWNER'S DOCKET, TIDIED (owner, 21 Nov): only the `todo` cell of the person isOwner_ matches, through docketOwnerTidy21Nov_ above, then
-     docketTidy_ (which keeps the planner's fields) and postSavePerson_, as docketImport saves it. Thrown when it cannot, so it is asked again. */
-  { id: 'docket-owner-tidy-21nov',
+  /* THE OWNER'S DOCKET, TIDIED (owner, 21 Nov; again 22 Nov). `docket-owner-tidy-21nov` WAS HERE, AND ITS ID STAYS SPENT: it was a run-once job,
+     so MIGRATED_ was written before it ran and its one failure was final (and hidden from the setup card); it saved through postSavePerson_
+     and JSON.parse'd the answer, which on an admin's page load is JSONP (`cb({...});`) and threw. Now: `retry`, so it is marked only when it
+     worked; the owner's row (isOwner_) alone; the `todo` cell written with setCell, through docketOwnerTidy21Nov_ then docketTidy_, no request
+     needed. Twice does what once did. tools/docket-tidy-21nov.js runs it through autoMigrate_. */
+  { id: 'docket-owner-tidy-22nov',
+    retry: true,
     what: "the owner's docket: no times, one Jesus prayer first in each list, planner estimates where missing",
-    run: () => {
-      const me = read(TAB.people).rows.find(r => isOwner_(r));
-      if (!me || !S(me.person_id)) throw new Error('no owner found');
-      let got = null;
-      try { got = JSON.parse(S(me.todo)); } catch (e) { got = null; }
-      if (!got || !Array.isArray(got.lists)) return 'the owner has no docket lists - nothing to tidy';
-      const lists = docketTidy_(docketOwnerTidy21Nov_(got.lists));
-      const cell = JSON.stringify({ v: 1, lists: lists });
-      if (cell.length > DOCKET_CELL_MAX) throw new Error('the tidied docket is too long for its cell - nothing was saved');
-      const out = JSON.parse(postSavePerson_({ personId: S(me.person_id) }, 'todo', cell).getContent());
-      if (!out.success) throw new Error(out.error || 'not saved');
-      return lists.length + ' list(s), ' + lists.reduce((n, L) => n + L.items.length, 0) + ' item(s) tidied';
-    } },
-
+    run: () => docketOwnerTidyRun_() },
   /* THE KINDS NOTHING READ (queue step 7, 22 Nov): their items rows copied whole to a backup tab, checked there, then deleted. Twice does what once did. */
   { id: 'dead-kinds-22nov',
     what: 'the items rows of six kinds nothing reads, kept in backup_dead_kinds_22nov, then deleted',

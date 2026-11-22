@@ -1213,7 +1213,8 @@ function setupStatus_() {
     ran: schemaOk ? S(seen.SCHEMA_AT) || 'yes' : '', error: schemaOk ? '' : S(seen.SCHEMA_FAILED) });
   MIGRATIONS.forEach(m => {
     const job = { id: m.id, what: m.what, ran: S(seen['MIGRATED_' + m.id]),
-      error: seen['MIGRATED_' + m.id] ? '' : S(seen['FAILED_' + m.id]) };
+      /* A FAILURE IS SHOWN EVEN WHEN MARKED DONE (22 Nov): a run-once job is marked before it runs, so its FAILED_ is the only sign it broke. */
+      error: S(seen['FAILED_' + m.id]) };
     /* WHAT A JOB LEFT TO SAY (`SAID_<id>`): the tidy's backup link and what it removed (379). */
     try {
       const said = seen['SAID_' + m.id] ? JSON.parse(seen['SAID_' + m.id]) : null;
