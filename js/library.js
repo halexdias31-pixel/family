@@ -446,7 +446,7 @@ function libQuestion_(r) {
   const docRow = norm(r.kind) === 'document';
   return {
     id: libS(r.row_id), paper: libS(r.paper_id),
-    sourceId: libS(r.source_id),
+    sourceId: libS(r.source_id || r.paper_id),
     q: libS(r.question), part: libS(r.part), kind: norm(r.kind) || 'question',
     section: libS(r.section), marks: libN(r.marks),
     /* A ROW STANDING IN FOR SOMETHING NOT YET TYPED — see `placeholder` in check-library.js and

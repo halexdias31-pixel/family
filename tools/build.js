@@ -39,6 +39,7 @@ const ORDER = [
   'docket-address', // the private address check (rule 1.75, owner 21 Nov: NOW, NEXT step 3): the plain-text ?docket= address refuses a wrong or missing token, says the site's Now/Next, ticks "done shower" and adds "add milk"; fails the build
   'eink',       // the e-ink check (rule 1.75, owner 21 Nov: NOW, NEXT step 2): ?eink's page and the Docket widget show the same Now/Next on docket-plan's day; fails the build
   'one-paper',    // the one-paper check (rule 1.75, 20 Nov): no two active past papers share board, spec, series and paper number; fails the build
+  'one-paper-fact', // the one-paper-fact check (rule 1.75, owner 21 Nov): a question keeps none of its paper's facts byte-identical (kinds.json sheet.lib.joined), no source_id equal to its paper_id, and the backend and client join from one list; fails the build
   'source-lines', // the source-lines check (rule 1.75, owner 20 Nov): an English row naming "Source X, lines N to M" gets source_lines, shows them off its insert or is withheld; fails the build
   'one-box',      // the one-box check (rule 1.75, owner 20 Nov): every answer face by qtFace_; more than one box outside a table fails the build
   'email-ink',    // the email-ink check (rule 1.75, 20 Nov): the Sunday email's colours equal style.css tokens, its esc and the card maker's cardUnesc_ round-trip; fails the build
