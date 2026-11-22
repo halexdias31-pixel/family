@@ -20,3 +20,6 @@ __pycache__/
 # THE LIBRARY'S PRIVATE HALF (397): the words, answers and figures, pulled from the Ledger for the tools and checks.
 # The repository is public and this is exactly what it must never hold. tools/content.js library writes it.
 data-private/
+
+# tools/validate-questions.js keeps each question's verdict by a hash here (hashes and verdicts only). Missing means a full run.
+.cache/
