@@ -262,8 +262,16 @@ function itemMapOfKind_(k) {
   if (c.off) { const h = H('off'); M.off = r => !!h({ row: r }); }
   if (c.from) M.from = c.from === 'entry' ? x => x : c.from;
   if (c.when) M.when = x => !!x[c.when];
-  if (c.look) { const h = /\(/.test(c.look) ? H('look') : null; M.look = h ? (it, x) => h(kindCtx_(it, x)) || c.lookElse || '' : c.look; }
+  if (c.look && typeof c.look === 'object') M.look = (it, x) => Object.keys(c.look).filter(f => x[f]).map(f => c.look[f]).join(' ');
+  else if (c.look) { const h = /\(/.test(c.look) ? H('look') : null; M.look = h ? (it, x) => h(kindCtx_(it, x)) || c.lookElse || '' : c.look; }
   ['picture', 'pills', 'tagRows', 'tiles', 'keep', 'data', 'tool', 'sheet'].forEach(f => { if (c[f]) { const h = H(f); M[f] = (it, x, pic) => h(kindCtx_(it, x, pic)); } });
+  /* THE ONE PERSON AND ITEM BODIES (CARD SHAPES): a Person draws its kind's `parts` (personBody_); a stored Item its form's lines, its sheet */
+  /* and its tiles (form.js); a plain `picture` is the entry's column as a photo; `price` adds the price tag after Find's facets. */
+  if (c.parts) M.body = (r, live) => personBody_(r, live, k);
+  else if ((K.find || {}).from === 'store') { M.body = r => itemLines_(r, k); M.sheet = (it, x) => storeSheet_(it, x); M.tiles = (it, x) => storeTiles_(it, x); }
+  if (c.picture && !/\(/.test(c.picture)) M.picture = (it, x) => (x[c.picture] && typeof pic === 'function' ? { src: pic(x[c.picture]), look: 'thing-pic', alt: '' } : null);
+  else if (!c.picture && K.shape === 'Person') M.picture = it => (typeof personPicSpec_ === 'function' ? personPicSpec_(it.raw.id, it.name) : null);
+  if (c.price) M.pills = (it, x) => itemFacets_(M, x).concat(shopPriceTag_(x) || []);
   if (K.live) { M.live = {}; Object.keys(K.live).forEach(f => { const h = kindHook_(K.live[f], null); M.live[f] = r => h({ row: r }); }); }
   return M;
 }
@@ -288,11 +296,7 @@ function kcQData_(it, x) { return { part: x.key || '', of: it.id || x.key || '' 
 function kcUnlisted_(r) { return r.listed === false; }
 function kcTutorMoney_(r) { return r.rate ? { rate: typeof rateRange_ === 'function' ? rateRange_(r) : '' } : {}; }
 function kcTutorSay_(r) { return { note: typeof profNote_ === 'function' ? profNote_(r) : '' }; }
-function kcPersonName_(r) { return (typeof fmtName_ === 'function' && fmtName_(r)) || r.handle; }
 function kcPostName_(r) { return String(r.text || r.caption || r.title || 'Post').slice(0, 80); }
-function kcShopLook_(x) { return [x.wearable ? 'is-wear' : '', x.off ? 'is-off' : ''].filter(Boolean).join(' '); }
-function kcShopPic_(x) { return x.image && typeof pic === 'function' ? { src: pic(x.image), look: 'thing-pic', alt: '' } : null; }
-function kcShopPills_(x) { return itemFacets_(ITEM_MAPS.product, x).concat(shopPriceTag_(x) || []); }
 /* A BOOKING: what, who, when, the rate and whether it is paid; one line says who and how much in all; a child is told neither (kinds.json `see`). */
 function kcBookingName_(r) { return [r.subject || 'Session', r.level].filter(Boolean).join(' · '); }
 function kcBookingMoney_(r) { const rate = Number(r.rate) || (/hour/i.test(String(r.unit || '')) ? Number(r.price) : 0) || 0;
@@ -316,8 +320,6 @@ const itemLive_ = (r, M) => { const v = {}; Object.keys(M.live || {}).forEach(f 
   const strip = o => { if (Array.isArray(o)) o.forEach(strip); else if (o && typeof o === 'object') hide.forEach(k => { delete o[k]; }); };
   if (hide.length) Object.keys(v).forEach(f => strip(v[f]));
   return v; };
-/* A PERSON'S 8-BIT PORTRAIT (find-boxers.js), by their id. */
-function kcPersonPic_(it) { return typeof personPicSpec_ === 'function' ? personPicSpec_(it.raw.id, it.name) : null; }
 const itemList_ = v => (Array.isArray(v) ? v : String(v == null ? '' : v).split('|')).map(t => String(t).trim()).filter(Boolean);
 /* ANY ROW → THE SHAPE. `raw` is kept beside it, for what only a kind's drawing needs (a manuscript's fragment). */
 function item_(raw, kind) {
@@ -325,7 +327,7 @@ function item_(raw, kind) {
   const lines = typeof HIST_LINES === 'object' && HIST_LINES[kind] ? HIST_LINES[kind].map(([label, col]) => ({ label, value: String((typeof col === 'function' ? col(r) : r[col]) || '') })).filter(l => l.value.trim()) : [];
   const live = itemLive_(r, M), own = M.body ? M.body(r, live) : null, body = Array.isArray(own) ? own : lines.length ? [{ type: 'list', items: lines }] : [];
   const id = typeof M.id === 'function' ? String(M.id(r) || '') : (M.id || ['id']).map(c => String(r[c] == null ? '' : r[c]).trim()).find(Boolean) || '';
-  return { id, kind, name: String((M.name && M.name(r)) || r.title || r.name || r.title_english || r.title_original || id || ''),
+  return { id, kind, name: String((M.name && M.name(r)) || r.title || r.name || r.title_english || r.title_original || r.handle || id || ''),
     tags: words('tags'), body, links: words('links'), raw: r, live };
 }
 /* THE SHAPE → A renderCard SPEC: its name, then Find's facets for it (`x`, the Find entry carrying it); its body drawn only where its map says `lines`. */
@@ -411,9 +413,19 @@ function factAged_(f, how, now) {
   else for (let y = at.getFullYear(); y <= now.getFullYear(); y++) { const s = new Date(y, 8, 1); if (s > at && s <= now) n++; }
   return n ? v.replace(/\d+/g, x => String(Number(x) + n)) : v;
 }
-function kcPersonBody_(r) {
-  const own = typeof personDoorBody_ === 'function' ? personDoorBody_(r) : [];
-  const may = typeof may_ === 'function' && ITEM_KINDS.kinds.person.facts.see.some(w => may_(w));
-  const facts = may ? personFacts_(r.personId || r.id) : [];
-  return facts.length ? own.concat([{ type: 'list', items: facts.map(f => ({ label: f.what.replace(/_/g, ' '), value: f.value })) }]) : own;
-}
+/* ONE PERSON BODY (CARD SHAPES): its kind's `card.parts` in order, each drawn here. A tutor: where and when first (owner, 19 Nov), then who */
+/* they are, then the record; the note only if `live` kept it. A person: their handle and Edit form, then the owner's facts to those `facts.see` names. */
+const PERSON_PARTS_ = {
+  note: (t, L) => (((L || {}).say || {}).note ? { type: 'text', look: 'prof-say prof-hid', text: L.say.note } : null),
+  places: t => profPlaces_([String(t.town || '').trim()].filter(Boolean)),
+  hours: t => profAvail_(t),
+  about: t => (t.description ? { type: 'text', look: 'prof-say cut2', act: 'cut-open', text: t.description } : null),
+  words: t => { const w = profList_(t.tags).slice(0, 3); return w.length ? { type: 'text', look: 'prof-words', text: w.map((v, i) => (i ? [{ i: '·' }, { b: v }] : [{ b: v }])) } : null; },
+  photos: t => (Array.isArray(t.photos) && t.photos.length ? { type: 'photos', srcs: t.photos.map(u => pic(u)), more: 4 } : null),
+  jobs: t => profJobs_(t),
+  quals: (t, L, k) => profQuals_(t, k),
+  door: t => (typeof personDoorBody_ === 'function' ? personDoorBody_(t) : []),
+  facts: (t, L, k) => { const F = ITEM_KINDS.kinds[k].facts, facts = typeof may_ === 'function' && F.see.some(w => may_(w)) ? personFacts_(t.personId || t.id) : [];
+    return facts.length ? { type: 'list', items: facts.map(f => ({ label: f.what.replace(/_/g, ' '), value: f.value })) } : null; }
+};
+const personBody_ = (r, live, k) => ITEM_KINDS.kinds[k].card.parts.flatMap(p => [].concat(PERSON_PARTS_[p](r, live, k))).filter(Boolean);
