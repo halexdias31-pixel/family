@@ -1089,6 +1089,8 @@ function levelsSource_(x) {
   const span = typeof insRowSpan_ === 'function' ? insRowSpan_(x) : null;
   const text = (x && x.levelsSource) || ins.map(r => String(r.sourceText || '')).join('\n\n');
   if (!text.trim()) return { all: '', span: '', wait: ins.some(r => !r.sourceText) };
+  /* A WITHHELD SOURCE (AQA prints only a note, no numbered lines): the answer's quotations cannot be checked against it, so all count */
+  if (!/\[\d{1,3}\]/.test(text)) return { all: '', span: '' };
   const words = s => ' ' + markPtWords_(markPtPlain_(s.replace(/\[\d{1,3}\]/g, ' '))).join(' ') + ' ';
   let cut = '';
   if (span) {
@@ -1174,20 +1176,23 @@ function levelsScore_(sig, row) {
   let cap = 4;
   if (sig.words < (+row.short || 40)) cap = 1;
   if (/quote|inlines/.test(row.weights) && !sig.quote) cap = Math.min(cap, 2);
+  /* as many levels as the row has cuts: four on Language, six on Literature (rule 1.33, 22 Nov), three for its AO4 */
+  const n = cuts.length;
+  if (n > 4 && cap < 4) cap = Math.round(cap * n / 4);
   let level = 0;
   cuts.forEach((c, i) => { if (share >= c) level = i + 1; });
   if (!sig.words) level = 0;
   level = Math.min(level, cap);
-  const of = +row.of || 0, band = of / 4;
+  const of = +row.of || 0, band = of / n;
   let mark = 0;
   if (level) {
-    const lo = cuts[level - 1], hi = level < 4 ? cuts[level] : 1;
+    const lo = cuts[level - 1], hi = level < n ? cuts[level] : 1;
     const into = Math.max(0, Math.min(0.999, (share - lo) / Math.max(0.01, hi - lo)));
     mark = Math.min(of, Math.floor((level - 1) * band) + 1 + Math.floor(into * (Math.round(level * band) - Math.floor((level - 1) * band))));
-    if (level < 4 && share >= hi) mark = Math.round(level * band);
+    if (level < n && share >= hi) mark = Math.round(level * band);
   }
   gaps.sort((a, b) => b.lift - a.lift);
-  return { ao: row.ao, of, level, mark, share, next: gaps.filter(g => g.lift > 0.05).slice(0, 2).map(g => g.sig) };
+  return { ao: row.ao, of, level, top: n, names: row.names ? ['no level yet'].concat(String(row.names).split('/').map(s => s.trim())) : null, mark, share, next: gaps.filter(g => g.lift > 0.05).slice(0, 2).map(g => g.sig) };
 }
 function markLevelsRead_(accept) {
   const way = String(accept || '').split('|').find(w => /^\s*rule:\s*levels\b/i.test(w)) || '';
@@ -1213,8 +1218,8 @@ function markLevels_(typed, accept, x) {
   const each = rows.map(r => levelsScore_(sig, r));
   const got = each.reduce((a, e) => a + e.mark, 0), of = each.reduce((a, e) => a + e.of, 0) || Number(x && x.marks) || 0;
   const name = ['no level yet', 'simple, limited', 'some', 'clear', 'perceptive, detailed'];
-  const say = each.map(e => (each.length > 1 ? e.ao + ' ' : '') + (e.level ? 'Level ' + e.level + ' (' + name[e.level] + '): ' : 'No level yet: ') + e.mark + ' of ' + e.of + ' marks.').join(' ');
-  const next = [...new Set([].concat(...each.filter(e => e.level < 4).map(e => e.next)))].slice(0, 2);
+  const say = each.map(e => (each.length > 1 ? e.ao + ' ' : '') + (e.level ? 'Level ' + e.level + ' (' + (e.names || name)[e.level] + '): ' : 'No level yet: ') + e.mark + ' of ' + e.of + ' marks.').join(' ');
+  const next = [...new Set([].concat(...each.filter(e => e.level < e.top).map(e => e.next)))].slice(0, 2);
   const why = next.length ? 'To reach the next level: ' + next.map(n => LEVELS_SAY[n] || n).join('; ') + '.' : 'Top level.';
   return { got: Math.min(got, of), of, points: true, levels: { each: each.map(e => ({ ao: e.ao, level: e.level, mark: e.mark, of: e.of })), signals: sig }, say, why };
 }
