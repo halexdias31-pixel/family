@@ -6,6 +6,7 @@
    boards leave the order AQA, Edexcel, OCR, or a subject case (a quoted subject name, HTOP_PARTS, a hand histKind/histPart reader)
    comes back in the Find/library code. tools/build.js runs it before the bundle. */
 'use strict';
+const SD = require('./lib/site-data.js');
 const fs = require('fs'), path = require('path');
 const { ROOT, S, blockInto, writeIfChanged, main } = require('./lib/gen.js');
 const TAX_FILE = path.join(ROOT, 'data/settings/taxonomy.json');
@@ -69,7 +70,7 @@ function codeProblems(t, read) {
 function run() {
   const t = taxonomy();
   write(t);
-  const rows = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/questions.json'), 'utf8'));
+  const rows = SD.questions();
   const bad = [].concat(paperProblems(t, rows), topicProblems(t), codeProblems(t, f => fs.readFileSync(path.join(ROOT, f), 'utf8')));
   const papers = rows.filter(d => d && d.subject === 'History' && d.kind === 'document' && S(d.active) === 'True').length;
   if (bad.length) { console.error('taxonomy: ' + bad.length + ' problem(s):\n  ' + bad.slice(0, 40).join('\n  ')); throw new Error('taxonomy check failed'); }

@@ -3,6 +3,7 @@
    data/settings/words.json, read through text_(key). A string literal of 12+ characters in js/ that equals a words.json value, outside a
    generated BEGIN…END block, is the same text written twice and fails the build. OWED lists the other lanes' files still to do; printed as owed. */
 'use strict';
+const SD = require('./lib/site-data.js');
 const fs = require('fs'), path = require('path');
 const { bare } = require('./lib/gen.js');
 const ROOT = path.join(__dirname, '..');
@@ -11,7 +12,7 @@ const OWED = ['find-bundles.js', 'find-finder.js', 'find-doors.js', 'find-pages.
 
 /* COMMENTS BLANKED (strings kept) by gen.js bare, so a word quoted in a comment is not a second copy. */
 function scan() {
-  const words = require(path.join(ROOT, 'data/settings/words.json')).words;
+  const words = SD.words();
   const byText = new Map();
   for (const [k, v] of Object.entries(words)) if (typeof v === 'string' && v.length >= MIN && !byText.has(v)) byText.set(v, k);
   const hits = [];

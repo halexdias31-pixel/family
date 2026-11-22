@@ -4,12 +4,12 @@
    as served, over backend/cards-gen.gs's copies of the planner, on tools/docket-plan.js's made-up day, against js/map.js's own dkPhase_/dkNowNextOf_/dkSay_.
    Counted: a read with no token, one with a wrong token, the read at each of docket-plan's clock times, "done shower", "add milk"; one wrong fails the build. */
 'use strict';
-const { text, read, report, main } = require('./lib/gen.js');
+const SD = require('./lib/site-data.js');
+const { text, report, main } = require('./lib/gen.js');
 const { fnOf, NOW, DAY, PHASES } = require('./docket-plan.js');
 const constOf = (src, name, file) => { const m = new RegExp('\\nconst ' + name + ' = [\\s\\S]*?;\\n(?=const |function |/\\*|\\n)').exec(src);
   if (!m) throw new Error('docket-address: no const ' + name + ' in ' + file); return m[0]; };
-const words = (read('data/settings/words.json') || {}).words || {};
-const text_ = (k, v) => { const s = typeof words[k] === 'string' ? words[k] : k; return v ? s.replace(/\{(\w+)\}/g, (a, x) => (v[x] == null ? a : String(v[x]))) : s; };
+const text_ = SD.textOf();
 /* THE BACKEND, AS SERVED: one owner, one todo cell, one token; a save writes the cell. */
 function backend(state) {
   const gen = text('backend/cards-gen.gs'), be = text('backend/post-account.gs'), G = 'backend/post-account.gs';
@@ -33,7 +33,7 @@ function site() {
   return new Function('text_', ['dkPlan_', 'dkPhase_', 'dkNowNextOf_', 'dkSay_'].map(n => fnOf(js, n)).join('') + 'return { dkPhase_, dkNowNextOf_, dkSay_ };')(text_);
 }
 /* THE SITE'S FILL (js/map.js dkFill_): kinds.json docket-item's defaults under the item's own values. */
-const fields = read('data/settings/kinds.json').kinds.docket.forms['docket-item'].fields;
+const fields = SD.kinds().docket.forms['docket-item'].fields;
 const siteFill = it => Object.assign({}, ...fields.filter(x => x.default != null).map(x => ({ [x.f]: x.default })),
   ...Object.keys(it || {}).filter(k => it[k] !== '' && it[k] != null).map(k => ({ [k]: it[k] })));
 function dayOf(c) {

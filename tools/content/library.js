@@ -18,6 +18,7 @@ const USAGE = `   The repository keeps card metadata; the words, answers and fig
    API address in js/data.js unless FAMILY_API says otherwise. Nothing here ever writes a word of the library into git.
 `;
 'use strict';
+const SD = require('../lib/site-data.js');
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const L = require('../lib/lib-full.js');
 const SC = require('../lib/library-schema.js');
@@ -180,7 +181,7 @@ function baseOf(name) {
    an id the base has not got carries its public card (`cards`). The topic card is lean (rule 1.80): a fat one refuses the lot. */
 function rowsOf(name, now, base, pick) {
   const def = L.defs().files[name];
-  const slots = (JSON.parse(fs.readFileSync(path.join(L.ROOT, 'data/settings/kinds.json'), 'utf8')).kinds[def.kind] || {}).card || {};
+  const slots = (SD.kinds()[def.kind] || {}).card || {};
   const refuse = (slots.slots || {}).refuse || [];
   const fat = refuse.length ? pick.filter(id => String(now[id].points || '').split('|').some(t => refuse.some(h => new RegExp('^\\s*' + h + '\\b', 'i').test(t)))) : [];
   if (fat.length) throw new Error(name + ': ' + fat.length + ' card(s) break the topic card (' + refuse.join(', ') + '): ' + fat.slice(0, 5).join(', ') + ' — nothing written');

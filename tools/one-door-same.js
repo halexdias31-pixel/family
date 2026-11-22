@@ -5,23 +5,15 @@
    and its answer held against tools/data/one-door-same.json, the answers the handlers gave before the cut. The item door must give the same.
    `--write` records the answers anew. Run by tools/build.js. */
 'use strict';
-const fs = require('fs'), path = require('path'), vm = require('vm');
+const fs = require('fs'), path = require('path');
+const BV = require('./lib/backend-vm.js');
+const AT = BV.AT;
 const { ROOT, report, main } = require('./lib/gen.js');
 const GOLD = path.join(ROOT, 'tools/data/one-door-same.json');
-const AT = Date.UTC(2026, 10, 20, 10, 0, 0);
 
 function load() {
-  const dir = process.env.DOOR_SAME_BACKEND || path.join(ROOT, 'backend');
-  const files = fs.readdirSync(dir).filter(f => f.endsWith('.gs')).sort();
-  const stub = new Proxy(function () {}, { get: (t, k) => (k === Symbol.toPrimitive ? () => '' : stub), apply: () => stub, construct: () => stub });
-  const ctx = { console };
-  ['Logger', 'PropertiesService', 'SpreadsheetApp', 'DriveApp', 'ScriptApp', 'Utilities', 'ContentService', 'HtmlService', 'CacheService',
-    'LockService', 'MailApp', 'GmailApp', 'UrlFetchApp', 'Session', 'CalendarApp', 'DocumentApp', 'FormApp', 'Drive'].forEach(k => { ctx[k] = stub; });
-  vm.createContext(ctx);
-  vm.runInContext('const __D = Date; Date = class extends __D { constructor(...a) { if (a.length) super(...a); else super(' + AT + '); } static now() { return ' + AT + '; } };'
-    + 'Math.random = () => 0.4242;', ctx);
-  vm.runInContext(files.map(f => fs.readFileSync(path.join(dir, f), 'utf8')).join('\n'), ctx, { filename: 'backend' });
-  vm.runInContext('this.PUSH_PROPS_LIST = PUSH_PROPS;', ctx);
+  const ctx = BV.load({ dir: process.env.DOOR_SAME_BACKEND || undefined, at: true, random: 0.4242 });
+  ctx.$('this.PUSH_PROPS_LIST = PUSH_PROPS;');
   return ctx;
 }
 

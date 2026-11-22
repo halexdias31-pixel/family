@@ -5,24 +5,15 @@
    what it would send is held against tools/data/one-email.json, what it sent before the cut: the same recipients, the same subject and
    plain text, the same links, and every line of the plain text in the HTML's words. `--write` records them anew. Run by tools/build.js. */
 'use strict';
-const fs = require('fs'), path = require('path'), vm = require('vm');
+const fs = require('fs'), path = require('path');
+const BV = require('./lib/backend-vm.js');
 const { ROOT, S, report, main } = require('./lib/gen.js');
 const GOLD = path.join(ROOT, 'tools/data/one-email.json');
-const AT = Date.UTC(2026, 10, 20, 10, 0, 0);
 
 function load(sent) {
-  const dir = path.join(ROOT, 'backend');
-  const files = fs.readdirSync(dir).filter(f => f.endsWith('.gs')).sort();
-  const stub = new Proxy(function () {}, { get: (t, k) => (k === Symbol.toPrimitive ? () => '' : stub), apply: () => stub, construct: () => stub });
-  const ctx = { console: { log() {}, error: console.error } };
-  ['Logger', 'PropertiesService', 'SpreadsheetApp', 'DriveApp', 'ScriptApp', 'Utilities', 'ContentService', 'HtmlService', 'CacheService',
-    'LockService', 'GmailApp', 'UrlFetchApp', 'Session', 'CalendarApp', 'DocumentApp', 'FormApp', 'Drive'].forEach(k => { ctx[k] = stub; });
   /* THE ONLY MAILAPP THIS FILE KNOWS: it writes down, and sends nothing. */
-  ctx.MailApp = { sendEmail: o => { sent.push(JSON.parse(JSON.stringify(o))); }, getRemainingDailyQuota: () => 100 };
-  vm.createContext(ctx);
-  vm.runInContext('const __D = Date; Date = class extends __D { constructor(...a) { if (a.length) super(...a); else super(' + AT + '); } static now() { return ' + AT + '; } };'
-    + 'Math.random = () => 0.4242;', ctx);
-  vm.runInContext(files.map(f => fs.readFileSync(path.join(dir, f), 'utf8')).join('\n'), ctx, { filename: 'backend' });
+  const ctx = BV.load({ console: { log() {}, error: console.error }, at: true, random: 0.4242,
+    google: { MailApp: { sendEmail: o => { sent.push(JSON.parse(JSON.stringify(o))); }, getRemainingDailyQuota: () => 100 } } });
   const P = (id, role, first, extra) => Object.assign({ person_id: id, role: role, roles: role, first_name: first, last_name: 'Test', handle: first.toLowerCase(),
     email: first.toLowerCase() + '@x.test', bookings_email: 'TRUE', posts_email: 'TRUE', messages_email: 'TRUE', weekly_email: 'TRUE' }, extra || {});
   const people = [P('P001', 'admin', 'Ann'), P('P002', 'tutor', 'Ada'), P('P003', 'student', 'Finn', { email: '' }), P('P004', 'client', 'Cara'), P('P005', 'student', 'Kit')]
@@ -32,8 +23,7 @@ function load(sent) {
     config: () => ({}), findPerson: (name, id) => people.find(p => (id ? p.person_id === id : personName(p) === name)) || null,
     acceptedParents: of => (of === 'P003' ? [people[3]] : []), withWriteLock_: fn => fn(), setCells: () => true, authProps_: () => ({ getProperty: () => '', setProperty: () => {} }),
   });
-  ctx.$ = code => vm.runInContext(code, ctx);
-  const personName = p => vm.runInContext('personDisplayName', ctx)(p);
+  const personName = p => ctx.$('personDisplayName')(p);
   return { ctx, people };
 }
 

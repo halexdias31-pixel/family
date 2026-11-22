@@ -4,8 +4,8 @@
    season: May/June is summer, Oct-Dec is November) and paper number (and tier). A second copy is retired (active False) and its part ids aliased in
    data/settings/question-aliases.json, so saved answers follow the kept one. Prints the count; a pair fails the build. tools/build.js runs it. */
 'use strict';
-const fs = require('fs'), path = require('path');
-const { ROOT, S, main } = require('./lib/gen.js');
+const SD = require('./lib/site-data.js');
+const { S, main } = require('./lib/gen.js');
 
 function season(m) { m = +m; return m >= 4 && m <= 7 ? 'summer' : m >= 10 ? 'november' : m ? 'm' + m : ''; }
 function keyOf(d) {
@@ -16,7 +16,7 @@ function keyOf(d) {
   return [board, spec, S(d.year), season(d.month), paper.toUpperCase(), S(d.tier)].join(' | ');
 }
 function find() {
-  const rows = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'questions.json'), 'utf8'));
+  const rows = SD.questions();
   const by = {};
   let n = 0;
   for (const d of rows) {

@@ -3,6 +3,7 @@
    `todayIso_` and their copies in backend/cards-gen.gs are run on one table: each must give the expected day, and the two copies must agree.
    25/10 is never month 25; the BST change days and either side of London's midnight keep their day. One wrong fails the build. Run by tools/build.js. */
 'use strict';
+const SD = require('./lib/site-data.js');
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const ROOT = path.join(__dirname, '..');
 process.env.TZ = 'Europe/London';                       // the Apps Script project's own zone (backend/appsscript.json), and the owner's devices
@@ -18,7 +19,7 @@ function grab(src, name, file) {
 }
 function copyOf(file) {
   const src = fs.readFileSync(path.join(ROOT, file), 'utf8');
-  const settings = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/settings/settings.json'), 'utf8'));
+  const settings = SD.settings();
   const box = { SHARED_SETTINGS: settings, Intl, Date };
   vm.runInNewContext(NAMES.map(n => grab(src, n, file)).join('\n') + '\nthis.dateOf_ = dateOf_; this.todayIso_ = todayIso_;', box);
   return box;

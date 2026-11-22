@@ -15,6 +15,7 @@
    parts of its question inherit it (they share a stem); the rest of the sheet takes the sheet's best point.
    The check list: sheets whose best point scored low, or barely beat the next. */
 'use strict';
+const SD = require('./lib/site-data.js');
 const fs = require('fs'), path = require('path');
 const ROOT = path.join(__dirname, '..');
 const SUBJ = { B: '8461', C: '8462', P: '8463' };
@@ -53,7 +54,7 @@ function partWords() {
 }
 
 function load() {
-  const qs = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/questions.json'), 'utf8'));
+  const qs = SD.questions();
   const tb = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/textbooks.json'), 'utf8'));
   const specs = {};
   Object.values(SUBJ).forEach(c => { specs[c] = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/spec/aqa-' + c + '.json'), 'utf8')); });

@@ -5,9 +5,8 @@
    WebKit (the engine every iPhone browser runs, where the blank picture happened) and Chromium both, when WebKit can start here;
    without it the line says so and Chromium alone is held. Run by tools/build.js after the bundles. */
 'use strict';
-const fs = require('fs'), http = require('http'), path = require('path');
-const { ROOT, main, report } = require('./lib/gen.js');
-const PORT = 8133;
+const { main, report } = require('./lib/gen.js');
+const SB = require('./lib/site-browser.js');
 /* ONE OF EACH FACE A CHILD SHARES: words and a box, a frequency tree as cells, a table with boxes in it, a tally table, a choice, a drawing. */
 const SAMPLE = [
   ['words and a box', 'Q-1MA1-2311-2F-16'],
@@ -19,24 +18,6 @@ const SAMPLE = [
 ];
 /* BLANK: this share of the picture or more is one colour (within a small tolerance), or it is under 40px a side. */
 const ONE_COLOUR = 0.97, MIN_SIDE = 40;
-const MIME = { '.js': 'text/javascript', '.css': 'text/css', '.html': 'text/html', '.json': 'application/json', '.png': 'image/png',
-               '.svg': 'image/svg+xml', '.woff2': 'font/woff2', '.jpg': 'image/jpeg' };
-
-function serve() {
-  const lib = require('./lib/lib-full.js');
-  const payload = fs.readFileSync(path.join(ROOT, 'tools/lib/payload.json'), 'utf8');
-  const srv = http.createServer((q, s) => {
-    let p = decodeURIComponent(q.url.split('?')[0]); if (p.endsWith('/')) p += 'index.html';
-    const file = path.join(ROOT, p);
-    /* THE LIBRARY WITH ITS WORDS where this machine has them; a file it cannot join is served as the repository has it. */
-    let body = null; try { body = lib.serve(file); } catch (e) { body = null; }
-    if (body !== null) { s.writeHead(200, { 'content-type': 'application/json' }); return s.end(body); }
-    if (!file.startsWith(ROOT)) { s.writeHead(404); return s.end(); }
-    fs.readFile(file, (e, b) => { if (e) { s.writeHead(404); return s.end(); } s.writeHead(200, { 'content-type': MIME[path.extname(p)] || 'application/octet-stream' }); s.end(b); });
-  }).listen(PORT);
-  return { srv, payload };
-}
-
 /* IN THE PAGE: the picture drawn back onto a canvas and its colours counted. */
 function measure_(b64) {
   return new Promise((ok, no) => {
@@ -54,17 +35,11 @@ function measure_(b64) {
   });
 }
 
-async function one(browser, devices, payload, key) {
-  const c = await browser.newContext({ ...devices['iPhone 13'] });
+async function one(engine, key) {
+  /* THE QUESTION WHOLE: its card drawn with its words, not the waiting card. */
+  const pg = await SB.open({ engine, at: '?card=' + encodeURIComponent('q:' + key), ready: () => [...document.querySelectorAll('#screen .qcard')].some(e => !e.classList.contains('lib-wait') && e.offsetHeight > 0
+      && e.querySelector('[data-do="card-share"]')) });
   try {
-    const pg = await c.newPage();
-    await pg.addInitScript(() => { try { localStorage.setItem('familyUser', JSON.stringify({ name: 'Test Admin', handle: 'testadmin', personId: 'P001', role: 'admin', token: 'tok' })); } catch (e) {} });
-    await pg.route(/script\.google\.com/, r => r.fulfill({ status: 200, contentType: 'application/json', body: payload }));
-    await pg.goto('http://localhost:' + PORT + '/?card=' + encodeURIComponent('q:' + key));
-    /* THE QUESTION WHOLE: its card drawn with its words, not the waiting card. */
-    await pg.waitForFunction(() => [...document.querySelectorAll('#screen .qcard')].some(e => !e.classList.contains('lib-wait') && e.offsetHeight > 0
-      && e.querySelector('[data-do="card-share"]')), null, { timeout: 90000 });
-    await pg.waitForTimeout(1500);
     /* THE PRESS AS A FINGER MAKES IT, the picture caught where it would go to the phone's sheet. */
     await pg.evaluate(() => { window.__shot = null;
       window.rcHand_ = blob => { window.__shot = { blob }; };
@@ -78,35 +53,29 @@ async function one(browser, devices, payload, key) {
       return { b64: String(u).split(',')[1] }; });
     if (got.err) return { err: got.err };
     return await pg.evaluate(measure_, got.b64);
-  } finally { await c.close(); }
+  } finally { await pg.close(); }
 }
 
 async function run() {
-  const PW = require('playwright'), { devices } = PW;
-  const { srv, payload } = serve();
   const engines = [];
   try {
     for (const name of ['webkit', 'chromium']) {
-      try { engines.push({ name, b: await PW[name].launch() }); }
+      try { await SB.browser(name); engines.push({ name }); }
       catch (e) { console.log('  share-picture: ' + name + ' will not start here (' + String(e.message || e).split('\n').find(l => /missing|Executable|install/i.test(l)) + '); `npx playwright install-deps ' + name + '`'); }
     }
     if (!engines.some(x => x.name === 'chromium')) throw new Error('share-picture: no Chromium to check with');
     const rows = [];
-    for (const { name, b } of engines) {
-      const todo = SAMPLE.slice();
-      await Promise.all([0, 1, 2].map(async () => {
-        while (todo.length) {
-          const [kind, key] = todo.shift();
-          let r; try { r = await one(b, devices, payload, key); } catch (e) { r = { err: String((e && e.message) || e).split('\n')[0] }; }
-          rows.push({ name, kind, key, ...r });
-        }
-      }));
+    for (const { name } of engines) {
+      await SB.pool(SAMPLE, 3, async ([kind, key]) => {
+        let r; try { r = await one(name, key); } catch (e) { r = { err: String((e && e.message) || e).split('\n')[0] }; }
+        rows.push({ name, kind, key, ...r });
+      });
     }
     const bad = rows.filter(r => r.err || r.w < MIN_SIDE || r.h < MIN_SIDE || r.top >= ONE_COLOUR).map(r => r.name + ' › ' + r.kind + ' (' + r.key + '): '
       + (r.err ? r.err : r.w + 'x' + r.h + ', ' + Math.round(r.top * 100) + '% one colour'));
     console.log('share-picture: ' + (rows.length - bad.length) + '/' + rows.length + ' shared pictures show their question (' + engines.map(x => x.name).join(', ') + ')');
     report('share-picture', bad, 'blank shared picture(s): almost all one colour, or a few pixels across');
-  } finally { await Promise.all(engines.map(x => x.b.close())); srv.close(); }
+  } finally { await SB.done(); }
 }
 module.exports = { run };
 main(module, run);
