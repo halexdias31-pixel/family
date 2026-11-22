@@ -15,7 +15,9 @@ function drawers() {
   const fns = ['dkPlan_', 'dkPhase_', 'dkNowNextOf_', 'dkNowNext_', 'dkEinkHtml_'].map(n => fnOf(src, n)).join('');
   /* the tick box is the form maker's (js/form.js formInput_); here only its attributes matter, so a plain input stands in for it */
   const formInput_ = a => '<input ' + a + '>';
-  return new Function('text_', 'esc', 'formInput_', fns + '; return { dkPhase_, dkNowNext_, dkEinkHtml_ };')(text_, esc, formInput_);
+  /* the one Item (js/map.js listItem_), as served; its shape read from kinds.json */
+  const listItem = /\nconst listItem_ = [\s\S]*?\}\);\n/.exec(src)[0], kindShape_ = k => (SD.kinds()[k] || {}).shape || '';
+  return new Function('text_', 'esc', 'formInput_', 'kindShape_', listItem + fns + '; return { dkPhase_, dkNowNext_, dkEinkHtml_ };')(text_, esc, formInput_, kindShape_);
 }
 const unesc = s => String(s).replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
 /* WHAT EACH SHOWS, as lines: the heading, one line per item ('at|title|tags'), the Next line. */

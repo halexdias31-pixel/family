@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /* @family. — tools/docket-keep.js THE PLANNER'S FIELDS ARE KEPT (rule 1.75, 1.82; owner 21 Nov): an item's minutes, runs, effort, fun, importance, place
    and timeIs (kinds.json docket-item) must survive every save, or the docket's order is lost. backend/post-account.gs todoTidy_ (saveTodo) and
-   docketTidy_ (docketImport), and js/map.js dkTidy_ (each load), are run as served on an item with every field set off its default.
+   docketTidy_ (docketImport), both the one list tidy listTidy_,, and js/map.js dkTidy_ (each load), are run as served on an item with every field set off its default.
    Counted: every field through every tidy; one dropped fails the build. Run by tools/build.js. */
 'use strict';
 const { text, report, main } = require('./lib/gen.js');
@@ -11,8 +11,8 @@ function tidies() {
   const gen = text('backend/cards-gen.gs'), m = /\nconst DOCKET_PLAN_FIELDS = .*;\n/.exec(gen);
   if (!m) throw new Error('docket-keep: no DOCKET_PLAN_FIELDS in backend/cards-gen.gs');
   const be = text('backend/post-account.gs'), js = text('js/map.js'), F = 'backend/post-account.gs';
-  const back = new Function('const S = v => (v == null ? "" : String(v)).trim(), todayIso_ = () => "2026-11-21";' + m[0]
-    + ['docketPlanTidy_', 'docketPlanOf_', 'todoTidy_', 'docketTidy_'].map(n => fnOf(be, n, F)).join('') + 'return [DOCKET_PLAN_FIELDS, todoTidy_, docketTidy_];')();
+  const back = new Function('const S = v => (v == null ? "" : String(v)).trim(), todayIso_ = () => "2026-11-21";' + m[0] + /\nconst LIST_KINDS = .*;\n/.exec(gen)[0]
+    + ['listTidy_', 'listItemTidy_', 'todoTidy_', 'docketTidy_'].map(n => fnOf(be, n, F)).join('') + 'return [DOCKET_PLAN_FIELDS, todoTidy_, docketTidy_];')();
   const dk = new Function('const dkDay_ = () => "2026-11-21";' + /\nconst dkGone_ = .*\n/.exec(js)[0] + fnOf(js, 'dkTidy_', 'js/map.js') + 'return dkTidy_;')();
   return [back[0], back[1], back[2], dk];
 }

@@ -145,15 +145,19 @@ function dkGroups_(items) {
 }
 /* AN ITEM NAMED FOR A FOOD KIND (foods.json, `foodKindOf_`) offers that kind's foods; the one picked is today's, and a daily item is the bare kind again tomorrow. */
 const dkPicked_ = it => (it.pick && (it.repeat !== 'daily' || it.pickOn === dkDay_()) ? it.pick : '');
+/* THE ONE ITEM (owner, 22 Nov, UNIFY NEXT 6): every item of the owner's lists (kinds.json `list`: Docket, Assignments, Tasks, Food) is drawn as an Item,
+   marked with its shape and kind (`data-shape`, `data-item-kind`, read by tools/one-list.js); in a widget here, in Find through the one card maker. */
+const listItem_ = (kind, o) => ({ type: 'group', look: 'dk-item', attrs: Object.assign({ 'data-shape': kindShape_(kind), 'data-item-kind': kind }, o.attrs || {}),
+  blocks: (o.blocks || []).filter(Boolean), tiles: o.tiles });
 function dkItem_(it, i) {
   const fk = typeof foodKindOf_ === 'function' ? foodKindOf_(it.title) : null, picked = dkPicked_(it);
   const tags = [it.repeat === 'daily' ? 'Daily' : it.date ? dkSayDay_(it.date) : '', it.time || ''].filter(Boolean);
-  const row = { type: 'group', look: 'dk-item', blocks: [
+  const row = listItem_('docket', { blocks: [
     { type: 'tick', text: (it.title || 'Untitled') + (picked ? ': ' + picked.toLowerCase() : ''), attrs: { 'data-dk': i, checked: dkDone_(it), 'aria-label': 'Done: ' + (it.title || '') } },
     tags.length ? { type: 'tags', tags } : null,
     fk && !dkDone_(it) ? { type: 'tiles', tiles: foodsOf_(fk).map(f => ({ label: f.name, note: f.note || '', act: 'dk-food', cls: f.name === picked ? 'is-submit' : '', data: { i, f: f.name } })) } : null,
-    it.note && DK.edit !== i ? { type: 'text', paras: String(it.note).split(/\n{2,}/) } : null].filter(Boolean),
-    tiles: [{ icon: 'edit', label: 'Edit', act: 'dk-edit', data: { i } }, { icon: 'bin', label: 'Delete', act: 'dk-del', data: { i } }] };
+    it.note && DK.edit !== i ? { type: 'text', paras: String(it.note).split(/\n{2,}/) } : null],
+    tiles: [{ icon: 'edit', label: 'Edit', act: 'dk-edit', data: { i } }, { icon: 'bin', label: 'Delete', act: 'dk-del', data: { i } }] });
   if (DK.edit !== i) return row;
   const f = (cap, b) => ({ type: 'field', cap, blocks: [b] });
   return { type: 'group', look: 'dk-editing', blocks: [row,
@@ -219,8 +223,8 @@ function dkMatch_(titles, what) {
 function dkNowNext_(lists, p) {
   const m = dkNowNextOf_(lists, p === undefined ? dkPhase_(lists, dkNow_(), dkFill_) : p);
   if (!m) return [];
-  const rows = m.rows.map(r => ({ type: 'group', look: 'dk-item', blocks: [{ type: 'tick', text: r.title, attrs: { 'data-dkf': r.at, checked: false, 'aria-label': 'Done: ' + r.title } },
-    r.tags.length ? { type: 'tags', tags: r.tags } : null].filter(Boolean) }));
+  const rows = m.rows.map(r => listItem_('docket', { blocks: [{ type: 'tick', text: r.title, attrs: { 'data-dkf': r.at, checked: false, 'aria-label': 'Done: ' + r.title } },
+    r.tags.length ? { type: 'tags', tags: r.tags } : null] }));
   return [{ type: 'section', head: m.head, blocks: (rows.length ? rows : [{ type: 'text', text: m.done }]).concat({ type: 'text', text: m.next }) }];
 }
 /* THE E-INK PAGE (owner, 21 Nov: NOW, NEXT step 2; open the site with ?eink): the widget's Now/Next alone, black on white, large, still. Drawn from dkNowNextOf_
@@ -473,17 +477,20 @@ function asgItem_(a, i, mine) {
   const tags = [asgLeftSay_(a), a.kind ? asgSay_('kind', a.kind) : '', size, a.weight !== '' && a.weight != null ? a.weight + '%' : '',
     asgSay_('status', a.status || 'not-started') + (a.status === 'marked' && a.mark ? ': ' + a.mark : '')].filter(Boolean);
   const when = [a.course, a.due ? dkSayDay_(a.due) + (a.time ? ', ' + a.time : '') : ''].filter(Boolean).join(' · ');
-  const editing = mine && ASG.edit === a.id;
-  return { type: 'group', look: 'dk-item', attrs: { 'data-shape': kindShape_('assignment'), 'data-item-kind': 'assignment' }, blocks: [
+  const editing = mine && ASG.edit === a.id, track = asgTrackOnly_(a);
+  return listItem_('assignment', { blocks: [
     { type: 'text', text: [{ b: a.title || 'Untitled' }] },
     when ? { type: 'text', look: 'note', text: when } : null,
     { type: 'tags', tags },
+    track ? { type: 'text', look: 'note', text: track.say } : null,
     a.note && !editing ? { type: 'text', paras: String(a.note).split(/\n{2,}/) } : null,
     a.link && !editing ? { type: 'text', text: [{ link: 'Open the link', href: a.link, out: true, look: 'link' }] } : null,
-    editing ? { type: 'group', look: 'store-form', inner: askArea_(asgEditForm_(a)) } : null].filter(Boolean),
+    editing ? { type: 'group', look: 'store-form', inner: askArea_(asgEditForm_(a)) } : null],
     tiles: mine ? [{ icon: editing ? 'close' : 'edit', label: editing ? 'Close' : 'Edit', act: 'asg-edit', data: { id: a.id } },
-      { icon: 'bin', label: 'Delete', act: 'asg-del', data: { id: a.id } }] : [] };
+      { icon: 'bin', label: 'Delete', act: 'asg-del', data: { id: a.id } }] : [] });
 }
+/* TRACKED ONLY (owner: HPRS4905, no generative AI; kinds.json assignment `list.trackOnly`): the card says so, and nothing here helps with its content. */
+const asgTrackOnly_ = a => (((ITEM_KINDS.kinds.assignment || {}).list || {}).trackOnly || []).find(t => String(a.course || '').trim().toUpperCase() === t.course.toUpperCase()) || null;
 /* AN EDIT IS THE SAME FORM, prefilled under `assignment-new@id` (form.js storeEditForm_), its send this list's. */
 function asgEditForm_(a) {
   const fid = storeEditForm_('assignment', a.id, a);
