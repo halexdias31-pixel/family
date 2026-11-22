@@ -4157,6 +4157,11 @@ let k = (String(el.getAttribute('class') || '').trim().split(/\s+/)[0] || el.tag
 for (const a of el.attributes) if (/^data-/.test(a.name) && !/^data-(do|sure|armed|repeat)$/.test(a.name)) k += '|' + a.name + '=' + a.value;
 return k;
 }
+function pressLive_(el, key) {
+if (!el || el.isConnected) return el || null;
+const k = key || pressKey_(el);
+return [...document.querySelectorAll('[data-do="' + el.getAttribute('data-do') + '"]')].find(c => pressKey_(c) === k) || null;
+}
 function pressAgain_(el) {
 if (el.hasAttribute('data-repeat') || PRESS_REPEAT_.has(el.getAttribute('data-do'))) return false;
 const key = pressKey_(el), now = performance.now();
@@ -4445,8 +4450,9 @@ const ACTIONS = {};
 const SLOW_ACTS_ = new Set(['card-share', 'card-cancel']);
 function on(name, fn) {
 ACTIONS[name] = function (el) { ACT_EPOCH++; if (!SLOW_ACTS_.has(name) || !el || !el.setAttribute) return fn.apply(this, arguments);
-const a = arguments; el.setAttribute('aria-busy', 'true');
-requestAnimationFrame(() => setTimeout(() => { try { fn.apply(this, a); } finally { el.removeAttribute('aria-busy'); } })); };
+const a = [...arguments], key = pressKey_(el); el.setAttribute('aria-busy', 'true');
+requestAnimationFrame(() => setTimeout(() => { const live = pressLive_(el, key);
+try { if (live) { a[0] = live; fn.apply(this, a); } } finally { el.removeAttribute('aria-busy'); } })); };
 }
 on('retry', () => { LOADED = false; LOAD_FAILED = ''; LIBRARY_FAILED = '';
 LIBRARY_ROWS = null;
@@ -4540,7 +4546,7 @@ PRESS_SOON_ = { el: doer, key };
 doer.classList.add('is-pressed');
 requestAnimationFrame(() => setTimeout(() => {
 PRESS_SOON_ = null;
-const live = doer.isConnected ? doer : [...document.querySelectorAll('[data-do="' + doer.dataset.do + '"]')].find(c => pressKey_(c) === key);
+const live = pressLive_(doer, key);
 if (live) pressAct_(live, e);
 else if (CLICK_LOG) console.log('[click] dropped — its control is no longer on the screen');
 }, 0));

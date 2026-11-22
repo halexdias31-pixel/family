@@ -309,6 +309,13 @@ function pressKey_(el) {
   for (const a of el.attributes) if (/^data-/.test(a.name) && !/^data-(do|sure|armed|repeat)$/.test(a.name)) k += '|' + a.name + '=' + a.value;
   return k;
 }
+/* THE CONTROL AS DRAWN NOW: itself while on the page, else its redrawn twin (same `pressKey_`), else null. A press that waits a frame
+   asks this, so its work is done on the card on the screen and never on a detached copy (22 Nov: Share pictured a detached card, 2x2 and blank). */
+function pressLive_(el, key) {
+  if (!el || el.isConnected) return el || null;
+  const k = key || pressKey_(el);
+  return [...document.querySelectorAll('[data-do="' + el.getAttribute('data-do') + '"]')].find(c => pressKey_(c) === k) || null;
+}
 /* TRUE WHEN THIS PRESS IS THE SAME ONE AGAIN; otherwise it is recorded as the last. */
 function pressAgain_(el) {
   if (el.hasAttribute('data-repeat') || PRESS_REPEAT_.has(el.getAttribute('data-do'))) return false;
@@ -673,8 +680,10 @@ const ACTIONS = {};
 const SLOW_ACTS_ = new Set(['card-share', 'card-cancel']);
 function on(name, fn) {
   ACTIONS[name] = function (el) { ACT_EPOCH++; if (!SLOW_ACTS_.has(name) || !el || !el.setAttribute) return fn.apply(this, arguments);
-    const a = arguments; el.setAttribute('aria-busy', 'true');
-    requestAnimationFrame(() => setTimeout(() => { try { fn.apply(this, a); } finally { el.removeAttribute('aria-busy'); } })); };
+    const a = [...arguments], key = pressKey_(el); el.setAttribute('aria-busy', 'true');
+    /* REDRAWN MEANWHILE (a landing moves `ACT_EPOCH`'s column): the work goes to the control as drawn now (`pressLive_`), or is not done. */
+    requestAnimationFrame(() => setTimeout(() => { const live = pressLive_(el, key);
+      try { if (live) { a[0] = live; fn.apply(this, a); } } finally { el.removeAttribute('aria-busy'); } })); };
 }
 
 /* Asking again. A failure that offers no way to retry costs a whole page reload, and on a phone a
