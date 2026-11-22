@@ -365,7 +365,7 @@
     ],
     "lines": true,
     "off": "kcUnlisted_(row)",
-    "body": "profBody_(row, live)",
+    "parts": ["note", "places", "hours", "about", "words", "photos", "jobs", "quals"],
     "picture": "profFace_(entry, 96)",
     "tagLook": "prof-tags prof-who-tags",
     "pills": "profPills_(item, entryRow)",
@@ -1336,8 +1336,7 @@
     "links": [
      "writings",
      "events"
-    ],
-    "picture": "kcPersonPic_(item)"
+    ]
    },
    "see": {
     "who": "anyone"
@@ -1379,8 +1378,7 @@
      "bestDivision",
      "best_division",
      "stance"
-    ],
-    "picture": "kcPersonPic_(item)"
+    ]
    },
    "see": {
     "who": "anyone"
@@ -1962,13 +1960,13 @@
      "personId",
      "id"
     ],
-    "name": "kcPersonName_(row)",
+    "name": "fmtName_(row)",
     "tags": [
      "role",
      "handle"
     ],
     "lines": true,
-    "body": "kcPersonBody_(row)",
+    "parts": ["door", "facts"],
     "picture": "profFace_(entry, 160)",
     "tiles": "peopleOpts_(raw)"
    },
@@ -2846,9 +2844,9 @@
     ],
     "facts": true,
     "tagLook": "qcard-tags",
-    "look": "kcShopLook_(entry)",
-    "picture": "kcShopPic_(entry)",
-    "pills": "kcShopPills_(entry)"
+    "look": { "wearable": "is-wear", "off": "is-off" },
+    "picture": "image",
+    "price": true
    },
    "see": {
     "who": "anyone"
@@ -2898,16 +2896,13 @@
    "card": {
     "look": "kc-facts",
     "lines": true,
-    "body": "storeLines_(row, \"partner\")",
-    "sheet": "storeSheet_(item, entry)",
     "name": "business",
     "tags": [
      "status"
     ],
     "links": [
      "who"
-    ],
-    "tiles": "storeTiles_(item, entry)"
+    ]
    },
    "see": {
     "who": "admin"
@@ -3009,14 +3004,11 @@
    "card": {
     "look": "kc-facts",
     "lines": true,
-    "body": "storeLines_(row, \"food\")",
-    "sheet": "storeSheet_(item, entry)",
     "name": "name",
     "tags": [
      "meal",
      "shop"
-    ],
-    "tiles": "storeTiles_(item, entry)"
+    ]
    },
    "see": {
     "who": "owner"
@@ -3127,8 +3119,6 @@
    "card": {
     "look": "kc-facts",
     "lines": true,
-    "body": "storeLines_(row, \"task\")",
-    "sheet": "storeSheet_(item, entry)",
     "name": "title",
     "tags": [
      "list",
@@ -3139,7 +3129,6 @@
      "booking_id",
      "item_id"
     ],
-    "tiles": "storeTiles_(item, entry)",
     "tick": {
      "f": "done",
      "on": "yes",
@@ -3269,13 +3258,10 @@
    "card": {
     "look": "kc-facts",
     "lines": true,
-    "body": "storeLines_(row, \"drive_area\")",
-    "sheet": "storeSheet_(item, entry)",
     "name": "name",
     "tags": [
      "folder_id"
-    ],
-    "tiles": "storeTiles_(item, entry)"
+    ]
    },
    "see": {
     "who": "admin"
@@ -3343,14 +3329,11 @@
    "card": {
     "look": "kc-facts",
     "lines": true,
-    "body": "storeLines_(row, \"session\")",
-    "sheet": "storeSheet_(item, entry)",
     "name": "who",
     "tags": [
      "days",
      "start"
-    ],
-    "tiles": "storeTiles_(item, entry)"
+    ]
    },
    "see": {
     "who": "admin"

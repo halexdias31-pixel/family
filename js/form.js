@@ -555,7 +555,7 @@ function storeItems_() {
   });
 }
 /* A ROW'S CARD: its form's fields as lines, a choice said in its own words; the `new` card is the form itself, asked a field a step. */
-function storeLines_(r, k) {
+function itemLines_(r, k) {
   const fields = (FORM_SPECS.forms[storeFormOf_(k)] || {}).fields || [];
   return [{ type: 'list', items: fields.map(x => { const v = String(r[x.f] == null ? '' : r[x.f]), c = (x.options || []).find(o => String(o.v) === v);
     return { label: x.label || x.f, value: c ? c.t : v }; }).filter(l => l.value.trim()) }];

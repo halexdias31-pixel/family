@@ -76,7 +76,7 @@ function profQualChip_(p) {
 const profTagRow_ = (look, tags) => (tags.length ? { type: 'tags', look: 'prof-tags prof-teach ' + look, tags } : null);
 /* A ROW PER LEVEL, HIGHEST FIRST (owner, 18 Nov: settings.json `levels.quals` order, `qualRank_`); each qualification its own tag, and
    within a level the subjects stay together in the order they came. Rows, like the jobs' row. */
-function profQuals_(t) {
+function profQuals_(t, kind) {
   const parts = Array.isArray(t.qualsParts) ? t.qualsParts.filter(p => p && profQualV_(p.subject)) : [];
   if (!parts.length) return [profTagRow_('prof-quals', profList_(t.quals).map(text => ({ pill: true, text })))];
   const at = {}, rows = [];
@@ -87,7 +87,7 @@ function profQuals_(t) {
   });
   return rows.map((r, i) => [r, i]).sort((a, b) => (a[0].rank - b[0].rank) || (a[1] - b[1])).map(([r]) => {
     /* ONLY THE BEST AT THIS LEVEL (owner, 18 Nov): kinds.json `tutor.card.quals` — how many, and the one grade scale; ties keep stored order. */
-    const Q = (((typeof ITEM_KINDS !== 'undefined' && ITEM_KINDS.kinds.tutor) || {}).card || {}).quals || {}, cap = Number(Q[r.list[0].level]) || 0;
+    const Q = (((typeof ITEM_KINDS !== 'undefined' && ITEM_KINDS.kinds[kind || 'tutor']) || {}).card || {}).quals || {}, cap = Number(Q[r.list[0].level]) || 0;
     const g = p => { const v = (Q.grades || {})[profQualV_(p.grade).toUpperCase()]; return v == null ? -1 : Number(v); };
     const list = cap ? r.list.map((p, i) => [p, i]).sort((a, b) => (g(b[0]) - g(a[0])) || (a[1] - b[1])).slice(0, cap)
       .sort((a, b) => a[1] - b[1]).map(a => a[0]) : r.list;
@@ -269,15 +269,4 @@ function profTagRows_(t) {
   return [main.length ? { look: 'prof-tags prof-teach', tags: teachGroups_(main).map(g => teachChip_(g, true)) } : null,
     also.length ? { look: 'prof-tags prof-teach', tags: teachGroups_(also).map(g => teachChip_(g, false)) } : null,
     profTagRow_('prof-facts', profFacts_(t).map(text => ({ pill: true, text })))].filter(Boolean);
-}
-/* ITS LINES: the note (if `it.live` kept it), the description, photos, words, qualifications, jobs, places, hours. */
-function profBody_(t, L) {
-  const note = ((L || {}).say || {}).note || '', words = profList_(t.tags).slice(0, 3);
-  /* WHAT A PARENT ASKS FIRST, FIRST (owner, 19 Nov: "location should be at top"): where and when, then who they are, then the record. */
-  return [note ? { type: 'text', look: 'prof-say prof-hid', text: note } : null,
-    profPlaces_([String(t.town || '').trim()].filter(Boolean)), profAvail_(t),
-    t.description ? { type: 'text', look: 'prof-say cut2', act: 'cut-open', text: t.description } : null,
-    words.length ? { type: 'text', look: 'prof-words', text: words.map((v, i) => (i ? [{ i: '·' }, { b: v }] : [{ b: v }])) } : null,
-    Array.isArray(t.photos) && t.photos.length ? { type: 'photos', srcs: t.photos.map(u => pic(u)), more: 4 } : null,
-    profJobs_(t), ...profQuals_(t)].filter(Boolean);
 }
