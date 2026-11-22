@@ -32,7 +32,7 @@ on('qp-face-text', el => { const f = el.closest('.qp-face'); if (f && f.getAttri
   ansFace_(el.closest('.qp-mark'), 'text'); });
 
 /* ---------- WHICH FACE A BOX SHOWS: the one the student picked by hand (the part's record, `face`), else the question's own
-   (`face` on its row: text, graph, lines or blank -- kinds.json question `shape`), else text. A camera is never a default: it asks for the camera. */
+   (`face` on its row: text, graph, lines or blank -- kinds.json question `rowFields`), else text. A camera is never a default: it asks for the camera. */
 const ansFacePick_ = (k, f) => partRecPutAt_(partKeyOfAns_(k), 'face', f);
 function ansFaceWant_(x) {
   const own = partRecAt_(partKeyOfAns_(ansKey_(x))).face;

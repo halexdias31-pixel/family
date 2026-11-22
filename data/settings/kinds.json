@@ -34,7 +34,7 @@
    "say": "Ids of other items it points at (a manuscript's writings, an event's figures)."
   }
  },
- "shapesSay": "THE PERSON, ITEM, REFERENCE, RECORD AND THREAD SHAPES (owner, 22 Nov, CARD SHAPES): a kind that draws as a Person (picture, name, role tags, fact lines, links), an Item (title, tags — list, due, meal, price —, lines, tiles, sheet), a Learning: Reference (tags, fact lines, picture, links; its body is its `card.parts`, drawn by referenceBody_), an Activity: Record (who/when tags, money or fact pills, a status; its `card.record`, drawn by recordName_, recordPills_ and recordSum_) or an Activity: Thread (its messages and reply box, drawn by threadCard_) says so in its `shape`; cardOfItem_ (and dkCard_, meCard, the assignment rows) draw it through shapeCard_ (js/cards-parts.js), which keeps only that shape's slots and marks the card data-shape. tools/one-card.js checks each kind wears its one shape.",
+ "shapesSay": "THE PERSON, ITEM, REFERENCE, RECORD AND THREAD SHAPES (owner, 22 Nov, CARD SHAPES): a kind that draws as a Person (picture, name, role tags, fact lines, links), an Item (title, tags — list, due, meal, price —, lines, tiles, sheet), a Learning: Reference (tags, fact lines, picture, links; its body is its `card.parts`, drawn by referenceBody_), an Activity: Record (who/when tags, money or fact pills, a status; its `card.record`, drawn by recordName_, recordPills_ and recordSum_) an Activity: Thread (its messages and reply box, drawn by threadCard_) or a Learning: Question (tags, its stem with figures, the one answer box, the mark and reveal actions; its `card.question`, its stem and actions hooks and its box drawn by questionBox_; a paper is a set of them) says so in its `shape`; cardOfItem_ (and dkCard_, meCard, the assignment rows) draw it through shapeCard_ (js/cards-parts.js), which keeps only that shape's slots and marks the card data-shape. tools/one-card.js checks each kind wears its one shape.",
  "kinds": {
   "bookform": {
    "source": "the booking form (js/book-*.js)",
@@ -840,6 +840,7 @@
      "source"
     ]
    },
+   "shape": "Question",
    "card": {
     "look": "qCardLook_(entry)",
     "lookElse": "qb",
@@ -863,9 +864,7 @@
     ],
     "keep": "qCardKeep_(entry)",
     "data": "kcQData_(item, entry)",
-    "picture": "qCardPic_(entry)",
-    "sheet": "qCardSheet_(entry, pic)",
-    "tiles": "qCardTiles_(entry)",
+    "question": {"stem": "qCardPic_(entry)", "box": {"embed": "qsheet", "look": "qsheet-embed"}, "actions": "qCardTiles_(entry)"},
     "toolRow": true,
     "letter": {
      "say": "THE QUESTION CARD AS THE SUNDAY EMAIL DRAWS IT (57a-62a): renderCard with an inline ink fills these styles, {token} from the email ink and the sizes here; mail clients read inline styles only.",
@@ -907,7 +906,7 @@
    "see": {
     "who": "anyone"
    },
-   "shape": {
+   "rowFields": {
     "face": {
      "type": "string",
      "required": false,
@@ -2869,6 +2868,7 @@
   },
   "paper": {
    "source": "data/questions.json paper_id (+ data/expected-papers.json)",
+   "shape": "Question",
    "find": {
     "facets": [
      "paperId"

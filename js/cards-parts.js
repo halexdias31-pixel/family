@@ -273,6 +273,8 @@ function itemMapOfKind_(k) {
   if (c.parts) M.body = (r, live) => (K.shape === 'Reference' ? referenceBody_ : personBody_)(r, live, k);
   else if (K.shape === 'Record' && c.record) { const R = c.record; M.name = r => recordName_(R, r);
     if (R.pills) M.pills = it => recordPills_(R, it); if (R.sum) M.body = (r, live) => recordSum_(R, r, live); }
+  else if (K.shape === 'Question' && c.question) { const Q = c.question, stem = kindHook_(Q.stem, null), act = kindHook_(Q.actions, []);
+    M.picture = (it, x) => stem(kindCtx_(it, x)); M.sheet = (it, x, pic) => questionBox_(Q, x, pic); M.tiles = (it, x) => act(kindCtx_(it, x)); }
   else if ((K.find || {}).from === 'store') { M.body = r => itemLines_(r, k); M.sheet = (it, x) => storeSheet_(it, x); M.tiles = (it, x) => storeTiles_(it, x); }
   if (c.picture && !/\(/.test(c.picture)) M.picture = (it, x) => (x[c.picture] && typeof pic === 'function' ? { src: pic(x[c.picture]), look: 'thing-pic', alt: '' } : null);
   else if (!c.picture && K.shape === 'Person') M.picture = it => (typeof personPicSpec_ === 'function' ? personPicSpec_(it.raw.id, it.name) : null);
@@ -295,7 +297,8 @@ function kcRooms_(r) { return Array.isArray(r.rooms) && r.rooms.length ? r.rooms
 function kcVenuePic_(it, x) { const pix = typeof VENUE_PIX === 'object' && typeof venueShape_ === 'function' ? VENUE_PIX[venueShape_(it.raw)] : null; return pix ? { pix, alt: x.name } : null; }
 /* A QUESTION PART is named "Q5b"; its data- attributes say which part. */
 function qCardName_(r) { return r.question != null && String(r.question) !== '' ? 'Q' + r.question + (typeof qPartName_ === 'function' ? qPartName_(r.part) : '') : ''; }
-function kcQData_(it, x) { return { part: x.key || '', of: it.id || x.key || '' }; }
+/* ITS `fav` STATE: the star's wrap (find-bundles.js), styled as the shape's state, never as the card's own `favwrap` class. */
+function kcQData_(it, x) { return { part: x.key || '', of: it.id || x.key || '', state: 'fav' }; }
 function kcUnlisted_(r) { return r.listed === false; }
 function kcTutorMoney_(r) { return r.rate ? { rate: typeof rateRange_ === 'function' ? rateRange_(r) : '' } : {}; }
 function kcTutorSay_(r) { return { note: typeof profNote_ === 'function' ? profNote_(r) : '' }; }
@@ -340,7 +343,7 @@ function cardOfItem_(it, x) {
   const body = tool ? [] : M.sheet ? M.sheet(it, own, pic) : M.lines ? it.body : [];
   return shapeCard_(it.kind, { look, name, row: own.row || {}, ...(M.off ? { off: !!M.off(it.raw || {}) } : {}), picture: pic,
     body, ...(tool ? { cut: tool } : {}), ...(M.facts && !tool && !body.length ? { empty: kcEmpty_() } : {}),
-    ...(M.data ? { data: M.data(it, own) } : {}), ...(M.tagLook ? { tagLook: M.tagLook } : {}),
+    ...(M.data || (tool && tool.state) ? { data: Object.assign(M.data ? M.data(it, own) : {}, tool && tool.state ? { state: tool.state } : {}) } : {}), ...(M.tagLook ? { tagLook: M.tagLook } : {}),
     ...(M.tiles ? { tiles: M.tiles(it, own) } : {}), ...(M.toolRow ? { toolRow: { key: own.key || '' } } : {}),
     ...(M.tagRows ? { tagRows: M.tagRows(it, own) } : {}),
     tags: M.facts ? itemFactsTags_(tags, name) : tags });
@@ -349,7 +352,7 @@ function cardOfItem_(it, x) {
    role tags, fact lines and links (tutor, person, figure, boxer); an Item its title, tags, lines, tiles and sheet (docket, task, food, partner,
    session, drive_area, assignment, product); a Reference its tags, fact lines, picture and links (spec, insert, content, practical, project,
    hist, manuscript, writing, event, chem, fooddb, venue, subject, level, mech); an Activity: Record its who/when tags, money or fact pills and status
-   (post, booking and its receipt); an Activity: Thread its messages and reply (msg). Each keeps only its own slots and is marked `data-shape` (and `data-item-kind`, read by tools/one-card.js). */
+   (post, booking and its receipt); an Activity: Thread its messages and reply (msg); a Learning: Question its tags, stem, answer box and actions (question). Each keeps only its own slots and is marked `data-shape` (and `data-item-kind`, read by tools/one-card.js). */
 const kindShape_ = k => { const h = ((typeof ITEM_KINDS !== 'undefined' && ITEM_KINDS.kinds[k]) || {}).shape; return typeof h === 'string' ? h : ''; };
 const CARD_SLOTS_ = { Person: ['look', 'name', 'row', 'off', 'picture', 'tags', 'tagLook', 'tagRows', 'body', 'tiles'],
   Item: ['look', 'name', 'row', 'off', 'picture', 'tags', 'tagLook', 'body', 'tiles', 'cut', 'empty'],
@@ -357,7 +360,10 @@ const CARD_SLOTS_ = { Person: ['look', 'name', 'row', 'off', 'picture', 'tags', 
   Record: ['look', 'name', 'row', 'picture', 'tags', 'body', 'cut', 'empty'],
   /* A THREAD (msg, me-messages.js threadCard_): who, tags, its messages or reply box, its tiles. A conversation already written is the old cut maker's */
   /* (card-fields.json `msg`: face, who, tags, last line, Open and Reply), so its head and each message wear shapeData_ instead. */
-  Thread: ['name', 'tags', 'body', 'tiles'] };
+  Thread: ['name', 'tags', 'body', 'tiles'],
+  /* A LEARNING: QUESTION (question, and a paper as a set of them; find-figures.js qOneCard_): its tags, its stem with figures (the picture), the one */
+  /* answer box (its body, the qsheet embed) and the mark and reveal actions (tiles, the tool row). Its states: `wait` while its words load (libWaitHtml_). */
+  Question: ['look', 'name', 'row', 'picture', 'tags', 'tagLook', 'body', 'tiles', 'toolRow'] };
 /* A CARD THE OLD CUT MAKER DRAWS (findCard, card_) wears its shape as data- attributes: what a Thread's pieces add to their `cardData` or `data`. */
 const shapeData_ = k => (kindShape_(k) ? { shape: kindShape_(k), 'item-kind': k } : {});
 function shapeCard_(kind, s) {
@@ -388,7 +394,9 @@ function itemFactsTags_(tags, name) {
 function itemTool_(html, lead, facts) {
   const cut = kcSplit_(String(html || '').trim()) || { cls: '', lines: String(html || '') };
   const hoist = kcHoist_(lead + cut.lines);
-  const out = { cls: String(cut.cls || '').split(/\s+/).filter(c => c && !/^(card|fc|kc)$/.test(c)).join(' '), lines: hoist.lines, form: '', tiles: hoist.tiles };
+  const out = { cls: String(cut.cls || '').split(/\s+/).filter(c => c && !/^(card|fc|kc)$/.test(c)).join(' '), lines: hoist.lines, form: '', tiles: hoist.tiles,
+    /* ITS SHAPE STATE (a receipt, done) goes with its classes onto the card. */
+    state: (/\sdata-state="([^"]*)"/.exec(cut.attrs || '') || [])[1] || '' };
   if (!facts) { out.lines = kcTidy_('', out.lines, '').lines; return out; }
   const f = kcFacts_(out.lines);
   if (f.form) { out.lines = ''; out.form = f.form; } else out.lines = (f.lines || kcEmptyLine_()) + (f.src ? kcSrc_(f.src) : '');
@@ -468,3 +476,7 @@ const recordPills_ = (R, it) => { const st = R.status ? recordWord_(R.status.fac
 const recordSum_ = (R, r, live) => { const said = R.sum.map(w => recordWord_(w, r, live)).filter(Boolean).join(' · ');
   return said ? [{ type: 'group', tag: 'p', look: 'rc-sum', text: said }] : []; };
 const personBody_ = (r, live, k) => ITEM_KINDS.kinds[k].card.parts.flatMap(p => [].concat(PERSON_PARTS_[p](r, live, k))).filter(Boolean);
+/* ONE QUESTION BODY (CARD SHAPES, Learning: Question): its kind's `card.question` says it as data. `stem` names the hook that draws its stem's */
+/* figure (the card's picture); `box` the embed that draws its words and the one answer box (its look and tool); `actions` the hook for Check, */
+/* the answer's reveal and the rest of its tiles. The marker is not here: the box and the tiles call it exactly as before. */
+const questionBox_ = (Q, x, pic) => [{ type: 'embed', tool: Q.box.embed, look: Q.box.look, args: { key: x.key || '', pic: !!pic } }];

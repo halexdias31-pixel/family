@@ -3943,7 +3943,7 @@ return loading_();
 }
 function libWaitHtml_(x) {
 const q = isQ_(x);
-return findCard({ kind: 'libwait', name: (x && x.name) || '', kcOwn: { cls: 'lib-wait' + (q ? ' qcard' : ''), attrs: ` data-lib="${esc((x && x.key) || '')}"`,
+return findCard({ kind: 'libwait', name: (x && x.name) || '', kcOwn: { cls: 'lib-wait' + (q ? ' qcard' : ''), attrs: ` data-lib="${esc((x && x.key) || '')}"${q ? ' data-shape="Question" data-item-kind="question"' : ''} data-state="wait"`,
 tags: tagRow_(x), lines: cardBlocks_((q ? [] : [{ type: 'group', tag: 'p', look: 'kc-line', text: (x && x.name) || '' }]).concat({ type: 'group', look: 'lib-say', inner: libSay_(x) })) } });
 }
 function libPagesFresh_() {
@@ -8348,7 +8348,6 @@ const qWas_ = x => Q_DRAWN.get(x.key) || { stems: [], shown: [x], ans: true };
 const qCardKeep_ = x => { if (x.key) Q_ITEM.set(x.key, x.item || x); };
 const qCardPic_ = x => { const was = qWas_(x), pic = was.stems.length && !was.only ? qStemPic_(x, was) : ''; return pic ? { svg: pic } : null; };
 const qCardLook_ = x => 'qb favwrap qcard qb-part' + (isFav(x.key) ? ' is-fav' : '');
-const qCardSheet_ = (x, pic) => [{ type: 'embed', tool: 'qsheet', look: 'qsheet-embed', args: { key: x.key || '', pic: !!pic } }];
 const qCardTiles_ = x => { const was = qWas_(x); try { return qtTiles_(x, was.ans && questionHasAns_(x) && !schemeOwed_(x)); } catch (e) { oops_(e, 'question:spec'); return []; } };
 function qOneCard_(p, ctx) {
 const stems = (p.stems || []).filter(s => !ctx.carried.has(s) && !ctx.drawn[stemId_(s)]);
@@ -8646,11 +8645,11 @@ const qaToggle_ = (k, open) => tile_(qaToggleOpts_(k, open));
 function questionAnsCard_(x, inRow, bare) {
 const tags = bare ? '' : tagRow_(x, 'ans');
 const id = (x.row && x.row.row_id) || x.key || '';
-if (schemeOwed_(x)) return figBox_({ look: 'qcard qans-card', attrs: { 'data-of': id }, inner: tags
+if (schemeOwed_(x)) return figBox_({ look: 'qcard qans-card', attrs: { 'data-of': id, 'data-shape': 'Question' }, inner: tags
 + figBox_({ tag: 'p', look: 'qans-none', text: 'No checked answer yet: this paper\'s mark scheme has not been added.' }) });
 const k = ansKey_(x);
 const open = ansOpen_(x);
-return figBox_({ look: 'qcard qans-card' + (open ? '' : ' is-hidden'), attrs: { 'data-of': id, 'data-k': k },
+return figBox_({ look: 'qcard qans-card' + (open ? '' : ' is-hidden'), attrs: { 'data-of': id, 'data-k': k, 'data-shape': 'Question' },
 inner: tags
 + (inRow ? '' : figBox_({ look: 'tile-row qans-tiles', inner: qaToggle_(k, open)
 + (open ? '' : figBox_({ tag: 'span', look: 'qans-wait-k', text: 'Answer hidden' })) }))
@@ -10793,7 +10792,7 @@ const card = kindOf_(x).card || thingCard_;
 const html = tagsAreTitle_(x, tagsOnTop_(x, tierCore_('kind', x.kind) ? card(x, credits) : tierRun_('card:' + x.kind, card, null, [x, credits], oopsHtml_)));
 const shown = html;
 if (!x.key) return shown;
-return cardBlock_({ type: 'group', look: 'favwrap' + (isFav(x.key) ? ' is-fav' : ''), inner: shown }) + (/\bkc-four\b/.test(shown) ? '' : cardRow_(x));
+return cardBlock_({ type: 'group', look: 'favwrap' + (isFav(x.key) ? ' is-fav' : ''), attrs: { 'data-state': 'fav' }, inner: shown }) + (/\bkc-four\b/.test(shown) ? '' : cardRow_(x));
 }
 on('cut-open', el => { if (el && el.classList) el.classList.toggle('is-open'); });
 function chipShow_(f, i) {

@@ -353,7 +353,6 @@ const qWas_ = x => Q_DRAWN.get(x.key) || { stems: [], shown: [x], ans: true };
 const qCardKeep_ = x => { if (x.key) Q_ITEM.set(x.key, x.item || x); };
 const qCardPic_ = x => { const was = qWas_(x), pic = was.stems.length && !was.only ? qStemPic_(x, was) : ''; return pic ? { svg: pic } : null; };
 const qCardLook_ = x => 'qb favwrap qcard qb-part' + (isFav(x.key) ? ' is-fav' : '');
-const qCardSheet_ = (x, pic) => [{ type: 'embed', tool: 'qsheet', look: 'qsheet-embed', args: { key: x.key || '', pic: !!pic } }];
 const qCardTiles_ = x => { const was = qWas_(x); try { return qtTiles_(x, was.ans && questionHasAns_(x) && !schemeOwed_(x)); } catch (e) { oops_(e, 'question:spec'); return []; } };
 /* ONE PART'S CARD: the stems not drawn yet by an earlier part go with it. */
 function qOneCard_(p, ctx) {
@@ -725,12 +724,12 @@ const qaToggle_ = (k, open) => tile_(qaToggleOpts_(k, open));
 function questionAnsCard_(x, inRow, bare) {
   const tags = bare ? '' : tagRow_(x, 'ans');
   const id = (x.row && x.row.row_id) || x.key || '';
-  if (schemeOwed_(x)) return figBox_({ look: 'qcard qans-card', attrs: { 'data-of': id }, inner: tags
+  if (schemeOwed_(x)) return figBox_({ look: 'qcard qans-card', attrs: { 'data-of': id, 'data-shape': 'Question' }, inner: tags
     + figBox_({ tag: 'p', look: 'qans-none', text: 'No checked answer yet: this paper\'s mark scheme has not been added.' }) });
   const k = ansKey_(x);
   const open = ansOpen_(x);
   /* ---------- ONE TILE, IN ONE PLACE, AND IT SAYS WHICH WAY IT GOES § */
-  return figBox_({ look: 'qcard qans-card' + (open ? '' : ' is-hidden'), attrs: { 'data-of': id, 'data-k': k },
+  return figBox_({ look: 'qcard qans-card' + (open ? '' : ' is-hidden'), attrs: { 'data-of': id, 'data-k': k, 'data-shape': 'Question' },
     inner: tags
       + (inRow ? '' : figBox_({ look: 'tile-row qans-tiles', inner: qaToggle_(k, open)
         /* "ANSWER HIDDEN", AND NOT "HAVE A GO FIRST". § */

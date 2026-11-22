@@ -9,10 +9,10 @@ const { bare, text } = require('./lib/gen.js');
 const ROOT = path.join(__dirname, '..'), PORT = 8131;
 /* THE ONE MAKER'S OWN CLASSES, and the state classes every card may wear. */
 const BASE = /^(card|fc|kc|kc-[\w-]+|is-empty|is-off|is-locked|tap)$/;
-/* LOOKS A LATER CARD-SHAPES STEP OWNS (owner, 22 Nov, docs/owner-queue.md CARD SHAPES): Practice's question card (`qcard`, `lib-wait` while its words
-   load) becomes the Learning: Question shape. Counted and named every build, not failed, until that step; delete each entry as its shape lands. */
-/* AN ACTIVITY CARD'S OLD LOOK (22 Nov): a receipt keeps style.css's `.rc`, `.rc.is-done` and a conversation's head `.msg-fc`, `.msg-fc.unread` — the Record and Thread shapes landed with their looks unchanged, pixel for pixel; seen only since this check gave Booking and Messages sample records. */
-const LATER = { qcard: 'Learning: Question', 'lib-wait': 'Learning: Question', rc: 'Activity: Record look', 'is-done': 'Activity: Record look', 'msg-fc': 'Activity: Thread look', unread: 'Activity: Thread look' };
+/* NO CARD WAITS ON A LATER SHAPE NOW (owner, 22 Nov, CARD SHAPES: Learning: Question, the last step): the question card's `qcard` and `lib-wait`, a
+   receipt's `rc`, `is-done` and a conversation's `msg-fc`, `unread` were styled here; each is now a shape (`[data-shape="Question"]`) or a shape
+   state (`data-state`: wait, receipt, done, one, unread) the one maker writes, and the classes stay only as handlers' hooks. Empty, so any card with CSS of its own fails. */
+const LATER = {};
 const MIME = { '.js': 'text/javascript', '.css': 'text/css', '.html': 'text/html', '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml' };
 
 /* A SETTINGS CARD IS ORDINARY BLOCKS TOO (unify batch 9): no CSS keyed on `.me-form` (the class stays only as autosave's hook), and the line that says
@@ -50,8 +50,13 @@ async function run() {
   const styled = c => new RegExp('\\.' + c.replace(/-/g, '\\-') + '(?![\\w-])').test(css);
   const payload = withActivity(JSON.parse(fs.readFileSync(path.join(ROOT, 'tools/lib/payload.json'), 'utf8')));
   const { chromium, devices } = require('playwright');
+  /* THE LIBRARY WITH ITS WORDS where this machine has them (as tools/share-picture.js serves it): Practice then draws its question cards, not only
+     their waiting cards, so the Question shape is looked at as a child sees it (Learning: Question, 22 Nov). */
+  const lib = require('./lib/lib-full.js');
   const srv = http.createServer((q, s) => {
     let p = decodeURIComponent(q.url.split('?')[0]); if (p.endsWith('/')) p += 'index.html';
+    let body = null; try { body = lib.serve(path.join(ROOT, p)); } catch (e) { body = null; }
+    if (body !== null) { s.writeHead(200, { 'content-type': 'application/json' }); return s.end(body); }
     fs.readFile(path.join(ROOT, p), (e, b) => { if (e) { s.writeHead(404); return s.end(); } s.writeHead(200, { 'content-type': MIME[path.extname(p)] || 'application/octet-stream' }); s.end(b); });
   }).listen(PORT);
   const b = await chromium.launch();
@@ -79,6 +84,8 @@ async function run() {
       for (let i = 0; i < 16 && await pg.getByText("Doesn't matter", { exact: true }).locator('visible=true').count(); i++) await click(pg, "Doesn't matter");
       /* SETTLED: the same number of cards twice, half a second apart (eight seconds at most). */
       for (let i = 0, last = -1; i < 16; i++) { const n = await pg.evaluate(() => document.querySelectorAll('#screen .card').length); if (n && n === last) break; last = n; await pg.waitForTimeout(500); }
+      /* PRACTICE'S WORDS ARRIVE AFTER ITS WAITING CARDS (a loaded build is slow): its question cards are waited for, 45 seconds at most. */
+      if (d === 'Practice') await pg.waitForFunction(() => document.querySelector('#screen .kc-question') && !document.querySelector('#screen .lib-wait'), null, { timeout: 45000 }).catch(() => {});
       const cards = await pg.evaluate(() => [...document.querySelectorAll('#screen .card')].filter(e => !e.parentElement.closest('.card')).slice(0, 60)
         .map(e => ({ n: e.getAttribute('aria-label') || e.innerText.slice(0, 30), c: e.className, sh: e.dataset.shape || '', ik: e.dataset.itemKind || '', set: e.matches('.kc-setting'),
           kc: e.matches('.fc.kc') && [...e.children].every(k => /^kc-/.test(k.className)) })));
@@ -103,9 +110,9 @@ async function run() {
     unshaped.forEach(x => console.log('  Settings › ' + String(x.n).replace(/\n/g, ' ') + ' [no shape]'));
     if (unshaped.length) throw new Error('one-card: ' + unshaped.length + ' settings card(s) with no shape');
     if (shapes.length > 4) throw new Error('one-card: Settings uses ' + shapes.length + ' shapes; four at most');
-    /* THE PERSON, ITEM, REFERENCE, RECORD AND THREAD SHAPES (owner, 22 Nov, CARD SHAPES): every card of a kind kinds.json gives a Person, Item, Learning: Reference or Activity: Record or Thread `shape` wears exactly that one, and only that one. */
+    /* THE PERSON, ITEM, REFERENCE, RECORD, THREAD AND QUESTION SHAPES (owner, 22 Nov, CARD SHAPES): every card of a kind kinds.json gives a Person, Item, Learning: Reference or Question, or Activity: Record or Thread `shape` wears exactly that one, and only that one. */
     const KINDS = require('../data/settings/kinds.json').kinds;
-    ['Person', 'Item', 'Reference', 'Record', 'Thread'].forEach(h => {
+    ['Person', 'Item', 'Reference', 'Record', 'Thread', 'Question'].forEach(h => {
       const kinds = Object.keys(KINDS).filter(k => KINDS[k].shape === h), mine = all.filter(x => kinds.indexOf(x.ik) >= 0);
       const worn = [...new Set(mine.map(x => x.sh))], wrong = mine.filter(x => x.sh !== h);
       console.log('one-card: ' + h + ' — ' + mine.length + ' card(s) of ' + [...new Set(mine.map(x => x.ik))].sort().join(', ') + ' in ' + worn.length + ' shape(s)');
@@ -113,12 +120,12 @@ async function run() {
       if (wrong.length || worn.length > 1) throw new Error('one-card: ' + h + ' kinds draw in ' + worn.length + ' shapes; exactly one');
     });
     /* EVERY ACTIVITY CARD, by the kind its class says (a receipt is a booking's card): a post, a receipt or a conversation with no shape fails, and each must be seen. */
-    const ACT = { 'kc-post': ['post', 'Record'], 'kc-receipt': ['booking', 'Record'], 'kc-msg': ['msg', 'Thread'] };
+    const ACT = { 'kc-post': ['post', 'Record'], 'kc-receipt': ['booking', 'Record'], 'kc-msg': ['msg', 'Thread'], 'kc-question': ['question', 'Question'] };
     Object.keys(ACT).forEach(c => { const of = all.filter(x => x.c.split(/\s+/).indexOf(c) >= 0), bare = of.filter(x => x.sh !== ACT[c][1] || x.ik !== ACT[c][0]);
       bare.forEach(x => console.log('  ' + x.door + ' › ' + String(x.n).replace(/\n/g, ' ') + ' [' + c + ' wears ' + (x.sh || 'no shape') + ']'));
       if (!of.length || bare.length) throw new Error('one-card: ' + (of.length ? bare.length + ' ' + c + ' card(s) not a ' + ACT[c][1] : 'no ' + c + ' card drawn'));
     });
-    const loose = all.filter(x => ['Person', 'Item', 'Reference', 'Record', 'Thread'].indexOf(x.sh) >= 0 && (!x.ik || KINDS[x.ik].shape !== x.sh));
+    const loose = all.filter(x => ['Person', 'Item', 'Reference', 'Record', 'Thread', 'Question'].indexOf(x.sh) >= 0 && (!x.ik || KINDS[x.ik].shape !== x.sh));
     loose.forEach(x => console.log('  ' + x.door + ' › ' + String(x.n).replace(/\n/g, ' ') + ' [' + x.sh + ' on ' + (x.ik || 'no kind') + ']'));
     if (loose.length) throw new Error('one-card: ' + loose.length + ' card(s) wear a shape their kind does not declare');
     if (!all.length) throw new Error('one-card: no cards drawn — the app did not start');
