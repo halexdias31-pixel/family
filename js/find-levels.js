@@ -289,6 +289,8 @@ function sittingOf_(x) {
   SITTING_MEMO.set(x, out);
   return out;
 }
+/* ONE YEAR QUESTION (step 9, 22 Nov): a paper's sitting year, else a bout's year — one `Year`, as `Month` and `Day` already read any item's date. */
+function itemYear_(x) { return sittingOf_(x).year || boutDate_(x).year || ''; }
 
 /* Numeric-aware, so Grade 2 comes before Grade 10. Plain alphabetical put Grade 10 first, and that
    reads as the list being unsorted rather than sorted by a rule nobody wanted. */
