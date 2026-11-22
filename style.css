@@ -1549,7 +1549,7 @@ html.flow:not(.is-loaded) #s-feed { min-height: 100svh; }   /* the home column h
 /* ---------- A RECEIPT IS ALREADY THE CARD § */
 /* ---------- A PAPER OBJECT IS THE CARD, so the glass behind it steps back § */
 /* ---------- `> .rc` MISSED THE ONE THAT MATTERS MOST § */
-.pane:has(.rc),
+.pane:has([data-state~="receipt"]),
 /* `.pane:has(.pass)` WAS HERE. A staff pass was paper and wanted the glass off; a person is an
    ordinary widget now and wants the pane it sits in, which is the whole of what was asked for. */
 .pane:has(.paper),
@@ -1627,7 +1627,7 @@ html.flow:not(.is-loaded) #s-feed { min-height: 100svh; }   /* the home column h
 .msg-body::-webkit-scrollbar { width: 0; display: none; }
 .msg-when { margin: var(--s0) var(--s2) 0; font-size: var(--fs-small); }
 /* Unread. It was a rule down the LEFT of a full-width row, which was right for a list of rows and cannot survive a bubble that has a side: § */
-.msg.unread .msg-bub { border-color: var(--gold); }
+.msg.is-unread .msg-bub { border-color: var(--gold); }
 
 /* ---------- THE BOX AT THE FOOT OF A THREAD § */
 .msg-form { display: flex; align-items: flex-end; gap: var(--s2); flex-wrap: wrap;
@@ -1743,7 +1743,7 @@ html.flow:not(.is-loaded) #s-feed { min-height: 100svh; }   /* the home column h
                           color: var(--gold); }
 
 /* ---------- THE RECEIPT § */
-.rc {
+[data-state~="receipt"] {
   background: var(--raised);
   color: var(--ink);
   border: 1px solid var(--line);
@@ -2020,7 +2020,7 @@ label.bk-k { cursor: pointer; }
 .bk-row.bk-wk.is-off .slot-hours { opacity: .45; }
 .bk-row.bk-wk.is-off .wk-hh { color: var(--ink); }
 /* A SAVED BOOKING'S WEEK IS READ, NOT PRESSED: the whole grid at full strength, the booked hours gold (owner, 8 Nov). */
-.rc.is-done .bk-row.bk-wk.is-off .slot-hours, .rc.is-done .bk-row.bk-wk .hr.shut { opacity: 1; }
+[data-state~="receipt"][data-state~="done"] .bk-row.bk-wk.is-off .slot-hours, [data-state~="receipt"][data-state~="done"] .bk-row.bk-wk .hr.shut { opacity: 1; }
 
 .slot-grid { display: flex; flex-direction: column; gap: 1px; margin: var(--s0) 0 0; }
 .slot-row { display: flex; align-items: center; gap: var(--s1); }
@@ -2581,7 +2581,7 @@ button.prof-tag.is-sm { padding: 0 var(--s2); line-height: 1; font-weight: 500; 
 /* HELD BY ITS PADLOCK (498): not dimmed, and its words selectable for copy and paste. */
 .card.kc.is-locked > * { --ink: inherit; --gold: inherit; }
 .is-held, .is-held * { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
-.favwrap.is-held { box-shadow: var(--inset-gold); border-radius: var(--r-ui); }
+[data-state~="fav"].is-held { box-shadow: var(--inset-gold); border-radius: var(--r-ui); }
 html.padlocked, html.padlocked * { touch-action: none !important; overscroll-behavior: none !important; }
 .prof-off { color: var(--bad); }
 /* AND THE ONE LINE THAT SAYS WHAT THE MARK MEANS. § */
@@ -2710,7 +2710,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 @media (prefers-reduced-motion: reduce) { .cpn:is(:active, .is-pressed) { transform: none; } }
 
 /* ---------- THE FAVOURITE STAR § */
-.favwrap { position: relative; }
+[data-state~="fav"] { position: relative; }
 
 /* PRINTING FROM INSIDE THE APP. § */
 @media print {
@@ -2923,19 +2923,19 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 
 /* ---------- ONE QUESTION NUMBER, NO BOX ROUND IT (1030): its parts are cards one under another, none indented (owner, 8 Nov, 1160). */
 .qwhole { background: none; border: 0; border-radius: 0; padding: var(--s3) 0; margin: 0; }
-.qwhole .qcard:not(.card) { background: none; border: 0; border-radius: 0; padding: 0; margin: 0; }
+.qwhole [data-shape="Question"]:not(.card) { background: none; border: 0; border-radius: 0; padding: 0; margin: 0; }
 .qwhole .qb-stem { color: var(--ink); border-bottom: 0; margin: var(--s2) 0 0; }
-.qwhole > .qb + .qb { margin-top: var(--card-gap); }
-.qwhole .qb-part .qsheet { margin-top: var(--s2); }
+.qwhole > [data-shape="Question"] + [data-shape="Question"] { margin-top: var(--card-gap); }
+.qwhole [data-shape="Question"] .qsheet { margin-top: var(--s2); }
 /* ---------- A QUESTION IS A CARD LIKE ANY OTHER (owner, 10-11 Nov): picture, tags, words, answer, round buttons, all on one centre line. */
-:is(.qwhole > .qb, .qcard) { text-align: center; }
-:is(.qwhole > .qb, .qcard) :is(.qtags, .tile-row, .qp-choices, .qsheet-part) { justify-content: center; }
-:is(.qwhole > .qb, .qcard) :is(.qsheet, .qb-stem) { margin-left: auto; margin-right: auto; }
+:is(.qwhole > [data-shape="Question"], [data-shape="Question"]) { text-align: center; }
+:is(.qwhole > [data-shape="Question"], [data-shape="Question"]) :is(.qtags, .tile-row, .qp-choices, .qsheet-part) { justify-content: center; }
+:is(.qwhole > [data-shape="Question"], [data-shape="Question"]) :is(.qsheet, .qb-stem) { margin-left: auto; margin-right: auto; }
 .qwhole .qb-stem:empty { display: none; }
-:is(.qwhole > .qb, .qcard) .qtext :is(table, figure, p) { margin-left: auto; margin-right: auto; }
+:is(.qwhole > [data-shape="Question"], [data-shape="Question"]) .qtext :is(table, figure, p) { margin-left: auto; margin-right: auto; }
 /* TYPING READS FROM THE LEFT: the box is centred, the words inside it are not. */
-:is(.qwhole > .qb, .qcard) :is(.qp-ans, .qp-sheet, .gd-box, input, textarea, ul, ol, .qans-body) { text-align: left; }
-:is(.qwhole > .qb, .qcard) .qtext :is(ul, ol) { display: inline-block; max-width: 100%; margin-left: auto; margin-right: auto; }
+:is(.qwhole > [data-shape="Question"], [data-shape="Question"]) :is(.qp-ans, .qp-sheet, .gd-box, input, textarea, ul, ol, .qans-body) { text-align: left; }
+:is(.qwhole > [data-shape="Question"], [data-shape="Question"]) .qtext :is(ul, ol) { display: inline-block; max-width: 100%; margin-left: auto; margin-right: auto; }
 /* ---------- THE CARD'S TAGS § */
 .qtags { display: flex; flex-wrap: wrap; gap: var(--s1) var(--s1); }
 .qcard-tags { margin: 0; }
@@ -2952,7 +2952,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 /* `.qcard-peek` AND `.qcard:active` WERE HERE — the clipped first line, and the press animation for
    a card that was a button. Neither has anything to do: the card is not tappable, because there is
    nothing left to open. */
-.qcard .qsheet { margin-top: var(--s3); }
+[data-shape="Question"] .qsheet { margin-top: var(--s3); }
 
 /* ---------- THE TYPESETTING, AND IT HAS MOVED TWICE § */
 .qsheet { font-family: var(--font); line-height: var(--lh-loose); overflow-wrap: break-word; }
@@ -3394,7 +3394,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
   padding: var(--s2) var(--s2);
   font-size: var(--fs-body);
 }
-.rc .rc-do { border-top: 1px solid var(--line-soft); border-radius: 0; }
+[data-state~="receipt"] .rc-do { border-top: 1px solid var(--line-soft); border-radius: 0; }
 
 /* CENTRED, because there is one of them and it is not a row of actions down a card — the share on a
    receipt is a single thing to do, not a set to choose from. */
@@ -3612,8 +3612,8 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 
 /* AN UNREAD MESSAGE IS IN THE FOREGROUND COLOUR, not behind a badge. A count you have to notice is
    a count you can miss. */
-.card.unread h3 { color: var(--ink); }
-.card.unread .note { color: var(--ink); }
+.card[data-state~="unread"] h3 { color: var(--ink); }
+.card[data-state~="unread"] .note { color: var(--ink); }
 
 /* THE SEARCH BOX, AND A RESULT A SEARCH ENGINE'S RESULT IS THREE LINES AND NO SURFACE: § */
 
@@ -3659,7 +3659,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
    the header's word on every card in this family. It wraps on its middots, which is where it reads. */
 
 /* ---------- ONE BOXED CARD: a widget, a question card and the bundle card share one surface; a widget's padding is its own. § */
-.qcard, .card.qcard.bundle {
+[data-shape="Question"], .card[data-shape="Question"].bundle {
   background: var(--raised); border: 1px solid var(--line); border-radius: var(--r-ui);
   padding: var(--s3); margin-bottom: var(--card-gap);
 }
@@ -3690,9 +3690,9 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .widget-slot > .card:only-child { padding-block: 0; border-bottom: 0; }
 
 /* ---------- ONE SURFACE, AND IT IS THE PANE (690): what sits in it is flat, set apart by space and a hairline, as an iOS grouped list. */
-.pane :is(.qcard, .card:has(> .msg-body, > .kc-lines > .msg-body)) {
+.pane :is([data-shape="Question"], .card:has(> .msg-body, > .kc-lines > .msg-body)) {
   background: none; border: 0; border-radius: 0; padding-inline: 0; margin-inline: 0; }
-.pane .qcard + .qcard {
+.pane [data-shape="Question"] + [data-shape="Question"] {
   border-top: 1px solid var(--line-soft); padding-top: var(--card-gap); margin-top: 0; }
 
 /* THE CAMERA CARD. The 📷 column drew "＋ New post" — a card describing a photograph rather than a way to take one, and the identical card sat one swipe away at § */
@@ -4170,13 +4170,13 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 .qpad-art { position: relative; display: inline-block; width: min(100%, var(--pic-w)); line-height: 0; }
 .qpad-art > svg:first-child { width: 100%; height: auto; display: block; }
 /* ---------- A PEN ON A QUESTION'S CARD § */
-.qcard .qpad { margin: var(--s4) 0 var(--s1); font: 400 var(--fs-small)/1.4 var(--font); }
+[data-shape="Question"] .qpad { margin: var(--s4) 0 var(--s1); font: 400 var(--fs-small)/1.4 var(--font); }
 .qp-area .qpad-art > svg.qsurf:first-child { width: min(100%, var(--pic-w), 44svh); }
 /* AND THE PICTURE'S BOX HELD TO IT TOO, OR THE INK IS NOT OVER THE GRID. § */
 .qp-area .qpad-art:has(> svg.qsurf:first-child) { max-width: min(100%, var(--pic-w), 44svh); }
 /* ONE LINE OF SMALL PRINT UNDER THE BAR. § */
-.qcard .qpad-bar { margin-bottom: var(--s1); }
-.qcard .qpad > .qpad-note { display: block; margin: var(--s1) 0 0; }
+[data-shape="Question"] .qpad-bar { margin-bottom: var(--s1); }
+[data-shape="Question"] .qpad > .qpad-note { display: block; margin: var(--s1) 0 0; }
 .qpad-ink {
   position: absolute; inset: 0; width: 100%; height: 100%;
   pointer-events: none; touch-action: auto; overflow: visible;
@@ -4279,7 +4279,7 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 /* THE METHOD FOR A PRACTICAL, above the questions — read before you start, not beside them. */
 
 /* SHARING A BOOKING IS A PICTURE OF IT — THE ELEMENT ON THE SCREEN, DRAWN BY THE BROWSER. § */
-.rc.rc-snap :is(.rc-tiles, .rc-more):not(#no-such-id) { display: none; }
+[data-state~="receipt"].rc-snap :is(.rc-tiles, .rc-more):not(#no-such-id) { display: none; }
 /* A CARD'S PICTURE IS ITS CONTENT: its buttons are not in it. */
 .rc-snap :is(.kc-row, .tile-row):not(#no-such-id) { display: none; }
 
@@ -4375,7 +4375,7 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 .qp-bar .kp-field.kp-maths > .kp-show { max-height: 9.5rem; overflow-y: auto; }
 
 /* A CARD WHOSE WORDS ARE STILL IN THE LEDGER (397, `libWaitHtml_`): its tags, then the dots, the sign-in line or Try again. */
-.lib-wait .lib-say { margin-top: var(--s4); min-height: 3rem; }
+[data-state~="wait"] .lib-say { margin-top: var(--s4); min-height: 3rem; }
 
 /* ---------- WHAT NEEDS YOU (400): a Business card with something to act on glows, says how many, and the dot carries the total ---------- */
 
@@ -4666,29 +4666,29 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 /* A POST IN FIND (batch C): its state is the tag above it, so the line saying so is not drawn twice. */
 
 /* ---------- FIND › BOOKING, FINISHED (owner, 7 Nov): no box, tags on top, cream-pill answers, two columns when nothing is priced ---------- */
-#bookr .rc, .page .rc { background: none; border: 0; border-radius: 0; padding: var(--s1) 0 var(--s2); }
+#bookr [data-state~="receipt"], .page [data-state~="receipt"] { background: none; border: 0; border-radius: 0; padding: var(--s1) 0 var(--s2); }
 .rc-head .qtags { margin: 0 0 var(--s1); }
 /* THREE PRICE COLUMNS ON EVERY FORM, priced or not (owner, 8 Nov): the same lines always, the last column carries a dash until it has a figure. */
 .bk-row:not(.is-cols):not(.is-wide):not(.rc-total):not(:has(.bk-tick)) > .bk-t:empty::before { content: '\2014'; }
 /* THE ANSWERS LOOK LIKE THE CREAM QUESTION PILL, so a reader sees at once what can be set. */
 /* ONE ROW HEIGHT FOR THE FORM AND THE SAVED BOOKING. */
-.rc .bk-row { padding-block: var(--s0); align-items: center; }
-.rc .bk-v:has(> .bk-sel, > .bk-in, > .bk-face) { border-bottom: 0; }
-.rc .bk-v > .bk-sel, .rc .bk-v > .bk-in, .rc .bk-v > .bk-face {
+[data-state~="receipt"] .bk-row { padding-block: var(--s0); align-items: center; }
+[data-state~="receipt"] .bk-v:has(> .bk-sel, > .bk-in, > .bk-face) { border-bottom: 0; }
+[data-state~="receipt"] .bk-v > .bk-sel, [data-state~="receipt"] .bk-v > .bk-in, [data-state~="receipt"] .bk-v > .bk-face {
   background-color: var(--paper); color: var(--paper-ink); border-radius: var(--r-round); padding: var(--s1) var(--s5) var(--s1) var(--s3); }
-.rc .bk-v > .bk-in { padding-right: var(--s3); }
-.rc .bk-face > .bk-sel { background-color: transparent; border-radius: var(--r-round); }
-.rc .bk-face > .bk-said, .rc .bk-face:not(.is-set):has(> .bk-sel option[value=""]:checked) > .bk-said { color: var(--paper-ink); padding-right: 0; }
-.rc .bk-sel { --sel-arrow: var(--paper-dim); background-position: right .7em center, right calc(.7em + 4px) center; }
-.rc .bk-face { --sel-arrow: var(--paper-dim);
+[data-state~="receipt"] .bk-v > .bk-in { padding-right: var(--s3); }
+[data-state~="receipt"] .bk-face > .bk-sel { background-color: transparent; border-radius: var(--r-round); }
+[data-state~="receipt"] .bk-face > .bk-said, [data-state~="receipt"] .bk-face:not(.is-set):has(> .bk-sel option[value=""]:checked) > .bk-said { color: var(--paper-ink); padding-right: 0; }
+[data-state~="receipt"] .bk-sel { --sel-arrow: var(--paper-dim); background-position: right .7em center, right calc(.7em + 4px) center; }
+[data-state~="receipt"] .bk-face { --sel-arrow: var(--paper-dim);
   background-image: linear-gradient(45deg, transparent 50%, var(--sel-arrow) 50%), linear-gradient(135deg, var(--sel-arrow) 50%, transparent 50%);
   background-position: right calc(.7em + 4px) center, right .7em center; background-size: 4px 4px; background-repeat: no-repeat; }
-.rc .bk-sel:disabled, .rc .bk-in:read-only { opacity: .55; color: var(--paper-ink); }
-.rc .bk-v > .bk-sel, .rc .bk-face > .bk-said { text-align: left; text-align-last: left; }
-.rc .bk-v > .bk-sel { padding-right: var(--s5); }
-.rc .bk-face > .bk-sel { background-image: none; }
-.rc .bk-v > .bk-sel { background-position: right calc(.7em + 4px) center, right .7em center; }
-.rc .bk-v > .bk-in { text-align: left; }
+[data-state~="receipt"] .bk-sel:disabled, [data-state~="receipt"] .bk-in:read-only { opacity: .55; color: var(--paper-ink); }
+[data-state~="receipt"] .bk-v > .bk-sel, [data-state~="receipt"] .bk-face > .bk-said { text-align: left; text-align-last: left; }
+[data-state~="receipt"] .bk-v > .bk-sel { padding-right: var(--s5); }
+[data-state~="receipt"] .bk-face > .bk-sel { background-image: none; }
+[data-state~="receipt"] .bk-v > .bk-sel { background-position: right calc(.7em + 4px) center, right .7em center; }
+[data-state~="receipt"] .bk-v > .bk-in { text-align: left; }
 
 /* ---------- LIBRARY CARDS, ONE LOOK (owner's look rule): picture first, facts as tags, no grey text, the tiles on one line ---------- */
 .lib-c .fc-say, .lib-c .fc-lede, .lib-c h4, .lib-c li, .hdb-more .hdb-lines dt { color: var(--ink); }
@@ -4699,9 +4699,9 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 .msg-fc-pic .person-pic { margin: 0; width: 100%; padding: 0; }
 
 .msg-fc-body { margin: var(--s1) 0 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
-.msg-fc.is-one .msg-fc-pic { width: 4rem; padding: var(--s1); }
+[data-shape="Thread"][data-state~="one"] .msg-fc-pic { width: 4rem; padding: var(--s1); }
 .msg-tag.is-new { border-color: var(--gold); color: var(--gold); }
-.pane:has(> .favwrap > .lib-c) > .tile-row { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+.pane:has(> [data-state~="fav"] > .lib-c) > .tile-row { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
 /* ---------- THE TUTOR CARD FITS ONE PHONE SCREEN (8 Nov): small face, name and rate on one line, tight pills, short map, hours as day pills. */
 
 .card.kc .prof-pic { width: 2.75rem; height: 2.75rem; }
@@ -4857,7 +4857,7 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 /* THE BOOKING FORM'S DOOR, centred like a card. */
 
 /* A CARD REDRAWN INTO THE ONE SHAPE AFTER ITS FIRST DRAW carries its four buttons: the row Find put under the first draw goes. */
-.favwrap:has(.kc-four) + .tile-row { display: none; }
+[data-state~="fav"]:has(.kc-four) + .tile-row { display: none; }
 /* AN EMPTY CARD SAYS SO, CENTRED: never a blank frame. */
 .card.kc .empty { padding: 0; margin: 0; text-align: center; }
 /* ONE TAG, ONE LINE, ON EVERY CARD: a tag wraps inside the card, never clips; every line is body size, upright. */
@@ -5109,7 +5109,7 @@ body.nes-on .nes-wrap *, body.nes-on .nes-wrap *::before, body.nes-on .nes-wrap 
 /* THE BOOKING PAPER INSIDE A TEMPLATE CARD lays out as it did in the card's form slot: full width, left-aligned, never wider than the card. */
 .card.kc > .kc-lines > .bookform-paper { box-sizing: border-box; width: 100%; min-width: 0; max-width: 100%; text-align: left;
   --fs-body: 1rem; --fs-small: max(11px, .75rem); font-size: var(--fs-body); }
-.card.kc > .kc-lines > .bookform-paper > .rc { box-sizing: border-box; min-width: 0; max-width: 100%; }
+.card.kc > .kc-lines > .bookform-paper > [data-state~="receipt"] { box-sizing: border-box; min-width: 0; max-width: 100%; }
 
 /* ---------- THE BOARD GAMES (back 15 Nov 2026): Chess, Maze, Connect 4, Othello, Scrabble — boardgames.js; the rules as they were before 133b259. */
 .chess { container-type: inline-size; display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr); aspect-ratio: 1; width: min(100%, 70vh); margin: var(--s1) auto var(--s2); border: 2px solid var(--gm-1); border-radius: var(--r-ui); overflow: hidden; }

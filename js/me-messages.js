@@ -546,7 +546,7 @@ const messagesHtml_ = ms => {
     const flag = !mine && m.id && !m.tmp ? suggestOpts_('message', m.id, 'Message from ' + fmtName_(m.fromName || m.withName || 'someone'), 'msg-flag') : null;
     /* A MESSAGE YOU WERE SENT CAN BE REPORTED (413) — beside its bubble, for a child as much as anybody (`suggestOpts_`, 486). */
     return cardBlock_({ type: 'msgBubble', day: newDay ? dayWord : '', words, att: msgAttItems_(m.attachments), flag,
-      look: [mine ? 'mine' : '', runTop ? 'run-top' : '', runEnd ? 'run-end' : '', !mine && (!m.read || m.fresh) ? 'unread' : '', m.state ? 'is-' + m.state : ''].filter(Boolean).join(' '),
+      look: [mine ? 'mine' : '', runTop ? 'run-top' : '', runEnd ? 'run-end' : '', !mine && (!m.read || m.fresh) ? 'is-unread' : '', m.state ? 'is-' + m.state : ''].filter(Boolean).join(' '),
       fail: m.state === 'failed' ? { said: 'Not sent — ' + (msgFailSaid_(m.err) || 'try again'), links: msgFixLinkSpecs_(m.err), tiles: [
         { icon: 'again', label: 'Retry', act: 'msg-retry', data: { k: m.tmp }, cls: 'msg-act' },
         m.why === 'files' && words && (m.queue || []).length
@@ -680,7 +680,7 @@ function threadCard_(x, draw) {
   const t = x.row && x.row.msgs ? x.row : messageThreads_().find(t2 => t2.id === x.thread);
   if (!t) return renderCard(shapeCard_('msg', { kind: 'msg', name: x.to ? x.name : undefined, tags: [{ text: x.name, colour: 0 }],
     body: x.to ? [{ type: 'group', look: 'dm-head', blocks: [{ type: 'msgHead', text: x.name }] }, { type: 'group', inner: msgForm_(x.to.name, x.to.id) }] : undefined }));
-  const data = Object.assign({ thread: t.id }, shapeData_('msg')), open = !!MSG_OPEN[t.id], extra = { kind: 'msg', name: t.name, row: t, cardCls: t.unread ? 'unread' : '', cardData: data };
+  const data = Object.assign({ thread: t.id }, shapeData_('msg')), open = !!MSG_OPEN[t.id], extra = { kind: 'msg', name: t.name, row: t, cardCls: t.unread ? 'unread' : '', cardData: t.unread ? Object.assign({ state: 'unread' }, data) : data };
   const head = draw ? draw(extra) : findCard(Object.assign({}, x, extra, { kcIn: true }));
   if (!open) return head;
   try { markRead_(t.msgs); } catch (e) { oops_(e, 'msg:find-read'); }
@@ -707,7 +707,7 @@ function msgFindOne_(t, m) {
     { icon: 'bin', label: 'Remove', act: 'msg-drop', data: { k: m.tmp } }]) + msgFixLinks_(m.err)
     : !mine && m.id && !m.tmp && typeof suggestOpts_ === 'function' ? tile_(suggestOpts_('message', m.id, 'Message from ' + (m.fromName || t.name))) : '';
   const words = String(m.body || '').trim();
-  return card_(cardBlock_({ type: 'msgBox', look: 'fc msg-fc is-one' + (mine ? ' mine' : '') + (fresh ? ' unread' : ''), data: Object.assign({ thread: t.id }, shapeData_('msg')), parts: [
+  return card_(cardBlock_({ type: 'msgBox', look: 'fc msg-fc is-one' + (mine ? ' mine' : '') + (fresh ? ' unread' : ''), data: Object.assign({ thread: t.id, state: 'one' + (fresh ? ' unread' : '') }, shapeData_('msg')), parts: [
     msgTags_(null, [{ text: msgDate_(ms) + ' ' + msgClock_(ms, m.at) }, fresh ? { text: 'unread', cls: 'is-new' } : null,
       { text: msgKindWord_(m) }, m.state === 'sending' ? { text: 'sending…' } : m.tmp && m.state !== 'failed' ? { text: 'sent' } : null]),
     msgFacePic_(t, mine), cardBlock_({ type: 'msgHead', text: mine ? 'You' : (m.fromName || t.name) }),

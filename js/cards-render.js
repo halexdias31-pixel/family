@@ -389,7 +389,7 @@ function paperDoc_(r) {
   const head = !!(r.cols && (r.rows || []).length);
   const lines = (r.lines || []).filter(Boolean).length && typeof qtag_ === 'function'
     ? `<div class="qtags qcard-tags">${(r.lines || []).map((l, i) => (l ? qtag_(esc(l), ` data-tag="${[6, 9, 4][i] || 0}"`) : '')).join('')}</div>` : '';
-  return `<div class="rc${r.done ? ' is-done' : ''}"><div class="rc-head">${lines}</div>${head ? '' : '<div class="rc-rule"></div>'}`
+  return `<div class="rc${r.done ? ' is-done' : ''}" data-state="receipt${r.done ? ' done' : ''}"><div class="rc-head">${lines}</div>${head ? '' : '<div class="rc-rule"></div>'}`
     + `<div class="bk">${head ? paperHead_() : ''}${(r.rows || []).join('')}${r.before || ''}${r.noTotal ? '' : paperTotal_(r.totalLabel || 'Cost', r.total || '')}`
     + (r.more || []).map(m => paperTotal_(m.k, m.t, 'rc-more' + (m.cls ? ' ' + m.cls : ''))).join('')
     + `${r.moreSay ? `<p class="bk-say rc-money-say">${esc(r.moreSay)}</p>` : ''}</div>`
