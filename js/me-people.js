@@ -392,14 +392,14 @@ function personAddCard_() {
   if (!personAddMay_()) return '';
   const F = paState_();
   if (F.made) {
-    return pplCard_('is-prof prof-door pa-card', F.made.first + ' is added', [
+    return pplCard_('is-prof pa-card', F.made.first + ' is added', [
       F.made.pin ? pinSlip_(F.made.first, F.made.handle, F.made.pin) + pplP_('note', 'Write it down or read it to them — the PIN is not shown again.')
         : pplP_('note', `The PIN went to ${F.made.email}, with the handle @${F.made.handle}.`),
       F.made.said ? pplP_('note', F.made.said) : '',
       tile_({ form: true, label: 'Add another', act: 'pa-again', kind: 'quiet' })]);
   }
   const kid = F.role === 'student', tutor = F.role === 'tutor';
-  return pplCard_('is-prof prof-door pa-card', 'Add a person', [formOf_('person-add', Object.assign({}, F.v, { role: F.role }), { kid, options: { role: PA_ROLES_ }, was: () => '' }),
+  return pplCard_('is-prof pa-card', 'Add a person', [formOf_('person-add', Object.assign({}, F.v, { role: F.role }), { kid, options: { role: PA_ROLES_ }, was: () => '' }),
     tutor ? '' : famPick_('pa', kid ? 'client' : 'student', kid ? 'Their parent' : 'Their child') + paPickedHtml_(F),
     pplP_('note pa-said', '', { attrs: { 'aria-live': 'polite' } }),
     pplG_('pf-go', tile_({ form: true, label: 'Add them', act: 'pa-save' }))]);
