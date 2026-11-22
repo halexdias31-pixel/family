@@ -8,7 +8,7 @@
    function or a SHARED_RE of its own; take bare() and the block regexes.
    OWED lists the files another lane is still moving onto gen.js; each is printed, and dropping off the list is the goal. tools/build.js runs it. */
 'use strict';
-const { read, S, text, srcFiles, report, main } = require('./lib/gen.js');
+const { read, S, text, srcFiles, report, main, bare } = require('./lib/gen.js');
 const OWED = [];
 const HELPERS = [
   [/^\s*(?:const|let|var|function)\s+(S|blockInto)\b/m, m => m[1]],
@@ -33,6 +33,29 @@ function harnessProblems() {
   srcFiles('tools', /\.js$/, { deep: true }).filter(f => !/^tools\/lib\//.test(f) && HARNESS_OWED.indexOf(f) === -1).forEach(f => {
     const src = text(f);
     HARNESS.forEach(([lib, hit, name]) => { if (hit(src)) out.push(f + ' rolls its own ' + name + ' (take it from ' + lib + ')'); });
+  });
+  return out;
+}
+
+/* THE ONE IMPORTER (UNIFY NEXT 5, 22 Nov): data/questions.json and data-private/ are written through tools/lib/import.js (writeCards,
+   writeWords), the steps tools/content.js runs for every source. A tool that writes either itself fails the build. IMPORT_OWED: the
+   one-off row editors from before the importer (run between `library join` and `library split`), printed until each moves onto it. */
+const IMPORT_OWED = ['tools/draw-1f-1705-q13.py', 'tools/draw-chem-8462-1F.py', 'tools/draw-figures-q3.py', 'tools/draw-money-coins.py',
+  'tools/refine-1f-2406-p1.py', 'tools/set-accept.py', 'tools/set-choices.py', 'tools/set-spec-codes.py', 'tools/typeset-plain-maths.py', 'tools/greek/write.py'];
+const IMPORT_LIB = 'tools/lib/import.js';
+function writesLibrary(f, src) {
+  if (/\.py$/.test(f)) {
+    const names = /['"](?:[\w./-]*\/)?questions\.json['"]|['"]questions\.json['"]|['"][^'"\n]*data-private[^'"\n]*['"]/.test(src);
+    return names && /open\([^)\n]*['"]w['"]|\.write_text\(|json\.dump\(/.test(src);
+  }
+  if (/\bwritePrivate\(/.test(src.replace(/function writePrivate\(/g, ''))) return true;
+  if (/writeFileSync\([^\n]*(?:questions\.json|def\.file|\bPRIV\b|data-private)/.test(src)) return true;
+  return /\bwriteFileSync\(/.test(src) && /\bfileText\(/.test(src);
+}
+function importProblems() {
+  const out = [];
+  srcFiles('tools', /\.(js|py)$/, { deep: true }).filter(f => f !== IMPORT_LIB && !/^tools\/lib\/lib-full\.js$/.test(f) && IMPORT_OWED.indexOf(f) === -1).forEach(f => {
+    if (writesLibrary(f, /\.js$/.test(f) ? bare(text(f), { comments: 'js' }) : text(f))) out.push(f + ' writes data/questions.json or data-private/ itself (go through ' + IMPORT_LIB + ': node tools/content.js <source>)');
   });
   return out;
 }
@@ -63,9 +86,9 @@ function groupProblems() {
 }
 
 function run() {
-  const h = helperProblems(), x = harnessProblems(), g = groupProblems(), bad = h.concat(x, g.bad);
+  const h = helperProblems(), x = harnessProblems(), g = groupProblems(), w = importProblems(), bad = h.concat(x, g.bad, w);
   console.log('one-helper: ' + g.groups + ' settings groups from kinds.json setting.cards; ' + h.length + ' tool(s) with their own S/blockInto/read/walk/main tail/stripper'
-    + '; ' + x.length + ' check(s) with a harness of their own; owed: ' + (OWED.concat(HARNESS_OWED).join(', ') || 'none'));
+    + '; ' + x.length + ' check(s) with a harness of their own; ' + w.length + ' tool(s) writing the library past the importer; owed: ' + (OWED.concat(HARNESS_OWED, IMPORT_OWED).join(', ') || 'none'));
   report('one-helper', bad);
 }
 module.exports = { run };
