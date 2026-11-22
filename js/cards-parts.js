@@ -152,7 +152,7 @@ function kcActRow_(x, html, own, o) {
   const real = (String(own || '').match(KC_TILE_RE) || []).map(kcAct_);
   rest = rest.replace(KC_TILE_RE, t => (/\bkc-off\b/.test(t) && real.indexOf(kcAct_(t)) >= 0 ? '' : t));
   return cardBlock_({ type: 'group', look: 'tile-row kc-row' + (o.look ? ' ' + o.look : ''), attrs: { 'data-key': o.look ? String(o.key || '') : null },
-    inner: kcFour_(x, rest + tile_(kcOffOpts_(x, rest)), o.main) });
+    inner: (f => (o.look === 'qt-row' && typeof qtSplit_ === 'function' ? f.replace(/^(<span[^>]*>)([\s\S]*)(<\/span>)$/, (m, a, b, c) => a + qtSplit_(b) + c) : f))(kcFour_(x, rest + tile_(kcOffOpts_(x, rest)), o.main)) });
 }
 /* THE TOP-LEVEL TILE ROWS OF SOME LINES, lifted out; a form's buttons (`.btn-row`, inside the form) stay where they are. */
 function kcHoist_(html, panel) {

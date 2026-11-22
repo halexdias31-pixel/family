@@ -45,6 +45,7 @@ const ORDER = [
   'source-lines', // the source-lines check (rule 1.75, owner 20 Nov): an English row naming "Source X, lines N to M" gets source_lines, shows them off its insert or is withheld; fails the build
   'one-box',      // the one-box check (rule 1.75, owner 20 Nov): every answer face by qtFace_; more than one box fails the build
   'three-faces',  // the three-faces check (rule 1.75, owner 22 Nov: queue step 4): every active question's face by qtFace_ is type, pick or draw, every qengine type's too, no camera or photo code; fails the build
+  'six-buttons',  // the six-buttons check (rule 1.75, owner 22 Nov: queue step 5): a question part shows at most six tiles and More (qengine.json visible/more/cut, qtools-row.js qtSplit_), every tile not cut behind More; fails the build
   'one-cells',    // the one-cells check (rule 1.75, owner 22 Nov): a question with cells draws one box and a hint, its right answers in order mark full; fails the build
   'email-ink',    // the email-ink check (rule 1.75, 20 Nov): the Sunday email's colours equal style.css tokens, its esc and the card maker's cardUnesc_ round-trip; fails the build
   'digest-clip',  // the digest-clip check (rule 1.75, owner 20 Nov): large weeks through the Sunday email's digestRender_; a part over Gmail's clip or a question without its words fails the build
