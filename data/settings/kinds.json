@@ -905,19 +905,6 @@
    },
    "see": {
     "who": "anyone"
-   },
-   "rowFields": {
-    "face": {
-     "type": "string",
-     "required": false,
-     "values": [
-      "text",
-      "graph",
-      "lines",
-      "blank"
-     ],
-     "say": "The answer box's face when the part is first opened (row column face): text, or paper with its grid -- graph, lines or blank (js/answer-face.js ansFaceWant_). A face the student picks by hand is kept over it (the part record, field face). Never camera: that asks for the camera."
-    }
    }
   },
   "practical": {

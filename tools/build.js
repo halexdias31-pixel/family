@@ -44,6 +44,7 @@ const ORDER = [
   'one-paper-fact', // the one-paper-fact check (rule 1.75, owner 21 Nov): a question keeps none of its paper's facts byte-identical (kinds.json sheet.lib.joined), no source_id equal to its paper_id, and the backend and client join from one list; fails the build
   'source-lines', // the source-lines check (rule 1.75, owner 20 Nov): an English row naming "Source X, lines N to M" gets source_lines, shows them off its insert or is withheld; fails the build
   'one-box',      // the one-box check (rule 1.75, owner 20 Nov): every answer face by qtFace_; more than one box fails the build
+  'three-faces',  // the three-faces check (rule 1.75, owner 22 Nov: queue step 4): every active question's face by qtFace_ is type, pick or draw, every qengine type's too, no camera or photo code; fails the build
   'one-cells',    // the one-cells check (rule 1.75, owner 22 Nov): a question with cells draws one box and a hint, its right answers in order mark full; fails the build
   'email-ink',    // the email-ink check (rule 1.75, 20 Nov): the Sunday email's colours equal style.css tokens, its esc and the card maker's cardUnesc_ round-trip; fails the build
   'digest-clip',  // the digest-clip check (rule 1.75, owner 20 Nov): large weeks through the Sunday email's digestRender_; a part over Gmail's clip or a question without its words fails the build

@@ -11,7 +11,6 @@ const QT_TOOLS = [
   { id: 'ruler',      icon: 'ruler',      label: 'Ruler',           note: 'measure a length',         act: 'qt-inst' },
   { id: 'protractor', icon: 'protractor', label: 'Protractor',      note: 'measure an angle',         act: 'qt-inst' },
   { id: 'compass',    icon: 'compass',    label: 'Compass',         note: 'press the centre, drag',   act: 'qt-inst' },
-  { id: 'photo',      icon: 'photo',      label: 'Photo of working', note: 'up to 3 pages',           act: 'qp-work' },
   /* THE PAPER FACE (owner, 17 Nov): graph, lined or blank paper in the answer box's slot, the pen tools on it (answer-face.js) */
   { id: 'paper',      icon: 'grid',       label: 'Paper',           note: 'graph, lined or blank',    act: 'qp-paper' },
   { id: 'mag',        icon: 'zoom',       label: 'Magnifier',       note: 'hold it over the page',    act: 'q-mag' },
