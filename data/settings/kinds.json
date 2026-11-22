@@ -3586,7 +3586,7 @@
    "shape": "Item",
    "list": {
     "name": "Assignments",
-    "say": "ONE LIST KIND (UNIFY NEXT 6): kept in the person's own `assignments` cell as { v, assignments: [...] }, saved whole (`save: whole`): every field written, a status one of the four, a mark only once marked. `trackOnly` courses (owner: HPRS4905, no generative AI) are tracked here and nothing more: the card says so and nothing on the site helps with their content.",
+    "say": "ONE LIST KIND (UNIFY NEXT 6): kept in the person's own `assignments` cell as { v, assignments: [...] }, saved whole (`save: whole`): every field written, a status one of the four, a mark only once marked. assignments with a `trackOnly` field set (noAI: no generative AI) are tracked here and nothing more: the card says so and nothing on the site helps with their content.",
     "store": {
      "cell": "assignments",
      "wrap": "assignments"
@@ -3598,11 +3598,12 @@
     "save": "whole",
     "trackOnly": [
      {
-      "course": "HPRS4905",
+      "field": "noAI",
       "say": "No generative AI: tracked only, never help with its content"
      }
     ],
     "fields": [
+     { "f": "noAI", "type": "flag" },
      {
       "f": "id",
       "type": "id",

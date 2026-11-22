@@ -15980,7 +15980,7 @@ editing ? { type: 'group', look: 'store-form', inner: askArea_(asgEditForm_(a)) 
 tiles: mine ? [{ icon: editing ? 'close' : 'edit', label: editing ? 'Close' : 'Edit', act: 'asg-edit', data: { id: a.id } },
 { icon: 'bin', label: 'Delete', act: 'asg-del', data: { id: a.id } }] : [] });
 }
-const asgTrackOnly_ = a => (((ITEM_KINDS.kinds.assignment || {}).list || {}).trackOnly || []).find(t => String(a.course || '').trim().toUpperCase() === t.course.toUpperCase()) || null;
+const asgTrackOnly_ = a => (((ITEM_KINDS.kinds.assignment || {}).list || {}).trackOnly || []).find(t => a[t.field] === true) || null;
 function asgEditForm_(a) {
 const fid = storeEditForm_('assignment', a.id, a);
 FORM_SEND_[fid] = v => asgSend_(fid, v, a.id);

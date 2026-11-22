@@ -489,8 +489,8 @@ function asgItem_(a, i, mine) {
     tiles: mine ? [{ icon: editing ? 'close' : 'edit', label: editing ? 'Close' : 'Edit', act: 'asg-edit', data: { id: a.id } },
       { icon: 'bin', label: 'Delete', act: 'asg-del', data: { id: a.id } }] : [] });
 }
-/* TRACKED ONLY (owner: HPRS4905, no generative AI; kinds.json assignment `list.trackOnly`): the card says so, and nothing here helps with its content. */
-const asgTrackOnly_ = a => (((ITEM_KINDS.kinds.assignment || {}).list || {}).trackOnly || []).find(t => String(a.course || '').trim().toUpperCase() === t.course.toUpperCase()) || null;
+/* TRACKED ONLY (an assignment marked noAI: no generative AI; kinds.json assignment `list.trackOnly`): the card says so, and nothing here helps with its content. */
+const asgTrackOnly_ = a => (((ITEM_KINDS.kinds.assignment || {}).list || {}).trackOnly || []).find(t => a[t.field] === true) || null;
 /* AN EDIT IS THE SAME FORM, prefilled under `assignment-new@id` (form.js storeEditForm_), its send this list's. */
 function asgEditForm_(a) {
   const fid = storeEditForm_('assignment', a.id, a);
