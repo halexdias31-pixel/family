@@ -42,7 +42,8 @@ const ORDER = [
   'one-paper',    // the one-paper check (rule 1.75, 20 Nov): no two active past papers share board, spec, series and paper number; fails the build
   'one-paper-fact', // the one-paper-fact check (rule 1.75, owner 21 Nov): a question keeps none of its paper's facts byte-identical (kinds.json sheet.lib.joined), no source_id equal to its paper_id, and the backend and client join from one list; fails the build
   'source-lines', // the source-lines check (rule 1.75, owner 20 Nov): an English row naming "Source X, lines N to M" gets source_lines, shows them off its insert or is withheld; fails the build
-  'one-box',      // the one-box check (rule 1.75, owner 20 Nov): every answer face by qtFace_; more than one box outside a table fails the build
+  'one-box',      // the one-box check (rule 1.75, owner 20 Nov): every answer face by qtFace_; more than one box fails the build
+  'one-cells',    // the one-cells check (rule 1.75, owner 22 Nov): a question with cells draws one box and a hint, its right answers in order mark full; fails the build
   'email-ink',    // the email-ink check (rule 1.75, 20 Nov): the Sunday email's colours equal style.css tokens, its esc and the card maker's cardUnesc_ round-trip; fails the build
   'digest-clip',  // the digest-clip check (rule 1.75, owner 20 Nov): large weeks through the Sunday email's digestRender_; a part over Gmail's clip or a question without its words fails the build
   'bundle',       // js/ in index.html's order -> bundle/*.js
@@ -57,6 +58,7 @@ const ORDER = [
   'one-wrapper',  // the one-wrapper check (rule 1.75, unify batch 8): one IndexedDB wrapper, one tile-row wrap, one spelling of the pointer queries; fails the build
   'one-helper',   // the one-helper check (rule 1.75, unify batch 4): settings groups only in kinds.json setting.cards, tool helpers only in tools/lib/gen.js; fails the build
   'one-twin',     // the one-twin check (rule 1.75, unify batch 7): no backend twin of a site function cards-gen.gs copies, the copies current; fails the build
+  'share-picture', // the share-picture check (rule 1.75, owner 22 Nov): Share on a sample of question types on an iPhone 13 (WebKit and Chromium); a picture almost all one colour fails the build
   'one-card',     // the one-card check (rule 1.75): every Find card by the one maker, no CSS of its own; fails the build
   'dead-css',     // the dead-css check (rule 1.75, owner 20 Nov): classes in style.css nothing writes, counted against a budget; a rise fails the build
   'dead-fn',      // the dead-fn check (rule 1.75, unify batch 6 lane E): a top-level function in js/ that nothing in js/, index.html, backend/, tools/ or data/ names fails the build

@@ -2819,15 +2819,6 @@ const s = w.replace(/π|pi\b/gi, '').trim();
 if (!/[a-z]/i.test(s) || /^[a-z]\s*=\s*[-−]?[\d.\/\s]+$/i.test(s) || QT_UNIT.test(s)) return false;
 return QT_ALG.test(s) || /^[-−]?\d*[a-z]$/i.test(s) && s.length > 1 || /=/.test(s) && /[a-z]/i.test(s.split('=')[1] || '');
 }
-const QT_CELL_BLANK = /<(td|th)([^>]*)>(?:\s|&nbsp;|\u00a0)*<\/\1>/g;
-const qtCorner_ = t => /^<table[^>]*>\s*(?:<thead[^>]*>\s*)?(?:<tbody[^>]*>\s*)?<tr[^>]*>\s*<(td|th)[^>]*>(?:\s|&nbsp;|\u00a0)*<\/\1>/.test(t);
-function qtCellTable_(html, n) {
-if (!n) return '';
-return (String(html || '').match(/<table[\s\S]*?<\/table>/g) || []).find(t => {
-const blanks = (t.match(QT_CELL_BLANK) || []).length;
-return blanks === n || blanks === n + 1 && qtCorner_(t);
-}) || '';
-}
 function qtSplit_(s) {
 return [].concat(...String(s).split(/\s*,\s*/).map(v => (/\d|^[a-z]{1,2}\s+(and|&)\s+[a-z]{1,2}$/i.test(v)
 ? v.replace(/^and\s+/i, '').split(/\s+and\s+|\s*&\s*/) : [v])));
@@ -2852,14 +2843,13 @@ if (!ways.length) return 1;
 const n = split(ways[0]);
 return n >= 2 && ways.every(w => { const m = split(w); return m === 1 || m === n; }) ? n : 1;
 }
-function qtFace_(x, html) {
+function qtFace_(x) {
 const r = (x && x.row) || x || {};
 const cells = qtS_(r.cells) ? qtS_(r.cells).replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, '&').split(';').length : 0;
 const choices = Array.isArray(r.choices) ? r.choices : qtS_(r.choices).split('|').filter(c => c.trim());
 const values = qtWays_(r).length ? qtValues_(r) : 1;
 if (cells) {
-const shown = html != null ? html : qtS_(r.lead) + qtS_(r.html);
-return qtCellTable_(shown, cells) ? { face: 'table', boxes: cells, values: cells } : { face: 'gaps', boxes: 1, values: cells };
+return { face: 'gaps', boxes: 1, values: cells };
 }
 if (choices.length >= 2) return { face: 'choice', boxes: 1, values: values };
 if (qtS_(r.draw_answer || r.drawAnswer)) return { face: 'draw', boxes: 1, values: 1 };
@@ -4167,6 +4157,11 @@ let k = (String(el.getAttribute('class') || '').trim().split(/\s+/)[0] || el.tag
 for (const a of el.attributes) if (/^data-/.test(a.name) && !/^data-(do|sure|armed|repeat)$/.test(a.name)) k += '|' + a.name + '=' + a.value;
 return k;
 }
+function pressLive_(el, key) {
+if (!el || el.isConnected) return el || null;
+const k = key || pressKey_(el);
+return [...document.querySelectorAll('[data-do="' + el.getAttribute('data-do') + '"]')].find(c => pressKey_(c) === k) || null;
+}
 function pressAgain_(el) {
 if (el.hasAttribute('data-repeat') || PRESS_REPEAT_.has(el.getAttribute('data-do'))) return false;
 const key = pressKey_(el), now = performance.now();
@@ -4455,8 +4450,9 @@ const ACTIONS = {};
 const SLOW_ACTS_ = new Set(['card-share', 'card-cancel']);
 function on(name, fn) {
 ACTIONS[name] = function (el) { ACT_EPOCH++; if (!SLOW_ACTS_.has(name) || !el || !el.setAttribute) return fn.apply(this, arguments);
-const a = arguments; el.setAttribute('aria-busy', 'true');
-requestAnimationFrame(() => setTimeout(() => { try { fn.apply(this, a); } finally { el.removeAttribute('aria-busy'); } })); };
+const a = [...arguments], key = pressKey_(el); el.setAttribute('aria-busy', 'true');
+requestAnimationFrame(() => setTimeout(() => { const live = pressLive_(el, key);
+try { if (live) { a[0] = live; fn.apply(this, a); } } finally { el.removeAttribute('aria-busy'); } })); };
 }
 on('retry', () => { LOADED = false; LOAD_FAILED = ''; LIBRARY_FAILED = '';
 LIBRARY_ROWS = null;
@@ -4550,7 +4546,7 @@ PRESS_SOON_ = { el: doer, key };
 doer.classList.add('is-pressed');
 requestAnimationFrame(() => setTimeout(() => {
 PRESS_SOON_ = null;
-const live = doer.isConnected ? doer : [...document.querySelectorAll('[data-do="' + doer.dataset.do + '"]')].find(c => pressKey_(c) === key);
+const live = pressLive_(doer, key);
 if (live) pressAct_(live, e);
 else if (CLICK_LOG) console.log('[click] dropped — its control is no longer on the screen');
 }, 0));

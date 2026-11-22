@@ -47,19 +47,8 @@ function qtExpr_(w) {
 /* ---------- THE ANSWER FACE, THE ONE SOURCE (owner, 20 Nov: "a question must never show two answer boxes when it wants one answer").
    What a part is answered on and how many boxes it shows, from its key and its figure; find-cells.js `ansBox_` draws it, the type reads `values`.
    ONE BOX by default, whatever the key: a list, a `set`, a `count`, a coordinate, a pair, "x = , y =" are typed in it with commas or spaces.
-   A BOX A CELL only where the key is `cells` and the part shows the table its blanks sit in; options and drawings keep their own face.
+   A `cells` key is one box too, its parts typed in order with commas (owner, 22 Nov); options and drawings keep their own face.
    `values` is how many the key wants (0 an open count), for the type and for "Give 2 answers" read aloud — never a box count. */
-const QT_CELL_BLANK = /<(td|th)([^>]*)>(?:\s|&nbsp;|\u00a0)*<\/\1>/g;
-/* AN EMPTY TOP-LEFT CORNER heads both the rows and the columns: it is never a blank to fill. */
-const qtCorner_ = t => /^<table[^>]*>\s*(?:<thead[^>]*>\s*)?(?:<tbody[^>]*>\s*)?<tr[^>]*>\s*<(td|th)[^>]*>(?:\s|&nbsp;|\u00a0)*<\/\1>/.test(t);
-/* THE FIRST TABLE WHOSE BLANKS ARE THE CELLS (a part's words can show a results table before the one to complete), or ''. */
-function qtCellTable_(html, n) {
-  if (!n) return '';
-  return (String(html || '').match(/<table[\s\S]*?<\/table>/g) || []).find(t => {
-    const blanks = (t.match(QT_CELL_BLANK) || []).length;
-    return blanks === n || blanks === n + 1 && qtCorner_(t);
-  }) || '';
-}
 /* "and" parts values only between numbers or letters ("36 and 48", "C and D"), never "two hundred and nine" */
 function qtSplit_(s) {
   return [].concat(...String(s).split(/\s*,\s*/).map(v => (/\d|^[a-z]{1,2}\s+(and|&)\s+[a-z]{1,2}$/i.test(v)
@@ -88,14 +77,13 @@ function qtValues_(r) {
   const n = split(ways[0]);
   return n >= 2 && ways.every(w => { const m = split(w); return m === 1 || m === n; }) ? n : 1;
 }
-function qtFace_(x, html) {
+function qtFace_(x) {
   const r = (x && x.row) || x || {};
   const cells = qtS_(r.cells) ? qtS_(r.cells).replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, '&').split(';').length : 0;
   const choices = Array.isArray(r.choices) ? r.choices : qtS_(r.choices).split('|').filter(c => c.trim());
   const values = qtWays_(r).length ? qtValues_(r) : 1;
   if (cells) {
-    const shown = html != null ? html : qtS_(r.lead) + qtS_(r.html);
-    return qtCellTable_(shown, cells) ? { face: 'table', boxes: cells, values: cells } : { face: 'gaps', boxes: 1, values: cells };
+    return { face: 'gaps', boxes: 1, values: cells };
   }
   if (choices.length >= 2) return { face: 'choice', boxes: 1, values: values };
   if (qtS_(r.draw_answer || r.drawAnswer)) return { face: 'draw', boxes: 1, values: 1 };

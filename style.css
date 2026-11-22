@@ -1476,11 +1476,11 @@ html.flow #screen { height: auto; overflow: visible; touch-action: auto; backgro
 html.flow .screen { position: static; transform: none; visibility: visible; transition: none; will-change: auto; }
 html.flow #s-account { order: -1; }
 html.flow .page { width: 100%; min-width: 0; }
-/* ONE FLOW FOR EVERY LIST OF CARDS (owner, 10 Nov): as many 20rem-or-wider columns as fit, packed top to bottom so a short card leaves no hole — no breakpoints. */
-.card-grid { display: block; columns: 1; column-gap: var(--card-gap); }
-.card-grid > * { break-inside: avoid; margin-bottom: var(--card-gap); }
-/* WHAT IS NOT A CARD IN THE LIST — the menu, chips, answers, a form — runs across every column. */
-.card-grid > :not(.is-res) { column-span: all; }
+/* ONE FLOW FOR EVERY LIST OF CARDS (owner, 10 Nov: one column on every screen). NOT A MULTI-COLUMN BOX (22 Nov): a one-column
+   `columns: 1` with a `column-span: all` menu left every result after it measured at 0x0 on an iPhone (WebKit), so Share
+   painted a blank picture; a plain block draws the same and measures true (tools/share-picture.js). */
+.card-grid { display: flow-root; }
+.card-grid > * { margin-bottom: var(--card-gap); }
 .card-grid :is(p, li, .qtext, .doc, form, .kc-fields, [data-draw]) { max-width: var(--measure); }
 /* A CARD IS NO WIDER THAN ITS READING MEASURE (owner, 11 Nov: a card stretched edge to edge is hard on the eyes): ~70 characters a line, the typographic norm. */
 .card-grid > * { max-width: calc(var(--measure) + 2 * var(--s4)); margin-inline: auto; }
@@ -4368,19 +4368,7 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
    `flex: 1 1 0` to share a row with nine others; alone in the key it would take the whole line. */
 .prof-week .prof-key .hr { flex: 0 0 1.6rem; }
 
-/* A TABLE'S BLANKS ARE CELLS TO TYPE IN (find.js, `cellsTable_`); a fingertip is px, so the cell is at least 44px. */
-/* ONE WIDTH FOR EVERY COLUMN (N-20261115-tb1): an answer cell is the size of the given cell beside it, at every width. */
-.qtext table[data-cells], .card.kc .qtext .q-tscroll > table[data-cells] { table-layout: fixed; width: 100%; max-width: 40rem; }
-.qp-cell { box-sizing: border-box; width: 100%; min-width: 0; min-height: var(--tap); padding: 0 var(--s1);
-  border: 1px solid var(--line); border-radius: var(--r-ui); background: transparent; color: inherit;
-  font: 600 var(--fs-body)/1 var(--font); text-align: center; }
-.qp-cell:focus { outline: 2px solid var(--gold); outline-offset: 1px; }
-.qp-cell.is-right { box-shadow: var(--ring-good); }
-.qp-cell.is-near { box-shadow: var(--ring-warn); }
-td.qp-cell-at, th.qp-cell-at { padding: 2px; }
-/* centred over the left the question card gives its other boxes */
-.qcard :is(td, th).qp-cell-at > .qp-cell { text-align: center; }
-/* EVERY GAP IN ONE BOX (owner, 13 Nov): the one line over it says to write the answers in order. */
+/* EVERY PART IN ONE BOX (owner, 13 and 22 Nov): the one line over it names the parts, in order. */
 .qp-compose > .q-hint { font-size: var(--fs-body); line-height: var(--lh-close); text-align: center; }
 
 /* IN THE CARD a long maths answer stops at four lines and scrolls, where it used to push the card taller. */
