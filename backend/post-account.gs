@@ -390,31 +390,63 @@ function postSaveNotepad_(body, action, began) {
 function postSaveTodo_(body, action, began) {
   return postSavePerson_(body, 'todo', todoTidy_(S(body.todo)));
 }
-/* THE PLANNER'S FIELDS (kinds.json docket-item, as DOCKET_PLAN_FIELDS in cards-gen.gs): a valid one is kept, a default or a wrong one left out so the cell stays small. */
-function docketPlanTidy_(it) {
-  if (!it || typeof it !== 'object') return it;
-  Object.keys(DOCKET_PLAN_FIELDS).forEach(function (k) {
-    const F = DOCKET_PLAN_FIELDS[k], v = it[k];
+/* THE ONE TIDY (owner, 22 Nov, UNIFY NEXT 6): every list of the owner's (Docket, Assignments, Tasks, Food) is one list kind, its items one shape,
+   declared as kinds.json `list` (LIST_KINDS in cards-gen.gs): each field's type and size, what an item needs, the planner's fields (`plan`).
+   `whole` makes every item whole, each field in its declared order and shape (the import, an assignment's save); `as-is` keeps what the item
+   already has and only puts right what is out of shape (the docket's save, a task or food row as sent), so a save never changes good data.
+   The list's own save (`L.save`) also drops what has gone (`gone`: a one-off ticked before today, London's; a daily item keeps its `doneOn`). */
+function listTidy_(kind, items, how) {
+  const L = LIST_KINDS[kind];
+  if (!L) throw new Error('listTidy_: ' + kind + ' is not a list kind (kinds.json `list`)');
+  how = how || L.save;
+  const whole = how === 'whole', P = L.plan ? DOCKET_PLAN_FIELDS : {}, G = L.gone;
+  let rows = Array.isArray(items) ? items : [];
+  if (whole && L.most) rows = rows.slice(0, L.most);
+  rows = rows.map((it, n) => listItemTidy_(L, P, it, whole, n));
+  if (whole && L.need) rows = rows.filter(it => L.need.some(f => it[f]));
+  if (G && how === L.save) { const today = todayIso_(); rows = rows.filter(it => !it || it[G.daily] === 'daily' || !it[G.done] || !it[G.on] || String(it[G.on]) >= today); }
+  return rows;
+}
+function listItemTidy_(L, P, it, whole, n) {
+  if (!whole && (!it || typeof it !== 'object')) return it;
+  it = it && typeof it === 'object' ? it : {};
+  const out = whole ? {} : Object.assign({}, it), cut = (F, v) => (F.max ? S(v).slice(0, F.max) : S(v));
+  L.fields.forEach(F => {
+    const v = it[F.f];
+    if (!whole && v === undefined) return;
+    let k = '';
+    if (F.type === 'text') k = cut(F, v);
+    else if (F.type === 'id') k = cut(F, v) || 'a' + Date.now().toString(36) + n;
+    else if (F.type === 'word') k = assignWord_(cut(F, v));
+    else if (F.type === 'date') k = /^\d{4}-\d{2}-\d{2}$/.test(S(v)) ? S(v) : '';
+    else if (F.type === 'time') k = /^\d{2}:\d{2}$/.test(S(v)) ? S(v) : '';
+    else if (F.type === 'url') k = /^https?:\/\//i.test(S(v)) ? cut(F, v) : '';
+    else if (F.type === 'number') { const x = Number(S(v).replace(/[%\s]/g, '')); k = S(v) !== '' && isFinite(x) && x >= F.min && x <= F.max ? x : ''; }
+    else if (F.type === 'choice') { const w = F.word ? assignWord_(v) : S(v); k = F.options.indexOf(w) !== -1 ? w : F.def; }
+    else if (F.type === 'flag') k = !!v;
+    if (whole) {
+      /* A FIELD THAT HANGS ON ANOTHER: a daily item is never `done` (its `doneOn` says it); a mark only once marked. */
+      if (F.off && out[F.off.f] === F.off.is) k = false;
+      if (F.only && out[F.only.f] !== F.only.is) k = '';
+      out[F.f] = k;
+    } else if (k !== v && v !== '') { if (k === '' || k === F.def) delete out[F.f]; else out[F.f] = k; }
+  });
+  /* THE PLANNER'S FIELDS (form `docket-item`): a valid one kept, a default or a wrong one left out so the cell stays small. */
+  Object.keys(P).forEach(k => {
+    const F = P[k], v = it[k];
     let keep = null;
     if (F.options) keep = F.options.indexOf(S(v)) >= 0 ? S(v) : null;
     else if (v !== undefined && v !== null && v !== '' && isFinite(Number(v)) && Number(v) >= F.min) keep = Math.min(Math.round(Number(v)), 100000);
-    if (keep === null || keep === F.def) delete it[k]; else it[k] = keep;
+    if (keep === null || keep === F.def) delete out[k]; else out[k] = keep;
   });
-  return it;
-}
-/* Only the planner's fields of an item, tidied (docketImport builds its item afresh). */
-function docketPlanOf_(i) {
-  const t = docketPlanTidy_(Object.assign({}, i || {})), out = {};
-  Object.keys(DOCKET_PLAN_FIELDS).forEach(function (k) { if (k in t) out[k] = t[k]; });
   return out;
 }
-/* THE DOCKET'S TIDY (owner, 20 Nov), as js/map.js dkTidy_: a one-off ticked before today (London's) leaves its list; a daily item keeps its `doneOn`, which is simply not today any more. */
+/* THE DOCKET'S STORAGE (its `todo` cell, { v, lists }): each list's items through the one tidy, as the docket saves (`as-is`). */
 function todoTidy_(raw) {
   let t = null;
   try { t = JSON.parse(raw); } catch (e) { return raw; }
   if (!t || !Array.isArray(t.lists)) return raw;
-  const today = todayIso_();
-  t.lists.forEach(function (L) { L.items = (L.items || []).map(docketPlanTidy_).filter(function (it) { return it.repeat === 'daily' || !it.done || !it.doneOn || String(it.doneOn) >= today; }); });
+  t.lists.forEach(function (L) { L.items = listTidy_('docket', L.items || []); });
   return JSON.stringify(t);
 }
 
@@ -659,17 +691,10 @@ function postSetMyRoles_(body, action, began) {
    and the sign-in reply sends back to that person alone. The import loads whole lists at once: your own, or anybody's for the admin. */
 const DOCKET_CELL_MAX = 49000;
 function docketTidy_(lists) {
-  const s = (v, n) => S(v).slice(0, n);
-  /* A LIST'S USUAL START (`start`, form `docket-list`) is kept, or a save loses the day's phases (dkPhase_). */
-  return (Array.isArray(lists) ? lists : []).slice(0, 50).map(l => ({ name: s(l && l.name, 80) || 'List',
+  /* A LIST'S USUAL START (`start`, form `docket-list`) is kept, or a save loses the day's phases (dkPhase_); its items made whole by the one tidy. */
+  return (Array.isArray(lists) ? lists : []).slice(0, 50).map(l => ({ name: S(l && l.name).slice(0, 80) || 'List',
     ...(/^\d{1,2}:\d{2}$/.test(S(l && l.start)) ? { start: S(l.start) } : {}),
-    items: (Array.isArray(l && l.items) ? l.items : []).slice(0, 300).map(i => ({ title: s(i && i.title, 300), note: s(i && i.note, 8000),
-      date: /^\d{4}-\d{2}-\d{2}$/.test(S(i && i.date)) ? S(i.date) : '', time: /^\d{2}:\d{2}$/.test(S(i && i.time)) ? S(i.time) : '',
-      /* A REPEATING ITEM keeps the day it was last done (`doneOn`), never a flag: it is undone again the next day with no nightly job. */
-      repeat: S(i && i.repeat) === 'daily' ? 'daily' : '', done: S(i && i.repeat) === 'daily' ? false : !!(i && i.done),
-      doneOn: /^\d{4}-\d{2}-\d{2}$/.test(S(i && i.doneOn)) ? S(i.doneOn) : '',
-      ...docketPlanOf_(i) }))
-      .filter(i => i.title || i.note) }));
+    items: listTidy_('docket', Array.isArray(l && l.items) ? l.items : [], 'whole') }));
 }
 function postDocketImport_(body, action, began) {
   const me = findPerson('', S(body.personId));
@@ -755,25 +780,12 @@ function postDocketAddress_(body, action, began) {
 /* ---------- ASSIGNMENTS (owner, 18 Nov): a person's school or uni work — title, course, what it is, size, due, weight, status, mark, note, link —
    kept in their own `assignments` cell as JSON, as Docket's `todo` is: one person's list, read and saved whole, so no tab of its own.
    Seen by the person, a parent they accepted, a tutor booked with them and the admin (`workFileMaySee_`, as History is); changed by the person alone. */
-const ASSIGN_CELL_MAX = 49000, ASSIGN_MAX = 300;
-const ASSIGN_STATUS = ['not-started', 'in-progress', 'submitted', 'marked'];
+const ASSIGN_CELL_MAX = 49000;
 const assignWord_ = v => norm(S(v).trim()).replace(/[\s_]+/g, '-');
-function assignmentsTidy_(list) {
-  const s = (v, n) => S(v).trim().slice(0, n), num = (v, lo, hi) => { const n = Number(S(v).replace(/[%\s]/g, '')); return S(v).trim() !== '' && isFinite(n) && n >= lo && n <= hi ? n : ''; };
-  return (Array.isArray(list) ? list : []).slice(0, ASSIGN_MAX).map((a, i) => {
-    a = a && typeof a === 'object' ? a : {};
-    const status = ASSIGN_STATUS.indexOf(assignWord_(a.status)) !== -1 ? assignWord_(a.status) : 'not-started';
-    return { id: s(a.id, 40) || 'a' + Date.now().toString(36) + i, title: s(a.title, 200), course: s(a.course, 120),
-      kind: assignWord_(s(a.kind, 30)), amount: num(a.amount, 0, 1e6), unit: assignWord_(s(a.unit, 30)),
-      due: /^\d{4}-\d{2}-\d{2}$/.test(S(a.due)) ? S(a.due) : '', time: /^\d{2}:\d{2}$/.test(S(a.time)) ? S(a.time) : '',
-      weight: num(a.weight, 0, 100), status: status, mark: status === 'marked' ? s(a.mark, 40) : '',
-      note: s(a.note, 4000), link: /^https?:\/\//i.test(S(a.link).trim()) ? s(a.link, 500) : '' };
-  }).filter(a => a.title);
-}
 function assignmentsRead_(r) {
   let got = null;
   try { got = JSON.parse(S(r && r.assignments) || 'null'); } catch (err) { got = null; }
-  return assignmentsTidy_(got && Array.isArray(got.assignments) ? got.assignments : []);
+  return listTidy_('assignment', got && Array.isArray(got.assignments) ? got.assignments : []);
 }
 function assignmentsWrite_(me, list) {
   const cell = JSON.stringify({ v: 1, assignments: list });
@@ -804,15 +816,15 @@ function postAssignmentsOf_(body) {
 function postAssignmentsSave_(body) {
   const me = findPerson('', S(body.personId));
   if (!me || !S(me.person_id)) return refuse_('err-sign-in-first', 'not-signed-in');
-  return assignmentsWrite_(me, assignmentsTidy_(body.assignments));
+  return assignmentsWrite_(me, listTidy_('assignment', body.assignments));
 }
 /* IMPORT: many at once onto your own list (the owner loads his uni work this way); one with the same title, course and due date is replaced, the rest added. */
 function postAssignmentsImport_(body) {
   const me = findPerson('', S(body.personId));
   if (!me || !S(me.person_id)) return refuse_('err-sign-in-first', 'not-signed-in');
-  const fresh = assignmentsTidy_(body.assignments);
+  const fresh = listTidy_('assignment', body.assignments);
   if (!fresh.length) return jsonOut({ error: 'No assignments to import (each needs a title) — nothing was saved.' });
   const sameAs = a => b => norm(a.title) === norm(b.title) && norm(a.course) === norm(b.course) && a.due === b.due;
   const kept = assignmentsRead_(me).filter(b => !fresh.some(a => sameAs(a)(b)));
-  return assignmentsWrite_(me, assignmentsTidy_(kept.concat(fresh)));
+  return assignmentsWrite_(me, listTidy_('assignment', kept.concat(fresh)));
 }
