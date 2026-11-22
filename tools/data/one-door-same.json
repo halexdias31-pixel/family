@@ -1,0 +1,843 @@
+{
+ "out": [
+  {
+   "name": "workFilesOf",
+   "kv": "workfile:list",
+   "who": "P003",
+   "reply": {
+    "success": true,
+    "of": "P003",
+    "mayDelete": true,
+    "others": [],
+    "work": [
+     {
+      "id": "WF-2",
+      "at": 1793613600000,
+      "title": "Essay",
+      "subject": "English",
+      "by": "someone",
+      "pages": 1,
+      "thumb": "thumb:f3"
+     },
+     {
+      "id": "WF-1",
+      "at": 1793527200000,
+      "title": "Fractions",
+      "subject": "Maths",
+      "by": "you",
+      "pages": 2,
+      "thumb": "thumb:f1"
+     }
+    ]
+   }
+  },
+  {
+   "name": "workFilesOf",
+   "kv": "workfile:list",
+   "who": "P004",
+   "reply": {
+    "success": true,
+    "of": "P003",
+    "mayDelete": false,
+    "others": [],
+    "work": [
+     {
+      "id": "WF-2",
+      "at": 1793613600000,
+      "title": "Essay",
+      "subject": "English",
+      "by": "someone",
+      "pages": 1,
+      "thumb": "thumb:f3"
+     },
+     {
+      "id": "WF-1",
+      "at": 1793527200000,
+      "title": "Fractions",
+      "subject": "Maths",
+      "by": "someone",
+      "pages": 2,
+      "thumb": "thumb:f1"
+     }
+    ]
+   }
+  },
+  {
+   "name": "workFilesOf",
+   "kv": "workfile:list",
+   "who": "P002",
+   "reply": {
+    "success": false,
+    "message": "Not yours to see."
+   }
+  },
+  {
+   "name": "workFileOpen",
+   "kv": "workfile:read",
+   "who": "P003",
+   "reply": {
+    "success": true,
+    "id": "WF-1",
+    "title": "Fractions",
+    "pages": [
+     "page:f1",
+     "page:f2"
+    ]
+   }
+  },
+  {
+   "name": "workFileOpen",
+   "kv": "workfile:read",
+   "who": "P004",
+   "reply": {
+    "success": true,
+    "id": "WF-1",
+    "title": "Fractions",
+    "pages": [
+     "page:f1",
+     "page:f2"
+    ]
+   }
+  },
+  {
+   "name": "workFileOpen",
+   "kv": "workfile:read",
+   "who": "P003",
+   "reply": {
+    "success": false,
+    "message": "Not yours to see."
+   }
+  },
+  {
+   "name": "workFileSave",
+   "kv": "workfile:save",
+   "who": "P003",
+   "reply": {
+    "success": true,
+    "id": "WF-1795168800000-f9rh3u",
+    "pages": 2
+   }
+  },
+  {
+   "name": "workFileSave",
+   "kv": "workfile:save",
+   "who": "P003",
+   "reply": {
+    "success": false,
+    "message": "Those pages could not be saved — up to 6 photos, each under half a megabyte."
+   }
+  },
+  {
+   "name": "workFileDelete",
+   "kv": "workfile:delete",
+   "who": "P003",
+   "reply": {
+    "success": true,
+    "id": "WF-2",
+    "lost": 0
+   }
+  },
+  {
+   "name": "workFileDelete",
+   "kv": "workfile:delete",
+   "who": "P004",
+   "reply": {
+    "success": false,
+    "message": "Only the student or the admin can delete this."
+   }
+  },
+  {
+   "name": "pushState",
+   "kv": "push:read",
+   "who": "P003",
+   "reply": {
+    "success": true,
+    "ready": true,
+    "devices": 1,
+    "off": [
+     "posts"
+    ],
+    "kinds": [
+     {
+      "kind": "messages",
+      "label": "Messages"
+     },
+     {
+      "kind": "bookings",
+      "label": "Booking requests and answers"
+     },
+     {
+      "kind": "posts",
+      "label": "Replies to your posts"
+     }
+    ]
+   }
+  },
+  {
+   "name": "pushState",
+   "kv": "push:read",
+   "who": "P001",
+   "reply": {
+    "success": true,
+    "ready": true,
+    "devices": 0,
+    "off": [],
+    "kinds": [
+     {
+      "kind": "messages",
+      "label": "Messages"
+     },
+     {
+      "kind": "bookings",
+      "label": "Booking requests and answers"
+     },
+     {
+      "kind": "posts",
+      "label": "Replies to your posts"
+     }
+    ],
+    "missing": []
+   }
+  },
+  {
+   "name": "pushSubscribe",
+   "kv": "push:save",
+   "who": "P003",
+   "reply": {
+    "success": true,
+    "ready": true,
+    "devices": 2,
+    "off": [
+     "posts"
+    ],
+    "kinds": [
+     {
+      "kind": "messages",
+      "label": "Messages"
+     },
+     {
+      "kind": "bookings",
+      "label": "Booking requests and answers"
+     },
+     {
+      "kind": "posts",
+      "label": "Replies to your posts"
+     }
+    ]
+   }
+  },
+  {
+   "name": "pushSubscribe",
+   "kv": "push:save",
+   "who": "P003",
+   "reply": {
+    "error": "No device token came with that."
+   }
+  },
+  {
+   "name": "pushSet",
+   "kv": "pushsetting:save",
+   "who": "P003",
+   "reply": {
+    "success": true,
+    "ready": true,
+    "devices": 2,
+    "off": [
+     "posts",
+     "messages"
+    ],
+    "kinds": [
+     {
+      "kind": "messages",
+      "label": "Messages"
+     },
+     {
+      "kind": "bookings",
+      "label": "Booking requests and answers"
+     },
+     {
+      "kind": "posts",
+      "label": "Replies to your posts"
+     }
+    ]
+   }
+  },
+  {
+   "name": "pushSet",
+   "kv": "pushsetting:save",
+   "who": "P003",
+   "reply": {
+    "error": "There is no notification called \"nonsense\"."
+   }
+  },
+  {
+   "name": "pushUnsubscribe",
+   "kv": "push:delete",
+   "who": "P003",
+   "reply": {
+    "success": true,
+    "ready": true,
+    "devices": 1,
+    "off": [
+     "posts",
+     "messages"
+    ],
+    "kinds": [
+     {
+      "kind": "messages",
+      "label": "Messages"
+     },
+     {
+      "kind": "bookings",
+      "label": "Booking requests and answers"
+     },
+     {
+      "kind": "posts",
+      "label": "Replies to your posts"
+     }
+    ]
+   }
+  },
+  {
+   "name": "mediaSave",
+   "kv": "media:save",
+   "who": "P001",
+   "reply": {
+    "success": true,
+    "kind": "video",
+    "id": "dQw4w9WgXcQ",
+    "media": [
+     {
+      "kind": "video",
+      "id": "dQw4w9WgXcQ",
+      "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      "title": "New title",
+      "channel": "",
+      "thumb": "",
+      "subject": "Maths",
+      "tags": "",
+      "vkind": "",
+      "age": "",
+      "notes": ""
+     }
+    ]
+   }
+  },
+  {
+   "name": "mediaSave",
+   "kv": "media:save",
+   "who": "P001",
+   "reply": {
+    "success": true,
+    "kind": "reel",
+    "id": "abcdefghijk",
+    "media": [
+     {
+      "kind": "video",
+      "id": "dQw4w9WgXcQ",
+      "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      "title": "New title",
+      "channel": "",
+      "thumb": "",
+      "subject": "Maths",
+      "tags": "",
+      "vkind": "",
+      "age": "",
+      "notes": ""
+     },
+     {
+      "kind": "reel",
+      "id": "abcdefghijk",
+      "url": "https://youtube.com/shorts/abcdefghijk",
+      "title": "A reel",
+      "channel": "",
+      "thumb": "",
+      "subject": "",
+      "tags": "",
+      "vkind": "",
+      "age": "",
+      "notes": ""
+     }
+    ]
+   }
+  },
+  {
+   "name": "mediaSave",
+   "kv": "media:save",
+   "who": "P001",
+   "reply": {
+    "error": "That is not a YouTube link. Nothing was saved."
+   }
+  },
+  {
+   "name": "mediaDelete",
+   "kv": "media:delete",
+   "who": "P001",
+   "reply": {
+    "success": true,
+    "kind": "video",
+    "id": "dQw4w9WgXcQ",
+    "media": [
+     {
+      "kind": "reel",
+      "id": "abcdefghijk",
+      "url": "https://youtube.com/shorts/abcdefghijk",
+      "title": "A reel",
+      "channel": "",
+      "thumb": "",
+      "subject": "",
+      "tags": "",
+      "vkind": "",
+      "age": "",
+      "notes": ""
+     }
+    ]
+   }
+  },
+  {
+   "name": "mediaDelete",
+   "kv": "media:delete",
+   "who": "P001",
+   "reply": {
+    "error": "Nothing to delete — that one came from the repository. Hide it instead."
+   }
+  },
+  {
+   "name": "mediaHide",
+   "kv": null,
+   "who": "P001",
+   "reply": {
+    "success": true,
+    "kind": "reel",
+    "id": "abcdefghijk",
+    "media": [
+     {
+      "kind": "reel",
+      "id": "abcdefghijk",
+      "hidden": true
+     }
+    ]
+   }
+  },
+  {
+   "name": "listRecords",
+   "kv": "record:list",
+   "who": "P001",
+   "reply": {
+    "success": true,
+    "records": [
+     {
+      "id": "insurance",
+      "category": "Cover",
+      "title": "Insurance",
+      "provider": "Acme",
+      "reference": "R1",
+      "due_on": "2027-01-01",
+      "cost": "120",
+      "link": "",
+      "notes": "n",
+      "updated_at": "01/10/26 10:00"
+     }
+    ]
+   }
+  },
+  {
+   "name": "saveRecordsPage",
+   "kv": "record:save",
+   "who": "P001",
+   "reply": {
+    "success": true,
+    "records": [
+     {
+      "id": "insurance",
+      "category": "Cover",
+      "title": "Insurance",
+      "provider": "Acme2",
+      "reference": "R1",
+      "due_on": "2027-01-01",
+      "cost": "120",
+      "link": "",
+      "notes": "n",
+      "updated_at": "20/11/26 10:00"
+     },
+     {
+      "id": "lease",
+      "category": "",
+      "title": "Lease",
+      "provider": "Land",
+      "reference": "",
+      "due_on": "2027-05-01",
+      "cost": "",
+      "link": "",
+      "notes": "",
+      "updated_at": "20/11/26 10:00"
+     },
+     {
+      "id": "empty_one",
+      "category": "",
+      "title": "Empty",
+      "provider": "",
+      "reference": "",
+      "due_on": "",
+      "cost": "",
+      "link": "",
+      "notes": "",
+      "updated_at": ""
+     }
+    ]
+   }
+  },
+  {
+   "name": "saveRecordsPage",
+   "kv": "record:save",
+   "who": "P001",
+   "reply": {
+    "error": "An item on that page has no name this sheet can file it under."
+   }
+  },
+  {
+   "name": "listClientErrors",
+   "kv": "clienterror:list",
+   "who": "P001",
+   "reply": {
+    "success": true,
+    "errors": [
+     {
+      "id": "E2",
+      "first": 1793577600000,
+      "last": 1794182400000,
+      "count": 0,
+      "devices": 1,
+      "message": "bang",
+      "where": "",
+      "version": "9",
+      "screen": ""
+     },
+     {
+      "id": "E1",
+      "first": 1793491200000,
+      "last": 1793836800000,
+      "count": 3,
+      "devices": 2,
+      "message": "boom",
+      "where": "a.js:1",
+      "version": "9",
+      "screen": "find"
+     }
+    ]
+   }
+  },
+  {
+   "name": "listApplications",
+   "kv": "application:list",
+   "who": "P001",
+   "reply": {
+    "success": true,
+    "open": 1,
+    "applications": [
+     {
+      "id": "A2",
+      "at": 1793750400000,
+      "status": "declined",
+      "statusAt": 1793836800000,
+      "personId": "P003",
+      "handle": "finn",
+      "name": "Finn Test",
+      "subjects": "Art",
+      "qualifications": "",
+      "dbs_number": "",
+      "dbs_issued": "",
+      "dbs_needed": "",
+      "right_to_work": "",
+      "experience": "",
+      "availability": "",
+      "area": "",
+      "ref1_name": "",
+      "ref1_contact": "",
+      "ref2_name": "",
+      "ref2_contact": "",
+      "statement": "",
+      "cv_link": "",
+      "consent": "",
+      "full_name": "",
+      "phone": "",
+      "email": "",
+      "address": "",
+      "postcode": "",
+      "dob": "",
+      "id_doc": "",
+      "rtw_doc": "",
+      "qual_docs": "",
+      "ref1_relationship": "",
+      "ref1_email": "",
+      "ref1_phone": "",
+      "ref2_relationship": "",
+      "ref2_email": "",
+      "ref2_phone": "",
+      "dbs_update_consent": "",
+      "rate": ""
+     },
+     {
+      "id": "A1",
+      "at": 1793491200000,
+      "status": "new",
+      "statusAt": 0,
+      "personId": "P004",
+      "handle": "cara",
+      "name": "Cara Test",
+      "subjects": "Maths",
+      "qualifications": "BSc",
+      "dbs_number": "",
+      "dbs_issued": "",
+      "dbs_needed": "",
+      "right_to_work": "",
+      "experience": "",
+      "availability": "",
+      "area": "",
+      "ref1_name": "",
+      "ref1_contact": "",
+      "ref2_name": "",
+      "ref2_contact": "",
+      "statement": "",
+      "cv_link": "",
+      "consent": "",
+      "full_name": "",
+      "phone": "",
+      "email": "",
+      "address": "",
+      "postcode": "",
+      "dob": "",
+      "id_doc": "",
+      "rtw_doc": "",
+      "qual_docs": "",
+      "ref1_relationship": "",
+      "ref1_email": "",
+      "ref1_phone": "",
+      "ref2_relationship": "",
+      "ref2_email": "",
+      "ref2_phone": "",
+      "dbs_update_consent": "",
+      "rate": ""
+     }
+    ]
+   }
+  },
+  {
+   "name": "listStaff",
+   "kv": "staff:list",
+   "who": "P001",
+   "reply": {
+    "success": true,
+    "staff": [
+     {
+      "personId": "P002",
+      "name": "Ada Test",
+      "handle": "ada",
+      "rank": "staff",
+      "termsVersion": "v3",
+      "termsAt": "01/10/26 10:00",
+      "dbsCheckedOn": "2026-09-01",
+      "dbsNumber": "001122"
+     },
+     {
+      "personId": "P005",
+      "name": "Tom Test",
+      "handle": "tom",
+      "rank": "staff",
+      "termsVersion": "",
+      "termsAt": "not yet",
+      "dbsCheckedOn": "",
+      "dbsNumber": ""
+     }
+    ]
+   }
+  },
+  {
+   "name": "listSuggestions",
+   "kv": "suggestion:list",
+   "who": "P001",
+   "reply": {
+    "success": true,
+    "open": 1,
+    "suggestions": [
+     {
+      "id": "N-1",
+      "at": 0,
+      "kind": "",
+      "itemId": "",
+      "label": "",
+      "note": "",
+      "handle": "",
+      "rank": ""
+     }
+    ],
+    "messages": [
+     {
+      "id": "M1",
+      "from": "Finn Test",
+      "to": "Ada Test",
+      "reason": "rude",
+      "body": "rude",
+      "files": 0,
+      "at": 1793750400000
+     }
+    ]
+   }
+  },
+  {
+   "name": "raiseHand",
+   "kv": "hand:save",
+   "who": "P003",
+   "reply": {
+    "success": true,
+    "mine": {
+     "personId": "P003",
+     "name": "Finn T",
+     "handle": "finn",
+     "q": "Q1",
+     "label": "Fractions",
+     "at": 1795168800000
+    }
+   }
+  },
+  {
+   "name": "hands",
+   "kv": "hand:read",
+   "who": "P002",
+   "reply": {
+    "success": true,
+    "mine": null,
+    "hands": []
+   }
+  },
+  {
+   "name": "raiseHand",
+   "kv": "hand:save",
+   "who": "P003",
+   "reply": {
+    "error": "Only your own hand."
+   }
+  }
+ ],
+ "left": {
+  "work_files": [
+   {
+    "_row": 2,
+    "work_id": "WF-1",
+    "person_id": "P003",
+    "uploaded_by": "P003",
+    "uploaded_at": "2026-11-01T10:00:00.000Z",
+    "title": "Fractions",
+    "subject": "Maths",
+    "pages": "f1 f2",
+    "deleted_at": ""
+   },
+   {
+    "_row": 3,
+    "work_id": "WF-2",
+    "person_id": "P003",
+    "uploaded_by": "P002",
+    "uploaded_at": "2026-11-02T10:00:00.000Z",
+    "title": "Essay",
+    "subject": "English",
+    "pages": "f3",
+    "deleted_at": "2026-11-20T10:00:00.000Z"
+   },
+   {
+    "_row": 4,
+    "work_id": "WF-3",
+    "person_id": "P004",
+    "uploaded_by": "P004",
+    "uploaded_at": "2026-11-03T10:00:00.000Z",
+    "title": "Hers",
+    "subject": "",
+    "pages": "f4",
+    "deleted_at": ""
+   },
+   {
+    "_row": 5,
+    "work_id": "WF-1795168800000-f9rh3u",
+    "person_id": "P003",
+    "uploaded_by": "P003",
+    "uploaded_at": "2026-11-20T10:00:00.000Z",
+    "title": "Long division",
+    "subject": "Maths",
+    "pages": "new1 new2",
+    "deleted_at": ""
+   }
+  ],
+  "push_tokens": [
+   {
+    "_row": 3,
+    "token_id": "PT1795168800000",
+    "person_id": "P003",
+    "token": "tok-b",
+    "device": "Phone",
+    "off": "posts,messages",
+    "added_on": "2026-11-20T10:00:00.000Z"
+   }
+  ],
+  "media": [
+   {
+    "_row": 3,
+    "media_id": "reel:abcdefghijk",
+    "kind": "reel",
+    "yt_id": "abcdefghijk",
+    "added_by": "P001",
+    "added_on": "2026-11-20T10:00:00.000Z",
+    "updated_on": "2026-11-20T10:00:00.000Z",
+    "title": "A reel",
+    "channel": "",
+    "subject": "",
+    "tags": "",
+    "vkind": "",
+    "age": "",
+    "notes": "",
+    "url": "https://youtube.com/shorts/abcdefghijk",
+    "thumb": "",
+    "hidden": "TRUE"
+   }
+  ],
+  "records": [
+   {
+    "_row": 2,
+    "record_id": "insurance",
+    "category": "Cover",
+    "title": "Insurance",
+    "provider": "Acme2",
+    "reference": "R1",
+    "due_on": "2027-01-01",
+    "cost": "120",
+    "link": "",
+    "notes": "n",
+    "active": "TRUE",
+    "updated_at": "2026-11-20T10:00:00.000Z"
+   },
+   {
+    "_row": 3,
+    "record_id": "old_one",
+    "category": "",
+    "title": "Old",
+    "provider": "",
+    "reference": "",
+    "due_on": "",
+    "cost": "",
+    "link": "",
+    "notes": "",
+    "active": "FALSE",
+    "updated_at": ""
+   },
+   {
+    "_row": 4,
+    "record_id": "lease",
+    "category": "",
+    "title": "Lease",
+    "provider": "Land",
+    "reference": "",
+    "due_on": "2027-05-01",
+    "active": "TRUE",
+    "updated_at": "2026-11-20T10:00:00.000Z"
+   }
+  ]
+ }
+}

@@ -53,14 +53,14 @@ function mediaRowOf_(t, kind, id) {
   return t.rows.find(function (r) { return S(r.kind) === kind && S(r.yt_id) === id; }) || null;
 }
 
-/* ONE WRITER FOR ALL THREE ACTIONS, under the script lock with the rows read fresh. Returns the reply object. */
-function mediaWrite_(action, body) {
+/* AN ADMIN'S REELS AND VIDEOS (404): media:save, media:delete, mediaUpload and mediaHide, under the script lock with the rows read fresh. The gate already refused anybody not an admin. */
+function mediaWrite_(body, action) {
   const kind = S(body.kind);
   if (MEDIA_KINDS.indexOf(kind) === -1) return { error: nothingSaved_('Is it a reel or a video?') };
   /* AN EDIT OF AN UPLOADED REEL NAMES ITS ID; a new upload makes one, after the file is in Drive. */
   const fileId = MEDIA_FILE_RE.test(S(body.id)) ? S(body.id) : '';
   let id = action === 'mediaUpload' ? 'f' + new Date().getTime()
-    : action === 'mediaSave' ? (mediaYtId_(body.url) || fileId) : S(body.id);
+    : action === 'media:save' ? (mediaYtId_(body.url) || fileId) : S(body.id);
   if (!mediaIdOk_(id)) return { error: nothingSaved_('That is not a YouTube link.') };
   const put = {};
   if (action === 'mediaUpload') {
@@ -79,7 +79,7 @@ function mediaWrite_(action, body) {
     put.age = mediaAgeOf_(body.age) ? String(mediaAgeOf_(body.age)) : '';
     put.url = url;
     put.hidden = 'FALSE';
-  } else if (action === 'mediaSave') {
+  } else if (action === 'media:save') {
     const too = Object.keys(MEDIA_CAP).filter(function (k) { return S(body[k]).length > MEDIA_CAP[k]; });
     if (too.length) return { error: nothingSaved_('Too long: ' + too.join(', ') + '.') };
     if (!S(body.title)) return errOf_('err-needs-title', 'no-title');
@@ -100,7 +100,7 @@ function mediaWrite_(action, body) {
     if (!t.sheet) return { error: nothingSaved_('The media tab is not there yet — open the site once as an admin so setup makes it.') };
     const r = mediaRowOf_(t, kind, id);
     const by = S(body.personId), now = new Date();
-    if (action === 'mediaDelete') {
+    if (action === 'media:delete') {
       if (!r) return { error: 'Nothing to delete — that one came from the repository. Hide it instead.' };
       if (!delRow(t, r)) return { error: 'The media tab could not be changed — nothing was deleted.' };
     } else if (r) {
@@ -108,7 +108,7 @@ function mediaWrite_(action, body) {
       setCells(t, r, put);
     } else {
       if (action === 'mediaHide' && put.hidden === 'FALSE') return { error: 'Nothing to show again.' };
-      if (action === 'mediaSave' && MEDIA_FILE_RE.test(id)) return { error: nothingSaved_('That uploaded reel is not there any more.') };
+      if (action === 'media:save' && MEDIA_FILE_RE.test(id)) return { error: nothingSaved_('That uploaded reel is not there any more.') };
       if (!addRow(t, Object.assign({ media_id: kind + ':' + id, kind: kind, yt_id: id, added_by: by, added_on: now, updated_on: now }, put))) {
         return { error: 'The media tab could not be opened — nothing was saved.' };
       }

@@ -51,6 +51,7 @@ const ORDER = [
   'bundle',       // js/ in index.html's order -> bundle/*.js
   'one-profile-save', // the one-profile-save check (rule 1.75, unify batch 9 job A): one profile send (profileSave_), one fieldReadonly_; fails the build
   'one-request',  // the one-request check (rule 1.75, unify H): one fetch to the backend (backendFetch_), every posted action in actions.json, one dispatcher; fails the build
+  'one-door-same', // the same-answer check (rule 1.75, queue step 6, 22 Nov): every merged action, by its old name and by the item door, answers made-up rows as it did before the cut (tools/data/one-door-same.json); fails the build
   'one-action-roles', // the no-widening check (rule 1.75, owner 22 Nov: queue step 6): every old action name, alias of a kind:verb item or not, may be called by no tier it could not before (tools/data/action-roles-before.json); fails the build
   'one-import',   // the one-import check (rule 1.75, unify K): one pack validator and applier (libPackCheck_, libPackApply_), one pack maker, one deploy (pullFromGitHub), the emptying guard on fixed cases; fails the build
   'one-word',     // the one-word check (rule 1.75, unify batch 6 lane B): a js literal of 12+ characters equal to a words.json value is read through text_(key); another lane's owed file is printed as owed; fails the build

@@ -99,7 +99,7 @@ function postRaiseHand_(body, action, began) {
   const staff = rankAtLeast_(me, 'staff');
   return withWriteLock_(() => {
     const all = handsRead_();
-    if (action === 'raiseHand') {
+    if (action === 'hand:save') {
       /* YOUR OWN HAND ONLY; staff may lower anybody's (the tutor's Done), never raise one for them. */
       const who = S(body.for) || S(me.person_id);
       if (who !== S(me.person_id) && !(staff && !body.on)) return jsonOut({ error: 'Only your own hand.' });

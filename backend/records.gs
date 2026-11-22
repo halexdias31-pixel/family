@@ -3,14 +3,6 @@ const RECORD_SLUG = /^[a-z][a-z0-9_]{1,39}$/;
 const RECORD_PAGE_FIELDS = ['category', 'title', 'provider', 'reference', 'due_on'];
 const RECORD_PAGE_MAX = 12;
 
-function recordOut_(r) {
-  return {
-    id: S(r.record_id), category: S(r.category), title: S(r.title), provider: S(r.provider),
-    reference: S(r.reference), due_on: isoDate_(r.due_on), cost: S(r.cost), link: S(r.link),
-    notes: S(r.notes), updated_at: fmtDateTime(r.updated_at),
-  };
-}
-
 /* WHY A PAGE MAY NOT BE SAVED, as a sentence — every one asked before a cell is touched, so a
    refused page has written nothing. */
 function recordsPageRefusal_(list) {
@@ -29,15 +21,11 @@ function recordsPageRefusal_(list) {
   return '';
 }
 
-function recordsAction_(action, body) {
-  const t = read(TAB.records);
+/* record:list and record:save — each item drawn as kinds.json `record` sheet.list says (kindOut_). */
+function recordsAction_(body, action) {
+  const t = read(TAB.records), recordOut_ = r => kindOut_('record', r);
   if (!t.sheet) return { error: 'The sheet has no records tab. Open the site once as an admin to add it.' };
-
-  if (action === 'listRecords') {
-    return { success: true, records: t.rows.filter(r => S(r.title) && TRUE_(r.active)).map(recordOut_) };
-  }
-
-  /* saveRecordsPage */
+  if (action === 'record:list') return { success: true, records: kindList_('record', t.rows) };
   const list = body.records;
   const no = recordsPageRefusal_(list);
   if (no) return { error: no };

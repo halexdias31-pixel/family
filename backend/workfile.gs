@@ -60,17 +60,18 @@ function workFileWho_(me, id) {
   return p ? (S(p.first_name) || S(p.handle) || 'someone') : 'someone';
 }
 
-/* workFileSave · workFilesOf · workFileOpen · workFileDelete: one handler, the viewer from the token's person, never the body's say-so. */
+/* workfile:save · list · read · delete: one handler, the viewer from the token's person, never the body's say-so. */
 function postWorkFile_(body, action) {
+  const verb = S(action).split(':')[1];
   const me = findPerson('', S(body.personId));
   if (!me || !S(me.person_id)) return jsonOut({ success: false, message: 'Sign in first.' });
   const t = read(TAB.work_files);
   if (!t.sheet) return jsonOut({ success: false, message: 'Work on file is not set up yet — the admin opens the site with ?setup=1.' });
-  if (action === 'workFileOpen' || action === 'workFileDelete') {
+  if (verb === 'read' || verb === 'delete') {
     const row = t.rows.find(r => S(r.work_id) === S(body.id) && !S(r.deleted_at));
     if (!row || !workFileMaySee_(me, S(row.person_id))) return jsonOut({ success: false, message: 'Not yours to see.' });
     const ids = S(row.pages).split(' ').filter(Boolean);
-    if (action === 'workFileOpen') return jsonOut({ success: true, id: S(row.work_id), title: S(row.title), pages: ids.map(i => workFileData_(i, false)).filter(Boolean) });
+    if (verb === 'read') return jsonOut({ success: true, id: S(row.work_id), title: S(row.title), pages: ids.map(i => workFileData_(i, false)).filter(Boolean) });
     if (!workFileMayDelete_(me, S(row.person_id))) return jsonOut({ success: false, message: 'Only the student or the admin can delete this.' });
     setCells(t, row, { deleted_at: new Date() });
     /* A PAGE ALREADY GONE FROM DRIVE is counted, not fatal: the row is deleted either way. */
@@ -79,7 +80,7 @@ function postWorkFile_(body, action) {
   }
   const of = S(body.of) || S(me.person_id);
   if (!workFileMaySee_(me, of)) return jsonOut({ success: false, message: 'Not yours to see.' });
-  if (action === 'workFilesOf') {
+  if (verb === 'list') {
     const rows = workFileRows_(of).slice(0, WORK_FILE_ROWS_MAX);
     return jsonOut({ success: true, of: of, mayDelete: workFileMayDelete_(me, of),
       others: key(of) === key(me.person_id) ? workFileOthers_(me) : [], work: rows.map(r => {
@@ -88,7 +89,7 @@ function postWorkFile_(body, action) {
                pages: ids.length, thumb: ids.length ? workFileData_(ids[0], true) : '' };
     }) });
   }
-  /* workFileSave: JPEGs only, shrunk on the phone; refused whole, never cut. */
+  /* workfile:save: JPEGs only, shrunk on the phone; refused whole, never cut. */
   const pics = Array.isArray(body.pages) ? body.pages : [];
   if (!pics.length || pics.length > WORK_FILE_PAGES_MAX || pics.some(x => !/^data:image\/jpeg;base64,[A-Za-z0-9+\/=]+$/.test(S(x)) || S(x).length > WORKING_PHOTO_CHARS))
     return jsonOut({ success: false, message: 'Those pages could not be saved — up to ' + WORK_FILE_PAGES_MAX + ' photos, each under half a megabyte.' });

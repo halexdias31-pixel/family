@@ -79,8 +79,8 @@ function pushTo_(personOrName, kind, title, body, link) {
   }
 }
 
-/* THE CARD'S FOUR ACTIONS. `me` is the signed-in person (PERMISSIONS level 'self'). */
-function pushAction_(action, body) {
+/* PHONE NOTIFICATIONS (492), THE CARD'S FOUR: push:read, push:save, push:delete, pushsetting:save. `me` is the signed-in person (PERMISSIONS level 'self'). */
+function pushAction_(body, action) {
   const me = findPerson('', S(body.personId));
   if (!me) return errOf_('err-sign-in-first', 'not-signed-in');
   const t = read(TAB.push_tokens);
@@ -93,10 +93,10 @@ function pushAction_(action, body) {
     if (rankAtLeast_(me, 'admin')) o.missing = pushMissing_();
     return o;
   };
-  if (action === 'pushState') return state();
+  if (action === 'push:read') return state();
   if (!t.sheet) return { error: 'The push_tokens tab is not there yet. Open the site once as an admin.' };
   const token = S(body.fcmToken).trim();
-  if (action === 'pushSubscribe') {
+  if (action === 'push:save') {
     if (!pushReady_()) return { error: 'Notifications are not switched on yet.' };
     if (!token || token.length > 4096) return { error: 'No device token came with that.' };
     /* A TOKEN IS ONE DEVICE: if it was somebody else's (a shared tablet), it is this person's now. */
@@ -107,12 +107,12 @@ function pushAction_(action, body) {
       device: S(body.device).slice(0, 120), off: pushOffOf_(rows).join(','), added_on: new Date() });
     return state();
   }
-  if (action === 'pushUnsubscribe') {
+  if (action === 'push:delete') {
     t.rows.filter(r => S(r.person_id) === S(me.person_id) && (!token || S(r.token) === token))
       .sort((a, b) => b._row - a._row).forEach(r => delRow(t, r));
     return state();
   }
-  if (action === 'pushSet') {
+  if (action === 'pushsetting:save') {
     const kind = norm(body.kind);
     if (!PUSH_KINDS[kind]) return { error: 'There is no notification called "' + S(body.kind) + '".' };
     const off = pushOffOf_(mine()).filter(k => k !== kind);
