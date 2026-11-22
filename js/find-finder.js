@@ -286,6 +286,7 @@ const FACET_FN = {
   myResultOf_: x => myResultOf_(x),
   verifyTags_: x => verifyTags_(x),
   sittingOf_: x => sittingOf_(x),
+  itemYear_: x => itemYear_(x),
   itemDate_: x => itemDate_(x),
   qSplitOf_: x => qSplitOf_(x),
   toolNameOf_: x => toolNameOf_(x),
@@ -303,8 +304,12 @@ const FACET_BY_READ_ = {
   fn: c => ({ of: facetFn_(c) }),
 };
 /* `tag: false` is asked but never a card's tag; `choose` is asked however lopsided (mScope). */
-const facetReadData_ = () => Object.fromEntries(ITEM_KINDS.facets.filter(f => f.read && FACET_BY_READ_[f.read.by]).map(f => [f.field,
-  Object.assign(FACET_BY_READ_[f.read.by](f.read.col), f.read.tag === false ? { tagOf: () => '' } : {}, f.read.choose ? { choose: true } : {})]));
+/* `one` {answer: [words]} (step 9, PAPER TYPES): several words are one Find answer, while the card's tag keeps the item's own word (Exam paper: Past paper, Specimen paper). */
+const facetOne_ = (r, one) => { const to = {}; Object.keys(one).forEach(k => one[k].forEach(w => { to[spellKey_(w)] = k; }));
+  const map = v => Array.isArray(v) ? [...new Set(v.map(map))] : (v && to[spellKey_(v)]) || v;
+  return Object.assign({}, r, { of: x => map(r.of(x)), tagOf: r.tagOf || r.of, answerOf: map }); };
+const facetReadData_ = () => Object.fromEntries(ITEM_KINDS.facets.filter(f => f.read && FACET_BY_READ_[f.read.by]).map(f => { const r = FACET_BY_READ_[f.read.by](f.read.col);
+  return [f.field, Object.assign(f.one ? facetOne_(r, f.one) : r, f.read.tag === false ? { tagOf: () => '' } : {}, f.read.choose ? { choose: true } : {})]; }));
 const FACET_READ = {
   ...facetReadData_(),
   forLabel: { of: x => x.groups || kindOf_(x).group },
@@ -396,6 +401,8 @@ function filterHit(x, f) {
   const facet = facetBy(f.field);
   if (!facet) return true;
   /* ANY OF THEM COUNTS. A tutor is in Booking and in People, and choosing either has to keep them — an `===` against a joined string would have matched neither. § */
+  /* A CARD'S OWN WORD TAPPED (Specimen paper, inside the one answer Exam paper; facets.json `one`) finds the items that wear that word. */
+  if (facet.answerOf && facet.answerOf(f.value) !== f.value) return [].concat(facet.tagOf(x) || []).some(v => spellKey_(v) === spellKey_(f.value));
   return facetOwn_(facet, x).some(v => spellKey_(v) === spellKey_(f.value));
 }
 
