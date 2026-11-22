@@ -34,7 +34,7 @@
    "say": "Ids of other items it points at (a manuscript's writings, an event's figures)."
   }
  },
- "shapesSay": "THE PERSON, ITEM AND REFERENCE SHAPES (owner, 22 Nov, CARD SHAPES): a kind that draws as a Person (picture, name, role tags, fact lines, links), an Item (title, tags — list, due, meal, price —, lines, tiles, sheet) or a Learning: Reference (tags, fact lines, picture, links; its body is its `card.parts`, drawn by referenceBody_) says so in its `shape`; cardOfItem_ (and dkCard_, meCard, the assignment rows) draw it through shapeCard_ (js/cards-parts.js), which keeps only that shape's slots and marks the card data-shape. tools/one-card.js checks each kind wears its one shape.",
+ "shapesSay": "THE PERSON, ITEM, REFERENCE, RECORD AND THREAD SHAPES (owner, 22 Nov, CARD SHAPES): a kind that draws as a Person (picture, name, role tags, fact lines, links), an Item (title, tags — list, due, meal, price —, lines, tiles, sheet), a Learning: Reference (tags, fact lines, picture, links; its body is its `card.parts`, drawn by referenceBody_), an Activity: Record (who/when tags, money or fact pills, a status; its `card.record`, drawn by recordName_, recordPills_ and recordSum_) or an Activity: Thread (its messages and reply box, drawn by threadCard_) says so in its `shape`; cardOfItem_ (and dkCard_, meCard, the assignment rows) draw it through shapeCard_ (js/cards-parts.js), which keeps only that shape's slots and marks the card data-shape. tools/one-card.js checks each kind wears its one shape.",
  "kinds": {
   "bookform": {
    "source": "the booking form (js/book-*.js)",
@@ -625,6 +625,7 @@
     },
     "facets": []
    },
+   "shape": "Record",
    "card": {
     "card": "receipt",
     "id": [
@@ -632,7 +633,6 @@
      "jobId",
      "job_id"
     ],
-    "name": "kcBookingName_(row)",
     "facts": true,
     "tags": [
      "subject",
@@ -640,8 +640,8 @@
      "tutor",
      "venue"
     ],
-    "pills": "kcBookingPills_(item)",
-    "body": "kcBookingBody_(row, live)",
+    "record": {"name": [["subject", "=Session"], ["level"]], "pills": ["=Booking", "subject", "tutor:name", "when", "money.rate"],
+     "status": {"fact": "paid", "look": {"Unpaid": "is-new"}}, "sum": ["who", "weeks", "money.total"]},
     "tool": "jobPage_(raw)",
     "letter": {
      "say": "THE BOOKING AS AN EMAIL SAYS IT (owner, 16 Nov: one card maker): renderCard with inline \"text\" writes these lines, each through the words file; a line marked price is never said to a child or when prices are off.",
@@ -2741,9 +2741,9 @@
    "find": {
     "group": "Messages",
     "label": "Messages",
-    "under": "Messages",
-    "draw": "findMsgCard_"
+    "under": "Messages"
    },
+   "shape": "Thread",
    "see": {
     "who": "anyone"
    }
@@ -2783,9 +2783,10 @@
     ],
     "onCard": false
    },
+   "shape": "Record",
    "card": {
     "look": "post-fc",
-    "name": "kcPostName_(row)",
+    "record": {"name": [["text", "caption", "title", "=Post"]], "nameMax": 80},
     "tags": [
      "location"
     ],

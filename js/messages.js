@@ -66,7 +66,7 @@ function dmAdopt_(d) {
   DM_ASKED = true; DM_DONE = true; DM_LAST = Date.now();
 }
 
-/* STARTED WHEN A MESSAGE CARD IS DRAWN IN FIND (`msgDoorCard_`), and it stops itself once none shows. */
+/* STARTED WHEN A MESSAGE CARD IS DRAWN IN FIND (`threadCard_`, me-messages.js), and it stops itself once none shows. */
 function dmPoll_() {
   clearInterval(DM_TIMER);
   dmSync_();
@@ -170,9 +170,9 @@ CARD_EMBEDS['daive'] = () => {
 /* DAIVE IS AN ITEM (487): an admin's Delete and Note on it; deleted, it is gone for everyone. Its id keeps the old column's name, so a delete already made stands. */
 /* ONE MAKER (owner, 18 Nov): Suggest and the admin's Edit words are tiles in the card's own row, never a row hung on after it. */
 const DAIVE_ID = 'item:dm:daive';
-const daiveHtml_ = () => renderCard({ kind: 'msg', name: DAIVE, tags: [{ text: DAIVE, colour: 0 }, { text: 'Assistant', colour: false }], data: { daive: 1, item: DAIVE_ID },
+const daiveHtml_ = () => renderCard(shapeCard_('msg', { kind: 'msg', name: DAIVE, tags: [{ text: DAIVE, colour: 0 }, { text: 'Assistant', colour: false }], data: { daive: 1, item: DAIVE_ID },
   tiles: [].concat(typeof suggestOpts_ === 'function' ? [suggestOpts_('widget', 'daive', DAIVE)] : [], (typeof wordsOpts_ === 'function' && wordsOpts_(DAIVE_ID)) || []).filter(Boolean),
-  body: [{ type: 'embed', tool: 'daive' }] });
+  body: [{ type: 'embed', tool: 'daive' }] }));
 const daiveItem_ = () => (typeof wordsIn_ === 'function' ? wordsIn_(DAIVE_ID, daiveHtml_()) : daiveHtml_());
 /* REDRAWN IN PLACE in Find, and Find forgets what it drew, so a later paint never judges against the old card. */
 function asstRedraw_() {

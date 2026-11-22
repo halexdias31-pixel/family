@@ -669,15 +669,25 @@ function msgKindWord_(m) {
   const k = msgKind_(a[0]);
   return k === 'image' ? 'Photo' : k === 'video' ? 'Clip' : 'File';
 }
-/* ONE CONVERSATION, closed: the last thing said, cut to two lines; Open lays its messages out under it. */
-function msgFindCard_(x, t, draw) {
-  const open = !!MSG_OPEN[t.id], extra = { kind: 'msg', name: t.name, row: t, cardCls: t.unread ? 'unread' : '', cardData: { thread: t.id } };
+/* ONE THREAD CARD (CARD SHAPES, Activity: Thread; kinds.json `msg` shape, Find's KC_AROUND for kind msg): a door not yet on is Coming soon; Daive is */
+/* its own; somebody not yet written to gets the reply box; a conversation is closed — the last thing said, cut to two lines — until Open lays its */
+/* messages out under it, marks them read and ends with the reply box. Every piece wears the Thread shape. */
+function threadCard_(x, draw) {
+  if (x.soon) return findCard(Object.assign({}, x, { kind: 'soon' }));
+  /* A MESSAGE CARD ON SHOW KEEPS MESSAGES FRESH (`dmWatch_`, messages.js): the 20 s poll the column had. */
+  if (typeof dmWatch_ === 'function') setTimeout(dmWatch_, 0);
+  if (x.daive) return daiveItem_();
+  const t = x.row && x.row.msgs ? x.row : messageThreads_().find(t2 => t2.id === x.thread);
+  if (!t) return renderCard(shapeCard_('msg', { kind: 'msg', name: x.to ? x.name : undefined, tags: [{ text: x.name, colour: 0 }],
+    body: x.to ? [{ type: 'group', look: 'dm-head', blocks: [{ type: 'msgHead', text: x.name }] }, { type: 'group', inner: msgForm_(x.to.name, x.to.id) }] : undefined }));
+  const data = Object.assign({ thread: t.id }, shapeData_('msg')), open = !!MSG_OPEN[t.id], extra = { kind: 'msg', name: t.name, row: t, cardCls: t.unread ? 'unread' : '', cardData: data };
   const head = draw ? draw(extra) : findCard(Object.assign({}, x, extra, { kcIn: true }));
   if (!open) return head;
   try { markRead_(t.msgs); } catch (e) { oops_(e, 'msg:find-read'); }
   return head + t.msgs.map(m => msgFindOne_(t, m)).join('')
-    + card_(cardBlock_({ type: 'msgBox', look: 'fc msg-fc msg-fc-form', data: { thread: t.id }, parts: [msgForm_(t.name, t.id)] }));
+    + card_(cardBlock_({ type: 'msgBox', look: 'fc msg-fc msg-fc-form', data, parts: [msgForm_(t.name, t.id)] }));
 }
+window.KC_AROUND = Object.assign(window.KC_AROUND || {}, { msg: threadCard_ });
 /* THE CLOSED CONVERSATION'S FIELDS for the one card maker; `x.row` is the thread. */
 window.KC_FIELDS_MORE = Object.assign(window.KC_FIELDS_MORE || {}, {
   msgPic: x => msgFacePic_(x.row),
@@ -697,7 +707,7 @@ function msgFindOne_(t, m) {
     { icon: 'bin', label: 'Remove', act: 'msg-drop', data: { k: m.tmp } }]) + msgFixLinks_(m.err)
     : !mine && m.id && !m.tmp && typeof suggestOpts_ === 'function' ? tile_(suggestOpts_('message', m.id, 'Message from ' + (m.fromName || t.name))) : '';
   const words = String(m.body || '').trim();
-  return card_(cardBlock_({ type: 'msgBox', look: 'fc msg-fc is-one' + (mine ? ' mine' : '') + (fresh ? ' unread' : ''), data: { thread: t.id }, parts: [
+  return card_(cardBlock_({ type: 'msgBox', look: 'fc msg-fc is-one' + (mine ? ' mine' : '') + (fresh ? ' unread' : ''), data: Object.assign({ thread: t.id }, shapeData_('msg')), parts: [
     msgTags_(null, [{ text: msgDate_(ms) + ' ' + msgClock_(ms, m.at) }, fresh ? { text: 'unread', cls: 'is-new' } : null,
       { text: msgKindWord_(m) }, m.state === 'sending' ? { text: 'sending…' } : m.tmp && m.state !== 'failed' ? { text: 'sent' } : null]),
     msgFacePic_(t, mine), cardBlock_({ type: 'msgHead', text: mine ? 'You' : (m.fromName || t.name) }),
@@ -711,7 +721,7 @@ function msgFindRedraw_(key) {
   const t = cards.length && messageThreads_().find(t2 => t2.id === key);
   if (!t) return;
   const tmp = document.createElement('div');
-  tmp.innerHTML = msgFindCard_({ kind: 'msg', name: t.name, key: 'msg:' + t.id, thread: t.id, msgWith: t.name, text: t.name }, t);
+  tmp.innerHTML = threadCard_({ kind: 'msg', name: t.name, key: 'msg:' + t.id, thread: t.id, row: t, msgWith: t.name, text: t.name });
   const first = cards[0];
   [].slice.call(tmp.children).forEach(c => first.parentNode.insertBefore(c, first));
   cards.forEach(c => c.remove());
