@@ -40,18 +40,7 @@ function msgDoorItems_() {
     msgWith: t.name, text: t.name })))
     .concat(people.map(p => ({ kind: 'msg', name: p.name, key: 'msg:' + (p.id || p.name), sub: '', image: '', to: p, msgWith: p.name, text: p.name })));
 }
-/* A CONVERSATION'S CARD, around the one card maker: somebody not yet written to gets the form, a thread gets `msgFindCard_`. */
-function msgDoorCard_(x, draw) {
-  /* A MESSAGE CARD ON SHOW KEEPS MESSAGES FRESH (`dmWatch_`, messages.js): the 20 s poll the column had. */
-  if (typeof dmWatch_ === 'function') setTimeout(dmWatch_, 0);
-  if (x.daive) return daiveItem_();
-  const t = (typeof messageThreads_ === 'function' ? messageThreads_() : []).find(t2 => t2.id === x.thread);
-  if (!t && x.to) return renderCard({ kind: 'msg', name: x.name, tags: [{ text: x.name, colour: 0 }], body: [{ type: 'group', look: 'dm-head', blocks: [{ type: 'msgHead', text: x.name }] },
-    { type: 'group', inner: msgForm_(x.to.name, x.to.id) }] });
-  if (!t) return renderCard({ kind: 'msg', tags: [{ text: x.name, colour: 0 }] });
-  return msgFindCard_(x, t, draw);
-}
-window.KC_AROUND = Object.assign(window.KC_AROUND || {}, { msg: msgDoorCard_ });
+/* A CONVERSATION'S CARD is the one Thread card, me-messages.js threadCard_ (Find's KC_AROUND for kind msg). */
 
 /* ---------- PROFILES: who they are is the menu; admin-only answers are asked by rank ---------- */
 function profileTypes_(p, tutor) {

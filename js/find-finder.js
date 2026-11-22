@@ -85,9 +85,8 @@ const finderLeadHtml_ = lead => cardBlocks_(lead.map(c => ({ type: 'group', tag:
    chip label all read it. */
 /* ---------- ONE QUESTION AT A TIME § */
 /* WHAT KINDS OF THING CAN BE FOUND. § */
-/* A KIND'S OWN FIND CARD (kinds.json `find.draw`): your own tutor pass, a message door not yet on, a widget on the shop shelf. */
+/* A KIND'S OWN FIND CARD (kinds.json `find.draw`): your own tutor pass, a widget on the shop shelf. */
 const findTutorCard_ = x => (USER && typeof meCard === 'function' && norm((x.row || {}).title) === norm(USER.name) ? meCard() : findCard(x));
-const findMsgCard_ = (x, c) => findCard(x.soon ? Object.assign({}, x, { kind: 'soon' }) : x, c);
 const findShopCard_ = (x, c) => (x.widget ? widgetCard_(x) : findCard(x, c));
 
 /* EACH KIND WHOSE OWN FILE STILL WRITES ITS CARD (owner 1a, 8 Nov): `findCard` cuts what it writes into the one shape. */

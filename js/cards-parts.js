@@ -271,6 +271,8 @@ function itemMapOfKind_(k) {
   /* THE ONE PERSON AND ITEM BODIES (CARD SHAPES): a Person draws its kind's `parts` (personBody_); a stored Item its form's lines, its sheet */
   /* and its tiles (form.js); a plain `picture` is the entry's column as a photo; `price` adds the price tag after Find's facets. */
   if (c.parts) M.body = (r, live) => (K.shape === 'Reference' ? referenceBody_ : personBody_)(r, live, k);
+  else if (K.shape === 'Record' && c.record) { const R = c.record; M.name = r => recordName_(R, r);
+    if (R.pills) M.pills = it => recordPills_(R, it); if (R.sum) M.body = (r, live) => recordSum_(R, r, live); }
   else if ((K.find || {}).from === 'store') { M.body = r => itemLines_(r, k); M.sheet = (it, x) => storeSheet_(it, x); M.tiles = (it, x) => storeTiles_(it, x); }
   if (c.picture && !/\(/.test(c.picture)) M.picture = (it, x) => (x[c.picture] && typeof pic === 'function' ? { src: pic(x[c.picture]), look: 'thing-pic', alt: '' } : null);
   else if (!c.picture && K.shape === 'Person') M.picture = it => (typeof personPicSpec_ === 'function' ? personPicSpec_(it.raw.id, it.name) : null);
@@ -297,18 +299,9 @@ function kcQData_(it, x) { return { part: x.key || '', of: it.id || x.key || '' 
 function kcUnlisted_(r) { return r.listed === false; }
 function kcTutorMoney_(r) { return r.rate ? { rate: typeof rateRange_ === 'function' ? rateRange_(r) : '' } : {}; }
 function kcTutorSay_(r) { return { note: typeof profNote_ === 'function' ? profNote_(r) : '' }; }
-function kcPostName_(r) { return String(r.text || r.caption || r.title || 'Post').slice(0, 80); }
-/* A BOOKING: what, who, when, the rate and whether it is paid; one line says who and how much in all; a child is told neither (kinds.json `see`). */
-function kcBookingName_(r) { return [r.subject || 'Session', r.level].filter(Boolean).join(' · '); }
+/* A BOOKING'S MONEY (kinds.json `live.money`): worked out here, only read by its Record pills and sum; a child is told neither (kinds.json `see.hide.prices`). */
 function kcBookingMoney_(r) { const rate = Number(r.rate) || (/hour/i.test(String(r.unit || '')) ? Number(r.price) : 0) || 0;
   return { rate: rate > 0 ? fmtMoney_(rate, 'hour') : '', total: r.price !== '' && r.price != null && isFinite(Number(r.price)) ? fmtMoney_(Number(r.price)) + ' in all' : '' }; }
-function kcBookingPills_(it) { const j = it.raw, m = it.live.money || {}, paid = typeof rcpPaid_ === 'function' ? rcpPaid_(j) : '';
-  return ['Booking', j.subject, j.tutor ? fmtName_(j.tutor) : '', typeof rcpWhen_ === 'function' ? rcpWhen_(j) : '', m.rate]
-    .map(t => ({ text: t, colour: false })).concat([{ text: paid, colour: false, look: paid === 'Unpaid' ? 'is-new' : '' }]).filter(t => t.text); }
-function kcBookingBody_(r, L) { const who = (r.slots || []).map(sl => sl && sl.client).filter(Boolean).map(n => fmtName_(n)).join(', ') || (r.client ? fmtName_(r.client) : '');
-  const weeks = Number(r.weeks || (typeof jobDates_ === 'function' ? jobDates_(r).length : 0)) || 0;
-  const said = [who, weeks ? weeks + (weeks === 1 ? ' week' : ' weeks') : '', (L.money || {}).total].filter(Boolean).join(' · ');
-  return said ? [{ type: 'group', tag: 'p', look: 'rc-sum', text: said }] : []; }
 /* A SHOP THING'S PRICE TAG: its level, or free, pence as pounds, else credits; `can` when you have the level or the credits (your own, collCredits_). */
 const shopPriceTag_ = x => { const myLevel = Math.floor((Number(typeof USER !== 'undefined' && USER && USER.xp) || 0) / 10), free = x.cost === 0;
   const credits = typeof collCredits_ === 'function' ? collCredits_() : 0, afford = !free && !x.pence && credits >= x.cost;
@@ -355,11 +348,18 @@ function cardOfItem_(it, x) {
 /* THE PERSON AND ITEM SHAPES (owner, 22 Nov, CARD SHAPES): which one a kind wears is kinds.json `shape`, never code. A Person is its picture, name,
    role tags, fact lines and links (tutor, person, figure, boxer); an Item its title, tags, lines, tiles and sheet (docket, task, food, partner,
    session, drive_area, assignment, product); a Reference its tags, fact lines, picture and links (spec, insert, content, practical, project,
-   hist, manuscript, writing, event, chem, fooddb, venue, subject, level, mech). Each keeps only its own slots and is marked `data-shape` (and `data-item-kind`, read by tools/one-card.js). */
+   hist, manuscript, writing, event, chem, fooddb, venue, subject, level, mech); an Activity: Record its who/when tags, money or fact pills and status
+   (post, booking and its receipt); an Activity: Thread its messages and reply (msg). Each keeps only its own slots and is marked `data-shape` (and `data-item-kind`, read by tools/one-card.js). */
 const kindShape_ = k => { const h = ((typeof ITEM_KINDS !== 'undefined' && ITEM_KINDS.kinds[k]) || {}).shape; return typeof h === 'string' ? h : ''; };
 const CARD_SLOTS_ = { Person: ['look', 'name', 'row', 'off', 'picture', 'tags', 'tagLook', 'tagRows', 'body', 'tiles'],
   Item: ['look', 'name', 'row', 'off', 'picture', 'tags', 'tagLook', 'body', 'tiles', 'cut', 'empty'],
-  Reference: ['look', 'name', 'row', 'off', 'picture', 'tags', 'body'] };
+  Reference: ['look', 'name', 'row', 'off', 'picture', 'tags', 'body'],
+  Record: ['look', 'name', 'row', 'picture', 'tags', 'body', 'cut', 'empty'],
+  /* A THREAD (msg, me-messages.js threadCard_): who, tags, its messages or reply box, its tiles. A conversation already written is the old cut maker's */
+  /* (card-fields.json `msg`: face, who, tags, last line, Open and Reply), so its head and each message wear shapeData_ instead. */
+  Thread: ['name', 'tags', 'body', 'tiles'] };
+/* A CARD THE OLD CUT MAKER DRAWS (findCard, card_) wears its shape as data- attributes: what a Thread's pieces add to their `cardData` or `data`. */
+const shapeData_ = k => (kindShape_(k) ? { shape: kindShape_(k), 'item-kind': k } : {});
 function shapeCard_(kind, s) {
   const shape = kindShape_(kind), keep = CARD_SLOTS_[shape];
   if (!keep) return s;
@@ -445,4 +445,26 @@ const referencePart_ = (p, r, L, k) => {
   return p.list ? { type: 'list', items: [].concat(...p.list.map(n => [].concat(REFERENCE_LINES_[n](r, L, k)))).filter(Boolean) } : null;
 };
 const referenceBody_ = (r, live, k) => ITEM_KINDS.kinds[k].card.parts.flatMap(p => [].concat(referencePart_(p, r, live, k))).filter(Boolean);
+/* ONE RECORD BODY (CARD SHAPES, Activity: Record — a post, a booking and its receipt): its kind's `card.record` says it all as data. `name` is */
+/* parts joined by " · ", each the first of its words that has a value (`nameMax` cuts it); `pills` the who/when tags; `status` the last pill, */
+/* its look by its word (Unpaid is new); `sum` one line under them. A word is "=Words" said as is, a column, "col:name" a person's short name, */
+/* "a.b" a live field (money maths stays in its hook, so a child, whose live prices are stripped, is told none) or a RECORD_FACTS_ entry. */
+const RECORD_FACTS_ = {
+  when: j => (typeof rcpWhen_ === 'function' ? rcpWhen_(j) : ''),
+  paid: j => (typeof rcpPaid_ === 'function' ? rcpPaid_(j) : ''),
+  who: j => (j.slots || []).map(sl => sl && sl.client).filter(Boolean).map(n => fmtName_(n)).join(', ') || (j.client ? fmtName_(j.client) : ''),
+  weeks: j => { const n = Number(j.weeks || (typeof jobDates_ === 'function' ? jobDates_(j).length : 0)) || 0; return n ? n + (n === 1 ? ' week' : ' weeks') : ''; }
+};
+const recordWord_ = (w, r, live) => { const s = String(w), c = s.split(':');
+  if (s[0] === '=') return s.slice(1);
+  if (c[1] === 'name') return r[c[0]] ? fmtName_(r[c[0]]) : '';
+  if (s.indexOf('.') > 0) return s.split('.').reduce((o, f) => (o || {})[f], live) || '';
+  return RECORD_FACTS_[s] ? RECORD_FACTS_[s](r) : r[s]; };
+const recordName_ = (R, r) => { const n = (R.name || []).map(p => [].concat(p).map(w => recordWord_(w, r, {})).find(Boolean)).filter(Boolean).join(' · ');
+  return R.nameMax ? String(n).slice(0, R.nameMax) : n; };
+const recordPills_ = (R, it) => { const st = R.status ? recordWord_(R.status.fact, it.raw, it.live) : '';
+  return R.pills.map(w => ({ text: recordWord_(w, it.raw, it.live), colour: false }))
+    .concat(R.status ? [{ text: st, colour: false, look: (R.status.look || {})[st] || '' }] : []).filter(t => t.text); };
+const recordSum_ = (R, r, live) => { const said = R.sum.map(w => recordWord_(w, r, live)).filter(Boolean).join(' · ');
+  return said ? [{ type: 'group', tag: 'p', look: 'rc-sum', text: said }] : []; };
 const personBody_ = (r, live, k) => ITEM_KINDS.kinds[k].card.parts.flatMap(p => [].concat(PERSON_PARTS_[p](r, live, k))).filter(Boolean);

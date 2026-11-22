@@ -11,7 +11,8 @@ const ROOT = path.join(__dirname, '..'), PORT = 8131;
 const BASE = /^(card|fc|kc|kc-[\w-]+|is-empty|is-off|is-locked|tap)$/;
 /* LOOKS A LATER CARD-SHAPES STEP OWNS (owner, 22 Nov, docs/owner-queue.md CARD SHAPES): Practice's question card (`qcard`, `lib-wait` while its words
    load) becomes the Learning: Question shape. Counted and named every build, not failed, until that step; delete each entry as its shape lands. */
-const LATER = { qcard: 'Learning: Question', 'lib-wait': 'Learning: Question' };
+/* AN ACTIVITY CARD'S OLD LOOK (22 Nov): a receipt keeps style.css's `.rc`, `.rc.is-done` and a conversation's head `.msg-fc`, `.msg-fc.unread` — the Record and Thread shapes landed with their looks unchanged, pixel for pixel; seen only since this check gave Booking and Messages sample records. */
+const LATER = { qcard: 'Learning: Question', 'lib-wait': 'Learning: Question', rc: 'Activity: Record look', 'is-done': 'Activity: Record look', 'msg-fc': 'Activity: Thread look', unread: 'Activity: Thread look' };
 const MIME = { '.js': 'text/javascript', '.css': 'text/css', '.html': 'text/html', '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml' };
 
 /* A SETTINGS CARD IS ORDINARY BLOCKS TOO (unify batch 9): no CSS keyed on `.me-form` (the class stays only as autosave's hook), and the line that says
@@ -27,13 +28,27 @@ function settingsByHand(css) {
   return bad;
 }
 
+/* THE ACTIVITY CARDS ARE LOOKED AT TOO (owner, 22 Nov, CARD SHAPES: Record and Thread): the sample payload has no booking of the signed-in user and no
+   messages, so Booking gets four of theirs (paid, paying, unpaid, no seats) and Messages two conversations, or the Record and Thread rules would check nothing. */
+function withActivity(P) {
+  const J = (P.liveJobs || [])[0] || { subject: 'Maths', level: 'GCSE', venue: 'Colliers Wood Library', price: '30', unit: 'hour' }, me = 'Test Admin';
+  const job = (id, o) => Object.assign({}, J, { id, job_id: id, client: me, tutor: 'Ada Tutor' }, o);
+  P.liveJobs = (P.liveJobs || []).concat(job('J901', { rate: '30', weeks: '6', slots: [{ client: me, status: 'booked' }] }),
+    job('J902', { subject: 'English', price: '120', unit: '', weeks: '4', slots: [{ client: me, status: 'paying' }, { client: 'Kid One', status: 'pending' }] }),
+    job('J903', { subject: 'Physics', level: 'KS3', tutor: '', price: '', slots: [{ client: me, status: 'pending' }] }), job('J904', { subject: 'Chemistry', slots: [] }));
+  P.messages = (P.messages || []).concat({ id: 'M901', withId: 'P902', withName: 'Ada Tutor', body: 'See you on Tuesday', at: '2026-11-18T10:00:00Z', mine: false, read: true },
+    { id: 'M902', withId: 'P902', withName: 'Ada Tutor', body: 'Thanks!', at: '2026-11-18T11:00:00Z', mine: true, read: true },
+    { id: 'M903', withId: 'P903', withName: 'Bea Parent', body: 'Can we move the lesson?', at: '2026-11-19T09:00:00Z', mine: false, read: false });
+  return JSON.stringify(P);
+}
+
 async function run() {
   const css = bare(text('style.css'), { comments: true });
   const hand = settingsByHand(css);
   hand.forEach(x => console.log('  ' + x));
   if (hand.length) throw new Error('one-card: ' + hand.length + ' settings part(s) drawn by hand');
   const styled = c => new RegExp('\\.' + c.replace(/-/g, '\\-') + '(?![\\w-])').test(css);
-  const payload = fs.readFileSync(path.join(ROOT, 'tools/lib/payload.json'), 'utf8');
+  const payload = withActivity(JSON.parse(fs.readFileSync(path.join(ROOT, 'tools/lib/payload.json'), 'utf8')));
   const { chromium, devices } = require('playwright');
   const srv = http.createServer((q, s) => {
     let p = decodeURIComponent(q.url.split('?')[0]); if (p.endsWith('/')) p += 'index.html';
@@ -68,7 +83,7 @@ async function run() {
         .map(e => ({ n: e.getAttribute('aria-label') || e.innerText.slice(0, 30), c: e.className, sh: e.dataset.shape || '', ik: e.dataset.itemKind || '', set: e.matches('.kc-setting'),
           kc: e.matches('.fc.kc') && [...e.children].every(k => /^kc-/.test(k.className)) })));
       await pg.context().close();
-      return cards.filter(x => x.n !== 'Find').map(x => ({ door: d, n: x.n, kc: x.kc, sh: x.sh, ik: x.ik, set: x.set, own: x.c.split(/\s+/).filter(c => c && !BASE.test(c) && styled(c)) }));
+      return cards.filter(x => x.n !== 'Find').map(x => ({ door: d, n: x.n, c: x.c, kc: x.kc, sh: x.sh, ik: x.ik, set: x.set, own: x.c.split(/\s+/).filter(c => c && !BASE.test(c) && styled(c)) }));
     };
     const per = [], todo = doors.slice();
     await Promise.all([0, 1, 2].map(async () => { while (todo.length) per.push(await look(todo.shift())); }));
@@ -88,16 +103,22 @@ async function run() {
     unshaped.forEach(x => console.log('  Settings › ' + String(x.n).replace(/\n/g, ' ') + ' [no shape]'));
     if (unshaped.length) throw new Error('one-card: ' + unshaped.length + ' settings card(s) with no shape');
     if (shapes.length > 4) throw new Error('one-card: Settings uses ' + shapes.length + ' shapes; four at most');
-    /* THE PERSON, ITEM AND REFERENCE SHAPES (owner, 22 Nov, CARD SHAPES): every card of a kind kinds.json gives a Person, Item or Learning: Reference `shape` wears exactly that one, and only that one. */
+    /* THE PERSON, ITEM, REFERENCE, RECORD AND THREAD SHAPES (owner, 22 Nov, CARD SHAPES): every card of a kind kinds.json gives a Person, Item, Learning: Reference or Activity: Record or Thread `shape` wears exactly that one, and only that one. */
     const KINDS = require('../data/settings/kinds.json').kinds;
-    ['Person', 'Item', 'Reference'].forEach(h => {
+    ['Person', 'Item', 'Reference', 'Record', 'Thread'].forEach(h => {
       const kinds = Object.keys(KINDS).filter(k => KINDS[k].shape === h), mine = all.filter(x => kinds.indexOf(x.ik) >= 0);
       const worn = [...new Set(mine.map(x => x.sh))], wrong = mine.filter(x => x.sh !== h);
       console.log('one-card: ' + h + ' — ' + mine.length + ' card(s) of ' + [...new Set(mine.map(x => x.ik))].sort().join(', ') + ' in ' + worn.length + ' shape(s)');
       wrong.forEach(x => console.log('  ' + x.door + ' › ' + String(x.n).replace(/\n/g, ' ') + ' [' + x.ik + ' wears ' + (x.sh || 'no shape') + ']'));
       if (wrong.length || worn.length > 1) throw new Error('one-card: ' + h + ' kinds draw in ' + worn.length + ' shapes; exactly one');
     });
-    const loose = all.filter(x => ['Person', 'Item', 'Reference'].indexOf(x.sh) >= 0 && (!x.ik || KINDS[x.ik].shape !== x.sh));
+    /* EVERY ACTIVITY CARD, by the kind its class says (a receipt is a booking's card): a post, a receipt or a conversation with no shape fails, and each must be seen. */
+    const ACT = { 'kc-post': ['post', 'Record'], 'kc-receipt': ['booking', 'Record'], 'kc-msg': ['msg', 'Thread'] };
+    Object.keys(ACT).forEach(c => { const of = all.filter(x => x.c.split(/\s+/).indexOf(c) >= 0), bare = of.filter(x => x.sh !== ACT[c][1] || x.ik !== ACT[c][0]);
+      bare.forEach(x => console.log('  ' + x.door + ' › ' + String(x.n).replace(/\n/g, ' ') + ' [' + c + ' wears ' + (x.sh || 'no shape') + ']'));
+      if (!of.length || bare.length) throw new Error('one-card: ' + (of.length ? bare.length + ' ' + c + ' card(s) not a ' + ACT[c][1] : 'no ' + c + ' card drawn'));
+    });
+    const loose = all.filter(x => ['Person', 'Item', 'Reference', 'Record', 'Thread'].indexOf(x.sh) >= 0 && (!x.ik || KINDS[x.ik].shape !== x.sh));
     loose.forEach(x => console.log('  ' + x.door + ' › ' + String(x.n).replace(/\n/g, ' ') + ' [' + x.sh + ' on ' + (x.ik || 'no kind') + ']'));
     if (loose.length) throw new Error('one-card: ' + loose.length + ' card(s) wear a shape their kind does not declare');
     if (!all.length) throw new Error('one-card: no cards drawn — the app did not start');
