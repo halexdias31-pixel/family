@@ -60,7 +60,7 @@ Default order when nothing above says otherwise: what a child or parent would no
 - ANSWER FACES (owner, 17 Nov, revised): REMOVE photo marking. KEEP the drawing pad (coordinate grids, transformations, graphs work well and children need it). One systematic rule for where the answer goes: if the paper draws the answer space inside the figure (grid, axes, shape to reflect, number line), the answer IS drawn on that figure in the pad; otherwise it is the one text box. Printed options: the text box, marked forgivingly against the paper's own options. Tables: one box, any separator. Essays are MARKED MECHANICALLY (PEEL / distilled rules) — never "marked by your tutor"; that label is wrong for essays and must go. Loci/constructions/sketches: keyed geometrically where possible on the pad.
 - Drawing tools for children: the line tool and the magnifier are sometimes hard to use; watch it at phone size, find the real friction (hit area, loupe size, snapping), fix at the one pad engine.
 - HISTORY SHOWS EMPTY BOXES (owner, 20 Nov): an old multi-box answer shows as ", , , , , , T". History (and any answer echo) shows only what was typed, or "(no answer)".
-- Photo marking beyond pie charts (bar charts, graphs) once pies prove themselves in lessons. (Note: ANSWER FACES removes photo marking; this line stands only if that is revisited.)
+- PHOTO MARKING: removed for good (owner, 22 Nov: "no more photo marking"). Children draw on screen instead; one fewer answer input.
 
 ### 5. Question buttons, 13 → about 6 + "more"
 - FEWER FEATURES (owner, 17 Nov): every button and feature is a cost. Audit them all; cut any a child or tutor can do without; the fewer there are, the more stable and easy the site. Show the before/after button count. Starts with the question buttons.
