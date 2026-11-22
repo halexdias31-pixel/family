@@ -205,7 +205,44 @@ const MIGRATIONS = [
       if (!out.success) throw new Error(out.error || 'not saved');
       return lists.length + ' list(s), ' + lists.reduce((n, L) => n + L.items.length, 0) + ' item(s) tidied';
     } },
+
+  /* THE KINDS NOTHING READ (queue step 7, 22 Nov): their items rows copied whole to a backup tab, checked there, then deleted. Twice does what once did. */
+  { id: 'dead-kinds-22nov',
+    what: 'the items rows of six kinds nothing reads, kept in backup_dead_kinds_22nov, then deleted',
+    run: () => storeDropKinds_(DEAD_KINDS_22NOV, DEAD_KINDS_BACKUP) },
 ];
+
+/* ---------- MOVING ROWS OUT OF THE ITEMS TAB, NEVER LOSING ONE (queue step 7, 22 Nov) ----------
+   Every items row of `kinds` is appended, every column as it is, to the tab `backup` in the same file (one it already holds is
+   not appended again); the backup is read back, and only when every row is there are they deleted, bottom up. */
+const DEAD_KINDS_22NOV = ['invite', 'biz_check', 'owner_answer', 'landmark', 'landmark_part', 'map_shape'];
+const DEAD_KINDS_BACKUP = 'backup_dead_kinds_22nov';
+function storeDropKinds_(kinds, backup) {
+  clearCache();
+  const img = storeImg_(TAB.items, kinds);
+  if (!img.sheet) throw new Error('no items tab');
+  const H = img.headers, cells = r => H.map(h => (r[h] === undefined || r[h] === null ? '' : r[h]));
+  const key = v => JSON.stringify(v.map(c => (c instanceof Date ? c.getTime() : String(c))));
+  const gone = img.rows.filter(r => kinds.indexOf(S(r.kind)) !== -1).sort((a, b) => a._row - b._row);
+  if (!gone.length) return 'nothing left to move';
+  const ss = img.sheet.getParent(), bk = ss.getSheetByName(backup) || ss.insertSheet(backup);
+  const held = () => { const n = bk.getLastRow(); return n > 1 ? bk.getRange(2, 1, n - 1, H.length).getValues().map(key) : []; };
+  if (!bk.getLastRow()) bk.getRange(1, 1, 1, H.length).setValues([H]);
+  const have = held(), add = gone.map(cells).filter(v => have.indexOf(key(v)) === -1);
+  if (add.length) bk.getRange(bk.getLastRow() + 1, 1, add.length, H.length).setValues(add);
+  const now = held();
+  if (!gone.every(r => now.indexOf(key(cells(r))) !== -1)) throw new Error('the backup does not hold every row - nothing was deleted');
+  const at = gone.map(r => r._row).sort((a, b) => b - a);
+  for (let i = 0; i < at.length;) {
+    let j = i;
+    while (j + 1 < at.length && at[j + 1] === at[j] - 1) j++;
+    img.sheet.deleteRows(at[j], j - i + 1);
+    i = j + 1;
+  }
+  POST_WROTE = true;
+  clearCache();
+  return gone.length + ' row(s) kept in ' + backup + ' and deleted from items';
+}
 
 /* HANDS UP (455): who wants the tutor, kept 30 minutes in one script property, pruned on every read. */
 const HANDS_KEY = 'HELP_HANDS';

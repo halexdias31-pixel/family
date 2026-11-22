@@ -118,12 +118,12 @@ const TAB = {
   people: 'people', qualifications: 'qualifications', library_cards: 'library_cards',
   venues: 'venues', jobs: 'jobs', events: 'events', terms: 'terms',
   shop: 'shop', pricing: 'pricing',
-  config: 'config', options: 'options', trips: 'trips', rooms: 'rooms', invites: 'invites',
+  config: 'config', options: 'options', trips: 'trips', rooms: 'rooms',
   promo_codes: 'promo_codes',
   exams: 'exams', messages: 'messages',
   /* A student's scanned pages — see SCHEMA.work_files. */
   work_files: 'work_files',
-  records: 'records', biz_checks: 'biz_checks', owner_answers: 'owner_answers',
+  records: 'records',
   herd: 'herd',
   facts: 'facts',
   /* The one items tab and the one events tab (kinds.json `ledger`). */
@@ -265,12 +265,6 @@ const SCHEMA = {
     "min_hours", "max_hours", "notice_days",
     "availability", "tutors_happy_here"
   ],
-  /* AN INVITATION. One row is one family asked to share one booking — who asked, who was asked, which booking, and what happened. § */
-  invites: [
-    "invite_id", "job_id", "from_person", "to_email", "to_name",
-    "sent_on", "opened_on", "accepted_on", "declined_on", "token", "notes",
-  ],
-
   jobs: [
     "job_id", "status", "subject", "level",
     "service", "weekday", "start_time", "hours_per_session",
@@ -423,7 +417,7 @@ const SCHEMA = {
   records: [
     "record_id", "category", "title", "provider", "reference", "due_on", "cost", "link", "notes",
     "active", "updated_at",
-  ], /* checker ticks (1050) */ biz_checks: ["check_id", "done_on", "note", "by", "updated_at", "expires_on", "doc_link", "result"], /* the inbox (1060) */ owner_answers: ["question_id", "choice", "note", "by", "answered_at"],
+  ],
 
   messages: [
     "message_id", "from_id", "to_id", "sent_at", "body",
