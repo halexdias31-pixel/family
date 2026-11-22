@@ -33,7 +33,20 @@ const LIB = require('./content/library.js');
 
 const ROOT = L.ROOT;
 const STAGES = ['source', 'spec', 'parts', 'figures', 'keys', 'card', 'import'];
-const TABLE = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'settings', 'content.json'), 'utf8')).families;
+/* A FAMILY WITH A QUALIFICATION TAKES ITS BOARD, SUBJECT AND LEVEL FROM THAT LINE OF expected-papers.json, and its key stage from */
+/* settings.json `levels` (UNIFY NEXT 2, 22 Nov): content.json never copies them; a field it does write wins. */
+const TABLE = (() => {
+  const rd = f => JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'settings', f), 'utf8'));
+  const exp = {}; rd('expected-papers.json').forEach(e => { exp[e.label] = e; });
+  const stage = {}; rd('settings.json').levels.list.forEach(l => { stage[l.level] = l.stages[0]; });
+  return rd('content.json').families.map(f => {
+    const e = f.qualification && exp[f.qualification];
+    if (!e) return f;
+    const from = { subject: e.subject, level: e.level, exam_board: e.board, company: e.board };
+    if (stage[e.level]) from.key_stage = stage[e.level];
+    return Object.assign({ board: e.board }, f, { card: Object.assign(from, f.card) });
+  });
+})();
 const SPECS = path.join(L.PRIVATE_DIR, 'specs');
 
 const familyOf = pid => TABLE.filter(f => String(pid).startsWith(f.family)).sort((a, b) => b.family.length - a.family.length)[0] || null;
