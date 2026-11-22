@@ -56,7 +56,7 @@ const KC_DEFAULT = {
   chem: { cls: '', pic: [], title: [], tags: [], lines: [], tiles: [] },
   hist: { cls: '', pic: [], title: [], tags: [], lines: [], tiles: [] },
   soon: { cls: '', pic: [], title: [], tags: [], lines: [], tiles: [] },
-  person: { cls: 'is-prof prof-door', pic: [], title: [], tags: [], lines: [], tiles: [] },
+  person: { cls: 'is-prof', pic: [], title: [], tags: [], lines: [], tiles: [] },
   setting: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
   health: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
   offPosts: { cls: '', pic: [], title: [], tags: [], lines: [], tiles: [] },
@@ -307,6 +307,8 @@ function kcBookingBody_(r, L) { const who = (r.slots || []).map(sl => sl && sl.c
 /* A SHOP THING'S PRICE TAG: its level, or free, pence as pounds, else credits; `can` when you have the level or the credits (your own, collCredits_). */
 const shopPriceTag_ = x => { const myLevel = Math.floor((Number(typeof USER !== 'undefined' && USER && USER.xp) || 0) / 10), free = x.cost === 0;
   const credits = typeof collCredits_ === 'function' ? collCredits_() : 0, afford = !free && !x.pence && credits >= x.cost;
+  /* A CHILD NEVER SEES A PRICE (CARD SHAPES): a thing sold for money says no price to them; levels and credits are the game's, kept. */
+  if (x.pence && typeof may_ === 'function' && !may_('prices')) return null;
   if (x.level > 0) return { text: myLevel >= x.level ? 'Level ' + x.level + ' — yours' : 'Level ' + x.level, look: 'price ' + (myLevel >= x.level ? 'can' : ''), colour: false };
   return x.cost === undefined ? null : { text: free ? 'free' : x.pence ? fmtMoney_(x.cost / 100) : x.cost + ' credits', look: 'price ' + (free ? 'free' : afford ? 'can' : ''), colour: false }; };
 const itemLive_ = (r, M) => { const v = {}; Object.keys(M.live || {}).forEach(f => { v[f] = M.live[f](r); });
@@ -340,12 +342,25 @@ function cardOfItem_(it, x) {
   const look = [(typeof M.look === 'function' ? M.look(it, own) : M.look) || '', tool ? tool.cls : '', M.facts ? 'kc-facts' : ''].filter(Boolean).join(' ');
   const tags = Array.isArray(pills) ? pills : (M.nameTag === false && facets.length ? [] : [{ text: name, colour: 0 }]).concat(facets, more);
   const body = tool ? [] : M.sheet ? M.sheet(it, own, pic) : M.lines ? it.body : [];
-  return { look, name, row: own.row || {}, ...(M.off ? { off: !!M.off(it.raw || {}) } : {}), picture: pic,
+  return shapeCard_(it.kind, { look, name, row: own.row || {}, ...(M.off ? { off: !!M.off(it.raw || {}) } : {}), picture: pic,
     body, ...(tool ? { cut: tool } : {}), ...(M.facts && !tool && !body.length ? { empty: kcEmpty_() } : {}),
     ...(M.data ? { data: M.data(it, own) } : {}), ...(M.tagLook ? { tagLook: M.tagLook } : {}),
     ...(M.tiles ? { tiles: M.tiles(it, own) } : {}), ...(M.toolRow ? { toolRow: { key: own.key || '' } } : {}),
     ...(M.tagRows ? { tagRows: M.tagRows(it, own) } : {}),
-    tags: M.facts ? itemFactsTags_(tags, name) : tags };
+    tags: M.facts ? itemFactsTags_(tags, name) : tags });
+}
+/* THE PERSON AND ITEM SHAPES (owner, 22 Nov, CARD SHAPES): which one a kind wears is kinds.json `shape`, never code. A Person is its picture, name,
+   role tags, fact lines and links (tutor, person, figure, boxer); an Item its title, tags, lines, tiles and sheet (docket, task, food, partner,
+   session, drive_area, assignment, product). Each keeps only its own slots and is marked `data-shape` (and `data-item-kind`, read by tools/one-card.js). */
+const kindShape_ = k => { const h = ((typeof ITEM_KINDS !== 'undefined' && ITEM_KINDS.kinds[k]) || {}).shape; return typeof h === 'string' ? h : ''; };
+const CARD_SLOTS_ = { Person: ['look', 'name', 'row', 'off', 'picture', 'tags', 'tagLook', 'tagRows', 'body', 'tiles'],
+  Item: ['look', 'name', 'row', 'off', 'picture', 'tags', 'tagLook', 'body', 'tiles', 'cut', 'empty'] };
+function shapeCard_(kind, s) {
+  const shape = kindShape_(kind), keep = CARD_SLOTS_[shape];
+  if (!keep) return s;
+  const out = { shape, data: Object.assign({ 'item-kind': kind }, s.data || {}) };
+  keep.concat('kind', 'key', 'id', 'card', 'item').forEach(f => { if (s[f] !== undefined) out[f] = s[f]; });
+  return out;
 }
 /* FIND'S FACETS FOR AN ENTRY, in its kind's order (kinds.json `find.facets`), unless its kind keeps them off the card (`find.onCard: false`). */
 function itemFacets_(M, own) {

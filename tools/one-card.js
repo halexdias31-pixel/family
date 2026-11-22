@@ -65,10 +65,10 @@ async function run() {
       /* SETTLED: the same number of cards twice, half a second apart (eight seconds at most). */
       for (let i = 0, last = -1; i < 16; i++) { const n = await pg.evaluate(() => document.querySelectorAll('#screen .card').length); if (n && n === last) break; last = n; await pg.waitForTimeout(500); }
       const cards = await pg.evaluate(() => [...document.querySelectorAll('#screen .card')].filter(e => !e.parentElement.closest('.card')).slice(0, 60)
-        .map(e => ({ n: e.getAttribute('aria-label') || e.innerText.slice(0, 30), c: e.className, sh: e.dataset.shape || '', set: e.matches('.kc-setting'),
+        .map(e => ({ n: e.getAttribute('aria-label') || e.innerText.slice(0, 30), c: e.className, sh: e.dataset.shape || '', ik: e.dataset.itemKind || '', set: e.matches('.kc-setting'),
           kc: e.matches('.fc.kc') && [...e.children].every(k => /^kc-/.test(k.className)) })));
       await pg.context().close();
-      return cards.filter(x => x.n !== 'Find').map(x => ({ door: d, n: x.n, kc: x.kc, sh: x.sh, set: x.set, own: x.c.split(/\s+/).filter(c => c && !BASE.test(c) && styled(c)) }));
+      return cards.filter(x => x.n !== 'Find').map(x => ({ door: d, n: x.n, kc: x.kc, sh: x.sh, ik: x.ik, set: x.set, own: x.c.split(/\s+/).filter(c => c && !BASE.test(c) && styled(c)) }));
     };
     const per = [], todo = doors.slice();
     await Promise.all([0, 1, 2].map(async () => { while (todo.length) per.push(await look(todo.shift())); }));
@@ -81,13 +81,25 @@ async function run() {
     bad.forEach(x => console.log('  ' + x.door + ' › ' + String(x.n).replace(/\n/g, ' ') + ' [' + (x.kc ? '' : 'not one maker; ') + x.own.join(' ') + ']'));
     if (bad.length) throw new Error('one-card: ' + bad.length + ' card(s) outside the one maker');
     /* THE SETTINGS SHAPES (owner, 22 Nov, CARD SHAPES): every settings card wears its shape (`data-shape`, kinds.json setting.shapes), and Settings uses four at most. */
-    const sets = all.filter(x => x.door === 'Settings' && (x.set || x.sh)), shapes = [...new Set(sets.map(x => x.sh).filter(Boolean))].sort();
+    const sets = all.filter(x => x.door === 'Settings' && !x.ik && (x.set || x.sh)), shapes = [...new Set(sets.map(x => x.sh).filter(Boolean))].sort();
     const unshaped = sets.filter(x => !x.sh);
     console.log('one-card: Settings draws ' + sets.length + ' settings cards in ' + shapes.length + ' shape(s): '
       + shapes.map(h => h + ' ' + sets.filter(x => x.sh === h).length).join(', '));
     unshaped.forEach(x => console.log('  Settings › ' + String(x.n).replace(/\n/g, ' ') + ' [no shape]'));
     if (unshaped.length) throw new Error('one-card: ' + unshaped.length + ' settings card(s) with no shape');
     if (shapes.length > 4) throw new Error('one-card: Settings uses ' + shapes.length + ' shapes; four at most');
+    /* THE PERSON AND ITEM SHAPES (owner, 22 Nov, CARD SHAPES): every card of a kind kinds.json gives a Person or Item `shape` wears exactly that one. */
+    const KINDS = require('../data/settings/kinds.json').kinds;
+    ['Person', 'Item'].forEach(h => {
+      const kinds = Object.keys(KINDS).filter(k => KINDS[k].shape === h), mine = all.filter(x => kinds.indexOf(x.ik) >= 0);
+      const worn = [...new Set(mine.map(x => x.sh))], wrong = mine.filter(x => x.sh !== h);
+      console.log('one-card: ' + h + ' — ' + mine.length + ' card(s) of ' + [...new Set(mine.map(x => x.ik))].sort().join(', ') + ' in ' + worn.length + ' shape(s)');
+      wrong.forEach(x => console.log('  ' + x.door + ' › ' + String(x.n).replace(/\n/g, ' ') + ' [' + x.ik + ' wears ' + (x.sh || 'no shape') + ']'));
+      if (wrong.length || worn.length > 1) throw new Error('one-card: ' + h + ' kinds draw in ' + worn.length + ' shapes; exactly one');
+    });
+    const loose = all.filter(x => (x.sh === 'Person' || x.sh === 'Item') && (!x.ik || KINDS[x.ik].shape !== x.sh));
+    loose.forEach(x => console.log('  ' + x.door + ' › ' + String(x.n).replace(/\n/g, ' ') + ' [' + x.sh + ' on ' + (x.ik || 'no kind') + ']'));
+    if (loose.length) throw new Error('one-card: ' + loose.length + ' card(s) wear a shape their kind does not declare');
     if (!all.length) throw new Error('one-card: no cards drawn — the app did not start');
     /* EVERY DOOR DRAWS (22 Nov): a door with no cards is a door the check never looked behind. */
     const none = doors.filter(d => !all.some(x => x.door === d));

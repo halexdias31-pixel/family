@@ -34,6 +34,7 @@
    "say": "Ids of other items it points at (a manuscript's writings, an event's figures)."
   }
  },
+ "shapesSay": "THE PERSON AND ITEM SHAPES (owner, 22 Nov, CARD SHAPES): a kind that draws as a Person (picture, name, role tags, fact lines, links) or an Item (title, tags — list, due, meal, price —, lines, tiles, sheet) says so in its `shape`; cardOfItem_ (and dkCard_, meCard, the assignment rows) draw it through shapeCard_ (js/cards-parts.js), which keeps only that shape's slots and marks the card data-shape. tools/one-card.js checks each kind wears its one shape.",
  "kinds": {
   "bookform": {
    "source": "the booking form (js/book-*.js)",
@@ -262,6 +263,7 @@
    }
   },
   "tutor": {
+   "shape": "Person",
    "source": "Ledger people tab (role tutor)",
    "loader": "payload -> find-aloud.js",
    "sample": "check/fixture.json tutors",
@@ -1300,6 +1302,7 @@
    }
   },
   "figure": {
+   "shape": "Person",
    "source": "data/figures.json (+ portraits.json)",
    "loader": "js/library.js HIST_DB -> histItem_ as kind people",
    "find": {
@@ -1341,6 +1344,7 @@
    }
   },
   "boxer": {
+   "shape": "Person",
    "source": "data/boxers.json",
    "loader": "js/library.js libExtrasBoxing_ -> find-aloud.js",
    "find": {
@@ -1669,6 +1673,7 @@
    }
   },
   "docket": {
+   "shape": "Item",
    "source": "the owner's docket lists (owner, 20 Nov): their own `todo` cell, read by js/map.js dkItems_ — an item a card, drawn by dkCard_: the title, the list and its date, time or Daily as tags, a Done tick saved as the widget saves it (`doneOn` for a daily item), and the note; its attributes (minutes, runs by itself, effort, fun, importance, place, a fixed time or a deadline) are the form `docket-item`, the order dkPlan_ (rules.json 1.82), the first two unticked tagged Now and Next; a list with a usual start (`start`, form `docket-list`) is a phase of the day, and the widget heads with Now and Next (dkPhase_)",
    "find": {
     "group": "Tools",
@@ -1894,6 +1899,7 @@
    }
   },
   "person": {
+   "shape": "Person",
    "source": "Ledger people tab",
    "loader": "payload -> find-doors.js",
    "sample": "check/fixture.json everyone",
@@ -1951,7 +1957,7 @@
     ]
    },
    "card": {
-    "look": "is-prof prof-door kc-facts",
+    "look": "is-prof kc-facts",
     "id": [
      "personId",
      "id"
@@ -2780,6 +2786,7 @@
    }
   },
   "product": {
+   "shape": "Item",
    "source": "Ledger shop tab (data/settings/shop.json, data/shop-additions.json)",
    "loader": "backend get-shop.gs -> find-aloud.js findMineItems_ (its Find entry is its row)",
    "sample": "check/fixture.json shop",
@@ -2859,6 +2866,7 @@
    }
   },
   "partner": {
+   "shape": "Item",
    "source": "the owner's business partners (owner, 17 Nov); rows in the items tab",
    "sheet": {
     "tab": "partners",
@@ -2888,7 +2896,7 @@
     }
    },
    "card": {
-    "look": "kc-facts store-card",
+    "look": "kc-facts",
     "lines": true,
     "body": "storeLines_(row, \"partner\")",
     "sheet": "storeSheet_(item, entry)",
@@ -2966,6 +2974,7 @@
    }
   },
   "food": {
+   "shape": "Item",
    "source": "the owner's food: what, where, cost, time (owner, 17 Nov); rows in the items tab",
    "sheet": {
     "tab": "food",
@@ -2998,7 +3007,7 @@
     }
    },
    "card": {
-    "look": "kc-facts store-card",
+    "look": "kc-facts",
     "lines": true,
     "body": "storeLines_(row, \"food\")",
     "sheet": "storeSheet_(item, entry)",
@@ -3078,6 +3087,7 @@
    }
   },
   "task": {
+   "shape": "Item",
    "source": "the owner's tasks (owner, 17 Nov); rows in the items tab",
    "sheet": {
     "tab": "tasks",
@@ -3115,7 +3125,7 @@
     }
    },
    "card": {
-    "look": "kc-facts store-card",
+    "look": "kc-facts",
     "lines": true,
     "body": "storeLines_(row, \"task\")",
     "sheet": "storeSheet_(item, entry)",
@@ -3232,6 +3242,7 @@
    }
   },
   "drive_area": {
+   "shape": "Item",
    "source": "the owner's Google Drive areas (owner, 17 Nov); rows in the items tab",
    "sheet": {
     "tab": "drive_areas",
@@ -3256,7 +3267,7 @@
     "facetCols": {}
    },
    "card": {
-    "look": "kc-facts store-card",
+    "look": "kc-facts",
     "lines": true,
     "body": "storeLines_(row, \"drive_area\")",
     "sheet": "storeSheet_(item, entry)",
@@ -3299,6 +3310,7 @@
    }
   },
   "session": {
+   "shape": "Item",
    "source": "the owner's weekly timetable of sessions (owner, 17 Nov): who, where, which days, start-end, this term; rows in the items tab. Plain record, not a booking: no price, no sync.",
    "sheet": {
     "tab": "sessions",
@@ -3329,7 +3341,7 @@
     "facetCols": {}
    },
    "card": {
-    "look": "kc-facts store-card",
+    "look": "kc-facts",
     "lines": true,
     "body": "storeLines_(row, \"session\")",
     "sheet": "storeSheet_(item, entry)",
@@ -3428,6 +3440,7 @@
    }
   },
   "assignment": {
+   "shape": "Item",
    "source": "the person's own `assignments` cell (JSON), drawn by the Assignments tool (js/map.js asg*); no Find card of its own",
    "say": "ONE ASSIGNMENT (owner, 18 Nov). Its `kind`, `unit` and `status` are the fixed lists in the form's options (a choice, never free text); the backend keeps whatever word it is sent (post-account.gs assignmentsTidy_), status one of the four. The tool groups them Overdue / This week / Later / Done by `due`.",
    "see": {

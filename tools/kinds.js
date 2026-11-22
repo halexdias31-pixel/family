@@ -25,6 +25,8 @@ function run() {
   const shapes = (j.kinds.setting || {}).shapes || [];
   if (!shapes.length || shapes.length > 4) bad.push('setting.shapes names ' + shapes.length + ' shapes; settings have one to four');
   reg.concat((j.kinds.setting || {}).shapeBy || []).forEach(r => { if (r.shape && shapes.indexOf(r.shape) < 0) bad.push('setting ' + (r.id || r.match) + ': shape ' + r.shape + ' is not in setting.shapes'); });
+  /* A KIND'S CARD SHAPE (CARD SHAPES): a Person or an Item, nothing else. */
+  Object.keys(j.kinds).forEach(k => { const h = j.kinds[k].shape; if (typeof h === 'string' && ['Person', 'Item'].indexOf(h) < 0) bad.push(k + ': shape ' + h + ' is not Person or Item'); });
   if (bad.length) throw new Error('kinds: FAILED\n  ' + bad.join('\n  '));
   const want = '/* @family. — js/kinds.js: WRITTEN BY tools/kinds.js FROM data/settings/kinds.json and facets.json; edit those. */\n'
     + 'const ITEM_KINDS = ' + JSON.stringify({ kinds: j.kinds, doors: j.doors, facets: JSON.parse(fs.readFileSync(path.join(ROOT, 'data/settings/facets.json'), 'utf8')) }) + ';\n';
