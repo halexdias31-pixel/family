@@ -4,6 +4,25 @@
 /* `edit` when given, else permissions.json's `kind:save` row (ITEM_PERMISSIONS, booking.gs), else an admin alone. Nothing is stated twice. */
 /* Where the rows live is the one store (core.gs `read`): a kind listed in kinds.json `ledger.moved` is in the items tab, the rest in their own. */
 
+/* A KIND'S ROWS AS kinds.json `sheet.list` SAYS (step 6, 22 Nov): kept, tidied, sorted and cut there, not in a handler (`listSay`). */
+const KIND_TIDY_ = {
+  s: v => S(v), ms: v => v instanceof Date ? v.getTime() : (Date.parse(S(v)) || 0), num: v => Number(v) || 0, iso: v => isoDate_(v),
+  when: v => fmtDateTime(v), whenS: v => v instanceof Date ? fmtDateTime(v) : S(v), norm: v => norm(v), name: r => personDisplayName(r),
+  rank: r => rankOf(r), staff: r => hasRole(r, 'tutor') && rankAtLeast_(r, 'staff') && !!personDisplayName(r),
+};
+function kindOut_(kind, r) {
+  const o = ITEM_STORE_KINDS.kinds[kind].sheet.list.out, out = {};
+  Object.keys(o).forEach(f => { const [col, how] = o[f].split(' '); out[f] = KIND_TIDY_[how || 's'](col === '*' ? r : r[col]); });
+  return out;
+}
+function kindList_(kind, rows) {
+  const sh = ITEM_STORE_KINDS.kinds[kind].sheet, L = sh.list, by = S(L.sort).replace(/^-/, ''), down = /^-/.test(S(L.sort));
+  const keep = r => L.keep.every(k => { const [col, how] = k.split(' '); return col === '*' ? KIND_TIDY_[how](r) : how === 'true' ? TRUE_(r[col]) : !!S(r[col]); });
+  const out = (rows || read(TAB[sh.tab]).rows).filter(keep).map(r => kindOut_(kind, r));
+  if (by) out.sort((a, b) => (down ? b[by] - a[by] : a[by] - b[by]));
+  return L.max ? out.slice(0, L.max) : out;
+}
+
 /* THE KIND, or null. */
 function itemKind_(kind) {
   const K = ITEM_STORE_KINDS.kinds;

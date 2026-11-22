@@ -169,17 +169,19 @@ function readItemsOwn_(kind, how, body, began, verb) {
   const ids = Array.isArray(body.ids) ? body.ids.map(S).filter(Boolean) : [];
   if (ids.length > 1) return jsonOut({ error: 'One at a time.' });
   const self = S(me.person_id), want = ids[0] || '';
-  const b = { token: body.token, name: personDisplayName(me), personId: self };
-  if (how.self && (!want || want === self)) return how.self(b, 'readItems', began);
+  /* THE WHOLE REQUEST (step 6), who asks the token's; an admin asking after somebody else is handed only who, below. */
+  const b = Object.assign({}, body, { name: personDisplayName(me), personId: self, action: kind + ':' + (verb || 'read') });
+  delete b.target; delete b.targetId;
+  if (how.self && (!want || want === self)) return how.self(b, kind + ':' + (verb || 'read'), began);
   /* SOMEBODY ELSE'S: an admin's alone, asked of the row the token resolved to. */
   if (!how.other || role !== 'admin' || !whoMay_(me, 'admin')) return jsonOut({ error: 'Only your own.', why: 'refused' });
   if (!want && !how.blank) return jsonOut({ error: 'Whose? Nobody was asked for.' });
-  b.targetId = want; b.target = want;
+  const o = { token: body.token, name: b.name, personId: self, targetId: want, target: want };
   if (how.logged && want !== self) {
     const r = read(TAB.people).rows.find(x => S(x.person_id) === want);
     if (r) lensLog_(me, r, 'readItems:' + kind, ['(opened)']);
   }
-  return how.other(b, 'readItems', began);
+  return how.other(o, kind + ':' + (verb || 'read'), began);
 }
 function postReadItems_(body, action, began, verb) {
   verb = verb === 'list' ? 'list' : 'read';

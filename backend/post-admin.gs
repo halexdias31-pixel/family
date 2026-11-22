@@ -1,18 +1,6 @@
 /* post-admin.gs: doPost's handlers for phone notifications, the inbox, records, errors, staff, the digest and site words (1130).
    Named in `postActions_()`, dopost.gs, after its gate; § notes: docs/notes/backend/dopost.gs.md. */
 
-/* PHONE NOTIFICATIONS (492): the card's four actions, all in push.gs. */
-function postPushState_(body, action, began) {
-  return jsonOut(pushAction_(action, body));
-}
-
-/* --- admin: everyone ---------------------------------------------------------------------- */
-/* THE BUSINESS RECORDS — admin only by `PERMISSIONS`, and read by a POST rather than sent in
-   the payload, because the payload is cached and goes to every visitor. See records.gs. */
-function postListRecords_(body, action, began) {
-  return jsonOut(recordsAction_(action, body));
-}
-
 /* checker ticks (1050) */
 
 /* ---------- AN ERROR FROM A PHONE (O5): counted on its row, and its first sighting is one note for Claude ---------- */
@@ -24,9 +12,10 @@ function jsonTry_(run, said) {
   try { return jsonOut(run()); } catch (err) { return jsonOut({ error: S(said) + S(err && err.message || err) }); }
 }
 
-function postListClientErrors_(body, action, began) {
+/* THE BUSINESS COLUMN'S ERRORS, most recent first (kinds.json `client_error` sheet.list). */
+function postListClientErrors_() {
   clearCache();
-  return jsonOut({ success: true, errors: clientErrorsList_() });
+  return { success: true, errors: read(TAB.client_errors).sheet ? kindList_('client_error') : [] };
 }
 
 /* AN APPLICATION'S TEXT, CUT TO SIZE, one key per SCHEMA.applications column. */
@@ -132,15 +121,17 @@ function postListApplications_(body, action, began) {
   clearCache();
   const t = read(TAB.applications);
   if (!t.sheet) return jsonOut({ success: true, open: 0, applications: [], missing: true });
-  const people = read(TAB.people).rows;
-  const list = t.rows.map(r => {
-    const p = people.find(x => S(x.person_id) === S(r.person_id));
-    const o = { id: S(r.application_id), at: appMs_(r.at), status: norm(r.status) || 'new', statusAt: appMs_(r.status_at),
-                personId: S(r.person_id), handle: p ? S(p.handle) : '', name: p ? personDisplayName(p) : '' };
+  const people = read(TAB.people).rows, rows = {};
+  t.rows.forEach(r => { rows[S(r.application_id)] = r; });
+  /* THE APPLICANT'S HANDLE AND NAME, AND EVERY ANSWER COLUMN, beside kinds.json `application` sheet.list. */
+  const list = kindList_('application', t.rows).map(o => {
+    const r = rows[o.id], p = people.find(x => S(x.person_id) === o.personId);
+    o.status = o.status || 'new';
+    Object.assign(o, { handle: p ? S(p.handle) : '', name: p ? personDisplayName(p) : '' });
     SCHEMA.applications.slice(5).forEach(k => { o[k] = S(r[k]); });
     return o;
-  }).sort((a, b) => b.at - a.at);
-  return jsonOut({ success: true, open: list.filter(a => APPLICATION_OPEN.indexOf(a.status) !== -1).length,
+  });
+  return ({ success: true, open: list.filter(a => APPLICATION_OPEN.indexOf(a.status) !== -1).length,
                    applications: list.slice(0, REPORTS_LIST_MAX) });
 }
 
@@ -161,13 +152,9 @@ function postPayStatement_(body, action, began) {
 }
 
 /* ---------- WHO TEACHES (Staff, and admins holding Tutor; not a waiting applicant), AND WHICH TERMS EACH AGREED TO (405) — admin only. */
-function postListStaff_(body, action, began) {
+function postListStaff_() {
   clearCache();
-  const staff = read(TAB.people).rows.filter(r => hasRole(r, 'tutor') && rankAtLeast_(r, 'staff') && personDisplayName(r))
-    .map(r => ({ personId: S(r.person_id), name: personDisplayName(r), handle: S(r.handle), rank: rankOf(r),
-                 termsVersion: S(r.agreement_version), termsAt: r.agreement_signed_at instanceof Date ? fmtDateTime(r.agreement_signed_at) : S(r.agreement_signed_at),
-                 dbsCheckedOn: isoDate_(r.dbs_checked_on), dbsNumber: S(r.dbs_number) }));
-  return jsonOut({ success: true, staff: staff });
+  return { success: true, staff: kindList_('tutor') };
 }
 
 function postDecideApplication_(body, action, began) {

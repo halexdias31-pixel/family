@@ -61,7 +61,7 @@ function accessGs() {
 }
 function dopostGs() {
   return '/* EVERY ACTION BY NAME → its handler (backend/post-*.gs). An action with no handler here answers `Unknown action`. */\n'
-    + 'function postActions_() {\n  return {\n' + POSTS.filter(a => a.handler).map(a => '    ' + a.name + ': ' + a.handler + ',').join('\n') + '\n  };\n}\n';
+    + 'function postActions_() {\n  return {\n' + POSTS.filter(a => a.handler).map(a => '    ' + a.name + ': ' + (a.item ? "(b, a, g) => " + a.handler + "(b, '" + a.item + "', g)" : a.handler) + ',').join('\n') + '\n  };\n}\n';
 }
 const DOORS = Object.keys(ACTIONS.items).filter(kv => ACTIONS.items[kv].handler || ACTIONS.items[kv].other);
 function featuresGs() {
@@ -99,8 +99,8 @@ function bookingGs(rows) {
     + '/* WHAT THE ITEM DOOR ANSWERS kind:verb WITH: `self` your own, `other` an admin asking after somebody else (`logged` leaves a lens_log row, `blank` may name nobody). */\n'
     + 'function itemDoors_() {\n  return {\n' + DOORS.map(kv => {
       const e = ACTIONS.items[kv], parts = [];
-      /* `as`: the old action name the handler was written to answer (it tells its verbs apart by it). */
-      if (e.handler) parts.push('self: ' + (e.as ? "(b, a, g) => " + e.handler + "(b, '" + e.as + "', g)" : e.handler));
+      /* THE HANDLER IS HANDED kind:verb (step 6, 22 Nov), by this door and by the old name alike (dopostGs). */
+      if (e.handler) parts.push('self: ' + e.handler);
       if (e.other) parts.push('other: ' + e.other);
       if (e.logged) parts.push('logged: true');
       if (e.blank) parts.push('blank: true');

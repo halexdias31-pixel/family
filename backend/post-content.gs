@@ -726,7 +726,3 @@ function postFilmsSync_(body, action, began) {
   return jsonOut(Object.assign({ success: true }, out, { films: filmsFor_(me), sync: filmsSyncSays_() }));
 }
 
-/* ---------- AN ADMIN'S REELS AND VIDEOS (404) — the gate already refused anybody not an admin. */
-function postMediaSave_(body, action, began) {
-  return jsonOut(mediaWrite_(action, body));
-}

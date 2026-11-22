@@ -77,7 +77,8 @@ async function run() {
     const doors = await first.evaluate(() => [...document.querySelectorAll('#stuff-groups [data-value]')].map(e => e.dataset.value).filter(Boolean));
     await first.context().close();
     /* THREE DOORS AT ONCE: more and a phone-sized page under load misses its taps. */
-    const look = async d => {
+    const MUST_DRAW = { Posts: 'kc-post', Practice: 'kc-question', Booking: 'kc-receipt', Messages: 'kc-msg' };
+    const look = async (d, tries = 2) => {
       const pg = await open();
       /* EVERY STEP SKIPPED (22 Nov): Practice, Library and Shop ask several steps before their cards, so "Doesn't matter" is tapped until it is gone. */
       await click(pg, d);
@@ -86,6 +87,9 @@ async function run() {
       for (let i = 0, last = -1; i < 16; i++) { const n = await pg.evaluate(() => document.querySelectorAll('#screen .card').length); if (n && n === last) break; last = n; await pg.waitForTimeout(500); }
       /* PRACTICE'S WORDS ARRIVE AFTER ITS WAITING CARDS (a loaded build is slow): its question cards are waited for, 45 seconds at most. */
       if (d === 'Practice') await pg.waitForFunction(() => document.querySelector('#screen .kc-question') && !document.querySelector('#screen .lib-wait'), null, { timeout: 45000 }).catch(() => {});
+      /* A DOOR THAT MUST DRAW ITS OWN KIND IS WAITED FOR (22 Nov: Posts and Practice sometimes came back empty under load — a missed tap, not the site). */
+      const must = MUST_DRAW[d];
+      if (must && !(await pg.$('#screen .' + must))) { await pg.context().close(); return tries ? look(d, tries - 1) : []; }
       const cards = await pg.evaluate(() => [...document.querySelectorAll('#screen .card')].filter(e => !e.parentElement.closest('.card')).slice(0, 60)
         .map(e => ({ n: e.getAttribute('aria-label') || e.innerText.slice(0, 30), c: e.className, sh: e.dataset.shape || '', ik: e.dataset.itemKind || '', set: e.matches('.kc-setting'),
           kc: e.matches('.fc.kc') && [...e.children].every(k => /^kc-/.test(k.className)) })));

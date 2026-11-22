@@ -125,7 +125,8 @@ function doPost(e) {
     const actions = postActions_();
     if (Object.prototype.hasOwnProperty.call(actions, action)) {
       const out = actions[action](body, action, began);
-      if (out !== undefined) return out;
+      /* A HANDLER MAY ANSWER WITH ITS REPLY ITSELF (step 6): sent as JSON here, as jsonOut would have. */
+      if (out !== undefined) return out && typeof out.getContent === 'function' ? out : jsonOut(out);
     }
 
     return jsonOut({ error: 'Unknown action: ' + action });
@@ -149,7 +150,7 @@ function postActions_() {
     signOut: postSignOut_,
     videoPart: postVideoPart_,
     photoFile: postPhotoFile_,
-    saveTimetable: postSaveTimetable_,
+    saveTimetable: (b, a, g) => postSaveTimetable_(b, 'timetable:save', g),
     savePhoto: postSavePhoto_,
     setMyRoles: postSetMyRoles_,
     votePoll: postVotePoll_,
@@ -158,11 +159,11 @@ function postActions_() {
     claimChild: postClaimChild_,
     answerClaim: postAnswerClaim_,
     findChild: postFindChild_,
-    raiseHand: postRaiseHand_,
-    hands: postRaiseHand_,
-    factSet: postFactSet_,
-    listRecords: postListRecords_,
-    saveRecordsPage: postListRecords_,
+    raiseHand: (b, a, g) => postRaiseHand_(b, 'hand:save', g),
+    hands: (b, a, g) => postRaiseHand_(b, 'hand:read', g),
+    factSet: (b, a, g) => postFactSet_(b, 'fact:save', g),
+    listRecords: (b, a, g) => recordsAction_(b, 'record:list', g),
+    saveRecordsPage: (b, a, g) => recordsAction_(b, 'record:save', g),
     sendMessage: postSendMessage_,
     flagMessage: postFlagMessage_,
     checkUploads: postCheckUploads_,
@@ -178,36 +179,36 @@ function postActions_() {
     answerRequest: postAnswerRequest_,
     joinWaitlist: postJoinWaitlist_,
     openWaitlist: postOpenWaitlist_,
-    markWorking: postSaveWorking_,
-    workingOf: postWorkingOf_,
-    history: postHistory_,
+    markWorking: (b, a, g) => postSaveWorking_(b, 'working:save', g),
+    workingOf: (b, a, g) => postWorkingOf_(b, 'working:read', g),
+    history: (b, a, g) => postHistory_(b, 'history:read', g),
     docketImport: postDocketImport_,
     docketAddress: postDocketAddress_,
-    assignmentsOf: postAssignmentsOf_,
-    assignmentsSave: postAssignmentsSave_,
+    assignmentsOf: (b, a, g) => postAssignmentsOf_(b, 'assignment:read', g),
+    assignmentsSave: (b, a, g) => postAssignmentsSave_(b, 'assignment:save', g),
     assignmentsImport: postAssignmentsImport_,
-    workFileSave: postWorkFile_,
-    workFilesOf: postWorkFile_,
-    workFileOpen: postWorkFile_,
-    workFileDelete: postWorkFile_,
+    workFileSave: (b, a, g) => postWorkFile_(b, 'workfile:save', g),
+    workFilesOf: (b, a, g) => postWorkFile_(b, 'workfile:list', g),
+    workFileOpen: (b, a, g) => postWorkFile_(b, 'workfile:read', g),
+    workFileDelete: (b, a, g) => postWorkFile_(b, 'workfile:delete', g),
     askAssistant: postAskAssistant_,
     submitAnswer: postSubmitAnswer_,
     reportQuestion: postReportQuestion_,
     report: postReport_,
     clientError: postClientError_,
-    listClientErrors: postListClientErrors_,
+    listClientErrors: (b, a, g) => postListClientErrors_(b, 'clienterror:list', g),
     tidyOldRows: postTidyOldRows_,
     renameAllUsernames: postRenameAllUsernames_,
     healthLog: postHealthLog_,
     suggest: postSuggest_,
     suggestUpload: postSuggestUpload_,
-    listSuggestions: postListSuggestions_,
+    listSuggestions: (b, a, g) => postListSuggestions_(b, 'suggestion:list', g),
     decideSuggestion: postDecideSuggestion_,
     applyTeach: postApplyTeach_,
-    listApplications: postListApplications_,
+    listApplications: (b, a, g) => postListApplications_(b, 'application:list', g),
     decideApplication: postDecideApplication_,
-    payStatement: postPayStatement_,
-    listStaff: postListStaff_,
+    payStatement: (b, a, g) => postPayStatement_(b, 'statement:read', g),
+    listStaff: (b, a, g) => postListStaff_(b, 'staff:list', g),
     item: postItem_,
     libExport: postLibExport_,
     libImport: postLibImport_,
@@ -219,18 +220,18 @@ function postActions_() {
     claudeNoteAdd: postClaudeNoteAdd_,
     claudeNoteDone: postClaudeNoteAdd_,
     filmsSync: postFilmsSync_,
-    mediaSave: postMediaSave_,
-    mediaUpload: postMediaSave_,
-    mediaHide: postMediaSave_,
-    mediaDelete: postMediaSave_,
-    pushState: postPushState_,
-    pushSubscribe: postPushState_,
-    pushUnsubscribe: postPushState_,
-    pushSet: postPushState_,
+    mediaSave: (b, a, g) => mediaWrite_(b, 'media:save', g),
+    mediaUpload: mediaWrite_,
+    mediaHide: mediaWrite_,
+    mediaDelete: (b, a, g) => mediaWrite_(b, 'media:delete', g),
+    pushState: (b, a, g) => pushAction_(b, 'push:read', g),
+    pushSubscribe: (b, a, g) => pushAction_(b, 'push:save', g),
+    pushUnsubscribe: (b, a, g) => pushAction_(b, 'push:delete', g),
+    pushSet: (b, a, g) => pushAction_(b, 'pushsetting:save', g),
     addPost: postAddPost_,
     approvePost: postApprovePost_,
-    setRoom: postSetRoom_,
-    deleteJob: postDeleteJob_,
+    setRoom: (b, a, g) => postSetRoom_(b, 'room:save', g),
+    deleteJob: (b, a, g) => postDeleteJob_(b, 'job:delete', g),
     linkChild: postLinkChild_,
     adminUnlinkFamily: postAdminUnlinkFamily_,
   };
@@ -872,16 +873,6 @@ function clientError_(body) {
   if (early) return early;
   if (fresh) { clearCache(); try { claudeNotesWrite_(claudeNotesOpen_()); } catch (err) { /* the tab row stands; the Drive file catches up on the next add */ } }
   return { success: true, fresh: fresh };
-}
-/* THE BUSINESS COLUMN'S LIST, most recent first. */
-function clientErrorsList_() {
-  const t = read(TAB.client_errors);
-  if (!t.sheet) return [];
-  const at = v => v instanceof Date ? v.getTime() : (Date.parse(S(v)) || 0);
-  return t.rows.filter(r => S(r.error_id)).map(r => ({
-    id: S(r.error_id), first: at(r.first_at), last: at(r.last_at), count: Number(r.count) || 0, devices: Number(r.devices) || 0,
-    message: S(r.message), where: S(r.where), version: S(r.version), screen: S(r.screen),
-  })).sort((a, b) => b.last - a.last).slice(0, 50);
 }
 
 /* ONE PERSON'S MESSAGES — asked by `messages`, and sent in the payload so the DMs column draws with the others (700). */
