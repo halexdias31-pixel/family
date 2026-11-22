@@ -2,7 +2,7 @@
 /* @family. — tools/validate-cache.js THE QUESTIONS' CACHE CHECK (rule 1.75, queue step 2, 22 Nov). tools/validate-questions.js keeps each verdict under a
    hash of its row, its stem's figure and the marker's code, and marks again only what changed; a stale verdict would offer a broken question to a
    child or hide one that works. On made-up questions, through the real marker: a cached run equals a fresh one byte for byte, a changed key is the
-   only question marked again and the file equals a full run, a code change (salt) or a broken cache marks everything. Fails the build. */
+   only question marked again and the file equals a full run, a code change (salt), a line in mark_ or a broken cache marks everything, and a card body no marker calls (referenceBody_) marks nothing. Fails the build. */
 'use strict';
 const fs = require('fs'), path = require('path'), os = require('os');
 const VQ = require('./validate-questions.js');
@@ -46,12 +46,24 @@ function run() {
     if (!d.full || d.rechecked.length !== 5) bad.push('code change: expected all 5 marked again, got ' + d.rechecked.length);
     if (bytes(out) !== bytes(full)) bad.push('after a code change the file differs from a full run');
 
+    /* A CARD BODY ONLY THE PAGE DRAWS (referenceBody_, a comment changed): not on the verdict path, so nothing is marked again */
+    go(rows); /* the unsalted code's cache again */
+    const comment = src => { if (!src) throw new Error('validate-cache: no such declaration to touch'); return src.replace(/=>/, '=> /* touched */'); };
+    const h = go(rows, { touch: { referenceBody_: comment } });
+    if (h.full || h.rechecked.length) bad.push('a card body changed: expected none marked again, got ' + h.rechecked.length);
+    if (bytes(out) !== bytes(full)) bad.push('after a card body changed the file differs from a full run');
+    /* THE MARKER ITSELF (a line in mark_ changed): everything is marked again */
+    const touchMark = { mark_: src => { if (!src) throw new Error('validate-cache: no mark_ to touch'); return src.replace('{', '{\n  /* touched */'); } };
+    const m = go(rows, { touch: touchMark });
+    if (!m.full || m.rechecked.length !== 5) bad.push('mark_ changed: expected all 5 marked again, got ' + m.rechecked.length);
+    if (bytes(out) !== bytes(full)) bad.push('after mark_ changed the file differs from a full run');
+
     fs.writeFileSync(cache, '{ not json');
     const e = go(rows);
     if (!e.full || e.rechecked.length !== 5) bad.push('corrupt cache: expected a full run, got ' + e.rechecked.length);
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
   bad.forEach(x => console.log('  ' + x));
-  console.log('validate-cache: 5 made-up questions through 5 runs (fresh, cached, one key changed, code changed, corrupt cache); ' + bad.length + ' wrong');
+  console.log('validate-cache: 5 made-up questions through 8 runs (fresh, cached, one key changed, code changed, a card body changed, mark_ changed, corrupt cache); ' + bad.length + ' wrong');
   if (bad.length) throw new Error('validate-cache: the questions\' cache gave a stale or partial verdict');
 }
 module.exports = { run };

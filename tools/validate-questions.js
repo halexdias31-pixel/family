@@ -51,7 +51,28 @@ function appCode() {
     retry(() => vm.runInContext(decl[name], ctx));
     return true;
   }
-  return { ctx, call: expr => retry(() => vm.runInContext(expr, ctx)), decl, loaded, missing, files };
+  /* every app name the tool's own expressions name, kept so run() can hold them to its list of entry points (VERDICT_FROM) */
+  const asked = new Set();
+  const call = (expr, preload) => {
+    if (!preload) identsOf(acorn, expr).forEach(n => { if (n in decl) asked.add(n); });
+    return retry(() => vm.runInContext(expr, ctx));
+  };
+  return { ctx, call, decl, loaded, missing, files, asked, acorn };
+}
+/* the identifiers a piece of code names as variables (not a property after a dot, not an object key): the edges of the verdict path */
+function identsOf(acorn, src) {
+  const out = new Set();
+  let ast; try { ast = acorn.parse(src, { ecmaVersion: 2022 }); } catch (e) { return null; }
+  (function walk(n) {
+    if (!n || typeof n.type !== 'string') return;
+    if (n.type === 'Identifier') out.add(n.name);
+    for (const k in n) {
+      if (k === 'type' || (n.type === 'MemberExpression' && k === 'property' && !n.computed) || ((n.type === 'Property' || n.type === 'MethodDefinition' || n.type === 'PropertyDefinition') && k === 'key' && !n.computed)) continue;
+      const v = n[k];
+      if (Array.isArray(v)) v.forEach(walk); else if (v && typeof v === 'object') walk(v);
+    }
+  })(ast);
+  return out;
 }
 
 /* ---------- THE ROWS A STUDENT CAN REACH: active questions, public joined with private, each with its paper's card */
@@ -112,17 +133,44 @@ function figureMissing(r, stemHasFig) {
 /* ---------- THE CACHE (queue step 2, 22 Nov: the build waited 35 minutes here). A verdict depends only on the question's joined row (public +
    private + its paper's card), its stem's figure, and the code that marks it; so each verdict is kept under a hash of exactly those, and only a
    question whose hash is new is marked again. THE CODE'S HASH: this tool, tools/lib/gen.js, the settings appCode reads, index.html's file list,
-   and the source of every app declaration a run has loaded (or found missing); any change there marks everything again. The cache holds hashes
+   the question's sheet join in kinds.json, and the source of every app declaration on the verdict path (verdictNames, below); any change there
+   marks everything again. The cache holds hashes
    and verdicts only, in a git-ignored file; missing or unreadable, it is a full run, and --full ignores it. tools/validate-cache.js checks it. */
 const CACHE = path.join(ROOT, '.cache', 'validate-questions.json');
+/* THE VERDICT PATH (22 Nov: a card-drawing change marked all 38,000 questions again, 35 minutes). Its entry points are the app names this tool's
+   own expressions call (held to this list at run time: a new one fails the run). From them, the path is every name reached through the names each
+   declaration's source mentions (acorn), among the names a run really loaded or found missing: so a page-only name loaded up front (cardDraw_,
+   CARD_BLOCKS, as the page has them) is in only if marking code mentions it, and a card body no marking code names (referenceBody_, renderCard)
+   never is. A name is kept, never pruned, when it is mentioned at all, behind a `typeof` or in a branch never taken; and if any declaration on the
+   path reaches names by string (eval, new Function, window[...]), every loaded name is kept. */
+const VERDICT_FROM = ['qtMarker_', 'workRow_', 'libQuestion_', 'markerOf_', 'markIsLevels_', 'levelsRow_', 'markLevelsRead_', 'padSurface_',
+  'surfaceSvg_', 'drawFig_', 'DRAW_MARK', 'cellsOf_', 'markIsPeel_', 'mark_'];
+const BY_STRING = /\beval\s*\(|\bFunction\s*\(|\b(window|globalThis|self|this)\s*\[/;
+function verdictNames(app, pool) {
+  const seen = new Set(), todo = VERDICT_FROM.slice();
+  let byString = false;
+  while (todo.length) {
+    const n = todo.pop();
+    if (seen.has(n)) continue;
+    seen.add(n);
+    const src = app.decl[n];
+    if (src === undefined) continue;
+    const ids = identsOf(app.acorn, src);
+    if (!ids || BY_STRING.test(src)) { byString = true; continue; }
+    ids.forEach(x => { if (pool.has(x) && !seen.has(x)) todo.push(x); });
+  }
+  return [...(byString ? new Set([...pool, ...seen]) : seen)].sort();
+}
 const sha = s => require('crypto').createHash('sha256').update(s).digest('hex');
 function codeHash(app, names, salt) {
   const parts = [salt || ''];
   ['tools/validate-questions.js', 'tools/lib/gen.js', 'data/settings/confusables.json', 'data/settings/peel.json', 'data/settings/marking.json',
-    'data/word-freq.json', 'data/settings/kinds.json', 'node_modules/acorn/package.json'].forEach(f => {
+    'data/word-freq.json', 'node_modules/acorn/package.json'].forEach(f => {
     let t; try { t = fs.readFileSync(path.join(ROOT, f), 'utf8'); } catch (e) { t = '\u0000missing'; }
     parts.push(f + '\u0000' + t);
   });
+  /* of kinds.json, only the question's sheet join rowsOf reads (the marker's vm never sees kinds.json): the card shapes it also holds draw, they do not mark */
+  parts.push('kinds.question.sheet\u0000' + JSON.stringify(((((read('data/settings/kinds.json') || {}).kinds || {}).question || {}).sheet) || null));
   parts.push(app.files.join(','));
   names.forEach(n => parts.push(n + '\u0000' + (app.decl[n] === undefined ? '\u0000none' : app.decl[n])));
   return sha(parts.join('\u0001'));
@@ -132,7 +180,7 @@ function cacheRead(file) {
   return null;
 }
 
-/* opts, for tools/validate-cache.js: rows (joined rows, made up), out, cache (paths), salt (stands in for a code change), full, quiet */
+/* opts, for tools/validate-cache.js: rows (joined rows, made up), out, cache (paths), salt (stands in for a code change), touch (below), full, quiet */
 function run(opts) {
   opts = opts || {};
   const t0 = Date.now();
@@ -141,6 +189,8 @@ function run(opts) {
   if (!opts.rows && !fs.existsSync(path.join(ROOT, 'data-private', 'questions.json'))) { console.log('validate-questions: no data-private/questions.json here, data/question-status.json left as it is'); return null; }
   const rows = opts.rows || rowsOf();
   const app = appCode();
+  /* opts.touch, for tools/validate-cache.js: { name: src => src } edits an app declaration's source as a change to its file would */
+  Object.entries(opts.touch || {}).forEach(([n, f]) => { app.decl[n] = f(app.decl[n]); });
   const { ctx, call } = app;
   const was = opts.full || process.argv.includes('--full') ? null : cacheRead(CACHEF);
   const codeWas = !!was && codeHash(app, was.names, opts.salt) === was.code;
@@ -152,8 +202,8 @@ function run(opts) {
     call('qtMarker_(workRow_({row:{}}))');
     /* names the app reaches only behind a `typeof` (drawFig_'s padGrid_) or inside a try that swallows the miss (cardBlock_'s CARD_BLOCKS,
        cardDraw_ for a made-up surface): neither throws here, so they are loaded up front, as the page has them */
-    call('padGrid_'); call('CARD_BLOCKS');
-    call('cardDraw_({ el: "svg", a: { viewBox: "0 0 1 1" }, kids: [{ el: "line", a: { x1: 1 } }, { el: "text", a: { x: 1 }, text: "1" }] })');
+    call('padGrid_', true); call('CARD_BLOCKS', true);
+    call('cardDraw_({ el: "svg", a: { viewBox: "0 0 1 1" }, kids: [{ el: "line", a: { x1: 1 } }, { el: "text", a: { x: 1 }, text: "1" }] })', true);
   };
   /* figures held by a question's preamble rows (same paper, same question number) */
   const stemFig = new Set(), stemSvg = new Map();
@@ -246,7 +296,9 @@ function run(opts) {
   ids.forEach(id => { file.status[id] = status[id]; });
   fs.writeFileSync(OUTF, JSON.stringify(file));
   /* the names this run loaded or found missing, with the last run's while its code stands */
-  const names = [...new Set([...(codeWas ? was.names : []), ...app.loaded, ...app.missing])].sort();
+  const strays = [...app.asked].filter(n => !VERDICT_FROM.includes(n));
+  if (strays.length) throw new Error('validate-questions: the tool now calls ' + strays.join(', ') + ': add it to VERDICT_FROM, or its code is not in the cache\'s hash');
+  const names = verdictNames(app, new Set([...(codeWas ? was.names : []), ...app.loaded, ...app.missing]));
   try {
     fs.mkdirSync(path.dirname(CACHEF), { recursive: true });
     fs.writeFileSync(CACHEF, JSON.stringify({ v: 1, code: codeHash(app, names, opts.salt), names, rows: fresh }));
@@ -261,5 +313,5 @@ function run(opts) {
   if (process.argv.includes('--papers')) Object.keys(tally).sort().forEach(s => Object.entries(tally[s].papers).forEach(([p, t]) => log(s + '\t' + p + '\t' + t.ok + '\t' + t.tutor + '\t' + t.broken)));
   return { status, tally, why, rechecked, full: !codeWas };
 }
-module.exports = { run, appCode, rowsOf };
+module.exports = { run, appCode, rowsOf, verdictNames };
 if (require.main === module) run();
