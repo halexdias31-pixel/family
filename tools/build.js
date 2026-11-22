@@ -37,6 +37,7 @@ const ORDER = [
   'docket-keep',  // the planner's fields check (rule 1.75, 1.82, owner 21 Nov): todoTidy_, docketTidy_ and dkTidy_ keep minutes, runs, effort, fun, importance, place, timeIs; fails the build
   'docket-tidy-21nov', // the owner's docket tidy check (rule 1.75, 1.82, owner 21 Nov): the docket-owner-tidy-21nov migration's rules on a made-up docket; fails the build
   'docket-address', // the private address check (rule 1.75, owner 21 Nov: NOW, NEXT step 3): the plain-text ?docket= address refuses a wrong or missing token, says the site's Now/Next, ticks "done shower" and adds "add milk"; fails the build
+  'backend-loads', // the backend loads (22 Nov: the site was down): every .gs file run in Apps Script's A–Z order with Google's services stubbed; a top-level line reading a later file's name fails the build
   'eink',       // the e-ink check (rule 1.75, owner 21 Nov: NOW, NEXT step 2): ?eink's page and the Docket widget show the same Now/Next on docket-plan's day; fails the build
   'one-paper',    // the one-paper check (rule 1.75, 20 Nov): no two active past papers share board, spec, series and paper number; fails the build
   'one-paper-fact', // the one-paper-fact check (rule 1.75, owner 21 Nov): a question keeps none of its paper's facts byte-identical (kinds.json sheet.lib.joined), no source_id equal to its paper_id, and the backend and client join from one list; fails the build

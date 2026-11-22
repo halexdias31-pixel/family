@@ -679,7 +679,7 @@ function handleFold_(v) {
 const MONTH_NAMES = ['January','February','March','April','May','June',
                      'July','August','September','October','November','December'];
 /* from js/find-aloud.js */
-const LEVEL_TABLE = SHARED_SETTINGS.levels.list;
+Object.defineProperty(globalThis, 'LEVEL_TABLE', { get: () => SHARED_SETTINGS.levels.list });
 /* from js/find-finder.js */
 const SPELL_KEYS = new Map();
 const spellKey_ = v => {
