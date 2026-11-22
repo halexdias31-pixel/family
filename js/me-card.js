@@ -217,7 +217,7 @@ function cardEditHtml_(t) {
   const head = { type: 'msgHead', text: [(profRoleWords_(t).join(' · ') || 'Profile') + ' ', { span: 'ce-what', text: '· editing' }] };
   const base = cardBaseNow_(e);
   /* WAITING FOR THEIR COPY: the maker's wait, or what went wrong as the card's status line. */
-  const card = inner => setPlainCard_({ parts: [{ type: 'group', look: 'is-widget card-ed', attrs: { 'data-pid': pid }, parts: inner },
+  const card = inner => setCard_({ body: [{ type: 'group', look: 'is-widget card-ed', attrs: { 'data-pid': pid }, parts: inner },
     { type: 'tiles', look: 'ce-tiles', tiles: cardSaveOpts_(pid, !base) }] });
   if (!base) {
     if (!e.err) setTimeout(() => cardFetch_(e), 0);
@@ -234,7 +234,7 @@ function cardEditCards_(t, e, secs, setCol) {
   return secs.map(s => {
     /* EVERY CARD TITLED, ONE SHAPE (8 Nov): title and one line per field, saved as typed (`autosaveHear_`) — `setCard_`. */
     const title = OWN_SEC_TITLE_[s.id] || s.cap || s.id;
-    const card = { title, cls: 'card-ed',
+    const card = { title, hook: 'card-ed',
       attrs: ` data-pid="${esc(pid)}" data-sec="${esc(s.id)}" data-lay-card="own:${esc(setCol)}:${esc(s.id)}" aria-label="${esc(title)}"` };
     if (!base) return setCard_(Object.assign(card, { body: e.err ? meSaidB_(e.err) : { type: 'wait', on: true }, save: cardCancelTile_(pid) }));
     const { vals, held } = cardValues_(e, base, s.id);

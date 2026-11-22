@@ -641,7 +641,7 @@ function progressStats_() {
 }
 const progressPct_ = (a, b) => (b > 0 ? Math.round(100 * a / b) : 0);
 /* A PROGRESS CARD from its blocks, through the one card maker; its name is its first tag. */
-const progressCard_ = (look, name, body, more) => renderCard(Object.assign({ kind: 'panel', card: 'acct:' + look, look, name, tags: [name], body }, more || {}));
+const progressCard_ = (look, name, body, more) => setCard_(Object.assign({ card: 'acct:' + look, hook: look, title: name, body }, more || {}));
 /* ---------- PROGRESS IN A FIELD: ONE CARD PER SERIES, ONE LINE PER PAPER, OPENED IN PLACE ---------- */
 /* WHICH PAPERS ARE OPEN, so a redraw does not shut what was opened (no pop-up: a <details> grows the line where it is). */
 const PROG_OPEN = new Set();
@@ -743,11 +743,11 @@ function progressSessions_() {
   return { ahead: ahead.slice(0, 3), past: past.slice(0, 3) };
 }
 function progressSessionsCard_(ss) {
-  if (!ss.ahead.length && !ss.past.length) return emptyCard_('Sessions', 'acct:prog-sessions');
+  if (!ss.ahead.length && !ss.past.length) return setCard_({ card: 'acct:prog-sessions', title: 'Sessions', state: 'empty' });
   const when = s => fmtDate_(s.d, 'day') + ' ' + fmtDate_(s.d) + (s.j.time ? ' · ' + fmtDate_(s.j.time, 'time') : '');
   const row = s => progRow_(when(s), s.j.title || s.j.subject || 'Session');
   return progressCard_('prog-sessions', 'Sessions', ss.ahead.map(row).concat(ss.past.map(row)),
-    { tiles: [{ icon: 'book', label: 'Sessions', note: 'on Book', act: 'prog-sessions' }] });
+    { actions: [{ icon: 'book', label: 'Sessions', note: 'on Book', act: 'prog-sessions' }] });
 }
 
 /* ---------- THE COLUMN: every widget, always, so each is where it was; one with nothing to say is its title alone (414). ---------- */
@@ -770,11 +770,11 @@ function progressAllSpec_(of) {
   const src = st.series.slice(0, 8).map(progressSourceRow_);
   const day = of && typeof histBody_ === 'function' ? [{ type: 'group', look: 'prog-day', blocks: [{ type: 'msgHead', text: 'Day by day' }].concat(histBody_(of)) }] : [];
   if (!top.length && !src.length && !day.length) return null;
-  return { kind: 'panel', card: 'acct:progress', look: 'prog-all', name: 'Progress', tags: ['Progress'], data: of ? { of, hist: 1 } : {}, body: top.concat(src, day) };
+  return { card: 'acct:progress', hook: 'prog-all', title: 'Progress', data: of ? { of, hist: 1 } : {}, body: top.concat(src, day) };
 }
 function progressAllCard_(of) {
   const spec = progressAllSpec_(of);
-  return spec ? renderCard(spec) : emptyCard_('Progress', 'acct:progress');
+  return setCard_(spec || { card: 'acct:progress', title: 'Progress', state: 'empty' });
 }
 /* ARE PROGRESS'S NUMBERS STILL COMING: the payload or the library, asked of the waits themselves, never of a card's HTML. */
 const progressComing_ = () => typeof USER !== 'undefined' && !!USER && ((typeof awaiting_ === 'function' && awaiting_())

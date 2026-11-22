@@ -292,22 +292,42 @@ function shelfSlots_(nums, filled, draw, noun) {
 const shelfAdd_ = (noun, act, o, row) => cardBlock_({ type: 'group', look: 'tile-row set-adds' + (row ? ' ' + row : ''), tiles: [Object.assign({ icon: 'plus', label: 'Add ' + (/^an? |^another$/.test(noun) ? noun : 'a ' + noun),
   act: act || 'shelf-more', cls: act ? '' : 'shelf-more' }, o || {})] });
 const shelfDrop_ = (noun, act) => tile_({ icon: 'bin', label: 'Remove ' + noun, act: act || 'shelf-drop', cls: 'set-drop' });
-/* A CARD: its title and one line per field, saving as you type (owner, 8 Nov: no Save button, `autosaveHear_`). `o.save` is any other tile for the foot. */
-/* ONE TEMPLATE FOR SETTINGS AND ACCOUNT CARDS (owner, 13 Nov; unify batch 9): a spec through renderCard, its body ordinary blocks — the `.me-form` a group */
-/* (autosave hears it), its status line a `status` block. `o.form`/`o.body` are blocks (formCard_'s) or parts another maker drew already. */
+/* THE FOUR SETTINGS SHAPES (owner, 22 Nov, CARD SHAPES): Text, Choice, On/off and List, each the slots {title, tags, body, actions, picture, state}
+   through renderCard. Which one a card is lives in data (kinds.json setting.cards `shape`, else the first `shapeBy` its id matches), never here.
+   `form` (a Text, Choice or On/off card's boxes or ticks) is a `.me-form` group autosave hears (`autosaveHear_`, `.set-shape .me-form`), its status
+   line a `status` block; `hook` is only a class another file finds the card by; `state` 'locked' shuts it (`lockCard_`), 'off' greys it, 'empty' is its title alone (`emptyCard_`'s look). */
+let SET_SHAPE_ON_ = null;
+function setShapeOf_(id) {
+  const S = (typeof ITEM_KINDS !== 'undefined' && ITEM_KINDS.kinds.setting) || {}, k = String(id || '');
+  if (!SET_SHAPE_ON_) { SET_SHAPE_ON_ = {}; (S.cards || []).forEach(r => { if (r.shape) SET_SHAPE_ON_[r.id] = r.shape; }); }
+  return SET_SHAPE_ON_[k] || ((S.shapeBy || []).find(b => new RegExp(b.match).test(k)) || {}).shape || 'List';
+}
+const setSaveB_ = o => (o.save ? { type: 'group', look: 'tile-row set-save', inner: o.save } : '');
+const setFormB_ = o => (o.form == null ? [o.body, setSaveB_(o)]
+  : { type: 'group', look: 'me-form kc-fields', attrs: meAttrs_(o.formAttrs || ''), parts: [o.form, setSaveB_(o), o.foot == null ? meSaidB_('') : o.foot] });
+/* ONE DRAW PER SHAPE: what goes in its body; the frame is the same for all four (`setCard_`). */
+const SET_SHAPES_ = {
+  /* TEXT: boxes typed into, saved as you type. */
+  Text: setFormB_,
+  /* CHOICE: one pick among a few, or a sample to hear; its buttons are the card's actions. */
+  Choice: setFormB_,
+  /* ON/OFF: a tick a line, each saved as it is ticked. */
+  'On/off': setFormB_,
+  /* LIST: rows, sections or another maker's markup, as they are. */
+  List: o => [].concat(o.body == null ? [] : o.body, setSaveB_(o)),
+};
+/* AN EMPTY CARD'S ONE TILE, Suggest a change (486), as `emptyCard_` gives every empty widget. */
+const setEmptyTiles_ = title => { const t = String(title || ''); return [].concat((typeof suggestOpts_ === 'function' && suggestOpts_('widget', 'empty:' + t.toLowerCase().replace(/[^a-z0-9]+/g, '-'), t)) || []); };
 function setCard_(o) {
-  const save = o.save ? { type: 'group', look: 'tile-row set-save', inner: o.save } : '';
-  const body = o.form == null ? [o.body, save]
-    : { type: 'group', look: 'me-form kc-fields', attrs: meAttrs_(o.formAttrs || ''), parts: [o.form, save, o.foot == null ? meSaidB_('') : o.foot] };
-  return renderCard({ kind: 'setting', card: o.card || '', look: 'set-shape' + (o.cls ? ' ' + o.cls : ''), name: o.title || '', tags: [o.title || ''], data: cardDataOf_(o.attrs),
-    body: [{ type: 'group', look: 'kc-set', parts: [o.lead, body, o.after] }] });
+  const data = Object.assign(cardDataOf_(o.attrs), o.data || {}), shape = setShapeOf_(o.card || data['lay-card']), formy = shape !== 'List';
+  const h = renderCard({ kind: 'setting', shape, card: o.card || '', look: [formy ? 'set-shape' : '', o.hook || '', o.state === 'empty' ? 'is-empty' : ''].filter(Boolean).join(' '),
+    name: o.title || '', tags: o.tags || (o.title ? [o.title] : []), data, picture: o.picture, tiles: o.actions || (o.state === 'empty' ? setEmptyTiles_(o.title) : []), off: o.state === 'off',
+    body: [{ type: 'group', look: 'kc-set', parts: [].concat(o.lead || [], (SET_SHAPES_[shape] || SET_SHAPES_.List)(o), o.after || []) }] });
+  return o.state === 'locked' && typeof lockCard_ === 'function' ? lockCard_(h) : h;
 }
 /* A WRAPPER'S data-* ATTRIBUTES (data-lay-card, data-pid) stay on the card, read as data by `cardAttrsOf_`. */
 const cardDataOf_ = attrs => { const a = cardAttrsOf_(attrs || ''), d = {};
   Object.keys(a).forEach(k => { if (/^data-/.test(k)) d[k.slice(5)] = a[k] === true ? '' : a[k]; }); return d; };
-/* A SETTINGS CARD THAT IS NOT A FORM (signed in, a card being edited): its look, name and data, its body ordinary blocks in the `kc-set` group. */
-const setPlainCard_ = o => renderCard({ kind: 'setting', card: o.card || '', look: o.look || '', name: o.name || '', tags: o.name ? [o.name] : [], data: o.data || {},
-  body: [{ type: 'group', look: 'kc-set', parts: o.parts || [] }] });
 const shelfFilled_ = (value, names) => names.some(f => String(value(f) ?? '').trim() !== '');
 
 on('shelf-more', el => {

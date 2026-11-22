@@ -6,8 +6,6 @@ function pinSlip_(first, handle, pin) {
     { type: 'text', look: 'pin-slip-k', text: (first || 'They') + ' signs in with' }, { type: 'text', look: 'pin-slip-v', text: '@' + handle },
     { type: 'text', look: 'pin-slip-k', text: 'and the PIN' }, { type: 'text', look: 'pin-slip-v', text: String(pin) }] });
 }
-/* A SETTINGS CARD AS A SPEC (owner, 13 Nov: one template): its name the one tag, its look its old class, its body blocks. */
-const rolesSet_ = (look, name, body, more) => renderCard(Object.assign({ kind: 'setting', look: look || '', name: name || '', tags: name ? [name] : [], body: body || [] }, more || {}));
 /* MARKUP ANOTHER MAKER DREW (a hub, a form, the build line), carried in the settings card's `kc-set` group (unify batch 10). */
 const rolesDrawn_ = (draw, look) => { let inner = '';
   try { inner = String(draw() || ''); } catch (e) { if (typeof oops_ === 'function') oops_(e, 'settings:drawn'); }
@@ -72,7 +70,7 @@ function kidListSec_(held) {
 }
 function childManageCard_() {
   const held = !!pendingAddr_();
-  return rolesSet_('kid-card kid-manage', 'Manage your child', [kidListSec_(held), held ? kidHeldSec_() : rolesDrawn_(kidAddSec_)]);
+  return setCard_({ hook: 'kid-manage', title: 'Manage your child', body: [kidListSec_(held), held ? kidHeldSec_() : rolesDrawn_(kidAddSec_)] });
 }
 
 /* A REFUSAL THAT SAYS THE ADDRESS IS WAITING corrects the phone: § */
@@ -182,7 +180,7 @@ const libFieldsOf_ = groups => [].concat(...Object.keys(groups || {}).map(g => g
 /* ---------- READING ALOUD (453, 463) — no choice: the device's calmest natural voice, free; a sample is all there is to do ---------- */
 function voiceCard_() {
   if (!canSay_()) return '';
-  return rolesSet_('voice-card', 'Reading aloud', [{ type: 'tiles', tiles: [{ icon: 'speak', label: 'Hear a sample', note: 'the reading voice', act: 'voice-try' }] }], { card: 'acct:voice' });
+  return setCard_({ card: 'acct:voice', title: 'Reading aloud', actions: [{ icon: 'speak', label: 'Hear a sample', note: 'the reading voice', act: 'voice-try' }] });
 }
 const VOICE_SAMPLE = 'Hello. This is how your questions will be read. For example: x² ÷ 4 is less than 3/4.';
 on('voice-try', () => { hush_(); say_(VOICE_SAMPLE); });
@@ -216,10 +214,10 @@ function lockCard_(h) {
     .replace(/(<[a-z]+\b[^>]*?)\sid="/g, '$1 data-lock-id="');
 }
 /* YOUR CARD'S PLACE ON A LOCKED COLUMN: its title only — a placeholder has no card to draw. */
-const lockedOwnCards_ = col => (OWN_SEC_OF_SET_[col] || []).map(k => rolesSet_('own-lock', OWN_SEC_TITLE_[k] || k, [], { card: '-', data: { 'lay-card': 'own:' + col + ':' + k } }));
+const lockedOwnCards_ = col => (OWN_SEC_OF_SET_[col] || []).map(k => setCard_({ card: '-', title: OWN_SEC_TITLE_[k] || k, data: { 'lay-card': 'own:' + col + ':' + k } }));
 /* EACH SETTINGS COLUMN'S CARDS FOR ITS ROLE, built the same way as for a holder (`staffPages_`, `familyPages_`, `youSettingsPages_`). */
 const LOCKED_DRAW_ = {
-  staff: () => lockedOwnCards_('staff').concat([rolesSet_('staff-top', 'Staff hub', [rolesDrawn_(() => (typeof window.hubBlock_ === 'function' ? window.hubBlock_() : ''))], { card: 'staff:hub' })]).concat(settingsCards_(settingsSplit_().staff, '', 'staff')),
+  staff: () => lockedOwnCards_('staff').concat([setCard_({ card: 'staff:hub', title: 'Staff hub', body: [rolesDrawn_(() => (typeof window.hubBlock_ === 'function' ? window.hubBlock_() : ''))] })]).concat(settingsCards_(settingsSplit_().staff, '', 'staff')),
   family: () => lockedOwnCards_('family').concat(settingsCards_(settingsSplit_().parent, '', 'family')),
   account: () => lockedOwnCards_('account').concat(youSettingsPages_()),
 };
@@ -240,9 +238,9 @@ function familyPages_() {
 function applyCard_() {
   const open = typeof applyFormOpen_ === 'function' && applyFormOpen_();
   const body = open ? applyFormHtml_() : typeof applyOpts_ === 'function' && applyOpts_() ? tileRow_(tile_(applyOpts_()), 'apply-tiles') : '';
-  const h = body ? rolesSet_('apply-card', text_('apply-to-teach'), [{ type: 'text', look: 'note', text: 'Teach with us: tell us what you teach, and we will be in touch.' }, rolesDrawn_(() => body)], { card: 'staff:apply', data: { yours: '1' } }) : '';
   /* AN APPLICATION IS THE ASKER'S OWN (`applyTeach`), so in the lens it is shown shut. */
-  return h ? [lensOn_() ? lockCard_(h) : h] : [];
+  return body ? [setCard_({ card: 'staff:apply', hook: 'apply-card', title: text_('apply-to-teach'), data: { yours: '1' }, state: lensOn_() ? 'locked' : '',
+    body: [{ type: 'text', look: 'note', text: 'Teach with us: tell us what you teach, and we will be in touch.' }, rolesDrawn_(() => body)] })] : [];
 }
 /* ---------- TUTOR SETTINGS: THE STAFF HUB AND THE TEACHING SETTINGS WITH NO CARD TO LIVE ON (453) ---------- */
 function staffPages_() {
@@ -252,7 +250,7 @@ function staffPages_() {
   if (!whoseAtLeast_('staff')) return [padlockCard_('Tutor settings are for tutors.')].concat(applyCard_(), lockedPages_('staff'));
   const hub = typeof window.hubBlock_ === 'function' ? window.hubBlock_() : '';
   const warn = typeof window.hubWarn_ === 'function' ? window.hubWarn_() : '';
-  const top = hub ? [rolesSet_('staff-top', 'Staff hub', [rolesDrawn_(() => warn + hub)], { card: 'staff:hub' })] : [];
+  const top = hub ? [setCard_({ card: 'staff:hub', title: 'Staff hub', body: [rolesDrawn_(() => warn + hub)] })] : [];
   const out = ownCardSetPage_('staff').concat(top, typeof window.legoCards_ === 'function' ? window.legoCards_() : [], settingsCards_(settingsSplit_().staff, '', 'staff'));
   return out.length ? out : [rankOffCard_('', NOTHING_YET, null, 'rank-off set-none')];
 }
@@ -260,7 +258,7 @@ function staffPages_() {
 
 /* ---------- APPRENTICE: WORK EXPERIENCE, A PLACEHOLDER UNTIL IT IS BUILT (570) ---------- */
 function apprenticePages_() {
-  return [rolesSet_('appr-set', '', [{ type: 'text', look: 'note', text: brand('apprentice_blurb', 'Work experience with us. Coming soon.') }], { card: 'appr:blurb' })];
+  return [setCard_({ card: 'appr:blurb', body: [{ type: 'text', look: 'note', text: brand('apprentice_blurb', 'Work experience with us. Coming soon.') }] })];
 }
 /* APPRENTICE SETTINGS WAS A COLUMN; it is Find › Settings › Apprentice now (docs/history/find-only.md), drawn from CARD_BUILD.apprentice. */
 
@@ -279,7 +277,7 @@ function sitePages_() {
     .concat(typeof window.inboxCard_ === 'function' ? [window.inboxCard_()] : [])
     .concat(STABILITY_SHOWN ? [stabilityCard_()] : [])
     .concat([siteTplCard_(), siteRenameCard_()])
-    .concat([rolesSet_('', 'Build', [rolesDrawn_(versionSaid_, 'me-build')], { card: 'biz:build' })]);
+    .concat([setCard_({ card: 'biz:build', title: 'Build', body: [rolesDrawn_(versionSaid_, 'me-build')] })]);
 }
 /* ---------- THE ONE CARD TEMPLATE, SHOWN (owner, 11 Nov; back on Site 15 Nov): a sample drawn by the card maker, its parts named in order, */
 /* and the fixed scale read live from :root, so the card can never disagree with style.css. Data to the maker, never markup. */
@@ -291,7 +289,7 @@ const siteTok_ = k => { try { return dash_(getComputedStyle(document.documentEle
 CARD_EMBEDS['tpl-sample'] = () => renderCard({ kind: 'panel', look: 'tpl-sample', name: 'A sample card', picture: { src: 'icon.png', alt: 'A sample picture' },
   tags: [{ text: 'A sample card' }, { text: 'A tag' }], body: [{ type: 'text', text: 'What the thing holds, in plain words, centred.' }] });
 function siteTplCard_() {
-  return renderCard({ kind: 'panel', card: 'site:template', look: 'biz tpl-card', name: 'Card template', tags: [{ text: 'Card template' }], body: [
+  return setCard_({ card: 'site:template', title: 'Card template', body: [
     { type: 'text', look: 'note', text: 'Every card on the site is drawn by this one template: picture, tags, content, buttons, top to bottom on one centre line.' },
     { type: 'embed', tool: 'tpl-sample' },
     { type: 'list', ordered: true, look: 'tpl-parts', items: SITE_TPL_PARTS_ },
@@ -307,10 +305,10 @@ function siteRenameCard_() {
   const rows = (RENAME.list || []).map(p => (p.name || p.personId) + ': ' + (p.from ? '@' + p.from : '(none)') + ' → ' + (p.to ? '@' + p.to : 'could not make one'));
   const tiles = [{ icon: 'show', label: 'Preview list', act: 'rename-preview' }]
     .concat(RENAME.list ? [{ icon: 'save', label: 'Apply', act: 'rename-apply' }] : []);
-  return renderCard({ kind: 'panel', card: 'site:rename', look: 'biz rename-card', name: 'Rename every username', tags: [{ text: 'Rename every username' }], body: [
+  return setCard_({ card: 'site:rename', title: 'Rename every username', actions: tiles, body: [
     { type: 'text', look: 'note', text: 'Everybody gets a new username in the site\'s username format (being decided). Old usernames stop working — tell people their new one.' }]
     .concat(RENAME.said ? [{ type: 'text', look: 'note', text: RENAME.said }] : [])
-    .concat(rows.length ? [{ type: 'list', look: 'rename-list', items: rows }] : []), tiles: tiles });
+    .concat(rows.length ? [{ type: 'list', look: 'rename-list', items: rows }] : []) });
 }
 const renameAsk_ = (el, dry) => {
   if (RENAME.busy) return;
@@ -342,11 +340,11 @@ function stabilityCard_() {
       .then(j => { STAB.got = j && typeof j.score === 'number' ? j : null; STAB.failed = !STAB.got; lensRedraw_(); });
   }
   const s = STAB.got;
-  if (!s) return rolesSet_('biz stability-card', 'Stability', [STAB.failed ? { type: 'paperNote', alert: true, text: 'The score could not be read. Run node tools/stability.js and push.' } : { type: 'wait', on: true }], { card: 'site:stability' });
+  if (!s) return setCard_({ card: 'site:stability', hook: 'stability-card', title: 'Stability', body: [STAB.failed ? { type: 'paperNote', alert: true, text: 'The score could not be read. Run node tools/stability.js and push.' } : { type: 'wait', on: true }] });
   const sig = (s.signals || []).filter(x => x.off > 0);
-  return rolesSet_('biz stability-card', 'Stability', [{ type: 'text', look: 'stab-score', text: String(s.score) + '%' },
+  return setCard_({ card: 'site:stability', hook: 'stability-card', title: 'Stability', body: [{ type: 'text', look: 'stab-score', text: String(s.score) + '%' },
     { type: 'list', ordered: true, look: 'stab-top', items: (STAB.all ? sig : sig.slice(0, 3)).map(x => x.label + ': ' + x.count + ' −' + x.off) },
-    sig.length > 3 ? { type: 'tiles', tiles: [{ icon: STAB.all ? 'hide' : 'show', label: STAB.all ? 'Show the top 3' : 'Show every signal', act: 'stab-all' }] } : null], { card: 'site:stability' });
+    sig.length > 3 ? { type: 'tiles', tiles: [{ icon: STAB.all ? 'hide' : 'show', label: STAB.all ? 'Show the top 3' : 'Show every signal', act: 'stab-all' }] } : null] });
 }
 on('stab-all', () => { STAB.all = !STAB.all; lensRedraw_(); });
 
@@ -378,7 +376,7 @@ function rolesCard_() {
       options: can.map(([r, label]) => ({ value: r, text: label, data: { 'role-pick': r } })) } },
     { type: 'tiles', tiles: [{ icon: 'save', label: 'Save', act: 'roles-save' }] }] : [];
   const said = rolesSaid_();
-  return rolesSet_('roles-card', 'Your roles', picks.concat(picks.length || said ? [{ type: 'paperNote', look: 'roles-said', live: true, text: said }] : []), { card: 'acct:roles' });
+  return setCard_({ card: 'acct:roles', title: 'Your roles', state: lensOn_() ? 'locked' : '', body: picks.concat(picks.length || said ? [{ type: 'paperNote', look: 'roles-said', live: true, text: said }] : []) });
 }
 /* WHAT A SAVE POSTS: the one choice, and a waiting Tutor's `tutor`, which is kept, not added (the server refuses adding it). */
 const rolesPicked_ = card => {
@@ -464,7 +462,7 @@ function notifyCard_() {
   /* PHONE NOTIFICATIONS (492, push.js) ARE PART OF THIS ONE CARD (owner, 12 Nov). */
   if (typeof window.pushBody_ === 'function') tail += window.pushBody_();
   /* THE TICKS ARE forms.json's `notify` form. */
-  return formCard_({ title: 'Notifications', cls: 'notify-card', body: inner + formOf_('notify', null, { options: { kinds: toggles || [] } }), tail: tail, save: false, card: 'acct:notify' });
+  return formCard_({ title: 'Notifications', body: inner + formOf_('notify', null, { options: { kinds: toggles || [] } }), tail: tail, save: false, card: 'acct:notify' });
 }
 
 /* WHAT THE SERVER LAST SAID THIS KIND IS SET TO — the profile's list, not the box. */
@@ -579,7 +577,7 @@ function settingsCards_(shown, moved, col) {
   const readonly = (DATA.profileReadonly || []).concat('extra_seat_cut').filter(fieldReadonly_);
   /* ONE SHAPE FOR EVERY CARD (8 Nov; 84a): `formCard_` — the title, one line per field, saved as you type. */
   const mail = list => (list || []).indexOf('email') !== -1;
-  const one = (g, list, top, lid) => setHeldSay_(formCard_({ title: g, cls: lid ? 'set-card' : '', lead: (top || '') + shareBarFor_(list, p),
+  const one = (g, list, top, lid) => setHeldSay_(formCard_({ title: g, lead: (top || '') + shareBarFor_(list, p),
     attrs: lid ? ` data-lay-card="${esc(lid)}"` : '',
     groups: { [g]: list },
     fieldOpts: {
@@ -645,10 +643,9 @@ function youSettingsPages_() {
   const pages = settingsCards_(shown, '', 'account');
   /* ONE LINE A BOX, ONE Save: a PIN is never saved as you type; its boxes are forms.json's `signing-in`. */
   /* THEIR PIN AND ROLES ARE NOT AN ADMIN'S TO CHANGE IN THE LENS: shown shut, greyed not hidden. */
-  const shut = h => (lensOn_() ? lockCard_(h) : h);
-  pages.push(shut(formCard_({ id: 'signing-in', card: 'acct:pin' })));
+  pages.push(formCard_({ id: 'signing-in', card: 'acct:pin', state: lensOn_() ? 'locked' : '' }));
   /* YOUR ROLES, THEN WHICH EMAILS YOU WANT — every signed-in person has both. */
-  pages.push(shut(rolesCard_()));
+  pages.push(rolesCard_());
   pages.push(notifyCard_());
   const voice = voiceCard_();
   if (voice) pages.push(voice);
@@ -662,13 +659,12 @@ function studentSetPages_() {
   }
   const who = nameBesideHandle_(whose_().name, whose_().handle) || 'you';
   /* SIGNED IN AS, AND SIGN OUT — off your card since 453, because it is a setting of every account. */
-  let top = setPlainCard_({ card: 'acct:signed-in', look: 'signed-in', name: 'Signed in', parts: [tileRow_(tile_({ icon: 'out', label: 'Sign out', act: 'signout' })
+  /* IN THE LENS, SIGN OUT IS THE ADMIN'S OWN SESSION: shut, greyed not hidden (the fixed tile rule). */
+  const top = setCard_({ card: 'acct:signed-in', title: 'Signed in', state: lensOn_() ? 'locked' : '', body: [tileRow_(tile_({ icon: 'out', label: 'Sign out', act: 'signout' })
       + (typeof pendingAddr_ === 'function' && pendingAddr_() && typeof RESEND_LINK !== 'undefined' ? tile_(RESEND_LINK) : ''), '', true),
     /* "WE WILL EMAIL YOU ONCE YOU OPEN THE LINK" — one line under Sign out and Send the link again while your address is unproved. */
     typeof mailHeldNote_ === 'function' ? mailHeldNote_() : ''] });
   const coming = typeof awaiting_ === 'function' && awaiting_() ? [loading_()] : [];
-  /* IN THE LENS, SIGN OUT IS THE ADMIN'S OWN SESSION: shut, greyed not hidden (the fixed tile rule). */
-  if (lensOn_()) top = lockCard_(top);
   /* WHAT WAS THE PROGRESS COLUMN (461, the owner: "the progress column content can all be moved to student column account settings"). */
   const all = typeof progressCards_ === 'function' ? progressCards_() : [];
   /* `prog-w` MARKS THEM, so a check can ask the progress widgets apart from the settings around them. */

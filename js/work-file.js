@@ -9,11 +9,11 @@ const wfOf_ = pid => WF[pid] || (WF[pid] = { rows: null, asked: false, mayDelete
 function workFileCard_(pid) {
   const of = String(pid || (USER && USER.personId) || '');
   if (!of || !USER || USER.lockedPreview) return '';
-  return renderCard(wfSpec_(of));
+  return setCard_(wfSpec_(of));
 }
 /* ITS SPEC: the scan and save tiles stand in the card's own tile row; under someone else's student they sit among the lines (`wfBody_`). */
-const wfSpec_ = of => ({ kind: 'panel', card: 'acct:workfile', look: 'workfile-card', name: 'Work on file', tags: [{ text: 'Work on file' }], data: { of },
-  body: wfBody_(of, true), tiles: wfTeach_(of) ? [] : wfTiles_(of) });
+const wfSpec_ = of => ({ card: 'acct:workfile', hook: 'workfile-card', title: 'Work on file', data: { of },
+  body: wfBody_(of, true), actions: wfTeach_(of) ? [] : wfTiles_(of) });
 /* A TUTOR'S OWN CARD holds no scans of theirs: it opens each booked student's file (`others`, from the backend). */
 const wfTeach_ = of => !!USER && String(of) === String(USER.personId || '') && typeof rank_ === 'function' && rank_() === 'staff';
 const wfNote_ = text => ({ type: 'group', tag: 'p', look: 'note', text });
@@ -57,7 +57,7 @@ function wfPaint_(of) {
     const keep = {};
     el.querySelectorAll('.wf-title, .wf-subject').forEach(i => { keep[i.className] = i.value; });
     if (el.classList.contains('wf-seen')) el.innerHTML = cardBlocks_(wfBody_(of));
-    else { const t = document.createElement('template'); t.innerHTML = renderCard(wfSpec_(of));
+    else { const t = document.createElement('template'); t.innerHTML = setCard_(wfSpec_(of));
       const fresh = t.content.firstElementChild; if (fresh) { el.className = fresh.className; el.replaceChildren(...fresh.childNodes); } }
     el.querySelectorAll('.wf-title, .wf-subject').forEach(i => { if (keep[i.className]) i.value = keep[i.className]; });
   });
@@ -188,7 +188,7 @@ function histPaint_(of) {
     const spec = typeof progressAllSpec_ === 'function' && progressAllSpec_(of);
     if (!spec) return;
     /* THE DAY VIEW LIVES IN THE ONE PROGRESS CARD (4g): the whole card is drawn again, its open lines kept (PROG_OPEN). */
-    const t = document.createElement('template'); t.innerHTML = renderCard(spec);
+    const t = document.createElement('template'); t.innerHTML = setCard_(spec);
     const node = t.content.firstElementChild;
     if (node && el.classList.contains('prog-w')) node.classList.add('prog-w');
     if (node) el.replaceWith(node);

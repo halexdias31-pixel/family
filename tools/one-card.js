@@ -9,6 +9,9 @@ const { bare, text } = require('./lib/gen.js');
 const ROOT = path.join(__dirname, '..'), PORT = 8131;
 /* THE ONE MAKER'S OWN CLASSES, and the state classes every card may wear. */
 const BASE = /^(card|fc|kc|kc-[\w-]+|is-empty|is-off|is-locked|tap)$/;
+/* LOOKS A LATER CARD-SHAPES STEP OWNS (owner, 22 Nov, docs/owner-queue.md CARD SHAPES): Practice's question card (`qcard`, `lib-wait` while its words
+   load) becomes the Learning: Question shape. Counted and named every build, not failed, until that step; delete each entry as its shape lands. */
+const LATER = { qcard: 'Learning: Question', 'lib-wait': 'Learning: Question' };
 const MIME = { '.js': 'text/javascript', '.css': 'text/css', '.html': 'text/html', '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml' };
 
 /* A SETTINGS CARD IS ORDINARY BLOCKS TOO (unify batch 9): no CSS keyed on `.me-form` (the class stays only as autosave's hook), and the line that says
@@ -56,23 +59,39 @@ async function run() {
     /* THREE DOORS AT ONCE: more and a phone-sized page under load misses its taps. */
     const look = async d => {
       const pg = await open();
-      await click(pg, d); await click(pg, "Doesn't matter");
+      /* EVERY STEP SKIPPED (22 Nov): Practice, Library and Shop ask several steps before their cards, so "Doesn't matter" is tapped until it is gone. */
+      await click(pg, d);
+      for (let i = 0; i < 16 && await pg.getByText("Doesn't matter", { exact: true }).locator('visible=true').count(); i++) await click(pg, "Doesn't matter");
       /* SETTLED: the same number of cards twice, half a second apart (eight seconds at most). */
       for (let i = 0, last = -1; i < 16; i++) { const n = await pg.evaluate(() => document.querySelectorAll('#screen .card').length); if (n && n === last) break; last = n; await pg.waitForTimeout(500); }
       const cards = await pg.evaluate(() => [...document.querySelectorAll('#screen .card')].filter(e => !e.parentElement.closest('.card')).slice(0, 60)
-        .map(e => ({ n: e.getAttribute('aria-label') || e.innerText.slice(0, 30), c: e.className, kc: e.matches('.fc.kc') && [...e.children].every(k => /^kc-/.test(k.className)) })));
+        .map(e => ({ n: e.getAttribute('aria-label') || e.innerText.slice(0, 30), c: e.className, sh: e.dataset.shape || '', set: e.matches('.kc-setting'),
+          kc: e.matches('.fc.kc') && [...e.children].every(k => /^kc-/.test(k.className)) })));
       await pg.context().close();
-      return cards.filter(x => x.n !== 'Find').map(x => ({ door: d, n: x.n, kc: x.kc, own: x.c.split(/\s+/).filter(c => c && !BASE.test(c) && styled(c)) }));
+      return cards.filter(x => x.n !== 'Find').map(x => ({ door: d, n: x.n, kc: x.kc, sh: x.sh, set: x.set, own: x.c.split(/\s+/).filter(c => c && !BASE.test(c) && styled(c)) }));
     };
     const per = [], todo = doors.slice();
     await Promise.all([0, 1, 2].map(async () => { while (todo.length) per.push(await look(todo.shift())); }));
     if (!doors.length) throw new Error('one-card: Find showed no doors — the app did not start');
-    const all = [].concat(...per), bad = all.filter(x => !x.kc || x.own.length);
-    console.log('one-card: ' + (all.length - bad.length) + '/' + all.length + ' cards drawn by the one maker with no CSS of their own');
+    const all = [].concat(...per), later = all.filter(x => x.kc && x.own.length && x.own.every(c => LATER[c])), bad = all.filter(x => (!x.kc || x.own.length) && later.indexOf(x) < 0);
+    console.log('one-card: ' + (all.length - bad.length - later.length) + '/' + all.length + ' cards drawn by the one maker with no CSS of their own');
+    [...new Set(later.map(x => LATER[x.own[0]]))].forEach(h => console.log('  ' + later.filter(x => LATER[x.own[0]] === h).length + ' card(s) waiting on the ' + h + ' shape: '
+      + [...new Set(later.filter(x => LATER[x.own[0]] === h).map(x => x.door + ' [' + x.own.join(' ') + ']'))].join(', ')));
     console.log('  by door: ' + doors.map(d => d + ' ' + all.filter(x => x.door === d).length).join(', '));
     bad.forEach(x => console.log('  ' + x.door + ' › ' + String(x.n).replace(/\n/g, ' ') + ' [' + (x.kc ? '' : 'not one maker; ') + x.own.join(' ') + ']'));
     if (bad.length) throw new Error('one-card: ' + bad.length + ' card(s) outside the one maker');
+    /* THE SETTINGS SHAPES (owner, 22 Nov, CARD SHAPES): every settings card wears its shape (`data-shape`, kinds.json setting.shapes), and Settings uses four at most. */
+    const sets = all.filter(x => x.door === 'Settings' && (x.set || x.sh)), shapes = [...new Set(sets.map(x => x.sh).filter(Boolean))].sort();
+    const unshaped = sets.filter(x => !x.sh);
+    console.log('one-card: Settings draws ' + sets.length + ' settings cards in ' + shapes.length + ' shape(s): '
+      + shapes.map(h => h + ' ' + sets.filter(x => x.sh === h).length).join(', '));
+    unshaped.forEach(x => console.log('  Settings › ' + String(x.n).replace(/\n/g, ' ') + ' [no shape]'));
+    if (unshaped.length) throw new Error('one-card: ' + unshaped.length + ' settings card(s) with no shape');
+    if (shapes.length > 4) throw new Error('one-card: Settings uses ' + shapes.length + ' shapes; four at most');
     if (!all.length) throw new Error('one-card: no cards drawn — the app did not start');
+    /* EVERY DOOR DRAWS (22 Nov): a door with no cards is a door the check never looked behind. */
+    const none = doors.filter(d => !all.some(x => x.door === d));
+    if (none.length) throw new Error('one-card: ' + none.join(', ') + ' drew no cards');
   } finally { await b.close(); srv.close(); }
 }
 module.exports = { run };

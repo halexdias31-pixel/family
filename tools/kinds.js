@@ -21,6 +21,10 @@ function run() {
     if (r.under != null && !Array.isArray(r.under)) bad.push('setting.cards ' + r.id + ': under is a list');
     [].concat(r.under || []).forEach(t => { if (types.indexOf(t) < 0) bad.push('setting.cards ' + r.id + ': under ' + t + ' is not a type: row'); }); });
   if (!types.length) bad.push('setting.cards has no type: rows');
+  /* FOUR SHAPES AT MOST (owner, 22 Nov, CARD SHAPES): every card's `shape` and every `shapeBy` one is a `shapes` name. */
+  const shapes = (j.kinds.setting || {}).shapes || [];
+  if (!shapes.length || shapes.length > 4) bad.push('setting.shapes names ' + shapes.length + ' shapes; settings have one to four');
+  reg.concat((j.kinds.setting || {}).shapeBy || []).forEach(r => { if (r.shape && shapes.indexOf(r.shape) < 0) bad.push('setting ' + (r.id || r.match) + ': shape ' + r.shape + ' is not in setting.shapes'); });
   if (bad.length) throw new Error('kinds: FAILED\n  ' + bad.join('\n  '));
   const want = '/* @family. — js/kinds.js: WRITTEN BY tools/kinds.js FROM data/settings/kinds.json and facets.json; edit those. */\n'
     + 'const ITEM_KINDS = ' + JSON.stringify({ kinds: j.kinds, doors: j.doors, facets: JSON.parse(fs.readFileSync(path.join(ROOT, 'data/settings/facets.json'), 'utf8')) }) + ';\n';

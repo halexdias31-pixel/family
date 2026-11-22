@@ -13,8 +13,6 @@ function bookingPages_() {
   return [sum + (typeof askedBlock_ === 'function' ? askedBlock_() || '' : '')].filter(Boolean)
     .concat(USER && typeof myJobPages_ === 'function' ? myJobPages_() : []);
 }
-/* THE BOOKING ITEM ONLY PUTS Booking ON THE FRONT MENU: the steps are the menu and the summary is a front page, so it draws nothing. */
-const bookFormCard_ = () => '';
 
 /* ---------- BOOKING IS A FIND BRANCH (owner, 13 Nov): after Booking, one menu of tags a step, in dependency order ---------- */
 /* ITS STEPS ARE kinds.json's bookform form `booking` (formAsks_, form.js): the order, which the site answers, which take several and how many. */
