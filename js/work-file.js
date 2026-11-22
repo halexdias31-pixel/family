@@ -121,7 +121,7 @@ on('wf-save', el => {
 on('wf-open', el => {
   const id = el.getAttribute('data-id'), title = el.getAttribute('data-title') || 'Scanned work';
   if (!id || !USER || !USER.token) return;
-  openSheet(title, cardBlock_({ type: 'wait', look: 'wf-pages', on: true }));
+  openStep_({ title, el, html: cardBlock_({ type: 'wait', look: 'wf-pages', on: true }) });
   api({ action: 'workFileOpen', personId: USER.personId || '', id }).then(d => {
     const box = document.querySelector('.wf-pages');
     if (!box) return;

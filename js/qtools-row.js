@@ -112,7 +112,7 @@ function qtSplit_(html) {
   return shown.join('') + tile_({ icon: 'more', label: 'More', note: rest.length + ' more tools', act: 'qt-more' })
     + `<span class="kc-more" hidden>${rest.join('')}</span>`;
 }
-/* MORE OPENS THE ONE SHEET (`openSheet`), the hidden tiles drawn there as they stand now; a tap there closes it and presses the card's own tile. */
+/* MORE IS A STEP (`openStep_`), the hidden tiles drawn there as they stand now; a tap there closes it and presses the card's own tile. */
 let QT_MORE_FROM = [];
 on('qt-more', el => {
   const box = el.parentNode && el.parentNode.querySelector('.kc-more');
@@ -120,11 +120,11 @@ on('qt-more', el => {
   /* A COPY ANSWERS ONLY TO ITS PLACE: its hook classes (`.help-hand`, `.qt-calc`) dropped, so no painter redraws it as the real tile. */
   const tiles = QT_MORE_FROM.map((t, i) => t.outerHTML.replace(/\bdata-do="[^"]*"/, 'data-do="qt-more-go" data-i="' + i + '"')
     .replace(/\bclass="([^"]*)"/, (m, c) => 'class="' + c.split(/\s+/).filter(k => /^(tile|on|is-[\w-]+)$/.test(k)).join(' ') + '"')).join('');
-  openSheet('More', tileWrap_(tiles, ''));
+  openStep_({ title: 'More', el, html: tileWrap_(tiles, '') });
 });
 on('qt-more-go', el => {
   const t = QT_MORE_FROM[+el.getAttribute('data-i')];
-  closeSheet();
+  closeStep_();
   /* AFTER THIS PRESS ENDS: a press inside a press is dropped as the same one (`pressAgain_`). */
   setTimeout(() => { if (t && t.isConnected) t.click(); }, 0);
 });

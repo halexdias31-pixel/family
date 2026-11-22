@@ -572,6 +572,7 @@ function cardQualHole_(form, base) {
 
 /* ---------- AND THE CARD IS A CARD AGAIN -------------------------------------------------------------------- */
 function cardClose_(e, pane, sec) {
+  if (e && e.step) { const id = e.step; e.step = 0; stepDone_(id, false); }
   try { draftDrop_('card', e.pid + (sec ? ':' + sec : '')); } catch (x) { oops_(x, 'me:cardClose_') }
   /* YOUR OWN STAYS OPEN (468) — the column is its editor — and what it would put back is what is there now. */
   if (CARD_EDIT === e && e.own && whose_()) {
@@ -617,7 +618,14 @@ on('card-edit', el => {
   /* AND THE HANDLE IT OPENED WITH, so a handle the server moved while it was open is said (`cardSelfSaved_`). */
   if (CARD_EDIT.own) CARD_EDIT.h0 = String(USER.handle || USER.name || '');
   cardRemember_(CARD_EDIT);
-  cardRepaint_();
+  /* THE EDIT IS A STEP (owner, 22 Nov, ONE WAY TO OPEN): Back is its Cancel; Save and Cancel end the step (`cardClose_`). */
+  const e = CARD_EDIT;
+  e.step = openStep_({ el, draw: cardRepaint_, undo: () => {
+    e.step = 0;
+    if (CARD_EDIT !== e) return;
+    const c = document.querySelector('.card-ed [data-do="card-cancel"][data-pid="' + CSS.escape(e.pid) + '"]') || document.querySelector('.card-ed [data-do="card-cancel"]');
+    if (c) c.click(); else cardClose_(e);
+  } });
 });
 /* YOUR PICTURE AS THIS PHONE LAST KEPT IT — `USER.profile.photo`, which `pfpTake_` writes on every save,
    else the sign-in reply's `USER.photo`, else your row's face. */

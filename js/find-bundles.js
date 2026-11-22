@@ -501,28 +501,40 @@ function filterClear_() { return ''; }
 
 /* EACH ON THE FINDER IT WAS PRESSED IN (`finderAt_`): an answer in the second finder is a chip there,
    and never one on Find. */
-on('facet-pick', el => inFinder_(finderAt_(el), () => {
-  writingFreeze_();
+/* EACH ANSWER IS A STEP (owner, 22 Nov, ONE WAY TO OPEN): the model every other opener now follows. Back takes exactly this answer off again. */
+function findStep_(el, make) {
+  const F = finderAt_(el);
+  let added = [];
+  const id = openStep_({ draw: () => inFinder_(F, () => {
+    writingFreeze_();
+    added = make();
+    STUFF.filters.push(...added);
+    paintStuffSoon_();
+  }), undo: () => inFinder_(F, () => {
+    STUFF.filters = STUFF.filters.filter(g => added.indexOf(g) === -1);
+    paintStuffSoon_();
+  }) });
+  added.forEach(f => { Object.defineProperty(f, 'step', { value: id, writable: true, configurable: true }); });
+}
+on('facet-pick', el => findStep_(el, () => {
   /* ONE ANSWER, SEVERAL VALUES (`tellApart_`'s `also`): each is a filter, so the field reads "either", and the row says it once. */
   let also = [];
   try { also = el.dataset.also ? JSON.parse(el.dataset.also) : []; } catch (e) { also = []; }
-  [el.dataset.value].concat(also).forEach(v => STUFF.filters.push({ field: el.dataset.field, value: v }));
-  paintStuffSoon_();
+  return [el.dataset.value].concat(also).map(v => ({ field: el.dataset.field, value: v }));
   /* A BOOK OF THE BIBLE CHOSEN WAS FETCHED HERE TOO (docs/history/341), and the review of 12 Oct found nothing could tell: § */
 }));
 /* ---------- AND NOT ANSWERING IT IS ALSO AN ANSWER ----------------------------------------------
-   Same push, same repaint, no value. See the `any` note in `stuffFind` for what that entry does and
+   Same step, same repaint, no value. See the `any` note in `stuffFind` for what that entry does and
    does not do. */
-on('facet-skip', el => inFinder_(finderAt_(el), () => {
-  writingFreeze_();
-  STUFF.filters.push({ field: el.dataset.field, any: true });
-  paintStuffSoon_();
-}));
+on('facet-skip', el => findStep_(el, () => [{ field: el.dataset.field, any: true }]));
 /* A CHIP SAID ONCE FOR SEVERAL FILTERS (`filterChips`) takes all of them off. */
 on('filter-drop', el => inFinder_(finderAt_(el), () => {
   const i = Number(el.dataset.i), f = STUFF.filters[i];
   const say = f && !f.any ? spellKey_(chipText_(f, i)) : null;
-  STUFF.filters = STUFF.filters.filter((g, j) => j !== i && !(say && g.field === f.field && !g.any && spellKey_(chipText_(g, j)) === say));
+  const keep = STUFF.filters.filter((g, j) => j !== i && !(say && g.field === f.field && !g.any && spellKey_(chipText_(g, j)) === say));
+  /* A CHIP TAKEN OFF ENDS ITS STEP (one closed under others is passed over by Back). */
+  STUFF.filters.filter(g => keep.indexOf(g) === -1 && g.step).forEach(g => { if (keep.every(k => k.step !== g.step)) stepDone_(g.step, false); });
+  STUFF.filters = keep;
   paintStuffSoon_();
 }));
 on('filter-clear', el => inFinder_(finderAt_(el), () => { STUFF.filters = []; paintStuff(); }));

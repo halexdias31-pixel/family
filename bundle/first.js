@@ -3972,6 +3972,7 @@ if (from && (!from.isConnected || !from.closest('#s-' + AT))) from = null;
 let host = from && from.closest(SHEET_HOSTS_);
 if (!host) host = sheetFront_();
 const swap = !!(want && want.swap);
+if (want && want.beside && host) return { host, after: host, swap: false };
 const row = host && from && from.closest('.tile-row, .post-acts, .post-when');
 const after = !swap && row && host.contains(row) && row !== host ? row : null;
 return { host, after, swap };
@@ -4000,8 +4001,8 @@ if (at.swap) host.classList.add('sheet-swap');
 try {
 new MutationObserver(sheetKeep_).observe(document.documentElement, { childList: true, subtree: true });
 } catch (err) { }
-function openSheet(title, html, onClose, step) {
-if (sheetOnClose) { const f = sheetOnClose; sheetOnClose = null; try { f(); } catch (err) { oops_(err, 'shell:openSheet') } }
+function sheetShow_(title, html, onClose, step) {
+if (sheetOnClose) { const f = sheetOnClose; sheetOnClose = null; try { f(); } catch (err) { oops_(err, 'shell:sheetShow_') } }
 sheetStep = typeof step === 'function' ? step : null;
 const sh = sheetEl_();
 sheetOutStop_(sh);
@@ -4017,7 +4018,7 @@ if (sh.classList.contains('hidden') && at && at.closest('#screen')) expand_([at]
 else fill();
 sheetOnClose = onClose || null;
 try { sh.scrollIntoView({ block: 'nearest' }); } catch (err) { }
-try { placeCells(undefined, true); } catch (err) { oops_(err, 'shell:openSheet') }
+try { placeCells(undefined, true); } catch (err) { oops_(err, 'shell:sheetShow_') }
 }
 let SHEET_OUT_ = null;
 function sheetOutStop_(sh) {
@@ -4025,7 +4026,7 @@ if (!SHEET_OUT_) return;
 SHEET_OUT_.cancel(); SHEET_OUT_ = null;
 sh.classList.remove('is-leaving');
 }
-function closeSheet() {
+function sheetHide_() {
 sheetStep = null;
 const sh = sheetEl_();
 if (SHEET_OUT_) return;
@@ -4039,7 +4040,7 @@ SHEET_AT_ = null;
 document.querySelectorAll('.sheet-host').forEach(h => h.classList.remove('sheet-host', 'sheet-swap'));
 if ($('sheet-home')) $('sheet-home').after(sh);
 };
-const placed = () => { if (was) { try { placeCells(undefined, true); } catch (err) { oops_(err, 'shell:closeSheet') } } };
+const placed = () => { if (was) { try { placeCells(undefined, true); } catch (err) { oops_(err, 'shell:sheetHide_') } } };
 if (!sh.classList.contains('hidden')) { placed(); return; }
 const host = sh.closest('.sheet-host');
 if (!was || !sh.closest('#screen') || !expandMoves_(sh) || !MOTION_.exit) { home(); placed(); return; }
@@ -4053,6 +4054,85 @@ sh.classList.add('hidden');
 home();
 }, { anchors: [sh], content: swap ? () => [...host.children].filter(c => c !== sh) : null, done: placed });
 }
+const STEPS_ = [];
+let STEP_SEQ_ = 0, STEP_QUIET_ = 0, STEP_SHEET_ = 0;
+const stepScroll_ = () => {
+const root = document.scrollingElement || document.documentElement;
+const out = [[root, root.scrollTop]];
+document.querySelectorAll('#s-' + AT + ' .pane, #s-' + AT + ' .page.on').forEach(el => { if (el.scrollTop) out.push([el, el.scrollTop]); });
+return out;
+};
+const stepScrollBack_ = list => (list || []).forEach(([el, top]) => { try { if (el && el.isConnected) el.scrollTop = top; } catch (e) { } });
+const stepTop_ = () => (STEPS_.length ? STEPS_[STEPS_.length - 1] : null);
+function openStep_(o) {
+const opt = o || {};
+const scroll = stepScroll_();
+if (opt.html != null && STEP_SHEET_ && STEPS_.some(s => s.id === STEP_SHEET_)) {
+if (opt.el) SHEET_HERE_ = { el: opt.el, beside: !!opt.beside };
+sheetShow_(opt.title || '', opt.html, opt.onClose, opt.wheel);
+return STEP_SHEET_;
+}
+const id = ++STEP_SEQ_;
+const step = { id, scroll, undo: opt.undo || null, sheet: opt.html != null, dead: false };
+STEPS_.push(step);
+stepPushHist_(id);
+if (step.sheet) { STEP_SHEET_ = id; if (opt.el) SHEET_HERE_ = { el: opt.el, beside: !!opt.beside }; sheetShow_(opt.title || '', opt.html, opt.onClose, opt.wheel); }
+else if (typeof opt.draw === 'function') {
+const host = (opt.el && opt.el.closest && opt.el.closest(SHEET_HOSTS_)) || null;
+if (host && host.isConnected) expand_([host], opt.draw, { content: () => (host.isConnected ? [host] : []) }); else opt.draw();
+}
+return id;
+}
+function stepRun_(s, undo) {
+if (s.sheet) { if (STEP_SHEET_ === s.id) { STEP_SHEET_ = 0; if (undo) sheetHide_(); } }
+else if (undo && typeof s.undo === 'function') { try { s.undo(); } catch (e) { oops_(e, 'shell:stepRun_'); } }
+const sc = s.scroll;
+stepScrollBack_(sc);
+requestAnimationFrame(() => stepScrollBack_(sc));
+[250, 600].forEach(ms => setTimeout(() => stepScrollBack_(sc), ms));
+}
+const STEP_WAIT_ = [];
+function stepPushHist_(id) {
+if (STEP_QUIET_) { STEP_WAIT_.push(id); return; }
+try { history.pushState({ familyStep: id }, ''); } catch (e) { }
+}
+function stepBackQuiet_() { STEP_QUIET_++; try { history.back(); } catch (e) { STEP_QUIET_--; } }
+function stepDone_(id, undo) {
+const i = STEPS_.findIndex(s => s.id === id && !s.dead);
+if (i < 0) return;
+const s = STEPS_[i];
+if (i === STEPS_.length - 1) {
+STEPS_.pop();
+let n = 1;
+while (STEPS_.length && stepTop_().dead) { STEPS_.pop(); n++; }
+stepRun_(s, undo);
+for (let k = 0; k < n; k++) stepBackQuiet_();
+} else { s.dead = true; stepRun_(s, undo); }
+}
+function closeStep_(id) {
+const want = id || STEP_SHEET_;
+if (want) stepDone_(want, true);
+else if (!sheetEl_().classList.contains('hidden')) sheetHide_();
+}
+addEventListener('popstate', () => {
+if (STEP_QUIET_) {
+STEP_QUIET_--;
+if (!STEP_QUIET_) STEP_WAIT_.splice(0).forEach(id => { if (STEPS_.some(s => s.id === id && !s.dead)) stepPushHist_(id); });
+return;
+}
+let s = STEPS_.pop();
+while (s && s.dead) s = STEPS_.pop();
+if (s) stepRun_(s, true);
+});
+function foldStep_(d) {
+if (d.stepId) return;
+d.stepId = openStep_({ undo: () => {
+d.stepId = 0;
+if (!d.isConnected || !d.open) return;
+d.expandOut = expandOut_([...d.children].filter(c => c.tagName !== 'SUMMARY'), () => { d.open = false; }, { anchors: [d] });
+} });
+}
+function foldShut_(d) { const id = d.stepId; d.stepId = 0; if (id) stepDone_(id, false); }
 const EXPAND_FOLLOW_ = 24;
 const expandMoves_ = el => !!(el && typeof el.animate === 'function' && motionOK_() && MOTION_.move > 0);
 function expandFollowers_(anchors) {
@@ -4113,12 +4193,13 @@ const d = s && s.parentElement;
 if (!d || d.tagName !== 'DETAILS' || d.querySelector(':scope > summary') !== s) return;
 const ctl = e.target.closest('a, button, input, textarea');
 if (ctl && s.contains(ctl)) return;
-if (!expandMoves_(d) || !d.isConnected) return;
+if (!d.isConnected) return;
+if (!expandMoves_(d)) { const was = d.open; setTimeout(() => { if (d.open && !was) foldStep_(d); else if (!d.open && was) foldShut_(d); }, 0); return; }
 e.preventDefault();
 if (d.expandOut && !d.expandOut.done) { d.expandOut.cancel(); d.expandOut = null; return; }
 const kids = () => [...d.children].filter(c => c !== s);
-if (!d.open) expand_([d], () => { d.open = true; }, { content: kids });
-else d.expandOut = expandOut_(kids(), () => { d.open = false; }, { anchors: [d] });
+if (!d.open) { expand_([d], () => { d.open = true; }, { content: kids }); foldStep_(d); }
+else { d.expandOut = expandOut_(kids(), () => { d.open = false; }, { anchors: [d] }); foldShut_(d); }
 });
 function motionOK_() {
 try { return !matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return true; }
@@ -4524,7 +4605,7 @@ handledByChange: !!(d && (d.tagName === 'SELECT' || isCheckbox_(d))),
 }
 const tab = e.target.closest('.tab');
 if (tab) { go(tab.dataset.tab); return; }
-if (e.target.closest('#sheet-close')) { closeSheet(); return; }
+if (e.target.closest('#sheet-close')) { closeStep_(); return; }
 const doer = e.target.closest('[data-do]');
 if (doer && (doer.tagName === 'SELECT' || isCheckbox_(doer))) return;
 if (doer && ACTIONS[doer.dataset.do]) {
@@ -4564,7 +4645,7 @@ addEventListener('keydown', e => {
 if ((e.key === 'Enter' || e.key === ' ') && e.target && e.target.matches && e.target.matches('[role=button][data-do]:not(button)')) {
 e.preventDefault(); e.target.click(); return;
 }
-if (e.key === 'Escape' && !$('sheet').classList.contains('hidden')) { closeSheet(); return; }
+if (e.key === 'Escape' && !$('sheet').classList.contains('hidden')) { closeStep_(); return; }
 });
 function loadRepairs_(d) {
 d.questions = d.questions || [];
@@ -5876,7 +5957,7 @@ const kid = named.length === 1 ? named[0] : '';
 if (!(BOOKING.kids || []).length && kid) { BOOKING.kids = [kid]; done('kids'); }
 }
 on('book-with', el => {
-closeSheet();
+closeStep_();
 const d = (el && el.dataset) || {};
 if (d.tutor) BOOKING.tutor = d.tutor;
 if (d.subject && !(BOOKING.subjects || []).length) { BOOKING.subjects = [d.subject]; BOOKING.done = uniq((BOOKING.done || []).concat(['subjects'])); }
@@ -6558,7 +6639,7 @@ try { if (typeof subForget_ === 'function') subForget_(); } catch (e) { oops_(e,
 try { if (typeof kpClose_ === 'function') kpClose_(); } catch (e) { oops_(e, 'me:signedOut_') }
 try { if (typeof window.camStop_ === 'function') window.camStop_(); } catch (e) { oops_(e, 'me:signedOut_') }
 try { if (typeof KP_UNDO !== 'undefined') KP_UNDO.clear(); } catch (e) { oops_(e, 'me:signedOut_') }
-try { if (typeof closeSheet === 'function') closeSheet(); } catch (e) { oops_(e, 'me:signedOut_') }
+try { if (typeof closeStep_ === 'function') closeStep_(); } catch (e) { oops_(e, 'me:signedOut_') }
 try {
 DATA.submissions = { for: '', mine: {} };
 DATA.family = []; DATA.familyFor = '';
@@ -6694,14 +6775,14 @@ return;
 const first = d && d.name ? fmtName_(d.name, 'first') : '';
 if (d && d.noEmail && d.parentPending) {
 const who = first || 'They';
-openSheet('Confirmed — one more step', cardBlock_({ type: 'text', look: 'note', paras: [
+openStep_({ title: 'Confirmed — one more step', html: cardBlock_({ type: 'text', look: 'note', paras: [
 [who + ' can sign in now', d.handle ? [' as ', { b: '@' + d.handle }] : '', ' with their PIN.'],
 [{ b: 'They are not on your account yet.' }, ' The @family. account on your email has not been confirmed, so we did not put '
 + (first || 'them') + ' on it.'],
 'Open the "Confirm your @family. account" email we sent you — or sign in and press "Send the link again" — then add '
 + (first || 'them') + ' with "Add your child" on Students. They say yes, and they are on your account.',
 'Did you never make an account here? Then somebody else did, with your email. Use "Forgotten your PIN?" with your email to take it back — it signs them out.'] })
-+ tile_({ form: true, label: 'Done', act: 'sheet-done', kind: 'quiet' }));
++ tile_({ form: true, label: 'Done', act: 'sheet-done', kind: 'quiet' }) });
 try { if (USER) load(); } catch (e) { oops_(e, 'me:verifyFromLink_') }
 } else if (d && d.noEmail) {
 toast('Confirmed — ' + (first || 'they') + ' can sign in now'
@@ -6733,9 +6814,8 @@ let ACCOUNT_AT_ = 0;
 function accountChanged_() { ACCOUNT_AT_ = Date.now(); }
 function afterSignIn_(d) {
 if (d && (d.childrenHeld || d.pinCleared || d.pinLink || d.moveDropped || d.handleMoved) && d.message) {
-openSheet(d.pinCleared ? 'Your PIN has changed' : d.childrenHeld ? 'Signed in — one thing to know'
-: d.handleMoved ? 'Your handle has changed' : 'Signed in',
-cardBlock_({ type: 'text', look: 'note', text: d.message }) + tile_({ form: true, label: 'Done', act: 'sheet-done', kind: 'quiet' }));
+openStep_({ title: d.pinCleared ? 'Your PIN has changed' : d.childrenHeld ? 'Signed in — one thing to know'
+: d.handleMoved ? 'Your handle has changed' : 'Signed in', html: cardBlock_({ type: 'text', look: 'note', text: d.message }) + tile_({ form: true, label: 'Done', act: 'sheet-done', kind: 'quiet' }) });
 }
 let waiting = '';
 waiting = keep_.get('familyVerify') || ''; keep_.del('familyVerify');
@@ -6823,9 +6903,9 @@ MSG_ASKING = asking;
 return asking.p;
 }
 function messageSheet(to, toId) {
-openSheet('Message ' + to, msgForm_(to, toId,
+openStep_({ title: 'Message ' + to, html: msgForm_(to, toId,
 '1 message every 5 minutes. It goes to their e-mail and appears in Messages for both '
-+ 'of you.', 5));
++ 'of you.', 5) });
 }
 on('msg-open', el => messageSheet(el.dataset.to, el.dataset.id));
 let MSG_PENDING = [];
@@ -6966,7 +7046,7 @@ queue: queue, inSheet: !!(form && form.closest('#sheet')),
 MSG_PENDING.push(p);
 delete MSG_QUEUE[key];
 if (box) { box.value = ''; box.style.height = ''; }
-if (p.inSheet) { closeSheet(); toast('Sending to ' + fmtName_(p.withName) + '…'); }
+if (p.inSheet) { closeStep_(); toast('Sending to ' + fmtName_(p.withName) + '…'); }
 dmRedraw_(p.withId);
 msgPost_(p);
 });
@@ -7348,7 +7428,7 @@ if (body) body.innerHTML = pinSlip_(d.first || el.getAttribute('data-name'), d.h
 })
 .catch(() => {});
 });
-on('sheet-done', () => closeSheet());
+on('sheet-done', () => closeStep_());
 const answerClaim_ = (el, accept) => {
 if (!USER) { toast(text_('err-sign-in-first')); return; }
 const row = el.getAttribute('data-row');
@@ -8654,7 +8734,7 @@ done: ({ d, fields, word }) => {
 const W = whose_();
 Object.keys(fields).forEach(f => { try { draftDrop_('set', f); } catch (e) { oops_(e, 'me:meSave_') } });
 if (d && d.pendingEmail !== undefined) { accountChanged_(); W.pendingEmail = String(d.pendingEmail || ''); }
-if (box.closest('#sheet-body') && !auto) closeSheet();
+if (box.closest('#sheet-body') && !auto) closeStep_();
 if (form && !(auto && form.contains(document.activeElement))) delete form.dataset.dirty;
 const said = box.querySelector('.me-said');
 if (said) tell_(said, 'info', quiet ? '' : word);
@@ -8782,7 +8862,7 @@ saveUser_();
 askDone_('pin-change'); askPaint_('pin-change');
 if (said) tell_(said, 'saved', 'Changed.');
 toast('PIN changed');
-if (el && el.closest && el.closest('#sheet-body')) closeSheet();
+if (el && el.closest && el.closest('#sheet-body')) closeStep_();
 })
 .catch(() => {});
 };
@@ -9631,6 +9711,7 @@ return !!q.subject && !q.level
 });
 }
 function cardClose_(e, pane, sec) {
+if (e && e.step) { const id = e.step; e.step = 0; stepDone_(id, false); }
 try { draftDrop_('card', e.pid + (sec ? ':' + sec : '')); } catch (x) { oops_(x, 'me:cardClose_') }
 if (CARD_EDIT === e && e.own && whose_()) {
 Object.assign(e, { pic0: cardPicNow_(), h0: String(whose_().handle || whose_().name || '') });
@@ -9666,7 +9747,13 @@ CARD_EDIT.col = col;
 if (CARD_EDIT.own) CARD_EDIT.pic0 = cardPicNow_(t);
 if (CARD_EDIT.own) CARD_EDIT.h0 = String(USER.handle || USER.name || '');
 cardRemember_(CARD_EDIT);
-cardRepaint_();
+const e = CARD_EDIT;
+e.step = openStep_({ el, draw: cardRepaint_, undo: () => {
+e.step = 0;
+if (CARD_EDIT !== e) return;
+const c = document.querySelector('.card-ed [data-do="card-cancel"][data-pid="' + CSS.escape(e.pid) + '"]') || document.querySelector('.card-ed [data-do="card-cancel"]');
+if (c) c.click(); else cardClose_(e);
+} });
 });
 function cardPicNow_(t) {
 const p = (whose_() && whose_().profile) || {};
@@ -10091,19 +10178,23 @@ on('person-edit', el => {
 if (!personEdMay_()) return;
 const id = el.getAttribute('data-id') || '';
 if (!id) return;
-const F = PERSON_ED_ = { id, name: el.getAttribute('data-name') || '', data: null };
-peRedraw_();
+if (PERSON_ED_ && PERSON_ED_.id === id) return;
+if (PERSON_ED_) peDone_();
+const F = { id, name: el.getAttribute('data-name') || '', data: null };
+F.step = openStep_({ el, draw: () => { PERSON_ED_ = F; peRedraw_(); }, undo: () => { F.step = 0; if (PERSON_ED_ === F) peDone_(); } });
 send_({ action: 'item', door: 'get', kind: 'person', ids: [id], personId: USER.personId || '', targetId: id })
 .then(d => { if (PERSON_ED_ !== F) return; F.data = { person: d.person || {}, parents: d.parents || [], notify: d.notify || null }; peRedraw_(); })
 .catch(e => { if (PERSON_ED_ !== F) return; F.err = (e && e.message) || 'Their details could not be opened.'; peRedraw_(); });
 });
-on('person-edit-done', () => {
+function peDone_() {
 const F = PERSON_ED_;
 document.querySelectorAll('.pe-form').forEach(f => { clearTimeout(PE_WAIT_.get(f)); peSave_(f); });
 PERSON_ED_ = null;
+if (F && F.step) { const id = F.step; F.step = 0; stepDone_(id, false); }
 peRedraw_();
 if (F && F.moved && typeof load === 'function') load();
-});
+}
+on('person-edit-done', () => peDone_());
 const FAM_WANT_ = { student: /student/i, client: /client|parent/i, any: /(?:)/ };
 const famIs_ = (p, want) => (FAM_WANT_[want] || FAM_WANT_.client).test(String((p && p.role) || ''));
 function famHits_(q, want, skip) {
@@ -10540,7 +10631,7 @@ const t = (DATA.tutors || []).find(x => x && x.listed !== false && String(x.hand
 if (!t) return;
 TUTOR_LINK_DONE = true;
 const item = { kind: 'tutor', name: t.title, key: t.title, row: t };
-openSheet(t.title, cardBlock_({ type: 'group', look: 'tutor-link', inner: (typeof findCard === 'function' ? findCard(item) : '') + tileRow_(tile_(tutorOpts_(item))) }));
+openStep_({ title: t.title, html: cardBlock_({ type: 'group', look: 'tutor-link', inner: (typeof findCard === 'function' ? findCard(item) : '') + tileRow_(tile_(tutorOpts_(item))) }) });
 }
 ;
 /* js/links.js */

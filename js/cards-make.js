@@ -233,7 +233,7 @@ function bookPrefill_() {
 
 /* ---------- BOOKING FROM A CARD § */
 on('book-with', el => {
-  closeSheet();
+  closeStep_();
   /* WHAT THE CARD WAS ABOUT ANSWERS ITS ROW ON THE FORM (1040 friction): a tutor, a subject, a level. */
   const d = (el && el.dataset) || {};
   if (d.tutor) BOOKING.tutor = d.tutor;

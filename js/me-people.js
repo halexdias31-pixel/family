@@ -337,19 +337,24 @@ on('person-edit', el => {
   if (!personEdMay_()) return;
   const id = el.getAttribute('data-id') || '';
   if (!id) return;
-  const F = PERSON_ED_ = { id, name: el.getAttribute('data-name') || '', data: null };
-  peRedraw_();
+  if (PERSON_ED_ && PERSON_ED_.id === id) return;
+  if (PERSON_ED_) peDone_();
+  const F = { id, name: el.getAttribute('data-name') || '', data: null };
+  /* THE EDIT IS A STEP (owner, 22 Nov, ONE WAY TO OPEN): Back is its Done, which saves, and the card is a card again. */
+  F.step = openStep_({ el, draw: () => { PERSON_ED_ = F; peRedraw_(); }, undo: () => { F.step = 0; if (PERSON_ED_ === F) peDone_(); } });
   send_({ action: 'item', door: 'get', kind: 'person', ids: [id], personId: USER.personId || '', targetId: id })
     .then(d => { if (PERSON_ED_ !== F) return; F.data = { person: d.person || {}, parents: d.parents || [], notify: d.notify || null }; peRedraw_(); })
     .catch(e => { if (PERSON_ED_ !== F) return; F.err = (e && e.message) || 'Their details could not be opened.'; peRedraw_(); });
 });
-on('person-edit-done', () => {
+function peDone_() {
   const F = PERSON_ED_;
   document.querySelectorAll('.pe-form').forEach(f => { clearTimeout(PE_WAIT_.get(f)); peSave_(f); });
   PERSON_ED_ = null;
+  if (F && F.step) { const id = F.step; F.step = 0; stepDone_(id, false); }
   peRedraw_();
   if (F && F.moved && typeof load === 'function') load();
-});
+}
+on('person-edit-done', () => peDone_());
 
 /* ---------- FAMILY PICKER: a typed search over the payload's people cards, its hits a tap each (add-person, edit-person) ---------- */
 /* `want` 'student', 'client' or 'any'; `scope` 'pa' (the Add card), 'pe' (the Edit form) or 'lens', which names the tap a hit makes. */

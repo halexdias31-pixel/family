@@ -123,7 +123,7 @@ on('kid-pin-go', el => {
     })
     .catch(() => {});
 });
-on('sheet-done', () => closeSheet());
+on('sheet-done', () => closeStep_());
 
 /* YES AND NO ARE ONE HANDLER WITH A FLAG. Two handlers doing the same call with one word different
    is two places to fix when the call changes, and the second one is always the one forgotten. */
