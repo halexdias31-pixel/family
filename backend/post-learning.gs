@@ -162,10 +162,10 @@ function readItemsRole_(me) {
 }
 /* ONE WAY TO THE SERVER (step 2, slice 2): people, answers and messages, each answered by its handler in `itemDoors_` (actions.json `items`). */
 /* `self` is your own only; `other` is somebody else's, an admin's alone; `logged` leaves a lens_log row of ids; `blank` lets an admin ask for none (a new person's form). */
-function readItemsOwn_(kind, how, body, began) {
+function readItemsOwn_(kind, how, body, began, verb) {
   const me = findPerson('', S(body.personId));
   const role = readItemsRole_(me);
-  if (!me || !S(me.person_id) || !itemMay_(kind, 'read', role)) return refuse_('err-not-authorised', 'refused');
+  if (!me || !S(me.person_id) || !itemMay_(kind, verb || 'read', role)) return refuse_('err-not-authorised', 'refused');
   const ids = Array.isArray(body.ids) ? body.ids.map(S).filter(Boolean) : [];
   if (ids.length > 1) return jsonOut({ error: 'One at a time.' });
   const self = S(me.person_id), want = ids[0] || '';
@@ -181,15 +181,16 @@ function readItemsOwn_(kind, how, body, began) {
   }
   return how.other(b, 'readItems', began);
 }
-function postReadItems_(body, action, began) {
+function postReadItems_(body, action, began, verb) {
+  verb = verb === 'list' ? 'list' : 'read';
   /* THE GATE IS `anyone` (15 Nov), so WHO ASKS IS THE TOKEN'S, never a personId the request names; a dead token is signed out, not a guest. */
   const who = S(body.token) ? authWhoIs_(body.token) : null;
   if (S(body.token) && !who) return refuse_('err-sign-in-again', 'signed-out');
   body = Object.assign({}, body, { personId: who ? S(who.person_id) : '', name: who ? personDisplayName(who) : '' });
   const kind = S(body.kind);
   const doors = itemDoors_();
-  if (Object.prototype.hasOwnProperty.call(doors, kind + ':read')) return readItemsOwn_(kind, doors[kind + ':read'], body, began);
-  if (!Object.prototype.hasOwnProperty.call(READ_ITEMS_LIB, kind)) return jsonOut({ error: 'That kind cannot be read here yet.', why: 'kind' });
+  if (Object.prototype.hasOwnProperty.call(doors, kind + ':' + verb)) return readItemsOwn_(kind, doors[kind + ':' + verb], body, began, verb);
+  if (verb === 'list' || !Object.prototype.hasOwnProperty.call(READ_ITEMS_LIB, kind)) return jsonOut({ error: 'That kind cannot be read here yet.', why: 'kind' });
   const me = who;
   if (!itemMay_(READ_ITEMS_SHELF[kind], 'read', readItemsRole_(me))) return jsonOut({ error: me ? 'Not authorised.' : 'Sign in first.', why: me ? 'kind' : 'signed-out' });
   const pre = READ_ITEMS_LIB[kind] + ':';

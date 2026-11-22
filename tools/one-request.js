@@ -64,7 +64,7 @@ function run() {
   if (!lv || !pm) bad.push('backend/: no levelOf_ or no PERMISSIONS');
   else {
     const levelOf_ = new Function(lv[0] + '; return levelOf_;')(), P = new Function('return ' + pm[1])(), want = require('./permissions.js').levelOf;
-    rows.filter(a => !a.run).forEach(a => { levels++; if (!P[a.name]) bad.push('PERMISSIONS: no row for ' + a.name); else if (levelOf_(P[a.name]) !== want(a.roles)) bad.push('levelOf_(' + a.name + ') = ' + levelOf_(P[a.name]) + ', not ' + want(a.roles)); });
+    require('./permissions.js').POSTS.forEach(a => { levels++; if (!P[a.name]) bad.push('PERMISSIONS: no row for ' + a.name); else if (levelOf_(P[a.name]) !== want(a.roles)) bad.push('levelOf_(' + a.name + ') = ' + levelOf_(P[a.name]) + ', not ' + want(a.roles)); });
   }
   console.log('one-request: ' + levels + ' action levels by levelOf_ agree');
   console.log('one-request: ' + fetches + ' fetch to the backend, ' + acts + ' posted action names against ' + names.size + ' listed, ' + posts + ' dispatcher');
