@@ -175,13 +175,13 @@ function itemAnswer_(body) {
 /* very same handlers (post-learning.gs), so every check, field and side effect of the old door is kept. */
 function postItem_(body, action, began) {
   const door = S(body.door);
-  if (door === 'get') return postReadItems_(body, 'item', began);
+  if (door === 'get' || door === 'list') return postReadItems_(body, 'item', began, door === 'list' ? 'list' : 'read');
   if (door === 'save' || door === 'delete') {
     /* SIGNED IN: the token names the person, never the request. */
     const denied = gateDenied_('self', body);
     if (denied) return jsonOut(denied === 'Please sign in again.' ? { error: denied, why: 'signed-out' } : { error: denied });
     return itemsWrite_(door, body, began);
   }
-  if (door) return jsonOut({ error: 'door is get, save or delete.', why: 'door' });
+  if (door) return jsonOut({ error: 'door is get, list, save or delete.', why: 'door' });
   return jsonOut(itemAnswer_(body));
 }

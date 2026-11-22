@@ -1,0 +1,617 @@
+{
+ "_about": "WHO MAY CALL EACH ACTION BEFORE step 6 (22 Nov), frozen: tools/one-action-roles.js fails the build if any name is now open to a tier not listed here, or no longer answered.",
+ "actions": {
+  "register": [
+   "anyone",
+   "member",
+   "child",
+   "admin"
+  ],
+  "verifyEmail": [
+   "anyone",
+   "member",
+   "child",
+   "admin"
+  ],
+  "verifyLogin": [
+   "anyone",
+   "member",
+   "child",
+   "admin"
+  ],
+  "forgotPin": [
+   "anyone",
+   "member",
+   "child",
+   "admin"
+  ],
+  "pinLink": [
+   "anyone",
+   "member",
+   "child",
+   "admin"
+  ],
+  "googleLogin": [
+   "anyone",
+   "member",
+   "child",
+   "admin"
+  ],
+  "signOut": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "videoPart": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "photoFile": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "saveTimetable": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "savePhoto": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "setMyRoles": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "votePoll": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "reactPost": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "addComment": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "claimChild": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "answerClaim": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "findChild": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "raiseHand": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "hands": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "factSet": [
+   "admin"
+  ],
+  "listRecords": [
+   "admin"
+  ],
+  "saveRecordsPage": [
+   "admin"
+  ],
+  "sendMessage": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "flagMessage": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "checkUploads": [
+   "admin"
+  ],
+  "changePin": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "signAgreement": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "makeChild": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "resetPin": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "resendLink": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "createCheckout": [
+   "member",
+   "admin"
+  ],
+  "finalizePayment": [
+   "member",
+   "admin"
+  ],
+  "move": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "createJob": [
+   "member",
+   "admin"
+  ],
+  "answerRequest": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "joinWaitlist": [
+   "member",
+   "admin"
+  ],
+  "openWaitlist": [
+   "admin"
+  ],
+  "markWorking": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "workingOf": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "history": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "docketImport": [
+   "admin"
+  ],
+  "docketAddress": [
+   "admin"
+  ],
+  "assignmentsOf": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "assignmentsSave": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "assignmentsImport": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "workFileSave": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "workFilesOf": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "workFileOpen": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "workFileDelete": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "askAssistant": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "submitAnswer": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "reportQuestion": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "report": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "clientError": [
+   "anyone",
+   "member",
+   "child",
+   "admin"
+  ],
+  "listClientErrors": [
+   "admin"
+  ],
+  "tidyOldRows": [
+   "admin"
+  ],
+  "renameAllUsernames": [
+   "admin"
+  ],
+  "healthLog": [
+   "anyone",
+   "member",
+   "child",
+   "admin"
+  ],
+  "suggest": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "suggestUpload": [
+   "admin"
+  ],
+  "listSuggestions": [
+   "admin"
+  ],
+  "decideSuggestion": [
+   "admin"
+  ],
+  "applyTeach": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "listApplications": [
+   "admin"
+  ],
+  "decideApplication": [
+   "admin"
+  ],
+  "payStatement": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "listStaff": [
+   "admin"
+  ],
+  "item": [
+   "anyone",
+   "member",
+   "child",
+   "admin"
+  ],
+  "libExport": [
+   "admin"
+  ],
+  "libImport": [
+   "admin"
+  ],
+  "libImportList": [
+   "admin"
+  ],
+  "libImportDrive": [
+   "admin"
+  ],
+  "digestPreview": [
+   "admin"
+  ],
+  "digestSendNow": [
+   "admin"
+  ],
+  "pinShow": [
+   "admin"
+  ],
+  "claudeNoteAdd": [
+   "admin"
+  ],
+  "claudeNoteDone": [
+   "admin"
+  ],
+  "filmsSync": [
+   "admin"
+  ],
+  "mediaSave": [
+   "admin"
+  ],
+  "mediaUpload": [
+   "admin"
+  ],
+  "mediaHide": [
+   "admin"
+  ],
+  "mediaDelete": [
+   "admin"
+  ],
+  "pushState": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "pushSubscribe": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "pushUnsubscribe": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "pushSet": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "addPost": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "approvePost": [
+   "admin"
+  ],
+  "setRoom": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "deleteJob": [
+   "admin"
+  ],
+  "linkChild": [
+   "admin"
+  ],
+  "adminUnlinkFamily": [
+   "admin"
+  ],
+  "?run=ensureSchema": [
+   "admin"
+  ],
+  "?run=schemaGaps": [
+   "admin"
+  ],
+  "?run=makeBrandAccount": [
+   "admin"
+  ],
+  "?run=installTriggers": [
+   "admin"
+  ],
+  "?run=listTriggers": [
+   "admin"
+  ],
+  "?run=installSheetWatch": [
+   "admin"
+  ],
+  "?run=sheetWatchStatus": [
+   "admin"
+  ],
+  "?run=clearPayloadCache": [
+   "admin"
+  ],
+  "?run=warmPayload": [
+   "admin"
+  ],
+  "?run=checkEverything": [
+   "admin"
+  ],
+  "?run=checkPostsFolder": [
+   "admin"
+  ],
+  "?run=syncFilms": [
+   "admin"
+  ],
+  "?run=libraryCopyStep": [
+   "admin"
+  ],
+  "?run=libraryStatus": [
+   "admin"
+  ],
+  "?run=libImportDrive": [
+   "admin"
+  ],
+  "?run=authoriseDrive": [
+   "admin"
+  ],
+  "?run=checkScopes": [
+   "admin"
+  ],
+  "?run=geocode": [
+   "admin"
+  ],
+  "?run=regeocode": [
+   "admin"
+  ],
+  "?run=rename": [
+   "admin"
+  ],
+  "?run=seedOptions": [
+   "admin"
+  ],
+  "?run=priceWearables": [
+   "admin"
+  ],
+  "?run=fillHandles": [
+   "admin"
+  ],
+  "?run=tidyOldRows": [
+   "admin"
+  ],
+  "?run=renameHandles": [
+   "admin"
+  ],
+  "?run=seedHolidays": [
+   "admin"
+  ],
+  "?run=rerun": [
+   "admin"
+  ]
+ },
+ "items": {
+  "profile:save": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "notepad:save": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "todo:save": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "message:read": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "message:save": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "spotlight:save": [
+   "admin"
+  ],
+  "favourite:save": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "answer:save": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "answer:read": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "question:read": [
+   "anyone",
+   "member",
+   "child",
+   "admin"
+  ],
+  "question:save": [
+   "admin"
+  ],
+  "content:save": [
+   "admin"
+  ],
+  "practical:save": [
+   "admin"
+  ],
+  "project:save": [
+   "admin"
+  ],
+  "words:save": [
+   "admin"
+  ],
+  "profile:read": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "notify:save": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "card:read": [
+   "admin"
+  ],
+  "post:save": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "post:delete": [
+   "member",
+   "child",
+   "admin"
+  ],
+  "listed:save": [
+   "admin"
+  ],
+  "person:read": [
+   "admin"
+  ],
+  "person:save": [
+   "admin"
+  ],
+  "person:delete": [
+   "admin"
+  ],
+  "question:delete": [],
+  "content:delete": [],
+  "practical:delete": [],
+  "project:delete": [],
+  "library:read": [
+   "anyone",
+   "member",
+   "child",
+   "admin"
+  ],
+  "shop:read": [
+   "anyone",
+   "member",
+   "child",
+   "admin"
+  ],
+  "tools:read": [
+   "anyone",
+   "member",
+   "child",
+   "admin"
+  ],
+  "games:read": [
+   "anyone",
+   "member",
+   "child",
+   "admin"
+  ]
+ }
+}

@@ -8,7 +8,7 @@ const JSON_PATH = path.join(ROOT, 'data', 'settings', 'permissions.json');
 const ACTIONS = read('data/settings/actions.json');
 /* THE PERMISSION TIERS, lowest first: settings.json `roles.tiers`. */
 const ROLES = read('data/settings/settings.json').roles.tiers;
-const POSTS = ACTIONS.actions.filter(a => !a.run), RUNS = ACTIONS.actions.filter(a => a.run);
+const RUNS = ACTIONS.actions.filter(a => a.run);
 
 /* ONE GENERATED BLOCK IN A .gs FILE, replaced where it is, else appended. */
 const BEGIN = n => '/* ---------- ' + n + ' (generated) ---------- */\n', END = n => '/* ---------- END ' + n + ' ---------- */\n';
@@ -32,6 +32,17 @@ function itemRows() {
   }));
   return rows;
 }
+
+/* AN OLD NAME KEPT AS AN ALIAS (step 6, 22 Nov): a row with `item` (kind:verb) takes that item's handler, and its tiers from the item's */
+/* rows in the table (itemRows), so a merged name is gated, and answered, exactly as its kind:verb is. tools/one-action-roles.js holds it to its old tiers. */
+const ITEM_ALLOWED = {};
+itemRows().forEach(r => { if (r.allow) (ITEM_ALLOWED[r.action] = ITEM_ALLOWED[r.action] || []).push(r.role); });
+const POSTS = ACTIONS.actions.filter(a => !a.run).map(a => {
+  if (!a.item) return a;
+  const it = ACTIONS.items[a.item];
+  if (!it || !it.handler) throw new Error('actions.json: ' + a.name + ' names item ' + a.item + ', which has no handler');
+  return Object.assign({}, a, { handler: it.handler, roles: (ITEM_ALLOWED[a.item] || []).slice() });
+});
 
 /* permissions.json: the action rows and the item rows from actions.json; the `see` and `ui` rows are the file's own, kept as they are. */
 function jsonRows() {
@@ -88,7 +99,8 @@ function bookingGs(rows) {
     + '/* WHAT THE ITEM DOOR ANSWERS kind:verb WITH: `self` your own, `other` an admin asking after somebody else (`logged` leaves a lens_log row, `blank` may name nobody). */\n'
     + 'function itemDoors_() {\n  return {\n' + DOORS.map(kv => {
       const e = ACTIONS.items[kv], parts = [];
-      if (e.handler) parts.push('self: ' + e.handler);
+      /* `as`: the old action name the handler was written to answer (it tells its verbs apart by it). */
+      if (e.handler) parts.push('self: ' + (e.as ? "(b, a, g) => " + e.handler + "(b, '" + e.as + "', g)" : e.handler));
       if (e.other) parts.push('other: ' + e.other);
       if (e.logged) parts.push('logged: true');
       if (e.blank) parts.push('blank: true');
@@ -105,5 +117,5 @@ function run() {
   blockFile_('backend/booking.gs', 'PERMISSIONS', bookingGs(rows));
   console.log('permissions: ' + rows.length + ' rows to permissions.json; ' + POSTS.length + ' actions and ' + RUNS.length + ' jobs into access.gs, dopost.gs, get-start.gs and booking.gs');
 }
-module.exports = { ROLES, ACTIONS, levelOf, jsonRows, run };
+module.exports = { ROLES, ACTIONS, POSTS, RUNS, levelOf, jsonRows, run };
 if (require.main === module) run();
