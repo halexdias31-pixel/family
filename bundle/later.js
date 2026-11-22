@@ -1612,7 +1612,6 @@ if (n !== was) PAGE[F.id] = Math.max(0, (PAGE[F.id] || 0) + n - was);
 }
 const finderLeadHtml_ = lead => cardBlocks_(lead.map(c => ({ type: 'group', tag: 'section', look: 'page is-lead', blocks: [{ type: 'group', look: 'pane', inner: rowsOne_(c) }] })));
 const findTutorCard_ = x => (USER && typeof meCard === 'function' && norm((x.row || {}).title) === norm(USER.name) ? meCard() : findCard(x));
-const findMsgCard_ = (x, c) => findCard(x.soon ? Object.assign({}, x, { kind: 'soon' }) : x, c);
 const findShopCard_ = (x, c) => (x.widget ? widgetCard_(x) : findCard(x, c));
 window.KC_OWN = Object.assign(window.KC_OWN || {}, {
 question: thingCard_, answer: thingCard_,
@@ -9331,16 +9330,6 @@ return daive.concat(threads.map(t => ({ kind: 'msg', name: t.name, key: 'msg:' +
 msgWith: t.name, text: t.name })))
 .concat(people.map(p => ({ kind: 'msg', name: p.name, key: 'msg:' + (p.id || p.name), sub: '', image: '', to: p, msgWith: p.name, text: p.name })));
 }
-function msgDoorCard_(x, draw) {
-if (typeof dmWatch_ === 'function') setTimeout(dmWatch_, 0);
-if (x.daive) return daiveItem_();
-const t = (typeof messageThreads_ === 'function' ? messageThreads_() : []).find(t2 => t2.id === x.thread);
-if (!t && x.to) return renderCard({ kind: 'msg', name: x.name, tags: [{ text: x.name, colour: 0 }], body: [{ type: 'group', look: 'dm-head', blocks: [{ type: 'msgHead', text: x.name }] },
-{ type: 'group', inner: msgForm_(x.to.name, x.to.id) }] });
-if (!t) return renderCard({ kind: 'msg', tags: [{ text: x.name, colour: 0 }] });
-return msgFindCard_(x, t, draw);
-}
-window.KC_AROUND = Object.assign(window.KC_AROUND || {}, { msg: msgDoorCard_ });
 function profileTypes_(p, tutor) {
 const out = [], role = String((p && p.role) || ''), admin = seeMay_('find:admin-tags');
 const titles = Object.keys(((SHARED_SETTINGS.roles || {}).titles) || {}).join('|');
