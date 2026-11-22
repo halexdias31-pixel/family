@@ -72,8 +72,7 @@ function markWords_(typed, rule) {
   return { got: got, of: points.length };
 }
 
-/* ---------- A GRID OR TABLE WITH BLANKS IS FILLED IN WHERE IT STANDS, A CELL AT A TIME (359) */
-/* a blank is empty however many spaces the transcriber left in it (`&nbsp;&nbsp;&nbsp;&nbsp;` is one blank): qtypes.js `QT_CELL_BLANK`, read by the one face (`qtFace_`) */
+/* ---------- A GRID OR TABLE WITH BLANKS IS ANSWERED IN THE ONE BOX, ITS PARTS IN ORDER (359; owner, 22 Nov) */
 /* `cells` READ: one entry a blank, in reading order -- `{ label, ways }`, and `ways` empty for a blank not asked. */
 const CELL_ENT = { amp: '&', nbsp: ' ', rsquo: '\u2019', lsquo: '\u2018', rdquo: '\u201d', ldquo: '\u201c', apos: "'", quot: '"', deg: '\u00b0',
   minus: '\u2212', times: '\u00d7', divide: '\u00f7', ndash: '\u2013', mdash: '\u2014', hellip: '\u2026', pound: '\u00a3', micro: '\u00b5', plusmn: '\u00b1', lt: '<', gt: '>' };
@@ -161,95 +160,42 @@ function markCells_(vals, cells, opt) {
   const asked = each.filter(v => v !== undefined);
   return { right: asked.filter(v => v === true).length, of: asked.length, each: each };
 }
-const cellsVals_ = v => String(v == null ? '' : v).split(' ; ');
-function cellInput_(k, c, i, v) {
-  if (!c.ways) return '';
-  /* a cell holding a list (`24, 68`) needs the comma, which a phone's number pad does not have */
-  const num = /^[-\d.,\s|£$%°/]+$/.test(c.ways) && !/,\s/.test(c.ways);
-  /* ON THE @family. PAD, like every answer box (N-20261115-tb1: an iPad opened its own keyboard): `kp-in`, locked, its face from `data-kp` */
-  return cardBlock_({ type: 'control', attrs: { class: 'qp-cell kp-in', 'data-k': k, 'data-n': String(i), 'aria-label': 'Blank ' + c.label, autocomplete: 'off',
-    'data-kp': num ? 'maths' : 'words', readonly: true, inputmode: 'none', autocapitalize: 'off', autocorrect: 'off', spellcheck: 'false', enterkeyhint: 'done', value: v || '' } });
-}
 /* A PART OF AN ANSWER BOX, drawn by renderCard's group block: its tag, class, attributes, then markup already drawn and/or text. */
 const fcG_ = (tag, look, attrs, inner, text) => cardBlock_({ type: 'group', tag, look, attrs, inner, text });
 const fcVerdict_ = t => fcG_('span', 'qp-verdict', { role: 'status', 'aria-live': 'polite' }, '', t);
 const fcSaved_ = k => fcG_('span', 'qp-saved', { 'data-k': k }, '', ansSavedSay_(k));
-/* THE QUESTION'S OWN TABLE, ITS BLANKS MADE CELLS -- or '' when it has none with as many blanks as `cells`. */
-function cellsTable_(x, html) {
-  const cells = cellsOf_(x);
-  if (!cells.length) return '';
-  const k = ansKey_(x), vals = cellsVals_(ansRead_(k));
-  /* THE FIRST TABLE WHOSE BLANKS ARE THE CELLS, as the one face finds it (qtypes.js `qtCellTable_`) */
-  const t = qtCellTable_(html, cells.length);
-  if (!t) return '';
-  let n = 0, skip = (t.match(QT_CELL_BLANK) || []).length === cells.length + 1;
-  const filled = t.replace(QT_CELL_BLANK, (m, tag, at) => {
-    if (skip) { skip = false; return m; }
-    const i = n++;
-    /* the question's own cell keeps its tag and attributes; only its class and its box are added */
-    return m.slice(0, 1 + tag.length + at.length) + ' class="qp-cell-at">' + cellInput_(k, cells[i], i, vals[i]) + m.slice(m.lastIndexOf('</'));
-  }).replace(/^<table/, '$& data-cells="1"');
-  const at = String(html).indexOf(t);
-  return String(html).slice(0, at) + filled + String(html).slice(at + t.length);
+/* THE ONE LINE OVER THE BOX: the parts by name, in order, where the question names them all; else how many, in order (owner, 22 Nov). */
+function cellsHint_(cells, maths) {
+  const asked = cells.filter(c => c.ways), named = asked.filter(c => !/^\(?(\d+|[a-z]|[ivx]+)\)?$/i.test(c.label)).map(c => c.label);
+  const say = 'Give ' + asked.length + (maths ? ' numbers' : ' answers') + ' in order, separated by commas';
+  return named.length === asked.length ? named.join(', ') + ' \u2014 ' + say.charAt(0).toLowerCase() + say.slice(1) : say;
 }
-/* THE BOX UNDER IT: Check marks every cell; with no table to fill, the cells stand in a row of their own. */
-const cellsHere_ = (x, html) => (cellsOf_(x).length && cellsTable_(x, html)) || html;
-/* THE WORDS THE ANSWER CARD ITSELF SHOWS -- its last chunk, as the question card draws it; the part's whole words where it has no plan */
-const cellsCardHtml_ = x => {
-  try { const c = partChunks_(x); return c.length ? chunkHtml_(c[c.length - 1], null, x) : String((x && x.html) || ''); }
-  catch (e) { return String((x && x.html) || ''); }
-};
-/* THE ONE LINE OVER A SENTENCE OF GAPS: how many, in order, and their names where the question gives them. */
-function cellsHint_(cells) {
-  const asked = cells.filter(c => c.ways), named = asked.filter(c => !/^\d+$/.test(c.label)).map(c => c.label);
-  return text_('write-the') + asked.length + ' answers in order' + (named.length === asked.length ? ': ' + named.join(', ') : '');
-}
-/* EVERY GAP IN ONE BOX (owner, 13 Nov), the one answer box; a table's blanks are still filled where they stand. */
-function cellsBox_(x, face) {
+/* EVERY PART IN ONE BOX (owner, 13 and 22 Nov): the one answer box, a table's blanks too, typed with commas and marked in order. */
+function cellsBox_(x) {
   const cells = cellsOf_(x), k = ansKey_(x);
-  /* IN THE TABLE ON THIS CARD, not merely in the part's words: a long part's table on a page in front had no box anywhere (457) */
-  const inTable = (face || qtFace_(x, cellsCardHtml_(x))).face === 'table';
   const val = String(ansRead_(k) || '').replace(/(?:\s*;\s*)+$/, '');
   const maths = cells.filter(c => c.ways).every(c => /^[-\d.,\s|£$%°/]+$/.test(c.ways));
-  const one = inTable ? '' : fcG_('p', 'q-hint', null, '', cellsHint_(cells)) + fcG_('div', 'qp-ans-row qp-bar', null,
-    fcG_('label', 'qp-ans' + (maths ? ' qp-ans-maths' : ''), { 'aria-label': text_('your-answers-in-order') }, kpField_(k, val, maths ? 'maths' : 'words', 3)));
   const said = subBoxSay_(k, val);
   return fcG_('div', 'qp-mark qp-compose qp-cells-box' + (said.cls ? ' ' + said.cls : ''), { 'data-k': k },
-    one + workStrip_(x) + fcVerdict_(said.text) + fcSaved_(k));
+    fcG_('p', 'q-hint', null, '', cellsHint_(cells, maths)) + fcG_('div', 'qp-ans-row qp-bar', null,
+      fcG_('label', 'qp-ans' + (maths ? ' qp-ans-maths' : ''), { 'aria-label': text_('your-answers-in-order') }, kpField_(k, val, maths ? 'maths' : 'words', 3)))
+    + workStrip_(x) + fcVerdict_(said.text) + fcSaved_(k));
 }
-const cellsIn_ = el => { const card = el && el.closest('.qcard'); return card ? [].slice.call(card.querySelectorAll('.qp-cell')) : []; };
-function cellsRead_(el) {
-  const vals = [];
-  cellsIn_(el).forEach(c => { vals[+c.getAttribute('data-n')] = c.value; });
-  return vals;
-}
-document.addEventListener('input', e => {
-  const el = e.target && e.target.classList && e.target.classList.contains('qp-cell') ? e.target : null;
-  if (!el) return;
-  const vals = cellsRead_(el);
-  for (let i = 0; i < vals.length; i++) if (vals[i] == null) vals[i] = '';
-  ansStore_(el.getAttribute('data-k') || '', vals.join(' ; '));
-  el.classList.remove('is-right', 'is-near');
-});
 on('qp-cells-check', el => {
   const box = qMark_(el, '.qp-cells-box');
   const out = box && box.querySelector('.qp-verdict');
   const x = box && stuffItemsAll_().find(it => ansKey_(it) === box.getAttribute('data-k'));
-  if (!x || !out) return;
-  const cells = cellsOf_(x), inp = box.querySelector('.qp-ans-in');
-  let vals = inp ? [inp.value] : cellsRead_(box);
+  const inp = box && box.querySelector('.qp-ans-in');
+  if (!x || !out || !inp) return;
+  const cells = cellsOf_(x);
+  let vals = [inp.value];
   const v = mark_(x, vals, 'cells'), m = { right: v.marks, of: v.max, each: v.each || [] };
-  cellsIn_(box).forEach(c => {
-    const v = m.each[+c.getAttribute('data-n')];
-    c.classList.toggle('is-right', v === true);
-    c.classList.toggle('is-near', v === false);
-  });
   box.classList.remove('is-right', 'is-near');
   const notYet = partReady_('cells', m);
   if (notYet) { tell_(out, 'info', notYet); return; }
   /* ONE BOX READ BACK AS IT WAS UNDERSTOOD, "a ; b ; c" -- the stored form every saved answer already has */
-  const got = inp ? cellsOneBox_(vals, cells) : vals;
-  if (inp && cells.every((c, i) => !c.ways || String(got[i] || '').trim())) {
+  const got = cellsOneBox_(vals, cells);
+  if (cells.every((c, i) => !c.ways || String(got[i] || '').trim())) {
     inp.value = got.join(' ; ');
     if (typeof kpRender_ === 'function') kpRender_(inp);
     ansStore_(box.getAttribute('data-k'), inp.value, inp.getAttribute('data-kp') === 'words');
@@ -257,7 +203,7 @@ on('qp-cells-check', el => {
   }
   const all = m.right === m.of;
   box.classList.add(all ? 'is-right' : 'is-near');
-  tell_(out, all ? 'saved' : 'info', all ? text_('correct-every') + (inp ? 'answer' : 'cell') : m.right + ' of ' + m.of + (inp ? ' answers' : ' cells') + ' right');
+  tell_(out, all ? 'saved' : 'info', all ? text_('correct-every') + 'answer' : m.right + ' of ' + m.of + ' answers right');
   subRecord_(box.getAttribute('data-k'), vals.join(' ; '), all ? 'right' : 'wrong');
 });
 
@@ -268,10 +214,10 @@ function qMark_(el, sel) {
   const card = el && el.closest && el.closest('.qcard');
   return card ? card.querySelector(s) : null;
 }
-/* THE FACE IS THE ONE SOURCE'S (qtypes.js `qtFace_`, owner 20 Nov): one box, but a box a cell in the part's own table. */
+/* THE FACE IS THE ONE SOURCE'S (qtypes.js `qtFace_`, owner 20 Nov): one box for every question (22 Nov). */
 function ansBox_(x) {
-  const face = qtFace_(x, cellsCardHtml_(x));
-  if (face.face === 'table' || face.face === 'gaps') return cellsBox_(x, face);
+  const face = qtFace_(x);
+  if (face.face === 'gaps') return cellsBox_(x);
   const opts = choiceList_(x);
   const k = ansKey_(x);
   const m = markerOf_(x);

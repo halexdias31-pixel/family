@@ -2819,15 +2819,6 @@ const s = w.replace(/π|pi\b/gi, '').trim();
 if (!/[a-z]/i.test(s) || /^[a-z]\s*=\s*[-−]?[\d.\/\s]+$/i.test(s) || QT_UNIT.test(s)) return false;
 return QT_ALG.test(s) || /^[-−]?\d*[a-z]$/i.test(s) && s.length > 1 || /=/.test(s) && /[a-z]/i.test(s.split('=')[1] || '');
 }
-const QT_CELL_BLANK = /<(td|th)([^>]*)>(?:\s|&nbsp;|\u00a0)*<\/\1>/g;
-const qtCorner_ = t => /^<table[^>]*>\s*(?:<thead[^>]*>\s*)?(?:<tbody[^>]*>\s*)?<tr[^>]*>\s*<(td|th)[^>]*>(?:\s|&nbsp;|\u00a0)*<\/\1>/.test(t);
-function qtCellTable_(html, n) {
-if (!n) return '';
-return (String(html || '').match(/<table[\s\S]*?<\/table>/g) || []).find(t => {
-const blanks = (t.match(QT_CELL_BLANK) || []).length;
-return blanks === n || blanks === n + 1 && qtCorner_(t);
-}) || '';
-}
 function qtSplit_(s) {
 return [].concat(...String(s).split(/\s*,\s*/).map(v => (/\d|^[a-z]{1,2}\s+(and|&)\s+[a-z]{1,2}$/i.test(v)
 ? v.replace(/^and\s+/i, '').split(/\s+and\s+|\s*&\s*/) : [v])));
@@ -2852,14 +2843,13 @@ if (!ways.length) return 1;
 const n = split(ways[0]);
 return n >= 2 && ways.every(w => { const m = split(w); return m === 1 || m === n; }) ? n : 1;
 }
-function qtFace_(x, html) {
+function qtFace_(x) {
 const r = (x && x.row) || x || {};
 const cells = qtS_(r.cells) ? qtS_(r.cells).replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, '&').split(';').length : 0;
 const choices = Array.isArray(r.choices) ? r.choices : qtS_(r.choices).split('|').filter(c => c.trim());
 const values = qtWays_(r).length ? qtValues_(r) : 1;
 if (cells) {
-const shown = html != null ? html : qtS_(r.lead) + qtS_(r.html);
-return qtCellTable_(shown, cells) ? { face: 'table', boxes: cells, values: cells } : { face: 'gaps', boxes: 1, values: cells };
+return { face: 'gaps', boxes: 1, values: cells };
 }
 if (choices.length >= 2) return { face: 'choice', boxes: 1, values: values };
 if (qtS_(r.draw_answer || r.drawAnswer)) return { face: 'draw', boxes: 1, values: 1 };

@@ -103,11 +103,10 @@ function cardFigFit_(pane) {
     if (!(by > 2)) return;
     /* THE WORDS: every element of the card that holds no picture and is none of what keeps its size, found by walking down only through what holds a picture -- so a § */
     const words = [];
-    /* A TABLE OF CELLS TO TYPE IN keeps its size too: its cells are 44px fingertips, and the tool row under every part (round 3) made such cards zoom them to 31 */
-    const keep = e => e.matches(FIG_KEEP) || (e.tagName === 'TABLE' && !!e.querySelector('.qp-cell'));
+    const keep = e => e.matches(FIG_KEEP);
     const walk = el => [].forEach.call(el.children, e => {
       if (keep(e)) return;
-      if (figs.some(f => e.contains(f)) || e.querySelector(FIG_KEEP + ', .qp-cell')) walk(e); else words.push(e);
+      if (figs.some(f => e.contains(f)) || e.querySelector(FIG_KEEP)) walk(e); else words.push(e);
     });
     walk(card);
     const hw = words.reduce((n, e) => n + e.getBoundingClientRect().height, 0);
@@ -345,7 +344,7 @@ CARD_EMBEDS.qsheet = a => {
   const stems = was.stems.map(st => qStemWhole_(x, st, was.shown, a.pic ? [] : null)).join('');
   const words = partChunks_(x).map(c => chunkHtml_(c, circOf_(x), x)).join('');
   const has = was.ans && (questionHasAns_(x) || schemeOwed_(x));
-  return stems + figBox_({ look: 'qsheet qtext', inner: qWordsOr_(x, cellsHere_(x, words)) }) + ansArea_(x) + (has ? questionAnsCard_(x, true) : '');
+  return stems + figBox_({ look: 'qsheet qtext', inner: qWordsOr_(x, words) }) + ansArea_(x) + (has ? questionAnsCard_(x, true) : '');
 };
 /* A QUESTION IS AN ITEM (one item shape, slice 4): its card is its map in ITEM_MAPS (cards-parts.js); these are the map's pieces, */
 /* each reading the Find entry (`x`) the card is drawn from. The answer box, the marking and the tiles are called exactly as before. */
