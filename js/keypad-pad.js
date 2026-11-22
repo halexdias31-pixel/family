@@ -127,8 +127,7 @@ function kpSay_(inp) {
 
 /* ---------- A TAP ON THE BOX § */
 const kpOfTap_ = t => {
-  /* a table's answer cell is its own box (find-cells.js `cellInput_`) */
-  const lab = t && t.closest && t.closest('label.qp-ans, .qp-cell-at');
+  const lab = t && t.closest && t.closest('label.qp-ans');
   return lab ? lab.querySelector('.kp-in') : null;
 };
 document.addEventListener('mousedown', e => { if (kpOfTap_(e.target)) e.preventDefault(); }, true);
