@@ -1476,11 +1476,11 @@ html.flow #screen { height: auto; overflow: visible; touch-action: auto; backgro
 html.flow .screen { position: static; transform: none; visibility: visible; transition: none; will-change: auto; }
 html.flow #s-account { order: -1; }
 html.flow .page { width: 100%; min-width: 0; }
-/* ONE FLOW FOR EVERY LIST OF CARDS (owner, 10 Nov): as many 20rem-or-wider columns as fit, packed top to bottom so a short card leaves no hole — no breakpoints. */
-.card-grid { display: block; columns: 1; column-gap: var(--card-gap); }
-.card-grid > * { break-inside: avoid; margin-bottom: var(--card-gap); }
-/* WHAT IS NOT A CARD IN THE LIST — the menu, chips, answers, a form — runs across every column. */
-.card-grid > :not(.is-res) { column-span: all; }
+/* ONE FLOW FOR EVERY LIST OF CARDS (owner, 10 Nov: one column on every screen). NOT A MULTI-COLUMN BOX (22 Nov): a one-column
+   `columns: 1` with a `column-span: all` menu left every result after it measured at 0x0 on an iPhone (WebKit), so Share
+   painted a blank picture; a plain block draws the same and measures true (tools/share-picture.js). */
+.card-grid { display: flow-root; }
+.card-grid > * { margin-bottom: var(--card-gap); }
 .card-grid :is(p, li, .qtext, .doc, form, .kc-fields, [data-draw]) { max-width: var(--measure); }
 /* A CARD IS NO WIDER THAN ITS READING MEASURE (owner, 11 Nov: a card stretched edge to edge is hard on the eyes): ~70 characters a line, the typographic norm. */
 .card-grid > * { max-width: calc(var(--measure) + 2 * var(--s4)); margin-inline: auto; }
