@@ -376,17 +376,17 @@ function dkItems_() {
   });
 }
 function dkCard_(x) {
-  if (x.dkNew != null) return renderCard({ kind: 'docket', name: x.name, tags: [x.name, x.dkList],
+  if (x.dkNew != null) return renderCard(shapeCard_('docket', { kind: 'docket', name: x.name, tags: [x.name, x.dkList],
     body: [{ type: 'field', cap: 'Add an item', blocks: [{ type: 'control', attrs: { class: 'dk-qadd', 'data-li': x.dkNew, placeholder: 'What to do, then Enter', maxlength: 300, enterkeyhint: 'done' } }] }],
-    tiles: [{ icon: 'plus', label: 'Add', act: 'dk-qadd', cls: 'is-submit', data: { li: x.dkNew } }] });
+    tiles: [{ icon: 'plus', label: 'Add', act: 'dk-qadd', cls: 'is-submit', data: { li: x.dkNew } }] }));
   const it = x.row || {}, a = dkFill_(it), when = [it.repeat === 'daily' ? 'Daily' : it.date ? dkSayDay_(it.date) : '', it.time ? (it.timeIs === 'by' ? 'by ' : '') + it.time : ''].filter(Boolean);
   const open = DKF.edit === x.dkAt, spec = dkFields_();
   const form = open ? [{ type: 'group', look: 'dk-form', inner: formOf_('docket-item', a, { options: f => ((spec.find(y => y.f === f) || {}).options || []) }) }] : [];
-  return renderCard({ kind: 'docket', name: it.title || 'Untitled', tags: [it.title || 'Untitled', x.dkMark, a.minutes + ' min', +a.runs ? 'Runs by itself ' + a.runs + ' min' : '', x.dkList].concat(when).filter(Boolean),
+  return renderCard(shapeCard_('docket', { kind: 'docket', name: it.title || 'Untitled', tags: [it.title || 'Untitled', x.dkMark, a.minutes + ' min', +a.runs ? 'Runs by itself ' + a.runs + ' min' : '', x.dkList].concat(when).filter(Boolean),
     body: [{ type: 'tick', text: 'Done', attrs: { 'data-dkf': x.dkAt, checked: dkDone_(it), 'aria-label': 'Done: ' + (it.title || '') } },
       it.note && !open ? { type: 'text', paras: String(it.note).split(/\n{2,}/) } : null].concat(form).filter(Boolean),
     tiles: open ? [{ icon: 'save', label: 'Save', act: 'dk-fsave', cls: 'is-submit', data: { at: x.dkAt } }, { icon: 'bin', label: 'Delete', act: 'dk-fdel', tone: 'danger', data: { at: x.dkAt } },
-      { icon: 'close', label: 'Close', act: 'dk-fedit', data: { at: x.dkAt } }] : [{ icon: 'edit', label: 'Edit', act: 'dk-fedit', data: { at: x.dkAt } }] });
+      { icon: 'close', label: 'Close', act: 'dk-fedit', data: { at: x.dkAt } }] : [{ icon: 'edit', label: 'Edit', act: 'dk-fedit', data: { at: x.dkAt } }] }));
 }
 const dkAt_ = at => { const [li, i] = String(at || '').split(':').map(Number), L = dkLoad_()[li]; return { L, i, it: L && L.items[i] }; };
 /* A CHANGE IN FIND IS SAVED AS THE WIDGET'S IS (dkSave_, the backend's todoTidy_), and Find draws its list again in the new order. */
@@ -468,7 +468,7 @@ function asgItem_(a, i, mine) {
     asgSay_('status', a.status || 'not-started') + (a.status === 'marked' && a.mark ? ': ' + a.mark : '')].filter(Boolean);
   const when = [a.course, a.due ? dkSayDay_(a.due) + (a.time ? ', ' + a.time : '') : ''].filter(Boolean).join(' · ');
   const editing = mine && ASG.edit === a.id;
-  return { type: 'group', look: 'dk-item asg-item', blocks: [
+  return { type: 'group', look: 'dk-item', attrs: { 'data-shape': kindShape_('assignment'), 'data-item-kind': 'assignment' }, blocks: [
     { type: 'text', text: [{ b: a.title || 'Untitled' }] },
     when ? { type: 'text', look: 'note', text: when } : null,
     { type: 'tags', tags },
