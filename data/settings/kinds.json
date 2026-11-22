@@ -3550,15 +3550,6 @@
     }
    }
   },
-  "invite": {
-   "sheet": {
-    "tab": "invites",
-    "id": "invite_id"
-   },
-   "see": {
-    "who": "admin"
-   }
-  },
   "exam": {
    "sheet": {
     "tab": "exams",
@@ -3648,37 +3639,6 @@
       "price_per_child"
      ]
     }
-   }
-  },
-  "landmark": {
-   "sheet": {
-    "tab": "landmarks",
-    "id": "id"
-   },
-   "see": {
-    "who": "anyone"
-   }
-  },
-  "landmark_part": {
-   "sheet": {
-    "tab": "landmark_parts",
-    "id": "part_id"
-   },
-   "see": {
-    "who": "anyone"
-   }
-  },
-  "map_shape": {
-   "sheet": {
-    "tab": "map",
-    "id": [
-     "world",
-     "kind",
-     "name"
-    ]
-   },
-   "see": {
-    "who": "anyone"
    }
   },
   "term": {
@@ -3827,15 +3787,6 @@
    "sheet": {
     "tab": "promo_codes",
     "id": "code"
-   },
-   "see": {
-    "who": "admin"
-   }
-  },
-  "biz_check": {
-   "sheet": {
-    "tab": "biz_checks",
-    "id": "check_id"
    },
    "see": {
     "who": "admin"
@@ -4036,7 +3987,6 @@
    "product",
    "option",
    "holiday",
-   "landmark",
    "film",
    "media",
    "spotlight",
@@ -4061,15 +4011,11 @@
    "setting",
    "price_rule",
    "work_file",
-   "biz_check",
    "push_token",
    "application",
    "promo_code",
-   "invite",
    "exam",
    "post",
-   "landmark_part",
-   "map_shape",
    "term",
    "herd_question",
    "room",
