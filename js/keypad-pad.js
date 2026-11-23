@@ -5,8 +5,7 @@ on('kp-key', (el) => {
   if (!inp) return;
   const v = el.getAttribute('data-v') || '';
   if (v === '!done') return kpDone_(inp);
-  if (v === '!abc' || v === '!123' || v === '!sym') return kpLayer_(v === '!abc' ? 'abc' : v === '!sym' ? 'sym' : 'maths', inp);
-  if (v === '!shift') return kpShiftTap_();
+  if (v === '!undo') { kpUndo_(inp, false); return; }
   if (v === '!mic') return kpMic_(inp, el);
   kpType_(inp, v, false);
 });
@@ -43,15 +42,10 @@ function kpDone_(inp) {
 /* ---------- CAPITALS § */
 let KP_SHIFT = 'off';
 let KP_SHIFT_AT = 0;
-function kpShiftTap_() {
-  const now = Date.now();
-  KP_SHIFT = KP_SHIFT === 'lock' ? 'off' : now - KP_SHIFT_AT < 350 ? 'lock' : KP_SHIFT === 'off' ? 'once' : 'off';
-  KP_SHIFT_AT = now;
-  kpShiftPaint_();
-}
 function kpAutoShift_(inp) {
   if (KP_SHIFT === 'lock') return;
-  if (!inp || (inp.getAttribute('data-kp') !== 'words' && !kpSiteCaps_(inp))) { KP_SHIFT = 'off'; return; }
+  /* a capital by itself only at an essay's or a name's sentence start: a short answer's capitals are keys of their own (no ⇧) */
+  if (!inp || (!inp.hasAttribute('data-kp-essay') && !kpSiteCaps_(inp))) { KP_SHIFT = 'off'; return; }
   const at = inp.selectionStart == null ? inp.value.length : inp.selectionStart;
   const before = inp.value.slice(0, at);
   KP_SHIFT = (!before.trim() || /[.?!]\s+$/.test(before) || /\n\s*$/.test(before)) ? 'once' : 'off';
@@ -60,12 +54,6 @@ function kpShiftPaint_() {
   const pad = document.getElementById('kp');
   if (!pad) return;
   pad.classList.toggle('is-shift', KP_LAYER === 'abc' && KP_SHIFT !== 'off');
-  const s = pad.querySelector('.kp-shift');
-  if (!s) return;
-  s.classList.toggle('is-on', KP_SHIFT !== 'off');
-  s.classList.toggle('is-lock', KP_SHIFT === 'lock');
-  s.setAttribute('aria-pressed', KP_SHIFT !== 'off' ? 'true' : 'false');
-  s.setAttribute('aria-label', KP_SHIFT === 'lock' ? 'capitals locked' : 'capitals');
 }
 
 /* ---------- A TAP BETWEEN KEYS IS THE NEAREST KEY § */

@@ -192,6 +192,8 @@ function markNorm_(s) {
     .replace(/sqrt\s*/g, '√').replace(/(^|[^a-z])root\s*(?=[\d(])/g, '$1√')
     .replace(/(^|[^a-z])pi(?![a-z])/g, '$1π')
     .replace(/(\d)\s+(?=[√π])/g, '$1')
+    /* the mixed-number key's whole box: (2) (1)/(3) is 2 1/3 */
+    .replace(/(^|[^\w)])\((-?\d+)\)\s+(?=\(?\d+\)?\/)/g, '$1$2 ')
     .replace(/([√^])\((-?[a-z0-9.π]+)\)/g, '$1$2')
     .replace(/\((-?√?[a-z0-9.π]+(?:\^-?[a-z0-9.π]+)?)\)(?=\/)/g, '$1')
     .replace(/([\/^√])\((-?√?[a-z0-9.π]+)\)/g, '$1$2')

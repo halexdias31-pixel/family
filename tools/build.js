@@ -33,6 +33,7 @@ const ORDER = [
   'validate-cache', // the questions' cache check (rule 1.75, queue step 2): on made-up questions a cached verdict equals a fresh one, a changed key or the marker's code marks again; fails the build
   'range-keys',   // the range-key check (rule 1.75, owner 20 Nov): a key whose answer states a numeric tolerance carries a range rule or is listed; fails the build
   'marker-cases', // the marker's known traps (rule 1.75, queue 4c): right answers pass, wrong ones fail; a wrong mark fails the build
+  'keypad-taps',  // the keypad check (rule 1.75, owner 23 Nov: "Hegarty Maths always worked"): each maths form and a sample of every answer type tapped on the one pad's keys and marked Right, on a 390px phone and an iPad; a key that turns the pad over, a key off the screen or a glaring/full-width answer box fails the build
   'essay-cases',  // the essay check (rule 1.33, 1.75; ESSAYS, DISTILLED): AQA's examiner-marked 8700 exemplars through rule: levels; agreement printed, below 80% within one level fails the build
   'date-cases',   // the date check (rule 1.75, owner 20 Nov): js/core.js dateOf_/todayIso_ and backend/cards-gen.gs's copies on one table (DD/MM, ISO, BST days, London midnight); a wrong day or a disagreement fails the build
   'docket-plan',  // the Now, Next check (rule 1.75, 1.82, owner 20 Nov): js/map.js dkPlan_ on fixed lists keeps the order rules and is deterministic; fails the build
