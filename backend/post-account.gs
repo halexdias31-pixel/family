@@ -713,7 +713,7 @@ function postDocketImport_(body, action, began) {
 }
 
 /* ---------- THE PRIVATE PLAIN-TEXT ADDRESS (owner, 21 Nov: NOW, NEXT step 3): `?docket=<token>` answers the owner's Now/Next as plain text for
-   Siri Shortcuts, ChatGPT or Gemini; `&do=done&what=<words>` ticks the best match, `&do=add&what=<words>[&list=<name>]` adds. The plan is the site's
+   Siri Shortcuts, ChatGPT or Gemini; `&do=done&what=<words>` ticks the best match, `&do=add&what=<words>[&list=<name>]` adds; `&do=options[&slot=<name>]` reads the food slots, or one slot's options. The plan is the site's
    (dkPhase_, dkNowNextOf_, dkSay_, dkMatch_, dkTick_: js/map.js, copied into cards-gen.gs). The token lives in Script Properties only, never in the repo or a log;
    the owner sees it, or makes a new one, on the Docket (action docketAddress). tools/docket-address.js checks it. */
 const DOCKET_TOKEN_KEY = 'DOCKET_TOKEN';
@@ -724,6 +724,8 @@ const docketFill_ = it => { const o = {}; Object.keys(DOCKET_PLAN_FIELDS).forEac
 function docketAnswer_(lists, now, q, fill) {
   const day = String(now).slice(0, 10), act = S(q && q.do).toLowerCase(), what = S(q && q.what).slice(0, 300), plan = () => dkPhase_(lists, now, fill);
   let said = '', changed = false;
+  /* FOOD SLOTS (owner, 23 Nov): `&do=options[&slot=Snack]` reads the slots, or one slot's options and count (foods.json, DOCKET_FOODS); changes nothing. */
+  if (act === 'options') return { say: docketOptionsSay_(lists, S(q && q.slot).slice(0, 60)), lists: lists, changed: false };
   if (act === 'done' || act === 'add') {
     if (!what) said = text_('dk-say-what');
     else if (act === 'done') {
@@ -740,6 +742,15 @@ function docketAnswer_(lists, now, q, fill) {
     }
   }
   return { say: (said ? said + ' ' : '') + dkSay_(dkNowNextOf_(lists, plan())), lists: lists, changed: changed };
+}
+function docketOptionsSay_(lists, slot) {
+  const all = DOCKET_FOODS.slots.map(s => s.name);
+  lists.forEach(L => (L && L.items || []).forEach(it => { if (it && it.slot && !all.some(s => dkSame_(s, it.slot))) all.push(S(it.slot)); }));
+  if (!slot) return text_('dk-say-slots', { slots: all.join(', ') });
+  const name = all.find(s => dkSame_(s, slot));
+  if (!name) return text_('dk-say-no-slot', { what: slot, slots: all.join(', ') });
+  const opts = dkSlotOptions_(DOCKET_FOODS, name).map(f => f.name), need = dkSlotNeed_(DOCKET_FOODS, name);
+  return text_('dk-say-slot', { slot: name, need: need > 1 ? text_('dk-say-slot-need', { need: need }) : '', options: opts.join(', ') || '-' });
 }
 const docketNow_ = () => Utilities.formatDate(new Date(), tz_(), 'yyyy-MM-dd HH:mm');
 /* The same length and every character compared, so a near miss takes as long as a far one. */

@@ -1714,6 +1714,12 @@
       "type": "titles",
       "max": 300,
       "say": "the covered titles this item's last tick marked, so its untick undoes only those"
+     },
+     {
+      "f": "slot",
+      "type": "text",
+      "max": 60,
+      "say": "a food slot (owner, 23 Nov: FOOD SLOTS) in place of a fixed food: one of foods.json `slots`; the Docket offers that slot's foods under the item (js/map.js dkSlotOptions_)"
      }
     ]
    },

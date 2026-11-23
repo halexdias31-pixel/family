@@ -189,6 +189,54 @@ function docketTidy23NovRun_() {
   return overdue.items.length + ' to Overdue, ' + ideas.items.length + ' to Ideas & notes; breakfast and packed food joined; one Shopping in every list; 3 evening prep items, the takeaway and 2 car checks added';
 }
 
+/* FOOD SLOTS (owner, 23 Nov): the morning's food items ("Out of Shower", and "Yoghurt!" after brushing teeth) give way to five daily slot items
+   (Protein, Fruit, Dairy, Grain, Pack for later; js/map.js dkSlotOptions_), each old item's title and note kept in the note of the slot it fills; an
+   evening "Meat!" or "Rice" becomes a slot where it stands (Meat, Carbs), its text as it was; a daily "Snack" slot added to the midday list once.
+   The old cell copied whole to backup_docket_slots_23nov first, only when something is to change, so a re-run is a no-op. tools/docket-slots.js checks it. */
+const DK_MORNING_SLOTS = [['Protein', /^(hot (food|breakfast)\b.*|eggs?|beans|tuna|whey.*|bacon|sausages?)!?$/i], ['Fruit', /^(bananas?|apples?|dates?|strawberr\w*|avo?cados?)!?$/i],
+  ['Dairy', /^(yog(h)?urt|chia|milk)!?$/i], ['Grain', /^(breakfast|cereal|bread|toast)!?$/i], ['Pack for later', null]];
+const DK_PACK_NOTE = 'snack: nuts, popcorn, fruit; lunch: tuna salad, sandwich';
+const DK_SLOT_TITLES = [[/^meat!?$/i, 'Meat'], [/^(rice|carbs?)!?$/i, 'Carbs'], [/^snacks?!?$/i, 'Snack']];
+function docketSlots23NovRun_() {
+  const t = read(TAB.people), me = t.rows.find(r => isOwner_(r));
+  if (!me) throw new Error('no owner found');
+  const was = S(me.todo);
+  let got = null; try { got = JSON.parse(was); } catch (e) { got = null; }
+  if (!got || !Array.isArray(got.lists)) throw new Error('the owner has no docket lists');
+  let n = 0, added = '';
+  const list = re => got.lists.find(L => re.test(S(L.name)));
+  const os = list(/out of shower/i), ab = list(/after brush teeth/i);
+  if (os && !(os.items || []).some(it => it && it.slot)) {
+    const slotOf = it => { const m = DK_MORNING_SLOTS.find(x => x[1] && x[1].test(S(it && it.title).trim())); return m ? m[0] : ''; };
+    const wasOf = {}, at = (os.items || []).findIndex(slotOf);
+    [os, ab].filter(Boolean).forEach(L => { L.items = (L.items || []).filter(it => { const s = slotOf(it); if (!s) return true; (wasOf[s] = wasOf[s] || []).push(it); return false; }); });
+    const made = DK_MORNING_SLOTS.map(x => { const o = { title: x[0], repeat: 'daily', slot: x[0] }, w = wasOf[x[0]] ? 'was: ' + was23_(wasOf[x[0]]) : '';
+      const note = [x[0] === 'Pack for later' ? DK_PACK_NOTE : '', w].filter(Boolean).join('\n\n'); if (note) o.note = note; return o; });
+    os.items.splice(at < 0 ? os.items.length : at, 0, ...made);
+    n += made.length;
+  }
+  got.lists.forEach(L => (L.items || []).forEach(it => {
+    if (!it || it.slot) return;
+    const m = DK_SLOT_TITLES.find(x => x[0].test(S(it.title).trim()));
+    if (m) { it.slot = m[1]; n++; }
+  }));
+  if (!got.lists.some(L => (L.items || []).some(it => it && dkSame_(it.slot, 'Snack')))) {
+    const mins = L => { const m = /^(\d{2}):(\d{2})$/.exec(S(L.start)); return m ? +m[1] * 60 + +m[2] : -1; };
+    const ok = got.lists.filter(L => !DK23_NO_SHOP.test(S(L.name).trim()));
+    const mid = ok.filter(L => mins(L) >= 660 && mins(L) < 960).sort((a, b) => Math.abs(mins(a) - 750) - Math.abs(mins(b) - 750))[0]
+      || ok.find(L => /lunch|midday|desk/i.test(S(L.name))) || ok[0];
+    if (mid) { mid.items = mid.items || []; mid.items.push({ title: 'Snack', repeat: 'daily', slot: 'Snack' }); added = mid.name; }
+  }
+  if (!n && !added) return 'nothing to do';
+  const ss = t.sheet.getParent(), bk = ss.getSheetByName('backup_docket_slots_23nov') || ss.insertSheet('backup_docket_slots_23nov');
+  bk.appendRow([new Date(), was]);
+  if (S(bk.getRange(bk.getLastRow(), 2).getValue()) !== was) throw new Error('the backup did not read back - nothing changed');
+  const cell = JSON.stringify(got);
+  if (cell.length > DOCKET_CELL_MAX) throw new Error('the docket would be ' + cell.length + ' characters, over ' + DOCKET_CELL_MAX + ' - nothing was saved');
+  if (!setCell(t, me, 'todo', cell)) throw new Error('the people tab has no todo column - nothing was saved');
+  return n + ' item(s) made food slots' + (added ? '; a Snack slot added to ' + added : '');
+}
+
 /* ---------- THE ONE-OFF JOBS, RUN ONCE, BY THEMSELVES § */
 const MIGRATIONS = [
   /* EVERY PIN FOUR DIGITS (owner, 10 Nov): a longer one keeps its first four; signing in with the old one still works (authCheckPin_). */
@@ -333,6 +381,10 @@ const MIGRATIONS = [
     retry: true,
     what: "the owner's docket tidied (backup tab first): past one-offs to Overdue, ideas to Ideas & notes, foods joined, one Shopping a list, evening prep, a takeaway covering meat and rice, two car checks",
     run: () => docketTidy23NovRun_() },
+  { id: 'docket-slots-23nov',
+    retry: true,
+    what: "the owner's food items made food slots: the morning's as Protein, Fruit (3), Dairy, Grain and Pack for later, the evening's Meat and Carbs, a Snack slot at midday (backup tab first); no text lost",
+    run: () => docketSlots23NovRun_() },
 ];
 
 /* ---------- MOVING ROWS OUT OF THE ITEMS TAB, NEVER LOSING ONE (queue step 7, 22 Nov) ----------

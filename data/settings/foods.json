@@ -1,5 +1,5 @@
 {
- "say": "THE FOOD TREE (owner, 18 Nov): kinds as a small tree (`parent`), each with the spellings a list item may use for it; each food a name, its kind and an optional one-line note. Read by js/chemistry.js (FOOD) for the owner's Tools alone: Docket offers a kind's foods (its children's too) under an item named for the kind, and Find › Tools has a card for each kind and each food (kinds.json fooddb).",
+ "say": "THE FOOD TREE (owner, 18 Nov): kinds as a small tree (`parent`), each with the spellings a list item may use for it; each food a name, its kind and an optional one-line note. Read by js/chemistry.js (FOOD) for the owner's Tools alone: Docket offers a kind's foods (its children's too) under an item named for the kind, and Find › Tools has a card for each kind and each food (kinds.json fooddb). FOOD SLOTS (owner, 23 Nov; data only for now): `slots` are the slots a Docket item may name as its `slot` (Protein, Fruit…) in place of a fixed food, each with `need`, how many a day it wants (Fruit 3); a food's `slots` are the slots it fills, so the Docket lists it under each (js/map.js dkSlotOptions_); one may fill two (the takeaway: Meat and Carbs). Read by the backend as DOCKET_FOODS (tools/cards-gen.js) for the private address's do=options. THE DAY PLAN (owner, 23 Nov): `meals` names each meal's slots (one option list per slot, reused all day); an option marked `rush` is a worst-day choice that fills several slots at once, to be shown first on a busy day later. An option marked `quick` is one that is quick to make.",
  "kinds": [
   {
    "id": "carb",
@@ -113,12 +113,19 @@
   {
    "name": "Rice",
    "kind": "carb",
-   "note": ""
+   "note": "",
+   "slots": [
+    "Carbs"
+   ]
   },
   {
    "name": "Bread",
    "kind": "carb",
-   "note": ""
+   "note": "or toast",
+   "slots": [
+    "Grain",
+    "Carbs"
+   ]
   },
   {
    "name": "Pasta",
@@ -143,7 +150,11 @@
   {
    "name": "Cereal",
    "kind": "carb",
-   "note": ""
+   "note": "",
+   "slots": [
+    "Grain",
+    "Carbs"
+   ]
   },
   {
    "name": "Couscous",
@@ -163,7 +174,10 @@
   {
    "name": "Beef",
    "kind": "meat",
-   "note": ""
+   "note": "",
+   "slots": [
+    "Meat"
+   ]
   },
   {
    "name": "Pork",
@@ -173,7 +187,10 @@
   {
    "name": "Chicken",
    "kind": "meat",
-   "note": ""
+   "note": "",
+   "slots": [
+    "Meat"
+   ]
   },
   {
    "name": "Lamb",
@@ -188,12 +205,19 @@
   {
    "name": "Tuna",
    "kind": "fish",
-   "note": ""
+   "note": "",
+   "slots": [
+    "Protein",
+    "Meat"
+   ]
   },
   {
    "name": "Salmon",
    "kind": "fish",
-   "note": ""
+   "note": "",
+   "slots": [
+    "Meat"
+   ]
   },
   {
    "name": "Cod",
@@ -218,7 +242,11 @@
   {
    "name": "Eggs",
    "kind": "eggs",
-   "note": "boiled, scrambled or fried"
+   "note": "boiled, scrambled or fried",
+   "slots": [
+    "Protein",
+    "Meat"
+   ]
   },
   {
    "name": "Lentils",
@@ -238,7 +266,10 @@
   {
    "name": "Baked beans",
    "kind": "pulses",
-   "note": ""
+   "note": "",
+   "slots": [
+    "Protein"
+   ]
   },
   {
    "name": "Tofu",
@@ -248,7 +279,10 @@
   {
    "name": "Milk",
    "kind": "dairy",
-   "note": ""
+   "note": "",
+   "slots": [
+    "Dairy"
+   ]
   },
   {
    "name": "Yoghurt",
@@ -273,12 +307,20 @@
   {
    "name": "Apple",
    "kind": "fruit",
-   "note": ""
+   "note": "",
+   "slots": [
+    "Fruit",
+    "Snack"
+   ]
   },
   {
    "name": "Banana",
    "kind": "fruit",
-   "note": ""
+   "note": "",
+   "slots": [
+    "Fruit",
+    "Snack"
+   ]
   },
   {
    "name": "Orange",
@@ -308,57 +350,91 @@
   {
    "name": "Broccoli",
    "kind": "veg",
-   "note": ""
+   "note": "",
+   "slots": [
+    "Veg"
+   ]
   },
   {
    "name": "Carrots",
    "kind": "veg",
-   "note": ""
+   "note": "",
+   "slots": [
+    "Veg"
+   ]
   },
   {
    "name": "Spinach",
    "kind": "veg",
-   "note": ""
+   "note": "",
+   "slots": [
+    "Veg"
+   ]
   },
   {
    "name": "Peas",
    "kind": "veg",
-   "note": ""
+   "note": "",
+   "slots": [
+    "Veg"
+   ]
   },
   {
    "name": "Peppers",
    "kind": "veg",
-   "note": ""
+   "note": "",
+   "slots": [
+    "Veg"
+   ]
   },
   {
    "name": "Tomatoes",
    "kind": "veg",
-   "note": ""
+   "note": "",
+   "slots": [
+    "Veg"
+   ]
   },
   {
    "name": "Cucumber",
    "kind": "veg",
-   "note": ""
+   "note": "",
+   "slots": [
+    "Veg"
+   ]
   },
   {
    "name": "Salad leaves",
    "kind": "veg",
-   "note": ""
+   "note": "",
+   "slots": [
+    "Veg"
+   ]
   },
   {
    "name": "Green beans",
    "kind": "veg",
-   "note": ""
+   "note": "",
+   "slots": [
+    "Veg"
+   ]
   },
   {
    "name": "Avocado",
    "kind": "fats",
-   "note": ""
+   "note": "",
+   "slots": [
+    "Fruit"
+   ]
   },
   {
    "name": "Nuts",
    "kind": "fats",
-   "note": "a small handful"
+   "note": "a small handful",
+   "slots": [
+    "Pack for later",
+    "Snack"
+   ]
   },
   {
    "name": "Olive oil",
@@ -374,6 +450,260 @@
    "name": "Seeds",
    "kind": "fats",
    "note": ""
+  },
+  {
+   "name": "Popcorn",
+   "kind": "carb",
+   "note": "",
+   "slots": [
+    "Pack for later",
+    "Snack"
+   ]
+  },
+  {
+   "name": "Strawberries",
+   "kind": "fruit",
+   "note": "",
+   "slots": [
+    "Fruit",
+    "Snack"
+   ]
+  },
+  {
+   "name": "Dates",
+   "kind": "fruit",
+   "note": "",
+   "slots": [
+    "Fruit",
+    "Snack"
+   ]
+  },
+  {
+   "name": "Müller Corner (chocolate balls)",
+   "kind": "dairy",
+   "note": "",
+   "slots": [
+    "Dairy"
+   ]
+  },
+  {
+   "name": "Plain yoghurt",
+   "kind": "dairy",
+   "note": "",
+   "slots": [
+    "Dairy"
+   ]
+  },
+  {
+   "name": "Bacon",
+   "kind": "meat",
+   "note": "",
+   "slots": [
+    "Protein"
+   ]
+  },
+  {
+   "name": "Meat pasty from the shop",
+   "kind": "meat",
+   "note": "",
+   "slots": [
+    "Protein",
+    "Grain"
+   ],
+   "rush": true
+  },
+  {
+   "name": "Smoked salmon",
+   "kind": "fish",
+   "note": "",
+   "slots": [
+    "Meat"
+   ]
+  },
+  {
+   "name": "Ready-made sushi rice",
+   "kind": "carb",
+   "note": "",
+   "slots": [
+    "Carbs"
+   ]
+  },
+  {
+   "name": "Chia on yoghurt",
+   "kind": "fats",
+   "note": "",
+   "slots": [
+    "Dairy"
+   ]
+  },
+  {
+   "name": "Whey shake",
+   "kind": "protein",
+   "note": "",
+   "slots": [
+    "Protein"
+   ]
+  },
+  {
+   "name": "Peter's Takeaway: sweet and sour chicken with rice box",
+   "kind": "meat",
+   "note": "",
+   "slots": [
+    "Meat",
+    "Carbs",
+    "Protein"
+   ],
+   "rush": true
+  },
+  {
+   "name": "Sausages",
+   "kind": "meat",
+   "note": "",
+   "slots": [
+    "Protein"
+   ]
+  },
+  {
+   "name": "Piece of fruit",
+   "kind": "fruit",
+   "note": "",
+   "slots": [
+    "Pack for later"
+   ]
+  },
+  {
+   "name": "Tuna salad",
+   "kind": "fish",
+   "note": "",
+   "slots": [
+    "Pack for later"
+   ]
+  },
+  {
+   "name": "Sandwich",
+   "kind": "carb",
+   "note": "",
+   "slots": [
+    "Pack for later"
+   ]
+  },
+  {
+   "name": "Porridge",
+   "kind": "carb",
+   "note": "",
+   "slots": [
+    "Grain",
+    "Dairy"
+   ],
+   "rush": true
+  },
+  {
+   "name": "Supermarket meal deal",
+   "kind": "carb",
+   "note": "",
+   "slots": [
+    "Protein",
+    "Carbs",
+    "Veg",
+    "Snack"
+   ],
+   "rush": true
+  },
+  {
+   "name": "Doner kebab",
+   "kind": "meat",
+   "note": "",
+   "slots": [
+    "Protein",
+    "Carbs",
+    "Veg"
+   ],
+   "rush": true
+  },
+  {
+   "name": "Microwave sushi rice (Tesco)",
+   "kind": "carb",
+   "note": "",
+   "slots": [
+    "Carbs"
+   ],
+   "quick": true
+  },
+  {
+   "name": "Franco Manca pizza from the corner shop",
+   "kind": "carb",
+   "note": "",
+   "slots": [
+    "Carbs",
+    "Dairy"
+   ],
+   "rush": true
+  }
+ ],
+ "slots": [
+  {
+   "name": "Protein",
+   "need": 1
+  },
+  {
+   "name": "Fruit",
+   "need": 3
+  },
+  {
+   "name": "Dairy",
+   "need": 1
+  },
+  {
+   "name": "Grain",
+   "need": 1
+  },
+  {
+   "name": "Pack for later",
+   "need": 1
+  },
+  {
+   "name": "Veg",
+   "need": 1
+  },
+  {
+   "name": "Snack",
+   "need": 1
+  },
+  {
+   "name": "Meat",
+   "need": 1
+  },
+  {
+   "name": "Carbs",
+   "need": 1
+  }
+ ],
+ "meals": [
+  {
+   "name": "Breakfast",
+   "slots": [
+    "Protein",
+    "Fruit",
+    "Dairy",
+    "Grain"
+   ]
+  },
+  {
+   "name": "Lunch",
+   "slots": [
+    "Protein",
+    "Carbs",
+    "Veg",
+    "Snack"
+   ]
+  },
+  {
+   "name": "Dinner",
+   "slots": [
+    "Protein",
+    "Carbs",
+    "Veg"
+   ]
   }
  ]
 }
