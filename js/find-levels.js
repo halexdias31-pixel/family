@@ -445,8 +445,10 @@ function stuffPages_() {
   const kept = (x, part) => byPage.every(f => {
     let v = [];
     const G = facetBy(f.field);
-    try { v = asList_(G.tagOf(x, part)); if (G.answerOf) v = v.map(G.answerOf); } catch (e) { v = []; }
-    return !v.length || v.some(t => spellKey_(t) === spellKey_(f.value));
+    /* BOTH SIDES IN THE CHIP'S WORDS: a chip set from a card link (?card=) carries the item's own word (Past paper), one tapped in Find the answer (Exam paper). */
+    const A = t => (G.answerOf ? G.answerOf(t) : t);
+    try { v = asList_(G.tagOf(x, part)); } catch (e) { v = []; }
+    return !v.length || v.some(t => spellKey_(A(t)) === spellKey_(A(f.value)));
   });
   seq.forEach((x, i) => {
     /* A CARD WHOSE WORDS ARE STILL IN THE LEDGER (397) IS ONE PAGE, kept whatever the chips say: its shape is decided by its

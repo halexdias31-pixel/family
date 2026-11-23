@@ -10030,8 +10030,9 @@ const byPage = (STUFF.filters || []).filter(f => f && !f.any && (facetBy(f.field
 const kept = (x, part) => byPage.every(f => {
 let v = [];
 const G = facetBy(f.field);
-try { v = asList_(G.tagOf(x, part)); if (G.answerOf) v = v.map(G.answerOf); } catch (e) { v = []; }
-return !v.length || v.some(t => spellKey_(t) === spellKey_(f.value));
+const A = t => (G.answerOf ? G.answerOf(t) : t);
+try { v = asList_(G.tagOf(x, part)); } catch (e) { v = []; }
+return !v.length || v.some(t => spellKey_(A(t)) === spellKey_(A(f.value)));
 });
 seq.forEach((x, i) => {
 if (libSlim_(x)) { pages.push({ x: x, part: null, slim: true }); return; }
