@@ -161,7 +161,8 @@ function tag(rows, m) {
      the card kept   the one with words here: a board-free GCSE chapter first, then a point-by-point AQA card, then the rest (PREFER)
      its words       every key word, point and formula of every card of the group, each once; another card's "the idea" sentence becomes a point
      a broad card    one teaching GCSE points that other ideas' one-point cards teach is split by point: each of its items goes to the idea whose
-                     card it reads most like (title, node, idea sentence, key-word names; rarer words count more: a score of 1 or more, and twice its own idea's); the rest stays
+                     card it reads most like (title, node, idea sentence, key-word names; rarer words count more: a score of 1 or more, and twice its own idea's); the rest stays.
+                     A verdict in data/settings/idea-places.json (the owner's review of every move, 23 Nov) comes before the score
      animations      follow the key word they are `about`, else the card kept
      what went       Maths.ideas.merged: old key -> {to, title, level}; spec links (data/spec/) point on (relink)
    `words` is the private map (data-private/textbooks.json, "<book>#<chapter>"). On a library already merged it changes nothing. */
@@ -171,6 +172,11 @@ const PRIV = ['idea', 'words', 'points', 'formulas', 'diagram'];
 const items = v => S(v).split('|').map(x => x.trim()).filter(Boolean);
 const listJoin = (a, b) => [...new Set(S(a).split(/\s*,\s*/).concat(S(b).split(/\s*,\s*/)).filter(Boolean))].join(', ');
 const nameOf = item => S(item).split(/\s+—\s+/)[0].trim().toLowerCase();
+/* THE VERDICTS (owner's review, 23 Nov): where an item of a broad card goes, by hand, so a rerun puts it in the same place whatever the scores say.
+   data/settings/idea-places.json place: "<book>#<chapter> <field> <sha1 of the item, 12 hex>" -> an idea id, or "stay" (its own card's idea).
+   Only a hash: the item's words are private (data-private/). An item with no verdict goes by its score, and the run says how many did. */
+const PLACES = (SD.json('data/settings/idea-places.json') || {}).place || {};
+const placeKey = (k, f, item) => k + ' ' + f + ' ' + require('crypto').createHash('sha1').update(S(item)).digest('hex').slice(0, 12);
 function merge(rows, words, m) {
   const wk = c => c.book + '#' + c.row.chapter, W = c => words[wk(c)] || {};
   const has = c => FIELDS.some(f => S(W(c)[f]));
@@ -193,18 +199,22 @@ function merge(rows, words, m) {
   const acc = {}, anchor = {};
   Object.keys(canon).forEach(id => { acc[id] = { words: [], points: [], formulas: [] }; });
   const put = (id, f, item) => { if (!acc[id][f].includes(item)) acc[id][f].push(item); };
-  let moved = 0;
+  let moved = 0, unruled = 0;
   /* THE CARDS KEPT FIRST, so their own items lead; then the others, in the order the library holds them. */
   const order = Object.keys(canon).map(id => canon[id]).concat(m.cards.filter(c => canon[c.idea] !== c));
   order.forEach(c => {
     const cands = [...new Set([c.idea].concat(c.specs.map(r => pointIdea[gp(r)]).filter(Boolean)))];
     FIELDS.forEach(f => items(W(c)[f]).forEach(item => {
-      let to = c.idea;
-      if (cands.length > 1) {
+      let to = c.idea, how = '';
+      const said = PLACES[placeKey(wk(c), f, item)];
+      if (said) { to = said === 'stay' ? c.idea : said; how = 'verdict'; if (!acc[to]) throw new Error('data/settings/idea-places.json puts an item of ' + wk(c) + ' on ' + said + ', which is no idea now'); }
+      else if (cands.length > 1) {
         const iw = [...new Set(wordsOf(item))], sc = id => iw.reduce((t, w) => t + (prof[id].has(w) ? 1 / df[w] : 0), 0);
         const best = cands.slice(1).sort((a, b) => sc(b) - sc(a))[0];
-        if (sc(best) >= 1 && sc(best) > 2 * sc(c.idea)) { to = best; moved++; }
+        if (sc(best) >= 1 && sc(best) > 2 * sc(c.idea)) { to = best; how = 'score'; unruled++; }
+        if (process.env.IDEAS_LOG) console.log(JSON.stringify({ key: placeKey(wk(c), f, item), idea: c.idea, item, to, cands: cands.map(id => [id, +sc(id).toFixed(2)]) }));
       }
+      if (to !== c.idea) moved++;
       put(to, f, item);
       if (f === 'words') anchor[wk(c) + '|' + nameOf(item)] = to;
     }));
@@ -247,7 +257,7 @@ function merge(rows, words, m) {
   anims.forEach(a => { let j = out.length; out.forEach((x, i) => { if (x.book_id === a.book_id && Number(x.chapter) === Number(a.chapter)) j = i + 1; }); out.splice(j, 0, a); });
   rows.length = 0;
   out.forEach(r => rows.push(r));
-  return { merged, moved, gone: gone.size, anims: anims.length };
+  return { merged, moved, unruled, gone: gone.size, anims: anims.length };
 }
 
 /* SPEC LINKS POINT ON: a link to a card that went names the card kept (data/spec/*.json, in place). */
@@ -265,4 +275,4 @@ function relink(merged) {
   return n;
 }
 
-module.exports = { SUBJECT, OUTSIDE, cardsOf, inScope, measure, report, tag, tree, normTitle, merge, relink };
+module.exports = { placeKey, SUBJECT, OUTSIDE, cardsOf, inScope, measure, report, tag, tree, normTitle, merge, relink };
