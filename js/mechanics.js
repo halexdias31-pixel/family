@@ -91,5 +91,5 @@ on('mech-parts', el => {
   const c = (MECH.cars && MECH.cars.get(el.dataset.engine)) || {};
   finderSet_(finderAt_(el), { filters: [{ field: 'kindLabel', value: 'Library' }, { field: 'subject', value: MECH_SUBJECT },
     { field: 'mScope', value: MECH_PART }, { field: 'mMake', value: c.make || '' }, { field: 'mModel', value: c.model || '' },
-    { field: 'mEngine', value: el.dataset.engine }, { field: 'mKind', value: 'Part' }].filter(f => f.value) });
+    { field: 'mEngine', value: el.dataset.engine }, { field: 'documentType', value: 'Part' }].filter(f => f.value) });
 });

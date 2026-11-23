@@ -9,7 +9,7 @@ photograph, a raster) is not drawn, and the region is reported so a person can l
     python3 tools/pdf-figure.py <paper.pdf> <page 1-based> <x0,y0,x1,y1 in PDF points> [label]   -> the SVG on stdout
 
 `region()` finds a figure's box from its caption ("Fig. 18.1" under it on OCR, "Figure 5" over it on AQA);
-tools/draw-figures-q3.py holds each figure's paper, page and box and writes the rows.
+A paper's figures are written by the importer (figure_from on the row; node tools/content.js), which calls this.
 """
 import re, sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
