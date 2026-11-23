@@ -111,7 +111,8 @@ function readPrivate(name) {
 function writePrivate(name, map) {
   fs.mkdirSync(PRIVATE_DIR, { recursive: true });
   /* ONE ANSWER FORMAT (UNIFY AFTER 7): every pick question's key in letters, its working a note, whoever writes the words (tools/lib/pick-key.js). */
-  if (name === 'questions') require('./pick-key.js').normaliseMap(map);
+  /* ONE QUESTION SHAPE (owner, 23 Nov): no second way to say a stem, an option or a key (tools/lib/shape.js), then the one answer format. */
+  if (name === 'questions') { const P = require('./pick-key.js'); require('./shape.js').normaliseMap(map, P.cardsById()); P.normaliseMap(map); }
   const ids = Object.keys(map);
   fs.writeFileSync(privatePath(name), '{\n' + ids.map(id => JSON.stringify(id) + ':' + JSON.stringify(map[id])).join(',\n') + '\n}\n');
 }
