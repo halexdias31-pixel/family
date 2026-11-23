@@ -1,22 +1,15 @@
-/* @family. — tools/lib/keypad-taps.js A KEY'S ANSWER AS THE TAPS A CHILD MAKES ON THE KEYPAD (owner 23 Nov: "Hegarty Maths always worked").
-   One function, self-contained so tools/keypad-taps.js runs it in node and hands its source to the browser: the keypad's own template keys
-   for each form (mixed number, point, ×10ⁿ, fraction, power, root), → to leave a box, every other character its own key. */
+/* @family. — tools/lib/keypad-taps.js A KEY'S ANSWER AS THE TAPS A CHILD MAKES ON THE ONE KEYBOARD (owner 23 Nov: "Hegarty Maths always worked";
+   ONE KEYBOARD: no key does another key's job). One function, self-contained so tools/keypad-taps.js runs it in node and hands its source to
+   the browser: the template keys (fraction, power, root), → to leave a box, a mixed number as its whole, a space and the fraction, every
+   other character its own key -- a point is ( x , y ), standard form × 1 0 and the power. */
 'use strict';
 function kpTapsOf(way, words) {
   const w = String(way).replace(/[−–]/g, '-').replace(/\*/g, '×').trim();
   const chars = s => s.split('');
   if (words) return chars(w);
   let m;
-  /* a mixed number: the whole, the mixed key, the top, → into the bottom */
-  if ((m = /^(-?\d+)\s+(\d+)\s*\/\s*(\d+)$/.exec(w))) return chars(m[1]).concat(['!mixed'], chars(m[2]), ['!right'], chars(m[3]));
-  /* a point, or several: the point key, x, → over the comma, y, → out */
-  if (/^\(\s*-?[\d.]+\s*,\s*-?[\d.]+\s*\)(\s*,?\s*\(\s*-?[\d.]+\s*,\s*-?[\d.]+\s*\))*$/.test(w)) {
-    const out = [];
-    w.replace(/\(\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*\)/g, (z, x, y) => { if (out.length) out.push(','); out.push('!pt', ...chars(x), '!right', ...chars(y), '!right'); return z; });
-    return out;
-  }
-  /* standard form: the number, the ×10ⁿ key, the power */
-  if ((m = /^(-?[\d.]+)\s*×\s*10\s*\^\s*\(?(-?\d+)\)?$/.exec(w))) return chars(m[1]).concat(['!x10'], chars(m[2]), ['!right']);
+  /* a mixed number: the whole, a space, the fraction key, the top, → into the bottom */
+  if ((m = /^(-?\d+)\s+(\d+)\s*\/\s*(\d+)$/.exec(w))) return chars(m[1]).concat([' ', '!frac'], chars(m[2]), ['!right'], chars(m[3]), ['!right']);
   const out = [];
   /* a box's contents: a bracketed group (its brackets are the box's) or a run of one term */
   const box = (s, i) => {
@@ -30,7 +23,7 @@ function kpTapsOf(way, words) {
       let j = i + 1; while (w[j] === ' ') j++;
       const [inner, next] = box(w, j);
       /* a power of several terms is opened with its own bracket, as a child does, or an operator brings the caret down (kpPowOut_) */
-      if (tpl === '!pow' && /.[-+\u00d7\u00f7]/.test(inner)) out.push(tpl, '(', ...kpTapsOf(inner, false), ')');
+      if (tpl === '!pow' && /.[-+×÷]/.test(inner)) out.push(tpl, '(', ...kpTapsOf(inner, false), ')');
       else out.push(tpl, ...kpTapsOf(inner, false), '!right');
       i = next;
     } else { out.push(c); i++; }

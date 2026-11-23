@@ -58,7 +58,8 @@ async function open(opts) {
   const c = await b.newContext({ ...devices['iPhone 13'] });
   try {
     const pg = await c.newPage();
-    await pg.addInitScript(u => { try { localStorage.setItem('familyUser', JSON.stringify(u)); } catch (e) {} }, o.user || USERS[o.as || 'admin']);
+    /* `as: 'none'` is nobody signed in: the welcome screen */
+    if (o.as !== 'none') await pg.addInitScript(u => { try { localStorage.setItem('familyUser', JSON.stringify(u)); } catch (e) {} }, o.user || USERS[o.as || 'admin']);
     const body = o.payload || PAYLOAD();
     await pg.route(/script\.google\.com/, r => r.fulfill({ status: 200, contentType: 'application/json', body }));
     await pg.goto(base + (o.words === false ? '/plain/' : '/') + (o.at || ''));
