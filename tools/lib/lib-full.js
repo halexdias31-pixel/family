@@ -110,6 +110,8 @@ function readPrivate(name) {
 }
 function writePrivate(name, map) {
   fs.mkdirSync(PRIVATE_DIR, { recursive: true });
+  /* ONE ANSWER FORMAT (UNIFY AFTER 7): every pick question's key in letters, its working a note, whoever writes the words (tools/lib/pick-key.js). */
+  if (name === 'questions') require('./pick-key.js').normaliseMap(map);
   const ids = Object.keys(map);
   fs.writeFileSync(privatePath(name), '{\n' + ids.map(id => JSON.stringify(id) + ':' + JSON.stringify(map[id])).join(',\n') + '\n}\n');
 }

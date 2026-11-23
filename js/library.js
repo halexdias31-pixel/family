@@ -46,6 +46,13 @@ async function libFile_(early, path, what) {
   if (!res.ok) throw new Error(what + ' answered ' + res.status);
   return libWithin_(res.json(), what, LIB_BODY);          /* a truncated body throws here, and that is the point */
 }
+/* ONE ANSWER FORMAT (owner, UNIFY AFTER 7, 23 Nov): a pick question's key is `choice_right` as its letters ("C", "A,D"),
+   its working a note in `answer`; an ordering's key is its options' numbers in order ("3,1,2"), `|` between ways. Read once here,
+   as 1-based options, by the site's card and marker, the Sunday email (backend/cards-gen.gs copies it) and the importer's check. */
+function choiceKeys_(raw) {
+  return String(raw == null ? '' : raw).split('|').map(w => w.split(',').map(t => (t = t.trim(), /^[A-Z]$/.test(t) ? t.charCodeAt(0) - 64 : /^\d+$/.test(t) ? +t : 0))
+    .filter(n => n > 0)).filter(w => w.length);
+}
 function libWithin_(p, what, ms) {
   let t;
   const late = new Promise((u, no) => { t = setTimeout(() => no(new Error(what + ' did not arrive in ' + Math.round(ms / 1000) + ' seconds')), ms); });
@@ -485,9 +492,8 @@ function libQuestion_(r) {
     /* A CLOSED LIST OF OPTIONS, TAPPED RATHER THAN TYPED. § */
     choices: libS(r.choices).split('|').map(t => t.trim()).filter(Boolean),
     /* ---------- AN ORDERING IS THE SAME TWO COLUMNS AND ONE MORE § */
-    choiceRight: libS(r.choice_right).split('|')[0].split(',').map(t => parseInt(t, 10)).filter(n => n > 0),
-    choiceWays: libS(r.choice_right).split('|')
-      .map(w => w.split(',').map(t => parseInt(t, 10)).filter(n => n > 0)).filter(w => w.length),
+    choiceRight: choiceKeys_(r.choice_right)[0] || [],
+    choiceWays: choiceKeys_(r.choice_right),
     orderEnds: libS(r.order_ends).split('|').map(t => t.trim()).filter(Boolean),
     /* TWO COLUMNS, ONE FACT, AND THEY ARE DISJOINT. § */
     needsPrint: libTrue(r.needs_print) || libTrue(r.print_required),

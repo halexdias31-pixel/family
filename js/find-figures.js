@@ -694,7 +694,8 @@ function figMissing_(x) {
 /* THE ANSWER IS ITS OWN CARD, THE PAGE AFTER ITS QUESTION (AND AFTER ITS FIGURE). § */
 function questionHasAns_(x) {
   /* OR AN ANSWER THE LEDGER HOLDS FOR IT (397), so `Answers` is still asked, and counted, before any words arrive. */
-  return !!(isQ_(x) && (String(x.answer || '').trim() || libHasField_(x.row, 'answer')));
+  /* A PICK'S ANSWER IS ITS KEY (UNIFY AFTER 7): `choice_right` alone is one. */
+  return !!(isQ_(x) && (String(x.answer || '').trim() || (x.choiceRight || []).length || libHasField_(x.row, 'answer') || libHasField_(x.row, 'choice_right')));
 }
 
 /* ---------- WHO SEES IT OPEN: WHOEVER ASKED, AND NOBODY ELSE § */

@@ -14,13 +14,13 @@ const BV = require('./lib/backend-vm.js'), SB = require('./lib/site-browser.js')
 
 /* ---------- THE SAMPLE: a made-up worksheet of three parts, two of them pick questions (nothing here is a learner's or a real paper's). */
 const PICK = { html: '<p>The toy has a mass of 0.15 kg and moves forward with a velocity of 0.08 m/s. How is the momentum of the toy calculated? Tick <b>one</b> box.</p>',
-  choices: ['0.15 + 0.08 = 0.230', '0.15 ÷ 0.08 = 1.875', '0.15 × 0.08 = 0.012'], right: [3], answer: '<b>0.15 &times; 0.08 = 0.012</b>', typed: 'C' };
+  choices: ['0.15 + 0.08 = 0.230', '0.15 ÷ 0.08 = 1.875', '0.15 × 0.08 = 0.012'], right: [3], answer: 'momentum = mass &times; velocity', typed: 'C' };
 const ROWS = [
   { row_id: 'ZZ-SAMPLE', kind: 'document', paper_id: 'ZZ-SAMPLE', name: 'Momentum (sample)', subject: 'Physics', level: 'GCSE', document_type: 'Worksheet', active: 'TRUE' },
   { row_id: 'ZZ-SAMPLE-1ai', kind: 'question', paper_id: 'ZZ-SAMPLE', question: '1', part: 'ai', marks: '1', active: 'TRUE', html: PICK.html,
-    choices: PICK.choices.join(' | '), choice_right: '3', answer: PICK.answer },
+    choices: PICK.choices.join(' | '), choice_right: 'C', answer: PICK.answer },
   { row_id: 'ZZ-SAMPLE-1aii', kind: 'question', paper_id: 'ZZ-SAMPLE', question: '1', part: 'aii', marks: '1', active: 'TRUE', html: '<p>What is the unit of momentum? Tick <b>one</b> box.</p>',
-    choices: 'kg m/s | m/s² | kg/m/s', choice_right: '1', answer: 'A (1)' },
+    choices: 'kg m/s | m/s² | kg/m/s', choice_right: 'A', answer: 'momentum is mass times velocity, so its unit is a mass unit times a velocity unit' },
   { row_id: 'ZZ-SAMPLE-1b', kind: 'question', paper_id: 'ZZ-SAMPLE', question: '1', part: 'b', marks: '2', active: 'TRUE', html: '<p>Calculate the momentum of a 2 kg ball moving at 3 m/s.</p>',
     accept: '6', answer: '6 kg m/s (2)' },
 ];
@@ -52,7 +52,7 @@ async function site(Q) {
       const base = stuffItemsAll_().find(isQ_);
       const x = Object.assign({}, base, { key: 'q:ZZ-SAMPLE-1ai', html: P.html, lead: '', diagram: '', stems: [], images: '', surface: '', uses: '', cells: '', accept: '', markWords: '',
         drawAnswer: '', orderEnds: [], choices: P.choices, choiceRight: P.right, choiceWays: [P.right], answer: P.answer });
-      x.row = Object.assign({}, base.row, { row_id: 'ZZ-SAMPLE-1ai', question: '1', part: 'ai', html: P.html, choices: P.choices.join(' | '), choice_right: '3', answer: P.answer, diagram: '', lead: '' });
+      x.row = Object.assign({}, base.row, { row_id: 'ZZ-SAMPLE-1ai', question: '1', part: 'ai', html: P.html, choices: P.choices.join(' | '), choice_right: 'C', answer: P.answer, diagram: '', lead: '' });
       ANS_SHOWN.add(ansKey_(x));
       ansStore_(ansKey_(x), P.typed);
       const box = document.createElement('div');
@@ -85,7 +85,8 @@ async function run() {
   PICK.choices.forEach((o, i) => { if (pick.html.indexOf('<b>' + 'ABC'[i] + '</b> ' + o) < 0) bad.push('email Q1ai: option ' + 'ABC'[i] + ' (' + o + ') not shown'); });
   if (!/0\.012 <span[^>]*>✓ Answer<\/span> <span[^>]*>← Their answer/.test(pick.html)) bad.push('email Q1ai: the right option and theirs are not marked on C');
   if (!/Answer<\/p><p[^>]*><b>C<\/b> 0\.15 × 0\.08 = 0\.012/.test(pick.html.replace(/<\/?b>(?=0)/g, ''))) bad.push('email Q1ai: the answer is not "C 0.15 × 0.08 = 0.012", as the site says it');
-  if (/A \(1\)/.test(E.cards[1] ? E.cards[1].html : '')) bad.push('email Q1aii: the answer still says the scheme\'s "(1)"');
+  if (!/<b>A<\/b> kg m\/s/.test(E.cards[1] ? E.cards[1].html : '')) bad.push('email Q1aii: the answer is not its key, "A kg m/s"');
+  if (/momentum is mass/.test(E.cards[1] ? E.cards[1].html : '')) bad.push('email Q1aii: the answer says the working note, not the key');
   const S1 = await site(Q);
   if (!inOrder(S1.parts)) bad.push('site Q1ai: parts out of the order (' + S1.parts.join(', ') + ')');
   if (S(S1.head).trim()) bad.push('site Q1ai: a name line ("' + S1.head + '") the order does not list');

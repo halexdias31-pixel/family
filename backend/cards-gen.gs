@@ -922,6 +922,11 @@ function waveFromDoc_(x) {
   const series = seriesOf_(mth);
   return series && /^(19|20)\d{2}$/.test(yr) ? series + ' ' + yr : '';
 }
+/* from js/library.js */
+function choiceKeys_(raw) {
+  return String(raw == null ? '' : raw).split('|').map(w => w.split(',').map(t => (t = t.trim(), /^[A-Z]$/.test(t) ? t.charCodeAt(0) - 64 : /^\d+$/.test(t) ? +t : 0))
+    .filter(n => n > 0)).filter(w => w.length);
+}
 /* from js/find-parts.js */
 const ROMAN_ONLY = /^(i{1,3}|iv|vi{0,3}|ix|xi{0,3})$/i;
 const NUM_ROMAN = /^(\d+)(i{1,3}|iv|vi{0,3}|ix|xi{0,3})$/i;
@@ -999,13 +1004,14 @@ function answerParts_(raw) {
   why = why.replace(/^((?:\s*<[a-z][^>]*>)*\s*)([a-z])(?=[a-z])/, (w, tags, c) => tags + c.toUpperCase());
   return { head: head, why: seen(why) ? why : '' };
 }
-function answerSay_(answer, choices, right) {
+function answerSay_(answer, choices, right, order) {
   const opts = choices || [], ks = (right || []).filter(k => k > 0 && k <= opts.length);
-  const head = String(answer || '').trim() ? answerParts_(answer).head : ks.map(k => opts[k - 1]).join(', ');
-  if (!ks.length || opts.every(c => /^\s*[A-Za-z]\s*$/.test(String(c).replace(/<[^>]*>/g, '')))) return head;
-  const letters = ks.map(k => CHOICE_LETTERS[k - 1]).join(', ');
-  const only = String(head).replace(/<[^>]*>/g, '').trim().toUpperCase() === letters;
-  return '<b>' + letters + '</b> ' + (only ? ks.map(k => opts[k - 1]).join(', ') : head);
+  /* ONE ANSWER FORMAT (UNIFY AFTER 7, 23 Nov): a pick's answer is its key alone -- the letters and their options' words; `answer` is its working, not said here. */
+  if (ks.length && !order) {
+    const words = ks.map(k => opts[k - 1]).join(', ');
+    return opts.every(c => /^\s*[A-Za-z]\s*$/.test(String(c).replace(/<[^>]*>/g, ''))) ? words : '<b>' + ks.map(k => CHOICE_LETTERS[k - 1]).join(', ') + '</b> ' + words;
+  }
+  return String(answer || '').trim() ? answerParts_(answer).head : ks.map(k => opts[k - 1]).join(', ');
 }
 /* from js/find-cells.js */
 const CELL_ENT = { amp: '&', nbsp: ' ', rsquo: '\u2019', lsquo: '\u2018', rdquo: '\u201d', ldquo: '\u201c', apos: "'", quot: '"', deg: '\u00b0',

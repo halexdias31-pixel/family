@@ -2173,6 +2173,10 @@ if (!res) throw new Error(what + ' did not come back');
 if (!res.ok) throw new Error(what + ' answered ' + res.status);
 return libWithin_(res.json(), what, LIB_BODY);
 }
+function choiceKeys_(raw) {
+return String(raw == null ? '' : raw).split('|').map(w => w.split(',').map(t => (t = t.trim(), /^[A-Z]$/.test(t) ? t.charCodeAt(0) - 64 : /^\d+$/.test(t) ? +t : 0))
+.filter(n => n > 0)).filter(w => w.length);
+}
 function libWithin_(p, what, ms) {
 let t;
 const late = new Promise((u, no) => { t = setTimeout(() => no(new Error(what + ' did not arrive in ' + Math.round(ms / 1000) + ' seconds')), ms); });
@@ -2509,9 +2513,8 @@ cells: libS(r.cells),
 markWords: libS(r.mark_words),
 drawAnswer: libS(r.draw_answer),
 choices: libS(r.choices).split('|').map(t => t.trim()).filter(Boolean),
-choiceRight: libS(r.choice_right).split('|')[0].split(',').map(t => parseInt(t, 10)).filter(n => n > 0),
-choiceWays: libS(r.choice_right).split('|')
-.map(w => w.split(',').map(t => parseInt(t, 10)).filter(n => n > 0)).filter(w => w.length),
+choiceRight: choiceKeys_(r.choice_right)[0] || [],
+choiceWays: choiceKeys_(r.choice_right),
 orderEnds: libS(r.order_ends).split('|').map(t => t.trim()).filter(Boolean),
 needsPrint: libTrue(r.needs_print) || libTrue(r.print_required),
 examinerNote: libS(r.examiner_note), examinerReport: libS(r.examiner_report),
