@@ -273,1203 +273,371 @@
    },
    "books": {
     "TB-GCSE-MATHS": 20,
-    "TB-GCSE-MATHS-1MA1": 10,
-    "TB-KS1-MATHS": 14,
-    "TB-KS2-MATHS": 19,
-    "TB-KS3-MATHS": 21,
-    "TB-ALEVEL-MATHS": 18,
-    "TB-ALEVEL-MATHS-AS": 14,
-    "TB-AQA-8300": 97
+    "TB-GCSE-MATHS-1MA1": 1,
+    "TB-KS1-MATHS": 13,
+    "TB-KS2-MATHS": 12,
+    "TB-KS3-MATHS": 2,
+    "TB-ALEVEL-MATHS": 17,
+    "TB-ALEVEL-MATHS-AS": 9,
+    "TB-AQA-8300": 70
    },
    "outside": {
     "TB-QAA-MSOR": "university course outline (QAA MSOR): 8 of its 45 cards have no topic, and the topics.json tree is school maths"
    },
    "counts": {
-    "cards": 213,
-    "ideas": 145,
-    "groups": 47,
-    "cards_in_groups": 115
+    "cards": 144,
+    "ideas": 144,
+    "groups": 0,
+    "cards_in_groups": 0
    },
-   "groups": [
-    {
-     "idea_id": "ma.rat.ratio-problems",
-     "part_of": "ratio-prob",
-     "cards": [
-      "ct:TB-GCSE-MATHS-11",
-      "ct:TB-KS2-MATHS-11",
-      "ct:TB-KS3-MATHS-7",
-      "ct:TB-AQA-8300-11",
-      "ct:TB-AQA-8300-41",
-      "ct:TB-AQA-8300-45"
-     ],
-     "titles": [
-      "Ratio and proportion",
-      "Ratio and proportion",
-      "Ratio and proportion",
-      "N11 Fractions in ratio problems",
-      "R4 Ratio notation",
-      "R8 Ratios, fractions and linear functions"
-     ],
-     "levels": [
-      "GCSE",
-      "SATs",
-      "KS3"
-     ],
-     "specs": [
-      "aqa-8300:N11",
-      "aqa-8300:R4",
-      "aqa-8300:R8",
-      "edexcel-1ma1:G15",
-      "edexcel-1ma1:N11",
-      "edexcel-1ma1:R10",
-      "edexcel-1ma1:R11",
-      "edexcel-1ma1:R13",
-      "edexcel-1ma1:R2",
-      "edexcel-1ma1:R4",
-      "edexcel-1ma1:R5",
-      "edexcel-1ma1:R6",
-      "edexcel-1ma1:R7",
-      "edexcel-1ma1:R8"
-     ],
-     "by": [
-      "title",
-      "topic"
-     ]
+   "groups": [],
+   "merged": {
+    "ct:TB-KS2-MATHS-5": {
+     "to": "ct:TB-GCSE-MATHS-1",
+     "title": "Multiplying and dividing: factors, primes and powers",
+     "level": "SATs"
     },
-    {
-     "idea_id": "ma.geo.units-and-measures",
-     "part_of": "geom-units",
-     "cards": [
-      "ct:TB-KS2-MATHS-13",
-      "ct:TB-AQA-8300-13",
-      "ct:TB-AQA-8300-38",
-      "ct:TB-AQA-8300-63"
-     ],
-     "titles": [
-      "Measurement: units, time and money",
-      "N13 Units and measures",
-      "R1 Converting units",
-      "G14 Measures and units in geometry"
-     ],
-     "levels": [
-      "SATs",
-      "GCSE"
-     ],
-     "specs": [
-      "aqa-8300:G14",
-      "aqa-8300:N13",
-      "aqa-8300:R1"
-     ],
-     "by": [
-      "topic"
-     ]
+    "ct:TB-KS3-MATHS-3": {
+     "to": "ct:TB-GCSE-MATHS-1",
+     "title": "Factors, multiples and primes",
+     "level": "KS3"
     },
-    {
-     "idea_id": "ma.num.primes-and-prime-factorisation",
-     "part_of": "num-prop-primes",
-     "cards": [
-      "ct:TB-GCSE-MATHS-1",
-      "ct:TB-KS2-MATHS-5",
-      "ct:TB-KS3-MATHS-3",
-      "ct:TB-AQA-8300-4"
-     ],
-     "titles": [
-      "Number, factors and primes",
-      "Multiplying and dividing: factors, primes and powers",
-      "Factors, multiples and primes",
-      "N4 Factors, multiples and primes"
-     ],
-     "levels": [
-      "GCSE",
-      "SATs",
-      "KS3"
-     ],
-     "specs": [
-      "aqa-8300:N4",
-      "edexcel-1ma1:N1",
-      "edexcel-1ma1:N2",
-      "edexcel-1ma1:N3",
-      "edexcel-1ma1:N4",
-      "edexcel-1ma1:N5",
-      "edexcel-1ma1:P6",
-      "edexcel-1ma1:P7"
-     ],
-     "by": [
-      "title",
-      "topic"
-     ]
+    "ct:TB-AQA-8300-4": {
+     "to": "ct:TB-GCSE-MATHS-1",
+     "title": "N4 Factors, multiples and primes",
+     "level": "GCSE"
     },
-    {
-     "idea_id": "ma.prob.basic-probability",
-     "part_of": "prob-basic",
-     "cards": [
-      "ct:TB-GCSE-MATHS-19",
-      "ct:TB-KS3-MATHS-20",
-      "ct:TB-AQA-8300-75",
-      "ct:TB-AQA-8300-76"
-     ],
-     "titles": [
-      "Calculating probabilities",
-      "Probability",
-      "P3 The probability scale",
-      "P4 Probabilities sum to 1"
-     ],
-     "levels": [
-      "GCSE",
-      "KS3"
-     ],
-     "specs": [
-      "aqa-8300:P3",
-      "aqa-8300:P4",
-      "edexcel-1ma1:N5",
-      "edexcel-1ma1:P1",
-      "edexcel-1ma1:P2",
-      "edexcel-1ma1:P3",
-      "edexcel-1ma1:P4",
-      "edexcel-1ma1:P5",
-      "edexcel-1ma1:P6",
-      "edexcel-1ma1:P7",
-      "edexcel-1ma1:P8",
-      "edexcel-1ma1:P9"
-     ],
-     "by": [
-      "topic"
-     ]
+    "ct:TB-KS3-MATHS-4": {
+     "to": "ct:TB-GCSE-MATHS-2",
+     "title": "Powers, roots and standard form",
+     "level": "KS3"
     },
-    {
-     "idea_id": "ma.alg.linear-equations",
-     "part_of": "alg-eq-linear",
-     "cards": [
-      "ct:TB-GCSE-MATHS-8",
-      "ct:TB-KS3-MATHS-9",
-      "ct:TB-AQA-8300-30"
-     ],
-     "titles": [
-      "Linear equations and inequalities",
-      "Solving equations",
-      "A17 Linear equations"
-     ],
-     "levels": [
-      "GCSE",
-      "KS3"
-     ],
-     "specs": [
-      "aqa-8300:A17",
-      "edexcel-1ma1:A17",
-      "edexcel-1ma1:A19",
-      "edexcel-1ma1:A22"
-     ],
-     "by": [
-      "topic"
-     ]
+    "ct:TB-AQA-8300-9": {
+     "to": "ct:TB-GCSE-MATHS-2",
+     "title": "N9 Standard form",
+     "level": "GCSE"
     },
-    {
-     "idea_id": "ma.alg.nth-term-of-a-linear-sequence",
-     "part_of": "alg-seq-nth",
-     "cards": [
-      "ct:TB-GCSE-MATHS-10",
-      "ct:TB-KS3-MATHS-11",
-      "ct:TB-AQA-8300-37"
-     ],
-     "titles": [
-      "Number sequences",
-      "Sequences",
-      "A25 The nth term"
-     ],
-     "levels": [
-      "GCSE",
-      "KS3"
-     ],
-     "specs": [
-      "aqa-8300:A25",
-      "edexcel-1ma1:A23",
-      "edexcel-1ma1:A24",
-      "edexcel-1ma1:A25"
-     ],
-     "by": [
-      "topic"
-     ]
+    "ct:TB-KS3-MATHS-6": {
+     "to": "ct:TB-GCSE-MATHS-3",
+     "title": "Decimals and percentages",
+     "level": "KS3"
     },
-    {
-     "idea_id": "ma.alg.rearranging-formulae",
-     "part_of": "alg-form-rearr",
-     "cards": [
-      "ct:TB-GCSE-MATHS-5",
-      "ct:TB-KS3-MATHS-10",
-      "ct:TB-AQA-8300-21"
-     ],
-     "titles": [
-      "Expressions, formulae and proof",
-      "Formulae and inequalities",
-      "A5 Formulae and rearranging"
-     ],
-     "levels": [
-      "GCSE",
-      "KS3"
-     ],
-     "specs": [
-      "aqa-8300:A5",
-      "edexcel-1ma1:A1",
-      "edexcel-1ma1:A21",
-      "edexcel-1ma1:A3",
-      "edexcel-1ma1:A4",
-      "edexcel-1ma1:A5",
-      "edexcel-1ma1:A6",
-      "edexcel-1ma1:A7"
-     ],
-     "by": [
-      "topic"
-     ]
+    "ct:TB-AQA-8300-10": {
+     "to": "ct:TB-GCSE-MATHS-3",
+     "title": "N10 Fractions, decimals and percentages",
+     "level": "GCSE"
     },
-    {
-     "idea_id": "ma.alg.straight-line-graphs",
-     "part_of": "alg-graph-line",
-     "cards": [
-      "ct:TB-GCSE-MATHS-6",
-      "ct:TB-KS3-MATHS-12",
-      "ct:TB-AQA-8300-25"
-     ],
-     "titles": [
-      "Straight-line graphs",
-      "Coordinates and straight-line graphs",
-      "A9 Straight-line graphs"
-     ],
-     "levels": [
-      "GCSE",
-      "KS3"
-     ],
-     "specs": [
-      "aqa-8300:A9",
-      "edexcel-1ma1:A10",
-      "edexcel-1ma1:A8",
-      "edexcel-1ma1:A9",
-      "edexcel-1ma1:G11"
-     ],
-     "by": [
-      "title",
-      "topic"
-     ]
+    "ct:TB-AQA-8300-15": {
+     "to": "ct:TB-GCSE-MATHS-4",
+     "title": "N15 Rounding",
+     "level": "GCSE"
     },
-    {
-     "idea_id": "ma.geo.describing-a-single-transformation",
-     "part_of": "geom-trans-describe",
-     "cards": [
-      "ct:TB-KS3-MATHS-17",
-      "ct:TB-AQA-8300-58",
-      "ct:TB-AQA-8300-92"
-     ],
-     "titles": [
-      "Transformations",
-      "G7 Transformations",
-      "G8 Combined transformations"
-     ],
-     "levels": [
-      "KS3",
-      "GCSE"
-     ],
-     "specs": [
-      "aqa-8300:G7",
-      "aqa-8300:G8"
-     ],
-     "by": [
-      "title",
-      "topic"
-     ]
+    "ct:TB-KS3-MATHS-10": {
+     "to": "ct:TB-GCSE-MATHS-5",
+     "title": "Formulae and inequalities",
+     "level": "KS3"
     },
-    {
-     "idea_id": "ma.geo.parts-of-a-circle",
-     "part_of": "geom-prop-circle",
-     "cards": [
-      "ct:TB-GCSE-MATHS-1MA1-6",
-      "ct:TB-KS3-MATHS-15",
-      "ct:TB-AQA-8300-59"
-     ],
-     "titles": [
-      "G9 Parts of a circle",
-      "Circles",
-      "G9 Parts of a circle"
-     ],
-     "levels": [
-      "GCSE",
-      "KS3"
-     ],
-     "specs": [
-      "aqa-8300:G9",
-      "edexcel-1ma1:G9"
-     ],
-     "by": [
-      "spec",
-      "title",
-      "topic"
-     ]
+    "ct:TB-AQA-8300-21": {
+     "to": "ct:TB-GCSE-MATHS-5",
+     "title": "A5 Formulae and rearranging",
+     "level": "GCSE"
     },
-    {
-     "idea_id": "ma.geo.volume-and-surface-area",
-     "part_of": "geom-mens-vol",
-     "cards": [
-      "ct:TB-GCSE-MATHS-16",
-      "ct:TB-KS2-MATHS-14",
-      "ct:TB-AQA-8300-65"
-     ],
-     "titles": [
-      "Area and volume",
-      "Perimeter, area and volume",
-      "G16 Area and volume"
-     ],
-     "levels": [
-      "GCSE",
-      "SATs"
-     ],
-     "specs": [
-      "aqa-8300:G16",
-      "edexcel-1ma1:G12",
-      "edexcel-1ma1:G13",
-      "edexcel-1ma1:G14",
-      "edexcel-1ma1:G16",
-      "edexcel-1ma1:G17",
-      "edexcel-1ma1:G18",
-      "edexcel-1ma1:N13",
-      "edexcel-1ma1:R1"
-     ],
-     "by": [
-      "title",
-      "topic"
-     ]
+    "ct:TB-KS3-MATHS-12": {
+     "to": "ct:TB-GCSE-MATHS-6",
+     "title": "Coordinates and straight-line graphs",
+     "level": "KS3"
     },
-    {
-     "idea_id": "ma.num.fraction-decimal-percentage-conversion",
-     "part_of": "num-fdp",
-     "cards": [
-      "ct:TB-GCSE-MATHS-3",
-      "ct:TB-KS3-MATHS-6",
-      "ct:TB-AQA-8300-10"
-     ],
-     "titles": [
-      "Fractions, decimals and percentages",
-      "Decimals and percentages",
-      "N10 Fractions, decimals and percentages"
-     ],
-     "levels": [
-      "GCSE",
-      "KS3"
-     ],
-     "specs": [
-      "aqa-8300:N10",
-      "edexcel-1ma1:N10",
-      "edexcel-1ma1:N12",
-      "edexcel-1ma1:N2",
-      "edexcel-1ma1:R16",
-      "edexcel-1ma1:R9"
-     ],
-     "by": [
-      "title",
-      "topic"
-     ]
+    "ct:TB-AQA-8300-25": {
+     "to": "ct:TB-GCSE-MATHS-6",
+     "title": "A9 Straight-line graphs",
+     "level": "GCSE"
     },
-    {
-     "idea_id": "ma.num.fractions-of-an-amount",
-     "part_of": "num-frac-of",
-     "cards": [
-      "ct:TB-GCSE-MATHS-1MA1-1",
-      "ct:TB-AQA-8300-12",
-      "ct:TB-AQA-8300-40"
-     ],
-     "titles": [
-      "N12 Fractions and percentages as operators",
-      "N12 Fractions and percentages of amounts",
-      "R3 One quantity as a fraction of another"
-     ],
-     "levels": [
-      "GCSE"
-     ],
-     "specs": [
-      "aqa-8300:N12",
-      "aqa-8300:R3",
-      "edexcel-1ma1:N12",
-      "edexcel-1ma1:R3",
-      "edexcel-1ma1:R9"
-     ],
-     "by": [
-      "topic"
-     ]
+    "ct:TB-KS3-MATHS-9": {
+     "to": "ct:TB-GCSE-MATHS-8",
+     "title": "Solving equations",
+     "level": "KS3"
     },
-    {
-     "idea_id": "ma.num.place-value-and-ordering",
-     "part_of": "num-place",
-     "cards": [
-      "ct:TB-KS1-MATHS-2",
-      "ct:TB-KS2-MATHS-2",
-      "ct:TB-KS3-MATHS-1"
-     ],
-     "titles": [
-      "Tens and ones: place value",
-      "Place value and rounding",
-      "Place value, rounding and estimation"
-     ],
-     "levels": [
-      "SATs",
-      "KS3"
-     ],
-     "specs": [],
-     "by": [
-      "topic"
-     ]
+    "ct:TB-AQA-8300-30": {
+     "to": "ct:TB-GCSE-MATHS-8",
+     "title": "A17 Linear equations",
+     "level": "GCSE"
     },
-    {
-     "idea_id": "ma.num.standard-form",
-     "part_of": "num-std",
-     "cards": [
-      "ct:TB-GCSE-MATHS-2",
-      "ct:TB-KS3-MATHS-4",
-      "ct:TB-AQA-8300-9"
-     ],
-     "titles": [
-      "Indices, surds and standard form",
-      "Powers, roots and standard form",
-      "N9 Standard form"
-     ],
-     "levels": [
-      "GCSE",
-      "KS3"
-     ],
-     "specs": [
-      "aqa-8300:N9",
-      "edexcel-1ma1:N7",
-      "edexcel-1ma1:N8",
-      "edexcel-1ma1:N9"
-     ],
-     "by": [
-      "topic"
-     ]
+    "ct:TB-AQA-8300-31": {
+     "to": "ct:TB-GCSE-MATHS-9",
+     "title": "A18 Quadratic equations",
+     "level": "GCSE"
     },
-    {
-     "idea_id": "ma.alg.expanding-brackets",
-     "part_of": "alg-manip-expand",
-     "cards": [
-      "ct:TB-KS3-MATHS-8",
-      "ct:TB-AQA-8300-20"
-     ],
-     "titles": [
-      "Algebra: expressions and brackets",
-      "A4 Expanding and factorising"
-     ],
-     "levels": [
-      "KS3",
-      "GCSE"
-     ],
-     "specs": [
-      "aqa-8300:A4"
-     ],
-     "by": [
-      "topic"
-     ]
+    "ct:TB-KS3-MATHS-11": {
+     "to": "ct:TB-GCSE-MATHS-10",
+     "title": "Sequences",
+     "level": "KS3"
     },
-    {
-     "idea_id": "ma.alg.formulae",
-     "part_of": "alg-form",
-     "cards": [
-      "ct:TB-KS2-MATHS-12",
-      "ct:TB-AQA-8300-19"
-     ],
-     "titles": [
-      "Algebra: missing numbers, formulae and sequences",
-      "A3 Expressions, equations and formulae"
-     ],
-     "levels": [
-      "SATs",
-      "GCSE"
-     ],
-     "specs": [
-      "aqa-8300:A3"
-     ],
-     "by": [
-      "topic"
-     ]
+    "ct:TB-AQA-8300-37": {
+     "to": "ct:TB-GCSE-MATHS-10",
+     "title": "A25 The nth term",
+     "level": "GCSE"
     },
-    {
-     "idea_id": "ma.alg.real-life-graphs",
-     "part_of": "alg-graph-realworld",
-     "cards": [
-      "ct:TB-AQA-8300-29",
-      "ct:TB-AQA-8300-50"
-     ],
-     "titles": [
-      "A14 Real-life graphs",
-      "R14 Rates of change on graphs"
-     ],
-     "levels": [
-      "GCSE"
-     ],
-     "specs": [
-      "aqa-8300:A14",
-      "aqa-8300:R14"
-     ],
-     "by": [
-      "topic"
-     ]
+    "ct:TB-KS2-MATHS-11": {
+     "to": "ct:TB-GCSE-MATHS-11",
+     "title": "Ratio and proportion",
+     "level": "SATs"
     },
-    {
-     "idea_id": "ma.alg.simplifying-and-collecting-terms",
-     "part_of": "alg-manip-simp",
-     "cards": [
-      "ct:TB-GCSE-MATHS-1MA1-2",
-      "ct:TB-AQA-8300-17"
-     ],
-     "titles": [
-      "A1 Algebraic notation",
-      "A1 Algebraic notation"
-     ],
-     "levels": [
-      "GCSE"
-     ],
-     "specs": [
-      "aqa-8300:A1",
-      "edexcel-1ma1:A1"
-     ],
-     "by": [
-      "spec",
-      "title"
-     ]
+    "ct:TB-KS3-MATHS-7": {
+     "to": "ct:TB-GCSE-MATHS-11",
+     "title": "Ratio and proportion",
+     "level": "KS3"
     },
-    {
-     "idea_id": "ma.alg.solving-quadratics",
-     "part_of": "alg-eq-quad",
-     "cards": [
-      "ct:TB-GCSE-MATHS-9",
-      "ct:TB-AQA-8300-31"
-     ],
-     "titles": [
-      "Quadratic equations",
-      "A18 Quadratic equations"
-     ],
-     "levels": [
-      "GCSE"
-     ],
-     "specs": [
-      "aqa-8300:A18",
-      "edexcel-1ma1:A11",
-      "edexcel-1ma1:A18",
-      "edexcel-1ma1:A19",
-      "edexcel-1ma1:A20",
-      "edexcel-1ma1:A22"
-     ],
-     "by": [
-      "title",
-      "topic"
-     ]
+    "ct:TB-AQA-8300-11": {
+     "to": "ct:TB-GCSE-MATHS-11",
+     "title": "N11 Fractions in ratio problems",
+     "level": "GCSE"
     },
-    {
-     "idea_id": "ma.alg.substitution",
-     "part_of": "alg-manip-sub",
-     "cards": [
-      "ct:TB-GCSE-MATHS-1MA1-3",
-      "ct:TB-AQA-8300-18"
-     ],
-     "titles": [
-      "A2 Substitution into formulae",
-      "A2 Substitution"
-     ],
-     "levels": [
-      "GCSE"
-     ],
-     "specs": [
-      "aqa-8300:A2",
-      "edexcel-1ma1:A2"
-     ],
-     "by": [
-      "spec",
-      "topic"
-     ]
+    "ct:TB-AQA-8300-41": {
+     "to": "ct:TB-GCSE-MATHS-11",
+     "title": "R4 Ratio notation",
+     "level": "GCSE"
     },
-    {
-     "idea_id": "ma.geo.2-d-shapes",
-     "part_of": "geom-prop-2d",
-     "cards": [
-      "ct:TB-KS1-MATHS-10",
-      "ct:TB-AQA-8300-55"
-     ],
-     "titles": [
-      "2-D and 3-D shapes",
-      "G4 Properties of 2-D shapes"
-     ],
-     "levels": [
-      "SATs",
-      "GCSE"
-     ],
-     "specs": [
-      "aqa-8300:G4"
-     ],
-     "by": [
-      "topic"
-     ]
+    "ct:TB-AQA-8300-45": {
+     "to": "ct:TB-GCSE-MATHS-11",
+     "title": "R8 Ratios, fractions and linear functions",
+     "level": "GCSE"
     },
-    {
-     "idea_id": "ma.geo.3-d-shapes",
-     "part_of": "geom-prop-3d",
-     "cards": [
-      "ct:TB-KS3-MATHS-16",
-      "ct:TB-AQA-8300-61"
-     ],
-     "titles": [
-      "3-D shapes, volume and surface area",
-      "G12 3-D shapes"
-     ],
-     "levels": [
-      "KS3",
-      "GCSE"
-     ],
-     "specs": [
-      "aqa-8300:G12"
-     ],
-     "by": [
-      "topic"
-     ]
+    "ct:TB-AQA-8300-48": {
+     "to": "ct:TB-GCSE-MATHS-12",
+     "title": "R11 Compound units: speed, density, pressure",
+     "level": "GCSE"
     },
-    {
-     "idea_id": "ma.geo.angles-in-polygons",
-     "part_of": "geom-angles-poly",
-     "cards": [
-      "ct:TB-GCSE-MATHS-13",
-      "ct:TB-KS3-MATHS-13"
-     ],
-     "titles": [
-      "Angles, polygons and constructions",
-      "Angles and polygons"
-     ],
-     "levels": [
-      "GCSE",
-      "KS3"
-     ],
-     "specs": [
-      "edexcel-1ma1:G1",
-      "edexcel-1ma1:G15",
-      "edexcel-1ma1:G2",
-      "edexcel-1ma1:G3"
-     ],
-     "by": [
-      "topic"
-     ]
+    "ct:TB-KS3-MATHS-13": {
+     "to": "ct:TB-GCSE-MATHS-13",
+     "title": "Angles and polygons",
+     "level": "KS3"
     },
-    {
-     "idea_id": "ma.geo.area-of-any-triangle",
-     "part_of": "geom-mens-area-sine",
-     "cards": [
-      "ct:TB-GCSE-MATHS-1MA1-9",
-      "ct:TB-AQA-8300-95"
-     ],
-     "titles": [
-      "G23 Area of any triangle",
-      "G23 Area of any triangle"
-     ],
-     "levels": [
-      "GCSE"
-     ],
-     "specs": [
-      "aqa-8300:G23",
-      "edexcel-1ma1:G23"
-     ],
-     "by": [
-      "spec",
-      "title",
-      "topic"
-     ]
+    "ct:TB-AQA-8300-93": {
+     "to": "ct:TB-GCSE-MATHS-15",
+     "title": "G10 Circle theorems",
+     "level": "GCSE"
     },
-    {
-     "idea_id": "ma.geo.circle-theorems",
-     "part_of": "geom-circthm",
-     "cards": [
-      "ct:TB-GCSE-MATHS-15",
-      "ct:TB-AQA-8300-93"
-     ],
-     "titles": [
-      "Circle theorems",
-      "G10 Circle theorems"
-     ],
-     "levels": [
-      "GCSE"
-     ],
-     "specs": [
-      "aqa-8300:G10",
-      "edexcel-1ma1:G10",
-      "edexcel-1ma1:G9"
-     ],
-     "by": [
-      "title",
-      "topic"
-     ]
+    "ct:TB-KS2-MATHS-14": {
+     "to": "ct:TB-GCSE-MATHS-16",
+     "title": "Perimeter, area and volume",
+     "level": "SATs"
     },
-    {
-     "idea_id": "ma.geo.constructions-and-loci",
-     "part_of": "geom-constr",
-     "cards": [
-      "ct:TB-GCSE-MATHS-1MA1-4",
-      "ct:TB-AQA-8300-53"
-     ],
-     "titles": [
-      "G2 Constructions and loci",
-      "G2 Constructions and loci"
-     ],
-     "levels": [
-      "GCSE"
-     ],
-     "specs": [
-      "aqa-8300:G2",
-      "edexcel-1ma1:G2"
-     ],
-     "by": [
-      "spec",
-      "title",
-      "topic"
-     ]
+    "ct:TB-AQA-8300-65": {
+     "to": "ct:TB-GCSE-MATHS-16",
+     "title": "G16 Area and volume",
+     "level": "GCSE"
     },
-    {
-     "idea_id": "ma.geo.coordinates",
-     "part_of": "geom-coord",
-     "cards": [
-      "ct:TB-AQA-8300-24",
-      "ct:TB-AQA-8300-60"
-     ],
-     "titles": [
-      "A8 Coordinates",
-      "G11 Geometry on coordinate axes"
-     ],
-     "levels": [
-      "GCSE"
-     ],
-     "specs": [
-      "aqa-8300:A8",
-      "aqa-8300:G11"
-     ],
-     "by": [
-      "topic"
-     ]
+    "ct:TB-AQA-8300-69": {
+     "to": "ct:TB-GCSE-MATHS-17",
+     "title": "G20 Pythagoras and trigonometry",
+     "level": "GCSE"
     },
-    {
-     "idea_id": "ma.geo.exact-trig-values",
-     "part_of": "geom-trig-exact",
-     "cards": [
-      "ct:TB-GCSE-MATHS-1MA1-8",
-      "ct:TB-AQA-8300-70"
-     ],
-     "titles": [
-      "G21 Exact trigonometric values",
-      "G21 Exact trig values"
-     ],
-     "levels": [
-      "GCSE"
-     ],
-     "specs": [
-      "aqa-8300:G21",
-      "edexcel-1ma1:G21"
-     ],
-     "by": [
-      "spec",
-      "topic"
-     ]
+    "ct:TB-AQA-8300-72": {
+     "to": "ct:TB-GCSE-MATHS-18",
+     "title": "G25 Vector arithmetic",
+     "level": "GCSE"
     },
-    {
-     "idea_id": "ma.geo.plans-and-elevations",
-     "part_of": "geom-prop-plans",
-     "cards": [
-      "ct:TB-GCSE-MATHS-1MA1-7",
-      "ct:TB-AQA-8300-62"
-     ],
-     "titles": [
-      "G13 Plans and elevations",
-      "G13 Plans and elevations"
-     ],
-     "levels": [
-      "GCSE"
-     ],
-     "specs": [
-      "aqa-8300:G13",
-      "edexcel-1ma1:G12",
-      "edexcel-1ma1:G13"
-     ],
-     "by": [
-      "title",
-      "topic"
-     ]
+    "ct:TB-KS3-MATHS-20": {
+     "to": "ct:TB-GCSE-MATHS-19",
+     "title": "Probability",
+     "level": "KS3"
     },
-    {
-     "idea_id": "ma.geo.right-angled-trigonometry",
-     "part_of": "geom-trig-right",
-     "cards": [
-      "ct:TB-GCSE-MATHS-17",
-      "ct:TB-AQA-8300-69"
-     ],
-     "titles": [
-      "Pythagoras and trigonometry",
-      "G20 Pythagoras and trigonometry"
-     ],
-     "levels": [
-      "GCSE"
-     ],
-     "specs": [
-      "aqa-8300:G20",
-      "edexcel-1ma1:G20",
-      "edexcel-1ma1:G21",
-      "edexcel-1ma1:G22",
-      "edexcel-1ma1:G23"
-     ],
-     "by": [
-      "title"
-     ]
+    "ct:TB-AQA-8300-75": {
+     "to": "ct:TB-GCSE-MATHS-19",
+     "title": "P3 The probability scale",
+     "level": "GCSE"
     },
-    {
-     "idea_id": "ma.geo.vectors",
-     "part_of": "geom-vec",
-     "cards": [
-      "ct:TB-GCSE-MATHS-18",
-      "ct:TB-AQA-8300-72"
-     ],
-     "titles": [
-      "Vector geometry",
-      "G25 Vector arithmetic"
-     ],
-     "levels": [
-      "GCSE"
-     ],
-     "specs": [
-      "aqa-8300:G25",
-      "edexcel-1ma1:G24",
-      "edexcel-1ma1:G25"
-     ],
-     "by": [
-      "topic"
-     ]
+    "ct:TB-AQA-8300-76": {
+     "to": "ct:TB-GCSE-MATHS-19",
+     "title": "P4 Probabilities sum to 1",
+     "level": "GCSE"
     },
-    {
-     "idea_id": "ma.mech.forces-and-newton-s-laws",
-     "part_of": "alm-forces",
-     "cards": [
-      "ct:TB-ALEVEL-MATHS-17",
-      "ct:TB-ALEVEL-MATHS-AS-11"
-     ],
-     "titles": [
-      "Forces and Newton's laws",
-      "Forces and Newton's laws, with worked examples"
-     ],
-     "levels": [
-      "A-Level"
-     ],
-     "specs": [],
-     "by": [
-      "topic"
-     ]
+    "ct:TB-GCSE-MATHS-1MA1-1": {
+     "to": "ct:TB-AQA-8300-12",
+     "title": "N12 Fractions and percentages as operators",
+     "level": "GCSE"
     },
-    {
-     "idea_id": "ma.mech.moments",
-     "part_of": "alm-moments",
-     "cards": [
-      "ct:TB-ALEVEL-MATHS-18",
-      "ct:TB-ALEVEL-MATHS-AS-14"
-     ],
-     "titles": [
-      "Moments",
-      "Moments, with worked examples"
-     ],
-     "levels": [
-      "A-Level"
-     ],
-     "specs": [],
-     "by": [
-      "topic"
-     ]
+    "ct:TB-AQA-8300-40": {
+     "to": "ct:TB-AQA-8300-12",
+     "title": "R3 One quantity as a fraction of another",
+     "level": "GCSE"
     },
-    {
-     "idea_id": "ma.num.equivalent-and-simplifying-fractions",
-     "part_of": "num-frac-equiv",
-     "cards": [
-      "ct:TB-KS2-MATHS-7",
-      "ct:TB-KS3-MATHS-5"
-     ],
-     "titles": [
-      "Fractions: equivalent, simplest and in order",
-      "Fractions"
-     ],
-     "levels": [
-      "SATs",
-      "KS3"
-     ],
-     "specs": [],
-     "by": [
-      "topic"
-     ]
+    "ct:TB-GCSE-MATHS-1MA1-2": {
+     "to": "ct:TB-AQA-8300-17",
+     "title": "A1 Algebraic notation",
+     "level": "GCSE"
     },
-    {
-     "idea_id": "ma.num.negative-numbers",
-     "part_of": "num-ops-neg",
-     "cards": [
-      "ct:TB-KS2-MATHS-3",
-      "ct:TB-KS3-MATHS-2"
-     ],
-     "titles": [
-      "Negative numbers",
-      "Negative numbers and the order of operations"
-     ],
-     "levels": [
-      "SATs",
-      "KS3"
-     ],
-     "specs": [],
-     "by": [
-      "topic"
-     ]
+    "ct:TB-GCSE-MATHS-1MA1-3": {
+     "to": "ct:TB-AQA-8300-18",
+     "title": "A2 Substitution into formulae",
+     "level": "GCSE"
     },
-    {
-     "idea_id": "ma.num.percentage-of-an-amount",
-     "part_of": "num-pct-of",
-     "cards": [
-      "ct:TB-KS2-MATHS-10",
-      "ct:TB-AQA-8300-46"
-     ],
-     "titles": [
-      "Percentages",
-      "R9 Percentages"
-     ],
-     "levels": [
-      "SATs",
-      "GCSE"
-     ],
-     "specs": [
-      "aqa-8300:R9"
-     ],
-     "by": [
-      "title",
-      "topic"
-     ]
+    "ct:TB-GCSE-MATHS-1MA1-4": {
+     "to": "ct:TB-AQA-8300-53",
+     "title": "G2 Constructions and loci",
+     "level": "GCSE"
     },
-    {
-     "idea_id": "ma.num.rounding",
-     "part_of": "num-place-round",
-     "cards": [
-      "ct:TB-GCSE-MATHS-4",
-      "ct:TB-AQA-8300-15"
-     ],
-     "titles": [
-      "Rounding, estimation and bounds",
-      "N15 Rounding"
-     ],
-     "levels": [
-      "GCSE"
-     ],
-     "specs": [
-      "aqa-8300:N15",
-      "edexcel-1ma1:N14",
-      "edexcel-1ma1:N15",
-      "edexcel-1ma1:N16"
-     ],
-     "by": [
-      "topic"
-     ]
+    "ct:TB-GCSE-MATHS-1MA1-6": {
+     "to": "ct:TB-AQA-8300-59",
+     "title": "G9 Parts of a circle",
+     "level": "GCSE"
     },
-    {
-     "idea_id": "ma.prob.conditional-probability",
-     "part_of": "prob-cond",
-     "cards": [
-      "ct:TB-ALEVEL-MATHS-AS-8",
-      "ct:TB-AQA-8300-96"
-     ],
-     "titles": [
-      "Conditional probability, with worked examples",
-      "P9 Conditional probability"
-     ],
-     "levels": [
-      "A-Level",
-      "GCSE"
-     ],
-     "specs": [
-      "aqa-8300:P9"
-     ],
-     "by": [
-      "topic"
-     ]
+    "ct:TB-KS3-MATHS-15": {
+     "to": "ct:TB-AQA-8300-59",
+     "title": "Circles",
+     "level": "KS3"
     },
-    {
-     "idea_id": "ma.prob.listing-outcomes-and-sample-space",
-     "part_of": "prob-listing",
-     "cards": [
-      "ct:TB-AQA-8300-5",
-      "ct:TB-AQA-8300-79"
-     ],
-     "titles": [
-      "N5 Systematic listing",
-      "P7 Sample spaces"
-     ],
-     "levels": [
-      "GCSE"
-     ],
-     "specs": [
-      "aqa-8300:N5",
-      "aqa-8300:P7"
-     ],
-     "by": [
-      "topic"
-     ]
+    "ct:TB-GCSE-MATHS-1MA1-7": {
+     "to": "ct:TB-AQA-8300-62",
+     "title": "G13 Plans and elevations",
+     "level": "GCSE"
     },
-    {
-     "idea_id": "ma.prob.relative-frequency-and-expectation",
-     "part_of": "prob-rel",
-     "cards": [
-      "ct:TB-GCSE-MATHS-1MA1-10",
-      "ct:TB-AQA-8300-73"
-     ],
-     "titles": [
-      "P1 Frequency trees",
-      "P1 Recording outcomes"
-     ],
-     "levels": [
-      "GCSE"
-     ],
-     "specs": [
-      "aqa-8300:P1",
-      "edexcel-1ma1:P1"
-     ],
-     "by": [
-      "spec"
-     ]
+    "ct:TB-GCSE-MATHS-1MA1-8": {
+     "to": "ct:TB-AQA-8300-70",
+     "title": "G21 Exact trigonometric values",
+     "level": "GCSE"
     },
-    {
-     "idea_id": "ma.rat.compound-measures",
-     "part_of": "ratio-rates",
-     "cards": [
-      "ct:TB-GCSE-MATHS-12",
-      "ct:TB-AQA-8300-48"
-     ],
-     "titles": [
-      "Compound measures and rates",
-      "R11 Compound units: speed, density, pressure"
-     ],
-     "levels": [
-      "GCSE"
-     ],
-     "specs": [
-      "aqa-8300:R11",
-      "edexcel-1ma1:A14",
-      "edexcel-1ma1:A15",
-      "edexcel-1ma1:G14",
-      "edexcel-1ma1:N13",
-      "edexcel-1ma1:R1",
-      "edexcel-1ma1:R11",
-      "edexcel-1ma1:R14",
-      "edexcel-1ma1:R15"
-     ],
-     "by": [
-      "topic"
-     ]
+    "ct:TB-GCSE-MATHS-1MA1-9": {
+     "to": "ct:TB-AQA-8300-95",
+     "title": "G23 Area of any triangle",
+     "level": "GCSE"
     },
-    {
-     "idea_id": "ma.rat.direct-proportion",
-     "part_of": "ratio-dir",
-     "cards": [
-      "ct:TB-AQA-8300-44",
-      "ct:TB-AQA-8300-47"
-     ],
-     "titles": [
-      "R7 Proportion",
-      "R10 Direct and inverse proportion"
-     ],
-     "levels": [
-      "GCSE"
-     ],
-     "specs": [
-      "aqa-8300:R10",
-      "aqa-8300:R7"
-     ],
-     "by": [
-      "topic"
-     ]
+    "ct:TB-GCSE-MATHS-1MA1-10": {
+     "to": "ct:TB-AQA-8300-73",
+     "title": "P1 Frequency trees",
+     "level": "GCSE"
     },
-    {
-     "idea_id": "ma.rat.scale-drawings-and-maps",
-     "part_of": "ratio-scale",
-     "cards": [
-      "ct:TB-KS3-MATHS-18",
-      "ct:TB-AQA-8300-39"
-     ],
-     "titles": [
-      "Measures, speed and scale drawings",
-      "R2 Scale and maps"
-     ],
-     "levels": [
-      "KS3",
-      "GCSE"
-     ],
-     "specs": [
-      "aqa-8300:R2"
-     ],
-     "by": [
-      "topic"
-     ]
+    "ct:TB-KS2-MATHS-2": {
+     "to": "ct:TB-KS1-MATHS-2",
+     "title": "Place value and rounding",
+     "level": "SATs"
     },
-    {
-     "idea_id": "ma.stat.averages-from-a-table",
-     "part_of": "stats-avg-table",
-     "cards": [
-      "ct:TB-KS3-MATHS-21",
-      "ct:TB-AQA-8300-83"
-     ],
-     "titles": [
-      "Statistics: averages, charts and correlation",
-      "S4 Averages and spread"
-     ],
-     "levels": [
-      "KS3",
-      "GCSE"
-     ],
-     "specs": [
-      "aqa-8300:S4"
-     ],
-     "by": [
-      "topic"
-     ]
+    "ct:TB-KS3-MATHS-1": {
+     "to": "ct:TB-KS1-MATHS-2",
+     "title": "Place value, rounding and estimation",
+     "level": "KS3"
     },
-    {
-     "idea_id": "ma.stat.sampling",
-     "part_of": "stats-sample",
-     "cards": [
-      "ct:TB-ALEVEL-MATHS-AS-1",
-      "ct:TB-AQA-8300-81"
-     ],
-     "titles": [
-      "Sampling, with worked examples",
-      "S1 Sampling"
-     ],
-     "levels": [
-      "A-Level",
-      "GCSE"
-     ],
-     "specs": [
-      "aqa-8300:S1"
-     ],
-     "by": [
-      "topic"
-     ]
+    "ct:TB-KS1-MATHS-10": {
+     "to": "ct:TB-AQA-8300-55",
+     "title": "2-D and 3-D shapes",
+     "level": "SATs"
     },
-    {
-     "idea_id": "ma.stat.scatter-graphs-and-correlation",
-     "part_of": "stats-charts-scatter",
-     "cards": [
-      "ct:TB-ALEVEL-MATHS-AS-7",
-      "ct:TB-AQA-8300-85"
-     ],
-     "titles": [
-      "Correlation and regression, with worked examples",
-      "S6 Scatter graphs and correlation"
-     ],
-     "levels": [
-      "A-Level",
-      "GCSE"
-     ],
-     "specs": [
-      "aqa-8300:S6"
-     ],
-     "by": [
-      "topic"
-     ]
+    "ct:TB-KS3-MATHS-2": {
+     "to": "ct:TB-KS2-MATHS-3",
+     "title": "Negative numbers and the order of operations",
+     "level": "KS3"
+    },
+    "ct:TB-KS3-MATHS-5": {
+     "to": "ct:TB-KS2-MATHS-7",
+     "title": "Fractions",
+     "level": "KS3"
+    },
+    "ct:TB-KS2-MATHS-10": {
+     "to": "ct:TB-AQA-8300-46",
+     "title": "Percentages",
+     "level": "SATs"
+    },
+    "ct:TB-KS2-MATHS-12": {
+     "to": "ct:TB-AQA-8300-19",
+     "title": "Algebra: missing numbers, formulae and sequences",
+     "level": "SATs"
+    },
+    "ct:TB-KS2-MATHS-13": {
+     "to": "ct:TB-AQA-8300-13",
+     "title": "Measurement: units, time and money",
+     "level": "SATs"
+    },
+    "ct:TB-AQA-8300-38": {
+     "to": "ct:TB-AQA-8300-13",
+     "title": "R1 Converting units",
+     "level": "GCSE"
+    },
+    "ct:TB-AQA-8300-63": {
+     "to": "ct:TB-AQA-8300-13",
+     "title": "G14 Measures and units in geometry",
+     "level": "GCSE"
+    },
+    "ct:TB-KS3-MATHS-8": {
+     "to": "ct:TB-AQA-8300-20",
+     "title": "Algebra: expressions and brackets",
+     "level": "KS3"
+    },
+    "ct:TB-KS3-MATHS-16": {
+     "to": "ct:TB-AQA-8300-61",
+     "title": "3-D shapes, volume and surface area",
+     "level": "KS3"
+    },
+    "ct:TB-KS3-MATHS-17": {
+     "to": "ct:TB-AQA-8300-58",
+     "title": "Transformations",
+     "level": "KS3"
+    },
+    "ct:TB-AQA-8300-92": {
+     "to": "ct:TB-AQA-8300-58",
+     "title": "G8 Combined transformations",
+     "level": "GCSE"
+    },
+    "ct:TB-KS3-MATHS-18": {
+     "to": "ct:TB-AQA-8300-39",
+     "title": "Measures, speed and scale drawings",
+     "level": "KS3"
+    },
+    "ct:TB-KS3-MATHS-21": {
+     "to": "ct:TB-AQA-8300-83",
+     "title": "Statistics: averages, charts and correlation",
+     "level": "KS3"
+    },
+    "ct:TB-ALEVEL-MATHS-AS-11": {
+     "to": "ct:TB-ALEVEL-MATHS-17",
+     "title": "Forces and Newton's laws, with worked examples",
+     "level": "A-Level"
+    },
+    "ct:TB-ALEVEL-MATHS-AS-14": {
+     "to": "ct:TB-ALEVEL-MATHS-18",
+     "title": "Moments, with worked examples",
+     "level": "A-Level"
+    },
+    "ct:TB-ALEVEL-MATHS-AS-1": {
+     "to": "ct:TB-AQA-8300-81",
+     "title": "Sampling, with worked examples",
+     "level": "A-Level"
+    },
+    "ct:TB-ALEVEL-MATHS-AS-7": {
+     "to": "ct:TB-AQA-8300-85",
+     "title": "Correlation and regression, with worked examples",
+     "level": "A-Level"
+    },
+    "ct:TB-ALEVEL-MATHS-AS-8": {
+     "to": "ct:TB-AQA-8300-96",
+     "title": "Conditional probability, with worked examples",
+     "level": "A-Level"
+    },
+    "ct:TB-AQA-8300-79": {
+     "to": "ct:TB-AQA-8300-5",
+     "title": "P7 Sample spaces",
+     "level": "GCSE"
+    },
+    "ct:TB-AQA-8300-60": {
+     "to": "ct:TB-AQA-8300-24",
+     "title": "G11 Geometry on coordinate axes",
+     "level": "GCSE"
+    },
+    "ct:TB-AQA-8300-50": {
+     "to": "ct:TB-AQA-8300-29",
+     "title": "R14 Rates of change on graphs",
+     "level": "GCSE"
+    },
+    "ct:TB-AQA-8300-47": {
+     "to": "ct:TB-AQA-8300-44",
+     "title": "R10 Direct and inverse proportion",
+     "level": "GCSE"
+    },
+    "ct:TB-ALEVEL-MATHS-11": {
+     "to": "ct:TB-GCSE-MATHS-18",
+     "title": "Vectors",
+     "level": "A-Level"
     }
-   ]
+   }
   }
  }
 }
