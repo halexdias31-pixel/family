@@ -117,6 +117,62 @@ function docketHotBreakfastRun_() {
   return 'added to ' + L.name;
 }
 
+/* DOCKET TIDY 2 (owner, 23 Nov: "tidy up certain tasks… without losing information… and get more prepared"): the old cell copied whole to the tab
+   backup_docket_23nov first; nothing deleted: past one-offs go to "Overdue — check", ideas to "Ideas & notes", foods into two items whose notes list them;
+   evening prep items added. Matched by title, so a run after the owner edits only does what still matches. */
+function docketTidy23NovRun_() {
+  const t = read(TAB.people), me = t.rows.find(r => isOwner_(r));
+  if (!me) throw new Error('no owner found');
+  const was = S(me.todo);
+  let got = null; try { got = JSON.parse(was); } catch (e) { got = null; }
+  if (!got || !Array.isArray(got.lists)) throw new Error('the owner has no docket lists');
+  if (got.lists.some(L => L.name === 'Ideas & notes')) return 'already tidied';
+  const ss = t.sheet.getParent(), bk = ss.getSheetByName('backup_docket_23nov') || ss.insertSheet('backup_docket_23nov');
+  bk.appendRow([new Date(), was]);
+  if (S(bk.getRange(bk.getLastRow(), 2).getValue()) !== was) throw new Error('the backup did not read back - nothing changed');
+  const today = Utilities.formatDate(new Date(), 'Europe/London', 'yyyy-MM-dd');
+  const list = n => got.lists.find(L => S(L.name).toLowerCase() === n.toLowerCase());
+  const take = (L, title) => { if (!L) return null; const i = L.items.findIndex(x => S(x.title).trim() === title); return i < 0 ? null : L.items.splice(i, 1)[0]; };
+  const overdue = { name: 'Overdue — check', items: [] }, ideas = { name: 'Ideas & notes', items: [] };
+  /* every dated one-off already past, from every list, to Overdue (date kept) */
+  got.lists.forEach(L => { L.items = L.items.filter(x => { if (x.date && !x.repeat && x.date < today) { overdue.items.push(x); return false; } return true; }); });
+  /* eyes opened: one sentence split across two items, joined */
+  const eo = list('eyes opend');
+  if (eo) { const a = take(eo, 'Acknowledge that’s these schedules are the ideal thing which you need to do, but can be violated for'), b = take(eo, 'sake of circumstances.');
+    if (a || b) eo.items.splice(3, 0, { title: 'Remember: these schedules are the ideal, but circumstances can break them', repeat: 'daily' }); }
+  /* breakfast: the foods as one item, the shop trips as one */
+  const os = list('Out of Shower'), ab = list('After brush teeth');
+  if (os) {
+    const foods = ['banana', 'date', 'Cereal!', 'Chia', 'Beans', 'Bread', 'Avacado', 'Strawberries', 'Nuts', 'apple', 'Egg', 'Whey!', 'Hot food: bacon, or a hot pasty from the corner shop'];
+    const got1 = foods.map(f => take(os, f)).filter(Boolean).map(x => x.title);
+    const yog = take(ab, 'Yoghurt!'); if (yog) got1.unshift('Yoghurt');
+    if (got1.length) os.items.push({ title: 'Breakfast', repeat: 'daily', minutes: 15, note: 'Pick from: ' + got1.join(', ') });
+    const lunch = ['Tuna', 'Salad'].map(f => take(os, f)).filter(Boolean).map(x => x.title);
+    const pack = take(os, 'Pack food');
+    if (pack || lunch.length) os.items.push({ title: 'Take your packed food to work', repeat: 'daily', minutes: 2, note: 'Packed the night before. Good fillings: ' + (lunch.concat(['egg', 'bread', 'fruit', 'nuts'])).join(', ') });
+    const shops = [take(os, 'Morning shop'), take(os, 'Morning shop'), take(os, 'Shopping')].filter(Boolean);
+    if (shops.length) os.items.push({ title: 'Morning shop (only if something is missing)', repeat: 'daily', minutes: 20, place: 'out' });
+  }
+  /* desk lists: the two certificate notices as one; ideas and long notes to Ideas & notes */
+  const dk = list('@ Desk'), bd = list('back @ desk');
+  const n1 = take(dk, 'Important Notice – Summer 2026 Examination Certificates'), n2 = take(dk, 'Important Notice – Summer 2026 Examination Certificates cancel wow');
+  if (dk && (n1 || n2)) dk.items.push({ title: 'Summer 2026 exam certificates notice (cancel?)' });
+  const toIdeas = (L, titles) => titles.forEach(ti => { const x = take(L, ti); if (x) ideas.items.push(x); });
+  toIdeas(dk, ['Add read Bible and add as a project as church farthers return the computer chip from amazon late', 'Write out business plan and all things involved lego circuit. lego contraptions', '3d print tinkercad', 'Once you done everything you need to do you can do what you want. You can stay up late ect']);
+  toIdeas(bd, ['Don’t react. Act. Follow you schedule', 'Use ai for organising bedroom, and organising todos', 'A system is what it does', 'Branded things', 'Akrevia oikonomia', 'Sleep warm', 'Lego mini figure trading', 'Lego trade in service', 'Mini gokd', 'Mini table football', 'here', 'You are the nightly run for the owner\'s tutoring site, repo halexdias31-pixel/family. The owner is not a programmer.']);
+  /* getting ready the night before (owner: not prepared -> the car -> parking) */
+  const ah = list('arrived home');
+  if (ah) [{ title: 'Pack tomorrow\'s food (in the fridge, by the door)', repeat: 'daily', minutes: 10, place: 'home' },
+           { title: 'Lay out clothes and bag for tomorrow', repeat: 'daily', minutes: 5, place: 'home' },
+           { title: 'Plan getting to work without the car (walk or bus)', repeat: 'daily', minutes: 2 }].forEach(x => ah.items.push(x));
+  if (overdue.items.length) got.lists.push(overdue);
+  got.lists.push(ideas);
+  const cell = JSON.stringify(got);
+  if (cell.length > DOCKET_CELL_MAX) throw new Error('the tidied docket is ' + cell.length + ' characters, over ' + DOCKET_CELL_MAX + ' - nothing was saved');
+  if (!setCell(t, me, 'todo', cell)) throw new Error('the people tab has no todo column - nothing was saved');
+  return overdue.items.length + ' to Overdue, ' + ideas.items.length + ' to Ideas & notes; breakfast, packed food and shop trips joined; 3 evening prep items added';
+}
+
 /* ---------- THE ONE-OFF JOBS, RUN ONCE, BY THEMSELVES § */
 const MIGRATIONS = [
   /* EVERY PIN FOUR DIGITS (owner, 10 Nov): a longer one keeps its first four; signing in with the old one still works (authCheckPin_). */
@@ -257,6 +313,10 @@ const MIGRATIONS = [
     retry: true,
     what: "the owner's breakfast list: a daily hot food choice (bacon, or a pasty from the corner shop)",
     run: () => docketHotBreakfastRun_() },
+  { id: 'docket-tidy-23nov',
+    retry: true,
+    what: "the owner's docket tidied (backup tab first): past one-offs to Overdue, ideas to Ideas & notes, foods and shop trips joined, evening prep added",
+    run: () => docketTidy23NovRun_() },
 ];
 
 /* ---------- MOVING ROWS OUT OF THE ITEMS TAB, NEVER LOSING ONE (queue step 7, 22 Nov) ----------
