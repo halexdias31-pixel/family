@@ -102,10 +102,12 @@ const LEVELS = /\blevel\s*[1-4]\b|levels? of response|indicative content|\bAO[1-
 /* ---------- THE MODEL ANSWERS: everything the key itself says is right */
 function models(r) {
   const out = [];
-  if (S(r.choice_right)) out.push(S(r.choice_right).split('|')[0].split(',').map(n => L[+n - 1] || '?').join(', '));
+  /* choice_right is option numbers or letters (2 or B), as js/library.js reads it */
+  const num = n => (/^\s*[A-Za-z]\s*$/.test(n) ? n.trim().toUpperCase().charCodeAt(0) - 64 : +n);
+  if (S(r.choice_right)) out.push(S(r.choice_right).split('|')[0].split(',').map(n => L[num(n) - 1] || '?').join(', '));
   /* and the options' own words, as a child types them where the options are letters already (find-marking.js choiceList_) */
   if (S(r.choice_right) && S(r.choices)) { const o = S(r.choices).split('|').map(c => c.replace(/<[^>]*>/g, '').trim());
-    out.push(S(r.choice_right).split('|')[0].split(',').map(n => o[+n - 1] || '?').join(', ')); }
+    out.push(S(r.choice_right).split('|')[0].split(',').map(n => o[num(n) - 1] || '?').join(', ')); }
   if (S(r.cells)) out.push(S(r.cells).split(';').map(c => (c.split('=').pop() || '').split('|')[0].trim()).join(' ; '));
   if (S(r.mark_words)) out.push(S(r.mark_words).split(';').map(p => p.split('|')[0].replace(/\+/g, ' ')).join(' '));
   if (S(r.accept)) {

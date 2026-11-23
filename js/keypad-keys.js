@@ -47,10 +47,9 @@ const KP_KEYS = [
   { v: '!sqrt', a: 'square root', c: ' kp-op', t: '\u221a' }, { t: '\u03c0', a: 'pi', c: ' kp-op' },
   { t: '0' }, { t: '.', a: 'point' }, { t: ',', a: 'comma' }, { t: '+', a: 'plus' },
   { t: 'x', a: 'x, the letter', c: ' kp-op' }, { t: '=', a: 'equals' },
-  /* `abc` IS THE LETTERS, ON THIS PAD. It was "type with the keyboard instead" and handed the box to
-     the phone (see the header); now it only turns the pad over, and `123` on the letters turns it
-     back. */
-  { v: '!abc', a: 'letters', c: ' kp-mode', t: 'abc' },
+  /* NO KEY TURNS THE PAD OVER (owner 23 Nov: "I hate a button for more buttons"): `abc` stood here; the letters an answer needs are
+     on its own row now (`kpNeedKeys_`) */
+  { v: '!undo', a: 'undo', c: ' kp-mode', t: '\u21b6' },
   { v: '!left', a: 'move left', c: ' kp-mode', t: '\u2190' },
   { v: '!right', a: 'move right', c: ' kp-mode', t: '\u2192' },
   /* THE SPACE (owner, 16 Nov): an answer such as "x ≈ 2.6" or "x<4 or x>5" needs its spaces; standard form is 5 × 1 0 and the power key. */
@@ -74,6 +73,17 @@ const KP_SIGN_KEYS = [
   { t: '\u00b1', a: 'plus or minus', c: ' kp-op' },
 ];
 
+/* THE FORMS ROW (owner 23 Nov: "Hegarty Maths always worked"): each key writes the one canonical form the marker reads -- a mixed
+   number W (N)/(D), a point (x,y), ×10^(n), a negative sign (the minus character), y for a point or an equation, and cm for a length */
+const KP_FORM_KEYS = [
+  { v: '!mixed', a: 'mixed number', c: ' kp-op', t: { type: 'group', tag: 'span', look: 'kp-mx', attrs: { 'aria-hidden': 'true' },
+    blocks: [{ type: 'group', tag: 'span', look: 'kp-mx-w' }, { type: 'group', tag: 'span', look: 'kp-fr', text: [{ i: '' }, { b: '' }, { i: '' }] }] } },
+  { v: '!pt', a: 'coordinates, a point', c: ' kp-op', t: '( , )' },
+  { v: '!x10', a: 'times ten to the power of', c: ' kp-op', t: { type: 'group', tag: 'span', look: 'kp-x10f', attrs: { 'aria-hidden': 'true' }, text: ['\u00d710', { i: '' }] } },
+  { v: '-', a: 'negative', c: ' kp-op', t: '(\u2212)' },
+  { t: 'y', a: 'y, the letter', c: ' kp-op' },
+  { v: 'cm', a: 'centimetres', c: ' kp-op', t: 'cm' },
+];
 /* THE VECTOR ROW (385): a column vector, top over bottom in one pair of brackets, and what goes with it. */
 const KP_VEC_A = '\u27ee', KP_VEC_B = '\u27ef';
 /* ONE PAD TYPES ANYTHING (round 3): this row is on every box, with the units a value needs beside the vector */
@@ -111,25 +121,22 @@ const KP_ABC = [].concat(
   '1234567890'.split('').map(c => kpCh_(c)),
   'qwertyuiop'.split('').map(c => kpCh_(c)),
   'asdfghjkl'.split('').map((c, i) => kpCh_(c, '', 6, i ? 0 : 4)),
-  [{ v: '!shift', a: 'capitals', c: ' kp-shift kp-mode', span: 9, t: '\u21e7' }],
+  /* NO ⇧ (owner 23 Nov: no key that changes the keys): a capital an answer needs is a key of its own on its row (`kpNeedKeys_`) */
+  [kpCh_(',', 'comma', 9)],
   'zxcvbnm'.split('').map(c => kpCh_(c)),
   [Object.assign({}, KP_DEL_KEY(), { span: 9 })]);
 /* THE LETTERS' LAST ROW: 123 αβ 🎤 [space] ' . ✓ — an essay's ends in return and done, a smaller space between. */
-const kpAbcBottom_ = (essay, sym) => [
-  Object.assign({ span: 6 }, { v: '!123', a: 'numbers and maths', c: ' kp-mode', t: '123' }),
-  Object.assign({ span: 6 }, sym ? { v: '!abc', a: 'letters', c: ' kp-mode', t: 'abc' } : KP_SYM_KEY),
+const kpAbcBottom_ = essay => [
+  kpCh_('-', 'hyphen', 6), kpCh_('?', 'question mark', 6),
   Object.assign({}, KP_MIC, { span: 6 }),
   Object.assign({}, KP_SPACE_KEY, { span: essay ? 18 : 24 }),
-  /* ON αβ the two punctuation keys give way to ⌫, which the symbols have no other row for. */
-  ...(sym ? [Object.assign({}, KP_DEL_KEY(), { span: 12 })] : [kpCh_('\'', 'apostrophe', 6), kpCh_('.', 'full stop', 6)])]
+  kpCh_('\'', 'apostrophe', 6), kpCh_('.', 'full stop', 6)]
   .concat(essay ? [Object.assign({}, KP_RETURN, { span: 6 }), Object.assign({}, KP_DONE_ESSAY, { span: 6 })]
     : [Object.assign({}, KP_DONE_KEY(), { span: 6 })]);
 /* THE ESSAY'S DONE KEY, which puts the pad away rather than sending. */
 const KP_DONE_ESSAY = { v: '!done', a: 'done, put the keypad away', c: ' kp-done kp-done-k', t: 'done' };
-/* AND THE SYMBOLS' KEY BESIDE `123` (round 4); on the symbols face `abc` stands there, and the space stays a space */
-const KP_SYM_KEY = { v: '!sym', a: 'symbols and Greek letters', c: ' kp-mode', t: '\u03b1\u03b2' };
 /* ---------- THE SYMBOLS (round 4): what a stored answer is written in and no other key types -- Greek letters, ≈ ≠ → ∞ … ∛, sets and intervals */
-const kpSy_ = (t, a, v) => ({ v: v, t: t, a: a, c: ' kp-op kp-sy', span: 6 });
+const kpSy_ = (t, a, v) => ({ v: v, t: t, a: a, c: ' kp-op', span: 6 });
 const KP_SYM = [
   kpSy_('\u03b1', 'alpha'), kpSy_('\u03b2', 'beta'), kpSy_('\u03b3', 'gamma'), kpSy_('\u03b8', 'theta'), kpSy_('\u03bb', 'lambda'),
   kpSy_('\u03bc', 'mu'), kpSy_('\u03c3', 'sigma'), kpSy_('\u03c6', 'phi'), kpSy_('\u03c9', 'omega'), kpSy_('\u03a9', 'capital omega, ohms'),
@@ -163,8 +170,6 @@ const kpKey_ = k => tile_({ act: 'kp-key', label: k.a || String(k.t || ''),
   data: { v: k.v != null ? k.v : k.t }, icon: k.icon, face: k.icon ? '' : kpFace_(k.t),
   cls: 'kp-key' + (k.c || '') + (k.span ? ' kp-s' + k.span : '') + (k.at ? ' kp-at' + k.at : '') });
 /* THE PAD'S KEYS FOR A LAYOUT AND A BOX. § */
-/* AND ON THE LETTERS TOO, beside the vector, so a power is never a face away: seven keys over the letters' sixty columns */
-const KP_ABC_TOP_SPAN = [8, 9, 9, 9, 9, 8, 8];
 /* EVERY ROW OF THE SIXTY COLUMNS STARTS AT COLUMN 1, said on its first key (`at: 1`) as the spans add up: a row never inherits the
    row above's leftovers, so the letters stay q-row, a-row, z-row on any browser's grid placement (iPad, 2406-2F Q28a). */
 function kpRows_(keys) {
@@ -173,12 +178,36 @@ function kpRows_(keys) {
     return first && !k.at ? Object.assign({}, k, { at: 1 }) : k; });
 }
 /* `site` IS A BOX ELSEWHERE ON THE SITE (528): 'mail' tops the letters with @ . /, any other the 123 face with @ # & and plain keys for the structures */
-function kpPadHtml_(layer, words, signs, essay, vec, site) {
-  if (layer === 'sym') return kpRows_(KP_SYM.concat(kpAbcBottom_(essay, true))).map(kpKey_).join('');
-  const top = site === 'mail' ? KP_MAIL_KEYS : site ? [] : vec ? [KP_POW].concat(KP_VEC_KEYS).map((k, i) => Object.assign({}, k, { span: KP_ABC_TOP_SPAN[i] })) : [];
-  if (layer === 'abc') return kpRows_(top.concat(KP_ABC).concat(kpAbcBottom_(essay))).map(kpKey_).join('');
-  if (site) return KP_SITE_KEYS.concat(KP_SIGN_KEYS, KP_KEYS.map(kpPlainKey_)).map(k => (essay && k.v === '!done' ? KP_DONE_ESSAY : k)).map(kpKey_).join('');
-  return (vec ? KP_VEC_KEYS : []).concat(signs ? KP_SIGN_KEYS : []).concat(KP_KEYS).map(k => (essay && k.v === '!done' ? KP_DONE_ESSAY : k)).map(kpKey_).join('');
+/* ONE FACE PER BOX, EVERY KEY ON IT AT ONCE (owner 23 Nov): no key turns the pad over. A maths box gets the forms row and the numbers,
+   the signs row and the units row when its answer has one of theirs (or nothing says what it is), and a row for any letter or sign the
+   answer uses that no other key types; a worded box the letters and a row for the capitals and signs its answer uses. */
+const KP_SIGNS_RE = /[<>\u2264\u2265:\u00b1]/, KP_VEC_RE = /[%\u00a3\u00b0\u00b2\u00b3\u27ee\u27ef^]/;
+const kpWays_ = acc => String(acc || '').split('|').map(w => w.trim()).filter(w => w && !/^rule:/i.test(w));
+function kpNeedKeys_(acc, face, words) {
+  const on = new Set(face.map(k => (k.v != null ? k.v : k.t)).filter(v => typeof v === 'string' && v.length === 1));
+  const out = [];
+  for (const c of [...new Set(kpWays_(acc).join('').replace(/[\s\u2212]/g, ''))]) {
+    if (on.has(c) || (!words && /[\d]/.test(c)) || (words && on.has(c.toLowerCase()) && c === c.toLowerCase())) continue;
+    if (!words && /[\/\^\u221a()\u00d7\u00f7+\-=.,]/.test(c)) continue;
+    const sym = KP_SYM.find(k => (k.v || k.t) === c);
+    out.push(words ? kpCh_(c, sym ? sym.a : (/[A-Z]/.test(c) ? 'capital ' + c : c), 6) : { t: c, a: sym ? sym.a : c, c: ' kp-op' });
+    if (out.length >= (words ? 20 : 12)) break;
+  }
+  return out;
+}
+function kpPadHtml_(layer, words, signs, essay, vec, site, acc) {
+  const known = !site && !essay && acc != null && kpWays_(acc).length > 0, ways = known ? kpWays_(acc).join(' ') : '';
+  if (layer === 'abc') {
+    const top = site === 'mail' ? KP_MAIL_KEYS : [];
+    const face = top.concat(KP_ABC).concat(kpAbcBottom_(essay));
+    return kpRows_(face.concat(known ? kpNeedKeys_(acc, face, true) : [])).map(k => (essay && k.v === '!done' ? KP_DONE_ESSAY : k)).map(kpKey_).join('');
+  }
+  if (site) return KP_SITE_KEYS.concat(KP_SIGN_KEYS, KP_KEYS.map(kpPlainKey_)).map(kpKey_).join('');
+  /* A PART WITH OPTIONS: only their letters, and the keys to correct and finish -- nothing else can be the answer */
+  if (layer === 'letters') return [...String(acc || '')].map(c => ({ v: '!pick:' + c, t: c, a: 'option ' + c, c: ' kp-op' }))
+    .concat(KP_KEYS.filter(k => /^!(left|right|back|done)$/.test(k.v))).map(kpKey_).join('');
+  const face = (!known || KP_VEC_RE.test(ways) ? KP_VEC_KEYS : []).concat(!known || KP_SIGNS_RE.test(ways) ? KP_SIGN_KEYS : []).concat(KP_FORM_KEYS, KP_KEYS);
+  return face.concat(known ? kpNeedKeys_(acc, face, false) : []).map(kpKey_).join('');
 }
 
 /* ---------- THE BOX § */
@@ -216,6 +245,8 @@ function kpTypeset_(v, caret, end) {
   const END = '(?=$|[\\s)+\\-\u00d7\u00f7=,\\/])';
   s = s.replace(/\u27ee(\u03db?),/g, '\u27ee' + KP_HOLE + '$1,').replace(/,(\u03db?)\u27ef/g, ',' + KP_HOLE + '$1\u27ef')
     .replace(/\((\u03db?)\)/g, '(' + KP_HOLE + '$1)')
+    /* A POINT'S EMPTY x OR y (the coordinate key's (,)) is a hole too */
+    .replace(/\((\u03db?),/g, '(' + KP_HOLE + '$1,').replace(/,(\u03db?)\)/g, ',' + KP_HOLE + '$1)')
     .replace(/(^|[\s(+\-\u00d7\u00f7=,])(\u03db?)\//g, '$1$2' + KP_HOLE + '/')
     .replace(new RegExp('\\/(\u03db?)' + END, 'g'), '/' + KP_HOLE + '$1')
     .replace(new RegExp('\\^(\u03db?)' + END, 'g'), '^(' + KP_HOLE + '$1)')
@@ -381,27 +412,22 @@ function kpLayout_(inp) {
   const site = kpSite_(inp) ? (inp.getAttribute('data-kpb') === 'mail' ? 'mail' : 'site') : '';
   const essay = !!inp && (inp.hasAttribute('data-kp-essay') || (!!site && kpLines_(inp)));
   const vec = true;
-  const sig = KP_LAYER + (words ? ':w' : ':m') + (signs && KP_LAYER === 'maths' ? ':s' : '') + (essay ? ':e' : '') + (vec ? ':v' : '') + (site ? ':' + site : '');
+  /* THE ANSWER'S ACCEPTED WAYS PICK THE FACE'S ROWS (`kpPadHtml_`): the part's `data-accept` */
+  const holder = inp && inp.closest ? inp.closest('[data-accept]') : null;
+  const acc = KP_LAYER === 'letters' ? inp.getAttribute('data-kp-letters') : holder ? holder.getAttribute('data-accept') : null;
+  const sig = KP_LAYER + (words ? ':w' : ':m') + (signs && KP_LAYER === 'maths' ? ':s' : '') + (essay ? ':e' : '') + (vec ? ':v' : '') + (site ? ':' + site : '') + ':' + (acc || '');
   if (pad.getAttribute('data-sig') !== sig) {
-    pad.innerHTML = kpPadHtml_(KP_LAYER, words, signs, essay, vec, site);
+    pad.innerHTML = kpPadHtml_(KP_LAYER, words, signs, essay, vec, site, acc);
     pad.setAttribute('data-sig', sig);
   }
   pad.classList.toggle('is-site', !!site);
   pad.classList.toggle('is-abc', KP_LAYER === 'abc');
-  pad.classList.toggle('is-sym', KP_LAYER === 'sym');
   pad.setAttribute('data-layer', KP_LAYER);
-  pad.setAttribute('aria-label', KP_LAYER === 'abc' ? 'Letters keypad' : KP_LAYER === 'sym' ? 'Symbols keypad' : site ? 'Numbers keypad' : 'Maths keypad');
+  pad.setAttribute('aria-label', KP_LAYER === 'abc' ? 'Letters keypad' : KP_LAYER === 'letters' ? 'Options keypad' : site ? 'Numbers keypad' : 'Maths keypad');
   kpShiftPaint_();
   /* A FACE OF ANOTHER HEIGHT (123 to abc) re-measures the room the page leaves under it, or the taller pad sits over the page's foot */
   if (!pad.hidden) kpPadH_(pad);
   return pad;
-}
-/* `abc` AND `123`: the same pad turned over, the box keeping its focus and its caret. § */
-function kpLayer_(name, inp) {
-  KP_LAYER = name;
-  kpLayout_(inp);
-  kpAutoShift_(inp);
-  kpShiftPaint_();
 }
 
 function kpOpen_(inp) {
@@ -417,7 +443,7 @@ function kpOpen_(inp) {
   /* AND THE SAME BOX FOCUSED AGAIN while the pad is still on it keeps its face and its caret. */
   const same = was === inp;
   if (!back && !same) {
-    KP_LAYER = site ? (inp.getAttribute('data-kpb') === 'num' ? 'maths' : 'abc') : inp.getAttribute('data-kp') === 'words' ? 'abc' : 'maths';
+    KP_LAYER = site ? (inp.getAttribute('data-kpb') === 'num' ? 'maths' : 'abc') : inp.hasAttribute('data-kp-letters') ? 'letters' : inp.getAttribute('data-kp') === 'words' ? 'abc' : 'maths';
     KP_SHIFT = 'off';
   }
   const pad = kpLayout_(inp);
@@ -541,6 +567,23 @@ function kpEdit_(inp, cmd) {
   if (!words && a === b) { a = kpPowOut_(v, a, cmd); b = a; }
   const a0 = a, b0 = b;
   const shut = !words && a === b && cmd === ')' ? kpPowShut_(v, a) : null;
+  /* AN OPTION'S LETTER (`choiceKeysAt_`): one replaces, a set adds in order without repeats, an order appends; ⌫ takes the last letter */
+  const pick = inp.getAttribute('data-kp-pick'), lets = inp.getAttribute('data-kp-letters') || '';
+  /* a laptop's letter is the option's key */
+  if (pick && /^[a-z]$/i.test(cmd)) cmd = '!pick:' + (lets.indexOf(cmd) >= 0 ? cmd : lets.indexOf(cmd.toUpperCase()) >= 0 ? cmd.toUpperCase() : cmd);
+  if (pick && (/^!pick:/.test(cmd) || cmd === '!back')) {
+    if (cmd !== '!back' && lets.indexOf(cmd.slice(6)) < 0) return;
+    let got = v.split(/[^A-Za-z]+/).filter(Boolean);
+    const c = cmd.slice(6);
+    if (cmd === '!back') got.pop();
+    else if (pick === 'one') got = [c];
+    else if (pick === 'set') got = got.indexOf(c) >= 0 ? got : got.concat(c).sort();
+    else if (got.indexOf(c) < 0) got.push(c);
+    inp.value = got.join(',');
+    inp.setSelectionRange(inp.value.length, inp.value.length);
+    if (inp.value !== v) { kpUndoNote_(inp, v, a0, b0, cmd); inp.dispatchEvent(new Event('input', { bubbles: true })); }
+    return;
+  }
   const put = (t, at) => {
     inp.value = v.slice(0, a) + t + v.slice(b);
     const c = a + (at == null ? t.length : at);
@@ -553,6 +596,10 @@ function kpEdit_(inp, cmd) {
   /* ×10ⁿ, STANDARD FORM IN ONE KEY: the times, the ten and a raised box with the caret in it (a × already typed is not doubled) */
   else if (cmd === '!x10') { const x = /×\s*$/.test(v.slice(0, a)) ? '10^()' : '×10^()'; put(x, x.length - 1); }
   else if (cmd === '!frac') { if (term) put('/()', 2); else put('()/()', 1); }
+  /* A MIXED NUMBER, a whole and a fraction: after a number the number is the whole; else a box for it. Never a + between them. */
+  else if (cmd === '!mixed') { if (/\d$/.test(v.slice(0, a))) put(' ()/()', 2); else put('() ()/()', 1); }
+  /* A POINT: its brackets and comma, the caret at x; → steps over the comma to y */
+  else if (cmd === '!pt') put('(,)', 1);
   else if (cmd === '!pow') put('^()', 2);
   else if (cmd === '!sqrt') put('\u221a()', 2);
   else if (cmd === '!home') to(kpLineStart_(v, a));
@@ -560,9 +607,10 @@ function kpEdit_(inp, cmd) {
   else if (cmd === '!top') to(0);
   else if (cmd === '!bottom') to(v.length);
   else if (cmd === '!left') {
-    to(b > a ? a : !words && v.slice(a - 3, a) === ')/(' ? a - 3 : Math.max(0, a - 1));
+    to(b > a ? a : !words && /^\)[\/ ]\($/.test(v.slice(a - 3, a)) ? a - 3 : Math.max(0, a - 1));
   } else if (cmd === '!right') {
-    to(b > a ? b : !words && v.slice(a, a + 3) === ')/(' ? a + 3 : Math.min(v.length, a + 1));
+    /* box to box: a fraction's top to its bottom, a mixed number's whole to its top */
+    to(b > a ? b : !words && /^\)[\/ ]\($/.test(v.slice(a, a + 3)) ? a + 3 : Math.min(v.length, a + 1));
   } else if (cmd === '!back' && b === a && kpVecStep_(v, a)) {
     /* A VECTOR'S BRACKETS AND COMMA ARE STEPPED OVER, never broken; an empty one goes whole */
     const r = kpVecStep_(v, a);
@@ -589,9 +637,12 @@ function kpEdit_(inp, cmd) {
       let from = a - 1, end = a;
       /* A `(` TYPED INTO AN EMPTY RAISED BOX goes alone, leaving the box: 2^(| ⌫ is 2^(), never a broken 2^( */
       if (v.slice(a - 3, a + 1) === '^(()' && kpPartner_(v, a - 2) < 0) from = a - 1;
+      /* AN EMPTY POINT (,) GOES WHOLE */
+      else if (v.slice(a - 1, a + 2) === '(,)') end = a + 2;
       else if (v.slice(a - 1, a + 1) === '()') {
         end = a + 1;
-        if (v.slice(a + 1, a + 4) === '/()') end = a + 4;          /* ()/() with nothing in either */
+        if (v.slice(a + 1, a + 6) === ' ()/()') end = a + 6;       /* an empty mixed number () ()/() goes whole */
+        else if (v.slice(a + 1, a + 4) === '/()') { end = a + 4; if (/\d $/.test(v.slice(0, a - 1))) from = a - 2; }  /* ()/(), and a mixed number's space */
         else if (/[\^\u221a\/]/.test(v.charAt(a - 2))) from = a - 2;
       }
       inp.value = v.slice(0, from) + v.slice(end);

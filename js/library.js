@@ -485,7 +485,7 @@ function libQuestion_(r) {
     /* A CLOSED LIST OF OPTIONS, TAPPED RATHER THAN TYPED. § */
     choices: libS(r.choices).split('|').map(t => t.trim()).filter(Boolean),
     /* ---------- AN ORDERING IS THE SAME TWO COLUMNS AND ONE MORE § */
-    choiceRight: libS(r.choice_right).split('|')[0].split(',').map(t => parseInt(t, 10)).filter(n => n > 0),
+    choiceRight: libS(r.choice_right).split('|')[0].split(',').map(t => (/^\s*[A-Za-z]\s*$/.test(t) ? t.trim().toUpperCase().charCodeAt(0) - 64 : parseInt(t, 10))).filter(n => n > 0),  /* 2 or B */
     choiceWays: libS(r.choice_right).split('|')
       .map(w => w.split(',').map(t => parseInt(t, 10)).filter(n => n > 0)).filter(w => w.length),
     orderEnds: libS(r.order_ends).split('|').map(t => t.trim()).filter(Boolean),
