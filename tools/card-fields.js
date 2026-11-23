@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* @family. — tools/card-fields.js THE CARD-FIELDS CHECK (rule 1.75, unify job J: the master decides card fields). Which fields a card shows,
-   in what order and with which labels, is data/settings/kinds.json's (`card.tags`, `card.fields.list`, `card.letter.lines`) and nowhere else:
+   in what order and with which labels, is data/settings/kinds.json's (`card.tags`, `card.fields.list`, `card.letter.words`) and nowhere else:
    js/cards-render.js `cardFieldsOf_` and `cardLetterRow_` read it on the site, backend/cards-gen.gs carries the same readers to the email.
    Fails the build when: a js/ or backend/ file writes a list of label/field pairs (`['Symbol', r.symbol], …`); a file builds a letter's row
    by hand (an object naming four or more of a kind's letter fields); a kind's `fields.list` names a field twice or has no label; or the
@@ -24,9 +24,9 @@ function run() {
         if (seen.has(x.f)) bad.push(k + ' card.fields.list names "' + x.f + '" twice'); seen.add(x.f);
       });
     }
-    if (c.letter && c.letter.lines) {
+    if (c.letter && c.letter.words) {
       n++;
-      letters.push([k, [...new Set(c.letter.lines.flatMap(l => l.need || []))], c.letter.aliases || {}]);
+      letters.push([k, [...new Set(Object.keys(c.letter.words).filter(p => p !== 'say').flatMap(p => c.letter.words[p].need || []))], c.letter.aliases || {}]);
     }
   });
   /* 2. NO HAND LIST: label/field pairs, or a letter's row built field by field, anywhere a card is drawn from. */
