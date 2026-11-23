@@ -81,22 +81,22 @@
   ]
  },
  "levels": {
-  "_about": "THE LIBRARY'S LEVELS, ONE TABLE (R4; owner, 17 Nov): each level, its rung on the ladder a range is read along (0: never in a range), its key stages, its tiers and its other spellings. A key stage follows from its level, so Find never asks one a level already answers. KS1 SATs and KS2 SATs are two facts and the level is one of them; ESL is off the school ladder, its CEFR bands its tiers. LEVEL_TABLE (js/find-aloud.js), the backend's digest and tools/lib/library-schema.js all read this.",
+  "_about": "THE LIBRARY'S LEVELS, ONE TABLE (R4; owner, 17 Nov): each level, its rung on the ladder a range is read along (0: never in a range), its key stages, its tiers and its other spellings. A key stage follows from its level, so Find never asks one a level already answers. KS1 SATs and KS2 SATs are two facts and the level is one of them; ESL is off the school ladder, its CEFR bands its tiers. Every level stands on the ladder, by its rung or a key stage (Functional Skills L2 is KS4, so it sorts beside GCSE and a KS4 filter holds it), unless it says `ladder: false` (a level outside England's school years); tools/one-list.js fails one that does neither. LEVEL_TABLE (js/find-aloud.js), the backend's digest and tools/lib/library-schema.js all read this.",
   "list": [
    {"level": "SATs", "rung": 1, "stages": ["KS1", "KS2"], "tiers": [], "says": ["KS1", "KS2", "KS1 SATs", "KS2 SATs"]},
    {"level": "11+", "rung": 0, "stages": ["KS2"], "tiers": [], "says": []},
    {"level": "KS3", "rung": 2, "stages": ["KS3"], "tiers": [], "says": []},
    {"level": "GCSE", "rung": 3, "stages": ["KS4"], "tiers": ["Foundation", "Higher", "Foundation Plus", "Higher Plus"], "says": ["KS4"]},
-   {"level": "Functional Skills L2", "rung": 0, "stages": [], "tiers": [], "says": []},
+   {"level": "Functional Skills L2", "rung": 0, "stages": ["KS4"], "tiers": [], "says": []},
    {"level": "Level 2 Certificate", "rung": 0, "stages": ["KS4"], "tiers": [], "says": ["L2 Certificate"]},
    {"level": "A-Level", "rung": 4, "stages": ["KS5"], "tiers": [], "says": ["Alevel", "A level", "KS5"]},
    {"level": "AS", "rung": 0, "stages": ["KS5"], "tiers": [], "says": ["AS level", "AS-level"]},
-   {"level": "Theory test", "rung": 0, "stages": [], "tiers": [], "says": []},
-   {"level": "ESL", "rung": 0, "stages": [], "tiers": ["A1", "A2", "B1", "B2", "C1", "C2"], "says": ["EFL", "ESOL", "CEFR"]},
+   {"level": "Theory test", "rung": 0, "ladder": false, "stages": [], "tiers": [], "says": []},
+   {"level": "ESL", "rung": 0, "ladder": false, "stages": [], "tiers": ["A1", "A2", "B1", "B2", "C1", "C2"], "says": ["EFL", "ESOL", "CEFR"]},
    {"level": "University", "rung": 5, "stages": [], "tiers": ["FHEQ 4", "FHEQ 5", "FHEQ 6", "FHEQ 7"], "says": ["Degree", "Undergraduate", "FHEQ", "MSOR"]},
-   {"level": "BNCC", "rung": 0, "stages": [], "tiers": ["1º ano", "2º ano", "3º ano", "4º ano", "5º ano", "6º ano", "7º ano", "8º ano", "9º ano"], "says": ["Brazil", "Brasil", "Ensino Fundamental"]},
-   {"level": "ENEM", "rung": 0, "stages": [], "tiers": [], "says": []},
-   {"level": "Australian Curriculum", "rung": 0, "stages": [], "tiers": ["Foundation Year", "Year 1", "Year 2", "Year 3", "Year 4", "Year 5", "Year 6", "Year 7", "Year 8", "Year 9", "Year 10"], "says": ["Australia", "ACARA", "F-10"]}
+   {"level": "BNCC", "rung": 0, "ladder": false, "stages": [], "tiers": ["1º ano", "2º ano", "3º ano", "4º ano", "5º ano", "6º ano", "7º ano", "8º ano", "9º ano"], "says": ["Brazil", "Brasil", "Ensino Fundamental"]},
+   {"level": "ENEM", "rung": 0, "ladder": false, "stages": [], "tiers": [], "says": []},
+   {"level": "Australian Curriculum", "rung": 0, "ladder": false, "stages": [], "tiers": ["Foundation Year", "Year 1", "Year 2", "Year 3", "Year 4", "Year 5", "Year 6", "Year 7", "Year 8", "Year 9", "Year 10"], "says": ["Australia", "ACARA", "F-10"]}
   ],
   "quals": {
    "_about": "A QUALIFICATION'S LEVEL (owner, 18 Nov): always one of `list`, which is in order, highest first — a person's qualifications are sorted by it, so the most important never fall off. A stored spelling in `says`, or any library level's `says` above, is read as its canonical name by qualLevel_ (js/data.js), on the site and the server alike. The qualification form offers `list`.",

@@ -84,7 +84,7 @@ function inkParts() {
 /* DIGEST_TAG_INK: each hue `hN` as style.css's `--hue-N`, the colour `[data-tag="hN"]` draws. */
 const cardTags = () => { const j = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/settings/tags.json'), 'utf8')); return { max: j.max, kinds: j.kinds }; };
 function tagParts() {
-  const rows = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/settings/facets.json'), 'utf8'));
+  const rows = SD.facets();
   const fields = rows.filter(r => r && r.field && r.active !== false && isFinite(Number(r.sort_order)) && String(r.sort_order) !== '')
     .map((r, i) => ({ f: r.field, at: Number(r.sort_order), i })).sort((x, y) => x.at - y.at || x.i - y.i).map(o => o.f);
   const css = fs.readFileSync(path.join(ROOT, 'style.css'), 'utf8'), ink = {};

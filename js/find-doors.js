@@ -158,7 +158,7 @@ function settingDoorItems_() {
       if (name) add(name, g.id, { col: col, at: i, id: g.id || '' }, type, own && (ok || /^\s*<div\b[^>]*\bdata-yours="1"/.test(html)) && !/^\s*<div\b[^>]*\bis-locked\b/.test(html));
     });
   });
-  if (settingMay_('door:notify') && !lensOn_()) add('Notifications', 'set:notify', { notify: true }, 'Business', true);
+  if (settingMay_('door:notify') && !lensOn_()) add(text_('notifications'), 'set:notify', { notify: true }, 'Business', true);
   /* ORDER IS DATA (the registry's rows, types too); an untagged card keeps its column's place after them. */
   out.sort((a, b) => a.rank - b.rank);
   const order = settingTypes_().map(t => t.type);
@@ -214,7 +214,7 @@ function notifyDoorCard_() {
   const waiting = ((DATA && DATA.posts) || []).filter(p => p && p.active !== false && p.waiting).length;
   const rows = needs.map(k => ({ label: k.replace(/[-_]/g, ' '), value: String(BIZ_NEEDS[k]) }))
     .concat(waiting ? [{ label: 'posts waiting for approval', value: String(waiting) }] : []);
-  return renderCard({ kind: 'panel', look: 'notify-door', tags: [{ text: 'Notifications', colour: 0 }],
+  return renderCard({ kind: 'panel', look: 'notify-door', tags: [{ text: text_('notifications'), colour: 0 }],
     body: [rows.length ? { type: 'list', items: rows } : { type: 'text', text: 'Nothing needs you.' }] });
 }
 
@@ -311,11 +311,11 @@ function ownSecReg_() {
     seat: ['Rate and extra seat', 'your rate and extra seat', 'Your rate and what each extra student adds for you.'],
     cut: ["@family.'s share", "@family.'s share of a seat", 'What @family. adds for each extra student; an admin sets it.'],
     size: ['Class size', 'your class size', 'The fewest and most students you take, and what a class pays.'], headline: ['Headline', 'your headline', 'The line under your name on your tutor card.'],
-    manager: ['Your manager', 'your manager', 'The tutor you answer to, and how your extra-seat money is split.'],
+    manager: ['Your manager', text_('your-manager'), 'The tutor you answer to, and how your extra-seat money is split.'],
     photos: ['Photographs', 'your photographs', 'The photos and video on your tutor card.'], words: ['3 words', 'your 3 words', '3 words that describe you.'],
     glance: ['At a glance', 'your experience and ages', 'Your experience, the ages you teach and your hours.'], quals: ['Qualifications', 'your qualifications', 'What you are qualified in and teach.'],
     jobs: ['Jobs', 'your jobs', 'Your current and past jobs, shown on your tutor card.'],
-    where: ['Where you teach', 'where you teach', 'The venues you teach at and how far you travel.'], week: ['Available', 'your weekly hours', 'The hours you can teach each week.'] };
+    where: [text_('where-you-teach'), 'where you teach', 'The venues you teach at and how far you travel.'], week: ['Available', 'your weekly hours', 'The hours you can teach each week.'] };
   const of = OWN_SEC_OF_SET_;
   /* Each settings group's name from the one table (the registry's type rows, settingGroupOf_), never a copy of it. */
   const where = c => (settingGroupOf_(c) || {}).label || c;

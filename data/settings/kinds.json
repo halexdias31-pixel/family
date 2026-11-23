@@ -40,7 +40,7 @@
    "source": "the booking form (js/book-*.js)",
    "find": {
     "group": "Booking",
-    "label": "Booking form",
+    "label": "booking-form",
     "under": "Booking",
     "draw": "none"
    },
@@ -88,7 +88,7 @@
         "when": "how",
         "from": "openJobs",
         "filter": "sameKind",
-        "label": "openClass",
+        "label": "openclass",
         "first": [
          "start-a-new-one"
         ],
@@ -314,7 +314,7 @@
    },
    "find": {
     "group": "Booking",
-    "label": "Staff",
+    "label": "staff",
     "under": [
      "Booking",
      "Profiles"
@@ -434,7 +434,7 @@
        "f": "areas",
        "type": "ticks",
        "attr": "data-where-area",
-       "label": "Areas you teach in",
+       "label": "areas-you-teach-in",
        "look": "many-list where-areas"
       }
      ]
@@ -442,17 +442,17 @@
    },
    "fields": {
     "headline": {
-     "label": "one line about you (30 characters)",
+     "label": "one-line-about-you-30",
      "chars": 30
     },
     "extra_seat_rate": {
-     "label": "extra seat: share of your rate, 0–1 (0.5 = half)",
+     "label": "extra-seat-share-of-your",
      "min": 0,
      "max": 1,
      "step": 0.05
     },
     "extra_seat_cut": {
-     "label": "@family.'s share of an extra seat, 0–2 (blank = the usual)",
+     "label": "family-s-share-of-an",
      "labelLocked": "@family.'s share of an extra seat — set by @family. (blank = the usual)",
      "min": 0,
      "max": 2,
@@ -483,7 +483,7 @@
    },
    "find": {
     "group": "Venues",
-    "label": "Venues",
+    "label": "venues",
     "under": "Booking",
     "facets": [
      "forLabel",
@@ -526,7 +526,7 @@
    "loader": "subjectRows() -> find-aloud.js",
    "find": {
     "group": "Booking",
-    "label": "Subjects",
+    "label": "subjects",
     "under": "Booking",
     "facets": []
    },
@@ -556,7 +556,7 @@
    "loader": "find-aloud.js",
    "find": {
     "group": "Booking",
-    "label": "Levels",
+    "label": "levels",
     "under": "Booking",
     "facets": [
      "forLabel",
@@ -615,12 +615,12 @@
    },
    "find": {
     "group": "Booking",
-    "label": "Receipts",
+    "label": "receipts",
     "under": "Booking",
     "entries": {
      "receipt": {},
      "offBooking": {
-      "label": "Booking",
+      "label": "booking",
       "draw": ""
      }
     },
@@ -771,12 +771,12 @@
    },
    "find": {
     "group": "Learning",
-    "label": "Questions",
+    "label": "questions",
     "under": "Practice",
     "entries": {
      "question": {},
      "answer": {
-      "label": "Answers"
+      "label": "answers"
      }
     },
     "facets": [
@@ -864,7 +864,7 @@
       "pic": "margin:0 0 {gap}px",
       "tags": "font-size:{small}px;line-height:24px;margin:0 0 {gap}px",
       "tag": "color:{hue};border:1px solid{edge};border-radius:{round}px;padding:0 6px",
-      "label": "margin:{gap}px 0 4px;font-size:{small}px;color:{faint}",
+      "label": "margin-gap-px-0-4px",
       "box": "border:1px solid {paneLine};border-radius:{round}px;padding:4px 14px;color:{ink}",
       "value": "margin:0;color:{ink}",
       "line": "margin:0",
@@ -922,7 +922,7 @@
    },
    "find": {
     "group": "Learning",
-    "label": "Practicals",
+    "label": "practicals",
     "under": "Library",
     "facets": [
      "forLabel",
@@ -992,7 +992,7 @@
    },
    "find": {
     "group": "Learning",
-    "label": "Projects",
+    "label": "projects",
     "under": "Library",
     "facets": [
      "forLabel",
@@ -1064,7 +1064,7 @@
    },
    "find": {
     "group": "Learning",
-    "label": "Library",
+    "label": "library",
     "facets": [
      "forLabel",
      "kindLabel",
@@ -1157,7 +1157,7 @@
    },
    "find": {
     "group": "Learning",
-    "label": "Inserts",
+    "label": "inserts",
     "facets": [
      "forLabel",
      "kindLabel",
@@ -1201,7 +1201,7 @@
    "loader": "js/library.js -> find-history.js",
    "find": {
     "group": "Learning",
-    "label": "Specification",
+    "label": "specification",
     "under": "Library",
     "facets": [
      "forLabel",
@@ -1236,7 +1236,7 @@
    "loader": "js/library.js HIST_DB -> find-history.js histItem_",
    "find": {
     "group": "Learning",
-    "label": "Library",
+    "label": "library",
     "facets": [
      "forLabel",
      "kindLabel",
@@ -1276,7 +1276,7 @@
    "loader": "js/library.js HIST_DB -> histItem_ as kind people",
    "find": {
     "group": "Learning",
-    "label": "Library",
+    "label": "library",
     "facets": [
      "forLabel",
      "kindLabel",
@@ -1317,7 +1317,7 @@
    "loader": "js/library.js libExtrasBoxing_ -> find-aloud.js",
    "find": {
     "group": "Learning",
-    "label": "Library",
+    "label": "library",
     "facets": [
      "forLabel",
      "kindLabel",
@@ -1358,7 +1358,7 @@
    "loader": "js/library.js HIST_DB -> find-history.js histItem_",
    "find": {
     "group": "Learning",
-    "label": "Library",
+    "label": "library",
     "facets": []
    },
    "shape": "Reference",
@@ -1382,11 +1382,11 @@
    "loader": "js/library.js HIST_DB -> find-history.js histItem_",
    "find": {
     "group": "Learning",
-    "label": "Library",
+    "label": "library",
     "entries": {
      "event": {},
      "timeline": {
-      "label": "Timeline",
+      "label": "timeline",
       "under": "Library"
      }
     },
@@ -1421,7 +1421,7 @@
    "loader": "js/library.js libExtrasBoxing_ -> find-aloud.js",
    "find": {
     "group": "Learning",
-    "label": "Library",
+    "label": "library",
     "facets": [
      "forLabel",
      "kindLabel",
@@ -1469,7 +1469,7 @@
    "source": "a library card: one passage of a text collection (js/bible.js, talmud.js, quran.js, works.js, hadith.js, texts.js, pdtexts.js, orthodox.js, hymns.js)",
    "find": {
     "group": "Learning",
-    "label": "Library",
+    "label": "library",
     "entries": {
      "bible": {},
      "talmud": {},
@@ -1491,7 +1491,7 @@
    "loader": "js/mechanics.js",
    "find": {
     "group": "Learning",
-    "label": "Library",
+    "label": "library",
     "facets": [
      "forLabel",
      "kindLabel",
@@ -1544,7 +1544,7 @@
    "loader": "js/chemistry.js",
    "find": {
     "group": "Learning",
-    "label": "Library",
+    "label": "library",
     "facets": [
      "forLabel",
      "kindLabel",
@@ -1571,19 +1571,19 @@
     "fields": {
      "say": "THE CARD'S FACT LINES (unify job J, master decides card fields): in this order, each `label` then the row's `f`, an empty one left out. Read by chemBody_ through cardFieldsOf_ (js/cards-render.js); tools/card-fields.js fails a field list written anywhere else.",
      "list": [
-      {"label": "Symbol", "f": "symbol"},
-      {"label": "Atomic number", "f": "number"},
-      {"label": "Relative atomic mass", "f": "mass"},
-      {"label": "Block", "f": "block"},
-      {"label": "Electron configuration", "f": "config"},
-      {"label": "Discovered", "f": "discovered"},
-      {"label": "Also called", "f": "also"},
-      {"label": "Formula", "f": "formula"},
-      {"label": "Use", "f": "use"},
-      {"label": "Hazard", "f": "hazard"},
-      {"label": "Pattern", "f": "pattern"},
-      {"label": "Conditions", "f": "conditions"},
-      {"label": "Observations", "f": "observations"}
+      {"label": "symbol", "f": "symbol"},
+      {"label": "atomic-number", "f": "number"},
+      {"label": "relative-atomic-mass", "f": "mass"},
+      {"label": "block", "f": "block"},
+      {"label": "electron-configuration", "f": "config"},
+      {"label": "discovered", "f": "discovered"},
+      {"label": "also-called", "f": "also"},
+      {"label": "formula", "f": "formula"},
+      {"label": "use", "f": "use"},
+      {"label": "hazard", "f": "hazard"},
+      {"label": "pattern", "f": "pattern"},
+      {"label": "conditions", "f": "conditions"},
+      {"label": "observations", "f": "observations"}
      ]
     }
    },
@@ -1596,7 +1596,7 @@
    "loader": "js/history-topics.js",
    "find": {
     "group": "Learning",
-    "label": "Library",
+    "label": "library",
     "facets": [
      "forLabel",
      "kindLabel",
@@ -1627,7 +1627,7 @@
    "source": "js/map.js WIDGETS (kind tool)",
    "find": {
     "group": "Tools",
-    "label": "Tools",
+    "label": "tools",
     "under": "Tools"
    },
    "see": {
@@ -1709,7 +1709,7 @@
    "source": "the owner's docket lists (owner, 20 Nov): their own `todo` cell, read by js/map.js dkItems_ — an item a card, drawn by dkCard_: the title, the list and its date, time or Daily as tags, a Done tick saved as the widget saves it (`doneOn` for a daily item), and the note; its attributes (minutes, runs by itself, effort, fun, importance, place, a fixed time or a deadline) are the form `docket-item`, the order dkPlan_ (rules.json 1.82), the first two unticked tagged Now and Next; a list with a usual start (`start`, form `docket-list`) is a phase of the day, and the widget heads with Now and Next (dkPhase_)",
    "find": {
     "group": "Tools",
-    "label": "Docket",
+    "label": "docket",
     "under": "Tools",
     "draw": "dkCard_",
     "facets": [
@@ -1727,7 +1727,7 @@
           "draft": false,
           "attr": "data-dka",
           "say": "the owner's private plain-text address (owner, 21 Nov: NOW, NEXT step 3): the Docket's Private address tile opens it; the backend's doGet `?docket=<token>` answers Now/Next as text, `&do=done&what=` ticks, `&do=add&what=` adds. Make a new address (action docketAddress, renew) kills the old token.",
-          "fields": [{ "f": "address", "type": "text", "label": "Your private address", "input": "url" }]
+          "fields": [{ "f": "address", "type": "text", "label": "dk-addr-head", "input": "url" }]
         },
         "docket-list": {
      "draft": false,
@@ -1737,12 +1737,12 @@
       {
        "f": "name",
        "type": "text",
-       "label": "List name"
+       "label": "list-name"
       },
       {
        "f": "start",
        "type": "text",
-       "label": "Usual start",
+       "label": "usual-start",
        "input": "time"
       }
      ]
@@ -1755,12 +1755,12 @@
       {
        "f": "title",
        "type": "text",
-       "label": "Title"
+       "label": "title-2"
       },
       {
        "f": "minutes",
        "type": "number",
-       "label": "Minutes it takes",
+       "label": "minutes-it-takes",
        "input": "number",
        "min": 1,
        "step": 1,
@@ -1769,7 +1769,7 @@
       {
        "f": "runs",
        "type": "number",
-       "label": "Runs by itself (minutes)",
+       "label": "runs-by-itself-minutes",
        "input": "number",
        "min": 0,
        "step": 1,
@@ -1778,7 +1778,7 @@
       {
        "f": "effort",
        "type": "choice",
-       "label": "Effort",
+       "label": "effort",
        "default": "easy",
        "options": [
         {
@@ -1798,7 +1798,7 @@
       {
        "f": "fun",
        "type": "choice",
-       "label": "Fun",
+       "label": "fun",
        "default": "neutral",
        "options": [
         {
@@ -1818,7 +1818,7 @@
       {
        "f": "importance",
        "type": "choice",
-       "label": "Importance",
+       "label": "importance",
        "default": "normal",
        "options": [
         {
@@ -1842,7 +1842,7 @@
       {
        "f": "place",
        "type": "choice",
-       "label": "Place",
+       "label": "place",
        "default": "anywhere",
        "options": [
         {
@@ -1862,19 +1862,19 @@
       {
        "f": "date",
        "type": "date",
-       "label": "Date",
+       "label": "date",
        "input": "date"
       },
       {
        "f": "time",
        "type": "text",
-       "label": "Time",
+       "label": "time",
        "input": "time"
       },
       {
        "f": "timeIs",
        "type": "choice",
-       "label": "The time is",
+       "label": "the-time-is",
        "default": "at",
        "options": [
         {
@@ -1890,7 +1890,7 @@
       {
        "f": "repeat",
        "type": "choice",
-       "label": "Repeats",
+       "label": "repeats",
        "default": "",
        "options": [
         {
@@ -1902,7 +1902,7 @@
       {
        "f": "note",
        "type": "long",
-       "label": "Note"
+       "label": "note"
       }
      ]
     }
@@ -1912,7 +1912,7 @@
    "source": "js/map.js WIDGETS (kind game)",
    "find": {
     "group": "Games",
-    "label": "Games",
+    "label": "games",
     "under": "Games"
    },
    "see": {
@@ -1923,7 +1923,7 @@
    "source": "tiers.json: a switched-off widget",
    "find": {
     "group": "Coming soon",
-    "label": "Coming soon",
+    "label": "coming-soon",
     "under": "Coming soon"
    },
    "see": {
@@ -1980,7 +1980,7 @@
    },
    "find": {
     "group": "Profiles",
-    "label": "Profiles",
+    "label": "profiles",
     "under": "Profiles",
     "facets": [
      "forLabel",
@@ -2031,7 +2031,7 @@
       {
        "f": "role",
        "type": "choice",
-       "label": "Role",
+       "label": "role",
        "draft": false
       },
       {
@@ -2044,7 +2044,7 @@
       {
        "f": "dob",
        "type": "date",
-       "label": "Date of birth (optional)"
+       "label": "date-of-birth-optional"
       }
      ],
      "draft": "form"
@@ -2068,7 +2068,7 @@
        "f": "roles",
        "type": "ticks",
        "attr": "data-pf-role",
-       "label": "Role",
+       "label": "role",
        "look": "pf-roles",
        "tickLook": ""
       },
@@ -2081,13 +2081,13 @@
       {
        "f": "dob",
        "type": "date",
-       "label": "Date of birth (optional)"
+       "label": "date-of-birth-optional"
       },
       {
        "f": "parents",
        "type": "ticks",
        "attr": "data-pf-parent",
-       "label": "Parents",
+       "label": "parents",
        "draft": false,
        "look": "pf-ticks",
        "tickLook": ""
@@ -2095,7 +2095,7 @@
       {
        "f": "parent",
        "type": "choice",
-       "label": "Their parent (optional)",
+       "label": "their-parent-optional",
        "draft": false
       }
      ],
@@ -2115,13 +2115,13 @@
       {
        "f": "handle",
        "type": "text",
-       "label": "handle (theirs to change)",
+       "label": "handle-theirs-to-change",
        "readonly": true
       },
       {
        "f": "dob",
        "type": "date",
-       "label": "date of birth"
+       "label": "date-of-birth"
       },
       {
        "f": "email",
@@ -2165,7 +2165,7 @@
       {
        "f": "lib{n}_pin",
        "type": "text",
-       "label": "PIN",
+       "label": "pin",
        "look": "lib-pin",
        "quiet": true,
        "blank": true
@@ -2288,12 +2288,12 @@
       {
        "f": "",
        "type": "head",
-       "label": "You"
+       "label": "you"
       },
       {
        "f": "fullName",
        "type": "text",
-       "label": "full name"
+       "label": "full-name"
       },
       {
        "f": "phone",
@@ -2312,7 +2312,7 @@
       {
        "f": "address",
        "type": "long",
-       "label": "home address"
+       "label": "home-address"
       },
       {
        "f": "postcode",
@@ -2324,23 +2324,23 @@
       {
        "f": "dob",
        "type": "date",
-       "label": "date of birth",
+       "label": "date-of-birth",
        "row": "r2"
       },
       {
        "f": "",
        "type": "head",
-       "label": "Documents"
+       "label": "documents"
       },
       {
        "f": "idDoc",
        "type": "doc",
-       "label": "photo ID — passport or driving licence"
+       "label": "photo-id-passport-or-driving"
       },
       {
        "f": "rightToWork",
        "type": "choice",
-       "label": "right to work in the UK",
+       "label": "right-to-work-in-the",
        "options": [
         [
          "",
@@ -2359,12 +2359,12 @@
       {
        "f": "rtwDoc",
        "type": "doc",
-       "label": "right-to-work document — passport, share code or visa"
+       "label": "right-to-work-document-passport"
       },
       {
        "f": "",
        "type": "head",
-       "label": "What you teach"
+       "label": "what-you-teach"
       },
       {
        "f": "subjects",
@@ -2373,72 +2373,72 @@
       {
        "f": "qualifications",
        "type": "long",
-       "label": "qualifications — degrees, teaching qualifications, anything relevant"
+       "label": "qualifications-degrees-teaching-qualifications-anything"
       },
       {
        "f": "qual0",
        "type": "doc",
-       "label": "a qualification certificate"
+       "label": "a-qualification-certificate"
       },
       {
        "f": "qual1",
        "type": "doc",
-       "label": "another qualification certificate (optional)"
+       "label": "another-qualification-certificate-optional"
       },
       {
        "f": "qual2",
        "type": "doc",
-       "label": "another qualification certificate (optional)"
+       "label": "another-qualification-certificate-optional"
       },
       {
        "f": "rate",
        "type": "money",
        "input": "number",
-       "label": "hourly rate (£)",
+       "label": "hourly-rate",
        "min": "1",
        "step": "0.5"
       },
       {
        "f": "",
        "type": "head",
-       "label": "Checks"
+       "label": "checks"
       },
       {
        "f": "dbsNumber",
        "type": "text",
-       "label": "enhanced DBS certificate number",
+       "label": "enhanced-dbs-certificate-number",
        "row": "r3"
       },
       {
        "f": "dbsIssued",
        "type": "date",
-       "label": "issued on",
+       "label": "issued-on",
        "row": "r3"
       },
       {
        "f": "dbsUpdate",
        "type": "tick",
-       "label": "I consent to you checking it on the DBS Update Service"
+       "label": "i-consent-to-you-checking"
       },
       {
        "f": "dbsNeeded",
        "type": "tick",
-       "label": "I need a DBS check"
+       "label": "i-need-a-dbs-check"
       },
       {
        "f": "",
        "type": "head",
-       "label": "When and where"
+       "label": "when-and-where"
       },
       {
        "f": "availability",
        "type": "timetable",
-       "label": "when you can teach"
+       "label": "when-you-can-teach"
       },
       {
        "f": "area",
        "type": "text",
-       "label": "area and venues you can reach"
+       "label": "area-and-venues-you-can"
       },
       {
        "f": "experience",
@@ -2448,7 +2448,7 @@
       {
        "f": "",
        "type": "head",
-       "label": "2 references"
+       "label": "2-references"
       },
       {
        "f": "ref1Name",
@@ -2459,7 +2459,7 @@
       {
        "f": "ref1Relationship",
        "type": "text",
-       "label": "relationship to you",
+       "label": "relationship-to-you",
        "row": "a1"
       },
       {
@@ -2485,7 +2485,7 @@
       {
        "f": "ref2Relationship",
        "type": "text",
-       "label": "relationship to you",
+       "label": "relationship-to-you",
        "row": "a2"
       },
       {
@@ -2505,19 +2505,19 @@
       {
        "f": "statement",
        "type": "long",
-       "label": "a short statement — why you want to teach"
+       "label": "a-short-statement-why-you"
       },
       {
        "f": "cvLink",
        "type": "text",
        "input": "url",
-       "label": "CV link (optional)",
+       "label": "cv-link-optional",
        "ph": "https://…"
       },
       {
        "f": "consent",
        "type": "tick",
-       "label": "I agree to @family. keeping these details and documents privately to consider my application, contacting my referees and checking my DBS."
+       "label": "i-agree-to-family-keeping"
       }
      ]
     },
@@ -2531,7 +2531,7 @@
       {
        "f": "who",
        "type": "choice",
-       "label": "Who is the account for?",
+       "label": "who-is-the-account-for",
        "note": "Both are free; teaching starts with \"Apply to teach\" once you are in.",
        "options": [
         {
@@ -2550,7 +2550,7 @@
        "only": {
         "who": "student"
        },
-       "label": "Whose email will you give?",
+       "label": "whose-email-will-you-give",
        "options": [
         {
          "v": "own",
@@ -2581,7 +2581,7 @@
       {
        "f": "pin",
        "type": "pin",
-       "label": "PIN — 4 digits"
+       "label": "pin-4-digits"
       }
      ],
      "draft": "ask"
@@ -2594,7 +2594,7 @@
        "f": "who",
        "type": "text",
        "ph": "Username or email",
-       "label": "Your username or email"
+       "label": "your-username-or-email"
       },
       {
        "f": "pin",
@@ -2613,17 +2613,17 @@
       {
        "f": "now",
        "type": "pin",
-       "label": "current PIN"
+       "label": "current-pin"
       },
       {
        "f": "new",
        "type": "pin",
-       "label": "new PIN, 4 numbers, not 1234"
+       "label": "new-pin-4-numbers-not"
       },
       {
        "f": "again",
        "type": "pin",
-       "label": "new PIN again"
+       "label": "new-pin-again"
       }
      ]
     }
@@ -2670,7 +2670,7 @@
    "source": "js/me-settings.js",
    "find": {
     "group": "Settings",
-    "label": "Settings",
+    "label": "settings",
     "under": "Settings",
     "entries": {
      "setting": {},
@@ -2689,61 +2689,61 @@
    "typed": ["acct:pin", "acct:roles", "acct:notify", "set:notify", "acct:voice"],
    "typedBy": ["^set:", "^own:"],
    "cards": [
-    {"id":"type:Student","col":"account","label":"Kids settings","notes":"the Student account type; its cards are the account column's."},
-    {"id":"type:Parent","col":"family","label":"Parent settings","notes":"the Parent account type; its cards are the family column's."},
-    {"id":"type:Staff","col":"staff","label":"Tutor settings","notes":"the Staff account type; its cards are the staff column's."},
-    {"id":"type:Apprentice","col":"apprentice","label":"Apprentice settings","notes":"the Apprentice account type; who opens it is permissions.json's see rows (tutor, admin)."},
+    {"id":"type:Student","col":"account","label":"kids-settings","notes":"the Student account type; its cards are the account column's."},
+    {"id":"type:Parent","col":"family","label":"parent-settings","notes":"the Parent account type; its cards are the family column's."},
+    {"id":"type:Staff","col":"staff","label":"tutor-settings","notes":"the Staff account type; its cards are the staff column's."},
+    {"id":"type:Apprentice","col":"apprentice","label":"apprentice-settings","notes":"the Apprentice account type; who opens it is permissions.json's see rows (tutor, admin)."},
     {"id":"type:Admin","col":"","label":"","notes":"the Admin account type, a tag only."},
-    {"id":"type:Business","col":"biz","label":"Biz settings","admin":true,"notes":"the Business account type: the business's own data, an admin's (permissions.json)."},
-    {"id":"type:Site","col":"site","label":"Web settings","admin":true,"notes":"the Site account type, an admin's (permissions.json)."},
+    {"id":"type:Business","col":"biz","label":"biz-settings","admin":true,"notes":"the Business account type: the business's own data, an admin's (permissions.json)."},
+    {"id":"type:Site","col":"site","label":"web-settings","admin":true,"notes":"the Site account type, an admin's (permissions.json)."},
     {"id":"own:account:picture","under":["Student","Parent","Staff","Apprentice","Admin"],"notes":"everybody's picture."},
     {"id":"own:account:figure","under":["Student","Parent","Staff","Apprentice","Admin"],"find":"Your figure","notes":"the figure drawn for you; its card has no title of its own."},
     {"id":"own:account:name","under":["Student","Parent","Staff","Apprentice","Admin"],"notes":"first and last name, one item for every account type."},
     {"id":"own:account:handle","under":["Student","Parent","Staff","Apprentice","Admin"],"find":"Handle","notes":"the @handle; its card has no title of its own."},
     {"id":"set:account:about-you","under":["Student"],"find":"Date of birth","notes":"identity: a few words about you, next to your name."},
     {"id":"set:account:contact-address","under":["Student","Parent","Staff","Apprentice","Admin"],"notes":"email, phone and address are everybody's."},
-    {"id":"acct:signed-in","col":"account","label":"Signed in","say":"Sign in, or who is signed in on this phone and Sign out.","under":["Student","Parent","Staff","Apprentice","Admin"],"notes":"every account signs in and out the same way: one item, found under each account type (owner, 7 Nov)."},
-    {"id":"acct:pin","col":"account","label":"Signing in","only":"your PIN","say":"Change the PIN you sign in with.","under":["Student","Parent","Staff","Apprentice","Admin"],"notes":"every account has a PIN."},
-    {"id":"acct:roles","col":"account","label":"Your role","only":"your role","say":"Whether this account is a student's or a parent's.","under":["Student","Parent","Staff","Apprentice","Admin"],"notes":"which roles this account holds."},
-    {"id":"staff:apply","col":"staff","label":"Apply to teach","say":"Ask to teach with us; the admin says yes or no.","under":["Student","Parent","Staff"],"notes":"Apply to teach: a signed-in grown-up with no staff role (permissions.json see rows; never a child, 4h)."},
-    {"id":"acct:notify","col":"account","label":"Notifications","only":"which emails you get","say":"Which emails we send you.","under":["Student","Parent","Staff","Apprentice","Admin"],"find":"Notifications","notes":"which emails you get; one Notifications item with the phone's (acct:push), same name merges."},
+    {"id":"acct:signed-in","col":"account","label":"signed-in","say":"Sign in, or who is signed in on this phone and Sign out.","under":["Student","Parent","Staff","Apprentice","Admin"],"notes":"every account signs in and out the same way: one item, found under each account type (owner, 7 Nov)."},
+    {"id":"acct:pin","col":"account","label":"signing-in","only":"your PIN","say":"Change the PIN you sign in with.","under":["Student","Parent","Staff","Apprentice","Admin"],"notes":"every account has a PIN."},
+    {"id":"acct:roles","col":"account","label":"your-role","only":"your role","say":"Whether this account is a student's or a parent's.","under":["Student","Parent","Staff","Apprentice","Admin"],"notes":"which roles this account holds."},
+    {"id":"staff:apply","col":"staff","label":"apply-to-teach","say":"Ask to teach with us; the admin says yes or no.","under":["Student","Parent","Staff"],"notes":"Apply to teach: a signed-in grown-up with no staff role (permissions.json see rows; never a child, 4h)."},
+    {"id":"acct:notify","col":"account","label":"notifications","only":"which emails you get","say":"Which emails we send you.","under":["Student","Parent","Staff","Apprentice","Admin"],"find":"Notifications","notes":"which emails you get; one Notifications item with the phone's (acct:push), same name merges."},
     {"id":"set:notify","under":["Admin","Business"],"find":"Notifications","notes":"what needs an admin, merged by name into the one Notifications item."},
-    {"id":"acct:voice","col":"account","label":"Reading aloud","say":"How questions sound when they are read aloud on this device.","under":["Student","Parent","Staff","Apprentice","Admin"],"notes":"reading aloud is a setting of this device, whoever holds it."},
-    {"id":"acct:workfile","col":"account","label":"Work on file","say":"Pages you scanned or photographed, kept on your account.","under":["Student","Staff"],"notes":"a student's scanned pages on their account; a tutor's card opens each booked student's (owner, 11 Nov)."},
-    {"id":"acct:progress","col":"account","label":"Progress","say":"Your streak, marks and grade, each source question by question, and any day's answers.","under":["Student"],"find":"Progress","notes":"ONE card (4g, owner 20 Nov): streak, last 7 days, marks and grade; a row per source opening question by question; then the day view (History). It replaced History, Questions, Recent activity, Work on next, Grade estimate and the per-source cards."},
-    {"id":"acct:brownie","col":"account","label":"Brownie points","say":"A placeholder: points for good work.","under":["Student"],"notes":"role-specific, a student's: progress after the account items."},
-    {"id":"acct:roadmap","col":"account","label":"Roadmap","say":"A placeholder: how much of the syllabus is left.","under":["Student"]},
-    {"id":"acct:conduct","col":"account","label":"Code of conduct","say":"A placeholder: the code of conduct.","under":["Student"]},
-    {"id":"acct:prog-sessions","col":"account","label":"Progress: sessions","say":"Your booked and past sessions.","under":["Student"]},
+    {"id":"acct:voice","col":"account","label":"reading-aloud","say":"How questions sound when they are read aloud on this device.","under":["Student","Parent","Staff","Apprentice","Admin"],"notes":"reading aloud is a setting of this device, whoever holds it."},
+    {"id":"acct:workfile","col":"account","label":"work-on-file","say":"Pages you scanned or photographed, kept on your account.","under":["Student","Staff"],"notes":"a student's scanned pages on their account; a tutor's card opens each booked student's (owner, 11 Nov)."},
+    {"id":"acct:progress","col":"account","label":"progress","say":"Your streak, marks and grade, each source question by question, and any day's answers.","under":["Student"],"find":"Progress","notes":"ONE card (4g, owner 20 Nov): streak, last 7 days, marks and grade; a row per source opening question by question; then the day view (History). It replaced History, Questions, Recent activity, Work on next, Grade estimate and the per-source cards."},
+    {"id":"acct:brownie","col":"account","label":"brownie-points","say":"A placeholder: points for good work.","under":["Student"],"notes":"role-specific, a student's: progress after the account items."},
+    {"id":"acct:roadmap","col":"account","label":"roadmap","say":"A placeholder: how much of the syllabus is left.","under":["Student"]},
+    {"id":"acct:conduct","col":"account","label":"code-of-conduct","say":"A placeholder: the code of conduct.","under":["Student"]},
+    {"id":"acct:prog-sessions","col":"account","label":"progress-sessions","say":"Your booked and past sessions.","under":["Student"]},
     {"id":"set:staff:about-you","under":["Staff"],"find":"About your teaching","notes":"Staff card parts in the order a family reads the card (CARD_SECTIONS): words, rate, photos, qualifications, where, when."},
     {"id":"set:staff:your-rate-and-group-size","under":["Staff"]},
     {"id":"set:staff:photos","under":["Staff"]},
     {"id":"set:staff:qualifications","under":["Staff"]},
     {"id":"set:staff:where-you-teach","under":["Staff"]},
     {"id":"set:staff:when-i-can-teach","under":["Staff"]},
-    {"id":"staff:lego","col":"staff","label":"LEGO piece check","say":"Count a trade-in set's pieces from photos, against its parts list.","under":["Staff","Admin"],"find":"LEGO piece check","notes":"a trade-in set's pieces counted from photos, a batch at a time, against its parts list (lego.js, owner 12 Nov)."},
-    {"id":"staff:hub","col":"staff","label":"Staff hub","only":"your rate and hours","say":"Your terms, weekly hours, prices and statement as a tutor.","under":["Staff"],"notes":"the staff hub after the card parts."},
-    {"id":"appr:blurb","col":"apprentice","label":"Apprentice settings","say":"Work experience with us: a placeholder until it is built.","under":["Apprentice"],"find":"Work experience","notes":"the apprentice placeholder; its card has no title of its own."},
+    {"id":"staff:lego","col":"staff","label":"lego-piece-check","say":"Count a trade-in set's pieces from photos, against its parts list.","under":["Staff","Admin"],"find":"LEGO piece check","notes":"a trade-in set's pieces counted from photos, a batch at a time, against its parts list (lego.js, owner 12 Nov)."},
+    {"id":"staff:hub","col":"staff","label":"staff-hub","only":"your rate and hours","say":"Your terms, weekly hours, prices and statement as a tutor.","under":["Staff"],"notes":"the staff hub after the card parts."},
+    {"id":"appr:blurb","col":"apprentice","label":"apprentice-settings","say":"Work experience with us: a placeholder until it is built.","under":["Apprentice"],"find":"Work experience","notes":"the apprentice placeholder; its card has no title of its own."},
     {"id":"site:digest","under":["Business"],"find":"Weekly email","notes":"the Sunday email to parents as the backend sends it (digestPreview); found under Business, an admin's only (owner, 8 Nov)."},
     {"id":"site:digest-words","under":["Business"],"find":"Weekly email's words","notes":"the subject, greeting, first and last lines of that email, beside its look (owner, 8 Nov)."},
     {"id":"site:inbox","under":["Business"],"find":"Email","notes":"the last four emails in the admin Gmail, read-only, a static overview (owner, 11 Nov: back from the old site)."},
-    {"id":"site:template","col":"site","label":"Card template","say":"The one template every card is drawn by, and the fixed sizes and colours.","under":["Business"],"find":"Card template","notes":"the one template every card is drawn by, shown as a live sample with its parts named, and the fixed scale read from style.css (owner, 11 Nov)."},
+    {"id":"site:template","col":"site","label":"card-template","say":"The one template every card is drawn by, and the fixed sizes and colours.","under":["Business"],"find":"Card template","notes":"the one template every card is drawn by, shown as a live sample with its parts named, and the fixed scale read from style.css (owner, 11 Nov)."},
     {"id":"door:notify","under":["Business"],"notes":"who sees the Notifications door under Business (its card is set:notify, which keeps its own place)."},
     {"id":"biz:settings","under":["Business"],"find":"Business settings","notes":"every business setting in one list (owner, 9 Nov): share B, fees, discounts, rates, then venues and rooms; bookings only read them."},
-    {"id":"ppl:students:help","col":"students","label":"Needs help","say":"Students who have asked for help with a question."},
-    {"id":"ppl:students:add","col":"students","label":"Add a student","say":"Make an account for a new student."},
-    {"id":"ppl:students:search","col":"students","label":"Find by handle","say":"Find a student by their handle, to add them as your child."},
-    {"id":"ppl:students:family","col":"students","label":"You and your family (students)","say":"You and the children linked to you."},
-    {"id":"ppl:students:manage","col":"students","label":"Manage your child","say":"Link your child's account to yours, or answer a link."},
-    {"id":"ppl:students:all","col":"students","label":"Every student","say":"Every student account."},
-    {"id":"ppl:parents:add","col":"parents","label":"Add a parent","say":"Make an account for a new parent."},
-    {"id":"ppl:parents:you","col":"parents","label":"Your card (Parent profiles)","say":"Your own card as a parent."},
-    {"id":"ppl:parents:family","col":"parents","label":"You and your family (parents)","say":"The parents linked to you."},
-    {"id":"ppl:parents:claims","col":"parents","label":"Parent claims","say":"Parents asking to be linked to a child."},
-    {"id":"ppl:parents:all","col":"parents","label":"Every parent","say":"Every parent account."},
-    {"id":"site:stability","col":"site","label":"Stability","say":"How stable the code is, scored from its exceptions, special cases and dead code."},
-    {"id":"site:rename","col":"site","label":"Rename every username","say":"Move everybody onto the username format, once: preview the list, then apply."},
-    {"id":"biz:build","col":"site","label":"Build","say":"Which version of the site and backend is running."},
+    {"id":"ppl:students:help","col":"students","label":"needs-help","say":"Students who have asked for help with a question."},
+    {"id":"ppl:students:add","col":"students","label":"add-a-student","say":"Make an account for a new student."},
+    {"id":"ppl:students:search","col":"students","label":"find-by-handle","say":"Find a student by their handle, to add them as your child."},
+    {"id":"ppl:students:family","col":"students","label":"you-and-your-family-students","say":"You and the children linked to you."},
+    {"id":"ppl:students:manage","col":"students","label":"manage-your-child","say":"Link your child's account to yours, or answer a link."},
+    {"id":"ppl:students:all","col":"students","label":"every-student","say":"Every student account."},
+    {"id":"ppl:parents:add","col":"parents","label":"add-a-parent","say":"Make an account for a new parent."},
+    {"id":"ppl:parents:you","col":"parents","label":"your-card-parent-profiles","say":"Your own card as a parent."},
+    {"id":"ppl:parents:family","col":"parents","label":"you-and-your-family-parents","say":"The parents linked to you."},
+    {"id":"ppl:parents:claims","col":"parents","label":"parent-claims","say":"Parents asking to be linked to a child."},
+    {"id":"ppl:parents:all","col":"parents","label":"every-parent","say":"Every parent account."},
+    {"id":"site:stability","col":"site","label":"stability","say":"How stable the code is, scored from its exceptions, special cases and dead code."},
+    {"id":"site:rename","col":"site","label":"rename-every-username","say":"Move everybody onto the username format, once: preview the list, then apply."},
+    {"id":"biz:build","col":"site","label":"build","say":"Which version of the site and backend is running."},
     {"id":"set:staff:jobs","notes":"a settings group (setCardId_), known by its id; no row of tags, so under its own type only."}
    ]
   },
@@ -2751,7 +2751,7 @@
    "source": "site health (js/health*.js)",
    "find": {
     "group": "Settings",
-    "label": "Settings",
+    "label": "settings",
     "under": "Settings"
    },
    "see": {
@@ -2762,7 +2762,7 @@
    "source": "Ledger messages tab (payload.messages)",
    "find": {
     "group": "Messages",
-    "label": "Messages",
+    "label": "messages",
     "under": "Messages"
    },
    "shape": "Thread",
@@ -2790,7 +2790,7 @@
    },
    "find": {
     "group": "Posts",
-    "label": "Posts",
+    "label": "posts",
     "under": "Posts",
     "entries": {
      "post": {},
@@ -2842,13 +2842,13 @@
    },
    "find": {
     "group": "Shop",
-    "label": "Things",
+    "label": "things",
     "under": "Shop",
     "draw": "findShopCard_",
     "entries": {
      "shop": {},
      "offShop": {
-      "label": "Shop",
+      "label": "shop",
       "draw": ""
      }
     },
@@ -2918,7 +2918,7 @@
    },
    "find": {
     "group": "Life",
-    "label": "Partners",
+    "label": "partners",
     "under": "Settings",
     "from": "store",
     "new": "New partner",
@@ -2958,27 +2958,27 @@
       {
        "f": "who",
        "type": "text",
-       "label": "Who (their person id)"
+       "label": "who-their-person-id"
       },
       {
        "f": "business",
        "type": "text",
-       "label": "Business"
+       "label": "business"
       },
       {
        "f": "together",
        "type": "long",
-       "label": "What we could do together"
+       "label": "what-we-could-do-together"
       },
       {
        "f": "terms",
        "type": "text",
-       "label": "Terms / %"
+       "label": "terms"
       },
       {
        "f": "status",
        "type": "choice",
-       "label": "Status",
+       "label": "status",
        "options": [
         {
          "v": "idea",
@@ -3070,7 +3070,7 @@
    },
    "find": {
     "group": "Life",
-    "label": "Food",
+    "label": "food",
     "under": "Settings",
     "from": "store",
     "new": "New food",
@@ -3110,30 +3110,30 @@
       {
        "f": "name",
        "type": "text",
-       "label": "Name"
+       "label": "name-2"
       },
       {
        "f": "shop",
        "type": "text",
-       "label": "Shop"
+       "label": "shop"
       },
       {
        "f": "price",
        "type": "text",
-       "label": "Price (£)",
+       "label": "price",
        "min": 0,
        "step": 0.01
       },
       {
        "f": "minutes",
        "type": "text",
-       "label": "Minutes to make",
+       "label": "minutes-to-make",
        "min": 0
       },
       {
        "f": "meal",
        "type": "choice",
-       "label": "Meal",
+       "label": "meal",
        "options": [
         {
          "v": "breakfast",
@@ -3156,7 +3156,7 @@
       {
        "f": "how",
        "type": "long",
-       "label": "How"
+       "label": "how"
       }
      ]
     }
@@ -3233,7 +3233,7 @@
    },
    "find": {
     "group": "Life",
-    "label": "Tasks",
+    "label": "tasks",
     "under": "Settings",
     "from": "store",
     "new": "New task",
@@ -3267,7 +3267,7 @@
      "f": "done",
      "on": "yes",
      "off": "no",
-     "label": "Done"
+     "label": "done"
     }
    },
    "see": {
@@ -3286,22 +3286,22 @@
       {
        "f": "title",
        "type": "text",
-       "label": "Title"
+       "label": "title-2"
       },
       {
        "f": "notes",
        "type": "long",
-       "label": "Notes"
+       "label": "notes"
       },
       {
        "f": "due",
        "type": "date",
-       "label": "Due"
+       "label": "due"
       },
       {
        "f": "repeat",
        "type": "choice",
-       "label": "Repeat",
+       "label": "repeat",
        "options": [
         {
          "v": "never",
@@ -3328,12 +3328,12 @@
       {
        "f": "list",
        "type": "text",
-       "label": "List"
+       "label": "list"
       },
       {
        "f": "done",
        "type": "choice",
-       "label": "Done",
+       "label": "done",
        "options": [
         {
          "v": "no",
@@ -3348,17 +3348,17 @@
       {
        "f": "person_id",
        "type": "text",
-       "label": "Person (id)"
+       "label": "person-id"
       },
       {
        "f": "booking_id",
        "type": "text",
-       "label": "Booking (id)"
+       "label": "booking-id"
       },
       {
        "f": "item_id",
        "type": "text",
-       "label": "Item (id)"
+       "label": "item-id"
       }
      ]
     }
@@ -3379,7 +3379,7 @@
    },
    "find": {
     "group": "Life",
-    "label": "Drive",
+    "label": "drive",
     "under": "Settings",
     "from": "store",
     "new": "New Drive area",
@@ -3413,17 +3413,17 @@
       {
        "f": "name",
        "type": "text",
-       "label": "Name"
+       "label": "name-2"
       },
       {
        "f": "folder_id",
        "type": "text",
-       "label": "Folder id"
+       "label": "folder-id"
       },
       {
        "f": "what",
        "type": "long",
-       "label": "What goes there"
+       "label": "what-goes-there"
       }
      ]
     }
@@ -3450,7 +3450,7 @@
    },
    "find": {
     "group": "Life",
-    "label": "Week",
+    "label": "week",
     "under": "Settings",
     "from": "store",
     "new": "New session",
@@ -3485,47 +3485,47 @@
       {
        "f": "who",
        "type": "text",
-       "label": "Who"
+       "label": "who"
       },
       {
        "f": "person_id",
        "type": "text",
-       "label": "Person id (if they have a file)"
+       "label": "person-id-if-they-have"
       },
       {
        "f": "place",
        "type": "text",
-       "label": "Where"
+       "label": "where"
       },
       {
        "f": "address",
        "type": "text",
-       "label": "Address"
+       "label": "address"
       },
       {
        "f": "days",
        "type": "text",
-       "label": "Days (e.g. Mon-Fri, Mon)"
+       "label": "days-e-g-mon-fri"
       },
       {
        "f": "start",
        "type": "text",
-       "label": "Start (HH:MM)"
+       "label": "start-hh-mm"
       },
       {
        "f": "end",
        "type": "text",
-       "label": "End (HH:MM)"
+       "label": "end-hh-mm"
       },
       {
        "f": "term",
        "type": "text",
-       "label": "Term"
+       "label": "term"
       },
       {
        "f": "notes",
        "type": "long",
-       "label": "Notes"
+       "label": "notes"
       }
      ]
     }
@@ -3536,7 +3536,7 @@
    "loader": "js/chemistry.js FOOD",
    "find": {
     "group": "Tools",
-    "label": "Foods",
+    "label": "foods",
     "under": "Tools",
     "facets": [
      "forLabel",
@@ -3673,27 +3673,27 @@
      },
      "say": "the Assignments tool's form (js/map.js asgSend_): one field a step, any but the title left empty; the whole list is sent as `assignmentsSave`.",
      "fields": [
-      { "f": "title", "type": "text", "label": "Title", "ph": "Title" },
-      { "f": "course", "type": "text", "label": "Subject or module", "ph": "Subject or module" },
-      { "f": "kind", "label": "What it is", "options": [
+      { "f": "title", "type": "text", "label": "title-2", "ph": "Title" },
+      { "f": "course", "type": "text", "label": "subject-or-module", "ph": "Subject or module" },
+      { "f": "kind", "label": "what-it-is", "options": [
         { "v": "essay", "t": "Essay" }, { "v": "coursework", "t": "Coursework" }, { "v": "project", "t": "Project" },
         { "v": "exam", "t": "Exam" }, { "v": "test", "t": "Test" }, { "v": "homework", "t": "Homework" },
         { "v": "presentation", "t": "Presentation" }, { "v": "report", "t": "Report" }, { "v": "lab", "t": "Lab" },
         { "v": "reading", "t": "Reading" }, { "v": "revision", "t": "Revision" }, { "v": "other", "t": "Other" }] },
-      { "f": "amount", "type": "text", "label": "How much (a number)", "ph": "How much", "min": 0 },
-      { "f": "unit", "label": "Of what", "options": [
+      { "f": "amount", "type": "text", "label": "how-much-a-number", "ph": "How much", "min": 0 },
+      { "f": "unit", "label": "of-what", "options": [
         { "v": "words", "t": "words" }, { "v": "pages", "t": "pages" }, { "v": "slides", "t": "slides" },
         { "v": "minutes", "t": "minutes" }, { "v": "hours", "t": "hours" }, { "v": "questions", "t": "questions" },
         { "v": "marks", "t": "marks" }, { "v": "chapters", "t": "chapters" }] },
-      { "f": "due", "type": "date", "label": "Due" },
-      { "f": "time", "type": "time", "label": "Due time" },
-      { "f": "weight", "type": "text", "label": "% of the grade", "ph": "% of the grade", "min": 0, "max": 100 },
-      { "f": "status", "label": "Status", "options": [
+      { "f": "due", "type": "date", "label": "due" },
+      { "f": "time", "type": "time", "label": "due-time" },
+      { "f": "weight", "type": "text", "label": "of-the-grade", "ph": "% of the grade", "min": 0, "max": 100 },
+      { "f": "status", "label": "status", "options": [
         { "v": "not-started", "t": "Not started" }, { "v": "in-progress", "t": "In progress" },
         { "v": "submitted", "t": "Submitted" }, { "v": "marked", "t": "Marked" }] },
-      { "f": "mark", "type": "text", "label": "Mark", "ph": "Mark, e.g. 68% or A", "only": { "status": "marked" } },
-      { "f": "note", "type": "long", "label": "Note", "ph": "Note" },
-      { "f": "link", "type": "text", "label": "Link", "ph": "https://…", "pad": "url" }
+      { "f": "mark", "type": "text", "label": "mark", "ph": "Mark, e.g. 68% or A", "only": { "status": "marked" } },
+      { "f": "note", "type": "long", "label": "note", "ph": "Note" },
+      { "f": "link", "type": "text", "label": "link", "ph": "https://…", "pad": "url" }
      ]
     }
    }

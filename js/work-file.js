@@ -12,7 +12,7 @@ function workFileCard_(pid) {
   return setCard_(wfSpec_(of));
 }
 /* ITS SPEC: the scan and save tiles stand in the card's own tile row; under someone else's student they sit among the lines (`wfBody_`). */
-const wfSpec_ = of => ({ card: 'acct:workfile', hook: 'workfile-card', title: 'Work on file', data: { of },
+const wfSpec_ = of => ({ card: 'acct:workfile', hook: 'workfile-card', title: text_('work-on-file'), data: { of },
   body: wfBody_(of, true), actions: wfTeach_(of) ? [] : wfTiles_(of) });
 /* A TUTOR'S OWN CARD holds no scans of theirs: it opens each booked student's file (`others`, from the backend). */
 const wfTeach_ = of => !!USER && String(of) === String(USER.personId || '') && typeof rank_ === 'function' && rank_() === 'staff';
@@ -144,7 +144,7 @@ on('wf-del', el => {
 
 /* AND UNDER A STUDENT SOMEONE ELSE MAY SEE (a parent's child, the admin's list): the same card, opened in place. */
 function workFileOpts_(pid, name) {
-  return pid ? ({ icon: 'doc', label: name ? String(name) : 'Work on file', note: name ? 'their work on file' : 'their scanned pages', act: 'wf-see', data: { id: pid } }) : null;
+  return pid ? ({ icon: 'doc', label: name ? String(name) : text_('work-on-file'), note: name ? 'their work on file' : 'their scanned pages', act: 'wf-see', data: { id: pid } }) : null;
 }
 on('wf-see', el => {
   const pid = el.getAttribute('data-id'), row = el.closest('.tile-row') || el;

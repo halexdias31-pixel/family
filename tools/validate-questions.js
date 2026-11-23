@@ -79,7 +79,7 @@ function identsOf(acorn, src) {
 function rowsOf() {
   const pub = read('data/questions.json') || [], priv = read('data-private/questions.json') || {};
   const rows = pub.map(r => Object.assign({}, r, priv[r.row_id] || {}));
-  const join = ((((read('data/settings/kinds.json') || {}).kinds || {}).question || {}).sheet || {}).lib;
+  const join = ((((require('./lib/site-data.js').json('data/settings/kinds.json') || {}).kinds || {}).question || {}).sheet || {}).lib;
   const j = join && join.joined;
   if (j && Array.isArray(j.fields)) {
     const card = new Map();
@@ -172,7 +172,7 @@ function codeHash(app, names, salt) {
     parts.push(f + '\u0000' + t);
   });
   /* of kinds.json, only the question's sheet join rowsOf reads (the marker's vm never sees kinds.json): the card shapes it also holds draw, they do not mark */
-  parts.push('kinds.question.sheet\u0000' + JSON.stringify(((((read('data/settings/kinds.json') || {}).kinds || {}).question || {}).sheet) || null));
+  parts.push('kinds.question.sheet\u0000' + JSON.stringify(((((require('./lib/site-data.js').json('data/settings/kinds.json') || {}).kinds || {}).question || {}).sheet) || null));
   parts.push(app.files.join(','));
   names.forEach(n => parts.push(n + '\u0000' + (app.decl[n] === undefined ? '\u0000none' : app.decl[n])));
   return sha(parts.join('\u0001'));

@@ -15,7 +15,7 @@ function find() {
   const m = /\nconst HIST_DB = \[[\s\S]*?\n\];\n/.exec(lib);
   if (!m) return { bad: ['js/library.js has no HIST_DB'], count: 0 };
   const DB = vm.runInNewContext(m[0].replace('const HIST_DB =', '').trim().replace(/;$/, ''));
-  const labels = JSON.parse(text('data/settings/labels.json'));
+  const labels = require('./lib/site-data.js').labels();
   const rows = Array.isArray(labels) ? labels : labels.rows || Object.values(labels).find(Array.isArray) || [];
   const has = (g, k) => rows.some(r => r.group === g && r.key === k && r.active !== false);
   const FIELDS = ['file', 'prefix', 'kind', 'years', 'icon', 'sub', 'links'];

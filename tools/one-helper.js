@@ -26,7 +26,7 @@ const HARNESS = [
   ['tools/lib/backend-vm.js', src => /(['"])SpreadsheetApp\1\s*,\s*(['"])DriveApp/.test(src) || (/readdirSync\([^\n]*backend/.test(src) && /\.gs['"]/.test(src) && /vm\.runIn/.test(src)), 'backend vm'],
   ['tools/lib/site-browser.js', src => /http\.createServer/.test(src) && /playwright/.test(src), 'site server'],
   ['tools/lib/site-browser.js', src => /\b(?:chromium|webkit|firefox)\.launch\(|\]\.launch\(/.test(src), 'browser launch'],
-  ['tools/lib/site-data.js', src => /(?:readFileSync|require)\([^)\n]*(?:settings\/(?:kinds|settings|words|permissions)|questions)\.json/.test(src), 'data read'],
+  ['tools/lib/site-data.js', src => /(?:readFileSync|require)\([^)\n]*(?:settings\/(?:kinds|labels|facets|settings|words|permissions)|questions)\.json/.test(src), 'data read'],
 ];
 function harnessProblems() {
   const out = [];
@@ -71,7 +71,7 @@ function helperProblems() {
 
 function groupProblems() {
   const REG = 'data/settings/kinds.json setting.cards';
-  const rows = ((((read('data/settings/kinds.json') || {}).kinds || {}).setting || {}).cards || []).filter(r => /^type:/.test(S(r.id)));
+  const rows = ((((require('./lib/site-data.js').json('data/settings/kinds.json') || {}).kinds || {}).setting || {}).cards || []).filter(r => /^type:/.test(S(r.id)));
   const cols = rows.map(r => S(r.col)).filter(Boolean), bad = [];
   if (!cols.length) bad.push(REG + ' has no type: rows with a col');
   rows.filter(r => S(r.col) && !S(r.label)).forEach(r => bad.push(REG + ' ' + r.id + ' has no label'));

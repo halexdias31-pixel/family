@@ -275,7 +275,7 @@ function dobBoxes_(value) {
   const real = dobReal_(value);
   const box = f => formOf_('dob', g => (real ? value(g) : ''), { only: [f] });
   return cardBlock_({ type: 'group', look: 'dob-row', attrs: { role: 'group', 'aria-label': 'Date of birth' }, blocks: [
-    { type: 'group', tag: 'span', look: 'dob-cap', text: 'date of birth' },
+    { type: 'group', tag: 'span', look: 'dob-cap', text: text_('date-of-birth') },
     { type: 'group', look: 'dob-boxes', inner: box('dob_d') + box('dob_m') + box('dob_y') }] });
 }
 const isLibrary_ = list => (list || []).some(isLibraryCard_);
