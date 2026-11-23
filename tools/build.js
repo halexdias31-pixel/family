@@ -38,6 +38,7 @@ const ORDER = [
   'docket-plan',  // the Now, Next check (rule 1.75, 1.82, owner 20 Nov): js/map.js dkPlan_ on fixed lists keeps the order rules and is deterministic; fails the build
   'docket-keep',  // the planner's fields check (rule 1.75, 1.82, owner 21 Nov): todoTidy_, docketTidy_ and dkTidy_ keep minutes, runs, effort, fun, importance, place, timeIs; fails the build
   'docket-tidy-21nov', // the owner's docket tidy check (rule 1.75, 1.82, owner 21 Nov): the owner's docket tidy's rules on a made-up docket, and docket-owner-tidy-22nov run end to end through autoMigrate_; fails the build
+  'docket-tidy-23nov', // the owner's second docket tidy check (rule 1.75, owner 23 Nov): docketTidy23NovRun_ in the backend vm on a made-up docket loses no title or note, leaves one Shopping a list, the takeaway's covers tick and untick both (dkTick_), a second run is a no-op; fails the build
   'docket-address', // the private address check (rule 1.75, owner 21 Nov: NOW, NEXT step 3): the plain-text ?docket= address refuses a wrong or missing token, says the site's Now/Next, ticks "done shower" and adds "add milk"; fails the build
   'backend-loads', // the backend loads (22 Nov: the site was down): every .gs file run in Apps Script's A–Z order with Google's services stubbed; a top-level line reading a later file's name fails the build
   'eink',       // the e-ink check (rule 1.75, owner 21 Nov: NOW, NEXT step 2): ?eink's page and the Docket widget show the same Now/Next on docket-plan's day; fails the build
@@ -52,6 +53,7 @@ const ORDER = [
   'digest-clip',  // the digest-clip check (rule 1.75, owner 20 Nov): large weeks through the Sunday email's digestRender_; a part over Gmail's clip or a question without its words fails the build
   'one-email',    // the one-email check (rule 1.75, queue step 8, 22 Nov): every email the backend builds, MailApp stubbed, through one card (email.gs emailOf_) with the same recipients, words and links as before (tools/data/one-email.json); fails the build
   'bundle',       // js/ in index.html's order -> bundle/*.js
+  'paper-cards',  // the paper-cards check (rule 1.75, owner 23 Nov): a child on an iPad taps Find down to one exam paper (a sample across boards and subjects, words made up) and its question cards are drawn under the chips; a blank page fails the build
   'keypad-taps',  // the keypad check (rule 1.75, owner 23 Nov: "Hegarty Maths always worked"): each maths form and a sample of every answer type tapped on the one pad's keys and marked Right, on a 390px phone and an iPad; a key that turns the pad over, a key off the screen or a glaring/full-width answer box fails the build
   'one-profile-save', // the one-profile-save check (rule 1.75, unify batch 9 job A): one profile send (profileSave_), one fieldReadonly_; fails the build
   'one-request',  // the one-request check (rule 1.75, unify H): one fetch to the backend (backendFetch_), every posted action in actions.json, one dispatcher; fails the build
@@ -73,6 +75,7 @@ const ORDER = [
   'one-list-kind', // the one-list-kind check (rule 1.75, owner 22 Nov: UNIFY NEXT 6): Docket, Assignments, Tasks and Food one list kind (kinds.json `list`), saved through listTidy_ and drawn as one Item; fails the build
   'one-card',     // the one-card check (rule 1.75): every Find card by the one maker, no CSS of its own; fails the build
   'one-answer',   // the one-answer-format check (rule 1.75, owner 23 Nov: UNIFY AFTER 7): every pick question's key choice_right in its options' letters, its working a note in answer; any other key fails the build
+  'one-shape',    // the one-question-shape check (rule 1.75, owner 23 Nov): every question row stem + one answer + its key + a note; each oddity kind (tools/lib/shape.js) held at 0 or a budget that can only fall; off budget fails the build
   'one-question-card', // the one-question-card check (rule 1.75, owner 22 Nov): the Sunday email's question card has the site card's parts in its order (kinds.json card.question.parts), a pick question's options marked and its answer as the site says it; fails the build
   'one-email-card', // the one-email-card check (rule 1.75, owner 23 Nov, UNIFY AFTER 5): every email card's parts and order are its site card's (kinds.json card.record/card.tags, said by card.letter.words; the question card by one-question-card), no email-only list, no price to a child or with prices off; fails the build
   'one-tag-set',  // the one-tag-set check (rule 1.75, owner 23 Nov, UNIFY AFTER 6): every Find card and Sunday-email question card wears only data/settings/tags.json's kinds, one of each, at most its max; fails the build

@@ -28,6 +28,7 @@ const USAGE = `
   node tools/content.js keypack <lib-import.json> [--apply]                             validate → apply (a key pack onto the words)
   node tools/content.js insert                                                          sheets → write (tools/inserts.py's sheets)
   node tools/content.js picks [--apply]                                                 one answer format: each pick question's key as its letters, its working a note (tools/lib/pick-key.js)
+  node tools/content.js shape [--apply]                                                 one question shape: no second way to say a stem, an option or a key (tools/lib/shape.js; held by tools/one-shape.js)
   node tools/content.js ideas [--out <dir>]                                             measure → merge → tag (one maths card per idea; part_of, specs, idea_id; tools/lib/ideas.js)
 
   node tools/content.js speccode [--apply]                                              derive → write (spec_code from a paper's own columns)
@@ -453,6 +454,32 @@ async function main(argv) {
     console.log('picks: ' + (t.picks || 0) + ' pick questions, ' + (t.keys || 0) + ' key(s) put in letters, ' + (t.notes || 0) + ' note(s) cleared of the letter, '
       + (t.not || []).length + ' not convertible' + ((t.not || []).length ? ': ' + t.not.join(', ') : ''));
     if (argv.includes('--apply')) IM.writeWords('questions', map); else console.log('(a dry run: --apply writes data-private/questions.json)');
+    return;
+  }
+  /* ONE QUESTION SHAPE (owner, 23 Nov): the words as they are, put in the one shape (tools/lib/shape.js); writeWords does the same on
+     every write. --apply also writes the lib_has of each card it changed, so a phone knows which words are coming. */
+  if (what === 'shape') {
+    const SH = require('./lib/shape.js'), map = IM.words('questions'), t = {};
+    const c = IM.cards('questions'), byId = {};
+    c.rows.forEach(r => { byId[r.row_id] = r; });
+    const def = L.defs().files.questions, hasOf = w => def.private.filter(f => w && w[f] !== undefined && w[f] !== null && String(w[f]).trim() !== '').join(' ');
+    const was0 = {}, had = {};
+    Object.keys(map).forEach(id => { was0[id] = JSON.stringify(map[id]); had[id] = hasOf(map[id]); });
+    SH.normaliseMap(map, byId, t);
+    const changed = Object.keys(map).filter(id => was0[id] !== JSON.stringify(map[id]));
+    /* only a card whose fields this changed (options moved into `choices`): a lib_has already stale is not this tool's to touch */
+    const moved = new Set(changed.filter(id => had[id] !== hasOf(map[id])));
+    console.log('shape: ' + (Object.keys(t).map(k => t[k] + ' ' + k).join(', ') || 'every row in the one shape already'));
+    if (!argv.includes('--apply')) { console.log('(a dry run: --apply writes data-private/questions.json and the changed cards\' lib_has)'); return; }
+    IM.writeWords('questions', map);
+    const now = IM.words('questions');
+    let n = 0;
+    c.rows.forEach(r => {
+      if (!r || !moved.has(r.row_id) || !Object.prototype.hasOwnProperty.call(r, 'lib_has') || !now[r.row_id]) return;
+      r.lib_has = hasOf(now[r.row_id]); n++;
+    });
+    if (n) IM.writeCards('questions', c.rows, c.style);
+    console.log('shape: words written, ' + changed.length + ' row(s) changed; ' + n + ' card(s) lib_has brought up to date');
     return;
   }
   if (what === 'speccode') return IM.run('speccode', SPECCODE, { apply: argv.includes('--apply') }, only);

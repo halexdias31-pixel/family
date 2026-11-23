@@ -1702,6 +1702,18 @@
      {
       "f": "doneOn",
       "type": "date"
+     },
+     {
+      "f": "covers",
+      "type": "titles",
+      "max": 300,
+      "say": "titles in the same list a tick also ticks (owner, 23 Nov: COVERS); js/map.js dkTick_, the one tick"
+     },
+     {
+      "f": "coversSet",
+      "type": "titles",
+      "max": 300,
+      "say": "the covered titles this item's last tick marked, so its untick undoes only those"
      }
     ]
    },

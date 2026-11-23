@@ -55,6 +55,7 @@ function book() {
         setValues: rows => rows.forEach((row, i) => { const at = r - 1 + i; while (v.length <= at) v.push([]); row.forEach((x, j) => { v[at][c - 1 + j] = x; }); }),
       }),
       deleteRows: (r, n) => { v.splice(r - 1, n); },
+      appendRow: row => { v.push(row.slice()); },
     };
   }
   return { tabs, ss, sheet };

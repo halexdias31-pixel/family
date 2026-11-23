@@ -440,10 +440,15 @@ function stuffPages_() {
   /* A PAGE IS KEPT WHEN ITS OWN TAGS AGREE WITH THE CHIPS (396): a chip on a facet with a page reader (`tagOf`) keeps
      the pages carrying it — `Answers` the answer pages, `Questions` the rest. */
   const byPage = (STUFF.filters || []).filter(f => f && !f.any && (facetBy(f.field) || {}).tagOf);
+  /* THE PAGE'S TAG IN THE CHIP'S WORDS (23 Nov): a facet with `one` tags the card with the item's own word (Past paper) while the
+     chip says the Find answer (Exam paper); compared raw, every page of a chosen paper was dropped and Find drew nothing. */
   const kept = (x, part) => byPage.every(f => {
     let v = [];
-    try { v = asList_(facetBy(f.field).tagOf(x, part)); } catch (e) { v = []; }
-    return !v.length || v.some(t => spellKey_(t) === spellKey_(f.value));
+    const G = facetBy(f.field);
+    /* BOTH SIDES IN THE CHIP'S WORDS: a chip set from a card link (?card=) carries the item's own word (Past paper), one tapped in Find the answer (Exam paper). */
+    const A = t => (G.answerOf ? G.answerOf(t) : t);
+    try { v = asList_(G.tagOf(x, part)); } catch (e) { v = []; }
+    return !v.length || v.some(t => spellKey_(A(t)) === spellKey_(A(f.value)));
   });
   seq.forEach((x, i) => {
     /* A CARD WHOSE WORDS ARE STILL IN THE LEDGER (397) IS ONE PAGE, kept whatever the chips say: its shape is decided by its

@@ -10029,8 +10029,10 @@ const seq = wholeQuestions_(items), hit = new Set(items);
 const byPage = (STUFF.filters || []).filter(f => f && !f.any && (facetBy(f.field) || {}).tagOf);
 const kept = (x, part) => byPage.every(f => {
 let v = [];
-try { v = asList_(facetBy(f.field).tagOf(x, part)); } catch (e) { v = []; }
-return !v.length || v.some(t => spellKey_(t) === spellKey_(f.value));
+const G = facetBy(f.field);
+const A = t => (G.answerOf ? G.answerOf(t) : t);
+try { v = asList_(G.tagOf(x, part)); } catch (e) { v = []; }
+return !v.length || v.some(t => spellKey_(A(t)) === spellKey_(A(f.value)));
 });
 seq.forEach((x, i) => {
 if (libSlim_(x)) { pages.push({ x: x, part: null, slim: true }); return; }
@@ -11600,6 +11602,7 @@ const items = stuffFiltered();
 if (!items.length) return stuffNoneBlocks_();
 const facet = nextFacet(items) || overFacet_(items) || (!STUFF.filters.length ? facetBy('kindLabel') : null);
 if (!facet) {
+if (!stuffPages_().length) return [{ type: 'text', look: 'empty', text: 'Found ' + items.length + ', but none has a page under these chips — take the last chip off.' }];
 return [bibleEnd_(items)].filter(Boolean);
 }
 const values = facetValues(items, facet);
@@ -15717,6 +15720,22 @@ const DK = { lists: null, at: 0, edit: -1, rename: false, showDone: false, say: 
 const dkDay_ = d => todayIso_(d);
 const dkDone_ = i => (i.repeat === 'daily' ? i.doneOn === dkDay_() : !!i.done);
 const dkGone_ = i => i.repeat !== 'daily' && !!i.done && !!i.doneOn && i.doneOn < dkDay_();
+function dkTick_(items, i, on, day) {
+const it = items[i];
+if (!it) return false;
+const mark = (x, v) => { if (x.repeat === 'daily') x.doneOn = v ? day : ''; else { x.done = !!v; x.doneOn = v ? day : ''; } };
+const isDone = x => (x.repeat === 'daily' ? x.doneOn === day : !!x.done);
+const find = t => items.find(y => y && y !== it && String(y.title || '').trim() === String(t || '').trim());
+mark(it, on);
+if (on) {
+const set = (Array.isArray(it.covers) ? it.covers : []).filter(t => { const x = find(t); if (!x || isDone(x)) return false; mark(x, true); return true; });
+if (set.length) it.coversSet = set; else delete it.coversSet;
+} else {
+(Array.isArray(it.coversSet) ? it.coversSet : []).forEach(t => { const x = find(t); if (x && x.doneOn === day) mark(x, false); });
+delete it.coversSet;
+}
+return true;
+}
 function dkTidy_(lists) {
 lists.forEach(L => { L.items = (L.items || []).filter(it => !dkGone_(it)); L.items.forEach(it => { if (it.repeat !== 'daily' && it.done && !it.doneOn) it.doneOn = dkDay_(); }); });
 return lists;
@@ -15752,6 +15771,7 @@ return Object.keys(g).sort().map(k => ({ head: k === '~' ? 'No date' : k === '!'
 rows: g[k].sort((a, b) => String(items[a].time || '99').localeCompare(String(items[b].time || '99'))) }));
 }
 const dkPicked_ = it => (it.pick && (it.repeat !== 'daily' || it.pickOn === dkDay_()) ? it.pick : '');
+const dkCovers_ = it => (Array.isArray(it.covers) && it.covers.length ? { type: 'text', text: 'covers: ' + it.covers.join(', ') } : null);
 const listItem_ = (kind, o) => ({ type: 'group', look: 'dk-item', attrs: Object.assign({ 'data-shape': kindShape_(kind), 'data-item-kind': kind }, o.attrs || {}),
 blocks: (o.blocks || []).filter(Boolean), tiles: o.tiles });
 function dkItem_(it, i) {
@@ -15761,7 +15781,7 @@ const row = listItem_('docket', { blocks: [
 { type: 'tick', text: (it.title || 'Untitled') + (picked ? ': ' + picked.toLowerCase() : ''), attrs: { 'data-dk': i, checked: dkDone_(it), 'aria-label': 'Done: ' + (it.title || '') } },
 tags.length ? { type: 'tags', tags } : null,
 fk && !dkDone_(it) ? { type: 'tiles', tiles: foodsOf_(fk).map(f => ({ label: f.name, note: f.note || '', act: 'dk-food', cls: f.name === picked ? 'is-submit' : '', data: { i, f: f.name } })) } : null,
-it.note && DK.edit !== i ? { type: 'text', paras: String(it.note).split(/\n{2,}/) } : null],
+it.note && DK.edit !== i ? { type: 'text', paras: String(it.note).split(/\n{2,}/) } : null, dkCovers_(it)],
 tiles: [{ icon: 'edit', label: 'Edit', act: 'dk-edit', data: { i } }, { icon: 'bin', label: 'Delete', act: 'dk-del', data: { i } }] });
 if (DK.edit !== i) return row;
 const f = (cap, b) => ({ type: 'field', cap, blocks: [b] });
@@ -15881,9 +15901,7 @@ on('dk-showdone', () => { DK.showDone = !DK.showDone; dkPaint_(); });
 document.addEventListener('change', e => {
 const el = e.target;
 if (!el || !el.closest || !el.closest('#dk-box') || !el.hasAttribute('data-dk')) return;
-const it = dkList_() && dkList_().items[+el.getAttribute('data-dk')];
-if (!it) return;
-if (it.repeat === 'daily') it.doneOn = el.checked ? dkDay_() : ''; else { it.done = el.checked; it.doneOn = el.checked ? dkDay_() : ''; }
+if (!dkList_() || !dkTick_(dkList_().items, +el.getAttribute('data-dk'), el.checked, dkDay_())) return;
 dkKeep_();
 });
 function dkPlan_(items, now) {
@@ -15968,7 +15986,7 @@ const open = DKF.edit === x.dkAt, spec = dkFields_();
 const form = open ? [{ type: 'group', look: 'dk-form', inner: formOf_('docket-item', a, { options: f => ((spec.find(y => y.f === f) || {}).options || []) }) }] : [];
 return renderCard(shapeCard_('docket', { kind: 'docket', name: it.title || 'Untitled', tags: [it.title || 'Untitled', x.dkMark, a.minutes + ' min', +a.runs ? 'Runs by itself ' + a.runs + ' min' : '', x.dkList].concat(when).filter(Boolean),
 body: [{ type: 'tick', text: 'Done', attrs: { 'data-dkf': x.dkAt, checked: dkDone_(it), 'aria-label': 'Done: ' + (it.title || '') } },
-it.note && !open ? { type: 'text', paras: String(it.note).split(/\n{2,}/) } : null].concat(form).filter(Boolean),
+it.note && !open ? { type: 'text', paras: String(it.note).split(/\n{2,}/) } : null, dkCovers_(it)].concat(form).filter(Boolean),
 tiles: open ? [{ icon: 'save', label: text_('save'), act: 'dk-fsave', cls: 'is-submit', data: { at: x.dkAt } }, { icon: 'bin', label: 'Delete', act: 'dk-fdel', tone: 'danger', data: { at: x.dkAt } },
 { icon: 'close', label: 'Close', act: 'dk-fedit', data: { at: x.dkAt } }] : [{ icon: 'edit', label: 'Edit', act: 'dk-fedit', data: { at: x.dkAt } }] }));
 }
@@ -15990,9 +16008,8 @@ setTimeout(() => { const again = document.querySelector('.dk-qadd[data-li="' + l
 document.addEventListener('change', e => {
 const el = e.target, at = el && el.getAttribute && el.getAttribute('data-dkf');
 if (!at) return;
-const { it } = dkAt_(at);
-if (!it) return;
-if (it.repeat === 'daily') it.doneOn = el.checked ? dkDay_() : ''; else { it.done = el.checked; it.doneOn = el.checked ? dkDay_() : ''; }
+const { L, i } = dkAt_(at);
+if (!L || !dkTick_(L.items, i, el.checked, dkDay_())) return;
 dkFindKeep_();
 });
 document.addEventListener('keydown', e => { const c = e.target && e.target.classList; if (e.key !== 'Enter' || !c || typeof ACTIONS === 'undefined') return;
