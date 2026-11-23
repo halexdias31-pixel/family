@@ -2410,7 +2410,6 @@ button.prof-tag.is-sm { padding: 0 var(--s2); line-height: 1; font-weight: 500; 
 .job-slot > .job-when { display: flex; align-items: center; gap: var(--s1); flex: 1 1 10rem; }
 .job-slot > .set-drop { flex: 0 0 auto; }
 /* ONE SETTINGS-CARD SHAPE (8 Nov, `setCard_`): one box a line, the Save row at the foot, every list's Add tile alike. */
-:is(.kc-embed, .kc-set) .tile-row.set-save { margin-top: var(--s2); }
 :is(.kc-embed, .kc-set) .tile-row.set-adds { margin: var(--s1) 0 var(--s2); }
 .job-dash { flex: 0 0 auto; }
 /* THE INTRO VIDEO: the Drive player at 16:9, on the card and on the Photos card. */
