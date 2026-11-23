@@ -170,7 +170,7 @@ CARD_EMBEDS['daive'] = () => {
 /* DAIVE IS AN ITEM (487): an admin's Delete and Note on it; deleted, it is gone for everyone. Its id keeps the old column's name, so a delete already made stands. */
 /* ONE MAKER (owner, 18 Nov): Suggest and the admin's Edit words are tiles in the card's own row, never a row hung on after it. */
 const DAIVE_ID = 'item:dm:daive';
-const daiveHtml_ = () => renderCard(shapeCard_('msg', { kind: 'msg', name: DAIVE, tags: [{ text: DAIVE, colour: 0 }, { text: 'Assistant', colour: false }], data: { daive: 1, item: DAIVE_ID },
+const daiveHtml_ = () => renderCard(shapeCard_('msg', { kind: 'msg', name: DAIVE, tags: [{ text: DAIVE, colour: 0 }, { text: 'Assistant', colour: false, data: { f: 'profileType' } }], data: { daive: 1, item: DAIVE_ID },
   tiles: [].concat(typeof suggestOpts_ === 'function' ? [suggestOpts_('widget', 'daive', DAIVE)] : [], (typeof wordsOpts_ === 'function' && wordsOpts_(DAIVE_ID)) || []).filter(Boolean),
   body: [{ type: 'embed', tool: 'daive' }] }));
 const daiveItem_ = () => (typeof wordsIn_ === 'function' ? wordsIn_(DAIVE_ID, daiveHtml_()) : daiveHtml_());

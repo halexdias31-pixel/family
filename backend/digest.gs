@@ -588,7 +588,7 @@ function digestChoices_(it, C, ink, w) {
     + (right.indexOf(i + 1) >= 0 ? pick('✓ ' + C.labels.right, ink.right) : '') + (mine.indexOf(i + 1) >= 0 ? pick('← ' + C.labels.theirs, w.tone) : '') + '</p>').join('');
 }
 
-/* A QUESTION THE LIBRARY DOES NOT HAVE WEARS WHAT ITS LABEL SAYS, as the tags would: its subject, its paper or sheet, its number — and its marks where a row gives them. */
+/* A QUESTION THE LIBRARY DOES NOT HAVE WEARS WHAT ITS LABEL SAYS, as the tags would: its subject, its number — and its marks where a row gives them. */
 function digestWornTags_(lib, libRow, bits, num) {
   const id = S(libRow && libRow.row_id);
   return id && lib && lib.tags && lib.tags[id] ? lib.tags[id] : digestLabelTags_(bits, num, libRow);
@@ -596,12 +596,12 @@ function digestWornTags_(lib, libRow, bits, num) {
 function digestLabelTags_(bits, num, libRow) {
   const b = (bits || []).map(S).filter(Boolean), out = [];
   if (num) b.pop();
-  if (b.length > 1) out.push({ kind: 'subject', text: b.shift() });
-  if (b.length) out.push({ kind: 'paper', text: b.join(' · ') });
-  if (num) out.push({ kind: 'paper', text: num });
+  /* THE ONE TAG SET (owner, 23 Nov): the paper's name is the label's, not a tag; each through the one picker, tagsKept_. */
+  if (b.length > 1) out.push({ field: 'subject', kind: 'subject', text: b.shift() });
+  if (num) out.push({ field: 'qNumber', kind: 'paper', text: num });
   const m = Number(libRow && libRow.marks);
-  if (m > 0) out.push({ kind: '', text: m + ' ' + plural_(m, 'mark') });
-  return out;
+  if (m > 0) out.push({ field: 'marks', kind: '', text: '[' + m + ']' });
+  return tagsKept_(out);
 }
 
 /* ---------- THE RIGHT ANSWER, FROM THE LIBRARY'S ROW (380): the right options, the cells' values, the mark scheme's answer up to its "—", else what it accepts */
