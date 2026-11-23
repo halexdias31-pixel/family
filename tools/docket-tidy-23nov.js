@@ -53,12 +53,12 @@ function run() {
     checks.push(
       ['the backup tab holds the old cell, first', () => { const bk = w.B.tabs.backup_docket_23nov; return !!bk && bk.v.length === 1 && bk.v[0][1] === JSON.stringify({ v: 1, lists: DOCKET() }); }],
       ['nothing lost: every old title and note is in a title or a note', () => DOCKET().every(x => x.items.every(i => text.includes(i.title) && (!i.note || text.includes(i.note))))],
-      ['one daily Shopping in every list but the prayer-only ones, Ideas & notes and Overdue', () => out.every(x => {
+      ['one daily Shopping in every list but the prayer-only ones and Overdue; no Ideas & notes list', () => out.every(x => {
         const s = x.items.filter(i => /^(shopping|morning shop)/i.test(i.title));
         if (NO_SHOP.includes(x.name)) return s.length === 0;
         return s.length === 1 && s[0].title === 'Shopping' && s[0].repeat === 'daily' && s[0].place === 'out' && s[0].minutes === 20
           && s[0].note.startsWith('only what\'s missing; tomorrow\'s breakfast and packed food first');
-      }) && out.some(x => x.name === 'Ideas & notes') && out.some(x => x.name === 'Overdue — check')],
+      }) && !out.some(x => x.name === 'Ideas & notes') && out.some(x => x.name === 'Overdue — check')],
       ['the takeaway is daily in arrived home and covers Meat! and Rice', () => at(TAKE) >= 0 && ah.items[at(TAKE)].repeat === 'daily'
         && JSON.stringify(ah.items[at(TAKE)].covers) === '["Meat!","Rice"]'],
       ['the two car checks are one-offs at the desk', () => ['Car: find out about the airbag (warning light / check)', 'Car: wheels — balancing / wheel bearings, get checked']
