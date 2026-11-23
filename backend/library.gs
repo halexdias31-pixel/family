@@ -344,8 +344,9 @@ function libSelfTest_(fileKey, c) {
   const right = S(c.choice_right).split('|')[0];
   if (choices.length >= 2) {
     if (!right) return { flag: 'it has ' + choices.length + ' options and no choice_right' };
-    const picks = right.split(',').map(v => S(v)).filter(v => v);
-    if (!picks.length || picks.some(v => !/^\d+$/.test(v) || +v < 1 || +v > choices.length)) {
+    /* letters on a pick ("A,C"), numbers on an ordering (UNIFY AFTER 7, `choiceKeys_`) */
+    const picks = right.split(',').map(v => S(v)).filter(v => v), ks = choiceKeys_(right)[0] || [];
+    if (!picks.length || ks.length !== picks.length || ks.some(k => k > choices.length)) {
       return { refuse: 'its choice_right ' + right + ' is not among its ' + choices.length + ' options' };
     }
   }

@@ -27,6 +27,7 @@ const USAGE = `
   node tools/content.js markscheme <ids file> <pdf dir> [--overrides f.json] [--apply]   cells → answers → words (AQA schemes)
   node tools/content.js keypack <lib-import.json> [--apply]                             validate → apply (a key pack onto the words)
   node tools/content.js insert                                                          sheets → write (tools/inserts.py's sheets)
+  node tools/content.js picks [--apply]                                                 one answer format: each pick question's key as its letters, its working a note (tools/lib/pick-key.js)
   node tools/content.js ideas [--out <dir>]                                             measure → merge → tag (one maths card per idea; part_of, specs, idea_id; tools/lib/ideas.js)
 
   node tools/content.js library <split|join|seed|pull|push|status|drive-pack|help> …   the library's private half (397)
@@ -409,6 +410,15 @@ async function main(argv) {
   }
   if (what === 'insert') return IM.run('insert', INSERT, {}, only);
   if (what === 'ideas') return IM.run('ideas', IDEAS, {}, only);
+  /* ONE ANSWER FORMAT (UNIFY AFTER 7): the words as they are, put in the one format; writeWords does the same on every write. */
+  if (what === 'picks') {
+    const map = IM.words('questions'), t = {};
+    require('./lib/pick-key.js').normaliseMap(map, t);
+    console.log('picks: ' + (t.picks || 0) + ' pick questions, ' + (t.keys || 0) + ' key(s) put in letters, ' + (t.notes || 0) + ' note(s) cleared of the letter, '
+      + (t.not || []).length + ' not convertible' + ((t.not || []).length ? ': ' + t.not.join(', ') : ''));
+    if (argv.includes('--apply')) IM.writeWords('questions', map); else console.log('(a dry run: --apply writes data-private/questions.json)');
+    return;
+  }
   const want = only || STAGES;
   const bad = want.filter(s => !STAGES.includes(s));
   if (bad.length) throw new Error('no stage ' + bad.join(', ') + ' — ' + STAGES.join(', '));

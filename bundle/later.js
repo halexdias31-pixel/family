@@ -3692,18 +3692,18 @@ why = why.replace(/^((?:\s*<[a-z][^>]*>)*\s*)([a-z])(?=[a-z])/, (w, tags, c) => 
 return { head: head, why: seen(why) ? why : '' };
 }
 function answerBlock_(x) {
-if (!x || !String(x.answer || '').trim()) return '';
+if (!x || !(String(x.answer || '').trim() || (x.choiceRight || []).length)) return '';
 const kind = String(x.answerType || '').trim();
 return cardBlock_({ type: 'group', look: 'qans', blocks: [{ type: 'group', tag: 'span', look: 'qans-head', text: 'Answer' + (kind ? ' · ' + kind : '') },
-{ type: 'group', look: 'qans-body qtext', inner: typeset_(answerSay_(x.answer, x.choices, x.choiceRight)) }] });
+{ type: 'group', look: 'qans-body qtext', inner: typeset_(answerSay_(x.answer, x.choices, x.choiceRight, kind.toLowerCase() === 'order')) }] });
 }
-function answerSay_(answer, choices, right) {
+function answerSay_(answer, choices, right, order) {
 const opts = choices || [], ks = (right || []).filter(k => k > 0 && k <= opts.length);
-const head = String(answer || '').trim() ? answerParts_(answer).head : ks.map(k => opts[k - 1]).join(', ');
-if (!ks.length || opts.every(c => /^\s*[A-Za-z]\s*$/.test(String(c).replace(/<[^>]*>/g, '')))) return head;
-const letters = ks.map(k => CHOICE_LETTERS[k - 1]).join(', ');
-const only = String(head).replace(/<[^>]*>/g, '').trim().toUpperCase() === letters;
-return '<b>' + letters + '</b> ' + (only ? ks.map(k => opts[k - 1]).join(', ') : head);
+if (ks.length && !order) {
+const words = ks.map(k => opts[k - 1]).join(', ');
+return opts.every(c => /^\s*[A-Za-z]\s*$/.test(String(c).replace(/<[^>]*>/g, ''))) ? words : '<b>' + ks.map(k => CHOICE_LETTERS[k - 1]).join(', ') + '</b> ' + words;
+}
+return String(answer || '').trim() ? answerParts_(answer).head : ks.map(k => opts[k - 1]).join(', ');
 }
 const ROMAN_ONLY = /^(i{1,3}|iv|vi{0,3}|ix|xi{0,3})$/i;
 const LETTER_ROMAN = /^([a-z])(i{1,3}|iv|vi{0,3}|ix|xi{0,3})$/i;
@@ -8675,7 +8675,7 @@ figured = !!k && ((questionParts_()[k]) || []).some(own);
 return figWanted_(String(x.lead || '') + ' ' + String(x.html || ''), figured);
 }
 function questionHasAns_(x) {
-return !!(isQ_(x) && (String(x.answer || '').trim() || libHasField_(x.row, 'answer')));
+return !!(isQ_(x) && (String(x.answer || '').trim() || (x.choiceRight || []).length || libHasField_(x.row, 'answer') || libHasField_(x.row, 'choice_right')));
 }
 const ANS_SHOWN = new Set();
 const ANS_HID = new Set();

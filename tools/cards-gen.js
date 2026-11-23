@@ -47,6 +47,8 @@ const TAKE = [
   ['js/find-levels.js', ['levelsIn_', 'LEVELS_IN', 'levelsMemo_', 'levelsOf_', 'satsStagesOf_', 'ksLevel_', 'keyStagesOf_', 'ksFallback_',
     'yearOf', 'seriesOf_', 'SERIES_SUMMER', 'SERIES_AUTUMN', 'waveOf', 'waveFromDoc_']],
   /* THE ANSWER AS THE CARD SAYS IT (owner, 22 Nov: one Question card): the email's Answer line is the site's answer card's. */
+  /* ONE ANSWER FORMAT (UNIFY AFTER 7): a pick's key as letters, read as the site reads it. */
+  ['js/library.js', ['choiceKeys_']],
   ['js/find-parts.js', ['ROMAN_ONLY', 'NUM_ROMAN', 'partBare_', 'partSplit_', 'answerParts_', 'answerSay_']],
   /* A ROW'S `cells` (owner, batch 7): the site's reader, for digest.gs to switch its `digestCells_` to. */
   ['js/find-cells.js', ['CELL_ENT', 'cellsOf_']],

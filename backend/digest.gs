@@ -579,7 +579,7 @@ function digestCardMaker_(ink, says, cut) {
 function digestChoices_(it, C, ink, w) {
   const q = it.row || {}, opts = S(q.choices).split('|').map(t => t.trim()).filter(Boolean);
   if (opts.length < 2) return '';
-  const right = S(q.choice_right).split('|')[0].split(',').map(t => parseInt(t, 10)).filter(k => k > 0 && k <= opts.length);
+  const right = (choiceKeys_(q.choice_right)[0] || []).filter(k => k > 0 && k <= opts.length);
   const mine = choicePicks_({ choices: opts }, it.typed) || [];
   const bare = opts.every(c => /^\s*[A-Za-z]\s*$/.test(c.replace(/<[^>]*>/g, '')));
   const st = (k, tone) => S((C.styles || {})[k]).replace(/\{(\w+)\}/g, (m, n) => (n === 'tone' ? tone : n in ink ? ink[n] : S((C.sizes || {})[n])));
@@ -609,11 +609,11 @@ function digestRightAnswer_(q) {
   if (!q) return null;
   const out = (html, text) => (S(text).trim() ? { html: html, text: S(text).trim() } : null);
   const opts = S(q.choices).split('|').map(t => t.trim()).filter(Boolean);
-  const way = S(q.choice_right).split('|')[0].split(',').map(t => parseInt(t, 10)).filter(k => k > 0 && k <= opts.length);
-  /* AS THE SITE'S ANSWER CARD SAYS IT (`answerSay_`, owner 22 Nov): a pick question's right letter and the scheme's head, codes and "(1)" gone. */
+  const way = (choiceKeys_(q.choice_right)[0] || []).filter(k => k > 0 && k <= opts.length);
+  /* AS THE SITE'S ANSWER CARD SAYS IT (`answerSay_`, owner 22 Nov): a pick question's key letters and their options' words (UNIFY AFTER 7), else the scheme's head, codes and "(1)" gone. */
   const ans0 = S(q.answer).trim();
   if (ans0 || (opts.length && way.length)) {
-    const said = answerSay_(ans0, opts, way);
+    const said = answerSay_(ans0, opts, way, S(q.answer_type).toLowerCase() === 'order');
     const text = digestText_(said).replace(/\s*\n\s*/g, ' ').trim();
     if (text.length <= 300) return out(digestHtml_(said).replace(/<\/?(?:p|div|strong)\b[^>]*>/g, ' ').replace(/\s+/g, ' ').trim(), text);
     const short = text.slice(0, 280).replace(/\s+\S*$/, '') + '…';

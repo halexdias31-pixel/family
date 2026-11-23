@@ -322,7 +322,7 @@ function answerParts_(raw) {
 }
 
 function answerBlock_(x) {
-  if (!x || !String(x.answer || '').trim()) return '';
+  if (!x || !(String(x.answer || '').trim() || (x.choiceRight || []).length)) return '';
   /* WHO MAY SEE THIS IS NOT DECIDED HERE. `questionAnsCard_` asks `ansOpen_` before it draws any of
      this, so a page that has not been shown holds no answer to find. */
   /* WHAT KIND OF ANSWER IT IS, over the result, when the sheet says -- "ANSWER · EXPLAIN" in the
@@ -330,18 +330,19 @@ function answerBlock_(x) {
   const kind = String(x.answerType || '').trim();
   /* ---------- THE ANSWER, AND NOTHING ELSE § */
   return cardBlock_({ type: 'group', look: 'qans', blocks: [{ type: 'group', tag: 'span', look: 'qans-head', text: 'Answer' + (kind ? ' · ' + kind : '') },
-    { type: 'group', look: 'qans-body qtext', inner: typeset_(answerSay_(x.answer, x.choices, x.choiceRight)) }] });
+    { type: 'group', look: 'qans-body qtext', inner: typeset_(answerSay_(x.answer, x.choices, x.choiceRight, kind.toLowerCase() === 'order')) }] });
 }
 /* THE ANSWER AS THE ONE QUESTION CARD SAYS IT (owner, 22 Nov: the site and the Sunday email alike, backend/cards-gen.gs copies this): the mark
-   scheme's head (answerParts_), and for a pick question its right letter first ("C 0.15 × 0.08 = 0.012"); a head that is only the letter ("A (1)")
-   says the option's words after it. No letter where the options are letters themselves. `right` is the 1-based right options. */
-function answerSay_(answer, choices, right) {
+   scheme's head (answerParts_); a pick question its key's letters and their options' words ("C 0.15 × 0.08 = 0.012"), never the scheme's
+   text. No letter where the options are letters themselves. `right` is the 1-based right options; `order` an ordering, said by its head. */
+function answerSay_(answer, choices, right, order) {
   const opts = choices || [], ks = (right || []).filter(k => k > 0 && k <= opts.length);
-  const head = String(answer || '').trim() ? answerParts_(answer).head : ks.map(k => opts[k - 1]).join(', ');
-  if (!ks.length || opts.every(c => /^\s*[A-Za-z]\s*$/.test(String(c).replace(/<[^>]*>/g, '')))) return head;
-  const letters = ks.map(k => CHOICE_LETTERS[k - 1]).join(', ');
-  const only = String(head).replace(/<[^>]*>/g, '').trim().toUpperCase() === letters;
-  return '<b>' + letters + '</b> ' + (only ? ks.map(k => opts[k - 1]).join(', ') : head);
+  /* ONE ANSWER FORMAT (UNIFY AFTER 7, 23 Nov): a pick's answer is its key alone -- the letters and their options' words; `answer` is its working, not said here. */
+  if (ks.length && !order) {
+    const words = ks.map(k => opts[k - 1]).join(', ');
+    return opts.every(c => /^\s*[A-Za-z]\s*$/.test(String(c).replace(/<[^>]*>/g, ''))) ? words : '<b>' + ks.map(k => CHOICE_LETTERS[k - 1]).join(', ') + '</b> ' + words;
+  }
+  return String(answer || '').trim() ? answerParts_(answer).head : ks.map(k => opts[k - 1]).join(', ');
 }
 
 /* OPENING ONE SHOWS THE STEM, THE LEAD AND THE PART — in that order, because that is the order it is printed and because a part without them cannot be answered. § */
