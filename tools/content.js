@@ -27,7 +27,7 @@ const USAGE = `
   node tools/content.js markscheme <ids file> <pdf dir> [--overrides f.json] [--apply]   cells → answers → words (AQA schemes)
   node tools/content.js keypack <lib-import.json> [--apply]                             validate → apply (a key pack onto the words)
   node tools/content.js insert                                                          sheets → write (tools/inserts.py's sheets)
-  node tools/content.js ideas [--out <dir>]                                             measure → tag (maths cards: part_of, specs, idea_id; tools/lib/ideas.js)
+  node tools/content.js ideas [--out <dir>]                                             measure → merge → tag (one maths card per idea; part_of, specs, idea_id; tools/lib/ideas.js)
 
   node tools/content.js library <split|join|seed|pull|push|status|drive-pack|help> …   the library's private half (397)
 `;
@@ -338,29 +338,51 @@ const INSERT = {
   },
 };
 
-/* ONE CARD PER IDEA, MATHS PILOT (queue step 10): the duplicate report into data/settings/taxonomy.json Maths, then the three fields onto the
-   maths cards of data/textbooks.json. --out <dir> writes both there and touches nothing. Only adds: no card is merged or deleted. */
+/* ONE CARD PER IDEA, MATHS (queue step 10, then step 3, 22 Nov): measure the groups, merge each into one card (tools/lib/ideas.js merge: levels as
+   tags, broad chapters split by point, every word kept), measure again and write the report into data/settings/taxonomy.json Maths, then the three
+   fields onto the maths cards of data/textbooks.json. The words go to data-private/ (a drive-pack takes them to the Ledger). --out <dir> writes
+   the result there and touches nothing. */
 const IDEAS = {
   measure(c) {
-    const ID = require('./lib/ideas.js');
+    c.ID = require('./lib/ideas.js');
     c.tb = IM.cards('textbooks');
-    c.m = ID.measure(c.tb.rows);
-    const file = path.join(ROOT, 'data', 'settings', 'taxonomy.json'), tax = JSON.parse(fs.readFileSync(file, 'utf8'));
-    const files = c.m.cards.map(x => ({ board: x.board, spec: x.spec, level: x.level })).filter(x => x.board && x.spec);
+    c.m = c.ID.measure(c.tb.rows);
+    c.file = path.join(ROOT, 'data', 'settings', 'taxonomy.json');
+    c.tax = JSON.parse(fs.readFileSync(c.file, 'utf8'));
+    console.log('ideas: ' + c.m.cards.length + ' maths cards, ' + c.m.groups.length + ' ideas, ' + c.m.groups.filter(g => g.cards.length > 1).length + ' groups of the same idea');
+  },
+  merge(c) {
+    const words = c.words = IM.words('textbooks'), out = argOut();
+    /* TO A FIXED POINT: a card kept takes its idea's name, which can make it the same idea as another (GCSE and A-Level Vectors). */
+    const r = { merged: {}, moved: 0, gone: 0, anims: 0 };
+    for (let i = 0; i < 5 && c.m.groups.some(g => g.cards.length > 1); i++) {
+      const x = c.ID.merge(c.tb.rows, words, c.m);
+      Object.assign(r.merged, x.merged); r.moved += x.moved; r.gone += x.gone; r.anims += x.anims;
+      c.m = c.ID.measure(c.tb.rows);
+    }
+    const merged = Object.assign({}, ((c.tax.Maths || {}).ideas || {}).merged || {}, r.merged);
+    /* A KEY MERGED BEFORE INTO ONE MERGED NOW names the card kept now. */
+    Object.keys(merged).forEach(k => { let t = merged[k].to; while (merged[t]) t = merged[t].to; merged[k].to = t; });
+    c.merged = merged;
+    const n = out ? 0 : c.ID.relink(merged);
+    if (out) IM.writeOut(out, 'textbooks', { cards: c.tb.rows, words });
+    else if (r.gone || r.moved) IM.writeWords('textbooks', words);
+    c.m = c.ID.measure(c.tb.rows);
+    const m = c.m, files = m.cards.map(x => ({ board: x.board, spec: x.spec, level: x.level })).filter(x => x.board && x.spec);
     const boards = ['AQA', 'Edexcel', 'OCR'].filter(b => files.some(x => x.board === b)).map(b => ({ board: b,
       specs: [...new Set(files.filter(x => x.board === b).map(x => x.spec))].map(code => ({ code, level: files.find(x => x.board === b && x.spec === code).level,
-        spec: (c.m.cards.find(x => x.board === b && x.spec === code).specs[0] || '').split(':')[0] })) }));
-    tax.Maths = { subject: ID.SUBJECT, cards: { levels: ['part_of', 'idea_id'], tree: 'data/topics.json', boards }, ideas: ID.report(c.m) };
-    c.tax = JSON.stringify(tax, null, 1) + '\n';
-    const n = c.m.groups.filter(g => g.cards.length > 1).length;
-    console.log('ideas: ' + c.m.cards.length + ' maths cards, ' + c.m.groups.length + ' ideas, ' + n + ' groups of the same idea');
-    const out = argOut();
-    if (out) { fs.mkdirSync(out, { recursive: true }); fs.writeFileSync(path.join(out, 'taxonomy.json'), c.tax); }
-    else fs.writeFileSync(file, c.tax);
+        spec: (m.cards.find(x => x.board === b && x.spec === code).specs[0] || '').split(':')[0] })) }));
+    c.tax.Maths = { subject: c.ID.SUBJECT, cards: { levels: ['part_of', 'idea_id'], tree: 'data/topics.json', boards }, ideas: Object.assign(c.ID.report(m), { merged }) };
+    const text = JSON.stringify(c.tax, null, 1) + '\n';
+    if (out) { fs.mkdirSync(out, { recursive: true }); fs.writeFileSync(path.join(out, 'taxonomy.json'), text); }
+    else fs.writeFileSync(c.file, text);
+    console.log('ideas: merged ' + r.gone + ' card(s) into the card kept, ' + r.moved + ' item move(s) from broad cards to their idea, ' + r.anims
+      + ' animation(s) moved, ' + n + ' spec link(s) pointed on; now ' + m.cards.length + ' cards, ' + m.groups.length + ' ideas, '
+      + m.groups.filter(g => g.cards.length > 1).length + ' groups of more than one card');
   },
   tag(c) {
-    const n = require('./lib/ideas.js').tag(c.tb.rows, c.m), out = argOut();
-    if (out) IM.writeOut(out, 'textbooks', { cards: c.tb.rows, words: {} });
+    const n = c.ID.tag(c.tb.rows, c.m), out = argOut();
+    if (out) IM.writeOut(out, 'textbooks', { cards: c.tb.rows, words: c.words || {} });
     else IM.writeCards('textbooks', c.tb.rows, c.tb.style);
     console.log('ideas: ' + n + ' field(s) set on ' + c.m.cards.length + ' maths cards' + (out ? ' (in ' + out + ')' : ''));
   },
