@@ -10,7 +10,7 @@ const { text, srcFiles, report, main } = require('./lib/gen.js');
 const MADE = new Set(['js/kinds.js', 'backend/cards-gen.gs']);
 
 function run() {
-  const bad = [], kinds = JSON.parse(text('data/settings/kinds.json')).kinds;
+  const bad = [], kinds = require('./lib/site-data.js').kinds();
   let n = 0;
   /* 1. THE SOURCE IS WHOLE: every field once, every one labelled. */
   const letters = [];

@@ -2,7 +2,9 @@
 /* @family. — tools/one-list.js THE ONE-LIST CHECK (rule 1.75, UNIFY NEXT 2, 22 Nov): every list in data/settings/*.json has one home.
    Fails the build on (1) the same list of 3+ words written out in two settings files; (2) outside settings.json, a list equal to the
    permission tiers (settings.json `roles.tiers`) or to a `roles.may` word's tiers, which a file names instead (actions.json "tiers",
-   "signedIn", "grownUp"); (3) a content.json family writing the board, subject, level or key stage its expected-papers.json line holds. */
+   "signedIn", "grownUp"); (3) a content.json family writing the board, subject, level or key stage its expected-papers.json line holds;
+   (4) a level in settings.json `levels.list` off the one ladder — no rung and no key stage — that does not say `ladder: false` (UNIFY AFTER 4:
+   Functional Skills was one, so it sorted after the ladder and no key-stage filter held it). */
 'use strict';
 const SD = require('./lib/site-data.js');
 const fs = require('fs'), path = require('path');
@@ -56,15 +58,17 @@ function scan() {
       .forEach(([k, v]) => { if (c[k] !== undefined && c[k] === v) same.push('card.' + k); });
     if (same.length) bad.push('content.json ' + fam.family + ': ' + same.join(', ') + ' copied from expected-papers.json "' + fam.qualification + '"');
   });
-  return { bad, files: all.length, lists: seen.size };
+  /* (4) every school level on the one ladder */
+  S.levels.list.forEach(l => { if (!l.rung && !(l.stages || []).length && l.ladder !== false) bad.push('settings.json levels.list "' + l.level + '" has no rung and no key stage: give it its key stage, or `ladder: false`'); });
+  return { bad, files: all.length, lists: seen.size, levels: S.levels.list.length };
 }
 
 async function run() {
   const r = scan();
-  console.log('one-list: ' + r.lists + ' word lists across ' + r.files + ' settings files, each in one place');
+  console.log('one-list: ' + r.lists + ' word lists across ' + r.files + ' settings files, each in one place; ' + r.levels + ' levels each on the ladder or marked off it');
   if (r.bad.length) {
     r.bad.forEach(b => console.log('  ' + b));
-    throw new Error('one-list: ' + r.bad.length + ' list(s) written out twice — name the one home instead');
+    throw new Error('one-list: ' + r.bad.length + ' problem(s) — a list written out twice (name the one home instead) or a level off the ladder');
   }
 }
 module.exports = { run, scan };
