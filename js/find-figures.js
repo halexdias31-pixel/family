@@ -231,6 +231,20 @@ function tagShared_(x, facet, raw) {
   return memo.get(k);
 }
 /* A CARD'S FACET TAGS AS DATA (the master template's `tags`); tagRow_ draws them as a row. */
+/* THE ONE TAG SET (owner, 23 Nov; data/settings/tags.json as CARD_TAGS): a facet's tag kind, '' when it is not one a card shows. */
+const tagKindOf_ = f => { const k = CARD_TAGS.kinds.find(k => k.fields.indexOf(f) >= 0); return k ? k.kind : ''; };
+/* THE ONE PICKER, the site's and the email's: `{ field, text }` tags in, the set's kinds out, one of each in its order, a `join` kind's */
+/* tags as one ("Q1" "a" "i" is Q1ai), never more than `max`. Anything else on the tag rides along on the one kept. */
+function tagsKept_(tags) {
+  const out = [];
+  CARD_TAGS.kinds.forEach(k => {
+    const mine = (tags || []).filter(t => t && k.fields.indexOf(t.field) >= 0)
+      .sort((a, b) => k.fields.indexOf(a.field) - k.fields.indexOf(b.field));
+    if (!mine.length) return;
+    out.push(k.join ? Object.assign({}, mine[0], { text: mine.map(t => t.text).join('') }) : mine[0]);
+  });
+  return out.slice(0, CARD_TAGS.max);
+}
 function tagList_(x, page) {
   const out = [], words = new Map(), ids = new Map(), said = [];
   if (!x) return [];
@@ -261,7 +275,7 @@ function tagList_(x, page) {
     });
   });
   tagFold_(out);
-  return out.map(t => ({ text: t.text, colour: tagOf_(t.field), data: Object.assign({ f: t.field }, t.also.length ? { also: t.also.join(' ') } : {}) }));
+  return tagsKept_(out).map(t => ({ text: t.text, colour: tagOf_(t.field), data: Object.assign({ f: t.field }, t.also.length ? { also: t.also.join(' ') } : {}) }));
 }
 function tagRow_(x, page) { return renderTags(tagList_(x, page), 'qcard-tags'); }
 /* TAGS AT THE TOP OF EVERY CARD (1030, 1040 r10): a card with no tag line gets one, and one drawn under its title moves above it. */

@@ -18,7 +18,7 @@ const TAKE = [
   /* A STORED VERDICT AS THE ONE MARKING ENGINE'S SHAPE (owner, 17 Nov): the Sunday email's `digestMark_` reads it as the site's `subSay_` does. */
   /* AND A PICK QUESTION'S OPTIONS READ AS THE MARKER READS THEM (owner, 22 Nov: one Question card): the email marks the option they typed by `choicePicks_`. */
   ['js/find-marking.js', ['verdictOf_', 'markNorm_', 'MARK_SUPS', 'MARK_SYNONYMS', 'CHOICE_LETTERS', 'choicePicks_']],
-  ['js/find-figures.js', ['TAG_NAME', 'tagMadeOf_']],
+  ['js/find-figures.js', ['TAG_NAME', 'tagMadeOf_', 'tagKindOf_', 'tagsKept_']],
   /* THE WORDS FILE AND THE FORMATTERS (owner rule 1.1): every line a card says in an email goes through these. */
   ['js/core.js', ['WORDS_FILE', 'esc', 'text_', 'fmtTime_', 'fmtHours_', 'plural_', 'fmtMoney_', 'DAYS_SHORT', 'fmtDay_', 'fmtDmy_', 'fmtDate_',
     /* ONE DATE READER, ONE TODAY (owner, 20 Nov): tools/date-cases.js holds this copy to the site's. */
@@ -80,6 +80,7 @@ function inkParts() {
 /* THE EMAIL'S TAGS, FROM THE SITE'S ONE RULE (owner rule 1.1, 16 Nov): no hand table of facets or colours in the backend. */
 /* DIGEST_TAG_FIELDS: data/settings/facets.json's live facets in its order (the site's one facet list, rule 1.80). */
 /* DIGEST_TAG_INK: each hue `hN` as style.css's `--hue-N`, the colour `[data-tag="hN"]` draws. */
+const cardTags = () => { const j = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/settings/tags.json'), 'utf8')); return { max: j.max, kinds: j.kinds }; };
 function tagParts() {
   const rows = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/settings/facets.json'), 'utf8'));
   const fields = rows.filter(r => r && r.field && r.active !== false && isFinite(Number(r.sort_order)) && String(r.sort_order) !== '')
@@ -91,7 +92,9 @@ function tagParts() {
   if (!Object.keys(ink).length) throw new Error('tools/cards-gen.js: style.css has no `--hue-N: #…` tokens');
   return '/* from data/settings/facets.json and style.css --hue-N */\n'
     + 'const DIGEST_TAG_FIELDS = ' + JSON.stringify(fields).replace(/","/g, '", "') + ';\n'
-    + 'const DIGEST_TAG_INK = ' + JSON.stringify(ink).replace(/":"/g, '": "').replace(/","/g, '", "') + ';';
+    + 'const DIGEST_TAG_INK = ' + JSON.stringify(ink).replace(/":"/g, '": "').replace(/","/g, '", "') + ';\n'
+    /* THE ONE TAG SET (owner, 23 Nov): data/settings/tags.json, the site's js/kinds.js CARD_TAGS, read by the one picker tagsKept_. */
+    + 'const CARD_TAGS = ' + JSON.stringify(cardTags()) + ';';
 }
 /* THE PERSON FACT KEYS (kinds.json person.facts.keys, rule 1.80): the backend drops any fact whose `what` is not one. */
 function factParts() {
@@ -226,5 +229,5 @@ function run() {
   fs.writeFileSync(OUT, body);
   console.log('cards-gen: backend/cards-gen.gs written (' + TAKE.reduce((n, t) => n + t[1].length, 0) + ' names)');
 }
-module.exports = { run, build, formsBlock, FORMS_RE, inkOf, cssTokens, DIGEST_INK_TOKENS };
+module.exports = { cardTags, run, build, formsBlock, FORMS_RE, inkOf, cssTokens, DIGEST_INK_TOKENS };
 if (require.main === module) run();

@@ -278,7 +278,8 @@ function itemMapOfKind_(k) {
   else if ((K.find || {}).from === 'store') { M.body = r => itemLines_(r, k); M.sheet = (it, x) => storeSheet_(it, x); M.tiles = (it, x) => storeTiles_(it, x); }
   if (c.picture && !/\(/.test(c.picture)) M.picture = (it, x) => (x[c.picture] && typeof pic === 'function' ? { src: pic(x[c.picture]), look: 'thing-pic', alt: '' } : null);
   else if (!c.picture && K.shape === 'Person') M.picture = it => (typeof personPicSpec_ === 'function' ? personPicSpec_(it.raw.id, it.name) : null);
-  if (c.price) M.pills = (it, x) => itemFacets_(M, x).concat(shopPriceTag_(x) || []);
+  /* ITS PRICE IS THE ONE TAG SET'S `price` (data/settings/tags.json), after the facets the set keeps. */
+  if (c.price) M.pills = (it, x) => itemFacets_(M, x).concat([].concat(shopPriceTag_(x) || []).map(t => Object.assign({}, t, { data: Object.assign({}, t.data, { f: 'price' }) })));
   if (K.live) { M.live = {}; Object.keys(K.live).forEach(f => { const h = kindHook_(K.live[f], null); M.live[f] = r => h({ row: r }); }); }
   return M;
 }
@@ -332,8 +333,9 @@ function cardOfItem_(it, x) {
   const M = ITEM_MAPS[it.kind] || {}, own = x || { kind: it.kind, key: '', name: it.name };
   if (M.keep) M.keep(it, own);
   const facets = itemFacets_(M, own);
-  const more = Object.keys(M.entryTags || {}).flatMap(f => (own[f] || []).map(t => ({ text: t, colour: M.entryTags[f] })))
-    .concat(Object.keys(M.liveTags || {}).flatMap(f => ((it.live || {})[f] || []).map(t => ({ text: t, colour: M.liveTags[f] }))));
+  /* A KIND'S OWN EXTRA TAGS (`entryTags`, `liveTags`) only where the one tag set (data/settings/tags.json) names their field (owner, 23 Nov). */
+  const more = tagsKept_(Object.keys(M.entryTags || {}).flatMap(f => (own[f] || []).map(t => ({ field: f, text: t, colour: M.entryTags[f], data: { f } })))
+    .concat(Object.keys(M.liveTags || {}).flatMap(f => ((it.live || {})[f] || []).map(t => ({ field: f, text: t, colour: M.liveTags[f], data: { f } })))));
   /* `nameTag: false` still leads with the name when it has no facets at all: a card is never without a tag. */
   const pic = M.picture ? M.picture(it, own) : null, pills = M.pills ? M.pills(it, own) : null;
   /* ITS ROW IS ITS ENTRY'S OWN, never one made of its name: a card whose name is not a tag (`nameTag: false`) must not draw it elsewhere (the Message tile's `to`). */
