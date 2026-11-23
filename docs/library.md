@@ -27,7 +27,7 @@ One card is one topic, like one page of a CGP revision guide: the topic as its t
 
 ## Changing the library with a tool
 
-Every row-writing tool (`tools/*.py`, `tools/diagram_png.js`, `tools/anim_row.py`, `tools/set-choices.py`, …) reads
+Every row-writing tool (`tools/*.py`, `tools/diagram_png.js`, `tools/anim_row.py`, …; a new row editor is a source step of `node tools/content.js`, the one importer) reads
 and writes whole rows, as it always did. Around it:
 
 ```bash

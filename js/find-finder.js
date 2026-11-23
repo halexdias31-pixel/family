@@ -270,6 +270,8 @@ function taxonomyRead_() {
   return out;
 }
 /* THE HELPERS A facets.json `read` {by: "fn"} MAY NAME (batch 6): const arrows in other files, so each is called through here, never looked up on window; `col` "name.key" reads one key of its answer. */
+/* ONE WHAT SORT (UNIFY AFTER 3, 23 Nov): an item's own sort, whichever kind it is (facets.json documentType); no item carries two of these. */
+const sortOf_ = x => x.documentType || x.projectType || x.practicalType || x.boxKind || x.shopKind || x.mKind || (specTreeOf_(x).topic ? 'Exam topics' : '');
 const FACET_FN = {
   mechScope_: x => mechScope_(x),
   decadesOf_: x => decadesOf_(x),
@@ -290,6 +292,7 @@ const FACET_FN = {
   itemDate_: x => itemDate_(x),
   qSplitOf_: x => qSplitOf_(x),
   toolNameOf_: x => toolNameOf_(x),
+  sortOf_: x => sortOf_(x),
 };
 const facetFn_ = c => { const [f, k] = c.split('.'); return k ? x => (FACET_FN[f](x) || {})[k] : FACET_FN[f]; };
 /* ONE-LINE COLUMN READERS ARE DATA (batch 4): a facets.json row's `read` {by, col} names one of these; FACET_READ keeps only facets with real code. */
@@ -308,7 +311,9 @@ const FACET_BY_READ_ = {
 const facetOne_ = (r, one) => { const to = {}; Object.keys(one).forEach(k => one[k].forEach(w => { to[spellKey_(w)] = k; }));
   const map = v => Array.isArray(v) ? [...new Set(v.map(map))] : (v && to[spellKey_(v)]) || v;
   return Object.assign({}, r, { of: x => map(r.of(x)), tagOf: r.tagOf || r.of, answerOf: map }); };
-const facetReadData_ = () => Object.fromEntries(ITEM_KINDS.facets.filter(f => f.read && FACET_BY_READ_[f.read.by]).map(f => { const r = FACET_BY_READ_[f.read.by](f.read.col);
+/* `or` (UNIFY AFTER 3, ONE BRAND): a column read where the reader leaves an item empty (a shop thing's maker beside a car's brand). */
+const facetOr_ = (r, c) => Object.assign({}, r, { of: x => r.of(x) || x[c] || '', tagOf: (x, p) => (r.tagOf || r.of)(x, p) || x[c] || '' });
+const facetReadData_ = () => Object.fromEntries(ITEM_KINDS.facets.filter(f => f.read && FACET_BY_READ_[f.read.by]).map(f => { const r0 = FACET_BY_READ_[f.read.by](f.read.col), r = f.read.or ? facetOr_(r0, f.read.or) : r0;
   return [f.field, Object.assign(f.one ? facetOne_(r, f.one) : r, f.read.tag === false ? { tagOf: () => '' } : {}, f.read.choose ? { choose: true } : {})]; }));
 const FACET_READ = {
   ...facetReadData_(),
@@ -330,7 +335,6 @@ const FACET_READ = {
   wText: { of: x => writingVersionOf_(writingAt_(x, 'text')) },
   /* MECHANICS (548): a car's facts as tags, read off the row; a row answers only what it has. */
   /* A LESSON WRITTEN TO A SPEC IS ONE TYPE BESIDE CHEMISTRY'S ELEMENTS AND SUBSTANCES (16 Nov): Library › Chemistry › Exam topics › GCSE › AQA. */
-  mKind: { of: x => x.mKind || (specTreeOf_(x).topic ? 'Exam topics' : '') },
   mPart: { of: x => (x.kind === 'mech' && x.mFile !== 'models' && x.name) || '' },
   /* BATCH D: one people kind; a person's name, years and home are tags (the card has no title). */
   /* A BOUT'S FACTS ARE TAGS (445), like a question's: who, when, how. A boxer answers Fighter too, so his name finds him and his bouts. */

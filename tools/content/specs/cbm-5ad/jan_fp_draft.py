@@ -13,7 +13,7 @@
   ***      the `q(...)` rows are missing.
   ***   2. the 31 `kind: 'document'` rows, one per day. `BASE` holds every column they need.
   ***   3. the writer: read the file, assert no row_id clashes, insert, write back ONE LINE PER
-  ***      ROW and rewrite only the lines that change. tools/set-spec-codes.py has that shape.
+  ***      ROW and rewrite only the lines that change. the speccode source in tools/content.js has that shape.
   ***   4. `check-library.js` has `5-a-day` in its `document_type` vocabulary and `Foundation Plus`
   ***      in `tier` already, so nothing there needs changing.
   ***
