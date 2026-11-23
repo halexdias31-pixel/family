@@ -10029,7 +10029,8 @@ const seq = wholeQuestions_(items), hit = new Set(items);
 const byPage = (STUFF.filters || []).filter(f => f && !f.any && (facetBy(f.field) || {}).tagOf);
 const kept = (x, part) => byPage.every(f => {
 let v = [];
-try { v = asList_(facetBy(f.field).tagOf(x, part)); } catch (e) { v = []; }
+const G = facetBy(f.field);
+try { v = asList_(G.tagOf(x, part)); if (G.answerOf) v = v.map(G.answerOf); } catch (e) { v = []; }
 return !v.length || v.some(t => spellKey_(t) === spellKey_(f.value));
 });
 seq.forEach((x, i) => {
@@ -11600,6 +11601,7 @@ const items = stuffFiltered();
 if (!items.length) return stuffNoneBlocks_();
 const facet = nextFacet(items) || overFacet_(items) || (!STUFF.filters.length ? facetBy('kindLabel') : null);
 if (!facet) {
+if (!stuffPages_().length) return [{ type: 'text', look: 'empty', text: 'Found ' + items.length + ', but none has a page under these chips — take the last chip off.' }];
 return [bibleEnd_(items)].filter(Boolean);
 }
 const values = facetValues(items, facet);
