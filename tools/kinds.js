@@ -27,8 +27,10 @@ function run() {
   /* A KIND'S CARD SHAPE (CARD SHAPES): a Person, an Item, a Learning: Reference or Question or an Activity: Record or Thread, nothing else. */
   Object.keys(j.kinds).forEach(k => { const h = j.kinds[k].shape; if (typeof h === 'string' && ['Person', 'Item', 'Reference', 'Record', 'Thread', 'Question'].indexOf(h) < 0) bad.push(k + ': shape ' + h + ' is not Person, Item, Reference, Record, Thread or Question'); });
   if (bad.length) throw new Error('kinds: FAILED\n  ' + bad.join('\n  '));
-  const want = '/* @family. — js/kinds.js: WRITTEN BY tools/kinds.js FROM data/settings/kinds.json and facets.json; edit those. */\n'
-    + 'const ITEM_KINDS = ' + JSON.stringify({ kinds: j.kinds, doors: j.doors, facets: JSON.parse(fs.readFileSync(path.join(ROOT, 'data/settings/facets.json'), 'utf8')) }) + ';\n';
+  const want = '/* @family. — js/kinds.js: WRITTEN BY tools/kinds.js FROM data/settings/kinds.json, facets.json and tags.json; edit those. */\n'
+    + 'const ITEM_KINDS = ' + JSON.stringify({ kinds: j.kinds, doors: j.doors, facets: JSON.parse(fs.readFileSync(path.join(ROOT, 'data/settings/facets.json'), 'utf8')) }) + ';\n'
+    /* THE ONE TAG SET (owner, 23 Nov): data/settings/tags.json, as the backend's CARD_TAGS (tools/cards-gen.js). */
+    + 'const CARD_TAGS = ' + JSON.stringify((t => ({ max: t.max, kinds: t.kinds }))(JSON.parse(fs.readFileSync(path.join(ROOT, 'data/settings/tags.json'), 'utf8')))) + ';\n';
   const file = path.join(ROOT, 'js/kinds.js');
   let have = '';
   try { have = fs.readFileSync(file, 'utf8'); } catch (e) { /* not written yet */ }

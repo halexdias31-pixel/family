@@ -242,10 +242,11 @@ function digestCardTags_(q, T) {
       const w = text.toLowerCase();
       if ((/[A-Za-z]/.test(text) && (words[w] || tagMadeOf_(text, said))) || (/[A-Za-z]/.test(raw) && ids[raw])) return;
       words[w] = 1; ids[raw] = 1; said.push(text);
-      out.push({ kind: digestTagHue_(f), text: text });
+      out.push({ field: f, kind: digestTagHue_(f), text: text });
     });
   });
-  return out;
+  /* THE ONE TAG SET (owner, 23 Nov): the site's one picker, tagsKept_ (cards-gen.gs), over data/settings/tags.json. */
+  return tagsKept_(out);
 }
 
 /* THE ROWS ASKED FOR, AND THE PREAMBLES OF THEIR PAPERS — one line each, found by its text and parsed alone. § */

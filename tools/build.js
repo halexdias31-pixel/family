@@ -73,6 +73,7 @@ const ORDER = [
   'one-card',     // the one-card check (rule 1.75): every Find card by the one maker, no CSS of its own; fails the build
   'one-answer',   // the one-answer-format check (rule 1.75, owner 23 Nov: UNIFY AFTER 7): every pick question's key choice_right in its options' letters, its working a note in answer; any other key fails the build
   'one-question-card', // the one-question-card check (rule 1.75, owner 22 Nov): the Sunday email's question card has the site card's parts in its order (kinds.json card.question.parts), a pick question's options marked and its answer as the site says it; fails the build
+  'one-tag-set',  // the one-tag-set check (rule 1.75, owner 23 Nov, UNIFY AFTER 6): every Find card and Sunday-email question card wears only data/settings/tags.json's kinds, one of each, at most its max; fails the build
   'one-settings-card', // the one-settings-card check (rule 1.75, owner 22 Nov): every Settings card the one card, its rows text, field or item (kinds.json setting.card, setting.rows); fails the build
   'dead-css',     // the dead-css check (rule 1.75, owner 20 Nov): classes in style.css nothing writes, counted against a budget; a rise fails the build
   'dead-fn',      // the dead-fn check (rule 1.75, unify batch 6 lane E): a top-level function in js/ that nothing in js/, index.html, backend/, tools/ or data/ names fails the build
