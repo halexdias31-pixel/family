@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-/* @family. — tools/three-faces.js THE THREE-FACES CHECK (rule 1.75, owner 22 Nov: answer input types -> type, pick, draw).
+/* @family. — tools/three-faces.js THE THREE-FACES CHECK (rule 1.75, owner 22 Nov: answer input types -> type, draw; 23 Nov: pick merged into type).
    Every active question's answer face, as the one source gives it (js/qtypes.js `qtFace_`), is one of QT_FACES: type (the one box
-   and keypad), pick (choices) or draw (the drawing pad); and every question type in data/settings/qengine.json carries one of the
+   and keypad, options typed by their letters) or draw (the drawing pad); and every question type in data/settings/qengine.json carries one of the
    three as its `face`. No camera, no photo: their code must not come back. Prints the count site-wide; anything else fails the build. */
 'use strict';
 const SD = require('./lib/site-data.js');
@@ -13,7 +13,7 @@ function run() {
   const bad = [];
   const { ctx, call } = VQ.appCode();
   const FACES = call('QT_FACES');
-  if (JSON.stringify([...FACES]) !== '["type","pick","draw"]') bad.push('QT_FACES is ' + JSON.stringify(FACES));
+  if (JSON.stringify([...FACES]) !== '["type","draw"]') bad.push('QT_FACES is ' + JSON.stringify(FACES));
   const types = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/settings/qengine.json'), 'utf8')).types;
   Object.entries(types).forEach(([t, p]) => { if (FACES.indexOf(p.face) === -1) bad.push('qengine type ' + t + ' has face ' + JSON.stringify(p.face)); });
   /* THE CAMERA AND THE PHOTO READER STAY GONE */
@@ -34,7 +34,7 @@ function run() {
     console.log('three-faces: ' + Object.keys(counts).sort().map(f => f + ' ' + counts[f]).join(', ') + ' (active questions)');
   } else console.log('three-faces: no data-private/questions.json here, the questions skipped');
   bad.forEach(b => console.log('  ' + b));
-  if (bad.length) throw new Error('three-faces: ' + bad.length + ' face(s) not type, pick or draw');
+  if (bad.length) throw new Error('three-faces: ' + bad.length + ' face(s) not type or draw');
   return counts;
 }
 module.exports = { run };

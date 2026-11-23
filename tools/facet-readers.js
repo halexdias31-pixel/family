@@ -38,8 +38,17 @@ facets.forEach(f => {
   if (f.read.by === 'fn' && !fns.has(f.read.col.split('.')[0])) bad.push('facets.json ' + f.field + ': fn ' + f.read.col + ' is not in FACET_FN');
   if (hand.has(f.field)) bad.push(ENGINE + ': ' + f.field + ' is read by facets.json and again by hand in FACET_READ');
 });
+/* ONE FACET A QUESTION (UNIFY AFTER 3, 23 Nov): What sort was seven facets and Brand two, each a kind's own copy of one question, so a parent
+   saw the same question with different answers by where they stood. Each of these labels is one facet now; a second fails the build. A
+   taxonomy level (data/settings/taxonomy.json library.levels: histKind, its own question in the History tree) is the taxonomy's, not a copy. */
+const ONE_LABEL = ['What sort', 'Brand'];
+const tax = JSON.parse(text('data/settings/taxonomy.json')), levels = new Set();
+Object.keys(tax).forEach(k => (((tax[k] || {}).library || {}).levels || []).forEach(l => levels.add(l.facet)));
+const live = facets.filter(f => f.active !== false && !levels.has(f.field));
+ONE_LABEL.forEach(lb => { const on = live.filter(f => f.label === lb).map(f => f.field); if (on.length > 1) bad.push('facets.json: ' + on.length + ' facets ask "' + lb + '" (' + on.join(', ') + '); one facet, read across kinds (a fn or `or`)'); });
 report('facet-readers', bad, 'problem(s) — FAILED');
-console.log('facet-readers: ok — ' + facets.filter(f => f.read).length + ' facets read as data, no one-line column reader in FACET_READ');
+console.log('facet-readers: ok — ' + facets.filter(f => f.read).length + ' facets read as data, no one-line column reader in FACET_READ; '
+  + ONE_LABEL.map(lb => lb + ' ' + live.filter(f => f.label === lb).length).join(', ') + ' facet(s)');
 }
 module.exports = { run };
 main(module, run);

@@ -612,7 +612,8 @@ function digestRightAnswer_(q) {
   const way = (choiceKeys_(q.choice_right)[0] || []).filter(k => k > 0 && k <= opts.length);
   /* AS THE SITE'S ANSWER CARD SAYS IT (`answerSay_`, owner 22 Nov): a pick question's key letters and their options' words (UNIFY AFTER 7), else the scheme's head, codes and "(1)" gone. */
   const ans0 = S(q.answer).trim();
-  if (ans0 || (opts.length && way.length)) {
+  /* A TABLE TO FILL: each cell's key, the scheme's head after it as a note (owner, 23 Nov), never the head alone */
+  if (ans0 && !cellsOf_(q).some(c => c.ways) || (opts.length && way.length)) {
     const said = answerSay_(ans0, opts, way, S(q.answer_type).toLowerCase() === 'order');
     const text = digestText_(said).replace(/\s*\n\s*/g, ' ').trim();
     if (text.length <= 300) return out(digestHtml_(said).replace(/<\/?(?:p|div|strong)\b[^>]*>/g, ' ').replace(/\s+/g, ' ').trim(), text);
@@ -622,8 +623,9 @@ function digestRightAnswer_(q) {
   const cells = cellsOf_(q);
   if (cells.length) {
     const got = cells.filter(c => c.ways).map(c => ({ label: c.label, v: c.ways.split('|')[0].trim(), num: /^\d+$/.test(c.label) }));
-    return out(got.map(c => (c.num ? '' : esc(S(c.label)) + ' = ') + digestHtml_(c.v)).join('; '),
-               got.map(c => (c.num ? '' : c.label + ' = ') + digestText_(c.v)).join('; '));
+    const note = ans0 ? digestText_(answerSay_(ans0, [], [], false)).replace(/\s+/g, ' ').trim().slice(0, 200) : '';
+    return out(got.map(c => (c.num ? '' : esc(S(c.label)) + ' = ') + digestHtml_(c.v)).join('; ') + (note ? ' <i>(' + esc(note) + ')</i>' : ''),
+               got.map(c => (c.num ? '' : c.label + ' = ') + digestText_(c.v)).join('; ') + (note ? ' (' + note + ')' : ''));
   }
   const acc = S(q.accept).split('|')[0].trim();
   return acc ? out(digestHtml_(acc), digestText_(acc)) : null;

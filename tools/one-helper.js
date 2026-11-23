@@ -40,7 +40,10 @@ function harnessProblems() {
 /* THE ONE IMPORTER (UNIFY NEXT 5, 22 Nov): data/questions.json and data-private/ are written through tools/lib/import.js (writeCards,
    writeWords), the steps tools/content.js runs for every source. A tool that writes either itself fails the build. IMPORT_OWED: the
    one-off row editors from before the importer (run between `library join` and `library split`), printed until each moves onto it. */
-const IMPORT_OWED = ['tools/draw-1f-1705-q13.py', 'tools/draw-chem-8462-1F.py', 'tools/draw-figures-q3.py', 'tools/draw-money-coins.py',
+const IMPORT_OWED = [];
+/* GONE (UNIFY AFTER 2, 23 Nov): the ten one-off row editors from before the importer, moved onto it (set-spec-codes.py: the speccode source)
+   or deleted as dead (their rows are in the library; set-accept.py would now blank 22,394 scheme-keyed accept cells). One back fails. */
+const IMPORT_GONE = ['tools/draw-1f-1705-q13.py', 'tools/draw-chem-8462-1F.py', 'tools/draw-figures-q3.py', 'tools/draw-money-coins.py',
   'tools/refine-1f-2406-p1.py', 'tools/set-accept.py', 'tools/set-choices.py', 'tools/set-spec-codes.py', 'tools/typeset-plain-maths.py', 'tools/greek/write.py'];
 const IMPORT_LIB = 'tools/lib/import.js';
 function writesLibrary(f, src) {
@@ -54,6 +57,8 @@ function writesLibrary(f, src) {
 }
 function importProblems() {
   const out = [];
+  const have = new Set(srcFiles('tools', /\.(js|py)$/, { deep: true }));
+  IMPORT_GONE.filter(f => have.has(f)).forEach(f => out.push(f + ' is back: the old row editors are gone (a source step of node tools/content.js instead)'));
   srcFiles('tools', /\.(js|py)$/, { deep: true }).filter(f => f !== IMPORT_LIB && !/^tools\/lib\/lib-full\.js$/.test(f) && IMPORT_OWED.indexOf(f) === -1).forEach(f => {
     if (writesLibrary(f, /\.js$/.test(f) ? bare(text(f), { comments: 'js' }) : text(f))) out.push(f + ' writes data/questions.json or data-private/ itself (go through ' + IMPORT_LIB + ': node tools/content.js <source>)');
   });

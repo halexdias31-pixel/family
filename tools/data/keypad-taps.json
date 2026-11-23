@@ -1,0 +1,53 @@
+{
+ "say": "Written by tools/keypad-taps.js --floor: each answer type's sampled questions tapped right; a fall fails the build.",
+ "per": {
+  "* coordinates": [
+   275,
+   275
+  ],
+  "* options: order": [
+   78,
+   78
+  ],
+  "* options: pick one": [
+   80,
+   80
+  ],
+  "* options: pick several": [
+   80,
+   80
+  ],
+  "?": [
+   14,
+   14
+  ],
+  "annotate": [
+   15,
+   15
+  ],
+  "calculation": [
+   40,
+   40
+  ],
+  "drawing": [
+   4,
+   4
+  ],
+  "explain": [
+   40,
+   40
+  ],
+  "proof": [
+   10,
+   10
+  ],
+  "short": [
+   40,
+   40
+  ],
+  "written": [
+   40,
+   40
+  ]
+ }
+}

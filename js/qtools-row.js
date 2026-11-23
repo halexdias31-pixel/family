@@ -99,32 +99,16 @@ function qtRedraw_(card, x) {
   card.replaceWith(next);
   return next;
 }
-/* ---------- SIX AND MORE (owner, 22 Nov, queue step 5): the row's tiles split by data/settings/qengine.json `visible`, `more` and `cut`. */
-/* At most six tiles shown, in `visible` order (a|b either act); the rest stay in the card, hidden, behind one More tile; `cut` ones are not drawn. */
-const QT_VISIBLE = (QENGINE.visible || []).map(s => String(s).split('|'));
+/* ---------- EVERY BUTTON SHOWN (owner, 23 Nov: "I want all to display"): data/settings/qengine.json `buttons`, in its order, on every part. */
+/* Each entry `act[|act][/tool]:icon:label`; a tile the part has fills its place, one it cannot use here is drawn greyed there; `cut` is not drawn. No More. */
+const QT_BUTTONS = (QENGINE.buttons || []).map(s => { const [k, icon, label] = String(s).split(':'), [acts, tool] = k.split('/'); return { acts: acts.split('|'), tool: tool || '', icon, label }; });
 const qtTileAct_ = t => (/\bdata-do="([^"]*)"/.exec(t) || [])[1] || '';
-function qtSplit_(html) {
+const qtTileTool_ = t => (/\bdata-tool="([^"]*)"/.exec(t) || [])[1] || '';
+function qtAll_(html) {
   const all = (String(html || '').match(/<(button|a)\b[^>]*\bclass="tile\b[^"]*"[^>]*>[\s\S]*?<\/\1>/g) || []).filter(t => (QENGINE.cut || []).indexOf(qtTileAct_(t)) < 0);
-  const shown = QT_VISIBLE.map(acts => { const t = all.find(u => acts.indexOf(qtTileAct_(u)) >= 0); if (t) all.splice(all.indexOf(t), 1); return t || ''; }).filter(Boolean);
-  const rank = t => { const i = (QENGINE.more || []).indexOf(qtTileAct_(t)); return i < 0 ? 999 : i; };
-  const rest = all.map((t, i) => [t, i]).sort((a, b) => rank(a[0]) - rank(b[0]) || a[1] - b[1]).map(p => p[0]);
-  if (!rest.length) return shown.join('');
-  return shown.join('') + tile_({ icon: 'more', label: 'More', note: rest.length + ' more tools', act: 'qt-more' })
-    + `<span class="kc-more" hidden>${rest.join('')}</span>`;
+  const row = QT_BUTTONS.map(b => { const t = all.find(u => b.acts.indexOf(qtTileAct_(u)) >= 0 && (!b.tool || qtTileTool_(u) === b.tool));
+    if (t) { all.splice(all.indexOf(t), 1); return t; }
+    return tile_({ icon: b.icon, label: b.label, note: 'not on this question', act: b.acts[0], cls: 'kc-off', off: true, data: b.tool ? { tool: b.tool } : {} }); });
+  /* ONE NOT LISTED still shows, after them (tools/all-buttons.js fails the build until it is listed) */
+  return row.concat(all).join('');
 }
-/* MORE IS A STEP (`openStep_`), the hidden tiles drawn there as they stand now; a tap there closes it and presses the card's own tile. */
-let QT_MORE_FROM = [];
-on('qt-more', el => {
-  const box = el.parentNode && el.parentNode.querySelector('.kc-more');
-  QT_MORE_FROM = box ? [...box.querySelectorAll('.tile')] : [];
-  /* A COPY ANSWERS ONLY TO ITS PLACE: its hook classes (`.help-hand`, `.qt-calc`) dropped, so no painter redraws it as the real tile. */
-  const tiles = QT_MORE_FROM.map((t, i) => t.outerHTML.replace(/\bdata-do="[^"]*"/, 'data-do="qt-more-go" data-i="' + i + '"')
-    .replace(/\bclass="([^"]*)"/, (m, c) => 'class="' + c.split(/\s+/).filter(k => /^(tile|on|is-[\w-]+)$/.test(k)).join(' ') + '"')).join('');
-  openStep_({ title: 'More', el, html: tileWrap_(tiles, '') });
-});
-on('qt-more-go', el => {
-  const t = QT_MORE_FROM[+el.getAttribute('data-i')];
-  closeStep_();
-  /* AFTER THIS PRESS ENDS: a press inside a press is dropped as the same one (`pressAgain_`). */
-  setTimeout(() => { if (t && t.isConnected) t.click(); }, 0);
-});

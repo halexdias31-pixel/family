@@ -204,6 +204,8 @@ function markNorm_(s) {
     .replace(/sqrt\s*/g, '√').replace(/(^|[^a-z])root\s*(?=[\d(])/g, '$1√')
     .replace(/(^|[^a-z])pi(?![a-z])/g, '$1π')
     .replace(/(\d)\s+(?=[√π])/g, '$1')
+    /* the mixed-number key's whole box: (2) (1)/(3) is 2 1/3 */
+    .replace(/(^|[^\w)])\((-?\d+)\)\s+(?=\(?\d+\)?\/)/g, '$1$2 ')
     .replace(/([√^])\((-?[a-z0-9.π]+)\)/g, '$1$2')
     .replace(/\((-?√?[a-z0-9.π]+(?:\^-?[a-z0-9.π]+)?)\)(?=\/)/g, '$1')
     .replace(/([\/^√])\((-?√?[a-z0-9.π]+)\)/g, '$1$2')
@@ -319,7 +321,9 @@ function markUnitOff_(t) {
 /* `rule: count 3, distinct, each factor 36, sum 31..34` in `accept`: the typed numbers are tested, not matched. */
 /* Clauses: count, distinct, mixed, decimal, each <tests>, at N <tests>, hcf N, sum, diff, from a/b/…, rounddiff R V, digits ##4###, once D, lowest, set a+b/c+d (word groups). */
 function markRuleNums_(typed) {
-  const t = markNorm_(typed).replace(/[,;=+×]/g, ' , ').replace(/(\d)-(?=\d)/g, '$1 , ');
+  /* A WHOLE AND A PROPER FRACTION JOINED BY + IS ONE MIXED NUMBER (2+1/3 is 2 1/3): a child with no mixed key typed it so */
+  const t = markNorm_(String(typed == null ? '' : typed).replace(/^\s*(-?\d+)\s+and\s+(\d+\s*\/\s*\d+)\s*$/i, '$1 $2')).replace(/^(-?\d+)\+(\d+)\/(\d+)$/, (m, w, n, d) => (Number(n) < Number(d) ? w + ' ' + n + '/' + d : m))
+    .replace(/[,;=+×]/g, ' , ').replace(/(\d)-(?=\d)/g, '$1 , ');
   const out = [];
   const re = /(?:^|[^\d.\/a-z^])(-?)(\d+(?:\.\d+)?)(?:\s+(\d+)\/(\d+)|\/(\d+))?(p?)(?![\d.\/a-z^\u00b2\u00b3])/g;
   let m;
@@ -1509,7 +1513,9 @@ function markAnswer_(typed, accept, again, opt) {
     if (geno != null) return geno;
     const first = markAnswer_(typed, accept, again, o);
     /* the typed words, not markNorm_'s: it reads "3 -4" as the sum 3-4 */
-    return first || (again ? first : markListed_(String(typed).replace(/\s*[\r\n;]+\s*/g, ', ').replace(/[\u2212\u2013\u2014]/g, '-').toLowerCase(), accept, o) || first);
+    /* a form asked for (`mixed`, `lowest`, `decimal`) is never given back by the list's values: 2 2/6 is not 2 1/3 in its lowest terms */
+    const form = /rule:[^|]*(?:^|[:,])\s*(mixed|decimal|lowest)\s*(?:,|\||$)/i.test(String(accept || ''));
+    return first || (again || form ? first : markListed_(String(typed).replace(/\s*[\r\n;]+\s*/g, ', ').replace(/[\u2212\u2013\u2014]/g, '-').toLowerCase(), accept, o) || first);
   }
   const said = !again && markSpoken_(t);   /* "fifteen" IS 15: the words read as digits are tried first */
   if (said && said !== t && markAnswer_(said, accept)) return true;
@@ -1609,6 +1615,16 @@ function choiceList_(x) {
     blocks: bare ? [] : [{ type: 'group', tag: 'b', look: 'qp-optl', text: CHOICE_LETTERS[i] || String(i + 1) }], inner: (bare ? '' : ' ') + typeset_(c) })) },
     { type: 'group', tag: 'span', look: 'qp-ans-k', text: say }]);
 }
+/* THE KEYPAD OF ONLY THE OPTIONS' LETTERS (owner 23 Nov: pick merged into type): the box's attributes -- the letters its keys type
+   (an option that is a letter already is its own key) and how a tap adds one: `one` replaces, `set` adds in A–Z order without repeats,
+   `order` appends in sequence. null for a part with no options. */
+function choiceKeysAt_(x) {
+  if (!x || !Array.isArray(x.choices) || x.choices.length < 2) return null;
+  const bare = x.choices.map(c => String(c).replace(/<[^>]*>/g, '').trim());
+  const own = bare.every(c => /^[A-Za-z]$/.test(c)) && new Set(bare).size === bare.length;
+  const letters = own ? bare.join('') : CHOICE_LETTERS.slice(0, x.choices.length);
+  return { 'data-kp-letters': letters, 'data-kp-pick': orderIs_(x) ? 'order' : (x.choiceRight || []).length > 1 ? 'set' : 'one' };
+}
 /* WHAT WAS TYPED, AS OPTION NUMBERS (1-based): a letter, a number or an option's own words; null for nothing, [] for something that is no option. */
 function choicePicks_(x, typed) {
   const opts = ((x && x.choices) || []).map(c => markNorm_(String(c).replace(/<[^>]*>/g, ' ')));
@@ -1654,7 +1670,7 @@ const MARK_METHODS = {
   choice: { has: x => markerOf_(x).kind === 'choice', run: (x, a) => markChoice_(x, a, false) },
   order: { has: x => markerOf_(x).kind === 'order', run: (x, a) => markChoice_(x, a, true) },
   cells: { has: x => markerOf_(x).kind === 'cells', run: (x, a) => {
-    const m = markCells_(a, cellsOf_(x), markOpt_(x));
+    const m = markCells_(a, cellsOf_(x), markOpt_(x), cellsOrder_(x));
     return m.each.some(v => v === true || v === false) ? { got: m.right, of: m.of, each: m.each } : null;
   } },
   accept: { has: x => markerOf_(x).kind === 'accept' && !markIsPeel_(x.accept) && !markIsPoints_(x.accept), run: (x, a) => {

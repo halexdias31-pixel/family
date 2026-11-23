@@ -21,7 +21,7 @@ function kcFacts_(html) {
   if (!t.content || !t.content.querySelector) return out;
   /* A FORM CARD'S OWN HEADING GOES: the name is already the card's first tag. */
   if (t.content.querySelector(KC_FORM_SEL)) { const h = t.content.querySelector('h1, h2, h3, h4'); if (h) h.remove(); out.form = t.innerHTML; return out; }
-  /* A BUTTON OR LINK INSIDE IS NO LINE: it joins the card's row (behind ⋯ unless it is the main). */
+  /* A BUTTON OR LINK INSIDE IS NO LINE: it joins the card's row (shown beside the main). */
   t.content.querySelectorAll('[data-do], a[href], button').forEach(el => { if (el.parentNode && !el.closest('[data-kc-took]')) { el.setAttribute('data-kc-took', ''); out.tiles += el.outerHTML; el.remove(); } });
   out.tiles = out.tiles.replace(/ data-kc-took=""/g, '');
   const wait = t.content.querySelector('.loading');
@@ -104,7 +104,7 @@ function findCard(x, credits) {
   /* NO TITLE LINE ON ANY CARD (owner, 9 Nov): the name is a tag, put first when the tags do not already say it. */
   if (name && parts.head && !kcSays_(parts.tags, name)) parts.tags = kcTagFirst_(parts.tags, name);
   parts.head = '';
-  /* A ROW OF TILES ITS OWN MAKER DREW AMONG THE LINES joins the card's one row: its main leads, the rest wait behind ⋯. */
+  /* A ROW OF TILES ITS OWN MAKER DREW AMONG THE LINES joins the card's one row: its main leads, the rest shown beside it. */
   const hoist = kcHoist_(parts.lines, it.kcPanel);
   parts.lines = hoist.lines;
   parts.act = kcActRow_(one, it.kcPanel ? '' : parts.lines, hoist.tiles);

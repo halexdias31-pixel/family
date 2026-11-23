@@ -2272,7 +2272,6 @@ textarea { touch-action: none; }
 #boot-slow .loading { width: auto; min-height: 0; }
 #boot-slow .loading > span { width: 1em; height: 1em; }
 #boot-slow .boot-why { word-break: break-all; }
-#boot-slow .boot-why > summary { list-style: none; cursor: pointer; }
 
 /* IF IT CAN BE TAPPED, IT LOOKS LIKE IT THE PROBLEM. § */
 
@@ -2912,6 +2911,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .qans-body { font: 600 var(--fs-title)/1.35 var(--font); color: var(--ink); padding-bottom: var(--s2);
              overflow-wrap: anywhere; }
 .qans-body p:first-child { margin-top: 0; }
+.qans-note { font: var(--fs-body)/1.4 var(--font); color: var(--dim); margin: var(--s2) 0 0; }
 .qans-body table { font-size: var(--fs-small); font-weight: 400; }
 
 /* QUESTIONS IN THE FUNNEL. § */
@@ -3762,19 +3762,24 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .qp-bar > .qp-ans {
   flex: 1 1 auto; min-width: 0; margin: 0; display: flex; align-items: center;
   min-height: var(--pill-h); padding: 2px var(--s3); box-sizing: border-box; cursor: text;
-  background: var(--paper); color: var(--paper-ink); border: 1px solid var(--paper); border-radius: var(--r-box); font: var(--fs-body)/1.3 var(--font);
+  background: var(--raised); color: var(--ink); border: 1px solid var(--line); border-radius: var(--r-box); font: var(--fs-body)/1.3 var(--font);
 }
+/* A MATHS ANSWER IS A SHORT BOX (owner 23 Nov: "why is there a white rectangle here"): the theme's own field, one border, as wide as what is in it */
+.qp-bar > .qp-ans.qp-ans-maths { flex: 0 1 auto; min-width: 9rem; max-width: 100%; }
+.qp-bar .kp-caret { background: var(--ink); }
+.qp-bar .kp-hole { border-color: var(--dim); }
+.qp-bar .kp-show sup:has(> .kp-caret), .qp-bar .kp-sel, .qp-bar .kp-sel-band { background: var(--line); }
 .qp-bar > .qp-ans > .kp-field { flex: 1 1 auto; min-width: 0; }
 .qp-bar > .tile { flex: none; }
 /* A WORDED ANSWER IN THE BAR: § */
-.qp-bar > .qp-ans:focus-within { box-shadow: var(--ring-gold); }
+.qp-bar > .qp-ans:focus-within { box-shadow: var(--ring-gold-thin); }
 /* THE RING TAKES THE VERDICT'S COLOUR, so what was marked and what it was marked as are joined on the screen, not only in the sentence under it. § */
 .qp-mark.is-right > .qp-bar > .qp-ans { box-shadow: var(--ring-good); }
 .qp-mark.is-near > .qp-bar > .qp-ans { box-shadow: var(--ring-warn); }
 /* THE ANSWER IN THE BAR IS ON THE CREAM PILL (1030), so its words take the paper's ink. */
-.qp-bar .kp-show { color: var(--paper-ink); font: var(--fs-body)/1.3 var(--font); min-height: calc(1.3em + 2 * var(--s1)); }
+.qp-bar .kp-show { color: var(--ink); font: var(--fs-body)/1.3 var(--font); min-height: calc(1.3em + 2 * var(--s1)); }
 /* ONE LINE TALL EMPTY OR NOT (owner, 17 Nov: "inputs are offset"): the bare caret was 3px shorter than the placeholder, so the box jumped as the pad opened and again at the first key. */
-.qp-bar .kp-show:empty::before { color: var(--paper-dim); }
+.qp-bar .kp-show:empty::before { color: var(--dim); }
 /* THE VERDICT'S LINE, reserved: one line of `.qp-verdict` tall when it is empty, and it wraps rather
    than cutting a sentence off when one is longer. Set in from the edge to sit under the field's words. */
 .qp-compose > .qp-verdict { display: block; min-height: 1.3em; margin: var(--s1) var(--s3) 0; }
@@ -3955,12 +3960,15 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .kp-pw { display: inline-flex; align-items: flex-start; font: 600 var(--fs-title)/1 var(--font); }
 .kp-pw i { display: block; width: 8px; height: 9px; margin: -2px 0 0 1px; border: 1.5px solid currentColor; border-radius: var(--r-ui); }
 /* ×10 AND ITS RAISED BOX, the power key's box beside "×10": standard form in one key */
+/* THE MIXED-NUMBER KEY: a box for the whole beside the fraction key's two boxes */
+.kp-mx { display: inline-flex; align-items: center; gap: 3px; }
+.kp-mx > .kp-mx-w { display: block; width: 9px; height: 12px; border: 1px solid currentColor; border-radius: var(--r-ui); }
 .kp-x10f { display: inline-flex; align-items: flex-start; font: 600 var(--fs-body)/1 var(--font); }
 .kp-x10f i { display: block; width: 7px; height: 8px; margin: -3px 0 0 1px; border: 1.5px solid currentColor; border-radius: var(--r-ui); }
 
 /* ---------- THE LETTERS: THE SAME PAD, TURNED OVER (`abc`) § */
-#kp.is-abc, #kp.is-sym { grid-template-columns: repeat(60, minmax(0, 1fr)); column-gap: 0; max-width: 640px; }
-#kp.is-abc .kp-key, #kp.is-sym .kp-key { border-inline: 2px solid transparent; background-clip: padding-box; }
+#kp.is-abc { grid-template-columns: repeat(60, minmax(0, 1fr)); column-gap: 0; max-width: 640px; }
+#kp.is-abc .kp-key { border-inline: 2px solid transparent; background-clip: padding-box; }
 /* A KEY'S WIDTH IN THE SIXTY COLUMNS (`span` in keypad-keys.js), and where the second letter row starts (`at`). */
 .kp-key.kp-s6 { grid-column-end: span 6; }
 .kp-key.kp-s8 { grid-column-end: span 8; }
@@ -3971,13 +3979,9 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .kp-key.kp-s24 { grid-column-end: span 24; }
 .kp-key.kp-at4.kp-s6 { grid-column: 4 / span 6; }
 .kp-key.kp-at1 { grid-column-start: 1; }
-/* THE SYMBOLS FACE (round 4, `KP_SYM`): Greek letters and the signs no other key types, ten a row like the letters */
-.kp-key.kp-sy { font-size: var(--fs-title); font-weight: 500; }
 .kp-key.kp-ch { position: relative; font-weight: 500; font-size: var(--fs-title); }
 #kp.is-shift .kp-ch { text-transform: uppercase; }
 /* ⇧ LIT WHILE IT IS ON, AND A BAR UNDER IT WHILE IT IS LOCKED -- the phone's own two signs for it. */
-.kp-key.kp-shift.is-on { background: var(--kp-face); color: var(--kp-ink); }
-.kp-key.kp-shift.is-lock { box-shadow: inset 0 -4px 0 var(--kp-ink); }
 /* AN ESSAY'S RETURN (`KP_RETURN`, keypad.js): § */
 .kp-key.kp-ret { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
 .kp-ret-i { font: 600 var(--fs-title)/1 var(--font); }
@@ -4362,6 +4366,19 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 .prof-week .prof-key .hr { flex: 0 0 1.6rem; }
 
 /* EVERY PART IN ONE BOX (owner, 13 and 22 Nov): the one line over it names the parts, in order. */
+/* FILL A TABLE IS TYPED (owner, 23 Nov, find-cells.js `cellsTable_`): the table drawn in the box, each empty cell the one answer box. */
+.qp-cells-wrap { overflow-x: auto; max-width: 100%; }
+table.qp-cells { border-collapse: collapse; margin: var(--s2) auto; }
+table.qp-cells :is(td, th) { border: 1px solid var(--line); padding: var(--s1) var(--s2); text-align: center; vertical-align: middle; }
+table.qp-cells :is(td, th).qp-cell-at { padding: 2px; }
+.qp-cell-ans { display: flex; align-items: center; margin: 0; min-width: 4.5rem; min-height: var(--tap); padding: 2px var(--s2); box-sizing: border-box; cursor: text;
+  background: var(--raised); color: var(--ink); border: 1px solid var(--line); border-radius: var(--r-box); font: var(--fs-body)/1.3 var(--font); text-align: left; }
+.qp-cell-ans > .kp-field { flex: 1 1 auto; min-width: 0; }
+.qp-cell-ans .kp-show { color: var(--ink); font: var(--fs-body)/1.3 var(--font); min-height: calc(1.3em + 2 * var(--s1)); }
+.qp-cell-ans .kp-caret { background: var(--ink); }
+.qp-cell-ans:focus-within { box-shadow: var(--ring-gold-thin); }
+.qp-cell-ans.is-right { box-shadow: var(--ring-good); }
+.qp-cell-ans.is-near { box-shadow: var(--ring-warn); }
 .qp-compose > .q-hint { font-size: var(--fs-body); line-height: var(--lh-close); text-align: center; }
 
 /* IN THE CARD a long maths answer stops at four lines and scrolls, where it used to push the card taller. */

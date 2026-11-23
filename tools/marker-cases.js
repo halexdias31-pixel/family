@@ -169,9 +169,55 @@ const CASES = [
   ['89 × 10^7', '8.9 × 10^8 | rule: standard form', false, 'the same value not in standard form'],
   ['890000000', '8.9 × 10^8 | rule: standard form', false, 'the same value as an ordinary number'],
   ['7.1 × 10^8', '8.9 × 10^8 | rule: standard form', false, 'a wrong value in standard form'],
+  /* owner 23 Nov: 7/3 as a mixed number (Q-CBM-top-heavy-fractions-mixed-numbers-1), in each way a child types it or the keypad writes it */
+  ['2 1/3', '2 1/3 | rule: count 1, mixed, each eq 7/3', true, '7/3 as a mixed number, typed 2 1/3'],
+  ['2⅓', '2 1/3 | rule: count 1, mixed, each eq 7/3', true, '7/3 as a mixed number, typed 2⅓'],
+  ['2+1/3', '2 1/3 | rule: count 1, mixed, each eq 7/3', true, '7/3 as a mixed number, typed 2+1/3'],
+  ['2+ 1/3', '2 1/3 | rule: count 1, mixed, each eq 7/3', true, '7/3 as a mixed number, the box\'s 2+ 1/3'],
+  ['2 (1)/(3)', '2 1/3 | rule: count 1, mixed, each eq 7/3', true, '7/3 as a mixed number, the mixed key after a number'],
+  ['(2) (1)/(3)', '2 1/3 | rule: count 1, mixed, each eq 7/3', true, '7/3 as a mixed number, the mixed key\'s whole box'],
+  ['7/3', '2 1/3 | rule: count 1, mixed, each eq 7/3', false, 'an improper fraction is not the mixed number asked for'],
+  ['2+4/3', '2 1/3 | rule: count 1, mixed, each eq 7/3', false, 'a whole and an improper fraction is no mixed number'],
+  ['3+1/3', '2 1/3 | rule: count 1, mixed, each eq 7/3', false, 'a wrong mixed number with a +'],
+  ['2 2/6', '2 1/3 | rule: count 1, mixed, lowest, each eq 7/3', false, 'simplest form asked: 2 2/6 is not in lowest terms'],
+  /* each form the keypad's keys write, as it writes it */
+  ['(7)/(4)', '7/4', true, 'the fraction key'],
+  ['x^(5)', 'x^5', true, 'the power key'],
+  ['√(7)', '√7', true, 'the root key'],
+  ['-4', '−4', true, 'the negative key against a key\'s minus sign'],
+  ['4π', '4π', true, 'π'],
+  ['3 : 5', '3:5', true, 'a ratio with spaces'],
+  ['12 cm', '12cm', true, 'a unit after a space'],
+  ['(3,-11)', '(3, -11) | (3,-11)', true, 'the point key'],
+  ['3, -11', '(3, -11)', true, 'a point without its brackets'],
+  ['(-11,3)', '(3, -11)', false, 'the point key, x and y swapped'],
+  ['(-2,5)', '(-2, 5)', true, 'a point, x negative'],
+  ['(1,2),(3,4)', '(1, 2), (3, 4)', true, 'two points from the point key'],
+  ['8.9×10^(8)', '8.9 × 10^8 | rule: standard form', true, 'the ×10ⁿ key'],
+  ['3.2×10^(-4)', '3.2 × 10^-4 | rule: standard form', true, 'the ×10ⁿ key, a negative power'],
+  ['-2≤x<3', '-2 ≤ x < 3', true, 'a double inequality from the sign keys'],
   /* single values are untouched */
   ['9', '9', true, 'a single value'],
   ['5', '9', false, 'a single wrong value'],
+];
+/* FILL A TABLE (owner, 23 Nov), the one order rule from the table's structure (find-cells.js `cellsOrder_`): [cells key, table, typed a cell each, right?, what] */
+const ROWS3 = '<table><tr><th>Spinner</th><th>Coin</th></tr><tr><td></td><td></td></tr><tr><td></td><td></td></tr><tr><td></td><td></td></tr></table>';
+const ROWHEAD = '<table><tr><th>Colour</th><th>Frequency</th></tr><tr><th>Red</th><td></td></tr><tr><th>Blue</th><td></td></tr><tr><th>Green</th><td></td></tr></table>';
+/* the live bug (owner photo, 23 Nov, Q-1CM-probability-tree-diagrams-1): fraction-key values, (1)/(6), split at their slash into two cells */
+const TREE6 = '<table><thead><tr><th scope="col">Branch</th><th scope="col">Probability</th></tr></thead><tbody><tr><th scope="row">Coin: Heads</th><td></td></tr><tr><th scope="row">Coin: Tails</th><td></td></tr><tr><th scope="row">Heads, then dice: 6</th><td></td></tr><tr><th scope="row">Heads, then dice: Not a 6</th><td></td></tr><tr><th scope="row">Tails, then dice: 6</th><td></td></tr><tr><th scope="row">Tails, then dice: Not a 6</th><td></td></tr></tbody></table>';
+const TREE6_KEY = '(1) = 1/2 ; (2) = 1/2 ; (3) = 1/6 ; (4) = 5/6 ; (5) = 1/6 ; (6) = 5/6';
+const TABLE_CASES = [
+  [TREE6_KEY, TREE6, ['0.5', '0.5', '(1)/(6)', '(5)/(6)', '(1)/(6)', '(5)/(6)'], true, 'Q-1CM-probability-tree-diagrams-1: fraction-key values a cell each'],
+  [TREE6_KEY, TREE6, ['0.5', '(1)/(6)', '', '', '', ''], false, 'Q-1CM-probability-tree-diagrams-1: a fraction in one cell is never parted over two'],
+  [TREE6_KEY, TREE6, ['0.5', '0.5', '(1)/(12)', '(5)/(12)', '(1)/(12)', '(5)/(12)'], false, 'Q-1CM-probability-tree-diagrams-1: the student\'s twelfths, each one value, not the key'],
+  /* unordered: rows written whole are a list, in any order */
+  ['1 = 1 ; 2 = H ; 3 = 2 ; 4 = H ; 5 = 3 ; 6 = H', ROWS3, ['1', 'H', '2', 'H', '3', 'H'], true, 'outcome rows as keyed'],
+  ['1 = 1 ; 2 = H ; 3 = 2 ; 4 = H ; 5 = 3 ; 6 = H', ROWS3, ['3', 'H', '1', 'H', '2', 'H'], true, 'outcome rows in another order'],
+  ['1 = 1 ; 2 = H ; 3 = 2 ; 4 = H ; 5 = 3 ; 6 = H', ROWS3, ['H', '1', 'H', '2', 'H', '3'], false, 'outcome rows with each row\'s cells swapped'],
+  ['1 = 1 ; 2 = H ; 3 = 2 ; 4 = H ; 5 = 3 ; 6 = H', ROWS3, ['1', 'H', '1', 'H', '3', 'H'], false, 'an outcome row twice, one missing'],
+  /* ordered: a cell tied to its given row header keeps its place */
+  ['Red = 5 ; Blue = 7 ; Green = 2', ROWHEAD, ['5', '7', '2'], true, 'frequencies by their given rows'],
+  ['Red = 5 ; Blue = 7 ; Green = 2', ROWHEAD, ['7', '5', '2'], false, 'frequencies swapped between given rows'],
 ];
 
 function run() {
@@ -185,11 +231,19 @@ function run() {
     if (isKnown) { known++; if (ok) fixed.push(what); continue; }
     if (ok) pass++; else bad.push(JSON.stringify(typed) + ' for ' + JSON.stringify(key) + ' (' + what + '): ' + (want ? 'must pass' : 'must fail') + ', marked ' + got);
   }
-  const n = CASES.length - known;
+  /* markerOf_ swallows a name the vm has not loaded yet: loaded here first */
+  call('qtMarker_(workRow_({row:{}}))');
+  for (const [cells, html, typed, want, what] of TABLE_CASES) {
+    ctx.__x = { key: 'marker-cases-table-' + what, marks: 1, html, cells }; ctx.__t = typed;
+    let got;
+    try { got = call('mark_(__x, __t)').verdict === 'right'; } catch (e) { got = 'error ' + e.message; }
+    if (got === want) pass++; else bad.push('table ' + JSON.stringify(typed) + ' (' + what + '): ' + (want ? 'must pass' : 'must fail') + ', marked ' + got);
+  }
+  const n = CASES.length + TABLE_CASES.length - known;
   console.log('marker-cases: ' + pass + '/' + n + ' right' + (known ? '; ' + known + ' known-failing' : ''));
   fixed.forEach(f => console.log('  now right, drop its known flag: ' + f));
   report('marker-cases', bad, 'case(s) marked wrongly');
   return { pass, n, known };
 }
-module.exports = { run, CASES };
+module.exports = { run, CASES, TABLE_CASES };
 main(module, run);

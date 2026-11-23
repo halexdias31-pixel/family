@@ -214,12 +214,12 @@ function sharedInto(file) {
   src = SHARED_RE.test(src) ? src.replace(SHARED_RE, () => block) : src.replace(/^[^\n]*\n/, m => m + block + '\n');
   fs.writeFileSync(path.join(ROOT, file), src);
 }
-/* THE ONE LIST OF QUESTION TYPES (owner, 17 Nov): data/settings/qengine.json's types, phrases, row and its visible/more/cut split, as QENGINE in js/qtypes.js. */
+/* THE ONE LIST OF QUESTION TYPES (owner, 17 Nov): data/settings/qengine.json's types, phrases, row and its every-button list (buttons, cut), as QENGINE in js/qtypes.js. */
 const QENGINE_RE = /\/\* QENGINE:BEGIN[\s\S]*?\/\* QENGINE:END \*\//;
 function qengineInto(file) {
   const j = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/settings/qengine.json'), 'utf8'));
   const block = '/* QENGINE:BEGIN — data/settings/qengine.json, written by `node tools/build.js`; edit the json, never this. */\n'
-    + 'const QENGINE = ' + JSON.stringify({ types: j.types, phrases: j.phrases, row: j.row, visible: j.visible, more: j.more, cut: j.cut }) + ';\n/* QENGINE:END */';
+    + 'const QENGINE = ' + JSON.stringify({ types: j.types, phrases: j.phrases, row: j.row, buttons: j.buttons, cut: j.cut }) + ';\n/* QENGINE:END */';
   const src = fs.readFileSync(path.join(ROOT, file), 'utf8');
   if (!QENGINE_RE.test(src)) throw new Error(file + ' has no QENGINE block');
   fs.writeFileSync(path.join(ROOT, file), src.replace(QENGINE_RE, () => block));

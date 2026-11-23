@@ -30,6 +30,8 @@ const USAGE = `
   node tools/content.js picks [--apply]                                                 one answer format: each pick question's key as its letters, its working a note (tools/lib/pick-key.js)
   node tools/content.js ideas [--out <dir>]                                             measure → merge → tag (one maths card per idea; part_of, specs, idea_id; tools/lib/ideas.js)
 
+  node tools/content.js speccode [--apply]                                              derive → write (spec_code from a paper's own columns)
+
   node tools/content.js library <split|join|seed|pull|push|status|drive-pack|help> …   the library's private half (397)
 `;
 'use strict';
@@ -339,6 +341,40 @@ const INSERT = {
   },
 };
 
+/* SPEC CODES (was tools/set-spec-codes.py, UNIFY AFTER 2, 23 Nov): spec_code on the papers whose code their own columns determine, so a
+   tutor holding a paper can type the code on its cover. A cell already typed from a cover wins, and one that disagrees is a fault, not
+   overwritten. Every Edexcel GCSE maths past paper with questions must come out with a 1MA1 code, or the rule found fewer than exist. */
+const SPEC_AQA = { 'P-AQA-8463-2306-1H': '8463/1H', 'P-AQA-8463-2306-2H': '8463/2H', 'P-AQA-8464P-2306-1H': '8464/P/1H' };
+const SPEC_TIER = { Higher: 'H', Foundation: 'F' };
+const edexcelMaths = r => r.exam_board === 'Edexcel' && r.subject === 'Maths' && r.level === 'GCSE' && r.document_type === 'Past paper';
+function specWanted(r) {
+  if (SPEC_AQA[r.paper_id]) return SPEC_AQA[r.paper_id];
+  const n = String(r.paper || '').trim(), t = SPEC_TIER[r.tier || ''];
+  return edexcelMaths(r) && /^[123]$/.test(n) && t ? '1MA1/' + n + t : '';
+}
+const SPECCODE = {
+  derive(c) {
+    c.q = IM.cards('questions');
+    const withQ = new Set(c.q.rows.filter(r => r.kind === 'question' && r.paper_id).map(r => r.paper_id));
+    const docs = c.q.rows.filter(r => r.kind === 'document' && withQ.has(r.paper_id));
+    c.filled = 0; let kept = 0, skipped = 0;
+    docs.forEach(r => {
+      const want = specWanted(r), have = String(r.spec_code || '').trim();
+      if (!want) { skipped++; return; }
+      if (have) { if (have !== want) throw new Error(r.paper_id + ' already says spec_code ' + have + ' and this rule would write ' + want); kept++; return; }
+      r.spec_code = want; c.filled++;
+    });
+    const lost = docs.filter(r => edexcelMaths(r) && !/^1MA1\//.test(String(r.spec_code || '')));
+    if (lost.length) throw new Error('an Edexcel GCSE maths past paper came out with no 1MA1 code: ' + lost.map(r => r.paper_id).join(', '));
+    console.log('spec_code: ' + c.filled + ' filled, ' + kept + ' already right, ' + skipped + ' papers this rule cannot name' + (c.apply ? '' : ' (--apply writes them)'));
+  },
+  write(c) {
+    if (!c.apply || !c.filled) return;
+    IM.writeCards('questions', c.q.rows, c.q.style);
+    console.log('spec_code: written to data/questions.json');
+  },
+};
+
 /* ONE CARD PER IDEA, MATHS (queue step 10, then step 3, 22 Nov): measure the groups, merge each into one card (tools/lib/ideas.js merge: levels as
    tags, broad chapters split by point, every word kept), measure again and write the report into data/settings/taxonomy.json Maths, then the three
    fields onto the maths cards of data/textbooks.json. The words go to data-private/ (a drive-pack takes them to the Ledger). --out <dir> writes
@@ -419,6 +455,7 @@ async function main(argv) {
     if (argv.includes('--apply')) IM.writeWords('questions', map); else console.log('(a dry run: --apply writes data-private/questions.json)');
     return;
   }
+  if (what === 'speccode') return IM.run('speccode', SPECCODE, { apply: argv.includes('--apply') }, only);
   const want = only || STAGES;
   const bad = want.filter(s => !STAGES.includes(s));
   if (bad.length) throw new Error('no stage ' + bad.join(', ') + ' — ' + STAGES.join(', '));
