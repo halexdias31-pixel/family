@@ -101,6 +101,22 @@ function assignNoAiRun_() {
   return n + ' assignment(s) marked noAI';
 }
 
+/* HOT BREAKFAST (owner, 23 Nov): one daily choice in the owner's breakfast list ("Out of Shower"), added once, never twice. */
+function docketHotBreakfastRun_() {
+  const t = read(TAB.people), me = t.rows.find(r => isOwner_(r));
+  if (!me) throw new Error('no owner found');
+  let got = null; try { got = JSON.parse(S(me.todo)); } catch (e) { got = null; }
+  if (!got || !Array.isArray(got.lists)) throw new Error('the owner has no docket lists');
+  const L = got.lists.find(l => /out of shower/i.test(S(l.name))) || got.lists[0];
+  const title = 'Hot food: bacon, or a hot pasty from the corner shop';
+  if (L.items.some(i => S(i.title) === title)) return 'already there';
+  L.items.push({ title: title, repeat: 'daily', minutes: 10 });
+  const cell = JSON.stringify(got);
+  if (cell.length > DOCKET_CELL_MAX) throw new Error('the docket would be ' + cell.length + ' characters, over ' + DOCKET_CELL_MAX + ' - nothing was saved');
+  if (!setCell(t, me, 'todo', cell)) throw new Error('the people tab has no todo column - nothing was saved');
+  return 'added to ' + L.name;
+}
+
 /* ---------- THE ONE-OFF JOBS, RUN ONCE, BY THEMSELVES § */
 const MIGRATIONS = [
   /* EVERY PIN FOUR DIGITS (owner, 10 Nov): a longer one keeps its first four; signing in with the old one still works (authCheckPin_). */
@@ -237,6 +253,10 @@ const MIGRATIONS = [
     retry: true,
     what: 'assignments whose note says no generative AI marked noAI (tracked only)',
     run: () => assignNoAiRun_() },
+  { id: 'docket-hot-breakfast-23nov',
+    retry: true,
+    what: "the owner's breakfast list: a daily hot food choice (bacon, or a pasty from the corner shop)",
+    run: () => docketHotBreakfastRun_() },
 ];
 
 /* ---------- MOVING ROWS OUT OF THE ITEMS TAB, NEVER LOSING ONE (queue step 7, 22 Nov) ----------
