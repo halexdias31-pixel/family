@@ -245,7 +245,7 @@
    "parent": "N",
    "links": [
     "ct:TB-GCSE-MATHS-3",
-    "ct:TB-GCSE-MATHS-1MA1-1",
+    "ct:TB-AQA-8300-12",
     "q:Q-1MA1-2406-1H-7",
     "q:Q-1MA1-2406-1H-9",
     "q:Q-1MA1-2406-1F-26",
@@ -331,7 +331,7 @@
    "parent": "A",
    "links": [
     "ct:TB-GCSE-MATHS-5",
-    "ct:TB-GCSE-MATHS-1MA1-2",
+    "ct:TB-AQA-8300-17",
     "q:Q-1MA1-2406-2F-5",
     "q:Q-1MA1-2406-2F-13a",
     "q:Q-1MA1-2406-3F-4",
@@ -348,7 +348,7 @@
    "text": "substitute numerical values into formulae and expressions, including scientific formulae",
    "parent": "A",
    "links": [
-    "ct:TB-GCSE-MATHS-1MA1-3",
+    "ct:TB-AQA-8300-18",
     "q:Q-1MA1-2406-2H-3",
     "q:Q-1MA1-2406-2H-5a",
     "q:Q-1MA1-2406-2F-13b",
@@ -752,7 +752,7 @@
    "text": "express one quantity as a fraction of another, where the fraction is less than 1 or greater than 1",
    "parent": "R",
    "links": [
-    "ct:TB-GCSE-MATHS-1MA1-1",
+    "ct:TB-AQA-8300-12",
     "q:Q-1MA1-2406-1H-7",
     "q:Q-1MA1-2406-1F-26",
     "q:Q-1MA1-2406-2H-6",
@@ -851,7 +851,7 @@
    "parent": "R",
    "links": [
     "ct:TB-GCSE-MATHS-3",
-    "ct:TB-GCSE-MATHS-1MA1-1",
+    "ct:TB-AQA-8300-12",
     "q:Q-1MA1-2406-1H-7",
     "q:Q-1MA1-2406-1H-9",
     "q:Q-1MA1-2406-1F-26",
@@ -996,7 +996,7 @@
    "parent": "G",
    "links": [
     "ct:TB-GCSE-MATHS-13",
-    "ct:TB-GCSE-MATHS-1MA1-4",
+    "ct:TB-AQA-8300-53",
     "q:Q-1MA1-2406-2F-17",
     "q:Q-1CM-loci-1",
     "q:Q-1CM-loci-2",
@@ -1106,7 +1106,7 @@
    "parent": "G",
    "links": [
     "ct:TB-GCSE-MATHS-15",
-    "ct:TB-GCSE-MATHS-1MA1-6",
+    "ct:TB-AQA-8300-59",
     "q:Q-1MA1-2406-3F-10a",
     "q:Q-1MA1-2406-3F-10b",
     "q:Q-1MA1-2406-3H-21",
@@ -1139,7 +1139,7 @@
    "parent": "G",
    "links": [
     "ct:TB-GCSE-MATHS-16",
-    "ct:TB-GCSE-MATHS-1MA1-7",
+    "ct:TB-AQA-8300-62",
     "q:Q-1MA1-2406-3F-24",
     "q:Q-1MA1-2406-3F-24a",
     "q:Q-1MA1-2406-3F-24b",
@@ -1156,7 +1156,7 @@
    "parent": "G",
    "links": [
     "ct:TB-GCSE-MATHS-16",
-    "ct:TB-GCSE-MATHS-1MA1-7",
+    "ct:TB-AQA-8300-62",
     "q:Q-1MA1-2406-3F-24",
     "q:Q-1MA1-2406-3F-24a",
     "q:Q-1MA1-2406-3F-24b",
@@ -1300,7 +1300,7 @@
    "parent": "G",
    "links": [
     "ct:TB-GCSE-MATHS-17",
-    "ct:TB-GCSE-MATHS-1MA1-8",
+    "ct:TB-AQA-8300-70",
     "q:Q-1CM-exact-trig-values-2",
     "q:Q-1CM-exact-trig-values-3",
     "q:Q-1CM-exact-trig-values-1",

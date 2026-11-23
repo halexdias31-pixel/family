@@ -156,4 +156,113 @@ function tag(rows, m) {
   return n;
 }
 
-module.exports = { SUBJECT, OUTSIDE, cardsOf, inScope, measure, report, tag, tree, normTitle };
+/* MERGE (queue step 3, 22 Nov): ONE CARD PER IDEA ACROSS LEVELS. Each group of `measure` becomes one card, the levels it was taught at as tags
+   (its `level` and `keystage` are lists: js/find-levels.js reads a comma as a list); the others go, and nothing they said goes with them:
+     the card kept   the one with words here: a board-free GCSE chapter first, then a point-by-point AQA card, then the rest (PREFER)
+     its words       every key word, point and formula of every card of the group, each once; another card's "the idea" sentence becomes a point
+     a broad card    one teaching GCSE points that other ideas' one-point cards teach is split by point: each of its items goes to the idea whose
+                     card it reads most like (title, node, idea sentence, key-word names; rarer words count more: a score of 1 or more, and twice its own idea's); the rest stays
+     animations      follow the key word they are `about`, else the card kept
+     what went       Maths.ideas.merged: old key -> {to, title, level}; spec links (data/spec/) point on (relink)
+   `words` is the private map (data-private/textbooks.json, "<book>#<chapter>"). On a library already merged it changes nothing. */
+const PREFER = ['TB-GCSE-MATHS', 'TB-AQA-8300', 'TB-GCSE-MATHS-1MA1'];
+const FIELDS = ['words', 'points', 'formulas'];
+const PRIV = ['idea', 'words', 'points', 'formulas', 'diagram'];
+const items = v => S(v).split('|').map(x => x.trim()).filter(Boolean);
+const listJoin = (a, b) => [...new Set(S(a).split(/\s*,\s*/).concat(S(b).split(/\s*,\s*/)).filter(Boolean))].join(', ');
+const nameOf = item => S(item).split(/\s+—\s+/)[0].trim().toLowerCase();
+function merge(rows, words, m) {
+  const wk = c => c.book + '#' + c.row.chapter, W = c => words[wk(c)] || {};
+  const has = c => FIELDS.some(f => S(W(c)[f]));
+  const byIdea = {};
+  m.cards.forEach(c => { (byIdea[c.idea] = byIdea[c.idea] || []).push(c); });
+  const rank = c => (has(c) ? 0 : 10) + (PREFER.indexOf(c.book) === -1 ? 5 : PREFER.indexOf(c.book));
+  const canon = {};
+  Object.keys(byIdea).forEach(id => { canon[id] = byIdea[id].slice().sort((a, b) => rank(a) - rank(b))[0]; });
+  /* EACH GCSE POINT'S IDEA: the idea of a card that teaches that one point alone. */
+  const gp = ref => { const [f, p] = ref.split(':'); return SAME_POINT[f] ? SAME_POINT[f] + ':' + p : ''; };
+  const pointIdea = {};
+  m.cards.forEach(c => { if (c.specs.length === 1 && gp(c.specs[0]) && !pointIdea[gp(c.specs[0])]) pointIdea[gp(c.specs[0])] = c.idea; });
+  const label = id => (m.groups.find(x => x.idea_id === id) || {}).label || '';
+  const prof = {};
+  /* AN IDEA READS AS its card's title, its node, its "the idea" sentence and its key words' names; a word many ideas share counts little. */
+  Object.keys(canon).forEach(id => { const k = canon[id];
+    prof[id] = new Set(wordsOf([S(k.row.title).replace(CODE, ''), label(id), W(k).idea].concat(items(W(k).words).map(nameOf)).join(' '))); });
+  const df = {};
+  Object.values(prof).forEach(p => p.forEach(w => { df[w] = (df[w] || 0) + 1; }));
+  const acc = {}, anchor = {};
+  Object.keys(canon).forEach(id => { acc[id] = { words: [], points: [], formulas: [] }; });
+  const put = (id, f, item) => { if (!acc[id][f].includes(item)) acc[id][f].push(item); };
+  let moved = 0;
+  /* THE CARDS KEPT FIRST, so their own items lead; then the others, in the order the library holds them. */
+  const order = Object.keys(canon).map(id => canon[id]).concat(m.cards.filter(c => canon[c.idea] !== c));
+  order.forEach(c => {
+    const cands = [...new Set([c.idea].concat(c.specs.map(r => pointIdea[gp(r)]).filter(Boolean)))];
+    FIELDS.forEach(f => items(W(c)[f]).forEach(item => {
+      let to = c.idea;
+      if (cands.length > 1) {
+        const iw = [...new Set(wordsOf(item))], sc = id => iw.reduce((t, w) => t + (prof[id].has(w) ? 1 / df[w] : 0), 0);
+        const best = cands.slice(1).sort((a, b) => sc(b) - sc(a))[0];
+        if (sc(best) >= 1 && sc(best) > 2 * sc(c.idea)) { to = best; moved++; }
+      }
+      put(to, f, item);
+      if (f === 'words') anchor[wk(c) + '|' + nameOf(item)] = to;
+    }));
+    const own = S(W(c).idea);
+    if (canon[c.idea] !== c && own && own !== S(W(canon[c.idea]).idea)) put(c.idea, 'points', own);
+  });
+  /* THE ROWS: the card kept takes the group's levels, key stages, topics and own spec points, and the idea's name; the others go. */
+  const keyOf = c => 'ct:' + c.book + '-' + c.row.chapter, merged = {}, gone = new Set(), place = {};
+  const cover = b => rows.find(x => x.book_id === b && Number(x.chapter) === 0) || {};
+  Object.keys(canon).forEach(id => {
+    const k = canon[id], g = byIdea[id], r = k.row;
+    if (g.length > 1) {
+      r.level = [...new Set(g.map(c => c.level).filter(Boolean))].join(', ');
+      r.keystage = S(r.keystage) || S(cover(k.book).keystage);
+      g.forEach(c => { if (c !== k) { r.keystage = listJoin(r.keystage, S(c.row.keystage) || S(cover(c.book).keystage)); r.topics = listJoin(r.topics, c.row.topics); } });
+      const own = g.filter(c => c.board === k.board && c.spec === k.spec)
+        .map(c => S(c.row.spec_ref) || (/^\s*([A-Z]{1,2}\d+[a-z]?)\s/.exec(S(c.row.title)) || [])[1]).filter(Boolean);
+      if (own.length) r.spec_ref = [...new Set(S(r.spec_ref).split(/\s+/).filter(Boolean).concat(own))].join(' ');
+      if (label(id)) r.title = label(id);
+      g.forEach(c => { if (c !== k) { merged[keyOf(c)] = { to: keyOf(k), title: c.row.title, level: c.level }; gone.add(c.row); } });
+    }
+    place[id] = { book_id: r.book_id, chapter: r.chapter };
+    const w = Object.assign({}, W(k));
+    let any = false;
+    FIELDS.forEach(f => { const v = acc[id][f].join('|'); if (v !== S(w[f])) any = true; if (v) w[f] = v; else delete w[f]; });
+    if (!S(w.idea)) { const o = g.map(c => S(W(c).idea)).find(Boolean); if (o) { w.idea = o; any = true; } }
+    if ((any || g.length > 1) && PRIV.some(f => S(w[f]))) { words[wk(k)] = w; r.lib_has = PRIV.filter(f => S(w[f])).join(' '); r.lib_pending = 'True'; }
+  });
+  m.cards.forEach(c => { if (gone.has(c.row)) delete words[wk(c)]; });
+  /* THE ANIMATIONS follow their key word, else the card kept. */
+  const cardAt = {};
+  m.cards.forEach(c => { cardAt[c.book + '#' + c.row.chapter] = c; });
+  const out = rows.filter(r => !gone.has(r)), anims = [];
+  for (let i = out.length - 1; i >= 0; i--) {
+    const r = out[i], c = S(r.anim) && cardAt[r.book_id + '#' + r.chapter];
+    if (!c) continue;
+    const p = place[anchor[wk(c) + '|' + S(r.about).toLowerCase()] || c.idea];
+    if (p && (p.book_id !== r.book_id || Number(p.chapter) !== Number(r.chapter))) { r.book_id = p.book_id; r.chapter = p.chapter; out.splice(i, 1); anims.unshift(r); }
+  }
+  anims.forEach(a => { let j = out.length; out.forEach((x, i) => { if (x.book_id === a.book_id && Number(x.chapter) === Number(a.chapter)) j = i + 1; }); out.splice(j, 0, a); });
+  rows.length = 0;
+  out.forEach(r => rows.push(r));
+  return { merged, moved, gone: gone.size, anims: anims.length };
+}
+
+/* SPEC LINKS POINT ON: a link to a card that went names the card kept (data/spec/*.json, in place). */
+function relink(merged) {
+  let n = 0;
+  const dir = path.join(ROOT, 'data', 'spec');
+  fs.readdirSync(dir).filter(f => f.endsWith('.json')).forEach(f => {
+    const file = path.join(dir, f), raw = fs.readFileSync(file, 'utf8');
+    if (!Object.keys(merged).some(k => raw.includes('"' + k + '"'))) return;
+    const s = JSON.parse(raw);
+    s.points.forEach(p => { if (!p.links) return; const l = [...new Set(p.links.map(x => (merged[x] ? merged[x].to : x)))];
+      if (l.join() !== p.links.join()) { p.links = l; n++; } });
+    fs.writeFileSync(file, raw.startsWith('{\n') ? JSON.stringify(s, null, 1) + '\n' : JSON.stringify(s));
+  });
+  return n;
+}
+
+module.exports = { SUBJECT, OUTSIDE, cardsOf, inScope, measure, report, tag, tree, normTitle, merge, relink };
