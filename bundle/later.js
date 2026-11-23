@@ -12016,54 +12016,36 @@ try { return qtKeys_(qType_(workRow_(x))) === 'sheet'; } catch (e) { return fals
 const KP_NOT_WORD = /^[.,;:!?'"()\[\]\-‐-―‘-‟…·*\/]+$/;
 function kpWordCount_(v) { return (String(v || '').match(/\S+/g) || []).filter(w => !KP_NOT_WORD.test(w)).length; }
 function kpWordsSay_(v) { const n = kpWordCount_(v); return n + (n === 1 ? ' word' : ' words'); }
+const kpCh_ = (t, a, span, at) => ({ t: t, a: a || '', c: ' kp-ch', span: span || 6, at: at || 0 });
+const kpOp_ = (t, a, v) => ({ v: v, t: t, a: a, c: ' kp-op' });
 const KP_POW = { v: '!pow', a: 'to the power of', c: ' kp-op kp-pow', t: { type: 'group', tag: 'span', look: 'kp-pw', attrs: { 'aria-hidden': 'true' }, text: ['x', { i: '' }] } };
-const KP_MATHS_SPACE = { v: ' ', a: 'space', c: ' kp-mode', t: '\u2423' };
-const KP_KEYS = [
-{ t: '7' }, { t: '8' }, { t: '9' }, { t: '\u00f7', a: 'divide' },
-{ t: '(', a: 'open bracket' }, { t: ')', a: 'close bracket' },
-{ t: '4' }, { t: '5' }, { t: '6' }, { t: '\u00d7', a: 'times' },
-{ v: '!frac', a: 'fraction', c: ' kp-op',
-t: { type: 'group', tag: 'span', look: 'kp-fr', text: [{ i: '' }, { b: '' }, { i: '' }] } },
-KP_POW,
-{ t: '1' }, { t: '2' }, { t: '3' }, { v: '-', a: 'minus', t: '\u2212' },
-{ v: '!sqrt', a: 'square root', c: ' kp-op', t: '\u221a' }, { t: '\u03c0', a: 'pi', c: ' kp-op' },
-{ t: '0' }, { t: '.', a: 'point' }, { t: ',', a: 'comma' }, { t: '+', a: 'plus' },
-{ t: 'x', a: 'x, the letter', c: ' kp-op' }, { t: '=', a: 'equals' },
-{ v: '!undo', a: 'undo', c: ' kp-mode', t: '\u21b6' },
-{ v: '!left', a: 'move left', c: ' kp-mode', t: '\u2190' },
-{ v: '!right', a: 'move right', c: ' kp-mode', t: '\u2192' },
-KP_MATHS_SPACE,
-{ v: '!back', a: 'delete', c: ' kp-del',
+const KP_FRAC = { v: '!frac', a: 'fraction', c: ' kp-op', t: { type: 'group', tag: 'span', look: 'kp-fr', text: [{ i: '' }, { b: '' }, { i: '' }] } };
+const KP_VEC_A = '⟮', KP_VEC_B = '⟯';
+const KP_VEC = { v: '!vec', a: 'column vector', c: ' kp-op kp-vec', t: { type: 'group', tag: 'span', look: 'kp-vc', attrs: { 'aria-hidden': 'true' }, text: [{ i: '' }, { i: '' }] } };
+const KP_BACK = { v: '!back', a: 'delete', c: ' kp-del',
 t: { type: 'drawing', node: { el: 'svg', a: { class: 'kp-del-i', viewBox: '0 0 24 24', 'aria-hidden': 'true', focusable: 'false', fill: 'none',
 stroke: 'currentColor', 'stroke-width': '2.2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' },
-kids: [{ el: 'path', a: { d: 'M9 5h11a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H9l-6-7z' } }, { el: 'path', a: { d: 'm12.5 9.5 5 5M17.5 9.5l-5 5' } }] } } },
-{ v: '!done', a: 'done, put the keypad away', c: ' kp-done', t: 'done' },
-];
-const KP_SIGN_KEYS = [
-{ v: '<', t: '<', a: 'less than', c: ' kp-op' },
-{ t: '\u2264', a: 'less than or equal to', c: ' kp-op' },
-{ t: '\u2265', a: 'greater than or equal to', c: ' kp-op' },
-{ v: '>', t: '>', a: 'greater than', c: ' kp-op' },
-{ t: ':', a: 'colon, for a ratio', c: ' kp-op' },
-{ t: '\u00b1', a: 'plus or minus', c: ' kp-op' },
-];
-const KP_FORM_KEYS = [
-{ v: '!mixed', a: 'mixed number', c: ' kp-op', t: { type: 'group', tag: 'span', look: 'kp-mx', attrs: { 'aria-hidden': 'true' },
-blocks: [{ type: 'group', tag: 'span', look: 'kp-mx-w' }, { type: 'group', tag: 'span', look: 'kp-fr', text: [{ i: '' }, { b: '' }, { i: '' }] }] } },
-{ v: '!pt', a: 'coordinates, a point', c: ' kp-op', t: '( , )' },
-{ v: '!x10', a: 'times ten to the power of', c: ' kp-op', t: { type: 'group', tag: 'span', look: 'kp-x10f', attrs: { 'aria-hidden': 'true' }, text: ['\u00d710', { i: '' }] } },
-{ v: '-', a: 'negative', c: ' kp-op', t: '(\u2212)' },
-{ t: 'y', a: 'y, the letter', c: ' kp-op' },
-{ v: 'cm', a: 'centimetres', c: ' kp-op', t: 'cm' },
-];
-const KP_VEC_A = '\u27ee', KP_VEC_B = '\u27ef';
-const KP_VEC_KEYS = [
-{ v: '!vec', a: 'column vector', c: ' kp-op kp-vec', t: { type: 'group', tag: 'span', look: 'kp-vc', attrs: { 'aria-hidden': 'true' }, text: [{ i: '' }, { i: '' }] } },
-{ t: '%', a: 'per cent', c: ' kp-op' }, { t: '\u00a3', a: 'pounds', c: ' kp-op' },
-{ t: '\u00b0', a: 'degrees', c: ' kp-op' }, { t: '\u00b2', a: 'squared, for a unit', c: ' kp-op' },
-{ t: '\u00b3', a: 'cubed, for a unit', c: ' kp-op' },
-];
-const kpHoles_ = h => h.replace(/<span class="vec-(a|b)">(\u03db?)<\/span>/g, (m, w, c) => cardBlocks_({ type: 'group', tag: 'span', look: 'vec-' + w, text: c, blocks: [kpDotB_('kp-hole')] }));
+kids: [{ el: 'path', a: { d: 'M9 5h11a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H9l-6-7z' } }, { el: 'path', a: { d: 'm12.5 9.5 5 5M17.5 9.5l-5 5' } }] } } };
+const KP_DONE = { v: '!done', a: 'done, put the keypad away', c: ' kp-done', t: 'done' };
+const KP_DONE_ESSAY = { v: '!done', a: 'done, put the keypad away', c: ' kp-done kp-done-k', t: 'done' };
+const KP_MIC = { v: '!mic', a: 'dictate, speak instead of typing', c: ' kp-mode kp-mic', icon: 'mic' };
+const KP_RETURN = { v: '!nl', a: 'return, a new line', c: ' kp-mode kp-ret',
+t: [{ type: 'group', tag: 'span', look: 'kp-ret-i', attrs: { 'aria-hidden': 'true' }, text: '↵' }, { type: 'group', tag: 'span', look: 'kp-ret-k', text: 'return' }] };
+const KP_ONE = [].concat(
+'1234567890'.split('').map(c => kpCh_(c)),
+[kpOp_('+', 'plus'), kpOp_('−', 'minus', '-'), kpOp_('×', 'times'), kpOp_('÷', 'divide'), kpOp_('=', 'equals'),
+kpOp_('(', 'open bracket'), kpOp_(')', 'close bracket'), KP_FRAC, KP_POW, kpOp_('√', 'square root', '!sqrt')],
+'qwertyuiop'.split('').map(c => kpCh_(c)),
+'asdfghjkl'.split('').map(c => kpCh_(c)), [kpCh_('\'', 'apostrophe')],
+'zxcvbnm'.split('').map(c => kpCh_(c)), [kpCh_('.', 'point, full stop'), kpCh_(',', 'comma'), KP_BACK],
+[kpOp_('<', 'less than'), kpOp_('>', 'greater than'), kpOp_('≤', 'less than or equal to'), kpOp_('≥', 'greater than or equal to'),
+kpOp_(':', 'colon, for a ratio'), kpOp_('±', 'plus or minus'), kpOp_('π', 'pi'), kpOp_('%', 'per cent'), kpOp_('£', 'pounds'), kpOp_('°', 'degrees')],
+[KP_VEC, kpCh_('?', 'question mark'), kpCh_('@', 'at'), KP_MIC,
+{ v: '!left', a: 'move left', c: ' kp-mode', t: '←' },
+{ v: ' ', a: 'space', c: ' kp-space kp-mode', t: 'space', span: 12 },
+{ v: '!right', a: 'move right', c: ' kp-mode', t: '→' }, KP_RETURN, KP_DONE]);
+const kpV_ = k => (k.v != null ? k.v : k.t);
+const kpHoles_ = h => h.replace(/<span class="vec-(a|b)">(ϛ?)<\/span>/g, (m, w, c) => cardBlocks_({ type: 'group', tag: 'span', look: 'vec-' + w, text: c, blocks: [kpDotB_('kp-hole')] }));
 function kpDotB_(look) { return { type: 'group', tag: 'span', look }; }
 const kpDot_ = look => cardBlocks_(kpDotB_(look));
 const kpSel_ = t => cardBlocks_({ type: 'group', tag: 'mark', look: 'kp-sel', text: t });
@@ -12075,83 +12057,62 @@ if (c === KP_VEC_A || c === KP_VEC_B) return { at: a - 1 };
 if (c === ',' && v.lastIndexOf(KP_VEC_A, a - 1) > v.lastIndexOf(KP_VEC_B, a - 1)) return { at: a - 1 };
 return null;
 }
-const kpCh_ = (t, a, span, at) => ({ t: t, a: a || '', c: ' kp-ch', span: span || 6, at: at || 0 });
-const KP_DEL_KEY = () => KP_KEYS.find(k => k.v === '!back');
-const KP_DONE_KEY = () => KP_KEYS.find(k => k.v === '!done');
-const KP_MIC = { v: '!mic', a: 'dictate, speak instead of typing', c: ' kp-mode kp-mic', icon: 'mic' };
-const KP_SPACE_KEY = { v: ' ', a: 'space', c: ' kp-space kp-mode', t: 'space' };
-const KP_ABC = [].concat(
-'1234567890'.split('').map(c => kpCh_(c)),
-'qwertyuiop'.split('').map(c => kpCh_(c)),
-'asdfghjkl'.split('').map((c, i) => kpCh_(c, '', 6, i ? 0 : 4)),
-[kpCh_(',', 'comma', 9)],
-'zxcvbnm'.split('').map(c => kpCh_(c)),
-[Object.assign({}, KP_DEL_KEY(), { span: 9 })]);
-const kpAbcBottom_ = essay => [
-kpCh_('-', 'hyphen', 6), kpCh_('?', 'question mark', 6),
-Object.assign({}, KP_MIC, { span: 6 }),
-Object.assign({}, KP_SPACE_KEY, { span: essay ? 18 : 24 }),
-kpCh_('\'', 'apostrophe', 6), kpCh_('.', 'full stop', 6)]
-.concat(essay ? [Object.assign({}, KP_RETURN, { span: 6 }), Object.assign({}, KP_DONE_ESSAY, { span: 6 })]
-: [Object.assign({}, KP_DONE_KEY(), { span: 6 })]);
-const KP_DONE_ESSAY = { v: '!done', a: 'done, put the keypad away', c: ' kp-done kp-done-k', t: 'done' };
 const kpSy_ = (t, a, v) => ({ v: v, t: t, a: a, c: ' kp-op', span: 6 });
 const KP_SYM = [
-kpSy_('\u03b1', 'alpha'), kpSy_('\u03b2', 'beta'), kpSy_('\u03b3', 'gamma'), kpSy_('\u03b8', 'theta'), kpSy_('\u03bb', 'lambda'),
-kpSy_('\u03bc', 'mu'), kpSy_('\u03c3', 'sigma'), kpSy_('\u03c6', 'phi'), kpSy_('\u03c9', 'omega'), kpSy_('\u03a9', 'capital omega, ohms'),
-kpSy_('\u2248', 'approximately equal to'), kpSy_('\u2260', 'not equal to'), kpSy_('\u2192', 'an arrow, tends to'), kpSy_('\u221e', 'infinity'),
-kpSy_('\u2026', 'and so on'), kpSy_('\u221b', 'cube root'), kpSy_('~', 'tilde, is distributed as'), kpSy_('\u2208', 'is a member of'),
-kpSy_('\u222a', 'union'), kpSy_('\u2229', 'intersection'),
+kpSy_('α', 'alpha'), kpSy_('β', 'beta'), kpSy_('γ', 'gamma'), kpSy_('θ', 'theta'), kpSy_('λ', 'lambda'),
+kpSy_('μ', 'mu'), kpSy_('σ', 'sigma'), kpSy_('φ', 'phi'), kpSy_('ω', 'omega'), kpSy_('Ω', 'capital omega, ohms'),
+kpSy_('≈', 'approximately equal to'), kpSy_('≠', 'not equal to'), kpSy_('→', 'an arrow, tends to'), kpSy_('∞', 'infinity'),
+kpSy_('…', 'and so on'), kpSy_('∛', 'cube root'), kpSy_('~', 'tilde, is distributed as'), kpSy_('∈', 'is a member of'),
+kpSy_('∪', 'union'), kpSy_('∩', 'intersection'),
 kpSy_('{', 'open curly bracket'), kpSy_('}', 'close curly bracket'), kpSy_('[', 'open square bracket'), kpSy_(']', 'close square bracket'),
-kpSy_('_', 'underscore, for a subscript'), kpSy_('!', 'exclamation mark, factorial'), kpSy_('x\u0304', 'a bar over the letter before', '\u0304'),
-kpSy_(',', 'comma', ','), kpSy_('?', 'question mark', '?'), kpSy_('-', 'hyphen', '-'), kpSy_(':', 'colon', ':'), kpSy_(';', 'semicolon', ';'),
-kpSy_('"', 'quotation mark', '"'), kpSy_('(', 'open bracket', '('), kpSy_(')', 'close bracket', ')'), kpSy_('/', 'slash', '/'), kpSy_('&', 'and', '&'),
-kpSy_('\u2124', 'the integers'), kpSy_('\u211d', 'the real numbers'), kpSy_('\u00b5', 'micro, for a unit'),
+kpSy_('_', 'underscore, for a subscript'), kpSy_('!', 'exclamation mark, factorial'), kpSy_('x̄', 'a bar over the letter before', '̄'),
+kpSy_(';', 'semicolon', ';'), kpSy_('"', 'quotation mark', '"'), kpSy_('&', 'and', '&'),
+kpSy_('ℤ', 'the integers'), kpSy_('ℝ', 'the real numbers'), kpSy_('µ', 'micro, for a unit'),
 ];
-const KP_RETURN = { v: '!nl', a: 'return, a new line', c: ' kp-mode kp-ret', span: 12,
-t: [{ type: 'group', tag: 'span', look: 'kp-ret-i', attrs: { 'aria-hidden': 'true' }, text: '\u21b5' }, { type: 'group', tag: 'span', look: 'kp-ret-k', text: 'return' }] };
-const KP_MAIL_KEYS = ['@', '.', '/', '_', '-', ':'].map(c => kpCh_(c, { '@': 'at', '.': 'dot', '/': 'slash', '_': 'underscore', '-': 'hyphen', ':': 'colon' }[c], 10));
-const KP_SITE_KEYS = [
-{ t: '@', a: 'at', c: ' kp-op' }, { t: '#', a: 'hash', c: ' kp-op' }, { t: '&', v: '&', a: 'and', c: ' kp-op' },
-{ t: '%', a: 'per cent', c: ' kp-op' }, { t: '\u00a3', a: 'pounds', c: ' kp-op' }, { t: '!', a: 'exclamation mark', c: ' kp-op' },
-];
-const KP_PLAIN = { '!frac': { t: '/', a: 'slash', c: ' kp-op' }, '!pow': { t: '^', a: 'caret', c: ' kp-op' }, '!sqrt': { t: '\u221a', a: 'root sign', c: ' kp-op' } };
-const kpPlainKey_ = k => KP_PLAIN[k.v] || k;
 const kpFace_ = t => (t != null && typeof t === 'object' ? cardBlocks_(t) : esc(String(t || '')));
-const kpKey_ = k => tile_({ act: 'kp-key', label: k.a || String(k.t || ''),
-data: { v: k.v != null ? k.v : k.t }, icon: k.icon, face: k.icon ? '' : kpFace_(k.t),
-cls: 'kp-key' + (k.c || '') + (k.span ? ' kp-s' + k.span : '') + (k.at ? ' kp-at' + k.at : '') });
+const kpKey_ = (k, off) => tile_({ act: 'kp-key', label: k.a || String(k.t || ''),
+data: off ? { v: kpV_(k), off: '1' } : { v: kpV_(k) }, icon: k.icon, face: k.icon ? '' : kpFace_(k.t),
+cls: 'kp-key' + (k.c || '') + ' kp-s' + (k.span || 6) + (k.at ? ' kp-at' + k.at : '') + (off ? ' kp-off' : '') });
 function kpRows_(keys) {
 let used = 0;
 return keys.map(k => { const span = k.span || 6, first = used % 60 === 0; used += (k.at ? k.at - 1 - used % 60 : 0) + span;
 return first && !k.at ? Object.assign({}, k, { at: 1 }) : k; });
 }
-const KP_SIGNS_RE = /[<>\u2264\u2265:\u00b1]/, KP_VEC_RE = /[%\u00a3\u00b0\u00b2\u00b3\u27ee\u27ef^]/;
+const KP_SIGNS_RE = /[<>≤≥:±]/, KP_VEC_RE = /[%£°⟮⟯]/;
 const kpWays_ = acc => String(acc || '').split('|').map(w => w.trim()).filter(w => w && !/^rule:/i.test(w));
-function kpNeedKeys_(acc, face, words) {
-const on = new Set(face.map(k => (k.v != null ? k.v : k.t)).filter(v => typeof v === 'string' && v.length === 1));
+function kpNeedKeys_(acc) {
+const on = new Set(KP_ONE.map(kpV_).filter(v => typeof v === 'string' && v.length === 1).concat(['−', '/', '^', '√']));
 const out = [];
-for (const c of [...new Set(kpWays_(acc).join('').replace(/[\s\u2212]/g, ''))]) {
-if (on.has(c) || (!words && /[\d]/.test(c)) || (words && on.has(c.toLowerCase()) && c === c.toLowerCase())) continue;
-if (!words && /[\/\^\u221a()\u00d7\u00f7+\-=.,]/.test(c)) continue;
+for (const c of [...new Set(kpWays_(acc).join('').replace(/\s/g, ''))]) {
+if (on.has(c) || /[²³⟮⟯]/.test(c)) continue;
 const sym = KP_SYM.find(k => (k.v || k.t) === c);
-out.push(words ? kpCh_(c, sym ? sym.a : (/[A-Z]/.test(c) ? 'capital ' + c : c), 6) : { t: c, a: sym ? sym.a : c, c: ' kp-op' });
-if (out.length >= (words ? 20 : 12)) break;
+out.push(Object.assign(kpCh_(c, sym ? sym.a : (/[A-Z]/.test(c) ? 'capital ' + c : c), 6), { need: true }));
+if (out.length >= 10) break;
 }
 return out;
 }
-function kpPadHtml_(layer, words, signs, essay, vec, site, acc) {
-const known = !site && !essay && acc != null && kpWays_(acc).length > 0, ways = known ? kpWays_(acc).join(' ') : '';
-if (layer === 'abc') {
-const top = site === 'mail' ? KP_MAIL_KEYS : [];
-const face = top.concat(KP_ABC).concat(kpAbcBottom_(essay));
-return kpRows_(face.concat(known ? kpNeedKeys_(acc, face, true) : [])).map(k => (essay && k.v === '!done' ? KP_DONE_ESSAY : k)).map(kpKey_).join('');
+function kpCan_(k, box) {
+const v = kpV_(k);
+if (k.need || /^!(back|left|right|done)$/.test(v)) return true;
+if (v === '!nl') return !!box.essay;
+if (box.kind === 'letters') return /^[a-z]$/.test(v) && String(box.acc || '').indexOf(v.toUpperCase()) >= 0;
+if (box.kind === 'site') {
+if (box.site === 'num') return /^[\d.,+\-() ]$/.test(v);
+return v !== '!vec' && !(v === '!mic' && box.secret);
 }
-if (site) return KP_SITE_KEYS.concat(KP_SIGN_KEYS, KP_KEYS.map(kpPlainKey_)).map(kpKey_).join('');
-if (layer === 'letters') return [...String(acc || '')].map(c => ({ v: '!pick:' + c, t: c, a: 'option ' + c, c: ' kp-op' }))
-.concat(KP_KEYS.filter(k => /^!(left|right|back|done)$/.test(k.v))).map(kpKey_).join('');
-const face = (!known || KP_VEC_RE.test(ways) ? KP_VEC_KEYS : []).concat(!known || KP_SIGNS_RE.test(ways) ? KP_SIGN_KEYS : []).concat(KP_FORM_KEYS, KP_KEYS);
-return face.concat(known ? kpNeedKeys_(acc, face, false) : []).map(kpKey_).join('');
+if (box.kind === 'words') return true;
+const ways = kpWays_(box.acc).join(' ');
+if (!ways) return v !== '!mic' && !/^[?'@]$/.test(v);
+if (/^[\d+\-×÷=().,π xy]$/.test(v) || /^!(frac|pow|sqrt)$/.test(v)) return true;
+if (/^[<>≤≥:±]$/.test(v)) return KP_SIGNS_RE.test(ways);
+if (/^[%£°]$/.test(v) || v === '!vec') return KP_VEC_RE.test(ways);
+if (/^[a-z?'@]$/.test(v)) return ways.toLowerCase().indexOf(v) >= 0;
+return false;
+}
+function kpPadHtml_(box) {
+const b = box || { kind: 'maths' };
+const need = (b.kind === 'maths' || b.kind === 'words') && !b.essay ? kpNeedKeys_(b.acc) : [];
+return kpRows_(KP_ONE.map(k => (b.essay && k.v === '!done' ? KP_DONE_ESSAY : k)).concat(need)).map(k => kpKey_(k, !kpCan_(k, b))).join('');
 }
 const KP_HOLE = '\u03d9', KP_CARET = '\u03db';
 const KP_BOX_KINDS = { essay: { essay: true, words: true }, words: { words: true } };
@@ -12298,9 +12259,9 @@ pad.className = 'kp';
 pad.hidden = true;
 pad.setAttribute('data-noswipe', '');
 pad.setAttribute('role', 'group');
-pad.setAttribute('aria-label', 'Maths keypad');
-pad.innerHTML = kpPadHtml_('maths', false, false);
-pad.setAttribute('data-sig', 'maths:m');
+pad.setAttribute('aria-label', 'Keyboard');
+pad.innerHTML = kpPadHtml_({ kind: 'maths' });
+pad.setAttribute('data-sig', '');
 pad.setAttribute('data-layer', 'maths');
 pad.addEventListener('mousedown', e => e.preventDefault());
 pad.addEventListener('contextmenu', e => e.preventDefault());
@@ -12315,24 +12276,23 @@ say.setAttribute('aria-live', 'polite');
 document.body.appendChild(say);
 return pad;
 }
+function kpBoxOf_(inp) {
+const site = kpSite_(inp) ? (inp.getAttribute('data-kpb') || 'abc') : '';
+const essay = !!inp && (inp.hasAttribute('data-kp-essay') || (!!site && kpLines_(inp)));
+const holder = inp && inp.closest ? inp.closest('[data-accept]') : null;
+const kind = site ? 'site' : KP_LAYER === 'letters' ? 'letters' : inp && inp.getAttribute('data-kp') === 'words' ? 'words' : 'maths';
+const acc = kind === 'letters' ? inp.getAttribute('data-kp-letters') : kind === 'site' ? null : holder ? holder.getAttribute('data-accept') : null;
+return { kind, essay, site, secret: !!site && kpSecret_(inp), acc };
+}
 function kpLayout_(inp) {
 const pad = kpPad_();
-const words = !!inp && inp.getAttribute('data-kp') === 'words';
-const signs = true;
-const site = kpSite_(inp) ? (inp.getAttribute('data-kpb') === 'mail' ? 'mail' : 'site') : '';
-const essay = !!inp && (inp.hasAttribute('data-kp-essay') || (!!site && kpLines_(inp)));
-const vec = true;
-const holder = inp && inp.closest ? inp.closest('[data-accept]') : null;
-const acc = KP_LAYER === 'letters' ? inp.getAttribute('data-kp-letters') : holder ? holder.getAttribute('data-accept') : null;
-const sig = KP_LAYER + (words ? ':w' : ':m') + (signs && KP_LAYER === 'maths' ? ':s' : '') + (essay ? ':e' : '') + (vec ? ':v' : '') + (site ? ':' + site : '') + ':' + (acc || '');
+const box = kpBoxOf_(inp);
+const sig = JSON.stringify(box);
 if (pad.getAttribute('data-sig') !== sig) {
-pad.innerHTML = kpPadHtml_(KP_LAYER, words, signs, essay, vec, site, acc);
+pad.innerHTML = kpPadHtml_(box);
 pad.setAttribute('data-sig', sig);
 }
-pad.classList.toggle('is-site', !!site);
-pad.classList.toggle('is-abc', KP_LAYER === 'abc');
-pad.setAttribute('data-layer', KP_LAYER);
-pad.setAttribute('aria-label', KP_LAYER === 'abc' ? 'Letters keypad' : KP_LAYER === 'letters' ? 'Options keypad' : site ? 'Numbers keypad' : 'Maths keypad');
+pad.setAttribute('data-layer', box.kind);
 kpShiftPaint_();
 if (!pad.hidden) kpPadH_(pad);
 return pad;
@@ -12432,7 +12392,7 @@ if (z < 0) return a;
 const box = v.slice(kpPartner_(v, z) + 1, z);
 if (!box || !kpBal_(box)) return a;
 if (/^[-+\u00d7\u00f7=<>\u2264\u2265,:\u00b1]$/.test(cmd) && !(cmd === '-' && /[(\u00d7\u00f7+\-^]$/.test(box))) return z + 1;
-if (cmd === '!x10' || (/^[a-z\u03b1-\u03c9]$/i.test(cmd) && /^[\d.]+$/.test(box))) return z + 1;
+if ((/^[a-z\u03b1-\u03c9]$/i.test(cmd) && /^[\d.]+$/.test(box))) return z + 1;
 return a;
 }
 function kpPowShut_(v, a) {
@@ -12444,7 +12404,7 @@ const box = z < 0 ? '' : v.slice(kpPartner_(v, z) + 1, z);
 return box && kpBal_(box) ? { v: v.slice(0, z + 1) + ')' + v.slice(z + 1), at: z + 2 } : null;
 }
 function kpEdit_(inp, cmd) {
-if (kpSite_(inp)) return kpSiteEdit_(inp, cmd);
+if (kpSite_(inp)) return kpSiteEdit_(inp, KP_WORD_SIGN[cmd] || cmd);
 const v = inp.value;
 const words = inp.getAttribute('data-kp') === 'words';
 let a = inp.selectionStart, b = inp.selectionEnd;
@@ -12476,10 +12436,7 @@ const to = c => inp.setSelectionRange(c, c);
 const term = /[0-9a-z.\u03c0)]$/i.test(v.slice(0, a));
 if (shut) { inp.value = shut.v; to(shut.at); }
 else if (cmd === '!vec') put(KP_VEC_A + ',' + KP_VEC_B, 1);
-else if (cmd === '!x10') { const x = /×\s*$/.test(v.slice(0, a)) ? '10^()' : '×10^()'; put(x, x.length - 1); }
 else if (cmd === '!frac') { if (term) put('/()', 2); else put('()/()', 1); }
-else if (cmd === '!mixed') { if (/\d$/.test(v.slice(0, a))) put(' ()/()', 2); else put('() ()/()', 1); }
-else if (cmd === '!pt') put('(,)', 1);
 else if (cmd === '!pow') put('^()', 2);
 else if (cmd === '!sqrt') put('\u221a()', 2);
 else if (cmd === '!home') to(kpLineStart_(v, a));
@@ -12591,11 +12548,11 @@ let KP_REPEATED = false;
 /* js/keypad-pad.js */
 on('kp-key', (el) => {
 if (KP_REPEATED) { KP_REPEATED = false; return; }
+if (el.hasAttribute('data-off')) return;
 const inp = kpLive_();
 if (!inp) return;
 const v = el.getAttribute('data-v') || '';
 if (v === '!done') return kpDone_(inp);
-if (v === '!undo') { kpUndo_(inp, false); return; }
 if (v === '!mic') return kpMic_(inp, el);
 kpType_(inp, v, false);
 });
@@ -12641,7 +12598,7 @@ pad.classList.toggle('is-shift', KP_LAYER === 'abc' && KP_SHIFT !== 'off');
 function kpNear_(e) {
 const pad = e.currentTarget;
 if (e.target !== pad || !e.detail || PRESS_MOVED) return;
-const ks = [...pad.querySelectorAll('.kp-key')].map(k => ({ k: k, r: k.getBoundingClientRect() }));
+const ks = [...pad.querySelectorAll('.kp-key:not(.kp-off)')].map(k => ({ k: k, r: k.getBoundingClientRect() }));
 const band = ks.filter(o => e.clientY >= o.r.top - 3 && e.clientY <= o.r.bottom + 3);
 let best = null, bd = Infinity;
 (band.length ? band : ks).forEach(o => {
@@ -12812,14 +12769,43 @@ if (!kpSite_(el) || el.getAttribute('data-kpb') !== 'abc' || kpSecret_(el)) retu
 if (/^(off|none)$/i.test(el.getAttribute('autocapitalize') || '')) return false;
 return el.tagName === 'TEXTAREA' || (el.tagName === 'INPUT' && /^(|text)$/i.test(el.getAttribute('type') || ''));
 }
+const KP_TEXT_TYPE = /^(|text|search|email|url|tel|password|number)$/;
+function kpTakesText_(el) {
+if (!el || el.nodeType !== 1 || !el.classList || el.classList.contains('kp-in')) return false;
+if (el.tagName === 'TEXTAREA') return true;
+if (el.tagName === 'INPUT') return KP_TEXT_TYPE.test(String(el.getAttribute('type') || '').trim().toLowerCase());
+const ce = el.getAttribute('contenteditable');
+return ce != null && /^(|true|plaintext-only)$/i.test(ce.trim());
+}
+function kpSiteKind_(el) {
+const ty = String(el.getAttribute('type') || '').toLowerCase(), im = String(el.getAttribute('inputmode') || '').toLowerCase();
+if (/^(number|tel)$/.test(ty) || /^(numeric|decimal|tel)$/.test(im)) return 'num';
+if (/^(email|url)$/.test(ty) || /^(email|url)$/.test(im)) return 'mail';
+return 'abc';
+}
+function kpBind_(el) {
+if (!kpTakesText_(el) || el.hasAttribute('data-kpb')) return;
+el.setAttribute('data-kpb', kpSiteKind_(el));
+el.setAttribute('inputmode', 'none');
+}
+function kpBindIn_(root) {
+if (!root || root.nodeType !== 1) return;
+kpBind_(root);
+if (root.firstElementChild) root.querySelectorAll('input, textarea, [contenteditable]').forEach(kpBind_);
+}
 const kpGone_ = () => { if (KP_AT && kpSite_(KP_AT) && !KP_AT.isConnected) kpClose_(); };
-try { new MutationObserver(kpGone_).observe(document.documentElement, { childList: true, subtree: true }); } catch (e) { }
+try {
+new MutationObserver(list => { for (const m of list) for (const n of m.addedNodes) kpBindIn_(n); kpGone_(); })
+.observe(document.documentElement, { childList: true, subtree: true });
+} catch (e) { }
+kpBindIn_(document.documentElement);
 const KP_USER_MS = 1500;
 let KP_USER_AT = 0;
 const kpUser_ = () => Date.now() - KP_USER_AT < KP_USER_MS;
 const kpBoxAt_ = t => (t && t.closest ? t.closest('input, textarea, [contenteditable]') : null);
 ['pointerdown', 'touchstart'].forEach(ev => document.addEventListener(ev, e => {
 KP_USER_AT = Date.now();
+kpBind_(kpBoxAt_(e.target));
 }, { capture: true, passive: true }));
 document.addEventListener('keydown', e => { if (e.key === 'Tab') KP_USER_AT = Date.now(); }, true);
 document.addEventListener('focusin', e => {

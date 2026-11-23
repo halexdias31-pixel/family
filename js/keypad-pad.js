@@ -1,11 +1,12 @@
 on('kp-key', (el) => {
   if (KP_REPEATED) { KP_REPEATED = false; return; }
+  /* A GREYED KEY (`kpCan_`) is in its place and does nothing in this box */
+  if (el.hasAttribute('data-off')) return;
   /* THE LIVE BOX, NOT THE LAST ONE NAMED -- a redraw may have replaced it (`kpLive_`). */
   const inp = kpLive_();
   if (!inp) return;
   const v = el.getAttribute('data-v') || '';
   if (v === '!done') return kpDone_(inp);
-  if (v === '!undo') { kpUndo_(inp, false); return; }
   if (v === '!mic') return kpMic_(inp, el);
   kpType_(inp, v, false);
 });
@@ -60,7 +61,7 @@ function kpShiftPaint_() {
 function kpNear_(e) {
   const pad = e.currentTarget;
   if (e.target !== pad || !e.detail || PRESS_MOVED) return;
-  const ks = [...pad.querySelectorAll('.kp-key')].map(k => ({ k: k, r: k.getBoundingClientRect() }));
+  const ks = [...pad.querySelectorAll('.kp-key:not(.kp-off)')].map(k => ({ k: k, r: k.getBoundingClientRect() }));
   const band = ks.filter(o => e.clientY >= o.r.top - 3 && e.clientY <= o.r.bottom + 3);
   let best = null, bd = Infinity;
   (band.length ? band : ks).forEach(o => {
@@ -252,10 +253,42 @@ function kpSiteCaps_(el) {
   if (/^(off|none)$/i.test(el.getAttribute('autocapitalize') || '')) return false;
   return el.tagName === 'TEXTAREA' || (el.tagName === 'INPUT' && /^(|text)$/i.test(el.getAttribute('type') || ''));
 }
-/* THE ONE BINDING: the face read from the markup, then the phone's keyboard shut out. The only script in js/ that writes `inputmode`, and only ever "none" (check-flow). No `readonly`: a reader still hears a field. */
+/* ---------- EVERY BOX ON THE SITE TAKES THE ONE KEYBOARD (owner 23 Nov, ONE KEYBOARD: "the welcome screen without it") ---------- */
+const KP_TEXT_TYPE = /^(|text|search|email|url|tel|password|number)$/;
+/* WHAT TAKES TEXT: a textarea, a text-like input, an editable piece of words. An answer box is kpField_'s, locked in its markup, and never this. */
+function kpTakesText_(el) {
+  if (!el || el.nodeType !== 1 || !el.classList || el.classList.contains('kp-in')) return false;
+  if (el.tagName === 'TEXTAREA') return true;
+  if (el.tagName === 'INPUT') return KP_TEXT_TYPE.test(String(el.getAttribute('type') || '').trim().toLowerCase());
+  const ce = el.getAttribute('contenteditable');
+  return ce != null && /^(|true|plaintext-only)$/i.test(ce.trim());
+}
+/* WHAT KIND OF BOX, read from what it says it is: a number, a phone number or digits → 'num' (only the number keys light); an address → 'mail'; else 'abc'. The layout is the same for all three. */
+function kpSiteKind_(el) {
+  const ty = String(el.getAttribute('type') || '').toLowerCase(), im = String(el.getAttribute('inputmode') || '').toLowerCase();
+  if (/^(number|tel)$/.test(ty) || /^(numeric|decimal|tel)$/.test(im)) return 'num';
+  if (/^(email|url)$/.test(ty) || /^(email|url)$/.test(im)) return 'mail';
+  return 'abc';
+}
+/* THE ONE BINDING: the kind read from the markup, then the phone's keyboard shut out. The only script in js/ that writes `inputmode`, and only ever "none" (check-flow). No `readonly`: a reader still hears a field. */
+function kpBind_(el) {
+  if (!kpTakesText_(el) || el.hasAttribute('data-kpb')) return;
+  el.setAttribute('data-kpb', kpSiteKind_(el));
+  el.setAttribute('inputmode', 'none');
+}
+function kpBindIn_(root) {
+  if (!root || root.nodeType !== 1) return;
+  kpBind_(root);
+  if (root.firstElementChild) root.querySelectorAll('input, textarea, [contenteditable]').forEach(kpBind_);
+}
 /* A BOX TAKEN AWAY WITH THE PAD ON IT (a message sent, its composer drawn again) takes the pad with it, as a phone's keyboard goes; an answer box is found again by its name (kpLive_) */
 const kpGone_ = () => { if (KP_AT && kpSite_(KP_AT) && !KP_AT.isConnected) kpClose_(); };
-try { new MutationObserver(kpGone_).observe(document.documentElement, { childList: true, subtree: true }); } catch (e) { /* no observer: the pad stays until closed */ }
+/* EVERY BOX AS IT IS DRAWN, before a finger can reach it; and again on the way in (a tap, a focus), for a box drawn and focused in one go */
+try {
+  new MutationObserver(list => { for (const m of list) for (const n of m.addedNodes) kpBindIn_(n); kpGone_(); })
+    .observe(document.documentElement, { childList: true, subtree: true });
+} catch (e) { /* the tap and the focus below still bind */ }
+kpBindIn_(document.documentElement);
 
 /* THE PAD COMES UP WHEN A PERSON PUT THE FOCUS THERE (a tap, Tab), as a phone's keyboard does, and not for a box a screen focused by itself; a tap on it later brings it up */
 const KP_USER_MS = 1500;
@@ -264,6 +297,7 @@ const kpUser_ = () => Date.now() - KP_USER_AT < KP_USER_MS;
 const kpBoxAt_ = t => (t && t.closest ? t.closest('input, textarea, [contenteditable]') : null);
 ['pointerdown', 'touchstart'].forEach(ev => document.addEventListener(ev, e => {
   KP_USER_AT = Date.now();
+  kpBind_(kpBoxAt_(e.target));
 }, { capture: true, passive: true }));
 document.addEventListener('keydown', e => { if (e.key === 'Tab') KP_USER_AT = Date.now(); }, true);
 document.addEventListener('focusin', e => {

@@ -3959,25 +3959,18 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 /* THE POWER KEY IS A POWER: x and a raised box for what goes up, drawn as the fraction's boxes are (the owner could not find "to the power of") */
 .kp-pw { display: inline-flex; align-items: flex-start; font: 600 var(--fs-title)/1 var(--font); }
 .kp-pw i { display: block; width: 8px; height: 9px; margin: -2px 0 0 1px; border: 1.5px solid currentColor; border-radius: var(--r-ui); }
-/* ×10 AND ITS RAISED BOX, the power key's box beside "×10": standard form in one key */
-/* THE MIXED-NUMBER KEY: a box for the whole beside the fraction key's two boxes */
-.kp-mx { display: inline-flex; align-items: center; gap: 3px; }
-.kp-mx > .kp-mx-w { display: block; width: 9px; height: 12px; border: 1px solid currentColor; border-radius: var(--r-ui); }
-.kp-x10f { display: inline-flex; align-items: flex-start; font: 600 var(--fs-body)/1 var(--font); }
-.kp-x10f i { display: block; width: 7px; height: 8px; margin: -3px 0 0 1px; border: 1.5px solid currentColor; border-radius: var(--r-ui); }
 
-/* ---------- THE LETTERS: THE SAME PAD, TURNED OVER (`abc`) § */
-#kp.is-abc { grid-template-columns: repeat(60, minmax(0, 1fr)); column-gap: 0; max-width: 640px; }
-#kp.is-abc .kp-key { border-inline: 2px solid transparent; background-clip: padding-box; }
+/* ---------- THE ONE KEYBOARD (owner 23 Nov): seven rows of ten in sixty columns, the same on every box; an iPad's keys today's size,
+   a phone's as wide as the screen allows (2px each side of the pad) and never under 44px tall */
+#kp { grid-template-columns: repeat(60, minmax(0, 1fr)); column-gap: 0; max-width: 640px; }
+#kp .kp-key { border-inline: 2px solid transparent; background-clip: padding-box; }
+@media (max-width: 480px) { #kp { padding-inline: 1px; } }
+/* A KEY THIS BOX CANNOT USE, greyed where it stands (`kpCan_`), never hidden */
+#kp .kp-key.kp-off { opacity: .3; filter: grayscale(1); cursor: default; }
+#kp .kp-key.kp-off:active { transform: none; filter: grayscale(1); }
 /* A KEY'S WIDTH IN THE SIXTY COLUMNS (`span` in keypad-keys.js), and where the second letter row starts (`at`). */
 .kp-key.kp-s6 { grid-column-end: span 6; }
-.kp-key.kp-s8 { grid-column-end: span 8; }
-.kp-key.kp-s9 { grid-column-end: span 9; }
-.kp-key.kp-s10 { grid-column-end: span 10; }
 .kp-key.kp-s12 { grid-column-end: span 12; }
-.kp-key.kp-s18 { grid-column-end: span 18; }
-.kp-key.kp-s24 { grid-column-end: span 24; }
-.kp-key.kp-at4.kp-s6 { grid-column: 4 / span 6; }
 .kp-key.kp-at1 { grid-column-start: 1; }
 .kp-key.kp-ch { position: relative; font-weight: 500; font-size: var(--fs-title); }
 #kp.is-shift .kp-ch { text-transform: uppercase; }

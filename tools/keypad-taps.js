@@ -51,14 +51,20 @@ const TYPED = [['2 1/3', true], ['2⅓', true], ['2+1/3', true], ['2+ 1/3', true
   ['7/3', false], ['2 2/3', false], ['1 4/3', false], ['3 1/3', false]];
 const KEY73 = '2 1/3 | rule: count 1, mixed, each eq 7/3';
 const LAYERS = /^!(abc|123|sym|shift|more)$/;
+/* THE ONE KEYBOARD'S ROWS (owner 23 Nov: "about 6 rows"): seven of ten hold the letters, the numbers and the maths keys at a phone's key size */
+const ROWS = 7;
 
 /* ---------- THE PAD IN NODE: a box as the page has one, typed through kpEdit_ */
 function pad(app) {
   const { ctx, call } = app;
   if (!ctx.Event) ctx.Event = class Event { constructor(t) { this.type = t; } };
-  const faceOf = (acc, words, layer) => { ctx.__acc = acc; ctx.__w = !!words; ctx.__l = layer || (words ? 'abc' : 'maths');
-    const h = call('kpPadHtml_(__l, __w, true, false, true, "", __acc)');
-    return [...h.matchAll(/data-v="([^"]*)"/g)].map(m => m[1].replace(/&quot;/g, '"').replace(/&#39;/g, '\'').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')); };
+  const dec = s => s.replace(/&quot;/g, '"').replace(/&#39;/g, '\'').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+  /* EVERY KEY THE PAD DRAWS FOR A BOX, in order: its value, greyed or not, its span */
+  const keysOf = box => { ctx.__b = box;
+    return [...call('kpPadHtml_(__b)').matchAll(/<button\b[^>]*>/g)].map(m => m[0]).filter(t => /\bkp-key\b/.test(t))
+      .map(t => ({ v: dec((/data-v="([^"]*)"/.exec(t) || [])[1] || ''), off: /\bkp-off\b/.test(t), span: +((/\bkp-s(\d+)/.exec(t) || [])[1] || 6) })); };
+  /* THE KEYS THIS BOX CAN USE: the greyed ones are on the pad but type nothing */
+  const faceOf = (acc, words, kind) => keysOf({ kind: kind || (words ? 'words' : 'maths'), acc: acc }).filter(k => !k.off).map(k => k.v);
   const type = (taps, words, attrs) => {
     ctx.__taps = taps; ctx.__w = !!words; ctx.__at = attrs || {};
     return call('(function () { const at = { a: 0, b: 0 }; const inp = { value: "", nodeType: 1, get selectionStart() { return at.a; }, get selectionEnd() { return at.b; },'
@@ -66,7 +72,67 @@ function pad(app) {
       + ' hasAttribute() { return false; }, classList: { contains: c => c === "kp-in" }, dispatchEvent() {} };'
       + ' for (const t of __taps) kpEdit_(inp, __w && KP_WORD_SIGN[t] ? KP_WORD_SIGN[t] : t); return inp.value; })()');
   };
-  return { faceOf, type };
+  return { faceOf, keysOf, type };
+}
+
+/* ---------- ONE LAYOUT, NO KEY DOING ANOTHER'S JOB (owner 23 Nov, ONE KEYBOARD) */
+/* every kind of box the site has: a maths answer (nothing said, and several answers), a worded one, an essay, options, and the site's own
+   boxes (text, an address, a number, a password) */
+const BOXES = [['a maths answer, nothing said', { kind: 'maths' }], ['a maths answer 2 1/3', { kind: 'maths', acc: '2 1/3' }],
+  ['a maths answer x > 4', { kind: 'maths', acc: 'x > 4' }], ['a maths answer £4.50', { kind: 'maths', acc: '£4.50' }],
+  ['a maths answer with Greek', { kind: 'maths', acc: '2θ' }], ['a worded answer', { kind: 'words', acc: 'Paris' }],
+  ['an essay', { kind: 'words', essay: true }], ['options', { kind: 'letters', acc: 'ABCD' }],
+  ['a box elsewhere', { kind: 'site', site: 'abc' }], ['an address', { kind: 'site', site: 'mail' }],
+  ['a number box', { kind: 'site', site: 'num' }], ['a password', { kind: 'site', site: 'abc', secret: true }], ['a box of lines', { kind: 'site', site: 'abc', essay: true }]];
+function oneLayout(app, P) {
+  const bad = [];
+  const ref = P.keysOf(BOXES[0][1]);
+  /* the layout's own keys: the rows of sixty columns before any row an answer adds (`kpNeedKeys_`) */
+  const own = ks => { let used = 0; return ks.filter(k => { const inside = used < ROWS * 60; used += k.span; return inside; }); };
+  const rows = ref.reduce((s, k) => s + k.span, 0) / 60;
+  if (rows !== ROWS) bad.push('the keyboard has ' + rows + ' rows, not ' + ROWS);
+  const sig = ks => own(ks).map(k => k.v + '/' + k.span).join(' ');
+  for (const [what, box] of BOXES) {
+    const ks = P.keysOf(box);
+    if (sig(ks) !== sig(ref)) bad.push(what + ': its keys are not in the one layout\'s places (' + own(ks).map(k => k.v).join(' ') + ')');
+    if (ks.some(k => LAYERS.test(k.v))) bad.push(what + ': a key turns the pad over');
+    if (!ks.some(k => k.off) && box.kind !== 'words') bad.push(what + ': no key greyed, though this box cannot use every key');
+  }
+  /* NO KEY TWICE, and none whose job another key does: each key typed after a 5, in a maths box and a worded one, against every other key
+     alone, any two, and a fraction, power or root key with one key in it; the same text, or a value the marker takes as the same, is a key
+     too many (x² is xⁿ 2, (−) is −, ×10ⁿ is × 1 0 xⁿ) */
+  const vs = own(ref).map(k => k.v);
+  vs.filter((v, i) => vs.indexOf(v) !== i).forEach(v => bad.push('the key ' + JSON.stringify(v) + ' is on the keyboard twice'));
+  const typing = vs.filter(v => !/^!(back|left|right|done|mic|nl)$/.test(v));
+  const out = (taps, words) => P.type(['5'].concat(taps), words);
+  const same = {}, mk = {};
+  for (const words of [false, true]) {
+    const one = {}, two = new Map();
+    typing.forEach(v => { one[v] = out([v], words); });
+    typing.forEach(a => typing.forEach(b => { const s = out([a, b], words); if (!two.has(s)) two.set(s, []); two.get(s).push([a, b]); }));
+    const filled = [];
+    if (!words) ['!frac', '!pow', '!sqrt'].forEach(t => typing.filter(o => /^\d$/.test(o)).forEach(o => filled.push([[t, o, '!right'], out([t, o, '!right'], false)])));
+    for (const k of typing) {
+      const want = one[k];
+      let by = typing.filter(o => o !== k && one[o] === want).map(o => [o])[0] || (two.get(want) || []).find(p => p.indexOf(k) < 0) || null;
+      app.ctx.__k = want; app.ctx.__t = '5';
+      /* a key the marker reads past (5% and 5) is no value of its own to compare */
+      let past = true; try { past = !!app.call('markAnswer_(__t, __k)'); } catch (e) { past = true; }
+      if (!by && !words && !/^!(frac|pow|sqrt)$/.test(k) && !past) {
+        for (const [taps, s] of filled) {
+          if (taps[0] === k || s === want) continue;
+          app.ctx.__t = s;
+          let ok = false; try { ok = !!app.call('markAnswer_(__t, __k)'); } catch (e) { ok = false; }
+          if (ok) { by = taps; break; }
+        }
+      }
+      if (by && !same[k]) { same[k] = by; mk[k] = words ? 'a worded box' : 'a maths box'; }
+    }
+  }
+  Object.keys(same).forEach(k => bad.push('the key ' + JSON.stringify(k) + ' does what ' + same[k].join(' ') + ' already does (in ' + mk[k] + '): a key too many'));
+  console.log('keypad-taps: one layout, ' + rows + ' rows, ' + vs.length + ' keys, the same places on ' + BOXES.length + ' kinds of box; '
+    + typing.length + ' typing keys checked for another key\'s job');
+  return bad;
 }
 
 function forms(app, P) {
@@ -122,12 +188,14 @@ function library(app, P, opts) {
         /* the key's letters, a set tapped in reverse (the box sorts it), each its option's key */
         const L = keys['data-kp-letters'], idx = (x.choiceRight || []).slice();
         if (keys['data-kp-pick'] === 'set') idx.reverse();
-        const taps = idx.map(n => '!pick:' + L[n - 1]), face = P.faceOf(L, true, 'letters');
+        /* each option is its letter's key on the one keyboard; every other key but ← → ⌫ done is greyed */
+        const taps = idx.map(n => L[n - 1].toLowerCase()), face = P.faceOf(L, true, 'letters');
         const missing = taps.filter(k => !face.includes(k));
         const v = P.type(taps, true, keys);
         ctx.__a = v;
         let right = false; try { right = call('mark_(__x, __a)').verdict === 'right'; } catch (e) { right = false; }
-        if (face.some(f => !/^!(pick:|left|right|back|done)/.test(f))) missing.push('a key that is no option: ' + face.filter(f => !/^!(pick:|left|right|back|done)/.test(f)).join(' '));
+        const other = face.filter(f => !/^!(left|right|back|done)$/.test(f) && L.indexOf(f.toUpperCase()) < 0);
+        if (other.length) missing.push('a key that is no option: ' + other.join(' '));
         if (right && !missing.length) pass++;
         else if (misses.length < (opts.show || 0)) misses.push(r.row_id + ' [' + t + '] ' + JSON.stringify(r.choice_right) + ' -> ' + JSON.stringify(v) + (right ? '' : ' wrong') + (missing.length ? ' ' + missing.join(' ') : ''));
         continue;
@@ -242,6 +310,11 @@ function tables(app, P) {
 }
 
 /* ---------- ON A PHONE AND AN iPAD: the drawn keys tapped */
+/* A KEY TAPPED, once more if a loaded page missed it (22 Nov: under load a phone-sized page misses taps) */
+async function press(pg, i) {
+  const k = pg.locator('#kp .kp-key').nth(i);
+  try { await k.click({ timeout: 3000 }); } catch (e) { await k.click({ timeout: 3000, force: true }); }
+}
 async function browser() {
   const SB = require('./lib/site-browser.js');
   const { devices } = require('playwright');
@@ -264,7 +337,7 @@ async function browser() {
           d.innerHTML = '<div class="qp-ans-row qp-bar"><label class="qp-ans qp-ans-maths">' + kpField_('kp-taps-' + Math.random(), '', 'maths', 3) + '</label></div>';
           (document.querySelector('main') || document.body).prepend(d);
           const inp = d.querySelector('.kp-in'); inp.focus(); kpOpen_(inp);
-          return [...document.querySelectorAll('#kp .kp-key')].map(e => e.getAttribute('data-v'));
+          return [...document.querySelectorAll('#kp .kp-key')].map(e => (e.hasAttribute('data-off') ? '' : e.getAttribute('data-v')));
         }, key);
         const turners = setup.filter(v => LAYERS.test(v || ''));
         if (turners.length) bad.push(name + ' ' + what + ': a key turns the pad over (' + turners.join(' ') + ')');
@@ -272,7 +345,7 @@ async function browser() {
         for (const t of taps) {
           const i = setup.indexOf(t);
           if (i < 0) { missing = t; break; }
-          await pg.locator('#kp .kp-key').nth(i).click({ timeout: 3000 });
+          await press(pg, i);
         }
         const got = await pg.evaluate(k => {
           const inp = document.querySelector('.kp-taps .kp-in'), box = document.querySelector('.kp-taps .qp-ans');
@@ -296,27 +369,112 @@ async function browser() {
         d.innerHTML = '<div class="qp-ans-row qp-bar"><label class="qp-ans">' + kpField_('kp-taps-pick', '', 'words', 3, null, { 'data-kp-letters': 'ABCD', 'data-kp-pick': 'set' }) + '</label></div>';
         (document.querySelector('main') || document.body).prepend(d);
         const inp = d.querySelector('.kp-in'); inp.focus(); kpOpen_(inp);
-        return [...document.querySelectorAll('#kp .kp-key')].map(e => e.getAttribute('data-v'));
+        return [...document.querySelectorAll('#kp .kp-key')].map(e => (e.hasAttribute('data-off') ? '' : e.getAttribute('data-v')));
       });
-      for (const t of ['!pick:D', '!pick:A', '!pick:D']) { const i = keys.indexOf(t); if (i >= 0) await pg.locator('#kp .kp-key').nth(i).click({ timeout: 3000 }); else bad.push(name + ': no option key ' + t); }
+      for (const t of ['d', 'a', 'd']) { const i = keys.indexOf(t); if (i >= 0) await press(pg, i); else bad.push(name + ': no option key ' + t); }
+      /* a greyed key tapped types nothing */
+      const z = keys.length ? await pg.evaluate(() => [...document.querySelectorAll('#kp .kp-key')].findIndex(e => e.getAttribute('data-v') === 'z')) : -1;
+      if (z >= 0) await press(pg, z);
       const picked = await pg.evaluate(() => document.querySelector('.kp-taps .kp-in').value);
-      if (picked !== 'A,D') bad.push(name + ': pick several D, A, D gave ' + JSON.stringify(picked) + ', not "A,D"');
-      const other = keys.filter(v => !/^!(pick:|left|right|back|done)/.test(v || ''));
-      if (other.length) bad.push(name + ': the options keypad has other keys (' + other.join(' ') + ')');
-      if (process.env.KP_SHOTS) await pg.screenshot({ path: path.join(process.env.KP_SHOTS, 'keypad-' + name.replace(/\W+/g, '-') + '.png') });
+      if (picked !== 'A,D') bad.push(name + ': pick several D, A, D (and the greyed z) gave ' + JSON.stringify(picked) + ', not "A,D"');
+      const other = keys.filter(v => v && !/^!(left|right|back|done)$/.test(v) && 'abcd'.indexOf(v) < 0);
+      if (other.length) bad.push(name + ': the options keypad lights other keys (' + other.join(' ') + ')');
+      if (process.env.KP_SHOTS) await pg.screenshot({ path: path.join(process.env.KP_SHOTS, 'keypad-' + name.replace(/\W+/g, '-') + '-options.png') });
       await pg.evaluate(() => { const i = document.querySelector('.kp-taps .kp-in'); if (i) { i.blur(); kpClose_(); } });
     } catch (e) { bad.push(name + ': ' + e.message.split('\n')[0]); }
     await pg.close();
+    bad.push(...await everyBox(SB, name, dev));
   }
   await SB.done();
   console.log('keypad-taps: ' + sizes.length + ' screens, ' + FORMS.length + ' forms tapped on the drawn keys');
   return bad;
 }
 
+/* ---------- EVERY BOX ON EVERY SCREEN OPENS THE ONE KEYBOARD (owner 23 Nov: "the welcome screen without it"): signed out (the welcome and
+   sign-in screen), as a child and as an admin, every screen the app has drawn and every Settings form: each text box is bound to the
+   keyboard, and each one in sight, tapped, opens it -- the one layout in the one set of places, every key inside the screen and big enough
+   for a child's finger, the box not under it */
+const KP_MIN = 38;
+async function everyBox(SB, name, dev) {
+  const bad = [], seen = { boxes: 0, tapped: 0, screens: 0 };
+  const ref = await (async () => {
+    const pg = await SB.open({ as: 'child', settle: 300 });
+    try { return await pg.evaluate(() => { const t = document.createElement('template'); t.innerHTML = kpPadHtml_({ kind: 'maths' });
+      return [...t.content.querySelectorAll('.kp-key')].map(e => e.getAttribute('data-v')).slice(0, 69).join('|'); }); } finally { await pg.close(); }
+  })();
+  for (const as of ['none', 'child', 'admin']) {
+    let pg;
+    try {
+      pg = await SB.open(as === 'none' ? { as, settle: 1500, ready: () => document.readyState === 'complete' && typeof kpOpen_ === 'function' } : { as, settle: 500 });
+      await pg.setViewportSize(dev.viewport);
+    } catch (e) { bad.push(name + ' ' + as + ': the site did not open (' + e.message.split('\n')[0] + ')'); continue; }
+    try {
+      /* the screens: the one the app opens on, each screen it has, and (signed in) every Settings form drawn on the page */
+      const ids = await pg.evaluate(() => (typeof SCREENS === 'object' ? Object.keys(SCREENS) : []));
+      const stops = ['(opening)'].concat(ids, as === 'none' ? [] : ['(settings forms)']);
+      for (const stop of stops) {
+        const boxes = await pg.evaluate(stop => {
+          document.querySelectorAll('.kp-crawl').forEach(n => n.remove());
+          if (stop === '(settings forms)' && typeof settingTypes_ === 'function') {
+            const d = document.createElement('div'); d.className = 'kp-crawl';
+            settingTypes_().forEach(({ col }) => { if (col) settingGroups_(col).forEach(g => { d.insertAdjacentHTML('beforeend', g.pages.join('')); }); });
+            (document.querySelector('main') || document.body).prepend(d);
+          } else if (stop !== '(opening)') { try { go(stop, false, true); } catch (e) { /* a screen this role cannot open */ } }
+          return true;
+        }, stop);
+        void boxes;
+        await pg.waitForTimeout(stop === '(opening)' ? 100 : 500);
+        const list = await pg.evaluate(() => {
+          const text = el => el.classList.contains('kp-in') || el.tagName === 'TEXTAREA' || (el.tagName === 'INPUT' && /^(|text|search|email|url|tel|password|number)$/i.test(el.getAttribute('type') || ''))
+            || /^(|true|plaintext-only)$/i.test(el.getAttribute('contenteditable') || 'x');
+          const all = [...document.querySelectorAll('input, textarea, [contenteditable]')].filter(el => !el.closest('#kp') && text(el) && !el.disabled);
+          return all.map((el, i) => { el.setAttribute('data-kp-crawl', i); const r = el.getBoundingClientRect(), cs = getComputedStyle(el);
+            const shown = el.classList.contains('kp-in') ? el.parentNode.getBoundingClientRect() : r;
+            return { i, bound: el.classList.contains('kp-in') || el.hasAttribute('data-kpb'), mode: el.getAttribute('inputmode'),
+              seen: shown.width > 0 && shown.height > 0 && cs.visibility !== 'hidden' && !el.closest('[hidden]'),
+              ro: !el.classList.contains('kp-in') && el.readOnly, what: (el.getAttribute('aria-label') || el.getAttribute('placeholder') || el.name || el.className || el.tagName).slice(0, 40) }; });
+        });
+        seen.screens++;
+        for (const b of list) {
+          seen.boxes++;
+          if (!b.bound || b.mode !== 'none') bad.push(name + ' ' + as + ' ' + stop + ': the box "' + b.what + '" does not take the one keyboard');
+        }
+        /* each box in sight tapped (a few a screen): the keyboard opens on it */
+        for (const b of list.filter(b => b.seen && b.bound && !b.ro).slice(0, 4)) {
+          try { await pg.evaluate(() => { if (typeof kpClose_ === 'function') kpClose_(); if (document.activeElement) document.activeElement.blur(); });
+            await pg.locator('[data-kp-crawl="' + b.i + '"]').first().click({ timeout: 2500, force: true }); } catch (e) { continue; }
+          await pg.waitForTimeout(150);
+          const got = await pg.evaluate(({ i, min }) => {
+            const pad = document.getElementById('kp'), el = document.querySelector('[data-kp-crawl="' + i + '"]');
+            if (!pad || pad.hidden || !el) return null;
+            const keys = [...pad.querySelectorAll('.kp-key')], pr = pad.getBoundingClientRect();
+            const box = (el.classList.contains('kp-in') ? el.parentNode : el).getBoundingClientRect();
+            return { sig: keys.map(e => e.getAttribute('data-v')).slice(0, 69).join('|'), at: KP_AT === el,
+              small: keys.filter(e => { const r = e.getBoundingClientRect(); return Math.min(r.width, r.height) < min; }).length,
+              out: keys.filter(e => { const r = e.getBoundingClientRect(); return r.right > innerWidth + 1 || r.left < -1 || r.bottom > innerHeight + 1; }).length,
+              under: box.height > 0 && box.top < pr.top && box.bottom > pr.top + 2 };
+          }, { i: b.i, min: KP_MIN });
+          seen.tapped++;
+          if (!got || !got.at) { bad.push(name + ' ' + as + ' ' + stop + ': the box "' + b.what + '" tapped, the keyboard did not open on it'); continue; }
+          if (got.sig !== ref) bad.push(name + ' ' + as + ' ' + stop + ': the box "' + b.what + '" opens a keyboard not in the one layout');
+          if (got.small) bad.push(name + ' ' + as + ' ' + stop + ': ' + got.small + ' key(s) under ' + KP_MIN + 'px');
+          if (got.out) bad.push(name + ' ' + as + ' ' + stop + ': ' + got.out + ' key(s) off the screen');
+          if (got.under) bad.push(name + ' ' + as + ' ' + stop + ': the keyboard covers the box "' + b.what + '"');
+          if (process.env.KP_SHOTS && as === 'none' && seen.tapped < 3) await pg.screenshot({ path: path.join(process.env.KP_SHOTS, 'keypad-' + name.replace(/\W+/g, '-') + '-welcome.png') });
+        }
+      }
+    } catch (e) { bad.push(name + ' ' + as + ': ' + e.message.split('\n')[0]); }
+    await pg.close();
+  }
+  if (!seen.tapped) bad.push(name + ': no box was tapped -- the crawl found nothing to type in');
+  console.log('keypad-taps: ' + name + ', ' + seen.screens + ' screens (signed out, child, admin, Settings forms): ' + seen.boxes + ' boxes bound, ' + seen.tapped + ' tapped open the one keyboard');
+  return bad;
+}
+
 async function run(o) {
   const opts = Object.assign({ floor: process.argv.includes('--floor'), show: Number((process.argv.find(a => /^--show=/.test(a)) || '=0').split('=')[1]) }, o || {});
   const app = VQ.appCode(), P = pad(app);
-  let bad = forms(app, P);
+  let bad = forms(app, P).concat(oneLayout(app, P));
   /* TWO WAYS TO ANSWER, type and draw: the old pick face may not come back */
   if ([...app.call('QT_FACES')].indexOf('pick') >= 0) bad.push('QT_FACES still has the pick face');
   if (fs.existsSync(path.join(ROOT, 'data-private', 'questions.json'))) bad = bad.concat(library(app, P, opts));
