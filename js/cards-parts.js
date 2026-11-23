@@ -115,7 +115,7 @@ function kcSplit_(html) {
   walk(kcKids_(card.inner));
   return parts;
 }
-/* ---------- EVERY CARD'S FOUR BUTTONS (owner, 9 Nov): main action, Message, Star, ⋯ -- the rest waits behind ⋯, opened in place. ---------- */
+/* ---------- EVERY CARD'S FOUR BUTTONS (owner, 9 Nov): main action, Message, Star, then every other tile shown beside them (no ⋯, owner 23 Nov). ---------- */
 const KC_TILE_RE = /<(button|a)\b[^>]*\bclass="tile\b[^"]*"[^>]*>[\s\S]*?<\/\1>/g;
 const kcAct_ = t => (/\bdata-do="([^"]*)"/.exec(t) || [])[1] || '';
 /* WHAT COUNTS AS A CARD'S MAIN ACTION when its kind names none first: a Send/Check, a buy-toned tile, Open. */
@@ -152,7 +152,7 @@ function kcActRow_(x, html, own, o) {
   const real = (String(own || '').match(KC_TILE_RE) || []).map(kcAct_);
   rest = rest.replace(KC_TILE_RE, t => (/\bkc-off\b/.test(t) && real.indexOf(kcAct_(t)) >= 0 ? '' : t));
   return cardBlock_({ type: 'group', look: 'tile-row kc-row' + (o.look ? ' ' + o.look : ''), attrs: { 'data-key': o.look ? String(o.key || '') : null },
-    inner: (f => (o.look === 'qt-row' && typeof qtSplit_ === 'function' ? f.replace(/^(<span[^>]*>)([\s\S]*)(<\/span>)$/, (m, a, b, c) => a + qtSplit_(b) + c) : f))(kcFour_(x, rest + tile_(kcOffOpts_(x, rest)), o.main)) });
+    inner: (f => (o.look === 'qt-row' && typeof qtAll_ === 'function' ? f.replace(/^(<span[^>]*>)([\s\S]*)(<\/span>)$/, (m, a, b, c) => a + qtAll_(b) + c) : f))(kcFour_(x, rest + tile_(kcOffOpts_(x, rest)), o.main)) });
 }
 /* THE TOP-LEVEL TILE ROWS OF SOME LINES, lifted out; a form's buttons (`.btn-row`, inside the form) stay where they are. */
 function kcHoist_(html, panel) {

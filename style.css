@@ -2272,7 +2272,6 @@ textarea { touch-action: none; }
 #boot-slow .loading { width: auto; min-height: 0; }
 #boot-slow .loading > span { width: 1em; height: 1em; }
 #boot-slow .boot-why { word-break: break-all; }
-#boot-slow .boot-why > summary { list-style: none; cursor: pointer; }
 
 /* IF IT CAN BE TAPPED, IT LOOKS LIKE IT THE PROBLEM. § */
 

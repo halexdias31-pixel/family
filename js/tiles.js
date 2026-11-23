@@ -408,7 +408,7 @@ function cardExtras_(x) {
   const r = fn(x);
   return (x.lead || '') + (typeof r === 'string' ? r : tile_(r));
 }
-/* `flat` HANDS THE TILES BACK UNWRAPPED, for a card that sorts them into its four and its ⋯ (`kcFour_`). */
+/* `flat` HANDS THE TILES BACK UNWRAPPED, for a card that sorts them into its four and the rest (`kcFour_`). */
 function cardRow_(x, flat) {
   /* THEN WHAT ANY KIND MAY ADD: Read aloud, Hear it, speed, magnifier, Open, a column's `more`, the padlock. */
   /* ONE READ-ALOUD PER CARD (owner's look rule): a language card's Hear it stands in for Read aloud, never beside it. */
