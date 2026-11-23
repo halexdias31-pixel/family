@@ -344,11 +344,16 @@ function cardLetter_(spec) {
   const fact = x => p('label', cardRuns_(x.label)) + (x.box
     ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="${esc(I.box || '')}" style="${st('box')}">${x.cut != null ? x.cut : cardRuns_(x.value)}</td></tr></table>`
     : p('value', x.cut != null ? x.cut : cardRuns_(x.value)));
-  const block = b => (b && b.type === 'text' ? p(b.look || 'line', cardRuns_(b.text), { tone: b.tone }) : b && b.type === 'list' ? (b.items || []).map(fact).join('') : cardBlock_(b));
+  /* `html`: markup the email's own sanitiser laid out already (a question's words), in its style's div. */
+  const one = b => (b && b.type === 'text' ? p(b.look || 'line', cardRuns_(b.text), { tone: b.tone }) : b && b.type === 'list' ? (b.items || []).map(fact).join('')
+    : b && b.type === 'html' ? (b.html ? `<div style="${st(b.look || 'line')}">${b.html}</div>` : '') : cardBlock_(b));
+  /* A BLOCK THAT IS ONE OF THE CARD'S PARTS (`part`, kinds.json `card.question.parts`) says so in a comment, which tools/one-question-card.js reads. */
+  const mark = n => (n ? `<!--part:${esc(n)}-->` : '');
+  const block = b => { const h = one(b); return h && b && b.part ? mark(b.part) + h : h; };
   const tags = (spec.tags || []).filter(t => t != null && t !== '');
   /* PICTURE, NAME, TAGS, LINES: the laid-out lines (`cut.lines`, the library's question) lead, the body's lines follow. */
-  const parts = { pic: cut.pic ? `<div style="${st('pic')}">${cut.pic}</div>` : '', head: spec.name ? p('head', cardRuns_(spec.name)) : '',
-    tags: tags.length ? `<div style="${st('tags')}">${tags.map(tag).join(' ')}</div>` : '', lines: (cut.lines || '') + (spec.body || []).map(block).join('') };
+  const parts = { pic: cut.pic ? mark(spec.marked && 'pic') + `<div style="${st('pic')}">${cut.pic}</div>` : '', head: spec.name ? mark(spec.marked && 'head') + p('head', cardRuns_(spec.name)) : '',
+    tags: tags.length ? mark(spec.marked && 'tags') + `<div style="${st('tags')}">${tags.map(tag).join(' ')}</div>` : '', lines: (cut.lines || '') + (spec.body || []).map(block).join('') };
   return `<table role="presentation" class="kc" width="100%" cellpadding="0" cellspacing="0" border="0" style="${st('card')}"><tr><td style="${st('cell')}">`
     + ['pic', 'head', 'tags', 'lines'].map(k => parts[k]).join('') + '</td></tr></table>';
 }

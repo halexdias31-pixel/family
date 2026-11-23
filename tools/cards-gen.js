@@ -16,7 +16,8 @@ const TAKE = [
   /* THE SCHOOL YEAR AND EASTER (491): booking.gs `schoolYear` and setup.gs `easterOf_` date by the site's rule. */
   ['js/arcade.js', ['tdEaster_', 'tdJul_', 'tdYear0_', 'tdYear_']],
   /* A STORED VERDICT AS THE ONE MARKING ENGINE'S SHAPE (owner, 17 Nov): the Sunday email's `digestMark_` reads it as the site's `subSay_` does. */
-  ['js/find-marking.js', ['verdictOf_']],
+  /* AND A PICK QUESTION'S OPTIONS READ AS THE MARKER READS THEM (owner, 22 Nov: one Question card): the email marks the option they typed by `choicePicks_`. */
+  ['js/find-marking.js', ['verdictOf_', 'markNorm_', 'MARK_SUPS', 'MARK_SYNONYMS', 'CHOICE_LETTERS', 'choicePicks_']],
   ['js/find-figures.js', ['TAG_NAME', 'tagMadeOf_']],
   /* THE WORDS FILE AND THE FORMATTERS (owner rule 1.1): every line a card says in an email goes through these. */
   ['js/core.js', ['WORDS_FILE', 'esc', 'text_', 'fmtTime_', 'fmtHours_', 'plural_', 'fmtMoney_', 'DAYS_SHORT', 'fmtDay_', 'fmtDmy_', 'fmtDate_',
@@ -45,7 +46,8 @@ const TAKE = [
   ['js/find-finder.js', ['SPELL_KEYS', 'spellKey_']],
   ['js/find-levels.js', ['levelsIn_', 'LEVELS_IN', 'levelsMemo_', 'levelsOf_', 'satsStagesOf_', 'ksLevel_', 'keyStagesOf_', 'ksFallback_',
     'yearOf', 'seriesOf_', 'SERIES_SUMMER', 'SERIES_AUTUMN', 'waveOf', 'waveFromDoc_']],
-  ['js/find-parts.js', ['ROMAN_ONLY', 'NUM_ROMAN', 'partBare_', 'partSplit_']],
+  /* THE ANSWER AS THE CARD SAYS IT (owner, 22 Nov: one Question card): the email's Answer line is the site's answer card's. */
+  ['js/find-parts.js', ['ROMAN_ONLY', 'NUM_ROMAN', 'partBare_', 'partSplit_', 'answerParts_', 'answerSay_']],
   /* A ROW'S `cells` (owner, batch 7): the site's reader, for digest.gs to switch its `digestCells_` to. */
   ['js/find-cells.js', ['CELL_ENT', 'cellsOf_']],
   /* THE RULES' ONE SHAPE (496): core.gs `rulesClean_` is its length cap and this; `RULE_OF_` is core.gs's, off RULE_IDS/RULES_LOCKED. */
@@ -143,8 +145,9 @@ function libParts() {
 /* EACH KIND'S LETTER (kinds.json `card.letter`, rule 1.80): the lines, labels and inline styles renderCard writes an email's card by. */
 function letterParts() {
   const kinds = SD.kinds(), out = {};
-  Object.keys(kinds).forEach(k => { const c = kinds[k].card; if (c && c.letter) out[k] = { card: { letter: c.letter } }; });
-  return '/* from data/settings/kinds.json card.letter */\nconst ITEM_KINDS = ' + JSON.stringify({ kinds: out }) + ';';
+  /* AND THE ONE QUESTION CARD'S PARTS IN ORDER (`card.question.parts`, owner 22 Nov): the email draws the site's parts, in the site's order. */
+  Object.keys(kinds).forEach(k => { const c = kinds[k].card; if (c && c.letter) out[k] = { card: Object.assign({ letter: c.letter }, c.question && c.question.parts ? { question: { parts: c.question.parts } } : {}) }; });
+  return '/* from data/settings/kinds.json card.letter and card.question.parts */\nconst ITEM_KINDS = ' + JSON.stringify({ kinds: out }) + ';';
 }
 /* THE ONE PRICE (owner, 17 Nov): js/core-price.js whole, inside \`priceCore_(DATA, askProps_)\` with the core.js readers it leans on, */
 /* so createJob prices a booking over the sheet's own rows by the site's own lines (booking.gs \`serverPrice_\`); nothing leaks into the backend's globals. */

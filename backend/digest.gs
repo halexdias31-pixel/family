@@ -444,7 +444,7 @@ function digestQuestions_(items, max, o) {
   /* A NAME OF ONE SEGMENT HAS NO NUMBER, so no number in its tag: its mark alone, and its words after —
      never ": What is 7 × 8?". */
   const tag = it => (it.num ? it.num + ' ' + it.mark : it.mark);
-  const { card, titleOf } = digestCardMaker_(ink, says, cut);
+  const card = digestCardMaker_(ink, says, cut);
   const C = cardLetterOf_('question');
   const answerLines = it => (it.theirs ? [C.labels.theirs + ': ' + it.theirs.text] : []).concat(it.right ? [C.labels.right + ': ' + it.right.text] : []);
   /* EVERY CARD WEARS ITS WHOLE TAG SET, as the site's card does — one rule, never trimmed by what the card above it said (owner, 16 Nov). */
@@ -453,7 +453,7 @@ function digestQuestions_(items, max, o) {
 
   const lines = [];
   const parts = [];
-  const q = { lines, parts, kid, site, pre, ink, cut, tag, card, titleOf, tagsFor, answerLines, fromLib: 0, trim: !!o.trim };
+  const q = { lines, parts, kid, site, pre, ink, cut, tag, card, tagsFor, answerLines, fromLib: 0, trim: !!o.trim };
   shown.forEach(h => {
     if (!h.worded) { digestBareHead_(q, h); return; }
     lines.push(h.head);
@@ -471,7 +471,7 @@ function digestQuestions_(items, max, o) {
 
 /* A NAME OF ONE SEGMENT WITH NO WORDS: its heading, its marks, and a card per question with no words in it. */
 function digestBareHead_(q, h) {
-  const { lines, parts, tag, card, titleOf, tagsFor } = q;
+  const { lines, parts, tag, card, tagsFor } = q;
   let html = '';
   /* A NAME OF ONE SEGMENT WITH NO WORDS IS ITS HEADING AND NOTHING ELSE, so its mark goes on the heading
      ("Times tables: ✓") rather than alone on a line under it; numbered ones are the line of numbers. */
@@ -479,42 +479,42 @@ function digestBareHead_(q, h) {
   lines.push(h.head + (bare.length ? ': ' + bare.map(it => it.mark).join(', ') : ''));
   if (numbered.length) lines.push(numbered.map(tag).join(', '));
   lines.push('');
-  h.items.forEach(it => { html += card(it, [], tagsFor(it), titleOf(it, h.head)); });
+  h.items.forEach(it => { html += card(it, {}, tagsFor(it)); });
   parts.push(html);
 }
 
 /* ONE WORDED QUESTION, under its heading: the library's row, or the words on the site, or its own words; `at` carries the stem and card html along. */
 function digestWordedItem_(q, h, it, at) {
-  const { lines, kid, site, pre, cut, tag, card, titleOf, tagsFor, answerLines, trim } = q;
+  const { lines, kid, site, pre, cut, tag, card, tagsFor, answerLines, trim } = q;
   /* ---------- AS IT IS ON THE SITE (18 Oct): the row the card draws, from the library ---------- */
   const P = it.row ? digestPartOut_(it, pre, at.done, site, trim) : null;
   if (P) {
     q.fromLib++;
-    let inner = '';
-    P.stems.forEach(st => { lines.push.apply(lines, st.lines); inner += st.html; });
+    let stem = '';
+    P.stems.forEach(st => { lines.push.apply(lines, st.lines); stem += st.html; });
     const head = [it.num, P.marks].filter(Boolean).join(' · ');
     if (head) lines.push(head);
     lines.push.apply(lines, P.lines);
     lines.push(kid + ': ' + it.mark);
     lines.push.apply(lines, answerLines(it));
     lines.push('');
-    at.html += card(it, [], tagsFor(it), titleOf(it, h.head), P.pic, inner + P.html);
+    at.html += card(it, { pic: P.pic, stem: stem, words: P.html }, tagsFor(it));
     at.stem = '';
     return;
   }
   /* THE WORDS ITS SUBMISSION CARRIED, whole up to DIGEST_WORDS_SHOWN. */
-  const inner = [];
+  const got = {};
   if (it.stem && it.stem !== at.stem) {
     const st = trim ? digestFirst_(it.stem) : cut(it.stem, DIGEST_STEM_SHOWN);
     lines.push(st);
-    inner.push({ type: 'text', look: 'stem', text: { i: st } });
+    got.stem = '<i>' + esc(S(st)) + '</i>';
   }
   at.stem = it.stem;
   const said1 = trim ? digestFirst_(it.ask) : cut(it.ask, DIGEST_WORDS_SHOWN);
   lines.push(said1 ? tag(it) + ': ' + said1 : tag(it));
   lines.push.apply(lines, answerLines(it));
-  if (said1) inner.push({ type: 'text', look: 'line', text: said1 });
-  at.html += card(it, inner, tagsFor(it), titleOf(it, h.head));
+  if (said1) got.words = esc(S(said1));
+  at.html += card(it, got, tagsFor(it));
 }
 
 /* The questions grouped under their heading, each with its stem, ask, answers and tags. */
@@ -532,7 +532,7 @@ function digestHeads_(items, lib) {
     const row = digestLibRow_(lib, q && q.key);
     (heads[head] || (heads[head] = [])).push({ mark: digestMark_(q && q.verdict), how: digestHow_(q && q.verdict),
       key: S(q && q.key), row: row, num: num, stem: cutAt ? w.slice(0, cutAt.index) : '', ask: cutAt ? w.slice(cutAt.index + cutAt[0].length) : w,
-      theirs: digestTheirAnswer_(row, q && q.answer), right: digestRightAnswer_(row),
+      typed: S(q && q.answer), theirs: digestTheirAnswer_(row, q && q.answer), right: digestRightAnswer_(row),
       tags: digestWornTags_(lib, row, bits, num) });
   });
   return heads;
@@ -554,25 +554,38 @@ function digestShown_(heads, max) {
   return { shown: shown, printed: printed };
 }
 
-/* ---------- ONE QUESTION AS THE SITE'S CARD (57a–62a): the site's one card maker, `renderCard`, with the email's inks inline (cards-gen.gs). */
-/* Its labels, sizes and styles are kinds.json's question `card.letter`; `lines` are body blocks, `laid` the library's question as digestHtml_ made it. */
+/* ---------- ONE QUESTION AS THE SITE'S CARD (57a–62a; owner, 22 Nov: ONE Question card): the site's one card maker, `renderCard`, with the email's inks inline (cards-gen.gs). */
+/* Its parts and their order are the site card's (kinds.json `card.question.parts`), its labels, sizes and styles `card.letter`; no part is the email's own.
+   `got` is what digestWordedItem_ laid out: the picture, the stem's and the part's words, each as digestHtml_ made it. */
 function digestCardMaker_(ink, says, cut) {
   const C = cardLetterOf_('question'), most = C.cut * C.perLine;
+  const order = (((ITEM_KINDS.kinds.question.card.question || {}).parts || {}).order || []).filter(k => k !== 'pic' && k !== 'tags');
   /* LONG TEXT IS CUT TO 2 LINES, as the site clamps it; short text keeps its markup (a power, a fraction). */
   const short = a => (S(a.text).length > most ? esc(S(cut(a.text, most))) : a.html);
-  const marksOf = it => { const q = it.row || {}; return Number(q.marks) || 0; };
-  return {
-    /* THE HEADING: its number and its marks as [n] (owner, 9 Nov); a name of one segment is its heading alone. */
-    titleOf: (it, h) => [it.num || h, marksOf(it) > 0 ? '[' + marksOf(it) + ']' : ''].filter(Boolean).join(' '),
-    card: (it, lines, tags, title, pic, laid) => {
-      const w = says.filter(x => x.id === it.how)[0] || says[says.length - 1];
-      return renderCard({ kind: 'question', inline: Object.assign({ hues: DIGEST_TAG_INK }, ink), name: title, tags: tags,
-        cut: { pic: pic || '', lines: laid || '' },
-        body: (lines || []).concat(
-          it.theirs ? [{ type: 'list', items: [{ label: C.labels.theirs, cut: short(it.theirs), box: true }] }] : [],
-          [{ type: 'text', look: 'verdict', tone: w.tone, text: w.one || it.mark }],
-          it.right ? [{ type: 'list', items: [{ label: C.labels.right, cut: short(it.right) }] }] : []) });
-    } };
+  return (it, got, tags) => {
+    const w = says.filter(x => x.id === it.how)[0] || says[says.length - 1];
+    const make = {
+      stem: () => ({ type: 'html', look: 'stem', html: got.stem || '' }),
+      words: () => ({ type: 'html', look: 'words', html: got.words || '' }),
+      choices: () => ({ type: 'html', look: 'choices', html: digestChoices_(it, C, ink, w) }),
+      theirs: () => (it.theirs ? { type: 'list', items: [{ label: C.labels.theirs, cut: short(it.theirs), box: true }] } : null),
+      verdict: () => ({ type: 'text', look: 'verdict', tone: w.tone, text: w.one || it.mark }),
+      answer: () => (it.right ? { type: 'list', items: [{ label: C.labels.right, cut: short(it.right) }] } : null) };
+    const body = order.map(k => { const b = make[k] && make[k](); return b ? Object.assign(b, { part: k }) : null; }).filter(Boolean);
+    return renderCard({ kind: 'question', inline: Object.assign({ hues: DIGEST_TAG_INK }, ink), marked: true, tags: tags, cut: { pic: got.pic || '' }, body: body });
+  };
+}
+/* A PICK QUESTION'S OPTIONS, lettered as the site lists them (`choiceList_`), with the right one and theirs marked; '' for any other question. */
+function digestChoices_(it, C, ink, w) {
+  const q = it.row || {}, opts = S(q.choices).split('|').map(t => t.trim()).filter(Boolean);
+  if (opts.length < 2) return '';
+  const right = S(q.choice_right).split('|')[0].split(',').map(t => parseInt(t, 10)).filter(k => k > 0 && k <= opts.length);
+  const mine = choicePicks_({ choices: opts }, it.typed) || [];
+  const bare = opts.every(c => /^\s*[A-Za-z]\s*$/.test(c.replace(/<[^>]*>/g, '')));
+  const st = (k, tone) => S((C.styles || {})[k]).replace(/\{(\w+)\}/g, (m, n) => (n === 'tone' ? tone : n in ink ? ink[n] : S((C.sizes || {})[n])));
+  const pick = (say, tone) => ' <span style="' + st('pick', tone) + '">' + esc(S(say)) + '</span>';
+  return opts.map((o, i) => '<p style="' + st('choice') + '">' + (bare ? '' : '<b>' + CHOICE_LETTERS[i] + '</b> ') + digestHtml_(o)
+    + (right.indexOf(i + 1) >= 0 ? pick('✓ ' + C.labels.right, ink.right) : '') + (mine.indexOf(i + 1) >= 0 ? pick('← ' + C.labels.theirs, w.tone) : '') + '</p>').join('');
 }
 
 /* A QUESTION THE LIBRARY DOES NOT HAVE WEARS WHAT ITS LABEL SAYS, as the tags would: its subject, its paper or sheet, its number — and its marks where a row gives them. */
@@ -597,25 +610,20 @@ function digestRightAnswer_(q) {
   const out = (html, text) => (S(text).trim() ? { html: html, text: S(text).trim() } : null);
   const opts = S(q.choices).split('|').map(t => t.trim()).filter(Boolean);
   const way = S(q.choice_right).split('|')[0].split(',').map(t => parseInt(t, 10)).filter(k => k > 0 && k <= opts.length);
-  const order = S(q.answer_type) === 'order' || !!S(q.order_ends).trim();
-  if (opts.length && way.length) {
-    const list = way.map(k => opts[k - 1]), sep = order ? ', ' : ' and ';
-    return out(list.map(digestHtml_).join(sep), list.map(digestText_).join(sep));
+  /* AS THE SITE'S ANSWER CARD SAYS IT (`answerSay_`, owner 22 Nov): a pick question's right letter and the scheme's head, codes and "(1)" gone. */
+  const ans0 = S(q.answer).trim();
+  if (ans0 || (opts.length && way.length)) {
+    const said = answerSay_(ans0, opts, way);
+    const text = digestText_(said).replace(/\s*\n\s*/g, ' ').trim();
+    if (text.length <= 300) return out(digestHtml_(said).replace(/<\/?(?:p|div|strong)\b[^>]*>/g, ' ').replace(/\s+/g, ' ').trim(), text);
+    const short = text.slice(0, 280).replace(/\s+\S*$/, '') + '…';
+    return out(esc(S(short)), short);
   }
   const cells = cellsOf_(q);
   if (cells.length) {
     const got = cells.filter(c => c.ways).map(c => ({ label: c.label, v: c.ways.split('|')[0].trim(), num: /^\d+$/.test(c.label) }));
     return out(got.map(c => (c.num ? '' : esc(S(c.label)) + ' = ') + digestHtml_(c.v)).join('; '),
                got.map(c => (c.num ? '' : c.label + ' = ') + digestText_(c.v)).join('; '));
-  }
-  const ans = S(q.answer).trim();
-  if (ans) {
-    const lead = ans.split(/\s*(?:&mdash;|—)\s*/)[0];
-    const text = digestText_(lead).replace(/\s*\n\s*/g, ' ');
-    /* NO <b> OF ITS OWN: the card sets the whole answer in bold. */
-    if (text.length <= 300) return out(digestHtml_(lead).replace(/<\/?(?:p|div|b|strong)\b[^>]*>/g, ' ').replace(/\s+/g, ' ').trim(), text);
-    const short = text.slice(0, 280).replace(/\s+\S*$/, '') + '…';
-    return out(esc(S(short)), short);
   }
   const acc = S(q.accept).split('|')[0].trim();
   return acc ? out(digestHtml_(acc), digestText_(acc)) : null;

@@ -329,9 +329,19 @@ function answerBlock_(x) {
      small capitals the answer box's "YOUR ANSWER" wears on the question card. */
   const kind = String(x.answerType || '').trim();
   /* ---------- THE ANSWER, AND NOTHING ELSE § */
-  const p = answerParts_(x.answer);
   return cardBlock_({ type: 'group', look: 'qans', blocks: [{ type: 'group', tag: 'span', look: 'qans-head', text: 'Answer' + (kind ? ' · ' + kind : '') },
-    { type: 'group', look: 'qans-body qtext', inner: typeset_(p.head) }] });
+    { type: 'group', look: 'qans-body qtext', inner: typeset_(answerSay_(x.answer, x.choices, x.choiceRight)) }] });
+}
+/* THE ANSWER AS THE ONE QUESTION CARD SAYS IT (owner, 22 Nov: the site and the Sunday email alike, backend/cards-gen.gs copies this): the mark
+   scheme's head (answerParts_), and for a pick question its right letter first ("C 0.15 × 0.08 = 0.012"); a head that is only the letter ("A (1)")
+   says the option's words after it. No letter where the options are letters themselves. `right` is the 1-based right options. */
+function answerSay_(answer, choices, right) {
+  const opts = choices || [], ks = (right || []).filter(k => k > 0 && k <= opts.length);
+  const head = String(answer || '').trim() ? answerParts_(answer).head : ks.map(k => opts[k - 1]).join(', ');
+  if (!ks.length || opts.every(c => /^\s*[A-Za-z]\s*$/.test(String(c).replace(/<[^>]*>/g, '')))) return head;
+  const letters = ks.map(k => CHOICE_LETTERS[k - 1]).join(', ');
+  const only = String(head).replace(/<[^>]*>/g, '').trim().toUpperCase() === letters;
+  return '<b>' + letters + '</b> ' + (only ? ks.map(k => opts[k - 1]).join(', ') : head);
 }
 
 /* OPENING ONE SHOWS THE STEM, THE LEAD AND THE PART — in that order, because that is the order it is printed and because a part without them cannot be answered. § */
