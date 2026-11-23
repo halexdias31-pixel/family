@@ -11,7 +11,7 @@ const jsFiles = () => srcFiles('js', /\.js$/), gsFiles = () => srcFiles('backend
 
 function run() {
   const bad = [], gen = require('./cards-gen.js');
-  const FJ = JSON.parse(text('data/settings/forms.json')), KJ = JSON.parse(text('data/settings/kinds.json'));
+  const FJ = JSON.parse(text('data/settings/forms.json')), KJ = require('./lib/site-data.js').json('data/settings/kinds.json');
   const forms = {};
   Object.values(KJ.kinds).forEach(k => Object.entries(k.forms || {}).forEach(([id, f]) => {
     if (forms[id]) bad.push('form "' + id + '" is described twice in kinds.json'); forms[id] = f;

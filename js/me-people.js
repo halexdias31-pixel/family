@@ -472,7 +472,7 @@ function peFamHtml_(F) {
     return pplP_('note pe-fam', say) + ids.map(id => pplG_('tile-row', [cardBlock_({ type: 'group', tag: 'span', look: 'note', text: fmtName_(peNameOf_(id, F.data)) }),
       tile_({ form: true, kind: 'quiet', label: 'Remove', act: 'pe-unlink', data: { id, side: key } })])).join('') + famPick_('pe', want, add);
   };
-  return pplG_('pe-fambox', [side('Linked parents', 'parentIds', 'client', 'student', 'Add a parent'), side('Linked children', 'childIds', 'student', 'client', 'Add a child')]);
+  return pplG_('pe-fambox', [side('Linked parents', 'parentIds', 'client', 'student', text_('add-a-parent')), side('Linked children', 'childIds', 'student', 'client', 'Add a child')]);
 }
 const peFamPaint_ = form => { const at = form && form.querySelector('.pe-fambox'); if (at && PERSON_ED_) at.outerHTML = peFamHtml_(PERSON_ED_); };
 /* WHICH WAY ROUND: a hit under "Add a parent" is the parent of the card's person; a Remove names its own side. */

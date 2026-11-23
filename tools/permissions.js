@@ -35,7 +35,7 @@ const levelOf = roles => roles.indexOf('anyone') !== -1 ? 'anyone' : roles.index
 
 /* THE ITEM ROWS: actions.json `items`, each kind:verb × tier. A kind's `anyone` read follows kinds.json `see.who`. */
 function itemRows() {
-  const kinds = read('data/settings/kinds.json').kinds || {}, rows = [];
+  const kinds = require('./lib/site-data.js').json('data/settings/kinds.json').kinds || {}, rows = [];
   Object.keys(ACTIONS.items).forEach(kv => ROLES.forEach(role => {
     let allow = ACTIONS.items[kv].roles.indexOf(role) !== -1;
     const m = role === 'anyone' && /^(\w+):read$/.exec(kv), see = m && kinds[m[1]] && kinds[m[1]].see;

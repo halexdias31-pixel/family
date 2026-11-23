@@ -56,14 +56,14 @@ function setPermissions_(d, extra) {
   }, {});
 }
 
-/* THE WORDS THE SHOP AND HISTORY SAY, by group and key (data/settings/labels.json); `labelOf_` keeps the code's word when a row is missing */
+/* THE WORDS THE SHOP AND HISTORY SAY, by group and key (data/settings/labels.json, each `label` a words.json key read through text_); `labelOf_` keeps the code's word when a row is missing */
 function setLabels_(d, extra) {
   const labels = extra['settings/labels'];
   if (!labels || !labels.length) return;
   d.labels = {};
   labels.forEach(r => {
     const o = d.labels;
-    if (libOn(r.active) && libS(r.group) && libS(r.key) && libS(r.label)) (o[libS(r.group)] = o[libS(r.group)] || {})[libS(r.key)] = libS(r.label);
+    if (libOn(r.active) && libS(r.group) && libS(r.key) && libS(r.label)) (o[libS(r.group)] = o[libS(r.group)] || {})[libS(r.key)] = text_(libS(r.label));
   });
 }
 const labelOf_ = (group, key, fallback) => {

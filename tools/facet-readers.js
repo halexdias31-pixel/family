@@ -12,7 +12,7 @@ const BYS = ['row', 'writing', 'hist', 'mech', 'own', 'fight', 'fn'];
 function run() {
 
 const src = text(ENGINE);
-const facets = JSON.parse(text('data/settings/facets.json'));
+const facets = require('./lib/site-data.js').facets();
 const bad = [];
 const m = /\nconst FACET_READ = \{\n([\s\S]*?)\n\};\n/.exec(src);
 if (!m) bad.push(ENGINE + ': FACET_READ not found');

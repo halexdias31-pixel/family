@@ -753,8 +753,8 @@ function peopleOpts_(p) {
 
 /* THE TOP OF THE LIST: the "+", or the new person's form, or the slip once they are made. */
 /* `col` (453): the people column it is drawn on — "Add a tutor" on Tutors, the form's role ticked to match, drawn where it was opened. */
-const PEOPLE_ADD_ = { tutors: { role: 'tutor', say: 'Add a tutor' }, students: { role: 'student', say: 'Add a student' },
-                      parents: { role: 'client', say: 'Add a parent' } };
+const PEOPLE_ADD_ = { tutors: { role: 'tutor', say: 'Add a tutor' }, students: { role: 'student', say: text_('add-a-student') },
+                      parents: { role: 'client', say: text_('add-a-parent') } };
 /* THE SHARE BAR ON THE SETTINGS RATE CARD TOO (8 Nov): drawn where the rate and the extra-seat share are boxes, redrawn as either is typed. */
 function shareBarFor_(list, p) {
   const has = f => (list || []).indexOf(f) !== -1;

@@ -3,7 +3,8 @@
    data/settings/words.json, the one phrasebook, read through text_(key). It fails the build when
    (1) one phrase is written under two keys (trailing stops and spaces aside) — merge them and keep the old key in `aliases`;
    (2) a string literal in js/ or backend/*.gs equals a words.json value — 12+ characters, or one of the SHORT phrases — outside a generated
-       file or BEGIN…END block: the same text written twice. OWED lists the other lanes' files still to do; printed as owed. */
+       file or BEGIN…END block: the same text written twice;
+   (3) a `label` in labels.json, kinds.json or facets.json is not a words.json key (UNIFY AFTER 1): the label's words written there, not named. OWED lists the other lanes' files still to do; printed as owed. */
 'use strict';
 const SD = require('./lib/site-data.js');
 const fs = require('fs'), path = require('path');
@@ -15,7 +16,7 @@ const OWED = []; // every lane's files paid up (UNIFY NEXT 4); a file named here
 /* TWO KEYS, ONE PHRASE, ON PURPOSE: the sentence (more is added after it) and the label that stands alone. */
 const KEEP = { 'no-free-hours-this-week-2': 'no-free-hours-this-week' };
 /* A PHRASE THAT IS ALSO A STORED VALUE (a sheet cell the backend writes and matches) stays a literal in backend/: changing the word must not change the data. */
-const STORED = { 'shared-with-tutor': 'backend/' };
+const STORED = { 'shared-with-tutor': 'backend/', 'deuterocanon': 'js/writings.js' }; // writings.js matches a book's stored `group`
 const norm = s => s.replace(/[.\s]+$/, '');
 
 /* (1) ONE PHRASE, ONE KEY. */
@@ -56,7 +57,23 @@ function scan() {
   return hits;
 }
 
+/* (3) A LABEL NAMES ITS WORDS. Read as written (SD.raw), not through the phrasebook. */
+function labels() {
+  const w = SD.phrasebook(), bad = [];
+  for (const rel of SD.LABEL_FILES) (function walk(x, at) {
+    if (Array.isArray(x)) return x.forEach((y, i) => walk(y, at + '[' + i + ']'));
+    if (!x || typeof x !== 'object') return;
+    for (const [k, v] of Object.entries(x)) if (k === 'label' && typeof v === 'string') { if (v && typeof w[v] !== 'string') bad.push(rel + ' ' + at + '.label ' + JSON.stringify(v)); } else walk(v, at + '.' + k);
+  })(SD.raw(rel), '');
+  return bad;
+}
+
 async function run() {
+  const lab = labels();
+  if (lab.length) {
+    lab.slice(0, 20).forEach(d => console.log('  ' + d));
+    throw new Error('one-word: ' + lab.length + ' label(s) in labels/kinds/facets.json are words, not a words.json key — add the words to words.json and name the key');
+  }
   const dup = twice();
   if (dup.length) {
     dup.forEach(d => console.log('  ' + d));
@@ -65,11 +82,11 @@ async function run() {
   const hits = scan();
   const owed = hits.filter(h => OWED.includes(h.f)), bad = hits.filter(h => !OWED.includes(h.f));
   const per = {}; owed.forEach(h => (per[h.f] = (per[h.f] || 0) + 1));
-  console.log('one-word: no phrase under two keys; ' + hits.length + ' literal(s) repeat words.json; owed by other lanes: ' + (Object.entries(per).map(([f, n]) => f + ' ' + n).join(', ') || 'none'));
+  console.log('one-word: every label in labels/kinds/facets.json a words.json key; no phrase under two keys; ' + hits.length + ' literal(s) repeat words.json; owed by other lanes: ' + (Object.entries(per).map(([f, n]) => f + ' ' + n).join(', ') || 'none'));
   if (bad.length) {
     bad.forEach(h => console.log('  ' + h.rel + ':' + h.line + ' ' + JSON.stringify(h.s) + ' is text_(\'' + h.key + '\')'));
     throw new Error('one-word: ' + bad.length + ' literal(s) repeat a words.json value — read them through text_(key)');
   }
 }
-module.exports = { run, scan, twice };
+module.exports = { run, scan, twice, labels };
 if (require.main === module) run().catch(e => { console.error(e.message); process.exit(1); });

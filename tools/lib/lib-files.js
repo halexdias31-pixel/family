@@ -3,7 +3,7 @@
 const fs = require('fs'), path = require('path');
 const ROOT = path.join(__dirname, '..', '..');
 function libFiles() {
-  const kinds = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/settings/kinds.json'), 'utf8')).kinds;
+  const kinds = require('./site-data.js').kinds();
   const out = {};
   Object.keys(kinds).map(k => ({ k, s: kinds[k].sheet })).filter(x => x.s && x.s.lib)
     .sort((a, b) => a.s.lib.order - b.s.lib.order)

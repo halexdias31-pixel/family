@@ -70,7 +70,7 @@ function kidListSec_(held) {
 }
 function childManageCard_() {
   const held = !!pendingAddr_();
-  return setCard_({ hook: 'kid-manage', title: 'Manage your child', body: [kidListSec_(held), held ? kidHeldSec_() : rolesDrawn_(kidAddSec_)] });
+  return setCard_({ hook: 'kid-manage', title: text_('manage-your-child'), body: [kidListSec_(held), held ? kidHeldSec_() : rolesDrawn_(kidAddSec_)] });
 }
 
 /* A REFUSAL THAT SAYS THE ADDRESS IS WAITING corrects the phone: § */
@@ -180,7 +180,7 @@ const libFieldsOf_ = groups => [].concat(...Object.keys(groups || {}).map(g => g
 /* ---------- READING ALOUD (453, 463) — no choice: the device's calmest natural voice, free; a sample is all there is to do ---------- */
 function voiceCard_() {
   if (!canSay_()) return '';
-  return setCard_({ card: 'acct:voice', title: 'Reading aloud', actions: [{ icon: 'speak', label: 'Hear a sample', note: 'the reading voice', act: 'voice-try' }] });
+  return setCard_({ card: 'acct:voice', title: text_('reading-aloud'), actions: [{ icon: 'speak', label: 'Hear a sample', note: 'the reading voice', act: 'voice-try' }] });
 }
 const VOICE_SAMPLE = 'Hello. This is how your questions will be read. For example: x² ÷ 4 is less than 3/4.';
 on('voice-try', () => { hush_(); say_(VOICE_SAMPLE); });
@@ -191,7 +191,7 @@ on('voice-try', () => { hush_(); say_(VOICE_SAMPLE); });
 const rankOffCard_ = (title, say, tiles, look) => renderCard({ kind: 'rank', card: '-', look: look || 'rank-off', tags: [{ text: /people-none/.test(look || '') ? text_('nobody-yet') : /^Sign in/.test(say || '') ? text_('signed-out') : text_('nothing-yet'), colour: 0 }], body: say ? [{ type: 'text', text: say, look: 'note' }] : [], tiles: tiles || [] });
 /* A SETTINGS COLUMN FOR A ROLE YOU DO NOT HOLD (464): a padlock and one short line, and nothing else — the owner, "it will just show a padlock". */
 const padlockCard_ = say => renderCard({ kind: 'rank', card: '-', look: 'rank-off col-lock', tags: [{ text: 'Locked', colour: 0 }], body: say ? [{ type: 'text', text: say, look: 'note' }] : [] });
-const signedOutCard_ = title => rankOffCard_(title, 'Sign in on ' + tabLabel_('account', 'Kids settings') + ' first.');
+const signedOutCard_ = title => rankOffCard_(title, 'Sign in on ' + tabLabel_('account', text_('kids-settings')) + ' first.');
 
 /* ---------- EVERYBODY SEES EVERY CARD (467) — the owner: "Everybody can see everything; different things are just locked behind a padlock." § */
 /* A placeholder of the column's role draws the column's real cards, so nobody's data is in them; each is then shut (`lockCard_`). */
@@ -225,12 +225,12 @@ const lockedPages_ = col => lockedAs_(col, LOCKED_DRAW_[col]);
 
 /* ---------- PARENT SETTINGS: A PARENT'S OR PAYER'S OWN DETAILS (453) — the children are on Students ---------- */
 function familyPages_() {
-  const title = tabLabel_('family', 'Parent settings');
+  const title = tabLabel_('family', text_('parent-settings'));
   if (!whose_()) return [signedOutCard_(title)].concat(lockedPages_('family'));
   if (!whoseAtLeast_('client')) return [padlockCard_('Parent settings are for parents.')].concat(lockedPages_('family'));
   const out = ownCardSetPage_('family').concat(settingsCards_(settingsSplit_().parent, '', 'family'));
   /* NOTHING A PARENT'S ALONE (469): your picture, name and contact are everybody's, so on Student settings. */
-  return out.length ? out : [rankOffCard_(title, NOTHING_YET + ' Your details are on ' + tabLabel_('account', 'Kids settings') + '.', null, 'set-none')];
+  return out.length ? out : [rankOffCard_(title, NOTHING_YET + ' Your details are on ' + tabLabel_('account', text_('kids-settings')) + '.', null, 'set-none')];
 }
 /* PARENT SETTINGS WAS A COLUMN; it is Find › Settings › Parent now (docs/history/find-only.md), drawn from CARD_BUILD.family. */
 
@@ -244,7 +244,7 @@ function applyCard_() {
 }
 /* ---------- TUTOR SETTINGS: THE STAFF HUB AND THE TEACHING SETTINGS WITH NO CARD TO LIVE ON (453) ---------- */
 function staffPages_() {
-  const title = tabLabel_('staff', 'Tutor settings');
+  const title = tabLabel_('staff', text_('tutor-settings'));
   if (!whose_()) return [signedOutCard_(title)].concat(lockedPages_('staff'));
   /* THE PADLOCK, with Apply to teach for an adult who may apply (`applyOpts_`), then every card shut (467). */
   if (!whoseAtLeast_('staff')) return [padlockCard_('Tutor settings are for tutors.')].concat(applyCard_(), lockedPages_('staff'));
@@ -289,7 +289,7 @@ const siteTok_ = k => { try { return dash_(getComputedStyle(document.documentEle
 CARD_EMBEDS['tpl-sample'] = () => renderCard({ kind: 'panel', look: 'tpl-sample', name: 'A sample card', picture: { src: 'icon.png', alt: 'A sample picture' },
   tags: [{ text: 'A sample card' }, { text: 'A tag' }], body: [{ type: 'text', text: 'What the thing holds, in plain words, centred.' }] });
 function siteTplCard_() {
-  return setCard_({ card: 'site:template', title: 'Card template', body: [
+  return setCard_({ card: 'site:template', title: text_('card-template'), body: [
     { type: 'text', look: 'note', text: 'Every card on the site is drawn by this one template: picture, tags, content, buttons, top to bottom on one centre line.' },
     { type: 'embed', tool: 'tpl-sample' },
     { type: 'list', ordered: true, look: 'tpl-parts', items: SITE_TPL_PARTS_ },
@@ -305,7 +305,7 @@ function siteRenameCard_() {
   const rows = (RENAME.list || []).map(p => (p.name || p.personId) + ': ' + (p.from ? '@' + p.from : '(none)') + ' → ' + (p.to ? '@' + p.to : 'could not make one'));
   const tiles = [{ icon: 'show', label: 'Preview list', act: 'rename-preview' }]
     .concat(RENAME.list ? [{ icon: 'save', label: 'Apply', act: 'rename-apply' }] : []);
-  return setCard_({ card: 'site:rename', title: 'Rename every username', actions: tiles, body: [
+  return setCard_({ card: 'site:rename', title: text_('rename-every-username'), actions: tiles, body: [
     { type: 'text', look: 'note', text: 'Everybody gets a new username in the site\'s username format (being decided). Old usernames stop working — tell people their new one.' }]
     .concat(RENAME.said ? [{ type: 'text', look: 'note', text: RENAME.said }] : [])
     .concat(rows.length ? [{ type: 'list', look: 'rename-list', items: rows }] : []) });
@@ -362,7 +362,7 @@ function rolesSaid_() {
   if (whose_().tutorPending && hasRole('tutor', whose_()))
     return 'Tutor is waiting for ' + brand('name', '@family.') + ' to approve you. Until then you are not on the site and '
          + 'cannot be booked — fill in your teaching pages meanwhile.';
-  if (whoseAtLeast_('staff')) return 'You teach here. Your hours, pricing and terms are in the Staff hub on ' + tabLabel_('staff', 'Tutor settings') + '.';
+  if (whoseAtLeast_('staff')) return 'You teach here. Your hours, pricing and terms are in the Staff hub on ' + tabLabel_('staff', text_('tutor-settings')) + '.';
   if (rank_(whose_()) === 'student') return 'A parent links you to their account from theirs.';
   return '';
 }
@@ -462,7 +462,7 @@ function notifyCard_() {
   /* PHONE NOTIFICATIONS (492, push.js) ARE PART OF THIS ONE CARD (owner, 12 Nov). */
   if (typeof window.pushBody_ === 'function') tail += window.pushBody_();
   /* THE TICKS ARE forms.json's `notify` form. */
-  return formCard_({ title: 'Notifications', body: inner + formOf_('notify', null, { options: { kinds: toggles || [] } }), tail: tail, save: false, card: 'acct:notify' });
+  return formCard_({ title: text_('notifications'), body: inner + formOf_('notify', null, { options: { kinds: toggles || [] } }), tail: tail, save: false, card: 'acct:notify' });
 }
 
 /* WHAT THE SERVER LAST SAID THIS KIND IS SET TO — the profile's list, not the box. */
@@ -678,9 +678,9 @@ function studentSetPages_() {
 }
 /* PLACEHOLDERS (562, owner notes 116, 118, 114): one card each, its title and one line, until the thing is built; each in kinds.json setting.cards so it moves and deletes. */
 const SOON_CARDS = [
-  ['soon-brownie', 'Brownie points', 'Points you earn for good work. Coming soon.'],
+  ['soon-brownie', text_('brownie-points'), 'Points you earn for good work. Coming soon.'],
   ['soon-roadmap', 'Roadmap', 'How much of your syllabus is left, subject by subject. Coming soon.'],
-  ['soon-conduct', 'Code of conduct', 'How we treat each other here. Coming soon.'],
+  ['soon-conduct', text_('code-of-conduct'), 'How we treat each other here. Coming soon.'],
 ];
 const soonCards_ = () => SOON_CARDS.map(([c, h, p]) => renderCard({ kind: 'soon', card: c.replace(/^soon-/, 'acct:'), look: 'soon-card ' + c, tags: [{ text: h, colour: 0 }], body: [{ type: 'text', text: p }] }));
 /* KIDS SETTINGS IS Find › Settings › Student, drawn from CARD_BUILD.account. */
