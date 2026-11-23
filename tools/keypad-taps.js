@@ -8,6 +8,9 @@
       the pass count per type is printed and may not fall below tools/data/keypad-taps.json.
    3. ON A PHONE AND AN iPAD (tools/lib/site-browser.js, 390px and 820px): a real box, the forms tapped on the drawn keys; no key turns the
       pad over (abc / 123 / αβ / ⇧ / more), every key inside the screen, the box in the theme's colours and short for a short answer.
+   4. FILL A TABLE (owner 23 Nov: a table is typed): a sample of the site-marked table questions, kept in their order, and made-up tables
+      whose rows are a list, filled in a shuffled row order: each empty cell's own box tapped on its own keypad (that cell's answer's keys),
+      the boxes in any order, marked Right by mark_; a separate table-only input (a field not the one box, or a box outside the table) fails.
    Any failure fails the build. `--floor` writes today's library counts as the floor. */
 'use strict';
 const fs = require('fs'), path = require('path');
@@ -155,6 +158,89 @@ function library(app, P, opts) {
   return bad;
 }
 
+/* ---------- FILL A TABLE: each cell's box tapped on its own keypad, the cells in any order */
+const OneCells = () => require('./one-cells.js');
+const UNORDERED = () => {
+  const { COINS } = OneCells();
+  return [COINS, {
+    key: 'keypad-taps-spinners', marks: 2,
+    html: '<p>A spinner (1, 2, 3) is spun and a coin thrown. List every outcome.</p><table><tr><th>Spinner</th><th>Coin</th></tr>'
+      + '<tr><td></td><td></td></tr>'.repeat(6) + '</table>',
+    cells: '1 = 1 ; 2 = H ; 3 = 1 ; 4 = T ; 5 = 2 ; 6 = H ; 7 = 2 ; 8 = T ; 9 = 3 ; 10 = H ; 11 = 3 ; 12 = T'
+  }];
+};
+function tables(app, P) {
+  const { ctx, call } = app;
+  call('qtMarker_(workRow_({row:{}}))'); call('padGrid_'); call('CARD_BLOCKS');
+  call('Object.assign(CARD_BLOCKS, { control: kcfControl_, field: kcfField_, tick: kcfTickB_, many: kcfMany_, group: kcfGroup_ })');
+  call('oops_ = e => { throw e; }');
+  const bad = [], n = { ordered: [0, 0], unordered: [0, 0] };
+  const dec = v => v.replace(/&quot;/g, '"').replace(/&#39;/g, '\'').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+  /* one table part, its cells filled in `order` (a list of cell numbers) with `ways` (a way per cell) */
+  const fill = (x, label, ways, order) => {
+    ctx.__x = x;
+    const html = String(call('ansBox_(__x)') || '');
+    const fields = [...html.matchAll(/<(input|textarea)\b[^>]*>/g)].map(m => m[0]);
+    const tables = (html.match(/<table[\s\S]*?<\/table>/g) || []).join('');
+    const stray = fields.filter(f => !/\bkp-in\b/.test(f) || !/\bqp-ans-in\b/.test(f) || tables.indexOf(f) < 0);
+    if (stray.length) return label + ': ' + stray.length + ' input(s) not the one box in the table';
+    const box = {};
+    html.split('<label class="qp-ans qp-cell-ans').slice(1).forEach(h => {
+      const acc = /data-accept="([^"]*)"/.exec(h), kp = /data-kp="(\w+)"/.exec(h), at = /data-n="(\d+)"/.exec(h);
+      if (acc && kp && at) box[+at[1]] = { acc: dec(acc[1]), words: kp[1] === 'words' };
+    });
+    const vals = ways.map(() => '');
+    for (const i of order) {
+      if (!ways[i]) continue;
+      const b = box[i];
+      if (!b) return label + ': cell ' + i + ' has no box';
+      const taps = kpTapsOf(ways[i], b.words), face = P.faceOf(b.acc, b.words);
+      const missing = [...new Set(taps.filter(k => !face.includes(k) && !(b.words && k === '\n')))];
+      if (missing.length) return label + ': cell ' + i + ' ' + JSON.stringify(ways[i]) + ' has no key ' + missing.join(' ');
+      vals[i] = P.type(taps, b.words);
+    }
+    ctx.__a = vals;
+    const v = call('mark_(__x, __a)');
+    /* CHECK LEAVES THE BOXES AS TYPED: the saved "a ; b ; c" read back is the same value in every cell */
+    ctx.__s = vals.join(' ; ');
+    const back = call('cellsVals_(__s, cellsOf_(__x))');
+    if (vals.some((w, i) => String(back[i] || '') !== w)) return label + ': saved ' + JSON.stringify(ctx.__s) + ' reads back as ' + JSON.stringify(back);
+    return v.verdict === 'right' ? '' : label + ': tapped ' + JSON.stringify(vals) + ' marked ' + v.verdict + ' ' + v.marks + '/' + v.max;
+  };
+  const shuffle = (a, seed) => { const b = a.slice(); let s = seed; for (let i = b.length - 1; i > 0; i--) { s = (s * 9301 + 49297) % 233280; const j = Math.floor(s / 233280 * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
+  /* THE LIBRARY'S TABLES, site-marked, every kind of placing: the key's first way in each cell, the cells tapped last to first */
+  const status = (JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'question-status.json'), 'utf8')).status) || {};
+  const rows = fs.existsSync(path.join(ROOT, 'data-private', 'questions.json')) ? VQ.rowsOf().filter(r => r.kind === 'question' && String(r.cells || '').trim() && status[r.row_id] === 'ok') : [];
+  const step = Math.max(1, Math.floor(rows.length / 60));
+  /* AND THE LIVE BUG (owner photo, 23 Nov): the probability tree's six values, fractions on the fraction key, kept a value a cell */
+  const bug = rows.filter(r => r.row_id === 'Q-1CM-probability-tree-diagrams-1');
+  rows.filter((r, i) => i % step === 0).slice(0, 60).concat(bug).forEach(r => {
+    ctx.__r = r;
+    let x; try { x = call('libQuestion_(__r)'); } catch (e) { return; }
+    ctx.__x = x;
+    const ways = call('cellsOf_(__x).map(c => (String(c.ways || "").split("|").map(w => w.trim()).find(w => w && !/^rule:/i.test(w)) || ""))');
+    n.ordered[1]++;
+    const miss = fill(x, r.row_id, ways, ways.map((w, i) => i).reverse());
+    if (miss) bad.push('table ' + miss); else n.ordered[0]++;
+  });
+  /* AN UNORDERED TABLE: its rows filled in a shuffled order -- the key's rows, each typed in another row's place */
+  UNORDERED().forEach((t, k) => {
+    const x = Object.assign({}, t);
+    ctx.__x = x;
+    const ways = call('cellsOf_(__x).map(c => c.ways)'), o = call('cellsOrder_(__x)');
+    if (o.by !== 'rows') { bad.push('table ' + t.key + ': its rows are marked "' + o.by + '", not in any order'); return; }
+    const perm = shuffle(o.groups.map((g, i) => i), 7 + k);
+    const typed = ways.slice();
+    o.groups.forEach((g, i) => g.forEach((cell, c) => { typed[cell] = ways[o.groups[perm[i]][c]]; }));
+    n.unordered[1]++;
+    const miss = fill(x, t.key + ' (rows shuffled)', typed, shuffle(typed.map((w, i) => i), 3 + k));
+    if (miss) bad.push('table ' + miss); else n.unordered[0]++;
+  });
+  /* AND NO TABLE KEEPS A SEPARATE ONE-BOX: the tree's answer is the table, no comma line under it */
+  console.log('keypad-taps: tables ' + n.ordered[0] + '/' + n.ordered[1] + ' ordered (library sample) and ' + n.unordered[0] + '/' + n.unordered[1] + ' unordered (rows shuffled) tapped right');
+  return bad;
+}
+
 /* ---------- ON A PHONE AND AN iPAD: the drawn keys tapped */
 async function browser() {
   const SB = require('./lib/site-browser.js');
@@ -235,6 +321,7 @@ async function run(o) {
   if ([...app.call('QT_FACES')].indexOf('pick') >= 0) bad.push('QT_FACES still has the pick face');
   if (fs.existsSync(path.join(ROOT, 'data-private', 'questions.json'))) bad = bad.concat(library(app, P, opts));
   else console.log('keypad-taps: no data-private here, the library sample skipped');
+  bad = bad.concat(tables(app, P));
   if (!process.argv.includes('--no-browser')) bad = bad.concat(await browser());
   report('keypad-taps', bad, 'keypad failure(s)');
 }

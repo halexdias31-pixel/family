@@ -266,12 +266,12 @@ function run(opts) {
       wrongOk = w.verdict !== 'right';
       if (!ex.length) return ['broken', 'drawing key has no example drawing'];
     } else {
-      /* a table's blanks are typed in the one box, in order with commas (22 Nov): the key's own first way in each */
-      const cellModel = kind === 'cells' ? [call('cellsOf_(__x).filter(c => c.ways).map(c => c.ways.split("|")[0].trim()).join(", ")')] : [];
+      /* a table's blanks are typed a box a cell (owner, 23 Nov): the key's own first way in each */
+      const cellModel = kind === 'cells' ? [call('cellsOf_(__x).map(c => c.ways ? c.ways.split("|")[0].trim() : "")')] : [];
       right = cellModel.concat(models(r)).some(a => verdict(x, a).verdict === 'right');
       const wrongs = kind === 'choice' || kind === 'order'
         ? [(x.choiceRight || []).length ? L[((x.choiceRight[0] || 1) % Math.max(2, (x.choices || []).length))] : 'Z']
-        : kind === 'cells' ? [call('cellsOf_(__x).filter(c => c.ways).map(c => ' + JSON.stringify(WRONG) + ').join(", ")')] : [WRONG];
+        : kind === 'cells' ? [call('cellsOf_(__x).map(c => c.ways ? ' + JSON.stringify(WRONG) + ' : "")')] : [WRONG];
       /* PEEL marks an essay by its levels: its model is a band descriptor, not an essay, so it is the tutor's to mark */
       if (!right && call('markIsPeel_(__x.accept)') && plain(r.answer)) return ['tutor', ''];
       wrongOk = wrongs.every(a => verdict(x, a).verdict !== 'right');

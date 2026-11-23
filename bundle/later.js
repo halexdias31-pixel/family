@@ -3659,6 +3659,12 @@ why = why.replace(/^((?:\s*<[a-z][^>]*>)*\s*)([a-z])(?=[a-z])/, (w, tags, c) => 
 return { head: head, why: seen(why) ? why : '' };
 }
 function answerBlock_(x) {
+const table = x && typeof cellsKeyTable_ === 'function' && cellsOf_(x).some(c => c.ways) ? cellsKeyTable_(x) : '';
+if (table) {
+const note = String(x.answer || '').trim() ? answerParts_(x.answer).head : '';
+return cardBlock_({ type: 'group', look: 'qans', blocks: [{ type: 'group', tag: 'span', look: 'qans-head', text: 'Answer' },
+{ type: 'group', look: 'qans-body qtext', inner: '<div class="qp-cells-wrap q-tscroll">' + table + '</div>' + (note ? '<p class="qans-note">' + typeset_(note) + '</p>' : '') }] });
+}
 if (!x || !(String(x.answer || '').trim() || (x.choiceRight || []).length)) return '';
 const kind = String(x.answerType || '').trim();
 return cardBlock_({ type: 'group', look: 'qans', blocks: [{ type: 'group', tag: 'span', look: 'qans-head', text: 'Answer' + (kind ? ' · ' + kind : '') },
@@ -5407,7 +5413,7 @@ const MARK_METHODS = {
 choice: { has: x => markerOf_(x).kind === 'choice', run: (x, a) => markChoice_(x, a, false) },
 order: { has: x => markerOf_(x).kind === 'order', run: (x, a) => markChoice_(x, a, true) },
 cells: { has: x => markerOf_(x).kind === 'cells', run: (x, a) => {
-const m = markCells_(a, cellsOf_(x), markOpt_(x));
+const m = markCells_(a, cellsOf_(x), markOpt_(x), cellsOrder_(x));
 return m.each.some(v => v === true || v === false) ? { got: m.right, of: m.of, each: m.each } : null;
 } },
 accept: { has: x => markerOf_(x).kind === 'accept' && !markIsPeel_(x.accept) && !markIsPoints_(x.accept), run: (x, a) => {
@@ -5653,53 +5659,128 @@ const oneWord = gaps.every(c => String(c.ways).split('|').every(w => !/\S\s+\S/.
 const score = v => v.filter((p, j) => markAnswer_(p, gaps[j].ways) === true).length;
 return [false].concat(oneWord ? [true] : []).map(sp => gapsFit_(s, gapSpans_(s, sp), gaps)).reduce((a, b) => (score(b) > score(a) ? b : a));
 }
-function markCells_(vals, cells, opt) {
-vals = cellsOneBox_(typeof vals === 'string' ? [vals] : vals, cells);
+function cellsOrder_(x) {
+const cells = cellsOf_(x), r = (x && x.row) || x || {};
+const p = qtCellPlaces_(String(r.lead || '') + String(r.html || ''), cells);
+if (!p) return { by: 'place', table: '', groups: [], places: null };
+const box = new Map(p.at.map((i, k) => [i, k]).filter(([i]) => i >= 0));
+const lines = key => {
+const m = new Map();
+p.tds.forEach((d, i) => { const g = d[key]; if (!m.has(g)) m.set(g, []); m.get(g).push(i); });
+return [...m.values()].filter(l => l.length >= 2 && l.every(i => box.has(i))).map(l => l.map(i => box.get(i)));
+};
+const out = by => ({ by, table: p.table, groups: by === 'place' ? [] : lines(by === 'rows' ? 'r' : 'c'), places: p });
+if (p.by !== 'blanks') return out('place');
+if (lines('r').length >= 2) return out('rows');
+if (lines('c').length >= 2) return out('cols');
+return out('place');
+}
+function markCells_(vals, cells, opt, order) {
+vals = Array.isArray(vals) && vals.length === cells.length && cells.length > 1 ? vals.map(v => String(v == null ? '' : v)) : cellsOneBox_(typeof vals === 'string' ? [vals] : vals, cells);
 const gapOpt = i => ({ strict: !!(opt && opt.strict), others: ((opt && opt.others) || []).concat(cells.filter((c, j) => j !== i && c.ways).map(c => c.ways)) });
-const each = cells.map((c, i) => c.ways ? markAnswer_(vals[i] || '', c.ways, false, gapOpt(i)) : undefined);
+const one = (v, i) => !!markAnswer_(v || '', cells[i].ways, false, gapOpt(i));
+const each = cells.map((c, i) => (c.ways ? markAnswer_(vals[i] || '', c.ways, false, gapOpt(i)) : undefined));
+const groups = (order && order.groups) || [];
+if (groups.length >= 2) {
+const score = (a, b) => a.reduce((s, n, c) => s + (cells[b[c]] && cells[b[c]].ways && one(vals[n], b[c]) ? 1 : 0), 0);
+const pairs = [];
+groups.forEach((a, i) => groups.forEach((b, j) => { if (a.length === b.length) pairs.push([score(a, b), i === j ? 1 : 0, i, j]); }));
+pairs.sort((p, q) => q[0] - p[0] || q[1] - p[1]);
+const usedA = new Set(), usedB = new Set();
+for (const [, , i, j] of pairs) {
+if (usedA.has(i) || usedB.has(j)) continue;
+usedA.add(i); usedB.add(j);
+groups[i].forEach((n, c) => { const k = groups[j][c]; each[n] = cells[n].ways ? (cells[k].ways ? one(vals[n], k) : false) : undefined; });
+}
+}
 const asked = each.filter(v => v !== undefined);
-return { right: asked.filter(v => v === true).length, of: asked.length, each: each };
+return { right: asked.filter(v => v === true).length, of: asked.length, each: each, by: (order && order.by) || 'place' };
 }
 const fcG_ = (tag, look, attrs, inner, text) => cardBlock_({ type: 'group', tag, look, attrs, inner, text });
 const fcVerdict_ = t => fcG_('span', 'qp-verdict', { role: 'status', 'aria-live': 'polite' }, '', t);
 const fcSaved_ = k => fcG_('span', 'qp-saved', { 'data-k': k }, '', ansSavedSay_(k));
-function cellsHint_(cells, maths) {
-const asked = cells.filter(c => c.ways), named = asked.filter(c => !/^\(?(\d+|[a-z]|[ivx]+)\)?$/i.test(c.label)).map(c => c.label);
-const say = 'Give ' + asked.length + (maths ? ' numbers' : ' answers') + ' in order, separated by commas';
-return named.length === asked.length ? named.join(', ') + ' \u2014 ' + say.charAt(0).toLowerCase() + say.slice(1) : say;
+const cellsVals_ = (v, cells) => { const s = String(v == null ? '' : v); return / ; /.test(s) || !s.trim() ? s.split(' ; ') : cellsOneBox_([s], cells); };
+const cellsFirstWay_ = c => String(c.ways || '').split('|').map(w => w.trim()).find(w => w && !/^rule:/i.test(w)) || '';
+function cellsCellBox_(k, c, i, v, acc) {
+const maths = kpMathsy_(cellsFirstWay_(c));
+return fcG_('label', 'qp-ans qp-cell-ans' + (maths ? ' qp-ans-maths' : ''), { 'data-accept': acc || c.ways },
+kpField_(k, v || '', maths ? 'maths' : 'words', 3, 'Blank ' + c.label, { class: 'qp-ans-in kp-in qp-cell', 'data-do': 'qp-cell', 'data-n': String(i) }));
 }
+function cellsTable_(x, key) {
+const cells = cellsOf_(x), k = ansKey_(x), vals = key ? [] : cellsVals_(ansRead_(k), cells), o = cellsOrder_(x), p = o.places;
+const put_ = (c, n, a) => (key ? fcG_('span', 'qp-cell-key', null, typeset_(esc(cellsFirstWay_(c)))) : cellsCellBox_(k, c, n, vals[n], a));
+if (p) {
+let t = p.table;
+const put = p.at.map((i, n) => [i, n]).filter(([i]) => i >= 0).sort((a, b) => b[0] - a[0]);
+const acc = new Map();
+o.groups.forEach(g => g.forEach((n, c) => acc.set(n, [...new Set(o.groups.map(h => cells[h[c]] && cells[h[c]].ways).filter(Boolean))].join(' | '))));
+for (const [i, n] of put) {
+const d = p.tds[i], box = put_(cells[n], n, acc.get(n));
+const open = t.slice(d.at, d.at + d.open), inner = t.slice(d.at + d.open, d.end - 5);
+const tag = /\bclass="/.test(open) ? open.replace(/\bclass="/, 'class="qp-cell-at ') : open.replace(/^<(td|th)/, '<$1 class="qp-cell-at"');
+const fill = p.token[n] ? inner.replace(/<[^>]*>/g, '').replace(p.token[n], '\u0000').replace(/\u0000/, box) : box;
+t = t.slice(0, d.at) + tag + fill + t.slice(d.end - 5);
+}
+return t.replace(/^<table[^>]*>/, '<table class="qp-cells" data-order="' + o.by + '">');
+}
+const named = c => !/^\d+$/.test(c.label);
+return '<table class="qp-cells qp-cells-own" data-order="place"><tbody>' + cells.map((c, n) => (c.ways
+? '<tr><th scope="row">' + esc(named(c) ? c.label : String(n + 1)) + '</th><td class="qp-cell-at">' + put_(c, n) + '</td></tr>' : '')).join('') + '</tbody></table>';
+}
+const cellsKeyTable_ = x => cellsTable_(x, true);
+const cellsHint_ = by => by === 'rows' ? 'Fill in every empty cell — the rows can go in any order'
+: by === 'cols' ? 'Fill in every empty cell — the columns can go in any order' : 'Fill in every empty cell';
 function cellsBox_(x) {
-const cells = cellsOf_(x), k = ansKey_(x);
-const val = String(ansRead_(k) || '').replace(/(?:\s*;\s*)+$/, '');
-const maths = cells.filter(c => c.ways).every(c => /^[-\d.,\s|£$%°/]+$/.test(c.ways));
-const said = subBoxSay_(k, val);
+const k = ansKey_(x), o = cellsOrder_(x);
+const said = subBoxSay_(k, String(ansRead_(k) || ''));
 return fcG_('div', 'qp-mark qp-compose qp-cells-box' + (said.cls ? ' ' + said.cls : ''), { 'data-k': k },
-fcG_('p', 'q-hint', null, '', cellsHint_(cells, maths)) + fcG_('div', 'qp-ans-row qp-bar', null,
-fcG_('label', 'qp-ans' + (maths ? ' qp-ans-maths' : ''), { 'aria-label': text_('your-answers-in-order') }, kpField_(k, val, maths ? 'maths' : 'words', 3)))
+fcG_('p', 'q-hint', null, '', cellsHint_(o.by)) + fcG_('div', 'qp-cells-wrap q-tscroll', null, cellsTable_(x))
 + fcVerdict_(said.text) + fcSaved_(k));
 }
+function cellsHere_(x, html) {
+const cells = cellsOf_(x);
+if (!cells.length || !cellsOrder_(x).places) return html;
+const p = qtCellPlaces_(html, cells);
+return p ? String(html).replace(p.table, '') : html;
+}
+const cellsIn_ = box => [].slice.call(box ? box.querySelectorAll('.qp-cell') : []);
+function cellsRead_(box, cells) {
+const vals = cells.map(() => '');
+cellsIn_(box).forEach(c => { vals[+c.getAttribute('data-n')] = c.value || ''; });
+return vals;
+}
+document.addEventListener('input', e => {
+const el = e.target && e.target.closest && e.target.closest('[data-do="qp-cell"]');
+const box = el && el.closest('.qp-cells-box');
+if (!box) return;
+const x = stuffItemsAll_().find(it => ansKey_(it) === box.getAttribute('data-k'));
+if (!x) return;
+ansStore_(box.getAttribute('data-k'), cellsRead_(box, cellsOf_(x)).join(' ; '), true);
+box.classList.remove('is-right', 'is-near');
+const lab = el.closest('.qp-cell-ans');
+if (lab) lab.classList.remove('is-right', 'is-near');
+});
+document.addEventListener('focusout', e => {
+if (e.target && e.target.closest && e.target.closest('[data-do="qp-cell"]') && typeof answersPush_ === 'function') answersPush_(true);
+});
 on('qp-cells-check', el => {
 const box = qMark_(el, '.qp-cells-box');
 const out = box && box.querySelector('.qp-verdict');
 const x = box && stuffItemsAll_().find(it => ansKey_(it) === box.getAttribute('data-k'));
-const inp = box && box.querySelector('.qp-ans-in');
-if (!x || !out || !inp) return;
-const cells = cellsOf_(x);
-let vals = [inp.value];
+if (!x || !out) return;
+const cells = cellsOf_(x), vals = cellsRead_(box, cells);
 const v = mark_(x, vals, 'cells'), m = { right: v.marks, of: v.max, each: v.each || [] };
+cellsIn_(box).forEach(c => {
+const lab = c.closest('.qp-cell-ans'), r = m.each[+c.getAttribute('data-n')];
+if (lab) { lab.classList.toggle('is-right', r === true); lab.classList.toggle('is-near', r === false); }
+});
 box.classList.remove('is-right', 'is-near');
 const notYet = partReady_('cells', m);
 if (notYet) { tell_(out, 'info', notYet); return; }
-const got = cellsOneBox_(vals, cells);
-if (cells.every((c, i) => !c.ways || String(got[i] || '').trim())) {
-inp.value = got.join(' ; ');
-if (typeof kpRender_ === 'function') kpRender_(inp);
-ansStore_(box.getAttribute('data-k'), inp.value, inp.getAttribute('data-kp') === 'words');
-vals = [inp.value];
-}
 const all = m.right === m.of;
 box.classList.add(all ? 'is-right' : 'is-near');
-tell_(out, all ? 'saved' : 'info', all ? text_('correct-every') + 'answer' : m.right + ' of ' + m.of + ' answers right');
+tell_(out, all ? 'saved' : 'info', all ? text_('correct-every') + 'cell' : m.right + ' of ' + m.of + ' cells right');
+ansStore_(box.getAttribute('data-k'), vals.join(' ; '), true);
 subRecord_(box.getAttribute('data-k'), vals.join(' ; '), all ? 'right' : 'wrong');
 });
 function qMark_(el, sel) {
@@ -8381,7 +8462,7 @@ if (was.only) return questionHasAns_(x) || schemeOwed_(x) ? questionAnsCard_(x, 
 const stems = was.stems.map(st => qStemWhole_(x, st, was.shown, a.pic ? [] : null)).join('');
 const words = partChunks_(x).map(c => chunkHtml_(c, circOf_(x), x)).join('');
 const has = was.ans && (questionHasAns_(x) || schemeOwed_(x));
-return stems + figBox_({ look: 'qsheet qtext', inner: qWordsOr_(x, words) }) + ansArea_(x) + (has ? questionAnsCard_(x, true) : '');
+return stems + figBox_({ look: 'qsheet qtext', inner: qWordsOr_(x, cellsHere_(x, words)) }) + ansArea_(x) + (has ? questionAnsCard_(x, true) : '');
 };
 const qWas_ = x => Q_DRAWN.get(x.key) || { stems: [], shown: [x], ans: true };
 const qCardKeep_ = x => { if (x.key) Q_ITEM.set(x.key, x.item || x); };

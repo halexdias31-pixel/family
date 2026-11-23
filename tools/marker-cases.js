@@ -200,6 +200,25 @@ const CASES = [
   ['9', '9', true, 'a single value'],
   ['5', '9', false, 'a single wrong value'],
 ];
+/* FILL A TABLE (owner, 23 Nov), the one order rule from the table's structure (find-cells.js `cellsOrder_`): [cells key, table, typed a cell each, right?, what] */
+const ROWS3 = '<table><tr><th>Spinner</th><th>Coin</th></tr><tr><td></td><td></td></tr><tr><td></td><td></td></tr><tr><td></td><td></td></tr></table>';
+const ROWHEAD = '<table><tr><th>Colour</th><th>Frequency</th></tr><tr><th>Red</th><td></td></tr><tr><th>Blue</th><td></td></tr><tr><th>Green</th><td></td></tr></table>';
+/* the live bug (owner photo, 23 Nov, Q-1CM-probability-tree-diagrams-1): fraction-key values, (1)/(6), split at their slash into two cells */
+const TREE6 = '<table><thead><tr><th scope="col">Branch</th><th scope="col">Probability</th></tr></thead><tbody><tr><th scope="row">Coin: Heads</th><td></td></tr><tr><th scope="row">Coin: Tails</th><td></td></tr><tr><th scope="row">Heads, then dice: 6</th><td></td></tr><tr><th scope="row">Heads, then dice: Not a 6</th><td></td></tr><tr><th scope="row">Tails, then dice: 6</th><td></td></tr><tr><th scope="row">Tails, then dice: Not a 6</th><td></td></tr></tbody></table>';
+const TREE6_KEY = '(1) = 1/2 ; (2) = 1/2 ; (3) = 1/6 ; (4) = 5/6 ; (5) = 1/6 ; (6) = 5/6';
+const TABLE_CASES = [
+  [TREE6_KEY, TREE6, ['0.5', '0.5', '(1)/(6)', '(5)/(6)', '(1)/(6)', '(5)/(6)'], true, 'Q-1CM-probability-tree-diagrams-1: fraction-key values a cell each'],
+  [TREE6_KEY, TREE6, ['0.5', '(1)/(6)', '', '', '', ''], false, 'Q-1CM-probability-tree-diagrams-1: a fraction in one cell is never parted over two'],
+  [TREE6_KEY, TREE6, ['0.5', '0.5', '(1)/(12)', '(5)/(12)', '(1)/(12)', '(5)/(12)'], false, 'Q-1CM-probability-tree-diagrams-1: the student\'s twelfths, each one value, not the key'],
+  /* unordered: rows written whole are a list, in any order */
+  ['1 = 1 ; 2 = H ; 3 = 2 ; 4 = H ; 5 = 3 ; 6 = H', ROWS3, ['1', 'H', '2', 'H', '3', 'H'], true, 'outcome rows as keyed'],
+  ['1 = 1 ; 2 = H ; 3 = 2 ; 4 = H ; 5 = 3 ; 6 = H', ROWS3, ['3', 'H', '1', 'H', '2', 'H'], true, 'outcome rows in another order'],
+  ['1 = 1 ; 2 = H ; 3 = 2 ; 4 = H ; 5 = 3 ; 6 = H', ROWS3, ['H', '1', 'H', '2', 'H', '3'], false, 'outcome rows with each row\'s cells swapped'],
+  ['1 = 1 ; 2 = H ; 3 = 2 ; 4 = H ; 5 = 3 ; 6 = H', ROWS3, ['1', 'H', '1', 'H', '3', 'H'], false, 'an outcome row twice, one missing'],
+  /* ordered: a cell tied to its given row header keeps its place */
+  ['Red = 5 ; Blue = 7 ; Green = 2', ROWHEAD, ['5', '7', '2'], true, 'frequencies by their given rows'],
+  ['Red = 5 ; Blue = 7 ; Green = 2', ROWHEAD, ['7', '5', '2'], false, 'frequencies swapped between given rows'],
+];
 
 function run() {
   const { ctx, call } = VQ.appCode();
@@ -212,11 +231,19 @@ function run() {
     if (isKnown) { known++; if (ok) fixed.push(what); continue; }
     if (ok) pass++; else bad.push(JSON.stringify(typed) + ' for ' + JSON.stringify(key) + ' (' + what + '): ' + (want ? 'must pass' : 'must fail') + ', marked ' + got);
   }
-  const n = CASES.length - known;
+  /* markerOf_ swallows a name the vm has not loaded yet: loaded here first */
+  call('qtMarker_(workRow_({row:{}}))');
+  for (const [cells, html, typed, want, what] of TABLE_CASES) {
+    ctx.__x = { key: 'marker-cases-table-' + what, marks: 1, html, cells }; ctx.__t = typed;
+    let got;
+    try { got = call('mark_(__x, __t)').verdict === 'right'; } catch (e) { got = 'error ' + e.message; }
+    if (got === want) pass++; else bad.push('table ' + JSON.stringify(typed) + ' (' + what + '): ' + (want ? 'must pass' : 'must fail') + ', marked ' + got);
+  }
+  const n = CASES.length + TABLE_CASES.length - known;
   console.log('marker-cases: ' + pass + '/' + n + ' right' + (known ? '; ' + known + ' known-failing' : ''));
   fixed.forEach(f => console.log('  now right, drop its known flag: ' + f));
   report('marker-cases', bad, 'case(s) marked wrongly');
   return { pass, n, known };
 }
-module.exports = { run, CASES };
+module.exports = { run, CASES, TABLE_CASES };
 main(module, run);
