@@ -307,33 +307,47 @@ function renderCard(spec) {
 /* `inline: 'text'` writes the kind's lines as plain text; an ink object (the email's colours, `hues` its tag inks) writes a table with every style inline, */
 /* as mail clients read no stylesheet. The lines, labels, sizes and styles are the kind's `card.letter` in kinds.json and nowhere else. */
 const cardLetterOf_ = kind => (((ITEM_KINDS.kinds[kind] || {}).card || {}).letter || {});
-/* THE MASTER DECIDES CARD FIELDS (unify job J): the row a letter is written from carries the fields its lines `need`, read from `src`, and no list of our own. */
-/* `use` names one of the letter's `rows` (fewer fields); a field the row lacks is read by its `aliases`. */
+/* THE SITE CARD'S PARTS IN ITS ORDER (owner, 23 Nov: EVERY EMAIL CARD IS THE SITE CARD): a question's `card.question.parts.order`; a record's */
+/* (a booking) its name, then its tags, pills, status and sum, each once. The email draws these and no list of its own. */
+function cardSiteParts_(kind) {
+  const c = (ITEM_KINDS.kinds[kind] || {}).card || {}, R = c.record || {};
+  if (c.question && c.question.parts) return c.question.parts.order.slice();
+  return [...new Set([].concat(R.name ? ['name'] : [], c.tags || [], R.pills || [], R.status ? [R.status.fact] : [], R.sum || []))];
+}
+/* THE PARTS A LETTER SAYS: the site's, in its order, those its `words` say how (`use`: only those of one of its `rows`). */
+function cardLetterParts_(kind, use) {
+  const L = cardLetterOf_(kind), only = use ? (L.rows || {})[use] || [] : null;
+  return cardSiteParts_(kind).filter(p => p !== 'say' && (L.words || {})[p] && (!only || only.indexOf(p) >= 0));
+}
+/* THE MASTER DECIDES CARD FIELDS (unify job J): the row a letter is written from carries the fields its parts `need`, read from `src`, and no list of our own. */
+/* `use` names one of the letter's `rows` (fewer parts); a field the row lacks is read by its `aliases`. */
 function cardLetterRow_(kind, src, use) {
   const L = cardLetterOf_(kind), s = src || {}, al = L.aliases || {};
-  const want = use ? ((L.rows || {})[use] || []) : [...new Set((L.lines || []).flatMap(l => l.need || []))];
+  const want = [...new Set(cardLetterParts_(kind, use).flatMap(p => L.words[p].need || []))];
   return Object.assign({}, ...want.map(f => ({ [f]: s[f] !== undefined ? s[f] : s[[].concat(al[f] || []).find(a => s[a] !== undefined)] })));
 }
 /* A KIND'S FACT LINES (kinds.json `card.fields.list`): each `label` with the row's `f`, in that order, an empty one left out. */
 const cardFieldsOf_ = (kind, row) => ((((ITEM_KINDS.kinds[kind] || {}).card || {}).fields || {}).list || [])
   .map(x => ({ label: x.label, value: (row || {})[x.f] })).filter(x => x.value || x.value === 0);
-/* A KIND'S LINES FROM ITS ROW, each through the words file; a `price` line is never said to a child (`see.kid` or a kid role) or with `see.prices === false`. */
-function cardLetterLines_(L, row, see) {
-  const r = row || {}, s = see || {}, str = v => String(v == null ? '' : v).trim();
+/* A KIND'S LINES FROM ITS ROW, each {part, line} through the words file, in the site card's order; a price part (`money.*`) is never said to a child */
+/* (`see.kid` or a kid role) or with `see.prices === false`. `use`: one of the letter's `rows`. */
+function cardLetterLines_(kind, row, see, use) {
+  const L = cardLetterOf_(kind), r = row || {}, s = see || {}, str = v => String(v == null ? '' : v).trim();
   const kid = s.kid === true || s.child === true || [].concat(s.roles || [], s.role || []).join(',').split(/[,\s]+/).some(v => /^(kid|child|student)$/i.test(v));
-  return (L.lines || []).map(l => {
-    if (l.price && (kid || s.prices === false)) return '';
+  return cardLetterParts_(kind, use).map(p => {
+    const l = L.words[p];
+    if (/^money\./.test(p) && (kid || s.prices === false)) return null;
     const said = {}, as = l.as || {};
     (l.need || []).forEach(f => { const v = str(r[f]); if (!v || (l.money && !isFinite(Number(r[f])))) return;
       said[as[f] || f] = l.date ? fmtDate_(r[f], f) : l.money ? fmtMoney_(r[f]) : v; });
     const got = (l.need || []).map(f => said[as[f] || f]).filter(Boolean);
-    if (l.word && got.length === (l.need || []).length) return text_(l.word, said);
-    return l.alone === 'any' ? got[0] || '' : l.alone ? said[l.alone] || '' : '';
+    const line = l.word && got.length === (l.need || []).length ? text_(l.word, said) : l.alone === 'any' ? got[0] || '' : l.alone ? said[l.alone] || '' : '';
+    return line ? { part: p, line: line } : null;
   }).filter(Boolean);
 }
 function cardLetter_(spec) {
   const L = cardLetterOf_(spec.kind), I = spec.inline, cut = spec.cut || {};
-  if (I === 'text') return cardLetterLines_(L, spec.row, spec.see).map(l => (L.bullet || '') + l).join('\n');
+  if (I === 'text') return cardLetterLines_(spec.kind, spec.row, spec.see, spec.use).map(l => (L.bullet || '') + l.line).join('\n');
   const Z = Object.assign({}, L.sizes, I);
   const st = (k, more) => String((L.styles || {})[k] || '').replace(/\{(\w+)\}/g, (m, n) => { const v = more && n in more ? more[n] : Z[n]; return v == null ? '' : v; });
   const cl = k => ((L.cls || {})[k] ? ` class="${esc(L.cls[k])}"` : '');

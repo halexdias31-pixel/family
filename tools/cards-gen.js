@@ -28,7 +28,7 @@ const TAKE = [
   /* THE ONE CARD MAKER (owner, 16 Nov: one card maker everywhere): renderCard and the blocks it draws; an email calls it with its inline setting. */
   ['js/cards-render.js', ['cardRuns_', 'CARD_ENT', 'cardHasMarkup_', 'cardMarkupRuns_', 'CARD_SUB', 'cardSub_', 'cardFrac_', 'cardLastGap_', 'cardAttrs_',
     'cardPic_', 'pixSvg_', 'cardTag_', 'renderTags', 'cardControl_', 'cardAnswer_', 'CARD_EMBEDS', 'cardEmbed_', 'cardTree_', 'cardGrid_', 'cardChoice_',
-    'cardChoices_', 'CARD_BLOCKS', 'CARD_DRAW_ELS', 'cardDraw_', 'cardBlock_', 'cardBlocks_', 'renderCard', 'cardLetterOf_', 'cardLetterRow_','cardLetterLines_', 'cardLetter_',
+    'cardChoices_', 'CARD_BLOCKS', 'CARD_DRAW_ELS', 'cardDraw_', 'cardBlock_', 'cardBlocks_', 'renderCard', 'cardLetterOf_', 'cardSiteParts_', 'cardLetterParts_', 'cardLetterRow_','cardLetterLines_', 'cardLetter_',
     'answerTag_', 'answersRow_', 'answerBox_']],
   /* EACH FACET'S HUE (tools/facet-hues.js): a card's tag is `h` + TAG_OF[field], and so is the email's. */
   ['js/find-bundles.js', ['TAG_OF']],
@@ -142,12 +142,14 @@ function formsInto(file) {
 function libParts() {
   return '/* from data/settings/kinds.json sheet.lib (tools/lib/lib-files.js) */\nconst LIB_FILES = ' + JSON.stringify(require('./lib/lib-files.js').libFiles()) + ';';
 }
-/* EACH KIND'S LETTER (kinds.json `card.letter`, rule 1.80): the lines, labels and inline styles renderCard writes an email's card by. */
+/* EACH KIND'S LETTER (kinds.json `card.letter`, rule 1.80): how each part is said, the labels and inline styles renderCard writes an email's card by. */
 function letterParts() {
   const kinds = SD.kinds(), out = {};
   /* AND THE ONE QUESTION CARD'S PARTS IN ORDER (`card.question.parts`, owner 22 Nov): the email draws the site's parts, in the site's order. */
-  Object.keys(kinds).forEach(k => { const c = kinds[k].card; if (c && c.letter) out[k] = { card: Object.assign({ letter: c.letter }, c.question && c.question.parts ? { question: { parts: c.question.parts } } : {}) }; });
-  return '/* from data/settings/kinds.json card.letter and card.question.parts */\nconst ITEM_KINDS = ' + JSON.stringify({ kinds: out }) + ';';
+  /* AND A RECORD'S (a booking's) `tags` and `record` (owner 23 Nov: EVERY EMAIL CARD IS THE SITE CARD): `cardSiteParts_` reads the parts and their order off them. */
+  Object.keys(kinds).forEach(k => { const c = kinds[k].card; if (c && c.letter) out[k] = { card: Object.assign({ letter: c.letter }, c.question && c.question.parts ? { question: { parts: c.question.parts } } : {},
+    c.record ? { record: c.record, tags: c.tags || [] } : {}) }; });
+  return '/* from data/settings/kinds.json card.letter, card.question.parts, card.record and card.tags */\nconst ITEM_KINDS = ' + JSON.stringify({ kinds: out }) + ';';
 }
 /* THE ONE PRICE (owner, 17 Nov): js/core-price.js whole, inside \`priceCore_(DATA, askProps_)\` with the core.js readers it leans on, */
 /* so createJob prices a booking over the sheet's own rows by the site's own lines (booking.gs \`serverPrice_\`); nothing leaks into the backend's globals. */

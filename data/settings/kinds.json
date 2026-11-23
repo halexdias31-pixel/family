@@ -645,7 +645,7 @@
      "status": {"fact": "paid", "look": {"Unpaid": "is-new"}}, "sum": ["who", "weeks", "money.total"]},
     "tool": "jobPage_(raw)",
     "letter": {
-     "say": "THE BOOKING AS AN EMAIL SAYS IT (owner, 16 Nov: one card maker): renderCard with inline \"text\" writes these lines, each through the words file; a line marked price is never said to a child or when prices are off.",
+     "say": "THE BOOKING AS AN EMAIL SAYS IT (owner, 23 Nov: EVERY EMAIL CARD IS THE SITE CARD): renderCard with inline \"text\" draws the site card's own parts in the site card's order (`cardSiteParts_`: the record's name, the tags, the pills, the status, the sum), each a bullet line through the words file where `words` says how; a part with no way said is the site's alone (its Booking label, the tutor, the paid pill). A `money.*` part is a price, never said to a child or when prices are off. tools/one-email-card.js holds it.",
      "bullet": "• ",
      "aliases": {
       "say": "A FIELD BY ANOTHER COLUMN'S NAME (unify job J): cardLetterRow_ reads the field, or failing it the first of these the row has (a Jobs row says weekday and start_time).",
@@ -653,51 +653,17 @@
       "time": ["start_time"]
      },
      "rows": {
-      "say": "A LETTER THAT SAYS LESS (unify job J): cardLetterRow_(kind, src, name) picks only these fields; without a name it picks every line's `need`.",
-      "cancelled": ["subject", "day", "time"]
+      "say": "A LETTER THAT SAYS LESS (unify job J): cardLetterRow_(kind, src, name) and the card draw only these of the site card's parts; without a name, every part `words` says.",
+      "cancelled": ["name", "when"]
      },
-     "lines": [
-      {
-       "word": "card-subject-level",
-       "need": [
-        "subject",
-        "level"
-       ],
-       "alone": "subject"
-      },
-      {
-       "word": "card-day-at-time",
-       "need": [
-        "day",
-        "time"
-       ],
-       "date": true,
-       "alone": "any"
-      },
-      {
-       "need": [
-        "location"
-       ],
-       "alone": "location"
-      },
-      {
-       "word": "card-dates",
-       "need": [
-        "dates"
-       ]
-      },
-      {
-       "word": "card-total",
-       "need": [
-        "price"
-       ],
-       "money": true,
-       "price": true,
-       "as": {
-        "price": "total"
-       }
-      }
-     ]
+     "words": {
+      "say": "HOW THE EMAIL SAYS A SITE PART, keyed by the site card's part and never an order of its own: `word` the words file's line, `need` the row's fields, `alone` the field said when the rest are missing.",
+      "name": {"word": "card-subject-level", "need": ["subject", "level"], "alone": "subject"},
+      "venue": {"need": ["location"], "alone": "location"},
+      "when": {"word": "card-day-at-time", "need": ["day", "time"], "date": true, "alone": "any"},
+      "weeks": {"word": "card-dates", "need": ["dates"]},
+      "money.total": {"word": "card-total", "need": ["price"], "money": true, "as": {"price": "total"}}
+     }
     }
    },
    "live": {
