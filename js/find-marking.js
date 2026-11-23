@@ -1670,7 +1670,7 @@ const MARK_METHODS = {
   choice: { has: x => markerOf_(x).kind === 'choice', run: (x, a) => markChoice_(x, a, false) },
   order: { has: x => markerOf_(x).kind === 'order', run: (x, a) => markChoice_(x, a, true) },
   cells: { has: x => markerOf_(x).kind === 'cells', run: (x, a) => {
-    const m = markCells_(a, cellsOf_(x), markOpt_(x));
+    const m = markCells_(a, cellsOf_(x), markOpt_(x), cellsOrder_(x));
     return m.each.some(v => v === true || v === false) ? { got: m.right, of: m.of, each: m.each } : null;
   } },
   accept: { has: x => markerOf_(x).kind === 'accept' && !markIsPeel_(x.accept) && !markIsPoints_(x.accept), run: (x, a) => {

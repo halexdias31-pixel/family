@@ -358,7 +358,7 @@ CARD_EMBEDS.qsheet = a => {
   const stems = was.stems.map(st => qStemWhole_(x, st, was.shown, a.pic ? [] : null)).join('');
   const words = partChunks_(x).map(c => chunkHtml_(c, circOf_(x), x)).join('');
   const has = was.ans && (questionHasAns_(x) || schemeOwed_(x));
-  return stems + figBox_({ look: 'qsheet qtext', inner: qWordsOr_(x, words) }) + ansArea_(x) + (has ? questionAnsCard_(x, true) : '');
+  return stems + figBox_({ look: 'qsheet qtext', inner: qWordsOr_(x, cellsHere_(x, words)) }) + ansArea_(x) + (has ? questionAnsCard_(x, true) : '');
 };
 /* A QUESTION IS AN ITEM (one item shape, slice 4): its card is its map in ITEM_MAPS (cards-parts.js); these are the map's pieces, */
 /* each reading the Find entry (`x`) the card is drawn from. The answer box, the marking and the tiles are called exactly as before. */

@@ -322,6 +322,13 @@ function answerParts_(raw) {
 }
 
 function answerBlock_(x) {
+  /* A TABLE TO FILL shows its table, each cell's key in place, the scheme's head under it as a note (owner, 23 Nov) */
+  const table = x && typeof cellsKeyTable_ === 'function' && cellsOf_(x).some(c => c.ways) ? cellsKeyTable_(x) : '';
+  if (table) {
+    const note = String(x.answer || '').trim() ? answerParts_(x.answer).head : '';
+    return cardBlock_({ type: 'group', look: 'qans', blocks: [{ type: 'group', tag: 'span', look: 'qans-head', text: 'Answer' },
+      { type: 'group', look: 'qans-body qtext', inner: '<div class="qp-cells-wrap q-tscroll">' + table + '</div>' + (note ? '<p class="qans-note">' + typeset_(note) + '</p>' : '') }] });
+  }
   if (!x || !(String(x.answer || '').trim() || (x.choiceRight || []).length)) return '';
   /* WHO MAY SEE THIS IS NOT DECIDED HERE. `questionAnsCard_` asks `ansOpen_` before it draws any of
      this, so a page that has not been shown holds no answer to find. */

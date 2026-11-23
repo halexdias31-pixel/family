@@ -48,7 +48,7 @@ const ORDER = [
   'one-box',      // the one-box check (rule 1.75, owner 20 Nov): every answer face by qtFace_; more than one box fails the build
   'three-faces',  // the three-faces check (rule 1.75, owner 22 Nov: queue step 4): every active question's face by qtFace_ is type, pick or draw, every qengine type's too, no camera or photo code; fails the build
   'all-buttons',  // the all-buttons check (rule 1.75, 1.83, owner 23 Nov): every question part shows every qengine.json buttons tile, the same set in the same order (qtools-row.js qtAll_), and no More or ⋯ hides actions anywhere; fails the build
-  'one-cells',    // the one-cells check (rule 1.75, owner 22 Nov): a question with cells draws one box and a hint, its right answers in order mark full; fails the build
+  'one-cells',    // the fill-a-table check (rule 1.75, owner 23 Nov): a table a box a cell, rows written whole in any order, the rest by place; fails the build
   'email-ink',    // the email-ink check (rule 1.75, 20 Nov): the Sunday email's colours equal style.css tokens, its esc and the card maker's cardUnesc_ round-trip; fails the build
   'digest-clip',  // the digest-clip check (rule 1.75, owner 20 Nov): large weeks through the Sunday email's digestRender_; a part over Gmail's clip or a question without its words fails the build
   'one-email',    // the one-email check (rule 1.75, queue step 8, 22 Nov): every email the backend builds, MailApp stubbed, through one card (email.gs emailOf_) with the same recipients, words and links as before (tools/data/one-email.json); fails the build

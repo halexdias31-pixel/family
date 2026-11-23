@@ -572,6 +572,7 @@ const FINDER_TAGS = {
 "kindLabel=Practice&kindOwn=Answers&subject=English Literature&level=GCSE": ["examBoard",[["AQA"],["OCR"]],[247,111],358,["[object Object]","[object Object]"]],
 "kindLabel=Practice&kindOwn=Answers&subject=English Literature&level=A-Level": ["examYear",[["2025"],["2024"],["2023"],["2022"],["2021"]],[32,18,38,38,38],164,["[object Object]","[object Object]","[object Object]","[object Object]","[object Object]"]],
 "kindLabel=Practice&kindOwn=Answers&subject=Geography&level=GCSE": ["examYear",[["2025"],["2023"],["2022"],["2021"],["2020"]],[52,47,48,38,45],230,["[object Object]","[object Object]","[object Object]","[object Object]","[object Object]"]],
+"kindLabel=Practice&kindOwn=Answers&subject=Greek": ["tier",[["Foundation"],["Higher"]],[9,9],18,["[object Object]","[object Object]"]],
 "kindLabel=Practice&kindOwn=Answers&subject=History": ["level",[["GCSE"],["A-Level"]],[260,684],944,["[object Object]","[object Object]"]],
 "kindLabel=Practice&kindOwn=Answers&subject=History&level=GCSE": ["examYear",[["2025"],["2024"],["2023"],["2022"],["2021"],["2020"]],[36,40,40,52,52,40],260,["[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]"]],
 "kindLabel=Practice&kindOwn=Answers&subject=History&level=A-Level": ["examYear",[["2025"],["2024"],["2023"],["2022"],["2021"],["2020"]],[120,120,120,120,92,112],684,["[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]"]],
@@ -1208,7 +1209,6 @@ const FINDER_TAGS = {
 "kindLabel=Practice&kindOwn=Answers&subject=Chemistry&level=GCSE&documentType=Exam paper&examBoard=AQA&tier=Higher&examYear=2024": ["examDay",[["11"],["17"]],[80,77],157,["[object Object]","[object Object]"]],
 "kindLabel=Practice&kindOwn=Answers&subject=Geography": ["level",[["GCSE"],["A-Level"]],[230,292],522,["[object Object]","[object Object]"]],
 "kindLabel=Practice&kindOwn=Answers&subject=Geography&level=A-Level": ["examBoard",[["AQA"],["OCR"]],[140,152],292,["[object Object]","[object Object]"]],
-"kindLabel=Practice&kindOwn=Answers&subject=Greek": ["tier",[["Foundation"],["Higher"]],[9,9],18,["[object Object]","[object Object]"]],
 "kindLabel=Practice&kindOwn=Answers&subject=Maths": ["level",[["SATs"],["KS3"],["Functional Skills L2"],["GCSE"],["A-Level"]],[1904,1787,24,11418,2588],16694,["[object Object]","[object Object]","[object Object]","[object Object]","[object Object]"]],
 "kindLabel=Practice&kindOwn=Answers&subject=Maths&level=GCSE": ["documentType",[["5-a-day"],["Exam paper"],["Worksheet"]],[1355,3513,6429],11418,["[object Object]","[object Object]","[object Object]"]],
 "kindLabel=Practice&kindOwn=Answers&subject=Maths&level=GCSE&documentType=Exam paper": ["examBoard",[["AQA"],["Edexcel"]],[358,3155],3513,["[object Object]","[object Object]"]],
@@ -1233,9 +1233,9 @@ const FINDER_TAGS = {
 "kindLabel=Settings": ["settingFor",[["Student"],["Parent"],["Staff"],["Apprentice"],["Admin"],["Business"],["Site"]],[14,9,16,10,10,3,4],30,["[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]"]]
 },
 "bible": {
-"": ["kindLabel",[["Practice"],["Library"],["Posts"],["Messages"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]],[38091,189192,2,1,1,5,10,15,4,3],227323,["[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]"]],
-"kindLabel=Practice": ["kindOwn",[["Questions"],["Answers"],["Inserts"]],[37897,37498,194],38091,["[object Object]","[object Object]","[object Object]"]],
-"kindLabel=Practice&kindOwn=Questions": ["subject",[["Biology"],["Business"],["Chemistry"],["Driving Theory"],["Economics"],["English Language"],["English Literature"],["Geography"],["History"],["Maths"],["Physical Education"],["Physics"],["Politics"],["Portuguese"],["Psychology"],["Religious Studies"],["Sociology"],["Statistics"]],[4635,392,5214,10,131,458,522,481,944,17021,322,4460,120,43,1187,1004,436,517],37897,["[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]"]],
+"": ["kindLabel",[["Practice"],["Library"],["Posts"],["Messages"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]],[38109,189192,2,1,1,5,10,15,4,3],227341,["[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]"]],
+"kindLabel=Practice": ["kindOwn",[["Questions"],["Answers"],["Inserts"]],[37915,37516,194],38109,["[object Object]","[object Object]","[object Object]"]],
+"kindLabel=Practice&kindOwn=Questions": ["subject",[["Biology"],["Business"],["Chemistry"],["Driving Theory"],["Economics"],["English Language"],["English Literature"],["Geography"],["Greek"],["History"],["Maths"],["Physical Education"],["Physics"],["Politics"],["Portuguese"],["Psychology"],["Religious Studies"],["Sociology"],["Statistics"]],[4635,392,5214,10,131,458,522,481,18,944,17021,322,4460,120,43,1187,1004,436,517],37915,["[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Biology": ["level",[["GCSE"],["A-Level"]],[3470,1165],4635,["[object Object]","[object Object]"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Biology&level=GCSE": ["documentType",[["End of topic test"],["Exam paper"],["Worksheet"]],[167,2708,595],3470,["[object Object]","[object Object]","[object Object]"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Biology&level=GCSE&documentType=Exam paper": ["examBoard",[["AQA"],["OCR"]],[1824,884],2708,["[object Object]","[object Object]"]],
@@ -1297,6 +1297,7 @@ const FINDER_TAGS = {
 "kindLabel=Practice&kindOwn=Questions&subject=English Language&level=SATs": ["qNumber",[["Q1"],["Q2"],["Q3"],["Q4"],["Q5"],["Q6"],["Q7"],["Q8"],["Q9"],["Q10"],["Q11"],["Q12"],["Q13"],["Q14"],["Q15"],["Q16"],["Q17"],["Q18"],["Q19"],["Q20"],["Q21"],["Q23"],["Q24"],["Q25"],["Q26"],["Q27"],["Q28"],["Q29"],["Q30"],["Q31"],["Q32"],["Q33"],["Q34"],["Q35"],["Q36"],["Q37"],["Q38"],["Q39"],["Q40"],["Q41"],["Q42"],["Q43"],["Q44"],["Q45"],["Q46"],["Q47"],["Q48"],["Q49"],["Q50"]],[1,1,1,4,1,1,2,1,1,1,3,1,1,1,1,1,1,1,1,4,1,1,1,3,4,1,1,1,1,1,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],65,["[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Geography": ["level",[["GCSE"],["A-Level"]],[230,251],481,["[object Object]","[object Object]"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Geography&level=A-Level": ["examBoard",[["AQA"],["OCR"]],[140,111],251,["[object Object]","[object Object]"]],
+"kindLabel=Practice&kindOwn=Questions&subject=Greek": ["tier",[["Foundation"],["Higher"]],[9,9],18,["[object Object]","[object Object]"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Maths": ["level",[["11+"],["SATs"],["KS3"],["Functional Skills L2"],["GCSE"],["A-Level"]],[202,2098,1787,24,11349,2588],17021,["[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Maths&level=SATs": ["documentType",[["Exam paper"],["Worksheet"]],[719,1379],2098,["[object Object]","[object Object]"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Maths&level=SATs&documentType=Exam paper": ["keystage",[["KS1"],["KS2"]],[169,550],719,["[object Object]","[object Object]"]],
@@ -1339,7 +1340,7 @@ const FINDER_TAGS = {
 "kindLabel=Practice&kindOwn=Questions&subject=Physics&level=A-Level&examBoard=AQA&examYear=2025": ["paperId",[["P-AQA-7408-2506-1","Paper 1"],["P-AQA-7408-2506-2","Paper 2"],["P-AQA-7408-2506-3A","Paper 3 Section A"],["P-AQA-7408-2506-3BA","Paper 3 Section B Option A…"],["P-AQA-7408-2506-3BB","Paper 3 Section B Option B…"],["P-AQA-7408-2506-3BC","Paper 3 Section B Option C…"],["P-AQA-7408-2506-3BD","Paper 3 Section B Option D…"],["P-AQA-7408-2506-3BE","Paper 3 Section B Option E…"]],[34,33,8,12,6,10,9,6],118,["[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Physics&level=A-Level&examBoard=AQA&examYear=2024": ["examDay",[["6"],["17"],["24"]],[51,22,55],172,["[object Object]","[object Object]","[object Object]"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Physics&level=A-Level&examBoard=OCR": ["examYear",[["2025"],["2023"],["2021"],["2019"],["2018"]],[63,90,35,97,25],310,["[object Object]","[object Object]","[object Object]","[object Object]","[object Object]"]],
-"kindLabel=Practice&kindOwn=Answers": ["subject",[["Biology"],["Business"],["Chemistry"],["Driving Theory"],["Economics"],["English Language"],["English Literature"],["Geography"],["History"],["Maths"],["Physical Education"],["Physics"],["Politics"],["Portuguese"],["Psychology"],["Religious Studies"],["Sociology"],["Statistics"]],[4634,392,5214,10,131,458,522,481,944,16625,322,4458,120,43,1187,1004,436,517],37498,["[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]"]],
+"kindLabel=Practice&kindOwn=Answers": ["subject",[["Biology"],["Business"],["Chemistry"],["Driving Theory"],["Economics"],["English Language"],["English Literature"],["Geography"],["Greek"],["History"],["Maths"],["Physical Education"],["Physics"],["Politics"],["Portuguese"],["Psychology"],["Religious Studies"],["Sociology"],["Statistics"]],[4634,392,5214,10,131,458,522,481,18,944,16625,322,4458,120,43,1187,1004,436,517],37516,["[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]"]],
 "kindLabel=Practice&kindOwn=Answers&subject=Biology": ["level",[["GCSE"],["A-Level"]],[3469,1165],4634,["[object Object]","[object Object]"]],
 "kindLabel=Practice&kindOwn=Answers&subject=Biology&level=GCSE": ["documentType",[["End of topic test"],["Exam paper"],["Worksheet"]],[167,2707,595],3469,["[object Object]","[object Object]","[object Object]"]],
 "kindLabel=Practice&kindOwn=Answers&subject=Biology&level=GCSE&documentType=Exam paper": ["examBoard",[["AQA"],["OCR"]],[1824,883],2707,["[object Object]","[object Object]"]],
@@ -3658,6 +3659,12 @@ why = why.replace(/^((?:\s*<[a-z][^>]*>)*\s*)([a-z])(?=[a-z])/, (w, tags, c) => 
 return { head: head, why: seen(why) ? why : '' };
 }
 function answerBlock_(x) {
+const table = x && typeof cellsKeyTable_ === 'function' && cellsOf_(x).some(c => c.ways) ? cellsKeyTable_(x) : '';
+if (table) {
+const note = String(x.answer || '').trim() ? answerParts_(x.answer).head : '';
+return cardBlock_({ type: 'group', look: 'qans', blocks: [{ type: 'group', tag: 'span', look: 'qans-head', text: 'Answer' },
+{ type: 'group', look: 'qans-body qtext', inner: '<div class="qp-cells-wrap q-tscroll">' + table + '</div>' + (note ? '<p class="qans-note">' + typeset_(note) + '</p>' : '') }] });
+}
 if (!x || !(String(x.answer || '').trim() || (x.choiceRight || []).length)) return '';
 const kind = String(x.answerType || '').trim();
 return cardBlock_({ type: 'group', look: 'qans', blocks: [{ type: 'group', tag: 'span', look: 'qans-head', text: 'Answer' + (kind ? ' · ' + kind : '') },
@@ -4184,6 +4191,7 @@ return String(s == null ? '' : s)
 .replace(/sqrt\s*/g, '√').replace(/(^|[^a-z])root\s*(?=[\d(])/g, '$1√')
 .replace(/(^|[^a-z])pi(?![a-z])/g, '$1π')
 .replace(/(\d)\s+(?=[√π])/g, '$1')
+.replace(/(^|[^\w)])\((-?\d+)\)\s+(?=\(?\d+\)?\/)/g, '$1$2 ')
 .replace(/([√^])\((-?[a-z0-9.π]+)\)/g, '$1$2')
 .replace(/\((-?√?[a-z0-9.π]+(?:\^-?[a-z0-9.π]+)?)\)(?=\/)/g, '$1')
 .replace(/([\/^√])\((-?√?[a-z0-9.π]+)\)/g, '$1$2')
@@ -4268,7 +4276,8 @@ else s = s.replace(MARK_UNIT, '$1');
 return s;
 }
 function markRuleNums_(typed) {
-const t = markNorm_(typed).replace(/[,;=+×]/g, ' , ').replace(/(\d)-(?=\d)/g, '$1 , ');
+const t = markNorm_(String(typed == null ? '' : typed).replace(/^\s*(-?\d+)\s+and\s+(\d+\s*\/\s*\d+)\s*$/i, '$1 $2')).replace(/^(-?\d+)\+(\d+)\/(\d+)$/, (m, w, n, d) => (Number(n) < Number(d) ? w + ' ' + n + '/' + d : m))
+.replace(/[,;=+×]/g, ' , ').replace(/(\d)-(?=\d)/g, '$1 , ');
 const out = [];
 const re = /(?:^|[^\d.\/a-z^])(-?)(\d+(?:\.\d+)?)(?:\s+(\d+)\/(\d+)|\/(\d+))?(p?)(?![\d.\/a-z^\u00b2\u00b3])/g;
 let m;
@@ -5284,7 +5293,8 @@ if (!again && markOrderBroken_(typed, accept, opt)) return false;
 const geno = Array.isArray(typed) ? null : markGenotypeList_(typed, accept);
 if (geno != null) return geno;
 const first = markAnswer_(typed, accept, again, o);
-return first || (again ? first : markListed_(String(typed).replace(/\s*[\r\n;]+\s*/g, ', ').replace(/[\u2212\u2013\u2014]/g, '-').toLowerCase(), accept, o) || first);
+const form = /rule:[^|]*(?:^|[:,])\s*(mixed|decimal|lowest)\s*(?:,|\||$)/i.test(String(accept || ''));
+return first || (again || form ? first : markListed_(String(typed).replace(/\s*[\r\n;]+\s*/g, ', ').replace(/[\u2212\u2013\u2014]/g, '-').toLowerCase(), accept, o) || first);
 }
 const said = !again && markSpoken_(t);
 if (said && said !== t && markAnswer_(said, accept)) return true;
@@ -5364,6 +5374,13 @@ return cardBlocks_([{ type: 'group', tag: 'ol', look: 'qp-optlist', attrs: { typ
 blocks: bare ? [] : [{ type: 'group', tag: 'b', look: 'qp-optl', text: CHOICE_LETTERS[i] || String(i + 1) }], inner: (bare ? '' : ' ') + typeset_(c) })) },
 { type: 'group', tag: 'span', look: 'qp-ans-k', text: say }]);
 }
+function choiceKeysAt_(x) {
+if (!x || !Array.isArray(x.choices) || x.choices.length < 2) return null;
+const bare = x.choices.map(c => String(c).replace(/<[^>]*>/g, '').trim());
+const own = bare.every(c => /^[A-Za-z]$/.test(c)) && new Set(bare).size === bare.length;
+const letters = own ? bare.join('') : CHOICE_LETTERS.slice(0, x.choices.length);
+return { 'data-kp-letters': letters, 'data-kp-pick': orderIs_(x) ? 'order' : (x.choiceRight || []).length > 1 ? 'set' : 'one' };
+}
 function choicePicks_(x, typed) {
 const opts = ((x && x.choices) || []).map(c => markNorm_(String(c).replace(/<[^>]*>/g, ' ')));
 const t = String(typed == null ? '' : typed).trim();
@@ -5396,7 +5413,7 @@ const MARK_METHODS = {
 choice: { has: x => markerOf_(x).kind === 'choice', run: (x, a) => markChoice_(x, a, false) },
 order: { has: x => markerOf_(x).kind === 'order', run: (x, a) => markChoice_(x, a, true) },
 cells: { has: x => markerOf_(x).kind === 'cells', run: (x, a) => {
-const m = markCells_(a, cellsOf_(x), markOpt_(x));
+const m = markCells_(a, cellsOf_(x), markOpt_(x), cellsOrder_(x));
 return m.each.some(v => v === true || v === false) ? { got: m.right, of: m.of, each: m.each } : null;
 } },
 accept: { has: x => markerOf_(x).kind === 'accept' && !markIsPeel_(x.accept) && !markIsPoints_(x.accept), run: (x, a) => {
@@ -5642,53 +5659,128 @@ const oneWord = gaps.every(c => String(c.ways).split('|').every(w => !/\S\s+\S/.
 const score = v => v.filter((p, j) => markAnswer_(p, gaps[j].ways) === true).length;
 return [false].concat(oneWord ? [true] : []).map(sp => gapsFit_(s, gapSpans_(s, sp), gaps)).reduce((a, b) => (score(b) > score(a) ? b : a));
 }
-function markCells_(vals, cells, opt) {
-vals = cellsOneBox_(typeof vals === 'string' ? [vals] : vals, cells);
+function cellsOrder_(x) {
+const cells = cellsOf_(x), r = (x && x.row) || x || {};
+const p = qtCellPlaces_(String(r.lead || '') + String(r.html || ''), cells);
+if (!p) return { by: 'place', table: '', groups: [], places: null };
+const box = new Map(p.at.map((i, k) => [i, k]).filter(([i]) => i >= 0));
+const lines = key => {
+const m = new Map();
+p.tds.forEach((d, i) => { const g = d[key]; if (!m.has(g)) m.set(g, []); m.get(g).push(i); });
+return [...m.values()].filter(l => l.length >= 2 && l.every(i => box.has(i))).map(l => l.map(i => box.get(i)));
+};
+const out = by => ({ by, table: p.table, groups: by === 'place' ? [] : lines(by === 'rows' ? 'r' : 'c'), places: p });
+if (p.by !== 'blanks') return out('place');
+if (lines('r').length >= 2) return out('rows');
+if (lines('c').length >= 2) return out('cols');
+return out('place');
+}
+function markCells_(vals, cells, opt, order) {
+vals = Array.isArray(vals) && vals.length === cells.length && cells.length > 1 ? vals.map(v => String(v == null ? '' : v)) : cellsOneBox_(typeof vals === 'string' ? [vals] : vals, cells);
 const gapOpt = i => ({ strict: !!(opt && opt.strict), others: ((opt && opt.others) || []).concat(cells.filter((c, j) => j !== i && c.ways).map(c => c.ways)) });
-const each = cells.map((c, i) => c.ways ? markAnswer_(vals[i] || '', c.ways, false, gapOpt(i)) : undefined);
+const one = (v, i) => !!markAnswer_(v || '', cells[i].ways, false, gapOpt(i));
+const each = cells.map((c, i) => (c.ways ? markAnswer_(vals[i] || '', c.ways, false, gapOpt(i)) : undefined));
+const groups = (order && order.groups) || [];
+if (groups.length >= 2) {
+const score = (a, b) => a.reduce((s, n, c) => s + (cells[b[c]] && cells[b[c]].ways && one(vals[n], b[c]) ? 1 : 0), 0);
+const pairs = [];
+groups.forEach((a, i) => groups.forEach((b, j) => { if (a.length === b.length) pairs.push([score(a, b), i === j ? 1 : 0, i, j]); }));
+pairs.sort((p, q) => q[0] - p[0] || q[1] - p[1]);
+const usedA = new Set(), usedB = new Set();
+for (const [, , i, j] of pairs) {
+if (usedA.has(i) || usedB.has(j)) continue;
+usedA.add(i); usedB.add(j);
+groups[i].forEach((n, c) => { const k = groups[j][c]; each[n] = cells[n].ways ? (cells[k].ways ? one(vals[n], k) : false) : undefined; });
+}
+}
 const asked = each.filter(v => v !== undefined);
-return { right: asked.filter(v => v === true).length, of: asked.length, each: each };
+return { right: asked.filter(v => v === true).length, of: asked.length, each: each, by: (order && order.by) || 'place' };
 }
 const fcG_ = (tag, look, attrs, inner, text) => cardBlock_({ type: 'group', tag, look, attrs, inner, text });
 const fcVerdict_ = t => fcG_('span', 'qp-verdict', { role: 'status', 'aria-live': 'polite' }, '', t);
 const fcSaved_ = k => fcG_('span', 'qp-saved', { 'data-k': k }, '', ansSavedSay_(k));
-function cellsHint_(cells, maths) {
-const asked = cells.filter(c => c.ways), named = asked.filter(c => !/^\(?(\d+|[a-z]|[ivx]+)\)?$/i.test(c.label)).map(c => c.label);
-const say = 'Give ' + asked.length + (maths ? ' numbers' : ' answers') + ' in order, separated by commas';
-return named.length === asked.length ? named.join(', ') + ' \u2014 ' + say.charAt(0).toLowerCase() + say.slice(1) : say;
+const cellsVals_ = (v, cells) => { const s = String(v == null ? '' : v); return / ; /.test(s) || !s.trim() ? s.split(' ; ') : cellsOneBox_([s], cells); };
+const cellsFirstWay_ = c => String(c.ways || '').split('|').map(w => w.trim()).find(w => w && !/^rule:/i.test(w)) || '';
+function cellsCellBox_(k, c, i, v, acc) {
+const maths = kpMathsy_(cellsFirstWay_(c));
+return fcG_('label', 'qp-ans qp-cell-ans' + (maths ? ' qp-ans-maths' : ''), { 'data-accept': acc || c.ways },
+kpField_(k, v || '', maths ? 'maths' : 'words', 3, 'Blank ' + c.label, { class: 'qp-ans-in kp-in qp-cell', 'data-do': 'qp-cell', 'data-n': String(i) }));
 }
+function cellsTable_(x, key) {
+const cells = cellsOf_(x), k = ansKey_(x), vals = key ? [] : cellsVals_(ansRead_(k), cells), o = cellsOrder_(x), p = o.places;
+const put_ = (c, n, a) => (key ? fcG_('span', 'qp-cell-key', null, typeset_(esc(cellsFirstWay_(c)))) : cellsCellBox_(k, c, n, vals[n], a));
+if (p) {
+let t = p.table;
+const put = p.at.map((i, n) => [i, n]).filter(([i]) => i >= 0).sort((a, b) => b[0] - a[0]);
+const acc = new Map();
+o.groups.forEach(g => g.forEach((n, c) => acc.set(n, [...new Set(o.groups.map(h => cells[h[c]] && cells[h[c]].ways).filter(Boolean))].join(' | '))));
+for (const [i, n] of put) {
+const d = p.tds[i], box = put_(cells[n], n, acc.get(n));
+const open = t.slice(d.at, d.at + d.open), inner = t.slice(d.at + d.open, d.end - 5);
+const tag = /\bclass="/.test(open) ? open.replace(/\bclass="/, 'class="qp-cell-at ') : open.replace(/^<(td|th)/, '<$1 class="qp-cell-at"');
+const fill = p.token[n] ? inner.replace(/<[^>]*>/g, '').replace(p.token[n], '\u0000').replace(/\u0000/, box) : box;
+t = t.slice(0, d.at) + tag + fill + t.slice(d.end - 5);
+}
+return t.replace(/^<table[^>]*>/, '<table class="qp-cells" data-order="' + o.by + '">');
+}
+const named = c => !/^\d+$/.test(c.label);
+return '<table class="qp-cells qp-cells-own" data-order="place"><tbody>' + cells.map((c, n) => (c.ways
+? '<tr><th scope="row">' + esc(named(c) ? c.label : String(n + 1)) + '</th><td class="qp-cell-at">' + put_(c, n) + '</td></tr>' : '')).join('') + '</tbody></table>';
+}
+const cellsKeyTable_ = x => cellsTable_(x, true);
+const cellsHint_ = by => by === 'rows' ? 'Fill in every empty cell — the rows can go in any order'
+: by === 'cols' ? 'Fill in every empty cell — the columns can go in any order' : 'Fill in every empty cell';
 function cellsBox_(x) {
-const cells = cellsOf_(x), k = ansKey_(x);
-const val = String(ansRead_(k) || '').replace(/(?:\s*;\s*)+$/, '');
-const maths = cells.filter(c => c.ways).every(c => /^[-\d.,\s|£$%°/]+$/.test(c.ways));
-const said = subBoxSay_(k, val);
+const k = ansKey_(x), o = cellsOrder_(x);
+const said = subBoxSay_(k, String(ansRead_(k) || ''));
 return fcG_('div', 'qp-mark qp-compose qp-cells-box' + (said.cls ? ' ' + said.cls : ''), { 'data-k': k },
-fcG_('p', 'q-hint', null, '', cellsHint_(cells, maths)) + fcG_('div', 'qp-ans-row qp-bar', null,
-fcG_('label', 'qp-ans' + (maths ? ' qp-ans-maths' : ''), { 'aria-label': text_('your-answers-in-order') }, kpField_(k, val, maths ? 'maths' : 'words', 3)))
+fcG_('p', 'q-hint', null, '', cellsHint_(o.by)) + fcG_('div', 'qp-cells-wrap q-tscroll', null, cellsTable_(x))
 + fcVerdict_(said.text) + fcSaved_(k));
 }
+function cellsHere_(x, html) {
+const cells = cellsOf_(x);
+if (!cells.length || !cellsOrder_(x).places) return html;
+const p = qtCellPlaces_(html, cells);
+return p ? String(html).replace(p.table, '') : html;
+}
+const cellsIn_ = box => [].slice.call(box ? box.querySelectorAll('.qp-cell') : []);
+function cellsRead_(box, cells) {
+const vals = cells.map(() => '');
+cellsIn_(box).forEach(c => { vals[+c.getAttribute('data-n')] = c.value || ''; });
+return vals;
+}
+document.addEventListener('input', e => {
+const el = e.target && e.target.closest && e.target.closest('[data-do="qp-cell"]');
+const box = el && el.closest('.qp-cells-box');
+if (!box) return;
+const x = stuffItemsAll_().find(it => ansKey_(it) === box.getAttribute('data-k'));
+if (!x) return;
+ansStore_(box.getAttribute('data-k'), cellsRead_(box, cellsOf_(x)).join(' ; '), true);
+box.classList.remove('is-right', 'is-near');
+const lab = el.closest('.qp-cell-ans');
+if (lab) lab.classList.remove('is-right', 'is-near');
+});
+document.addEventListener('focusout', e => {
+if (e.target && e.target.closest && e.target.closest('[data-do="qp-cell"]') && typeof answersPush_ === 'function') answersPush_(true);
+});
 on('qp-cells-check', el => {
 const box = qMark_(el, '.qp-cells-box');
 const out = box && box.querySelector('.qp-verdict');
 const x = box && stuffItemsAll_().find(it => ansKey_(it) === box.getAttribute('data-k'));
-const inp = box && box.querySelector('.qp-ans-in');
-if (!x || !out || !inp) return;
-const cells = cellsOf_(x);
-let vals = [inp.value];
+if (!x || !out) return;
+const cells = cellsOf_(x), vals = cellsRead_(box, cells);
 const v = mark_(x, vals, 'cells'), m = { right: v.marks, of: v.max, each: v.each || [] };
+cellsIn_(box).forEach(c => {
+const lab = c.closest('.qp-cell-ans'), r = m.each[+c.getAttribute('data-n')];
+if (lab) { lab.classList.toggle('is-right', r === true); lab.classList.toggle('is-near', r === false); }
+});
 box.classList.remove('is-right', 'is-near');
 const notYet = partReady_('cells', m);
 if (notYet) { tell_(out, 'info', notYet); return; }
-const got = cellsOneBox_(vals, cells);
-if (cells.every((c, i) => !c.ways || String(got[i] || '').trim())) {
-inp.value = got.join(' ; ');
-if (typeof kpRender_ === 'function') kpRender_(inp);
-ansStore_(box.getAttribute('data-k'), inp.value, inp.getAttribute('data-kp') === 'words');
-vals = [inp.value];
-}
 const all = m.right === m.of;
 box.classList.add(all ? 'is-right' : 'is-near');
-tell_(out, all ? 'saved' : 'info', all ? text_('correct-every') + 'answer' : m.right + ' of ' + m.of + ' answers right');
+tell_(out, all ? 'saved' : 'info', all ? text_('correct-every') + 'cell' : m.right + ' of ' + m.of + ' cells right');
+ansStore_(box.getAttribute('data-k'), vals.join(' ; '), true);
 subRecord_(box.getAttribute('data-k'), vals.join(' ; '), all ? 'right' : 'wrong');
 });
 function qMark_(el, sel) {
@@ -5719,7 +5811,7 @@ return fcG_('div', cls + ' qp-essay' + (said.cls ? ' ' + said.cls : ''), dataAt,
 fcG_('label', 'qp-ans qp-sheet', { 'aria-label': text_('your-answer') }, kpField_(k, val, 'essay', 3)) + fcG_('p', 'qp-words', null, '', kpWordsSay_(val))
 + fcVerdict_(said.text) + fcSaved_(k)) + fb(said.why);
 }
-const bar = opts + fcG_('div', 'qp-ans-row qp-bar', null, fcG_('label', 'qp-ans' + (maths ? ' qp-ans-maths' : ''), { 'aria-label': text_('your-answer') }, kpField_(k, val, maths ? 'maths' : 'words', 3)));
+const bar = opts + fcG_('div', 'qp-ans-row qp-bar', null, fcG_('label', 'qp-ans' + (maths ? ' qp-ans-maths' : ''), { 'aria-label': text_('your-answer') }, kpField_(k, val, maths ? 'maths' : 'words', 3, null, choiceKeysAt_(x))));
 const said = geo ? subBoxSay_(k, padSay_(padRead_(padKey_(x)))) : subBoxSay_(k, val);
 return fcG_('div', cls + (said.cls ? ' ' + said.cls : ''), dataAt,
 bar + fcVerdict_(geo ? padSaid_(said.text) : said.text) + fcSaved_(k)) + fb(said.text ? said.why : '');
@@ -8370,7 +8462,7 @@ if (was.only) return questionHasAns_(x) || schemeOwed_(x) ? questionAnsCard_(x, 
 const stems = was.stems.map(st => qStemWhole_(x, st, was.shown, a.pic ? [] : null)).join('');
 const words = partChunks_(x).map(c => chunkHtml_(c, circOf_(x), x)).join('');
 const has = was.ans && (questionHasAns_(x) || schemeOwed_(x));
-return stems + figBox_({ look: 'qsheet qtext', inner: qWordsOr_(x, words) }) + ansArea_(x) + (has ? questionAnsCard_(x, true) : '');
+return stems + figBox_({ look: 'qsheet qtext', inner: qWordsOr_(x, cellsHere_(x, words)) }) + ansArea_(x) + (has ? questionAnsCard_(x, true) : '');
 };
 const qWas_ = x => Q_DRAWN.get(x.key) || { stems: [], shown: [x], ans: true };
 const qCardKeep_ = x => { if (x.key) Q_ITEM.set(x.key, x.item || x); };
@@ -11937,7 +12029,7 @@ KP_POW,
 { v: '!sqrt', a: 'square root', c: ' kp-op', t: '\u221a' }, { t: '\u03c0', a: 'pi', c: ' kp-op' },
 { t: '0' }, { t: '.', a: 'point' }, { t: ',', a: 'comma' }, { t: '+', a: 'plus' },
 { t: 'x', a: 'x, the letter', c: ' kp-op' }, { t: '=', a: 'equals' },
-{ v: '!abc', a: 'letters', c: ' kp-mode', t: 'abc' },
+{ v: '!undo', a: 'undo', c: ' kp-mode', t: '\u21b6' },
 { v: '!left', a: 'move left', c: ' kp-mode', t: '\u2190' },
 { v: '!right', a: 'move right', c: ' kp-mode', t: '\u2192' },
 KP_MATHS_SPACE,
@@ -11954,6 +12046,15 @@ const KP_SIGN_KEYS = [
 { v: '>', t: '>', a: 'greater than', c: ' kp-op' },
 { t: ':', a: 'colon, for a ratio', c: ' kp-op' },
 { t: '\u00b1', a: 'plus or minus', c: ' kp-op' },
+];
+const KP_FORM_KEYS = [
+{ v: '!mixed', a: 'mixed number', c: ' kp-op', t: { type: 'group', tag: 'span', look: 'kp-mx', attrs: { 'aria-hidden': 'true' },
+blocks: [{ type: 'group', tag: 'span', look: 'kp-mx-w' }, { type: 'group', tag: 'span', look: 'kp-fr', text: [{ i: '' }, { b: '' }, { i: '' }] }] } },
+{ v: '!pt', a: 'coordinates, a point', c: ' kp-op', t: '( , )' },
+{ v: '!x10', a: 'times ten to the power of', c: ' kp-op', t: { type: 'group', tag: 'span', look: 'kp-x10f', attrs: { 'aria-hidden': 'true' }, text: ['\u00d710', { i: '' }] } },
+{ v: '-', a: 'negative', c: ' kp-op', t: '(\u2212)' },
+{ t: 'y', a: 'y, the letter', c: ' kp-op' },
+{ v: 'cm', a: 'centimetres', c: ' kp-op', t: 'cm' },
 ];
 const KP_VEC_A = '\u27ee', KP_VEC_B = '\u27ef';
 const KP_VEC_KEYS = [
@@ -11983,20 +12084,18 @@ const KP_ABC = [].concat(
 '1234567890'.split('').map(c => kpCh_(c)),
 'qwertyuiop'.split('').map(c => kpCh_(c)),
 'asdfghjkl'.split('').map((c, i) => kpCh_(c, '', 6, i ? 0 : 4)),
-[{ v: '!shift', a: 'capitals', c: ' kp-shift kp-mode', span: 9, t: '\u21e7' }],
+[kpCh_(',', 'comma', 9)],
 'zxcvbnm'.split('').map(c => kpCh_(c)),
 [Object.assign({}, KP_DEL_KEY(), { span: 9 })]);
-const kpAbcBottom_ = (essay, sym) => [
-Object.assign({ span: 6 }, { v: '!123', a: 'numbers and maths', c: ' kp-mode', t: '123' }),
-Object.assign({ span: 6 }, sym ? { v: '!abc', a: 'letters', c: ' kp-mode', t: 'abc' } : KP_SYM_KEY),
+const kpAbcBottom_ = essay => [
+kpCh_('-', 'hyphen', 6), kpCh_('?', 'question mark', 6),
 Object.assign({}, KP_MIC, { span: 6 }),
 Object.assign({}, KP_SPACE_KEY, { span: essay ? 18 : 24 }),
-...(sym ? [Object.assign({}, KP_DEL_KEY(), { span: 12 })] : [kpCh_('\'', 'apostrophe', 6), kpCh_('.', 'full stop', 6)])]
+kpCh_('\'', 'apostrophe', 6), kpCh_('.', 'full stop', 6)]
 .concat(essay ? [Object.assign({}, KP_RETURN, { span: 6 }), Object.assign({}, KP_DONE_ESSAY, { span: 6 })]
 : [Object.assign({}, KP_DONE_KEY(), { span: 6 })]);
 const KP_DONE_ESSAY = { v: '!done', a: 'done, put the keypad away', c: ' kp-done kp-done-k', t: 'done' };
-const KP_SYM_KEY = { v: '!sym', a: 'symbols and Greek letters', c: ' kp-mode', t: '\u03b1\u03b2' };
-const kpSy_ = (t, a, v) => ({ v: v, t: t, a: a, c: ' kp-op kp-sy', span: 6 });
+const kpSy_ = (t, a, v) => ({ v: v, t: t, a: a, c: ' kp-op', span: 6 });
 const KP_SYM = [
 kpSy_('\u03b1', 'alpha'), kpSy_('\u03b2', 'beta'), kpSy_('\u03b3', 'gamma'), kpSy_('\u03b8', 'theta'), kpSy_('\u03bb', 'lambda'),
 kpSy_('\u03bc', 'mu'), kpSy_('\u03c3', 'sigma'), kpSy_('\u03c6', 'phi'), kpSy_('\u03c9', 'omega'), kpSy_('\u03a9', 'capital omega, ohms'),
@@ -12022,18 +12121,37 @@ const kpFace_ = t => (t != null && typeof t === 'object' ? cardBlocks_(t) : esc(
 const kpKey_ = k => tile_({ act: 'kp-key', label: k.a || String(k.t || ''),
 data: { v: k.v != null ? k.v : k.t }, icon: k.icon, face: k.icon ? '' : kpFace_(k.t),
 cls: 'kp-key' + (k.c || '') + (k.span ? ' kp-s' + k.span : '') + (k.at ? ' kp-at' + k.at : '') });
-const KP_ABC_TOP_SPAN = [8, 9, 9, 9, 9, 8, 8];
 function kpRows_(keys) {
 let used = 0;
 return keys.map(k => { const span = k.span || 6, first = used % 60 === 0; used += (k.at ? k.at - 1 - used % 60 : 0) + span;
 return first && !k.at ? Object.assign({}, k, { at: 1 }) : k; });
 }
-function kpPadHtml_(layer, words, signs, essay, vec, site) {
-if (layer === 'sym') return kpRows_(KP_SYM.concat(kpAbcBottom_(essay, true))).map(kpKey_).join('');
-const top = site === 'mail' ? KP_MAIL_KEYS : site ? [] : vec ? [KP_POW].concat(KP_VEC_KEYS).map((k, i) => Object.assign({}, k, { span: KP_ABC_TOP_SPAN[i] })) : [];
-if (layer === 'abc') return kpRows_(top.concat(KP_ABC).concat(kpAbcBottom_(essay))).map(kpKey_).join('');
-if (site) return KP_SITE_KEYS.concat(KP_SIGN_KEYS, KP_KEYS.map(kpPlainKey_)).map(k => (essay && k.v === '!done' ? KP_DONE_ESSAY : k)).map(kpKey_).join('');
-return (vec ? KP_VEC_KEYS : []).concat(signs ? KP_SIGN_KEYS : []).concat(KP_KEYS).map(k => (essay && k.v === '!done' ? KP_DONE_ESSAY : k)).map(kpKey_).join('');
+const KP_SIGNS_RE = /[<>\u2264\u2265:\u00b1]/, KP_VEC_RE = /[%\u00a3\u00b0\u00b2\u00b3\u27ee\u27ef^]/;
+const kpWays_ = acc => String(acc || '').split('|').map(w => w.trim()).filter(w => w && !/^rule:/i.test(w));
+function kpNeedKeys_(acc, face, words) {
+const on = new Set(face.map(k => (k.v != null ? k.v : k.t)).filter(v => typeof v === 'string' && v.length === 1));
+const out = [];
+for (const c of [...new Set(kpWays_(acc).join('').replace(/[\s\u2212]/g, ''))]) {
+if (on.has(c) || (!words && /[\d]/.test(c)) || (words && on.has(c.toLowerCase()) && c === c.toLowerCase())) continue;
+if (!words && /[\/\^\u221a()\u00d7\u00f7+\-=.,]/.test(c)) continue;
+const sym = KP_SYM.find(k => (k.v || k.t) === c);
+out.push(words ? kpCh_(c, sym ? sym.a : (/[A-Z]/.test(c) ? 'capital ' + c : c), 6) : { t: c, a: sym ? sym.a : c, c: ' kp-op' });
+if (out.length >= (words ? 20 : 12)) break;
+}
+return out;
+}
+function kpPadHtml_(layer, words, signs, essay, vec, site, acc) {
+const known = !site && !essay && acc != null && kpWays_(acc).length > 0, ways = known ? kpWays_(acc).join(' ') : '';
+if (layer === 'abc') {
+const top = site === 'mail' ? KP_MAIL_KEYS : [];
+const face = top.concat(KP_ABC).concat(kpAbcBottom_(essay));
+return kpRows_(face.concat(known ? kpNeedKeys_(acc, face, true) : [])).map(k => (essay && k.v === '!done' ? KP_DONE_ESSAY : k)).map(kpKey_).join('');
+}
+if (site) return KP_SITE_KEYS.concat(KP_SIGN_KEYS, KP_KEYS.map(kpPlainKey_)).map(kpKey_).join('');
+if (layer === 'letters') return [...String(acc || '')].map(c => ({ v: '!pick:' + c, t: c, a: 'option ' + c, c: ' kp-op' }))
+.concat(KP_KEYS.filter(k => /^!(left|right|back|done)$/.test(k.v))).map(kpKey_).join('');
+const face = (!known || KP_VEC_RE.test(ways) ? KP_VEC_KEYS : []).concat(!known || KP_SIGNS_RE.test(ways) ? KP_SIGN_KEYS : []).concat(KP_FORM_KEYS, KP_KEYS);
+return face.concat(known ? kpNeedKeys_(acc, face, false) : []).map(kpKey_).join('');
 }
 const KP_HOLE = '\u03d9', KP_CARET = '\u03db';
 const KP_BOX_KINDS = { essay: { essay: true, words: true }, words: { words: true } };
@@ -12065,6 +12183,7 @@ if (!s) return '';
 const END = '(?=$|[\\s)+\\-\u00d7\u00f7=,\\/])';
 s = s.replace(/\u27ee(\u03db?),/g, '\u27ee' + KP_HOLE + '$1,').replace(/,(\u03db?)\u27ef/g, ',' + KP_HOLE + '$1\u27ef')
 .replace(/\((\u03db?)\)/g, '(' + KP_HOLE + '$1)')
+.replace(/\((\u03db?),/g, '(' + KP_HOLE + '$1,').replace(/,(\u03db?)\)/g, ',' + KP_HOLE + '$1)')
 .replace(/(^|[\s(+\-\u00d7\u00f7=,])(\u03db?)\//g, '$1$2' + KP_HOLE + '/')
 .replace(new RegExp('\\/(\u03db?)' + END, 'g'), '/' + KP_HOLE + '$1')
 .replace(new RegExp('\\^(\u03db?)' + END, 'g'), '^(' + KP_HOLE + '$1)')
@@ -12203,25 +12322,20 @@ const signs = true;
 const site = kpSite_(inp) ? (inp.getAttribute('data-kpb') === 'mail' ? 'mail' : 'site') : '';
 const essay = !!inp && (inp.hasAttribute('data-kp-essay') || (!!site && kpLines_(inp)));
 const vec = true;
-const sig = KP_LAYER + (words ? ':w' : ':m') + (signs && KP_LAYER === 'maths' ? ':s' : '') + (essay ? ':e' : '') + (vec ? ':v' : '') + (site ? ':' + site : '');
+const holder = inp && inp.closest ? inp.closest('[data-accept]') : null;
+const acc = KP_LAYER === 'letters' ? inp.getAttribute('data-kp-letters') : holder ? holder.getAttribute('data-accept') : null;
+const sig = KP_LAYER + (words ? ':w' : ':m') + (signs && KP_LAYER === 'maths' ? ':s' : '') + (essay ? ':e' : '') + (vec ? ':v' : '') + (site ? ':' + site : '') + ':' + (acc || '');
 if (pad.getAttribute('data-sig') !== sig) {
-pad.innerHTML = kpPadHtml_(KP_LAYER, words, signs, essay, vec, site);
+pad.innerHTML = kpPadHtml_(KP_LAYER, words, signs, essay, vec, site, acc);
 pad.setAttribute('data-sig', sig);
 }
 pad.classList.toggle('is-site', !!site);
 pad.classList.toggle('is-abc', KP_LAYER === 'abc');
-pad.classList.toggle('is-sym', KP_LAYER === 'sym');
 pad.setAttribute('data-layer', KP_LAYER);
-pad.setAttribute('aria-label', KP_LAYER === 'abc' ? 'Letters keypad' : KP_LAYER === 'sym' ? 'Symbols keypad' : site ? 'Numbers keypad' : 'Maths keypad');
+pad.setAttribute('aria-label', KP_LAYER === 'abc' ? 'Letters keypad' : KP_LAYER === 'letters' ? 'Options keypad' : site ? 'Numbers keypad' : 'Maths keypad');
 kpShiftPaint_();
 if (!pad.hidden) kpPadH_(pad);
 return pad;
-}
-function kpLayer_(name, inp) {
-KP_LAYER = name;
-kpLayout_(inp);
-kpAutoShift_(inp);
-kpShiftPaint_();
 }
 function kpOpen_(inp) {
 if (!kpIs_(inp)) return;
@@ -12232,7 +12346,7 @@ if (was && was !== inp && was.isConnected) kpRender_(was);
 const back = !!(was && was !== inp && !was.isConnected && KP_WAS && KP_WAS.k === inp.getAttribute('data-k'));
 const same = was === inp;
 if (!back && !same) {
-KP_LAYER = site ? (inp.getAttribute('data-kpb') === 'num' ? 'maths' : 'abc') : inp.getAttribute('data-kp') === 'words' ? 'abc' : 'maths';
+KP_LAYER = site ? (inp.getAttribute('data-kpb') === 'num' ? 'maths' : 'abc') : inp.hasAttribute('data-kp-letters') ? 'letters' : inp.getAttribute('data-kp') === 'words' ? 'abc' : 'maths';
 KP_SHIFT = 'off';
 }
 const pad = kpLayout_(inp);
@@ -12338,6 +12452,21 @@ if (a == null) { a = v.length; b = v.length; }
 if (!words && a === b) { a = kpPowOut_(v, a, cmd); b = a; }
 const a0 = a, b0 = b;
 const shut = !words && a === b && cmd === ')' ? kpPowShut_(v, a) : null;
+const pick = inp.getAttribute('data-kp-pick'), lets = inp.getAttribute('data-kp-letters') || '';
+if (pick && /^[a-z]$/i.test(cmd)) cmd = '!pick:' + (lets.indexOf(cmd) >= 0 ? cmd : lets.indexOf(cmd.toUpperCase()) >= 0 ? cmd.toUpperCase() : cmd);
+if (pick && (/^!pick:/.test(cmd) || cmd === '!back')) {
+if (cmd !== '!back' && lets.indexOf(cmd.slice(6)) < 0) return;
+let got = v.split(/[^A-Za-z]+/).filter(Boolean);
+const c = cmd.slice(6);
+if (cmd === '!back') got.pop();
+else if (pick === 'one') got = [c];
+else if (pick === 'set') got = got.indexOf(c) >= 0 ? got : got.concat(c).sort();
+else if (got.indexOf(c) < 0) got.push(c);
+inp.value = got.join(',');
+inp.setSelectionRange(inp.value.length, inp.value.length);
+if (inp.value !== v) { kpUndoNote_(inp, v, a0, b0, cmd); inp.dispatchEvent(new Event('input', { bubbles: true })); }
+return;
+}
 const put = (t, at) => {
 inp.value = v.slice(0, a) + t + v.slice(b);
 const c = a + (at == null ? t.length : at);
@@ -12349,6 +12478,8 @@ if (shut) { inp.value = shut.v; to(shut.at); }
 else if (cmd === '!vec') put(KP_VEC_A + ',' + KP_VEC_B, 1);
 else if (cmd === '!x10') { const x = /×\s*$/.test(v.slice(0, a)) ? '10^()' : '×10^()'; put(x, x.length - 1); }
 else if (cmd === '!frac') { if (term) put('/()', 2); else put('()/()', 1); }
+else if (cmd === '!mixed') { if (/\d$/.test(v.slice(0, a))) put(' ()/()', 2); else put('() ()/()', 1); }
+else if (cmd === '!pt') put('(,)', 1);
 else if (cmd === '!pow') put('^()', 2);
 else if (cmd === '!sqrt') put('\u221a()', 2);
 else if (cmd === '!home') to(kpLineStart_(v, a));
@@ -12356,9 +12487,9 @@ else if (cmd === '!end') to(kpLineEnd_(v, b));
 else if (cmd === '!top') to(0);
 else if (cmd === '!bottom') to(v.length);
 else if (cmd === '!left') {
-to(b > a ? a : !words && v.slice(a - 3, a) === ')/(' ? a - 3 : Math.max(0, a - 1));
+to(b > a ? a : !words && /^\)[\/ ]\($/.test(v.slice(a - 3, a)) ? a - 3 : Math.max(0, a - 1));
 } else if (cmd === '!right') {
-to(b > a ? b : !words && v.slice(a, a + 3) === ')/(' ? a + 3 : Math.min(v.length, a + 1));
+to(b > a ? b : !words && /^\)[\/ ]\($/.test(v.slice(a, a + 3)) ? a + 3 : Math.min(v.length, a + 1));
 } else if (cmd === '!back' && b === a && kpVecStep_(v, a)) {
 const r = kpVecStep_(v, a);
 if (r.del) { inp.value = v.slice(0, r.from) + v.slice(r.to); to(r.from); } else to(r.at);
@@ -12381,9 +12512,11 @@ inp.value = v.slice(0, -1); to(inp.value.length);
 } else if (a > 0) {
 let from = a - 1, end = a;
 if (v.slice(a - 3, a + 1) === '^(()' && kpPartner_(v, a - 2) < 0) from = a - 1;
+else if (v.slice(a - 1, a + 2) === '(,)') end = a + 2;
 else if (v.slice(a - 1, a + 1) === '()') {
 end = a + 1;
-if (v.slice(a + 1, a + 4) === '/()') end = a + 4;
+if (v.slice(a + 1, a + 6) === ' ()/()') end = a + 6;
+else if (v.slice(a + 1, a + 4) === '/()') { end = a + 4; if (/\d $/.test(v.slice(0, a - 1))) from = a - 2; }
 else if (/[\^\u221a\/]/.test(v.charAt(a - 2))) from = a - 2;
 }
 inp.value = v.slice(0, from) + v.slice(end);
@@ -12462,8 +12595,7 @@ const inp = kpLive_();
 if (!inp) return;
 const v = el.getAttribute('data-v') || '';
 if (v === '!done') return kpDone_(inp);
-if (v === '!abc' || v === '!123' || v === '!sym') return kpLayer_(v === '!abc' ? 'abc' : v === '!sym' ? 'sym' : 'maths', inp);
-if (v === '!shift') return kpShiftTap_();
+if (v === '!undo') { kpUndo_(inp, false); return; }
 if (v === '!mic') return kpMic_(inp, el);
 kpType_(inp, v, false);
 });
@@ -12494,15 +12626,9 @@ kpClose_();
 }
 let KP_SHIFT = 'off';
 let KP_SHIFT_AT = 0;
-function kpShiftTap_() {
-const now = Date.now();
-KP_SHIFT = KP_SHIFT === 'lock' ? 'off' : now - KP_SHIFT_AT < 350 ? 'lock' : KP_SHIFT === 'off' ? 'once' : 'off';
-KP_SHIFT_AT = now;
-kpShiftPaint_();
-}
 function kpAutoShift_(inp) {
 if (KP_SHIFT === 'lock') return;
-if (!inp || (inp.getAttribute('data-kp') !== 'words' && !kpSiteCaps_(inp))) { KP_SHIFT = 'off'; return; }
+if (!inp || (!inp.hasAttribute('data-kp-essay') && !kpSiteCaps_(inp))) { KP_SHIFT = 'off'; return; }
 const at = inp.selectionStart == null ? inp.value.length : inp.selectionStart;
 const before = inp.value.slice(0, at);
 KP_SHIFT = (!before.trim() || /[.?!]\s+$/.test(before) || /\n\s*$/.test(before)) ? 'once' : 'off';
@@ -12511,12 +12637,6 @@ function kpShiftPaint_() {
 const pad = document.getElementById('kp');
 if (!pad) return;
 pad.classList.toggle('is-shift', KP_LAYER === 'abc' && KP_SHIFT !== 'off');
-const s = pad.querySelector('.kp-shift');
-if (!s) return;
-s.classList.toggle('is-on', KP_SHIFT !== 'off');
-s.classList.toggle('is-lock', KP_SHIFT === 'lock');
-s.setAttribute('aria-pressed', KP_SHIFT !== 'off' ? 'true' : 'false');
-s.setAttribute('aria-label', KP_SHIFT === 'lock' ? 'capitals locked' : 'capitals');
 }
 function kpNear_(e) {
 const pad = e.currentTarget;
