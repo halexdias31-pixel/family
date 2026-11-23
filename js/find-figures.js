@@ -353,10 +353,11 @@ CARD_EMBEDS.qsheet = a => {
   const x = qPartOf_(a.key);
   if (!x) return '';
   const was = Q_DRAWN.get(x.key) || { stems: [], shown: [x], ans: true };
-  /* ANSWERS ONLY (`questionWhole_`'s `only`): the answer card and nothing of the question. */
-  if (was.only) return questionHasAns_(x) || schemeOwed_(x) ? questionAnsCard_(x, true, true) : '';
   const stems = was.stems.map(st => qStemWhole_(x, st, was.shown, a.pic ? [] : null)).join('');
   const words = partChunks_(x).map(c => chunkHtml_(c, circOf_(x), x)).join('');
+  /* THE ANSWER CARD IS THE QUESTION CARD (owner, 23 Nov): the same stem and words, its answer box read-only with the answer in it (`questionAnsCard_`). */
+  if (was.only) return stems + figBox_({ look: 'qsheet qtext', inner: qWordsOr_(x, cellsHere_(x, words)) })
+    + (questionHasAns_(x) || schemeOwed_(x) ? questionAnsCard_(x, true, true) : '');
   const has = was.ans && (questionHasAns_(x) || schemeOwed_(x));
   return stems + figBox_({ look: 'qsheet qtext', inner: qWordsOr_(x, cellsHere_(x, words)) }) + ansArea_(x) + (has ? questionAnsCard_(x, true) : '');
 };
@@ -365,15 +366,19 @@ CARD_EMBEDS.qsheet = a => {
 const qWas_ = x => Q_DRAWN.get(x.key) || { stems: [], shown: [x], ans: true };
 /* THE ENTRY, KEPT BY KEY, for its sheet (the embed reads it back). */
 const qCardKeep_ = x => { if (x.key) Q_ITEM.set(x.key, x.item || x); };
-const qCardPic_ = x => { const was = qWas_(x), pic = was.stems.length && !was.only ? qStemPic_(x, was) : ''; return pic ? { svg: pic } : null; };
+const qCardPic_ = x => { const was = qWas_(x), pic = was.stems.length ? qStemPic_(x, was) : ''; return pic ? { svg: pic } : null; };
 const qCardLook_ = x => 'qb favwrap qcard qb-part' + (isFav(x.key) ? ' is-fav' : '');
-const qCardTiles_ = x => { const was = qWas_(x); try { return qtTiles_(x, was.ans && questionHasAns_(x) && !schemeOwed_(x)); } catch (e) { oops_(e, 'question:spec'); return []; } };
+/* AN ANSWER CARD WEARS THE SAME ROW: what writes or marks an answer is greyed in its place there (QT_KEY_OFF), never taken away. */
+const QT_KEY_OFF = /^(qp-check|qp-send|qp-cells-check|qp-noscheme|pad-|qt-pen|qt-inst)/;
+const qCardTiles_ = x => { const was = qWas_(x); try { const t = qtTiles_(x, was.ans && questionHasAns_(x) && !schemeOwed_(x));
+  return was.only ? t.map(o => (o && QT_KEY_OFF.test(o.act || '') ? Object.assign({}, o, { off: true, on: false, pressed: false, note: 'not on an answer' }) : o)) : t; }
+  catch (e) { oops_(e, 'question:spec'); return []; } };
 /* ONE PART'S CARD: the stems not drawn yet by an earlier part go with it. */
 function qOneCard_(p, ctx) {
   const stems = (p.stems || []).filter(s => !ctx.carried.has(s) && !ctx.drawn[stemId_(s)]);
   stems.forEach(s => { ctx.drawn[stemId_(s)] = true; });
   const q = { stems, shown: ctx.shown, ans: false, only: false };
-  const a = { stems: [], shown: ctx.shown, ans: true, only: true };
+  const a = { stems, shown: ctx.shown, ans: true, only: true };
   /* ANSWERS ONLY: the answer card alone, as yesterday (18 Nov). */
   if (ctx.only) { Q_DRAWN.set(p.key, Object.assign(a, { stems })); return findCard(p); }
   /* ANSWER IS ITS OWN CARD (owner, 19 Nov): the question card holds no answer; its answer follows as a card of the same maker, its gate as it was (`ansOpen_`). */
@@ -743,15 +748,11 @@ function questionAnsCard_(x, inRow, bare) {
     + figBox_({ tag: 'p', look: 'qans-none', text: 'No checked answer yet: this paper\'s mark scheme has not been added.' }) });
   const k = ansKey_(x);
   const open = ansOpen_(x);
-  /* ---------- ONE TILE, IN ONE PLACE, AND IT SAYS WHICH WAY IT GOES § */
+  /* ONE DRAWING FOR BOTH (owner, 23 Nov): the answer is the question's own answer box (`ansBox_` with its key), read-only; hidden, the box is drawn empty and says so. */
   return figBox_({ look: 'qcard qans-card' + (open ? '' : ' is-hidden'), attrs: { 'data-of': id, 'data-k': k, 'data-shape': 'Question' },
     inner: tags
-      + (inRow ? '' : figBox_({ look: 'tile-row qans-tiles', inner: qaToggle_(k, open)
-        /* "ANSWER HIDDEN", AND NOT "HAVE A GO FIRST". § */
-        + (open ? '' : figBox_({ tag: 'span', look: 'qans-wait-k', text: 'Answer hidden' })) }))
-      /* ITS OWN CARD SAYS WHERE ITS GATE STANDS (owner, 19 Nov): the toggle is in the row, the words here. */
-      + (inRow && !open ? figBox_({ tag: 'p', look: 'qans-wait-k', text: 'Answer hidden' }) : '')
-      + (open ? answerBlock_(x) : '')
+      + (inRow ? '' : figBox_({ look: 'tile-row qans-tiles', inner: qaToggle_(k, open) }))
+      + (open ? ansBox_(x, true) : figBox_({ tag: 'p', look: 'qans-wait-k', text: 'Answer hidden' }))
       + (!inRow && typeof helpRow_ === 'function' ? helpRow_(x, 'ans') : '') });
 }
 

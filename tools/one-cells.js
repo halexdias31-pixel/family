@@ -6,7 +6,7 @@
       no other answer box; its right answers mark full, two swapped do not.
    2. AN UNORDERED TABLE ("list all the outcomes": rows written whole): its rows typed in a shuffled order still mark full, a wrong row does not.
    3. SITE-WIDE: every active question with `cells` draws a table holding one box per asked cell and no box outside it.
-   4. THE SHOWN ANSWER (owner 23 Nov): every such question's answer card (find-parts.js `answerBlock_`) is its table with each cell's key in it.
+   4. THE SHOWN ANSWER (owner 23 Nov): every such question's answer card (find-cells.js `ansBox_(x, true)`) is its table with each cell's key in its read-only box.
    Run by tools/build.js after one-box; any miss fails the build. */
 'use strict';
 const SD = require('./lib/site-data.js');
@@ -74,8 +74,8 @@ function run() {
       n[own ? 'own' : 'drawn']++;
       if (s.order === 'rows' || s.order === 'cols') n[s.order]++;
       /* the shown answer holds every cell's key, read as text (a typeset fraction's / and its tags folded away) */
-      const flat = h => String(h).replace(/&frasl;|\u2044/g, '/').replace(/<[^>]*>/g, '').replace(/&[a-z#0-9]+;/gi, m => ({ '&minus;': '-', '&amp;': '&', '&lt;': '<', '&gt;': '>', '&#39;': "'", '&quot;': '"' })[m] || m).replace(/[\s\u2212()^]/g, '').replace(/\u2212/g, '-').toLowerCase();
-      const shown = flat(call('answerBlock_(__x)') || '');
+      const flat = h => String(h).replace(/&frasl;|\u2044/g, '/').replace(/<[^>]*>/g, '').replace(/&[a-z#0-9]+;/gi, m => ({ '&minus;': '-', '&amp;': '&', '&lt;': '<', '&gt;': '>', '&#39;': "'", '&quot;': '"' })[m] || m).replace(/\u2212/g, '-').replace(/[\s()^]/g, '').replace(/\u00d7/g, 'x').toLowerCase();
+      const shown = flat(String(call('ansBox_(__x, true)') || '').replace(/\bvalue="([^"]*)"/g, ' $1 '));
       const keys = call('cellsOf_(__x).filter(c => c.ways).map(c => cellsFirstWay_(c))');
       const lost = keys.filter(k => shown.indexOf(flat(esc_(k))) < 0);
       if (lost.length) fails.push(r.row_id + ': the shown answer lacks ' + lost.slice(0, 3).map(k => JSON.stringify(k)).join(', '));
