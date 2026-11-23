@@ -15736,6 +15736,9 @@ delete it.coversSet;
 }
 return true;
 }
+const dkSame_ = (a, b) => String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase();
+const dkSlotOptions_ = (foods, slot) => (foods && Array.isArray(foods.foods) ? foods.foods : []).filter(f => slot && Array.isArray(f.slots) && f.slots.some(s => dkSame_(s, slot)));
+const dkSlotNeed_ = (foods, slot) => { const s = (foods && Array.isArray(foods.slots) ? foods.slots : []).find(x => dkSame_(x && x.name, slot)); return Math.max(1, Math.round(+(s && s.need)) || 1); };
 function dkTidy_(lists) {
 lists.forEach(L => { L.items = (L.items || []).filter(it => !dkGone_(it)); L.items.forEach(it => { if (it.repeat !== 'daily' && it.done && !it.doneOn) it.doneOn = dkDay_(); }); });
 return lists;
@@ -15775,11 +15778,13 @@ const dkCovers_ = it => (Array.isArray(it.covers) && it.covers.length ? { type: 
 const listItem_ = (kind, o) => ({ type: 'group', look: 'dk-item', attrs: Object.assign({ 'data-shape': kindShape_(kind), 'data-item-kind': kind }, o.attrs || {}),
 blocks: (o.blocks || []).filter(Boolean), tiles: o.tiles });
 function dkItem_(it, i) {
-const fk = typeof foodKindOf_ === 'function' ? foodKindOf_(it.title) : null, picked = dkPicked_(it);
+const fk = !it.slot && typeof foodKindOf_ === 'function' ? foodKindOf_(it.title) : null, picked = dkPicked_(it);
+const fd = it.slot && typeof foodIndex_ === 'function' ? foodIndex_() : null, slotOpts = it.slot ? dkSlotOptions_(fd, it.slot) : [];
 const tags = [it.repeat === 'daily' ? 'Daily' : it.date ? dkSayDay_(it.date) : '', it.time || ''].filter(Boolean);
 const row = listItem_('docket', { blocks: [
 { type: 'tick', text: (it.title || 'Untitled') + (picked ? ': ' + picked.toLowerCase() : ''), attrs: { 'data-dk': i, checked: dkDone_(it), 'aria-label': 'Done: ' + (it.title || '') } },
 tags.length ? { type: 'tags', tags } : null,
+slotOpts.length ? { type: 'text', text: it.slot + (dkSlotNeed_(fd, it.slot) > 1 ? ' (' + dkSlotNeed_(fd, it.slot) + ' a day)' : '') + ': ' + slotOpts.map(f => f.name).join(', ') } : null,
 fk && !dkDone_(it) ? { type: 'tiles', tiles: foodsOf_(fk).map(f => ({ label: f.name, note: f.note || '', act: 'dk-food', cls: f.name === picked ? 'is-submit' : '', data: { i, f: f.name } })) } : null,
 it.note && DK.edit !== i ? { type: 'text', paras: String(it.note).split(/\n{2,}/) } : null, dkCovers_(it)],
 tiles: [{ icon: 'edit', label: 'Edit', act: 'dk-edit', data: { i } }, { icon: 'bin', label: 'Delete', act: 'dk-del', data: { i } }] });
@@ -15790,6 +15795,8 @@ f('Title', { type: 'control', attrs: { class: 'dk-f', 'data-f': 'title', value: 
 f('Note', { type: 'control', tag: 'textarea', value: it.note || '', attrs: { class: 'dk-f', 'data-f': 'note', rows: 4, maxlength: 8000 } }),
 f('Date', { type: 'control', attrs: { type: 'date', class: 'dk-f', 'data-f': 'date', value: it.date || '' } }),
 f('Time', { type: 'control', attrs: { type: 'time', class: 'dk-f', 'data-f': 'time', value: it.time || '' } }),
+f('Food slot', { type: 'control', tag: 'select', attrs: { class: 'dk-f', 'data-f': 'slot' }, options: [{ value: '', text: 'None', on: !it.slot }]
+.concat((((typeof foodIndex_ === 'function' && foodIndex_()) || {}).slots || []).map(s => ({ value: s.name, text: s.name, on: dkSame_(s.name, it.slot) }))) }),
 f('Repeats', { type: 'control', tag: 'select', attrs: { class: 'dk-f', 'data-f': 'repeat' }, options: [{ value: '', text: 'Never', on: !it.repeat }, { value: 'daily', text: 'Daily', on: it.repeat === 'daily' }] })],
 tiles: [{ icon: 'save', label: text_('save'), act: 'dk-keep', cls: 'is-submit', data: { i } }] };
 }
@@ -15889,6 +15896,7 @@ on('dk-del', el => { const L = dkList_(); if (!L) return; L.items.splice(+el.get
 on('dk-keep', el => { const it = dkList_() && dkList_().items[+el.getAttribute('data-i')]; if (!it) return;
 $('dk-box').querySelectorAll('.dk-editing .dk-f').forEach(f => { it[f.getAttribute('data-f')] = String(f.value || '').trim(); });
 if (it.repeat !== 'daily') delete it.repeat;
+if (!it.slot) delete it.slot;
 DK.edit = -1; stepDone_(DK.editStep, false); dkKeep_(); });
 on('dk-food', el => { const it = dkList_() && dkList_().items[+el.getAttribute('data-i')]; if (!it) return;
 const f = el.getAttribute('data-f') || ''; if (dkPicked_(it) === f) { it.pick = ''; it.pickOn = ''; } else { it.pick = f; it.pickOn = dkDay_(); } dkKeep_(); });

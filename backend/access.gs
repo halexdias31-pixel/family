@@ -118,7 +118,7 @@ function docketHotBreakfastRun_() {
 }
 
 /* DOCKET TIDY 2 (owner, 23 Nov: "tidy up certain tasks… without losing information… and get more prepared"): the old cell copied whole to the tab
-   backup_docket_23nov first; nothing deleted: past one-offs go to "Overdue — check", ideas to "Ideas & notes", foods into two items whose notes list them;
+   backup_docket_23nov first; nothing deleted: past one-offs go to "Overdue — check", ideas to "@ Desk", foods into two items whose notes list them;
    evening prep items added; one daily Shopping in every list but the prayer-only ones (its shop items' titles in its note); a takeaway
    that covers Meat! and Rice; two car checks at the desk. Matched by title, so a run after the owner edits only does what still matches. */
 const DK23_SHOP = /^(morning shop|shopping)$/i, DK23_NO_SHOP = /^(eyes opend|undercovers|ideas & notes|overdue — check)$/i;
@@ -130,7 +130,7 @@ function docketTidy23NovRun_() {
   const was = S(me.todo);
   let got = null; try { got = JSON.parse(was); } catch (e) { got = null; }
   if (!got || !Array.isArray(got.lists)) throw new Error('the owner has no docket lists');
-  if (got.lists.some(L => L.name === 'Ideas & notes')) return 'already tidied';
+  if (got.lists.some(L => L.items.some(x => S(x.title) === 'Shopping' && /^only what's missing/.test(S(x.note))))) return 'already tidied';
   const ss = t.sheet.getParent(), bk = ss.getSheetByName('backup_docket_23nov') || ss.insertSheet('backup_docket_23nov');
   bk.appendRow([new Date(), was]);
   if (S(bk.getRange(bk.getLastRow(), 2).getValue()) !== was) throw new Error('the backup did not read back - nothing changed');
@@ -159,8 +159,9 @@ function docketTidy23NovRun_() {
   const dk = list('@ Desk'), bd = list('back @ desk');
   const n1 = take(dk, 'Important Notice – Summer 2026 Examination Certificates'), n2 = take(dk, 'Important Notice – Summer 2026 Examination Certificates cancel wow');
   if (dk && (n1 || n2)) dk.items.push({ title: 'Summer 2026 exam certificates notice (cancel?)', note: 'was: ' + was23_([n1, n2]) });
+  /* IDEAS STAY AT THE DESK (owner, 23 Nov: "it can just go in the at desk list"): the desk's own stay put; back @ desk's move to the desk. */
   const toIdeas = (L, titles) => titles.forEach(ti => { const x = take(L, ti); if (x) ideas.items.push(x); });
-  toIdeas(dk, ['Add read Bible and add as a project as church farthers return the computer chip from amazon late', 'Write out business plan and all things involved lego circuit. lego contraptions', '3d print tinkercad', 'Once you done everything you need to do you can do what you want. You can stay up late ect']);
+  if (false) toIdeas(dk, ['Add read Bible and add as a project as church farthers return the computer chip from amazon late', 'Write out business plan and all things involved lego circuit. lego contraptions', '3d print tinkercad', 'Once you done everything you need to do you can do what you want. You can stay up late ect']);
   toIdeas(bd, ['Don’t react. Act. Follow you schedule', 'Use ai for organising bedroom, and organising todos', 'A system is what it does', 'Branded things', 'Akrevia oikonomia', 'Sleep warm', 'Lego mini figure trading', 'Lego trade in service', 'Mini gokd', 'Mini table football', 'here', 'You are the nightly run for the owner\'s tutoring site, repo halexdias31-pixel/family. The owner is not a programmer.']);
   /* getting ready the night before (owner: not prepared -> the car -> parking) */
   const ah = list('arrived home');
@@ -182,11 +183,11 @@ function docketTidy23NovRun_() {
     L.items.splice(at < 0 ? L.items.length : at, 0, { title: 'Shopping', repeat: 'daily', minutes: 20, place: 'out', note: note });
   });
   if (overdue.items.length) got.lists.push(overdue);
-  got.lists.push(ideas);
+  ideas.items.forEach(x => desk.items.push(x));
   const cell = JSON.stringify(got);
   if (cell.length > DOCKET_CELL_MAX) throw new Error('the tidied docket is ' + cell.length + ' characters, over ' + DOCKET_CELL_MAX + ' - nothing was saved');
   if (!setCell(t, me, 'todo', cell)) throw new Error('the people tab has no todo column - nothing was saved');
-  return overdue.items.length + ' to Overdue, ' + ideas.items.length + ' to Ideas & notes; breakfast and packed food joined; one Shopping in every list; 3 evening prep items, the takeaway and 2 car checks added';
+  return overdue.items.length + ' to Overdue, ' + ideas.items.length + ' ideas to @ Desk; breakfast and packed food joined; one Shopping in every list; 3 evening prep items, the takeaway and 2 car checks added';
 }
 
 /* FOOD SLOTS (owner, 23 Nov): the morning's food items ("Out of Shower", and "Yoghurt!" after brushing teeth) give way to five daily slot items
@@ -235,6 +236,23 @@ function docketSlots23NovRun_() {
   if (cell.length > DOCKET_CELL_MAX) throw new Error('the docket would be ' + cell.length + ' characters, over ' + DOCKET_CELL_MAX + ' - nothing was saved');
   if (!setCell(t, me, 'todo', cell)) throw new Error('the people tab has no todo column - nothing was saved');
   return n + ' item(s) made food slots' + (added ? '; a Snack slot added to ' + added : '');
+}
+
+/* NO IDEAS LIST (owner, 23 Nov): if an "Ideas & notes" list was made, its items go to the end of "@ Desk" and the empty list goes. */
+function docketIdeasToDeskRun_() {
+  const t = read(TAB.people), me = t.rows.find(r => isOwner_(r));
+  if (!me) throw new Error('no owner found');
+  let got = null; try { got = JSON.parse(S(me.todo)); } catch (e) { got = null; }
+  if (!got || !Array.isArray(got.lists)) return 'no docket';
+  const i = got.lists.findIndex(L => S(L.name) === 'Ideas & notes');
+  if (i < 0) return 'no Ideas & notes list - nothing to move';
+  let desk = got.lists.find(L => S(L.name).toLowerCase() === '@ desk');
+  if (!desk) { desk = { name: '@ Desk', items: [] }; got.lists.push(desk); }
+  const moved = got.lists[i].items || [];
+  moved.forEach(x => desk.items.push(x));
+  got.lists.splice(got.lists.indexOf(got.lists[i]), 1);
+  if (!setCell(t, me, 'todo', JSON.stringify(got))) throw new Error('the people tab has no todo column - nothing was saved');
+  return moved.length + ' item(s) moved to @ Desk';
 }
 
 /* ---------- THE ONE-OFF JOBS, RUN ONCE, BY THEMSELVES § */
@@ -379,8 +397,12 @@ const MIGRATIONS = [
     run: () => docketHotBreakfastRun_() },
   { id: 'docket-tidy-23nov',
     retry: true,
-    what: "the owner's docket tidied (backup tab first): past one-offs to Overdue, ideas to Ideas & notes, foods joined, one Shopping a list, evening prep, a takeaway covering meat and rice, two car checks",
+    what: "the owner's docket tidied (backup tab first): past one-offs to Overdue, ideas to @ Desk, foods joined, one Shopping a list, evening prep, a takeaway covering meat and rice, two car checks",
     run: () => docketTidy23NovRun_() },
+  { id: 'docket-ideas-to-desk-23nov',
+    retry: true,
+    what: "no Ideas & notes list: any items in one moved to the end of @ Desk (owner, 23 Nov)",
+    run: () => docketIdeasToDeskRun_() },
   { id: 'docket-slots-23nov',
     retry: true,
     what: "the owner's food items made food slots: the morning's as Protein, Fruit (3), Dairy, Grain and Pack for later, the evening's Meat and Carbs, a Snack slot at midday (backup tab first); no text lost",
