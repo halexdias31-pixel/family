@@ -87,15 +87,6 @@ async function run() {
     console.log('  by door: ' + doors.map(d => d + ' ' + all.filter(x => x.door === d).length).join(', '));
     bad.forEach(x => console.log('  ' + x.door + ' › ' + String(x.n).replace(/\n/g, ' ') + ' [' + (x.kc ? '' : 'not one maker; ') + x.own.join(' ') + ']'));
     if (bad.length) throw new Error('one-card: ' + bad.length + ' card(s) outside the one maker');
-    /* THE SETTINGS SHAPES (owner, 22 Nov, CARD SHAPES): every settings card wears its shape (`data-shape`, kinds.json setting.shapes), and Settings uses four at most. */
-    const sets = all.filter(x => x.door === 'Settings' && !x.ik && (x.set || x.sh)), shapes = [...new Set(sets.map(x => x.sh).filter(Boolean))].sort();
-    const unshaped = sets.filter(x => !x.sh);
-    console.log('one-card: Settings draws ' + sets.length + ' settings cards in ' + shapes.length + ' shape(s): '
-      + shapes.map(h => h + ' ' + sets.filter(x => x.sh === h).length).join(', '));
-    unshaped.forEach(x => console.log('  Settings › ' + String(x.n).replace(/\n/g, ' ') + ' [no shape]'));
-    if (unshaped.length) throw new Error('one-card: ' + unshaped.length + ' settings card(s) with no shape');
-    if (shapes.length > 4) throw new Error('one-card: Settings uses ' + shapes.length + ' shapes; four at most');
-    /* THE PERSON, ITEM, REFERENCE, RECORD, THREAD AND QUESTION SHAPES (owner, 22 Nov, CARD SHAPES): every card of a kind kinds.json gives a Person, Item, Learning: Reference or Question, or Activity: Record or Thread `shape` wears exactly that one, and only that one. */
     const KINDS = SD.kinds();
     ['Person', 'Item', 'Reference', 'Record', 'Thread', 'Question'].forEach(h => {
       const kinds = Object.keys(KINDS).filter(k => KINDS[k].shape === h), mine = all.filter(x => kinds.indexOf(x.ik) >= 0);

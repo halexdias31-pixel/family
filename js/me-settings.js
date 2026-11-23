@@ -186,7 +186,7 @@ function libCardsRedraw_() {
 /* ---------- EVERY SETTINGS FIELD SAVES AS YOU TYPE (owner, 8 Nov) § */
 const AUTOSAVE_MS = 800;
 const AUTOSAVE_T = new WeakMap();
-const AUTOSAVE_FORMS_ = '.set-shape .me-form, #lib-box .me-form';
+const AUTOSAVE_FORMS_ = '.set-typed .me-form, #lib-box .me-form';
 function autosaveLater_(form) {
   clearTimeout(AUTOSAVE_T.get(form));
   AUTOSAVE_T.set(form, setTimeout(() => autosaveNow_(form), AUTOSAVE_MS));

@@ -117,7 +117,7 @@ function formToggleB_(t) {
 }
 
 /* THE CARD: a title, then `groups` (backend field lists, forms.json's `settings` form), `ask` (a kinds.json form asked a field a step) or `toggles`; `spec.id` fills it from FORM_SPECS.cards. */
-/* Saving as you type is `autosaveHear_`, which hears every `.set-shape .me-form` this draws. */
+/* Saving as you type is `autosaveHear_`, which hears every `.set-typed .me-form` this draws. */
 /* `mode`: 'edit' (the default: boxes that save as you type) or 'read' (every box shown and none taken, no Save, no status line). */
 function formCard_(spec) {
   return setCard_(formCardSpec_(spec));

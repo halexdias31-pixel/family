@@ -763,7 +763,7 @@ function shareBarFor_(list, p) {
   return shareBarBox_(p.extra_seat_cut, cardShareBar_(num(p.rate_per_hour), p.extra_seat_rate, p.extra_seat_cut));
 }
 document.addEventListener('input', e => {
-  const form = e.target && e.target.closest && e.target.closest('.set-shape');
+  const form = e.target && e.target.closest && e.target.closest('.set-typed');
   const bar = form && form.querySelector(':scope > .share-bar');
   if (!bar) return;
   const v = f => { const b = form.querySelector('[data-me="' + f + '"]'); return b ? b.value : ''; };
