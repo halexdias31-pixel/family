@@ -119,7 +119,11 @@ function docketHotBreakfastRun_() {
 
 /* DOCKET TIDY 2 (owner, 23 Nov: "tidy up certain tasks… without losing information… and get more prepared"): the old cell copied whole to the tab
    backup_docket_23nov first; nothing deleted: past one-offs go to "Overdue — check", ideas to "Ideas & notes", foods into two items whose notes list them;
-   evening prep items added. Matched by title, so a run after the owner edits only does what still matches. */
+   evening prep items added; one daily Shopping in every list but the prayer-only ones (its shop items' titles in its note); a takeaway
+   that covers Meat! and Rice; two car checks at the desk. Matched by title, so a run after the owner edits only does what still matches. */
+const DK23_SHOP = /^(morning shop|shopping)$/i, DK23_NO_SHOP = /^(eyes opend|undercovers|ideas & notes|overdue — check)$/i;
+/* NOTHING LOST: what a joined item was, each old title with its note, for the new item's note. */
+const was23_ = xs => xs.filter(Boolean).map(x => S(x.title).trim() + (S(x.note) ? ' — ' + S(x.note) : '')).join('; ');
 function docketTidy23NovRun_() {
   const t = read(TAB.people), me = t.rows.find(r => isOwner_(r));
   if (!me) throw new Error('no owner found');
@@ -139,24 +143,22 @@ function docketTidy23NovRun_() {
   /* eyes opened: one sentence split across two items, joined */
   const eo = list('eyes opend');
   if (eo) { const a = take(eo, 'Acknowledge that’s these schedules are the ideal thing which you need to do, but can be violated for'), b = take(eo, 'sake of circumstances.');
-    if (a || b) eo.items.splice(3, 0, { title: 'Remember: these schedules are the ideal, but circumstances can break them', repeat: 'daily' }); }
+    if (a || b) eo.items.splice(3, 0, { title: 'Remember: these schedules are the ideal, but circumstances can break them', repeat: 'daily', note: 'was: ' + was23_([a, b]) }); }
   /* breakfast: the foods as one item, the shop trips as one */
   const os = list('Out of Shower'), ab = list('After brush teeth');
   if (os) {
     const foods = ['banana', 'date', 'Cereal!', 'Chia', 'Beans', 'Bread', 'Avacado', 'Strawberries', 'Nuts', 'apple', 'Egg', 'Whey!', 'Hot food: bacon, or a hot pasty from the corner shop'];
-    const got1 = foods.map(f => take(os, f)).filter(Boolean).map(x => x.title);
-    const yog = take(ab, 'Yoghurt!'); if (yog) got1.unshift('Yoghurt');
+    const got1 = foods.map(f => take(os, f)).filter(Boolean).map(x => was23_([x]));
+    const yog = take(ab, 'Yoghurt!'); if (yog) got1.unshift(was23_([yog]));
     if (got1.length) os.items.push({ title: 'Breakfast', repeat: 'daily', minutes: 15, note: 'Pick from: ' + got1.join(', ') });
-    const lunch = ['Tuna', 'Salad'].map(f => take(os, f)).filter(Boolean).map(x => x.title);
+    const lunch = ['Tuna', 'Salad'].map(f => take(os, f)).filter(Boolean).map(x => was23_([x]));
     const pack = take(os, 'Pack food');
-    if (pack || lunch.length) os.items.push({ title: 'Take your packed food to work', repeat: 'daily', minutes: 2, note: 'Packed the night before. Good fillings: ' + (lunch.concat(['egg', 'bread', 'fruit', 'nuts'])).join(', ') });
-    const shops = [take(os, 'Morning shop'), take(os, 'Morning shop'), take(os, 'Shopping')].filter(Boolean);
-    if (shops.length) os.items.push({ title: 'Morning shop (only if something is missing)', repeat: 'daily', minutes: 20, place: 'out' });
+    if (pack || lunch.length) os.items.push({ title: 'Take your packed food to work', repeat: 'daily', minutes: 2, note: 'Packed the night before' + (pack ? ' (was: ' + was23_([pack]) + ')' : '') + '. Good fillings: ' + (lunch.concat(['egg', 'bread', 'fruit', 'nuts'])).join(', ') });
   }
   /* desk lists: the two certificate notices as one; ideas and long notes to Ideas & notes */
   const dk = list('@ Desk'), bd = list('back @ desk');
   const n1 = take(dk, 'Important Notice – Summer 2026 Examination Certificates'), n2 = take(dk, 'Important Notice – Summer 2026 Examination Certificates cancel wow');
-  if (dk && (n1 || n2)) dk.items.push({ title: 'Summer 2026 exam certificates notice (cancel?)' });
+  if (dk && (n1 || n2)) dk.items.push({ title: 'Summer 2026 exam certificates notice (cancel?)', note: 'was: ' + was23_([n1, n2]) });
   const toIdeas = (L, titles) => titles.forEach(ti => { const x = take(L, ti); if (x) ideas.items.push(x); });
   toIdeas(dk, ['Add read Bible and add as a project as church farthers return the computer chip from amazon late', 'Write out business plan and all things involved lego circuit. lego contraptions', '3d print tinkercad', 'Once you done everything you need to do you can do what you want. You can stay up late ect']);
   toIdeas(bd, ['Don’t react. Act. Follow you schedule', 'Use ai for organising bedroom, and organising todos', 'A system is what it does', 'Branded things', 'Akrevia oikonomia', 'Sleep warm', 'Lego mini figure trading', 'Lego trade in service', 'Mini gokd', 'Mini table football', 'here', 'You are the nightly run for the owner\'s tutoring site, repo halexdias31-pixel/family. The owner is not a programmer.']);
@@ -165,12 +167,26 @@ function docketTidy23NovRun_() {
   if (ah) [{ title: 'Pack tomorrow\'s food (in the fridge, by the door)', repeat: 'daily', minutes: 10, place: 'home' },
            { title: 'Lay out clothes and bag for tomorrow', repeat: 'daily', minutes: 5, place: 'home' },
            { title: 'Plan getting to work without the car (walk or bus)', repeat: 'daily', minutes: 2 }].forEach(x => ah.items.push(x));
+  /* COVERS (owner, 23 Nov): one takeaway that is the evening's meat and rice; its tick ticks both (js/map.js dkTick_). */
+  if (ah) ah.items.push({ title: 'Peter\'s Takeaway: sweet and sour chicken with rice box', repeat: 'daily', covers: ['Meat!', 'Rice'] });
+  /* TWO CAR CHECKS, one-offs (owner, 23 Nov), at the desk. */
+  const desk = dk || (got.lists.push({ name: '@ Desk', items: [] }), got.lists[got.lists.length - 1]);
+  ['Car: find out about the airbag (warning light / check)', 'Car: wheels — balancing / wheel bearings, get checked'].forEach(ti => desk.items.push({ title: ti }));
+  /* SHOPPING IN EVERY LIST (owner, 23 Nov) but the prayer-only ones: one daily "Shopping" each, in place of the list's own shop items, whose
+     titles and notes go into its note. */
+  got.lists.forEach(L => {
+    if (DK23_NO_SHOP.test(S(L.name).trim())) return;
+    const at = L.items.findIndex(x => DK23_SHOP.test(S(x.title).trim())), was = L.items.filter(x => DK23_SHOP.test(S(x.title).trim()));
+    L.items = L.items.filter(x => !DK23_SHOP.test(S(x.title).trim()));
+    const note = 'only what\'s missing; tomorrow\'s breakfast and packed food first' + (was.length ? ' (was: ' + was23_(was) + ')' : '');
+    L.items.splice(at < 0 ? L.items.length : at, 0, { title: 'Shopping', repeat: 'daily', minutes: 20, place: 'out', note: note });
+  });
   if (overdue.items.length) got.lists.push(overdue);
   got.lists.push(ideas);
   const cell = JSON.stringify(got);
   if (cell.length > DOCKET_CELL_MAX) throw new Error('the tidied docket is ' + cell.length + ' characters, over ' + DOCKET_CELL_MAX + ' - nothing was saved');
   if (!setCell(t, me, 'todo', cell)) throw new Error('the people tab has no todo column - nothing was saved');
-  return overdue.items.length + ' to Overdue, ' + ideas.items.length + ' to Ideas & notes; breakfast, packed food and shop trips joined; 3 evening prep items added';
+  return overdue.items.length + ' to Overdue, ' + ideas.items.length + ' to Ideas & notes; breakfast and packed food joined; one Shopping in every list; 3 evening prep items, the takeaway and 2 car checks added';
 }
 
 /* ---------- THE ONE-OFF JOBS, RUN ONCE, BY THEMSELVES § */
@@ -315,7 +331,7 @@ const MIGRATIONS = [
     run: () => docketHotBreakfastRun_() },
   { id: 'docket-tidy-23nov',
     retry: true,
-    what: "the owner's docket tidied (backup tab first): past one-offs to Overdue, ideas to Ideas & notes, foods and shop trips joined, evening prep added",
+    what: "the owner's docket tidied (backup tab first): past one-offs to Overdue, ideas to Ideas & notes, foods joined, one Shopping a list, evening prep, a takeaway covering meat and rice, two car checks",
     run: () => docketTidy23NovRun_() },
 ];
 

@@ -424,12 +424,15 @@ function listItemTidy_(L, P, it, whole, n) {
     else if (F.type === 'number') { const x = Number(S(v).replace(/[%\s]/g, '')); k = S(v) !== '' && isFinite(x) && x >= F.min && x <= F.max ? x : ''; }
     else if (F.type === 'choice') { const w = F.word ? assignWord_(v) : S(v); k = F.options.indexOf(w) !== -1 ? w : F.def; }
     else if (F.type === 'flag') k = !!v;
+    /* A LIST OF TITLES (`covers`): each a trimmed, cut string, empties dropped; none at all is left out. */
+    else if (F.type === 'titles') { const a = (Array.isArray(v) ? v : []).map(x => cut(F, x).trim()).filter(Boolean).slice(0, 50); k = a.length ? a : ''; }
     if (whole) {
       /* A FIELD THAT HANGS ON ANOTHER: a daily item is never `done` (its `doneOn` says it); a mark only once marked. */
       if (F.off && out[F.off.f] === F.off.is) k = false;
       if (F.only && out[F.only.f] !== F.only.is) k = '';
       out[F.f] = k;
-    } else if (k !== v && v !== '') { if (k === '' || k === F.def) delete out[F.f]; else out[F.f] = k; }
+    } else if (F.type === 'titles') { if (k === '') delete out[F.f]; else out[F.f] = k; }
+    else if (k !== v && v !== '') { if (k === '' || k === F.def) delete out[F.f]; else out[F.f] = k; }
   });
   /* THE PLANNER'S FIELDS (form `docket-item`): a valid one kept, a default or a wrong one left out so the cell stays small. */
   Object.keys(P).forEach(k => {
@@ -711,7 +714,7 @@ function postDocketImport_(body, action, began) {
 
 /* ---------- THE PRIVATE PLAIN-TEXT ADDRESS (owner, 21 Nov: NOW, NEXT step 3): `?docket=<token>` answers the owner's Now/Next as plain text for
    Siri Shortcuts, ChatGPT or Gemini; `&do=done&what=<words>` ticks the best match, `&do=add&what=<words>[&list=<name>]` adds. The plan is the site's
-   (dkPhase_, dkNowNextOf_, dkSay_, dkMatch_: js/map.js, copied into cards-gen.gs). The token lives in Script Properties only, never in the repo or a log;
+   (dkPhase_, dkNowNextOf_, dkSay_, dkMatch_, dkTick_: js/map.js, copied into cards-gen.gs). The token lives in Script Properties only, never in the repo or a log;
    the owner sees it, or makes a new one, on the Docket (action docketAddress). tools/docket-address.js checks it. */
 const DOCKET_TOKEN_KEY = 'DOCKET_TOKEN';
 /* AN ITEM AS THE PLANNER READS IT: each planner field's kinds.json default where the item has none (the site's dkFill_). */
@@ -727,7 +730,7 @@ function docketAnswer_(lists, now, q, fill) {
       const p = plan(), rows = p ? p.rows : [];
       const k = dkMatch_(rows.map(r => lists[r.li].items[r.i].title), what);
       if (k < 0) said = text_('dk-say-no-match', { what: what });
-      else { const it = lists[rows[k].li].items[rows[k].i]; it.doneOn = day; if (it.repeat !== 'daily') it.done = true; changed = true; said = text_('dk-say-ticked', { title: it.title }); }
+      else { const it = lists[rows[k].li].items[rows[k].i]; dkTick_(lists[rows[k].li].items, rows[k].i, true, day); changed = true; said = text_('dk-say-ticked', { title: it.title }); }
     } else {
       const named = S(q.list), p = named ? null : plan();
       let L = named ? lists.find(x => S(x && x.name).toLowerCase() === named.toLowerCase()) : p ? lists[p.cur] : lists[0];

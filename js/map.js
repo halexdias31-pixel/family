@@ -105,6 +105,25 @@ const dkDay_ = d => todayIso_(d);   // the one today, js/core.js
 /* DONE IS READ FROM `doneOn` AND THE DAY, never a timer (owner, 20 Nov): a daily item is undone again after midnight; a one-off stays ticked until midnight, then goes (dkTidy_). */
 const dkDone_ = i => (i.repeat === 'daily' ? i.doneOn === dkDay_() : !!i.done);
 const dkGone_ = i => i.repeat !== 'daily' && !!i.done && !!i.doneOn && i.doneOn < dkDay_();
+/* THE ONE TICK (owner, 23 Nov: COVERS): every done path (the widget, Find, the private address) ticks through this. Pure: the list's items, which one,
+   ticked or not, London's day. An item's `covers` (titles in the same list) are ticked with it, each one not already done, and remembered in its
+   `coversSet`; an untick undoes only those. A daily item's `doneOn` is the day; a one-off's `done` too. */
+function dkTick_(items, i, on, day) {
+  const it = items[i];
+  if (!it) return false;
+  const mark = (x, v) => { if (x.repeat === 'daily') x.doneOn = v ? day : ''; else { x.done = !!v; x.doneOn = v ? day : ''; } };
+  const isDone = x => (x.repeat === 'daily' ? x.doneOn === day : !!x.done);
+  const find = t => items.find(y => y && y !== it && String(y.title || '').trim() === String(t || '').trim());
+  mark(it, on);
+  if (on) {
+    const set = (Array.isArray(it.covers) ? it.covers : []).filter(t => { const x = find(t); if (!x || isDone(x)) return false; mark(x, true); return true; });
+    if (set.length) it.coversSet = set; else delete it.coversSet;
+  } else {
+    (Array.isArray(it.coversSet) ? it.coversSet : []).forEach(t => { const x = find(t); if (x && x.doneOn === day) mark(x, false); });
+    delete it.coversSet;
+  }
+  return true;
+}
 /* ON EVERY LOAD: a one-off ticked before today leaves its list (the backend's postSaveTodo_ does the same on each save); one ticked before `doneOn` existed is dated today, so it goes at the next midnight. */
 function dkTidy_(lists) {
   lists.forEach(L => { L.items = (L.items || []).filter(it => !dkGone_(it)); L.items.forEach(it => { if (it.repeat !== 'daily' && it.done && !it.doneOn) it.doneOn = dkDay_(); }); });
@@ -147,6 +166,8 @@ function dkGroups_(items) {
 const dkPicked_ = it => (it.pick && (it.repeat !== 'daily' || it.pickOn === dkDay_()) ? it.pick : '');
 /* THE ONE ITEM (owner, 22 Nov, UNIFY NEXT 6): every item of the owner's lists (kinds.json `list`: Docket, Assignments, Tasks, Food) is drawn as an Item,
    marked with its shape and kind (`data-shape`, `data-item-kind`, read by tools/one-list.js); in a widget here, in Find through the one card maker. */
+/* WHAT A TICK ALSO TICKS, on the card: "covers: Meat!, Rice". */
+const dkCovers_ = it => (Array.isArray(it.covers) && it.covers.length ? { type: 'text', text: 'covers: ' + it.covers.join(', ') } : null);
 const listItem_ = (kind, o) => ({ type: 'group', look: 'dk-item', attrs: Object.assign({ 'data-shape': kindShape_(kind), 'data-item-kind': kind }, o.attrs || {}),
   blocks: (o.blocks || []).filter(Boolean), tiles: o.tiles });
 function dkItem_(it, i) {
@@ -156,7 +177,7 @@ function dkItem_(it, i) {
     { type: 'tick', text: (it.title || 'Untitled') + (picked ? ': ' + picked.toLowerCase() : ''), attrs: { 'data-dk': i, checked: dkDone_(it), 'aria-label': 'Done: ' + (it.title || '') } },
     tags.length ? { type: 'tags', tags } : null,
     fk && !dkDone_(it) ? { type: 'tiles', tiles: foodsOf_(fk).map(f => ({ label: f.name, note: f.note || '', act: 'dk-food', cls: f.name === picked ? 'is-submit' : '', data: { i, f: f.name } })) } : null,
-    it.note && DK.edit !== i ? { type: 'text', paras: String(it.note).split(/\n{2,}/) } : null],
+    it.note && DK.edit !== i ? { type: 'text', paras: String(it.note).split(/\n{2,}/) } : null, dkCovers_(it)],
     tiles: [{ icon: 'edit', label: 'Edit', act: 'dk-edit', data: { i } }, { icon: 'bin', label: 'Delete', act: 'dk-del', data: { i } }] });
   if (DK.edit !== i) return row;
   const f = (cap, b) => ({ type: 'field', cap, blocks: [b] });
@@ -290,9 +311,7 @@ on('dk-showdone', () => { DK.showDone = !DK.showDone; dkPaint_(); });
 document.addEventListener('change', e => {
   const el = e.target;
   if (!el || !el.closest || !el.closest('#dk-box') || !el.hasAttribute('data-dk')) return;
-  const it = dkList_() && dkList_().items[+el.getAttribute('data-dk')];
-  if (!it) return;
-  if (it.repeat === 'daily') it.doneOn = el.checked ? dkDay_() : ''; else { it.done = el.checked; it.doneOn = el.checked ? dkDay_() : ''; }
+  if (!dkList_() || !dkTick_(dkList_().items, +el.getAttribute('data-dk'), el.checked, dkDay_())) return;
   dkKeep_();
 });
 /* THE DOCKET IN FIND (owner, 20 Nov): Tools › Docket › a list › its items, each its own card (kinds.json kind `docket`, drawn by `dkCard_` through the one maker).
@@ -392,7 +411,7 @@ function dkCard_(x) {
   const form = open ? [{ type: 'group', look: 'dk-form', inner: formOf_('docket-item', a, { options: f => ((spec.find(y => y.f === f) || {}).options || []) }) }] : [];
   return renderCard(shapeCard_('docket', { kind: 'docket', name: it.title || 'Untitled', tags: [it.title || 'Untitled', x.dkMark, a.minutes + ' min', +a.runs ? 'Runs by itself ' + a.runs + ' min' : '', x.dkList].concat(when).filter(Boolean),
     body: [{ type: 'tick', text: 'Done', attrs: { 'data-dkf': x.dkAt, checked: dkDone_(it), 'aria-label': 'Done: ' + (it.title || '') } },
-      it.note && !open ? { type: 'text', paras: String(it.note).split(/\n{2,}/) } : null].concat(form).filter(Boolean),
+      it.note && !open ? { type: 'text', paras: String(it.note).split(/\n{2,}/) } : null, dkCovers_(it)].concat(form).filter(Boolean),
     tiles: open ? [{ icon: 'save', label: text_('save'), act: 'dk-fsave', cls: 'is-submit', data: { at: x.dkAt } }, { icon: 'bin', label: 'Delete', act: 'dk-fdel', tone: 'danger', data: { at: x.dkAt } },
       { icon: 'close', label: 'Close', act: 'dk-fedit', data: { at: x.dkAt } }] : [{ icon: 'edit', label: 'Edit', act: 'dk-fedit', data: { at: x.dkAt } }] }));
 }
@@ -416,9 +435,8 @@ on('dk-qadd', el => { const card = el.closest('.card'), inp = card && card.query
 document.addEventListener('change', e => {
   const el = e.target, at = el && el.getAttribute && el.getAttribute('data-dkf');
   if (!at) return;
-  const { it } = dkAt_(at);
-  if (!it) return;
-  if (it.repeat === 'daily') it.doneOn = el.checked ? dkDay_() : ''; else { it.done = el.checked; it.doneOn = el.checked ? dkDay_() : ''; }
+  const { L, i } = dkAt_(at);
+  if (!L || !dkTick_(L.items, i, el.checked, dkDay_())) return;
   dkFindKeep_();
 });
 document.addEventListener('keydown', e => { const c = e.target && e.target.classList; if (e.key !== 'Enter' || !c || typeof ACTIONS === 'undefined') return;
