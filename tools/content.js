@@ -354,10 +354,10 @@ const IDEAS = {
   merge(c) {
     const words = c.words = IM.words('textbooks'), out = argOut();
     /* TO A FIXED POINT: a card kept takes its idea's name, which can make it the same idea as another (GCSE and A-Level Vectors). */
-    const r = { merged: {}, moved: 0, gone: 0, anims: 0 };
+    const r = { merged: {}, moved: 0, unruled: 0, gone: 0, anims: 0 };
     for (let i = 0; i < 5 && c.m.groups.some(g => g.cards.length > 1); i++) {
       const x = c.ID.merge(c.tb.rows, words, c.m);
-      Object.assign(r.merged, x.merged); r.moved += x.moved; r.gone += x.gone; r.anims += x.anims;
+      Object.assign(r.merged, x.merged); r.moved += x.moved; r.unruled += x.unruled; r.gone += x.gone; r.anims += x.anims;
       c.m = c.ID.measure(c.tb.rows);
     }
     const merged = Object.assign({}, ((c.tax.Maths || {}).ideas || {}).merged || {}, r.merged);
@@ -376,7 +376,7 @@ const IDEAS = {
     const text = JSON.stringify(c.tax, null, 1) + '\n';
     if (out) { fs.mkdirSync(out, { recursive: true }); fs.writeFileSync(path.join(out, 'taxonomy.json'), text); }
     else fs.writeFileSync(c.file, text);
-    console.log('ideas: merged ' + r.gone + ' card(s) into the card kept, ' + r.moved + ' item move(s) from broad cards to their idea, ' + r.anims
+    console.log('ideas: merged ' + r.gone + ' card(s) into the card kept, ' + r.moved + ' item move(s) from broad cards to their idea (' + r.unruled + ' by score alone, with no verdict in data/settings/idea-places.json), ' + r.anims
       + ' animation(s) moved, ' + n + ' spec link(s) pointed on; now ' + m.cards.length + ' cards, ' + m.groups.length + ' ideas, '
       + m.groups.filter(g => g.cards.length > 1).length + ' groups of more than one card');
   },
