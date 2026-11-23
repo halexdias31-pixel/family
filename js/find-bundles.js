@@ -251,7 +251,7 @@ function bundleCard_(b) {
       })()
     : b.printable.map(named);
   const stray = bundleStrayLine_(b);
-  /* THE ONE CARD (owner, 9 Nov): picture, name as a tag, two lines closed, Add to basket / Message / Star / ⋯; the papers show open. */
+  /* THE ONE CARD (owner, 9 Nov): picture, name as a tag, two lines closed, Add to basket / Message / Star and every other tile; the papers show open. */
   const tiles = [{ icon: 'cart', label: inCart ? text_('in-your-basket') : text_('add-to-basket'), note: note, act: 'cart-add', on: inCart, off: inCart, tone: 'buy',
       data: { kind: 'bundle', ids: b.ids.join(','), key: b.title || '' } },
     { icon: 'open', label: 'See your basket', act: 'cart-open' }]
