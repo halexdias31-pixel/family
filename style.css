@@ -2897,22 +2897,9 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 
 /* ---------- THE OPENED QUESTION § */
 /* ---------- THE ANSWER: THE RESULT, ON ITS OWN PAGE, AND NOTHING UNDER IT § */
-/* ON ITS OWN PAGE NOW, so the rule that separated it from the question above has nothing to
-   separate: the card's own edge does that. The same gap as the question to its answer box, 1rem. */
-.qans { margin-top: var(--s4); }
-/* ---------- A LABEL, AND THE SAME ONE THE ANSWER BOX WEARS § */
-.qans-head {
-  display: block; margin-bottom: var(--s2);
-  font: 600 var(--fs-small)/1 var(--font); color: var(--ink);
-  letter-spacing: var(--ls-4);
-}
-/* THE ANSWER READS AS THE PAPER DOES, because it is the same material — see `answerBlock_`. § */
-/* THE RESULT, LARGE. It is the one thing on this page, and 259 cut it to a word or a line -- median seven characters, none past 120 -- so it can be the size of a § */
-.qans-body { font: 600 var(--fs-title)/1.35 var(--font); color: var(--ink); padding-bottom: var(--s2);
-             overflow-wrap: anywhere; }
-.qans-body p:first-child { margin-top: 0; }
+/* THE ANSWER IS THE QUESTION'S OWN BOX, READ-ONLY (owner, 23 Nov): drawn as the child's answer, never greyed as a disabled field. */
+.qp-key-in:disabled, .qp-key .qp-ans { opacity: 1; cursor: default; }
 .qans-note { font: var(--fs-body)/1.4 var(--font); color: var(--dim); margin: var(--s2) 0 0; }
-.qans-body table { font-size: var(--fs-small); font-weight: 400; }
 
 /* QUESTIONS IN THE FUNNEL. § */
 /* ---------- ONE RHYTHM DOWN THE CARD, WHERE THERE WERE FOUR GAPS AND NO REASON BETWEEN THEM § */
@@ -2933,7 +2920,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .qwhole .qb-stem:empty { display: none; }
 :is(.qwhole > [data-shape="Question"], [data-shape="Question"]) .qtext :is(table, figure, p) { margin-left: auto; margin-right: auto; }
 /* TYPING READS FROM THE LEFT: the box is centred, the words inside it are not. */
-:is(.qwhole > [data-shape="Question"], [data-shape="Question"]) :is(.qp-ans, .qp-sheet, .gd-box, input, textarea, ul, ol, .qans-body) { text-align: left; }
+:is(.qwhole > [data-shape="Question"], [data-shape="Question"]) :is(.qp-ans, .qp-sheet, .gd-box, input, textarea, ul, ol, .qans-note) { text-align: left; }
 :is(.qwhole > [data-shape="Question"], [data-shape="Question"]) .qtext :is(ul, ol) { display: inline-block; max-width: 100%; margin-left: auto; margin-right: auto; }
 /* ---------- THE CARD'S TAGS § */
 .qtags { display: flex; flex-wrap: wrap; gap: var(--s1) var(--s1); }

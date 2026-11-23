@@ -84,7 +84,7 @@ async function run() {
   const pick = E.cards[0] || { html: '', parts: [] };
   PICK.choices.forEach((o, i) => { if (pick.html.indexOf('<b>' + 'ABC'[i] + '</b> ' + o) < 0) bad.push('email Q1ai: option ' + 'ABC'[i] + ' (' + o + ') not shown'); });
   if (!/0\.012 <span[^>]*>✓ Answer<\/span> <span[^>]*>← Their answer/.test(pick.html)) bad.push('email Q1ai: the right option and theirs are not marked on C');
-  if (!/Answer<\/p><p[^>]*><b>C<\/b> 0\.15 × 0\.08 = 0\.012/.test(pick.html.replace(/<\/?b>(?=0)/g, ''))) bad.push('email Q1ai: the answer is not "C 0.15 × 0.08 = 0.012", as the site says it');
+  if (!/Answer<\/p><table[^>]*><tr><td[^>]*><b>C<\/b> 0\.15 × 0\.08 = 0\.012/.test(pick.html.replace(/<\/?b>(?=0)/g, ''))) bad.push('email Q1ai: the answer is not "C 0.15 × 0.08 = 0.012", as the site says it');
   if (!/<b>A<\/b> kg m\/s/.test(E.cards[1] ? E.cards[1].html : '')) bad.push('email Q1aii: the answer is not its key, "A kg m/s"');
   if (/momentum is mass/.test(E.cards[1] ? E.cards[1].html : '')) bad.push('email Q1aii: the answer says the working note, not the key');
   const S1 = await site(Q);
@@ -97,5 +97,5 @@ async function run() {
   bad.forEach(b => console.log('  ' + b));
   if (bad.length) throw new Error('one-question-card: ' + bad.length + ' difference(s) between the email\'s question card and the site\'s');
 }
-module.exports = { run };
+module.exports = { run, email, ITEMS };
 main(module, run);

@@ -3658,18 +3658,6 @@ why = tidy(why);
 why = why.replace(/^((?:\s*<[a-z][^>]*>)*\s*)([a-z])(?=[a-z])/, (w, tags, c) => tags + c.toUpperCase());
 return { head: head, why: seen(why) ? why : '' };
 }
-function answerBlock_(x) {
-const table = x && typeof cellsKeyTable_ === 'function' && cellsOf_(x).some(c => c.ways) ? cellsKeyTable_(x) : '';
-if (table) {
-const note = String(x.answer || '').trim() ? answerParts_(x.answer).head : '';
-return cardBlock_({ type: 'group', look: 'qans', blocks: [{ type: 'group', tag: 'span', look: 'qans-head', text: 'Answer' },
-{ type: 'group', look: 'qans-body qtext', inner: '<div class="qp-cells-wrap q-tscroll">' + table + '</div>' + (note ? '<p class="qans-note">' + typeset_(note) + '</p>' : '') }] });
-}
-if (!x || !(String(x.answer || '').trim() || (x.choiceRight || []).length)) return '';
-const kind = String(x.answerType || '').trim();
-return cardBlock_({ type: 'group', look: 'qans', blocks: [{ type: 'group', tag: 'span', look: 'qans-head', text: 'Answer' + (kind ? ' · ' + kind : '') },
-{ type: 'group', look: 'qans-body qtext', inner: typeset_(answerSay_(x.answer, x.choices, x.choiceRight, kind.toLowerCase() === 'order')) }] });
-}
 function answerSay_(answer, choices, right, order) {
 const opts = choices || [], ks = (right || []).filter(k => k > 0 && k <= opts.length);
 if (ks.length && !order) {
@@ -5701,14 +5689,15 @@ const fcVerdict_ = t => fcG_('span', 'qp-verdict', { role: 'status', 'aria-live'
 const fcSaved_ = k => fcG_('span', 'qp-saved', { 'data-k': k }, '', ansSavedSay_(k));
 const cellsVals_ = (v, cells) => { const s = String(v == null ? '' : v); return / ; /.test(s) || !s.trim() ? s.split(' ; ') : cellsOneBox_([s], cells); };
 const cellsFirstWay_ = c => String(c.ways || '').split('|').map(w => w.trim()).find(w => w && !/^rule:/i.test(w)) || '';
-function cellsCellBox_(k, c, i, v, acc) {
+function cellsCellBox_(k, c, i, v, acc, key) {
 const maths = kpMathsy_(cellsFirstWay_(c));
-return fcG_('label', 'qp-ans qp-cell-ans' + (maths ? ' qp-ans-maths' : ''), { 'data-accept': acc || c.ways },
-kpField_(k, v || '', maths ? 'maths' : 'words', 3, 'Blank ' + c.label, { class: 'qp-ans-in kp-in qp-cell', 'data-do': 'qp-cell', 'data-n': String(i) }));
+return fcG_('label', 'qp-ans qp-cell-ans' + (maths ? ' qp-ans-maths' : '') + (key ? ' is-key' : ''), key ? null : { 'data-accept': acc || c.ways },
+kpField_(key ? '' : k, v || '', maths ? 'maths' : 'words', 3, (key ? 'Answer, blank ' : 'Blank ') + c.label,
+key ? ANS_KEY_IN : { class: 'qp-ans-in kp-in qp-cell', 'data-do': 'qp-cell', 'data-n': String(i) }));
 }
 function cellsTable_(x, key) {
 const cells = cellsOf_(x), k = ansKey_(x), vals = key ? [] : cellsVals_(ansRead_(k), cells), o = cellsOrder_(x), p = o.places;
-const put_ = (c, n, a) => (key ? fcG_('span', 'qp-cell-key', null, typeset_(esc(cellsFirstWay_(c)))) : cellsCellBox_(k, c, n, vals[n], a));
+const put_ = (c, n, a) => (key ? cellsCellBox_(k, c, n, cellsFirstWay_(c), a, true) : cellsCellBox_(k, c, n, vals[n], a));
 if (p) {
 let t = p.table;
 const put = p.at.map((i, n) => [i, n]).filter(([i]) => i >= 0).sort((a, b) => b[0] - a[0]);
@@ -5730,8 +5719,10 @@ return '<table class="qp-cells qp-cells-own" data-order="place"><tbody>' + cells
 const cellsKeyTable_ = x => cellsTable_(x, true);
 const cellsHint_ = by => by === 'rows' ? 'Fill in every empty cell — the rows can go in any order'
 : by === 'cols' ? 'Fill in every empty cell — the columns can go in any order' : 'Fill in every empty cell';
-function cellsBox_(x) {
+function cellsBox_(x, key) {
 const k = ansKey_(x), o = cellsOrder_(x);
+if (key) return fcG_('div', 'qp-mark qp-compose qp-cells-box qp-key', null, fcG_('p', 'q-hint', null, '', 'Answer')
++ fcG_('div', 'qp-cells-wrap q-tscroll', null, cellsTable_(x, true)) + ansKeyNote_(x, '', true));
 const said = subBoxSay_(k, String(ansRead_(k) || ''));
 return fcG_('div', 'qp-mark qp-compose qp-cells-box' + (said.cls ? ' ' + said.cls : ''), { 'data-k': k },
 fcG_('p', 'q-hint', null, '', cellsHint_(o.by)) + fcG_('div', 'qp-cells-wrap q-tscroll', null, cellsTable_(x))
@@ -5789,9 +5780,33 @@ if (own) return own;
 const card = el && el.closest && el.closest('.qcard');
 return card ? card.querySelector(s) : null;
 }
-function ansBox_(x) {
+const ANS_KEY_IN = { class: 'qp-ans-in kp-in qp-key-in', 'data-do': null, 'data-k': null, disabled: true, inputmode: null };
+const ansPlain_ = h => String(h == null ? '' : h).replace(/<br\s*\/?>/gi, '\n').replace(/<\/p>\s*<p[^>]*>/gi, '\n').replace(/<[^>]*>/g, '')
+.replace(/&nbsp;/g, ' ').replace(/&times;/g, '\u00d7').replace(/&divide;/g, '\u00f7').replace(/&minus;/g, '\u2212').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+.replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&').trim();
+function ansKeyVal_(x) {
+const opts = Array.isArray(x.choices) ? x.choices : [], ks = (x.choiceRight || []).filter(k => k > 0 && k <= opts.length);
+if (ks.length && opts.length >= 2) return ks.map(k => CHOICE_LETTERS[k - 1]).join(', ');
+const acc = String(x.accept || '').split('|').map(w => w.trim()).find(w => w && !/^rule:/i.test(w));
+if (acc) return ansPlain_(acc);
+return String(x.answer || '').trim() ? ansPlain_(answerParts_(x.answer).head) : '';
+}
+function ansKeyNote_(x, inBox, table) {
+const said = table || typeof answerSay_ !== 'function' ? '' : answerSay_(x.answer, x.choices, x.choiceRight, orderIs_(x));
+const why = String(x.answer || '').trim() ? answerParts_(x.answer).why : '';
+const bits = [said, why].filter(b => b && ansPlain_(b) && ansPlain_(b) !== inBox);
+return bits.length ? fcG_('p', 'qp-fb qans-note', null, typeset_(bits.join(' \u2014 '))) : '';
+}
+function ansBox_(x, key) {
 const face = qtFace_(x);
-if (face.cells) return cellsBox_(x);
+if (face.cells) return cellsBox_(x, key);
+if (key) {
+const v = ansKeyVal_(x), essay = !!(ansEssay_(x) || face.sheet);
+const field = kpField_('', v, essay ? 'essay' : ansMaths_(x) ? 'maths' : 'words', 3, 'The answer', ANS_KEY_IN);
+return fcG_('div', 'qp-mark qp-compose qp-key' + (essay ? ' qp-essay' : ''), null, (essay ? '' : choiceList_(x))
++ (essay ? fcG_('label', 'qp-ans qp-sheet is-key', null, field) : fcG_('div', 'qp-ans-row qp-bar', null, fcG_('label', 'qp-ans is-key' + (ansMaths_(x) ? ' qp-ans-maths' : ''), null, field)))
++ ansKeyNote_(x, v));
+}
 const opts = choiceList_(x);
 const k = ansKey_(x);
 const m = markerOf_(x);
@@ -8458,22 +8473,26 @@ CARD_EMBEDS.qsheet = a => {
 const x = qPartOf_(a.key);
 if (!x) return '';
 const was = Q_DRAWN.get(x.key) || { stems: [], shown: [x], ans: true };
-if (was.only) return questionHasAns_(x) || schemeOwed_(x) ? questionAnsCard_(x, true, true) : '';
 const stems = was.stems.map(st => qStemWhole_(x, st, was.shown, a.pic ? [] : null)).join('');
 const words = partChunks_(x).map(c => chunkHtml_(c, circOf_(x), x)).join('');
+if (was.only) return stems + figBox_({ look: 'qsheet qtext', inner: qWordsOr_(x, cellsHere_(x, words)) })
++ (questionHasAns_(x) || schemeOwed_(x) ? questionAnsCard_(x, true, true) : '');
 const has = was.ans && (questionHasAns_(x) || schemeOwed_(x));
 return stems + figBox_({ look: 'qsheet qtext', inner: qWordsOr_(x, cellsHere_(x, words)) }) + ansArea_(x) + (has ? questionAnsCard_(x, true) : '');
 };
 const qWas_ = x => Q_DRAWN.get(x.key) || { stems: [], shown: [x], ans: true };
 const qCardKeep_ = x => { if (x.key) Q_ITEM.set(x.key, x.item || x); };
-const qCardPic_ = x => { const was = qWas_(x), pic = was.stems.length && !was.only ? qStemPic_(x, was) : ''; return pic ? { svg: pic } : null; };
+const qCardPic_ = x => { const was = qWas_(x), pic = was.stems.length ? qStemPic_(x, was) : ''; return pic ? { svg: pic } : null; };
 const qCardLook_ = x => 'qb favwrap qcard qb-part' + (isFav(x.key) ? ' is-fav' : '');
-const qCardTiles_ = x => { const was = qWas_(x); try { return qtTiles_(x, was.ans && questionHasAns_(x) && !schemeOwed_(x)); } catch (e) { oops_(e, 'question:spec'); return []; } };
+const QT_KEY_OFF = /^(qp-check|qp-send|qp-cells-check|qp-noscheme|pad-|qt-pen|qt-inst)/;
+const qCardTiles_ = x => { const was = qWas_(x); try { const t = qtTiles_(x, was.ans && questionHasAns_(x) && !schemeOwed_(x));
+return was.only ? t.map(o => (o && QT_KEY_OFF.test(o.act || '') ? Object.assign({}, o, { off: true, on: false, pressed: false, note: 'not on an answer' }) : o)) : t; }
+catch (e) { oops_(e, 'question:spec'); return []; } };
 function qOneCard_(p, ctx) {
 const stems = (p.stems || []).filter(s => !ctx.carried.has(s) && !ctx.drawn[stemId_(s)]);
 stems.forEach(s => { ctx.drawn[stemId_(s)] = true; });
 const q = { stems, shown: ctx.shown, ans: false, only: false };
-const a = { stems: [], shown: ctx.shown, ans: true, only: true };
+const a = { stems, shown: ctx.shown, ans: true, only: true };
 if (ctx.only) { Q_DRAWN.set(p.key, Object.assign(a, { stems })); return findCard(p); }
 Q_DRAWN.set(p.key, q);
 const qHtml = findCard(p);
@@ -8771,10 +8790,8 @@ const k = ansKey_(x);
 const open = ansOpen_(x);
 return figBox_({ look: 'qcard qans-card' + (open ? '' : ' is-hidden'), attrs: { 'data-of': id, 'data-k': k, 'data-shape': 'Question' },
 inner: tags
-+ (inRow ? '' : figBox_({ look: 'tile-row qans-tiles', inner: qaToggle_(k, open)
-+ (open ? '' : figBox_({ tag: 'span', look: 'qans-wait-k', text: 'Answer hidden' })) }))
-+ (inRow && !open ? figBox_({ tag: 'p', look: 'qans-wait-k', text: 'Answer hidden' }) : '')
-+ (open ? answerBlock_(x) : '')
++ (inRow ? '' : figBox_({ look: 'tile-row qans-tiles', inner: qaToggle_(k, open) }))
++ (open ? ansBox_(x, true) : figBox_({ tag: 'p', look: 'qans-wait-k', text: 'Answer hidden' }))
 + (!inRow && typeof helpRow_ === 'function' ? helpRow_(x, 'ans') : '') });
 }
 function ansItem_(k) {

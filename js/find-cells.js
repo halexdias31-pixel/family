@@ -208,16 +208,18 @@ const fcSaved_ = k => fcG_('span', 'qp-saved', { 'data-k': k }, '', ansSavedSay_
    question shows none, a table of its own, a row an entry. Marked a cell at a time by the one marker (`markCells_`, its order rule). */
 const cellsVals_ = (v, cells) => { const s = String(v == null ? '' : v); return / ; /.test(s) || !s.trim() ? s.split(' ; ') : cellsOneBox_([s], cells); };
 const cellsFirstWay_ = c => String(c.ways || '').split('|').map(w => w.trim()).find(w => w && !/^rule:/i.test(w)) || '';
-function cellsCellBox_(k, c, i, v, acc) {
+function cellsCellBox_(k, c, i, v, acc, key) {
   const maths = kpMathsy_(cellsFirstWay_(c));
-  return fcG_('label', 'qp-ans qp-cell-ans' + (maths ? ' qp-ans-maths' : ''), { 'data-accept': acc || c.ways },
-    kpField_(k, v || '', maths ? 'maths' : 'words', 3, 'Blank ' + c.label, { class: 'qp-ans-in kp-in qp-cell', 'data-do': 'qp-cell', 'data-n': String(i) }));
+  return fcG_('label', 'qp-ans qp-cell-ans' + (maths ? ' qp-ans-maths' : '') + (key ? ' is-key' : ''), key ? null : { 'data-accept': acc || c.ways },
+    kpField_(key ? '' : k, v || '', maths ? 'maths' : 'words', 3, (key ? 'Answer, blank ' : 'Blank ') + c.label,
+      key ? ANS_KEY_IN : { class: 'qp-ans-in kp-in qp-cell', 'data-do': 'qp-cell', 'data-n': String(i) }));
 }
 /* THE TABLE OF BOXES: the question's own, its blanks (or the labels in them) made boxes; else one of its own */
 function cellsTable_(x, key) {
   const cells = cellsOf_(x), k = ansKey_(x), vals = key ? [] : cellsVals_(ansRead_(k), cells), o = cellsOrder_(x), p = o.places;
   /* THE KEY'S TABLE (`key`): the same table, each cell's first way in its place -- the shown answer (cellsKeyTable_) */
-  const put_ = (c, n, a) => (key ? fcG_('span', 'qp-cell-key', null, typeset_(esc(cellsFirstWay_(c)))) : cellsCellBox_(k, c, n, vals[n], a));
+  /* THE KEY'S CELL IS THE CHILD'S BOX, read-only, its key typed in it (owner, 23 Nov: "uniformalize the answers") */
+  const put_ = (c, n, a) => (key ? cellsCellBox_(k, c, n, cellsFirstWay_(c), a, true) : cellsCellBox_(k, c, n, vals[n], a));
   if (p) {
     let t = p.table;
     const put = p.at.map((i, n) => [i, n]).filter(([i]) => i >= 0).sort((a, b) => b[0] - a[0]);
@@ -242,8 +244,10 @@ const cellsKeyTable_ = x => cellsTable_(x, true);
 /* THE ONE LINE OVER THE TABLE: what is marked, and whether its rows (or columns) may come in any order */
 const cellsHint_ = by => by === 'rows' ? 'Fill in every empty cell — the rows can go in any order'
   : by === 'cols' ? 'Fill in every empty cell — the columns can go in any order' : 'Fill in every empty cell';
-function cellsBox_(x) {
+function cellsBox_(x, key) {
   const k = ansKey_(x), o = cellsOrder_(x);
+  if (key) return fcG_('div', 'qp-mark qp-compose qp-cells-box qp-key', null, fcG_('p', 'q-hint', null, '', 'Answer')
+    + fcG_('div', 'qp-cells-wrap q-tscroll', null, cellsTable_(x, true)) + ansKeyNote_(x, '', true));
   const said = subBoxSay_(k, String(ansRead_(k) || ''));
   return fcG_('div', 'qp-mark qp-compose qp-cells-box' + (said.cls ? ' ' + said.cls : ''), { 'data-k': k },
     fcG_('p', 'q-hint', null, '', cellsHint_(o.by)) + fcG_('div', 'qp-cells-wrap q-tscroll', null, cellsTable_(x))
@@ -305,10 +309,38 @@ function qMark_(el, sel) {
   const card = el && el.closest && el.closest('.qcard');
   return card ? card.querySelector(s) : null;
 }
+/* ---------- THE ANSWER IS THE SAME BOX (owner, 23 Nov: "uniformalize the way the answers work compared to the questions"): `key` draws the
+   question's own answer box read-only, the right answer in it, the note under it -- one drawing for the child's answer and the shown one. */
+const ANS_KEY_IN = { class: 'qp-ans-in kp-in qp-key-in', 'data-do': null, 'data-k': null, disabled: true, inputmode: null };
+const ansPlain_ = h => String(h == null ? '' : h).replace(/<br\s*\/?>/gi, '\n').replace(/<\/p>\s*<p[^>]*>/gi, '\n').replace(/<[^>]*>/g, '')
+  .replace(/&nbsp;/g, ' ').replace(/&times;/g, '\u00d7').replace(/&divide;/g, '\u00f7').replace(/&minus;/g, '\u2212').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+  .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&').trim();
+/* WHAT GOES IN THE BOX: a pick's key letters; a typed part what it accepts first; else the scheme's head. */
+function ansKeyVal_(x) {
+  const opts = Array.isArray(x.choices) ? x.choices : [], ks = (x.choiceRight || []).filter(k => k > 0 && k <= opts.length);
+  if (ks.length && opts.length >= 2) return ks.map(k => CHOICE_LETTERS[k - 1]).join(', ');
+  const acc = String(x.accept || '').split('|').map(w => w.trim()).find(w => w && !/^rule:/i.test(w));
+  if (acc) return ansPlain_(acc);
+  return String(x.answer || '').trim() ? ansPlain_(answerParts_(x.answer).head) : '';
+}
+/* THE NOTE UNDER IT: what the answer says beyond the box (a pick's words, the scheme's head and why), never the box again. */
+function ansKeyNote_(x, inBox, table) {
+  const said = table || typeof answerSay_ !== 'function' ? '' : answerSay_(x.answer, x.choices, x.choiceRight, orderIs_(x));
+  const why = String(x.answer || '').trim() ? answerParts_(x.answer).why : '';
+  const bits = [said, why].filter(b => b && ansPlain_(b) && ansPlain_(b) !== inBox);
+  return bits.length ? fcG_('p', 'qp-fb qans-note', null, typeset_(bits.join(' \u2014 '))) : '';
+}
 /* THE FACE IS THE ONE SOURCE'S (qtypes.js `qtFace_`, owner 20 Nov): one box for every question (22 Nov). */
-function ansBox_(x) {
+function ansBox_(x, key) {
   const face = qtFace_(x);
-  if (face.cells) return cellsBox_(x);
+  if (face.cells) return cellsBox_(x, key);
+  if (key) {
+    const v = ansKeyVal_(x), essay = !!(ansEssay_(x) || face.sheet);
+    const field = kpField_('', v, essay ? 'essay' : ansMaths_(x) ? 'maths' : 'words', 3, 'The answer', ANS_KEY_IN);
+    return fcG_('div', 'qp-mark qp-compose qp-key' + (essay ? ' qp-essay' : ''), null, (essay ? '' : choiceList_(x))
+      + (essay ? fcG_('label', 'qp-ans qp-sheet is-key', null, field) : fcG_('div', 'qp-ans-row qp-bar', null, fcG_('label', 'qp-ans is-key' + (ansMaths_(x) ? ' qp-ans-maths' : ''), null, field)))
+      + ansKeyNote_(x, v));
+  }
   const opts = choiceList_(x);
   const k = ansKey_(x);
   const m = markerOf_(x);

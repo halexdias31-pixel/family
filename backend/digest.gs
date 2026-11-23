@@ -570,7 +570,8 @@ function digestCardMaker_(ink, says, cut) {
       choices: () => ({ type: 'html', look: 'choices', html: digestChoices_(it, C, ink, w) }),
       theirs: () => (it.theirs ? { type: 'list', items: [{ label: C.labels.theirs, cut: short(it.theirs), box: true }] } : null),
       verdict: () => ({ type: 'text', look: 'verdict', tone: w.tone, text: w.one || it.mark }),
-      answer: () => (it.right ? { type: 'list', items: [{ label: C.labels.right, cut: short(it.right) }] } : null) };
+      /* THE ANSWER IN THE SAME BOX AS THEIRS (owner, 23 Nov: "uniformalize the answers"), read-only as every email is. */
+      answer: () => (it.right ? { type: 'list', items: [{ label: C.labels.right, cut: short(it.right), box: true }] } : null) };
     const body = order.map(k => { const b = make[k] && make[k](); return b ? Object.assign(b, { part: k }) : null; }).filter(Boolean);
     return renderCard({ kind: 'question', inline: Object.assign({ hues: DIGEST_TAG_INK }, ink), marked: true, tags: tags, cut: { pic: got.pic || '' }, body: body });
   };
