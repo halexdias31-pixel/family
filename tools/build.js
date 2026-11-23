@@ -52,6 +52,7 @@ const ORDER = [
   'digest-clip',  // the digest-clip check (rule 1.75, owner 20 Nov): large weeks through the Sunday email's digestRender_; a part over Gmail's clip or a question without its words fails the build
   'one-email',    // the one-email check (rule 1.75, queue step 8, 22 Nov): every email the backend builds, MailApp stubbed, through one card (email.gs emailOf_) with the same recipients, words and links as before (tools/data/one-email.json); fails the build
   'bundle',       // js/ in index.html's order -> bundle/*.js
+  'paper-cards',  // the paper-cards check (rule 1.75, owner 23 Nov): a child on an iPad taps Find down to one exam paper (a sample across boards and subjects, words made up) and its question cards are drawn under the chips; a blank page fails the build
   'keypad-taps',  // the keypad check (rule 1.75, owner 23 Nov: "Hegarty Maths always worked"): each maths form and a sample of every answer type tapped on the one pad's keys and marked Right, on a 390px phone and an iPad; a key that turns the pad over, a key off the screen or a glaring/full-width answer box fails the build
   'one-profile-save', // the one-profile-save check (rule 1.75, unify batch 9 job A): one profile send (profileSave_), one fieldReadonly_; fails the build
   'one-request',  // the one-request check (rule 1.75, unify H): one fetch to the backend (backendFetch_), every posted action in actions.json, one dispatcher; fails the build

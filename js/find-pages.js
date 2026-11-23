@@ -556,7 +556,9 @@ function stuffQuestionBlocks_() {
     /* AND WHEN A PAPER ENDED IT, IT SAYS SO. § */
     /* ---------- ONE CLASS FOR THE LAST LINE, NOT AN INLINE MARGIN ON EACH § */
     /* AND OVER THE BIBLE, WHICH VERSES — or why there is no question over its cover yet. */
-    /* NO END LINE otherwise (owner, 9 Nov: "remove that text"): the cards under the chips say it. */
+    /* NO END LINE otherwise (owner, 9 Nov: "remove that text"): the cards under the chips say it.
+       NEVER A BLANK PAGE (23 Nov): results the chips found but no page kept (each page's own tag disagreed) are said, not left empty. */
+    if (!stuffPages_().length) return [{ type: 'text', look: 'empty', text: 'Found ' + items.length + ', but none has a page under these chips — take the last chip off.' }];
     return [bibleEnd_(items)].filter(Boolean);
   }
 
