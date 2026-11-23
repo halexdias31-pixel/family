@@ -71,6 +71,7 @@ const ORDER = [
   'one-step',     // the one-step check (rule 1.75, owner 22 Nov: UNIFY NEXT 3): every opener one step by openStep_, Back pops one to the same scroll; old openers fail the build
   'one-list-kind', // the one-list-kind check (rule 1.75, owner 22 Nov: UNIFY NEXT 6): Docket, Assignments, Tasks and Food one list kind (kinds.json `list`), saved through listTidy_ and drawn as one Item; fails the build
   'one-card',     // the one-card check (rule 1.75): every Find card by the one maker, no CSS of its own; fails the build
+  'one-question-card', // the one-question-card check (rule 1.75, owner 22 Nov): the Sunday email's question card has the site card's parts in its order (kinds.json card.question.parts), a pick question's options marked and its answer as the site says it; fails the build
   'dead-css',     // the dead-css check (rule 1.75, owner 20 Nov): classes in style.css nothing writes, counted against a budget; a rise fails the build
   'dead-fn',      // the dead-fn check (rule 1.75, unify batch 6 lane E): a top-level function in js/ that nothing in js/, index.html, backend/, tools/ or data/ names fails the build
   'css-tokens',   // the css-tokens check (rule 1.75, unify batch 2): no raw colour (hex, rgb(), a colour keyword) in style.css outside :root; fails the build

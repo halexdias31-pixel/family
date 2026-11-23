@@ -156,6 +156,82 @@ function verdictOf_(v) {
   const got = +m[2], of = +m[3];
   return { verdict: got >= of ? 'right' : got > 0 ? 'part' : 'wrong', marks: got, max: of, method: m[1] === 'ai' ? 'ai' : 'rules', why: '' };
 }
+function markNorm_(s) {
+  return String(s == null ? '' : s)
+    /* ONLY A REAL TAG IS A TAG. § */
+    .replace(/<\/?[a-z][a-z0-9]*(?=[\s\/>])[^>]*>/gi, ' ')
+    /* AND THE ENTITIES A CELL IS WRITTEN IN ARE THE CHARACTERS A CHILD TYPES. § */
+    .replace(/&pound;/g, '£').replace(/&euro;/g, '€').replace(/&minus;/g, '−')
+    .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')
+    .replace(/&nbsp;/g, ' ')
+    /* WHAT A PASTE OR A PHONE'S SMART PUNCTUATION ADDS (508): invisible characters go, curly quotes are straight, full-width digits are digits. */
+    .replace(/[\u200b-\u200d\u2060\ufeff\u00ad]/g, '')
+    .replace(/[\u2018\u2019\u02bc]/g, "'").replace(/[\u201c\u201d]/g, '"')
+    .replace(/[\uff10-\uff19]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xff10 + 48))
+    .toLowerCase()
+    /* A LINE BREAK OR A SEMICOLON BETWEEN VALUES IS THE LIST'S COMMA (R2): 3⏎4 and 3; 4 are "3, 4". */
+    .replace(/\s*[\r\n;]+\s*/g, ', ').replace(/^[,\s]+|[,\s]+$/g, '')
+    .replace(/[−–—]/g, '-')          /* minus, en dash, em dash */
+    /* A DECIMAL WITH NO LEADING 0 IS THE SAME NUMBER: the keypad has a '.' key, so .5 is 0.5 (R2). */
+    .replace(/(^|[^\d.)a-z])\.(?=\d)/g, '$10.')
+    /* ONE SPELLING PER UNIT (R2): MARK_SYNONYMS below; superscript powers are ^2 ^3, as the keypad writes them. */
+    .replace(/(\d)\s*(degrees?|deg|per\s?cent|percent)(?![a-z])/g, (m, d, u) => d + MARK_SYNONYMS[u.replace(/\s/g, '')])
+    .replace(/[⁰¹²³⁴-⁹⁻]+/g, m => '^' + [...m].map(c => MARK_SUPS[c]).join(''))
+    .replace(/[£$€]/g, '')
+    /* A THOUSANDS SEPARATOR IS A COMMA, A SPACE, OR A THIN SPACE, and which one you get depends on who printed the paper. § */
+    .replace(/(\d)[,\u2009\u00a0 ](?=\d\d\d\b)/g, '$1')
+    /* A FRACTION HAS FOUR SPELLINGS AND A CHILD TYPES ONE OF THEM. § */
+    .replace(/[\u2044\u2215]/g, '/')
+    .replace(/[\u00bc\u00bd\u00be\u2150-\u215e]/g, c => ' ' + {
+      '\u00bc': '1/4', '\u00bd': '1/2', '\u00be': '3/4', '\u2150': '1/7', '\u2151': '1/9',
+      '\u2152': '1/10', '\u2153': '1/3', '\u2154': '2/3', '\u2155': '1/5', '\u2156': '2/5',
+      '\u2157': '3/5', '\u2158': '4/5', '\u2159': '1/6', '\u215a': '5/6', '\u215b': '1/8',
+      '\u215c': '3/8', '\u215d': '5/8', '\u215e': '7/8' }[c] + ' ')
+    .replace(/\s*\/\s*/g, '/')
+    /* ---------- WHAT THE MATHS KEYPAD WRITES, WHICH IS A BRACKET ROUND EVERY SLOT § */
+    .replace(/sqrt\s*/g, '√').replace(/(^|[^a-z])root\s*(?=[\d(])/g, '$1√')
+    .replace(/(^|[^a-z])pi(?![a-z])/g, '$1π')
+    .replace(/(\d)\s+(?=[√π])/g, '$1')
+    .replace(/([√^])\((-?[a-z0-9.π]+)\)/g, '$1$2')
+    .replace(/\((-?√?[a-z0-9.π]+(?:\^-?[a-z0-9.π]+)?)\)(?=\/)/g, '$1')
+    .replace(/([\/^√])\((-?√?[a-z0-9.π]+)\)/g, '$1$2')
+    /* AND THE SPACES ROUND A COLON, FOR THE SAME REASON ONE LINE UP. § */
+    .replace(/\s*:\s*/g, ':')
+    /* ---------- AND ROUND AN OPERATOR, WHICH IS THE COLON RULE FOR A THIRD CLASS OF CHARACTER § */
+    .replace(/≤/g, '<=').replace(/≥/g, '>=').replace(/≠/g, '!=')
+    .replace(/\*/g, '×').replace(/([\d²³¹⁰⁴-⁹])\s*x\s*(?=\d)/g, '$1×')
+    .replace(/\s*([-+×÷=<>!])\s*/g, '$1')
+    .replace(/\band\b|&/g, ',')
+    .replace(/[.\s]+$/, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    /* A TICK IS A TICK HOWEVER IT IS TYPED (owner, 18 Nov: Finley's √ in a tick-or-cross table was marked wrong): the
+       keypad's √ alone, ✔ or ☑ is ✓; ✘ or × alone is ✗. Only a whole answer or cell, so √9 stays a root. */
+    .replace(/^[√✔☑]$/, '✓').replace(/^[✘×]$/, '✗');
+}
+const MARK_SUPS = { '⁰': '0', '¹': '1', '²': '2', '³': '3', '⁴': '4', '⁵': '5', '⁶': '6', '⁷': '7', '⁸': '8', '⁹': '9', '⁻': '-' };
+const MARK_SYNONYMS = { degree: '°', degrees: '°', deg: '°', percent: '%' };
+const CHOICE_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+function choicePicks_(x, typed) {
+  const opts = ((x && x.choices) || []).map(c => markNorm_(String(c).replace(/<[^>]*>/g, ' ')));
+  const t = String(typed == null ? '' : typed).trim();
+  if (!t) return null;
+  const one = p => {
+    const w = markNorm_(p);
+    /* AN OPTION THAT IS ITSELF A LETTER (J, K, L, M) is read as itself first, before the A, B, C labels (owner, 18 Nov). */
+    if (opts.indexOf(w) >= 0) return opts.indexOf(w) + 1;
+    if (/^[a-z]$/.test(w) && w.charCodeAt(0) - 96 <= opts.length) return w.charCodeAt(0) - 96;
+    if (/^\d+$/.test(w) && +w >= 1 && +w <= opts.length) return +w;
+    const at = opts.indexOf(w);
+    return at >= 0 ? at + 1 : 0;
+  };
+  const whole = one(t);
+  if (whole) return [whole];
+  let parts = t.split(/\s*(?:[,;>\n]|\bthen\b|\band\b)\s*/i).filter(Boolean);
+  if (parts.length === 1) parts = t.split(/\s+/);
+  const out = parts.map(one);
+  return out.some(n => !n) ? [] : out;
+}
 /* from js/find-figures.js */
 const TAG_NAME = /[A-Za-z]/;
 function tagMadeOf_(text, said) {
@@ -587,11 +663,16 @@ function cardLetter_(spec) {
   const fact = x => p('label', cardRuns_(x.label)) + (x.box
     ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="${esc(I.box || '')}" style="${st('box')}">${x.cut != null ? x.cut : cardRuns_(x.value)}</td></tr></table>`
     : p('value', x.cut != null ? x.cut : cardRuns_(x.value)));
-  const block = b => (b && b.type === 'text' ? p(b.look || 'line', cardRuns_(b.text), { tone: b.tone }) : b && b.type === 'list' ? (b.items || []).map(fact).join('') : cardBlock_(b));
+  /* `html`: markup the email's own sanitiser laid out already (a question's words), in its style's div. */
+  const one = b => (b && b.type === 'text' ? p(b.look || 'line', cardRuns_(b.text), { tone: b.tone }) : b && b.type === 'list' ? (b.items || []).map(fact).join('')
+    : b && b.type === 'html' ? (b.html ? `<div style="${st(b.look || 'line')}">${b.html}</div>` : '') : cardBlock_(b));
+  /* A BLOCK THAT IS ONE OF THE CARD'S PARTS (`part`, kinds.json `card.question.parts`) says so in a comment, which tools/one-question-card.js reads. */
+  const mark = n => (n ? `<!--part:${esc(n)}-->` : '');
+  const block = b => { const h = one(b); return h && b && b.part ? mark(b.part) + h : h; };
   const tags = (spec.tags || []).filter(t => t != null && t !== '');
   /* PICTURE, NAME, TAGS, LINES: the laid-out lines (`cut.lines`, the library's question) lead, the body's lines follow. */
-  const parts = { pic: cut.pic ? `<div style="${st('pic')}">${cut.pic}</div>` : '', head: spec.name ? p('head', cardRuns_(spec.name)) : '',
-    tags: tags.length ? `<div style="${st('tags')}">${tags.map(tag).join(' ')}</div>` : '', lines: (cut.lines || '') + (spec.body || []).map(block).join('') };
+  const parts = { pic: cut.pic ? mark(spec.marked && 'pic') + `<div style="${st('pic')}">${cut.pic}</div>` : '', head: spec.name ? mark(spec.marked && 'head') + p('head', cardRuns_(spec.name)) : '',
+    tags: tags.length ? mark(spec.marked && 'tags') + `<div style="${st('tags')}">${tags.map(tag).join(' ')}</div>` : '', lines: (cut.lines || '') + (spec.body || []).map(block).join('') };
   return `<table role="presentation" class="kc" width="100%" cellpadding="0" cellspacing="0" border="0" style="${st('card')}"><tr><td style="${st('cell')}">`
     + ['pic', 'head', 'tags', 'lines'].map(k => parts[k]).join('') + '</td></tr></table>';
 }
@@ -855,6 +936,77 @@ function partSplit_(part, numerals) {
   const m = /^([a-z])(i{1,3}|iv|vi{0,3}|ix|xi{0,3})?$/.exec(s);
   return m ? { part: m[1], sub: m[2] || '' } : null;
 }
+function answerParts_(raw) {
+  const s = String(raw || '');
+  const DASH = /\s+(?:—|–|&mdash;|&ndash;|&#8212;|&#8211;)\s+/g;
+  const VOID = /^(?:br|img|hr|wbr|input)$/i;
+  const BLOCK = /^(?:table|thead|tbody|tfoot|tr|td|th|ul|ol|li|dl|dt|dd|div|figure)$/i;
+  const CODE = '(?:[BMAPC][1-5]|SC[1-5]?|cao|oe|ft|isw|awrt)';
+  /* A READER, not a maker: the pattern's pieces are regex literals. */
+  const OPEN = /(?:<b>)?\(?\b/.source, SHUT = /\b\)?(?:<\/b>)?/.source;
+  const RUN = new RegExp(OPEN + CODE + SHUT + '(?:[\\s,]+' + OPEN + CODE + SHUT + ')*', 'g');
+  const seen = t => String(t).replace(/<[^>]*>/g, '').replace(/&nbsp;|&#160;/g, ' ').trim();
+  let head = s, why = '', m;
+  while ((m = DASH.exec(s))) {
+    const before = s.slice(0, m.index);
+    const open = [];
+    const T = /<(\/?)([a-z][a-z0-9]*)\b[^>]*>/gi;
+    let t;
+    while ((t = T.exec(before))) {
+      const name = t[2].toLowerCase();
+      if (VOID.test(name)) continue;
+      if (t[1]) {
+        const k = open.map(o => o[0]).lastIndexOf(name);
+        if (k >= 0) open.splice(k);
+      } else open.push([name, t[0]]);
+    }
+    if (open.some(o => BLOCK.test(o[0]))) continue;
+    if (!seen(before)) continue;
+    head = before + open.slice().reverse().map(o => '</' + o[0] + '>').join('');
+    why = open.map(o => o[1]).join('') + s.slice(m.index + m[0].length);
+    break;
+  }
+  /* THE HEAD: every code, wherever it stands, and the commas it leaves behind. § */
+  head = head.replace(/\s+(?:\(\d(?: marks?)?\)|\[\d\])|\s*✓/g, '');
+  /* AN ENTITY'S OWN SEMICOLON IS NOT PUNCTUATION. The first version of `tidy` took the `;` off
+     `50&deg;` because it ended the head, and drew "50&deg". Entities are parked while it works. */
+  const tidy = h => h.replace(/&(#?\w+);/g, '&$1\u0001').replace(/<(b|i|em|strong)>\s*<\/\1>/g, '')
+    .replace(/[ \t]+([,;.])/g, '$1').replace(/([,;])(?:\s*[,;])+/g, '$1').replace(/,(\s*[.;])/g, '$1')
+    .replace(/[\s,;:]+((?:<\/[a-z]+>)*)\s*$/i, '$1').replace(/^\s*[,;]\s*/, '').trim()
+    .replace(/\u0001/g, ';');
+  const bare = tidy(head.replace(RUN, ''));
+  /* AN ANSWER THAT IS NOTHING BUT CODES ("B1 — and the scheme accepts 8 or −8") would be drawn as
+     an empty line with the meaning behind the fold, which is worse than leaving the codes in. */
+  if (seen(bare)) head = bare;
+  /* THE WHY: only the codes that stand alone. § */
+  const KEEP_AFTER = /^[\s,]*(?:for\b|dependent\b|following\b|follows\b|is\b|mark|on\b|&rdquo;|”)/i;
+  const KEEP_BEFORE = /(?:\b(?:the|a|an|its|that|this|of)\s+(?:<b>)?|&ldquo;|“)$/i;
+  why = why.replace(RUN, (run, at, all) =>
+    (KEEP_AFTER.test(all.slice(at + run.length, at + run.length + 16))
+      || KEEP_BEFORE.test(all.slice(Math.max(0, at - 12), at))) ? run : '\u0002');
+  const cap = (a, c) => a + (c || '').toUpperCase();
+  why = why
+    /* "— B1, cao, and nothing else scores" -- a code opening the why, or a sentence. FIRST, or
+       "= 3. B1 cao. The" is read as a code closing a clause and comes out "= 3.. The". */
+    .replace(/^(\s*(?:<[^>]+>)*)\u0002[\s,;:.]*(?:and\s+)?((?:[a-z](?=[a-z]))?)/, (w, a, c) => cap(a, c))
+    .replace(/([.!?]\s+(?:<[^>]+>)*)\u0002[\s,;:.]*(?:and\s+)?((?:[a-z](?=[a-z]))?)/g, (w, a, c) => cap(a, c))
+    /* "36, cao." -- a code closing a clause takes its comma with it. */
+    .replace(/[\s,;]*\u0002[\s,;]*(?=[.!?]|$)/g, '')
+    .replace(/\s*\u0002[\s,;]*/g, ' ');
+  why = tidy(why);
+  /* A WHY THAT STARTS MID-SENTENCE starts with a capital in the fold, which is a box of its own.
+     A WORD, not a letter: "<i>x</i> = 3 is a vertical line" must not become "X = 3". */
+  why = why.replace(/^((?:\s*<[a-z][^>]*>)*\s*)([a-z])(?=[a-z])/, (w, tags, c) => tags + c.toUpperCase());
+  return { head: head, why: seen(why) ? why : '' };
+}
+function answerSay_(answer, choices, right) {
+  const opts = choices || [], ks = (right || []).filter(k => k > 0 && k <= opts.length);
+  const head = String(answer || '').trim() ? answerParts_(answer).head : ks.map(k => opts[k - 1]).join(', ');
+  if (!ks.length || opts.every(c => /^\s*[A-Za-z]\s*$/.test(String(c).replace(/<[^>]*>/g, '')))) return head;
+  const letters = ks.map(k => CHOICE_LETTERS[k - 1]).join(', ');
+  const only = String(head).replace(/<[^>]*>/g, '').trim().toUpperCase() === letters;
+  return '<b>' + letters + '</b> ' + (only ? ks.map(k => opts[k - 1]).join(', ') : head);
+}
 /* from js/find-cells.js */
 const CELL_ENT = { amp: '&', nbsp: ' ', rsquo: '\u2019', lsquo: '\u2018', rdquo: '\u201d', ldquo: '\u201c', apos: "'", quot: '"', deg: '\u00b0',
   minus: '\u2212', times: '\u00d7', divide: '\u00f7', ndash: '\u2013', mdash: '\u2014', hellip: '\u2026', pound: '\u00a3', micro: '\u00b5', plusmn: '\u00b1', lt: '<', gt: '>' };
@@ -978,8 +1130,8 @@ const DIGEST_TAG_INK = {"h0": "#ff7b72", "h1": "#6cb6ff", "h2": "#c3e88d", "h3":
 const PERSON_FACT_KEYS = ["age", "school_year", "course", "board", "set_texts", "school", "subjects", "target_grade", "needs", "business", "ventures", "notes"];
 /* from data/settings/kinds.json kinds/stored/ledger: each kind's sheet, see and edit */
 const ITEM_STORE_KINDS = {"moved":["venue","product","option","holiday","film","media","spotlight","fav_link","favourite","qualification","record","report","lens","health","lib_serve","reaction","vote","digest","submission","booking_event","person","booking","receipt","family_link","message","setting","price_rule","work_file","push_token","application","promo_code","exam","post","term","herd_question","room","comment","trip","answer","library_card","client_error","fact","partner","food","task","drive_area","session"],"never":["pin","verify_token","token","card_number","dbs_number"],"items":{"tab":"items","columns":["id","kind","data_1","data_2","data_3","data_4","data_5","data_6"]},"events":{"tab":"events_log","columns":["at","who","kind","what","item","data"]},"kinds":{"tutor":{"sheet":{"tab":"people","columns":["personId","title","tags","titles","venues","rate","listed"],"never":["pin"],"via":"person","id":"person_id","list":{"keep":["* staff"],"out":{"personId":"person_id","name":"* name","handle":"handle","rank":"* rank","termsVersion":"agreement_version","termsAt":"agreement_signed_at whenS","dbsCheckedOn":"dbs_checked_on iso","dbsNumber":"dbs_number"}},"show":["person_id","role","first_name","handle","photo","photos","video","headline","adjective_1","adjective_2","adjective_3","years_experience","focus","borough","town","city","travel_km","rate_per_hour","extra_seat_rate","min_students","max_students","availability","listed","avatar","dbs_checked"]},"see":{"who":"anyone","hide":{"prices":["rate","rate_per_hour","extra_seat_rate","extra_seat_cut"],"admin":["note"]}},"edit":null},"venue":{"sheet":{"tab":"venues","columns":["name","focus","borough","city","tags","maxCapacity","bestRate"],"also":["rooms"],"id":"venue_id"},"see":{"who":"anyone","hide":{"prices":["price","cost_per_hour","travel_cost"]}},"edit":null},"booking":{"sheet":{"tab":"jobs","columns":["job_id","subject","level","tutor","venue","price","unit","rate","weeks","client","slots"],"also":["receipts"],"id":"job_id","owner":["booked_by","client_hosts"]},"see":{"who":"self, family, staff, admin","hide":{"prices":["rate","total","price_total","tutor_pay","travel_paid","admin_profit","gross","tutor_payout","venue_cost","materials_charge","materials_cost","tickets_cost","card_fees","discount_value","net_profit"],"admin":["tutor_pay","admin_profit","net_profit","venue_cost","card_fees"]}},"edit":null},"question":{"sheet":{"tab":"lib_questions","columns":["row_id","id","paper_id","question","part","year"],"id":"id","blob":true,"lib":{"name":"questions","order":1,"file":"data/questions.json","prefix":"q","key":["row_id"],"joined":{"say":"THE PAPER'S CARD, NOT COPIED (owner, 17 Nov): these fields are stored once, on the paper's own row (kind document, same paper_id), and joined onto each of its questions as the file is read (js/library.js libJoinPaper_, the backend's copy in cards-gen.gs). A question keeps one only where it differs (an override); null is none though the paper has one. source_id is read as source_id || paper_id, and dropped where it equals paper_id (21 Nov).","from":"document","by":"paper_id","fields":["name","subject","key_stage","band_type","band_value","company","exam_board","level","document_type","trackable","printable","source_url","year","paper","month","exam_wave","tier","spec_code","source_id","exam_date","pages","print_required"]},"private":["html","lead","diagram","answer","accept","choices","choice_right","order_ends","cells","mark_words","draw_answer","examiner_note","examiner_report","guide"]}},"see":{"who":"anyone"},"edit":null},"practical":{"sheet":{"tab":"lib_practicals","columns":["practical_id","subject","level","exam_board","practical_type","excluded"],"id":"id","blob":true,"lib":{"name":"practicals","order":3,"file":"data/practicals.json","prefix":"pr","key":["practical_id"],"private":["aim","outcome","safety","maths_link","equipment","steps","notes","science","log","variables","diagram","risks"]}},"see":{"who":"anyone"},"edit":null},"project":{"sheet":{"tab":"lib_projects","columns":["project_id","subject","level","exam_board","project_type"],"id":"id","blob":true,"lib":{"name":"projects","order":4,"file":"data/projects.json","prefix":"pj","key":["project_id"],"private":["materials","steps","safety","share"]}},"see":{"who":"anyone"},"edit":null},"content":{"sheet":{"tab":"lib_content","columns":["book_id","chapter","subject","level","keystage","board","tier"],"id":"id","blob":true,"lib":{"name":"textbooks","order":2,"file":"data/textbooks.json","prefix":"ct","key":["book_id","chapter"],"skip":"anim","private":["idea","words","points","formulas","diagram"]}},"see":{"who":"anyone"},"edit":null},"insert":{"sheet":{"tab":"lib_inserts","columns":["insert_id","subject","boards","levels"],"id":"id","blob":true,"lib":{"name":"inserts","order":5,"file":"data/inserts.json","prefix":"in","key":["insert_id"],"newer":true,"private":["source_text"]}},"see":{"who":"anyone"},"edit":null},"person":{"sheet":{"tab":"people","columns":["personId","first","last","handle","role","email","dob"],"never":["pin"],"id":"person_id","owner":["person_id"],"kindBy":{"column":"role","match":"tutor","kind":"tutor"},"show":["person_id","role","first_name","last_name","handle","email","phone","date_of_birth","photo","avatar","favourite_colour","xp","credits","children","joined_on","exam_small_date","exam_big_date"]},"see":{"who":"self, family, staff, admin","hide":{"prices":["rate_per_hour","extra_seat_rate","extra_seat_cut"]}},"edit":null},"post":{"sheet":{"tab":"posts","columns":["text","caption","title","location","authorId"],"id":"post_id","owner":["posted_by"]},"see":{"who":"signedIn"},"edit":null},"product":{"sheet":{"tab":"shop","columns":["name","shopKind","shopHow","shopBrand","shopTheme","shopFor","cost","level","image"],"id":"item_id"},"see":{"who":"anyone"},"edit":null},"partner":{"sheet":{"tab":"partners","id":"partner_id","columns":["partner_id","who","business","together","terms","status"]},"see":{"who":"admin"},"edit":null},"food":{"sheet":{"tab":"food","id":"food_id","columns":["food_id","name","shop","price","minutes","meal","how"]},"see":{"who":"owner"},"edit":null},"task":{"sheet":{"tab":"tasks","id":"task_id","columns":["task_id","title","notes","due","repeat","list","done","person_id","booking_id","item_id"]},"see":{"who":"admin"},"edit":null},"drive_area":{"sheet":{"tab":"drive_areas","id":"area_id","columns":["area_id","name","folder_id","what"]},"see":{"who":"admin"},"edit":null},"session":{"sheet":{"tab":"sessions","id":"session_id","columns":["session_id","who","person_id","place","address","days","start","end","term","notes"]},"see":{"who":"admin"},"edit":null},"qualification":{"sheet":{"tab":"qualifications","id":["person_id","subject","level"],"owner":["person_id"]},"see":{"who":"anyone"},"edit":null},"library_card":{"sheet":{"tab":"library_cards","id":["person_id","library"],"owner":["person_id"]},"see":{"who":"self, admin"},"edit":null},"family_link":{"sheet":{"tab":"family","id":"link_id","owner":["parent_id","child_id"]},"see":{"who":"self, admin"},"edit":null},"message":{"sheet":{"tab":"messages","id":"message_id","owner":["from_id","to_id"]},"see":{"who":"self, admin"},"edit":null},"receipt":{"sheet":{"tab":"receipts","id":"receipt_id","owner":["person_id"]},"see":{"who":"self, family, admin","hide":{"prices":["total_pence","lines"]}},"edit":null},"exam":{"sheet":{"tab":"exams","id":"exam_id","owner":["person_id"]},"see":{"who":"self, family, staff, admin"},"edit":null},"fav_link":{"sheet":{"tab":"fav_links","id":["person_id","url"],"owner":["person_id"]},"see":{"who":"self, admin"},"edit":null},"favourite":{"sheet":{"tab":"favourites","id":"fav_id","owner":["person_id"]},"see":{"who":"self, admin"},"edit":null},"setting":{"sheet":{"tab":"config","id":"key"},"see":{"who":"admin"},"edit":null},"price_rule":{"sheet":{"tab":"pricing","id":["kind","label"]},"see":{"who":"staff, admin","hide":{"prices":["surcharge_per_hour"]}},"edit":null},"option":{"sheet":{"tab":"options","id":["list_name","value"]},"see":{"who":"anyone"},"edit":null},"holiday":{"sheet":{"tab":"holidays","id":"holiday_id"},"see":{"who":"anyone","hide":{"prices":["price_per_child"]}},"edit":null},"term":{"sheet":{"tab":"terms","id":"term_id"},"see":{"who":"anyone"},"edit":null},"herd_question":{"sheet":{"tab":"herd","id":"question_id"},"see":{"who":"anyone"},"edit":null},"room":{"sheet":{"tab":"rooms","id":"room_id"},"see":{"who":"anyone","hide":{"prices":["rate_per_hour","concession_rate"]}},"edit":null},"film":{"sheet":{"tab":"films","id":"film_id"},"see":{"who":"signedIn"},"edit":null},"comment":{"sheet":{"tab":"post_comments","id":"comment_id","owner":["person_id"]},"see":{"who":"signedIn"},"edit":null},"spotlight":{"sheet":{"tab":"spotlight","id":"spot_id"},"see":{"who":"anyone"},"edit":null},"trip":{"sheet":{"tab":"trips","id":"trip_id"},"see":{"who":"anyone","hide":{"prices":["price_per_child","ticket_child","ticket_adult","travel_per_child"]}},"edit":null},"record":{"sheet":{"tab":"records","id":"record_id","list":{"keep":["title","active true"],"out":{"id":"record_id","category":"category","title":"title","provider":"provider","reference":"reference","due_on":"due_on iso","cost":"cost","link":"link","notes":"notes","updated_at":"updated_at when"}}},"see":{"who":"admin"},"edit":null},"answer":{"sheet":{"tab":"answers","id":["person_id","answer_key"],"owner":["person_id"]},"see":{"who":"self, family, staff, admin"},"edit":null},"fact":{"sheet":{"tab":"facts","id":["who","what"],"owner":["who"]},"see":{"who":"staff, admin"},"edit":null},"media":{"sheet":{"tab":"media","id":"media_id"},"see":{"who":"anyone"},"edit":null},"application":{"sheet":{"tab":"applications","id":"application_id","list":{"keep":[],"out":{"id":"application_id","at":"at ms","status":"status norm","statusAt":"status_at ms","personId":"person_id"},"sort":"-at"},"owner":["person_id"]},"see":{"who":"self, admin"},"edit":null},"promo_code":{"sheet":{"tab":"promo_codes","id":"code"},"see":{"who":"admin"},"edit":null},"work_file":{"sheet":{"tab":"work_files","id":"work_id","owner":["person_id"]},"see":{"who":"self, family, staff, admin"},"edit":null},"push_token":{"sheet":{"tab":"push_tokens","id":"token_id"},"see":{"who":"admin"},"edit":null},"claude_note":{"sheet":{"tab":"claude_notes","id":"note_id"},"see":{"who":"admin"},"edit":null},"report":{"sheet":{"tab":"reports","id":"report_id"},"see":{"who":"admin"},"edit":null},"client_error":{"sheet":{"tab":"client_errors","id":"error_id","list":{"keep":["error_id"],"out":{"id":"error_id","first":"first_at ms","last":"last_at ms","count":"count num","devices":"devices num","message":"message","where":"where","version":"version","screen":"screen"},"sort":"-last","max":50}},"see":{"who":"admin"},"edit":null},"lens":{"sheet":{"tab":"lens_log","to":"events","at":"at","who":"by_id","what":"action","item":"for_id"},"see":{"who":"admin"},"edit":null},"health":{"sheet":{"tab":"health_log","to":"events","at":"at","who":"device","what":"version","item":""},"see":{"who":"admin"},"edit":null},"lib_serve":{"sheet":{"tab":"lib_log","to":"events","at":"last_at","who":"person_id","what":"served","item":"day"},"see":{"who":"admin"},"edit":null},"booking_event":{"sheet":{"tab":"events","to":"events","at":"at","who":"actor","what":"action","item":"job_id"},"see":{"who":"admin"},"edit":null},"reaction":{"sheet":{"tab":"post_reactions","to":"events","at":"reacted_on","who":"person_id","what":"emoji","item":"post_id"},"see":{"who":"admin"},"edit":null},"vote":{"sheet":{"tab":"post_votes","to":"events","at":"voted_on","who":"person_id","what":"choice","item":"post_id"},"see":{"who":"admin"},"edit":null},"digest":{"sheet":{"tab":"digest_log","to":"events","at":"at","who":"learner_id","what":"status","item":"week_of"},"see":{"who":"admin"},"edit":null},"submission":{"sheet":{"tab":"submissions","to":"events","at":"submitted_at","who":"person_id","what":"verdict","item":"key"},"see":{"who":"admin"},"edit":null}}};
-/* from data/settings/kinds.json card.letter */
-const ITEM_KINDS = {"kinds":{"booking":{"card":{"letter":{"say":"THE BOOKING AS AN EMAIL SAYS IT (owner, 16 Nov: one card maker): renderCard with inline \"text\" writes these lines, each through the words file; a line marked price is never said to a child or when prices are off.","bullet":"• ","aliases":{"say":"A FIELD BY ANOTHER COLUMN'S NAME (unify job J): cardLetterRow_ reads the field, or failing it the first of these the row has (a Jobs row says weekday and start_time).","day":["weekday"],"time":["start_time"]},"rows":{"say":"A LETTER THAT SAYS LESS (unify job J): cardLetterRow_(kind, src, name) picks only these fields; without a name it picks every line's `need`.","cancelled":["subject","day","time"]},"lines":[{"word":"card-subject-level","need":["subject","level"],"alone":"subject"},{"word":"card-day-at-time","need":["day","time"],"date":true,"alone":"any"},{"need":["location"],"alone":"location"},{"word":"card-dates","need":["dates"]},{"word":"card-total","need":["price"],"money":true,"price":true,"as":{"price":"total"}}]}}},"question":{"card":{"letter":{"say":"THE QUESTION CARD AS THE SUNDAY EMAIL DRAWS IT (57a-62a): renderCard with an inline ink fills these styles, {token} from the email ink and the sizes here; mail clients read inline styles only.","labels":{"theirs":"Their answer","right":"Answer"},"sizes":{"radius":0,"round":999,"gap":14,"rule":"#171717","small":12,"body":16,"title":18},"cut":2,"perLine":60,"cls":{"tag":"gi","verdict":"gi"},"styles":{"card":"border-bottom:1px solid {rule};border-radius:{radius}","cell":"padding:{gap}px 0;font-size:{body}px","pic":"margin:0 0 {gap}px","head":"margin:0 0 {gap}px;font-size:{title}px;font-weight:bold;color:{ink}","tags":"font-size:{small}px;line-height:24px;margin:0 0 {gap}px","tag":"color:{hue};border:1px solid{edge};border-radius:{round}px;padding:0 6px","label":"margin:{gap}px 0 4px;font-size:{small}px;color:{faint}","box":"border:1px solid {paneLine};border-radius:{round}px;padding:4px 14px;color:{ink}","value":"margin:0;color:{ink}","line":"margin:0","stem":"margin:0 0 10px;padding:0 0 8px;border-bottom:1px dashed {chip};color:{dim}","verdict":"margin:{gap}px 0 0;font-weight:bold;color:{tone}"}}}}}};
+/* from data/settings/kinds.json card.letter and card.question.parts */
+const ITEM_KINDS = {"kinds":{"booking":{"card":{"letter":{"say":"THE BOOKING AS AN EMAIL SAYS IT (owner, 16 Nov: one card maker): renderCard with inline \"text\" writes these lines, each through the words file; a line marked price is never said to a child or when prices are off.","bullet":"• ","aliases":{"say":"A FIELD BY ANOTHER COLUMN'S NAME (unify job J): cardLetterRow_ reads the field, or failing it the first of these the row has (a Jobs row says weekday and start_time).","day":["weekday"],"time":["start_time"]},"rows":{"say":"A LETTER THAT SAYS LESS (unify job J): cardLetterRow_(kind, src, name) picks only these fields; without a name it picks every line's `need`.","cancelled":["subject","day","time"]},"lines":[{"word":"card-subject-level","need":["subject","level"],"alone":"subject"},{"word":"card-day-at-time","need":["day","time"],"date":true,"alone":"any"},{"need":["location"],"alone":"location"},{"word":"card-dates","need":["dates"]},{"word":"card-total","need":["price"],"money":true,"price":true,"as":{"price":"total"}}]}}},"question":{"card":{"letter":{"say":"THE QUESTION CARD AS THE SUNDAY EMAIL DRAWS IT (57a-62a): renderCard with an inline ink fills these styles, {token} from the email ink and the sizes here; mail clients read inline styles only.","labels":{"theirs":"Their answer","right":"Answer"},"sizes":{"radius":0,"round":999,"gap":14,"rule":"#171717","small":12,"body":16},"cut":2,"perLine":60,"cls":{"tag":"gi","verdict":"gi"},"styles":{"card":"border-bottom:1px solid {rule};border-radius:{radius}","cell":"padding:{gap}px 0;font-size:{body}px","pic":"margin:0 0 {gap}px","tags":"font-size:{small}px;line-height:24px;margin:0 0 {gap}px","tag":"color:{hue};border:1px solid{edge};border-radius:{round}px;padding:0 6px","label":"margin:{gap}px 0 4px;font-size:{small}px;color:{faint}","box":"border:1px solid {paneLine};border-radius:{round}px;padding:4px 14px;color:{ink}","value":"margin:0;color:{ink}","line":"margin:0","stem":"margin:0 0 10px;color:{dim}","words":"margin:0","choices":"margin:{gap}px 0 0","choice":"margin:0 0 4px;color:{ink}","pick":"font-size:{small}px;font-weight:bold;color:{tone}","verdict":"margin:{gap}px 0 0;font-weight:bold;color:{tone}"}},"question":{"parts":{"say":"THE ONE QUESTION CARD'S PARTS, IN ORDER (owner, 22 Nov: the Sunday email draws what the site draws, nothing of its own): the picture, the tags, the stem's words, the part's words, the options of a pick question, what they answered, the verdict, then the answer. The email's card (digest.gs digestCardMaker_) is made in this order and no other; `site` is the element each part is on the site's card, which tools/one-question-card.js holds both to. No name line: the site's card has none (its number and marks are tags).","order":["pic","tags","stem","words","choices","theirs","verdict","answer"],"site":{"pic":".kc-pic > *","tags":".kc-tags .qtag","stem":".qsheet-stem","words":".qsheet.qtext","choices":".qp-optlist","theirs":".qp-ans","verdict":".qp-verdict","answer":".qans-card"}}}}}}};
 /* from data/settings/kinds.json forms.<id>.gaps */
 const FORM_GAPS = {"apply-teach":[{"say":"your full name","all":["fullName:filled"]},{"say":"your phone number","all":["phone:filled"]},{"say":"your email address","all":["email:email"]},{"say":"your home address and postcode","all":["address:filled","postcode:postcode"]},{"say":"your date of birth","all":["dob:isodate"]},{"say":"a photo of your ID","all":["idDoc:image"]},{"say":"a photo of your right-to-work document","all":["rtwDoc:image"]},{"say":"the subjects and levels you teach","all":["subjects:filled"]},{"say":"your qualifications, listed and with at least one photo","all":["qualifications:filled","qualDocs:pics"]},{"say":"whether you have the right to work in the UK","all":["rightToWork:yesno"]},{"say":"your enhanced DBS number and the Update Service tick, or \"I need one\"","any":[["dbsNeeded:yes"],["dbsNumber:filled","dbsUpdate:yes"]]},{"say":"2 references, each with a name, relationship, email and phone","all":["ref1Name:filled","ref1Relationship:filled","ref1Email:email","ref1Phone:filled","ref2Name:filled","ref2Relationship:filled","ref2Email:email","ref2Phone:filled"]},{"say":"when you can teach","all":["availability:filled"]},{"say":"your hourly rate","all":["rate:rate"]},{"say":"a short statement","all":["statement:filled"]},{"say":"the consent tick","all":["consent:yes"]}]};
 /* from data/settings/kinds.json docket forms.docket-item fields */

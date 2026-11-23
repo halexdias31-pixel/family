@@ -865,7 +865,12 @@
     ],
     "keep": "qCardKeep_(entry)",
     "data": "kcQData_(item, entry)",
-    "question": {"stem": "qCardPic_(entry)", "box": {"embed": "qsheet", "look": "qsheet-embed"}, "actions": "qCardTiles_(entry)"},
+    "question": {"stem": "qCardPic_(entry)", "box": {"embed": "qsheet", "look": "qsheet-embed"}, "actions": "qCardTiles_(entry)",
+     "parts": {
+      "say": "THE ONE QUESTION CARD'S PARTS, IN ORDER (owner, 22 Nov: the Sunday email draws what the site draws, nothing of its own): the picture, the tags, the stem's words, the part's words, the options of a pick question, what they answered, the verdict, then the answer. The email's card (digest.gs digestCardMaker_) is made in this order and no other; `site` is the element each part is on the site's card, which tools/one-question-card.js holds both to. No name line: the site's card has none (its number and marks are tags).",
+      "order": ["pic", "tags", "stem", "words", "choices", "theirs", "verdict", "answer"],
+      "site": {"pic": ".kc-pic > *", "tags": ".kc-tags .qtag", "stem": ".qsheet-stem", "words": ".qsheet.qtext", "choices": ".qp-optlist", "theirs": ".qp-ans", "verdict": ".qp-verdict", "answer": ".qans-card"}
+     }},
     "toolRow": true,
     "letter": {
      "say": "THE QUESTION CARD AS THE SUNDAY EMAIL DRAWS IT (57a-62a): renderCard with an inline ink fills these styles, {token} from the email ink and the sizes here; mail clients read inline styles only.",
@@ -879,8 +884,7 @@
       "gap": 14,
       "rule": "#171717",
       "small": 12,
-      "body": 16,
-      "title": 18
+      "body": 16
      },
      "cut": 2,
      "perLine": 60,
@@ -892,14 +896,17 @@
       "card": "border-bottom:1px solid {rule};border-radius:{radius}",
       "cell": "padding:{gap}px 0;font-size:{body}px",
       "pic": "margin:0 0 {gap}px",
-      "head": "margin:0 0 {gap}px;font-size:{title}px;font-weight:bold;color:{ink}",
       "tags": "font-size:{small}px;line-height:24px;margin:0 0 {gap}px",
       "tag": "color:{hue};border:1px solid{edge};border-radius:{round}px;padding:0 6px",
       "label": "margin:{gap}px 0 4px;font-size:{small}px;color:{faint}",
       "box": "border:1px solid {paneLine};border-radius:{round}px;padding:4px 14px;color:{ink}",
       "value": "margin:0;color:{ink}",
       "line": "margin:0",
-      "stem": "margin:0 0 10px;padding:0 0 8px;border-bottom:1px dashed {chip};color:{dim}",
+      "stem": "margin:0 0 10px;color:{dim}",
+      "words": "margin:0",
+      "choices": "margin:{gap}px 0 0",
+      "choice": "margin:0 0 4px;color:{ink}",
+      "pick": "font-size:{small}px;font-weight:bold;color:{tone}",
       "verdict": "margin:{gap}px 0 0;font-weight:bold;color:{tone}"
      }
     }
