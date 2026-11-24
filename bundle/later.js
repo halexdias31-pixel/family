@@ -2504,7 +2504,8 @@ function insPartLines_(x) {
 const span = insRowSpan_(x);
 if (!span) return '';
 const same = s => { const t = s && (insRowSpan_(s) || insLines_(s.lines)); return !!t && t.from === span.from && t.to === span.to && (!t.src || t.src === span.src); };
-if ((x.stems || []).some(same)) return '';
+const drawn = typeof qWas_ === 'function' ? qWas_(x).stems : (x.stems || []);
+if ((drawn || []).some(same)) return '';
 return insLinesBox_(x, span) || '';
 }
 function insSay_(r) {

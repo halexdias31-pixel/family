@@ -9,7 +9,11 @@
        carries an opener of its own (an `ins-*`/`source-*`/`sheet-*` act other than Print).
    (c) IN THE PAGE: the runtime holds one kind (`attachment`); every question part's attachments resolve to a card; every part shows the one
        Insert tile; and on a 390px phone and an iPad a sample of each tag (a reading source, a formulae sheet, a periodic table) opens through
-       the tile as one step whose sheet holds its card, and Back closes it. Fails the build. Run by tools/build.js after `bundle`. */
+       the tile as one step whose sheet holds its card, and Back closes it. Fails the build. Run by tools/build.js after `bundle`.
+   (d) AQA ENGLISH LANGUAGE 8700 (owner, 24 Nov: "question 2 will quote part of the extract. It wasn't there."): every 8700 paper sat has its
+       source attachment; and on the phone and the iPad every 8700 question that cites lines (`source_lines`, not withheld) shows non-empty
+       cited words, both on its own card (practice, search) and in its whole question; the lines withheld (AQA's insert leaves the extract
+       out, or no insert numbers that line) held to a budget that can only fall. */
 'use strict';
 const fs = require('fs'), path = require('path');
 const { ROOT, main, bare, read } = require('./lib/gen.js');
@@ -18,6 +22,10 @@ const SB = require('./lib/site-browser.js');
 const TAGS = ['source', 'sheet'];
 /* STAND-INS FOR A BOOKLET NO ATTACHMENT HOLDS YET (24 Nov: Edexcel 1GK0/1PG0 sources, STA KS1 reading booklets): only ever fewer. */
 const STANDIN_BUDGET = 14;
+/* CITED LINES SHOWN AS A CAPTION ONLY (tools/source-lines.js `source_lines_withheld`): only ever fewer. 24 Nov: 43 → 40, every printed line
+   numbered from the owner's Drive inserts; the rest are AQA's copyright gaps (Nov 2022, Nov 2023 P1 …) or sittings with no insert PDF. */
+const WITHHELD_BUDGET = 40;
+const ENG = /^P-AQA-8700-/;
 /* THE SAMPLE a child opens: one question set per tag, and the words its card must show. */
 const SAMPLE = [
   { name: 'a reading source', paper: 'P-AQA-8700-2306-1', of: 'source' },
@@ -41,7 +49,14 @@ function dataBad() {
   lines.forEach(q => bad.push(q.row_id + ': prints lines ' + q.source_lines + ' of a source set ' + q.paper_id + ' has no attachment for'));
   const stand = qs.filter(q => q.placeholder === 'True' && !withSource.has(q.paper_id));
   if (stand.length > STANDIN_BUDGET) bad.push(stand.length + ' stand-ins for a booklet with no attachment, over the budget of ' + STANDIN_BUDGET + ' (' + stand.slice(0, 3).map(q => q.row_id).join(', ') + ')');
-  return { bad, rows: rows.length, tags: TAGS.map(t => rows.filter(r => r.of === t).length), stand: stand.length };
+  /* (d) EVERY 8700 PAPER SAT HAS ITS SOURCE, and the withheld lines within their budget */
+  const srcFor = new Set(rows.filter(r => r.of === 'source').flatMap(r => list(r.for_papers)));
+  const eng = [...new Set(qs.map(q => q.paper_id).filter(p => ENG.test(p || '')))];
+  eng.filter(p => !srcFor.has(p)).forEach(p => bad.push(p + ': an AQA 8700 paper sat with no source attachment'));
+  const held = qs.filter(q => String(q.source_lines || '').trim() && String(q.source_lines_withheld || '').trim());
+  if (held.length > WITHHELD_BUDGET) bad.push(held.length + ' questions cite lines shown as a caption only, over the budget of ' + WITHHELD_BUDGET + ' (' + held.slice(0, 3).map(q => q.row_id).join(', ') + ')');
+  return { bad, rows: rows.length, tags: TAGS.map(t => rows.filter(r => r.of === t).length), stand: stand.length,
+    eng: eng.length, engSrc: eng.filter(p => srcFor.has(p)).length, held: held.length };
 }
 
 /* (b) ONE OPENER: the code that opens an attachment, comments stripped. */
@@ -79,6 +94,23 @@ async function onSize(size) {
       qs.slice(0, 400).forEach(x => { const h = qtAll_(tileRow_(...qtTiles_(x, true).map(tile_))); if ((h.match(/data-do="att-open"/g) || []).length === 1) tiles++; else bad.push(x.key + ': not one Insert tile'); });
       return { kinds, pointed, all: qs.length, tiles, bad: bad.slice(0, 12), nBad: bad.length };
     });
+    /* (d) THE CITED LINES on this screen: each 8700 part that cites lines, on its own card and in its whole question */
+    const cited = await pg.evaluate(ENG => {
+      const re = new RegExp(ENG), bad = [];
+      let n = 0;
+      const shows = h => { const d = document.createElement('div'); d.innerHTML = h;
+        return [...d.querySelectorAll('.insrc-q')].some(b => !b.classList.contains('insrc-wait') && b.textContent.replace(/\s+/g, '').length > 20); };
+      stuffItemsAll_().filter(isQ_).forEach(x => {
+        const r = x.row || {};
+        if (!re.test(String(r.paper_id || '')) || !String(r.source_lines || '').trim() || String(r.source_lines_withheld || '').trim()) return;
+        n++;
+        if (!shows(findCard(x))) bad.push(x.key + ' (' + r.source_lines + '): no cited words on its own card');
+        let whole = '';
+        try { whole = questionWhole_(x, (questionParts_()[qId_(x)]) || [x], null, false); } catch (e) { whole = ''; }
+        if (!shows(whole)) bad.push(x.key + ' (' + r.source_lines + '): no cited words in its whole question');
+      });
+      return { n, bad };
+    }, ENG.source);
     const opened = [];
     for (const S of SAMPLE) {
       const r = await pg.evaluate(S => {
@@ -112,7 +144,7 @@ async function onSize(size) {
       if (shut.shown || shut.steps !== r.steps) why.push('Back did not close it');
       opened.push({ S, bad: why.join('; ') });
     }
-    return { size, sums, opened };
+    return { size, sums, opened, cited };
   } finally { await pg.close(); }
 }
 
@@ -124,11 +156,15 @@ async function run() {
     if (o.sums.nBad) o.sums.bad.forEach(b => bad.push(o.size + ': ' + b));
     if (!o.sums.pointed) bad.push(o.size + ': no question points at any attachment');
     o.opened.filter(x => x.bad).forEach(x => bad.push(o.size + ', ' + x.S.name + ': ' + x.bad));
+    if (!o.cited.n) bad.push(o.size + ': no AQA 8700 question cites lines');
+    o.cited.bad.slice(0, 20).forEach(b => bad.push(o.size + ': ' + b));
   });
   const s = out[0] ? out[0].sums : {};
   console.log('one-attachment: kinds 1 (' + d.rows + ' attachments: ' + TAGS.map((t, i) => d.tags[i] + ' ' + t).join(', ') + '); '
     + (s.pointed || 0) + ' of ' + (s.all || 0) + ' questions point at one and every one resolves; ' + (s.tiles || 0) + ' sampled parts show the one Insert tile; '
-    + SAMPLE.length + ' samples opened by the one opener on ' + Object.keys(SIZES).join(' and ') + '; ' + d.stand + ' stand-ins without a booklet (budget ' + STANDIN_BUDGET + ')');
+    + SAMPLE.length + ' samples opened by the one opener on ' + Object.keys(SIZES).join(' and ') + '; ' + d.stand + ' stand-ins without a booklet (budget ' + STANDIN_BUDGET + '); AQA 8700: '
+    + d.engSrc + '/' + d.eng + ' papers sat have their source, ' + ((out[0] && out[0].cited.n) || 0) + ' questions citing lines show them on '
+    + Object.keys(SIZES).join(' and ') + ', ' + d.held + ' withheld (budget ' + WITHHELD_BUDGET + ')');
   bad.forEach(b => console.log('  ' + b));
   await SB.done();
   if (bad.length) throw new Error('one-attachment: ' + bad.length + ' problem(s)');
