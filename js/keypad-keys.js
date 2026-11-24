@@ -400,6 +400,7 @@ function kpOpen_(inp) {
   kpRender_(inp);
   if (!back && !same) kpAutoShift_(inp);
   kpShiftPaint_();
+  kpPin_();
   kpPadH_(pad);
   if (!same) kpInView_(inp, pad);
 }
@@ -432,6 +433,22 @@ function kpPadH_(pad) {
       document.documentElement.style.setProperty('--kp-h', h + 'px');
     }
   } catch (e) { /* the stylesheet's own guess stands */ }
+}
+/* ---------- THE PAD SITS ON THE BOTTOM OF WHAT THE CHILD SEES (owner 23 Nov: "keyboard not working on phone ... offset up"): `position: fixed;
+   bottom: 0` is the bottom of the LAYOUT viewport, and iPhone Safari, focusing a box, pans the VISUAL viewport inside it (the page scrolled for a
+   keyboard that never comes, the toolbar shown or hidden), so the pad was drawn off the seen screen's foot and a tap landed on the wrong key.
+   `--kp-vv` is the gap between the two bottoms, read off `visualViewport` on every pan and resize; style.css lifts the pad by it. */
+function kpPin_() {
+  try {
+    const vv = window.visualViewport, root = document.documentElement;
+    if (!vv) return;
+    const lay = root.clientHeight || innerHeight;
+    const gap = Math.round(Math.max(0, lay - (vv.offsetTop + vv.height)));
+    if (root.style.getPropertyValue('--kp-vv') !== gap + 'px') root.style.setProperty('--kp-vv', gap + 'px');
+  } catch (e) { /* the pad stays on the layout bottom */ }
+}
+if (typeof window !== 'undefined' && window.visualViewport && window.visualViewport.addEventListener) {
+  ['resize', 'scroll'].forEach(ev => window.visualViewport.addEventListener(ev, kpPin_, { passive: true }));
 }
 /* ---------- AN ESSAY'S SHEET IS AS TALL AS ITS CARD HAS ROOM FOR § */
 const KP_SHEET_FLOOR = 5 * 24;

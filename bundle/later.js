@@ -12322,6 +12322,7 @@ try { inp.setSelectionRange(at, at); } catch (e) { }
 kpRender_(inp);
 if (!back && !same) kpAutoShift_(inp);
 kpShiftPaint_();
+kpPin_();
 kpPadH_(pad);
 if (!same) kpInView_(inp, pad);
 }
@@ -12349,6 +12350,18 @@ if (h > 0 && document.documentElement.style.getPropertyValue('--kp-h') !== h + '
 document.documentElement.style.setProperty('--kp-h', h + 'px');
 }
 } catch (e) { }
+}
+function kpPin_() {
+try {
+const vv = window.visualViewport, root = document.documentElement;
+if (!vv) return;
+const lay = root.clientHeight || innerHeight;
+const gap = Math.round(Math.max(0, lay - (vv.offsetTop + vv.height)));
+if (root.style.getPropertyValue('--kp-vv') !== gap + 'px') root.style.setProperty('--kp-vv', gap + 'px');
+} catch (e) { }
+}
+if (typeof window !== 'undefined' && window.visualViewport && window.visualViewport.addEventListener) {
+['resize', 'scroll'].forEach(ev => window.visualViewport.addEventListener(ev, kpPin_, { passive: true }));
 }
 const KP_SHEET_FLOOR = 5 * 24;
 function kpSheetFit_(pane) {

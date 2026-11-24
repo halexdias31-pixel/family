@@ -11,6 +11,8 @@
    4. FILL A TABLE (owner 23 Nov: a table is typed): a sample of the site-marked table questions, kept in their order, and made-up tables
       whose rows are a list, filled in a shuffled row order: each empty cell's own box tapped on its own keypad (that cell's answer's keys),
       the boxes in any order, marked Right by mark_; a separate table-only input (a field not the one box, or a box outside the table) fails.
+   5. ON AN iPHONE (`onIphone`): upright and on its side, still and as Safari pans for a focused box: every key inside the seen screen,
+      the pad on its foot, each key's centre tapped landing on that key.
    Any failure fails the build. `--floor` writes today's library counts as the floor. */
 'use strict';
 const fs = require('fs'), path = require('path');
@@ -385,6 +387,7 @@ async function browser() {
     await pg.close();
     bad.push(...await everyBox(SB, name, dev));
   }
+  bad.push(...await onIphone(SB));
   await SB.done();
   console.log('keypad-taps: ' + sizes.length + ' screens, ' + FORMS.length + ' forms tapped on the drawn keys');
   return bad;
@@ -468,6 +471,54 @@ async function everyBox(SB, name, dev) {
   }
   if (!seen.tapped) bad.push(name + ': no box was tapped -- the crawl found nothing to type in');
   console.log('keypad-taps: ' + name + ', ' + seen.screens + ' screens (signed out, child, admin, Settings forms): ' + seen.boxes + ' boxes bound, ' + seen.tapped + ' tapped open the one keyboard');
+  return bad;
+}
+
+/* ---------- ON AN iPHONE, WHERE THE CHILD SEES IT (owner 23 Nov: "Keyboard not working on phone on site. It's like offset up"): iPhone 13
+   Safari upright and on its side, the home bar under it, and the screen as Safari pans it when a box is focused (the seen part of the page
+   short of the layout's foot): every key drawn inside what is seen, the pad's foot on the seen screen's foot, and a tap on each key's centre
+   landing on that key (elementFromPoint). Chromium cannot pan, so the pan is `visualViewport` as Safari reports it. */
+async function onIphone(SB) {
+  const bad = [];
+  const cases = [['iPhone upright', { width: 390, height: 664 }, 0, 34], ['iPhone upright, Safari panned for the box', { width: 390, height: 664 }, 120, 34],
+    ['iPhone on its side', { width: 750, height: 342 }, 0, 21], ['iPhone on its side, panned', { width: 750, height: 342 }, 12, 21]];
+  for (const [name, vp, pan, safe] of cases) {
+    let pg;
+    try { pg = await SB.open({ as: 'child', settle: 300 }); await pg.setViewportSize(vp); } catch (e) { bad.push(name + ': the site did not open (' + e.message.split('\n')[0] + ')'); continue; }
+    try {
+      const got = await pg.evaluate(({ pan, safe }) => {
+        document.documentElement.style.setProperty('--safe-bottom', safe + 'px');
+        const real = window.visualViewport, H = innerHeight, W = innerWidth;
+        if (pan) {
+          const fake = Object.assign(new EventTarget(), { offsetTop: 0, offsetLeft: 0, pageTop: scrollY, scale: 1, width: W, height: H - pan });
+          Object.defineProperty(window, 'visualViewport', { configurable: true, value: fake });
+        }
+        const d = document.createElement('div'); d.className = 'kp-iphone';
+        d.innerHTML = '<div class="qp-ans-row qp-bar"><label class="qp-ans qp-ans-maths">' + kpField_('kp-iphone', '', 'maths', 3) + '</label></div>';
+        (document.querySelector('main') || document.body).prepend(d);
+        const inp = d.querySelector('.kp-in'); inp.focus(); kpOpen_(inp);
+        const vv = window.visualViewport, top = vv.offsetTop, foot = vv.offsetTop + vv.height;
+        const pad = document.getElementById('kp'), pr = pad.getBoundingClientRect();
+        const keys = [...pad.querySelectorAll('.kp-key')];
+        const out = [], miss = [];
+        keys.forEach((k, i) => {
+          const r = k.getBoundingClientRect();
+          if (r.top < top - 1 || r.bottom > foot + 1 || r.left < -1 || r.right > W + 1) out.push(k.getAttribute('data-v') || i);
+          const at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+          if (!at || at.closest('.kp-key') !== k) miss.push(k.getAttribute('data-v') || i);
+        });
+        if (pan) Object.defineProperty(window, 'visualViewport', { configurable: true, value: real });
+        return { n: keys.length, out, miss, gap: Math.round(foot - pr.bottom) };
+      }, { pan, safe });
+      if (!got.n) bad.push(name + ': no keyboard opened');
+      if (got.out.length) bad.push(name + ': ' + got.out.length + ' key(s) drawn outside the seen screen (' + got.out.slice(0, 8).join(' ') + ')');
+      if (got.miss.length) bad.push(name + ': a tap on ' + got.miss.length + ' key(s) lands elsewhere (' + got.miss.slice(0, 8).join(' ') + ')');
+      if (Math.abs(got.gap) > 1) bad.push(name + ': the keyboard\'s foot is ' + got.gap + 'px off the seen screen\'s foot');
+      if (process.env.KP_SHOTS) await pg.screenshot({ path: path.join(process.env.KP_SHOTS, 'keypad-' + name.replace(/\W+/g, '-') + '.png') });
+    } catch (e) { bad.push(name + ': ' + e.message.split('\n')[0]); }
+    await pg.close();
+  }
+  console.log('keypad-taps: iPhone 13 upright and on its side, still and panned: every key inside the seen screen, tapped where drawn');
   return bad;
 }
 
