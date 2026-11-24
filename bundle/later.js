@@ -5807,7 +5807,7 @@ if (key) return fcG_('div', 'qp-mark qp-compose qp-cells-box qp-key', null, fcG_
 + fcG_('div', 'qp-cells-wrap q-tscroll', null, cellsTable_(x, true)) + ansKeyNote_(x, '', true));
 const said = subBoxSay_(k, String(ansRead_(k) || ''));
 return fcG_('div', 'qp-mark qp-compose qp-cells-box' + (said.cls ? ' ' + said.cls : ''), { 'data-k': k },
-fcG_('p', 'q-hint', null, '', cellsHint_(o.by)) + fcG_('div', 'qp-cells-wrap q-tscroll', null, cellsTable_(x))
+fcG_('p', 'q-hint', null, '', cellsHint_(o.by)) + sheet_(x, '', fcG_('div', 'qp-cells-wrap q-tscroll', null, cellsTable_(x)))
 + fcVerdict_(said.text) + fcSaved_(k));
 }
 function cellsHere_(x, html) {
@@ -5902,16 +5902,62 @@ const kept = !markSchemeOf_(x).length;
 const cls = 'qp-mark qp-compose' + (kept ? ' qp-keep' : '') + (geo ? ' qpad-send' : '');
 const dataAt = Object.assign(can ? { 'data-accept': can } : {}, rule ? { 'data-rule': rule, 'data-marks': String(Number(x.marks) || '') } : {}, drawAt);
 const fb = why => (kept && why ? fcG_('p', 'qp-fb', null, '', why) : '');
-if (ansEssay_(x) || face.sheet) {
-const said = subBoxSay_(k, val);
-return fcG_('div', cls + ' qp-essay' + (said.cls ? ' ' + said.cls : ''), dataAt,
-fcG_('label', 'qp-ans qp-sheet', { 'aria-label': text_('your-answer') }, kpField_(k, val, 'essay', 3)) + fcG_('p', 'qp-words', null, '', kpWordsSay_(val))
-+ fcVerdict_(said.text) + fcSaved_(k)) + fb(said.why);
-}
-const bar = opts + fcG_('div', 'qp-ans-row qp-bar', null, fcG_('label', 'qp-ans' + (maths ? ' qp-ans-maths' : ''), { 'aria-label': text_('your-answer') }, kpField_(k, val, maths ? 'maths' : 'words', 3, null, choiceKeysAt_(x))));
+const essay = ansEssay_(x) || face.sheet;
+const typed = kpField_(k, val, essay ? 'essay' : maths ? 'maths' : 'words', 3, null, essay ? null : choiceKeysAt_(x));
 const said = geo ? subBoxSay_(k, padSay_(padRead_(padKey_(x)))) : subBoxSay_(k, val);
-return fcG_('div', cls + (said.cls ? ' ' + said.cls : ''), dataAt,
-bar + fcVerdict_(geo ? padSaid_(said.text) : said.text) + fcSaved_(k)) + fb(said.text ? said.why : '');
+return fcG_('div', cls + (essay ? ' qp-essay' : '') + (said.cls ? ' ' + said.cls : ''), dataAt,
+opts + sheet_(x, typed, sheetPrint_(x)) + (essay ? fcG_('p', 'qp-words', null, '', kpWordsSay_(val)) : '')
++ fcVerdict_(geo ? padSaid_(said.text) : said.text) + fcSaved_(k)) + fb(said.text ? said.why : '');
+}
+const SHEET_LINE = 28;
+function ansLines_(x) {
+const f = qtFace_(x), m = Math.round(Number((x && (x.marks || (x.row && x.row.marks))) || 1)) || 1;
+if (f.cells) return 2;
+if (ansEssay_(x) || f.sheet) return Math.max(6, Math.min(16, m));
+return Math.max(f.face === 'draw' ? 3 : 1, Math.min(4, m));
+}
+const sheetSvg_ = n => figDraw_({ el: 'svg', a: { class: 'qsurf is-lines', viewBox: '0 0 340 ' + n * SHEET_LINE, role: 'img', 'aria-label': 'Lined paper' },
+kids: Array.from({ length: n }, (_, i) => ({ el: 'line', a: { class: 'grid', x1: 0, y1: (i + 1) * SHEET_LINE - 1, x2: 340, y2: (i + 1) * SHEET_LINE - 1 } })) });
+const sheetItem_ = x => ({ key: x.key + '~sheet' });
+function sheetPrint_(x) {
+const p = x && x.key ? padSource_(x) : null;
+return p ? fcG_('div', 'qp-sheet-print', { 'data-q': x.key }, padWrap_(x, p.svg, 'row').replace(/<p class="qpad-note"[^>]*>[\s\S]*?<\/p>/, '')) : '';
+}
+function sheet_(x, typed, print) {
+const n = ansLines_(x);
+return fcG_('div', 'qp-sheet', { 'data-k': ansKey_(x), 'data-lines': String(n), style: '--sheet-lines: ' + n },
+(print || '') + fcG_('div', 'qp-sheet-lines', null, padWrap_(!print && qtFace_(x).face === 'draw' ? x : sheetItem_(x), sheetSvg_(n), 'row')
++ (typed ? fcG_('label', 'qp-ans qp-sheet-type', { 'aria-label': text_('your-answer') }, typed) : '')));
+}
+function sheetInput_(sheet) {
+if (!sheet) return null;
+const t = sheet.querySelector('.qp-sheet-type .kp-in');
+if (t) return t;
+const cells = [].slice.call(sheet.querySelectorAll('.qp-cell'));
+return cells.find(c => !c.value) || cells[0] || null;
+}
+document.addEventListener('pointerdown', e => {
+const sheet = e.target && e.target.closest && e.target.closest('.qp-sheet');
+if (!sheet) return;
+const ink = e.target.closest('.qpad-ink'), pad = ink && ink.closest('.qpad'), k = pad ? pad.getAttribute('data-k') || '' : '';
+if (pad && PAD_ON !== k) { if (!PAD_TOOL.has(k)) PAD_TOOL.set(k, 'pen'); padTake_(pad, k); }
+SHEET_DOWN = sheet;
+}, true);
+let SHEET_DOWN = null;
+['pointerup', 'pointercancel'].forEach(ev => document.addEventListener(ev, () => {
+const sheet = SHEET_DOWN, inp = sheet && sheet.isConnected ? sheetInput_(sheet) : null;
+SHEET_DOWN = null;
+if (inp && typeof KP_AT !== 'undefined' && KP_AT !== inp && typeof kpTake_ === 'function') kpTake_(inp);
+}, true));
+function sheetHop_(inp, cmd) {
+const sheet = inp && inp.classList && inp.classList.contains('qp-cell') && inp.closest('.qp-sheet');
+if (!sheet) return false;
+const cells = [].slice.call(sheet.querySelectorAll('.qp-cell')), i = cells.indexOf(inp);
+const a = inp.selectionStart, b = inp.selectionEnd, n = String(inp.value || '').length;
+const to = cmd === '!left' ? (a === 0 && b === 0 ? cells[i - 1] : null) : cmd === '!done' || (a === n && b === n) ? cells[i + 1] : null;
+if (!to) return false;
+kpTake_(to);
+return true;
 }
 function subBoxSay_(k, val) {
 const latest = typeof subLatest_ === 'function' ? subLatest_(k) : null;
@@ -5965,7 +6011,7 @@ document.addEventListener('input', e => {
 const el = e.target && e.target.closest && e.target.closest('[data-do="qp-ans"]');
 if (!el) return;
 ansStore_(el.getAttribute('data-k') || '', el.value || '', el.getAttribute('data-kp') === 'words');
-if (el.tagName === 'TEXTAREA' && el.closest('.qp-bar') && !el.classList.contains('kp-in')) {
+if (el.tagName === 'TEXTAREA' && el.closest('.qp-sheet') && !el.classList.contains('kp-in')) {
 el.style.height = '';
 if (el.scrollHeight) el.style.height = el.scrollHeight + 'px';
 }
@@ -6128,7 +6174,7 @@ return cm > 0 && isFinite(cm) ? Math.round(cm * 340 / w * 1e4) / 1e4 : 0;
 }
 function padWrap_(x, svg, foot) {
 const src = svg;
-if (!(x && padPrefix_(x) === 'board')) svg = padRoom_(svg);
+if (!(x && (padPrefix_(x) === 'board' || /\bis-lines\b/.test(String(svg))))) svg = padRoom_(svg);
 const k = padKey_(x);
 padAdopt_(k, padPrefix_(x) + ':' + padItemKey_(x));
 const marks = padRead_(k);
@@ -8432,9 +8478,7 @@ layers.forEach(l => SURFACE_DRAW[l](out, S, A, B));
 return figDraw_({ el: 'svg', a: { class: 'qsurf is-' + kind, viewBox: '0 0 340 340', role: 'img', 'aria-label': SURFACE_NAME[kind] || 'Space to draw' }, kids: out });
 }
 function ansArea_(x) {
-const p = x && x.key ? padSource_(x) : null;
-const pad = p && p.from === 'surface' ? figBox_({ look: 'qp-area', attrs: { 'data-q': x.key }, inner: padWrap_(x, p.svg, 'row') }) : '';
-return pad + ansBox_(x);
+return ansBox_(x);
 }
 const FIG_FLOOR = 180;
 const FIG_KEEP = '.qpad, .qseen, figure, .qp-area, .qp-compose, .qp-mark, .tile-row, .qp-choices';
@@ -8902,7 +8946,7 @@ return p ? usesSeen_(p.svg, usesUnder_(y, p.svg).concat(usesMine_(y))) : '';
 }
 const p = padSource_(x);
 const pics = pics_(figImgs_(x.images));
-if (p && p.from !== 'surface') return padWrap_(x, p.svg, 'row') + pics;
+if (p && p.from !== 'surface') return pics;
 return (x.diagram ? usesFig_(x) || figWrap_(x.diagram) : '') + pics;
 }
 function circOf_(x) {
@@ -11407,7 +11451,6 @@ k.style.marginInline = ''; k.style.marginLeft = ''; k.style.marginRight = '';
 const snugWas = list.map(p => p.classList.contains('is-snug'));
 if (!hold) list.forEach(p => { if (p.classList.contains('is-snug')) p.classList.remove('is-snug'); });
 if (!hold) list.forEach(p => { p.PANE_DUE = false; });
-if (!hold && typeof kpSheetFit_ === 'function') list.forEach(p => { if (p.querySelector('.qp-essay')) kpSheetFit_(p); });
 if (!hold && typeof libFit_ === 'function') list.forEach(p => { if (p.querySelector('.lib-face')) libFit_(p); });
 if (!hold && typeof window.talCardsFit_ === 'function') list.forEach(p => { if (p.querySelector('.tal-card-page')) window.talCardsFit_(p); });
 if (!hold) list.forEach(p => { if (cardFigs_(p.querySelector('.qcard')).length) cardFigFit_(p); });
@@ -12556,26 +12599,6 @@ if (root.style.getPropertyValue('--kp-vv') !== gap + 'px') root.style.setPropert
 if (typeof window !== 'undefined' && window.visualViewport && window.visualViewport.addEventListener) {
 ['resize', 'scroll'].forEach(ev => window.visualViewport.addEventListener(ev, kpPin_, { passive: true }));
 }
-const KP_SHEET_FLOOR = 5 * 24;
-function kpSheetFit_(pane) {
-try {
-const show = pane.querySelector('.qp-essay .qp-sheet .kp-show');
-if (!show) return;
-show.style.maxHeight = '';
-show.style.minHeight = '';
-const cs = getComputedStyle(pane);
-const pad = (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
-const over = (pane.scrollHeight - pad) - (pane.clientHeight - pad);
-const h = show.getBoundingClientRect().height;
-const floor = parseFloat(getComputedStyle(show).minHeight) || 0;
-if (!(over > 0) || !(h > 0)) return;
-const fit = Math.max(KP_SHEET_FLOOR, Math.floor(h - over - 4));
-if (fit >= h) return;
-show.style.maxHeight = fit + 'px';
-if (floor > fit) show.style.minHeight = fit + 'px';
-if (KP_AT && show.parentNode && show.parentNode.contains(KP_AT)) kpCaretSeen_(show);
-} catch (e) { }
-}
 function kpPartner_(v, i) {
 const c = v.charAt(i);
 const step = c === '(' ? 1 : c === ')' ? -1 : 0;
@@ -12735,6 +12758,7 @@ kpAfter_(inp, '');
 }
 const KP_WORD_SIGN = { '!frac': '/', '!pow': '^', '!sqrt': '\u221a' };
 function kpType_(inp, cmd, typed) {
+if ((cmd === '!left' || cmd === '!right') && typeof sheetHop_ === 'function' && sheetHop_(inp, cmd)) return;
 const words = inp.getAttribute('data-kp') === 'words';
 let c = cmd === '!nl' ? '\n' : cmd;
 if (!typed && KP_LAYER === 'abc' && /^[a-z]$/.test(c) && KP_SHIFT !== 'off') {
@@ -12786,6 +12810,7 @@ r.onend = r.onerror = () => { KP_MIC_ON = null; kpMicPaint_(false); };
 try { r.start(); KP_MIC_ON = r; kpMicPaint_(true); } catch (e) { KP_MIC_ON = null; kpMicPaint_(false); }
 }
 function kpDone_(inp) {
+if (typeof sheetHop_ === 'function' && sheetHop_(inp, '!done')) return;
 if (kpSite_(inp)) return kpSiteDone_(inp);
 inp.blur();
 kpClose_();
@@ -15462,7 +15487,6 @@ const QT_TOOLS = [
 { id: 'ruler', icon: 'ruler', label: 'Ruler', note: 'measure a length', act: 'qt-inst' },
 { id: 'protractor', icon: 'protractor', label: 'Protractor', note: 'measure an angle', act: 'qt-inst' },
 { id: 'compass', icon: 'compass', label: 'Compass', note: 'press the centre, drag', act: 'qt-inst' },
-{ id: 'paper', icon: 'grid', label: 'Paper', note: 'graph, lined or blank', act: 'qp-paper' },
 { id: 'mag', icon: 'zoom', label: 'Magnifier', note: 'hold it over the page', act: 'q-mag' },
 { id: 'read', icon: 'speak', label: 'Read aloud', note: 'reads the question out', act: 'read-aloud' },
 { id: 'lock', icon: 'unlock', label: 'Lock', note: 'hold this page still', act: 'q-lock' },
@@ -15475,33 +15499,6 @@ const QT_DRAWING = { point: 1, line: 1, pen: 1, shade: 1, compass: 1 };
 const QT_PAD_TOOL = { point: 'point', pen: 'pen', line: 'ruler', shade: 'shade', compass: 'compass', protractor: 'protractor' };
 const qMulti_ = x => { try { return (questionParts_()[qId_(x)] || []).length > 1; } catch (e) { return false; } };
 const qtTool_ = id => QT_TOOLS.find(t => t.id === id) || null;
-const PART_MEM = new Map();
-const partKeyOfAns_ = k => /^ans:/.test(String(k || '')) ? String(k).replace(/^ans:/, 'part:') : 'part:' + String(k || '?');
-function partRecAt_(pk) {
-if (PART_MEM.has(pk)) return PART_MEM.get(pk);
-let rec = null;
-rec = keep_.json(pk, null);
-if (!rec || typeof rec !== 'object') rec = partMigrate_(pk);
-PART_MEM.set(pk, rec);
-return rec;
-}
-function partMigrate_(pk) {
-const rec = { v: 1 };
-const old = 'aiMark:' + pk.replace(/^part:/, 'ans:');
-try {
-const raw = keep_.get(old);
-if (raw === null) return rec;
-const ai = JSON.parse(raw);
-if (ai && typeof ai.a === 'string' && typeof ai.v === 'string') rec.ai = ai;
-if (keep_.put(pk, JSON.stringify(rec))) keep_.del(old);
-} catch (e) { }
-return rec;
-}
-function partRecPutAt_(pk, field, v) {
-const rec = partRecAt_(pk);
-if (v == null || v === '') delete rec[field]; else rec[field] = v;
-keep_.put(pk, JSON.stringify(rec));
-}
 const QT_HOW_ALL = 'Marked by its mark scheme where a rule can; otherwise your work is saved, not marked';
 const QT_SCHEME_KINDS = { choice: 1, order: 1, accept: 1, words: 1 };
 const QT_NO_SCHEME = 'No mark scheme yet \u2014 flag it and we will add one';
@@ -15511,12 +15508,10 @@ function qtPenOpen_(el, tool) {
 const key = qtKeyOf_(el);
 let card = el.closest('.qcard');
 if (!card) return null;
-const face = el.closest('.qp-face');
-let pad = (face || card).querySelector('.qpad');
+let pad = card.querySelector('.qpad');
 if (!pad) {
 const x = qtItem_(key);
 if (!x) return null;
-if (!padReady_(x)) return paperPadPick_(card, key, tool);
 qtPenSet_(x, true);
 card = qtRedraw_(card, x);
 pad = card && card.querySelector('.qpad');
@@ -15591,7 +15586,6 @@ tileSet_(t, { on: lit, pressed: lit });
 }
 function qtTiles_(x, ans) {
 if (!x || !x.key) return [];
-if (typeof ansFaceDue_ === 'function') ansFaceDue_(x);
 const art = typeof padReady_ !== 'function' || padReady_(x);
 const ids = QT_ROW.concat(art ? Object.keys(QT_DRAWING) : []);
 return [qtCheckOpts_(x)].concat(ids.map(qtTool_).filter(Boolean).map(t => qtToolOpts_(t, x)),
@@ -15627,255 +15621,6 @@ const row = QT_BUTTONS.map(b => { const t = all.find(u => b.acts.indexOf(qtTileA
 if (t) { all.splice(all.indexOf(t), 1); return t; }
 return tile_({ icon: b.icon, label: b.label, note: 'not on this question', act: b.acts[0], cls: 'kc-off', off: true, data: b.tool ? { tool: b.tool } : {} }); });
 return row.concat(all).join('');
-}
-;
-/* js/answer-face.js */
-const ANS_FACES = {};
-const ansSlot_ = box => (box && box.querySelector(':scope > .qp-ans-row, :scope > .qp-sheet')) || null;
-const ansFaceOf_ = box => (box && box.querySelector(':scope > .qp-face')) || null;
-function ansFace_(box, face, k, o) {
-if (!box) return null;
-const was = ansFaceOf_(box);
-if (was) {
-const f = ANS_FACES[was.getAttribute('data-face')];
-try { if (f && f.close) f.close(was); } catch (e) { }
-was.remove();
-}
-const slot = ansSlot_(box);
-if (!face || face === 'text' || !ANS_FACES[face]) { if (slot) slot.hidden = false; return null; }
-const el = document.createElement('div');
-el.className = 'qp-face qp-face-' + face;
-el.setAttribute('data-face', face);
-el.setAttribute('data-k', k || '');
-Object.keys(o || {}).forEach(a => el.setAttribute('data-' + a, o[a]));
-if (slot) { slot.hidden = true; slot.insertAdjacentElement('afterend', el); } else box.insertAdjacentElement('afterbegin', el);
-ANS_FACES[face].open(el, k || '', box);
-return el;
-}
-on('qp-face-text', el => { const f = el.closest('.qp-face'); if (f && f.getAttribute('data-face') === 'paper') ansFacePick_(f.getAttribute('data-k'), 'text');
-ansFace_(el.closest('.qp-mark'), 'text'); });
-const ansFacePick_ = (k, f) => partRecPutAt_(partKeyOfAns_(k), 'face', f);
-function ansFaceWant_(x) {
-const own = partRecAt_(partKeyOfAns_(ansKey_(x))).face;
-return PAPER_GRIDS.some(p => p.id === own) ? own : 'text';
-}
-const ANS_FACE_DUE = new Set();
-function ansFaceDue_(x) {
-if (!x || !x.key || ansFaceWant_(x) === 'text') return;
-if (!ANS_FACE_DUE.size) setTimeout(ansFacesApply_, 0);
-ANS_FACE_DUE.add(x.key);
-}
-function ansFacesApply_() {
-const keys = [...ANS_FACE_DUE];
-ANS_FACE_DUE.clear();
-keys.forEach(key => {
-const x = qtItem_(key);
-if (!x) return;
-[...document.querySelectorAll('.qcard [data-key]')].filter(t => t.getAttribute('data-key') === key).forEach(t => {
-const box = qMark_(t);
-if (box && !ansFaceOf_(box)) paperOpen_(box, x, ansFaceWant_(x));
-});
-});
-}
-const PAPER_GRIDS = [{ id: 'graph', icon: 'grid', label: 'Graph' }, { id: 'lines', icon: 'doc', label: 'Lines' }, { id: 'blank', icon: 'figure', label: 'Blank' }];
-const PAPER_PENS = ['pen', 'line', 'compass', 'protractor'];
-const GRAPH_SPAN = 20, GRAPH_SIZE = 340, GRAPH_M = 24;
-const GRAPH_MODES = [{ id: 'point', icon: 'spot', label: 'Point' }, { id: 'join', icon: 'line', label: 'Join' }, { id: 'shade', icon: 'full', label: 'Shade' }];
-const GRAPH_MODE = new Map(), GRAPH_PICK = new Map(), GRAPH_UNDO = new Map();
-const graphBlank_ = () => ({ ax: { x0: -5, x1: 5, y0: -5, y1: 5 }, pts: [], lines: [], shade: [] });
-const graphRecKey_ = k => partKeyOfAns_(k);
-function graphRead_(k) {
-const g = partRecAt_(graphRecKey_(k)).graph;
-const b = graphBlank_();
-if (!g || typeof g !== 'object') return b;
-return { ax: Object.assign(b.ax, g.ax || {}), pts: Array.isArray(g.pts) ? g.pts : [], lines: Array.isArray(g.lines) ? g.lines : [], shade: Array.isArray(g.shade) ? g.shade : [] };
-}
-function graphPut_(k, g) {
-const empty = !g.pts.length && !g.lines.length && !g.shade.length;
-const ax = g.ax, b = graphBlank_().ax;
-const same = ax.x0 === b.x0 && ax.x1 === b.x1 && ax.y0 === b.y0 && ax.y1 === b.y1;
-partRecPutAt_(graphRecKey_(k), 'graph', empty && same ? null : g);
-}
-function graphAxes_(ax) {
-const n = (v, d) => { const x = Math.round(Number(v)); return isFinite(x) ? x : d; };
-let x0 = n(ax.x0, -5), x1 = n(ax.x1, 5), y0 = n(ax.y0, -5), y1 = n(ax.y1, 5);
-if (x1 <= x0) x1 = x0 + 1; if (y1 <= y0) y1 = y0 + 1;
-x1 = Math.min(x1, x0 + GRAPH_SPAN); y1 = Math.min(y1, y0 + GRAPH_SPAN);
-return { x0, x1, y0, y1 };
-}
-function graphScale_(ax) {
-const nx = ax.x1 - ax.x0, ny = ax.y1 - ax.y0, S = (GRAPH_SIZE - 2 * GRAPH_M) / Math.max(nx, ny);
-return { S, px: x => GRAPH_M + (x - ax.x0) * S, py: y => GRAPH_M + (ax.y1 - y) * S, W: 2 * GRAPH_M + nx * S, H: 2 * GRAPH_M + ny * S };
-}
-const ptSame_ = (a, b) => a && b && a[0] === b[0] && a[1] === b[1];
-function graphSvg_(g, pick) {
-const ax = g.ax, T = graphScale_(ax), out = [];
-g.shade.forEach(c => out.push({ el: 'rect', a: { class: 'qp-graph-shade', x: T.px(c[0]), y: T.py(c[1] + 1), width: T.S, height: T.S } }));
-for (let x = ax.x0; x <= ax.x1; x++) out.push({ el: 'line', a: { class: 'grid', x1: T.px(x), y1: T.py(ax.y0), x2: T.px(x), y2: T.py(ax.y1) } });
-for (let y = ax.y0; y <= ax.y1; y++) out.push({ el: 'line', a: { class: 'grid', x1: T.px(ax.x0), y1: T.py(y), x2: T.px(ax.x1), y2: T.py(y) } });
-const minus = n => (n < 0 ? '−' + (-n) : String(n));
-if (ax.y0 <= 0 && ax.y1 >= 0) out.push({ el: 'line', a: { class: 'axis', x1: T.px(ax.x0), y1: T.py(0), x2: T.px(ax.x1), y2: T.py(0) } });
-if (ax.x0 <= 0 && ax.x1 >= 0) out.push({ el: 'line', a: { class: 'axis', x1: T.px(0), y1: T.py(ax.y0), x2: T.px(0), y2: T.py(ax.y1) } });
-const yLab = Math.min(T.H - 4, Math.max(14, T.py(Math.max(ax.y0, Math.min(0, ax.y1))) + 14));
-const xLab = Math.max(GRAPH_M - 4, T.px(Math.max(ax.x0, Math.min(0, ax.x1))) - 4);
-const every = Math.max(1, Math.ceil(Math.max(ax.x1 - ax.x0, ax.y1 - ax.y0) / 10));
-for (let x = ax.x0; x <= ax.x1; x += every) out.push({ el: 'text', a: { class: 'ax', x: T.px(x), y: yLab, 'text-anchor': 'middle' }, text: minus(x) });
-for (let y = ax.y0; y <= ax.y1; y += every) if (y) out.push({ el: 'text', a: { class: 'ax', x: xLab, y: T.py(y) + 4, 'text-anchor': 'end' }, text: minus(y) });
-g.lines.forEach(l => out.push({ el: 'line', a: { class: 'qp-graph-line', x1: T.px(l[0][0]), y1: T.py(l[0][1]), x2: T.px(l[1][0]), y2: T.py(l[1][1]) } }));
-g.pts.forEach(p => out.push({ el: 'circle', a: { class: 'qp-graph-pt' + (ptSame_(p, pick) ? ' is-picked' : ''), cx: T.px(p[0]), cy: T.py(p[1]), r: 6 } }));
-return figDraw_({ el: 'svg', a: { class: 'qp-graph-svg', viewBox: '0 0 ' + T.W + ' ' + T.H, role: 'img', 'aria-label': 'Graph: ' + graphSay_(g) }, kids: out });
-}
-const graphSay_ = g => g.pts.length + ' points, ' + g.lines.length + ' lines, ' + g.shade.length + ' squares shaded';
-const paperItem_ = key => ({ key: key + '~paper' });
-function paperPaint_(el, k) {
-const grid = el.getAttribute('data-grid') || 'graph', key = el.getAttribute('data-key') || '', graph = grid === 'graph';
-const g = graph ? graphRead_(k) : null, mode = GRAPH_MODE.get(k) || 'point';
-const field = (n, v) => cardBlock_({ type: 'group', tag: 'label', look: 'qp-graph-ax', text: n + ' ', blocks: [{ type: 'control', tag: 'input',
-attrs: { type: 'text', inputmode: 'numeric', 'data-ax': n.replace(/ /g, ''), value: String(v), size: 3, autocomplete: 'off', 'aria-label': n } }] });
-const pens = PAPER_PENS.map(qtTool_).filter(Boolean).map(t => ({ icon: t.icon, label: t.label, note: t.note, act: t.act, cls: 'qt-t', data: { tool: t.id, key } }));
-el.innerHTML = fcG_('div', 'tile-row qp-face-tiles qp-paper-grids', { role: 'toolbar', 'aria-label': 'Paper' }, tile_(PAPER_GRIDS.map(p =>
-({ icon: p.icon, label: p.label, act: 'qp-paper-grid', on: grid === p.id, pressed: grid === p.id, data: { k, grid: p.id } }))))
-+ (graph ? fcG_('div', 'qp-graph-axes', null, field('x min', g.ax.x0) + field('x max', g.ax.x1) + field('y min', g.ax.y0) + field('y max', g.ax.y1)) : '')
-+ fcG_('div', 'qp-paper-art' + (graph ? ' qp-graph-art' : ''), { 'data-k': k }, padWrap_(paperItem_(key), graph ? graphSvg_(g, GRAPH_PICK.get(k)) : surfaceSvg_(grid)))
-+ fcG_('p', 'qp-face-say', { role: 'status', 'aria-live': 'polite' }, '', graph ? graphSay_(g) : '')
-+ fcG_('div', 'tile-row qp-face-tiles', null, tile_((graph ? GRAPH_MODES.map(m => ({ icon: m.icon, label: m.label, act: 'qp-graph-mode', on: mode === m.id, pressed: mode === m.id, data: { k, mode: m.id } }))
-.concat([{ icon: 'undo', label: 'Undo', note: 'the last point', act: 'qp-graph-undo', data: { k }, off: !(GRAPH_UNDO.get(k) || []).length },
-{ icon: 'bin', label: 'Clear', note: 'the graph', act: 'qp-graph-clear', data: { k } }]) : [])
-.concat(pens, [{ icon: 'left', label: 'Back', note: 'to typing', act: 'qp-face-text' }])));
-if (!graph) return;
-el.querySelectorAll('input[data-ax]').forEach(inp => inp.addEventListener('change', () => graphAxSet_(el, k)));
-const art = el.querySelector('.qpad-art'), pk = padKey_(paperItem_(key));
-if (art) art.addEventListener('click', e => { if (PAD_ON !== pk) graphTap_(el, k, e); });
-}
-function graphKeep_(el, k, g) {
-const u = GRAPH_UNDO.get(k) || [];
-u.push(JSON.stringify(graphRead_(k)));
-GRAPH_UNDO.set(k, u.slice(-50));
-graphPut_(k, g);
-paperPaint_(el, k);
-}
-function graphAxSet_(el, k) {
-const g = graphRead_(k), v = n => (el.querySelector('input[data-ax="' + n + '"]') || {}).value;
-g.ax = graphAxes_({ x0: v('xmin'), x1: v('xmax'), y0: v('ymin'), y1: v('ymax') });
-const inX = p => p[0] >= g.ax.x0 && p[0] <= g.ax.x1 && p[1] >= g.ax.y0 && p[1] <= g.ax.y1;
-g.pts = g.pts.filter(inX); g.lines = g.lines.filter(l => inX(l[0]) && inX(l[1]));
-g.shade = g.shade.filter(c => c[0] >= g.ax.x0 && c[0] < g.ax.x1 && c[1] >= g.ax.y0 && c[1] < g.ax.y1);
-graphKeep_(el, k, g);
-}
-function graphTap_(el, k, e) {
-const svg = el.querySelector('.qp-graph-svg'), r = svg && svg.getBoundingClientRect(), g = graphRead_(k), T = graphScale_(g.ax);
-if (!r || !(r.width > 0)) return;
-const [vx, vy] = drawSvgAt_(svg, e, T.W, T.H);
-const gx = g.ax.x0 + (vx - GRAPH_M) / T.S, gy = g.ax.y1 - (vy - GRAPH_M) / T.S;
-const mode = GRAPH_MODE.get(k) || 'point';
-if (mode === 'shade') {
-const c = [Math.floor(gx), Math.floor(gy)];
-if (c[0] < g.ax.x0 || c[0] >= g.ax.x1 || c[1] < g.ax.y0 || c[1] >= g.ax.y1) return;
-const i = g.shade.findIndex(s => ptSame_(s, c));
-if (i === -1) g.shade.push(c); else g.shade.splice(i, 1);
-return graphKeep_(el, k, g);
-}
-const p = [Math.round(gx), Math.round(gy)];
-if (p[0] < g.ax.x0 || p[0] > g.ax.x1 || p[1] < g.ax.y0 || p[1] > g.ax.y1) return;
-const at = g.pts.findIndex(q => ptSame_(q, p));
-if (mode === 'point') {
-if (at === -1) g.pts.push(p); else { g.pts.splice(at, 1); g.lines = g.lines.filter(l => !ptSame_(l[0], p) && !ptSame_(l[1], p)); }
-return graphKeep_(el, k, g);
-}
-if (at === -1) g.pts.push(p);
-const held = GRAPH_PICK.get(k);
-if (!held || ptSame_(held, p)) { GRAPH_PICK.set(k, held ? null : p); return at === -1 ? graphKeep_(el, k, g) : paperPaint_(el, k); }
-GRAPH_PICK.delete(k);
-if (!g.lines.some(l => (ptSame_(l[0], held) && ptSame_(l[1], p)) || (ptSame_(l[1], held) && ptSame_(l[0], p)))) g.lines.push([held, p]);
-graphKeep_(el, k, g);
-}
-ANS_FACES.paper = { open(el, k) { paperPaint_(el, k); }, close() {} };
-function paperOpen_(box, x, grid) {
-const k = ansKey_(x);
-graphCheckWrap_();
-const was = partRecAt_(partKeyOfAns_(k)).face;
-const g = PAPER_GRIDS.some(p => p.id === grid) ? grid : PAPER_GRIDS.some(p => p.id === was) ? was : 'graph';
-return ansFace_(box, 'paper', k, { grid: g, key: x.key });
-}
-on('qp-paper', el => {
-const box = qMark_(el), x = qtItem_(el.getAttribute('data-key') || '');
-if (!box || !x) { tell_(null, 'info', 'This part has no answer box to draw in'); return; }
-const was = ansFaceOf_(box);
-if (was && was.getAttribute('data-face') === 'paper') { ansFacePick_(ansKey_(x), 'text'); return ansFace_(box, 'text'); }
-const f = paperOpen_(box, x);
-ansFacePick_(ansKey_(x), f.getAttribute('data-grid'));
-});
-on('qp-paper-grid', el => {
-const f = el.closest('.qp-face'), grid = el.getAttribute('data-grid');
-if (!f || !PAPER_GRIDS.some(p => p.id === grid)) return;
-f.setAttribute('data-grid', grid);
-ansFacePick_(f.getAttribute('data-k'), grid);
-paperPaint_(f, f.getAttribute('data-k'));
-});
-function paperPadPick_(card, key, tool) {
-const x = qtItem_(key), box = card && qMark_(card);
-if (!x || !box) return null;
-let f = ansFaceOf_(box);
-if (!f || f.getAttribute('data-face') !== 'paper') { f = paperOpen_(box, x, 'blank'); ansFacePick_(ansKey_(x), 'blank'); }
-const pad = f && f.querySelector('.qpad');
-if (pad) padToolPick_(pad, tool || 'pen');
-return pad;
-}
-const graphFaceOf_ = el => el.closest('.qp-face-paper');
-on('qp-graph-mode', el => { const k = el.getAttribute('data-k'), f = graphFaceOf_(el), pad = f && f.querySelector('.qpad');
-if (pad && PAD_ON === pad.getAttribute('data-k')) { padArm_(pad, false); PAD_ON = ''; padDrop_(); }
-GRAPH_MODE.set(k, el.getAttribute('data-mode')); GRAPH_PICK.delete(k); paperPaint_(f, k); });
-on('qp-graph-undo', el => {
-const k = el.getAttribute('data-k'), u = GRAPH_UNDO.get(k) || [];
-if (!u.length) return;
-graphPut_(k, JSON.parse(u.pop()));
-paperPaint_(graphFaceOf_(el), k);
-});
-on('qp-graph-clear', el => { const k = el.getAttribute('data-k'), g = graphRead_(k); GRAPH_PICK.delete(k); graphKeep_(graphFaceOf_(el), k, Object.assign(g, { pts: [], lines: [], shade: [] })); });
-function graphKeyOf_(x) {
-const raw = String((x && (x.graphAnswer || (x.row && x.row.graph_answer))) || '').trim();
-if (!raw) return null;
-const pairs = s => [...String(s || '').matchAll(/\(\s*(-?\d+)\s*,\s*(-?\d+)\s*\)/g)].map(m => [Number(m[1]), Number(m[2])]);
-const part = name => (new RegExp(name + '\\s*:([^;]*)', 'i').exec(raw) || [])[1] || '';
-const lines = part('lines').match(/\([^)]*\)\s*-\s*\([^)]*\)/g) || [];
-const key = { pts: pairs(part('points')), lines: lines.map(pairs).filter(l => l.length === 2), shade: pairs(part('shade')) };
-return key.pts.length || key.lines.length || key.shade.length ? key : null;
-}
-const ptName_ = p => p[0] + ',' + p[1];
-const lineName_ = l => [ptName_(l[0]), ptName_(l[1])].sort().join('|');
-function graphMark_(x, g) {
-const key = graphKeyOf_(x);
-if (!key) return null;
-let want = 0, hit = 0, extra = 0;
-[['pts', ptName_], ['lines', lineName_], ['shade', ptName_]].forEach(([f, n]) => {
-if (!key[f].length) return;
-const a = new Set(key[f].map(n)), b = new Set((g[f] || []).map(n));
-want += a.size;
-b.forEach(v => { if (a.has(v)) hit++; else extra++; });
-});
-const marks = Number(x.marks) || 1;
-const got = Math.max(0, Math.round(marks * Math.max(0, hit - extra) / Math.max(1, want)));
-return { got, marks, right: hit === want && !extra };
-}
-function graphCheck_(el) {
-const box = qMark_(el), face = box && ansFaceOf_(box);
-if (!face || face.getAttribute('data-face') !== 'paper' || face.getAttribute('data-grid') !== 'graph') return false;
-const x = qtItem_(face.getAttribute('data-key') || '');
-const k = face.getAttribute('data-k') || '', g = graphRead_(k);
-const m = x && graphMark_(x, g);
-if (!m) { graphPut_(k, g); tell_(box.querySelector('.qp-verdict'), 'saved', 'Saved — this graph has no rule to mark it by'); return true; }
-tell_(box.querySelector('.qp-verdict'), m.right ? 'saved' : 'error', m.got + ' of ' + m.marks + ' — marked by its rule' + (m.right ? '' : '; check your points, lines and shading'));
-return true;
-}
-const GRAPH_CHECK_ACTS = ['qp-check', 'qp-noscheme', 'qp-cells-check', 'pad-check'];
-function graphCheckWrap_() {
-GRAPH_CHECK_ACTS.forEach(act => {
-const was = ACTIONS[act];
-if (was && was.graphWrapped) return;
-const fn = function (el) { if (graphCheck_(el)) return; if (was) return was.apply(this, arguments); };
-fn.graphWrapped = true;
-ACTIONS[act] = fn;
-});
 }
 ;
 /* js/map.js */

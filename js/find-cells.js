@@ -402,15 +402,21 @@ function sheetInput_(sheet) {
   const cells = [].slice.call(sheet.querySelectorAll('.qp-cell'));
   return cells.find(c => !c.value) || cells[0] || null;
 }
-/* A TOUCH ON THE SHEET DRAWS, NEVER TYPES: its pad takes the pen, and the keyboard opens on the sheet's lines */
+/* A TOUCH ON THE SHEET DRAWS, NEVER TYPES: its pad takes the pen */
 document.addEventListener('pointerdown', e => {
   const sheet = e.target && e.target.closest && e.target.closest('.qp-sheet');
   if (!sheet) return;
   const ink = e.target.closest('.qpad-ink'), pad = ink && ink.closest('.qpad'), k = pad ? pad.getAttribute('data-k') || '' : '';
   if (pad && PAD_ON !== k) { if (!PAD_TOOL.has(k)) PAD_TOOL.set(k, 'pen'); padTake_(pad, k); }
-  const inp = sheetInput_(sheet);
-  if (inp && typeof KP_AT !== 'undefined' && KP_AT !== inp && typeof kpTake_ === 'function') kpTake_(inp);
+  SHEET_DOWN = sheet;
 }, true);
+/* AND THE KEYBOARD OPENS ON ITS LINES ONCE THE TOUCH IS LIFTED: opened on the way down it moved the page under the stroke being drawn */
+let SHEET_DOWN = null;
+['pointerup', 'pointercancel'].forEach(ev => document.addEventListener(ev, () => {
+  const sheet = SHEET_DOWN, inp = sheet && sheet.isConnected ? sheetInput_(sheet) : null;
+  SHEET_DOWN = null;
+  if (inp && typeof KP_AT !== 'undefined' && KP_AT !== inp && typeof kpTake_ === 'function') kpTake_(inp);
+}, true));
 /* A TABLE'S CELLS IN READING ORDER: <- at a cell's start goes to the one before, -> at its end (or done) to the next */
 function sheetHop_(inp, cmd) {
   const sheet = inp && inp.classList && inp.classList.contains('qp-cell') && inp.closest('.qp-sheet');
