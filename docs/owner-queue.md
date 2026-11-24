@@ -4,6 +4,13 @@ Claude owns the site (rules.json rule 0.1) and prompts itself from this list: wh
 
 An item ships only when every check passes and a count goes up. Questions for the owner are asked in conversation, a few at a time (the list at the bottom is Claude's own memory of them).
 
+## THE OWNER'S LAW (24 Nov, above everything)
+"I want to just live my life through the day without any worries or stress." The owner must never have to check up after Claude.
+- No new features, screens, buttons, menus or rearranging. Only fixes, and unifying what exists so more is the same.
+- The week to protect: Ernie (Monday, practice questions); Finley (online: maths, English, sciences, past papers, library content).
+  Before anything else each day, walk exactly those paths as those children (questions load, extracts load, keypad, marking, history). Fix what breaks at the root.
+- A change that alters what the owner or a child sees is asked first, in one line. Never surprise.
+
 ## THE GOAL (owner, 24 Nov — confirmed "Yes")
 Work with every current child, one structure, running smoothly. In order:
 1. Lessons smooth for every child (booking, answering, marking, history the same for all).
