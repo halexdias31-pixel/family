@@ -52,8 +52,7 @@ function paneReset_(list, kids, hold) {
   const snugWas = list.map(p => p.classList.contains('is-snug'));
   if (!hold) list.forEach(p => { if (p.classList.contains('is-snug')) p.classList.remove('is-snug'); });
   if (!hold) list.forEach(p => { p.PANE_DUE = false; });
-  /* AN ESSAY'S SHEET GIVES WAY BEFORE ITS CARD IS DRAWN SMALLER -- `kpSheetFit_` in keypad.js. § */
-  if (!hold && typeof kpSheetFit_ === 'function') list.forEach(p => { if (p.querySelector('.qp-essay')) kpSheetFit_(p); });
+  /* AN ESSAY'S SHEET NO LONGER GIVES WAY: every part's one sheet keeps its shape, its height its lines (owner, 24 Nov) */
   /* AND A LIBRARY CARD GIVES UP ITS BLANK BAND FIRST — `libFit_` in me.js, the sheet's rule for the one card whose height follows its width: § */
   if (!hold && typeof libFit_ === 'function') list.forEach(p => { if (p.querySelector('.lib-face')) libFit_(p); });
   /* A TALMUD SIDE IS FETCHED AND LAID OUT AS ITS PANE IS REACHED (490) -- `talCardsFit_`, talmud.js. */

@@ -35,6 +35,8 @@ function kpMic_(inp, el) {
 
 /* ---------- DONE — AND ENTER ON A LAPTOP — MOVES TO THE NEXT BOX OR PUTS THE PAD AWAY. It never submits: the question's Check tile is the one submit (owner, 16 Nov: "2 places for submit… violating ssots"). */
 function kpDone_(inp) {
+  /* DONE IN A TABLE'S CELL ON THE SHEET goes on to its next cell, the last one closes the keyboard */
+  if (typeof sheetHop_ === 'function' && sheetHop_(inp, '!done')) return;
   if (kpSite_(inp)) return kpSiteDone_(inp);
   inp.blur();
   kpClose_();

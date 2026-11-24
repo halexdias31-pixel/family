@@ -68,8 +68,6 @@ function qtLight_(root, inHand) {
 /* A PART'S TILES AS DATA, Check first (rule 1.26): its tools, the pen's Undo and Clear, Show the answer, Help. ONE MARK BUTTON (owner, 15 Nov): no second one for photos. */
 function qtTiles_(x, ans) {
   if (!x || !x.key) return [];
-  /* AND ITS ANSWER BOX'S FACE: the student's pick, else the question's own (answer-face.js) */
-  if (typeof ansFaceDue_ === 'function') ansFaceDue_(x);
   /* QT_ROW ON EVERY PART; the pen's tiles, Undo and Clear only where the pad is already on the card (1020) */
   const art = typeof padReady_ !== 'function' || padReady_(x);
   const ids = QT_ROW.concat(art ? Object.keys(QT_DRAWING) : []);

@@ -78,14 +78,3 @@ if (typeof document !== 'undefined') document.addEventListener('visibilitychange
   [...DRAW_LOOPS].forEach(([key, L]) => { drawStop_(key); if (L.stop) L.stop(); });
 });
 
-/* ---------- SVG: a pointer's place in the drawing's own units (its viewBox), through the screen matrix; a stretched
-   viewBox without one falls back to the box's size. */
-function drawSvgAt_(svg, e, vw, vh) {
-  try {
-    const m = svg.getScreenCTM && svg.getScreenCTM();
-    if (m && svg.createSVGPoint) { const q = svg.createSVGPoint(); q.x = e.clientX; q.y = e.clientY; const p = q.matrixTransform(m.inverse()); return [p.x, p.y]; }
-  } catch (err) { /* the box's own size, below */ }
-  const r = svg.getBoundingClientRect(), vb = svg.viewBox && svg.viewBox.baseVal;
-  const W = vw || (vb && vb.width) || r.width, H = vh || (vb && vb.height) || r.height;
-  return [(e.clientX - r.left) * W / (r.width || 1), (e.clientY - r.top) * H / (r.height || 1)];
-}

@@ -79,10 +79,8 @@ function surfaceSvg_(kind) {
 
 /* ---------- THE ANSWER AREA AT THE CARD'S FOOT § */
 function ansArea_(x) {
-  /* ONE PAGE FOR EVERY PART (round 3): a made-up surface above the one answer box; a figure among the words is the pen in place */
-  const p = x && x.key ? padSource_(x) : null;
-  const pad = p && p.from === 'surface' ? figBox_({ look: 'qp-area', attrs: { 'data-q': x.key }, inner: padWrap_(x, p.svg, 'row') }) : '';
-  return pad + ansBox_(x);
+  /* ONE SHEET FOR EVERY PART (owner, 24 Nov): the picture it draws on is printed on the sheet (find-cells.js `sheet_`), not among the words */
+  return ansBox_(x);
 }
 
 /* ---------- A CARD WITH A FIGURE IN IT GIVES WAY BEFORE IT IS DRAWN SMALLER, AND NEVER WHOLE § */
@@ -649,7 +647,8 @@ function figHtml_(x, b) {
   }
   const p = padSource_(x);
   const pics = pics_(figImgs_(x.images));
-  if (p && p.from !== 'surface') return padWrap_(x, p.svg, 'row') + pics;
+  /* THE PICTURE DRAWN ON IS PRINTED ON THE PART'S ONE SHEET (find-cells.js `sheetPrint_`), once */
+  if (p && p.from !== 'surface') return pics;
   return (x.diagram ? usesFig_(x) || figWrap_(x.diagram) : '') + pics;
 }
 /* THE PHONE'S OLD RINGS MOVE TO THE FIRST PERSON WHO OPENS THEM, as the pen's do in `padWrap_` -- and
