@@ -79,6 +79,9 @@ function idOf(def, row) {
   const parts = def.id.map(c => (row && row[c] !== undefined && row[c] !== null ? String(row[c]).trim() : ''));
   return parts.every(p => p !== '') ? parts.join('#') : '';
 }
+/* WHOSE WORDS A ROW READS: its own, or, a question shown in a second set (`same_as`, js/library.js libWireQ_), the row it is.
+   Only for reading: a linked row holds no words of its own, so nothing is ever written or emptied under this id. */
+const wordsIdOf = (def, row) => (row && row.same_as ? String(row.same_as).trim() : idOf(def, row));
 /* THE PRIVATE FIELDS A ROW HAS, in the definition's order; null when none. A row the definition skips has none. */
 function privateOf(def, row) {
   if (!row || (def.skip && String(row[def.skip] || '').trim())) return null;
@@ -174,7 +177,7 @@ function text(name) {
     const lost = [];
     rows.forEach(r => {
       if (!r || !Object.prototype.hasOwnProperty.call(r, 'lib_has')) return;
-      const id = idOf(def, r), c = map[id];
+      const id = wordsIdOf(def, r), c = map[id];
       const here = def.private.filter(f => c && c[f] !== undefined && c[f] !== null && String(c[f]).trim() !== '').join(' ');
       if (here !== String(r.lib_has || '').trim().split(/\s+/).filter(Boolean).join(' ')) behind.add(id);
       if (c) Object.keys(c).forEach(k => { r[k] = c[k]; });
@@ -234,5 +237,5 @@ const joinPaper = rows => paperFns().join(rows, defs().files.questions.joined);
 /* A SOURCE THAT IS THE PAPER ITSELF (21 Nov): source_id is read as `source_id || paper_id`, so one equal to paper_id is not kept. */
 const dropOwnSource = rows => { rows.forEach(r => { if (r && r.source_id === r.paper_id) delete r.source_id; }); return rows; };
 const stripPaper = rows => paperFns().strip(dropOwnSource(rows), defs().files.questions.joined);
-module.exports = { ABSENT, needWords, fixture: () => FIXTURE, skipParts, isAbsent, behind, waits, pendingTwins, TWIN_LIST, ROOT, PRIVATE_DIR, defs, NAMES, isLib, idOf, privateOf, pending, styleOf, rowText, fileText,
+module.exports = { ABSENT, needWords, fixture: () => FIXTURE, skipParts, isAbsent, behind, waits, pendingTwins, TWIN_LIST, ROOT, PRIVATE_DIR, defs, NAMES, isLib, idOf, wordsIdOf, privateOf, pending, styleOf, rowText, fileText,
                    privatePath, readPrivate, writePrivate, pinnedMap, seedFromGit, text, rows, serve, joinPaper, stripPaper };

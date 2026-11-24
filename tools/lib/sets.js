@@ -60,4 +60,31 @@ function unify(rows, joined) {
   return { rows: out, t };
 }
 
-module.exports = { SET_KIND, isSet, isExamSet, hasSitting, measure, unify };
+/* ONE QUESTION, MORE THAN ONE SET (owner, 24 Nov: a topic set's question that is a past paper's is linked, never added twice). The row in
+   the second set is a placement of its own (row_id, paper_id, question, part) with `same_as`, the row it is; its card is that row's card,
+   COPIED HERE from the source and nowhere else (its own set's joined facts it takes from its own set row); its words are the source's
+   (js/library.js libWireQ_, lib-full.js wordsIdOf). `same(rows, joined, fix)` lists the links that name no row, that name a row of
+   another kind or a link, and the copies that differ from their source; with `fix` it writes each copy afresh. */
+/* (idea_id is the set's view: a topic set names the idea its question tests there, tools/lib/qideas.js) */
+const PLACE = new Set(['row_id', 'paper_id', 'question', 'part', 'kind', 'section', 'sort_order', 'same_as', 'uses', 'idea_id']);
+function same(rows, joined, fix) {
+  const J = new Set(joined), by = new Map(rows.map(r => [S(r.row_id), r]));
+  const t = { links: 0, dangling: [], differ: [], fixed: 0 };
+  const card = r => { const o = {}; Object.keys(r).sort().forEach(k => { if (!PLACE.has(k) && !J.has(k) && r[k] !== null && r[k] !== undefined) o[k] = r[k]; }); return o; };
+  rows.forEach(r => {
+    if (!S(r.same_as)) return;
+    t.links++;
+    const src = by.get(S(r.same_as));
+    if (!src || S(src.kind) !== S(r.kind) || S(src.same_as) || src === r) { t.dangling.push(S(r.row_id)); return; }
+    const want = card(src), have = card(r);
+    if (JSON.stringify(want) === JSON.stringify(have)) return;
+    t.differ.push(S(r.row_id));
+    if (!fix) return;
+    Object.keys(have).forEach(k => { delete r[k]; });
+    Object.assign(r, want);
+    t.fixed++;
+  });
+  return t;
+}
+
+module.exports = { SET_KIND, isSet, isExamSet, hasSitting, measure, unify, same };

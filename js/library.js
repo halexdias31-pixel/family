@@ -567,7 +567,17 @@ function libTwinSvg_(r) {
     kids: { el: 'image', a: { href: `data/diagrams/${h}.png`, width: w, height: ht } } } });
 }
 /* A ROW'S ID ON THE WIRE (backend LIB_FILES): `q:` a question row, `ct:` a content card, `pr:` a practical, `pj:` a project. */
-const libWireQ_ = r => 'q:' + libS(r && (r.row_id || r.id)).trim();
+/* A QUESTION SHOWN IN A SECOND SET (owner, 24 Nov: a topic set's question that is a past paper's, linked, never added twice) is a row of
+   its own set with `same_as`, the row it is: its card is a copy the importer writes, its words are that row's, asked for by that row's id. */
+const libWireQ_ = r => 'q:' + libS(r && (r.same_as || r.row_id || r.id)).trim();
+/* EACH ROW'S LINKED ROWS, by the id they are the same as — built once per list. */
+const LIB_SAME = new WeakMap();
+function libSameOf_(list) {
+  if (!Array.isArray(list)) return new Map();
+  let m = LIB_SAME.get(list);
+  if (!m) { m = new Map(); list.forEach(o => { const k = libS(o && o.same_as).trim(); if (k) m.set(k, (m.get(k) || []).concat(o)); }); LIB_SAME.set(list, m); }
+  return m;
+}
 
 /* THE FILE'S ROWS AND THE MAPPED OBJECTS, BY ID — built once per list, because a merge looks up a few dozen of ten thousand. */
 const LIB_INDEX = new WeakMap();
@@ -754,15 +764,19 @@ function libMerge_(items) {
       const ins = (D.inserts || []).find(o => o.id === id);
       if (ins) { ins.sourceText = libS(c.source_text); ins.libHas = ''; }
     } else if (m[1] === 'q') {
-      const r = libIndexOf_(LIBRARY_ROWS, o => libS(o.row_id)).get(id);
-      if (!r) return;
-      libFill_(r, c);
-      const q = libIndexOf_(D.questions, o => libS(o.id)).get(id);
-      if (q) Object.assign(q, libQuestion_(r));
-      if (typeof questionContent_ === 'function' && typeof libItemByKey_ === 'function') {
-        const it = libItemByKey_('q:' + id);
-        if (it && q) Object.assign(it, questionContent_(q));
-      }
+      /* THE WORDS LAND ON THE ROW AND ON EVERY ROW THAT IS IT IN ANOTHER SET (`same_as`, libSameOf_) */
+      const own = libIndexOf_(LIBRARY_ROWS, o => libS(o.row_id)).get(id);
+      [own].concat(libSameOf_(LIBRARY_ROWS).get(id) || []).forEach(r => {
+        if (!r) return;
+        libFill_(r, c);
+        const rid = libS(r.row_id);
+        const q = libIndexOf_(D.questions, o => libS(o.id)).get(rid);
+        if (q) Object.assign(q, libQuestion_(r));
+        if (typeof questionContent_ === 'function' && typeof libItemByKey_ === 'function') {
+          const it = libItemByKey_('q:' + rid);
+          if (it && q) Object.assign(it, questionContent_(q));
+        }
+      });
     } else if (m[1] === 'pr' || m[1] === 'pj') {
       const col = m[1] === 'pr' ? 'practical_id' : 'project_id';
       const r = libIndexOf_(ex[m[1] === 'pr' ? 'practicals' : 'projects'], o => libS(o[col]).trim()).get(id);

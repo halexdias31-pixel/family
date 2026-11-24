@@ -38,16 +38,22 @@ function find(rows, families, code) {
   const tests = [];
   code.forEach(c => c.text.split('\n').forEach((l, i) => { if (KIND_TEST.test(l)) tests.push(c.rel + ':' + (i + 1)); }));
   if (tests.length) bad.push(tests.length + ' kind test(s) in code (tell a set by its tags): ' + tests.slice(0, 5).join(', '));
+  /* ONE QUESTION IN A SECOND SET (`same_as`): it names a question of its kind, and its card is that question's, never its own copy */
+  const sm = SETS.same(rows, JOINED(), false);
+  if (sm.dangling.length) bad.push(sm.dangling.length + ' question(s) linked (same_as) to no question of their kind: ' + sm.dangling.slice(0, 5).join(', '));
+  if (sm.differ.length) bad.push(sm.differ.length + ' linked question card(s) unlike their source: ' + sm.differ.slice(0, 5).join(', '));
+  m.links = sm.links;
   return { m, bad };
 }
 
+const JOINED = () => (((SD.json('data/settings/kinds.json') || {}).kinds || {}).question || {}).sheet.lib.joined.fields;
 const families = () => JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'settings', 'content.json'), 'utf8')).families || [];
 
 function run() {
   const rows = SD.questions(), fams = families(), code = codeFiles();
   const { m, bad } = find(rows, fams, code);
   const q = rows.filter(r => !SETS.isSet(r)).length;
-  console.log('one-set: ' + m.kinds.length + ' set kind (' + m.kinds.join(' / ') + '), ' + m.sets + ' sets, ' + (q - m.orphans.length) + '/' + q + ' question rows in exactly one set');
+  console.log('one-set: ' + m.kinds.length + ' set kind (' + m.kinds.join(' / ') + '), ' + m.sets + ' sets, ' + (q - m.orphans.length) + '/' + q + ' question rows in exactly one set; ' + m.links + ' shown again in a second set (same_as), each with its source\'s card');
   bad.forEach(b => console.log('  ' + b));
   prove(rows, fams, code);
   if (bad.length) throw new Error('one-set: ' + bad.length + ' fault(s); convert at the source: node tools/content.js sets --apply');
@@ -63,6 +69,8 @@ function prove(rows, fams, code) {
     'a set row twice': () => { const r = clone(); r.push(Object.assign({}, r.find(SETS.isSet))); return [r, fams, code]; },
     'a question wearing a kind': () => { const r = clone(); firstQ(r).document_type = 'Past paper'; return [r, fams, code]; },
     'a family card of another kind': () => [rows, fams.concat([{ family: 'P-ZZ-', card: { document_type: 'Past paper' } }]), code],
+    'a linked card unlike its source': () => { const r = clone(), x = r.find(o => o.same_as && o.kind === 'question'); if (x) x.marks = String((Number(x.marks) || 0) + 7); return [r, fams, code]; },
+    'a link to no question': () => { const r = clone(), x = r.find(o => o.same_as); if (x) x.same_as = 'Q-NO-SUCH-ROW'; return [r, fams, code]; },
     'a kind test in code': () => [rows, fams, code.concat([{ rel: 'js/zz.js', text: "if (String(r.document_type || '') !== 'Past paper') return;" }])],
   };
   const missed = Object.keys(breaks).filter(k => !find(...breaks[k]()).bad.length);
