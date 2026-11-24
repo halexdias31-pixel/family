@@ -239,15 +239,18 @@ function doorItems_() {
 /* AND EVERY DOOR THAT HOLDS NOBODY'S PERSONAL DATA (owner, 18 Nov: "guests see everything"): Shop, Tools, Games. Posts, Messages and
    Profiles stay signed in — they hold children's names and words (rule: a child's data only to the child, parents, tutors, admins). */
 /* Each by its own permissions row, `item` <door>:read for `anyone` (actions.json); Library and Practice answer by card below, not by door. */
-const guestDoors_ = () => typeof can_ !== 'function' ? [] : FRONT_ORDER.filter(d => d !== 'Library' && d !== 'Practice' && can_('anyone', 'item', d.toLowerCase() + ':read'));
+const guestDoors_ = () => typeof can_ !== 'function' ? [] : FRONT_ORDER.filter(d => d !== 'Library' && PRACTICE_DOORS.indexOf(d) === -1 && can_('anyone', 'item', d.toLowerCase() + ':read'));
 function findSignedOut_(x) { const doors = guestDoors_(); return kindTop_(x) === 'Settings' || asList_(kindTop_(x)).some(t => doors.indexOf(t) !== -1) || x.kind === 'bookform' || (guestLibrary_() && libraryCard_(x)) || (guestPractice_() && practiceCard_(x)); }
 const guestPractice_ = () => typeof can_ === 'function' && can_('anyone', 'item', 'question:read');
-const practiceCard_ = x => !!x && x.kind !== 'answer' && (x.kind === 'question' || asList_(kindTop_(x)).indexOf('Practice') !== -1);
+/* PRACTICE IS NO DOOR (queue item 9, 24 Nov): its kinds are answers of their own, marked `practice` in kinds.json doors. */
+const PRACTICE_DOORS = ITEM_KINDS.doors.filter(d => d.practice).map(d => d.name);
+const practiceDoor_ = x => asList_(kindTop_(x)).some(t => PRACTICE_DOORS.indexOf(t) !== -1);
+const practiceCard_ = x => !!x && x.kind !== 'answer' && (x.kind === 'question' || practiceDoor_(x));
 const guestLibrary_ = () => typeof can_ === 'function' && can_('anyone', 'item', 'library:read');
 /* A LIBRARY CARD: a Learning thing that is not practice — questions, their answers and the Practice widgets are signed in. */
 function libraryCard_(x) {
   if (!x || x.kind === 'question' || x.kind === 'answer') return false;
-  if (asList_(kindTop_(x)).indexOf('Practice') !== -1 && x.kind !== 'practical') return false;
+  if (practiceDoor_(x) && x.kind !== 'practical') return false;
   return asList_(x.groups || kindOf_(x).group).indexOf('Learning') !== -1;
 }
 

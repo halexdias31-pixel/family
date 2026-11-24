@@ -456,17 +456,19 @@ function chipShow_(f, i) {
 
 /* ---------- ONE COLOUR PER MENU (1030): every answer of a facet, its chip and its card words wear the facet's --hue-N. § */
 /* WRITTEN BY tools/facet-hues.js from the funnel's facet graph: two facets asked on one path never share a number. */
-const TAG_OF = {forLabel: 4, kindLabel: 0, toolName: 1, docketList: 0, kindOwn: 7, mySaved: 10, postState: 1, postBy: 8, postWhen: 9, msgWith: 5, profileType: 1, settingFor: 1, venueArea: 7, venueFor: 8, venueSize: 9, partnerStatus: 1, foodMeal: 0, foodShop: 0, taskList: 5, taskRepeat: 6, taskDone: 4, subject: 1, shelf: 0, wReligion: 9, histKind: 3, wCollection: 6, histPart: 2, wWork: 7, wSection: 10, wSource: 11, wLanguage: 5, wForm: 9, wAuthor: 10, wText: 10, wBook: 8, wChapter: 2, wUnit: 4, wPrimacy: 11, mScope: 3, mMake: 7, mModel: 2, mGen: 0, mEngine: 2, mSystem: 6, pcType: 5, pcSocket: 4, pcIface: 2, pcLinks: 3, mPhase: 3, mMarket: 1, mYears: 8, mSize: 6, mValves: 7, mBadge: 10, mFuel: 11, mPart: 5, mPrice: 4, cCategory: 9, cGroup: 2, cPeriod: 3, cState: 10, fighter: 11, decade: 10, division: 6, boutRound: 7, boutMethod: 5, boutWinner: 8, boutEvent: 4, histEra: 11, histMaterial: 2, histFormat: 11, histRole: 4, personName: 7, personYears: 7, personFrom: 6, histRepository: 6, histSide: 8, histFound: 7, histDated: 6, histTheatre: 5, shopHow: 1, shopPrice: 5, shopFor: 1, shopTheme: 2, required: 3, level: 2, documentType: 4, keystage: 8, yearGroup: 3, bandValue: 9, topic: 6, examBoard: 4, specTopic: 5, specPoint: 8, tier: 11, examYear: 3, examMonth: 0, examDay: 0, paperId: 8, paperSection: 9, qNumber: 10, qPart: 10, qSub: 11, marks: 9, needCalc: 11, needs: 0, myResult: 9, source: 3};
+const TAG_OF = {kindLabel: 0, toolName: 1, docketList: 0, mySaved: 9, postState: 1, postBy: 7, postWhen: 8, msgWith: 4, profileType: 1, settingFor: 1, venueArea: 5, venueFor: 6, venueSize: 7, partnerStatus: 0, foodMeal: 2, foodShop: 3, taskList: 3, taskRepeat: 4, taskDone: 2, subject: 1, shelf: 10, wReligion: 8, histKind: 3, wCollection: 6, histPart: 10, wWork: 11, wSection: 9, wSource: 2, wLanguage: 4, wForm: 5, wAuthor: 8, wText: 7, wBook: 7, wChapter: 9, wUnit: 10, wPrimacy: 9, mScope: 9, mMake: 3, mModel: 0, mGen: 10, mEngine: 8, mSystem: 4, pcType: 4, pcSocket: 3, pcIface: 1, pcLinks: 2, mPhase: 2, mMarket: 11, mYears: 7, mSize: 5, mValves: 6, mBadge: 8, mFuel: 9, mPart: 1, mPrice: 3, cCategory: 2, cGroup: 8, cPeriod: 9, cState: 3, fighter: 4, decade: 2, division: 3, boutRound: 11, boutMethod: 10, boutWinner: 0, boutEvent: 0, histEra: 6, histMaterial: 6, histFormat: 5, histRole: 7, personName: 11, personYears: 6, personFrom: 5, histRepository: 11, histSide: 6, histFound: 5, histDated: 4, histTheatre: 2, shopHow: 1, shopPrice: 11, shopFor: 11, shopTheme: 0, required: 7, level: 2, documentType: 5, keystage: 7, yearGroup: 8, bandValue: 9, topic: 6, examBoard: 4, specTopic: 4, specPoint: 3, tier: 5, examYear: 10, examMonth: 0, examDay: 0, paperId: 10, paperSection: 5, qNumber: 8, qPart: 6, qSub: 9, marks: 7, needCalc: 10, needs: 11, myResult: 8, source: 1};
 /* A FACET THE WALK NEVER MET (one the facets tab invented) still has a colour: the first. */
 const tagOf_ = field => 'h' + (TAG_OF[field] || 0);
 const tagAttr_ = field => ` data-tag="${tagOf_(field)}"`;
 
 /* ---------- WHAT A CHOSEN CHIP SAYS: THE VALUE, AND ONLY WHERE THE VALUE IS NOT ENOUGH, MORE § */
 function chipText_(f, i) {
-  const key = String((facetBy(f.field) || {}).label || f.field);
+  /* A CHIP ALWAYS HAS A NAME (queue item 9, 24 Nov): a facet no longer asked is named off the facets tab's phrasebook word, never its field; an empty value says the question. */
+  const row = (ITEM_KINDS.facets || []).find(r => r.field === f.field) || {};
+  const key = String((facetBy(f.field) || {}).label || (row.label ? text_(row.label) : '') || text_('doesnt-matter'));
   if (f.any) return 'Any ' + key.toLowerCase();
-  const show = String(chipShow_(f, i));
-  return /^\d{1,3}$/.test(show.trim()) ? key + ' ' + show.trim() : show;
+  const show = String(chipShow_(f, i)).trim();
+  return !show || show === '*' ? key : /^\d{1,3}$/.test(show) ? key + ' ' + show : show;
 }
 
 /* THE CHIPS YOU HAVE CHOSEN, drawn with the list because this row grows and shrinks. Clear is not

@@ -32,8 +32,8 @@ module.exports = { fresh };
 const DEPTH = 3;
 /* AND DEEPER WHILE A LIST IS BIG (1100): a tap over more than DEEP cards is looked up, not counted, so it settles at once on a phone at 4x; under it the live count is quick. */
 const DEEP = 400, DEEPEST = 12;
-/* ONLY IN THE COMMON FUNNEL, PRACTICE (1100): Library's writings run to some lists that take minutes each to ask; past depth 3 they are counted live. */
-const DEEP_UNDER = /^kindLabel=Practice(&|$)/;
+/* ONLY IN THE COMMON FUNNEL, PRACTICE (1100; its doors since queue item 9 — Questions, Answers, Inserts): Library's writings run to some lists that take minutes each to ask; past depth 3 they are counted live. */
+const DEEP_UNDER = new RegExp('^kindLabel=(' + require('./lib/site-data.js').raw('data/settings/kinds.json').doors.filter(d => d.practice).map(d => d.name).join('|') + ')(&|$)');
 /* AND THE PLACES A CHECK HOLDS THE FUNNEL TO (check-writings: Religion is asked first in Library › Religious Studies). */
 const NAMED = [[{ field: 'kindLabel', value: 'Library' }, { field: 'subject', value: 'Religious Studies' }]];
 

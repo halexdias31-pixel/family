@@ -58,7 +58,7 @@ async function run() {
     const doors = await first.evaluate(() => [...document.querySelectorAll('#stuff-groups [data-value]')].map(e => e.dataset.value).filter(Boolean));
     await first.close();
     /* THREE DOORS AT ONCE: more and a phone-sized page under load misses its taps. */
-    const MUST_DRAW = { Posts: 'kc-post', Practice: 'kc-question', Booking: 'kc-receipt', Messages: 'kc-msg' };
+    const MUST_DRAW = { Posts: 'kc-post', Questions: 'kc-question', Booking: 'kc-receipt', Messages: 'kc-msg' };
     const look = async d => {
       const pg = await open();
       /* EVERY STEP SKIPPED (22 Nov): Practice, Library and Shop ask several steps before their cards, so "Doesn't matter" is tapped until it is gone. */
@@ -67,7 +67,7 @@ async function run() {
       /* SETTLED: the same number of cards twice, half a second apart (eight seconds at most). */
       for (let i = 0, last = -1; i < 16; i++) { const n = await pg.evaluate(() => document.querySelectorAll('#screen .card').length); if (n && n === last) break; last = n; await pg.waitForTimeout(500); }
       /* PRACTICE'S WORDS ARRIVE AFTER ITS WAITING CARDS (a loaded build is slow): its question cards are waited for, 45 seconds at most. */
-      if (d === 'Practice') await pg.waitForFunction(() => document.querySelector('#screen .kc-question') && !document.querySelector('#screen .lib-wait'), null, { timeout: 45000 }).catch(() => {});
+      if (d === 'Questions') await pg.waitForFunction(() => document.querySelector('#screen .kc-question') && !document.querySelector('#screen .lib-wait'), null, { timeout: 45000 }).catch(() => {});
       /* A DOOR THAT MUST DRAW ITS OWN KIND IS WAITED FOR (22 Nov: Posts and Practice sometimes came back empty under load — a missed tap, not the site). */
       const must = MUST_DRAW[d];
       if (must && !(await pg.$('#screen .' + must))) { await pg.close(); return null; }
