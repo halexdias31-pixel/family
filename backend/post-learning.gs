@@ -142,7 +142,7 @@ function libItemsReply_(body) {
   if (!me || !S(me.person_id)) return errOf_('err-sign-in-first', 'not-signed-in');
   const asked = Array.isArray(body.ids) ? body.ids : [];
   const ids = [];
-  asked.forEach(v => { const t = S(v); if (/^(q|ct|pr|pj):[A-Za-z0-9][A-Za-z0-9 _.:#|()-]{0,159}$/.test(t) && ids.indexOf(t) === -1) ids.push(t); });
+  asked.forEach(v => { const t = S(v); if (/^(q|ct|pr|pj|in):[A-Za-z0-9][A-Za-z0-9 _.:#|()-]{0,159}$/.test(t) && ids.indexOf(t) === -1) ids.push(t); });
   if (!ids.length) return { error: 'Which items? Nothing was asked for.' };
   if (ids.length > LIB_PER_CALL) return { error: 'At most ' + LIB_PER_CALL + ' items at a time.' };
   if (!libReady_()) return { error: 'The library is still being copied into the Ledger — try again in a few minutes.', why: 'lib-not-ready' };
@@ -152,9 +152,10 @@ function libItemsReply_(body) {
 
 /* ONE WAY TO THE SERVER (step 2, slice 1): items of one kind by id, as the table allows. Beside libItems, not instead of it. */
 /* A library kind is read by libItems' own steps (signed in, the same reader), so it can never give more than libItems did. */
-const READ_ITEMS_LIB = { question: 'q', content: 'ct', practical: 'pr', project: 'pj' };
+/* AN INSERT (a reading extract) is read beside its questions (owner, 24 Nov: extracts said "Couldn't load this" — the kind was never served). */
+const READ_ITEMS_LIB = { question: 'q', content: 'ct', practical: 'pr', project: 'pj', insert: 'in' };
 /* THE TABLE'S ITEM KIND FOR EACH (owner, 15 Nov): a question is a question; everything else the library serves is ONE kind, `library`. */
-const READ_ITEMS_SHELF = { question: 'question', content: 'library', practical: 'library', project: 'library' };
+const READ_ITEMS_SHELF = { question: 'question', content: 'library', practical: 'library', project: 'library', insert: 'question' };
 function readItemsRole_(me) {
   if (!me) return 'anyone';
   if (whoMay_(me, 'admin')) return 'admin';
