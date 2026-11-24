@@ -321,32 +321,6 @@ function docketIdeasToDeskRun_() {
   return moved.length + ' item(s) moved to @ Desk';
 }
 
-/* GOOGLE TASKS IN (owner said go, 24 Nov): every open Google Task copied once into the Docket, one list per Google list, named "Google: <list>",
-   title, notes and due date kept; done ones skipped; matched by title so a re-run adds only what is new. Read-only scope, nothing changed in Google. */
-function docketGoogleTasksRun_() {
-  const t = read(TAB.people), me = t.rows.find(r => isOwner_(r));
-  if (!me) throw new Error('no owner found');
-  let got = null; try { got = JSON.parse(S(me.todo)); } catch (e) { got = null; }
-  if (!got || !Array.isArray(got.lists)) throw new Error('the owner has no docket lists');
-  const api = u => { const r = UrlFetchApp.fetch('https://tasks.googleapis.com/tasks/v1/' + u, { headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() }, muteHttpExceptions: true });
-    if (r.getResponseCode() !== 200) throw new Error('Google Tasks said ' + r.getResponseCode() + ': ' + r.getContentText().slice(0, 200)); return JSON.parse(r.getContentText()); };
-  let added = 0;
-  (api('users/@me/lists?maxResults=100').items || []).forEach(gl => {
-    let page = '', tasks = [];
-    do { const r = api('lists/' + encodeURIComponent(gl.id) + '/tasks?showCompleted=false&maxResults=100' + (page ? '&pageToken=' + page : '')); tasks = tasks.concat(r.items || []); page = r.nextPageToken || ''; } while (page);
-    tasks = tasks.filter(x => S(x.title).trim() && x.status !== 'completed');
-    if (!tasks.length) return;
-    const name = 'Google: ' + S(gl.title);
-    let L = got.lists.find(l => S(l.name) === name); if (!L) { L = { name: name, items: [] }; got.lists.push(L); }
-    tasks.forEach(x => { const title = S(x.title).trim(); if (L.items.some(i => S(i.title) === title)) return;
-      const it = { title: title }; if (S(x.notes).trim()) it.note = S(x.notes).trim(); if (x.due) it.date = S(x.due).slice(0, 10); L.items.push(it); added++; });
-  });
-  const cell = JSON.stringify(got);
-  if (cell.length > DOCKET_CELL_MAX) throw new Error('the docket would be ' + cell.length + ' characters, over ' + DOCKET_CELL_MAX + ' - nothing was saved');
-  if (added && !setCell(t, me, 'todo', cell)) throw new Error('the people tab has no todo column - nothing was saved');
-  return added + ' Google Task(s) added to the Docket';
-}
-
 /* ---------- THE ONE-OFF JOBS, RUN ONCE, BY THEMSELVES § */
 const MIGRATIONS = [
   /* EVERY PIN FOUR DIGITS (owner, 10 Nov): a longer one keeps its first four; signing in with the old one still works (authCheckPin_). */
@@ -503,10 +477,6 @@ const MIGRATIONS = [
     retry: true,
     what: "the same food slots at every meal: the morning, midday and evening lists each hold Protein, Carbs, Dairy, Veg and Fruit (Grain merged into Carbs, Meat into Protein; backup tab first); no text lost",
     run: () => docketMeals24NovRun_() },
-  { id: 'docket-google-tasks-24nov',
-    retry: true,
-    what: "the owner's open Google Tasks copied into the Docket, one list per Google list (read-only; re-runs add only new titles)",
-    run: () => docketGoogleTasksRun_() },
 ];
 
 /* ---------- MOVING ROWS OUT OF THE ITEMS TAB, NEVER LOSING ONE (queue step 7, 22 Nov) ----------
