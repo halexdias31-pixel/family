@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /* @family. — tools/one-opening.js THE ONE-OPENING CHECK (rule 1.75, owner queue item 9, 24 Nov: "What kind / What for / Which as one question; a chip always has a name"):
    a tutor saw "Practice", "Any which", "Questions" — three questions saying one thing. Find opens on ONE question, What kind, its answers one flat set
-   (kinds.json `doors`: Questions, Answers, Inserts, Library, Tools …), and no question after it asks the same again.
-   Counted: the funnel's live facets (one kind question: forLabel, kindLabel, kindOwn — only kindLabel asked); every asked facet's label a phrasebook word
+   (kinds.json `doors`: Practice, Library, Tools …; Questions, Answers and Inserts one step inside Practice, owner 24 Nov), and no question after it asks the same again.
+   Counted: the funnel's live facets (one kind question: forLabel, kindLabel, kindOwn — only kindLabel asked; Which only inside Practice); every asked facet's label a phrasebook word
    (data/settings/words.json); and, on a phone for a child and for a guest, the opening's answers are the doors, and every chip on the page — the menu's answers,
    the chosen chips, "Doesn't matter" answered — has a name: never empty, never a bare "*" (only sign-in's PIN dots, `.sign-dot`, by design).
    `--prove` breaks each rule in the page and fails unless every break is caught. Run by tools/build.js after `bundle`. */
@@ -16,17 +16,18 @@ const KINDS = SD.raw('data/settings/kinds.json');
 const FACETS = SD.raw('data/settings/facets.json');
 
 /* THE KIND QUESTIONS: of these, only the opening one may be asked. */
-const KIND_FIELDS = ['forLabel', 'kindLabel', 'kindOwn'];
+/* Which (kindOwn) is asked inside Practice only (owner, 24 Nov: Questions, Answers and Inserts out of the main menu, back under Practice). */
+const KIND_FIELDS = ['forLabel', 'kindLabel'];
 const OPENING = 'kindLabel';
 const ANY = "Doesn't matter";
 
 /* THE BREAKS --prove makes, each one way the opening could split again or a chip lose its name. */
 const BREAKS = [
   { name: 'none' },
-  { name: 'Which asked again', js: () => { ITEM_KINDS.facets.find(f => f.field === 'kindOwn').active = true; FACET_LIVE = null; } },
+  { name: 'What for asked again', js: () => { ITEM_KINDS.facets.find(f => f.field === 'forLabel').active = true; FACET_LIVE = null; } },
   { name: 'a label off the phrasebook', js: () => { ITEM_KINDS.facets.find(f => f.field === 'subject').label = ''; } },
   { name: 'a bare * chip', js: () => { chipText_ = () => '*'; } },
-  { name: 'Practice a door again', js: () => { ITEM_KINDS.doors.unshift({ name: 'Practice' }); } },
+  { name: 'Questions a door again', js: () => { ITEM_KINDS.doors.unshift({ name: 'Questions', practice: true }); } },
 ];
 
 const COUNT = { chips: 0, doors: 0 };

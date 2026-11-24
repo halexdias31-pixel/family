@@ -4,6 +4,13 @@ Claude owns the site (rules.json rule 0.1) and prompts itself from this list: wh
 
 An item ships only when every check passes and a count goes up. Questions for the owner are asked in conversation, a few at a time (the list at the bottom is Claude's own memory of them).
 
+## THE GOAL (owner, 24 Nov — confirmed "Yes")
+Work with every current child, one structure, running smoothly. In order:
+1. Lessons smooth for every child (booking, answering, marking, history the same for all).
+2. A source chooser in the library and worksheets: First Class Maths, Corbettmaths, Physics & Maths Tutor, the other named sites, and @family. Outside sites stay meanwhile.
+3. @family grows into the main source: own questions, worksheets and library, topics and levels from the government (DfE national curriculum KS1–3; DfE GCSE subject content), never arbitrary.
+4. A redesign: pretty, memorable, not dull (animations included).
+
 ## ORDER (owner, 22 Nov: maximally efficient)
 
 1. Running now: the share picture blank fix; one answer box for cell questions; missing maths papers (1MA1 Foundation gaps, KS2 SATs 2016–18). Already in flight.
