@@ -769,10 +769,14 @@ const topicAtoms_ = v => String(v == null ? '' : v).split(',').map(s => s.trim()
 /* Whether this item's topic is shown in the funnel at all — see `topicArea WAS HERE` among the
    facets. A practical or a project is ABOUT its topic by construction, so it answers. */
 /* AND NO QUESTION AT ALL NOW, the 1st Class Maths sheets included. § */
+/* ONE TOPIC TREE (queue item 7, 24 Nov): a maths question answers the idea it tests (its `idea_id`, named by taxonomy.json Maths.ideaNames,
+   tools/lib/qideas.js), never its source's own topic name, so one idea from two sources is one topic. */
+const ideaNameOf_ = x => { const id = x && x.row && x.row.idea_id; return (id && ((TAXONOMY.Maths || {}).ideaNames || {})[id]) || ''; };
 function topicShown_(x) {
-  return !isQ_(x);
+  return !isQ_(x) || !!ideaNameOf_(x);
 }
 function topicOf_(x) {
+  if (isQ_(x) || (x && x.row && x.row.kind === 'question')) { const n = ideaNameOf_(x); return n ? [n] : []; }
   return topicAtoms_(x && ((x.row && x.row.topics) || x.topics));
 }
 
