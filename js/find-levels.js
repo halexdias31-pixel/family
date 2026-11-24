@@ -53,10 +53,10 @@ function levelOf_(x) {
 
 /* WHO MADE A WORKSHEET IS ITS SOURCE, NOT AN EXAM BOARD (O3): a maker's sheet has no board, a board's paper no Source.
    check/library-schema.js reads this list; backend/digest.gs keeps a copy that check-funnel compares card by card. */
-const LIB_SOURCES = ['1st Class Maths', 'Corbettmaths', 'Access Tuition', 'GL Assessment', 'Physics & Maths Tutor'];
+const LIB_SOURCES = ['1st Class Maths', 'Corbettmaths', 'Access Tuition', 'GL Assessment', 'Physics & Maths Tutor', '@family'];
 const sourceOf_ = x => LIB_SOURCES.find(s => spellKey_(s) === spellKey_(x && x.company)) || '';
 /* A SOURCE WHOSE SETS ARE ONE BOARD'S OWN QUESTIONS BY TOPIC keeps that board (owner, 24 Nov: Physics & Maths Tutor's AQA topic sets are AQA). */
-const LIB_BOARD_SOURCES = ['Physics & Maths Tutor'];
+const LIB_BOARD_SOURCES = ['Physics & Maths Tutor', '@family'];
 const boardOf_ = x => (sourceOf_(x) && LIB_BOARD_SOURCES.indexOf(sourceOf_(x)) === -1 ? '' : (x && x.examBoard) || '');
 
 /* ---------- WHICH KEY STAGE A SATs ROW IS, AND ONLY A SATs ROW § */
