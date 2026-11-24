@@ -15,6 +15,30 @@ const SB = require('./lib/site-browser.js');
 /* NO TOOL, NO INK (owner, 24 Nov: the Pen tile turns drawing on and off): on a 390px phone a typed part and a drawn part are drawn as Find draws
    them, a finger dragged across each sheet with no tile picked must leave no ink and arm no pen; the Pen tile tapped, the same drag must ink.
    `armed` (for --prove) picks the pen before the first drag, which must be caught. */
+/* A PICTURE'S PAPER IS THE SHEET'S (owner, 24 Nov: white blobs over a graph's labels): on a phone, a part whose picture has white label boxes or
+   open points (`#fff`, `white`, `var(--bg)`) drawn on its sheet; every such shape must paint the sheet's own colour, never the ink or white.
+   `broken` (for --prove) paints them the ink, which must be caught. */
+async function paperCheck(broken) {
+  const pg = await SB.open({ as: 'child', ready: () => typeof stuffItemsAll_ === 'function' && stuffItemsAll_().some(isQ_) });
+  try {
+    await pg.setViewportSize({ width: 390, height: 844 });
+    if (broken) await pg.addStyleTag({ content: '.qp-sheet svg rect, .qp-sheet svg circle { fill: currentColor !important; }' });
+    return await pg.evaluate(() => {
+      const WHITE = /fill="(#fff|#ffffff|white|var\(--bg[^"]*)"/i;
+      const x = stuffItemsAll_().filter(isQ_).find(x => { const p = x.key && padSource_(x); return p && p.from !== 'surface' && /<(rect|circle)[^>]*fill="#fff"/i.test(p.svg); });
+      if (!x) return { none: true };
+      const host = document.createElement('div'); host.id = 'paper-check';
+      (document.querySelector('#s-' + AT + ' .page.on') || document.querySelector('#s-' + AT) || document.body).prepend(host);
+      host.innerHTML = findCard(x);
+      const sheet = host.querySelector('.qp-sheet');
+      const paper = sheet && getComputedStyle(sheet).backgroundColor, ink = sheet && getComputedStyle(sheet).color;
+      const shapes = sheet ? [...sheet.querySelectorAll('svg [fill]')].filter(e => WHITE.test('fill="' + e.getAttribute('fill') + '"')) : [];
+      const bad = shapes.filter(e => getComputedStyle(e).fill !== paper).map(e => e.tagName + ' ' + getComputedStyle(e).fill + (getComputedStyle(e).fill === ink ? ' (the ink)' : ''));
+      host.remove();
+      return { id: (x.row && x.row.row_id) || x.key, n: shapes.length, bad };
+    });
+  } finally { await pg.close(); await SB.done(); }
+}
 async function inkCheck(armed) {
   const bad = [], said = [];
   const pg = await SB.open({ as: 'child', ready: () => typeof stuffItemsAll_ === 'function' && stuffItemsAll_().some(isQ_) });
@@ -147,6 +171,11 @@ async function run(o) {
     };
     Object.entries(breaks).forEach(([k, h]) => { const w = wrong(h, sample.lines); console.log('  --prove ' + k + ': ' + (w ? 'caught (' + w + ')' : 'MISSED')); if (!w) bad.push('--prove: ' + k + ' was not caught'); });
   }
+  const pc = await paperCheck(false);
+  if (pc.none) bad.push('no part with a white-boxed picture to look at');
+  else { console.log('  picture paper on the sheet (' + pc.id + '): ' + (pc.n - pc.bad.length) + '/' + pc.n + ' white boxes and points in the sheet\'s colour');
+    pc.bad.slice(0, 5).forEach(b => bad.push(pc.id + ': a white box painted ' + b)); }
+  if (prove) { const p = await paperCheck(true); const caught = !!(p.bad && p.bad.length); console.log('  --prove label boxes painted the ink: ' + (caught ? 'caught' : 'MISSED')); if (!caught) bad.push('--prove: label boxes painted the ink were not caught'); }
   const ink = await inkCheck(false);
   console.log('  ink on a 390px phone, a drag with no tool, then with the Pen tile: ' + ink.said.join('; '));
   bad.push(...ink.bad);

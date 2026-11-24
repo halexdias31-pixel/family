@@ -3764,6 +3764,10 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .qp-sheet .qsurf.is-lines .grid { stroke: currentColor; opacity: .28; }
 /* PICTURE TEXT ON THE SHEET IN THE SHEET'S INK, never the figure's own black */
 .qp-sheet svg text { fill: currentColor; }
+/* AND A PICTURE'S PAPER IS THE SHEET'S: a label's white box or an open point's white middle (`#fff`, `white`, `var(--bg)`) takes the sheet's
+   own colour, never the ink -- on a dark sheet they were white blobs over the graph */
+.qp-sheet svg { --bg: var(--raised); }
+.qp-sheet svg :is([fill="#fff" i], [fill="#ffffff" i], [fill="white" i]) { fill: var(--raised); }
 .qp-sheet .qsurf .grid, .qp-sheet .qsurf .axis { stroke: currentColor; opacity: .33; }
 .qp-sheet-type {
   position: absolute; inset: 0; margin: 0; padding: 0; pointer-events: none; overflow: hidden;
