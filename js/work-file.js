@@ -161,7 +161,8 @@ on('wf-see', el => {
 /* The backend decides who may see, as for Work on file: the student, a parent they accepted, a booked tutor, the admin. */
 const HIST = {};
 const histOf_ = of => HIST[of] || (HIST[of] = { day: '', got: null, busy: false, say: '' });
-const HIST_HOW = { right: '✓ Right', part: 'Part marks', wrong: '✗ Not right', open: 'Not marked yet' };
+/* ONE STATUS SET (owner, 23 Nov, UNIFY item 4): the backend's `how` is a STATUS_IDS id, said by `statusWord_` as the email says it. */
+const histHow_ = how => ({ right: '✓ ', wrong: '✗ ' }[how] || '') + statusWord_(how === 'open' ? 'untried' : how);
 function histBody_(of) {
   const s = histOf_(of);
   /* TODAY, ASKED AT ONCE (owner, 23 Nov: "can't see anything"): the day view opens on today's work, another day one pick away. */
@@ -174,7 +175,7 @@ function histBody_(of) {
   if (!items.length) return [pick, { type: 'text', text: 'No questions answered that day.' }];
   return [pick, { type: 'text', paras: s.got.summary || [] },
     { type: 'list', items: items.map(q => ({ label: q.label || 'A question',
-      value: (q.mark ? q.mark + ' · ' : '') + (HIST_HOW[q.how] || '') + ' · ' + histTyped_(q.answer) + (q.tries > 1 ? ' · ' + q.tries + ' tries' : '') + (q.again ? ' · again' : ''),
+      value: (q.mark ? q.mark + ' · ' : '') + histHow_(q.how) + ' · ' + histTyped_(q.answer) + (q.tries > 1 ? ' · ' + q.tries + ' tries' : '') + (q.again ? ' · again' : ''),
       tone: q.how === 'right' ? 'is-good' : q.how === 'wrong' ? 'is-bad' : '' })) }];
 }
 /* ONLY WHAT WAS TYPED (owner, 20 Nov, 4e): the backend's `answerTyped_` already trims an old ", , , T"; an older backend's copy is trimmed here too. */

@@ -751,7 +751,7 @@ function padCheck_(row, pad) {
   if (partReady_('draw', say)) { tell_(out, 'info', partReady_('draw', say)); return null; }
   const art = pad.querySelector('.qpad-art > svg:first-child');
   const r = mark_({ drawAnswer: row.getAttribute('data-draw'), marks: row.getAttribute('data-marks') }, { strokes: marks, fig: drawFig_(art ? (art.__src || art.outerHTML) : '') }, 'graph');
-  if (r.verdict === 'unmarked') { tell_(out, 'error', r.why); return null; }
+  if (r.state === 'unmarked') { tell_(out, 'error', r.why); return null; }
   const v = markWord_(r);
   row.classList.add(r.verdict === 'right' ? 'is-right' : 'is-near');
   tell_(out, 'info', padSaid_(subSay_(v).text));

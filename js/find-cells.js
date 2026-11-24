@@ -287,7 +287,7 @@ on('qp-cells-check', el => {
   const x = box && stuffItemsAll_().find(it => ansKey_(it) === box.getAttribute('data-k'));
   if (!x || !out) return;
   const cells = cellsOf_(x), vals = cellsRead_(box, cells);
-  const v = mark_(x, vals, 'cells'), m = { right: v.marks, of: v.max, each: v.each || [] };
+  const v = mark_(x, vals, 'cells'), m = { right: v.marks, of: v.outOf, each: v.each || [] };
   cellsIn_(box).forEach(c => {
     const lab = c.closest('.qp-cell-ans'), r = m.each[+c.getAttribute('data-n')];
     if (lab) { lab.classList.toggle('is-right', r === true); lab.classList.toggle('is-near', r === false); }
@@ -392,9 +392,9 @@ on('qp-check', (el) => {
   box.classList.remove('is-right', 'is-near');
   if (partReady_('typed', inp.value)) { tell_(out, 'info', partReady_('typed', inp.value)); return; }
   const v = mark_(x || { accept: box.getAttribute('data-accept') || '' }, inp.value, x ? '' : 'accept');
-  if (v.verdict === 'empty') { tell_(out, 'info', partReady_('typed', '')); return; }
-  if (v.verdict === 'unmarked') { ACTIONS['qp-send'](el); return; }
-  if (v.verdict === 'wait') { tell_(out, 'info', v.why); return; }
+  if (v.state === 'empty') { tell_(out, 'info', partReady_('typed', '')); return; }
+  if (v.state === 'unmarked') { ACTIONS['qp-send'](el); return; }
+  if (v.state === 'wait') { tell_(out, 'info', v.why); return; }
   const full = v.verdict === 'right', rules = markTierOf_(v.method) === 'rules';
   box.classList.add(full ? 'is-right' : 'is-near');
   /* PEEL and LEVELS: the level and mark, and under it which elements each box had or missed, or what lifts it to the next level (`qp-fb`, as a saved verdict draws it) */
@@ -406,8 +406,8 @@ on('qp-check', (el) => {
     subRecord_(k, inp.value, markWord_(v), undefined, v.why);
     return;
   }
-  const marks = v.marks + ' of ' + v.max + ' ' + plural_(v.max, 'mark');
-  tell_(out, full && v.method !== 'words' ? 'saved' : 'info', v.method === 'words' ? marks + ' · by key words' : rules ? marks : full ? (v.typo ? text_('correct-check-the-spelling') + v.typo + ')' : 'Correct') : text_('not-yet-have-another-go'));
+  const marks = v.marks + ' of ' + v.outOf + ' ' + plural_(v.outOf, 'mark');
+  tell_(out, full && v.method !== 'words' ? 'saved' : 'info', v.method === 'words' ? marks + ' · by key words' : rules ? marks : full ? (v.typo ? text_('correct-check-the-spelling') + v.typo + ')' : statusWord_(v)) : text_('not-yet-have-another-go'));
   /* MARKED IS A SUBMISSION, right or not yet (js/submit.js); signed out it is this visit's alone. */
   subRecord_(k, inp.value, markWord_(v));
 });

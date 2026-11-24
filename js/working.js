@@ -66,6 +66,7 @@ on('work-see', el => {
 });
 /* AN OLD AI SCORE IS STILL READ (kept, never made again: owner, 16 Nov) */
 function workVerdictSay_(v) {
-  const m = /^ai:(\d+)\/(\d+)$/.exec(String(v || ''));
-  return m ? m[1] + ' of ' + m[2] + ' by AI' : 'saved, not marked';
+  /* ONE MARK RESULT (UNIFY item 5): read by `verdictOf_` and said as every other mark is. */
+  const r = verdictOf_(v);
+  return r && !r.state ? statusWord_(r) + ' · ' + r.marks + ' of ' + r.outOf : 'saved, not marked';
 }

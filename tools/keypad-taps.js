@@ -275,7 +275,7 @@ function tables(app, P) {
     ctx.__s = vals.join(' ; ');
     const back = call('cellsVals_(__s, cellsOf_(__x))');
     if (vals.some((w, i) => String(back[i] || '') !== w)) return label + ': saved ' + JSON.stringify(ctx.__s) + ' reads back as ' + JSON.stringify(back);
-    return v.verdict === 'right' ? '' : label + ': tapped ' + JSON.stringify(vals) + ' marked ' + v.verdict + ' ' + v.marks + '/' + v.max;
+    return v.verdict === 'right' ? '' : label + ': tapped ' + JSON.stringify(vals) + ' marked ' + v.verdict + ' ' + v.marks + '/' + v.outOf;
   };
   const shuffle = (a, seed) => { const b = a.slice(); let s = seed; for (let i = b.length - 1; i > 0; i--) { s = (s * 9301 + 49297) % 233280; const j = Math.floor(s / 233280 * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
   /* THE LIBRARY'S TABLES, site-marked, every kind of placing: the key's first way in each cell, the cells tapped last to first */

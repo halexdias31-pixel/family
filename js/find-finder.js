@@ -284,7 +284,6 @@ const FACET_FN = {
   levelOf_: x => levelOf_(x),
   boardOf_: x => boardOf_(x),
   sourceOf_: x => sourceOf_(x),
-  myAttemptOf_: x => myAttemptOf_(x),
   myResultOf_: x => myResultOf_(x),
   verifyTags_: x => verifyTags_(x),
   sittingOf_: x => sittingOf_(x),

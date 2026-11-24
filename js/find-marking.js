@@ -1658,7 +1658,8 @@ const markChoice_ = (x, typed, ord) => {
 /* ---------- ONE MARKING ENGINE (owner, 17 Nov), never live AI: `mark_(x, answer, scheme)` marks a part by the most exact method its
    scheme supports -- dogma (options, cells, exact keys and aliases, numbers with tolerance and units), then mechanical rules (PEEL,
    points, key words, a graph's geometry, a rule set distilled offline) -- and else it is `unmarked`: saved, never sent to a person.
-   One verdict everywhere: `{ verdict, marks, max, method, why }`, verdict right | wrong | part | empty | wait | unmarked.
+   ONE MARK RESULT (owner, 23 Nov, UNIFY item 5): `{ marks, outOf, verdict, why }` from rule and (old) AI marks alike, verdict one of
+   STATUS_IDS; nothing marked is verdict `untried`, its `state` empty | wait | unmarked saying why. Also `method`, and a method's extras.
    The methods, their tiers and their order are the table data/settings/marking.json (`DATA.marking`), with PEEL's rows. */
 /* `setting units`: `required`, a unit the key states is always part of the answer (markAnswer_); `when-asked`, only where `markUnitAsked_` finds it asked for; absent, never */
 const markUnitRule_ = () => { const r = markRows_().find(r => r.kind === 'setting' && r.name === 'units'); return r ? String(r.value || '').trim().toLowerCase() : ''; };
@@ -1704,31 +1705,47 @@ function mark_(x, answer, scheme) {
   x = x || {};
   const name = scheme || markSchemeOf_(x)[0] || 'unmarked';
   const max = Math.max(1, Number(x.marks) || 1);
-  const out = (verdict, marks, of, why, more) => Object.assign({ verdict, marks, max: of, method: name, why: why || '' }, more || {});
+  const out = (marks, of, why, more) => markResult_(marks, of, why, Object.assign({ method: name }, more || {}));
+  const none = (state, of, why) => out(0, of, why, { state });
   const blank = answer == null || (typeof answer === 'string' && !answer.trim()) || (Array.isArray(answer) && !answer.some(v => String(v == null ? '' : v).trim()));
-  if (!MARK_METHODS[name]) return out(blank ? 'empty' : 'unmarked', 0, max, 'No exact key or mechanical rule for this part yet: saved, not marked.');
+  if (!MARK_METHODS[name]) return none(blank ? 'empty' : 'unmarked', max, 'No exact key or mechanical rule for this part yet: saved, not marked.');
   const r = blank && name !== 'graph' ? null : MARK_METHODS[name].run(x, answer);
-  if (!r || r.empty) return out('empty', 0, r ? r.of : max, '');
-  if (r.error) return out('unmarked', 0, max, 'Could not mark it \u2014 try again');
-  if (r.wait) return out('wait', 0, max, r.say);
+  if (!r || r.empty) return none('empty', r ? r.of : max, '');
+  if (r.error) return none('unmarked', max, 'Could not mark it \u2014 try again');
+  if (r.wait) return none('wait', max, r.say);
   const more = {};
   ['typo', 'peel', 'levels', 'say', 'each', 'stray'].forEach(k => { if (r[k] !== undefined) more[k] = r[k]; });
-  return out(r.got >= r.of ? 'right' : r.got > 0 ? 'part' : 'wrong', r.got, r.of, r.why || '', more);
+  return out(r.got, r.of, r.why || '', more);
 }
+/* ---------- ONE STATUS SET (owner, 23 Nov, UNIFY item 4): a question is not tried, right, part right or wrong (and its answer
+   hidden, only where one is); worded once, words.json `status-<id>`, said by `statusWord_` on every card, menu, history and email. */
+const STATUS_IDS = ['untried', 'right', 'part', 'wrong', 'hidden'];
+/* THE ONE MARK RESULT: marks of outOf, the verdict they make, one line why. A `state` (empty | wait | unmarked) means nothing was marked. */
+function markResult_(marks, outOf, why, more) {
+  const m = Math.max(0, Number(marks) || 0), of = Math.max(0, Number(outOf) || 0);
+  const verdict = (more && more.state) || !of ? 'untried' : m >= of ? 'right' : m > 0 ? 'part' : 'wrong';
+  return Object.assign({ marks: m, outOf: of, verdict, why: String(why || '').split('\n')[0] }, more || {});
+}
+/* ANY STORED VERDICT (`right`, `wrong`, `rule:n/m`, an old `ai:n/m`, `sent`, nothing) or a mark result -> its STATUS_IDS id */
+function statusOf_(v) {
+  if (v && typeof v === 'object') return STATUS_IDS.includes(v.verdict) ? v.verdict : 'untried';
+  const r = verdictOf_(v);
+  return r ? r.verdict : 'untried';
+}
+const statusWord_ = v => text_('status-' + (STATUS_IDS.includes(v) ? v : statusOf_(v)));
 /* THE VERDICT AS STORED (`submissions.verdict`): a one-mark exact method or graph right | wrong, a rule's marks `rule:n/m`, unmarked `sent` */
 function markWord_(v) {
-  if (!v || v.verdict === 'unmarked') return 'sent';
-  return (markTierOf_(v.method) === 'dogma' || v.method === 'graph') && v.max === 1 ? (v.marks >= 1 ? 'right' : 'wrong') : 'rule:' + v.marks + '/' + v.max;
+  if (!v || v.state === 'unmarked') return 'sent';
+  return (markTierOf_(v.method) === 'dogma' || v.method === 'graph') && v.outOf === 1 ? (v.marks >= 1 ? 'right' : 'wrong') : 'rule:' + v.marks + '/' + v.outOf;
 }
 /* AND READ BACK: a stored verdict as the one shape; `ai:` is an old AI mark, read only, never made again */
 function verdictOf_(v) {
   const t = String(v == null ? '' : v);
-  if (t === 'right' || t === 'wrong') return { verdict: t, marks: t === 'right' ? 1 : 0, max: 1, method: 'dogma', why: '' };
-  if (t === 'sent') return { verdict: 'unmarked', marks: 0, max: 0, method: 'unmarked', why: '' };
+  if (t === 'right' || t === 'wrong') return markResult_(t === 'right' ? 1 : 0, 1, '', { method: 'dogma' });
+  if (t === 'sent') return markResult_(0, 0, '', { method: 'unmarked', state: 'unmarked' });
   const m = /^(ai|rule):(\d{1,3})\/(\d{1,3})$/.exec(t);
   if (!m) return null;
-  const got = +m[2], of = +m[3];
-  return { verdict: got >= of ? 'right' : got > 0 ? 'part' : 'wrong', marks: got, max: of, method: m[1] === 'ai' ? 'ai' : 'rules', why: '' };
+  return markResult_(+m[2], +m[3], '', { method: m[1] === 'ai' ? 'ai' : 'rules' });
 }
 /* ---------- IS THIS ANSWER READY TO SEND: one table, a row per answer surface -- what it holds counts as an answer, and what is said when it does not. */
 const qTrim_ = v => String(v == null ? '' : v).trim();
