@@ -16,7 +16,7 @@ const BV = require('./lib/backend-vm.js'), SB = require('./lib/site-browser.js')
 const PICK = { html: '<p>The toy has a mass of 0.15 kg and moves forward with a velocity of 0.08 m/s. How is the momentum of the toy calculated? Tick <b>one</b> box.</p>',
   choices: ['0.15 + 0.08 = 0.230', '0.15 ÷ 0.08 = 1.875', '0.15 × 0.08 = 0.012'], right: [3], answer: 'momentum = mass &times; velocity', typed: 'C' };
 const ROWS = [
-  { row_id: 'ZZ-SAMPLE', kind: 'document', paper_id: 'ZZ-SAMPLE', name: 'Momentum (sample)', subject: 'Physics', level: 'GCSE', document_type: 'Worksheet', active: 'TRUE' },
+  { row_id: 'ZZ-SAMPLE', kind: 'document', paper_id: 'ZZ-SAMPLE', name: 'Momentum (sample)', subject: 'Physics', level: 'GCSE', document_type: 'Question set', active: 'TRUE' },
   { row_id: 'ZZ-SAMPLE-1ai', kind: 'question', paper_id: 'ZZ-SAMPLE', question: '1', part: 'ai', marks: '1', active: 'TRUE', html: PICK.html,
     choices: PICK.choices.join(' | '), choice_right: 'C', answer: PICK.answer },
   { row_id: 'ZZ-SAMPLE-1aii', kind: 'question', paper_id: 'ZZ-SAMPLE', question: '1', part: 'aii', marks: '1', active: 'TRUE', html: '<p>What is the unit of momentum? Tick <b>one</b> box.</p>',

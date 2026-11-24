@@ -44,6 +44,7 @@ const ORDER = [
   'backend-loads', // the backend loads (22 Nov: the site was down): every .gs file run in Apps Script's A–Z order with Google's services stubbed; a top-level line reading a later file's name fails the build
   'eink',       // the e-ink check (rule 1.75, owner 21 Nov: NOW, NEXT step 2): ?eink's page and the Docket widget show the same Now/Next on docket-plan's day; fails the build
   'one-paper',    // the one-paper check (rule 1.75, 20 Nov): no two active past papers share board, spec, series and paper number; fails the build
+  'one-set',      // the one-set check (rule 1.75, owner 23 Nov: UNIFY item 3, ONE QUESTION SET): set kinds = 1 (Question set), every question in exactly one set, no kind word on a question, a family card or a kind test in code; each break proved caught; fails the build
   'one-paper-fact', // the one-paper-fact check (rule 1.75, owner 21 Nov): a question keeps none of its paper's facts byte-identical (kinds.json sheet.lib.joined), no source_id equal to its paper_id, and the backend and client join from one list; fails the build
   'source-lines', // the source-lines check (rule 1.75, owner 20 Nov): an English row naming "Source X, lines N to M" gets source_lines, shows them off its insert or is withheld; fails the build
   'one-box',      // the one-box check (rule 1.75, owner 20 Nov): every answer face by qtFace_; more than one box fails the build

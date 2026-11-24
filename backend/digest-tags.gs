@@ -113,7 +113,7 @@ function digestTagMonth_(it, T) {
     T.sittingLast = {};
     Object.keys(T.docs).forEach(pid => {
       const d = T.docs[pid] || {};
-      if (S(d.document_type).toLowerCase() !== 'past paper') return;
+      if (!S(d.exam_board)) return;
       const mm = ofName(d.name) || Number(d.month || 0) || ofDate(d.exam_date);
       const nm = /((?:19|20)\d{2})\s*$/.exec(S(d.name));
       const k = digestSittingKey_(d, S(d.year) || (nm ? nm[1] : ''), mm);

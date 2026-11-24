@@ -185,8 +185,8 @@ function waveOf(x) {
 /* ---------- A PAST PAPER WITH NO SITTING OF ITS OWN TAKES ITS PAPER'S § */
 function waveFromDoc_(x) {
   const r = (x && x.row) || x || {};
-  const type = String((x && x.documentType) || r.document_type || '').toLowerCase();
-  if (type !== 'past paper') return '';
+  /* ONE QUESTION SET (UNIFY item 3): a board's set has a sitting, read off its board tag, not a kind of its own. */
+  if (!String((x && x.examBoard) || r.exam_board || '').trim()) return '';
   const doc = docById_(paperIdOf_(r)) || {};
   /* AND THE NAME, WHICH IS WHAT THE COVER PRINTS. § */
   const named = /\s[\u2014\u2013]\s([A-Za-z]{3,9})\s+((?:19|20)\d{2})\s*$/.exec(String(doc.name || r.name || ''));
@@ -261,7 +261,7 @@ function sittingLastMonth_(r, year, m) {
   if (!map) {
     map = {};
     rows.forEach(d => {
-      if (!libIsDoc_(d) || String(d.document_type || '').toLowerCase() !== 'past paper') return;
+      if (!libIsDoc_(d) || !String(d.exam_board || '').trim()) return;
       const nm = /\s[\u2014\u2013]\s(?:\d{1,2}\s+)?([A-Za-z]{3,9})\s+((?:19|20)\d{2})\s*$/.exec(String(d.name || ''));
       const byName = nm ? MONTH_NAMES.findIndex(w => w.slice(0, 3).toLowerCase() === nm[1].slice(0, 3).toLowerCase()) + 1 : 0;
       const iso = /\b(?:19|20)\d{2}-(\d{2})-\d{2}\b/.exec(String(d.exam_date || ''));
@@ -440,15 +440,11 @@ function stuffPages_() {
   /* A PAGE IS KEPT WHEN ITS OWN TAGS AGREE WITH THE CHIPS (396): a chip on a facet with a page reader (`tagOf`) keeps
      the pages carrying it — `Answers` the answer pages, `Questions` the rest. */
   const byPage = (STUFF.filters || []).filter(f => f && !f.any && (facetBy(f.field) || {}).tagOf);
-  /* THE PAGE'S TAG IN THE CHIP'S WORDS (23 Nov): a facet with `one` tags the card with the item's own word (Past paper) while the
-     chip says the Find answer (Exam paper); compared raw, every page of a chosen paper was dropped and Find drew nothing. */
   const kept = (x, part) => byPage.every(f => {
     let v = [];
     const G = facetBy(f.field);
-    /* BOTH SIDES IN THE CHIP'S WORDS: a chip set from a card link (?card=) carries the item's own word (Past paper), one tapped in Find the answer (Exam paper). */
-    const A = t => (G.answerOf ? G.answerOf(t) : t);
     try { v = asList_(G.tagOf(x, part)); } catch (e) { v = []; }
-    return !v.length || v.some(t => spellKey_(A(t)) === spellKey_(A(f.value)));
+    return !v.length || v.some(t => spellKey_(t) === spellKey_(f.value));
   });
   seq.forEach((x, i) => {
     /* A CARD WHOSE WORDS ARE STILL IN THE LEDGER (397) IS ONE PAGE, kept whatever the chips say: its shape is decided by its

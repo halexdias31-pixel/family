@@ -556,13 +556,13 @@ function progressScore_(v) {
 }
 const progressDay_ = ms => { const d = new Date(ms); return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate(); };
 const progressPaperOf_ = x => String((x && x.row && x.row.paper_id) || (x && x.sub) || '');
-/* WHICH SERIES A QUESTION BELONGS TO: past papers by subject; worksheets by who made them and subject. */
+/* WHICH SERIES A QUESTION BELONGS TO (ONE QUESTION SET, UNIFY item 3): every set by its source tag — a board's sets by subject, another
+   maker's by who made them and subject; no kind of set of its own. */
 function progressSeries_(x) {
-  const type = String(x.documentType || (x.row && x.row.document_type) || ''), subj = String(x.subject || '');
+  const subj = String(x.subject || ''), board = String(x.examBoard || (x.row && x.row.exam_board) || '');
   const co = String(x.company || (x.row && x.row.company) || '');
-  if (/past|specimen/i.test(type)) return (subj ? subj + ' ' : '') + 'past papers';
-  if (/5-a-day/i.test(type)) return (co ? co + ' ' : '') + '5-a-day';
-  return [co, co.toLowerCase().indexOf(subj.toLowerCase()) === -1 ? subj : '', /exercise/i.test(type) ? 'exercises' : 'worksheets'].filter(Boolean).join(' ');
+  if (board) return (subj ? subj + ' ' : '') + 'past papers';
+  return [co, co.toLowerCase().indexOf(subj.toLowerCase()) === -1 ? subj : '', 'sets'].filter(Boolean).join(' ');
 }
 /* EVERYTHING THE COLUMN SAYS, counted once per draw. A key the library does not hold still counts in the totals; it has no topic or paper to file under. */
 function progressStats_() {
@@ -702,8 +702,7 @@ function progressGrades_(st) {
     const pp = st.papers[pid];
     if (!pp.of) return;
     const x = pp.x, subj = String(x.subject || 'Other');
-    const type = String(x.documentType || (x.row && x.row.document_type) || '');
-    const lv = /past|specimen/i.test(type) ? progressLevel_(x) : '';
+    const lv = String(x.examBoard || (x.row && x.row.exam_board) || '') ? progressLevel_(x) : '';
     const grade = x.bandType === 'grade' && x.bandValue ? String(x.bandValue) : '';
     if (!lv && !grade) return;
     const k = subj + '|' + (lv || 'grade');

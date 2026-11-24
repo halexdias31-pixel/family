@@ -34,16 +34,13 @@ function docById_(id) {
   return m[String(id)] || null;
 }
 
-/* A TYPE, IN THE PLURAL, for a title naming several of them. `5-a-day` is already a count noun. */
-const typePlural_ = t => /(s|day)$/i.test(String(t)) ? String(t) : String(t) + 's';
 /* ---------- WHAT THE BUNDLE IS CALLED, BUILT FROM THE CHIPS AND THE DATA § */
 const BUNDLE_TITLE_FIELDS = ['examBoard', 'source', 'subject', 'level', 'keystage', 'yearGroup',
-                             'bandValue', 'tier', 'documentType', 'sitting', 'examYear',
+                             'bandValue', 'tier', 'sitting', 'examYear',
                              'examMonth'];
 /* A TITLE FIELD'S OWN WAYS: read by another reader, said in the plural, or left out when an earlier field said it (`after`). */
 const BUNDLE_TITLE_HOW = {
   sitting: { reader: () => SITTING_READER_ },
-  documentType: { say: w => typePlural_(w) },
   examYear: { after: 'sitting' },
   examMonth: { after: 'sitting' },
 };
@@ -82,12 +79,9 @@ function bundleTitle_(items) {
   }
 }
 
-/* PAPERS, WORKSHEETS OR DOCUMENTS — whatever every one of them is. */
+/* PAPERS WHEN EVERY ONE IS A BOARD'S, ELSE SETS (ONE QUESTION SET: the board a tag, not a kind). */
 function bundleNoun_(papers, n) {
-  const types = papers.map(p => String(p.type || '').toLowerCase());
-  const one = types.every(t => /paper/.test(t)) ? 'paper'
-    : types.every(t => t === 'worksheet') ? 'worksheet' : 'document';
-  return n + ' ' + plural_(n, one);
+  return n + ' ' + plural_(n, papers.every(p => p.board) ? 'paper' : 'set');
 }
 
 const BUNDLE_MEMO = new WeakMap();
@@ -175,7 +169,7 @@ function bundleBuild_(items) {
     const g = groupAt[id] || '';
     const l = String(label[id] || id);
     return { id: id, label: l, name: paperLabel_(id), group: g, short: (g ? g + ' · ' : '') + l,
-             pages: Number(doc.pages) || 0, ok: canPrint_(doc), type: doc.document_type || '' };
+             pages: Number(doc.pages) || 0, ok: canPrint_(doc), board: String(doc.exam_board || '').trim() };
   });
   const printable = papers.filter(p => p.ok);
   if (printable.length < floor) return null;
@@ -462,7 +456,7 @@ function chipShow_(f, i) {
 
 /* ---------- ONE COLOUR PER MENU (1030): every answer of a facet, its chip and its card words wear the facet's --hue-N. § */
 /* WRITTEN BY tools/facet-hues.js from the funnel's facet graph: two facets asked on one path never share a number. */
-const TAG_OF = {forLabel: 5, kindLabel: 0, toolName: 1, docketList: 0, kindOwn: 7, mySaved: 11, postState: 1, postBy: 9, postWhen: 10, msgWith: 5, profileType: 1, settingFor: 1, venueArea: 8, venueFor: 9, venueSize: 10, partnerStatus: 2, foodMeal: 0, foodShop: 0, taskList: 6, taskRepeat: 7, taskDone: 5, subject: 1, shelf: 1, wReligion: 9, histKind: 4, wCollection: 6, histPart: 2, wWork: 7, wSection: 10, wSource: 11, wLanguage: 5, wForm: 9, wAuthor: 0, wText: 10, wBook: 8, wChapter: 2, wUnit: 3, wPrimacy: 1, mScope: 3, mMake: 7, mModel: 2, mGen: 0, mEngine: 2, mSystem: 5, pcType: 6, pcSocket: 5, pcIface: 3, pcLinks: 4, mPhase: 3, mMarket: 1, mYears: 9, mSize: 6, mValves: 7, mBadge: 10, mFuel: 11, mPart: 4, mPrice: 4, cCategory: 9, cGroup: 2, cPeriod: 3, cState: 10, fighter: 11, decade: 10, division: 6, boutRound: 7, boutMethod: 5, boutWinner: 8, boutEvent: 6, histEra: 11, histMaterial: 2, histFormat: 11, histRole: 3, personName: 6, personYears: 8, personFrom: 7, histRepository: 6, histSide: 8, histFound: 7, histDated: 6, histTheatre: 5, shopHow: 1, shopPrice: 4, shopFor: 2, shopTheme: 3, required: 7, level: 2, documentType: 3, keystage: 8, yearGroup: 3, bandValue: 9, topic: 5, examBoard: 4, specTopic: 4, specPoint: 8, tier: 11, examYear: 4, examMonth: 0, examDay: 0, verified: 11, paperId: 8, paperSection: 9, qNumber: 10, qPart: 11, qSub: 0, marks: 9, needCalc: 0, needs: 1, myAttempt: 8, myResult: 10, source: 4};
+const TAG_OF = {forLabel: 4, kindLabel: 0, toolName: 1, docketList: 0, kindOwn: 7, mySaved: 11, postState: 1, postBy: 9, postWhen: 10, msgWith: 5, profileType: 1, settingFor: 1, venueArea: 8, venueFor: 9, venueSize: 10, partnerStatus: 2, foodMeal: 0, foodShop: 0, taskList: 6, taskRepeat: 7, taskDone: 5, subject: 1, shelf: 1, wReligion: 9, histKind: 3, wCollection: 6, histPart: 2, wWork: 7, wSection: 10, wSource: 11, wLanguage: 5, wForm: 9, wAuthor: 0, wText: 10, wBook: 8, wChapter: 2, wUnit: 4, wPrimacy: 1, mScope: 3, mMake: 7, mModel: 2, mGen: 0, mEngine: 2, mSystem: 6, pcType: 6, pcSocket: 5, pcIface: 3, pcLinks: 4, mPhase: 3, mMarket: 1, mYears: 9, mSize: 6, mValves: 7, mBadge: 10, mFuel: 11, mPart: 5, mPrice: 4, cCategory: 9, cGroup: 2, cPeriod: 3, cState: 10, fighter: 11, decade: 10, division: 6, boutRound: 7, boutMethod: 5, boutWinner: 8, boutEvent: 4, histEra: 11, histMaterial: 2, histFormat: 11, histRole: 4, personName: 7, personYears: 8, personFrom: 7, histRepository: 6, histSide: 8, histFound: 7, histDated: 6, histTheatre: 5, shopHow: 1, shopPrice: 5, shopFor: 2, shopTheme: 3, required: 3, level: 2, documentType: 4, keystage: 8, yearGroup: 3, bandValue: 9, topic: 6, examBoard: 4, specTopic: 5, specPoint: 8, tier: 11, examYear: 3, examMonth: 0, examDay: 0, verified: 11, paperId: 8, paperSection: 9, qNumber: 10, qPart: 11, qSub: 0, marks: 9, needCalc: 0, needs: 1, myAttempt: 8, myResult: 10, source: 4};
 /* A FACET THE WALK NEVER MET (one the facets tab invented) still has a colour: the first. */
 const tagOf_ = field => 'h' + (TAG_OF[field] || 0);
 const tagAttr_ = field => ` data-tag="${tagOf_(field)}"`;

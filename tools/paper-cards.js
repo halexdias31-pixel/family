@@ -4,7 +4,8 @@
    and its question cards must be drawn under the chips; a page with only the flag button, or no word why, fails the build.
    THE WORDS ARE MADE UP AND ANSWERED AT ONCE (the backend's `item get` replied here): a card still waiting for its words is kept whatever
    the chips say, so without them the page-by-page tag test (`stuffPages_`, find-levels.js) was never reached — the 23 Nov bug lived there
-   (the chip said Exam paper, each page's own tag Past paper, so every page was dropped). Counted: each sample paper, across boards and subjects.
+   (the chip said Exam paper, each page's own tag Past paper, so every page was dropped). Counted: each sample set, across boards, sources and subjects —
+   exam papers, a Corbettmaths topic and 5-a-day, a First Class Maths exercise, an Access Tuition set (ONE QUESTION SET, UNIFY item 3).
    Run by tools/build.js after `bundle`. */
 'use strict';
 const { main } = require('./lib/gen.js');
@@ -12,10 +13,15 @@ const SB = require('./lib/site-browser.js');
 
 /* THE SAMPLE: the chips a child taps (any order the funnel asks them in) and the paper every card must come from. */
 const PAPERS = [
-  { name: 'Edexcel GCSE Maths June 2024 Foundation Paper 2', taps: ['Practice', 'Questions', 'Maths', 'GCSE', 'Exam paper', 'Edexcel', 'Foundation', '2024', 'June', 'Paper 2'], id: 'Q-1MA1-2406-2F-' },
-  { name: 'AQA GCSE Physics 2023 Higher Paper 1', taps: ['Practice', 'Physics', 'GCSE', 'Exam paper', 'AQA', 'Higher', '2023', 'Paper 1'], id: 'Q-AQA-8463-2306-1H-' },
-  { name: 'Edexcel GCSE Maths November 2023 Foundation Paper 3', taps: ['Practice', 'Questions', 'Maths', 'GCSE', 'Exam paper', 'Edexcel', 'Foundation', '2023', 'November', 'Paper 3'], id: 'Q-1MA1-2311-3F-' },
-  { name: 'AQA GCSE English Language June 2023 Paper 1', taps: ['Practice', 'Questions', 'English Language', 'GCSE', '2023', 'June', 'Paper 1'], id: 'Q-AQA-8700-2306-1-' },
+  { name: 'Edexcel GCSE Maths June 2024 Foundation Paper 2', taps: ['Practice', 'Questions', 'Maths', 'GCSE', 'Edexcel', 'Foundation', '2024', 'June', 'Paper 2'], set: 'RS1786302107764-417' },
+  { name: 'AQA GCSE Physics 2023 Higher Paper 1', taps: ['Practice', 'Physics', 'GCSE', 'AQA', 'Higher', '2023', 'Paper 1'], set: 'P-AQA-8463-2306-1H' },
+  { name: 'Edexcel GCSE Maths November 2023 Foundation Paper 3', taps: ['Practice', 'Questions', 'Maths', 'GCSE', 'Edexcel', 'Foundation', '2023', 'November', 'Paper 3'], set: 'RS1786302107764-425' },
+  { name: 'AQA GCSE English Language June 2023 Paper 1', taps: ['Practice', 'Questions', 'English Language', 'GCSE', '2023', 'June', 'Paper 1'], set: 'P-AQA-8700-2306-1' },
+  /* ONE QUESTION SET (UNIFY item 3): every other set is found the same way, by its source and title, not a kind of its own. */
+  { name: 'Corbettmaths worksheet Times Tables', taps: ['Practice', 'Questions', 'Maths', 'Corbettmaths', 'Times Tables'], set: 'W-CBM-times-tables' },
+  { name: 'First Class Maths exercise HCF and LCM', taps: ['Practice', 'Questions', 'Maths', '1st Class Maths', 'HCF and LCM'], set: 'W-1CM-hcf-and-lcm' },
+  { name: 'Corbettmaths 5-a-day Foundation 1 June', taps: ['Practice', 'Questions', 'Maths', 'GCSE', 'Corbettmaths', 'Foundation', '5-a-day Foundation — 1 June'], set: 'P-CBM-5AD-F-0601' },
+  { name: 'Access Tuition Physics Momentum', taps: ['Practice', 'Questions', 'Physics', 'GCSE', 'Momentum'], set: 'W-AT-P-momentum' },
 ];
 const ANY = "Doesn't matter";
 const IPAD = { width: 820, height: 1180 };
@@ -48,7 +54,7 @@ async function onePaper(P) {
     await pg.waitForTimeout(1000);
     const r = await pg.evaluate(() => {
       const it = stuffFiltered();
-      const own = it.map(x => String((x.row && x.row.row_id) || ''));
+      const own = it.map(x => String((x.row && x.row.paper_id) || ''));
       const cards = [...document.querySelectorAll('.qcard, [data-item-kind="question"]')].filter(e => e.offsetParent);
       const menu = (document.querySelector('[id$="-groups"]') || {}).textContent || '';
       return { found: it.length, own, pages: stuffPages_().length, cards: cards.length, said: menu.replace(/\s+/g, ' ').trim() };
@@ -63,13 +69,13 @@ async function run() {
   out.forEach(r => {
     const P = r.P;
     if (r.left.length) return bad.push(P.name + ': the funnel never offered ' + r.left.join(', ') + ' (tapped ' + r.seen.join(' › ') + ')');
-    const other = r.own.filter(id => id.indexOf(P.id) !== 0);
+    const other = r.own.filter(id => id !== P.set);
     if (!r.found) return bad.push(P.name + ': nothing found under ' + r.seen.join(' › '));
     if (other.length) bad.push(P.name + ': ' + other.length + ' result(s) from another paper (' + other.slice(0, 3).join(', ') + ')');
     if (!r.cards) bad.push(P.name + ': ' + r.found + ' found, ' + r.pages + ' page(s), but no question card under the chips' + (r.said ? ' (said: "' + r.said.slice(0, 80) + '")' : ' and no word why'));
   });
-  console.log('paper-cards: ' + (PAPERS.length - new Set(bad.map(b => b.split(':')[0])).size) + '/' + PAPERS.length + ' sample papers drew their question cards for a child on an iPad'
-    + ' — ' + out.map(r => r.P.id.slice(2, -1) + ' ' + r.cards).join(', '));
+  console.log('paper-cards: ' + (PAPERS.length - new Set(bad.map(b => b.split(':')[0])).size) + '/' + PAPERS.length + ' sample sets drew their question cards for a child on an iPad'
+    + ' — ' + out.map(r => r.P.set + ' ' + r.cards).join(', '));
   bad.forEach(b => console.log('  ' + b));
   await SB.done();
   if (bad.length) throw new Error('paper-cards: ' + bad.length + ' sample paper(s) drew no cards under their chips');

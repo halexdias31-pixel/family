@@ -703,7 +703,7 @@ const answerTag_ = (inner, attrs, cls) => `<div class="counted row tap${cls ? ' 
 const answersRow_ = (tags, cls, id) => `<div${id ? ` id="${id}"` : ''} class="answers${cls ? ' ' + cls : ''}">${tags || ''}</div>`;
 const answerBox_ = (attrs, cls) => `<label class="counted row${cls ? ' ' + cls : ''}"><input${attrs || ''}></label>`;
 /* from js/find-bundles.js */
-const TAG_OF = {forLabel: 5, kindLabel: 0, toolName: 1, docketList: 0, kindOwn: 7, mySaved: 11, postState: 1, postBy: 9, postWhen: 10, msgWith: 5, profileType: 1, settingFor: 1, venueArea: 8, venueFor: 9, venueSize: 10, partnerStatus: 2, foodMeal: 0, foodShop: 0, taskList: 6, taskRepeat: 7, taskDone: 5, subject: 1, shelf: 1, wReligion: 9, histKind: 4, wCollection: 6, histPart: 2, wWork: 7, wSection: 10, wSource: 11, wLanguage: 5, wForm: 9, wAuthor: 0, wText: 10, wBook: 8, wChapter: 2, wUnit: 3, wPrimacy: 1, mScope: 3, mMake: 7, mModel: 2, mGen: 0, mEngine: 2, mSystem: 5, pcType: 6, pcSocket: 5, pcIface: 3, pcLinks: 4, mPhase: 3, mMarket: 1, mYears: 9, mSize: 6, mValves: 7, mBadge: 10, mFuel: 11, mPart: 4, mPrice: 4, cCategory: 9, cGroup: 2, cPeriod: 3, cState: 10, fighter: 11, decade: 10, division: 6, boutRound: 7, boutMethod: 5, boutWinner: 8, boutEvent: 6, histEra: 11, histMaterial: 2, histFormat: 11, histRole: 3, personName: 6, personYears: 8, personFrom: 7, histRepository: 6, histSide: 8, histFound: 7, histDated: 6, histTheatre: 5, shopHow: 1, shopPrice: 4, shopFor: 2, shopTheme: 3, required: 7, level: 2, documentType: 3, keystage: 8, yearGroup: 3, bandValue: 9, topic: 5, examBoard: 4, specTopic: 4, specPoint: 8, tier: 11, examYear: 4, examMonth: 0, examDay: 0, verified: 11, paperId: 8, paperSection: 9, qNumber: 10, qPart: 11, qSub: 0, marks: 9, needCalc: 0, needs: 1, myAttempt: 8, myResult: 10, source: 4};
+const TAG_OF = {forLabel: 4, kindLabel: 0, toolName: 1, docketList: 0, kindOwn: 7, mySaved: 11, postState: 1, postBy: 9, postWhen: 10, msgWith: 5, profileType: 1, settingFor: 1, venueArea: 8, venueFor: 9, venueSize: 10, partnerStatus: 2, foodMeal: 0, foodShop: 0, taskList: 6, taskRepeat: 7, taskDone: 5, subject: 1, shelf: 1, wReligion: 9, histKind: 3, wCollection: 6, histPart: 2, wWork: 7, wSection: 10, wSource: 11, wLanguage: 5, wForm: 9, wAuthor: 0, wText: 10, wBook: 8, wChapter: 2, wUnit: 4, wPrimacy: 1, mScope: 3, mMake: 7, mModel: 2, mGen: 0, mEngine: 2, mSystem: 6, pcType: 6, pcSocket: 5, pcIface: 3, pcLinks: 4, mPhase: 3, mMarket: 1, mYears: 9, mSize: 6, mValves: 7, mBadge: 10, mFuel: 11, mPart: 5, mPrice: 4, cCategory: 9, cGroup: 2, cPeriod: 3, cState: 10, fighter: 11, decade: 10, division: 6, boutRound: 7, boutMethod: 5, boutWinner: 8, boutEvent: 4, histEra: 11, histMaterial: 2, histFormat: 11, histRole: 4, personName: 7, personYears: 8, personFrom: 7, histRepository: 6, histSide: 8, histFound: 7, histDated: 6, histTheatre: 5, shopHow: 1, shopPrice: 5, shopFor: 2, shopTheme: 3, required: 3, level: 2, documentType: 4, keystage: 8, yearGroup: 3, bandValue: 9, topic: 6, examBoard: 4, specTopic: 5, specPoint: 8, tier: 11, examYear: 3, examMonth: 0, examDay: 0, verified: 11, paperId: 8, paperSection: 9, qNumber: 10, qPart: 11, qSub: 0, marks: 9, needCalc: 0, needs: 1, myAttempt: 8, myResult: 10, source: 4};
 /* from js/find-account.js */
 const SIGN_PIN_LEN = 4;
 /* from js/find-facets.js */
@@ -933,8 +933,8 @@ function waveOf(x) {
 }
 function waveFromDoc_(x) {
   const r = (x && x.row) || x || {};
-  const type = String((x && x.documentType) || r.document_type || '').toLowerCase();
-  if (type !== 'past paper') return '';
+  /* ONE QUESTION SET (UNIFY item 3): a board's set has a sitting, read off its board tag, not a kind of its own. */
+  if (!String((x && x.examBoard) || r.exam_board || '').trim()) return '';
   const doc = docById_(paperIdOf_(r)) || {};
   /* AND THE NAME, WHICH IS WHAT THE COVER PRINTS. § */
   const named = /\s[\u2014\u2013]\s([A-Za-z]{3,9})\s+((?:19|20)\d{2})\s*$/.exec(String(doc.name || r.name || ''));

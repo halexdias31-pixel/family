@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 /* @family. — tools/one-paper.js THE ONE-PAPER CHECK (rule 1.75, 20 Nov): a child sees one card per sitting of a paper, never two copies of it.
-   Counted site-wide over every active past-paper document row in data/questions.json: no two share a board, specification, series (year and
+   Counted site-wide over every active exam set with a sitting (tools/lib/sets.js hasSitting) in data/questions.json: no two share a board, specification, series (year and
    season: May/June is summer, Oct-Dec is November) and paper number (and tier). A second copy is retired (active False) and its part ids aliased in
    data/settings/question-aliases.json, so saved answers follow the kept one. Prints the count; a pair fails the build. tools/build.js runs it. */
 'use strict';
 const SD = require('./lib/site-data.js');
+const SETS = require('./lib/sets.js');
 const { S, main } = require('./lib/gen.js');
 
 function season(m) { m = +m; return m >= 4 && m <= 7 ? 'summer' : m >= 10 ? 'november' : m ? 'm' + m : ''; }
@@ -20,7 +21,7 @@ function find() {
   const by = {};
   let n = 0;
   for (const d of rows) {
-    if (!d || d.kind !== 'document' || S(d.active) !== 'True' || (S(d.document_type) && S(d.document_type) !== 'Past paper')) continue;
+    if (!d || d.kind !== 'document' || S(d.active) !== 'True' || !SETS.hasSitting(d)) continue;
     const k = keyOf(d);
     if (!k) continue;
     n++;
