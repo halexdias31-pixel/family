@@ -11,8 +11,6 @@ const QT_TOOLS = [
   { id: 'ruler',      icon: 'ruler',      label: 'Ruler',           note: 'measure a length',         act: 'qt-inst' },
   { id: 'protractor', icon: 'protractor', label: 'Protractor',      note: 'measure an angle',         act: 'qt-inst' },
   { id: 'compass',    icon: 'compass',    label: 'Compass',         note: 'press the centre, drag',   act: 'qt-inst' },
-  /* THE PAPER FACE (owner, 17 Nov): graph, lined or blank paper in the answer box's slot, the pen tools on it (answer-face.js) */
-  { id: 'paper',      icon: 'grid',       label: 'Paper',           note: 'graph, lined or blank',    act: 'qp-paper' },
   { id: 'mag',        icon: 'zoom',       label: 'Magnifier',       note: 'hold it over the page',    act: 'q-mag' },
   { id: 'read',       icon: 'speak',      label: 'Read aloud',      note: 'reads the question out',   act: 'read-aloud' },
   { id: 'lock',       icon: 'unlock',     label: 'Lock',            note: 'hold this page still',     act: 'q-lock' },
@@ -29,36 +27,6 @@ const QT_PAD_TOOL = { pen: 'pen', line: 'ruler', compass: 'compass', protractor:
 const qMulti_ = x => { try { return (questionParts_()[qId_(x)] || []).length > 1; } catch (e) { return false; } };
 const qtTool_ = id => QT_TOOLS.find(t => t.id === id) || null;
 
-/* ---------- THE PART'S ONE RECORD (text, choice, cells, strokes, photos, the AI's mark): keyed as its answer is. */
-const PART_MEM = new Map();
-/* 'ans:<who>:<item>' is 'part:<who>:<item>': any box's key names its record, so a writer holding only the key finds it */
-const partKeyOfAns_ = k => /^ans:/.test(String(k || '')) ? String(k).replace(/^ans:/, 'part:') : 'part:' + String(k || '?');
-function partRecAt_(pk) {
-  if (PART_MEM.has(pk)) return PART_MEM.get(pk);
-  let rec = null;
-  rec = keep_.json(pk, null);
-  if (!rec || typeof rec !== 'object') rec = partMigrate_(pk);
-  PART_MEM.set(pk, rec);
-  return rec;
-}
-/* ONCE, THE FIRST TIME A PART IS READ: the old store kept beside it (the AI's mark, `aiMark:<ans key>`) folded in and removed. */
-function partMigrate_(pk) {
-  const rec = { v: 1 };
-  const old = 'aiMark:' + pk.replace(/^part:/, 'ans:');
-  try {
-    const raw = keep_.get(old);
-    if (raw === null) return rec;
-    const ai = JSON.parse(raw);
-    if (ai && typeof ai.a === 'string' && typeof ai.v === 'string') rec.ai = ai;
-    if (keep_.put(pk, JSON.stringify(rec))) keep_.del(old);
-  } catch (e) { /* the old key stays, and is read again next visit */ }
-  return rec;
-}
-function partRecPutAt_(pk, field, v) {
-  const rec = partRecAt_(pk);
-  if (v == null || v === '') delete rec[field]; else rec[field] = v;
-  keep_.put(pk, JSON.stringify(rec));
-}
 /* WHAT THE PART HOLDS, every kind of answer in one shape. The typed box and the pen go to the account under their own
    synced keys (answers.js, the server's ceilings); the record reads them, so nothing saved before it is lost. */
 
@@ -78,14 +46,11 @@ function qtPenOpen_(el, tool) {
   const key = qtKeyOf_(el);
   let card = el.closest('.qcard');
   if (!card) return null;
-  /* A TILE ON THE PAPER FACE draws on that paper's pad, whatever figure the card has */
-  const face = el.closest('.qp-face');
-  let pad = (face || card).querySelector('.qpad');
+  /* THE PART'S ONE SHEET HOLDS ITS PADS: the picture printed on it first, else its lines */
+  let pad = card.querySelector('.qpad');
   if (!pad) {
     const x = qtItem_(key);
     if (!x) return null;
-    /* NOTHING TO DRAW ON (no figure, no surface): the tool goes on blank paper in the answer box (answer-face.js), never nowhere */
-    if (!padReady_(x)) return paperPadPick_(card, key, tool);
     qtPenSet_(x, true);
     card = qtRedraw_(card, x);
     pad = card && card.querySelector('.qpad');

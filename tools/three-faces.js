@@ -17,7 +17,7 @@ function run() {
   const types = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/settings/qengine.json'), 'utf8')).types;
   Object.entries(types).forEach(([t, p]) => { if (FACES.indexOf(p.face) === -1) bad.push('qengine type ' + t + ' has face ' + JSON.stringify(p.face)); });
   /* THE CAMERA AND THE PHOTO READER STAY GONE */
-  ['js/answer-face.js', 'js/working.js', 'js/qtools.js', 'js/qtools-row.js'].forEach(f => {
+  ['js/working.js', 'js/qtools.js', 'js/qtools-row.js'].forEach(f => {
     const src = fs.readFileSync(path.join(ROOT, f), 'utf8');
     (src.match(/getUserMedia|ANS_FACES\.camera|qp-cam-|'qp-work'|PHOTO_READ|WORK_PICS/g) || []).forEach(m => bad.push(f + ' still has ' + m));
   });

@@ -334,7 +334,7 @@ async function browser() {
           document.querySelectorAll('.kp-taps').forEach(n => n.remove());
           const d = document.createElement('div');
           d.className = 'qp-mark qp-compose kp-taps'; d.setAttribute('data-accept', k);
-          d.innerHTML = '<div class="qp-ans-row qp-bar"><label class="qp-ans qp-ans-maths">' + kpField_('kp-taps-' + Math.random(), '', 'maths', 3) + '</label></div>';
+          d.innerHTML = '<div class="qp-sheet" style="--sheet-lines: 1"><div class="qp-sheet-lines">' + sheetSvg_(1) + '<label class="qp-ans qp-sheet-type">' + kpField_('kp-taps-' + Math.random(), '', 'maths', 3) + '</label></div></div>';
           (document.querySelector('main') || document.body).prepend(d);
           const inp = d.querySelector('.kp-in'); inp.focus(); kpOpen_(inp);
           return [...document.querySelectorAll('#kp .kp-key')].map(e => (e.hasAttribute('data-off') ? '' : e.getAttribute('data-v')));
@@ -348,7 +348,7 @@ async function browser() {
           await press(pg, i);
         }
         const got = await pg.evaluate(k => {
-          const inp = document.querySelector('.kp-taps .kp-in'), box = document.querySelector('.kp-taps .qp-ans');
+          const inp = document.querySelector('.kp-taps .kp-in'), box = document.querySelector('.kp-taps .qp-sheet');
           const cs = getComputedStyle(box), raised = getComputedStyle(document.documentElement).getPropertyValue('--raised').trim();
           const probe = document.createElement('span'); probe.style.color = raised; document.body.appendChild(probe);
           const want = getComputedStyle(probe).color; probe.remove();
@@ -359,14 +359,14 @@ async function browser() {
         else if (!got.right) bad.push(name + ' ' + what + ': tapped ' + JSON.stringify(got.v) + ', marked wrong');
         if (got.off) bad.push(name + ' ' + what + ': ' + got.off + ' key(s) off the screen');
         if (got.bg !== got.want) bad.push(name + ': the answer box is ' + got.bg + ', not the theme\'s --raised ' + got.want);
-        if (way.length < 12 && got.w > got.vw * 0.75) bad.push(name + ' ' + what + ': a short answer\'s box is ' + Math.round(got.w) + 'px of ' + got.vw);
+        /* A SHORT ANSWER'S BOX IS NO LONGER NARROWER: every part is written on the one sheet, the same width (owner, 24 Nov) */
       }
       /* OPTIONS: a pick-several part's letters keypad, D then A tapped, is A,D -- and has no key but its letters and ← → ⌫ done */
       const keys = await pg.evaluate(() => {
         document.querySelectorAll('.kp-taps').forEach(n => n.remove());
         const d = document.createElement('div');
         d.className = 'qp-mark qp-compose kp-taps';
-        d.innerHTML = '<div class="qp-ans-row qp-bar"><label class="qp-ans">' + kpField_('kp-taps-pick', '', 'words', 3, null, { 'data-kp-letters': 'ABCD', 'data-kp-pick': 'set' }) + '</label></div>';
+        d.innerHTML = '<div class="qp-sheet" style="--sheet-lines: 1"><div class="qp-sheet-lines">' + sheetSvg_(1) + '<label class="qp-ans qp-sheet-type">' + kpField_('kp-taps-pick', '', 'words', 3, null, { 'data-kp-letters': 'ABCD', 'data-kp-pick': 'set' }) + '</label></div></div>';
         (document.querySelector('main') || document.body).prepend(d);
         const inp = d.querySelector('.kp-in'); inp.focus(); kpOpen_(inp);
         return [...document.querySelectorAll('#kp .kp-key')].map(e => (e.hasAttribute('data-off') ? '' : e.getAttribute('data-v')));

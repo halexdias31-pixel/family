@@ -433,28 +433,6 @@ function kpPadH_(pad) {
     }
   } catch (e) { /* the stylesheet's own guess stands */ }
 }
-/* ---------- AN ESSAY'S SHEET IS AS TALL AS ITS CARD HAS ROOM FOR § */
-const KP_SHEET_FLOOR = 5 * 24;
-function kpSheetFit_(pane) {
-  try {
-    const show = pane.querySelector('.qp-essay .qp-sheet .kp-show');
-    if (!show) return;
-    show.style.maxHeight = '';
-    show.style.minHeight = '';
-    const cs = getComputedStyle(pane);
-    const pad = (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
-    const over = (pane.scrollHeight - pad) - (pane.clientHeight - pad);
-    const h = show.getBoundingClientRect().height;
-    const floor = parseFloat(getComputedStyle(show).minHeight) || 0;
-    if (!(over > 0) || !(h > 0)) return;
-    const fit = Math.max(KP_SHEET_FLOOR, Math.floor(h - over - 4));
-    if (fit >= h) return;
-    show.style.maxHeight = fit + 'px';
-    if (floor > fit) show.style.minHeight = fit + 'px';
-    if (KP_AT && show.parentNode && show.parentNode.contains(KP_AT)) kpCaretSeen_(show);
-  } catch (e) { /* the stylesheet's cap stands */ }
-}
-
 /* ---------- WHAT A KEY DOES § */
 /* THE PARTNER OF THE BRACKET AT `i`, or -1. Counted, so `(2(x+1))` pairs its outer brackets. */
 function kpPartner_(v, i) {
@@ -643,6 +621,8 @@ function kpUndo_(inp, redo) {
 /* ---------- A KEY, FROM THE PAD OR A KEYBOARD § */
 const KP_WORD_SIGN = { '!frac': '/', '!pow': '^', '!sqrt': '\u221a' };
 function kpType_(inp, cmd, typed) {
+  /* A TABLE ON THE ONE SHEET: the arrows step from cell to cell at a cell's ends (find-cells.js `sheetHop_`) */
+  if ((cmd === '!left' || cmd === '!right') && typeof sheetHop_ === 'function' && sheetHop_(inp, cmd)) return;
   const words = inp.getAttribute('data-kp') === 'words';
   let c = cmd === '!nl' ? '\n' : cmd;
   if (!typed && KP_LAYER === 'abc' && /^[a-z]$/.test(c) && KP_SHIFT !== 'off') {
