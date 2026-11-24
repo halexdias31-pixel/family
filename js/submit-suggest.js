@@ -1,18 +1,12 @@
 /* @family. — js/submit-suggest.js THE FLAG (owner, 16 Nov): one switch on every thing, nothing typed (cut from submit.js; read as one by tools/piece-src.js). */
 /* ---------- THE FLAG: one tap on, one tap off ----------
    An admin's goes to Notes for Claude; anybody else's waits for Confirm. A message's says "Tell the admin" (413). */
-/* A RULE (496): `tell-admin` — the words only; the quiet safeguarding path stays either way. */
-const suggestTell_ = kind => suggestPeople_(kind) && (typeof ruleOn_ !== 'function' || ruleOn_('tell-admin'));
 /* ON IS THE VIEWER'S OWN FLAG STILL WAITING: `myFlags` from the backend, `kind|id`. */
 const flagMine_ = (kind, id) => ((typeof DATA !== 'undefined' && DATA && DATA.myFlags) || []).indexOf(kind + '|' + id) !== -1;
 /* THE ONE TILE'S OPTIONS, on every thing, drawn by `tile_`: Student rank and up; signed out, null (no tile). */
 function suggestOpts_(kind, id, label, cls) {
-  /* NO FLAG TILE (owner, 24 Nov: "remove the flag"), except on a message, where a child can report it. */
-  if (kind !== 'message') return null;
-  if (!kind || !id || typeof may_ !== 'function' || !may_('signedIn')) return null;
-  const on = flagMine_(kind, id);
-  return ({ icon: 'flag', label: suggestTell_(kind) ? 'Tell the admin' : 'Flag', on, pressed: on,
-                 act: 'rep-flag', cls: 'rep-tile' + (cls ? ' ' + cls : ''), data: { rk: kind, ri: id, rl: String(label || '').slice(0, 120) } });
+  /* NO FLAG ANYWHERE (owner, 24 Nov), a message's included */
+  return null;
 }
 /* A CARD WITH NO TILE ROW OF ITS OWN takes the tile in one of its own, put inside the card by `cardRowIn_`. */
 function suggestRowIn_(html, kind, id, label) {
