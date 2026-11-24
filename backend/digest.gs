@@ -363,7 +363,8 @@ function digestTopicOf_(q, libRow) {
   if (bits.length && /^worksheet$/i.test(bits[bits.length - 1])) bits.pop();
   /* A QUESTION'S LABEL ENDS IN ITS NUMBER ("Q3", "Q8ii"); a content card's ends in its own title, so nothing is cut from it. */
   if (/^q:/.test(S(q && q.key)) && bits.length > 1 && /^Q?\d+[a-z]*(?:\(?[ivx]+\)?)*$/i.test(bits[bits.length - 1])) bits.pop();
-  const paperish = libRow ? /paper|5-a-day/i.test(S(libRow.document_type)) : false;
+  /* ONE QUESTION SET: a board's set or a dated one (a 5-a-day) is named for its sitting, not a topic. */
+  const paperish = libRow ? !!(S(libRow.exam_board) || S(libRow.month) || /[\u2014\u2013]\s*\d{1,2}\s+[A-Za-z]+\s*$/.test(S(libRow.name))) : false;
   const name = libRow ? sheet(libRow.name) : bits.length > 1 ? sheet(bits[bits.length - 1]) : '';
   if (!paperish && ok(name) && !DIGEST_NOT_TOPIC.test(name)) return { own: true, list: [name] };
   const subj = S(libRow && libRow.subject) || (bits.length > 1 ? bits[0] : '');

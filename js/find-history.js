@@ -43,7 +43,7 @@ const insertPartItem_ = p => { const head = (p.sections[0] || {}).head || '', li
     text: plainText_([p.name, head, p.summary, 'insert formula equation'].concat(p.sheets || [], String(line.math || '').replace(/<[^>]*>/g, '')).join(' ')) }); };
 /* WHICH INSERTS A QUESTION'S PAPER COMES WITH: its subject, level, tier and board, read as the facets read them; a blank list is any. */
 function insertsFor_(x) {
-  if (!isQ_(x) || !/paper/i.test(String(x.documentType || ''))) return [];
+  if (!isQ_(x) || !String(x.examBoard || (x.row && x.row.exam_board) || '').trim()) return [];
   const has = (list, v) => !list.length || asList_(v).some(a => list.indexOf(String(a)) !== -1);
   /* A READING INSERT IS ONE PAPER'S (458): its paper ids, and nothing else, say which */
   const paper = String((x.row && x.row.paper_id) || '');

@@ -96,7 +96,7 @@ function missingEntry_(e) {
 
 /* ---------- A PAPER'S COVER, AS THE LIST ASKS ABOUT IT — its cells first, its name where a cell is blank ---------- */
 function missingCover_(r) {
-  if (!r || !libIsDoc_(r) || String(r.document_type || '').trim().toLowerCase() !== 'past paper') return null;
+  if (!r || !libIsDoc_(r) || !String(r.exam_board || '').trim()) return null;
   const t = v => String(v == null ? '' : v).trim(), name = t(r.name), m = t(r.month);
   const year = t(r.year) || ((/\b(20\d\d)\b/.exec(name) || [])[1] || '');
   const series = m === '11' ? 'November' : MISSING_SERIES.June.indexOf(m) !== -1 ? 'June'

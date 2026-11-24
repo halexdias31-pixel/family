@@ -4,6 +4,7 @@
 const vm = require('vm'), cp = require('child_process');
 const { ROOT, read, S } = require('./gen');
 const L = require('./lib-full.js');
+const SETS = require('./sets.js');
 
 /* ---------- THE LEVEL TABLE (settings.json `levels`) AND, OUT OF js/find.js, levelsIn_ and the sources — one copy each ---------- */
 let APP = null;
@@ -51,8 +52,8 @@ function VOCAB() {
                     'Business', 'Citizenship', 'Computer Science', 'Design and Technology', 'Drama', 'Economics',
                     'English Literature', 'Food Preparation and Nutrition', 'Further Maths', 'Geography', 'History',
                     'Media Studies', 'Physical Education', 'Politics', 'Psychology', 'Sociology'],
-    /* `5-a-day` IS A DIFFERENT KIND OF THING FROM A WORKSHEET, in the owner's own words. */
-    document_type: ['5-a-day', 'End of topic test', 'Exercise', 'Past paper', 'Specimen paper', 'Worksheet'],
+    /* ONE QUESTION SET (owner, 23 Nov, UNIFY item 3): a paper, a worksheet, an exercise, a 5-a-day are one kind; the source is a tag (tools/lib/sets.js). */
+    document_type: [SETS.SET_KIND],
     key_stage:     KEY_STAGES,
     band_type:     ['grade', 'stage', 'tier', 'year'],
     /* THE TIERS ARE LEVEL_TABLE'S (`Foundation Plus`, `Higher Plus` are Corbettmaths' 5-a-day levels). */
@@ -172,7 +173,7 @@ const FILL_IN = [
 const PICTURED = 'the paper prints its boxes as pictures and the scheme its key as drawn lines, neither in the text layer: no items, options or key here to make cells from';
 /* AWAITING ITS MARK SCHEME (584): pending, unverified past-paper part with no answer of any kind; cells wait for the scheme. */
 const schemeOwed = row => S(row.kind) === 'question' && S(row.lib_pending) === 'True' && S(row.verified) !== 'True'
-  && S(row.document_type) === 'Past paper' && !['answer', 'accept', 'cells', 'mark_words', 'draw_answer', 'choice_right'].some(f => S(row[f]));
+  && SETS.isExamSet(row) && !['answer', 'accept', 'cells', 'mark_words', 'draw_answer', 'choice_right'].some(f => S(row[f]));
 const CELLS_EXEMPT = {
   'Q-CBM-square-numbers-16': 'an open pair (81 and 9, or 36 and 54): one box per value, marked as a pair',
   'Q-CBM-5AD-F-0606-1': 'an open pair in either order (5 and -5): one box per value, marked as a pair',
@@ -285,10 +286,10 @@ function validate(row, file) {
   }
 
   /* A BOARD'S OWN PAPER (past or specimen) NAMES THE BOARD TWICE: its maker (`company`) is the board it is set by. */
-  if (f.company && /^(Past|Specimen) paper$/.test(S(row.document_type))) {
+  if (f.company && f.board && S(row[f.board])) {
     const co = S(row[f.company]), bo = S(row[f.board]);
-    if (bo && !co) bad('board', f.company, 'a ' + S(row.document_type).toLowerCase() + ' of ' + bo + ' names no company');
-    else if (BOARDS.indexOf(co) !== -1 && co !== bo) bad('board', f.board, 'a ' + S(row.document_type).toLowerCase() + ' made by ' + co + ' is set by ' + (bo || 'no board'));
+    if (bo && !co) bad('board', f.company, 'an exam set of ' + bo + ' names no company');
+    else if (BOARDS.indexOf(co) !== -1 && co !== bo) bad('board', f.board, 'an exam set made by ' + co + ' is set by ' + (bo || 'no board'));
   }
 
   /* TOPICS: each spelled exactly as data/topics.json spells a label or an alias. */
@@ -340,7 +341,7 @@ function validateFile(rows, file) {
     }
     /* A LIVE PAST-PAPER PART HAS MARKS, or a later part of its question carries the run's marks and its examiner note
        says so (the note is private, so a pending row without its words is not counted). */
-    if (S(r.kind) === 'question' && S(r.active) !== 'False' && S(r.document_type) === 'Past paper' && !S(r.marks)) {
+    if (S(r.kind) === 'question' && S(r.active) !== 'False' && SETS.isExamSet(r) && !S(r.marks)) {
       const later = laterMarked(r);
       if (!later) out.push({ id: idOf(r), rule: 'marks', col: 'marks', msg: 'a past-paper question with no marks' });
       else if (!SHARED.test(S(later.examiner_note))) out.push({ id: idOf(r), rule: 'marks', col: 'examiner_note', msg: 'no marks, and ' + idOf(later) + ' after it has marks but no examiner note saying they are for the parts together' });

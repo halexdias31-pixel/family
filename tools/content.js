@@ -31,6 +31,7 @@ const USAGE = `
   node tools/content.js shape [--apply]                                                 one question shape: no second way to say a stem, an option or a key (tools/lib/shape.js; held by tools/one-shape.js)
   node tools/content.js ideas [--out <dir>]                                             measure → merge → tag (one maths card per idea; part_of, specs, idea_id; tools/lib/ideas.js)
 
+  node tools/content.js sets [--apply]                                                  one question set: every paper, worksheet, exercise, 5-a-day a set (tools/lib/sets.js; held by tools/one-set.js)
   node tools/content.js speccode [--apply]                                              derive → write (spec_code from a paper's own columns)
 
   node tools/content.js library <split|join|seed|pull|push|status|drive-pack|help> …   the library's private half (397)
@@ -347,7 +348,7 @@ const INSERT = {
    overwritten. Every Edexcel GCSE maths past paper with questions must come out with a 1MA1 code, or the rule found fewer than exist. */
 const SPEC_AQA = { 'P-AQA-8463-2306-1H': '8463/1H', 'P-AQA-8463-2306-2H': '8463/2H', 'P-AQA-8464P-2306-1H': '8464/P/1H' };
 const SPEC_TIER = { Higher: 'H', Foundation: 'F' };
-const edexcelMaths = r => r.exam_board === 'Edexcel' && r.subject === 'Maths' && r.level === 'GCSE' && r.document_type === 'Past paper';
+const edexcelMaths = r => r.exam_board === 'Edexcel' && r.subject === 'Maths' && r.level === 'GCSE' && !/specimen/i.test(r.name || '');
 function specWanted(r) {
   if (SPEC_AQA[r.paper_id]) return SPEC_AQA[r.paper_id];
   const n = String(r.paper || '').trim(), t = SPEC_TIER[r.tier || ''];
@@ -373,6 +374,28 @@ const SPECCODE = {
     if (!c.apply || !c.filled) return;
     IM.writeCards('questions', c.q.rows, c.q.style);
     console.log('spec_code: written to data/questions.json');
+  },
+};
+
+/* ONE QUESTION SET (UNIFY THE LIBRARY AND PRACTICE, item 3): every grouping of questions one kind (tools/lib/sets.js). */
+const SETS = {
+  measure(c) {
+    c.SE = require('./lib/sets.js');
+    c.q = IM.cards('questions');
+    const m = c.SE.measure(c.q.rows);
+    console.log('sets: ' + m.sets + ' sets, kinds ' + m.kinds.join(' / ') + '; ' + m.orphans.length + ' question row(s) in no set, ' + m.wearing.length + ' wearing a kind of their own');
+  },
+  convert(c) {
+    const r = c.SE.unify(c.q.rows, L.defs().files.questions.joined.fields);
+    c.q.rows = r.rows; c.t = r.t;
+    const m = c.SE.measure(c.q.rows);
+    console.log('sets: ' + r.t.kinds + ' set(s) given the one kind, ' + r.t.dropped + ' question kind word(s) dropped, ' + r.t.made.length + ' set row(s) made ('
+      + r.t.made.join(', ') + '), ' + r.t.moved + ' paper fact(s) moved onto them; now kinds ' + m.kinds.join(' / ') + ', ' + m.orphans.length + ' in no set');
+  },
+  write(c) {
+    if (!process.argv.includes('--apply')) { console.log('(a dry run: --apply writes data/questions.json)'); return; }
+    IM.writeCards('questions', c.q.rows, c.q.style);
+    console.log('sets: written to data/questions.json');
   },
 };
 
@@ -482,6 +505,7 @@ async function main(argv) {
     console.log('shape: words written, ' + changed.length + ' row(s) changed; ' + n + ' card(s) lib_has brought up to date');
     return;
   }
+  if (what === 'sets') return IM.run('sets', SETS, {}, only);
   if (what === 'speccode') return IM.run('speccode', SPECCODE, { apply: argv.includes('--apply') }, only);
   const want = only || STAGES;
   const bad = want.filter(s => !STAGES.includes(s));

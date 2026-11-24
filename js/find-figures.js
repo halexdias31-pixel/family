@@ -728,10 +728,10 @@ function ansOpen_(x) {
   return ANS_SHOWN.has(k) || (answersAsked_() && !ANS_HID.has(k));
 }
 
-/* A PAST-PAPER PART IMPORTED WITHOUT ITS MARK SCHEME (584): no answer of any kind anywhere, so its answer page says so plainly. */
+/* A BOARD'S SET IMPORTED WITHOUT ITS MARK SCHEME (584): no answer of any kind anywhere, so its answer page says so plainly. */
 function schemeOwed_(x) {
   const r = x && x.row;
-  if (!r || !isQ_(x) || questionHasAns_(x) || libTrue(r.verified) || String(r.document_type || '') !== 'Past paper') return false;
+  if (!r || !isQ_(x) || questionHasAns_(x) || libTrue(r.verified) || !String(r.exam_board || '').trim()) return false;
   return !['accept', 'cells', 'mark_words', 'draw_answer', 'choice_right'].some(f => libHasField_(r, f));
 }
 /* SHOW OR HIDE THE ANSWER, one tile that says which way it goes */
