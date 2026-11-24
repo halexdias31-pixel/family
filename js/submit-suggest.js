@@ -7,6 +7,8 @@ const suggestTell_ = kind => suggestPeople_(kind) && (typeof ruleOn_ !== 'functi
 const flagMine_ = (kind, id) => ((typeof DATA !== 'undefined' && DATA && DATA.myFlags) || []).indexOf(kind + '|' + id) !== -1;
 /* THE ONE TILE'S OPTIONS, on every thing, drawn by `tile_`: Student rank and up; signed out, null (no tile). */
 function suggestOpts_(kind, id, label, cls) {
+  /* NO FLAG TILE (owner, 24 Nov: "remove the flag"), except on a message, where a child can report it. */
+  if (kind !== 'message') return null;
   if (!kind || !id || typeof may_ !== 'function' || !may_('signedIn')) return null;
   const on = flagMine_(kind, id);
   return ({ icon: 'flag', label: suggestTell_(kind) ? 'Tell the admin' : 'Flag', on, pressed: on,

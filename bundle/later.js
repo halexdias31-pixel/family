@@ -14240,6 +14240,7 @@ SUB_WAIT_SAID = 0;
 const suggestTell_ = kind => suggestPeople_(kind) && (typeof ruleOn_ !== 'function' || ruleOn_('tell-admin'));
 const flagMine_ = (kind, id) => ((typeof DATA !== 'undefined' && DATA && DATA.myFlags) || []).indexOf(kind + '|' + id) !== -1;
 function suggestOpts_(kind, id, label, cls) {
+if (kind !== 'message') return null;
 if (!kind || !id || typeof may_ !== 'function' || !may_('signedIn')) return null;
 const on = flagMine_(kind, id);
 return ({ icon: 'flag', label: suggestTell_(kind) ? 'Tell the admin' : 'Flag', on, pressed: on,

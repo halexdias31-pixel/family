@@ -25,7 +25,7 @@ function run() {
   vm.runInNewContext(src.slice(from, to + 3) + ';this.qtAll_ = qtAll_;', ctx);
   /* EVERY TILE A PART'S MAKERS CAN GIVE: QT_TOOLS by act and tool, then the row's other makers' acts */
   const toolTiles = [...tools.matchAll(/\{ id: '([\w-]+)',[^}]*act: '([\w-]*)'/g)].filter(m => m[2]).map(m => ({ act: m[2], tool: m[1] }));
-  const others = CHECKS.concat(['pad-undo', 'pad-clear', 'qa-show', 'qa-hide', 'help-hand', 'speed-open', 'card-share', 'fav', 'rep-flag', 'msg-open', 'find-top'])
+  const others = CHECKS.concat(['pad-undo', 'pad-clear', 'qa-show', 'qa-hide', 'help-hand', 'speed-open', 'card-share', 'msg-open', 'find-top'])
     .map(act => ({ act, tool: '' }));
   const every = toolTiles.concat(others);
   const tile = t => `<button type="button" class="tile" data-do="${t.act}"${t.tool ? ` data-tool="${t.tool}"` : ''}>${t.act}</button>`;
