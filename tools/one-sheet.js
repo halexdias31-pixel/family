@@ -10,6 +10,55 @@ const fs = require('fs'), path = require('path');
 const SD = require('./lib/site-data.js');
 const VQ = require('./validate-questions.js');
 const { ROOT, S, main } = require('./lib/gen.js');
+const SB = require('./lib/site-browser.js');
+
+/* NO TOOL, NO INK (owner, 24 Nov: the Pen tile turns drawing on and off): on a 390px phone a typed part and a drawn part are drawn as Find draws
+   them, a finger dragged across each sheet with no tile picked must leave no ink and arm no pen; the Pen tile tapped, the same drag must ink.
+   `armed` (for --prove) picks the pen before the first drag, which must be caught. */
+async function inkCheck(armed) {
+  const bad = [], said = [];
+  const pg = await SB.open({ as: 'child', ready: () => typeof stuffItemsAll_ === 'function' && stuffItemsAll_().some(isQ_) });
+  try {
+    await pg.setViewportSize({ width: 390, height: 844 });
+    await pg.addStyleTag({ content: '#banner{display:none!important}' });
+    for (const kind of ['typed', 'drawn']) {
+      const ok = await pg.evaluate(kind => {
+        const x = stuffItemsAll_().filter(isQ_).find(x => (qtFace_(x).face === 'draw') === (kind === 'drawn') && !qtFace_(x).cells);
+        if (!x) return false;
+        let host = document.getElementById('sheet-check');
+        if (!host) { host = document.createElement('div'); host.id = 'sheet-check'; (document.querySelector('#s-' + AT + ' .page.on') || document.querySelector('#s-' + AT) || document.body).prepend(host); }
+        host.innerHTML = findCard(x);
+        return true;
+      }, kind);
+      if (!ok) { bad.push('no ' + kind + ' part to drag on'); continue; }
+      const drag = async () => {
+        const ink = pg.locator('#sheet-check .qp-sheet .qpad-ink').last();
+        await ink.scrollIntoViewIfNeeded().catch(() => {});
+        const r = await ink.boundingBox();
+        if (!r) return;
+        await pg.mouse.move(r.x + r.width * 0.2, r.y + r.height * 0.5); await pg.mouse.down();
+        await pg.mouse.move(r.x + r.width * 0.8, r.y + r.height * 0.6, { steps: 8 }); await pg.mouse.up();
+        await pg.waitForTimeout(100);
+      };
+      const inked = () => pg.evaluate(() => [...document.querySelectorAll('#sheet-check .qp-sheet .qpad')].reduce((n, p) => n + padRead_(p.getAttribute('data-k')).length, 0));
+      if (armed) await pg.locator('#sheet-check [data-do="qt-pen"][data-tool="pen"]').first().click({ timeout: 5000 }).catch(() => {});
+      await drag();
+      const off = await inked();
+      if (off) bad.push(kind + ' part: a drag with no tool left ' + off + ' mark(s)');
+      await pg.locator('#sheet-check [data-do="qt-pen"][data-tool="pen"]').first().click({ timeout: 5000 }).catch(() => {});
+      await pg.waitForTimeout(120);
+      /* the pen on the lines: the last pad on the sheet */
+      await pg.evaluate(() => { const ps = document.querySelectorAll('#sheet-check .qp-sheet .qpad'), p = ps[ps.length - 1]; if (p && typeof padToolPick_ === 'function' && PAD_ON !== p.getAttribute('data-k')) padToolPick_(p, 'pen'); });
+      await drag();
+      const on = await inked() - off;
+      if (!on) bad.push(kind + ' part: the Pen tile on, a drag left no ink');
+      said.push(kind + ' ' + off + ' off / ' + on + ' on');
+      await pg.evaluate(() => { [...document.querySelectorAll('#sheet-check .qpad')].forEach(p => { try { keep_.del(p.getAttribute('data-k')); } catch (e) {} }); });
+      await pg.evaluate(() => { const h = document.getElementById('sheet-check'); if (h) h.remove(); });
+    }
+  } finally { await pg.close(); await SB.done(); }
+  return { bad, said };
+}
 
 /* THE SHEET'S OWN MARKUP, by matching its <div>s; what is left is everything outside it */
 function split(html) {
@@ -53,7 +102,7 @@ function noSwap() {
   return bad;
 }
 
-function run(o) {
+async function run(o) {
   const prove = (o && o.prove) || process.argv.includes('--prove');
   const bad = noSwap();
   const n = { parts: 0, ok: 0, typed: 0, table: 0, drawn: 0, unseen: 0 }, byLines = {};
@@ -98,6 +147,10 @@ function run(o) {
     };
     Object.entries(breaks).forEach(([k, h]) => { const w = wrong(h, sample.lines); console.log('  --prove ' + k + ': ' + (w ? 'caught (' + w + ')' : 'MISSED')); if (!w) bad.push('--prove: ' + k + ' was not caught'); });
   }
+  const ink = await inkCheck(false);
+  console.log('  ink on a 390px phone, a drag with no tool, then with the Pen tile: ' + ink.said.join('; '));
+  bad.push(...ink.bad);
+  if (prove) { const p = await inkCheck(true); const caught = p.bad.some(b => /no tool left/.test(b)); console.log('  --prove a pen already in hand: ' + (caught ? 'caught' : 'MISSED')); if (!caught) bad.push('--prove: ink with a tool in hand was not caught'); }
   bad.forEach(b => console.log('  ' + b));
   if (bad.length) throw new Error('one-sheet: ' + bad.length + ' part(s) or file(s) not on the one sheet');
   return n;

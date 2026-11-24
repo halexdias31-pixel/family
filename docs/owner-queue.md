@@ -4,6 +4,24 @@ Claude owns the site (rules.json rule 0.1) and prompts itself from this list: wh
 
 An item ships only when every check passes and a count goes up. Questions for the owner are asked in conversation, a few at a time (the list at the bottom is Claude's own memory of them).
 
+## NEXT, IN ORDER (24 Nov, 23:00; owner agreed)
+1. Pen button (drawing only while a pen tile is on); no Flag anywhere. [in progress]
+2. Find: GENERAL BEFORE SPECIFIC — tag A before tag B when every B answer sits inside one A answer, worked out once from all data; forward taps only; a check walks every item.
+3. Plain look: a blank table cell looks like an empty paper cell (no "Type your answer" box); nothing special-looking.
+4. Science library → questions: walk physics, chemistry, biology as a child; fix at the root.
+5. Outside worksheets kept and faithful: corner letters on shapes (Corbettmaths, First Class Maths).
+6. @family library: DfE spec SSOT → cards tagged by board → generated questions (id = card + template version + numbers; the question as seen is saved with each answer, so a spec fix never loses or re-marks work) → written bank for explain-style and English.
+The hourly run follows this list; anything a child or the owner sees is asked first.
+
+## OWNER'S ANSWERS (24 Nov, night)
+- Pen button: drawing only while a pen tile is on (in progress). Answering = type or pen, the one sheet; no further reshaping.
+- No flags anywhere, messages included.
+- Students must never lose progress: check saved work survives every change.
+- Find: wants a PRINCIPLE, not a hand-fixed order. Proposed: general before specific — tag A goes before tag B when every B answer sits inside one A answer, worked out once from all the data (never from what is on screen), so the order is the same everywhere and only forward taps are needed. Awaiting yes.
+- Library: SSOT = government specs (DfE). @family cards teach every spec point; each card tagged with the boards that include it (AQA, Edexcel…). Procedurally generated questions per card, Corbettmaths/First Class Maths quality as the bar. Keep outside worksheets meanwhile.
+- Bug: Corbettmaths/First Class Maths diagrams lose the corner letters of shapes.
+- Docket: Siri/Gemini via the private address; set up the iPhone Shortcut.
+
 ## OWNER'S LIST (24 Nov, evening; in this order, under THE OWNER'S LAW)
 1. One answer sheet (in progress).
 2. ONE FIXED PATH in Find: the "narrows most" rule makes the order change with the source (Corbettmaths, First Class Maths…), and some things are reachable only by going one way then deleting a tag. Replace with one fixed order of questions for every door; every item reachable by tapping forward only. A check walks every item. Today a maths past paper could not be reached.

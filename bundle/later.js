@@ -5570,10 +5570,15 @@ function sheetPrint_(x) {
 const p = x && x.key ? padSource_(x) : null;
 return p ? fcG_('div', 'qp-sheet-print', { 'data-q': x.key }, padWrap_(x, p.svg, 'row').replace(/<p class="qpad-note"[^>]*>[\s\S]*?<\/p>/, '')) : '';
 }
+function sheetLinesItem_(x, print) {
+const it = !print && qtFace_(x).face === 'draw' ? x : sheetItem_(x);
+padAdopt_(padKey_(it), padKey_({ key: x.key + '~paper' }));
+return it;
+}
 function sheet_(x, typed, print) {
 const n = ansLines_(x);
 return fcG_('div', 'qp-sheet', { 'data-k': ansKey_(x), 'data-lines': String(n), style: '--sheet-lines: ' + n },
-(print || '') + fcG_('div', 'qp-sheet-lines', null, padWrap_(!print && qtFace_(x).face === 'draw' ? x : sheetItem_(x), sheetSvg_(n), 'row')
+(print || '') + fcG_('div', 'qp-sheet-lines', null, padWrap_(sheetLinesItem_(x, print), sheetSvg_(n), 'row')
 + (typed ? fcG_('label', 'qp-ans qp-sheet-type', { 'aria-label': text_('your-answer') }, typed) : '')));
 }
 function sheetInput_(sheet) {
@@ -5583,17 +5588,17 @@ if (t) return t;
 const cells = [].slice.call(sheet.querySelectorAll('.qp-cell'));
 return cells.find(c => !c.value) || cells[0] || null;
 }
+let SHEET_DOWN = null;
 document.addEventListener('pointerdown', e => {
 const sheet = e.target && e.target.closest && e.target.closest('.qp-sheet');
-if (!sheet) return;
-const ink = e.target.closest('.qpad-ink'), pad = ink && ink.closest('.qpad'), k = pad ? pad.getAttribute('data-k') || '' : '';
-if (pad && PAD_ON !== k) { if (!PAD_TOOL.has(k)) PAD_TOOL.set(k, 'pen'); padTake_(pad, k); }
-SHEET_DOWN = sheet;
+SHEET_DOWN = sheet ? { sheet, x: e.clientX, y: e.clientY } : null;
 }, true);
-let SHEET_DOWN = null;
-['pointerup', 'pointercancel'].forEach(ev => document.addEventListener(ev, () => {
-const sheet = SHEET_DOWN, inp = sheet && sheet.isConnected ? sheetInput_(sheet) : null;
+['pointerup', 'pointercancel'].forEach(ev => document.addEventListener(ev, e => {
+const d = SHEET_DOWN;
 SHEET_DOWN = null;
+if (!d || ev === 'pointercancel' || Math.hypot(e.clientX - d.x, e.clientY - d.y) > 10 || !d.sheet.isConnected) return;
+if (typeof PAD_ON !== 'undefined' && PAD_ON && d.sheet.querySelector('.qpad[data-k="' + PAD_ON.replace(/"/g, '') + '"]')) return;
+const inp = sheetInput_(d.sheet);
 if (inp && typeof KP_AT !== 'undefined' && KP_AT !== inp && typeof kpTake_ === 'function') kpTake_(inp);
 }, true));
 function sheetHop_(inp, cmd) {
@@ -5803,7 +5808,6 @@ const padUndoTiles_ = (x, k0) => tile_(padUndoOpts_(x, k0));
 const padBar_ = k => fcG_('div', 'qpad-bar tile-row', { role: 'toolbar', 'aria-label': 'Drawing' }, fcG_('span', 'qpad-group', null, padUndoTiles_(null, k)));
 const padInk_ = (cls, strokes, ka) => ({ el: 'g', a: { class: cls, 'vector-effect': 'non-scaling-stroke' },
 kids: (strokes || []).map(st => ({ el: 'path', a: { 'vector-effect': 'non-scaling-stroke', d: padPath_(st, ka) } })) });
-const padReady_ = x => padHasArt_(x) && (!!padSource_(x) || padSurface_(x) === 'text');
 const PAD_MIN_ASPECT = 0.3;
 function padRoom_(svg) {
 const m = /viewBox\s*=\s*(["'])\s*([-\d.eE+]+)[\s,]+([-\d.eE+]+)[\s,]+([\d.eE+]+)[\s,]+([\d.eE+]+)\s*\1/.exec(String(svg || ''));
@@ -14237,14 +14241,9 @@ SUB_WAIT_SAID = 0;
 }
 ;
 /* js/submit-suggest.js */
-const suggestTell_ = kind => suggestPeople_(kind) && (typeof ruleOn_ !== 'function' || ruleOn_('tell-admin'));
 const flagMine_ = (kind, id) => ((typeof DATA !== 'undefined' && DATA && DATA.myFlags) || []).indexOf(kind + '|' + id) !== -1;
 function suggestOpts_(kind, id, label, cls) {
-if (kind !== 'message') return null;
-if (!kind || !id || typeof may_ !== 'function' || !may_('signedIn')) return null;
-const on = flagMine_(kind, id);
-return ({ icon: 'flag', label: suggestTell_(kind) ? 'Tell the admin' : 'Flag', on, pressed: on,
-act: 'rep-flag', cls: 'rep-tile' + (cls ? ' ' + cls : ''), data: { rk: kind, ri: id, rl: String(label || '').slice(0, 120) } });
+return null;
 }
 function suggestRowIn_(html, kind, id, label) {
 const t = tile_(suggestOpts_(kind, id, label));
@@ -15234,7 +15233,7 @@ tileSet_(t, { on: lit, pressed: lit });
 }
 function qtTiles_(x, ans) {
 if (!x || !x.key) return [];
-const art = typeof padReady_ !== 'function' || padReady_(x);
+const art = true;
 const ids = QT_ROW.concat(art ? Object.keys(QT_DRAWING) : []);
 return [qtCheckOpts_(x)].concat(ids.map(qtTool_).filter(Boolean).map(t => qtToolOpts_(t, x)),
 art && typeof padUndoOpts_ === 'function' ? padUndoOpts_(x) : [],

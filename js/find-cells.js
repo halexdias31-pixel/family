@@ -388,10 +388,17 @@ function sheetPrint_(x) {
   /* ONE NOTE A SHEET, at its foot (the lines' pad's): the picture's own is left off */
   return p ? fcG_('div', 'qp-sheet-print', { 'data-q': x.key }, padWrap_(x, p.svg, 'row').replace(/<p class="qpad-note"[^>]*>[\s\S]*?<\/p>/, '')) : '';
 }
+/* THE LINES' PAD: a drawn answer with no picture draws on them under its own key; any other part under `~sheet`. Marks made on the old
+   paper face (`~paper`, gone 24 Nov) are moved onto it once, the first time it is drawn (`padAdopt_`: only into an empty pad). */
+function sheetLinesItem_(x, print) {
+  const it = !print && qtFace_(x).face === 'draw' ? x : sheetItem_(x);
+  padAdopt_(padKey_(it), padKey_({ key: x.key + '~paper' }));
+  return it;
+}
 function sheet_(x, typed, print) {
   const n = ansLines_(x);
   return fcG_('div', 'qp-sheet', { 'data-k': ansKey_(x), 'data-lines': String(n), style: '--sheet-lines: ' + n },
-    (print || '') + fcG_('div', 'qp-sheet-lines', null, padWrap_(!print && qtFace_(x).face === 'draw' ? x : sheetItem_(x), sheetSvg_(n), 'row')
+    (print || '') + fcG_('div', 'qp-sheet-lines', null, padWrap_(sheetLinesItem_(x, print), sheetSvg_(n), 'row')
       + (typed ? fcG_('label', 'qp-ans qp-sheet-type', { 'aria-label': text_('your-answer') }, typed) : '')));
 }
 /* WHERE THE KEYS GO ON A SHEET: its lines, or a table's first empty cell (else its first) */
@@ -402,19 +409,20 @@ function sheetInput_(sheet) {
   const cells = [].slice.call(sheet.querySelectorAll('.qp-cell'));
   return cells.find(c => !c.value) || cells[0] || null;
 }
-/* A TOUCH ON THE SHEET DRAWS, NEVER TYPES: its pad takes the pen */
+/* A TOUCH ON THE SHEET SCROLLS UNTIL A DRAWING TILE IS PICKED (owner, 24 Nov: the Pen tile on, the pen draws; tapped again, it is put down).
+   A TAP (not a scroll) opens the keyboard on its lines once the touch is lifted: opened on the way down it moved the page under the finger. */
+let SHEET_DOWN = null;
 document.addEventListener('pointerdown', e => {
   const sheet = e.target && e.target.closest && e.target.closest('.qp-sheet');
-  if (!sheet) return;
-  const ink = e.target.closest('.qpad-ink'), pad = ink && ink.closest('.qpad'), k = pad ? pad.getAttribute('data-k') || '' : '';
-  if (pad && PAD_ON !== k) { if (!PAD_TOOL.has(k)) PAD_TOOL.set(k, 'pen'); padTake_(pad, k); }
-  SHEET_DOWN = sheet;
+  SHEET_DOWN = sheet ? { sheet, x: e.clientX, y: e.clientY } : null;
 }, true);
-/* AND THE KEYBOARD OPENS ON ITS LINES ONCE THE TOUCH IS LIFTED: opened on the way down it moved the page under the stroke being drawn */
-let SHEET_DOWN = null;
-['pointerup', 'pointercancel'].forEach(ev => document.addEventListener(ev, () => {
-  const sheet = SHEET_DOWN, inp = sheet && sheet.isConnected ? sheetInput_(sheet) : null;
+['pointerup', 'pointercancel'].forEach(ev => document.addEventListener(ev, e => {
+  const d = SHEET_DOWN;
   SHEET_DOWN = null;
+  if (!d || ev === 'pointercancel' || Math.hypot(e.clientX - d.x, e.clientY - d.y) > 10 || !d.sheet.isConnected) return;
+  /* NOT WHILE ITS PEN IS IN HAND: that touch was a mark */
+  if (typeof PAD_ON !== 'undefined' && PAD_ON && d.sheet.querySelector('.qpad[data-k="' + PAD_ON.replace(/"/g, '') + '"]')) return;
+  const inp = sheetInput_(d.sheet);
   if (inp && typeof KP_AT !== 'undefined' && KP_AT !== inp && typeof kpTake_ === 'function') kpTake_(inp);
 }, true));
 /* A TABLE'S CELLS IN READING ORDER: <- at a cell's start goes to the one before, -> at its end (or done) to the next */
@@ -679,7 +687,6 @@ const padBar_ = k => fcG_('div', 'qpad-bar tile-row', { role: 'toolbar', 'aria-l
 /* A PAD'S INK AS A DRAWING: one group of strokes, each a path at the pad's shape. */
 const padInk_ = (cls, strokes, ka) => ({ el: 'g', a: { class: cls, 'vector-effect': 'non-scaling-stroke' },
   kids: (strokes || []).map(st => ({ el: 'path', a: { 'vector-effect': 'non-scaling-stroke', d: padPath_(st, ka) } })) });
-const padReady_ = x => padHasArt_(x) && (!!padSource_(x) || padSurface_(x) === 'text');
 
 /* A PICTURE TOO THIN TO DRAW ON IS GIVEN ROOM ABOVE AND BELOW (385): a number line 340x35 was a 31px strip at 390, and its circles go above the line */
 const PAD_MIN_ASPECT = 0.3;

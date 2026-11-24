@@ -1198,8 +1198,6 @@ const MEASURE_TOOLS = ['ruler', 'protractor'];
 const isMeasureTool_ = id => MEASURE_TOOLS.indexOf(id) !== -1;
 const CHOICE_MARKERS = ['choice', 'order'];
 const isChoiceMarker_ = kind => CHOICE_MARKERS.indexOf(kind) !== -1;
-const PEOPLE_SUGGESTS = ['message', 'post'];
-const suggestPeople_ = kind => PEOPLE_SUGGESTS.indexOf(kind) !== -1;
 const chipsOn_ = (fs, field) => (fs || []).filter(f => f && f.field === field);
 const findIs_ = id => (typeof finderOf_ === 'function' ? !!finderOf_(id) : id === FIND_HOME_);
 const FIND_HOME_ = 'stuff';

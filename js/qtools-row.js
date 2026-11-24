@@ -69,7 +69,8 @@ function qtLight_(root, inHand) {
 function qtTiles_(x, ans) {
   if (!x || !x.key) return [];
   /* QT_ROW ON EVERY PART; the pen's tiles, Undo and Clear only where the pad is already on the card (1020) */
-  const art = typeof padReady_ !== 'function' || padReady_(x);
+  /* EVERY PART HAS ITS ONE SHEET TO DRAW ON (find-cells.js `sheet_`), so every part has the drawing tiles */
+  const art = true;
   const ids = QT_ROW.concat(art ? Object.keys(QT_DRAWING) : []);
   return [qtCheckOpts_(x)].concat(ids.map(qtTool_).filter(Boolean).map(t => qtToolOpts_(t, x)),
     art && typeof padUndoOpts_ === 'function' ? padUndoOpts_(x) : [],
