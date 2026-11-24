@@ -5,9 +5,12 @@
 /* `open`/`close` take the card and the part; `save`/`restore` read and write the part's one record (`partRec_`). */
 /* THE OWNER'S ROW (round 4): no Grid, Table or Formula sheet -- a question brings its own -- one padlock; Calculator back (owner, 11 Nov) */
 const QT_TOOLS = [
-  { id: 'pen',        icon: 'pen',        label: 'Pen',             note: 'draw on the figure',       act: 'qt-pen' },
+  /* ONE DRAWING CANVAS (owner, 23 Nov): Point, Line, Curve, Shade, Compass, Undo on every drawn part, every tap snapped to the figure's frame */
+  { id: 'point',      icon: 'dot',        label: 'Point',           note: 'tap to plot a point',      act: 'qt-pen' },
+  { id: 'pen',        icon: 'pen',        label: 'Curve',           note: 'draw a curve',             act: 'qt-pen' },
+  { id: 'shade',      icon: 'shade',      label: 'Shade',           note: 'tap a square to shade it', act: 'qt-pen' },
   /* TWO TILES WHERE ONE DID TWO THINGS (owner, 1 Nov): "sometimes the ruler ... displays a ruler and sometimes ... draw straight lines" -- Straight line is the pen's, Ruler always measures. */
-  { id: 'line',       icon: 'line',       label: 'Straight line',   note: 'draw a straight line',     act: 'qt-pen' },
+  { id: 'line',       icon: 'line',       label: 'Line',            note: 'draw a straight line',     act: 'qt-pen' },
   { id: 'ruler',      icon: 'ruler',      label: 'Ruler',           note: 'measure a length',         act: 'qt-inst' },
   { id: 'protractor', icon: 'protractor', label: 'Protractor',      note: 'measure an angle',         act: 'qt-inst' },
   { id: 'compass',    icon: 'compass',    label: 'Compass',         note: 'press the centre, drag',   act: 'qt-inst' },
@@ -23,9 +26,9 @@ const QT_TOOLS = [
 /* THE ONE ROW EVERY PART SHOWS, identically (owner, 8 Nov): data/settings/qengine.json `row`, as qtypes.js carries it (QENGINE) */
 const QT_ROW = QENGINE.row;
 /* THE PEN'S TILES, added only where the part has a figure to draw on (a drawing answer needs its pen) */
-const QT_DRAWING = { pen: 1, line: 1, compass: 1 };
+const QT_DRAWING = { point: 1, line: 1, pen: 1, shade: 1, compass: 1 };
 /* THE PEN'S OWN NAME FOR EACH DRAWING TILE: Straight line is the pad's `ruler` mode (a line from press to lift, `padStroke_`). */
-const QT_PAD_TOOL = { pen: 'pen', line: 'ruler', compass: 'compass', protractor: 'protractor' };
+const QT_PAD_TOOL = { point: 'point', pen: 'pen', line: 'ruler', shade: 'shade', compass: 'compass', protractor: 'protractor' };
 const qMulti_ = x => { try { return (questionParts_()[qId_(x)] || []).length > 1; } catch (e) { return false; } };
 const qtTool_ = id => QT_TOOLS.find(t => t.id === id) || null;
 

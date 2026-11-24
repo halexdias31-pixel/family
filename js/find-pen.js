@@ -9,7 +9,9 @@ function drawFig_(svg) {
   const shift = tm ? [+tm[1], +(tm[2] || 0)] : [0, 0];
   const labels = [];
   (s.match(/<text\b[^>]*>[\s\S]*?<\/text>/g) || []).forEach(t => {
-    if (/\btransform\s*=/.test(t)) return;
+    /* a number moved or hidden by the figure's placement (fig-place.js `data-fp`: its own transform before, `-` for none) is read where it was drawn */
+    const fp = /\bdata-fp\s*=\s*["']([^"']*)["']/.exec(t);
+    if (fp ? fp[1] !== '-' : /\btransform\s*=/.test(t)) return;
     const num = k => { const r = new RegExp('\\s' + k + '\\s*=\\s*["\']\\s*([-\\d.eE+]+)').exec(t); return r ? +r[1] : NaN; };
     /* a tick drawn as a dash after the number ("40 \u2212") is not part of it */
     const words = t.replace(/<[^>]*>/g, '').replace(/&minus;|\u2212|&#8722;/g, '-').replace(/&[a-z#0-9]+;/gi, '').trim().replace(/\s+-$/, '');
@@ -611,9 +613,13 @@ function drawKinds5_(g) { const { near, dSeg, dPoly, inside, area, polygons, sam
 }
 function drawExample_(g) { const { H, R, near, inside, frameOf, lsq } = g;
   /* A RIGHT DRAWING OF THE ANSWER, as strokes the pen would store: the row's own `eg` (figure units) or one made from its items. The checks mark it full and a near miss less. */
-  function example(spec, fig) {
-    if (typeof spec === 'string') { try { spec = JSON.parse(spec); } catch (e) { return []; } }
+  function example(spec0, fig) {
+    const o1 = drawOne_(spec0);
+    if (!o1) return [];
+    const spec = Object.assign(drawFrameSpec_(o1), { eg: o1.eg, items: o1.pieces.map(drawItemOf_).filter(Boolean) });
     const F = frameOf(spec, fig), vb = F.vb, out = [];
+    /* A NUMBER LINE WITH NO y OF ITS OWN: drawn on the line, just above its numbers (so a finger can draw it on the canvas) */
+    const ly = (fig.labels || []).map(l => l[2]).sort((p, q) => p - q), lineY = !F.grid && F.u[1] === 1 && ly.length ? ly[ly.length >> 1] - F.sq * 0.75 : null;
     const put = pl => out.push([].concat.apply([], pl.map(p => [Math.round((p[0] - vb[0]) / vb[2] * 3400) / 10, Math.round((p[1] - vb[1]) / vb[3] * 3400) / 10])));
     const at = (c, g, r) => [c[0] + r * Math.sin(g * R), c[1] - r * Math.cos(g * R)];
     const zig = poly => { const m = poly.reduce((s, p) => [s[0] + p[0] / poly.length, s[1] + p[1] / poly.length], [0, 0]);
@@ -650,7 +656,7 @@ function drawExample_(g) { const { H, R, near, inside, frameOf, lsq } = g;
       if (it.k === 'interval') {
         const one = it.b == null, way = one ? Math.sign(it.to || 1) : 1, a = F.v([it.a, 0]);
         const room = way * Math.sign(F.u[0]) > 0 ? vb[0] + vb[2] - a[0] : a[0] - vb[0], run = Math.max(q * 2.5, Math.min(q * 5, room - q * 1.5));
-        const b = one ? [a[0] + way * Math.sign(F.u[0]) * run, a[1]] : F.v([it.b, 0]), y = it.y != null ? F.v([0, it.y])[1] : a[1] - q * 1.5, r = q * 0.35;
+        const b = one ? [a[0] + way * Math.sign(F.u[0]) * run, a[1]] : F.v([it.b, 0]), y = it.y != null ? F.v([0, it.y])[1] : lineY != null ? lineY : a[1] - q * 1.5, r = q * 0.35;
         const d = Math.sign(b[0] - a[0]);
         put([[a[0] + d * r, y], [b[0] - (one ? 0 : d * r), y]]);
         if (one) put([[b[0] - d * q * 0.6, y - q * 0.45], [b[0], y], [b[0] - d * q * 0.6, y + q * 0.45]]);
@@ -698,34 +704,129 @@ function drawExample_(g) { const { H, R, near, inside, frameOf, lsq } = g;
   return example;
 }
 /* THE MARKER, pure: strokes in the pen's 340 by 340 space, the row's `draw_answer`, the figure. Distances are in the picture's own units, tolerances in grid squares. */
+/* ---------- ONE DRAWING CANVAS (owner, 23 Nov, queue "ONE DRAWING CANVAS"): every drawn answer is one stored form --
+   `{ one: 1, frame: { is, at?, sq?, step? }, pieces: [{ is, as?, at?, m?, or?, any? ... }], marks?, loose?, eg? }` --
+   the FRAME the figure is read in (`grid` x,y / number `line` / `angle` round a centre: a clock, a dial, a pie), and its PIECES,
+   each a point, a line, a curve or a region in that frame (`as` names how a line or region is read where it is not plain:
+   a clock's hands, a pie's sectors, a histogram's bars). ONE TOLERANCE RULE: half a step of the frame (a step is a grid square,
+   unless the frame says `step`, in squares). The importer writes this form (tools/content.js drawkeys); an older key is read through it. */
+const DRAW_ONE = {
+  /* each old kind -> the piece it is, and how it is read (blank: plain) */
+  pts: ['point', ''], segs: ['line', ''], line: ['line', 'through'], radius: ['line', 'radius'], dir: ['line', 'direction'],
+  pair: ['line', 'pair'], angle: ['line', 'angle'], join: ['line', 'join'], interval: ['line', 'interval'], box: ['line', 'box'],
+  clock: ['line', 'hands'], dial: ['line', 'pointer'], scale: ['line', 'scale'], pie: ['line', 'sectors'],
+  fit: ['curve', ''], curves: ['curve', 'arcs'], sketch: ['curve', 'sketch'],
+  inside: ['region', ''], cells: ['region', 'cells'], polygon: ['region', 'shape'], area: ['region', 'area'], hist: ['region', 'bars'], cuboid: ['region', 'cuboid'],
+};
+const DRAW_IS = ['point', 'line', 'curve', 'region'];
+const DRAW_FRAMES = ['grid', 'line', 'angle'];
+const DRAW_ANGLE = { hands: 1, pointer: 1, sectors: 1 }, DRAW_LINE = { interval: 1, box: 1, scale: 1 };
+/* AN OLD KEY (`{ frame?, tol?, sq?, items: [{ k, ... }] }`) IN THE ONE FORM; the one form unchanged. Pure: the importer runs it too. */
+function drawOne_(spec) {
+  if (typeof spec === 'string') { try { spec = JSON.parse(spec); } catch (e) { return null; } }
+  if (!spec || typeof spec !== 'object') return null;
+  if (spec.one === 1 && Array.isArray(spec.pieces)) return spec;
+  if (!Array.isArray(spec.items)) return null;
+  const tols = [];
+  const piece = it => {
+    if (!it || typeof it !== 'object') return null;
+    if (it.k === 'any') {
+      const of = (it.of || []).map(piece).filter(Boolean);
+      if (!of.length) return null;
+      const p = { is: of[0].is, any: of };
+      Object.keys(it).forEach(f => { if (f !== 'k' && f !== 'of' && f !== 'or') p[f] = it[f]; });
+      if (it.or) { const o = piece(it.or); if (o) p.or = o; }
+      return p;
+    }
+    const w = DRAW_ONE[it.k];
+    if (!w) return null;
+    const p = { is: w[0] };
+    if (w[1]) p.as = w[1];
+    Object.keys(it).forEach(f => {
+      if (f === 'k' || f === 'or' || f === 'tol') return;
+      /* the piece's own points: segments as point pairs, a line through two points, a region's outline */
+      if (it.k === 'segs' && f === 'at') p.at = it.at.map(s => [[s[0], s[1]], [s[2], s[3]]]);
+      else if (it.k === 'segs' && f === 'poly') p.ring = it.poly;
+      else if (it.k === 'line' && f === 'thru') p.at = it.thru;
+      else if (it.k === 'inside' && f === 'poly') p.at = it.poly;
+      else if (f === 'is') p.shape = it.is;
+      else p[f] = it[f];
+    });
+    if (it.k === 'sketch') p.ai = true;
+    tols.push(it.tol != null ? +it.tol : spec.tol != null ? +spec.tol : null);
+    if (it.or) { const o = piece(it.or); if (o) p.or = o; }
+    return p;
+  };
+  const pieces = spec.items.map(piece).filter(Boolean);
+  const flat = [];
+  const walk = p => { flat.push(p); (p.any || []).forEach(walk); if (p.or) walk(p.or); };
+  pieces.forEach(walk);
+  const is = flat.some(p => DRAW_ANGLE[p.as]) ? 'angle' : flat.some(p => DRAW_LINE[p.as]) ? 'line' : 'grid';
+  const frame = { is };
+  if (spec.frame != null) frame.at = spec.frame;
+  if (spec.sq != null) frame.sq = spec.sq;
+  /* a key that held tolerances of its own holds the narrowest as its frame's step (a piece that said none had 0.3 of a square):
+     the one rule (half a step) then accepts nothing the key refused before */
+  if (tols.some(t => t != null)) frame.step = Math.round(2 * Math.min.apply(null, tols.map(t => (t == null ? 0.3 : t))) * 1000) / 1000;
+  const out = { one: 1, frame, pieces };
+  ['marks', 'loose', 'eg'].forEach(f => { if (spec[f] != null) out[f] = spec[f]; });
+  return out;
+}
+/* A PIECE AS THE GEOMETRY ITS READER TAKES (`drawKinds1_` to 5_): the form's one way back */
+function drawItemOf_(p) {
+  if (!p) return null;
+  if (p.any) {
+    const it = { k: 'any', of: p.any.map(drawItemOf_).filter(Boolean) };
+    Object.keys(p).forEach(f => { if (f !== 'is' && f !== 'any' && f !== 'or') it[f] = p[f]; });
+    return it;
+  }
+  const k = Object.keys(DRAW_ONE).find(n => DRAW_ONE[n][0] === p.is && DRAW_ONE[n][1] === (p.as || '')
+    && (n !== 'segs' || !p.whole) && (n !== 'line' || p.as === 'through'));
+  if (!k) return null;
+  const it = { k };
+  Object.keys(p).forEach(f => {
+    if (f === 'is' || f === 'as' || f === 'or' || f === 'ai') return;
+    if (k === 'segs' && f === 'at') it.at = p.at.map(s => [s[0][0], s[0][1], s[1][0], s[1][1]]);
+    else if (k === 'segs' && f === 'ring') it.poly = p.ring;
+    else if (k === 'line' && f === 'at') it.thru = p.at;
+    else if (k === 'inside' && f === 'at') it.poly = p.at;
+    else if (f === 'shape') it.is = p.shape;
+    else it[f] = p[f];
+  });
+  return it;
+}
+/* THE FRAME AS THE FIGURE'S READER (`frameOf`) TAKES IT, and the one tolerance: half a step, in the picture's units */
+const drawFrameSpec_ = one => ({ frame: one.frame.at, sq: one.frame.sq });
+const drawTol_ = (one, F) => F.sq * 0.5 * (Number(one.frame.step) || 1);
 function drawMarker_() {
   const g = drawGeom_(); [drawFrame_, drawInk_, drawShapes_].forEach(f => Object.assign(g, f(g)));
   const { frameOf, inkOf, samples, polygons } = g;
   /* EACH KIND: is it there, and which ink does it account for (the rest is stray). */
   const KIND = Object.assign({}, drawKinds1_(g), drawKinds2_(g), drawKinds3_(g), drawKinds4_(g), drawKinds5_(g));
-  function one(it, ink, F, spec) {
-    const tol = F.sq * (it.tol || spec.tol || 0.3);
-    if (it.k === 'any') {
-      const rs = it.of.map(o => one(o, ink, F, spec)), hit = rs.find(r => r.ok);
+  /* ONE PIECE, read by its kind's reader at the one tolerance */
+  function one(p, ink, F, tol) {
+    const it = drawItemOf_(p);
+    if (it && it.k === 'any') {
+      const rs = p.any.map(o => one(o, ink, F, tol)), hit = rs.find(r => r.ok);
       return hit || { ok: false, ex: q => rs.some(r => r.ex(q)) };
     }
-    const f = KIND[it.k];
+    const f = it && KIND[it.k];
     return f ? f(it, ink, F, tol) : { ok: false, ex: () => false };
   }
-  /* `draw_answer`: `{ frame?, tol?, loose?, items: [{ k, m, ..., or }] }`. An item's `or` is what the scheme gives fewer marks for. Ink that no item accounts for costs a mark. */
+  /* `draw_answer` in the one form (`drawOne_`): each piece its marks (`m`, else 1), its `or` what the scheme gives fewer for -- part marks a piece. Ink that no piece accounts for costs a mark. */
   function mark(strokes, spec, fig, marks) {
-    if (typeof spec === 'string') { try { spec = JSON.parse(spec); } catch (e) { return null; } }
-    if (!spec || !Array.isArray(spec.items)) return null;
-    const F = frameOf(spec, fig), ink = inkOf(strokes, F);
-    const total = spec.items.reduce((s, it) => s + (it.m == null ? 1 : it.m), 0);
-    const of = Math.max(1, Number(marks) || spec.marks || total);
+    const one_ = drawOne_(spec);
+    if (!one_ || !one_.pieces.length) return null;
+    const F = frameOf(drawFrameSpec_(one_), fig), ink = inkOf(strokes, F), tol = drawTol_(one_, F);
+    const total = one_.pieces.reduce((s, p) => s + (p.m == null ? 1 : p.m), 0);
+    const of = Math.max(1, Number(marks) || one_.marks || total);
     if (!ink.length) return { got: 0, of: of, each: [], stray: 0, empty: true };
     let got = 0;
     const exs = [], each = [];
-    spec.items.forEach(it => {
-      let cur = it, r = one(cur, ink, F, spec);
+    one_.pieces.forEach(p => {
+      let cur = p, r = one(cur, ink, F, tol);
       exs.push(r.ex);
-      while (!r.ok && cur.or) { cur = cur.or; r = one(cur, ink, F, spec); exs.push(r.ex); }
+      while (!r.ok && cur.or) { cur = cur.or; r = one(cur, ink, F, tol); exs.push(r.ex); }
       each.push(r.ok ? (cur.m == null ? 1 : cur.m) : 0);
       if (r.ok) got += cur.m == null ? 1 : cur.m;
     });
@@ -735,7 +836,7 @@ function drawMarker_() {
       pts.forEach(p => { all++; if (!exs.some(e => e(p))) lost++; });
     });
     const stray = all ? lost / all : 0;
-    if (!spec.loose && stray > 0.12 && lost * F.sq * 0.25 > F.sq) got = Math.max(0, got - 1);
+    if (!one_.loose && stray > 0.12 && lost * F.sq * 0.25 > F.sq) got = Math.max(0, got - 1);
     return { got: Math.min(of, Math.floor(got * of / Math.max(1, total) + 1e-9)), of: of, each: each, stray: Math.round(stray * 100) / 100 };
   }
   const example = drawExample_(g);
