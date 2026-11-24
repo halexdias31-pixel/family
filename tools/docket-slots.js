@@ -4,7 +4,9 @@
    Run in the backend vm (tools/lib/backend-vm.js) on a made-up docket shaped like the owner's: docketSlots23NovRun_ turns the morning's food items into
    the five morning slots and the evening's into Meat and Carbs (backup tab first), losing no title or note; a slot shows its options (dkSlotOptions_, and
    the private address's do=options); every slot has options and a count; every old food title survives as an option; the takeaway fills Meat and
-   Carbs; a second run is a no-op. Data only for now (owner, 23 Nov): the tick is the one tick, unchanged. Counted: every rule. Run by tools/build.js. */
+   Carbs; a second run is a no-op. THE SAME SLOTS AT EVERY MEAL (owner, 24 Nov): foods.json's three meals each name Protein, Carbs, Dairy, Veg and
+   Fruit (Grain merged into Carbs, its options kept); docketMeals24NovRun_ then gives the morning, midday and evening lists those five slot items each,
+   a food item giving way to its slot (its title in the note), backup tab first, nothing lost, a re-run a no-op; each rule proved by mutation. Data only for now (owner, 23 Nov): the tick is the one tick, unchanged. Counted: every rule. Run by tools/build.js. */
 'use strict';
 const { report, main } = require('./lib/gen.js');
 const { load, book } = require('./lib/backend-vm.js');
@@ -14,8 +16,8 @@ const OWNER = 'owner@example.test', DAY = '2026-11-20', TAKE = 'Peter\'s Takeawa
 const MORNING = ['Protein', 'Fruit', 'Dairy', 'Grain', 'Pack for later'];
 /* THE OWNER'S OLD FOOD ITEMS (and the foods named in them), each to be an option of its slot. */
 const OLD_FOODS = { Protein: ['Bacon', 'Meat pasty from the shop', 'Eggs', 'Baked beans', 'Tuna', 'Whey shake', 'Sausages'], Fruit: ['Banana', 'Apple', 'Strawberries', 'Dates', 'Avocado'],
-  Dairy: ['Plain yoghurt', 'Müller Corner (chocolate balls)', 'Milk', 'Chia on yoghurt'], Grain: ['Cereal', 'Bread'], 'Pack for later': ['Nuts', 'Popcorn', 'Tuna salad', 'Sandwich'],
-  Snack: ['Popcorn', 'Nuts', 'Apple', 'Banana', 'Strawberries', 'Dates'], Meat: ['Salmon', 'Smoked salmon', 'Beef', 'Chicken', 'Tuna', 'Eggs'], Carbs: ['Rice', 'Ready-made sushi rice', 'Bread', 'Cereal'] };
+  Dairy: ['Plain yoghurt', 'Müller Corner (chocolate balls)', 'Milk', 'Chia on yoghurt'], Carbs: ['Cereal', 'Bread', 'Rice', 'Ready-made sushi rice'], 'Pack for later': ['Nuts', 'Popcorn', 'Tuna salad', 'Sandwich'],
+  Snack: ['Popcorn', 'Nuts', 'Apple', 'Banana', 'Strawberries', 'Dates'], Meat: ['Salmon', 'Smoked salmon', 'Beef', 'Chicken', 'Tuna', 'Eggs'] };
 const it = (title, x) => Object.assign({ title }, x || {});
 const DOCKET = () => [
   { name: 'eyes opend', items: [it('Jesus prayer', { repeat: 'daily' })] },
@@ -29,6 +31,60 @@ const DOCKET = () => [
   { name: 'undercovers', items: [it('Evening prayers', { repeat: 'daily' })] },
 ];
 
+/* THE DAY PLAN'S FAULT: three meals, each naming Protein, Carbs, Dairy, Veg and Fruit, every name a slot; Snack only at lunch */
+const SAME = ['Protein', 'Carbs', 'Dairy', 'Veg', 'Fruit'];
+function mealsFault(F) {
+  if (!Array.isArray(F.meals) || F.meals.map(m => m.name).join() !== 'Breakfast,Lunch,Dinner') return 'not Breakfast, Lunch, Dinner';
+  const bad = F.meals.find(m => !SAME.every(x => m.slots.includes(x)) || !m.slots.every(t => F.slots.some(x => x.name === t)));
+  if (bad) return bad.name + ' is ' + bad.slots.join();
+  if (F.meals.find(m => m.name === 'Lunch').slots.join() !== SAME.concat(['Snack']).join()) return 'Lunch is not the five and Snack';
+  return '';
+}
+const GRAIN_WAS = ['Bread', 'Cereal', 'Meat pasty from the shop', 'Porridge'];
+function grainFault(F) {
+  if (F.slots.some(x => x.name === 'Grain')) return 'a Grain slot';
+  if (F.foods.some(f => (f.slots || []).includes('Grain'))) return 'a food tagged Grain';
+  const lost = GRAIN_WAS.filter(n => !F.foods.some(f => f.name === n && (f.slots || []).includes('Carbs')));
+  return lost.length ? 'not Carbs: ' + lost.join() : '';
+}
+/* THE DOCKET AFTER docketMeals24NovRun_: the meal lists, by start time */
+const MEAL_LISTS = ['Out of Shower', '@ Desk', 'arrived home'];
+const itemsOf = (lists, n) => ((lists || []).find(x => x.name === n) || { items: [] }).items;
+const textOf = lists => (lists || []).flatMap(x => x.items).map(i => (i.title || '') + '\n' + (i.note || '')).join('\n');
+const MEAL_RULES = [
+  ['the morning, midday and evening lists each hold one daily Protein, Carbs, Dairy, Veg and Fruit slot item', m => MEAL_LISTS.every(n => SAME.every(x =>
+    itemsOf(m.after, n).filter(i => i.slot === x).length === 1 && itemsOf(m.after, n).some(i => i.slot === x && i.title === x && i.repeat === 'daily')))],
+  ['no Grain or Meat slot is left; Snack and Pack for later stay where they were', m => !m.after.some(L => L.items.some(i => /^(grain|meat)$/i.test(i.slot || '')))
+    && itemsOf(m.after, '@ Desk').some(i => i.slot === 'Snack') && itemsOf(m.after, 'Out of Shower').some(i => i.slot === 'Pack for later')],
+  ['a food item gives way to its slot: no Rice or Meat! left, their titles in the slot\'s note', m => !m.after.some(L => L.items.some(i => /^(rice|meat!)$/i.test(i.title)))
+    && /was: Rice — brown if any/.test((itemsOf(m.after, 'arrived home').find(i => i.slot === 'Carbs') || {}).note) && /was: Meat!/.test((itemsOf(m.after, 'arrived home').find(i => i.slot === 'Protein') || {}).note)],
+  ['nothing lost: every old title and note is in a title or a note, and no other list changed', m => m.before.every(L => L.items.every(i => textOf(m.after).includes(i.title) && (!i.note || textOf(m.after).includes(i.note))))
+    && m.before.filter(L => !MEAL_LISTS.includes(L.name)).every(L => JSON.stringify(L) === JSON.stringify(m.after.find(x => x.name === L.name)))],
+  ['the takeaway still covers what it covered, by the new titles', m => { const t = itemsOf(m.after, 'arrived home').find(i => i.title === TAKE); return !!t && !t.slot && t.covers.join() === 'Protein,Carbs'; }],
+  ['the backup tab holds the old cell, first and once', m => !!m.backup && m.backup.v.length === 1 && m.backup.v[0][1] === m.was],
+  ['a second run is a no-op', m => /nothing to do/.test(m.again) && m.cellAgain === m.cell],
+];
+/* EACH MEAL RULE MUST CATCH ITS BREAK, made in memory */
+function proveMeals(m) {
+  const cp = o => JSON.parse(JSON.stringify(o)), L = (lists, n) => lists.find(x => x.name === n);
+  const breaks = [
+    a => { L(a, 'arrived home').items = L(a, 'arrived home').items.filter(i => i.slot !== 'Dairy'); },
+    a => { L(a, '@ Desk').items.find(i => i.slot === 'Carbs').slot = 'Grain'; },
+    a => { L(a, 'arrived home').items.push({ title: 'Rice', repeat: 'daily' }); },
+    a => { L(a, 'Out of Shower').items.forEach(i => { if (i.slot === 'Carbs') i.note = ''; }); },
+    a => { L(a, 'arrived home').items.find(i => i.title === TAKE).covers = ['Meat!', 'Rice']; },
+  ];
+  const missed = breaks.map((b, i) => { const a = cp(m.after); b(a); return MEAL_RULES.some(([, f]) => { try { return !f(Object.assign({}, m, { after: a })); } catch (e) { return true; } }) ? -1 : i; }).filter(i => i >= 0);
+  const other = [
+    () => !!mealsFault(Object.assign({}, FOODS, { meals: FOODS.meals.map(x => (x.name === 'Dinner' ? { name: 'Dinner', slots: ['Protein', 'Carbs', 'Veg'] } : x)) })),
+    () => !!grainFault(Object.assign({}, FOODS, { slots: FOODS.slots.concat([{ name: 'Grain', need: 1 }]) })),
+    () => !!grainFault(Object.assign({}, FOODS, { foods: FOODS.foods.filter(f => f.name !== 'Bread') })),
+    () => !MEAL_RULES[5][1](Object.assign({}, m, { backup: null })),
+    () => !MEAL_RULES[6][1](Object.assign({}, m, { again: '1 change(s)' })),
+  ].map((f, i) => (f() ? -1 : 'x' + i)).filter(i => i !== -1);
+  return missed.concat(other);
+}
+
 function world() {
   const ctx = load({ at: true, google: { Utilities: { formatDate: (d, tz, f) => (f === 'yyyy-MM-dd' ? DAY : DAY + ' 10:00'), getUuid: () => 'u' } } }), B = book();
   const person = { person_id: 'P-OWN', role: 'admin', first_name: 'Made', last_name: 'Up', email: OWNER, todo: JSON.stringify({ v: 1, lists: DOCKET() }) };
@@ -37,15 +93,16 @@ function world() {
   ctx.findSheet_ = at => B.tabs[at.names[0]] || null;
   B.tabs.items.getParent = () => B.ss;
   const cell = () => JSON.parse(B.tabs.items.v.find(r => r[0] === 'P-OWN')[2]).todo;
-  return { ctx, B, cell, run: () => { ctx.clearCache(); return ctx.docketSlots23NovRun_(); } };
+  return { ctx, B, cell, run: () => { ctx.clearCache(); return ctx.docketSlots23NovRun_(); }, meals: () => { ctx.clearCache(); return ctx.docketMeals24NovRun_(); } };
 }
 
 function run() {
   const bad = [], checks = [];
-  let w, said, out, again, cellAfter, cellAgain;
+  let w, said, out, again, cellAfter, cellAgain, m1, m2, mealCell, mealAgain;
   try {
     w = world(); said = w.run(); cellAfter = w.cell(); out = JSON.parse(cellAfter).lists;
     again = w.run(); cellAgain = w.cell();
+    m1 = w.meals(); mealCell = w.cell(); m2 = w.meals(); mealAgain = w.cell();
   } catch (e) { console.log(e.stack); checks.push(['docketSlots23NovRun_ ran', () => false]); }
   if (out) {
     const all = out.flatMap(x => x.items), text = all.map(i => (i.title || '') + '\n' + (i.note || '')).join('\n');
@@ -68,17 +125,20 @@ function run() {
       ['every option is tagged with slots that exist', () => FOODS.foods.filter(f => f.slots).every(f => f.slots.length && f.slots.every(t => FOODS.slots.some(x => x.name === t))) ],
       ['every old food title survives as an option, under the slot it filled', () => Object.entries(OLD_FOODS).every(([slot, names]) => names.every(n =>
         w.ctx.$('dkSlotOptions_')(FOODS, slot).some(f => f.name === n)))],
-      ['the day plan: every meal\'s slots are slots (Lunch: Protein, Carbs, Veg, Snack; Dinner: Protein, Carbs, Veg)', () => FOODS.meals.length === 3
-        && FOODS.meals.every(m => m.slots.length && m.slots.every(t => FOODS.slots.some(x => x.name === t)))
-        && FOODS.meals.find(m => m.name === 'Lunch').slots.join() === 'Protein,Carbs,Veg,Snack' && FOODS.meals.find(m => m.name === 'Dinner').slots.join() === 'Protein,Carbs,Veg'],
+      ['the day plan: every meal\'s slots are slots, and every meal has the same five (Protein, Carbs, Dairy, Veg, Fruit)', () => mealsFault(FOODS) === ''],
+      ['Grain merged into Carbs: no Grain slot, no food tagged Grain, every old Grain option a Carbs one', () => grainFault(FOODS) === ''],
       ['the rush options each fill several slots (porridge, pasty, meal deal, takeaway, doner kebab, pizza)', () => { const r = FOODS.foods.filter(f => f.rush);
         return r.length === 6 && r.every(f => f.slots.length >= 2) && /Supermarket meal deal/.test(r.map(f => f.name).join()) && /Doner kebab/.test(r.map(f => f.name).join()) && FOODS.foods.some(f => f.quick && /microwave sushi rice/i.test(f.name) && f.slots.includes('Carbs')); }],
       ['one option fills two slots: the takeaway is Meat and Carbs', () => ['Meat', 'Carbs'].every(x => w.ctx.$('dkSlotOptions_')(FOODS, x).some(f => f.name === TAKE))],
       ['the private address reads a slot\'s options with its count, and changes nothing', () => { const r = say({ do: 'options', slot: 'fruit' }); return !r.changed && /^Fruit \(pick 3 a day\): .*Banana/.test(r.say); }],
-      ['the private address lists the slots', () => { const r = say({ do: 'options' }); return !r.changed && MORNING.concat(['Snack', 'Meat', 'Carbs', 'Veg']).every(x => r.say.includes(x)); }],
+      ['the private address lists the slots', () => { const r = say({ do: 'options' }); return !r.changed && MORNING.filter(x => x !== 'Grain').concat(['Snack', 'Meat', 'Carbs', 'Veg']).every(x => r.say.includes(x)); }],
       ['slot kept by listTidy_, as-is and whole', () => ['as-is', 'whole'].every(hw => w.ctx.listTidy_('docket', [by('Fruit')], hw)[0].slot === 'Fruit')],
       ['a second run is a no-op', () => /nothing to do/.test(again) && cellAgain === cellAfter && w.B.tabs.backup_docket_slots_23nov.v.length === 1],
       ['under DOCKET_CELL_MAX', () => cellAfter.length <= w.ctx.$('DOCKET_CELL_MAX')]);
+    const meals = { before: JSON.parse(cellAfter).lists, after: JSON.parse(mealCell).lists, backup: w.B.tabs.backup_docket_meals_24nov, was: cellAfter, again: m2, cellAgain: mealAgain, cell: mealCell };
+    checks.push(['the 24 Nov job ran (' + m1 + ')', () => /change/.test(m1)]);
+    MEAL_RULES.forEach(([name, f]) => checks.push(['every meal: ' + name, () => f(meals)]));
+    checks.push(['every meal: proved by mutation, ' + MEAL_RULES.length + ' rules each catch their break', () => proveMeals(meals).length === 0]);
   }
   checks.forEach(([name, f]) => { let ok = false; try { ok = f(); } catch (e) { ok = false; } if (!ok) bad.push(name); });
   console.log('docket-slots: ' + checks.length + ' rules through docketSlots23NovRun_, foods.json and the address' + (said ? ' (' + said + ')' : '') + '; ' + bad.length + ' broken'

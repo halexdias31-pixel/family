@@ -238,6 +238,72 @@ function docketSlots23NovRun_() {
   return n + ' item(s) made food slots' + (added ? '; a Snack slot added to ' + added : '');
 }
 
+/* THE SAME FOOD SLOTS AT EVERY MEAL (owner, 24 Nov; foods.json `meals`): the morning, midday and evening lists each hold one daily Protein,
+   Carbs, Dairy, Veg and Fruit slot item. A Grain slot is the Carbs slot (Grain merged), a Meat slot the Protein one; a single food item
+   (Rice, Meat!, banana…) gives way to its slot, its title and note kept in the slot's note ("was: …"); a missing slot is added after the
+   list's last slot item. An item that covers others (the takeaway) is left, its `covers` following a renamed title. Snack and Pack for
+   later stay where they are. Backup tab first, only when something is to change, so a re-run is a no-op. tools/docket-slots.js checks it. */
+const DK_MEAL_SLOTS = ['Protein', 'Carbs', 'Dairy', 'Veg', 'Fruit'];
+const DK_MEAL_FOODS = [['Protein', /^(hot (food|breakfast)\b.*|eggs?|beans|baked beans|tuna|whey.*|bacon|sausages?|meat|chicken|beef|salmon|smoked salmon|fish)!?$/i],
+  ['Carbs', /^(grain|breakfast|cereal|bread|toast|rice|carbs?|pasta|potatoe?s?|porridge)!?$/i], ['Dairy', /^(yog(h)?urt|chia|milk|cheese|dairy)!?$/i],
+  ['Veg', /^(veg|veggies|vegetables?|salad|broccoli|carrots?|spinach|peas|peppers?|tomato(es)?|cucumber|green beans)!?$/i],
+  ['Fruit', /^(fruit|bananas?|apples?|dates?|strawberr\w*|avo?cados?)!?$/i]];
+const DK_SLOT_MERGED = { grain: 'Carbs', meat: 'Protein' };
+function docketMeals24NovRun_() {
+  const t = read(TAB.people), me = t.rows.find(r => isOwner_(r));
+  if (!me) throw new Error('no owner found');
+  const was = S(me.todo);
+  let got = null; try { got = JSON.parse(was); } catch (e) { got = null; }
+  if (!got || !Array.isArray(got.lists)) throw new Error('the owner has no docket lists');
+  const mins = L => { const m = /^(\d{2}):(\d{2})$/.exec(S(L.start)); return m ? +m[1] * 60 + +m[2] : -1; };
+  const ok = got.lists.filter(L => L && !DK23_NO_SHOP.test(S(L.name).trim()));
+  const pick = (lo, hi, re) => ok.find(L => mins(L) >= lo && mins(L) < hi) || ok.find(L => re.test(S(L.name)));
+  const meals = [pick(0, 660, /shower|breakfast|morning/i), pick(660, 960, /lunch|midday|desk/i), pick(960, 1440, /home|dinner|evening/i)]
+    .filter((L, i, a) => L && a.indexOf(L) === i);
+  if (!meals.length) throw new Error('no morning, midday or evening list found');
+  const note = (it, line) => { it.note = [S(it.note), line].filter(Boolean).join('\n\n'); };
+  const renamed = {};
+  let n = 0;
+  meals.forEach(L => {
+    L.items = (L.items || []).filter(Boolean);
+    const has = {};
+    L.items = L.items.filter(it => {
+      let s = S(it.slot).trim();
+      if (s && DK_SLOT_MERGED[s.toLowerCase()]) { s = DK_SLOT_MERGED[s.toLowerCase()]; it.slot = s; n++; }
+      else if (!s && !(Array.isArray(it.covers) && it.covers.length)) {
+        const m = DK_MEAL_FOODS.find(x => x[1].test(S(it.title).trim()));
+        if (!m) return true;
+        s = m[0]; it.slot = s; it.repeat = it.repeat || 'daily'; n++;
+      }
+      const to = DK_MEAL_SLOTS.find(x => dkSame_(x, s));
+      if (!to) return true;
+      const old = S(it.title), k = to.toLowerCase();
+      if (old !== to) renamed[old] = to;
+      if (has[k]) { note(has[k], 'was: ' + was23_([it])); n++; return false; }
+      if (old !== to) { it.note = 'was: ' + was23_([it]); it.title = to; n++; }
+      has[k] = it;
+      return true;
+    });
+    DK_MEAL_SLOTS.forEach(x => {
+      if (has[x.toLowerCase()]) return;
+      const last = L.items.map(it => !!it.slot).lastIndexOf(true);
+      L.items.splice(last < 0 ? L.items.length : last + 1, 0, { title: x, repeat: 'daily', slot: x });
+      has[x.toLowerCase()] = true; n++;
+    });
+  });
+  if (!n) return 'nothing to do';
+  got.lists.forEach(L => (L.items || []).forEach(it => {
+    if (it && Array.isArray(it.covers)) it.covers = it.covers.map(c => renamed[c] || c).filter((c, i, a) => a.indexOf(c) === i);
+  }));
+  const ss = t.sheet.getParent(), bk = ss.getSheetByName('backup_docket_meals_24nov') || ss.insertSheet('backup_docket_meals_24nov');
+  bk.appendRow([new Date(), was]);
+  if (S(bk.getRange(bk.getLastRow(), 2).getValue()) !== was) throw new Error('the backup did not read back - nothing changed');
+  const cell = JSON.stringify(got);
+  if (cell.length > DOCKET_CELL_MAX) throw new Error('the docket would be ' + cell.length + ' characters, over ' + DOCKET_CELL_MAX + ' - nothing was saved');
+  if (!setCell(t, me, 'todo', cell)) throw new Error('the people tab has no todo column - nothing was saved');
+  return n + ' change(s): ' + meals.map(L => S(L.name)).join(', ') + ' each hold ' + DK_MEAL_SLOTS.join(', ');
+}
+
 /* NO IDEAS LIST (owner, 23 Nov): if an "Ideas & notes" list was made, its items go to the end of "@ Desk" and the empty list goes. */
 function docketIdeasToDeskRun_() {
   const t = read(TAB.people), me = t.rows.find(r => isOwner_(r));
@@ -407,6 +473,10 @@ const MIGRATIONS = [
     retry: true,
     what: "the owner's food items made food slots: the morning's as Protein, Fruit (3), Dairy, Grain and Pack for later, the evening's Meat and Carbs, a Snack slot at midday (backup tab first); no text lost",
     run: () => docketSlots23NovRun_() },
+  { id: 'docket-meals-24nov',
+    retry: true,
+    what: "the same food slots at every meal: the morning, midday and evening lists each hold Protein, Carbs, Dairy, Veg and Fruit (Grain merged into Carbs, Meat into Protein; backup tab first); no text lost",
+    run: () => docketMeals24NovRun_() },
 ];
 
 /* ---------- MOVING ROWS OUT OF THE ITEMS TAB, NEVER LOSING ONE (queue step 7, 22 Nov) ----------

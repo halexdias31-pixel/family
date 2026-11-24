@@ -5454,10 +5454,10 @@ const more = {};
 ['typo', 'peel', 'levels', 'say', 'each', 'stray'].forEach(k => { if (r[k] !== undefined) more[k] = r[k]; });
 return out(r.got, r.of, r.why || '', more);
 }
-const STATUS_IDS = ['untried', 'right', 'part', 'wrong', 'hidden'];
+const STATUS_IDS = ['untried', 'right', 'part', 'wrong', 'unmarked', 'hidden'];
 function markResult_(marks, outOf, why, more) {
 const m = Math.max(0, Number(marks) || 0), of = Math.max(0, Number(outOf) || 0);
-const verdict = (more && more.state) || !of ? 'untried' : m >= of ? 'right' : m > 0 ? 'part' : 'wrong';
+const verdict = more && more.state === 'unmarked' ? 'unmarked' : (more && more.state) || !of ? 'untried' : m >= of ? 'right' : m > 0 ? 'part' : 'wrong';
 return Object.assign({ marks: m, outOf: of, verdict, why: String(why || '').split('\n')[0] }, more || {});
 }
 function statusOf_(v) {
