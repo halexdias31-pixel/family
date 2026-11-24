@@ -315,7 +315,8 @@ const FACET_READ = {
   forLabel: { of: x => x.groups || kindOf_(x).group },
   /* `Answers` BESIDE THE ITEM'S OWN KIND: a question with an answer is found by either, and its answer page carries the tag. */
   /* A KIND UNDER ANOTHER (kinds.json `find.under`, 610) ANSWERS ONLY THAT ONE HERE: Questions are reached through Practice, a Timeline through Library. */
-  kindLabel: { of: x => kindTop_(x) || x.kindLabel || kindOf_(x).label,
+  /* ONE OPENING QUESTION (queue item 9, 24 Nov): a question that has an answer is found under Answers too, as Which once offered it. */
+  kindLabel: { of: x => isQ_(x) && questionHasAns_(x) ? [].concat(kindTop_(x) || kindOf_(x).label, ansKind_()) : (kindTop_(x) || x.kindLabel || kindOf_(x).label),
     tagOf: (x, page) => kindTopTag_(x) || (page === 'ans' && isQ_(x) ? ansKind_() : (x.kindLabel || kindOf_(x).label)) },
   /* AND ITS OWN KIND IS THE NEXT QUESTION, asked by the one rule like any other (`Answers` beside a question that has one, and on no tool or video). */
   kindOwn: { of: x => !kindTop_(x) ? '' : notTop_(x, isQ_(x) && questionHasAns_(x) ? [kindOf_(x).label, ansKind_()] : (x.kindLabel || kindOf_(x).label)),

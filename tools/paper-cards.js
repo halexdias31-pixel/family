@@ -13,15 +13,15 @@ const SB = require('./lib/site-browser.js');
 
 /* THE SAMPLE: the chips a child taps (any order the funnel asks them in) and the paper every card must come from. */
 const PAPERS = [
-  { name: 'Edexcel GCSE Maths June 2024 Foundation Paper 2', taps: ['Practice', 'Questions', 'Maths', 'GCSE', 'Edexcel', 'Foundation', '2024', 'June', 'Paper 2'], set: 'RS1786302107764-417' },
-  { name: 'AQA GCSE Physics 2023 Higher Paper 1', taps: ['Practice', 'Physics', 'GCSE', 'AQA', 'Higher', '2023', 'Paper 1'], set: 'P-AQA-8463-2306-1H' },
-  { name: 'Edexcel GCSE Maths November 2023 Foundation Paper 3', taps: ['Practice', 'Questions', 'Maths', 'GCSE', 'Edexcel', 'Foundation', '2023', 'November', 'Paper 3'], set: 'RS1786302107764-425' },
-  { name: 'AQA GCSE English Language June 2023 Paper 1', taps: ['Practice', 'Questions', 'English Language', 'GCSE', '2023', 'June', 'Paper 1'], set: 'P-AQA-8700-2306-1' },
+  { name: 'Edexcel GCSE Maths June 2024 Foundation Paper 2', taps: ['Questions', 'Maths', 'GCSE', 'Edexcel', 'Foundation', '2024', 'June', 'Paper 2'], set: 'RS1786302107764-417' },
+  { name: 'AQA GCSE Physics 2023 Higher Paper 1', taps: ['Questions', 'Physics', 'GCSE', 'AQA', 'Higher', '2023', 'Paper 1'], set: 'P-AQA-8463-2306-1H' },
+  { name: 'Edexcel GCSE Maths November 2023 Foundation Paper 3', taps: ['Questions', 'Maths', 'GCSE', 'Edexcel', 'Foundation', '2023', 'November', 'Paper 3'], set: 'RS1786302107764-425' },
+  { name: 'AQA GCSE English Language June 2023 Paper 1', taps: ['Questions', 'English Language', 'GCSE', '2023', 'June', 'Paper 1'], set: 'P-AQA-8700-2306-1' },
   /* ONE QUESTION SET (UNIFY item 3): every other set is found the same way, by its source and title, not a kind of its own. */
-  { name: 'Corbettmaths worksheet Times Tables', taps: ['Practice', 'Questions', 'Maths', 'Corbettmaths', 'Times Tables'], set: 'W-CBM-times-tables' },
-  { name: 'First Class Maths exercise HCF and LCM', taps: ['Practice', 'Questions', 'Maths', '1st Class Maths', 'HCF and LCM'], set: 'W-1CM-hcf-and-lcm' },
-  { name: 'Corbettmaths 5-a-day Foundation 1 June', taps: ['Practice', 'Questions', 'Maths', 'GCSE', 'Corbettmaths', 'Foundation', '5-a-day Foundation — 1 June'], set: 'P-CBM-5AD-F-0601' },
-  { name: 'Access Tuition Physics Momentum', taps: ['Practice', 'Questions', 'Physics', 'GCSE', 'Momentum'], set: 'W-AT-P-momentum' },
+  { name: 'Corbettmaths worksheet Times Tables', taps: ['Questions', 'Maths', 'Corbettmaths', 'Times Tables'], set: 'W-CBM-times-tables' },
+  { name: 'First Class Maths exercise HCF and LCM', taps: ['Questions', 'Maths', '1st Class Maths', 'HCF and LCM'], set: 'W-1CM-hcf-and-lcm' },
+  { name: 'Corbettmaths 5-a-day Foundation 1 June', taps: ['Questions', 'Maths', 'GCSE', 'Corbettmaths', 'Foundation', '5-a-day Foundation — 1 June'], set: 'P-CBM-5AD-F-0601' },
+  { name: 'Access Tuition Physics Momentum', taps: ['Questions', 'Physics', 'GCSE', 'Momentum'], set: 'W-AT-P-momentum' },
 ];
 const ANY = "Doesn't matter";
 const IPAD = { width: 820, height: 1180 };
