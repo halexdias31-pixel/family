@@ -10424,7 +10424,7 @@ avatar: f.image ? f.avatar : (asTutor || {}).avatar,
 role: famLabel_[f.relation] + (asTutor ? ' · ' + (asTutor.role || 'Tutor') : ''),
 });
 const more = tile_(f.relation === 'child' ? [typeof workSeeOpts_ === 'function' ? workSeeOpts_(f.personId, true) : null,
-typeof workFileOpts_ === 'function' ? workFileOpts_(f.personId) : null] : null)
+typeof workFileOpts_ === 'function' ? workFileOpts_(f.personId) : null, typeof histOpts_ === 'function' ? histOpts_(f.personId) : null] : null)
 + (typeof peopleOpts_ === 'function' ? tile_(peopleOpts_(row)) : '');
 return personMark_(f.personId, personForm_(row) || tcard_(row) + (more ? tileRow_(more, 'person-tiles') : ''));
 }
@@ -10441,7 +10441,7 @@ data: { to: p.title, id: p.personId || '' } }) + (p.personId ? tile_({ icon: 'ke
 label: 'New PIN', note: 'to sign in with', act: 'kid-pin',
 data: { id: p.personId, name: String(p.title || '').split(' ')[0] } }) : '')
 + tile_(isStudentsCol_(col) ? [typeof workSeeOpts_ === 'function' ? workSeeOpts_(p.personId) : null,
-typeof workFileOpts_ === 'function' ? workFileOpts_(p.personId) : null] : null)
+typeof workFileOpts_ === 'function' ? workFileOpts_(p.personId) : null, typeof histOpts_ === 'function' ? histOpts_(p.personId) : null] : null)
 + (typeof peopleOpts_ === 'function' ? tile_(peopleOpts_(p)) : ''), 'person-tiles') : '')));
 }
 function accountMine_(col, family, myRow, tcard_) {
@@ -12339,6 +12339,7 @@ try { inp.setSelectionRange(at, at); } catch (e) { }
 kpRender_(inp);
 if (!back && !same) kpAutoShift_(inp);
 kpShiftPaint_();
+kpPin_();
 kpPadH_(pad);
 if (!same) kpInView_(inp, pad);
 }
@@ -12366,6 +12367,18 @@ if (h > 0 && document.documentElement.style.getPropertyValue('--kp-h') !== h + '
 document.documentElement.style.setProperty('--kp-h', h + 'px');
 }
 } catch (e) { }
+}
+function kpPin_() {
+try {
+const vv = window.visualViewport, root = document.documentElement;
+if (!vv) return;
+const lay = root.clientHeight || innerHeight;
+const gap = Math.round(Math.max(0, lay - (vv.offsetTop + vv.height)));
+if (root.style.getPropertyValue('--kp-vv') !== gap + 'px') root.style.setProperty('--kp-vv', gap + 'px');
+} catch (e) { }
+}
+if (typeof window !== 'undefined' && window.visualViewport && window.visualViewport.addEventListener) {
+['resize', 'scroll'].forEach(ev => window.visualViewport.addEventListener(ev, kpPin_, { passive: true }));
 }
 const KP_SHEET_FLOOR = 5 * 24;
 function kpSheetFit_(pane) {
@@ -14546,7 +14559,7 @@ function wfBody_(of, inCard) {
 const s = wfOf_(of);
 if (!s.asked) setTimeout(() => wfLoad_(of), 0);
 if (wfTeach_(of)) return [s.rows === null ? { type: 'wait', on: true } : (s.others || []).length
-? { type: 'tiles', tiles: s.others.map(o => workFileOpts_(o.id, o.name)) }
+? { type: 'tiles', tiles: [].concat(...s.others.map(o => [workFileOpts_(o.id, o.name), histOpts_(o.id, o.name)])) }
 : wfNote_('Your booked students\' scanned work shows here.')];
 const line = (text, box) => ({ type: 'group', tag: 'label', look: 'wf-line', text: text + ' ', blocks: [box] });
 const pend = s.pending.length ? { type: 'group', look: 'wf-pend', blocks: [{ type: 'group', look: 'qp-work-pics', blocks: s.pending.map((p, i) => ({ type: 'group', tag: 'span', look: 'qp-work-pic',
@@ -14674,6 +14687,7 @@ const histOf_ = of => HIST[of] || (HIST[of] = { day: '', got: null, busy: false,
 const HIST_HOW = { right: '✓ Right', part: 'Part marks', wrong: '✗ Not right', open: 'Not marked yet' };
 function histBody_(of) {
 const s = histOf_(of);
+if (!s.day && !s.got && !s.busy && !s.say && of) { s.day = todayIso_(); s.busy = true; const d = s.day; setTimeout(() => histLoad_(of, d), 0); }
 const pick = { type: 'formRow', label: 'Day', control: { kind: 'date', look: 'hist-day', value: s.day, data: { of }, aria: 'Which day' } };
 if (s.busy) return [pick, { type: 'wait', on: true }];
 if (s.say) return [pick, { type: 'text', text: s.say }];
@@ -14692,8 +14706,9 @@ const bits = /\u27ee|^\d{1,2}(?:,\d{0,2})*$/.test(t) ? [t] : t.split(/\s*[,;]\s*
 return 'answered ' + (bits.some(b => !b) ? bits.filter(Boolean).join(/;/.test(t) ? ' ; ' : ', ') : t);
 }
 function histPaint_(of) {
-document.querySelectorAll('.card[data-hist][data-of]').forEach(el => {
+document.querySelectorAll('[data-hist][data-of]').forEach(el => {
 if (el.getAttribute('data-of') !== of) return;
+if (!el.classList.contains('card')) { el.innerHTML = cardBlocks_(histBody_(of)); return; }
 const spec = typeof progressAllSpec_ === 'function' && progressAllSpec_(of);
 if (!spec) return;
 const t = document.createElement('template'); t.innerHTML = setCard_(spec);
@@ -14713,6 +14728,19 @@ if (d && d.success) s.got = d; else s.say = (d && (d.message || d.error)) || 'Th
 histPaint_(of);
 }).catch(() => { s.busy = false; s.say = 'That day could not be fetched — try again.'; histPaint_(of); });
 }
+function histOpts_(pid, name) {
+return pid ? ({ icon: 'doc', label: name ? String(name) + ' · progress' : 'Progress', note: 'their questions by day', act: 'hist-see', data: { id: pid } }) : null;
+}
+on('hist-see', el => {
+const pid = el.getAttribute('data-id'), row = el.closest('.tile-row') || el;
+const was = row.parentElement && [...row.parentElement.querySelectorAll(':scope > .hist-seen')].find(b => b.getAttribute('data-of') === pid);
+if (was) { was.remove(); return; }
+const box = document.createElement('div');
+box.className = 'hist-seen prog-day';
+box.setAttribute('data-of', pid); box.setAttribute('data-hist', '1');
+box.innerHTML = cardBlocks_(histBody_(pid));
+row.insertAdjacentElement('afterend', box);
+});
 document.addEventListener('change', e => {
 const el = e.target;
 if (!el || !el.classList || !el.classList.contains('hist-day')) return;
