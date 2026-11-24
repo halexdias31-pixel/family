@@ -860,9 +860,10 @@ function digestLibraryFill_(found) {
   const want = rows.filter(one => one && S(one.lib_has));
   for (let i = 0; i < want.length; i += 200) {
     const part = want.slice(i, i + 200);
-    const got = libContent_(part.map(one => 'q:' + S(one.row_id))).items;
+    /* a question shown in a second set (`same_as`) reads the words of the row it is */
+    const got = libContent_(part.map(one => 'q:' + S(one.same_as || one.row_id))).items;
     part.forEach(one => {
-      const c = got['q:' + S(one.row_id)];
+      const c = got['q:' + S(one.same_as || one.row_id)];
       if (!c) return;
       Object.keys(c).forEach(k => { one[k] = c[k]; });
       delete one.lib_has;

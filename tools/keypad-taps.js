@@ -280,7 +280,7 @@ function tables(app, P) {
   const shuffle = (a, seed) => { const b = a.slice(); let s = seed; for (let i = b.length - 1; i > 0; i--) { s = (s * 9301 + 49297) % 233280; const j = Math.floor(s / 233280 * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
   /* THE LIBRARY'S TABLES, site-marked, every kind of placing: the key's first way in each cell, the cells tapped last to first */
   const status = (JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'question-status.json'), 'utf8')).status) || {};
-  const rows = fs.existsSync(path.join(ROOT, 'data-private', 'questions.json')) ? VQ.rowsOf().filter(r => r.kind === 'question' && String(r.cells || '').trim() && status[r.row_id] === 'ok') : [];
+  const rows = fs.existsSync(path.join(ROOT, 'data-private', 'questions.json')) ? VQ.rowsOf().filter(r => r.kind === 'question' && !r.same_as && String(r.cells || '').trim() && status[r.row_id] === 'ok') : [];
   const step = Math.max(1, Math.floor(rows.length / 60));
   /* AND THE LIVE BUG (owner photo, 23 Nov): the probability tree's six values, fractions on the fraction key, kept a value a cell */
   const bug = rows.filter(r => r.row_id === 'Q-1CM-probability-tree-diagrams-1');

@@ -23,6 +23,9 @@ const PAPERS = [
   { name: 'First Class Maths exercise HCF and LCM', taps: ['Questions', 'Maths', '1st Class Maths', 'HCF and LCM'], set: 'W-1CM-hcf-and-lcm' },
   { name: 'Corbettmaths 5-a-day Foundation 1 June', taps: ['Questions', 'Maths', 'GCSE', 'Corbettmaths', 'Foundation', '5-a-day Foundation — 1 June'], set: 'P-CBM-5AD-F-0601' },
   { name: 'Access Tuition Physics Momentum', taps: ['Questions', 'Physics', 'GCSE', 'Momentum'], set: 'W-AT-P-momentum' },
+  /* A TOPIC SET OF ONE BOARD'S QUESTIONS (24 Nov): Physics & Maths Tutor's AQA Foundation sub-topic paper, most of its parts the past
+     papers' own questions shown again (same_as), their words asked for by the row they are. */
+  { name: 'Physics & Maths Tutor AQA Biology 1.1 Cell Structure (F)', taps: ['Questions', 'Biology', 'GCSE', 'AQA', 'Foundation', '1.1 Cell Structure'], set: 'P-PMT-AQA-BF-1-1-cell-structure' },
 ];
 const ANY = "Doesn't matter";
 const IPAD = { width: 820, height: 1180 };

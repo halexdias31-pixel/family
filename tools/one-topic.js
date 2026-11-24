@@ -47,7 +47,7 @@ function problems(d) {
     if (have !== want) bad.push(r.row_id + ': idea_id "' + have + '", but its spec point gives "' + want + '" — run node tools/content.js qideas --apply');
     if (!have) sun++;
   });
-  Object.keys(S8.set || {}).forEach(x => { if (!sids.has(S8.set[x])) bad.push(QI.TABLE + ' science.set "' + x + '" -> ' + S8.set[x] + ', no idea of the science cards'); });
+  ['set', 'fallback'].forEach(k => Object.keys(S8[k] || {}).forEach(x => { if (!sids.has(S8[k][x])) bad.push(QI.TABLE + ' science.' + k + ' "' + x + '" -> ' + S8[k][x] + ', no idea of the science cards'); }));
   if (sun > S8.budget) bad.push(sun + ' science questions unmapped, over the budget of ' + S8.budget);
   if (sun < S8.budget) bad.push(sun + ' science questions unmapped, under the budget of ' + S8.budget + ' — lower it to ' + sun + ' in ' + QI.TABLE);
   if (d.sciHead != null && S8.budget > d.sciHead) bad.push('the science budget rose from ' + d.sciHead + ' to ' + S8.budget + ' — it may only fall');

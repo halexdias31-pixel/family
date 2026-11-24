@@ -70,8 +70,11 @@ function sciIdeaOf(r, T, X) {
   if (st[r.paper_id]) return st[r.paper_id];
   const own = S(r.spec_ref).split(/\s+/).filter(Boolean).find(ref => X.point[ref]);
   if (own) return X.point[own];
-  const l = (X.links[r.row_id] || []).find(ref => X.point[ref]);
-  return l ? X.point[l] : '';
+  /* a question shown in a second set (`same_as`) is linked where the row it is was */
+  const l = (X.links[r.row_id] || X.links[S(r.same_as)] || []).find(ref => X.point[ref]);
+  if (l) return X.point[l];
+  /* LAST, ITS SET'S: a topic set (Physics & Maths Tutor's sub-topic papers) names the idea its questions test when they name none */
+  return ((T.science || {}).fallback || {})[r.paper_id] || '';
 }
 function sciNames(tb) {
   const out = {};

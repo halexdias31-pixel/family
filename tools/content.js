@@ -415,6 +415,9 @@ const SETS = {
   convert(c) {
     const r = c.SE.unify(c.q.rows, L.defs().files.questions.joined.fields);
     c.q.rows = r.rows; c.t = r.t;
+    /* AND EACH QUESTION SHOWN IN A SECOND SET (`same_as`) WEARS ITS SOURCE'S CARD, copied afresh */
+    const s = c.SE.same(c.q.rows, L.defs().files.questions.joined.fields, true);
+    console.log('sets: ' + s.links + ' question(s) shown in a second set, ' + s.fixed + ' card(s) copied afresh from their source' + (s.dangling.length ? ', ' + s.dangling.length + ' naming no question: ' + s.dangling.slice(0, 5).join(', ') : ''));
     const m = c.SE.measure(c.q.rows);
     console.log('sets: ' + r.t.kinds + ' set(s) given the one kind, ' + r.t.dropped + ' question kind word(s) dropped, ' + r.t.made.length + ' set row(s) made ('
       + r.t.made.join(', ') + '), ' + r.t.moved + ' paper fact(s) moved onto them; now kinds ' + m.kinds.join(' / ') + ', ' + m.orphans.length + ' in no set');
