@@ -11,6 +11,9 @@ An item ships only when every check passes and a count goes up. Questions for th
 4. Science library → questions: walk physics, chemistry, biology as a child; fix at the root.
 5. Outside worksheets kept and faithful: corner letters on shapes (Corbettmaths, First Class Maths).
 6. @family library: DfE spec SSOT → cards tagged by board → generated questions (id = card + template version + numbers; the question as seen is saved with each answer, so a spec fix never loses or re-marks work) → written bank for explain-style and English.
+7. BUTTONS, 21 → 7 (owner, 24 Nov night): keep Check, Read aloud, Share, ONE PEN, ONE MEASURE (ruler + protractor), Undo, Calculator. Remove Insert (inserts are found by tag), Magnifier, Help, Speed read, Point, Line, Shade, Compass, Clear, Lock (pen on = page still), Show the answer (answers are their own static cards), Make available offline, Revise this. THE ONE PEN: a tap is a dot; a near-straight stroke snaps straight; a curve is smoothed; a near-circle/arc snaps to a true circle/arc.
+8. One card type, the question card the model; Find's menu included.
+9. (End) Reading books, KS1–2: procedurally generated from the gov spec (phonics phases / NC reading), our own Biff-Chip-Kipper-style stages.
 The hourly run follows this list; anything a child or the owner sees is asked first.
 
 ## OWNER'S ANSWERS (24 Nov, night)
