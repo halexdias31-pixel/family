@@ -297,5 +297,10 @@
   "Transformations": "ma.geo.similarity-and-congruence",
   "Manipulating Expressions": "ma.alg.simplifying-and-collecting-terms",
   "rates of change": "ma.alg.gradient-of-a-curve"
+ },
+ "science": {
+  "about": "WHICH IDEA A SCIENCE QUESTION TESTS (item 8, 24 Nov): the idea of the AQA spec point it tests (tools/lib/qideas.js sciIdeaOf): `set` (a whole single-point set -> its idea, read first), else the question's own spec_ref, else the data/spec/aqa-846x.json point whose q: links name it; a point's idea is the card that teaches it (data/textbooks.json specs). A question with no point (A-Level, OCR, a whole-chapter topic) stays unmapped, held at `budget`, which may only fall.",
+  "budget": 10928,
+  "set": {}
  }
 }

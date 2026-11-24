@@ -18,10 +18,12 @@ const SB = require('./lib/site-browser.js');
 const TAX_RE = /const TAXONOMY = (\{[\s\S]*?\});\n/;
 
 /* THE COMMITTED BUDGET (HEAD), the ceiling a budget may never rise above. */
-function headBudget() {
-  try { return JSON.parse(cp.execFileSync('git', ['show', 'HEAD:' + QI.TABLE], { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })).budget; }
+function headTable() {
+  try { return JSON.parse(cp.execFileSync('git', ['show', 'HEAD:' + QI.TABLE], { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })); }
   catch (e) { return null; }
 }
+const headBudget = () => (headTable() || {}).budget;
+const sciHeadBudget = () => { const t = headTable(); return t && t.science ? t.science.budget : null; };
 
 /* THE DATA: rows, the table, the cards' names, the taxonomy and the engine's copy; `w` a break applied to them. */
 function problems(d) {
@@ -35,7 +37,25 @@ function problems(d) {
     if (have !== want) bad.push(r.row_id + ': idea_id "' + have + '", but ' + QI.TABLE + ' gives "' + want + '" — run node tools/content.js qideas --apply');
     if (!have) unmapped++;
   });
-  d.rows.forEach(r => { if (!mq.has(r) && r.idea_id != null) bad.push(r.row_id + ': not a maths question, and wears idea_id ' + r.idea_id); });
+  /* SCIENCE (item 8): each Biology, Chemistry, Physics question's idea is the one its spec point's card gives (QI.sciIdeaOf), unmapped at science.budget. */
+  const S8 = T.science || { budget: 0, set: {} }, sq = QI.scienceQuestions(d.rows), sset = new Set(sq), X = QI.sciIndex(d.tb), snames = QI.sciNames(d.tb), sids = new Set(Object.keys(snames));
+  let sun = 0;
+  sq.forEach(r => {
+    const want = QI.sciIdeaOf(r, T, X), have = r.idea_id == null ? '' : String(r.idea_id);
+    if (have.split(/[\s,]+/).filter(Boolean).length > 1) bad.push(r.row_id + ': more than one idea (' + have + ')');
+    if (have && !sids.has(have)) bad.push(r.row_id + ': idea_id ' + have + ' is no idea of the science cards');
+    if (have !== want) bad.push(r.row_id + ': idea_id "' + have + '", but its spec point gives "' + want + '" — run node tools/content.js qideas --apply');
+    if (!have) sun++;
+  });
+  Object.keys(S8.set || {}).forEach(x => { if (!sids.has(S8.set[x])) bad.push(QI.TABLE + ' science.set "' + x + '" -> ' + S8.set[x] + ', no idea of the science cards'); });
+  if (sun > S8.budget) bad.push(sun + ' science questions unmapped, over the budget of ' + S8.budget);
+  if (sun < S8.budget) bad.push(sun + ' science questions unmapped, under the budget of ' + S8.budget + ' — lower it to ' + sun + ' in ' + QI.TABLE);
+  if (d.sciHead != null && S8.budget > d.sciHead) bad.push('the science budget rose from ' + d.sciHead + ' to ' + S8.budget + ' — it may only fall');
+  if (JSON.stringify((d.tax.Science || {}).ideaNames || {}) !== JSON.stringify(snames)) bad.push('taxonomy.json Science.ideaNames is not the science cards\' idea names now — run node tools/content.js qideas --apply');
+  const em = TAX_RE.exec(d.engine), seng = em ? ((JSON.parse(em[1]).Science || {}).ideaNames || {}) : {};
+  if (JSON.stringify(seng) !== JSON.stringify((d.tax.Science || {}).ideaNames || {})) bad.push('js/find-finder.js TAXONOMY.Science.ideaNames is not taxonomy.json\'s — run node tools/taxonomy.js');
+  d.sci = { questions: sq.length, mapped: sq.length - sun, unmapped: sun, ideas: new Set(sq.map(r => r.idea_id).filter(Boolean)).size };
+  d.rows.forEach(r => { if (!mq.has(r) && !sset.has(r) && r.idea_id != null) bad.push(r.row_id + ': not a maths or science question, and wears idea_id ' + r.idea_id); });
   ['set', 'topic'].forEach(k => Object.keys(T[k] || {}).forEach(x => { if (!ids.has(T[k][x])) bad.push(QI.TABLE + ' ' + k + ' "' + x + '" -> ' + T[k][x] + ', no idea of the maths cards'); }));
   if (unmapped > T.budget) bad.push(unmapped + ' maths questions unmapped, over the budget of ' + T.budget);
   if (unmapped < T.budget) bad.push(unmapped + ' maths questions unmapped, under the budget of ' + T.budget + ' — lower it to ' + unmapped + ' in ' + QI.TABLE);
@@ -55,8 +75,9 @@ async function page(brk) {
   try {
     if (brk) await pg.evaluate(brk);
     return await pg.evaluate(() => {
-      const names = (TAXONOMY.Maths || {}).ideaNames || {}, by = new Set(Object.values(names)), out = { bad: [], shown: new Set(), n: 0 };
-      stuffItemsAll_().filter(x => isQ_(x) && x.row && x.subject === 'Maths').forEach(x => {
+      const subs = ['Maths'].concat((TAXONOMY.Science || {}).subjects || []);
+      const names = Object.assign({}, (TAXONOMY.Maths || {}).ideaNames || {}, (TAXONOMY.Science || {}).ideaNames || {}), by = new Set(Object.values(names)), out = { bad: [], shown: new Set(), n: 0 };
+      stuffItemsAll_().filter(x => isQ_(x) && x.row && subs.includes(x.subject)).forEach(x => {
         out.n++;
         const v = [].concat(FACET_READ.topic.of(x) || []).filter(Boolean), want = names[x.row.idea_id];
         v.forEach(t => out.shown.add(t));
@@ -70,7 +91,7 @@ async function page(brk) {
 
 function data() {
   return { rows: SD.json('data/questions.json'), tb: SD.json('data/textbooks.json'), table: SD.json(QI.TABLE), tax: SD.json('data/settings/taxonomy.json'),
-    engine: text('js/find-finder.js'), head: headBudget() };
+    engine: text('js/find-finder.js'), head: headBudget(), sciHead: sciHeadBudget() };
 }
 
 /* THE BREAKS --prove makes. */
@@ -84,6 +105,14 @@ const BREAKS = [
   { name: 'unmapped over budget', d: d => { d.table = Object.assign({}, d.table, { budget: d.table.budget - 1 }); } },
   { name: 'the budget rising', d: d => { d.head = d.table.budget - 1; } },
   { name: 'a stale idea name', d: d => { const t = JSON.parse(JSON.stringify(d.tax)); t.Maths.ideaNames[Object.keys(t.Maths.ideaNames)[0]] = 'Stale'; d.tax = t; } },
+  { name: 'a science idea dropped', d: d => { delete QI.scienceQuestions(d.rows).find(r => r.idea_id).idea_id; } },
+  { name: 'a science idea that is not one', d: d => { QI.scienceQuestions(d.rows).find(r => r.idea_id).idea_id = 'sc.bio.no-such-idea'; } },
+  { name: 'a science idea by hand', d: d => { const r = QI.scienceQuestions(d.rows).find(r => r.idea_id && r.idea_id !== 'sc.bio.osmosis'); r.idea_id = 'sc.bio.osmosis'; } },
+  { name: 'a maths idea on a science question', d: d => { QI.scienceQuestions(d.rows).find(r => r.idea_id).idea_id = 'ma.num.rounding'; } },
+  { name: 'science unmapped over budget', d: d => { d.table = JSON.parse(JSON.stringify(d.table)); d.table.science.budget--; } },
+  { name: 'the science budget rising', d: d => { d.sciHead = d.table.science.budget - 1; } },
+  { name: 'a stale science idea name', d: d => { const t = JSON.parse(JSON.stringify(d.tax)); t.Science.ideaNames[Object.keys(t.Science.ideaNames)[0]] = 'Stale'; d.tax = t; } },
+  { name: 'Find not naming a science idea', page: () => { const of = FACET_READ.topic.of; FACET_READ.topic.of = x => (x && x.subject === 'Biology' ? [] : of(x)); } },
   { name: 'Find showing a source topic', page: () => { FACET_READ.topic.of = x => topicAtoms_(x && x.row && x.row.topics); } },
 ];
 
@@ -108,7 +137,8 @@ async function run() {
   if (all.length) { console.error('one-topic: ' + all.length + ' problem(s):\n  ' + all.slice(0, 40).join('\n  ')); throw new Error('one-topic check failed'); }
   const c = d.count;
   console.log('one-topic: ' + c.questions + ' maths questions, ' + c.mapped + ' pointing at one idea, ' + c.unmapped + ' unmapped (budget ' + d.table.budget
-    + '); ' + c.sourceTopics + ' source topic names became ' + c.ideas + ' ideas; in Find ' + p.n + ' maths questions answer ' + p.shown + ' topics, every one an idea name');
+    + '); ' + c.sourceTopics + ' source topic names became ' + c.ideas + ' ideas; science: ' + d.sci.questions + ' questions, ' + d.sci.mapped + ' pointing at one idea ('
+    + d.sci.ideas + ' ideas), ' + d.sci.unmapped + ' unmapped (budget ' + d.table.science.budget + '); in Find ' + p.n + ' maths and science questions answer ' + p.shown + ' topics, every one an idea name');
 }
 
 main(module, run);

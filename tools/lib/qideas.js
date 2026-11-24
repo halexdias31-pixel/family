@@ -47,4 +47,49 @@ function assign(rows, T) {
   return { questions: qs.size, mapped, unmapped: qs.size - mapped, changed };
 }
 
-module.exports = { TABLE, table, mathsQuestions, names, ideaOf, assign, atoms };
+/* SCIENCE (item 8, 24 Nov): a Biology, Chemistry or Physics question points at the idea of the AQA spec point it tests. Read, in order:
+   the table's science.set (a whole single-point set), the question's own `spec_ref` (data/questions.json, `aqa-8461:4.1.1.2`, the first that
+   is an idea's), else the one data/spec/aqa-846x.json point whose `q:` links name it (the first in spec order). A point's idea is the card
+   that teaches it (data/textbooks.json `specs`, tools/lib/sci-ideas.js) — the cards are the one truth, never a guess. A question with no
+   point (an A-Level or OCR paper, a whole-chapter topic) stays unmapped, held at science.budget, which may only fall. */
+const SX = () => require('./sci-ideas.js');
+function scienceQuestions(rows) {
+  const subs = SX().SUBJECTS, sci = new Set(rows.filter(r => r.kind === 'document' && subs[r.subject]).map(r => r.paper_id));
+  return rows.filter(r => r.kind === 'question' && sci.has(r.paper_id));
+}
+/* THE POINTS' IDEAS (from the cards) and THE SPEC FILES' q: LINKS (question -> its points, spec order). */
+function sciIndex(tb) {
+  const point = {}, links = {};
+  SX().cardsOf(tb).forEach(c => { if (c.row.idea_id) S(c.row.specs).split(/\s+/).filter(Boolean).forEach(ref => { point[ref] = point[ref] || c.row.idea_id; }); });
+  ['8461', '8462', '8463', '8464'].forEach(k => { const f = SD.json('data/spec/aqa-' + k + '.json');
+    (f ? f.points : []).forEach(p => (p.links || []).forEach(l => { if (l.startsWith('q:')) (links[l.slice(2)] = links[l.slice(2)] || []).push(f.id + ':' + p.id); })); });
+  return { point, links };
+}
+function sciIdeaOf(r, T, X) {
+  const st = (T.science || {}).set || {};
+  if (st[r.paper_id]) return st[r.paper_id];
+  const own = S(r.spec_ref).split(/\s+/).filter(Boolean).find(ref => X.point[ref]);
+  if (own) return X.point[own];
+  const l = (X.links[r.row_id] || []).find(ref => X.point[ref]);
+  return l ? X.point[l] : '';
+}
+function sciNames(tb) {
+  const out = {};
+  SX().cardsOf(tb).forEach(c => { if (c.row.idea_id) out[c.row.idea_id] = S(c.row.title).trim(); });
+  return Object.keys(out).sort().reduce((o, k) => (o[k] = out[k], o), {});
+}
+/* MATHS AND SCIENCE TOGETHER: every question's idea_id as the table and the cards say; no other row wears one. */
+function assignAll(rows, tb, T) {
+  T = T || table();
+  const mq = new Set(mathsQuestions(rows)), sq = new Set(scienceQuestions(rows)), X = sciIndex(tb);
+  const t = { questions: mq.size, mapped: 0, unmapped: 0, science: { questions: sq.size, mapped: 0, unmapped: 0 }, changed: 0 };
+  rows.forEach(r => {
+    const want = mq.has(r) ? ideaOf(r, T) : sq.has(r) ? sciIdeaOf(r, T, X) : '';
+    if (mq.has(r)) want ? t.mapped++ : t.unmapped++;
+    if (sq.has(r)) want ? t.science.mapped++ : t.science.unmapped++;
+    if (S(r.idea_id) !== want) { t.changed++; if (want) r.idea_id = want; else delete r.idea_id; }
+  });
+  return t;
+}
+
+module.exports = { TABLE, table, mathsQuestions, names, ideaOf, assign, atoms, scienceQuestions, sciIndex, sciIdeaOf, sciNames, assignAll };
