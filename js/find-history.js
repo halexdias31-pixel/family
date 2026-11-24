@@ -95,12 +95,14 @@ function insStemLines_(x, p) {
   return insLinesBox_(x, own || (say && Object.assign({ src: '' }, say)));
 }
 /* A QUESTION THAT NAMES SOURCE LINES ("Source A, lines 8 to 14", owner 20 Nov): the lines above its words, as the exam prints them --
-   unless a stem on its card already draws the same span. Drawn once, by `chunkHtml_`, for every question. */
+   unless a stem this card DRAWS (`qWas_`, not every stem the part has) already draws the same span. Drawn once, by `chunkHtml_`, for every
+   question. (24 Nov: a part drawn on its own card -- practice, search -- has its stem but draws none, so it showed no lines at all.) */
 function insPartLines_(x) {
   const span = insRowSpan_(x);
   if (!span) return '';
   const same = s => { const t = s && (insRowSpan_(s) || insLines_(s.lines)); return !!t && t.from === span.from && t.to === span.to && (!t.src || t.src === span.src); };
-  if ((x.stems || []).some(same)) return '';
+  const drawn = typeof qWas_ === 'function' ? qWas_(x).stems : (x.stems || []);
+  if ((drawn || []).some(same)) return '';
   return insLinesBox_(x, span) || '';
 }
 /* WHAT A READING INSERT SAYS UNTIL ITS WORDS COME: sign in, the dots, coming soon, or why not */
