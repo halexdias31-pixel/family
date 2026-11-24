@@ -296,9 +296,8 @@ function tileSet_(el, o) {
 
 /* ---------- THE STAR, WHICH IS AN ACTION LIKE ANY OTHER § */
 function favOpts_(x) {
-  if (!x.key || !USER) return null;
-  return ({ icon: 'star', label: isFav(x.key) ? text_('saved') : text_('save'), on: isFav(x.key),
-                 act: 'fav', data: { key: x.key, kind: x.kind || 'item' } });
+  /* NO STAR (owner, 24 Nov: "remove the star"). */
+  return x ? null : null;
 }
 
 
