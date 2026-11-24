@@ -44,6 +44,8 @@ echo "· $(git rev-parse --abbrev-ref HEAD 2>/dev/null)  $(git log --oneline -1 
 DIRTY=$(git status --porcelain 2>/dev/null | wc -l | tr -d ' ')
 [ "$DIRTY" != "0" ] && echo "· $DIRTY uncommitted file(s) — these were here BEFORE this session"
 
+# The checks run inside node tools/build.js (rule 1.75); too slow for this hook, so it only says so.
+if [ ! -f js/check-all.js ]; then echo "· checks run in node tools/build.js (last stamp: $(head -c 80 stamp.txt 2>/dev/null))"; exit 0; fi
 OUT=$(node js/check-all.js --fast 2>&1)   # the quick checks; the hook's 180s cannot hold the browser ones
 # COUNTED, NOT TYPED. This line said "all 18 checks pass" for as long as there were 18, and went on
 # saying it when there were 22 — a number in a sentence nobody re-reads. It is read off the run now,
