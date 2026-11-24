@@ -125,7 +125,7 @@ const FILES = {
   inserts: {
     cols: ['insert_id', 'name', 'summary', 'subject', 'level', 'keystage', 'board', 'tier', 'for_subjects', 'for_levels',
       'for_tiers', 'verified', 'verified_note', 'official', 'sections', 'table', 'active', 'elements', 'for_papers',
-      'sources', 'line_numbers', 'lib_pending', 'lib_has', 'source_text'],
+      'sources', 'line_numbers', 'lib_pending', 'lib_has', 'source_text', 'of'],
     level: 'level', keystage: 'keystage', tier: 'tier', board: 'board', forLevels: 'for_levels', forTiers: 'for_tiers',
   },
 };

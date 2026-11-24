@@ -2294,7 +2294,7 @@ const paper = String((x.row && x.row.paper_id) || '');
 return (DATA.inserts || []).filter(r => (r.forPapers || []).length ? r.forPapers.indexOf(paper) !== -1
 : has(r.forSubjects, x.subject) && has(r.forLevels, levelOf_(x)) && has(r.forTiers, x.tier) && has(r.boards, x.examBoard));
 }
-const insReading_ = r => !!r && (!!(r.forPapers || []).length || !!r.sourceText || !!r.libHas);
+const insReading_ = r => !!r && r.of === 'source';
 function insSource_(r, from, to, src) {
 const lines = !!r.lineNumbers, cut = from != null;
 let at = 0, cur = '';
@@ -2356,6 +2356,15 @@ if (r.sourceText) { el.classList.remove('insrc-wait'); el.innerHTML = f ? insSou
 else el.innerHTML = insSay_(r);
 });
 }
+const attachTile_ = x => { const a = insertsFor_(x);
+return a.length ? { icon: 'doc', label: 'Insert', note: a.map(r => r.name).join(' · '), act: 'att-open', data: { key: x.key } } : null; };
+function attachOpen_(list, el) {
+if (!list.length) return 0;
+list.forEach(insWant_);
+return openStep_({ title: list.length === 1 ? list[0].name : 'Insert', el, beside: true,
+html: list.map(r => findCard(insertItem_(r))).join('') });
+}
+on('att-open', el => { const x = qtItem_(el.getAttribute('data-key')); attachOpen_(x ? insertsFor_(x) : [], el); });
 const insertRow_ = id => insertSheetRow_(id) || insertParts_().find(r => r.id === id) || null;
 function insertBody_(r) {
 const kick = { type: 'text', look: 'insh-kick', text: ['Insert'].concat(r.boards || [], r.verified || insReading_(r) ? [] : ['unverified']).join(' · ') };
@@ -15248,7 +15257,8 @@ const art = typeof padReady_ !== 'function' || padReady_(x);
 const ids = QT_ROW.concat(art ? Object.keys(QT_DRAWING) : []);
 return [qtCheckOpts_(x)].concat(ids.map(qtTool_).filter(Boolean).map(t => qtToolOpts_(t, x)),
 art && typeof padUndoOpts_ === 'function' ? padUndoOpts_(x) : [],
-[ans && typeof qaToggleOpts_ === 'function' ? qaToggleOpts_(ansKey_(x), ansOpen_(x)) : null,
+[typeof attachTile_ === 'function' ? attachTile_(x) : null,
+ans && typeof qaToggleOpts_ === 'function' ? qaToggleOpts_(ansKey_(x), ansOpen_(x)) : null,
 typeof helpOpts_ === 'function' ? helpOpts_(x, '') : null]).filter(Boolean);
 }
 const qtItem_ = key => { try { return stuffItemsAll_().find(it => it && it.key === key) || null; } catch (e) { return null; } };
