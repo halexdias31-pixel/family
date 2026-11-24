@@ -6040,7 +6040,7 @@ const w = m ? Number(m[1]) : 0, h = m ? Number(m[2]) : 0;
 return w > 0 && h > 0 && isFinite(w) && isFinite(h) ? Math.round(h / w * 1e4) / 1e4 : 1;
 }
 const padAspectOf_ = pad => Number(pad && pad.getAttribute && pad.getAttribute('data-aspect')) || 1;
-const PAD_TOOLS = ['pen', 'ruler', 'compass', 'protractor'];
+const PAD_TOOLS = ['pen', 'ruler', 'compass', 'protractor', 'point', 'shade'];
 const padUndoOpts_ = (x, k0) => { const k = k0 || padKey_(x), n = padRead_(k).length, data = k0 ? {} : { k };
 return [{ icon: 'undo', label: 'Undo', note: 'the last mark', act: 'pad-undo', cls: 'qpad-undo', off: !n && !PAD_CLEARED.has(k), data },
 { icon: 'bin', label: 'Clear', note: 'every mark', act: 'pad-clear', cls: 'qpad-clear', off: !n, data }]; };
@@ -6112,7 +6112,8 @@ const tm = /^<svg\b[^>]*>\s*<g\s+transform\s*=\s*["']\s*translate\(\s*([-\d.eE+]
 const shift = tm ? [+tm[1], +(tm[2] || 0)] : [0, 0];
 const labels = [];
 (s.match(/<text\b[^>]*>[\s\S]*?<\/text>/g) || []).forEach(t => {
-if (/\btransform\s*=/.test(t)) return;
+const fp = /\bdata-fp\s*=\s*["']([^"']*)["']/.exec(t);
+if (fp ? fp[1] !== '-' : /\btransform\s*=/.test(t)) return;
 const num = k => { const r = new RegExp('\\s' + k + '\\s*=\\s*["\']\\s*([-\\d.eE+]+)').exec(t); return r ? +r[1] : NaN; };
 const words = t.replace(/<[^>]*>/g, '').replace(/&minus;|\u2212|&#8722;/g, '-').replace(/&[a-z#0-9]+;/gi, '').trim().replace(/\s+-$/, '');
 if (/^-?\d+(\.\d+)?$/.test(words) && isFinite(num('x')) && isFinite(num('y'))) labels.push([+words, num('x') + shift[0], num('y') + shift[1]]);
@@ -6673,9 +6674,12 @@ return { ok: ok, ex: q => inB(q, A) || inB(q, B) || dSeg(q, ca, cb) <= band };
 };
 }
 function drawExample_(g) { const { H, R, near, inside, frameOf, lsq } = g;
-function example(spec, fig) {
-if (typeof spec === 'string') { try { spec = JSON.parse(spec); } catch (e) { return []; } }
+function example(spec0, fig) {
+const o1 = drawOne_(spec0);
+if (!o1) return [];
+const spec = Object.assign(drawFrameSpec_(o1), { eg: o1.eg, items: o1.pieces.map(drawItemOf_).filter(Boolean) });
 const F = frameOf(spec, fig), vb = F.vb, out = [];
+const ly = (fig.labels || []).map(l => l[2]).sort((p, q) => p - q), lineY = !F.grid && F.u[1] === 1 && ly.length ? ly[ly.length >> 1] - F.sq * 0.75 : null;
 const put = pl => out.push([].concat.apply([], pl.map(p => [Math.round((p[0] - vb[0]) / vb[2] * 3400) / 10, Math.round((p[1] - vb[1]) / vb[3] * 3400) / 10])));
 const at = (c, g, r) => [c[0] + r * Math.sin(g * R), c[1] - r * Math.cos(g * R)];
 const zig = poly => { const m = poly.reduce((s, p) => [s[0] + p[0] / poly.length, s[1] + p[1] / poly.length], [0, 0]);
@@ -6711,7 +6715,7 @@ put([[v[1], y - h], [v[1], y + h], [v[3], y + h], [v[3], y - h], [v[1], y - h]].
 if (it.k === 'interval') {
 const one = it.b == null, way = one ? Math.sign(it.to || 1) : 1, a = F.v([it.a, 0]);
 const room = way * Math.sign(F.u[0]) > 0 ? vb[0] + vb[2] - a[0] : a[0] - vb[0], run = Math.max(q * 2.5, Math.min(q * 5, room - q * 1.5));
-const b = one ? [a[0] + way * Math.sign(F.u[0]) * run, a[1]] : F.v([it.b, 0]), y = it.y != null ? F.v([0, it.y])[1] : a[1] - q * 1.5, r = q * 0.35;
+const b = one ? [a[0] + way * Math.sign(F.u[0]) * run, a[1]] : F.v([it.b, 0]), y = it.y != null ? F.v([0, it.y])[1] : lineY != null ? lineY : a[1] - q * 1.5, r = q * 0.35;
 const d = Math.sign(b[0] - a[0]);
 put([[a[0] + d * r, y], [b[0] - (one ? 0 : d * r), y]]);
 if (one) put([[b[0] - d * q * 0.6, y - q * 0.45], [b[0], y], [b[0] - d * q * 0.6, y + q * 0.45]]);
@@ -6758,32 +6762,113 @@ return out;
 }
 return example;
 }
+const DRAW_ONE = {
+pts: ['point', ''], segs: ['line', ''], line: ['line', 'through'], radius: ['line', 'radius'], dir: ['line', 'direction'],
+pair: ['line', 'pair'], angle: ['line', 'angle'], join: ['line', 'join'], interval: ['line', 'interval'], box: ['line', 'box'],
+clock: ['line', 'hands'], dial: ['line', 'pointer'], scale: ['line', 'scale'], pie: ['line', 'sectors'],
+fit: ['curve', ''], curves: ['curve', 'arcs'], sketch: ['curve', 'sketch'],
+inside: ['region', ''], cells: ['region', 'cells'], polygon: ['region', 'shape'], area: ['region', 'area'], hist: ['region', 'bars'], cuboid: ['region', 'cuboid'],
+};
+const DRAW_IS = ['point', 'line', 'curve', 'region'];
+const DRAW_FRAMES = ['grid', 'line', 'angle'];
+const DRAW_ANGLE = { hands: 1, pointer: 1, sectors: 1 }, DRAW_LINE = { interval: 1, box: 1, scale: 1 };
+function drawOne_(spec) {
+if (typeof spec === 'string') { try { spec = JSON.parse(spec); } catch (e) { return null; } }
+if (!spec || typeof spec !== 'object') return null;
+if (spec.one === 1 && Array.isArray(spec.pieces)) return spec;
+if (!Array.isArray(spec.items)) return null;
+const tols = [];
+const piece = it => {
+if (!it || typeof it !== 'object') return null;
+if (it.k === 'any') {
+const of = (it.of || []).map(piece).filter(Boolean);
+if (!of.length) return null;
+const p = { is: of[0].is, any: of };
+Object.keys(it).forEach(f => { if (f !== 'k' && f !== 'of' && f !== 'or') p[f] = it[f]; });
+if (it.or) { const o = piece(it.or); if (o) p.or = o; }
+return p;
+}
+const w = DRAW_ONE[it.k];
+if (!w) return null;
+const p = { is: w[0] };
+if (w[1]) p.as = w[1];
+Object.keys(it).forEach(f => {
+if (f === 'k' || f === 'or' || f === 'tol') return;
+if (it.k === 'segs' && f === 'at') p.at = it.at.map(s => [[s[0], s[1]], [s[2], s[3]]]);
+else if (it.k === 'segs' && f === 'poly') p.ring = it.poly;
+else if (it.k === 'line' && f === 'thru') p.at = it.thru;
+else if (it.k === 'inside' && f === 'poly') p.at = it.poly;
+else if (f === 'is') p.shape = it.is;
+else p[f] = it[f];
+});
+if (it.k === 'sketch') p.ai = true;
+tols.push(it.tol != null ? +it.tol : spec.tol != null ? +spec.tol : null);
+if (it.or) { const o = piece(it.or); if (o) p.or = o; }
+return p;
+};
+const pieces = spec.items.map(piece).filter(Boolean);
+const flat = [];
+const walk = p => { flat.push(p); (p.any || []).forEach(walk); if (p.or) walk(p.or); };
+pieces.forEach(walk);
+const is = flat.some(p => DRAW_ANGLE[p.as]) ? 'angle' : flat.some(p => DRAW_LINE[p.as]) ? 'line' : 'grid';
+const frame = { is };
+if (spec.frame != null) frame.at = spec.frame;
+if (spec.sq != null) frame.sq = spec.sq;
+if (tols.some(t => t != null)) frame.step = Math.round(2 * Math.min.apply(null, tols.map(t => (t == null ? 0.3 : t))) * 1000) / 1000;
+const out = { one: 1, frame, pieces };
+['marks', 'loose', 'eg'].forEach(f => { if (spec[f] != null) out[f] = spec[f]; });
+return out;
+}
+function drawItemOf_(p) {
+if (!p) return null;
+if (p.any) {
+const it = { k: 'any', of: p.any.map(drawItemOf_).filter(Boolean) };
+Object.keys(p).forEach(f => { if (f !== 'is' && f !== 'any' && f !== 'or') it[f] = p[f]; });
+return it;
+}
+const k = Object.keys(DRAW_ONE).find(n => DRAW_ONE[n][0] === p.is && DRAW_ONE[n][1] === (p.as || '')
+&& (n !== 'segs' || !p.whole) && (n !== 'line' || p.as === 'through'));
+if (!k) return null;
+const it = { k };
+Object.keys(p).forEach(f => {
+if (f === 'is' || f === 'as' || f === 'or' || f === 'ai') return;
+if (k === 'segs' && f === 'at') it.at = p.at.map(s => [s[0][0], s[0][1], s[1][0], s[1][1]]);
+else if (k === 'segs' && f === 'ring') it.poly = p.ring;
+else if (k === 'line' && f === 'at') it.thru = p.at;
+else if (k === 'inside' && f === 'at') it.poly = p.at;
+else if (f === 'shape') it.is = p.shape;
+else it[f] = p[f];
+});
+return it;
+}
+const drawFrameSpec_ = one => ({ frame: one.frame.at, sq: one.frame.sq });
+const drawTol_ = (one, F) => F.sq * 0.5 * (Number(one.frame.step) || 1);
 function drawMarker_() {
 const g = drawGeom_(); [drawFrame_, drawInk_, drawShapes_].forEach(f => Object.assign(g, f(g)));
 const { frameOf, inkOf, samples, polygons } = g;
 const KIND = Object.assign({}, drawKinds1_(g), drawKinds2_(g), drawKinds3_(g), drawKinds4_(g), drawKinds5_(g));
-function one(it, ink, F, spec) {
-const tol = F.sq * (it.tol || spec.tol || 0.3);
-if (it.k === 'any') {
-const rs = it.of.map(o => one(o, ink, F, spec)), hit = rs.find(r => r.ok);
+function one(p, ink, F, tol) {
+const it = drawItemOf_(p);
+if (it && it.k === 'any') {
+const rs = p.any.map(o => one(o, ink, F, tol)), hit = rs.find(r => r.ok);
 return hit || { ok: false, ex: q => rs.some(r => r.ex(q)) };
 }
-const f = KIND[it.k];
+const f = it && KIND[it.k];
 return f ? f(it, ink, F, tol) : { ok: false, ex: () => false };
 }
 function mark(strokes, spec, fig, marks) {
-if (typeof spec === 'string') { try { spec = JSON.parse(spec); } catch (e) { return null; } }
-if (!spec || !Array.isArray(spec.items)) return null;
-const F = frameOf(spec, fig), ink = inkOf(strokes, F);
-const total = spec.items.reduce((s, it) => s + (it.m == null ? 1 : it.m), 0);
-const of = Math.max(1, Number(marks) || spec.marks || total);
+const one_ = drawOne_(spec);
+if (!one_ || !one_.pieces.length) return null;
+const F = frameOf(drawFrameSpec_(one_), fig), ink = inkOf(strokes, F), tol = drawTol_(one_, F);
+const total = one_.pieces.reduce((s, p) => s + (p.m == null ? 1 : p.m), 0);
+const of = Math.max(1, Number(marks) || one_.marks || total);
 if (!ink.length) return { got: 0, of: of, each: [], stray: 0, empty: true };
 let got = 0;
 const exs = [], each = [];
-spec.items.forEach(it => {
-let cur = it, r = one(cur, ink, F, spec);
+one_.pieces.forEach(p => {
+let cur = p, r = one(cur, ink, F, tol);
 exs.push(r.ex);
-while (!r.ok && cur.or) { cur = cur.or; r = one(cur, ink, F, spec); exs.push(r.ex); }
+while (!r.ok && cur.or) { cur = cur.or; r = one(cur, ink, F, tol); exs.push(r.ex); }
 each.push(r.ok ? (cur.m == null ? 1 : cur.m) : 0);
 if (r.ok) got += cur.m == null ? 1 : cur.m;
 });
@@ -6793,7 +6878,7 @@ const pts = s.pl.length === 1 ? s.pl : [].concat.apply([], s.pl.slice(1).map((q,
 pts.forEach(p => { all++; if (!exs.some(e => e(p))) lost++; });
 });
 const stray = all ? lost / all : 0;
-if (!spec.loose && stray > 0.12 && lost * F.sq * 0.25 > F.sq) got = Math.max(0, got - 1);
+if (!one_.loose && stray > 0.12 && lost * F.sq * 0.25 > F.sq) got = Math.max(0, got - 1);
 return { got: Math.min(of, Math.floor(got * of / Math.max(1, total) + 1e-9)), of: of, each: each, stray: Math.round(stray * 100) / 100 };
 }
 const example = drawExample_(g);
@@ -6906,11 +6991,27 @@ move: (g, at) => [g.from[0], g.from[1], at[0], at[1]],
 end: (g, st) => (st.length === 4
 && Math.hypot((st[2] - st[0]) * g.sx, (st[3] - st[1]) * g.sy) >= padMinOf_(g) ? st : null),
 },
+point: {
+move: (g, at) => [at[0], at[1]],
+end: (g, st) => (st && st.length >= 2 ? [st[st.length - 2], st[st.length - 1]] : null),
+},
+shade: {
+move: (g, at) => [at[0], at[1]],
+end: (g, st) => (st && st.length >= 2 ? padShadeOf_(g.lat, st[st.length - 2], st[st.length - 1]) : null),
+},
 compass: {
 move: (g, at) => padSwing_(g, at),
 end: (g, st) => (g.r >= padMinOf_(g) && st.length >= 4 ? st : null),
 },
 };
+function padShadeOf_(L, x, y) {
+const cell = (a, v) => { if (!a || a.length < 2) return null; let i = 0; while (i < a.length - 2 && a[i + 1] < v) i++; return v >= a[0] && v <= a[a.length - 1] ? [a[i], a[i + 1]] : null; };
+const cx = L && cell(L.xu, x), cy = L && cell(L.yu, y);
+const [x0, x1] = cx || [x - 8, x + 8], [y0, y1] = cy || [y - 8, y + 8];
+const ix = (x1 - x0) * 0.15, iy = (y1 - y0) * 0.15, out = [];
+for (let k = 0; k <= 4; k++) out.push(Math.round(k % 2 ? x1 - ix : x0 + ix), Math.round(y0 + iy + (y1 - y0 - 2 * iy) * k / 4));
+return out;
+}
 function padAid_(g) {
 const aid = g.ink.querySelector('.qpad-aid');
 if (!aid) return;
@@ -15291,8 +15392,10 @@ if (box) { floatPlace_(box, innerWidth - box.offsetWidth - 12, 64); calcPaint_(b
 ;
 /* js/qtools.js */
 const QT_TOOLS = [
-{ id: 'pen', icon: 'pen', label: 'Pen', note: 'draw on the figure', act: 'qt-pen' },
-{ id: 'line', icon: 'line', label: 'Straight line', note: 'draw a straight line', act: 'qt-pen' },
+{ id: 'point', icon: 'dot', label: 'Point', note: 'tap to plot a point', act: 'qt-pen' },
+{ id: 'pen', icon: 'pen', label: 'Curve', note: 'draw a curve', act: 'qt-pen' },
+{ id: 'shade', icon: 'shade', label: 'Shade', note: 'tap a square to shade it', act: 'qt-pen' },
+{ id: 'line', icon: 'line', label: 'Line', note: 'draw a straight line', act: 'qt-pen' },
 { id: 'ruler', icon: 'ruler', label: 'Ruler', note: 'measure a length', act: 'qt-inst' },
 { id: 'protractor', icon: 'protractor', label: 'Protractor', note: 'measure an angle', act: 'qt-inst' },
 { id: 'compass', icon: 'compass', label: 'Compass', note: 'press the centre, drag', act: 'qt-inst' },
@@ -15305,8 +15408,8 @@ const QT_TOOLS = [
 { id: 'check', icon: 'send', label: 'Check', note: '', act: '' },
 ];
 const QT_ROW = QENGINE.row;
-const QT_DRAWING = { pen: 1, line: 1, compass: 1 };
-const QT_PAD_TOOL = { pen: 'pen', line: 'ruler', compass: 'compass', protractor: 'protractor' };
+const QT_DRAWING = { point: 1, line: 1, pen: 1, shade: 1, compass: 1 };
+const QT_PAD_TOOL = { point: 'point', pen: 'pen', line: 'ruler', shade: 'shade', compass: 'compass', protractor: 'protractor' };
 const qMulti_ = x => { try { return (questionParts_()[qId_(x)] || []).length > 1; } catch (e) { return false; } };
 const qtTool_ = id => QT_TOOLS.find(t => t.id === id) || null;
 const PART_MEM = new Map();

@@ -37,12 +37,31 @@ const PAD_DRAW = {
     end: (g, st) => (st.length === 4
       && Math.hypot((st[2] - st[0]) * g.sx, (st[3] - st[1]) * g.sy) >= padMinOf_(g) ? st : null),
   },
+  /* ONE DRAWING CANVAS (owner, 23 Nov): a POINT is one tap, snapped to the frame (`padPlace_`); stored as a dot */
+  point: {
+    move: (g, at) => [at[0], at[1]],
+    end: (g, st) => (st && st.length >= 2 ? [st[st.length - 2], st[st.length - 1]] : null),
+  },
+  /* and SHADE is one tap in a square of the frame: the square filled (`padShadeOf_`), whole */
+  shade: {
+    move: (g, at) => [at[0], at[1]],
+    end: (g, st) => (st && st.length >= 2 ? padShadeOf_(g.lat, st[st.length - 2], st[st.length - 1]) : null),
+  },
   compass: {
     move: (g, at) => padSwing_(g, at),
     end: (g, st) => (g.r >= padMinOf_(g) && st.length >= 4 ? st : null),
   },
 };
 
+/* THE SQUARE OF THE FRAME A TAP IS IN, FILLED as a zig-zag in the pad's units; with no grid, a small patch round the tap */
+function padShadeOf_(L, x, y) {
+  const cell = (a, v) => { if (!a || a.length < 2) return null; let i = 0; while (i < a.length - 2 && a[i + 1] < v) i++; return v >= a[0] && v <= a[a.length - 1] ? [a[i], a[i + 1]] : null; };
+  const cx = L && cell(L.xu, x), cy = L && cell(L.yu, y);
+  const [x0, x1] = cx || [x - 8, x + 8], [y0, y1] = cy || [y - 8, y + 8];
+  const ix = (x1 - x0) * 0.15, iy = (y1 - y0) * 0.15, out = [];
+  for (let k = 0; k <= 4; k++) out.push(Math.round(k % 2 ? x1 - ix : x0 + ix), Math.round(y0 + iy + (y1 - y0 - 2 * iy) * k / 4));
+  return out;
+}
 /* ---------- WHAT IS SHOWN WHILE IT IS DRAWN, AND GONE WHEN IT IS NOT § */
 function padAid_(g) {
   const aid = g.ink.querySelector('.qpad-aid');

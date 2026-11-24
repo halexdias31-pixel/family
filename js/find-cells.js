@@ -610,7 +610,7 @@ function padAspect_(x, svg) {
 const padAspectOf_ = pad => Number(pad && pad.getAttribute && pad.getAttribute('data-aspect')) || 1;
 
 /* ---------- EVERY PAD HOLDS EVERY INSTRUMENT (round 3), chosen from the part's one tool row (qtools.js), never from its words. */
-const PAD_TOOLS = ['pen', 'ruler', 'compass', 'protractor'];
+const PAD_TOOLS = ['pen', 'ruler', 'compass', 'protractor', 'point', 'shade'];
 
 /* UNDO AND CLEAR, dimmed while there is nothing to take back; in a question's tool row by key (1020). The row offers a pen only where the pad is already drawn */
 const padUndoOpts_ = (x, k0) => { const k = k0 || padKey_(x), n = padRead_(k).length, data = k0 ? {} : { k };

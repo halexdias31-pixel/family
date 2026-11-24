@@ -27,6 +27,7 @@ const USAGE = `
   node tools/content.js markscheme <ids file> <pdf dir> [--overrides f.json] [--apply]   cells → answers → words (AQA schemes)
   node tools/content.js keypack <lib-import.json> [--apply]                             validate → apply (a key pack onto the words)
   node tools/content.js insert                                                          sheets → write (tools/inserts.py's sheets)
+  node tools/content.js drawkeys [--apply]                                              one drawing canvas: each draw_answer as its frame and pieces (tools/lib/draw-key.js)
   node tools/content.js picks [--apply]                                                 one answer format: each pick question's key as its letters, its working a note (tools/lib/pick-key.js)
   node tools/content.js shape [--apply]                                                 one question shape: no second way to say a stem, an option or a key (tools/lib/shape.js; held by tools/one-shape.js)
   node tools/content.js ideas [--out <dir>]                                             measure → merge → tag (one maths card per idea; part_of, specs, idea_id; tools/lib/ideas.js)
@@ -541,6 +542,14 @@ async function main(argv) {
     require('./lib/pick-key.js').normaliseMap(map, t);
     console.log('picks: ' + (t.picks || 0) + ' pick questions, ' + (t.keys || 0) + ' key(s) put in letters, ' + (t.notes || 0) + ' note(s) cleared of the letter, '
       + (t.not || []).length + ' not convertible' + ((t.not || []).length ? ': ' + t.not.join(', ') : ''));
+    if (argv.includes('--apply')) IM.writeWords('questions', map); else console.log('(a dry run: --apply writes data-private/questions.json)');
+    return;
+  }
+  /* ONE DRAWING CANVAS (owner, 23 Nov): the words as they are, every draw_answer in the one form (tools/lib/draw-key.js); writeWords does the same on every write. */
+  if (what === 'drawkeys') {
+    const map = IM.words('questions'), t = {};
+    require('./lib/draw-key.js').normaliseMap(map, t);
+    console.log('drawkeys: ' + (t.keys || 0) + ' drawn key(s) put in the one form, ' + (t.not || []).length + ' not convertible' + ((t.not || []).length ? ': ' + t.not.join(', ') : ''));
     if (argv.includes('--apply')) IM.writeWords('questions', map); else console.log('(a dry run: --apply writes data-private/questions.json)');
     return;
   }
