@@ -226,7 +226,7 @@ function accountFamCard_(f, famLabel_, personForm_, tcard_) {
   });
   /* A CHILD'S PHOTOGRAPHED WORKING (501), to the parent they accepted; staff see it on the admin's list below. */
   const more = tile_(f.relation === 'child' ? [typeof workSeeOpts_ === 'function' ? workSeeOpts_(f.personId, true) : null,
-      typeof workFileOpts_ === 'function' ? workFileOpts_(f.personId) : null] : null)
+      typeof workFileOpts_ === 'function' ? workFileOpts_(f.personId) : null, typeof histOpts_ === 'function' ? histOpts_(f.personId) : null] : null)
     + (typeof peopleOpts_ === 'function' ? tile_(peopleOpts_(row)) : '');
   return personMark_(f.personId, personForm_(row) || tcard_(row) + (more ? tileRow_(more, 'person-tiles') : ''));
 }
@@ -249,7 +249,7 @@ function accountEveryone_(col, famIds, personForm_, tcard_) {
           label: 'New PIN', note: 'to sign in with', act: 'kid-pin',
           data: { id: p.personId, name: String(p.title || '').split(' ')[0] } }) : '')
           + tile_(isStudentsCol_(col) ? [typeof workSeeOpts_ === 'function' ? workSeeOpts_(p.personId) : null,
-            typeof workFileOpts_ === 'function' ? workFileOpts_(p.personId) : null] : null)
+            typeof workFileOpts_ === 'function' ? workFileOpts_(p.personId) : null, typeof histOpts_ === 'function' ? histOpts_(p.personId) : null] : null)
           + (typeof peopleOpts_ === 'function' ? tile_(peopleOpts_(p)) : ''), 'person-tiles') : '')));
 }
 /* YOUR OWN CARD, IN A LIST OF ONE OR NONE. */

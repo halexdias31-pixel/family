@@ -50,7 +50,8 @@ function browser(name) {
    at        the address after the site root ('' or '?card=...')
    ready     a predicate run in the page until true (default: DATA has tutors); ready:false waits for nothing
    settle    ms to wait once ready (1500)
-   words     false: the library without its words (the repository's files) */
+   words     false: the library without its words (the repository's files)
+   answer    q => object|null: the backend's answer to one call, by its body (else the payload) */
 async function open(opts) {
   const o = opts || {}, { devices } = require('playwright');
   await serve();
@@ -61,7 +62,10 @@ async function open(opts) {
     /* `as: 'none'` is nobody signed in: the welcome screen */
     if (o.as !== 'none') await pg.addInitScript(u => { try { localStorage.setItem('familyUser', JSON.stringify(u)); } catch (e) {} }, o.user || USERS[o.as || 'admin']);
     const body = o.payload || PAYLOAD();
-    await pg.route(/script\.google\.com/, r => r.fulfill({ status: 200, contentType: 'application/json', body }));
+    /* `answer(q)`: a check's own reply to one call (q the request's JSON body), else the payload. */
+    await pg.route(/script\.google\.com/, r => { let a = null;
+      if (o.answer) try { a = o.answer(JSON.parse(r.request().postData() || '{}')); } catch (e) { a = null; }
+      return r.fulfill({ status: 200, contentType: 'application/json', body: a ? JSON.stringify(a) : body }); });
     await pg.goto(base + (o.words === false ? '/plain/' : '/') + (o.at || ''));
     if (o.ready !== false) await pg.waitForFunction(o.ready || (() => typeof DATA !== 'undefined' && DATA && (DATA.tutors || []).length), null, { timeout: o.timeout || 90000 });
     await pg.waitForTimeout(o.settle == null ? 1500 : o.settle);
