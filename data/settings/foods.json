@@ -1,5 +1,5 @@
 {
- "say": "THE FOOD TREE (owner, 18 Nov): kinds as a small tree (`parent`), each with the spellings a list item may use for it; each food a name, its kind and an optional one-line note. Read by js/chemistry.js (FOOD) for the owner's Tools alone: Docket offers a kind's foods (its children's too) under an item named for the kind, and Find › Tools has a card for each kind and each food (kinds.json fooddb). FOOD SLOTS (owner, 23 Nov; data only for now): `slots` are the slots a Docket item may name as its `slot` (Protein, Fruit…) in place of a fixed food, each with `need`, how many a day it wants (Fruit 3); a food's `slots` are the slots it fills, so the Docket lists it under each (js/map.js dkSlotOptions_); one may fill two (the takeaway: Meat and Carbs). Read by the backend as DOCKET_FOODS (tools/cards-gen.js) for the private address's do=options. THE DAY PLAN (owner, 23 Nov): `meals` names each meal's slots (one option list per slot, reused all day); an option marked `rush` is a worst-day choice that fills several slots at once, to be shown first on a busy day later. An option marked `quick` is one that is quick to make.",
+ "say": "THE FOOD TREE (owner, 18 Nov): kinds as a small tree (`parent`), each with the spellings a list item may use for it; each food a name, its kind and an optional one-line note. Read by js/chemistry.js (FOOD) for the owner's Tools alone: Docket offers a kind's foods (its children's too) under an item named for the kind, and Find › Tools has a card for each kind and each food (kinds.json fooddb). FOOD SLOTS (owner, 23 Nov; data only for now): `slots` are the slots a Docket item may name as its `slot` (Protein, Fruit…) in place of a fixed food, each with `need`, how many a day it wants (Fruit 3); a food's `slots` are the slots it fills, so the Docket lists it under each (js/map.js dkSlotOptions_); one may fill two (the takeaway: Meat and Carbs). Read by the backend as DOCKET_FOODS (tools/cards-gen.js) for the private address's do=options. THE DAY PLAN (owner, 23 Nov; 24 Nov: the same food categories at every meal, Protein, Carbs, Dairy, Veg and Fruit, Grain merged into Carbs, a Meat option a Protein one too; a slot’s `need` is a day`s, so Fruit 3 is one a meal): `meals` names each meal's slots (one option list per slot, reused all day); an option marked `rush` is a worst-day choice that fills several slots at once, to be shown first on a busy day later. An option marked `quick` is one that is quick to make.",
  "kinds": [
   {
    "id": "carb",
@@ -123,7 +123,6 @@
    "kind": "carb",
    "note": "or toast",
    "slots": [
-    "Grain",
     "Carbs"
    ]
   },
@@ -152,7 +151,6 @@
    "kind": "carb",
    "note": "",
    "slots": [
-    "Grain",
     "Carbs"
    ]
   },
@@ -176,7 +174,8 @@
    "kind": "meat",
    "note": "",
    "slots": [
-    "Meat"
+    "Meat",
+    "Protein"
    ]
   },
   {
@@ -189,7 +188,8 @@
    "kind": "meat",
    "note": "",
    "slots": [
-    "Meat"
+    "Meat",
+    "Protein"
    ]
   },
   {
@@ -216,7 +216,8 @@
    "kind": "fish",
    "note": "",
    "slots": [
-    "Meat"
+    "Meat",
+    "Protein"
    ]
   },
   {
@@ -508,7 +509,7 @@
    "note": "",
    "slots": [
     "Protein",
-    "Grain"
+    "Carbs"
    ],
    "rush": true
   },
@@ -517,7 +518,8 @@
    "kind": "fish",
    "note": "",
    "slots": [
-    "Meat"
+    "Meat",
+    "Protein"
    ]
   },
   {
@@ -592,7 +594,7 @@
    "kind": "carb",
    "note": "",
    "slots": [
-    "Grain",
+    "Carbs",
     "Dairy"
    ],
    "rush": true
@@ -654,10 +656,6 @@
    "need": 1
   },
   {
-   "name": "Grain",
-   "need": 1
-  },
-  {
    "name": "Pack for later",
    "need": 1
   },
@@ -683,9 +681,10 @@
    "name": "Breakfast",
    "slots": [
     "Protein",
-    "Fruit",
+    "Carbs",
     "Dairy",
-    "Grain"
+    "Veg",
+    "Fruit"
    ]
   },
   {
@@ -693,7 +692,9 @@
    "slots": [
     "Protein",
     "Carbs",
+    "Dairy",
     "Veg",
+    "Fruit",
     "Snack"
    ]
   },
@@ -702,7 +703,9 @@
    "slots": [
     "Protein",
     "Carbs",
-    "Veg"
+    "Dairy",
+    "Veg",
+    "Fruit"
    ]
   }
  ]

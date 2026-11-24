@@ -605,6 +605,7 @@
   "status-right": "Right",
   "status-part": "Part right",
   "status-wrong": "Wrong",
+  "status-unmarked": "Not marked yet",
   "status-hidden": "Answer hidden",
   "which-part": "Which part",
   "era": "Era",
