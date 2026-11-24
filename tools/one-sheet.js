@@ -35,6 +35,7 @@ function wrong(html, lines) {
   if (/\bqp-face\b|data-do="qp-paper|\bqp-ans-row\b|\bqp-bar\b/.test(html)) return 'a face or face-swap tile';
   const n = (/data-lines="(\d+)"/.exec(sheets[0]) || [])[1];
   if (String(n) !== String(lines)) return 'lines ' + n + ', the data says ' + lines;
+  if ((sheets[0].match(/class="qpad-note\b/g) || []).length > 1) return 'more than one note on the sheet';
   if (!/\bqp-sheet-lines\b[\s\S]*\bqpad\b/.test(sheets[0])) return 'no lined paper under the pen';
   return '';
 }
@@ -92,6 +93,7 @@ function run(o) {
       'a second sheet': sample.html + '<div class="qp-sheet" data-lines="1"></div>',
       'a box outside it': sample.html + '<label class="qp-ans"><textarea class="qp-ans-in kp-in"></textarea></label>',
       'a face-swap tile': sample.html.replace('</div>', '<button class="tile" data-do="qp-paper">Paper</button></div>'),
+      'two notes on one sheet': sample.html.replace(/(<p class="qpad-note)/, '<p class="qpad-note"></p>$1'),
       'the wrong line count': sample.html.replace(/data-lines="\d+"/, 'data-lines="99"'),
     };
     Object.entries(breaks).forEach(([k, h]) => { const w = wrong(h, sample.lines); console.log('  --prove ' + k + ': ' + (w ? 'caught (' + w + ')' : 'MISSED')); if (!w) bad.push('--prove: ' + k + ' was not caught'); });

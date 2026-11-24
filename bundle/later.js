@@ -6073,14 +6073,14 @@ function ansLines_(x) {
 const f = qtFace_(x), m = Math.round(Number((x && (x.marks || (x.row && x.row.marks))) || 1)) || 1;
 if (f.cells) return 2;
 if (ansEssay_(x) || f.sheet) return Math.max(6, Math.min(16, m));
-return Math.max(1, Math.min(4, m));
+return Math.max(f.face === 'draw' ? 3 : 1, Math.min(4, m));
 }
 const sheetSvg_ = n => figDraw_({ el: 'svg', a: { class: 'qsurf is-lines', viewBox: '0 0 340 ' + n * SHEET_LINE, role: 'img', 'aria-label': 'Lined paper' },
 kids: Array.from({ length: n }, (_, i) => ({ el: 'line', a: { class: 'grid', x1: 0, y1: (i + 1) * SHEET_LINE - 1, x2: 340, y2: (i + 1) * SHEET_LINE - 1 } })) });
 const sheetItem_ = x => ({ key: x.key + '~sheet' });
 function sheetPrint_(x) {
 const p = x && x.key ? padSource_(x) : null;
-return p ? fcG_('div', 'qp-sheet-print', { 'data-q': x.key }, padWrap_(x, p.svg, 'row')) : '';
+return p ? fcG_('div', 'qp-sheet-print', { 'data-q': x.key }, padWrap_(x, p.svg, 'row').replace(/<p class="qpad-note"[^>]*>[\s\S]*?<\/p>/, '')) : '';
 }
 function sheet_(x, typed, print) {
 const n = ansLines_(x);

@@ -3775,8 +3775,8 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .qp-sheet-lines { position: relative; container-type: inline-size; }
 .qp-sheet .qpad-art { width: 100%; color: var(--ink); }
 .qp-sheet .qsurf.is-lines .grid { stroke: currentColor; opacity: .28; }
-/* ONE SAVED LINE, the part's own under the sheet: its pads' notes are not said again inside it */
-.qp-sheet .qpad-note { display: none; }
+/* PICTURE TEXT ON THE SHEET IN THE SHEET'S INK, never the figure's own black */
+.qp-sheet svg text { fill: currentColor; }
 .qp-sheet .qsurf .grid, .qp-sheet .qsurf .axis { stroke: currentColor; opacity: .33; }
 .qp-sheet-type {
   position: absolute; inset: 0; margin: 0; padding: 0; pointer-events: none; overflow: hidden;
