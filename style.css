@@ -113,7 +113,7 @@
   /* LAYERS: every z-index draws one of these. 0-7 stack the parts inside one thing (a pad, a card, a game);
      --z-float is a thing floating over its screen, --z-bar the bars pinned over the page, --z-top what rides above them all. */
   --z-under: -1; --z-0: 0; --z-1: 1; --z-2: 2; --z-3: 3; --z-4: 4; --z-6: 6; --z-7: 7;
-  --z-float: 30; --z-bar: 50; --z-top: 60;
+  --z-float: 30; --z-bar: 50; --z-pad: 55; --z-top: 60;
   --dur-quick: 120ms;
   --dur-enter: 220ms;
   --dur-exit:  180ms;
@@ -3913,8 +3913,8 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
   --kp-op-face: var(--paper-strip);    --kp-op-ink: var(--paper-ink);
   --kp-mode-face: var(--paper-faint);  --kp-mode-ink: var(--white);
   --kp-del-face: var(--bad); --kp-del-ink: var(--black);
-  position: fixed; left: 50%; bottom: 0; transform: translateX(-50%);
-  width: 100%; max-width: var(--app); box-sizing: border-box; z-index: var(--z-float);
+  position: fixed; left: 50%; bottom: var(--kp-vv, 0px); transform: translateX(-50%);
+  width: 100%; max-width: var(--app); box-sizing: border-box; z-index: var(--z-pad); /* over the header and bar it can reach on a short screen, under the loupe */
   display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--s1);
   padding: var(--s2) var(--s4) calc(8px + var(--safe-bottom));
   background: var(--bg); border-top: 1px solid var(--line);
@@ -3952,6 +3952,12 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 #kp { grid-template-columns: repeat(60, minmax(0, 1fr)); column-gap: 0; max-width: 640px; }
 #kp .kp-key { border-inline: 2px solid transparent; background-clip: padding-box; }
 @media (max-width: 480px) { #kp { padding-inline: 1px; } }
+/* A PHONE ON ITS SIDE (owner 23 Nov, "offset up"): seven rows of 44px and the pad's margins were taller than an iPhone's landscape screen, so
+   the top row was drawn above it. There the gaps close up and a row is a seventh of the screen left, 38px at the least (`KP_MIN`). */
+@media (orientation: landscape) and (max-height: 500px) {
+  #kp { row-gap: 2px; padding-top: 2px; padding-bottom: calc(2px + var(--safe-bottom)); }
+  #kp .kp-key { min-height: clamp(38px, calc((100dvh - 16px - var(--safe-bottom)) / 7 - 2px), 44px); }
+}
 /* A KEY THIS BOX CANNOT USE, greyed where it stands (`kpCan_`), never hidden */
 #kp .kp-key.kp-off { opacity: .3; filter: grayscale(1); cursor: default; }
 #kp .kp-key.kp-off:active { transform: none; filter: grayscale(1); }
