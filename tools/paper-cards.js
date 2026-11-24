@@ -25,6 +25,8 @@ const PAPERS = [
   { name: 'Access Tuition Physics Momentum', taps: ['Questions', 'Physics', 'GCSE', 'Momentum'], set: 'W-AT-P-momentum' },
   /* A TOPIC SET OF ONE BOARD'S QUESTIONS (24 Nov): Physics & Maths Tutor's AQA Foundation sub-topic paper, most of its parts the past
      papers' own questions shown again (same_as), their words asked for by the row they are. */
+  /* AN @FAMILY SET (owner, 20 Nov: questions from the library): one idea's questions, made from its card's facts (tools/lib/family-q.js) */
+  { name: '@family AQA Biology Cell differentiation (F)', taps: ['Questions', 'Biology', 'GCSE', 'AQA', 'Foundation', 'Cell differentiation'], set: 'P-FAM-AQA-bio-cell-differentiation' },
   { name: 'Physics & Maths Tutor AQA Biology 1.1 Cell Structure (F)', taps: ['Questions', 'Biology', 'GCSE', 'AQA', 'Foundation', '1.1 Cell Structure'], set: 'P-PMT-AQA-BF-1-1-cell-structure' },
 ];
 const ANY = "Doesn't matter";

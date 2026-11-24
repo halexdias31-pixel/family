@@ -35,6 +35,7 @@ const USAGE = `
   node tools/content.js sets [--apply]                                                  one question set: every paper, worksheet, exercise, 5-a-day a set (tools/lib/sets.js; held by tools/one-set.js)
   node tools/content.js qideas [--apply]                                                one topic tree: each maths question's idea_id from data/settings/question-ideas.json (tools/lib/qideas.js; held by tools/one-topic.js)
   node tools/content.js sciideas [--review <file>]                                     measure → merge → tag (one science card per idea: an AQA spec point; tools/lib/sci-ideas.js)
+  node tools/content.js family [--apply] [--ledger <dir>]                                facts → questions → write → pack (@family questions from the library: fact ids, one set per idea; tools/lib/family-q.js; held by tools/one-fact.js)
   node tools/content.js speccode [--apply]                                              derive → write (spec_code from a paper's own columns)
 
   node tools/content.js library <split|join|seed|pull|push|status|drive-pack|help> …   the library's private half (397)
@@ -516,6 +517,61 @@ const SCIIDEAS = {
     console.log('sciideas: ' + n + ' field(s) set on ' + c.m.cards.length + ' science cards');
   },
 };
+/* ---------- @FAMILY QUESTIONS FROM THE LIBRARY (owner, 20 Nov; queue item 11 of UNIFY): fact ids (tools/lib/facts.js) → questions made from
+   them (tools/lib/family-q.js) → one @family set per idea in data/questions.json, the words in data-private/questions.json, data/facts.json
+   the ids, versions and templates, data/settings/question-ideas.json science.set each set's idea; --ledger <dir> packs the words for the Drive. ---------- */
+const FAMILY = {
+  facts(c) {
+    c.F = require('./lib/facts.js'); c.Q = require('./lib/family-q.js');
+    c.regFile = path.join(ROOT, c.F.FILE);
+    c.reg = fs.existsSync(c.regFile) ? JSON.parse(fs.readFileSync(c.regFile, 'utf8')) : {};
+    c.tb = IM.cards('textbooks');
+    c.cards = c.F.cardsOf(c.tb.rows, IM.words('textbooks'));
+    c.a = c.F.assign(c.reg, c.cards);
+    c.text = {}; c.a.facts.forEach(f => { c.text[f.id] = f.text; });
+    console.log('family: ' + c.a.facts.length + ' facts on ' + c.cards.length + ' cards; ' + c.a.made.length + ' new id(s), ' + c.a.moved.length + ' moved or edited, ' + c.a.retired.length + ' retired');
+  },
+  questions(c) {
+    c.qs = c.Q.make(c.a.facts);
+    c.v = c.Q.version(c.reg, c.qs, id => c.text[id]);
+    const k = {}; c.qs.forEach(q => { k[q.kind] = (k[q.kind] || 0) + 1; });
+    console.log('family: ' + c.qs.length + ' questions (' + Object.keys(k).map(x => k[x] + ' ' + x).join(', ') + '); ' + c.v.made + ' new, ' + c.v.bumped + ' new version(s), ' + c.v.gone + ' gone');
+  },
+  write(c) {
+    const apply = process.argv.includes('--apply');
+    const q = IM.cards('questions'), mine = r => S(r.paper_id).startsWith('P-FAM-AQA-');
+    const old = {}; q.rows.filter(mine).forEach(r => { old[r.row_id] = r; });
+    const name = {}, sub = {};
+    c.cards.forEach(x => { if (!name[x.idea]) { name[x.idea] = x.title; sub[x.idea] = x.subject; } });
+    const rows = c.Q.rowsOf(c.qs, name, sub, c.reg, old);
+    c.rows = rows;
+    const sets = rows.filter(r => r.kind === 'document').length;
+    console.log('family: ' + sets + ' set(s), ' + rows.filter(r => r.kind === 'question' && r.active === 'True').length + ' live question row(s)' + (apply ? '' : ' (a dry run: --apply writes)'));
+    if (!apply) return;
+    q.rows = q.rows.filter(r => !mine(r)).concat(rows);
+    IM.writeCards('questions', q.rows, q.style);
+    const words = IM.words('questions');
+    c.qs.forEach(x => { words[x.id] = x.words; });
+    IM.writeWords('questions', words);
+    c.reg.about = 'FACT IDS AND @FAMILY QUESTIONS (owner, 20 Nov): written by `node tools/content.js family --apply` (tools/lib/facts.js, tools/lib/family-q.js), '
+      + 'held by tools/one-fact.js. facts: id -> [card, field, line, hash of its words]; next: the last number given in each idea; retired: ids never given again; '
+      + 'questions: base id -> {v version, h hash of its words, kind, idea, tests (fact ids), t its template: words pointing at facts}. No words here.';
+    const out = { about: c.reg.about, facts: c.reg.facts, next: c.reg.next, retired: c.reg.retired, questions: c.reg.questions };
+    fs.writeFileSync(c.regFile, JSON.stringify(out, null, 0).replace(/,"(?=[^"]+":\[")/g, ',\n"').replace(/\},"(Q-FAM-)/g, '},\n"$1') + '\n');
+    const tf = path.join(ROOT, 'data', 'settings', 'question-ideas.json'), T = JSON.parse(fs.readFileSync(tf, 'utf8'));
+    const st = T.science.set;
+    Object.keys(st).forEach(k => { if (k.startsWith('P-FAM-AQA-')) delete st[k]; });
+    rows.filter(r => r.kind === 'document').forEach(r => { st[r.paper_id] = c.qs.find(x => c.Q.SET(x.idea) === r.paper_id).idea; });
+    fs.writeFileSync(tf, JSON.stringify(T, null, 1) + '\n');
+    console.log('family: wrote data/questions.json, data-private/questions.json, ' + c.F.FILE + ', data/settings/question-ideas.json science.set');
+  },
+  pack(c) {
+    const i = process.argv.indexOf('--ledger'), dir = i === -1 ? null : process.argv[i + 1];
+    if (!dir) return;
+    IM.pack(dir, c.qs.map(x => x.id), '@family science questions from the library: AQA 8461/8462/8463 Foundation, one set per idea (' + c.qs.length + ' questions)');
+  },
+};
+const { S } = require('./lib/gen.js');
 const argOut = () => { const i = process.argv.indexOf('--out'); return i === -1 ? null : process.argv[i + 1]; };
 
 /* ---------- THE RUN: a source's step list (data/settings/content.json sources) ---------- */
@@ -539,6 +595,7 @@ async function main(argv) {
   if (what === 'insert') return IM.run('insert', INSERT, {}, only);
   if (what === 'ideas') return IM.run('ideas', IDEAS, {}, only);
   if (what === 'sciideas') return IM.run('sciideas', SCIIDEAS, {}, only);
+  if (what === 'family') return IM.run('family', FAMILY, {}, only);
   /* ONE ANSWER FORMAT (UNIFY AFTER 7): the words as they are, put in the one format; writeWords does the same on every write. */
   if (what === 'picks') {
     const map = IM.words('questions'), t = {};

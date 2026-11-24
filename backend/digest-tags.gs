@@ -33,8 +33,8 @@ function digestTagFacets_(rows) {
 /* A FACET'S TAG COLOUR, AS THE CARD'S `tagOf_` (js/find-bundles.js): `h` and its hue. */
 const digestTagHue_ = f => 'h' + (TAG_OF[f] || 0);
 /* `LIB_SOURCES` (js/find.js): a worksheet maker is a Source and its sheet has no exam board (O3). */
-const DIGEST_SOURCES = ['1st Class Maths', 'Corbettmaths', 'Access Tuition', 'GL Assessment', 'Physics & Maths Tutor'];
-const DIGEST_BOARD_SOURCES = ['Physics & Maths Tutor'];
+const DIGEST_SOURCES = ['1st Class Maths', 'Corbettmaths', 'Access Tuition', 'GL Assessment', 'Physics & Maths Tutor', '@family'];
+const DIGEST_BOARD_SOURCES = ['Physics & Maths Tutor', '@family'];
 const digestTagSource_ = q => DIGEST_SOURCES.find(s => digestSpell_(s) === digestSpell_(digestLibS_(q.company))) || '';
 
 /* THE LIBRARY FOR THE TAGS, IN ONE PASS OVER THE FILE: § */
