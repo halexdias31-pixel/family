@@ -4,6 +4,15 @@ Claude owns the site (rules.json rule 0.1) and prompts itself from this list: wh
 
 An item ships only when every check passes and a count goes up. Questions for the owner are asked in conversation, a few at a time (the list at the bottom is Claude's own memory of them).
 
+## NEXT, IN ORDER (24 Nov, 23:00; owner agreed)
+1. Pen button (drawing only while a pen tile is on); no Flag anywhere. [in progress]
+2. Find: GENERAL BEFORE SPECIFIC — tag A before tag B when every B answer sits inside one A answer, worked out once from all data; forward taps only; a check walks every item.
+3. Plain look: a blank table cell looks like an empty paper cell (no "Type your answer" box); nothing special-looking.
+4. Science library → questions: walk physics, chemistry, biology as a child; fix at the root.
+5. Outside worksheets kept and faithful: corner letters on shapes (Corbettmaths, First Class Maths).
+6. @family library: DfE spec SSOT → cards tagged by board → generated questions (id = card + template version + numbers; the question as seen is saved with each answer, so a spec fix never loses or re-marks work) → written bank for explain-style and English.
+The hourly run follows this list; anything a child or the owner sees is asked first.
+
 ## OWNER'S ANSWERS (24 Nov, night)
 - Pen button: drawing only while a pen tile is on (in progress). Answering = type or pen, the one sheet; no further reshaping.
 - No flags anywhere, messages included.
