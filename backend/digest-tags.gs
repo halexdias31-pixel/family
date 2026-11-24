@@ -33,7 +33,8 @@ function digestTagFacets_(rows) {
 /* A FACET'S TAG COLOUR, AS THE CARD'S `tagOf_` (js/find-bundles.js): `h` and its hue. */
 const digestTagHue_ = f => 'h' + (TAG_OF[f] || 0);
 /* `LIB_SOURCES` (js/find.js): a worksheet maker is a Source and its sheet has no exam board (O3). */
-const DIGEST_SOURCES = ['1st Class Maths', 'Corbettmaths', 'Access Tuition', 'GL Assessment'];
+const DIGEST_SOURCES = ['1st Class Maths', 'Corbettmaths', 'Access Tuition', 'GL Assessment', 'Physics & Maths Tutor'];
+const DIGEST_BOARD_SOURCES = ['Physics & Maths Tutor'];
 const digestTagSource_ = q => DIGEST_SOURCES.find(s => digestSpell_(s) === digestSpell_(digestLibS_(q.company))) || '';
 
 /* THE LIBRARY FOR THE TAGS, IN ONE PASS OVER THE FILE: § */
@@ -75,7 +76,7 @@ const digestList_ = v => (Array.isArray(v) ? v : v == null || v === false ? [] :
 function digestTagItem_(q) {
   return { src: q, subject: digestLibS_(q.subject), documentType: digestLibS_(q.document_type), keystage: digestLibS_(q.key_stage),
            bandType: digestLibS_(q.band_type), bandValue: digestLibS_(q.band_value), tier: digestLibS_(q.tier),
-           examBoard: digestTagSource_(q) ? '' : digestLibS_(q.exam_board), examWave: digestLibS_(q.exam_wave), year: digestLibS_(q.year), sub: digestLibS_(q.name) };
+           examBoard: digestTagSource_(q) && DIGEST_BOARD_SOURCES.indexOf(digestTagSource_(q)) === -1 ? '' : digestLibS_(q.exam_board), examWave: digestLibS_(q.exam_wave), year: digestLibS_(q.year), sub: digestLibS_(q.name) };
 }
 /* THE ITEM AS THE SITE'S `questionItems` HANDS IT TO ITS READERS (unify batch 7): the cells by the item's names, the row as `row`. */
 /* The level, key stage and sitting are then the site's own `levelsOf_`, `satsStagesOf_` and `waveOf` (cards-gen.gs), never a port. */

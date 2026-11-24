@@ -2574,7 +2574,14 @@ const m = /^(\d+)x(\d+)$/.exec(libS(r.diagram_twin_wh).trim()), w = m ? +m[1] : 
 return cardBlock_({ type: 'drawing', node: { el: 'svg', a: { class: 'qtwin', xmlns: 'http://www.w3.org/2000/svg', viewBox: `0 0 ${w} ${ht}`, width: w, role: 'img', 'aria-label': 'Figure' },
 kids: { el: 'image', a: { href: `data/diagrams/${h}.png`, width: w, height: ht } } } });
 }
-const libWireQ_ = r => 'q:' + libS(r && (r.row_id || r.id)).trim();
+const libWireQ_ = r => 'q:' + libS(r && (r.same_as || r.row_id || r.id)).trim();
+const LIB_SAME = new WeakMap();
+function libSameOf_(list) {
+if (!Array.isArray(list)) return new Map();
+let m = LIB_SAME.get(list);
+if (!m) { m = new Map(); list.forEach(o => { const k = libS(o && o.same_as).trim(); if (k) m.set(k, (m.get(k) || []).concat(o)); }); LIB_SAME.set(list, m); }
+return m;
+}
 const LIB_INDEX = new WeakMap();
 function libIndexOf_(list, idOf) {
 if (!Array.isArray(list)) return new Map();
@@ -2736,15 +2743,18 @@ if (r) libFill_(r, c);
 const ins = (D.inserts || []).find(o => o.id === id);
 if (ins) { ins.sourceText = libS(c.source_text); ins.libHas = ''; }
 } else if (m[1] === 'q') {
-const r = libIndexOf_(LIBRARY_ROWS, o => libS(o.row_id)).get(id);
+const own = libIndexOf_(LIBRARY_ROWS, o => libS(o.row_id)).get(id);
+[own].concat(libSameOf_(LIBRARY_ROWS).get(id) || []).forEach(r => {
 if (!r) return;
 libFill_(r, c);
-const q = libIndexOf_(D.questions, o => libS(o.id)).get(id);
+const rid = libS(r.row_id);
+const q = libIndexOf_(D.questions, o => libS(o.id)).get(rid);
 if (q) Object.assign(q, libQuestion_(r));
 if (typeof questionContent_ === 'function' && typeof libItemByKey_ === 'function') {
-const it = libItemByKey_('q:' + id);
+const it = libItemByKey_('q:' + rid);
 if (it && q) Object.assign(it, questionContent_(q));
 }
+});
 } else if (m[1] === 'pr' || m[1] === 'pj') {
 const col = m[1] === 'pr' ? 'practical_id' : 'project_id';
 const r = libIndexOf_(ex[m[1] === 'pr' ? 'practicals' : 'projects'], o => libS(o[col]).trim()).get(id);

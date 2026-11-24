@@ -38,6 +38,8 @@ const BOARDS = ['AQA', 'Edexcel', 'STA', 'DVSA', 'OCR', 'Eduqas', 'QAA', 'MEC', 
 /* A BOARD BY ITS LONG NAME, as `company` spells a board's own paper. */
 const BOARD_NAMES = ['Standards & Testing Agency'];
 const SOURCES = () => Array.from(app().LIB_SOURCES);
+/* A SOURCE WHOSE SETS ARE ONE BOARD'S OWN QUESTIONS BY TOPIC, and so carry that board (owner, 24 Nov). */
+const BOARD_TOPIC_SOURCES = ['Physics & Maths Tutor'];
 const TIERS = () => [...new Set([].concat(...LEVEL_TABLE().map(l => l.tiers)))];
 
 /* THE QUESTIONS FILE'S CLOSED LISTS (moved here from js/check-library.js; the story of each word is in
@@ -92,7 +94,7 @@ const LIST_COLS = new Set(['needs', 'key_stage', 'level']);
 /* ---------- ONE TABLE OF COLUMN NAMES PER CARD FILE: `cols` every column a row may have, and which column holds each idea ---------- */
 const FILES = {
   questions: {
-    cols: ['row_id', 'paper_id', 'question', 'kind', 'section', 'active', 'name', 'subject', 'key_stage', 'band_type',
+    cols: ['row_id', 'paper_id', 'question', 'kind', 'same_as', 'section', 'active', 'name', 'subject', 'key_stage', 'band_type',
       'band_value', 'tier', 'source_url', 'trackable', 'printable', 'company', 'exam_board', 'exam_wave', 'year', 'level',
       'paper', 'month', 'document_type', 'source_id', 'html', 'part', 'marks', 'answer_type', 'function_verified', 'answer',
       'accept', 'lead', 'figure', 'diagram', 'diagram_twin', 'diagram_twin_wh', 'examiner_note', 'examiner_report', 'guide',
@@ -280,8 +282,9 @@ function validate(row, file) {
     }
   }
 
-  /* A WORKSHEET MAKER IS A SOURCE, NOT A BOARD (O3): its sheet names no exam board. */
-  if (f.company && SOURCES().indexOf(S(row[f.company])) !== -1 && S(row[f.board])) {
+  /* A WORKSHEET MAKER IS A SOURCE, NOT A BOARD (O3): its sheet names no exam board -- except a Source whose sets are one board's own
+     past-paper questions gathered by topic (owner, 24 Nov: Physics & Maths Tutor's AQA topic questions are tagged board AQA). */
+  if (f.company && SOURCES().indexOf(S(row[f.company])) !== -1 && S(row[f.board]) && !BOARD_TOPIC_SOURCES.includes(S(row[f.company]))) {
     bad('source', f.board, S(row[f.company]) + ' is a Source, so its sheet carries no ' + f.board + ' (' + S(row[f.board]) + ')');
   }
 
@@ -341,7 +344,8 @@ function validateFile(rows, file) {
     }
     /* A LIVE PAST-PAPER PART HAS MARKS, or a later part of its question carries the run's marks and its examiner note
        says so (the note is private, so a pending row without its words is not counted). */
-    if (S(r.kind) === 'question' && S(r.active) !== 'False' && SETS.isExamSet(r) && !S(r.marks)) {
+    /* (a question shown in a second set, `same_as`, shares its marks as the row it is does, which is checked there) */
+    if (S(r.kind) === 'question' && S(r.active) !== 'False' && SETS.isExamSet(r) && !S(r.marks) && !S(r.same_as)) {
       const later = laterMarked(r);
       if (!later) out.push({ id: idOf(r), rule: 'marks', col: 'marks', msg: 'a past-paper question with no marks' });
       else if (!SHARED.test(S(later.examiner_note))) out.push({ id: idOf(r), rule: 'marks', col: 'examiner_note', msg: 'no marks, and ' + idOf(later) + ' after it has marks but no examiner note saying they are for the parts together' });
@@ -383,7 +387,7 @@ function committed(file, map) {
   const words = map || L.readPrivate(file) || {};
   return rows.map(r => {
     if (!r || !Object.prototype.hasOwnProperty.call(r, 'lib_has')) return r;
-    const w = Object.assign({}, r, words[L.idOf(def, r)] || {});
+    const w = Object.assign({}, r, words[L.wordsIdOf(def, r)] || {});
     delete w.lib_has;
     return w;
   });
