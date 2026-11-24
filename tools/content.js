@@ -33,6 +33,7 @@ const USAGE = `
 
   node tools/content.js sets [--apply]                                                  one question set: every paper, worksheet, exercise, 5-a-day a set (tools/lib/sets.js; held by tools/one-set.js)
   node tools/content.js qideas [--apply]                                                one topic tree: each maths question's idea_id from data/settings/question-ideas.json (tools/lib/qideas.js; held by tools/one-topic.js)
+  node tools/content.js sciideas [--review <file>]                                     measure → merge → tag (one science card per idea: an AQA spec point; tools/lib/sci-ideas.js)
   node tools/content.js speccode [--apply]                                              derive → write (spec_code from a paper's own columns)
 
   node tools/content.js library <split|join|seed|pull|push|status|drive-pack|help> …   the library's private half (397)
@@ -384,16 +385,19 @@ const QIDEAS = {
   measure(c) {
     c.QI = require('./lib/qideas.js');
     c.q = IM.cards('questions');
-    c.t = c.QI.assign(c.q.rows);
-    c.names = c.QI.names(JSON.parse(fs.readFileSync(path.join(L.ROOT, 'data', 'textbooks.json'), 'utf8')));
+    const tb = JSON.parse(fs.readFileSync(path.join(L.ROOT, 'data', 'textbooks.json'), 'utf8'));
+    c.t = c.QI.assignAll(c.q.rows, tb);
+    c.names = c.QI.names(tb);
+    c.sciNames = c.QI.sciNames(tb);
     console.log('qideas: ' + c.t.questions + ' maths questions, ' + c.t.mapped + ' given an idea, ' + c.t.unmapped + ' unmapped; ' + c.t.changed + ' row(s) changed; '
-      + Object.keys(c.names).length + ' idea names');
+      + Object.keys(c.names).length + ' idea names; science: ' + c.t.science.questions + ' questions, ' + c.t.science.mapped + ' given an idea, ' + c.t.science.unmapped + ' unmapped; ' + Object.keys(c.sciNames).length + ' idea names');
   },
   write(c) {
     if (!c.apply) { console.log('(a dry run: --apply writes data/questions.json and taxonomy.json Maths.ideaNames)'); return; }
     if (c.t.changed) IM.writeCards('questions', c.q.rows, c.q.style);
     const file = path.join(L.ROOT, 'data', 'settings', 'taxonomy.json'), tax = JSON.parse(fs.readFileSync(file, 'utf8'));
     tax.Maths = Object.assign(tax.Maths || {}, { ideaNames: c.names });
+    tax.Science = Object.assign(tax.Science || {}, { ideaNames: c.sciNames });
     fs.writeFileSync(file, JSON.stringify(tax, null, 1) + '\n');
     console.log('qideas: written to data/questions.json and data/settings/taxonomy.json');
   },
@@ -471,6 +475,43 @@ const IDEAS = {
     console.log('ideas: ' + n + ' field(s) set on ' + c.m.cards.length + ' maths cards' + (out ? ' (in ' + out + ')' : ''));
   },
 };
+/* ONE IDEA PER CARD, SCIENCE (UNIFY THE LIBRARY AND PRACTICE, item 8, 24 Nov): tools/lib/sci-ideas.js — an idea is one AQA spec point; a broad
+   GCSE chapter's items go each to the point card it reads most like, every word kept; the report into data/settings/taxonomy.json Science.ideas
+   (merged: old key -> card kept), then part_of, specs and idea_id onto the science cards. --review <file> writes where each broad item went. */
+const SCIIDEAS = {
+  measure(c) {
+    c.X = require('./lib/sci-ideas.js');
+    c.tb = IM.cards('textbooks');
+    c.m = c.X.measure(c.tb.rows);
+    c.file = path.join(ROOT, 'data', 'settings', 'taxonomy.json');
+    c.tax = JSON.parse(fs.readFileSync(c.file, 'utf8'));
+    console.log('sciideas: ' + c.m.cards.length + ' science cards, ' + c.m.groups.length + ' ideas, ' + c.m.groups.filter(g => g.cards.length > 1).length + ' groups of the same idea');
+  },
+  merge(c) {
+    const words = c.words = IM.words('textbooks'), log = [];
+    const r = c.m.groups.some(g => g.cards.length > 1) ? c.X.merge(c.tb.rows, words, c.m, log) : { merged: {}, moved: 0, unruled: 0, gone: 0, anims: 0 };
+    const merged = Object.assign({}, ((c.tax[c.X.KEY] || {}).ideas || {}).merged || {}, r.merged);
+    Object.keys(merged).forEach(k => { let t = merged[k].to; while (merged[t]) t = merged[t].to; merged[k].to = t; });
+    const n = require('./lib/ideas.js').relink(merged);
+    const empty = c.X.dropEmpty(c.tb.rows, words);
+    if (r.gone || r.moved || empty.length) IM.writeWords('textbooks', words);
+    const rv = process.argv.indexOf('--review');
+    if (rv > 0) fs.writeFileSync(process.argv[rv + 1], JSON.stringify(log, null, 1) + '\n');
+    c.m = c.X.measure(c.tb.rows);
+    const old = c.tax[c.X.KEY] || {};
+    c.tax[c.X.KEY] = { subject: c.X.KEY, subjects: Object.keys(c.X.SUBJECTS), ideaNames: old.ideaNames,
+      cards: { levels: ['part_of', 'idea_id'], tree: 'data/topics.json' }, ideas: Object.assign(c.X.report(c.m), { merged, books_gone: [...new Set((((old.ideas || {}).books_gone) || []).concat(empty))] }) };
+    fs.writeFileSync(c.file, JSON.stringify(c.tax, null, 1) + '\n');
+    console.log('sciideas: merged ' + r.gone + ' card(s) into the card kept, ' + r.moved + ' item move(s) from broad cards (' + r.unruled + ' by score alone), '
+      + r.anims + ' animation(s) moved, ' + n + ' spec link(s) pointed on; now ' + c.m.cards.length + ' cards, ' + c.m.groups.length + ' ideas, '
+      + c.m.groups.filter(g => g.cards.length > 1).length + ' groups of more than one card');
+  },
+  tag(c) {
+    const n = c.X.tag(c.tb.rows, c.m);
+    IM.writeCards('textbooks', c.tb.rows, c.tb.style);
+    console.log('sciideas: ' + n + ' field(s) set on ' + c.m.cards.length + ' science cards');
+  },
+};
 const argOut = () => { const i = process.argv.indexOf('--out'); return i === -1 ? null : process.argv[i + 1]; };
 
 /* ---------- THE RUN: a source's step list (data/settings/content.json sources) ---------- */
@@ -493,6 +534,7 @@ async function main(argv) {
   }
   if (what === 'insert') return IM.run('insert', INSERT, {}, only);
   if (what === 'ideas') return IM.run('ideas', IDEAS, {}, only);
+  if (what === 'sciideas') return IM.run('sciideas', SCIIDEAS, {}, only);
   /* ONE ANSWER FORMAT (UNIFY AFTER 7): the words as they are, put in the one format; writeWords does the same on every write. */
   if (what === 'picks') {
     const map = IM.words('questions'), t = {};

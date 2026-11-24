@@ -177,23 +177,27 @@ const nameOf = item => S(item).split(/\s+—\s+/)[0].trim().toLowerCase();
    Only a hash: the item's words are private (data-private/). An item with no verdict goes by its score, and the run says how many did. */
 const PLACES = (SD.json('data/settings/idea-places.json') || {}).place || {};
 const placeKey = (k, f, item) => k + ' ' + f + ' ' + require('crypto').createHash('sha1').update(S(item)).digest('hex').slice(0, 12);
-function merge(rows, words, m) {
+/* `o` (science, tools/lib/sci-ideas.js): prefer (the books whose card is kept first), cands(c) (the ideas a card's items may go to, its own
+   first), label(id) (the kept card's new title, '' to keep it), about(r) (an animation's key-word names), min (the least score that moves an item). */
+function merge(rows, words, m, o) {
+  o = o || {};
+  const prefer = o.prefer || PREFER, minScore = o.min == null ? 1 : o.min;
   const wk = c => c.book + '#' + c.row.chapter, W = c => words[wk(c)] || {};
   const has = c => FIELDS.some(f => S(W(c)[f]));
   const byIdea = {};
   m.cards.forEach(c => { (byIdea[c.idea] = byIdea[c.idea] || []).push(c); });
-  const rank = c => (has(c) ? 0 : 10) + (PREFER.indexOf(c.book) === -1 ? 5 : PREFER.indexOf(c.book));
+  const rank = c => (has(c) ? 0 : 10) + (prefer.indexOf(c.book) === -1 ? 5 : prefer.indexOf(c.book));
   const canon = {};
   Object.keys(byIdea).forEach(id => { canon[id] = byIdea[id].slice().sort((a, b) => rank(a) - rank(b))[0]; });
   /* EACH GCSE POINT'S IDEA: the idea of a card that teaches that one point alone. */
   const gp = ref => { const [f, p] = ref.split(':'); return SAME_POINT[f] ? SAME_POINT[f] + ':' + p : ''; };
   const pointIdea = {};
   m.cards.forEach(c => { if (c.specs.length === 1 && gp(c.specs[0]) && !pointIdea[gp(c.specs[0])]) pointIdea[gp(c.specs[0])] = c.idea; });
-  const label = id => (m.groups.find(x => x.idea_id === id) || {}).label || '';
+  const label = o.label || (id => (m.groups.find(x => x.idea_id === id) || {}).label || '');
   const prof = {};
   /* AN IDEA READS AS its card's title, its node, its "the idea" sentence and its key words' names; a word many ideas share counts little. */
   Object.keys(canon).forEach(id => { const k = canon[id];
-    prof[id] = new Set(wordsOf([S(k.row.title).replace(CODE, ''), label(id), W(k).idea].concat(items(W(k).words).map(nameOf)).join(' '))); });
+    prof[id] = new Set(wordsOf([S(k.row.title).replace(CODE, ''), label(id), W(k).idea].concat(items(W(k).words).map(nameOf), o.extra ? o.extra(W(k)) : []).join(' '))); });
   const df = {};
   Object.values(prof).forEach(p => p.forEach(w => { df[w] = (df[w] || 0) + 1; }));
   const acc = {}, anchor = {};
@@ -203,7 +207,7 @@ function merge(rows, words, m) {
   /* THE CARDS KEPT FIRST, so their own items lead; then the others, in the order the library holds them. */
   const order = Object.keys(canon).map(id => canon[id]).concat(m.cards.filter(c => canon[c.idea] !== c));
   order.forEach(c => {
-    const cands = [...new Set([c.idea].concat(c.specs.map(r => pointIdea[gp(r)]).filter(Boolean)))];
+    const cands = o.cands ? o.cands(c) : [...new Set([c.idea].concat(c.specs.map(r => pointIdea[gp(r)]).filter(Boolean)))];
     FIELDS.forEach(f => items(W(c)[f]).forEach(item => {
       let to = c.idea, how = '';
       const said = PLACES[placeKey(wk(c), f, item)];
@@ -211,7 +215,8 @@ function merge(rows, words, m) {
       else if (cands.length > 1) {
         const iw = [...new Set(wordsOf(item))], sc = id => iw.reduce((t, w) => t + (prof[id].has(w) ? 1 / df[w] : 0), 0);
         const best = cands.slice(1).sort((a, b) => sc(b) - sc(a))[0];
-        if (sc(best) >= 1 && sc(best) > 2 * sc(c.idea)) { to = best; how = 'score'; unruled++; }
+        if (sc(best) >= minScore && sc(best) > 2 * sc(c.idea)) { to = best; how = 'score'; unruled++; }
+        if (o.log) o.log.push({ key: placeKey(wk(c), f, item), from: wk(c), field: f, item, to, how: to === c.idea ? 'stays' : 'score' });
         if (process.env.IDEAS_LOG) console.log(JSON.stringify({ key: placeKey(wk(c), f, item), idea: c.idea, item, to, cands: cands.map(id => [id, +sc(id).toFixed(2)]) }));
       }
       if (to !== c.idea) moved++;
@@ -251,7 +256,8 @@ function merge(rows, words, m) {
   for (let i = out.length - 1; i >= 0; i--) {
     const r = out[i], c = S(r.anim) && cardAt[r.book_id + '#' + r.chapter];
     if (!c) continue;
-    const p = place[anchor[wk(c) + '|' + S(r.about).toLowerCase()] || c.idea];
+    const names = o.about ? o.about(r) : [S(r.about).toLowerCase()];
+    const p = place[names.map(n => anchor[wk(c) + '|' + n]).find(Boolean) || c.idea];
     if (p && (p.book_id !== r.book_id || Number(p.chapter) !== Number(r.chapter))) { r.book_id = p.book_id; r.chapter = p.chapter; out.splice(i, 1); anims.unshift(r); }
   }
   anims.forEach(a => { let j = out.length; out.forEach((x, i) => { if (x.book_id === a.book_id && Number(x.chapter) === Number(a.chapter)) j = i + 1; }); out.splice(j, 0, a); });
@@ -275,4 +281,4 @@ function relink(merged) {
   return n;
 }
 
-module.exports = { placeKey, SUBJECT, OUTSIDE, cardsOf, inScope, measure, report, tag, tree, normTitle, merge, relink };
+module.exports = { PLACES, slug, wordsOf, items, placeKey, SUBJECT, OUTSIDE, cardsOf, inScope, measure, report, tag, tree, normTitle, merge, relink };

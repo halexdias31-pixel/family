@@ -65,6 +65,8 @@ const STRING_RE = /"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'/g;
 const SHARED_RE = /\/\* SHARED:BEGIN[\s\S]*?\/\* SHARED:END \*\//;
 const BLOCK_RE = /\/\*\s*([A-Z-]+):BEGIN[\s\S]*?\/\*\s*\1:END\s*\*\//g;
 const GENERATED_RE = /\/\* -{10} (.+?) \(generated\) -{10} \*\/[\s\S]*?\/\* -{10} END \1 -{10} \*\//g;
+/* A JSON COPY WRITTEN INTO CODE (TAXONOMY:start … TAXONOMY:end, tools/taxonomy.js): data, not words. */
+const COPY_RE = /\/\*\s*([A-Z-]+):start[\s\S]*?\/\*\s*\1:end\s*\*\//g;
 const blank = m => m.replace(/[^\n]/g, ' ');
 function uncommentJs(t) {
   let o = '', i = 0, q = null;
@@ -81,7 +83,7 @@ function uncommentJs(t) {
 function bare(src, opts) {
   const o = opts || {};
   let t = String(src);
-  if (o.generated) t = t.replace(BLOCK_RE, blank).replace(GENERATED_RE, blank);
+  if (o.generated) t = t.replace(BLOCK_RE, blank).replace(GENERATED_RE, blank).replace(COPY_RE, blank);
   if (o.comments === 'js') t = uncommentJs(t);
   if (o.comments === true && o.strings) t = t.replace(new RegExp(COMMENT_RE.source + '|' + STRING_RE.source, 'g'), blank);
   else if (o.comments === true) t = t.replace(COMMENT_RE, blank);

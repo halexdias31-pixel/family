@@ -771,7 +771,9 @@ const topicAtoms_ = v => String(v == null ? '' : v).split(',').map(s => s.trim()
 /* AND NO QUESTION AT ALL NOW, the 1st Class Maths sheets included. § */
 /* ONE TOPIC TREE (queue item 7, 24 Nov): a maths question answers the idea it tests (its `idea_id`, named by taxonomy.json Maths.ideaNames,
    tools/lib/qideas.js), never its source's own topic name, so one idea from two sources is one topic. */
-const ideaNameOf_ = x => { const id = x && x.row && x.row.idea_id; return (id && ((TAXONOMY.Maths || {}).ideaNames || {})[id]) || ''; };
+/* Every subject's names, one map (ids are subject-prefixed: ma., sc.). */
+const IDEA_NAMES_ = Object.assign({}, ...Object.keys(TAXONOMY).map(k => (TAXONOMY[k] || {}).ideaNames || {}));
+const ideaNameOf_ = x => { const id = x && x.row && x.row.idea_id; return (id && IDEA_NAMES_[id]) || ''; };
 function topicShown_(x) {
   return !isQ_(x) || !!ideaNameOf_(x);
 }
