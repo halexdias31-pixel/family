@@ -1717,13 +1717,13 @@ function mark_(x, answer, scheme) {
   ['typo', 'peel', 'levels', 'say', 'each', 'stray'].forEach(k => { if (r[k] !== undefined) more[k] = r[k]; });
   return out(r.got, r.of, r.why || '', more);
 }
-/* ---------- ONE STATUS SET (owner, 23 Nov, UNIFY item 4): a question is not tried, right, part right or wrong (and its answer
-   hidden, only where one is); worded once, words.json `status-<id>`, said by `statusWord_` on every card, menu, history and email. */
-const STATUS_IDS = ['untried', 'right', 'part', 'wrong', 'hidden'];
+/* ---------- ONE STATUS SET (owner, 23 Nov, UNIFY item 4): a question is not tried, right, part right or wrong, or sent and not
+   marked yet (owner, 24 Nov: stored `sent`) (and its answer hidden, only where one is); worded once, words.json `status-<id>`, said by `statusWord_` on every card, menu, history and email. */
+const STATUS_IDS = ['untried', 'right', 'part', 'wrong', 'unmarked', 'hidden'];
 /* THE ONE MARK RESULT: marks of outOf, the verdict they make, one line why. A `state` (empty | wait | unmarked) means nothing was marked. */
 function markResult_(marks, outOf, why, more) {
   const m = Math.max(0, Number(marks) || 0), of = Math.max(0, Number(outOf) || 0);
-  const verdict = (more && more.state) || !of ? 'untried' : m >= of ? 'right' : m > 0 ? 'part' : 'wrong';
+  const verdict = more && more.state === 'unmarked' ? 'unmarked' : (more && more.state) || !of ? 'untried' : m >= of ? 'right' : m > 0 ? 'part' : 'wrong';
   return Object.assign({ marks: m, outOf: of, verdict, why: String(why || '').split('\n')[0] }, more || {});
 }
 /* ANY STORED VERDICT (`right`, `wrong`, `rule:n/m`, an old `ai:n/m`, `sent`, nothing) or a mark result -> its STATUS_IDS id */

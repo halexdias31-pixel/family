@@ -19,7 +19,7 @@ const VQ = require('./validate-questions.js');
 const BVM = require('./lib/backend-vm.js');
 const { ROOT, S, main } = require('./lib/gen.js');
 
-const OLD = ['Correct', 'Incorrect', 'Attempted', 'Unattempted', 'Not marked yet', 'Not right', 'Part marks', 'Answer checked', 'Answer hidden'];
+const OLD = ['Correct', 'Incorrect', 'Attempted', 'Unattempted', 'Not right', 'Part marks', 'Answer checked', 'Answer hidden'];
 const OLD_LIT = new RegExp('[\'"`](?:[✓✗] )?(' + OLD.join('|') + ')[\'"`]');
 /* generated copies (their sources are scanned) and the games' own words (not a question's status) */
 const SKIP = new Set(['js/kinds.js', 'js/finder-tags.js', 'js/core.js', 'js/qtypes.js', 'js/games.js', 'backend/cards-gen.gs']);
@@ -56,7 +56,7 @@ function gather() {
   call('qtMarker_(workRow_({row:{}}))'); call('padGrid_', true); call('CARD_BLOCKS', true);
   call('text_'); vm_words(ctx, call);
   const ids = call('STATUS_IDS').slice();
-  const siteSaid = STORED.map(v => { ctx.__v = v; return { v, said: call('statusWord_(statusOf_(__v))'), read: call('verdictOf_(__v)') }; });
+  const siteSaid = STORED.map(v => { ctx.__v = v; return { v, status: call('statusOf_(__v)'), said: call('statusWord_(statusOf_(__v))'), read: call('verdictOf_(__v)') }; });
   /* THE MARKERS: a sample of active questions per marker kind, each with its key, a wrong answer and a blank */
   const rows = VQ.rowsOf().filter(r => r.kind !== 'preamble' && r.kind !== 'set');
   const per = {}, marked = [];
@@ -77,7 +77,7 @@ function find(g) {
   const bad = [];
   const set = g.ids.map(id => g.words['status-' + id]);
   /* 1. the words */
-  if (g.ids.join() !== 'untried,right,part,wrong,hidden') bad.push('the set is ' + g.ids.join(' / ') + ', not not tried / right / part right / wrong / hidden');
+  if (g.ids.join() !== 'untried,right,part,wrong,unmarked,hidden') bad.push('the set is ' + g.ids.join(' / ') + ', not not tried / right / part right / wrong / not marked yet / hidden');
   g.ids.forEach((id, i) => { if (!set[i]) bad.push('no word status-' + id); });
   const extra = Object.keys(g.words).filter(k => /^status-/.test(k) && !g.ids.includes(k.slice(7)));
   if (extra.length) bad.push('status words outside the set: ' + extra.join(', '));
@@ -91,6 +91,11 @@ function find(g) {
     if (!inSet(w.many)) bad.push('email figure says ' + JSON.stringify(w.many));
     if (w.one && !inSet(w.one)) bad.push('email card says ' + JSON.stringify(w.one));
   });
+  /* a sent answer not marked is Not marked yet (owner, 24 Nov), on the site and in the email */
+  g.siteSaid.forEach(s => { if (s.v === 'sent' && s.status !== 'unmarked') bad.push('site reads "sent" as ' + s.status + ', not unmarked'); });
+  if (!g.siteSaid.some(s => s.v === 'sent')) bad.push('no "sent" sample');
+  g.mail.how.forEach((h, i) => { if (STORED[i] === 'sent' && h !== 'unmarked') bad.push('email reads "sent" as ' + h + ', not unmarked'); });
+  if (!(g.mail.say || []).some(x => x.id === 'unmarked')) bad.push('the email has no Not marked yet figure');
   g.mail.how.forEach((h, i) => { if (!g.ids.includes(h)) bad.push('email reads ' + JSON.stringify(STORED[i]) + ' as ' + h); });
   g.mail.legend.forEach(w => { if (!inSet(w)) bad.push('email key says ' + JSON.stringify(w)); });
   /* 3. no old word in code, no facet of its own */
@@ -129,9 +134,13 @@ function prove(g) {
   const breaks = {
     'an old word on a card': () => w({ code: g.code.concat([{ rel: 'js/zz.js', text: "const t = ok ? 'Correct' : 'Incorrect';" }]) }),
     'a status word reworded': () => w({ words: Object.assign({}, g.words, { 'status-wrong': 'Not right' }) }),
-    'a sixth status': () => w({ ids: g.ids.concat(['sent']) }),
+    'a seventh status': () => w({ ids: g.ids.concat(['sent']) }),
+    'not marked yet dropped': () => w({ ids: g.ids.filter(id => id !== 'unmarked') }),
+    'sent said as not tried': () => w({ siteSaid: g.siteSaid.map(x => (x.v === 'sent' ? Object.assign({}, x, { status: 'untried' }) : x)) }),
+    'the email reading sent as not tried': () => w({ mail: Object.assign({}, g.mail, { how: g.mail.how.map((h, i) => (STORED[i] === 'sent' ? 'untried' : h)) }) }),
+    'the email without not marked yet': () => w({ mail: Object.assign({}, g.mail, { say: g.mail.say.filter(x => x.id !== 'unmarked') }) }),
     'the site saying another word': () => w({ siteSaid: g.siteSaid.concat([{ v: 'rule:1/2', said: 'Part marks', read: null }]) }),
-    'the email saying another word': () => w({ mail: Object.assign({}, g.mail, { say: g.mail.say.concat([{ id: 'open', many: 'not marked yet', one: 'Not marked yet' }]) }) }),
+    'the email saying another word': () => w({ mail: Object.assign({}, g.mail, { say: g.mail.say.concat([{ id: 'open', many: 'not done', one: 'Not done' }]) }) }),
     'an attempted menu again': () => w({ facets: g.facets.concat([{ field: 'myAttempt', read: { by: 'fn', col: 'myAttemptOf_' } }]) }),
     'answer checked shown to a child': () => w({ facets: g.facets.map(f => (f.field === 'verified' ? Object.assign({}, f, { active: true }) : f)) }),
     'a marker returning max': () => w({ marked: g.marked.concat([{ key: 'zz', got: { verdict: 'right', marks: 1, max: 1, why: '' } }]) }),
