@@ -292,7 +292,7 @@ function shelfSlots_(nums, filled, draw, noun) {
 const shelfAdd_ = (noun, act, o, row) => cardBlock_({ type: 'group', look: 'tile-row set-adds' + (row ? ' ' + row : ''), tiles: [Object.assign({ icon: 'plus', label: 'Add ' + (/^an? |^another$/.test(noun) ? noun : 'a ' + noun),
   act: act || 'shelf-more', cls: act ? '' : 'shelf-more' }, o || {})] });
 const shelfDrop_ = (noun, act) => tile_({ icon: 'bin', label: 'Remove ' + noun, act: act || 'shelf-drop', cls: 'set-drop' });
-/* ONE SETTINGS CARD (owner, 22 Nov): a title, a stack of rows, optional buttons, through renderCard, marked data-shape (kinds.json setting.card).
+/* ONE SETTINGS CARD (owner, 22 Nov): a title, a stack of rows, optional buttons, through renderCard, marked data-shape (kinds.json setting.cardType).
    A row is one of setting.rows: text (a fact), field (a box typed into or picked), item (a list entry that opens on tap). Each part of `lead`,
    `form` (a `.me-form` group), `body` and `after` is one row, marked data-row by what it holds (`setRowKind_`); `save` and `actions` are the card's
    buttons. A card in setting.typed / typedBy saves as you type (`set-typed`, heard by `autosaveHear_`); `hook` is only a class another file finds
@@ -303,7 +303,8 @@ const setTyped_ = id => { const S = setKind_(), k = String(id || ''); return (S.
 const setRowKind_ = h => (/<(input|select|textarea)\b/i.test(h) ? 'field' : /<(a|button)\b|\bdata-act=|\bclass="[^"]*\btile\b/i.test(h) ? 'item' : 'text');
 /* ONE ROW: its kind written on each of its top-level elements, the markup otherwise as it was (so `+` and `>` rules still meet). */
 function setCardRow_(part) {
-  const h = [].concat(part == null ? [] : part).map(cardBlock_).join('');
+  /* A STRING PART IS MARKUP ITS MAKER DREW (a tile row, a form): kept as it is, never escaped into words (23 Nov: Signed in showed its button's code). */
+  const h = [].concat(part == null ? [] : part).map(b => (typeof b === 'string' ? b : cardBlock_(b))).join('');
   if (!h.trim()) return '';
   const k = setRowKind_(h);
   if (typeof document === 'undefined') return h.replace(/^(\s*<[a-zA-Z][\w-]*)/, '$1 data-row="' + k + '"');
@@ -318,10 +319,13 @@ const setEmptyTiles_ = title => { const t = String(title || ''); return [].conca
 function setCard_(o) {
   const data = Object.assign(cardDataOf_(o.attrs), o.data || {}), typed = setTyped_(o.card || data['lay-card']);
   const parts = [].concat(o.lead || [], o.form == null ? [].concat(o.body == null ? [] : o.body) : [setFormB_(o)], o.after || []);
-  const h = renderCard({ kind: 'setting', shape: setKind_().card || 'Setting', card: o.card || '', look: [typed ? 'set-typed' : '', o.hook || '', o.state === 'empty' ? 'is-empty' : ''].filter(Boolean).join(' '),
+  /* NEVER ITS NAME ALONE (owner, 23 Nov: sixteen cards of a name and buttons, "can't see anything"): a card with no row says so in one. */
+  let inner = parts.map(setCardRow_).join('');
+  if (!inner.replace(/<[^>]*>/g, '').trim() && !/<(input|select|textarea|button|img|svg)\b/i.test(inner)) inner += setCardRow_({ type: 'text', look: 'kc-empty', text: text_('nothing-here-yet') });
+  const h = renderCard({ kind: 'setting', shape: setKind_().cardType || 'Setting', card: o.card || '', look: [typed ? 'set-typed' : '', o.hook || '', o.state === 'empty' ? 'is-empty' : ''].filter(Boolean).join(' '),
     name: o.title || '', tags: o.tags || (o.title ? [o.title] : []), data, picture: o.picture, tiles: o.actions || (o.state === 'empty' ? setEmptyTiles_(o.title) : []), off: o.state === 'off',
     cut: o.save ? { tiles: o.save } : null,
-    body: [{ type: 'group', look: 'kc-set', inner: parts.map(setCardRow_).join('') }] });
+    body: [{ type: 'group', look: 'kc-set', inner }] });
   return o.state === 'locked' && typeof lockCard_ === 'function' ? lockCard_(h) : h;
 }
 /* A WRAPPER'S data-* ATTRIBUTES (data-lay-card, data-pid) stay on the card, read as data by `cardAttrsOf_`. */

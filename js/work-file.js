@@ -25,7 +25,7 @@ function wfBody_(of, inCard) {
   const s = wfOf_(of);
   if (!s.asked) setTimeout(() => wfLoad_(of), 0);
   if (wfTeach_(of)) return [s.rows === null ? { type: 'wait', on: true } : (s.others || []).length
-    ? { type: 'tiles', tiles: s.others.map(o => workFileOpts_(o.id, o.name)) }
+    ? { type: 'tiles', tiles: [].concat(...s.others.map(o => [workFileOpts_(o.id, o.name), histOpts_(o.id, o.name)])) }
     : wfNote_('Your booked students\' scanned work shows here.')];
   const line = (text, box) => ({ type: 'group', tag: 'label', look: 'wf-line', text: text + ' ', blocks: [box] });
   const pend = s.pending.length ? { type: 'group', look: 'wf-pend', blocks: [{ type: 'group', look: 'qp-work-pics', blocks: s.pending.map((p, i) => ({ type: 'group', tag: 'span', look: 'qp-work-pic',
@@ -164,6 +164,8 @@ const histOf_ = of => HIST[of] || (HIST[of] = { day: '', got: null, busy: false,
 const HIST_HOW = { right: '✓ Right', part: 'Part marks', wrong: '✗ Not right', open: 'Not marked yet' };
 function histBody_(of) {
   const s = histOf_(of);
+  /* TODAY, ASKED AT ONCE (owner, 23 Nov: "can't see anything"): the day view opens on today's work, another day one pick away. */
+  if (!s.day && !s.got && !s.busy && !s.say && of) { s.day = todayIso_(); s.busy = true; const d = s.day; setTimeout(() => histLoad_(of, d), 0); }
   const pick = { type: 'formRow', label: 'Day', control: { kind: 'date', look: 'hist-day', value: s.day, data: { of }, aria: 'Which day' } };
   if (s.busy) return [pick, { type: 'wait', on: true }];
   if (s.say) return [pick, { type: 'text', text: s.say }];
@@ -183,8 +185,10 @@ function histTyped_(a) {
   return 'answered ' + (bits.some(b => !b) ? bits.filter(Boolean).join(/;/.test(t) ? ' ; ' : ', ') : t);
 }
 function histPaint_(of) {
-  document.querySelectorAll('.card[data-hist][data-of]').forEach(el => {
+  document.querySelectorAll('[data-hist][data-of]').forEach(el => {
     if (el.getAttribute('data-of') !== of) return;
+    /* A STUDENT'S DAY OPENED UNDER THEIR NAME (`hist-see`: a tutor's booked student, a parent's child, the admin's list) is its blocks alone. */
+    if (!el.classList.contains('card')) { el.innerHTML = cardBlocks_(histBody_(of)); return; }
     const spec = typeof progressAllSpec_ === 'function' && progressAllSpec_(of);
     if (!spec) return;
     /* THE DAY VIEW LIVES IN THE ONE PROGRESS CARD (4g): the whole card is drawn again, its open lines kept (PROG_OPEN). */
@@ -205,6 +209,20 @@ function histLoad_(of, day) {
     histPaint_(of);
   }).catch(() => { s.busy = false; s.say = 'That day could not be fetched — try again.'; histPaint_(of); });
 }
+/* AND UNDER A STUDENT SOMEONE ELSE MAY SEE, beside their Work on file: that student's day by day, opened in place (today first). */
+function histOpts_(pid, name) {
+  return pid ? ({ icon: 'doc', label: name ? String(name) + ' · progress' : 'Progress', note: 'their questions by day', act: 'hist-see', data: { id: pid } }) : null;
+}
+on('hist-see', el => {
+  const pid = el.getAttribute('data-id'), row = el.closest('.tile-row') || el;
+  const was = row.parentElement && [...row.parentElement.querySelectorAll(':scope > .hist-seen')].find(b => b.getAttribute('data-of') === pid);
+  if (was) { was.remove(); return; }
+  const box = document.createElement('div');
+  box.className = 'hist-seen prog-day';
+  box.setAttribute('data-of', pid); box.setAttribute('data-hist', '1');
+  box.innerHTML = cardBlocks_(histBody_(pid));
+  row.insertAdjacentElement('afterend', box);
+});
 document.addEventListener('change', e => {
   const el = e.target;
   if (!el || !el.classList || !el.classList.contains('hist-day')) return;

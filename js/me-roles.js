@@ -180,7 +180,7 @@ const libFieldsOf_ = groups => [].concat(...Object.keys(groups || {}).map(g => g
 /* ---------- READING ALOUD (453, 463) — no choice: the device's calmest natural voice, free; a sample is all there is to do ---------- */
 function voiceCard_() {
   if (!canSay_()) return '';
-  return setCard_({ card: 'acct:voice', title: text_('reading-aloud'), actions: [{ icon: 'speak', label: 'Hear a sample', note: 'the reading voice', act: 'voice-try' }] });
+  return setCard_({ card: 'acct:voice', title: text_('reading-aloud'), body: [{ type: 'text', text: 'Questions are read in this device\'s calmest natural voice.' }], actions: [{ icon: 'speak', label: 'Hear a sample', note: 'the reading voice', act: 'voice-try' }] });
 }
 const VOICE_SAMPLE = 'Hello. This is how your questions will be read. For example: x² ÷ 4 is less than 3/4.';
 on('voice-try', () => { hush_(); say_(VOICE_SAMPLE); });
@@ -436,7 +436,8 @@ function notifyCard_() {
   let inner, toggles = [], tail = '';
   /* AN EMPTY LIST BEFORE THE PAYLOAD HAS LANDED IS "NOT KNOWN YET", NOT "OLD" — `LOADED` says which. */
   if (f.indexOf('notify:save') === -1 && (f.length || LOADED)) {
-    inner = '';
+    /* A CARD IS NEVER ITS NAME ALONE (23 Nov): a backend that cannot save choices says so. */
+    inner = cardBlock_({ type: 'text', look: 'empty', text: 'Email choices are not switched on yet.' });
   }
   else if (!n) inner = said('Your choices are on their way from the sheet.');
   else if (!n.to) {
@@ -667,8 +668,8 @@ function studentSetPages_() {
   const coming = typeof awaiting_ === 'function' && awaiting_() ? [loading_()] : [];
   /* WHAT WAS THE PROGRESS COLUMN (461, the owner: "the progress column content can all be moved to student column account settings"). */
   const all = typeof progressCards_ === 'function' ? progressCards_() : [];
-  /* `prog-w` MARKS THEM, so a check can ask the progress widgets apart from the settings around them. */
-  const prog = all.map(c => String(c).replace(/^(\s*<div class=")/, '$1prog-w ')), wait = coming.length || !(typeof progressComing_ === 'function' && progressComing_()) ? coming : [loading_()];
+  /* `prog-w` MARKS THEM, so a check can ask the progress widgets apart from the settings around them; after `card fc kc`, so Find keeps the card whole (`findCard`'s test). */
+  const prog = all.map(c => String(c).replace(/^(\s*<div class="card fc kc)\b/, '$1 prog-w')), wait = coming.length || !(typeof progressComing_ === 'function' && progressComing_()) ? coming : [loading_()];
   return [top].concat(ownCardSetPage_('account'), youSettingsPages_(),
     /* WORK ON FILE (owner, 11 Nov): a student's own scanned pages; a tutor's opens each booked student's. */
     /^(student|staff)$/.test(rank_(whose_())) && typeof workFileCard_ === 'function' ? [workFileCard_()].filter(Boolean) : [],
