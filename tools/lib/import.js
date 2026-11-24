@@ -17,7 +17,12 @@ function cards(name) {
   return { def, raw, rows: JSON.parse(raw), style: L.styleOf(raw) };
 }
 /* WRITES THE CARDS in the layout the file has (`style`: compact or spaced, one row a line; `indent` for a file kept indented, data/inserts.json). */
+/* ONE ATTACHMENT KIND (queue item 6, owner 23 Nov): every row of data/inserts.json is an attachment -- a title, its sheet or text, the sets
+   it belongs to -- and `of` is only its tag: `source` (a paper's reading text, `for_papers`) or `sheet` (formulae, equations, a periodic table). */
+const attachmentRow = r => { const o = {}; Object.keys(r).forEach(k => { if (k !== 'of') o[k] = r[k]; if (k === 'insert_id') o.of = String(r.for_papers || '').trim() ? 'source' : 'sheet'; }); return o; };
+const SHAPE = { inserts: attachmentRow };
 function writeCards(name, rows, style) {
+  if (SHAPE[name]) rows = rows.map(SHAPE[name]);
   const s = style || L.styleOf(fs.readFileSync(fileOf(name), 'utf8'));
   fs.writeFileSync(fileOf(name), s === 'indent' ? JSON.stringify(rows, null, 1) + '\n' : L.fileText(rows, s));
 }
@@ -103,4 +108,4 @@ async function run(source, steps, ctx, only) {
   return ctx;
 }
 
-module.exports = { ROOT, fileOf, cards, writeCards, words, writeWords, writeOut, joined, fetch, driveOf, py, moduleRows, figure, script, cells, insertSheets, pack, checkPack, SOURCES, run };
+module.exports = { ROOT, fileOf, cards, writeCards, attachmentRow, words, writeWords, writeOut, joined, fetch, driveOf, py, moduleRows, figure, script, cells, insertSheets, pack, checkPack, SOURCES, run };

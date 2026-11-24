@@ -6,6 +6,7 @@
    the chips say, so without them the page-by-page tag test (`stuffPages_`, find-levels.js) was never reached — the 23 Nov bug lived there
    (the chip said Exam paper, each page's own tag Past paper, so every page was dropped). Counted: each sample set, across boards, sources and subjects —
    exam papers, a Corbettmaths topic and 5-a-day, a First Class Maths exercise, an Access Tuition set (ONE QUESTION SET, UNIFY item 3).
+   A SET WITH A SOURCE TEXT (`insert`, ONE ATTACHMENT KIND, item 6) opens it from a question card's Insert tile.
    Run by tools/build.js after `bundle`. */
 'use strict';
 const { main } = require('./lib/gen.js');
@@ -16,7 +17,7 @@ const PAPERS = [
   { name: 'Edexcel GCSE Maths June 2024 Foundation Paper 2', taps: ['Questions', 'Maths', 'GCSE', 'Edexcel', 'Foundation', '2024', 'June', 'Paper 2'], set: 'RS1786302107764-417' },
   { name: 'AQA GCSE Physics 2023 Higher Paper 1', taps: ['Questions', 'Physics', 'GCSE', 'AQA', 'Higher', '2023', 'Paper 1'], set: 'P-AQA-8463-2306-1H' },
   { name: 'Edexcel GCSE Maths November 2023 Foundation Paper 3', taps: ['Questions', 'Maths', 'GCSE', 'Edexcel', 'Foundation', '2023', 'November', 'Paper 3'], set: 'RS1786302107764-425' },
-  { name: 'AQA GCSE English Language June 2023 Paper 1', taps: ['Questions', 'English Language', 'GCSE', '2023', 'June', 'Paper 1'], set: 'P-AQA-8700-2306-1' },
+  { name: 'AQA GCSE English Language June 2023 Paper 1', taps: ['Questions', 'English Language', 'GCSE', '2023', 'June', 'Paper 1'], set: 'P-AQA-8700-2306-1', insert: 'English Language Paper 1 insert — June 2023' },
   /* ONE QUESTION SET (UNIFY item 3): every other set is found the same way, by its source and title, not a kind of its own. */
   { name: 'Corbettmaths worksheet Times Tables', taps: ['Questions', 'Maths', 'Corbettmaths', 'Times Tables'], set: 'W-CBM-times-tables' },
   { name: 'First Class Maths exercise HCF and LCM', taps: ['Questions', 'Maths', '1st Class Maths', 'HCF and LCM'], set: 'W-1CM-hcf-and-lcm' },
@@ -59,6 +60,13 @@ async function onePaper(P) {
       const menu = (document.querySelector('[id$="-groups"]') || {}).textContent || '';
       return { found: it.length, own, pages: stuffPages_().length, cards: cards.length, said: menu.replace(/\s+/g, ' ').trim() };
     });
+    /* A SET WITH AN ATTACHMENT (ONE ATTACHMENT KIND, queue item 6): its source opens from a card's Insert tile, one step, its card in the sheet. */
+    if (P.insert && r.cards) {
+      await pg.locator('.qcard [data-do="att-open"]:not(.kc-off)').locator('visible=true').first().click({ timeout: 5000 }).catch(() => {});
+      await pg.waitForTimeout(800);
+      r.insert = await pg.evaluate(() => { const sh = document.getElementById('sheet');
+        return !!sh && !sh.classList.contains('hidden') ? sh.textContent.replace(/\s+/g, ' ') : ''; });
+    }
     return Object.assign(r, { P, left, seen });
   } finally { await pg.close(); }
 }
@@ -72,6 +80,7 @@ async function run() {
     const other = r.own.filter(id => id !== P.set);
     if (!r.found) return bad.push(P.name + ': nothing found under ' + r.seen.join(' › '));
     if (other.length) bad.push(P.name + ': ' + other.length + ' result(s) from another paper (' + other.slice(0, 3).join(', ') + ')');
+    if (P.insert && r.cards && (r.insert || '').indexOf(P.insert) < 0) bad.push(P.name + ': its Insert tile did not open "' + P.insert + '"' + (r.insert ? ' (the sheet said "' + r.insert.slice(0, 80) + '")' : ' (no sheet)'));
     if (!r.cards) bad.push(P.name + ': ' + r.found + ' found, ' + r.pages + ' page(s), but no question card under the chips' + (r.said ? ' (said: "' + r.said.slice(0, 80) + '")' : ' and no word why'));
   });
   console.log('paper-cards: ' + (PAPERS.length - new Set(bad.map(b => b.split(':')[0])).size) + '/' + PAPERS.length + ' sample sets drew their question cards for a child on an iPad'

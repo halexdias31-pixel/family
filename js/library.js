@@ -359,6 +359,8 @@ function libExtrasData_(d, extra) {
   if (extra.inserts && extra.inserts.length) {
     const list = v => libS(v).split(',').map(t => t.trim()).filter(Boolean);
     d.inserts = extra.inserts.filter(r => r && libS(r.insert_id).trim() && libOn(r.active)).map(r => ({
+      /* ONE ATTACHMENT KIND (queue item 6): a title, its sheet or text, the sets it belongs to; `of` (source | sheet) only a tag */
+      kind: 'attachment', of: libS(r.of).trim(),
       id: libS(r.insert_id).trim(), name: libS(r.name), summary: libS(r.summary),
       subject: libS(r.subject).trim(), levels: list(r.level), keystage: libS(r.keystage).trim(),
       boards: list(r.board), tiers: list(r.tier),

@@ -75,7 +75,8 @@ function qtTiles_(x, ans) {
   const ids = QT_ROW.concat(art ? Object.keys(QT_DRAWING) : []);
   return [qtCheckOpts_(x)].concat(ids.map(qtTool_).filter(Boolean).map(t => qtToolOpts_(t, x)),
     art && typeof padUndoOpts_ === 'function' ? padUndoOpts_(x) : [],
-    [ans && typeof qaToggleOpts_ === 'function' ? qaToggleOpts_(ansKey_(x), ansOpen_(x)) : null,
+    [typeof attachTile_ === 'function' ? attachTile_(x) : null,
+      ans && typeof qaToggleOpts_ === 'function' ? qaToggleOpts_(ansKey_(x), ansOpen_(x)) : null,
       typeof helpOpts_ === 'function' ? helpOpts_(x, '') : null]).filter(Boolean);
 }
 const qtItem_ = key => { try { return stuffItemsAll_().find(it => it && it.key === key) || null; } catch (e) { return null; } };

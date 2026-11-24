@@ -51,7 +51,7 @@ function insertsFor_(x) {
     : has(r.forSubjects, x.subject) && has(r.forLevels, levelOf_(x)) && has(r.forTiers, x.tier) && has(r.boards, x.examBoard));
 }
 /* ---------- A READING INSERT'S EXTRACT (458): private, so asked for when it is opened and drawn when it lands ---------- */
-const insReading_ = r => !!r && (!!(r.forPapers || []).length || !!r.sourceText || !!r.libHas);
+const insReading_ = r => !!r && r.of === 'source';
 /* THE TEXT IS PARAGRAPHS (a blank line between), `# ` a heading, `> ` the paper's note above it, `[n]` where the paper prints line n */
 function insSource_(r, from, to, src) {
   const lines = !!r.lineNumbers, cut = from != null;
@@ -125,7 +125,19 @@ function insLanded_() {
     else el.innerHTML = insSay_(r);
   });
 }
-/* NO INSERT TILE ON A QUESTION (463): the owner, "they can open it in their 2nd finder" -- an insert is Library, found like any card. */
+/* ---------- ONE ATTACHMENT KIND (queue item 6, owner 23 Nov: "unify to reduce the number of errors"; replaces 463's no tile) ----------
+   A source text, a formulae or equation sheet, a periodic table: one kind (data/inserts.json, `of` its tag), opened one way everywhere --
+   the Insert tile every question part shows (greyed where it has none, rule 1.83) opens its paper's attachments as their own Find cards,
+   one step by `openStep_`, Back closes. tools/one-attachment.js fails the build on a second opener or an attachment that does not resolve. */
+const attachTile_ = x => { const a = insertsFor_(x);
+  return a.length ? { icon: 'doc', label: 'Insert', note: a.map(r => r.name).join(' · '), act: 'att-open', data: { key: x.key } } : null; };
+function attachOpen_(list, el) {
+  if (!list.length) return 0;
+  list.forEach(insWant_);
+  return openStep_({ title: list.length === 1 ? list[0].name : 'Insert', el, beside: true,
+    html: list.map(r => findCard(insertItem_(r))).join('') });
+}
+on('att-open', el => { const x = qtItem_(el.getAttribute('data-key')); attachOpen_(x ? insertsFor_(x) : [], el); });
 const insertRow_ = id => insertSheetRow_(id) || insertParts_().find(r => r.id === id) || null;
 /* THE SHEET ITSELF, on paper: each line a name and its formula, typeset as a question's maths is (`typeset_`). */
 /* AN INSERT AS BLOCKS: its kicker (one quiet `unverified` if not yet checked), a reading's source (filled when its words come) or the sheet's sections. */
