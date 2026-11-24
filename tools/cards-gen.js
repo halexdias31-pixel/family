@@ -17,7 +17,7 @@ const TAKE = [
   ['js/arcade.js', ['tdEaster_', 'tdJul_', 'tdYear0_', 'tdYear_']],
   /* A STORED VERDICT AS THE ONE MARKING ENGINE'S SHAPE (owner, 17 Nov): the Sunday email's `digestMark_` reads it as the site's `subSay_` does. */
   /* AND A PICK QUESTION'S OPTIONS READ AS THE MARKER READS THEM (owner, 22 Nov: one Question card): the email marks the option they typed by `choicePicks_`. */
-  ['js/find-marking.js', ['verdictOf_', 'markNorm_', 'MARK_SUPS', 'MARK_SYNONYMS', 'CHOICE_LETTERS', 'choicePicks_']],
+  ['js/find-marking.js', ['STATUS_IDS', 'markResult_', 'statusOf_', 'statusWord_', 'verdictOf_', 'markNorm_', 'MARK_SUPS', 'MARK_SYNONYMS', 'CHOICE_LETTERS', 'choicePicks_']],
   ['js/find-figures.js', ['TAG_NAME', 'tagMadeOf_', 'tagKindOf_', 'tagsKept_']],
   /* THE WORDS FILE AND THE FORMATTERS (owner rule 1.1): every line a card says in an email goes through these. */
   ['js/core.js', ['WORDS_FILE', 'esc', 'text_', 'fmtTime_', 'fmtHours_', 'plural_', 'fmtMoney_', 'DAYS_SHORT', 'fmtDay_', 'fmtDmy_', 'fmtDate_',

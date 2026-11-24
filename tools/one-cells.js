@@ -51,14 +51,14 @@ function run() {
   if (t.boxes !== 6 || t.inTable !== 6) fails.push('the tree draws ' + t.boxes + ' boxes, ' + t.inTable + ' in its table, not 6 and 6');
   if (t.order !== 'place') fails.push('the tree is marked by "' + t.order + '", not by place');
   const right = mark(tree, ['40', '28', '12', '60', '45', '15']);
-  if (right.verdict !== 'right' || right.marks !== right.max) fails.push('the tree\'s right answers mark ' + right.verdict + ' ' + right.marks + '/' + right.max);
+  if (right.verdict !== 'right' || right.marks !== right.outOf) fails.push('the tree\'s right answers mark ' + right.verdict + ' ' + right.marks + '/' + right.outOf);
   if (mark(tree, ['28', '40', '12', '60', '45', '15']).verdict === 'right') fails.push('the tree: two answers swapped still mark right');
 
   const coins = Object.assign({}, COINS), c = look(coins);
   if (c.boxes !== 8 || c.inTable !== 8) fails.push('the coins draw ' + c.boxes + ' boxes, ' + c.inTable + ' in its table, not 8 and 8');
   if (c.order !== 'rows') fails.push('the coins\' outcomes are marked by "' + c.order + '", not as rows in any order');
   const shuffled = mark(coins, ['T', 'T', 'H', 'T', 'H', 'H', 'T', 'H']);
-  if (shuffled.verdict !== 'right') fails.push('the coins\' rows shuffled mark ' + shuffled.verdict + ' ' + shuffled.marks + '/' + shuffled.max);
+  if (shuffled.verdict !== 'right') fails.push('the coins\' rows shuffled mark ' + shuffled.verdict + ' ' + shuffled.marks + '/' + shuffled.outOf);
   if (mark(coins, ['T', 'T', 'H', 'T', 'H', 'H', 'H', 'H']).verdict === 'right') fails.push('the coins: a row twice, one missing, still marks right');
 
   /* SITE-WIDE: every active question with cells, a box a cell, all in a table */

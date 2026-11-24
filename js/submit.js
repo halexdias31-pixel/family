@@ -422,9 +422,11 @@ function subMigrate_() {
 function subSay_(v) {
   const r = verdictOf_(v);
   if (!r) return { text: '', cls: '' };
-  if (r.method === 'unmarked') return { text: 'Sent', cls: '' };
-  if (r.method === 'dogma') return r.verdict === 'right' ? { text: 'Correct', cls: 'is-right' } : { text: text_('not-yet-have-another-go'), cls: 'is-near' };
-  return { text: r.marks + ' of ' + r.max + ' ' + plural_(r.max, 'mark') + (r.method === 'rules' ? ' · by key words' : ' · AI'), cls: r.marks >= r.max ? 'is-right' : 'is-near' };
+  /* ONE MARK RESULT, SAID ONE WAY (owner, 23 Nov, UNIFY item 5): the status word, then marks of out-of when there are marks, rule or AI alike. */
+  if (r.state) return { text: 'Sent', cls: '' };
+  const cls = r.verdict === 'right' ? 'is-right' : 'is-near';
+  if (r.method === 'dogma') return { text: r.verdict === 'right' ? statusWord_(r) : text_('not-yet-have-another-go'), cls };
+  return { text: statusWord_(r) + ' · ' + r.marks + ' of ' + r.outOf + ' ' + plural_(r.outOf, 'mark'), cls };
 }
 
 /* ---------- THE VERDICT, HEARD § */
@@ -436,8 +438,7 @@ function markCanSound_() {
 }
 function markKind_(v) {
   const r = verdictOf_(v);
-  if (!r || r.max < 1) return '';
-  return r.marks >= r.max ? 'right' : r.marks === 0 ? 'wrong' : '';
+  return r && (r.verdict === 'right' || r.verdict === 'wrong') ? r.verdict : '';
 }
 
 /* ---------- THE TWO SOUNDS, AS NOTES ON A CLOCK § */

@@ -720,7 +720,7 @@ function questionHasAns_(x) {
 /* ---------- WHO SEES IT OPEN: WHOEVER ASKED, AND NOBODY ELSE § */
 const ANS_SHOWN = new Set();
 /* CHOOSING `Answers` IS THE ASK, so in that view every answer is open -- forty pages each reading
-   "Answer hidden" is not *"only see answers"* -- and Hide on one still hides it (`ANS_HID`). */
+   the hidden status is not *"only see answers"* -- and Hide on one still hides it (`ANS_HID`). */
 const ANS_HID = new Set();
 function ansOpen_(x) {
   if (!x) return false;
@@ -752,7 +752,7 @@ function questionAnsCard_(x, inRow, bare) {
   return figBox_({ look: 'qcard qans-card' + (open ? '' : ' is-hidden'), attrs: { 'data-of': id, 'data-k': k, 'data-shape': 'Question' },
     inner: tags
       + (inRow ? '' : figBox_({ look: 'tile-row qans-tiles', inner: qaToggle_(k, open) }))
-      + (open ? ansBox_(x, true) : figBox_({ tag: 'p', look: 'qans-wait-k', text: 'Answer hidden' }))
+      + (open ? ansBox_(x, true) : figBox_({ tag: 'p', look: 'qans-wait-k', text: statusWord_('hidden') }))
       + (!inRow && typeof helpRow_ === 'function' ? helpRow_(x, 'ans') : '') });
 }
 

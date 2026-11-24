@@ -224,8 +224,8 @@ function digestRender_(L, P, week, look) {
   const make = (Q, k, of, more) => {
     /* THE KEY IS SAID FOR THE MARKS THE LIST PRINTS — not every item of the week. § */
     const legend = [];
-    if (Q.marks.indexOf('✓') !== -1) legend.push('✓ right');
-    if (Q.marks.indexOf('✗') !== -1) legend.push('✗ not right');
+    if (Q.marks.indexOf('✓') !== -1) legend.push('✓ ' + statusWord_('right').toLowerCase());
+    if (Q.marks.indexOf('✗') !== -1) legend.push('✗ ' + statusWord_('wrong').toLowerCase());
     if (Q.marks.some(m => / of \d+ marks?$/.test(m))) legend.push('the marks an AI marker gave a written answer');
     const said = legend.length < 2 ? legend.join('')
       : legend.slice(0, -1).join(', ') + (legend.length > 2 ? ',' : '') + ' or ' + legend[legend.length - 1];
@@ -335,21 +335,15 @@ function digestInk_() {
   return Object.assign({}, DIGEST_INK, { mono: "ui-monospace,'SF Mono','Cascadia Mono',Menlo,Consolas,'Courier New',monospace" });
 }
 
-/* HOW ONE QUESTION WENT, by the week's last word on it: right, part marks, not right, not marked — never how many goes it took (the owner, 20 Oct). */
+/* HOW ONE QUESTION WENT, by the week's last word on it — never how many goes it took (the owner, 20 Oct): the site's ONE STATUS SET
+   (owner, 23 Nov, UNIFY item 4), `statusOf_` and its words, as cards-gen.gs copies them. */
 function digestHow_(verdict) {
-  const m = /^(?:ai|rule):(\d{1,3})\/(\d{1,3})$/.exec(S(verdict));
-  if (S(verdict) === 'right' || (m && +m[1] >= +m[2])) return 'right';
-  if (m && +m[1] > 0) return 'part';
-  if (S(verdict) === 'wrong' || m) return 'wrong';
-  return 'open';
+  return statusOf_(S(verdict));
 }
-/* THE WORDS AND COLOUR FOR EACH WAY A QUESTION WENT — the summary's figures and each card's verdict say the same thing. */
+/* THE WORDS AND COLOUR FOR EACH WAY A QUESTION WENT — the summary's figures and each card's verdict say the same thing, the status words. */
 function digestHowSay_() {
-  const ink = digestInk_();
-  return [{ id: 'right', many: 'right', one: '✓ Right', tone: ink.right },
-          { id: 'part', many: 'with part marks', one: '', tone: ink.gold },
-          { id: 'wrong', many: 'not right', one: '✗ Not right', tone: ink.wrong },
-          { id: 'open', many: 'not marked yet', one: 'Not marked yet', tone: ink.dim }];
+  const ink = digestInk_(), tone = { right: ink.right, part: ink.gold, wrong: ink.wrong, untried: ink.dim };
+  return ['right', 'part', 'wrong', 'untried'].map(id => ({ id: id, many: statusWord_(id).toLowerCase(), one: id === 'part' ? '' : ({ right: '✓ ', wrong: '✗ ' }[id] || '') + statusWord_(id), tone: tone[id] }));
 }
 /* A NAME THAT IS A PAPER'S AND NOT A TOPIC'S — "Paper 1F (Non-calculator) — June 2024", "Paper X", a mock, a 5-a-day's date, a board, a year or a month (380, 20 Oct). */
 const DIGEST_NOT_TOPIC = /\bpapers?\b|\bmock\b|\bspecimen\b|5-a-day|\b(?:19|20)\d\d\b|\b(?:january|february|march|april|may|june|july|august|september|october|november|december)\b|\b(?:aqa|edexcel|ocr|wjec|eduqas|ccea)\b|testing agency/i;
@@ -882,7 +876,7 @@ function digestMark_(v) {
   const t = S(v);
   const r = verdictOf_(t);
   if (r && r.method === 'dogma') return r.verdict === 'right' ? '✓' : '✗';
-  return r && r.max ? r.marks + ' of ' + r.max + ' ' + plural_(r.max, 'mark') : 'not marked';
+  return r && r.outOf ? r.marks + ' of ' + r.outOf + ' ' + plural_(r.outOf, 'mark') : statusWord_('untried').toLowerCase();
 }
 
 /* ---------- TEXT THAT CAME OFF A PHONE, AND MAY GO OUT UNDER THE BUSINESS'S NAME § */
