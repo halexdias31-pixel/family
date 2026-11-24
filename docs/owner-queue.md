@@ -4,6 +4,15 @@ Claude owns the site (rules.json rule 0.1) and prompts itself from this list: wh
 
 An item ships only when every check passes and a count goes up. Questions for the owner are asked in conversation, a few at a time (the list at the bottom is Claude's own memory of them).
 
+## OWNER'S LIST (24 Nov, evening; in this order, under THE OWNER'S LAW)
+1. One answer sheet (in progress).
+2. ONE FIXED PATH in Find: the "narrows most" rule makes the order change with the source (Corbettmaths, First Class Maths…), and some things are reachable only by going one way then deleting a tag. Replace with one fixed order of questions for every door; every item reachable by tapping forward only. A check walks every item. Today a maths past paper could not be reached.
+3. English extracts load (the server import; in progress).
+4. Nothing special-looking: one look for every box, card, chip and button. Audit what looks "fancy" (the answer sheet included) and make it the plain shared look; a check counts distinct looks.
+5. Remove the Flag and Save (star) buttons from questions; the Paper/grid tile goes with the answer sheet.
+6. Science (physics, chemistry, biology) library → questions "not working": walk it as a child, fix at the root.
+7. Everything in-house: @family makes its own worksheets and library (outside sites only as reference), drawings nicer; one source, topics from the government's lists.
+
 ## THE OWNER'S LAW (24 Nov, above everything)
 "I want to just live my life through the day without any worries or stress." The owner must never have to check up after Claude.
 - No new features, screens, buttons, menus or rearranging. Only fixes, and unifying what exists so more is the same.
