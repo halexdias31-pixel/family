@@ -32,6 +32,7 @@ const USAGE = `
   node tools/content.js ideas [--out <dir>]                                             measure → merge → tag (one maths card per idea; part_of, specs, idea_id; tools/lib/ideas.js)
 
   node tools/content.js sets [--apply]                                                  one question set: every paper, worksheet, exercise, 5-a-day a set (tools/lib/sets.js; held by tools/one-set.js)
+  node tools/content.js qideas [--apply]                                                one topic tree: each maths question's idea_id from data/settings/question-ideas.json (tools/lib/qideas.js; held by tools/one-topic.js)
   node tools/content.js speccode [--apply]                                              derive → write (spec_code from a paper's own columns)
 
   node tools/content.js library <split|join|seed|pull|push|status|drive-pack|help> …   the library's private half (397)
@@ -377,6 +378,27 @@ const SPECCODE = {
   },
 };
 
+/* ONE TOPIC TREE, MATHS (UNIFY THE LIBRARY AND PRACTICE, item 7): each maths question's idea_id from data/settings/question-ideas.json, and the
+   ideas' names for Find (tools/lib/qideas.js). */
+const QIDEAS = {
+  measure(c) {
+    c.QI = require('./lib/qideas.js');
+    c.q = IM.cards('questions');
+    c.t = c.QI.assign(c.q.rows);
+    c.names = c.QI.names(JSON.parse(fs.readFileSync(path.join(L.ROOT, 'data', 'textbooks.json'), 'utf8')));
+    console.log('qideas: ' + c.t.questions + ' maths questions, ' + c.t.mapped + ' given an idea, ' + c.t.unmapped + ' unmapped; ' + c.t.changed + ' row(s) changed; '
+      + Object.keys(c.names).length + ' idea names');
+  },
+  write(c) {
+    if (!c.apply) { console.log('(a dry run: --apply writes data/questions.json and taxonomy.json Maths.ideaNames)'); return; }
+    if (c.t.changed) IM.writeCards('questions', c.q.rows, c.q.style);
+    const file = path.join(L.ROOT, 'data', 'settings', 'taxonomy.json'), tax = JSON.parse(fs.readFileSync(file, 'utf8'));
+    tax.Maths = Object.assign(tax.Maths || {}, { ideaNames: c.names });
+    fs.writeFileSync(file, JSON.stringify(tax, null, 1) + '\n');
+    console.log('qideas: written to data/questions.json and data/settings/taxonomy.json');
+  },
+};
+
 /* ONE QUESTION SET (UNIFY THE LIBRARY AND PRACTICE, item 3): every grouping of questions one kind (tools/lib/sets.js). */
 const SETS = {
   measure(c) {
@@ -433,7 +455,8 @@ const IDEAS = {
     const boards = ['AQA', 'Edexcel', 'OCR'].filter(b => files.some(x => x.board === b)).map(b => ({ board: b,
       specs: [...new Set(files.filter(x => x.board === b).map(x => x.spec))].map(code => ({ code, level: files.find(x => x.board === b && x.spec === code).level,
         spec: (m.cards.find(x => x.board === b && x.spec === code).specs[0] || '').split(':')[0] })) }));
-    c.tax.Maths = { subject: c.ID.SUBJECT, cards: { levels: ['part_of', 'idea_id'], tree: 'data/topics.json', boards }, ideas: Object.assign(c.ID.report(m), { merged }) };
+    /* THE QUESTIONS' IDEA NAMES (qideas) ARE KEPT; tools/one-topic.js says when they are stale. */
+    c.tax.Maths = { subject: c.ID.SUBJECT, ideaNames: (c.tax.Maths || {}).ideaNames, cards: { levels: ['part_of', 'idea_id'], tree: 'data/topics.json', boards }, ideas: Object.assign(c.ID.report(m), { merged }) };
     const text = JSON.stringify(c.tax, null, 1) + '\n';
     if (out) { fs.mkdirSync(out, { recursive: true }); fs.writeFileSync(path.join(out, 'taxonomy.json'), text); }
     else fs.writeFileSync(c.file, text);
@@ -506,6 +529,7 @@ async function main(argv) {
     return;
   }
   if (what === 'sets') return IM.run('sets', SETS, {}, only);
+  if (what === 'qideas') return IM.run('qideas', QIDEAS, { apply: argv.includes('--apply') }, only);
   if (what === 'speccode') return IM.run('speccode', SPECCODE, { apply: argv.includes('--apply') }, only);
   const want = only || STAGES;
   const bad = want.filter(s => !STAGES.includes(s));
