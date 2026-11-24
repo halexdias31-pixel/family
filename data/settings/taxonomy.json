@@ -793,233 +793,6 @@
    "Chemistry",
    "Physics"
   ],
-  "cards": {
-   "levels": [
-    "part_of",
-    "idea_id"
-   ],
-   "tree": "data/topics.json"
-  },
-  "ideas": {
-   "about": "ONE IDEA PER CARD, science (UNIFY THE LIBRARY AND PRACTICE, item 8, 24 Nov): written by `node tools/content.js sciideas` (tools/lib/sci-ideas.js), checked by tools/one-idea.js. An idea is one AQA spec point (8461, 8462, 8463; 8464 Combined shares them), taught by one card. A group is the cards that teach one idea: the same title once the spec code is off, or a broad chapter with no point of its own. merged: what went, and where.",
-   "fields": {
-    "part_of": "a data/topics.json science node id",
-    "specs": "<data/spec id>:<point>, space-separated",
-    "idea_id": "sc.<bio|chem|phys>.<title>, one per idea"
-   },
-   "books": {
-    "TB-AQA-8461": 97,
-    "TB-AQA-8462": 124,
-    "TB-AQA-8463": 90
-   },
-   "outside": {
-    "TB-KS2-SCI": "KS2: not point-by-point, and its words are in the Ledger only — the next step of item 8",
-    "TB-KS3-SCI": "KS3: not point-by-point, and its words are in the Ledger only — the next step of item 8",
-    "TB-GCSE-PRACTICALS": "the required practicals: a practical card is a method, not an idea of its own — the next step of item 8",
-    "TB-ALEVEL-BIO": "A-Level: its own spec (AQA 7402), not yet point-by-point — the next step of item 8",
-    "TB-ALEVEL-CHEM": "A-Level: its own spec (AQA 7405), not yet point-by-point — the next step of item 8",
-    "TB-ALEVEL-PHYS": "A-Level: its own spec (AQA 7408), not yet point-by-point — the next step of item 8"
-   },
-   "counts": {
-    "cards": 311,
-    "ideas": 311,
-    "groups": 0,
-    "cards_in_groups": 0
-   },
-   "groups": [],
-   "merged": {
-    "ct:TB-GCSE-BIO-1": {
-     "to": "ct:TB-AQA-8461-2",
-     "title": "Cells and microscopy",
-     "level": "GCSE"
-    },
-    "ct:TB-GCSE-BIO-2": {
-     "to": "ct:TB-AQA-8461-2",
-     "title": "Cell division and transport",
-     "level": "GCSE"
-    },
-    "ct:TB-GCSE-BIO-3": {
-     "to": "ct:TB-AQA-8461-13",
-     "title": "Digestion and enzymes",
-     "level": "GCSE"
-    },
-    "ct:TB-GCSE-BIO-4": {
-     "to": "ct:TB-AQA-8461-15",
-     "title": "Heart, blood and health",
-     "level": "GCSE"
-    },
-    "ct:TB-GCSE-BIO-5": {
-     "to": "ct:TB-AQA-8461-21",
-     "title": "Plant tissues and transport",
-     "level": "GCSE"
-    },
-    "ct:TB-GCSE-BIO-6": {
-     "to": "ct:TB-AQA-8461-35",
-     "title": "Infection and response",
-     "level": "GCSE"
-    },
-    "ct:TB-GCSE-BIO-7": {
-     "to": "ct:TB-AQA-8461-37",
-     "title": "Photosynthesis and respiration",
-     "level": "GCSE"
-    },
-    "ct:TB-GCSE-BIO-8": {
-     "to": "ct:TB-AQA-8461-44",
-     "title": "Nerves, brain and eye",
-     "level": "GCSE"
-    },
-    "ct:TB-GCSE-BIO-9": {
-     "to": "ct:TB-AQA-8461-50",
-     "title": "Hormones",
-     "level": "GCSE"
-    },
-    "ct:TB-GCSE-BIO-10": {
-     "to": "ct:TB-AQA-8461-56",
-     "title": "Reproduction and inheritance",
-     "level": "GCSE"
-    },
-    "ct:TB-GCSE-BIO-11": {
-     "to": "ct:TB-AQA-8461-64",
-     "title": "Variation and evolution",
-     "level": "GCSE"
-    },
-    "ct:TB-GCSE-BIO-12": {
-     "to": "ct:TB-AQA-8461-77",
-     "title": "Ecology",
-     "level": "GCSE"
-    },
-    "ct:TB-GCSE-CHEM-1": {
-     "to": "ct:TB-AQA-8462-1",
-     "title": "Atoms, isotopes and mixtures",
-     "level": "GCSE"
-    },
-    "ct:TB-GCSE-CHEM-2": {
-     "to": "ct:TB-AQA-8462-8",
-     "title": "The periodic table",
-     "level": "GCSE"
-    },
-    "ct:TB-GCSE-CHEM-3": {
-     "to": "ct:TB-AQA-8462-17",
-     "title": "Bonding and structure",
-     "level": "GCSE"
-    },
-    "ct:TB-GCSE-CHEM-4": {
-     "to": "ct:TB-AQA-8462-34",
-     "title": "Quantitative chemistry",
-     "level": "GCSE"
-    },
-    "ct:TB-GCSE-CHEM-5": {
-     "to": "ct:TB-AQA-8462-51",
-     "title": "Metals, acids and salts",
-     "level": "GCSE"
-    },
-    "ct:TB-GCSE-CHEM-6": {
-     "to": "ct:TB-AQA-8462-57",
-     "title": "Electrolysis",
-     "level": "GCSE"
-    },
-    "ct:TB-GCSE-CHEM-7": {
-     "to": "ct:TB-AQA-8462-64",
-     "title": "Energy changes",
-     "level": "GCSE"
-    },
-    "ct:TB-GCSE-CHEM-8": {
-     "to": "ct:TB-AQA-8462-67",
-     "title": "Rates and equilibrium",
-     "level": "GCSE"
-    },
-    "ct:TB-GCSE-CHEM-9": {
-     "to": "ct:TB-AQA-8462-78",
-     "title": "Organic chemistry",
-     "level": "GCSE"
-    },
-    "ct:TB-GCSE-CHEM-10": {
-     "to": "ct:TB-AQA-8462-90",
-     "title": "Chemical analysis",
-     "level": "GCSE"
-    },
-    "ct:TB-GCSE-CHEM-11": {
-     "to": "ct:TB-AQA-8462-104",
-     "title": "The atmosphere",
-     "level": "GCSE"
-    },
-    "ct:TB-GCSE-CHEM-12": {
-     "to": "ct:TB-AQA-8462-114",
-     "title": "Using resources",
-     "level": "GCSE"
-    },
-    "ct:TB-AQA-8463-30": {
-     "to": "ct:TB-AQA-8462-3",
-     "title": "The development of the model of the atom",
-     "level": "GCSE"
-    },
-    "ct:TB-GCSE-PHYS-1": {
-     "to": "ct:TB-AQA-8463-1",
-     "title": "Energy stores and resources",
-     "level": "GCSE"
-    },
-    "ct:TB-GCSE-PHYS-2": {
-     "to": "ct:TB-AQA-8463-8",
-     "title": "Electric circuits",
-     "level": "GCSE"
-    },
-    "ct:TB-GCSE-PHYS-3": {
-     "to": "ct:TB-AQA-8463-14",
-     "title": "Mains electricity and static",
-     "level": "GCSE"
-    },
-    "ct:TB-GCSE-PHYS-4": {
-     "to": "ct:TB-AQA-8463-25",
-     "title": "The particle model",
-     "level": "GCSE"
-    },
-    "ct:TB-GCSE-PHYS-5": {
-     "to": "ct:TB-AQA-8463-31",
-     "title": "Atoms and radioactive decay",
-     "level": "GCSE"
-    },
-    "ct:TB-GCSE-PHYS-6": {
-     "to": "ct:TB-AQA-8463-31",
-     "title": "Radiation, fission and fusion",
-     "level": "GCSE"
-    },
-    "ct:TB-GCSE-PHYS-7": {
-     "to": "ct:TB-AQA-8463-47",
-     "title": "Forces, moments and pressure",
-     "level": "GCSE"
-    },
-    "ct:TB-GCSE-PHYS-8": {
-     "to": "ct:TB-AQA-8463-62",
-     "title": "Motion and momentum",
-     "level": "GCSE"
-    },
-    "ct:TB-GCSE-PHYS-9": {
-     "to": "ct:TB-AQA-8463-68",
-     "title": "Waves and sound",
-     "level": "GCSE"
-    },
-    "ct:TB-GCSE-PHYS-10": {
-     "to": "ct:TB-AQA-8463-70",
-     "title": "Electromagnetic waves and light",
-     "level": "GCSE"
-    },
-    "ct:TB-GCSE-PHYS-11": {
-     "to": "ct:TB-AQA-8463-80",
-     "title": "Magnetism and electromagnetism",
-     "level": "GCSE"
-    },
-    "ct:TB-GCSE-PHYS-12": {
-     "to": "ct:TB-AQA-8463-88",
-     "title": "Space physics",
-     "level": "GCSE"
-    }
-   },
-   "books_gone": [
-    "TB-GCSE-BIO",
-    "TB-GCSE-CHEM",
-    "TB-GCSE-PHYS"
-   ]
-  },
   "ideaNames": {
    "sc.bio.abiotic-factors": "Abiotic factors",
    "sc.bio.active-transport": "Active transport",
@@ -1332,6 +1105,233 @@
    "sc.phys.visible-light": "Visible light",
    "sc.phys.waves-for-detection-and-exploration": "Waves for detection and exploration",
    "sc.phys.work-done-and-energy-transfer": "Work done and energy transfer"
+  },
+  "cards": {
+   "levels": [
+    "part_of",
+    "idea_id"
+   ],
+   "tree": "data/topics.json"
+  },
+  "ideas": {
+   "about": "ONE IDEA PER CARD, science (UNIFY THE LIBRARY AND PRACTICE, item 8, 24 Nov): written by `node tools/content.js sciideas` (tools/lib/sci-ideas.js), checked by tools/one-idea.js. An idea is one AQA spec point (8461, 8462, 8463; 8464 Combined shares them), taught by one card. A group is the cards that teach one idea: the same title once the spec code is off, or a broad chapter with no point of its own. merged: what went, and where.",
+   "fields": {
+    "part_of": "a data/topics.json science node id",
+    "specs": "<data/spec id>:<point>, space-separated",
+    "idea_id": "sc.<bio|chem|phys>.<title>, one per idea"
+   },
+   "books": {
+    "TB-AQA-8461": 97,
+    "TB-AQA-8462": 124,
+    "TB-AQA-8463": 90
+   },
+   "outside": {
+    "TB-KS2-SCI": "KS2: not point-by-point, and its words are in the Ledger only — the next step of item 8",
+    "TB-KS3-SCI": "KS3: not point-by-point, and its words are in the Ledger only — the next step of item 8",
+    "TB-GCSE-PRACTICALS": "the required practicals: a practical card is a method, not an idea of its own — the next step of item 8",
+    "TB-ALEVEL-BIO": "A-Level: its own spec (AQA 7402), not yet point-by-point — the next step of item 8",
+    "TB-ALEVEL-CHEM": "A-Level: its own spec (AQA 7405), not yet point-by-point — the next step of item 8",
+    "TB-ALEVEL-PHYS": "A-Level: its own spec (AQA 7408), not yet point-by-point — the next step of item 8"
+   },
+   "counts": {
+    "cards": 311,
+    "ideas": 311,
+    "groups": 0,
+    "cards_in_groups": 0
+   },
+   "groups": [],
+   "merged": {
+    "ct:TB-GCSE-BIO-1": {
+     "to": "ct:TB-AQA-8461-2",
+     "title": "Cells and microscopy",
+     "level": "GCSE"
+    },
+    "ct:TB-GCSE-BIO-2": {
+     "to": "ct:TB-AQA-8461-2",
+     "title": "Cell division and transport",
+     "level": "GCSE"
+    },
+    "ct:TB-GCSE-BIO-3": {
+     "to": "ct:TB-AQA-8461-13",
+     "title": "Digestion and enzymes",
+     "level": "GCSE"
+    },
+    "ct:TB-GCSE-BIO-4": {
+     "to": "ct:TB-AQA-8461-15",
+     "title": "Heart, blood and health",
+     "level": "GCSE"
+    },
+    "ct:TB-GCSE-BIO-5": {
+     "to": "ct:TB-AQA-8461-21",
+     "title": "Plant tissues and transport",
+     "level": "GCSE"
+    },
+    "ct:TB-GCSE-BIO-6": {
+     "to": "ct:TB-AQA-8461-35",
+     "title": "Infection and response",
+     "level": "GCSE"
+    },
+    "ct:TB-GCSE-BIO-7": {
+     "to": "ct:TB-AQA-8461-37",
+     "title": "Photosynthesis and respiration",
+     "level": "GCSE"
+    },
+    "ct:TB-GCSE-BIO-8": {
+     "to": "ct:TB-AQA-8461-44",
+     "title": "Nerves, brain and eye",
+     "level": "GCSE"
+    },
+    "ct:TB-GCSE-BIO-9": {
+     "to": "ct:TB-AQA-8461-50",
+     "title": "Hormones",
+     "level": "GCSE"
+    },
+    "ct:TB-GCSE-BIO-10": {
+     "to": "ct:TB-AQA-8461-56",
+     "title": "Reproduction and inheritance",
+     "level": "GCSE"
+    },
+    "ct:TB-GCSE-BIO-11": {
+     "to": "ct:TB-AQA-8461-64",
+     "title": "Variation and evolution",
+     "level": "GCSE"
+    },
+    "ct:TB-GCSE-BIO-12": {
+     "to": "ct:TB-AQA-8461-77",
+     "title": "Ecology",
+     "level": "GCSE"
+    },
+    "ct:TB-GCSE-CHEM-1": {
+     "to": "ct:TB-AQA-8462-1",
+     "title": "Atoms, isotopes and mixtures",
+     "level": "GCSE"
+    },
+    "ct:TB-GCSE-CHEM-2": {
+     "to": "ct:TB-AQA-8462-8",
+     "title": "The periodic table",
+     "level": "GCSE"
+    },
+    "ct:TB-GCSE-CHEM-3": {
+     "to": "ct:TB-AQA-8462-17",
+     "title": "Bonding and structure",
+     "level": "GCSE"
+    },
+    "ct:TB-GCSE-CHEM-4": {
+     "to": "ct:TB-AQA-8462-34",
+     "title": "Quantitative chemistry",
+     "level": "GCSE"
+    },
+    "ct:TB-GCSE-CHEM-5": {
+     "to": "ct:TB-AQA-8462-51",
+     "title": "Metals, acids and salts",
+     "level": "GCSE"
+    },
+    "ct:TB-GCSE-CHEM-6": {
+     "to": "ct:TB-AQA-8462-57",
+     "title": "Electrolysis",
+     "level": "GCSE"
+    },
+    "ct:TB-GCSE-CHEM-7": {
+     "to": "ct:TB-AQA-8462-64",
+     "title": "Energy changes",
+     "level": "GCSE"
+    },
+    "ct:TB-GCSE-CHEM-8": {
+     "to": "ct:TB-AQA-8462-67",
+     "title": "Rates and equilibrium",
+     "level": "GCSE"
+    },
+    "ct:TB-GCSE-CHEM-9": {
+     "to": "ct:TB-AQA-8462-78",
+     "title": "Organic chemistry",
+     "level": "GCSE"
+    },
+    "ct:TB-GCSE-CHEM-10": {
+     "to": "ct:TB-AQA-8462-90",
+     "title": "Chemical analysis",
+     "level": "GCSE"
+    },
+    "ct:TB-GCSE-CHEM-11": {
+     "to": "ct:TB-AQA-8462-104",
+     "title": "The atmosphere",
+     "level": "GCSE"
+    },
+    "ct:TB-GCSE-CHEM-12": {
+     "to": "ct:TB-AQA-8462-114",
+     "title": "Using resources",
+     "level": "GCSE"
+    },
+    "ct:TB-AQA-8463-30": {
+     "to": "ct:TB-AQA-8462-3",
+     "title": "The development of the model of the atom",
+     "level": "GCSE"
+    },
+    "ct:TB-GCSE-PHYS-1": {
+     "to": "ct:TB-AQA-8463-1",
+     "title": "Energy stores and resources",
+     "level": "GCSE"
+    },
+    "ct:TB-GCSE-PHYS-2": {
+     "to": "ct:TB-AQA-8463-8",
+     "title": "Electric circuits",
+     "level": "GCSE"
+    },
+    "ct:TB-GCSE-PHYS-3": {
+     "to": "ct:TB-AQA-8463-14",
+     "title": "Mains electricity and static",
+     "level": "GCSE"
+    },
+    "ct:TB-GCSE-PHYS-4": {
+     "to": "ct:TB-AQA-8463-25",
+     "title": "The particle model",
+     "level": "GCSE"
+    },
+    "ct:TB-GCSE-PHYS-5": {
+     "to": "ct:TB-AQA-8463-31",
+     "title": "Atoms and radioactive decay",
+     "level": "GCSE"
+    },
+    "ct:TB-GCSE-PHYS-6": {
+     "to": "ct:TB-AQA-8463-31",
+     "title": "Radiation, fission and fusion",
+     "level": "GCSE"
+    },
+    "ct:TB-GCSE-PHYS-7": {
+     "to": "ct:TB-AQA-8463-47",
+     "title": "Forces, moments and pressure",
+     "level": "GCSE"
+    },
+    "ct:TB-GCSE-PHYS-8": {
+     "to": "ct:TB-AQA-8463-62",
+     "title": "Motion and momentum",
+     "level": "GCSE"
+    },
+    "ct:TB-GCSE-PHYS-9": {
+     "to": "ct:TB-AQA-8463-68",
+     "title": "Waves and sound",
+     "level": "GCSE"
+    },
+    "ct:TB-GCSE-PHYS-10": {
+     "to": "ct:TB-AQA-8463-70",
+     "title": "Electromagnetic waves and light",
+     "level": "GCSE"
+    },
+    "ct:TB-GCSE-PHYS-11": {
+     "to": "ct:TB-AQA-8463-80",
+     "title": "Magnetism and electromagnetism",
+     "level": "GCSE"
+    },
+    "ct:TB-GCSE-PHYS-12": {
+     "to": "ct:TB-AQA-8463-88",
+     "title": "Space physics",
+     "level": "GCSE"
+    }
+   },
+   "books_gone": [
+    "TB-GCSE-BIO",
+    "TB-GCSE-CHEM",
+    "TB-GCSE-PHYS"
+   ]
   }
  }
 }
