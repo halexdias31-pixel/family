@@ -255,24 +255,8 @@ function facetValues(items, facet) {
   return all.some(said) ? all.filter(v => !said(v)) : all;
 }
 
-/* HOW MANY OF THESE COULD EVEN ANSWER IT. § */
-function facetCoverage(items, facet) {
-  return facetTally_(items, facet).coverage;
-}
-
-/* HOW MUCH OF THE SET A QUESTION HAS TO COVER BEFORE IT IS WORTH ASKING — one bar for every facet (396). */
-const FACET_COVERAGE = 0.5;
-
 /* ---------- A QUESTION WITH FORTY ANSWERS IS NOT A QUESTION, IT IS THE LIST § */
 const FACET_MAX_ANSWERS = 40;
-
-/* ---------- AND A QUESTION EVERYBODY ANSWERS THE SAME WAY IS NOT A QUESTION EITHER § */
-const FACET_MIN_MINORITY = 0.02;
-
-/* Does answering this actually split the list? § */
-function facetSplit_(items, facet) {
-  return facetTally_(items, facet).split;
-}
 
 /* KINDS UNDER KINDS (546, 610): § */
 /* What kind offers the one above (`kindLabel`); the kind itself is asked after it (`kindOwn`). */
@@ -302,24 +286,10 @@ function facetWhy_(items, facet, over) {
   const all = facetValues(items, facet), vals = all.length;
   if (vals < 2) return (vals ? 'one answer' : 'nobody can answer it') + ' — nothing to decide';
   if (!over && vals > (vals <= FACET_MAX_GRID && numberedRun_(all) ? FACET_MAX_GRID : FACET_MAX_ANSWERS)) return 'too many answers — that is a list, not a question (max ' + FACET_MAX_ANSWERS + ')';
-  const cov = facetCoverage(items, facet);
-  if (cov < FACET_COVERAGE) return 'thin — needs ' + Math.round(FACET_COVERAGE * 100) + '%';
+  /* ONE FIXED ORDER (owner, 24 Nov: "remove it"): no thin, lopsided or local skips — a tag is asked in the facets tab's order whenever it has 2+ answers. */
   const echo = facetEcho_(items, facet);
   if (echo) return echo + ' asked finer, and it was answered Any — each answer sits inside one of that question\'s';
-  const local = facetLocal_(items, facet);
-  if (local) return 'counts within each ' + local + ' — asked once one ' + local + ' is left';
-  const split = facetSplit_(items, facet);
-  if (split < FACET_MIN_MINORITY && !kindNamed_(all) && !facet.choose) {
-    return 'lopsided — pressing its commonest answer would leave ' + Math.round(split * 1000) / 10
-         + '% of the list, needs ' + Math.round(FACET_MIN_MINORITY * 100) + '%';
-  }
   return '';
-}
-
-/* A QUESTION WHOSE EVERY ANSWER IS A KIND'S NAME (the kinds tab) chooses what a card IS, not how many (660): § */
-function kindNamed_(values) {
-  const m = kindMap_(), names = new Set(Object.keys(m).map(k => spellKey_(m[k].label)).concat(spellKey_(ansKind_())));
-  return values.length > 1 && values.every(v => names.has(spellKey_(v.value)));
 }
 
 /* A QUESTION THAT RE-ASKS ONE ANSWERED ANY (499, 660): § */
@@ -359,50 +329,6 @@ function echoInside_(F, G) {
   return ECHO_MEMO_.m[k];
 }
 
-/* A COUNT WITHIN EACH ANSWER OF ANOTHER QUESTION (Question within Paper): § */
-/* Not when G's answers also run, unevenly, inside F's: § */
-function runsInside_(items, F, G) {
-  const by = {};
-  let cards = 0, cells = 0;
-  for (const x of items) {
-    const a = facetOwn_(F, x), b = facetOwn_(G, x);
-    if (!a.length) continue;
-    /* A count lives only inside its parent: § */
-    if (b.length !== 1) return 0;
-    const s = by[spellKey_(b[0])] || (by[spellKey_(b[0])] = new Set());
-    cards++;
-    a.forEach(v => s.add(spellKey_(v)));
-  }
-  for (const k in by) cells += by[k].size;
-  /* A parent holds more cards than counts; one card a cell is the card's own address (Question by Part), a grid. */
-  if (cards <= cells) return 0;
-  const sets = Object.values(by).filter(s => s.size > 1).sort((p, q) => p.size - q.size);
-  /* A count runs longer than its parents are many: § */
-  if (sets.length < 2 || sets[sets.length - 1].size <= Object.keys(by).length) return 0;
-  if (!sets.every((s, i) => !i || [...sets[i - 1]].every(v => s.has(v)))) return 0;
-  return sets[0].size === sets[sets.length - 1].size ? 1 : 2;
-}
-const LOCAL_MEMO_ = new WeakMap();
-function facetLocal_(items, F) {
-  let m = LOCAL_MEMO_.get(items);
-  if (!m) LOCAL_MEMO_.set(items, m = {});
-  /* A G ALREADY ASKED NEVER HOLDS F (8 Nov): § */
-  const asked = (STUFF.filters || []).map(f => f.field), key = F.field + '|' + asked.join(',');
-  if (key in m) return m[key];
-  let say = '';
-  const nF = facetValues(items, F).length;
-  /* ONLY A COARSER G, one the tab puts before F (8 Nov): § */
-  for (const G of facetList()) {
-    if (G === F) break;
-    const nG = asked.indexOf(G.field) !== -1 ? 0 : facetValues(items, G).length;
-    if (nG < 2 || nG >= nF || !runsInside_(items, F, G) || runsInside_(items, G, F) === 2) continue;
-    /* A G NEVER ASKED HERE NEVER HOLDS F (1180): § */
-    if (facetWhy_(items, G)) continue;
-    say = G.label || G.field;
-    break;
-  }
-  return (m[key] = say);
-}
 
 
 /* THE NEXT QUESTION, or nothing — ONE PRINCIPLE (owner, 15 Nov): the first facet in the facets tab's order that splits the list. */
