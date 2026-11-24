@@ -250,7 +250,7 @@ function cellsBox_(x, key) {
     + fcG_('div', 'qp-cells-wrap q-tscroll', null, cellsTable_(x, true)) + ansKeyNote_(x, '', true));
   const said = subBoxSay_(k, String(ansRead_(k) || ''));
   return fcG_('div', 'qp-mark qp-compose qp-cells-box' + (said.cls ? ' ' + said.cls : ''), { 'data-k': k },
-    fcG_('p', 'q-hint', null, '', cellsHint_(o.by)) + fcG_('div', 'qp-cells-wrap q-tscroll', null, cellsTable_(x))
+    fcG_('p', 'q-hint', null, '', cellsHint_(o.by)) + sheet_(x, '', fcG_('div', 'qp-cells-wrap q-tscroll', null, cellsTable_(x)))
     + fcVerdict_(said.text) + fcSaved_(k));
 }
 /* THE QUESTION'S OWN TABLE IS DRAWN ONCE: in the box, its blanks boxes -- so the words above leave it out */
@@ -357,18 +357,70 @@ function ansBox_(x, key) {
   const cls = 'qp-mark qp-compose' + (kept ? ' qp-keep' : '') + (geo ? ' qpad-send' : '');
   const dataAt = Object.assign(can ? { 'data-accept': can } : {}, rule ? { 'data-rule': rule, 'data-marks': String(Number(x.marks) || '') } : {}, drawAt);
   const fb = why => (kept && why ? fcG_('p', 'qp-fb', null, '', why) : '');
-  /* ---------- AN ESSAY IS WRITTEN ON A SHEET: the same one box, bigger § */
-  if (ansEssay_(x) || face.sheet) {
-    const said = subBoxSay_(k, val);
-    return fcG_('div', cls + ' qp-essay' + (said.cls ? ' ' + said.cls : ''), dataAt,
-      fcG_('label', 'qp-ans qp-sheet', { 'aria-label': text_('your-answer') }, kpField_(k, val, 'essay', 3)) + fcG_('p', 'qp-words', null, '', kpWordsSay_(val))
-      + fcVerdict_(said.text) + fcSaved_(k)) + fb(said.why);
-  }
-  const bar = opts + fcG_('div', 'qp-ans-row qp-bar', null, fcG_('label', 'qp-ans' + (maths ? ' qp-ans-maths' : ''), { 'aria-label': text_('your-answer') }, kpField_(k, val, maths ? 'maths' : 'words', 3, null, choiceKeysAt_(x))));
-  /* THE VERDICT IS THE LATEST SUBMISSION'S, WHILE THE BOX HOLDS WHAT WAS SENT -- on this device or on the account, next sign-in § */
+  /* THE ONE SHEET (owner, 24 Nov): every part answered on it -- its picture printed at the top, then its lines; keys type on the lines, touch draws */
+  const essay = ansEssay_(x) || face.sheet;
+  const typed = kpField_(k, val, essay ? 'essay' : maths ? 'maths' : 'words', 3, null, essay ? null : choiceKeysAt_(x));
   const said = geo ? subBoxSay_(k, padSay_(padRead_(padKey_(x)))) : subBoxSay_(k, val);
-  return fcG_('div', cls + (said.cls ? ' ' + said.cls : ''), dataAt,
-    bar + fcVerdict_(geo ? padSaid_(said.text) : said.text) + fcSaved_(k)) + fb(said.text ? said.why : '');
+  return fcG_('div', cls + (essay ? ' qp-essay' : '') + (said.cls ? ' ' + said.cls : ''), dataAt,
+    opts + sheet_(x, typed, sheetPrint_(x)) + (essay ? fcG_('p', 'qp-words', null, '', kpWordsSay_(val)) : '')
+    + fcVerdict_(geo ? padSaid_(said.text) : said.text) + fcSaved_(k)) + fb(said.text ? said.why : '');
+}
+/* ---------- THE ONE ANSWER SHEET (owner, 24 Nov: "one answer sheet, the same for every question part, so nothing changes shape under a child").
+   One lined paper surface on the one drawing layer (the pad), its height its lines; what the part prints on it (a picture to draw on, a table to fill)
+   at its top. The one keyboard types on its lines (a table's: its empty cells, in reading order); a touch on it only ever draws. No face, no swap. */
+const SHEET_LINE = 28;
+/* HOW MANY LINES, from the question's data: a table's working two, an essay a line a mark (6 to 16), any other a line a mark (1 to 4) */
+function ansLines_(x) {
+  const f = qtFace_(x), m = Math.round(Number((x && (x.marks || (x.row && x.row.marks))) || 1)) || 1;
+  if (f.cells) return 2;
+  if (ansEssay_(x) || f.sheet) return Math.max(6, Math.min(16, m));
+  /* A PART THAT DRAWS gets room to draw: three lines at least; a typed-only part keeps its one */
+  return Math.max(f.face === 'draw' ? 3 : 1, Math.min(4, m));
+}
+const sheetSvg_ = n => figDraw_({ el: 'svg', a: { class: 'qsurf is-lines', viewBox: '0 0 340 ' + n * SHEET_LINE, role: 'img', 'aria-label': 'Lined paper' },
+  kids: Array.from({ length: n }, (_, i) => ({ el: 'line', a: { class: 'grid', x1: 0, y1: (i + 1) * SHEET_LINE - 1, x2: 340, y2: (i + 1) * SHEET_LINE - 1 } })) });
+/* THE LINES' OWN PAD, under the part's key with `~sheet`: a picture's pad and the lines under it keep their marks apart (a drawn answer with no
+   picture draws on its lines under its own key, where its Check reads it) */
+const sheetItem_ = x => ({ key: x.key + '~sheet' });
+/* WHAT IS PRINTED ON THE SHEET: the part's picture to draw on, as its pad (its marks under the part's own key, marked as before) */
+function sheetPrint_(x) {
+  const p = x && x.key ? padSource_(x) : null;
+  /* ONE NOTE A SHEET, at its foot (the lines' pad's): the picture's own is left off */
+  return p ? fcG_('div', 'qp-sheet-print', { 'data-q': x.key }, padWrap_(x, p.svg, 'row').replace(/<p class="qpad-note"[^>]*>[\s\S]*?<\/p>/, '')) : '';
+}
+function sheet_(x, typed, print) {
+  const n = ansLines_(x);
+  return fcG_('div', 'qp-sheet', { 'data-k': ansKey_(x), 'data-lines': String(n), style: '--sheet-lines: ' + n },
+    (print || '') + fcG_('div', 'qp-sheet-lines', null, padWrap_(!print && qtFace_(x).face === 'draw' ? x : sheetItem_(x), sheetSvg_(n), 'row')
+      + (typed ? fcG_('label', 'qp-ans qp-sheet-type', { 'aria-label': text_('your-answer') }, typed) : '')));
+}
+/* WHERE THE KEYS GO ON A SHEET: its lines, or a table's first empty cell (else its first) */
+function sheetInput_(sheet) {
+  if (!sheet) return null;
+  const t = sheet.querySelector('.qp-sheet-type .kp-in');
+  if (t) return t;
+  const cells = [].slice.call(sheet.querySelectorAll('.qp-cell'));
+  return cells.find(c => !c.value) || cells[0] || null;
+}
+/* A TOUCH ON THE SHEET DRAWS, NEVER TYPES: its pad takes the pen, and the keyboard opens on the sheet's lines */
+document.addEventListener('pointerdown', e => {
+  const sheet = e.target && e.target.closest && e.target.closest('.qp-sheet');
+  if (!sheet) return;
+  const ink = e.target.closest('.qpad-ink'), pad = ink && ink.closest('.qpad'), k = pad ? pad.getAttribute('data-k') || '' : '';
+  if (pad && PAD_ON !== k) { if (!PAD_TOOL.has(k)) PAD_TOOL.set(k, 'pen'); padTake_(pad, k); }
+  const inp = sheetInput_(sheet);
+  if (inp && typeof KP_AT !== 'undefined' && KP_AT !== inp && typeof kpTake_ === 'function') kpTake_(inp);
+}, true);
+/* A TABLE'S CELLS IN READING ORDER: <- at a cell's start goes to the one before, -> at its end (or done) to the next */
+function sheetHop_(inp, cmd) {
+  const sheet = inp && inp.classList && inp.classList.contains('qp-cell') && inp.closest('.qp-sheet');
+  if (!sheet) return false;
+  const cells = [].slice.call(sheet.querySelectorAll('.qp-cell')), i = cells.indexOf(inp);
+  const a = inp.selectionStart, b = inp.selectionEnd, n = String(inp.value || '').length;
+  const to = cmd === '!left' ? (a === 0 && b === 0 ? cells[i - 1] : null) : cmd === '!done' || (a === n && b === n) ? cells[i + 1] : null;
+  if (!to) return false;
+  kpTake_(to);
+  return true;
 }
 /* WHAT A BOX'S VERDICT LINE SAYS AS IT IS DRAWN: the latest submission's verdict, if the box holds it. */
 function subBoxSay_(k, val) {
@@ -438,7 +490,7 @@ document.addEventListener('input', e => {
   /* THROUGH `ansStore_`, which keeps it on this device. § */
   ansStore_(el.getAttribute('data-k') || '', el.value || '', el.getAttribute('data-kp') === 'words');
   /* A WORDED ANSWER GROWS AS IT IS TYPED, the way a message bar does: § */
-  if (el.tagName === 'TEXTAREA' && el.closest('.qp-bar') && !el.classList.contains('kp-in')) {
+  if (el.tagName === 'TEXTAREA' && el.closest('.qp-sheet') && !el.classList.contains('kp-in')) {
     el.style.height = '';
     if (el.scrollHeight) el.style.height = el.scrollHeight + 'px';
   }
@@ -646,7 +698,7 @@ function padCm_(svg) {
 function padWrap_(x, svg, foot) {
   /* THE PICTURE AS THE LIBRARY HAS IT names the parts that share it; the roomier copy is only what is drawn */
   const src = svg;
-  if (!(x && padPrefix_(x) === 'board')) svg = padRoom_(svg);
+  if (!(x && (padPrefix_(x) === 'board' || /\bis-lines\b/.test(String(svg))))) svg = padRoom_(svg);
   const k = padKey_(x);
   /* DRAWING THE PAD IS OPENING IT, so this is where the phone's old marks become this person's. */
   padAdopt_(k, padPrefix_(x) + ':' + padItemKey_(x));

@@ -3735,9 +3735,6 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 
 /* ---------- WRITING ON THE PAPER § */
 .qp-ans { display: block; margin: var(--s4) 0 var(--s1); }
-/* `.qp-ans-row`'s flex line WAS HERE -- the box and the Figure tile at its end, sat on the box's ruled
-   line. The bar is that line now (`.qp-bar`); the class stays on it as the name the checks find the
-   Figure tile's line by. */
 .qp-ans-k { display: block; font: 600 var(--fs-small)/1 var(--font); color: var(--ink);
             letter-spacing: var(--ls-4); margin-bottom: var(--s2); }
 /* THE RULE UNDER THE BOX TOOK THE VERDICT'S COLOUR here, through `.qcard:has(> .qp-mark.is-right)`, because the verdict came after the box. § */
@@ -3745,61 +3742,44 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 /* ---------- THE ANSWER BAR: A PAPER FIELD, AND SEND BESIDE IT § */
 .qp-compose { margin: var(--s4) 0 var(--s1); }
 .qp-mark.qp-compose { display: block; min-height: 0; margin: var(--s4) 0 var(--s1); }
-.qp-bar { display: flex; align-items: center; gap: var(--s2); }
-.qp-bar > .qp-ans {
-  flex: 1 1 auto; min-width: 0; margin: 0; display: flex; align-items: center;
-  min-height: var(--pill-h); padding: 2px var(--s3); box-sizing: border-box; cursor: text;
-  background: var(--raised); color: var(--ink); border: 1px solid var(--line); border-radius: var(--r-box); font: var(--fs-body)/1.3 var(--font);
-}
-/* A MATHS ANSWER IS A SHORT BOX (owner 23 Nov: "why is there a white rectangle here"): the theme's own field, one border, as wide as what is in it */
-.qp-bar > .qp-ans.qp-ans-maths { flex: 0 1 auto; min-width: 9rem; max-width: 100%; }
-.qp-bar .kp-caret { background: var(--ink); }
-.qp-bar .kp-hole { border-color: var(--dim); }
-.qp-bar .kp-show sup:has(> .kp-caret), .qp-bar .kp-sel, .qp-bar .kp-sel-band { background: var(--line); }
-.qp-bar > .qp-ans > .kp-field { flex: 1 1 auto; min-width: 0; }
-.qp-bar > .tile { flex: none; }
-/* A WORDED ANSWER IN THE BAR: § */
-.qp-bar > .qp-ans:focus-within { box-shadow: var(--ring-gold-thin); }
-/* THE RING TAKES THE VERDICT'S COLOUR, so what was marked and what it was marked as are joined on the screen, not only in the sentence under it. § */
-.qp-mark.is-right > .qp-bar > .qp-ans { box-shadow: var(--ring-good); }
-.qp-mark.is-near > .qp-bar > .qp-ans { box-shadow: var(--ring-warn); }
-/* THE ANSWER IN THE BAR IS ON THE CREAM PILL (1030), so its words take the paper's ink. */
-.qp-bar .kp-show { color: var(--ink); font: var(--fs-body)/1.3 var(--font); min-height: calc(1.3em + 2 * var(--s1)); }
-/* ONE LINE TALL EMPTY OR NOT (owner, 17 Nov: "inputs are offset"): the bare caret was 3px shorter than the placeholder, so the box jumped as the pad opened and again at the first key. */
-.qp-bar .kp-show:empty::before { color: var(--dim); }
 /* THE VERDICT'S LINE, reserved: one line of `.qp-verdict` tall when it is empty, and it wraps rather
    than cutting a sentence off when one is longer. Set in from the edge to sit under the field's words. */
 .qp-compose > .qp-verdict { display: block; min-height: 1.3em; margin: var(--s1) var(--s3) 0; }
 /* The saved line under the verdict, indented with it to the field's own text (`.qp-saved` below). */
 .qp-compose > .qp-saved { margin: 2px var(--s3) 0; }
 
-/* ---------- AN ESSAY'S SHEET § */
-.qp-essay {
-  --sheet-line: 24px;
-  --sheet-lines: 8;
-  --sheet-room: max(calc(var(--sheet-line) * 5), calc(100dvh - var(--kp-h, 273px) - 112px));
-}
+/* ---------- THE ONE ANSWER SHEET (owner, 24 Nov): every part the same lined paper, its height its lines (`--sheet-lines`, find-cells.js `sheet_`).
+   What the part prints on it (a picture, a table) at the top; the typed words sit on its rules, over the pad's ink, and take no touch -- a touch only draws. */
 .qp-sheet {
-  display: block; margin: 0; padding: var(--s3) var(--s4); box-sizing: border-box; cursor: text;
-  background: var(--paper); color: var(--paper-ink); border: 1px solid var(--paper); border-radius: var(--r-box);
+  display: block; margin: 0; padding: var(--s2) var(--s3); box-sizing: border-box; width: 100%;
+  background: var(--raised); color: var(--ink); border: 1px solid var(--line); border-radius: var(--r-box);
 }
-/* THE RING, AS ON THE BAR: gold while it is written in, green or amber once marked -- outside the paper,
-   on the card, where each reads at about 11:1. */
-.qp-sheet:focus-within { box-shadow: var(--ring-gold); }
+.qp-sheet:focus-within { box-shadow: var(--ring-gold-thin); }
 .qp-mark.is-right > .qp-sheet { box-shadow: var(--ring-good); }
 .qp-mark.is-near > .qp-sheet { box-shadow: var(--ring-warn); }
-/* THE WRITING AREA, ON THE CREAM PILL (1030): no ruled lines, as no other answer box has them. */
-.qp-sheet > .kp-field.kp-essay > .kp-show {
-  padding: 0; font: 400 var(--fs-body)/var(--sheet-line) var(--font);
-  min-height: min(clamp(calc(var(--sheet-line) * var(--sheet-lines)), 41vw, calc(var(--sheet-line) * 12)), var(--sheet-room));
-  max-height: var(--sheet-room);
-  overscroll-behavior: contain;
+.qp-sheet-print { margin-bottom: var(--s2); }
+.qp-sheet .qp-cells-wrap { pointer-events: none; margin-bottom: var(--s2); }
+.qp-sheet-lines { position: relative; container-type: inline-size; }
+.qp-sheet .qpad-art { width: 100%; color: var(--ink); }
+.qp-sheet .qsurf.is-lines .grid { stroke: currentColor; opacity: .28; }
+/* PICTURE TEXT ON THE SHEET IN THE SHEET'S INK, never the figure's own black */
+.qp-sheet svg text { fill: currentColor; }
+.qp-sheet .qsurf .grid, .qp-sheet .qsurf .axis { stroke: currentColor; opacity: .33; }
+.qp-sheet-type {
+  position: absolute; inset: 0; margin: 0; padding: 0; pointer-events: none; overflow: hidden;
+  --sheet-line: calc(100cqw * 28 / 340);
 }
-.qp-sheet > .kp-field.kp-essay .kp-caret { height: 1.2em; }
-/* HOW TO MAKE A PARAGRAPH, SAID WHERE THE PARAGRAPHS GO -- the question the owner asked, answered on the empty sheet. § */
-.qp-sheet > .kp-field.kp-essay.is-blank > .kp-show::before {
+.qp-sheet-type > .kp-field { position: static; }
+.qp-sheet-type .kp-show {
+  display: block; padding: 0; color: var(--ink); white-space: pre-wrap; overflow-wrap: anywhere;
+  font: 400 var(--fs-body)/var(--sheet-line) var(--font); min-height: var(--sheet-line); max-height: calc(var(--sheet-line) * var(--sheet-lines)); overflow: hidden;
+}
+.qp-sheet-type .kp-show:empty::before { color: var(--dim); }
+.qp-sheet-type .kp-caret { background: var(--ink); height: 1.1em; }
+.qp-sheet-type .kp-show sup:has(> .kp-caret), .qp-sheet-type .kp-sel, .qp-sheet-type .kp-sel-band { background: var(--line); }
+.qp-sheet-type > .kp-field.kp-essay.is-blank > .kp-show::before {
   content: "Write your answer here. Press return to start a new paragraph.";
-  position: absolute; top: 0; left: 0; right: 0; color: var(--paper-dim); pointer-events: none;
+  position: absolute; top: 0; left: 0; right: 0; color: var(--dim); pointer-events: none;
 }
 /* THE ROW UNDER IT: the tiles at the start, the word count at the far end, where a glance finds it. */
 
@@ -3809,8 +3789,6 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 }
 /* THE TILE'S NAME BESIDE IT (`ansBox_`): § */
 /* THE VERDICT AND THE SAVED LINE SIT UNDER THE ROW, in line with the paper's edge rather than the pill's text, which is 14px in from a rounded end the sheet does § */
-.qp-compose.qp-essay > .qp-verdict { margin: var(--s1) var(--s1) 0; }
-.qp-compose.qp-essay > .qp-saved { margin: 2px var(--s1) 0; }
 
 /* ---------- MARKING YOUR OWN WORK § */
 /* ---------- AND MARKING MOVES NOTHING § */
@@ -4006,23 +3984,6 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .qp-work-pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .qp-work-x { position: absolute; top: 2px; right: 2px; width: 32px; height: 32px; border-radius: var(--r-circle); border: 1px solid var(--line);
   background: var(--bg); color: var(--ink); font: 400 var(--fs-title)/1 var(--font); padding: 0; cursor: pointer; }
-/* THE ANSWER BOX'S FACES (owner, 16 Nov): camera or graph in the text box's own slot, in the page's flow -- never over it */
-.qp-face { position: static; margin: var(--s1) var(--s3); min-height: 3rem; display: flex; flex-direction: column; gap: var(--s2); }
-.qp-face-say { margin: 0; font: 400 var(--fs-small)/1.45 var(--font); color: var(--ink); }
-.qp-face-say:empty { display: none; }
-.qp-graph-axes { display: flex; flex-wrap: wrap; gap: var(--s2); font: 400 var(--fs-small)/1.45 var(--font); color: var(--ink); }
-.qp-graph-ax input { width: 3.5em; }
-/* THE PAPER FACE: graph, lined or blank paper under the one drawing layer (the pad's ink) */
-.qp-paper-art .qpad-art { width: min(100%, 44svh); color: var(--ink); }
-.qp-paper-art .qpad-art > svg:first-child { touch-action: manipulation; }
-.qp-paper-art .qsurf .grid { stroke: currentColor; opacity: .33; }
-.qp-graph-art .grid { stroke: currentColor; opacity: .33; }
-.qp-graph-art .axis { stroke: currentColor; stroke-width: 1.6; }
-.qp-graph-art .ax { font: italic 600 11px var(--font); fill: currentColor; }
-.qp-graph-line { stroke: currentColor; stroke-width: 2.4; }
-.qp-graph-pt { fill: currentColor; }
-.qp-graph-pt.is-picked { fill: none; stroke: currentColor; stroke-width: 3; }
-.qp-graph-shade { fill: currentColor; opacity: .3; }
 .work-seen { margin: var(--s2) var(--s3); font: 400 var(--fs-small)/1.45 var(--font); color: var(--ink); }
 .work-seen-row + .work-seen-row { margin-top: var(--s2); }
 .work-seen-say { margin: 0 0 var(--s1); }
@@ -4368,7 +4329,6 @@ table.qp-cells :is(td, th).qp-cell-at { padding: 2px; }
 .qp-compose > .q-hint { font-size: var(--fs-body); line-height: var(--lh-close); text-align: center; }
 
 /* IN THE CARD a long maths answer stops at four lines and scrolls, where it used to push the card taller. */
-.qp-bar .kp-field.kp-maths > .kp-show { max-height: 9.5rem; overflow-y: auto; }
 
 /* A CARD WHOSE WORDS ARE STILL IN THE LEDGER (397, `libWaitHtml_`): its tags, then the dots, the sign-in line or Try again. */
 [data-state~="wait"] .lib-say { margin-top: var(--s4); min-height: 3rem; }
