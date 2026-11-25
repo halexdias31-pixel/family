@@ -1910,6 +1910,492 @@
     "TB-GCSE-CHEM",
     "TB-GCSE-PHYS"
    ]
+  },
+  "dfe": {
+   "dfe.sc.b": [
+    "Biology",
+    ""
+   ],
+   "dfe.sc.b.cell": [
+    "Cell biology",
+    "dfe.sc.b"
+   ],
+   "dfe.sc.b.cell.cells": [
+    "Animal, plant and bacterial cells",
+    "dfe.sc.b.cell"
+   ],
+   "dfe.sc.b.cell.division": [
+    "Cell division, stem cells and growth",
+    "dfe.sc.b.cell"
+   ],
+   "dfe.sc.b.cell.enzymes": [
+    "Enzymes and respiration",
+    "dfe.sc.b.cell"
+   ],
+   "dfe.sc.b.trans": [
+    "Transport systems",
+    "dfe.sc.b"
+   ],
+   "dfe.sc.b.trans.cells": [
+    "Diffusion, osmosis and active transport",
+    "dfe.sc.b.trans"
+   ],
+   "dfe.sc.b.trans.organs": [
+    "Tissues, organs and organ systems",
+    "dfe.sc.b.trans"
+   ],
+   "dfe.sc.b.trans.heart": [
+    "The heart, blood and breathing",
+    "dfe.sc.b.trans"
+   ],
+   "dfe.sc.b.trans.plants": [
+    "Transport in plants",
+    "dfe.sc.b.trans"
+   ],
+   "dfe.sc.b.health": [
+    "Health and disease",
+    "dfe.sc.b"
+   ],
+   "dfe.sc.b.health.communicable": [
+    "Infectious diseases and the body's defences",
+    "dfe.sc.b.health"
+   ],
+   "dfe.sc.b.health.medicines": [
+    "Treating and preventing disease",
+    "dfe.sc.b.health"
+   ],
+   "dfe.sc.b.health.plants": [
+    "Plant disease",
+    "dfe.sc.b.health"
+   ],
+   "dfe.sc.b.health.noncommunicable": [
+    "Lifestyle, diet and non-infectious disease",
+    "dfe.sc.b.health"
+   ],
+   "dfe.sc.b.coord": [
+    "Coordination and control",
+    "dfe.sc.b"
+   ],
+   "dfe.sc.b.coord.nerves": [
+    "The nervous system",
+    "dfe.sc.b.coord"
+   ],
+   "dfe.sc.b.coord.hormones": [
+    "Hormones in humans",
+    "dfe.sc.b.coord"
+   ],
+   "dfe.sc.b.coord.homeostasis": [
+    "Homeostasis",
+    "dfe.sc.b.coord"
+   ],
+   "dfe.sc.b.coord.planthormones": [
+    "Plant hormones",
+    "dfe.sc.b.coord"
+   ],
+   "dfe.sc.b.photo": [
+    "Photosynthesis",
+    "dfe.sc.b"
+   ],
+   "dfe.sc.b.photo.photo": [
+    "Photosynthesis and what affects it",
+    "dfe.sc.b.photo"
+   ],
+   "dfe.sc.b.photo.plants": [
+    "Plants: parts and growth",
+    "dfe.sc.b.photo"
+   ],
+   "dfe.sc.b.eco": [
+    "Ecosystems",
+    "dfe.sc.b"
+   ],
+   "dfe.sc.b.eco.habitats": [
+    "Living things and their habitats",
+    "dfe.sc.b.eco"
+   ],
+   "dfe.sc.b.eco.levels": [
+    "Communities, adaptation and food webs",
+    "dfe.sc.b.eco"
+   ],
+   "dfe.sc.b.eco.cycles": [
+    "Material cycling and decay",
+    "dfe.sc.b.eco"
+   ],
+   "dfe.sc.b.eco.biomass": [
+    "Pyramids of biomass and food production",
+    "dfe.sc.b.eco"
+   ],
+   "dfe.sc.b.eco.biodiversity": [
+    "Biodiversity and human impact",
+    "dfe.sc.b.eco"
+   ],
+   "dfe.sc.b.inherit": [
+    "Inheritance, variation and evolution",
+    "dfe.sc.b"
+   ],
+   "dfe.sc.b.inherit.repro": [
+    "Reproduction",
+    "dfe.sc.b.inherit"
+   ],
+   "dfe.sc.b.inherit.genome": [
+    "DNA, genes and inheritance",
+    "dfe.sc.b.inherit"
+   ],
+   "dfe.sc.b.inherit.evolution": [
+    "Variation, evolution and classification",
+    "dfe.sc.b.inherit"
+   ],
+   "dfe.sc.b.inherit.breeding": [
+    "Selective breeding and genetic engineering",
+    "dfe.sc.b.inherit"
+   ],
+   "dfe.sc.b.body": [
+    "Animals and the human body",
+    "dfe.sc.b"
+   ],
+   "dfe.sc.b.body.animals": [
+    "Animals, the body and senses",
+    "dfe.sc.b.body"
+   ],
+   "dfe.sc.b.body.skeleton": [
+    "Skeleton, muscles and teeth",
+    "dfe.sc.b.body"
+   ],
+   "dfe.sc.b.body.digestion": [
+    "Nutrition and digestion",
+    "dfe.sc.b.body"
+   ],
+   "dfe.sc.c": [
+    "Chemistry",
+    ""
+   ],
+   "dfe.sc.c.atom": [
+    "Atomic structure and the periodic table",
+    "dfe.sc.c"
+   ],
+   "dfe.sc.c.atom.model": [
+    "Atoms, elements, compounds and isotopes",
+    "dfe.sc.c.atom"
+   ],
+   "dfe.sc.c.atom.table": [
+    "The periodic table and its groups",
+    "dfe.sc.c.atom"
+   ],
+   "dfe.sc.c.atom.transition": [
+    "Transition metals",
+    "dfe.sc.c.atom"
+   ],
+   "dfe.sc.c.bond": [
+    "Bonding, structure and properties",
+    "dfe.sc.c"
+   ],
+   "dfe.sc.c.bond.types": [
+    "Ionic, covalent and metallic bonding",
+    "dfe.sc.c.bond"
+   ],
+   "dfe.sc.c.bond.carbon": [
+    "Structures of carbon",
+    "dfe.sc.c.bond"
+   ],
+   "dfe.sc.c.bond.nano": [
+    "Nanoparticles",
+    "dfe.sc.c.bond"
+   ],
+   "dfe.sc.c.change": [
+    "Chemical changes",
+    "dfe.sc.c"
+   ],
+   "dfe.sc.c.change.equations": [
+    "Formulae and equations",
+    "dfe.sc.c.change"
+   ],
+   "dfe.sc.c.change.metals": [
+    "Reactivity of metals",
+    "dfe.sc.c.change"
+   ],
+   "dfe.sc.c.change.acids": [
+    "Acids, alkalis and salts",
+    "dfe.sc.c.change"
+   ],
+   "dfe.sc.c.change.electrolysis": [
+    "Electrolysis",
+    "dfe.sc.c.change"
+   ],
+   "dfe.sc.c.energy": [
+    "Energy changes in chemistry",
+    "dfe.sc.c"
+   ],
+   "dfe.sc.c.energy.exo": [
+    "Exothermic and endothermic reactions",
+    "dfe.sc.c.energy"
+   ],
+   "dfe.sc.c.energy.cells": [
+    "Chemical cells and fuel cells",
+    "dfe.sc.c.energy"
+   ],
+   "dfe.sc.c.rate": [
+    "Rates and equilibrium",
+    "dfe.sc.c"
+   ],
+   "dfe.sc.c.rate.rate": [
+    "Rates of reaction and catalysts",
+    "dfe.sc.c.rate"
+   ],
+   "dfe.sc.c.rate.equilibrium": [
+    "Reversible reactions and equilibrium",
+    "dfe.sc.c.rate"
+   ],
+   "dfe.sc.c.organic": [
+    "Organic chemistry",
+    "dfe.sc.c"
+   ],
+   "dfe.sc.c.organic.crude": [
+    "Crude oil, fuels and cracking",
+    "dfe.sc.c.organic"
+   ],
+   "dfe.sc.c.organic.series": [
+    "Alkenes, alcohols and carboxylic acids",
+    "dfe.sc.c.organic"
+   ],
+   "dfe.sc.c.organic.polymers": [
+    "Polymers",
+    "dfe.sc.c.organic"
+   ],
+   "dfe.sc.c.analysis": [
+    "Chemical analysis and quantities",
+    "dfe.sc.c"
+   ],
+   "dfe.sc.c.analysis.purity": [
+    "Purity, mixtures and chromatography",
+    "dfe.sc.c.analysis"
+   ],
+   "dfe.sc.c.analysis.gases": [
+    "Testing for gases",
+    "dfe.sc.c.analysis"
+   ],
+   "dfe.sc.c.analysis.ions": [
+    "Identifying ions",
+    "dfe.sc.c.analysis"
+   ],
+   "dfe.sc.c.analysis.mass": [
+    "Conservation of mass and relative formula mass",
+    "dfe.sc.c.analysis"
+   ],
+   "dfe.sc.c.analysis.moles": [
+    "Moles and amounts",
+    "dfe.sc.c.analysis"
+   ],
+   "dfe.sc.c.analysis.yield": [
+    "Yield, atom economy, concentration and gas volumes",
+    "dfe.sc.c.analysis"
+   ],
+   "dfe.sc.c.earth": [
+    "Earth, atmosphere and resources",
+    "dfe.sc.c"
+   ],
+   "dfe.sc.c.earth.atmosphere": [
+    "The atmosphere: its history and greenhouse gases",
+    "dfe.sc.c.earth"
+   ],
+   "dfe.sc.c.earth.pollution": [
+    "Air pollution",
+    "dfe.sc.c.earth"
+   ],
+   "dfe.sc.c.earth.water": [
+    "Water and the Earth's resources",
+    "dfe.sc.c.earth"
+   ],
+   "dfe.sc.c.earth.lca": [
+    "Life cycle assessment and recycling",
+    "dfe.sc.c.earth"
+   ],
+   "dfe.sc.c.earth.materials": [
+    "Using materials, the Haber process and fertilisers",
+    "dfe.sc.c.earth"
+   ],
+   "dfe.sc.c.earth.rocks": [
+    "Rocks and soils",
+    "dfe.sc.c.earth"
+   ],
+   "dfe.sc.c.materials": [
+    "Materials and their properties",
+    "dfe.sc.c"
+   ],
+   "dfe.sc.c.materials.everyday": [
+    "Everyday materials and their uses",
+    "dfe.sc.c.materials"
+   ],
+   "dfe.sc.c.materials.states": [
+    "Solids, liquids and gases",
+    "dfe.sc.c.materials"
+   ],
+   "dfe.sc.c.materials.changes": [
+    "Properties and changes of materials",
+    "dfe.sc.c.materials"
+   ],
+   "dfe.sc.p": [
+    "Physics",
+    ""
+   ],
+   "dfe.sc.p.energy": [
+    "Energy",
+    "dfe.sc.p"
+   ],
+   "dfe.sc.p.energy.stores": [
+    "Energy stores, transfers and power",
+    "dfe.sc.p.energy"
+   ],
+   "dfe.sc.p.energy.efficiency": [
+    "Conservation, dissipation and efficiency",
+    "dfe.sc.p.energy"
+   ],
+   "dfe.sc.p.energy.resources": [
+    "Energy resources",
+    "dfe.sc.p.energy"
+   ],
+   "dfe.sc.p.forces": [
+    "Forces and motion",
+    "dfe.sc.p"
+   ],
+   "dfe.sc.p.forces.interact": [
+    "Forces, weight and resultant forces",
+    "dfe.sc.p.forces"
+   ],
+   "dfe.sc.p.forces.work": [
+    "Work done and elasticity",
+    "dfe.sc.p.forces"
+   ],
+   "dfe.sc.p.forces.moments": [
+    "Moments, levers and gears",
+    "dfe.sc.p.forces"
+   ],
+   "dfe.sc.p.forces.pressure": [
+    "Pressure in fluids",
+    "dfe.sc.p.forces"
+   ],
+   "dfe.sc.p.forces.motion": [
+    "Speed, acceleration and Newton's laws",
+    "dfe.sc.p.forces"
+   ],
+   "dfe.sc.p.forces.momentum": [
+    "Momentum and stopping safely",
+    "dfe.sc.p.forces"
+   ],
+   "dfe.sc.p.waves": [
+    "Waves, light and sound",
+    "dfe.sc.p"
+   ],
+   "dfe.sc.p.waves.light": [
+    "Light and seeing",
+    "dfe.sc.p.waves"
+   ],
+   "dfe.sc.p.waves.sound": [
+    "Sound",
+    "dfe.sc.p.waves"
+   ],
+   "dfe.sc.p.waves.properties": [
+    "Wave properties",
+    "dfe.sc.p.waves"
+   ],
+   "dfe.sc.p.waves.em": [
+    "The electromagnetic spectrum",
+    "dfe.sc.p.waves"
+   ],
+   "dfe.sc.p.waves.lenses": [
+    "Lenses, visible light and black bodies",
+    "dfe.sc.p.waves"
+   ],
+   "dfe.sc.p.elec": [
+    "Electricity",
+    "dfe.sc.p"
+   ],
+   "dfe.sc.p.elec.circuits": [
+    "Simple circuits",
+    "dfe.sc.p.elec"
+   ],
+   "dfe.sc.p.elec.current": [
+    "Current, potential difference and resistance",
+    "dfe.sc.p.elec"
+   ],
+   "dfe.sc.p.elec.series": [
+    "Series and parallel circuits",
+    "dfe.sc.p.elec"
+   ],
+   "dfe.sc.p.elec.mains": [
+    "Mains electricity, power and the National Grid",
+    "dfe.sc.p.elec"
+   ],
+   "dfe.sc.p.elec.static": [
+    "Static electricity",
+    "dfe.sc.p.elec"
+   ],
+   "dfe.sc.p.magnet": [
+    "Magnetism and electromagnetism",
+    "dfe.sc.p"
+   ],
+   "dfe.sc.p.magnet.fields": [
+    "Magnets and magnetic fields",
+    "dfe.sc.p.magnet"
+   ],
+   "dfe.sc.p.magnet.motor": [
+    "Electromagnets and the motor effect",
+    "dfe.sc.p.magnet"
+   ],
+   "dfe.sc.p.magnet.induction": [
+    "Induction, generators and transformers",
+    "dfe.sc.p.magnet"
+   ],
+   "dfe.sc.p.matter": [
+    "Particle model of matter",
+    "dfe.sc.p"
+   ],
+   "dfe.sc.p.matter.states": [
+    "Density and changes of state",
+    "dfe.sc.p.matter"
+   ],
+   "dfe.sc.p.matter.internal": [
+    "Internal energy and specific heat",
+    "dfe.sc.p.matter"
+   ],
+   "dfe.sc.p.matter.pressure": [
+    "Gas pressure",
+    "dfe.sc.p.matter"
+   ],
+   "dfe.sc.p.atomic": [
+    "Atomic structure and radioactivity",
+    "dfe.sc.p"
+   ],
+   "dfe.sc.p.atomic.isotopes": [
+    "Atoms and isotopes",
+    "dfe.sc.p.atomic"
+   ],
+   "dfe.sc.p.atomic.radiation": [
+    "Nuclear radiation and half-life",
+    "dfe.sc.p.atomic"
+   ],
+   "dfe.sc.p.atomic.hazards": [
+    "Hazards and uses of radiation",
+    "dfe.sc.p.atomic"
+   ],
+   "dfe.sc.p.atomic.fission": [
+    "Fission and fusion",
+    "dfe.sc.p.atomic"
+   ],
+   "dfe.sc.p.space": [
+    "Space physics",
+    "dfe.sc.p"
+   ],
+   "dfe.sc.p.space.earth": [
+    "Earth, Sun, Moon and seasons",
+    "dfe.sc.p.space"
+   ],
+   "dfe.sc.p.space.solar": [
+    "The solar system, orbits and stars",
+    "dfe.sc.p.space"
+   ],
+   "dfe.sc.p.space.redshift": [
+    "Red-shift and the Big Bang",
+    "dfe.sc.p.space"
+   ]
   }
  }
 }

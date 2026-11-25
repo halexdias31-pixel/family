@@ -772,7 +772,7 @@ const ideaNameOf_ = x => { const id = x && x.row && x.row.idea_id; return (id &&
 /* THE DfE TREE (owner 24–25 Nov): a maths question answers the government's topics it tests, broad → narrow (its `dfe` nodes and every
    node above them, taxonomy.json Maths.dfe, tools/lib/dfe.js), so Corbettmaths and AQA on one thing sit under one topic; never a worksheet's name. */
 const DFE_ = Object.assign({}, ...Object.keys(TAXONOMY).map(k => (TAXONOMY[k] || {}).dfe || {}));
-const DFE_SUBJECTS_ = Object.keys(TAXONOMY).filter(k => (TAXONOMY[k] || {}).dfe).map(k => TAXONOMY[k].subject);
+const DFE_SUBJECTS_ = Object.keys(TAXONOMY).filter(k => (TAXONOMY[k] || {}).dfe).reduce((a, k) => a.concat(TAXONOMY[k].subjects || [TAXONOMY[k].subject]), []);
 function dfeNamesOf_(x) {
   const out = [];
   String((x && x.row && x.row.dfe) || '').split(/\s+/).filter(Boolean).forEach(id => {
