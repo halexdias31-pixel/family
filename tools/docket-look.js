@@ -7,7 +7,17 @@
    (d) a slot option picked ticks the item (Prayer). Counted: each rule; one wrong fails the build. Run by tools/build.js. */
 'use strict';
 const SB = require('./lib/site-browser.js');
-const { report, main } = require('./lib/gen.js');
+const { report, main, text } = require('./lib/gen.js');
+/* THE BACKEND'S DOCKET (fix/docket-fresh-guard): the page reads the cell fresh (docketImport read) and saves with its base; todoBase_ is js/map.js's, as served. */
+const todoBase_ = new Function(/\nfunction todoBase_\(cell\) \{[\s\S]*?\n\}\n/.exec(text('js/map.js'))[0] + '; return todoBase_;')();
+const STALE = { n: 0 }, SAVED = { n: 0 };
+function backend(cell) {
+  return q => {
+    if (q.action === 'docketImport' && q.read) return { success: true, todo: cell, base: todoBase_(cell) };
+    if (q.action === 'item' && q.item === 'todo') { if (q.base !== todoBase_(cell)) return (STALE.n++,  { error: 'stale', stale: true, todo: cell, base: todoBase_(cell) }); SAVED.n++; cell = q.todo; return { success: true, base: todoBase_(cell) }; }
+    return null;
+  };
+}
 
 const DOCKET = { v: 1, slots: [{ name: 'Prayer', need: 1, options: [{ name: 'Psalm' }, { name: 'Office' }] }], lists: [
   { name: 'Every 8 hours', start: '00:00', items: [{ title: 'Prayer', slot: 'Prayer', repeat: '8h' }, { title: 'Drink water', repeat: '8h', note: 'A full glass', minutes: 2 },
@@ -24,7 +34,7 @@ const doneFold = () => { const f = document.querySelector('#screen .kc-docket .d
 
 async function run() {
   const bad = [];
-  const pg = await SB.open({ user: Object.assign({}, SB.USERS.admin, { owner: true, todo: JSON.stringify(DOCKET) }) });
+  const pg = await SB.open({ user: Object.assign({}, SB.USERS.admin, { owner: true, todo: JSON.stringify(DOCKET) }), answer: backend(JSON.stringify(DOCKET)) });
   try {
     for (const t of ['Tools', 'Docket', 'Every 8 hours']) await SB.tap(pg, t);
     const heads = await pg.evaluate(() => [...document.querySelectorAll('#screen .kc-docket')].map(c => c.getAttribute('aria-label')));
@@ -63,6 +73,7 @@ async function run() {
     await pg.waitForTimeout(1200);
     if (!(await pg.evaluate(() => (dkLoad_()[0].items.find(i => i.title === 'Prayer') || {}).pick && document.querySelector('#screen .dk-done').textContent.includes('Prayer'))))
       bad.push('(d) picking a slot option does not tick the item');
+    if (STALE.n || !SAVED.n) bad.push('(save) ' + SAVED.n + ' saves landed, ' + STALE.n + ' refused as stale');
   } catch (e) { bad.push(String((e && e.message) || e).split('\n')[0]); } finally { await pg.close(); await SB.done(); }
   console.log('docket-look: 5 rules (one card, tick+title lines, tap opens, Done folds, a pick ticks); ' + (bad.length ? bad.length + ' wrong' : 'all pass'));
   report('docket-look', bad, 'docket look rule(s) broken');
