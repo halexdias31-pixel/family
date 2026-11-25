@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* @family. — tools/one-role.js THE ONE-ROLE CHECK (rule 1.75, owner 21 Nov: unify batch 2, job F): who a person is and what they may do is written
-   once — the role list, ranks, tiers, see roles, Message table and the fixed `may` words in data/settings/settings.json `roles`, the helpers that
+   once — the role list, ranks, tiers, see roles and the fixed `may` words in data/settings/settings.json `roles`, the helpers that
    read them in data/settings/roles.js — and both sides carry the same copy in their generated SHARED block (cards-gen). A parent or child would
    notice a twin drifting as a button the server refuses or a card shown to the wrong person. Counted site-wide over js/*.js and backend/*.gs
    outside the SHARED block: a shared role name defined again, a literal list of role words, or a may rule answered by a hand-written tier
@@ -9,7 +9,7 @@
 const vm = require('vm');
 const { text, srcFiles, report, main, bare, SHARED_RE } = require('./lib/gen.js');
 /* THE NAMES ONLY THE SHARED BLOCK DEFINES. */
-const NAMES = ['ROLES_', 'ROLE_IDS', 'RANKS', 'ROLE_ALIASES', 'SEE_ROLES', 'ROLE_THREE_', 'rankTier_', 'mayWord_', 'rankMayMessage_'];
+const NAMES = ['ROLES_', 'ROLE_IDS', 'RANKS', 'ROLE_ALIASES', 'SEE_ROLES', 'ROLE_THREE_', 'rankTier_', 'mayWord_'];
 
 function find() {
   const bad = [];
@@ -40,8 +40,6 @@ function find() {
       });
       /* 4. A MAY RULE BY HAND: `if (what === 'x') return <tier> === ...`. */
       if (/what\s*===\s*'\w+'\s*\)\s*return\s+\w+\s*[!=]==\s*'/.test(code)) bad.push(at + ': a may rule by hand (settings.json `roles.may`)');
-      /* 5. A MESSAGE TABLE BY HAND. */
-      if (/\b(admin|staff|tutor|client|student)\s*:\s*\{\s*(admin|tutor|client|student)\s*:\s*(true|false)/.test(code)) bad.push(at + ': a Message table by hand (settings.json `roles.messaging`)');
     });
   }
   /* 6. THE HELPERS ANSWER AS THE TABLE SAYS, run once over every tier and rank. */

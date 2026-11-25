@@ -1,6 +1,6 @@
 /* @family. — words.js THE ADMIN CHANGES THE SITE WITHOUT ASKING (497): the words on every widget and card edited in place. */
 /* Words: config's one `words` row, `{key: text}`, sent as `words`; a key is `<card or w:widget>|<slot>`. */
-/* A CARD'S OR WIDGET'S WORDS SCOPE: `w:<widget>`, a card's id (`set:account:contact`), an item's (`item:dm:daive`). */
+/* A CARD'S OR WIDGET'S WORDS SCOPE: `w:<widget>`, a card's id (`set:account:contact`), an item's (`item:<kind>:<id>`). */
 const WORDS_SCOPE = /^[A-Za-z0-9_:.#-]{1,64}$/;
 
 /* ---------- THE WORDS IN FORCE: the payload's, else the device's copy of the last, else the code's own ---------- */

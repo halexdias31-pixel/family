@@ -116,19 +116,6 @@
   "saveRecordsPage": [
    "admin"
   ],
-  "sendMessage": [
-   "member",
-   "child",
-   "admin"
-  ],
-  "flagMessage": [
-   "member",
-   "child",
-   "admin"
-  ],
-  "checkUploads": [
-   "admin"
-  ],
   "changePin": [
    "member",
    "child",
@@ -235,11 +222,6 @@
    "admin"
   ],
   "workFileDelete": [
-   "member",
-   "child",
-   "admin"
-  ],
-  "askAssistant": [
    "member",
    "child",
    "admin"
@@ -497,16 +479,6 @@
    "admin"
   ],
   "todo:save": [
-   "member",
-   "child",
-   "admin"
-  ],
-  "message:read": [
-   "member",
-   "child",
-   "admin"
-  ],
-  "message:save": [
    "member",
    "child",
    "admin"

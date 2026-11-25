@@ -39,8 +39,7 @@
   "editPost",
   "deletePost",
   "createCheckout",
-  "finalizePayment",
-  "checkUploads"
+  "finalizePayment"
  ],
  "constants": {
   "vars": {
@@ -378,7 +377,6 @@
   {"id": 11, "rowIndex": 11, "kind": "thing", "kindRaw": "equipment", "name": "DYU Bike", "price": "35000", "unit": "p", "acquire": "buy", "audience": "admin", "level": 0, "slot": "", "artId": "", "description": "Withdrawn.", "image": "", "theme": "", "inStock": false, "fields": {"name": "DYU Bike", "brand": "", "kind": "equipment", "theme": "", "description": "Withdrawn.", "photo": "", "audience": "admin", "acquire": "buy", "price_pence": "35000", "price_ticks": "", "price_coins": "", "level_required": "", "slot": "", "art_id": "", "stock": "", "max_per_person": "", "returnable": "", "value_pence": "", "active": "FALSE"}}
  ],
  "resources": [],
- "messages": [],
  "exams": [],
  "boxers": [],
  "fights": [],

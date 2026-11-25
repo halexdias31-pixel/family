@@ -252,6 +252,7 @@ const KEEP = {
   familyCardEdit: { scope: 'user', clearOnSignOut: true },
   'payload:kept': { scope: 'user', clearOnSignOut: true },
   'kept:': { scope: 'user', clearOnSignOut: true },
+  /* THE OLD ASSISTANT'S THREAD (Messages went 25 Nov): still cleared on sign-out from devices that kept one. */
   'asst:': { scope: 'user', clearOnSignOut: true },
   familyHandles: { scope: 'user', clearOnSignOut: true },
   familyAdminHint: { scope: 'user', clearOnSignOut: true },
@@ -431,11 +432,6 @@ function draftSent_(surface, id, v) {
   d.sent = Date.now();
   DRAFT_SENDING.set(k, d.v);
   keepPut_(k, JSON.stringify(d));
-}
-function draftSentDone_(surface, id, v) {
-  const k = draftKey_(surface, id), d = draftRaw_(k);
-  if (v === undefined || draftIs_({ v: DRAFT_SENDING.get(k) || '' }, v)) DRAFT_SENDING.delete(k);
-  if (d && d.sent && draftIs_(d, v)) draftDrop_(surface, id);
 }
 /* NOT WHILE THE PAGE IS GOING. § */
 let DRAFT_LEAVING = false;

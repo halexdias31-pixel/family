@@ -135,14 +135,12 @@ on('apply-send', el => {
 });
 
 /* THE YOU SCREEN IS ONE PAGE. § */
-/* MESSAGES, ON A PANE OF ITS OWN. § */
 
 /* THE MARK BETWEEN THE TWO HALVES of the You screen. A comment in the markup: it survives being
    built into a string, it cannot be mistaken for content, and it renders as nothing if it ever
    escapes. */
 
 
-/* Drawn, then filled. `fillMessages` looks for `#msg-body` by id, so it can only run once this screen's markup is in the document — the same reason a widget's § */
 /* ---------- NOTHING IN THE APP ASKS ANYBODY TO INSTALL IT § */
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); });
 
@@ -212,11 +210,6 @@ function signedOut_(opts) {
       Object.keys(FINDERS).forEach(id => finderSet_(FINDERS[id], { paint: false }));
     }
   } catch (err) { /* a finder not built yet has no box to clear */ }
-  /* THE INBOX, AND THE POLL THAT FILLS IT. `MSG_ASKING` too: a reply still on its way is the last
-     person's, and `loadMessages` drops it when it lands for somebody else. */
-  MESSAGES = null; MSG_FAILED = false; MSG_PENDING = []; MSG_ASKING = null;
-  Object.keys(MSG_QUEUE).forEach(k => { delete MSG_QUEUE[k]; });
-  try { DM_ASKED = false; DM_DONE = false; DM_LAST = 0; if (typeof dmStop_ === 'function') dmStop_(); } catch (e) { oops_(e, 'me:signedOut_') }
   /* THE STARS — the device's copy is a cache of the person, and the next person is not them. */
   FAVS = new Set();
   /* WHAT THE LAST PERSON SENT, AS THIS DEVICE HELD IT FOR THE VISIT, AND ANYTHING OPEN OVER THE SCREEN. § */

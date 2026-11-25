@@ -548,19 +548,12 @@ function projectPart_(x, part) {
   if (part === 'steps') return page(p.projectType === 'coursework' ? 'Stages' : 'Steps', [stepsList_(p.steps),
     p.safety ? { type: 'text', look: 'fc-note', text: [{ b: 'Before you start' }, ' ', p.safety] } : null]);
   if (part !== 'share') return '';
-  /* A THING HAS TILES: the one action on this page is going to Messages, so it is a tile in a `.tile-row` § */
-  /* "SEND IT IN MESSAGES", NOT "TO YOUR TUTOR". § */
   /* ---------- AND ON A COURSEWORK, WHOSE WORK IT IS § */
   const own = p.projectType === 'coursework' ? { type: 'text', look: 'fc-note', text: [{ b: 'Your real coursework' }, ' This brief is practice. The one you hand in '
     + 'starts from the context your exam board sets, and it must be your own work: a tutor can teach the stages on this brief, but must not comment on, '
     + 'correct or improve work that will be handed in. Tell your teacher about any help you have outside school.'] } : null;
-  return page('Share it', [{ type: 'text', look: 'fc-lede', text: 'When it is finished, send it in Messages.' },
-    p.share ? { type: 'text', look: 'fc-say', text: [{ b: 'What to send' }, ' ', p.share] } : null, own],
-  [{ icon: 'chat', label: 'Messages', note: 'send it', act: 'proj-share' }]);
+  return page('Share it', [p.share ? { type: 'text', look: 'fc-say', text: [{ b: 'What to send' }, ' ', p.share] } : null, own]);
 }
-
-/* TO MESSAGES, AND NOTHING ELSE. § */
-on('proj-share', () => go('dm'));
 
 /* THE @family. TEXTBOOK — A CONTENTS CARD, THEN ONE PAGE PER CHAPTER. § */
 /* A FORMULA IS TYPESET BY THE RENDERER (`{ typeset, frac }`, cardFrac_ in cards-render.js): its slashes stacked, its subscripts drawn as such. */

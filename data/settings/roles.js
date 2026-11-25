@@ -20,7 +20,3 @@ function mayWord_(what, tier, rank, isOwner) {
   if (m.owner) ok = ok && !!isOwner;
   return ok;
 }
-/* MAY THIS RANK WRITE TO THAT ONE (`roles.messaging`). */
-function rankMayMessage_(fromRank, toRank) {
-  return !!fromRank && !!toRank && (ROLES_.messaging[fromRank] || []).indexOf(toRank) !== -1;
-}

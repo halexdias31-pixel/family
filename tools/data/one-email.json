@@ -15,19 +15,6 @@
   ]
  },
  {
-  "name": "notify: a message alert to a learner",
-  "threw": "",
-  "mails": [
-   {
-    "to": "kit@x.test",
-    "name": "@family.",
-    "subject": "A message from Ada Test",
-    "body": "Ada Test sent you a message:\n\n\"See you <Tuesday> & bring a pen\"",
-    "links": []
-   }
-  ]
- },
- {
   "name": "accessMail_: confirm an address",
   "threw": "",
   "mails": [

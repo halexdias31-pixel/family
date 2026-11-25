@@ -17,13 +17,6 @@
   "ranks": ["contact", "student", "client", "staff", "admin"],
   "tiers": ["anyone", "member", "child", "admin"],
   "titles": {"head of boxing": "Head of Boxing", "coach": "Coach"},
-  "messaging": {
-   "_about": "WHO MAY MESSAGE WHOM (owner, 20 Nov: one place), by `ranks`: each rank the ranks it may write to. The backend's `mayMessage` and the phone's Message tiles (`msgMay_`) both read it; `seesPerson_` then says which people. The backend's rule won: a student writes to an admin and a tutor; no tutor writes to a tutor.",
-   "admin": ["admin", "staff", "client", "student"],
-   "staff": ["admin", "client", "student"],
-   "client": ["admin", "staff"],
-   "student": ["admin", "staff"]
-  },
   "may": {
    "_about": "ONE ROLE CHECK (owner, 21 Nov): the fixed words the site's `may_` and the backend's `whoMay_` answer before permissions.json's action rows, both by the shared `mayWord_` (data/settings/roles.js). Each holds when the viewer's tier is in `tiers`, or is not in `notTiers`, or their rank is at least `rank`; `owner` also wants the one owner. Any other word is a permissions.json row.",
    "admin": {"tiers": ["admin"]},

@@ -26,7 +26,7 @@ function run() {
   /* EVERY TILE A PART'S MAKERS CAN GIVE: QT_TOOLS by act and tool, then the row's other makers' acts */
   const toolTiles = [...tools.matchAll(/\{ id: '([\w-]+)',[^}]*act: '([\w-]*)'/g)].filter(m => m[2]).map(m => ({ act: m[2], tool: m[1] }));
   /* SEVEN BUTTONS (owner, 24 Nov): Clear, Show the answer, Help and Speed read are no longer made on a question part */
-  const others = CHECKS.concat(['pad-undo', 'card-share', 'msg-open', 'find-top'])
+  const others = CHECKS.concat(['pad-undo', 'card-share', 'find-top'])
     .map(act => ({ act, tool: '' }));
   const every = toolTiles.concat(others);
   const tile = t => `<button type="button" class="tile" data-do="${t.act}"${t.tool ? ` data-tool="${t.tool}"` : ''}>${t.act}</button>`;

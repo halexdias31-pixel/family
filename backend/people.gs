@@ -232,7 +232,7 @@ function handleLetters_(v) {
 
 /* WHERE A PERSON FIRST SHOWS UP when their row has no joined_on: [tab, id column, date column]. */
 const HANDLE_ACTIVITY = [['submissions', 'person_id', 'submitted_at'],
-  ['answers', 'person_id', 'saved_at'], ['messages', 'from_id', 'sent_at'], ['receipts', 'person_id', 'issued_on'],
+  ['answers', 'person_id', 'saved_at'], ['receipts', 'person_id', 'issued_on'],
   ['post_reactions', 'person_id', 'reacted_on'], ['favourites', 'person_id', 'at'],
   ['family', 'parent_id', 'asked_on'], ['family', 'child_id', 'asked_on']];
 
@@ -612,13 +612,6 @@ function isAdminPerson(name) {
 function brandName() {
   /* THE NAME CAME OFF THE `brand` TAB AND THAT TAB IS `data/settings/brand.json` NOW. § */
   return BRAND_NAME;
-}
-
-/** May this person write to that one? Roles in the SHEET's words. */
-function mayMessage(fromRole, toRole) {
-  /* BY RANK (settings.json `roles.messaging`): each sheet role's `rank`, as the phone's `msgMay_`. */
-  const rankOf = r => (ROLES_.ids[norm(r)] || {}).rank || '';
-  return rankMayMessage_(rankOf(fromRole), rankOf(toRole));
 }
 
 /** What the app calls this role. */
@@ -1389,7 +1382,7 @@ function adminParentsSet_(child, want) {
   return true;
 }
 
-/* REMOVED WHOLE: every family row naming them, their sessions, then the row. Bookings and messages keep the name they had. */
+/* REMOVED WHOLE: every family row naming them, their sessions, then the row. Bookings keep the name they had. */
 function adminPersonDelete_(t, r) {
   const fam = read(TAB.family), pid = S(r.person_id);
   if (fam.sheet) {

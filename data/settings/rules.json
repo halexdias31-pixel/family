@@ -279,7 +279,7 @@
   {
    "id": "1.44",
    "principle": 1,
-   "text": "One Find, chips only; everything browsable is a card in it (Settings, Booking, Messages, Tools, Games); signed out sees only Settings.",
+   "text": "One Find, chips only; everything browsable is a card in it (Settings, Booking, Tools, Games); signed out sees only Settings.",
    "since": "2026-11-12"
   },
   {

@@ -13,7 +13,7 @@
   --sunk:      #050505;
   --line:      #232323;
   --line-soft: #171717;
-  /* EVERY VIDEO'S LETTERBOX, a player's and a clip's in a message alike: black, not `--bg`, because the
+  /* EVERY VIDEO'S LETTERBOX, a player's and a clip's alike: black, not `--bg`, because the
      bars round a picture are black on every screen there is, whatever colour the page around them. */
   --letterbox: var(--black);
 
@@ -928,7 +928,6 @@ label.field > .note { display: block; margin-top: var(--s1); text-transform: non
 /* `overflow: visible` ON THE DRAWING, AND IT IS WHAT KEEPS IT ROUND. § */
 .face-pic { display: block; overflow: hidden; padding: 0; }
 .face-pic > svg { display: block; width: 100%; height: 100%; overflow: visible; }
-.dm-av .face-pic { width: 100%; height: 100%; }
 
 /* The whole row is the target, not the little box. § */
 .check { display: flex; align-items: center; gap: var(--s3); padding: var(--s3) 0; cursor: pointer;
@@ -1054,7 +1053,7 @@ code   { font-family: var(--mono); font-size: var(--fs-body); color: var(--ink);
 /* ---------- ANCHORS § */
 a { color: inherit; text-decoration: none; }
 /* Except in running prose, where a link that looks like text is a link nobody finds. */
-.msg-body a, .note a { color: var(--gold); text-decoration: underline; }
+.note a { color: var(--gold); text-decoration: underline; }
 
 /* ---------- THE FEED ---------------------------------------------------------------------------- */
 /* THE SHAPE OF A REEL, not of a thumbnail. § */
@@ -1125,7 +1124,7 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
 :where(.card.is-off, .post.is-off),
 :where(.is-locked > :not(.card-lock, h3, .card-say)),
 :where(.prac.is-off > :not(h3)) { --ink: var(--dim); --gold: var(--dim); color: var(--ink); }
-:where(.msg.is-sending .msg-bub) { --ink: var(--dim); --gold: var(--dim); }
+
 :where(.card.is-off, .post.is-off, .is-locked > :not(.card-lock, h3, .card-say)) :is(img, video, canvas) { opacity: .6; }
 
 /* ---------- POSTS § */
@@ -1154,9 +1153,6 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
 /* AND THE POST ITSELF TAKES THE PANE'S PADDING AS ITS OWN, so the bleed lands inside the post's padding box rather than past its edge. § */
 .pane > .post { margin-inline: calc(-1 * var(--pane-pad)); padding-inline: var(--pane-pad); }
 
-/* A CLIP IS A PICTURE THAT MOVES and takes the same box; its controls are the browser's own. */
-/* THE INK IS ONLY EVER SEEN BEFORE THE FIRST FRAME: § */
-.post-vid { background: var(--sunk); }
 /* ITS OWN SHAPE, LIKE A PHOTOGRAPH, and 4:5 only until the file says what that is. § */
 
 /* AND ONE DRIVE WOULD NOT HAND OVER IS A LINK, in the same box, so the grid does not close up round
@@ -1193,13 +1189,6 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
 /* AND `.is-pressed`: Safari withholds `:active` on touch — see `.react.is-pressed` below. */
 
 /* WHAT PEOPLE SAID UNDER A POST. § */
-
-/* YOURS IS MARKED BY THE RULE DOWN THE LEFT that messages gave up when they became bubbles — which is the shape that rule was always right for: § */
-
-/* THE BOX. `msg-form`'s shape and not its rules, because these two are on different surfaces and will drift apart the day one of them changes — a composer under § */
-
-/* The note and the server's refusal are one element — see `msgForm_` for the argument — and an
-   empty one under every post in the feed is a margin nobody asked for. */
 
 /* A post arrived at from a shared link. Marked briefly so it is obvious which one was meant —
    landing in a feed with no idea which photograph somebody sent you is the failure a deep link
@@ -1593,155 +1582,6 @@ html.flow:not(.is-loaded) #s-feed { min-height: 100svh; }   /* the home column h
   background: var(--raised); border: 1px solid var(--line);
 }
 
-/* ---------- MESSAGES § */
-/* A CONVERSATION, WHICH IS READ BY SIDE BEFORE IT IS READ BY NAME. § */
-.msg { display: flex; flex-direction: column; align-items: flex-start;
-       padding: 0; border: 0; margin: 0 0 2px; }
-.msg.mine { align-items: flex-end; }
-/* THE GAP GOES BETWEEN TURNS, NOT BETWEEN MESSAGES. */
-.msg.run-end { margin-bottom: var(--s2); }
-.msg.run-end:last-child { margin-bottom: 0; }
-.msg-bub {
-  /* NOT THE FULL WIDTH. A bubble that reaches both edges has no side to be on, which is the whole
-     mechanism — and a short answer under a long one is what tells you the turn changed. */
-  max-width: 78%;
-  padding: var(--s2) var(--s3);
-  border-radius: var(--r-ui);
-  background: var(--raised); border: 1px solid var(--line); color: var(--ink);
-}
-.msg.mine .msg-bub { background: var(--gold); border-color: var(--gold); color: var(--on-gold); }
-.msg.run-end .msg-bub { border-bottom-left-radius: 6px; }
-.msg.mine.run-end .msg-bub { border-bottom-left-radius: 17px;
-                             border-bottom-right-radius: 6px; }
-/* ---------- AND A RUN IS ONE SHAPE, NOT FOUR PEBBLES § */
-.msg:not(.run-top):not(.mine) .msg-bub { border-top-left-radius: 6px; }
-.msg:not(.run-end):not(.mine) .msg-bub { border-bottom-left-radius: 6px; }
-.msg.mine:not(.run-top) .msg-bub { border-top-right-radius: 6px; }
-.msg.mine:not(.run-end) .msg-bub { border-bottom-right-radius: 6px; }
-/* The TEXT of a message. § */
-.msg-body-text { margin: 0; font-size: var(--fs-body); line-height: var(--lh-body); overflow-wrap: break-word; }
-
-/* The widget's own space: the thread, scrolling inside the case. */
-/* `dvh`, FOR THE REASON STATED ON `body`: § */
-.msg-body { max-height: 60dvh; overflow-y: auto; scrollbar-width: none; }
-.msg-body::-webkit-scrollbar { width: 0; display: none; }
-.msg-when { margin: var(--s0) var(--s2) 0; font-size: var(--fs-small); }
-/* Unread. It was a rule down the LEFT of a full-width row, which was right for a list of rows and cannot survive a bubble that has a side: § */
-.msg.is-unread .msg-bub { border-color: var(--gold); }
-
-/* ---------- THE BOX AT THE FOOT OF A THREAD § */
-.msg-form { display: flex; align-items: flex-end; gap: var(--s2); flex-wrap: wrap;
-            margin: var(--s2) 0 0; }
-.msg-text {
-  /* `1 1 0`, NOT `1 1 8rem`. § */
-  flex: 1 1 0; min-width: 0;
-  min-height: var(--tap); max-height: 30dvh;
-  field-sizing: content;
-  /* ONE LINE CENTRED IN 44px. § */
-  padding: var(--s3) var(--s3);
-  /* HALF THE 44px FLOOR, so an empty box is a pill and a box of six lines is a rounded slab with the
-     same corners — and the same shape as the two buttons either side of it. */
-  background: var(--sunk); border: 1px solid var(--line); border-radius: var(--r-ui);
-  color: var(--ink); font: inherit; font-size: var(--fs-body); line-height: var(--lh-mid);
-  resize: none;
-}
-.msg-text:focus { outline: 0; border-color: var(--gold); }
-/* THE HINT IS ONE LINE. § */
-.msg-text::placeholder { color: var(--paper-dim); opacity: 1; white-space: nowrap; }
-/* ---------- THREE SHAPES BECAME ONE § */
-.msg-form .btn.msg-go { width: auto; flex: 0 0 auto; min-height: var(--tap); height: var(--tap);
-                        padding: 0 var(--s3); border-radius: var(--r-ui); }
-/* THE NOTE AND THE REFUSAL ARE THE SAME ELEMENT — see `msgForm_`. § */
-.msg-said { flex: 1 0 100%; margin: var(--s1) 0 0; }
-.msg-said:empty { display: none; }
-
-/* ---------- THE THREAD'S OWN FURNITURE § */
-.msg-day { display: flex; align-items: center; gap: var(--s2); margin: var(--s3) 0 var(--s2);
-           color: var(--ink); font-size: var(--fs-small); letter-spacing: var(--ls-3); }
-.msg-day::before, .msg-day::after { content: ''; flex: 1; border-top: 1px solid var(--line); }
-.msg-day:first-child { margin-top: 0; }
-.dm-head { display: flex; align-items: center; gap: var(--s2); margin: 0 0 var(--s2); }
-.dm-head h3 { margin: 0; min-width: 0; overflow-wrap: anywhere; }
-.dm-av { flex: 0 0 auto; width: 2rem; height: 2rem; border-radius: var(--r-circle);
-         display: grid; place-items: center;
-         background: var(--sunk); border: 1px solid var(--gold); color: var(--gold);
-         font-weight: 700; font-size: var(--fs-body); }
-/* A PHOTOGRAPH IN THE DISC fills it and loses the gold ring's letter; see `dmFace_`. */
-.dm-av.has-pic { overflow: hidden; padding: 0; }
-.dm-av.has-pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
-/* "2 new" AS A BADGE, gold on black like every other count this app wears — it was gold text at the size of a timestamp beside a heading, which read as a § */
-
-/* `.mine.is-failed` AS WELL, because a refusal is only ever on your side and `.msg.mine .msg-bub` sets the gold border at the same (0,3,0) — so which won was § */
-.msg.is-failed .msg-bub, .msg.mine.is-failed .msg-bub { border-color: var(--bad); }
-/* ---------- A REFUSAL SITS UNDER THE BUBBLE IT REFUSED § */
-.msg-fail { color: var(--bad); display: flex; flex-wrap: wrap; align-items: center;
-            justify-content: flex-end; gap: 0 var(--s1); max-width: 78%; text-align: right;
-            line-height: var(--lh-snug); }
-/* `pre-line` AND `anywhere` FOR AN ADMIN'S REFUSAL, which carries the fix: a few lines and a
-   consent address with no space in it for a hundred characters, in a column 78% of 320px wide. */
-.msg-fail-why { flex: 1 0 100%; white-space: pre-line; overflow-wrap: anywhere; }
-/* 44px in px — a tap target, the one measurement here that must not scale. § */
-.msg-act { min-height: var(--tap); min-width: var(--tap); padding: 0 var(--s2); background: none; border: 0;
-           color: var(--gold); font: inherit; font-weight: 600; cursor: pointer; }
-.msg-act + .msg-act { color: var(--ink); font-weight: 400; }
-/* The 44px is the finger's, not the eye's: pulled up into the half-line under the sentence so the
-   two words read as belonging to it rather than as a row of their own 15px further down. */
-.msg-fail .msg-act { margin-block: -8px -6px; }
-/* THE FIX AS A CONTROL, for an admin's refusal — the consent screen or `?setup=1` (see `msgFixLinks_`). § */
-.msg-fail a.msg-act { display: inline-flex; align-items: center; text-decoration: none; color: var(--gold); }
-
-/* ---------- WHAT WAS SENT WITH IT § */
-.msg-att { display: grid; grid-template-columns: minmax(0, 16rem); gap: var(--s1); margin: var(--s0) 0 var(--s1); }
-/* A BUBBLE THAT IS ONLY A PICTURE IS THE PICTURE. § */
-.msg-bub.is-bare { padding: var(--s1); }
-.msg-bub.is-bare .msg-att { margin: 0; }
-.msg-bub.is-bare:has(> .msg-att > .msg-pic:only-child) {
-  padding: 0; background: none; border-color: transparent; overflow: hidden;
-}
-.msg-bub.is-bare:has(> .msg-att > .msg-pic:only-child) .msg-pic,
-.msg-bub.is-bare:has(> .msg-att > .msg-pic:only-child) .msg-pic img { border-radius: 0; }
-/* 16rem wide whatever the picture's own size — a bubble shrinks to its content, so a small image
-   would otherwise make a bubble the width of a thumbnail. The track above caps it. */
-.msg-pic, .msg-vid { display: block; width: 16rem; max-width: 100%; min-width: 0; border-radius: var(--r-ui); }
-
-.msg-pic img { display: block; width: 100%; border-radius: var(--r-ui);  height: auto; max-height: 20rem; object-fit: cover; background: var(--sunk); }
-.msg-vid { max-height: 20rem; background: var(--letterbox); }
-/* A CLIP THAT WOULD NOT PLAY becomes a link (`postVidFail_` in posts.js) and kept `.msg-vid` — so it was a 16rem black slab with an underlined gold line at its § */
-.msg-body a.msg-vid { display: flex; align-items: center; min-height: var(--tap); max-height: none;
-  padding: var(--s1) var(--s3); background: var(--sunk); border: 1px solid var(--line);
-  border-radius: var(--r-ui); color: var(--ink); text-decoration: none; font-size: var(--fs-small); }
-/* ---------- A FILE IS A CHIP, NOT A LINK IN A BOX § */
-.msg-body a.msg-file, .msg-file { display: flex; align-items: center; gap: var(--s2); min-height: var(--tap);
-            min-width: 0; padding: var(--s1) var(--s3) var(--s1) var(--s2); border-radius: var(--r-ui);
-            background: var(--sunk); border: 1px solid var(--line); color: var(--ink);
-            text-decoration: none; font-size: var(--fs-small); line-height: var(--lh-close); }
-.msg-file span { min-width: 0; overflow-wrap: anywhere;
-                 display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
-                 line-clamp: 2; overflow: hidden; }
-.msg-file b, .msg-chip b { flex: 0 0 auto; font-size: var(--fs-small); letter-spacing: var(--ls-2);
-            color: var(--gold); }
-.msg-file b { display: grid; place-items: center; min-width: 2.3rem; height: 2.3rem;
-              padding: 0 var(--s1); border-radius: var(--r-ui); border: 1px solid var(--line); }
-/* THE SAME PLATE IN THE TRAY, at the 2rem a queued photograph's thumbnail already is — so a photo
-   and a PDF waiting to go are two chips of one shape rather than a picture and a loose word. */
-.msg-chip b { display: grid; place-items: center; min-width: 2rem; height: 2rem;
-              padding: 0 var(--s1); border-radius: var(--r-ui); border: 1px solid var(--line); }
-
-/* ---------- THE COMPOSER'S TRAY ---------------------------------------------------------------- */
-.msg-queue { flex: 1 0 100%; display: flex; flex-wrap: wrap; gap: var(--s1); }
-.msg-queue:empty { display: none; }
-.msg-chip { display: inline-flex; align-items: center; gap: var(--s1); max-width: 100%;
-            padding: 0 0 0 var(--s2); border-radius: var(--r-ui);
-            background: var(--sunk); border: 1px solid var(--line); font-size: var(--fs-small); }
-.msg-chip img { width: 2rem; height: 2rem; object-fit: cover; border-radius: var(--r-ui); }
-.msg-chip-name { min-width: 0; max-width: 9rem; overflow: hidden;
-                 text-overflow: ellipsis; white-space: nowrap; }
-.msg-chip-x { min-width: var(--tap); min-height: var(--tap); background: none; border: 0;
-              color: var(--ink); font-size: var(--fs-title); cursor: pointer; }
-.msg-form .btn.msg-clip { width: var(--tap); flex: 0 0 auto; min-width: var(--tap); min-height: var(--tap);
-                          height: var(--tap); padding: 0; border-radius: var(--r-circle); font-size: var(--fs-title);
-                          color: var(--gold); }
-
 /* ---------- THE RECEIPT § */
 [data-state~="receipt"] {
   background: var(--raised);
@@ -2133,7 +1973,7 @@ label.bk-k { cursor: pointer; }
    of empty space under a squashed grid. */
 
 /* THE REEL STATES ITS OWN SIZE, like the board and the game either side of it. § */
-.widget-full .feed { flex: 0 0 auto; max-height: 60dvh; }   /* dvh — see `.msg-body` */
+.widget-full .feed { flex: 0 0 auto; max-height: 60dvh; }
 
 /* Inside the sheet, the docket's list scrolls and its add-a-line box stays put — a control that
    scrolls away is a control you have to go and find. */
@@ -2220,17 +2060,6 @@ label.bk-k { cursor: pointer; }
 
 /* ---------- AND NOTHING MAY BE UNBOUNDED § */
 .page > .pane:has(.widget-full) { overflow: hidden; }
-
-/* ---------- MESSAGES IS A CARD, ON A SCREEN OF ROWS § */
-.card:has(> .msg-body, > .kc-lines > .msg-body) {
-  background: var(--raised);
-  border: 1px solid var(--line-soft);
-  border-radius: var(--r-ui);
-  padding: var(--s4);
-  margin: 0 0 var(--card-gap);
-}
-.card:has(> .msg-body, > .kc-lines > .msg-body) .msg-body { max-height: 22rem; overflow-y: auto; scrollbar-width: none; }
-.msg-form .msg-said { flex: 1 0 100%; }
 
 .widget-full #timer-display { /* THE SIZE COMES FROM THE FIRST RULE for this selector, further up: § */
   /* THE PANEL the numerals sit on — darker than the case, the way the glass of a clock is. */
@@ -2319,11 +2148,6 @@ span[data-do]:is(:active, .is-pressed) { text-decoration-color: var(--gold); }
 
 /* WAITING FOR APPROVAL (413): dotted, inset so a picture that bleeds to the edge cannot cover it; the line says what the dots mean. */
 .post.is-pending { outline: 2px dotted var(--gold); outline-offset: -2px; border-radius: var(--r-ui); padding-top: var(--s2); }
-
-/* A RECEIVED MESSAGE AND ITS REPORT TILE, side by side (413), at full strength always: no button changes on hover. */
-.msg-line { display: flex; align-items: flex-end; gap: var(--s1); width: 100%; }
-.msg-line .msg-flag { flex: 0 0 auto; }
-/* THE COMPOSER'S PICKER (413): a file, never a link — the label is the control, so it carries the gap the box above it would have. */
 
 /* THREE THINGS THAT ARE WHAT THEY ARE The receipt works because a booking genuinely produces a receipt — the form is not a costume, it is the honest shape of the § */
 
@@ -3061,7 +2885,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
                                       letter-spacing: -.01em; }
 /* THE LINE UNDER THE TITLE SITS UNDER IT. § */
 .fc .fc-head + .note { margin: var(--fc-in) 0 0; }
-.fc-lede { margin: var(--fc-line) 0 0; font-size: var(--fs-body); line-height: var(--lh-loose); }
+
 /* HOW LONG, HOW MANY, WHERE, AND WHETHER IT CAN HAPPEN AT ALL — the four facts that decide whether
    you run this today, on one line, in the mono face the rest of the app uses for measurements. */
 
@@ -3371,19 +3195,6 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
   padding: 0;
 }
 
-/* `.bookr-x` WAS THE CLOSE BUTTON. The booker is the first card on Book and is always drawn, so
-   there is nothing to close and no state to return to. */
-
-/* ---------- WHAT YOU DO WITH THE BOOKING, PRINTED ON IT § */
-/* `.rc-do` WAS THE FULL-WIDTH GOLD BAR. § */
-.rc-do {
-  width: 100%;
-  margin: var(--s2) 0 0;
-  padding: var(--s2) var(--s2);
-  font-size: var(--fs-body);
-}
-[data-state~="receipt"] .rc-do { border-top: 1px solid var(--line-soft); border-radius: 0; }
-
 /* CENTRED, because there is one of them and it is not a row of actions down a card — the share on a
    receipt is a single thing to do, not a set to choose from. */
 /* THE ACTIONS ON THE DOCUMENT, centred and ruled off — everything above is what was asked for and
@@ -3678,7 +3489,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .widget-slot > .card:only-child { padding-block: 0; border-bottom: 0; }
 
 /* ---------- ONE SURFACE, AND IT IS THE PANE (690): what sits in it is flat, set apart by space and a hairline, as an iOS grouped list. */
-.pane :is([data-shape="Card"], .card:has(> .msg-body, > .kc-lines > .msg-body)) {
+.pane [data-shape="Card"] {
   background: none; border: 0; border-radius: 0; padding-inline: 0; margin-inline: 0; }
 .pane [data-shape="Card"] + [data-shape="Card"] {
   border-top: 1px solid var(--line-soft); padding-top: var(--card-gap); margin-top: 0; }
@@ -4275,20 +4086,6 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
   @page { size: A4 portrait; margin: 0; }
 }
 
-/* ---------- CHECK UPLOADS: AN ADMIN TOOL — see `uploadsHtml_` in me.js § */
-.up-list { list-style: none; margin: var(--s3) 0 var(--s2); padding: 0; }
-.row.up-item { flex-direction: row; gap: var(--s2); align-items: baseline; justify-content: flex-start; }
-.up-mark { flex: 0 0 1rem; text-align: center; font-weight: 700; }
-.row.up-item.is-ok .up-mark { color: var(--good); }
-.row.up-item.is-bad .up-mark { color: var(--bad); }
-.up-k { display: block; font-size: var(--fs-body); line-height: var(--lh-close); }
-.up-v { display: block; font-size: var(--fs-small); line-height: var(--lh-snug); color: var(--ink); overflow-wrap: anywhere; }
-.up-said { margin: var(--s2) 0 var(--s1); font-size: var(--fs-body); line-height: var(--lh-snug); overflow-wrap: anywhere; }
-.up-said.up-good { color: var(--good); }
-.up-said.up-bad { color: var(--bad); }
-.up-steps { margin: 0 0 var(--s2); padding-left: var(--s4); font-size: var(--fs-small); line-height: var(--lh-mid); overflow-wrap: anywhere; }
-.up-steps li + li { margin-top: var(--s1); }
-
 /* ---------- WHERE A TUTOR TUTORS, AS A HEAT MAP — see `profHeat_` in cards.js § */
 .prof-heat { position: relative; height: 200px; margin: var(--s0) 0 var(--s2); overflow: hidden;
              border-radius: var(--r-ui); background: var(--sunk); border: 1px solid var(--line); }
@@ -4400,10 +4197,6 @@ table.qp-cells :is(td, th) { border: 1px solid var(--line); padding: var(--s1) v
 /* THE CARD IS ONE LINE UNTIL ITS TILE OPENS THE LIST (660). */
 .miss-card .miss-sum { margin: var(--s1) 0 var(--s1); font-size: var(--fs-body); }
 .miss-card > h3 { margin-bottom: var(--s1); }
-
-/* DAIVE (449, 461): a conversation drawn as any other; only the disc is filled gold, and the composer greys while it waits. */
-.dm-av.daive-av { background: var(--gold); color: var(--on-gold); }
-.msg-text:disabled, .msg-go:disabled { opacity: .5; }
 
 /* ---------- A HAND UP (455): the hand wears the ordinary pressed plate, nothing red (owner, 20 Nov); and the tutor's list ---------- */
 .qhelp-tiles { margin-top: var(--s2); align-items: center; }
@@ -4660,16 +4453,9 @@ table.qp-cells :is(td, th) { border: 1px solid var(--line); padding: var(--s1) v
 [data-state~="receipt"] .bk-v > .bk-in { text-align: left; }
 
 /* ---------- LIBRARY CARDS, ONE LOOK (owner's look rule): picture first, facts as tags, no grey text, the tiles on one line ---------- */
-.lib-c .fc-say, .lib-c .fc-lede, .lib-c h4, .lib-c li, .hdb-more .hdb-lines dt { color: var(--ink); }
+.lib-c .fc-say, .lib-c h4, .lib-c li, .hdb-more .hdb-lines dt { color: var(--ink); }
 .lib-c > .person-pic { margin: var(--s1) auto var(--s2); }
-/* MESSAGES AND POSTS AS FIND CARDS (36a): the picture, the title, two lines of what was said. */
-.msg-fc-pic { margin: var(--s2) auto var(--s2); width: min(100%, 8rem); background: var(--raised); border-radius: var(--r-ui); padding: var(--s2); overflow: hidden; }
-.msg-fc-pic .dm-av { width: 100%; height: auto; aspect-ratio: 1; font-size: var(--fs-title); }
-.msg-fc-pic .person-pic { margin: 0; width: 100%; padding: 0; }
 
-.msg-fc-body { margin: var(--s1) 0 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
-.kc-msg[data-state~="one"] .msg-fc-pic { width: 4rem; padding: var(--s1); }
-.msg-tag.is-new { border-color: var(--gold); color: var(--gold); }
 .pane:has(> [data-state~="fav"] > .lib-c) > .tile-row { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
 /* ---------- THE TUTOR CARD FITS ONE PHONE SCREEN (8 Nov): small face, name and rate on one line, tight pills, short map, hours as day pills. */
 
@@ -4730,11 +4516,9 @@ table.qp-cells :is(td, th) { border: 1px solid var(--line); padding: var(--s1) v
 
 .note.note-gap { margin: var(--s1) 0 var(--s2); }
 
-/* A CHIP'S CLOSE IS A TILE (owner, 8 Nov), drawn at the chip's own height so the pill stays one line. */
-.msg-chip > .tile.msg-chip-x { width: 24px; height: 24px; min-width: 24px; border: 0; background: none; margin-left: var(--s1); }
 /* THE FILTER'S ✕ IS A 44px TAP TARGET, its 10px overhang taken back by negative margins so the pill keeps its 24px line. */
 .chip > .tile.chip-x { width: var(--tap); height: var(--tap); min-width: var(--tap); min-height: var(--tap); border: 0; background: none; margin: -10px -10px -10px calc(var(--s1) - 10px); }
-.chip > .tile.chip-x .tile-i, .msg-chip > .tile.msg-chip-x .tile-i { width: 12px; height: 12px; }
+.chip > .tile.chip-x .tile-i { width: 12px; height: 12px; }
 /* LONG CARD TEXT, CUT TO TWO LINES WITH "…" (owner 8 Nov, 29a); `cut-open` toggles .is-open on a tap. */
 .cut2 { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; cursor: pointer; }
 .cut2.is-open { display: block; -webkit-line-clamp: unset; line-clamp: none; overflow: visible; }
@@ -4770,11 +4554,11 @@ table.qp-cells :is(td, th) { border: 1px solid var(--line); padding: var(--s1) v
 .card.kc > .kc-pic > * { max-width: none; width: 100%; height: 100%; border-radius: var(--r-circle); }
 /* NO REAL PICTURE, NO PICTURE PART (owner, 10 Nov late): the tags lead. A thing's own photo or figure is its shape, not a circle. */
 .card.kc > .kc-pic:empty { display: none; }
-.card.kc:not(.kc-msg) > .kc-pic:not(:has(> .person-pic)) { width: 100%; border-radius: var(--r-ui); }
+.card.kc > .kc-pic:not(:has(> .person-pic)) { width: 100%; border-radius: var(--r-ui); }
 .card.kc > .kc-pic > figure { background: none; padding: 0; }
 .card.kc > .kc-pic .hdb-ms-sides, .card.kc > .kc-pic .hdb-ms-side { height: 100%; justify-content: center; }  /* A DRAWING SHOWN WHOLE, not cut at the picture's height */
 .card.kc > .kc-pic .hdb-ms svg { height: var(--pic-h); width: auto; max-width: 100%; margin: 0 auto; }
-.card.kc:not(.kc-msg) > .kc-pic:not(:has(> .person-pic)) :is(img, video, svg, figure) { border-radius: var(--r-ui); object-fit: contain; }
+.card.kc > .kc-pic:not(:has(> .person-pic)) :is(img, video, svg, figure) { border-radius: var(--r-ui); object-fit: contain; }
 .card.kc > .kc-tags { margin-top: var(--s2); }
 .card.kc > .kc-tags :is(.qtags, .prof-tags, .prof-who-tags) { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: var(--s1); }
 .card.kc > .kc-lines { margin-top: var(--s2); }
@@ -4799,10 +4583,10 @@ table.qp-cells :is(td, th) { border: 1px solid var(--line); padding: var(--s1) v
 .card.kc-bookform { --kc-side: 0; }
 .card.kc > .kc-form :is(label, .field, p, .note, .dob-cap, li, dt, dd), .card.kc-panel > .kc-lines :is(label, .field, p, .note, li, dt, dd) { text-align: center; }
 .card.kc > .kc-form :is(.f-row, .dob-boxes, .btn-row, .tile-row, .check), .card.kc-panel > .kc-lines :is(.f-row, .btn-row, .tile-row) { justify-content: center; }
-.card.kc > .kc-form :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="hidden"]), select, textarea):not(.msg-text, .dob-boxes *),
-.card.kc-panel > .kc-lines :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="hidden"]), select, textarea):not(.msg-text) { box-sizing: border-box; width: 100%; max-width: 26rem; margin-inline: auto; text-align: left; }
+.card.kc > .kc-form :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="hidden"]), select, textarea):not(.dob-boxes *),
+.card.kc-panel > .kc-lines :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="hidden"]), select, textarea) { box-sizing: border-box; width: 100%; max-width: 26rem; margin-inline: auto; text-align: left; }
 /* A BOX WITH ITS OWN PARTS (a composer and its Send, a search pill and its glass) takes the 26rem measure whole, so the parts stay together on the centre line. */
-.card.kc > :is(.kc-form, .kc-lines) :is(.msg-form, .search-pill) { box-sizing: border-box; width: 100%; max-width: 26rem; margin-inline: auto; }
+.card.kc > :is(.kc-form, .kc-lines) .search-pill { box-sizing: border-box; width: 100%; max-width: 26rem; margin-inline: auto; }
 .card.kc > :is(.kc-form, .kc-lines) .search-pill > input { max-width: none; }
 .card.kc > .kc-form :is(ul, ol), .card.kc-panel > .kc-lines :is(ul, ol) { list-style-position: inside; padding-left: 0; }
 /* A WIDE TABLE OR FORMULA LINE IS CENTRED AND SCROLLS INSIDE ITSELF, never past the card's edge. */

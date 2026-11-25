@@ -96,7 +96,6 @@
 {"field": "postState", "label": "which-posts", "read": {"by": "row", "col": "postState"}, "sort_order": 20.6, "note": "a post (batch C): Approved, Waiting for approval or Deleted; only an admin is sent the last two", "active": true},
 {"field": "postBy", "label": "who-posted", "read": {"by": "row", "col": "postBy"}, "sort_order": 20.61, "note": "a post (batch C): its author", "active": true},
 {"field": "postWhen", "label": "when", "read": {"by": "row", "col": "postWhen"}, "sort_order": 20.62, "note": "a post (batch C): a time frame, Today to Older", "active": true},
-{"field": "msgWith", "label": "who-with", "read": {"by": "row", "col": "msgWith"}, "sort_order": 20.63, "note": "a conversation (batch C): the person it is with", "active": true},
 {"field": "profileType", "label": "who", "read": {"by": "row", "col": "profileType"}, "sort_order": 20.64, "note": "a profile (batch C): Parent, Student, Tutor; an admin also Over/Under 18, Apprentice, Admin", "active": true},
 {"field": "settingFor", "label": "who-for", "read": {"by": "row", "col": "settingFor"}, "sort_order": 20.65, "note": "a settings card (batch C): Student, Parent, Staff, Apprentice, Admin", "active": true},
 {"field": "venueArea", "label": "area", "read": {"by": "row", "col": "venueArea"}, "sort_order": 20.696, "note": "a venue (Find › Venues): its borough, else its city", "active": true},

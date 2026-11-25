@@ -240,7 +240,7 @@ function getCalendar_(meAskedId, viewerIsAdmin, vis, payload) {
   }
 }
 
-/* Discount codes, seat prices, the viewer's own stars, answers, links and messages, the spotlight, closures. */
+/* Discount codes, seat prices, the viewer's own stars, answers and links, the spotlight, closures. */
 function getViewerBits_(meAsked, viewerIsAdmin, payload) {
   /* ---------- THE DISCOUNT CODES, TO AN ADMIN ALONE (docs/history/353) § */
   if (viewerIsAdmin) {
@@ -292,8 +292,6 @@ function getViewerBits_(meAsked, viewerIsAdmin, payload) {
 
   /* ---------- THE VIEWER'S OWN FAVOURITE LINKS (509), and nobody else's: fresh every load, never kept in the cached body. */
   try { payload.favLinks = favLinksOf_(meAsked); } catch (err) { payload.favLinks = []; }
-  /* AND THE VIEWER'S MESSAGES (700), so the DMs column lands with the payload instead of a cold second round trip. */
-  try { payload.messages = meAsked ? messagesOf_(meAsked) : []; } catch (err) { payload.messages = []; }
 
   /* ---------- WHEN THE FILMS WERE LAST FILLED FROM DRIVE, FOR THE ADMIN AND NOBODY ELSE § */
   if (viewerIsAdmin) {
