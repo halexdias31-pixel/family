@@ -409,7 +409,7 @@ function postSaveTodo_(body, action, began) {
   return jsonOut({ success: true, base: todoBase_(cell) });
 }
 /* THE ONE TIDY (owner, 22 Nov, UNIFY NEXT 6): every list of the owner's (Docket, Assignments, Tasks, Food) is one list kind, its items one shape,
-   declared as kinds.json `list` (LIST_KINDS in cards-gen.gs): each field's type and size, what an item needs, the planner's fields (`plan`).
+   declared as kinds.json `list` (LIST_KINDS in cards-gen.gs): each field's type and size, what an item needs.
    `whole` makes every item whole, each field in its declared order and shape (the import, an assignment's save); `as-is` keeps what the item
    already has and only puts right what is out of shape (the docket's save, a task or food row as sent), so a save never changes good data.
    The list's own save (`L.save`) also drops what has gone (`gone`: a one-off ticked before today, London's; a daily item keeps its `doneOn`). */
@@ -417,15 +417,15 @@ function listTidy_(kind, items, how) {
   const L = LIST_KINDS[kind];
   if (!L) throw new Error('listTidy_: ' + kind + ' is not a list kind (kinds.json `list`)');
   how = how || L.save;
-  const whole = how === 'whole', P = L.plan ? DOCKET_PLAN_FIELDS : {}, G = L.gone;
+  const whole = how === 'whole', G = L.gone;
   let rows = Array.isArray(items) ? items : [];
   if (whole && L.most) rows = rows.slice(0, L.most);
-  rows = rows.map((it, n) => listItemTidy_(L, P, it, whole, n));
+  rows = rows.map((it, n) => listItemTidy_(L, it, whole, n));
   if (whole && L.need) rows = rows.filter(it => L.need.some(f => it[f]));
   if (G && how === L.save) { const today = todayIso_(); rows = rows.filter(it => !it || !!it[G.daily] || !it[G.done] || !it[G.on] || String(it[G.on]) >= today); }
   return rows;
 }
-function listItemTidy_(L, P, it, whole, n) {
+function listItemTidy_(L, it, whole, n) {
   if (!whole && (!it || typeof it !== 'object')) return it;
   it = it && typeof it === 'object' ? it : {};
   const out = whole ? {} : Object.assign({}, it), cut = (F, v) => (F.max ? S(v).slice(0, F.max) : S(v));
@@ -451,14 +451,6 @@ function listItemTidy_(L, P, it, whole, n) {
       out[F.f] = k;
     } else if (F.type === 'titles') { if (k === '') delete out[F.f]; else out[F.f] = k; }
     else if (k !== v && v !== '') { if (k === '' || k === F.def) delete out[F.f]; else out[F.f] = k; }
-  });
-  /* THE PLANNER'S FIELDS (form `docket-item`): a valid one kept, a default or a wrong one left out so the cell stays small. */
-  Object.keys(P).forEach(k => {
-    const F = P[k], v = it[k];
-    let keep = null;
-    if (F.options) keep = F.options.indexOf(S(v)) >= 0 ? S(v) : null;
-    else if (v !== undefined && v !== null && v !== '' && isFinite(Number(v)) && Number(v) >= F.min) keep = Math.min(Math.round(Number(v)), 100000);
-    if (keep === null || keep === F.def) delete out[k]; else out[k] = keep;
   });
   return out;
 }
@@ -711,11 +703,10 @@ function postSetMyRoles_(body, action, began) {
 /* ---------- DOCKET (owner, 18 Nov): named lists of things to do, kept in the person's own `todo` cell as JSON — the cell `saveTodo` writes
    and the sign-in reply sends back to that person alone. The import loads whole lists at once: your own, or anybody's for the admin. */
 const DOCKET_CELL_MAX = 49000;
+/* ONE LIST (owner, 25 Nov night): whatever lists come, their items are one list, "Docket", in their order, each made whole by the one tidy. */
 function docketTidy_(lists) {
-  /* A LIST'S USUAL START (`start`, form `docket-list`) is kept, or a save loses the day's phases (dkPhase_); its items made whole by the one tidy. */
-  return (Array.isArray(lists) ? lists : []).slice(0, 50).map(l => ({ name: S(l && l.name).slice(0, 80) || 'List',
-    ...(/^\d{1,2}:\d{2}$/.test(S(l && l.start)) ? { start: S(l.start) } : {}),
-    items: listTidy_('docket', Array.isArray(l && l.items) ? l.items : [], 'whole') }));
+  const all = [].concat(...(Array.isArray(lists) ? lists : []).map(l => (Array.isArray(l && l.items) ? l.items : [])));
+  return all.length ? [{ name: 'Docket', items: listTidy_('docket', all, 'whole') }] : [];
 }
 function postDocketImport_(body, action, began) {
   const me = findPerson('', S(body.personId));
@@ -732,46 +723,24 @@ function postDocketImport_(body, action, began) {
   return postSavePerson_({ personId: target }, 'todo', cell);
 }
 
-/* ---------- THE PRIVATE PLAIN-TEXT ADDRESS (owner, 21 Nov: NOW, NEXT step 3): `?docket=<token>` answers the owner's Now/Next as plain text for
-   Siri Shortcuts, ChatGPT or Gemini; `&do=done&what=<words>` ticks the best match, `&do=add&what=<words>[&list=<name>]` adds; `&do=options[&slot=<name>]` reads the food slots, or one slot's options. The plan is the site's
-   (dkPhase_, dkNowNextOf_, dkSay_, dkMatch_, dkTick_: js/map.js, copied into cards-gen.gs). The token lives in Script Properties only, never in the repo or a log;
-   the owner sees it, or makes a new one, on the Docket (action docketAddress). tools/docket-address.js checks it. */
+/* ---------- THE PRIVATE PLAIN-TEXT ADDRESS (owner, 21 Nov; one list, 25 Nov night): `?docket=<token>` answers the owner's Docket as plain text for
+   Siri Shortcuts, ChatGPT or Gemini; `&do=done&what=<words>` ticks the best match, `&do=add&what=<words>` adds an undated one-off. The order is the
+   site's (dkSort_, dkNowNextOf_, dkSay_, dkMatch_, dkTick_: js/map.js, copied into cards-gen.gs). The token lives in Script Properties only, never in the
+   repo or a log; the owner sees it, or makes a new one, on the Docket (action docketAddress). tools/docket-address.js checks it. */
 const DOCKET_TOKEN_KEY = 'DOCKET_TOKEN';
-/* AN ITEM AS THE PLANNER READS IT: each planner field's kinds.json default where the item has none (the site's dkFill_). */
-const docketFill_ = it => { const o = {}; Object.keys(DOCKET_PLAN_FIELDS).forEach(k => { o[k] = DOCKET_PLAN_FIELDS[k].def; });
-  Object.keys(it || {}).forEach(k => { if (it[k] !== '' && it[k] != null) o[k] = it[k]; }); return o; };
-/* Pure: the lists (changed in place), London's 'YYYY-MM-DD HH:MM', the query ({ do, what, list }) and the fill; { say, lists, changed }. */
-function docketAnswer_(lists, now, q, fill, priv) {
-  const day = String(now).slice(0, 10), act = S(q && q.do).toLowerCase(), what = S(q && q.what).slice(0, 300), plan = () => dkPhase_(lists, now, fill);
+/* Pure: the one list's items (changed in place), London's 'YYYY-MM-DD HH:MM' and the query ({ do, what }); { say, items, changed }. */
+function docketAnswer_(items, now, q) {
+  const act = S(q && q.do).toLowerCase(), what = S(q && q.what).slice(0, 300);
   let said = '', changed = false;
-  /* FOOD SLOTS (owner, 23 Nov): `&do=options[&slot=Snack]` reads the slots, or one slot's options and count (foods.json, DOCKET_FOODS); changes nothing. */
-  if (act === 'options') return { say: docketOptionsSay_(lists, S(q && q.slot).slice(0, 60), priv), lists: lists, changed: false };
   if (act === 'done' || act === 'add') {
     if (!what) said = text_('dk-say-what');
     else if (act === 'done') {
-      const p = plan(), rows = p ? p.rows : [];
-      const k = dkMatch_(rows.map(r => lists[r.li].items[r.i].title), what);
+      const open = dkSort_(items, now).open, k = dkMatch_(open.map(i => items[i].title), what);
       if (k < 0) said = text_('dk-say-no-match', { what: what });
-      else { const it = lists[rows[k].li].items[rows[k].i]; dkTick_(lists[rows[k].li].items, rows[k].i, true, now); changed = true; said = text_('dk-say-ticked', { title: it.title }); }
-    } else {
-      const named = S(q.list), p = named ? null : plan();
-      let L = named ? lists.find(x => S(x && x.name).toLowerCase() === named.toLowerCase()) : p ? lists[p.cur] : lists[0];
-      if (!L && !named) { L = { name: 'Docket', items: [] }; lists.push(L); }
-      if (!L) said = text_('dk-say-no-list', { what: named });
-      else { L.items = L.items || []; L.items.push({ title: what }); changed = true; said = text_('dk-say-added', { title: what, name: L.name }); }
-    }
+      else { dkTick_(items, open[k], true, now); changed = true; said = text_('dk-say-ticked', { title: items[open[k]].title }); }
+    } else { items.push({ title: what }); changed = true; said = text_('dk-say-added', { title: what, name: 'Docket' }); }
   }
-  return { say: (said ? said + ' ' : '') + dkSay_(dkNowNextOf_(lists, plan())), lists: lists, changed: changed };
-}
-/* `priv`: the cell's own private slots (dkFoodsWith_, e.g. Prayer), read with foods.json's by the one dkSlotOptions_. */
-function docketOptionsSay_(lists, slot, priv) {
-  const fd = dkFoodsWith_(DOCKET_FOODS, priv), all = fd.slots.map(s => s.name);
-  lists.forEach(L => (L && L.items || []).forEach(it => { if (it && it.slot && !all.some(s => dkSame_(s, it.slot))) all.push(S(it.slot)); }));
-  if (!slot) return text_('dk-say-slots', { slots: all.join(', ') });
-  const name = all.find(s => dkSame_(s, slot));
-  if (!name) return text_('dk-say-no-slot', { what: slot, slots: all.join(', ') });
-  const opts = dkSlotOptions_(fd, name).map(f => f.name), need = dkSlotNeed_(fd, name);
-  return text_('dk-say-slot', { slot: name, need: need > 1 ? text_('dk-say-slot-need', { need: need }) : '', options: opts.join(', ') || '-' });
+  return { say: (said ? said + ' ' : '') + dkSay_(dkNowNextOf_(items, now)), items: items, changed: changed };
 }
 const docketNow_ = () => Utilities.formatDate(new Date(), tz_(), 'yyyy-MM-dd HH:mm');
 /* The same length and every character compared, so a near miss takes as long as a far one. */
@@ -789,10 +758,11 @@ function docketAddress_(p) {
   if (!me || !S(me.person_id)) return say(text_('err-docket-owner'));
   let got = null;
   try { got = JSON.parse(S(me.todo)); } catch (e) { got = null; }
-  const priv = got && Array.isArray(got.slots) ? got.slots : [];
-  const r = docketAnswer_(got && Array.isArray(got.lists) ? got.lists : [], docketNow_(), p, docketFill_, priv);
+  const lists = got && Array.isArray(got.lists) ? got.lists : [], items = [].concat(...lists.map(L => (L && Array.isArray(L.items) ? L.items : [])));
+  const r = docketAnswer_(items, docketNow_(), p);
   if (r.changed) {
-    const cell = todoTidy_(JSON.stringify(Object.assign({ v: 1 }, priv.length ? { slots: priv } : {}, { lists: r.lists })));
+    const rest = Object.assign({}, got || {}); delete rest.lists;
+    const cell = todoTidy_(JSON.stringify(Object.assign({ v: 1 }, rest, { lists: [{ name: 'Docket', items: r.items }] })));
     if (cell.length > DOCKET_CELL_MAX) return say(text_('err-docket-saved'));
     const out = JSON.parse(postSavePerson_({ personId: S(me.person_id) }, 'todo', cell).getContent());
     if (!out.success) return say(text_('err-docket-saved'));

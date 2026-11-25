@@ -95,63 +95,62 @@ tierGuardWidgets_(WIDGETS);
 
 
 
-/* ---------- DOCKET (owner, 18 Nov): lists in your order; each item a title, an optional note, date, time and daily repeat; ticked items fold away.
-   A daily item keeps the day it was last done (`doneOn`), so it is undone again tomorrow with no job anywhere. Saved whole to your own `todo` cell. */
-const DK = { lists: null, at: 0, edit: -1, rename: false, showDone: false, say: '', addr: null, fresh: false, base: null, asking: null, q: Promise.resolve() };
+/* ---------- DOCKET (owner, 18 Nov; ONE LIST, owner 25 Nov night): one list, names only, kept whole in your own `todo` cell as { v, lists: [{ name: 'Docket', items }] }.
+   An item is a title, an '8h' repeat or none, a date or none, its done state, and one hidden number, `runs` (minutes it runs by itself); nothing else. tools/docket-onelist.js checks it. */
+const DK = { items: null, rest: null, say: '', addr: null, fresh: false, base: null, asking: null, q: Promise.resolve() };
 /* THE OWNER'S DAY (owner, 20 Nov): midnight is London's, whatever the device's clock says. */
 const dkDay_ = d => todayIso_(d);   // the one today, js/core.js
-/* DONE IS READ FROM `doneOn` AND THE DAY, never a timer (owner, 20 Nov): a daily item is undone again after midnight; a one-off stays ticked until midnight, then goes (dkTidy_). */
-/* EVERY 8 HOURS (owner, 25 Nov): the one repeat has two values, 'daily' and '8h'. A repeating item's `doneOn` is its period's key (dkOn_): the day for
-   a daily one, the day and the third of it ('2026-11-25/2': 00-08 is 1, 08-16 is 2, 16-24 is 3) for an 8h one, so it is undone again in the next third.
-   Pure, from `now` ('YYYY-MM-DD HH:MM', London's; a bare day is its first third). tools/docket-slots.js checks it. */
-const dkRep_ = i => !!i && (i.repeat === 'daily' || i.repeat === '8h');
-const dkOn_ = (i, now) => { now = String(now || ''); const d = now.slice(0, 10), h = +now.slice(11, 13); return i && i.repeat === '8h' ? d + '/' + (1 + Math.floor((h >= 0 && h < 24 ? h : 0) / 8)) : d; };
-const dkDone_ = i => (dkRep_(i) ? i.doneOn === dkOn_(i, dkNow_()) : !!i.done);
+/* EVERY 8 HOURS (owner, 25 Nov): an '8h' item's `doneOn` is the third of the day it was ticked in (dkOn_: '2026-11-25/2'; 00-08 is 1, 08-16 is 2,
+   16-24 is 3), so it is back, unticked, in the next third. A one-off keeps `done` and the day (`doneOn`), and leaves after midnight (dkTidy_).
+   Pure, from `now` ('YYYY-MM-DD HH:MM', London's; a bare day is its first third). */
+const dkRep_ = i => !!i && i.repeat === '8h';
+const dkOn_ = now => { now = String(now || ''); const h = +now.slice(11, 13); return now.slice(0, 10) + '/' + (1 + Math.floor((h >= 0 && h < 24 ? h : 0) / 8)); };
+const dkIsDone_ = (i, now) => (dkRep_(i) ? i.doneOn === dkOn_(now) : !!(i && i.done));
+const dkDone_ = i => dkIsDone_(i, dkNow_());
 const dkGone_ = i => !dkRep_(i) && !!i.done && !!i.doneOn && i.doneOn < dkDay_();
-/* THE ONE TICK (owner, 23 Nov: COVERS): every done path (the widget, Find, the private address) ticks through this. Pure: the list's items, which one,
-   ticked or not, London's now ('YYYY-MM-DD HH:MM'; a bare day will do for a daily one). An item's `covers` (titles in the same list) are ticked with it, each one not already done, and remembered in its
-   `coversSet`; an untick undoes only those. A daily item's `doneOn` is the day; a one-off's `done` too. */
-function dkTick_(items, i, on, day) {
+/* THE ONE TICK: every done path (the card, ?eink, the private address) ticks through this. Pure: the items, which one, ticked or not, London's now. */
+function dkTick_(items, i, on, now) {
   const it = items[i];
   if (!it) return false;
-  const mark = (x, v) => { if (dkRep_(x)) x.doneOn = v ? dkOn_(x, day) : ''; else { x.done = !!v; x.doneOn = v ? String(day).slice(0, 10) : ''; } };
-  const isDone = x => (dkRep_(x) ? x.doneOn === dkOn_(x, day) : !!x.done);
-  const find = t => items.find(y => y && y !== it && String(y.title || '').trim() === String(t || '').trim());
-  mark(it, on);
-  if (on) {
-    const set = (Array.isArray(it.covers) ? it.covers : []).filter(t => { const x = find(t); if (!x || isDone(x)) return false; mark(x, true); return true; });
-    if (set.length) it.coversSet = set; else delete it.coversSet;
-  } else {
-    (Array.isArray(it.coversSet) ? it.coversSet : []).forEach(t => { const x = find(t); if (x && isDone(x)) mark(x, false); });
-    delete it.coversSet;
-  }
+  if (dkRep_(it)) it.doneOn = on ? dkOn_(now) : '';
+  else { it.done = !!on; it.doneOn = on ? String(now).slice(0, 10) : ''; }
   return true;
 }
-/* FOOD SLOTS (owner, 23 Nov; data only for now): an item may name a slot (`slot`: Protein, Fruit…, foods.json `slots`) in place of a fixed food;
-   its options are the foods tagged with that slot, and the slot's `need` is how many a day it wants (Fruit 3). The card lists them as text; the tick
-   is the one tick, unchanged. Pure, given foods.json ({ slots, foods }), so the private address (post-account.gs, DOCKET_FOODS) reads the same. */
-const dkSame_ = (a, b) => String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase();
-const dkSlotOptions_ = (foods, slot) => (foods && Array.isArray(foods.foods) ? foods.foods : []).filter(f => slot && Array.isArray(f.slots) && f.slots.some(s => dkSame_(s, slot)));
-/* A SLOT'S OPTIONS MAY ALSO BE PRIVATE (owner, 25 Nov): the docket cell's own `slots` ([{ name, need, options: [{ name, note }] }], e.g. Prayer) join
-   foods.json's, each option as a food tagged with its slot; the same dkSlotOptions_ reads both. They live in the owner's cell only, never in the repo. */
-const dkPrivFoods_ = s => (Array.isArray(s.options) ? s.options : []).map(o => ({ name: String((o && o.name) || ''), note: String((o && o.note) || ''), slots: [s.name] }));
-const dkFoodsWith_ = (foods, priv) => { const P = (Array.isArray(priv) ? priv : []).filter(s => s && s.name), f = foods || {}; return !P.length ? foods : { slots: (f.slots || []).concat(P.map(s => ({ name: s.name, need: s.need || 1 }))), foods: (f.foods || []).concat(...P.map(dkPrivFoods_)) }; };
-const dkSlotNeed_ = (foods, slot) => { const s = (foods && Array.isArray(foods.slots) ? foods.slots : []).find(x => dkSame_(x && x.name, slot)); return Math.max(1, Math.round(+(s && s.need)) || 1); };
-/* ON EVERY LOAD: a one-off ticked before today leaves its list (the backend's postSaveTodo_ does the same on each save); one ticked before `doneOn` existed is dated today, so it goes at the next midnight. */
-function dkTidy_(lists) {
-  lists.forEach(L => { L.items = (L.items || []).filter(it => !dkGone_(it)); L.items.forEach(it => { if (!dkRep_(it) && it.done && !it.doneOn) it.doneOn = dkDay_(); }); });
-  return lists;
+/* SORTED LIKE GOOGLE TASKS (owner, 25 Nov night): Overdue (a dated one-off past its date), then Now (an 8h item not yet done this third), then the
+   dated one-offs by date, then the undated, then Done; within Now, the most minutes it runs by itself (`runs`) first. Pure; each group keeps the list's order on a tie. The card, ?eink and the private address
+   all read this one order. tools/docket-onelist.js checks it. */
+function dkSort_(items, now) {
+  now = String(now || '');
+  const day = now.slice(0, 10), g = { over: [], now: [], dated: [], undated: [], done: [] };
+  (items || []).forEach((it, i) => {
+    if (!it) return;
+    if (dkIsDone_(it, now)) g.done.push(i);
+    else if (dkRep_(it)) g.now.push(i);
+    else if (it.date && it.date < day) g.over.push(i);
+    else if (it.date) g.dated.push(i);
+    else g.undated.push(i);
+  });
+  const by = (a, b) => String(items[a].date).localeCompare(String(items[b].date)) || a - b;
+  /* WITHIN NOW, THE LONGEST PASSIVE ONE FIRST (owner, 25 Nov night): `runs`, the minutes it runs by itself once started (laundry 60), descending. */
+  const runs = i => Math.max(0, +items[i].runs || 0);
+  g.over.sort(by); g.dated.sort(by); g.now.sort((a, b) => runs(b) - runs(a) || a - b);
+  g.open = g.over.concat(g.now, g.dated, g.undated);
+  return g;
 }
+/* ON EVERY LOAD: a one-off ticked before today leaves (the backend's postSaveTodo_ does the same on each save). */
+const dkTidy_ = items => items.filter(it => it && !dkGone_(it));
+/* ONE LIST: an older cell's lists are read as one, in their order; what else the cell holds is kept as it was (DK.rest). */
 function dkLoad_() {
-  if (DK.lists) return DK.lists;
+  if (DK.items) return DK.items;
   const raw = String((typeof USER !== 'undefined' && USER && USER.todo) || '');
   let got = null;
   try { got = JSON.parse(raw); } catch (e) { got = null; }
-  /* AN OLD DOCKET WAS LINES OF TEXT: each line an item of one list. */
-  DK.slots = got && Array.isArray(got.slots) ? got.slots : [];
-  DK.lists = got && Array.isArray(got.lists) ? got.lists
-    : raw.trim() ? [{ name: 'Docket', items: raw.split('\n').map(t => t.trim()).filter(Boolean).map(title => ({ title })) }] : [];
-  return dkTidy_(DK.lists);
+  const ok = !!got && typeof got === 'object' && Array.isArray(got.lists);
+  DK.rest = ok ? Object.assign({}, got) : {};
+  delete DK.rest.lists;
+  DK.items = dkTidy_(ok ? [].concat(...got.lists.map(L => (L && Array.isArray(L.items) ? L.items : [])))
+    : raw.split('\n').map(t => t.trim()).filter(Boolean).map(title => ({ title })));
+  return DK.items;
 }
 /* THE SERVER'S DOCKET, NEVER THE CACHED ONE (owner, 25 Nov: a backend job rewrote the cell, the phone kept drawing — and would have saved — the old lists):
    USER.todo is the phone's copy from sign-in, so each app load and each opening asks the cell fresh (docketImport `read`) and draws nothing until it lands;
@@ -164,7 +163,7 @@ function todoBase_(cell) {
 }
 function dkTake_(todo, base) {
   if (typeof USER !== 'undefined' && USER) { USER.todo = String(todo || ''); if (typeof saveUser_ === 'function') saveUser_(); }
-  DK.lists = null; DK.slots = []; DK.base = base; DK.fresh = true;
+  DK.items = null; DK.base = base; DK.fresh = true;
   if (typeof stuffForget_ === 'function') stuffForget_(true);
 }
 function dkFetch_() {
@@ -177,10 +176,10 @@ function dkFetch_() {
 }
 function dkSave_() {
   /* NOT YET READ FRESH: nothing is sent (it would be the cached cell); the server's is asked for instead. */
-  if (!DK.fresh) { DK.lists = null; dkFetch_(); return; }
-  /* FIND'S DOCKET CARDS ARE MADE FROM THESE LISTS (dkItems_): a list changed is a list made again. */
+  if (!DK.fresh) { DK.items = null; dkFetch_(); return; }
+  /* FIND'S DOCKET CARD IS MADE FROM THESE ITEMS (dkItems_): changed, it is made again. */
   if (typeof stuffForget_ === 'function') stuffForget_(true);
-  const todo = JSON.stringify(Object.assign({ v: 1 }, DK.slots && DK.slots.length ? { slots: DK.slots } : {}, { lists: DK.lists }));
+  const todo = JSON.stringify(Object.assign({ v: 1 }, DK.rest || {}, { lists: [{ name: 'Docket', items: dkLoad_() }] }));
   if (typeof USER !== 'undefined' && USER) { USER.todo = todo; if (typeof saveUser_ === 'function') saveUser_(); }
   /* ONE AT A TIME: each save waits for the last, so it carries the base the last one answered. */
   DK.q = DK.q.then(() => Promise.resolve(api({ action: 'item', door: 'save', item: 'todo', personId: (USER && USER.personId) || '', todo, base: DK.base }))
@@ -191,329 +190,133 @@ function dkSave_() {
     })
     .catch(() => { DK.say = 'Not saved — you look offline.'; dkPaint_(); }));
 }
-const DK_MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-const dkSayDay_ = d => (+d.slice(8, 10)) + ' ' + DK_MON[+d.slice(5, 7) - 1];
-/* GOOGLE TASKS' GROUPS: Past, Today, each later date, then No date; a daily item is always today's. */
-function dkGroups_(items) {
-  const today = dkDay_(), g = {};
-  items.forEach((it, i) => {
-    if (dkDone_(it)) return;
-    const d = dkRep_(it) ? today : it.date || '';
-    const k = !d ? '~' : d < today ? '!' : d;
-    (g[k] = g[k] || []).push(i);
-  });
-  return Object.keys(g).sort().map(k => ({ head: k === '~' ? 'No date' : k === '!' ? 'Past' : k === today ? 'Today' : dkSayDay_(k),
-    rows: g[k].sort((a, b) => String(items[a].time || '99').localeCompare(String(items[b].time || '99'))) }));
-}
-/* AN ITEM NAMED FOR A FOOD KIND (foods.json, `foodKindOf_`) offers that kind's foods; the one picked is today's, and a daily item is the bare kind again tomorrow. */
-const dkPicked_ = it => (it.pick && (!dkRep_(it) || it.pickOn === dkOn_(it, dkNow_())) ? it.pick : '');
-/* THE ONE ITEM (owner, 22 Nov, UNIFY NEXT 6): every item of the owner's lists (kinds.json `list`: Docket, Assignments, Tasks, Food) is drawn as an Item,
-   marked with its shape and kind (`data-shape`, `data-item-kind`, read by tools/one-list.js); in a widget here, in Find through the one card maker. */
-/* WHAT A TICK ALSO TICKS, on the card: "covers: Meat!, Rice". */
-const dkCovers_ = it => (Array.isArray(it.covers) && it.covers.length ? { type: 'text', text: 'covers: ' + it.covers.join(', ') } : null);
+/* THE ONE ITEM (owner, 22 Nov, UNIFY NEXT 6): every item of the owner's lists (kinds.json `list`) is drawn as an Item, marked with its shape and kind
+   (`data-shape`, `data-item-kind`, read by tools/one-list.js); the Docket's lines are its one card's (dkCard_), Assignments' this. */
 const listItem_ = (kind, o) => ({ type: 'group', look: 'dk-item', attrs: Object.assign({ 'data-shape': kindShape_(kind), 'data-item-kind': kind }, o.attrs || {}),
   blocks: (o.blocks || []).filter(Boolean), tiles: o.tiles });
-function dkItem_(it, i) {
-  const fk = !it.slot && typeof foodKindOf_ === 'function' ? foodKindOf_(it.title) : null, picked = dkPicked_(it);
-  const fd = it.slot ? dkFoodsWith_(typeof foodIndex_ === 'function' ? foodIndex_() : null, DK.slots) : null, slotOpts = it.slot ? dkSlotOptions_(fd, it.slot) : [];
-  const tags = [it.repeat === '8h' ? 'Every 8 hours' : it.repeat === 'daily' ? 'Daily' : it.date ? dkSayDay_(it.date) : '', it.time || ''].filter(Boolean);
-  const row = listItem_('docket', { blocks: [
-    { type: 'tick', text: (it.title || 'Untitled') + (picked ? ': ' + picked.toLowerCase() : ''), attrs: { 'data-dk': i, checked: dkDone_(it), 'aria-label': 'Done: ' + (it.title || '') } },
-    tags.length ? { type: 'tags', tags } : null,
-    slotOpts.length && !dkDone_(it) ? { type: 'tiles', tiles: slotOpts.map(f => ({ label: f.name, note: f.note || '', act: 'dk-food', cls: f.name === picked ? 'is-submit' : '', data: { i, f: f.name } })) } : null,
-    slotOpts.length && dkDone_(it) ? { type: 'text', text: it.slot + (dkSlotNeed_(fd, it.slot) > 1 ? ' (' + dkSlotNeed_(fd, it.slot) + ' a day)' : '') + ': ' + slotOpts.map(f => f.name).join(', ') } : null,
-    fk && !dkDone_(it) ? { type: 'tiles', tiles: foodsOf_(fk).map(f => ({ label: f.name, note: f.note || '', act: 'dk-food', cls: f.name === picked ? 'is-submit' : '', data: { i, f: f.name } })) } : null,
-    it.note && DK.edit !== i ? { type: 'text', paras: String(it.note).split(/\n{2,}/) } : null, dkCovers_(it)],
-    tiles: [{ icon: 'edit', label: 'Edit', act: 'dk-edit', data: { i } }, { icon: 'bin', label: 'Delete', act: 'dk-del', data: { i } }] });
-  if (DK.edit !== i) return row;
-  const f = (cap, b) => ({ type: 'field', cap, blocks: [b] });
-  return { type: 'group', look: 'dk-editing', blocks: [row,
-    f('Title', { type: 'control', attrs: { class: 'dk-f', 'data-f': 'title', value: it.title || '', maxlength: 300 } }),
-    f('Note', { type: 'control', tag: 'textarea', value: it.note || '', attrs: { class: 'dk-f', 'data-f': 'note', rows: 4, maxlength: 8000 } }),
-    f('Date', { type: 'control', attrs: { type: 'date', class: 'dk-f', 'data-f': 'date', value: it.date || '' } }),
-    f('Time', { type: 'control', attrs: { type: 'time', class: 'dk-f', 'data-f': 'time', value: it.time || '' } }),
-    f('Food slot', { type: 'control', tag: 'select', attrs: { class: 'dk-f', 'data-f': 'slot' }, options: [{ value: '', text: 'None', on: !it.slot }]
-      .concat(((dkFoodsWith_(typeof foodIndex_ === 'function' ? foodIndex_() : null, DK.slots) || {}).slots || []).map(s => ({ value: s.name, text: s.name, on: dkSame_(s.name, it.slot) }))) }),
-    f('Repeats', { type: 'control', tag: 'select', attrs: { class: 'dk-f', 'data-f': 'repeat' }, options: [{ value: '', text: 'Never', on: !it.repeat }, { value: 'daily', text: 'Daily', on: it.repeat === 'daily' }, { value: '8h', text: 'Every 8 hours', on: it.repeat === '8h' }] })],
-    tiles: [{ icon: 'save', label: text_('save'), act: 'dk-keep', cls: 'is-submit', data: { i } }] };
+/* WHAT ?eink AND THE PRIVATE ADDRESS SAY: the open items in dkSort_'s order, an overdue one tagged so. Each row's `at` is the item's place (the tick's address). */
+function dkNowNextOf_(items, now) {
+  const g = dkSort_(items, now), over = i => g.over.indexOf(i) >= 0;
+  return { name: text_('docket'), head: text_('docket'), done: text_('dk-all-done'),
+    rows: g.open.map(i => ({ at: String(i), title: items[i].title || 'Untitled', missed: over(i), tags: over(i) ? [text_('dk-overdue')] : [] })) };
 }
-function dkBlocks_() {
-  const lists = dkLoad_();
-  if (DK.at >= lists.length) DK.at = Math.max(0, lists.length - 1);
-  const L = lists[DK.at];
-  const out = dkNowNext_(lists).concat({ type: 'group', look: 'tile-row dk-lists', tiles: lists.map((l, i) => ({ icon: 'list', label: l.name + (l.start ? ' ' + l.start : ''), act: 'dk-list', cls: i === DK.at ? 'is-submit' : '', data: { i } }))
-    .concat({ icon: 'plus', label: 'New list', act: 'dk-newlist' }) });
-  if (DK.say) out.push({ type: 'text', text: DK.say });
-  /* THE PRIVATE ADDRESS (owner, 21 Nov: NOW, NEXT step 3): owner-only; asked of the backend (docketAddress) when opened, never kept on the phone. */
-  if (typeof may_ === 'function' && may_('owner')) {
-    out.push({ type: 'tiles', tiles: [{ icon: 'key', label: text_('dk-addr-show'), act: 'dk-addr', cls: DK.addr != null ? 'is-submit' : '' }] });
-    if (DK.addr != null) out.push({ type: 'section', head: text_('dk-addr-head'), blocks: [{ type: 'text', text: text_('dk-addr-say') },
-      { type: 'group', look: 'dk-form', inner: formOf_('docket-address', { address: DK.addr }) },
-      { type: 'tiles', tiles: [{ icon: 'again', label: text_('dk-addr-new'), act: 'dk-addr-new', tone: 'danger' }] }] });
-  }
-  if (!L) return out.concat({ type: 'text', text: 'Make a list to start.' });
-  out.push({ type: 'group', look: 'tile-row', tiles: [{ icon: 'edit', label: 'Rename', act: 'dk-rename' }, { icon: 'up', label: 'Earlier', act: 'dk-move', data: { by: -1 }, off: DK.at === 0 },
-    { icon: 'down', label: 'Later', act: 'dk-move', data: { by: 1 }, off: DK.at === lists.length - 1 }, { icon: 'bin', label: 'Delete list', act: 'dk-droplist', tone: 'danger' }] });
-  if (DK.rename) out.push({ type: 'group', look: 'dk-form', inner: formOf_('docket-list', { name: L.name, start: L.start || '' }) },
-    { type: 'tiles', tiles: [{ icon: 'save', label: text_('save'), act: 'dk-named', cls: 'is-submit' }] });
-  out.push({ type: 'field', cap: 'Add an item', blocks: [{ type: 'control', attrs: { class: 'dk-add', placeholder: 'What to do', maxlength: 300, enterkeyhint: 'done' } }] },
-    { type: 'tiles', tiles: [{ icon: 'plus', label: 'Add', act: 'dk-add', cls: 'is-submit' }] });
-  dkGroups_(L.items).forEach(g => out.push({ type: 'section', head: g.head, blocks: g.rows.map(i => dkItem_(L.items[i], i)) }));
-  const done = L.items.map((it, i) => (dkDone_(it) ? i : -1)).filter(i => i >= 0);
-  if (done.length) out.push({ type: 'tiles', tiles: [{ icon: DK.showDone ? 'close' : 'open', label: (DK.showDone ? 'Hide' : 'Show') + ' done (' + done.length + ')', act: 'dk-showdone' }] });
-  if (DK.showDone) done.forEach(i => out.push(dkItem_(L.items[i], i)));
-  return out;
-}
-/* NOW, NEXT, ONCE (owner, 21 Nov; Docket step 2): what the widget and the e-ink page both show, worked out here and drawn by each, so the two cannot differ.
-   `p` is dkPhase_'s answer; null with no phases. Each row: its `at` ('li:i', the tick's address), title and tags (Missed and its list for a missed one, its time). */
-function dkNowNextOf_(lists, p) {
-  if (!p) return null;
-  const L = lists[p.cur], N = p.next == null ? null : lists[p.next];
-  return { name: L.name, head: text_('dk-now-at', { name: L.name, at: p.at }), done: text_('dk-day-done'),
-    next: N ? text_('dk-next', { name: N.name, at: p.nextAt }) : text_('dk-next-none'),
-    rows: p.rows.map(r => { const it = lists[r.li].items[r.i];
-      return { at: r.li + ':' + r.i, title: it.title || 'Untitled', missed: r.missed, tags: [r.missed ? text_('dk-missed') : '', r.missed ? lists[r.li].name : '', it.time || ''].filter(Boolean) }; }) };
-}
-/* THE PLAIN-TEXT ADDRESS'S ANSWER (owner, 21 Nov: NOW, NEXT step 3): dkNowNextOf_'s plan said in one line, for Siri or any assistant to read aloud.
-   The backend says it by this copy (tools/cards-gen.js TAKE), so the address and the widget cannot differ. tools/docket-address.js checks it. */
+/* THE PLAIN-TEXT ADDRESS'S ANSWER (owner, 21 Nov): dkNowNextOf_ said in one line, for Siri or any assistant to read aloud.
+   The backend says it by this copy (tools/cards-gen.js TAKE), so the address and the card cannot differ. tools/docket-address.js checks it. */
 function dkSay_(m) {
-  if (!m) return text_('dk-eink-none');
-  const now = m.rows.length ? text_('dk-say-now', { name: m.name, first: m.rows[0].title, left: m.rows.length }) : text_('dk-say-over', { name: m.name });
-  return now + ' ' + m.next;
+  return m.rows.length ? text_('dk-say-now', { name: m.name, first: m.rows[0].title, left: m.rows.length }) : text_('dk-say-over', { name: m.name });
 }
-/* "DONE SHOWER": the plan's row whose title holds the most of the words said (case ignored, whole words); the first in the plan's order on a tie; -1 for none. */
+/* "DONE SHOWER": the open item whose title holds the most of the words said (case ignored, whole words); the first in order on a tie; -1 for none. */
 function dkMatch_(titles, what) {
   const ws = s => String(s || '').toLowerCase().match(/[a-z0-9]+/g) || [], said = ws(what);
   let best = -1, most = 0;
   titles.forEach((t, k) => { const has = new Set(ws(t)), n = said.filter(w => has.has(w)).length; if (n > most) { most = n; best = k; } });
   return best;
 }
-/* NOW, NEXT AT THE TOP (owner, 21 Nov): the current phase's items, each ticked as Find's are (`data-dkf`), the missed ones after; then the next phase and its time. */
-function dkNowNext_(lists, p) {
-  const m = dkNowNextOf_(lists, p === undefined ? dkPhase_(lists, dkNow_(), dkFill_) : p);
-  if (!m) return [];
-  const rows = m.rows.map(r => listItem_('docket', { blocks: [{ type: 'tick', text: r.title, attrs: { 'data-dkf': r.at, checked: false, 'aria-label': 'Done: ' + r.title } },
-    r.tags.length ? { type: 'tags', tags: r.tags } : null] }));
-  return [{ type: 'section', head: m.head, blocks: (rows.length ? rows : [{ type: 'text', text: m.done }]).concat({ type: 'text', text: m.next }) }];
-}
-/* THE E-INK PAGE (owner, 21 Nov: NOW, NEXT step 2; open the site with ?eink): the widget's Now/Next alone, black on white, large, still. Drawn from dkNowNextOf_
-   as the widget is; a tick is the widget's (`data-dkf`, saved by the change handler below). Owner-only: anybody else sees only the way to sign in.
-   Redrawn each minute in place (only #eink's inside, and only when it changed), so the screen does not flash. tools/eink.js checks it matches the widget. */
-function dkEinkHtml_(lists, p) {
-  const m = dkNowNextOf_(lists, p);
-  if (!m) return '<p class="ek-say">' + esc(text_('dk-eink-none')) + '</p>';
+/* THE E-INK PAGE (owner, 21 Nov; open the site with ?eink): the card's open items alone, black on white, large, still, in the card's order. A tick is the
+   card's (`data-dkf`). Owner-only: anybody else sees only the way to sign in. Redrawn each minute in place (only when it changed), so the screen does not
+   flash. tools/eink.js checks it matches the card's order. */
+function dkEinkHtml_(items, now) {
+  const m = dkNowNextOf_(items, now);
   const row = r => '<li class="ek-row' + (r.missed ? ' is-missed' : '') + '"><label class="ek-tick">' + formInput_('type="checkbox" data-dkf="' + esc(r.at) + '" aria-label="' + esc('Done: ' + r.title) + '"')
     + '<span class="ek-t">' + esc(r.title) + '</span>' + (r.tags.length ? '<span class="ek-tags">' + esc(r.tags.join(' · ')) + '</span>' : '') + '</label></li>';
-  return '<h1 class="ek-now">' + esc(m.head) + '</h1>' + (m.rows.length ? '<ol class="ek-rows">' + m.rows.map(row).join('') + '</ol>' : '<p class="ek-say">' + esc(m.done) + '</p>')
-    + '<p class="ek-next">' + esc(m.next) + '</p>';
+  return '<h1 class="ek-now">' + esc(m.head) + '</h1>' + (m.rows.length ? '<ol class="ek-rows">' + m.rows.map(row).join('') + '</ol>' : '<p class="ek-say">' + esc(m.done) + '</p>');
 }
 const EINK = /(?:^|[?&])eink(?:[=&]|$)/.test(location.search);
 function dkEinkPaint_() {
   let box = $('eink');
   if (!box) { box = document.createElement('main'); box.id = 'eink'; document.body.appendChild(box); document.documentElement.classList.add('eink'); }
   const owner = typeof may_ === 'function' && may_('owner');
-  const html = owner ? dkEinkHtml_(dkLoad_(), dkPhase_(dkLoad_(), dkNow_(), dkFill_))
+  const html = owner ? dkEinkHtml_(dkLoad_(), dkNow_())
     : '<p class="ek-say"><a class="ek-sign" href="' + esc(location.pathname) + '">' + esc(text_('dk-eink-sign-in')) + '</a></p>';
   if (box.getAttribute('data-was') !== html) { box.innerHTML = html; box.setAttribute('data-was', html); }
 }
 /* AFTER THE WHOLE FILE HAS RUN (its consts, dkNow_ among them, exist only then); a throw here never stops the app beneath. */
 const dkEinkTry_ = () => { try { dkEinkPaint_(); } catch (e) { if (typeof oops_ === 'function') oops_(e, 'map:eink'); } };
 if (EINK) { setTimeout(dkEinkTry_, 0); setInterval(dkEinkTry_, 60000); }
-/* EACH APP LOAD, SIGNED IN AS THE OWNER: the Docket is asked fresh at once, so Find's docket cards and ?eink draw the server's lists too. */
+/* EACH APP LOAD, SIGNED IN AS THE OWNER: the Docket is asked fresh at once, so Find's docket card and ?eink draw the server's list too. */
 setTimeout(() => { try { if (typeof may_ === 'function' && may_('owner') && typeof api === 'function') dkFetch_(); } catch (e) { if (typeof oops_ === 'function') oops_(e, 'map:dk-fetch'); } }, 0);
+/* THE WIDGET: what it has to say and the private address; the list itself is Find's one Docket card beside it (dkCard_). */
 function dkPaint_() {
   const box = $('dk-box');
   if (!box) return;
-  /* NOT YET READ FRESH: the cached lists are not drawn (dkFetch_ paints again when the server's land). */
+  /* NOT YET READ FRESH: the cached items are not drawn (dkFetch_ paints again when the server's land). */
   if (!DK.fresh) { if (!DK.asking && !DK.say) dkFetch_(); box.innerHTML = cardBlocks_([{ type: 'text', text: DK.say || 'Fetching your Docket…' }]); return; }
-  box.innerHTML = cardBlocks_(dkBlocks_());
+  const out = DK.say ? [{ type: 'text', text: DK.say }] : [];
+  /* THE PRIVATE ADDRESS (owner, 21 Nov): owner-only; asked of the backend (docketAddress) when opened, never kept on the phone. */
+  if (typeof may_ === 'function' && may_('owner')) {
+    out.push({ type: 'tiles', tiles: [{ icon: 'key', label: text_('dk-addr-show'), act: 'dk-addr', cls: DK.addr != null ? 'is-submit' : '' }] });
+    if (DK.addr != null) out.push({ type: 'section', head: text_('dk-addr-head'), blocks: [{ type: 'text', text: text_('dk-addr-say') },
+      { type: 'group', look: 'dk-form', inner: formOf_('docket-address', { address: DK.addr }) },
+      { type: 'tiles', tiles: [{ icon: 'again', label: text_('dk-addr-new'), act: 'dk-addr-new', tone: 'danger' }] }] });
+  }
+  box.innerHTML = cardBlocks_(out);
 }
-const dkList_ = () => dkLoad_()[DK.at];
-const dkKeep_ = () => { DK.say = ''; dkSave_(); dkPaint_(); };
-/* A LIST IS A STEP (owner, 22 Nov, ONE WAY TO OPEN): Back returns to the list that was open. */
-on('dk-list', el => { const i = +el.getAttribute('data-i') || 0, was = DK.at; if (i === was) return;
-  openStep_({ el, draw: () => { DK.at = i; DK.edit = -1; DK.rename = false; dkPaint_(); }, undo: () => { DK.at = was; DK.edit = -1; DK.rename = false; dkPaint_(); } }); });
-on('dk-newlist', () => { const L = dkLoad_(); L.push({ name: 'List ' + (L.length + 1), items: [] }); DK.at = L.length - 1; DK.rename = true; dkKeep_(); });
-on('dk-rename', el => { if (DK.rename) { closeStep_(DK.renameStep); DK.rename = false; dkPaint_(); return; }
-  DK.renameStep = openStep_({ el, draw: () => { DK.rename = true; dkPaint_(); }, undo: () => { DK.rename = false; dkPaint_(); } }); });
-/* A LIST'S NAME AND USUAL START (form `docket-list`): the start kept as 'HH:MM' on the list itself, gone when cleared, so an old list stays as it was. */
-on('dk-named', () => { const L = dkList_(), box = $('dk-box'), v = f => String((box.querySelector('[data-dkl="' + f + '"]') || {}).value || '').trim(); if (!L) return;
-  if (v('name')) L.name = v('name').slice(0, 80);
-  if (/^\d\d:\d\d$/.test(v('start'))) L.start = v('start'); else delete L.start;
-  DK.rename = false; stepDone_(DK.renameStep, false); dkKeep_(); });
-on('dk-move', el => { const L = dkLoad_(), by = +el.getAttribute('data-by'), j = DK.at + by; if (j < 0 || j >= L.length) return; L.splice(j, 0, L.splice(DK.at, 1)[0]); DK.at = j; dkKeep_(); });
-on('dk-droplist', () => { const L = dkLoad_(); if (!L[DK.at] || !confirm('Delete the list "' + L[DK.at].name + '" and everything on it?')) return; L.splice(DK.at, 1); DK.at = 0; dkKeep_(); });
-on('dk-add', () => { const inp = $('dk-box').querySelector('.dk-add'), t = String((inp && inp.value) || '').trim(); if (!t || !dkList_()) return; dkList_().items.push({ title: t.slice(0, 300) }); dkKeep_(); const again = $('dk-box').querySelector('.dk-add'); if (again) again.focus(); });
-on('dk-edit', el => { const i = +el.getAttribute('data-i'); if (DK.edit === i) { DK.edit = -1; stepDone_(DK.editStep, false); dkPaint_(); return; }
-  DK.editStep = openStep_({ el, draw: () => { DK.edit = i; dkPaint_(); }, undo: () => { if (DK.edit === i) { DK.edit = -1; dkPaint_(); } } }); });
-on('dk-del', el => { const L = dkList_(); if (!L) return; L.items.splice(+el.getAttribute('data-i'), 1); DK.edit = -1; stepDone_(DK.editStep, false); dkKeep_(); });
-on('dk-keep', el => { const it = dkList_() && dkList_().items[+el.getAttribute('data-i')]; if (!it) return;
-  $('dk-box').querySelectorAll('.dk-editing .dk-f').forEach(f => { it[f.getAttribute('data-f')] = String(f.value || '').trim(); });
-  if (!dkRep_(it)) delete it.repeat;
-  if (!it.slot) delete it.slot;
-  DK.edit = -1; stepDone_(DK.editStep, false); dkKeep_(); });
-/* THE ONE PICK (the widget's dk-food, Find's dk-ffood): an option picked for this period, or unpicked when picked again. */
-const dkPick_ = (items, i, f) => { const it = items && items[i]; if (!it) return false;
-  if (dkPicked_(it) === f) { it.pick = ''; it.pickOn = ''; } else { it.pick = f; it.pickOn = dkOn_(it, dkNow_()); }
-  /* A SLOT IS FILLED BY TICKING ANY OF ITS OPTIONS (owner, 25 Nov): the pick ticks the item, the one tick (dkTick_). */
-  if (it.slot && it.pick && !dkDone_(it)) dkTick_(items, i, true, dkNow_());
-  return true; };
-on('dk-food', el => { if (dkList_() && dkPick_(dkList_().items, +el.getAttribute('data-i'), el.getAttribute('data-f') || '')) dkKeep_(); });
-on('dk-ffood', el => { const { L, i } = dkAt_(el.getAttribute('data-at')); if (L && dkPick_(L.items, i, el.getAttribute('data-f') || '')) dkFindKeep_(); });
 /* ASKED, NOT KEPT: the token comes from the backend each time, the address is the backend's own URL (API) with it; a new one stops the old. */
 const dkAddr_ = renew => Promise.resolve(api({ action: 'docketAddress', personId: (USER && USER.personId) || '', renew: renew ? 1 : '' }))
   .then(d => { if (d && d.token) DK.addr = API + '?docket=' + d.token; else { DK.addr = null; DK.say = (d && d.error) || text_('err-docket-saved'); } dkPaint_(); })
   .catch(() => { DK.addr = null; DK.say = 'Not saved — you look offline.'; dkPaint_(); });
 on('dk-addr', () => { if (DK.addr != null) { DK.addr = null; dkPaint_(); } else { DK.addr = ''; dkPaint_(); dkAddr_(false); } });
 on('dk-addr-new', () => { if (confirm(text_('dk-addr-new') + '? The old address stops working.')) dkAddr_(true); });
-on('dk-showdone', () => { DK.showDone = !DK.showDone; dkPaint_(); });
-document.addEventListener('change', e => {
-  const el = e.target;
-  if (!el || !el.closest || !el.closest('#dk-box') || !el.hasAttribute('data-dk')) return;
-  if (!dkList_() || !dkTick_(dkList_().items, +el.getAttribute('data-dk'), el.checked, dkNow_())) return;
-  dkKeep_();
-});
-/* THE DOCKET IN FIND (owner, 20 Nov): Tools › Docket › a list › that list's one card, each item a line in it (kinds.json kind `docket`, drawn by `dkCard_` through the one maker).
-   The steps are the funnel's: `toolName` names the tool, `docketList` the list (facets.json). A tick here saves as the widget's does (`doneOn` for a daily item). */
-/* NOW, NEXT (owner, 20 Nov; rules.json 1.82): a list's order by fixed rules, no AI. Pure: the same items and `now` ('YYYY-MM-DD HH:MM', London's) give the same order.
-   Returns the items' indexes: (a) a fixed time kept, the rest flowing round it; (b) runs by itself first, the longest first; (c) the closest deadline; (d) must, then high;
-   (e) a hard or dread item, then an easy or enjoy one, in turn, the shorter first; (f) then place. Done items last. tools/docket-plan.js checks it. */
-function dkPlan_(items, now) {
-  now = String(now || '');
-  const day = now.slice(0, 10), hm = s => { const m = /^(\d\d?):(\d\d)/.exec(String(s || '')); return m ? +m[1] * 60 + +m[2] : -1; };
-  const IMP = { must: 0, high: 1, normal: 2, low: 3 }, PLACE = { home: 0, anywhere: 1, out: 2 };
-  const done = it => (dkRep_(it) ? it.doneOn === dkOn_(it, now) : !!it.done);
-  const mins = it => Math.max(1, +it.minutes || 5), runs = it => Math.max(0, +it.runs || 0);
-  const fixed = it => hm(it.time) >= 0 && it.timeIs !== 'by' && (dkRep_(it) || !it.date || it.date === day);
-  const due = it => { const d = dkRep_(it) ? '' : String(it.date || ''), t = hm(it.time) >= 0 ? String(it.time) : '';
-    return t && it.timeIs === 'by' ? (d || day) + ' ' + t : d ? d + ' ' + (t || '99:99') : '~'; };
-  const heavy = it => it.effort === 'hard' || it.fun === 'dread';
-  const all = (items || []).map((it, i) => ({ it: it || {}, i }));
-  const open = all.filter(x => !done(x.it)), fix = open.filter(x => fixed(x.it)).sort((a, b) => hm(a.it.time) - hm(b.it.time) || a.i - b.i);
-  const key = x => [runs(x.it) ? 0 : 1, -runs(x.it), due(x.it), IMP[x.it.importance] == null ? 2 : IMP[x.it.importance]];
-  const cmpKey = (a, b) => { const p = key(a), q = key(b); for (let k = 0; k < p.length; k++) if (p[k] !== q[k]) return p[k] < q[k] ? -1 : 1; return 0; };
-  const tie = (a, b) => mins(a.it) - mins(b.it) || (PLACE[a.it.place] == null ? 1 : PLACE[a.it.place]) - (PLACE[b.it.place] == null ? 1 : PLACE[b.it.place])
-    || String(a.it.title || '').localeCompare(String(b.it.title || '')) || a.i - b.i;
-  const flex = open.filter(x => !fixed(x.it)).sort((a, b) => cmpKey(a, b) || tie(a, b)), order = [];
-  /* (e) WITHIN ONE TIE (same runs, deadline and importance): heavy and light in turn, a heavy one first while you are fresh. */
-  for (let s = 0; s < flex.length;) {
-    let e = s; while (e < flex.length && !cmpKey(flex[s], flex[e])) e++;
-    const h = flex.slice(s, e).filter(x => heavy(x.it)), l = flex.slice(s, e).filter(x => !heavy(x.it));
-    while (h.length || l.length) { if (h.length) order.push(h.shift()); if (l.length) order.push(l.shift()); }
-    s = e;
-  }
-  /* (f) BY TITLE (owner, 21 Nov), after (b)–(e): the Jesus prayer opens the list; eating comes before the first workout; a shower comes after the last. */
-  const is = (re, x) => re.test(String(x.it.title || '').trim().toLowerCase());
-  const OPEN = /^jesus prayer$/, EAT = /\b(meat|rice|food|salmon|beef|eat|carbs?|eggs?|tuna)\b/, WASH = /\bshower\w*/;
-  const WORK = /\b(jog\w*|pull ?ups?|curls?|ohp|dips?|rows?|rdls?|push ?ups?|sit ?ups?)\b/;
-  const lift = (arr, pick, at) => { const moved = arr.filter(pick), rest = arr.filter(x => !pick(x)); rest.splice(at(rest), 0, ...moved); return rest; };
-  let seq = order.filter(x => is(OPEN, x)).concat(order.filter(x => !is(OPEN, x)));
-  const w0 = seq.findIndex(x => is(WORK, x));
-  if (w0 >= 0) {
-    seq = lift(seq, x => seq.indexOf(x) > w0 && is(EAT, x) && !is(WORK, x), r => r.findIndex(x => is(WORK, x)));
-    const w1 = seq.length - 1 - seq.slice().reverse().findIndex(x => is(WORK, x));
-    seq = lift(seq, x => seq.indexOf(x) < w1 && is(WASH, x) && !is(WORK, x), r => r.length - r.slice().reverse().findIndex(x => is(WORK, x)));
-  }
-  order.splice(0, order.length, ...seq);
-  /* (a) A FIXED TIME: it goes in before the item that would run past it; one whose time has come goes first. Runs-by-itself time is not yours, so only `minutes` count. */
-  const out = []; let t = Math.max(0, hm(now.slice(11)));
-  const putFixed = x => { out.push(x); t = Math.max(t, hm(x.it.time)) + mins(x.it); };
-  order.forEach(x => { while (fix.length && hm(fix[0].it.time) < t + mins(x.it)) putFixed(fix.shift()); out.push(x); t += mins(x.it); });
-  fix.forEach(putFixed);
-  return out.map(x => x.i).concat(all.filter(x => done(x.it)).map(x => x.i));
+/* THE DOCKET IN FIND (owner, 20 Nov; one list, 25 Nov night): Tools › Docket is its one card (kinds.json kind `docket`, drawn by `dkCard_` through the one maker). */
+function dkItems_() {
+  /* NOT YET READ FRESH: no card (the cached cell is never drawn); dkFetch_'s answer makes Find draw it. */
+  if (typeof may_ !== 'function' || !may_('owner') || !DK.fresh) return [];
+  return [{ kind: 'docket', name: 'Docket', key: 'dk', seq: 0, sub: '', image: '', row: {}, text: ['Docket'].concat(dkLoad_().map(it => it.title)).filter(Boolean).join(' ') }];
 }
-/* THE WHOLE DAY (owner, 21 Nov: NOW, NEXT): a list with a usual start (`start`, 'HH:MM') is a phase of the day, in start order. Pure, as dkPlan_ is.
-   The clock picks the last phase begun (before the first, the first); ticks only push it on: a phase with nothing left gives way to the next. A phase whose time
-   has passed with items unticked is skipped, and those items carry over to the current one, marked missed. Returns null with no phases, else
-   { cur, next, at, nextAt, rows: [{ li, i, missed }], over }, `rows` the current list in dkPlan_ order then the missed ones. tools/docket-plan.js checks it. */
-function dkPhase_(lists, now, fill) {
-  now = String(now || ''); fill = fill || (x => x);
-  const day = now.slice(0, 10), hm = s => { const m = /^(\d\d?):(\d\d)$/.exec(String(s || '').trim()); return m ? +m[1] * 60 + +m[2] : -1; }, t = Math.max(0, hm(now.slice(11)));
-  const done = it => (dkRep_(it) ? it.doneOn === dkOn_(it, now) : !!it.done);
-  const ph = (lists || []).map((L, li) => ({ L: L || {}, li, at: hm((L || {}).start) })).filter(x => x.at >= 0).sort((a, b) => a.at - b.at || a.li - b.li);
-  if (!ph.length) return null;
-  const open = x => (x.L.items || []).map((it, i) => ({ it: it || {}, i })).filter(y => !done(y.it));
-  const plan = x => dkPlan_((x.L.items || []).map(fill), now).filter(i => !done((x.L.items || [])[i] || {}));
-  let c = 0; ph.forEach((x, k) => { if (x.at <= t) c = k; });
-  while (c < ph.length - 1 && !open(ph[c]).length) c++;
-  const rows = plan(ph[c]).map(i => ({ li: ph[c].li, i, missed: false }));
-  ph.slice(0, c).forEach(x => plan(x).forEach(i => rows.push({ li: x.li, i, missed: true })));
-  const hh = x => x.L.start.trim().padStart(5, '0');
-  return { cur: ph[c].li, at: hh(ph[c]), next: ph[c + 1] ? ph[c + 1].li : null, nextAt: ph[c + 1] ? hh(ph[c + 1]) : '', rows, over: !rows.length };
-}
-/* LONDON'S MOMENT, as dkPlan_ reads it. */
+/* LONDON'S MOMENT, as dkSort_ reads it. */
 const dkNow_ = () => { let t = ''; try { t = new Intl.DateTimeFormat('en-GB', { timeZone: tz_(), hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date()); } catch (e) { t = ''; }
   return dkDay_() + ' ' + (t || '00:00'); };
-/* AN ITEM'S ATTRIBUTES ARE kinds.json docket form `docket-item`: what is not set is that field's `default`, so a title alone is a whole item. */
-const dkFields_ = () => ((((ITEM_KINDS.kinds.docket || {}).forms || {})['docket-item'] || {}).fields || []);
-const dkFill_ = it => Object.assign({}, ...dkFields_().filter(x => x.default != null).map(x => ({ [x.f]: x.default })),
-  ...Object.keys(it || {}).filter(k => it[k] !== '' && it[k] != null).map(k => ({ [k]: it[k] })));
-const DKF = { edit: '' };
-/* A LIST IS ONE CARD (owner, 25 Nov: LIKE GOOGLE TASKS): Tools › Docket › a list › that list's card, its name the one heading; each item one line
-   (the tick and its title), its details (when, minutes, slot options, note, Edit) opened by tapping the line (the one fold, js/cards-render.js
-   cardFold_); the ticked fold into one "Done (n)" line at the foot; then the quick add. Plain rows, thin lines (style.css .kc-fold). The order is
-   dkPlan_'s, the first two unticked marked Now and Next in their details. tools/docket-look.js checks it. */
-function dkItems_() {
-  if (typeof may_ !== 'function' || !may_('owner')) return [];
-  return dkLoad_().map((L, li) => ({ kind: 'docket', name: L.name || 'List', key: 'dk:' + li, seq: li, sub: L.name || '', image: '', dkList: L.name || '', dkLi: li, row: {},
-    text: [L.name].concat((L.items || []).map(it => [it.title, it.note].filter(Boolean).join(' '))).filter(Boolean).join(' ') }));
+const DKF = { edit: -1 };
+/* ONE CARD, LIKE GOOGLE TASKS (owner, 25 Nov night): each item one line, its tick and title only, in dkSort_'s order; tapping a line (the one fold,
+   js/cards-render.js cardFold_) shows only Edit (its name) and Delete; the ticked fold into one "Done (n)" line at the foot; then the quick add
+   (an undated one-off). Plain rows, thin lines (style.css .kc-fold). tools/docket-look.js checks it. */
+function dkLine_(i) {
+  const it = dkLoad_()[i], editing = DKF.edit === i;
+  return cardFold_('dk:' + i, { type: 'tick', text: it.title || 'Untitled', attrs: { 'data-dkf': String(i), checked: dkDone_(it), 'aria-label': 'Done: ' + (it.title || '') } }, [
+    editing ? { type: 'group', look: 'dk-form', inner: formOf_('docket-item', { title: it.title || '' }) } : null,
+    { type: 'tiles', tiles: editing ? [{ icon: 'save', label: text_('save'), act: 'dk-fsave', cls: 'is-submit', data: { at: i } }, { icon: 'close', label: 'Close', act: 'dk-fedit', data: { at: i } }]
+      : [{ icon: 'edit', label: 'Edit', act: 'dk-fedit', data: { at: i } }, { icon: 'bin', label: 'Delete', act: 'dk-fdel', tone: 'danger', data: { at: i } }] }].filter(Boolean), 'dk-line');
 }
-/* AN ITEM'S OPTIONS: its slot's (foods.json and the cell's own), else its food kind's; the one picked is this period's (dkPicked_). */
-const dkOptsOf_ = it => { const fk = !it.slot && typeof foodKindOf_ === 'function' ? foodKindOf_(it.title) : null;
-  return it.slot ? dkSlotOptions_(dkFoodsWith_(typeof foodIndex_ === 'function' ? foodIndex_() : null, DK.slots), it.slot) : fk ? foodsOf_(fk) : []; };
-function dkLine_(li, i, mark) {
-  const it = dkLoad_()[li].items[i], at = li + ':' + i, a = dkFill_(it), picked = dkPicked_(it), done = dkDone_(it), opts = dkOptsOf_(it), editing = DKF.edit === at, spec = dkFields_();
-  const facts = [mark, it.repeat === '8h' ? 'Every 8 hours' : it.repeat === 'daily' ? 'Daily' : it.date ? dkSayDay_(it.date) : '', it.time ? (it.timeIs === 'by' ? 'by ' : '') + it.time : '',
-    a.minutes + ' min', +a.runs ? 'Runs by itself ' + a.runs + ' min' : '', it.slot ? 'Slot: ' + it.slot : ''].filter(Boolean);
-  return cardFold_('dk:' + at, { type: 'tick', text: (it.title || 'Untitled') + (picked ? ': ' + picked.toLowerCase() : ''), attrs: { 'data-dkf': at, checked: done, 'aria-label': 'Done: ' + (it.title || '') } }, [
-    { type: 'text', text: facts.join(' · ') },
-    opts.length && !done ? { type: 'tiles', tiles: opts.map(f => ({ label: f.name, note: f.note || '', act: 'dk-ffood', cls: f.name === picked ? 'is-submit' : '', data: { at, f: f.name } })) } : null,
-    it.note && !editing ? { type: 'text', paras: String(it.note).split(/\n{2,}/) } : null, dkCovers_(it),
-    editing ? { type: 'group', look: 'dk-form', inner: formOf_('docket-item', a, { options: f => ((spec.find(y => y.f === f) || {}).options || []) }) } : null,
-    { type: 'tiles', tiles: editing ? [{ icon: 'save', label: text_('save'), act: 'dk-fsave', cls: 'is-submit', data: { at } }, { icon: 'bin', label: 'Delete', act: 'dk-fdel', tone: 'danger', data: { at } },
-      { icon: 'close', label: 'Close', act: 'dk-fedit', data: { at } }] : [{ icon: 'edit', label: 'Edit', act: 'dk-fedit', data: { at } }] }], 'dk-line');
+function dkCard_() {
+  const g = dkSort_(dkLoad_(), dkNow_());
+  return renderCard(shapeCard_('docket', { kind: 'docket', name: 'Docket', tags: [],
+    body: g.open.map(dkLine_)
+      .concat(g.done.length ? cardFold_('dk:done', { type: 'text', text: 'Done (' + g.done.length + ')' }, g.done.map(dkLine_), 'dk-done') : [])
+      .concat({ type: 'field', look: 'dk-qadd-f', blocks: [{ type: 'control', attrs: { class: 'dk-qadd', placeholder: 'Add an item, then Enter', 'aria-label': 'Add to the Docket', maxlength: 300, enterkeyhint: 'done' } }] }),
+    tiles: [{ icon: 'plus', label: 'Add', act: 'dk-qadd', cls: 'is-submit' }] }));
 }
-function dkCard_(x) {
-  const li = x.dkLi, L = dkLoad_()[li] || { items: [] }, items = L.items || [], order = dkPlan_(items.map(dkFill_), dkNow_());
-  const open = order.filter(i => !dkDone_(items[i])), done = order.filter(i => dkDone_(items[i]));
-  return renderCard(shapeCard_('docket', { kind: 'docket', name: L.name || 'List', tags: [L.name || 'List'],
-    body: open.map((i, n) => dkLine_(li, i, ['Now', 'Next'][n] || ''))
-      .concat(done.length ? cardFold_('dk:' + li + ':done', { type: 'text', text: 'Done (' + done.length + ')' }, done.map(i => dkLine_(li, i, '')), 'dk-done') : [])
-      .concat({ type: 'field', look: 'dk-qadd-f', blocks: [{ type: 'control', attrs: { class: 'dk-qadd', 'data-li': li, placeholder: 'Add an item, then Enter', 'aria-label': 'Add to ' + (L.name || 'the list'), maxlength: 300, enterkeyhint: 'done' } }] }),
-    tiles: [{ icon: 'plus', label: 'Add', act: 'dk-qadd', cls: 'is-submit', data: { li } }] }));
-}
-const dkAt_ = at => { const [li, i] = String(at || '').split(':').map(Number), L = dkLoad_()[li]; return { L, i, it: L && L.items[i] }; };
-/* A CHANGE IN FIND IS SAVED AS THE WIDGET'S IS (dkSave_, the backend's todoTidy_), and Find draws its list again in the new order. */
-const dkFindKeep_ = () => { dkKeep_(); if (typeof lateCame_ === 'function') lateCame_(); if (EINK) dkEinkTry_(); };
-const dkFindDraw_ = () => { if (typeof lateCame_ === 'function') lateCame_(); };
-on('dk-fedit', el => { const at = el.getAttribute('data-at') || ''; if (DKF.edit === at) { DKF.edit = ''; stepDone_(DKF.step, false); dkFindDraw_(); return; }
-  DKF.step = openStep_({ el, draw: () => { DKF.edit = at; CARD_OPEN.add('dk:' + at); dkFindDraw_(); }, undo: () => { if (DKF.edit === at) { DKF.edit = ''; dkFindDraw_(); } } }); });
-/* SAVE KEEPS ONLY WHAT DIFFERS FROM A DEFAULT, so an item's cell stays one line and an old item is never broken. */
-on('dk-fsave', el => { const { it } = dkAt_(el.getAttribute('data-at')), card = el.closest('.card'); if (!it || !card) return;
-  card.querySelectorAll('[data-dke]').forEach(b => { const f = b.getAttribute('data-dke'), x = dkFields_().find(y => y.f === f) || {}, v = String(b.value || '').trim();
-    if (f === 'title') { if (v) it.title = v.slice(0, 300); return; }
-    if (v === '' || (x.default != null && v === String(x.default))) delete it[f]; else it[f] = x.type === 'number' ? Math.max(0, Math.round(+v) || 0) : v.slice(0, 8000); });
-  if (!dkRep_(it)) delete it.repeat;
-  DKF.edit = ''; stepDone_(DKF.step, false); dkFindKeep_(); });
-on('dk-fdel', el => { const { L, i, it } = dkAt_(el.getAttribute('data-at')); if (!it || !confirm('Delete "' + (it.title || 'this item') + '"?')) return; L.items.splice(i, 1); DKF.edit = ''; stepDone_(DKF.step, false); dkFindKeep_(); });
-on('dk-qadd', el => { const card = el.closest('.card'), inp = card && card.querySelector('.dk-qadd'), li = +el.getAttribute('data-li'), L = dkLoad_()[li], t = String((inp && inp.value) || '').trim();
-  if (!t || !L) return; L.items.push({ title: t.slice(0, 300) }); dkFindKeep_();
-  setTimeout(() => { const again = document.querySelector('.dk-qadd[data-li="' + li + '"]'); if (again) again.focus(); }, 400); });
+/* A CHANGE IS SAVED (dkSave_, the backend's todoTidy_) and every place that draws the Docket draws it again in the new order. */
+const dkKeep_ = () => { DK.say = ''; dkSave_(); dkPaint_(); if (typeof lateCame_ === 'function') lateCame_(); if (EINK) dkEinkTry_(); };
+const dkRedraw_ = () => { dkPaint_(); if (typeof lateCame_ === 'function') lateCame_(); };
+on('dk-fedit', el => { const i = +el.getAttribute('data-at'); if (DKF.edit === i) { DKF.edit = -1; stepDone_(DKF.step, false); dkRedraw_(); return; }
+  DKF.step = openStep_({ el, draw: () => { DKF.edit = i; CARD_OPEN.add('dk:' + i); dkRedraw_(); }, undo: () => { if (DKF.edit === i) { DKF.edit = -1; dkRedraw_(); } } }); });
+on('dk-fsave', el => { const it = dkLoad_()[+el.getAttribute('data-at')], card = el.closest('.card'), b = card && card.querySelector('[data-dke="title"]'), v = String((b && b.value) || '').trim();
+  if (!it) return;
+  if (v) it.title = v.slice(0, 300);
+  DKF.edit = -1; stepDone_(DKF.step, false); dkKeep_(); });
+on('dk-fdel', el => { const i = +el.getAttribute('data-at'), it = dkLoad_()[i]; if (!it || !confirm('Delete "' + (it.title || 'this item') + '"?')) return;
+  dkLoad_().splice(i, 1); DKF.edit = -1; stepDone_(DKF.step, false); dkKeep_(); });
+on('dk-qadd', el => { const card = el.closest('.card'), inp = card && card.querySelector('.dk-qadd'), t = String((inp && inp.value) || '').trim();
+  if (!t) return;
+  dkLoad_().push({ title: t.slice(0, 300) }); dkKeep_();
+  setTimeout(() => { const again = document.querySelector('.dk-qadd'); if (again) again.focus(); }, 400); });
 document.addEventListener('change', e => {
   const el = e.target, at = el && el.getAttribute && el.getAttribute('data-dkf');
-  if (!at) return;
-  const { L, i } = dkAt_(at);
-  if (!L || !dkTick_(L.items, i, el.checked, dkNow_())) return;
-  dkFindKeep_();
+  if (at == null) return;
+  if (!dkTick_(dkLoad_(), +at, el.checked, dkNow_())) return;
+  dkKeep_();
 });
-document.addEventListener('keydown', e => { const c = e.target && e.target.classList; if (e.key !== 'Enter' || !c || typeof ACTIONS === 'undefined') return;
-  const act = c.contains('dk-add') ? 'dk-add' : c.contains('dk-qadd') ? 'dk-qadd' : ''; if (act && ACTIONS[act]) { e.preventDefault(); ACTIONS[act](e.target); } });
+document.addEventListener('keydown', e => { const c = e.target && e.target.classList;
+  if (e.key !== 'Enter' || !c || !c.contains('dk-qadd') || typeof ACTIONS === 'undefined' || !ACTIONS['dk-qadd']) return;
+  e.preventDefault(); ACTIONS['dk-qadd'](e.target); });
 
 
 /* ---------- ASSIGNMENTS (owner, 18 Nov): one list a person, sorted by due date and grouped Overdue / This week / Later / Done, each with its days left,
    size and weight as tags. Added and edited through the one form engine (kinds.json `assignment-new`, asked a field a step), saved whole by `assignmentsSave`.
    A parent sees each child's, a tutor each booked student's (`others`, from `assignmentsOf`), the admin anybody's through the lens; only the person changes theirs. */
 const ASG = { of: '', got: {}, add: false, edit: '', say: '' };
+const DK_MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const dkSayDay_ = d => (+d.slice(8, 10)) + ' ' + DK_MON[+d.slice(5, 7) - 1];
 const ASG_FORM = 'assignment-new';
 const asgMe_ = () => String((typeof USER !== 'undefined' && USER && USER.personId) || '');
 const asgOf_ = () => ASG.of || String(((typeof whose_ === 'function' ? whose_() : USER) || {}).personId || '') || asgMe_();

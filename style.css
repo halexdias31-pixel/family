@@ -5106,8 +5106,6 @@ html.eink *, html.eink *::before, html.eink *::after { animation: none !importan
 #eink .ek-t { flex: 1 1 auto; min-width: 0; }
 #eink .is-missed .ek-t { font-style: italic; text-decoration: underline; text-decoration-thickness: .08em; }
 #eink .ek-tags { flex-basis: 100%; padding-left: 1.6em; font-size: .7em; font-weight: 400; }
-#eink .ek-next { margin: .7em 0 0; padding-top: .3em; border-top: .12em solid var(--eink-ink); }
 #eink .ek-say { margin: 0; }
 #eink .ek-sign { color: var(--eink-ink); text-decoration: underline; }
-@media (max-height: 600px) { #eink .ek-tick { padding: .15em 0; } #eink .ek-tags { flex-basis: auto; padding-left: 0; } #eink .ek-now { margin-bottom: .2em; } #eink .ek-next { margin-top: .3em; } }
-#eink .ek-rows + .ek-next { border-top: 0; }
+@media (max-height: 600px) { #eink .ek-tick { padding: .15em 0; } #eink .ek-tags { flex-basis: auto; padding-left: 0; } #eink .ek-now { margin-bottom: .2em; } }

@@ -3,7 +3,7 @@
    something pushes one step through `openStep_` (js/shell-click.js), and Back pops exactly one, putting back the scroll beneath.
    (a) IN THE CODE: nothing in js/ calls the old openers (`openSheet`, `closeSheet`, a share picture inserted beside its receipt), and no file
        but shell-click.js touches the browser's history stack (`pushState`) or listens to `popstate`.
-   (b) ON AN iPHONE 13 (tools/lib/site-browser.js): a Share, a More, an admin's Edit of a person and a Docket list in Find are each opened from a
+   (b) ON AN iPHONE 13 (tools/lib/site-browser.js): a Share, a More, an admin's Edit of a person and a Docket item's Edit in Find are each opened from a
        scrolled page; each must add exactly one step and one history entry, and the browser's Back must close it and return the page to the same
        scroll. A screenshot of each step at 390px goes to .cache/one-step/. Fails the build. Run by tools/build.js after the bundles. */
 'use strict';
@@ -64,7 +64,7 @@ async function one(c) {
 const Q = 'Q-1MA1-2311-2F-16';
 const qOpen = { at: '?card=' + encodeURIComponent('q:' + Q), ready: () => [...document.querySelectorAll('#screen .qcard')].some(e => !e.classList.contains('lib-wait') && e.offsetHeight > 0 && e.querySelector('[data-do="card-share"]')) };
 const pressIn = sel => pg => pg.evaluate(s => { const b = [...document.querySelectorAll(s)].find(e => e.offsetWidth > 0); if (b) b.click(); return !!b; }, sel);
-const DOCKET = { lists: [{ name: 'Morning', items: [{ title: 'Shower' }, { title: 'Teeth' }] }, { name: 'Evening', items: [{ title: 'Read' }] }] };
+const DOCKET = { lists: [{ name: 'Docket', items: Array.from({ length: 16 }, (_, k) => ({ title: 'Made-up item ' + (k + 1) })) }] };
 const CASES = [
   { name: 'Share', file: 'share.png', open: qOpen,
     prep: pg => pg.evaluate(() => { window.rcHand_ = () => {}; }),
@@ -76,13 +76,9 @@ const CASES = [
     press: pressIn('#screen [data-do="person-edit"]'),
     shown: () => !!document.querySelector('#screen .pe-form, #screen [data-do="person-edit-done"]'),
     gone: () => !document.querySelector('#screen .pe-form, #screen [data-do="person-edit-done"]') },
-  { name: 'Docket list', file: 'docket-list.png', open: { user: Object.assign({}, SB.USERS.admin, { owner: true, todo: JSON.stringify(DOCKET) }) },
-    prep: async pg => { for (const t of ['Tools', 'Docket']) await SB.tap(pg, t); },
-    press: pg => pg.evaluate(() => { const b = [...document.querySelectorAll('#screen [data-do="facet-pick"]')].find(e => e.offsetWidth > 0 && /Morning/.test(e.textContent)); if (b) b.click(); return !!b; }),
-    shown: () => document.querySelectorAll('#screen [data-do="dk-fedit"]').length > 0,
-    gone: () => [...document.querySelectorAll('#screen [data-do="facet-pick"]')].some(e => e.offsetWidth > 0 && /Morning/.test(e.textContent)) },
-  { name: 'Docket item edit', file: 'docket-edit.png', open: { user: Object.assign({}, SB.USERS.admin, { owner: true, todo: JSON.stringify(DOCKET) }) },
-    prep: async pg => { for (const t of ['Tools', 'Docket', 'Morning']) await SB.tap(pg, t); await pg.evaluate(() => { const s = document.querySelector('#screen .dk-line > summary'); if (s) s.click(); }); },
+  { name: 'Docket item edit', file: 'docket-edit.png', open: { user: Object.assign({}, SB.USERS.admin, { owner: true, todo: JSON.stringify(DOCKET) }),
+      answer: q => (q.action === 'docketImport' && q.read ? { success: true, todo: JSON.stringify(DOCKET), base: 'b' } : null) },
+    prep: async pg => { for (const t of ['Tools', 'Docket']) await SB.tap(pg, t); await pg.evaluate(() => { const s = document.querySelector('#screen .dk-line > summary'); if (s) s.click(); }); },
     press: pressIn('#screen [data-do="dk-fedit"]'),
     shown: () => !!document.querySelector('#screen [data-do="dk-fsave"]'),
     gone: () => !document.querySelector('#screen [data-do="dk-fsave"]') },
