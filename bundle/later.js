@@ -5631,7 +5631,7 @@ kids: Array.from({ length: n }, (_, i) => ({ el: 'line', a: { class: 'grid', x1:
 const sheetItem_ = x => ({ key: x.key + '~sheet' });
 function sheetPrint_(x) {
 const p = x && x.key ? padSource_(x) : null;
-return p ? fcG_('div', 'qp-sheet-print', { 'data-q': x.key }, padWrap_(x, p.svg, 'row').replace(/<p class="qpad-note"[^>]*>[\s\S]*?<\/p>/, '')) : '';
+return p ? fcG_('div', 'qp-sheet-print qp-area', { 'data-q': x.key }, padWrap_(x, p.svg, 'row').replace(/<p class="qpad-note"[^>]*>[\s\S]*?<\/p>/, '')) : '';
 }
 function sheetLinesItem_(x, print) {
 const it = !print && qtFace_(x).face === 'draw' ? x : sheetItem_(x);

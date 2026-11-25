@@ -70,6 +70,47 @@ async function cellCheck(broken) {
     });
   } finally { await pg.close(); await SB.done(); }
 }
+/* A GRID ON THE SHEET CAN BE SEEN (owner, 25 Nov: "a child can't plot or rotate on an invisible grid"): on a phone, a part whose picture has
+   grid lines (`class="grid"`) drawn on its sheet, light and dark; every grid line strokes a colour that is not the sheet's, at a contrast
+   (its colour and opacity over the sheet's) of 1.15 or more, and is not hidden. `broken` (for --prove) strokes them the sheet's colour. */
+async function gridCheck(broken) {
+  const pg = await SB.open({ as: 'child', ready: () => typeof stuffItemsAll_ === 'function' && stuffItemsAll_().some(isQ_) });
+  const out = { bad: [] };
+  try {
+    await pg.setViewportSize({ width: 390, height: 844 });
+    if (broken) await pg.addStyleTag({ content: '.qp-sheet svg .grid { stroke: var(--raised) !important; }' });
+    for (const scheme of ['dark', 'light']) {
+      await pg.emulateMedia({ colorScheme: scheme });
+      const r = await pg.evaluate(() => {
+        const x = stuffItemsAll_().filter(isQ_).find(x => x.key === 'q:Q-1CM-rotations-3') || stuffItemsAll_().filter(isQ_).find(x => { const p = x.key && padSource_(x); return p && p.from !== 'surface' && /class="grid"/.test(p.svg); });
+        if (!x) return { none: true };
+        const host = document.createElement('div'); host.id = 'grid-check';
+        (document.querySelector('#s-' + AT + ' .page.on') || document.querySelector('#s-' + AT) || document.body).prepend(host);
+        host.innerHTML = findCard(x);
+        const sheet = host.querySelector('.qp-sheet');
+        const rgb = c => (String(c).match(/[\d.]+/g) || []).map(Number);
+        const lum = c => { const v = rgb(c).slice(0, 3).map(u => { u /= 255; return u <= 0.03928 ? u / 12.92 : Math.pow((u + 0.055) / 1.055, 2.4); }); return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2]; };
+        const paper = sheet && getComputedStyle(sheet).backgroundColor;
+        const lines = sheet ? [...sheet.querySelectorAll('.qp-sheet-print svg .grid')] : [];
+        const bad = [];
+        lines.forEach((l, i) => {
+          const c = getComputedStyle(l), a = Number(c.opacity) * Number(c.strokeOpacity || 1), s = rgb(c.stroke);
+          if (c.display === 'none' || c.visibility === 'hidden' || c.stroke === 'none' || !s.length) { bad.push('line ' + i + ' has no stroke (' + c.stroke + ')'); return; }
+          const p = rgb(paper), mix = s.slice(0, 3).map((v, k) => v * a + p[k] * (1 - a)), L1 = lum('rgb(' + mix.join(',') + ')'), L2 = lum(paper);
+          const ratio = (Math.max(L1, L2) + 0.05) / (Math.min(L1, L2) + 0.05);
+          if (ratio < 1.15) bad.push('line ' + i + ' ' + c.stroke + ' at ' + a + ' on ' + paper + ': contrast ' + ratio.toFixed(2));
+        });
+        host.remove();
+        return { id: (x.row && x.row.row_id) || x.key, n: lines.length, bad: bad.slice(0, 3), nBad: bad.length };
+      });
+      if (r.none) { out.bad.push('no grid picture on a sheet to look at'); continue; }
+      out.id = r.id; out[scheme] = r.n - r.nBad + '/' + r.n;
+      if (!r.n) out.bad.push(scheme + ': no grid lines on the sheet');
+      r.bad.forEach(b => out.bad.push(scheme + ': ' + b));
+    }
+  } finally { await pg.close(); await SB.done(); }
+  return out;
+}
 async function inkCheck(armed) {
   const bad = [], said = [];
   const pg = await SB.open({ as: 'child', ready: () => typeof stuffItemsAll_ === 'function' && stuffItemsAll_().some(isQ_) });
@@ -212,6 +253,10 @@ async function run(o) {
   else { console.log('  table cells on the sheet (' + cc.id + '): ' + cc.n + ' empty cells, ' + (cc.bad.length ? cc.bad.length + ' wrong' : 'each a plain paper cell, no placeholder'));
     cc.bad.slice(0, 5).forEach(b => bad.push(cc.id + ': ' + b)); }
   if (prove) { const p = await cellCheck(true); const caught = !!(p.bad && p.bad.length >= 2); console.log('  --prove cells boxed with a placeholder: ' + (caught ? 'caught' : 'MISSED')); if (!caught) bad.push('--prove: boxed cells with a placeholder were not caught'); }
+  const gc = await gridCheck(false);
+  console.log('  grid on the sheet (' + gc.id + '): ' + gc.dark + ' lines seen on dark, ' + gc.light + ' on light');
+  gc.bad.forEach(b => bad.push((gc.id || '') + ': ' + b));
+  if (prove) { const p = await gridCheck(true); const caught = p.bad.length > 0; console.log('  --prove grid stroked the sheet colour: ' + (caught ? 'caught' : 'MISSED')); if (!caught) bad.push('--prove: an invisible grid was not caught'); }
   const ink = await inkCheck(false);
   console.log('  ink on a 390px phone, a drag with no tool, then with the Pen tile: ' + ink.said.join('; '));
   bad.push(...ink.bad);
