@@ -81,9 +81,9 @@ async function page(brk) {
         out.n++;
         const v = [].concat(FACET_READ.topic.of(x) || []).filter(Boolean);
         v.forEach(t => out.shown.add(t));
-        /* A MATHS QUESTION (owner 24–25 Nov) answers its DfE nodes broad → narrow (tools/one-dfe.js holds the tree); a science one its idea's name. */
-        if (x.subject === 'Maths') {
-          const D = TAXONOMY.Maths.dfe || {}, w = [];
+        /* A MATHS OR SCIENCE QUESTION (owner 24–25 Nov) answers its DfE nodes broad → narrow (tools/one-dfe.js holds the trees), not its idea's name. */
+        if (subs.includes(x.subject)) {
+          const D = Object.assign({}, (TAXONOMY.Maths || {}).dfe || {}, (TAXONOMY.Science || {}).dfe || {}), w = [];
           String(x.row.dfe || '').split(/\s+/).filter(Boolean).forEach(id => { const p = []; for (let n = id; n && D[n]; n = D[n][1]) p.unshift(D[n][0]); p.forEach(t => { if (!w.includes(t)) w.push(t); }); });
           if (v.join('|') !== w.join('|')) out.bad.push((x.row.row_id || x.key) + ': Find\'s topic is [' + v.join(', ') + '], not its DfE path [' + w.join(', ') + ']');
           return;
