@@ -39,6 +39,37 @@ async function paperCheck(broken) {
     });
   } finally { await pg.close(); await SB.done(); }
 }
+/* A TABLE'S EMPTY CELL IS A PAPER CELL (owner, 24 Nov): on a phone, a table part drawn on its sheet; each empty answer cell has the printed
+   cells' border and background, no box of its own inside (no border, background or rounded corner), and no placeholder words, nor any line of
+   the sheet. `broken` (for --prove) gives the cells their old box and words back, which must be caught. */
+async function cellCheck(broken) {
+  const pg = await SB.open({ as: 'child', ready: () => typeof stuffItemsAll_ === 'function' && stuffItemsAll_().some(isQ_) });
+  try {
+    await pg.setViewportSize({ width: 390, height: 844 });
+    if (broken) await pg.addStyleTag({ content: '.qp-cell-ans { border: 1px solid red !important; border-radius: 8px !important; background: #333 !important; } .qp-sheet .kp-show:empty::before { content: "Type your answer" !important; }' });
+    return await pg.evaluate(() => {
+      const x = stuffItemsAll_().filter(isQ_).find(x => { const f = qtFace_(x); return f.cells && /<td(?![^>]*qp-cell-at)[^>]*>[^<]/.test(findCard(x)); });
+      if (!x) return { none: true };
+      const host = document.createElement('div'); host.id = 'cell-check';
+      (document.querySelector('#s-' + AT + ' .page.on') || document.querySelector('#s-' + AT) || document.body).prepend(host);
+      host.innerHTML = findCard(x);
+      const sheet = host.querySelector('.qp-sheet'), bad = [];
+      const printed = sheet && [...sheet.querySelectorAll('table.qp-cells td')].find(td => !td.classList.contains('qp-cell-at'));
+      const cells = sheet ? [...sheet.querySelectorAll('td.qp-cell-at')] : [];
+      const look = e => { const c = getComputedStyle(e); return [c.borderTopWidth, c.borderTopStyle, c.borderTopColor, c.backgroundColor].join(' '); };
+      if (!printed || !cells.length) bad.push('no printed and empty cells side by side');
+      cells.forEach((td, i) => {
+        if (printed && look(td) !== look(printed)) bad.push('cell ' + i + ' is ' + look(td) + ', a printed cell ' + look(printed));
+        const box = td.querySelector('.qp-cell-ans'), c = box && getComputedStyle(box);
+        if (c && (parseFloat(c.borderTopWidth) || parseFloat(c.borderTopLeftRadius) || !/rgba\(0, 0, 0, 0\)|transparent/.test(c.backgroundColor))) bad.push('cell ' + i + ' has a box inside it');
+      });
+      const said = [...(sheet ? sheet.querySelectorAll('.kp-show') : [])].map(e => getComputedStyle(e, '::before').content).filter(v => v && v !== 'none' && v !== 'normal' && v !== '""');
+      if (said.length) bad.push(said.length + ' placeholder(s) on the sheet: ' + said[0]);
+      host.remove();
+      return { id: (x.row && x.row.row_id) || x.key, n: cells.length, bad };
+    });
+  } finally { await pg.close(); await SB.done(); }
+}
 async function inkCheck(armed) {
   const bad = [], said = [];
   const pg = await SB.open({ as: 'child', ready: () => typeof stuffItemsAll_ === 'function' && stuffItemsAll_().some(isQ_) });
@@ -176,6 +207,11 @@ async function run(o) {
   else { console.log('  picture paper on the sheet (' + pc.id + '): ' + (pc.n - pc.bad.length) + '/' + pc.n + ' white boxes and points in the sheet\'s colour');
     pc.bad.slice(0, 5).forEach(b => bad.push(pc.id + ': a white box painted ' + b)); }
   if (prove) { const p = await paperCheck(true); const caught = !!(p.bad && p.bad.length); console.log('  --prove label boxes painted the ink: ' + (caught ? 'caught' : 'MISSED')); if (!caught) bad.push('--prove: label boxes painted the ink were not caught'); }
+  const cc = await cellCheck(false);
+  if (cc.none) bad.push('no table part with printed cells to look at');
+  else { console.log('  table cells on the sheet (' + cc.id + '): ' + cc.n + ' empty cells, ' + (cc.bad.length ? cc.bad.length + ' wrong' : 'each a plain paper cell, no placeholder'));
+    cc.bad.slice(0, 5).forEach(b => bad.push(cc.id + ': ' + b)); }
+  if (prove) { const p = await cellCheck(true); const caught = !!(p.bad && p.bad.length >= 2); console.log('  --prove cells boxed with a placeholder: ' + (caught ? 'caught' : 'MISSED')); if (!caught) bad.push('--prove: boxed cells with a placeholder were not caught'); }
   const ink = await inkCheck(false);
   console.log('  ink on a 390px phone, a drag with no tool, then with the Pen tile: ' + ink.said.join('; '));
   bad.push(...ink.bad);
