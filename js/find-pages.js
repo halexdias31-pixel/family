@@ -603,7 +603,7 @@ function facetAnswersSpec_(facet, values, then) {
 /* FIND'S MENU BEFORE THE PAYLOAD (1000): the build's own (FINDER_TAGS). */
 setTimeout(() => { try { if (awaiting_() && SCREENS[FINDER.id]) paint(FINDER.id); } catch (e) { oops_(e, 'find:early'); } }, 0);
 /* FIND'S MENU CARD AS DATA: drawn whole here, and its two slots (`#…-chips`, `#…-groups`) redrawn from the same spec by `findMenuFill_`. */
-const findMenuSpec_ = (F, then) => ({ kind: 'menu', look: 'find-menu', name: 'Find', tags: filterChipTags_(), tagLook: 'chips', tagsKeep: true, tagsId: F.id + '-chips',
+const findMenuSpec_ = (F, then) => ({ kind: 'menu', shape: 'Card', look: 'find-menu', name: 'Find', tags: filterChipTags_(), tagLook: 'chips', tagsKeep: true, tagsId: F.id + '-chips',
   body: [{ type: 'choices', id: F.id + '-groups', then: then || stuffQuestionBlocks_() }] });
 /* A REPAINT FILLS THE SLOTS IN PLACE (the card is kept, so the pane's scroll and the name box stay): `then` is the menu's blocks, a wait while it is counted. */
 function findMenuFill_(F, then) {

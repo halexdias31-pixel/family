@@ -27,8 +27,10 @@ function run() {
      Settings card as its name alone (23 Nov). The settings card type is setting.cardType. */
   Object.keys(j.kinds).forEach(k => { const c = j.kinds[k].card; if (c != null && (typeof c !== 'object' || Array.isArray(c))) bad.push(k + ': card is ' + JSON.stringify(c) + ', not a card spec (the settings card type is setting.cardType)'); });
   reg.forEach(r => { if (r.shape) bad.push('setting ' + r.id + ': shape ' + r.shape + ' (a settings card is the one card; its rows are setting.rows)'); });
-  /* A KIND'S CARD SHAPE (CARD SHAPES): a Person, an Item, a Learning: Reference or Question or an Activity: Record or Thread, nothing else. */
-  Object.keys(j.kinds).forEach(k => { const h = j.kinds[k].shape; if (typeof h === 'string' && ['Person', 'Item', 'Reference', 'Record', 'Thread', 'Question'].indexOf(h) < 0) bad.push(k + ': shape ' + h + ' is not Person, Item, Reference, Record, Thread or Question'); });
+  /* ONE CARD (owner, 25 Nov): every kind with a shape wears the one card, `Card`; its `bodyAs` names only which body its content draws. */
+  const BODIES = ['person', 'item', 'reference', 'record', 'thread', 'question'];
+  Object.keys(j.kinds).forEach(k => { const K = j.kinds[k]; if (typeof K.shape === 'string' && K.shape !== 'Card') bad.push(k + ': shape ' + K.shape + ' is not the one card (Card)');
+    if (K.shape && BODIES.indexOf(K.bodyAs) < 0) bad.push(k + ': bodyAs ' + K.bodyAs + ' is not one of ' + BODIES.join(', ')); });
   if (bad.length) throw new Error('kinds: FAILED\n  ' + bad.join('\n  '));
   const want = '/* @family. — js/kinds.js: WRITTEN BY tools/kinds.js FROM data/settings/kinds.json, facets.json and tags.json; edit those. */\n'
     + 'const ITEM_KINDS = ' + JSON.stringify({ kinds: j.kinds, doors: j.doors, facets: SD.facets() }) + ';\n'

@@ -23,7 +23,7 @@ function run() {
   listed.filter(k => KINDS.indexOf(k) < 0).forEach(k => bad.push(k + ' has a kinds.json `list` but is not one of the owner\'s lists'));
   KINDS.forEach(k => { const L = (K[k] || {}).list;
     if (!L) return bad.push(k + ' has no kinds.json `list`');
-    if (K[k].shape !== 'Item') bad.push(k + ' is shape ' + K[k].shape + ', not Item');
+    if (K[k].bodyAs !== 'item') bad.push(k + ' draws its body as ' + K[k].bodyAs + ', not an item');
     if (!L.name || !Array.isArray(L.fields) || !L.fields.length || !L.store || ['whole', 'as-is'].indexOf(L.save) < 0) bad.push(k + '.list needs a name, store, fields and save (whole or as-is)'); });
   const track = (((K.assignment || {}).list || {}).trackOnly || []).find(t => t.field === 'noAI');
   if (!track || !/no generative ai/i.test(track.say || '')) bad.push('assignment.list.trackOnly has lost the noAI "No generative AI" rule (track only)');

@@ -322,7 +322,7 @@ function setCard_(o) {
   /* NEVER ITS NAME ALONE (owner, 23 Nov: sixteen cards of a name and buttons, "can't see anything"): a card with no row says so in one. */
   let inner = parts.map(setCardRow_).join('');
   if (!inner.replace(/<[^>]*>/g, '').trim() && !/<(input|select|textarea|button|img|svg)\b/i.test(inner)) inner += setCardRow_({ type: 'text', look: 'kc-empty', text: text_('nothing-here-yet') });
-  const h = renderCard({ kind: 'setting', shape: setKind_().cardType || 'Setting', card: o.card || '', look: [typed ? 'set-typed' : '', o.hook || '', o.state === 'empty' ? 'is-empty' : ''].filter(Boolean).join(' '),
+  const h = renderCard({ kind: 'setting', shape: setKind_().cardType || 'Card', card: o.card || '', look: [typed ? 'set-typed' : '', o.hook || '', o.state === 'empty' ? 'is-empty' : ''].filter(Boolean).join(' '),
     name: o.title || '', tags: o.tags || (o.title ? [o.title] : []), data, picture: o.picture, tiles: o.actions || (o.state === 'empty' ? setEmptyTiles_(o.title) : []), off: o.state === 'off',
     cut: o.save ? { tiles: o.save } : null,
     body: [{ type: 'group', look: 'kc-set', inner }] });

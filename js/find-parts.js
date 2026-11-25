@@ -735,7 +735,7 @@ function libSay_(x) {
 function libWaitHtml_(x) {
   const q = isQ_(x);
   /* THE ONE ANATOMY (owner, 10 Nov): no picture yet, its tags, its name as a line (not a heading), then what it waits for. */
-  return findCard({ kind: 'libwait', name: (x && x.name) || '', kcOwn: { cls: 'lib-wait' + (q ? ' qcard' : ''), attrs: ` data-lib="${esc((x && x.key) || '')}"${q ? ' data-shape="Question" data-item-kind="question"' : ''} data-state="wait"`,
+  return findCard({ kind: 'libwait', name: (x && x.name) || '', kcOwn: { cls: 'lib-wait' + (q ? ' qcard' : ''), attrs: ` data-lib="${esc((x && x.key) || '')}"${q ? ' data-shape="Card" data-item-kind="question"' : ''} data-state="wait"`,
     tags: tagRow_(x), lines: cardBlocks_((q ? [] : [{ type: 'group', tag: 'p', look: 'kc-line', text: (x && x.name) || '' }]).concat({ type: 'group', look: 'lib-say', inner: libSay_(x) })) } });
 }
 /* THE PAGES ARE COUNTED AGAIN ONLY WHERE THEY ARE DRAWN AGAIN — counting them anywhere else would move every page under a column already drawn. */

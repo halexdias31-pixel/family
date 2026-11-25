@@ -3735,7 +3735,7 @@ return loading_();
 }
 function libWaitHtml_(x) {
 const q = isQ_(x);
-return findCard({ kind: 'libwait', name: (x && x.name) || '', kcOwn: { cls: 'lib-wait' + (q ? ' qcard' : ''), attrs: ` data-lib="${esc((x && x.key) || '')}"${q ? ' data-shape="Question" data-item-kind="question"' : ''} data-state="wait"`,
+return findCard({ kind: 'libwait', name: (x && x.name) || '', kcOwn: { cls: 'lib-wait' + (q ? ' qcard' : ''), attrs: ` data-lib="${esc((x && x.key) || '')}"${q ? ' data-shape="Card" data-item-kind="question"' : ''} data-state="wait"`,
 tags: tagRow_(x), lines: cardBlocks_((q ? [] : [{ type: 'group', tag: 'p', look: 'kc-line', text: (x && x.name) || '' }]).concat({ type: 'group', look: 'lib-say', inner: libSay_(x) })) } });
 }
 function libPagesFresh_() {
@@ -8761,11 +8761,11 @@ const qaToggle_ = (k, open) => tile_(qaToggleOpts_(k, open));
 function questionAnsCard_(x, inRow, bare) {
 const tags = bare ? '' : tagRow_(x, 'ans');
 const id = (x.row && x.row.row_id) || x.key || '';
-if (schemeOwed_(x)) return figBox_({ look: 'qcard qans-card', attrs: { 'data-of': id, 'data-shape': 'Question' }, inner: tags
+if (schemeOwed_(x)) return figBox_({ look: 'qcard qans-card', attrs: { 'data-of': id, 'data-shape': 'Card' }, inner: tags
 + figBox_({ tag: 'p', look: 'qans-none', text: 'No checked answer yet: this paper\'s mark scheme has not been added.' }) });
 const k = ansKey_(x);
 const open = ansOpen_(x);
-return figBox_({ look: 'qcard qans-card' + (open ? '' : ' is-hidden'), attrs: { 'data-of': id, 'data-k': k, 'data-shape': 'Question' },
+return figBox_({ look: 'qcard qans-card' + (open ? '' : ' is-hidden'), attrs: { 'data-of': id, 'data-k': k, 'data-shape': 'Card' },
 inner: tags
 + (inRow ? '' : figBox_({ look: 'tile-row qans-tiles', inner: qaToggle_(k, open) }))
 + (open ? ansBox_(x, true) : figBox_({ tag: 'p', look: 'qans-wait-k', text: statusWord_('hidden') }))
@@ -11599,7 +11599,7 @@ label: grid ? facet.label + ' ' + runNumber_(v)[2] : '', look: facet.field === '
 return { type: 'choices', rows: [{ look: grid ? 'is-grid' : '', options: opts.concat([skip]) }], then: then || [] };
 }
 setTimeout(() => { try { if (awaiting_() && SCREENS[FINDER.id]) paint(FINDER.id); } catch (e) { oops_(e, 'find:early'); } }, 0);
-const findMenuSpec_ = (F, then) => ({ kind: 'menu', look: 'find-menu', name: 'Find', tags: filterChipTags_(), tagLook: 'chips', tagsKeep: true, tagsId: F.id + '-chips',
+const findMenuSpec_ = (F, then) => ({ kind: 'menu', shape: 'Card', look: 'find-menu', name: 'Find', tags: filterChipTags_(), tagLook: 'chips', tagsKeep: true, tagsId: F.id + '-chips',
 body: [{ type: 'choices', id: F.id + '-groups', then: then || stuffQuestionBlocks_() }] });
 function findMenuFill_(F, then) {
 const spec = findMenuSpec_(F, then), chips = $(spec.tagsId), groups = $(spec.body[0].id);
