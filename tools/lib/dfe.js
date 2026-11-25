@@ -12,6 +12,7 @@
 const SD = require('./site-data.js');
 const { S } = require('./gen.js');
 const QI = require('./qideas.js');
+const QG = require('./qgen.js');
 
 /* THE SUBJECTS: each its table, its taxonomy.json key and its questions. */
 const SUBJECTS = {
@@ -55,6 +56,8 @@ function specNode(ref, T, X) {
 /* ONE QUESTION'S NODES (ids), most specific kept: a node whose descendant is also listed goes. */
 function nodesOf(r, T, X, D, QT) {
   if (aLevel(D[r.paper_id])) return [];
+  /* A GENERATED @family SET (tools/lib/qgen.js, owner 25 Nov) is one sub-topic's, read from its id against this table: that node alone. */
+  const g = QG.nodeOfSet(r.paper_id, T); if (g) return [g];
   const want = [];
   if ((T.set || {})[r.paper_id]) want.push(T.set[r.paper_id]);
   if (T.ideas[S(r.idea_id)]) want.push(T.ideas[S(r.idea_id)]);

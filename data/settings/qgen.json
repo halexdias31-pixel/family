@@ -1,8 +1,8 @@
 {
-  "about": "GENERATED MATHS QUESTIONS (owner queue item 6, first slice: invisible to children, nothing reads this in js/). One template per row: `id` and `v` (a changed template is a new `v`, the old kept), `dfe` the DfE sub-topic it tests (data/settings/dfe-maths.json), `answer_type` and `marks` as data/questions.json has them, `vars` (each a whole number drawn from..to, `not` values skipped), `where` (conditions the numbers must meet), `let` (values worked out from them, in order), `text` and `key` (written with {expression}; `key` is an answer key the site's own marker reads, js/find-marking.js markAnswer_, | between accepted forms, rule: lines as in questions.json), `typed` (how a child would type the right answer; each must be marked right) and `wrong` (a near miss; must be marked wrong). Expressions use the names above, numbers, + - * / % ( ) ? : < > = ! & | and the helpers in tools/lib/qgen.js (gcd, lcm, sgn, co, plain, fix, tight). A generated question's id is gen:<dfe>:<id>.v<v>:<numbers>, and the same id always gives the same question. Read by tools/lib/qgen.js; checked by tools/one-gen.js.",
+  "about": "GENERATED MATHS QUESTIONS (owner queue item 6; owner 25 Nov: first-class @family questions, each template a fixed set of ten in Find under its DfE sub-topic, tools/gen-questions.js). One template per row: `id` (its version is a fingerprint of the template and its DfE node, worked out by tools/lib/qgen.js, never written here), `dfe` the DfE sub-topic it tests (data/settings/dfe-maths.json), `answer_type` and `marks` as data/questions.json has them, `vars` (each a whole number drawn from..to, `not` values skipped), `where` (conditions the numbers must meet), `let` (values worked out from them, in order), `text` and `key` (written with {expression}; `key` is an answer key the site's own marker reads, js/find-marking.js markAnswer_, | between accepted forms, rule: lines as in questions.json), `typed` (how a child would type the right answer; each must be marked right) and `wrong` (a near miss; must be marked wrong). Expressions use the names above, numbers, + - * / % ( ) ? : < > = ! & | and the helpers in tools/lib/qgen.js (gcd, lcm, sgn, co, plain, fix, tight). A generated question's id is gen:<dfe>:<id>.v<v>:<numbers>, and the same id always gives the same question. Read by tools/lib/qgen.js; checked by tools/one-gen.js.",
   "templates": [
     {
-      "id": "frac-amount", "v": 1, "dfe": "dfe.ma.n.frac.amount", "answer_type": "calculation", "marks": 1,
+      "id": "frac-amount", "dfe": "dfe.ma.n.frac.amount", "answer_type": "calculation", "marks": 1,
       "vars": { "d": [2, 12], "n": [1, 11], "k": [2, 25] },
       "where": ["n < d", "gcd(n, d) == 1"],
       "let": { "a": "d * k", "ans": "n * k" },
@@ -11,7 +11,7 @@
       "typed": ["{ans}"], "wrong": "{ans + 1}"
     },
     {
-      "id": "pct-amount", "v": 1, "dfe": "dfe.ma.n.frac.pct", "answer_type": "calculation", "marks": 1,
+      "id": "pct-amount", "dfe": "dfe.ma.n.frac.pct", "answer_type": "calculation", "marks": 1,
       "vars": { "p": [1, 19], "k": [1, 40] },
       "let": { "pc": "p * 5", "a": "k * 20", "ans": "pc * k / 5" },
       "text": "Work out {pc}% of £{a}.",
@@ -19,7 +19,7 @@
       "typed": ["{ans}", "£{ans}"], "wrong": "{ans + 1}"
     },
     {
-      "id": "pct-change", "v": 1, "dfe": "dfe.ma.n.frac.pctchange", "answer_type": "calculation", "marks": 2,
+      "id": "pct-change", "dfe": "dfe.ma.n.frac.pctchange", "answer_type": "calculation", "marks": 2,
       "vars": { "up": [0, 1], "p": [1, 9], "k": [2, 40] },
       "let": { "pc": "p * 5", "a": "k * 20", "ans": "up ? a + pc * k / 5 : a - pc * k / 5", "way": "up ? 'Increase' : 'Decrease'" },
       "text": "{way} £{a} by {pc}%.",
@@ -27,7 +27,7 @@
       "typed": ["{ans}", "£{ans}"], "wrong": "{up ? a - pc * k / 5 : a + pc * k / 5}"
     },
     {
-      "id": "hcf", "v": 1, "dfe": "dfe.ma.n.prop.factors", "answer_type": "short", "marks": 1,
+      "id": "hcf", "dfe": "dfe.ma.n.prop.factors", "answer_type": "short", "marks": 1,
       "vars": { "g": [2, 15], "x": [2, 12], "y": [2, 12] },
       "where": ["x < y", "gcd(x, y) == 1"],
       "let": { "a": "g * x", "b": "g * y" },
@@ -36,7 +36,7 @@
       "typed": ["{g}"], "wrong": "{g * 2}"
     },
     {
-      "id": "lcm", "v": 1, "dfe": "dfe.ma.n.prop.factors", "answer_type": "short", "marks": 1,
+      "id": "lcm", "dfe": "dfe.ma.n.prop.factors", "answer_type": "short", "marks": 1,
       "vars": { "a": [2, 30], "b": [2, 30] },
       "where": ["a < b", "b % a != 0"],
       "let": { "ans": "lcm(a, b)" },
@@ -45,7 +45,7 @@
       "typed": ["{ans}"], "wrong": "{ans + a}"
     },
     {
-      "id": "stdform", "v": 1, "dfe": "dfe.ma.n.prop.stdform", "answer_type": "short", "marks": 1,
+      "id": "stdform", "dfe": "dfe.ma.n.prop.stdform", "answer_type": "short", "marks": 1,
       "vars": { "m": [11, 99], "e": [-6, 8, 0, 1] },
       "where": ["m % 10 != 0"],
       "text": "Write {plain(m, e - 1)} in standard form.",
@@ -53,7 +53,7 @@
       "typed": ["{fix(m / 10)} × 10^{e}", "{fix(m / 10)}×10^({e})"], "wrong": "{fix(m / 10)} × 10^{e + 1}"
     },
     {
-      "id": "linear-eq", "v": 1, "dfe": "dfe.ma.a.solve.linear", "answer_type": "short", "marks": 2,
+      "id": "linear-eq", "dfe": "dfe.ma.a.solve.linear", "answer_type": "short", "marks": 2,
       "vars": { "a": [2, 9], "x": [-10, 12, 0], "b": [-20, 20, 0] },
       "let": { "c": "a * x + b" },
       "text": "Solve {a}x {sgn(b)} = {c}",
@@ -61,14 +61,14 @@
       "typed": ["x = {x}", "x={x}", "{x}"], "wrong": "x = {x + 1}"
     },
     {
-      "id": "expand", "v": 1, "dfe": "dfe.ma.a.expr.expand", "answer_type": "short", "marks": 1,
+      "id": "expand", "dfe": "dfe.ma.a.expr.expand", "answer_type": "short", "marks": 1,
       "vars": { "a": [2, 9], "b": [1, 9], "c": [-9, 9, 0] },
       "text": "Expand {a}({co(b)}x {sgn(c)})",
       "key": "{a * b}x {sgn(a * c)}",
       "typed": ["{a * b}x {sgn(a * c)}", "{tight(a * b + 'x' + sgn(a * c))}"], "wrong": "{a * b}x {sgn(c)}"
     },
     {
-      "id": "ratio-share", "v": 1, "dfe": "dfe.ma.r.ratio.share", "answer_type": "short", "marks": 2,
+      "id": "ratio-share", "dfe": "dfe.ma.r.ratio.share", "answer_type": "short", "marks": 2,
       "vars": { "p": [1, 9], "q": [1, 9], "k": [2, 30] },
       "where": ["p != q", "gcd(p, q) == 1"],
       "let": { "t": "(p + q) * k", "x": "p * k", "y": "q * k" },
@@ -77,7 +77,7 @@
       "typed": ["{x}, {y}", "£{x}, £{y}"], "wrong": "{y}, {x}"
     },
     {
-      "id": "area-rect", "v": 1, "dfe": "dfe.ma.g.mens.perimarea", "answer_type": "calculation", "marks": 1,
+      "id": "area-rect", "dfe": "dfe.ma.g.mens.perimarea", "answer_type": "calculation", "marks": 1,
       "vars": { "w": [2, 25], "h": [2, 25] },
       "where": ["w != h"],
       "let": { "ans": "w * h" },
@@ -86,7 +86,7 @@
       "typed": ["{ans}", "{ans} cm²", "{ans} cm^2"], "wrong": "{ans + w}"
     },
     {
-      "id": "area-tri", "v": 1, "dfe": "dfe.ma.g.mens.perimarea", "answer_type": "calculation", "marks": 1,
+      "id": "area-tri", "dfe": "dfe.ma.g.mens.perimarea", "answer_type": "calculation", "marks": 1,
       "vars": { "b": [2, 30], "h": [2, 30] },
       "where": ["b * h % 2 == 0"],
       "let": { "ans": "b * h / 2" },
@@ -95,7 +95,7 @@
       "typed": ["{ans}", "{ans} cm²"], "wrong": "{b * h}"
     },
     {
-      "id": "round-dp", "v": 1, "dfe": "dfe.ma.n.acc.round", "answer_type": "short", "marks": 1,
+      "id": "round-dp", "dfe": "dfe.ma.n.acc.round", "answer_type": "short", "marks": 1,
       "vars": { "m": [1001, 99999] },
       "where": ["m % 10 != 0", "m % 10 != 5", "(m - m % 10 + (m % 10 > 5 ? 10 : 0)) % 100 != 0", "(m - m % 10 + (m % 10 > 5 ? 0 : 10)) % 100 != 0"],
       "let": { "up": "m - m % 10 + (m % 10 > 5 ? 10 : 0)", "down": "m - m % 10 + (m % 10 > 5 ? 0 : 10)" },
@@ -104,7 +104,7 @@
       "typed": ["{fix(up / 1000)}"], "wrong": "{fix(down / 1000)}"
     },
     {
-      "id": "round-sf", "v": 1, "dfe": "dfe.ma.n.acc.round", "answer_type": "short", "marks": 1,
+      "id": "round-sf", "dfe": "dfe.ma.n.acc.round", "answer_type": "short", "marks": 1,
       "vars": { "a": [10, 99], "b": [1, 99] },
       "where": ["b != 50", "b % 10 != 0"],
       "let": { "ans": "(a + (b > 50 ? 1 : 0)) * 100", "other": "(a + (b > 50 ? 0 : 1)) * 100" },
@@ -113,7 +113,7 @@
       "typed": ["{ans}"], "wrong": "{other}"
     },
     {
-      "id": "estimate", "v": 1, "dfe": "dfe.ma.n.acc.estimate", "answer_type": "short", "marks": 1,
+      "id": "estimate", "dfe": "dfe.ma.n.acc.estimate", "answer_type": "short", "marks": 1,
       "vars": { "a": [11, 94], "b": [11, 94] },
       "where": ["a % 10 != 0", "b % 10 != 0", "a % 10 != 5", "b % 10 != 5"],
       "let": { "x": "(a - a % 10) / 10 + (a % 10 > 5 ? 1 : 0)", "y": "(b - b % 10) / 10 + (b % 10 > 5 ? 1 : 0)", "ans": "x * y * 10" },
@@ -122,7 +122,7 @@
       "typed": ["{ans}"], "wrong": "{x * y * 10 + x * 10}"
     },
     {
-      "id": "bounds", "v": 1, "dfe": "dfe.ma.n.acc.bounds", "answer_type": "short", "marks": 1,
+      "id": "bounds", "dfe": "dfe.ma.n.acc.bounds", "answer_type": "short", "marks": 1,
       "vars": { "n": [12, 99], "lo": [0, 1] },
       "let": { "ans": "lo ? n - 0.5 : n + 0.5", "way": "lo ? 'lower' : 'upper'" },
       "text": "A length is {n} cm, correct to the nearest centimetre. Write down its {way} bound.",
@@ -130,7 +130,7 @@
       "typed": ["{fix(ans)}", "{fix(ans)} cm"], "wrong": "{lo ? n - 1 : n + 1}"
     },
     {
-      "id": "neg-temp", "v": 1, "dfe": "dfe.ma.n.place.negative", "answer_type": "short", "marks": 1,
+      "id": "neg-temp", "dfe": "dfe.ma.n.place.negative", "answer_type": "short", "marks": 1,
       "vars": { "a": [-12, 15], "b": [3, 25] },
       "where": ["a - b < 0"],
       "let": { "ans": "a - b" },
@@ -139,7 +139,7 @@
       "typed": ["{ans}", "{ans}°C"], "wrong": "{-ans}"
     },
     {
-      "id": "neg-mul", "v": 1, "dfe": "dfe.ma.n.place.negative", "answer_type": "short", "marks": 1,
+      "id": "neg-mul", "dfe": "dfe.ma.n.place.negative", "answer_type": "short", "marks": 1,
       "vars": { "a": [-12, 12, 0, 1, -1], "b": [-12, 12, 0, 1, -1] },
       "where": ["a < 0 | b < 0"],
       "let": { "ans": "a * b" },
@@ -148,7 +148,7 @@
       "typed": ["{ans}"], "wrong": "{-ans}"
     },
     {
-      "id": "bidmas", "v": 1, "dfe": "dfe.ma.n.calc.order", "answer_type": "short", "marks": 1,
+      "id": "bidmas", "dfe": "dfe.ma.n.calc.order", "answer_type": "short", "marks": 1,
       "vars": { "a": [2, 30], "b": [2, 12], "c": [2, 12] },
       "let": { "ans": "a + b * c" },
       "text": "Work out {a} + {b} × {c}",
@@ -156,7 +156,7 @@
       "typed": ["{ans}"], "wrong": "{(a + b) * c}"
     },
     {
-      "id": "bidmas-2", "v": 1, "dfe": "dfe.ma.n.calc.order", "answer_type": "short", "marks": 1,
+      "id": "bidmas-2", "dfe": "dfe.ma.n.calc.order", "answer_type": "short", "marks": 1,
       "vars": { "a": [2, 12], "b": [2, 9], "c": [1, 9], "d": [2, 9] },
       "where": ["b != c"],
       "let": { "ans": "a * (b + c) - d * d" },
@@ -165,7 +165,7 @@
       "typed": ["{ans}"], "wrong": "{a * b + c - d * d}"
     },
     {
-      "id": "long-mul", "v": 1, "dfe": "dfe.ma.n.calc.long", "answer_type": "calculation", "marks": 2,
+      "id": "long-mul", "dfe": "dfe.ma.n.calc.long", "answer_type": "calculation", "marks": 2,
       "vars": { "a": [102, 999], "b": [12, 99] },
       "where": ["b % 10 != 0"],
       "let": { "ans": "a * b" },
@@ -174,7 +174,7 @@
       "typed": ["{ans}"], "wrong": "{ans + a}"
     },
     {
-      "id": "dec-mul", "v": 1, "dfe": "dfe.ma.n.calc.decimals", "answer_type": "calculation", "marks": 1,
+      "id": "dec-mul", "dfe": "dfe.ma.n.calc.decimals", "answer_type": "calculation", "marks": 1,
       "vars": { "a": [11, 99], "b": [3, 9] },
       "where": ["a % 10 != 0"],
       "let": { "ans": "a * b" },
@@ -183,7 +183,7 @@
       "typed": ["{fix(ans / 10)}"], "wrong": "{fix(ans / 100)}"
     },
     {
-      "id": "product-rule", "v": 1, "dfe": "dfe.ma.n.prop.counting", "answer_type": "short", "marks": 1,
+      "id": "product-rule", "dfe": "dfe.ma.n.prop.counting", "answer_type": "short", "marks": 1,
       "vars": { "s": [2, 9], "m": [2, 12], "d": [2, 9] },
       "let": { "ans": "s * m * d" },
       "text": "A café offers {s} starters, {m} main courses and {d} desserts. A meal is one starter, one main course and one dessert. How many different meals are there?",
@@ -191,7 +191,7 @@
       "typed": ["{ans}"], "wrong": "{s + m + d}"
     },
     {
-      "id": "powers-roots", "v": 1, "dfe": "dfe.ma.n.prop.powers", "answer_type": "short", "marks": 1,
+      "id": "powers-roots", "dfe": "dfe.ma.n.prop.powers", "answer_type": "short", "marks": 1,
       "vars": { "a": [2, 12], "b": [2, 15] },
       "where": ["a * a != b"],
       "let": { "ans": "a * a * a + b" },
@@ -200,7 +200,7 @@
       "typed": ["{ans}"], "wrong": "{a * 3 + b}"
     },
     {
-      "id": "index-mul", "v": 1, "dfe": "dfe.ma.n.prop.indices", "answer_type": "short", "marks": 1,
+      "id": "index-mul", "dfe": "dfe.ma.n.prop.indices", "answer_type": "short", "marks": 1,
       "vars": { "a": [2, 12], "b": [2, 12], "w": [0, 1] },
       "where": ["a * b != a + b"],
       "let": { "e": "w ? a + b : a * b", "bad": "w ? a * b : a + b" },
@@ -209,8 +209,8 @@
       "typed": ["x^{e}"], "wrong": "x^{bad}"
     },
     {
-      "id": "index-div", "v": 1, "dfe": "dfe.ma.n.prop.indices", "answer_type": "short", "marks": 1,
-      "vars": { "a": [5, 20], "b": [2, 12] },
+      "id": "index-div", "dfe": "dfe.ma.n.prop.indices", "answer_type": "short", "marks": 1,
+      "vars": { "a": [5, 25], "b": [2, 12] },
       "where": ["a > b + 1"],
       "let": { "e": "a - b" },
       "text": "Simplify y^{a} ÷ y^{b}",
@@ -218,7 +218,7 @@
       "typed": ["y^{e}"], "wrong": "y^{a + b}"
     },
     {
-      "id": "frac-simplify", "v": 1, "dfe": "dfe.ma.n.frac.equiv", "answer_type": "short", "marks": 1,
+      "id": "frac-simplify", "dfe": "dfe.ma.n.frac.equiv", "answer_type": "short", "marks": 1,
       "vars": { "a": [1, 12], "b": [2, 13], "g": [2, 9] },
       "where": ["a < b", "gcd(a, b) == 1"],
       "text": "Write {a * g}/{b * g} in its simplest form.",
@@ -226,7 +226,7 @@
       "typed": ["{a}/{b}"], "wrong": "{a * g}/{b * g}"
     },
     {
-      "id": "frac-add", "v": 1, "dfe": "dfe.ma.n.frac.addsub", "answer_type": "short", "marks": 2,
+      "id": "frac-add", "dfe": "dfe.ma.n.frac.addsub", "answer_type": "short", "marks": 2,
       "vars": { "a": [1, 9], "b": [2, 10], "c": [1, 9], "d": [2, 10] },
       "where": ["a < b", "c < d", "b != d", "gcd(a, b) == 1", "gcd(c, d) == 1", "(a * d + c * b) / gcd(a * d + c * b, b * d) != 1 | b * d / gcd(a * d + c * b, b * d) != 1"],
       "let": { "g": "gcd(a * d + c * b, b * d)", "n": "(a * d + c * b) / g", "m": "b * d / g" },
@@ -235,7 +235,7 @@
       "typed": ["{n}/{m}"], "wrong": "{a + c}/{b + d}"
     },
     {
-      "id": "frac-mul", "v": 1, "dfe": "dfe.ma.n.frac.muldiv", "answer_type": "short", "marks": 2,
+      "id": "frac-mul", "dfe": "dfe.ma.n.frac.muldiv", "answer_type": "short", "marks": 2,
       "vars": { "a": [1, 9], "b": [2, 10], "c": [1, 9], "d": [2, 10], "dv": [0, 1] },
       "where": ["a < b", "c < d", "gcd(a, b) == 1", "gcd(c, d) == 1", "dv ? a * d != b * c : 1"],
       "let": { "tn": "dv ? a * d : a * c", "td": "dv ? b * c : b * d", "g": "gcd(tn, td)", "n": "tn / g", "m": "td / g", "bn": "dv ? a * c : a * d", "bd": "dv ? b * d : b * c", "bg": "gcd(bn, bd)" },
@@ -244,7 +244,7 @@
       "typed": ["{m == 1 ? n : n + '/' + m}"], "wrong": "{bn / bg}/{bd / bg}"
     },
     {
-      "id": "mixed", "v": 1, "dfe": "dfe.ma.n.frac.mixed", "answer_type": "short", "marks": 1,
+      "id": "mixed", "dfe": "dfe.ma.n.frac.mixed", "answer_type": "short", "marks": 1,
       "vars": { "w": [1, 9], "r": [1, 11], "d": [2, 12] },
       "where": ["r < d", "gcd(r, d) == 1"],
       "let": { "n": "w * d + r" },
@@ -253,7 +253,7 @@
       "typed": ["{w} {r}/{d}"], "wrong": "{w + 1} {r}/{d}"
     },
     {
-      "id": "fdp", "v": 1, "dfe": "dfe.ma.n.frac.fdp", "answer_type": "short", "marks": 1,
+      "id": "fdp", "dfe": "dfe.ma.n.frac.fdp", "answer_type": "short", "marks": 1,
       "vars": { "p": [1, 199], "w": [0, 1] },
       "where": ["p % 10 != 0"],
       "text": "{w ? 'Write ' + p + '% as a decimal.' : 'Write ' + fix(p / 100) + ' as a percentage.'}",
@@ -261,7 +261,7 @@
       "typed": ["{w ? fix(p / 100) : p + '%'}"], "wrong": "{w ? fix(p / 10) : fix(p / 10) + '%'}"
     },
     {
-      "id": "simple-interest", "v": 1, "dfe": "dfe.ma.n.frac.pctchange", "answer_type": "calculation", "marks": 2,
+      "id": "simple-interest", "dfe": "dfe.ma.n.frac.pctchange", "answer_type": "calculation", "marks": 2,
       "vars": { "k": [2, 60], "r": [1, 9], "n": [2, 8] },
       "let": { "p": "k * 100", "ans": "k * r * n" },
       "text": "£{p} is invested for {n} years at {r}% per year simple interest. How much interest is earned?",
@@ -269,7 +269,7 @@
       "typed": ["{ans}", "£{ans}"], "wrong": "{k * r}"
     },
     {
-      "id": "compound", "v": 1, "dfe": "dfe.ma.r.prop.growth", "answer_type": "calculation", "marks": 3,
+      "id": "compound", "dfe": "dfe.ma.r.prop.growth", "answer_type": "calculation", "marks": 3,
       "vars": { "k": [1, 99], "r": [1, 10] },
       "where": ["k * (100 + r) * (100 + r) % 100 == 0"],
       "let": { "p": "k * 100", "ans": "k * (100 + r) * (100 + r) / 100" },
@@ -278,7 +278,7 @@
       "typed": ["{ans}", "£{ans}"], "wrong": "{p + 2 * k * r}"
     },
     {
-      "id": "collect", "v": 1, "dfe": "dfe.ma.a.expr.notation", "answer_type": "short", "marks": 1,
+      "id": "collect", "dfe": "dfe.ma.a.expr.notation", "answer_type": "short", "marks": 1,
       "vars": { "a": [2, 9], "b": [2, 9], "c": [-9, 9, 0], "d": [-9, 9, 0] },
       "where": ["a + c > 1", "b + d > 1", "a - c > 1"],
       "let": { "p": "a + c", "q": "b + d" },
@@ -287,7 +287,7 @@
       "typed": ["{p}x + {q}y", "{p}x+{q}y"], "wrong": "{a - c}x + {q}y"
     },
     {
-      "id": "subst", "v": 1, "dfe": "dfe.ma.a.expr.subst", "answer_type": "short", "marks": 2,
+      "id": "subst", "dfe": "dfe.ma.a.expr.subst", "answer_type": "short", "marks": 2,
       "vars": { "a": [2, 9], "b": [2, 9], "x": [-6, 9, 0], "y": [-6, 9, 0] },
       "where": ["b * y != 0"],
       "let": { "ans": "a * x + b * y" },
@@ -296,7 +296,7 @@
       "typed": ["{ans}"], "wrong": "{a * x - b * y}"
     },
     {
-      "id": "factorise", "v": 1, "dfe": "dfe.ma.a.expr.factorise", "answer_type": "short", "marks": 2,
+      "id": "factorise", "dfe": "dfe.ma.a.expr.factorise", "answer_type": "short", "marks": 2,
       "vars": { "g": [2, 9], "a": [2, 9], "b": [-9, 9, 0] },
       "where": ["gcd(a, b) == 1"],
       "text": "Factorise fully {g * a}x {sgn(g * b)}",
@@ -304,14 +304,14 @@
       "typed": ["{g}({a}x {sgn(b)})", "{tight(g + '(' + a + 'x' + sgn(b) + ')')}"], "wrong": "{g}({a}x {sgn(g * b)})"
     },
     {
-      "id": "subject", "v": 1, "dfe": "dfe.ma.a.expr.formulae", "answer_type": "short", "marks": 2,
+      "id": "subject", "dfe": "dfe.ma.a.expr.formulae", "answer_type": "short", "marks": 2,
       "vars": { "a": [2, 9], "b": [1, 20] },
       "text": "Make x the subject of y = {a}x + {b}",
       "key": "x = (y - {b})/{a}",
       "typed": ["x = (y - {b})/{a}", "x=(y-{b})/{a}"], "wrong": "x = (y + {b})/{a}"
     },
     {
-      "id": "formula", "v": 1, "dfe": "dfe.ma.a.expr.formulae", "answer_type": "short", "marks": 1,
+      "id": "formula", "dfe": "dfe.ma.a.expr.formulae", "answer_type": "short", "marks": 1,
       "vars": { "u": [1, 30], "a": [2, 10], "t": [2, 12] },
       "let": { "ans": "u + a * t" },
       "text": "Use v = u + at to work out v when u = {u}, a = {a} and t = {t}.",
@@ -319,7 +319,7 @@
       "typed": ["{ans}"], "wrong": "{(u + a) * t}"
     },
     {
-      "id": "function", "v": 1, "dfe": "dfe.ma.a.expr.functions", "answer_type": "short", "marks": 1,
+      "id": "function", "dfe": "dfe.ma.a.expr.functions", "answer_type": "short", "marks": 1,
       "vars": { "a": [2, 9], "b": [-12, 12, 0], "k": [-5, 9, 0, 1] },
       "let": { "ans": "a * k + b" },
       "text": "f(x) = {a}x {sgn(b)}. Work out f({k}).",
@@ -327,7 +327,7 @@
       "typed": ["{ans}"], "wrong": "{a * (k + b)}"
     },
     {
-      "id": "linear-bracket", "v": 1, "dfe": "dfe.ma.a.solve.linear", "answer_type": "short", "marks": 2,
+      "id": "linear-bracket", "dfe": "dfe.ma.a.solve.linear", "answer_type": "short", "marks": 2,
       "vars": { "a": [2, 9], "b": [-9, 9, 0], "x": [-9, 12, 0] },
       "let": { "c": "a * (x + b)" },
       "text": "Solve {a}(x {sgn(b)}) = {c}",
@@ -335,7 +335,7 @@
       "typed": ["x = {x}", "{x}"], "wrong": "x = {c / a + b}"
     },
     {
-      "id": "form-eq", "v": 1, "dfe": "dfe.ma.a.solve.form", "answer_type": "short", "marks": 2,
+      "id": "form-eq", "dfe": "dfe.ma.a.solve.form", "answer_type": "short", "marks": 2,
       "vars": { "a": [2, 9], "b": [1, 30], "x": [2, 20] },
       "let": { "c": "a * x + b" },
       "text": "I think of a number. I multiply it by {a} and then add {b}. The answer is {c}. What number did I think of?",
@@ -343,7 +343,7 @@
       "typed": ["{x}"], "wrong": "{x + 1}"
     },
     {
-      "id": "inequality", "v": 1, "dfe": "dfe.ma.a.solve.ineq", "answer_type": "short", "marks": 2,
+      "id": "inequality", "dfe": "dfe.ma.a.solve.ineq", "answer_type": "short", "marks": 2,
       "vars": { "a": [2, 9], "b": [-20, 20, 0], "x": [-8, 12] },
       "let": { "c": "a * x + b" },
       "text": "Solve {a}x {sgn(b)} < {c}",
@@ -351,7 +351,7 @@
       "typed": ["x < {x}", "x<{x}"], "wrong": "x > {x}"
     },
     {
-      "id": "simultaneous", "v": 1, "dfe": "dfe.ma.a.solve.sim", "answer_type": "short", "marks": 3,
+      "id": "simultaneous", "dfe": "dfe.ma.a.solve.sim", "answer_type": "short", "marks": 3,
       "vars": { "a": [1, 5], "b": [1, 5], "c": [1, 5], "d": [-5, 5, 0], "x": [-6, 9], "y": [-6, 9] },
       "where": ["a * d - b * c != 0", "x != y"],
       "let": { "p": "a * x + b * y", "q": "c * x + d * y" },
@@ -360,7 +360,7 @@
       "typed": ["x = {x}, y = {y}", "x={x}, y={y}"], "wrong": "x = {y}, y = {x}"
     },
     {
-      "id": "quad-solve", "v": 1, "dfe": "dfe.ma.a.solve.quad", "answer_type": "short", "marks": 3,
+      "id": "quad-solve", "dfe": "dfe.ma.a.solve.quad", "answer_type": "short", "marks": 3,
       "vars": { "p": [-10, 10, 0], "q": [-10, 10, 0] },
       "where": ["p < q", "p + q > 1 | p + q < -1"],
       "text": "Solve x² {sgn(-(p + q))}x {sgn(p * q)} = 0",
@@ -368,14 +368,14 @@
       "typed": ["x = {p}, x = {q}", "{p}, {q}", "{q}, {p}"], "wrong": "{-p}, {-q}"
     },
     {
-      "id": "nth-term", "v": 1, "dfe": "dfe.ma.a.seq.nth", "answer_type": "short", "marks": 2,
+      "id": "nth-term", "dfe": "dfe.ma.a.seq.nth", "answer_type": "short", "marks": 2,
       "vars": { "d": [-9, 9, 0, 1, -1], "a": [-12, 12, 0] },
       "text": "Find an expression for the nth term of the sequence {a + d}, {a + 2 * d}, {a + 3 * d}, {a + 4 * d}, ...",
       "key": "{d}n {sgn(a)}",
       "typed": ["{d}n {sgn(a)}", "{tight(d + 'n' + sgn(a))}"], "wrong": "{d}n {sgn(a + d)}"
     },
     {
-      "id": "seq-term", "v": 1, "dfe": "dfe.ma.a.seq.gen", "answer_type": "short", "marks": 1,
+      "id": "seq-term", "dfe": "dfe.ma.a.seq.gen", "answer_type": "short", "marks": 1,
       "vars": { "d": [2, 12], "a": [-12, 12, 0], "k": [5, 100] },
       "let": { "ans": "d * k + a" },
       "text": "The nth term of a sequence is {d}n {sgn(a)}. Work out the {k}th term.",
@@ -383,7 +383,7 @@
       "typed": ["{ans}"], "wrong": "{ans + d}"
     },
     {
-      "id": "fib-like", "v": 1, "dfe": "dfe.ma.a.seq.types", "answer_type": "short", "marks": 1,
+      "id": "fib-like", "dfe": "dfe.ma.a.seq.types", "answer_type": "short", "marks": 1,
       "vars": { "a": [1, 20], "b": [1, 20] },
       "where": ["a != b"],
       "let": { "ans": "3 * a + 5 * b" },
@@ -392,7 +392,7 @@
       "typed": ["{ans}"], "wrong": "{4 * a + 4 * b}"
     },
     {
-      "id": "midpoint", "v": 1, "dfe": "dfe.ma.a.graph.coords", "answer_type": "short", "marks": 1,
+      "id": "midpoint", "dfe": "dfe.ma.a.graph.coords", "answer_type": "short", "marks": 1,
       "vars": { "a": [-9, 12], "b": [-9, 12], "c": [-9, 12], "d": [-9, 12] },
       "where": ["(a + c) % 2 == 0", "(b + d) % 2 == 0", "a + c != b + d", "a != c"],
       "let": { "x": "(a + c) / 2", "y": "(b + d) / 2" },
@@ -401,7 +401,7 @@
       "typed": ["({x}, {y})", "({x},{y})"], "wrong": "({y}, {x})"
     },
     {
-      "id": "gradient", "v": 1, "dfe": "dfe.ma.a.graph.line", "answer_type": "short", "marks": 1,
+      "id": "gradient", "dfe": "dfe.ma.a.graph.line", "answer_type": "short", "marks": 1,
       "vars": { "m": [-6, 6, 0], "x": [-6, 6], "y": [-9, 9], "h": [1, 5] },
       "let": { "x2": "x + h", "y2": "y + m * h" },
       "text": "Work out the gradient of the straight line through ({x}, {y}) and ({x2}, {y2}).",
@@ -409,7 +409,7 @@
       "typed": ["{m}"], "wrong": "{-m}"
     },
     {
-      "id": "ratio-simplify", "v": 1, "dfe": "dfe.ma.r.ratio.simplify", "answer_type": "short", "marks": 1,
+      "id": "ratio-simplify", "dfe": "dfe.ma.r.ratio.simplify", "answer_type": "short", "marks": 1,
       "vars": { "a": [1, 12], "b": [1, 12], "g": [2, 12] },
       "where": ["a != b", "gcd(a, b) == 1"],
       "text": "Write the ratio {a * g} : {b * g} in its simplest form.",
@@ -417,7 +417,7 @@
       "typed": ["{a} : {b}", "{a}:{b}"], "wrong": "{b} : {a}"
     },
     {
-      "id": "ratio-part", "v": 1, "dfe": "dfe.ma.r.ratio.mult", "answer_type": "short", "marks": 1,
+      "id": "ratio-part", "dfe": "dfe.ma.r.ratio.mult", "answer_type": "short", "marks": 1,
       "vars": { "a": [1, 9], "b": [1, 9], "k": [2, 15] },
       "where": ["a != b", "gcd(a, b) == 1"],
       "let": { "x": "a * k", "y": "b * k" },
@@ -426,7 +426,7 @@
       "typed": ["{y}"], "wrong": "{x + y}"
     },
     {
-      "id": "fraction-of", "v": 1, "dfe": "dfe.ma.r.ratio.fraction", "answer_type": "short", "marks": 1,
+      "id": "fraction-of", "dfe": "dfe.ma.r.ratio.fraction", "answer_type": "short", "marks": 1,
       "vars": { "a": [1, 12], "b": [2, 15], "g": [2, 8] },
       "where": ["a < b", "gcd(a, b) == 1"],
       "text": "Write {a * g} as a fraction of {b * g}. Give your answer in its simplest form.",
@@ -434,7 +434,7 @@
       "typed": ["{a}/{b}"], "wrong": "{a * g}/{b * g}"
     },
     {
-      "id": "scale-map", "v": 1, "dfe": "dfe.ma.r.ratio.scale", "answer_type": "short", "marks": 1,
+      "id": "scale-map", "dfe": "dfe.ma.r.ratio.scale", "answer_type": "short", "marks": 1,
       "vars": { "k": [1, 8], "c": [2, 30] },
       "let": { "s": "k * 50000", "ans": "c * k / 2" },
       "text": "A map has a scale of 1 : {s}. Two towns are {c} cm apart on the map. How far apart are they in real life, in kilometres?",
@@ -442,7 +442,7 @@
       "typed": ["{fix(ans)}", "{fix(ans)} km"], "wrong": "{fix(ans * 10)}"
     },
     {
-      "id": "direct", "v": 1, "dfe": "dfe.ma.r.prop.direct", "answer_type": "short", "marks": 2,
+      "id": "direct", "dfe": "dfe.ma.r.prop.direct", "answer_type": "short", "marks": 2,
       "vars": { "n": [2, 12], "u": [2, 20], "m": [2, 30] },
       "where": ["m != n"],
       "let": { "c": "n * u", "ans": "m * u" },
@@ -451,7 +451,7 @@
       "typed": ["{ans}", "£{ans}"], "wrong": "{c + m - n}"
     },
     {
-      "id": "inverse", "v": 1, "dfe": "dfe.ma.r.prop.inverse", "answer_type": "short", "marks": 2,
+      "id": "inverse", "dfe": "dfe.ma.r.prop.inverse", "answer_type": "short", "marks": 2,
       "vars": { "w": [2, 12], "d": [2, 20], "v": [2, 12] },
       "where": ["v != w", "w * d % v == 0"],
       "let": { "ans": "w * d / v" },
@@ -460,7 +460,7 @@
       "typed": ["{ans}"], "wrong": "{d * v / w == ans ? ans + 1 : fix(d * v / w)}"
     },
     {
-      "id": "convert-len", "v": 1, "dfe": "dfe.ma.r.units.convert", "answer_type": "short", "marks": 1,
+      "id": "convert-len", "dfe": "dfe.ma.r.units.convert", "answer_type": "short", "marks": 1,
       "vars": { "a": [11, 999], "w": [0, 2] },
       "where": ["a % 10 != 0"],
       "text": "{w == 0 ? 'Convert ' + fix(a / 10) + ' km to metres.' : w == 1 ? 'Convert ' + a + ' g to kilograms.' : 'Convert ' + fix(a / 10) + ' litres to millilitres.'}",
@@ -468,7 +468,7 @@
       "typed": ["{w == 1 ? fix(a / 1000) : a * 100}"], "wrong": "{w == 1 ? fix(a / 100) : a * 10}"
     },
     {
-      "id": "speed", "v": 1, "dfe": "dfe.ma.r.units.compound", "answer_type": "calculation", "marks": 2,
+      "id": "speed", "dfe": "dfe.ma.r.units.compound", "answer_type": "calculation", "marks": 2,
       "vars": { "s": [4, 90], "t": [2, 6] },
       "let": { "d": "s * t" },
       "text": "A car travels {d} km in {t} hours. Work out its average speed in km/h.",
@@ -476,7 +476,7 @@
       "typed": ["{s}", "{s} km/h"], "wrong": "{d * t}"
     },
     {
-      "id": "density", "v": 1, "dfe": "dfe.ma.r.units.compound", "answer_type": "calculation", "marks": 2,
+      "id": "density", "dfe": "dfe.ma.r.units.compound", "answer_type": "calculation", "marks": 2,
       "vars": { "p": [2, 19], "v": [2, 50] },
       "let": { "m": "p * v" },
       "text": "A block has a mass of {m} g and a volume of {v} cm³. Work out its density in g/cm³.",
@@ -484,7 +484,7 @@
       "typed": ["{p}", "{p} g/cm³"], "wrong": "{m * v}"
     },
     {
-      "id": "similar", "v": 1, "dfe": "dfe.ma.g.trans.similar", "answer_type": "calculation", "marks": 2,
+      "id": "similar", "dfe": "dfe.ma.g.trans.similar", "answer_type": "calculation", "marks": 2,
       "vars": { "a": [2, 15], "b": [2, 20], "k": [2, 6] },
       "where": ["a != b"],
       "let": { "c": "a * k", "ans": "b * k" },
@@ -493,7 +493,7 @@
       "typed": ["{ans}", "{ans} cm"], "wrong": "{b + c - a}"
     },
     {
-      "id": "angle-point", "v": 1, "dfe": "dfe.ma.g.angle.facts", "answer_type": "short", "marks": 1,
+      "id": "angle-point", "dfe": "dfe.ma.g.angle.facts", "answer_type": "short", "marks": 1,
       "vars": { "a": [20, 150], "b": [20, 150], "c": [20, 150] },
       "where": ["a + b + c < 340"],
       "let": { "ans": "360 - a - b - c" },
@@ -502,7 +502,7 @@
       "typed": ["{ans}", "{ans}°"], "wrong": "{ans + 10}"
     },
     {
-      "id": "angle-tri", "v": 1, "dfe": "dfe.ma.g.angle.triquad", "answer_type": "short", "marks": 1,
+      "id": "angle-tri", "dfe": "dfe.ma.g.angle.triquad", "answer_type": "short", "marks": 1,
       "vars": { "a": [15, 120], "b": [15, 120], "q": [0, 1], "c": [40, 140] },
       "where": ["q ? a + b + c < 340 : a + b < 170"],
       "let": { "ans": "q ? 360 - a - b - c : 180 - a - b", "shape": "q ? 'quadrilateral' : 'triangle'", "list": "q ? a + '°, ' + b + '° and ' + c + '°' : a + '° and ' + b + '°'" },
@@ -511,7 +511,7 @@
       "typed": ["{ans}", "{ans}°"], "wrong": "{ans + 10}"
     },
     {
-      "id": "polygon-missing", "v": 1, "dfe": "dfe.ma.g.angle.polygon", "answer_type": "short", "marks": 2,
+      "id": "polygon-missing", "dfe": "dfe.ma.g.angle.polygon", "answer_type": "short", "marks": 2,
       "vars": { "h": [0, 1], "a": [95, 140], "b": [95, 140], "c": [95, 140], "d": [95, 140] },
       "where": ["(h ? 720 - a - b - c - d - 125 : 540 - a - b - c - d) > 60", "(h ? 720 - a - b - c - d - 125 : 540 - a - b - c - d) < 175"],
       "let": { "ans": "h ? 720 - a - b - c - d - 125 : 540 - a - b - c - d", "shape": "h ? 'hexagon' : 'pentagon'", "list": "a + '°, ' + b + '°, ' + c + '°, ' + d + (h ? '°, 125°' : '°')" },
@@ -520,7 +520,7 @@
       "typed": ["{ans}", "{ans}°", "x = {ans}"], "wrong": "{ans + 180}"
     },
     {
-      "id": "bearing-back", "v": 1, "dfe": "dfe.ma.g.angle.bearings", "answer_type": "short", "marks": 2,
+      "id": "bearing-back", "dfe": "dfe.ma.g.angle.bearings", "answer_type": "short", "marks": 2,
       "vars": { "b": [10, 170] },
       "where": ["b != 90"],
       "let": { "ans": "b + 180" },
@@ -529,7 +529,7 @@
       "typed": ["{ans}", "{ans}°"], "wrong": "{360 - b}"
     },
     {
-      "id": "pythag", "v": 1, "dfe": "dfe.ma.g.mens.pythag", "answer_type": "calculation", "marks": 3,
+      "id": "pythag", "dfe": "dfe.ma.g.mens.pythag", "answer_type": "calculation", "marks": 3,
       "vars": { "i": [0, 9], "k": [1, 12], "leg": [0, 1] },
       "let": { "p": "(i == 0 ? 3 : i == 1 ? 5 : i == 2 ? 8 : i == 3 ? 7 : i == 4 ? 20 : i == 5 ? 9 : i == 6 ? 12 : i == 7 ? 11 : i == 8 ? 28 : 33) * k", "q": "(i == 0 ? 4 : i == 1 ? 12 : i == 2 ? 15 : i == 3 ? 24 : i == 4 ? 21 : i == 5 ? 40 : i == 6 ? 35 : i == 7 ? 60 : i == 8 ? 45 : 56) * k", "r": "(i == 0 ? 5 : i == 1 ? 13 : i == 2 ? 17 : i == 3 ? 25 : i == 4 ? 29 : i == 5 ? 41 : i == 6 ? 37 : i == 7 ? 61 : i == 8 ? 53 : 65) * k" },
       "text": "{leg ? 'A right-angled triangle has a hypotenuse of ' + r + ' cm and another side of ' + p + ' cm. Work out the length of the third side.' : 'A right-angled triangle has shorter sides of ' + p + ' cm and ' + q + ' cm. Work out the length of the hypotenuse.'}",
@@ -537,7 +537,7 @@
       "typed": ["{leg ? q : r}", "{leg ? q : r} cm"], "wrong": "{leg ? r - p : p + q}"
     },
     {
-      "id": "circle-pi", "v": 1, "dfe": "dfe.ma.g.mens.circle", "answer_type": "short", "marks": 2,
+      "id": "circle-pi", "dfe": "dfe.ma.g.mens.circle", "answer_type": "short", "marks": 2,
       "vars": { "r": [1, 50], "w": [0, 1], "g": [0, 1] },
       "let": { "ans": "w ? r * r : 2 * r", "bad": "w ? 2 * r : r * r", "said": "g ? 'diameter of ' + 2 * r : 'radius of ' + r" },
       "text": "A circle has a {said} cm. Work out its {w ? 'area' : 'circumference'}. Give your answer in terms of π.",
@@ -545,7 +545,7 @@
       "typed": ["{ans}π"], "wrong": "{bad == ans ? ans + 1 : bad}π"
     },
     {
-      "id": "cuboid", "v": 1, "dfe": "dfe.ma.g.mens.volume", "answer_type": "calculation", "marks": 1,
+      "id": "cuboid", "dfe": "dfe.ma.g.mens.volume", "answer_type": "calculation", "marks": 1,
       "vars": { "l": [2, 20], "w": [2, 15], "h": [2, 12] },
       "let": { "ans": "l * w * h" },
       "text": "A cuboid measures {l} cm by {w} cm by {h} cm. Work out its volume.",
@@ -553,7 +553,7 @@
       "typed": ["{ans}", "{ans} cm³"], "wrong": "{2 * (l * w + l * h + w * h) == ans ? ans + 1 : 2 * (l * w + l * h + w * h)}"
     },
     {
-      "id": "surface-area", "v": 1, "dfe": "dfe.ma.g.mens.volume", "answer_type": "calculation", "marks": 2,
+      "id": "surface-area", "dfe": "dfe.ma.g.mens.volume", "answer_type": "calculation", "marks": 2,
       "vars": { "l": [2, 20], "w": [2, 15], "h": [2, 12] },
       "let": { "ans": "2 * (l * w + l * h + w * h)" },
       "text": "A cuboid measures {l} cm by {w} cm by {h} cm. Work out its total surface area.",
@@ -561,7 +561,7 @@
       "typed": ["{ans}", "{ans} cm²"], "wrong": "{l * w + l * h + w * h}"
     },
     {
-      "id": "sector", "v": 1, "dfe": "dfe.ma.g.mens.arcs", "answer_type": "short", "marks": 2,
+      "id": "sector", "dfe": "dfe.ma.g.mens.arcs", "answer_type": "short", "marks": 2,
       "vars": { "t": [1, 35], "r": [2, 30] },
       "where": ["t * r * r % 36 == 0", "t != 18"],
       "let": { "ans": "t * r * r / 36" },
@@ -570,7 +570,7 @@
       "typed": ["{ans}π"], "wrong": "{r * r}π"
     },
     {
-      "id": "prob-bag", "v": 1, "dfe": "dfe.ma.p.prob.basic", "answer_type": "short", "marks": 1,
+      "id": "prob-bag", "dfe": "dfe.ma.p.prob.basic", "answer_type": "short", "marks": 1,
       "vars": { "r": [1, 15], "b": [1, 15] },
       "where": ["gcd(r, r + b) == 1", "r != b"],
       "let": { "n": "r + b" },
@@ -579,7 +579,7 @@
       "typed": ["{r}/{n}"], "wrong": "{r}/{b}"
     },
     {
-      "id": "prob-not", "v": 1, "dfe": "dfe.ma.p.prob.basic", "answer_type": "short", "marks": 1,
+      "id": "prob-not", "dfe": "dfe.ma.p.prob.basic", "answer_type": "short", "marks": 1,
       "vars": { "p": [1, 999] },
       "where": ["p != 500", "p % 10 != 0"],
       "text": "The probability that a bus is late is {fix(p / 1000)}. What is the probability that it is not late?",
@@ -587,7 +587,7 @@
       "typed": ["{fix((1000 - p) / 1000)}"], "wrong": "{fix(p / 1000)}"
     },
     {
-      "id": "expected", "v": 1, "dfe": "dfe.ma.p.prob.freq", "answer_type": "short", "marks": 1,
+      "id": "expected", "dfe": "dfe.ma.p.prob.freq", "answer_type": "short", "marks": 1,
       "vars": { "p": [1, 9], "k": [1, 20] },
       "let": { "n": "k * 50", "ans": "p * k * 5" },
       "text": "The probability that a spinner lands on red is {fix(p / 10)}. It is spun {n} times. How many times would you expect it to land on red?",
@@ -595,7 +595,7 @@
       "typed": ["{ans}"], "wrong": "{ans + p}"
     },
     {
-      "id": "outcomes", "v": 1, "dfe": "dfe.ma.p.prob.outcomes", "answer_type": "short", "marks": 1,
+      "id": "outcomes", "dfe": "dfe.ma.p.prob.outcomes", "answer_type": "short", "marks": 1,
       "vars": { "a": [3, 20], "b": [4, 12] },
       "let": { "ans": "a * b" },
       "text": "A fair spinner has {a} equal sections numbered 1 to {a}. A second fair spinner has {b} equal sections lettered A, B, C, and so on. Both are spun once. How many different outcomes are there?",
@@ -603,7 +603,7 @@
       "typed": ["{ans}"], "wrong": "{a + b}"
     },
     {
-      "id": "prob-and", "v": 1, "dfe": "dfe.ma.p.prob.tree", "answer_type": "short", "marks": 2,
+      "id": "prob-and", "dfe": "dfe.ma.p.prob.tree", "answer_type": "short", "marks": 2,
       "vars": { "p": [1, 9], "q": [11, 99] },
       "where": ["q % 10 != 0"],
       "text": "The probability that Sam wins a game is {fix(p / 10)}. The probability that Ali wins a different game is {fix(q / 100)}. The games are independent. Work out the probability that both win.",
@@ -611,7 +611,7 @@
       "typed": ["{fix(p * q / 1000)}"], "wrong": "{fix(p / 10 + q / 100)}"
     },
     {
-      "id": "mean", "v": 1, "dfe": "dfe.ma.s.analyse.averages", "answer_type": "calculation", "marks": 2,
+      "id": "mean", "dfe": "dfe.ma.s.analyse.averages", "answer_type": "calculation", "marks": 2,
       "vars": { "a": [1, 40], "b": [1, 40], "c": [1, 40], "d": [1, 40], "e": [1, 40] },
       "where": ["(a + b + c + d + e) % 5 == 0"],
       "let": { "ans": "(a + b + c + d + e) / 5" },
@@ -620,7 +620,7 @@
       "typed": ["{ans}"], "wrong": "{ans + 1}"
     },
     {
-      "id": "median-range", "v": 1, "dfe": "dfe.ma.s.analyse.averages", "answer_type": "short", "marks": 2,
+      "id": "median-range", "dfe": "dfe.ma.s.analyse.averages", "answer_type": "short", "marks": 2,
       "vars": { "a": [1, 50], "b": [1, 50], "c": [1, 50], "d": [1, 50], "e": [1, 50], "w": [0, 1] },
       "where": ["a < b", "b < c", "c < d", "d < e", "e - a != c"],
       "let": { "ans": "w ? c : e - a", "bad": "w ? e - a : c" },
@@ -629,7 +629,7 @@
       "typed": ["{ans}"], "wrong": "{w ? e : bad}"
     },
     {
-      "id": "freq-mean", "v": 1, "dfe": "dfe.ma.s.analyse.table", "answer_type": "calculation", "marks": 3,
+      "id": "freq-mean", "dfe": "dfe.ma.s.analyse.table", "answer_type": "calculation", "marks": 3,
       "vars": { "f": [1, 12], "g": [1, 12], "h": [1, 12], "k": [1, 12] },
       "where": ["(g + 2 * h + 3 * k) * 10 % (f + g + h + k) == 0", "f + g + h + k != 4"],
       "let": { "n": "f + g + h + k", "t": "g + 2 * h + 3 * k" },
@@ -638,7 +638,7 @@
       "typed": ["{fix(t / n)}"], "wrong": "{fix(t / 4)}"
     },
     {
-      "id": "pie", "v": 1, "dfe": "dfe.ma.s.data.pie", "answer_type": "short", "marks": 1,
+      "id": "pie", "dfe": "dfe.ma.s.data.pie", "answer_type": "short", "marks": 1,
       "vars": { "n": [2, 360], "k": [1, 359] },
       "where": ["360 % n == 0", "k < n"],
       "let": { "ans": "360 / n * k" },
@@ -647,7 +647,7 @@
       "typed": ["{ans}", "{ans}°"], "wrong": "{ans + 360 / n}"
     },
     {
-      "id": "dec-add", "v": 1, "dfe": "dfe.ma.n.calc.addsub", "answer_type": "calculation", "marks": 1,
+      "id": "dec-add", "dfe": "dfe.ma.n.calc.addsub", "answer_type": "calculation", "marks": 1,
       "vars": { "a": [101, 9999], "b": [11, 999], "w": [0, 1] },
       "where": ["a % 10 != 0", "b % 10 != 0", "w ? 1 : a > b * 10"],
       "let": { "ans": "w ? a * 10 + b : a * 10 - b" },
@@ -656,7 +656,7 @@
       "typed": ["{fix(ans / 1000)}"], "wrong": "{w ? fix((a + b) / 100) : fix((a - b) / 100)}"
     },
     {
-      "id": "short-div", "v": 1, "dfe": "dfe.ma.n.calc.muldiv", "answer_type": "calculation", "marks": 1,
+      "id": "short-div", "dfe": "dfe.ma.n.calc.muldiv", "answer_type": "calculation", "marks": 1,
       "vars": { "d": [3, 9], "q": [101, 999] },
       "let": { "n": "d * q" },
       "text": "Work out {n} ÷ {d}",
@@ -664,7 +664,7 @@
       "typed": ["{q}"], "wrong": "{q + 1}"
     },
     {
-      "id": "digit-value", "v": 1, "dfe": "dfe.ma.n.place.value", "answer_type": "short", "marks": 1,
+      "id": "digit-value", "dfe": "dfe.ma.n.place.value", "answer_type": "short", "marks": 1,
       "vars": { "n": [1000, 99999], "p": [0, 3] },
       "where": ["((n - n % (p == 0 ? 1 : p == 1 ? 10 : p == 2 ? 100 : 1000)) / (p == 0 ? 1 : p == 1 ? 10 : p == 2 ? 100 : 1000)) % 10 > 1"],
       "let": { "u": "p == 0 ? 1 : p == 1 ? 10 : p == 2 ? 100 : 1000", "g": "((n - n % u) / u) % 10" },
@@ -673,7 +673,7 @@
       "typed": ["{plain(g * u, -2)}"], "wrong": "{plain(g * u, -1)}"
     },
     {
-      "id": "order", "v": 1, "dfe": "dfe.ma.n.place.order", "answer_type": "short", "marks": 1,
+      "id": "order", "dfe": "dfe.ma.n.place.order", "answer_type": "short", "marks": 1,
       "vars": { "a": [11, 99], "b": [1, 9], "c": [101, 999] },
       "where": ["a % 10 != 0", "c % 10 != 0", "a * 10 != b * 100", "c != a * 10", "c != b * 100", "a * 10 != c + 5 & 1"],
       "let": { "x": "a * 10", "y": "b * 100", "z": "c", "big": "x > y ? (x > z ? x : z) : (y > z ? y : z)", "small": "x < y ? (x < z ? x : z) : (y < z ? y : z)" },
@@ -682,7 +682,7 @@
       "typed": ["{fix(big / 1000)}"], "wrong": "{fix(small / 1000)}"
     },
     {
-      "id": "surd", "v": 1, "dfe": "dfe.ma.n.prop.surds", "answer_type": "short", "marks": 2,
+      "id": "surd", "dfe": "dfe.ma.n.prop.surds", "answer_type": "short", "marks": 2,
       "vars": { "a": [2, 12], "b": [2, 30] },
       "where": ["a != b", "b % 4 != 0", "b % 9 != 0", "b % 25 != 0"],
       "let": { "n": "a * a * b" },
@@ -691,7 +691,7 @@
       "typed": ["{a}√{b}"], "wrong": "{b}√{a}"
     },
     {
-      "id": "vector-add", "v": 1, "dfe": "dfe.ma.g.vec.vectors", "answer_type": "short", "marks": 2,
+      "id": "vector-add", "dfe": "dfe.ma.g.vec.vectors", "answer_type": "short", "marks": 2,
       "vars": { "a": [-9, 9], "b": [-9, 9], "c": [-9, 9], "d": [-9, 9], "k": [2, 4] },
       "where": ["k * c + a != b + k * d"],
       "let": { "x": "a + k * c", "y": "b + k * d" },
@@ -700,7 +700,7 @@
       "typed": ["({x}, {y})", "({x},{y})"], "wrong": "({y}, {x})"
     },
     {
-      "id": "area-scale", "v": 1, "dfe": "dfe.ma.r.ratio.compare", "answer_type": "short", "marks": 2,
+      "id": "area-scale", "dfe": "dfe.ma.r.ratio.compare", "answer_type": "short", "marks": 2,
       "vars": { "k": [2, 6], "a": [2, 30], "w": [0, 1] },
       "let": { "f": "w ? k * k * k : k * k", "ans": "a * f" },
       "text": "Two shapes are similar. The lengths of the larger are {k} times the lengths of the smaller. The smaller has {w ? 'a volume of ' + a + ' cm³' : 'an area of ' + a + ' cm²'}. Work out the {w ? 'volume' : 'area'} of the larger.",
@@ -708,7 +708,7 @@
       "typed": ["{ans}"], "wrong": "{a * k}"
     },
     {
-      "id": "venn", "v": 1, "dfe": "dfe.ma.p.prob.venn", "answer_type": "short", "marks": 2,
+      "id": "venn", "dfe": "dfe.ma.p.prob.venn", "answer_type": "short", "marks": 2,
       "vars": { "p": [5, 30], "q": [5, 30], "r": [1, 15], "o": [0, 20] },
       "where": ["r < p", "r < q"],
       "let": { "n": "p + q - r + o" },
@@ -717,7 +717,7 @@
       "typed": ["{o}"], "wrong": "{o + r}"
     },
     {
-      "id": "rate", "v": 1, "dfe": "dfe.ma.r.prop.rate", "answer_type": "short", "marks": 2,
+      "id": "rate", "dfe": "dfe.ma.r.prop.rate", "answer_type": "short", "marks": 2,
       "vars": { "r": [2, 25], "t": [2, 10], "s": [0, 40] },
       "let": { "e": "s + r * t" },
       "text": "A tank holds {s} litres of water at the start. Water flows in at a constant rate. After {t} minutes it holds {e} litres. Work out the rate of flow in litres per minute (the gradient of the line).",
