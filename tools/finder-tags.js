@@ -61,6 +61,8 @@ async function run() {
   const payload = JSON.parse(fs.readFileSync(path.join(ROOT, 'tools', 'lib', 'payload.json'), 'utf8'));
   const A = await app(payload, (f, j) => { const t = lib.serve(path.join(ROOT, f)); return t !== null ? JSON.parse(t) : j; });
   const ev = s => A.w.__ev(s);
+  /* THE ORDER IS COUNTED LIVE HERE, never read back from the file this walk is writing. */
+  ev('window.ORDER_LIVE = true');
   /* EVERY SOURCE IN: the payload, the library and its extras, and each writings index this admin may have. */
   const t0 = Date.now();
   ev('inFinder_(FINDERS.stuff, () => stuffItems())');
@@ -109,6 +111,11 @@ async function run() {
     out['#says'] = JSON.parse(ev(`inFinder_(FINDERS.stuff, () => { const all = stuffItems(), o = {};
       facetList().forEach(f => { const m = {}; facetTally_(all, f).values.forEach(v => { const s = v.show || v.text || v.value; [v.value].concat(v.also || []).forEach(u => { if (s !== showShort_(facetSay_(f, u))) m[u] = s; }); });
         if (Object.keys(m).length) o[f.field] = m; });
+      return JSON.stringify(o); })`));
+    /* EACH DOOR'S ONE FIXED ORDER (owner, 24 Nov: general before specific, facetOrder_), counted here once so a phone never tallies the library for it. */
+    out['#order'] = JSON.parse(ev(`inFinder_(FINDERS.stuff, () => { const K = facetBy('kindLabel'), o = {}, ds = new Set(['']);
+      stuffItems().forEach(x => facetOwn_(K, x).forEach(d => ds.add(d)));
+      ds.forEach(d => { o[d] = facetOrder_(d).map(f => f.field); });
       return JSON.stringify(o); })`));
     const got = { key: key, out: out };
     /* TWO VIEWERS ON ONE KEY MUST SEE ONE LIBRARY, or the key is missing what tells them apart. */

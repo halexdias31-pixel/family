@@ -331,14 +331,63 @@ function echoInside_(F, G) {
 
 
 
-/* THE NEXT QUESTION, or nothing — ONE PRINCIPLE (owner, 15 Nov): the first facet in the facets tab's order that splits the list. */
-/* No ranking by how well it splits, no kind or choose question jumping the queue: the tab's `sort_order` is the order. */
+/* THE NEXT QUESTION, or nothing — ONE PRINCIPLE (owner, 24 Nov): GENERAL BEFORE SPECIFIC. The first facet in the door's one fixed order (facetOrder_) that splits the list. */
 function nextFacet(items) {
   const asked = STUFF.filters.map(f => f.field);
-  for (const facet of facetList()) {
+  for (const facet of facetOrder_()) {
     if (asked.indexOf(facet.field) === -1 && !facetWhy_(items, facet)) return facet;
   }
   return null;
+}
+
+/* THE DOOR a list is under: its What kind chip (Practice, Library…), or '' before one is chosen. */
+const facetDoor_ = () => ((STUFF && STUFF.filters) || []).filter(f => f.field === 'kindLabel' && !f.any).map(f => f.value).join('|');
+
+/* ONE FIXED ORDER PER DOOR (owner, 24 Nov), counted ONCE from every item of the door — never the narrowed list — so it is the same whatever was tapped.
+   B NESTS IN A when every card with a B answer has exactly one A answer and each B answer sits inside exactly one A answer, and not the
+   other way round (the same split twice is a tie). A is asked before every B that nests in it; ties and unrelated tags keep `sort_order`. */
+const ORDER_MEMO_ = { from: null, m: {}, why: {} };
+function facetOrder_(door) {
+  const all = stuffItems();
+  door = door === undefined ? facetDoor_() : door;
+  if (ORDER_MEMO_.from !== all) { ORDER_MEMO_.from = all; ORDER_MEMO_.m = {}; ORDER_MEMO_.why = {}; }
+  if (ORDER_MEMO_.m[door]) return ORDER_MEMO_.m[door];
+  /* COUNTED AT BUILD TIME (tools/finder-tags.js `#order`): a phone reads its door's order rather than tally the library; the walk itself counts live (ORDER_LIVE). */
+  const built = !window.ORDER_LIVE && FINDER === FINDERS.stuff && typeof finderTagsView_ === 'function' && typeof FINDER_TAGS !== 'undefined' && FINDER_TAGS
+    && FINDER_TAGS.facets === facetList().map(f => f.field).join(',') && ((finderTagsView_() || {})['#order'] || {})[door];
+  if (built) return (ORDER_MEMO_.m[door] = built.map(facetBy).filter(Boolean));
+  const list = facetList(), K = facetBy('kindLabel'), doors = door ? door.split('|') : [];
+  const items = !doors.length || !K ? all : all.filter(x => facetOwn_(K, x).some(v => doors.indexOf(v) >= 0));
+  /* Each facet's answers on the cards that have one, spelt once; only a facet with 2+ answers in the door can hold another. */
+  const has = {}, live = [];
+  list.forEach(F => {
+    const at = new Map(), seen = new Set();
+    for (let i = 0; i < items.length; i++) { const l = facetOwn_(F, items[i]); if (!l.length) continue; const k = l.map(spellKey_); at.set(i, k); k.forEach(v => seen.add(v)); }
+    has[F.field] = at;
+    if (seen.size > 1) live.push(F);
+  });
+  const inside = (B, A) => {
+    const b = has[B.field], a = has[A.field], to = new Map();
+    if (b.size > a.size) return false;
+    for (const [i, kb] of b) {
+      const ka = a.get(i);
+      if (!ka || ka.length !== 1) return false;
+      for (const k of kb) { const t = to.get(k); if (t !== undefined && t !== ka[0]) return false; to.set(k, ka[0]); }
+    }
+    return b.size > 0;
+  };
+  const over = new Map(list.map(F => [F.field, []]));
+  for (const B of live) for (const A of live) if (A !== B && inside(B, A) && !inside(A, B)) over.get(B.field).push(A.field);
+  /* Placed in sort_order, each tag once every tag it nests in is placed; a loop (none expected) falls back to sort_order. */
+  const out = [], done = new Set(), left = list.slice();
+  while (left.length) {
+    let i = left.findIndex(F => over.get(F.field).every(f => done.has(f)));
+    if (i < 0) i = 0;
+    const F = left.splice(i, 1)[0];
+    out.push(F); done.add(F.field);
+  }
+  ORDER_MEMO_.why[door] = over;
+  return (ORDER_MEMO_.m[door] = out);
 }
 
 /* AND WHEN NOTHING QUALIFIES, THE CLOSEST THING TO A QUESTION RATHER THAN A DEAD END: § */
