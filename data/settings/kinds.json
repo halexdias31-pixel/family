@@ -1633,7 +1633,7 @@
    },
    "entries": {
     "docket": {
-     "say": "Docket (owner, 18 Nov): the owner's named lists like Google Tasks — title, note, date, time, daily repeat (`doneOn`); kept in their own `todo` cell (saveTodo), loaded by the `docketImport` action. js/map.js WIDGETS. The owner's alone (owner, 18 Nov: `owner` is the admin whose address is the backend's ownerEmail_, never another admin; the sign-in reply's `owner` flag, may_('owner')).",
+     "say": "Docket (owner, 18 Nov; one list, names only, 25 Nov night): the owner's one list like Google Tasks — a title, an 8h repeat or a date, ticked; kept in their own `todo` cell; js/map.js dkCard_ draws it",
      "who": "owner"
     },
     "assignments": {
@@ -1643,21 +1643,20 @@
    }
   },
   "docket": {
-   "shape": "Card", "bodyAs": "item",
+   "shape": "Card",
+   "bodyAs": "item",
    "list": {
     "name": "Docket",
-    "say": "ONE LIST KIND (owner, 22 Nov, UNIFY NEXT 6): the owner's own lists are one kind of list, each item tidied by the one tidy (post-account.gs listTidy_) and drawn as an Item (js/map.js listItem_, or dkCard_ in Find). The Docket keeps its storage, the owner's `todo` cell as { v, lists: [{ name, start, items }] }; a save keeps what the cell had (`save: as-is`), the import makes each item whole; a one-off ticked before today leaves its list (`gone`); the planner's fields are form `docket-item` (`plan`).",
+    "say": "ONE LIST KIND (owner, 22 Nov, UNIFY NEXT 6; one list, names only, owner 25 Nov night): the owner's own lists are one kind of list, each item tidied by the one tidy (post-account.gs listTidy_). The Docket keeps its storage, the owner's `todo` cell as { v, lists: [{ name: \"Docket\", items }] } (one list); an item is its title, an 8h repeat or none, a date or none, and its done state; a save keeps what the cell had (`save: as-is`), the import makes each item whole; a one-off ticked before today leaves (`gone`).",
     "store": {
      "cell": "todo",
      "wrap": "lists"
     },
     "most": 300,
     "need": [
-     "title",
-     "note"
+     "title"
     ],
     "save": "as-is",
-    "plan": "docket-item",
     "gone": {
      "done": "done",
      "on": "doneOn",
@@ -1670,23 +1669,14 @@
       "max": 300
      },
      {
-      "f": "note",
-      "type": "text",
-      "max": 8000
-     },
-     {
       "f": "date",
       "type": "date"
-     },
-     {
-      "f": "time",
-      "type": "time"
      },
      {
       "f": "repeat",
       "type": "choice",
       "options": [
-       "daily", "8h"
+       "8h"
       ],
       "def": ""
      },
@@ -1695,34 +1685,24 @@
       "type": "flag",
       "off": {
        "f": "repeat",
-       "is": "daily"
+       "is": "8h"
       }
      },
      {
       "f": "doneOn",
-      "type": "text", "max": 13
-     },
-     {
-      "f": "covers",
-      "type": "titles",
-      "max": 300,
-      "say": "titles in the same list a tick also ticks (owner, 23 Nov: COVERS); js/map.js dkTick_, the one tick"
-     },
-     {
-      "f": "coversSet",
-      "type": "titles",
-      "max": 300,
-      "say": "the covered titles this item's last tick marked, so its untick undoes only those"
-     },
-     {
-      "f": "slot",
       "type": "text",
-      "max": 60,
-      "say": "a food slot (owner, 23 Nov: FOOD SLOTS) in place of a fixed food: one of foods.json `slots`; the Docket offers that slot's foods under the item (js/map.js dkSlotOptions_)"
+      "max": 13
+     },
+     {
+      "f": "runs",
+      "type": "number",
+      "min": 0,
+      "max": 100000,
+      "say": "minutes it runs by itself once started (owner, 25 Nov night: the one hidden number); within Now the most first (js/map.js dkSort_)"
      }
     ]
    },
-   "source": "the owner's docket lists (owner, 20 Nov): their own `todo` cell, read by js/map.js dkItems_ — a list a card, drawn by dkCard_ (owner, 25 Nov: like Google Tasks): each item one line, its tick and title, tapped open (cardFold_) for the title, the list and its date, time or Daily as tags, a Done tick saved as the widget saves it (`doneOn` for a daily item), and the note; its attributes (minutes, runs by itself, effort, fun, importance, place, a fixed time or a deadline) are the form `docket-item`, the order dkPlan_ (rules.json 1.82), the first two unticked tagged Now and Next; a list with a usual start (`start`, form `docket-list`) is a phase of the day, and the widget heads with Now and Next (dkPhase_)",
+   "source": "the owner's Docket (owner, 20 Nov; one list, names only, 25 Nov night): their own `todo` cell, read by js/map.js dkItems_ as one card, drawn by dkCard_ like Google Tasks: each item one line, its tick and title, sorted by dkSort_ (Overdue, then the 8-hourly not yet done this third, then dated one-offs by date, then undated, then a folded Done (n)); a tapped line shows only Edit (its name) and Delete; a quick add at the foot (rules.json 1.82)",
    "find": {
     "group": "Tools",
     "label": "docket",
@@ -1731,8 +1711,7 @@
     "facets": [
      "forLabel",
      "kindLabel",
-     "toolName",
-     "docketList"
+     "toolName"
     ]
    },
    "see": {
@@ -1740,185 +1719,27 @@
    },
    "forms": {
     "docket-address": {
-          "draft": false,
-          "attr": "data-dka",
-          "say": "the owner's private plain-text address (owner, 21 Nov: NOW, NEXT step 3): the Docket's Private address tile opens it; the backend's doGet `?docket=<token>` answers Now/Next as text, `&do=done&what=` ticks, `&do=add&what=` adds. Make a new address (action docketAddress, renew) kills the old token.",
-          "fields": [{ "f": "address", "type": "text", "label": "dk-addr-head", "input": "url" }]
-        },
-        "docket-list": {
      "draft": false,
-     "attr": "data-dkl",
-     "say": "a docket list's name and usual start (owner, 21 Nov: NOW, NEXT): the widget's Rename opens it. A list with a `start` (HH:MM, London's) is a phase of the day; js/map.js dkPhase_ picks the current one by the clock and the ticks.",
+     "attr": "data-dka",
+     "say": "the owner's private plain-text address (owner, 21 Nov): the Docket's Private address tile opens it; the backend's doGet `?docket=<token>` answers the Docket's open items as text, `&do=done&what=` ticks, `&do=add&what=` adds. Make a new address (action docketAddress, renew) kills the old token.",
      "fields": [
       {
-       "f": "name",
+       "f": "address",
        "type": "text",
-       "label": "list-name"
-      },
-      {
-       "f": "start",
-       "type": "text",
-       "label": "usual-start",
-       "input": "time"
+       "label": "dk-addr-head",
+       "input": "url"
       }
      ]
     },
     "docket-item": {
      "draft": false,
      "attr": "data-dke",
-     "say": "a docket item in Find (owner, 20 Nov: NOW, NEXT): its Edit tile opens this form on the card, Save and Delete under it, saved whole through dkSave_. Each field is a fixed choice with a `default`, so an item added by its title alone is complete; js/map.js dkFill_ fills the defaults and dkPlan_ orders a list from them (rules.json 1.82).",
+     "say": "a docket item's name (owner, 25 Nov night: names only): its Edit tile opens this form in its line, Save under it, saved whole through dkSave_.",
      "fields": [
       {
        "f": "title",
        "type": "text",
        "label": "title-2"
-      },
-      {
-       "f": "minutes",
-       "type": "number",
-       "label": "minutes-it-takes",
-       "input": "number",
-       "min": 1,
-       "step": 1,
-       "default": 5
-      },
-      {
-       "f": "runs",
-       "type": "number",
-       "label": "runs-by-itself-minutes",
-       "input": "number",
-       "min": 0,
-       "step": 1,
-       "default": 0
-      },
-      {
-       "f": "effort",
-       "type": "choice",
-       "label": "effort",
-       "default": "easy",
-       "options": [
-        {
-         "v": "easy",
-         "t": "Easy"
-        },
-        {
-         "v": "medium",
-         "t": "Medium"
-        },
-        {
-         "v": "hard",
-         "t": "Hard"
-        }
-       ]
-      },
-      {
-       "f": "fun",
-       "type": "choice",
-       "label": "fun",
-       "default": "neutral",
-       "options": [
-        {
-         "v": "dread",
-         "t": "Dread"
-        },
-        {
-         "v": "neutral",
-         "t": "Neutral"
-        },
-        {
-         "v": "enjoy",
-         "t": "Enjoy"
-        }
-       ]
-      },
-      {
-       "f": "importance",
-       "type": "choice",
-       "label": "importance",
-       "default": "normal",
-       "options": [
-        {
-         "v": "low",
-         "t": "Low"
-        },
-        {
-         "v": "normal",
-         "t": "Normal"
-        },
-        {
-         "v": "high",
-         "t": "High"
-        },
-        {
-         "v": "must",
-         "t": "Must"
-        }
-       ]
-      },
-      {
-       "f": "place",
-       "type": "choice",
-       "label": "place",
-       "default": "anywhere",
-       "options": [
-        {
-         "v": "home",
-         "t": "Home"
-        },
-        {
-         "v": "out",
-         "t": "Out"
-        },
-        {
-         "v": "anywhere",
-         "t": "Anywhere"
-        }
-       ]
-      },
-      {
-       "f": "date",
-       "type": "date",
-       "label": "date",
-       "input": "date"
-      },
-      {
-       "f": "time",
-       "type": "text",
-       "label": "time",
-       "input": "time"
-      },
-      {
-       "f": "timeIs",
-       "type": "choice",
-       "label": "the-time-is",
-       "default": "at",
-       "options": [
-        {
-         "v": "at",
-         "t": "A fixed time"
-        },
-        {
-         "v": "by",
-         "t": "Done before it"
-        }
-       ]
-      },
-      {
-       "f": "repeat",
-       "type": "choice",
-       "label": "repeats",
-       "default": "",
-       "options": [
-        {
-         "v": "daily",
-         "t": "Daily"
-        }, { "v": "8h", "t": "Every 8 hours" }
-       ]
-      },
-      {
-       "f": "note",
-       "type": "long",
-       "label": "note"
       }
      ]
     }
