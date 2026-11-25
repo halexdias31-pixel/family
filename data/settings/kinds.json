@@ -1686,7 +1686,7 @@
       "f": "repeat",
       "type": "choice",
       "options": [
-       "daily"
+       "daily", "8h"
       ],
       "def": ""
      },
@@ -1700,7 +1700,7 @@
      },
      {
       "f": "doneOn",
-      "type": "date"
+      "type": "text", "max": 13
      },
      {
       "f": "covers",
@@ -1912,7 +1912,7 @@
         {
          "v": "daily",
          "t": "Daily"
-        }
+        }, { "v": "8h", "t": "Every 8 hours" }
        ]
       },
       {

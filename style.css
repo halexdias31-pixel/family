@@ -3284,8 +3284,10 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 /* ---------- THE ADMIN MARKS SIT AT THE FAR END § */
 /* ONE FLOW LIKE WORDS (487): the admin group and a pair are no box of their own, so their tiles wrap with the rest, left-aligned. */
 .tile-group.is-admin { display: contents; }
-/* A ROW JOINED INTO THE ROW UNDER IT (489, `tileRowsJoin_`) flows as part of that one row. */
-.tile-row > .tile-group, .tile-row > .tile-group .tile-group { display: contents; }
+/* A ROW JOINED INTO THE ROW UNDER IT (489, `tileRowsJoin_`) flows as part of that one row, AT ANY DEPTH (25 Nov): a card's row lifts a
+   joined group into its `kc-four` (kcHoist_), where a child-only selector missed it, so the group stayed a block and Back to top's margin
+   dropped ↑ below its neighbours. One line per row: tools/one-card.js counts it. */
+.tile-row .tile-group { display: contents; }
 /* AN EMPTY WIDGET IS ITS TITLE ALONE (414, `emptyCard_`), so the heading keeps no space for a body under it. */
 .card.is-empty > h3 { margin: 0; }
 /* `.tile-row.is-admin` WAS ALSO DECLARED HERE, setting a margin the block further down immediately

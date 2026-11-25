@@ -21,6 +21,10 @@ const HELP = {
   co: n => (n === 1 ? '' : n === -1 ? '-' : String(n)), /* a coefficient: 1x is x */
   fix: n => String(+n.toFixed(10)),
   tight: s => String(s).replace(/ /g, ''),
+  /* right-angled trigonometry in degrees, as a GCSE question gives them; rd(n, d) is n to d decimal places as written (2 to 1 d.p. is 2.0) */
+  sin: d => Math.sin(d * Math.PI / 180), cos: d => Math.cos(d * Math.PI / 180), tan: d => Math.tan(d * Math.PI / 180),
+  asin: r => Math.asin(r) * 180 / Math.PI, acos: r => Math.acos(r) * 180 / Math.PI, atan: r => Math.atan(r) * 180 / Math.PI,
+  rd: (n, d) => { const k = 10 ** d; return (Math.round((n + Number.EPSILON * Math.abs(n)) * k) / k).toFixed(d); },
   plain(m, e) { /* the integer m times 10^e written out in full, no float error */
     const neg = m < 0, d = String(Math.abs(m));
     let s;
@@ -140,10 +144,12 @@ function emit(T, D) {
   });
   return { rows, words };
 }
-/* A DfE NODE'S MATHS IDEA: the first (A–Z) idea the table's `ideas` maps to exactly that node; none if none does. */
+/* A DfE NODE'S MATHS IDEA: the first (A–Z) idea the table's `ideas` maps to exactly that node; else the idea its `gen_ideas` names for a
+   sub-topic no idea maps to (the card that teaches it); none if neither does. */
 function ideaOfNode(D) {
   const out = {}; D = D || SD.json(DFE);
   Object.keys(D.ideas || {}).sort().forEach(i => { const n = D.ideas[i]; if (!out[n]) out[n] = i; });
+  Object.keys(D.gen_ideas || {}).forEach(n => { if (!out[n]) out[n] = D.gen_ideas[n]; });
   return out;
 }
 

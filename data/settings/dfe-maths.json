@@ -1,5 +1,5 @@
 {
- "about": "THE @FAMILY MATHS TOPIC TREE, FROM THE GOVERNMENT'S OWN LISTS (owner, 24–25 Nov: the library's one source of truth is the UK government spec). Strand › topic › sub-topic, each node an id, a short plain name (paraphrased, never copied), its source lines in the DfE documents (`src`: doc + section or GCSE statement code) and, for a sub-topic, the levels it is taught at (KS1, KS2, KS3; GCSE Foundation and Higher, Higher only where the GCSE document prints the content in bold). A maths question's `dfe` (data/questions.json) is the node(s) it tests, read by tools/lib/dfe.js from this table only: `ideas` (its idea_id, the 24 Nov idea tree of data/settings/question-ideas.json, mapped onto this tree), its AQA 8300 `spec_ref` (AQA numbers its points as the DfE GCSE statements), `set` and `topic` (a source's own topic name). Find's topic question answers a maths question's nodes broad → narrow. A worksheet's name is its `worksheet`, never a topic. Checked by tools/one-dfe.js. `budget`: maths questions with no node (A-Level and mechanics, outside these documents; Corbettmaths 5-a-day rows with no topic; problem-solving sets), may only fall.",
+ "about": "THE @FAMILY MATHS TOPIC TREE, FROM THE GOVERNMENT'S OWN LISTS (owner, 24–25 Nov: the library's one source of truth is the UK government spec). Strand › topic › sub-topic, each node an id, a short plain name (paraphrased, never copied), its source lines in the DfE documents (`src`: doc + section or GCSE statement code) and, for a sub-topic, the levels it is taught at (KS1, KS2, KS3; GCSE Foundation and Higher, Higher only where the GCSE document prints the content in bold). A maths question's `dfe` (data/questions.json) is the node(s) it tests, read by tools/lib/dfe.js from this table only: `ideas` (its idea_id, the 24 Nov idea tree of data/settings/question-ideas.json, mapped onto this tree), its AQA 8300 `spec_ref` (AQA numbers its points as the DfE GCSE statements), `set` and `topic` (a source's own topic name). `gen_ideas`: the maths idea a generated @family set (tools/lib/qgen.js) under a sub-topic no idea of `ideas` maps to reads as its idea, the card that teaches it — a node with an idea of its own never borrows one. Find's topic question answers a maths question's nodes broad → narrow. A worksheet's name is its `worksheet`, never a topic. Checked by tools/one-dfe.js. `budget`: maths questions with no node (A-Level and mechanics, outside these documents; Corbettmaths 5-a-day rows with no topic; problem-solving sets), may only fall.",
  "docs": {
   "gcse": {
    "title": "Mathematics GCSE subject content and assessment objectives (DfE, November 2013, DFE-00233-2013)",
@@ -2904,6 +2904,16 @@
   "ma.stat.sampling-describing-population": "dfe.ma.s.data.sample",
   "ma.stat.scatter-graphs-and-correlation": "dfe.ma.s.analyse.scatter",
   "ma.stat.statistics": "dfe.ma.s.analyse.averages"
+ },
+ "gen_ideas": {
+  "dfe.ma.a.expr.factorise": "ma.alg.expanding-brackets",
+  "dfe.ma.n.frac.mixed": "ma.num.equivalent-and-simplifying-fractions",
+  "dfe.ma.n.frac.pctchange": "ma.num.percentage-of-an-amount",
+  "dfe.ma.n.prop.counting": "ma.prob.listing-outcomes-and-sample-space",
+  "dfe.ma.r.prop.rate": "ma.rat.compound-measures",
+  "dfe.ma.r.ratio.compare": "ma.geo.similar-areas-and-volumes",
+  "dfe.ma.r.ratio.fraction": "ma.num.equivalent-and-simplifying-fractions",
+  "dfe.ma.r.ratio.simplify": "ma.rat.ratio-problems"
  },
  "set": {
   "W-1CM-tables-two-way-tables": "dfe.ma.s.data.charts",
