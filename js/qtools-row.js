@@ -24,8 +24,6 @@ function qtCheckOpts_(x, m) {
 const PEN_OPEN = new Set();
 /* EACH TOOL'S OWN TILE, by its id in QT_TOOLS: a `tile(t, x, key)` of its own, else the one lit-by-`qtToolOn_` tile below */
 const QT_TILE = {
-  mag: () => typeof magOpts_ === 'function' ? magOpts_() : null,
-  lock: () => typeof qLockOpts_ === 'function' ? qLockOpts_() : null,
   read: (t, x, key) => {
     const o = typeof readAloudOpts_ === 'function' ? readAloudOpts_(x) : null;
     if (o) o.data = Object.assign({}, o.data, { part: 1 });
@@ -33,8 +31,6 @@ const QT_TILE = {
   },
   /* ONLY WHERE A CALCULATOR IS ALLOWED: a Non-calculator paper never shows it; unknown shows it (owner, 11 Nov) */
   calc: (t, x, key) => calcAllowed_(x) ? { icon: t.icon, label: t.label, note: t.note, act: t.act, cls: 'qt-t qt-calc', on: floatIs_('calc', key), pressed: floatIs_('calc', key), data: { tool: t.id, key } } : null,
-  /* SIGNED IN, ON A PAPER: the whole paper downloaded for no connection (offline.js) */
-  offline: (t, x) => (typeof window.offOpts_ === 'function' ? window.offOpts_(x) : null),
 };
 /* THE PAD'S KEY A PEN OR INSTRUMENT TILE READS, '' for the rest; and the tool that pad holds, '' when it is not taking the pen */
 const qtPadKey_ = (t, x) => t && (t.act === 'qt-pen' || t.act === 'qt-inst') && typeof padKey_ === 'function' ? padKey_(x) : '';
@@ -50,6 +46,8 @@ function qtToolOpts_(t, x) {
 }
 /* IS THIS TOOL IN HAND, the one rule: the calculator, Ruler or Protractor floating for this part (`floatIs_`, find-measure.js), the rest the pad's tool */
 function qtToolOn_(id, key, pk, inHand) {
+  /* THE ONE MEASURE is lit while its ruler or its protractor is out for this part */
+  if (id === 'measure' && typeof floatIs_ === 'function' && (floatIs_('ruler', key) || floatIs_('protractor', key))) return true;
   if ((isMeasureTool_(id) || id === 'calc') && typeof floatIs_ === 'function' && floatIs_(id, key)) return true;
   if (id === 'calc' || isMeasureTool_(id)) return false;
   if (!pk || !inHand) return false;
@@ -72,11 +70,9 @@ function qtTiles_(x, ans) {
   /* EVERY PART HAS ITS ONE SHEET TO DRAW ON (find-cells.js `sheet_`), so every part has the drawing tiles */
   const art = true;
   const ids = QT_ROW.concat(art ? Object.keys(QT_DRAWING) : []);
+  /* ONE UNDO (owner, 24 Nov): the last stroke on the card's sheet, whichever of its pads took it (find-loupe.js `padOfTile_`); no Clear */
   return [qtCheckOpts_(x)].concat(ids.map(qtTool_).filter(Boolean).map(t => qtToolOpts_(t, x)),
-    art && typeof padUndoOpts_ === 'function' ? padUndoOpts_(x) : [],
-    [typeof attachTile_ === 'function' ? attachTile_(x) : null,
-      ans && typeof qaToggleOpts_ === 'function' ? qaToggleOpts_(ansKey_(x), ansOpen_(x)) : null,
-      typeof helpOpts_ === 'function' ? helpOpts_(x, '') : null]).filter(Boolean);
+    [{ icon: 'undo', label: 'Undo', note: 'the last stroke', act: 'pad-undo', cls: 'qpad-undo', data: { key: x.key } }]).filter(Boolean);
 }
 const qtItem_ = key => { try { return stuffItemsAll_().find(it => it && it.key === key) || null; } catch (e) { return null; } };
 const qtKeyOf_ = el => (el && el.getAttribute('data-key')) || '';

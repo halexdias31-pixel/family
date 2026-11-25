@@ -16,10 +16,8 @@ const PAD_DRAW = {
     /* A STEADIED STROKE ENDS WHERE THE POINTER LIFTED: the string's slack is paid out in two steps, so nothing lags */
     end: (g, st) => {
       /* A CLICK THAT NEVER MOVED IS A PLOTTED POINT: § */
-      if (padSteady_(g) && !g.board && !g.slack && g.tg && st && st.length === 2) {
-        const t = padSnap_(Object.assign({}, g, { hold: null, tg: { own: [], pts: g.tg.pts } }), st[0] * g.sx, st[1] * g.sy, '');
-        return t ? [Math.round(t.u[0]), Math.round(t.u[1])] : st;
-      }
+      /* placed on the frame as Point placed it (`padPlace_`): a crossing of the grid, a labelled point, else where it fell */
+      if (padSteady_(g) && !g.board && !g.slack && g.tg && st && st.length === 2) return padPlace_(Object.assign({}, g, { tool: 'point', fp: null }), [st[0], st[1]], true);
       if (padSteady_(g) && !g.frozen && !g.qz && g.at && st && st.length >= 2) {
         const x = st[st.length - 2], y = st[st.length - 1], a = g.at;
         if (x !== a[0] || y !== a[1]) {
@@ -28,7 +26,8 @@ const PAD_DRAW = {
           if (m[0] !== a[0] || m[1] !== a[1]) st.push(a[0], a[1]);
         }
       }
-      return st;
+      /* THE ONE PEN READS THE STROKE (owner, 24 Nov): a straight one is a line, a round one a circle or arc, else the curve as drawn */
+      return g.board ? st : padRead1_(g, st);
     },
   },
   /* A RULER IS ITS TWO ENDS. § */
@@ -53,6 +52,47 @@ const PAD_DRAW = {
   },
 };
 
+/* ---------- THE ONE PEN'S READING OF A STROKE, on lift (owner, 24 Nov: one Pen for Point, Line, Curve and Compass). In screen px:
+   a tap (a stroke under PAD_DOT_PX across) is already a point; a stroke at least PAD_READ_MIN long whose every sample lies within
+   PAD_READ_LINE of its chord (or 6% of the chord, the larger) is a LINE -- its two ends, as Line stored it, each placed on the frame;
+   a stroke whose samples lie within PAD_READ_ROUND of one circle (rms, as a share of its radius), turning PAD_READ_SWEEP or more, is that
+   circle or arc -- drawn true, as Compass stored it (closed from 330 degrees); anything else is the curve as drawn. */
+const PAD_READ_MIN = 12, PAD_READ_LINE = 4, PAD_READ_ROUND = 0.04, PAD_READ_SWEEP = 120;
+function padRead1_(g, st) {
+  if (!st || st.length < 6) return st;
+  const P = [];
+  for (let i = 0; i + 1 < st.length; i += 2) P.push([st[i] * g.sx, st[i + 1] * g.sy]);
+  const a = P[0], b = P[P.length - 1], L = Math.hypot(b[0] - a[0], b[1] - a[1]);
+  const back = q => [Math.round(q[0] / g.sx), Math.round(q[1] / g.sy)];
+  if (L >= PAD_READ_MIN) {
+    const off = Math.max(...P.map(q => Math.abs((b[0] - a[0]) * (a[1] - q[1]) - (a[0] - q[0]) * (b[1] - a[1])) / L));
+    if (off <= Math.max(PAD_READ_LINE, 0.06 * L)) {
+      const f = padPlace_(Object.assign({}, g, { tool: 'ruler', fp: null }), back(a), true), t = padPlace_(Object.assign({}, g, { tool: 'ruler', fp: null }), back(b), false);
+      return [f[0], f[1], t[0], t[1]];
+    }
+  }
+  /* THE CIRCLE THROUGH THE SAMPLES, least squares (Kasa): x^2 + y^2 + Dx + Ey + F = 0 */
+  if (P.length < 8) return st;
+  let sx = 0, sy = 0, sxx = 0, syy = 0, sxy = 0, sxz = 0, syz = 0, sz = 0;
+  P.forEach(([x, y]) => { const z = x * x + y * y; sx += x; sy += y; sxx += x * x; syy += y * y; sxy += x * y; sxz += x * z; syz += y * z; sz += z; });
+  const n = P.length, M = [[sxx, sxy, sx], [sxy, syy, sy], [sx, sy, n]], v = [-sxz, -syz, -sz];
+  const det = m => m[0][0] * (m[1][1] * m[2][2] - m[1][2] * m[2][1]) - m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0]) + m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]);
+  const d0 = det(M);
+  if (!d0) return st;
+  const col = (k) => M.map((r, i) => r.map((c, j) => (j === k ? v[i] : c)));
+  const D = det(col(0)) / d0, E = det(col(1)) / d0, F = det(col(2)) / d0, cx = -D / 2, cy = -E / 2, r = Math.sqrt(Math.max(0, cx * cx + cy * cy - F));
+  if (!(r >= PAD_READ_MIN / 2) || !isFinite(r)) return st;
+  const rms = Math.sqrt(P.reduce((s2, q) => s2 + Math.pow(Math.hypot(q[0] - cx, q[1] - cy) - r, 2), 0) / n);
+  if (rms > PAD_READ_ROUND * r) return st;
+  let sweep = 0;
+  for (let i = 1; i < n; i++) { let d = Math.atan2(P[i][1] - cy, P[i][0] - cx) - Math.atan2(P[i - 1][1] - cy, P[i - 1][0] - cx); d = (d + 3 * Math.PI) % (2 * Math.PI) - Math.PI; sweep += d; }
+  const deg = Math.abs(sweep) * 180 / Math.PI;
+  if (deg < PAD_READ_SWEEP) return st;
+  const a0 = Math.atan2(P[0][1] - cy, P[0][0] - cx), span = deg >= 330 ? 2 * Math.PI * Math.sign(sweep) : sweep, steps = Math.max(12, Math.round(Math.abs(span) / (Math.PI / 24)));
+  const out = [];
+  for (let i = 0; i <= steps; i++) { const t = a0 + span * i / steps, q = back([cx + r * Math.cos(t), cy + r * Math.sin(t)]); out.push(q[0], q[1]); }
+  return out;
+}
 /* THE SQUARE OF THE FRAME A TAP IS IN, FILLED as a zig-zag in the pad's units; with no grid, a small patch round the tap */
 function padShadeOf_(L, x, y) {
   const cell = (a, v) => { if (!a || a.length < 2) return null; let i = 0; while (i < a.length - 2 && a[i + 1] < v) i++; return v >= a[0] && v <= a[a.length - 1] ? [a[i], a[i + 1]] : null; };

@@ -605,7 +605,11 @@ document.addEventListener('pointermove', e => {
 
 /* UNDO AND CLEAR IN THE PART'S TOOL ROW (1020) name their pad by key; the board's own bar sits inside it */
 const padOfTile_ = el => el.closest('.qpad') || (() => { const c = el.closest('.qcard'), k = el.getAttribute('data-k');
-  return c && k ? [...c.querySelectorAll('.qpad')].find(p => p.getAttribute('data-k') === k) || null : null; })();
+  if (!c) return null;
+  const pads = [...c.querySelectorAll('.qpad')];
+  if (k) return pads.find(p => p.getAttribute('data-k') === k) || null;
+  /* THE ROW'S ONE UNDO: the pad in hand, else the last of the card's pads with a mark on it */
+  return pads.find(p => p.getAttribute('data-k') === PAD_ON) || pads.reverse().find(p => padRead_(p.getAttribute('data-k')).length) || null; })();
 on('pad-undo', (el) => {
   const pad = padOfTile_(el); if (!pad) return;
   const k = pad.getAttribute('data-k') || '';

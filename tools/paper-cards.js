@@ -66,7 +66,7 @@ async function onePaper(P) {
       return { found: it.length, own, pages: stuffPages_().length, cards: cards.length, said: menu.replace(/\s+/g, ' ').trim() };
     });
     /* A SET WITH AN ATTACHMENT (ONE ATTACHMENT KIND, queue item 6): its source opens from a card's Insert tile, one step, its card in the sheet. */
-    if (P.insert && r.cards) {
+    if (false && P.insert && r.cards) {
       await pg.locator('.qcard [data-do="att-open"]:not(.kc-off)').locator('visible=true').first().click({ timeout: 5000 }).catch(() => {});
       await pg.waitForTimeout(800);
       r.insert = await pg.evaluate(() => { const sh = document.getElementById('sheet');
@@ -85,7 +85,8 @@ async function run() {
     const other = r.own.filter(id => id !== P.set);
     if (!r.found) return bad.push(P.name + ': nothing found under ' + r.seen.join(' › '));
     if (other.length) bad.push(P.name + ': ' + other.length + ' result(s) from another paper (' + other.slice(0, 3).join(', ') + ')');
-    if (P.insert && r.cards && (r.insert || '').indexOf(P.insert) < 0) bad.push(P.name + ': its Insert tile did not open "' + P.insert + '"' + (r.insert ? ' (the sheet said "' + r.insert.slice(0, 80) + '")' : ' (no sheet)'));
+    /* NO INSERT TILE ON A QUESTION SINCE 24 NOV (owner: seven buttons): the attachment is not opened from a card any more */
+    if (false && P.insert && r.cards && (r.insert || '').indexOf(P.insert) < 0) bad.push(P.name + ': its Insert tile did not open "' + P.insert + '"' + (r.insert ? ' (the sheet said "' + r.insert.slice(0, 80) + '")' : ' (no sheet)'));
     if (!r.cards) bad.push(P.name + ': ' + r.found + ' found, ' + r.pages + ' page(s), but no question card under the chips' + (r.said ? ' (said: "' + r.said.slice(0, 80) + '")' : ' and no word why'));
   });
   console.log('paper-cards: ' + (PAPERS.length - new Set(bad.map(b => b.split(':')[0])).size) + '/' + PAPERS.length + ' sample sets drew their question cards for a child on an iPad'

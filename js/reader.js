@@ -9,8 +9,8 @@ try { const w = Number(keep_.get('speedWpm')); if (w >= SPEED_MIN && w <= SPEED_
 function speedFor_(x) {
   if (!x || !x.key) return false;
   if (x.kind === 'content' || x.kind === 'practical' || x.kind === 'project') return true;
-  /* A QUESTION'S WORDS ARE SHORT (502, rule `speed-long`): Universal gives it Speed read too */
-  if (x.kind === 'question') return (typeof ruleOn_ === 'function' && !ruleOn_('speed-long')) && !!speedText_(x);
+  /* NOT ON A QUESTION (owner, 24 Nov: seven buttons on a question part) */
+  if (x.kind === 'question') return false;
   return x.kind === 'bible' && !!x.bb;
 }
 function speedOpts_(x) {

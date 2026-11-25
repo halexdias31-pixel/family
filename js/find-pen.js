@@ -866,6 +866,8 @@ function padArm_(pad, on) {
   if (!pad) return;
   if (!on && pad.getAttribute('data-k')) padZoomOff_(pad.getAttribute('data-k'));
   pad.classList.toggle('is-drawing', !!on);
+  /* THE PEN ON HOLDS THE PAGE STILL (owner, 24 Nov: it replaces Lock); off, the page moves again */
+  if (typeof PADLOCK !== 'undefined' && typeof qLockHere_ === 'function') PADLOCK.q = on ? qLockHere_() : '';
   /* AND THE TOOL IN HAND, lit whether or not this pad was the last touched -- the rule `padBar_` draws by. */
   const tool = padToolNow_(pad);
   /* the tool in hand lit in the card's tool row; the protractor is lit while it lies on the page (458) */

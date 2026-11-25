@@ -131,15 +131,6 @@ function insLanded_() {
    A source text, a formulae or equation sheet, a periodic table: one kind (data/inserts.json, `of` its tag), opened one way everywhere --
    the Insert tile every question part shows (greyed where it has none, rule 1.83) opens its paper's attachments as their own Find cards,
    one step by `openStep_`, Back closes. tools/one-attachment.js fails the build on a second opener or an attachment that does not resolve. */
-const attachTile_ = x => { const a = insertsFor_(x);
-  return a.length ? { icon: 'doc', label: 'Insert', note: a.map(r => r.name).join(' · '), act: 'att-open', data: { key: x.key } } : null; };
-function attachOpen_(list, el) {
-  if (!list.length) return 0;
-  list.forEach(insWant_);
-  return openStep_({ title: list.length === 1 ? list[0].name : 'Insert', el, beside: true,
-    html: list.map(r => findCard(insertItem_(r))).join('') });
-}
-on('att-open', el => { const x = qtItem_(el.getAttribute('data-key')); attachOpen_(x ? insertsFor_(x) : [], el); });
 const insertRow_ = id => insertSheetRow_(id) || insertParts_().find(r => r.id === id) || null;
 /* THE SHEET ITSELF, on paper: each line a name and its formula, typeset as a question's maths is (`typeset_`). */
 /* AN INSERT AS BLOCKS: its kicker (one quiet `unverified` if not yet checked), a reading's source (filled when its words come) or the sheet's sections. */
@@ -239,15 +230,7 @@ on('spec-practise', el => {
   const part = [...card.children].find(c => c.contains(el));
   if (part) card.insertBefore(box, part.nextSibling); else card.appendChild(box);
 });
-/* A PART'S LESSON: its main spec point's point-by-point card (the point's `ct:` link), opened in Find. */
-function specReviseOpts_(x) {
-  const k = specKeysOfRow_(x && x.row)[0];
-  if (!k) return null;
-  const [id, pt] = k.split(':'), sp = ((typeof DATA !== 'undefined' && DATA.specs) || []).find(s => s.id === id);
-  const p = sp && (sp.points || []).find(q => q.id === pt), ct = p && (p.links || []).find(l => /^ct:/.test(l));
-  return ct ? { icon: 'book', label: 'Revise this', note: pt + ' ' + p.text, act: 'find-open', data: { key: ct } } : null;
-}
-window.CARD_EXTRAS_MORE = Object.assign(window.CARD_EXTRAS_MORE || {}, { content: specPracticeOpts_, question: specReviseOpts_ });
+window.CARD_EXTRAS_MORE = Object.assign(window.CARD_EXTRAS_MORE || {}, { content: specPracticeOpts_ });
 const specExtras_ = x => [{ icon: 'open', label: 'Official', note: /\.pdf$/i.test(x.row.url) ? 'specification PDF' : 'the framework page', act: 'file-view', data: { url: x.row.url, title: x.row.board + ' ' + x.row.code } }];
 /* PRINTED ALONE, as a statement is (`stmt-print`): a paper copy of the sheet and nothing else of the app. */
 on('ins-print', el => {

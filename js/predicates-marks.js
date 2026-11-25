@@ -9,7 +9,7 @@ const isToast_ = el => !!el && el.id === 'toast';
 const SIGN_IN_BOXES = ['in-name'];
 const isSignInBox_ = el => !!el && SIGN_IN_BOXES.indexOf(el.id) !== -1;
 /* A tool that floats over the page (`measOpen_`) rather than held on the pad: the ruler and the protractor. */
-const MEASURE_TOOLS = ['ruler', 'protractor'];
+const MEASURE_TOOLS = ['measure', 'ruler', 'protractor'];
 const isMeasureTool_ = id => MEASURE_TOOLS.indexOf(id) !== -1;
 /* A marker whose answer is tapped options: chosen as a set, or put in order. */
 const CHOICE_MARKERS = ['choice', 'order'];
