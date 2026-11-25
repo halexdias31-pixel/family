@@ -404,7 +404,7 @@ function listTidy_(kind, items, how) {
   if (whole && L.most) rows = rows.slice(0, L.most);
   rows = rows.map((it, n) => listItemTidy_(L, P, it, whole, n));
   if (whole && L.need) rows = rows.filter(it => L.need.some(f => it[f]));
-  if (G && how === L.save) { const today = todayIso_(); rows = rows.filter(it => !it || it[G.daily] === 'daily' || !it[G.done] || !it[G.on] || String(it[G.on]) >= today); }
+  if (G && how === L.save) { const today = todayIso_(); rows = rows.filter(it => !it || !!it[G.daily] || !it[G.done] || !it[G.on] || String(it[G.on]) >= today); }
   return rows;
 }
 function listItemTidy_(L, P, it, whole, n) {
@@ -721,18 +721,18 @@ const DOCKET_TOKEN_KEY = 'DOCKET_TOKEN';
 const docketFill_ = it => { const o = {}; Object.keys(DOCKET_PLAN_FIELDS).forEach(k => { o[k] = DOCKET_PLAN_FIELDS[k].def; });
   Object.keys(it || {}).forEach(k => { if (it[k] !== '' && it[k] != null) o[k] = it[k]; }); return o; };
 /* Pure: the lists (changed in place), London's 'YYYY-MM-DD HH:MM', the query ({ do, what, list }) and the fill; { say, lists, changed }. */
-function docketAnswer_(lists, now, q, fill) {
+function docketAnswer_(lists, now, q, fill, priv) {
   const day = String(now).slice(0, 10), act = S(q && q.do).toLowerCase(), what = S(q && q.what).slice(0, 300), plan = () => dkPhase_(lists, now, fill);
   let said = '', changed = false;
   /* FOOD SLOTS (owner, 23 Nov): `&do=options[&slot=Snack]` reads the slots, or one slot's options and count (foods.json, DOCKET_FOODS); changes nothing. */
-  if (act === 'options') return { say: docketOptionsSay_(lists, S(q && q.slot).slice(0, 60)), lists: lists, changed: false };
+  if (act === 'options') return { say: docketOptionsSay_(lists, S(q && q.slot).slice(0, 60), priv), lists: lists, changed: false };
   if (act === 'done' || act === 'add') {
     if (!what) said = text_('dk-say-what');
     else if (act === 'done') {
       const p = plan(), rows = p ? p.rows : [];
       const k = dkMatch_(rows.map(r => lists[r.li].items[r.i].title), what);
       if (k < 0) said = text_('dk-say-no-match', { what: what });
-      else { const it = lists[rows[k].li].items[rows[k].i]; dkTick_(lists[rows[k].li].items, rows[k].i, true, day); changed = true; said = text_('dk-say-ticked', { title: it.title }); }
+      else { const it = lists[rows[k].li].items[rows[k].i]; dkTick_(lists[rows[k].li].items, rows[k].i, true, now); changed = true; said = text_('dk-say-ticked', { title: it.title }); }
     } else {
       const named = S(q.list), p = named ? null : plan();
       let L = named ? lists.find(x => S(x && x.name).toLowerCase() === named.toLowerCase()) : p ? lists[p.cur] : lists[0];
@@ -743,13 +743,14 @@ function docketAnswer_(lists, now, q, fill) {
   }
   return { say: (said ? said + ' ' : '') + dkSay_(dkNowNextOf_(lists, plan())), lists: lists, changed: changed };
 }
-function docketOptionsSay_(lists, slot) {
-  const all = DOCKET_FOODS.slots.map(s => s.name);
+/* `priv`: the cell's own private slots (dkFoodsWith_, e.g. Prayer), read with foods.json's by the one dkSlotOptions_. */
+function docketOptionsSay_(lists, slot, priv) {
+  const fd = dkFoodsWith_(DOCKET_FOODS, priv), all = fd.slots.map(s => s.name);
   lists.forEach(L => (L && L.items || []).forEach(it => { if (it && it.slot && !all.some(s => dkSame_(s, it.slot))) all.push(S(it.slot)); }));
   if (!slot) return text_('dk-say-slots', { slots: all.join(', ') });
   const name = all.find(s => dkSame_(s, slot));
   if (!name) return text_('dk-say-no-slot', { what: slot, slots: all.join(', ') });
-  const opts = dkSlotOptions_(DOCKET_FOODS, name).map(f => f.name), need = dkSlotNeed_(DOCKET_FOODS, name);
+  const opts = dkSlotOptions_(fd, name).map(f => f.name), need = dkSlotNeed_(fd, name);
   return text_('dk-say-slot', { slot: name, need: need > 1 ? text_('dk-say-slot-need', { need: need }) : '', options: opts.join(', ') || '-' });
 }
 const docketNow_ = () => Utilities.formatDate(new Date(), tz_(), 'yyyy-MM-dd HH:mm');
@@ -768,9 +769,10 @@ function docketAddress_(p) {
   if (!me || !S(me.person_id)) return say(text_('err-docket-owner'));
   let got = null;
   try { got = JSON.parse(S(me.todo)); } catch (e) { got = null; }
-  const r = docketAnswer_(got && Array.isArray(got.lists) ? got.lists : [], docketNow_(), p, docketFill_);
+  const priv = got && Array.isArray(got.slots) ? got.slots : [];
+  const r = docketAnswer_(got && Array.isArray(got.lists) ? got.lists : [], docketNow_(), p, docketFill_, priv);
   if (r.changed) {
-    const cell = todoTidy_(JSON.stringify({ v: 1, lists: r.lists }));
+    const cell = todoTidy_(JSON.stringify(Object.assign({ v: 1 }, priv.length ? { slots: priv } : {}, { lists: r.lists })));
     if (cell.length > DOCKET_CELL_MAX) return say(text_('err-docket-saved'));
     const out = JSON.parse(postSavePerson_({ personId: S(me.person_id) }, 'todo', cell).getContent());
     if (!out.success) return say(text_('err-docket-saved'));

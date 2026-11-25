@@ -103,23 +103,28 @@ const DK = { lists: null, at: 0, edit: -1, rename: false, showDone: false, say: 
 /* THE OWNER'S DAY (owner, 20 Nov): midnight is London's, whatever the device's clock says. */
 const dkDay_ = d => todayIso_(d);   // the one today, js/core.js
 /* DONE IS READ FROM `doneOn` AND THE DAY, never a timer (owner, 20 Nov): a daily item is undone again after midnight; a one-off stays ticked until midnight, then goes (dkTidy_). */
-const dkDone_ = i => (i.repeat === 'daily' ? i.doneOn === dkDay_() : !!i.done);
-const dkGone_ = i => i.repeat !== 'daily' && !!i.done && !!i.doneOn && i.doneOn < dkDay_();
+/* EVERY 8 HOURS (owner, 25 Nov): the one repeat has two values, 'daily' and '8h'. A repeating item's `doneOn` is its period's key (dkOn_): the day for
+   a daily one, the day and the third of it ('2026-11-25/2': 00-08 is 1, 08-16 is 2, 16-24 is 3) for an 8h one, so it is undone again in the next third.
+   Pure, from `now` ('YYYY-MM-DD HH:MM', London's; a bare day is its first third). tools/docket-slots.js checks it. */
+const dkRep_ = i => !!i && (i.repeat === 'daily' || i.repeat === '8h');
+const dkOn_ = (i, now) => { now = String(now || ''); const d = now.slice(0, 10), h = +now.slice(11, 13); return i && i.repeat === '8h' ? d + '/' + (1 + Math.floor((h >= 0 && h < 24 ? h : 0) / 8)) : d; };
+const dkDone_ = i => (dkRep_(i) ? i.doneOn === dkOn_(i, dkNow_()) : !!i.done);
+const dkGone_ = i => !dkRep_(i) && !!i.done && !!i.doneOn && i.doneOn < dkDay_();
 /* THE ONE TICK (owner, 23 Nov: COVERS): every done path (the widget, Find, the private address) ticks through this. Pure: the list's items, which one,
-   ticked or not, London's day. An item's `covers` (titles in the same list) are ticked with it, each one not already done, and remembered in its
+   ticked or not, London's now ('YYYY-MM-DD HH:MM'; a bare day will do for a daily one). An item's `covers` (titles in the same list) are ticked with it, each one not already done, and remembered in its
    `coversSet`; an untick undoes only those. A daily item's `doneOn` is the day; a one-off's `done` too. */
 function dkTick_(items, i, on, day) {
   const it = items[i];
   if (!it) return false;
-  const mark = (x, v) => { if (x.repeat === 'daily') x.doneOn = v ? day : ''; else { x.done = !!v; x.doneOn = v ? day : ''; } };
-  const isDone = x => (x.repeat === 'daily' ? x.doneOn === day : !!x.done);
+  const mark = (x, v) => { if (dkRep_(x)) x.doneOn = v ? dkOn_(x, day) : ''; else { x.done = !!v; x.doneOn = v ? String(day).slice(0, 10) : ''; } };
+  const isDone = x => (dkRep_(x) ? x.doneOn === dkOn_(x, day) : !!x.done);
   const find = t => items.find(y => y && y !== it && String(y.title || '').trim() === String(t || '').trim());
   mark(it, on);
   if (on) {
     const set = (Array.isArray(it.covers) ? it.covers : []).filter(t => { const x = find(t); if (!x || isDone(x)) return false; mark(x, true); return true; });
     if (set.length) it.coversSet = set; else delete it.coversSet;
   } else {
-    (Array.isArray(it.coversSet) ? it.coversSet : []).forEach(t => { const x = find(t); if (x && x.doneOn === day) mark(x, false); });
+    (Array.isArray(it.coversSet) ? it.coversSet : []).forEach(t => { const x = find(t); if (x && isDone(x)) mark(x, false); });
     delete it.coversSet;
   }
   return true;
@@ -129,10 +134,14 @@ function dkTick_(items, i, on, day) {
    is the one tick, unchanged. Pure, given foods.json ({ slots, foods }), so the private address (post-account.gs, DOCKET_FOODS) reads the same. */
 const dkSame_ = (a, b) => String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase();
 const dkSlotOptions_ = (foods, slot) => (foods && Array.isArray(foods.foods) ? foods.foods : []).filter(f => slot && Array.isArray(f.slots) && f.slots.some(s => dkSame_(s, slot)));
+/* A SLOT'S OPTIONS MAY ALSO BE PRIVATE (owner, 25 Nov): the docket cell's own `slots` ([{ name, need, options: [{ name, note }] }], e.g. Prayer) join
+   foods.json's, each option as a food tagged with its slot; the same dkSlotOptions_ reads both. They live in the owner's cell only, never in the repo. */
+const dkPrivFoods_ = s => (Array.isArray(s.options) ? s.options : []).map(o => ({ name: String((o && o.name) || ''), note: String((o && o.note) || ''), slots: [s.name] }));
+const dkFoodsWith_ = (foods, priv) => { const P = (Array.isArray(priv) ? priv : []).filter(s => s && s.name), f = foods || {}; return !P.length ? foods : { slots: (f.slots || []).concat(P.map(s => ({ name: s.name, need: s.need || 1 }))), foods: (f.foods || []).concat(...P.map(dkPrivFoods_)) }; };
 const dkSlotNeed_ = (foods, slot) => { const s = (foods && Array.isArray(foods.slots) ? foods.slots : []).find(x => dkSame_(x && x.name, slot)); return Math.max(1, Math.round(+(s && s.need)) || 1); };
 /* ON EVERY LOAD: a one-off ticked before today leaves its list (the backend's postSaveTodo_ does the same on each save); one ticked before `doneOn` existed is dated today, so it goes at the next midnight. */
 function dkTidy_(lists) {
-  lists.forEach(L => { L.items = (L.items || []).filter(it => !dkGone_(it)); L.items.forEach(it => { if (it.repeat !== 'daily' && it.done && !it.doneOn) it.doneOn = dkDay_(); }); });
+  lists.forEach(L => { L.items = (L.items || []).filter(it => !dkGone_(it)); L.items.forEach(it => { if (!dkRep_(it) && it.done && !it.doneOn) it.doneOn = dkDay_(); }); });
   return lists;
 }
 function dkLoad_() {
@@ -141,6 +150,7 @@ function dkLoad_() {
   let got = null;
   try { got = JSON.parse(raw); } catch (e) { got = null; }
   /* AN OLD DOCKET WAS LINES OF TEXT: each line an item of one list. */
+  DK.slots = got && Array.isArray(got.slots) ? got.slots : [];
   DK.lists = got && Array.isArray(got.lists) ? got.lists
     : raw.trim() ? [{ name: 'Docket', items: raw.split('\n').map(t => t.trim()).filter(Boolean).map(title => ({ title })) }] : [];
   return dkTidy_(DK.lists);
@@ -148,7 +158,7 @@ function dkLoad_() {
 function dkSave_() {
   /* FIND'S DOCKET CARDS ARE MADE FROM THESE LISTS (dkItems_): a list changed is a list made again. */
   if (typeof stuffForget_ === 'function') stuffForget_(true);
-  const todo = JSON.stringify({ v: 1, lists: DK.lists });
+  const todo = JSON.stringify(Object.assign({ v: 1 }, DK.slots && DK.slots.length ? { slots: DK.slots } : {}, { lists: DK.lists }));
   if (typeof USER !== 'undefined' && USER) { USER.todo = todo; if (typeof saveUser_ === 'function') saveUser_(); }
   Promise.resolve(api({ action: 'item', door: 'save', item: 'todo', personId: (USER && USER.personId) || '', todo }))
     .then(d => { if (!(d && d.success)) { DK.say = (d && d.error) || text_('not-saved-try-again'); dkPaint_(); } })
@@ -161,7 +171,7 @@ function dkGroups_(items) {
   const today = dkDay_(), g = {};
   items.forEach((it, i) => {
     if (dkDone_(it)) return;
-    const d = it.repeat === 'daily' ? today : it.date || '';
+    const d = dkRep_(it) ? today : it.date || '';
     const k = !d ? '~' : d < today ? '!' : d;
     (g[k] = g[k] || []).push(i);
   });
@@ -169,7 +179,7 @@ function dkGroups_(items) {
     rows: g[k].sort((a, b) => String(items[a].time || '99').localeCompare(String(items[b].time || '99'))) }));
 }
 /* AN ITEM NAMED FOR A FOOD KIND (foods.json, `foodKindOf_`) offers that kind's foods; the one picked is today's, and a daily item is the bare kind again tomorrow. */
-const dkPicked_ = it => (it.pick && (it.repeat !== 'daily' || it.pickOn === dkDay_()) ? it.pick : '');
+const dkPicked_ = it => (it.pick && (!dkRep_(it) || it.pickOn === dkOn_(it, dkNow_())) ? it.pick : '');
 /* THE ONE ITEM (owner, 22 Nov, UNIFY NEXT 6): every item of the owner's lists (kinds.json `list`: Docket, Assignments, Tasks, Food) is drawn as an Item,
    marked with its shape and kind (`data-shape`, `data-item-kind`, read by tools/one-list.js); in a widget here, in Find through the one card maker. */
 /* WHAT A TICK ALSO TICKS, on the card: "covers: Meat!, Rice". */
@@ -178,12 +188,13 @@ const listItem_ = (kind, o) => ({ type: 'group', look: 'dk-item', attrs: Object.
   blocks: (o.blocks || []).filter(Boolean), tiles: o.tiles });
 function dkItem_(it, i) {
   const fk = !it.slot && typeof foodKindOf_ === 'function' ? foodKindOf_(it.title) : null, picked = dkPicked_(it);
-  const fd = it.slot && typeof foodIndex_ === 'function' ? foodIndex_() : null, slotOpts = it.slot ? dkSlotOptions_(fd, it.slot) : [];
-  const tags = [it.repeat === 'daily' ? 'Daily' : it.date ? dkSayDay_(it.date) : '', it.time || ''].filter(Boolean);
+  const fd = it.slot ? dkFoodsWith_(typeof foodIndex_ === 'function' ? foodIndex_() : null, DK.slots) : null, slotOpts = it.slot ? dkSlotOptions_(fd, it.slot) : [];
+  const tags = [it.repeat === '8h' ? 'Every 8 hours' : it.repeat === 'daily' ? 'Daily' : it.date ? dkSayDay_(it.date) : '', it.time || ''].filter(Boolean);
   const row = listItem_('docket', { blocks: [
     { type: 'tick', text: (it.title || 'Untitled') + (picked ? ': ' + picked.toLowerCase() : ''), attrs: { 'data-dk': i, checked: dkDone_(it), 'aria-label': 'Done: ' + (it.title || '') } },
     tags.length ? { type: 'tags', tags } : null,
-    slotOpts.length ? { type: 'text', text: it.slot + (dkSlotNeed_(fd, it.slot) > 1 ? ' (' + dkSlotNeed_(fd, it.slot) + ' a day)' : '') + ': ' + slotOpts.map(f => f.name).join(', ') } : null,
+    slotOpts.length && !dkDone_(it) ? { type: 'tiles', tiles: slotOpts.map(f => ({ label: f.name, note: f.note || '', act: 'dk-food', cls: f.name === picked ? 'is-submit' : '', data: { i, f: f.name } })) } : null,
+    slotOpts.length && dkDone_(it) ? { type: 'text', text: it.slot + (dkSlotNeed_(fd, it.slot) > 1 ? ' (' + dkSlotNeed_(fd, it.slot) + ' a day)' : '') + ': ' + slotOpts.map(f => f.name).join(', ') } : null,
     fk && !dkDone_(it) ? { type: 'tiles', tiles: foodsOf_(fk).map(f => ({ label: f.name, note: f.note || '', act: 'dk-food', cls: f.name === picked ? 'is-submit' : '', data: { i, f: f.name } })) } : null,
     it.note && DK.edit !== i ? { type: 'text', paras: String(it.note).split(/\n{2,}/) } : null, dkCovers_(it)],
     tiles: [{ icon: 'edit', label: 'Edit', act: 'dk-edit', data: { i } }, { icon: 'bin', label: 'Delete', act: 'dk-del', data: { i } }] });
@@ -195,8 +206,8 @@ function dkItem_(it, i) {
     f('Date', { type: 'control', attrs: { type: 'date', class: 'dk-f', 'data-f': 'date', value: it.date || '' } }),
     f('Time', { type: 'control', attrs: { type: 'time', class: 'dk-f', 'data-f': 'time', value: it.time || '' } }),
     f('Food slot', { type: 'control', tag: 'select', attrs: { class: 'dk-f', 'data-f': 'slot' }, options: [{ value: '', text: 'None', on: !it.slot }]
-      .concat((((typeof foodIndex_ === 'function' && foodIndex_()) || {}).slots || []).map(s => ({ value: s.name, text: s.name, on: dkSame_(s.name, it.slot) }))) }),
-    f('Repeats', { type: 'control', tag: 'select', attrs: { class: 'dk-f', 'data-f': 'repeat' }, options: [{ value: '', text: 'Never', on: !it.repeat }, { value: 'daily', text: 'Daily', on: it.repeat === 'daily' }] })],
+      .concat(((dkFoodsWith_(typeof foodIndex_ === 'function' ? foodIndex_() : null, DK.slots) || {}).slots || []).map(s => ({ value: s.name, text: s.name, on: dkSame_(s.name, it.slot) }))) }),
+    f('Repeats', { type: 'control', tag: 'select', attrs: { class: 'dk-f', 'data-f': 'repeat' }, options: [{ value: '', text: 'Never', on: !it.repeat }, { value: 'daily', text: 'Daily', on: it.repeat === 'daily' }, { value: '8h', text: 'Every 8 hours', on: it.repeat === '8h' }] })],
     tiles: [{ icon: 'save', label: text_('save'), act: 'dk-keep', cls: 'is-submit', data: { i } }] };
 }
 function dkBlocks_() {
@@ -307,11 +318,14 @@ on('dk-edit', el => { const i = +el.getAttribute('data-i'); if (DK.edit === i) {
 on('dk-del', el => { const L = dkList_(); if (!L) return; L.items.splice(+el.getAttribute('data-i'), 1); DK.edit = -1; stepDone_(DK.editStep, false); dkKeep_(); });
 on('dk-keep', el => { const it = dkList_() && dkList_().items[+el.getAttribute('data-i')]; if (!it) return;
   $('dk-box').querySelectorAll('.dk-editing .dk-f').forEach(f => { it[f.getAttribute('data-f')] = String(f.value || '').trim(); });
-  if (it.repeat !== 'daily') delete it.repeat;
+  if (!dkRep_(it)) delete it.repeat;
   if (!it.slot) delete it.slot;
   DK.edit = -1; stepDone_(DK.editStep, false); dkKeep_(); });
 on('dk-food', el => { const it = dkList_() && dkList_().items[+el.getAttribute('data-i')]; if (!it) return;
-  const f = el.getAttribute('data-f') || ''; if (dkPicked_(it) === f) { it.pick = ''; it.pickOn = ''; } else { it.pick = f; it.pickOn = dkDay_(); } dkKeep_(); });
+  const f = el.getAttribute('data-f') || ''; if (dkPicked_(it) === f) { it.pick = ''; it.pickOn = ''; } else { it.pick = f; it.pickOn = dkOn_(it, dkNow_()); }
+  /* A SLOT IS FILLED BY TICKING ANY OF ITS OPTIONS (owner, 25 Nov): the pick ticks the item, the one tick (dkTick_). */
+  if (it.slot && it.pick && !dkDone_(it)) dkTick_(dkList_().items, +el.getAttribute('data-i'), true, dkNow_());
+  dkKeep_(); });
 /* ASKED, NOT KEPT: the token comes from the backend each time, the address is the backend's own URL (API) with it; a new one stops the old. */
 const dkAddr_ = renew => Promise.resolve(api({ action: 'docketAddress', personId: (USER && USER.personId) || '', renew: renew ? 1 : '' }))
   .then(d => { if (d && d.token) DK.addr = API + '?docket=' + d.token; else { DK.addr = null; DK.say = (d && d.error) || text_('err-docket-saved'); } dkPaint_(); })
@@ -322,7 +336,7 @@ on('dk-showdone', () => { DK.showDone = !DK.showDone; dkPaint_(); });
 document.addEventListener('change', e => {
   const el = e.target;
   if (!el || !el.closest || !el.closest('#dk-box') || !el.hasAttribute('data-dk')) return;
-  if (!dkList_() || !dkTick_(dkList_().items, +el.getAttribute('data-dk'), el.checked, dkDay_())) return;
+  if (!dkList_() || !dkTick_(dkList_().items, +el.getAttribute('data-dk'), el.checked, dkNow_())) return;
   dkKeep_();
 });
 /* THE DOCKET IN FIND (owner, 20 Nov): Tools › Docket › a list › its items, each its own card (kinds.json kind `docket`, drawn by `dkCard_` through the one maker).
@@ -334,10 +348,10 @@ function dkPlan_(items, now) {
   now = String(now || '');
   const day = now.slice(0, 10), hm = s => { const m = /^(\d\d?):(\d\d)/.exec(String(s || '')); return m ? +m[1] * 60 + +m[2] : -1; };
   const IMP = { must: 0, high: 1, normal: 2, low: 3 }, PLACE = { home: 0, anywhere: 1, out: 2 };
-  const done = it => (it.repeat === 'daily' ? it.doneOn === day : !!it.done);
+  const done = it => (dkRep_(it) ? it.doneOn === dkOn_(it, now) : !!it.done);
   const mins = it => Math.max(1, +it.minutes || 5), runs = it => Math.max(0, +it.runs || 0);
-  const fixed = it => hm(it.time) >= 0 && it.timeIs !== 'by' && (it.repeat === 'daily' || !it.date || it.date === day);
-  const due = it => { const d = it.repeat === 'daily' ? '' : String(it.date || ''), t = hm(it.time) >= 0 ? String(it.time) : '';
+  const fixed = it => hm(it.time) >= 0 && it.timeIs !== 'by' && (dkRep_(it) || !it.date || it.date === day);
+  const due = it => { const d = dkRep_(it) ? '' : String(it.date || ''), t = hm(it.time) >= 0 ? String(it.time) : '';
     return t && it.timeIs === 'by' ? (d || day) + ' ' + t : d ? d + ' ' + (t || '99:99') : '~'; };
   const heavy = it => it.effort === 'hard' || it.fun === 'dread';
   const all = (items || []).map((it, i) => ({ it: it || {}, i }));
@@ -381,7 +395,7 @@ function dkPlan_(items, now) {
 function dkPhase_(lists, now, fill) {
   now = String(now || ''); fill = fill || (x => x);
   const day = now.slice(0, 10), hm = s => { const m = /^(\d\d?):(\d\d)$/.exec(String(s || '').trim()); return m ? +m[1] * 60 + +m[2] : -1; }, t = Math.max(0, hm(now.slice(11)));
-  const done = it => (it.repeat === 'daily' ? it.doneOn === day : !!it.done);
+  const done = it => (dkRep_(it) ? it.doneOn === dkOn_(it, now) : !!it.done);
   const ph = (lists || []).map((L, li) => ({ L: L || {}, li, at: hm((L || {}).start) })).filter(x => x.at >= 0).sort((a, b) => a.at - b.at || a.li - b.li);
   if (!ph.length) return null;
   const open = x => (x.L.items || []).map((it, i) => ({ it: it || {}, i })).filter(y => !done(y.it));
@@ -417,7 +431,7 @@ function dkCard_(x) {
   if (x.dkNew != null) return renderCard(shapeCard_('docket', { kind: 'docket', name: x.name, tags: [x.name, x.dkList],
     body: [{ type: 'field', cap: 'Add an item', blocks: [{ type: 'control', attrs: { class: 'dk-qadd', 'data-li': x.dkNew, placeholder: 'What to do, then Enter', maxlength: 300, enterkeyhint: 'done' } }] }],
     tiles: [{ icon: 'plus', label: 'Add', act: 'dk-qadd', cls: 'is-submit', data: { li: x.dkNew } }] }));
-  const it = x.row || {}, a = dkFill_(it), when = [it.repeat === 'daily' ? 'Daily' : it.date ? dkSayDay_(it.date) : '', it.time ? (it.timeIs === 'by' ? 'by ' : '') + it.time : ''].filter(Boolean);
+  const it = x.row || {}, a = dkFill_(it), when = [it.repeat === '8h' ? 'Every 8 hours' : it.repeat === 'daily' ? 'Daily' : it.date ? dkSayDay_(it.date) : '', it.time ? (it.timeIs === 'by' ? 'by ' : '') + it.time : ''].filter(Boolean);
   const open = DKF.edit === x.dkAt, spec = dkFields_();
   const form = open ? [{ type: 'group', look: 'dk-form', inner: formOf_('docket-item', a, { options: f => ((spec.find(y => y.f === f) || {}).options || []) }) }] : [];
   return renderCard(shapeCard_('docket', { kind: 'docket', name: it.title || 'Untitled', tags: [it.title || 'Untitled', x.dkMark, a.minutes + ' min', +a.runs ? 'Runs by itself ' + a.runs + ' min' : '', x.dkList].concat(when).filter(Boolean),
@@ -437,7 +451,7 @@ on('dk-fsave', el => { const { it } = dkAt_(el.getAttribute('data-at')), card = 
   card.querySelectorAll('[data-dke]').forEach(b => { const f = b.getAttribute('data-dke'), x = dkFields_().find(y => y.f === f) || {}, v = String(b.value || '').trim();
     if (f === 'title') { if (v) it.title = v.slice(0, 300); return; }
     if (v === '' || (x.default != null && v === String(x.default))) delete it[f]; else it[f] = x.type === 'number' ? Math.max(0, Math.round(+v) || 0) : v.slice(0, 8000); });
-  if (it.repeat !== 'daily') delete it.repeat;
+  if (!dkRep_(it)) delete it.repeat;
   DKF.edit = ''; stepDone_(DKF.step, false); dkFindKeep_(); });
 on('dk-fdel', el => { const { L, i, it } = dkAt_(el.getAttribute('data-at')); if (!it || !confirm('Delete "' + (it.title || 'this item') + '"?')) return; L.items.splice(i, 1); DKF.edit = ''; stepDone_(DKF.step, false); dkFindKeep_(); });
 on('dk-qadd', el => { const card = el.closest('.card'), inp = card && card.querySelector('.dk-qadd'), li = +el.getAttribute('data-li'), L = dkLoad_()[li], t = String((inp && inp.value) || '').trim();
@@ -447,7 +461,7 @@ document.addEventListener('change', e => {
   const el = e.target, at = el && el.getAttribute && el.getAttribute('data-dkf');
   if (!at) return;
   const { L, i } = dkAt_(at);
-  if (!L || !dkTick_(L.items, i, el.checked, dkDay_())) return;
+  if (!L || !dkTick_(L.items, i, el.checked, dkNow_())) return;
   dkFindKeep_();
 });
 document.addEventListener('keydown', e => { const c = e.target && e.target.classList; if (e.key !== 'Enter' || !c || typeof ACTIONS === 'undefined') return;
