@@ -386,7 +386,8 @@ const sheetItem_ = x => ({ key: x.key + '~sheet' });
 function sheetPrint_(x) {
   const p = x && x.key ? padSource_(x) : null;
   /* ONE NOTE A SHEET, at its foot (the lines' pad's): the picture's own is left off */
-  return p ? fcG_('div', 'qp-sheet-print', { 'data-q': x.key }, padWrap_(x, p.svg, 'row').replace(/<p class="qpad-note"[^>]*>[\s\S]*?<\/p>/, '')) : '';
+  /* `qp-area`: the figure's own look (its grid, axes, numbers and marks in the ink, style.css), as it had on the card */
+  return p ? fcG_('div', 'qp-sheet-print qp-area', { 'data-q': x.key }, padWrap_(x, p.svg, 'row').replace(/<p class="qpad-note"[^>]*>[\s\S]*?<\/p>/, '')) : '';
 }
 /* THE LINES' PAD: a drawn answer with no picture draws on them under its own key; any other part under `~sheet`. Marks made on the old
    paper face (`~paper`, gone 24 Nov) are moved onto it once, the first time it is drawn (`padAdopt_`: only into an empty pad). */
