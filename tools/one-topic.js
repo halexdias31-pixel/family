@@ -79,8 +79,16 @@ async function page(brk) {
       const names = Object.assign({}, (TAXONOMY.Maths || {}).ideaNames || {}, (TAXONOMY.Science || {}).ideaNames || {}), by = new Set(Object.values(names)), out = { bad: [], shown: new Set(), n: 0 };
       stuffItemsAll_().filter(x => isQ_(x) && x.row && subs.includes(x.subject)).forEach(x => {
         out.n++;
-        const v = [].concat(FACET_READ.topic.of(x) || []).filter(Boolean), want = names[x.row.idea_id];
+        const v = [].concat(FACET_READ.topic.of(x) || []).filter(Boolean);
         v.forEach(t => out.shown.add(t));
+        /* A MATHS QUESTION (owner 24–25 Nov) answers its DfE nodes broad → narrow (tools/one-dfe.js holds the tree); a science one its idea's name. */
+        if (x.subject === 'Maths') {
+          const D = TAXONOMY.Maths.dfe || {}, w = [];
+          String(x.row.dfe || '').split(/\s+/).filter(Boolean).forEach(id => { const p = []; for (let n = id; n && D[n]; n = D[n][1]) p.unshift(D[n][0]); p.forEach(t => { if (!w.includes(t)) w.push(t); }); });
+          if (v.join('|') !== w.join('|')) out.bad.push((x.row.row_id || x.key) + ': Find\'s topic is [' + v.join(', ') + '], not its DfE path [' + w.join(', ') + ']');
+          return;
+        }
+        const want = names[x.row.idea_id];
         if (want ? v.length !== 1 || v[0] !== want : v.length) out.bad.push((x.row.row_id || x.key) + ': Find\'s topic is [' + v.join(', ') + '], not ' + (want || 'none'));
         else v.filter(t => !by.has(t)).forEach(t => out.bad.push((x.row.row_id || x.key) + ': topic "' + t + '" is no idea name'));
       });
@@ -138,7 +146,7 @@ async function run() {
   const c = d.count;
   console.log('one-topic: ' + c.questions + ' maths questions, ' + c.mapped + ' pointing at one idea, ' + c.unmapped + ' unmapped (budget ' + d.table.budget
     + '); ' + c.sourceTopics + ' source topic names became ' + c.ideas + ' ideas; science: ' + d.sci.questions + ' questions, ' + d.sci.mapped + ' pointing at one idea ('
-    + d.sci.ideas + ' ideas), ' + d.sci.unmapped + ' unmapped (budget ' + d.table.science.budget + '); in Find ' + p.n + ' maths and science questions answer ' + p.shown + ' topics, every one an idea name');
+    + d.sci.ideas + ' ideas), ' + d.sci.unmapped + ' unmapped (budget ' + d.table.science.budget + '); in Find ' + p.n + ' maths and science questions answer ' + p.shown + ' topics, every one an idea name or, for maths, a DfE topic');
 }
 
 main(module, run);

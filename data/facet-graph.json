@@ -74,6 +74,8 @@
 ["paperId","subject"],
 ["paperId","tier"],
 ["paperId","topic"],
+["paperSection","qNumber"],
+["paperSection","qPart"],
 ["paperSection","subject"],
 ["paperSection","topic"],
 ["qNumber","qPart"],

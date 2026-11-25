@@ -41,6 +41,9 @@ function withActivity(P) {
   return JSON.stringify(P);
 }
 
+/* THE SHAPES THE CARDS WEAR, each once */
+const shapesOf = all => [...new Set(all.map(x => x.sh).filter(Boolean))].sort();
+const PROVE = process.argv.includes('--prove');
 async function run() {
   const css = bare(text('style.css'), { comments: true });
   const hand = settingsByHand(css);
@@ -87,20 +90,21 @@ async function run() {
     bad.forEach(x => console.log('  ' + x.door + ' › ' + String(x.n).replace(/\n/g, ' ') + ' [' + (x.kc ? '' : 'not one maker; ') + x.own.join(' ') + ']'));
     if (bad.length) throw new Error('one-card: ' + bad.length + ' card(s) outside the one maker');
     const KINDS = SD.kinds();
-    ['Person', 'Item', 'Reference', 'Record', 'Thread', 'Question'].forEach(h => {
-      const kinds = Object.keys(KINDS).filter(k => KINDS[k].shape === h), mine = all.filter(x => kinds.indexOf(x.ik) >= 0);
-      const worn = [...new Set(mine.map(x => x.sh))], wrong = mine.filter(x => x.sh !== h);
-      console.log('one-card: ' + h + ' — ' + mine.length + ' card(s) of ' + [...new Set(mine.map(x => x.ik))].sort().join(', ') + ' in ' + worn.length + ' shape(s)');
-      wrong.forEach(x => console.log('  ' + x.door + ' › ' + String(x.n).replace(/\n/g, ' ') + ' [' + x.ik + ' wears ' + (x.sh || 'no shape') + ']'));
-      if (wrong.length || worn.length > 1) throw new Error('one-card: ' + h + ' kinds draw in ' + worn.length + ' shapes; exactly one');
-    });
-    /* EVERY ACTIVITY CARD, by the kind its class says (a receipt is a booking's card): a post, a receipt or a conversation with no shape fails, and each must be seen. */
-    const ACT = { 'kc-post': ['post', 'Record'], 'kc-receipt': ['booking', 'Record'], 'kc-msg': ['msg', 'Thread'], 'kc-question': ['question', 'Question'] };
-    Object.keys(ACT).forEach(c => { const of = all.filter(x => x.c.split(/\s+/).indexOf(c) >= 0), bare = of.filter(x => x.sh !== ACT[c][1] || x.ik !== ACT[c][0]);
+    /* ONE CARD TYPE (owner, 25 Nov): every card wears the one shape, the question card's frame; more than one shape seen fails. */
+    const shapes = shapesOf(all);
+    console.log('one-card: ' + shapes.length + ' card shape(s) drawn: ' + shapes.map(h => h + ' (' + [...new Set(all.filter(x => x.sh === h).map(x => x.ik).filter(Boolean))].sort().join(', ') + ')').join('; '));
+    if (shapes.length !== 1 || shapes[0] !== 'Card') throw new Error('one-card: ' + shapes.length + ' card shapes (' + shapes.join(', ') + '); one, Card');
+    if (PROVE) { const two = shapesOf(all.concat([Object.assign({}, all[0], { sh: 'Person' })])); console.log('  --prove a second shape: ' + (two.length > 1 ? 'caught' : 'MISSED')); if (two.length < 2) throw new Error('one-card --prove: a second shape was not caught'); }
+    const unshaped = Object.keys(KINDS).filter(k => KINDS[k].shape && KINDS[k].shape !== 'Card');
+    if (unshaped.length) throw new Error('one-card: kinds.json gives ' + unshaped.join(', ') + ' a shape other than Card');
+    /* EVERY ACTIVITY CARD is seen, in the one card, as its kind */
+    const ACT = { 'kc-post': 'post', 'kc-receipt': 'booking', 'kc-msg': 'msg', 'kc-question': 'question' };
+    Object.keys(ACT).forEach(c => { const of = all.filter(x => x.c.split(/\s+/).indexOf(c) >= 0), bare = of.filter(x => x.sh !== 'Card' || x.ik !== ACT[c]);
       bare.forEach(x => console.log('  ' + x.door + ' › ' + String(x.n).replace(/\n/g, ' ') + ' [' + c + ' wears ' + (x.sh || 'no shape') + ']'));
-      if (!of.length || bare.length) throw new Error('one-card: ' + (of.length ? bare.length + ' ' + c + ' card(s) not a ' + ACT[c][1] : 'no ' + c + ' card drawn'));
+      if (!of.length || bare.length) throw new Error('one-card: ' + (of.length ? bare.length + ' ' + c + ' card(s) not in the one card' : 'no ' + c + ' card drawn'));
     });
-    const loose = all.filter(x => ['Person', 'Item', 'Reference', 'Record', 'Thread', 'Question'].indexOf(x.sh) >= 0 && (!x.ik || KINDS[x.ik].shape !== x.sh));
+    /* a kindless card in the one card (Find's menu, a Settings card) is in it by its maker, not by kinds.json */
+    const loose = all.filter(x => x.sh && x.ik && (!KINDS[x.ik] || KINDS[x.ik].shape !== x.sh));
     loose.forEach(x => console.log('  ' + x.door + ' › ' + String(x.n).replace(/\n/g, ' ') + ' [' + x.sh + ' on ' + (x.ik || 'no kind') + ']'));
     if (loose.length) throw new Error('one-card: ' + loose.length + ' card(s) wear a shape their kind does not declare');
     if (!all.length) throw new Error('one-card: no cards drawn — the app did not start');

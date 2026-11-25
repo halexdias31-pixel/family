@@ -270,14 +270,14 @@ function itemMapOfKind_(k) {
   ['picture', 'pills', 'tagRows', 'tiles', 'keep', 'data', 'tool', 'sheet'].forEach(f => { if (c[f]) { const h = H(f); M[f] = (it, x, pic) => h(kindCtx_(it, x, pic)); } });
   /* THE ONE PERSON AND ITEM BODIES (CARD SHAPES): a Person draws its kind's `parts` (personBody_); a stored Item its form's lines, its sheet */
   /* and its tiles (form.js); a plain `picture` is the entry's column as a photo; `price` adds the price tag after Find's facets. */
-  if (c.parts) M.body = (r, live) => (K.shape === 'Reference' ? referenceBody_ : personBody_)(r, live, k);
-  else if (K.shape === 'Record' && c.record) { const R = c.record; M.name = r => recordName_(R, r);
+  if (c.parts) M.body = (r, live) => (K.bodyAs === 'reference' ? referenceBody_ : personBody_)(r, live, k);
+  else if (c.record) { const R = c.record; M.name = r => recordName_(R, r);
     if (R.pills) M.pills = it => recordPills_(R, it); if (R.sum) M.body = (r, live) => recordSum_(R, r, live); }
-  else if (K.shape === 'Question' && c.question) { const Q = c.question, stem = kindHook_(Q.stem, null), act = kindHook_(Q.actions, []);
+  else if (c.question) { const Q = c.question, stem = kindHook_(Q.stem, null), act = kindHook_(Q.actions, []);
     M.picture = (it, x) => stem(kindCtx_(it, x)); M.sheet = (it, x, pic) => questionBox_(Q, x, pic); M.tiles = (it, x) => act(kindCtx_(it, x)); }
   else if ((K.find || {}).from === 'store') { M.body = r => itemLines_(r, k); M.sheet = (it, x) => storeSheet_(it, x); M.tiles = (it, x) => storeTiles_(it, x); }
   if (c.picture && !/\(/.test(c.picture)) M.picture = (it, x) => (x[c.picture] && typeof pic === 'function' ? { src: pic(x[c.picture]), look: 'thing-pic', alt: '' } : null);
-  else if (!c.picture && K.shape === 'Person') M.picture = it => (typeof personPicSpec_ === 'function' ? personPicSpec_(it.raw.id, it.name) : null);
+  else if (!c.picture && K.bodyAs === 'person') M.picture = it => (typeof personPicSpec_ === 'function' ? personPicSpec_(it.raw.id, it.name) : null);
   /* ITS PRICE IS THE ONE TAG SET'S `price` (data/settings/tags.json), after the facets the set keeps. */
   if (c.price) M.pills = (it, x) => itemFacets_(M, x).concat([].concat(shopPriceTag_(x) || []).map(t => Object.assign({}, t, { data: Object.assign({}, t.data, { f: 'price' }) })));
   if (K.live) { M.live = {}; Object.keys(K.live).forEach(f => { const h = kindHook_(K.live[f], null); M.live[f] = r => h({ row: r }); }); }
@@ -356,16 +356,9 @@ function cardOfItem_(it, x) {
    hist, manuscript, writing, event, chem, fooddb, venue, subject, level, mech); an Activity: Record its who/when tags, money or fact pills and status
    (post, booking and its receipt); an Activity: Thread its messages and reply (msg); a Learning: Question its tags, stem, answer box and actions (question). Each keeps only its own slots and is marked `data-shape` (and `data-item-kind`, read by tools/one-card.js). */
 const kindShape_ = k => { const h = ((typeof ITEM_KINDS !== 'undefined' && ITEM_KINDS.kinds[k]) || {}).shape; return typeof h === 'string' ? h : ''; };
-const CARD_SLOTS_ = { Person: ['look', 'name', 'row', 'off', 'picture', 'tags', 'tagLook', 'tagRows', 'body', 'tiles'],
-  Item: ['look', 'name', 'row', 'off', 'picture', 'tags', 'tagLook', 'body', 'tiles', 'cut', 'empty'],
-  Reference: ['look', 'name', 'row', 'off', 'picture', 'tags', 'body'],
-  Record: ['look', 'name', 'row', 'picture', 'tags', 'body', 'cut', 'empty'],
-  /* A THREAD (msg, me-messages.js threadCard_): who, tags, its messages or reply box, its tiles. A conversation already written is the old cut maker's */
-  /* (card-fields.json `msg`: face, who, tags, last line, Open and Reply), so its head and each message wear shapeData_ instead. */
-  Thread: ['name', 'tags', 'body', 'tiles'],
-  /* A LEARNING: QUESTION (question, and a paper as a set of them; find-figures.js qOneCard_): its tags, its stem with figures (the picture), the one */
-  /* answer box (its body, the qsheet embed) and the mark and reveal actions (tiles, the tool row). Its states: `wait` while its words load (libWaitHtml_). */
-  Question: ['look', 'name', 'row', 'picture', 'tags', 'tagLook', 'body', 'tiles', 'toolRow'] };
+/* ONE CARD (owner, 25 Nov): every kind fills the question card's slots -- tags at the top, picture, body, sheet, tiles at the foot; a slot a kind
+   has nothing for stays empty. */
+const CARD_SLOTS_ = { Card: ['look', 'name', 'row', 'off', 'picture', 'tags', 'tagLook', 'tagRows', 'body', 'tiles', 'cut', 'empty', 'toolRow'] };
 /* A CARD THE OLD CUT MAKER DRAWS (findCard, card_) wears its shape as data- attributes: what a Thread's pieces add to their `cardData` or `data`. */
 const shapeData_ = k => (kindShape_(k) ? { shape: kindShape_(k), 'item-kind': k } : {});
 function shapeCard_(kind, s) {

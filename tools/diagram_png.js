@@ -74,7 +74,7 @@ async function main() {
     .qcard.qfig .qsheet { color: ${fg}; }
     .qcard.qfig figure { margin: 0 !important; padding: 0 !important; line-height: 0; display: inline-block; background: ${bg}; }
     .qcard.qfig figure svg { display: block; height: auto; }
-  </style></head><body><div class="qcard qfig" data-shape="Question"><div class="qsheet"><figure id="fig"></figure></div></div></body></html>`;
+  </style></head><body><div class="qcard qfig" data-shape="Card"><div class="qsheet"><figure id="fig"></figure></div></div></body></html>`;
   const LANES = 4;
   let next = 0, done = 0;
   const lane = async () => {

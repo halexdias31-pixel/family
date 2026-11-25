@@ -29,7 +29,7 @@ async function site(Q, brk) {
         const box = document.createElement('div');
         box.innerHTML = questionWhole_(x, [x], null, true, false);
         document.body.appendChild(box);
-        const cards = [...box.querySelectorAll('.qwhole > [data-shape="Question"]')];
+        const cards = [...box.querySelectorAll('.qwhole > [data-shape="Card"]')];
         const [qc, ac] = cards;
         if (ac && brk === 'tags') { const t = ac.querySelector('.qtag'); if (t) t.remove(); }
         if (ac && brk === 'button') { const t = ac.querySelector('.qt-row .tile'); if (t) t.remove(); }

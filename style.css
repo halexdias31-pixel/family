@@ -2909,19 +2909,19 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 
 /* ---------- ONE QUESTION NUMBER, NO BOX ROUND IT (1030): its parts are cards one under another, none indented (owner, 8 Nov, 1160). */
 .qwhole { background: none; border: 0; border-radius: 0; padding: var(--s3) 0; margin: 0; }
-.qwhole [data-shape="Question"]:not(.card) { background: none; border: 0; border-radius: 0; padding: 0; margin: 0; }
+.qwhole [data-shape="Card"]:not(.card) { background: none; border: 0; border-radius: 0; padding: 0; margin: 0; }
 .qwhole .qb-stem { color: var(--ink); border-bottom: 0; margin: var(--s2) 0 0; }
-.qwhole > [data-shape="Question"] + [data-shape="Question"] { margin-top: var(--card-gap); }
-.qwhole [data-shape="Question"] .qsheet { margin-top: var(--s2); }
+.qwhole > [data-shape="Card"] + [data-shape="Card"] { margin-top: var(--card-gap); }
+.qwhole [data-shape="Card"] .qsheet { margin-top: var(--s2); }
 /* ---------- A QUESTION IS A CARD LIKE ANY OTHER (owner, 10-11 Nov): picture, tags, words, answer, round buttons, all on one centre line. */
-:is(.qwhole > [data-shape="Question"], [data-shape="Question"]) { text-align: center; }
-:is(.qwhole > [data-shape="Question"], [data-shape="Question"]) :is(.qtags, .tile-row, .qp-choices, .qsheet-part) { justify-content: center; }
-:is(.qwhole > [data-shape="Question"], [data-shape="Question"]) :is(.qsheet, .qb-stem) { margin-left: auto; margin-right: auto; }
+:is(.qwhole > [data-shape="Card"], [data-shape="Card"]) { text-align: center; }
+:is(.qwhole > [data-shape="Card"], [data-shape="Card"]) :is(.qtags, .tile-row, .qp-choices, .qsheet-part) { justify-content: center; }
+:is(.qwhole > [data-shape="Card"], [data-shape="Card"]) :is(.qsheet, .qb-stem) { margin-left: auto; margin-right: auto; }
 .qwhole .qb-stem:empty { display: none; }
-:is(.qwhole > [data-shape="Question"], [data-shape="Question"]) .qtext :is(table, figure, p) { margin-left: auto; margin-right: auto; }
+:is(.qwhole > [data-shape="Card"], [data-shape="Card"]) .qtext :is(table, figure, p) { margin-left: auto; margin-right: auto; }
 /* TYPING READS FROM THE LEFT: the box is centred, the words inside it are not. */
-:is(.qwhole > [data-shape="Question"], [data-shape="Question"]) :is(.qp-ans, .qp-sheet, .gd-box, input, textarea, ul, ol, .qans-note) { text-align: left; }
-:is(.qwhole > [data-shape="Question"], [data-shape="Question"]) .qtext :is(ul, ol) { display: inline-block; max-width: 100%; margin-left: auto; margin-right: auto; }
+:is(.qwhole > [data-shape="Card"], [data-shape="Card"]) :is(.qp-ans, .qp-sheet, .gd-box, input, textarea, ul, ol, .qans-note) { text-align: left; }
+:is(.qwhole > [data-shape="Card"], [data-shape="Card"]) .qtext :is(ul, ol) { display: inline-block; max-width: 100%; margin-left: auto; margin-right: auto; }
 /* ---------- THE CARD'S TAGS § */
 .qtags { display: flex; flex-wrap: wrap; gap: var(--s1) var(--s1); }
 .qcard-tags { margin: 0; }
@@ -2938,7 +2938,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 /* `.qcard-peek` AND `.qcard:active` WERE HERE — the clipped first line, and the press animation for
    a card that was a button. Neither has anything to do: the card is not tappable, because there is
    nothing left to open. */
-[data-shape="Question"] .qsheet { margin-top: var(--s3); }
+[data-shape="Card"] .qsheet { margin-top: var(--s3); }
 
 /* ---------- THE TYPESETTING, AND IT HAS MOVED TWICE § */
 .qsheet { font-family: var(--font); line-height: var(--lh-loose); overflow-wrap: break-word; }
@@ -3645,7 +3645,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
    the header's word on every card in this family. It wraps on its middots, which is where it reads. */
 
 /* ---------- ONE BOXED CARD: a widget, a question card and the bundle card share one surface; a widget's padding is its own. § */
-[data-shape="Question"], .card[data-shape="Question"].bundle {
+[data-shape="Card"], .card[data-shape="Card"].bundle {
   background: var(--raised); border: 1px solid var(--line); border-radius: var(--r-ui);
   padding: var(--s3); margin-bottom: var(--card-gap);
 }
@@ -3676,9 +3676,9 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .widget-slot > .card:only-child { padding-block: 0; border-bottom: 0; }
 
 /* ---------- ONE SURFACE, AND IT IS THE PANE (690): what sits in it is flat, set apart by space and a hairline, as an iOS grouped list. */
-.pane :is([data-shape="Question"], .card:has(> .msg-body, > .kc-lines > .msg-body)) {
+.pane :is([data-shape="Card"], .card:has(> .msg-body, > .kc-lines > .msg-body)) {
   background: none; border: 0; border-radius: 0; padding-inline: 0; margin-inline: 0; }
-.pane [data-shape="Question"] + [data-shape="Question"] {
+.pane [data-shape="Card"] + [data-shape="Card"] {
   border-top: 1px solid var(--line-soft); padding-top: var(--card-gap); margin-top: 0; }
 
 /* THE CAMERA CARD. The 📷 column drew "＋ New post" — a card describing a photograph rather than a way to take one, and the identical card sat one swipe away at § */
@@ -4115,13 +4115,13 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 .qpad-art { position: relative; display: inline-block; width: min(100%, var(--pic-w)); line-height: 0; }
 .qpad-art > svg:first-child { width: 100%; height: auto; display: block; }
 /* ---------- A PEN ON A QUESTION'S CARD § */
-[data-shape="Question"] .qpad { margin: var(--s4) 0 var(--s1); font: 400 var(--fs-small)/1.4 var(--font); }
+[data-shape="Card"] .qpad { margin: var(--s4) 0 var(--s1); font: 400 var(--fs-small)/1.4 var(--font); }
 .qp-area .qpad-art > svg.qsurf:first-child { width: min(100%, var(--pic-w), 44svh); }
 /* AND THE PICTURE'S BOX HELD TO IT TOO, OR THE INK IS NOT OVER THE GRID. § */
 .qp-area .qpad-art:has(> svg.qsurf:first-child) { max-width: min(100%, var(--pic-w), 44svh); }
 /* ONE LINE OF SMALL PRINT UNDER THE BAR. § */
-[data-shape="Question"] .qpad-bar { margin-bottom: var(--s1); }
-[data-shape="Question"] .qpad > .qpad-note { display: block; margin: var(--s1) 0 0; }
+[data-shape="Card"] .qpad-bar { margin-bottom: var(--s1); }
+[data-shape="Card"] .qpad > .qpad-note { display: block; margin: var(--s1) 0 0; }
 .qpad-ink {
   position: absolute; inset: 0; width: 100%; height: 100%;
   pointer-events: none; touch-action: auto; overflow: visible;
@@ -4656,7 +4656,7 @@ table.qp-cells :is(td, th) { border: 1px solid var(--line); padding: var(--s1) v
 .msg-fc-pic .person-pic { margin: 0; width: 100%; padding: 0; }
 
 .msg-fc-body { margin: var(--s1) 0 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
-[data-shape="Thread"][data-state~="one"] .msg-fc-pic { width: 4rem; padding: var(--s1); }
+.kc-msg[data-state~="one"] .msg-fc-pic { width: 4rem; padding: var(--s1); }
 .msg-tag.is-new { border-color: var(--gold); color: var(--gold); }
 .pane:has(> [data-state~="fav"] > .lib-c) > .tile-row { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
 /* ---------- THE TUTOR CARD FITS ONE PHONE SCREEN (8 Nov): small face, name and rate on one line, tight pills, short map, hours as day pills. */
@@ -4758,11 +4758,11 @@ table.qp-cells :is(td, th) { border: 1px solid var(--line); padding: var(--s1) v
 .card.kc > .kc-pic > * { max-width: none; width: 100%; height: 100%; border-radius: var(--r-circle); }
 /* NO REAL PICTURE, NO PICTURE PART (owner, 10 Nov late): the tags lead. A thing's own photo or figure is its shape, not a circle. */
 .card.kc > .kc-pic:empty { display: none; }
-.card.kc:not([data-shape="Person"], .kc-msg) > .kc-pic { width: 100%; border-radius: var(--r-ui); }
+.card.kc:not(.kc-msg) > .kc-pic:not(:has(> .person-pic)) { width: 100%; border-radius: var(--r-ui); }
 .card.kc > .kc-pic > figure { background: none; padding: 0; }
 .card.kc > .kc-pic .hdb-ms-sides, .card.kc > .kc-pic .hdb-ms-side { height: 100%; justify-content: center; }  /* A DRAWING SHOWN WHOLE, not cut at the picture's height */
 .card.kc > .kc-pic .hdb-ms svg { height: var(--pic-h); width: auto; max-width: 100%; margin: 0 auto; }
-.card.kc:not([data-shape="Person"], .kc-msg) > .kc-pic :is(img, video, svg, figure) { border-radius: var(--r-ui); object-fit: contain; }
+.card.kc:not(.kc-msg) > .kc-pic:not(:has(> .person-pic)) :is(img, video, svg, figure) { border-radius: var(--r-ui); object-fit: contain; }
 .card.kc > .kc-tags { margin-top: var(--s2); }
 .card.kc > .kc-tags :is(.qtags, .prof-tags, .prof-who-tags) { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: var(--s1); }
 .card.kc > .kc-lines { margin-top: var(--s2); }

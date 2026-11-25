@@ -34,7 +34,7 @@
    "say": "Ids of other items it points at (a manuscript's writings, an event's figures)."
   }
  },
- "shapesSay": "THE PERSON, ITEM, REFERENCE, RECORD AND THREAD SHAPES (owner, 22 Nov, CARD SHAPES): a kind that draws as a Person (picture, name, role tags, fact lines, links), an Item (title, tags — list, due, meal, price —, lines, tiles, sheet), a Learning: Reference (tags, fact lines, picture, links; its body is its `card.parts`, drawn by referenceBody_), an Activity: Record (who/when tags, money or fact pills, a status; its `card.record`, drawn by recordName_, recordPills_ and recordSum_) an Activity: Thread (its messages and reply box, drawn by threadCard_) or a Learning: Question (tags, its stem with figures, the one answer box, the mark and reveal actions; its `card.question`, its stem and actions hooks and its box drawn by questionBox_; a paper is a set of them) says so in its `shape`; cardOfItem_ (and dkCard_, meCard, the assignment rows) draw it through shapeCard_ (js/cards-parts.js), which keeps only that shape's slots and marks the card data-shape. tools/one-card.js checks each kind wears its one shape.",
+ "shapesSay": "ONE CARD (owner, 25 Nov): every kind is drawn in the one card, the question card's frame -- its tags at the top, its body, its tile row at the foot (`shape`: Card); `bodyAs` says only which body its content draws (person, reference, record, item, thread, question). Before: THE PERSON, ITEM, REFERENCE, RECORD AND THREAD SHAPES (owner, 22 Nov, CARD SHAPES): a kind that draws as a Person (picture, name, role tags, fact lines, links), an Item (title, tags — list, due, meal, price —, lines, tiles, sheet), a Learning: Reference (tags, fact lines, picture, links; its body is its `card.parts`, drawn by referenceBody_), an Activity: Record (who/when tags, money or fact pills, a status; its `card.record`, drawn by recordName_, recordPills_ and recordSum_) an Activity: Thread (its messages and reply box, drawn by threadCard_) or a Learning: Question (tags, its stem with figures, the one answer box, the mark and reveal actions; its `card.question`, its stem and actions hooks and its box drawn by questionBox_; a paper is a set of them) says so in its `shape`; cardOfItem_ (and dkCard_, meCard, the assignment rows) draw it through shapeCard_ (js/cards-parts.js), which keeps only that shape's slots and marks the card data-shape. tools/one-card.js checks each kind wears its one shape.",
  "kinds": {
   "bookform": {
    "source": "the booking form (js/book-*.js)",
@@ -263,7 +263,7 @@
    }
   },
   "tutor": {
-   "shape": "Person",
+   "shape": "Card", "bodyAs": "person",
    "source": "Ledger people tab (role tutor)",
    "loader": "payload -> find-aloud.js",
    "sample": "check/fixture.json tutors",
@@ -494,7 +494,7 @@
      "venueSize"
     ]
    },
-   "shape": "Reference",
+   "shape": "Card", "bodyAs": "reference",
    "card": {
     "look": "venue-door",
     "tags": [
@@ -530,7 +530,7 @@
     "under": "Booking",
     "facets": []
    },
-   "shape": "Reference",
+   "shape": "Card", "bodyAs": "reference",
    "card": {
     "look": "is-subject",
     "tags": [
@@ -564,7 +564,7 @@
      "kindOwn"
     ]
    },
-   "shape": "Reference",
+   "shape": "Card", "bodyAs": "reference",
    "card": {
     "look": "is-level",
     "tags": [
@@ -626,7 +626,7 @@
     },
     "facets": []
    },
-   "shape": "Record",
+   "shape": "Card", "bodyAs": "record",
    "card": {
     "card": "receipt",
     "id": [
@@ -807,7 +807,7 @@
      "source"
     ]
    },
-   "shape": "Question",
+   "shape": "Card", "bodyAs": "question",
    "card": {
     "look": "qCardLook_(entry)",
     "lookElse": "qb",
@@ -936,7 +936,7 @@
      "needs"
     ]
    },
-   "shape": "Reference",
+   "shape": "Card", "bodyAs": "reference",
    "card": {
     "look": "prac kc-facts",
     "id": [
@@ -1004,7 +1004,7 @@
      "examBoard"
     ]
    },
-   "shape": "Reference",
+   "shape": "Card", "bodyAs": "reference",
    "card": {
     "look": "prac proj lib-c kc-facts",
     "id": [
@@ -1081,7 +1081,7 @@
      "tier"
     ]
    },
-   "shape": "Reference",
+   "shape": "Card", "bodyAs": "reference",
    "card": {
     "look": "prac tb ct lib-c",
     "id": "kcContentId_(row)",
@@ -1168,7 +1168,7 @@
     ],
     "under": "Practice"
    },
-   "shape": "Reference",
+   "shape": "Card", "bodyAs": "reference",
    "card": {
     "look": "insh",
     "id": [
@@ -1213,7 +1213,7 @@
      "tier"
     ]
    },
-   "shape": "Reference",
+   "shape": "Card", "bodyAs": "reference",
    "card": {
     "look": "insh spec-sheet",
     "name": "code",
@@ -1252,7 +1252,7 @@
      "histDated"
     ]
    },
-   "shape": "Reference",
+   "shape": "Card", "bodyAs": "reference",
    "card": {
     "look": "hdb hdb-msc lib-c",
     "tags": [
@@ -1270,7 +1270,7 @@
    }
   },
   "figure": {
-   "shape": "Person",
+   "shape": "Card", "bodyAs": "person",
    "source": "data/figures.json (+ portraits.json)",
    "loader": "js/library.js HIST_DB -> histItem_ as kind people",
    "find": {
@@ -1311,7 +1311,7 @@
    }
   },
   "boxer": {
-   "shape": "Person",
+   "shape": "Card", "bodyAs": "person",
    "source": "data/boxers.json",
    "loader": "js/library.js libExtrasBoxing_ -> find-aloud.js",
    "find": {
@@ -1360,7 +1360,7 @@
     "label": "library",
     "facets": []
    },
-   "shape": "Reference",
+   "shape": "Card", "bodyAs": "reference",
    "card": {
     "look": "hdb lib-c",
     "tags": [
@@ -1399,7 +1399,7 @@
      "histTheatre"
     ]
    },
-   "shape": "Reference",
+   "shape": "Card", "bodyAs": "reference",
    "card": {
     "look": "hdb lib-c",
     "tags": [
@@ -1516,7 +1516,7 @@
      "mPrice"
     ]
    },
-   "shape": "Reference",
+   "shape": "Card", "bodyAs": "reference",
    "card": {
     "look": "mech",
     "from": "mech",
@@ -1554,7 +1554,7 @@
      "cState"
     ]
    },
-   "shape": "Reference",
+   "shape": "Card", "bodyAs": "reference",
    "card": {
     "look": "tx kc-facts",
     "from": "chem",
@@ -1605,7 +1605,7 @@
      "keystage"
     ]
    },
-   "shape": "Reference",
+   "shape": "Card", "bodyAs": "reference",
    "card": {
     "look": "lib-c kc-facts",
     "from": "hist",
@@ -1643,7 +1643,7 @@
    }
   },
   "docket": {
-   "shape": "Item",
+   "shape": "Card", "bodyAs": "item",
    "list": {
     "name": "Docket",
     "say": "ONE LIST KIND (owner, 22 Nov, UNIFY NEXT 6): the owner's own lists are one kind of list, each item tidied by the one tidy (post-account.gs listTidy_) and drawn as an Item (js/map.js listItem_, or dkCard_ in Find). The Docket keeps its storage, the owner's `todo` cell as { v, lists: [{ name, start, items }] }; a save keeps what the cell had (`save: as-is`), the import makes each item whole; a one-off ticked before today leaves its list (`gone`); the planner's fields are form `docket-item` (`plan`).",
@@ -1947,7 +1947,7 @@
    }
   },
   "person": {
-   "shape": "Person",
+   "shape": "Card", "bodyAs": "person",
    "source": "Ledger people tab",
    "loader": "payload -> find-doors.js",
    "sample": "check/fixture.json everyone",
@@ -2700,7 +2700,7 @@
    },
    "cardsSay": "THE SETTINGS CARDS (job E, 20 Nov): the one list of fixed card ids; each card carries its id as data-card (renderCard spec.card). col is its account type's group, only marks the one place a setting is edited, say is Find's line. THE ONE REGISTRY (unify batch 9, was setting-for.json): its order is Find's order; a `type:<T>` row is an account type (col its group, label the group's name, admin an admin's); `under` lists the other types a card is found under (menu grouping, never who sees it, which is permissions.json), `find` its name in Find when not its title, notes the why. The set:<col>:<group> groups the payload draws are written out; CARD_DYN (find-doors.js) is only the fallback for one not listed.",
    "cardSay": "ONE SETTINGS CARD (owner, 22 Nov, after PR 670's four shapes): every settings card is the one `cardType` (never `card`, which names a kind's card spec and would make ITEM_MAPS draw every setting empty, 23 Nov) — a title, a stack of rows, optional buttons — drawn by setCard_ (js/me-shelves.js) and marked data-shape. A row is one of `rows`: text (a fact), field (a box typed into or picked), item (a list entry that opens on tap); setCard_ marks each row data-row. A card that saves as you type is listed in `typed` (ids) or `typedBy` (id patterns): a field behaviour, not another card. tools/one-settings-card.js fails on a second card type or a fourth row kind.",
-   "cardType": "Setting",
+   "cardType": "Card",
    "rows": ["text", "field", "item"],
    "typed": ["acct:pin", "acct:roles", "acct:notify", "set:notify", "acct:voice"],
    "typedBy": ["^set:", "^own:"],
@@ -2781,7 +2781,7 @@
     "label": "messages",
     "under": "Messages"
    },
-   "shape": "Thread",
+   "shape": "Card", "bodyAs": "thread",
    "see": {
     "who": "anyone"
    }
@@ -2821,7 +2821,7 @@
     ],
     "onCard": false
    },
-   "shape": "Record",
+   "shape": "Card", "bodyAs": "record",
    "card": {
     "look": "post-fc",
     "record": {"name": [["text", "caption", "title", "=Post"]], "nameMax": 80},
@@ -2837,7 +2837,7 @@
    }
   },
   "product": {
-   "shape": "Item",
+   "shape": "Card", "bodyAs": "item",
    "source": "Ledger shop tab (data/settings/shop.json, data/shop-additions.json)",
    "loader": "backend get-shop.gs -> find-aloud.js findMineItems_ (its Find entry is its row)",
    "sample": "check/fixture.json shop",
@@ -2907,7 +2907,7 @@
   },
   "paper": {
    "source": "data/questions.json paper_id (+ data/expected-papers.json)",
-   "shape": "Question",
+   "shape": "Card", "bodyAs": "question",
    "find": {
     "facets": [
      "paperId"
@@ -2918,7 +2918,7 @@
    }
   },
   "partner": {
-   "shape": "Item",
+   "shape": "Card", "bodyAs": "item",
    "source": "the owner's business partners (owner, 17 Nov); rows in the items tab",
    "sheet": {
     "tab": "partners",
@@ -3023,7 +3023,7 @@
    }
   },
   "food": {
-   "shape": "Item",
+   "shape": "Card", "bodyAs": "item",
    "list": {
     "name": "Food",
     "say": "ONE LIST KIND (UNIFY NEXT 6): kept as rows of the items tab (`food`), each write tidied by listTidy_ as it is sent (`save: as-is`, only the fields sent).",
@@ -3179,7 +3179,7 @@
    }
   },
   "task": {
-   "shape": "Item",
+   "shape": "Card", "bodyAs": "item",
    "list": {
     "name": "Tasks",
     "say": "ONE LIST KIND (UNIFY NEXT 6): kept as rows of the items tab (`tasks`), each write tidied by listTidy_ as it is sent (`save: as-is`, only the fields sent).",
@@ -3381,7 +3381,7 @@
    }
   },
   "drive_area": {
-   "shape": "Item",
+   "shape": "Card", "bodyAs": "item",
    "source": "the owner's Google Drive areas (owner, 17 Nov); rows in the items tab",
    "sheet": {
     "tab": "drive_areas",
@@ -3446,7 +3446,7 @@
    }
   },
   "session": {
-   "shape": "Item",
+   "shape": "Card", "bodyAs": "item",
    "source": "the owner's weekly timetable of sessions (owner, 17 Nov): who, where, which days, start-end, this term; rows in the items tab. Plain record, not a booking: no price, no sync.",
    "sheet": {
     "tab": "sessions",
@@ -3559,7 +3559,7 @@
      "kindLabel"
     ]
    },
-   "shape": "Reference",
+   "shape": "Card", "bodyAs": "reference",
    "card": {
     "look": "kc-facts",
     "from": "food",
@@ -3574,7 +3574,7 @@
    }
   },
   "assignment": {
-   "shape": "Item",
+   "shape": "Card", "bodyAs": "item",
    "list": {
     "name": "Assignments",
     "say": "ONE LIST KIND (UNIFY NEXT 6): kept in the person's own `assignments` cell as { v, assignments: [...] }, saved whole (`save: whole`): every field written, a status one of the four, a mark only once marked. assignments with a `trackOnly` field set (noAI: no generative AI) are tracked here and nothing more: the card says so and nothing on the site helps with their content.",

@@ -743,12 +743,12 @@ const qaToggle_ = (k, open) => tile_(qaToggleOpts_(k, open));
 function questionAnsCard_(x, inRow, bare) {
   const tags = bare ? '' : tagRow_(x, 'ans');
   const id = (x.row && x.row.row_id) || x.key || '';
-  if (schemeOwed_(x)) return figBox_({ look: 'qcard qans-card', attrs: { 'data-of': id, 'data-shape': 'Question' }, inner: tags
+  if (schemeOwed_(x)) return figBox_({ look: 'qcard qans-card', attrs: { 'data-of': id, 'data-shape': 'Card' }, inner: tags
     + figBox_({ tag: 'p', look: 'qans-none', text: 'No checked answer yet: this paper\'s mark scheme has not been added.' }) });
   const k = ansKey_(x);
   const open = ansOpen_(x);
   /* ONE DRAWING FOR BOTH (owner, 23 Nov): the answer is the question's own answer box (`ansBox_` with its key), read-only; hidden, the box is drawn empty and says so. */
-  return figBox_({ look: 'qcard qans-card' + (open ? '' : ' is-hidden'), attrs: { 'data-of': id, 'data-k': k, 'data-shape': 'Question' },
+  return figBox_({ look: 'qcard qans-card' + (open ? '' : ' is-hidden'), attrs: { 'data-of': id, 'data-k': k, 'data-shape': 'Card' },
     inner: tags
       + (inRow ? '' : figBox_({ look: 'tile-row qans-tiles', inner: qaToggle_(k, open) }))
       + (open ? ansBox_(x, true) : figBox_({ tag: 'p', look: 'qans-wait-k', text: statusWord_('hidden') }))

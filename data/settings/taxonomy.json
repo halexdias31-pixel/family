@@ -784,6 +784,584 @@
      "level": "A-Level"
     }
    }
+  },
+  "dfe": {
+   "dfe.ma.n": [
+    "Number",
+    ""
+   ],
+   "dfe.ma.n.place": [
+    "Place value and ordering",
+    "dfe.ma.n"
+   ],
+   "dfe.ma.n.place.count": [
+    "Counting, reading and writing numbers",
+    "dfe.ma.n.place"
+   ],
+   "dfe.ma.n.place.value": [
+    "Place value",
+    "dfe.ma.n.place"
+   ],
+   "dfe.ma.n.place.order": [
+    "Ordering and comparing numbers (=, ≠, <, >)",
+    "dfe.ma.n.place"
+   ],
+   "dfe.ma.n.place.negative": [
+    "Negative numbers",
+    "dfe.ma.n.place"
+   ],
+   "dfe.ma.n.place.roman": [
+    "Roman numerals",
+    "dfe.ma.n.place"
+   ],
+   "dfe.ma.n.calc": [
+    "Calculating",
+    "dfe.ma.n"
+   ],
+   "dfe.ma.n.calc.bonds": [
+    "Number bonds and mental adding",
+    "dfe.ma.n.calc"
+   ],
+   "dfe.ma.n.calc.addsub": [
+    "Adding and subtracting",
+    "dfe.ma.n.calc"
+   ],
+   "dfe.ma.n.calc.tables": [
+    "Times tables, doubling and halving",
+    "dfe.ma.n.calc"
+   ],
+   "dfe.ma.n.calc.muldiv": [
+    "Multiplying and dividing",
+    "dfe.ma.n.calc"
+   ],
+   "dfe.ma.n.calc.long": [
+    "Long multiplication and long division",
+    "dfe.ma.n.calc"
+   ],
+   "dfe.ma.n.calc.decimals": [
+    "Calculating with decimals",
+    "dfe.ma.n.calc"
+   ],
+   "dfe.ma.n.calc.order": [
+    "Order of operations and inverse operations",
+    "dfe.ma.n.calc"
+   ],
+   "dfe.ma.n.calc.money": [
+    "Money",
+    "dfe.ma.n.calc"
+   ],
+   "dfe.ma.n.prop": [
+    "Properties of number",
+    "dfe.ma.n"
+   ],
+   "dfe.ma.n.prop.factors": [
+    "Factors, multiples and primes",
+    "dfe.ma.n.prop"
+   ],
+   "dfe.ma.n.prop.counting": [
+    "Systematic listing and the product rule",
+    "dfe.ma.n.prop"
+   ],
+   "dfe.ma.n.prop.powers": [
+    "Powers and roots",
+    "dfe.ma.n.prop"
+   ],
+   "dfe.ma.n.prop.indices": [
+    "Index laws and fractional indices",
+    "dfe.ma.n.prop"
+   ],
+   "dfe.ma.n.prop.surds": [
+    "Exact calculation and surds",
+    "dfe.ma.n.prop"
+   ],
+   "dfe.ma.n.prop.stdform": [
+    "Standard form",
+    "dfe.ma.n.prop"
+   ],
+   "dfe.ma.n.frac": [
+    "Fractions, decimals and percentages",
+    "dfe.ma.n"
+   ],
+   "dfe.ma.n.frac.parts": [
+    "Halves, quarters and thirds",
+    "dfe.ma.n.frac"
+   ],
+   "dfe.ma.n.frac.equiv": [
+    "Equivalent fractions and simplifying",
+    "dfe.ma.n.frac"
+   ],
+   "dfe.ma.n.frac.addsub": [
+    "Adding and subtracting fractions",
+    "dfe.ma.n.frac"
+   ],
+   "dfe.ma.n.frac.muldiv": [
+    "Multiplying and dividing fractions",
+    "dfe.ma.n.frac"
+   ],
+   "dfe.ma.n.frac.mixed": [
+    "Mixed numbers and improper fractions",
+    "dfe.ma.n.frac"
+   ],
+   "dfe.ma.n.frac.amount": [
+    "Fractions of an amount",
+    "dfe.ma.n.frac"
+   ],
+   "dfe.ma.n.frac.fdp": [
+    "Fractions, decimals and percentages: converting",
+    "dfe.ma.n.frac"
+   ],
+   "dfe.ma.n.frac.recurring": [
+    "Recurring decimals as fractions",
+    "dfe.ma.n.frac"
+   ],
+   "dfe.ma.n.frac.pct": [
+    "Percentages of amounts",
+    "dfe.ma.n.frac"
+   ],
+   "dfe.ma.n.frac.pctchange": [
+    "Percentage change and interest",
+    "dfe.ma.n.frac"
+   ],
+   "dfe.ma.n.acc": [
+    "Measures and accuracy",
+    "dfe.ma.n"
+   ],
+   "dfe.ma.n.acc.round": [
+    "Rounding",
+    "dfe.ma.n.acc"
+   ],
+   "dfe.ma.n.acc.estimate": [
+    "Estimating and checking",
+    "dfe.ma.n.acc"
+   ],
+   "dfe.ma.n.acc.bounds": [
+    "Error intervals and bounds",
+    "dfe.ma.n.acc"
+   ],
+   "dfe.ma.a": [
+    "Algebra",
+    ""
+   ],
+   "dfe.ma.a.expr": [
+    "Expressions and formulae",
+    "dfe.ma.a"
+   ],
+   "dfe.ma.a.expr.notation": [
+    "Algebraic notation and collecting terms",
+    "dfe.ma.a.expr"
+   ],
+   "dfe.ma.a.expr.subst": [
+    "Substitution",
+    "dfe.ma.a.expr"
+   ],
+   "dfe.ma.a.expr.expand": [
+    "Expanding brackets",
+    "dfe.ma.a.expr"
+   ],
+   "dfe.ma.a.expr.factorise": [
+    "Factorising",
+    "dfe.ma.a.expr"
+   ],
+   "dfe.ma.a.expr.algfrac": [
+    "Algebraic fractions",
+    "dfe.ma.a.expr"
+   ],
+   "dfe.ma.a.expr.formulae": [
+    "Formulae and changing the subject",
+    "dfe.ma.a.expr"
+   ],
+   "dfe.ma.a.expr.proof": [
+    "Identities and algebraic proof",
+    "dfe.ma.a.expr"
+   ],
+   "dfe.ma.a.expr.functions": [
+    "Functions, inverse and composite",
+    "dfe.ma.a.expr"
+   ],
+   "dfe.ma.a.graph": [
+    "Graphs",
+    "dfe.ma.a"
+   ],
+   "dfe.ma.a.graph.coords": [
+    "Coordinates",
+    "dfe.ma.a.graph"
+   ],
+   "dfe.ma.a.graph.line": [
+    "Straight-line graphs",
+    "dfe.ma.a.graph"
+   ],
+   "dfe.ma.a.graph.quad": [
+    "Quadratic graphs: roots and turning points",
+    "dfe.ma.a.graph"
+   ],
+   "dfe.ma.a.graph.shapes": [
+    "Recognising and sketching graphs",
+    "dfe.ma.a.graph"
+   ],
+   "dfe.ma.a.graph.transform": [
+    "Transforming graphs",
+    "dfe.ma.a.graph"
+   ],
+   "dfe.ma.a.graph.real": [
+    "Real-life graphs",
+    "dfe.ma.a.graph"
+   ],
+   "dfe.ma.a.graph.gradarea": [
+    "Gradients and areas under graphs",
+    "dfe.ma.a.graph"
+   ],
+   "dfe.ma.a.graph.circle": [
+    "Equation of a circle and its tangents",
+    "dfe.ma.a.graph"
+   ],
+   "dfe.ma.a.solve": [
+    "Equations and inequalities",
+    "dfe.ma.a"
+   ],
+   "dfe.ma.a.solve.linear": [
+    "Linear equations",
+    "dfe.ma.a.solve"
+   ],
+   "dfe.ma.a.solve.quad": [
+    "Quadratic equations",
+    "dfe.ma.a.solve"
+   ],
+   "dfe.ma.a.solve.sim": [
+    "Simultaneous equations",
+    "dfe.ma.a.solve"
+   ],
+   "dfe.ma.a.solve.iter": [
+    "Iteration",
+    "dfe.ma.a.solve"
+   ],
+   "dfe.ma.a.solve.form": [
+    "Forming equations",
+    "dfe.ma.a.solve"
+   ],
+   "dfe.ma.a.solve.ineq": [
+    "Inequalities",
+    "dfe.ma.a.solve"
+   ],
+   "dfe.ma.a.seq": [
+    "Sequences",
+    "dfe.ma.a"
+   ],
+   "dfe.ma.a.seq.gen": [
+    "Generating sequences",
+    "dfe.ma.a.seq"
+   ],
+   "dfe.ma.a.seq.types": [
+    "Special sequences",
+    "dfe.ma.a.seq"
+   ],
+   "dfe.ma.a.seq.nth": [
+    "nth term",
+    "dfe.ma.a.seq"
+   ],
+   "dfe.ma.r": [
+    "Ratio, proportion and rates of change",
+    ""
+   ],
+   "dfe.ma.r.units": [
+    "Units and compound measures",
+    "dfe.ma.r"
+   ],
+   "dfe.ma.r.units.convert": [
+    "Converting units",
+    "dfe.ma.r.units"
+   ],
+   "dfe.ma.r.units.compound": [
+    "Speed, density and other compound measures",
+    "dfe.ma.r.units"
+   ],
+   "dfe.ma.r.ratio": [
+    "Ratio",
+    "dfe.ma.r"
+   ],
+   "dfe.ma.r.ratio.scale": [
+    "Scale drawings and maps",
+    "dfe.ma.r.ratio"
+   ],
+   "dfe.ma.r.ratio.fraction": [
+    "One quantity as a fraction of another",
+    "dfe.ma.r.ratio"
+   ],
+   "dfe.ma.r.ratio.simplify": [
+    "Ratio notation and simplest form",
+    "dfe.ma.r.ratio"
+   ],
+   "dfe.ma.r.ratio.share": [
+    "Sharing in a ratio",
+    "dfe.ma.r.ratio"
+   ],
+   "dfe.ma.r.ratio.mult": [
+    "Ratios, fractions and multiplicative relationships",
+    "dfe.ma.r.ratio"
+   ],
+   "dfe.ma.r.ratio.compare": [
+    "Comparing lengths, areas and volumes with ratio",
+    "dfe.ma.r.ratio"
+   ],
+   "dfe.ma.r.prop": [
+    "Proportion and rates of change",
+    "dfe.ma.r"
+   ],
+   "dfe.ma.r.prop.direct": [
+    "Direct proportion",
+    "dfe.ma.r.prop"
+   ],
+   "dfe.ma.r.prop.inverse": [
+    "Inverse proportion",
+    "dfe.ma.r.prop"
+   ],
+   "dfe.ma.r.prop.rate": [
+    "Gradient as a rate of change",
+    "dfe.ma.r.prop"
+   ],
+   "dfe.ma.r.prop.instant": [
+    "Instantaneous rate of change",
+    "dfe.ma.r.prop"
+   ],
+   "dfe.ma.r.prop.growth": [
+    "Growth and decay",
+    "dfe.ma.r.prop"
+   ],
+   "dfe.ma.g": [
+    "Geometry and measures",
+    ""
+   ],
+   "dfe.ma.g.shape": [
+    "Shapes and constructions",
+    "dfe.ma.g"
+   ],
+   "dfe.ma.g.shape.terms": [
+    "Geometric terms and notation",
+    "dfe.ma.g.shape"
+   ],
+   "dfe.ma.g.shape.2d": [
+    "2-D shapes and their properties",
+    "dfe.ma.g.shape"
+   ],
+   "dfe.ma.g.shape.3d": [
+    "3-D shapes: faces, edges and vertices",
+    "dfe.ma.g.shape"
+   ],
+   "dfe.ma.g.shape.plans": [
+    "Plans and elevations",
+    "dfe.ma.g.shape"
+   ],
+   "dfe.ma.g.shape.construct": [
+    "Constructions and loci",
+    "dfe.ma.g.shape"
+   ],
+   "dfe.ma.g.shape.congruent": [
+    "Congruent triangles",
+    "dfe.ma.g.shape"
+   ],
+   "dfe.ma.g.shape.reason": [
+    "Geometric reasoning and proof",
+    "dfe.ma.g.shape"
+   ],
+   "dfe.ma.g.shape.circleparts": [
+    "Parts of a circle",
+    "dfe.ma.g.shape"
+   ],
+   "dfe.ma.g.shape.circlethm": [
+    "Circle theorems",
+    "dfe.ma.g.shape"
+   ],
+   "dfe.ma.g.shape.coordgeom": [
+    "Geometry on coordinate axes",
+    "dfe.ma.g.shape"
+   ],
+   "dfe.ma.g.angle": [
+    "Angles",
+    "dfe.ma.g"
+   ],
+   "dfe.ma.g.angle.types": [
+    "Types of angle; measuring and drawing angles",
+    "dfe.ma.g.angle"
+   ],
+   "dfe.ma.g.angle.facts": [
+    "Angles at a point, on a line and in parallel lines",
+    "dfe.ma.g.angle"
+   ],
+   "dfe.ma.g.angle.triquad": [
+    "Angles in triangles and quadrilaterals",
+    "dfe.ma.g.angle"
+   ],
+   "dfe.ma.g.angle.polygon": [
+    "Angles in polygons",
+    "dfe.ma.g.angle"
+   ],
+   "dfe.ma.g.angle.bearings": [
+    "Bearings",
+    "dfe.ma.g.angle"
+   ],
+   "dfe.ma.g.trans": [
+    "Position and transformations",
+    "dfe.ma.g"
+   ],
+   "dfe.ma.g.trans.position": [
+    "Position, direction and turns",
+    "dfe.ma.g.trans"
+   ],
+   "dfe.ma.g.trans.translate": [
+    "Translations and reflections",
+    "dfe.ma.g.trans"
+   ],
+   "dfe.ma.g.trans.rotenlarge": [
+    "Rotations and enlargements",
+    "dfe.ma.g.trans"
+   ],
+   "dfe.ma.g.trans.describe": [
+    "Describing and combining transformations",
+    "dfe.ma.g.trans"
+   ],
+   "dfe.ma.g.trans.similar": [
+    "Similar shapes",
+    "dfe.ma.g.trans"
+   ],
+   "dfe.ma.g.mens": [
+    "Measures and mensuration",
+    "dfe.ma.g"
+   ],
+   "dfe.ma.g.mens.measure": [
+    "Measuring length, mass, capacity and temperature",
+    "dfe.ma.g.mens"
+   ],
+   "dfe.ma.g.mens.time": [
+    "Telling the time",
+    "dfe.ma.g.mens"
+   ],
+   "dfe.ma.g.mens.perimarea": [
+    "Perimeter and area",
+    "dfe.ma.g.mens"
+   ],
+   "dfe.ma.g.mens.circle": [
+    "Circumference and area of a circle",
+    "dfe.ma.g.mens"
+   ],
+   "dfe.ma.g.mens.volume": [
+    "Volume and surface area",
+    "dfe.ma.g.mens"
+   ],
+   "dfe.ma.g.mens.arcs": [
+    "Arcs and sectors",
+    "dfe.ma.g.mens"
+   ],
+   "dfe.ma.g.mens.simareavol": [
+    "Similar areas and volumes",
+    "dfe.ma.g.mens"
+   ],
+   "dfe.ma.g.mens.pythag": [
+    "Pythagoras' theorem",
+    "dfe.ma.g.mens"
+   ],
+   "dfe.ma.g.mens.trig": [
+    "Right-angled trigonometry",
+    "dfe.ma.g.mens"
+   ],
+   "dfe.ma.g.mens.exact": [
+    "Exact trig values",
+    "dfe.ma.g.mens"
+   ],
+   "dfe.ma.g.mens.sinecos": [
+    "Sine and cosine rules",
+    "dfe.ma.g.mens"
+   ],
+   "dfe.ma.g.mens.areatri": [
+    "Area of any triangle (½ab sin C)",
+    "dfe.ma.g.mens"
+   ],
+   "dfe.ma.g.vec": [
+    "Vectors",
+    "dfe.ma.g"
+   ],
+   "dfe.ma.g.vec.vectors": [
+    "Vectors",
+    "dfe.ma.g.vec"
+   ],
+   "dfe.ma.p": [
+    "Probability",
+    ""
+   ],
+   "dfe.ma.p.prob": [
+    "Probability",
+    "dfe.ma.p"
+   ],
+   "dfe.ma.p.prob.basic": [
+    "The probability scale",
+    "dfe.ma.p.prob"
+   ],
+   "dfe.ma.p.prob.freq": [
+    "Relative frequency and expected outcomes",
+    "dfe.ma.p.prob"
+   ],
+   "dfe.ma.p.prob.outcomes": [
+    "Listing outcomes and sample spaces",
+    "dfe.ma.p.prob"
+   ],
+   "dfe.ma.p.prob.venn": [
+    "Sets and Venn diagrams",
+    "dfe.ma.p.prob"
+   ],
+   "dfe.ma.p.prob.tree": [
+    "Combined events and tree diagrams",
+    "dfe.ma.p.prob"
+   ],
+   "dfe.ma.p.prob.cond": [
+    "Conditional probability",
+    "dfe.ma.p.prob"
+   ],
+   "dfe.ma.s": [
+    "Statistics",
+    ""
+   ],
+   "dfe.ma.s.data": [
+    "Collecting and showing data",
+    "dfe.ma.s"
+   ],
+   "dfe.ma.s.data.sample": [
+    "Sampling and populations",
+    "dfe.ma.s.data"
+   ],
+   "dfe.ma.s.data.charts": [
+    "Tables, tally charts, pictograms and bar charts",
+    "dfe.ma.s.data"
+   ],
+   "dfe.ma.s.data.pie": [
+    "Pie charts",
+    "dfe.ma.s.data"
+   ],
+   "dfe.ma.s.data.line": [
+    "Line graphs and time series",
+    "dfe.ma.s.data"
+   ],
+   "dfe.ma.s.data.grouped": [
+    "Histograms and cumulative frequency",
+    "dfe.ma.s.data"
+   ],
+   "dfe.ma.s.analyse": [
+    "Analysing data",
+    "dfe.ma.s"
+   ],
+   "dfe.ma.s.analyse.averages": [
+    "Averages and range",
+    "dfe.ma.s.analyse"
+   ],
+   "dfe.ma.s.analyse.table": [
+    "Averages from a frequency table",
+    "dfe.ma.s.analyse"
+   ],
+   "dfe.ma.s.analyse.spread": [
+    "Quartiles, box plots and comparing data",
+    "dfe.ma.s.analyse"
+   ],
+   "dfe.ma.s.analyse.scatter": [
+    "Scatter graphs and correlation",
+    "dfe.ma.s.analyse"
+   ]
   }
  },
  "Science": {
