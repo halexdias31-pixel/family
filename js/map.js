@@ -20,8 +20,6 @@ const WIDGETS = [
     get html() { return mapHtml_('Videos', mapBox_('vid-box', 'vid-box')); } },
   /* ---------- NEWSPAPER (owner, 12 Nov): a Sunday paper's fun section, one page on one card, never endless — newspaper.js reads data/settings/newspaper.json. */
   /* `solid` — AN INSTRUMENT, NOT A CARD. § */
-  /* MESSAGES, as a widget. § */
-  /* MESSAGES IS NOT A WIDGET ANY MORE. § */
 
   /* ---------- SPEED READ (403): paste, then one word at a time — reader.js ---------- */
 

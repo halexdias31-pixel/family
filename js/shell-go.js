@@ -54,8 +54,6 @@ function go(id, remember, instant) {
   if (typeof window.reelsStop_ === 'function') window.reelsStop_();
   /* A PIN SHOWN ON A CARD (452) goes when its column is left. */
   if (was !== AT && typeof pinHideAll_ === 'function') pinHideAll_();
-  /* AND THE MESSAGE POLL, which is the fourth: it runs only while Find shows a message card (`dmShown_`). § */
-  if (typeof dmStop_ === 'function' && AT !== 'stuff') dmStop_();
   /* STARTED AFTER THE SLIDE, in one list rather than two. `repaint` needs the same list — it has
      just rebuilt this screen's markup too — and two copies of "what does this screen need running"
      is two places to forget the camera. */

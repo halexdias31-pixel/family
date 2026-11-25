@@ -272,11 +272,6 @@ function personYears_(x) {
   const y = n => (n < 0 ? -n + ' BC' : n ? String(n) : '?');
   return x.died ? y(x.born) + '–' + y(x.died) : 'Born ' + y(x.born);
 }
-/* `flip` TURNS THE FACE LEFT: a fight's second corner faces the first. */
-function personPic_(id, name, flip) {
-  const r = personPix_(id, name);
-  return pixSvg_(r && Array.isArray(r.px) ? r.px : PIX_NONE, name, flip, r ? '' : ' is-none');
-}
 /* A COLUMN VECTOR AS TYPED ON THE KEYPAD (`⟮5,-4⟯`, 385) DRAWN TOP OVER BOTTOM in one pair of brackets -- the box, the card, Saved */
 function vecHtml_(html) {
   return String(html == null ? '' : html).replace(/\u27ee([^\u27ee\u27ef,]*),([^\u27ee\u27ef]*)\u27ef/g,

@@ -23,7 +23,7 @@ function send_(body, o) {
   /* ---------- AND THE FIELDS, WHICH IS THE HALF THAT WAS MISSING § */
   const box = o.lock
     ? (typeof o.lock === 'string' ? $(o.lock) : o.lock)
-    : btn && btn.closest('.me-form, .msg-form, .rc, #sheet-body, .card');
+    : btn && btn.closest('.me-form, .rc, #sheet-body, .card');
   const had = document.activeElement;
   const locked = [];
   if (box) {

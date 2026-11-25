@@ -283,7 +283,7 @@ function kpBindIn_(root) {
   kpBind_(root);
   if (root.firstElementChild) root.querySelectorAll('input, textarea, [contenteditable]').forEach(kpBind_);
 }
-/* A BOX TAKEN AWAY WITH THE PAD ON IT (a message sent, its composer drawn again) takes the pad with it, as a phone's keyboard goes; an answer box is found again by its name (kpLive_) */
+/* A BOX TAKEN AWAY WITH THE PAD ON IT (its form drawn again) takes the pad with it, as a phone's keyboard goes; an answer box is found again by its name (kpLive_) */
 const kpGone_ = () => { if (KP_AT && kpSite_(KP_AT) && !KP_AT.isConnected) kpClose_(); };
 /* EVERY BOX AS IT IS DRAWN, before a finger can reach it; and again on the way in (a tap, a focus), for a box drawn and focused in one go */
 try {

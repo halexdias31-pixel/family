@@ -230,7 +230,7 @@ function accountFamCard_(f, famLabel_, personForm_, tcard_) {
     + (typeof peopleOpts_ === 'function' ? tile_(peopleOpts_(row)) : '');
   return personMark_(f.personId, personForm_(row) || tcard_(row) + (more ? tileRow_(more, 'person-tiles') : ''));
 }
-/* FOR AN ADMIN, EVERYBODY ELSE IN THIS COLUMN, each with Message and New PIN. */
+/* FOR AN ADMIN, EVERYBODY ELSE IN THIS COLUMN, each with New PIN. */
 function accountEveryone_(col, famIds, personForm_, tcard_) {
   /* ---------- AND FOR AN ADMIN, EVERYBODY ELSE AS WELL, by their main role (`doGet` sends no tutor or admin here) ---------- */
   return (typeof may_ === 'function' && may_('admin') && Array.isArray(DATA.everyone) ? DATA.everyone : [])
@@ -239,13 +239,11 @@ function accountEveryone_(col, famIds, personForm_, tcard_) {
     /* A BLANK HANDLE IS SAID, NOT FILLED WITH THE FIRST NAME. § */
     .map(p => Object.assign({}, p, { activity: subsLine_(p.personId),
                                      role: (p.role || 'Client') + (p.handle ? '' : ' · no handle yet') }))
-    /* AND "NEW PIN" BESIDE "MESSAGE" — the admin is who a child with no email and no linked parent goes to. § */
+    /* AND "NEW PIN" — the admin is who a child with no email and no linked parent goes to. § */
     /* THROUGH `tileRow_`, which puts six tiles on even lines rather than leaving one alone (453: Parents is narrower company). */
     /* A PERSON'S ROW STANDS ALONE (498): the list's layout row was joined onto the last person's, so one client "has loads of tile options". */
     .map(p => personMark_(p.personId, personForm_(p) || tcard_(p)
-      + (typeof tile_ === 'function' ? tileRow_(tile_({ icon: 'chat',
-          label: 'Message', note: 'a note to them', act: 'msg-open',
-          data: { to: p.title, id: p.personId || '' } }) + (p.personId ? tile_({ icon: 'key',
+      + (typeof tile_ === 'function' ? tileRow_((p.personId ? tile_({ icon: 'key',
           label: 'New PIN', note: 'to sign in with', act: 'kid-pin',
           data: { id: p.personId, name: String(p.title || '').split(' ')[0] } }) : '')
           + tile_(isStudentsCol_(col) ? [typeof workSeeOpts_ === 'function' ? workSeeOpts_(p.personId) : null,

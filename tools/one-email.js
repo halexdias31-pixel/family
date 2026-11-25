@@ -15,7 +15,7 @@ function load(sent) {
   const ctx = BV.load({ console: { log() {}, error: console.error }, at: true, random: 0.4242,
     google: { MailApp: { sendEmail: o => { sent.push(JSON.parse(JSON.stringify(o))); }, getRemainingDailyQuota: () => 100 } } });
   const P = (id, role, first, extra) => Object.assign({ person_id: id, role: role, roles: role, first_name: first, last_name: 'Test', handle: first.toLowerCase(),
-    email: first.toLowerCase() + '@x.test', bookings_email: 'TRUE', posts_email: 'TRUE', messages_email: 'TRUE', weekly_email: 'TRUE' }, extra || {});
+    email: first.toLowerCase() + '@x.test', bookings_email: 'TRUE', posts_email: 'TRUE', weekly_email: 'TRUE' }, extra || {});
   const people = [P('P001', 'admin', 'Ann'), P('P002', 'tutor', 'Ada'), P('P003', 'student', 'Finn', { email: '' }), P('P004', 'client', 'Cara'), P('P005', 'student', 'Kit')]
     .map((r, i) => Object.assign({ _row: i + 2 }, r));
   Object.assign(ctx, {
@@ -30,7 +30,6 @@ function load(sent) {
 /* EACH BUILDER, on made-up rows: what it is, and how it is called. */
 const CASES = [
   ['notify: a booking note to a tutor', c => c.notify('Ada Test', 'Paid: a place is confirmed', 'Hello Ada,\n\nKit is booked in for Maths.\n\nSee it at https://example.org/?tab=book\n\n— the site', 'bookings')],
-  ['notify: a message alert to a learner', c => c.notify('Kit Test', 'A message from Ada Test', 'Ada Test sent you a message:\n\n"See you <Tuesday> & bring a pen"', 'messages')],
   ['accessMail_: confirm an address', c => c.accessMail_('kit@x.test', 'mail-confirm', { first: 'Kit', link: c.siteLink_('verify', 'TOKEN1'), handleSaid: ' (or @kit)' })],
   ['accessMail_: an invite', c => c.accessMail_('kit@x.test', 'mail-invite', { first: 'Kit', site: c.SITE_URL, handle: 'kit', pin: '4321' })],
   ['accessMail_: a move of address', c => c.accessMail_('new@x.test', 'mail-move', { link: c.siteLink_('verify', 'MOVEKEY'), days: 3 })],

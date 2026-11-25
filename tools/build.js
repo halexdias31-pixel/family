@@ -21,7 +21,7 @@ const ORDER = [
   'card-fields',  // the card-fields check (rule 1.75, job J): which fields a card shows, in what order and labelled how, only in kinds.json; a hand list fails the build
   'one-contact', // the one-contact check (rule 1.75, lane D, 21 Nov): phone split, '+44', handle and email rules only in js/form.js; a twin or a site/backend disagreement fails the build
   'one-refusal', // the one-refusal check (rule 1.75, unify batch 6 lane A): a refusal written once (words.json err-*, refuse_), a site link built once (siteLink_); a repeated hand error or a hand SITE_URL link fails the build
-  'one-role',    // the one-role check (rule 1.75, owner 21 Nov): role words, ranks, the Message table and may_ rules only in settings.json `roles` and data/settings/roles.js; a twin fails the build
+  'one-role',    // the one-role check (rule 1.75, owner 21 Nov): role words, ranks and may_ rules only in settings.json `roles` and data/settings/roles.js; a twin fails the build
   'permissions',  // -> permissions.json and backend/*.gs blocks
   'word-freq',    // data/pdtexts -> data/word-freq.json
   'taxonomy',     // the one-taxonomy check (rule 1.75, owner 21 Nov): data/settings/taxonomy.json -> js/find-finder.js TAXONOMY; a History paper or topic part outside it, or a subject case in the engine, fails the build
@@ -103,7 +103,7 @@ const ORDER = [
   'css-tokens',   // the css-tokens check (rule 1.75, unify batch 2): no raw colour (hex, rgb(), a colour keyword) in style.css outside :root; fails the build
   'profile-roles', // the profile-roles check (rule 1.75, queue 4h): each role's Settings cards held against permissions.json's see rows; a card out of place fails the build
   'hist-db',      // the one-history-shape check (rule 1.75, unify batch 4): the four history kinds come from js/library.js HIST_DB and labels.json hist-link/hist-kind; a prefix list, kind label or link-column list written elsewhere fails the build
-  'shared-lists', // the shared-lists check (rule 1.1 by 1.75, owner 20 Nov): every list or limit both sides keep comes from settings.json via SHARED_SETTINGS, and each rank's Message tiles match mayMessage; fails the build
+  'shared-lists', // the shared-lists check (rule 1.1 by 1.75, owner 20 Nov): every list or limit both sides keep comes from settings.json via SHARED_SETTINGS; fails the build
   'build-stamp',  // everything served -> index.html's BUILD_STAMP; last
 ];
 (async () => {

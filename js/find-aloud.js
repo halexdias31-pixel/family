@@ -360,7 +360,7 @@ const cartPrint_ = c => {
   return isPrint_(c) ? printPrice(c.pages) : 0;
 };
 /* NOT YET PRICED — a paper nobody has counted the pages of, or a print when printing is off. It is
-   what the basket draws as "tbc" and what the order message says will be priced when it is sent. */
+   what the basket draws as "tbc". */
 const cartUnpriced_ = c => cartPrint_(c) === null;
 const cartMoney_ = c => (cartPrint_(c) || 0)
   + (c && c.laminate ? (laminatePrice(c.pages) || 0) : 0);
@@ -571,7 +571,7 @@ function findPeopleItems_() {
     /* THE OWNER'S DOCKET (kinds.json kind `docket`): an item a card, under Tools › Docket › its list. */
     ...(typeof dkItems_ === 'function' ? dkItems_() : []),
     ...soonItems_(),
-    /* POSTS, MESSAGES, PROFILES, SETTINGS AND VIDEOS (batch C): their items and menus are find-doors.js's. */
+    /* POSTS, PROFILES, SETTINGS AND VIDEOS (batch C): their items and menus are find-doors.js's. */
     ...(typeof doorItems_ === 'function' ? doorItems_() : []),
     ...(typeof subjectRows === 'function' ? subjectRows() : []).map(x => ({
       kind: 'subject', name: x.name, key: x.name, sub: '', image: '',

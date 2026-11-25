@@ -1,4 +1,4 @@
-/* post-learning.gs: doPost's handlers for saved working, the assistant, answers, the library and console saves (1130).
+/* post-learning.gs: doPost's handlers for saved working, answers, the library and console saves (1130).
    Named in `postActions_()`, dopost.gs, after its gate; § notes: docs/notes/backend/dopost.gs.md. */
 
 /* ---------- A PHOTO OF THE WORKING (501): kept in Drive on the submission row, MARKED BY NOTHING (owner, 16 Nov: marking is mechanical only) ---------- */
@@ -38,55 +38,6 @@ function postWorkingOf_(body, action, began) {
   const of = S(body.of) || S(me.person_id);
   if (!workingMaySee_(me, of)) return jsonOut({ success: false, message: 'Not yours to see.' });
   return jsonOut({ success: true, of: of, work: workingRowsOf_(of, S(body.key)) });
-}
-
-/* ---------- THE ASSISTANT IN MESSAGES (449): help finding things on the site, nothing more (547), five a day per person by default */
-function postAskAssistant_(body, action, began) {
-  const key = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY') || '';
-  if (!key) return jsonOut({ success: false, why: 'ai-off', message: 'Daive isn’t switched on yet.' });
-  const who = S(body.personId);
-  if (!who) return jsonOut({ success: false, message: 'Sign in to ask Daive.' });
-  const cfg = config();
-  /* BLANK IS THE DEFAULT, 0 SWITCHES IT OFF. */
-  const capCell = S(cfg.assistant_questions_per_day);
-  const cap = capCell === '' ? ASSIST_PER_DAY : Math.max(0, Math.floor(N(capCell)));
-  const question = S(body.question).trim();
-  if (!question) return jsonOut({ success: false, message: 'Write a question first.' });
-  if (question.length > ASSIST_QUESTION_MAX) return jsonOut({ success: false,
-    message: 'That is too long — ' + ASSIST_QUESTION_MAX + ' characters at most.' });
-  const took = aiCapTake_(who, cap, 'AI_ASSIST');
-  if (took && took.busy) return jsonOut({ success: false, why: 'busy', message: text_('daive-busy') });
-  if (!took) return jsonOut({ success: false, why: 'ai-cap', left: 0, cap: cap,
-    message: cap ? 'That is today’s ' + cap + ' questions used — they come back tomorrow.' : 'Daive is paused.' });
-  let got = null;
-  try {
-    got = assistAsk_(key, aiModels_(cfg), question, body.history, body.facts, netViewerIsChild_());
-  } finally {
-    /* A QUESTION THAT GOT NO ANSWER GIVES ITS COUNT BACK, into the day it was taken from. */
-    if (!got || got.error) aiCapGiveBack_(who, took, 'AI_ASSIST');
-  }
-  if (got.error) return jsonOut({ success: false, message: got.error, left: Math.max(0, cap - took.used + 1), cap: cap });
-  return jsonOut({ success: true, answer: got.answer, left: Math.max(0, cap - took.used), cap: cap });
-}
-
-/* ONE OF TODAY'S AI QUESTIONS TAKEN for `who` under the cap: null once it is used up, `{ busy }` when the tally is locked. */
-function aiCapTake_(who, cap, prop) {
-  return cap > 0 ? aiTally_(tally => {
-    const used = (Number(tally.n[who]) || 0) + 1;
-    if (used > cap) return null;
-    tally.n[who] = used;
-    return { used: used, day: tally.day };
-  }, { busy: true }, prop) : null;
-}
-
-/* AND GIVEN BACK when no answer came, into the day it was taken from. */
-function aiCapGiveBack_(who, took, prop) {
-  aiTally_(tally => {
-    const n = Number(tally.n[who]) || 0;
-    if (tally.day !== took.day || n < 1) return null;
-    if (n === 1) delete tally.n[who]; else tally.n[who] = n - 1;
-    return true;
-  }, 'busy', prop);
 }
 
 /* ---------- AN ANSWER SENT, KEPT AS AN EVENT § */
@@ -161,7 +112,7 @@ function readItemsRole_(me) {
   if (whoMay_(me, 'admin')) return 'admin';
   return netViewerIsChild_() ? 'child' : 'member';
 }
-/* ONE WAY TO THE SERVER (step 2, slice 2): people, answers and messages, each answered by its handler in `itemDoors_` (actions.json `items`). */
+/* ONE WAY TO THE SERVER (step 2, slice 2): people and answers, each answered by its handler in `itemDoors_` (actions.json `items`). */
 /* `self` is your own only; `other` is somebody else's, an admin's alone; `logged` leaves a lens_log row of ids; `blank` lets an admin ask for none (a new person's form). */
 function readItemsOwn_(kind, how, body, began, verb) {
   const me = findPerson('', S(body.personId));

@@ -1025,7 +1025,7 @@ function authoriseDrive() {
     try {
       const probe = folder.createFile('family-permission-check.txt',
         'Written by authoriseDrive to confirm the script may create files. Safe to delete.');
-      /* BINNED EVEN IF SHARING IS WHAT FAILS — `uploadsCheck_`'s rule. A sharing refusal (a Workspace
+      /* BINNED EVEN IF SHARING IS WHAT FAILS. A sharing refusal (a Workspace
          domain that forbids links outside it) is a real answer, and no reason to leave a file. */
       try { probe.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); }
       finally { probe.setTrashed(true); }

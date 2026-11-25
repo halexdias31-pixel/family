@@ -10,8 +10,8 @@ const SB = require('./lib/site-browser.js'), SD = require('./lib/site-data.js');
 /* THE ONE MAKER'S OWN CLASSES, and the state classes every card may wear. */
 const BASE = /^(card|fc|kc|kc-[\w-]+|is-empty|is-off|is-locked|tap)$/;
 /* NO CARD WAITS ON A LATER SHAPE NOW (owner, 22 Nov, CARD SHAPES: Learning: Question, the last step): the question card's `qcard` and `lib-wait`, a
-   receipt's `rc`, `is-done` and a conversation's `msg-fc`, `unread` were styled here; each is now a shape (`[data-shape="Question"]`) or a shape
-   state (`data-state`: wait, receipt, done, one, unread) the one maker writes, and the classes stay only as handlers' hooks. Empty, so any card with CSS of its own fails. */
+   receipt's `rc` and `is-done` were styled here; each is now a shape (`[data-shape="Question"]`) or a shape
+   state (`data-state`: wait, receipt, done) the one maker writes, and the classes stay only as handlers' hooks. Empty, so any card with CSS of its own fails. */
 const LATER = {};
 
 /* A SETTINGS CARD IS ORDINARY BLOCKS TOO (unify batch 9): no CSS keyed on `.me-form` (the class stays only as autosave's hook), and the line that says
@@ -27,17 +27,14 @@ function settingsByHand(css) {
   return bad;
 }
 
-/* THE ACTIVITY CARDS ARE LOOKED AT TOO (owner, 22 Nov, CARD SHAPES: Record and Thread): the sample payload has no booking of the signed-in user and no
-   messages, so Booking gets four of theirs (paid, paying, unpaid, no seats) and Messages two conversations, or the Record and Thread rules would check nothing. */
+/* THE ACTIVITY CARDS ARE LOOKED AT TOO (owner, 22 Nov, CARD SHAPES: Record): the sample payload has no booking of the signed-in user, so Booking gets
+   four of theirs (paid, paying, unpaid, no seats), or the Record rule would check nothing. */
 function withActivity(P) {
   const J = (P.liveJobs || [])[0] || { subject: 'Maths', level: 'GCSE', venue: 'Colliers Wood Library', price: '30', unit: 'hour' }, me = 'Test Admin';
   const job = (id, o) => Object.assign({}, J, { id, job_id: id, client: me, tutor: 'Ada Tutor' }, o);
   P.liveJobs = (P.liveJobs || []).concat(job('J901', { rate: '30', weeks: '6', slots: [{ client: me, status: 'booked' }] }),
     job('J902', { subject: 'English', price: '120', unit: '', weeks: '4', slots: [{ client: me, status: 'paying' }, { client: 'Kid One', status: 'pending' }] }),
     job('J903', { subject: 'Physics', level: 'KS3', tutor: '', price: '', slots: [{ client: me, status: 'pending' }] }), job('J904', { subject: 'Chemistry', slots: [] }));
-  P.messages = (P.messages || []).concat({ id: 'M901', withId: 'P902', withName: 'Ada Tutor', body: 'See you on Tuesday', at: '2026-11-18T10:00:00Z', mine: false, read: true },
-    { id: 'M902', withId: 'P902', withName: 'Ada Tutor', body: 'Thanks!', at: '2026-11-18T11:00:00Z', mine: true, read: true },
-    { id: 'M903', withId: 'P903', withName: 'Bea Parent', body: 'Can we move the lesson?', at: '2026-11-19T09:00:00Z', mine: false, read: false });
   return JSON.stringify(P);
 }
 
@@ -62,7 +59,7 @@ async function run() {
     const doors = await first.evaluate(() => [...document.querySelectorAll('#stuff-groups [data-value]')].map(e => e.dataset.value).filter(Boolean));
     await first.close();
     /* THREE DOORS AT ONCE: more and a phone-sized page under load misses its taps. */
-    const MUST_DRAW = { Posts: 'kc-post', Practice: 'kc-question', Booking: 'kc-receipt', Messages: 'kc-msg' };
+    const MUST_DRAW = { Posts: 'kc-post', Practice: 'kc-question', Booking: 'kc-receipt' };
     const look = async d => {
       const pg = await open();
       /* EVERY STEP SKIPPED (22 Nov): Practice, Library and Shop ask several steps before their cards, so "Doesn't matter" is tapped until it is gone (17 steps since 24 Nov: no tag skipped). */
@@ -110,7 +107,7 @@ async function run() {
     const unshaped = Object.keys(KINDS).filter(k => KINDS[k].shape && KINDS[k].shape !== 'Card');
     if (unshaped.length) throw new Error('one-card: kinds.json gives ' + unshaped.join(', ') + ' a shape other than Card');
     /* EVERY ACTIVITY CARD is seen, in the one card, as its kind */
-    const ACT = { 'kc-post': 'post', 'kc-receipt': 'booking', 'kc-msg': 'msg', 'kc-question': 'question' };
+    const ACT = { 'kc-post': 'post', 'kc-receipt': 'booking', 'kc-question': 'question' };
     Object.keys(ACT).forEach(c => { const of = all.filter(x => x.c.split(/\s+/).indexOf(c) >= 0), bare = of.filter(x => x.sh !== 'Card' || x.ik !== ACT[c]);
       bare.forEach(x => console.log('  ' + x.door + ' › ' + String(x.n).replace(/\n/g, ' ') + ' [' + c + ' wears ' + (x.sh || 'no shape') + ']'));
       if (!of.length || bare.length) throw new Error('one-card: ' + (of.length ? bare.length + ' ' + c + ' card(s) not in the one card' : 'no ' + c + ' card drawn'));

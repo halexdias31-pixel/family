@@ -182,8 +182,8 @@ function applyBrandIcon_() {
 /* KEYED BY SCREEN ID, like `PAGER` and `PAGE_HOME` — and `posts` and `me` are not screen ids. See
    the long note on `PAGER`. Every screen that pages needs an entry here or its position is not
    remembered between visits. */
-/* `booking` AND `dm` WERE MISSING, and this table's own sentence above is the rule they broke: § */
-const PAGE = { feed: 0, stuff: 0, reel: 0, dm: 0, make: 0,
+/* `booking` WAS MISSING, and this table's own sentence above is the rule they broke: § */
+const PAGE = { feed: 0, stuff: 0, reel: 0, make: 0,
                saved: 0, tutors: 0, students: 0, parents: 0, spotlight: 0, shop: 0, res: 0 };
 
 /* A COLUMN MAY HOLD FEWER PAGE ELEMENTS THAN IT HAS PAGES. § */
@@ -444,7 +444,7 @@ function aheadPaint_(id) {
   if (typeof paneWatch_ === 'function') paneWatch_(host);
   drawnScreen_(id);
 }
-/* THE HALF OF `startScreen_` THAT RUNS NOTHING — a conversation opened at its newest message. */
+/* THE HALF OF `startScreen_` THAT RUNS NOTHING — a screen's own `drawn` hook. */
 function drawnScreen_(id) {
   const H = SCREEN_HOOKS[id] || {};
   if (H.drawn) H.drawn();

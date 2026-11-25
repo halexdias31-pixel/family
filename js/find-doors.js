@@ -1,4 +1,4 @@
-/* @family. — js/find-doors.js FIND'S FRONT DOORS (batch C): Posts, Messages, Profiles, Settings and Videos as Find items,
+/* @family. — js/find-doors.js FIND'S FRONT DOORS (batch C): Posts, Profiles, Settings and Videos as Find items,
    each answering its own menus through the one funnel (facetList). */
 
 /* THE FRONT DOOR'S FIELD (batch C): Booking, Posts, Practice… are answers to it; `forIs_`, `book-with` and the receipts set and read this, never a literal. */
@@ -23,24 +23,6 @@ function postDoorItems_() {
   });
 }
 
-/* ---------- MESSAGES: one item a person you have messages with; the card is the conversation ---------- */
-function msgDoorItems_() {
-  if (!USER || typeof messageThreads_ !== 'function') return [];
-  /* A FAILED ASK IS NOT ASKED AGAIN FROM HERE: its repaint would ask again, for ever (a hang, or a request storm). */
-  if ((typeof MESSAGES === 'undefined' || !MESSAGES) && !(typeof MSG_FAILED !== 'undefined' && MSG_FAILED)) doorAsk_(typeof loadMessages === 'function' ? loadMessages() : null);
-  const threads = messageThreads_(), had = {};
-  threads.forEach(t => { had[norm(t.name)] = 1; });
-  /* AND EVERYONE YOU MAY WRITE TO FROM YOUR SESSIONS, with no conversation yet (1040 friction): the card opens on an empty one. */
-  const people = [];
-  (typeof myJobs_ === 'function' ? myJobs_() : []).forEach(j => (typeof jobPeople_ === 'function' ? jobPeople_(j) : []).forEach(p => {
-    if (!had[norm(p.name)]) { had[norm(p.name)] = 1; people.push(p); } }));
-  /* DAIVE, THE ASSISTANT, FIRST (449; its column went 16 Nov): a conversation like the rest, kept on this device. */
-  const daive = typeof daiveItem_ === 'function' ? [{ kind: 'msg', name: DAIVE, key: 'msg:daive', sub: '', image: '', daive: true, msgWith: DAIVE, text: DAIVE + ' help assistant ask' }] : [];
-  return daive.concat(threads.map(t => ({ kind: 'msg', name: t.name, key: 'msg:' + t.id, sub: '', image: '', thread: t.id,
-    msgWith: t.name, text: t.name })))
-    .concat(people.map(p => ({ kind: 'msg', name: p.name, key: 'msg:' + (p.id || p.name), sub: '', image: '', to: p, msgWith: p.name, text: p.name })));
-}
-/* A CONVERSATION'S CARD is the one Thread card, me-messages.js threadCard_ (Find's KC_AROUND for kind msg). */
 
 /* ---------- PROFILES: who they are is the menu; admin-only answers are asked by rank ---------- */
 function profileTypes_(p, tutor) {
@@ -218,7 +200,7 @@ function notifyDoorCard_() {
     body: [rows.length ? { type: 'list', items: rows } : { type: 'text', text: 'Nothing needs you.' }] });
 }
 
-/* A LIST THAT COMES LATER (messages) joins Find when it lands: the memo is dropped and Find repainted once. */
+/* A LIST THAT COMES LATER (the lazy files) joins Find when it lands: the memo is dropped and Find repainted once. */
 const DOOR_ASKED = new Set();
 function doorAsk_(p) {
   if (!p || DOOR_ASKED.has(p) || typeof p.then !== 'function') return;
@@ -231,12 +213,12 @@ function doorAsk_(p) {
 
 /* EVERY DOOR'S ITEMS, in the front menu's order; signed out, only Settings (`finder-members`, rules.js). */
 function doorItems_() {
-  return [].concat(postDoorItems_(), msgDoorItems_(), profileDoorItems_(), settingDoorItems_());
+  return [].concat(postDoorItems_(), profileDoorItems_(), settingDoorItems_());
 }
 /* SETTINGS AND BOOKING (owner, 13 Nov: a guest books through Find's steps and signs in to Send); no Venues on the signed-out front. */
 /* AND THE LIBRARY (owner, 15 Nov), by ONE permissions row (`item` library:read for `anyone`): never a question, its answer or Practice. */
 /* AND QUESTIONS AND PRACTICE (owner, 18 Nov: guests do questions too), by the one row `item` question:read for `anyone`. */
-/* AND EVERY DOOR THAT HOLDS NOBODY'S PERSONAL DATA (owner, 18 Nov: "guests see everything"): Shop, Tools, Games. Posts, Messages and
+/* AND EVERY DOOR THAT HOLDS NOBODY'S PERSONAL DATA (owner, 18 Nov: "guests see everything"): Shop, Tools, Games. Posts and
    Profiles stay signed in — they hold children's names and words (rule: a child's data only to the child, parents, tutors, admins). */
 /* Each by its own permissions row, `item` <door>:read for `anyone` (actions.json); Library and Practice answer by card below, not by door. */
 const guestDoors_ = () => typeof can_ !== 'function' ? [] : FRONT_ORDER.filter(d => d !== 'Library' && PRACTICE_DOORS.indexOf(d) === -1 && can_('anyone', 'item', d.toLowerCase() + ':read'));
