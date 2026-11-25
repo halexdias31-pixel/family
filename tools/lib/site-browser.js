@@ -68,6 +68,13 @@ async function open(opts) {
       return r.fulfill({ status: 200, contentType: 'application/json', body: a ? JSON.stringify(a) : body }); });
     await pg.goto(base + (o.words === false ? '/plain/' : '/') + (o.at || ''));
     if (o.ready !== false) await pg.waitForFunction(o.ready || (() => typeof DATA !== 'undefined' && DATA && (DATA.tutors || []).length), null, { timeout: o.timeout || 90000 });
+    /* AND THE LATE FILES IN (25 Nov): the texts, the Bible and the rest arrive after DATA, and each repaints the open column for half a second
+       to a second -- a tap made meanwhile waited for a button that kept being drawn again, and missed (one-card's doors came back empty).
+       Opened is settled: no request left, and no repaint still due. */
+    if (o.ready !== false) {
+      await pg.waitForLoadState('networkidle', { timeout: 60000 }).catch(() => {});
+      await pg.waitForFunction(() => typeof WRITING_PAINT === 'undefined' || !WRITING_PAINT, null, { timeout: 30000 }).catch(() => {});
+    }
     await pg.waitForTimeout(o.settle == null ? 1500 : o.settle);
     pg.close = () => c.close();
     return pg;

@@ -70,7 +70,6 @@ async function run() {
       if (d === 'Practice') await pg.waitForFunction(() => document.querySelector('#screen .kc-question') && !document.querySelector('#screen .lib-wait'), null, { timeout: 45000 }).catch(() => {});
       /* A DOOR THAT MUST DRAW ITS OWN KIND IS WAITED FOR (22 Nov: Posts and Practice sometimes came back empty under load — a missed tap, not the site). */
       const must = MUST_DRAW[d];
-      if (must && !(await pg.$('#screen .' + must))) { await pg.close(); return null; }
       const cards = await pg.evaluate(() => [...document.querySelectorAll('#screen .card')].filter(e => !e.parentElement.closest('.card')).slice(0, 60)
         .map(e => ({ n: e.getAttribute('aria-label') || e.innerText.slice(0, 30), c: e.className, sh: e.dataset.shape || '', ik: e.dataset.itemKind || '', set: e.matches('.kc-setting'),
           kc: e.matches('.fc.kc') && [...e.children].every(k => /^kc-/.test(k.className)) })));
