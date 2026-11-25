@@ -387,8 +387,26 @@ function postSaveNotepad_(body, action, began) {
 /* ---------- `redeem` WAS HERE — A PRINTED PAPER FOR A THOUSAND TICKS § */
 
 /* `saveExam` AND `deleteExam` WERE HERE — no screen posted either; exam dates live on the profile (Settings) (431). */
+/* A SAVE BASED ON A STALE DOCKET IS REFUSED (owner, 25 Nov: a backend job rewrote the cell, a phone's cached copy would have put the old lists back):
+   the save carries `base`, todoBase_ of the cell it was read from; a base that is not the cell's now is refused, the reply carrying the cell as it is
+   (`stale`, `todo`, `base`) so the page draws the server's lists. A save that lands answers the stored cell's base. todoBase_ is the same text in
+   js/map.js; tools/docket-fresh.js checks both. */
+function todoBase_(cell) {
+  let h = 2166136261;
+  const s = String(cell == null ? '' : cell);
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+  return s.length.toString(36) + '.' + h.toString(36);
+}
 function postSaveTodo_(body, action, began) {
-  return postSavePerson_(body, 'todo', todoTidy_(S(body.todo)));
+  const r = findPerson(S(body.name), S(body.personId));
+  if (!r) return refuse_('err-person-not-found', 'not-found');
+  const now = S(r.todo);
+  if (S(body.base) !== todoBase_(now)) return jsonOut({ error: 'Your Docket changed elsewhere — reloaded', stale: true, todo: now, base: todoBase_(now) });
+  const cell = todoTidy_(S(body.todo));
+  const t = read(TAB.people);
+  if (t.headers.indexOf('todo') < 0) return jsonOut({ error: 'The sheet has no `todo` column. Open the site once as an admin — nothing was saved.' });
+  setCell(t, r, 'todo', cell);
+  return jsonOut({ success: true, base: todoBase_(cell) });
 }
 /* THE ONE TIDY (owner, 22 Nov, UNIFY NEXT 6): every list of the owner's (Docket, Assignments, Tasks, Food) is one list kind, its items one shape,
    declared as kinds.json `list` (LIST_KINDS in cards-gen.gs): each field's type and size, what an item needs, the planner's fields (`plan`).
@@ -705,6 +723,8 @@ function postDocketImport_(body, action, began) {
   /* THE OWNER'S ALONE (owner, 18 Nov): an admin whose address is the owner's (`ownerEmail_`), never another admin, tutor, parent or student. */
   if (!isOwner_(me)) return refuse_('err-docket-owner', 'not-owner');
   const target = S(me.person_id);
+  /* `read: true` ONLY READS (owner, 25 Nov): the cell as it is now and its todoBase_, asked each time the Docket opens, so a cached copy is never drawn or saved. */
+  if (body.read) return jsonOut({ success: true, todo: S(me.todo), base: todoBase_(S(me.todo)) });
   const lists = docketTidy_(body.lists);
   if (!lists.length) return jsonOut({ error: 'No lists to import — nothing was saved.' });
   const cell = JSON.stringify({ v: 1, lists: lists });

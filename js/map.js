@@ -74,7 +74,7 @@ const WIDGETS = [
     } },
   /* ---------- DOCKET (owner, 18 Nov): named lists like Google Tasks, kept on your own account (the `todo` cell) — the code is below. */
   /* WHO SEES IT is kinds.json's alone (`tool.entries.docket.who: "owner"`, asked by widgetFor_). */
-  { id: 'docket', kind: 'tool', name: 'Docket', start: () => dkPaint_(),
+  { id: 'docket', kind: 'tool', name: 'Docket', start: () => { if (!DK.fresh) DK.say = ''; dkPaint_(); },
     draw: () => dkPaint_(),
     into: 'dk-box', what: 'Your docket',
     get html() { return mapHtml_('Docket', mapBox_('dk-box', 'dk-box')); } },
@@ -99,7 +99,7 @@ tierGuardWidgets_(WIDGETS);
 
 /* ---------- DOCKET (owner, 18 Nov): lists in your order; each item a title, an optional note, date, time and daily repeat; ticked items fold away.
    A daily item keeps the day it was last done (`doneOn`), so it is undone again tomorrow with no job anywhere. Saved whole to your own `todo` cell. */
-const DK = { lists: null, at: 0, edit: -1, rename: false, showDone: false, say: '', addr: null };
+const DK = { lists: null, at: 0, edit: -1, rename: false, showDone: false, say: '', addr: null, fresh: false, base: null, asking: null, q: Promise.resolve() };
 /* THE OWNER'S DAY (owner, 20 Nov): midnight is London's, whatever the device's clock says. */
 const dkDay_ = d => todayIso_(d);   // the one today, js/core.js
 /* DONE IS READ FROM `doneOn` AND THE DAY, never a timer (owner, 20 Nov): a daily item is undone again after midnight; a one-off stays ticked until midnight, then goes (dkTidy_). */
@@ -155,14 +155,43 @@ function dkLoad_() {
     : raw.trim() ? [{ name: 'Docket', items: raw.split('\n').map(t => t.trim()).filter(Boolean).map(title => ({ title })) }] : [];
   return dkTidy_(DK.lists);
 }
+/* THE SERVER'S DOCKET, NEVER THE CACHED ONE (owner, 25 Nov: a backend job rewrote the cell, the phone kept drawing — and would have saved — the old lists):
+   USER.todo is the phone's copy from sign-in, so each app load and each opening asks the cell fresh (docketImport `read`) and draws nothing until it lands;
+   a save carries the base it was read from (todoBase_, the same text as backend/post-account.gs's), and one refused as stale brings the server's cell back. */
+function todoBase_(cell) {
+  let h = 2166136261;
+  const s = String(cell == null ? '' : cell);
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+  return s.length.toString(36) + '.' + h.toString(36);
+}
+function dkTake_(todo, base) {
+  if (typeof USER !== 'undefined' && USER) { USER.todo = String(todo || ''); if (typeof saveUser_ === 'function') saveUser_(); }
+  DK.lists = null; DK.slots = []; DK.base = base; DK.fresh = true;
+  if (typeof stuffForget_ === 'function') stuffForget_(true);
+}
+function dkFetch_() {
+  if (DK.asking) return DK.asking;
+  DK.asking = Promise.resolve(api({ action: 'docketImport', read: true, personId: (typeof USER !== 'undefined' && USER && USER.personId) || '' }))
+    .then(d => { if (d && d.success) { dkTake_(d.todo, d.base); DK.say = ''; } else DK.say = (d && d.error) || 'Your Docket could not be read — try again.'; })
+    .catch(() => { DK.say = 'Your Docket could not be read — you look offline.'; })
+    .then(() => { DK.asking = null; dkPaint_(); });
+  return DK.asking;
+}
 function dkSave_() {
+  /* NOT YET READ FRESH: nothing is sent (it would be the cached cell); the server's is asked for instead. */
+  if (!DK.fresh) { DK.lists = null; dkFetch_(); return; }
   /* FIND'S DOCKET CARDS ARE MADE FROM THESE LISTS (dkItems_): a list changed is a list made again. */
   if (typeof stuffForget_ === 'function') stuffForget_(true);
   const todo = JSON.stringify(Object.assign({ v: 1 }, DK.slots && DK.slots.length ? { slots: DK.slots } : {}, { lists: DK.lists }));
   if (typeof USER !== 'undefined' && USER) { USER.todo = todo; if (typeof saveUser_ === 'function') saveUser_(); }
-  Promise.resolve(api({ action: 'item', door: 'save', item: 'todo', personId: (USER && USER.personId) || '', todo }))
-    .then(d => { if (!(d && d.success)) { DK.say = (d && d.error) || text_('not-saved-try-again'); dkPaint_(); } })
-    .catch(() => { DK.say = 'Not saved — you look offline.'; dkPaint_(); });
+  /* ONE AT A TIME: each save waits for the last, so it carries the base the last one answered. */
+  DK.q = DK.q.then(() => Promise.resolve(api({ action: 'item', door: 'save', item: 'todo', personId: (USER && USER.personId) || '', todo, base: DK.base }))
+    .then(d => {
+      if (d && d.success) { if (d.base) DK.base = d.base; return; }
+      if (d && d.stale) { dkTake_(d.todo, d.base); DK.say = 'Your Docket changed elsewhere — reloaded'; dkPaint_(); return; }
+      DK.say = (d && d.error) || text_('not-saved-try-again'); dkPaint_();
+    })
+    .catch(() => { DK.say = 'Not saved — you look offline.'; dkPaint_(); }));
 }
 const DK_MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const dkSayDay_ = d => (+d.slice(8, 10)) + ' ' + DK_MON[+d.slice(5, 7) - 1];
@@ -292,9 +321,13 @@ function dkEinkPaint_() {
 /* AFTER THE WHOLE FILE HAS RUN (its consts, dkNow_ among them, exist only then); a throw here never stops the app beneath. */
 const dkEinkTry_ = () => { try { dkEinkPaint_(); } catch (e) { if (typeof oops_ === 'function') oops_(e, 'map:eink'); } };
 if (EINK) { setTimeout(dkEinkTry_, 0); setInterval(dkEinkTry_, 60000); }
+/* EACH APP LOAD, SIGNED IN AS THE OWNER: the Docket is asked fresh at once, so Find's docket cards and ?eink draw the server's lists too. */
+setTimeout(() => { try { if (typeof may_ === 'function' && may_('owner') && typeof api === 'function') dkFetch_(); } catch (e) { if (typeof oops_ === 'function') oops_(e, 'map:dk-fetch'); } }, 0);
 function dkPaint_() {
   const box = $('dk-box');
   if (!box) return;
+  /* NOT YET READ FRESH: the cached lists are not drawn (dkFetch_ paints again when the server's land). */
+  if (!DK.fresh) { if (!DK.asking && !DK.say) dkFetch_(); box.innerHTML = cardBlocks_([{ type: 'text', text: DK.say || 'Fetching your Docket…' }]); return; }
   box.innerHTML = cardBlocks_(dkBlocks_());
 }
 const dkList_ = () => dkLoad_()[DK.at];
