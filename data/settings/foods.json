@@ -1,5 +1,5 @@
 {
- "say": "THE FOOD TREE (owner, 18 Nov): kinds as a small tree (`parent`), each with the spellings a list item may use for it; each food a name, its kind and an optional one-line note. Read by js/chemistry.js (FOOD) for the owner's Tools alone: Docket offers a kind's foods (its children's too) under an item named for the kind, and Find › Tools has a card for each kind and each food (kinds.json fooddb). FOOD SLOTS (owner, 23 Nov; data only for now): `slots` are the slots a Docket item may name as its `slot` (Protein, Fruit…) in place of a fixed food, each with `need`, how many a day it wants (Fruit 3); a food's `slots` are the slots it fills, so the Docket lists it under each (js/map.js dkSlotOptions_); one may fill two (the takeaway: Meat and Carbs). Read by the backend as DOCKET_FOODS (tools/cards-gen.js) for the private address's do=options. THE DAY PLAN (owner, 23 Nov; 24 Nov: the same food categories at every meal, Protein, Carbs, Dairy, Veg and Fruit, Grain merged into Carbs, a Meat option a Protein one too; a slot’s `need` is a day`s, so Fruit 3 is one a meal): `meals` names each meal's slots (one option list per slot, reused all day); an option marked `rush` is a worst-day choice that fills several slots at once, to be shown first on a busy day later. An option marked `quick` is one that is quick to make.",
+ "say": "THE FOOD TREE (owner, 18 Nov): kinds as a small tree (`parent`), each with the spellings a list item may use for it; each food a name, its kind and an optional one-line note. Read by js/chemistry.js (FOOD) for the owner's Tools alone: Docket offers a kind's foods (its children's too) under an item named for the kind, and Find › Tools has a card for each kind and each food (kinds.json fooddb). FOOD SLOTS (owner, 23 Nov; data only for now): `slots` are the slots a Docket item may name as its `slot` (Protein, Fruit…) in place of a fixed food, each with `need`, how many a day it wants (Fruit 3); a food's `slots` are the slots it fills, so the Docket lists it under each (js/map.js dkSlotOptions_); one may fill two (the takeaway: Meat and Carbs). Read by the backend as DOCKET_FOODS (tools/cards-gen.js) for the private address's do=options. THE DAY PLAN (owner, 23 Nov; 24 Nov: the same food categories at every meal, Protein, Carbs, Dairy, Veg and Fruit, Grain merged into Carbs, a Meat option a Protein one too; a slot’s `need` is a day`s, so Fruit 3 is one a meal): `meals` names each meal's slots (one option list per slot, reused all day); an option marked `rush` is a worst-day choice that fills several slots at once, to be shown first on a busy day later. An option marked `quick` is one that is quick to make. THE MEAL CYCLE (owner, 25 Nov): the Exercise slot's options (Jog, Push-ups…) are here too, with no `kind`, so Find makes no food card of them; Sandwich and Carb ish are Carbs options. A slot's options may also be private, in the owner's docket cell (`slots`, e.g. Prayer: js/map.js dkFoodsWith_), never here. The Breakfast/Lunch/Dinner `meals` were folded into the one 8-hour cycle (owner, 25 Nov evening; backend access.gs DK_CYCLE, its one source).",
  "kinds": [
   {
    "id": "carb",
@@ -586,7 +586,8 @@
    "kind": "carb",
    "note": "",
    "slots": [
-    "Pack for later"
+    "Pack for later",
+    "Carbs"
    ]
   },
   {
@@ -640,6 +641,50 @@
     "Dairy"
    ],
    "rush": true
+  },
+  {
+   "name": "Carb ish",
+   "kind": "carb",
+   "note": "",
+   "slots": [
+    "Carbs"
+   ]
+  },
+  {
+   "name": "Jog",
+   "slots": [
+    "Exercise"
+   ]
+  },
+  {
+   "name": "Push-ups",
+   "slots": [
+    "Exercise"
+   ]
+  },
+  {
+   "name": "Pull-ups and curls",
+   "slots": [
+    "Exercise"
+   ]
+  },
+  {
+   "name": "OHP and dips",
+   "slots": [
+    "Exercise"
+   ]
+  },
+  {
+   "name": "Sit-ups",
+   "slots": [
+    "Exercise"
+   ]
+  },
+  {
+   "name": "Helms rows and RDL",
+   "slots": [
+    "Exercise"
+   ]
   }
  ],
  "slots": [
@@ -674,39 +719,10 @@
   {
    "name": "Carbs",
    "need": 1
-  }
- ],
- "meals": [
-  {
-   "name": "Breakfast",
-   "slots": [
-    "Protein",
-    "Carbs",
-    "Dairy",
-    "Veg",
-    "Fruit"
-   ]
   },
   {
-   "name": "Lunch",
-   "slots": [
-    "Protein",
-    "Carbs",
-    "Dairy",
-    "Veg",
-    "Fruit",
-    "Snack"
-   ]
-  },
-  {
-   "name": "Dinner",
-   "slots": [
-    "Protein",
-    "Carbs",
-    "Dairy",
-    "Veg",
-    "Fruit"
-   ]
+   "name": "Exercise",
+   "need": 1
   }
  ]
 }

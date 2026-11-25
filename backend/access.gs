@@ -304,69 +304,109 @@ function docketMeals24NovRun_() {
   return n + ' change(s): ' + meals.map(L => S(L.name)).join(', ') + ' each hold ' + DK_MEAL_SLOTS.join(', ');
 }
 
-/* ONE MEAL CYCLE (owner, 25 Nov): the morning, midday and evening lists (picked as docketMeals24NovRun_ picks them) each hold, in this
-   order, the daily DK_CYCLE items; the five food slot items are the ones already there, untouched. An item that already IS one (brush
-   teeth, clean room, Put away dishes…) is reused, renamed with "was: <old title>" in its note, minutes and place kept; a second one merges
-   into the first's note. The cycle sits where the list's first cycle item stood; nothing else moves. Shopping lives in the cycle only: a
-   Shopping item in any other list is removed, one line naming them in the backup row. Backup tab first, only when something is to
-   change, so a re-run is a no-op. tools/docket-slots.js checks it. */
-const DK_CYCLE = [['Jesus prayer', /^jesus prayer$/i], ['Glass of water', /^(a )?glass of water$/i],
+/* THE DOCKET IN TWO LISTS (owner, 25 Nov evening; never run before, so rewritten under its id): "Every 8 hours" holds the DK_CYCLE items once
+   each, in this order, each repeating '8h' (js/map.js dkOn_: ticked for the current third of the day, back for the next); "@ Desk" holds every
+   one-off (Instrument made one). Nothing else stays: every other list goes. One item that already IS a cycle item (brush teeth, clean room…) is
+   reused, "was: <old title>" in its note, minutes and place kept; a second merges into its note. Prayer and Exercise are slot items like the
+   food ones (dkSlotOptions_; a pick ticks the item): Exercise's options are in foods.json, Prayer's ONLY in the owner's cell (`slots`,
+   dkFoodsWith_), made from the prayer items themselves: every item of a prayer-only list and every item titled as a prayer, its title the
+   option's name and its note its text. No prayer's name or text is in this file, by design. Every other repeating item (DK_CYCLE_GONE and the
+   rest) is removed. Every title removed or merged is named in the backup row; backup tab first, read back, the size cap; a re-run finds nothing
+   to do. tools/docket-slots.js checks it. */
+const DK_CYCLE_LIST = 'Every 8 hours';
+const DK_CYCLE = [['Prayer', 'slot'], ['Glass of water', /^(a )?glass of water$/i],
   ['Shopping', DK23_SHOP, 'only what\'s missing for the next meal'],
   ['Protein', 'slot'], ['Carbs', 'slot'], ['Dairy', 'slot'], ['Veg', 'slot'], ['Fruit', 'slot'],
-  ['Wash up', /^(wash(ing)? up|put away (the )?dishes|do (the )?dishes|dishes)$/i], ['Brush teeth', /^brush (your )?teeth$/i],
+  ['Wash up', /^(wash(ing)? up|put away (the )?dishes|do (the )?dishes|dishes)$/i], ['Floss', /^floss$/i], ['Brush teeth', /^brush (your )?teeth$/i],
   ['10-minute tidy', /^(10[- ]?min(ute)? tidy|clean (your )?room|(small )?tidy( (your )?room)?)$/i], ['Short walk', /^(short )?walk$/i],
-  ['Exercise set', /^(exercise( set)?|push[- ]?ups|pull[- ]?ups|sit[- ]?ups)$/i, ['push-ups', 'pull-ups', 'sit-ups']],
+  ['Exercise', 'slot'], ['Shower', /^(have a )?shower$/i], ['Minox', /^minox$/i], ['Laundry', /^laundr[e]?y$/i], ['Young Giants', /^(yg|young giants)$/i],
+  ['Read 5 minutes', /^(read 5 minutes|bible|read church father.*|remind yourself about \w+)$/i, 'Bible or Church Fathers'],
   ['Charge batteries', /^charge (the )?batter(y|ies)$/i], ['Check the Docket', /^check (the )?docket$/i]];
+/* GONE (owner, 25 Nov): what the cycle and the slots replace, and what the owner no longer does; a regex, or [regex, only when repeating]. */
+const DK_CYCLE_GONE = [/^remind (my|your)self about promise$/i, [/^uni$/i, true], /^screw in laptop$/i, /^do a web review who?ll?y$/i, /^philosophy time$/i,
+  /^lay out clothes and bag for tomorrow$/i, /^plan getting to work without the car$/i, /^pack (tomorrow'?s food\b.*|for later)$/i, /^take your packed food\b.*$/i,
+  /^(jog|run|workout|exercise( set)?|push[- ]?ups|pull[- ]?ups( and curls)?|curls|ohp( and dips)?|dips|sit[- ]?ups|helms rows?( and rdl)?|rdl)$/i,
+  /^sandwh?ich$/i, /^carb ish$/i, /^add floss add brush teeth add shower$/i, /\bshower\b/i];
+const DK_PRAYER_LIST = /^(eyes open\w*|undercovers)$/i, DK_PRAYER_TITLE = /\bpray(er|ers)?\b/i;
 function docketMealCycle25NovRun_() {
   const t = read(TAB.people), me = t.rows.find(r => isOwner_(r));
   if (!me) throw new Error('no owner found');
   const was = S(me.todo);
   let got = null; try { got = JSON.parse(was); } catch (e) { got = null; }
   if (!got || !Array.isArray(got.lists)) throw new Error('the owner has no docket lists');
-  const mins = L => { const m = /^(\d{2}):(\d{2})$/.exec(S(L.start)); return m ? +m[1] * 60 + +m[2] : -1; };
-  const ok = got.lists.filter(L => L && !DK23_NO_SHOP.test(S(L.name).trim()));
-  const pick = (lo, hi, re) => ok.find(L => mins(L) >= lo && mins(L) < hi) || ok.find(L => re.test(S(L.name)));
-  const meals = [pick(0, 660, /shower|breakfast|morning/i), pick(660, 960, /lunch|midday|desk/i), pick(960, 1440, /home|dinner|evening/i)]
-    .map((L, i) => [L, i]).filter(([L], i, a) => L && a.findIndex(x => x[0] === L) === i);
-  if (!meals.length) throw new Error('no morning, midday or evening list found');
-  meals.forEach(([L, meal]) => {
-    const items = (L.items || []).filter(Boolean), claimed = new Set(), block = [];
-    DK_CYCLE.forEach(([want, how, said]) => {
-      const desired = Array.isArray(said) ? said[meal] : S(said);
-      const same = how === 'slot' ? (it => dkSame_(it.slot, want)) : (it => !it.slot && how.test(S(it.title).trim()));
-      const found = items.filter(it => !claimed.has(it) && same(it));
-      found.forEach(it => claimed.add(it));
-      if (how === 'slot') { if (found.length) block.push(...found); return; }
-      if (!found.length) { const o = { title: want, repeat: 'daily' }; if (desired) o.note = desired; block.push(o); return; }
-      const it = found[0], old = S(it.title), on = S(it.note);
+  got.lists = got.lists.filter(Boolean);
+  got.lists.forEach(L => { L.items = (L.items || []).filter(Boolean); });
+  const gone = [], title = it => S(it.title).trim(), log = (L, it) => gone.push(S(L.name) + ': ' + was23_([it]));
+  /* (1) THE PRAYERS become the private Prayer slot's options (name and full text), merged by name, the longer text kept. */
+  got.slots = Array.isArray(got.slots) ? got.slots.filter(s => s && s.name) : [];
+  let pr = got.slots.find(s => dkSame_(s.name, 'Prayer'));
+  const prayers = [];
+  got.lists.forEach(L => { L.items.forEach(it => { if (!it.slot && (DK_PRAYER_LIST.test(S(L.name).trim()) || DK_PRAYER_TITLE.test(title(it)))) prayers.push([L, it]); }); });
+  const named = new Set(prayers.map(([, it]) => title(it).toLowerCase()));
+  got.lists.forEach(L => L.items.forEach(it => { if (!it.slot && named.has(title(it).toLowerCase()) && !prayers.some(p => p[1] === it)) prayers.push([L, it]); }));
+  if (prayers.length && !pr) { pr = { name: 'Prayer', need: 1, options: [] }; got.slots.push(pr); }
+  prayers.forEach(([L, it]) => {
+    const o = pr.options.find(x => dkSame_(x.name, title(it)));
+    if (!o) pr.options.push(Object.assign({ name: title(it) }, S(it.note) ? { note: S(it.note) } : {}));
+    else if (S(it.note).length > S(o.note).length) o.note = S(it.note);
+    log(L, it); L.items.splice(L.items.indexOf(it), 1);
+  });
+  if (!got.slots.length) delete got.slots;
+  /* (2) THE CYCLE LIST, its items found in any list (the cycle list's own first), the first of each reused. */
+  let cyc = got.lists.find(L => S(L.name) === DK_CYCLE_LIST);
+  const from = (cyc ? [cyc] : []).concat(got.lists.filter(L => L !== cyc)), claimed = new Set(), block = [];
+  const pool = from.flatMap(L => L.items.map(it => [L, it]));
+  DK_CYCLE.forEach(([want, how, said]) => {
+    const desired = S(said), slot = how === 'slot';
+    const same = slot ? (it => dkSame_(it.slot, want)) : (it => !it.slot && how.test(title(it)));
+    const found = pool.filter(([, it]) => !claimed.has(it) && same(it));
+    found.forEach(([, it]) => claimed.add(it));
+    if (!found.length) { const o = { title: want, repeat: '8h' }; if (slot) o.slot = want; if (desired) o.note = desired; block.push(o); return; }
+    const [L0, it] = found[0], old = S(it.title), on = S(it.note);
+    found.slice(1).forEach(([L, x]) => log(L, x));
+    if (slot) { if (old !== want) { log(L0, { title: old }); it.title = want; } }
+    else {
+      if (old !== want) log(L0, { title: old });
       const keep = desired && on.startsWith(desired) ? on.slice(desired.length).replace(/^\n+/, '') : on;
-      const parts = [desired, keep, old !== want ? 'was: ' + old : '']
-        .concat(found.slice(1).map(x => 'was: ' + was23_([x])));
+      const parts = [desired, keep, old !== want ? 'was: ' + old : ''].concat(found.slice(1).map(([, x]) => 'was: ' + was23_([x])));
       if (old !== want || (desired && !on.startsWith(desired)) || found.length > 1) { it.title = want; it.note = parts.filter(Boolean).join('\n\n'); }
-      it.repeat = 'daily';
-      block.push(it);
-    });
-    const out = [];
-    let put = false;
-    items.forEach(it => { if (!claimed.has(it)) out.push(it); else if (!put) { out.push(...block); put = true; } });
-    if (!put) out.push(...block);
-    L.items = out;
+      if (!it.note) delete it.note;
+    }
+    if (it.repeat !== '8h') { it.repeat = '8h'; delete it.doneOn; delete it.done; delete it.pick; delete it.pickOn; delete it.date; delete it.time; }
+    block.push(it);
   });
-  const inMeal = new Set(meals.map(([L]) => L)), gone = [];
+  got.lists.forEach(L => { L.items = L.items.filter(it => !claimed.has(it)); });
+  if (!cyc) { cyc = { name: DK_CYCLE_LIST }; got.lists.unshift(cyc); }
+  cyc.start = '00:00';
+  cyc.items = block;
+  /* (3) @ DESK: every one-off, in list order, after its own; Instrument made one and put last. Every other repeating item goes. */
+  let desk = got.lists.find(L => S(L.name).trim().toLowerCase() === '@ desk');
+  if (!desk) { desk = { name: '@ Desk', items: [] }; got.lists.push(desk); }
+  const tail = [];
   got.lists.forEach(L => {
-    if (!L || inMeal.has(L)) return;
-    const drop = (L.items || []).filter(it => it && DK23_SHOP.test(S(it.title).trim()));
-    if (drop.length) { gone.push(S(L.name) + ': ' + was23_(drop)); L.items = L.items.filter(it => drop.indexOf(it) < 0); }
+    if (L === cyc) return;
+    L.items = L.items.filter(it => {
+      if (/^instrument$/i.test(title(it)) && it.repeat) { delete it.repeat; delete it.doneOn; tail.push(it); return false; }
+      const g = DK_CYCLE_GONE.some(x => (Array.isArray(x) ? x[0].test(title(it)) && (!x[1] || dkRep_(it)) : x.test(title(it))));
+      if (g || dkRep_(it)) { log(L, it); return false; }
+      if (L !== desk) { tail.push(it); return false; }
+      return true;
+    });
   });
+  desk.items = desk.items.concat(tail);
+  delete desk.start;
+  got.lists.filter(L => L !== cyc && L !== desk).forEach(L => gone.push('list ' + S(L.name)));
+  got.lists = [cyc, desk];
   if (JSON.stringify(got) === JSON.stringify(JSON.parse(was))) return 'nothing to do';
-  const removed = gone.length ? 'Shopping removed from ' + gone.join(' | ') : 'no Shopping removed';
+  const removed = gone.length ? 'removed or merged (' + gone.length + '): ' + gone.join(' | ') : 'nothing removed';
   const ss = t.sheet.getParent(), bk = ss.getSheetByName('backup_docket_cycle_25nov') || ss.insertSheet('backup_docket_cycle_25nov');
   bk.appendRow([new Date(), was, removed]);
-  if (S(bk.getRange(bk.getLastRow(), 2).getValue()) !== was) throw new Error('the backup did not read back - nothing changed');
+  if (S(bk.getRange(bk.getLastRow(), 2).getValue()) !== was || S(bk.getRange(bk.getLastRow(), 3).getValue()) !== removed) throw new Error('the backup did not read back - nothing changed');
   const cell = JSON.stringify(got);
   if (cell.length > DOCKET_CELL_MAX) throw new Error('the docket would be ' + cell.length + ' characters, over ' + DOCKET_CELL_MAX + ' - nothing was saved');
   if (!setCell(t, me, 'todo', cell)) throw new Error('the people tab has no todo column - nothing was saved');
-  return meals.map(([L]) => S(L.name)).join(', ') + ' each hold the ' + DK_CYCLE.length + '-item meal cycle; ' + removed;
+  return 'two lists: ' + DK_CYCLE_LIST + ' (the ' + DK_CYCLE.length + '-item cycle, every 8 hours) and @ Desk (' + desk.items.length + ' one-offs); '
+    + (pr ? pr.options.length : 0) + ' private Prayer option(s); ' + gone.length + ' removed or merged (in the backup row)';
 }
 
 /* NO IDEAS LIST (owner, 23 Nov): if an "Ideas & notes" list was made, its items go to the end of "@ Desk" and the empty list goes. */
@@ -544,7 +584,7 @@ const MIGRATIONS = [
     run: () => docketMeals24NovRun_() },
   { id: 'docket-meal-cycle-25nov',
     retry: true,
-    what: "one meal cycle at breakfast, lunch and dinner: Jesus prayer, Glass of water, Shopping, the five food slots, Wash up, Brush teeth, 10-minute tidy, Short walk, Exercise set, Charge batteries, Check the Docket (existing ones reused, backup tab first); Shopping in no other list",
+    what: "the docket in two lists: Every 8 hours (the 21-item cycle, each ticked once a third of the day; Prayer and Exercise slots, Prayer's options kept private in the docket cell) and @ Desk (every one-off); every other list and repeating item removed (backup tab first, every removed title in it)",
     run: () => docketMealCycle25NovRun_() },
 ];
 

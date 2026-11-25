@@ -8,8 +8,12 @@
 'use strict';
 const { ROOT, report, main } = require('./lib/gen.js');
 const fs = require('fs'), path = require('path');
+/* A FUNCTION, and the one-line helpers it reads (dkRep_, dkOn_: EVERY 8 HOURS, owner 25 Nov) as function declarations, so two functions may both bring them. */
+const HELPERS = ['dkRep_', 'dkOn_'];
 const fnOf = (src, name) => { const m = new RegExp('\\nfunction ' + name + '\\([^)]*\\) \\{[\\s\\S]*?\\n\\}\\n').exec(src);
-  if (!m) throw new Error('docket-plan: no ' + name + ' in js/map.js'); return m[0]; };
+  if (!m) throw new Error('docket-plan: no ' + name + ' in js/map.js');
+  return HELPERS.filter(h => new RegExp('\\b' + h + '\\(').test(m[0])).map(h => { const c = new RegExp('\\nconst ' + h + ' = (.*);\\n').exec(src);
+    if (!c) throw new Error('docket-plan: no ' + h); return 'function ' + h + '(...a) { return (' + c[1] + ')(...a); }\n'; }).join('') + m[0]; };
 function planner() {
   const src = fs.readFileSync(path.join(ROOT, 'js', 'map.js'), 'utf8');
   return new Function(fnOf(src, 'dkPlan_') + fnOf(src, 'dkPhase_') + '; return [dkPlan_, dkPhase_];')();

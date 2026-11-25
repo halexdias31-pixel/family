@@ -13,7 +13,7 @@ function tidies() {
   const be = text('backend/post-account.gs'), js = text('js/map.js'), F = 'backend/post-account.gs';
   const back = new Function('const S = v => (v == null ? "" : String(v)).trim(), todayIso_ = () => "2026-11-21";' + m[0] + /\nconst LIST_KINDS = .*;\n/.exec(gen)[0]
     + ['listTidy_', 'listItemTidy_', 'todoTidy_', 'docketTidy_'].map(n => fnOf(be, n, F)).join('') + 'return [DOCKET_PLAN_FIELDS, todoTidy_, docketTidy_];')();
-  const dk = new Function('const dkDay_ = () => "2026-11-21";' + /\nconst dkGone_ = .*\n/.exec(js)[0] + fnOf(js, 'dkTidy_', 'js/map.js') + 'return dkTidy_;')();
+  const dk = new Function('const dkDay_ = () => "2026-11-21";' + /\nconst dkRep_ = .*\n/.exec(js)[0] + /\nconst dkGone_ = .*\n/.exec(js)[0] + fnOf(js, 'dkTidy_', 'js/map.js') + 'return dkTidy_;')();
   return [back[0], back[1], back[2], dk];
 }
 function run() {

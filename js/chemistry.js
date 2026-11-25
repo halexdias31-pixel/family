@@ -66,7 +66,7 @@ function foodItems_() {
   const byId = {}; d.kinds.forEach(k => { byId[k.id] = k; });
   FOOD.items = d.kinds.map(k => ({ kind: 'fooddb', key: 'fooddb:k:' + k.id, name: k.name, image: '', row: null,
     text: [k.name].concat(k.spellings || []).join(' '), food: { name: k.name, path: foodPath_(k), foods: foodsOf_(k).map(f => f.name) } }))
-    .concat(d.foods.map(f => ({ kind: 'fooddb', key: 'fooddb:f:' + foodSay_(f.name).replace(/ /g, '-'), name: f.name, image: '', row: null,
+    .concat(d.foods.filter(f => f.kind).map(f => ({ kind: 'fooddb', key: 'fooddb:f:' + foodSay_(f.name).replace(/ /g, '-'), name: f.name, image: '', row: null,
       text: f.name + ' ' + (byId[f.kind] ? byId[f.kind].name : ''), food: { name: f.name, path: byId[f.kind] ? foodPath_(byId[f.kind]) : '', note: f.note || '' } })));
   return FOOD.items;
 }

@@ -7,8 +7,9 @@
    Carbs; a second run is a no-op. THE SAME SLOTS AT EVERY MEAL (owner, 24 Nov): foods.json's three meals each name Protein, Carbs, Dairy, Veg and
    Fruit (Grain merged into Carbs, its options kept); docketMeals24NovRun_ then gives the morning, midday and evening lists those five slot items each,
    a food item giving way to its slot (its title in the note), backup tab first, nothing lost, a re-run a no-op; each rule proved by mutation.
-   ONE MEAL CYCLE (owner, 25 Nov): docketMealCycle25NovRun_ gives each meal list the fifteen daily items in order, reusing ones it has, Shopping in no
-   other list; run twice, the second a no-op; each rule proved by mutation. Data only for now (owner, 23 Nov): the tick is the one tick, unchanged. Counted: every rule. Run by tools/build.js. */
+   THE DOCKET IN TWO LISTS (owner, 25 Nov evening): docketMealCycle25NovRun_, on its own made-up docket, leaves "Every 8 hours" (the 21 cycle items in
+   order, each ticked once a third of the day: dkOn_, checked browser-free; Prayer and Exercise slots, Prayer's options private in the cell) and "@ Desk"
+   (every one-off); the rest removed, named in the backup row; no prayer named in the repo; run twice, the second a no-op; each rule proved by mutation. Data only for now (owner, 23 Nov): the tick is the one tick, unchanged. Counted: every rule. Run by tools/build.js. */
 'use strict';
 const { report, main } = require('./lib/gen.js');
 const { load, book } = require('./lib/backend-vm.js');
@@ -33,14 +34,13 @@ const DOCKET = () => [
   { name: 'undercovers', items: [it('Evening prayers', { repeat: 'daily' })] },
 ];
 
-/* THE DAY PLAN'S FAULT: three meals, each naming Protein, Carbs, Dairy, Veg and Fruit, every name a slot; Snack only at lunch */
+/* ONE SOURCE FOR THE CYCLE (owner, 25 Nov evening): the meals collapsed into the one 8-hour cycle (backend DK_CYCLE), so foods.json keeps no `meals`;
+   every food slot the cycle names is a foods.json slot. */
 const SAME = ['Protein', 'Carbs', 'Dairy', 'Veg', 'Fruit'];
 function mealsFault(F) {
-  if (!Array.isArray(F.meals) || F.meals.map(m => m.name).join() !== 'Breakfast,Lunch,Dinner') return 'not Breakfast, Lunch, Dinner';
-  const bad = F.meals.find(m => !SAME.every(x => m.slots.includes(x)) || !m.slots.every(t => F.slots.some(x => x.name === t)));
-  if (bad) return bad.name + ' is ' + bad.slots.join();
-  if (F.meals.find(m => m.name === 'Lunch').slots.join() !== SAME.concat(['Snack']).join()) return 'Lunch is not the five and Snack';
-  return '';
+  if (F.meals) return 'foods.json still has meals';
+  const miss = SAME.concat(['Exercise']).filter(x => !F.slots.some(y => y.name === x));
+  return miss.length ? 'not slots: ' + miss.join() : '';
 }
 const GRAIN_WAS = ['Bread', 'Cereal', 'Meat pasty from the shop', 'Porridge'];
 function grainFault(F) {
@@ -78,7 +78,7 @@ function proveMeals(m) {
   ];
   const missed = breaks.map((b, i) => { const a = cp(m.after); b(a); return MEAL_RULES.some(([, f]) => { try { return !f(Object.assign({}, m, { after: a })); } catch (e) { return true; } }) ? -1 : i; }).filter(i => i >= 0);
   const other = [
-    () => !!mealsFault(Object.assign({}, FOODS, { meals: FOODS.meals.map(x => (x.name === 'Dinner' ? { name: 'Dinner', slots: ['Protein', 'Carbs', 'Veg'] } : x)) })),
+    () => !!mealsFault(Object.assign({}, FOODS, { meals: [{ name: 'Dinner', slots: SAME }] })) && !!mealsFault(Object.assign({}, FOODS, { slots: FOODS.slots.filter(x => x.name !== 'Exercise') })),
     () => !!grainFault(Object.assign({}, FOODS, { slots: FOODS.slots.concat([{ name: 'Grain', need: 1 }]) })),
     () => !!grainFault(Object.assign({}, FOODS, { foods: FOODS.foods.filter(f => f.name !== 'Bread') })),
     () => !MEAL_RULES[5][1](Object.assign({}, m, { backup: null })),
@@ -87,51 +87,123 @@ function proveMeals(m) {
   return missed.concat(other);
 }
 
-/* ONE MEAL CYCLE (owner, 25 Nov): docketMealCycle25NovRun_ after the 24 Nov job, the same fifteen in order at every meal */
-const CYCLE = ['Jesus prayer', 'Glass of water', 'Shopping', 'Protein', 'Carbs', 'Dairy', 'Veg', 'Fruit', 'Wash up', 'Brush teeth', '10-minute tidy', 'Short walk', 'Exercise set', 'Charge batteries', 'Check the Docket'];
-const SETS = ['push-ups', 'pull-ups', 'sit-ups'], REUSED = ['brush teeth', 'Brush teeth', 'Charge batteries', 'Small tidy room', 'Put away dishes', 'clean room', 'Shopping'];
-const cyc = i => CYCLE.includes(i.title), find = (lists, n, t) => itemsOf(lists, n).find(i => i.title === t) || {};
-const CYCLE_RULES = [
-  ['each meal list holds the fifteen, in order, together, each once and daily; Shopping and the exercise set carry their notes', m => MEAL_LISTS.every((n, k) => {
-    const its = itemsOf(m.after, n), at = its.findIndex(cyc), blk = its.slice(at, at + CYCLE.length);
-    return at >= 0 && blk.map(i => i.title).join() === CYCLE.join() && its.filter(cyc).length === CYCLE.length && blk.every(i => i.repeat === 'daily')
-      && /^only what's missing for the next meal/.test(find(m.after, n, 'Shopping').note) && new RegExp('^' + SETS[k]).test(find(m.after, n, 'Exercise set').note); })],
-  ['the five food slot items are the ones that were there, untouched', m => MEAL_LISTS.every(n => SAME.every(x =>
-    JSON.stringify(itemsOf(m.before, n).find(i => i.slot === x)) === JSON.stringify(itemsOf(m.after, n).find(i => i.slot === x))))],
-  ['no Shopping in any other list, and the backup row says what went', m => m.after.filter(L => !MEAL_LISTS.includes(L.name)).every(L => !L.items.some(i => /^(shopping|morning shop)$/i.test(i.title)))
-    && !!m.backup && /After brush teeth: Shopping — milk/.test(m.backup.v[0][2])],
-  ['an item that is one of the fifteen is reused (was: …, minutes and place kept), not doubled', m => find(m.after, 'Out of Shower', 'Brush teeth').minutes === 2
-    && /was: brush teeth/.test(find(m.after, 'Out of Shower', 'Brush teeth').note) && find(m.after, 'Out of Shower', 'Charge batteries').place === 'home'
-    && find(m.after, '@ Desk', '10-minute tidy').minutes === 5 && /was: Small tidy room/.test(find(m.after, '@ Desk', '10-minute tidy').note)
-    && /was: Put away dishes/.test(find(m.after, '@ Desk', 'Wash up').note) && /was: clean room/.test(find(m.after, 'arrived home', '10-minute tidy').note)
-    && find(m.after, 'arrived home', 'Brush teeth').place === 'bathroom' && /bread/.test(find(m.after, 'arrived home', 'Shopping').note)],
-  ['nothing else moved or went: every other item as it was, in its order, in its list', m => m.before.every(L => {
-    const meal = MEAL_LISTS.includes(L.name), keep = L.items.filter(i => (meal ? !cyc(i) && !REUSED.includes(i.title) : !/^(shopping|morning shop)$/i.test(i.title)));
-    return JSON.stringify(keep) === JSON.stringify(itemsOf(m.after, L.name).filter(i => !meal || !cyc(i))); }) && m.after.length === m.before.length],
-  ['the backup tab holds the old cell, first and once', m => !!m.backup && m.backup.v.length === 1 && m.backup.v[0][1] === m.was],
-  ['a second run is a no-op', m => /nothing to do/.test(m.again) && m.cellAgain === m.cell],
+const find = (lists, n, t) => itemsOf(lists, n).find(i => i.title === t) || {};
+/* ONE MEAL CYCLE (owner, 25 Nov evening): docketMealCycle25NovRun_ on a made-up docket shaped like the owner's after the 24 Nov job (prayer-only
+   lists, prayer items with long notes, the old routine items, one-offs, an Overdue list). Its prayers are MADE UP: no real prayer is named here. */
+const CYCLE = ['Prayer', 'Glass of water', 'Shopping', 'Protein', 'Carbs', 'Dairy', 'Veg', 'Fruit', 'Wash up', 'Floss', 'Brush teeth', '10-minute tidy', 'Short walk',
+  'Exercise', 'Shower', 'Minox', 'Laundry', 'Young Giants', 'Read 5 minutes', 'Charge batteries', 'Check the Docket'];
+const PRAYERS = { 'Prayer One': 'made-up text one, long enough to be a prayer', 'Litany Two': 'made-up text two', 'Night prayer': 'made-up text three' };
+const EXERCISE = ['Jog', 'Push-ups', 'Pull-ups and curls', 'OHP and dips', 'Sit-ups', 'Helms rows and RDL'];
+const GONE = ['Remind myself about promise', 'Uni', 'Sandwhich', 'Carb ish', 'Take your packed food to work', 'Pack for later', 'screw in laptop', 'Philosophy time', 'Push-ups',
+  'yg', 'laundrey', 'Pack tomorrow\'s food for work', 'Lay out clothes and bag for tomorrow', 'Add floss add brush teeth add shower', 'Helms rows and RDL', 'Remind yourself about it',
+  'read church father righting', 'Bible', 'do a web review wholy', 'Plan getting to work without the car', 'floss', 'Put away dishes'];
+const slots5 = () => SAME.map(x => it(x, { repeat: 'daily', slot: x }));
+const CYC_DOCKET = () => [
+  { name: 'eyes opend', items: [it('Prayer One', { repeat: 'daily', note: PRAYERS['Prayer One'] }), it('Litany Two', { repeat: 'daily', note: PRAYERS['Litany Two'] })] },
+  { name: 'Out of Shower', start: '07:00', items: [it('Prayer One', { repeat: 'daily' }), ...slots5(), it('Pack for later', { repeat: 'daily', slot: 'Pack for later' }),
+    it('Take your packed food to work', { repeat: 'daily' }), it('brush teeth', { repeat: 'daily', minutes: 2 }), it('Charge batteries', { repeat: 'daily', place: 'home' }),
+    it('shower', { repeat: 'daily' }), it('minox', { repeat: 'daily' }), it('Remind myself about promise', { repeat: 'daily' }), it('Uni', { repeat: 'daily' }),
+    it('Sandwhich', { repeat: 'daily' }), it('Carb ish', { repeat: 'daily' }), it('get dressed', { repeat: 'daily' })] },
+  { name: 'After brush teeth', items: [it('Shopping', { repeat: 'daily', note: 'milk' }), it('floss', { repeat: 'daily' }), it('Push-ups', { repeat: 'daily' }),
+    it('Bible', { repeat: 'daily' }), it('Litany Two', { repeat: 'daily' })] },
+  { name: '@ Desk', start: '12:00', items: [...slots5(), it('Snack', { repeat: 'daily', slot: 'Snack' }), it('reply to messages'), it('Small tidy room', { repeat: 'daily', minutes: 5 }),
+    it('Put away dishes', { repeat: 'daily' }), it('screw in laptop'), it('Philosophy time', { repeat: 'daily' }), it('Instrument', { repeat: 'daily' })] },
+  { name: 'arrived home', start: '18:00', items: [...slots5(), it(TAKE, { repeat: 'daily', covers: ['Protein', 'Carbs'] }), it('kettle', { repeat: 'daily' }),
+    it('clean room', { repeat: 'daily' }), it('Brush teeth', { repeat: 'daily', place: 'bathroom' }), it('Shopping', { repeat: 'daily', note: 'bread' }), it('yg', { repeat: 'daily' }),
+    it('laundrey', { repeat: 'daily' }), it('Pack tomorrow\'s food for work', { repeat: 'daily' }), it('Lay out clothes and bag for tomorrow', { repeat: 'daily' }),
+    it('Add floss add brush teeth add shower', { repeat: 'daily' }), it('Helms rows and RDL', { repeat: 'daily' }), it('Remind yourself about it', { repeat: 'daily' }),
+    it('read church father righting', { repeat: 'daily' })] },
+  { name: 'undercovers', items: [it('Night prayer', { repeat: 'daily', note: PRAYERS['Night prayer'] })] },
+  { name: 'Overdue — check', items: [it('Renew passport', { date: '2026-11-01' })] },
+  { name: 'Weekend', items: [it('Uni open day', { note: 'one-off' }), it('do a web review wholy', { repeat: 'daily' }), it('Plan getting to work without the car', { repeat: 'daily' })] },
 ];
+/* NO PRAYER IN THE REPO: the code and settings are scanned, two and three words at a time, against the hashes of the owner's prayers' distinctive phrases
+   (so this file does not name them either). */
+const PRAYER_HASHES = ['f32995b352045208', '3ff699530f8672e0', '3b5e7f844019850b', '8396db0f7c08e87b', '1845efa2fdd7bcde'];
+function prayerLeaks(texts, hashes) {
+  const crypto = require('crypto'), hit = [];
+  Object.entries(texts).forEach(([f, s]) => { const w = String(s).toLowerCase().match(/[a-z]+/g) || [];
+    for (let i = 0; i < w.length; i++) for (let n = 2; n <= 3 && i + n <= w.length; n++) {
+      if ((hashes || PRAYER_HASHES).includes(crypto.createHash('sha256').update(w.slice(i, i + n).join(' ')).digest('hex').slice(0, 16))) hit.push(f); } });
+  return [...new Set(hit)];
+}
+function repoTexts() {
+  const { srcFiles, text } = require('./lib/gen.js'), out = {};
+  srcFiles(['backend', 'js', 'data/settings'], /\.(gs|js|json|md|html)$/, { deep: true }).concat(srcFiles(['tools'], /^docket.*\.js$/)).forEach(f => { out[f] = text(f); });
+  return out;
+}
+const titlesOf = lists => (lists || []).flatMap(L => L.items.map(i => i.title));
+const EVERY = 'Every 8 hours';
+const CYCLE_RULES = [
+  ['two lists only: Every 8 hours and @ Desk', m => m.after.map(L => L.name).join() === EVERY + ',@ Desk'],
+  ['Every 8 hours holds the 21, in order, each once, each repeating every 8 hours; Shopping and Read 5 minutes carry their notes', m => {
+    const its = itemsOf(m.after, EVERY);
+    return its.map(i => i.title).join() === CYCLE.join() && its.every(i => i.repeat === '8h')
+      && /^only what's missing for the next meal/.test(find(m.after, EVERY, 'Shopping').note) && /^Bible or Church Fathers/.test(find(m.after, EVERY, 'Read 5 minutes').note); }],
+  ['Prayer and Exercise are slot items, filled by ticking any option: Exercise\'s from foods.json, Prayer\'s from the private cell, each prayer\'s text kept', m => {
+    const fd = m.ctx.$('dkFoodsWith_')(FOODS, m.cellObj.slots), opt = s => m.ctx.$('dkSlotOptions_')(fd, s), its = itemsOf(m.after, EVERY);
+    return its.some(i => i.title === 'Prayer' && i.slot === 'Prayer') && its.some(i => i.title === 'Exercise' && i.slot === 'Exercise')
+      && SAME.every(x => its.some(i => i.title === x && i.slot === x))
+      && opt('Exercise').map(f => f.name).join() === EXERCISE.join() && Object.entries(PRAYERS).every(([k, v]) => opt('Prayer').some(f => f.name === k && f.note === v))
+      && opt('Prayer').length === 3 && m.tickable(); }],
+  ['the private Prayer options are in the cell only: not in foods.json nor the backend\'s DOCKET_FOODS, and no prayer item is left in a list', m =>
+    !FOODS.slots.some(s => s.name === 'Prayer') && !m.ctx.$('DOCKET_FOODS').slots.some(s => s.name === 'Prayer')
+    && !titlesOf(m.after).some(t => Object.keys(PRAYERS).includes(t)) && !JSON.stringify(FOODS).includes('made-up text')],
+  ['every removed title is gone and named in the backup row (the other once-a-day items too); Sandwich and Carb ish are Carbs options', m => GONE.every(g => !titlesOf(m.after).includes(g))
+    && !!m.backup && GONE.concat(Object.keys(PRAYERS), ['get dressed', 'kettle', 'Snack', TAKE, 'list arrived home']).every(g => m.backup.v[0][2].includes(g))
+    && ['Sandwich', 'Carb ish'].every(n => m.ctx.$('dkSlotOptions_')(FOODS, 'Carbs').some(f => f.name === n))],
+  ['@ Desk holds every one-off and only those, Instrument one now', m => { const d = itemsOf(m.after, '@ Desk');
+    return d.map(i => i.title).join() === 'reply to messages,Instrument,Renew passport,Uni open day' && d.every(i => !i.repeat); }],
+  ['an item that is one of the 21 is reused (was: …, minutes and place kept)', m => find(m.after, EVERY, 'Brush teeth').minutes === 2
+    && /was: brush teeth/.test(find(m.after, EVERY, 'Brush teeth').note) && find(m.after, EVERY, 'Charge batteries').place === 'home'
+    && /was: shower/.test(find(m.after, EVERY, 'Shower').note) && /was: minox/.test(find(m.after, EVERY, 'Minox').note)
+    && /was: Put away dishes/.test(find(m.after, EVERY, 'Wash up').note) && /milk/.test(find(m.after, EVERY, 'Shopping').note)
+    && /was: Small tidy room/.test(find(m.after, EVERY, '10-minute tidy').note) && /was: read church father|was: yg/.test(textOf(m.after))],
+  ['every 8 hours: a tick holds for its third of the day and is back unticked in the next, through the one tick and the planner', m => m.thirds()],
+  ['no prayer\'s name or text anywhere in the code or settings', m => m.leaks.length === 0],
+  ['the backup tab holds the old cell and the removed titles, first and once', m => !!m.backup && m.backup.v.length === 1 && m.backup.v[0][1] === m.was && /^removed or merged \(\d+\)/.test(m.backup.v[0][2])],
+  ['a second run is a no-op', m => /nothing to do/.test(m.again) && m.cellAgain === m.cell],
+  ['under DOCKET_CELL_MAX', m => m.cell.length <= m.ctx.$('DOCKET_CELL_MAX')],
+];
+/* EVERY 8 HOURS, browser-free: dkOn_'s thirds, a tick through dkTick_ read back by dkPhase_ at later times; and map.js's dkDone_ reads it the same way. */
+function thirdsOk(ctx, mapSrc) {
+  const on = ctx.$('dkOn_'), tick = ctx.$('dkTick_'), phase = ctx.$('dkPhase_');
+  const it = () => [{ title: 'Floss', repeat: '8h' }, { title: 'Minox', repeat: 'daily' }];
+  if (on({ repeat: '8h' }, '2026-11-25 07:59') !== '2026-11-25/1' || on({ repeat: '8h' }, '2026-11-25 08:00') !== '2026-11-25/2' || on({ repeat: '8h' }, '2026-11-25 23:30') !== '2026-11-25/3') return false;
+  if (on({ repeat: 'daily' }, '2026-11-25 23:30') !== '2026-11-25') return false;
+  const x = it(); tick(x, 0, true, '2026-11-25 09:10'); tick(x, 1, true, '2026-11-25 09:10');
+  const open = now => { const p = phase([{ name: EVERY, start: '00:00', items: x }], now); return p ? p.rows.map(r => x[r.i].title).join() : '?'; };
+  return x[0].doneOn === '2026-11-25/2' && open('2026-11-25 15:59') === '' && open('2026-11-25 16:00') === 'Floss' && open('2026-11-26 00:10') === 'Floss,Minox'
+    && /const dkDone_ = i => \(dkRep_\(i\) \? i\.doneOn === dkOn_\(i, dkNow_\(\)\)/.test(mapSrc) && /dkTick_\(dkList_\(\)\.items, \+el\.getAttribute\('data-dk'\), el\.checked, dkNow_\(\)\)/.test(mapSrc);
+}
 function proveCycle(m) {
-  const cp = o => JSON.parse(JSON.stringify(o)), L = (lists, n) => lists.find(x => x.name === n);
+  const cp = o => JSON.parse(JSON.stringify(o)), L = (lists, n) => lists.find(x => x.name === n), with_ = o => Object.assign({}, m, o);
   const breaks = [
-    a => { const x = L(a, '@ Desk').items, i = x.findIndex(t => t.title === 'Wash up'); x.splice(i, 2, x[i + 1], x[i]); },
-    a => { L(a, 'arrived home').items.find(i => i.slot === 'Veg').note = 'changed'; },
-    a => { L(a, 'After brush teeth').items.push({ title: 'Shopping' }); },
-    a => { L(a, 'Out of Shower').items.find(i => i.title === 'Brush teeth').minutes = 15; },
-    a => { L(a, 'arrived home').items = L(a, 'arrived home').items.filter(i => i.title !== 'kettle'); },
-    a => { L(a, 'Out of Shower').items.push({ title: 'Glass of water', repeat: 'daily' }); },
-    a => { L(a, '@ Desk').items.find(i => i.title === 'Exercise set').note = 'push-ups'; },
-    a => { L(a, 'eyes opend').items = []; },
+    a => { const x = L(a, EVERY).items, i = x.findIndex(t => t.title === 'Floss'); x.splice(i, 2, x[i + 1], x[i]); },
+    a => { L(a, EVERY).items.find(i => i.title === 'Exercise').slot = ''; },
+    a => { L(a, EVERY).items.find(i => i.title === 'Laundry').repeat = 'daily'; },
+    a => { L(a, '@ Desk').items.push({ title: 'Litany Two', repeat: 'daily' }); },
+    a => { L(a, '@ Desk').items.push({ title: 'yg' }); },
+    a => { L(a, '@ Desk').items.push({ title: 'kettle', repeat: 'daily' }); },
+    a => { a.push({ name: 'eyes opend', items: [] }); },
+    a => { L(a, EVERY).items.find(i => i.title === 'Brush teeth').minutes = 15; },
+    a => { L(a, '@ Desk').items.find(i => i.title === 'Instrument').repeat = 'daily'; },
   ];
-  const missed = breaks.map((b, i) => { const a = cp(m.after); b(a); return CYCLE_RULES.some(([, f]) => { try { return !f(Object.assign({}, m, { after: a })); } catch (e) { return true; } }) ? -1 : i; }).filter(i => i >= 0);
-  const other = [() => !CYCLE_RULES[5][1](Object.assign({}, m, { backup: null })), () => !CYCLE_RULES[6][1](Object.assign({}, m, { again: 'Out of Shower each hold' }))]
+  const missed = breaks.map((b, i) => { const a = cp(m.after); b(a); return CYCLE_RULES.some(([, f]) => { try { return !f(with_({ after: a })); } catch (e) { return true; } }) ? -1 : i; }).filter(i => i >= 0);
+  const priv = cp(m.cellObj.slots); priv[0].options[1].note = 'cut';
+  const broken = Object.assign({}, m.ctx, { $: n => (n === 'dkOn_' ? (i, now) => String(now).slice(0, 10) : m.ctx.$(n)) });
+  const other = [() => !CYCLE_RULES[2][1](with_({ cellObj: { slots: priv } })), () => !CYCLE_RULES[2][1](with_({ tickable: () => false })),
+    () => !thirdsOk(broken, m.mapSrc) && !thirdsOk(m.ctx, m.mapSrc.replace('dkNow_())', 'dkDay_())')),
+    () => prayerLeaks({ x: 'some made up words' }, [require('crypto').createHash('sha256').update('made up').digest('hex').slice(0, 16)]).length === 1 && !CYCLE_RULES[8][1](with_({ leaks: ['x'] })),
+    () => !CYCLE_RULES[4][1](with_({ backup: { v: [[0, m.was, 'removed or merged (1): Uni']] } })),
+    () => !CYCLE_RULES[9][1](with_({ backup: null })), () => !CYCLE_RULES[10][1](with_({ again: 'two lists' }))]
     .map((f, i) => (f() ? -1 : 'x' + i)).filter(i => i !== -1);
   return missed.concat(other);
 }
 
-function world() {
+function world(docket) {
   const ctx = load({ at: true, google: { Utilities: { formatDate: (d, tz, f) => (f === 'yyyy-MM-dd' ? DAY : DAY + ' 10:00'), getUuid: () => 'u' } } }), B = book();
-  const person = { person_id: 'P-OWN', role: 'admin', first_name: 'Made', last_name: 'Up', email: OWNER, todo: JSON.stringify({ v: 1, lists: DOCKET() }) };
+  const person = { person_id: 'P-OWN', role: 'admin', first_name: 'Made', last_name: 'Up', email: OWNER, todo: JSON.stringify({ v: 1, lists: (docket || DOCKET)() }) };
   B.tabs.items = B.sheet('items', [['id', 'kind', 'data_1'], ['owner_email', 'setting', JSON.stringify({ key: 'owner_email', value: OWNER })],
     ['P-OWN', 'person', JSON.stringify(person)]]);
   ctx.findSheet_ = at => B.tabs[at.names[0]] || null;
@@ -143,12 +215,12 @@ function world() {
 
 function run() {
   const bad = [], checks = [];
-  let w, said, out, again, cellAfter, cellAgain, m1, m2, mealCell, mealAgain, c1, c2, cycCell, cycAgain;
+  let w, w2, said, out, again, cellAfter, cellAgain, m1, m2, mealCell, mealAgain, c1, c2, cycCell, cycAgain;
   try {
     w = world(); said = w.run(); cellAfter = w.cell(); out = JSON.parse(cellAfter).lists;
     again = w.run(); cellAgain = w.cell();
     m1 = w.meals(); mealCell = w.cell(); m2 = w.meals(); mealAgain = w.cell();
-    c1 = w.cycle(); cycCell = w.cell(); c2 = w.cycle(); cycAgain = w.cell();
+    w2 = world(CYC_DOCKET); c1 = w2.cycle(); cycCell = w2.cell(); c2 = w2.cycle(); cycAgain = w2.cell();
   } catch (e) { console.log(e.stack); checks.push(['docketSlots23NovRun_ ran', () => false]); }
   if (out) {
     const all = out.flatMap(x => x.items), text = all.map(i => (i.title || '') + '\n' + (i.note || '')).join('\n');
@@ -171,7 +243,7 @@ function run() {
       ['every option is tagged with slots that exist', () => FOODS.foods.filter(f => f.slots).every(f => f.slots.length && f.slots.every(t => FOODS.slots.some(x => x.name === t))) ],
       ['every old food title survives as an option, under the slot it filled', () => Object.entries(OLD_FOODS).every(([slot, names]) => names.every(n =>
         w.ctx.$('dkSlotOptions_')(FOODS, slot).some(f => f.name === n)))],
-      ['the day plan: every meal\'s slots are slots, and every meal has the same five (Protein, Carbs, Dairy, Veg, Fruit)', () => mealsFault(FOODS) === ''],
+      ['one source for the cycle: foods.json has no meals, and the cycle\'s food and Exercise slots are its slots', () => mealsFault(FOODS) === ''],
       ['Grain merged into Carbs: no Grain slot, no food tagged Grain, every old Grain option a Carbs one', () => grainFault(FOODS) === ''],
       ['the rush options each fill several slots (porridge, pasty, meal deal, takeaway, doner kebab, pizza)', () => { const r = FOODS.foods.filter(f => f.rush);
         return r.length === 6 && r.every(f => f.slots.length >= 2) && /Supermarket meal deal/.test(r.map(f => f.name).join()) && /Doner kebab/.test(r.map(f => f.name).join()) && FOODS.foods.some(f => f.quick && /microwave sushi rice/i.test(f.name) && f.slots.includes('Carbs')); }],
@@ -185,8 +257,12 @@ function run() {
     checks.push(['the 24 Nov job ran (' + m1 + ')', () => /change/.test(m1)]);
     MEAL_RULES.forEach(([name, f]) => checks.push(['every meal: ' + name, () => f(meals)]));
     checks.push(['every meal: proved by mutation, ' + MEAL_RULES.length + ' rules each catch their break', () => proveMeals(meals).length === 0]);
-    const cyc25 = { before: JSON.parse(mealCell).lists, after: JSON.parse(cycCell).lists, backup: w.B.tabs.backup_docket_cycle_25nov, was: mealCell, again: c2, cellAgain: cycAgain, cell: cycCell };
-    checks.push(['the 25 Nov meal cycle ran (' + c1 + ')', () => /each hold/.test(c1)], ['meal cycle: under DOCKET_CELL_MAX', () => cycCell.length <= w.ctx.$('DOCKET_CELL_MAX')]);
+    const mapSrc = require('fs').readFileSync(require('path').join(__dirname, '../js/map.js'), 'utf8'), cobj = JSON.parse(cycCell);
+    const tickable = () => /if \(it\.slot && it\.pick && !dkDone_\(it\)\) dkTick_\(/.test(mapSrc) && (() => { const x = [{ title: 'Prayer', slot: 'Prayer', repeat: 'daily' }];
+      w2.ctx.$('dkTick_')(x, 0, true, DAY); return x[0].doneOn === DAY; })();
+    const cyc25 = { ctx: w2.ctx, before: CYC_DOCKET(), after: cobj.lists, cellObj: cobj, backup: w2.B.tabs.backup_docket_cycle_25nov, was: JSON.stringify({ v: 1, lists: CYC_DOCKET() }),
+      again: c2, cellAgain: cycAgain, cell: cycCell, tickable, mapSrc, thirds: () => thirdsOk(w2.ctx, mapSrc), leaks: prayerLeaks(repoTexts()) };
+    checks.push(['the 25 Nov meal cycle ran (' + c1 + ')', () => /^two lists: Every 8 hours \(the 21-item cycle/.test(c1)]);
     CYCLE_RULES.forEach(([name, f]) => checks.push(['meal cycle: ' + name, () => f(cyc25)]));
     checks.push(['meal cycle: proved by mutation, ' + CYCLE_RULES.length + ' rules each catch their break', () => { const p = proveCycle(cyc25); if (p.length) console.log('missed', p); return p.length === 0; }]);
   }
@@ -196,5 +272,5 @@ function run() {
   report('docket-slots', bad, 'food slot rule(s) broken');
   return { n: checks.length, bad: bad.length };
 }
-module.exports = { run };
+module.exports = { run, world, CYC_DOCKET };
 main(module, run);
