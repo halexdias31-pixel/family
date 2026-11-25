@@ -1,0 +1,98 @@
+{
+  "about": "GENERATED MATHS QUESTIONS (owner queue item 6, first slice: invisible to children, nothing reads this in js/). One template per row: `id` and `v` (a changed template is a new `v`, the old kept), `dfe` the DfE sub-topic it tests (data/settings/dfe-maths.json), `answer_type` and `marks` as data/questions.json has them, `vars` (each a whole number drawn from..to, `not` values skipped), `where` (conditions the numbers must meet), `let` (values worked out from them, in order), `text` and `key` (written with {expression}; `key` is an answer key the site's own marker reads, js/find-marking.js markAnswer_, | between accepted forms, rule: lines as in questions.json), `typed` (how a child would type the right answer; each must be marked right) and `wrong` (a near miss; must be marked wrong). Expressions use the names above, numbers, + - * / % ( ) ? : < > = ! & | and the helpers in tools/lib/qgen.js (gcd, lcm, sgn, co, plain, fix, tight). A generated question's id is gen:<dfe>:<id>.v<v>:<numbers>, and the same id always gives the same question. Read by tools/lib/qgen.js; checked by tools/one-gen.js.",
+  "templates": [
+    {
+      "id": "frac-amount", "v": 1, "dfe": "dfe.ma.n.frac.amount", "answer_type": "calculation", "marks": 1,
+      "vars": { "d": [2, 12], "n": [1, 11], "k": [2, 25] },
+      "where": ["n < d", "gcd(n, d) == 1"],
+      "let": { "a": "d * k", "ans": "n * k" },
+      "text": "Work out {n}/{d} of {a}.",
+      "key": "{ans}",
+      "typed": ["{ans}"], "wrong": "{ans + 1}"
+    },
+    {
+      "id": "pct-amount", "v": 1, "dfe": "dfe.ma.n.frac.pct", "answer_type": "calculation", "marks": 1,
+      "vars": { "p": [1, 19], "k": [1, 40] },
+      "let": { "pc": "p * 5", "a": "k * 20", "ans": "pc * k / 5" },
+      "text": "Work out {pc}% of £{a}.",
+      "key": "£{ans} | {ans}",
+      "typed": ["{ans}", "£{ans}"], "wrong": "{ans + 1}"
+    },
+    {
+      "id": "pct-change", "v": 1, "dfe": "dfe.ma.n.frac.pctchange", "answer_type": "calculation", "marks": 2,
+      "vars": { "up": [0, 1], "p": [1, 9], "k": [2, 40] },
+      "let": { "pc": "p * 5", "a": "k * 20", "ans": "up ? a + pc * k / 5 : a - pc * k / 5", "way": "up ? 'Increase' : 'Decrease'" },
+      "text": "{way} £{a} by {pc}%.",
+      "key": "£{ans} | {ans}",
+      "typed": ["{ans}", "£{ans}"], "wrong": "{up ? a - pc * k / 5 : a + pc * k / 5}"
+    },
+    {
+      "id": "hcf", "v": 1, "dfe": "dfe.ma.n.prop.factors", "answer_type": "short", "marks": 1,
+      "vars": { "g": [2, 15], "x": [2, 12], "y": [2, 12] },
+      "where": ["x < y", "gcd(x, y) == 1"],
+      "let": { "a": "g * x", "b": "g * y" },
+      "text": "Find the highest common factor (HCF) of {a} and {b}.",
+      "key": "{g}",
+      "typed": ["{g}"], "wrong": "{g * 2}"
+    },
+    {
+      "id": "lcm", "v": 1, "dfe": "dfe.ma.n.prop.factors", "answer_type": "short", "marks": 1,
+      "vars": { "a": [2, 30], "b": [2, 30] },
+      "where": ["a < b", "b % a != 0"],
+      "let": { "ans": "lcm(a, b)" },
+      "text": "Find the lowest common multiple (LCM) of {a} and {b}.",
+      "key": "{ans}",
+      "typed": ["{ans}"], "wrong": "{ans + a}"
+    },
+    {
+      "id": "stdform", "v": 1, "dfe": "dfe.ma.n.prop.stdform", "answer_type": "short", "marks": 1,
+      "vars": { "m": [11, 99], "e": [-6, 8, 0, 1] },
+      "where": ["m % 10 != 0"],
+      "text": "Write {plain(m, e - 1)} in standard form.",
+      "key": "{fix(m / 10)} × 10^{e} | rule: standard form",
+      "typed": ["{fix(m / 10)} × 10^{e}", "{fix(m / 10)}×10^({e})"], "wrong": "{fix(m / 10)} × 10^{e + 1}"
+    },
+    {
+      "id": "linear-eq", "v": 1, "dfe": "dfe.ma.a.solve.linear", "answer_type": "short", "marks": 2,
+      "vars": { "a": [2, 9], "x": [-10, 12, 0], "b": [-20, 20, 0] },
+      "let": { "c": "a * x + b" },
+      "text": "Solve {a}x {sgn(b)} = {c}",
+      "key": "x = {x} | {x}",
+      "typed": ["x = {x}", "x={x}", "{x}"], "wrong": "x = {x + 1}"
+    },
+    {
+      "id": "expand", "v": 1, "dfe": "dfe.ma.a.expr.expand", "answer_type": "short", "marks": 1,
+      "vars": { "a": [2, 9], "b": [1, 9], "c": [-9, 9, 0] },
+      "text": "Expand {a}({co(b)}x {sgn(c)})",
+      "key": "{a * b}x {sgn(a * c)}",
+      "typed": ["{a * b}x {sgn(a * c)}", "{tight(a * b + 'x' + sgn(a * c))}"], "wrong": "{a * b}x {sgn(c)}"
+    },
+    {
+      "id": "ratio-share", "v": 1, "dfe": "dfe.ma.r.ratio.share", "answer_type": "short", "marks": 2,
+      "vars": { "p": [1, 9], "q": [1, 9], "k": [2, 30] },
+      "where": ["p != q", "gcd(p, q) == 1"],
+      "let": { "t": "(p + q) * k", "x": "p * k", "y": "q * k" },
+      "text": "Share £{t} between Ann and Ben in the ratio {p} : {q}. How much does each get? (Ann's first.)",
+      "key": "£{x}, £{y} | {x}, {y} | rule: ordered",
+      "typed": ["{x}, {y}", "£{x}, £{y}"], "wrong": "{y}, {x}"
+    },
+    {
+      "id": "area-rect", "v": 1, "dfe": "dfe.ma.g.mens.perimarea", "answer_type": "calculation", "marks": 1,
+      "vars": { "w": [2, 25], "h": [2, 25] },
+      "where": ["w != h"],
+      "let": { "ans": "w * h" },
+      "text": "A rectangle is {w} cm long and {h} cm wide. Work out its area.",
+      "key": "{ans} cm²",
+      "typed": ["{ans}", "{ans} cm²", "{ans} cm^2"], "wrong": "{ans + w}"
+    },
+    {
+      "id": "area-tri", "v": 1, "dfe": "dfe.ma.g.mens.perimarea", "answer_type": "calculation", "marks": 1,
+      "vars": { "b": [2, 30], "h": [2, 30] },
+      "where": ["b * h % 2 == 0"],
+      "let": { "ans": "b * h / 2" },
+      "text": "A triangle has a base of {b} cm and a perpendicular height of {h} cm. Work out its area.",
+      "key": "{ans} cm²",
+      "typed": ["{ans}", "{ans} cm²"], "wrong": "{b * h}"
+    }
+  ]
+}
