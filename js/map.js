@@ -321,11 +321,14 @@ on('dk-keep', el => { const it = dkList_() && dkList_().items[+el.getAttribute('
   if (!dkRep_(it)) delete it.repeat;
   if (!it.slot) delete it.slot;
   DK.edit = -1; stepDone_(DK.editStep, false); dkKeep_(); });
-on('dk-food', el => { const it = dkList_() && dkList_().items[+el.getAttribute('data-i')]; if (!it) return;
-  const f = el.getAttribute('data-f') || ''; if (dkPicked_(it) === f) { it.pick = ''; it.pickOn = ''; } else { it.pick = f; it.pickOn = dkOn_(it, dkNow_()); }
+/* THE ONE PICK (the widget's dk-food, Find's dk-ffood): an option picked for this period, or unpicked when picked again. */
+const dkPick_ = (items, i, f) => { const it = items && items[i]; if (!it) return false;
+  if (dkPicked_(it) === f) { it.pick = ''; it.pickOn = ''; } else { it.pick = f; it.pickOn = dkOn_(it, dkNow_()); }
   /* A SLOT IS FILLED BY TICKING ANY OF ITS OPTIONS (owner, 25 Nov): the pick ticks the item, the one tick (dkTick_). */
-  if (it.slot && it.pick && !dkDone_(it)) dkTick_(dkList_().items, +el.getAttribute('data-i'), true, dkNow_());
-  dkKeep_(); });
+  if (it.slot && it.pick && !dkDone_(it)) dkTick_(items, i, true, dkNow_());
+  return true; };
+on('dk-food', el => { if (dkList_() && dkPick_(dkList_().items, +el.getAttribute('data-i'), el.getAttribute('data-f') || '')) dkKeep_(); });
+on('dk-ffood', el => { const { L, i } = dkAt_(el.getAttribute('data-at')); if (L && dkPick_(L.items, i, el.getAttribute('data-f') || '')) dkFindKeep_(); });
 /* ASKED, NOT KEPT: the token comes from the backend each time, the address is the backend's own URL (API) with it; a new one stops the old. */
 const dkAddr_ = renew => Promise.resolve(api({ action: 'docketAddress', personId: (USER && USER.personId) || '', renew: renew ? 1 : '' }))
   .then(d => { if (d && d.token) DK.addr = API + '?docket=' + d.token; else { DK.addr = null; DK.say = (d && d.error) || text_('err-docket-saved'); } dkPaint_(); })
@@ -339,7 +342,7 @@ document.addEventListener('change', e => {
   if (!dkList_() || !dkTick_(dkList_().items, +el.getAttribute('data-dk'), el.checked, dkNow_())) return;
   dkKeep_();
 });
-/* THE DOCKET IN FIND (owner, 20 Nov): Tools › Docket › a list › its items, each its own card (kinds.json kind `docket`, drawn by `dkCard_` through the one maker).
+/* THE DOCKET IN FIND (owner, 20 Nov): Tools › Docket › a list › that list's one card, each item a line in it (kinds.json kind `docket`, drawn by `dkCard_` through the one maker).
    The steps are the funnel's: `toolName` names the tool, `docketList` the list (facets.json). A tick here saves as the widget's does (`doneOn` for a daily item). */
 /* NOW, NEXT (owner, 20 Nov; rules.json 1.82): a list's order by fixed rules, no AI. Pure: the same items and `now` ('YYYY-MM-DD HH:MM', London's) give the same order.
    Returns the items' indexes: (a) a fixed time kept, the rest flowing round it; (b) runs by itself first, the longest first; (c) the closest deadline; (d) must, then high;
@@ -415,37 +418,45 @@ const dkFields_ = () => ((((ITEM_KINDS.kinds.docket || {}).forms || {})['docket-
 const dkFill_ = it => Object.assign({}, ...dkFields_().filter(x => x.default != null).map(x => ({ [x.f]: x.default })),
   ...Object.keys(it || {}).filter(k => it[k] !== '' && it[k] != null).map(k => ({ [k]: it[k] })));
 const DKF = { edit: '' };
+/* A LIST IS ONE CARD (owner, 25 Nov: LIKE GOOGLE TASKS): Tools › Docket › a list › that list's card, its name the one heading; each item one line
+   (the tick and its title), its details (when, minutes, slot options, note, Edit) opened by tapping the line (the one fold, js/cards-render.js
+   cardFold_); the ticked fold into one "Done (n)" line at the foot; then the quick add. Plain rows, thin lines (style.css .kc-fold). The order is
+   dkPlan_'s, the first two unticked marked Now and Next in their details. tools/docket-look.js checks it. */
 function dkItems_() {
   if (typeof may_ !== 'function' || !may_('owner')) return [];
-  const now = dkNow_();
-  return dkLoad_().flatMap((L, li) => {
-    const items = L.items || [], order = dkPlan_(items.map(dkFill_), now), firsts = order.filter(i => !dkDone_(items[i])).slice(0, 2);
-    /* THE QUICK-ADD CARD heads its list: a title and Enter; the defaults fill the rest. */
-    return [{ kind: 'docket', name: 'Add to ' + (L.name || 'the list'), key: 'dk:' + li + ':new', sub: L.name || '', image: '', dkList: L.name || '', dkNew: li, seq: 0, row: {}, text: 'add new ' + (L.name || '') }]
-      .concat(order.map((i, n) => { const it = items[i];
-        return { kind: 'docket', name: it.title || 'Untitled', key: 'dk:' + li + ':' + i, seq: n + 1, sub: L.name || '', image: '', dkMark: ['Now', 'Next'][firsts.indexOf(i)] || '',
-          dkList: L.name || '', dkAt: li + ':' + i, row: it, text: [it.title, it.note, L.name].filter(Boolean).join(' ') }; }));
-  });
+  return dkLoad_().map((L, li) => ({ kind: 'docket', name: L.name || 'List', key: 'dk:' + li, seq: li, sub: L.name || '', image: '', dkList: L.name || '', dkLi: li, row: {},
+    text: [L.name].concat((L.items || []).map(it => [it.title, it.note].filter(Boolean).join(' '))).filter(Boolean).join(' ') }));
+}
+/* AN ITEM'S OPTIONS: its slot's (foods.json and the cell's own), else its food kind's; the one picked is this period's (dkPicked_). */
+const dkOptsOf_ = it => { const fk = !it.slot && typeof foodKindOf_ === 'function' ? foodKindOf_(it.title) : null;
+  return it.slot ? dkSlotOptions_(dkFoodsWith_(typeof foodIndex_ === 'function' ? foodIndex_() : null, DK.slots), it.slot) : fk ? foodsOf_(fk) : []; };
+function dkLine_(li, i, mark) {
+  const it = dkLoad_()[li].items[i], at = li + ':' + i, a = dkFill_(it), picked = dkPicked_(it), done = dkDone_(it), opts = dkOptsOf_(it), editing = DKF.edit === at, spec = dkFields_();
+  const facts = [mark, it.repeat === '8h' ? 'Every 8 hours' : it.repeat === 'daily' ? 'Daily' : it.date ? dkSayDay_(it.date) : '', it.time ? (it.timeIs === 'by' ? 'by ' : '') + it.time : '',
+    a.minutes + ' min', +a.runs ? 'Runs by itself ' + a.runs + ' min' : '', it.slot ? 'Slot: ' + it.slot : ''].filter(Boolean);
+  return cardFold_('dk:' + at, { type: 'tick', text: (it.title || 'Untitled') + (picked ? ': ' + picked.toLowerCase() : ''), attrs: { 'data-dkf': at, checked: done, 'aria-label': 'Done: ' + (it.title || '') } }, [
+    { type: 'text', text: facts.join(' · ') },
+    opts.length && !done ? { type: 'tiles', tiles: opts.map(f => ({ label: f.name, note: f.note || '', act: 'dk-ffood', cls: f.name === picked ? 'is-submit' : '', data: { at, f: f.name } })) } : null,
+    it.note && !editing ? { type: 'text', paras: String(it.note).split(/\n{2,}/) } : null, dkCovers_(it),
+    editing ? { type: 'group', look: 'dk-form', inner: formOf_('docket-item', a, { options: f => ((spec.find(y => y.f === f) || {}).options || []) }) } : null,
+    { type: 'tiles', tiles: editing ? [{ icon: 'save', label: text_('save'), act: 'dk-fsave', cls: 'is-submit', data: { at } }, { icon: 'bin', label: 'Delete', act: 'dk-fdel', tone: 'danger', data: { at } },
+      { icon: 'close', label: 'Close', act: 'dk-fedit', data: { at } }] : [{ icon: 'edit', label: 'Edit', act: 'dk-fedit', data: { at } }] }], 'dk-line');
 }
 function dkCard_(x) {
-  if (x.dkNew != null) return renderCard(shapeCard_('docket', { kind: 'docket', name: x.name, tags: [x.name, x.dkList],
-    body: [{ type: 'field', cap: 'Add an item', blocks: [{ type: 'control', attrs: { class: 'dk-qadd', 'data-li': x.dkNew, placeholder: 'What to do, then Enter', maxlength: 300, enterkeyhint: 'done' } }] }],
-    tiles: [{ icon: 'plus', label: 'Add', act: 'dk-qadd', cls: 'is-submit', data: { li: x.dkNew } }] }));
-  const it = x.row || {}, a = dkFill_(it), when = [it.repeat === '8h' ? 'Every 8 hours' : it.repeat === 'daily' ? 'Daily' : it.date ? dkSayDay_(it.date) : '', it.time ? (it.timeIs === 'by' ? 'by ' : '') + it.time : ''].filter(Boolean);
-  const open = DKF.edit === x.dkAt, spec = dkFields_();
-  const form = open ? [{ type: 'group', look: 'dk-form', inner: formOf_('docket-item', a, { options: f => ((spec.find(y => y.f === f) || {}).options || []) }) }] : [];
-  return renderCard(shapeCard_('docket', { kind: 'docket', name: it.title || 'Untitled', tags: [it.title || 'Untitled', x.dkMark, a.minutes + ' min', +a.runs ? 'Runs by itself ' + a.runs + ' min' : '', x.dkList].concat(when).filter(Boolean),
-    body: [{ type: 'tick', text: 'Done', attrs: { 'data-dkf': x.dkAt, checked: dkDone_(it), 'aria-label': 'Done: ' + (it.title || '') } },
-      it.note && !open ? { type: 'text', paras: String(it.note).split(/\n{2,}/) } : null, dkCovers_(it)].concat(form).filter(Boolean),
-    tiles: open ? [{ icon: 'save', label: text_('save'), act: 'dk-fsave', cls: 'is-submit', data: { at: x.dkAt } }, { icon: 'bin', label: 'Delete', act: 'dk-fdel', tone: 'danger', data: { at: x.dkAt } },
-      { icon: 'close', label: 'Close', act: 'dk-fedit', data: { at: x.dkAt } }] : [{ icon: 'edit', label: 'Edit', act: 'dk-fedit', data: { at: x.dkAt } }] }));
+  const li = x.dkLi, L = dkLoad_()[li] || { items: [] }, items = L.items || [], order = dkPlan_(items.map(dkFill_), dkNow_());
+  const open = order.filter(i => !dkDone_(items[i])), done = order.filter(i => dkDone_(items[i]));
+  return renderCard(shapeCard_('docket', { kind: 'docket', name: L.name || 'List', tags: [L.name || 'List'],
+    body: open.map((i, n) => dkLine_(li, i, ['Now', 'Next'][n] || ''))
+      .concat(done.length ? cardFold_('dk:' + li + ':done', { type: 'text', text: 'Done (' + done.length + ')' }, done.map(i => dkLine_(li, i, '')), 'dk-done') : [])
+      .concat({ type: 'field', look: 'dk-qadd-f', blocks: [{ type: 'control', attrs: { class: 'dk-qadd', 'data-li': li, placeholder: 'Add an item, then Enter', 'aria-label': 'Add to ' + (L.name || 'the list'), maxlength: 300, enterkeyhint: 'done' } }] }),
+    tiles: [{ icon: 'plus', label: 'Add', act: 'dk-qadd', cls: 'is-submit', data: { li } }] }));
 }
 const dkAt_ = at => { const [li, i] = String(at || '').split(':').map(Number), L = dkLoad_()[li]; return { L, i, it: L && L.items[i] }; };
 /* A CHANGE IN FIND IS SAVED AS THE WIDGET'S IS (dkSave_, the backend's todoTidy_), and Find draws its list again in the new order. */
 const dkFindKeep_ = () => { dkKeep_(); if (typeof lateCame_ === 'function') lateCame_(); if (EINK) dkEinkTry_(); };
 const dkFindDraw_ = () => { if (typeof lateCame_ === 'function') lateCame_(); };
 on('dk-fedit', el => { const at = el.getAttribute('data-at') || ''; if (DKF.edit === at) { DKF.edit = ''; stepDone_(DKF.step, false); dkFindDraw_(); return; }
-  DKF.step = openStep_({ el, draw: () => { DKF.edit = at; dkFindDraw_(); }, undo: () => { if (DKF.edit === at) { DKF.edit = ''; dkFindDraw_(); } } }); });
+  DKF.step = openStep_({ el, draw: () => { DKF.edit = at; CARD_OPEN.add('dk:' + at); dkFindDraw_(); }, undo: () => { if (DKF.edit === at) { DKF.edit = ''; dkFindDraw_(); } } }); });
 /* SAVE KEEPS ONLY WHAT DIFFERS FROM A DEFAULT, so an item's cell stays one line and an old item is never broken. */
 on('dk-fsave', el => { const { it } = dkAt_(el.getAttribute('data-at')), card = el.closest('.card'); if (!it || !card) return;
   card.querySelectorAll('[data-dke]').forEach(b => { const f = b.getAttribute('data-dke'), x = dkFields_().find(y => y.f === f) || {}, v = String(b.value || '').trim();

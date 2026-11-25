@@ -4379,6 +4379,16 @@ table.qp-cells :is(td, th) { border: 1px solid var(--line); padding: var(--s1) v
 .prog-paper > summary::-webkit-details-marker, .miss-q > summary::-webkit-details-marker { display: none; }
 .prog-paper > summary .k::before, .miss-q > summary .k::before { content: "▸"; display: inline-block; width: 1rem; color: var(--gold); }
 .prog-paper[open] > summary .k::before, .miss-q[open] > summary .k::before { content: "▾"; }
+/* THE ONE FOLD (js/cards-render.js cardFold_): a plain row on a thin line, no box; its line taps open what is under it, laid left like a list. */
+.kc-fold { border-bottom: 1px solid var(--line-soft); text-align: left; }
+.kc-fold > .kc-fold-sum { list-style: none; cursor: pointer; min-height: var(--tap); display: flex; align-items: center; }
+.kc-fold > .kc-fold-sum::-webkit-details-marker { display: none; }
+.kc-fold > .kc-fold-sum > .check { flex: 1; padding: var(--s2) 0; }
+.kc-fold > .kc-fold-sum > p { margin: 0; color: var(--dim); }
+.kc-fold > .kc-fold-in { padding: 0 0 var(--s3) calc(var(--s3) + 1.5rem); color: var(--dim); }
+.kc-fold > .kc-fold-in :is(.tile-row, .tiles) { justify-content: flex-start; }
+.kc-fold > .kc-fold-in > .kc-fold:last-child, .kc-fold.dk-done > .kc-fold-in { border-bottom: 0; padding-left: 0; }
+.dk-qadd-f { margin-top: var(--s3); }
 .prog-qs, .miss-gaps { padding-left: var(--s4); border-bottom: 1px solid var(--line); }
 .prog-qs .row, .miss-gaps .row { font-size: var(--fs-body); }
 /* WHAT'S MISSING (525): a complete qualification lines up with the folded ones beside it. */

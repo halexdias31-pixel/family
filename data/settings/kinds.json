@@ -1722,7 +1722,7 @@
      }
     ]
    },
-   "source": "the owner's docket lists (owner, 20 Nov): their own `todo` cell, read by js/map.js dkItems_ — an item a card, drawn by dkCard_: the title, the list and its date, time or Daily as tags, a Done tick saved as the widget saves it (`doneOn` for a daily item), and the note; its attributes (minutes, runs by itself, effort, fun, importance, place, a fixed time or a deadline) are the form `docket-item`, the order dkPlan_ (rules.json 1.82), the first two unticked tagged Now and Next; a list with a usual start (`start`, form `docket-list`) is a phase of the day, and the widget heads with Now and Next (dkPhase_)",
+   "source": "the owner's docket lists (owner, 20 Nov): their own `todo` cell, read by js/map.js dkItems_ — a list a card, drawn by dkCard_ (owner, 25 Nov: like Google Tasks): each item one line, its tick and title, tapped open (cardFold_) for the title, the list and its date, time or Daily as tags, a Done tick saved as the widget saves it (`doneOn` for a daily item), and the note; its attributes (minutes, runs by itself, effort, fun, importance, place, a fixed time or a deadline) are the form `docket-item`, the order dkPlan_ (rules.json 1.82), the first two unticked tagged Now and Next; a list with a usual start (`start`, form `docket-list`) is a phase of the day, and the widget heads with Now and Next (dkPhase_)",
    "find": {
     "group": "Tools",
     "label": "docket",

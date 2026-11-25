@@ -488,6 +488,18 @@ const kcfGroup_ = b => { const tag = /^(span|p|details|summary|label|h2|h3|h4|se
   return `${open}${kcfKids_(b)}${
     (b.tiles || []).length && typeof tile_ === 'function' ? tile_(b.tiles) : ''}</${tag}>`; };
 Object.assign(CARD_BLOCKS, { control: kcfControl_, field: kcfField_, tick: kcfTickB_, many: kcfMany_, group: kcfGroup_ });
+/* THE ONE FOLD (owner, 25 Nov): a line that opens in place to show what is under it -- a <details> whose summary is `head` (a block: a tick, a
+   text), any card's. Its open state is kept by `key` across a redraw (CARD_OPEN), so a card drawn again opens where it was. Plain row, thin line: .kc-fold. */
+const CARD_OPEN = new Set();
+const cardFold_ = (key, head, blocks, look) => { const kids = [].concat(blocks || []).filter(Boolean);
+  return { type: 'group', tag: 'details', look: 'kc-fold' + (look ? ' ' + look : ''), attrs: { 'data-fold-key': key, open: CARD_OPEN.has(key) },
+    blocks: [{ type: 'group', tag: 'summary', look: 'kc-fold-sum', blocks: [head] }].concat(kids.length ? [{ type: 'group', look: 'kc-fold-in', blocks: kids }] : []) }; };
+if (typeof document !== 'undefined') document.addEventListener('toggle', e => { const el = e.target, k = el && el.getAttribute && el.getAttribute('data-fold-key');
+  if (k) { if (el.open) CARD_OPEN.add(k); else CARD_OPEN.delete(k); } }, true);
+/* A TICK ON THE LINE IS THE TICK, NOT THE FOLD: a label inside a summary would open the fold and leave the box as it was, so here it ticks (a `change`, as a tap makes). */
+if (typeof document !== 'undefined') document.addEventListener('click', e => { const lab = e.target && e.target.closest && e.target.closest('.kc-fold-sum label.check');
+  const inp = lab && lab.querySelector('input'); if (!inp || inp.disabled) return;
+  e.preventDefault(); inp.checked = !inp.checked; inp.dispatchEvent(new Event('change', { bubbles: true })); }, true);
 /* THE ONE TAG MAKER for a finder's menu (owner, 13 Nov): every answer, Doesn't matter, and the sign-in step's tags. `inner` is markup, escaped already. */
 const answerTag_ = (inner, attrs, cls) => `<div class="counted row tap${cls ? ' ' + cls : ''}" role="button" tabindex="0"${attrs || ''}><span class="k">${inner}</span></div>`;
 /* A MENU'S ROW OF TAGS, and the blank tag typed on (the sign-in name); `id` names a slot something else fills, Google's button. */
