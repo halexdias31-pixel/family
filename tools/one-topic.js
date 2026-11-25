@@ -29,13 +29,15 @@ const sciHeadBudget = () => { const t = headTable(); return t && t.science ? t.s
 function problems(d) {
   const bad = [], T = d.table, names = QI.names(d.tb), ids = new Set(Object.keys(names));
   const qs = QI.mathsQuestions(d.rows), mq = new Set(qs);
-  let unmapped = 0;
+  let unmapped = 0, genNone = 0;
+  const QG = require('./lib/qgen.js');
   qs.forEach(r => {
     const want = QI.ideaOf(r, T), have = r.idea_id == null ? '' : String(r.idea_id);
     if (have.split(/[\s,]+/).filter(Boolean).length > 1) bad.push(r.row_id + ': more than one idea (' + have + ')');
     if (have && !ids.has(have)) bad.push(r.row_id + ': idea_id ' + have + ' is no idea of the maths cards');
     if (have !== want) bad.push(r.row_id + ': idea_id "' + have + '", but ' + QI.TABLE + ' gives "' + want + '" — run node tools/content.js qideas --apply');
-    if (!have) unmapped++;
+    /* A GENERATED QUESTION (owner, 25 Nov) is under its DfE sub-topic in Find; one whose sub-topic no idea maps to is counted apart, not in the budget. */
+    if (!have) { if (QG.nodeOfSet(r.paper_id)) genNone++; else unmapped++; }
   });
   /* SCIENCE (item 8): each Biology, Chemistry, Physics question's idea is the one its spec point's card gives (QI.sciIdeaOf), unmapped at science.budget. */
   const S8 = T.science || { budget: 0, set: {} }, sq = QI.scienceQuestions(d.rows), sset = new Set(sq), X = QI.sciIndex(d.tb), snames = QI.sciNames(d.tb), sids = new Set(Object.keys(snames));
@@ -64,7 +66,7 @@ function problems(d) {
   if (JSON.stringify(have) !== JSON.stringify(names)) bad.push('taxonomy.json Maths.ideaNames is not the cards\' idea names now — run node tools/content.js qideas --apply');
   const m = TAX_RE.exec(d.engine), eng = m ? ((JSON.parse(m[1]).Maths || {}).ideaNames || {}) : {};
   if (JSON.stringify(eng) !== JSON.stringify(have)) bad.push('js/find-finder.js TAXONOMY.Maths.ideaNames is not taxonomy.json\'s — run node tools/taxonomy.js');
-  d.count = { questions: qs.length, mapped: qs.length - unmapped, unmapped, ideas: new Set(qs.map(r => r.idea_id).filter(Boolean)).size,
+  d.count = { questions: qs.length, mapped: qs.length - unmapped - genNone, unmapped, genNone, ideas: new Set(qs.map(r => r.idea_id).filter(Boolean)).size,
     sourceTopics: new Set([].concat(...qs.map(r => QI.atoms(r.topics)))).size };
   return bad;
 }
@@ -144,7 +146,7 @@ async function run() {
   if (!p.n) all.push('the page has no maths question to ask the topic of');
   if (all.length) { console.error('one-topic: ' + all.length + ' problem(s):\n  ' + all.slice(0, 40).join('\n  ')); throw new Error('one-topic check failed'); }
   const c = d.count;
-  console.log('one-topic: ' + c.questions + ' maths questions, ' + c.mapped + ' pointing at one idea, ' + c.unmapped + ' unmapped (budget ' + d.table.budget
+  console.log('one-topic: ' + c.questions + ' maths questions, ' + c.mapped + ' pointing at one idea, ' + c.unmapped + ' unmapped (budget ' + d.table.budget + (c.genNone ? '; ' + c.genNone + ' generated, their DfE sub-topic no idea yet' : '')
     + '); ' + c.sourceTopics + ' source topic names became ' + c.ideas + ' ideas; science: ' + d.sci.questions + ' questions, ' + d.sci.mapped + ' pointing at one idea ('
     + d.sci.ideas + ' ideas), ' + d.sci.unmapped + ' unmapped (budget ' + d.table.science.budget + '); in Find ' + p.n + ' maths and science questions answer ' + p.shown + ' topics, every one an idea name or, for maths, a DfE topic');
 }
