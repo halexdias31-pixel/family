@@ -637,7 +637,7 @@ function questionItemsNow_(all) {
          sort, `usesAt_`, `qRef` and the checks' fixtures all read the cell. */
       qSplit: partSplit_(r.part, numerals.get(r)),
       /* THE TOPICS, RESOLVED ONCE. § */
-      topic: topicOf_({ row: r.row || r }),
+      topic: topicOf_({ row: r.row || r, subject: r.subject || '' }),
       marks: r.marks, section: r.section,
       /* THE WORDS, THE FIGURE AND THE MARK SCHEME — `questionContent_`, so a row whose words come later (397) is given them in place. */
       ...questionContent_(r),

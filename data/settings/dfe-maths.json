@@ -1,0 +1,2934 @@
+{
+ "about": "THE @FAMILY MATHS TOPIC TREE, FROM THE GOVERNMENT'S OWN LISTS (owner, 24–25 Nov: the library's one source of truth is the UK government spec). Strand › topic › sub-topic, each node an id, a short plain name (paraphrased, never copied), its source lines in the DfE documents (`src`: doc + section or GCSE statement code) and, for a sub-topic, the levels it is taught at (KS1, KS2, KS3; GCSE Foundation and Higher, Higher only where the GCSE document prints the content in bold). A maths question's `dfe` (data/questions.json) is the node(s) it tests, read by tools/lib/dfe.js from this table only: `ideas` (its idea_id, the 24 Nov idea tree of data/settings/question-ideas.json, mapped onto this tree), its AQA 8300 `spec_ref` (AQA numbers its points as the DfE GCSE statements), `set` and `topic` (a source's own topic name). Find's topic question answers a maths question's nodes broad → narrow. A worksheet's name is its `worksheet`, never a topic. Checked by tools/one-dfe.js. `budget`: maths questions with no node (A-Level and mechanics, outside these documents; Corbettmaths 5-a-day rows with no topic; problem-solving sets), may only fall.",
+ "docs": {
+  "gcse": {
+   "title": "Mathematics GCSE subject content and assessment objectives (DfE, November 2013, DFE-00233-2013)",
+   "url": "https://www.gov.uk/government/publications/gcse-mathematics-subject-content-and-assessment-objectives",
+   "pdf": "https://assets.publishing.service.gov.uk/media/5a7cb5b040f0b6629523b52c/GCSE_mathematics_subject_content_and_assessment_objectives.pdf",
+   "refs": "statement codes N1–N16, A1–A25, R1–R16, G1–G25, P1–P9, S1–S6 (the document numbers each statement within its strand)"
+  },
+  "nc-ks12": {
+   "title": "National curriculum in England: mathematics programmes of study, key stages 1 and 2 (DfE, September 2013)",
+   "url": "https://www.gov.uk/government/publications/national-curriculum-in-england-mathematics-programmes-of-study",
+   "pdf": "https://assets.publishing.service.gov.uk/media/5a7da548ed915d2ac884cb07/PRIMARY_national_curriculum_-_Mathematics_220714.pdf",
+   "refs": "year and section heading"
+  },
+  "nc-ks3": {
+   "title": "National curriculum in England: mathematics programmes of study, key stage 3 (DfE, September 2013)",
+   "url": "https://www.gov.uk/government/publications/national-curriculum-in-england-mathematics-programmes-of-study",
+   "pdf": "https://assets.publishing.service.gov.uk/media/5a7c1408e5274a1f5cc75a68/SECONDARY_national_curriculum_-_Mathematics.pdf",
+   "refs": "subject content heading"
+  }
+ },
+ "nodes": [
+  {
+   "id": "dfe.ma.n",
+   "name": "Number",
+   "parent": "",
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "Number"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Number"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Number and place value"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.n.place",
+   "name": "Place value and ordering",
+   "parent": "dfe.ma.n",
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "Number – Structure and calculation"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Number and place value"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.n.place.count",
+   "name": "Counting, reading and writing numbers",
+   "parent": "dfe.ma.n.place",
+   "levels": [
+    "KS1",
+    "KS2"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y1 Number and place value"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y2 Number and place value"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.n.place.value",
+   "name": "Place value",
+   "parent": "dfe.ma.n.place",
+   "levels": [
+    "KS1",
+    "KS2",
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y3 Number and place value"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y5 Number and place value"
+    },
+    {
+     "doc": "gcse",
+     "ref": "N2"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.n.place.order",
+   "name": "Ordering and comparing numbers (=, ≠, <, >)",
+   "parent": "dfe.ma.n.place",
+   "levels": [
+    "KS1",
+    "KS2",
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "N1"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Number"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y2 Number and place value"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.n.place.negative",
+   "name": "Negative numbers",
+   "parent": "dfe.ma.n.place",
+   "levels": [
+    "KS2",
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y4 Number and place value"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y6 Number and place value"
+    },
+    {
+     "doc": "gcse",
+     "ref": "N1"
+    },
+    {
+     "doc": "gcse",
+     "ref": "N2"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.n.place.roman",
+   "name": "Roman numerals",
+   "parent": "dfe.ma.n.place",
+   "levels": [
+    "KS2"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y3 Number and place value"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y5 Number and place value"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.n.calc",
+   "name": "Calculating",
+   "parent": "dfe.ma.n",
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "Number – Structure and calculation"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Addition and subtraction"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Multiplication and division"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.n.calc.bonds",
+   "name": "Number bonds and mental adding",
+   "parent": "dfe.ma.n.calc",
+   "levels": [
+    "KS1",
+    "KS2"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y1 Addition and subtraction"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y2 Addition and subtraction"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.n.calc.addsub",
+   "name": "Adding and subtracting",
+   "parent": "dfe.ma.n.calc",
+   "levels": [
+    "KS1",
+    "KS2",
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y3 Addition and subtraction"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y5 Addition and subtraction"
+    },
+    {
+     "doc": "gcse",
+     "ref": "N2"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.n.calc.tables",
+   "name": "Times tables, doubling and halving",
+   "parent": "dfe.ma.n.calc",
+   "levels": [
+    "KS1",
+    "KS2"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y2 Multiplication and division"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y4 Multiplication and division"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.n.calc.muldiv",
+   "name": "Multiplying and dividing",
+   "parent": "dfe.ma.n.calc",
+   "levels": [
+    "KS1",
+    "KS2",
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y3 Multiplication and division"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y6 Multiplication and division"
+    },
+    {
+     "doc": "gcse",
+     "ref": "N2"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.n.calc.long",
+   "name": "Long multiplication and long division",
+   "parent": "dfe.ma.n.calc",
+   "levels": [
+    "KS2",
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y5 Multiplication and division"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y6 Multiplication and division"
+    },
+    {
+     "doc": "gcse",
+     "ref": "N2"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.n.calc.decimals",
+   "name": "Calculating with decimals",
+   "parent": "dfe.ma.n.calc",
+   "levels": [
+    "KS2",
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y5 Fractions (including decimals and percentages)"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y6 Fractions (including decimals and percentages)"
+    },
+    {
+     "doc": "gcse",
+     "ref": "N2"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.n.calc.order",
+   "name": "Order of operations and inverse operations",
+   "parent": "dfe.ma.n.calc",
+   "levels": [
+    "KS2",
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y6 Multiplication and division"
+    },
+    {
+     "doc": "gcse",
+     "ref": "N3"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.n.calc.money",
+   "name": "Money",
+   "parent": "dfe.ma.n.calc",
+   "levels": [
+    "KS1",
+    "KS2"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y1 Measurement"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y2 Measurement"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y3 Measurement"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.n.prop",
+   "name": "Properties of number",
+   "parent": "dfe.ma.n",
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "Number – Structure and calculation"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Number"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.n.prop.factors",
+   "name": "Factors, multiples and primes",
+   "parent": "dfe.ma.n.prop",
+   "levels": [
+    "KS2",
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y5 Multiplication and division"
+    },
+    {
+     "doc": "gcse",
+     "ref": "N4"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.n.prop.counting",
+   "name": "Systematic listing and the product rule",
+   "parent": "dfe.ma.n.prop",
+   "levels": [
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "N5"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Number"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.n.prop.powers",
+   "name": "Powers and roots",
+   "parent": "dfe.ma.n.prop",
+   "levels": [
+    "KS2",
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y5 Multiplication and division"
+    },
+    {
+     "doc": "gcse",
+     "ref": "N6"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.n.prop.indices",
+   "name": "Index laws and fractional indices",
+   "parent": "dfe.ma.n.prop",
+   "levels": [
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "N7"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Number"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.n.prop.surds",
+   "name": "Exact calculation and surds",
+   "parent": "dfe.ma.n.prop",
+   "levels": [
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "N8"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.n.prop.stdform",
+   "name": "Standard form",
+   "parent": "dfe.ma.n.prop",
+   "levels": [
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "N9"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Number"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.n.frac",
+   "name": "Fractions, decimals and percentages",
+   "parent": "dfe.ma.n",
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "Number – Fractions, decimals and percentages"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Fractions (including decimals and percentages)"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.n.frac.parts",
+   "name": "Halves, quarters and thirds",
+   "parent": "dfe.ma.n.frac",
+   "levels": [
+    "KS1",
+    "KS2"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y1 Fractions"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y2 Fractions"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.n.frac.equiv",
+   "name": "Equivalent fractions and simplifying",
+   "parent": "dfe.ma.n.frac",
+   "levels": [
+    "KS2",
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y3 Fractions"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y6 Fractions (including decimals and percentages)"
+    },
+    {
+     "doc": "gcse",
+     "ref": "N2"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.n.frac.addsub",
+   "name": "Adding and subtracting fractions",
+   "parent": "dfe.ma.n.frac",
+   "levels": [
+    "KS2",
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y4 Fractions (including decimals)"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y6 Fractions (including decimals and percentages)"
+    },
+    {
+     "doc": "gcse",
+     "ref": "N2"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.n.frac.muldiv",
+   "name": "Multiplying and dividing fractions",
+   "parent": "dfe.ma.n.frac",
+   "levels": [
+    "KS2",
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y6 Fractions (including decimals and percentages)"
+    },
+    {
+     "doc": "gcse",
+     "ref": "N2"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.n.frac.mixed",
+   "name": "Mixed numbers and improper fractions",
+   "parent": "dfe.ma.n.frac",
+   "levels": [
+    "KS2",
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y5 Fractions (including decimals and percentages)"
+    },
+    {
+     "doc": "gcse",
+     "ref": "N2"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.n.frac.amount",
+   "name": "Fractions of an amount",
+   "parent": "dfe.ma.n.frac",
+   "levels": [
+    "KS1",
+    "KS2",
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y2 Fractions"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y3 Fractions"
+    },
+    {
+     "doc": "gcse",
+     "ref": "N12"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.n.frac.fdp",
+   "name": "Fractions, decimals and percentages: converting",
+   "parent": "dfe.ma.n.frac",
+   "levels": [
+    "KS2",
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y6 Fractions (including decimals and percentages)"
+    },
+    {
+     "doc": "gcse",
+     "ref": "N10"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.n.frac.recurring",
+   "name": "Recurring decimals as fractions",
+   "parent": "dfe.ma.n.frac",
+   "levels": [
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "N10"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.n.frac.pct",
+   "name": "Percentages of amounts",
+   "parent": "dfe.ma.n.frac",
+   "levels": [
+    "KS2",
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y6 Ratio and proportion"
+    },
+    {
+     "doc": "gcse",
+     "ref": "R9"
+    },
+    {
+     "doc": "gcse",
+     "ref": "N12"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.n.frac.pctchange",
+   "name": "Percentage change and interest",
+   "parent": "dfe.ma.n.frac",
+   "levels": [
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "R9"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Ratio, proportion and rates of change"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.n.acc",
+   "name": "Measures and accuracy",
+   "parent": "dfe.ma.n",
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "Number – Measures and accuracy"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.n.acc.round",
+   "name": "Rounding",
+   "parent": "dfe.ma.n.acc",
+   "levels": [
+    "KS2",
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y6 Number and place value"
+    },
+    {
+     "doc": "gcse",
+     "ref": "N15"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.n.acc.estimate",
+   "name": "Estimating and checking",
+   "parent": "dfe.ma.n.acc",
+   "levels": [
+    "KS2",
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y6 Addition, subtraction, multiplication and division"
+    },
+    {
+     "doc": "gcse",
+     "ref": "N14"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.n.acc.bounds",
+   "name": "Error intervals and bounds",
+   "parent": "dfe.ma.n.acc",
+   "levels": [
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "N15"
+    },
+    {
+     "doc": "gcse",
+     "ref": "N16"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.a",
+   "name": "Algebra",
+   "parent": "",
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "Algebra"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Algebra"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y6 Algebra"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.a.expr",
+   "name": "Expressions and formulae",
+   "parent": "dfe.ma.a",
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "Algebra – Notation, vocabulary and manipulation"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.a.expr.notation",
+   "name": "Algebraic notation and collecting terms",
+   "parent": "dfe.ma.a.expr",
+   "levels": [
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "A1"
+    },
+    {
+     "doc": "gcse",
+     "ref": "A3"
+    },
+    {
+     "doc": "gcse",
+     "ref": "A4"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Algebra"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.a.expr.subst",
+   "name": "Substitution",
+   "parent": "dfe.ma.a.expr",
+   "levels": [
+    "KS2",
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y6 Algebra"
+    },
+    {
+     "doc": "gcse",
+     "ref": "A2"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.a.expr.expand",
+   "name": "Expanding brackets",
+   "parent": "dfe.ma.a.expr",
+   "levels": [
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "A4"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.a.expr.factorise",
+   "name": "Factorising",
+   "parent": "dfe.ma.a.expr",
+   "levels": [
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "A4"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.a.expr.algfrac",
+   "name": "Algebraic fractions",
+   "parent": "dfe.ma.a.expr",
+   "levels": [
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "A4"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.a.expr.formulae",
+   "name": "Formulae and changing the subject",
+   "parent": "dfe.ma.a.expr",
+   "levels": [
+    "KS2",
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y6 Algebra"
+    },
+    {
+     "doc": "gcse",
+     "ref": "A5"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.a.expr.proof",
+   "name": "Identities and algebraic proof",
+   "parent": "dfe.ma.a.expr",
+   "levels": [
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "A6"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Algebra"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.a.expr.functions",
+   "name": "Functions, inverse and composite",
+   "parent": "dfe.ma.a.expr",
+   "levels": [
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "A7"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Algebra"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.a.graph",
+   "name": "Graphs",
+   "parent": "dfe.ma.a",
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "Algebra – Graphs"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.a.graph.coords",
+   "name": "Coordinates",
+   "parent": "dfe.ma.a.graph",
+   "levels": [
+    "KS2",
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y4 Geometry – position and direction"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y6 Geometry – position and direction"
+    },
+    {
+     "doc": "gcse",
+     "ref": "A8"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.a.graph.line",
+   "name": "Straight-line graphs",
+   "parent": "dfe.ma.a.graph",
+   "levels": [
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "A9"
+    },
+    {
+     "doc": "gcse",
+     "ref": "A10"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Algebra"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.a.graph.quad",
+   "name": "Quadratic graphs: roots and turning points",
+   "parent": "dfe.ma.a.graph",
+   "levels": [
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "A11"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.a.graph.shapes",
+   "name": "Recognising and sketching graphs",
+   "parent": "dfe.ma.a.graph",
+   "levels": [
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "A12"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.a.graph.transform",
+   "name": "Transforming graphs",
+   "parent": "dfe.ma.a.graph",
+   "levels": [
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "A13"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.a.graph.real",
+   "name": "Real-life graphs",
+   "parent": "dfe.ma.a.graph",
+   "levels": [
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "A14"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Algebra"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.a.graph.gradarea",
+   "name": "Gradients and areas under graphs",
+   "parent": "dfe.ma.a.graph",
+   "levels": [
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "A15"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.a.graph.circle",
+   "name": "Equation of a circle and its tangents",
+   "parent": "dfe.ma.a.graph",
+   "levels": [
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "A16"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.a.solve",
+   "name": "Equations and inequalities",
+   "parent": "dfe.ma.a",
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "Algebra – Solving equations and inequalities"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.a.solve.linear",
+   "name": "Linear equations",
+   "parent": "dfe.ma.a.solve",
+   "levels": [
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "A17"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Algebra"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.a.solve.quad",
+   "name": "Quadratic equations",
+   "parent": "dfe.ma.a.solve",
+   "levels": [
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "A18"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.a.solve.sim",
+   "name": "Simultaneous equations",
+   "parent": "dfe.ma.a.solve",
+   "levels": [
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "A19"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.a.solve.iter",
+   "name": "Iteration",
+   "parent": "dfe.ma.a.solve",
+   "levels": [
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "A20"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.a.solve.form",
+   "name": "Forming equations",
+   "parent": "dfe.ma.a.solve",
+   "levels": [
+    "KS2",
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y6 Algebra"
+    },
+    {
+     "doc": "gcse",
+     "ref": "A21"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.a.solve.ineq",
+   "name": "Inequalities",
+   "parent": "dfe.ma.a.solve",
+   "levels": [
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "A22"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.a.seq",
+   "name": "Sequences",
+   "parent": "dfe.ma.a",
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "Algebra – Sequences"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.a.seq.gen",
+   "name": "Generating sequences",
+   "parent": "dfe.ma.a.seq",
+   "levels": [
+    "KS2",
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y6 Algebra"
+    },
+    {
+     "doc": "gcse",
+     "ref": "A23"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.a.seq.types",
+   "name": "Special sequences",
+   "parent": "dfe.ma.a.seq",
+   "levels": [
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "A24"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Algebra"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.a.seq.nth",
+   "name": "nth term",
+   "parent": "dfe.ma.a.seq",
+   "levels": [
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "A25"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Algebra"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.r",
+   "name": "Ratio, proportion and rates of change",
+   "parent": "",
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "Ratio, proportion and rates of change"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Ratio, proportion and rates of change"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y6 Ratio and proportion"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.r.units",
+   "name": "Units and compound measures",
+   "parent": "dfe.ma.r",
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "Ratio, proportion and rates of change"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Measurement"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.r.units.convert",
+   "name": "Converting units",
+   "parent": "dfe.ma.r.units",
+   "levels": [
+    "KS2",
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y5 Measurement"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y6 Measurement"
+    },
+    {
+     "doc": "gcse",
+     "ref": "R1"
+    },
+    {
+     "doc": "gcse",
+     "ref": "N13"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.r.units.compound",
+   "name": "Speed, density and other compound measures",
+   "parent": "dfe.ma.r.units",
+   "levels": [
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "R1"
+    },
+    {
+     "doc": "gcse",
+     "ref": "R11"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.r.ratio",
+   "name": "Ratio",
+   "parent": "dfe.ma.r",
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "Ratio, proportion and rates of change"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y6 Ratio and proportion"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.r.ratio.scale",
+   "name": "Scale drawings and maps",
+   "parent": "dfe.ma.r.ratio",
+   "levels": [
+    "KS2",
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y6 Ratio and proportion"
+    },
+    {
+     "doc": "gcse",
+     "ref": "R2"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.r.ratio.fraction",
+   "name": "One quantity as a fraction of another",
+   "parent": "dfe.ma.r.ratio",
+   "levels": [
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "R3"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.r.ratio.simplify",
+   "name": "Ratio notation and simplest form",
+   "parent": "dfe.ma.r.ratio",
+   "levels": [
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "R4"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.r.ratio.share",
+   "name": "Sharing in a ratio",
+   "parent": "dfe.ma.r.ratio",
+   "levels": [
+    "KS2",
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y6 Ratio and proportion"
+    },
+    {
+     "doc": "gcse",
+     "ref": "R5"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.r.ratio.mult",
+   "name": "Ratios, fractions and multiplicative relationships",
+   "parent": "dfe.ma.r.ratio",
+   "levels": [
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "R6"
+    },
+    {
+     "doc": "gcse",
+     "ref": "R8"
+    },
+    {
+     "doc": "gcse",
+     "ref": "N11"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.r.ratio.compare",
+   "name": "Comparing lengths, areas and volumes with ratio",
+   "parent": "dfe.ma.r.ratio",
+   "levels": [
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "R12"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.r.prop",
+   "name": "Proportion and rates of change",
+   "parent": "dfe.ma.r",
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "Ratio, proportion and rates of change"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.r.prop.direct",
+   "name": "Direct proportion",
+   "parent": "dfe.ma.r.prop",
+   "levels": [
+    "KS2",
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y6 Ratio and proportion"
+    },
+    {
+     "doc": "gcse",
+     "ref": "R7"
+    },
+    {
+     "doc": "gcse",
+     "ref": "R10"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.r.prop.inverse",
+   "name": "Inverse proportion",
+   "parent": "dfe.ma.r.prop",
+   "levels": [
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "R10"
+    },
+    {
+     "doc": "gcse",
+     "ref": "R13"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.r.prop.rate",
+   "name": "Gradient as a rate of change",
+   "parent": "dfe.ma.r.prop",
+   "levels": [
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "R14"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.r.prop.instant",
+   "name": "Instantaneous rate of change",
+   "parent": "dfe.ma.r.prop",
+   "levels": [
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "R15"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.r.prop.growth",
+   "name": "Growth and decay",
+   "parent": "dfe.ma.r.prop",
+   "levels": [
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "R16"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Ratio, proportion and rates of change"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.g",
+   "name": "Geometry and measures",
+   "parent": "",
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "Geometry and measures"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Geometry and measures"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Geometry – properties of shapes"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Measurement"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.g.shape",
+   "name": "Shapes and constructions",
+   "parent": "dfe.ma.g",
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "Geometry and measures – Properties and constructions"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Geometry – properties of shapes"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.g.shape.terms",
+   "name": "Geometric terms and notation",
+   "parent": "dfe.ma.g.shape",
+   "levels": [
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "G1"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Geometry and measures"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.g.shape.2d",
+   "name": "2-D shapes and their properties",
+   "parent": "dfe.ma.g.shape",
+   "levels": [
+    "KS1",
+    "KS2",
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y1 Geometry – properties of shapes"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y2 Geometry – properties of shapes"
+    },
+    {
+     "doc": "gcse",
+     "ref": "G4"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.g.shape.3d",
+   "name": "3-D shapes: faces, edges and vertices",
+   "parent": "dfe.ma.g.shape",
+   "levels": [
+    "KS1",
+    "KS2",
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y2 Geometry – properties of shapes"
+    },
+    {
+     "doc": "gcse",
+     "ref": "G12"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.g.shape.plans",
+   "name": "Plans and elevations",
+   "parent": "dfe.ma.g.shape",
+   "levels": [
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "G13"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.g.shape.construct",
+   "name": "Constructions and loci",
+   "parent": "dfe.ma.g.shape",
+   "levels": [
+    "KS2",
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y6 Geometry – properties of shapes"
+    },
+    {
+     "doc": "gcse",
+     "ref": "G2"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.g.shape.congruent",
+   "name": "Congruent triangles",
+   "parent": "dfe.ma.g.shape",
+   "levels": [
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "G5"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.g.shape.reason",
+   "name": "Geometric reasoning and proof",
+   "parent": "dfe.ma.g.shape",
+   "levels": [
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "G6"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Geometry and measures"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.g.shape.circleparts",
+   "name": "Parts of a circle",
+   "parent": "dfe.ma.g.shape",
+   "levels": [
+    "KS2",
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y6 Geometry – properties of shapes"
+    },
+    {
+     "doc": "gcse",
+     "ref": "G9"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.g.shape.circlethm",
+   "name": "Circle theorems",
+   "parent": "dfe.ma.g.shape",
+   "levels": [
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "G10"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.g.shape.coordgeom",
+   "name": "Geometry on coordinate axes",
+   "parent": "dfe.ma.g.shape",
+   "levels": [
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "G11"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.g.angle",
+   "name": "Angles",
+   "parent": "dfe.ma.g",
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "Geometry and measures – Properties and constructions"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Geometry – properties of shapes"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.g.angle.types",
+   "name": "Types of angle; measuring and drawing angles",
+   "parent": "dfe.ma.g.angle",
+   "levels": [
+    "KS2",
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y3 Geometry – properties of shapes"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y5 Geometry – properties of shapes"
+    },
+    {
+     "doc": "gcse",
+     "ref": "G15"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.g.angle.facts",
+   "name": "Angles at a point, on a line and in parallel lines",
+   "parent": "dfe.ma.g.angle",
+   "levels": [
+    "KS2",
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y5 Geometry – properties of shapes"
+    },
+    {
+     "doc": "gcse",
+     "ref": "G3"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.g.angle.triquad",
+   "name": "Angles in triangles and quadrilaterals",
+   "parent": "dfe.ma.g.angle",
+   "levels": [
+    "KS2",
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y6 Geometry – properties of shapes"
+    },
+    {
+     "doc": "gcse",
+     "ref": "G3"
+    },
+    {
+     "doc": "gcse",
+     "ref": "G4"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.g.angle.polygon",
+   "name": "Angles in polygons",
+   "parent": "dfe.ma.g.angle",
+   "levels": [
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "G3"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.g.angle.bearings",
+   "name": "Bearings",
+   "parent": "dfe.ma.g.angle",
+   "levels": [
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "G15"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.g.trans",
+   "name": "Position and transformations",
+   "parent": "dfe.ma.g",
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "Geometry and measures – Properties and constructions"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Geometry – position and direction"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.g.trans.position",
+   "name": "Position, direction and turns",
+   "parent": "dfe.ma.g.trans",
+   "levels": [
+    "KS1",
+    "KS2"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y1 Geometry – position and direction"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y2 Geometry – position and direction"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.g.trans.translate",
+   "name": "Translations and reflections",
+   "parent": "dfe.ma.g.trans",
+   "levels": [
+    "KS2",
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y6 Geometry – position and direction"
+    },
+    {
+     "doc": "gcse",
+     "ref": "G7"
+    },
+    {
+     "doc": "gcse",
+     "ref": "G24"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.g.trans.rotenlarge",
+   "name": "Rotations and enlargements",
+   "parent": "dfe.ma.g.trans",
+   "levels": [
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "G7"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.g.trans.describe",
+   "name": "Describing and combining transformations",
+   "parent": "dfe.ma.g.trans",
+   "levels": [
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "G7"
+    },
+    {
+     "doc": "gcse",
+     "ref": "G8"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.g.trans.similar",
+   "name": "Similar shapes",
+   "parent": "dfe.ma.g.trans",
+   "levels": [
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "G6"
+    },
+    {
+     "doc": "gcse",
+     "ref": "G7"
+    },
+    {
+     "doc": "gcse",
+     "ref": "G19"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.g.mens",
+   "name": "Measures and mensuration",
+   "parent": "dfe.ma.g",
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "Geometry and measures – Mensuration and calculation"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Measurement"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.g.mens.measure",
+   "name": "Measuring length, mass, capacity and temperature",
+   "parent": "dfe.ma.g.mens",
+   "levels": [
+    "KS1",
+    "KS2",
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y1 Measurement"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y2 Measurement"
+    },
+    {
+     "doc": "gcse",
+     "ref": "G14"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.g.mens.time",
+   "name": "Telling the time",
+   "parent": "dfe.ma.g.mens",
+   "levels": [
+    "KS1",
+    "KS2"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y1 Measurement"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y2 Measurement"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y3 Measurement"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.g.mens.perimarea",
+   "name": "Perimeter and area",
+   "parent": "dfe.ma.g.mens",
+   "levels": [
+    "KS2",
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y3 Measurement"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y5 Measurement"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y6 Measurement"
+    },
+    {
+     "doc": "gcse",
+     "ref": "G16"
+    },
+    {
+     "doc": "gcse",
+     "ref": "G17"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.g.mens.circle",
+   "name": "Circumference and area of a circle",
+   "parent": "dfe.ma.g.mens",
+   "levels": [
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "G17"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.g.mens.volume",
+   "name": "Volume and surface area",
+   "parent": "dfe.ma.g.mens",
+   "levels": [
+    "KS2",
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y6 Measurement"
+    },
+    {
+     "doc": "gcse",
+     "ref": "G16"
+    },
+    {
+     "doc": "gcse",
+     "ref": "G17"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.g.mens.arcs",
+   "name": "Arcs and sectors",
+   "parent": "dfe.ma.g.mens",
+   "levels": [
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "G18"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.g.mens.simareavol",
+   "name": "Similar areas and volumes",
+   "parent": "dfe.ma.g.mens",
+   "levels": [
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "G19"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.g.mens.pythag",
+   "name": "Pythagoras' theorem",
+   "parent": "dfe.ma.g.mens",
+   "levels": [
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "G20"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Geometry and measures"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.g.mens.trig",
+   "name": "Right-angled trigonometry",
+   "parent": "dfe.ma.g.mens",
+   "levels": [
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "G20"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Geometry and measures"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.g.mens.exact",
+   "name": "Exact trig values",
+   "parent": "dfe.ma.g.mens",
+   "levels": [
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "G21"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.g.mens.sinecos",
+   "name": "Sine and cosine rules",
+   "parent": "dfe.ma.g.mens",
+   "levels": [
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "G22"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.g.mens.areatri",
+   "name": "Area of any triangle (½ab sin C)",
+   "parent": "dfe.ma.g.mens",
+   "levels": [
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "G23"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.g.vec",
+   "name": "Vectors",
+   "parent": "dfe.ma.g",
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "Geometry and measures – Vectors"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.g.vec.vectors",
+   "name": "Vectors",
+   "parent": "dfe.ma.g.vec",
+   "levels": [
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "G24"
+    },
+    {
+     "doc": "gcse",
+     "ref": "G25"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.p",
+   "name": "Probability",
+   "parent": "",
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "Probability"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Probability"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.p.prob",
+   "name": "Probability",
+   "parent": "dfe.ma.p",
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "Probability"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Probability"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.p.prob.basic",
+   "name": "The probability scale",
+   "parent": "dfe.ma.p.prob",
+   "levels": [
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "P3"
+    },
+    {
+     "doc": "gcse",
+     "ref": "P4"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Probability"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.p.prob.freq",
+   "name": "Relative frequency and expected outcomes",
+   "parent": "dfe.ma.p.prob",
+   "levels": [
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "P1"
+    },
+    {
+     "doc": "gcse",
+     "ref": "P2"
+    },
+    {
+     "doc": "gcse",
+     "ref": "P5"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.p.prob.outcomes",
+   "name": "Listing outcomes and sample spaces",
+   "parent": "dfe.ma.p.prob",
+   "levels": [
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "P7"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Probability"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.p.prob.venn",
+   "name": "Sets and Venn diagrams",
+   "parent": "dfe.ma.p.prob",
+   "levels": [
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "P6"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Probability"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.p.prob.tree",
+   "name": "Combined events and tree diagrams",
+   "parent": "dfe.ma.p.prob",
+   "levels": [
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "P8"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.p.prob.cond",
+   "name": "Conditional probability",
+   "parent": "dfe.ma.p.prob",
+   "levels": [
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "P9"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.s",
+   "name": "Statistics",
+   "parent": "",
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "Statistics"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Statistics"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Statistics"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.s.data",
+   "name": "Collecting and showing data",
+   "parent": "dfe.ma.s",
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "Statistics"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Statistics"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.s.data.sample",
+   "name": "Sampling and populations",
+   "parent": "dfe.ma.s.data",
+   "levels": [
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "S1"
+    },
+    {
+     "doc": "gcse",
+     "ref": "S5"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.s.data.charts",
+   "name": "Tables, tally charts, pictograms and bar charts",
+   "parent": "dfe.ma.s.data",
+   "levels": [
+    "KS1",
+    "KS2",
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y2 Statistics"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y3 Statistics"
+    },
+    {
+     "doc": "gcse",
+     "ref": "S2"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Statistics"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.s.data.pie",
+   "name": "Pie charts",
+   "parent": "dfe.ma.s.data",
+   "levels": [
+    "KS2",
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y6 Statistics"
+    },
+    {
+     "doc": "gcse",
+     "ref": "S2"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.s.data.line",
+   "name": "Line graphs and time series",
+   "parent": "dfe.ma.s.data",
+   "levels": [
+    "KS2",
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y4 Statistics"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y5 Statistics"
+    },
+    {
+     "doc": "gcse",
+     "ref": "S2"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.s.data.grouped",
+   "name": "Histograms and cumulative frequency",
+   "parent": "dfe.ma.s.data",
+   "levels": [
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "S3"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.s.analyse",
+   "name": "Analysing data",
+   "parent": "dfe.ma.s",
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "Statistics"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Statistics"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.s.analyse.averages",
+   "name": "Averages and range",
+   "parent": "dfe.ma.s.analyse",
+   "levels": [
+    "KS2",
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y6 Statistics"
+    },
+    {
+     "doc": "gcse",
+     "ref": "S4"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Statistics"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.s.analyse.table",
+   "name": "Averages from a frequency table",
+   "parent": "dfe.ma.s.analyse",
+   "levels": [
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "S4"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.s.analyse.spread",
+   "name": "Quartiles, box plots and comparing data",
+   "parent": "dfe.ma.s.analyse",
+   "levels": [
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "S4"
+    }
+   ]
+  },
+  {
+   "id": "dfe.ma.s.analyse.scatter",
+   "name": "Scatter graphs and correlation",
+   "parent": "dfe.ma.s.analyse",
+   "levels": [
+    "KS3",
+    "GCSE Foundation",
+    "GCSE Higher"
+   ],
+   "src": [
+    {
+     "doc": "gcse",
+     "ref": "S6"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Statistics"
+    }
+   ]
+  }
+ ],
+ "ideas": {
+  "ma.alg.algebraic-proof": "dfe.ma.a.expr.proof",
+  "ma.alg.area-under-a-curve": "dfe.ma.a.graph.gradarea",
+  "ma.alg.equation-of-a-circle": "dfe.ma.a.graph.circle",
+  "ma.alg.equation-of-a-line": "dfe.ma.a.graph.line",
+  "ma.alg.equations": "dfe.ma.a.solve.form",
+  "ma.alg.expanding-brackets": "dfe.ma.a.expr.expand",
+  "ma.alg.formulae": "dfe.ma.a.expr.formulae",
+  "ma.alg.function-machines": "dfe.ma.a.expr.functions",
+  "ma.alg.gradient-of-a-curve": "dfe.ma.r.prop.instant",
+  "ma.alg.iteration": "dfe.ma.a.solve.iter",
+  "ma.alg.linear-equations": "dfe.ma.a.solve.linear",
+  "ma.alg.nth-term-of-a-linear-sequence": "dfe.ma.a.seq.nth",
+  "ma.alg.quadratic-graphs": "dfe.ma.a.graph.shapes",
+  "ma.alg.real-life-graphs": "dfe.ma.a.graph.real",
+  "ma.alg.real-life-graphs-real-life-graph": "dfe.ma.a.graph.real",
+  "ma.alg.rearranging-formulae": "dfe.ma.a.expr.formulae",
+  "ma.alg.recognising-graph-shapes": "dfe.ma.a.graph.shapes",
+  "ma.alg.sequences": "dfe.ma.a.seq.gen",
+  "ma.alg.simplifying-and-collecting-terms": "dfe.ma.a.expr.notation",
+  "ma.alg.simultaneous-equations": "dfe.ma.a.solve.sim",
+  "ma.alg.solving-inequalities": "dfe.ma.a.solve.ineq",
+  "ma.alg.solving-quadratics": "dfe.ma.a.solve.quad",
+  "ma.alg.straight-line-graphs": "dfe.ma.a.graph.line",
+  "ma.alg.substitution": "dfe.ma.a.expr.subst",
+  "ma.alg.transformations-of-graphs": "dfe.ma.a.graph.transform",
+  "ma.alg.turning-points": "dfe.ma.a.graph.quad",
+  "ma.alg.types-of-sequence": "dfe.ma.a.seq.types",
+  "ma.geo.2-d-shapes": "dfe.ma.g.shape.2d",
+  "ma.geo.2-d-shapes-2-d-shape": "dfe.ma.g.shape.2d",
+  "ma.geo.3-d-shapes": "dfe.ma.g.shape.3d",
+  "ma.geo.angles-at-a-point-and-on-a-line": "dfe.ma.g.angle.facts",
+  "ma.geo.angles-in-polygons": "dfe.ma.g.angle.polygon",
+  "ma.geo.angles-in-triangles-and-quadrilaterals": "dfe.ma.g.angle.triquad",
+  "ma.geo.arcs-and-sectors": "dfe.ma.g.mens.arcs",
+  "ma.geo.area-and-circumference-of-circles": "dfe.ma.g.mens.circle",
+  "ma.geo.area-of-any-triangle": "dfe.ma.g.mens.areatri",
+  "ma.geo.bearings": "dfe.ma.g.angle.bearings",
+  "ma.geo.circle-theorems": "dfe.ma.g.shape.circlethm",
+  "ma.geo.congruent-triangles": "dfe.ma.g.shape.congruent",
+  "ma.geo.constructions-and-loci": "dfe.ma.g.shape.construct",
+  "ma.geo.coordinates": "dfe.ma.a.graph.coords",
+  "ma.geo.describing-a-single-transformation": "dfe.ma.g.trans.describe",
+  "ma.geo.exact-trig-values": "dfe.ma.g.mens.exact",
+  "ma.geo.parts-of-a-circle": "dfe.ma.g.shape.circleparts",
+  "ma.geo.perimeter": "dfe.ma.g.mens.perimarea",
+  "ma.geo.plans-and-elevations": "dfe.ma.g.shape.plans",
+  "ma.geo.properties-of-shapes": "dfe.ma.g.shape.2d",
+  "ma.geo.pythagoras-theorem": "dfe.ma.g.mens.pythag",
+  "ma.geo.right-angled-trigonometry": "dfe.ma.g.mens.trig",
+  "ma.geo.rotations": "dfe.ma.g.trans.position",
+  "ma.geo.similar-areas-and-volumes": "dfe.ma.g.mens.simareavol",
+  "ma.geo.similar-shapes": "dfe.ma.g.trans.similar",
+  "ma.geo.similarity-and-congruence": "dfe.ma.g.trans.rotenlarge",
+  "ma.geo.the-sine-rule": "dfe.ma.g.mens.sinecos",
+  "ma.geo.translations": "dfe.ma.g.trans.translate",
+  "ma.geo.translations-vector-translation": "dfe.ma.g.vec.vectors",
+  "ma.geo.types-of-angle": "dfe.ma.g.angle.types",
+  "ma.geo.types-of-angle-geometric-term-notation": "dfe.ma.g.shape.terms",
+  "ma.geo.units-and-measures": "dfe.ma.g.mens.measure",
+  "ma.geo.units-and-measures-telling-time": "dfe.ma.g.mens.time",
+  "ma.geo.units-and-measures-unit-measure": "dfe.ma.r.units.convert",
+  "ma.geo.vectors": "dfe.ma.g.vec.vectors",
+  "ma.geo.volume-and-surface-area": "dfe.ma.g.mens.volume",
+  "ma.num.adding-and-subtracting-fractions": "dfe.ma.n.frac.addsub",
+  "ma.num.addition": "dfe.ma.n.calc.bonds",
+  "ma.num.addition-adding": "dfe.ma.n.calc.addsub",
+  "ma.num.addition-adding-subtracting": "dfe.ma.n.calc.addsub",
+  "ma.num.addition-money": "dfe.ma.n.calc.money",
+  "ma.num.bounds-and-error-intervals": "dfe.ma.n.acc.bounds",
+  "ma.num.calculating-with-decimals": "dfe.ma.n.calc.decimals",
+  "ma.num.equivalent-and-simplifying-fractions": "dfe.ma.n.frac.equiv",
+  "ma.num.estimation": "dfe.ma.n.acc.estimate",
+  "ma.num.fraction-decimal-percentage-conversion": "dfe.ma.n.frac.fdp",
+  "ma.num.fractions-of-an-amount": "dfe.ma.n.frac.amount",
+  "ma.num.fractions-of-an-amount-fraction-amount": "dfe.ma.n.frac.amount",
+  "ma.num.laws-of-indices": "dfe.ma.n.prop.indices",
+  "ma.num.long-multiplication": "dfe.ma.n.calc.long",
+  "ma.num.multiplication": "dfe.ma.n.calc.tables",
+  "ma.num.multiplication-2-5-10-time": "dfe.ma.n.calc.tables",
+  "ma.num.multiplying-and-dividing-fractions": "dfe.ma.n.frac.muldiv",
+  "ma.num.negative-numbers": "dfe.ma.n.place.negative",
+  "ma.num.order-of-operations": "dfe.ma.n.calc.order",
+  "ma.num.ordering-numbers-and-decimals": "dfe.ma.n.place.order",
+  "ma.num.percentage-of-an-amount": "dfe.ma.n.frac.pct",
+  "ma.num.place-value-and-ordering": "dfe.ma.n.place.value",
+  "ma.num.primes-and-prime-factorisation": "dfe.ma.n.prop.factors",
+  "ma.num.reading-and-writing-numbers": "dfe.ma.n.place.count",
+  "ma.num.rounding": "dfe.ma.n.acc.round",
+  "ma.num.simplifying-surds": "dfe.ma.n.prop.surds",
+  "ma.num.squares-and-square-roots": "dfe.ma.n.prop.powers",
+  "ma.num.standard-form": "dfe.ma.n.prop.stdform",
+  "ma.num.subtraction": "dfe.ma.n.calc.addsub",
+  "ma.num.the-four-operations": "dfe.ma.n.calc.muldiv",
+  "ma.num.division": "dfe.ma.n.calc.muldiv",
+  "ma.prob.basic-probability": "dfe.ma.p.prob.basic",
+  "ma.prob.conditional-probability": "dfe.ma.p.prob.cond",
+  "ma.prob.listing-outcomes-and-sample-space": "dfe.ma.p.prob.outcomes",
+  "ma.prob.probability": "dfe.ma.p.prob.basic",
+  "ma.prob.relative-frequency-and-expectation": "dfe.ma.p.prob.freq",
+  "ma.prob.relative-frequency-and-expectation-expected-outcome": "dfe.ma.p.prob.freq",
+  "ma.prob.relative-frequency-and-expectation-experiment-theory": "dfe.ma.p.prob.freq",
+  "ma.prob.tree-diagrams": "dfe.ma.p.prob.tree",
+  "ma.prob.venn-diagrams-and-set-notation": "dfe.ma.p.prob.venn",
+  "ma.rat.compound-measures": "dfe.ma.r.units.compound",
+  "ma.rat.direct-proportion": "dfe.ma.r.prop.direct",
+  "ma.rat.growth-and-decay": "dfe.ma.r.prop.growth",
+  "ma.rat.inverse-proportion": "dfe.ma.r.prop.inverse",
+  "ma.rat.ratio-problems": "dfe.ma.r.ratio.share",
+  "ma.rat.ratio-problems-multiplicative-relationship": "dfe.ma.r.ratio.mult",
+  "ma.rat.scale-drawings-and-maps": "dfe.ma.r.ratio.scale",
+  "ma.rat.sharing-in-a-ratio": "dfe.ma.r.ratio.share",
+  "ma.stat.averages-from-a-table": "dfe.ma.s.analyse.table",
+  "ma.stat.bar-charts-and-pictograms": "dfe.ma.s.data.charts",
+  "ma.stat.charts-and-diagrams": "dfe.ma.s.data.charts",
+  "ma.stat.cumulative-frequency": "dfe.ma.s.data.grouped",
+  "ma.stat.histograms": "dfe.ma.s.data.grouped",
+  "ma.stat.pie-charts": "dfe.ma.s.data.pie",
+  "ma.stat.sampling": "dfe.ma.s.data.sample",
+  "ma.stat.sampling-describing-population": "dfe.ma.s.data.sample",
+  "ma.stat.scatter-graphs-and-correlation": "dfe.ma.s.analyse.scatter",
+  "ma.stat.statistics": "dfe.ma.s.analyse.averages"
+ },
+ "set": {
+  "W-1CM-tables-two-way-tables": "dfe.ma.s.data.charts",
+  "W-1CM-tally-charts": "dfe.ma.s.data.charts",
+  "W-1CM-angles-drawing": "dfe.ma.g.angle.types",
+  "W-1CM-midpoint-of-two-fractions": "dfe.ma.n.frac.addsub",
+  "W-1CM-expressing-as-a-percentage": "dfe.ma.n.frac.pct",
+  "W-1CM-odds-and-evens": "dfe.ma.n.prop.factors"
+ },
+ "topic": {
+  "Factorising": "dfe.ma.a.expr.factorise",
+  "Algebraic Fractions": "dfe.ma.a.expr.algfrac",
+  "Percentages": "dfe.ma.n.frac.pct",
+  "Properties of Number": "dfe.ma.n.prop.factors",
+  "Fractions": "dfe.ma.n.frac",
+  "Ratio & Proportion": "dfe.ma.r.ratio",
+  "Graphs": "dfe.ma.a.graph",
+  "Trigonometry": "dfe.ma.g.mens.trig",
+  "Angles": "dfe.ma.g.angle",
+  "Number": "dfe.ma.n",
+  "Percentage Increase & Decrease": "dfe.ma.n.frac.pctchange",
+  "Area of 2-D Shapes": "dfe.ma.g.mens.perimarea",
+  "Recurring Decimals": "dfe.ma.n.frac.recurring",
+  "Decimals": "dfe.ma.n.calc.decimals",
+  "circles": "dfe.ma.g.shape.circleparts"
+ },
+ "budget": 2712
+}
