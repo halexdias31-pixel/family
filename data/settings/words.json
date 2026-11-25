@@ -125,8 +125,7 @@
   "not-offered": "Not offered",
   "not-on-the-booking-form": "Not on the booking form",
   "not-priced-yet": "Not priced yet",
-  "not-saved": "Not saved",
-  "not-yet-have-another-go": "Not yet — have another go",
+    "not-yet-have-another-go": "Not yet — have another go",
   "nothing-changed": "Nothing changed",
   "nothing-here-yet": "Nothing here yet.",
   "nothing-in-that-bundle-can-be": "Nothing in that bundle can be printed",
@@ -306,6 +305,7 @@
   "err-docket-saved": "That was not saved — try again.",
   "save": "Save",
   "saved": "Saved",
+  "not-saved": "Not saved",
   "try-again": "Try again",
   "not-saved-try-again": "Not saved — try again.",
   "daive-busy": "Daive is busy — try again in a minute.",
@@ -600,13 +600,12 @@
   "what-you-need": "What you need",
   "source": "Source",
   "answer-checked": "Answer checked",
-  "your-result": "How it went",
-  "status-untried": "Not tried",
-  "status-right": "Right",
-  "status-part": "Part right",
-  "status-wrong": "Wrong",
-  "status-unmarked": "Not marked yet",
-  "status-hidden": "Answer hidden",
+  "status-untried": "Unattempted",
+  "status-right": "Correct",
+  "status-part": "Part correct",
+  "status-wrong": "Incorrect",
+  "status-attempted": "Attempted",
+  "answer-hidden-say": "The answer is hidden",
   "which-part": "Which part",
   "era": "Era",
   "material": "Material",
@@ -633,6 +632,8 @@
  "aliases": {
   "_about": "OLD KEY → THE ONE KEY it merged into (UNIFY NEXT 4): tools/words.js writes each alias into WORDS_FILE with its key’s text, so a name read from data or a sheet still works. tools/one-word.js fails a value written under two keys.",
   "sign-in-first": "err-sign-in-first",
-  "sign-in-first-2": "err-sign-in-first"
+  "sign-in-first-2": "err-sign-in-first",
+  "your-result": "result",
+  "your-attempt": "status-attempted"
  }
 }

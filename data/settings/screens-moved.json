@@ -49,7 +49,7 @@
  },
  {
   "screen": "saved",
-  "to": "find::mySaved=Saved"
+  "to": "find:"
  },
  {
   "screen": "shop",
