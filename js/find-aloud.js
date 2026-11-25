@@ -74,15 +74,10 @@ if (typeof document !== 'undefined' && document.addEventListener) {
   document.addEventListener('touchmove', e => { if (MAG.live && e.cancelable) e.preventDefault(); }, { passive: false });
 }
 
-/* ---------- THE PADLOCK ON A QUESTION (457): the page held still while you write, draw or read (`PADLOCK`, overworld.js) ---------- */
-const qLockLook_ = on => ({ icon: on ? 'lock' : 'unlock', label: on ? 'Locked' : 'Lock', note: on ? 'tap to let the page move' : 'hold this page still',
-                            on: on, pressed: on });
+/* ---------- THE PAGE HELD STILL WHILE THE PEN IS ON (owner, 24 Nov: the Pen replaces Lock): `PADLOCK.q` (overworld.js), set by `padArm_` */
 const qLockHere_ = () => String(typeof AT !== 'undefined' ? AT : '') + ':' + String((typeof PAGE !== 'undefined' && PAGE[AT]) || 0);
-const qLockOpts_ = () => Object.assign(qLockLook_(!!PADLOCK.q), { act: 'q-lock', cls: 'q-lock' });
-function qLockPaint_() { document.querySelectorAll('.q-lock').forEach(el => tileSet_(el, qLockLook_(!!PADLOCK.q))); }
-on('q-lock', () => { PADLOCK.q = PADLOCK.q ? '' : qLockHere_(); qLockPaint_(); });
-/* LET GO WHEN A TAB OR A LINK LEAVES THE PAGE IT WAS PRESSED ON: a lock nobody can see is a broken swipe */
-function qLockStray_() { if (PADLOCK.q && PADLOCK.q !== qLockHere_()) { PADLOCK.q = ''; qLockPaint_(); } }
+/* LET GO WHEN A TAB OR A LINK LEAVES THE PAGE IT WAS HELD ON: a hold nobody can see is a broken swipe */
+function qLockStray_() { if (PADLOCK.q && PADLOCK.q !== qLockHere_()) PADLOCK.q = ''; }
 
 /* THE FIGURE, OVER THE CARD, ONE TAP AWAY. § */
 function figsBefore_(x) {

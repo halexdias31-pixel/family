@@ -23,7 +23,8 @@ const SD = require('./lib/site-data.js');
 const OLD = { points: ['pts'], graph: ['hist', 'box', 'pie', 'sketch', 'area', 'fit'], line: ['segs', 'line', 'pair', 'dir', 'radius', 'angle'],
   numline: ['interval'], shape: ['polygon', 'cuboid'], shade: ['cells', 'inside'], construct: ['curves'], hand: ['clock', 'dial', 'scale'] };
 const PER = 2;
-const TILES = ['qt-pen/point:dot:Point', 'qt-pen/line:line:Line', 'qt-pen/pen:pen:Curve', 'qt-pen/shade:shade:Shade', 'qt-inst/compass:compass:Compass', 'pad-undo:undo:Undo'];
+/* ONE PEN AND UNDO (owner, 24 Nov): Point, Line, Curve, Shade and Compass are the one Pen, its stroke read on lift */
+const TILES = ['qt-pen/pen:pen:Pen', 'pad-undo:undo:Undo'];
 const SIZES = { phone: { width: 390, height: 844 }, iPad: { width: 820, height: 1180 } };
 const ONLY_SIZE = process.env.CANVAS_SIZE || '';
 const AI_MAX = 0.08;
@@ -90,7 +91,8 @@ async function openCard(pg, id) {
     return { key: x.key };
   }, id);
 }
-const tileSel = tool => '#canvas-check [data-do="qt-pen"][data-tool="' + tool + '"]';
+/* ONE PEN (owner, 24 Nov): every act is drawn with it, its stroke's shape read on lift (find-pad.js `padRead1_`) */
+const tileSel = () => '#canvas-check [data-do="qt-pen"][data-tool="pen"]';
 /* THE TAP-SCRIPT: the key's own drawing (DRAW_MARK.example), a piece at a time, as the tiles a child would use for it */
 async function scriptOf(pg) {
   return pg.evaluate(() => {
@@ -117,8 +119,12 @@ async function scriptOf(pg) {
       /* a region of squares is shaded square by square: one Shade tap in each */
       if (p.as === 'cells' && padLattice_(pad, pad.querySelector('.qpad-ink').getBoundingClientRect())) {
         const seen = {};
+        const lat = padLattice_(pad, pad.querySelector('.qpad-ink').getBoundingClientRect());
+        /* a square shaded with the one pen: a zig-zag across it, as Shade stored it, drawn as one stroke */
+        const zig = (x, y) => { const z = padShadeOf_(lat, x, y), out = []; for (let i = 0; i + 3 < z.length; i += 2) for (let t = 0; t < 4; t++) out.push([z[i] + (z[i + 2] - z[i]) * t / 4, z[i + 1] + (z[i + 3] - z[i + 1]) * t / 4]);
+          out.push([z[z.length - 2], z[z.length - 1]]); return out; };
         st.forEach(s => { let x = 0, y = 0; const n = s.length / 2; for (let i = 0; i < s.length; i += 2) { x += s[i] / n; y += s[i + 1] / n; }
-          const k = Math.round(x / 4) + ',' + Math.round(y / 4); if (!seen[k]) { seen[k] = 1; acts.push({ tool: 'shade', pts: [[x, y]] }); } });
+          const k = Math.round(x / 4) + ',' + Math.round(y / 4); if (!seen[k]) { seen[k] = 1; acts.push({ tool: 'pen', pts: zig(x, y) }); } });
         return;
       }
       strokes(st);
@@ -131,7 +137,7 @@ async function scriptOf(pg) {
 async function play(pg, acts, held) {
   let tool = held || '';
   for (const a of acts) {
-    if (a.tool !== tool) { await pg.locator(tileSel(a.tool)).first().click({ timeout: 5000 }); tool = a.tool; await pg.waitForTimeout(120); }
+    /* THE ONE PEN, already in hand: every act is a stroke of it */
     const ink = pg.locator('#canvas-check .qpad-ink').first();
     await ink.scrollIntoViewIfNeeded().catch(() => {});
     const r = await ink.boundingBox();
@@ -155,8 +161,9 @@ async function verdict(pg) {
     return { right: !!document.querySelector('#canvas-check .is-right'), said: v ? v.textContent.trim().slice(0, 80) : '', marked: !!r }; });
 }
 async function clear(pg) {
-  const t = pg.locator('#canvas-check [data-do="pad-clear"]').first();
-  if (await t.count()) await t.click({ timeout: 3000 }).catch(() => {});
+  /* NO CLEAR TILE ON A QUESTION (owner, 24 Nov): each pad emptied by the pad's own Clear, as the whiteboard's bar still has it */
+  await pg.evaluate(() => document.querySelectorAll('#canvas-check .qpad').forEach(p => { const b = document.createElement('i'); b.setAttribute('data-k', p.getAttribute('data-k'));
+    p.appendChild(b); try { ACTIONS['pad-clear'](b); } catch (e) { /* an empty pad */ } b.remove(); }));
   await pg.waitForTimeout(100);
 }
 /* ONE QUESTION: the key drawn is Right, one point far from it is not */

@@ -2314,15 +2314,6 @@ if (r.sourceText) { el.classList.remove('insrc-wait'); el.innerHTML = f ? insSou
 else el.innerHTML = insSay_(r);
 });
 }
-const attachTile_ = x => { const a = insertsFor_(x);
-return a.length ? { icon: 'doc', label: 'Insert', note: a.map(r => r.name).join(' · '), act: 'att-open', data: { key: x.key } } : null; };
-function attachOpen_(list, el) {
-if (!list.length) return 0;
-list.forEach(insWant_);
-return openStep_({ title: list.length === 1 ? list[0].name : 'Insert', el, beside: true,
-html: list.map(r => findCard(insertItem_(r))).join('') });
-}
-on('att-open', el => { const x = qtItem_(el.getAttribute('data-key')); attachOpen_(x ? insertsFor_(x) : [], el); });
 const insertRow_ = id => insertSheetRow_(id) || insertParts_().find(r => r.id === id) || null;
 function insertBody_(r) {
 const kick = { type: 'text', look: 'insh-kick', text: ['Insert'].concat(r.boards || [], r.verified || insReading_(r) ? [] : ['unverified']).join(' · ') };
@@ -2401,14 +2392,7 @@ tiles: g.items.map(i => ({ label: num(i.row) || i.name, note: [i.name, i.row.mar
 const part = [...card.children].find(c => c.contains(el));
 if (part) card.insertBefore(box, part.nextSibling); else card.appendChild(box);
 });
-function specReviseOpts_(x) {
-const k = specKeysOfRow_(x && x.row)[0];
-if (!k) return null;
-const [id, pt] = k.split(':'), sp = ((typeof DATA !== 'undefined' && DATA.specs) || []).find(s => s.id === id);
-const p = sp && (sp.points || []).find(q => q.id === pt), ct = p && (p.links || []).find(l => /^ct:/.test(l));
-return ct ? { icon: 'book', label: 'Revise this', note: pt + ' ' + p.text, act: 'find-open', data: { key: ct } } : null;
-}
-window.CARD_EXTRAS_MORE = Object.assign(window.CARD_EXTRAS_MORE || {}, { content: specPracticeOpts_, question: specReviseOpts_ });
+window.CARD_EXTRAS_MORE = Object.assign(window.CARD_EXTRAS_MORE || {}, { content: specPracticeOpts_ });
 const specExtras_ = x => [{ icon: 'open', label: 'Official', note: /\.pdf$/i.test(x.row.url) ? 'specification PDF' : 'the framework page', act: 'file-view', data: { url: x.row.url, title: x.row.board + ' ' + x.row.code } }];
 on('ins-print', el => {
 const r = insertRow_(el.getAttribute('data-id'));
@@ -6744,6 +6728,7 @@ function padArm_(pad, on) {
 if (!pad) return;
 if (!on && pad.getAttribute('data-k')) padZoomOff_(pad.getAttribute('data-k'));
 pad.classList.toggle('is-drawing', !!on);
+if (typeof PADLOCK !== 'undefined' && typeof qLockHere_ === 'function') PADLOCK.q = on ? qLockHere_() : '';
 const tool = padToolNow_(pad);
 qtLight_(pad.closest('.qcard'), on ? tool : '');
 }
@@ -6809,10 +6794,7 @@ st.push(at[0], at[1]);
 return st;
 },
 end: (g, st) => {
-if (padSteady_(g) && !g.board && !g.slack && g.tg && st && st.length === 2) {
-const t = padSnap_(Object.assign({}, g, { hold: null, tg: { own: [], pts: g.tg.pts } }), st[0] * g.sx, st[1] * g.sy, '');
-return t ? [Math.round(t.u[0]), Math.round(t.u[1])] : st;
-}
+if (padSteady_(g) && !g.board && !g.slack && g.tg && st && st.length === 2) return padPlace_(Object.assign({}, g, { tool: 'point', fp: null }), [st[0], st[1]], true);
 if (padSteady_(g) && !g.frozen && !g.qz && g.at && st && st.length >= 2) {
 const x = st[st.length - 2], y = st[st.length - 1], a = g.at;
 if (x !== a[0] || y !== a[1]) {
@@ -6821,7 +6803,7 @@ if (m[0] !== x || m[1] !== y) st.push(m[0], m[1]);
 if (m[0] !== a[0] || m[1] !== a[1]) st.push(a[0], a[1]);
 }
 }
-return st;
+return g.board ? st : padRead1_(g, st);
 },
 },
 ruler: {
@@ -6842,6 +6824,41 @@ move: (g, at) => padSwing_(g, at),
 end: (g, st) => (g.r >= padMinOf_(g) && st.length >= 4 ? st : null),
 },
 };
+const PAD_READ_MIN = 12, PAD_READ_LINE = 4, PAD_READ_ROUND = 0.04, PAD_READ_SWEEP = 120;
+function padRead1_(g, st) {
+if (!st || st.length < 6) return st;
+const P = [];
+for (let i = 0; i + 1 < st.length; i += 2) P.push([st[i] * g.sx, st[i + 1] * g.sy]);
+const a = P[0], b = P[P.length - 1], L = Math.hypot(b[0] - a[0], b[1] - a[1]);
+const back = q => [Math.round(q[0] / g.sx), Math.round(q[1] / g.sy)];
+if (L >= PAD_READ_MIN) {
+const off = Math.max(...P.map(q => Math.abs((b[0] - a[0]) * (a[1] - q[1]) - (a[0] - q[0]) * (b[1] - a[1])) / L));
+if (off <= Math.max(PAD_READ_LINE, 0.06 * L)) {
+const f = padPlace_(Object.assign({}, g, { tool: 'ruler', fp: null }), back(a), true), t = padPlace_(Object.assign({}, g, { tool: 'ruler', fp: null }), back(b), false);
+return [f[0], f[1], t[0], t[1]];
+}
+}
+if (P.length < 8) return st;
+let sx = 0, sy = 0, sxx = 0, syy = 0, sxy = 0, sxz = 0, syz = 0, sz = 0;
+P.forEach(([x, y]) => { const z = x * x + y * y; sx += x; sy += y; sxx += x * x; syy += y * y; sxy += x * y; sxz += x * z; syz += y * z; sz += z; });
+const n = P.length, M = [[sxx, sxy, sx], [sxy, syy, sy], [sx, sy, n]], v = [-sxz, -syz, -sz];
+const det = m => m[0][0] * (m[1][1] * m[2][2] - m[1][2] * m[2][1]) - m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0]) + m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]);
+const d0 = det(M);
+if (!d0) return st;
+const col = (k) => M.map((r, i) => r.map((c, j) => (j === k ? v[i] : c)));
+const D = det(col(0)) / d0, E = det(col(1)) / d0, F = det(col(2)) / d0, cx = -D / 2, cy = -E / 2, r = Math.sqrt(Math.max(0, cx * cx + cy * cy - F));
+if (!(r >= PAD_READ_MIN / 2) || !isFinite(r)) return st;
+const rms = Math.sqrt(P.reduce((s2, q) => s2 + Math.pow(Math.hypot(q[0] - cx, q[1] - cy) - r, 2), 0) / n);
+if (rms > PAD_READ_ROUND * r) return st;
+let sweep = 0;
+for (let i = 1; i < n; i++) { let d = Math.atan2(P[i][1] - cy, P[i][0] - cx) - Math.atan2(P[i - 1][1] - cy, P[i - 1][0] - cx); d = (d + 3 * Math.PI) % (2 * Math.PI) - Math.PI; sweep += d; }
+const deg = Math.abs(sweep) * 180 / Math.PI;
+if (deg < PAD_READ_SWEEP) return st;
+const a0 = Math.atan2(P[0][1] - cy, P[0][0] - cx), span = deg >= 330 ? 2 * Math.PI * Math.sign(sweep) : sweep, steps = Math.max(12, Math.round(Math.abs(span) / (Math.PI / 24)));
+const out = [];
+for (let i = 0; i <= steps; i++) { const t = a0 + span * i / steps, q = back([cx + r * Math.cos(t), cy + r * Math.sin(t)]); out.push(q[0], q[1]); }
+return out;
+}
 function padShadeOf_(L, x, y) {
 const cell = (a, v) => { if (!a || a.length < 2) return null; let i = 0; while (i < a.length - 2 && a[i + 1] < v) i++; return v >= a[0] && v <= a[a.length - 1] ? [a[i], a[i + 1]] : null; };
 const cx = L && cell(L.xu, x), cy = L && cell(L.yu, y);
@@ -8014,7 +8031,10 @@ e.stopPropagation();
 PROT_GO = null;
 }, true));
 const padOfTile_ = el => el.closest('.qpad') || (() => { const c = el.closest('.qcard'), k = el.getAttribute('data-k');
-return c && k ? [...c.querySelectorAll('.qpad')].find(p => p.getAttribute('data-k') === k) || null : null; })();
+if (!c) return null;
+const pads = [...c.querySelectorAll('.qpad')];
+if (k) return pads.find(p => p.getAttribute('data-k') === k) || null;
+return pads.find(p => p.getAttribute('data-k') === PAD_ON) || pads.reverse().find(p => padRead_(p.getAttribute('data-k')).length) || null; })();
 on('pad-undo', (el) => {
 const pad = padOfTile_(el); if (!pad) return;
 const k = pad.getAttribute('data-k') || '';
@@ -8871,13 +8891,8 @@ magHide_();
 document.addEventListener('mouseleave', () => { if (MAG.live && MAG.pid === null) magHide_(); });
 document.addEventListener('touchmove', e => { if (MAG.live && e.cancelable) e.preventDefault(); }, { passive: false });
 }
-const qLockLook_ = on => ({ icon: on ? 'lock' : 'unlock', label: on ? 'Locked' : 'Lock', note: on ? 'tap to let the page move' : 'hold this page still',
-on: on, pressed: on });
 const qLockHere_ = () => String(typeof AT !== 'undefined' ? AT : '') + ':' + String((typeof PAGE !== 'undefined' && PAGE[AT]) || 0);
-const qLockOpts_ = () => Object.assign(qLockLook_(!!PADLOCK.q), { act: 'q-lock', cls: 'q-lock' });
-function qLockPaint_() { document.querySelectorAll('.q-lock').forEach(el => tileSet_(el, qLockLook_(!!PADLOCK.q))); }
-on('q-lock', () => { PADLOCK.q = PADLOCK.q ? '' : qLockHere_(); qLockPaint_(); });
-function qLockStray_() { if (PADLOCK.q && PADLOCK.q !== qLockHere_()) { PADLOCK.q = ''; qLockPaint_(); } }
+function qLockStray_() { if (PADLOCK.q && PADLOCK.q !== qLockHere_()) PADLOCK.q = ''; }
 function figsBefore_(x) {
 if (!isQ_(x)) return [];
 const out = [];
@@ -11894,7 +11909,10 @@ return el;
 }
 on('float-close', el => { const f = el.closest('[data-float]'); if (f) floatClose_(f.getAttribute('data-float')); });
 function measOpen_(el) {
-const k = el.getAttribute('data-key') || '', tool = el.getAttribute('data-tool') === 'protractor' ? 'protractor' : 'ruler';
+const k = el.getAttribute('data-key') || '';
+if (floatIs_('protractor', k)) { floatClose_('protractor'); return; }
+const tool = floatIs_('ruler', k) ? 'protractor' : 'ruler';
+if (tool === 'protractor') floatClose_('ruler');
 const S = measShape_(tool, k);
 const html = `<div class="meas-float" role="group" aria-label="${tool === 'protractor' ? 'Protractor: drag it over an angle; turn it by the round handle' : 'Ruler: drag it; turn it by the round handle'}" style="width:${S.w.toFixed(1)}px;height:${S.h.toFixed(1)}px;transform-origin:${S.pin[0].toFixed(1)}px ${S.pin[1].toFixed(1)}px" data-rot="0">`
 + `<svg class="meas" viewBox="0 0 ${S.w.toFixed(1)} ${S.h.toFixed(1)}" width="${S.w.toFixed(1)}" height="${S.h.toFixed(1)}" aria-hidden="true">${cardBlocks_({ type: 'drawing', node: { el: 'g', kids: S.body } })}</svg>`
@@ -15206,23 +15224,15 @@ if (box) { floatPlace_(box, innerWidth - box.offsetWidth - 12, 64); calcPaint_(b
 ;
 /* js/qtools.js */
 const QT_TOOLS = [
-{ id: 'point', icon: 'dot', label: 'Point', note: 'tap to plot a point', act: 'qt-pen' },
-{ id: 'pen', icon: 'pen', label: 'Curve', note: 'draw a curve', act: 'qt-pen' },
-{ id: 'shade', icon: 'shade', label: 'Shade', note: 'tap a square to shade it', act: 'qt-pen' },
-{ id: 'line', icon: 'line', label: 'Line', note: 'draw a straight line', act: 'qt-pen' },
-{ id: 'ruler', icon: 'ruler', label: 'Ruler', note: 'measure a length', act: 'qt-inst' },
-{ id: 'protractor', icon: 'protractor', label: 'Protractor', note: 'measure an angle', act: 'qt-inst' },
-{ id: 'compass', icon: 'compass', label: 'Compass', note: 'press the centre, drag', act: 'qt-inst' },
-{ id: 'mag', icon: 'zoom', label: 'Magnifier', note: 'hold it over the page', act: 'q-mag' },
+{ id: 'pen', icon: 'pen', label: 'Pen', note: 'tap to draw; again to stop', act: 'qt-pen' },
+{ id: 'measure', icon: 'ruler', label: 'Measure', note: 'a ruler, then a protractor', act: 'qt-inst' },
 { id: 'read', icon: 'speak', label: 'Read aloud', note: 'reads the question out', act: 'read-aloud' },
-{ id: 'lock', icon: 'unlock', label: 'Lock', note: 'hold this page still', act: 'q-lock' },
 { id: 'calc', icon: 'calc', label: 'Calculator', note: 'scientific', act: 'qt-calc' },
-{ id: 'offline', icon: 'down', label: 'Make available offline', note: 'this paper, on this device', act: 'offline-get' },
 { id: 'check', icon: 'send', label: 'Check', note: '', act: '' },
 ];
 const QT_ROW = QENGINE.row;
-const QT_DRAWING = { point: 1, line: 1, pen: 1, shade: 1, compass: 1 };
-const QT_PAD_TOOL = { point: 'point', pen: 'pen', line: 'ruler', shade: 'shade', compass: 'compass', protractor: 'protractor' };
+const QT_DRAWING = { pen: 1 };
+const QT_PAD_TOOL = { pen: 'pen' };
 const qMulti_ = x => { try { return (questionParts_()[qId_(x)] || []).length > 1; } catch (e) { return false; } };
 const qtTool_ = id => QT_TOOLS.find(t => t.id === id) || null;
 const QT_HOW_ALL = 'Marked by its mark scheme where a rule can; otherwise your work is saved, not marked';
@@ -15275,15 +15285,12 @@ return Object.assign({ send: true, label: text_('save'), act: 'qp-send', cls: 'q
 }
 const PEN_OPEN = new Set();
 const QT_TILE = {
-mag: () => typeof magOpts_ === 'function' ? magOpts_() : null,
-lock: () => typeof qLockOpts_ === 'function' ? qLockOpts_() : null,
 read: (t, x, key) => {
 const o = typeof readAloudOpts_ === 'function' ? readAloudOpts_(x) : null;
 if (o) o.data = Object.assign({}, o.data, { part: 1 });
 return o || { icon: t.icon, label: t.label, note: 'not on this device', act: 'read-aloud', cls: 'read-aloud', off: true, data: { key } };
 },
 calc: (t, x, key) => calcAllowed_(x) ? { icon: t.icon, label: t.label, note: t.note, act: t.act, cls: 'qt-t qt-calc', on: floatIs_('calc', key), pressed: floatIs_('calc', key), data: { tool: t.id, key } } : null,
-offline: (t, x) => (typeof window.offOpts_ === 'function' ? window.offOpts_(x) : null),
 };
 const qtPadKey_ = (t, x) => t && (t.act === 'qt-pen' || t.act === 'qt-inst') && typeof padKey_ === 'function' ? padKey_(x) : '';
 const qtInHand_ = pk => pk && typeof PAD_ON !== 'undefined' && PAD_ON === pk ? (PAD_TOOL.get(pk) || 'pen') : '';
@@ -15296,6 +15303,7 @@ const cls = 'qt-t' + (isMeasureTool_(t.id) ? ' q-meast' : '');
 return { icon: t.icon, label: t.label, note: t.note, act: t.act, cls, on, pressed: on, data: { tool: t.id, key } };
 }
 function qtToolOn_(id, key, pk, inHand) {
+if (id === 'measure' && typeof floatIs_ === 'function' && (floatIs_('ruler', key) || floatIs_('protractor', key))) return true;
 if ((isMeasureTool_(id) || id === 'calc') && typeof floatIs_ === 'function' && floatIs_(id, key)) return true;
 if (id === 'calc' || isMeasureTool_(id)) return false;
 if (!pk || !inHand) return false;
@@ -15315,10 +15323,7 @@ if (!x || !x.key) return [];
 const art = true;
 const ids = QT_ROW.concat(art ? Object.keys(QT_DRAWING) : []);
 return [qtCheckOpts_(x)].concat(ids.map(qtTool_).filter(Boolean).map(t => qtToolOpts_(t, x)),
-art && typeof padUndoOpts_ === 'function' ? padUndoOpts_(x) : [],
-[typeof attachTile_ === 'function' ? attachTile_(x) : null,
-ans && typeof qaToggleOpts_ === 'function' ? qaToggleOpts_(ansKey_(x), ansOpen_(x)) : null,
-typeof helpOpts_ === 'function' ? helpOpts_(x, '') : null]).filter(Boolean);
+[{ icon: 'undo', label: 'Undo', note: 'the last stroke', act: 'pad-undo', cls: 'qpad-undo', data: { key: x.key } }]).filter(Boolean);
 }
 const qtItem_ = key => { try { return stuffItemsAll_().find(it => it && it.key === key) || null; } catch (e) { return null; } };
 const qtKeyOf_ = el => (el && el.getAttribute('data-key')) || '';
@@ -17892,7 +17897,7 @@ try { const w = Number(keep_.get('speedWpm')); if (w >= SPEED_MIN && w <= SPEED_
 function speedFor_(x) {
 if (!x || !x.key) return false;
 if (x.kind === 'content' || x.kind === 'practical' || x.kind === 'project') return true;
-if (x.kind === 'question') return (typeof ruleOn_ === 'function' && !ruleOn_('speed-long')) && !!speedText_(x);
+if (x.kind === 'question') return false;
 return x.kind === 'bible' && !!x.bb;
 }
 function speedOpts_(x) {

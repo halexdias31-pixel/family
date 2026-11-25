@@ -124,7 +124,11 @@ function floatToggle_(kind, key, html) {
 on('float-close', el => { const f = el.closest('[data-float]'); if (f) floatClose_(f.getAttribute('data-float')); });
 /* THE RULER OR PROTRACTOR, from its tile in the part's tool row (`qt-inst`, qtools.js): no pen, no new screen */
 function measOpen_(el) {
-  const k = el.getAttribute('data-key') || '', tool = el.getAttribute('data-tool') === 'protractor' ? 'protractor' : 'ruler';
+  const k = el.getAttribute('data-key') || '';
+  /* ONE MEASURE (owner, 24 Nov): out comes the ruler; tapped again, the protractor in its place; again, nothing */
+  if (floatIs_('protractor', k)) { floatClose_('protractor'); return; }
+  const tool = floatIs_('ruler', k) ? 'protractor' : 'ruler';
+  if (tool === 'protractor') floatClose_('ruler');
   const S = measShape_(tool, k);
   const html = `<div class="meas-float" role="group" aria-label="${tool === 'protractor' ? 'Protractor: drag it over an angle; turn it by the round handle' : 'Ruler: drag it; turn it by the round handle'}" style="width:${S.w.toFixed(1)}px;height:${S.h.toFixed(1)}px;transform-origin:${S.pin[0].toFixed(1)}px ${S.pin[1].toFixed(1)}px" data-rot="0">`
     + `<svg class="meas" viewBox="0 0 ${S.w.toFixed(1)} ${S.h.toFixed(1)}" width="${S.w.toFixed(1)}" height="${S.h.toFixed(1)}" aria-hidden="true">${cardBlocks_({ type: 'drawing', node: { el: 'g', kids: S.body } })}</svg>`

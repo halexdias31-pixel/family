@@ -64,16 +64,13 @@ function codeBad() {
   const bad = [];
   fs.readdirSync(path.join(ROOT, 'js')).filter(f => f.endsWith('.js')).forEach(f => {
     const src = bare(fs.readFileSync(path.join(ROOT, 'js', f), 'utf8'), { comments: true });
-    (src.match(/openStep_\(\{[^;]*?(insertItem_|insertSheet_|insertBody_|insSource_)[^;]*/g) || []).forEach(m => {
-      if (!(f === 'find-history.js' && /^openStep_\(\{ title: list\.length/.test(m))) bad.push('js/' + f + ' opens an attachment by its own openStep_ — open it with attachOpen_');
-    });
+    /* NO INSERT TILE ON A QUESTION (owner, 24 Nov: seven buttons): nothing opens an attachment into a step from a question part */
+    (src.match(/openStep_\(\{[^;]*?(insertItem_|insertSheet_|insertBody_|insSource_)[^;]*/g) || []).forEach(() => bad.push('js/' + f + ' opens an attachment into a step'));
     (src.match(/\bon\(\s*'((?:ins|insert|source|src|formula|att)[\w-]*)'/g) || []).forEach(m => {
       const act = /'([^']+)'/.exec(m)[1];
-      if (act !== 'ins-print' && !(act === 'att-open' && f === 'find-history.js')) bad.push('js/' + f + ' has an opener of its own, ' + act + ' — one opener, att-open (attachOpen_)');
+      if (act !== 'ins-print') bad.push('js/' + f + ' has an opener of its own, ' + act + ' (no Insert tile since 24 Nov)');
     });
   });
-  const n = (fs.readFileSync(path.join(ROOT, 'js', 'find-history.js'), 'utf8').match(/^function attachOpen_\(/gm) || []).length;
-  if (n !== 1) bad.push('js/find-history.js: ' + n + ' attachOpen_ (one opener wanted)');
   return bad;
 }
 
@@ -91,7 +88,7 @@ async function onSize(size) {
         if (a.length) pointed++;
         a.forEach(r => { if (!insertRow_(r.id) || !/data-item-kind="insert"|insh/.test(findCard(insertItem_(r)))) bad.push(x.key + ': attachment ' + r.id + ' draws no card'); });
       });
-      qs.slice(0, 400).forEach(x => { const h = qtAll_(tileRow_(...qtTiles_(x, true).map(tile_))); if ((h.match(/data-do="att-open"/g) || []).length === 1) tiles++; else bad.push(x.key + ': not one Insert tile'); });
+      qs.slice(0, 400).forEach(x => { const h = qtAll_(tileRow_(...qtTiles_(x, true).map(tile_))); if (!/data-do="att-open"/.test(h)) tiles++; else bad.push(x.key + ': an Insert tile (gone 24 Nov)'); });
       return { kinds, pointed, all: qs.length, tiles, bad: bad.slice(0, 12), nBad: bad.length };
     });
     /* (d) THE CITED LINES on this screen: each 8700 part that cites lines, on its own card and in its whole question */
@@ -112,7 +109,8 @@ async function onSize(size) {
       return { n, bad };
     }, ENG.source);
     const opened = [];
-    for (const S of SAMPLE) {
+    /* NO INSERT TILE TO TAP (owner, 24 Nov): the samples are no longer opened from a question part */
+    for (const S of []) {
       const r = await pg.evaluate(S => {
         const x = stuffItemsAll_().filter(isQ_).find(x => insertsFor_(x).some(r => r.of === S.of && (!S.table || r.table === 'periodic'))
           && (!S.paper || String((x.row && x.row.paper_id) || '') === S.paper) && (!S.subject || x.subject === S.subject) && (!S.board || x.examBoard === S.board));
@@ -161,8 +159,7 @@ async function run() {
   });
   const s = out[0] ? out[0].sums : {};
   console.log('one-attachment: kinds 1 (' + d.rows + ' attachments: ' + TAGS.map((t, i) => d.tags[i] + ' ' + t).join(', ') + '); '
-    + (s.pointed || 0) + ' of ' + (s.all || 0) + ' questions point at one and every one resolves; ' + (s.tiles || 0) + ' sampled parts show the one Insert tile; '
-    + SAMPLE.length + ' samples opened by the one opener on ' + Object.keys(SIZES).join(' and ') + '; ' + d.stand + ' stand-ins without a booklet (budget ' + STANDIN_BUDGET + '); AQA 8700: '
+    + (s.pointed || 0) + ' of ' + (s.all || 0) + ' questions point at one and every one resolves; ' + (s.tiles || 0) + ' sampled parts show no Insert tile; ' + d.stand + ' stand-ins without a booklet (budget ' + STANDIN_BUDGET + '); AQA 8700: '
     + d.engSrc + '/' + d.eng + ' papers sat have their source, ' + ((out[0] && out[0].cited.n) || 0) + ' questions citing lines show them on '
     + Object.keys(SIZES).join(' and ') + ', ' + d.held + ' withheld (budget ' + WITHHELD_BUDGET + ')');
   bad.forEach(b => console.log('  ' + b));
