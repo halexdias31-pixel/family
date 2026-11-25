@@ -147,6 +147,8 @@ function figures(spec) {
       delete r.figure_script; r.diagram_by = 'family'; drawn++;
     }
     if (typeof r.diagram !== 'string' || !/^\s*<svg\b/i.test(r.diagram)) return;
+    /* THE CORNER LETTERS ITS QUESTION NAMES, put back where the drawing's own words say (tools/lib/vertex-labels.js; owner, 25 Nov) */
+    r.diagram = require('./lib/vertex-labels.js').mend(r.diagram, r.html);
     const h = twin.nameOf(r.diagram), png = path.join(twin.OUT, h + '.png');
     if (fs.existsSync(png)) { r.diagram_twin = h; r.diagram_twin_wh = twin.pngWH(png); twins++; } else waiting++;
   });
