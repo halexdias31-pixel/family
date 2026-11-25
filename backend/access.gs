@@ -304,6 +304,71 @@ function docketMeals24NovRun_() {
   return n + ' change(s): ' + meals.map(L => S(L.name)).join(', ') + ' each hold ' + DK_MEAL_SLOTS.join(', ');
 }
 
+/* ONE MEAL CYCLE (owner, 25 Nov): the morning, midday and evening lists (picked as docketMeals24NovRun_ picks them) each hold, in this
+   order, the daily DK_CYCLE items; the five food slot items are the ones already there, untouched. An item that already IS one (brush
+   teeth, clean room, Put away dishes…) is reused, renamed with "was: <old title>" in its note, minutes and place kept; a second one merges
+   into the first's note. The cycle sits where the list's first cycle item stood; nothing else moves. Shopping lives in the cycle only: a
+   Shopping item in any other list is removed, one line naming them in the backup row. Backup tab first, only when something is to
+   change, so a re-run is a no-op. tools/docket-slots.js checks it. */
+const DK_CYCLE = [['Jesus prayer', /^jesus prayer$/i], ['Glass of water', /^(a )?glass of water$/i],
+  ['Shopping', DK23_SHOP, 'only what\'s missing for the next meal'],
+  ['Protein', 'slot'], ['Carbs', 'slot'], ['Dairy', 'slot'], ['Veg', 'slot'], ['Fruit', 'slot'],
+  ['Wash up', /^(wash(ing)? up|put away (the )?dishes|do (the )?dishes|dishes)$/i], ['Brush teeth', /^brush (your )?teeth$/i],
+  ['10-minute tidy', /^(10[- ]?min(ute)? tidy|clean (your )?room|(small )?tidy( (your )?room)?)$/i], ['Short walk', /^(short )?walk$/i],
+  ['Exercise set', /^(exercise( set)?|push[- ]?ups|pull[- ]?ups|sit[- ]?ups)$/i, ['push-ups', 'pull-ups', 'sit-ups']],
+  ['Charge batteries', /^charge (the )?batter(y|ies)$/i], ['Check the Docket', /^check (the )?docket$/i]];
+function docketMealCycle25NovRun_() {
+  const t = read(TAB.people), me = t.rows.find(r => isOwner_(r));
+  if (!me) throw new Error('no owner found');
+  const was = S(me.todo);
+  let got = null; try { got = JSON.parse(was); } catch (e) { got = null; }
+  if (!got || !Array.isArray(got.lists)) throw new Error('the owner has no docket lists');
+  const mins = L => { const m = /^(\d{2}):(\d{2})$/.exec(S(L.start)); return m ? +m[1] * 60 + +m[2] : -1; };
+  const ok = got.lists.filter(L => L && !DK23_NO_SHOP.test(S(L.name).trim()));
+  const pick = (lo, hi, re) => ok.find(L => mins(L) >= lo && mins(L) < hi) || ok.find(L => re.test(S(L.name)));
+  const meals = [pick(0, 660, /shower|breakfast|morning/i), pick(660, 960, /lunch|midday|desk/i), pick(960, 1440, /home|dinner|evening/i)]
+    .map((L, i) => [L, i]).filter(([L], i, a) => L && a.findIndex(x => x[0] === L) === i);
+  if (!meals.length) throw new Error('no morning, midday or evening list found');
+  meals.forEach(([L, meal]) => {
+    const items = (L.items || []).filter(Boolean), claimed = new Set(), block = [];
+    DK_CYCLE.forEach(([want, how, said]) => {
+      const desired = Array.isArray(said) ? said[meal] : S(said);
+      const same = how === 'slot' ? (it => dkSame_(it.slot, want)) : (it => !it.slot && how.test(S(it.title).trim()));
+      const found = items.filter(it => !claimed.has(it) && same(it));
+      found.forEach(it => claimed.add(it));
+      if (how === 'slot') { if (found.length) block.push(...found); return; }
+      if (!found.length) { const o = { title: want, repeat: 'daily' }; if (desired) o.note = desired; block.push(o); return; }
+      const it = found[0], old = S(it.title), on = S(it.note);
+      const keep = desired && on.startsWith(desired) ? on.slice(desired.length).replace(/^\n+/, '') : on;
+      const parts = [desired, keep, old !== want ? 'was: ' + old : '']
+        .concat(found.slice(1).map(x => 'was: ' + was23_([x])));
+      if (old !== want || (desired && !on.startsWith(desired)) || found.length > 1) { it.title = want; it.note = parts.filter(Boolean).join('\n\n'); }
+      it.repeat = 'daily';
+      block.push(it);
+    });
+    const out = [];
+    let put = false;
+    items.forEach(it => { if (!claimed.has(it)) out.push(it); else if (!put) { out.push(...block); put = true; } });
+    if (!put) out.push(...block);
+    L.items = out;
+  });
+  const inMeal = new Set(meals.map(([L]) => L)), gone = [];
+  got.lists.forEach(L => {
+    if (!L || inMeal.has(L)) return;
+    const drop = (L.items || []).filter(it => it && DK23_SHOP.test(S(it.title).trim()));
+    if (drop.length) { gone.push(S(L.name) + ': ' + was23_(drop)); L.items = L.items.filter(it => drop.indexOf(it) < 0); }
+  });
+  if (JSON.stringify(got) === JSON.stringify(JSON.parse(was))) return 'nothing to do';
+  const removed = gone.length ? 'Shopping removed from ' + gone.join(' | ') : 'no Shopping removed';
+  const ss = t.sheet.getParent(), bk = ss.getSheetByName('backup_docket_cycle_25nov') || ss.insertSheet('backup_docket_cycle_25nov');
+  bk.appendRow([new Date(), was, removed]);
+  if (S(bk.getRange(bk.getLastRow(), 2).getValue()) !== was) throw new Error('the backup did not read back - nothing changed');
+  const cell = JSON.stringify(got);
+  if (cell.length > DOCKET_CELL_MAX) throw new Error('the docket would be ' + cell.length + ' characters, over ' + DOCKET_CELL_MAX + ' - nothing was saved');
+  if (!setCell(t, me, 'todo', cell)) throw new Error('the people tab has no todo column - nothing was saved');
+  return meals.map(([L]) => S(L.name)).join(', ') + ' each hold the ' + DK_CYCLE.length + '-item meal cycle; ' + removed;
+}
+
 /* NO IDEAS LIST (owner, 23 Nov): if an "Ideas & notes" list was made, its items go to the end of "@ Desk" and the empty list goes. */
 function docketIdeasToDeskRun_() {
   const t = read(TAB.people), me = t.rows.find(r => isOwner_(r));
@@ -477,6 +542,10 @@ const MIGRATIONS = [
     retry: true,
     what: "the same food slots at every meal: the morning, midday and evening lists each hold Protein, Carbs, Dairy, Veg and Fruit (Grain merged into Carbs, Meat into Protein; backup tab first); no text lost",
     run: () => docketMeals24NovRun_() },
+  { id: 'docket-meal-cycle-25nov',
+    retry: true,
+    what: "one meal cycle at breakfast, lunch and dinner: Jesus prayer, Glass of water, Shopping, the five food slots, Wash up, Brush teeth, 10-minute tidy, Short walk, Exercise set, Charge batteries, Check the Docket (existing ones reused, backup tab first); Shopping in no other list",
+    run: () => docketMealCycle25NovRun_() },
 ];
 
 /* ---------- MOVING ROWS OUT OF THE ITEMS TAB, NEVER LOSING ONE (queue step 7, 22 Nov) ----------
