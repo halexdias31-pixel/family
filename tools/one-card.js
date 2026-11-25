@@ -44,6 +44,7 @@ function withActivity(P) {
 /* THE SHAPES THE CARDS WEAR, each once */
 const shapesOf = all => [...new Set(all.map(x => x.sh).filter(Boolean))].sort();
 const PROVE = process.argv.includes('--prove');
+const TILE_ROWS = [];
 async function run() {
   const css = bare(text('style.css'), { comments: true });
   const hand = settingsByHand(css);
@@ -76,6 +77,13 @@ async function run() {
       const cards = await pg.evaluate(() => [...document.querySelectorAll('#screen .card')].filter(e => !e.parentElement.closest('.card')).slice(0, 60)
         .map(e => ({ n: e.getAttribute('aria-label') || e.innerText.slice(0, 30), c: e.className, sh: e.dataset.shape || '', ik: e.dataset.itemKind || '', set: e.matches('.kc-setting'),
           kc: e.matches('.fc.kc') && [...e.children].every(k => /^kc-/.test(k.className)) })));
+      /* ONE LINE PER TILE ROW (owner, 25 Nov: ↑ sat lower than + and ✎ beside it): tiles on one line of a row share their top edge (±1px). */
+      const rows = await pg.evaluate(() => [...document.querySelectorAll('#screen .tile-row')].filter(r => !r.parentElement.closest('.tile-row')).map(r => {
+        const ts = [...r.querySelectorAll('.tile')].filter(t => t.offsetParent).map(t => ({ a: t.dataset.do || '', b: t.getBoundingClientRect() }));
+        const off = ts.filter(x => ts.some(y => y.b.top < x.b.bottom && x.b.top < y.b.bottom && Math.abs(y.b.top - x.b.top) > 1));
+        return { n: ts.length, off: off.map(x => x.a + '@' + Math.round(x.b.top)) };
+      }).filter(r => r.n > 1));
+      TILE_ROWS.push(...rows.map(r => Object.assign(r, { door: d })));
       await pg.close();
       return cards.filter(x => x.n !== 'Find').map(x => ({ door: d, n: x.n, c: x.c, kc: x.kc, sh: x.sh, ik: x.ik, set: x.set, own: x.c.split(/\s+/).filter(c => c && !BASE.test(c) && styled(c)) }));
     };
@@ -89,6 +97,10 @@ async function run() {
     console.log('  by door: ' + doors.map(d => d + ' ' + all.filter(x => x.door === d).length).join(', '));
     bad.forEach(x => console.log('  ' + x.door + ' › ' + String(x.n).replace(/\n/g, ' ') + ' [' + (x.kc ? '' : 'not one maker; ') + x.own.join(' ') + ']'));
     if (bad.length) throw new Error('one-card: ' + bad.length + ' card(s) outside the one maker');
+    const crooked = TILE_ROWS.filter(r => r.off.length);
+    console.log('one-card: ' + (TILE_ROWS.length - crooked.length) + '/' + TILE_ROWS.length + ' tile rows with every button on one line');
+    crooked.forEach(r => console.log('  ' + r.door + ' › off the line: ' + r.off.join(' ')));
+    if (crooked.length) throw new Error('one-card: ' + crooked.length + ' tile row(s) with a button off its line');
     const KINDS = SD.kinds();
     /* ONE CARD TYPE (owner, 25 Nov): every card wears the one shape, the question card's frame; more than one shape seen fails. */
     const shapes = shapesOf(all);
