@@ -426,6 +426,61 @@ function docketIdeasToDeskRun_() {
   return moved.length + ' item(s) moved to @ Desk';
 }
 
+/* DOCKET INBOX (owner, 25 Nov): a private Ledger tab `docket_inbox` (title, note, list, replaces) that Claude or the owner drops items into. On every admin
+   page load (setupOnAdminLoad_), if it has rows: the owner's cell is backed up (backup_docket_inbox: time, old cell, titles), each row becomes a
+   one-off {title, note?} at the end of its list (blank: "@ Desk"; a missing list is made), a title already in that list (any case) is skipped, the
+   size cap is kept and the cell read back, then the rows read are deleted (the header stays). No tab or no rows: nothing happens. No item text
+   is ever in the repo. A `replaces` column (" | "-separated titles, any case) removes those items from that list, the new one taking the first one's place (named in the backup row). tools/docket-inbox.js checks it. */
+const DOCKET_INBOX_TAB = 'docket_inbox', DOCKET_INBOX_BACKUP = 'backup_docket_inbox';
+function docketInboxRun_() {
+  const t = read(TAB.people), ss = t.sheet && t.sheet.getParent(), ib = ss && ss.getSheetByName(DOCKET_INBOX_TAB);
+  if (!ib) return 'no inbox tab';
+  const n = ib.getLastRow() - 1;
+  if (n < 1) return 'nothing to do';
+  const H = ib.getRange(1, 1, 1, Math.max(ib.getLastColumn(), 1)).getValues()[0].map(h => S(h).trim().toLowerCase());
+  const col = k => H.indexOf(k), rows = ib.getRange(2, 1, n, H.length).getValues();
+  const cell = (r, k) => (col(k) < 0 ? '' : S(r[col(k)]).trim());
+  const me = t.rows.find(r => isOwner_(r));
+  if (!me) throw new Error('no owner found');
+  const was = S(me.todo);
+  let got = null; try { got = was ? JSON.parse(was) : { v: 1, lists: [] }; } catch (e) { got = null; }
+  if (!got || typeof got !== 'object') throw new Error('the owner\'s docket cell is not JSON - nothing changed');
+  got.lists = Array.isArray(got.lists) ? got.lists.filter(Boolean) : [];
+  const added = [], skipped = [], removed = [];
+  rows.forEach(r => {
+    const title = cell(r, 'title'), note = cell(r, 'note'), name = cell(r, 'list') || '@ Desk';
+    if (!title) return;
+    let L = got.lists.find(x => S(x.name).trim().toLowerCase() === name.toLowerCase());
+    if (!L) { L = { name, items: [] }; got.lists.push(L); }
+    L.items = (L.items || []).filter(Boolean);
+    const rep = cell(r, 'replaces').split('|').map(x => x.trim().toLowerCase()).filter(x => x && x !== title.toLowerCase());
+    let at = -1, kept = 0;
+    L.items = L.items.filter(it => {
+      if (rep.indexOf(S(it.title).trim().toLowerCase()) < 0) { kept++; return true; }
+      if (at < 0) at = kept;
+      removed.push([L, S(it.title)]); return false;
+    });
+    if (L.items.some(it => S(it.title).trim().toLowerCase() === title.toLowerCase())) { skipped.push(title); return; }
+    L.items.splice(at < 0 ? L.items.length : at, 0, note ? { title, note } : { title });
+    added.push(title);
+  });
+  if (added.length || removed.length) {
+    const titles = 'added (' + added.length + '): ' + added.join(' | ') + (skipped.length ? '; skipped (' + skipped.length + '): ' + skipped.join(' | ') : '')
+      + (removed.length ? '; replaced (' + removed.length + '): ' + removed.map(x => S(x[0].name) + ': ' + x[1]).join(' | ') : '');
+    const bk = ss.getSheetByName(DOCKET_INBOX_BACKUP) || ss.insertSheet(DOCKET_INBOX_BACKUP);
+    bk.appendRow([new Date(), was, titles]);
+    if (S(bk.getRange(bk.getLastRow(), 2).getValue()) !== was) throw new Error('the backup did not read back - nothing changed');
+    const out = JSON.stringify(got);
+    if (out.length > DOCKET_CELL_MAX) throw new Error('the docket would be ' + out.length + ' characters, over ' + DOCKET_CELL_MAX + ' - nothing was saved');
+    if (!setCell(t, me, 'todo', out)) throw new Error('the people tab has no todo column - nothing was saved');
+    clearCache();
+    const back = read(TAB.people).rows.find(r => isOwner_(r));
+    if (!back || S(back.todo) !== out) throw new Error('the docket did not read back - the inbox rows were kept');
+  }
+  ib.deleteRows(2, n);
+  return added.length + ' added, ' + skipped.length + ' already there, ' + removed.length + ' replaced; ' + n + ' inbox row(s) cleared';
+}
+
 /* ---------- THE ONE-OFF JOBS, RUN ONCE, BY THEMSELVES § */
 const MIGRATIONS = [
   /* EVERY PIN FOUR DIGITS (owner, 10 Nov): a longer one keeps its first four; signing in with the old one still works (authCheckPin_). */

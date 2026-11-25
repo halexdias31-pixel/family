@@ -1173,16 +1173,17 @@ const SETUP_CHECK_MS = 10 * 60 * 1000;
 const KEEP_BOOKED = [
   { id: 'sunday-email-hour', fn: () => digestKeepBooked_(), what: 'the Sunday email kept at weekly_digest_hour', when: {} },
   { id: 'library-import-hourly', fn: () => libImportKeepBooked_(), what: 'the hourly library import kept booked', when: { libImportHourly: 'every hour' } },
-  { id: 'keep-warm', fn: () => keepWarmKeepBooked_(), what: 'the five-minute keep-warm kept booked', when: { keepWarm: 'every 5 minutes' } }
+  { id: 'keep-warm', fn: () => keepWarmKeepBooked_(), what: 'the five-minute keep-warm kept booked', when: { keepWarm: 'every 5 minutes' } },
+  /* DOCKET INBOX (owner, 25 Nov): `everyLoad`, so not held to the ten minutes: rows in docket_inbox go into the owner's Docket (docketInboxRun_). */
+  { id: 'docket-inbox', fn: () => withWriteLock_(() => docketInboxRun_(), { wait: 5000, busy: () => null }), what: "docket_inbox rows put in the owner's Docket", when: {}, everyLoad: true }
 ];
 function setupOnAdminLoad_() {
   try { autoMigrate_(); } catch (err) { Logger.log('setup: ' + err); }
   try {
     const props = PropertiesService.getScriptProperties();
-    const at = Number(props.getProperty('SETUP_CHECKED_AT') || 0);
-    if (Date.now() - at < SETUP_CHECK_MS) return;
-    props.setProperty('SETUP_CHECKED_AT', String(Date.now()));
-    KEEP_BOOKED.forEach(job => {
+    const at = Number(props.getProperty('SETUP_CHECKED_AT') || 0), due = Date.now() - at >= SETUP_CHECK_MS;
+    if (due) props.setProperty('SETUP_CHECKED_AT', String(Date.now()));
+    KEEP_BOOKED.filter(job => job.everyLoad || due).forEach(job => {
       try { job.fn(); props.deleteProperty('FAILED_' + job.id); }
       catch (err) { props.setProperty('FAILED_' + job.id, String((err && err.message) || err).slice(0, 300)); }
       /* THE NOTES A SESSION ADDRESSED (498), marked done from data/notes-done.json, after the Sunday hour as before. */
