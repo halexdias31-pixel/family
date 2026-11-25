@@ -15519,7 +15519,7 @@ return mapHtml_('Board games',
 attrs: { id: 'bg-pick', 'data-do': 'bg-pick', 'aria-label': 'Which game' }, inner: window.bgOptions_ ? window.bgOptions_() : '' }] },
 mapBox_('bg-slot', null, { inner: window.bgSlot_ ? window.bgSlot_() : '' }));
 } },
-{ id: 'docket', kind: 'tool', name: 'Docket', start: () => dkPaint_(),
+{ id: 'docket', kind: 'tool', name: 'Docket', start: () => { if (!DK.fresh) DK.say = ''; dkPaint_(); },
 draw: () => dkPaint_(),
 into: 'dk-box', what: 'Your docket',
 get html() { return mapHtml_('Docket', mapBox_('dk-box', 'dk-box')); } },
@@ -15533,7 +15533,7 @@ into: 'lib-box', what: 'Your library cards',
 get html() { return cardBlocks_(mapBox_('lib-box')); } },
 ];
 tierGuardWidgets_(WIDGETS);
-const DK = { lists: null, at: 0, edit: -1, rename: false, showDone: false, say: '', addr: null };
+const DK = { lists: null, at: 0, edit: -1, rename: false, showDone: false, say: '', addr: null, fresh: false, base: null, asking: null, q: Promise.resolve() };
 const dkDay_ = d => todayIso_(d);
 const dkRep_ = i => !!i && (i.repeat === 'daily' || i.repeat === '8h');
 const dkOn_ = (i, now) => { now = String(now || ''); const d = now.slice(0, 10), h = +now.slice(11, 13); return i && i.repeat === '8h' ? d + '/' + (1 + Math.floor((h >= 0 && h < 24 ? h : 0) / 8)) : d; };
@@ -15574,13 +15574,37 @@ DK.lists = got && Array.isArray(got.lists) ? got.lists
 : raw.trim() ? [{ name: 'Docket', items: raw.split('\n').map(t => t.trim()).filter(Boolean).map(title => ({ title })) }] : [];
 return dkTidy_(DK.lists);
 }
+function todoBase_(cell) {
+let h = 2166136261;
+const s = String(cell == null ? '' : cell);
+for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+return s.length.toString(36) + '.' + h.toString(36);
+}
+function dkTake_(todo, base) {
+if (typeof USER !== 'undefined' && USER) { USER.todo = String(todo || ''); if (typeof saveUser_ === 'function') saveUser_(); }
+DK.lists = null; DK.slots = []; DK.base = base; DK.fresh = true;
+if (typeof stuffForget_ === 'function') stuffForget_(true);
+}
+function dkFetch_() {
+if (DK.asking) return DK.asking;
+DK.asking = Promise.resolve(api({ action: 'docketImport', read: true, personId: (typeof USER !== 'undefined' && USER && USER.personId) || '' }))
+.then(d => { if (d && d.success) { dkTake_(d.todo, d.base); DK.say = ''; } else DK.say = (d && d.error) || 'Your Docket could not be read — try again.'; })
+.catch(() => { DK.say = 'Your Docket could not be read — you look offline.'; })
+.then(() => { DK.asking = null; dkPaint_(); });
+return DK.asking;
+}
 function dkSave_() {
+if (!DK.fresh) { DK.lists = null; dkFetch_(); return; }
 if (typeof stuffForget_ === 'function') stuffForget_(true);
 const todo = JSON.stringify(Object.assign({ v: 1 }, DK.slots && DK.slots.length ? { slots: DK.slots } : {}, { lists: DK.lists }));
 if (typeof USER !== 'undefined' && USER) { USER.todo = todo; if (typeof saveUser_ === 'function') saveUser_(); }
-Promise.resolve(api({ action: 'item', door: 'save', item: 'todo', personId: (USER && USER.personId) || '', todo }))
-.then(d => { if (!(d && d.success)) { DK.say = (d && d.error) || text_('not-saved-try-again'); dkPaint_(); } })
-.catch(() => { DK.say = 'Not saved — you look offline.'; dkPaint_(); });
+DK.q = DK.q.then(() => Promise.resolve(api({ action: 'item', door: 'save', item: 'todo', personId: (USER && USER.personId) || '', todo, base: DK.base }))
+.then(d => {
+if (d && d.success) { if (d.base) DK.base = d.base; return; }
+if (d && d.stale) { dkTake_(d.todo, d.base); DK.say = 'Your Docket changed elsewhere — reloaded'; dkPaint_(); return; }
+DK.say = (d && d.error) || text_('not-saved-try-again'); dkPaint_();
+})
+.catch(() => { DK.say = 'Not saved — you look offline.'; dkPaint_(); }));
 }
 const DK_MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const dkSayDay_ = d => (+d.slice(8, 10)) + ' ' + DK_MON[+d.slice(5, 7) - 1];
@@ -15694,9 +15718,11 @@ if (box.getAttribute('data-was') !== html) { box.innerHTML = html; box.setAttrib
 }
 const dkEinkTry_ = () => { try { dkEinkPaint_(); } catch (e) { if (typeof oops_ === 'function') oops_(e, 'map:eink'); } };
 if (EINK) { setTimeout(dkEinkTry_, 0); setInterval(dkEinkTry_, 60000); }
+setTimeout(() => { try { if (typeof may_ === 'function' && may_('owner') && typeof api === 'function') dkFetch_(); } catch (e) { if (typeof oops_ === 'function') oops_(e, 'map:dk-fetch'); } }, 0);
 function dkPaint_() {
 const box = $('dk-box');
 if (!box) return;
+if (!DK.fresh) { if (!DK.asking && !DK.say) dkFetch_(); box.innerHTML = cardBlocks_([{ type: 'text', text: DK.say || 'Fetching your Docket…' }]); return; }
 box.innerHTML = cardBlocks_(dkBlocks_());
 }
 const dkList_ = () => dkLoad_()[DK.at];
@@ -15721,10 +15747,12 @@ $('dk-box').querySelectorAll('.dk-editing .dk-f').forEach(f => { it[f.getAttribu
 if (!dkRep_(it)) delete it.repeat;
 if (!it.slot) delete it.slot;
 DK.edit = -1; stepDone_(DK.editStep, false); dkKeep_(); });
-on('dk-food', el => { const it = dkList_() && dkList_().items[+el.getAttribute('data-i')]; if (!it) return;
-const f = el.getAttribute('data-f') || ''; if (dkPicked_(it) === f) { it.pick = ''; it.pickOn = ''; } else { it.pick = f; it.pickOn = dkOn_(it, dkNow_()); }
-if (it.slot && it.pick && !dkDone_(it)) dkTick_(dkList_().items, +el.getAttribute('data-i'), true, dkNow_());
-dkKeep_(); });
+const dkPick_ = (items, i, f) => { const it = items && items[i]; if (!it) return false;
+if (dkPicked_(it) === f) { it.pick = ''; it.pickOn = ''; } else { it.pick = f; it.pickOn = dkOn_(it, dkNow_()); }
+if (it.slot && it.pick && !dkDone_(it)) dkTick_(items, i, true, dkNow_());
+return true; };
+on('dk-food', el => { if (dkList_() && dkPick_(dkList_().items, +el.getAttribute('data-i'), el.getAttribute('data-f') || '')) dkKeep_(); });
+on('dk-ffood', el => { const { L, i } = dkAt_(el.getAttribute('data-at')); if (L && dkPick_(L.items, i, el.getAttribute('data-f') || '')) dkFindKeep_(); });
 const dkAddr_ = renew => Promise.resolve(api({ action: 'docketAddress', personId: (USER && USER.personId) || '', renew: renew ? 1 : '' }))
 .then(d => { if (d && d.token) DK.addr = API + '?docket=' + d.token; else { DK.addr = null; DK.say = (d && d.error) || text_('err-docket-saved'); } dkPaint_(); })
 .catch(() => { DK.addr = null; DK.say = 'Not saved — you look offline.'; dkPaint_(); });
@@ -15801,33 +15829,37 @@ const dkFill_ = it => Object.assign({}, ...dkFields_().filter(x => x.default != 
 const DKF = { edit: '' };
 function dkItems_() {
 if (typeof may_ !== 'function' || !may_('owner')) return [];
-const now = dkNow_();
-return dkLoad_().flatMap((L, li) => {
-const items = L.items || [], order = dkPlan_(items.map(dkFill_), now), firsts = order.filter(i => !dkDone_(items[i])).slice(0, 2);
-return [{ kind: 'docket', name: 'Add to ' + (L.name || 'the list'), key: 'dk:' + li + ':new', sub: L.name || '', image: '', dkList: L.name || '', dkNew: li, seq: 0, row: {}, text: 'add new ' + (L.name || '') }]
-.concat(order.map((i, n) => { const it = items[i];
-return { kind: 'docket', name: it.title || 'Untitled', key: 'dk:' + li + ':' + i, seq: n + 1, sub: L.name || '', image: '', dkMark: ['Now', 'Next'][firsts.indexOf(i)] || '',
-dkList: L.name || '', dkAt: li + ':' + i, row: it, text: [it.title, it.note, L.name].filter(Boolean).join(' ') }; }));
-});
+return dkLoad_().map((L, li) => ({ kind: 'docket', name: L.name || 'List', key: 'dk:' + li, seq: li, sub: L.name || '', image: '', dkList: L.name || '', dkLi: li, row: {},
+text: [L.name].concat((L.items || []).map(it => [it.title, it.note].filter(Boolean).join(' '))).filter(Boolean).join(' ') }));
+}
+const dkOptsOf_ = it => { const fk = !it.slot && typeof foodKindOf_ === 'function' ? foodKindOf_(it.title) : null;
+return it.slot ? dkSlotOptions_(dkFoodsWith_(typeof foodIndex_ === 'function' ? foodIndex_() : null, DK.slots), it.slot) : fk ? foodsOf_(fk) : []; };
+function dkLine_(li, i, mark) {
+const it = dkLoad_()[li].items[i], at = li + ':' + i, a = dkFill_(it), picked = dkPicked_(it), done = dkDone_(it), opts = dkOptsOf_(it), editing = DKF.edit === at, spec = dkFields_();
+const facts = [mark, it.repeat === '8h' ? 'Every 8 hours' : it.repeat === 'daily' ? 'Daily' : it.date ? dkSayDay_(it.date) : '', it.time ? (it.timeIs === 'by' ? 'by ' : '') + it.time : '',
+a.minutes + ' min', +a.runs ? 'Runs by itself ' + a.runs + ' min' : '', it.slot ? 'Slot: ' + it.slot : ''].filter(Boolean);
+return cardFold_('dk:' + at, { type: 'tick', text: (it.title || 'Untitled') + (picked ? ': ' + picked.toLowerCase() : ''), attrs: { 'data-dkf': at, checked: done, 'aria-label': 'Done: ' + (it.title || '') } }, [
+{ type: 'text', text: facts.join(' · ') },
+opts.length && !done ? { type: 'tiles', tiles: opts.map(f => ({ label: f.name, note: f.note || '', act: 'dk-ffood', cls: f.name === picked ? 'is-submit' : '', data: { at, f: f.name } })) } : null,
+it.note && !editing ? { type: 'text', paras: String(it.note).split(/\n{2,}/) } : null, dkCovers_(it),
+editing ? { type: 'group', look: 'dk-form', inner: formOf_('docket-item', a, { options: f => ((spec.find(y => y.f === f) || {}).options || []) }) } : null,
+{ type: 'tiles', tiles: editing ? [{ icon: 'save', label: text_('save'), act: 'dk-fsave', cls: 'is-submit', data: { at } }, { icon: 'bin', label: 'Delete', act: 'dk-fdel', tone: 'danger', data: { at } },
+{ icon: 'close', label: 'Close', act: 'dk-fedit', data: { at } }] : [{ icon: 'edit', label: 'Edit', act: 'dk-fedit', data: { at } }] }], 'dk-line');
 }
 function dkCard_(x) {
-if (x.dkNew != null) return renderCard(shapeCard_('docket', { kind: 'docket', name: x.name, tags: [x.name, x.dkList],
-body: [{ type: 'field', cap: 'Add an item', blocks: [{ type: 'control', attrs: { class: 'dk-qadd', 'data-li': x.dkNew, placeholder: 'What to do, then Enter', maxlength: 300, enterkeyhint: 'done' } }] }],
-tiles: [{ icon: 'plus', label: 'Add', act: 'dk-qadd', cls: 'is-submit', data: { li: x.dkNew } }] }));
-const it = x.row || {}, a = dkFill_(it), when = [it.repeat === '8h' ? 'Every 8 hours' : it.repeat === 'daily' ? 'Daily' : it.date ? dkSayDay_(it.date) : '', it.time ? (it.timeIs === 'by' ? 'by ' : '') + it.time : ''].filter(Boolean);
-const open = DKF.edit === x.dkAt, spec = dkFields_();
-const form = open ? [{ type: 'group', look: 'dk-form', inner: formOf_('docket-item', a, { options: f => ((spec.find(y => y.f === f) || {}).options || []) }) }] : [];
-return renderCard(shapeCard_('docket', { kind: 'docket', name: it.title || 'Untitled', tags: [it.title || 'Untitled', x.dkMark, a.minutes + ' min', +a.runs ? 'Runs by itself ' + a.runs + ' min' : '', x.dkList].concat(when).filter(Boolean),
-body: [{ type: 'tick', text: 'Done', attrs: { 'data-dkf': x.dkAt, checked: dkDone_(it), 'aria-label': 'Done: ' + (it.title || '') } },
-it.note && !open ? { type: 'text', paras: String(it.note).split(/\n{2,}/) } : null, dkCovers_(it)].concat(form).filter(Boolean),
-tiles: open ? [{ icon: 'save', label: text_('save'), act: 'dk-fsave', cls: 'is-submit', data: { at: x.dkAt } }, { icon: 'bin', label: 'Delete', act: 'dk-fdel', tone: 'danger', data: { at: x.dkAt } },
-{ icon: 'close', label: 'Close', act: 'dk-fedit', data: { at: x.dkAt } }] : [{ icon: 'edit', label: 'Edit', act: 'dk-fedit', data: { at: x.dkAt } }] }));
+const li = x.dkLi, L = dkLoad_()[li] || { items: [] }, items = L.items || [], order = dkPlan_(items.map(dkFill_), dkNow_());
+const open = order.filter(i => !dkDone_(items[i])), done = order.filter(i => dkDone_(items[i]));
+return renderCard(shapeCard_('docket', { kind: 'docket', name: L.name || 'List', tags: [L.name || 'List'],
+body: open.map((i, n) => dkLine_(li, i, ['Now', 'Next'][n] || ''))
+.concat(done.length ? cardFold_('dk:' + li + ':done', { type: 'text', text: 'Done (' + done.length + ')' }, done.map(i => dkLine_(li, i, '')), 'dk-done') : [])
+.concat({ type: 'field', look: 'dk-qadd-f', blocks: [{ type: 'control', attrs: { class: 'dk-qadd', 'data-li': li, placeholder: 'Add an item, then Enter', 'aria-label': 'Add to ' + (L.name || 'the list'), maxlength: 300, enterkeyhint: 'done' } }] }),
+tiles: [{ icon: 'plus', label: 'Add', act: 'dk-qadd', cls: 'is-submit', data: { li } }] }));
 }
 const dkAt_ = at => { const [li, i] = String(at || '').split(':').map(Number), L = dkLoad_()[li]; return { L, i, it: L && L.items[i] }; };
 const dkFindKeep_ = () => { dkKeep_(); if (typeof lateCame_ === 'function') lateCame_(); if (EINK) dkEinkTry_(); };
 const dkFindDraw_ = () => { if (typeof lateCame_ === 'function') lateCame_(); };
 on('dk-fedit', el => { const at = el.getAttribute('data-at') || ''; if (DKF.edit === at) { DKF.edit = ''; stepDone_(DKF.step, false); dkFindDraw_(); return; }
-DKF.step = openStep_({ el, draw: () => { DKF.edit = at; dkFindDraw_(); }, undo: () => { if (DKF.edit === at) { DKF.edit = ''; dkFindDraw_(); } } }); });
+DKF.step = openStep_({ el, draw: () => { DKF.edit = at; CARD_OPEN.add('dk:' + at); dkFindDraw_(); }, undo: () => { if (DKF.edit === at) { DKF.edit = ''; dkFindDraw_(); } } }); });
 on('dk-fsave', el => { const { it } = dkAt_(el.getAttribute('data-at')), card = el.closest('.card'); if (!it || !card) return;
 card.querySelectorAll('[data-dke]').forEach(b => { const f = b.getAttribute('data-dke'), x = dkFields_().find(y => y.f === f) || {}, v = String(b.value || '').trim();
 if (f === 'title') { if (v) it.title = v.slice(0, 300); return; }

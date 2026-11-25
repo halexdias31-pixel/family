@@ -82,7 +82,7 @@ const CASES = [
     shown: () => document.querySelectorAll('#screen [data-do="dk-fedit"]').length > 0,
     gone: () => [...document.querySelectorAll('#screen [data-do="facet-pick"]')].some(e => e.offsetWidth > 0 && /Morning/.test(e.textContent)) },
   { name: 'Docket item edit', file: 'docket-edit.png', open: { user: Object.assign({}, SB.USERS.admin, { owner: true, todo: JSON.stringify(DOCKET) }) },
-    prep: async pg => { for (const t of ['Tools', 'Docket', 'Morning']) await SB.tap(pg, t); },
+    prep: async pg => { for (const t of ['Tools', 'Docket', 'Morning']) await SB.tap(pg, t); await pg.evaluate(() => { const s = document.querySelector('#screen .dk-line > summary'); if (s) s.click(); }); },
     press: pressIn('#screen [data-do="dk-fedit"]'),
     shown: () => !!document.querySelector('#screen [data-do="dk-fsave"]'),
     gone: () => !document.querySelector('#screen [data-do="dk-fsave"]') },
