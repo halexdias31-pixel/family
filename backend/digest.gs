@@ -343,7 +343,7 @@ function digestHow_(verdict) {
 /* THE WORDS AND COLOUR FOR EACH WAY A QUESTION WENT — the summary's figures and each card's verdict say the same thing, the status words. */
 function digestHowSay_() {
   const ink = digestInk_(), tone = { right: ink.right, part: ink.gold, wrong: ink.wrong, unmarked: ink.gold, untried: ink.dim };
-  return ['right', 'part', 'wrong', 'unmarked', 'untried'].map(id => ({ id: id, many: statusWord_(id).toLowerCase(), one: id === 'part' ? '' : ({ right: '✓ ', wrong: '✗ ' }[id] || '') + statusWord_(id), tone: tone[id] }));
+  return ['right', 'part', 'wrong', 'attempted', 'untried'].map(id => ({ id: id, many: statusWord_(id).toLowerCase(), one: id === 'part' ? '' : ({ right: '✓ ', wrong: '✗ ' }[id] || '') + statusWord_(id), tone: tone[id] }));
 }
 /* A NAME THAT IS A PAPER'S AND NOT A TOPIC'S — "Paper 1F (Non-calculator) — June 2024", "Paper X", a mock, a 5-a-day's date, a board, a year or a month (380, 20 Oct). */
 const DIGEST_NOT_TOPIC = /\bpapers?\b|\bmock\b|\bspecimen\b|5-a-day|\b(?:19|20)\d\d\b|\b(?:january|february|march|april|may|june|july|august|september|october|november|december)\b|\b(?:aqa|edexcel|ocr|wjec|eduqas|ccea)\b|testing agency/i;

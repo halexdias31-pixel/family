@@ -751,7 +751,7 @@ function questionAnsCard_(x, inRow, bare) {
   return figBox_({ look: 'qcard qans-card' + (open ? '' : ' is-hidden'), attrs: { 'data-of': id, 'data-k': k, 'data-shape': 'Card' },
     inner: tags
       + (inRow ? '' : figBox_({ look: 'tile-row qans-tiles', inner: qaToggle_(k, open) }))
-      + (open ? ansBox_(x, true) : figBox_({ tag: 'p', look: 'qans-wait-k', text: statusWord_('hidden') }))
+      + (open ? ansBox_(x, true) : figBox_({ tag: 'p', look: 'qans-wait-k', text: text_('answer-hidden-say') }))
       + (!inRow && typeof helpRow_ === 'function' ? helpRow_(x, 'ans') : '') });
 }
 

@@ -57,7 +57,7 @@ function answerSaysBuilt_(items) {
 
 /* A BIG LIST'S CARDS BY ONE FACET'S ANSWER (1100), in the list's order, made once (or ahead, `frontWarm_`): § */
 /* Not for a facet that reads the chips or your presses (`OWN_LIVE`), and only over NARROW_BIG cards, where a walk is felt. */
-const NARROW_INDEX = new WeakMap(), NARROW_BIG = 20000, OWN_LIVE = { myResult: 1, mySaved: 1, wCollection: 1 };
+const NARROW_INDEX = new WeakMap(), NARROW_BIG = 20000, OWN_LIVE = { myTried: 1, myResult: 1, wCollection: 1 };
 function narrowIndex_(items, field, make) {
   if (!items || items.length < NARROW_BIG || OWN_LIVE[field]) return null;
   let per = NARROW_INDEX.get(items);

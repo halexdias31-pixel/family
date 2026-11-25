@@ -496,12 +496,15 @@ function myResults_() {
 }
 /* ONE STATUS SET, ONE MENU (owner, 23 Nov, UNIFY item 4; was Attempted / Unattempted and Correct / Incorrect / Part marks):
    the signed-in person's latest answer, Not tried / Right / Part right / Wrong, by `statusOf_` and its words. */
-function myResultOf_(x) {
+/* TWO MENUS (owner, 25 Nov): whether the signed-in person has attempted the part, and, attempted and marked, its result */
+function myStatus_(x) {
   if (!isQ_(x)) return '';
   const map = myResults_(), k = String(x.key || x.name || '');
   if (!map) return '';
-  return statusWord_(map.has(k) ? statusOf_(map.get(k)) : 'untried');
+  return map.has(k) ? statusOf_(map.get(k)) : 'untried';
 }
+function myTriedOf_(x) { const s = myStatus_(x); return s ? statusWord_(s === 'untried' ? 'untried' : 'attempted') : ''; }
+function myResultOf_(x) { const s = myStatus_(x); return s === 'right' || s === 'part' || s === 'wrong' ? statusWord_(s) : ''; }
 /* A PRESS CHANGES IT AT ONCE: every finder forgets what it found, and the tags on the pressed question's own page are said again. */
 function myResultNew_(k) {
   MY_RESULT.gen++;
@@ -509,7 +512,7 @@ function myResultNew_(k) {
   try {
     const x = stuffItemsAll_().find(i => isQ_(i) && ansKey_(i) === k);
     if (!x) return;
-    const tags = [['myResult', myResultOf_(x)]].flatMap(([f, v]) => asList_(v).map(t => qtag_(esc(t), tagAttr_(f) + ' data-f="' + f + '"'))).join('');
+    const tags = [['myTried', myTriedOf_(x)], ['myResult', myResultOf_(x)]].flatMap(([f, v]) => asList_(v).map(t => qtag_(esc(t), tagAttr_(f) + ' data-f="' + f + '"'))).join('');
     /* ONLY THE PRESSED PART'S OWN TAG LINE: a whole question's page holds every part's card (`.qb`), and each says its own result. */
     document.querySelectorAll('[data-k]').forEach(b => {
       if (b.getAttribute('data-k') !== k) return;
