@@ -13,8 +13,7 @@ const VL = require('./lib/vertex-labels.js');
 const { ROOT, S, main } = require('./lib/gen.js');
 
 /* A LETTER THE FIGURE CANNOT BE TOLD WHERE TO PUT (no coordinates, no lettered polygon): named, waiting for its corner by hand. Only ever fewer. */
-const OWED_CBM = { 'Q-1CM-circles-segment-area-3': 'A and C on the arc: the sector is drawn without its arc ends lettered',
-  'Q-1CM-volume-and-surface-area-of-pyramids-8': 'VABCD: the two pyramids are drawn with their lengths, none of their corners lettered' };
+const OWED_CBM = {};
 /* EVERY OTHER SET: parts whose figure owes a letter, today. Only ever fewer. */
 const OTHER_BUDGET = 8;
 

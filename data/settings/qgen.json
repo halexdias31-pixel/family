@@ -723,6 +723,32 @@
       "text": "A tank holds {s} litres of water at the start. Water flows in at a constant rate. After {t} minutes it holds {e} litres. Work out the rate of flow in litres per minute (the gradient of the line).",
       "key": "{r} litres per minute | {r}",
       "typed": ["{r}"], "wrong": "{e - s}"
+    },
+    {
+      "id": "trig-side", "dfe": "dfe.ma.g.mens.trig", "answer_type": "calculation", "marks": 2,
+      "vars": { "a": [20, 70, 44, 45, 46], "h": [4, 40], "f": [0, 2] },
+      "let": {
+        "x": "f == 0 ? h * sin(a) : f == 1 ? h * cos(a) : h * tan(a)",
+        "w": "f == 0 ? h * cos(a) : f == 1 ? h * sin(a) : h / tan(a)",
+        "given": "f == 2 ? 'The side adjacent to the ' + a + '° angle' : 'The hypotenuse'",
+        "want": "f == 1 ? 'the side adjacent to the ' + a + '° angle' : 'the side opposite the ' + a + '° angle'"
+      },
+      "text": "In a right-angled triangle, one of the angles is {a}°. {given} is {h} cm long. Work out the length of {want}. Give your answer to 1 decimal place.",
+      "key": "{rd(x, 1)} cm",
+      "typed": ["{rd(x, 1)}", "{rd(x, 1)} cm"], "wrong": "{rd(w, 1)}"
+    },
+    {
+      "id": "trig-angle", "dfe": "dfe.ma.g.mens.trig", "answer_type": "calculation", "marks": 2,
+      "vars": { "p": [2, 30], "q": [3, 40], "f": [0, 2] },
+      "where": ["p != q", "f == 2 || p < q", "f == 2 || (1000 * p - 707 * q) * (1000 * p - 707 * q) > 225 * q * q"],
+      "let": {
+        "x": "f == 0 ? asin(p / q) : f == 1 ? acos(p / q) : atan(p / q)",
+        "w": "f == 0 ? acos(p / q) : f == 1 ? asin(p / q) : atan(q / p)",
+        "sides": "f == 0 ? 'the hypotenuse is ' + q + ' cm and the side opposite angle x is ' + p + ' cm' : f == 1 ? 'the hypotenuse is ' + q + ' cm and the side adjacent to angle x is ' + p + ' cm' : 'the side opposite angle x is ' + p + ' cm and the side adjacent to angle x is ' + q + ' cm'"
+      },
+      "text": "In a right-angled triangle, {sides}. Work out the size of angle x. Give your answer to 1 decimal place.",
+      "key": "{rd(x, 1)}° | {rd(x, 1)}",
+      "typed": ["{rd(x, 1)}", "{rd(x, 1)}°"], "wrong": "{rd(w, 1)}"
     }
   ]
 }

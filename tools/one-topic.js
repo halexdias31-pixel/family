@@ -29,15 +29,14 @@ const sciHeadBudget = () => { const t = headTable(); return t && t.science ? t.s
 function problems(d) {
   const bad = [], T = d.table, names = QI.names(d.tb), ids = new Set(Object.keys(names));
   const qs = QI.mathsQuestions(d.rows), mq = new Set(qs);
-  let unmapped = 0, genNone = 0;
-  const QG = require('./lib/qgen.js');
+  let unmapped = 0;
   qs.forEach(r => {
     const want = QI.ideaOf(r, T), have = r.idea_id == null ? '' : String(r.idea_id);
     if (have.split(/[\s,]+/).filter(Boolean).length > 1) bad.push(r.row_id + ': more than one idea (' + have + ')');
     if (have && !ids.has(have)) bad.push(r.row_id + ': idea_id ' + have + ' is no idea of the maths cards');
     if (have !== want) bad.push(r.row_id + ': idea_id "' + have + '", but ' + QI.TABLE + ' gives "' + want + '" — run node tools/content.js qideas --apply');
-    /* A GENERATED QUESTION (owner, 25 Nov) is under its DfE sub-topic in Find; one whose sub-topic no idea maps to is counted apart, not in the budget. */
-    if (!have) { if (QG.nodeOfSet(r.paper_id)) genNone++; else unmapped++; }
+    /* A GENERATED QUESTION (owner, 25 Nov) is its DfE sub-topic's idea (tools/lib/qgen.js ideaOfNode); one with none is unmapped like any other. */
+    if (!have) unmapped++;
   });
   /* SCIENCE (item 8): each Biology, Chemistry, Physics question's idea is the one its spec point's card gives (QI.sciIdeaOf), unmapped at science.budget. */
   const S8 = T.science || { budget: 0, set: {} }, sq = QI.scienceQuestions(d.rows), sset = new Set(sq), X = QI.sciIndex(d.tb), snames = QI.sciNames(d.tb), sids = new Set(Object.keys(snames));
@@ -59,6 +58,8 @@ function problems(d) {
   d.sci = { questions: sq.length, mapped: sq.length - sun, unmapped: sun, ideas: new Set(sq.map(r => r.idea_id).filter(Boolean)).size };
   d.rows.forEach(r => { if (!mq.has(r) && !sset.has(r) && r.idea_id != null) bad.push(r.row_id + ': not a maths or science question, and wears idea_id ' + r.idea_id); });
   ['set', 'topic'].forEach(k => Object.keys(T[k] || {}).forEach(x => { if (!ids.has(T[k][x])) bad.push(QI.TABLE + ' ' + k + ' "' + x + '" -> ' + T[k][x] + ', no idea of the maths cards'); }));
+  const G = (SD.json('data/settings/dfe-maths.json') || {}).gen_ideas || {};
+  Object.keys(G).forEach(x => { if (!ids.has(G[x])) bad.push('data/settings/dfe-maths.json gen_ideas "' + x + '" -> ' + G[x] + ', no idea of the maths cards'); });
   if (unmapped > T.budget) bad.push(unmapped + ' maths questions unmapped, over the budget of ' + T.budget);
   if (unmapped < T.budget) bad.push(unmapped + ' maths questions unmapped, under the budget of ' + T.budget + ' — lower it to ' + unmapped + ' in ' + QI.TABLE);
   if (d.head != null && T.budget > d.head) bad.push('the budget rose from ' + d.head + ' to ' + T.budget + ' — it may only fall');
@@ -66,7 +67,7 @@ function problems(d) {
   if (JSON.stringify(have) !== JSON.stringify(names)) bad.push('taxonomy.json Maths.ideaNames is not the cards\' idea names now — run node tools/content.js qideas --apply');
   const m = TAX_RE.exec(d.engine), eng = m ? ((JSON.parse(m[1]).Maths || {}).ideaNames || {}) : {};
   if (JSON.stringify(eng) !== JSON.stringify(have)) bad.push('js/find-finder.js TAXONOMY.Maths.ideaNames is not taxonomy.json\'s — run node tools/taxonomy.js');
-  d.count = { questions: qs.length, mapped: qs.length - unmapped - genNone, unmapped, genNone, ideas: new Set(qs.map(r => r.idea_id).filter(Boolean)).size,
+  d.count = { questions: qs.length, mapped: qs.length - unmapped, unmapped, ideas: new Set(qs.map(r => r.idea_id).filter(Boolean)).size,
     sourceTopics: new Set([].concat(...qs.map(r => QI.atoms(r.topics)))).size };
   return bad;
 }
@@ -146,7 +147,7 @@ async function run() {
   if (!p.n) all.push('the page has no maths question to ask the topic of');
   if (all.length) { console.error('one-topic: ' + all.length + ' problem(s):\n  ' + all.slice(0, 40).join('\n  ')); throw new Error('one-topic check failed'); }
   const c = d.count;
-  console.log('one-topic: ' + c.questions + ' maths questions, ' + c.mapped + ' pointing at one idea, ' + c.unmapped + ' unmapped (budget ' + d.table.budget + (c.genNone ? '; ' + c.genNone + ' generated, their DfE sub-topic no idea yet' : '')
+  console.log('one-topic: ' + c.questions + ' maths questions, ' + c.mapped + ' pointing at one idea, ' + c.unmapped + ' unmapped (budget ' + d.table.budget
     + '); ' + c.sourceTopics + ' source topic names became ' + c.ideas + ' ideas; science: ' + d.sci.questions + ' questions, ' + d.sci.mapped + ' pointing at one idea ('
     + d.sci.ideas + ' ideas), ' + d.sci.unmapped + ' unmapped (budget ' + d.table.science.budget + '); in Find ' + p.n + ' maths and science questions answer ' + p.shown + ' topics, every one an idea name or, for maths, a DfE topic');
 }
