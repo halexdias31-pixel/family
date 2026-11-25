@@ -1,6 +1,6 @@
 {
  "about": "WHICH IDEA A MATHS QUESTION TESTS (UNIFY THE LIBRARY AND PRACTICE, item 7, 24 Nov: ONE TOPIC TREE): a question points at the one idea it tests (an idea_id of data/textbooks.json, tools/lib/ideas.js), not at its source's own topic name. Read only by `node tools/content.js qideas` (tools/lib/qideas.js), never guessed per run. `set`: a whole single-topic set (a Corbettmaths worksheet with no topic on its questions) -> its idea, read first. `topic`: a source's topic name, as data/questions.json `topics` spells it -> its idea; a question's idea is that of the first of its topics listed here. A topic left out (a whole strand, as Number or Algebra, or one no card teaches yet, as Factorising) leaves its question unmapped, and the unmapped count is held at `budget`, which may only fall.",
- "budget": 1998,
+ "budget": 667,
  "set": {
   "W-CBM-times-tables": "ma.num.multiplication",
   "W-CBM-2d-shapes": "ma.geo.2-d-shapes",

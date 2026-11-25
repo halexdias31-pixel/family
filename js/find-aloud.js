@@ -769,10 +769,24 @@ const topicAtoms_ = v => String(v == null ? '' : v).split(',').map(s => s.trim()
 /* Every subject's names, one map (ids are subject-prefixed: ma., sc.). */
 const IDEA_NAMES_ = Object.assign({}, ...Object.keys(TAXONOMY).map(k => (TAXONOMY[k] || {}).ideaNames || {}));
 const ideaNameOf_ = x => { const id = x && x.row && x.row.idea_id; return (id && IDEA_NAMES_[id]) || ''; };
+/* THE DfE TREE (owner 24–25 Nov): a maths question answers the government's topics it tests, broad → narrow (its `dfe` nodes and every
+   node above them, taxonomy.json Maths.dfe, tools/lib/dfe.js), so Corbettmaths and AQA on one thing sit under one topic; never a worksheet's name. */
+const DFE_ = Object.assign({}, ...Object.keys(TAXONOMY).map(k => (TAXONOMY[k] || {}).dfe || {}));
+const DFE_SUBJECTS_ = Object.keys(TAXONOMY).filter(k => (TAXONOMY[k] || {}).dfe).map(k => TAXONOMY[k].subject);
+function dfeNamesOf_(x) {
+  const out = [];
+  String((x && x.row && x.row.dfe) || '').split(/\s+/).filter(Boolean).forEach(id => {
+    const path = []; for (let n = id; n && DFE_[n]; n = DFE_[n][1]) path.unshift(DFE_[n][0]);
+    path.forEach(t => { if (!out.includes(t)) out.push(t); });
+  });
+  return out;
+}
+const isMathsQ_ = x => !!(x && x.row && x.row.kind === 'question' && DFE_SUBJECTS_.includes(x.subject));
 function topicShown_(x) {
-  return !isQ_(x) || !!ideaNameOf_(x);
+  return !isQ_(x) || (isMathsQ_(x) ? dfeNamesOf_(x).length > 0 : !!ideaNameOf_(x));
 }
 function topicOf_(x) {
+  if (isMathsQ_(x)) return dfeNamesOf_(x);
   if (isQ_(x) || (x && x.row && x.row.kind === 'question')) { const n = ideaNameOf_(x); return n ? [n] : []; }
   return topicAtoms_(x && ((x.row && x.row.topics) || x.topics));
 }
