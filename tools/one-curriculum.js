@@ -6,6 +6,10 @@
      - every node has an id (unique across every country), a name, a parent in the tree and at least one source line in a document its file
        names (an https address; the file's `doc_url` pattern where it gives one, the UK's gov.uk); where the file numbers `statements` (UK
        maths: GCSE N1–S6), a code is a real one and every statement is cited by a sub-topic;
+     - THE GOVERNMENT'S OWN HEADINGS (26 Nov audit, made mechanical): a live country gives its documents' headings, exact, in
+       <country>/headings.json (extracted once from the PDFs); every other `ref` is one of them as printed, and every content section
+       (`cite`) is cited by some node, so a wrong citation or a gap fails the build (the working-mathematically / -scientifically strands
+       are `skills`, not content, and need no node);
      - every sub-topic has its levels, each one of the file's levels; every map (`ideas`, `set`, `topic`, `spec`) points at a node;
      - every `templates` entry maps a node of the file to skills data/settings/qgen.json has;
      - every question's `dfe` is the one the files give (never by hand), and a worksheet question's `worksheet` is its set's name; the
@@ -36,7 +40,7 @@ function headBudget(file) {
 const budgetOf = (E, k) => CU.ofSubject(E, k).find(e => e.T.budget != null) || null;
 const subjects = E => Object.keys(CU.SUBJECTS).filter(k => CU.ofSubject(E, k).length);
 
-function treeProblems(e, gen, bad, all) {
+function treeProblems(e, gen, bad, all, needH) {
   const T = e.T, file = e.file, ids = new Set(), docs = T.docs || {}, LV = new Set(CU.levelsList(T)), st = CU.stmt(T), re = CU.codeRe(T);
   if (!CU.SUBJECTS[e.subject]) bad.push(file + ': "' + e.subject + '" is no subject (' + Object.keys(CU.SUBJECTS).join(', ') + ')');
   if (!Array.isArray(T.nodes) || !T.nodes.length) { bad.push(file + ': no nodes'); return ids; }
@@ -57,6 +61,19 @@ function treeProblems(e, gen, bad, all) {
     if (!X.kids[n.id]) { if (!(n.levels || []).length) bad.push(file + ': sub-topic ' + n.id + ' has no level'); (n.levels || []).forEach(l => { if (!LV.has(l)) bad.push(file + ': sub-topic ' + n.id + ': level "' + l + '" is none'); }); }
   });
   if (st) Object.keys(st.counts || {}).forEach(c => { for (let i = 1; i <= st.counts[c]; i++) if (!cited.has(c + i)) bad.push(file + ': statement ' + c + i + ' is cited by no sub-topic'); });
+  /* THE HEADINGS AS PRINTED: every ref one of them, every content section cited. */
+  const H = e.H, by = {};
+  if (needH && !H) bad.push(file + ': no heading list for its documents (' + CU.HEADINGS + '.json beside it)');
+  if (H) {
+    Object.keys(docs).forEach(x => { if (!H[x]) bad.push(file + ': document ' + x + ' has no heading list in ' + CU.HEADINGS + '.json'); });
+    T.nodes.forEach(n => (n.src || []).forEach(s => {
+      const h = H[s.doc];
+      if (!h || (st && s.doc === st.doc && re.test(s.ref))) return;
+      if (![].concat(h.cite || [], h.groups || [], h.skills || []).includes(s.ref)) bad.push(file + ': node ' + n.id + ' cites "' + s.ref + '", no heading of ' + s.doc + ' as printed');
+      (by[s.doc] = by[s.doc] || new Set()).add(s.ref);
+    }));
+    Object.keys(H).forEach(x => (H[x].cite || []).forEach(h => { if (!(by[x] && by[x].has(h))) bad.push(file + ': ' + x + ' section "' + h + '" is cited by no node'); }));
+  }
   ['ideas', 'set', 'topic', 'spec'].forEach(m => Object.keys(T[m] || {}).forEach(x => { if (!ids.has(T[m][x])) bad.push(file + ' ' + m + ' "' + x + '" -> ' + T[m][x] + ', no node'); }));
   const skills = new Set(((gen || {}).templates || []).map(t => t.id));
   Object.keys(T.templates || {}).forEach(node => {
@@ -71,7 +88,7 @@ function treeProblems(e, gen, bad, all) {
 
 function problems(d) {
   const bad = [], all = new Set(), E = d.entries;
-  E.forEach(e => treeProblems(e, d.gen, bad, all));
+  E.forEach(e => treeProblems(e, d.gen, bad, all, true));
   /* THE QUESTIONS: what the files give, worksheets named apart. */
   const copy = d.rows.map(r => Object.assign({}, r)), t = CU.assign(copy, E);
   let diff = 0;
@@ -177,6 +194,13 @@ const BREAKS = [
   { name: 'a source in no listed document', d: d => { tb(d, 'science').nodes[6].src = [{ doc: 'bbc-bitesize', ref: 'Cells' }]; } },
   { name: 'a document off gov.uk', d: d => { const D = tb(d, 'maths').docs; D[Object.keys(D)[0]].url = 'https://example.org/'; } },
   { name: 'a GCSE statement uncited', d: d => { tb(d, 'maths').nodes.forEach(n => { n.src = n.src.filter(s => s.ref !== 'G23'); if (!n.src.length) n.src = [{ doc: 'gcse', ref: 'G22' }]; }); } },
+  { name: 'a ref not as printed', d: d => { const n = tb(d, 'maths').nodes.find(x => x.src.some(s => /^Y\d Number – /.test(s.ref))), s = n.src.find(x => /^Y\d Number – /.test(x.ref)); s.ref = s.ref.replace('Number – ', ''); } },
+  { name: 'a heading the year does not have', d: d => { tb(d, 'maths').nodes.find(x => x.id === 'dfe.ma.n.calc.order').src.push({ doc: 'nc-ks12', ref: 'Y6 Number – multiplication and division' }); } },
+  { name: 'a science citation of another heading', d: d => { tb(d, 'science').nodes.find(x => x.src.some(s => s.doc === 'gcse-combined')).src.push({ doc: 'gcse-combined', ref: 'Space physics – Red-shift as sources move away; the ‘big bang’ and universal expansion' }); } },
+  { name: 'a section cited by no node', d: d => { tb(d, 'science').nodes.forEach(n => { n.src = n.src.filter(s => !/Redox reactions/.test(s.ref)); if (!n.src.length) n.src = [{ doc: 'gcse-combined', ref: 'Chemical changes – Chemistry of acids' }]; }); } },
+  { name: 'a year section cited by no node', d: d => { tb(d, 'maths').nodes.forEach(n => { n.src = n.src.filter(s => s.ref !== 'Y4 Measurement'); }); } },
+  { name: 'the heading list gone', d: d => { d.entries.forEach(e => { e.H = null; }); } },
+  { name: 'a document with no heading list', d: d => { delete CU.ofSubject(d.entries, 'science')[0].H['nc-ks3']; } },
   { name: 'a sub-topic with no level', d: d => { delete tb(d, 'science').nodes.find(n => n.levels).levels; } },
   { name: 'a level that is none', d: d => { tb(d, 'science').nodes.find(n => n.levels).levels = ['GCSE Foundation']; } },
   { name: 'a mapped template that is none', d: d => { const M = tb(d, 'maths').templates; M[Object.keys(M)[0]].push('no-such-skill'); } },

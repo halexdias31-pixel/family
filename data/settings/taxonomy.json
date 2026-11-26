@@ -2028,6 +2028,10 @@
     "Biodiversity and human impact",
     "dfe.sc.b.eco"
    ],
+   "dfe.sc.b.eco.food": [
+    "Food security and farming",
+    "dfe.sc.b.eco"
+   ],
    "dfe.sc.b.inherit": [
     "Inheritance, variation and evolution",
     "dfe.sc.b"
@@ -2054,6 +2058,10 @@
    ],
    "dfe.sc.b.body.animals": [
     "Animals, the body and senses",
+    "dfe.sc.b.body"
+   ],
+   "dfe.sc.b.body.ageing": [
+    "Human growth and ageing",
     "dfe.sc.b.body"
    ],
    "dfe.sc.b.body.skeleton": [
@@ -2092,6 +2100,10 @@
     "Ionic, covalent and metallic bonding",
     "dfe.sc.c.bond"
    ],
+   "dfe.sc.c.bond.states": [
+    "States of matter and particles",
+    "dfe.sc.c.bond"
+   ],
    "dfe.sc.c.bond.carbon": [
     "Structures of carbon",
     "dfe.sc.c.bond"
@@ -2118,6 +2130,14 @@
    ],
    "dfe.sc.c.change.electrolysis": [
     "Electrolysis",
+    "dfe.sc.c.change"
+   ],
+   "dfe.sc.c.change.redox": [
+    "Oxidation and reduction",
+    "dfe.sc.c.change"
+   ],
+   "dfe.sc.c.change.extraction": [
+    "Extracting and purifying metals",
     "dfe.sc.c.change"
    ],
    "dfe.sc.c.energy": [
@@ -2294,6 +2314,10 @@
    ],
    "dfe.sc.p.waves.properties": [
     "Wave properties",
+    "dfe.sc.p.waves"
+   ],
+   "dfe.sc.p.waves.interfaces": [
+    "Waves at boundaries and their uses",
     "dfe.sc.p.waves"
    ],
    "dfe.sc.p.waves.em": [

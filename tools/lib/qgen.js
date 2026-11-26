@@ -66,7 +66,7 @@ const CU = () => require('./curriculum.js');
 function cfg(e) {
   const g = (e && e.T && e.T.gen) || {}, CC = String(e.country).toUpperCase();
   return { set_prefix: g.set_prefix || SET_PREFIX + CC + '-', row_prefix: g.row_prefix || 'Q-GEN-' + CC + '-', strip: g.strip != null ? g.strip : stem(e.T),
-    key: g.key || 'node', level: g.level || '', subject: g.subject || '',
+    key: g.key || 'node', levels: [].concat(g.level || []), tiers: g.tiers || {}, subject: g.subject || '',
     row: Object.assign({ key_stage: 'KS4', band_type: 'stage', band_value: 'GCSE', level: 'GCSE', tier: 'Foundation' }, g.row || {}) };
 }
 /* THE DOTTED STEM every node id of a tree shares ("xx.ma." for xx.ma, xx.ma.num, ...), cut from its set ids. */
@@ -180,7 +180,7 @@ function emit(T, E) {
     if (!ideas.has(e)) ideas.set(e, ideaOfNode(D));
     const idea = ideas.get(e);
     rows.push({ row_id: 'D-' + pid, paper_id: pid, kind: 'document', name: n ? n.name : node, subject: subjectOf(node, e, c), key_stage: c.row.key_stage,
-      band_type: c.row.band_type, band_value: c.row.band_value, level: c.row.level, tier: c.row.tier, company: COMPANY, document_type: 'Question set',
+      band_type: c.row.band_type, band_value: c.row.band_value, level: c.row.level, tier: tierOf(n, c), company: COMPANY, document_type: 'Question set',
       trackable: 'True', printable: 'False', active: 'True' });
     let k = 0;
     list.forEach(t => fixed(t, D).forEach(q => {
@@ -193,6 +193,12 @@ function emit(T, E) {
     }));
   });
   return { rows, words };
+}
+/* A SET'S TIER: `gen.level` is the level (or levels, in order) a generated set is taught at; the set takes the tier `gen.tiers` gives the
+   first of them its node is taught at (26 Nov: a GCSE Higher-only node's set is a Higher set), else the row's own tier. */
+function tierOf(n, c) {
+  const l = c.levels.find(x => ((n && n.levels) || []).includes(x));
+  return (l && c.tiers[l]) || c.row.tier;
 }
 /* A SET'S SUBJECT: the country file's subject (Maths), or with `gen.subject` "root" the name of the node's top topic (science sets are
    Biology, Chemistry or Physics, as every other science set is). */

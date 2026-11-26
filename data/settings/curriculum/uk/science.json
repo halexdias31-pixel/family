@@ -1,5 +1,5 @@
 {
- "about": "THE @FAMILY SCIENCE TOPIC TREE, FROM THE GOVERNMENT'S OWN LISTS (owner, 25 Nov), in the one format of data/settings/curriculum/uk/maths.json (tools/lib/curriculum.js): subject › topic › sub-topic, each node an id, a short plain name (paraphrased), its `src` lines (the DfE document and its section heading: the GCSE topic – sub-heading, the National Curriculum year and topic) and, for a sub-topic, its levels (KS1, KS2, KS3; GCSE Combined = in the combined science content and so in the single sciences too; GCSE Separate = in the single-science content only). Higher-only content is underlined in the DfE documents and cannot be read from their text, so no level says Higher. A science question's `dfe` is read from this table only: `ideas` (its sci-ideas idea, an AQA spec point), `spec` (its AQA 8461/2/3/4 `spec_ref` point, the longest section prefix listed), `set`, `topic` (a source topic name). An A-Level set is outside these documents. Checked by tools/one-curriculum.js; `budget` (questions with no node) may only fall.",
+ "about": "THE @FAMILY SCIENCE TOPIC TREE, FROM THE GOVERNMENT'S OWN LISTS (owner, 25 Nov), in the one format of data/settings/curriculum/uk/maths.json (tools/lib/curriculum.js): subject › topic › sub-topic, each node an id, a short plain name (paraphrased), its `src` lines (the DfE document and its section heading exactly as printed, one of headings.json: the GCSE topic – sub-heading, the National Curriculum year and topic) and, for a sub-topic, its levels (KS1, KS2, KS3; GCSE Combined = in the combined science content and so in the single sciences too; GCSE Separate = in the single-science content only). Higher-only content is underlined in the DfE documents and cannot be read from their text, so no level says Higher. A science question's `dfe` is read from this table only: `ideas` (its sci-ideas idea, an AQA spec point), `spec` (its AQA 8461/2/3/4 `spec_ref` point, the longest section prefix listed), `set`, `topic` (a source topic name). An A-Level set is outside these documents. Checked by tools/one-curriculum.js; `budget` (questions with no node) may only fall.",
  "levels": [
   "KS1",
   "KS2",
@@ -12,25 +12,25 @@
    "title": "Biology, chemistry and physics GCSE subject content (DfE, 2015, updated May 2019)",
    "url": "https://www.gov.uk/government/publications/gcse-single-science",
    "pdf": "https://assets.publishing.service.gov.uk/media/5cd2b951ed915d50c208b4d5/GCSE_single_science_updated_May_2019.pdf",
-   "refs": "subject topic – sub-heading"
+   "refs": "topic – sub-heading (– an indented heading within it) as printed — the exact text, one of headings.json"
   },
   "gcse-combined": {
    "title": "Combined science GCSE subject content (DfE, 2015, updated May 2019)",
    "url": "https://www.gov.uk/government/publications/gcse-combined-science",
    "pdf": "https://assets.publishing.service.gov.uk/media/5cd2b8b4ed915d50b6c44ffa/Combined_science_GCSE_updated_May_2019.pdf",
-   "refs": "subject topic – sub-heading"
+   "refs": "topic – sub-heading (– an indented heading within it) as printed — the exact text, one of headings.json"
   },
   "nc-ks12": {
    "title": "National curriculum in England: science programmes of study, key stages 1 and 2 (DfE, 2013)",
    "url": "https://www.gov.uk/government/publications/national-curriculum-in-england-science-programmes-of-study",
    "pdf": "https://assets.publishing.service.gov.uk/media/5a806ebd40f0b62305b8b1fa/PRIMARY_national_curriculum_-_Science.pdf",
-   "refs": "year and topic"
+   "refs": "Y<year> and the topic heading as printed (Y6 Animals including humans), or the heading alone for every year — the exact text, one of headings.json"
   },
   "nc-ks3": {
    "title": "National curriculum in England: science programmes of study, key stage 3 (DfE, 2013)",
    "url": "https://www.gov.uk/government/publications/national-curriculum-in-england-science-programmes-of-study",
    "pdf": "https://assets.publishing.service.gov.uk/media/5a7d563de5274a2af0ae2ffa/SECONDARY_national_curriculum_-_Science_220714.pdf",
-   "refs": "subject content heading"
+   "refs": "subject content heading — the exact text, one of headings.json"
   }
  },
  "nodes": [
@@ -105,7 +105,6 @@
    "name": "Cell division, stem cells and growth",
    "parent": "dfe.sc.b.cell",
    "levels": [
-    "KS3",
     "GCSE Combined",
     "GCSE Separate"
    ],
@@ -168,7 +167,6 @@
    "name": "Diffusion, osmosis and active transport",
    "parent": "dfe.sc.b.trans",
    "levels": [
-    "KS3",
     "GCSE Combined",
     "GCSE Separate"
    ],
@@ -232,7 +230,7 @@
     },
     {
      "doc": "nc-ks12",
-     "ref": "Y6 Animals, including humans"
+     "ref": "Y6 Animals including humans"
     }
    ]
   },
@@ -276,6 +274,14 @@
     {
      "doc": "nc-ks3",
      "ref": "Health"
+    },
+    {
+     "doc": "gcse-single",
+     "ref": "Health, disease and the development of medicines – Health and disease"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Health, disease and the development of medicines – Health and disease"
     }
    ]
   },
@@ -313,7 +319,7 @@
     },
     {
      "doc": "gcse-single",
-     "ref": "Health, disease and the development of medicines – Communicable diseases"
+     "ref": "Health, disease and the development of medicines – Treating, curing and preventing disease"
     }
    ]
   },
@@ -356,7 +362,7 @@
     },
     {
      "doc": "nc-ks12",
-     "ref": "Y6 Animals, including humans"
+     "ref": "Y6 Animals including humans"
     }
    ]
   },
@@ -645,6 +651,20 @@
    ]
   },
   {
+   "id": "dfe.sc.b.eco.food",
+   "name": "Food security and farming",
+   "parent": "dfe.sc.b.eco",
+   "levels": [
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Ecosystems – Some of the biological challenges of increasing food yields using fewer resources"
+    }
+   ]
+  },
+  {
    "id": "dfe.sc.b.inherit",
    "name": "Inheritance, variation and evolution",
    "parent": "dfe.sc.b",
@@ -684,7 +704,7 @@
     },
     {
      "doc": "gcse-combined",
-     "ref": "Inheritance, variation and evolution – The genome and gene expression"
+     "ref": "Cell biology – Growth and development of cells"
     },
     {
      "doc": "nc-ks3",
@@ -717,6 +737,14 @@
     {
      "doc": "nc-ks3",
      "ref": "Inheritance, chromosomes, DNA and genes"
+    },
+    {
+     "doc": "gcse-single",
+     "ref": "Inheritance, variation and evolution – The genome and gene expression – Inheritance"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Inheritance, variation and evolution – The genome and gene expression – Inheritance"
     }
    ]
   },
@@ -807,6 +835,20 @@
    ]
   },
   {
+   "id": "dfe.sc.b.body.ageing",
+   "name": "Human growth and ageing",
+   "parent": "dfe.sc.b.body",
+   "levels": [
+    "KS2"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y5 Animals, including humans"
+    }
+   ]
+  },
+  {
    "id": "dfe.sc.b.body.skeleton",
    "name": "Skeleton, muscles and teeth",
    "parent": "dfe.sc.b.body",
@@ -850,6 +892,10 @@
     },
     {
      "doc": "gcse-combined",
+     "ref": "Transport systems – Transport systems in multicellular organisms"
+    },
+    {
+     "doc": "gcse-single",
      "ref": "Transport systems – Transport systems in multicellular organisms"
     }
    ]
@@ -993,6 +1039,30 @@
    ]
   },
   {
+   "id": "dfe.sc.c.bond.states",
+   "name": "States of matter and particles",
+   "parent": "dfe.sc.c.bond",
+   "levels": [
+    "KS3",
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Structure, bonding and the properties of matter – States of matter and change of state in terms of particle kinetics, energy transfers and the relative strength of chemical bonds and intermolecular forces"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Structure, bonding and the properties of matter – States of matter and change of state in terms of particle kinetics, energy transfers and the relative strength of chemical bonds and intermolecular forces"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "The particulate nature of matter"
+    }
+   ]
+  },
+  {
    "id": "dfe.sc.c.bond.carbon",
    "name": "Structures of carbon",
    "parent": "dfe.sc.c.bond",
@@ -1089,6 +1159,14 @@
     {
      "doc": "nc-ks3",
      "ref": "Chemical reactions"
+    },
+    {
+     "doc": "gcse-single",
+     "ref": "Chemical changes – A reactivity series of metals as the tendency of a metal to form its positive ion"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Chemical changes – A reactivity series of metals as the tendency of a metal to form its positive ion"
     }
    ]
   },
@@ -1132,6 +1210,44 @@
     {
      "doc": "gcse-combined",
      "ref": "Chemical changes – Electrolysis of various molten ionic liquids and aqueous ionic solutions"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.c.change.redox",
+   "name": "Oxidation and reduction",
+   "parent": "dfe.sc.c.change",
+   "levels": [
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Chemical changes – Redox reactions (reduction and oxidation)"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Chemical changes – Redox reactions (reduction and oxidation)"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.c.change.extraction",
+   "name": "Extracting and purifying metals",
+   "parent": "dfe.sc.c.change",
+   "levels": [
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Chemical and allied industries – Different methods of extracting and purifying metals with reference to a reactivity series with oxygen and the position of carbon within it"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Chemical and allied industries – Different methods of extracting and purifying metals with reference to a reactivity series with oxygen and the position of carbon within it"
     }
    ]
   },
@@ -1285,6 +1401,10 @@
     {
      "doc": "gcse-combined",
      "ref": "Energy changes in chemistry – Carbon compounds both as fuels and feedstock"
+    },
+    {
+     "doc": "gcse-single",
+     "ref": "Energy changes in chemistry – Carbon compounds both as fuels and feedstock"
     }
    ]
   },
@@ -1316,7 +1436,7 @@
    "src": [
     {
      "doc": "gcse-single",
-     "ref": "Chemical and allied industries – Using materials"
+     "ref": "Organic chemistry – Synthetic and naturally occurring polymers, including DNA"
     }
    ]
   },
@@ -1459,6 +1579,10 @@
     {
      "doc": "gcse-single",
      "ref": "Chemical analysis – Use the mole in relation to volumes of gases"
+    },
+    {
+     "doc": "gcse-single",
+     "ref": "Chemical analysis – Principles for determining the concentrations of solutions"
     }
    ]
   },
@@ -1502,6 +1626,14 @@
     {
      "doc": "nc-ks3",
      "ref": "Earth and atmosphere"
+    },
+    {
+     "doc": "gcse-single",
+     "ref": "Earth and atmospheric science – Carbon dioxide and methane as greenhouse gases"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Earth and atmospheric science – The composition and evolution of the Earth’s atmosphere since its formation"
     }
    ]
   },
@@ -1582,6 +1714,10 @@
     {
      "doc": "gcse-single",
      "ref": "Chemical and allied industries – The balance between equilibrium position and rate in industrial processes"
+    },
+    {
+     "doc": "gcse-single",
+     "ref": "Chemical and allied industries – Agricultural productivity and the use of nitrogen, phosphorus and potassium-based fertilisers"
     }
    ]
   },
@@ -1753,11 +1889,11 @@
    "src": [
     {
      "doc": "gcse-single",
-     "ref": "Energy – Conservation, dissipation and national and global energy sources"
+     "ref": "Energy – Energy changes in a system, and in the ways energy is stored before and after such changes – Conservation, dissipation and national and global energy sources"
     },
     {
      "doc": "gcse-combined",
-     "ref": "Energy – Conservation, dissipation and national and global energy sources"
+     "ref": "Energy – Energy changes in a system, and in the ways energy is stored before and after such changes – Conservation, dissipation and national and global energy sources"
     },
     {
      "doc": "nc-ks3",
@@ -1777,11 +1913,11 @@
    "src": [
     {
      "doc": "gcse-single",
-     "ref": "Energy – Conservation, dissipation and national and global energy sources"
+     "ref": "Energy – Energy changes in a system, and in the ways energy is stored before and after such changes – Conservation, dissipation and national and global energy sources"
     },
     {
      "doc": "gcse-combined",
-     "ref": "Energy – Conservation, dissipation and national and global energy sources"
+     "ref": "Energy – Energy changes in a system, and in the ways energy is stored before and after such changes – Conservation, dissipation and national and global energy sources"
     },
     {
      "doc": "nc-ks3",
@@ -1846,6 +1982,10 @@
     {
      "doc": "nc-ks12",
      "ref": "Y3 Forces and magnets"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Balanced forces"
     }
    ]
   },
@@ -1931,6 +2071,14 @@
     {
      "doc": "nc-ks3",
      "ref": "Forces and motion"
+    },
+    {
+     "doc": "gcse-single",
+     "ref": "Forces and motion – Speed and velocity, speed as distance over time; acceleration; distance-time and velocity-time graphs"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Forces and motion – Speed and velocity, speed as distance over time; acceleration; distance-time and velocity-time graphs"
     }
    ]
   },
@@ -1943,6 +2091,14 @@
     "GCSE Separate"
    ],
    "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Forces and motion – Forces, accelerations and Newton’s laws of motion"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Forces and motion – Forces, accelerations and Newton’s laws of motion"
+    },
     {
      "doc": "gcse-single",
      "ref": "Forces and motion – Safety in public transport"
@@ -2051,6 +2207,20 @@
    ]
   },
   {
+   "id": "dfe.sc.p.waves.interfaces",
+   "name": "Waves at boundaries and their uses",
+   "parent": "dfe.sc.p.waves",
+   "levels": [
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Waves in matter – Waves at material interfaces: applications in exploring structures"
+    }
+   ]
+  },
+  {
    "id": "dfe.sc.p.waves.em",
    "name": "The electromagnetic spectrum",
    "parent": "dfe.sc.p.waves",
@@ -2071,6 +2241,14 @@
     {
      "doc": "nc-ks3",
      "ref": "Energy and waves"
+    },
+    {
+     "doc": "gcse-single",
+     "ref": "Light and electromagnetic waves – Interactions of electromagnetic radiation with matter and their applications"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Light and electromagnetic waves – Frequency range of the spectrum"
     }
    ]
   },
@@ -2088,7 +2266,11 @@
     },
     {
      "doc": "gcse-single",
-     "ref": "Light and electromagnetic waves – Interactions of electromagnetic radiation with matter and their applications"
+     "ref": "Light and electromagnetic waves – Colour and frequency; differential effects in transmission, absorption and diffuse reflection"
+    },
+    {
+     "doc": "gcse-single",
+     "ref": "Light and electromagnetic waves – Black body radiation (qualitative only)"
     }
    ]
   },
@@ -2323,7 +2505,11 @@
    "src": [
     {
      "doc": "gcse-single",
-     "ref": "Magnetism and electromagnetism – Microphones and speakers, oscillating currents in detection and generation of radiation"
+     "ref": "Magnetism and electromagnetism – Induced potential, transformers and the national grid"
+    },
+    {
+     "doc": "gcse-single",
+     "ref": "Magnetism and electromagnetism – Microphones and speakers; oscillating currents in detection and generation of radiation"
     }
    ]
   },
@@ -2552,7 +2738,7 @@
    "src": [
     {
      "doc": "gcse-single",
-     "ref": "Space physics – Solar system, stability of orbital motions, satellites"
+     "ref": "Space physics – Solar system; stability of orbital motions; satellites"
     },
     {
      "doc": "nc-ks3",
@@ -2570,7 +2756,7 @@
    "src": [
     {
      "doc": "gcse-single",
-     "ref": "Space physics – Red-shift as sources move away, the ‘big bang’ and universal expansion"
+     "ref": "Space physics – Red-shift as sources move away; the ‘big bang’ and universal expansion"
     }
    ]
   }

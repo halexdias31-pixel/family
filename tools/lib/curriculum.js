@@ -17,6 +17,14 @@ const SD = require('./site-data.js');
 const QI = require('./qideas.js');
 
 const DIR = 'data/settings/curriculum';
+/* A COUNTRY'S DOCUMENT HEADINGS (<country>/headings.json, 26 Nov): every section heading of each document its subject files cite, exact, as
+   { <subject>: { <doc>: { cite, groups, skills } } } (tools/one-curriculum.js holds every `ref` to it). Not a subject file. */
+const HEADINGS = 'headings';
+function headings(e) {
+  const f = path.join(ROOT, path.dirname(e.file), HEADINGS + '.json');
+  return fs.existsSync(f) ? (JSON.parse(fs.readFileSync(f, 'utf8'))[e.subject] || null) : null;
+}
+const headingsOf = e => { Object.defineProperty(e, 'H', { value: headings(e), enumerable: false, writable: true, configurable: true }); return e; };
 /* THE FIELD a question's nodes are written to, for every country (its first name, so the stored questions stay as they are). */
 const FIELD = 'dfe';
 /* THE SUBJECTS a country file may be for: its taxonomy.json key and its questions. */
@@ -32,9 +40,9 @@ function entries(dir) {
   if (!fs.existsSync(abs)) return out;
   fs.readdirSync(abs).sort().forEach(c => {
     const cd = path.join(abs, c); if (!fs.statSync(cd).isDirectory()) return;
-    const files = fs.readdirSync(cd).filter(f => /\.json$/.test(f)).map(f => f.replace(/\.json$/, ''));
+    const files = fs.readdirSync(cd).filter(f => /\.json$/.test(f)).map(f => f.replace(/\.json$/, '')).filter(f => f !== HEADINGS);
     const order = Object.keys(SUBJECTS).filter(k => files.includes(k)).concat(files.filter(f => !SUBJECTS[f]).sort());
-    order.forEach(k => { const file = dir + '/' + c + '/' + k + '.json'; out.push({ country: c, subject: k, file, T: SD.json(file) }); });
+    order.forEach(k => { const file = dir + '/' + c + '/' + k + '.json'; out.push(headingsOf({ country: c, subject: k, file, T: SD.json(file) })); });
   });
   return out;
 }
@@ -141,4 +149,4 @@ function assign(rows, E) {
 /* A SUBJECT'S TREES AS FIND READS THEM (taxonomy.json <Subject>.dfe): id -> [name, parent], every country's, countries in order. */
 function forFind(k, E) { const o = {}; ofSubject(E, k || 'maths').forEach(e => e.T.nodes.forEach(n => { o[n.id] = [n.name, n.parent]; })); return o; }
 
-module.exports = { DIR, FIELD, SUBJECTS, entries, ofSubject, table, index, path: path_, levelsOf, levelsList, LEVELS, nodesOf, specNode, assign, forFind, aLevel, docs, stmt, codeRe };
+module.exports = { DIR, HEADINGS, headings, FIELD, SUBJECTS, entries, ofSubject, table, index, path: path_, levelsOf, levelsList, LEVELS, nodesOf, specNode, assign, forFind, aLevel, docs, stmt, codeRe };
