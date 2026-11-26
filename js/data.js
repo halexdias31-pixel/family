@@ -265,11 +265,9 @@ const KEEP = {
   familyDevice: { scope: 'device' }, familyField: { scope: 'device' }, came_from: { scope: 'device' },
   familyTab: { scope: 'device' }, familyTabAt: { scope: 'device' }, 'arrival:shape': { scope: 'device' }, familyAheadSlow: { scope: 'device' },
   familyCart: { scope: 'device' }, familyHelpHand: { scope: 'device' }, familyLayout: { scope: 'device' }, familyRules: { scope: 'device' },
-  familyWords: { scope: 'device' }, pixelArt: { scope: 'device' }, speedWpm: { scope: 'device' }, speedDraft: { scope: 'device' },
-  'chess-turns': { scope: 'device' }, 'bg-game': { scope: 'device' }, 'wg-game': { scope: 'device' }, 'cs-game': { scope: 'device' },
-  'ss-band': { scope: 'device' }, 'ws-theme': { scope: 'device' }, 'imp-n': { scope: 'device' }, 'imp-aloud': { scope: 'device' }, 'race-best': { scope: 'device' },
+  familyWords: { scope: 'device' }, speedWpm: { scope: 'device' }, speedDraft: { scope: 'device' },
   /* gone: old keys only ever removed */
-  'nes-keys': { scope: 'device' }, 'mark-sound': { scope: 'device' }, 'voice:name': { scope: 'device' },
+  'mark-sound': { scope: 'device' }, 'voice:name': { scope: 'device' },
   splashAnims: { scope: 'device' }, splashOff: { scope: 'device' }, 'splashAnim:': { scope: 'device' },
   familyVerify: { scope: 'session' }, familyPaid: { scope: 'session' },
 };

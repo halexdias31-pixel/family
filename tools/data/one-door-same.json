@@ -161,10 +161,6 @@
      {
       "kind": "bookings",
       "label": "Booking requests and answers"
-     },
-     {
-      "kind": "posts",
-      "label": "Replies to your posts"
      }
     ]
    }
@@ -182,10 +178,6 @@
      {
       "kind": "bookings",
       "label": "Booking requests and answers"
-     },
-     {
-      "kind": "posts",
-      "label": "Replies to your posts"
      }
     ],
     "missing": []
@@ -206,10 +198,6 @@
      {
       "kind": "bookings",
       "label": "Booking requests and answers"
-     },
-     {
-      "kind": "posts",
-      "label": "Replies to your posts"
      }
     ]
    }
@@ -238,10 +226,6 @@
      {
       "kind": "bookings",
       "label": "Booking requests and answers"
-     },
-     {
-      "kind": "posts",
-      "label": "Replies to your posts"
      }
     ]
    }
@@ -270,10 +254,6 @@
      {
       "kind": "bookings",
       "label": "Booking requests and answers"
-     },
-     {
-      "kind": "posts",
-      "label": "Replies to your posts"
      }
     ]
    }

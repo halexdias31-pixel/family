@@ -338,7 +338,6 @@ const RUNNABLE = {
   clearPayloadCache: () => runClearPayloadCache_(),
   warmPayload: () => warmPayload(),
   checkEverything: () => checkEverything(),
-  checkPostsFolder: () => checkPostsFolder(),
   syncFilms: () => syncFilms(),
   libraryCopyStep: () => libraryCopyStep(),
   libraryStatus: () => libMigState_(),

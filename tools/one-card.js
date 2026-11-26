@@ -59,7 +59,7 @@ async function run() {
     const doors = await first.evaluate(() => [...document.querySelectorAll('#stuff-groups [data-value]')].map(e => e.dataset.value).filter(Boolean));
     await first.close();
     /* THREE DOORS AT ONCE: more and a phone-sized page under load misses its taps. */
-    const MUST_DRAW = { Posts: 'kc-post', Practice: 'kc-question', Booking: 'kc-receipt' };
+    const MUST_DRAW = { Practice: 'kc-question', Booking: 'kc-receipt' };
     const look = async d => {
       const pg = await open();
       /* EVERY STEP SKIPPED (22 Nov): Practice, Library and Shop ask several steps before their cards, so "Doesn't matter" is tapped until it is gone (17 steps since 24 Nov: no tag skipped). */
@@ -69,7 +69,7 @@ async function run() {
       for (let i = 0, last = -1; i < 16; i++) { const n = await pg.evaluate(() => document.querySelectorAll('#screen .card').length); if (n && n === last) break; last = n; await pg.waitForTimeout(500); }
       /* PRACTICE'S WORDS ARRIVE AFTER ITS WAITING CARDS (a loaded build is slow): its question cards are waited for, 45 seconds at most. */
       if (d === 'Practice') await pg.waitForFunction(() => document.querySelector('#screen .kc-question') && !document.querySelector('#screen .lib-wait'), null, { timeout: 45000 }).catch(() => {});
-      /* A DOOR THAT MUST DRAW ITS OWN KIND IS WAITED FOR (22 Nov: Posts and Practice sometimes came back empty under load — a missed tap, not the site). */
+      /* A DOOR THAT MUST DRAW ITS OWN KIND IS WAITED FOR (22 Nov: Practice sometimes came back empty under load — a missed tap, not the site). */
       const must = MUST_DRAW[d];
       const cards = await pg.evaluate(() => [...document.querySelectorAll('#screen .card')].filter(e => !e.parentElement.closest('.card')).slice(0, 60)
         .map(e => ({ n: e.getAttribute('aria-label') || e.innerText.slice(0, 30), c: e.className, sh: e.dataset.shape || '', ik: e.dataset.itemKind || '', set: e.matches('.kc-setting'),
@@ -107,7 +107,7 @@ async function run() {
     const unshaped = Object.keys(KINDS).filter(k => KINDS[k].shape && KINDS[k].shape !== 'Card');
     if (unshaped.length) throw new Error('one-card: kinds.json gives ' + unshaped.join(', ') + ' a shape other than Card');
     /* EVERY ACTIVITY CARD is seen, in the one card, as its kind */
-    const ACT = { 'kc-post': 'post', 'kc-receipt': 'booking', 'kc-question': 'question' };
+    const ACT = { 'kc-receipt': 'booking', 'kc-question': 'question' };
     Object.keys(ACT).forEach(c => { const of = all.filter(x => x.c.split(/\s+/).indexOf(c) >= 0), bare = of.filter(x => x.sh !== 'Card' || x.ik !== ACT[c]);
       bare.forEach(x => console.log('  ' + x.door + ' › ' + String(x.n).replace(/\n/g, ' ') + ' [' + c + ' wears ' + (x.sh || 'no shape') + ']'));
       if (!of.length || bare.length) throw new Error('one-card: ' + (of.length ? bare.length + ' ' + c + ' card(s) not in the one card' : 'no ' + c + ' card drawn'));

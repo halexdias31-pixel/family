@@ -5,7 +5,6 @@ const PUSH_PROPS = ['FCM_PROJECT_ID', 'FCM_CLIENT_EMAIL', 'FCM_PRIVATE_KEY'];
 /* WHAT A PERSON CAN TURN OFF, one row each on the card. A kind not here is never sent. */
 const PUSH_KINDS = {
   bookings: 'Booking requests and answers',
-  posts:    'Replies to your posts',
 };
 const PUSH_MAX_DEVICES = 10;
 

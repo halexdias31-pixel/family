@@ -22,8 +22,8 @@ const { ROOT, S, main } = require('./lib/gen.js');
 /* THE WORDS BEFORE 25 NOV (the set was Not tried / Right / Part right / Wrong / Not marked yet / Answer hidden) and older ones */
 const OLD = ['Not tried', 'Part right', 'Not marked yet', 'Answer hidden', 'Not right', 'Part marks', 'Answer checked'];
 const OLD_LIT = new RegExp('[\'"`](?:[✓✗] )?(' + OLD.join('|') + ')[\'"`]');
-/* generated copies (their sources are scanned) and the games' own words (not a question's status) */
-const SKIP = new Set(['js/kinds.js', 'js/finder-tags.js', 'js/core.js', 'js/qtypes.js', 'js/games.js', 'backend/cards-gen.gs']);
+/* generated copies (their sources are scanned) */
+const SKIP = new Set(['js/kinds.js', 'js/finder-tags.js', 'js/core.js', 'js/qtypes.js', 'backend/cards-gen.gs']);
 const STORED = ['', 'right', 'wrong', 'sent', 'rule:0/3', 'rule:2/3', 'rule:3/3', 'ai:0/4', 'ai:1/4', 'ai:4/4', 'nonsense'];
 const SHAPE = ['marks', 'outOf', 'verdict', 'why'];
 

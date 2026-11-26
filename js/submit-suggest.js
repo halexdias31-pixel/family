@@ -75,7 +75,7 @@ on('rep-flag', el => {
   const kind = el.getAttribute('data-rk') || '', id = el.getAttribute('data-ri') || '', key = kind + '|' + id;
   const was = flagMine_(kind, id);
   const set = v => { if (DATA) DATA.myFlags = ((DATA.myFlags || []).filter(k => k !== key)).concat(v ? [key] : []); flagPaint_(kind, id); };
-  const home = el.closest('.card, .own-set, .post');
+  const home = el.closest('.card, .own-set');
   const h = home && home.querySelector('h2, h3, .wgt-title');
   const label = el.getAttribute('data-rl') || ((h && h.textContent) || '').trim().slice(0, 120);
   let finder = '';
