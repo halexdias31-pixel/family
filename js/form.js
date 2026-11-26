@@ -21,6 +21,48 @@ function formGaps_(gaps, body) {
   const ok = t => { const [f, test] = t.split(':'); return FORM_TESTS[test](body[f]); };
   return (gaps || []).filter(g => !(g.any ? g.any.some(l => l.every(ok)) : (g.all || []).every(ok))).map(g => g.say);
 }
+/* ONE CLASH RULE (owner, 26 Nov: the timetable as a tool, no double-booking): a kind's kinds.json `clash` names its id, name, days, start, end */
+/* and term fields; an item sharing a day with another row whose times cross (17:00–18:00 then 18:00–19:00 is fine), the same term or either */
+/* without one, is refused with the clash named. The phone asks it (storeWrite_), the backend again (items.gs itemWrite_; cards-gen.gs copies these). */
+const CLASH_DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+function clashDays_(v) {
+  const s = String(v == null ? '' : v).toLowerCase(), out = [];
+  if (/\b(daily|every ?day)\b/.test(s)) return [0, 1, 2, 3, 4, 5, 6];
+  const day = w => { w = w.replace(/[^a-z]/g, '').replace(/(..)s$/, '$1'); return w.length < 2 ? -1 : CLASH_DAYS.findIndex(d => d.indexOf(w) === 0); };
+  s.replace(/\s*(?:-|–|\bto\b)\s*/g, '-').split(/[\s,;/&+]+|\band\b/).filter(Boolean).forEach(t => {
+    if (/^weekdays?$/.test(t)) { out.push(0, 1, 2, 3, 4); return; }
+    if (/^weekends?$/.test(t)) { out.push(5, 6); return; }
+    const [a, b] = t.split('-').map(day);
+    if (a < 0) return;
+    if (b == null || b < 0) { out.push(a); return; }
+    for (let i = a; ; i = (i + 1) % 7) { out.push(i); if (i === b) break; }
+  });
+  return out.filter((d, i) => out.indexOf(d) === i);
+}
+function clashMin_(v) {
+  const m = String(v == null ? '' : v).trim().toLowerCase().match(/^(\d{1,2})(?:[:.](\d\d))?\s*(am|pm)?$/);
+  if (!m) return null;
+  let h = Number(m[1]) % (m[3] ? 12 : 24);
+  if (m[3] === 'pm') h += 12;
+  return h * 60 + Number(m[2] || 0);
+}
+function clashOf_(rule, item, rows) {
+  if (!rule || !item) return '';
+  const days = clashDays_(item[rule.days]), s = clashMin_(item[rule.start]), e = clashMin_(item[rule.end]);
+  if (!days.length || s == null || e == null) return '';
+  const term = x => String(x == null ? '' : x).trim().toLowerCase(), t = term(item[rule.term]), id = String(item[rule.id] == null ? '' : item[rule.id]);
+  const hm = n => String(Math.floor(n / 60)).padStart(2, '0') + ':' + String(n % 60).padStart(2, '0');
+  for (const r of rows || []) {
+    if (id && String(r[rule.id]) === id) continue;
+    const rs = clashMin_(r[rule.start]), re = clashMin_(r[rule.end]), rt = term(r[rule.term]);
+    if (rs == null || re == null || !(s < re && rs < e) || (t && rt && t !== rt)) continue;
+    const d = clashDays_(r[rule.days]).find(x => days.indexOf(x) !== -1);
+    if (d == null) continue;
+    const name = String(r[rule.name] == null ? '' : r[rule.name]).trim() || 'another session';
+    return 'Overlaps ' + CLASH_DAYS[d][0].toUpperCase() + CLASH_DAYS[d].slice(1) + ' ' + hm(rs) + '–' + hm(re) + ' with ' + name + '.';
+  }
+  return '';
+}
 /* ONE PHONE, HANDLE AND EMAIL RULE (unify lane D, 21 Nov): the site and the backend (cards-gen.gs copies these) read and refuse by these alone; tools/one-contact.js fails a second copy. */
 /* THE CODES OFFERED, the first the default: constants.gs PHONE_CODES on the backend, get-start's `phoneCodes` on the site. */
 function phoneCodes_() {
@@ -592,6 +634,13 @@ function storeTiles_(it, x) {
 }
 const storeRow_ = (k, id) => (((STORE_ROWS_[k] || {}).rows || []).find(r => String(r.id) === String(id)) || {}).data || {};
 function storeWrite_(k, item) {
+  /* A KIND WITH A `clash` (the timetable): the whole row as it would be, held against the rows Find holds; a clash is named and nothing sent. */
+  const rule = ITEM_KINDS.kinds[k].clash;
+  if (rule) {
+    const say = clashOf_(rule, Object.assign({}, storeRow_(k, item[rule.id]), item),
+      ((STORE_ROWS_[k] || {}).rows || []).map(r => Object.assign({}, r.data, { [rule.id]: r.id })));
+    if (say) { toast(say); return Promise.resolve(false); }
+  }
   return Promise.resolve(api({ action: 'item', mode: 'write', kind: k, item })).then(d => {
     if (!d || !d.ok) { toast((d && d.error) || 'Not saved.'); return false; }
     delete STORE_ROWS_[k];

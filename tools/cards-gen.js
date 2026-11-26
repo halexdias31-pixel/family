@@ -38,7 +38,7 @@ const TAKE = [
   /* A VALUE TOO LONG FOR A TAG IS SAID AS THE MENU SAYS IT (`showForms_`, `SHOW_MAX`): "Section A: Modern prose or…". */
   ['js/find-facets.js', ['SHOW_MAX', 'showForms_']],
   /* ONE FORM ENGINE (job G): the gap tests a form is sent by; the backend asks them again over FORM_GAPS. */
-  ['js/form.js', ['FORM_TESTS', 'formGaps_', 'phoneCodes_', 'phoneOut', 'phoneIn', 'HANDLE_SHAPE', 'handleTyped_', 'handleFold_']],
+  ['js/form.js', ['FORM_TESTS', 'formGaps_', 'CLASH_DAYS', 'clashDays_', 'clashMin_', 'clashOf_', 'phoneCodes_', 'phoneOut', 'phoneIn', 'HANDLE_SHAPE', 'handleTyped_', 'handleFold_']],
   /* ONE LEVEL, KEY STAGE, SITTING AND PART READER (unify batch 7): the Sunday email's `digestTag*_` (digest-tags.gs) ask these of a */
   /* site-shaped item, so the email tags a question as the site's card does. LEVEL_TABLE and spellKey_ with them; `docById_` is digest-tags.gs's. */
   ['js/data-text.js', ['MONTH_NAMES']],
@@ -106,7 +106,7 @@ function factParts() {
 /* EVERY KIND'S STORE AND WHO SEES IT (kinds.json `kinds`, `stored`, `ledger`; owner, 16 Nov): the one general action `item` reads this. */
 function kindParts() {
   const j = SD.json('data/settings/kinds.json'), kinds = {};
-  const take = (k, v) => { if (v.sheet && v.sheet.tab) kinds[k] = { sheet: v.sheet, see: v.see || {}, edit: v.edit || null }; };
+  const take = (k, v) => { if (v.sheet && v.sheet.tab) kinds[k] = Object.assign({ sheet: v.sheet, see: v.see || {}, edit: v.edit || null }, v.clash ? { clash: v.clash } : {}); };
   Object.entries(j.kinds).forEach(([k, v]) => take(k, v));
   Object.entries(j.stored || {}).forEach(([k, v]) => take(k, v));
   const L = j.ledger;

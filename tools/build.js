@@ -85,6 +85,7 @@ const ORDER = [
   'one-twin',     // the one-twin check (rule 1.75, unify batch 7): no backend twin of a site function cards-gen.gs copies, the copies current; fails the build
   'share-picture', // the share-picture check (rule 1.75, owner 22 Nov): Share on a sample of question types on an iPhone 13 (WebKit and Chromium); a picture almost all one colour fails the build
   'one-step',     // the one-step check (rule 1.75, owner 22 Nov: UNIFY NEXT 3): every opener one step by openStep_, Back pops one to the same scroll; old openers fail the build
+  'timetable-clash', // the timetable-clash check (rule 1.75, owner 26 Nov, owner-only): js/form.js clashOf_ and its backend copy; an overlap the same day refused and named on the phone and in itemWrite_, touching ends, another day, another term and an edit in place allowed; mutations caught
   'docket-look',  // the Docket like Google Tasks (owner 25 Nov night, owner-only): one card, sorted Overdue/Now/dated/undated, each line tick + title, a tap shows only Edit and Delete, ticked fold into Done (n), quick add; fails the build
   'one-list-kind', // the one-list-kind check (rule 1.75, owner 22 Nov: UNIFY NEXT 6): Docket, Assignments, Tasks and Food one list kind (kinds.json `list`), saved through listTidy_ and drawn as one Item; fails the build
   'one-card',     // the one-card check (rule 1.75): every Find card by the one maker, no CSS of its own; fails the build

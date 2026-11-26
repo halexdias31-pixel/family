@@ -159,6 +159,11 @@ function itemWrite_(body, v) {
     const owners = itemOwners_(spec, next);
     if (owners.indexOf(v.id) === -1 || (have && itemOwners_(spec, have.data).indexOf(v.id) === -1)) return { error: 'That is not yours to change.', why: 'owner' };
   }
+  /* A KIND WITH A `clash` (the timetable, owner 26 Nov): the row as it would be, against the kind's other rows, by the site's one rule (clashOf_). */
+  if (spec.clash) {
+    const say = clashOf_(spec.clash, Object.assign({}, have ? have.data : {}, given), itemRows_(kind).map(it => Object.assign({}, it.data, { [spec.clash.id]: it.id })));
+    if (say) return { error: say, why: 'clash' };
+  }
   if (have) setCells(t, have._row, given);
   else addRow(t, given);
   clearCache();
