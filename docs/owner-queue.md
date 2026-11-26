@@ -221,3 +221,6 @@ Wake → e-ink screen shows what's due now (the 8-hourly cycle first) → do the
 
 ## IDEA (owner, 25 Nov; end of queue, to discuss before building): lecture transcript summariser
 A place where a student drops lecture transcripts (Teams .vtt/.docx) and gets a short summary of each: what's new, and anything said about assessments. Open questions for the owner before any build: who uses it (owner only, or students), where transcripts are stored (private), and how summaries are made (AI, given the site's no-arbitrary rule; and never for modules that ban generative AI).
+
+## STANDING GOAL (owner, 26 Nov): any country's spec in → everything out, mechanically
+Upload (or name) a country's curriculum document → the site lays out the library and generates questions for every subject, year and level, by formula, no AI, no hand-building. Whatever the code can't handle yet is listed, and the code is refined (formulaically, never per-case) until it can. Order: UK reader (replace the hand-built tree, prove identical) → statement→template rule table + "no generator" report → Australia (ACARA codes) → Brazil (BNCC codes) → more subjects' templates.
