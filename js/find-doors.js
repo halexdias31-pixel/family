@@ -1,27 +1,8 @@
-/* @family. — js/find-doors.js FIND'S FRONT DOORS (batch C): Posts, Profiles, Settings and Videos as Find items,
+/* @family. — js/find-doors.js FIND'S FRONT DOORS (batch C): Profiles, Settings and Videos as Find items,
    each answering its own menus through the one funnel (facetList). */
 
-/* THE FRONT DOOR'S FIELD (batch C): Booking, Posts, Practice… are answers to it; `forIs_`, `book-with` and the receipts set and read this, never a literal. */
+/* THE FRONT DOOR'S FIELD (batch C): Booking, Practice… are answers to it; `forIs_`, `book-with` and the receipts set and read this, never a literal. */
 const DOOR_FIELD = 'kindLabel';
-
-function postState_(p) { const [ok, waiting, gone] = DOOR_WORDS.postState; return !p ? '' : p.active === false ? gone : (p.waiting || p.refused) ? waiting : ok; }
-/* A TIME FRAME, NOT A DATE: five answers however many posts there are. */
-function whenBand_(v) {
-  const d = v ? parseWhen(v) : null, t = d && !isNaN(d) ? d.getTime() : 0;
-  if (!t) return '';
-  const days = (Date.now() - t) / 864e5;
-  const [today, week, month, year, older] = DOOR_WORDS.when;
-  return days < 1 ? today : days < 7 ? week : days < 31 ? month : days < 366 ? year : older;
-}
-function postDoorItems_() {
-  const admin = seeMay_('find:all-posts');
-  return ((DATA && DATA.posts) || []).filter(p => p && p.id && (admin || postState_(p) === DOOR_WORDS.postState[0] || p.mine)).map(p => {
-    const who = (typeof profileOf_ === 'function' && (profileOf_(p.authorId) || {}).handle) || p.handle || p.author || '';
-    return { kind: 'post', name: String(p.text || p.caption || p.title || 'Post').slice(0, 80), key: 'post:' + p.id, sub: who, image: '', row: p,
-      postState: postState_(p), postBy: who, postWhen: whenBand_(p.at || p.when),
-      text: [p.text, p.caption, p.title, p.handle, p.author].filter(Boolean).join(' ') };
-  });
-}
 
 
 /* ---------- PROFILES: who they are is the menu; admin-only answers are asked by rank ---------- */
@@ -193,9 +174,7 @@ on('lens-off', () => { LENS = null; lensRedraw_(); });
 function notifyDoorCard_() {
   /* THE BUSINESS RECORDS ARE SWITCHED OFF (attic/js/records.js, owner 13 Nov): their counts come back with them. */
   const BIZ_NEEDS = window.BIZ_NEEDS || {}, needs = Object.keys(BIZ_NEEDS).filter(k => BIZ_NEEDS[k] > 0);
-  const waiting = ((DATA && DATA.posts) || []).filter(p => p && p.active !== false && p.waiting).length;
-  const rows = needs.map(k => ({ label: k.replace(/[-_]/g, ' '), value: String(BIZ_NEEDS[k]) }))
-    .concat(waiting ? [{ label: 'posts waiting for approval', value: String(waiting) }] : []);
+  const rows = needs.map(k => ({ label: k.replace(/[-_]/g, ' '), value: String(BIZ_NEEDS[k]) }));
   return renderCard({ kind: 'panel', look: 'notify-door', tags: [{ text: text_('notifications'), colour: 0 }],
     body: [rows.length ? { type: 'list', items: rows } : { type: 'text', text: 'Nothing needs you.' }] });
 }
@@ -213,12 +192,12 @@ function doorAsk_(p) {
 
 /* EVERY DOOR'S ITEMS, in the front menu's order; signed out, only Settings (`finder-members`, rules.js). */
 function doorItems_() {
-  return [].concat(postDoorItems_(), profileDoorItems_(), settingDoorItems_());
+  return [].concat(profileDoorItems_(), settingDoorItems_());
 }
 /* SETTINGS AND BOOKING (owner, 13 Nov: a guest books through Find's steps and signs in to Send); no Venues on the signed-out front. */
 /* AND THE LIBRARY (owner, 15 Nov), by ONE permissions row (`item` library:read for `anyone`): never a question, its answer or Practice. */
 /* AND QUESTIONS AND PRACTICE (owner, 18 Nov: guests do questions too), by the one row `item` question:read for `anyone`. */
-/* AND EVERY DOOR THAT HOLDS NOBODY'S PERSONAL DATA (owner, 18 Nov: "guests see everything"): Tools, Games. Posts and
+/* AND EVERY DOOR THAT HOLDS NOBODY'S PERSONAL DATA (owner, 18 Nov: "guests see everything"): Tools.
    Profiles stay signed in — they hold children's names and words (rule: a child's data only to the child, parents, tutors, admins). */
 /* Each by its own permissions row, `item` <door>:read for `anyone` (actions.json); Library and Practice answer by card below, not by door. */
 const guestDoors_ = () => typeof can_ !== 'function' ? [] : FRONT_ORDER.filter(d => d !== 'Library' && PRACTICE_DOORS.indexOf(d) === -1 && can_('anyone', 'item', d.toLowerCase() + ':read'));

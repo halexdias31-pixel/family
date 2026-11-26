@@ -30,7 +30,6 @@ function tutorOut_(r, i, name, listed, qp, venuesTab) {
     venues: venuesFor_(r, venuesTab),
     focus: S(r.focus).split(/[,\n]/).map(x => x.trim()).filter(Boolean),
     xp: N(r.xp), credits: N(r.credits),
-    highscore: N(r.high_score_flappy), ttHighscore: N(r.high_score_tables),
     avail: availGridOut(r.availability),
     /* WHAT THEY ARE ALREADY TEACHING, as the same `m16` codes — so the booking grid can show an hour as taken WITHOUT the tutor's own availability having been edited. § */
     busy: busyHours(personDisplayName(r)),
@@ -101,8 +100,7 @@ function peopleStudent_(r, maySeeChildren, vis, payload) {
       /* THE FIRST NAME, AS IT ALWAYS WAS — for everybody on the board, child or not: § */
       name: kidFirst_(r) || nameFor_(r, true),
       handle: S(r.handle),
-      xp: N(r.xp), credits: N(r.credits),
-      highscore: N(r.high_score_flappy), ttHighscore: N(r.high_score_tables)
+      xp: N(r.xp), credits: N(r.credits)
     });
   }
 }

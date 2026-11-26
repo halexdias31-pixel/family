@@ -99,8 +99,6 @@ on('feed-tap', (el, e) => {
 
 
 
-let flappyState = null;
-
 /* OPEN A WIDGET. Its markup into the sheet, then the one function that brings it to life. § */
 
 /* Started when their screen appears, and only then — a canvas loop running behind a screen nobody
@@ -111,7 +109,7 @@ function noSwipe_(t) {
   const n = t && t.closest ? t.closest('[data-noswipe]') : null;
   return !!n && !(n.classList && n.classList.contains('qpad-ink') && !n.closest('.qpad.is-drawing'));
 }
-/* THE PADLOCK (457, 461): a game widget's (`game`, 'id@column:page') or a question page's (`q`, 'column:page') holds the column still. Its own name, as `SWIPE.lock` is zeroed on every touch. */
+/* THE PADLOCK (457, 461): a widget's (`game`, 'id@column:page') or a question page's (`q`, 'column:page') holds the column still. Its own name, as `SWIPE.lock` is zeroed on every touch. */
 const PADLOCK = { game: '', q: '' };
 const padHere_ = () => String(typeof AT !== 'undefined' ? AT : '') + ':' + String((typeof PAGE !== 'undefined' && PAGE[AT]) || 0);
 
@@ -142,7 +140,7 @@ on('game-lock', el => {
 function gameLockStray_() { if (PADLOCK.game && PADLOCK.game.split('@')[1] !== padHere_()) gameLockSet_(''); }
 document.addEventListener('visibilitychange', () => { if (document.hidden && PADLOCK.game) gameLockSet_(''); });
 
-/* ABSOLUTE WHILE A GAME IS LOCKED: the pager's own drag-scroll fallback, a native pan, a wheel and an arrow key's page scroll were each a way round (461). */
+/* ABSOLUTE WHILE A WIDGET IS LOCKED: the pager's own drag-scroll fallback, a native pan, a wheel and an arrow key's page scroll were each a way round (461). */
 const PAD_KEYS = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'PageUp', 'PageDown', 'Home', 'End', ' '];
 function padStop_(e) {
   if (!e.cancelable) return;

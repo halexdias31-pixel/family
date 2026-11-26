@@ -279,7 +279,7 @@
   {
    "id": "1.44",
    "principle": 1,
-   "text": "One Find, chips only; everything browsable is a card in it (Settings, Booking, Tools, Games); signed out sees only Settings.",
+   "text": "One Find, chips only; everything browsable is a card in it (Settings, Booking, Tools); signed out sees only Settings.",
    "since": "2026-11-12"
   },
   {
@@ -501,7 +501,7 @@
   {
    "id": "2.7",
    "principle": 2,
-   "text": "Posts and photos wait for approval and are kept as files.",
+   "text": "Photos wait for approval and are kept as files (Posts left the site, owner 26 Nov).",
    "since": "2026-11-12"
   },
   {
@@ -555,7 +555,7 @@
   {
    "id": "1.81",
    "principle": 1,
-   "text": "One engine each for the games and tools (owner, 17 Nov): every canvas and SVG is sized, scaled and looped by js/draw.js, every pointer, key and drag goes through js/input.js, and every map (the racer and its little map) is tools/race_map.py's, for any place, massaged there once (junctions welded, one width per road, bends smoothed). A game keeps only what it draws.",
+   "text": "One engine for the tools (owner, 17 Nov; the games left the site, owner 26 Nov): every pointer, key and drag goes through js/input.js.",
    "since": "2026-11-17"
   },
   {

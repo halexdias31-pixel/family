@@ -97,16 +97,13 @@ function kindRank_() {
 /* LISTS WHOSE OWN ORDER IS THE ORDER (473): § */
 /* FIND'S FRONT MENU, in the owner's order (4 Nov): the first question's answers, whatever kinds stand under them — kinds.json `doors`. */
 const FRONT_ORDER = ITEM_KINDS.doors.map(d => d.name);
-/* THE DOORS' OWN BUCKETS (batch C), said once: a post's state and its time frame (find-doors.js postState_, whenBand_), in their order. */
-const DOOR_WORDS = { postState: ['Approved', 'Waiting for approval', 'Deleted'], when: ['Today', 'This week', 'This month', 'This year', 'Older'] };
-/* THE DOORS' OWN MENUS IN THE OWNER'S ORDER (batch C): account types, who, which posts, when. */
+/* THE DOORS' OWN MENUS IN THE OWNER'S ORDER (batch C): account types, who. */
 /* ONE LEVEL LADDER (owner, 17 Nov: KS3 and GCSE side by side in the alphabet felt wrong): a Level menu steps up settings.json `levels.list`
    by rung; a level off the ladder (rung 0) stands just below the rung that shares its key stage (AS before A-Level, 11+ before SATs), else after the ladder. */
 const LADDER_ORDER = (() => { const L = SHARED_SETTINGS.levels.list, rungOf = s => (L.find(e => e.rung && e.stages.indexOf(s) >= 0) || {}).rung;
   const at = (e, i) => e.rung || (rungOf(e.stages[0]) ? rungOf(e.stages[0]) - 0.5 : 100 + i);
   return L.map((e, i) => [e.level, at(e, i)]).sort((a, b) => a[1] - b[1]).map(e => e[0]); })();
-const ANSWER_ORDERS = [FRONT_ORDER, LADDER_ORDER, ['Student', 'Parent', 'Staff', 'Apprentice', 'Admin', 'Business', 'Site'], ['Parent', 'Over 18', 'Under 18', 'Student', 'Tutor', 'Apprentice', 'Admin'],
-  DOOR_WORDS.postState, DOOR_WORDS.when];
+const ANSWER_ORDERS = [FRONT_ORDER, LADDER_ORDER, ['Student', 'Parent', 'Staff', 'Apprentice', 'Admin', 'Business', 'Site'], ['Parent', 'Over 18', 'Under 18', 'Student', 'Tutor', 'Apprentice', 'Admin']];
 function answerCmp_(texts) {
   const every = test => texts.length > 0 && texts.every(test);
   if (every(t => yearKey_(t) !== null)) return (a, b) => yearKey_(b) - yearKey_(a);

@@ -58,8 +58,7 @@ async function loadOnce_(again, n, kept) {
      why each of the three keys is sent. */
   const who = loadWho_();
   try {
-    /* The person's id goes with the request so the server can say which posts YOU liked — it
-       cannot know otherwise, and sending every like to every phone to answer it would be absurd. */
+    /* The person's id goes with the request so the server can answer for YOU. */
     /* AND THE NAME, which is a different question from the id and was never being asked. § */
     /* ---------- AND THE TOKEN, WHICH IS THE ONLY ONE OF THE THREE THAT PROVES ANYTHING § */
     /* ALL THREE ARE BUILT BY `loadWho_` — `who`, at the top of this function. */
@@ -220,7 +219,7 @@ function loadNotices_(d) {
       if (USER && typeof profileRefresh_ === 'function') profileRefresh_();
       /* NO BANNER FOR A VERSION MISMATCH ANY MORE. § */
       /* `editResource` AND `deleteResource` WERE IN THIS LIST. § */
-      const NEEDS = ['post:save', 'post:delete'];
+      const NEEDS = ['profile:save', 'todo:save'];
       const missing = NEEDS.filter(f => (d.features || []).indexOf(f) === -1);
       if (missing.length) {
         /* THE VERSION IT ACTUALLY REACHED, said out loud. § */
@@ -295,8 +294,7 @@ function loadFinish_(kept) {
     });
     aheadOpen_(); if (kept) payloadFind_();
   }
-  if (typeof window.openSharedPost === 'function') window.openSharedPost();     // if the app was opened on a shared link, go to that post
-  try { openSharedTutor(); } catch (e) { oops_(e, 'shell:loadOnce_') }   // or on a tutor's own link (400)
+  try { openSharedTutor(); } catch (e) { oops_(e, 'shell:loadOnce_') }   // if the app was opened on a tutor's own link (400)
   try { if (typeof window.pushLanding_ === 'function') window.pushLanding_(); } catch (e) { oops_(e, 'shell:loadOnce_') }   // or on a tapped notification (492, push.js)
   /* AND BACK TO THE QUESTION A RELOAD TOOK YOU AWAY FROM — once a visit, on the first payload that
      arrived, when the column came back too. See `findPlaceBack_` in find.js and docs/history/317. */

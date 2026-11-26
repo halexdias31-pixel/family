@@ -71,15 +71,9 @@ const NOTIFY_KINDS = {
                label: 'Weekly progress email', note: 'Sundays: what your child worked on' },
   bookings:  { col: 'bookings_email', roles: ['client', 'tutor', 'admin'],
                label: 'Booking updates', note: 'Notes, new terms and payments on a session' },
-  posts:     { col: 'posts_email', roles: ['client', 'student', 'tutor'],
-               label: 'Your posts', note: 'When one goes up, or is not put up' },
   /* HIDDEN: NOTHING HANDS A CODE OUT ANY MORE. § */
   referrals: { col: 'referrals_email', roles: NOTIFY_ALL_ROLES, hidden: true,
                label: 'Your code was used', note: 'When somebody joins with it' },
-  /* OFF MEANS A POST WAITS UNSEEN until the admin opens Posts — said on the card, because nothing else
-     tells anybody a post is waiting. */
-  approvals: { col: 'approvals_email', roles: ['admin'],
-               label: 'Posts waiting for you', note: 'If off, a post waits until you open Posts' },
 
   access:    { always: true, roles: NOTIFY_ALL_ROLES,
                label: 'Sign-in links and new PINs', note: 'Confirming your address, a forgotten PIN, a link to sign in',
@@ -100,7 +94,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-11-26-siri";
+const BACKEND_VERSION = "2026-11-26-core";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 /* EVERY TAB NAME CODE READS BY. A kind in kinds.json ledger.moved is read through the items/events store
@@ -896,8 +890,6 @@ const MAP_BOXES = {
 /* The folder, written in. § */
 const POSTS_FOLDER = '1piJQHYQ2h3I_f3ullEmDcNn_RGti4VVw';
 
-/* ---------- THE REACTIONS EVERY POST OFFERS § */
-const HOUSE_REACTIONS = ['👍', '❤️', '😂', '😮', '👏', '🎉'];
 
 /* ---------- HOW MANY SUBMISSIONS ONE `submitAnswer` MAY CARRY § */
 const SUBMISSIONS_PER_POST = SHARED_SETTINGS.submissionsPerPost;

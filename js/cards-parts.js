@@ -30,7 +30,6 @@ const KC_DEFAULT = {
   writing: { cls: 'hdb lib-c', pic: [], title: [], tags: [], lines: [], tiles: [] },
   event: { cls: 'hdb lib-c', pic: [], title: [], tags: [], lines: [], tiles: ['file-view:ext:Source'] },
   people: { cls: 'person lib-c', pic: [], title: [], tags: [], lines: [], tiles: [] },
-  post: { cls: 'post-fc', pic: [], title: [], tags: [], lines: [], tiles: ['react:heart:Like'] },
   receipt: { cls: '', pic: [], title: [], tags: [], lines: [], tiles: ['job-pay:pound:Pay'] },
   question: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
   answer: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
@@ -57,7 +56,6 @@ const KC_DEFAULT = {
   person: { cls: 'is-prof', pic: [], title: [], tags: [], lines: [], tiles: [] },
   setting: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
   health: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
-  offPosts: { cls: '', pic: [], title: [], tags: [], lines: [], tiles: [] },
   offBooking: { cls: '', pic: [], title: [], tags: [], lines: [], tiles: [] },
 };
 /* A KIND'S FIELDS: its row in data/settings/card-fields.json (`DATA.cardFields`, settings.js), else the built-in row, else the bare three. */

@@ -53,22 +53,11 @@ function getTerms_(payload) {
   });
 }
 
-/* Herd Mentality's questions. */
 function getQuestions_(payload) {
   /* questions -------------------------------------------------------------------------- ONE ROW PER PART, plus a stem row per question. § */
   try {
     /* ---------- THE QUESTIONS COME FROM THE REPOSITORY NOW § */
   } catch (err) { payload.questions = []; }
-
-  /* herd ------------------------------------------------------------------------------------ HERD MENTALITY'S QUESTIONS. § */
-  try {
-    read(TAB.herd).rows.forEach(r => {
-      if (!S(r.question) || !ON_(r.active)) return;
-      payload.herd.push({ id: S(r.question_id), question: S(r.question),
-                          sort: N(r.sort_order) });
-    });
-    payload.herd.sort((a, b) => (a.sort || 0) - (b.sort || 0));
-  } catch (err) { payload.herd = []; }
 
 
   // --- resources -> checklists --------------------------------------------------------------

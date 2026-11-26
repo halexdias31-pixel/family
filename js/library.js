@@ -647,7 +647,7 @@ function libSend_(ids) {
 function libLedgerGen_() {
   return String(LIB.ledger || (typeof DATA !== 'undefined' && DATA && DATA.libGen) || '');
 }
-/* THE ONE INDEXEDDB WRAPPER (library, kept game file, console saves): opens `db` (version 1, `store` made on first open with `opts`), runs `fn(store)` in one transaction, closes. Resolves the request's `result` (true when `fn` returns none); rejects with the error. */
+/* THE ONE INDEXEDDB WRAPPER (the library's device copy): opens `db` (version 1, `store` made on first open with `opts`), runs `fn(store)` in one transaction, closes. Resolves the request's `result` (true when `fn` returns none); rejects with the error. */
 function idbTx_(db, store, mode, fn, opts) {
   return new Promise((ok, no) => {
     const rq = indexedDB.open(db, 1);

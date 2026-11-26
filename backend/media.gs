@@ -1,4 +1,4 @@
-/* @family. — media.gs REELS, VIDEOS AND CONSOLE SAVES an admin or a player sends from the phone */
+/* @family. — media.gs REELS AND VIDEOS an admin sends from the phone */
 
 /* ---------- REELS AND VIDEOS AN ADMIN ADDS FROM THE PHONE (404) ---------- */
 const MEDIA_KINDS = ['reel', 'video'];
@@ -35,7 +35,7 @@ function mediaAgeCap_(r) {
   return age !== null ? age : MEDIA_AGE_UNKNOWN;
 }
 /* A ROW TOO OLD FOR THIS VIEWER STILL HIDES A REPOSITORY COPY of the same video, by this hash rather than the id
-   (the id alone is the video). FNV-1a of `kind:id`; `mediaVeil_` in games.js is the same sum. */
+   (the id alone is the video). FNV-1a of `kind:id`. */
 function mediaVeil_(kind, id) {
   let h = 0x811c9dc5;
   const s = kind + ':' + id;

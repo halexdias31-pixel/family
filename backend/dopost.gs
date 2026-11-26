@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-11-26-siri";
+const DOPOST_VERSION = "2026-11-26-core";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -153,9 +153,6 @@ function postActions_() {
     saveTimetable: (b, a, g) => postSaveTimetable_(b, 'timetable:save', g),
     savePhoto: postSavePhoto_,
     setMyRoles: postSetMyRoles_,
-    votePoll: postVotePoll_,
-    reactPost: postReactPost_,
-    addComment: postAddComment_,
     claimChild: postClaimChild_,
     answerClaim: postAnswerClaim_,
     findChild: postFindChild_,
@@ -224,8 +221,6 @@ function postActions_() {
     pushSubscribe: (b, a, g) => pushAction_(b, 'push:save', g),
     pushUnsubscribe: (b, a, g) => pushAction_(b, 'push:delete', g),
     pushSet: (b, a, g) => pushAction_(b, 'pushsetting:save', g),
-    addPost: postAddPost_,
-    approvePost: postApprovePost_,
     setRoom: (b, a, g) => postSetRoom_(b, 'room:save', g),
     deleteJob: (b, a, g) => postDeleteJob_(b, 'job:delete', g),
     linkChild: postLinkChild_,
@@ -338,8 +333,7 @@ function loginReplyFor_(r, token, extra) {
                 profile: profileOf_(r),
                 /* THE TUTOR AGREEMENT — so the box draws ticked and locked on every phone the
                    person signs in on, not only the one they ticked it on. */
-                agreementSignedAt: S(r.agreement_signed_at), agreementVersion: S(r.agreement_version),
-                highscore: N(r.high_score_flappy), ttHighscore: N(r.high_score_tables) };
+                agreementSignedAt: S(r.agreement_signed_at), agreementVersion: S(r.agreement_version) };
   /* Their family, as agreed by both sides, and anything still waiting on them. § */
   Object.assign(out, familyNamesOf_(r));
   const meId = S(r.person_id);

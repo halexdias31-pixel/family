@@ -67,21 +67,6 @@
    "child",
    "admin"
   ],
-  "votePoll": [
-   "member",
-   "child",
-   "admin"
-  ],
-  "reactPost": [
-   "member",
-   "child",
-   "admin"
-  ],
-  "addComment": [
-   "member",
-   "child",
-   "admin"
-  ],
   "claimChild": [
    "member",
    "child",
@@ -363,14 +348,6 @@
    "child",
    "admin"
   ],
-  "addPost": [
-   "member",
-   "child",
-   "admin"
-  ],
-  "approvePost": [
-   "admin"
-  ],
   "setRoom": [
    "member",
    "child",
@@ -413,9 +390,6 @@
    "admin"
   ],
   "?run=checkEverything": [
-   "admin"
-  ],
-  "?run=checkPostsFolder": [
    "admin"
   ],
   "?run=syncFilms": [
@@ -535,16 +509,6 @@
   "card:read": [
    "admin"
   ],
-  "post:save": [
-   "member",
-   "child",
-   "admin"
-  ],
-  "post:delete": [
-   "member",
-   "child",
-   "admin"
-  ],
   "listed:save": [
    "admin"
   ],
@@ -574,12 +538,6 @@
    "admin"
   ],
   "tools:read": [
-   "anyone",
-   "member",
-   "child",
-   "admin"
-  ],
-  "games:read": [
    "anyone",
    "member",
    "child",

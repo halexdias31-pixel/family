@@ -1745,17 +1745,6 @@
     }
    }
   },
-  "game": {
-   "source": "js/map.js WIDGETS (kind game)",
-   "find": {
-    "group": "Games",
-    "label": "games",
-    "under": "Games"
-   },
-   "see": {
-    "who": "anyone"
-   }
-  },
   "soon": {
    "source": "tiers.json: a switched-off widget",
    "find": {
@@ -2596,9 +2585,7 @@
    }
   },
   "post": {
-   "source": "Ledger posts tabs",
-   "loader": "backend get-posts.gs -> find-doors.js",
-   "sample": "check/fixture.json posts",
+   "source": "Ledger posts tabs (Posts left the site, owner 26 Nov: the rows are kept, never read)",
    "sheet": {
     "tab": "posts",
     "columns": [
@@ -2611,34 +2598,6 @@
     "id": "post_id",
     "owner": [
      "posted_by"
-    ]
-   },
-   "find": {
-    "group": "Posts",
-    "label": "posts",
-    "under": "Posts",
-    "entries": {
-     "post": {},
-     "offPosts": {}
-    },
-    "facets": [
-     "forLabel",
-     "kindLabel",
-     "postState",
-     "postBy",
-     "postWhen"
-    ],
-    "onCard": false
-   },
-   "shape": "Card", "bodyAs": "record",
-   "card": {
-    "look": "post-fc",
-    "record": {"name": [["text", "caption", "title", "=Post"]], "nameMax": 80},
-    "tags": [
-     "location"
-    ],
-    "links": [
-     "authorId"
     ]
    },
    "see": {
@@ -3465,7 +3424,7 @@
   }
  },
  "doorsSay": "FIND'S FRONT DOORS IN THE OWNER'S ORDER (4 Nov): the first question's answers, each a kind's `find.under` (or Videos); `built` doors are walked ahead by the build (js/finder-tags.js) and warmed while idle (find-quick.js). Who may open one signed out is a permissions row (`item` <door>:read for `anyone`, data/settings/actions.json). ONE OPENING QUESTION (owner queue item 9, 24 Nov): What kind is the only question at the top of Find — What for and Which are not asked, and Practice is no door of its own: its kinds (Questions, Answers, Inserts) are answers beside Library, Tools and the rest; `practice` marks them (a guest opens them by `question:read`).",
- "doors": [{"name": "Practice", "built": true, "practice": true}, {"name": "Library", "built": true}, {"name": "Videos"}, {"name": "Coming soon"}, {"name": "Posts"}, {"name": "Profiles"}, {"name": "Booking"}, {"name": "Settings"}, {"name": "Tools"}, {"name": "Games"}],
+ "doors": [{"name": "Practice", "built": true, "practice": true}, {"name": "Library", "built": true}, {"name": "Videos"}, {"name": "Coming soon"}, {"name": "Profiles"}, {"name": "Booking"}, {"name": "Settings"}, {"name": "Tools"}],
  "findSay": "FIND (rule 1.80): a kind's `find` gives its What-for group, its What-kind label, the front door(s) it stands under (`under`), the facets in order, and `draw` (a global that draws its Find card, else findCard). `entries` names the Find entry kinds it covers when they are not the kind itself (an answer page, a timeline, a switched-off door), each overriding those fields. An entry kind named by no kind is never listed or drawn; `see.who` (anyone, signedIn, self, family, staff, admin) decides who is listed it. Labels and order of the facets are data/settings/facets.json. A kind with `from: \"store\"` (the owner's life and business, 17 Nov) is listed straight from the items tab (form.js storeItems_): a `new` card asking its `store` form, then one card a row, its Edit tile asking the same form prefilled and saving under the same id, and `card.tick` ({f, on, off, label}) a one-tap tile that flips that field; `facetCols` names each facet read off a row's own column.",
  "listSay": "A KIND LISTED AS ROWS (queue step 6, 22 Nov): `sheet.list` is how the backend lists a kind straight off its tab (kindList_, items.gs). `keep` the rows whose every entry holds: a column filled (`col`), a column true (`col true`) or the whole row passing a tidy (`* tidy`); `out` each reply field from its column through a tidy (`col tidy`, `*` the whole row; s when none — s, ms, num, iso, when, whenS, norm, name, rank, staff); `sort` by a reply field, `-` newest first; `max` rows at most.",
  "stored": {

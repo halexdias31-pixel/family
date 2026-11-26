@@ -1,4 +1,4 @@
-{"walked":{"nodes":700,"maxNodes":700,"maxDepth":8,"maxChildren":12},"asked":["bandValue","documentType","examBoard","examYear","keystage","kindLabel","kindOwn","level","paperId","paperSection","postState","profileType","qNumber","qPart","required","subject","tier","toolName","topic","venueSize"],"edges":[["bandValue","kindLabel"],
+{"walked":{"nodes":700,"maxNodes":700,"maxDepth":8,"maxChildren":12},"asked":["bandValue","documentType","examBoard","examYear","keystage","kindLabel","kindOwn","level","paperId","paperSection","profileType","qNumber","qPart","required","subject","tier","toolName","topic","venueSize"],"edges":[["bandValue","kindLabel"],
 ["bandValue","kindOwn"],
 ["bandValue","level"],
 ["bandValue","subject"],
@@ -32,7 +32,6 @@
 ["kindLabel","level"],
 ["kindLabel","paperId"],
 ["kindLabel","paperSection"],
-["kindLabel","postState"],
 ["kindLabel","profileType"],
 ["kindLabel","qNumber"],
 ["kindLabel","qPart"],

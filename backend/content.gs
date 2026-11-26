@@ -1,4 +1,4 @@
-/* @family. — 40_content.gs (5 of 8) POSTS, RESOURCES, THE MAP, AND DRIVE. § */
+/* @family. — 40_content.gs (5 of 8) RESOURCES, THE MAP, AND DRIVE. § */
 
 
 /* WHAT A DRIVE FAILURE ACTUALLY MEANS, said in the place it happens. § */
@@ -159,51 +159,6 @@ function driveTrouble_(err, admin) {
     + 'link. authoriseDrive names the folder and tries a test file.'].join('\n');
 }
 
-/* WHEN A POST HAPPENED. § */
-function postWhen_(r) {
-  const cols = ['creation_date', 'posted_on', 'uploaded_date'];
-  for (let i = 0; i < cols.length; i++) {
-    const d = sheetDate(r[cols[i]]);
-    if (d) return d;
-  }
-  return null;
-}
-
-/** Which date column this sheet writes to. The first one it actually has, same order. */
-function dateCol_(t) {
-  const cols = ['creation_date', 'posted_on', 'uploaded_date'];
-  for (let i = 0; i < cols.length; i++) {
-    if (t.headers.indexOf(cols[i]) >= 0) return cols[i];
-  }
-  return 'posted_on';
-}
-
-/* EVERY PICTURE AND CLIP ON A POST ROW, IN ORDER, `image` FIRST — one list for the phone to read, so the order is decided here and nowhere else. § */
-function postMediaOut_(r) {
-  const out = [];
-  [S(r.image)].concat(S(r.media).split('|')).forEach(x => {
-    const v = S(x).trim();
-    if (v && out.indexOf(v) < 0) out.push(v);
-  });
-  return out;
-}
-
-/* A file's name without its extension. § */
-function captionFromName_(n) {
-  return S(n).replace(/\.[^./]+$/, '').trim();
-}
-
-/* `fillPostNames_` WAS HERE, and it is gone with the Drive call it made. § */
-
-
-/** The set on offer, most specific first: this post's own, then the brand tab, then the code. */
-function reactionSet(postRow) {
-  const own = S(postRow && postRow.reactions).split(/\s+/).filter(Boolean);
-  if (own.length) return own;
-  /* THE BRAND TAB WAS THE MIDDLE RUNG AND IT IS IN THE REPOSITORY NOW — `data/settings/brand.json`, read by `settingsInto_` on the phone. § */
-  return HOUSE_REACTIONS.slice();
-}
-
 function getPostFolder() {
   const cfg = config();
   let id = S(cfg.posts_folder || cfg.POSTS_FOLDER || cfg.postsFolder) || POSTS_FOLDER;
@@ -242,55 +197,8 @@ function driveKeep_(folder, raw, name) {
     + (/^video\//i.test(type) ? '#video' : '');
 }
 
-/* ---------- WHAT A POST MAY PUT IN DRIVE § */
+/* ---------- THE LARGEST FILE ONE UPLOAD MAY PUT IN DRIVE § */
 const POST_FILE_MAX  = 20 * 1048576;
-const POST_FILES_MAX = Math.floor(45 * 1048576 * 3 / 4);
-const POST_PIC_MAX   = 8 * 1048576;
-
-function postMediaRefusal_(list) {
-  const all = (list || []).map(x => S(x).trim()).filter(Boolean);
-  /* NO LINKS (413): a post's pictures are files the author chose, uploaded here — never an address typed or pasted. */
-  if (all.some(x => !/^data:/i.test(x))) {
-    return 'A post takes pictures chosen from your phone, not links. Nothing was posted.';
-  }
-  const ups = all;
-  let total = 0;
-  for (let i = 0; i < ups.length; i++) {
-    const head = (ups[i].match(/^data:([^;,]*);base64,/i) || [])[1] || '';
-    if (!/^(image\/(jpeg|png|gif|webp|heic|heif)|video\/[\w.+-]+)$/i.test(head)) {
-      return 'A post can hold photos and videos only' + (head ? ' — not ' + head : '') + '. Nothing was posted.';
-    }
-    const bytes = Math.floor((ups[i].length - ups[i].indexOf(',') - 1) * 3 / 4);
-    /* A PICTURE IS REDRAWN AT 1600px ON THE PHONE (`camItemOf_`), well under a megabyte; one this big was never redrawn. */
-    if (/^image\//i.test(head) && bytes > POST_PIC_MAX) {
-      return 'A picture in this post is over ' + (POST_PIC_MAX / 1048576) + 'MB — choose a smaller one. Nothing was posted.';
-    }
-    if (bytes > POST_FILE_MAX) {
-      return (/^video\//i.test(head) ? 'A clip' : 'A picture') + ' in this post is over 20MB — trim it '
-        + 'to about twenty seconds and post again. Nothing was posted.';
-    }
-    total += bytes;
-  }
-  if (total > POST_FILES_MAX) {
-    return 'That is too much to post at once (over 33MB). Post the clips separately. Nothing was posted.';
-  }
-  return '';
-}
-
-/* ---------- HOW MANY POSTS ONE PERSON MAY HAVE WAITING § */
-const POST_WAITING_MAX = 5;
-
-/* IS THIS POST THEIRS — who pressed Post (`posted_by`), or the name on it for a row typed before that column. */
-function postIsBy_(r, me) {
-  const id = S(me && me.person_id);
-  const p = id ? findPerson(S(r && r.posted_by) || S(r && r.author)) : null;
-  return !!p && S(p.person_id) === id;
-}
-/* WAITING, UP OR TURNED DOWN — one reading of the `approved` cell (blank is up: an admin's own, or a row typed in). */
-function postState_(r) {
-  const s = norm(r && r.approved);
-  return s === 'pending' ? 'pending' : s === 'refused' ? 'refused' : 'up';
-}
 
 /* ---------- ONE REPORT RULE (486): a row's kind, item, state and weight, old rows included ---------- */
 /* OLD SHAPES ARE FILLED HERE ONLY UNTIL `migrateOldRows_` HAS WRITTEN THEM (`reportTidy_`). */
@@ -356,12 +264,6 @@ function reportsMigrate_() {
 
 /* A CHILD UPLOADS NO PICTURE (413): rank Student, refused at every door that would keep one. */
 const CHILD_NO_UPLOAD = 'Pictures are put up by a grown-up — ask your parent or tutor. Nothing was sent.';
-
-function postsWaitingFor_(t, me) {
-  const id = S(me && me.person_id);
-  if (!id) return 0;
-  return ((t && t.rows) || []).filter(r => postState_(r) === 'pending' && ON_(r.active) && postIsBy_(r, me)).length;
-}
 
 /* ---------- WHERE PROFILE PICTURES GO § */
 function getPhotoFolder_() {
