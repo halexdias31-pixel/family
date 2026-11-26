@@ -71,6 +71,9 @@ function sciIndex(tb) {
 function sciIdeaOf(r, T, X) {
   const st = (T.science || {}).set || {};
   if (st[r.paper_id]) return st[r.paper_id];
+  /* A GENERATED @family SET (tools/lib/qgen.js): its sub-topic's idea, as for maths (ideaOf), or none. */
+  const g = require('./qgen.js').ideaOfSet(r.paper_id);
+  if (g != null) return g;
   const own = S(r.spec_ref).split(/\s+/).filter(Boolean).find(ref => X.point[ref]);
   if (own) return X.point[own];
   /* a question shown in a second set (`same_as`) is linked where the row it is was */

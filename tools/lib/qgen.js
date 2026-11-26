@@ -66,7 +66,7 @@ const CU = () => require('./curriculum.js');
 function cfg(e) {
   const g = (e && e.T && e.T.gen) || {}, CC = String(e.country).toUpperCase();
   return { set_prefix: g.set_prefix || SET_PREFIX + CC + '-', row_prefix: g.row_prefix || 'Q-GEN-' + CC + '-', strip: g.strip != null ? g.strip : stem(e.T),
-    key: g.key || 'node', level: g.level || '',
+    key: g.key || 'node', level: g.level || '', subject: g.subject || '',
     row: Object.assign({ key_stage: 'KS4', band_type: 'stage', band_value: 'GCSE', level: 'GCSE', tier: 'Foundation' }, g.row || {}) };
 }
 /* THE DOTTED STEM every node id of a tree shares ("xx.ma." for xx.ma, xx.ma.num, ...), cut from its set ids. */
@@ -179,7 +179,7 @@ function emit(T, E) {
     const c = cfg(e), D = e.T, pid = setOf(node, e), n = nodeOf({ _node: node }, D);
     if (!ideas.has(e)) ideas.set(e, ideaOfNode(D));
     const idea = ideas.get(e);
-    rows.push({ row_id: 'D-' + pid, paper_id: pid, kind: 'document', name: n ? n.name : node, subject: CU().SUBJECTS[e.subject].tax, key_stage: c.row.key_stage,
+    rows.push({ row_id: 'D-' + pid, paper_id: pid, kind: 'document', name: n ? n.name : node, subject: subjectOf(node, e, c), key_stage: c.row.key_stage,
       band_type: c.row.band_type, band_value: c.row.band_value, level: c.row.level, tier: c.row.tier, company: COMPANY, document_type: 'Question set',
       trackable: 'True', printable: 'False', active: 'True' });
     let k = 0;
@@ -193,6 +193,14 @@ function emit(T, E) {
     }));
   });
   return { rows, words };
+}
+/* A SET'S SUBJECT: the country file's subject (Maths), or with `gen.subject` "root" the name of the node's top topic (science sets are
+   Biology, Chemistry or Physics, as every other science set is). */
+function subjectOf(node, e, c) {
+  if (c.subject !== 'root') return CU().SUBJECTS[e.subject].tax;
+  let n = nodeOf({ _node: node }, e.T);
+  while (n && n.parent) n = nodeOf({ _node: n.parent }, e.T);
+  return n ? n.name : CU().SUBJECTS[e.subject].tax;
 }
 /* A NODE'S IDEA IN ONE COUNTRY FILE: the first (A–Z) idea its `ideas` maps to exactly that node; else the idea its `gen_ideas` names for a
    sub-topic no idea maps to (the card that teaches it); none if neither does. */
