@@ -58,8 +58,8 @@ function problems(d) {
   d.sci = { questions: sq.length, mapped: sq.length - sun, unmapped: sun, ideas: new Set(sq.map(r => r.idea_id).filter(Boolean)).size };
   d.rows.forEach(r => { if (!mq.has(r) && !sset.has(r) && r.idea_id != null) bad.push(r.row_id + ': not a maths or science question, and wears idea_id ' + r.idea_id); });
   ['set', 'topic'].forEach(k => Object.keys(T[k] || {}).forEach(x => { if (!ids.has(T[k][x])) bad.push(QI.TABLE + ' ' + k + ' "' + x + '" -> ' + T[k][x] + ', no idea of the maths cards'); }));
-  const G = (SD.json('data/settings/dfe-maths.json') || {}).gen_ideas || {};
-  Object.keys(G).forEach(x => { if (!ids.has(G[x])) bad.push('data/settings/dfe-maths.json gen_ideas "' + x + '" -> ' + G[x] + ', no idea of the maths cards'); });
+  require('./lib/curriculum.js').ofSubject(null, 'maths').forEach(e => { const G = e.T.gen_ideas || {};
+    Object.keys(G).forEach(x => { if (!ids.has(G[x])) bad.push(e.file + ' gen_ideas "' + x + '" -> ' + G[x] + ', no idea of the maths cards'); }); });
   if (unmapped > T.budget) bad.push(unmapped + ' maths questions unmapped, over the budget of ' + T.budget);
   if (unmapped < T.budget) bad.push(unmapped + ' maths questions unmapped, under the budget of ' + T.budget + ' — lower it to ' + unmapped + ' in ' + QI.TABLE);
   if (d.head != null && T.budget > d.head) bad.push('the budget rose from ' + d.head + ' to ' + T.budget + ' — it may only fall');
@@ -84,7 +84,7 @@ async function page(brk) {
         out.n++;
         const v = [].concat(FACET_READ.topic.of(x) || []).filter(Boolean);
         v.forEach(t => out.shown.add(t));
-        /* A MATHS OR SCIENCE QUESTION (owner 24–25 Nov) answers its DfE nodes broad → narrow (tools/one-dfe.js holds the trees), not its idea's name. */
+        /* A MATHS OR SCIENCE QUESTION (owner 24–25 Nov) answers its DfE nodes broad → narrow (tools/one-curriculum.js holds the trees), not its idea's name. */
         if (subs.includes(x.subject)) {
           const D = Object.assign({}, (TAXONOMY.Maths || {}).dfe || {}, (TAXONOMY.Science || {}).dfe || {}), w = [];
           String(x.row.dfe || '').split(/\s+/).filter(Boolean).forEach(id => { const p = []; for (let n = id; n && D[n]; n = D[n][1]) p.unshift(D[n][0]); p.forEach(t => { if (!w.includes(t)) w.push(t); }); });

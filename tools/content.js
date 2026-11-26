@@ -393,11 +393,11 @@ const QIDEAS = {
     c.t = c.QI.assignAll(c.q.rows, tb);
     c.names = c.QI.names(tb);
     c.sciNames = c.QI.sciNames(tb);
-    /* THE DfE TREE (owner 24–25 Nov): each maths question's `dfe` nodes and `worksheet` name (tools/lib/dfe.js), after its idea. */
-    c.DFE = require('./lib/dfe.js');
-    c.d = c.DFE.assign(c.q.rows);
+    /* THE CURRICULUM TREES (owner 24–25 Nov), every country's: each question's `dfe` nodes and `worksheet` name (tools/lib/curriculum.js), after its idea. */
+    c.CU = require('./lib/curriculum.js');
+    c.d = c.CU.assign(c.q.rows);
     c.t.changed += c.d.changed;
-    Object.keys(c.DFE.SUBJECTS).forEach(k => { const d = c.d[k]; console.log('dfe ' + k + ': ' + d.questions + ' questions, ' + d.tagged + ' given a DfE node, ' + d.untaggedN + ' not: ' + JSON.stringify(d.untagged)); });
+    Object.keys(c.CU.SUBJECTS).filter(k => c.d[k]).forEach(k => { const d = c.d[k]; console.log('dfe ' + k + ': ' + d.questions + ' questions, ' + d.tagged + ' given a DfE node, ' + d.untaggedN + ' not: ' + JSON.stringify(d.untagged)); });
     console.log('qideas: ' + c.t.questions + ' maths questions, ' + c.t.mapped + ' given an idea, ' + c.t.unmapped + ' unmapped; ' + c.t.changed + ' row(s) changed; '
       + Object.keys(c.names).length + ' idea names; science: ' + c.t.science.questions + ' questions, ' + c.t.science.mapped + ' given an idea, ' + c.t.science.unmapped + ' unmapped; ' + Object.keys(c.sciNames).length + ' idea names');
   },
@@ -405,8 +405,8 @@ const QIDEAS = {
     if (!c.apply) { console.log('(a dry run: --apply writes data/questions.json and taxonomy.json Maths.ideaNames)'); return; }
     if (c.t.changed) IM.writeCards('questions', c.q.rows, c.q.style);
     const file = path.join(L.ROOT, 'data', 'settings', 'taxonomy.json'), tax = JSON.parse(fs.readFileSync(file, 'utf8'));
-    tax.Maths = Object.assign(tax.Maths || {}, { ideaNames: c.names, dfe: c.DFE.forFind() });
-    tax.Science = Object.assign(tax.Science || {}, { ideaNames: c.sciNames, dfe: c.DFE.forFind(c.DFE.table('science')) });
+    tax.Maths = Object.assign(tax.Maths || {}, { ideaNames: c.names, dfe: c.CU.forFind('maths') });
+    tax.Science = Object.assign(tax.Science || {}, { ideaNames: c.sciNames, dfe: c.CU.forFind('science') });
     fs.writeFileSync(file, JSON.stringify(tax, null, 1) + '\n');
     console.log('qideas: written to data/questions.json and data/settings/taxonomy.json');
   },

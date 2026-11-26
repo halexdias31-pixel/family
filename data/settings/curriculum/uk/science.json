@@ -1,5 +1,5 @@
 {
- "about": "THE @FAMILY SCIENCE TOPIC TREE, FROM THE GOVERNMENT'S OWN LISTS (owner, 25 Nov), in the one format of data/settings/dfe-maths.json (tools/lib/dfe.js): subject › topic › sub-topic, each node an id, a short plain name (paraphrased), its `src` lines (the DfE document and its section heading: the GCSE topic – sub-heading, the National Curriculum year and topic) and, for a sub-topic, its levels (KS1, KS2, KS3; GCSE Combined = in the combined science content and so in the single sciences too; GCSE Separate = in the single-science content only). Higher-only content is underlined in the DfE documents and cannot be read from their text, so no level says Higher. A science question's `dfe` is read from this table only: `ideas` (its sci-ideas idea, an AQA spec point), `spec` (its AQA 8461/2/3/4 `spec_ref` point, the longest section prefix listed), `set`, `topic` (a source topic name). An A-Level set is outside these documents. Checked by tools/one-dfe.js; `budget` (questions with no node) may only fall.",
+ "about": "THE @FAMILY SCIENCE TOPIC TREE, FROM THE GOVERNMENT'S OWN LISTS (owner, 25 Nov), in the one format of data/settings/curriculum/uk/maths.json (tools/lib/curriculum.js): subject › topic › sub-topic, each node an id, a short plain name (paraphrased), its `src` lines (the DfE document and its section heading: the GCSE topic – sub-heading, the National Curriculum year and topic) and, for a sub-topic, its levels (KS1, KS2, KS3; GCSE Combined = in the combined science content and so in the single sciences too; GCSE Separate = in the single-science content only). Higher-only content is underlined in the DfE documents and cannot be read from their text, so no level says Higher. A science question's `dfe` is read from this table only: `ideas` (its sci-ideas idea, an AQA spec point), `spec` (its AQA 8461/2/3/4 `spec_ref` point, the longest section prefix listed), `set`, `topic` (a source topic name). An A-Level set is outside these documents. Checked by tools/one-curriculum.js; `budget` (questions with no node) may only fall.",
  "levels": [
   "KS1",
   "KS2",
@@ -3246,5 +3246,6 @@
   "Space Physics": "dfe.sc.p.space",
   "Electromagnetic Waves": "dfe.sc.p.waves.em"
  },
- "budget": 9421
+ "budget": 9421,
+ "doc_url": "^https://www\\.gov\\.uk/"
 }

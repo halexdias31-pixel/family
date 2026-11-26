@@ -1,5 +1,5 @@
 {
- "about": "THE @FAMILY MATHS TOPIC TREE, FROM THE GOVERNMENT'S OWN LISTS (owner, 24–25 Nov: the library's one source of truth is the UK government spec). Strand › topic › sub-topic, each node an id, a short plain name (paraphrased, never copied), its source lines in the DfE documents (`src`: doc + section or GCSE statement code) and, for a sub-topic, the levels it is taught at (KS1, KS2, KS3; GCSE Foundation and Higher, Higher only where the GCSE document prints the content in bold). A maths question's `dfe` (data/questions.json) is the node(s) it tests, read by tools/lib/dfe.js from this table only: `ideas` (its idea_id, the 24 Nov idea tree of data/settings/question-ideas.json, mapped onto this tree), its AQA 8300 `spec_ref` (AQA numbers its points as the DfE GCSE statements), `set` and `topic` (a source's own topic name). `gen_ideas`: the maths idea a generated @family set (tools/lib/qgen.js) under a sub-topic no idea of `ideas` maps to reads as its idea, the card that teaches it — a node with an idea of its own never borrows one. Find's topic question answers a maths question's nodes broad → narrow. A worksheet's name is its `worksheet`, never a topic. Checked by tools/one-dfe.js. `budget`: maths questions with no node (A-Level and mechanics, outside these documents; Corbettmaths 5-a-day rows with no topic; problem-solving sets), may only fall.",
+ "about": "THE @FAMILY MATHS TOPIC TREE, FROM THE GOVERNMENT'S OWN LISTS (owner, 24–25 Nov: the library's one source of truth is the UK government spec). Strand › topic › sub-topic, each node an id, a short plain name (paraphrased, never copied), its source lines in the DfE documents (`src`: doc + section or GCSE statement code) and, for a sub-topic, the levels it is taught at (KS1, KS2, KS3; GCSE Foundation and Higher, Higher only where the GCSE document prints the content in bold). A maths question's `dfe` (data/questions.json) is the node(s) it tests, read by tools/lib/curriculum.js from the country files only: `ideas` (its idea_id, the 24 Nov idea tree of data/settings/question-ideas.json, mapped onto this tree), its AQA 8300 `spec_ref` (AQA numbers its points as the DfE GCSE statements), `set` and `topic` (a source's own topic name). `gen_ideas`: the maths idea a generated @family set (tools/lib/qgen.js) under a sub-topic no idea of `ideas` maps to reads as its idea, the card that teaches it — a node with an idea of its own never borrows one. Find's topic question answers a maths question's nodes broad → narrow. A worksheet's name is its `worksheet`, never a topic. Checked by tools/one-curriculum.js. `statements`: the GCSE statement codes (a spec point aqa-8300:N2 is GCSE N2). `doc_url`: every document is on gov.uk. `gen`: the generated sets and rows keep their first ids (tools/lib/qgen.js). `templates`: sub-topic -> skill ids of data/settings/qgen.json. `budget`: maths questions with no node (A-Level and mechanics, outside these documents; Corbettmaths 5-a-day rows with no topic; problem-solving sets), may only fall.",
  "docs": {
   "gcse": {
    "title": "Mathematics GCSE subject content and assessment objectives (DfE, November 2013, DFE-00233-2013)",
@@ -2940,5 +2940,261 @@
   "Decimals": "dfe.ma.n.calc.decimals",
   "circles": "dfe.ma.g.shape.circleparts"
  },
- "budget": 2712
+ "budget": 2712,
+ "statements": {
+  "doc": "gcse",
+  "pattern": "^[NARGPS]\\d+$",
+  "spec": "aqa-8300",
+  "counts": {
+   "N": 16,
+   "A": 25,
+   "R": 16,
+   "G": 25,
+   "P": 9,
+   "S": 6
+  }
+ },
+ "doc_url": "^https://www\\.gov\\.uk/",
+ "gen": {
+  "set_prefix": "P-FAM-GEN-",
+  "row_prefix": "Q-GEN-",
+  "strip": "dfe.ma.",
+  "key": "dfe",
+  "level": "GCSE Foundation"
+ },
+ "templates": {
+  "dfe.ma.a.expr.expand": [
+   "expand"
+  ],
+  "dfe.ma.a.expr.factorise": [
+   "factorise"
+  ],
+  "dfe.ma.a.expr.formulae": [
+   "subject",
+   "formula"
+  ],
+  "dfe.ma.a.expr.functions": [
+   "function"
+  ],
+  "dfe.ma.a.expr.notation": [
+   "collect"
+  ],
+  "dfe.ma.a.expr.subst": [
+   "subst"
+  ],
+  "dfe.ma.a.graph.coords": [
+   "midpoint"
+  ],
+  "dfe.ma.a.graph.line": [
+   "gradient"
+  ],
+  "dfe.ma.a.seq.gen": [
+   "seq-term"
+  ],
+  "dfe.ma.a.seq.nth": [
+   "nth-term"
+  ],
+  "dfe.ma.a.seq.types": [
+   "fib-like"
+  ],
+  "dfe.ma.a.solve.form": [
+   "form-eq"
+  ],
+  "dfe.ma.a.solve.ineq": [
+   "inequality"
+  ],
+  "dfe.ma.a.solve.linear": [
+   "linear-eq",
+   "linear-bracket"
+  ],
+  "dfe.ma.a.solve.quad": [
+   "quad-solve"
+  ],
+  "dfe.ma.a.solve.sim": [
+   "simultaneous"
+  ],
+  "dfe.ma.g.angle.bearings": [
+   "bearing-back"
+  ],
+  "dfe.ma.g.angle.facts": [
+   "angle-point"
+  ],
+  "dfe.ma.g.angle.polygon": [
+   "polygon-missing"
+  ],
+  "dfe.ma.g.angle.triquad": [
+   "angle-tri"
+  ],
+  "dfe.ma.g.mens.arcs": [
+   "sector"
+  ],
+  "dfe.ma.g.mens.circle": [
+   "circle-pi"
+  ],
+  "dfe.ma.g.mens.perimarea": [
+   "area-rect",
+   "area-tri"
+  ],
+  "dfe.ma.g.mens.pythag": [
+   "pythag"
+  ],
+  "dfe.ma.g.mens.trig": [
+   "trig-side",
+   "trig-angle"
+  ],
+  "dfe.ma.g.mens.volume": [
+   "cuboid",
+   "surface-area"
+  ],
+  "dfe.ma.g.trans.similar": [
+   "similar"
+  ],
+  "dfe.ma.g.vec.vectors": [
+   "vector-add"
+  ],
+  "dfe.ma.n.acc.bounds": [
+   "bounds"
+  ],
+  "dfe.ma.n.acc.estimate": [
+   "estimate"
+  ],
+  "dfe.ma.n.acc.round": [
+   "round-dp",
+   "round-sf"
+  ],
+  "dfe.ma.n.calc.addsub": [
+   "dec-add"
+  ],
+  "dfe.ma.n.calc.decimals": [
+   "dec-mul"
+  ],
+  "dfe.ma.n.calc.long": [
+   "long-mul"
+  ],
+  "dfe.ma.n.calc.muldiv": [
+   "short-div"
+  ],
+  "dfe.ma.n.calc.order": [
+   "bidmas",
+   "bidmas-2"
+  ],
+  "dfe.ma.n.frac.addsub": [
+   "frac-add"
+  ],
+  "dfe.ma.n.frac.amount": [
+   "frac-amount"
+  ],
+  "dfe.ma.n.frac.equiv": [
+   "frac-simplify"
+  ],
+  "dfe.ma.n.frac.fdp": [
+   "fdp"
+  ],
+  "dfe.ma.n.frac.mixed": [
+   "mixed"
+  ],
+  "dfe.ma.n.frac.muldiv": [
+   "frac-mul"
+  ],
+  "dfe.ma.n.frac.pct": [
+   "pct-amount"
+  ],
+  "dfe.ma.n.frac.pctchange": [
+   "pct-change",
+   "simple-interest"
+  ],
+  "dfe.ma.n.place.negative": [
+   "neg-temp",
+   "neg-mul"
+  ],
+  "dfe.ma.n.place.order": [
+   "order"
+  ],
+  "dfe.ma.n.place.value": [
+   "digit-value"
+  ],
+  "dfe.ma.n.prop.counting": [
+   "product-rule"
+  ],
+  "dfe.ma.n.prop.factors": [
+   "hcf",
+   "lcm"
+  ],
+  "dfe.ma.n.prop.indices": [
+   "index-mul",
+   "index-div"
+  ],
+  "dfe.ma.n.prop.powers": [
+   "powers-roots"
+  ],
+  "dfe.ma.n.prop.stdform": [
+   "stdform"
+  ],
+  "dfe.ma.n.prop.surds": [
+   "surd"
+  ],
+  "dfe.ma.p.prob.basic": [
+   "prob-bag",
+   "prob-not"
+  ],
+  "dfe.ma.p.prob.freq": [
+   "expected"
+  ],
+  "dfe.ma.p.prob.outcomes": [
+   "outcomes"
+  ],
+  "dfe.ma.p.prob.tree": [
+   "prob-and"
+  ],
+  "dfe.ma.p.prob.venn": [
+   "venn"
+  ],
+  "dfe.ma.r.prop.direct": [
+   "direct"
+  ],
+  "dfe.ma.r.prop.growth": [
+   "compound"
+  ],
+  "dfe.ma.r.prop.inverse": [
+   "inverse"
+  ],
+  "dfe.ma.r.prop.rate": [
+   "rate"
+  ],
+  "dfe.ma.r.ratio.compare": [
+   "area-scale"
+  ],
+  "dfe.ma.r.ratio.fraction": [
+   "fraction-of"
+  ],
+  "dfe.ma.r.ratio.mult": [
+   "ratio-part"
+  ],
+  "dfe.ma.r.ratio.scale": [
+   "scale-map"
+  ],
+  "dfe.ma.r.ratio.share": [
+   "ratio-share"
+  ],
+  "dfe.ma.r.ratio.simplify": [
+   "ratio-simplify"
+  ],
+  "dfe.ma.r.units.compound": [
+   "speed",
+   "density"
+  ],
+  "dfe.ma.r.units.convert": [
+   "convert-len"
+  ],
+  "dfe.ma.s.analyse.averages": [
+   "mean",
+   "median-range"
+  ],
+  "dfe.ma.s.analyse.table": [
+   "freq-mean"
+  ],
+  "dfe.ma.s.data.pie": [
+   "pie"
+  ]
+ }
 }

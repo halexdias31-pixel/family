@@ -115,6 +115,11 @@ almost never writes to it directly.
 - **What must exist is the specification** (1213, 1214): `data/spec/<board>-<code>.json` is every spec (the `measured` ones count);
   `node tools/coverage.js -v` maps lessons (`spec_ref`), questions and figures onto the points, writes each point's `links`
   back, `data/specs.json` (Find's Library › subject › Specification card) and `data/coverage-health.json` for *Library content*.
+- **A country is one file** (25 Nov): `data/settings/curriculum/<country>/<subject>.json` (the UK's: `uk/maths.json`, `uk/science.json`)
+  is that country's topic tree, each node citing its document, plus `templates` (node → skill ids of `data/settings/qgen.json`). Every
+  tool reads every file there (`tools/lib/curriculum.js`): question tags (`dfe`), generated sets (`tools/gen-questions.js`), Find's tree
+  (taxonomy.json `<Subject>.dfe`). `tools/one-curriculum.js` checks them and proves the claim with the made-up
+  `tools/fixtures/curriculum/xx/maths.json`, which never ships.
 - **There are no textbooks on screen: each chapter row of `data/textbooks.json` is a CONTENT CARD**
   (kind `content`, `What kind · Content`; docs/history/347, part 2). *"Forget the whole concept of it
   being a text book. It's just a "content card""* — the owner, 12 Oct. A card wears the question
