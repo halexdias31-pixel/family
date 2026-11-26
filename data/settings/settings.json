@@ -46,8 +46,8 @@
  },
  "siteRules": {
   "_about": "THE RULES' IDS (496; owner, 20 Nov): every id js/rules.js registers, and those `locked` (never universal, each with its `lock` reason in rules.js). The backend's RULE_IDS and RULES_LOCKED read this; tools/shared-lists.js holds js/rules.js to it.",
-  "ids": ["mag-items", "speed-long", "hear-lang", "tap-44", "search-icon", "whole-widgets", "library-one-card", "tell-admin", "kjv-admin", "finder-members", "keep-basket", "admin-cols", "people-no-merge", "items-no-move", "form-save-row"],
-  "locked": ["hear-lang", "keep-basket", "admin-cols", "people-no-merge", "items-no-move", "form-save-row"]
+  "ids": ["mag-items", "speed-long", "hear-lang", "tap-44", "search-icon", "whole-widgets", "library-one-card", "tell-admin", "kjv-admin", "finder-members", "admin-cols", "people-no-merge", "items-no-move", "form-save-row"],
+  "locked": ["hear-lang", "admin-cols", "people-no-merge", "items-no-move", "form-save-row"]
  },
  "submissionsPerPost": 25,
  "answerTextMax": 20000,

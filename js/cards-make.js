@@ -1,6 +1,6 @@
 /* ---------- A CARD NEVER DRAWS ITS OWN INSIDES (owner, 10 Nov): a facts kind hands over words; findCard lays them out one way ---------- */
 /* Before card-fields.json lands: the same `facts` and `icon` columns its rows hold (settings.js reads them into DATA.cardLook). */
-const KC_LOOK_DEFAULT = Object.fromEntries(Object.entries({ receipt: 'pound', shop: 'cart', practical: 'tools', project: 'spark', content: 'doc', insert: 'doc', timeline: 'line', fight: 'hand', bible: 'doc', talmud: 'doc', quran: 'doc', worktext: 'doc', hadith: 'doc', writ: 'doc', pdtext: 'doc', orthotext: 'doc', hymn: 'sound', chem: 'spark', soon: 'spark', person: '', setting: 'tools', health: 'tick', offPosts: 'spark', offShop: 'cart', offBooking: 'book' }).map(([k, icon]) => [k, { facts: true, icon }]));
+const KC_LOOK_DEFAULT = Object.fromEntries(Object.entries({ receipt: 'pound', practical: 'tools', project: 'spark', content: 'doc', insert: 'doc', timeline: 'line', fight: 'hand', bible: 'doc', talmud: 'doc', quran: 'doc', worktext: 'doc', hadith: 'doc', writ: 'doc', pdtext: 'doc', orthotext: 'doc', hymn: 'sound', chem: 'spark', soon: 'spark', person: '', setting: 'tools', health: 'tick', offPosts: 'spark', offBooking: 'book' }).map(([k, icon]) => [k, { facts: true, icon }]));
 /* WHO HAS A FACE: a person's card keeps its photo or chosen picture; nobody else's is ever a profile picture. */
 const KC_PERSON_KINDS = ['tutor', 'person', 'people'];
 const kcLook_ = kind => ((typeof DATA !== 'undefined' && DATA && DATA.cardLook) || KC_LOOK_DEFAULT)[kind] || {};

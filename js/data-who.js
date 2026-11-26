@@ -29,11 +29,6 @@ const initial = s => (String(s ?? '').match(/[A-Za-z0-9]/) || ['?'])[0].toUpperC
    been filled in — the whole point of that tab is that most of it is empty most of the time. */
 /* A CONTACT DETAIL NEVER LIVES IN THE PUBLIC REPO: a blank brand key falls back to the private policy values the backend sends (phone, email). */
 const brand = (k, or) => ((DATA.brand || {})[k] || (DATA.policy || {})[k] || or || '');
-/* IS THIS SOMETHING YOU WEAR? § */
-const isWearable = x => {
-  const k = norm(x && (x.kind || x.kindRaw));
-  return k === 'wearable' || k === 'avatar';
-};
 /* ---------- WHO ARE YOU (who-1): one person, one permission role, ONE QUESTION ---------- */
 /* Every "may they" asks `may_`; the backend's `whoMay_` (people.gs) answers the same fixed words by the shared `mayWord_`. Signed out = a guest, a person with no roles. */
 const roleFor_ = (u = USER) => (!u ? ROLES_.guest.tier : rankTier_(rank_(u)));

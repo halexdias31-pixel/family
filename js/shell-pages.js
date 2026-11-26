@@ -184,7 +184,7 @@ function applyBrandIcon_() {
    remembered between visits. */
 /* `booking` WAS MISSING, and this table's own sentence above is the rule they broke: § */
 const PAGE = { feed: 0, stuff: 0, reel: 0, make: 0,
-               saved: 0, tutors: 0, students: 0, parents: 0, spotlight: 0, shop: 0, res: 0 };
+               saved: 0, tutors: 0, students: 0, parents: 0, spotlight: 0, res: 0 };
 
 /* A COLUMN MAY HOLD FEWER PAGE ELEMENTS THAN IT HAS PAGES. § */
 const PAGE_KEEP = {};

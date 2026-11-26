@@ -1,7 +1,7 @@
 /* @family. — 30_booking.gs (4 of 8) THE BOOKING MACHINE, and everything that decides who is in a session. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const BOOKING_VERSION = "2026-11-26-onelist-nomsg";
+const BOOKING_VERSION = "2026-11-26-noshop";
 
 
 /* WHEN THE BUSINESS ACTUALLY OPERATES within an interval. § */
@@ -1330,7 +1330,6 @@ const ITEM_PERMISSIONS = {
   'record:list': ['admin'],
   'record:save': ['admin'],
   'room:save': ['member', 'child', 'admin'],
-  'shop:read': ['anyone', 'member', 'child', 'admin'],
   'spotlight:save': ['admin'],
   'staff:list': ['admin'],
   'statement:read': ['member', 'child', 'admin'],

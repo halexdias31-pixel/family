@@ -17,10 +17,10 @@ const finder_ = o => Object.assign({
   /* THE PAGES ABOVE THE QUESTION (526) and how many: none, but Find's for an admin (What's missing, missing.js). */
   lead: () => [], leadN: () => 0, leadOn: 0,
 }, o);
-const FINDER_EMPTY = 'Nothing in the shop or the library yet.';
+const FINDER_EMPTY = 'Nothing in the library yet.';
 const FINDERS = {
   stuff: finder_({ id: 'stuff', st: STUFF, place: 'find', widgets: true,
-                   front: () => [].concat(typeof window.offlinePages_ === 'function' ? window.offlinePages_() : [], bookingPages_(), feedPages_(), bundlePages_()),
+                   front: () => [].concat(typeof window.offlinePages_ === 'function' ? window.offlinePages_() : [], bookingPages_(), feedPages_()),
                    lead: () => (typeof missingLead_ === 'function' ? missingLead_() : []),
                    leadN: () => (typeof missingLeadN_ === 'function' ? missingLeadN_() : 0),
                    empty: FINDER_EMPTY }),
@@ -85,9 +85,8 @@ const finderLeadHtml_ = lead => cardBlocks_(lead.map(c => ({ type: 'group', tag:
    chip label all read it. */
 /* ---------- ONE QUESTION AT A TIME § */
 /* WHAT KINDS OF THING CAN BE FOUND. § */
-/* A KIND'S OWN FIND CARD (kinds.json `find.draw`): your own tutor pass, a widget on the shop shelf. */
+/* A KIND'S OWN FIND CARD (kinds.json `find.draw`): your own tutor pass. */
 const findTutorCard_ = x => (USER && typeof meCard === 'function' && norm((x.row || {}).title) === norm(USER.name) ? meCard() : findCard(x));
-const findShopCard_ = (x, c) => (x.widget ? widgetCard_(x) : findCard(x, c));
 
 /* EACH KIND WHOSE OWN FILE STILL WRITES ITS CARD (owner 1a, 8 Nov): `findCard` cuts what it writes into the one shape. */
 window.KC_OWN = Object.assign(window.KC_OWN || {}, {
@@ -138,26 +137,24 @@ function soonItems_() {
 /* A SWITCHED-OFF THING'S SPEC: "Coming soon" is a tag beside its name, never a line; what it is, below. */
 const soonSpec_ = x => ({ look: 'soon-card', tags: [{ text: x.name, colour: 0 }, { text: brand('comingSoon', 'Coming soon') }],
   body: [{ type: 'text', text: x.sub && x.sub !== x.name ? x.sub : brand('soonSay', 'Not switched on yet.') }] });
-['soon', 'offPosts', 'offShop', 'offBooking'].forEach(k => cardKind_(k, soonSpec_));
+['soon', 'offPosts', 'offBooking'].forEach(k => cardKind_(k, soonSpec_));
 const soonCard_ = x => renderCard(Object.assign({ kind: x.kind || 'soon', key: x.key }, soonSpec_(x)));
 
-/* The card a resource and a shop row share. Named rather than written twice, because the two
+/* The card a resource draws. Named rather than written twice, because the two
    entries above genuinely want the same thing and a copy each is a copy to keep in step. */
 function thingCard_(x, credits) {
-  /* A SHOP THING IS NOT DRAWN HERE ANY MORE: its card is its item map (ITEM_MAPS.product, cards-parts.js), its price tag `shopPriceTag_`. */
   {
     /* ---------- A QUESTION IS A QUESTION. THERE ARE NO DOCUMENTS ON THIS SCREEN. § */
     if (isQ_(x)) return findCard(x);
 
     /* THE CARD IS NO LONGER A BUTTON. § */
     /* NOTHING ON THIS LIST IS A TAP TARGET ANY MORE. § */
-    /* A WEARABLE DRAWS ITSELF. § */
     /* ---------- A RESULT IS READ LIKE A SEARCH RESULT § */
     /* THE LEVEL, NOT THE KEY STAGE — `KS3, KS4` on a crumb is the grey area the owner asked to stop seeing; `levelOf_` says GCSE. § */
     /* Its own second line: § */
     /* THE YEAR, ON THE CARD. § */
     /* WHO IT IS FROM, FIRST. § */
-    return cardBlock_({ type: 'group', look: 'fc' + (x.wearable ? ' is-wear' : x.kind === 'topic' ? ' is-subject' : '') + (x.off ? ' is-off' : ''), blocks: [
+    return cardBlock_({ type: 'group', look: 'fc' + (x.kind === 'topic' ? ' is-subject' : '') + (x.off ? ' is-off' : ''), blocks: [
       { type: 'group', look: 'thing', blocks: [
         x.image ? { type: 'group', tag: 'img', look: 'thing-pic', attrs: { src: pic(x.image), alt: '', loading: 'lazy', decoding: 'async' } } : null,
         { type: 'group', look: 'thing-body', inner: (cardBlock_({ type: 'group', tag: 'p', look: 'crumb', text: [x.company].concat(levelSaid_(x).length ? levelSaid_(x) : [x.keystage]).concat([
@@ -169,7 +166,6 @@ function thingCard_(x, credits) {
   }
 }
 
-/* A THING'S ENTRY. Wearables are the one kind decided by a FIELD rather than by `kind` — the shop holds both, and which it is depends on whether the row names a § */
 /* THE FUNNEL'S ANSWERS, AS THE SHEET WANTS THEM. § */
 /* WHAT CAN BE FOUND (rule 1.80): each Find entry kind of each kind in kinds.json, in that file's order, with its group, label, door (`under`), card and `see`. */
 let KIND_LIVE = null;
@@ -228,8 +224,7 @@ const asList_ = v => {
 };
 
 function kindOf_(x) {
-  if (x && x.wearable) return { group: 'Shop', label: 'Wearables' };
-  return (x && kindMap_()[x.kind]) || { group: 'Shop', label: 'Things' };
+  return (x && kindMap_()[x.kind]) || { group: '', label: '' };
 }
 
 /* EVERY VALUE ONE FACET GIVES THIS ITEM — the one reader the funnel, the filter and the card all ask. No facet hides
@@ -271,7 +266,7 @@ function taxonomyRead_() {
 }
 /* THE HELPERS A facets.json `read` {by: "fn"} MAY NAME (batch 6): const arrows in other files, so each is called through here, never looked up on window; `col` "name.key" reads one key of its answer. */
 /* ONE WHAT SORT (UNIFY AFTER 3, 23 Nov): an item's own sort, whichever kind it is (facets.json documentType); no item carries two of these. */
-const sortOf_ = x => x.documentType || x.projectType || x.practicalType || x.boxKind || x.shopKind || x.mKind || (specTreeOf_(x).topic ? 'Exam topics' : '');
+const sortOf_ = x => x.documentType || x.projectType || x.practicalType || x.boxKind || x.mKind || (specTreeOf_(x).topic ? 'Exam topics' : '');
 const FACET_FN = {
   mechScope_: x => mechScope_(x),
   decadesOf_: x => decadesOf_(x),
@@ -307,7 +302,7 @@ const FACET_BY_READ_ = {
   fn: c => ({ of: facetFn_(c) }),
 };
 /* `tag: false` is asked but never a card's tag; `choose` is asked however lopsided (mScope). */
-/* `or` (UNIFY AFTER 3, ONE BRAND): a column read where the reader leaves an item empty (a shop thing's maker beside a car's brand). */
+/* `or` (UNIFY AFTER 3, ONE BRAND): a column read where the reader leaves an item empty. */
 const facetOr_ = (r, c) => Object.assign({}, r, { of: x => r.of(x) || x[c] || '', tagOf: (x, p) => (r.tagOf || r.of)(x, p) || x[c] || '' });
 const facetReadData_ = () => Object.fromEntries(ITEM_KINDS.facets.filter(f => f.read && FACET_BY_READ_[f.read.by]).map(f => { const r0 = FACET_BY_READ_[f.read.by](f.read.col), r = f.read.or ? facetOr_(r0, f.read.or) : r0;
   return [f.field, Object.assign(r, f.read.tag === false ? { tagOf: () => '' } : {}, f.read.choose ? { choose: true } : {})]; }));

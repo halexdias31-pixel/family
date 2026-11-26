@@ -302,12 +302,6 @@ function favOpts_(x) {
 
 
 
-/* ---------- A SHOP THING § */
-function shopOpts_(x) {
-  const inCart = CART.some(c => c.key === x.key && isShop_(c));
-  return { icon: 'cart', label: inCart ? text_('in-your-basket') : text_('add-to-basket'), tone: 'buy', on: inCart,
-    note: inCart ? '' : (x.cost ? x.cost + ' credits' : 'free'), act: 'cart-add', off: !USER || inCart, data: { key: x.key, kind: 'shop' } };
-}
 
 
 /* ---------- A TUTOR § */
@@ -366,7 +360,7 @@ function levelOpts_(x) {
 /* EVERY CARD'S ROW STARTS WITH THESE (950); health.js's "card tile rows" holds it. */
 const CARD_CORE_ = ['share', 'fav', 'suggest', 'top'];
 /* EACH KIND'S EXTRAS (data, not branches); find, hymns and mechanics add theirs to `window.CARD_EXTRAS_MORE`, which needs no load order (1000). */
-const CARD_EXTRAS_ = { shop: shopOpts_, tutor: tutorOpts_, subject: x => tile_(subjectOpts_(x)),
+const CARD_EXTRAS_ = { tutor: tutorOpts_, subject: x => tile_(subjectOpts_(x)),
   level: x => tile_(levelOpts_(x)), receipt: x => tile_(jobOpts_(x)), talmud: x => tile_(window.talmudOpts_(x)) };
 function cardCore_(x) {
   const one = {
