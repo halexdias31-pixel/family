@@ -732,6 +732,12 @@ const DOCKET_TOKEN_KEY = 'DOCKET_TOKEN';
 function docketAnswer_(items, now, q) {
   const act = S(q && q.do).toLowerCase(), what = S(q && q.what).slice(0, 300);
   let said = '', changed = false;
+  /* `do=list` (the desk e-paper screen, tools/docket-screen, 26 Nov): the open items in the card's order, one a line, under the line `docket-list`;
+     "! " before an overdue one, "- " before the rest. Nothing changes. The screen reads it as fit.h parseList. */
+  if (act === 'list') {
+    const m = dkNowNextOf_(items, now);
+    return { say: ['docket-list'].concat(m.rows.map(r => (r.missed ? '! ' : '- ') + S(r.title).replace(/\s+/g, ' '))).join('\n'), items: items, changed: false };
+  }
   if (act === 'done' || act === 'add') {
     if (!what) said = text_('dk-say-what');
     else if (act === 'done') {

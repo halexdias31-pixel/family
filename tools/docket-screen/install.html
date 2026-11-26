@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Docket Screen Setup</title>
+<style>
+  :root { --bg: #000; --ink: #f3ead2; --gold: #d4af37; --line: #3a3220; --dim: #a89f86; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 1.15rem/1.5 Georgia, serif; }
+  main { max-width: 32rem; margin: 0 auto; padding: 2rem 16px 3rem; }
+  h1 { color: var(--gold); font-weight: normal; margin: 0 0 .3rem; }
+  h2 { color: var(--gold); font-weight: normal; font-size: 1.3rem; margin: 2rem 0 .5rem; border-top: 1px solid var(--line); padding-top: 1rem; }
+  .dim { color: var(--dim); }
+  label { display: block; margin: .8rem 0 0; }
+  input { box-sizing: border-box; width: 100%; font: inherit; min-height: 44px; padding: 0 .6rem; background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; }
+  button { font: inherit; font-size: 1.4rem; min-height: 56px; width: 100%; border: 0; border-radius: 12px; background: var(--gold); color: #000; cursor: pointer; margin-top: 1rem; }
+  button:disabled { opacity: .5; cursor: default; }
+  progress { width: 100%; height: 14px; accent-color: var(--gold); margin: 1rem 0 0; }
+  .say { font-size: 1.3rem; min-height: 2rem; margin: 1.2rem 0; }
+  [hidden] { display: none !important; }
+  small { display: block; color: var(--dim); margin-top: 2rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Docket screen</h1>
+  <p class="dim">Use Chrome on a Chromebook or computer (not a phone). The screen has two buttons: ☀ and ⏻.</p>
+
+  <h2>1 · Install</h2>
+  <p>Unplug the screen. Hold <b>☀</b>, plug it in while holding ☀, let go. Press Install and choose the screen.</p>
+  <button id="go" type="button">Install</button>
+  <progress id="bar" max="1" value="0" hidden></progress>
+  <p id="say" class="say" aria-live="polite"></p>
+
+  <h2>2 · Your Wi-Fi and Docket</h2>
+  <p>Unplug the screen and plug it back in. Then fill these in and press Send. They go only to the screen, over the cable;
+    this page does not keep them.</p>
+  <form id="cfg" autocomplete="off">
+    <label>Wi-Fi name <input id="ssid" required maxlength="32" spellcheck="false"></label>
+    <label>Wi-Fi password <input id="pass" type="password" maxlength="63"></label>
+    <label>Docket private address <input id="url" required spellcheck="false" placeholder="https://script.google.com/…?docket=…"></label>
+    <button id="send" type="submit">Send to the screen</button>
+  </form>
+  <p id="say2" class="say" aria-live="polite"></p>
+
+  <small>The private address is on the Docket (the site, Docket, private address). To change Wi-Fi later, plug the screen in, press ⏻ once
+    and do step 2 again. Free software (GPL-3.0); the source is in tools/docket-screen/.</small>
+</main>
+<script type="module" src="install.js"></script>
+</body>
+</html>
