@@ -29,6 +29,7 @@ const ORDER = [
   'facet-readers', // the facet-readers check (rule 1.75, batch 4 lane B): a one-column facet reads by its facets.json `read`; a hand one-line reader in FACET_READ fails the build
   'facet-hues',   // walks the app over every js/ write above -> TAG_OF, data/facet-graph.json
   'finder-tags',  // walks it again, TAG_OF included -> js/finder-tags.js
+  'cards-gen',    // again (26 Nov): facet-hues/finder-tags just rewrote TAG_OF, which backend/cards-gen.gs copies; one-twin failed on the stale copy
   'rules',        // rules.json -> docs/rules.md
   'validate-questions', // the questions marked by the site's own marker -> data/question-status.json (ok / tutor / broken), marking again only questions whose row or marker code changed
   'validate-cache', // the questions' cache check (rule 1.75, queue step 2): on made-up questions a cached verdict equals a fresh one, a changed key or the marker's code marks again; fails the build
