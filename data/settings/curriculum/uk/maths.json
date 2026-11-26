@@ -1,23 +1,23 @@
 {
- "about": "THE @FAMILY MATHS TOPIC TREE, FROM THE GOVERNMENT'S OWN LISTS (owner, 24–25 Nov: the library's one source of truth is the UK government spec). Strand › topic › sub-topic, each node an id, a short plain name (paraphrased, never copied), its source lines in the DfE documents (`src`: doc + section or GCSE statement code) and, for a sub-topic, the levels it is taught at (KS1, KS2, KS3; GCSE Foundation and Higher, Higher only where the GCSE document prints the content in bold). A maths question's `dfe` (data/questions.json) is the node(s) it tests, read by tools/lib/curriculum.js from the country files only: `ideas` (its idea_id, the 24 Nov idea tree of data/settings/question-ideas.json, mapped onto this tree), its AQA 8300 `spec_ref` (AQA numbers its points as the DfE GCSE statements), `set` and `topic` (a source's own topic name). `gen_ideas`: the maths idea a generated @family set (tools/lib/qgen.js) under a sub-topic no idea of `ideas` maps to reads as its idea, the card that teaches it — a node with an idea of its own never borrows one. Find's topic question answers a maths question's nodes broad → narrow. A worksheet's name is its `worksheet`, never a topic. Checked by tools/one-curriculum.js. `statements`: the GCSE statement codes (a spec point aqa-8300:N2 is GCSE N2). `doc_url`: every document is on gov.uk. `gen`: the generated sets and rows keep their first ids (tools/lib/qgen.js). `templates`: sub-topic -> skill ids of data/settings/qgen.json. `budget`: maths questions with no node (A-Level and mechanics, outside these documents; Corbettmaths 5-a-day rows with no topic; problem-solving sets), may only fall.",
+ "about": "THE @FAMILY MATHS TOPIC TREE, FROM THE GOVERNMENT'S OWN LISTS (owner, 24–25 Nov: the library's one source of truth is the UK government spec). Strand › topic › sub-topic, each node an id, a short plain name (paraphrased, never copied), its source lines in the DfE documents (`src`: doc + the section heading exactly as printed, one of headings.json, or GCSE statement code) and, for a sub-topic, the levels it is taught at (KS1, KS2, KS3; GCSE Foundation and Higher, Higher only where the GCSE document prints the content in bold). A maths question's `dfe` (data/questions.json) is the node(s) it tests, read by tools/lib/curriculum.js from the country files only: `ideas` (its idea_id, the 24 Nov idea tree of data/settings/question-ideas.json, mapped onto this tree), its AQA 8300 `spec_ref` (AQA numbers its points as the DfE GCSE statements), `set` and `topic` (a source's own topic name). `gen_ideas`: the maths idea a generated @family set (tools/lib/qgen.js) under a sub-topic no idea of `ideas` maps to reads as its idea, the card that teaches it — a node with an idea of its own never borrows one. Find's topic question answers a maths question's nodes broad → narrow. A worksheet's name is its `worksheet`, never a topic. Checked by tools/one-curriculum.js. `statements`: the GCSE statement codes (a spec point aqa-8300:N2 is GCSE N2). `doc_url`: every document is on gov.uk. `gen`: the generated sets and rows keep their first ids (tools/lib/qgen.js); `level` the levels a templated sub-topic must be taught at, in order, and `tiers` the set tier of each (a Higher-only sub-topic makes a Higher set). `templates`: sub-topic -> skill ids of data/settings/qgen.json. `budget`: maths questions with no node (A-Level and mechanics, outside these documents; Corbettmaths 5-a-day rows with no topic; problem-solving sets), may only fall.",
  "docs": {
   "gcse": {
    "title": "Mathematics GCSE subject content and assessment objectives (DfE, November 2013, DFE-00233-2013)",
    "url": "https://www.gov.uk/government/publications/gcse-mathematics-subject-content-and-assessment-objectives",
    "pdf": "https://assets.publishing.service.gov.uk/media/5a7cb5b040f0b6629523b52c/GCSE_mathematics_subject_content_and_assessment_objectives.pdf",
-   "refs": "statement codes N1–N16, A1–A25, R1–R16, G1–G25, P1–P9, S1–S6 (the document numbers each statement within its strand)"
+   "refs": "statement codes N1–N16, A1–A25, R1–R16, G1–G25, P1–P9, S1–S6 (the document numbers each statement within its strand), or a strand heading – sub-heading — the exact text, one of headings.json"
   },
   "nc-ks12": {
    "title": "National curriculum in England: mathematics programmes of study, key stages 1 and 2 (DfE, September 2013)",
    "url": "https://www.gov.uk/government/publications/national-curriculum-in-england-mathematics-programmes-of-study",
    "pdf": "https://assets.publishing.service.gov.uk/media/5a7da548ed915d2ac884cb07/PRIMARY_national_curriculum_-_Mathematics_220714.pdf",
-   "refs": "year and section heading"
+   "refs": "Y<year> and the section heading as printed (Y6 Number – addition, subtraction, multiplication and division), or the heading alone for every year — the exact text, one of headings.json"
   },
   "nc-ks3": {
    "title": "National curriculum in England: mathematics programmes of study, key stage 3 (DfE, September 2013)",
    "url": "https://www.gov.uk/government/publications/national-curriculum-in-england-mathematics-programmes-of-study",
    "pdf": "https://assets.publishing.service.gov.uk/media/5a7c1408e5274a1f5cc75a68/SECONDARY_national_curriculum_-_Mathematics.pdf",
-   "refs": "subject content heading"
+   "refs": "subject content heading — the exact text, one of headings.json"
   }
  },
  "nodes": [
@@ -36,7 +36,7 @@
     },
     {
      "doc": "nc-ks12",
-     "ref": "Number and place value"
+     "ref": "Number – number and place value"
     }
    ]
   },
@@ -51,7 +51,7 @@
     },
     {
      "doc": "nc-ks12",
-     "ref": "Number and place value"
+     "ref": "Number – number and place value"
     }
    ]
   },
@@ -66,11 +66,11 @@
    "src": [
     {
      "doc": "nc-ks12",
-     "ref": "Y1 Number and place value"
+     "ref": "Y1 Number – number and place value"
     },
     {
      "doc": "nc-ks12",
-     "ref": "Y2 Number and place value"
+     "ref": "Y2 Number – number and place value"
     }
    ]
   },
@@ -88,11 +88,11 @@
    "src": [
     {
      "doc": "nc-ks12",
-     "ref": "Y3 Number and place value"
+     "ref": "Y3 Number – number and place value"
     },
     {
      "doc": "nc-ks12",
-     "ref": "Y5 Number and place value"
+     "ref": "Y5 Number – number and place value"
     },
     {
      "doc": "gcse",
@@ -122,7 +122,7 @@
     },
     {
      "doc": "nc-ks12",
-     "ref": "Y2 Number and place value"
+     "ref": "Y2 Number – number and place value"
     }
    ]
   },
@@ -139,11 +139,11 @@
    "src": [
     {
      "doc": "nc-ks12",
-     "ref": "Y4 Number and place value"
+     "ref": "Y4 Number – number and place value"
     },
     {
      "doc": "nc-ks12",
-     "ref": "Y6 Number and place value"
+     "ref": "Y6 Number – number and place value"
     },
     {
      "doc": "gcse",
@@ -165,11 +165,11 @@
    "src": [
     {
      "doc": "nc-ks12",
-     "ref": "Y3 Number and place value"
+     "ref": "Y4 Number – number and place value"
     },
     {
      "doc": "nc-ks12",
-     "ref": "Y5 Number and place value"
+     "ref": "Y5 Number – number and place value"
     }
    ]
   },
@@ -184,11 +184,11 @@
     },
     {
      "doc": "nc-ks12",
-     "ref": "Addition and subtraction"
+     "ref": "Number – addition and subtraction"
     },
     {
      "doc": "nc-ks12",
-     "ref": "Multiplication and division"
+     "ref": "Number – multiplication and division"
     }
    ]
   },
@@ -203,11 +203,11 @@
    "src": [
     {
      "doc": "nc-ks12",
-     "ref": "Y1 Addition and subtraction"
+     "ref": "Y1 Number – addition and subtraction"
     },
     {
      "doc": "nc-ks12",
-     "ref": "Y2 Addition and subtraction"
+     "ref": "Y2 Number – addition and subtraction"
     }
    ]
   },
@@ -225,15 +225,19 @@
    "src": [
     {
      "doc": "nc-ks12",
-     "ref": "Y3 Addition and subtraction"
+     "ref": "Y3 Number – addition and subtraction"
     },
     {
      "doc": "nc-ks12",
-     "ref": "Y5 Addition and subtraction"
+     "ref": "Y5 Number – addition and subtraction"
     },
     {
      "doc": "gcse",
      "ref": "N2"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y4 Number – addition and subtraction"
     }
    ]
   },
@@ -248,11 +252,11 @@
    "src": [
     {
      "doc": "nc-ks12",
-     "ref": "Y2 Multiplication and division"
+     "ref": "Y2 Number – multiplication and division"
     },
     {
      "doc": "nc-ks12",
-     "ref": "Y4 Multiplication and division"
+     "ref": "Y4 Number – multiplication and division"
     }
    ]
   },
@@ -270,15 +274,19 @@
    "src": [
     {
      "doc": "nc-ks12",
-     "ref": "Y3 Multiplication and division"
+     "ref": "Y3 Number – multiplication and division"
     },
     {
      "doc": "nc-ks12",
-     "ref": "Y6 Multiplication and division"
+     "ref": "Y6 Number – addition, subtraction, multiplication and division"
     },
     {
      "doc": "gcse",
      "ref": "N2"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y1 Number – multiplication and division"
     }
    ]
   },
@@ -295,11 +303,11 @@
    "src": [
     {
      "doc": "nc-ks12",
-     "ref": "Y5 Multiplication and division"
+     "ref": "Y5 Number – multiplication and division"
     },
     {
      "doc": "nc-ks12",
-     "ref": "Y6 Multiplication and division"
+     "ref": "Y6 Number – addition, subtraction, multiplication and division"
     },
     {
      "doc": "gcse",
@@ -320,11 +328,11 @@
    "src": [
     {
      "doc": "nc-ks12",
-     "ref": "Y5 Fractions (including decimals and percentages)"
+     "ref": "Y5 Number – fractions (including decimals and percentages)"
     },
     {
      "doc": "nc-ks12",
-     "ref": "Y6 Fractions (including decimals and percentages)"
+     "ref": "Y6 Number – fractions (including decimals and percentages)"
     },
     {
      "doc": "gcse",
@@ -345,7 +353,7 @@
    "src": [
     {
      "doc": "nc-ks12",
-     "ref": "Y6 Multiplication and division"
+     "ref": "Y6 Number – addition, subtraction, multiplication and division"
     },
     {
      "doc": "gcse",
@@ -404,7 +412,7 @@
    "src": [
     {
      "doc": "nc-ks12",
-     "ref": "Y5 Multiplication and division"
+     "ref": "Y5 Number – multiplication and division"
     },
     {
      "doc": "gcse",
@@ -445,7 +453,7 @@
    "src": [
     {
      "doc": "nc-ks12",
-     "ref": "Y5 Multiplication and division"
+     "ref": "Y5 Number – multiplication and division"
     },
     {
      "doc": "gcse",
@@ -459,7 +467,6 @@
    "parent": "dfe.ma.n.prop",
    "levels": [
     "KS3",
-    "GCSE Foundation",
     "GCSE Higher"
    ],
    "src": [
@@ -478,8 +485,6 @@
    "name": "Exact calculation and surds",
    "parent": "dfe.ma.n.prop",
    "levels": [
-    "KS3",
-    "GCSE Foundation",
     "GCSE Higher"
    ],
    "src": [
@@ -520,7 +525,7 @@
     },
     {
      "doc": "nc-ks12",
-     "ref": "Fractions (including decimals and percentages)"
+     "ref": "Number – fractions (including decimals and percentages)"
     }
    ]
   },
@@ -535,11 +540,11 @@
    "src": [
     {
      "doc": "nc-ks12",
-     "ref": "Y1 Fractions"
+     "ref": "Y1 Number – fractions"
     },
     {
      "doc": "nc-ks12",
-     "ref": "Y2 Fractions"
+     "ref": "Y2 Number – fractions"
     }
    ]
   },
@@ -556,11 +561,11 @@
    "src": [
     {
      "doc": "nc-ks12",
-     "ref": "Y3 Fractions"
+     "ref": "Y3 Number – fractions"
     },
     {
      "doc": "nc-ks12",
-     "ref": "Y6 Fractions (including decimals and percentages)"
+     "ref": "Y6 Number – fractions (including decimals and percentages)"
     },
     {
      "doc": "gcse",
@@ -581,11 +586,11 @@
    "src": [
     {
      "doc": "nc-ks12",
-     "ref": "Y4 Fractions (including decimals)"
+     "ref": "Y4 Number – fractions (including decimals)"
     },
     {
      "doc": "nc-ks12",
-     "ref": "Y6 Fractions (including decimals and percentages)"
+     "ref": "Y6 Number – fractions (including decimals and percentages)"
     },
     {
      "doc": "gcse",
@@ -606,7 +611,7 @@
    "src": [
     {
      "doc": "nc-ks12",
-     "ref": "Y6 Fractions (including decimals and percentages)"
+     "ref": "Y6 Number – fractions (including decimals and percentages)"
     },
     {
      "doc": "gcse",
@@ -627,7 +632,7 @@
    "src": [
     {
      "doc": "nc-ks12",
-     "ref": "Y5 Fractions (including decimals and percentages)"
+     "ref": "Y5 Number – fractions (including decimals and percentages)"
     },
     {
      "doc": "gcse",
@@ -649,11 +654,11 @@
    "src": [
     {
      "doc": "nc-ks12",
-     "ref": "Y2 Fractions"
+     "ref": "Y2 Number – fractions"
     },
     {
      "doc": "nc-ks12",
-     "ref": "Y3 Fractions"
+     "ref": "Y3 Number – fractions"
     },
     {
      "doc": "gcse",
@@ -674,7 +679,7 @@
    "src": [
     {
      "doc": "nc-ks12",
-     "ref": "Y6 Fractions (including decimals and percentages)"
+     "ref": "Y6 Number – fractions (including decimals and percentages)"
     },
     {
      "doc": "gcse",
@@ -765,7 +770,7 @@
    "src": [
     {
      "doc": "nc-ks12",
-     "ref": "Y6 Number and place value"
+     "ref": "Y6 Number – number and place value"
     },
     {
      "doc": "gcse",
@@ -786,7 +791,7 @@
    "src": [
     {
      "doc": "nc-ks12",
-     "ref": "Y6 Addition, subtraction, multiplication and division"
+     "ref": "Y6 Number – addition, subtraction, multiplication and division"
     },
     {
      "doc": "gcse",
@@ -800,7 +805,6 @@
    "parent": "dfe.ma.n.acc",
    "levels": [
     "KS3",
-    "GCSE Foundation",
     "GCSE Higher"
    ],
    "src": [
@@ -986,7 +990,6 @@
    "parent": "dfe.ma.a.expr",
    "levels": [
     "KS3",
-    "GCSE Foundation",
     "GCSE Higher"
    ],
    "src": [
@@ -1735,6 +1738,10 @@
     {
      "doc": "gcse",
      "ref": "G4"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y4 Geometry – properties of shapes"
     }
    ]
   },
@@ -1765,7 +1772,6 @@
    "name": "Plans and elevations",
    "parent": "dfe.ma.g.shape",
    "levels": [
-    "KS3",
     "GCSE Foundation",
     "GCSE Higher"
    ],
@@ -1991,7 +1997,6 @@
    "name": "Bearings",
    "parent": "dfe.ma.g.angle",
    "levels": [
-    "KS3",
     "GCSE Foundation",
     "GCSE Higher"
    ],
@@ -2058,6 +2063,10 @@
     {
      "doc": "gcse",
      "ref": "G24"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y5 Geometry – position and direction"
     }
    ]
   },
@@ -2083,7 +2092,6 @@
    "parent": "dfe.ma.g.trans",
    "levels": [
     "KS3",
-    "GCSE Foundation",
     "GCSE Higher"
    ],
    "src": [
@@ -2215,6 +2223,10 @@
     {
      "doc": "gcse",
      "ref": "G17"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y4 Measurement"
     }
    ]
   },
@@ -2960,7 +2972,13 @@
   "row_prefix": "Q-GEN-",
   "strip": "dfe.ma.",
   "key": "dfe",
-  "level": "GCSE Foundation"
+  "level": [
+   "GCSE Foundation",
+   "GCSE Higher"
+  ],
+  "tiers": {
+   "GCSE Higher": "Higher"
+  }
  },
  "templates": {
   "dfe.ma.a.expr.expand": [

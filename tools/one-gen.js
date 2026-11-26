@@ -4,7 +4,7 @@
    answer and wrong when they slip, sits under a real curriculum topic, and is the same question every time. Counted over every template of
    data/settings/qgen.json bound to each node a country file maps to it (data/settings/curriculum/<country>/<subject>.json `templates`, tools/lib/qgen.js):
      - every template has a unique id and no hand version (its version is the fingerprint), an answer_type and marks as data/questions.json
-       has them, and is mapped by some country; each node it is bound to is a sub-topic, taught at the country's `gen.level` where it names one;
+       has them, and is mapped by some country; each node it is bound to is a sub-topic, taught at one of the country's `gen.level` levels where it names any;
      - 200 seeds each: text, key and typed forms whole; the id makes the same question again; at least half the questions different;
      - every typed form marked right and the near miss marked wrong by the site's own marker (js/find-marking.js markAnswer_, in a vm);
      - THE FINGERPRINT: the same template and node give the same questions; an edit to either gives other ids; a revert the same ids again;
@@ -51,11 +51,11 @@ function problems(d) {
   });
   B.forEach(({ e, node, t: t0, b: t }) => {
     if (!t) return;
-    const name = t0.id + ' @ ' + e.country, say = s => bad.push(name + ': ' + s), X = CU.index(e.T), lv = QG.cfg(e).level;
+    const name = t0.id + ' @ ' + e.country, say = s => bad.push(name + ': ' + s), X = CU.index(e.T), lv = QG.cfg(e).levels;
     const n = X.by[node];
     if (!n) return say('bound to "' + node + '", no node of ' + e.file);
     if (X.kids[node]) say(node + ' is a topic, not a sub-topic');
-    if (lv && !(n.levels || []).includes(lv)) say(node + ' is not taught at ' + lv);
+    if (lv.length && !lv.some(l => (n.levels || []).includes(l))) say(node + ' is not taught at ' + lv.join(' or '));
     const ids = new Set();
     let fails = 0, firstQ = null;
     for (let s = 0; s < SEEDS && fails < 3; s++) {
@@ -123,7 +123,7 @@ const BREAKS = [
   { name: 'an undefined in the text', d: d => { tpl(d, 'hcf').text = 'Find the HCF of {a} and {b}. {g > 99 ? g : undefined}'; } },
   { name: 'a node that is none', d: d => { remap(d, 'expand', 'dfe.ma.a.expr.nothing'); } },
   { name: 'a topic, not a sub-topic', d: d => { remap(d, 'expand', uk(d).T.nodes.find(n => n.id === 'dfe.ma.a.expr.expand').parent); } },
-  { name: 'a node with no GCSE Foundation', d: d => { remap(d, 'expand', 'dfe.ma.n.place.roman'); } },
+  { name: 'a node at no generated level', d: d => { remap(d, 'expand', 'dfe.ma.n.place.roman'); } },
   { name: 'a template no country maps', d: d => { const M = uk(d).T.templates; Object.keys(M).forEach(k => { M[k] = M[k].filter(x => x !== 'expand'); if (!M[k].length) delete M[k]; }); } },
   { name: 'a new answer type', d: d => { tpl(d, 'lcm').answer_type = 'generated'; } },
   { name: 'the same question every seed', d: d => { const t = tpl(d, 'area-rect'); t.vars = { w: [3, 3], h: [5, 5] }; t.where = []; } },
