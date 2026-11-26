@@ -3247,5 +3247,102 @@
   "Electromagnetic Waves": "dfe.sc.p.waves.em"
  },
  "budget": 9421,
- "doc_url": "^https://www\\.gov\\.uk/"
+ "doc_url": "^https://www\\.gov\\.uk/",
+ "gen": {
+  "set_prefix": "P-FAM-GEN-SC-",
+  "row_prefix": "Q-GEN-",
+  "key": "dfe",
+  "level": "GCSE Combined",
+  "subject": "root"
+ },
+ "templates": {
+  "dfe.sc.p.forces.motion": [
+   "sc-speed",
+   "sc-distance",
+   "sc-accel",
+   "sc-fma",
+   "sc-fma-accel"
+  ],
+  "dfe.sc.p.forces.interact": [
+   "sc-weight",
+   "sc-moon-mass"
+  ],
+  "dfe.sc.p.forces.work": [
+   "sc-work",
+   "sc-hooke-force",
+   "sc-spring-constant"
+  ],
+  "dfe.sc.p.energy.stores": [
+   "sc-ke",
+   "sc-gpe",
+   "sc-power"
+  ],
+  "dfe.sc.p.energy.efficiency": [
+   "sc-efficiency"
+  ],
+  "dfe.sc.p.matter.states": [
+   "sc-density"
+  ],
+  "dfe.sc.p.matter.internal": [
+   "sc-shc-energy",
+   "sc-shc-c"
+  ],
+  "dfe.sc.p.elec.current": [
+   "sc-vir",
+   "sc-resistance",
+   "sc-charge"
+  ],
+  "dfe.sc.p.elec.mains": [
+   "sc-piv",
+   "sc-power-i2r",
+   "sc-energy-pt"
+  ],
+  "dfe.sc.p.waves.properties": [
+   "sc-wave-speed",
+   "sc-wavelength"
+  ],
+  "dfe.sc.p.forces.momentum": [
+   "sc-momentum",
+   "sc-stopping"
+  ],
+  "dfe.sc.p.atomic.radiation": [
+   "sc-half-life"
+  ],
+  "dfe.sc.c.analysis.mass": [
+   "sc-mr",
+   "sc-conservation"
+  ],
+  "dfe.sc.c.analysis.moles": [
+   "sc-moles",
+   "sc-mass-moles",
+   "sc-conc"
+  ],
+  "dfe.sc.c.rate.rate": [
+   "sc-rate-mass",
+   "sc-rate-gas"
+  ],
+  "dfe.sc.b.cell.cells": [
+   "sc-magnification",
+   "sc-actual-size"
+  ],
+  "dfe.sc.b.trans.cells": [
+   "sc-osmosis"
+  ],
+  "dfe.sc.b.trans.heart": [
+   "sc-heart-rate",
+   "sc-cardiac-output"
+  ],
+  "dfe.sc.b.photo.photo": [
+   "sc-photo-rate"
+  ],
+  "dfe.sc.b.cell.enzymes": [
+   "sc-mean"
+  ],
+  "dfe.sc.b.health.noncommunicable": [
+   "sc-bmi"
+  ],
+  "dfe.sc.b.eco.levels": [
+   "sc-quadrat"
+  ]
+ }
 }
