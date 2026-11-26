@@ -28,8 +28,20 @@
   "to": "find:Posts"
  },
  {
+  "screen": "learn",
+  "to": "find:Learn"
+ },
+ {
+  "screen": "library",
+  "to": "find:Learn"
+ },
+ {
   "screen": "parents",
   "to": "find:Profiles:profileType=Parent"
+ },
+ {
+  "screen": "practice",
+  "to": "find:Learn"
  },
  {
   "screen": "progress",
@@ -41,7 +53,7 @@
  },
  {
   "screen": "res",
-  "to": "find:Library"
+  "to": "find:Learn"
  },
  {
   "screen": "saved",

@@ -14,20 +14,20 @@ const SB = require('./lib/site-browser.js');
 
 /* THE SAMPLE: the chips a child taps (any order the funnel asks them in) and the paper every card must come from. */
 const PAPERS = [
-  { name: 'Edexcel GCSE Maths June 2024 Foundation Paper 2', taps: ['Practice', 'Questions', 'Maths', 'GCSE', 'Edexcel', 'Foundation', '2024', 'June', 'Paper 2'], set: 'RS1786302107764-417' },
-  { name: 'AQA GCSE Physics 2023 Higher Paper 1', taps: ['Practice', 'Physics', 'GCSE', 'AQA', 'Higher', '2023', 'Paper 1'], set: 'P-AQA-8463-2306-1H' },
-  { name: 'Edexcel GCSE Maths November 2023 Foundation Paper 3', taps: ['Practice', 'Questions', 'Maths', 'GCSE', 'Edexcel', 'Foundation', '2023', 'November', 'Paper 3'], set: 'RS1786302107764-425' },
-  { name: 'AQA GCSE English Language June 2023 Paper 1', taps: ['Practice', 'Questions', 'English Language', 'GCSE', '2023', 'June', 'Paper 1'], set: 'P-AQA-8700-2306-1', insert: 'English Language Paper 1 insert — June 2023' },
+  { name: 'Edexcel GCSE Maths June 2024 Foundation Paper 2', taps: ['Learn', 'Questions', 'Maths', 'GCSE', 'Edexcel', 'Foundation', '2024', 'June', 'Paper 2'], set: 'RS1786302107764-417' },
+  { name: 'AQA GCSE Physics 2023 Higher Paper 1', taps: ['Learn', 'Physics', 'GCSE', 'AQA', 'Higher', '2023', 'Paper 1'], set: 'P-AQA-8463-2306-1H' },
+  { name: 'Edexcel GCSE Maths November 2023 Foundation Paper 3', taps: ['Learn', 'Questions', 'Maths', 'GCSE', 'Edexcel', 'Foundation', '2023', 'November', 'Paper 3'], set: 'RS1786302107764-425' },
+  { name: 'AQA GCSE English Language June 2023 Paper 1', taps: ['Learn', 'Questions', 'English Language', 'GCSE', '2023', 'June', 'Paper 1'], set: 'P-AQA-8700-2306-1', insert: 'English Language Paper 1 insert — June 2023' },
   /* ONE QUESTION SET (UNIFY item 3): every other set is found the same way, by its source and title, not a kind of its own. */
-  { name: 'Corbettmaths worksheet Times Tables', taps: ['Practice', 'Questions', 'Maths', 'Corbettmaths', 'Times Tables'], set: 'W-CBM-times-tables' },
-  { name: 'First Class Maths exercise HCF and LCM', taps: ['Practice', 'Questions', 'Maths', '1st Class Maths', 'HCF and LCM'], set: 'W-1CM-hcf-and-lcm' },
-  { name: 'Corbettmaths 5-a-day Foundation 1 June', taps: ['Practice', 'Questions', 'Maths', 'GCSE', 'Corbettmaths', 'Foundation', '5-a-day Foundation — 1 June'], set: 'P-CBM-5AD-F-0601' },
-  { name: 'Access Tuition Physics Momentum', taps: ['Practice', 'Questions', 'Physics', 'GCSE', 'Momentum'], set: 'W-AT-P-momentum' },
+  { name: 'Corbettmaths worksheet Times Tables', taps: ['Learn', 'Questions', 'Maths', 'Corbettmaths', 'Times Tables'], set: 'W-CBM-times-tables' },
+  { name: 'First Class Maths exercise HCF and LCM', taps: ['Learn', 'Questions', 'Maths', '1st Class Maths', 'HCF and LCM'], set: 'W-1CM-hcf-and-lcm' },
+  { name: 'Corbettmaths 5-a-day Foundation 1 June', taps: ['Learn', 'Questions', 'Maths', 'GCSE', 'Corbettmaths', 'Foundation', '5-a-day Foundation — 1 June'], set: 'P-CBM-5AD-F-0601' },
+  { name: 'Access Tuition Physics Momentum', taps: ['Learn', 'Questions', 'Physics', 'GCSE', 'Momentum'], set: 'W-AT-P-momentum' },
   /* A TOPIC SET OF ONE BOARD'S QUESTIONS (24 Nov): Physics & Maths Tutor's AQA Foundation sub-topic paper, most of its parts the past
      papers' own questions shown again (same_as), their words asked for by the row they are. */
   /* AN @FAMILY SET (owner, 20 Nov: questions from the library): one idea's questions, made from its card's facts (tools/lib/family-q.js) */
-  { name: '@family AQA Biology Cell differentiation (F)', taps: ['Practice', 'Questions', 'Biology', 'GCSE', 'AQA', 'Foundation', 'Cell differentiation'], set: 'P-FAM-AQA-bio-cell-differentiation' },
-  { name: 'Physics & Maths Tutor AQA Biology 1.1 Cell Structure (F)', taps: ['Practice', 'Questions', 'Biology', 'GCSE', 'AQA', 'Foundation', '1.1 Cell Structure'], set: 'P-PMT-AQA-BF-1-1-cell-structure' },
+  { name: '@family AQA Biology Cell differentiation (F)', taps: ['Learn', 'Questions', 'Biology', 'GCSE', 'AQA', 'Foundation', 'Cell differentiation'], set: 'P-FAM-AQA-bio-cell-differentiation' },
+  { name: 'Physics & Maths Tutor AQA Biology 1.1 Cell Structure (F)', taps: ['Learn', 'Questions', 'Biology', 'GCSE', 'AQA', 'Foundation', '1.1 Cell Structure'], set: 'P-PMT-AQA-BF-1-1-cell-structure' },
 ];
 const ANY = "Doesn't matter";
 const IPAD = { width: 820, height: 1180 };

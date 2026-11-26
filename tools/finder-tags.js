@@ -34,8 +34,8 @@ const DEPTH = 3;
 const DEEP = 400, DEEPEST = 12;
 /* ONLY IN THE COMMON FUNNEL, PRACTICE (1100; its doors since queue item 9 — Questions, Answers, Inserts): Library's writings run to some lists that take minutes each to ask; past depth 3 they are counted live. */
 const DEEP_UNDER = new RegExp('^kindLabel=(' + require('./lib/site-data.js').raw('data/settings/kinds.json').doors.filter(d => d.practice).map(d => d.name).join('|') + ')(&|$)');
-/* AND THE PLACES A CHECK HOLDS THE FUNNEL TO (check-writings: Religion is asked first in Library › Religious Studies). */
-const NAMED = [[{ field: 'kindLabel', value: 'Library' }, { field: 'subject', value: 'Religious Studies' }]];
+/* AND THE PLACES A CHECK HOLDS THE FUNNEL TO (check-writings: Religion is asked first in Learn › Religious Studies). */
+const NAMED = [[{ field: 'kindLabel', value: 'Learn' }, { field: 'subject', value: 'Religious Studies' }]];
 
 const HEAD = '/* @family. — js/finder-tags.js WRITTEN BY tools/finder-tags.js, NEVER BY HAND (546): the finder\'s first questions and answers, counted at build time. */\n';
 /* ONE QUESTION A LINE, so a change to the library shows in a diff as the questions it changed. */

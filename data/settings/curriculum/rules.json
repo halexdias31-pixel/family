@@ -104,6 +104,15 @@
     { "subject": "science", "any": ["rate of photosynthesis"], "skills": ["sc-photo-rate"] },
     { "subject": "science", "any": ["enzymes?"], "skills": ["sc-mean"] },
     { "subject": "science", "any": ["obesity", "body mass index", "lifestyle factors, including exercise, diet"], "skills": ["sc-bmi"] },
-    { "subject": "science", "any": ["quadrats?", "sampling techniques", "distribution of (a |an )?(species|organisms)", "distribution and abundance of organisms"], "skills": ["sc-quadrat"] }
+    { "subject": "science", "any": ["quadrats?", "sampling techniques", "distribution of (a |an )?(species|organisms)", "distribution and abundance of organisms"], "skills": ["sc-quadrat"] },
+    { "subject": "science", "any": ["moment of (the|a) force", "\\blevers\\b"], "skills": ["sc-moment", "sc-moment-balance"] },
+    { "subject": "science", "any": ["force, the pressure,? and the area", "pressure in fluids"], "skills": ["sc-pressure", "sc-liquid-pressure"] },
+    { "subject": "science", "any": ["percentage yield"], "skills": ["sc-percent-yield"] },
+    { "subject": "science", "any": ["theoretical amount", "calculate masses of reactants or products", "masses of reactants and products"], "skills": ["sc-reacting-mass"] },
+    { "subject": "science", "any": ["atom economy"], "skills": ["sc-atom-economy"] },
+    { "subject": "science", "any": ["molar gas volume", "volumes of gases"], "skills": ["sc-gas-volume", "sc-gas-moles"] },
+    { "subject": "science", "any": ["known concentration"], "skills": ["sc-titration"] },
+    { "subject": "science", "any": ["biomass is lost", "transfer through trophic"], "skills": ["sc-biomass-eff"] },
+    { "subject": "science", "any": ["how the speed of each may be measured"], "skills": ["sc-echo"] }
   ]
 }

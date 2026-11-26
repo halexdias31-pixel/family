@@ -69,7 +69,7 @@ async function open(opts) {
     /* `show: 'all'` (owner, 26 Nov): the library switch (settings.json `library.show`) flipped off in this page from its first script, for a check
        whose sample is a question kept but not listed (the old papers' drawing, marking and cards still work, for history and for the day it returns). */
     if (o.show) await pg.route(/\.js(\?|$)/, async r => { const res = await r.fetch(); const t = await res.text();
-      return r.fulfill({ response: res, body: t.split('"library":{"show":"generated"}').join('"library":{"show":"' + o.show + '"}') }); });
+      return r.fulfill({ response: res, body: t.replace(/"library":\{"show":("[^"]*"|\[[^\]]*\])\}/g, '"library":{"show":' + JSON.stringify(o.show) + '}') }); });
     await pg.goto(base + (o.words === false ? '/plain/' : '/') + (o.at || ''));
     if (o.ready !== false) await pg.waitForFunction(o.ready || (() => typeof DATA !== 'undefined' && DATA && (DATA.tutors || []).length), null, { timeout: o.timeout || 90000 });
     /* AND THE LATE FILES IN (25 Nov): the texts, the Bible and the rest arrive after DATA, and each repaints the open column for half a second

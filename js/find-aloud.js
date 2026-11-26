@@ -434,8 +434,8 @@ function findPlaceBack_(F) {
 const RETIRED_SHELVES = ['@family. textbooks', 'Icons'];
 /* AN ANSWER THAT WENT, by its facet: the textbooks shelf (347), and `Bundles`, which stopped being a kind to ask for (396). */
 const RETIRED_ANSWERS = { shelf: RETIRED_SHELVES, kindLabel: ['Bundles', 'Icons', 'Inserts', 'Content'], documentType: ['Insert'] };
-/* AN ANSWER THAT WAS RENAMED (504): the `Books` shelf is `Writings`, so a kept place on it stands on Writings. */
-const MOVED_ANSWERS = { shelf: { Books: BIBLE_SHELF } };
+/* AN ANSWER THAT WAS RENAMED (504): the `Books` shelf is `Writings`; the Practice and Library doors are one, Learn (owner, 26 Nov). */
+const MOVED_ANSWERS = { shelf: { Books: BIBLE_SHELF }, kindLabel: { Practice: 'Learn', Library: 'Learn' } };
 /* A FACET WHOSE KEPT ANSWERS ARE READ AGAIN by a rule rather than a list: a translation (546). */
 const MOVED_BY_FACET = { wText: f => placeTextMoved_(f) };
 const placeChipMoved_ = f => (f && MOVED_ANSWERS[f.field] && MOVED_ANSWERS[f.field][f.value]
