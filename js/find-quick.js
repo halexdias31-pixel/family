@@ -135,22 +135,3 @@ function chipShowBuilt_(before, f) {
   } catch (e) { return null; }
 }
 
-/* HELD ON THE BUNDLE, AND MADE IN THE QUIET (1100): each paper's tag row reads its pages, half a second at 4x, so the tap paints the */
-/* card with its own tag first and the shared ones join its row a moment later. */
-function bundleTags_(b) {
-  if (!b) return bundleTagsOf_(b);
-  if (b.tagsHtml != null) return b.tagsHtml;
-  if (!b.tagsAsked) {
-    b.tagsAsked = true;
-    const idle = typeof requestIdleCallback === 'function' ? requestIdleCallback : f => setTimeout(f, 30);
-    idle(() => {
-      try { b.tagsHtml = bundleTagsOf_(b); } catch (e) { b.tagsHtml = ''; return; }
-      let now = null;
-      try { now = inFinder_(FINDERS.stuff, () => BUNDLE_MEMO.get(FIND_MEMO.items)); } catch (e) { now = null; }
-      /* INTO THE ONE CARD'S TAG PART, its name still the first tag (`findCard`). */
-      const name = b.title || 'These papers', t = kcUnpicked_(b.tagsHtml), html = kcSays_(t, name) ? t : kcTagFirst_(t, name);
-      if (now === b) document.querySelectorAll('#s-stuff .card.bundle > .kc-tags').forEach(el => { el.innerHTML = html; });
-    });
-  }
-  return String(tagRow_(BUNDLE_ITEM) || cardBlock_({ type: 'group', look: 'qtags qcard-tags' }));
-}

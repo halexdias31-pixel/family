@@ -23,17 +23,6 @@ function widgetFor_(w) {
   return true;
 }
 
-function widgetsOf_(kind) {
-  /* THE LIST IS find.js's, which comes after the first screen (670): none yet. */
-  if (typeof allWidgets !== 'function') return [];
-  return allWidgets()
-    .filter(w => w.kind === kind)
-    .filter(widgetFor_);
-}
-
-/* A KIND'S PAGES: a widget a page — what the pager counts. */
-const widgetPagesOf_ = kind => widgetsOf_(kind);
-
 /* ---------- ONE WIDGET, ONE CARD, AND A STAR ON IT § */
 const WIDGET_KEY = w => 'w:' + String(w.id);
 
@@ -129,7 +118,7 @@ function widgetsBack_(col, held) {
 
 
 /* A WIDGET THAT IS ITS OWN FIRST ANSWER IN FIND (batch B): a browsable thing gets a menu pill, not a column or a mini-app. */
-const FIND_WIDGET_GROUPS = { videos: 'Videos', reels: 'Tools', newspaper: 'Tools', shopfind: 'Tools', cart: 'Shop' };
+const FIND_WIDGET_GROUPS = { videos: 'Videos', reels: 'Tools', newspaper: 'Tools' };
 /* EVERY WIDGET IS A FIND CARD (790) FOR THIS VIEWER, in the code's order — but the reel's: each of its videos is a Find card of its own (kind video). */
 function findWidgetList_() {
   return allWidgets().filter(w => w && w.kind !== 'reel').filter(widgetFor_);

@@ -34,7 +34,6 @@ const KC_DEFAULT = {
   receipt: { cls: '', pic: [], title: [], tags: [], lines: [], tiles: ['job-pay:pound:Pay'] },
   question: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
   answer: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
-  shop: { cls: '', pic: [], title: [], tags: [], lines: [], tiles: ['cart-add:cart:Buy'] },
   practical: { cls: '', pic: [], title: [], tags: [], lines: [], tiles: [] },
   project: { cls: '', pic: [], title: [], tags: [], lines: [], tiles: [] },
   content: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
@@ -59,7 +58,6 @@ const KC_DEFAULT = {
   setting: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
   health: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
   offPosts: { cls: '', pic: [], title: [], tags: [], lines: [], tiles: [] },
-  offShop: { cls: '', pic: [], title: [], tags: [], lines: [], tiles: [] },
   offBooking: { cls: '', pic: [], title: [], tags: [], lines: [], tiles: [] },
 };
 /* A KIND'S FIELDS: its row in data/settings/card-fields.json (`DATA.cardFields`, settings.js), else the built-in row, else the bare three. */
@@ -273,8 +271,6 @@ function itemMapOfKind_(k) {
   else if ((K.find || {}).from === 'store') { M.body = r => itemLines_(r, k); M.sheet = (it, x) => storeSheet_(it, x); M.tiles = (it, x) => storeTiles_(it, x); }
   if (c.picture && !/\(/.test(c.picture)) M.picture = (it, x) => (x[c.picture] && typeof pic === 'function' ? { src: pic(x[c.picture]), look: 'thing-pic', alt: '' } : null);
   else if (!c.picture && K.bodyAs === 'person') M.picture = it => (typeof personPicSpec_ === 'function' ? personPicSpec_(it.raw.id, it.name) : null);
-  /* ITS PRICE IS THE ONE TAG SET'S `price` (data/settings/tags.json), after the facets the set keeps. */
-  if (c.price) M.pills = (it, x) => itemFacets_(M, x).concat([].concat(shopPriceTag_(x) || []).map(t => Object.assign({}, t, { data: Object.assign({}, t.data, { f: 'price' }) })));
   if (K.live) { M.live = {}; Object.keys(K.live).forEach(f => { const h = kindHook_(K.live[f], null); M.live[f] = r => h({ row: r }); }); }
   return M;
 }
@@ -301,13 +297,6 @@ function kcTutorSay_(r) { return { note: typeof profNote_ === 'function' ? profN
 /* A BOOKING'S MONEY (kinds.json `live.money`): worked out here, only read by its Record pills and sum; a child is told neither (kinds.json `see.hide.prices`). */
 function kcBookingMoney_(r) { const rate = Number(r.rate) || (/hour/i.test(String(r.unit || '')) ? Number(r.price) : 0) || 0;
   return { rate: rate > 0 ? fmtMoney_(rate, 'hour') : '', total: r.price !== '' && r.price != null && isFinite(Number(r.price)) ? fmtMoney_(Number(r.price)) + ' in all' : '' }; }
-/* A SHOP THING'S PRICE TAG: its level, or free, pence as pounds, else credits; `can` when you have the level or the credits (your own, collCredits_). */
-const shopPriceTag_ = x => { const myLevel = Math.floor((Number(typeof USER !== 'undefined' && USER && USER.xp) || 0) / 10), free = x.cost === 0;
-  const credits = typeof collCredits_ === 'function' ? collCredits_() : 0, afford = !free && !x.pence && credits >= x.cost;
-  /* A CHILD NEVER SEES A PRICE (CARD SHAPES): a thing sold for money says no price to them; levels and credits are the game's, kept. */
-  if (x.pence && typeof may_ === 'function' && !may_('prices')) return null;
-  if (x.level > 0) return { text: myLevel >= x.level ? 'Level ' + x.level + ' — yours' : 'Level ' + x.level, look: 'price ' + (myLevel >= x.level ? 'can' : ''), colour: false };
-  return x.cost === undefined ? null : { text: free ? 'free' : x.pence ? fmtMoney_(x.cost / 100) : x.cost + ' credits', look: 'price ' + (free ? 'free' : afford ? 'can' : ''), colour: false }; };
 const itemLive_ = (r, M) => { const v = {}; Object.keys(M.live || {}).forEach(f => { v[f] = M.live[f](r); });
   const hide = (typeof may_ === 'function' && !may_('prices') ? M.childHides || [] : []).concat(typeof may_ === 'function' && may_('admin') ? [] : M.adminOnly || []);
   const strip = o => { if (Array.isArray(o)) o.forEach(strip); else if (o && typeof o === 'object') hide.forEach(k => { delete o[k]; }); };

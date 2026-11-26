@@ -1,6 +1,6 @@
 /* js/finder-tags.js */
 const FINDER_TAGS = {
-"facets": "kindLabel,toolName,docketList,kindOwn,postState,postBy,postWhen,profileType,settingFor,venueArea,venueFor,venueSize,partnerStatus,foodMeal,foodShop,taskList,taskRepeat,taskDone,subject,shelf,wReligion,histKind,wCollection,histPart,wWork,wSection,wSource,wLanguage,wForm,wAuthor,wText,wBook,wChapter,wUnit,wPrimacy,mScope,mMake,mModel,mGen,mEngine,mSystem,pcType,pcSocket,pcIface,pcLinks,mPhase,mMarket,mYears,mSize,mValves,mBadge,mFuel,mPart,mPrice,cCategory,cGroup,cPeriod,cState,fighter,decade,division,boutRound,boutMethod,boutWinner,boutEvent,histEra,histMaterial,histFormat,histRole,personName,personYears,personFrom,histRepository,histSide,histFound,histDated,histTheatre,shopHow,shopPrice,shopFor,shopTheme,required,level,documentType,keystage,yearGroup,bandValue,topic,examBoard,specTopic,specPoint,tier,examYear,examMonth,examDay,paperId,paperSection,qNumber,qPart,qSub,marks,needCalc,needs,myTried,myResult,source",
+"facets": "kindLabel,toolName,docketList,kindOwn,postState,postBy,postWhen,profileType,settingFor,venueArea,venueFor,venueSize,partnerStatus,foodMeal,foodShop,taskList,taskRepeat,taskDone,subject,shelf,wReligion,histKind,wCollection,histPart,wWork,wSection,wSource,wLanguage,wForm,wAuthor,wText,wBook,wChapter,wUnit,wPrimacy,mScope,mMake,mModel,mGen,mEngine,mSystem,pcType,pcSocket,pcIface,pcLinks,mPhase,mMarket,mYears,mSize,mValves,mBadge,mFuel,mPart,mPrice,cCategory,cGroup,cPeriod,cState,fighter,decade,division,boutRound,boutMethod,boutWinner,boutEvent,histEra,histMaterial,histFormat,histRole,personName,personYears,personFrom,histRepository,histSide,histFound,histDated,histTheatre,required,level,documentType,keystage,yearGroup,bandValue,topic,examBoard,specTopic,specPoint,tier,examYear,examMonth,examDay,paperId,paperSection,qNumber,qPart,qSub,marks,needCalc,needs,myTried,myResult,source",
 "same": {
 "kindLabel=Practice&kindOwn=Questions&subject=Biology&level=GCSE&topic=Animal, plant and bacterial cells": ["examBoard",[["AQA"],["OCR"]],[115,8],187,["[object Object]","[object Object]"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Biology&level=GCSE&topic=Animals and the human body": ["tier",[["Foundation"],["Higher"]],[27,2],45,["[object Object]","[object Object]"]],
@@ -891,18 +891,14 @@ const FINDER_TAGS = {
 "kindLabel=Posts": ["postState",[["Approved"],["Waiting for approval"]],[1,1],2,["[object Object]","[object Object]"]],
 "kindLabel=Booking": ["kindOwn",[["Booking form"],["Staff"],["Venues"],["Levels"]],[1,1,1,2],5,["[object Object]","[object Object]","[object Object]","[object Object]"]],
 "kindLabel=Booking&kindOwn=Venues": ["venueSize",[["3 rooms"],["Up to 8"]],[1,1],1,["[object Object]","[object Object]"]],
-"kindLabel=Shop": ["shopHow",[["Borrow"],["Buy"],["Earn with ticks"],["Given out"]],[1,7,1,1],10,["[object Object]","[object Object]","[object Object]","[object Object]"]],
-"kindLabel=Shop&shopHow=Buy": ["shopPrice",[["£5 to £20"],["Not priced yet"],["Over £20"],["Under £5"]],[1,3,1,2],7,["[object Object]","[object Object]","[object Object]","[object Object]"]],
-"kindLabel=Shop&shopHow=Buy&shopPrice=Not priced yet": ["documentType",[["Bundle"],["Game"],["Made to order"]],[1,1,1],3,["[object Object]","[object Object]","[object Object]"]],
-"kindLabel=Shop&shopHow=Buy&shopPrice=Under £5": ["documentType",[["Consumable"],["Stationery"]],[1,1],2,["[object Object]","[object Object]"]],
 "kindLabel=Tools": ["toolName",[["Assignments"],["Library cards"],["Pixel editor"],["Term dates"]],[1,1,1,1],4,["[object Object]","[object Object]","[object Object]","[object Object]"]],
 "kindLabel=Library&subject=Religious Studies": ["wReligion",[["Ancient Egyptian religion"],["Christianity"],["Judaism"],["Mesopotamian religion"]],[37,160276,40856,12],177991,["[object Object]","[object Object]","[object Object]","[object Object]"]],
 "#says": {"wChapter":{"Extract from The Prelude: Stealing the Boat":"Extract from The… the Boat","Fragment: 'alas! This Is Not What I Thought Life Was'":"Fragment: 'alas! This Is Not…","Fragment: 'and That I Walk Thus Proudly Crowned'":"Fragment: 'and That I Walk…","Fragment: 'follow to the Deep Wood's Weeds'":"Fragment: 'follow to the…","Fragment: 'i Faint, I Perish with My Love!'":"Fragment: 'i Faint, I Perish…","Fragment: 'i Stood upon a Heaven-cleaving Turret'":"Fragment: 'i Stood upon a…","Fragment: 'i Would Not Be a King'":"Fragment: 'i Would Not Be a…","Fragment: 'is It That in Some Brighter Sphere'":"Fragment: 'is It That in…","Fragment: 'methought I Was a Billow in the Crowd'":"Fragment: 'methought I Was a…","Fragment: 'my Head Is Wild with Weeping'":"Fragment: 'my Head Is Wild…","Fragment: 'o Thou Immortal Deity'":"Fragment: 'o Thou Immortal…","Fragment: 'such Hope, as Is the Sick Despair of Good'":"Fragment: 'such Hope, as Is…","Fragment: 'the Death Knell Is Ringing'":"Fragment: 'the Death Knell…","Fragment: 'the Rude Wind Is Singing'":"Fragment: 'the Rude Wind Is…","Fragment: 'the Viewless and Invisible Consequence'":"Fragment: 'the Viewless and…","Fragment: 'unrisen Splendour of the Brightest Sun'":"Fragment: 'unrisen Splendour…","Fragment: 'wake the Serpent Not'":"Fragment: 'wake the Serpent…","Fragment: 'what Men Gain Fairly'":"Fragment: 'what Men Gain…","Fragment: 'when a Lover Clasps His Fairest'":"Fragment: 'when a Lover…","Fragment: 'when Soft Winds and Sunny Skies'":"Fragment: 'when Soft Winds…","Fragment: 'ye Gentle Visitations of Calm Thought'":"Fragment: 'ye Gentle…","Fragment: \"igniculus Desiderii\"":"Fragment: \"igniculus…","Fragment: Apostrophe to Silence":"Fragment: Apostrophe to…","Fragment: Life Rounded with Sleep":"Fragment: Life Rounded with…","Fragment: Love the Universe To-day":"Fragment: Love the Universe…","Fragment: Love's Tender Atmosphere":"Fragment: Love's Tender…","Fragment: Music and Sweet Poetry":"Fragment: Music and Sweet…","Fragment: Sufficient Unto the Day":"Fragment: Sufficient Unto…","Fragment: the Deserts of Dim Sleep":"Fragment: the Deserts of Dim…","Fragment: the False Laurel and the True":"Fragment: the False Laurel…","Fragment: the Lady of the South":"Fragment: the Lady of the…","Fragment: the Sepulchre of Memory":"Fragment: the Sepulchre of…","Fragment: Thoughts Come and Go in Solitude":"Fragment: Thoughts Come and…","Fragment: to a Friend Released from Prison":"Fragment: to a Friend…","Fragment: to the People of England":"Fragment: to the People of…","Fragment: Zephyrus the Awakener":"Fragment: Zephyrus the…","Her Dilemma (in — Church)":"Her Dilemma — Church)","Lines: 'we Meet Not as We Parted'":"Lines: 'we Meet Not as We…","Lines: 'when the Lamp Is Shattered'":"Lines: 'when the Lamp Is…","William Jefferson Clinton Second Inaugural Address":"William Jefferson… Address"},"mPart":{"Auxiliary (drive) belt":"Auxiliary","Cabin (pollen) filter":"Cabin","Coolant (antifreeze)":"Coolant","Lambda (oxygen) sensor":"Lambda","Wishbones (control arms)":"Wishbones"},"boutEvent":{"Lewis-Tyson: Is On":"Lewis-Tyson"},"histSide":{"Back (verso)":"Back","Front (recto)":"Front"},"topic":{"3-D shapes: faces, edges and vertices":"3-D shapes: faces, edges and…","Adding and subtracting fractions":"Adding and… fractions","Angles at a point, on a line and in parallel lines":"Angles at a point, on… lines","Fractions, decimals and percentages: converting":"Fractions… converting","Multiplying and dividing fractions":"Multiplying and… fractions","Quadratic graphs: roots and turning points":"Quadratic graphs: roots and…"},"specTopic":{"3.2 Specialist technical principles":"3.2 Specialist technical principles","3.3 Designing and making principles":"3.3 Designing and making principles","3.8 Methods and techniques: common ground (3.8)":"3.8 Methods and techniques: common ground (3.8)","3.12 Operational research (3.12)":"3.12 Operational research (3.12)","3.13 Mathematical thinking and logical processes (3.13-3.15)":"3.13 Mathematical thinking and logical processes (3.13-3.15)","3.16 Numerical computation (3.16-3.17)":"3.16 Numerical computation (3.16-3.17)","4.1 Atomic structure and the periodic table":"4.1 Atomic structure and the periodic table","4.2 Bonding, structure, and the properties of matter":"4.2 Bonding, structure, and the properties of matter","4.6 Inheritance, variation and evolution":"4.6 Inheritance, variation and evolution","4.6 The rate and extent of chemical change":"4.6 The rate and extent of chemical change","4.7 Magnetism and electromagnetism":"4.7 Magnetism and electromagnetism","4.8 Space physics (physics only)":"4.8 Space physics (physics only)","4.9 Chemistry of the atmosphere":"4.9 Chemistry of the atmosphere","P1 Paper 1 Explorations in creative reading and writing":"P1 Paper 1 Explorations in creative reading and writing","P2 Paper 2 Writers’ viewpoints and perspectives":"P2 Paper 2 Writers’ viewpoints and perspectives","R Ratio, proportion and rates of change":"R Ratio, proportion and rates of change"},"specPoint":{"3.1.1 New and emerging technologies":"3.1.1 New and emerging technologies","3.1.2 Energy generation and storage":"3.1.2 Energy generation and storage","3.1.3 Developments in new materials":"3.1.3 Developments in new materials","3.1.4 Systems approach to designing":"3.1.4 Systems approach to designing","3.1.6 Materials and their working properties":"3.1.6 Materials and their working properties","3.2.1 Selection of materials or components":"3.2.1 Selection of materials or components","3.2.3 Ecological and social footprint":"3.2.3 Ecological and social footprint","3.2.5 Using and working with materials":"3.2.5 Using and working with materials","3.2.6 Stock forms, types and sizes":"3.2.6 Stock forms, types and sizes","3.2.8 Specialist techniques and processes":"3.2.8 Specialist techniques and processes","3.2.9 Surface treatments and finishes":"3.2.9 Surface treatments and finishes","3.3.1 Investigation, primary and secondary data":"3.3.1 Investigation, primary and secondary data","3.3.2 Environmental, social and economic challenge":"3.3.2 Environmental, social and economic challenge","3.3.5 Communication of design ideas":"3.3.5 Communication of design ideas","3.3.7 Selection of materials and components":"3.3.7 Selection of materials and components","3.3.10 Specialist tools and equipment":"3.3.10 Specialist tools and equipment","3.3.11 Specialist techniques and processes":"3.3.11 Specialist techniques and processes","3.8.3 Probability and statistics":"3.8.3 Probability and statistics","3.8.4 Constrained optimisation and allocating scarce resources (operational research)":"3.8.4 Constrained optimisation and allocating scarce resources (operational research)","3.8.5 Modelling decision-making processes (operational research)":"3.8.5 Modelling decision-making processes (operational research)","3.8.6 Methods for differential equations (applications in physics or engineering)":"3.8.6 Methods for differential equations (applications in physics or engineering)","3.10.6 Continuum mechanics and mathematical physics":"3.10.6 Continuum mechanics and mathematical physics","3.10.7 Mathematical models: how and when they can be applied":"3.10.7 Mathematical models: how and when they can be applied","3.11.1 Exploratory data analysis":"3.11.1 Exploratory data analysis","3.11.8 Using a statistical package for data analysis":"3.11.8 Using a statistical package for data analysis","3.12.1 Applications such as healthcare, transportation, logistics, strategic planning, manufacturing and retail distribution":"3.12.1 Applications such as healthcare, transportation, logistics, strategic planning, manufacturing and retail distribution","3.13.1 Assumptions: where they are used and the consequences of their violation; validity of assumptions versus validity of arguments":"3.13.1 Assumptions: where they are used and the consequences of their violation; validity of assumptions versus validity of arguments","3.14.1 Generalisation and abstraction in developing theories and methods":"3.14.1 Generalisation and abstraction in developing theories and methods","3.14.2 Logical argument, deductive reasoning and formal proof":"3.14.2 Logical argument, deductive reasoning and formal proof","3.15.1 Axiomatic approaches to advanced pure mathematics":"3.15.1 Axiomatic approaches to advanced pure mathematics","3.16.1 Processes and pitfalls of numerical approximation":"3.16.1 Processes and pitfalls of numerical approximation","3.17.1 At least one programming language; specialist software and the algorithms behind it":"3.17.1 At least one programming language; specialist software and the algorithms behind it","3.18.1 Mathematical and statistical modelling as abstract representations of processes":"3.18.1 Mathematical and statistical modelling as abstract representations of processes","3.19.1 A range of modelling techniques, their conditions and limitations; validating and revising models":"3.19.1 A range of modelling techniques, their conditions and limitations; validating and revising models","3.19.2 Using models to analyse problems and scenarios, and interpreting and communicating the results":"3.19.2 Using models to analyse problems and scenarios, and interpreting and communicating the results","3.20.3 Career development skills":"3.20.3 Career development skills","3.24.3 Formulating complex optimisation problems and interpreting solutions in their original context (3.24)":"3.24.3 Formulating complex optimisation problems and interpreting solutions in their original context (3.24)","4.1.1 A simple model of the atom, symbols, relative atomic mass, electronic charge and isotopes":"4.1.1 A simple model of the atom, symbols, relative atomic mass, electronic charge and isotopes","4.1.1 Energy changes in a system, and the ways energy is stored before and after such changes":"4.1.1 Energy changes in a system, and the ways energy is stored before and after such changes","4.1.2 Conservation and dissipation of energy":"4.1.2 Conservation and dissipation of energy","4.1.3 National and global energy resources":"4.1.3 National and global energy resources","4.1.3 Properties of transition metals (chemistry only)":"4.1.3 Properties of transition metals (chemistry only)","4.2.1 Chemical bonds, ionic, covalent and metallic":"4.2.1 Chemical bonds, ionic, covalent and metallic","4.2.1 Current, potential difference and resistance":"4.2.1 Current, potential difference and resistance","4.2.1 Principles of organisation":"4.2.1 Principles of organisation","4.2.2 Animal tissues, organs and organ systems":"4.2.2 Animal tissues, organs and organ systems","4.2.2 How bonding and structure are related to the properties of substances":"4.2.2 How bonding and structure are related to the properties of substances","4.2.2 Series and parallel circuits":"4.2.2 Series and parallel circuits","4.2.3 Plant tissues, organs and systems":"4.2.3 Plant tissues, organs and systems","4.2.3 Structure and bonding of carbon":"4.2.3 Structure and bonding of carbon","4.2.4 Bulk and surface properties of matter including nanoparticles (chemistry only)":"4.2.4 Bulk and surface properties of matter including nanoparticles (chemistry only)","4.2.5 Static electricity (physics only)":"4.2.5 Static electricity (physics only)","4.3.1 Changes of state and the particle model":"4.3.1 Changes of state and the particle model","4.3.1 Chemical measurements, conservation of mass and the quantitative interpretation of chemical equations":"4.3.1 Chemical measurements, conservation of mass and the quantitative interpretation of chemical equations","4.3.2 Internal energy and energy transfers":"4.3.2 Internal energy and energy transfers","4.3.2 Monoclonal antibodies (biology only) (HT only)":"4.3.2 Monoclonal antibodies (biology only) (HT only)","4.3.2 Use of amount of substance in relation to masses of pure substances":"4.3.2 Use of amount of substance in relation to masses of pure substances","4.3.3 Particle model and pressure":"4.3.3 Particle model and pressure","4.3.3 Plant disease (biology only)":"4.3.3 Plant disease (biology only)","4.3.3 Yield and atom economy of chemical reactions (chemistry only)":"4.3.3 Yield and atom economy of chemical reactions (chemistry only)","4.3.4 Using concentrations of solutions in mol/dm3 (chemistry only) (HT only)":"4.3.4 Using concentrations of solutions in mol/dm3 (chemistry only) (HT only)","4.3.5 Use of amount of substance in relation to volumes of gases (chemistry only) (HT only)":"4.3.5 Use of amount of substance in relation to volumes of gases (chemistry only) (HT only)","4.4.2 Atoms and nuclear radiation":"4.4.2 Atoms and nuclear radiation","4.4.3 Hazards and uses of radioactive emissions and of background radiation (physics only)":"4.4.3 Hazards and uses of radioactive emissions and of background radiation (physics only)","4.4.4 Nuclear fission and fusion (physics only)":"4.4.4 Nuclear fission and fusion (physics only)","4.5.1 Exothermic and endothermic reactions":"4.5.1 Exothermic and endothermic reactions","4.5.1 Forces and their interactions":"4.5.1 Forces and their interactions","4.5.1 Honours threshold: the basic body of knowledge, normally calculus, linear algebra and probability/statistics":"4.5.1 Honours threshold: the basic body of knowledge, normally calculus, linear algebra and probability/statistics","4.5.2 Chemical cells and fuel cells (chemistry only)":"4.5.2 Chemical cells and fuel cells (chemistry only)","4.5.2 Honours threshold: calculation, manipulation and problem solving within it; logical reasoning with stated assumptions":"4.5.2 Honours threshold: calculation, manipulation and problem solving within it; logical reasoning with stated assumptions","4.5.2 Work done and energy transfer":"4.5.2 Work done and energy transfer","4.5.3 Honours threshold: formulate problems mathematically, solve them and draw valid inferences; communicate arguments and uncertainty":"4.5.3 Honours threshold: formulate problems mathematically, solve them and draw valid inferences; communicate arguments and uncertainty","4.5.3 Hormonal coordination in humans":"4.5.3 Hormonal coordination in humans","4.5.4 Honours threshold: at least one programming language and other MSOR technology":"4.5.4 Honours threshold: at least one programming language and other MSOR technology","4.5.4 Moments, levers and gears (physics only)":"4.5.4 Moments, levers and gears (physics only)","4.5.4 Plant hormones (biology only)":"4.5.4 Plant hormones (biology only)","4.5.5 Pressure and pressure differences in fluids (physics only)":"4.5.5 Pressure and pressure differences in fluids (physics only)","4.6.1 Integrated master's threshold: the main body of knowledge including advanced topics, in loosely defined contexts":"4.6.1 Integrated master's threshold: the main body of knowledge including advanced topics, in loosely defined contexts","4.6.1 Waves in air, fluids and solids":"4.6.1 Waves in air, fluids and solids","4.6.2 Integrated master's threshold: planning and conducting an advanced project":"4.6.2 Integrated master's threshold: planning and conducting an advanced project","4.6.2 Reversible reactions and dynamic equilibrium":"4.6.2 Reversible reactions and dynamic equilibrium","4.6.3 Black body radiation (physics only)":"4.6.3 Black body radiation (physics only)","4.6.3 The development of understanding of genetics and evolution":"4.6.3 The development of understanding of genetics and evolution","4.6.4 Classification of living organisms":"4.6.4 Classification of living organisms","4.7.1 Adaptations, interdependence and competition":"4.7.1 Adaptations, interdependence and competition","4.7.1 Carbon compounds as fuels and feedstock":"4.7.1 Carbon compounds as fuels and feedstock","4.7.1 Permanent and induced magnetism, magnetic forces and fields":"4.7.1 Permanent and induced magnetism, magnetic forces and fields","4.7.2 Organisation of an ecosystem":"4.7.2 Organisation of an ecosystem","4.7.2 Reactions of alkenes and alcohols (chemistry only)":"4.7.2 Reactions of alkenes and alcohols (chemistry only)","4.7.3 Biodiversity and the effect of human interaction on ecosystems":"4.7.3 Biodiversity and the effect of human interaction on ecosystems","4.7.3 Induced potential, transformers and the National Grid (physics only) (HT only)":"4.7.3 Induced potential, transformers and the National Grid (physics only) (HT only)","4.7.3 Synthetic and naturally occurring polymers (chemistry only)":"4.7.3 Synthetic and naturally occurring polymers (chemistry only)","4.7.4 Trophic levels in an ecosystem (biology only)":"4.7.4 Trophic levels in an ecosystem (biology only)","4.7.5 Food production (biology only)":"4.7.5 Food production (biology only)","4.8.1 Purity, formulations and chromatography":"4.8.1 Purity, formulations and chromatography","4.8.1 Solar system; stability of orbital motions; satellites (physics only)":"4.8.1 Solar system; stability of orbital motions; satellites (physics only)","4.8.2 Identification of common gases":"4.8.2 Identification of common gases","4.8.3 Identification of ions by chemical and spectroscopic means (chemistry only)":"4.8.3 Identification of ions by chemical and spectroscopic means (chemistry only)","4.9.1 The composition and evolution of the Earth's atmosphere":"4.9.1 The composition and evolution of the Earth's atmosphere","4.9.2 Carbon dioxide and methane as greenhouse gases":"4.9.2 Carbon dioxide and methane as greenhouse gases","4.9.3 Common atmospheric pollutants and their sources":"4.9.3 Common atmospheric pollutants and their sources","4.10.1 Using the Earth's resources and obtaining potable water":"4.10.1 Using the Earth's resources and obtaining potable water","4.10.2 Life cycle assessment and recycling":"4.10.2 Life cycle assessment and recycling","4.10.3 Using materials (chemistry only)":"4.10.3 Using materials (chemistry only)","4.10.4 The Haber process and the use of NPK fertilisers (chemistry only)":"4.10.4 The Haber process and the use of NPK fertilisers (chemistry only)","A1 use and interpret algebraic notation, including: ab in place of a × b; 3y in place of y + y + y and 3 × y; a² in place of a × a; a/b in place of a ÷ b; coefficients written as fractions rather than as decimals; brackets":"A1 use and interpret algebraic notation, including: ab in place of a × b; 3y in place of y + y + y and 3 × y; a² in place of a × a; a/b in place of a ÷ b; coefficients written as fractions rather than as decimals; brackets","A2 substitute numerical values into formulae and expressions, including scientific formulae":"A2 substitute numerical values into formulae and expressions, including scientific formulae","A3 understand and use the concepts and vocabulary of expressions, equations, formulae, identities, inequalities, terms and factors":"A3 understand and use the concepts and vocabulary of expressions, equations, formulae, identities, inequalities, terms and factors","A4 simplify and manipulate algebraic expressions by: collecting like terms; multiplying a single term over a bracket; taking out common factors; expanding products of two binomials; factorising quadratic expressions of the form x² + bx + c":"A4 simplify and manipulate algebraic expressions by: collecting like terms; multiplying a single term over a bracket; taking out common factors; expanding products of two binomials; factorising quadratic expressions of the form x² + bx + c","A6 know the difference between an equation and an identity; argue mathematically to show algebraic expressions are equivalent, and use algebra to support and construct arguments":"A6 know the difference between an equation and an identity; argue mathematically to show algebraic expressions are equivalent, and use algebra to support and construct arguments","A7 where appropriate, interpret simple expressions as functions with inputs and outputs; interpret the reverse process as the inverse function; interpret the succession of two functions as a composite function":"A7 where appropriate, interpret simple expressions as functions with inputs and outputs; interpret the reverse process as the inverse function; interpret the succession of two functions as a composite function","A10 identify and interpret gradients and intercepts of linear functions graphically and algebraically":"A10 identify and interpret gradients and intercepts of linear functions graphically and algebraically","A11 identify and interpret roots, intercepts, turning points of quadratic functions graphically; deduce roots algebraically and turning points by completing the square":"A11 identify and interpret roots, intercepts, turning points of quadratic functions graphically; deduce roots algebraically and turning points by completing the square","A12 recognise, sketch and interpret graphs of linear functions, quadratic functions, simple cubic functions, the reciprocal function y = 1/x with x ≠ 0, exponential functions and trigonometric functions":"A12 recognise, sketch and interpret graphs of linear functions, quadratic functions, simple cubic functions, the reciprocal function y = 1/x with x ≠ 0, exponential functions and trigonometric functions","A13 sketch translations and reflections of a given function":"A13 sketch translations and reflections of a given function","A15 calculate or estimate gradients of graphs and areas under graphs (including quadratic and other non-linear graphs), and interpret results in cases such as distance-time graphs, velocity-time graphs and graphs in financial contexts":"A15 calculate or estimate gradients of graphs and areas under graphs (including quadratic and other non-linear graphs), and interpret results in cases such as distance-time graphs, velocity-time graphs and graphs in financial contexts","A16 recognise and use the equation of a circle with centre at the origin; find the equation of a tangent to a circle at a given point":"A16 recognise and use the equation of a circle with centre at the origin; find the equation of a tangent to a circle at a given point","A19 solve two simultaneous equations in two variables (linear/linear or linear/quadratic) algebraically; find approximate solutions using a graph":"A19 solve two simultaneous equations in two variables (linear/linear or linear/quadratic) algebraically; find approximate solutions using a graph","A20 find approximate solutions to equations numerically using iteration":"A20 find approximate solutions to equations numerically using iteration","A21 translate simple situations or procedures into algebraic expressions or formulae; derive an equation (or two simultaneous equations), solve the equation(s) and interpret the solution":"A21 translate simple situations or procedures into algebraic expressions or formulae; derive an equation (or two simultaneous equations), solve the equation(s) and interpret the solution","A22 solve linear inequalities in one or two variable(s), and quadratic inequalities in one variable; represent the solution set on a number line, using set notation and on a graph":"A22 solve linear inequalities in one or two variable(s), and quadratic inequalities in one variable; represent the solution set on a number line, using set notation and on a graph","A23 generate terms of a sequence from either a term-to-term or a position-to-term rule":"A23 generate terms of a sequence from either a term-to-term or a position-to-term rule","A24 recognise and use sequences of triangular, square and cube numbers, simple arithmetic progressions, Fibonacci type sequences, quadratic sequences, and simple geometric progressions (rⁿ where n is an integer, and r is a rational number > 0)":"A24 recognise and use sequences of triangular, square and cube numbers, simple arithmetic progressions, Fibonacci type sequences, quadratic sequences, and simple geometric progressions (rⁿ where n is an integer, and r is a rational number > 0)","G1 use conventional terms and notation: points, lines, vertices, edges, planes, parallel lines, perpendicular lines, right angles, polygons, regular polygons and polygons with reflection and/or rotation symmetries; use the standard conventions for labelling and referring to the sides and angles of triangles; draw diagrams from written description":"G1 use conventional terms and notation: points, lines, vertices, edges, planes, parallel lines, perpendicular lines, right angles, polygons, regular polygons and polygons with reflection and/or rotation symmetries; use the standard conventions for labelling and referring to the sides and angles of triangles; draw diagrams from written description","G2 use the standard ruler and compass constructions (perpendicular bisector of a line segment, constructing a perpendicular to a given line from/at a given point, bisecting a given angle); use these to construct given figures and solve loci problems; know that the perpendicular distance from a point to a line is the shortest distance to the line":"G2 use the standard ruler and compass constructions (perpendicular bisector of a line segment, constructing a perpendicular to a given line from/at a given point, bisecting a given angle); use these to construct given figures and solve loci problems; know that the perpendicular distance from a point to a line is the shortest distance to the line","G3 apply the properties of: angles at a point; angles at a point on a straight line; vertically opposite angles; understand and use alternate and corresponding angles on parallel lines; derive and use the sum of angles in a triangle (eg to deduce and use the angle sum in any polygon, and to derive properties of regular polygons)":"G3 apply the properties of: angles at a point; angles at a point on a straight line; vertically opposite angles; understand and use alternate and corresponding angles on parallel lines; derive and use the sum of angles in a triangle (eg to deduce and use the angle sum in any polygon, and to derive properties of regular polygons)","G4 derive and apply the properties and definitions of: special types of quadrilaterals, including square, rectangle, parallelogram, trapezium, kite and rhombus; and triangles and other plane figures using appropriate language":"G4 derive and apply the properties and definitions of: special types of quadrilaterals, including square, rectangle, parallelogram, trapezium, kite and rhombus; and triangles and other plane figures using appropriate language","G5 use the basic congruence criteria for triangles (SSS, SAS, ASA, RHS)":"G5 use the basic congruence criteria for triangles (SSS, SAS, ASA, RHS)","G6 apply angle facts, triangle congruence, similarity and properties of quadrilaterals to conjecture and derive results about angles and sides, including Pythagoras’ theorem and the fact that the base angles of an isosceles triangle are equal, and use known results to obtain simple proofs":"G6 apply angle facts, triangle congruence, similarity and properties of quadrilaterals to conjecture and derive results about angles and sides, including Pythagoras’ theorem and the fact that the base angles of an isosceles triangle are equal, and use known results to obtain simple proofs","G9 identify and apply circle definitions and properties, including: centre, radius, chord, diameter, circumference, tangent, arc, sector and segment":"G9 identify and apply circle definitions and properties, including: centre, radius, chord, diameter, circumference, tangent, arc, sector and segment","G12 identify properties of the faces, surfaces, edges and vertices of: cubes, cuboids, prisms, cylinders, pyramids, cones and spheres":"G12 identify properties of the faces, surfaces, edges and vertices of: cubes, cuboids, prisms, cylinders, pyramids, cones and spheres","G13 construct and interpret plans and elevations of 3D shapes":"G13 construct and interpret plans and elevations of 3D shapes","G15 measure line segments and angles in geometric figures, including interpreting maps and scale drawings and use of bearings":"G15 measure line segments and angles in geometric figures, including interpreting maps and scale drawings and use of bearings","G17 know the formulae: circumference of a circle = 2πr = πd, area of a circle = πr²; calculate: perimeters of 2D shapes, including circles; areas of circles and composite shapes; surface area and volume of spheres, pyramids, cones and composite solids":"G17 know the formulae: circumference of a circle = 2πr = πd, area of a circle = πr²; calculate: perimeters of 2D shapes, including circles; areas of circles and composite shapes; surface area and volume of spheres, pyramids, cones and composite solids","G18 calculate arc lengths, angles and areas of sectors of circles":"G18 calculate arc lengths, angles and areas of sectors of circles","G19 apply the concepts of congruence and similarity, including the relationships between lengths, areas and volumes in similar figures":"G19 apply the concepts of congruence and similarity, including the relationships between lengths, areas and volumes in similar figures","G21 know the exact values of sin θ and cos θ for θ = 0°, 30°, 45°, 60° and 90°; know the exact value of tan θ for θ = 0°, 30°, 45° and 60°":"G21 know the exact values of sin θ and cos θ for θ = 0°, 30°, 45°, 60° and 90°; know the exact value of tan θ for θ = 0°, 30°, 45° and 60°","G22 know and apply the sine rule, a/sin A = b/sin B = c/sin C, and cosine rule, a² = b² + c² − 2bc cos A, to find unknown lengths and angles":"G22 know and apply the sine rule, a/sin A = b/sin B = c/sin C, and cosine rule, a² = b² + c² − 2bc cos A, to find unknown lengths and angles","G23 know and apply Area = ½ ab sin C to calculate the area, sides or angles of any triangle":"G23 know and apply Area = ½ ab sin C to calculate the area, sides or angles of any triangle","G24 describe translations as 2D vectors":"G24 describe translations as 2D vectors","L4 FHEQ Level 4: Certificate of Higher Education, an early exit award (2.15)":"L4 FHEQ Level 4: Certificate of Higher Education, an early exit award (2.15)","L5 FHEQ Level 5: Diploma of Higher Education or Foundation Degree, an early exit award (2.15)":"L5 FHEQ Level 5: Diploma of Higher Education or Foundation Degree, an early exit award (2.15)","L6 FHEQ Level 6: bachelor's degree with honours (2.12); threshold standards 4.5":"L6 FHEQ Level 6: bachelor's degree with honours (2.12); threshold standards 4.5","L7 FHEQ Level 7: integrated master's, e.g. MMath, about one more full-time year (2.6, 2.14; threshold 4.6), and taught master's (4.7)":"L7 FHEQ Level 7: integrated master's, e.g. MMath, about one more full-time year (2.6, 2.14; threshold 4.6), and taught master's (4.7)","N1 order positive and negative integers, decimals and fractions; use the symbols =, ≠, <, >, ≤, ≥":"N1 order positive and negative integers, decimals and fractions; use the symbols =, ≠, <, >, ≤, ≥","N2 apply the four operations, including formal written methods, to integers, decimals and simple fractions (proper and improper), and mixed numbers – all both positive and negative; understand and use place value":"N2 apply the four operations, including formal written methods, to integers, decimals and simple fractions (proper and improper), and mixed numbers – all both positive and negative; understand and use place value","N3 recognise and use relationships between operations, including inverse operations (eg cancellation to simplify calculations and expressions); use conventional notation for priority of operations, including brackets, powers, roots and reciprocals":"N3 recognise and use relationships between operations, including inverse operations (eg cancellation to simplify calculations and expressions); use conventional notation for priority of operations, including brackets, powers, roots and reciprocals","N6 use positive integer powers and associated real roots (square, cube and higher), recognise powers of 2, 3, 4, 5":"N6 use positive integer powers and associated real roots (square, cube and higher), recognise powers of 2, 3, 4, 5","N7 calculate with roots, and with integer and fractional indices":"N7 calculate with roots, and with integer and fractional indices","N8 calculate exactly with fractions, surds and multiples of π; simplify surd expressions involving squares and rationalise denominators":"N8 calculate exactly with fractions, surds and multiples of π; simplify surd expressions involving squares and rationalise denominators","N14 estimate answers; check calculations using approximation and estimation, including answers obtained using technology":"N14 estimate answers; check calculations using approximation and estimation, including answers obtained using technology","N16 apply and interpret limits of accuracy, including upper and lower bounds":"N16 apply and interpret limits of accuracy, including upper and lower bounds","P1 record, describe and analyse the frequency of outcomes of probability experiments using tables and frequency trees":"P1 record, describe and analyse the frequency of outcomes of probability experiments using tables and frequency trees","P1Q5 Descriptive or narrative writing":"P1Q5 Descriptive or narrative writing","P2 apply ideas of randomness, fairness and equally likely events to calculate expected outcomes of multiple future experiments":"P2 apply ideas of randomness, fairness and equally likely events to calculate expected outcomes of multiple future experiments","P2Q3 Analyse language in non-fiction":"P2Q3 Analyse language in non-fiction","P5 understand that empirical unbiased samples tend towards theoretical probability distributions, with increasing sample size":"P5 understand that empirical unbiased samples tend towards theoretical probability distributions, with increasing sample size","P6 enumerate sets and combinations of sets systematically, using tables, grids, Venn diagrams and tree diagrams":"P6 enumerate sets and combinations of sets systematically, using tables, grids, Venn diagrams and tree diagrams","P8 calculate the probability of independent and dependent combined events, including using tree diagrams and other representations, and know the underlying assumptions":"P8 calculate the probability of independent and dependent combined events, including using tree diagrams and other representations, and know the underlying assumptions","P9 calculate and interpret conditional probabilities through representation using expected frequencies with two-way tables, tree diagrams and Venn diagrams":"P9 calculate and interpret conditional probabilities through representation using expected frequencies with two-way tables, tree diagrams and Venn diagrams","R2 use scale factors, scale diagrams and maps":"R2 use scale factors, scale diagrams and maps","R5 divide a given quantity into two parts in a given part:part or part:whole ratio; express the division of a quantity into two parts as a ratio; apply ratio to real contexts and problems":"R5 divide a given quantity into two parts in a given part:part or part:whole ratio; express the division of a quantity into two parts as a ratio; apply ratio to real contexts and problems","R6 express a multiplicative relationship between two quantities as a ratio or a fraction":"R6 express a multiplicative relationship between two quantities as a ratio or a fraction","R9 define percentage as ‘number of parts per hundred’; interpret percentages and percentage changes as a fraction or a decimal, and interpret these multiplicatively; express one quantity as a percentage of another; compare two quantities using percentages; work with percentages greater than 100%; solve problems involving percentage change, including percentage increase/decrease and original value problems, and simple interest including in financial mathematics":"R9 define percentage as ‘number of parts per hundred’; interpret percentages and percentage changes as a fraction or a decimal, and interpret these multiplicatively; express one quantity as a percentage of another; compare two quantities using percentages; work with percentages greater than 100%; solve problems involving percentage change, including percentage increase/decrease and original value problems, and simple interest including in financial mathematics","R12 compare lengths, areas and volumes using ratio notation and/or scale factors; make links to similarity (including trigonometric ratios)":"R12 compare lengths, areas and volumes using ratio notation and/or scale factors; make links to similarity (including trigonometric ratios)","R13 understand that X is inversely proportional to Y is equivalent to X is proportional to 1/Y; construct and interpret equations that describe direct and inverse proportion":"R13 understand that X is inversely proportional to Y is equivalent to X is proportional to 1/Y; construct and interpret equations that describe direct and inverse proportion","R15 interpret the gradient at a point on a curve as the instantaneous rate of change; apply the concepts of average and instantaneous rate of change (gradients of chords and tangents) in numerical, algebraic and graphical contexts":"R15 interpret the gradient at a point on a curve as the instantaneous rate of change; apply the concepts of average and instantaneous rate of change (gradients of chords and tangents) in numerical, algebraic and graphical contexts","R16 set up, solve and interpret the answers in growth and decay problems, including compound interest and work with general iterative processes":"R16 set up, solve and interpret the answers in growth and decay problems, including compound interest and work with general iterative processes","S1 infer properties of populations or distributions from a sample, whilst knowing the limitations of sampling":"S1 infer properties of populations or distributions from a sample, whilst knowing the limitations of sampling","S2 interpret and construct tables, charts and diagrams, including frequency tables, bar charts, pie charts and pictograms for categorical data, vertical line charts for ungrouped discrete numerical data, tables and line graphs for time series data and know their appropriate use":"S2 interpret and construct tables, charts and diagrams, including frequency tables, bar charts, pie charts and pictograms for categorical data, vertical line charts for ungrouped discrete numerical data, tables and line graphs for time series data and know their appropriate use","S3 construct and interpret diagrams for grouped discrete data and continuous data, ie histograms with equal and unequal class intervals and cumulative frequency graphs, and know their appropriate use":"S3 construct and interpret diagrams for grouped discrete data and continuous data, ie histograms with equal and unequal class intervals and cumulative frequency graphs, and know their appropriate use","S4 interpret, analyse and compare the distributions of data sets from univariate empirical distributions through: appropriate graphical representation involving discrete, continuous and grouped data; appropriate measures of central tendency (median, mean, mode and modal class) and spread (range, including consideration of outliers)":"S4 interpret, analyse and compare the distributions of data sets from univariate empirical distributions through: appropriate graphical representation involving discrete, continuous and grouped data; appropriate measures of central tendency (median, mean, mode and modal class) and spread (range, including consideration of outliers)","S5 apply statistics to describe a population":"S5 apply statistics to describe a population","S6 use and interpret scatter graphs of bivariate data; recognise correlation and know that it does not indicate causation; draw estimated lines of best fit; make predictions; interpolate and extrapolate apparent trends whilst knowing the dangers of so doing":"S6 use and interpret scatter graphs of bivariate data; recognise correlation and know that it does not indicate causation; draw estimated lines of best fit; make predictions; interpolate and extrapolate apparent trends whilst knowing the dangers of so doing"},"paperId":{"P-PMT-AQA-CF-2-3-structure-and-bonding-of-carbon":"2.3 Structure and Bonding of…","P-CBM-5AD-F-1101":"5-a-day… 1 November","P-CBM-5AD-F-0901":"5-a-day… 1 September","P-CBM-5AD-F-1102":"5-a-day… 2 November","P-CBM-5AD-F-0902":"5-a-day… 2 September","P-CBM-5AD-F-1103":"5-a-day… 3 November","P-CBM-5AD-F-0903":"5-a-day… 3 September","P-CBM-5AD-F-1104":"5-a-day… 4 November","P-CBM-5AD-F-0904":"5-a-day… 4 September","P-CBM-5AD-F-1105":"5-a-day… 5 November","P-CBM-5AD-F-0905":"5-a-day… 5 September","P-CBM-5AD-F-1106":"5-a-day… 6 November","P-CBM-5AD-F-0906":"5-a-day… 6 September","P-CBM-5AD-F-1107":"5-a-day… 7 November","P-CBM-5AD-F-0907":"5-a-day… 7 September","P-CBM-5AD-F-1108":"5-a-day… 8 November","P-CBM-5AD-F-0908":"5-a-day… 8 September","P-CBM-5AD-F-1109":"5-a-day… 9 November","P-CBM-5AD-F-0909":"5-a-day… 9 September","P-CBM-5AD-F-1110":"5-a-day… 10 November","P-CBM-5AD-F-1010":"5-a-day… 10 October","P-CBM-5AD-F-0910":"5-a-day Foundation… September","P-CBM-5AD-F-1111":"5-a-day… 11 November","P-CBM-5AD-F-1011":"5-a-day… 11 October","P-CBM-5AD-F-0911":"5-a-day Foundation — 11 Septe…","P-CBM-5AD-F-1112":"5-a-day… 12 November","P-CBM-5AD-F-1012":"5-a-day… 12 October","P-CBM-5AD-F-0912":"5-a-day Foundation — 12 Septe…","P-CBM-5AD-F-1113":"5-a-day… 13 November","P-CBM-5AD-F-1013":"5-a-day… 13 October","P-CBM-5AD-F-0913":"5-a-day Foundation — 13 Septe…","P-CBM-5AD-F-1114":"5-a-day… 14 November","P-CBM-5AD-F-1014":"5-a-day… 14 October","P-CBM-5AD-F-0914":"5-a-day Foundation — 14 Septe…","P-CBM-5AD-F-1115":"5-a-day… 15 November","P-CBM-5AD-F-1015":"5-a-day… 15 October","P-CBM-5AD-F-0915":"5-a-day Foundation — 15 Septe…","P-CBM-5AD-F-1116":"5-a-day… 16 November","P-CBM-5AD-F-1016":"5-a-day… 16 October","P-CBM-5AD-F-0916":"5-a-day Foundation — 16 Septe…","P-CBM-5AD-F-1117":"5-a-day… 17 November","P-CBM-5AD-F-1017":"5-a-day… 17 October","P-CBM-5AD-F-0917":"5-a-day Foundation — 17 Septe…","P-CBM-5AD-F-1118":"5-a-day… 18 November","P-CBM-5AD-F-1018":"5-a-day… 18 October","P-CBM-5AD-F-0918":"5-a-day Foundation — 18 Septe…","P-CBM-5AD-F-1119":"5-a-day… 19 November","P-CBM-5AD-F-1019":"5-a-day… 19 October","P-CBM-5AD-F-0919":"5-a-day Foundation — 19 Septe…","P-CBM-5AD-F-1120":"5-a-day… 20 November","P-CBM-5AD-F-1020":"5-a-day… 20 October","P-CBM-5AD-F-0920":"5-a-day Foundation — 20 Septe…","P-CBM-5AD-F-1121":"5-a-day… 21 November","P-CBM-5AD-F-1021":"5-a-day… 21 October","P-CBM-5AD-F-0921":"5-a-day Foundation — 21 Septe…","P-CBM-5AD-F-1122":"5-a-day… 22 November","P-CBM-5AD-F-1022":"5-a-day… 22 October","P-CBM-5AD-F-0922":"5-a-day Foundation — 22 Septe…","P-CBM-5AD-F-1123":"5-a-day… 23 November","P-CBM-5AD-F-1023":"5-a-day… 23 October","P-CBM-5AD-F-0923":"5-a-day Foundation — 23 Septe…","P-CBM-5AD-F-1124":"5-a-day… 24 November","P-CBM-5AD-F-1024":"5-a-day… 24 October","P-CBM-5AD-F-0924":"5-a-day Foundation — 24 Septe…","P-CBM-5AD-F-1125":"5-a-day… 25 November","P-CBM-5AD-F-1025":"5-a-day… 25 October","P-CBM-5AD-F-0925":"5-a-day Foundation — 25 Septe…","P-CBM-5AD-F-1126":"5-a-day… 26 November","P-CBM-5AD-F-1026":"5-a-day… 26 October","P-CBM-5AD-F-0926":"5-a-day Foundation — 26 Septe…","P-CBM-5AD-F-1127":"5-a-day… 27 November","P-CBM-5AD-F-1027":"5-a-day… 27 October","P-CBM-5AD-F-0927":"5-a-day Foundation — 27 Septe…","P-CBM-5AD-F-1128":"5-a-day… 28 November","P-CBM-5AD-F-1028":"5-a-day… 28 October","P-CBM-5AD-F-0928":"5-a-day Foundation — 28 Septe…","P-CBM-5AD-F-1129":"5-a-day… 29 November","P-CBM-5AD-F-1029":"5-a-day… 29 October","P-CBM-5AD-F-0929":"5-a-day Foundation — 29 Septe…","P-CBM-5AD-F-1130":"5-a-day… 30 November","P-CBM-5AD-F-1030":"5-a-day… 30 October","P-CBM-5AD-F-0930":"5-a-day Foundation — 30 Septe…","P-CBM-5AD-F-1031":"5-a-day… 31 October","P-PMT-AQA-CF-7-1-carbon-compounds-as-fuels-and-feedstock":"7.1 Carbon Compounds as…","P-PMT-AQA-CF-7-2-reactions-of-alkenes-and-alcohols":"7.2 Reactions of Alkenes and…","P-PMT-AQA-CF-7-3-synthetic-and-naturally-occurring-polymers":"7.3 Synthetic & Naturally…","W-CBM-adding-and-subtracting-decimals":"Adding and… Decimals","P-FAM-GEN-n-frac-addsub":"Adding and… fractions","W-1CM-adding-fractions":"Adding and… fractions","W-CBM-adding-fractions-different-denominators":"Adding Fractions: Different…","W-CBM-adding-fractions-same-denominators":"Adding Fractions: Same…","W-1CM-algebraic-fractions-simplifying":"Algebraic…","W-1CM-angles-in-polygons":"Angles in polygons","W-CBM-angles-in-polygons":"Angles in polygons","W-1CM-averages-and-range":"Averages and range","W-1CM-advanced-changing-the-subject":"Changing the…","W-AT-C-covalent-bonding":"Covalent bonding","W-1CM-decimals-multiplying-dividing":"Decimals: Multiplying and…","T-AT-P-energy":"Energy (Separate… Trilogy)","W-1CM-cross-multiplication":"Equations: Cross…","W-CBM-equivalent-fractions-simplifying-fractions":"Equivalent Fractions Simplify…","W-1CM-expanding-brackets":"Expanding brackets","P-FAM-AQA-phys-factors-affecting-braking-distance-speed-and-energy":"Factors affecting… and energy","W-1CM-factors-multiples-primes":"Factors, multiples and primes","P-PMT-AQA-PF-forces-and-elasticity":"Forces and elasticity","P-FAM-GEN-n-frac-fdp":"Fractions… converting","W-CBM-fractions-finding-the-original-amount":"Fractions: Finding the…","W-1CM-generating-sequences":"Generating sequences","W-AT-C-giant-covalent":"Giant covalent structures","W-AT-C-ionic-bonding":"Ionic bonding","P-1CM-LINEQ2":"Linear…","W-AT-C-metallic-bonding":"Metallic bonding","P-PMT-AQA-PF-moments-levers-and-gears":"Moments, levers and gears","P-FAM-GEN-n-frac-muldiv":"Multiplying and… fractions","W-1CM-multiplying-dividing-fractions":"Multiplying and… fractions","P-PMT-AQA-PF-national-and-global-energy-resources":"National and global energy…","W-CBM-negative-numbers":"Negative numbers","W-AT-P-density":"Particle Model of… Density","W-AT-P-gas-pressure":"Particle Model of… Pressure","W-CBM-percentages-of-amounts":"Percentages of amounts","P-PMT-AQA-PF-permanent-and-induced-magnetism-magnetic-forces-and-fields":"Permanent and… and Fields","W-CBM-pie-charts":"Pie charts","W-1CM-place-value":"Place value","W-CBM-place-value":"Place value","W-AT-C-potable-water":"Potable water","W-AT-B-principles-of-organisation":"Principles of organisation","W-1CM-pythagoras":"Pythagoras' theorem","P-FAM-AQA-phys-red-shift":"Red Shift","W-AT-C-relative-formula-mass":"Relative formula mass","P-PMT-AQA-PF-series-and-parallel-circuits":"Series and parallel circuits","W-1CM-similar-shapes":"Similar shapes","W-1CM-simultaneous-equations":"Simultaneous equations","W-1CM-standard-form":"Standard form","W-AT-B-stem-cells":"Stem cells","P-FAM-GEN-a-graph-line":"Straight Line Graphs","W-AT-C-periodic-table":"The periodic table","W-1CM-volume-and-surface-area-cuboids":"Volume and Surface… Cuboids","W-1CM-volume-and-surface-area-cylinders":"Volume and Surface… Cylinders","W-1CM-volume-and-surface-area-of-prisms":"Volume and Surface… of Prisms","W-1CM-volume-and-surface-area-of-pyramids":"Volume and… of Pyramids","W-1CM-volume-and-surface-area-of-spheres":"Volume and… of Spheres","P-PMT-AQA-PF-work-done-and-energy-transfer":"Work done and energy transfer"},"paperSection":{"Section A: Modern prose or drama":"Section A: Modern prose or…"}},
-"#order": {"":["kindLabel","toolName","docketList","kindOwn","postState","postBy","postWhen","profileType","settingFor","venueArea","venueFor","venueSize","partnerStatus","foodMeal","foodShop","taskList","taskRepeat","taskDone","subject","shelf","wReligion","histKind","wCollection","wWork","wSource","wLanguage","wForm","wAuthor","wText","wBook","wChapter","wUnit","wPrimacy","mMake","mModel","mGen","mEngine","mPhase","mMarket","mYears","mSize","mValves","mBadge","mFuel","cState","fighter","decade","division","histEra","histMaterial","histFormat","histRole","personName","personYears","personFrom","histRepository","histSide","histFound","histDated","histTheatre","shopHow","shopPrice","shopFor","shopTheme","required","level","documentType","mScope","mSystem","pcType","pcSocket","pcIface","pcLinks","mPart","mPrice","cCategory","cGroup","cPeriod","boutRound","boutMethod","boutWinner","boutEvent","keystage","histPart","yearGroup","bandValue","topic","wSection","examBoard","specTopic","specPoint","tier","examYear","examMonth","examDay","paperId","paperSection","qNumber","qPart","qSub","marks","needCalc","needs","myTried","myResult","source"],"Booking":["kindLabel","toolName","docketList","kindOwn","postState","postBy","postWhen","profileType","settingFor","venueArea","venueFor","venueSize","partnerStatus","foodMeal","foodShop","taskList","taskRepeat","taskDone","subject","shelf","wReligion","histKind","wCollection","histPart","wWork","wSection","wSource","wLanguage","wForm","wAuthor","wText","wBook","wChapter","wUnit","wPrimacy","mScope","mMake","mModel","mGen","mEngine","mSystem","pcType","pcSocket","pcIface","pcLinks","mPhase","mMarket","mYears","mSize","mValves","mBadge","mFuel","mPart","mPrice","cCategory","cGroup","cPeriod","cState","fighter","decade","division","boutRound","boutMethod","boutWinner","boutEvent","histEra","histMaterial","histFormat","histRole","personName","personYears","personFrom","histRepository","histSide","histFound","histDated","histTheatre","shopHow","shopPrice","shopFor","shopTheme","required","level","documentType","keystage","yearGroup","bandValue","topic","examBoard","specTopic","specPoint","tier","examYear","examMonth","examDay","paperId","paperSection","qNumber","qPart","qSub","marks","needCalc","needs","myTried","myResult","source"],"Profiles":["kindLabel","toolName","docketList","kindOwn","postState","postBy","postWhen","profileType","settingFor","venueArea","venueFor","venueSize","partnerStatus","foodMeal","foodShop","taskList","taskRepeat","taskDone","subject","shelf","wReligion","histKind","wCollection","histPart","wWork","wSection","wSource","wLanguage","wForm","wAuthor","wText","wBook","wChapter","wUnit","wPrimacy","mScope","mMake","mModel","mGen","mEngine","mSystem","pcType","pcSocket","pcIface","pcLinks","mPhase","mMarket","mYears","mSize","mValves","mBadge","mFuel","mPart","mPrice","cCategory","cGroup","cPeriod","cState","fighter","decade","division","boutRound","boutMethod","boutWinner","boutEvent","histEra","histMaterial","histFormat","histRole","personName","personYears","personFrom","histRepository","histSide","histFound","histDated","histTheatre","shopHow","shopPrice","shopFor","shopTheme","required","level","documentType","keystage","yearGroup","bandValue","topic","examBoard","specTopic","specPoint","tier","examYear","examMonth","examDay","paperId","paperSection","qNumber","qPart","qSub","marks","needCalc","needs","myTried","myResult","source"],"Tools":["kindLabel","toolName","docketList","kindOwn","postState","postBy","postWhen","profileType","settingFor","venueArea","venueFor","venueSize","partnerStatus","foodMeal","foodShop","taskList","taskRepeat","taskDone","subject","shelf","wReligion","histKind","wCollection","histPart","wWork","wSection","wSource","wLanguage","wForm","wAuthor","wText","wBook","wChapter","wUnit","wPrimacy","mScope","mMake","mModel","mGen","mEngine","mSystem","pcType","pcSocket","pcIface","pcLinks","mPhase","mMarket","mYears","mSize","mValves","mBadge","mFuel","mPart","mPrice","cCategory","cGroup","cPeriod","cState","fighter","decade","division","boutRound","boutMethod","boutWinner","boutEvent","histEra","histMaterial","histFormat","histRole","personName","personYears","personFrom","histRepository","histSide","histFound","histDated","histTheatre","shopHow","shopPrice","shopFor","shopTheme","required","level","documentType","keystage","yearGroup","bandValue","topic","examBoard","specTopic","specPoint","tier","examYear","examMonth","examDay","paperId","paperSection","qNumber","qPart","qSub","marks","needCalc","needs","myTried","myResult","source"],"Games":["kindLabel","toolName","docketList","kindOwn","postState","postBy","postWhen","profileType","settingFor","venueArea","venueFor","venueSize","partnerStatus","foodMeal","foodShop","taskList","taskRepeat","taskDone","subject","shelf","wReligion","histKind","wCollection","histPart","wWork","wSection","wSource","wLanguage","wForm","wAuthor","wText","wBook","wChapter","wUnit","wPrimacy","mScope","mMake","mModel","mGen","mEngine","mSystem","pcType","pcSocket","pcIface","pcLinks","mPhase","mMarket","mYears","mSize","mValves","mBadge","mFuel","mPart","mPrice","cCategory","cGroup","cPeriod","cState","fighter","decade","division","boutRound","boutMethod","boutWinner","boutEvent","histEra","histMaterial","histFormat","histRole","personName","personYears","personFrom","histRepository","histSide","histFound","histDated","histTheatre","shopHow","shopPrice","shopFor","shopTheme","required","level","documentType","keystage","yearGroup","bandValue","topic","examBoard","specTopic","specPoint","tier","examYear","examMonth","examDay","paperId","paperSection","qNumber","qPart","qSub","marks","needCalc","needs","myTried","myResult","source"],"Posts":["kindLabel","toolName","docketList","kindOwn","postState","postBy","postWhen","profileType","settingFor","venueArea","venueFor","venueSize","partnerStatus","foodMeal","foodShop","taskList","taskRepeat","taskDone","subject","shelf","wReligion","histKind","wCollection","histPart","wWork","wSection","wSource","wLanguage","wForm","wAuthor","wText","wBook","wChapter","wUnit","wPrimacy","mScope","mMake","mModel","mGen","mEngine","mSystem","pcType","pcSocket","pcIface","pcLinks","mPhase","mMarket","mYears","mSize","mValves","mBadge","mFuel","mPart","mPrice","cCategory","cGroup","cPeriod","cState","fighter","decade","division","boutRound","boutMethod","boutWinner","boutEvent","histEra","histMaterial","histFormat","histRole","personName","personYears","personFrom","histRepository","histSide","histFound","histDated","histTheatre","shopHow","shopPrice","shopFor","shopTheme","required","level","documentType","keystage","yearGroup","bandValue","topic","examBoard","specTopic","specPoint","tier","examYear","examMonth","examDay","paperId","paperSection","qNumber","qPart","qSub","marks","needCalc","needs","myTried","myResult","source"],"Settings":["kindLabel","toolName","docketList","kindOwn","postState","postBy","postWhen","profileType","settingFor","venueArea","venueFor","venueSize","partnerStatus","foodMeal","foodShop","taskList","taskRepeat","taskDone","subject","shelf","wReligion","histKind","wCollection","histPart","wWork","wSection","wSource","wLanguage","wForm","wAuthor","wText","wBook","wChapter","wUnit","wPrimacy","mScope","mMake","mModel","mGen","mEngine","mSystem","pcType","pcSocket","pcIface","pcLinks","mPhase","mMarket","mYears","mSize","mValves","mBadge","mFuel","mPart","mPrice","cCategory","cGroup","cPeriod","cState","fighter","decade","division","boutRound","boutMethod","boutWinner","boutEvent","histEra","histMaterial","histFormat","histRole","personName","personYears","personFrom","histRepository","histSide","histFound","histDated","histTheatre","shopHow","shopPrice","shopFor","shopTheme","required","level","documentType","keystage","yearGroup","bandValue","topic","examBoard","specTopic","specPoint","tier","examYear","examMonth","examDay","paperId","paperSection","qNumber","qPart","qSub","marks","needCalc","needs","myTried","myResult","source"],"Shop":["kindLabel","toolName","docketList","kindOwn","postState","postBy","postWhen","profileType","settingFor","venueArea","venueFor","venueSize","partnerStatus","foodMeal","foodShop","taskList","taskRepeat","taskDone","subject","shelf","wReligion","histKind","wCollection","histPart","wWork","wSection","wSource","wLanguage","wForm","wAuthor","wText","wBook","wChapter","wUnit","wPrimacy","mScope","mMake","mModel","mGen","mEngine","mSystem","pcType","pcSocket","pcIface","pcLinks","mPhase","mMarket","mYears","mSize","mValves","mBadge","mFuel","mPart","mPrice","cCategory","cGroup","cPeriod","cState","fighter","decade","division","boutRound","boutMethod","boutWinner","boutEvent","histEra","histMaterial","histFormat","histRole","personName","personYears","personFrom","histRepository","histSide","histFound","histDated","histTheatre","shopHow","shopPrice","shopFor","shopTheme","required","level","documentType","keystage","yearGroup","bandValue","topic","examBoard","specTopic","specPoint","tier","examYear","examMonth","examDay","paperId","paperSection","qNumber","qPart","qSub","marks","needCalc","needs","myTried","myResult","source"],"Library":["kindLabel","toolName","docketList","kindOwn","postState","postBy","postWhen","profileType","settingFor","venueArea","venueFor","venueSize","partnerStatus","foodMeal","foodShop","taskList","taskRepeat","taskDone","subject","shelf","wReligion","histKind","wCollection","wWork","wSource","wLanguage","wForm","wAuthor","wText","wBook","wChapter","wUnit","wPrimacy","mMake","mModel","mGen","mEngine","mPhase","mMarket","mYears","mSize","mValves","mBadge","mFuel","cState","fighter","decade","division","histEra","histMaterial","histFormat","histRole","personName","personYears","personFrom","histRepository","histSide","histFound","histDated","histTheatre","shopHow","shopPrice","shopFor","shopTheme","required","level","documentType","mScope","mSystem","pcType","pcSocket","pcIface","pcLinks","mPart","mPrice","cCategory","cGroup","cPeriod","boutRound","boutMethod","boutWinner","boutEvent","keystage","histPart","yearGroup","bandValue","topic","wSection","examBoard","specTopic","specPoint","tier","examYear","examMonth","examDay","paperId","paperSection","qNumber","qPart","qSub","marks","needCalc","needs","myTried","myResult","source"],"Practice":["kindLabel","toolName","docketList","kindOwn","postState","postBy","postWhen","profileType","settingFor","venueArea","venueFor","venueSize","partnerStatus","foodMeal","foodShop","taskList","taskRepeat","taskDone","subject","shelf","wReligion","histKind","wCollection","histPart","wWork","wSection","wSource","wLanguage","wForm","wAuthor","wText","wBook","wChapter","wUnit","wPrimacy","mScope","mMake","mModel","mGen","mEngine","mSystem","pcType","pcSocket","pcIface","pcLinks","mPhase","mMarket","mYears","mSize","mValves","mBadge","mFuel","mPart","mPrice","cCategory","cGroup","cPeriod","cState","fighter","decade","division","boutRound","boutMethod","boutWinner","boutEvent","histEra","histMaterial","histFormat","histRole","personName","personYears","personFrom","histRepository","histSide","histFound","histDated","histTheatre","shopHow","shopPrice","shopFor","shopTheme","required","level","documentType","keystage","bandValue","topic","examBoard","specTopic","specPoint","tier","examYear","examMonth","examDay","paperId","paperSection","qNumber","qPart","qSub","marks","needCalc","needs","myTried","myResult","source","yearGroup"]}
+"#order": {"":["kindLabel","toolName","docketList","kindOwn","postState","postBy","postWhen","profileType","settingFor","venueArea","venueFor","venueSize","partnerStatus","foodMeal","foodShop","taskList","taskRepeat","taskDone","subject","shelf","wReligion","histKind","wCollection","wWork","wSource","wLanguage","wForm","wAuthor","wText","wBook","wChapter","wUnit","wPrimacy","mMake","mModel","mGen","mEngine","mPhase","mMarket","mYears","mSize","mValves","mBadge","mFuel","cState","fighter","decade","division","histEra","histMaterial","histFormat","histRole","personName","personYears","personFrom","histRepository","histSide","histFound","histDated","histTheatre","required","level","documentType","mScope","mSystem","pcType","pcSocket","pcIface","pcLinks","mPart","mPrice","cCategory","cGroup","cPeriod","boutRound","boutMethod","boutWinner","boutEvent","keystage","histPart","yearGroup","bandValue","topic","wSection","examBoard","specTopic","specPoint","tier","examYear","examMonth","examDay","paperId","paperSection","qNumber","qPart","qSub","marks","needCalc","needs","myTried","myResult","source"],"Booking":["kindLabel","toolName","docketList","kindOwn","postState","postBy","postWhen","profileType","settingFor","venueArea","venueFor","venueSize","partnerStatus","foodMeal","foodShop","taskList","taskRepeat","taskDone","subject","shelf","wReligion","histKind","wCollection","histPart","wWork","wSection","wSource","wLanguage","wForm","wAuthor","wText","wBook","wChapter","wUnit","wPrimacy","mScope","mMake","mModel","mGen","mEngine","mSystem","pcType","pcSocket","pcIface","pcLinks","mPhase","mMarket","mYears","mSize","mValves","mBadge","mFuel","mPart","mPrice","cCategory","cGroup","cPeriod","cState","fighter","decade","division","boutRound","boutMethod","boutWinner","boutEvent","histEra","histMaterial","histFormat","histRole","personName","personYears","personFrom","histRepository","histSide","histFound","histDated","histTheatre","required","level","documentType","keystage","yearGroup","bandValue","topic","examBoard","specTopic","specPoint","tier","examYear","examMonth","examDay","paperId","paperSection","qNumber","qPart","qSub","marks","needCalc","needs","myTried","myResult","source"],"Profiles":["kindLabel","toolName","docketList","kindOwn","postState","postBy","postWhen","profileType","settingFor","venueArea","venueFor","venueSize","partnerStatus","foodMeal","foodShop","taskList","taskRepeat","taskDone","subject","shelf","wReligion","histKind","wCollection","histPart","wWork","wSection","wSource","wLanguage","wForm","wAuthor","wText","wBook","wChapter","wUnit","wPrimacy","mScope","mMake","mModel","mGen","mEngine","mSystem","pcType","pcSocket","pcIface","pcLinks","mPhase","mMarket","mYears","mSize","mValves","mBadge","mFuel","mPart","mPrice","cCategory","cGroup","cPeriod","cState","fighter","decade","division","boutRound","boutMethod","boutWinner","boutEvent","histEra","histMaterial","histFormat","histRole","personName","personYears","personFrom","histRepository","histSide","histFound","histDated","histTheatre","required","level","documentType","keystage","yearGroup","bandValue","topic","examBoard","specTopic","specPoint","tier","examYear","examMonth","examDay","paperId","paperSection","qNumber","qPart","qSub","marks","needCalc","needs","myTried","myResult","source"],"Tools":["kindLabel","toolName","docketList","kindOwn","postState","postBy","postWhen","profileType","settingFor","venueArea","venueFor","venueSize","partnerStatus","foodMeal","foodShop","taskList","taskRepeat","taskDone","subject","shelf","wReligion","histKind","wCollection","histPart","wWork","wSection","wSource","wLanguage","wForm","wAuthor","wText","wBook","wChapter","wUnit","wPrimacy","mScope","mMake","mModel","mGen","mEngine","mSystem","pcType","pcSocket","pcIface","pcLinks","mPhase","mMarket","mYears","mSize","mValves","mBadge","mFuel","mPart","mPrice","cCategory","cGroup","cPeriod","cState","fighter","decade","division","boutRound","boutMethod","boutWinner","boutEvent","histEra","histMaterial","histFormat","histRole","personName","personYears","personFrom","histRepository","histSide","histFound","histDated","histTheatre","required","level","documentType","keystage","yearGroup","bandValue","topic","examBoard","specTopic","specPoint","tier","examYear","examMonth","examDay","paperId","paperSection","qNumber","qPart","qSub","marks","needCalc","needs","myTried","myResult","source"],"Games":["kindLabel","toolName","docketList","kindOwn","postState","postBy","postWhen","profileType","settingFor","venueArea","venueFor","venueSize","partnerStatus","foodMeal","foodShop","taskList","taskRepeat","taskDone","subject","shelf","wReligion","histKind","wCollection","histPart","wWork","wSection","wSource","wLanguage","wForm","wAuthor","wText","wBook","wChapter","wUnit","wPrimacy","mScope","mMake","mModel","mGen","mEngine","mSystem","pcType","pcSocket","pcIface","pcLinks","mPhase","mMarket","mYears","mSize","mValves","mBadge","mFuel","mPart","mPrice","cCategory","cGroup","cPeriod","cState","fighter","decade","division","boutRound","boutMethod","boutWinner","boutEvent","histEra","histMaterial","histFormat","histRole","personName","personYears","personFrom","histRepository","histSide","histFound","histDated","histTheatre","required","level","documentType","keystage","yearGroup","bandValue","topic","examBoard","specTopic","specPoint","tier","examYear","examMonth","examDay","paperId","paperSection","qNumber","qPart","qSub","marks","needCalc","needs","myTried","myResult","source"],"Posts":["kindLabel","toolName","docketList","kindOwn","postState","postBy","postWhen","profileType","settingFor","venueArea","venueFor","venueSize","partnerStatus","foodMeal","foodShop","taskList","taskRepeat","taskDone","subject","shelf","wReligion","histKind","wCollection","histPart","wWork","wSection","wSource","wLanguage","wForm","wAuthor","wText","wBook","wChapter","wUnit","wPrimacy","mScope","mMake","mModel","mGen","mEngine","mSystem","pcType","pcSocket","pcIface","pcLinks","mPhase","mMarket","mYears","mSize","mValves","mBadge","mFuel","mPart","mPrice","cCategory","cGroup","cPeriod","cState","fighter","decade","division","boutRound","boutMethod","boutWinner","boutEvent","histEra","histMaterial","histFormat","histRole","personName","personYears","personFrom","histRepository","histSide","histFound","histDated","histTheatre","required","level","documentType","keystage","yearGroup","bandValue","topic","examBoard","specTopic","specPoint","tier","examYear","examMonth","examDay","paperId","paperSection","qNumber","qPart","qSub","marks","needCalc","needs","myTried","myResult","source"],"Settings":["kindLabel","toolName","docketList","kindOwn","postState","postBy","postWhen","profileType","settingFor","venueArea","venueFor","venueSize","partnerStatus","foodMeal","foodShop","taskList","taskRepeat","taskDone","subject","shelf","wReligion","histKind","wCollection","histPart","wWork","wSection","wSource","wLanguage","wForm","wAuthor","wText","wBook","wChapter","wUnit","wPrimacy","mScope","mMake","mModel","mGen","mEngine","mSystem","pcType","pcSocket","pcIface","pcLinks","mPhase","mMarket","mYears","mSize","mValves","mBadge","mFuel","mPart","mPrice","cCategory","cGroup","cPeriod","cState","fighter","decade","division","boutRound","boutMethod","boutWinner","boutEvent","histEra","histMaterial","histFormat","histRole","personName","personYears","personFrom","histRepository","histSide","histFound","histDated","histTheatre","required","level","documentType","keystage","yearGroup","bandValue","topic","examBoard","specTopic","specPoint","tier","examYear","examMonth","examDay","paperId","paperSection","qNumber","qPart","qSub","marks","needCalc","needs","myTried","myResult","source"],"Library":["kindLabel","toolName","docketList","kindOwn","postState","postBy","postWhen","profileType","settingFor","venueArea","venueFor","venueSize","partnerStatus","foodMeal","foodShop","taskList","taskRepeat","taskDone","subject","shelf","wReligion","histKind","wCollection","wWork","wSource","wLanguage","wForm","wAuthor","wText","wBook","wChapter","wUnit","wPrimacy","mMake","mModel","mGen","mEngine","mPhase","mMarket","mYears","mSize","mValves","mBadge","mFuel","cState","fighter","decade","division","histEra","histMaterial","histFormat","histRole","personName","personYears","personFrom","histRepository","histSide","histFound","histDated","histTheatre","required","level","documentType","mScope","mSystem","pcType","pcSocket","pcIface","pcLinks","mPart","mPrice","cCategory","cGroup","cPeriod","boutRound","boutMethod","boutWinner","boutEvent","keystage","histPart","yearGroup","bandValue","topic","wSection","examBoard","specTopic","specPoint","tier","examYear","examMonth","examDay","paperId","paperSection","qNumber","qPart","qSub","marks","needCalc","needs","myTried","myResult","source"],"Practice":["kindLabel","toolName","docketList","kindOwn","postState","postBy","postWhen","profileType","settingFor","venueArea","venueFor","venueSize","partnerStatus","foodMeal","foodShop","taskList","taskRepeat","taskDone","subject","shelf","wReligion","histKind","wCollection","histPart","wWork","wSection","wSource","wLanguage","wForm","wAuthor","wText","wBook","wChapter","wUnit","wPrimacy","mScope","mMake","mModel","mGen","mEngine","mSystem","pcType","pcSocket","pcIface","pcLinks","mPhase","mMarket","mYears","mSize","mValves","mBadge","mFuel","mPart","mPrice","cCategory","cGroup","cPeriod","cState","fighter","decade","division","boutRound","boutMethod","boutWinner","boutEvent","histEra","histMaterial","histFormat","histRole","personName","personYears","personFrom","histRepository","histSide","histFound","histDated","histTheatre","required","level","documentType","keystage","bandValue","topic","examBoard","specTopic","specPoint","tier","examYear","examMonth","examDay","paperId","paperSection","qNumber","qPart","qSub","marks","needCalc","needs","myTried","myResult","source","yearGroup"]}
 },
 "views": {
 "admin+bible": {
-"": ["kindLabel",[["Practice"],["Library"],["Posts"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]],[43403,189155,2,3,5,10,30,4,3],232614,["[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]"]],
+"": ["kindLabel",[["Practice"],["Library"],["Posts"],["Profiles"],["Booking"],["Settings"],["Tools"],["Games"]],[43403,189155,2,3,5,30,4,3],232604,["[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]"]],
 "kindLabel=Practice": ["kindOwn",[["Questions"],["Answers"],["Inserts"]],[43209,42521,194],43403,["[object Object]","[object Object]","[object Object]"]],
 "kindLabel=Practice&kindOwn=Questions": ["subject",[["Biology"],["Business"],["Chemistry"],["Driving Theory"],["Economics"],["English Language"],["English Literature"],["Geography"],["Greek"],["History"],["Maths"],["Physical Education"],["Physics"],["Politics"],["Portuguese"],["Psychology"],["Religious Studies"],["Sociology"],["Statistics"]],[6131,393,6534,10,131,459,522,522,78,944,18062,322,5794,120,43,1187,1004,436,517],43209,["[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Biology": ["level",[["GCSE"],["A-Level"]],[4937,1194],6131,["[object Object]","[object Object]"]],
@@ -1104,7 +1100,7 @@ const FINDER_TAGS = {
 "kindLabel=Settings": ["kindOwn",[["Partners"],["Tasks"],["Drive"],["Week"]],[1,1,1,1],30,["[object Object]","[object Object]","[object Object]","[object Object]"]]
 },
 "bible": {
-"": ["kindLabel",[["Practice"],["Library"],["Posts"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]],[42913,189155,2,1,5,10,15,4,3],232107,["[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]"]],
+"": ["kindLabel",[["Practice"],["Library"],["Posts"],["Profiles"],["Booking"],["Settings"],["Tools"],["Games"]],[42913,189155,2,1,5,15,4,3],232097,["[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]"]],
 "kindLabel=Practice": ["kindOwn",[["Questions"],["Answers"],["Inserts"]],[42719,42320,194],42913,["[object Object]","[object Object]","[object Object]"]],
 "kindLabel=Practice&kindOwn=Questions": ["subject",[["Biology"],["Business"],["Chemistry"],["Driving Theory"],["Economics"],["English Language"],["English Literature"],["Geography"],["Greek"],["History"],["Maths"],["Physical Education"],["Physics"],["Politics"],["Portuguese"],["Psychology"],["Religious Studies"],["Sociology"],["Statistics"]],[6064,392,6471,10,131,458,522,481,18,944,17891,322,5708,120,43,1187,1004,436,517],42719,["[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]"]],
 "kindLabel=Practice&kindOwn=Questions&subject=Biology": ["level",[["GCSE"],["A-Level"]],[4899,1165],6064,["[object Object]","[object Object]"]],
@@ -1471,10 +1467,10 @@ chips: { key: null, from: null, out: {} },
 late: 0, tried: false,
 lead: () => [], leadN: () => 0, leadOn: 0,
 }, o);
-const FINDER_EMPTY = 'Nothing in the shop or the library yet.';
+const FINDER_EMPTY = 'Nothing in the library yet.';
 const FINDERS = {
 stuff: finder_({ id: 'stuff', st: STUFF, place: 'find', widgets: true,
-front: () => [].concat(typeof window.offlinePages_ === 'function' ? window.offlinePages_() : [], bookingPages_(), feedPages_(), bundlePages_()),
+front: () => [].concat(typeof window.offlinePages_ === 'function' ? window.offlinePages_() : [], bookingPages_(), feedPages_()),
 lead: () => (typeof missingLead_ === 'function' ? missingLead_() : []),
 leadN: () => (typeof missingLeadN_ === 'function' ? missingLeadN_() : 0),
 empty: FINDER_EMPTY }),
@@ -1523,7 +1519,6 @@ if (n !== was) PAGE[F.id] = Math.max(0, (PAGE[F.id] || 0) + n - was);
 }
 const finderLeadHtml_ = lead => cardBlocks_(lead.map(c => ({ type: 'group', tag: 'section', look: 'page is-lead', blocks: [{ type: 'group', look: 'pane', inner: rowsOne_(c) }] })));
 const findTutorCard_ = x => (USER && typeof meCard === 'function' && norm((x.row || {}).title) === norm(USER.name) ? meCard() : findCard(x));
-const findShopCard_ = (x, c) => (x.widget ? widgetCard_(x) : findCard(x, c));
 window.KC_OWN = Object.assign(window.KC_OWN || {}, {
 question: thingCard_, answer: thingCard_,
 bible: x => bibleCard_(x), talmud: x => window.talmudCard_(x), quran: x => window.quranCard_(x),
@@ -1561,12 +1556,12 @@ return ws.map(x => Object.assign(x, { text: [x.name, x.sub].join(' ') }));
 }
 const soonSpec_ = x => ({ look: 'soon-card', tags: [{ text: x.name, colour: 0 }, { text: brand('comingSoon', 'Coming soon') }],
 body: [{ type: 'text', text: x.sub && x.sub !== x.name ? x.sub : brand('soonSay', 'Not switched on yet.') }] });
-['soon', 'offPosts', 'offShop', 'offBooking'].forEach(k => cardKind_(k, soonSpec_));
+['soon', 'offPosts', 'offBooking'].forEach(k => cardKind_(k, soonSpec_));
 const soonCard_ = x => renderCard(Object.assign({ kind: x.kind || 'soon', key: x.key }, soonSpec_(x)));
 function thingCard_(x, credits) {
 {
 if (isQ_(x)) return findCard(x);
-return cardBlock_({ type: 'group', look: 'fc' + (x.wearable ? ' is-wear' : x.kind === 'topic' ? ' is-subject' : '') + (x.off ? ' is-off' : ''), blocks: [
+return cardBlock_({ type: 'group', look: 'fc' + (x.kind === 'topic' ? ' is-subject' : '') + (x.off ? ' is-off' : ''), blocks: [
 { type: 'group', look: 'thing', blocks: [
 x.image ? { type: 'group', tag: 'img', look: 'thing-pic', attrs: { src: pic(x.image), alt: '', loading: 'lazy', decoding: 'async' } } : null,
 { type: 'group', look: 'thing-body', inner: (cardBlock_({ type: 'group', tag: 'p', look: 'crumb', text: [x.company].concat(levelSaid_(x).length ? levelSaid_(x) : [x.keystage]).concat([
@@ -1621,8 +1616,7 @@ for (let i = 0; i < v.length; i++) { const t = String(v[i] == null ? '' : v[i]).
 return out;
 };
 function kindOf_(x) {
-if (x && x.wearable) return { group: 'Shop', label: 'Wearables' };
-return (x && kindMap_()[x.kind]) || { group: 'Shop', label: 'Things' };
+return (x && kindMap_()[x.kind]) || { group: '', label: '' };
 }
 function facetOwn_(facet, x) {
 return asList_(facet.of(x));
@@ -1648,7 +1642,7 @@ out[lv.facet] = { of: x => x[lv.field] || (i === 0 && w && w.kinds.indexOf(x.kin
 });
 return out;
 }
-const sortOf_ = x => x.documentType || x.projectType || x.practicalType || x.boxKind || x.shopKind || x.mKind || (specTreeOf_(x).topic ? 'Exam topics' : '');
+const sortOf_ = x => x.documentType || x.projectType || x.practicalType || x.boxKind || x.mKind || (specTreeOf_(x).topic ? 'Exam topics' : '');
 const FACET_FN = {
 mechScope_: x => mechScope_(x),
 decadesOf_: x => decadesOf_(x),
@@ -9196,41 +9190,6 @@ ansShow_(ansItem_(el.getAttribute('data-k')));
 on('qa-hide', (el) => {
 ansHide_(ansItem_(el.getAttribute('data-k')));
 });
-function printOffered_() {
-const v = (DATA.constants || {}).vars || {};
-const rate = num(v.print_rate_per_page);
-return !isNaN(rate) && rate > 0;
-}
-function printPrice(pages) {
-const n = Number(pages) || 0;
-if (n <= 0 || !printOffered_()) return null;
-const v = (DATA.constants || {}).vars || {};
-const min = num(v.print_minimum) || 0;
-return Math.max(min, Math.round(n * num(v.print_rate_per_page) * 100) / 100);
-}
-function laminatePrice(pages) {
-const n = Number(pages) || 0;
-if (n <= 0) return null;
-const v = (DATA.constants || {}).vars || {};
-const rate = num(v.laminate_rate_per_page);
-if (isNaN(rate) || rate <= 0) return null;
-const min = num(v.laminate_minimum) || 0;
-return Math.max(min, Math.round(n * rate * 100) / 100);
-}
-const cartPrint_ = c => {
-if (!c) return null;
-if (Number(c.money) > 0) return Number(c.money);
-return isPrint_(c) ? printPrice(c.pages) : 0;
-};
-const cartUnpriced_ = c => cartPrint_(c) === null;
-const cartMoney_ = c => (cartPrint_(c) || 0)
-+ (c && c.laminate ? (laminatePrice(c.pages) || 0) : 0);
-function laminateOffered_() {
-const rate = num(((DATA.constants || {}).vars || {}).laminate_rate_per_page);
-return !isNaN(rate) && rate > 0;
-}
-const canPrint_ = doc => !!doc && String(doc.printable == null ? '' : doc.printable)
-.trim().toLowerCase() !== 'false';
 let ITEM_MEMO = { key: null, from: null, items: null };
 let ALL_MEMO = { key: null, from: null, items: null };
 const itemMemoKey_ = () => (USER ? (USER.personId || USER.name || 'u') : '-')
@@ -9373,7 +9332,6 @@ venueSize: [Number(v.maxCapacity) ? 'Up to ' + v.maxCapacity : '', (v.rooms || [
 ...(typeof allWidgets === 'function' && typeof findWidgetList_ === 'function' ? findWidgetList_() : []).map(w => ({
 kind: w.kind, name: w.name || w.title || w.label || String(w.id), sub: w.what || '', image: '',
 groups: w.groups, widget: w, text: [w.name, w.what, w.label].filter(Boolean).join(' '),
-shopKind: isShop_(w) ? (w.name || '') : '',
 })).filter(x => typeof TIER_OFF_WIDGETS === 'undefined' || TIER_OFF_WIDGETS.indexOf(String(x.widget.id)) === -1),
 ...(typeof dkItems_ === 'function' ? dkItems_() : []),
 ...soonItems_(),
@@ -9400,15 +9358,6 @@ kindLabel: (typeof jobIsPast_ === 'function' && jobIsPast_(j)) ? 'Previous' : un
 kind: 'level', name: x.name, key: 'lvl:' + x.name,
 sub: (x.subjects || []).join(' · '), image: '',
 row: x,
-})),
-...(DATA.shop || []).map(x => ({
-kind: 'shop', name: x.name, key: x.name, sub: x.description || '', image: x.image,
-cost: priced_(x.price), slot: x.slot || '',
-pence: String(x.unit || '').trim() === 'p',
-wearable: isWearable(x),
-level: Number(x.level) || 0,
-artId: x.artId || '',
-...shopTags_(x),
 })),
 ];
 }
@@ -10300,7 +10249,6 @@ return /^\d{4}-\d{2}-\d{2}$/.test(String(iso || '')) ? fmtDate_(iso) : '';
 function frontPages_() {
 return FINDER.front();
 }
-const BUNDLE_MIN = 2;
 ;
 /* js/find-account.js */
 const forIs_ = want => (STUFF.filters || [])
@@ -10668,22 +10616,6 @@ if (USER) { USER.pinDots = dots; saveUser_(); }
 });
 ;
 /* js/find-bundles.js */
-const BUNDLE_MAX = 24;
-const BUNDLE_STRAY = 0.1;
-const PAPER_QUESTIONS = new WeakMap();
-function paperQuestionCounts_() {
-const all = stuffItems();
-let m = PAPER_QUESTIONS.get(all);
-if (m) return m;
-m = {};
-all.forEach(x => {
-if (!isQ_(x)) return;
-const id = String(paperIdOf_(x.row || x) || '');
-if (id) m[id] = (m[id] || 0) + 1;
-});
-PAPER_QUESTIONS.set(all, m);
-return m;
-}
 const DOC_BY_ID = new WeakMap();
 function docById_(id) {
 const rows = libDocRows_();
@@ -10698,197 +10630,6 @@ if (k && !m[k]) m[k] = r;
 DOC_BY_ID.set(rows, m);
 }
 return m[String(id)] || null;
-}
-const BUNDLE_TITLE_FIELDS = ['examBoard', 'source', 'subject', 'level', 'keystage', 'yearGroup',
-'bandValue', 'tier', 'sitting', 'examYear',
-'examMonth'];
-const BUNDLE_TITLE_HOW = {
-sitting: { reader: () => SITTING_READER_ },
-examYear: { after: 'sitting' },
-examMonth: { after: 'sitting' },
-};
-const bundleHow_ = field => (Object.prototype.hasOwnProperty.call(BUNDLE_TITLE_HOW, field) ? BUNDLE_TITLE_HOW[field] : {});
-const SITTING_READER_ = { field: 'sitting', label: 'Sitting', of: x => {
-const m = sittingMonth_(x), y = sittingOf_(x).year;
-return m && y ? m + ' ' + y : waveOf(x);
-} };
-function bundleTitle_(items) {
-const parts = [];
-const said = {};
-BUNDLE_TITLE_FIELDS.forEach(field => {
-if (bundleHow_(field).after && said[bundleHow_(field).after]) return;
-const n = parts.length;
-try { titlePart_(field); } finally { if (parts.length > n) said[field] = true; }
-});
-return parts.join(' · ');
-function titlePart_(field) {
-const how = bundleHow_(field);
-const facet = how.reader ? how.reader() : facetBy(field);
-if (!facet) return;
-let t = null;
-try { t = facetTally_(items, facet); } catch (e) { t = null; }
-const vals = (t && t.values) || [];
-if (vals.length === 1 && t.coverage >= 1) {
-const w = String(vals[0].show || vals[0].value || '');
-if (w) parts.push(how.say ? how.say(w) : w);
-return;
-}
-const chip = (STUFF.filters || []).slice().reverse().find(f => f.field === field && !f.any);
-if (chip) parts.push(String(chipShow_(chip)));
-}
-}
-function bundleNoun_(papers, n) {
-return n + ' ' + plural_(n, papers.every(p => p.board) ? 'paper' : 'set');
-}
-const BUNDLE_MEMO = new WeakMap();
-function bundleOf_() {
-if (!stuffAsked() || !printOffered_() || !findDone_()) return null;
-const items = stuffFiltered();
-if (BUNDLE_MEMO.has(items)) return BUNDLE_MEMO.get(items);
-let out = null;
-try { out = bundleBuild_(items); } catch (e) { out = null; }
-BUNDLE_MEMO.set(items, out);
-return out;
-}
-function bundleBuild_(items) {
-if (!items.length) return null;
-const floor = BUNDLE_MIN;
-const count = {};
-const first = {};
-const order = [];
-let other = 0;
-for (const x of items) {
-const id = isQ_(x) ? String(paperIdOf_(x.row || x) || '') : '';
-if (!id) { other++; continue; }
-if (!count[id]) { count[id] = 0; order.push(id); first[id] = x; }
-count[id]++;
-}
-const whole = paperQuestionCounts_();
-const kept = order.filter(id => count[id] === whole[id]);
-if (kept.length < floor || kept.length > BUNDLE_MAX) return null;
-const partial = order.filter(id => count[id] !== whole[id]);
-const strayQs = partial.reduce((n, id) => n + count[id], 0);
-if (strayQs + other > items.length * BUNDLE_STRAY) return null;
-const int_ = v => { const n = parseInt(v, 10); return isNaN(n) ? 0 : n; };
-const sortKey = id => {
-const d = docById_(id) || (first[id] && first[id].row) || {};
-return [int_(d.year), int_(d.month), int_(d.paper), String(paperLabel_(id))];
-};
-kept.sort((a, b) => {
-const ka = sortKey(a), kb = sortKey(b);
-for (let i = 0; i < ka.length; i++) {
-if (ka[i] < kb[i]) return -1;
-if (ka[i] > kb[i]) return 1;
-}
-return 0;
-});
-const sitOf = id => {
-try { return String(SITTING_READER_.of(first[id]) || ''); } catch (e) { return ''; }
-};
-const tierOf = id => String((docById_(id) || {}).tier || '').trim();
-const sits = kept.map(sitOf);
-const tiers = kept.map(tierOf);
-const bySit = sits.every(Boolean) && new Set(sits).size >= 2;
-const byTier = tiers.every(Boolean) && new Set(tiers.map(spellKey_)).size >= 2;
-const grouped = bySit || byTier;
-const groupOf = i => [bySit ? sits[i] : '', byTier ? tiers[i] : ''].filter(Boolean).join(' · ');
-const shortIn = ids => shortLabels_(ids.map(id => ({ value: id, text: paperLabel_(id) })));
-const label = {};
-const groupAt = {};
-const groups = [];
-if (grouped) {
-kept.forEach((id, i) => {
-const s = groupOf(i);
-groupAt[id] = s;
-let g = groups.find(x => x.group === s);
-if (!g) groups.push(g = { group: s, ids: [] });
-g.ids.push(id);
-});
-groups.forEach(g => shortIn(g.ids).forEach(v => { label[v.value] = v.show || v.text; }));
-} else {
-shortIn(kept).forEach(v => { label[v.value] = v.show || v.text; });
-}
-const papers = kept.map(id => {
-const doc = docById_(id) || {};
-const g = groupAt[id] || '';
-const l = String(label[id] || id);
-return { id: id, label: l, name: paperLabel_(id), group: g, short: (g ? g + ' · ' : '') + l,
-pages: Number(doc.pages) || 0, ok: canPrint_(doc), board: String(doc.exam_board || '').trim() };
-});
-const printable = papers.filter(p => p.ok);
-if (printable.length < floor) return null;
-const inBundle = items.filter(x => isQ_(x)
-&& count[String(paperIdOf_(x.row || x) || '')] === whole[String(paperIdOf_(x.row || x) || '')]);
-return { papers: papers, printable: printable, ids: printable.map(p => p.id), grouped: grouped,
-title: bundleTitle_(inBundle), firsts: printable.map(p => first[p.id]).filter(Boolean), noun: bundleNoun_(printable, printable.length),
-stray: { questions: strayQs, other: other, papers: partial.map(id => paperLabel_(id)) } };
-}
-const bundleInCart_ = b => !!b && b.ids.every(id =>
-(typeof CART !== 'undefined' ? CART : []).some(c => isPrint_(c) && String(c.key) === id));
-function bundlePriceLine_(b) {
-const priced = b.printable.filter(p => printPrice(p.pages) !== null);
-const pages = priced.reduce((n, p) => n + p.pages, 0);
-const cash = priced.reduce((n, p) => n + printPrice(p.pages), 0);
-const left = b.printable.length - priced.length;
-if (!priced.length) return 'Priced when it is sent — no page counts yet';
-if (!left) return pages + ' pages · ' + fmtMoney_(cash);
-return fmtMoney_(cash) + ' for ' + priced.length + ' · ' + left + ' priced when sent';
-}
-function bundleStrayLine_(b) {
-const s = b.stray || {};
-const bits = [];
-if (s.questions) {
-const named = (s.papers || []).slice(0, 3).join(', ');
-const more = (s.papers || []).length - 3;
-bits.push(s.questions + ' ' + plural_(s.questions, 'question') + ' from '
-+ named + (more > 0 ? ' and ' + more + ' more' : ''));
-}
-if (s.other) bits.push(s.other + ' ' + plural_(s.other, 'thing') + ' that ' + (s.other === 1 ? 'is' : 'are')
-+ ' not a paper');
-return bits.length ? 'Also on this list and not in the bundle: ' + bits.join('; ') + '.' : '';
-}
-const BUNDLE_ITEM = { kind: 'bundle', kindLabel: 'Bundles' };
-function bundleTagsOf_(b) {
-const skip = /^(kindLabel|kindOwn|qNumber|qPart|qSub|marks|myTried|myResult)$/, same = t => cardTag_(t, 1);
-const sets = ((b && b.firsts) || []).map(x => { const m = new Map(); tagList_(x).forEach(t => { if (!skip.test(String((t.data || {}).f || ''))) m.set(same(t), t); }); return m; });
-const all = tagList_(BUNDLE_ITEM).concat(sets.length ? [...sets[0].keys()].filter(k => sets.every(m => m.has(k))).map(k => sets[0].get(k)) : []);
-return renderTags(all, 'qcard-tags', !all.length);
-}
-function bundleCard_(b) {
-const inCart = bundleInCart_(b);
-const off = b.papers.filter(p => !p.ok);
-const note = b.noun + ' · ' + bundlePriceLine_(b);
-const pp = p => p.pages ? [' ', { span: 'qtag mono', text: p.pages + 'pp' }] : [];
-const named = p => [{ span: 'bundle-name', text: p.label }].concat(pp(p));
-const list = b.grouped
-? (() => {
-const groups = [];
-b.printable.forEach(p => {
-let g = groups.find(x => x.group === p.group);
-if (!g) groups.push(g = { group: p.group, papers: [] });
-g.papers.push(p);
-});
-return groups.map(g => [{ span: 'bundle-when', text: g.group }, ' '].concat(...g.papers.map(named)));
-})()
-: b.printable.map(named);
-const stray = bundleStrayLine_(b);
-const tiles = [{ icon: 'cart', label: inCart ? text_('in-your-basket') : text_('add-to-basket'), note: note, act: 'cart-add', on: inCart, off: inCart, tone: 'buy',
-data: { kind: 'bundle', ids: b.ids.join(','), key: b.title || '' } },
-{ icon: 'open', label: 'See your basket', act: 'cart-open' }]
-.concat(typeof suggestOpts_ === 'function' ? [suggestOpts_('bundle', 'b:' + String(b.ids[0] || 'x').replace(/[^A-Za-z0-9_.:-]/g, '') + ':' + b.ids.length, b.title || 'Bundle')] : []);
-const lines = cardBlocks_([
-{ type: 'group', tag: 'p', text: 'Printed and sent \u00b7 ' + b.noun + ' \u00b7 ' + bundlePriceLine_(b) },
-{ type: 'list', ordered: true, look: 'bundle-list', items: list },
-off.length ? { type: 'group', tag: 'p', look: 'bundle-off', text: 'Not in the bundle, marked not printable: ' + off.map(p => p.label).join(', ') } : null,
-stray ? { type: 'group', tag: 'p', look: 'bundle-off', text: stray } : null,
-{ type: 'tiles', tiles: tiles }]);
-const name = b.title || 'These papers', x = { kind: 'bundle', name: name, key: 'bundle:' + b.ids.join(',') };
-return findCard(Object.assign(x, { kcOwn: { cls: 'bundle', attrs: '', pic: '', head: cardBlock_({ type: 'msgHead', text: name }), tags: bundleTags_(b), lines: lines } }));
-}
-function bundlePages_() {
-if (['kindLabel', 'kindOwn'].some(f => chipsOn_(STUFF.filters, f).some(c => !c.any && /^questions?$/i.test(String(c.value))))) return [];
-const b = bundleOf_();
-return b ? [bundleCard_(b)] : [];
 }
 function stuffQuestionPage_() {
 const el = $(FINDER.id + '-controls');
@@ -10957,20 +10698,6 @@ if (AT === 'saved') { repaint(true); return; }
 const F = finderOf_(AT);
 if (F && $('s-' + F.id)) paintFinder_(F.id, true);
 });
-function shopTags_(r) {
-const k = String(r.kindRaw || 'thing').trim().toLowerCase();
-const how = String(r.acquire || 'buy').trim().toLowerCase();
-const p = priced_(r.price), pence = String(r.unit || '').trim() === 'p';
-const band = how === 'level' ? 'Level ' + (Number(r.level) || 1)
-: p === undefined ? text_('not-priced-yet') : p === 0 ? 'Free'
-: !pence ? 'Credits'
-: p < 500 ? 'Under £5' : p <= 2000 ? '£5 to £20' : 'Over £20';
-const who = String(r.audience || 'all').trim().toLowerCase();
-return { shopKind: labelOf_('shop-kind', k, k.charAt(0).toUpperCase() + k.slice(1)), shopHow: labelOf_('shop-how', how, ''), shopPrice: band,
-shopBrand: String((r.fields && r.fields.brand) || r.brand || '').trim(),
-shopTheme: String(r.theme || (r.fields && r.fields.theme) || '').trim(),
-shopFor: who === 'all' ? '' : who === 'tutor' ? 'Tutors' : who === 'admin' ? 'Admins' : who.charAt(0).toUpperCase() + who.slice(1) };
-}
 const TITLE_WORDS_ = t => String(t).replace(/<[^>]*>/g, ' ').replace(/&[a-z#0-9]+;/gi, ' ').toLowerCase().split(/[^a-z0-9\u00c0-\uffff]+/).filter(Boolean);
 function tagsAreTitle_(x, html) {
 if (!x || !x.name || typeof html !== 'string') return html;
@@ -11005,7 +10732,7 @@ const w = (facetTally_(stuffFiltered(), facet).values || []).find(v => [v.value]
 if (w) return w.show || w.text || w.value; } catch (e) { oops_(e, 'find:chipShow_') } finally { STUFF.filters = was; }
 return answerSay_(facet, f.value);
 }
-const TAG_OF = {kindLabel: 0, toolName: 10, docketList: 8, kindOwn: 1, postState: 8, postBy: 5, postWhen: 6, profileType: 9, settingFor: 8, venueArea: 6, venueFor: 7, venueSize: 3, partnerStatus: 9, foodMeal: 0, foodShop: 1, taskList: 4, taskRepeat: 5, taskDone: 3, subject: 3, shelf: 9, wReligion: 3, histKind: 6, wCollection: 11, histPart: 8, wWork: 8, wSection: 4, wSource: 5, wLanguage: 1, wForm: 0, wAuthor: 8, wText: 6, wBook: 9, wChapter: 10, wUnit: 7, wPrimacy: 2, mScope: 0, mMake: 6, mModel: 8, mGen: 5, mEngine: 3, mSystem: 2, pcType: 1, pcSocket: 0, pcIface: 10, pcLinks: 11, mPhase: 10, mMarket: 7, mYears: 4, mSize: 1, mValves: 3, mBadge: 2, mFuel: 4, mPart: 9, mPrice: 11, cCategory: 2, cGroup: 3, cPeriod: 4, cState: 5, fighter: 11, decade: 6, division: 7, boutRound: 0, boutMethod: 11, boutWinner: 1, boutEvent: 0, histEra: 3, histMaterial: 7, histFormat: 4, histRole: 10, personName: 3, personYears: 4, personFrom: 2, histRepository: 9, histSide: 11, histFound: 5, histDated: 2, histTheatre: 0, shopHow: 1, shopPrice: 2, shopFor: 10, shopTheme: 11, required: 7, level: 2, documentType: 8, keystage: 6, yearGroup: 9, bandValue: 4, topic: 4, examBoard: 11, specTopic: 2, specPoint: 1, tier: 7, examYear: 9, examMonth: 10, examDay: 9, paperId: 5, paperSection: 5, qNumber: 6, qPart: 10, qSub: 7, marks: 1, needCalc: 7, needs: 8, myTried: 6, myResult: 5, source: 0};
+const TAG_OF = {kindLabel: 0, toolName: 8, docketList: 6, kindOwn: 1, postState: 1, postBy: 3, postWhen: 4, profileType: 3, settingFor: 6, venueArea: 2, venueFor: 3, venueSize: 2, partnerStatus: 7, foodMeal: 10, foodShop: 11, taskList: 0, taskRepeat: 1, taskDone: 11, subject: 3, shelf: 7, wReligion: 11, histKind: 4, wCollection: 7, histPart: 6, wWork: 4, wSection: 0, wSource: 1, wLanguage: 9, wForm: 8, wAuthor: 4, wText: 2, wBook: 5, wChapter: 6, wUnit: 3, wPrimacy: 10, mScope: 10, mMake: 4, mModel: 6, mGen: 3, mEngine: 1, mSystem: 0, pcType: 11, pcSocket: 10, pcIface: 8, pcLinks: 9, mPhase: 8, mMarket: 5, mYears: 2, mSize: 11, mValves: 1, mBadge: 0, mFuel: 2, mPart: 7, mPrice: 9, cCategory: 0, cGroup: 1, cPeriod: 2, cState: 3, fighter: 9, decade: 4, division: 5, boutRound: 10, boutMethod: 9, boutWinner: 11, boutEvent: 0, histEra: 1, histMaterial: 5, histFormat: 2, histRole: 8, personName: 1, personYears: 2, personFrom: 0, histRepository: 7, histSide: 9, histFound: 3, histDated: 0, histTheatre: 10, required: 7, level: 2, documentType: 6, keystage: 11, yearGroup: 5, bandValue: 4, topic: 4, examBoard: 10, specTopic: 10, specPoint: 9, tier: 7, examYear: 8, examMonth: 8, examDay: 7, paperId: 5, paperSection: 5, qNumber: 6, qPart: 9, qSub: 5, marks: 11, needCalc: 5, needs: 6, myTried: 4, myResult: 3, source: 8};
 const tagOf_ = field => 'h' + (TAG_OF[field] || 0);
 const tagAttr_ = field => ` data-tag="${tagOf_(field)}"`;
 function chipText_(f, i) {
@@ -11871,22 +11598,6 @@ if (!at || at[0] !== f.field || !finderTagsSame_(view, before[0] || f)) return n
 const v = at[1].find(a => [a[0]].concat(a[2] || []).some(u => spellKey_(u) === spellKey_(f.value)));
 return v ? (v.length > 1 ? v[1] : v[0]) : null;
 } catch (e) { return null; }
-}
-function bundleTags_(b) {
-if (!b) return bundleTagsOf_(b);
-if (b.tagsHtml != null) return b.tagsHtml;
-if (!b.tagsAsked) {
-b.tagsAsked = true;
-const idle = typeof requestIdleCallback === 'function' ? requestIdleCallback : f => setTimeout(f, 30);
-idle(() => {
-try { b.tagsHtml = bundleTagsOf_(b); } catch (e) { b.tagsHtml = ''; return; }
-let now = null;
-try { now = inFinder_(FINDERS.stuff, () => BUNDLE_MEMO.get(FIND_MEMO.items)); } catch (e) { now = null; }
-const name = b.title || 'These papers', t = kcUnpicked_(b.tagsHtml), html = kcSays_(t, name) ? t : kcTagFirst_(t, name);
-if (now === b) document.querySelectorAll('#s-stuff .card.bundle > .kc-tags').forEach(el => { el.innerHTML = html; });
-});
-}
-return String(tagRow_(BUNDLE_ITEM) || cardBlock_({ type: 'group', look: 'qtags qcard-tags' }));
 }
 ;
 /* js/find-measure.js */
@@ -17937,86 +17648,6 @@ function policyLinks_(who) {
 const list = (POLICY_DOCS[who] || []).filter(d => policyHref_(d[0]));
 if (!list.length) return '';
 return cardBlock_({ type: 'paperLinks', say: 'Policies: ', links: list.map(d => ({ href: policyHref_(d[0]), text: d[1] })) });
-}
-;
-/* js/collections.js */
-const collCredits_ = () => (USER ? (USER.credits || 0) : 0);
-function lamControl_(c) {
-if (!c || c.kind !== 'print') return '';
-if (typeof laminateOffered_ === 'function' && !laminateOffered_()) return '';
-const p = typeof laminatePrice === 'function' ? laminatePrice(c.pages) : null;
-const cost = p === null ? '' : ' ' + fmtMoney_(p);
-return ' ' + tile_({ form: true, kind: 'quiet', cls: 'text-action' + (c.laminate ? ' lam-on' : ''), act: 'cart-laminate',
-label: (c.laminate ? '✓ laminated' : '+ laminate') + cost, data: { on: c.laminate ? '' : '1', key: c.key, kind: c.kind } });
-}
-function cartRow_(c, i, under) {
-return receiptRow({
-wide: true,
-n: String(i + 1).padStart(3, '0'),
-k: '',
-v: '',
-sel: (() => {
-const lam = lamControl_(c);
-const pp = c.kind === 'print'
-? `${qtag_(`${c.pages ? esc(c.pages) + 'pp' : '? pp'}`, '', `cart-pp`)}` : '';
-const drop = tile_({ icon: 'close', label: 'Take this out', act: 'cart-drop', cls: 'text-drop', data: { key: c.key, kind: c.kind } });
-return cardBlocks_([{ type: 'group', tag: 'span', look: 'cart-ln', blocks: [{ type: 'group', tag: 'span', look: 'cart-nm', text: under && c.short ? c.short : c.name }],
-inner: (lam ? '' : pp) + cardBlock_({ type: 'group', tag: 'span', look: 'cart-lead', attrs: { 'aria-hidden': 'true' } }) + (lam ? '' : drop) },
-lam ? { type: 'group', tag: 'span', look: 'cart-ctl', inner: pp + lam + drop } : null]);
-})(),
-mul: '',
-rate: '',
-total: c.kind === 'print' && cartUnpriced_(c) ? 'tbc'
-: cartMoney_(c) ? fmtMoney_(cartMoney_(c)) : (c.cost ? c.cost + ' cr' : 'free'),
-end: true,
-});
-}
-function cartGroups_(lines) {
-const order = [];
-const by = {};
-(lines || []).forEach(c => {
-const f = c && c.kind === 'print' && c.short && c.from ? String(c.from) : '';
-if (!by[f]) { by[f] = []; order.push(f); }
-by[f].push(c);
-});
-return order.map(f => ({ from: f, lines: by[f] }));
-}
-function cartCard_() {
-if (!CART.length) return '';
-if (typeof cartUnits_ === 'function') cartUnits_();
-const credits = collCredits_();
-const due = CART.reduce((n, c) => n + (c.cost || 0), 0);
-const cash = CART.reduce((n, c) => n + cartMoney_(c), 0);
-const tbc = CART.filter(c => c.kind === 'print' && cartUnpriced_(c)).length;
-const rows = [];
-let at = 0;
-cartGroups_(CART).forEach(g => {
-if (g.from) {
-rows.push(receiptRow({ wide: true, n: '', k: '', v: '', mul: '', rate: '', total: '',
-sel: cardBlock_({ type: 'group', tag: 'span', look: 'cart-from', text: g.from }) }));
-}
-g.lines.forEach(c => rows.push(cartRow_(c, at++, !!g.from)));
-});
-const paper = cash || tbc;
-const foot = paper ? cardBlock_({ type: 'group', tag: 'p', look: 'rc-terms', text: 'Printing is at cost — paper only — posted or kept for you to collect. Anything marked tbc '
-+ 'is priced before you are charged for it.' }) : '';
-return receiptHtml({
-lines: [due ? due + ' cr of your ' + credits : '',
-tbc ? tbc + ' tbc' : ''].filter(Boolean),
-rows: rows,
-totalLabel: paper ? (tbc ? 'So far' : 'Total') : 'Credits',
-total: cash ? fmtMoney_(cash) : tbc ? 'tbc' : String(due),
-foot: foot,
-});
-}
-function cartPaint_() {
-document.querySelectorAll('.cart-box').forEach(el => { el.innerHTML = cartCard_(); });
-document.querySelectorAll('[data-do="cart-add"][data-kind="bundle"]').forEach(el => {
-const ids = String(el.dataset.ids || '').split(',').filter(Boolean);
-const all = ids.length && ids.every(id => CART.some(c => c.kind === 'print' && String(c.key) === id));
-tileSet_(el, all ? { label: text_('in-your-basket'), on: true, off: true }
-: { label: 'Add bundle to basket', on: false, off: false });
-});
 }
 ;
 /* js/reader.js */

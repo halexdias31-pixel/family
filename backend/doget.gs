@@ -1,7 +1,7 @@
 /* @family. — 60_doGet.gs (7 of 8) THE PAYLOAD. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOGET_VERSION = "2026-11-25-no-messages";
+const DOGET_VERSION = "2026-11-25-no-shop";
 
 
 function doGet(e) {
@@ -124,8 +124,6 @@ function getBuild_(p, behind, migrated, askedBy_, mark) {
 
   getTerms_(payload);
 
-  getShop_(payload);
-
   getQuestions_(payload);
   mark('lists');
 
@@ -198,7 +196,7 @@ function getRequiredTabs_() {
     venues:  'the booking form has nowhere to offer, so nothing can be booked',
     jobs:    "a family's sessions come back as none, which reads as them being cancelled",
     events:  'the calendar is empty, which is not distinguishable from nothing being on',
-    shop:    'every price and every wearable is gone, and the coins buy nothing',
+    shop:    'every wearable is gone, and the coins buy nothing',
     options: 'every dropdown on every admin form comes back blank'
   };
   const missingTabs = Object.keys(REQUIRED_TABS).filter(name => !read(name).sheet);

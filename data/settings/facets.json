@@ -1,6 +1,6 @@
 [
 {"field": "mScope", "label": "car-or-car-part", "read": {"by": "fn", "col": "mechScope_", "tag": false, "choose": true}, "sort_order": 24.581, "note": "mechanics (owner, 7 Nov): a car, or a car part (a part then answers the cars it fits)", "active": true},
-{"field": "mMake", "label": "brand", "read": {"by": "mech", "col": "mMake", "or": "shopBrand"}, "sort_order": 24.582, "note": "ONE BRAND (UNIFY AFTER 3, 23 Nov): a car's brand (a part answers the brands it fits) and a shop thing's maker, one facet; was mMake and shopBrand", "active": true},
+{"field": "mMake", "label": "brand", "read": {"by": "mech", "col": "mMake"}, "sort_order": 24.582, "note": "ONE BRAND (UNIFY AFTER 3, 23 Nov): a car's brand (a part answers the brands it fits); was mMake and shopBrand", "active": true},
 {"field": "mModel", "label": "model", "read": {"by": "mech", "col": "mModel"}, "sort_order": 24.583, "note": "mechanics (batch E): a car's model", "active": true},
 {"field": "mGen", "label": "generation", "read": {"by": "mech", "col": "mGen"}, "sort_order": 24.584, "note": "mechanics (batch E): a car's generation (III, Mk7)", "active": true},
 {"field": "mPhase", "label": "phase", "read": {"by": "mech", "col": "mPhase"}, "sort_order": 24.611, "note": "mechanics (batch E): a facelift phase, a tag", "active": true},
@@ -89,10 +89,6 @@
 {"field": "histDated", "label": "dated", "read": {"by": "fn", "col": "msDated_"}, "sort_order": 37.94, "note": "manuscripts only (owner, 7 Nov: facts as tags): the date it is dated to, as the row says it", "active": true},
 {"field": "histSide", "label": "side", "read": {"by": "row", "col": "msSide"}, "sort_order": 37.92, "note": "drawn manuscripts only (507): Front (recto) or Back (verso), one card a side", "active": true},
 {"field": "histTheatre", "label": "theatre", "read": {"by": "hist", "col": "theatre"}, "sort_order": 37.95, "note": "events and timelines only (461): Europe, Pacific, Africa, Atlantic, Home front, Diplomacy", "active": true},
-{"field": "shopHow", "label": "how-you-get-it", "read": {"by": "row", "col": "shopHow"}, "sort_order": 38.2, "note": "shop items only (499): buy, earn with ticks, unlock by level, borrow", "active": true},
-{"field": "shopPrice", "label": "price-2", "read": {"by": "row", "col": "shopPrice"}, "sort_order": 38.3, "note": "shop items only (499): a band from its price", "active": true},
-{"field": "shopFor", "label": "who-for", "read": {"by": "row", "col": "shopFor"}, "sort_order": 38.5, "note": "shop items only (499): who it is for when not everybody", "active": true},
-{"field": "shopTheme", "label": "theme", "read": {"by": "row", "col": "shopTheme"}, "sort_order": 38.6, "note": "shop items only (740): its theme, from the shop tab's theme column; empty is no tag", "active": true},
 {"field": "postState", "label": "which-posts", "read": {"by": "row", "col": "postState"}, "sort_order": 20.6, "note": "a post (batch C): Approved, Waiting for approval or Deleted; only an admin is sent the last two", "active": true},
 {"field": "postBy", "label": "who-posted", "read": {"by": "row", "col": "postBy"}, "sort_order": 20.61, "note": "a post (batch C): its author", "active": true},
 {"field": "postWhen", "label": "when", "read": {"by": "row", "col": "postWhen"}, "sort_order": 20.62, "note": "a post (batch C): a time frame, Today to Older", "active": true},

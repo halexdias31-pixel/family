@@ -49,7 +49,7 @@
  },
  {
   "screen": "shop",
-  "to": "find:Shop"
+  "to": "find:"
  },
  {
   "screen": "site",
@@ -57,7 +57,7 @@
  },
  {
   "screen": "spotlight",
-  "to": "find:Shop"
+  "to": "find:"
  },
  {
   "screen": "staff",

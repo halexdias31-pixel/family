@@ -218,7 +218,7 @@ function doorItems_() {
 /* SETTINGS AND BOOKING (owner, 13 Nov: a guest books through Find's steps and signs in to Send); no Venues on the signed-out front. */
 /* AND THE LIBRARY (owner, 15 Nov), by ONE permissions row (`item` library:read for `anyone`): never a question, its answer or Practice. */
 /* AND QUESTIONS AND PRACTICE (owner, 18 Nov: guests do questions too), by the one row `item` question:read for `anyone`. */
-/* AND EVERY DOOR THAT HOLDS NOBODY'S PERSONAL DATA (owner, 18 Nov: "guests see everything"): Shop, Tools, Games. Posts and
+/* AND EVERY DOOR THAT HOLDS NOBODY'S PERSONAL DATA (owner, 18 Nov: "guests see everything"): Tools, Games. Posts and
    Profiles stay signed in — they hold children's names and words (rule: a child's data only to the child, parents, tutors, admins). */
 /* Each by its own permissions row, `item` <door>:read for `anyone` (actions.json); Library and Practice answer by card below, not by door. */
 const guestDoors_ = () => typeof can_ !== 'function' ? [] : FRONT_ORDER.filter(d => d !== 'Library' && PRACTICE_DOORS.indexOf(d) === -1 && can_('anyone', 'item', d.toLowerCase() + ':read'));

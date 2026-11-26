@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-11-25-no-messages";
+const DOPOST_VERSION = "2026-11-25-no-shop";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -331,8 +331,7 @@ function loginReplyFor_(r, token, extra) {
                 avatarItems: avatarUnlocks(r),
                 xp: N(r.xp), credits: N(r.credits),
                 /* `ticks:` WAS HERE, counted off the document rows. § */
-                /* The address, because the basket has to know whether it can offer to post
-                   anything. Without it the option is missing and the reason is invisible. */
+                /* The address, as the profile keeps it. */
                 address: S(r.address), postcode: S(r.postcode),
                 /* THE SETTINGS FORM'S OWN VALUES — see `profileOf_` above. Without it every box on
                    that column opens blank and the first Save writes the blanks back. */

@@ -4,7 +4,6 @@ const isQ_ = x => !!x && x.kind === 'question';
 const isContent_ = x => !!x && x.kind === 'content';
 const isFight_ = x => !!x && x.kind === 'fight';
 const isProject_ = x => !!x && x.kind === 'project';
-const isShop_ = x => !!x && x.kind === 'shop';
 const isPractical_ = x => !!x && x.kind === 'practical';
 const isManuscript_ = x => !!x && x.kind === 'manuscript';
 /* ONE PEOPLE KIND: boxers and historical figures are both `people`. § */

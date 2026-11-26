@@ -683,11 +683,8 @@ function subDayText_(iso) {
 /* THE PEOPLE COLUMNS (453); `peoplePages_` (me.js) adds the signed-out card and the empty one. Student settings is `studentSetPages_`. */
 
 /** Everything spliced between the question and the results, whichever answer is showing. */
-/* THE BUNDLE IS THE LAST OF THEM — see `bundlePages_`. § */
 /* THE BOUND FINDER'S, since there are two (`FINDERS`): § */
 function frontPages_() {
   return FINDER.front();
 }
 
-/* A BUNDLE — THE PAPERS ON THE SCREEN, AS ONE THING YOU CAN ORDER. § */
-const BUNDLE_MIN = 2;

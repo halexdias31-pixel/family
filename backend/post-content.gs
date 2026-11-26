@@ -372,7 +372,6 @@ function postVotePoll_(body, action, began) {
 /* JOINING A WAITLIST --------------------------------------------------------------------- A DIFFERENT PRODUCT IN THE SAME SHAPE. § */
 /* ---------- OPENING A WAITING LIST WITH NOBODY ON IT § */
 /* ---------- STARRING SOMETHING, AND UNSTARRING IT § */
-/* ---------- THE SHOP WINDOW, AND WHY A ROW IS SWITCHED OFF RATHER THAN DELETED § */
 function postSpotlight_(body, action, began) {
   const me = findPerson(S(body.name), S(body.personId));
   if (!me) return refuse_('err-sign-in-first', 'not-signed-in');
@@ -445,7 +444,7 @@ function postSuggest_(body, action, began) {
   const kind = norm(body.kind);
   if (!REPORT_KIND_RE.test(kind)) return jsonOut({ error: 'Which thing? Nothing was sent.' });
   const item = S(body.itemId).trim();
-  /* A SHOP ITEM'S ID IS ITS NAME (498), spaces and brackets and all: "Gooey Louie (board game)" was refused, so Suggest on the shop did nothing. */
+  /* AN ID MAY BE A NAME (498), spaces and brackets and all. */
   if (item.length > REPORT_FIELD_MAX || !/^[A-Za-z0-9][A-Za-z0-9 _.:|#\/()'&,+-]*$/.test(item) || (kind === 'question' && !/^q:./.test(item)))
     return jsonOut({ error: 'Which one? Nothing was sent.' });
   /* A FLAG IS THE WHOLE SUGGESTION (owner, 16 Nov): no words, no files; only the snapshot of the screen (18 Nov). Off withdraws the person's own. */

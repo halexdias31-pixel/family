@@ -386,7 +386,7 @@ const qTables_ = h => String(h).replace(/<table\b/gi, '<div class="q-tscroll"><t
 const paperCells_ = (cls, c, kTag, tail) => `<div class="bk-row ${cls}"><span class="bk-n">${c[0]}</span>${kTag || `<span class="bk-k">${c[1]}</span>`}`
   + `<span class="bk-v">${c[2]}</span><span class="bk-m">${c[3]}</span><span class="bk-r">${c[4]}</span><span class="bk-t">${c[5]}</span>${tail || ''}</div>`;
 function paperRow_(r) {
-  const cls = [r.blank ? 'is-blank' : '', r.day ? 'bk-day' : '', r.end ? 'bk-end' : '', r.free ? 'bk-free' : '', r.wide ? 'is-wide' : '',
+  const cls = [r.blank ? 'is-blank' : '', r.day ? 'bk-day' : '', r.end ? 'bk-end' : '', r.free ? 'bk-free' : '',
     r.strip ? 'bk-wk' : '', r.strip && r.shut ? 'is-shut' : '', r.strip && r.off ? 'is-off' : '', r.tally ? 'bk-tally' : '', r.cls || ''].filter(Boolean).join(' ');
   const has = v => v != null && String(v).trim() !== '';
   const value = r.tick !== undefined

@@ -2824,75 +2824,6 @@
     "who": "signedIn"
    }
   },
-  "product": {
-   "shape": "Card", "bodyAs": "item",
-   "source": "Ledger shop tab (data/settings/shop.json, data/shop-additions.json)",
-   "loader": "backend get-shop.gs -> find-aloud.js findMineItems_ (its Find entry is its row)",
-   "sample": "check/fixture.json shop",
-   "sheet": {
-    "tab": "shop",
-    "columns": [
-     "name",
-     "shopKind",
-     "shopHow",
-     "shopBrand",
-     "shopTheme",
-     "shopFor",
-     "cost",
-     "level",
-     "image"
-    ],
-    "id": "item_id"
-   },
-   "find": {
-    "group": "Shop",
-    "label": "things",
-    "under": "Shop",
-    "draw": "findShopCard_",
-    "entries": {
-     "shop": {},
-     "offShop": {
-      "label": "shop",
-      "draw": ""
-     }
-    },
-    "facets": [
-     "forLabel",
-     "kindLabel",
-     "kindOwn",
-     "documentType",
-     "shopHow",
-     "shopPrice",
-     "mMake",
-     "shopFor",
-     "shopTheme"
-    ]
-   },
-   "card": {
-    "card": "shop",
-    "from": "entry",
-    "id": [
-     "key",
-     "name"
-    ],
-    "tags": [
-     "documentType",
-     "shopHow",
-     "shopPrice",
-     "mMake",
-     "shopTheme",
-     "shopFor"
-    ],
-    "facts": true,
-    "tagLook": "qcard-tags",
-    "look": { "wearable": "is-wear", "off": "is-off" },
-    "picture": "image",
-    "price": true
-   },
-   "see": {
-    "who": "anyone"
-   }
-  },
   "paper": {
    "source": "data/questions.json paper_id (+ data/expected-papers.json)",
    "shape": "Card", "bodyAs": "question",
@@ -3704,7 +3635,7 @@
   }
  },
  "doorsSay": "FIND'S FRONT DOORS IN THE OWNER'S ORDER (4 Nov): the first question's answers, each a kind's `find.under` (or Videos); `built` doors are walked ahead by the build (js/finder-tags.js) and warmed while idle (find-quick.js). Who may open one signed out is a permissions row (`item` <door>:read for `anyone`, data/settings/actions.json). ONE OPENING QUESTION (owner queue item 9, 24 Nov): What kind is the only question at the top of Find — What for and Which are not asked, and Practice is no door of its own: its kinds (Questions, Answers, Inserts) are answers beside Library, Tools and the rest; `practice` marks them (a guest opens them by `question:read`).",
- "doors": [{"name": "Practice", "built": true, "practice": true}, {"name": "Library", "built": true}, {"name": "Videos"}, {"name": "Coming soon"}, {"name": "Posts"}, {"name": "Profiles"}, {"name": "Booking"}, {"name": "Shop"}, {"name": "Settings"}, {"name": "Tools"}, {"name": "Games"}],
+ "doors": [{"name": "Practice", "built": true, "practice": true}, {"name": "Library", "built": true}, {"name": "Videos"}, {"name": "Coming soon"}, {"name": "Posts"}, {"name": "Profiles"}, {"name": "Booking"}, {"name": "Settings"}, {"name": "Tools"}, {"name": "Games"}],
  "findSay": "FIND (rule 1.80): a kind's `find` gives its What-for group, its What-kind label, the front door(s) it stands under (`under`), the facets in order, and `draw` (a global that draws its Find card, else findCard). `entries` names the Find entry kinds it covers when they are not the kind itself (an answer page, a timeline, a switched-off door), each overriding those fields. An entry kind named by no kind is never listed or drawn; `see.who` (anyone, signedIn, self, family, staff, admin) decides who is listed it. Labels and order of the facets are data/settings/facets.json. A kind with `from: \"store\"` (the owner's life and business, 17 Nov) is listed straight from the items tab (form.js storeItems_): a `new` card asking its `store` form, then one card a row, its Edit tile asking the same form prefilled and saving under the same id, and `card.tick` ({f, on, off, label}) a one-tap tile that flips that field; `facetCols` names each facet read off a row's own column.",
  "listSay": "A KIND LISTED AS ROWS (queue step 6, 22 Nov): `sheet.list` is how the backend lists a kind straight off its tab (kindList_, items.gs). `keep` the rows whose every entry holds: a column filled (`col`), a column true (`col true`) or the whole row passing a tidy (`* tidy`); `out` each reply field from its column through a tidy (`col tidy`, `*` the whole row; s when none — s, ms, num, iso, when, whenS, norm, name, rank, staff); `sort` by a reply field, `-` newest first; `max` rows at most.",
  "stored": {

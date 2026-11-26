@@ -766,8 +766,6 @@ const KID_PRICE_KEYS = ['rate', 'extraSeat', 'extraSeatCut', 'bestRate', 'conces
   'multipliers', 'pricingRows', 'promoCodes', 'waitlistSeat',
   'cost_per_hour', 'rate_per_hour', 'extra_seat_rate', 'extra_seat_cut', 'price_per_child', 'ticket_child',
   'ticket_adult', 'travel_per_child', 'price_total', 'tutor_pay', 'admin_profit', 'surcharge_per_hour'];
-/* THE SHOP IS COINS AND THE BUSINESS'S OWN STOCK, NOT A TUTOR'S PRICE — left whole (398). */
-const KID_PRICE_SKIP = ['shop'];
 /* THE CONFIG ROWS THAT PRICE A BOOKING — config.vars reaches every phone (`configPublic_`). */
 const KID_PRICE_VARS = ['M', 's', 'c', 'B', 'b', 'a', 'open_tutor_rate', 'waitlist_extra_seat',
   'travel_on_client', 'card_fee_pct', 'card_fee_fixed', 'materials_markup'];
@@ -791,7 +789,6 @@ function kidPricesOff_(obj) {
         else delete o[k];
         return;
       }
-      if (KID_PRICE_SKIP.indexOf(k) !== -1) return;
       /* HER OWN SETTINGS STAY WHOLE (sign-in reply, myProfile): a form opened without a field writes it back blank on Save. */
       if (k === 'profile' && key(o.personId) === NET_VIEWER_.id) return;
       /* A VENUE'S `+£15/h` IS A TAG, so a tag with a pound sign goes. */

@@ -327,53 +327,6 @@ on('qa-hide', (el) => {
 /* `topicBy` WAS HERE — a document by id, falling back to its name. Nothing has a document to look
    up any more; see the note above `questionItems`. */
 
-/* ---------- WHAT A PRINTED COPY COSTS, WHICH HAS A CALLER AGAIN § */
-function printOffered_() {
-  const v = (DATA.constants || {}).vars || {};
-  const rate = num(v.print_rate_per_page);
-  return !isNaN(rate) && rate > 0;
-}
-function printPrice(pages) {
-  const n = Number(pages) || 0;
-  if (n <= 0 || !printOffered_()) return null;
-  const v = (DATA.constants || {}).vars || {};
-  const min = num(v.print_minimum) || 0;
-  return Math.max(min, Math.round(n * num(v.print_rate_per_page) * 100) / 100);
-}
-
-/* ---------- AND WHAT LAMINATING ONE COSTS § */
-function laminatePrice(pages) {
-  const n = Number(pages) || 0;
-  if (n <= 0) return null;
-  const v = (DATA.constants || {}).vars || {};
-  const rate = num(v.laminate_rate_per_page);
-  if (isNaN(rate) || rate <= 0) return null;      // rate not set: laminating is off, not free
-  const min = num(v.laminate_minimum) || 0;
-  return Math.max(min, Math.round(n * rate * 100) / 100);
-}
-
-/* WHAT A BASKET LINE ACTUALLY COSTS, in one place. § */
-/* ---------- AND A PRINTED LINE IS PRICED THE SAME WAY, WITH ONE EXCEPTION § */
-const cartPrint_ = c => {
-  if (!c) return null;
-  if (Number(c.money) > 0) return Number(c.money);
-  return isPrint_(c) ? printPrice(c.pages) : 0;
-};
-/* NOT YET PRICED — a paper nobody has counted the pages of, or a print when printing is off. It is
-   what the basket draws as "tbc". */
-const cartUnpriced_ = c => cartPrint_(c) === null;
-const cartMoney_ = c => (cartPrint_(c) || 0)
-  + (c && c.laminate ? (laminatePrice(c.pages) || 0) : 0);
-
-/* WHETHER LAMINATING IS OFFERED AT ALL, which is a different question from what one costs. § */
-function laminateOffered_() {
-  const rate = num(((DATA.constants || {}).vars || {}).laminate_rate_per_page);
-  return !isNaN(rate) && rate > 0;
-}
-
-/* ---------- `canPrint` CAME BACK WITH THE BUNDLE, AND ITS RULE CAME BACK UNCHANGED § */
-const canPrint_ = doc => !!doc && String(doc.printable == null ? '' : doc.printable)
-  .trim().toLowerCase() !== 'false';
 
 /* One list, so the four controls act on everything rather than on one half — a filter that silently ignores the shop is a filter nobody trusts twice. § */
 /* ---------- THE SAME LIST, NOT THE SAME LIST REBUILT § */
@@ -565,8 +518,6 @@ function findPeopleItems_() {
     ...(typeof allWidgets === 'function' && typeof findWidgetList_ === 'function' ? findWidgetList_() : []).map(w => ({
       kind: w.kind, name: w.name || w.title || w.label || String(w.id), sub: w.what || '', image: '',
       groups: w.groups, widget: w, text: [w.name, w.what, w.label].filter(Boolean).join(' '),
-      /* A SHOP WIDGET (the Basket) IS ITS OWN ANSWER UNDER SHOP (batch C), beside the things' categories. */
-      shopKind: isShop_(w) ? (w.name || '') : '',
     })).filter(x => typeof TIER_OFF_WIDGETS === 'undefined' || TIER_OFF_WIDGETS.indexOf(String(x.widget.id)) === -1),
     /* THE OWNER'S DOCKET (kinds.json kind `docket`): an item a card, under Tools › Docket › its list. */
     ...(typeof dkItems_ === 'function' ? dkItems_() : []),
@@ -579,7 +530,7 @@ function findPeopleItems_() {
     })),
   ];
 }
-/* Your sessions, the levels and the shop, in stuffItemsRaw_'s order. */
+/* Your sessions and the levels, in stuffItemsRaw_'s order. */
 function findMineItems_() {
   return [
     /* ---------- LEVELS § */
@@ -607,22 +558,6 @@ function findMineItems_() {
       /* The subjects, under the name, so the list is readable before anything is opened. */
       sub: (x.subjects || []).join(' · '), image: '',
       row: x,
-    })),
-    ...(DATA.shop || []).map(x => ({
-      kind: 'shop', name: x.name, key: x.name, sub: x.description || '', image: x.image,
-      /* A SHOP ROW IS THE ONE PLACE `0` GENUINELY MEANS FREE — it is priced, and the price is
-         nought. Everything else that used to write `cost: 0` was saying "I have no price", which
-         is a different answer; see `priced_`. */
-      /* ---------- AND A BLANK PRICE CELL IS NOT A PRICE OF NOUGHT, ON THIS MAPPER TOO § */
-      cost: priced_(x.price), slot: x.slot || '',
-      /* PENCE ARE MONEY (463): the basket takes them as money (`cartPrice_`), so the card says £, not credits. */
-      pence: String(x.unit || '').trim() === 'p',
-      /* WHETHER IT IS A WEARABLE, AND WHAT IT COSTS TO REACH. § */
-      wearable: isWearable(x),
-      level: Number(x.level) || 0,
-      artId: x.artId || '',
-      /* ITS TAGS (499): "these need to have all the tags instead ... way more helpful ... more automatable" — read off the row's own fields. */
-      ...shopTags_(x),
     })),
   ];
 }
