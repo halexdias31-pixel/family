@@ -37,7 +37,7 @@ function measure_(b64) {
 
 async function one(engine, key) {
   /* THE QUESTION WHOLE: its card drawn with its words, not the waiting card. */
-  const pg = await SB.open({ engine, at: '?card=' + encodeURIComponent('q:' + key), ready: () => [...document.querySelectorAll('#screen .qcard')].some(e => !e.classList.contains('lib-wait') && e.offsetHeight > 0
+  const pg = await SB.open({ engine, show: 'all', at: '?card=' + encodeURIComponent('q:' + key), ready: () => [...document.querySelectorAll('#screen .qcard')].some(e => !e.classList.contains('lib-wait') && e.offsetHeight > 0
       && e.querySelector('[data-do="card-share"]')) });
   try {
     /* THE PRESS AS A FINGER MAKES IT, the picture caught where it would go to the phone's sheet. */

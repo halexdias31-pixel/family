@@ -111,6 +111,11 @@ async function libStatus_() {
   try { const f = await dataFile_('data/question-status.json', { wait: LIB_ANSWER, what: 'the question status file' }); return (f && f.status) || {}; } catch (e) { return {}; }
 }
 const qStatus_ = x => libS((x && x.row && x.row.q_status) || (x && x.q_status));
+/* WHAT FIND SHOWS (owner, 26 Nov): settings.json `library.show` — "generated" lists only the @family generated sets (P-FAM-GEN-*),
+   "all" everything. ONE TEST, read wherever the library is listed; the rows stay (a saved answer still opens). tools/one-shown.js. */
+const libShowAll_ = () => { const L = (typeof SHARED_SETTINGS !== 'undefined' && SHARED_SETTINGS && SHARED_SETTINGS.library) || {}; return L.show !== 'generated'; };
+const libGenRow_ = x => { const r = (x && x.row) || x || {}; return /^P-FAM-GEN-/.test(libS(r.paper_id || r.paper || r.paperId || (x && x.paper))); };
+function libShown_(x) { return libShowAll_() || libGenRow_(x); }
 /* ONE TEST, read wherever questions are listed for a person: a broken question is an admin's alone */
 const qOffered_ = x => qStatus_(x) !== 'broken' || (typeof myRole_ === 'function' && myRole_() === 'admin');
 async function libraryRowsAsk_() {

@@ -493,6 +493,9 @@ function stuffItemsBuild_() {
     /* READ EXACTLY AS THE `forLabel` FACET READS IT — `x.groups || kindOf_(x).group`, through `asList_` — so what leaves the funnel is what would have answered § */
     const g = asList_(x.groups || kindOf_(x).group);
     if (g.length && g.every(k => FUNNEL_NOT_FOR.indexOf(k) >= 0)) return false;
+    /* ONLY WHAT THE LIBRARY SHOWS (owner, 26 Nov: settings.json `library.show`, `libShown_`, library.js): a question or insert not of a generated set
+       leaves the funnel, so its doors, menus and counts with it; stuffItemsAll_ keeps it, so a saved answer, history or progress still finds it. */
+    if ((x.kind === 'question' || x.kind === 'insert') && typeof libShown_ === 'function' && !libShown_(x)) return false;
     /* AND NOTHING ELSE: BOTH FINDERS CARRY EVERYTHING (347). § */
     return true;
   });

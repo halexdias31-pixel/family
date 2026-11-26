@@ -46,7 +46,7 @@ function email() {
 /* ---------- THE SITE'S CARD for the same pick question, its parts in document order */
 async function site(Q) {
   /* READY WHEN THE LIBRARY'S QUESTIONS ARE IN (words or not: the sample brings its own). */
-  const pg = await SB.open({ as: 'child', user: SB.USERS.child, ready: () => typeof stuffItemsAll_ === 'function' && stuffItemsAll_().some(isQ_) });
+  const pg = await SB.open({ as: 'child', show: 'all', user: SB.USERS.child, ready: () => typeof stuffItemsAll_ === 'function' && stuffItemsAll_().some(isQ_) });
   try {
     return await pg.evaluate(([P, sel]) => {
       const base = stuffItemsAll_().find(isQ_);
