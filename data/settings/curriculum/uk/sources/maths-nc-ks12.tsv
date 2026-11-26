@@ -1,0 +1,1789 @@
+1	503	85	60	1	Mathematics 
+1	572	85	60	1	programmes of study: 
+1	641	85	60	1	key stages 1 and 2 
+1	730	85	39	1	National curriculum in England 
+1	937	85	36	1	September 2013 
+2	1202	85	15	1	2 
+2	82	85	42	1	Contents 
+2	186	85	18	0	Key stage 1 – years 1 and 2 
+2	186	798	18	0	5
+2	226	85	18	0	Year 1 programme of study 
+2	226	798	18	0	6
+2	266	85	18	0	Year 2 programme of study 
+2	266	788	18	0	11
+2	307	85	18	0	Lower key stage 2 – years 3 and 4 
+2	307	788	18	0	17
+2	347	85	18	0	Year 3 programme of study 
+2	347	788	18	0	18
+2	387	85	18	0	Year 4 programme of study 
+2	387	788	18	0	24
+2	427	85	18	0	Upper key stage 2 – years 5 and 6 
+2	427	788	18	0	30
+2	467	85	18	0	Year 5 programme of study 
+2	467	788	18	0	31
+2	507	85	18	0	Year 6 programme of study 
+2	507	788	18	0	39
+2	548	85	18	0	Mathematics Appendix 1: Examples of formal written methods for addition, 
+2	568	85	18	0	subtraction, multiplication and division 
+2	568	788	18	0	46
+3	41	568	15	1	Mathematics – key stages 1 and 2 
+3	1202	800	15	1	3 
+3	83	85	24	1	Purpose of study 
+3	120	85	18	0	Mathematics is a creative and highly inter-connected discipline that has been developed 
+3	145	85	18	0	over centuries, providing the solution to some of history’s most intriguing problems. It is 
+3	170	85	18	0	essential to everyday life, critical to science, technology and engineering, and necessary 
+3	195	85	18	0	for financial literacy and most forms of employment. A high-quality mathematics education 
+3	220	85	18	0	therefore provides a foundation for understanding the world, the ability to reason 
+3	244	85	18	0	mathematically, an appreciation of the beauty and power of mathematics, and a sense of 
+3	269	85	18	0	enjoyment and curiosity about the subject. 
+3	311	85	24	1	Aims 
+3	349	85	18	0	The national curriculum for mathematics aims to ensure that all pupils: 
+3	384	85	18	0	
+3	382	112	18	0	become
+3	382	176	18	1	 fluent 
+3	382	235	18	0	in the fundamentals of mathematics, including through varied and 
+3	407	112	18	0	frequent practice with increasingly complex problems over time, so that pupils develop 
+3	432	112	18	0	conceptual understanding and the ability to recall and apply knowledge rapidly and 
+3	457	112	18	0	accurately.
+3	493	85	18	0	
+3	491	112	18	1	reason mathematically
+3	491	306	18	0	 by following a line of enquiry, conjecturing relationships and 
+3	516	112	18	0	generalisations, and developing an argument, justification or proof using mathematical 
+3	541	112	18	0	language
+3	576	85	18	0	
+3	574	112	18	0	can 
+3	574	146	18	1	solve problems
+3	574	278	18	0	 by applying their mathematics to a variety of routine and non-
+3	599	112	18	0	routine problems with increasing sophistication, including breaking down problems into 
+3	624	112	18	0	a series of simpler steps and persevering in seeking solutions. 
+3	667	85	18	0	Mathematics is an interconnected subject in which pupils need to be able to move fluently 
+3	692	85	18	0	between representations of mathematical ideas. The programmes of study are, by 
+3	717	85	18	0	necessity, organised into apparently distinct domains, but pupils should make rich 
+3	741	85	18	0	connections across mathematical ideas to develop fluency, mathematical reasoning and 
+3	766	85	18	0	competence in solving increasingly sophisticated problems. They should also apply their 
+3	791	85	18	0	mathematical knowledge to science and other subjects. 
+3	834	85	18	0	The expectation is that the majority of pupils will move through the programmes of study at 
+3	859	85	18	0	broadly the same pace. However, decisions about when to progress should always be 
+3	884	85	18	0	based on the security of pupils’ understanding and their readiness to progress to the next 
+3	908	85	18	0	stage. Pupils who grasp concepts rapidly should be challenged through being offered rich 
+3	933	85	18	0	and sophisticated problems before any acceleration through new content. Those who are 
+3	958	85	18	0	not sufficiently fluent with earlier material should consolidate their understanding, including 
+3	983	85	18	0	through additional practice, before moving on. 
+3	1025	85	24	1	Information and communication technology (ICT) 
+3	1062	85	18	0	Calculators should not be used as a substitute for good written and mental arithmetic. 
+3	1087	85	18	0	They should therefore only be introduced near the end of key stage 2 to support pupils’ 
+3	1112	85	18	0	conceptual understanding and exploration of more complex number problems, if written 
+4	41	85	15	1	Mathematics – key stages 1 and 2 
+4	1202	85	15	1	4 
+4	84	85	18	0	and mental arithmetic are secure. In both primary and secondary schools, teachers should 
+4	108	85	18	0	use their judgement about when ICT tools should be used. 
+4	151	85	24	1	Spoken language 
+4	188	85	18	0	The national curriculum for mathematics reflects the importance of spoken language in 
+4	213	85	18	0	pupils’ development across the whole curriculum – cognitively, socially and linguistically. 
+4	238	85	18	0	The quality and variety of language that pupils hear and speak are key factors in 
+4	262	85	18	0	developing their mathematical vocabulary and presenting a mathematical justification, 
+4	287	85	18	0	argument or proof. They must be assisted in making their thinking clear to themselves as 
+4	312	85	18	0	well as others and teachers should ensure that pupils build secure foundations by using 
+4	337	85	18	0	discussion to probe and remedy their misconceptions. 
+4	379	85	24	1	School curriculum 
+4	416	85	18	0	The programmes of study for mathematics are set out year-by-year for key stages 1 and 2. 
+4	441	85	18	0	Schools are, however, only required to teach the relevant programme of study by the end 
+4	466	85	18	0	of the key stage. Within each key stage, schools therefore have the flexibility to introduce 
+4	491	85	18	0	content earlier or later than set out in the programme of study. In addition, schools can 
+4	516	85	18	0	introduce key stage content during an earlier key stage, if appropriate. All schools are also 
+4	541	85	18	0	required to set out their school curriculum for mathematics on a year-by-year basis and 
+4	565	85	18	0	make this information available online. 
+4	608	85	24	1	Attainment targets 
+4	645	85	18	0	By the end of each key stage, pupils are expected to know, apply and understand the 
+4	670	85	18	0	matters, skills and processes specified in the relevant programme of study. 
+4	712	85	18	1	Schools are not required by law to teach the example content in [square brackets] 
+4	737	85	18	1	or the content indicated as being ‘non-statutory’. 
+5	41	568	15	1	Mathematics – key stages 1 and 2 
+5	1202	800	15	1	5 
+5	101	89	27	1	Key stage 1 – years 1 and 2 
+5	175	85	18	0	The principal focus of mathematics teaching in key stage 1 is to ensure that pupils develop 
+5	200	85	18	0	confidence and mental fluency with whole numbers, counting and place value. This should 
+5	225	85	18	0	involve working with numerals, words and the four operations, including with practical 
+5	250	85	18	0	resources [for example, concrete objects and measuring tools]. 
+5	293	85	18	0	At this stage, pupils should develop their ability to recognise, describe, draw, compare and 
+5	318	85	18	0	sort different shapes and use the related vocabulary. Teaching should also involve using a 
+5	343	85	18	0	range of measures to describe and compare different quantities such as length, mass, 
+5	367	85	18	0	capacity/volume, time and money. 
+5	410	85	18	0	By the end of year 2, pupils should know the number bonds to 20 and be precise in using 
+5	435	85	18	0	and understanding place value. An emphasis on practice at this early stage will aid 
+5	460	85	18	0	fluency. 
+5	503	85	18	0	Pupils should read and spell mathematical vocabulary, at a level consistent with their 
+5	528	85	18	0	increasing word reading and spelling knowledge at key stage 1. 
+6	41	85	15	1	Mathematics – key stages 1 and 2 
+6	1202	85	15	1	6 
+6	101	89	27	1	Year 1 programme of study 
+6	184	89	18	1	Number – number and place value 
+6	246	89	18	1	Statutory requirements 
+6	281	89	18	0	Pupils should be taught to: 
+6	317	89	18	0	
+6	315	116	18	0	count to and across 100, forwards and backwards, beginning with 0 or 1, or from any 
+6	340	116	18	0	given number 
+6	376	89	18	0	
+6	374	116	18	0	count, read and write numbers to 100 in numerals; count in multiples of twos, fives 
+6	399	116	18	0	and tens 
+6	434	89	18	0	
+6	432	116	18	0	given a number, identify one more and one less 
+6	468	89	18	0	
+6	466	116	18	0	identify and represent numbers using objects and pictorial representations including 
+6	491	116	18	0	the number line, and use the language of: equal to, more than, less than (fewer), 
+6	516	116	18	0	most, least 
+6	552	89	18	0	
+6	550	116	18	0	read and write numbers from 1 to 20 in numerals and words. 
+6	621	89	18	1	Notes and guidance (non-statutory) 
+6	651	89	18	0	Pupils practise counting (1, 2, 3…), ordering (for example, first, second, third…), and to 
+6	676	89	18	0	indicate a quantity (for example, 3 apples, 2 centimetres), including solving simple 
+6	700	89	18	0	concrete problems, until they are fluent. 
+6	734	89	18	0	Pupils begin to recognise place value in numbers beyond 20 by reading, writing, 
+6	759	89	18	0	counting and comparing numbers up to 100, supported by objects and pictorial 
+6	784	89	18	0	representations. 
+6	818	89	18	0	They practise counting as reciting numbers and counting as enumerating objects, and 
+6	843	89	18	0	counting in twos, fives and tens from different multiples to develop their recognition of 
+6	867	89	18	0	patterns in the number system (for example, odd and even numbers), including varied 
+6	892	89	18	0	and frequent practice through increasingly complex questions. 
+6	926	89	18	0	They recognise and create repeating patterns with objects and with shapes. 
+7	41	568	15	1	Mathematics – key stages 1 and 2 
+7	1202	800	15	1	7 
+7	92	89	18	1	Number – addition and subtraction 
+7	154	89	18	1	Statutory requirements 
+7	189	89	18	0	Pupils should be taught to: 
+7	225	89	18	0	
+7	223	116	18	0	read, write and interpret mathematical statements involving addition (+), subtraction 
+7	248	116	18	0	(–) and equals (=) signs 
+7	284	89	18	0	
+7	282	116	18	0	represent and use number bonds and related subtraction facts within 20 
+7	318	89	18	0	
+7	316	116	18	0	add and subtract one-digit and two-digit numbers to 20, including zero 
+7	351	89	18	0	
+7	349	116	18	0	solve one-step problems that involve addition and subtraction, using concrete objects 
+7	373	116	18	0	and pictorial representations, and missing number problems such as  7 =     – 9. 
+7	441	89	18	1	Notes and guidance (non-statutory) 
+7	471	89	18	0	Pupils memorise and reason with number bonds to 10 and 20 in several forms (for 
+7	496	89	18	0	example, 9 + 7 = 16; 16 – 7 = 9; 7 = 16 – 9). They should realise the effect of adding or 
+7	520	89	18	0	subtracting zero. This establishes addition and subtraction as related operations. 
+7	554	89	18	0	Pupils combine and increase numbers, counting forwards and backwards. 
+7	588	89	18	0	They discuss and solve problems in familiar practical contexts, including using 
+7	613	89	18	0	quantities. Problems should include the terms: put together, add, altogether, total, take 
+7	638	89	18	0	away, distance between, difference between, more than and less than, so that pupils 
+7	663	89	18	0	develop the concept of addition and subtraction and are enabled to use these operations 
+7	687	89	18	0	flexibly. 
+8	41	85	15	1	Mathematics – key stages 1 and 2 
+8	1202	85	15	1	8 
+8	92	89	18	1	Number – multiplication and division 
+8	154	89	18	1	Statutory requirements 
+8	189	89	18	0	Pupils should be taught to: 
+8	225	89	18	0	
+8	223	116	18	0	solve one-step problems involving multiplication and division, by calculating the 
+8	248	116	18	0	answer using concrete objects, pictorial representations and arrays with the support 
+8	273	116	18	0	of the teacher. 
+8	344	89	18	1	Notes and guidance (non-statutory) 
+8	374	89	18	0	Through grouping and sharing small quantities, pupils begin to understand: multiplication 
+8	399	89	18	0	and division; doubling numbers and quantities; and finding simple fractions of objects, 
+8	424	89	18	0	numbers and quantities. 
+8	457	89	18	0	They make connections between arrays, number patterns, and counting in twos, fives 
+8	482	89	18	0	and tens. 
+8	569	89	18	1	Number – fractions 
+8	631	89	18	1	Statutory requirements 
+8	665	89	18	0	Pupils should be taught to: 
+8	701	89	18	0	
+8	699	116	18	0	recognise, find and name a half as one of two equal parts of an object, shape or 
+8	724	116	18	0	quantity 
+8	760	89	18	0	
+8	758	116	18	0	recognise, find and name a quarter as one of four equal parts of an object, shape or 
+8	783	116	18	0	quantity. 
+8	854	89	18	1	Notes and guidance (non-statutory) 
+8	884	89	18	0	Pupils are taught half and quarter as ‘fractions of’ discrete and continuous quantities by 
+8	909	89	18	0	solving problems using shapes, objects and quantities. For example, they could 
+8	933	89	18	0	recognise and find half a length, quantity, set of objects or shape. Pupils connect halves 
+8	958	89	18	0	and quarters to the equal sharing and grouping of sets of objects and to measures, as 
+8	983	89	18	0	well as recognising and combining halves and quarters as parts of a whole. 
+9	41	568	15	1	Mathematics – key stages 1 and 2 
+9	1202	800	15	1	9 
+9	92	89	18	1	Measurement 
+9	154	89	18	1	Statutory requirements 
+9	189	89	18	0	Pupils should be taught to: 
+9	225	89	18	0	
+9	223	116	18	0	compare, describe and solve practical problems for: 
+9	254	132	18	0	
+9	252	159	18	0	lengths and heights [for example, long/short, longer/shorter, tall/short, 
+9	277	159	18	0	double/half] 
+9	309	132	18	0	
+9	307	159	18	0	mass/weight [for example, heavy/light, heavier than, lighter than] 
+9	338	132	18	0	
+9	336	159	18	0	capacity and volume [for example, full/empty, more than, less than, half, 
+9	361	159	18	0	half full, quarter] 
+9	392	132	18	0	
+9	390	159	18	0	time [for example, quicker, slower, earlier, later] 
+9	426	89	18	0	
+9	424	116	18	0	measure and begin to record the following: 
+9	455	132	18	0	
+9	453	159	18	0	lengths and heights 
+9	485	132	18	0	
+9	483	159	18	0	mass/weight 
+9	514	132	18	0	
+9	512	159	18	0	capacity and volume 
+9	543	132	18	0	
+9	541	159	18	0	time (hours, minutes, seconds) 
+9	577	89	18	0	
+9	575	116	18	0	recognise and know the value of different denominations of coins and notes 
+9	611	89	18	0	
+9	609	116	18	0	sequence events in chronological order using language [for example, before and 
+9	634	116	18	0	after, next, first, today, yesterday, tomorrow, morning, afternoon and evening] 
+9	670	89	18	0	
+9	668	116	18	0	recognise and use language relating to dates, including days of the week, weeks, 
+9	692	116	18	0	months and years 
+9	728	89	18	0	
+9	726	116	18	0	tell the time to the hour and half past the hour and draw the hands on a clock face to 
+9	751	116	18	0	show these times. 
+9	823	89	18	1	Notes and guidance (non-statutory) 
+9	852	89	18	0	The pairs of terms: mass and weight, volume and capacity, are used interchangeably at 
+9	877	89	18	0	this stage. 
+9	911	89	18	0	Pupils move from using and comparing different types of quantities and measures using 
+9	936	89	18	0	non-standard units, including discrete (for example, counting) and continuous (for 
+9	961	89	18	0	example, liquid) measurement, to using manageable common standard units. 
+9	994	89	18	0	In order to become familiar with standard measures, pupils begin to use measuring tools 
+9	1019	89	18	0	such as a ruler, weighing scales and containers. 
+9	1053	89	18	0	Pupils use the language of time, including telling the time throughout the day, first using 
+9	1078	89	18	0	o’clock and then half past. 
+10	41	85	15	1	Mathematics – key stages 1 and 2 
+10	1202	85	15	1	10 
+10	92	89	18	1	Geometry – properties of shapes 
+10	154	89	18	1	Statutory requirements 
+10	189	89	18	0	Pupils should be taught to: 
+10	225	89	18	0	
+10	223	116	18	0	recognise and name common 2-D and 3-D shapes, including: 
+10	254	132	18	0	
+10	252	159	18	0	2-D shapes [for example, rectangles (including squares), circles and triangles] 
+10	284	132	18	0	
+10	282	159	18	0	3-D shapes [for example, cuboids (including cubes), pyramids and spheres]. 
+10	353	89	18	1	Notes and guidance (non-statutory) 
+10	383	89	18	0	Pupils handle common 2-D and 3-D shapes, naming these and related everyday objects 
+10	408	89	18	0	fluently. They recognise these shapes in different orientations and sizes, and know that 
+10	433	89	18	0	rectangles, triangles, cuboids and pyramids are not always similar to each other. 
+10	519	89	18	1	Geometry – position and direction 
+10	581	89	18	1	Statutory requirements 
+10	616	89	18	0	Pupils should be taught to: 
+10	651	89	18	0	
+10	649	116	18	0	describe position, direction and movement, including whole, half, quarter and three-
+10	674	116	18	0	quarter turns. 
+10	746	89	18	1	Notes and guidance (non-statutory) 
+10	775	89	18	0	Pupils use the language of position, direction and motion, including: left and right, top, 
+10	800	89	18	0	middle and bottom, on top of, in front of, above, between, around, near, close and far, up 
+10	825	89	18	0	and down, forwards and backwards, inside and outside. 
+10	859	89	18	0	Pupils make whole, half, quarter and three-quarter turns in both directions and connect 
+10	884	89	18	0	turning clockwise with movement on a clock face. 
+11	41	568	15	1	Mathematics – key stages 1 and 2 
+11	1202	791	15	1	11 
+11	101	89	27	1	Year 2 programme of study 
+11	184	89	18	1	Number – number and place value 
+11	246	89	18	1	Statutory requirements 
+11	281	89	18	0	Pupils should be taught to: 
+11	317	89	18	0	
+11	315	116	18	0	count in steps of 2, 3, and 5 from 0, and in tens from any number, forward and 
+11	340	116	18	0	backward 
+11	376	89	18	0	
+11	374	116	18	0	recognise the place value of each digit in a two-digit number (tens, ones) 
+11	409	89	18	0	
+11	408	116	18	0	identify, represent and estimate numbers using different representations, including 
+11	432	116	18	0	the number line 
+11	468	89	18	0	
+11	466	116	18	0	compare and order numbers from 0 up to 100; use <, > and = signs 
+11	502	89	18	0	
+11	500	116	18	0	read and write numbers to at least 100 in numerals and in words 
+11	536	89	18	0	
+11	534	116	18	0	use place value and number facts to solve problems. 
+11	605	89	18	1	Notes and guidance (non-statutory) 
+11	635	89	18	0	Using materials and a range of representations, pupils practise counting, reading, writing 
+11	660	89	18	0	and comparing numbers to at least 100 and solving a variety of related problems to 
+11	685	89	18	0	develop fluency. They count in multiples of three to support their later understanding of a 
+11	709	89	18	0	third. 
+11	743	89	18	0	As they become more confident with numbers up to 100, pupils are introduced to larger 
+11	768	89	18	0	numbers to develop further their recognition of patterns within the number system and 
+11	793	89	18	0	represent them in different ways, including spatial representations. 
+11	827	89	18	0	Pupils should partition numbers in different ways (for example, 23 = 20 + 3 and  
+11	852	89	18	0	23 = 10 + 13) to support subtraction. They become fluent and apply their knowledge of 
+11	876	89	18	0	numbers to reason with, discuss and solve problems that emphasise the value of each 
+11	901	89	18	0	digit in two-digit numbers. They begin to understand zero as a place holder. 
+12	41	85	15	1	Mathematics – key stages 1 and 2 
+12	1202	85	15	1	12 
+12	92	89	18	1	Number – addition and subtraction 
+12	154	89	18	1	Statutory requirements 
+12	189	89	18	0	Pupils should be taught to: 
+12	225	89	18	0	
+12	223	116	18	0	solve problems with addition and subtraction: 
+12	254	132	18	0	
+12	252	159	18	0	using concrete objects and pictorial representations, including those involving 
+12	277	159	18	0	numbers, quantities and measures 
+12	309	132	18	0	
+12	307	159	18	0	applying their increasing knowledge of mental and written methods 
+12	342	89	18	0	
+12	340	116	18	0	recall and use addition and subtraction facts to 20 fluently, and derive and use 
+12	365	116	18	0	related facts up to 100 
+12	401	89	18	0	
+12	399	116	18	0	add and subtract numbers using concrete objects, pictorial representations, and 
+12	424	116	18	0	mentally, including: 
+12	455	132	18	0	
+12	453	159	18	0	a two-digit number and ones 
+12	485	132	18	0	
+12	483	159	18	0	a two-digit number and tens 
+12	514	132	18	0	
+12	512	159	18	0	two two-digit numbers 
+12	543	132	18	0	
+12	541	159	18	0	adding three one-digit numbers 
+12	577	89	18	0	
+12	575	116	18	0	show that addition of two numbers can be done in any order (commutative) and 
+12	600	116	18	0	subtraction of one number from another cannot 
+12	636	89	18	0	
+12	634	116	18	0	recognise and use the inverse relationship between addition and subtraction and use 
+12	659	116	18	0	this to check calculations and solve missing number problems. 
+12	730	89	18	1	Notes and guidance (non-statutory) 
+12	760	89	18	0	Pupils extend their understanding of the language of addition and subtraction to include 
+12	785	89	18	0	sum and difference. 
+12	818	89	18	0	Pupils practise addition and subtraction to 20 to become increasingly fluent in deriving 
+12	843	89	18	0	facts such as using 3 + 7 = 10; 10 – 7 = 3 and 7 = 10 – 3 to calculate  
+12	868	89	18	0	30 + 70 = 100; 100 – 70 = 30 and 70 = 100 – 30. They check their calculations, including 
+12	893	89	18	0	by adding to check subtraction and adding numbers in a different order to check addition 
+12	918	89	18	0	(for example, 5 + 2 + 1 = 1 + 5 + 2 = 1 + 2 + 5). This establishes commutativity and 
+12	943	89	18	0	associativity of addition.
+12	976	89	18	0	Recording addition and subtraction in columns supports place value and prepares for 
+12	1001	89	18	0	formal written methods with larger numbers. 
+13	41	568	15	1	Mathematics – key stages 1 and 2 
+13	1202	791	15	1	13 
+13	92	89	18	1	Number – multiplication and division 
+13	154	89	18	1	Statutory requirements 
+13	189	89	18	0	Pupils should be taught to: 
+13	225	89	18	0	
+13	223	116	18	0	recall and use multiplication and division facts for the 2, 5 and 10 multiplication 
+13	248	116	18	0	tables, including recognising odd and even numbers 
+13	284	89	18	0	
+13	282	116	18	0	calculate mathematical statements for multiplication and division within the multiplication 
+13	307	116	18	0	tables and write them using the multiplication (×), division (÷) and equals (=) signs 
+13	342	89	18	0	
+13	340	116	18	0	show that multiplication of two numbers can be done in any order (commutative) and 
+13	365	116	18	0	division of one number by another cannot 
+13	401	89	18	0	
+13	399	116	18	0	solve problems involving multiplication and division, using materials, arrays, repeated 
+13	424	116	18	0	addition, mental methods, and multiplication and division facts, including problems in 
+13	449	116	18	0	contexts. 
+13	520	89	18	1	Notes and guidance (non-statutory) 
+13	550	89	18	0	Pupils use a variety of language to describe multiplication and division. 
+13	584	89	18	0	Pupils are introduced to the multiplication tables. They practise to become fluent in the 
+13	609	89	18	0	2, 5 and 10 multiplication tables and connect them to each other. They connect the 10 
+13	633	89	18	0	multiplication table to place value, and the 5 multiplication table to the divisions on the 
+13	658	89	18	0	clock face. They begin to use other multiplication tables and recall multiplication facts, 
+13	683	89	18	0	including using related division facts to perform written and mental calculations. 
+13	717	89	18	0	Pupils work with a range of materials and contexts in which multiplication and division 
+13	742	89	18	0	relate to grouping and sharing discrete and continuous quantities, to arrays and to 
+13	767	89	18	0	repeated addition. They begin to relate these to fractions and measures (for example, 40 
+13	791	89	18	0	÷ 2 = 20, 20 is a half of 40). They use commutativity and inverse relations to develop 
+13	816	89	18	0	multiplicative reasoning (for example, 4 × 5 = 20 and 20 ÷ 5 = 4). 
+13	903	89	18	1	Number – fractions 
+13	965	89	18	1	Statutory requirements 
+13	999	89	18	0	Pupils should be taught to: 
+13	1033	89	18	0	
+13	1031	116	18	0	recognise, find, name and write fractions 
+13	1042	448	12	0	3
+13	1030	448	12	0	1
+13	1031	458	18	0	, 
+13	1043	472	12	0	4
+13	1029	472	12	0	1
+13	1031	482	18	0	, 
+13	1043	496	12	0	4
+13	1029	496	12	0	2
+13	1031	506	18	0	 and 
+13	1042	550	12	0	4
+13	1030	549	12	0	3
+13	1031	559	18	0	 of a length, shape, set of 
+13	1063	116	18	0	objects or quantity 
+13	1096	89	18	0	
+13	1094	116	18	0	write simple fractions for example, 
+13	1107	397	12	0	2
+13	1093	397	12	0	1
+13	1094	407	18	0	 of 6 = 3 and recognise the equivalence of 
+13	1107	751	12	0	4
+13	1093	751	12	0	2
+13	1130	116	18	0	and 
+13	1142	155	12	0	2
+13	1128	155	12	0	1
+13	1130	165	18	0	. 
+14	41	85	15	1	Mathematics – key stages 1 and 2 
+14	1202	85	15	1	14 
+14	93	89	18	1	Notes and guidance (non-statutory) 
+14	123	89	18	0	Pupils use fractions as ‘fractions of’ discrete and continuous quantities by solving 
+14	147	89	18	0	problems using shapes, objects and quantities. They connect unit fractions to equal 
+14	172	89	18	0	sharing and grouping, to numbers when they can be calculated, and to measures, 
+14	201	89	18	0	finding fractions of lengths, quantities, sets of objects or shapes. They meet 
+14	213	699	13	0	4
+14	199	698	13	0	3
+14	201	708	18	0	 as the 
+14	233	89	18	0	first example of a non-unit fraction. 
+14	270	89	18	0	Pupils should count in fractions up to 10, starting from any number and using the 
+14	283	739	12	0	2
+14	269	740	12	0	1
+14	270	749	18	0	 and 
+14	318	93	12	0	4
+14	304	93	12	0	2
+14	306	103	18	0	 equivalence on the number line (for example, 1
+14	318	487	12	0	4
+14	304	487	12	0	1
+14	306	497	18	0	, 1
+14	318	521	12	0	4
+14	304	521	12	0	2
+14	306	531	18	0	 (or 1
+14	318	577	12	0	2
+14	304	577	12	0	1
+14	306	587	18	0	), 1
+14	318	617	12	0	4
+14	304	616	12	0	3
+14	306	626	18	0	, 2). This reinforces 
+14	337	89	18	0	the concept of fractions as numbers and that they can add up to more than one. 
+14	423	89	18	1	Measurement 
+14	485	89	18	1	Statutory requirements 
+14	520	89	18	0	Pupils should be taught to: 
+14	556	89	18	0	
+14	554	116	18	0	choose and use appropriate standard units to estimate and measure length/height in 
+14	579	116	18	0	any direction (m/cm); mass (kg/g); temperature (°C); capacity (litres/ml) to the 
+14	604	116	18	0	nearest appropriate unit, using rulers, scales, thermometers and measuring vessels 
+14	639	89	18	0	
+14	637	116	18	0	compare and order lengths, mass, volume/capacity and record the results using >, < 
+14	662	116	18	0	and = 
+14	698	89	18	0	
+14	696	116	18	0	recognise and use symbols for pounds (£) and pence (p); combine amounts to make 
+14	721	116	18	0	a particular value 
+14	757	89	18	0	
+14	755	116	18	0	find different combinations of coins that equal the same amounts of money 
+14	791	89	18	0	
+14	789	116	18	0	solve simple problems in a practical context involving addition and subtraction of 
+14	813	116	18	0	money of the same unit, including giving change 
+14	849	89	18	0	
+14	847	116	18	0	compare and sequence intervals of time 
+14	882	89	18	0	
+14	880	116	18	0	tell and write the time to five minutes, including quarter past/to the hour and draw the 
+14	905	116	18	0	hands on a clock face to show these times 
+14	939	89	18	0	
+14	937	116	18	0	know the number of minutes in an hour and the number of hours in a day. 
+15	41	568	15	1	Mathematics – key stages 1 and 2 
+15	1202	791	15	1	15 
+15	93	89	18	1	Notes and guidance (non-statutory) 
+15	123	89	18	0	Pupils use standard units of measurement with increasing accuracy, using their 
+15	147	89	18	0	knowledge of the number system. They use the appropriate language and record using 
+15	172	89	18	0	standard abbreviations. 
+15	206	89	18	0	Comparing measures includes simple multiples such as ‘half as high’; ‘twice as wide’. 
+15	240	89	18	0	They become fluent in telling the time on analogue clocks and recording it. 
+15	274	89	18	0	Pupils become fluent in counting and recognising coins. They read and say amounts of 
+15	299	89	18	0	money confidently and use the symbols £ and p accurately, recording pounds and pence 
+15	324	89	18	0	separately. 
+15	410	89	18	1	Geometry – properties of shapes 
+15	472	89	18	1	Statutory requirements 
+15	507	89	18	0	Pupils should be taught to: 
+15	541	89	18	0	
+15	539	116	18	0	identify and describe the properties of 2-D shapes, including the number of sides and 
+15	564	116	18	0	line symmetry in a vertical line 
+15	598	89	18	0	
+15	596	116	18	0	identify and describe the properties of 3-D shapes, including the number of edges, 
+15	621	116	18	0	vertices and faces 
+15	655	89	18	0	
+15	653	116	18	0	identify 2-D shapes on the surface of 3-D shapes, 
+15	653	516	18	0	[
+15	653	521	18	0	for example
+15	653	615	18	0	,
+15	653	620	18	0	 a circle on a cylinder 
+15	678	116	18	0	and a triangle on a pyramid
+15	678	334	18	0	]
+15	712	89	18	0	
+15	711	116	18	0	compare and sort common 2-D and 3-D shapes and everyday objects. 
+15	781	89	18	1	Notes and guidance (non-statutory) 
+15	810	89	18	0	Pupils handle and name a wide variety of common 2-D and 3-D shapes including: 
+15	835	89	18	0	quadrilaterals and polygons, and cuboids, prisms and cones, and identify the properties 
+15	860	89	18	0	of each shape (for example, number of sides, number of faces). Pupils identify, compare 
+15	885	89	18	0	and sort shapes on the basis of their properties and use vocabulary precisely, such as 
+15	909	89	18	0	sides, edges, vertices and faces. 
+15	943	89	18	0	Pupils read and write names for shapes that are appropriate for their word reading and 
+15	968	89	18	0	spelling. 
+15	1002	89	18	0	Pupils draw lines and shapes using a straight edge. 
+16	41	85	15	1	Mathematics – key stages 1 and 2 
+16	1202	85	15	1	16 
+16	92	89	18	1	Geometry – position and direction 
+16	154	89	18	1	Statutory requirements 
+16	189	89	18	0	Pupils should be taught to: 
+16	225	89	18	0	
+16	223	116	18	0	order and arrange combinations of mathematical objects in patterns and sequences 
+16	259	89	18	0	
+16	257	116	18	0	use mathematical vocabulary to describe position, direction and movement, including 
+16	282	116	18	0	movement in a straight line and distinguishing between rotation as a turn and in 
+16	307	116	18	0	terms of right angles for quarter, half and three-quarter turns (clockwise and anti-
+16	331	116	18	0	clockwise). 
+16	403	89	18	1	Notes and guidance (non-statutory) 
+16	433	89	18	0	Pupils should work with patterns of shapes, including those in different orientations. 
+16	466	89	18	0	Pupils use the concept and language of angles to describe ‘turn’ by applying rotations, 
+16	491	89	18	0	including in practical contexts (for example, pupils themselves moving in turns, giving 
+16	516	89	18	0	instructions to other pupils to do so, and programming robots using instructions given in 
+16	541	89	18	0	right angles). 
+16	627	89	18	1	Statistics 
+16	689	89	18	1	Statutory requirements 
+16	724	89	18	0	Pupils should be taught to: 
+16	760	89	18	0	
+16	758	116	18	0	interpret and construct simple pictograms, tally charts, block diagrams and simple 
+16	783	116	18	0	tables 
+16	818	89	18	0	
+16	816	116	18	0	ask and answer simple questions by counting the number of objects in each category 
+16	841	116	18	0	and sorting the categories by quantity 
+16	877	89	18	0	
+16	875	116	18	0	ask and answer questions about totalling and comparing categorical data. 
+16	947	89	18	1	Notes and guidance (non-statutory) 
+16	976	89	18	0	Pupils record, interpret, collate, organise and compare information (for example, using 
+16	1001	89	18	0	many-to-one correspondence in pictograms with simple ratios 2, 5, 10). 
+17	41	568	15	1	Mathematics – key stages 1 and 2 
+17	1202	791	15	1	17 
+17	101	89	27	1	Lower key stage 2 – years 3 and 4 
+17	175	85	18	0	The principal focus of mathematics teaching in lower key stage 2 is to ensure that pupils 
+17	200	85	18	0	become increasingly fluent with whole numbers and the four operations, including number 
+17	225	85	18	0	facts and the concept of place value. This should ensure that pupils develop efficient 
+17	250	85	18	0	written and mental methods and perform calculations accurately with increasingly large 
+17	275	85	18	0	whole numbers. 
+17	318	85	18	0	At this stage, pupils should develop their ability to solve a range of problems, including 
+17	343	85	18	0	with simple fractions and decimal place value. Teaching should also ensure that pupils 
+17	367	85	18	0	draw with increasing accuracy and develop mathematical reasoning so they can analyse 
+17	392	85	18	0	shapes and their properties, and confidently describe the relationships between them. It 
+17	417	85	18	0	should ensure that they can use measuring instruments with accuracy and make 
+17	442	85	18	0	connections between measure and number. 
+17	485	85	18	0	By the end of year 4, pupils should have memorised their multiplication tables up to and 
+17	510	85	18	0	including the 12 multiplication table and show precision and fluency in their work. 
+17	552	85	18	0	Pupils should read and spell mathematical vocabulary correctly and confidently, using their 
+17	577	85	18	0	growing word reading knowledge and their knowledge of spelling. 
+18	41	85	15	1	Mathematics – key stages 1 and 2 
+18	1202	85	15	1	18 
+18	101	89	27	1	Year 3 programme of study 
+18	184	89	18	1	Number – number and place value 
+18	246	89	18	1	Statutory requirements 
+18	281	89	18	0	Pupils should be taught to: 
+18	317	89	18	0	
+18	315	116	18	0	count from 0 in multiples of 4, 8, 50 and 100; find 10 or 100 more or less than a given 
+18	340	116	18	0	number 
+18	376	89	18	0	
+18	374	116	18	0	recognise the place value of each digit in a three-digit number (hundreds, tens, ones) 
+18	409	89	18	0	
+18	408	116	18	0	compare and order numbers up to 1000 
+18	443	89	18	0	
+18	441	116	18	0	identify, represent and estimate numbers using different representations 
+18	477	89	18	0	
+18	475	116	18	0	read and write numbers up to 1000 in numerals and in words 
+18	511	89	18	0	
+18	509	116	18	0	solve number problems and practical problems involving these ideas. 
+18	581	89	18	1	Notes and guidance (non-statutory) 
+18	610	89	18	0	Pupils now use multiples of 2, 3, 4, 5, 8, 10, 50 and 100.
+18	644	89	18	0	They use larger numbers to at least 1000, applying partitioning related to place value 
+18	669	89	18	0	using varied and increasingly complex problems, building on work in year 2 (for 
+18	694	89	18	0	example, 146 = 100 + 40 and 6, 146 = 130 + 16). 
+18	727	89	18	0	Using a variety of representations, including those related to measure, pupils continue to 
+18	752	89	18	0	count in ones, tens and hundreds, so that they become fluent in the order and place 
+18	777	89	18	0	value of numbers to 1000. 
+19	41	568	15	1	Mathematics – key stages 1 and 2 
+19	1202	791	15	1	19 
+19	92	89	18	1	Number – addition and subtraction 
+19	154	89	18	1	Statutory requirements 
+19	189	89	18	0	Pupils should be taught to: 
+19	225	89	18	0	
+19	223	116	18	0	add and subtract numbers mentally, including: 
+19	254	132	18	0	
+19	252	159	18	0	a three-digit number and ones 
+19	284	132	18	0	
+19	282	159	18	0	a three-digit number and tens 
+19	313	132	18	0	
+19	311	159	18	0	a three-digit number and hundreds 
+19	347	89	18	0	
+19	345	116	18	0	add and subtract numbers with up to three digits, using formal written methods of 
+19	370	116	18	0	columnar addition and subtraction 
+19	406	89	18	0	
+19	404	116	18	0	estimate the answer to a calculation and use inverse operations to check answers 
+19	439	89	18	0	
+19	437	116	18	0	solve problems, including missing number problems, using number facts, place 
+19	462	116	18	0	value, and more complex addition and subtraction. 
+19	534	89	18	1	Notes and guidance (non-statutory) 
+19	563	89	18	0	Pupils practise solving varied addition and subtraction questions. For mental calculations 
+19	588	89	18	0	with two-digit numbers, the answers could exceed 100. 
+19	622	89	18	0	Pupils use their understanding of place value and partitioning, and practise using 
+19	647	89	18	0	columnar addition and subtraction with increasingly large numbers up to three digits to 
+19	672	89	18	0	become fluent (see 
+19	672	247	18	0	Mathematics Appendix 1
+19	672	445	18	0	). 
+19	758	89	18	1	Number – multiplication and division 
+19	820	89	18	1	Statutory requirements 
+19	855	89	18	0	Pupils should be taught to: 
+19	891	89	18	0	
+19	889	116	18	0	recall and use multiplication and division facts for the 3, 4 and 8 multiplication tables 
+19	924	89	18	0	
+19	922	116	18	0	write and calculate mathematical statements for multiplication and division using the 
+19	947	116	18	0	multiplication tables that they know, including for two-digit numbers times one-digit 
+19	972	116	18	0	numbers, using mental and progressing to formal written methods 
+19	1008	89	18	0	
+19	1006	116	18	0	solve problems, including missing number problems, involving multiplication and 
+19	1031	116	18	0	division, including positive integer scaling problems and correspondence problems in 
+19	1056	116	18	0	which n objects are connected to m objects. 
+20	41	85	15	1	Mathematics – key stages 1 and 2 
+20	1202	85	15	1	20 
+20	93	89	18	1	Notes and guidance (non-statutory) 
+20	123	89	18	0	Pupils continue to practise their mental recall of multiplication tables when they are 
+20	147	89	18	0	calculating mathematical statements in order to improve fluency. Through doubling, they 
+20	172	89	18	0	connect the 2, 4 and 8 multiplication tables. 
+20	206	89	18	0	Pupils develop efficient mental methods, for example, using commutativity and 
+20	231	89	18	0	associativity (for example, 4 × 12 × 5 = 4 × 5 × 12 = 20 × 12 = 240) and multiplication 
+20	256	89	18	0	and division facts (for example, using 3 × 2 = 6, 6 ÷ 3 = 2 and 2 = 6 ÷ 3) to derive related 
+20	281	89	18	0	facts (for example, 30 × 2 = 60, 60 ÷ 3 = 20 and 20 = 60 ÷ 3). 
+20	315	89	18	0	Pupils develop reliable written methods for multiplication and division, starting with 
+20	339	89	18	0	calculations of two-digit numbers by one-digit numbers and progressing to the formal 
+20	364	89	18	0	written methods of short multiplication and division. 
+20	398	89	18	0	Pupils solve simple problems in contexts, deciding which of the four operations to use 
+20	423	89	18	0	and why. These include measuring and scaling contexts, (for example, four times as 
+20	448	89	18	0	high, eight times as long etc.) and correspondence problems in which m objects are 
+20	473	89	18	0	connected to n objects (for example, 3 hats and 4 coats, how many different outfits?; 12 
+20	497	89	18	0	sweets shared equally between 4 children; 4 cakes shared equally between 8 children). 
+20	584	89	18	1	Number – fractions 
+20	646	89	18	1	Statutory requirements 
+20	680	89	18	0	Pupils should be taught to: 
+20	716	89	18	0	
+20	714	116	18	0	count up and down in tenths; recognise that tenths arise from dividing an object into 
+20	739	116	18	0	10 equal parts and in dividing one-digit numbers or quantities by 10 
+20	775	89	18	0	
+20	773	116	18	0	recognise, find and write fractions of a discrete set of objects: unit fractions and non-
+20	798	116	18	0	unit fractions with small denominators 
+20	834	89	18	0	
+20	832	116	18	0	recognise and use fractions as numbers: unit fractions and non-unit fractions with 
+20	857	116	18	0	small denominators 
+20	892	89	18	0	
+20	890	116	18	0	recognise and show, using diagrams, equivalent fractions with small denominators 
+20	926	89	18	0	
+20	924	116	18	0	add and subtract fractions with the same denominator within one whole [for example, 
+20	965	120	12	0	7
+20	951	120	12	0	5
+20	953	130	18	0	 + 
+20	965	154	12	0	7
+20	951	155	12	0	1
+20	953	164	18	0	 = 
+20	965	189	12	0	7
+20	951	189	12	0	6
+20	953	199	18	0	] 
+20	995	89	18	0	
+20	993	116	18	0	compare and order unit fractions, and fractions with the same denominators 
+20	1029	89	18	0	
+20	1027	116	18	0	solve problems that involve all of the above. 
+21	41	568	15	1	Mathematics – key stages 1 and 2 
+21	1202	791	15	1	21 
+21	93	89	18	1	Notes and guidance (non-statutory) 
+21	123	89	18	0	Pupils connect tenths to place value, decimal measures and to division by 10. 
+21	156	89	18	0	They begin to understand unit and non-unit fractions as numbers on the number line, 
+21	181	89	18	0	and deduce relations between them, such as size and equivalence. They should go 
+21	206	89	18	0	beyond the [0, 1] interval, including relating this to measure. 
+21	240	89	18	0	Pupils understand the relation between unit fractions as operators (fractions of), and 
+21	265	89	18	0	division by integers. 
+21	299	89	18	0	They continue to recognise fractions in the context of parts of a whole, numbers, 
+21	324	89	18	0	measurements, a shape, and unit fractions as a division of a quantity. 
+21	357	89	18	0	Pupils practise adding and subtracting fractions with the same denominator through a 
+21	382	89	18	0	variety of increasingly complex problems to improve fluency. 
+21	468	89	18	1	Measurement 
+21	531	89	18	1	Statutory requirements 
+21	565	89	18	0	Pupils should be taught to: 
+21	601	89	18	0	
+21	599	116	18	0	measure, compare, add and subtract: lengths (m/cm/mm); mass (kg/g); 
+21	624	116	18	0	volume/capacity (l/ml) 
+21	660	89	18	0	
+21	658	116	18	0	measure the perimeter of simple 2-D shapes 
+21	694	89	18	0	
+21	692	116	18	0	add and subtract amounts of money to give change, using both £ and p in practical 
+21	716	116	18	0	contexts 
+21	752	89	18	0	
+21	750	116	18	0	tell and write the time from an analogue clock, including using Roman numerals from 
+21	775	116	18	0	I to XII, and 12-hour and 24-hour clocks 
+21	811	89	18	0	
+21	809	116	18	0	estimate and read time with increasing accuracy to the nearest minute; record and 
+21	834	116	18	0	compare time in terms of seconds, minutes and hours; use vocabulary such as 
+21	859	116	18	0	o’clock, a.m./p.m., morning, afternoon, noon and midnight 
+21	894	89	18	0	
+21	893	116	18	0	know the number of seconds in a minute and the number of days in each month, 
+21	917	116	18	0	year and leap year 
+21	953	89	18	0	
+21	951	116	18	0	compare durations of events [for example to calculate the time taken by particular 
+21	976	116	18	0	events or tasks]. 
+22	41	85	15	1	Mathematics – key stages 1 and 2 
+22	1202	85	15	1	22 
+22	93	89	18	1	Notes and guidance (non-statutory) 
+22	123	89	18	0	Pupils continue to measure using the appropriate tools and units, progressing to using a 
+22	147	89	18	0	wider range of measures, including comparing and using mixed units (for example, 1 kg 
+22	172	89	18	0	and 200g) and simple equivalents of mixed units (for example, 5m = 500cm). 
+22	206	89	18	0	The comparison of measures includes simple scaling by integers (for example, a given 
+22	231	89	18	0	quantity or measure is twice as long or five times as high) and this connects to 
+22	256	89	18	0	multiplication. 
+22	290	89	18	0	Pupils continue to become fluent in recognising the value of coins, by adding and 
+22	315	89	18	0	subtracting amounts, including mixed units, and giving change using manageable 
+22	339	89	18	0	amounts. They record £ and p separately. The decimal recording of money is introduced 
+22	364	89	18	0	formally in year 4. 
+22	398	89	18	0	Pupils use both analogue and digital 12-hour clocks and record their times. In this way 
+22	423	89	18	0	they become fluent in and prepared for using digital 24-hour clocks in year 4. 
+22	509	89	18	1	Geometry – properties of shapes 
+22	571	89	18	1	Statutory requirements 
+22	606	89	18	0	Pupils should be taught to: 
+22	642	89	18	0	
+22	640	116	18	0	draw 2-D shapes and make 3-D shapes using modelling materials; recognise 3-D 
+22	665	116	18	0	shapes in different orientations and describe them 
+22	700	89	18	0	
+22	698	116	18	0	recognise angles as a property of shape or a description of a turn 
+22	734	89	18	0	
+22	732	116	18	0	identify right angles, recognise that two right angles make a half-turn, three make 
+22	757	116	18	0	three quarters of a turn and four a complete turn; identify whether angles are greater 
+22	782	116	18	0	than or less than a right angle 
+22	818	89	18	0	
+22	816	116	18	0	identify horizontal and vertical lines and pairs of perpendicular and parallel lines. 
+22	888	89	18	1	Notes and guidance (non-statutory) 
+22	917	89	18	0	Pupils’ knowledge of the properties of shapes is extended at this stage to symmetrical 
+22	942	89	18	0	and non-symmetrical polygons and polyhedra. Pupils extend their use of the properties 
+22	967	89	18	0	of shapes. They should be able to describe the properties of 2-D and 3-D shapes using 
+22	992	89	18	0	accurate language, including lengths of lines and acute and obtuse for angles greater or 
+22	1016	89	18	0	lesser than a right angle. 
+22	1050	89	18	0	Pupils connect decimals and rounding to drawing and measuring straight lines in 
+22	1075	89	18	0	centimetres, in a variety of contexts. 
+23	41	568	15	1	Mathematics – key stages 1 and 2 
+23	1202	791	15	1	23 
+23	92	89	18	1	Statistics 
+23	154	89	18	1	Statutory requirements 
+23	189	89	18	0	Pupils should be taught to: 
+23	225	89	18	0	
+23	223	116	18	0	interpret and present data using bar charts, pictograms and tables 
+23	259	89	18	0	
+23	257	116	18	0	solve one-step and two-step questions [for example, ‘How many more?’ and ‘How 
+23	282	116	18	0	many fewer?’] using information presented in scaled bar charts and pictograms and 
+23	307	116	18	0	tables. 
+23	378	89	18	1	Notes and guidance (non-statutory) 
+23	408	89	18	0	Pupils understand and use simple scales (for example, 2, 5, 10 units per cm) in 
+23	433	89	18	0	pictograms and bar charts with increasing accuracy. 
+23	466	89	18	0	They continue to interpret data presented in many contexts. 
+24	41	85	15	1	Mathematics – key stages 1 and 2 
+24	1202	85	15	1	24 
+24	101	89	27	1	Year 4 programme of study 
+24	184	89	18	1	Number – number and place value 
+24	246	89	18	1	Statutory requirements 
+24	281	89	18	0	Pupils should be taught to 
+24	317	89	18	0	
+24	315	116	18	0	count in multiples of 6, 7, 9, 25 and 1000 
+24	351	89	18	0	
+24	349	116	18	0	find 1000 more or less than a given number 
+24	385	89	18	0	
+24	383	116	18	0	count backwards through zero to include negative numbers 
+24	418	89	18	0	
+24	417	116	18	0	recognise the place value of each digit in a four-digit number (thousands, hundreds, 
+24	441	116	18	0	tens, and ones) 
+24	477	89	18	0	
+24	475	116	18	0	order and compare numbers beyond 1000 
+24	511	89	18	0	
+24	509	116	18	0	identify, represent and estimate numbers using different representations 
+24	545	89	18	0	
+24	543	116	18	0	round any number to the nearest 10, 100 or 1000 
+24	579	89	18	0	
+24	577	116	18	0	solve number and practical problems that involve all of the above and with 
+24	601	116	18	0	increasingly large positive numbers 
+24	637	89	18	0	
+24	635	116	18	0	read Roman numerals to 100 (I to C) and know that over time, the numeral system 
+24	660	116	18	0	changed to include the concept of zero and place value. 
+24	732	89	18	1	Notes and guidance (non-statutory) 
+24	761	89	18	0	Using a variety of representations, including measures, pupils become fluent in the order 
+24	786	89	18	0	and place value of numbers beyond 1000, including counting in tens and hundreds, and 
+24	811	89	18	0	maintaining fluency in other multiples through varied and frequent practice. 
+24	845	89	18	0	They begin to extend their knowledge of the number system to include the decimal 
+24	870	89	18	0	numbers and fractions that they have met so far. 
+24	903	89	18	0	They connect estimation and rounding numbers to the use of measuring instruments.
+24	937	89	18	0	Roman numerals should be put in their historical context so pupils understand that there 
+24	962	89	18	0	have been different ways to write whole numbers and that the important concepts of 
+24	987	89	18	0	zero and place value were introduced over a period of time. 
+25	41	568	15	1	Mathematics – key stages 1 and 2 
+25	1202	791	15	1	25 
+25	92	89	18	1	Number – addition and subtraction 
+25	154	89	18	1	Statutory requirements 
+25	189	89	18	0	Pupils should be taught to: 
+25	225	89	18	0	
+25	223	116	18	0	add and subtract numbers with up to 4 digits using the formal written methods of 
+25	248	116	18	0	columnar addition and subtraction where appropriate 
+25	284	89	18	0	
+25	282	116	18	0	estimate and use inverse operations to check answers to a calculation 
+25	318	89	18	0	
+25	316	116	18	0	solve addition and subtraction two-step problems in contexts, deciding which 
+25	340	116	18	0	operations and methods to use and why. 
+25	412	89	18	1	Notes and guidance (non-statutory) 
+25	442	89	18	0	Pupils continue to practise both mental methods and columnar addition and subtraction 
+25	466	89	18	0	with increasingly large numbers to aid fluency (see 
+25	466	498	18	0	Mathematics Appendix 1
+25	466	695	18	0	). 
+25	553	89	18	1	Number – multiplication and division 
+25	615	89	18	1	Statutory requirements 
+25	649	89	18	0	Pupils should be taught to: 
+25	685	89	18	0	
+25	683	116	18	0	recall multiplication and division facts for multiplication tables up to 12 × 12 
+25	719	89	18	0	
+25	717	116	18	0	use place value, known and derived facts to multiply and divide mentally, including: 
+25	742	116	18	0	multiplying by 0 and 1; dividing by 1; multiplying together three numbers 
+25	778	89	18	0	
+25	776	116	18	0	recognise and use factor pairs and commutativity in mental calculations 
+25	812	89	18	0	
+25	810	116	18	0	multiply two-digit and three-digit numbers by a one-digit number using formal written 
+25	834	116	18	0	layout 
+25	870	89	18	0	
+25	868	116	18	0	solve problems involving multiplying and adding, including using the distributive law 
+25	893	116	18	0	to multiply two digit numbers by one digit, integer scaling problems and harder 
+25	918	116	18	0	correspondence problems such as n objects are connected to m objects. 
+25	990	89	18	1	Notes and guidance (non-statutory) 
+25	1019	89	18	0	Pupils continue to practise recalling and using multiplication tables and related division 
+25	1044	89	18	0	facts to aid fluency. 
+25	1078	89	18	0	Pupils practise mental methods and extend this to three-digit numbers to derive facts, 
+25	1103	89	18	0	(for example 600 ÷ 3 = 200 can be derived from 2 x 3 = 6). 
+26	41	85	15	1	Mathematics – key stages 1 and 2 
+26	1202	85	15	1	26 
+26	93	89	18	1	Notes and guidance (non-statutory) 
+26	123	89	18	0	Pupils practise to become fluent in the formal written method of short multiplication and 
+26	147	89	18	0	short division with exact answers (see 
+26	147	396	18	0	Mathematics Appendix 1
+26	147	593	18	0	). 
+26	181	89	18	0	Pupils write statements about the equality of expressions (for example, use the 
+26	206	89	18	0	distributive law 39 × 7 = 30 × 7 + 9 × 7 and associative law (2 × 3) × 4 = 2 × (3 × 4)). 
+26	231	89	18	0	They combine their knowledge of number facts and rules of arithmetic to solve mental 
+26	256	89	18	0	and written calculations for example, 2 x 6 x 5 = 10 x 6 = 60. 
+26	290	89	18	0	Pupils solve two-step problems in contexts, choosing the appropriate operation, working 
+26	315	89	18	0	with increasingly harder numbers. This should include correspondence questions such 
+26	339	89	18	0	as the numbers of choices of a meal on a menu, or three cakes shared equally between 
+26	364	89	18	0	10 children. 
+26	450	89	18	1	Number – fractions (including decimals) 
+26	513	89	18	1	Statutory requirements 
+26	547	89	18	0	Pupils should be taught to: 
+26	583	89	18	0	
+26	581	116	18	0	recognise and show, using diagrams, families of common equivalent fractions 
+26	617	89	18	0	
+26	615	116	18	0	count up and down in hundredths; recognise that hundredths arise when dividing an 
+26	640	116	18	0	object by one hundred and dividing tenths by ten. 
+26	676	89	18	0	
+26	674	116	18	0	solve problems involving increasingly harder fractions to calculate quantities, and 
+26	698	116	18	0	fractions to divide quantities, including non-unit fractions where the answer is a whole 
+26	723	116	18	0	number 
+26	759	89	18	0	
+26	757	116	18	0	add and subtract fractions with the same denominator 
+26	793	89	18	0	
+26	791	116	18	0	recognise and write decimal equivalents of any number of tenths or hundredths 
+26	831	89	18	0	
+26	829	116	18	0	recognise and write decimal equivalents to 
+26	841	464	12	0	4
+26	827	465	12	0	1
+26	829	474	18	0	, 
+26	840	488	12	0	2
+26	828	488	12	0	1
+26	829	498	18	0	, 
+26	841	512	12	0	4
+26	827	512	12	0	3
+26	864	89	18	0	
+26	862	116	18	0	find the effect of dividing a one- or two-digit number by 10 and 100, identifying the 
+26	886	116	18	0	value of the digits in the answer as ones, tenths and hundredths 
+26	922	89	18	0	
+26	920	116	18	0	round decimals with one decimal place to the nearest whole number 
+26	956	89	18	0	
+26	954	116	18	0	compare numbers with the same number of decimal places up to two decimal places 
+26	990	89	18	0	
+26	988	116	18	0	solve simple measure and money problems involving fractions and decimals to two 
+26	1013	116	18	0	decimal places. 
+27	41	568	15	1	Mathematics – key stages 1 and 2 
+27	1202	791	15	1	27 
+27	93	89	18	1	Notes and guidance (non-statutory) 
+27	123	89	18	0	Pupils should connect hundredths to tenths and place value and decimal measure. 
+27	156	89	18	0	They extend the use of the number line to connect fractions, numbers and measures. 
+27	190	89	18	0	Pupils understand the relation between non-unit fractions and multiplication and division 
+27	215	89	18	0	of quantities, with particular emphasis on tenths and hundredths
+27	215	599	18	0	.
+27	249	89	18	0	Pupils make connections between fractions of a length, of a shape and as a 
+27	274	89	18	0	representation of one whole or set of quantities. Pupils use factors and multiples to 
+27	303	89	18	0	recognise equivalent fractions and simplify where appropriate (for example, 
+27	315	696	12	0	9
+27	301	696	12	0	6
+27	303	706	18	0	 = 
+27	315	731	12	0	3
+27	301	731	12	0	2
+27	303	741	18	0	 or 
+27	315	771	12	0	4
+27	301	771	12	0	1
+27	338	89	18	0	= 
+27	350	108	13	0	8
+27	336	109	13	0	2
+27	338	119	18	0	). 
+27	378	89	18	0	Pupils continue to practise adding and subtracting fractions with the same denominator, 
+27	403	89	18	0	to become fluent through a variety of increasingly complex problems beyond one whole. 
+27	437	89	18	0	Pupils are taught throughout that decimals and fractions are different ways of expressing 
+27	462	89	18	0	numbers and proportions. 
+27	496	89	18	0	Pupils’ understanding of the number system and decimal place value is extended at this 
+27	521	89	18	0	stage to tenths and then hundredths. This includes relating the decimal notation to 
+27	545	89	18	0	division of whole number by 10 and later 100. 
+27	579	89	18	0	They practise counting using simple fractions and decimals, both forwards and 
+27	604	89	18	0	backwards. 
+27	638	89	18	0	Pupils learn decimal notation and the language associated with it, including in the 
+27	663	89	18	0	context of measurements. They make comparisons and order decimal amounts and 
+27	688	89	18	0	quantities that are expressed to the same number of decimal places. They should be 
+27	712	89	18	0	able to represent numbers with one or two decimal places in several ways, such as on 
+27	737	89	18	0	number lines. 
+27	824	89	18	1	Measurement 
+27	886	89	18	1	Statutory requirements 
+27	920	89	18	0	Pupils should be taught to: 
+27	956	89	18	0	
+27	954	116	18	0	Convert between different units of measure [for example, kilometre to metre; hour to 
+27	979	116	18	0	minute] 
+27	1015	89	18	0	
+27	1013	116	18	0	measure and calculate the perimeter of a rectilinear figure (including squares) in 
+27	1038	116	18	0	centimetres and metres 
+27	1073	89	18	0	
+27	1072	116	18	0	find the area of rectilinear shapes by counting squares 
+27	1107	89	18	0	
+27	1105	116	18	0	estimate, compare and calculate different measures, including money in pounds and 
+27	1130	116	18	0	pence 
+28	41	85	15	1	Mathematics – key stages 1 and 2 
+28	1202	85	15	1	28 
+28	96	89	18	1	Statutory requirements 
+28	132	89	18	0	
+28	131	116	18	0	read, write and convert time between analogue and digital 12- and 24-hour clocks 
+28	166	89	18	0	
+28	164	116	18	0	solve problems involving converting from hours to minutes; minutes to seconds; 
+28	189	116	18	0	years to months; weeks to days. 
+28	261	89	18	1	Notes and guidance (non-statutory) 
+28	290	89	18	0	Pupils build on their understanding of place value and decimal notation to record metric 
+28	315	89	18	0	measures, including money. 
+28	349	89	18	0	They use multiplication to convert from larger to smaller units. 
+28	383	89	18	0	Perimeter can be expressed algebraically as 2(
+28	383	464	18	0	a
+28	383	474	18	0	 + 
+28	383	495	18	0	b
+28	383	505	18	0	) where a and b are the dimensions 
+28	408	89	18	0	in the same unit. 
+28	442	89	18	0	They relate area to arrays and multiplication. 
+28	528	89	18	1	Geometry – properties of shapes 
+28	590	89	18	1	Statutory requirements 
+28	625	89	18	0	Pupils should be taught to: 
+28	660	89	18	0	
+28	658	116	18	0	compare and classify geometric shapes, including quadrilaterals and triangles
+28	658	735	18	1	, 
+28	658	745	18	0	based 
+28	683	116	18	0	on their properties and sizes 
+28	719	89	18	0	
+28	717	116	18	0	identify acute and obtuse angles and compare and order angles up to two right 
+28	742	116	18	0	angles by size 
+28	778	89	18	0	
+28	776	116	18	0	identify lines of symmetry in 2-D shapes presented in different orientations 
+28	812	89	18	0	
+28	810	116	18	0	complete a simple symmetric figure with respect to a specific line of symmetry. 
+28	881	89	18	1	Notes and guidance (non-statutory) 
+28	911	89	18	0	Pupils continue to classify shapes using geometrical properties, extending to classifying 
+28	936	89	18	0	different triangles (for example, isosceles, equilateral, scalene) and quadrilaterals 
+28	960	89	18	0	(for example, parallelogram, rhombus, trapezium). 
+28	994	89	18	0	Pupils compare and order angles in preparation for using a protractor and compare 
+28	1019	89	18	0	lengths and angles to decide if a polygon is regular or irregular. 
+28	1053	89	18	0	Pupils draw symmetric patterns using a variety of media to become familiar with different 
+28	1078	89	18	0	orientations of lines of symmetry; and recognise line symmetry in a variety of diagrams, 
+28	1103	89	18	0	including where the line of symmetry does not dissect the original shape. 
+29	41	568	15	1	Mathematics – key stages 1 and 2 
+29	1202	791	15	1	29 
+29	92	89	18	1	Geometry – position and direction 
+29	154	89	18	1	Statutory requirements 
+29	189	89	18	0	Pupils should be taught to: 
+29	225	89	18	0	
+29	223	116	18	0	describe positions on a 2-D grid as coordinates in the first quadrant 
+29	259	89	18	0	
+29	257	116	18	0	describe movements between positions as translations of a given unit to the left/right 
+29	282	116	18	0	and up/down 
+29	318	89	18	0	
+29	316	116	18	0	plot specified points and draw sides to complete a given polygon. 
+29	387	89	18	1	Notes and guidance (non-statutory) 
+29	417	89	18	0	Pupils draw a pair of axes in one quadrant, with equal scales and integer labels. They 
+29	442	89	18	0	read, write and use pairs of coordinates, for example (2, 5), including using coordinate-
+29	466	89	18	0	plotting ICT tools. 
+29	553	89	18	1	Statistics 
+29	615	89	18	1	Statutory requirements 
+29	649	89	18	0	Pupils should be taught to: 
+29	685	89	18	0	
+29	683	116	18	0	interpret and present discrete and continuous data using appropriate graphical 
+29	708	116	18	0	methods, including bar charts and time graphs. 
+29	744	89	18	0	
+29	742	116	18	0	solve comparison, sum and difference problems using information presented in bar 
+29	767	116	18	0	charts, pictograms, tables and other graphs. 
+29	838	89	18	1	Notes and guidance (non-statutory) 
+29	868	89	18	0	Pupils understand and use a greater range of scales in their representations. 
+29	902	89	18	0	Pupils begin to relate the graphical representation of data to recording change over time. 
+30	41	85	15	1	Mathematics – key stages 1 and 2 
+30	1202	85	15	1	30 
+30	101	89	27	1	Upper key stage 2 – years 5 and 6 
+30	175	85	18	0	The principal focus of mathematics teaching in upper key stage 2 is to ensure
+30	175	706	18	0	that
+30	175	742	18	0	pupils 
+30	200	85	18	0	extend their understanding of the number system and place value to include larger 
+30	225	85	18	0	integers. This should develop the connections that pupils make between multiplication and 
+30	250	85	18	0	division with fractions, decimals, percentages and ratio. 
+30	293	85	18	0	At this stage, pupils should develop their ability to solve a wider range of problems, 
+30	318	85	18	0	including increasingly complex properties of numbers and arithmetic, and problems 
+30	343	85	18	0	demanding efficient written and mental methods of calculation. With this foundation in 
+30	367	85	18	0	arithmetic, pupils are introduced to the language of algebra as a means for solving a 
+30	392	85	18	0	variety of problems. Teaching in geometry and measures should consolidate and extend 
+30	417	85	18	0	knowledge developed in number. Teaching should also ensure that pupils classify shapes 
+30	442	85	18	0	with increasingly complex geometric properties and that they learn the vocabulary they 
+30	467	85	18	0	need to describe them. 
+30	510	85	18	0	By the end of year 6, pupils should be fluent in written methods for all four operations, 
+30	534	85	18	0	including long multiplication and division, and in working with fractions, decimals and 
+30	559	85	18	0	percentages. 
+30	602	85	18	0	Pupils should read, spell and pronounce mathematical vocabulary correctly. 
+31	41	568	15	1	Mathematics – key stages 1 and 2 
+31	1202	791	15	1	31 
+31	101	89	27	1	Year 5 programme of study 
+31	184	89	18	1	Number – number and place value 
+31	246	89	18	1	Statutory requirements 
+31	281	89	18	0	Pupils should be taught to: 
+31	317	89	18	0	
+31	315	116	18	0	read, write, order and compare numbers to at least 1 000 000 and determine the 
+31	340	116	18	0	value of each digit 
+31	376	89	18	0	
+31	374	116	18	0	count forwards or backwards in steps of powers of 10 for any given number up to 
+31	399	116	18	0	1 000 000 
+31	434	89	18	0	
+31	432	116	18	0	interpret negative numbers in context, count forwards and backwards with positive 
+31	457	116	18	0	and negative whole numbers, including through zero 
+31	493	89	18	0	
+31	491	116	18	0	round any number up to 1 000 000 to the nearest 10, 100, 1000, 10 000 and 100 000 
+31	527	89	18	0	
+31	525	116	18	0	solve number problems and practical problems that involve all of the above 
+31	561	89	18	0	
+31	559	116	18	0	read Roman numerals to 1000 (M) and recognise years written in Roman numerals. 
+31	630	89	18	1	Notes and guidance (non-statutory) 
+31	660	89	18	0	Pupils identify the place value in large whole numbers. 
+31	694	89	18	0	They continue to use number in context, including measurement. Pupils extend and 
+31	718	89	18	0	apply their understanding of the number system to the decimal numbers and fractions 
+31	743	89	18	0	that they have met so far. 
+31	777	89	18	0	They should recognise and describe linear number sequences, including those involving 
+31	802	89	18	0	fractions and decimals, and find the term-to-term rule. 
+31	838	89	18	0	They should recognise and describe linear number sequences (for example, 3, 3
+31	849	734	12	0	2
+31	837	735	12	0	1
+31	838	744	18	0	, 4, 
+31	869	89	18	0	4
+31	881	103	12	0	2
+31	869	103	12	0	1
+31	869	113	18	0	...), including those involving fractions and decimals, and find the term-to-term rule in 
+31	901	89	18	0	words (for example, add 
+31	912	291	12	0	2
+31	901	291	12	0	1
+31	901	301	18	0	). 
+32	41	85	15	1	Mathematics – key stages 1 and 2 
+32	1202	85	15	1	32 
+32	92	89	18	1	Number – addition and subtraction 
+32	154	89	18	1	Statutory requirements 
+32	189	89	18	0	Pupils should be taught to: 
+32	225	89	18	0	
+32	223	116	18	0	add and subtract whole numbers with more than 4 digits, including using formal 
+32	248	116	18	0	written methods (columnar addition and subtraction) 
+32	284	89	18	0	
+32	282	116	18	0	add and subtract numbers mentally with increasingly large numbers 
+32	318	89	18	0	
+32	316	116	18	0	use rounding to check answers to calculations and determine, in the context of a 
+32	340	116	18	0	problem, levels of accuracy 
+32	376	89	18	0	
+32	374	116	18	0	solve addition and subtraction multi-step problems in contexts, deciding which 
+32	399	116	18	0	operations and methods to use and why. 
+32	471	89	18	1	Notes and guidance (non-statutory) 
+32	500	89	18	0	Pupils practise using the formal written methods of columnar addition and subtraction 
+32	525	89	18	0	with increasingly large numbers to aid fluency (see 
+32	525	498	18	0	Mathematics Appendix 1
+32	525	695	18	0	). 
+32	559	89	18	0	They practise mental calculations with increasingly large numbers to aid fluency 
+32	584	89	18	0	(for example, 12 462 – 2300 = 10 162). 
+32	670	89	18	1	Number – multiplication and division 
+32	732	89	18	1	Statutory requirements 
+32	767	89	18	0	Pupils should be taught to: 
+32	803	89	18	0	
+32	801	116	18	0	identify multiples and factors, including finding all factor pairs of a number, and 
+32	825	116	18	0	common factors of two numbers 
+32	861	89	18	0	
+32	859	116	18	0	know and use the vocabulary of prime numbers, prime factors and composite (non-
+32	884	116	18	0	prime) numbers 
+32	920	89	18	0	
+32	918	116	18	0	establish whether a number up to 100 is prime and recall prime numbers up to 19 
+32	954	89	18	0	
+32	952	116	18	0	multiply numbers up to 4 digits by a one- or two-digit number using a formal written 
+32	977	116	18	0	method, including long multiplication for two-digit numbers 
+32	1012	89	18	0	
+32	1011	116	18	0	multiply and divide numbers mentally drawing upon known facts 
+32	1046	89	18	0	
+32	1044	116	18	0	divide numbers up to 4 digits by a one-digit number using the formal written method 
+32	1069	116	18	0	of short division and interpret remainders appropriately for the context 
+32	1105	89	18	0	
+32	1103	116	18	0	multiply and divide whole numbers and those involving decimals by 10, 100 and 1000 
+33	41	568	15	1	Mathematics – key stages 1 and 2 
+33	1202	791	15	1	33 
+33	96	89	18	1	Statutory requirements 
+33	132	89	18	0	
+33	131	116	18	0	recognise and use square numbers and cube numbers, and the notation for squared 
+33	155	116	18	0	(
+33	153	122	12	0	2
+33	155	129	18	0	) and cubed (
+33	153	235	12	0	3
+33	155	242	18	0	) 
+33	191	89	18	0	
+33	189	116	18	0	solve problems involving multiplication and division including using their knowledge 
+33	214	116	18	0	of factors and multiples, squares and cubes 
+33	250	89	18	0	
+33	248	116	18	0	solve problems involving addition, subtraction, multiplication and division and a 
+33	273	116	18	0	combination of these, including understanding the meaning of the equals sign 
+33	309	89	18	0	
+33	307	116	18	0	solve problems involving multiplication and division, including scaling by simple 
+33	331	116	18	0	fractions and problems involving simple rates. 
+33	403	89	18	1	Notes and guidance (non-statutory) 
+33	433	89	18	0	Pupils practise and extend their use of the formal written methods of short multiplication 
+33	457	89	18	0	and short division (see 
+33	457	274	18	0	Mathematics Appendix 1
+33	457	471	18	0	). They apply all the multiplication tables 
+33	482	89	18	0	and related division facts frequently, commit them to memory and use them confidently 
+33	507	89	18	0	to make larger calculations. 
+33	541	89	18	0	They use and understand the terms factor, multiple and prime, square and cube 
+33	566	89	18	0	numbers. 
+33	600	89	18	0	Pupils interpret non-integer answers to division by expressing results in different ways 
+33	624	89	18	0	according to the context, including with remainders, as fractions, as decimals or by 
+33	651	89	18	0	rounding (for example, 98 ÷ 4 =
+33	662	347	12	0	4
+33	651	344	12	0	98
+33	651	361	18	0	 = 24 r 2 = 24
+33	662	472	12	0	2
+33	651	472	12	0	1
+33	651	482	18	0	 = 24.5 
+33	651	543	18	0	≈
+33	651	552	18	0	 25). 
+33	690	89	18	0	Pupils use multiplication and division as inverses to support the introduction of ratio in 
+33	715	89	18	0	year 6, for example, by multiplying and dividing by powers of 10 in scale drawings or by 
+33	740	89	18	0	multiplying and dividing by powers of a 1000 in converting between units such as 
+33	764	89	18	0	kilometres and metres. 
+33	798	89	18	0	Distributivity can be expressed as 
+33	798	362	18	0	a
+33	798	372	18	0	(
+33	798	378	18	0	b
+33	798	388	18	0	 + 
+33	798	409	18	0	c
+33	798	418	18	0	) = 
+33	798	444	18	0	ab
+33	798	464	18	0	 + 
+33	798	485	18	0	ac
+33	798	504	18	0	. 
+33	832	89	18	0	They understand the terms factor, multiple and prime, square and cube numbers and 
+33	857	89	18	0	use them to construct equivalence statements (for example, 4 x 35 = 2 x 2 x 35;  
+33	882	89	18	0	3 x 270 = 3 x 3 x 9 x 10 = 9
+33	880	306	12	0	2
+33	882	313	18	0	 x 10). 
+33	918	89	18	0	Pupils use and explain the equals sign to indicate equivalence, including in missing 
+33	942	89	18	0	number problems (for example, 13 + 24 = 12 + 25; 33 = 5 x  ). 
+34	41	85	15	1	Mathematics – key stages 1 and 2 
+34	1202	85	15	1	34 
+34	92	89	18	1	Number – fractions (including decimals and percentages) 
+34	154	89	18	1	Statutory requirements 
+34	189	89	18	0	Pupils should be taught to: 
+34	225	89	18	0	
+34	223	116	18	0	compare and order fractions whose denominators are all multiples of the same 
+34	248	116	18	0	number 
+34	284	89	18	0	
+34	282	116	18	0	identify, name and write equivalent fractions of a given fraction, represented visually, 
+34	307	116	18	0	including tenths and hundredths 
+34	342	89	18	0	
+34	340	116	18	0	recognise mixed numbers and improper fractions and convert from one form to the 
+34	369	116	18	0	other and write mathematical statements > 1 as a mixed number [for example, 
+34	382	747	12	0	5
+34	368	747	12	0	2
+34	369	757	18	0	 + 
+34	382	781	12	0	5
+34	368	781	12	0	4
+34	405	116	18	0	= 
+34	417	135	13	0	5
+34	403	136	13	0	6
+34	405	145	18	0	 = 1
+34	417	180	13	0	5
+34	403	180	13	0	1
+34	405	190	18	0	] 
+34	447	89	18	0	
+34	445	116	18	0	add and subtract fractions with the same denominator and denominators that are 
+34	470	116	18	0	multiples of the same number 
+34	506	89	18	0	
+34	504	116	18	0	multiply proper fractions and mixed numbers by whole numbers, supported by 
+34	528	116	18	0	materials and diagrams 
+34	568	89	18	0	
+34	566	116	18	0	read and write decimal numbers as fractions [for example, 0.71 = 
+34	579	642	12	0	100
+34	565	647	12	0	71
+34	566	666	18	0	] 
+34	609	89	18	0	
+34	607	116	18	0	recognise and use thousandths and relate them to tenths, hundredths and decimal 
+34	631	116	18	0	equivalents 
+34	667	89	18	0	
+34	665	116	18	0	round decimals with two decimal places to the nearest whole number and to one 
+34	690	116	18	0	decimal place 
+34	726	89	18	0	
+34	724	116	18	0	read, write, order and compare numbers with up to three decimal places 
+34	760	89	18	0	
+34	758	116	18	0	solve problems involving number up to three decimal places 
+34	794	89	18	0	
+34	792	116	18	0	recognise the per cent symbol (%) and understand that per cent relates to ‘number of 
+34	816	116	18	0	parts per hundred’, and write percentages as a fraction with denominator 100, and as 
+34	841	116	18	0	a decimal 
+34	875	89	18	0	
+34	873	116	18	0	solve problems which require knowing percentage and decimal equivalents of 
+34	885	742	12	0	2
+34	871	743	12	0	1
+34	873	752	18	0	, 
+34	885	766	12	0	4
+34	871	767	12	0	1
+34	873	776	18	0	, 
+34	921	120	12	0	5
+34	907	120	12	0	1
+34	908	130	18	0	, 
+34	921	144	12	0	5
+34	907	144	12	0	2
+34	908	154	18	0	, 
+34	921	168	12	0	5
+34	907	168	12	0	4
+34	908	177	18	0	 and those fractions with a denominator of a multiple of 10 or 25. 
+34	981	89	18	1	Notes and guidance (non-statutory) 
+34	1010	89	18	0	Pupils should be taught throughout that percentages, decimals and fractions are 
+34	1035	89	18	0	different ways of expressing proportions. 
+34	1069	89	18	0	They extend their knowledge of fractions to thousandths and connect to decimals and 
+34	1094	89	18	0	measures. 
+35	41	568	15	1	Mathematics – key stages 1 and 2 
+35	1202	791	15	1	35 
+35	93	89	18	1	Notes and guidance (non-statutory) 
+35	123	89	18	0	Pupils connect equivalent fractions > 1 that simplify to integers with division and other 
+35	147	89	18	0	fractions > 1 to division with remainders, using the number line and other models, and 
+35	172	89	18	0	hence move from these to improper and mixed fractions. 
+35	206	89	18	0	Pupils connect multiplication by a fraction to using fractions as operators (fractions of), 
+35	231	89	18	0	and to division, building on work from previous years. This relates to scaling by simple 
+35	256	89	18	0	fractions, including fractions > 1. 
+35	290	89	18	0	Pupils practise adding and subtracting fractions to become fluent through a variety of 
+35	315	89	18	0	increasingly complex problems. They extend their understanding of adding and 
+35	339	89	18	0	subtracting fractions to calculations that exceed 1 as a mixed number. 
+35	373	89	18	0	Pupils continue to practise counting forwards and backwards in simple fractions. 
+35	407	89	18	0	Pupils continue to develop their understanding of fractions as numbers, measures and 
+35	432	89	18	0	operators by finding fractions of numbers and quantities. 
+35	466	89	18	0	Pupils extend counting from year 4, using decimals and fractions including bridging zero, 
+35	491	89	18	0	for example on a number line. 
+35	524	89	18	0	Pupils say, read and write decimal fractions and related tenths, hundredths and 
+35	549	89	18	0	thousandths accurately and are confident in checking the reasonableness of their 
+35	574	89	18	0	answers to problems. 
+35	608	89	18	0	They mentally add and subtract tenths, and one-digit whole numbers and tenths. 
+35	642	89	18	0	They practise adding and subtracting decimals, including a mix of whole numbers and 
+35	667	89	18	0	decimals, decimals with different numbers of decimal places, and complements of 1 (for 
+35	691	89	18	0	example, 0.83 + 0.17 = 1). 
+35	725	89	18	0	Pupils should go beyond the measurement and money models of decimals, for example, 
+35	750	89	18	0	by solving puzzles involving decimals. 
+35	784	89	18	0	Pupils should make connections between percentages, fractions and decimals (for 
+35	813	89	18	0	example, 100% represents a whole quantity and 1% is 
+35	825	531	13	0	100
+35	811	538	13	0	1
+35	813	555	18	0	, 50% is 
+35	825	627	13	0	100
+35	811	631	13	0	50
+35	813	651	18	0	, 25% is 
+35	825	723	13	0	100
+35	811	727	13	0	25
+35	813	748	18	0	) and 
+35	844	89	18	0	relate this to finding ‘fractions of’. 
+36	41	85	15	1	Mathematics – key stages 1 and 2 
+36	1202	85	15	1	36 
+36	92	89	18	1	Measurement 
+36	154	89	18	1	Statutory requirements 
+36	189	89	18	0	Pupils should be taught to: 
+36	225	89	18	0	
+36	223	116	18	0	convert between different units of metric measure (for example, kilometre and metre; 
+36	248	116	18	0	centimetre and metre; centimetre and millimetre; gram and kilogram; litre and 
+36	273	116	18	0	millilitre) 
+36	309	89	18	0	
+36	307	116	18	0	understand and use approximate equivalences between metric units and common 
+36	331	116	18	0	imperial units such as inches, pounds and pints 
+36	367	89	18	0	
+36	365	116	18	0	measure and calculate the perimeter of composite rectilinear shapes in centimetres 
+36	390	116	18	0	and metres 
+36	426	89	18	0	
+36	424	116	18	0	calculate and compare the area of rectangles (including squares), and including 
+36	449	116	18	0	using standard units, square centimetres (cm
+36	447	475	12	0	2
+36	449	482	18	0	) and square metres (m
+36	447	669	12	0	2
+36	449	676	18	0	) and estimate 
+36	474	116	18	0	the area of irregular shapes 
+36	509	89	18	0	
+36	507	116	18	0	estimate volume [for example, using 1 cm
+36	505	448	12	0	3
+36	507	455	18	0	 blocks to build cuboids (including cubes)] 
+36	532	116	18	0	and capacity [for example, using water] 
+36	568	89	18	0	
+36	566	116	18	0	solve problems involving converting between units of time 
+36	602	89	18	0	
+36	600	116	18	0	use all four operations to solve problems involving measure [for example, length, 
+36	625	116	18	0	mass, volume, money] using decimal notation, including scaling. 
+36	696	89	18	1	Notes and guidance (non-statutory) 
+36	726	89	18	0	Pupils use their knowledge of place value and multiplication and division to convert 
+36	751	89	18	0	between standard units. 
+36	785	89	18	0	Pupils calculate the perimeter of rectangles and related composite shapes, including 
+36	809	89	18	0	using the relations of perimeter or area to find unknown lengths. Missing measures 
+36	834	89	18	0	questions such as these can be expressed algebraically, for example 4 + 2
+36	834	684	18	0	b
+36	834	694	18	0	 = 20 for a 
+36	859	89	18	0	rectangle of sides 2 cm and 
+36	859	314	18	0	b
+36	859	324	18	0	 cm and perimeter of 20cm. 
+36	893	89	18	0	Pupils calculate the area from scale drawings using given measurements. 
+36	927	89	18	0	Pupils use all four operations in problems involving time and money, including 
+36	952	89	18	0	conversions (for example, days to weeks, expressing the answer as weeks and days). 
+37	41	568	15	1	Mathematics – key stages 1 and 2 
+37	1202	791	15	1	37 
+37	92	89	18	1	Geometry – properties of shapes 
+37	154	89	18	1	Statutory requirements 
+37	189	89	18	0	Pupils should be taught to: 
+37	225	89	18	0	
+37	223	116	18	0	identify 3-D shapes, including cubes and other cuboids, from 2-D representations 
+37	259	89	18	0	
+37	257	116	18	0	know angles are measured in degrees: estimate and compare acute, obtuse and 
+37	282	116	18	0	reflex angles 
+37	318	89	18	0	
+37	316	116	18	0	draw given angles, and measure them in degrees (
+37	313	521	12	0	o
+37	316	528	18	0	) 
+37	351	89	18	0	
+37	349	116	18	0	identify: 
+37	381	132	18	0	
+37	379	159	18	0	angles at a point and one whole turn (total 360
+37	377	529	12	0	o
+37	379	536	18	0	) 
+37	414	132	18	0	
+37	412	159	18	0	angles at a point on a straight line and 
+37	424	472	12	0	2
+37	410	472	12	0	1
+37	412	482	18	0	 a turn (total 180
+37	410	613	12	0	o
+37	412	619	18	0	) 
+37	445	132	18	0	
+37	443	159	18	0	other multiples of 90
+37	441	321	12	0	o
+37	479	89	18	0	
+37	477	116	18	0	use the properties of rectangles to deduce related facts and find missing lengths and 
+37	502	116	18	0	angles 
+37	538	89	18	0	
+37	536	116	18	0	distinguish between regular and irregular polygons based on reasoning about equal 
+37	561	116	18	0	sides and angles. 
+37	632	89	18	1	Notes and guidance (non-statutory) 
+37	662	89	18	0	Pupils become accurate in drawing lines with a ruler to the nearest millimetre, and 
+37	687	89	18	0	measuring with a protractor. They use conventional markings for parallel lines and right 
+37	712	89	18	0	angles. 
+37	745	89	18	0	Pupils use the term diagonal and make conjectures about the angles formed between 
+37	770	89	18	0	sides, and between diagonals and parallel sides, and other properties of quadrilaterals, 
+37	795	89	18	0	for example using dynamic geometry ICT tools. 
+37	829	89	18	0	Pupils use angle sum facts and other properties to make deductions about missing 
+37	854	89	18	0	angles and relate these to missing number problems. 
+37	940	89	18	1	Geometry – position and direction 
+37	1002	89	18	1	Statutory requirements 
+37	1037	89	18	0	Pupils should be taught to: 
+37	1073	89	18	0	
+37	1071	116	18	0	identify, describe and represent the position of a shape following a reflection or 
+37	1096	116	18	0	translation, using the appropriate language, and know that the shape has not changed. 
+38	41	85	15	1	Mathematics – key stages 1 and 2 
+38	1202	85	15	1	38 
+38	93	89	18	1	Notes and guidance (non-statutory) 
+38	123	89	18	0	Pupils recognise and use reflection and translation in a variety of diagrams, including 
+38	147	89	18	0	continuing to use a 2-D grid and coordinates in the first quadrant. Reflection should be in 
+38	172	89	18	0	lines that are parallel to the axes. 
+38	259	89	18	1	Statistics 
+38	321	89	18	1	Statutory requirements 
+38	355	89	18	0	Pupils should be taught to: 
+38	391	89	18	0	
+38	389	116	18	0	solve comparison, sum and difference problems using information presented in a line 
+38	414	116	18	0	graph 
+38	450	89	18	0	
+38	448	116	18	0	complete, read and interpret information in tables, including timetables. 
+38	520	89	18	1	Notes and guidance (non-statutory) 
+38	549	89	18	0	Pupils connect their work on coordinates and scales to their interpretation of time graphs. 
+38	583	89	18	0	They begin to decide which representations of data are most appropriate and why. 
+39	41	568	15	1	Mathematics – key stages 1 and 2 
+39	1202	791	15	1	39 
+39	101	89	27	1	Year 6 programme of study 
+39	184	89	18	1	Number – number and place value 
+39	246	89	18	1	Statutory requirements 
+39	281	89	18	0	Pupils should be taught to: 
+39	317	89	18	0	
+39	315	116	18	0	read, write, order and compare numbers up to 10 000 000 and determine the value 
+39	340	116	18	0	of each digit 
+39	376	89	18	0	
+39	374	116	18	0	round any whole number to a required degree of accuracy 
+39	409	89	18	0	
+39	408	116	18	0	use negative numbers in context, and calculate intervals across zero 
+39	443	89	18	0	
+39	441	116	18	0	solve number and practical problems that involve all of the above. 
+39	513	89	18	1	Notes and guidance (non-statutory) 
+39	542	89	18	0	Pupils use the whole number system, including saying, reading and writing numbers 
+39	567	89	18	0	accurately. 
+39	654	89	18	1	Number – addition, subtraction, multiplication and division 
+39	716	89	18	1	Statutory requirements 
+39	750	89	18	0	Pupils should be taught to: 
+39	786	89	18	0	
+39	784	116	18	0	multiply multi-digit numbers up to 4 digits by a two-digit whole number using the 
+39	809	116	18	0	formal written method of long multiplication 
+39	845	89	18	0	
+39	843	116	18	0	divide numbers up to 4 digits by a two-digit whole number using the formal written 
+39	868	116	18	0	method of long division, and interpret remainders as whole number remainders, 
+39	893	116	18	0	fractions, or by rounding, as appropriate for the context 
+39	928	89	18	0	
+39	926	116	18	0	divide numbers up to 4 digits by a two-digit number using the formal written method 
+39	951	116	18	0	of short division where appropriate, interpreting remainders according to the context 
+39	987	89	18	0	
+39	985	116	18	0	perform mental calculations, including with mixed operations and large numbers 
+39	1021	89	18	0	
+39	1019	116	18	0	identify common factors, common multiples and prime numbers 
+39	1055	89	18	0	
+39	1053	116	18	0	use their knowledge of the order of operations to carry out calculations involving the 
+39	1078	116	18	0	four operations 
+39	1113	89	18	0	
+39	1111	116	18	0	solve addition and subtraction multi-step problems in contexts, deciding which 
+39	1136	116	18	0	operations and methods to use and why 
+40	41	85	15	1	Mathematics – key stages 1 and 2 
+40	1202	85	15	1	40 
+40	96	89	18	1	Statutory requirements 
+40	133	89	18	0	
+40	131	116	18	0	solve problems involving addition, subtraction, multiplication and division 
+40	165	89	18	0	
+40	163	116	18	0	use estimation to check answers to calculations and determine, in the context of a 
+40	188	116	18	0	problem, an appropriate degree of accuracy. 
+40	254	89	18	1	Notes and guidance (non-statutory) 
+40	283	89	18	0	Pupils practise addition, subtraction, multiplication and division for larger numbers, 
+40	308	89	18	0	using the formal written methods of columnar addition and subtraction, short and long 
+40	333	89	18	0	multiplication, and short and long division (see 
+40	333	463	18	0	Mathematics Appendix 1
+40	333	660	18	0	). 
+40	365	89	18	0	They undertake mental calculations with increasingly large numbers and more complex 
+40	390	89	18	0	calculations. 
+40	422	89	18	0	Pupils continue to use all the multiplication tables to calculate mathematical statements 
+40	447	89	18	0	in order to maintain their fluency. 
+40	480	89	18	0	Pupils round answers to a specified degree of accuracy, for example, to the nearest 10, 
+40	505	89	18	0	20, 50 etc., but not to a specified number of significant figures. 
+40	537	89	18	0	Pupils explore the order of operations using brackets; for example, 2 + 1 x 3 = 5 and 
+40	562	89	18	0	(2 + 1) x 3 = 9. 
+40	594	89	18	0	Common factors can be related to finding equivalent fractions. 
+40	679	89	18	1	Number – fractions (including decimals and percentages) 
+40	737	89	18	1	Statutory requirements 
+40	771	89	18	0	Pupils should be taught to: 
+40	806	89	18	0	
+40	804	116	18	0	use common factors to simplify fractions; use common multiples to express fractions 
+40	829	116	18	0	in the same denomination 
+40	863	89	18	0	
+40	861	116	18	0	compare and order fractions, including fractions > 1 
+40	895	89	18	0	
+40	893	116	18	0	add and subtract fractions with different denominators and mixed numbers, using the 
+40	918	116	18	0	concept of equivalent fractions 
+40	952	89	18	0	
+40	950	116	18	0	multiply simple pairs of proper fractions, writing the answer in its simplest form 
+40	979	116	18	0	[for example, 
+40	991	229	13	0	4
+40	977	229	13	0	1
+40	979	239	18	0	 × 
+40	991	263	13	0	2
+40	977	264	13	0	1
+40	979	278	18	0	= 
+40	991	298	13	0	8
+40	977	298	13	0	1
+40	979	308	18	0	] 
+40	1018	89	18	0	
+40	1016	116	18	0	divide proper fractions by whole numbers [for example, 
+40	1028	562	12	0	3
+40	1014	562	12	0	1
+40	1016	572	18	0	 ÷ 2 = 
+40	1028	626	12	0	6
+40	1014	627	12	0	1
+40	1016	636	18	0	] 
+40	1051	89	18	0	
+40	1049	116	18	0	associate a fraction with division and calculate decimal fraction equivalents [for 
+40	1078	116	18	0	example, 0.375] for a simple fraction [for example, 
+40	1090	524	13	0	8
+40	1076	524	13	0	3
+40	1078	534	18	0	] 
+40	1113	89	18	0	
+40	1111	116	18	0	identify the value of each digit in numbers given to three decimal places and multiply 
+40	1135	116	18	0	and divide numbers by 10, 100 and 1000 giving answers up to three decimal places 
+41	41	568	15	1	Mathematics – key stages 1 and 2 
+41	1202	791	15	1	41 
+41	96	89	18	1	Statutory requirements 
+41	132	89	18	0	
+41	131	116	18	0	multiply one-digit numbers with up to two decimal places by whole numbers 
+41	166	89	18	0	
+41	164	116	18	0	use written division methods in cases where the answer has up to two decimal 
+41	189	116	18	0	places 
+41	225	89	18	0	
+41	223	116	18	0	solve problems which require answers to be rounded to specified degrees of 
+41	248	116	18	0	accuracy 
+41	284	89	18	0	
+41	282	116	18	0	recall and use equivalences between simple fractions, decimals and percentages, 
+41	307	116	18	0	including in different contexts. 
+41	378	89	18	1	Notes and guidance (non-statutory) 
+41	408	89	18	0	Pupils should practise, use and understand the addition and subtraction of fractions with 
+41	433	89	18	0	different denominators by identifying equivalent fractions with the same denominator. They 
+41	457	89	18	0	should start with fractions where the denominator of one fraction is a multiple of the other 
+41	486	89	18	0	(for example, 
+41	498	203	12	0	2
+41	484	203	12	0	1
+41	486	213	18	0	 + 
+41	498	237	12	0	8
+41	484	238	12	0	1
+41	486	247	18	0	 = 
+41	498	271	12	0	8
+41	484	271	12	0	5
+41	486	282	18	0	) and progress to varied and increasingly complex problems. 
+41	527	89	18	0	Pupils should use a variety of images to support their understanding of multiplication 
+41	551	89	18	0	with fractions. This follows earlier work about fractions as operators (fractions of), as 
+41	576	89	18	0	numbers, and as equal parts of objects, for example as parts of a rectangle. 
+41	610	89	18	0	Pupils use their understanding of the relationship between unit fractions and division to 
+41	635	89	18	0	work backwards by multiplying a quantity that represents a unit fraction to find the whole 
+41	664	89	18	0	quantity (for example, if 
+41	676	281	13	0	4
+41	662	282	13	0	1
+41	664	291	18	0	 of a length is 36cm, then the whole length is 36 × 4 = 144cm). 
+41	698	89	18	0	They practise calculations with simple fractions and decimal fraction equivalents to aid 
+41	723	89	18	0	fluency, including listing equivalent fractions to identify fractions with common 
+41	748	89	18	0	denominators. 
+41	782	89	18	0	Pupils can explore and make conjectures about converting a simple fraction to a decimal 
+41	806	89	18	0	fraction (for example, 3 ÷ 8 = 0.375). For simple fractions with recurring decimal 
+41	831	89	18	0	equivalents, pupils learn about rounding the decimal to three decimal places, or other 
+41	856	89	18	0	appropriate approximations depending on the context. Pupils multiply and divide 
+41	881	89	18	0	numbers with up to two decimal places by one-digit and two-digit whole numbers. Pupils 
+41	906	89	18	0	multiply decimals by whole numbers, starting with the simplest cases, such as 0.4 × 2 = 
+41	931	89	18	0	0.8, and in practical contexts, such as measures and money. 
+41	965	89	18	0	Pupils are introduced to the division of decimal numbers by one-digit whole number, 
+41	989	89	18	0	initially, in practical contexts involving measures and money. They recognise division 
+41	1014	89	18	0	calculations as the inverse of multiplication. 
+41	1048	89	18	0	Pupils also develop their skills of rounding and estimating as a means of predicting and 
+41	1073	89	18	0	checking the order of magnitude of their answers to decimal calculations. This includes 
+41	1098	89	18	0	rounding answers to a specified degree of accuracy and checking the reasonableness of 
+41	1123	89	18	0	their answers. 
+42	41	85	15	1	Mathematics – key stages 1 and 2 
+42	1202	85	15	1	42 
+42	92	89	18	1	Ratio and proportion 
+42	154	89	18	1	Statutory requirements 
+42	189	89	18	0	Pupils should be taught to: 
+42	225	89	18	0	
+42	223	116	18	0	solve problems involving the relative sizes of two quantities where missing values 
+42	248	116	18	0	can be found by using integer multiplication and division facts 
+42	284	89	18	0	
+42	282	116	18	0	solve problems involving the calculation of percentages [for example, of measures, 
+42	307	116	18	0	and such as 15% of 360] and the use of percentages for comparison 
+42	342	89	18	0	
+42	340	116	18	0	solve problems involving similar shapes where the scale factor is known or can be 
+42	365	116	18	0	found 
+42	401	89	18	0	
+42	399	116	18	0	solve problems involving unequal sharing and grouping using knowledge of fractions 
+42	424	116	18	0	and multiples. 
+42	496	89	18	1	Notes and guidance (non-statutory) 
+42	525	89	18	0	Pupils recognise proportionality in contexts when the relations between quantities are in 
+42	550	89	18	0	the same ratio (for example, similar shapes and recipes). 
+42	584	89	18	0	Pupils link percentages or 360° to calculating angles of pie charts.
+42	618	89	18	0	Pupils should consolidate their understanding of ratio when comparing quantities, sizes 
+42	642	89	18	0	and scale drawings by solving a variety of problems. They might use the notation 
+42	643	738	18	0	a
+42	642	748	18	0	:
+42	643	753	18	0	b
+42	642	763	18	0	 to 
+42	667	89	18	0	record their work. 
+42	701	89	18	0	Pupils solve problems involving unequal quantities, for example, ‘for every egg you need 
+42	730	89	18	0	three spoonfuls of flour’, ‘
+42	742	294	13	0	5
+42	728	294	13	0	3
+42	730	304	18	0	 of the class are boys’. These problems are the foundation for 
+42	761	89	18	0	later formal approaches to ratio and proportion. 
+42	848	89	18	1	Algebra 
+42	910	89	18	1	Statutory requirements 
+42	944	89	18	0	Pupils should be taught to: 
+42	980	89	18	0	
+42	978	116	18	0	use simple formulae 
+42	1014	89	18	0	
+42	1012	116	18	0	generate and describe linear number sequences 
+42	1048	89	18	0	
+42	1046	116	18	0	express missing number problems algebraically 
+42	1082	89	18	0	
+42	1080	116	18	0	find pairs of numbers that satisfy an equation with two unknowns 
+42	1115	89	18	0	
+42	1114	116	18	0	enumerate possibilities of combinations of two variables. 
+43	41	568	15	1	Mathematics – key stages 1 and 2 
+43	1202	791	15	1	43 
+43	93	89	18	1	Notes and guidance (non-statutory) 
+43	123	89	18	0	Pupils should be introduced to the use of symbols and letters to represent variables and 
+43	147	89	18	0	unknowns in mathematical situations that they already understand, such as: 
+43	183	89	18	0	
+43	181	116	18	0	missing numbers, lengths, coordinates and angles 
+43	217	89	18	0	
+43	215	116	18	0	formulae in mathematics and science 
+43	251	89	18	0	
+43	249	116	18	0	equivalent expressions (for example, 
+43	249	414	18	0	a
+43	249	424	18	0	 + 
+43	249	445	18	0	b
+43	249	455	18	0	 = 
+43	249	475	18	0	b
+43	249	485	18	0	 + 
+43	249	506	18	0	a
+43	249	516	18	0	) 
+43	285	89	18	0	
+43	283	116	18	0	generalisations of number patterns 
+43	319	89	18	0	
+43	317	116	18	0	number puzzles (for example, what two numbers can add up to). 
+43	403	89	18	1	Measurement 
+43	465	89	18	1	Statutory requirements 
+43	500	89	18	0	Pupils should be taught to: 
+43	536	89	18	0	
+43	534	116	18	0	solve problems involving the calculation and conversion of units of measure, using 
+43	558	116	18	0	decimal notation up to three decimal places where appropriate 
+43	594	89	18	0	
+43	592	116	18	0	use, read, write and convert between standard units, converting measurements of 
+43	617	116	18	0	length, mass, volume and time from a smaller unit of measure to a larger unit, and 
+43	642	116	18	0	vice versa, using decimal notation to up to three decimal places 
+43	678	89	18	0	
+43	676	116	18	0	convert between miles and kilometres 
+43	712	89	18	0	
+43	710	116	18	0	recognise that shapes with the same areas can have different perimeters and vice 
+43	734	116	18	0	versa 
+43	770	89	18	0	
+43	768	116	18	0	recognise when it is possible to use formulae for area and volume of shapes 
+43	804	89	18	0	
+43	802	116	18	0	calculate the area of parallelograms and triangles 
+43	838	89	18	0	
+43	836	116	18	0	calculate, estimate and compare volume of cubes and cuboids using standard units, 
+43	861	116	18	0	including cubic centimetres (cm
+43	859	367	12	0	3
+43	861	374	18	0	) and cubic metres (m
+43	859	548	12	0	3
+43	861	555	18	0	), and extending to other units 
+43	886	116	18	0	[for example, mm
+43	883	255	12	0	3
+43	886	262	18	0	 and km
+43	883	326	12	0	3
+43	886	333	18	0	]. 
+43	957	89	18	1	Notes and guidance (non-statutory) 
+43	987	89	18	0	Pupils connect conversion (for example, from kilometres to miles) to a graphical 
+43	1012	89	18	0	representation as preparation for understanding linear/proportional graphs. 
+43	1046	89	18	0	They know approximate conversions and are able to tell if an answer is sensible. 
+43	1079	89	18	0	Using the number line, pupils use, add and subtract positive and negative integers for 
+43	1104	89	18	0	measures such as temperature. 
+44	41	85	15	1	Mathematics – key stages 1 and 2 
+44	1202	85	15	1	44 
+44	93	89	18	1	Notes and guidance (non-statutory) 
+44	123	89	18	0	They relate the area of rectangles to parallelograms and triangles, for example, by 
+44	147	89	18	0	dissection, and calculate their areas, understanding and using the formulae (in words or 
+44	172	89	18	0	symbols) to do this. 
+44	206	89	18	0	Pupils could be introduced to compound units for speed, such as miles per hour, and 
+44	231	89	18	0	apply their knowledge in science or other subjects as appropriate. 
+44	317	89	18	1	Geometry – properties of shapes 
+44	379	89	18	1	Statutory requirements 
+44	414	89	18	0	Pupils should be taught to: 
+44	450	89	18	0	
+44	448	116	18	0	draw 2-D shapes using given dimensions and angles 
+44	484	89	18	0	
+44	482	116	18	0	recognise, describe and build simple 3-D shapes, including making nets 
+44	518	89	18	0	
+44	516	116	18	0	compare and classify geometric shapes based on their properties and sizes and find 
+44	540	116	18	0	unknown angles in any triangles, quadrilaterals, and regular polygons 
+44	576	89	18	0	
+44	574	116	18	0	illustrate and name parts of circles, including radius, diameter and circumference and 
+44	599	116	18	0	know that the diameter is twice the radius 
+44	635	89	18	0	
+44	633	116	18	0	recognise angles where they meet at a point, are on a straight line, or are vertically 
+44	658	116	18	0	opposite, and find missing angles. 
+44	729	89	18	1	Notes and guidance (non-statutory) 
+44	759	89	18	0	Pupils draw shapes and nets accurately, using measuring tools and conventional 
+44	784	89	18	0	markings and labels for lines and angles. 
+44	818	89	18	0	Pupils describe the properties of shapes and explain how unknown angles and lengths 
+44	842	89	18	0	can be derived from known measurements. 
+44	876	89	18	0	These relationships might be expressed algebraically for example, 
+44	876	622	18	0	d
+44	876	632	18	0	 = 2 × 
+44	876	683	18	0	r
+44	876	689	18	0	;  
+44	901	89	18	0	a
+44	901	99	18	0	 = 180 – (
+44	901	176	18	0	b
+44	901	186	18	0	 + 
+44	901	206	18	0	c
+44	901	215	18	0	). 
+45	41	568	15	1	Mathematics – key stages 1 and 2 
+45	1202	791	15	1	45 
+45	92	89	18	1	Geometry – position and direction 
+45	154	89	18	1	Statutory requirements 
+45	189	89	18	0	Pupils should be taught to: 
+45	225	89	18	0	
+45	223	116	18	0	describe positions on the full coordinate grid (all four quadrants) 
+45	259	89	18	0	
+45	257	116	18	0	draw and translate simple shapes on the coordinate plane, and reflect them in the 
+45	282	116	18	0	axes. 
+45	353	89	18	1	Notes and guidance (non-statutory) 
+45	383	89	18	0	Pupils draw and label a pair of axes in all four quadrants with equal scaling. This 
+45	408	89	18	0	extends their knowledge of one quadrant to all four quadrants, including the use of 
+45	433	89	18	0	negative numbers. 
+45	466	89	18	0	Pupils draw and label rectangles (including squares), parallelograms and rhombuses, 
+45	491	89	18	0	specified by coordinates in the four quadrants, predicting missing coordinates using the 
+45	516	89	18	0	properties of shapes. These might be expressed algebraically for example, translating 
+45	541	89	18	0	vertex (
+45	541	149	18	0	a
+45	541	159	18	0	, 
+45	541	169	18	0	b
+45	541	179	18	0	) to (
+45	541	216	18	0	a
+45	541	226	18	0	 – 2, 
+45	541	266	18	0	b
+45	541	276	18	0	 + 3); (
+45	541	329	18	0	a
+45	541	339	18	0	, 
+45	541	349	18	0	b
+45	541	359	18	0	) and (
+45	541	411	18	0	a
+45	541	421	18	0	 + 
+45	541	441	18	0	d
+45	541	451	18	0	, 
+45	541	462	18	0	b
+45	541	472	18	0	 + 
+45	541	492	18	0	d
+45	541	502	18	0	) being opposite vertices of a square 
+45	566	89	18	0	of side 
+45	566	147	18	0	d
+45	566	157	18	0	. 
+45	652	89	18	1	Statistics 
+45	714	89	18	1	Statutory requirements 
+45	749	89	18	0	Pupils should be taught to: 
+45	785	89	18	0	
+45	783	116	18	0	interpret and construct pie charts and line graphs and use these to solve problems 
+45	818	89	18	0	
+45	816	116	18	0	calculate and interpret the mean as an average. 
+45	888	89	18	1	Notes and guidance (non-statutory) 
+45	918	89	18	0	Pupils connect their work on angles, fractions and percentages to the interpretation of 
+45	942	89	18	0	pie charts. 
+45	976	89	18	0	Pupils both encounter and draw graphs relating two variables, arising from their own 
+45	1001	89	18	0	enquiry and in other subjects. 
+45	1035	89	18	0	They should connect conversion from kilometres to miles in measurement to its 
+45	1060	89	18	0	graphical representation. 
+45	1094	89	18	0	Pupils know when it is appropriate to find the mean of a data set. 
+46	41	85	15	1	Mathematics – key stages 1 and 2 
+46	1202	85	15	1	46 
+46	101	89	27	1	Mathematics Appendix 1: Examples of formal written 
+46	132	89	27	1	methods for addition, subtraction, multiplication and 
+46	163	89	27	1	division 
+46	238	85	18	0	This appendix sets out some examples of formal written methods for all four operations to 
+46	262	85	18	0	illustrate the range of methods that could be taught. It is not intended to be an exhaustive 
+46	287	85	18	0	list, nor is it intended to show progression in formal written methods. For example, the 
+46	312	85	18	0	exact position of intermediate calculations (superscript and subscript digits) will vary 
+46	337	85	18	0	depending on the method and format used. 
+46	380	85	18	0	For multiplication, some pupils may include an addition symbol when adding partial 
+46	405	85	18	0	products. For division, some pupils may include a subtraction symbol when subtracting 
+46	429	85	18	0	multiples of the divisor. 
+46	515	85	18	1	Addition and subtraction 
+46	801	85	18	1	Short multiplication 
+47	41	568	15	1	Mathematics – key stages 1 and 2 
+47	1202	791	15	1	47 
+47	83	85	18	1	Long multiplication 
+47	407	85	18	1	Short division 
+47	655	85	18	1	Long division 
+47	1065	85	16	0	© Crown copyright 2013 
+47	1105	85	16	0	You may re-use this information (excluding logos) free of charge in any format or medium, under 
+47	1128	85	16	0	the terms of the Open Government Licence.  
+47	1151	85	16	0	Reference: DFE-00180-2013 

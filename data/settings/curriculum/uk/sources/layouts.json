@@ -1,0 +1,107 @@
+{
+  "about": "HOW EACH UK DOCUMENT IS PRINTED, as data (tools/spec-read.js reads every layout the same way; 26 Nov). `begin`/`end`: the bold line where the content starts and the line where it stops. `lines`: the first rule whose `if` a line meets (size, bold, left [min, max], text pattern) says what it is: `heading` (at `depth`; `prefix` is what it adds before its descendants' refs, $0 its text, $1 a group of its pattern), `skills` (a heading whose content is skills, not content: listed, never a node), `context` (a year heading: not listed, sets the year's level), `open`/`close` (statements are read only between them, when `opens` is set), `aside` (a heading whose statements are left out: Use of mathematics), `skip`. A heading printed over two lines (the same rule, within `wrapGap`) is one. `statement.start`: a statement's first line (a bullet or a number; continuation lines are indented further); `statement.code`: the strand letter a numbered statement's code starts with (GCSE maths N1). `levels`: `all` the document's own level, `year` a year heading's key stage, `bold` the level of a statement printed in bold (GCSE maths: Higher). `groupText`: a year document lists each section's own heading as a group. `minSize`: runs of type smaller than this (superscripts, stacked fractions) are left out. `levels` (top): each subject's levels in order.",
+  "levels": {
+    "maths": ["KS1", "KS2", "KS3", "GCSE Foundation", "GCSE Higher"],
+    "science": ["KS1", "KS2", "KS3", "GCSE Combined", "GCSE Separate"]
+  },
+  "layouts": {
+    "gcse-maths": {
+      "begin": "^Scope of study$", "beginBold": true, "end": "^Assess?ment [Oo]bjectives$", "endBold": true, "minSize": 14,
+      "lines": [
+        { "if": { "size": [15, 16] }, "role": "skip" },
+        { "if": { "text": "^\\d+$" }, "role": "skip" },
+        { "if": { "text": "should require students to:$" }, "role": "skip" },
+        { "if": { "bold": true, "size": [20, 22] }, "role": "heading", "depth": 1, "prefix": "$0 – " },
+        { "if": { "bold": false, "size": [17, 19], "left": [80, 95], "notText": "^\\d+\\." }, "role": "heading", "depth": 2 }
+      ],
+      "statement": { "start": "^(\\d+)\\.\\s*", "code": { "Number": "N", "Algebra": "A", "Ratio, proportion and rates of change": "R", "Geometry and measures": "G", "Probability": "P", "Statistics": "S" } },
+      "levels": { "all": ["GCSE Foundation", "GCSE Higher"], "bold": ["GCSE Higher"] }
+    },
+    "nc-years-maths": {
+      "begin": "^Year 1 programme of study$", "beginBold": true, "end": "^Mathematics Appendix", "endBold": true, "minSize": 14, "opens": true, "groupText": true,
+      "lines": [
+        { "if": { "size": [14, 16] }, "role": "skip" },
+        { "if": { "bold": true, "text": "^Year (\\d) programme of study$" }, "role": "context", "depth": 0, "prefix": "Y$1 " },
+        { "if": { "bold": true, "size": [26, 28] }, "role": "skip" },
+        { "if": { "bold": true, "text": "^Statutory requirements$" }, "role": "open" },
+        { "if": { "bold": true, "text": "^Notes and guidance|^Note:$" }, "role": "close" },
+        { "if": { "bold": true, "size": [17, 19], "left": [80, 95] }, "role": "heading", "depth": 1 }
+      ],
+      "statement": { "start": "^[\u2022\uf0a7\uf0b7]\\s*" },
+      "levels": { "year": { "1": "KS1", "2": "KS1", "3": "KS2", "4": "KS2", "5": "KS2", "6": "KS2" } }
+    },
+    "nc-ks3-maths": {
+      "begin": "^Working mathematically$", "beginBold": true, "minSize": 14,
+      "lines": [
+        { "if": { "size": [14, 16] }, "role": "skip" },
+        { "if": { "bold": true, "text": "^Working mathematically$" }, "role": "skills", "depth": 0 },
+        { "if": { "bold": true, "size": [23, 25] }, "role": "heading", "depth": 0, "list": false },
+        { "if": { "bold": true, "size": [20, 22] }, "role": "heading", "depth": 1 },
+        { "if": { "bold": true, "size": [17, 19], "left": [80, 95] }, "role": "heading", "depth": 2 }
+      ],
+      "statement": { "start": "^[\u2022\uf0a7\uf0b7]\\s*" },
+      "levels": { "all": ["KS3"] }
+    },
+    "gcse-science-combined": {
+      "begin": "^Working scientifically$", "beginBold": true, "end": "^Appendix", "endBold": true, "minSize": 14,
+      "lines": [
+        { "if": { "size": [14, 16] }, "role": "skip" },
+        { "if": { "text": "^Bullet points in bold" }, "role": "skip" },
+        { "if": { "text": "^\\d+$" }, "role": "skip" },
+        { "if": { "bold": true, "text": "^Working scientifically$" }, "role": "skills", "depth": 0 },
+        { "if": { "bold": true, "text": "^\\d+\\. " }, "role": "heading", "depth": 1, "list": false },
+        { "if": { "bold": true, "size": [26, 28] }, "role": "heading", "depth": 0, "kind": "group" },
+        { "if": { "bold": true, "text": "^Uses? of ?[Mm]athematics$" }, "role": "aside", "depth": 2 },
+        { "if": { "bold": true, "size": [20, 22] }, "role": "heading", "depth": 1, "prefix": "$0 – " },
+        { "if": { "bold": true, "size": [17, 19], "left": [80, 95] }, "role": "heading", "depth": 2, "prefix": "$0 – " },
+        { "if": { "bold": true, "size": [17, 19], "left": [100, 125] }, "role": "heading", "depth": 3 }
+      ],
+      "statement": { "start": "^[\u2022\uf0a7\uf0b7]\\s*" },
+      "levels": { "all": ["GCSE Combined"] }
+    },
+    "gcse-science-separate": {
+      "begin": "^Working scientifically$", "beginBold": true, "end": "^Appendix", "endBold": true, "minSize": 14,
+      "lines": [
+        { "if": { "size": [14, 16] }, "role": "skip" },
+        { "if": { "text": "^Bullet points in bold" }, "role": "skip" },
+        { "if": { "text": "^\\d+$" }, "role": "skip" },
+        { "if": { "bold": true, "text": "^Working scientifically$" }, "role": "skills", "depth": 0 },
+        { "if": { "bold": true, "text": "^\\d+\\. " }, "role": "heading", "depth": 1, "list": false },
+        { "if": { "bold": true, "size": [26, 28] }, "role": "heading", "depth": 0, "kind": "group" },
+        { "if": { "bold": true, "text": "^Uses? of ?[Mm]athematics$" }, "role": "aside", "depth": 2 },
+        { "if": { "bold": true, "size": [20, 22] }, "role": "heading", "depth": 1, "prefix": "$0 – " },
+        { "if": { "bold": true, "size": [17, 19], "left": [80, 95] }, "role": "heading", "depth": 2, "prefix": "$0 – " },
+        { "if": { "bold": true, "size": [17, 19], "left": [100, 125] }, "role": "heading", "depth": 3 }
+      ],
+      "statement": { "start": "^[\u2022\uf0a7\uf0b7]\\s*" },
+      "levels": { "all": ["GCSE Separate"] }
+    },
+    "nc-years-science": {
+      "begin": "^Key stage 1 programme of study", "beginBold": true, "minSize": 14, "opens": true, "groupText": true,
+      "lines": [
+        { "if": { "size": [14, 16] }, "role": "skip" },
+        { "if": { "bold": true, "text": "^Year (\\d) programme of study$" }, "role": "context", "depth": 0, "prefix": "Y$1 " },
+        { "if": { "bold": true, "text": "programme of study" }, "role": "context", "depth": 0, "prefix": "$0 – " },
+        { "if": { "bold": true, "size": [26, 28] }, "role": "skip" },
+        { "if": { "bold": true, "text": "^Working scientifically$" }, "role": "skills", "depth": 1 },
+        { "if": { "bold": true, "text": "^Statutory requirements$" }, "role": "open" },
+        { "if": { "bold": true, "text": "^Notes and guidance|^Note:$" }, "role": "close" },
+        { "if": { "bold": true, "size": [17, 19], "left": [80, 95] }, "role": "heading", "depth": 1 }
+      ],
+      "statement": { "start": "^[\u2022\uf0a7\uf0b7]\\s*" },
+      "levels": { "year": { "1": "KS1", "2": "KS1", "3": "KS2", "4": "KS2", "5": "KS2", "6": "KS2" } }
+    },
+    "nc-ks3-science": {
+      "begin": "^Working scientifically$", "beginBold": true, "minSize": 14,
+      "lines": [
+        { "if": { "size": [14, 16] }, "role": "skip" },
+        { "if": { "bold": true, "text": "^Working scientifically$" }, "role": "skills", "depth": 0 },
+        { "if": { "bold": true, "size": [23, 25] }, "role": "heading", "depth": 0 },
+        { "if": { "bold": true, "size": [20, 22] }, "role": "heading", "depth": 1 },
+        { "if": { "bold": true, "size": [17, 19], "left": [80, 95] }, "role": "heading", "depth": 2 }
+      ],
+      "statement": { "start": "^[\u2022\uf0a7\uf0b7]\\s*" },
+      "levels": { "all": ["KS3"] }
+    }
+  }
+}

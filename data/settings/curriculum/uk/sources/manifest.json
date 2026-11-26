@@ -1,0 +1,97 @@
+{
+  "about": "THE UK SOURCE DOCUMENTS (26 Nov): the seven gov.uk PDFs the UK curriculum files cite, each kept as its text (pdftohtml -xml, one row per run of type: page, top, left, font size, bold 1/0, text), so tools/spec-read.js reads them with no network. `pdf` is the file read, `sha256` and `bytes` the PDF as downloaded on `fetched`, `text_sha256` the stored text (tools/spec-tree.js fails the build when the text and this disagree). Refresh with `node tools/spec-read.js --fetch uk` (needs pdftohtml). `layout`: the document's layout in layouts.json.",
+  "licence": "Crown copyright; each document states it may be re-used free of charge in any format or medium under the terms of the Open Government Licence (v3.0 for the 2015 GCSE science documents): https://www.nationalarchives.gov.uk/doc/open-government-licence/. Source: Department for Education, gov.uk.",
+  "docs": {
+    "maths-gcse": {
+      "subject": "maths",
+      "doc": "gcse",
+      "title": "Mathematics GCSE subject content and assessment objectives (DfE, November 2013, DFE-00233-2013)",
+      "url": "https://www.gov.uk/government/publications/gcse-mathematics-subject-content-and-assessment-objectives",
+      "pdf": "https://assets.publishing.service.gov.uk/media/5a7cb5b040f0b6629523b52c/GCSE_mathematics_subject_content_and_assessment_objectives.pdf",
+      "file": "maths-gcse.tsv",
+      "layout": "gcse-maths",
+      "sha256": "647a751b51c71d9ced1c9356aa70b15ceb1a4acb2fd5bc9af49619ead06d0ee6",
+      "bytes": 588753,
+      "text_sha256": "10ee7cb170ecc19447fe376eb246495665362ee47ce51c432e0b3e1bba1a05fb",
+      "fetched": "2026-11-26"
+    },
+    "maths-nc-ks12": {
+      "subject": "maths",
+      "doc": "nc-ks12",
+      "title": "National curriculum in England: mathematics programmes of study, key stages 1 and 2 (DfE, September 2013)",
+      "url": "https://www.gov.uk/government/publications/national-curriculum-in-england-mathematics-programmes-of-study",
+      "pdf": "https://assets.publishing.service.gov.uk/media/5a7da548ed915d2ac884cb07/PRIMARY_national_curriculum_-_Mathematics_220714.pdf",
+      "file": "maths-nc-ks12.tsv",
+      "layout": "nc-years-maths",
+      "sha256": "cfae407ffaa5766bba0f00932f9a1f70a945ac03f955e3cddd761a63e826a1e4",
+      "bytes": 499934,
+      "text_sha256": "3030ae0b9684be5c7babb838431adb6e76f0b39c7bb5ea41e416944c9d95bafb",
+      "fetched": "2026-11-26"
+    },
+    "maths-nc-ks3": {
+      "subject": "maths",
+      "doc": "nc-ks3",
+      "title": "National curriculum in England: mathematics programmes of study, key stage 3 (DfE, September 2013)",
+      "url": "https://www.gov.uk/government/publications/national-curriculum-in-england-mathematics-programmes-of-study",
+      "pdf": "https://assets.publishing.service.gov.uk/media/5a7c1408e5274a1f5cc75a68/SECONDARY_national_curriculum_-_Mathematics.pdf",
+      "file": "maths-nc-ks3.tsv",
+      "layout": "nc-ks3-maths",
+      "sha256": "faf4c691aae8012836f162f6f2d041bb83849024b1c80496bdcb1b30289cf7a3",
+      "bytes": 209954,
+      "text_sha256": "d27318592d5d67a5317377994437ef991c8949e2fc4f7f5a8e22a47d40f45f25",
+      "fetched": "2026-11-26"
+    },
+    "science-gcse-single": {
+      "subject": "science",
+      "doc": "gcse-single",
+      "title": "Biology, chemistry and physics GCSE subject content (DfE, 2015, updated May 2019)",
+      "url": "https://www.gov.uk/government/publications/gcse-single-science",
+      "pdf": "https://assets.publishing.service.gov.uk/media/5cd2b951ed915d50c208b4d5/GCSE_single_science_updated_May_2019.pdf",
+      "file": "science-gcse-single.tsv",
+      "layout": "gcse-science-separate",
+      "sha256": "511abad44dc6752a4d92bd8176e6a56e5eae3bd2f3159f10e18638c65039ad62",
+      "bytes": 1150981,
+      "text_sha256": "ee8722f1c404b5de83be9d71b59092fe1d69468965781a4adb001dc26b8700f1",
+      "fetched": "2026-11-26"
+    },
+    "science-gcse-combined": {
+      "subject": "science",
+      "doc": "gcse-combined",
+      "title": "Combined science GCSE subject content (DfE, 2015, updated May 2019)",
+      "url": "https://www.gov.uk/government/publications/gcse-combined-science",
+      "pdf": "https://assets.publishing.service.gov.uk/media/5cd2b8b4ed915d50b6c44ffa/Combined_science_GCSE_updated_May_2019.pdf",
+      "file": "science-gcse-combined.tsv",
+      "layout": "gcse-science-combined",
+      "sha256": "3449916da7a1be1d512521613422d773cd2a672d7b46bde7a74306ed39dd6c2c",
+      "bytes": 1079669,
+      "text_sha256": "2e77752377d82482d7f4631bccaa790a2a4c439d80ad41b7b9997bccffde4876",
+      "fetched": "2026-11-26"
+    },
+    "science-nc-ks12": {
+      "subject": "science",
+      "doc": "nc-ks12",
+      "title": "National curriculum in England: science programmes of study, key stages 1 and 2 (DfE, 2013)",
+      "url": "https://www.gov.uk/government/publications/national-curriculum-in-england-science-programmes-of-study",
+      "pdf": "https://assets.publishing.service.gov.uk/media/5a806ebd40f0b62305b8b1fa/PRIMARY_national_curriculum_-_Science.pdf",
+      "file": "science-nc-ks12.tsv",
+      "layout": "nc-years-science",
+      "sha256": "5aafcbad6d43eb3aed6dbedf73ee334342a6033551c3a4a4cc1ac3a171a5e359",
+      "bytes": 250526,
+      "text_sha256": "0ff2d6b372be252dd2de6011fa6fd3792acf0f32f74b4353cdb00d39607a3478",
+      "fetched": "2026-11-26"
+    },
+    "science-nc-ks3": {
+      "subject": "science",
+      "doc": "nc-ks3",
+      "title": "National curriculum in England: science programmes of study, key stage 3 (DfE, 2013)",
+      "url": "https://www.gov.uk/government/publications/national-curriculum-in-england-science-programmes-of-study",
+      "pdf": "https://assets.publishing.service.gov.uk/media/5a7d563de5274a2af0ae2ffa/SECONDARY_national_curriculum_-_Science_220714.pdf",
+      "file": "science-nc-ks3.tsv",
+      "layout": "nc-ks3-science",
+      "sha256": "8ec1ebae9fb00a6fff85a81e489117f036228106186aa8ab59486994ca0f6b42",
+      "bytes": 165020,
+      "text_sha256": "2165767e8058e2787710941c3dade904b073eccc5bb56581f73981cacb98edab",
+      "fetched": "2026-11-26"
+    }
+  }
+}

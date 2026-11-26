@@ -1,0 +1,1788 @@
+1	408	85	69	1	Combined science 
+1	509	85	36	1	GCSE subject content  
+1	673	85	33	1	June 2015 
+2	1187	436	18	0	2 
+2	82	85	27	1	Contents 
+2	138	85	18	0	Subject content 
+2	138	787	18	0	4
+2	181	103	18	0	Introduction 
+2	181	787	18	0	4
+2	224	103	18	0	Subject aims and learning outcomes 
+2	224	787	18	0	4
+2	267	85	18	0	Working scientifically 
+2	267	787	18	0	7
+2	310	103	18	0	Biology 
+2	310	787	18	0	9
+2	352	121	18	0	Cell biology 
+2	352	777	18	0	10
+2	395	121	18	0	Transport systems 
+2	395	777	18	0	11
+2	438	121	18	0	Health, disease and the development of medicines 
+2	438	777	18	0	12
+2	481	121	18	0	Coordination and control 
+2	481	777	18	0	13
+2	524	121	18	0	Photosynthesis 
+2	524	777	18	0	14
+2	567	121	18	0	Ecosystems 
+2	567	777	18	0	15
+2	609	121	18	0	Inheritance, variation and evolution 
+2	609	777	18	0	16
+2	652	103	18	0	Chemistry 
+2	652	777	18	0	18
+2	695	121	18	0	Atomic structure and the Periodic Table 
+2	695	777	18	0	19
+2	738	121	18	0	Structure, bonding and the properties of matter 
+2	738	777	18	0	20
+2	781	121	18	0	Chemical changes 
+2	781	777	18	0	21
+2	824	121	18	0	Energy changes in chemistry 
+2	824	777	18	0	23
+2	867	121	18	0	The rate and extent of chemical change 
+2	867	777	18	0	23
+2	909	121	18	0	Chemical analysis 
+2	909	777	18	0	24
+2	952	121	18	0	Chemical and allied industries 
+2	952	777	18	0	25
+2	995	121	18	0	Earth and atmospheric science 
+2	995	777	18	0	26
+2	1038	121	18	0	Energy 
+2	1038	777	18	0	29
+2	1081	121	18	0	Forces 
+2	1081	777	18	0	30
+2	1124	121	18	0	Forces and motion 
+2	1124	777	18	0	31
+3	1187	436	18	0	3 
+3	83	121	18	0	Waves in matter 
+3	83	777	18	0	32
+3	126	121	18	0	Light and electromagnetic waves 
+3	126	777	18	0	32
+3	169	121	18	0	Electricity 
+3	169	777	18	0	33
+3	212	121	18	0	Magnetism and electromagnetism 
+3	212	777	18	0	34
+3	254	121	18	0	Particle model of matter 
+3	254	777	18	0	35
+3	297	121	18	0	Atomic structure 
+3	297	777	18	0	35
+3	340	103	18	0	Appendix 1 
+3	340	777	18	0	37
+3	383	103	18	0	Appendix 2 
+3	383	777	18	0	39
+3	426	103	18	0	Appendix 3 
+3	426	777	18	0	40
+3	469	103	18	0	Appendix 4 
+3	469	777	18	0	41
+4	1187	436	18	0	4 
+4	81	85	27	1	Subject content 
+4	149	85	24	1	Introduction 
+4	196	85	18	0	These GCSE subject content criteria sets out the assessment objectives, knowledge, 
+4	220	85	18	0	understanding and skills, for GCSE specifications in combined science, to ensure 
+4	245	85	18	0	progression from key stage 3 national curriculum requirements and the possibility of 
+4	270	85	18	0	development into A level. They provide the framework within which awarding 
+4	295	85	18	0	organisations create the detail of the subject specifications.  
+4	355	85	24	1	Subject aims and learning outcomes 
+4	402	85	18	0	This document sets out the learning outcomes and content coverage required for GCSE 
+4	426	85	18	0	in combined science. In subjects such as the sciences, where topics are taught in 
+4	451	85	18	0	progressively greater depth over the course of key stage 3 and key stage 4, GCSE 
+4	476	85	18	0	outcomes may reflect or build upon subject content which is typically taught at key stage 
+4	501	85	18	0	3. There is no expectation that teaching of such content should be repeated during the 
+4	526	85	18	0	GCSE course where it has already been covered at an earlier stage. 
+4	575	85	18	0	GCSE study in combined science provides the foundations for understanding the 
+4	600	85	18	0	material world. Scientific understanding is changing our lives and is vital to the world’s 
+4	625	85	18	0	future prosperity, and all students should be taught essential aspects of the knowledge, 
+4	650	85	18	0	methods, processes and uses of science. They should be helped to appreciate how the 
+4	675	85	18	0	complex and diverse phenomena of the natural world can be described in terms of a 
+4	699	85	18	0	small number of key ideas relating to the sciences which are both inter-linked, and are of 
+4	724	85	18	0	universal application. These key ideas include: 
+4	777	112	18	0	
+4	774	120	18	0	  the use of conceptual models and theories to make sense of the observed 
+4	798	139	18	0	diversity of natural phenomena  
+4	842	112	18	0	
+4	840	120	18	0	  the assumption that every effect has one or more cause 
+4	884	112	18	0	
+4	881	120	18	0	  that change is driven by differences between different objects and systems when 
+4	905	139	18	0	they interact  
+4	950	112	18	0	
+4	947	120	18	0	  that many such interactions occur over a distance and over time without direct 
+4	971	139	18	0	contact 
+4	1015	112	18	0	
+4	1013	120	18	0	  that science progresses through a cycle of hypothesis, practical experimentation, 
+4	1036	139	18	0	observation, theory development and review 
+4	1081	112	18	0	
+4	1078	120	18	0	  that quantitative analysis is a central element both of many theories and of 
+4	1102	139	18	0	scientific methods of inquiry 
+5	1187	436	18	0	5 
+5	83	85	18	0	These key ideas are relevant in different ways and with different emphases in the three 
+5	108	85	18	0	subjects as part of combined science: examples of their relevance are given for each 
+5	133	85	18	0	subject in the separate sections below for biology, chemistry and physics components of 
+5	158	85	18	0	combined science. 
+5	207	85	18	0	GCSE specifications in combined award science should enable students to:  
+5	253	111	18	0	
+5	250	119	18	0	  develop scientific knowledge and conceptual understanding through the specific 
+5	274	138	18	0	disciplines of biology, chemistry and physics  
+5	318	111	18	0	
+5	316	119	18	0	  develop understanding of the nature, processes and methods of science, through 
+5	339	138	18	0	different types of scientific enquiries that help them to answer scientific questions 
+5	363	138	18	0	about the world around them 
+5	408	111	18	0	
+5	405	119	18	0	  develop and learn to apply observational, practical, modelling, enquiry and 
+5	429	138	18	0	problem-solving skills, both in the laboratory, in the field and in other learning 
+5	453	138	18	0	environments 
+5	497	111	18	0	
+5	494	119	18	0	  develop their ability to evaluate claims based on science through critical analysis 
+5	518	138	18	0	of the methodology, evidence and conclusions, both qualitatively and 
+5	542	138	18	0	quantitatively.  
+5	584	85	18	0	Furthermore, the sciences should be studied in ways that help students to develop 
+5	609	85	18	0	curiosity about the natural world, insight into how science works, and appreciation of its 
+5	634	85	18	0	relevance to their everyday lives. The scope and nature of such study should be broad, 
+5	658	85	18	0	coherent, practical and satisfying, and thereby encourage students to be inspired, 
+5	683	85	18	0	motivated and challenged by the subject and its achievements. 
+5	726	85	18	1	The two main dimensions of the content 
+5	769	85	18	0	The ways in which GCSE specifications in combined science should enable students to 
+5	794	85	18	0	show their understanding of the concepts and methods of science are spelt out below in 
+5	819	85	18	0	two main sections.  
+5	861	85	18	0	The first section section explains the main ways in which working scientifically should be 
+5	886	85	18	0	developed and assessed. Specifications should encourage the development of 
+5	911	85	18	0	knowledge and understanding in science through opportunities for working scientifically. 
+5	936	85	18	0	Awarding organisations should identify in their assessment strategy how, over a cycle of 
+5	961	85	18	0	assessments, they will ensure that working scientifically is developed and assessed 
+5	986	85	18	0	through the subject content. 
+5	1029	85	18	0	The second section sets out the key ideas and subject contents for the biology, chemistry 
+5	1053	85	18	0	and physics components of combined science. In combined science there should be a 
+5	1078	85	18	0	minimum of 30% of each of biology, chemistry and physics.  
+6	1187	436	18	0	6 
+6	83	85	18	0	These content sections also set out the depth of treatment for both teaching and 
+6	108	85	18	0	learning. Awarding organisations’ specifications should be designed to set out the level of 
+6	133	85	18	0	understanding which pupils are expected to acquire.   
+6	176	85	18	0	The content sections also set out the mathematical skills required for combined science. 
+6	200	85	18	0	In order to be able to develop their skills, knowledge and understanding in science, 
+6	225	85	18	0	students need to have been taught, and demonstrate competence, to select and apply 
+6	250	85	18	0	the appropriate areas of mathematics relevant to the subject as set out under each topic 
+6	275	85	18	0	and the mathematical skills listed in appendix 3. The mathematics should be at levels up 
+6	300	85	18	0	to, but not beyond, the requirements specified in GCSE mathematics for the appropriate 
+6	325	85	18	0	tier. 
+6	367	85	18	0	All mathematics content must be assessed within the lifetime of the specification.  
+6	410	85	18	0	Four 
+6	410	127	18	1	Appendices 
+6	410	234	18	0	provide further details about (1) equations in physics; (2) units in 
+6	435	85	18	0	science; (3) mathematical skills; and (4) gives a list of apparatus and techniques. 
+7	1187	436	18	0	7 
+7	81	85	27	1	Working scientifically 
+7	132	85	18	0	This section explains, with both general and subject-specific examples, the main ways in 
+7	157	85	18	0	which working scientifically may be developed and assessed. 
+7	200	85	18	1	1. Development of scientific thinking 
+7	245	112	18	0	•
+7	244	120	18	0	  understand how scientific methods and theories develop over time  
+7	288	112	18	0	•
+7	287	120	18	0	  use a variety of models such as representational, spatial, descriptive, 
+7	311	139	18	0	computational and mathematical to solve problems, make predictions and to 
+7	334	139	18	0	develop scientific explanations and understanding of familiar  and unfamiliar 
+7	358	139	18	0	facts  
+7	402	112	18	0	•
+7	401	120	18	0	  appreciate the power and limitations of science and  consider any ethical issues 
+7	425	139	18	0	which may arise  
+7	469	112	18	0	•
+7	468	120	18	0	  explain everyday and technological applications of science; evaluate associated 
+7	492	139	18	0	personal, social, economic and environmental implications; and make decisions 
+7	516	139	18	0	based on the evaluation of evidence and arguments  
+7	559	112	18	0	•
+7	559	120	18	0	  evaluate risks both in practical science and the wider societal context, including 
+7	582	139	18	0	perception of risk in relation to  data and consequences 
+7	626	112	18	0	•
+7	626	120	18	0	  recognise the importance of peer review of results and of communicating results 
+7	649	139	18	0	to a range of audiences 
+7	691	85	18	1	2. Experimental skills and strategies 
+7	736	112	18	0	•
+7	735	120	18	0	  use scientific theories and explanations to develop hypotheses  
+7	779	112	18	0	•
+7	778	120	18	0	  plan experiments or devise procedures to make observations, produce or 
+7	802	139	18	0	characterise a substance, test hypotheses, check data or explore phenomena  
+7	846	112	18	0	•
+7	845	120	18	0	  apply a knowledge of a range of techniques, instruments, apparatus, and 
+7	869	139	18	0	materials to select those appropriate to the experiment  
+7	913	112	18	0	•
+7	912	120	18	0	  carry out experiments appropriately having due regard to the correct 
+7	936	139	18	0	manipulation of apparatus, the accuracy of measurements and health and safety 
+7	959	139	18	0	considerations  
+7	1003	112	18	0	•
+7	1003	120	18	0	  recognise when to apply a knowledge of sampling techniques to ensure any 
+7	1026	139	18	0	samples collected are representative 
+7	1070	112	18	0	•
+7	1069	120	18	0	  make and record observations and measurements using a range of apparatus 
+7	1093	139	18	0	and methods  
+7	1137	112	18	0	•
+7	1136	120	18	0	  evaluate methods and suggest possible improvements and further investigations 
+8	1187	436	18	0	8 
+8	83	85	18	1	3. Analysis and evaluation
+8	128	112	18	0	•
+8	127	120	18	0	  Apply the cycle of collecting, presenting and analysing data, including: 
+8	171	166	18	0	•
+8	170	174	18	0	  presenting observations and other data using appropriate methods  
+8	214	166	18	0	•
+8	213	174	18	0	  translating data from one form to another  
+8	257	166	18	0	•
+8	256	174	18	0	  carrying out and represent mathematical and statistical analysis  
+8	300	166	18	0	•
+8	299	174	18	0	  representing distributions of results and make estimations of 
+8	323	193	18	0	uncertainty  
+8	367	166	18	0	•
+8	366	174	18	0	  interpreting observations and other data (presented in verbal, 
+8	390	193	18	0	diagrammatic, graphical, symbolic or numerical form), including 
+8	414	193	18	0	identifying patterns and trends, making inferences and drawing 
+8	437	193	18	0	conclusions  
+8	481	166	18	0	•
+8	480	174	18	0	  presenting reasoned explanations including relating data to 
+8	504	193	18	0	hypotheses  
+8	548	166	18	0	•
+8	547	174	18	0	  being objective, evaluating data in terms of accuracy, precision, 
+8	571	193	18	0	repeatability and reproducibility and identifying potential sources of 
+8	595	193	18	0	random and systematic error  
+8	639	166	18	0	•
+8	638	174	18	0	  communicating the scientific rationale for investigations, methods 
+8	662	193	18	0	used, findings and reasoned conclusions through paper-based and 
+8	685	193	18	0	electronic reports and presentations using verbal, diagrammatic, 
+8	709	193	18	0	graphical, numerical and symbolic forms 
+8	751	85	18	1	4. Scientific vocabulary, quantities, units, symbols and nomenclature  
+8	796	112	18	0	•
+8	795	120	18	0	  use scientific vocabulary, terminology and definitions  
+8	839	112	18	0	•
+8	838	120	18	0	  recognise the importance of scientific quantities and understand how they are 
+8	862	139	18	0	determined  
+8	906	112	18	0	•
+8	905	120	18	0	  use SI units (e.g. kg, g, mg; km, m, mm; kJ, J) and  IUPAC chemical 
+8	929	139	18	0	nomenclature unless inappropriate  
+8	972	112	18	0	•
+8	972	120	18	0	  use prefixes and powers of ten for orders of magnitude (e.g. tera, giga, mega, kilo, 
+8	996	139	18	0	centi, milli, micro and nano)  
+8	1039	112	18	0	•
+8	1039	120	18	0	  interconvert units 
+8	1082	112	18	0	•
+8	1082	120	18	0	  use an appropriate number of significant figures in calculation 
+9	1187	436	18	0	9 
+9	81	85	27	1	Biology 
+9	132	85	18	0	Biology is the science of living organisms (including animals, plants, fungi and 
+9	156	85	18	0	microorganisms) and their interactions with each other and the environment. The study of 
+9	180	85	18	0	biology involves collecting and interpreting information about the natural world to identify 
+9	204	85	18	0	patterns and relate possible cause and effect. Biological information is used to help 
+9	227	85	18	0	humans improve their own lives and strive to create a sustainable world for future 
+9	251	85	18	0	generations. 
+9	290	85	18	0	Students should be helped to understand how, through the ideas of biology, the complex 
+9	314	85	18	0	and diverse phenomena of the natural world can be described in terms of a small number 
+9	338	85	18	0	of key ideas which are of universal application, and which can be illustrated in the 
+9	361	85	18	0	separate topics set out below. These ideas include: 
+9	402	112	18	0	•
+9	401	120	18	0	  life processes depend on molecules whose structure is related to their function 
+9	442	112	18	0	•
+9	441	120	18	0	  the fundamental units of living organisms are cells, which may be part of highly 
+9	465	139	18	0	adapted structures including tissues, organs and organ systems, enabling living 
+9	489	139	18	0	processes to be performed effectively  
+9	530	112	18	0	•
+9	529	120	18	0	  living organisms may form populations of single species, communities of many 
+9	553	139	18	0	species and ecosystems, interacting with each other, with the environment and 
+9	577	139	18	0	with humans in many different ways 
+9	617	112	18	0	•
+9	617	120	18	0	  living organisms are interdependent and show adaptations to their environment 
+9	657	112	18	0	•
+9	657	120	18	0	  life on Earth is dependent on photosynthesis in which green plants and algae trap 
+9	680	139	18	0	light from the Sun to fix carbon dioxide and combine it with hydrogen from water to 
+9	704	139	18	0	make organic compounds and oxygen 
+9	745	112	18	0	•
+9	744	120	18	0	  organic compounds are used as fuels in cellular respiration to allow the other 
+9	768	139	18	0	chemical reactions necessary for life 
+9	809	112	18	0	•
+9	808	120	18	0	  the chemicals in ecosystems are continually cycling through the natural world 
+9	849	112	18	0	•
+9	848	120	18	0	  the characteristics of a living organism are influenced by its genome and its 
+9	872	139	18	0	interaction with the environment 
+9	913	112	18	0	•
+9	912	120	18	0	  evolution occurs by a process of natural selection and accounts both for 
+9	936	139	18	0	biodiversity and how organisms are all related to varying degrees  
+9	975	85	18	0	This content sets out the full range of content for the biology component of GCSE 
+9	999	85	18	0	combined science. Awarding organisations may, however, use flexibility to increase 
+9	1024	85	18	0	depth, breadth or context within the specified topics or to consolidate teaching of the 
+9	1049	85	18	0	subject content. 
+9	1092	85	18	0	Higher tier GCSE combined science specifications must assess all the content set out 
+9	1117	85	18	0	below, whether it is underlined or is not underlined. Foundation tier GCSE combined 
+10	1187	431	18	0	10 
+10	83	85	18	0	science specifications must assess all the content set out below, except for content which 
+10	108	85	18	0	is underlined. 
+10	151	85	18	0	GCSE combined science specifications should require students to: 
+10	202	85	21	1	Cell biology 
+10	245	85	18	1	Prokaryotic and eukaryotic cells 
+10	290	112	18	0	•
+10	289	120	18	0	  explain how the main sub-cellular structures of eukaryotic cells (plants and 
+10	313	139	18	0	animals) and prokaryotic cells are related to their functions, including the 
+10	336	139	18	0	nucleus/genetic material, plasmids, mitochondria, chloroplasts and cell 
+10	360	139	18	0	membranes 
+10	404	112	18	0	•
+10	403	120	18	0	  explain how electron microscopy has increased our understanding of sub-cellular 
+10	427	139	18	0	structures. 
+10	469	85	18	1	Growth and development of cells 
+10	514	112	18	0	•
+10	513	120	18	0	  describe the process of mitosis in growth, including the cell cycle 
+10	556	112	18	0	•
+10	556	120	18	0	  explain the importance of cell differentiation 
+10	599	112	18	0	•
+10	599	120	18	0	  describe cancer as the result of changes in cells that lead to uncontrolled growth 
+10	623	139	18	0	and division 
+10	666	112	18	0	•
+10	666	120	18	0	  describe the function of stem cells in embryonic and adult animals and meristems 
+10	690	139	18	0	in plants  
+10	733	112	18	0	•
+10	733	120	18	0	  discuss potential benefits and risks associated with the use of stem cells in 
+10	756	139	18	0	medicine 
+10	800	112	18	0	•
+10	799	120	18	0	  explain the role of meiotic cell division in halving the chromosome number to form 
+10	823	139	18	0	gametes 
+10	865	85	18	1	Cell metabolism 
+10	909	112	18	0	•
+10	908	120	18	0	  explain the mechanism of enzyme action including the active site, enzyme 
+10	932	139	18	0	specificity and factors affecting the rate of enzymatic reaction
+10	976	112	18	0	•
+10	975	120	18	0	  describe cellular respiration as an exothermic reaction which is continuously 
+10	999	139	18	0	occurring in all living cells 
+10	1042	112	18	0	•
+10	1042	120	18	0	  compare the processes of aerobic and anaerobic respiration 
+10	1085	112	18	0	•
+10	1085	120	18	0	  explain the importance of sugars, amino acids, fatty acids and glycerol in the 
+10	1108	139	18	0	synthesis and breakdown of carbohydrates, lipids and proteins 
+11	1187	431	18	0	11 
+11	83	85	18	1	Use of mathematics 
+11	128	112	18	0	•
+11	127	120	18	0	  demonstrate an understanding of number, size and scale and the quantitative 
+11	151	139	18	0	relationship between units (2a and 2h) 
+11	195	112	18	0	•
+11	194	120	18	0	  use estimations and explain when they should be used (1d) 
+11	238	112	18	0	•
+11	237	120	18	0	  carry out rate calculations for chemical reactions (1a and 1c) 
+11	281	112	18	0	•
+11	280	120	18	0	  calculate with numbers written in standard form (1b) 
+11	330	85	21	1	Transport systems 
+11	373	85	18	1	Transport in cells 
+11	418	117	18	0	•
+11	417	125	18	0	  explain how substances are transported into and out of cells through diffusion, 
+11	441	138	18	0	osmosis and active transport.  
+11	483	85	18	1	Transport systems in multicellular organisms 
+11	528	117	18	0	•
+11	528	125	18	0	  explain the need for exchange surfaces and a transport system in multicellular 
+11	551	138	18	0	organisms in terms of surface area:volume ratio 
+11	595	117	18	0	•
+11	595	125	18	0	  describe some of the substances transported into and out of a range of organisms 
+11	618	138	18	0	in terms of the requirements of those organisms, to include oxygen, carbon 
+11	642	138	18	0	dioxide, water, dissolved food molecules, mineral ions and urea 
+11	684	85	18	1	Human circulatory system 
+11	729	112	18	0	•
+11	728	139	18	0	describe the human circulatory system, including the relationship with the gaseous 
+11	752	139	18	0	exchange system, and explain how the structure of the heart and the blood 
+11	776	139	18	0	vessels are adapted to their functions 
+11	816	112	18	0	•
+11	816	139	18	0	explain how red blood cells, white blood cells, platelets and plasma are  adapted 
+11	839	139	18	0	to their functions in the blood 
+11	881	85	18	1	Transport systems in plants 
+11	926	112	18	0	•
+11	925	120	18	0	  explain how the structure of xylem and phloem are adapted to their functions in 
+11	949	139	18	0	the plant 
+11	993	112	18	0	•
+11	992	120	18	0	  explain how water and mineral ions are taken up by plants, relating the structure of 
+11	1016	139	18	0	the root hair cells to their function 
+11	1059	112	18	0	•
+11	1059	120	18	0	  describe the processes of transpiration and translocation, including the structure 
+11	1083	139	18	0	and function of the stomata  
+12	1187	431	18	0	12 
+12	85	112	18	0	•
+12	84	120	18	0	  explain the effect of a variety of environmental factors on the rate of water uptake 
+12	108	139	18	0	by a plant, to include light intensity, air movement and temperature  
+12	150	85	18	1	Use of mathematics 
+12	195	112	18	0	•
+12	194	120	18	0	  calculate surface area:volume ratios (1c)
+12	238	112	18	0	•
+12	237	120	18	0	  use simple compound measures such as rate (1a, 1c)  
+12	281	112	18	0	•
+12	280	120	18	0	  carry out rate calculations (1a and 1c) 
+12	324	112	18	0	•
+12	323	120	18	0	  plot, draw and interpret appropriate graphs (4a, 4b, 4c and 4d) 
+12	367	112	18	0	•
+12	366	120	18	0	  use percentiles and calculate percentage gain and loss of mass (1c) 
+12	416	85	21	1	Health, disease and the development of medicines 
+12	459	85	18	1	Health and disease 
+12	504	112	18	0	•
+12	503	120	18	0	  describe the relationship between health and disease 
+12	544	112	18	0	•
+12	543	120	18	0	  describe different types of diseases (including communicable and non-
+12	567	139	18	0	communicable diseases) 
+12	608	112	18	0	•
+12	607	120	18	0	  describe the interactions between different types of disease 
+12	649	85	18	1	Communicable diseases 
+12	693	112	18	0	•
+12	693	120	18	0	  explain how communicable diseases (caused by viruses, bacteria, protists and 
+12	717	139	18	0	fungi) are spread in animals and plants  
+12	760	112	18	0	•
+12	760	120	18	0	  describe a minimum of one common human infection, one plant disease and 
+12	783	139	18	0	sexually transmitted infections in humans, including HIV/AIDS 
+12	827	112	18	0	•
+12	826	120	18	0	  describe the non-specific defence systems of the human body against pathogens 
+12	870	112	18	0	•
+12	869	120	18	0	  explain the role of the immune system of the human body in defence against 
+12	893	139	18	0	disease 
+12	935	85	18	1	Treating, curing and preventing disease  
+12	980	112	18	0	•
+12	979	120	18	0	  explain the use of vaccines and medicines in the prevention and treatment of 
+12	1003	139	18	0	disease 
+12	1046	112	18	0	•
+12	1046	120	18	0	  describe the process of discovery and development of potential new medicines, 
+12	1070	139	18	0	including preclinical and clinical testing 
+13	1187	431	18	0	13 
+13	85	112	18	0	•
+13	84	120	18	0	  explain how the spread of communicable diseases may be reduced or prevented 
+13	108	139	18	0	in animals and plants, to include a minimum of one common human infection, one 
+13	132	139	18	0	plant disease and sexually transmitted infections in humans including HIV/AIDS 
+13	174	85	18	1	Non-communicable diseases in humans 
+13	218	112	18	0	•
+13	218	120	18	0	  recall that many non-communicable human diseases are caused by the interaction 
+13	242	139	18	0	of a number of factors. To include cardiovascular diseases, many forms of cancer, 
+13	265	139	18	0	some lung and liver diseases and diseases influenced by nutrition, including type 
+13	289	139	18	0	2 diabetes 
+13	333	112	18	0	•
+13	332	120	18	0	  explain the effect of lifestyle factors, including exercise, diet, alcohol and smoking, 
+13	356	139	18	0	on the incidence of non-communicable diseases at local, national and global 
+13	380	139	18	0	levels 
+13	423	112	18	0	•
+13	423	120	18	0	  evaluate some different treatments for cardiovascular disease 
+13	464	85	18	1	Use of mathematics
+13	509	106	18	0	•
+13	509	114	18	0	  translate information between graphical and numerical forms (4a) 
+13	552	106	18	0	•
+13	552	114	18	0	  construct and interpret frequency tables and diagrams, bar charts and histograms 
+13	575	133	18	0	(2c) 
+13	619	106	18	0	•
+13	618	114	18	0	  understand the principles of sampling as applied to scientific data (2d) 
+13	662	106	18	0	•
+13	661	114	18	0	  use a scatter diagram to identify a correlation between two variables (2g) 
+13	705	106	18	0	•
+13	705	114	18	0	  calculate cross-sectional areas of 
+13	705	404	18	0	bacterial cultures and clear agar jelly using πr
+13	705	768	12	0	2 
+13	728	133	18	0	(5c) 
+13	778	85	21	1	Coordination and control 
+13	821	85	18	1	Nervous coordination and control in humans 
+13	866	112	18	0	•
+13	865	120	18	0	  explain how the structure of the nervous system (including CNS, sensory and 
+13	889	139	18	0	motor neurones and sensory receptors) is adapted to its functions 
+13	933	112	18	0	•
+13	932	120	18	0	  explain how the structure of a reflex arc is related to its function 
+13	974	85	18	1	Hormonal coordination and control in humans 
+13	1019	112	18	0	•
+13	1018	120	18	0	  describe the principles of hormonal coordination and control by the human 
+13	1042	139	18	0	endocrine system 
+13	1085	112	18	0	•
+13	1085	120	18	0	  explain the roles of thyroxine and adrenaline in the body, including thyroxine as an 
+13	1109	139	18	0	example of a negative feedback system 
+14	1187	431	18	0	14 
+14	85	112	18	0	•
+14	84	120	18	0	  describe the roles of hormones in human reproduction, including the menstrual 
+14	108	139	18	0	cycle  
+14	152	112	18	0	•
+14	151	120	18	0	  explain the interactions of FSH, LH, oestrogen and progesterone in the control of 
+14	175	139	18	0	the menstrual cycle  
+14	219	112	18	0	•
+14	218	120	18	0	  explain the use of hormones in contraception and evaluate hormonal and non-
+14	242	139	18	0	hormonal methods of contraception  
+14	285	112	18	0	•
+14	285	120	18	0	  explain the use of hormones in modern reproductive technologies to treat infertility 
+14	326	85	18	1	Homeostasis in humans 
+14	371	117	18	0	•
+14	371	125	18	0	  explain the importance of maintaining a constant internal environment in response 
+14	394	133	18	0	to internal and external change 
+14	438	117	18	0	•
+14	437	125	18	0	  explain how insulin controls blood sugar levels in the body 
+14	481	117	18	0	•
+14	480	125	18	0	  explain how glucagon interacts with insulin to control blood sugar levels in the body 
+14	524	117	18	0	•
+14	523	125	18	0	  compare type 1 and type 2 diabetes and explain how they can be treated 
+14	565	85	18	1	Use of mathematics 
+14	610	112	18	0	•
+14	609	120	18	0	  extract and interpret data from graphs, charts and tables (2c)  
+14	653	112	18	0	•
+14	652	120	18	0	  translate information between numerical and graphical forms (4a) 
+14	702	85	21	1	Photosynthesis 
+14	745	85	18	1	Importance of photosynthesis 
+14	790	112	18	0	•
+14	789	120	18	0	  describe the process of photosynthesis and describe photosynthesis as an 
+14	813	139	18	0	endothermic reaction 
+14	857	112	18	0	•
+14	856	120	18	0	  describe photosynthetic organisms as the main producers of food and therefore 
+14	880	139	18	0	biomass for life on Earth 
+14	924	112	18	0	•
+14	923	120	18	0	  explain the effect of temperature, light intensity and carbon dioxide concentration 
+14	947	139	18	0	on the rate of photosynthesis  
+14	990	112	18	0	•
+14	990	120	18	0	  explain the interaction of these factors in limiting the rate of photosynthesis 
+14	1031	85	18	1	Use of mathematics 
+14	1076	114	18	0	•
+14	1076	123	18	0	  understand and use simple compound measures such as the rate of a reaction 
+14	1099	141	18	0	(1a and 1c) 
+14	1143	114	18	0	•
+14	1142	123	18	0	  translate information between graphical and numerical form (4a) 
+15	1187	431	18	0	15 
+15	85	114	18	0	•
+15	84	123	18	0	  plot and draw appropriate graphs, selecting appropriate scales for axes (4a and 
+15	108	141	18	0	4c) 
+15	152	114	18	0	•
+15	151	123	18	0	  extract and interpret information from graphs, charts and tables (2c and 4a) 
+15	195	114	18	0	•
+15	194	123	18	0	  understand and use inverse proportion – the inverse square law and light intensity 
+15	218	141	18	0	in the context of factors affecting photosynthesis 
+15	268	85	21	1	Ecosystems 
+15	311	85	18	1	Levels of organisation within an ecosystem 
+15	351	112	18	0	•
+15	351	139	18	0	describe different levels of organisation in an ecosystem from individual organisms 
+15	375	139	18	0	to the whole ecosystem 
+15	415	112	18	0	•
+15	415	139	18	0	explain how some abiotic and biotic factors affect communities 
+15	455	112	18	0	•
+15	455	139	18	0	describe the importance of interdependence and competition in a community 
+15	497	85	18	1	The principle of material cycling 
+15	538	112	18	0	•
+15	537	120	18	0	  recall that many different materials cycle through the abiotic and biotic 
+15	561	139	18	0	components of an ecosystem
+15	611	112	18	0	•
+15	610	120	18	0	  explain the importance of the carbon cycle and the water cycle to living organisms 
+15	654	112	18	0	•
+15	653	120	18	0	  explain the role of microorganisms in the cycling of materials through an 
+15	677	139	18	0	ecosystem 
+15	718	85	18	1	Biodiversity 
+15	759	112	18	0	•
+15	759	120	18	0	  describe how to carry out a field investigation into the distribution and abundance 
+15	782	139	18	0	of organisms in an ecosystem and explain how to determine their numbers in a 
+15	806	139	18	0	given area 
+15	850	112	18	0	•
+15	849	120	18	0	  describe both positive and negative human interactions within ecosystems and 
+15	873	139	18	0	explain their impact on biodiversity 
+15	917	112	18	0	•
+15	916	120	18	0	  explain some of the benefits and challenges of maintaining local and global 
+15	940	139	18	0	biodiversity 
+15	981	85	18	1	Use of mathematics
+15	1026	112	18	0	•
+15	1026	120	18	0	  calculate the percentage of mass (1c) 
+15	1069	112	18	0	•
+15	1069	120	18	0	  calculate arithmetic means (2b) 
+15	1112	112	18	0	•
+15	1112	120	18	0	  understand and use percentiles (1c) 
+16	1187	431	18	0	16 
+16	85	112	18	0	•
+16	84	120	18	0	  plot and draw appropriate graphs selecting appropriate scales for the axes (4a and 
+16	108	139	18	0	4c) 
+16	152	112	18	0	•
+16	151	120	18	0	  extract and interpret information from charts, graphs and tables (2c and 4a) 
+16	201	85	21	1	Inheritance, variation and evolution 
+16	244	85	18	1	The genome and gene expression 
+16	289	112	18	0	•
+16	288	120	18	0	  describe DNA as a polymer made up of two strands forming a double helix 
+16	332	112	18	0	•
+16	331	120	18	0	  describe the genome as the entire genetic material of an organism  
+16	375	112	18	0	•
+16	374	120	18	0	  explain the following terms: gamete, chromosome, gene, allele/variant, dominant, 
+16	398	139	18	0	recessive, homozygous, heterozygous, genotype and phenotype 
+16	442	112	18	0	•
+16	441	120	18	0	  describe simply how the genome, and its interaction with the environment, 
+16	465	139	18	0	influence the development of the phenotype of an organism 
+16	508	112	18	0	•
+16	508	120	18	0	  discuss the potential importance for medicine of our increasing understanding of 
+16	532	139	18	0	the human genome
+16	573	112	18	1	Inheritance 
+16	618	112	18	0	•
+16	617	120	18	0	  explain single gene inheritance 
+16	667	112	18	0	•
+16	666	120	18	0	  predict the results of single gene crosses 
+16	716	112	18	0	•
+16	715	120	18	0	  recall that most phenotypic features are the result of multiple genes rather than 
+16	739	138	18	0	single gene inheritance 
+16	783	112	18	0	•
+16	782	120	18	0	  describe sex determination in humans 
+16	845	85	18	1	Variation and evolution 
+16	890	112	18	0	•
+16	890	120	18	0	  state that there is usually extensive genetic variation within a population of a 
+16	913	139	18	0	species 
+16	957	112	18	0	•
+16	956	120	18	0	  recall that all variants arise from mutations, and that most
+16	956	600	18	0	have no effect on the 
+16	980	139	18	0	phenotype, some influence phenotype and a very few determine phenotype 
+16	1024	112	18	0	•
+16	1023	120	18	0	  describe evolution as a change in the inherited characteristics of a population over 
+16	1047	139	18	0	time through a process of natural selection which may result in the formation of 
+16	1071	139	18	0	new species 
+16	1114	112	18	0	•
+16	1114	120	18	0	  explain how evolution occurs through natural selection of variants that give rise to 
+16	1138	139	18	0	phenotypes best suited to their environment 
+17	1187	431	18	0	17 
+17	85	112	18	0	•
+17	84	120	18	0	  describe the evidence for evolution, including fossils and antibiotic resistance in 
+17	108	139	18	0	bacteria 
+17	152	112	18	0	•
+17	151	120	18	0	  describe the impact of developments in biology on classification systems 
+17	193	85	18	1	Selective breeding and gene technology 
+17	238	112	18	0	•
+17	237	120	18	0	  explain the impact of the selective breeding of food plants and domesticated 
+17	261	139	18	0	animals 
+17	304	112	18	0	•
+17	304	120	18	0	  describe genetic engineering as a process which involves modifying the genome 
+17	328	139	18	0	of an organism to introduce desirable characteristics  
+17	377	112	18	0	•
+17	376	120	18	0	  describe the main steps in the process of genetic engineering 
+17	426	112	18	0	•
+17	425	120	18	0	  explain some of the possible benefits and risks, including practical and ethical 
+17	449	139	18	0	considerations, of using gene technology in modern agriculture and medicine 
+17	516	85	18	1	Use of mathematics 
+17	560	112	18	0	•
+17	560	120	18	0	  understand and use direct proportions and simple ratios in genetic crosses (1c) 
+17	603	112	18	0	•
+17	603	120	18	0	  understand and use the concept of probability in predicting the outcome of genetic 
+17	627	139	18	0	crosses (2e) 
+17	670	112	18	0	•
+17	670	120	18	0	  extract and interpret information from charts, graphs and tables (2c and 4a) 
+18	1187	431	18	0	18 
+18	81	85	27	1	Chemistry 
+18	132	85	18	0	Chemistry is the science of the composition, structure, properties and reactions of matter, 
+18	157	85	18	0	understood in terms of atoms, atomic particles and the way they are arranged and link 
+18	182	85	18	0	together. It is concerned with the synthesis, formulation, analysis and characteristic 
+18	207	85	18	0	properties of substances and materials of all kinds. 
+18	249	85	18	0	Students should be helped to appreciate the achievements of chemistry in showing how 
+18	274	85	18	0	the complex and diverse phenomena of both the natural and man-made worlds can be 
+18	299	85	18	0	described in terms of a small number of key ideas which are of universal application, and 
+18	324	85	18	0	which can be illustrated in the separate topics set out below. These ideas include: 
+18	369	112	18	0	•
+18	368	120	18	0	  matter is composed of tiny particles called atoms and there are about 100 different 
+18	392	139	18	0	naturally occurring types of atoms called elements 
+18	441	112	18	0	•
+18	441	120	18	0	  elements show periodic relationships in their chemical and physical properties 
+18	491	112	18	0	•
+18	491	120	18	0	  these periodic properties can be explained in terms of the atomic structure of the 
+18	514	139	18	0	elements 
+18	565	112	18	0	•
+18	564	120	18	0	  atoms bond by either transferring electrons from one atom to another or by sharing 
+18	588	138	18	0	electrons 
+18	637	112	18	0	•
+18	637	120	18	0	  the shapes of molecules (groups of atoms bonded together) and the way giant 
+18	661	138	18	0	structures are arranged is of great importance in terms of the way they behave 
+18	710	112	18	0	•
+18	709	120	18	0	  there are barriers to reaction so reactions occur at different rates 
+18	759	112	18	0	•
+18	758	120	18	0	  chemical reactions take place in only three different ways: 
+18	808	166	18	0	•
+18	807	174	18	0	  proton transfer 
+18	857	166	18	0	•
+18	856	174	18	0	  electron transfer 
+18	905	166	18	0	•
+18	905	174	18	0	  electron sharing 
+18	954	112	18	0	•
+18	954	120	18	0	  energy is conserved in chemical reactions so can therefore be neither created or 
+18	977	139	18	0	destroyed 
+18	1025	85	18	0	This content sets out the full range of content for the chemistry component of GCSE 
+18	1050	85	18	0	combined science. Awarding organisations may, however, use flexibility to increase 
+18	1075	85	18	0	depth, breadth or context within the specified topics or to consolidate teaching of the 
+18	1099	85	18	0	subject content. 
+18	1142	85	17	1	Bullet points in bold are common to physics
+19	1187	431	18	0	19 
+19	83	85	18	0	Higher tier GCSE combined science specifications must assess all the content set out 
+19	108	85	18	0	below, whether it is underlined or is not underlined. Foundation tier GCSE combined 
+19	133	85	18	0	science specifications must assess all the content set out below, except for content which 
+19	158	85	18	0	is underlined. 
+19	200	85	18	0	GCSE combined science specifications should require students to: 
+19	251	85	21	1	Atomic structure and the Periodic Table 
+19	294	85	18	1	A simple model of the atom, relative atomic mass, electronic charge and isotopes 
+19	338	112	18	0	•
+19	337	138	18	1	describe the atom as a positively charged nucleus surrounded by negatively 
+19	361	139	18	1	charged electrons, with the nuclear radius much smaller than that of the 
+19	384	139	18	1	atom and with most of the mass in the nucleus 
+19	428	112	18	0	•
+19	428	138	18	1	recall the typical size (order of magnitude) of atoms and small molecules 
+19	471	112	18	0	•
+19	471	138	18	1	describe how and why the atomic model has changed over time 
+19	514	112	18	0	•
+19	514	120	18	0	  recall relative charges and approximate relative masses of protons, neutrons and 
+19	537	139	18	0	electrons 
+19	581	112	18	0	•
+19	580	120	18	0	  calculate numbers of protons, neutrons and electrons in atoms and ions, given 
+19	604	139	18	0	atomic number and mass number of isotopes 
+19	646	85	18	1	The modern Periodic Table 
+19	693	112	18	0	•
+19	692	120	18	0	  explain how the position of an element in the Periodic Table is related to the 
+19	716	139	18	0	arrangement of electrons in its atoms and hence to its atomic number 
+19	760	112	18	0	•
+19	759	120	18	0	  explain in terms of isotopes how this changes the arrangement proposed by 
+19	783	139	18	0	Mendeleev 
+19	826	112	18	0	•
+19	826	120	18	0	  use the names and symbols of the first 20 elements, Groups 1, 7 and 0 and other 
+19	850	139	18	0	common elements from a supplied Periodic Table to write formulae and balanced 
+19	873	139	18	0	chemical equations where appropriate 
+19	917	112	18	0	•
+19	916	120	18	0	  explain how the reactions of elements are related to the arrangement of electrons 
+19	940	139	18	0	in their atoms and hence to their atomic number 
+19	984	117	18	0	•
+19	983	125	18	0	  recall the simple properties of Groups 1, 7 and 0 
+19	1027	117	18	0	•
+19	1026	125	18	0	  explain how observed simple properties of Groups 1,7 and 0 depend on the outer 
+19	1050	138	18	0	shell of electrons of the atoms and predict properties from given trends down the 
+19	1074	138	18	0	groups 
+19	1118	117	18	0	•
+19	1117	125	18	0	  predict possible reactions and probable reactivity of elements from their positions 
+19	1141	138	18	0	in the Periodic Table 
+20	1187	431	18	0	20 
+20	85	111	18	0	•
+20	84	119	18	0	  describe metals and non-metals and explain the differences between them on the 
+20	108	138	18	0	basis of their characteristic physical and chemical properties 
+20	152	111	18	0	•
+20	151	119	18	0	  explain how the atomic structure of metals and non-metals relates to their position 
+20	175	138	18	0	in the Periodic Table 
+20	225	85	21	1	Structure, bonding and the properties of matter 
+20	268	85	18	1	States of matter and change of state in terms of particle kinetics, energy transfers 
+20	293	85	18	1	and the relative strength of chemical bonds and intermolecular forces 
+20	344	117	18	0	•
+20	344	125	18	0	  recall and explain the main features of the particle model in terms of the states of 
+20	367	138	18	0	matter and change of state, distinguishing between physical and chemical 
+20	391	138	18	0	changes 
+20	435	117	18	0	•
+20	434	125	18	0	  explain the limitations of the particle model in relation to changes of state when 
+20	458	138	18	0	particles are represented by inelastic spheres 
+20	502	117	18	0	•
+20	501	125	18	0	  use ideas about energy transfers and the relative strength of chemical bonds and 
+20	525	138	18	0	intermolecular forces to explain the different temperatures at which changes of 
+20	549	138	18	0	state occur 
+20	592	117	18	0	•
+20	592	125	18	0	  use data to predict states of substances under given conditions 
+20	633	85	18	1	Different kinds of chemical bonds: ionic, covalent and metallic bonding  
+20	678	117	18	0	•
+20	678	125	18	0	  describe and compare the nature and arrangement of chemical bonds in ionic 
+20	701	138	18	0	compounds, simple molecules, giant covalent structures, polymers and metals 
+20	745	117	18	0	•
+20	744	125	18	0	  explain chemical bonding in terms of electrostatic forces and the transfer or 
+20	768	138	18	0	sharing of electrons 
+20	812	117	18	0	•
+20	811	125	18	0	  construct dot and cross diagrams for simple ionic and covalent substances 
+20	855	117	18	0	•
+20	854	125	18	0	  describe the limitations of particular representations and models to include dot and 
+20	878	138	18	0	cross diagrams, ball and stick models and two and three dimensional 
+20	902	138	18	0	representations 
+20	945	117	18	0	•
+20	945	125	18	0	  explain how the bulk properties of materials are related to the different types of 
+20	969	138	18	0	bonds they contain, their bond strengths in relation to intermolecular forces and 
+20	992	138	18	0	the ways in which their bonds are arranged, recognising that the atoms 
+20	1016	138	18	0	themselves do not have these properties 
+20	1065	85	18	1	Structure and bonding of carbon 
+20	1110	117	18	0	•
+20	1109	125	18	0	  recall that carbon can form four covalent bonds 
+21	1187	431	18	0	21 
+21	85	117	18	0	•
+21	84	125	18	0	  explain that the vast array of natural and synthetic organic compounds occur due 
+21	108	138	18	0	to the ability of carbon to form families of similar compounds, chains and rings 
+21	152	117	18	0	•
+21	151	125	18	0	  explain the properties of diamond, graphite, fullerenes and graphene in terms of 
+21	175	138	18	0	their structures and bonding 
+21	217	85	18	1	Use of mathematics 
+21	268	112	18	0	•
+21	268	120	18	0	  relate size and scale of atoms to objects in the physical world (1d) 
+21	311	112	18	0	•
+21	311	120	18	0	  translate information between diagrammatic and numerical forms (4a) 
+21	354	112	18	0	•
+21	354	120	18	0	  represent three dimensional shapes in two dimensions and vice versa when 
+21	377	139	18	0	looking at chemical structures e.g. allotropes of carbon (5b) 
+21	421	112	18	0	•
+21	420	120	18	0	  estimate size and scale of atoms (1d) 
+21	471	85	21	1	Chemical changes 
+21	513	85	18	1	Chemical symbols,  formulae and equations 
+21	558	112	18	0	•
+21	557	120	18	0	  use chemical symbols to write the formulae of elements and simple covalent and 
+21	581	139	18	0	ionic compounds 
+21	625	112	18	0	•
+21	624	120	18	0	  deduce the empirical formula of a compound from the relative numbers of atoms 
+21	648	139	18	0	present or from a model or diagram and vice versa 
+21	692	112	18	0	•
+21	691	120	18	0	  use the names and symbols of common elements and compounds and the 
+21	715	139	18	0	principle of conservation of mass to write formulae and balanced chemical 
+21	739	139	18	0	equations and half equations 
+21	782	112	18	0	•
+21	782	120	18	0	  use the formulae of common ions to deduce the formula of a compound and write 
+21	805	139	18	0	balanced ionic equations 
+21	849	112	18	0	•
+21	849	120	18	0	  describe the physical states of products and reactants using state symbols (s, l, g 
+21	872	139	18	0	and aq) 
+21	914	85	18	1	Identification of common gases 
+21	959	112	18	0	•
+21	958	120	18	0	  describe tests to identify selected gases including oxygen, hydrogen, carbon 
+21	982	139	18	0	dioxide and chlorine 
+21	1024	85	18	1	Chemistry of acids 
+21	1069	112	18	0	•
+21	1068	120	18	0	  recall that acids react with some metals and with carbonates and write equations 
+21	1092	139	18	0	predicting products from given reactants 
+21	1135	112	18	0	•
+21	1135	120	18	0	  recall that acids form hydrogen ions when they dissolve in water and solutions of 
+22	1187	431	18	0	22 
+22	83	139	18	0	alkalis contain hydroxide ions 
+22	127	112	18	0	•
+22	126	120	18	0	  recall that relative acidity and alkalinity are measured by pH 
+22	170	112	18	0	•
+22	169	120	18	0	  describe neutralisation as acid reacting with alkali to form a salt plus water 
+22	213	112	18	0	•
+22	212	120	18	0	  recognise that aqueous neutralisation reactions can be generalised to hydrogen 
+22	236	139	18	0	ions reacting with hydroxide ions to form water
+22	280	112	18	0	•
+22	279	120	18	0	  use and explain the terms dilute and concentrated (amount of substance) and 
+22	303	139	18	0	weak and strong (degree of ionisation) in relation to acids 
+22	346	112	18	0	•
+22	346	120	18	0	  recall that as hydrogen ion concentration increases by a factor of ten the pH value 
+22	370	139	18	0	of a solution decreases by a factor of one 
+22	413	112	18	0	•
+22	413	120	18	0	  describe neutrality and relative acidity and alkalinity in terms of the effect of the 
+22	436	139	18	0	concentration of hydrogen ions on the numerical value of pH (whole numbers only) 
+22	478	85	18	1	A reactivity series of metals as the tendency of a metal to form its positive ion 
+22	523	117	18	0	•
+22	522	125	18	0	  explain how the reactivity of metals with water or dilute acids is related to the 
+22	546	138	18	0	tendency of the metal to form its positive ion 
+22	590	117	18	0	•
+22	589	125	18	0	  deduce an order of reactivity of metals based on experimental results 
+22	631	85	18	1	Electrolysis of various molten ionic liquids and aqueous ionic solutions 
+22	676	111	18	0	•
+22	675	119	18	0	  describe electrolysis in terms of the ions present and reactions at the electrodes  
+22	719	111	18	0	•
+22	718	119	18	0	  recall that metals (or hydrogen) are formed at the cathode and non-metals are 
+22	742	138	18	0	formed at the anode in electrolysis using inert electrodes 
+22	785	111	18	0	•
+22	785	119	18	0	  predict the products of electrolysis of binary ionic compounds in the molten state 
+22	828	111	18	0	•
+22	828	119	18	0	  describe competing reactions in the electrolysis of aqueous solutions of ionic 
+22	852	138	18	0	compounds in terms of the different species present 
+22	893	85	18	1	Redox reactions (reduction and oxidation)  
+22	938	111	18	0	•
+22	937	119	18	0	  explain reduction and oxidation in terms of loss or gain of oxygen, identifying 
+22	961	138	18	0	which species are oxidised and which are reduced  
+22	1005	111	18	0	•
+22	1004	119	18	0	  explain reduction and oxidation in terms of gain or loss of electrons, identifying 
+22	1028	138	18	0	which species are oxidised and which are reduced 
+22	1070	85	18	1	Use of mathematics 
+22	1115	111	18	0	•
+22	1114	119	18	0	  arithmetic computation and ratio when determining empirical formulae, balancing 
+22	1138	138	18	0	equations (1a and 1c) 
+23	1187	431	18	0	23 
+23	82	85	21	1	Energy changes in chemistry 
+23	125	85	18	1	Exothermic and endothermic reactions, including reaction profiles 
+23	170	117	18	0	•
+23	169	125	18	0	  distinguish between endothermic and exothermic reactions on the basis of the 
+23	193	138	18	0	temperature change of the surroundings 
+23	237	117	18	0	•
+23	236	125	18	0	  draw and label a reaction profile for an exothermic and an endothermic reaction, 
+23	260	138	18	0	identifying activation energy  
+23	304	117	18	0	•
+23	303	125	18	0	  explain activation energy as the energy needed for a reaction to occur  
+23	347	117	18	0	•
+23	346	125	18	0	  calculate energy changes in a chemical reaction by considering bond making and 
+23	370	138	18	0	bond breaking energies 
+23	411	85	18	1	Carbon compounds both as fuels and feedstock  
+23	456	111	18	0	•
+23	456	119	18	0	  recall that crude oil is a main source of hydrocarbons and  is a  feedstock for the 
+23	479	138	18	0	petrochemical industry 
+23	523	111	18	0	•
+23	522	119	18	0	  explain how modern life is crucially dependent upon hydrocarbons and recognise 
+23	546	138	18	0	that crude oil is a finite resource
+23	588	85	18	1	Uses of mathematics 
+23	632	112	18	0	•
+23	631	120	18	0	  arithmetic computation when calculating energy changes (1a) 
+23	675	112	18	0	•
+23	674	120	18	0	  interpretation of charts and graphs when dealing with reaction profiles (4a) 
+23	724	85	21	1	The rate and extent of chemical change 
+23	767	85	18	1	Factors that influence the rate of reaction, including catalysts 
+23	812	111	18	0	•
+23	811	119	18	0	  suggest practical methods for determining the rate of a given reaction 
+23	855	111	18	0	•
+23	854	119	18	0	  interpret rate of reaction graphs 
+23	898	111	18	0	•
+23	897	119	18	0	  describe the effect of changes in temperature, concentration, pressure, and 
+23	921	138	18	0	surface area on rate of reaction 
+23	965	111	18	0	•
+23	964	119	18	0	  explain the effects on rates of reaction of changes in temperature, concentration 
+23	988	138	18	0	and pressure in terms of frequency and energy of collision between particles 
+23	1031	111	18	0	•
+23	1031	119	18	0	  explain the effects on rates of reaction of changes in the size of the pieces of a 
+23	1054	138	18	0	reacting solid in terms of surface area to volume ratio 
+23	1098	111	18	0	•
+23	1098	119	18	0	  describe the characteristics of catalysts and their effect on rates of reaction 
+23	1141	111	18	0	•
+23	1141	119	18	0	  identify catalysts in reactions 
+24	1187	431	18	0	24 
+24	85	111	18	0	•
+24	84	119	18	0	  explain catalytic action in terms of activation energy 
+24	128	111	18	0	•
+24	127	119	18	0	  recall that enzymes act as catalysts in biological systems 
+24	169	85	18	1	Reversible reactions and the concept of dynamic equilibrium 
+24	214	111	18	0	•
+24	213	119	18	0	  recall that some reactions may be reversed by altering the reaction conditions 
+24	257	111	18	0	•
+24	256	119	18	0	  recall that dynamic equilibrium occurs when the rates of forward and reverse 
+24	280	138	18	0	reactions are equal 
+24	324	111	18	0	•
+24	323	119	18	0	  predict the effect of changing reaction conditions (concentration, temperature and 
+24	347	138	18	0	pressure) on equilibrium position and suggest appropriate conditions to produce a 
+24	371	138	18	0	particular product 
+24	412	85	18	1	Uses of mathematics 
+24	457	117	18	0	•
+24	456	125	18	0	  arithmetic computation, ratio when measuring rates of reaction (1a and 1c) 
+24	500	117	18	0	•
+24	499	125	18	0	  drawing and interpreting appropriate graphs from data to determine rate of 
+24	523	138	18	0	reaction (4b and 4c) 
+24	567	117	18	0	•
+24	566	125	18	0	  determining gradients of graphs as a measure of rate of change to determine rate 
+24	590	138	18	0	(4d and 4e) 
+24	634	117	18	0	•
+24	633	125	18	0	  proportionality when comparing factors affecting rate of reaction (1c) 
+24	683	85	21	1	Chemical analysis 
+24	726	85	18	1	Assessing purity and separating mixtures 
+24	771	117	18	0	•
+24	770	125	18	0	  explain what is meant by the purity of a substance, distinguishing between the 
+24	794	138	18	0	scientific and everyday use of the term ‘pure’ 
+24	838	117	18	0	•
+24	837	125	18	0	  explain that many useful materials are formulations of mixtures 
+24	881	117	18	0	•
+24	880	125	18	0	  describe, explain and exemplify the processes of filtration, crystallisation, simple 
+24	904	138	18	0	distillation, and fractional distillation 
+24	947	117	18	0	•
+24	947	125	18	0	  recall that chromatography involves a stationary and a mobile phase and that 
+24	971	138	18	0	separation depends on the distribution between the phases 
+24	1014	117	18	0	•
+24	1014	125	18	0	  interpret chromatograms, including measuring Rf values 
+24	1057	117	18	0	•
+24	1057	125	18	0	  suggest suitable purification techniques given information about the substances 
+24	1080	138	18	0	involved 
+24	1124	111	18	0	•
+24	1123	119	18	0	  use melting point data to distinguish pure from impure substances  
+25	1187	431	18	0	25 
+25	85	111	18	0	•
+25	84	119	18	0	  suggest chromatographic methods for distinguishing pure from impure substances
+25	126	85	18	1	Conservation of mass and the quantitative interpretation of balanced equations 
+25	170	111	18	0	•
+25	169	119	18	0	  recall and use the law of conservation of mass 
+25	213	111	18	0	•
+25	212	119	18	0	  explain any observed changes in mass in non-enclosed systems during a 
+25	236	138	18	0	chemical reaction and explain them using the particle model 
+25	280	117	18	0	•
+25	279	125	18	0	  calculate relative formula masses of species separately and in a balanced 
+25	303	138	18	0	chemical equation 
+25	344	85	18	1	Use of amount of substance in relation to masses of pure substances 
+25	389	117	18	0	•
+25	389	125	18	0	  recall and use the definitions of the Avogadro constant (in standard form) and of 
+25	412	138	18	0	the mole 
+25	456	117	18	0	•
+25	455	125	18	0	  explain how the mass of a given substance is related to the amount of that 
+25	479	138	18	0	substance in moles and vice versa  
+25	523	117	18	0	•
+25	522	125	18	0	  deduce the stoichiometry of an equation from the masses of reactants and 
+25	546	138	18	0	products and explain the effect of a limiting quantity of a reactant 
+25	590	117	18	0	•
+25	589	125	18	0	  use a balanced equation to calculate masses of reactants or products  
+25	633	117	18	0	•
+25	632	125	18	0	  explain how the mass of a solute and the volume of the solution is related to the 
+25	656	138	18	0	concentration of the solution 
+25	697	85	18	1	Use of mathematics  
+25	742	112	18	0	•
+25	742	120	18	0	  arithmetic computation, ratio, percentage and multistep calculations permeates 
+25	766	139	18	0	quantitative chemistry (1a, 1c and 1d) 
+25	809	112	18	0	•
+25	809	120	18	0	  calculations with numbers written in standard form when using the Avogadro 
+25	832	139	18	0	constant (1b)  
+25	876	112	18	0	•
+25	875	120	18	0	  change the subject of a mathematical equation (3b and 3c) 
+25	919	112	18	0	•
+25	918	120	18	0	  provide answers to an appropriate number of significant figures (2a) 
+25	962	112	18	0	•
+25	961	120	18	0	  convert units where appropriate particularly from mass to moles (1c)
+25	1005	112	18	0	•
+25	1004	120	18	0	  interpret charts, particularly in spectroscopy (4a) 
+25	1054	85	21	1	Chemical and allied industries 
+25	1097	85	18	1	Life cycle assessment and recycling 
+25	1142	117	18	0	•
+25	1141	125	18	0	  describe the basic principles in carrying out a life-cycle assessment of a material 
+26	1187	431	18	0	26 
+26	83	138	18	0	or product 
+26	127	117	18	0	•
+26	126	125	18	0	  interpret data from a life-cycle assessment of a material or product 
+26	170	117	18	0	•
+26	169	125	18	0	  describe a process where a material or product is recycled for a different use, and 
+26	193	138	18	0	explain why this is viable 
+26	237	117	18	0	•
+26	236	125	18	0	  evaluate factors that affect decisions on recycling
+26	278	85	18	1	Fractional distillation of crude oil and cracking 
+26	322	117	18	0	•
+26	322	125	18	0	  describe and explain the separation of crude oil by fractional distillation 
+26	365	117	18	0	•
+26	365	125	18	0	  describe the fractions as largely a mixture of compounds of formula C
+26	372	691	12	0	n
+26	365	698	18	0	H
+26	372	711	12	0	2n+2
+26	365	738	18	0	 which 
+26	389	138	18	0	are members of the alkane homologous series 
+26	432	117	18	0	•
+26	432	125	18	0	  describe the production of materials that are more useful by cracking 
+26	473	85	18	1	Different methods of extracting and purifying metals with reference to a reactivity 
+26	498	85	18	1	series with oxygen and the position of carbon within it 
+26	543	111	18	0	•
+26	542	119	18	0	  explain, using the position of carbon in the reactivity series, the principles of 
+26	566	138	18	0	industrial processes used to extract metals, including extraction of a non-ferrous 
+26	590	138	18	0	metal 
+26	634	111	18	0	•
+26	633	119	18	0	  explain why and how electrolysis is used to extract some metals from their ores  
+26	677	111	18	0	•
+26	676	119	18	0	  evaluate alternative biological methods of metal extraction (bacterial and 
+26	700	138	18	0	phytoextraction) 
+26	750	85	21	1	Earth and atmospheric science 
+26	793	85	18	1	The composition and evolution of the Earth’s atmosphere since its formation 
+26	837	111	18	0	•
+26	837	119	18	0	  interpret evidence for how it is thought the atmosphere was originally formed  
+26	880	111	18	0	•
+26	880	119	18	0	  describe how it is thought an oxygen-rich atmosphere developed over time 
+26	921	85	18	1	Carbon dioxide and methane as greenhouse gases 
+26	966	117	18	0	•
+26	966	125	18	0	  describe the greenhouse effect in terms of the interaction of radiation with matter 
+26	1009	117	18	0	•
+26	1009	125	18	0	  evaluate the evidence for additional anthropogenic causes of climate change, 
+26	1032	138	18	0	including the correlation between change in atmospheric carbon dioxide 
+26	1056	138	18	0	concentration and the consumption of fossil fuels, and describe the uncertainties in 
+26	1080	138	18	0	the evidence base  
+26	1124	117	18	0	•
+26	1123	125	18	0	  describe the potential effects of increased levels of carbon dioxide and methane 
+26	1147	138	18	0	on the Earth’s climate and how these effects may be mitigated, including 
+27	1187	431	18	0	27 
+27	83	138	18	0	consideration of scale, risk and environmental implications 
+27	125	85	18	1	Common atmospheric pollutants and their sources 
+27	170	111	18	0	•
+27	169	119	18	0	  describe the major sources of carbon monoxide, sulfur dioxide, oxides of nitrogen 
+27	193	138	18	0	and particulates in the atmosphere and explain the problems caused by increased 
+27	217	138	18	0	amounts of these substances 
+27	258	85	18	1	The Earth’s water resources and obtaining potable water 
+27	285	117	18	0	•
+27	284	125	18	0	  describe the principal methods for increasing the availability of potable water in 
+27	305	138	18	0	terms of the separation techniques used, including ease of treatment of waste, 
+27	326	138	18	0	ground and salt water 
+27	364	85	18	1	Use of mathematics 
+27	409	117	18	0	•
+27	409	125	18	0	  extract and interpret information from charts, graphs and tables (2c and 4a) 
+27	452	117	18	0	•
+27	452	125	18	0	  use orders of magnitude to evaluate the significance of data (2h) 
+28	1187	431	18	0	28 
+28	82	85	27	1	Physics 
+28	138	85	18	0	Physics is the science of the fundamental concepts of field, force, radiation and particle 
+28	163	85	18	0	structures, which are inter-linked to form unified models of the behaviour of the material 
+28	188	85	18	0	universe. From such models, a wide range of ideas, from the broadest issue of the 
+28	213	85	18	0	development of the universe over time to the numerous and detailed ways in which new 
+28	238	85	18	0	technologies may be invented, have emerged. These have enriched both our basic 
+28	262	85	18	0	understanding of, and our many adaptations to, our material environment.   
+28	305	85	18	0	Students should be helped to understand how, through the ideas of physics, the complex 
+28	330	85	18	0	and diverse phenomena of the natural world can be described in terms of a small number 
+28	355	85	18	0	of key ideas which are of universal application and which can be illustrated in the 
+28	380	85	18	0	separate topics set out below. These ideas include:  
+28	425	112	18	0	•
+28	424	120	18	0	  the use of models, as in the particle model of matter or the wave models of light 
+28	449	139	18	0	and of sound 
+28	493	112	18	0	•
+28	493	120	18	0	  the concept of cause and effect in explaining  such links as those between force 
+28	518	139	18	0	and acceleration, or between changes in atomic nuclei and radioactive emissions 
+28	562	112	18	0	•
+28	562	120	18	0	  the phenomena of ‘action at a distance’ and the related concept of the field as the 
+28	587	139	18	0	key to analysing electrical, magnetic and gravitational effects 
+28	631	112	18	0	•
+28	631	120	18	0	  that differences, for example between pressures or temperatures or electrical 
+28	655	139	18	0	potentials, are the drivers of change 
+28	700	112	18	0	•
+28	699	120	18	0	  that proportionality, for example between weight and mass of an object or between 
+28	724	139	18	0	force and extension in a spring, is an important aspect of many models in science 
+28	769	112	18	0	•
+28	768	120	18	0	  that physical laws and models are expressed in mathematical form 
+28	811	85	18	0	This content sets out the full range of content for the physics component of GCSE 
+28	836	85	18	0	combined science. Awarding organisations may, however, use flexibility to increase 
+28	861	85	18	0	depth, breadth or context within the specified topics or to consolidate teaching of the 
+28	886	85	18	0	subject content. 
+28	928	85	18	1	Bullet points in bold are common to chemistry
+28	971	85	18	0	Higher tier GCSE combined science specifications must assess all the content set out 
+28	996	85	18	0	below, whether it is underlined or is not underlined. Foundation tier GCSE combined 
+28	1021	85	18	0	science specifications must assess all the content set out below, except for content which 
+28	1046	85	18	0	is underlined. 
+28	1089	85	18	0	GCSE combined science specifications should require students to: 
+29	1187	431	18	0	29 
+29	82	85	21	1	Energy 
+29	125	85	18	1	Energy changes in a system, and in the ways energy is stored before and after 
+29	150	85	18	1	such changes 
+29	195	112	18	0	•
+29	194	120	18	0	  calculate the amounts of energy associated with a moving body, a stretched 
+29	218	139	18	0	spring, and an object raised above ground level 
+29	267	112	18	0	•
+29	267	120	18	0	  describe and calculate the changes in energy involved when a system is changed 
+29	291	139	18	0	by heating (in terms of temperature change and specific heat capacity), by work 
+29	314	139	18	0	done by forces and by work done when a current flows  
+29	364	112	18	0	•
+29	363	120	18	0	  explain, with reference to examples, the definition of power as the rate at which 
+29	387	139	18	0	energy is transferred 
+29	436	112	18	0	•
+29	436	120	18	0	  describe all the changes involved in the way energy is stored when a system 
+29	460	139	18	0	changes, for common situations: appropriate examples might be an object 
+29	483	139	18	0	projected upwards or up a slope, a moving object hitting an obstacle, an object 
+29	507	139	18	0	being accelerated by a constant force, a vehicle slowing down, bringing water to a 
+29	531	139	18	0	boil in an electric kettle 
+29	580	112	18	0	•
+29	580	120	18	0	  describe, with examples, the relationship between the power ratings for domestic 
+29	604	139	18	0	electrical appliances and the changes in stored energy when they are in use 
+29	645	112	18	1	Conservation, dissipation and national and global energy sources  
+29	690	112	18	0	•
+29	690	120	18	0	  describe with examples where there are energy transfers in a system, that there is 
+29	713	139	18	0	no net change to the total energy of a closed system (qualitative only)  
+29	763	112	18	0	•
+29	762	120	18	0	  describe, with examples, how in all system changes, energy is dissipated, so that 
+29	786	139	18	0	it is stored in less useful ways 
+29	835	112	18	0	•
+29	835	120	18	0	  explain ways of reducing unwanted energy transfer e.g. through lubrication, 
+29	858	139	18	0	thermal insulation; describe the effects, on the rate of cooling of a building, of 
+29	882	139	18	0	thickness and thermal conductivity of its walls (qualitative only) 
+29	932	112	18	0	•
+29	931	120	18	0	  calculate energy efficiency for any energy transfer, and describe ways to increase 
+29	955	139	18	0	efficiency 
+29	1004	112	18	0	•
+29	1004	120	18	0	  describe the main energy sources available for use on Earth (including fossil fuels, 
+29	1028	139	18	0	nuclear fuel, bio-fuel, wind, hydro-electricity, the tides and the Sun), compare the 
+29	1051	139	18	0	ways in which they are used and distinguish between renewable and non-
+29	1075	139	18	0	renewable sources 
+29	1125	112	18	0	•
+29	1124	120	18	0	  explain patterns and trends in the use of energy resources 
+30	1187	431	18	0	30 
+30	83	85	18	1	Uses of mathematics 
+30	127	112	18	0	•
+30	126	120	18	0	  make calculations of the energy changes associated with changes in a system, 
+30	150	139	18	0	recalling or selecting the relevant equations for mechanical, electrical, and thermal 
+30	174	139	18	0	processes; thereby express in quantitative form and on a common scale the 
+30	197	139	18	0	overall redistribution of energy in the system (1a, 1c, 3c) 
+30	248	85	21	1	Forces 
+30	290	85	18	1	Forces and their interactions 
+30	335	112	18	0	•
+30	335	120	18	0	  recall examples of ways in which objects interact: by gravity, electrostatics, 
+30	358	139	18	0	magnetism and by contact (including normal contact force and friction), and 
+30	382	139	18	0	describe how such examples involve interactions between pairs of objects which 
+30	406	139	18	0	produce a force on each object; represent such forces as vectors 
+30	450	112	18	0	•
+30	449	120	18	0	  define weight, describe how it is measured and describe the relationship between 
+30	473	139	18	0	the weight of that body and the gravitational field strength 
+30	516	112	18	0	•
+30	516	120	18	0	  describe examples of the forces acting on an isolated solid object or system; 
+30	539	139	18	0	describe, using free body diagrams, examples where several forces lead to a 
+30	563	139	18	0	resultant force on an object and the special case of balanced forces when the 
+30	587	139	18	0	resultant force is zero (qualitative only) 
+30	631	112	18	0	•
+30	630	120	18	0	  explain, with examples, that to stretch, bend or compress an object, more than 
+30	654	139	18	0	one force has to be applied 
+30	698	112	18	0	•
+30	697	120	18	0	  describe the difference between elastic and inelastic distortions caused by 
+30	721	139	18	0	stretching forces; calculate the work done in stretching; describe the relationship 
+30	745	139	18	0	between force and extension for a spring and other simple systems; describe the 
+30	768	139	18	0	difference between linear and non-linear relationships between force and 
+30	792	139	18	0	extension, and calculate a spring constant in linear cases 
+30	834	85	18	1	Work done as force x distance, energy transfer 
+30	879	112	18	0	•
+30	878	120	18	0	  use the relationship between work done, force, and distance moved along the line 
+30	899	139	18	0	of action of the force and describe the energy transfer involved
+30	937	85	18	1	Uses of mathematics 
+30	982	112	18	0	•
+30	982	120	18	0	  use vector diagrams to illustrate resolution of forces, a net force, and equilibrium 
+30	1005	139	18	0	situations (scale drawings only) (4a, 5a, 5b)
+30	1049	112	18	0	•
+30	1048	120	18	0	  calculate relevant values of stored energy and energy transfers; convert between 
+30	1072	139	18	0	newton-metres and joules (1c, 3c)
+31	1187	431	18	0	31 
+31	82	85	21	1	Forces and motion 
+31	125	85	18	1	Speed and velocity, speed as distance over time; acceleration; distance-time and 
+31	150	85	18	1	velocity-time graphs  
+31	195	112	18	0	•
+31	194	120	18	0	  explain the vector-scalar distinction as it applies to displacement, distance, velocity 
+31	218	139	18	0	and speed 
+31	262	112	18	0	•
+31	261	120	18	0	  recall typical speeds encountered in everyday experience for wind and sound, and 
+31	285	139	18	0	for walking, running, cycling and other transportation systems; recall the 
+31	309	139	18	0	acceleration in free fall and estimate the magnitudes of everyday accelerations 
+31	352	112	18	0	•
+31	352	120	18	0	  explain with examples that motion in a circular orbit involves constant speed but 
+31	375	139	18	0	changing velocity (qualitative only)  
+31	419	112	18	0	•
+31	419	120	18	0	  make measurements of distances and times, calculate speeds, and make and use 
+31	442	139	18	0	graphs of these to determine the speeds and accelerations involved 
+31	484	85	18	1	Forces, accelerations and Newton’s laws of motion  
+31	529	112	18	0	•
+31	528	120	18	0	  apply Newton’s First Law to explain the motion of objects moving with uniform 
+31	552	139	18	0	velocity and also objects where the speed and/or direction change 
+31	596	112	18	0	•
+31	595	120	18	0	  apply Newton’s Second Law in calculations relating forces, masses and 
+31	619	139	18	0	accelerations 
+31	662	112	18	0	•
+31	662	120	18	0	  explain that inertial mass is a measure of how difficult it is to change the velocity of 
+31	685	139	18	0	an object and that it is defined as the ratio of force over acceleration 
+31	729	112	18	0	•
+31	728	120	18	0	  recall Newton’s Third Law and apply it to examples of equilibrium situations 
+31	772	112	18	0	•
+31	771	120	18	0	  define momentum and describe examples of momentum in collisions 
+31	813	85	18	1	Safety in public transport 
+31	858	112	18	0	•
+31	857	120	18	0	  explain methods of measuring human reaction times and recall typical results  
+31	901	112	18	0	•
+31	900	120	18	0	  explain the factors which affect the distance required for road transport vehicles to 
+31	924	139	18	0	come to rest in emergencies and the implications for safety  
+31	968	112	18	0	•
+31	967	120	18	0	  explain the dangers caused by large decelerations 
+31	1009	85	18	1	Uses of
+31	1009	155	18	1	mathematics 
+31	1054	112	18	0	•
+31	1053	120	18	0	  make calculations using ratios and proportional reasoning to convert units and to 
+31	1077	139	18	0	compute rates (1c, 3c) 
+31	1121	112	18	0	•
+31	1120	120	18	0	  relate changes and differences in motion to appropriate distance-time, and 
+31	1144	139	18	0	velocity-time graphs, and interpret  lines and slopes (4a, 4b, 4c, 4d)
+32	1187	431	18	0	32 
+32	85	112	18	0	•
+32	84	120	18	0	  interpret enclosed areas in velocity-time graphs (4a, 4b, 4c, 4d, 4f)
+32	128	112	18	0	•
+32	127	120	18	0	  apply formulae relating distance, time and speed, for uniform motion, and for 
+32	151	139	18	0	motion with uniform acceleration, and calculate average speed for non-uniform 
+32	175	139	18	0	motion (1a, 1c, 2b, 3c).
+32	225	85	21	1	Waves in matter 
+32	268	85	18	1	Waves in air, fluids and solids 
+32	313	112	18	0	•
+32	312	120	18	0	  describe wave motion in terms of amplitude, wavelength, frequency and period; 
+32	336	139	18	0	define wavelength and frequency and describe and apply the relationship between 
+32	359	139	18	0	these and the wave velocity 
+32	403	112	18	0	•
+32	403	120	18	0	  describe the difference between transverse and longitudinal waves 
+32	446	112	18	0	•
+32	446	120	18	0	  describe how ripples on water surfaces are examples of transverse waves whilst 
+32	469	139	18	0	sound waves in air are longitudinal waves, and how the speed of each may be 
+32	493	139	18	0	measured; describe evidence that in both cases it is the wave and not the water or 
+32	517	139	18	0	air itself that travels
+32	559	85	18	1	Uses of mathematics 
+32	603	112	18	0	•
+32	603	120	18	0	  apply formulae relating velocity, frequency and wavelength (1c, 3c)
+32	653	85	21	1	Light and electromagnetic waves 
+32	696	85	18	1	Frequency range of the spectrum 
+32	740	112	18	0	•
+32	740	120	18	0	  recall that light is an electromagnetic wave 
+32	783	112	18	0	•
+32	783	120	18	0	  recall that electromagnetic waves are transverse, are transmitted through space 
+32	807	139	18	0	where all have the same velocity, and explain, with examples, that they transfer 
+32	831	139	18	0	energy from source to absorber 
+32	874	112	18	0	•
+32	874	120	18	0	  describe the main groupings of the spectrum – radio, microwave, infra-red, visible 
+32	897	139	18	0	(red to violet), ultra-violet, X-rays and gamma-rays, that these range from long to 
+32	921	139	18	0	short wavelengths and from low to high frequencies, and that our eyes can only 
+32	945	139	18	0	detect a limited range 
+32	986	85	18	1	Interactions of electromagnetic radiation with matter and their applications 
+32	1031	112	18	0	•
+32	1031	120	18	0	  recall that different substances may absorb, transmit, refract, or reflect these 
+32	1054	139	18	0	waves in ways that vary with wavelength; explain how some effects are related to 
+32	1078	139	18	0	differences in the velocity of the waves in different substances 
+32	1122	112	18	0	•
+32	1121	120	18	0	  recall that radio waves can be produced by or can themselves induce oscillations 
+32	1145	139	18	0	in electrical circuits 
+33	1187	431	18	0	33 
+33	85	112	18	0	•
+33	84	120	18	0	  recall that changes in atoms and nuclei can also generate and absorb radiations 
+33	108	139	18	0	over a wide frequency range  
+33	152	112	18	0	•
+33	151	120	18	0	  give examples of some practical uses of electromagnetic waves in the radio, 
+33	175	139	18	0	micro-wave, infra-red, visible, ultra-violet, X-ray and gamma-ray regions and 
+33	199	139	18	0	describe how ultra-violet waves, X-rays and gamma-rays can have hazardous 
+33	222	139	18	0	effects, notably on human bodily tissues 
+33	264	85	18	1	Uses of mathematics 
+33	309	112	18	0	•
+33	308	120	18	0	  apply the relationships between frequency and wavelength across the 
+33	332	139	18	0	electromagnetic spectrum: (1a, 1c, 3c)
+33	382	85	21	1	Electricity 
+33	425	85	18	1	Current, potential difference and resistance 
+33	470	112	18	0	•
+33	469	120	18	0	  recall that current is a rate of flow of charge, that for a charge to flow, a source of 
+33	493	139	18	0	potential difference and a closed circuit are needed and that a current has the 
+33	517	139	18	0	same value at any point in a single closed loop; recall and use
+33	517	638	18	0	the relationship 
+33	541	139	18	0	between quantity of charge, current and time  
+33	584	112	18	0	•
+33	584	120	18	0	  recall that current (I) depends on both resistance (R) and potential difference (V) 
+33	607	139	18	0	and the units in which these are measured; recall and apply the relationship 
+33	631	139	18	0	between I, R and V, and explain that for some resistors the value of R remains 
+33	655	139	18	0	constant but that in others it can change as the current changes; explain the 
+33	679	139	18	0	design and
+33	679	232	18	0	use
+33	679	266	18	0	of circuits to explore such effects
+33	679	532	18	0	– including for lamps, diodes, 
+33	703	139	18	0	thermistors and LDRs 
+33	744	85	18	1	Series and parallel circuits  
+33	789	112	18	0	•
+33	789	120	18	0	  describe the difference between series and parallel circuits, explain why, if two 
+33	812	139	18	0	resistors are in series the net resistance is increased, whereas with two in parallel 
+33	836	139	18	0	the net resistance is decreased (qualitative explanation only)  
+33	880	112	18	0	•
+33	879	120	18	0	  calculate the currents, potential differences and resistances in d.c. series circuits, 
+33	903	139	18	0	and explain the design and use of such circuits for measurement and testing 
+33	927	139	18	0	purposes; represent them with the conventions of positive and negative terminals, 
+33	951	139	18	0	and the symbols that represent common circuit elements, including diodes, LDRs 
+33	974	139	18	0	and thermistors 
+33	1016	85	18	1	Domestic uses and safety 
+33	1061	112	18	0	•
+33	1060	120	18	0	  recall that the domestic supply in the UK is a.c., at 50Hz and about 230 volts, 
+33	1084	139	18	0	explain the difference between direct and alternating voltage
+33	1128	112	18	0	•
+33	1127	120	18	0	  recall the differences in function between the live, neutral and earth mains wires, 
+34	1187	431	18	0	34 
+34	83	139	18	0	and the potential differences between these wires; hence explain that a live wire 
+34	107	139	18	0	may be dangerous even when a switch in a mains circuit is open, and explain the 
+34	131	139	18	0	dangers of providing any connection between the live wire and earth      
+34	172	85	18	1	Energy transfers 
+34	217	112	18	0	•
+34	217	120	18	0	  explain how the power transfer in any circuit device is related to the p.d. across it 
+34	240	139	18	0	and the current, and to the energy changes over a given time 
+34	284	112	18	0	•
+34	283	120	18	0	  describe how, in different domestic devices, energy is transferred from batteries 
+34	307	139	18	0	and the a.c. mains to the energy of motors or of heating devices 
+34	351	112	18	0	•
+34	350	120	18	0	  recall that, in the national grid, electrical power is transferred at high voltages from 
+34	374	139	18	0	power stations, and then transferred at lower voltages in each locality for domestic 
+34	398	139	18	0	use, and explain how this system is an efficient way to transfer energy 
+34	439	85	18	1	Uses of mathematics 
+34	484	112	18	0	•
+34	484	120	18	0	  apply the equations relating p.d., current, quantity of charge, resistance, power, 
+34	507	139	18	0	energy, and time, and solve problems for circuits which include resistors in series, 
+34	531	139	18	0	using the concept of equivalent resistance (1c, 3b, 3c, 3d) 
+34	575	112	18	0	•
+34	574	120	18	0	  use graphs to explore whether circuit elements are linear or non-linear and relate 
+34	598	139	18	0	the curves produced to their function and properties (4c, 4d) 
+34	648	85	21	1	Magnetism and electromagnetism 
+34	691	85	18	1	Permanent and induced magnetism, magnetic forces and fields  
+34	736	112	18	0	•
+34	735	120	18	0	  describe the attraction and repulsion between unlike and like poles for permanent 
+34	759	139	18	0	magnets and describe the difference between permanent and induced magnets  
+34	803	112	18	0	•
+34	802	120	18	0	  describe the characteristics of the magnetic field of a magnet, showing how 
+34	826	139	18	0	strength and direction change from one point to another  
+34	869	112	18	0	•
+34	869	120	18	0	  explain how the behaviour of a magnetic compass is related to evidence that the 
+34	892	139	18	0	core of the Earth must be magnetic 
+34	934	85	18	1	Magnetic effects of currents and the motor effect 
+34	979	112	18	0	•
+34	978	120	18	0	  describe how to show that a current can create a magnetic effect and describe the 
+34	1002	139	18	0	directions of the magnetic field around a conducting wire  
+34	1046	112	18	0	•
+34	1045	120	18	0	  recall that the strength of the field depends on the current and the distance from 
+34	1069	139	18	0	the conductor, and explain how solenoid arrangements can enhance the magnetic 
+34	1093	139	18	0	effect  
+34	1136	112	18	0	•
+34	1136	120	18	0	  describe how a magnet and a current-carrying conductor exert a force on one 
+35	1187	431	18	0	35 
+35	83	139	18	0	another and show that Fleming’s left-hand rule represents the relative orientations 
+35	107	139	18	0	of the force, the conductor and the magnetic field 
+35	151	112	18	0	•
+35	150	120	18	0	  apply the equation that links the force on a conductor to the magnetic flux density, 
+35	174	139	18	0	the current and the length of conductor to calculate the forces involved  
+35	217	112	18	0	•
+35	217	120	18	0	  explain how this force is used to cause rotation in electric motors 
+35	267	85	21	1	Particle model of matter 
+35	309	85	18	1	Changes of state and the particle model 
+35	354	112	18	0	•
+35	354	120	18	0	  define density and explain the differences in density between the different states 
+35	377	139	18	0	of matter in terms of the arrangements of the atoms or
+35	377	575	18	0	molecules 
+35	421	112	18	0	•
+35	421	120	18	0	  describe how, when substances melt, freeze, evaporate, condense or sublimate, 
+35	444	139	18	0	mass is conserved, but that these physical changes differ from chemical changes 
+35	468	139	18	0	because the material recovers its original properties if the change is reversed 
+35	510	85	18	1	Internal energy, energy transfers and particle motions 
+35	555	112	18	0	•
+35	554	120	18	0	  describe how heating a system will change the energy stored within the system 
+35	578	139	18	0	and raise its temperature or produce changes of state  
+35	621	112	18	0	•
+35	621	120	18	0	  define the term specific heat capacity and distinguish between it and the term 
+35	645	139	18	0	specific latent heat  
+35	688	112	18	0	•
+35	688	120	18	0	  explain how the motion of the molecules in a gas is related both to its temperature 
+35	711	139	18	0	and its pressure: hence explain the relation between the temperature of a gas and 
+35	735	139	18	0	its pressure at constant volume (qualitative only) 
+35	777	85	18	1	Uses of mathematics 
+35	822	112	18	0	•
+35	821	120	18	0	  apply the relationship between density mass and volume to changes where mass 
+35	845	139	18	0	is conserved (1a, 1b, 1c, 3c) 
+35	889	112	18	0	•
+35	888	120	18	0	  apply the relationship between change in internal energy of a material and its 
+35	912	139	18	0	mass, specific heat capacity and temperature change to calculate the energy 
+35	935	139	18	0	change involved; apply the relationship between specific latent heat and mass to 
+35	959	139	18	0	calculate the energy change involved in a change of state (1a, 3c, 3d) 
+35	1009	85	21	1	Atomic structure 
+35	1052	85	18	1	Nuclear atom and isotopes  
+35	1097	112	18	0	•
+35	1096	139	18	1	describe the atom as a positively charged nucleus surrounded by negatively 
+35	1120	139	18	1	charged electrons, with the nuclear radius much smaller than that of the 
+35	1144	139	18	1	atom and with almost all of the mass in the nucleus
+36	1187	431	18	0	36 
+36	85	112	18	0	•
+36	84	139	18	1	recall the typical size (order of magnitude) of atoms and small molecules
+36	128	112	18	0	•
+36	127	139	18	1	describe how and why the atomic model has changed over time
+36	171	112	18	0	•
+36	170	120	18	0	  recall that atomic nuclei are composed of both protons and neutrons, that the 
+36	194	139	18	0	nucleus of each element has a characteristic positive charge, but that atoms of the 
+36	218	139	18	0	same elements can differ in nuclear mass by having different numbers of neutrons 
+36	262	112	18	0	•
+36	261	120	18	0	  relate differences between isotopes to differences in conventional representations 
+36	285	139	18	0	of their identities, charges and masses 
+36	326	85	18	1	Absorption and emission of ionizing radiations and of electrons and nuclear 
+36	351	85	18	1	particles 
+36	396	112	18	0	•
+36	395	120	18	0	  recall that in each atom its electrons are arranged at different distances from the 
+36	419	139	18	0	nucleus, that such arrangements may change with absorption or emission of 
+36	443	139	18	0	electromagnetic radiation and that atoms can become ions by loss of outer 
+36	467	139	18	0	electrons  
+36	511	112	18	0	•
+36	510	120	18	0	  recall that some nuclei are unstable and may emit alpha particles, beta particles, 
+36	534	139	18	0	or neutrons, and electromagnetic radiation as gamma rays; relate these emissions 
+36	557	139	18	0	to possible changes in the mass or the charge of the nucleus, or both 
+36	601	112	18	0	•
+36	600	120	18	0	  use names and symbols of common nuclei and particles to write balanced 
+36	624	139	18	0	equations that represent radioactive decay 
+36	668	112	18	0	•
+36	667	120	18	0	  explain the concept of half-life and how this is related to the random nature of 
+36	691	139	18	0	radioactive decay 
+36	735	112	18	0	•
+36	734	120	18	0	  recall the differences in the penetration properties of alpha-particles, beta-particles 
+36	758	139	18	0	and gamma-rays  
+36	802	112	18	0	•
+36	801	120	18	0	  recall the differences between contamination and irradiation effects and compare 
+36	825	139	18	0	the hazards associated with these two 
+36	866	85	18	1	Uses of mathematics 
+36	911	112	18	0	•
+36	911	120	18	0	  balance equations representing alpha-, beta- or gamma-radiations  in terms of the 
+36	934	139	18	0	masses, and charges of the atoms involved (1b, 1c, 3c) 
+36	978	112	18	0	•
+36	977	120	18	0	  calculate the net decline, expressed as a ratio, in a radioactive emission after a 
+36	1001	139	18	0	given number of half-lives (1c, 3d) 
+37	1187	431	18	0	37 
+37	82	85	24	1	Appendix 1 
+37	129	85	18	1	Equations in physics 
+37	172	85	18	0	Equations required for higher tier only are underlined 
+37	221	85	18	0	(a) In solving quantitative problems, students should be able correctly to recall, and apply 
+37	245	85	18	0	the following relationships, using standard S.I. units: 
+37	288	85	18	0	force = mass x acceleration 
+37	331	85	18	0	kinetic energy = 0.5 x mass x (speed)
+37	331	384	12	0	2 
+37	374	85	18	0	momentum = mass x velocity 
+37	417	85	18	0	work done = force x distance (along the line of action of the force) 
+37	460	85	18	0	power = work done 
+37	464	243	17	0	÷ 
+37	460	267	18	0	time 
+37	503	85	18	0	efficiency = output energy transfer 
+37	508	362	17	0	÷ 
+37	503	387	18	0	input energy transfer 
+37	547	85	18	0	gravity force = mass x gravity constant (g) 
+37	590	85	18	0	In a gravity field: potential energy = mass x height x gravity constant (g) 
+37	633	85	18	0	force exerted by a spring = extension x spring constant 
+37	676	85	18	0	distance travelled = speed x time  
+37	719	85	18	0	acceleration = change in velocity 
+37	723	350	17	0	÷
+37	719	367	18	0	time
+37	763	85	18	0	wave speed = frequency x wavelength  
+37	805	85	18	0	charge flow = current x time 
+37	848	85	18	0	potential difference = current x resistance 
+37	891	85	18	0	power = potential difference x current = (current)
+37	891	470	12	0	2
+37	891	477	18	0	 x resistance 
+37	934	85	18	0	energy transferred = power x time = charge flow x potential difference 
+37	977	85	18	0	density = mass 
+37	981	211	17	0	÷
+37	977	227	18	0	volume 
+37	1021	85	18	0	(b) In addition, students should be able correctly to select from a list and apply the 
+37	1046	85	18	0	following relationships:  
+37	1088	85	18	0	(final velocity)
+37	1089	195	12	0	2
+37	1088	202	18	0	 - (initial velocity)
+37	1089	336	12	0	2
+37	1088	342	18	0	 = 2 x acceleration x distance 
+37	1131	85	18	0	change in thermal energy = m x specific heat capacity x change in temperature  
+38	1187	431	18	0	38 
+38	83	85	18	0	thermal energy for a change of state = m x specific latent heat 
+38	126	85	18	0	energy transferred in stretching = 0.5 x spring constant x (extension)
+38	126	629	12	0	2 
+38	169	85	18	0	potential difference across primary coil x current in primary coil = potential difference 
+38	193	85	18	0	across secondary coil x current in secondary coil 
+38	239	85	18	0	force on a conductor (at right angles to a magnetic field) carrying a current: = magnetic 
+38	260	85	18	0	flux density x current x length 
+39	1187	431	18	0	39 
+39	82	85	24	1	Appendix 2 
+39	129	85	18	1	SI units in science 
+39	154	85	18	0	The International System of Units (Système International d'Unités), which is abbreviated 
+39	178	85	18	0	SI, is a coherent system of base units. The six which are relevant for GCSE sciences are 
+39	203	85	18	0	listed below. We also list nine of the derived units (which have special names) selected 
+39	228	85	18	0	from the SI list of derived units in the same source. 
+39	271	85	18	1	Base units 
+39	296	85	18	0	These units and their associated quantities are dimensionally independent. 
+39	338	85	18	1	metre 
+39	364	85	18	0	Unit symbol: 
+39	363	189	18	1	m 
+39	406	85	18	1	kilogram 
+39	432	85	18	0	Unit symbol: 
+39	431	189	18	1	kg 
+39	474	85	18	1	second 
+39	499	85	18	0	Unit symbol: 
+39	498	189	18	1	s 
+39	541	85	18	1	ampere 
+39	567	85	18	0	Unit symbol: 
+39	566	189	18	1	A 
+39	609	85	18	1	kelvin 
+39	635	85	18	0	Unit symbol: 
+39	634	189	18	1	K 
+39	677	85	18	1	mole 
+39	702	85	18	0	Unit symbol: 
+39	701	189	18	1	mol 
+39	744	85	18	1	Some derived units with special names 
+39	770	85	18	0	Frequency hertz Hz 
+39	794	85	18	0	Force newton N 
+39	819	85	18	0	Energy joule J 
+39	844	85	18	0	Power watt W 
+39	869	85	18	0	Pressure pascal Pa 
+39	894	85	18	0	Electric charge coulomb C 
+39	919	85	18	0	Electric potential difference volt V 
+39	943	85	18	0	Electric 
+39	943	149	18	0	resistance ohm Ω
+39	968	85	18	0	Magnetic flux density tesla T 
+40	1187	431	18	0	40 
+40	82	85	24	1	Appendix 3 
+40	129	85	18	0	Mathematical skills required for biology (B), chemistry (C), physics (P) and combined 
+40	154	85	18	0	science (CS) 
+40	197	120	18	1	Mathematical skills 
+40	197	678	18	1	Subject 
+40	218	94	18	1	1  Arithmetic and numerical computation 
+40	240	94	18	0	a  Recognise and use expressions in decimal form 
+40	240	678	18	0	B  C  P  CS 
+40	261	94	18	0	b  Recognise and use expressions in standard form 
+40	261	678	18	0	B  C  P  CS 
+40	283	94	18	0	c  Use ratios, fractions and percentages 
+40	283	678	18	0	B  C  P  CS 
+40	304	94	18	0	d  Make estimates of the results of simple calculations 
+40	304	678	18	0	B  C  P  CS 
+40	326	94	18	1	2  Handling data 
+40	347	94	18	0	a  Use an appropriate number of significant figures 
+40	347	678	18	0	B  C  P  CS 
+40	369	94	18	0	b  Find arithmetic means 
+40	369	678	18	0	B  C  P  CS 
+40	390	94	18	0	c  Construct and interpret frequency tables and diagrams, bar charts 
+40	411	120	18	0	and histograms 
+40	390	678	18	0	B  C  P  CS 
+40	432	94	18	0	d  Understand the principles of sampling as applied to scientific data 
+40	432	678	18	0	B      CS 
+40	454	94	18	0	e Understand simple probability 
+40	454	678	18	0	B      CS 
+40	475	94	18	0	f  Understand the terms mean, mode and median 
+40	475	678	18	0	B    P  CS 
+40	497	94	18	0	g  Use a scatter diagram to identify a correlation between two 
+40	517	120	18	0	variables 
+40	497	678	18	0	B    P  CS 
+40	539	94	18	0	h aMake order of magnitude calculations 
+40	539	678	18	0	B  C  P  CS 
+40	560	94	18	1	3  Algebra 
+40	582	94	18	0	a  Understand and use the symbols: =, <, <<, >>, >, 
+40	584	512	18	0	∝
+40	582	525	18	0	, ~ 
+40	582	678	18	0	B  C  P  CS 
+40	604	94	18	0	b  Change the subject of an equation 
+40	604	678	18	0	  C  P  CS 
+40	625	94	18	0	c   Substitute numerical values into algebraic equations using 
+40	646	120	18	0	appropriate units for physical quantities 
+40	625	678	18	0	  C  P  CS 
+40	667	94	18	0	d  Solve simple algebraic equations 
+40	667	678	18	0	B    P  CS 
+40	688	94	18	1	4    Graphs 
+40	710	94	18	0	a  Translate information between graphical and numeric form 
+40	710	678	18	0	B  C  P  CS 
+40	732	94	18	0	b  Understand that y=mx+c represents a linear relationship 
+40	732	678	18	0	B  C  P  CS 
+40	753	94	18	0	c    Plot two variables from experimental or other data 
+40	753	678	18	0	B  C  P  CS 
+40	774	94	18	0	d  Determine the slope and intercept of a linear graph 
+40	774	678	18	0	B  C  P  CS 
+40	796	94	18	0	e   Draw and use the slope of a tangent to a curve as a measure of rate 
+40	816	120	18	0	of change 
+40	796	678	18	0	  C    CS 
+40	838	94	18	0	f   Understand the physical significance of area between a curve and 
+40	859	120	18	0	the x-axis and measure it by counting squares as appropriate 
+40	838	678	18	0	    P  CS 
+40	880	94	18	1	5   Geometry and trigonometry 
+40	902	94	18	0	a  Use angular measures in degrees 
+40	902	678	18	0	    P  CS 
+40	923	94	18	0	b    Visualise and represent 2D and 3D forms including two dimensional 
+40	944	120	18	0	representations of 3D objects 
+40	923	678	18	0	  C  P  CS 
+40	965	94	18	0	c  Calculate areas of triangles and rectangles, surface areas and 
+40	986	120	18	0	volumes of cubes. 
+40	965	678	18	0	B  C  P  CS 
+41	1187	431	18	0	41 
+41	82	85	24	1	Appendix 4 
+41	129	85	18	1	List of apparatus and techniques  
+41	154	85	18	0	The following list includes opportunities for choice and use of appropriate laboratory 
+41	178	85	18	0	apparatus for a variety of experimental problem-solving and/or enquiry based activities.  
+41	221	85	18	0	Safety is an overriding requirement for all practical work.  Centres are responsible for 
+41	246	85	18	0	ensuring appropriate safety procedures are followed whenever their students complete 
+41	271	85	18	0	practical work. 
+41	314	85	18	0	Use and production of appropriate scientific diagrams to set up and record apparatus and 
+41	339	85	18	0	procedures used in practical work is common to all science subjects and should be 
+41	363	85	18	0	included wherever appropriate. 
+41	410	202	21	1	BIOLOGY 
+41	410	413	21	1	CHEMISTRY
+41	410	650	21	1	PHYSICS 
+41	474	103	18	1	1 
+41	450	139	12	0	Use of appropriate apparatus to make 
+41	464	139	12	0	and record a range of measurements 
+41	478	139	12	0	accurately, including length, area, 
+41	492	139	12	0	mass, time, temperature, volume of 
+41	505	139	12	0	liquids and gases, and pH 
+41	450	361	12	0	Use of appropriate apparatus to make 
+41	464	361	12	0	and record a range of measurements 
+41	478	361	12	0	accurately, including mass, time, 
+41	492	361	12	0	temperature, and volume of liquids 
+41	505	361	12	0	and gases  
+41	436	583	12	0	Use of appropriate apparatus to make 
+41	450	583	12	0	and record a range of measurements 
+41	464	583	12	0	accurately, including length, area, 
+41	478	583	12	0	mass, time, volume and temperature. 
+41	492	583	12	0	Use of such measurements to 
+41	505	583	12	0	determine densities of solid and liquid 
+41	519	583	12	0	objects. 
+41	552	103	18	1	2 
+41	536	139	12	0	Safe use of appropriate heating 
+41	549	139	12	0	devices and techniques including use 
+41	563	139	12	0	of a Bunsen burner and a water bath 
+41	577	139	12	0	or electric heater 
+41	536	361	12	0	Safe use of appropriate heating 
+41	549	361	12	0	devices and techniques
+41	549	491	12	0	including use 
+41	563	361	12	0	of a Bunsen burner and a water bath 
+41	577	361	12	0	or electric heater 
+41	536	583	12	0	Use of appropriate apparatus to 
+41	549	583	12	0	measure and observe the effects of 
+41	563	583	12	0	forces including the extension of 
+41	577	583	12	0	springs 
+41	631	103	18	1	3 
+41	614	139	12	0	Use of appropriate apparatus and 
+41	628	139	12	0	techniques for the observation and 
+41	642	139	12	0	measurement of biological changes 
+41	656	139	12	0	and/or processes 
+41	600	361	12	0	Use of appropriate apparatus and 
+41	614	361	12	0	techniques for conducting and 
+41	628	361	12	0	monitoring chemical reactions, 
+41	642	361	12	0	including appropriate reagents and/or 
+41	656	361	12	0	techniques for the measurement of pH 
+41	669	361	12	0	in different situations 
+41	607	583	12	0	Use of appropriate apparatus and 
+41	621	583	12	0	techniques for measuring motion, 
+41	635	583	12	0	including determination of speed and 
+41	649	583	12	0	rate of change of speed 
+41	662	583	12	0	(acceleration/deceleration) 
+41	749	103	18	1	4 
+41	732	139	12	0	Safe and ethical use of living 
+41	746	139	12	0	organisms (plants or animals) to 
+41	760	139	12	0	measure physiological functions and 
+41	774	139	12	0	responses to the environment 
+41	725	361	12	0	Safe use of a range of equipment to 
+41	739	361	12	0	purify and/or separate chemical 
+41	753	361	12	0	mixtures including evaporation, 
+41	767	361	12	0	filtration, crystallisation, 
+41	781	361	12	0	chromatography and distillation 
+41	705	583	12	0	Making observations of waves in fluids 
+41	718	583	12	0	and solids to identify the suitability of 
+41	732	583	12	0	apparatus to measure 
+41	746	583	12	0	speed/frequency/wavelength.  Making 
+41	760	583	12	0	observations of the effects of the 
+41	774	583	12	0	interaction of electromagnetic waves 
+41	787	583	12	0	with matter.  
+41	867	103	18	1	5 
+41	850	139	12	0	Measurement of rates of reaction by a 
+41	864	139	12	0	variety of methods including 
+41	878	139	12	0	production of gas, uptake of water and 
+41	892	139	12	0	colour change of indicator 
+41	829	361	12	0	Making and recording of appropriate 
+41	843	361	12	0	observations during chemical 
+41	857	361	12	0	reactions including changes in 
+41	871	361	12	0	temperature and the measurement of 
+41	885	361	12	0	rates of reaction by a variety of 
+41	899	361	12	0	methods such as production of gas 
+41	912	361	12	0	and colour change
+41	850	583	12	0	Safe use of appropriate apparatus in a 
+41	864	583	12	0	range of contexts to measure energy 
+41	878	583	12	0	changes/transfers and associated 
+41	892	583	12	0	values such as work done 
+41	964	103	18	1	6 
+41	941	139	12	0	Application of appropriate sampling 
+41	955	139	12	0	techniques to investigate the 
+41	968	139	12	0	distribution and abundance of 
+41	982	139	12	0	organisms in an ecosystem via direct 
+41	996	139	12	0	use in the field  
+41	934	361	12	0	Safe use and careful handling of 
+41	948	361	12	0	gases, liquids and solids, including 
+41	961	361	12	0	careful mixing of reagents under 
+41	975	361	12	0	controlled conditions, using 
+41	989	361	12	0	appropriate apparatus to explore 
+41	1003	361	12	0	chemical changes and/or products 
+41	941	583	12	0	Use of appropriate apparatus to 
+41	955	583	12	0	measure current, potential difference 
+41	968	583	12	0	(voltage) and resistance, and to 
+41	982	583	12	0	explore the characteristics of a variety 
+41	996	583	12	0	of circuit elements 
+41	1061	103	18	1	7 
+41	1031	139	12	0	Use of appropriate apparatus, 
+41	1045	139	12	0	techniques and magnification, 
+41	1059	139	12	0	including microscopes, to make 
+41	1072	139	12	0	observations of biological specimens 
+41	1086	139	12	0	and produce labelled scientific 
+41	1100	139	12	0	drawings 
+41	1038	361	12	0	Use of appropriate apparatus and 
+41	1052	361	12	0	techniques to draw, set up and use 
+41	1066	361	12	0	electrochemical cells for separation 
+41	1079	361	12	0	and production of elements and 
+41	1093	361	12	0	compounds  
+41	1038	583	12	0	Use of circuit diagrams to construct 
+41	1052	583	12	0	and check series and parallel circuits 
+41	1066	583	12	0	including a variety of common circuit 
+41	1080	583	12	0	elements 
+41	1138	372	15	1	SINGLE SCIENCES ONLY 
+42	1187	431	18	0	42 
+42	150	103	18	1	8 
+42	120	139	12	0	Use of appropriate techniques and 
+42	133	139	12	0	qualitative reagents to identify 
+42	147	139	12	0	biological molecules and processes in 
+42	161	139	12	0	more complex and problem-solving 
+42	175	139	12	0	contexts including continuous 
+42	189	139	12	0	sampling in an investigation.  
+42	113	361	12	0	Use of appropriate qualitative 
+42	126	361	12	0	reagents and techniques to analyse 
+42	140	361	12	0	and identify unknown samples or 
+42	154	361	12	0	products including gas tests, flame 
+42	168	361	12	0	tests, precipitation reactions, and the 
+42	182	361	12	0	determination of concentrations of 
+42	195	361	12	0	strong acids and strong alkalis 
+42	140	583	12	0	Making observations of waves in fluids 
+42	154	583	12	0	and solids to identify the suitability of 
+42	168	583	12	0	apparatus to measure the effects of 
+42	182	583	12	0	the interaction of waves with matter.  
+43	1187	431	18	0	43 
+43	620	85	18	0	© Crown copyright 2015 
+43	663	85	18	0	You may re-use this document/publication (not including logos) free of charge in any 
+43	688	85	18	0	format or medium, under the terms of the Open Government Licence v3.0. To view this 
+43	713	85	18	0	licence, visit 
+43	713	187	18	0	www.nationalarchives.gov.uk/doc/open-government-licence/version/3
+43	713	739	18	0	 or 
+43	738	85	18	0	email: 
+43	738	138	18	0	psi@nationalarchives.gsi.gov.uk
+43	738	395	18	0	.  
+43	772	85	18	0	Where we have identified any third party copyright information you will need to obtain 
+43	796	85	18	0	permission from the copyright holders concerned.  
+43	839	85	18	0	Any enquiries regarding this publication should be sent to us at 
+43	864	85	18	0	www.education.gov.uk/contactus
+43	864	347	18	0	.  
+43	907	85	18	0	This document is available to download at 
+43	907	424	18	0	www.gov.uk/government/publications
+43	907	721	18	0	.  
+43	965	125	18	0	 Follow us on Twitter: @educationgovuk 
+43	1023	117	18	0	  Like us on Facebook: 
+43	1023	303	18	0	www.facebook.com/educationgovuk
