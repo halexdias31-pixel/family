@@ -1,0 +1,451 @@
+1	503	85	60	1	Mathematics 
+1	572	85	60	1	programmes of study: 
+1	641	85	60	1	key stage 3 
+1	730	85	39	1	National curriculum in England 
+1	937	85	36	1	September 2013 
+2	41	85	15	1	Mathematics – key stage 3 
+2	1202	85	15	1	2 
+2	83	85	24	1	Purpose of study 
+2	120	85	18	0	Mathematics is a creative and highly inter-connected discipline that has been developed 
+2	145	85	18	0	over centuries, providing the solution to some of history’s most intriguing problems. It is 
+2	170	85	18	0	essential to everyday life, critical to science, technology and engineering, and necessary 
+2	195	85	18	0	for financial literacy and most forms of employment. A high-quality mathematics education 
+2	220	85	18	0	therefore provides a foundation for understanding the world, the ability to reason 
+2	244	85	18	0	mathematically, an appreciation of the beauty and power of mathematics, and a sense of 
+2	269	85	18	0	enjoyment and curiosity about the subject. 
+2	311	85	24	1	Aims 
+2	349	85	18	0	The national curriculum for mathematics aims to ensure that all pupils: 
+2	384	85	18	0	
+2	382	112	18	0	become
+2	382	176	18	1	 fluent 
+2	382	235	18	0	in the fundamentals of mathematics, including through varied and 
+2	407	112	18	0	frequent practice with increasingly complex problems over time, so that pupils develop 
+2	432	112	18	0	conceptual understanding and the ability to recall and apply knowledge rapidly and 
+2	457	112	18	0	accurately.
+2	493	85	18	0	
+2	491	112	18	1	reason mathematically
+2	491	306	18	0	 by following a line of enquiry, conjecturing relationships and 
+2	516	112	18	0	generalisations, and developing an argument, justification or proof using mathematical 
+2	541	112	18	0	language
+2	576	85	18	0	
+2	574	112	18	0	can 
+2	574	146	18	1	solve problems
+2	574	278	18	0	 by applying their mathematics to a variety of routine and non-
+2	599	112	18	0	routine problems with increasing sophistication, including breaking down problems into 
+2	624	112	18	0	a series of simpler steps and persevering in seeking solutions. 
+2	667	85	18	0	Mathematics is an interconnected subject in which pupils need to be able to move fluently 
+2	692	85	18	0	between representations of mathematical ideas. The programme of study for key stage 3 
+2	717	85	18	0	is organised into apparently distinct domains, but pupils should build on key stage 2 and 
+2	741	85	18	0	connections across mathematical ideas to develop fluency, mathematical reasoning and 
+2	766	85	18	0	competence in solving increasingly sophisticated problems. They should also apply their 
+2	791	85	18	0	mathematical knowledge in science, geography, computing and other subjects.  
+2	834	85	18	0	Decisions about progression should be based on the security of pupils’ understanding and 
+2	859	85	18	0	their readiness to progress to the next stage. Pupils who grasp concepts rapidly should be 
+2	884	85	18	0	challenged through being offered rich and sophisticated problems before any acceleration 
+2	908	85	18	0	through new content in preparation for key stage 4. Those who are not sufficiently fluent 
+2	933	85	18	0	should consolidate their understanding, including through additional practice, before 
+2	958	85	18	0	moving on. 
+2	1000	85	24	1	Information and communication technology (ICT) 
+2	1038	85	18	0	Calculators should not be used as a substitute for good written and mental arithmetic. In 
+2	1062	85	18	0	secondary schools, teachers should use their judgement about when ICT tools should be 
+2	1087	85	18	0	used. 
+3	41	619	15	1	Mathematics – key stage 3 
+3	1202	800	15	1	3 
+3	83	85	24	1	Spoken language 
+3	120	85	18	0	The national curriculum for mathematics reflects the importance of spoken language in 
+3	145	85	18	0	pupils’ development across the whole curriculum – cognitively, socially and linguistically. 
+3	170	85	18	0	The quality and variety of language that pupils hear and speak are key factors in 
+3	195	85	18	0	developing their mathematical vocabulary and presenting a mathematical justification, 
+3	220	85	18	0	argument or proof. They must be assisted in making their thinking clear to themselves as 
+3	244	85	18	0	well as others and teachers should ensure that pupils build secure foundations by using 
+3	269	85	18	0	discussion to probe and remedy their misconceptions. 
+3	311	85	24	1	Attainment targets 
+3	349	85	18	0	By the end of key stage 3, pupils are expected to know, apply and understand the matters, 
+3	373	85	18	0	skills and processes specified in the relevant programme of study. 
+3	416	85	18	1	Schools are not required by law to teach the example content in [square brackets] 
+3	441	85	18	1	or the content indicated as being ‘non-statutory’.
+4	41	85	15	1	Mathematics – key stage 3 
+4	1202	85	15	1	4 
+4	101	89	27	1	Key stage 3 
+4	168	85	24	1	Working mathematically 
+4	205	85	18	0	Through the mathematics content, pupils should be taught to: 
+4	248	85	18	1	Develop fluency 
+4	279	85	18	0	
+4	277	112	18	0	consolidate their numerical and mathematical capability from key stage 2 and extend 
+4	302	112	18	0	their understanding of the number system and place value to include decimals, 
+4	327	112	18	0	fractions, powers and roots 
+4	363	85	18	0	
+4	361	112	18	0	select and use appropriate calculation strategies to solve increasingly complex 
+4	386	112	18	0	problems 
+4	421	85	18	0	
+4	420	112	18	0	use algebra to generalise the structure of arithmetic, including to formulate 
+4	444	112	18	0	mathematical relationships 
+4	480	85	18	0	
+4	478	112	18	0	substitute values in expressions, rearrange and simplify expressions, and solve 
+4	503	112	18	0	equations 
+4	539	85	18	0	
+4	537	112	18	0	move freely between different numerical, algebraic, graphical and diagrammatic 
+4	562	112	18	0	representations [for example, equivalent fractions, fractions and decimals, and 
+4	587	112	18	0	equations and graphs] 
+4	622	85	18	0	
+4	620	112	18	0	develop algebraic and graphical fluency, including understanding linear and simple 
+4	645	112	18	0	quadratic functions 
+4	681	85	18	0	
+4	679	112	18	0	use language and properties precisely to analyse numbers, algebraic expressions, 2-D 
+4	704	112	18	0	and 3-D shapes, probability and statistics. 
+4	747	85	18	1	Reason mathematically 
+4	778	85	18	0	
+4	776	112	18	0	extend their understanding of the number system; make connections between number 
+4	801	112	18	0	relationships, and their algebraic and graphical representations 
+4	837	85	18	0	
+4	835	112	18	0	extend and formalise their knowledge of ratio and proportion in working with measures 
+4	860	112	18	0	and geometry, and in formulating proportional relations algebraically 
+4	895	85	18	0	
+4	894	112	18	0	identify variables and express relations between variables algebraically and graphically 
+4	929	85	18	0	
+4	927	112	18	0	make and test conjectures about patterns and relationships; look for proofs or counter-
+4	952	112	18	0	examples 
+4	988	85	18	0	
+4	986	112	18	0	begin to reason deductively in geometry, number and algebra, including using 
+4	1011	112	18	0	geometrical constructions 
+4	1047	85	18	0	
+4	1045	112	18	0	interpret when the structure of a numerical problem requires additive, multiplicative or 
+4	1070	112	18	0	proportional reasoning 
+4	1105	85	18	0	
+4	1103	112	18	0	explore what can and cannot be inferred in statistical and probabilistic settings, and 
+4	1128	112	18	0	begin to express their arguments formally. 
+5	41	619	15	1	Mathematics – key stage 3 
+5	1202	800	15	1	5 
+5	83	85	18	1	Solve problems 
+5	115	85	18	0	
+5	113	112	18	0	develop their mathematical knowledge, in part through solving problems and evaluating 
+5	138	112	18	0	the outcomes, including multi-step problems 
+5	174	85	18	0	
+5	172	112	18	0	develop their use of formal mathematical knowledge to interpret and solve problems, 
+5	196	112	18	0	including in financial mathematics 
+5	232	85	18	0	
+5	230	112	18	0	begin to model situations mathematically and express the results using a range of 
+5	255	112	18	0	formal mathematical representations 
+5	291	85	18	0	
+5	289	112	18	0	select appropriate concepts, methods and techniques to apply to unfamiliar and non-
+5	314	112	18	0	routine problems. 
+5	356	85	24	1	Subject content 
+5	402	85	21	1	Number 
+5	440	85	18	0	Pupils should be taught to: 
+5	476	85	18	0	
+5	474	112	18	0	understand and use place value for decimals, measures and integers of any size 
+5	510	85	18	0	
+5	508	112	18	0	order positive and negative integers, decimals and fractions; use the number line as a 
+5	533	112	18	0	model for ordering of the real numbers; use the 
+5	533	492	18	0	symbols =, ≠, <, >, ≤, ≥ 
+5	568	85	18	0	
+5	567	112	18	0	use the concepts and vocabulary of prime numbers, factors (or divisors), multiples, 
+5	591	112	18	0	common factors, common multiples, highest common factor, lowest common multiple, 
+5	616	112	18	0	prime factorisation, including using product notation and the unique factorisation 
+5	641	112	18	0	property 
+5	677	85	18	0	
+5	675	112	18	0	use the four operations, including formal written methods, applied to integers, decimals, 
+5	700	112	18	0	proper and improper
+5	700	280	18	0	fractions, and mixed numbers, all both positive and negative 
+5	735	85	18	0	
+5	734	112	18	0	use conventional notation for the priority of operations, including brackets, powers, 
+5	758	112	18	0	roots and reciprocals 
+5	794	85	18	0	
+5	792	112	18	0	recognise and use relationships between operations including inverse operations 
+5	828	85	18	0	
+5	826	112	18	0	use integer powers and associated real roots (square, cube and higher), recognise 
+5	851	112	18	0	powers of 2, 3, 4, 5  and distinguish between exact representations of roots and their 
+5	876	112	18	0	decimal approximations  
+5	912	85	18	0	
+5	910	112	18	0	interpret and compare numbers in standard form A x 10
+5	907	554	12	0	n
+5	910	566	18	0	1≤A<10, where n is a positive 
+5	934	112	18	0	or negative integer or zero 
+5	970	85	18	0	
+5	968	112	18	0	work interchangeably with terminating decimals and their corresponding fractions (such 
+5	999	112	18	0	as 3.5 and 
+5	1011	204	12	0	2
+5	994	204	12	0	7
+5	999	213	18	0	 or 0.375 and 
+5	1011	327	12	0	8
+5	994	327	12	0	3
+5	999	337	18	0	) 
+5	1034	85	18	0	
+5	1032	112	18	0	define percentage as ‘number of parts per hundred’, interpret percentages and 
+5	1057	112	18	0	percentage changes as a fraction or a decimal, interpret these multiplicatively, express 
+5	1082	112	18	0	one quantity as a percentage of another, compare two quantities using percentages, 
+5	1107	112	18	0	and work with percentages greater than 100% 
+5	1142	85	18	0	
+5	1140	112	18	0	interpret fractions and percentages as operators 
+6	41	85	15	1	Mathematics – key stage 3 
+6	1202	85	15	1	6 
+6	86	85	18	0	
+6	84	112	18	0	use standard units of
+6	84	284	18	0	mass, length, time, money and other measures, including with 
+6	108	112	18	0	decimal quantities 
+6	144	85	18	0	
+6	142	112	18	0	round numbers and measures to an appropriate degree of accuracy [for example,
+6	142	765	18	0	to a 
+6	167	112	18	0	number of decimal places or significant figures] 
+6	203	85	18	0	
+6	201	112	18	0	use approximation through rounding to estimate answers and calculate possible 
+6	226	112	18	0	resulting errors expressed using inequality notation 
+6	226	523	18	0	a
+6	226	533	18	0	<
+6	226	544	18	0	x
+6	226	553	18	0	≤
+6	226	562	18	0	b
+6	262	85	18	0	
+6	260	112	18	0	use a calculator and other technologies to calculate results accurately and then 
+6	284	112	18	0	interpret them appropriately 
+6	320	85	18	0	
+6	318	112	18	0	appreciate the infinite nature of the sets of integers, real and rational numbers. 
+6	361	85	21	1	Algebra 
+6	399	85	18	0	Pupils should be taught to: 
+6	433	85	18	0	
+6	432	112	18	0	use and interpret algebraic notation, including: 
+6	461	128	18	0	
+6	459	154	18	0	ab
+6	459	174	18	0	 in place of 
+6	459	266	18	0	a
+6	459	276	18	0	 × 
+6	459	297	18	0	b
+6	489	128	18	0	
+6	487	154	18	0	3
+6	487	164	18	0	y
+6	487	173	18	0	 in place of 
+6	487	266	18	0	y
+6	487	275	18	0	 + 
+6	487	295	18	0	y
+6	487	304	18	0	  + 
+6	487	329	18	0	y
+6	487	338	18	0	 and 3 × 
+6	487	409	18	0	y
+6	518	128	16	0	
+6	515	154	18	0	a
+6	513	164	12	0	2
+6	515	171	18	0	 in place of 
+6	515	263	18	0	a
+6	515	273	18	0	 × 
+6	515	294	18	0	a
+6	515	304	18	0	, 
+6	515	314	18	0	a
+6	513	324	12	0	3
+6	515	330	18	0	 in place of 
+6	515	422	18	0	a
+6	515	432	18	0	 × 
+6	515	453	18	0	a
+6	515	463	18	0	 × 
+6	515	483	18	0	a
+6	515	493	18	0	; 
+6	515	504	18	0	a
+6	513	513	12	0	2
+6	515	520	18	0	b
+6	515	530	18	0	 in place of 
+6	515	622	18	0	a
+6	515	632	18	0	 × 
+6	515	653	18	0	a
+6	515	663	18	0	 × 
+6	515	683	18	0	b
+6	548	128	18	0	
+6	558	157	12	0	b
+6	541	157	12	0	a
+6	546	167	18	0	 in place of 
+6	546	259	18	0	a
+6	546	274	18	0	÷
+6	546	289	18	0	b
+6	578	128	18	0	
+6	576	154	18	0	coefficients written as fractions rather than as decimals 
+6	606	128	18	0	
+6	604	154	18	0	brackets 
+6	638	85	18	0	
+6	636	112	18	0	substitute numerical values into formulae and expressions, including scientific formulae 
+6	671	85	18	0	
+6	669	112	18	0	understand and use the concepts and vocabulary of expressions, equations, 
+6	694	112	18	0	inequalities, terms and factors 
+6	728	85	18	0	
+6	726	112	18	0	simplify and manipulate algebraic expressions to maintain equivalence by: 
+6	756	128	18	0	
+6	754	154	18	0	collecting like terms 
+6	783	128	18	0	
+6	782	154	18	0	multiplying a single term over a bracket 
+6	811	128	18	0	
+6	809	154	18	0	taking out common factors 
+6	839	128	18	0	
+6	837	154	18	0	expanding products of two or more binomials 
+6	871	85	18	0	
+6	869	112	18	0	understand and use standard mathematical formulae; rearrange formulae to change 
+6	894	112	18	0	the subject 
+6	929	85	18	0	
+6	927	112	18	0	model situations or procedures by translating them into algebraic expressions or 
+6	952	112	18	0	formulae and by using graphs 
+6	986	85	18	0	
+6	984	112	18	0	use algebraic methods to solve linear equations in one variable (including all forms that 
+6	1009	112	18	0	require rearrangement) 
+6	1043	85	18	0	
+6	1041	112	18	0	work with coordinates in all four quadrants 
+6	1075	85	18	0	
+6	1073	112	18	0	recognise, sketch and produce graphs of linear and quadratic functions of one variable 
+6	1098	112	18	0	with appropriate scaling, using equations in 
+6	1098	461	18	0	x
+6	1098	470	18	0	 and 
+6	1098	510	18	0	y
+6	1098	519	18	0	 and the Cartesian plane 
+6	1132	85	18	0	
+6	1131	112	18	0	interpret mathematical relationships both algebraically and graphically 
+7	41	619	15	1	Mathematics – key stage 3 
+7	1202	800	15	1	7 
+7	86	85	18	0	
+7	84	112	18	0	reduce a given linear equation in two variables to the standard form 
+7	84	653	18	0	y
+7	84	662	18	0	 = m
+7	84	698	18	0	x
+7	84	707	18	0	 + c; 
+7	108	112	18	0	calculate and interpret gradients and intercepts of graphs of such linear equations 
+7	133	112	18	0	numerically, graphically and algebraically 
+7	168	85	18	0	
+7	166	112	18	0	use linear and quadratic graphs to estimate values of 
+7	166	539	18	0	y
+7	166	548	18	0	 for given values of 
+7	166	704	18	0	x
+7	166	713	18	0	 and vice 
+7	191	112	18	0	versa and to find approximate solutions of simultaneous linear equations 
+7	225	85	18	0	
+7	223	112	18	0	find approximate solutions to contextual problems from given graphs of a variety of 
+7	248	112	18	0	functions, including piece-wise linear, exponential and reciprocal graphs 
+7	282	85	18	0	
+7	280	112	18	0	generate terms of a sequence from either a term-to-term or a position-to-term rule 
+7	314	85	18	0	
+7	312	112	18	0	recognise arithmetic sequences and find the 
+7	312	469	18	0	n
+7	312	479	18	0	th term 
+7	348	85	18	0	
+7	346	112	18	0	recognise geometric sequences and appreciate other sequences that arise. 
+7	389	85	21	1	Ratio, proportion and rates of change 
+7	427	85	18	0	Pupils should be taught to:  
+7	463	85	18	0	
+7	461	112	18	0	change freely between related standard units [for example time, length, area, 
+7	486	112	18	0	volume/capacity, mass] 
+7	521	85	18	0	
+7	519	112	18	0	use scale factors, scale diagrams and maps 
+7	555	85	18	0	
+7	553	112	18	0	express one quantity as a fraction of another, where the fraction is less than 1 and 
+7	578	112	18	0	greater than 1 
+7	614	85	18	0	
+7	612	112	18	0	use ratio notation, including reduction to simplest form 
+7	648	85	18	0	
+7	646	112	18	0	divide a given quantity into two parts in a given part:part or part:whole ratio; express 
+7	671	112	18	0	the division of a quantity into two parts as a ratio 
+7	706	85	18	0	
+7	705	112	18	0	understand that a multiplicative relationship between two quantities can be expressed 
+7	729	112	18	0	as a ratio or a fraction 
+7	765	85	18	0	
+7	763	112	18	0	relate the language of ratios and the associated calculations to the arithmetic of 
+7	788	112	18	0	fractions and to linear functions 
+7	824	85	18	0	
+7	822	112	18	0	solve problems involving percentage change, including: percentage increase, decrease 
+7	847	112	18	0	and original value problems and simple interest in financial mathematics 
+7	882	85	18	0	
+7	881	112	18	0	solve problems involving direct and inverse proportion, including graphical and 
+7	905	112	18	0	algebraic representations 
+7	941	85	18	0	
+7	939	112	18	0	use compound units such as speed, unit pricing and density to solve problems. 
+8	41	85	15	1	Mathematics – key stage 3 
+8	1202	85	15	1	8 
+8	83	85	21	1	Geometry and measures 
+8	122	85	18	0	Pupils should be taught to:  
+8	153	85	18	0	
+8	151	112	18	0	derive and apply formulae to calculate and solve problems involving: perimeter and 
+8	176	112	18	0	area of triangles, parallelograms, trapezia, volume of cuboids (including cubes) and 
+8	201	112	18	0	other prisms (including cylinders) 
+8	228	85	18	0	
+8	226	112	18	0	calculate and solve problems involving: perimeters of 2-D shapes (including circles), 
+8	251	112	18	0	areas of circles and composite shapes 
+8	277	85	18	0	
+8	275	112	18	0	draw and measure line segments and angles in geometric figures, including 
+8	300	112	18	0	interpreting scale drawings 
+8	327	85	18	0	
+8	325	112	18	0	derive and use the standard ruler and compass constructions (perpendicular bisector of 
+8	350	112	18	0	a line segment, constructing a perpendicular to a given line from/at a given point, 
+8	375	112	18	0	bisecting a given angle); recognise and use the perpendicular distance from a point to 
+8	400	112	18	0	a line as the shortest distance to the line  
+8	426	85	18	0	
+8	425	112	18	0	describe, sketch and draw using conventional terms and notations: points, lines, 
+8	449	112	18	0	parallel lines, perpendicular lines, right angles, regular polygons, and other polygons 
+8	474	112	18	0	that are reflectively and rotationally symmetric 
+8	501	85	18	0	
+8	499	112	18	0	use the standard conventions for labelling the sides and angles of triangle ABC, and 
+8	524	112	18	0	know and use the criteria for congruence of triangles 
+8	551	85	18	0	
+8	549	112	18	0	derive and illustrate properties of triangles, quadrilaterals, circles, and other plane 
+8	574	112	18	0	figures [for example,
+8	574	280	18	0	equal lengths and angles]
+8	574	490	18	0	using appropriate language and 
+8	598	112	18	0	technologies 
+8	625	85	18	0	
+8	623	112	18	0	identify properties of, and describe the results of, translations, rotations and reflections 
+8	648	112	18	0	applied to given figures 
+8	675	85	18	0	
+8	673	112	18	0	identify and construct congruent triangles, and construct similar shapes by 
+8	698	112	18	0	enlargement,
+8	698	222	18	0	with and without coordinate
+8	698	445	18	0	grids 
+8	724	85	18	0	
+8	723	112	18	0	apply the properties of angles at a point, angles at a point on a straight line, vertically 
+8	747	112	18	0	opposite angles 
+8	774	85	18	0	
+8	772	112	18	0	understand and use the relationship between parallel lines and alternate and 
+8	797	112	18	0	corresponding angles 
+8	824	85	18	0	
+8	822	112	18	0	derive and use the sum of angles in a triangle and use it to deduce the angle sum in 
+8	847	112	18	0	any polygon, and to derive properties of regular polygons 
+8	873	85	18	0	
+8	872	112	18	0	apply angle facts, triangle congruence, similarity and properties of quadrilaterals to 
+8	896	112	18	0	derive results about angles and sides, including Pythagoras’ Theorem, and use known 
+8	921	112	18	0	results to obtain simple proofs 
+8	948	85	18	0	
+8	946	112	18	0	use Pythagoras’ Theorem and trigonometric ratios in similar triangles to solve problems 
+8	971	112	18	0	involving right-angled triangles 
+8	998	85	18	0	
+8	996	112	18	0	use the properties of faces, surfaces, edges and vertices of cubes, cuboids, prisms, 
+8	1021	112	18	0	cylinders, pyramids, cones and spheres to solve problems in 3-D 
+8	1047	85	18	0	
+8	1045	112	18	0	interpret mathematical relationships both algebraically and geometrically. 
+9	41	619	15	1	Mathematics – key stage 3 
+9	1202	800	15	1	9 
+9	83	85	21	1	Probability 
+9	122	85	18	0	Pupils should be taught to:  
+9	157	85	18	0	
+9	155	112	18	0	record, describe and analyse the frequency of outcomes of simple probability 
+9	180	112	18	0	experiments involving randomness, fairness, equally and unequally likely outcomes, 
+9	205	112	18	0	using appropriate language and the 0-1 probability scale 
+9	241	85	18	0	
+9	239	112	18	0	understand that the probabilities of all possible outcomes sum to 1 
+9	275	85	18	0	
+9	273	112	18	0	enumerate sets and unions/intersections of sets systematically, using tables, grids and 
+9	298	112	18	0	Venn diagrams 
+9	333	85	18	0	
+9	331	112	18	0	generate theoretical sample spaces for single and combined events with equally likely, 
+9	356	112	18	0	mutually exclusive outcomes and use these to calculate theoretical probabilities. 
+9	399	85	21	1	Statistics 
+9	437	85	18	0	Pupils should be taught to: 
+9	473	85	18	0	
+9	471	112	18	0	describe, interpret and compare observed distributions of a single variable through: 
+9	496	112	18	0	appropriate graphical representation involving discrete, continuous and grouped data; 
+9	521	112	18	0	and appropriate measures of central tendency (mean, mode, median) and spread 
+9	545	112	18	0	(range, consideration of outliers) 
+9	581	85	18	0	
+9	579	112	18	0	construct and interpret appropriate tables, charts, and diagrams, including frequency 
+9	604	112	18	0	tables, bar charts, pie charts, and pictograms for categorical data, and vertical line (or 
+9	629	112	18	0	bar) charts for ungrouped and grouped numerical data 
+9	665	85	18	0	
+9	663	112	18	0	describe simple mathematical relationships between two variables (bivariate data) in 
+9	688	112	18	0	observational and experimental contexts and illustrate using scatter graphs. 
+9	988	85	16	0	© Crown copyright 2013
+9	1028	85	16	0	You may re-use this information (excluding logos) free of charge in any format or medium, under 
+9	1051	85	16	0	the terms of the Open Government Licence. To view this licence, visit 
+9	1074	85	16	0	http://www.nationalarchives.gov.uk/doc/open-government-licence/
+9	1074	566	16	0	 or email: 
+9	1097	85	16	0	psi@nationalarchives.gsi.gov.uk
+9	1097	321	16	0	. 
+9	1138	85	16	0	Reference: DFE-00179-2013 
