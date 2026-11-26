@@ -19,7 +19,7 @@ const SB = require('./lib/site-browser.js');
    open points (`#fff`, `white`, `var(--bg)`) drawn on its sheet; every such shape must paint the sheet's own colour, never the ink or white.
    `broken` (for --prove) paints them the ink, which must be caught. */
 async function paperCheck(broken) {
-  const pg = await SB.open({ as: 'child', ready: () => typeof stuffItemsAll_ === 'function' && stuffItemsAll_().some(isQ_) });
+  const pg = await SB.open({ as: 'child', show: 'all', ready: () => typeof stuffItemsAll_ === 'function' && stuffItemsAll_().some(isQ_) });
   try {
     await pg.setViewportSize({ width: 390, height: 844 });
     if (broken) await pg.addStyleTag({ content: '.qp-sheet svg rect, .qp-sheet svg circle { fill: currentColor !important; }' });
@@ -43,7 +43,7 @@ async function paperCheck(broken) {
    cells' border and background, no box of its own inside (no border, background or rounded corner), and no placeholder words, nor any line of
    the sheet. `broken` (for --prove) gives the cells their old box and words back, which must be caught. */
 async function cellCheck(broken) {
-  const pg = await SB.open({ as: 'child', ready: () => typeof stuffItemsAll_ === 'function' && stuffItemsAll_().some(isQ_) });
+  const pg = await SB.open({ as: 'child', show: 'all', ready: () => typeof stuffItemsAll_ === 'function' && stuffItemsAll_().some(isQ_) });
   try {
     await pg.setViewportSize({ width: 390, height: 844 });
     if (broken) await pg.addStyleTag({ content: '.qp-cell-ans { border: 1px solid red !important; border-radius: 8px !important; background: #333 !important; } .qp-sheet .kp-show:empty::before { content: "Type your answer" !important; }' });
@@ -74,7 +74,7 @@ async function cellCheck(broken) {
    grid lines (`class="grid"`) drawn on its sheet, light and dark; every grid line strokes a colour that is not the sheet's, at a contrast
    (its colour and opacity over the sheet's) of 1.15 or more, and is not hidden. `broken` (for --prove) strokes them the sheet's colour. */
 async function gridCheck(broken) {
-  const pg = await SB.open({ as: 'child', ready: () => typeof stuffItemsAll_ === 'function' && stuffItemsAll_().some(isQ_) });
+  const pg = await SB.open({ as: 'child', show: 'all', ready: () => typeof stuffItemsAll_ === 'function' && stuffItemsAll_().some(isQ_) });
   const out = { bad: [] };
   try {
     await pg.setViewportSize({ width: 390, height: 844 });
@@ -113,7 +113,7 @@ async function gridCheck(broken) {
 }
 async function inkCheck(armed) {
   const bad = [], said = [];
-  const pg = await SB.open({ as: 'child', ready: () => typeof stuffItemsAll_ === 'function' && stuffItemsAll_().some(isQ_) });
+  const pg = await SB.open({ as: 'child', show: 'all', ready: () => typeof stuffItemsAll_ === 'function' && stuffItemsAll_().some(isQ_) });
   try {
     await pg.setViewportSize({ width: 390, height: 844 });
     await pg.addStyleTag({ content: '#banner{display:none!important}' });

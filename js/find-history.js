@@ -203,7 +203,7 @@ const specKeysOfRow_ = r => String((r && r.spec_ref) || '').split(/[\s,]+/).filt
 /* A POINT'S PARTS: the worksheets' (W-AT) first, each sheet's in its own order, then the past papers'. */
 function specPracticeParts_(k) {
   let all = [];
-  try { all = (stuffItemsAll_() || []).filter(i => i && isQ_(i) && specKeysOfRow_(i.row).includes(k)); } catch (e) { return []; }
+  try { all = (stuffItemsAll_() || []).filter(i => i && isQ_(i) && specKeysOfRow_(i.row).includes(k) && (typeof libShown_ !== 'function' || libShown_(i))); } catch (e) { return []; }
   const wat = i => (/^W-AT-/.test(String(i.row.paper_id || '')) ? 0 : 1);
   return all.map((i, n) => ({ i, n })).sort((a, b) => wat(a.i) - wat(b.i) || a.n - b.n).map(o => o.i);
 }

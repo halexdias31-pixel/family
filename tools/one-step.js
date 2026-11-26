@@ -62,7 +62,7 @@ async function one(c) {
 }
 
 const Q = 'Q-1MA1-2311-2F-16';
-const qOpen = { at: '?card=' + encodeURIComponent('q:' + Q), ready: () => [...document.querySelectorAll('#screen .qcard')].some(e => !e.classList.contains('lib-wait') && e.offsetHeight > 0 && e.querySelector('[data-do="card-share"]')) };
+const qOpen = { show: 'all', at: '?card=' + encodeURIComponent('q:' + Q), ready: () => [...document.querySelectorAll('#screen .qcard')].some(e => !e.classList.contains('lib-wait') && e.offsetHeight > 0 && e.querySelector('[data-do="card-share"]')) };
 const pressIn = sel => pg => pg.evaluate(s => { const b = [...document.querySelectorAll(s)].find(e => e.offsetWidth > 0); if (b) b.click(); return !!b; }, sel);
 const DOCKET = { lists: [{ name: 'Docket', items: Array.from({ length: 16 }, (_, k) => ({ title: 'Made-up item ' + (k + 1) })) }] };
 const CASES = [

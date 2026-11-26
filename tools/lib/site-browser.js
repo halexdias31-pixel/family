@@ -66,6 +66,10 @@ async function open(opts) {
     await pg.route(/script\.google\.com/, r => { let a = null;
       if (o.answer) try { a = o.answer(JSON.parse(r.request().postData() || '{}')); } catch (e) { a = null; }
       return r.fulfill({ status: 200, contentType: 'application/json', body: a ? JSON.stringify(a) : body }); });
+    /* `show: 'all'` (owner, 26 Nov): the library switch (settings.json `library.show`) flipped off in this page from its first script, for a check
+       whose sample is a question kept but not listed (the old papers' drawing, marking and cards still work, for history and for the day it returns). */
+    if (o.show) await pg.route(/\.js(\?|$)/, async r => { const res = await r.fetch(); const t = await res.text();
+      return r.fulfill({ response: res, body: t.split('"library":{"show":"generated"}').join('"library":{"show":"' + o.show + '"}') }); });
     await pg.goto(base + (o.words === false ? '/plain/' : '/') + (o.at || ''));
     if (o.ready !== false) await pg.waitForFunction(o.ready || (() => typeof DATA !== 'undefined' && DATA && (DATA.tutors || []).length), null, { timeout: o.timeout || 90000 });
     /* AND THE LATE FILES IN (25 Nov): the texts, the Bible and the rest arrive after DATA, and each repaints the open column for half a second

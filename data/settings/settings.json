@@ -96,5 +96,9 @@
    "list": ["Doctorate", "Master's degree", "PGCE", "Bachelor's degree", "Foundation Degree", "HND", "HNC", "Diploma", "Access to HE", "International Baccalaureate", "A-Level", "T Level", "BTEC", "AS", "IGCSE", "GCSE", "Certificate", "11+", "SATs", "Entry Level", "Enhanced", "Standard", "Basic"],
    "says": {"Degree": "Bachelor's degree", "BA": "Bachelor's degree", "BSc": "Bachelor's degree", "Undergraduate": "Bachelor's degree", "University": "Bachelor's degree", "Masters": "Master's degree", "MA": "Master's degree", "MSc": "Master's degree", "PhD": "Doctorate", "IB": "International Baccalaureate"}
   }
+ },
+ "library": {
+  "_about": "WHAT FIND SHOWS OF THE QUESTION LIBRARY (owner, 26 Nov: the fresh top-down project): `show` \"generated\" lists only the @family generated questions (their sets P-FAM-GEN-*, tools/gen-questions.js); every other row and every insert stays in data/questions.json and the Ledger, kept but not listed, and saved answers still open. \"all\" brings everything back. Read by js/library.js libShown_; tools/one-shown.js checks it.",
+  "show": "generated"
  }
 }
