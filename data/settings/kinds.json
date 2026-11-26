@@ -3204,10 +3204,19 @@
      "notes"
     ]
    },
+   "clash": {
+    "say": "the timetable as a tool (owner, 26 Nov: no double-booking): a session sharing a day with another whose start-end crosses it (touching ends allowed), the same term or either without one, is refused by js/form.js clashOf_, asked by the phone (storeWrite_) and again by the backend (items.gs itemWrite_); tools/timetable-clash.js",
+    "id": "session_id",
+    "name": "who",
+    "days": "days",
+    "start": "start",
+    "end": "end",
+    "term": "term"
+   },
    "find": {
-    "group": "Life",
-    "label": "week",
-    "under": "Settings",
+    "group": "Tools",
+    "label": "timetable",
+    "under": "Tools",
     "from": "store",
     "new": "New session",
     "facets": [
