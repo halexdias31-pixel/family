@@ -735,9 +735,21 @@ function docketAnswer_(items, now, q) {
   if (act === 'done' || act === 'add') {
     if (!what) said = text_('dk-say-what');
     else if (act === 'done') {
-      const open = dkSort_(items, now).open, k = dkMatch_(open.map(i => items[i].title), what);
-      if (k < 0) said = text_('dk-say-no-match', { what: what });
-      else { dkTick_(items, open[k], true, now); changed = true; said = text_('dk-say-ticked', { title: items[open[k]].title }); }
+      /* Several in one `what` ("water, protein and floss"); one alone is a list of one. Each part ticks its best unticked match (dkMatch_);
+         one already done this third is said so, not re-ticked; the answer is one sentence for Siri to read. */
+      const parts = what.split(/\s*(?:,|&|\+|\n|\band\b|\bplus\b)\s*/i).map(w => w.trim()).filter(Boolean), ticked = [], already = [], missed = [];
+      const list = a => (a.length > 1 ? a.slice(0, -1).join(', ') + ' ' + text_('dk-say-and') + ' ' + a[a.length - 1] : a[0]);
+      parts.forEach(w => {
+        const open = dkSort_(items, now).open, k = dkMatch_(open.map(i => items[i].title), w);
+        if (k >= 0) { dkTick_(items, open[k], true, now); changed = true; ticked.push(items[open[k]].title); return; }
+        const done = items.map((it, i) => i).filter(i => items[i] && dkIsDone_(items[i], now)), d = dkMatch_(done.map(i => items[i].title), w);
+        if (d < 0) missed.push(w);
+        else if (ticked.indexOf(items[done[d]].title) < 0 && already.indexOf(items[done[d]].title) < 0) already.push(items[done[d]].title);
+      });
+      said = [ticked.length ? text_('dk-say-ticked', { title: list(ticked) }) : '', already.length ? text_('dk-say-already', { title: list(already) }) : '',
+        missed.length ? text_('dk-say-no-match', { what: list(missed) }) : ''].filter(Boolean).join(' ');
+      if (!parts.length) said = text_('dk-say-what');
+      return { say: said, items: items, changed: changed };
     } else { items.push({ title: what }); changed = true; said = text_('dk-say-added', { title: what, name: 'Docket' }); }
   }
   return { say: (said ? said + ' ' : '') + dkSay_(dkNowNextOf_(items, now)), items: items, changed: changed };
