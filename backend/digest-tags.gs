@@ -215,7 +215,7 @@ function digestCardTags_(q, T) {
   /* EACH FACET'S ANSWERS (`facetOwn_`, `tagOf` for the card's own page), in the words the value is. */
   const of = {
     /* ONE OPENING QUESTION (queue item 9, 24 Nov): a question is What kind › Questions; What for and Which are not asked. */
-    forLabel: () => 'Learning', kindLabel: () => 'Practice', kindOwn: () => 'Questions',
+    forLabel: () => 'Learning', kindLabel: () => 'Learn', kindOwn: () => 'Questions',
     subject: () => it.subject, documentType: () => it.documentType,
     level: () => lv, keystage: () => digestTagKeystage_(it),
     yearGroup: () => (it.bandValue && it.bandType === 'year' ? 'Year ' + it.bandValue : ''),

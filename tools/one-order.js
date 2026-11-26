@@ -2,7 +2,7 @@
 /* @family. — tools/one-order.js THE ONE-ORDER CHECK (rule 1.75, owner 24 Nov: "general before specific", a principle, not a hand order):
    Find asks its tags in ONE fixed order per door (facetOrder_, js/find-facets.js), counted once from every item of the door: a tag whose every
    answer sits inside one answer of another is asked after it. A child would notice two things, and both are counted here, for a child on a phone:
-   (a) THE SAME ORDER WHATEVER WAS TAPPED: in Practice and Library, several different first answers each walked forward — no two walks ask two tags
+   (a) THE SAME ORDER WHATEVER WAS TAPPED: in Learn (Practice and Library, one door since 26 Nov), several different first answers each walked forward — no two walks ask two tags
        in opposite orders, and no tag is asked before one it nests in (nesting counted here on its own, over the whole door);
    (b) EVERY ITEM REACHABLE BY FORWARD TAPS ONLY (no chip deleted): the funnel's tree walked from each door, every answer and "Doesn't matter"
        for the cards no answer holds, until the list stops asking; the items reached against the door's total.
@@ -11,7 +11,7 @@
 const { main } = require('./lib/gen.js');
 const SB = require('./lib/site-browser.js');
 
-const DOORS = ['Practice', 'Library'];
+const DOORS = ['Learn'];
 /* HOW MANY DIFFERENT FIRST ANSWERS EACH DOOR IS WALKED FROM, and how deep each walk goes. */
 const FIRSTS = 6, STEPS = 14;
 /* A HARD LIMIT PER DOOR: a walk that runs past it FAILS with a word why, never hangs the build. */

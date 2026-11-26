@@ -59,16 +59,18 @@ async function run() {
     const doors = await first.evaluate(() => [...document.querySelectorAll('#stuff-groups [data-value]')].map(e => e.dataset.value).filter(Boolean));
     await first.close();
     /* THREE DOORS AT ONCE: more and a phone-sized page under load misses its taps. */
-    const MUST_DRAW = { Practice: 'kc-question', Booking: 'kc-receipt' };
+    /* LEARN IS WALKED TWICE (owner, 26 Nov: Practice and Library one door): every step skipped, and through its Questions answer (was the Practice door). */
+    doors.push('Learn › Questions');
+    const MUST_DRAW = { 'Learn › Questions': 'kc-question', Booking: 'kc-receipt' };
     const look = async d => {
       const pg = await open();
       /* EVERY STEP SKIPPED (22 Nov): Practice, Library and Shop ask several steps before their cards, so "Doesn't matter" is tapped until it is gone (17 steps since 24 Nov: no tag skipped). */
-      await click(pg, d);
+      for (const t of d.split(' › ')) await click(pg, t);
       for (let i = 0; i < 40 && await pg.getByText("Doesn't matter", { exact: true }).locator('visible=true').count(); i++) await click(pg, "Doesn't matter");
       /* SETTLED: the same number of cards twice, half a second apart (eight seconds at most). */
       for (let i = 0, last = -1; i < 16; i++) { const n = await pg.evaluate(() => document.querySelectorAll('#screen .card').length); if (n && n === last) break; last = n; await pg.waitForTimeout(500); }
       /* PRACTICE'S WORDS ARRIVE AFTER ITS WAITING CARDS (a loaded build is slow): its question cards are waited for, 45 seconds at most. */
-      if (d === 'Practice') await pg.waitForFunction(() => document.querySelector('#screen .kc-question') && !document.querySelector('#screen .lib-wait'), null, { timeout: 45000 }).catch(() => {});
+      if (d === 'Learn › Questions') await pg.waitForFunction(() => document.querySelector('#screen .kc-question') && !document.querySelector('#screen .lib-wait'), null, { timeout: 45000 }).catch(() => {});
       /* A DOOR THAT MUST DRAW ITS OWN KIND IS WAITED FOR (22 Nov: Practice sometimes came back empty under load — a missed tap, not the site). */
       const must = MUST_DRAW[d];
       const cards = await pg.evaluate(() => [...document.querySelectorAll('#screen .card')].filter(e => !e.parentElement.closest('.card')).slice(0, 60)

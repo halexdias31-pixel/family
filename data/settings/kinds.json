@@ -772,7 +772,7 @@
    "find": {
     "group": "Learning",
     "label": "questions",
-    "under": "Practice",
+    "under": "Learn",
     "entries": {
      "question": {},
      "answer": {
@@ -922,7 +922,7 @@
    "find": {
     "group": "Learning",
     "label": "practicals",
-    "under": "Library",
+    "under": "Learn",
     "facets": [
      "forLabel",
      "kindLabel",
@@ -992,7 +992,7 @@
    "find": {
     "group": "Learning",
     "label": "projects",
-    "under": "Library",
+    "under": "Learn",
     "facets": [
      "forLabel",
      "kindLabel",
@@ -1064,6 +1064,7 @@
    "find": {
     "group": "Learning",
     "label": "library",
+    "under": "Learn",
     "facets": [
      "forLabel",
      "kindLabel",
@@ -1166,7 +1167,7 @@
      "examBoard",
      "tier"
     ],
-    "under": "Practice"
+    "under": "Learn"
    },
    "shape": "Card", "bodyAs": "reference",
    "card": {
@@ -1201,7 +1202,7 @@
    "find": {
     "group": "Learning",
     "label": "specification",
-    "under": "Library",
+    "under": "Learn",
     "facets": [
      "forLabel",
      "kindLabel",
@@ -1236,6 +1237,7 @@
    "find": {
     "group": "Learning",
     "label": "library",
+    "under": "Learn",
     "facets": [
      "forLabel",
      "kindLabel",
@@ -1276,6 +1278,7 @@
    "find": {
     "group": "Learning",
     "label": "library",
+    "under": "Learn",
     "facets": [
      "forLabel",
      "kindLabel",
@@ -1317,6 +1320,7 @@
    "find": {
     "group": "Learning",
     "label": "library",
+    "under": "Learn",
     "facets": [
      "forLabel",
      "kindLabel",
@@ -1358,6 +1362,7 @@
    "find": {
     "group": "Learning",
     "label": "library",
+    "under": "Learn",
     "facets": []
    },
    "shape": "Card", "bodyAs": "reference",
@@ -1382,11 +1387,12 @@
    "find": {
     "group": "Learning",
     "label": "library",
+    "under": "Learn",
     "entries": {
      "event": {},
      "timeline": {
       "label": "timeline",
-      "under": "Library"
+      "under": "Learn"
      }
     },
     "facets": [
@@ -1421,6 +1427,7 @@
    "find": {
     "group": "Learning",
     "label": "library",
+    "under": "Learn",
     "facets": [
      "forLabel",
      "kindLabel",
@@ -1468,6 +1475,7 @@
    "find": {
     "group": "Learning",
     "label": "library",
+    "under": "Learn",
     "entries": {
      "bible": {},
      "talmud": {},
@@ -1490,6 +1498,7 @@
    "find": {
     "group": "Learning",
     "label": "library",
+    "under": "Learn",
     "facets": [
      "forLabel",
      "kindLabel",
@@ -1543,6 +1552,7 @@
    "find": {
     "group": "Learning",
     "label": "library",
+    "under": "Learn",
     "facets": [
      "forLabel",
      "kindLabel",
@@ -1595,6 +1605,7 @@
    "find": {
     "group": "Learning",
     "label": "library",
+    "under": "Learn",
     "facets": [
      "forLabel",
      "kindLabel",
@@ -3423,8 +3434,8 @@
    }
   }
  },
- "doorsSay": "FIND'S FRONT DOORS IN THE OWNER'S ORDER (4 Nov): the first question's answers, each a kind's `find.under` (or Videos); `built` doors are walked ahead by the build (js/finder-tags.js) and warmed while idle (find-quick.js). Who may open one signed out is a permissions row (`item` <door>:read for `anyone`, data/settings/actions.json). ONE OPENING QUESTION (owner queue item 9, 24 Nov): What kind is the only question at the top of Find — What for and Which are not asked, and Practice is no door of its own: its kinds (Questions, Answers, Inserts) are answers beside Library, Tools and the rest; `practice` marks them (a guest opens them by `question:read`).",
- "doors": [{"name": "Practice", "built": true, "practice": true}, {"name": "Library", "built": true}, {"name": "Videos"}, {"name": "Coming soon"}, {"name": "Profiles"}, {"name": "Booking"}, {"name": "Settings"}, {"name": "Tools"}],
+ "doorsSay": "FIND'S FRONT DOORS IN THE OWNER'S ORDER (4 Nov): ONE LEARN DOOR (owner, 26 Nov): Practice and Library are one door, Learn — every Learning kind stands under it, told apart by its kind (Which, kindOwn); old Practice and Library links open Learn (screens-moved.json, and a kept chip through MOVED_ANSWERS, find-aloud.js). the first question's answers, each a kind's `find.under` (or Videos); `built` doors are walked ahead by the build (js/finder-tags.js) and warmed while idle (find-quick.js). Who may open one signed out is a permissions row (`item` <door>:read for `anyone`, data/settings/actions.json). ONE OPENING QUESTION (owner queue item 9, 24 Nov): What kind is the only question at the top of Find — What for and Which are not asked, and Practice is no door of its own: its kinds (Questions, Answers, Inserts) are answers beside Library, Tools and the rest; `practice` marks them (a guest opens them by `question:read`).",
+ "doors": [{"name": "Learn", "built": true}, {"name": "Videos"}, {"name": "Coming soon"}, {"name": "Profiles"}, {"name": "Booking"}, {"name": "Settings"}, {"name": "Tools"}],
  "findSay": "FIND (rule 1.80): a kind's `find` gives its What-for group, its What-kind label, the front door(s) it stands under (`under`), the facets in order, and `draw` (a global that draws its Find card, else findCard). `entries` names the Find entry kinds it covers when they are not the kind itself (an answer page, a timeline, a switched-off door), each overriding those fields. An entry kind named by no kind is never listed or drawn; `see.who` (anyone, signedIn, self, family, staff, admin) decides who is listed it. Labels and order of the facets are data/settings/facets.json. A kind with `from: \"store\"` (the owner's life and business, 17 Nov) is listed straight from the items tab (form.js storeItems_): a `new` card asking its `store` form, then one card a row, its Edit tile asking the same form prefilled and saving under the same id, and `card.tick` ({f, on, off, label}) a one-tap tile that flips that field; `facetCols` names each facet read off a row's own column.",
  "listSay": "A KIND LISTED AS ROWS (queue step 6, 22 Nov): `sheet.list` is how the backend lists a kind straight off its tab (kindList_, items.gs). `keep` the rows whose every entry holds: a column filled (`col`), a column true (`col true`) or the whole row passing a tidy (`* tidy`); `out` each reply field from its column through a tidy (`col tidy`, `*` the whole row; s when none — s, ms, num, iso, when, whenS, norm, name, rank, staff); `sort` by a reply field, `-` newest first; `max` rows at most.",
  "stored": {

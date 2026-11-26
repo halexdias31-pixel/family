@@ -111,11 +111,32 @@ async function libStatus_() {
   try { const f = await dataFile_('data/question-status.json', { wait: LIB_ANSWER, what: 'the question status file' }); return (f && f.status) || {}; } catch (e) { return {}; }
 }
 const qStatus_ = x => libS((x && x.row && x.row.q_status) || (x && x.q_status));
-/* WHAT FIND SHOWS (owner, 26 Nov): settings.json `library.show` — "generated" lists only the @family generated sets (P-FAM-GEN-*),
-   "all" everything. ONE TEST, read wherever the library is listed; the rows stay (a saved answer still opens). tools/one-shown.js. */
-const libShowAll_ = () => { const L = (typeof SHARED_SETTINGS !== 'undefined' && SHARED_SETTINGS && SHARED_SETTINGS.library) || {}; return L.show !== 'generated'; };
+/* WHAT FIND SHOWS (owner, 26 Nov): settings.json `library.show` — a list of what is listed: "generated", the @family generated sets (P-FAM-GEN-*);
+   "past-papers" (owner, 26 Nov, for now), an exam board's own sitting: the paper's row names an exam_board AND a year (AQA, Edexcel, OCR, the STA's SATs),
+   which no worksheet site's row does, and an insert any such question comes with. "all" everything. ONE TEST, read wherever the library is listed;
+   the rows stay (a saved answer still opens). tools/one-shown.js. */
+const libShowList_ = () => { const L = (typeof SHARED_SETTINGS !== 'undefined' && SHARED_SETTINGS && SHARED_SETTINGS.library) || {}; return [].concat(L.show || 'all'); };
+const libShowAll_ = () => libShowList_().indexOf('all') !== -1;
 const libGenRow_ = x => { const r = (x && x.row) || x || {}; return /^P-FAM-GEN-/.test(libS(r.paper_id || r.paper || r.paperId || (x && x.paper))); };
-function libShown_(x) { return libShowAll_() || libGenRow_(x); }
+const libPastRow_ = x => { const r = (x && x.row) || x || {}; return !libGenRow_(x) && !!libS(r.exam_board).trim() && !!libS(r.year).trim(); };
+/* THE INSERTS A SHOWN PAST PAPER COMES WITH (insertsFor_, find-history.js), counted once per payload. */
+let LIB_PAST_INS = { from: null, ids: null };
+function libPastInserts_() {
+  const all = typeof questionItems === 'function' ? questionItems() : [];
+  if (LIB_PAST_INS.from === all) return LIB_PAST_INS.ids;
+  const ids = new Set();
+  if (typeof insertsFor_ === 'function') all.filter(libPastRow_).forEach(q => insertsFor_(q).forEach(r => ids.add(r.id)));
+  LIB_PAST_INS = { from: all, ids };
+  return ids;
+}
+function libShown_(x) {
+  if (libShowAll_()) return true;
+  const on = libShowList_();
+  if (on.indexOf('generated') !== -1 && libGenRow_(x)) return true;
+  if (on.indexOf('past-papers') === -1) return false;
+  if (x && x.kind === 'insert') { const ids = libPastInserts_(), r = x.row || {}; return [r.id].concat(r.parents || []).some(id => ids.has(id)); }
+  return libPastRow_(x);
+}
 /* ONE TEST, read wherever questions are listed for a person: a broken question is an admin's alone */
 const qOffered_ = x => qStatus_(x) !== 'broken' || (typeof myRole_ === 'function' && myRole_() === 'admin');
 async function libraryRowsAsk_() {

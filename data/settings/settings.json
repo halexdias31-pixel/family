@@ -98,7 +98,7 @@
   }
  },
  "library": {
-  "_about": "WHAT FIND SHOWS OF THE QUESTION LIBRARY (owner, 26 Nov: the fresh top-down project): `show` \"generated\" lists only the @family generated questions (their sets P-FAM-GEN-*, tools/gen-questions.js); every other row and every insert stays in data/questions.json and the Ledger, kept but not listed, and saved answers still open. \"all\" brings everything back. Read by js/library.js libShown_; tools/one-shown.js checks it.",
-  "show": "generated"
+  "_about": "WHAT FIND SHOWS OF THE QUESTION LIBRARY (owner, 26 Nov: the fresh top-down project): `show` is a list of what is listed: \"generated\", the @family generated questions (their sets P-FAM-GEN-*, tools/gen-questions.js); every other row and every insert stays in data/questions.json and the Ledger, kept but not listed, and saved answers still open. \"past-papers\" (owner, 26 Nov, for now) adds the exam boards' own sittings (a paper row with an exam_board and a year) and their inserts; worksheet sites stay hidden. \"all\" brings everything back. Read by js/library.js libShown_; tools/one-shown.js checks it.",
+  "show": ["generated", "past-papers"]
  }
 }
