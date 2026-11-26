@@ -71,7 +71,7 @@ let PRESSED_ = null;
 /* A CALLER THAT KNOWS ITS CARD says so: `el` is inside it; `swap` makes the card BECOME the sheet (an editor). */
 let SHEET_HERE_ = null;
 
-const SHEET_HOSTS_ = '.post, .rc, .widget-slot, .cpn, .card, .pane';
+const SHEET_HOSTS_ = '.rc, .widget-slot, .cpn, .card, .pane';
 /* HELD BY REFERENCE: a card drawn again takes the sheet out with its old markup, and `sheetKeep_` puts it back. */
 let SHEET_EL_ = null, SHEET_AT_ = null;
 const sheetEl_ = () => SHEET_EL_ || (SHEET_EL_ = document.getElementById('sheet'));
@@ -90,7 +90,7 @@ function sheetWhere_() {
   const swap = !!(want && want.swap);
   /* BESIDE: the step goes after its card, not into it (a share: the picture is made of the card alone). */
   if (want && want.beside && host) return { host, after: host, swap: false };
-  const row = host && from && from.closest('.tile-row, .post-acts, .post-when');
+  const row = host && from && from.closest('.tile-row');
   const after = !swap && row && host.contains(row) && row !== host ? row : null;
   return { host, after, swap };
 }
@@ -98,7 +98,7 @@ function sheetPlace_(where) {
   const sh = sheetEl_();
   const w = where || sheetWhere_();
   document.querySelectorAll('.sheet-host').forEach(h => h.classList.remove('sheet-host', 'sheet-swap'));
-  SHEET_AT_ = { post: w.host && w.host.dataset ? w.host.dataset.post || '' : '', swap: w.swap };
+  SHEET_AT_ = { swap: w.swap };
   /* NO SCREEN DRAWN YET (a link opened on arrival): it waits at home, and `sheetKeep_` moves it in once one is. */
   if (!w.host) return;
   if (w.after) w.after.after(sh); else w.host.appendChild(sh);
@@ -106,13 +106,13 @@ function sheetPlace_(where) {
   if (w.swap) w.host.classList.add('sheet-swap');
 }
 
-/* AN OPEN SHEET STAYS IN THE CARD: after any redraw, back into the same post, or the card in front. */
+/* AN OPEN SHEET STAYS IN THE CARD: after any redraw, back into the card in front. */
 function sheetKeep_() {
   const sh = sheetEl_();
   if (!sh || sh.classList.contains('hidden')) return;
   if (sh.isConnected && sh.closest('#screen')) return;
   const at = SHEET_AT_ || {};
-  const host = (at.post && document.querySelector('#s-' + AT + ' [data-post="' + CSS.escape(at.post) + '"]')) || sheetFront_();
+  const host = sheetFront_();
   if (!host) { if (!sh.isConnected && $('sheet-home')) $('sheet-home').after(sh); return; }
   host.appendChild(sh);
   host.classList.add('sheet-host');

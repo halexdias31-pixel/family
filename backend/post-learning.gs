@@ -1,4 +1,4 @@
-/* post-learning.gs: doPost's handlers for saved working, answers, the library and console saves (1130).
+/* post-learning.gs: doPost's handlers for saved working, answers, and the library (1130).
    Named in `postActions_()`, dopost.gs, after its gate; § notes: docs/notes/backend/dopost.gs.md. */
 
 /* ---------- A PHOTO OF THE WORKING (501): kept in Drive on the submission row, MARKED BY NOTHING (owner, 16 Nov: marking is mechanical only) ---------- */

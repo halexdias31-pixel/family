@@ -76,7 +76,7 @@ function codeBad() {
 
 /* (c) IN THE PAGE: kinds, resolving, the one tile, and each sample opened by a finger and closed by Back. */
 async function onSize(size) {
-  const pg = await SB.open({ as: 'child', ready: () => typeof stuffItemsAll_ === 'function' && stuffItemsAll_().some(isQ_) && (DATA.inserts || []).length });
+  const pg = await SB.open({ as: 'child', show: 'all', ready: () => typeof stuffItemsAll_ === 'function' && stuffItemsAll_().some(isQ_) && (DATA.inserts || []).length });
   try {
     await pg.setViewportSize(SIZES[size]);
     const sums = await pg.evaluate(() => {

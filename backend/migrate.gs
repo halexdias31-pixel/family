@@ -47,13 +47,6 @@ function migrateOldRows_() {
     setCells(rt, r, out);
     log.push('reports row ' + r._row + ': ' + keys.map(k => k + ' = ' + out[k]).join(', '));
   });
-  /* POSTS: a picture with no size gets the 4:5 box it was drawn in (800 x 1000, the phone's own fallback). */
-  const po = read(TAB.posts);
-  (po.rows || []).forEach(r => {
-    if (!S(r.image) || (Number(r.image_w) > 0 && Number(r.image_h) > 0)) return;
-    setCells(po, r, { image_w: 800, image_h: 1000 });
-    log.push('posts row ' + r._row + ': image size set to 800 x 1000');
-  });
   try { PropertiesService.getScriptProperties().setProperty(OLD_ROWS_FLAG, new Date().toISOString()); OLD_ROWS_SEEN_ = true; }
   catch (err) { log.push('the flag could not be set, so the old-shape readers stay on: ' + S(err && err.message || err)); }
   try { console.log('migrateOldRows_: ' + log.length + ' change(s)\n' + log.join('\n')); } catch (err) { /* a log is not the job */ }

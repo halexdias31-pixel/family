@@ -1,5 +1,5 @@
-/* @family. — messages.js shared helpers once beside the DMs (13 Nov): a Drive address, a face by id, a picked file, a filename stamp, a tutor's own link. Messages itself went 25 Nov. */
-/* ---------- SHARED HELPERS FROM posts.js: a Drive address, a face by id, a picked file, a filename stamp, a tutor's own link § */
+/* @family. — messages.js shared helpers once beside the DMs (13 Nov): a Drive address, a picked file, a filename stamp, a tutor's own link. Messages itself went 25 Nov. */
+/* ---------- SHARED HELPERS: a Drive address, a picked file, a filename stamp, a tutor's own link § */
 /* A Google Drive share link is a page, not a picture — pasting one into an <img> gives a broken
    image every time. This turns it into the direct thumbnail. Anything that is already a plain URL
    passes straight through. */
@@ -10,12 +10,7 @@ function pic(url) {
   return id ? 'https://lh3.googleusercontent.com/d/' + id + '=w1200' : u;
 }
 
-/* A PERSON'S FACE AND NAME FROM THEIR PROFILE ROW in the payload, by id (1040 r10); a post's own copy only when no list has them. */
-const profileOf_ = id => { const r = id && ['people', 'tutors', 'family', 'students', 'clients', 'everyone'].map(k => ((DATA || {})[k] || []).find(x => x && String(x.personId || x.person_id || '') === String(id))).find(Boolean);
-  return r ? { pic: r.image != null ? r.image : r.photo, avatar: r.avatar, handle: r.handle } : null; };
-/* TWENTY MEGABYTES A CLIP AND FORTY-FIVE A POST, because the whole post travels in one request and
-   base64 adds a third. Numbers a phone can post over a school's wifi, not limits anybody enforces
-   past this card. */
+/* TWENTY MEGABYTES A CLIP, because the whole file travels in one request and base64 adds a third. */
 const CAM_VID_MAX = 20 * 1048576;
 /* ONE FILE OR RECORDING, READY TO POST. § */
 function camItemOf_(file) {
@@ -155,7 +150,7 @@ function tpngInline_(card) {
   return Promise.all(imgs.concat(maps, [fonts]));
 }
 
-/* ONCE A VISIT, on the first payload that has them — `openSharedPost`'s place in the landing. */
+/* ONCE A VISIT, on the first payload that has them. */
 let TUTOR_LINK_DONE = false;
 function openSharedTutor() {
   if (TUTOR_LINK_DONE) return;

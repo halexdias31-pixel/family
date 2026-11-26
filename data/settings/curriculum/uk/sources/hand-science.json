@@ -1,0 +1,3534 @@
+{
+ "about": "THE @FAMILY SCIENCE TOPIC TREE, FROM THE GOVERNMENT'S OWN LISTS (owner, 25 Nov), in the one format of data/settings/curriculum/uk/maths.json (tools/lib/curriculum.js): subject › topic › sub-topic, each node an id, a short plain name (paraphrased), its `src` lines (the DfE document and its section heading exactly as printed, one of headings.json: the GCSE topic – sub-heading, the National Curriculum year and topic) and, for a sub-topic, its levels (KS1, KS2, KS3; GCSE Combined = in the combined science content and so in the single sciences too; GCSE Separate = in the single-science content only). Higher-only content is underlined in the DfE documents and cannot be read from their text, so no level says Higher. A science question's `dfe` is read from this table only: `ideas` (its sci-ideas idea, an AQA spec point), `spec` (its AQA 8461/2/3/4 `spec_ref` point, the longest section prefix listed), `set`, `topic` (a source topic name). An A-Level set is outside these documents. Checked by tools/one-curriculum.js; `budget` (questions with no node) may only fall.",
+ "levels": [
+  "KS1",
+  "KS2",
+  "KS3",
+  "GCSE Combined",
+  "GCSE Separate"
+ ],
+ "docs": {
+  "gcse-single": {
+   "title": "Biology, chemistry and physics GCSE subject content (DfE, 2015, updated May 2019)",
+   "url": "https://www.gov.uk/government/publications/gcse-single-science",
+   "pdf": "https://assets.publishing.service.gov.uk/media/5cd2b951ed915d50c208b4d5/GCSE_single_science_updated_May_2019.pdf",
+   "refs": "topic – sub-heading (– an indented heading within it) as printed — the exact text, one of headings.json"
+  },
+  "gcse-combined": {
+   "title": "Combined science GCSE subject content (DfE, 2015, updated May 2019)",
+   "url": "https://www.gov.uk/government/publications/gcse-combined-science",
+   "pdf": "https://assets.publishing.service.gov.uk/media/5cd2b8b4ed915d50b6c44ffa/Combined_science_GCSE_updated_May_2019.pdf",
+   "refs": "topic – sub-heading (– an indented heading within it) as printed — the exact text, one of headings.json"
+  },
+  "nc-ks12": {
+   "title": "National curriculum in England: science programmes of study, key stages 1 and 2 (DfE, 2013)",
+   "url": "https://www.gov.uk/government/publications/national-curriculum-in-england-science-programmes-of-study",
+   "pdf": "https://assets.publishing.service.gov.uk/media/5a806ebd40f0b62305b8b1fa/PRIMARY_national_curriculum_-_Science.pdf",
+   "refs": "Y<year> and the topic heading as printed (Y6 Animals including humans), or the heading alone for every year — the exact text, one of headings.json"
+  },
+  "nc-ks3": {
+   "title": "National curriculum in England: science programmes of study, key stage 3 (DfE, 2013)",
+   "url": "https://www.gov.uk/government/publications/national-curriculum-in-england-science-programmes-of-study",
+   "pdf": "https://assets.publishing.service.gov.uk/media/5a7d563de5274a2af0ae2ffa/SECONDARY_national_curriculum_-_Science_220714.pdf",
+   "refs": "subject content heading — the exact text, one of headings.json"
+  }
+ },
+ "nodes": [
+  {
+   "id": "dfe.sc.b",
+   "name": "Biology",
+   "parent": "",
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Biology"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Biology"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Subject content – Biology"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Animals, including humans"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.b.cell",
+   "name": "Cell biology",
+   "parent": "dfe.sc.b",
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Cell biology"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Cell biology"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Cells and organisation"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.b.cell.cells",
+   "name": "Animal, plant and bacterial cells",
+   "parent": "dfe.sc.b.cell",
+   "levels": [
+    "KS3",
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Cell biology – Prokaryotic and eukaryotic cells"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Cell biology – Prokaryotic and eukaryotic cells"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Cells and organisation"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.b.cell.division",
+   "name": "Cell division, stem cells and growth",
+   "parent": "dfe.sc.b.cell",
+   "levels": [
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Cell biology – Growth and development of cells"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Cell biology – Growth and development of cells"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.b.cell.enzymes",
+   "name": "Enzymes and respiration",
+   "parent": "dfe.sc.b.cell",
+   "levels": [
+    "KS3",
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Cell biology – Cell metabolism"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Cell biology – Cell metabolism"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Cellular respiration"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.b.trans",
+   "name": "Transport systems",
+   "parent": "dfe.sc.b",
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Transport systems"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Transport systems"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Gas exchange systems"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.b.trans.cells",
+   "name": "Diffusion, osmosis and active transport",
+   "parent": "dfe.sc.b.trans",
+   "levels": [
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Transport systems – Transport in cells"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Transport systems – Transport in cells"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.b.trans.organs",
+   "name": "Tissues, organs and organ systems",
+   "parent": "dfe.sc.b.trans",
+   "levels": [
+    "KS3",
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Transport systems – Transport systems in multicellular organisms"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Transport systems – Transport systems in multicellular organisms"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Nutrition and digestion"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.b.trans.heart",
+   "name": "The heart, blood and breathing",
+   "parent": "dfe.sc.b.trans",
+   "levels": [
+    "KS2",
+    "KS3",
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Transport systems – Human circulatory system"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Transport systems – Human circulatory system"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Gas exchange systems"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y6 Animals including humans"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.b.trans.plants",
+   "name": "Transport in plants",
+   "parent": "dfe.sc.b.trans",
+   "levels": [
+    "KS2",
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Transport systems – Transport systems in plants"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Transport systems – Transport systems in plants"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y3 Plants"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.b.health",
+   "name": "Health and disease",
+   "parent": "dfe.sc.b",
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Health, disease and the development of medicines"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Health, disease and the development of medicines"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Health"
+    },
+    {
+     "doc": "gcse-single",
+     "ref": "Health, disease and the development of medicines – Health and disease"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Health, disease and the development of medicines – Health and disease"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.b.health.communicable",
+   "name": "Infectious diseases and the body's defences",
+   "parent": "dfe.sc.b.health",
+   "levels": [
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Health, disease and the development of medicines – Communicable diseases"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Health, disease and the development of medicines – Communicable diseases"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.b.health.medicines",
+   "name": "Treating and preventing disease",
+   "parent": "dfe.sc.b.health",
+   "levels": [
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-combined",
+     "ref": "Health, disease and the development of medicines – Treating, curing and preventing disease"
+    },
+    {
+     "doc": "gcse-single",
+     "ref": "Health, disease and the development of medicines – Treating, curing and preventing disease"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.b.health.plants",
+   "name": "Plant disease",
+   "parent": "dfe.sc.b.health",
+   "levels": [
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Health, disease and the development of medicines – Communicable diseases"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.b.health.noncommunicable",
+   "name": "Lifestyle, diet and non-infectious disease",
+   "parent": "dfe.sc.b.health",
+   "levels": [
+    "KS2",
+    "KS3",
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Health, disease and the development of medicines – Non-communicable diseases in humans"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Health, disease and the development of medicines – Non-communicable diseases in humans"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Health"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y6 Animals including humans"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.b.coord",
+   "name": "Coordination and control",
+   "parent": "dfe.sc.b",
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Coordination and control"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Coordination and control"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.b.coord.nerves",
+   "name": "The nervous system",
+   "parent": "dfe.sc.b.coord",
+   "levels": [
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Coordination and control – Nervous coordination and control in humans"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Coordination and control – Nervous coordination and control in humans"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.b.coord.hormones",
+   "name": "Hormones in humans",
+   "parent": "dfe.sc.b.coord",
+   "levels": [
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Coordination and control – Hormonal coordination and control in humans"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Coordination and control – Hormonal coordination and control in humans"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.b.coord.homeostasis",
+   "name": "Homeostasis",
+   "parent": "dfe.sc.b.coord",
+   "levels": [
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Coordination and control – Homeostasis in humans"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Coordination and control – Homeostasis in humans"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.b.coord.planthormones",
+   "name": "Plant hormones",
+   "parent": "dfe.sc.b.coord",
+   "levels": [
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Coordination and control – Plant hormones"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.b.photo",
+   "name": "Photosynthesis",
+   "parent": "dfe.sc.b",
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Photosynthesis"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Photosynthesis"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Photosynthesis"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.b.photo.photo",
+   "name": "Photosynthesis and what affects it",
+   "parent": "dfe.sc.b.photo",
+   "levels": [
+    "KS2",
+    "KS3",
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Photosynthesis – Importance of photosynthesis"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Photosynthesis – Importance of photosynthesis"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Photosynthesis"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y3 Plants"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.b.photo.plants",
+   "name": "Plants: parts and growth",
+   "parent": "dfe.sc.b.photo",
+   "levels": [
+    "KS1",
+    "KS2"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y1 Plants"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y2 Plants"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y3 Plants"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.b.eco",
+   "name": "Ecosystems",
+   "parent": "dfe.sc.b",
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Ecosystems"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Ecosystems"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Relationships in an ecosystem"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Living things and their habitats"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.b.eco.habitats",
+   "name": "Living things and their habitats",
+   "parent": "dfe.sc.b.eco",
+   "levels": [
+    "KS1",
+    "KS2"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y2 Living things and their habitats"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y4 Living things and their habitats"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y5 Living things and their habitats"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.b.eco.levels",
+   "name": "Communities, adaptation and food webs",
+   "parent": "dfe.sc.b.eco",
+   "levels": [
+    "KS2",
+    "KS3",
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Ecosystems – Levels of organisation within an ecosystem"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Ecosystems – Levels of organisation within an ecosystem"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Relationships in an ecosystem"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y4 Living things and their habitats"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.b.eco.cycles",
+   "name": "Material cycling and decay",
+   "parent": "dfe.sc.b.eco",
+   "levels": [
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Ecosystems – The principle of material cycling"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Ecosystems – The principle of material cycling"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.b.eco.biomass",
+   "name": "Pyramids of biomass and food production",
+   "parent": "dfe.sc.b.eco",
+   "levels": [
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Ecosystems – Pyramids of biomass and transfer through trophic levels"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.b.eco.biodiversity",
+   "name": "Biodiversity and human impact",
+   "parent": "dfe.sc.b.eco",
+   "levels": [
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Ecosystems – Biodiversity"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Ecosystems – Biodiversity"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.b.eco.food",
+   "name": "Food security and farming",
+   "parent": "dfe.sc.b.eco",
+   "levels": [
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Ecosystems – Some of the biological challenges of increasing food yields using fewer resources"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.b.inherit",
+   "name": "Inheritance, variation and evolution",
+   "parent": "dfe.sc.b",
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Inheritance, variation and evolution"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Inheritance, variation and evolution"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Inheritance, chromosomes, DNA and genes"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y6 Evolution and inheritance"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.b.inherit.repro",
+   "name": "Reproduction",
+   "parent": "dfe.sc.b.inherit",
+   "levels": [
+    "KS2",
+    "KS3",
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Inheritance, variation and evolution – Reproduction"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Cell biology – Growth and development of cells"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Reproduction"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y5 Living things and their habitats"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.b.inherit.genome",
+   "name": "DNA, genes and inheritance",
+   "parent": "dfe.sc.b.inherit",
+   "levels": [
+    "KS3",
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Inheritance, variation and evolution – The genome and gene expression"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Inheritance, variation and evolution – The genome and gene expression"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Inheritance, chromosomes, DNA and genes"
+    },
+    {
+     "doc": "gcse-single",
+     "ref": "Inheritance, variation and evolution – The genome and gene expression – Inheritance"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Inheritance, variation and evolution – The genome and gene expression – Inheritance"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.b.inherit.evolution",
+   "name": "Variation, evolution and classification",
+   "parent": "dfe.sc.b.inherit",
+   "levels": [
+    "KS2",
+    "KS3",
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Inheritance, variation and evolution – Variation and evolution"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Inheritance, variation and evolution – Variation and evolution"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y6 Evolution and inheritance"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y6 Living things and their habitats"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.b.inherit.breeding",
+   "name": "Selective breeding and genetic engineering",
+   "parent": "dfe.sc.b.inherit",
+   "levels": [
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Inheritance, variation and evolution – Selective breeding and gene technology"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Inheritance, variation and evolution – Selective breeding and gene technology"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.b.body",
+   "name": "Animals and the human body",
+   "parent": "dfe.sc.b",
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Animals, including humans"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "The skeletal and muscular systems"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Nutrition and digestion"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.b.body.animals",
+   "name": "Animals, the body and senses",
+   "parent": "dfe.sc.b.body",
+   "levels": [
+    "KS1",
+    "KS2"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y1 Animals, including humans"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y2 Animals, including humans"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.b.body.ageing",
+   "name": "Human growth and ageing",
+   "parent": "dfe.sc.b.body",
+   "levels": [
+    "KS2"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y5 Animals, including humans"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.b.body.skeleton",
+   "name": "Skeleton, muscles and teeth",
+   "parent": "dfe.sc.b.body",
+   "levels": [
+    "KS2",
+    "KS3"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y3 Animals, including humans"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y4 Animals, including humans"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "The skeletal and muscular systems"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.b.body.digestion",
+   "name": "Nutrition and digestion",
+   "parent": "dfe.sc.b.body",
+   "levels": [
+    "KS2",
+    "KS3",
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y4 Animals, including humans"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Nutrition and digestion"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Transport systems – Transport systems in multicellular organisms"
+    },
+    {
+     "doc": "gcse-single",
+     "ref": "Transport systems – Transport systems in multicellular organisms"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.c",
+   "name": "Chemistry",
+   "parent": "",
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Chemistry"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Chemistry"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Subject content – Chemistry"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Uses of everyday materials"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.c.atom",
+   "name": "Atomic structure and the periodic table",
+   "parent": "dfe.sc.c",
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Atomic structure and the Periodic Table"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Atomic structure and the Periodic Table"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Atoms, elements and compounds"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.c.atom.model",
+   "name": "Atoms, elements, compounds and isotopes",
+   "parent": "dfe.sc.c.atom",
+   "levels": [
+    "KS3",
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Atomic structure and the Periodic Table – A simple model of the atom, relative atomic mass, electronic charge and isotopes"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Atomic structure and the Periodic Table – A simple model of the atom, relative atomic mass, electronic charge and isotopes"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Atoms, elements and compounds"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.c.atom.table",
+   "name": "The periodic table and its groups",
+   "parent": "dfe.sc.c.atom",
+   "levels": [
+    "KS3",
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Atomic structure and the Periodic Table – The modern Periodic Table"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Atomic structure and the Periodic Table – The modern Periodic Table"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "The Periodic Table"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.c.atom.transition",
+   "name": "Transition metals",
+   "parent": "dfe.sc.c.atom",
+   "levels": [
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Atomic structure and the Periodic Table – Properties of transition metals"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.c.bond",
+   "name": "Bonding, structure and properties",
+   "parent": "dfe.sc.c",
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Structure, bonding and the properties of matter"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Structure, bonding and the properties of matter"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.c.bond.types",
+   "name": "Ionic, covalent and metallic bonding",
+   "parent": "dfe.sc.c.bond",
+   "levels": [
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Structure, bonding and the properties of matter – Different kinds of chemical bonds: ionic, covalent and metallic bonding"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Structure, bonding and the properties of matter – Different kinds of chemical bonds: ionic, covalent and metallic bonding"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.c.bond.states",
+   "name": "States of matter and particles",
+   "parent": "dfe.sc.c.bond",
+   "levels": [
+    "KS3",
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Structure, bonding and the properties of matter – States of matter and change of state in terms of particle kinetics, energy transfers and the relative strength of chemical bonds and intermolecular forces"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Structure, bonding and the properties of matter – States of matter and change of state in terms of particle kinetics, energy transfers and the relative strength of chemical bonds and intermolecular forces"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "The particulate nature of matter"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.c.bond.carbon",
+   "name": "Structures of carbon",
+   "parent": "dfe.sc.c.bond",
+   "levels": [
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Structure, bonding and the properties of matter – Structure and bonding of carbon"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Structure, bonding and the properties of matter – Structure and bonding of carbon"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.c.bond.nano",
+   "name": "Nanoparticles",
+   "parent": "dfe.sc.c.bond",
+   "levels": [
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Structure, bonding and the properties of matter – Bulk and surface properties of matter including nanoparticles"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.c.change",
+   "name": "Chemical changes",
+   "parent": "dfe.sc.c",
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Chemical changes"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Chemical changes"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Chemical reactions"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.c.change.equations",
+   "name": "Formulae and equations",
+   "parent": "dfe.sc.c.change",
+   "levels": [
+    "KS3",
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Chemical changes – Chemical symbols, formulae and equations"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Chemical changes – Chemical symbols, formulae and equations"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Chemical reactions"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.c.change.metals",
+   "name": "Reactivity of metals",
+   "parent": "dfe.sc.c.change",
+   "levels": [
+    "KS3",
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Chemical changes – Chemistry of acids"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Chemical changes – Chemistry of acids"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Chemical reactions"
+    },
+    {
+     "doc": "gcse-single",
+     "ref": "Chemical changes – A reactivity series of metals as the tendency of a metal to form its positive ion"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Chemical changes – A reactivity series of metals as the tendency of a metal to form its positive ion"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.c.change.acids",
+   "name": "Acids, alkalis and salts",
+   "parent": "dfe.sc.c.change",
+   "levels": [
+    "KS3",
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Chemical changes – Chemistry of acids"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Chemical changes – Chemistry of acids"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Chemical reactions"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.c.change.electrolysis",
+   "name": "Electrolysis",
+   "parent": "dfe.sc.c.change",
+   "levels": [
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Chemical changes – Electrolysis of various molten ionic liquids and aqueous ionic solutions"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Chemical changes – Electrolysis of various molten ionic liquids and aqueous ionic solutions"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.c.change.redox",
+   "name": "Oxidation and reduction",
+   "parent": "dfe.sc.c.change",
+   "levels": [
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Chemical changes – Redox reactions (reduction and oxidation)"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Chemical changes – Redox reactions (reduction and oxidation)"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.c.change.extraction",
+   "name": "Extracting and purifying metals",
+   "parent": "dfe.sc.c.change",
+   "levels": [
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Chemical and allied industries – Different methods of extracting and purifying metals with reference to a reactivity series with oxygen and the position of carbon within it"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Chemical and allied industries – Different methods of extracting and purifying metals with reference to a reactivity series with oxygen and the position of carbon within it"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.c.energy",
+   "name": "Energy changes in chemistry",
+   "parent": "dfe.sc.c",
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Energy changes in chemistry"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Energy changes in chemistry"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Energetics"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.c.energy.exo",
+   "name": "Exothermic and endothermic reactions",
+   "parent": "dfe.sc.c.energy",
+   "levels": [
+    "KS3",
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Energy changes in chemistry – Exothermic and endothermic reactions, including reaction profiles"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Energy changes in chemistry – Exothermic and endothermic reactions, including reaction profiles"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Energetics"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.c.energy.cells",
+   "name": "Chemical cells and fuel cells",
+   "parent": "dfe.sc.c.energy",
+   "levels": [
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Energy changes in chemistry – Chemical cells and fuel cells"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.c.rate",
+   "name": "Rates and equilibrium",
+   "parent": "dfe.sc.c",
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "The rate and extent of chemical change"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "The rate and extent of chemical change"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.c.rate.rate",
+   "name": "Rates of reaction and catalysts",
+   "parent": "dfe.sc.c.rate",
+   "levels": [
+    "KS3",
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "The rate and extent of chemical change – Factors that influence the rate of reaction, including catalysts"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "The rate and extent of chemical change – Factors that influence the rate of reaction, including catalysts"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Chemical reactions"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.c.rate.equilibrium",
+   "name": "Reversible reactions and equilibrium",
+   "parent": "dfe.sc.c.rate",
+   "levels": [
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "The rate and extent of chemical change – Reversible reactions and the concept of dynamic equilibrium"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "The rate and extent of chemical change – Reversible reactions and the concept of dynamic equilibrium"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.c.organic",
+   "name": "Organic chemistry",
+   "parent": "dfe.sc.c",
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Organic chemistry"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Chemical and allied industries"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.c.organic.crude",
+   "name": "Crude oil, fuels and cracking",
+   "parent": "dfe.sc.c.organic",
+   "levels": [
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-combined",
+     "ref": "Chemical and allied industries – Fractional distillation of crude oil and cracking"
+    },
+    {
+     "doc": "gcse-single",
+     "ref": "Chemical and allied industries – Fractional distillation of crude oil and cracking"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Energy changes in chemistry – Carbon compounds both as fuels and feedstock"
+    },
+    {
+     "doc": "gcse-single",
+     "ref": "Energy changes in chemistry – Carbon compounds both as fuels and feedstock"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.c.organic.series",
+   "name": "Alkenes, alcohols and carboxylic acids",
+   "parent": "dfe.sc.c.organic",
+   "levels": [
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Organic chemistry – Homologous series, including alkanes, alkenes, alcohols and carboxylic acids"
+    },
+    {
+     "doc": "gcse-single",
+     "ref": "Organic chemistry – Simple reactions of alkanes, alkenes and alcohols"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.c.organic.polymers",
+   "name": "Polymers",
+   "parent": "dfe.sc.c.organic",
+   "levels": [
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Organic chemistry – Synthetic and naturally occurring polymers, including DNA"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.c.analysis",
+   "name": "Chemical analysis and quantities",
+   "parent": "dfe.sc.c",
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Chemical analysis"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Chemical analysis"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Pure and impure substances"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.c.analysis.purity",
+   "name": "Purity, mixtures and chromatography",
+   "parent": "dfe.sc.c.analysis",
+   "levels": [
+    "KS2",
+    "KS3",
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Chemical analysis – Assessing purity and separating mixtures"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Chemical analysis – Assessing purity and separating mixtures"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Pure and impure substances"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y5 Properties and changes of materials"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.c.analysis.gases",
+   "name": "Testing for gases",
+   "parent": "dfe.sc.c.analysis",
+   "levels": [
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Chemical changes – Identification of common gases"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Chemical changes – Identification of common gases"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.c.analysis.ions",
+   "name": "Identifying ions",
+   "parent": "dfe.sc.c.analysis",
+   "levels": [
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Chemical analysis – Identification of ions by chemical and spectroscopic means"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.c.analysis.mass",
+   "name": "Conservation of mass and relative formula mass",
+   "parent": "dfe.sc.c.analysis",
+   "levels": [
+    "KS3",
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Chemical analysis – Conservation of mass and the quantitative interpretation of balanced equations"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Chemical analysis – Conservation of mass and the quantitative interpretation of balanced equations"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Chemical reactions"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.c.analysis.moles",
+   "name": "Moles and amounts",
+   "parent": "dfe.sc.c.analysis",
+   "levels": [
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Chemical analysis – Use of amount of substance in relation to masses of pure substances"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Chemical analysis – Use of amount of substance in relation to masses of pure substances"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.c.analysis.yield",
+   "name": "Yield, atom economy, concentration and gas volumes",
+   "parent": "dfe.sc.c.analysis",
+   "levels": [
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Chemical and allied industries – The comparison of yield and atom economy of chemical reactions"
+    },
+    {
+     "doc": "gcse-single",
+     "ref": "Chemical analysis – Use the mole in relation to volumes of gases"
+    },
+    {
+     "doc": "gcse-single",
+     "ref": "Chemical analysis – Principles for determining the concentrations of solutions"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.c.earth",
+   "name": "Earth, atmosphere and resources",
+   "parent": "dfe.sc.c",
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Earth and atmospheric science"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Earth and atmospheric science"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Earth and atmosphere"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.c.earth.atmosphere",
+   "name": "The atmosphere: its history and greenhouse gases",
+   "parent": "dfe.sc.c.earth",
+   "levels": [
+    "KS3",
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Earth and atmospheric science – The composition and evolution of the Earth’s atmosphere since its formation"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Earth and atmospheric science – Carbon dioxide and methane as greenhouse gases"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Earth and atmosphere"
+    },
+    {
+     "doc": "gcse-single",
+     "ref": "Earth and atmospheric science – Carbon dioxide and methane as greenhouse gases"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Earth and atmospheric science – The composition and evolution of the Earth’s atmosphere since its formation"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.c.earth.pollution",
+   "name": "Air pollution",
+   "parent": "dfe.sc.c.earth",
+   "levels": [
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Earth and atmospheric science – Common atmospheric pollutants and their sources"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Earth and atmospheric science – Common atmospheric pollutants and their sources"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.c.earth.water",
+   "name": "Water and the Earth's resources",
+   "parent": "dfe.sc.c.earth",
+   "levels": [
+    "KS3",
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Earth and atmospheric science – The Earth’s water resources and obtaining potable water"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Earth and atmospheric science – The Earth’s water resources and obtaining potable water"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Earth and atmosphere"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.c.earth.lca",
+   "name": "Life cycle assessment and recycling",
+   "parent": "dfe.sc.c.earth",
+   "levels": [
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Chemical and allied industries – Life cycle assessment and recycling"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Chemical and allied industries – Life cycle assessment and recycling"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.c.earth.materials",
+   "name": "Using materials, the Haber process and fertilisers",
+   "parent": "dfe.sc.c.earth",
+   "levels": [
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Chemical and allied industries – Using materials"
+    },
+    {
+     "doc": "gcse-single",
+     "ref": "Chemical and allied industries – The balance between equilibrium position and rate in industrial processes"
+    },
+    {
+     "doc": "gcse-single",
+     "ref": "Chemical and allied industries – Agricultural productivity and the use of nitrogen, phosphorus and potassium-based fertilisers"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.c.earth.rocks",
+   "name": "Rocks and soils",
+   "parent": "dfe.sc.c.earth",
+   "levels": [
+    "KS2",
+    "KS3"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y3 Rocks"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Earth and atmosphere"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.c.materials",
+   "name": "Materials and their properties",
+   "parent": "dfe.sc.c",
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Uses of everyday materials"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Properties and changes of materials"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Materials"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.c.materials.everyday",
+   "name": "Everyday materials and their uses",
+   "parent": "dfe.sc.c.materials",
+   "levels": [
+    "KS1",
+    "KS2"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y1 Everyday materials"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y2 Uses of everyday materials"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.c.materials.states",
+   "name": "Solids, liquids and gases",
+   "parent": "dfe.sc.c.materials",
+   "levels": [
+    "KS2"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y4 States of matter"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.c.materials.changes",
+   "name": "Properties and changes of materials",
+   "parent": "dfe.sc.c.materials",
+   "levels": [
+    "KS2",
+    "KS3"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y5 Properties and changes of materials"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Materials"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.p",
+   "name": "Physics",
+   "parent": "",
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Physics"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Physics"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Subject content – Physics"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Forces and magnets"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.p.energy",
+   "name": "Energy",
+   "parent": "dfe.sc.p",
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Energy"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Energy"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Energy"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.p.energy.stores",
+   "name": "Energy stores, transfers and power",
+   "parent": "dfe.sc.p.energy",
+   "levels": [
+    "KS3",
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Energy – Energy changes in a system, and in the ways energy is stored before and after such changes"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Energy – Energy changes in a system, and in the ways energy is stored before and after such changes"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Energy changes and transfers"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.p.energy.efficiency",
+   "name": "Conservation, dissipation and efficiency",
+   "parent": "dfe.sc.p.energy",
+   "levels": [
+    "KS3",
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Energy – Energy changes in a system, and in the ways energy is stored before and after such changes – Conservation, dissipation and national and global energy sources"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Energy – Energy changes in a system, and in the ways energy is stored before and after such changes – Conservation, dissipation and national and global energy sources"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Changes in systems"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.p.energy.resources",
+   "name": "Energy resources",
+   "parent": "dfe.sc.p.energy",
+   "levels": [
+    "KS3",
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Energy – Energy changes in a system, and in the ways energy is stored before and after such changes – Conservation, dissipation and national and global energy sources"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Energy – Energy changes in a system, and in the ways energy is stored before and after such changes – Conservation, dissipation and national and global energy sources"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Calculation of fuel uses and costs in the domestic context"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.p.forces",
+   "name": "Forces and motion",
+   "parent": "dfe.sc.p",
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Forces"
+    },
+    {
+     "doc": "gcse-single",
+     "ref": "Forces and motion"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Forces"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Motion and forces"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y5 Forces"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.p.forces.interact",
+   "name": "Forces, weight and resultant forces",
+   "parent": "dfe.sc.p.forces",
+   "levels": [
+    "KS2",
+    "KS3",
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Forces – Forces and their interactions"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Forces – Forces and their interactions"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Forces"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y5 Forces"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y3 Forces and magnets"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Balanced forces"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.p.forces.work",
+   "name": "Work done and elasticity",
+   "parent": "dfe.sc.p.forces",
+   "levels": [
+    "KS3",
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Forces – Work done as force x distance, energy transfer"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Forces – Work done as force x distance, energy transfer"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Forces"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.p.forces.moments",
+   "name": "Moments, levers and gears",
+   "parent": "dfe.sc.p.forces",
+   "levels": [
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Forces – Moments, levers and gears"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.p.forces.pressure",
+   "name": "Pressure in fluids",
+   "parent": "dfe.sc.p.forces",
+   "levels": [
+    "KS3",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Forces – Pressure and pressure differences in fluids"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Pressure in fluids"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.p.forces.motion",
+   "name": "Speed, acceleration and Newton's laws",
+   "parent": "dfe.sc.p.forces",
+   "levels": [
+    "KS3",
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Forces and motion – Forces, accelerations and Newton’s laws of motion"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Forces and motion – Forces, accelerations and Newton’s laws of motion"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Describing motion"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Forces and motion"
+    },
+    {
+     "doc": "gcse-single",
+     "ref": "Forces and motion – Speed and velocity, speed as distance over time; acceleration; distance-time and velocity-time graphs"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Forces and motion – Speed and velocity, speed as distance over time; acceleration; distance-time and velocity-time graphs"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.p.forces.momentum",
+   "name": "Momentum and stopping safely",
+   "parent": "dfe.sc.p.forces",
+   "levels": [
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Forces and motion – Forces, accelerations and Newton’s laws of motion"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Forces and motion – Forces, accelerations and Newton’s laws of motion"
+    },
+    {
+     "doc": "gcse-single",
+     "ref": "Forces and motion – Safety in public transport"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Forces and motion – Safety in public transport"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.p.waves",
+   "name": "Waves, light and sound",
+   "parent": "dfe.sc.p",
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Waves in matter"
+    },
+    {
+     "doc": "gcse-single",
+     "ref": "Light and electromagnetic waves"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Waves in matter"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Waves"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y3 Light"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y4 Sound"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.p.waves.light",
+   "name": "Light and seeing",
+   "parent": "dfe.sc.p.waves",
+   "levels": [
+    "KS2",
+    "KS3"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y3 Light"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y6 Light"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Light waves"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.p.waves.sound",
+   "name": "Sound",
+   "parent": "dfe.sc.p.waves",
+   "levels": [
+    "KS2",
+    "KS3"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y4 Sound"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Sound waves"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.p.waves.properties",
+   "name": "Wave properties",
+   "parent": "dfe.sc.p.waves",
+   "levels": [
+    "KS3",
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Waves in matter – Waves in air, fluids and solids"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Waves in matter – Waves in air, fluids and solids"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Observed waves"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.p.waves.interfaces",
+   "name": "Waves at boundaries and their uses",
+   "parent": "dfe.sc.p.waves",
+   "levels": [
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Waves in matter – Waves at material interfaces: applications in exploring structures"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.p.waves.em",
+   "name": "The electromagnetic spectrum",
+   "parent": "dfe.sc.p.waves",
+   "levels": [
+    "KS3",
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Light and electromagnetic waves – Frequency range of the spectrum"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Light and electromagnetic waves – Interactions of electromagnetic radiation with matter and their applications"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Energy and waves"
+    },
+    {
+     "doc": "gcse-single",
+     "ref": "Light and electromagnetic waves – Interactions of electromagnetic radiation with matter and their applications"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Light and electromagnetic waves – Frequency range of the spectrum"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.p.waves.lenses",
+   "name": "Lenses, visible light and black bodies",
+   "parent": "dfe.sc.p.waves",
+   "levels": [
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Light and electromagnetic waves – Lenses"
+    },
+    {
+     "doc": "gcse-single",
+     "ref": "Light and electromagnetic waves – Colour and frequency; differential effects in transmission, absorption and diffuse reflection"
+    },
+    {
+     "doc": "gcse-single",
+     "ref": "Light and electromagnetic waves – Black body radiation (qualitative only)"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.p.elec",
+   "name": "Electricity",
+   "parent": "dfe.sc.p",
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Electricity"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Electricity"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Current electricity"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y4 Electricity"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.p.elec.circuits",
+   "name": "Simple circuits",
+   "parent": "dfe.sc.p.elec",
+   "levels": [
+    "KS2"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y4 Electricity"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y6 Electricity"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.p.elec.current",
+   "name": "Current, potential difference and resistance",
+   "parent": "dfe.sc.p.elec",
+   "levels": [
+    "KS3",
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Electricity – Current, potential difference and resistance"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Electricity – Current, potential difference and resistance"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Current electricity"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.p.elec.series",
+   "name": "Series and parallel circuits",
+   "parent": "dfe.sc.p.elec",
+   "levels": [
+    "KS2",
+    "KS3",
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Electricity – Series and parallel circuits"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Electricity – Series and parallel circuits"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Current electricity"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y6 Electricity"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.p.elec.mains",
+   "name": "Mains electricity, power and the National Grid",
+   "parent": "dfe.sc.p.elec",
+   "levels": [
+    "KS3",
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Electricity – Domestic uses and safety"
+    },
+    {
+     "doc": "gcse-single",
+     "ref": "Electricity – Energy transfers"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Electricity – Domestic uses and safety"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Electricity – Energy transfers"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Calculation of fuel uses and costs in the domestic context"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.p.elec.static",
+   "name": "Static electricity",
+   "parent": "dfe.sc.p.elec",
+   "levels": [
+    "KS3",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Electricity – Static electricity – forces and electric fields"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Static electricity"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.p.magnet",
+   "name": "Magnetism and electromagnetism",
+   "parent": "dfe.sc.p",
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Magnetism and electromagnetism"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Magnetism and electromagnetism"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Magnetism"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y3 Forces and magnets"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.p.magnet.fields",
+   "name": "Magnets and magnetic fields",
+   "parent": "dfe.sc.p.magnet",
+   "levels": [
+    "KS2",
+    "KS3",
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Magnetism and electromagnetism – Permanent and induced magnetism, magnetic forces and fields"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Magnetism and electromagnetism – Permanent and induced magnetism, magnetic forces and fields"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Magnetism"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y3 Forces and magnets"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.p.magnet.motor",
+   "name": "Electromagnets and the motor effect",
+   "parent": "dfe.sc.p.magnet",
+   "levels": [
+    "KS3",
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Magnetism and electromagnetism – Magnetic effects of currents and the motor effect"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Magnetism and electromagnetism – Magnetic effects of currents and the motor effect"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Magnetism"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.p.magnet.induction",
+   "name": "Induction, generators and transformers",
+   "parent": "dfe.sc.p.magnet",
+   "levels": [
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Magnetism and electromagnetism – Induced potential, transformers and the national grid"
+    },
+    {
+     "doc": "gcse-single",
+     "ref": "Magnetism and electromagnetism – Microphones and speakers; oscillating currents in detection and generation of radiation"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.p.matter",
+   "name": "Particle model of matter",
+   "parent": "dfe.sc.p",
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Particle model of matter"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Particle model of matter"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Matter"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.p.matter.states",
+   "name": "Density and changes of state",
+   "parent": "dfe.sc.p.matter",
+   "levels": [
+    "KS3",
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Particle model of matter – Changes of state and the particle model"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Particle model of matter – Changes of state and the particle model"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Physical changes"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Particle model"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.p.matter.internal",
+   "name": "Internal energy and specific heat",
+   "parent": "dfe.sc.p.matter",
+   "levels": [
+    "KS3",
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Particle model of matter – Internal energy, energy transfers and particle motions"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Particle model of matter – Internal energy, energy transfers and particle motions"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Energy in matter"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.p.matter.pressure",
+   "name": "Gas pressure",
+   "parent": "dfe.sc.p.matter",
+   "levels": [
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Particle model of matter – Particle model and pressure"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Particle model of matter – Internal energy, energy transfers and particle motions"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.p.atomic",
+   "name": "Atomic structure and radioactivity",
+   "parent": "dfe.sc.p",
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Atomic structure"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Atomic structure"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.p.atomic.isotopes",
+   "name": "Atoms and isotopes",
+   "parent": "dfe.sc.p.atomic",
+   "levels": [
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Atomic structure – Nuclear atom and isotopes"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Atomic structure – Nuclear atom and isotopes"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.p.atomic.radiation",
+   "name": "Nuclear radiation and half-life",
+   "parent": "dfe.sc.p.atomic",
+   "levels": [
+    "GCSE Combined",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Atomic structure – Absorption and emission of ionizing radiations and of electrons and nuclear particles"
+    },
+    {
+     "doc": "gcse-combined",
+     "ref": "Atomic structure – Absorption and emission of ionizing radiations and of electrons and nuclear particles"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.p.atomic.hazards",
+   "name": "Hazards and uses of radiation",
+   "parent": "dfe.sc.p.atomic",
+   "levels": [
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Atomic structure – Hazards and uses of radioactive emissions and of background radiation"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.p.atomic.fission",
+   "name": "Fission and fusion",
+   "parent": "dfe.sc.p.atomic",
+   "levels": [
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Atomic structure – Nuclear fission and fusion"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.p.space",
+   "name": "Space physics",
+   "parent": "dfe.sc.p",
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Space physics"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Space physics"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y5 Earth and space"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.p.space.earth",
+   "name": "Earth, Sun, Moon and seasons",
+   "parent": "dfe.sc.p.space",
+   "levels": [
+    "KS1",
+    "KS2",
+    "KS3"
+   ],
+   "src": [
+    {
+     "doc": "nc-ks12",
+     "ref": "Y1 Seasonal changes"
+    },
+    {
+     "doc": "nc-ks12",
+     "ref": "Y5 Earth and space"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Space physics"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.p.space.solar",
+   "name": "The solar system, orbits and stars",
+   "parent": "dfe.sc.p.space",
+   "levels": [
+    "KS3",
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Space physics – Solar system; stability of orbital motions; satellites"
+    },
+    {
+     "doc": "nc-ks3",
+     "ref": "Space physics"
+    }
+   ]
+  },
+  {
+   "id": "dfe.sc.p.space.redshift",
+   "name": "Red-shift and the Big Bang",
+   "parent": "dfe.sc.p.space",
+   "levels": [
+    "GCSE Separate"
+   ],
+   "src": [
+    {
+     "doc": "gcse-single",
+     "ref": "Space physics – Red-shift as sources move away; the ‘big bang’ and universal expansion"
+    }
+   ]
+  }
+ ],
+ "ideas": {
+  "sc.bio.eukaryotes-and-prokaryotes": "dfe.sc.b.cell.cells",
+  "sc.bio.animal-and-plant-cells": "dfe.sc.b.cell.cells",
+  "sc.bio.cell-specialisation": "dfe.sc.b.cell.cells",
+  "sc.bio.cell-differentiation": "dfe.sc.b.cell.cells",
+  "sc.bio.microscopy": "dfe.sc.b.cell.cells",
+  "sc.bio.culturing-microorganisms": "dfe.sc.b.cell.cells",
+  "sc.bio.chromosomes": "dfe.sc.b.cell.division",
+  "sc.bio.mitosis-and-the-cell-cycle": "dfe.sc.b.cell.division",
+  "sc.bio.stem-cells": "dfe.sc.b.cell.division",
+  "sc.bio.diffusion": "dfe.sc.b.trans.cells",
+  "sc.bio.osmosis": "dfe.sc.b.trans.cells",
+  "sc.bio.active-transport": "dfe.sc.b.trans.cells",
+  "sc.bio.principles-of-organisation": "dfe.sc.b.trans.organs",
+  "sc.bio.the-human-digestive-system": "dfe.sc.b.body.digestion",
+  "sc.bio.the-heart-and-blood-vessels": "dfe.sc.b.trans.heart",
+  "sc.bio.blood": "dfe.sc.b.trans.heart",
+  "sc.bio.coronary-heart-disease-a-non-communicable-disease": "dfe.sc.b.trans.organs",
+  "sc.bio.health-issues": "dfe.sc.b.health.noncommunicable",
+  "sc.bio.the-effect-of-lifestyle-on-some-non-communicable-diseases": "dfe.sc.b.health.noncommunicable",
+  "sc.bio.cancer": "dfe.sc.b.health.noncommunicable",
+  "sc.bio.plant-tissues": "dfe.sc.b.trans.plants",
+  "sc.bio.plant-organ-system": "dfe.sc.b.trans.plants",
+  "sc.bio.communicable-infectious-diseases": "dfe.sc.b.health.communicable",
+  "sc.bio.viral-diseases": "dfe.sc.b.health.communicable",
+  "sc.bio.bacterial-diseases": "dfe.sc.b.health.communicable",
+  "sc.bio.fungal-diseases": "dfe.sc.b.health.communicable",
+  "sc.bio.protist-diseases": "dfe.sc.b.health.communicable",
+  "sc.bio.human-defence-systems": "dfe.sc.b.health.communicable",
+  "sc.bio.vaccination": "dfe.sc.b.health.medicines",
+  "sc.bio.antibiotics-and-painkillers": "dfe.sc.b.health.medicines",
+  "sc.bio.discovery-and-development-of-drugs": "dfe.sc.b.health.medicines",
+  "sc.bio.producing-monoclonal-antibodies": "dfe.sc.b.health.medicines",
+  "sc.bio.uses-of-monoclonal-antibodies": "dfe.sc.b.health.medicines",
+  "sc.bio.detection-and-identification-of-plant-diseases": "dfe.sc.b.health.plants",
+  "sc.bio.plant-defence-responses": "dfe.sc.b.health.plants",
+  "sc.bio.photosynthetic-reaction": "dfe.sc.b.photo.photo",
+  "sc.bio.rate-of-photosynthesis": "dfe.sc.b.photo.photo",
+  "sc.bio.uses-of-glucose-from-photosynthesis": "dfe.sc.b.photo.photo",
+  "sc.bio.aerobic-and-anaerobic-respiration": "dfe.sc.b.cell.enzymes",
+  "sc.bio.response-to-exercise": "dfe.sc.b.cell.enzymes",
+  "sc.bio.metabolism": "dfe.sc.b.cell.enzymes",
+  "sc.bio.homeostasis": "dfe.sc.b.coord.homeostasis",
+  "sc.bio.structure-and-function": "dfe.sc.b.coord.nerves",
+  "sc.bio.the-brain": "dfe.sc.b.coord.nerves",
+  "sc.bio.the-eye": "dfe.sc.b.coord.nerves",
+  "sc.bio.control-of-body-temperature": "dfe.sc.b.coord.nerves",
+  "sc.bio.human-endocrine-system": "dfe.sc.b.coord.hormones",
+  "sc.bio.control-of-blood-glucose-concentration": "dfe.sc.b.coord.homeostasis",
+  "sc.bio.maintaining-water-and-nitrogen-balance-in-the-body": "dfe.sc.b.coord.hormones",
+  "sc.bio.hormones-in-human-reproduction": "dfe.sc.b.coord.hormones",
+  "sc.bio.contraception": "dfe.sc.b.coord.hormones",
+  "sc.bio.the-use-of-hormones-to-treat-infertility": "dfe.sc.b.coord.hormones",
+  "sc.bio.negative-feedback": "dfe.sc.b.coord.hormones",
+  "sc.bio.control-and-coordination": "dfe.sc.b.coord.planthormones",
+  "sc.bio.use-of-plant-hormones": "dfe.sc.b.coord.planthormones",
+  "sc.bio.sexual-and-asexual-reproduction": "dfe.sc.b.inherit.repro",
+  "sc.bio.meiosis": "dfe.sc.b.inherit.repro",
+  "sc.bio.advantages-and-disadvantages-of-sexual-and-asexual-reproduction": "dfe.sc.b.inherit.repro",
+  "sc.bio.dna-and-the-genome": "dfe.sc.b.inherit.genome",
+  "sc.bio.dna-structure": "dfe.sc.b.inherit.genome",
+  "sc.bio.genetic-inheritance": "dfe.sc.b.inherit.genome",
+  "sc.bio.inherited-disorders": "dfe.sc.b.inherit.genome",
+  "sc.bio.sex-determination": "dfe.sc.b.inherit.genome",
+  "sc.bio.variation": "dfe.sc.b.inherit.evolution",
+  "sc.bio.evolution": "dfe.sc.b.inherit.evolution",
+  "sc.bio.selective-breeding": "dfe.sc.b.inherit.breeding",
+  "sc.bio.genetic-engineering": "dfe.sc.b.inherit.breeding",
+  "sc.bio.cloning": "dfe.sc.b.inherit.breeding",
+  "sc.bio.theory-of-evolution": "dfe.sc.b.inherit.evolution",
+  "sc.bio.speciation": "dfe.sc.b.inherit.evolution",
+  "sc.bio.the-understanding-of-genetics": "dfe.sc.b.inherit.evolution",
+  "sc.bio.evidence-for-evolution": "dfe.sc.b.inherit.evolution",
+  "sc.bio.fossils": "dfe.sc.b.inherit.evolution",
+  "sc.bio.extinction": "dfe.sc.b.inherit.evolution",
+  "sc.bio.resistant-bacteria": "dfe.sc.b.inherit.evolution",
+  "sc.bio.classification-of-living-organisms": "dfe.sc.b.inherit.evolution",
+  "sc.bio.communities": "dfe.sc.b.eco.levels",
+  "sc.bio.abiotic-factors": "dfe.sc.b.eco.levels",
+  "sc.bio.biotic-factors": "dfe.sc.b.eco.levels",
+  "sc.bio.adaptations": "dfe.sc.b.eco.levels",
+  "sc.bio.levels-of-organisation": "dfe.sc.b.eco.levels",
+  "sc.bio.how-materials-are-cycled": "dfe.sc.b.eco.cycles",
+  "sc.bio.decomposition": "dfe.sc.b.eco.cycles",
+  "sc.bio.impact-of-environmental-change": "dfe.sc.b.eco.levels",
+  "sc.bio.biodiversity": "dfe.sc.b.eco.biodiversity",
+  "sc.bio.waste-management": "dfe.sc.b.eco.biodiversity",
+  "sc.bio.land-use": "dfe.sc.b.eco.biodiversity",
+  "sc.bio.deforestation": "dfe.sc.b.eco.biodiversity",
+  "sc.bio.global-warming": "dfe.sc.b.eco.biodiversity",
+  "sc.bio.maintaining-biodiversity": "dfe.sc.b.eco.biodiversity",
+  "sc.bio.trophic-levels": "dfe.sc.b.eco.biomass",
+  "sc.bio.pyramids-of-biomass": "dfe.sc.b.eco.biomass",
+  "sc.bio.transfer-of-biomass": "dfe.sc.b.eco.biomass",
+  "sc.bio.factors-affecting-food-security": "dfe.sc.b.eco.biomass",
+  "sc.bio.farming-techniques": "dfe.sc.b.eco.biomass",
+  "sc.bio.sustainable-fisheries": "dfe.sc.b.eco.biomass",
+  "sc.bio.role-of-biotechnology": "dfe.sc.b.eco.biomass",
+  "sc.chem.atoms-elements-and-compounds": "dfe.sc.c.atom.model",
+  "sc.chem.mixtures": "dfe.sc.c.atom.model",
+  "sc.chem.the-development-of-the-model-of-the-atom": "dfe.sc.c.atom.model",
+  "sc.chem.relative-electrical-charges-of-subatomic-particles": "dfe.sc.c.atom.model",
+  "sc.chem.size-and-mass-of-atoms": "dfe.sc.c.atom.model",
+  "sc.chem.relative-atomic-mass": "dfe.sc.c.atom.model",
+  "sc.chem.electronic-structure": "dfe.sc.c.atom.model",
+  "sc.chem.the-periodic-table": "dfe.sc.c.atom.table",
+  "sc.chem.development-of-the-periodic-table": "dfe.sc.c.atom.table",
+  "sc.chem.metals-and-non-metals": "dfe.sc.c.atom.table",
+  "sc.chem.group-0": "dfe.sc.c.atom.table",
+  "sc.chem.group-1": "dfe.sc.c.atom.table",
+  "sc.chem.group-7": "dfe.sc.c.atom.table",
+  "sc.chem.transition-metals-compared-with-group-1": "dfe.sc.c.atom.transition",
+  "sc.chem.typical-properties-of-transition-metals": "dfe.sc.c.atom.transition",
+  "sc.chem.chemical-bonds": "dfe.sc.c.bond.types",
+  "sc.chem.ionic-bonding": "dfe.sc.c.bond.types",
+  "sc.chem.ionic-compounds": "dfe.sc.c.bond.types",
+  "sc.chem.covalent-bonding": "dfe.sc.c.bond.types",
+  "sc.chem.metallic-bonding": "dfe.sc.c.bond.types",
+  "sc.chem.the-three-states-of-matter": "dfe.sc.c.bond.types",
+  "sc.chem.state-symbols": "dfe.sc.c.bond.types",
+  "sc.chem.properties-of-ionic-compounds": "dfe.sc.c.bond.types",
+  "sc.chem.properties-of-small-molecules": "dfe.sc.c.bond.types",
+  "sc.chem.polymers": "dfe.sc.c.bond.types",
+  "sc.chem.giant-covalent-structures": "dfe.sc.c.bond.types",
+  "sc.chem.properties-of-metals-and-alloys": "dfe.sc.c.bond.types",
+  "sc.chem.metals-as-conductors": "dfe.sc.c.bond.types",
+  "sc.chem.diamond": "dfe.sc.c.bond.carbon",
+  "sc.chem.graphite": "dfe.sc.c.bond.carbon",
+  "sc.chem.graphene-and-fullerenes": "dfe.sc.c.bond.carbon",
+  "sc.chem.sizes-of-particles-and-their-properties": "dfe.sc.c.bond.nano",
+  "sc.chem.uses-of-nanoparticles": "dfe.sc.c.bond.nano",
+  "sc.chem.conservation-of-mass-and-balanced-chemical-equations": "dfe.sc.c.analysis.mass",
+  "sc.chem.relative-formula-mass": "dfe.sc.c.analysis.mass",
+  "sc.chem.mass-changes-when-a-reactant-or-product-is-a-gas": "dfe.sc.c.analysis.mass",
+  "sc.chem.chemical-measurements-and-uncertainty": "dfe.sc.c.analysis.mass",
+  "sc.chem.moles": "dfe.sc.c.analysis.moles",
+  "sc.chem.amounts-of-substances-in-equations": "dfe.sc.c.analysis.moles",
+  "sc.chem.using-moles-to-balance-equations": "dfe.sc.c.analysis.moles",
+  "sc.chem.limiting-reactants": "dfe.sc.c.analysis.moles",
+  "sc.chem.concentration-of-solutions": "dfe.sc.c.analysis.moles",
+  "sc.chem.percentage-yield": "dfe.sc.c.analysis.yield",
+  "sc.chem.atom-economy": "dfe.sc.c.analysis.yield",
+  "sc.chem.using-concentrations-in-mol-dm": "dfe.sc.c.analysis.yield",
+  "sc.chem.use-of-amount-of-substance-in-relation-to-volumes-of-gases": "dfe.sc.c.analysis.yield",
+  "sc.chem.metal-oxides": "dfe.sc.c.change.metals",
+  "sc.chem.the-reactivity-series": "dfe.sc.c.change.metals",
+  "sc.chem.extraction-of-metals-and-reduction": "dfe.sc.c.change.metals",
+  "sc.chem.oxidation-and-reduction-in-terms-of-electrons": "dfe.sc.c.change.metals",
+  "sc.chem.reactions-of-acids-with-metals": "dfe.sc.c.change.acids",
+  "sc.chem.neutralisation-of-acids-and-salt-production": "dfe.sc.c.change.acids",
+  "sc.chem.soluble-salts": "dfe.sc.c.change.acids",
+  "sc.chem.the-ph-scale-and-neutralisation": "dfe.sc.c.change.acids",
+  "sc.chem.titrations": "dfe.sc.c.change.acids",
+  "sc.chem.strong-and-weak-acids": "dfe.sc.c.change.acids",
+  "sc.chem.the-process-of-electrolysis": "dfe.sc.c.change.electrolysis",
+  "sc.chem.electrolysis-of-molten-ionic-compounds": "dfe.sc.c.change.electrolysis",
+  "sc.chem.using-electrolysis-to-extract-metals": "dfe.sc.c.change.electrolysis",
+  "sc.chem.electrolysis-of-aqueous-solutions": "dfe.sc.c.change.electrolysis",
+  "sc.chem.representation-of-reactions-at-electrodes-as-half-equations": "dfe.sc.c.change.electrolysis",
+  "sc.chem.energy-transfer-during-exothermic-and-endothermic-reactions": "dfe.sc.c.energy.exo",
+  "sc.chem.reaction-profiles": "dfe.sc.c.energy.exo",
+  "sc.chem.the-energy-change-of-reactions": "dfe.sc.c.energy.exo",
+  "sc.chem.cells-and-batteries": "dfe.sc.c.energy.cells",
+  "sc.chem.fuel-cells": "dfe.sc.c.energy.cells",
+  "sc.chem.calculating-rates-of-reactions": "dfe.sc.c.rate.rate",
+  "sc.chem.factors-which-affect-the-rates-of-chemical-reactions": "dfe.sc.c.rate.rate",
+  "sc.chem.collision-theory-and-activation-energy": "dfe.sc.c.rate.rate",
+  "sc.chem.catalysts": "dfe.sc.c.rate.rate",
+  "sc.chem.reversible-reactions": "dfe.sc.c.rate.equilibrium",
+  "sc.chem.energy-changes-and-reversible-reactions": "dfe.sc.c.rate.equilibrium",
+  "sc.chem.equilibrium": "dfe.sc.c.rate.equilibrium",
+  "sc.chem.the-effect-of-changing-conditions-on-equilibrium": "dfe.sc.c.rate.equilibrium",
+  "sc.chem.the-effect-of-changing-concentration": "dfe.sc.c.rate.equilibrium",
+  "sc.chem.the-effect-of-temperature-changes-on-equilibrium": "dfe.sc.c.rate.equilibrium",
+  "sc.chem.the-effect-of-pressure-changes-on-equilibrium": "dfe.sc.c.rate.equilibrium",
+  "sc.chem.crude-oil-hydrocarbons-and-alkanes": "dfe.sc.c.organic.crude",
+  "sc.chem.fractional-distillation-and-petrochemicals": "dfe.sc.c.organic.crude",
+  "sc.chem.properties-of-hydrocarbons": "dfe.sc.c.organic.crude",
+  "sc.chem.cracking-and-alkenes": "dfe.sc.c.organic.crude",
+  "sc.chem.structure-and-formulae-of-alkenes": "dfe.sc.c.organic.series",
+  "sc.chem.reactions-of-alkenes": "dfe.sc.c.organic.series",
+  "sc.chem.alcohols": "dfe.sc.c.organic.series",
+  "sc.chem.carboxylic-acids": "dfe.sc.c.organic.series",
+  "sc.chem.addition-polymerisation": "dfe.sc.c.organic.polymers",
+  "sc.chem.condensation-polymerisation": "dfe.sc.c.organic.polymers",
+  "sc.chem.amino-acids": "dfe.sc.c.organic.polymers",
+  "sc.chem.dna-and-other-natural-polymers": "dfe.sc.c.organic.polymers",
+  "sc.chem.pure-substances": "dfe.sc.c.analysis.purity",
+  "sc.chem.formulations": "dfe.sc.c.analysis.purity",
+  "sc.chem.chromatography": "dfe.sc.c.analysis.purity",
+  "sc.chem.test-for-hydrogen": "dfe.sc.c.analysis.gases",
+  "sc.chem.test-for-oxygen": "dfe.sc.c.analysis.gases",
+  "sc.chem.test-for-carbon-dioxide": "dfe.sc.c.analysis.gases",
+  "sc.chem.test-for-chlorine": "dfe.sc.c.analysis.gases",
+  "sc.chem.flame-tests": "dfe.sc.c.analysis.ions",
+  "sc.chem.metal-hydroxides": "dfe.sc.c.analysis.ions",
+  "sc.chem.carbonates": "dfe.sc.c.analysis.ions",
+  "sc.chem.halides": "dfe.sc.c.analysis.ions",
+  "sc.chem.sulfates": "dfe.sc.c.analysis.ions",
+  "sc.chem.instrumental-methods": "dfe.sc.c.analysis.ions",
+  "sc.chem.flame-emission-spectroscopy": "dfe.sc.c.analysis.ions",
+  "sc.chem.the-proportions-of-different-gases-in-the-atmosphere": "dfe.sc.c.earth.atmosphere",
+  "sc.chem.the-earths-early-atmosphere": "dfe.sc.c.earth.atmosphere",
+  "sc.chem.how-oxygen-increased": "dfe.sc.c.earth.atmosphere",
+  "sc.chem.how-carbon-dioxide-decreased": "dfe.sc.c.earth.atmosphere",
+  "sc.chem.greenhouse-gases": "dfe.sc.c.earth.atmosphere",
+  "sc.chem.human-activities-that-increase-greenhouse-gases": "dfe.sc.c.earth.atmosphere",
+  "sc.chem.global-climate-change": "dfe.sc.c.earth.atmosphere",
+  "sc.chem.the-carbon-footprint-and-its-reduction": "dfe.sc.c.earth.atmosphere",
+  "sc.chem.atmospheric-pollutants-from-fuels": "dfe.sc.c.earth.pollution",
+  "sc.chem.properties-and-effects-of-atmospheric-pollutants": "dfe.sc.c.earth.pollution",
+  "sc.chem.using-the-earths-resources-and-sustainable-development": "dfe.sc.c.earth.water",
+  "sc.chem.potable-water": "dfe.sc.c.earth.water",
+  "sc.chem.waste-water-treatment": "dfe.sc.c.earth.water",
+  "sc.chem.alternative-methods-of-extracting-metals": "dfe.sc.c.earth.water",
+  "sc.chem.life-cycle-assessment": "dfe.sc.c.earth.lca",
+  "sc.chem.ways-of-reducing-the-use-of-resources": "dfe.sc.c.earth.lca",
+  "sc.chem.corrosion-and-its-prevention": "dfe.sc.c.earth.materials",
+  "sc.chem.alloys-as-useful-materials": "dfe.sc.c.earth.materials",
+  "sc.chem.ceramics-polymers-and-composites": "dfe.sc.c.earth.materials",
+  "sc.chem.the-haber-process": "dfe.sc.c.earth.materials",
+  "sc.chem.production-and-uses-of-npk-fertilisers": "dfe.sc.c.earth.materials",
+  "sc.phys.energy-stores-and-systems": "dfe.sc.p.energy.stores",
+  "sc.phys.changes-in-energy": "dfe.sc.p.energy.stores",
+  "sc.phys.energy-changes-in-systems": "dfe.sc.p.energy.stores",
+  "sc.phys.power-the-rate-of-energy-transfer": "dfe.sc.p.energy.stores",
+  "sc.phys.energy-transfers-in-a-system": "dfe.sc.p.energy.efficiency",
+  "sc.phys.efficiency": "dfe.sc.p.energy.efficiency",
+  "sc.phys.national-and-global-energy-resources": "dfe.sc.p.energy.resources",
+  "sc.phys.standard-circuit-diagram-symbols": "dfe.sc.p.elec.current",
+  "sc.phys.electrical-charge-and-current": "dfe.sc.p.elec.current",
+  "sc.phys.current-resistance-and-potential-difference": "dfe.sc.p.elec.current",
+  "sc.phys.resistors": "dfe.sc.p.elec.current",
+  "sc.phys.series-and-parallel-circuits": "dfe.sc.p.elec.series",
+  "sc.phys.direct-and-alternating-potential-difference": "dfe.sc.p.elec.mains",
+  "sc.phys.mains-electricity": "dfe.sc.p.elec.mains",
+  "sc.phys.electrical-power": "dfe.sc.p.elec.mains",
+  "sc.phys.energy-transfers-in-everyday-appliances": "dfe.sc.p.elec.mains",
+  "sc.phys.the-national-grid": "dfe.sc.p.elec.mains",
+  "sc.phys.static-charge": "dfe.sc.p.elec.static",
+  "sc.phys.electric-fields": "dfe.sc.p.elec.static",
+  "sc.phys.density-of-materials": "dfe.sc.p.matter.states",
+  "sc.phys.changes-of-state": "dfe.sc.p.matter.states",
+  "sc.phys.internal-energy": "dfe.sc.p.matter.internal",
+  "sc.phys.temperature-changes-in-a-system-and-specific-heat-capacity": "dfe.sc.p.matter.internal",
+  "sc.phys.changes-of-state-and-specific-latent-heat": "dfe.sc.p.matter.internal",
+  "sc.phys.particle-motion-in-gases": "dfe.sc.p.matter.pressure",
+  "sc.phys.pressure-in-gases": "dfe.sc.p.matter.pressure",
+  "sc.phys.increasing-the-pressure-of-a-gas": "dfe.sc.p.matter.pressure",
+  "sc.phys.the-structure-of-an-atom": "dfe.sc.p.atomic.isotopes",
+  "sc.phys.mass-number-atomic-number-and-isotopes": "dfe.sc.p.atomic.isotopes",
+  "sc.phys.radioactive-decay-and-nuclear-radiation": "dfe.sc.p.atomic.radiation",
+  "sc.phys.nuclear-equations": "dfe.sc.p.atomic.radiation",
+  "sc.phys.half-lives-and-the-random-nature-of-radioactive-decay": "dfe.sc.p.atomic.radiation",
+  "sc.phys.radioactive-contamination": "dfe.sc.p.atomic.radiation",
+  "sc.phys.background-radiation": "dfe.sc.p.atomic.hazards",
+  "sc.phys.different-half-lives-of-radioactive-isotopes": "dfe.sc.p.atomic.hazards",
+  "sc.phys.uses-of-nuclear-radiation": "dfe.sc.p.atomic.hazards",
+  "sc.phys.nuclear-fission": "dfe.sc.p.atomic.fission",
+  "sc.phys.nuclear-fusion": "dfe.sc.p.atomic.fission",
+  "sc.phys.scalar-and-vector-quantities": "dfe.sc.p.forces.interact",
+  "sc.phys.contact-and-non-contact-forces": "dfe.sc.p.forces.interact",
+  "sc.phys.gravity": "dfe.sc.p.forces.interact",
+  "sc.phys.resultant-forces": "dfe.sc.p.forces.interact",
+  "sc.phys.work-done-and-energy-transfer": "dfe.sc.p.forces.work",
+  "sc.phys.forces-and-elasticity": "dfe.sc.p.forces.work",
+  "sc.phys.moments-levers-and-gears": "dfe.sc.p.forces.moments",
+  "sc.phys.pressure-in-a-fluid-force-on-an-area": "dfe.sc.p.forces.pressure",
+  "sc.phys.pressure-in-a-fluid-depth-and-upthrust": "dfe.sc.p.forces.pressure",
+  "sc.phys.atmospheric-pressure": "dfe.sc.p.forces.pressure",
+  "sc.phys.distance-and-displacement": "dfe.sc.p.forces.motion",
+  "sc.phys.speed": "dfe.sc.p.forces.motion",
+  "sc.phys.velocity": "dfe.sc.p.forces.motion",
+  "sc.phys.the-distance-time-relationship": "dfe.sc.p.forces.motion",
+  "sc.phys.acceleration": "dfe.sc.p.forces.motion",
+  "sc.phys.newtons-first-law": "dfe.sc.p.forces.motion",
+  "sc.phys.newtons-second-law": "dfe.sc.p.forces.motion",
+  "sc.phys.newtons-third-law": "dfe.sc.p.forces.motion",
+  "sc.phys.stopping-distance": "dfe.sc.p.forces.motion",
+  "sc.phys.reaction-time": "dfe.sc.p.forces.motion",
+  "sc.phys.factors-affecting-braking-distance-road-and-vehicle": "dfe.sc.p.forces.motion",
+  "sc.phys.factors-affecting-braking-distance-speed-and-energy": "dfe.sc.p.forces.motion",
+  "sc.phys.momentum-is-a-property-of-moving-objects": "dfe.sc.p.forces.momentum",
+  "sc.phys.conservation-of-momentum": "dfe.sc.p.forces.momentum",
+  "sc.phys.changes-in-momentum": "dfe.sc.p.forces.momentum",
+  "sc.phys.transverse-and-longitudinal-waves": "dfe.sc.p.waves.properties",
+  "sc.phys.properties-of-waves": "dfe.sc.p.waves.properties",
+  "sc.phys.reflection-of-waves": "dfe.sc.p.waves.properties",
+  "sc.phys.sound-waves": "dfe.sc.p.waves.properties",
+  "sc.phys.waves-for-detection-and-exploration": "dfe.sc.p.waves.properties",
+  "sc.phys.types-of-electromagnetic-waves": "dfe.sc.p.waves.em",
+  "sc.phys.properties-of-electromagnetic-waves-1": "dfe.sc.p.waves.em",
+  "sc.phys.properties-of-electromagnetic-waves-2": "dfe.sc.p.waves.em",
+  "sc.phys.uses-and-applications-of-electromagnetic-waves": "dfe.sc.p.waves.em",
+  "sc.phys.lenses": "dfe.sc.p.waves.lenses",
+  "sc.phys.visible-light": "dfe.sc.p.waves.lenses",
+  "sc.phys.emission-and-absorption-of-infrared-radiation": "dfe.sc.p.waves.lenses",
+  "sc.phys.perfect-black-bodies-and-radiation": "dfe.sc.p.waves.lenses",
+  "sc.phys.poles-of-a-magnet": "dfe.sc.p.magnet.fields",
+  "sc.phys.magnetic-fields": "dfe.sc.p.magnet.fields",
+  "sc.phys.electromagnetism": "dfe.sc.p.magnet.motor",
+  "sc.phys.flemings-left-hand-rule": "dfe.sc.p.magnet.motor",
+  "sc.phys.electric-motors": "dfe.sc.p.magnet.motor",
+  "sc.phys.loudspeakers": "dfe.sc.p.magnet.motor",
+  "sc.phys.induced-potential": "dfe.sc.p.magnet.induction",
+  "sc.phys.uses-of-the-generator-effect": "dfe.sc.p.magnet.induction",
+  "sc.phys.microphones": "dfe.sc.p.magnet.induction",
+  "sc.phys.transformers": "dfe.sc.p.magnet.induction",
+  "sc.phys.our-solar-system": "dfe.sc.p.space.solar",
+  "sc.phys.the-life-cycle-of-a-star": "dfe.sc.p.space.solar",
+  "sc.phys.orbital-motion-natural-and-artificial-satellites": "dfe.sc.p.space.solar",
+  "sc.phys.red-shift": "dfe.sc.p.space.redshift"
+ },
+ "spec": {
+  "aqa-8461:4.1.1": "dfe.sc.b.cell.cells",
+  "aqa-8461:4.1.2": "dfe.sc.b.cell.division",
+  "aqa-8461:4.4.2": "dfe.sc.b.cell.enzymes",
+  "aqa-8461:4.2.2.1": "dfe.sc.b.body.digestion",
+  "aqa-8461:4.1.3": "dfe.sc.b.trans.cells",
+  "aqa-8461:4.2.1": "dfe.sc.b.trans.organs",
+  "aqa-8461:4.2.2": "dfe.sc.b.trans.organs",
+  "aqa-8461:4.2.2.2": "dfe.sc.b.trans.heart",
+  "aqa-8461:4.2.2.3": "dfe.sc.b.trans.heart",
+  "aqa-8461:4.2.3": "dfe.sc.b.trans.plants",
+  "aqa-8461:4.3.1": "dfe.sc.b.health.communicable",
+  "aqa-8461:4.3.1.7": "dfe.sc.b.health.medicines",
+  "aqa-8461:4.3.1.8": "dfe.sc.b.health.medicines",
+  "aqa-8461:4.3.1.9": "dfe.sc.b.health.medicines",
+  "aqa-8461:4.3.2": "dfe.sc.b.health.medicines",
+  "aqa-8461:4.3.3": "dfe.sc.b.health.plants",
+  "aqa-8461:4.2.2.5": "dfe.sc.b.health.noncommunicable",
+  "aqa-8461:4.2.2.6": "dfe.sc.b.health.noncommunicable",
+  "aqa-8461:4.2.2.7": "dfe.sc.b.health.noncommunicable",
+  "aqa-8461:4.5.2": "dfe.sc.b.coord.nerves",
+  "aqa-8461:4.5.3": "dfe.sc.b.coord.hormones",
+  "aqa-8461:4.5.1": "dfe.sc.b.coord.homeostasis",
+  "aqa-8461:4.5.3.2": "dfe.sc.b.coord.homeostasis",
+  "aqa-8461:4.5.4": "dfe.sc.b.coord.planthormones",
+  "aqa-8461:4.4.1": "dfe.sc.b.photo.photo",
+  "aqa-8461:4.7.1": "dfe.sc.b.eco.levels",
+  "aqa-8461:4.7.2": "dfe.sc.b.eco.levels",
+  "aqa-8461:4.7.2.2": "dfe.sc.b.eco.cycles",
+  "aqa-8461:4.7.2.3": "dfe.sc.b.eco.cycles",
+  "aqa-8461:4.7.4": "dfe.sc.b.eco.biomass",
+  "aqa-8461:4.7.5": "dfe.sc.b.eco.biomass",
+  "aqa-8461:4.7.3": "dfe.sc.b.eco.biodiversity",
+  "aqa-8461:4.6.1": "dfe.sc.b.inherit.repro",
+  "aqa-8461:4.6.1.4": "dfe.sc.b.inherit.genome",
+  "aqa-8461:4.6.1.5": "dfe.sc.b.inherit.genome",
+  "aqa-8461:4.6.1.6": "dfe.sc.b.inherit.genome",
+  "aqa-8461:4.6.1.7": "dfe.sc.b.inherit.genome",
+  "aqa-8461:4.6.1.8": "dfe.sc.b.inherit.genome",
+  "aqa-8461:4.6.2": "dfe.sc.b.inherit.evolution",
+  "aqa-8461:4.6.3": "dfe.sc.b.inherit.evolution",
+  "aqa-8461:4.6.4": "dfe.sc.b.inherit.evolution",
+  "aqa-8461:4.6.2.3": "dfe.sc.b.inherit.breeding",
+  "aqa-8461:4.6.2.4": "dfe.sc.b.inherit.breeding",
+  "aqa-8461:4.6.2.5": "dfe.sc.b.inherit.breeding",
+  "aqa-8462:4.1.1": "dfe.sc.c.atom.model",
+  "aqa-8462:4.1.2": "dfe.sc.c.atom.table",
+  "aqa-8462:4.1.3": "dfe.sc.c.atom.transition",
+  "aqa-8462:4.2.1": "dfe.sc.c.bond.types",
+  "aqa-8462:4.2.2": "dfe.sc.c.bond.types",
+  "aqa-8462:4.2.3": "dfe.sc.c.bond.carbon",
+  "aqa-8462:4.2.4": "dfe.sc.c.bond.nano",
+  "aqa-8462:4.4.1": "dfe.sc.c.change.metals",
+  "aqa-8462:4.4.2": "dfe.sc.c.change.acids",
+  "aqa-8462:4.4.3": "dfe.sc.c.change.electrolysis",
+  "aqa-8462:4.5.1": "dfe.sc.c.energy.exo",
+  "aqa-8462:4.5.2": "dfe.sc.c.energy.cells",
+  "aqa-8462:4.6.1": "dfe.sc.c.rate.rate",
+  "aqa-8462:4.6.2": "dfe.sc.c.rate.equilibrium",
+  "aqa-8462:4.7.1": "dfe.sc.c.organic.crude",
+  "aqa-8462:4.7.2": "dfe.sc.c.organic.series",
+  "aqa-8462:4.7.3": "dfe.sc.c.organic.polymers",
+  "aqa-8462:4.8.1": "dfe.sc.c.analysis.purity",
+  "aqa-8462:4.8.2": "dfe.sc.c.analysis.gases",
+  "aqa-8462:4.8.3": "dfe.sc.c.analysis.ions",
+  "aqa-8462:4.3.1": "dfe.sc.c.analysis.mass",
+  "aqa-8462:4.3.2": "dfe.sc.c.analysis.moles",
+  "aqa-8462:4.3.3": "dfe.sc.c.analysis.yield",
+  "aqa-8462:4.3.4": "dfe.sc.c.analysis.yield",
+  "aqa-8462:4.3.5": "dfe.sc.c.analysis.yield",
+  "aqa-8462:4.9.1": "dfe.sc.c.earth.atmosphere",
+  "aqa-8462:4.9.2": "dfe.sc.c.earth.atmosphere",
+  "aqa-8462:4.9.3": "dfe.sc.c.earth.pollution",
+  "aqa-8462:4.10.1": "dfe.sc.c.earth.water",
+  "aqa-8462:4.10.2": "dfe.sc.c.earth.lca",
+  "aqa-8462:4.10.3": "dfe.sc.c.earth.materials",
+  "aqa-8462:4.10.4": "dfe.sc.c.earth.materials",
+  "aqa-8463:4.1.1": "dfe.sc.p.energy.stores",
+  "aqa-8463:4.1.2": "dfe.sc.p.energy.efficiency",
+  "aqa-8463:4.1.3": "dfe.sc.p.energy.resources",
+  "aqa-8463:4.5.1": "dfe.sc.p.forces.interact",
+  "aqa-8463:4.5.2": "dfe.sc.p.forces.work",
+  "aqa-8463:4.5.3": "dfe.sc.p.forces.work",
+  "aqa-8463:4.5.4": "dfe.sc.p.forces.moments",
+  "aqa-8463:4.5.5": "dfe.sc.p.forces.pressure",
+  "aqa-8463:4.5.6": "dfe.sc.p.forces.motion",
+  "aqa-8463:4.5.7": "dfe.sc.p.forces.momentum",
+  "aqa-8463:4.5.6.4": "dfe.sc.p.forces.momentum",
+  "aqa-8463:4.6.1": "dfe.sc.p.waves.properties",
+  "aqa-8463:4.6.2": "dfe.sc.p.waves.em",
+  "aqa-8463:4.6.3": "dfe.sc.p.waves.lenses",
+  "aqa-8463:4.6.2.5": "dfe.sc.p.waves.lenses",
+  "aqa-8463:4.6.2.6": "dfe.sc.p.waves.lenses",
+  "aqa-8463:4.2.1": "dfe.sc.p.elec.current",
+  "aqa-8463:4.2.2": "dfe.sc.p.elec.series",
+  "aqa-8463:4.2.3": "dfe.sc.p.elec.mains",
+  "aqa-8463:4.2.4": "dfe.sc.p.elec.mains",
+  "aqa-8463:4.2.5": "dfe.sc.p.elec.static",
+  "aqa-8463:4.7.1": "dfe.sc.p.magnet.fields",
+  "aqa-8463:4.7.2": "dfe.sc.p.magnet.motor",
+  "aqa-8463:4.7.3": "dfe.sc.p.magnet.induction",
+  "aqa-8463:4.3.1": "dfe.sc.p.matter.states",
+  "aqa-8463:4.3.2": "dfe.sc.p.matter.internal",
+  "aqa-8463:4.3.3": "dfe.sc.p.matter.pressure",
+  "aqa-8463:4.4.1": "dfe.sc.p.atomic.isotopes",
+  "aqa-8463:4.4.2": "dfe.sc.p.atomic.radiation",
+  "aqa-8463:4.4.3": "dfe.sc.p.atomic.hazards",
+  "aqa-8463:4.4.4": "dfe.sc.p.atomic.fission",
+  "aqa-8463:4.8.1": "dfe.sc.p.space.solar",
+  "aqa-8463:4.8.2": "dfe.sc.p.space.redshift",
+  "aqa-8464:4.1.1": "dfe.sc.b.cell.cells",
+  "aqa-8464:4.1.1.1": "dfe.sc.b.cell.cells",
+  "aqa-8464:4.1.1.2": "dfe.sc.b.cell.cells",
+  "aqa-8464:4.1.1.4": "dfe.sc.b.cell.cells",
+  "aqa-8464:4.1.1.5": "dfe.sc.b.cell.cells",
+  "aqa-8464:4.1.2": "dfe.sc.b.cell.division",
+  "aqa-8464:4.1.2.1": "dfe.sc.b.cell.division",
+  "aqa-8464:4.1.2.2": "dfe.sc.b.cell.division",
+  "aqa-8464:4.1.3": "dfe.sc.b.trans.cells",
+  "aqa-8464:4.1.3.1": "dfe.sc.b.trans.cells",
+  "aqa-8464:4.1.3.3": "dfe.sc.b.trans.cells",
+  "aqa-8464:4.2.1": "dfe.sc.b.trans.organs",
+  "aqa-8464:4.2.2": "dfe.sc.b.trans.organs",
+  "aqa-8464:4.2.2.1": "dfe.sc.b.body.digestion",
+  "aqa-8464:4.2.2.2": "dfe.sc.b.trans.heart",
+  "aqa-8464:4.2.2.3": "dfe.sc.b.trans.heart",
+  "aqa-8464:4.2.2.4": "dfe.sc.b.trans.organs",
+  "aqa-8464:4.2.2.5": "dfe.sc.b.health.noncommunicable",
+  "aqa-8464:4.2.2.6": "dfe.sc.b.health.noncommunicable",
+  "aqa-8464:4.2.2.7": "dfe.sc.b.health.noncommunicable",
+  "aqa-8464:4.2.3": "dfe.sc.b.trans.plants",
+  "aqa-8464:4.2.3.1": "dfe.sc.b.trans.plants",
+  "aqa-8464:4.2.3.2": "dfe.sc.b.trans.plants",
+  "aqa-8464:4.3.1": "dfe.sc.b.health.communicable",
+  "aqa-8464:4.3.1.1": "dfe.sc.b.health.communicable",
+  "aqa-8464:4.3.1.2": "dfe.sc.b.health.communicable",
+  "aqa-8464:4.3.1.4": "dfe.sc.b.health.communicable",
+  "aqa-8464:4.3.1.5": "dfe.sc.b.health.communicable",
+  "aqa-8464:4.3.1.6": "dfe.sc.b.health.communicable",
+  "aqa-8464:4.3.1.7": "dfe.sc.b.health.medicines",
+  "aqa-8464:4.3.1.8": "dfe.sc.b.health.medicines",
+  "aqa-8464:4.3.1.9": "dfe.sc.b.health.medicines",
+  "aqa-8464:4.4.1": "dfe.sc.b.photo.photo",
+  "aqa-8464:4.4.1.1": "dfe.sc.b.photo.photo",
+  "aqa-8464:4.4.1.2": "dfe.sc.b.photo.photo",
+  "aqa-8464:4.4.1.3": "dfe.sc.b.photo.photo",
+  "aqa-8464:4.4.2": "dfe.sc.b.cell.enzymes",
+  "aqa-8464:4.4.2.1": "dfe.sc.b.cell.enzymes",
+  "aqa-8464:4.4.2.3": "dfe.sc.b.cell.enzymes",
+  "aqa-8464:4.5.1": "dfe.sc.b.coord.homeostasis",
+  "aqa-8464:4.5.3": "dfe.sc.b.coord.hormones",
+  "aqa-8464:4.5.3.1": "dfe.sc.b.coord.hormones",
+  "aqa-8464:4.5.3.3": "dfe.sc.b.coord.hormones",
+  "aqa-8464:4.5.3.5": "dfe.sc.b.coord.hormones",
+  "aqa-8464:4.6.1.1": "dfe.sc.b.inherit.repro",
+  "aqa-8464:4.6.1.2": "dfe.sc.b.inherit.repro",
+  "aqa-8464:4.6.1.3": "dfe.sc.b.inherit.genome",
+  "aqa-8464:4.6.1.5": "dfe.sc.b.inherit.genome",
+  "aqa-8464:4.6.1.6": "dfe.sc.b.inherit.genome",
+  "aqa-8464:4.6.2": "dfe.sc.b.inherit.evolution",
+  "aqa-8464:4.6.2.1": "dfe.sc.b.inherit.evolution",
+  "aqa-8464:4.6.2.2": "dfe.sc.b.inherit.evolution",
+  "aqa-8464:4.6.2.3": "dfe.sc.b.inherit.breeding",
+  "aqa-8464:4.6.2.4": "dfe.sc.b.inherit.breeding",
+  "aqa-8464:4.6.3": "dfe.sc.b.inherit.evolution",
+  "aqa-8464:4.6.3.1": "dfe.sc.b.inherit.evolution",
+  "aqa-8464:4.6.3.2": "dfe.sc.b.inherit.evolution",
+  "aqa-8464:4.6.3.3": "dfe.sc.b.inherit.evolution",
+  "aqa-8464:4.6.4": "dfe.sc.b.inherit.evolution",
+  "aqa-8464:4.7.1.1": "dfe.sc.b.eco.levels",
+  "aqa-8464:4.7.1.2": "dfe.sc.b.eco.levels",
+  "aqa-8464:4.7.1.3": "dfe.sc.b.eco.levels",
+  "aqa-8464:4.7.2": "dfe.sc.b.eco.levels",
+  "aqa-8464:4.7.2.1": "dfe.sc.b.eco.levels",
+  "aqa-8464:4.7.2.2": "dfe.sc.b.eco.cycles",
+  "aqa-8464:4.7.3": "dfe.sc.b.eco.biodiversity",
+  "aqa-8464:4.7.3.1": "dfe.sc.b.eco.biodiversity",
+  "aqa-8464:4.7.3.3": "dfe.sc.b.eco.biodiversity",
+  "aqa-8464:4.7.3.4": "dfe.sc.b.eco.biodiversity",
+  "aqa-8464:4.7.3.5": "dfe.sc.b.eco.biodiversity",
+  "aqa-8464:4.7.3.6": "dfe.sc.b.eco.biodiversity",
+  "aqa-8464:5.1.1.1": "dfe.sc.c.atom.model",
+  "aqa-8464:5.1.1.2": "dfe.sc.c.atom.model",
+  "aqa-8464:5.1.1.3": "dfe.sc.c.atom.model",
+  "aqa-8464:5.1.1.4": "dfe.sc.c.atom.model",
+  "aqa-8464:5.1.1.5": "dfe.sc.c.atom.model",
+  "aqa-8464:5.1.1.6": "dfe.sc.c.atom.model",
+  "aqa-8464:5.1.2": "dfe.sc.c.atom.table",
+  "aqa-8464:5.1.2.1": "dfe.sc.c.atom.table",
+  "aqa-8464:5.1.2.2": "dfe.sc.c.atom.table",
+  "aqa-8464:5.1.2.3": "dfe.sc.c.atom.table",
+  "aqa-8464:5.1.2.5": "dfe.sc.c.atom.table",
+  "aqa-8464:5.1.2.6": "dfe.sc.c.atom.table",
+  "aqa-8464:5.2.1.1": "dfe.sc.c.bond.types",
+  "aqa-8464:5.2.1.2": "dfe.sc.c.bond.types",
+  "aqa-8464:5.2.1.3": "dfe.sc.c.bond.types",
+  "aqa-8464:5.2.1.5": "dfe.sc.c.bond.types",
+  "aqa-8464:5.2.2.1": "dfe.sc.c.bond.types",
+  "aqa-8464:5.2.2.2": "dfe.sc.c.bond.types",
+  "aqa-8464:5.2.2.3": "dfe.sc.c.bond.types",
+  "aqa-8464:5.2.2.4": "dfe.sc.c.bond.types",
+  "aqa-8464:5.2.2.6": "dfe.sc.c.bond.types",
+  "aqa-8464:5.2.2.7": "dfe.sc.c.bond.types",
+  "aqa-8464:5.2.2.8": "dfe.sc.c.bond.types",
+  "aqa-8464:5.2.3": "dfe.sc.c.bond.carbon",
+  "aqa-8464:5.2.3.1": "dfe.sc.c.bond.carbon",
+  "aqa-8464:5.2.3.2": "dfe.sc.c.bond.carbon",
+  "aqa-8464:5.3.1.1": "dfe.sc.c.analysis.mass",
+  "aqa-8464:5.3.1.2": "dfe.sc.c.analysis.mass",
+  "aqa-8464:5.3.1.3": "dfe.sc.c.analysis.mass",
+  "aqa-8464:5.3.2.1": "dfe.sc.c.analysis.moles",
+  "aqa-8464:5.3.2.2": "dfe.sc.c.analysis.moles",
+  "aqa-8464:5.3.2.3": "dfe.sc.c.analysis.moles",
+  "aqa-8464:5.3.2.5": "dfe.sc.c.analysis.moles",
+  "aqa-8464:5.4.1": "dfe.sc.c.change.metals",
+  "aqa-8464:5.4.1.1": "dfe.sc.c.change.metals",
+  "aqa-8464:5.4.1.2": "dfe.sc.c.change.metals",
+  "aqa-8464:5.4.1.4": "dfe.sc.c.change.metals",
+  "aqa-8464:5.4.2": "dfe.sc.c.change.acids",
+  "aqa-8464:5.4.2.1": "dfe.sc.c.change.acids",
+  "aqa-8464:5.4.2.2": "dfe.sc.c.change.acids",
+  "aqa-8464:5.4.2.4": "dfe.sc.c.change.acids",
+  "aqa-8464:5.4.2.5": "dfe.sc.c.change.acids",
+  "aqa-8464:5.4.3": "dfe.sc.c.change.electrolysis",
+  "aqa-8464:5.4.3.1": "dfe.sc.c.change.electrolysis",
+  "aqa-8464:5.4.3.3": "dfe.sc.c.change.electrolysis",
+  "aqa-8464:5.4.3.4": "dfe.sc.c.change.electrolysis",
+  "aqa-8464:5.4.3.5": "dfe.sc.c.change.electrolysis",
+  "aqa-8464:5.5.1.1": "dfe.sc.c.energy.exo",
+  "aqa-8464:5.5.1.2": "dfe.sc.c.energy.exo",
+  "aqa-8464:5.5.1.3": "dfe.sc.c.energy.exo",
+  "aqa-8464:5.6.1": "dfe.sc.c.rate.rate",
+  "aqa-8464:5.6.1.1": "dfe.sc.c.rate.rate",
+  "aqa-8464:5.6.1.3": "dfe.sc.c.rate.rate",
+  "aqa-8464:5.6.1.4": "dfe.sc.c.rate.rate",
+  "aqa-8464:5.6.2.1": "dfe.sc.c.rate.equilibrium",
+  "aqa-8464:5.6.2.2": "dfe.sc.c.rate.equilibrium",
+  "aqa-8464:5.6.2.3": "dfe.sc.c.rate.equilibrium",
+  "aqa-8464:5.6.2.4": "dfe.sc.c.rate.equilibrium",
+  "aqa-8464:5.6.2.5": "dfe.sc.c.rate.equilibrium",
+  "aqa-8464:5.6.2.7": "dfe.sc.c.rate.equilibrium",
+  "aqa-8464:5.7.1": "dfe.sc.c.organic.crude",
+  "aqa-8464:5.7.1.1": "dfe.sc.c.organic.crude",
+  "aqa-8464:5.7.1.3": "dfe.sc.c.organic.crude",
+  "aqa-8464:5.7.1.4": "dfe.sc.c.organic.crude",
+  "aqa-8464:5.8.1.1": "dfe.sc.c.analysis.purity",
+  "aqa-8464:5.8.1.2": "dfe.sc.c.analysis.purity",
+  "aqa-8464:5.8.1.3": "dfe.sc.c.analysis.purity",
+  "aqa-8464:5.8.2": "dfe.sc.c.analysis.gases",
+  "aqa-8464:5.8.2.1": "dfe.sc.c.analysis.gases",
+  "aqa-8464:5.8.2.3": "dfe.sc.c.analysis.gases",
+  "aqa-8464:5.8.2.4": "dfe.sc.c.analysis.gases",
+  "aqa-8464:5.9.1": "dfe.sc.c.earth.atmosphere",
+  "aqa-8464:5.9.1.1": "dfe.sc.c.earth.atmosphere",
+  "aqa-8464:5.9.1.2": "dfe.sc.c.earth.atmosphere",
+  "aqa-8464:5.9.1.3": "dfe.sc.c.earth.atmosphere",
+  "aqa-8464:5.9.2": "dfe.sc.c.earth.atmosphere",
+  "aqa-8464:5.9.2.1": "dfe.sc.c.earth.atmosphere",
+  "aqa-8464:5.9.2.3": "dfe.sc.c.earth.atmosphere",
+  "aqa-8464:5.9.3": "dfe.sc.c.earth.pollution",
+  "aqa-8464:5.9.3.1": "dfe.sc.c.earth.pollution",
+  "aqa-8464:5.9.3.2": "dfe.sc.c.earth.pollution",
+  "aqa-8464:5.10.1.1": "dfe.sc.c.earth.water",
+  "aqa-8464:5.10.1.2": "dfe.sc.c.earth.water",
+  "aqa-8464:5.10.1.4": "dfe.sc.c.earth.water",
+  "aqa-8464:5.10.2": "dfe.sc.c.earth.lca",
+  "aqa-8464:5.10.2.1": "dfe.sc.c.earth.lca",
+  "aqa-8464:6.1.1.1": "dfe.sc.p.energy.stores",
+  "aqa-8464:6.1.1.2": "dfe.sc.p.energy.stores",
+  "aqa-8464:6.1.1.3": "dfe.sc.p.energy.stores",
+  "aqa-8464:6.1.1.4": "dfe.sc.p.elec.mains",
+  "aqa-8464:6.1.2": "dfe.sc.p.energy.efficiency",
+  "aqa-8464:6.1.2.1": "dfe.sc.p.energy.efficiency",
+  "aqa-8464:6.1.2.2": "dfe.sc.p.energy.efficiency",
+  "aqa-8464:6.1.3": "dfe.sc.p.energy.resources",
+  "aqa-8464:6.2.1": "dfe.sc.p.elec.current",
+  "aqa-8464:6.2.1.1": "dfe.sc.p.elec.current",
+  "aqa-8464:6.2.1.2": "dfe.sc.p.elec.current",
+  "aqa-8464:6.2.1.3": "dfe.sc.p.elec.current",
+  "aqa-8464:6.2.2": "dfe.sc.p.elec.series",
+  "aqa-8464:6.2.3": "dfe.sc.p.elec.mains",
+  "aqa-8464:6.2.3.1": "dfe.sc.p.elec.mains",
+  "aqa-8464:6.2.3.2": "dfe.sc.p.elec.mains",
+  "aqa-8464:6.2.4": "dfe.sc.p.elec.mains",
+  "aqa-8464:6.2.4.1": "dfe.sc.p.elec.mains",
+  "aqa-8464:6.2.4.3": "dfe.sc.p.elec.mains",
+  "aqa-8464:6.3.1": "dfe.sc.p.matter.states",
+  "aqa-8464:6.3.1.1": "dfe.sc.p.matter.states",
+  "aqa-8464:6.3.1.2": "dfe.sc.p.matter.states",
+  "aqa-8464:6.3.2": "dfe.sc.p.matter.internal",
+  "aqa-8464:6.3.2.1": "dfe.sc.p.matter.internal",
+  "aqa-8464:6.3.2.2": "dfe.sc.p.matter.internal",
+  "aqa-8464:6.3.2.3": "dfe.sc.p.matter.internal",
+  "aqa-8464:6.3.3": "dfe.sc.p.matter.pressure",
+  "aqa-8464:6.3.3.1": "dfe.sc.p.matter.pressure",
+  "aqa-8464:6.4.1": "dfe.sc.p.atomic.isotopes",
+  "aqa-8464:6.4.1.1": "dfe.sc.p.atomic.isotopes",
+  "aqa-8464:6.4.1.2": "dfe.sc.p.atomic.isotopes",
+  "aqa-8464:6.4.2": "dfe.sc.p.atomic.radiation",
+  "aqa-8464:6.4.2.1": "dfe.sc.p.atomic.radiation",
+  "aqa-8464:6.4.2.3": "dfe.sc.p.atomic.radiation",
+  "aqa-8464:6.4.2.4": "dfe.sc.p.atomic.radiation",
+  "aqa-8464:6.5.1.1": "dfe.sc.p.forces.interact",
+  "aqa-8464:6.5.1.2": "dfe.sc.p.forces.interact",
+  "aqa-8464:6.5.1.3": "dfe.sc.p.forces.interact",
+  "aqa-8464:6.5.1.4": "dfe.sc.p.forces.interact",
+  "aqa-8464:6.5.3": "dfe.sc.p.forces.work",
+  "aqa-8464:6.5.4": "dfe.sc.p.forces.motion",
+  "aqa-8464:6.5.4.1": "dfe.sc.p.forces.motion",
+  "aqa-8464:6.5.4.2": "dfe.sc.p.forces.motion",
+  "aqa-8464:6.5.4.3": "dfe.sc.p.forces.motion",
+  "aqa-8464:6.5.5": "dfe.sc.p.forces.momentum",
+  "aqa-8464:6.5.5.1": "dfe.sc.p.forces.momentum",
+  "aqa-8464:6.5.5.2": "dfe.sc.p.forces.momentum",
+  "aqa-8464:6.6.1": "dfe.sc.p.waves.properties",
+  "aqa-8464:6.6.1.1": "dfe.sc.p.waves.properties",
+  "aqa-8464:6.6.2": "dfe.sc.p.waves.em",
+  "aqa-8464:6.6.2.1": "dfe.sc.p.waves.em",
+  "aqa-8464:6.6.2.2": "dfe.sc.p.waves.em",
+  "aqa-8464:6.6.2.3": "dfe.sc.p.waves.em",
+  "aqa-8464:6.6.2.4": "dfe.sc.p.waves.em",
+  "aqa-8464:6.7.1": "dfe.sc.p.magnet.fields",
+  "aqa-8464:6.7.1.1": "dfe.sc.p.magnet.fields",
+  "aqa-8464:6.7.2": "dfe.sc.p.magnet.motor",
+  "aqa-8464:6.7.2.1": "dfe.sc.p.magnet.motor",
+  "aqa-8464:6.7.2.2": "dfe.sc.p.magnet.motor",
+  "aqa-8464:6.7.2.3": "dfe.sc.p.magnet.motor"
+ },
+ "set": {},
+ "topic": {
+  "Cell Biology": "dfe.sc.b.cell",
+  "Organisation": "dfe.sc.b.trans",
+  "Infection & Response": "dfe.sc.b.health",
+  "Bioenergetics": "dfe.sc.b.photo",
+  "Homeostasis & Response": "dfe.sc.b.coord",
+  "Inheritance & Evolution": "dfe.sc.b.inherit",
+  "Ecology": "dfe.sc.b.eco",
+  "Atomic Structure & the Periodic Table": "dfe.sc.c.atom",
+  "Bonding & Structure": "dfe.sc.c.bond",
+  "Quantitative Chemistry": "dfe.sc.c.analysis",
+  "Chemical Changes": "dfe.sc.c.change",
+  "Energy Changes": "dfe.sc.c.energy",
+  "Rate of Reaction": "dfe.sc.c.rate",
+  "Organic Chemistry": "dfe.sc.c.organic",
+  "Chemical Analysis": "dfe.sc.c.analysis",
+  "Chemistry of the Atmosphere": "dfe.sc.c.earth",
+  "Using Resources": "dfe.sc.c.earth",
+  "Separating Mixtures": "dfe.sc.c.analysis.purity",
+  "Energy": "dfe.sc.p.energy",
+  "Electricity": "dfe.sc.p.elec",
+  "Particle Model of Matter": "dfe.sc.p.matter",
+  "Atomic Structure": "dfe.sc.p.atomic",
+  "Forces": "dfe.sc.p.forces",
+  "Waves": "dfe.sc.p.waves",
+  "Magnetism & Electromagnetism": "dfe.sc.p.magnet",
+  "Space Physics": "dfe.sc.p.space",
+  "Electromagnetic Waves": "dfe.sc.p.waves.em"
+ },
+ "budget": 9421,
+ "doc_url": "^https://www\\.gov\\.uk/",
+ "gen": {
+  "set_prefix": "P-FAM-GEN-SC-",
+  "row_prefix": "Q-GEN-",
+  "key": "dfe",
+  "level": "GCSE Combined",
+  "subject": "root"
+ },
+ "templates": {
+  "dfe.sc.p.forces.motion": [
+   "sc-speed",
+   "sc-distance",
+   "sc-accel",
+   "sc-fma",
+   "sc-fma-accel"
+  ],
+  "dfe.sc.p.forces.interact": [
+   "sc-weight",
+   "sc-moon-mass"
+  ],
+  "dfe.sc.p.forces.work": [
+   "sc-work",
+   "sc-hooke-force",
+   "sc-spring-constant"
+  ],
+  "dfe.sc.p.energy.stores": [
+   "sc-ke",
+   "sc-gpe",
+   "sc-power"
+  ],
+  "dfe.sc.p.energy.efficiency": [
+   "sc-efficiency"
+  ],
+  "dfe.sc.p.matter.states": [
+   "sc-density"
+  ],
+  "dfe.sc.p.matter.internal": [
+   "sc-shc-energy",
+   "sc-shc-c"
+  ],
+  "dfe.sc.p.elec.current": [
+   "sc-vir",
+   "sc-resistance",
+   "sc-charge"
+  ],
+  "dfe.sc.p.elec.mains": [
+   "sc-piv",
+   "sc-power-i2r",
+   "sc-energy-pt"
+  ],
+  "dfe.sc.p.waves.properties": [
+   "sc-wave-speed",
+   "sc-wavelength"
+  ],
+  "dfe.sc.p.forces.momentum": [
+   "sc-momentum",
+   "sc-stopping"
+  ],
+  "dfe.sc.p.atomic.radiation": [
+   "sc-half-life"
+  ],
+  "dfe.sc.c.analysis.mass": [
+   "sc-mr",
+   "sc-conservation"
+  ],
+  "dfe.sc.c.analysis.moles": [
+   "sc-moles",
+   "sc-mass-moles",
+   "sc-conc"
+  ],
+  "dfe.sc.c.rate.rate": [
+   "sc-rate-mass",
+   "sc-rate-gas"
+  ],
+  "dfe.sc.b.cell.cells": [
+   "sc-magnification",
+   "sc-actual-size"
+  ],
+  "dfe.sc.b.trans.cells": [
+   "sc-osmosis"
+  ],
+  "dfe.sc.b.trans.heart": [
+   "sc-heart-rate",
+   "sc-cardiac-output"
+  ],
+  "dfe.sc.b.photo.photo": [
+   "sc-photo-rate"
+  ],
+  "dfe.sc.b.cell.enzymes": [
+   "sc-mean"
+  ],
+  "dfe.sc.b.health.noncommunicable": [
+   "sc-bmi"
+  ],
+  "dfe.sc.b.eco.levels": [
+   "sc-quadrat"
+  ]
+ }
+}

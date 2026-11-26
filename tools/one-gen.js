@@ -23,6 +23,9 @@ const VQ = require('./validate-questions.js');
 const L = require('./lib/lib-full.js');
 
 const SEEDS = 200;
+/* A TEMPLATE ON SEVERAL STATEMENTS (26 Nov, the generated tree): the node changes only its ids, so its first binding takes every seed and
+   each further one the seeds of its set (its questions whole, made again from their ids, marked as typed). */
+const SET_SEEDS = 12;
 const BAD_TEXT = /NaN|undefined|null|Infinity|\[object|\{|\}/;
 
 let app = null;
@@ -49,6 +52,7 @@ function problems(d) {
     if (!(Number(t.marks) >= 1)) say('no marks');
     if (!used.has(t.id)) say('no country file maps a node to it (`templates`), so it makes no question');
   });
+  const done = new Set();
   B.forEach(({ e, node, t: t0, b: t }) => {
     if (!t) return;
     const name = t0.id + ' @ ' + e.country, say = s => bad.push(name + ': ' + s), X = CU.index(e.T), lv = QG.cfg(e).levels;
@@ -56,9 +60,9 @@ function problems(d) {
     if (!n) return say('bound to "' + node + '", no node of ' + e.file);
     if (X.kids[node]) say(node + ' is a topic, not a sub-topic');
     if (lv.length && !lv.some(l => (n.levels || []).includes(l))) say(node + ' is not taught at ' + lv.join(' or '));
-    const ids = new Set();
+    const ids = new Set(), seeds = done.has(t0.id) ? SET_SEEDS : SEEDS; done.add(t0.id);
     let fails = 0, firstQ = null;
-    for (let s = 0; s < SEEDS && fails < 3; s++) {
+    for (let s = 0; s < seeds && fails < 3; s++) {
       let q;
       try { q = QG.generate(t, s, e.T); } catch (e) { say('seed ' + s + ': ' + e.message); fails++; continue; }
       firstQ = firstQ || q;
@@ -71,7 +75,7 @@ function problems(d) {
       q.typed.forEach(ty => { if (!mark(ty, q.key)) { say(q.id + ' "' + q.text + '": "' + ty + '" marked wrong against key "' + q.key + '"'); fails++; } });
       if (mark(q.wrong, q.key)) { say(q.id + ' "' + q.text + '": the near miss "' + q.wrong + '" marked right against key "' + q.key + '"'); fails++; }
     }
-    if (ids.size < SEEDS / 2) say('only ' + ids.size + ' different questions in ' + SEEDS + ' seeds');
+    if (ids.size < seeds / 2) say('only ' + ids.size + ' different questions in ' + SEEDS + ' seeds');
     out.push({ name, node: n.name, distinct: ids.size, sample: firstQ });
   });
   if (/qgen/.test(d.site)) bad.push('the site (js/ or index.html) reads qgen.json: a child gets generated questions through data/questions.json only');
@@ -121,9 +125,9 @@ const remap = (d, id, node) => { const M = uk(d).T.templates; Object.keys(M).for
 const BREAKS = [
   { name: 'a NaN in the answer', d: d => { tpl(d, 'frac-amount').let.ans = 'n * k / 0 * 0'; } },
   { name: 'an undefined in the text', d: d => { tpl(d, 'hcf').text = 'Find the HCF of {a} and {b}. {g > 99 ? g : undefined}'; } },
-  { name: 'a node that is none', d: d => { remap(d, 'expand', 'dfe.ma.a.expr.nothing'); } },
-  { name: 'a topic, not a sub-topic', d: d => { remap(d, 'expand', uk(d).T.nodes.find(n => n.id === 'dfe.ma.a.expr.expand').parent); } },
-  { name: 'a node at no generated level', d: d => { remap(d, 'expand', 'dfe.ma.n.place.roman'); } },
+  { name: 'a node that is none', d: d => { remap(d, 'expand', 'dfe.ma.nothing'); } },
+  { name: 'a topic, not a sub-topic', d: d => { remap(d, 'expand', uk(d).T.nodes.find(n => n.id === Object.keys(uk(d).T.templates).find(k => uk(d).T.templates[k].includes('expand'))).parent); } },
+  { name: 'a node at no generated level', d: d => { remap(d, 'expand', uk(d).T.nodes.find(n => n.levels && !n.levels.some(l => /GCSE/.test(l))).id); } },
   { name: 'a template no country maps', d: d => { const M = uk(d).T.templates; Object.keys(M).forEach(k => { M[k] = M[k].filter(x => x !== 'expand'); if (!M[k].length) delete M[k]; }); } },
   { name: 'a new answer type', d: d => { tpl(d, 'lcm').answer_type = 'generated'; } },
   { name: 'the same question every seed', d: d => { const t = tpl(d, 'area-rect'); t.vars = { w: [3, 3], h: [5, 5] }; t.where = []; } },

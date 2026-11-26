@@ -34,7 +34,7 @@ const IPAD = { width: 820, height: 1180 };
 
 /* ONE PAPER: tap a sample chip whenever one is offered, else "Doesn't matter", until the funnel asks nothing more. */
 async function onePaper(P) {
-  const pg = await SB.open({ as: 'child', ready: () => typeof stuffItemsAll_ === 'function' && stuffItemsAll_().some(isQ_) });
+  const pg = await SB.open({ as: 'child', show: 'all', ready: () => typeof stuffItemsAll_ === 'function' && stuffItemsAll_().some(isQ_) });
   try {
     await pg.route(/script\.google\.com/, (r, req) => {
       let b = null; try { b = JSON.parse(req.postData() || 'null'); } catch (e) { b = null; }

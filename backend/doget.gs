@@ -1,7 +1,7 @@
 /* @family. — 60_doGet.gs (7 of 8) THE PAYLOAD. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOGET_VERSION = "2026-11-26-siri";
+const DOGET_VERSION = "2026-11-26-core-gen";
 
 
 function doGet(e) {
@@ -116,8 +116,6 @@ function getBuild_(p, behind, migrated, askedBy_, mark) {
 
   getFamilyVenues_(p, meAsked, viewerIsAdmin, venuesTab, payload);
 
-  getPosts_(meAsked, meAskedId, viewerIsAdmin, vis, opts, payload);
-
   getCalendar_(meAskedId, viewerIsAdmin, vis, payload);
 
   getViewerBits_(meAsked, viewerIsAdmin, payload);
@@ -177,8 +175,6 @@ function getRouted_(p, migrated, askedBy_) {
   /* SOMEBODY'S OWN RECEIPTS. Their own only — a receipt names what a family paid, and the list of
      them is the shape of a household's year. */
   if (p.receipts) return getReceipts_(p, askedBy_);
-
-  /* THE RACER'S MAP (426), on its own and never in the payload: half a megabyte nobody else needs. */
 
   // ?triggers=1 installs the nightly jobs; ?triggers=list shows what's scheduled.
   if (p.triggers) return jsonOut({ version: BACKEND_VERSION,

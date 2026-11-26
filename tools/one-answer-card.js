@@ -16,7 +16,7 @@ const QC = require('./one-question-card.js');
 const BREAKS = ['', 'tags', 'button', 'order', 'textbox', 'pic', 'email'];
 
 async function site(Q, brk) {
-  const pg = await SB.open({ as: 'child', user: SB.USERS.child, ready: () => typeof stuffItemsAll_ === 'function' && stuffItemsAll_().some(isQ_) });
+  const pg = await SB.open({ as: 'child', show: 'all', user: SB.USERS.child, ready: () => typeof stuffItemsAll_ === 'function' && stuffItemsAll_().some(isQ_) });
   try {
     return await pg.evaluate(([sel, brk]) => {
       const all = stuffItemsAll_().filter(isQ_).filter(x => questionHasAns_(x));

@@ -804,25 +804,6 @@ Object.keys(TAB).filter(k => !storeMoved_(TAB[k])).forEach(k => {
 });
 }
 
-/* `checkEverything`'s POSTS section: the first five rows and whether each picture resolves. */
-function checkPosts_(say) {
-say('POSTS');
-try {
-  const rows = read(TAB.posts).rows;
-  say('  ' + rows.length + ' row(s)');
-  rows.slice(0, 5).forEach(r => {
-    const id = (S(r.image).match(/\/d\/([\w-]+)/) || [])[1];
-    say('    ' + (S(r.post_id) + '        ').slice(0, 10)
-      + (id ? 'image ok' : 'IMAGE LINK NOT A DRIVE FILE')
-      + '  ' + (postWhen_(r) ? fmtDate(postWhen_(r)) : 'NO DATE')
-      + '  ' + (S(r.caption) || '(no caption)').slice(0, 30));
-  });
-  const undated = rows.filter(r => !postWhen_(r)).length;
-  if (undated) say('  → ' + undated + ' post(s) have no date. They sort to the bottom of the '
-    + 'feed. Press ⟳ on the site to read the dates off the files.');
-} catch (err) { say('  no posts tab — open the site once as an admin'); }
-}
-
 /* RUN THIS FROM THE EDITOR when anything is not appearing. § */
 function checkEverything() {
   const out = [];
@@ -848,21 +829,10 @@ function checkEverything() {
      commonest cause of a feature that is built and invisible. */
   checkTabs_(say);
 
-  /* 2. THE BRANDING. It listed every key of the `brand` tab and said which reactions were in use. § */
+  /* 2. THE BRANDING. It listed every key of the `brand` tab. § */
   say(''); say('BRAND');
   say('  the brand tab is data/settings/brand.json now — open it there');
-  say('  reactions in use: ' + reactionSet({}).join(' ') + '   (the six in the code)');
   say('  the name on an e-mail: ' + BRAND_NAME);
-
-  /* 3. THE POSTS, and whether their pictures will resolve. */
-  say(''); checkPosts_(say);
-
-  /* 5. THE THINGS PEOPLE DO TO POSTS. */
-  say(''); say('ACTIVITY');
-  [['post_reactions', 'reactions'], ['post_votes', 'votes']].forEach(([t, name]) => {
-    try { say('  ' + (name + '           ').slice(0, 12) + read(TAB[t]).rows.length); }
-    catch (err) { say('  ' + name + ': no tab — open the site once as an admin'); }
-  });
 
   /* WHAT IT MAY DO, before anything else is guessed at. A missing scope explains a whole class
      of failure that otherwise reads as a bug in the feature it broke. */
@@ -877,63 +847,6 @@ function checkEverything() {
   say('If the tabs are all there and the site still looks old, the DEPLOYMENT is old —'); say('Deploy → New deployment, not Save.');
   return out.join('\n');
 }
-
-/* RUN THIS FROM THE EDITOR when the scan finds nothing. § */
-function checkPostsFolder() {
-  const log = [];
-  const say = m => { log.push(m); Logger.log(m); };
-
-  // 1. Is there an id at all, and where did it come from?
-  const cfg = config();
-  const raw = S(cfg.posts_folder || cfg.POSTS_FOLDER || cfg.postsFolder) || POSTS_FOLDER;
-  const prop = PropertiesService.getScriptProperties().getProperty('POSTS_FOLDER_ID') || '';
-  say('config posts_folder : ' + (raw || '(empty)'));
-  say('script property     : ' + (prop || '(empty)'));
-  if (!raw && !prop) {
-    say('→ STOP. Add a row to the config tab: key `posts_folder`, value the folder id.');
-    return log.join('\n');
-  }
-
-  // 2. Does that id open a folder this script can reach?
-  const folder = getPostFolder();
-  if (!folder) {
-    say('→ STOP. That id does not open a folder. Either it is wrong, or it belongs to an '
-      + 'account this script cannot see.');
-    return log.join('\n');
-  }
-  say('folder opened       : ' + folder.getName());
-  say('folder url          : ' + folder.getUrl());
-
-  // 3. What is actually in it?
-  let n = 0;
-  const files = folder.getFiles();
-  while (files.hasNext() && n < 40) {
-    const f = files.next();
-    say('  file ' + (++n) + ': ' + f.getName() + '  [' + f.getMimeType() + ']');
-  }
-  let subs = 0;
-  const sub = folder.getFolders();
-  while (sub.hasNext() && subs < 20) { subs++; say('  subfolder: ' + sub.next().getName()); }
-  say('files here          : ' + n);
-  say('subfolders          : ' + subs);
-
-  if (!n && !subs) {
-    say('→ The folder opened and is EMPTY. The id points at a different folder from the one '
-      + 'with your pictures — check the name above against the one in Drive.');
-    return log.join('\n');
-  }
-
-  // 4. Does the posts tab exist to write into?
-  try {
-    const t = read(TAB.posts);
-    say('posts tab rows      : ' + t.rows.length);
-    say('→ All four checks pass. Press the scan button on the site and it should add ' + n + '.');
-  } catch (err) {
-    say('→ STOP. No posts tab. Open the site once as an admin first.');
-  }
-  return log.join('\n');
-}
-
 
 /* Install the background jobs. § */
 function installTriggers_() {

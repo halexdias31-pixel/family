@@ -7,7 +7,6 @@
 {"kind": "writing", "cls": "hdb lib-c", "pic": "", "title": "", "tags": "", "lines": "", "tiles": "", "notes": "drawn from its spec (cardKind_, master template)", "facts": false, "icon": "pen"},
 {"kind": "event", "cls": "hdb lib-c", "pic": "", "title": "", "tags": "", "lines": "", "tiles": "file-view:ext:Source", "notes": "drawn from its spec (cardKind_, master template)", "facts": false, "icon": "flag"},
 {"kind": "people", "cls": "person lib-c", "pic": "", "title": "", "tags": "", "lines": "", "tiles": "", "notes": "drawn from its spec (cardKind_, master template)", "facts": false, "icon": ""},
-{"kind": "post", "cls": "post-fc", "pic": "", "title": "", "tags": "", "lines": "", "tiles": "react:heart:Like", "notes": "drawn from its spec (cardKind_, master template)", "facts": false, "icon": "heart"},
 {"kind": "receipt", "cls": "", "pic": "", "title": "", "tags": "", "lines": "", "tiles": "job-pay:pound:Pay", "notes": "its item map (ITEM_MAPS.booking): tags say what, who, when, rate, paid; a line says who and how much in all; then the receipt paper (bookingDoc_, a tool) laid out whole", "facts": true, "icon": "pound"},
 {"kind": "question", "cls": "", "pic": "ownPic", "title": "ownHead", "tags": "ownTags", "lines": "ownLines", "tiles": "", "notes": "its own file writes it; findCard cuts it into the parts: a question: its tag line, then its sheet and answer box (.qcard kept for its handlers)", "facts": false, "icon": ""},
 {"kind": "answer", "cls": "", "pic": "ownPic", "title": "ownHead", "tags": "ownTags", "lines": "ownLines", "tiles": "", "notes": "its own file writes it; findCard cuts it into the parts: as a question", "facts": false, "icon": ""},
@@ -34,6 +33,5 @@
 {"kind": "person", "cls": "is-prof prof-door", "pic": "", "title": "", "tags": "", "lines": "", "tiles": "", "notes": "a spec (cardKind_ person, find-doors.js): an admin's profile door", "facts": false, "icon": ""},
 {"kind": "setting", "cls": "", "pic": "ownPic", "title": "ownHead", "tags": "ownTags", "lines": "ownLines", "tiles": "", "notes": "its own file writes it; findCard cuts it into the parts: a settings door", "facts": true, "icon": "tools"},
 {"kind": "health", "cls": "", "pic": "ownPic", "title": "ownHead", "tags": "ownTags", "lines": "ownLines", "tiles": "", "notes": "its own file writes it; findCard cuts it into the parts: an Optimiser card", "facts": true, "icon": "tick"},
-{"kind": "offPosts", "cls": "", "pic": "", "title": "", "tags": "", "lines": "", "tiles": "", "notes": "drawn from its spec (cardKind_, master template)", "facts": true, "icon": "spark"},
 {"kind": "offBooking", "cls": "", "pic": "", "title": "", "tags": "", "lines": "", "tiles": "", "notes": "drawn from its spec (cardKind_, master template)", "facts": true, "icon": "book"}
 ]

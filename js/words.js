@@ -62,7 +62,7 @@ function wordsOpts_(scope) {
   if (!may_('admin')) return null;
   return [{ icon: 'edit', label: 'Edit words', note: 'type over this card\'s words, for everyone', act: 'words-edit', tone: 'admin', data: { ws: scope } }];
 }
-const wordsRoot_ = el => el.closest('.wk-editing') || el.closest('.card, .own-set, .post');
+const wordsRoot_ = el => el.closest('.wk-editing') || el.closest('.card, .own-set');
 const wordsText_ = s => String(s || '').replace(/[\u0000-\u001f\u007f]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, WORDS_PIECE_MAX);
 
 /* ---------- EDITING IN PLACE: each marked piece editable where it stands, Reset beside any the admin has changed, Save and Done under ---------- */

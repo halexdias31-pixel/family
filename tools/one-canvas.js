@@ -190,7 +190,7 @@ async function tapOne(pg, s, shot) {
   return { s, bad: why.join('; '), acts: sc.acts.length };
 }
 async function onSize(size, sample, opts) {
-  const pg = await SB.open({ as: 'child', ready: () => typeof stuffItemsAll_ === 'function' && stuffItemsAll_().some(isQ_) });
+  const pg = await SB.open({ as: 'child', show: 'all', ready: () => typeof stuffItemsAll_ === 'function' && stuffItemsAll_().some(isQ_) });
   try {
     await pg.setViewportSize(SIZES[size]);
     /* the made-up backend's "cannot post" banner is the fixture's, not the child's: it would lie over the canvas */
