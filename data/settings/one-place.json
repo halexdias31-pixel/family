@@ -9,7 +9,6 @@
   { "id": "policies", "name": "Policies (safeguarding, data)", "evidence": [["backend/constants.gs", "policies"], ["data/settings/biz-checklist.json", "safeguarding"]] },
   { "id": "insurance", "name": "Insurance", "evidence": [["js/records.js", "insurance"]] },
   { "id": "compliance", "name": "Compliance checklist", "evidence": [["data/settings/biz-checklist.json", "\"items\""], ["js/biz-check.js", "BC_RULES"]] },
-  { "id": "messaging", "name": "Messaging", "evidence": [["backend/dopost.gs", "'sendMessage'"], ["js/me-messages.js", "sendMessage"]] },
   { "id": "homework", "name": "Homework (set, do, see results)", "evidence": [["backend/dopost.gs", "setHomework"], ["backend/constants.gs", "homework:"]] },
   { "id": "logistics", "name": "Logistics (venues, rooms)", "evidence": [["backend/constants.gs", "rooms:"], ["js/find-aloud.js", "DATA.venues"]] },
   { "id": "marketing", "name": "Marketing (flyers, posters)", "evidence": [["backend/dopost.gs", "marketing"]] },

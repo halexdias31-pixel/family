@@ -10,6 +10,18 @@
           }
         ]
       }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "mcp__Gmail__(send_message|reply|forward|send_draft)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/own-email-only.js",
+            "timeout": 10
+          }
+        ]
+      }
     ]
   }
 }

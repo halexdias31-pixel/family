@@ -215,3 +215,9 @@ Default order when nothing above says otherwise: what a child or parent would no
 
 ## IDEA (owner, 25 Nov; end of queue): things that cycle with the meals
 The three meals already share one slot list (Protein, Carbs, Dairy, Veg, Fruit). Candidates to ride the same 3-a-day cycle as Docket items: prayer (morning, midday, evening), a glass of water, washing up straight after, a 10-minute tidy of one room zone, a short walk after eating, tablets if any. Teeth are twice a day (NHS), not three.
+
+## THE IDEAL DAY (owner, 25 Nov night) — the Docket's target
+Wake → e-ink screen shows what's due now (the 8-hourly cycle first) → do them → tell Siri/Gemini "I've done X, Y" → ticked, gone from the screen → hand the iPad to the kids (it just works) → at mealtimes phone or screen shows what's left. Build order: one-list names-only Docket (in progress) → voice ticking through the private address (`do=done`, many at once) → e-ink screen reads the address over Wi-Fi and shows "Now" (build on attic/epaper-verse) → country plug-in.
+
+## IDEA (owner, 25 Nov; end of queue, to discuss before building): lecture transcript summariser
+A place where a student drops lecture transcripts (Teams .vtt/.docx) and gets a short summary of each: what's new, and anything said about assessments. Open questions for the owner before any build: who uses it (owner only, or students), where transcripts are stored (private), and how summaries are made (AI, given the site's no-arbitrary rule; and never for modules that ban generative AI).

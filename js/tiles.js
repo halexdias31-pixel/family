@@ -64,9 +64,6 @@ const TILE_ICONS = {
         + '<path d="M6.2 8V6a2.8 2.8 0 0 1 5.6 0v2"/>',
   unlock: '<rect x="4" y="8" width="10" height="6.8" rx="1.5"/>'
         + '<path d="M6.2 8V6a2.8 2.8 0 0 1 5.6 0"/>',
-  /* A SPEECH BUBBLE, ON "change message tile to look like a speach bubble". § */
-  chat:  '<path d="M4.5 2.5h9a2.5 2.5 0 0 1 2.5 2.5v4.5a2.5 2.5 0 0 1-2.5 2.5H9L4.5 15.5V12'
-       + 'a2.5 2.5 0 0 1-2.5-2.5V5a2.5 2.5 0 0 1 2.5-2.5z"/>',
   /* THE SHARE MARK. An arrow leaving a tray — the same idea the ↗ on a post was reaching for, drawn
      properly so it is the same weight and the same size as every other mark in the row. */
   share: '<path d="M9 11.5V2.5"/><path d="M5.8 5.7 9 2.5l3.2 3.2"/>'
@@ -336,9 +333,6 @@ function tutorOpts_(x) {
     /* THEIR INTRO VIDEO: the uploaded one plays on the card (`intro-play`); an older row's link still goes out. */
     String(t.videoFile || '').trim() ? { icon: 'play', label: text_('watch-intro'), act: 'intro-play', data: { file: t.videoFile } }
       : /^https?:\/\//i.test(String(t.mediaUrl || '')) ? { icon: 'play', label: text_('watch-intro'), href: t.mediaUrl } : null,
-    /* BY settings.json `roles.messaging` (`msgMay_`), as the server's `mayMessage` — no tile the server refuses. */
-    USER && !isMe_(x) && msgMay_(t.role || 'tutor') ? { icon: 'chat', label: 'Message',
-      note: 'a note to them', act: 'msg-open', data: { to: x.name, id: (x.row && x.row.personId) || '' } } : null,
     typeof cardEditOpts_ === 'function' ? cardEditOpts_(x) : null,
     /* SHARE MY PROFILE (400, 412): on your own tutor card, in Find › Profiles › Tutor since its column went (16 Nov). */
     USER && isMe_(x) && may_('staff') && t.handle ? { icon: 'share', label: 'Share my profile', note: 'your link', act: 'tutor-share', data: { handle: t.handle } } : null,
@@ -368,32 +362,12 @@ function levelOpts_(x) {
 }
 
 
-/* ---------- WHO MAY WRITE TO WHOM: settings.json `roles.messaging` (ROLES_), the server's `mayMessage` too, so no Message tile is one it refuses ---------- */
-/* THEIR RANK BY `rank_` over the role(s) named, as the server's `ROLES_.ids[role].rank`. */
-const msgMay_ = role => !!USER && rankMayMessage_(rank_(), rank_({ roles: String(role || '').split(/\s*,\s*/).filter(Boolean) }));
-const msgTile_ = (name, id) => tile_({ icon: 'chat', label: 'Message ' + fmtName_(name, 'first'), note: 'a note to them', act: 'msg-open', data: { to: name, id: id || '' } });
-/* THE PEOPLE ON A SESSION BESIDES YOU: its families and its tutor, each with the role the server judges by (1040 friction). */
-function jobPeople_(j) {
-  if (!j || !USER) return [];
-  const idOf = (list, n) => ((list || []).find(p => p && norm(p.title || p.name) === norm(n)) || {}).personId || '';
-  const out = [], seen = {};
-  const add = (name, role, id) => { const k = norm(name); if (!k || seen[k] || norm(USER.name) === k) return; seen[k] = 1; out.push({ name, role, id }); };
-  (j.slots || []).map(sl => sl && sl.client).concat([j.client]).filter(Boolean)
-    .forEach(n => add(n, 'client', idOf(DATA.clients, n) || idOf(DATA.everyone, n)));
-  [j.tutor].concat((j.tutorSlots || []).map(sl => sl && (sl.tutor || sl.name))).filter(Boolean)
-    .forEach(n => add(n, 'tutor', idOf(DATA.tutors, n)));
-  return out.filter(p => msgMay_(p.role));
-}
-const jobMsgTiles_ = x => jobPeople_(x && x.row).map(p => msgTile_(p.name, p.id)).join('');
-/* A PROFILE'S Message, by the same rule — the tutor card has its own (`tutorOpts_`). */
-const personTiles_ = x => { const t = (x && x.row) || {}; const name = t.title || t.name || x.name;
-  return name && !isMe_(x) && msgMay_(t.role) ? msgTile_(name, t.personId) : ''; };
 
 /* EVERY CARD'S ROW STARTS WITH THESE (950); health.js's "card tile rows" holds it. */
 const CARD_CORE_ = ['share', 'fav', 'suggest', 'top'];
 /* EACH KIND'S EXTRAS (data, not branches); find, hymns and mechanics add theirs to `window.CARD_EXTRAS_MORE`, which needs no load order (1000). */
 const CARD_EXTRAS_ = { shop: shopOpts_, tutor: tutorOpts_, subject: x => tile_(subjectOpts_(x)),
-  level: x => tile_(levelOpts_(x)), receipt: x => jobMsgTiles_(x) + tile_(jobOpts_(x)), person: x => personTiles_(x), talmud: x => tile_(window.talmudOpts_(x)) };
+  level: x => tile_(levelOpts_(x)), receipt: x => tile_(jobOpts_(x)), talmud: x => tile_(window.talmudOpts_(x)) };
 function cardCore_(x) {
   const one = {
     share: () => tile_({ icon: 'share', label: 'Share', act: 'card-share', data: { key: x.key } }),

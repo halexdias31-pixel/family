@@ -2,7 +2,7 @@
 /* Before card-fields.json lands: the same `facts` and `icon` columns its rows hold (settings.js reads them into DATA.cardLook). */
 const KC_LOOK_DEFAULT = Object.fromEntries(Object.entries({ receipt: 'pound', shop: 'cart', practical: 'tools', project: 'spark', content: 'doc', insert: 'doc', timeline: 'line', fight: 'hand', bible: 'doc', talmud: 'doc', quran: 'doc', worktext: 'doc', hadith: 'doc', writ: 'doc', pdtext: 'doc', orthotext: 'doc', hymn: 'sound', chem: 'spark', soon: 'spark', person: '', setting: 'tools', health: 'tick', offPosts: 'spark', offShop: 'cart', offBooking: 'book' }).map(([k, icon]) => [k, { facts: true, icon }]));
 /* WHO HAS A FACE: a person's card keeps its photo or chosen picture; nobody else's is ever a profile picture. */
-const KC_PERSON_KINDS = ['tutor', 'person', 'people', 'msg'];
+const KC_PERSON_KINDS = ['tutor', 'person', 'people'];
 const kcLook_ = kind => ((typeof DATA !== 'undefined' && DATA && DATA.cardLook) || KC_LOOK_DEFAULT)[kind] || {};
 const kcEmpty_ = () => (typeof NOTHING_YET === 'string' ? NOTHING_YET : '');
 /* THE EMPTY LINE, and THE HIDDEN ORIGINAL a late filler writes into: both blocks of the one card maker. */
@@ -72,13 +72,10 @@ function kcFactsWatch_() {
       seen.forEach(redo);
     } catch (e) { oops_(e, 'card:facts'); } finally { busy = false; } }).observe(document.body, { subtree: true, childList: true, characterData: true });
 }
-/* A KIND WHOSE CARD NEEDS ITS OWN ROW OR A TAIL (a conversation's messages) sets `window.KC_AROUND[kind] = (x, draw) => html`; `draw(extra)` is this card. */
 function findCard(x, credits) {
-  /* A PANEL (card_) KEEPS ITS OWN INSIDES: a DM thread is kind `msg`, and Find's message door (KC_AROUND) drew it empty. */
+  /* A PANEL (card_) KEEPS ITS OWN INSIDES. */
   /* A ONE-OFF CARD ITS OWN FORM DRAWS WHOLE (`ownCard`: Add a person) skips its kind's spec. */
   if (x && x.kind && CARD_KINDS[x.kind] && !x.kcPanel && !x.ownCard) return cardOfKind_(x);
-  const around = x && !x.kcIn && !x.kcPanel && (window.KC_AROUND || {})[x.kind];
-  if (around) return around(x, extra => findCard(Object.assign({}, x, extra || {}, { kcIn: true })));
   /* A KIND WHOSE OWN FILE STILL WRITES ITS CARD (`window.KC_OWN[kind] = (x, credits) => html`) is cut into the parts; one already in the shape is kept whole. */
   const own = x && !x.kcOwn && x.kind && (window.KC_OWN || {})[x.kind];
   if (own) {

@@ -1,7 +1,7 @@
 /* @family. — 60_doGet.gs (7 of 8) THE PAYLOAD. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOGET_VERSION = "2026-11-25-docket-3";
+const DOGET_VERSION = "2026-11-26-onelist-nomsg";
 
 
 function doGet(e) {
@@ -216,7 +216,7 @@ function getKeepAndSend_(payload, cacheKey) {
     /* AND NO PRICE TO A CHILD (398) — kept per viewer, so a child's kept body is a child's. */
     try { kidPricesOff_(payload); } catch (err) { /* a strip that finds nothing to strip leaves the payload as it is */ }
     const fresh = {};
-    ['submissions', 'films', 'favLinks', 'messages', 'filmsSync', 'setup', 'claudeNotes'].forEach(k => { fresh[k] = payload[k]; delete payload[k]; });
+    ['submissions', 'films', 'favLinks', 'filmsSync', 'setup', 'claudeNotes'].forEach(k => { fresh[k] = payload[k]; delete payload[k]; });
     const body = JSON.stringify(payload);
     cachePut_(cacheKey, body);
     return jsonRaw_(payloadWithFresh_(body, fresh, false));
@@ -275,7 +275,6 @@ function freshFor_(viewer) {
   try { out.films = filmsFor_(viewer); } catch (err) { out.films = []; }
   /* AND THE VIEWER'S OWN FAVOURITE LINKS (509), fresh each load and never in the kept body, which is shared by a role. */
   try { out.favLinks = favLinksOf_(viewer); } catch (err) { out.favLinks = []; }
-  try { out.messages = viewer ? messagesOf_(viewer) : []; } catch (err) { out.messages = []; }
   /* PERSON FACTS, to an admin (all) or a tutor (their own students) only — never in the kept body (kinds.json person.facts.see). */
   try { const f = factsFor_(viewer); if (f) out.personFacts = f; } catch (err) { /* no facts is the safe answer */ }
   if (admin) {
@@ -293,7 +292,6 @@ function payloadWithFresh_(body, fresh, cached) {
     + ',"submissions":' + JSON.stringify(f.submissions || { for: '', mine: {} })
     + ',"films":' + JSON.stringify(Array.isArray(f.films) ? f.films : [])
     + ',"favLinks":' + JSON.stringify(Array.isArray(f.favLinks) ? f.favLinks : [])
-    + ',"messages":' + JSON.stringify(Array.isArray(f.messages) ? f.messages : [])
     + (Array.isArray(f.personFacts) ? ',"personFacts":' + JSON.stringify(f.personFacts) : '')
     + (f.filmsSync ? ',"filmsSync":' + JSON.stringify(f.filmsSync) : '')
     + (f.setup ? ',"setup":' + JSON.stringify(f.setup) : '')

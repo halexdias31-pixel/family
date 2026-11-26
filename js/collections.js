@@ -85,7 +85,6 @@ function cartCard_() {
   /* A PAPER WITH NO PAGE COUNT IS NOT FREE, and the total must not add it in as nought and then
      print a figure that reads as the whole bill. Counted, and said. */
   const tbc = CART.filter(c => c.kind === 'print' && cartUnpriced_(c)).length;
-  const short = due > credits;
 
   /* ---------- A BUNDLE'S PAPERS UNDER ITS TITLE, SAID ONCE § */
   const rows = [];
@@ -100,14 +99,10 @@ function cartCard_() {
   /* AN ARRAY, NOT A STRING. § */
 
   /* THE WORDING OFF THE SHEET THAT USED TO DUPLICATE THIS. § */
-  /* ---------- "SEND ORDER", NOT "PAY" — NOTHING IS PAID HERE § */
+  /* NO "SEND ORDER" (25 Nov): the order went as a message, and Messages went. The basket is a list and its terms. */
   const paper = cash || tbc;
-  const foot = tile_({ form: true, cls: 'rc-do', act: 'cart-send', off: short, label: short ? (due - credits) + ' more credits needed'
-      : 'Send order' + (cash ? ' · ' + fmtMoney_(cash) + (tbc ? ' + tbc' : '') : '') })
-    + cardBlock_({ type: 'group', tag: 'p', look: 'rc-terms', text: paper
-      ? 'Printing is at cost — paper only — posted or kept for you to collect. Anything marked tbc '
-        + 'is priced before you are charged for it.'
-      : 'Nothing leaves your basket until you send it.' });
+  const foot = paper ? cardBlock_({ type: 'group', tag: 'p', look: 'rc-terms', text: 'Printing is at cost — paper only — posted or kept for you to collect. Anything marked tbc '
+        + 'is priced before you are charged for it.' }) : '';
 
   return receiptHtml({
     /* ---------- THE BASKET WORE THE GREEN TERMINAL, AND IT WAS THE LAST ONE WEARING ANYTHING § */

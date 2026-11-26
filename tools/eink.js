@@ -1,49 +1,41 @@
 #!/usr/bin/env node
-/* @family. — tools/eink.js THE E-INK CHECK (rule 1.75; owner 21 Nov: NOW, NEXT step 2): the e-ink page (?eink) shows exactly what the Docket's Now/Next widget
-   shows, or the owner reads two plans. js/map.js dkNowNext_ (the widget's blocks) and dkEinkHtml_ (the e-ink page) are run as served on tools/docket-plan.js's
-   fixed day at each of its clock times: the same heading, the same items in the same order with the same tick address and tags (missed ones marked), the
-   same Next. Counted: every clock time printed; one that differs fails the build. Run by tools/build.js. */
+/* @family. — tools/eink.js THE E-INK CHECK (rule 1.75; owner 21 Nov; one list, 25 Nov night): the e-ink page (?eink) shows the Docket's open items in the
+   card's order (js/map.js dkSort_, which dkCard_ draws), or the owner reads two orders. js/map.js dkEinkHtml_ is run as served on a made-up list at three
+   clock times: the same items in the same order with the tick address of each (its place in the list), the overdue ones marked, the heading; with nothing
+   open, the all-done line. Counted: every clock time and the empty list; one that differs fails the build. Run by tools/build.js. */
 'use strict';
 const SD = require('./lib/site-data.js');
 const { ROOT, report, main } = require('./lib/gen.js');
 const fs = require('fs'), path = require('path');
-const { fnOf, NOW, DAY, PHASES } = require('./docket-plan.js');
 function drawers() {
-  const src = fs.readFileSync(path.join(ROOT, 'js', 'map.js'), 'utf8');
-  const text_ = SD.textOf();
-  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const fns = ['dkPlan_', 'dkPhase_', 'dkNowNextOf_', 'dkNowNext_', 'dkEinkHtml_'].map(n => fnOf(src, n)).join('');
+  const src = fs.readFileSync(path.join(ROOT, 'js', 'map.js'), 'utf8'), text_ = SD.textOf();
+  const c = n => { const m = new RegExp('\\nconst ' + n + ' = .*;\\n').exec(src); if (!m) throw new Error('eink: no ' + n); return m[0]; };
+  const f = n => { const m = new RegExp('\\nfunction ' + n + '\\([^)]*\\) \\{[\\s\\S]*?\\n\\}\\n').exec(src); if (!m) throw new Error('eink: no ' + n); return m[0]; };
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
   /* the tick box is the form maker's (js/form.js formInput_); here only its attributes matter, so a plain input stands in for it */
   const formInput_ = a => '<input ' + a + '>';
-  /* the one Item (js/map.js listItem_), as served; its shape read from kinds.json */
-  const listItem = /\nconst listItem_ = [\s\S]*?\}\);\n/.exec(src)[0], kindShape_ = k => (SD.kinds()[k] || {}).shape || '';
-  return new Function('text_', 'esc', 'formInput_', 'kindShape_', listItem + fns + '; return { dkPhase_, dkNowNext_, dkEinkHtml_ };')(text_, esc, formInput_, kindShape_);
+  return new Function('text_', 'esc', 'formInput_', ['dkRep_', 'dkOn_', 'dkIsDone_'].map(c).join('') + ['dkSort_', 'dkNowNextOf_', 'dkEinkHtml_'].map(f).join('')
+    + 'return { dkSort_, dkEinkHtml_ };')(text_, esc, formInput_);
 }
 const unesc = s => String(s).replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
-/* WHAT EACH SHOWS, as lines: the heading, one line per item ('at|title|tags'), the Next line. */
-function widgetLines(blocks) {
-  const s = blocks[0]; if (!s) return [];
-  return [s.head].concat(s.blocks.map(b => (b.type === 'text' ? b.text
-    : b.blocks[0].attrs['data-dkf'] + '|' + b.blocks[0].text + '|' + ((b.blocks[1] || {}).tags || []).join(' · '))));
-}
-function einkLines(html) {
-  const out = [], re = /<h1 class="ek-now">([^<]*)<\/h1>|<input type="checkbox" data-dkf="([^"]*)"[^>]*><span class="ek-t">([^<]*)<\/span>(?:<span class="ek-tags">([^<]*)<\/span>)?|<p class="ek-(?:say|next)">([^<]*)<\/p>/g;
-  let m; while ((m = re.exec(html))) out.push(m[1] != null ? unesc(m[1]) : m[5] != null ? unesc(m[5]) : unesc(m[2]) + '|' + unesc(m[3]) + '|' + unesc(m[4] || ''));
+function einkRows(html) {
+  const out = [], re = /<li class="ek-row( is-missed)?"><label class="ek-tick"><input type="checkbox" data-dkf="([^"]*)"[^>]*><span class="ek-t">([^<]*)<\/span>/g;
+  let m; while ((m = re.exec(html))) out.push(m[2] + '|' + unesc(m[3]) + (m[1] ? '|over' : ''));
   return out;
 }
+const DAY = '2026-11-25';
+const LIST = () => [{ title: 'Undated "A"' }, { title: 'Cycle <B>', repeat: '8h', doneOn: DAY + '/2' }, { title: 'Late C', date: '2026-11-01' }, { title: 'Soon D', date: '2026-11-29' }, { title: 'Done E', done: true, doneOn: DAY }];
 function run() {
-  const d = drawers(), day = NOW.slice(0, 10), bad = [];
-  PHASES.forEach(c => {
-    const lists = DAY();
-    lists.forEach(L => L.items.forEach(it => { if ((c.tick || []).includes(it.title)) { it.doneOn = c.tickOn || day; if (it.repeat !== 'daily') it.done = true; } }));
-    const p = d.dkPhase_(lists, day + ' ' + c.at), w = widgetLines(d.dkNowNext_(lists, p)), e = einkLines(d.dkEinkHtml_(lists, p));
-    const missedOk = p.rows.filter(r => r.missed).length === (d.dkEinkHtml_(lists, p).match(/ek-row is-missed/g) || []).length;
-    if (w.length < 2 || w.join('\n') !== e.join('\n') || !missedOk) bad.push(c.name + ' (' + c.at + '): widget [' + w.join(' / ') + '] e-ink [' + e.join(' / ') + ']');
+  const d = drawers(), bad = [], times = ['07:00', '10:00', '20:00'];
+  times.forEach(at => {
+    const L = LIST(), g = d.dkSort_(L, DAY + ' ' + at), want = g.open.map(i => i + '|' + L[i].title + (g.over.indexOf(i) >= 0 ? '|over' : '')), html = d.dkEinkHtml_(L, DAY + ' ' + at), got = einkRows(html);
+    if (!want.length || got.join('\n') !== want.join('\n') || !/<h1 class="ek-now">Docket<\/h1>/.test(html)) bad.push(at + ': card [' + want.join(' / ') + '] e-ink [' + got.join(' / ') + ']');
   });
-  if (!/ek-say/.test(d.dkEinkHtml_([{ name: 'x', items: [] }], null)) || d.dkNowNext_([], null).length) bad.push('no phases: the e-ink page and the widget disagree');
-  console.log('eink: ' + PHASES.length + ' clock times on docket-plan\'s day; ' + (PHASES.length - bad.length) + ' show the widget\'s Now/Next on the e-ink page, ' + bad.length + ' differ');
-  report('eink', bad, 'clock time(s) where the e-ink page and the widget differ');
-  return { n: PHASES.length, bad: bad.length };
+  const empty = d.dkEinkHtml_([{ title: 'x', done: true, doneOn: DAY }], DAY + ' 10:00');
+  if (einkRows(empty).length || empty.indexOf('<p class="ek-say">' + SD.textOf()('dk-all-done') + '</p>') < 0) bad.push('nothing open: the e-ink page does not say all done');
+  console.log('eink: ' + times.length + ' clock times and the empty list; ' + bad.length + ' where the e-ink page and the card\'s order differ');
+  report('eink', bad, 'clock time(s) where the e-ink page and the card differ');
+  return { n: times.length + 1, bad: bad.length };
 }
 module.exports = { run };
 main(module, run);

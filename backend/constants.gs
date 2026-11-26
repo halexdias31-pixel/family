@@ -1,6 +1,6 @@
 /* @family. — 00_constants.gs (1 of 8) THE TOP-LEVEL VALUES IN THE ORIGINAL ORDER (jobs, migrations and ACTION_ACCESS follow in access.gs). § */
 /* SHARED:BEGIN — data/settings/settings.json (and default-pictures.json as `pictures`), written by `node tools/build.js`; edit the json, never this. */
-const SHARED_SETTINGS = {"tz":"Europe/London","days":[["m","Monday"],["tu","Tuesday"],["w","Wednesday"],["th","Thursday"],["f","Friday"],["sa","Saturday"],["su","Sunday"]],"hours":[9,10,11,12,13,14,15,16,17,18,19,20],"roles":{"ids":{"admin":{"label":"Admin","aliases":["administrator"],"rank":"admin","tier":"admin","self":false},"tutor":{"label":"Tutor","aliases":["teacher"],"rank":"staff","tier":"member","self":true,"pending":true},"client":{"label":"Client","aliases":["parent","guardian"],"app":"parent","rank":"client","tier":"member","self":true},"student":{"label":"Student","aliases":["kid","child","pupil"],"app":"kid","rank":"student","tier":"child","self":true},"contact":{"label":"Contact","aliases":[],"rank":"contact","tier":"anyone","self":false,"signIn":false}},"default":"client","guest":{"rank":"out","tier":"anyone"},"ranks":["contact","student","client","staff","admin"],"tiers":["anyone","member","child","admin"],"titles":{"head of boxing":"Head of Boxing","coach":"Coach"},"messaging":{"admin":["admin","staff","client","student"],"staff":["admin","client","student"],"client":["admin","staff"],"student":["admin","staff"]},"may":{"admin":{"tiers":["admin"]},"owner":{"tiers":["admin"],"owner":true},"prices":{"notTiers":["child"]},"staff":{"rank":"staff"},"signedIn":{"notTiers":["anyone"]},"grownUp":{"tiers":["member","admin"]}},"see":{"roles":["child","family","tutor","admin"],"words":{"student":"child","client":"family","member":"family","family":"family","staff":"tutor","tutor":"tutor","apprentice":"tutor","admin":"admin","business":"admin","site":"admin"}},"notify":["client","student","tutor","admin"],"form":["student","client","tutor","admin","contact"]},"limits":{"photoMax":8,"jobMax":6,"libraryCards":5,"favLinksMax":10,"favTitleMax":80,"favUrlMax":2000,"digestWordMax":300},"siteRules":{"ids":["mag-items","speed-long","hear-lang","tap-44","search-icon","whole-widgets","library-one-card","tell-admin","kjv-admin","finder-members","keep-basket","admin-cols","people-no-merge","items-no-move","form-save-row"],"locked":["hear-lang","keep-basket","admin-cols","people-no-merge","items-no-move","form-save-row"]},"submissionsPerPost":25,"answerTextMax":20000,"calendar":{"breaks":[{"name":"October half-term","sheet":"October Half Term","kind":"half","starts":"10-26"},{"name":"Christmas holidays","sheet":"Christmas Holiday","kind":"holiday","starts":"12-19"},{"name":"February half-term","sheet":"February Half Term","kind":"half","starts":"02-13"},{"name":"Easter holidays","sheet":"Easter Holiday","kind":"holiday","starts":"03-27"},{"name":"May half-term","sheet":"May Half Term","kind":"half","starts":"05-22"},{"name":"Summer holidays","sheet":"Summer Holiday","kind":"holiday","starts":"07-22"}],"kinds":{"term":{"say":"term","words":[]},"half-term":{"say":"half term","also":["half term"],"words":["half\\s*term"]},"holiday":{"say":"holiday","words":["holiday","christmas","easter","summer break","break"]}},"exams":[{"id":"sats","name":"SATs","key":"exam_sats_start","at":"05-11"},{"id":"elevenplus","name":"11+","key":"exam_11plus_start","at":"09-12"},{"id":"gcse","name":"GCSE exams","key":"exam_gcse_start","at":"05-11"},{"id":"alevel","name":"A-level exams","key":"exam_alevel_start","at":"05-11"}]},"levels":{"list":[{"level":"SATs","rung":1,"stages":["KS1","KS2"],"tiers":[],"says":["KS1","KS2","KS1 SATs","KS2 SATs"]},{"level":"11+","rung":0,"stages":["KS2"],"tiers":[],"says":[]},{"level":"KS3","rung":2,"stages":["KS3"],"tiers":[],"says":[]},{"level":"GCSE","rung":3,"stages":["KS4"],"tiers":["Foundation","Higher","Foundation Plus","Higher Plus"],"says":["KS4"]},{"level":"Functional Skills L2","rung":0,"stages":["KS4"],"tiers":[],"says":[]},{"level":"Level 2 Certificate","rung":0,"stages":["KS4"],"tiers":[],"says":["L2 Certificate"]},{"level":"A-Level","rung":4,"stages":["KS5"],"tiers":[],"says":["Alevel","A level","KS5"]},{"level":"AS","rung":0,"stages":["KS5"],"tiers":[],"says":["AS level","AS-level"]},{"level":"Theory test","rung":0,"ladder":false,"stages":[],"tiers":[],"says":[]},{"level":"ESL","rung":0,"ladder":false,"stages":[],"tiers":["A1","A2","B1","B2","C1","C2"],"says":["EFL","ESOL","CEFR"]},{"level":"University","rung":5,"stages":[],"tiers":["FHEQ 4","FHEQ 5","FHEQ 6","FHEQ 7"],"says":["Degree","Undergraduate","FHEQ","MSOR"]},{"level":"BNCC","rung":0,"ladder":false,"stages":[],"tiers":["1º ano","2º ano","3º ano","4º ano","5º ano","6º ano","7º ano","8º ano","9º ano"],"says":["Brazil","Brasil","Ensino Fundamental"]},{"level":"ENEM","rung":0,"ladder":false,"stages":[],"tiers":[],"says":[]},{"level":"Australian Curriculum","rung":0,"ladder":false,"stages":[],"tiers":["Foundation Year","Year 1","Year 2","Year 3","Year 4","Year 5","Year 6","Year 7","Year 8","Year 9","Year 10"],"says":["Australia","ACARA","F-10"]}],"quals":{"list":["Doctorate","Master's degree","PGCE","Bachelor's degree","Foundation Degree","HND","HNC","Diploma","Access to HE","International Baccalaureate","A-Level","T Level","BTEC","AS","IGCSE","GCSE","Certificate","11+","SATs","Entry Level","Enhanced","Standard","Basic"],"says":{"Degree":"Bachelor's degree","BA":"Bachelor's degree","BSc":"Bachelor's degree","Undergraduate":"Bachelor's degree","University":"Bachelor's degree","Masters":"Master's degree","MA":"Master's degree","MSc":"Master's degree","PhD":"Doctorate","IB":"International Baccalaureate"}}},"pictures":["fox","owl","cat","dino","robot","rocket","planet","football","guitar","palette"]};
+const SHARED_SETTINGS = {"tz":"Europe/London","days":[["m","Monday"],["tu","Tuesday"],["w","Wednesday"],["th","Thursday"],["f","Friday"],["sa","Saturday"],["su","Sunday"]],"hours":[9,10,11,12,13,14,15,16,17,18,19,20],"roles":{"ids":{"admin":{"label":"Admin","aliases":["administrator"],"rank":"admin","tier":"admin","self":false},"tutor":{"label":"Tutor","aliases":["teacher"],"rank":"staff","tier":"member","self":true,"pending":true},"client":{"label":"Client","aliases":["parent","guardian"],"app":"parent","rank":"client","tier":"member","self":true},"student":{"label":"Student","aliases":["kid","child","pupil"],"app":"kid","rank":"student","tier":"child","self":true},"contact":{"label":"Contact","aliases":[],"rank":"contact","tier":"anyone","self":false,"signIn":false}},"default":"client","guest":{"rank":"out","tier":"anyone"},"ranks":["contact","student","client","staff","admin"],"tiers":["anyone","member","child","admin"],"titles":{"head of boxing":"Head of Boxing","coach":"Coach"},"may":{"admin":{"tiers":["admin"]},"owner":{"tiers":["admin"],"owner":true},"prices":{"notTiers":["child"]},"staff":{"rank":"staff"},"signedIn":{"notTiers":["anyone"]},"grownUp":{"tiers":["member","admin"]}},"see":{"roles":["child","family","tutor","admin"],"words":{"student":"child","client":"family","member":"family","family":"family","staff":"tutor","tutor":"tutor","apprentice":"tutor","admin":"admin","business":"admin","site":"admin"}},"notify":["client","student","tutor","admin"],"form":["student","client","tutor","admin","contact"]},"limits":{"photoMax":8,"jobMax":6,"libraryCards":5,"favLinksMax":10,"favTitleMax":80,"favUrlMax":2000,"digestWordMax":300},"siteRules":{"ids":["mag-items","speed-long","hear-lang","tap-44","search-icon","whole-widgets","library-one-card","tell-admin","kjv-admin","finder-members","keep-basket","admin-cols","people-no-merge","items-no-move","form-save-row"],"locked":["hear-lang","keep-basket","admin-cols","people-no-merge","items-no-move","form-save-row"]},"submissionsPerPost":25,"answerTextMax":20000,"calendar":{"breaks":[{"name":"October half-term","sheet":"October Half Term","kind":"half","starts":"10-26"},{"name":"Christmas holidays","sheet":"Christmas Holiday","kind":"holiday","starts":"12-19"},{"name":"February half-term","sheet":"February Half Term","kind":"half","starts":"02-13"},{"name":"Easter holidays","sheet":"Easter Holiday","kind":"holiday","starts":"03-27"},{"name":"May half-term","sheet":"May Half Term","kind":"half","starts":"05-22"},{"name":"Summer holidays","sheet":"Summer Holiday","kind":"holiday","starts":"07-22"}],"kinds":{"term":{"say":"term","words":[]},"half-term":{"say":"half term","also":["half term"],"words":["half\\s*term"]},"holiday":{"say":"holiday","words":["holiday","christmas","easter","summer break","break"]}},"exams":[{"id":"sats","name":"SATs","key":"exam_sats_start","at":"05-11"},{"id":"elevenplus","name":"11+","key":"exam_11plus_start","at":"09-12"},{"id":"gcse","name":"GCSE exams","key":"exam_gcse_start","at":"05-11"},{"id":"alevel","name":"A-level exams","key":"exam_alevel_start","at":"05-11"}]},"levels":{"list":[{"level":"SATs","rung":1,"stages":["KS1","KS2"],"tiers":[],"says":["KS1","KS2","KS1 SATs","KS2 SATs"]},{"level":"11+","rung":0,"stages":["KS2"],"tiers":[],"says":[]},{"level":"KS3","rung":2,"stages":["KS3"],"tiers":[],"says":[]},{"level":"GCSE","rung":3,"stages":["KS4"],"tiers":["Foundation","Higher","Foundation Plus","Higher Plus"],"says":["KS4"]},{"level":"Functional Skills L2","rung":0,"stages":["KS4"],"tiers":[],"says":[]},{"level":"Level 2 Certificate","rung":0,"stages":["KS4"],"tiers":[],"says":["L2 Certificate"]},{"level":"A-Level","rung":4,"stages":["KS5"],"tiers":[],"says":["Alevel","A level","KS5"]},{"level":"AS","rung":0,"stages":["KS5"],"tiers":[],"says":["AS level","AS-level"]},{"level":"Theory test","rung":0,"ladder":false,"stages":[],"tiers":[],"says":[]},{"level":"ESL","rung":0,"ladder":false,"stages":[],"tiers":["A1","A2","B1","B2","C1","C2"],"says":["EFL","ESOL","CEFR"]},{"level":"University","rung":5,"stages":[],"tiers":["FHEQ 4","FHEQ 5","FHEQ 6","FHEQ 7"],"says":["Degree","Undergraduate","FHEQ","MSOR"]},{"level":"BNCC","rung":0,"ladder":false,"stages":[],"tiers":["1º ano","2º ano","3º ano","4º ano","5º ano","6º ano","7º ano","8º ano","9º ano"],"says":["Brazil","Brasil","Ensino Fundamental"]},{"level":"ENEM","rung":0,"ladder":false,"stages":[],"tiers":[],"says":[]},{"level":"Australian Curriculum","rung":0,"ladder":false,"stages":[],"tiers":["Foundation Year","Year 1","Year 2","Year 3","Year 4","Year 5","Year 6","Year 7","Year 8","Year 9","Year 10"],"says":["Australia","ACARA","F-10"]}],"quals":{"list":["Doctorate","Master's degree","PGCE","Bachelor's degree","Foundation Degree","HND","HNC","Diploma","Access to HE","International Baccalaureate","A-Level","T Level","BTEC","AS","IGCSE","GCSE","Certificate","11+","SATs","Entry Level","Enhanced","Standard","Basic"],"says":{"Degree":"Bachelor's degree","BA":"Bachelor's degree","BSc":"Bachelor's degree","Undergraduate":"Bachelor's degree","University":"Bachelor's degree","Masters":"Master's degree","MA":"Master's degree","MSc":"Master's degree","PhD":"Doctorate","IB":"International Baccalaureate"}}},"pictures":["fox","owl","cat","dino","robot","rocket","planet","football","guitar","palette"]};
 /* THE ROLE HELPERS BOTH SIDES SHARE (one role check, owner 21 Nov): copied by tools/cards-gen.js into the SHARED block of js/core.js and
    backend/constants.gs, after SHARED_SETTINGS. Edit here, never there; tools/one-role.js fails the build on a twin anywhere else. Plain ES2017. */
 const ROLES_ = SHARED_SETTINGS.roles;
@@ -22,10 +22,6 @@ function mayWord_(what, tier, rank, isOwner) {
     : m.tiers ? m.tiers.indexOf(tier) !== -1 : (m.notTiers || []).indexOf(tier) === -1;
   if (m.owner) ok = ok && !!isOwner;
   return ok;
-}
-/* MAY THIS RANK WRITE TO THAT ONE (`roles.messaging`). */
-function rankMayMessage_(fromRank, toRank) {
-  return !!fromRank && !!toRank && (ROLES_.messaging[fromRank] || []).indexOf(toRank) !== -1;
 }
 /* SHARED:END */
 
@@ -73,8 +69,6 @@ const NOTIFY_ALL_ROLES = SHARED_SETTINGS.roles.notify;
 const NOTIFY_KINDS = {
   weekly:    { col: 'weekly_email', roles: ['client'], parents: true,
                label: 'Weekly progress email', note: 'Sundays: what your child worked on' },
-  messages:  { col: 'messages_email', roles: NOTIFY_ALL_ROLES,
-               label: 'Messages', note: 'When somebody messages you here' },
   bookings:  { col: 'bookings_email', roles: ['client', 'tutor', 'admin'],
                label: 'Booking updates', note: 'Notes, new terms and payments on a session' },
   posts:     { col: 'posts_email', roles: ['client', 'student', 'tutor'],
@@ -99,9 +93,6 @@ const NOTIFY_KINDS = {
   booked:    { always: true, roles: ['client', 'tutor'],
                label: 'Bookings confirmed or cancelled', note: 'Received, accepted, paid, a tutor leaving, cancelled',
                why: 'each decides whether a session happens, and the door is too late to find out' },
-  reported:  { always: true, roles: ['admin'],
-               label: 'Reported messages', note: 'A message somebody has reported',
-               why: 'a report is a safeguarding matter and the admin is the only one told' },
   /* HIDDEN: A TUTOR'S APPLICATION — the owner's notice and the applicant's answer; nobody's card draws it. */
   applied:   { always: true, roles: NOTIFY_ALL_ROLES, hidden: true,
                label: 'Tutor applications', note: 'An application, and the answer to it',
@@ -109,7 +100,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-11-25-docket-3";
+const BACKEND_VERSION = "2026-11-26-onelist-nomsg";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 /* EVERY TAB NAME CODE READS BY. A kind in kinds.json ledger.moved is read through the items/events store
@@ -120,7 +111,7 @@ const TAB = {
   shop: 'shop', pricing: 'pricing',
   config: 'config', options: 'options', trips: 'trips', rooms: 'rooms',
   promo_codes: 'promo_codes',
-  exams: 'exams', messages: 'messages',
+  exams: 'exams',
   /* A student's scanned pages — see SCHEMA.work_files. */
   work_files: 'work_files',
   records: 'records',
@@ -227,7 +218,7 @@ const SCHEMA = {
     /* THE WEEKLY PARENT EMAIL, PER PARENT — see backend/digest.gs. § */
     "weekly_email",
     /* ---------- AND EVERY OTHER EMAIL SOMEBODY MAY TURN OFF, ONE COLUMN EACH — see `NOTIFY_KINDS` § */
-    "messages_email", "bookings_email", "posts_email", "referrals_email", "approvals_email",
+    "bookings_email", "posts_email", "referrals_email", "approvals_email",
     /* the app's state, which nobody types into */
     "avatar", "avatar_owned", "xp", "credits", "high_score_flappy", "high_score_tables",
     "friends", "notepad", "todo",
@@ -412,18 +403,10 @@ const SCHEMA = {
     "token_id", "person_id", "token", "device", "off", "added_on",
   ],
 
-  /* MESSAGES. One row per message — a thread is messages sharing a pair, not a thing of its own, so nothing has to be created before somebody can write. § */
   /* BUSINESS RECORDS. The business's own paperwork — insurance, tax, registrations, policies, DBS — one row per thing that has a reference, a date it runs out or § */
   records: [
     "record_id", "category", "title", "provider", "reference", "due_on", "cost", "link", "notes",
     "active", "updated_at",
-  ],
-
-  messages: [
-    "message_id", "from_id", "to_id", "sent_at", "body",
-    "read_at", "flagged", "flag_reason",
-    /* ATTACHMENTS: pictures, clips and files, as `url#type#name` items joined by ` | `. § */
-    "attachments",
   ],
 
   /* FAMILY LINKS. A parent asks; the child accepts. § */
@@ -586,34 +569,6 @@ const SCHEMA = {
   promo_codes: ["code", "type", "value", "absorbed_by", "max_uses", "used", "expires", "active", "notes"],
 };
 
-/* ---------- WHICH GEMINI THE ASSISTANT AND THE REWRITE COACH ASK, AND WHAT THEY DO WHEN GOOGLE IS FULL (nothing is marked by AI: owner, 16 Nov) */
-const AI_MODEL = 'gemini-3.8-flash';
-const AI_MODEL_FALLBACK = 'gemini-3.5-flash-lite';
-const AI_MODEL_OLD_SEED = 'gemini-flash-latest';
-const AI_TRIES = 3;
-const AI_WAITS = [800, 2000];
-const AI_JITTER = 0.3;
-const AI_BUDGET_MS = 20000;
-const AI_HANDOFF_MS = 10000;
-/* A BUSY MODEL WITH ANOTHER WAITING IS ASKED ONCE (456): the owner's "it takes so long" was 0.8 s + 2 s of waits and two more asks of a full model before the fallback. */
-const AI_TRIES_BEFORE_HANDOFF = 1;
-const AI_BUSY = 'The AI is busy right now — try again in a minute.';
-/* THE THINKING LEVELS EACH PINNED MODEL OFFERS, LOWEST FIRST, as Google's thinking guide lists them § */
-const AI_THINKING_SCALE = ['minimal', 'low', 'medium', 'high'];
-const AI_THINKING_LEVELS = {
-  'gemini-3.8-flash': ['low', 'medium', 'high'],
-  'gemini-3.5-flash-lite': ['minimal', 'low', 'medium', 'high'],
-};
-/* WHAT A BLANK CELL MEANS: § */
-const AI_THINKING_SHORT = 'minimal';
-const AI_THINKING_DEFAULT = {
-  'gemini-3.8-flash': 'medium',
-  'gemini-3.5-flash-lite': 'minimal',
-};
-/* A DAY'S GEMINI QUOTA ENDS AT MIDNIGHT PACIFIC -- Google's rate-limits page: § */
-const AI_QUOTA_TZ = 'America/Los_Angeles';
-const AI_SPENT_MAX_S = 21600;
-
 /* Every tunable, with a plain-English note and a starting value. § */
 /* FAVOURITE LINKS (509): how many one person keeps, and how long a title and an address may be. */
 const FAV_LINKS_MAX = SHARED_SETTINGS.limits.favLinksMax, FAV_TITLE_MAX = SHARED_SETTINGS.limits.favTitleMax, FAV_URL_MAX = SHARED_SETTINGS.limits.favUrlMax;
@@ -634,13 +589,6 @@ const CONFIG_DEFAULTS = [
   ['max_open_requests', 2, 'how many live requests one family may hold at once'],
 
   /* ---------- GOOGLE SIGN-IN, WHICH HAD NO ROW TO SET IT IN § */
-  /* ---------- THE AI HELPERS (never marking: owner, 16 Nov) */
-  ['gemini_model', AI_MODEL, 'the Gemini model the assistant and the Rewrite coach ask. Blank (or the old gemini-flash-latest) = ' + AI_MODEL + '. The API KEY never goes here: it is GEMINI_API_KEY in Script Properties'],
-  ['gemini_model_fallback', AI_MODEL_FALLBACK, 'the model asked when the first one is full, out of reach or retired (Gemini 429, 5xx or 404). Blank = ' + AI_MODEL_FALLBACK + '. none = no second model'],
-  ['assistant_questions_per_day', 5, 'how many questions one person may ask Daive, the assistant in Messages in a day. Blank = 5. 0 switches it off'],
-  /* HOW HARD GEMINI THINKS BEFORE IT ANSWERS (12 Oct) -- the note over `AI_THINKING_LEVELS` above, and docs/history/350. § */
-  ['ai_thinking', '', 'how hard Gemini thinks before it answers: minimal, low, medium or high (each slower and deeper than the last), or none for the model\'s own default. A model that does not offer a level gets the next one up. Blank = the lowest each model offers ('
-    + [AI_MODEL, AI_MODEL_FALLBACK].map(m => (AI_THINKING_LEVELS[m] || ["its own default"])[0] + ' on ' + m).join(', ') + ') -- the fastest'],
   ['google_client_id', '', 'Google Sign-In client ID (the PUBLIC one, ending .apps.googleusercontent.com). Blank switches Google sign-in off. Never put the client SECRET here'],
   ['pages_recheck_days', 30, 'how old a resource page count may get before the nightly job re-reads the file'],
 
@@ -690,7 +638,6 @@ const CONFIG_DEFAULTS = [
 const CONFIG_RESEEDED = [
   /* 6PM ON 25 OCT 2026 (457): the sheet's row still said the old seed's 18, so the hour was kept at 18 every admin load. */
   ['weekly_digest_hour', '18', 'the hour on Sunday, London time, the weekly parent email goes. 0-23, blank = 18. Run installWeeklyDigest again after changing it'],
-  ['gemini_model', AI_MODEL_OLD_SEED, 'the Gemini model that marks worded answers. Blank = gemini-flash-latest. The API KEY never goes here: it is GEMINI_API_KEY in Script Properties'],
 ];
 
 /* ---------- THE CONFIG KEYS NO PHONE IS SENT § */
@@ -987,7 +934,7 @@ const REPORT_REASONS = {
   'unreadable': "Can't read it / picture missing",
   'broken': "Doesn't work",
   'other': 'Something else',
-  /* 486: a card or widget, and a message or post (413's reasons). */
+  /* 486: a card or widget, and a post (413's reasons). */
   'wrong': 'Something in it is wrong',
   'unkind': 'Unkind or bullying',
   'unsafe': 'It makes me feel unsafe',
@@ -1019,8 +966,6 @@ const ANSWER_TEXT_MAX = SHARED_SETTINGS.answerTextMax;
 const ANSWER_PAD_MAX = 40000;
 const ANSWERS_PER_POST = 25;
 
-/* THE ASSISTANT IN MESSAGES (449): its daily cap when the config cell is blank, and what one question may carry. */
-const ASSIST_PER_DAY = 5, ASSIST_QUESTION_MAX = 1000, ASSIST_FACTS_MAX = 4000, ASSIST_HISTORY = 6, ASSIST_ANSWER_MAX = 3000;
 
 /* ---------- THE WEEKLY PARENT EMAIL — see backend/digest.gs § */
 const DIGEST_MODES = ['off', 'preview', 'send'];
@@ -1078,13 +1023,6 @@ const DIGEST_PNG_WIDTH = 340;
 
 /* ---------- WHAT THE BUSINESS IS CALLED, ON THE SERVER § */
 const BRAND_NAME = '@family.';
-
-/* ---------- WHO MAY MESSAGE WHOM § */
-/* settings.json `roles.messaging` (SHARED_SETTINGS), by rank: which RANKS each may write to; `seesPerson_` says which people (10 Nov). The phone's Message tiles read the same. */
-const MESSAGING = SHARED_SETTINGS.roles.messaging;
-
-/* How often anybody may send. § */
-const MESSAGE_GAP_MS = 5 * 60 * 1000;
 
 /* ---------- THE SHEET'S WORDS AND THE APP'S WORDS § */
 const ROLE_TO_APP = Object.fromEntries(ROLE_IDS.filter(r => ROLES_.ids[r].app).map(r => [r, ROLES_.ids[r].app]));

@@ -11,7 +11,7 @@ const RULES = [
     uni: 'They get Merge with the card above like every other widget.' },
   { id: 'library-one-card', say: 'Library cards holds one card, with no Add another', where: 'Settings (489)',
     uni: 'Several cards, with Add another, like every other list.' },
-  { id: 'tell-admin', say: 'Messages and posts say "Tell the admin" instead of "Suggest a change"', where: 'Messages and posts (494)',
+  { id: 'tell-admin', say: 'Posts say "Tell the admin" instead of "Suggest a change"', where: 'Posts (494)',
     uni: 'They say "Suggest a change" like everything else; the admin is still emailed at once.' },
   /* UNIVERSAL UNTIL SWITCHED (504): the owner, "it's open source so I don't care about it being public". `flip`: the stored mark means Exception. */
   { id: 'kjv-admin', say: 'The Bible is shown to admins only', where: 'Find (490, 504)',
@@ -24,7 +24,7 @@ const RULES = [
     uni: 'Any card moves to any column.', lock: 'A card moved onto an admin column would vanish for everyone but an admin.' },
   { id: 'people-no-merge', say: 'A card drawn a page a person (Tutor directory, Every student, Every parent) cannot be merged', where: 'Profile columns (480)',
     uni: 'Merge on them too.', lock: 'A merged card is one page, and people cannot be stacked on one.' },
-  { id: 'items-no-move', say: 'The Camera, Daive\'s card and What\'s missing have Delete but no move tiles', where: 'Feed, Messages and Find (487, 525)',
+  { id: 'items-no-move', say: 'The Camera and What\'s missing have Delete but no move tiles', where: 'Feed and Find (487, 525)',
     uni: 'Move tiles like every card.', lock: 'Their column\'s own code places them; there is nothing to move them with yet.' },
   { id: 'form-save-row', say: 'A settings form keeps its own Save row instead of joining the card\'s tile row', where: 'Settings (489)',
     uni: 'One joined row like every other card.', lock: 'Joining it moved Add a qualification and broke a section\'s own Save.' },

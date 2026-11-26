@@ -1,4 +1,4 @@
-/* post-content.gs: doPost's handlers for posts, comments, polls, messages, suggestions and media (1130).
+/* post-content.gs: doPost's handlers for posts, comments, polls, suggestions and media (1130).
    Named in `postActions_()`, dopost.gs, after its gate; § notes: docs/notes/backend/dopost.gs.md. */
 
 /* ---------- THE LINK EDITOR IS GONE AND IT NEVER HAD A DOOR § */
@@ -241,8 +241,6 @@ function postSetListed_(body, action, began) {
   return jsonOut({ success: true, listed: TRUE_(body.on) });
 }
 
-/* ONE MESSAGE TO EVERYBODY WAS HERE ------------------------------------------------------- `broadcast` — `sendMessage` without the picker and without the § */
-
 /* reacting ------------------------------------------------------------------------------- One per person per post, and it can be changed or taken back — the § */
 function postReactPost_(body, action, began) {
   const me = findPerson(S(body.name), S(body.personId));
@@ -371,123 +369,6 @@ function postVotePoll_(body, action, began) {
   }, { busy: () => refuse_('err-busy-press', 'busy') });
 }
 
-/* messages ------------------------------------------------------------------------------ Send, read, and flag. § */
-function postSendMessage_(body, action, began) {
-  const me = findPerson(S(body.name), S(body.personId));
-  if (!me) return refuse_('err-not-signed-in', 'not-signed-in');
-
-  const to = findPerson(S(body.to), S(body.toId));
-  if (!to) return jsonOut({ error: 'We could not find who that was meant for.' });
-  if (S(to.person_id) === S(me.person_id)) {
-    return jsonOut({ error: 'That is you.' });
-  }
-
-  /* THE POLICY, asked once. Both directions are checked: a rule that lets somebody write but
-     not be replied to is a rule that produces a one-sided conversation. */
-  /* `actingRole_`, NOT `mainRole`: a Tutor box ticked in Settings and not yet approved is not a
-     tutor for this question, or the tick would be a way to reach every family on the site. */
-  if (!mayMessage(actingRole_(me), actingRole_(to)) || !seesPerson_(seesWhom_(me), to)) {
-    return jsonOut({ error: 'You cannot message them directly. An admin can pass it on.' });
-  }
-
-  const text = S(body.body).trim();
-  /* A MESSAGE MAY BE WORDS, FILES OR BOTH — a photograph with nothing said about it is still
-     something sent. Only a message with neither is refused. */
-  const files = (Array.isArray(body.files) ? body.files : []).filter(f => f && S(f.data));
-  if (!text && !files.length) return jsonOut({ error: 'Nothing to send.' });
-  if (files.length && !rankAtLeast_(me, 'client')) return jsonOut({ error: CHILD_NO_UPLOAD, why: 'files' });
-  if (text.length > 2000) {
-    return jsonOut({ error: text_('that-is-longer-than-a-message') });
-  }
-
-  /* One every five minutes. Measured from THIS sender's last message to anybody, so a burst
-     cannot be spread across recipients to get round it. */
-  const t = read(TAB.messages);
-  /* A FILE WITH NOWHERE TO GO IS REFUSED BEFORE ANYTHING IS UPLOADED — `addRow` would drop the column with a line in the log and the message would arrive without § */
-  /* `admin` DECIDES WHETHER A REFUSAL CARRIES THE FIX — the parent is told it is the site's side
-     and the owner is told what to open. See `msgNoColumn_` and `driveTrouble_` in content.gs. */
-  const admin = whoMay_(me, 'admin');
-  if (files.length && t.headers.indexOf('attachments') < 0) return jsonOut(msgNoColumn_(admin));
-  const mine = t.rows.filter(r => S(r.from_id) === S(me.person_id));
-  const last = mine.reduce((newest, r) => {
-    const at = sheetDate(r.sent_at);
-    return (at && (!newest || at > newest)) ? at : newest;
-  }, null);
-  if (last) {
-    const waited = Date.now() - last.getTime();
-    if (waited < MESSAGE_GAP_MS) {
-      const left = Math.ceil((MESSAGE_GAP_MS - waited) / 60000);
-      return jsonOut({ error: '1 message every 5 minutes — ' + left
-        + ' ' + plural_(left, 'minute') + ' to go.' });
-    }
-  }
-
-  /* Uploaded AFTER every refusal above, so a message turned away by the gap leaves nothing
-     behind in Drive. */
-  const saved = msgAttachSave_(files, admin);
-  /* EVERY REFUSAL FROM HERE ON IS ABOUT THE FILES, so every one offers "Words only". */
-  if (saved.error) return jsonOut({ error: saved.error, why: 'files' });
-
-  const id = 'M' + Date.now();
-  const row = {
-    message_id: id,
-    from_id: S(me.person_id),
-    to_id: S(to.person_id),
-    sent_at: new Date(),
-    body: text,
-  };
-  /* ---------- ONLY WHEN THERE IS SOMETHING TO PUT IN IT § */
-  if (saved.list.length) row.attachments = msgAttachIn_(saved.list);
-  addRow(t, row);
-  clearCache();
-
-  // They find out by email, because nobody sits on a tutoring site waiting for a message.
-  const extra = saved.list.length
-    ? '\n\n(' + saved.list.length + ' ' + plural_(saved.list.length, 'attachment')
-      + ' — open it on the site.)' : '';
-  /* `messages` — theirs to turn off (`messages_email`): the message is in their inbox on the site
-     either way, and the sender is not told which. */
-  notify(personDisplayName(to), 'A message from ' + personDisplayName(me),
-    (text || 'Sent you ' + (saved.list.length === 1 ? 'a file.' : 'some files.'))
-    + extra + '\n\n— reply on the site.', 'messages');
-  deliver_(to, 'messages', { push: { title: personDisplayName(me), body: text || 'Sent you a file.', link: 'dm:' + S(me.person_id) } });
-
-  return jsonOut({ success: true, id: id, attachments: saved.list });
-}
-
-/* ---------- CHECK UPLOADS § */
-function postCheckUploads_(body, action, began) {
-  return jsonOut(uploadsCheck_());
-}
-
-/* Somebody's conversations. Only their own — an admin reading everything does it in the
-   sheet, deliberately, rather than through an endpoint that could be pointed anywhere. */
-function postMessages_(body, action, began) {
-  const me = findPerson(S(body.name), S(body.personId));
-  if (!me) return refuse_('err-not-signed-in', 'not-signed-in');
-  const rows = messagesOf_(me);
-  return jsonOut({ success: true, messages: rows, gapMs: MESSAGE_GAP_MS });
-}
-
-/* Marking one read. Only the recipient can — a sender marking their own message read would
-   make the tick mean nothing. */
-function postReadMessage_(body, action, began) {
-  const me = findPerson(S(body.name), S(body.personId));
-  if (!me) return refuse_('err-not-signed-in', 'not-signed-in');
-  const t = read(TAB.messages);
-  const r = t.rows.find(x => S(x.message_id) === S(body.messageId));
-  if (!r) return refuse_('err-not-found', 'not-found');
-  if (S(r.to_id) !== S(me.person_id)) return jsonOut({ error: 'Not yours to open.' });
-  if (!sheetDate(r.read_at)) { setCell(t, r, 'read_at', new Date()); clearCache(); }
-  return jsonOut({ success: true });
-}
-
-/* Sending one on (413) is the one `suggest` since 494 (`report` since 486): an old phone's `flagMessage` goes the same way. It is NOT deleted. */
-function postFlagMessage_(body, action, began) {
-  body.kind = 'message'; body.itemId = S(body.messageId); body.note = S(body.reason); body.reason = 'other';
-  return postReport_(body, 'report', began);
-}
-
 /* JOINING A WAITLIST --------------------------------------------------------------------- A DIFFERENT PRODUCT IN THE SAME SHAPE. § */
 /* ---------- OPENING A WAITING LIST WITH NOBODY ON IT § */
 /* ---------- STARRING SOMETHING, AND UNSTARRING IT § */
@@ -567,7 +448,6 @@ function postSuggest_(body, action, began) {
   /* A SHOP ITEM'S ID IS ITS NAME (498), spaces and brackets and all: "Gooey Louie (board game)" was refused, so Suggest on the shop did nothing. */
   if (item.length > REPORT_FIELD_MAX || !/^[A-Za-z0-9][A-Za-z0-9 _.:|#\/()'&,+-]*$/.test(item) || (kind === 'question' && !/^q:./.test(item)))
     return jsonOut({ error: 'Which one? Nothing was sent.' });
-  const people = kind === 'message' || kind === 'post';
   /* A FLAG IS THE WHOLE SUGGESTION (owner, 16 Nov): no words, no files; only the snapshot of the screen (18 Nov). Off withdraws the person's own. */
   const on = norm(body.flag) !== 'off';
   const pid0 = S(me.person_id), key0 = kind + '|' + item;
@@ -583,12 +463,6 @@ function postSuggest_(body, action, began) {
   }
   const note = FLAG_NOTE;
   const admin = rankAtLeast_(me, 'admin');
-  let msg = null;
-  if (kind === 'message') {
-    msg = read(TAB.messages).rows.find(x => S(x.message_id) === item);
-    if (!msg) return refuse_('err-not-found', 'not-found');
-    if (S(msg.to_id) !== S(me.person_id) && !admin) return jsonOut({ error: 'Not yours to send on.' });
-  }
   /* AND THE FUNNEL PATH ON FIND (498) and the screen it was seen on, so the owner can find the same thing. */
   const path = S(body.path).replace(/\s+/g, ' ').trim().slice(0, 300);
   const device = /^(phone|tablet|computer)$/.test(S(body.device)) ? S(body.device) : '';
@@ -617,12 +491,6 @@ function postSuggest_(body, action, began) {
   if (made && admin) { clearCache(); out.notes = claudeNotesOpen_(); try { out.file = claudeNotesWrite_(out.notes); } catch (err) { out.fileError = S(err && err.message || err); } }
   if (out.success) { clearCache(); out.flag = true; out.myFlags = myFlags_(S(me.person_id)); out.reportedItems = reportedItems_(); }
   if (made && !admin && POST_WROTE && !wroteBefore) POST_WROTE = false;
-  /* `reported` — ESSENTIAL: a message sent on is a safeguarding matter and the admin is told at once (413). */
-  if (made && msg && !admin) {
-    notify(adminName_(), 'A message was sent to you to look at',
-      'From ' + personDisplayName(me) + '\n\n' + (S(made.note) || 'No words given')
-      + '\n\nMessage id: ' + item + '\n\nIt is still in the messages tab; it waits on Business → Suggestions.', 'reported');
-  }
   return jsonOut(out);
 }
 
@@ -644,22 +512,13 @@ function postSuggestUpload_(body, action, began) {
 function postListSuggestions_(body, action, began) {
   clearCache();
   const list = claudeNotesPending_();
-  return jsonOut({ success: true, open: list.length, suggestions: list.slice(0, REPORTS_LIST_MAX), messages: flaggedMessages_() });
+  return jsonOut({ success: true, open: list.length, suggestions: list.slice(0, REPORTS_LIST_MAX) });
 }
 
 /* ---------- AND ONE DECIDED: confirm sends it to Notes for Claude, dismiss drops it ---------- */
 function postDecideSuggestion_(body, action, began) {
   const how = norm(body.decision);
   if (how !== 'confirm' && how !== 'dismiss') return jsonOut({ error: 'Confirm or dismiss.' });
-  /* A MESSAGE FLAGGED BEFORE 486 is closed on its own row: `flagged` CLEARED, kept for the record. */
-  if (norm(body.kind) === 'message' && !/^N-/.test(S(body.id))) {
-    const tm = read(TAB.messages);
-    const mr = tm.rows.find(r => S(r.message_id) && S(r.message_id) === S(body.id));
-    if (!mr) return jsonOut({ error: 'That message is not there any more.' });
-    setCell(tm, mr, 'flagged', 'CLEARED');
-    clearCache();
-    return jsonOut({ success: true, id: S(mr.message_id), kind: 'message' });
-  }
   let out = {};
   const busy = withWriteLock_(() => {
     clearCache();

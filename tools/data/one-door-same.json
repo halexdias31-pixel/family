@@ -159,10 +159,6 @@
     ],
     "kinds": [
      {
-      "kind": "messages",
-      "label": "Messages"
-     },
-     {
       "kind": "bookings",
       "label": "Booking requests and answers"
      },
@@ -183,10 +179,6 @@
     "devices": 0,
     "off": [],
     "kinds": [
-     {
-      "kind": "messages",
-      "label": "Messages"
-     },
      {
       "kind": "bookings",
       "label": "Booking requests and answers"
@@ -211,10 +203,6 @@
      "posts"
     ],
     "kinds": [
-     {
-      "kind": "messages",
-      "label": "Messages"
-     },
      {
       "kind": "bookings",
       "label": "Booking requests and answers"
@@ -244,13 +232,9 @@
     "devices": 2,
     "off": [
      "posts",
-     "messages"
+     "bookings"
     ],
     "kinds": [
-     {
-      "kind": "messages",
-      "label": "Messages"
-     },
      {
       "kind": "bookings",
       "label": "Booking requests and answers"
@@ -280,13 +264,9 @@
     "devices": 1,
     "off": [
      "posts",
-     "messages"
+     "bookings"
     ],
     "kinds": [
-     {
-      "kind": "messages",
-      "label": "Messages"
-     },
      {
       "kind": "bookings",
       "label": "Booking requests and answers"
@@ -670,17 +650,6 @@
       "handle": "",
       "rank": ""
      }
-    ],
-    "messages": [
-     {
-      "id": "M1",
-      "from": "Finn Test",
-      "to": "Ada Test",
-      "reason": "rude",
-      "body": "rude",
-      "files": 0,
-      "at": 1793750400000
-     }
     ]
    }
   },
@@ -773,7 +742,7 @@
     "person_id": "P003",
     "token": "tok-b",
     "device": "Phone",
-    "off": "posts,messages",
+    "off": "posts,bookings",
     "added_on": "2026-11-20T10:00:00.000Z"
    }
   ],

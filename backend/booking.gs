@@ -1,7 +1,7 @@
 /* @family. — 30_booking.gs (4 of 8) THE BOOKING MACHINE, and everything that decides who is in a session. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const BOOKING_VERSION = "2026-11-25-docket-3";
+const BOOKING_VERSION = "2026-11-26-onelist-nomsg";
 
 
 /* WHEN THE BUSINESS ACTUALLY OPERATES within an interval. § */
@@ -1189,12 +1189,10 @@ const PERMISSIONS = {
   answerRequest: ['member', 'child', 'admin'],
   applyTeach: ['member', 'child', 'admin'],
   approvePost: ['admin'],
-  askAssistant: ['member', 'child', 'admin'],
   assignmentsImport: ['member', 'child', 'admin'],
   assignmentsOf: ['member', 'child', 'admin'],
   assignmentsSave: ['member', 'child', 'admin'],
   changePin: ['member', 'child', 'admin'],
-  checkUploads: ['admin'],
   claimChild: ['member', 'child', 'admin'],
   claudeNoteAdd: ['admin'],
   claudeNoteDone: ['admin'],
@@ -1212,7 +1210,6 @@ const PERMISSIONS = {
   filmsSync: ['admin'],
   finalizePayment: ['member', 'admin'],
   findChild: ['member', 'child', 'admin'],
-  flagMessage: ['member', 'child', 'admin'],
   forgotPin: ['anyone', 'member', 'child', 'admin'],
   googleLogin: ['anyone', 'member', 'child', 'admin'],
   hands: ['member', 'child', 'admin'],
@@ -1257,7 +1254,6 @@ const PERMISSIONS = {
   savePhoto: ['member', 'child', 'admin'],
   saveRecordsPage: ['admin'],
   saveTimetable: ['member', 'child', 'admin'],
-  sendMessage: ['member', 'child', 'admin'],
   setMyRoles: ['member', 'child', 'admin'],
   setRoom: ['member', 'child', 'admin'],
   signAgreement: ['member', 'child', 'admin'],
@@ -1314,8 +1310,6 @@ const ITEM_PERMISSIONS = {
   'listed:save': ['admin'],
   'media:delete': ['admin'],
   'media:save': ['admin'],
-  'message:read': ['member', 'child', 'admin'],
-  'message:save': ['member', 'child', 'admin'],
   'notepad:save': ['member', 'child', 'admin'],
   'notify:save': ['member', 'child', 'admin'],
   'person:delete': ['admin'],
@@ -1365,8 +1359,6 @@ function itemDoors_() {
     'profile:save': { self: postUpdateProfile_ },
     'notepad:save': { self: postSaveNotepad_ },
     'todo:save': { self: postSaveTodo_ },
-    'message:read': { self: postMessages_ },
-    'message:save': { self: postReadMessage_ },
     'spotlight:save': { self: postSpotlight_ },
     'favourite:save': { self: postFavourite_ },
     'answer:save': { self: postSaveAnswers_ },

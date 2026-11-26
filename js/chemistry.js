@@ -27,8 +27,8 @@ function chemItems_() {
 }
 
 
-/* ================= FOOD (owner, 18 Nov): data/settings/foods.json's kind tree, read once here for both of its readers — Find › Library
-   (a card a kind and a card a food) and Docket (an item named for a kind offers its foods as tags). ================= */
+/* ================= FOOD (owner, 18 Nov): data/settings/foods.json's kind tree, read once here for Find › Library
+   (a card a kind and a card a food). ================= */
 const FOOD = { data: null, asking: null, failed: false, items: null };
 function foodIndex_() {
   if (FOOD.data) return FOOD.data;
@@ -38,18 +38,12 @@ function foodIndex_() {
     if (!d || !Array.isArray(d.kinds) || !Array.isArray(d.foods)) { FOOD.failed = true; return null; }
     FOOD.data = d;
     if (typeof lateCame_ === 'function') lateCame_();
-    if (typeof dkPaint_ === 'function') dkPaint_();
     return d;
   }).catch(() => { FOOD.asking = null; FOOD.failed = true; return null; });
   return null;
 }
-/* A KIND BY ANY OF ITS SPELLINGS, case and a plural `s` forgiven. */
+/* A NAME AS A KEY: case, punctuation and spacing forgiven. */
 const foodSay_ = t => String(t || '').trim().toLowerCase().replace(/[^a-z ]/g, '').replace(/\s+/g, ' ');
-function foodKindOf_(title) {
-  const d = foodIndex_(), t = foodSay_(title);
-  if (!d || !t) return null;
-  return d.kinds.find(k => [k.name, k.id].concat(k.spellings || []).some(s => { const w = foodSay_(s); return w === t || w + 's' === t || w === t + 's'; })) || null;
-}
 /* A KIND'S PATH ("Protein › Meat") and its foods, its children's included. */
 const foodPath_ = k => { const d = FOOD.data, out = []; for (let at = k, n = 0; at && n < 9; n++) { out.unshift(at.name); at = d.kinds.find(p => p.id === at.parent); } return out.join(' › '); };
 function foodsOf_(k) {

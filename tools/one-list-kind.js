@@ -5,7 +5,7 @@
    (b) SAVED THROUGH THE ONE TIDY (tools/lib/backend-vm.js): every route that writes a list (saveTodo, docketImport, the private address, the
        migration, assignmentsSave/Import, an `item` write of a task or food row) reaches post-account.gs listTidy_ for its kind, and no other item
        tidy is left (assignmentsTidy_, docketPlanTidy_, docketPlanOf_). Run in the vm: a made-up docket and assignments tidied twice come back the same.
-   (c) DRAWN AS ONE ITEM: the Docket and Assignments widgets' items by js/map.js listItem_, Find's docket cards by shapeCard_('docket'), Tasks and
+   (c) DRAWN AS ONE ITEM: the Assignments widget's items by js/map.js listItem_, the Docket's one card by shapeCard_('docket'), Tasks and
        Food by the store card (kinds.json `find.from: store`); no other `dk-item` group is written in js/.
    Counted: each list kind against each of (a)–(c); one wrong fails the build. Run by tools/build.js. */
 'use strict';
@@ -36,7 +36,7 @@ function run() {
   calls(be, 'docketTidy_', /listTidy_\('docket'/, "listTidy_('docket')");
   calls(be, 'postDocketImport_', /docketTidy_\(/, 'docketTidy_');
   calls(be, 'docketAddress_', /todoTidy_\(/, 'todoTidy_');
-  if (!/docketTidy_\(/.test(acc)) bad.push('the docket migration (access.gs) does not tidy through docketTidy_');
+  if (!/todoTidy_\(/.test(fnOf(acc, 'docketOneList25NovRun_'))) bad.push('the docket migration (access.gs docketOneList25NovRun_) does not tidy through todoTidy_');
   ['assignmentsRead_', 'postAssignmentsSave_', 'postAssignmentsImport_'].forEach(f => calls(be, f, /listTidy_\('assignment'/, "listTidy_('assignment')"));
   calls(items, 'itemWrite_', /LIST_KINDS\[kind\]\)\s*given = listTidy_\(kind/, 'listTidy_ (a task or food row)');
   const all = BV.files(require('path').join(require('./lib/gen.js').ROOT, 'backend')).map(f => bare(text('backend/' + f), { comments: true })).join('\n');
@@ -46,7 +46,7 @@ function run() {
   const C = BV.load({ at: true, console: { log() {}, warn() {}, error() {} } }), seen = {};
   const real = C.listTidy_;
   C.listTidy_ = function (kind, a, b) { seen[kind] = (seen[kind] || 0) + 1; return real(kind, a, b); };
-  const docket = { v: 1, lists: [{ name: 'Morning', start: '07:00', items: [{ title: 'Jesus prayer', repeat: 'daily', doneOn: '2026-11-20', minutes: 10 },
+  const docket = { v: 1, lists: [{ name: 'Docket', items: [{ title: 'Jesus prayer', repeat: '8h', doneOn: '2026-11-20', minutes: 10 },
     { title: 'Eggs', pick: 'Eggs on toast', pickOn: '2026-11-20', date: '', note: '' }, { title: 'Bank', done: true, doneOn: '2026-11-01' }, { title: 'Laundry', runs: 60, effort: 'hard' }] }] };
   const cell = C.todoTidy_(JSON.stringify(docket));
   if (C.todoTidy_(cell) !== cell) bad.push('the docket save changes a cell it has already saved');
@@ -63,7 +63,6 @@ function run() {
 
   /* (c) DRAWN AS ONE ITEM. */
   const js = text('js/map.js'), jsBare = bare(js, { comments: true });
-  ['dkItem_', 'dkNowNext_'].forEach(f => { if (!/listItem_\('docket'/.test(fnOf(js, f))) bad.push('js/map.js ' + f + ' does not draw through listItem_'); });
   if (!/listItem_\('assignment'/.test(fnOf(js, 'asgItem_'))) bad.push('js/map.js asgItem_ does not draw through listItem_');
   if (!/asgTrackOnly_\(/.test(fnOf(js, 'asgItem_'))) bad.push('js/map.js asgItem_ does not say a tracked-only (noAI) assignment');
   if (!/shapeCard_\('docket'/.test(fnOf(js, 'dkCard_'))) bad.push("js/map.js dkCard_ does not draw through shapeCard_('docket')");

@@ -34,7 +34,7 @@
    "say": "Ids of other items it points at (a manuscript's writings, an event's figures)."
   }
  },
- "shapesSay": "ONE CARD (owner, 25 Nov): every kind is drawn in the one card, the question card's frame -- its tags at the top, its body, its tile row at the foot (`shape`: Card); `bodyAs` says only which body its content draws (person, reference, record, item, thread, question). Before: THE PERSON, ITEM, REFERENCE, RECORD AND THREAD SHAPES (owner, 22 Nov, CARD SHAPES): a kind that draws as a Person (picture, name, role tags, fact lines, links), an Item (title, tags — list, due, meal, price —, lines, tiles, sheet), a Learning: Reference (tags, fact lines, picture, links; its body is its `card.parts`, drawn by referenceBody_), an Activity: Record (who/when tags, money or fact pills, a status; its `card.record`, drawn by recordName_, recordPills_ and recordSum_) an Activity: Thread (its messages and reply box, drawn by threadCard_) or a Learning: Question (tags, its stem with figures, the one answer box, the mark and reveal actions; its `card.question`, its stem and actions hooks and its box drawn by questionBox_; a paper is a set of them) says so in its `shape`; cardOfItem_ (and dkCard_, meCard, the assignment rows) draw it through shapeCard_ (js/cards-parts.js), which keeps only that shape's slots and marks the card data-shape. tools/one-card.js checks each kind wears its one shape.",
+ "shapesSay": "ONE CARD (owner, 25 Nov): every kind is drawn in the one card, the question card's frame -- its tags at the top, its body, its tile row at the foot (`shape`: Card); `bodyAs` says only which body its content draws (person, reference, record, item, question). Before: THE PERSON, ITEM, REFERENCE, RECORD AND THREAD SHAPES (owner, 22 Nov, CARD SHAPES): a kind that draws as a Person (picture, name, role tags, fact lines, links), an Item (title, tags — list, due, meal, price —, lines, tiles, sheet), a Learning: Reference (tags, fact lines, picture, links; its body is its `card.parts`, drawn by referenceBody_), an Activity: Record (who/when tags, money or fact pills, a status; its `card.record`, drawn by recordName_, recordPills_ and recordSum_) or a Learning: Question (tags, its stem with figures, the one answer box, the mark and reveal actions; its `card.question`, its stem and actions hooks and its box drawn by questionBox_; a paper is a set of them) says so in its `shape`; cardOfItem_ (and dkCard_, meCard, the assignment rows) draw it through shapeCard_ (js/cards-parts.js), which keeps only that shape's slots and marks the card data-shape. tools/one-card.js checks each kind wears its one shape.",
  "kinds": {
   "bookform": {
    "source": "the booking form (js/book-*.js)",
@@ -1633,7 +1633,7 @@
    },
    "entries": {
     "docket": {
-     "say": "Docket (owner, 18 Nov): the owner's named lists like Google Tasks — title, note, date, time, daily repeat (`doneOn`); kept in their own `todo` cell (saveTodo), loaded by the `docketImport` action. js/map.js WIDGETS. The owner's alone (owner, 18 Nov: `owner` is the admin whose address is the backend's ownerEmail_, never another admin; the sign-in reply's `owner` flag, may_('owner')).",
+     "say": "Docket (owner, 18 Nov; one list, names only, 25 Nov night): the owner's one list like Google Tasks — a title, an 8h repeat or a date, ticked; kept in their own `todo` cell; js/map.js dkCard_ draws it",
      "who": "owner"
     },
     "assignments": {
@@ -1643,21 +1643,20 @@
    }
   },
   "docket": {
-   "shape": "Card", "bodyAs": "item",
+   "shape": "Card",
+   "bodyAs": "item",
    "list": {
     "name": "Docket",
-    "say": "ONE LIST KIND (owner, 22 Nov, UNIFY NEXT 6): the owner's own lists are one kind of list, each item tidied by the one tidy (post-account.gs listTidy_) and drawn as an Item (js/map.js listItem_, or dkCard_ in Find). The Docket keeps its storage, the owner's `todo` cell as { v, lists: [{ name, start, items }] }; a save keeps what the cell had (`save: as-is`), the import makes each item whole; a one-off ticked before today leaves its list (`gone`); the planner's fields are form `docket-item` (`plan`).",
+    "say": "ONE LIST KIND (owner, 22 Nov, UNIFY NEXT 6; one list, names only, owner 25 Nov night): the owner's own lists are one kind of list, each item tidied by the one tidy (post-account.gs listTidy_). The Docket keeps its storage, the owner's `todo` cell as { v, lists: [{ name: \"Docket\", items }] } (one list); an item is its title, an 8h repeat or none, a date or none, and its done state; a save keeps what the cell had (`save: as-is`), the import makes each item whole; a one-off ticked before today leaves (`gone`).",
     "store": {
      "cell": "todo",
      "wrap": "lists"
     },
     "most": 300,
     "need": [
-     "title",
-     "note"
+     "title"
     ],
     "save": "as-is",
-    "plan": "docket-item",
     "gone": {
      "done": "done",
      "on": "doneOn",
@@ -1670,23 +1669,14 @@
       "max": 300
      },
      {
-      "f": "note",
-      "type": "text",
-      "max": 8000
-     },
-     {
       "f": "date",
       "type": "date"
-     },
-     {
-      "f": "time",
-      "type": "time"
      },
      {
       "f": "repeat",
       "type": "choice",
       "options": [
-       "daily", "8h"
+       "8h"
       ],
       "def": ""
      },
@@ -1695,34 +1685,24 @@
       "type": "flag",
       "off": {
        "f": "repeat",
-       "is": "daily"
+       "is": "8h"
       }
      },
      {
       "f": "doneOn",
-      "type": "text", "max": 13
-     },
-     {
-      "f": "covers",
-      "type": "titles",
-      "max": 300,
-      "say": "titles in the same list a tick also ticks (owner, 23 Nov: COVERS); js/map.js dkTick_, the one tick"
-     },
-     {
-      "f": "coversSet",
-      "type": "titles",
-      "max": 300,
-      "say": "the covered titles this item's last tick marked, so its untick undoes only those"
-     },
-     {
-      "f": "slot",
       "type": "text",
-      "max": 60,
-      "say": "a food slot (owner, 23 Nov: FOOD SLOTS) in place of a fixed food: one of foods.json `slots`; the Docket offers that slot's foods under the item (js/map.js dkSlotOptions_)"
+      "max": 13
+     },
+     {
+      "f": "runs",
+      "type": "number",
+      "min": 0,
+      "max": 100000,
+      "say": "minutes it runs by itself once started (owner, 25 Nov night: the one hidden number); within Now the most first (js/map.js dkSort_)"
      }
     ]
    },
-   "source": "the owner's docket lists (owner, 20 Nov): their own `todo` cell, read by js/map.js dkItems_ — a list a card, drawn by dkCard_ (owner, 25 Nov: like Google Tasks): each item one line, its tick and title, tapped open (cardFold_) for the title, the list and its date, time or Daily as tags, a Done tick saved as the widget saves it (`doneOn` for a daily item), and the note; its attributes (minutes, runs by itself, effort, fun, importance, place, a fixed time or a deadline) are the form `docket-item`, the order dkPlan_ (rules.json 1.82), the first two unticked tagged Now and Next; a list with a usual start (`start`, form `docket-list`) is a phase of the day, and the widget heads with Now and Next (dkPhase_)",
+   "source": "the owner's Docket (owner, 20 Nov; one list, names only, 25 Nov night): their own `todo` cell, read by js/map.js dkItems_ as one card, drawn by dkCard_ like Google Tasks: each item one line, its tick and title, sorted by dkSort_ (Overdue, then the 8-hourly not yet done this third, then dated one-offs by date, then undated, then a folded Done (n)); a tapped line shows only Edit (its name) and Delete; a quick add at the foot (rules.json 1.82)",
    "find": {
     "group": "Tools",
     "label": "docket",
@@ -1731,8 +1711,7 @@
     "facets": [
      "forLabel",
      "kindLabel",
-     "toolName",
-     "docketList"
+     "toolName"
     ]
    },
    "see": {
@@ -1740,185 +1719,27 @@
    },
    "forms": {
     "docket-address": {
-          "draft": false,
-          "attr": "data-dka",
-          "say": "the owner's private plain-text address (owner, 21 Nov: NOW, NEXT step 3): the Docket's Private address tile opens it; the backend's doGet `?docket=<token>` answers Now/Next as text, `&do=done&what=` ticks, `&do=add&what=` adds. Make a new address (action docketAddress, renew) kills the old token.",
-          "fields": [{ "f": "address", "type": "text", "label": "dk-addr-head", "input": "url" }]
-        },
-        "docket-list": {
      "draft": false,
-     "attr": "data-dkl",
-     "say": "a docket list's name and usual start (owner, 21 Nov: NOW, NEXT): the widget's Rename opens it. A list with a `start` (HH:MM, London's) is a phase of the day; js/map.js dkPhase_ picks the current one by the clock and the ticks.",
+     "attr": "data-dka",
+     "say": "the owner's private plain-text address (owner, 21 Nov): the Docket's Private address tile opens it; the backend's doGet `?docket=<token>` answers the Docket's open items as text, `&do=done&what=` ticks, `&do=add&what=` adds. Make a new address (action docketAddress, renew) kills the old token.",
      "fields": [
       {
-       "f": "name",
+       "f": "address",
        "type": "text",
-       "label": "list-name"
-      },
-      {
-       "f": "start",
-       "type": "text",
-       "label": "usual-start",
-       "input": "time"
+       "label": "dk-addr-head",
+       "input": "url"
       }
      ]
     },
     "docket-item": {
      "draft": false,
      "attr": "data-dke",
-     "say": "a docket item in Find (owner, 20 Nov: NOW, NEXT): its Edit tile opens this form on the card, Save and Delete under it, saved whole through dkSave_. Each field is a fixed choice with a `default`, so an item added by its title alone is complete; js/map.js dkFill_ fills the defaults and dkPlan_ orders a list from them (rules.json 1.82).",
+     "say": "a docket item's name (owner, 25 Nov night: names only): its Edit tile opens this form in its line, Save under it, saved whole through dkSave_.",
      "fields": [
       {
        "f": "title",
        "type": "text",
        "label": "title-2"
-      },
-      {
-       "f": "minutes",
-       "type": "number",
-       "label": "minutes-it-takes",
-       "input": "number",
-       "min": 1,
-       "step": 1,
-       "default": 5
-      },
-      {
-       "f": "runs",
-       "type": "number",
-       "label": "runs-by-itself-minutes",
-       "input": "number",
-       "min": 0,
-       "step": 1,
-       "default": 0
-      },
-      {
-       "f": "effort",
-       "type": "choice",
-       "label": "effort",
-       "default": "easy",
-       "options": [
-        {
-         "v": "easy",
-         "t": "Easy"
-        },
-        {
-         "v": "medium",
-         "t": "Medium"
-        },
-        {
-         "v": "hard",
-         "t": "Hard"
-        }
-       ]
-      },
-      {
-       "f": "fun",
-       "type": "choice",
-       "label": "fun",
-       "default": "neutral",
-       "options": [
-        {
-         "v": "dread",
-         "t": "Dread"
-        },
-        {
-         "v": "neutral",
-         "t": "Neutral"
-        },
-        {
-         "v": "enjoy",
-         "t": "Enjoy"
-        }
-       ]
-      },
-      {
-       "f": "importance",
-       "type": "choice",
-       "label": "importance",
-       "default": "normal",
-       "options": [
-        {
-         "v": "low",
-         "t": "Low"
-        },
-        {
-         "v": "normal",
-         "t": "Normal"
-        },
-        {
-         "v": "high",
-         "t": "High"
-        },
-        {
-         "v": "must",
-         "t": "Must"
-        }
-       ]
-      },
-      {
-       "f": "place",
-       "type": "choice",
-       "label": "place",
-       "default": "anywhere",
-       "options": [
-        {
-         "v": "home",
-         "t": "Home"
-        },
-        {
-         "v": "out",
-         "t": "Out"
-        },
-        {
-         "v": "anywhere",
-         "t": "Anywhere"
-        }
-       ]
-      },
-      {
-       "f": "date",
-       "type": "date",
-       "label": "date",
-       "input": "date"
-      },
-      {
-       "f": "time",
-       "type": "text",
-       "label": "time",
-       "input": "time"
-      },
-      {
-       "f": "timeIs",
-       "type": "choice",
-       "label": "the-time-is",
-       "default": "at",
-       "options": [
-        {
-         "v": "at",
-         "t": "A fixed time"
-        },
-        {
-         "v": "by",
-         "t": "Done before it"
-        }
-       ]
-      },
-      {
-       "f": "repeat",
-       "type": "choice",
-       "label": "repeats",
-       "default": "",
-       "options": [
-        {
-         "v": "daily",
-         "t": "Daily"
-        }, { "v": "8h", "t": "Every 8 hours" }
-       ]
-      },
-      {
-       "f": "note",
-       "type": "long",
-       "label": "note"
       }
      ]
     }
@@ -2772,18 +2593,6 @@
    },
    "see": {
     "who": "admin"
-   }
-  },
-  "msg": {
-   "source": "Ledger messages tab (payload.messages)",
-   "find": {
-    "group": "Messages",
-    "label": "messages",
-    "under": "Messages"
-   },
-   "shape": "Card", "bodyAs": "thread",
-   "see": {
-    "who": "anyone"
    }
   },
   "post": {
@@ -3716,7 +3525,7 @@
   }
  },
  "doorsSay": "FIND'S FRONT DOORS IN THE OWNER'S ORDER (4 Nov): the first question's answers, each a kind's `find.under` (or Videos); `built` doors are walked ahead by the build (js/finder-tags.js) and warmed while idle (find-quick.js). Who may open one signed out is a permissions row (`item` <door>:read for `anyone`, data/settings/actions.json). ONE OPENING QUESTION (owner queue item 9, 24 Nov): What kind is the only question at the top of Find — What for and Which are not asked, and Practice is no door of its own: its kinds (Questions, Answers, Inserts) are answers beside Library, Tools and the rest; `practice` marks them (a guest opens them by `question:read`).",
- "doors": [{"name": "Practice", "built": true, "practice": true}, {"name": "Library", "built": true}, {"name": "Videos"}, {"name": "Coming soon"}, {"name": "Posts"}, {"name": "Messages"}, {"name": "Profiles"}, {"name": "Booking"}, {"name": "Shop"}, {"name": "Settings"}, {"name": "Tools"}, {"name": "Games"}],
+ "doors": [{"name": "Practice", "built": true, "practice": true}, {"name": "Library", "built": true}, {"name": "Videos"}, {"name": "Coming soon"}, {"name": "Posts"}, {"name": "Profiles"}, {"name": "Booking"}, {"name": "Shop"}, {"name": "Settings"}, {"name": "Tools"}, {"name": "Games"}],
  "findSay": "FIND (rule 1.80): a kind's `find` gives its What-for group, its What-kind label, the front door(s) it stands under (`under`), the facets in order, and `draw` (a global that draws its Find card, else findCard). `entries` names the Find entry kinds it covers when they are not the kind itself (an answer page, a timeline, a switched-off door), each overriding those fields. An entry kind named by no kind is never listed or drawn; `see.who` (anyone, signedIn, self, family, staff, admin) decides who is listed it. Labels and order of the facets are data/settings/facets.json. A kind with `from: \"store\"` (the owner's life and business, 17 Nov) is listed straight from the items tab (form.js storeItems_): a `new` card asking its `store` form, then one card a row, its Edit tile asking the same form prefilled and saving under the same id, and `card.tick` ({f, on, off, label}) a one-tap tile that flips that field; `facetCols` names each facet read off a row's own column.",
  "listSay": "A KIND LISTED AS ROWS (queue step 6, 22 Nov): `sheet.list` is how the backend lists a kind straight off its tab (kindList_, items.gs). `keep` the rows whose every entry holds: a column filled (`col`), a column true (`col true`) or the whole row passing a tidy (`* tidy`); `out` each reply field from its column through a tidy (`col tidy`, `*` the whole row; s when none — s, ms, num, iso, when, whenS, norm, name, rank, staff); `sort` by a reply field, `-` newest first; `max` rows at most.",
  "stored": {
@@ -3758,19 +3567,6 @@
     "owner": [
      "parent_id",
      "child_id"
-    ]
-   },
-   "see": {
-    "who": "self, admin"
-   }
-  },
-  "message": {
-   "sheet": {
-    "tab": "messages",
-    "id": "message_id",
-    "owner": [
-     "from_id",
-     "to_id"
     ]
    },
    "see": {
@@ -4252,7 +4048,6 @@
    "booking",
    "receipt",
    "family_link",
-   "message",
    "setting",
    "price_rule",
    "work_file",

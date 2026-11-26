@@ -56,7 +56,7 @@ async function open(opts) {
   const o = opts || {}, { devices } = require('playwright');
   await serve();
   const b = await browser(o.engine);
-  const c = await b.newContext({ ...devices['iPhone 13'] });
+  const c = await b.newContext({ ...devices['iPhone 13'], ...(o.dark ? { colorScheme: 'dark' } : {}) });
   try {
     const pg = await c.newPage();
     /* `as: 'none'` is nobody signed in: the welcome screen */

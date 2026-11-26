@@ -225,17 +225,6 @@ function getPostFolder() {
   }
 }
 
-/* ---------- A PICTURE, A CLIP OR A FILE IN A MESSAGE § */
-function getMessageFolder_() {
-  /* ---------- A FOLDER THAT COULD NOT BE MADE IS NOT A FOLDER THAT IS NOT THERE § */
-  const posts = getPostFolder();
-  if (!posts) return { none: true };
-  try {
-    const it = posts.getFoldersByName('Messages');
-    return { folder: it.hasNext() ? it.next() : posts.createFolder('Messages') };
-  } catch (err) { return { err: err }; }
-}
-
 /* ---------- ONE PICTURE, KEPT IN DRIVE AND SHARED BY LINK § */
 function driveKeep_(folder, raw, name) {
   const v = S(raw).trim();
@@ -303,17 +292,6 @@ function postState_(r) {
   return s === 'pending' ? 'pending' : s === 'refused' ? 'refused' : 'up';
 }
 
-/* MESSAGES SOMEBODY REPORTED AND NOBODY HAS DEALT WITH (413), newest first — for the admin's Reports card only. */
-function flaggedMessages_() {
-  const t = read(TAB.messages);
-  const nm = id => { const p = id ? findPerson('', id) : null; return p ? personDisplayName(p) : ''; };
-  return t.rows.filter(r => S(r.message_id) && TRUE_(r.flagged))
-    .map(r => ({ id: S(r.message_id), from: nm(S(r.from_id)), to: nm(S(r.to_id)), reason: S(r.flag_reason),
-                 body: S(r.body).slice(0, 300), files: msgAttachOut_(r.attachments).length,
-                 at: sheetDate(r.sent_at) ? sheetDate(r.sent_at).getTime() : 0 }))
-    .sort((a, b) => b.at - a.at).slice(0, 50);
-}
-
 /* ---------- ONE REPORT RULE (486): a row's kind, item, state and weight, old rows included ---------- */
 /* OLD SHAPES ARE FILLED HERE ONLY UNTIL `migrateOldRows_` HAS WRITTEN THEM (`reportTidy_`). */
 function reportRow_(r) {
@@ -345,21 +323,15 @@ function suggestRow_(t, me, kind, item, label, note, status, at) {
   addRow(t, row);
   return row;
 }
-/* THE SUGGESTIONS WAITING FOR THE ADMIN, newest first, each with the handle and rank of who sent it; a message carries who, to whom and its words. */
+/* THE SUGGESTIONS WAITING FOR THE ADMIN, newest first, each with the handle and rank of who sent it. */
 function claudeNotesPending_() {
   const t = read(TAB.claude_notes);
   if (!t.sheet) return [];
   const at = v => v instanceof Date ? v.getTime() : (Date.parse(S(v)) || 0);
-  const tm = read(TAB.messages);
-  const nm = id => { const p = id ? findPerson('', id) : null; return p ? personDisplayName(p) : ''; };
   return t.rows.filter(r => S(r.note_id) && norm(r.status) === 'pending').map(r => {
     const p = findPerson('', S(r.made_by)), item = S(r.item_id), kind = S(r.column) || item.split('|')[0];
     const o = { id: S(r.note_id), at: at(r.made_at), kind: kind, itemId: item.slice(kind.length + 1), label: S(r.item_label), note: S(r.note),
                 handle: p ? S(p.handle) : '', rank: p ? rankOf(p) : '' };
-    if (kind === 'message') {
-      const m = tm.rows.find(x => S(x.message_id) === o.itemId);
-      if (m) Object.assign(o, { from: nm(S(m.from_id)), to: nm(S(m.to_id)), body: S(m.body).slice(0, 300) });
-    }
     return o;
   }).sort((a, b) => b.at - a.at);
 }
@@ -401,197 +373,6 @@ function getPhotoFolder_() {
     try { return DriveApp.getFolderById(id); } catch (e) { /* a wrong id falls back, below */ }
   }
   return getPostFolder();
-}
-
-/* The caps, in DECODED bytes, and the phone enforces the same numbers first (`MSG_CAP_` in me.js) so a person is told before a minute of upload rather than after § */
-const MSG_FILE_MAX  = 20 * 1024 * 1024;
-const MSG_FILES_MAX = 32 * 1024 * 1024;
-const MSG_FILES_COUNT = 6;
-
-/* ONE CELL, `url#type#name` items joined by ` | `. § */
-function msgAttachIn_(list) {
-  return (list || []).map(a => [
-    S(a.url), S(a.type).replace(/[#|]/g, ''),
-    S(a.name).replace(/[#|\r\n]/g, ' ').trim().slice(0, 120),
-  ].join('#')).join(' | ');
-}
-
-function msgAttachOut_(cell) {
-  return S(cell).split('|').map(x => x.trim()).filter(Boolean).map(x => {
-    const p = x.split('#');
-    return { url: S(p[0]), type: S(p[1]), name: S(p.slice(2).join(' ')) };
-  }).filter(a => /^https?:\/\//.test(a.url));
-}
-
-/* ---------- A FILE WITH NO TYPE IS TYPED BY ITS NAME § */
-function msgTypeOf_(type, name) {
-  const t = S(type).toLowerCase();
-  if (t && t !== 'application/octet-stream') return t;
-  const ext = (S(name).toLowerCase().match(/\.([a-z0-9]{2,5})$/) || [])[1] || '';
-  return ({
-    jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp',
-    heic: 'image/heic', heif: 'image/heif',
-    mov: 'video/quicktime', mp4: 'video/mp4', m4v: 'video/x-m4v', webm: 'video/webm', '3gp': 'video/3gpp',
-    pdf: 'application/pdf',
-  })[ext] || t || 'application/octet-stream';
-}
-
-/* ---------- WHERE `?setup=1` IS, FOR THE ADMIN'S SENTENCE § */
-function setupUrl_() {
-  try {
-    const u = S(ScriptApp.getService().getUrl());
-    return u ? u + '?setup=1' : '';
-  } catch (err) { return ''; }
-}
-
-/* ---------- WHAT A MESSAGE WITH FILES SAYS WHEN THE FILES CANNOT GO § */
-function msgNoColumn_(admin) {
-  const lead = 'Photos and videos cannot be sent yet, so nothing was sent. ';
-  if (!admin) {
-    return { why: 'files', error: lead + 'The site is missing a column it needs — the admin can see '
-      + 'how to fix it.' };
-  }
-  const url = setupUrl_();
-  return { why: 'files', error: lead + 'The messages tab in the Ledger has no `attachments` column. '
-    + 'Open ' + (url || 'the site\'s /exec address with ?setup=1') + ' once — it adds missing columns and '
-    + 'changes nothing else — then try sending a photo.', setup: true };
-}
-
-/* `{ error, why }` or `{ list }`. § */
-function msgAttachSave_(files, admin) {
-  const raw = (Array.isArray(files) ? files : []).filter(f => f && S(f.data));
-  if (!raw.length) return { list: [] };
-  if (raw.length > MSG_FILES_COUNT) {
-    return { error: 'Up to ' + MSG_FILES_COUNT + ' files in one message.' };
-  }
-  const blobs = [];
-  let total = 0;
-  for (let i = 0; i < raw.length; i++) {
-    const f = raw[i];
-    const parts = S(f.data).split(',');
-    const name = S(f.name).replace(/[\\/]/g, '-').slice(0, 120) || ('file-' + (i + 1));
-    const type = msgTypeOf_((parts[0].match(/data:([^;]+)/) || [])[1] || S(f.type), name);
-    let bytes;
-    try { bytes = Utilities.base64Decode(parts[1] || ''); }
-    catch (err) { return { error: 'Could not read ' + (S(f.name) || 'a file') + '.' }; }
-    if (bytes.length > MSG_FILE_MAX) {
-      return { error: (S(f.name) || 'A file') + ' is over 20MB — too big to send.' };
-    }
-    total += bytes.length;
-    if (total > MSG_FILES_MAX) return { error: 'Those files add up to more than 32MB — send fewer at once.' };
-    blobs.push({ blob: Utilities.newBlob(bytes, type, name), type: type, name: name });
-  }
-  const lead = (blobs.length === 1 ? 'The file' : 'The files') + ' could not be kept, so nothing was sent. ';
-  const got = getMessageFolder_();
-  if (got.none) {
-    return { why: 'files', error: lead + (admin
-      ? 'There is no posts folder for files to go in: add a row to the config tab, key `posts_folder`, '
-        + 'value the id from the folder URL — then try sending a photo.'
-      : 'The site has nowhere to put them yet — the admin can see why.') };
-  }
-  if (got.err) return { why: 'files', error: lead + driveTrouble_(got.err, admin) };
-  const out = [], made = [];
-  let at = '';
-  try {
-    blobs.forEach(b => {
-      at = b.name;
-      const file = got.folder.createFile(b.blob);
-      made.push(file);
-      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-      out.push({ url: driveFileUrl_(file.getId()),
-                 type: b.type, name: b.name });
-    });
-  } catch (err) {
-    made.forEach(f => { try { f.setTrashed(true); } catch (e) { /* the bin is a courtesy */ } });
-    /* WHICH ONE, when it was not the first — a refusal about "the files" when two went and the
-       third did not sends somebody looking at the wrong photograph. */
-    const which = made.length && at ? at + ' could not be kept, so nothing was sent. ' : lead;
-    return { why: 'files', error: which + driveTrouble_(err, admin) };
-  }
-  return { list: out };
-}
-
-/* ---------- CHECK UPLOADS: CAN A PHOTOGRAPH IN A MESSAGE BE KEPT, ASKED OF WHAT IS SERVING § */
-function uploadsCheck_() {
-  const checks = [];
-  const add = (id, ok, label, said) => checks.push({ id: id, ok: !!ok, label: label, said: S(said) });
-
-  let hasColumn = false;
-  try { hasColumn = read(TAB.messages).headers.indexOf('attachments') >= 0; } catch (err) { /* no tab: no */ }
-  add('column', hasColumn, 'The messages tab has an attachments column',
-    hasColumn ? 'Yes — a file’s address has somewhere to go.'
-              : 'No. ?setup=1 adds it, and changes nothing else.');
-
-  const cfg = config();
-  const from = S(cfg.posts_folder || cfg.POSTS_FOLDER || cfg.postsFolder) ? 'posts_folder in the config tab'
-    : (POSTS_FOLDER ? 'POSTS_FOLDER in constants.gs' : 'the POSTS_FOLDER_ID script property');
-  const posts = getPostFolder();
-  let name = '', messages = null;
-  if (posts) {
-    try { name = S(posts.getName()); } catch (err) { /* opened and nameless is still opened */ }
-    try { const it = posts.getFoldersByName('Messages'); if (it.hasNext()) messages = it.next(); }
-    catch (err) { /* asked again, properly, by the write below */ }
-  }
-
-  let wrote = false;
-  let wroteSaid = 'Not tried — there is no folder to try it in.';
-  if (posts) {
-    let probe = null;
-    try {
-      probe = (messages || posts).createFile('family-upload-check.txt',
-        'Made by an upload test and binned straight away. Safe to delete.');
-      probe.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-      wrote = true;
-      wroteSaid = 'Yes — a test file was made, shared by link and binned.';
-    } catch (err) {
-      /* GOOGLE'S SENTENCE ONLY WHEN IT IS NOT THE SCOPE. § */
-      const raw = S((err && err.message) || err);
-      wroteSaid = driveDenied_(raw) ? 'No — Drive refused it for want of permission.' : 'No — ' + raw;
-    }
-    if (probe) {
-      try { probe.setTrashed(true); }
-      catch (err) { wroteSaid += ' It could not be binned: delete family-upload-check.txt by hand.'; }
-    }
-  }
-
-  /* THE SCOPE IS READ OFF THE TOKEN, AND THE WRITE IS THE EVIDENCE. § */
-  const s = heldScopes_();
-  const drive = holdsScope_(s.held, 'drive');
-  add('scope', drive || wrote, 'This deployment may write to Drive',
-    drive ? 'It holds .../auth/drive.'
-    : s.error ? 'Google could not be asked (' + s.error + ')' + (wrote ? ', but the test write worked.' : '.')
-    : holdsScope_(s.held, 'drive.readonly') ? 'It holds drive.readonly — it can read and cannot write.'
-    : 'It holds no Drive scope at all.');
-  add('folder', !!posts, 'The posts folder opens',
-    posts ? '“' + (name || 'untitled') + '”, from ' + from + (messages
-      ? ', with its Messages folder.' : '.')
-    : 'No — ' + from + ' does not open a folder this account can reach.');
-  add('write', wrote, 'A file can be made there and shared by link', wroteSaid);
-
-  const steps = [];
-  const fix = driveFix_();
-  if (!wrote && !drive && !s.error) {
-    steps.push({ text: 'Sync backend/ from GitHub, so appsscript.json in the editor lists '
-      + '.../auth/drive and not drive.readonly.' });
-    /* THE THIRD STEP IS GATED — `driveFix_` says why. */
-    steps.push({ text: fix.consent ? 'Open the consent link and press Allow, ticking every box.'
-      : 'In the editor run authoriseDrive and press Allow, ticking every box.', href: fix.consent });
-    steps.push({ text: (fix.consent ? 'Run authoriseDrive in the editor. ' : '')
-      + 'Only when its last line says READY: Deploy → Manage deployments → edit → Version: New '
-      + 'version → Deploy.' });
-  } else if (!wrote && !posts) {
-    steps.push({ text: 'Add a row to the config tab: key posts_folder, value the id from the '
-      + 'folder’s URL.' });
-  } else if (!wrote) {
-    steps.push({ text: 'The scope is not the problem. The folder may belong to another account or '
-      + 'sit on a shared drive that refuses sharing by link — try a folder in My Drive.' });
-  }
-  if (!hasColumn) steps.push({ text: 'Open ?setup=1 once to add the column.', href: setupUrl_(), setup: true });
-
-  return {
-    success: true, ok: hasColumn && wrote, version: BACKEND_VERSION,
-    checks: checks, scopes: s.held, steps: steps,
-  };
 }
 
 /* ---------- `pdfPageCount` AND `refreshPageCounts` WERE HERE § */

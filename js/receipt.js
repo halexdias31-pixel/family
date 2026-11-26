@@ -581,9 +581,8 @@ function rcHand_(blob, name, rc, title) {
 }
 
 on('book-share', el => {
-  /* THE DOCUMENT THIS CONTROL IS PART OF, asked of the DOM rather than remembered — the same move as
-     `msg-send` walking up to its nearest `.msg-form`. The form and a saved session share this handler
-     without either being named. */
+  /* THE DOCUMENT THIS CONTROL IS PART OF, asked of the DOM rather than remembered. The form and a
+     saved session share this handler without either being named. */
   const rc = el && el.closest && (el.closest('.rc') || (el.closest('.card') && el.closest('.card').querySelector('.rc')));
   if (!rc) return toast(text_('there-is-nothing-to-share-on'));
   /* SAID AT ONCE, because the picture takes a moment and a press that answers nothing for half a

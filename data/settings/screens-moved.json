@@ -20,10 +20,6 @@
   "to": "find:Booking"
  },
  {
-  "screen": "dm",
-  "to": "find:Messages"
- },
- {
   "screen": "family",
   "to": "find:Settings:Parent"
  },

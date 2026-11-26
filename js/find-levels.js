@@ -637,8 +637,7 @@ function jobPage_(j) {
   const own = typeof jobOpts_ === 'function' ? tile_(jobOpts_({ row: j })) : '';
   /* ONE CART TILE (owner, 7 Nov): an admin on their own booking already has Pay and confirm, so no Mark as paid beside it. */
   const pays = own.indexOf('job-pay') !== -1;
-  const tiles = (typeof jobMsgTiles_ === 'function' ? jobMsgTiles_({ row: j }) : '')
-    + own
+  const tiles = own
     /* ---------- AND SHARE, WHICH THE FORM HAD AND THE BOOKING ITSELF DID NOT § */
     + tile_({ icon: 'share', label: text_('share-this-booking'), act: 'book-share' })
     + (typeof suggestOpts_ === 'function' && j && j.id ? tile_(suggestOpts_('session', String(j.id), 'Booking')) : '')

@@ -45,8 +45,7 @@ function psResults_(col) {
   const S = psState_(col || 'students'), q = psFold_(S.q);
   if (!q) return '';
   const pub = psPublic_().filter(p => psFold_(p.handle).indexOf(q) === 0).slice(0, 8);
-  const out = pub.map(p => psCard_(p, p.personId && typeof tile_ === 'function' ? tile_({ icon: 'chat', label: 'Message',
-    note: 'a note to them', act: 'msg-open', data: { to: p.title, id: p.personId } }) : ''));
+  const out = pub.map(p => psCard_(p, ''));
   const exact = S.asked && S.asked === q;
   if (S.busy) out.push(loading_());
   else if (exact && S.child) {

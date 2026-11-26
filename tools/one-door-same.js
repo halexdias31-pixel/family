@@ -17,7 +17,7 @@ function load() {
   return ctx;
 }
 
-/* THE MADE-UP SHEET: people, work on file, phones, media, records, errors, applications, notes, messages. */
+/* THE MADE-UP SHEET: people, work on file, phones, media, records, errors, applications, notes. */
 function sheet(ctx) {
   const D = s => new ctx.Date(s);
   const P = (id, role, first, extra) => Object.assign({ person_id: id, role: role, roles: role, first_name: first, last_name: 'Test', handle: first.toLowerCase(), email: first.toLowerCase() + '@x.test' }, extra || {});
@@ -37,7 +37,6 @@ function sheet(ctx) {
     applications: [{ application_id: 'A1', person_id: 'P004', at: D('2026-11-01T00:00:00Z'), status: '', status_at: '', subjects: 'Maths', qualifications: 'BSc' },
                    { application_id: 'A2', person_id: 'P003', at: D('2026-11-04T00:00:00Z'), status: 'Declined', status_at: D('2026-11-05T00:00:00Z'), subjects: 'Art' }],
     claude_notes: [{ note_id: 'N-1', status: 'pending', at: D('2026-11-03T00:00:00Z'), by: 'P004', text: 'More maths', kind: 'idea' }],
-    messages: [{ message_id: 'M1', from_id: 'P003', to_id: 'P002', body: 'rude', flagged: 'TRUE', flag_reason: 'rude', sent_at: D('2026-11-04T00:00:00Z'), attachments: '' }],
   };
 }
 
@@ -77,7 +76,7 @@ const CASES = [
   ['workFileDelete', 'workfile:delete', 'P003', { id: 'WF-2' }], ['workFileDelete', 'workfile:delete', 'P004', { id: 'WF-1' }],
   ['pushState', 'push:read', 'P003', {}], ['pushState', 'push:read', 'P001', {}],
   ['pushSubscribe', 'push:save', 'P003', { fcmToken: 'tok-b', device: 'Phone' }], ['pushSubscribe', 'push:save', 'P003', { fcmToken: '' }],
-  ['pushSet', 'pushsetting:save', 'P003', { kind: 'messages', on: false }], ['pushSet', 'pushsetting:save', 'P003', { kind: 'nonsense', on: true }],
+  ['pushSet', 'pushsetting:save', 'P003', { kind: 'bookings', on: false }], ['pushSet', 'pushsetting:save', 'P003', { kind: 'nonsense', on: true }],
   ['pushUnsubscribe', 'push:delete', 'P003', { fcmToken: 'tok-a' }],
   ['mediaSave', 'media:save', 'P001', { kind: 'video', url: 'https://youtu.be/dQw4w9WgXcQ', title: 'New title', subject: 'Maths' }],
   ['mediaSave', 'media:save', 'P001', { kind: 'reel', url: 'https://youtube.com/shorts/abcdefghijk', title: 'A reel' }],

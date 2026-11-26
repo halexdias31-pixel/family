@@ -84,8 +84,6 @@ async function loadOnce_(again, n, kept) {
       if (!(await loadTakeData_(d, n, who))) return;
       got = true;
       RECONNECT.shown = n; RECONNECT.shownFor = who;
-      /* THE MESSAGES CAME WITH IT (700), so the DMs column is drawn with the rest, not one cold round trip later. */
-      if (typeof dmAdopt_ === 'function') dmAdopt_(d);
       /* AND THE SHAPE THE COLUMNS LANDED IN, for the next visit's wait (700). */
       setTimeout(shapeSave_, 4000);
       /* THE STARS AND THE SPOTLIGHTS, from the payload that has just landed. § */
@@ -218,10 +216,6 @@ function loadNotices_(d) {
           + '. Everything else is here; reload the page to try again.');
       }
 
-      /* ---------- THE MESSAGE WIDGETS COULD NOT EXIST UNTIL YOU OPENED THE MESSAGE SCREEN § */
-      if (USER && typeof loadMessages === 'function') {
-        loadMessages().then(() => { try { landRepaint_(); } catch (e) { oops_(e, 'shell:loadOnce_') } });
-      }
       /* AND YOUR OWN SETTINGS, AS THE SHEET HOLDS THEM — see `profileRefresh_` in me.js. § */
       if (USER && typeof profileRefresh_ === 'function') profileRefresh_();
       /* NO BANNER FOR A VERSION MISMATCH ANY MORE. § */
