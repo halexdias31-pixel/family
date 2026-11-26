@@ -13192,65 +13192,114 @@
   "set_prefix": "P-FAM-GEN-SC-",
   "row_prefix": "Q-GEN-",
   "key": "dfe",
-  "level": "GCSE Combined",
+  "level": [
+   "GCSE Combined",
+   "GCSE Separate"
+  ],
   "subject": "root"
  },
  "gen_ideas": {
+  "dfe.sc.b.cell.cells.s2": "sc.bio.animal-and-plant-cells",
   "dfe.sc.b.cell.cells.s4": "sc.bio.animal-and-plant-cells",
   "dfe.sc.b.cell.enzymes.s1": "sc.bio.aerobic-and-anaerobic-respiration",
   "dfe.sc.b.eco.biodiversity.s1": "sc.bio.biodiversity",
+  "dfe.sc.b.eco.biomass.s2": "sc.bio.factors-affecting-food-security",
+  "dfe.sc.b.eco.biomass.s3": "sc.bio.factors-affecting-food-security",
+  "dfe.sc.b.eco.cycles.s5": "sc.bio.decomposition",
   "dfe.sc.b.health.noncommunicable.s2": "sc.bio.cancer",
   "dfe.sc.b.inherit.evolution.s5": "sc.bio.classification-of-living-organisms",
   "dfe.sc.b.photo.photo.s3": "sc.bio.photosynthetic-reaction",
+  "dfe.sc.b.photo.photo.s4": "sc.bio.photosynthetic-reaction",
   "dfe.sc.b.photo.photo.s5": "sc.bio.photosynthetic-reaction",
   "dfe.sc.b.trans.cells.s1": "sc.bio.active-transport",
   "dfe.sc.b.trans.heart.s1": "sc.bio.blood",
+  "dfe.sc.c.analysis.ions.s4": "sc.chem.carbonates",
   "dfe.sc.c.analysis.mass.s1": "sc.chem.chemical-measurements-and-uncertainty",
+  "dfe.sc.c.analysis.mass.s3": "sc.chem.chemical-measurements-and-uncertainty",
   "dfe.sc.c.analysis.mass.s4": "sc.chem.chemical-measurements-and-uncertainty",
   "dfe.sc.c.analysis.moles.s1": "sc.chem.amounts-of-substances-in-equations",
   "dfe.sc.c.analysis.moles.s2": "sc.chem.amounts-of-substances-in-equations",
+  "dfe.sc.c.analysis.moles.s3": "sc.chem.amounts-of-substances-in-equations",
+  "dfe.sc.c.analysis.moles.s4": "sc.chem.amounts-of-substances-in-equations",
+  "dfe.sc.c.analysis.moles.s5": "sc.chem.amounts-of-substances-in-equations",
   "dfe.sc.c.analysis.moles.s6": "sc.chem.amounts-of-substances-in-equations",
+  "dfe.sc.c.analysis.yield.s1": "sc.chem.atom-economy",
+  "dfe.sc.c.atom.transition.s1": "sc.chem.transition-metals-compared-with-group-1",
   "dfe.sc.c.change.acids.s6": "sc.chem.neutralisation-of-acids-and-salt-production",
   "dfe.sc.c.change.equations.s3": "sc.chem.extraction-of-metals-and-reduction",
+  "dfe.sc.c.energy.cells.s1": "sc.chem.cells-and-batteries",
   "dfe.sc.c.rate.rate.s10": "sc.chem.calculating-rates-of-reactions",
   "dfe.sc.c.rate.rate.s2": "sc.chem.calculating-rates-of-reactions",
   "dfe.sc.c.rate.rate.s3": "sc.chem.calculating-rates-of-reactions",
   "dfe.sc.c.rate.rate.s4": "sc.chem.calculating-rates-of-reactions",
   "dfe.sc.c.rate.rate.s5": "sc.chem.calculating-rates-of-reactions",
   "dfe.sc.c.rate.rate.s6": "sc.chem.calculating-rates-of-reactions",
+  "dfe.sc.c.rate.rate.s9": "sc.chem.calculating-rates-of-reactions",
+  "dfe.sc.p.atomic.hazards.s1": "sc.phys.background-radiation",
   "dfe.sc.p.atomic.radiation.s4": "sc.phys.half-lives-and-the-random-nature-of-radioactive-decay",
   "dfe.sc.p.elec.current.s1": "sc.phys.current-resistance-and-potential-difference",
+  "dfe.sc.p.elec.current.s2": "sc.phys.current-resistance-and-potential-difference",
   "dfe.sc.p.elec.current.s3": "sc.phys.current-resistance-and-potential-difference",
+  "dfe.sc.p.elec.mains.s2": "sc.phys.direct-and-alternating-potential-difference",
   "dfe.sc.p.elec.mains.s3": "sc.phys.direct-and-alternating-potential-difference",
   "dfe.sc.p.elec.series.s1": "sc.phys.series-and-parallel-circuits",
+  "dfe.sc.p.elec.series.s2": "sc.phys.series-and-parallel-circuits",
   "dfe.sc.p.elec.series.s3": "sc.phys.series-and-parallel-circuits",
   "dfe.sc.p.energy.efficiency.s4": "sc.phys.efficiency",
   "dfe.sc.p.energy.stores.s1": "sc.phys.changes-in-energy",
   "dfe.sc.p.energy.stores.s2": "sc.phys.changes-in-energy",
   "dfe.sc.p.energy.stores.s3": "sc.phys.changes-in-energy",
+  "dfe.sc.p.energy.stores.s5": "sc.phys.changes-in-energy",
   "dfe.sc.p.energy.stores.s6": "sc.phys.changes-in-energy",
   "dfe.sc.p.forces.interact.s2": "sc.phys.contact-and-non-contact-forces",
+  "dfe.sc.p.forces.interact.s5": "sc.phys.contact-and-non-contact-forces",
   "dfe.sc.p.forces.interact.s6": "sc.phys.contact-and-non-contact-forces",
+  "dfe.sc.p.forces.moments.s1": "sc.phys.moments-levers-and-gears",
+  "dfe.sc.p.forces.moments.s2": "sc.phys.moments-levers-and-gears",
   "dfe.sc.p.forces.momentum.s1": "sc.phys.changes-in-momentum",
   "dfe.sc.p.forces.momentum.s2": "sc.phys.changes-in-momentum",
   "dfe.sc.p.forces.momentum.s3": "sc.phys.changes-in-momentum",
+  "dfe.sc.p.forces.momentum.s5": "sc.phys.changes-in-momentum",
   "dfe.sc.p.forces.momentum.s6": "sc.phys.changes-in-momentum",
   "dfe.sc.p.forces.motion.s1": "sc.phys.acceleration",
   "dfe.sc.p.forces.motion.s2": "sc.phys.acceleration",
   "dfe.sc.p.forces.motion.s3": "sc.phys.acceleration",
+  "dfe.sc.p.forces.motion.s4": "sc.phys.acceleration",
   "dfe.sc.p.forces.motion.s5": "sc.phys.acceleration",
+  "dfe.sc.p.forces.pressure.s1": "sc.phys.atmospheric-pressure",
+  "dfe.sc.p.forces.pressure.s3": "sc.phys.atmospheric-pressure",
+  "dfe.sc.p.forces.work.s1": "sc.phys.forces-and-elasticity",
   "dfe.sc.p.forces.work.s2": "sc.phys.forces-and-elasticity",
+  "dfe.sc.p.magnet.induction.s1": "sc.phys.induced-potential",
   "dfe.sc.p.magnet.motor.s4": "sc.phys.electric-motors",
+  "dfe.sc.p.matter.internal.s2": "sc.phys.changes-of-state-and-specific-latent-heat",
   "dfe.sc.p.matter.internal.s4": "sc.phys.changes-of-state-and-specific-latent-heat",
   "dfe.sc.p.matter.states.s1": "sc.phys.changes-of-state",
+  "dfe.sc.p.space.solar.s2": "sc.phys.orbital-motion-natural-and-artificial-satellites",
+  "dfe.sc.p.waves.em.s3": "sc.phys.properties-of-electromagnetic-waves-1",
   "dfe.sc.p.waves.em.s4": "sc.phys.properties-of-electromagnetic-waves-1",
   "dfe.sc.p.waves.properties.s1": "sc.phys.properties-of-waves",
+  "dfe.sc.p.waves.properties.s3": "sc.phys.properties-of-waves",
+  "dfe.sc.p.waves.properties.s4": "sc.phys.properties-of-waves",
+  "dfe.sc.x.chemistry.chemical-analysis.principles-for-determining-the-c.s1": "sc.chem.atom-economy",
+  "dfe.sc.x.chemistry.chemical-analysis.principles-for-determining-the-c.s2": "sc.chem.atom-economy",
+  "dfe.sc.x.chemistry.chemical-and-allied-industries.the-comparison-of-yield-and-atom.s1": "sc.chem.atom-economy",
+  "dfe.sc.x.chemistry.chemical-and-allied-industries.the-comparison-of-yield-and-atom.s2": "sc.chem.atom-economy",
+  "dfe.sc.x.chemistry.chemical-and-allied-industries.the-comparison-of-yield-and-atom.s3": "sc.chem.atom-economy",
+  "dfe.sc.x.chemistry.chemical-and-allied-industries.the-comparison-of-yield-and-atom.s4": "sc.chem.atom-economy",
+  "dfe.sc.x.chemistry.chemical-and-allied-industries.the-comparison-of-yield-and-atom.s5": "sc.chem.atom-economy",
   "dfe.sc.x.physics.electricity.energy-transfers.s1": "sc.phys.direct-and-alternating-potential-difference",
+  "dfe.sc.x.physics.electricity.energy-transfers.s3": "sc.phys.direct-and-alternating-potential-difference",
   "dfe.sc.x.physics.electricity.energy-transfers.s4": "sc.phys.direct-and-alternating-potential-difference",
   "dfe.sc.x.physics.forces-and-motion.safety-in-public-transport.s2": "sc.phys.changes-in-momentum",
+  "dfe.sc.x.physics.light-and-electromagnetic-waves.black-body-radiation-qualitative.s1": "sc.phys.emission-and-absorption-of-infrared-radiation",
   "dfe.sc.x.physics.light-and-electromagnetic-waves.interactions-of-electromagnetic.s1": "sc.phys.properties-of-electromagnetic-waves-1"
  },
  "templates": {
+  "dfe.sc.b.cell.cells.s2": [
+   "sc-magnification",
+   "sc-actual-size"
+  ],
   "dfe.sc.b.cell.cells.s4": [
    "sc-magnification",
    "sc-actual-size"
@@ -13259,6 +13308,15 @@
    "sc-mean"
   ],
   "dfe.sc.b.eco.biodiversity.s1": [
+   "sc-quadrat"
+  ],
+  "dfe.sc.b.eco.biomass.s2": [
+   "sc-biomass-eff"
+  ],
+  "dfe.sc.b.eco.biomass.s3": [
+   "sc-efficiency"
+  ],
+  "dfe.sc.b.eco.cycles.s5": [
    "sc-quadrat"
   ],
   "dfe.sc.b.health.noncommunicable.s2": [
@@ -13271,6 +13329,9 @@
   "dfe.sc.b.photo.photo.s3": [
    "sc-photo-rate"
   ],
+  "dfe.sc.b.photo.photo.s4": [
+   "sc-photo-rate"
+  ],
   "dfe.sc.b.photo.photo.s5": [
    "sc-photo-rate"
   ],
@@ -13281,8 +13342,15 @@
    "sc-heart-rate",
    "sc-cardiac-output"
   ],
+  "dfe.sc.c.analysis.ions.s4": [
+   "sc-speed",
+   "sc-distance"
+  ],
   "dfe.sc.c.analysis.mass.s1": [
    "sc-conservation"
+  ],
+  "dfe.sc.c.analysis.mass.s3": [
+   "sc-mr"
   ],
   "dfe.sc.c.analysis.mass.s4": [
    "sc-mr"
@@ -13295,8 +13363,24 @@
    "sc-moles",
    "sc-mass-moles"
   ],
+  "dfe.sc.c.analysis.moles.s3": [
+   "sc-reacting-mass"
+  ],
+  "dfe.sc.c.analysis.moles.s4": [
+   "sc-reacting-mass"
+  ],
+  "dfe.sc.c.analysis.moles.s5": [
+   "sc-conc"
+  ],
   "dfe.sc.c.analysis.moles.s6": [
    "sc-conc"
+  ],
+  "dfe.sc.c.analysis.yield.s1": [
+   "sc-gas-volume",
+   "sc-gas-moles"
+  ],
+  "dfe.sc.c.atom.transition.s1": [
+   "sc-density"
   ],
   "dfe.sc.c.change.acids.s6": [
    "sc-moles",
@@ -13304,6 +13388,10 @@
   ],
   "dfe.sc.c.change.equations.s3": [
    "sc-conservation"
+  ],
+  "dfe.sc.c.energy.cells.s1": [
+   "sc-vir",
+   "sc-resistance"
   ],
   "dfe.sc.c.rate.rate.s10": [
    "sc-mean"
@@ -13328,6 +13416,12 @@
    "sc-rate-mass",
    "sc-rate-gas"
   ],
+  "dfe.sc.c.rate.rate.s9": [
+   "sc-mean"
+  ],
+  "dfe.sc.p.atomic.hazards.s1": [
+   "sc-half-life"
+  ],
   "dfe.sc.p.atomic.radiation.s4": [
    "sc-half-life"
   ],
@@ -13336,7 +13430,15 @@
    "sc-resistance",
    "sc-charge"
   ],
+  "dfe.sc.p.elec.current.s2": [
+   "sc-vir",
+   "sc-resistance"
+  ],
   "dfe.sc.p.elec.current.s3": [
+   "sc-vir",
+   "sc-resistance"
+  ],
+  "dfe.sc.p.elec.mains.s2": [
    "sc-vir",
    "sc-resistance"
   ],
@@ -13345,6 +13447,10 @@
    "sc-resistance"
   ],
   "dfe.sc.p.elec.series.s1": [
+   "sc-vir",
+   "sc-resistance"
+  ],
+  "dfe.sc.p.elec.series.s2": [
    "sc-vir",
    "sc-resistance"
   ],
@@ -13369,6 +13475,9 @@
   "dfe.sc.p.energy.stores.s3": [
    "sc-power"
   ],
+  "dfe.sc.p.energy.stores.s5": [
+   "sc-power"
+  ],
   "dfe.sc.p.energy.stores.s6": [
    "sc-power"
   ],
@@ -13376,10 +13485,23 @@
    "sc-weight",
    "sc-moon-mass"
   ],
+  "dfe.sc.p.forces.interact.s5": [
+   "sc-work",
+   "sc-hooke-force",
+   "sc-spring-constant"
+  ],
   "dfe.sc.p.forces.interact.s6": [
    "sc-work",
    "sc-hooke-force",
    "sc-spring-constant"
+  ],
+  "dfe.sc.p.forces.moments.s1": [
+   "sc-moment",
+   "sc-moment-balance"
+  ],
+  "dfe.sc.p.forces.moments.s2": [
+   "sc-moment",
+   "sc-moment-balance"
   ],
   "dfe.sc.p.forces.momentum.s1": [
    "sc-speed",
@@ -13392,6 +13514,9 @@
   ],
   "dfe.sc.p.forces.momentum.s3": [
    "sc-accel"
+  ],
+  "dfe.sc.p.forces.momentum.s5": [
+   "sc-momentum"
   ],
   "dfe.sc.p.forces.momentum.s6": [
    "sc-momentum"
@@ -13407,16 +13532,39 @@
    "sc-speed",
    "sc-distance"
   ],
+  "dfe.sc.p.forces.motion.s4": [
+   "sc-speed",
+   "sc-distance",
+   "sc-accel"
+  ],
   "dfe.sc.p.forces.motion.s5": [
    "sc-speed",
    "sc-distance",
    "sc-accel"
   ],
+  "dfe.sc.p.forces.pressure.s1": [
+   "sc-pressure",
+   "sc-liquid-pressure"
+  ],
+  "dfe.sc.p.forces.pressure.s3": [
+   "sc-density"
+  ],
+  "dfe.sc.p.forces.work.s1": [
+   "sc-work"
+  ],
   "dfe.sc.p.forces.work.s2": [
    "sc-work"
   ],
+  "dfe.sc.p.magnet.induction.s1": [
+   "sc-vir",
+   "sc-resistance"
+  ],
   "dfe.sc.p.magnet.motor.s4": [
    "sc-density"
+  ],
+  "dfe.sc.p.matter.internal.s2": [
+   "sc-shc-energy",
+   "sc-shc-c"
   ],
   "dfe.sc.p.matter.internal.s4": [
    "sc-shc-energy",
@@ -13424,6 +13572,14 @@
   ],
   "dfe.sc.p.matter.states.s1": [
    "sc-density"
+  ],
+  "dfe.sc.p.space.solar.s2": [
+   "sc-speed",
+   "sc-distance"
+  ],
+  "dfe.sc.p.waves.em.s3": [
+   "sc-wave-speed",
+   "sc-wavelength"
   ],
   "dfe.sc.p.waves.em.s4": [
    "sc-wave-speed",
@@ -13433,8 +13589,40 @@
    "sc-wave-speed",
    "sc-wavelength"
   ],
+  "dfe.sc.p.waves.properties.s3": [
+   "sc-echo"
+  ],
+  "dfe.sc.p.waves.properties.s4": [
+   "sc-echo"
+  ],
+  "dfe.sc.x.chemistry.chemical-analysis.principles-for-determining-the-c.s1": [
+   "sc-conc"
+  ],
+  "dfe.sc.x.chemistry.chemical-analysis.principles-for-determining-the-c.s2": [
+   "sc-titration"
+  ],
+  "dfe.sc.x.chemistry.chemical-and-allied-industries.the-comparison-of-yield-and-atom.s1": [
+   "sc-percent-yield"
+  ],
+  "dfe.sc.x.chemistry.chemical-and-allied-industries.the-comparison-of-yield-and-atom.s2": [
+   "sc-reacting-mass"
+  ],
+  "dfe.sc.x.chemistry.chemical-and-allied-industries.the-comparison-of-yield-and-atom.s3": [
+   "sc-atom-economy"
+  ],
+  "dfe.sc.x.chemistry.chemical-and-allied-industries.the-comparison-of-yield-and-atom.s4": [
+   "sc-atom-economy"
+  ],
+  "dfe.sc.x.chemistry.chemical-and-allied-industries.the-comparison-of-yield-and-atom.s5": [
+   "sc-atom-economy"
+  ],
   "dfe.sc.x.physics.electricity.energy-transfers.s1": [
    "sc-power",
+   "sc-piv",
+   "sc-power-i2r",
+   "sc-energy-pt"
+  ],
+  "dfe.sc.x.physics.electricity.energy-transfers.s3": [
    "sc-piv",
    "sc-power-i2r",
    "sc-energy-pt"
@@ -13446,6 +13634,10 @@
   ],
   "dfe.sc.x.physics.forces-and-motion.safety-in-public-transport.s2": [
    "sc-stopping"
+  ],
+  "dfe.sc.x.physics.light-and-electromagnetic-waves.black-body-radiation-qualitative.s1": [
+   "sc-wave-speed",
+   "sc-wavelength"
   ],
   "dfe.sc.x.physics.light-and-electromagnetic-waves.interactions-of-electromagnetic.s1": [
    "sc-wave-speed",

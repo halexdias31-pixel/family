@@ -3438,7 +3438,10 @@
   "set_prefix": "P-FAM-GEN-SC-",
   "row_prefix": "Q-GEN-",
   "key": "dfe",
-  "level": "GCSE Combined",
+  "level": [
+   "GCSE Combined",
+   "GCSE Separate"
+  ],
   "subject": "root"
  },
  "templates": {

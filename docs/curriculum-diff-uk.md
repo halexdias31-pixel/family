@@ -20,7 +20,7 @@ Question tagging and generated questions (tools/lib/curriculum.js assign and too
 | | Before (hand) | After (generated) |
 |---|---|---|
 | maths questions tagged | 16924 of 19636 | 16924 of 19636 |
-| distinct nodes tagged | 948 | 940 |
+| distinct nodes tagged | 948 | 982 |
 | generated questions | 870 | 1270 |
 
 ### renamed (29)
@@ -514,9 +514,9 @@ Question tagging and generated questions (tools/lib/curriculum.js assign and too
 
 | | Before (hand) | After (generated) |
 |---|---|---|
-| science questions tagged | 10619 of 20040 | 10619 of 20040 |
-| distinct nodes tagged | 948 | 940 |
-| generated questions | 440 | 940 |
+| science questions tagged | 11249 of 20670 | 11249 of 20670 |
+| distinct nodes tagged | 948 | 982 |
+| generated questions | 440 | 1570 |
 
 ### renamed (33)
 
