@@ -112,6 +112,14 @@ function run() {
     const got = ask(k, { docket: TOKEN, do: 'add', what: 'milk', list: 'shopping' }), L = JSON.parse(k.state.owner.todo).lists;
     if (L.length !== 1 || L[0].name !== 'Docket' || L[0].items.map(i => i.title).join('|') !== 'Floss|Desk thing|milk' || L[0].items[2].repeat || L[0].items[2].date
       || k.state.saves !== 1 || got.indexOf(text_('dk-say-added', { title: 'milk', name: 'Docket' })) !== 0) bad.push('"add milk" did not add to the one list: ' + got); }
+  /* do=list (the desk e-paper screen, tools/docket-screen): `docket-list`, then each open item in the site's order, "! " overdue, "- " the rest;
+     nothing saved; a wrong token is still refused (the screen then keeps its last list). Two clock times and the all-done list. */
+  ['07:10', '17:30'].forEach(at => { const k = make(at), m = S.dkNowNextOf_(ITEMS(), DAY + ' ' + at); n++;
+    const want = ['docket-list'].concat(m.rows.map(r => (r.missed ? '! ' : '- ') + r.title)).join('\n'), got = ask(k, { docket: TOKEN, do: 'list' });
+    if (got !== want || k.state.saves || !/^docket-list\n! Made-up late\n- /.test(got)) bad.push(at + ': do=list says ' + JSON.stringify(got) + ', the site ' + JSON.stringify(want)); });
+  { const k = make('10:00', [{ name: 'Docket', items: [{ title: 'Done one', done: true, doneOn: DAY }] }]); n++;
+    if (ask(k, { docket: TOKEN, do: 'list' }) !== 'docket-list') bad.push('do=list with nothing open is not the heading alone'); }
+  { n++; if (ask(make('10:00'), { docket: 'x'.repeat(64), do: 'list' }) !== refused) bad.push('do=list answered a wrong token'); }
   /* do=options IS GONE: it reads as a plain read, changing nothing. */
   { const k = make('07:10'); n++;
     if (ask(k, { docket: TOKEN, do: 'options' }) !== ask(make('07:10'), { docket: TOKEN }) || k.state.saves) bad.push('do=options still answers something of its own'); }
