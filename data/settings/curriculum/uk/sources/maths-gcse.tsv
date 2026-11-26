@@ -1,0 +1,1146 @@
+1	534	85	72	1	Mathematics 
+1	638	85	36	1	GCSE subject content and assessment 
+1	687	85	36	1	objectives 
+2	1167	436	18	0	2 
+2	83	85	27	1	Contents 
+2	139	85	18	0	Introduction 
+2	139	787	18	0	3
+2	182	103	18	0	Subject aims and learning outcomes 
+2	182	787	18	0	3
+2	225	85	18	0	Subject content 
+2	225	787	18	0	4
+2	267	103	18	0	Scope of study 
+2	267	787	18	0	4
+2	310	121	18	0	Number 
+2	310	787	18	0	4
+2	353	121	18	0	Algebra 
+2	353	787	18	0	6
+2	396	121	18	0	Ratio, proportion and rates of change 
+2	396	787	18	0	8
+2	439	121	18	0	Geometry and measures 
+2	439	787	18	0	9
+2	482	121	18	0	Probability 
+2	482	777	18	0	11
+2	524	121	18	0	Statistics 
+2	524	777	18	0	11
+2	567	85	18	0	Assesment Objectives 
+2	567	777	18	0	13
+2	610	85	18	0	Appendix: Mathematical formulae 
+2	610	777	18	0	14
+3	1167	436	18	0	3 
+3	83	85	27	1	Introduction 
+3	133	85	18	0	GCSE subject criteria set out the knowledge, understanding, skills and assessment 
+3	157	85	18	0	objectives common to all GCSE specifications in a given subject. They provide the 
+3	182	85	18	0	framework within which awarding organisations create the detail of their specifications, so 
+3	207	85	18	0	ensuring progression from key stage 3 national curriculum requirements and the 
+3	232	85	18	0	possibilities for development into advanced-level study. 
+3	274	85	24	1	Subject aims and learning outcomes 
+3	320	85	18	0	This document sets out the learning outcomes and content coverage required for GCSE 
+3	345	85	18	0	specifications in mathematics. In subjects such as mathematics, where topics are taught 
+3	370	85	18	0	in progressively greater depth over the course of key stage 3 and key stage 4, GCSE 
+3	395	85	18	0	outcomes may reflect or build upon subject content which is typically taught at key stage 
+3	420	85	18	0	3. There is no expectation that teaching of such content should be repeated during the 
+3	445	85	18	0	GCSE course where it has already been taught effectively at an earlier stage. 
+3	487	85	18	0	GCSE specifications in mathematics should provide a broad, coherent, satisfying and 
+3	512	85	18	0	worthwhile course of study. They should encourage students to develop confidence in, 
+3	537	85	18	0	and a positive attitude towards mathematics and to recognise the importance of 
+3	562	85	18	0	mathematics in their own lives and to society. They should also provide a strong 
+3	587	85	18	0	mathematical foundation for students who go on to study mathematics at a higher level 
+3	612	85	18	0	post-16. 
+3	654	85	18	0	GCSE specifications in mathematics should enable students to:  
+3	697	111	18	0	1. 
+3	697	138	18	0	develop fluent knowledge, skills and understanding of mathematical methods and 
+3	722	138	18	0	concepts 
+3	751	111	18	0	2. 
+3	751	138	18	0	acquire
+3	751	197	18	0	, 
+3	751	207	18	0	select and apply mathematical techniques to solve problems
+3	781	111	18	0	3. 
+3	781	138	18	0	reason mathematically, make deductions and inferences and draw conclusions 
+3	810	111	18	0	4. 
+3	810	138	18	0	comprehend
+3	810	238	18	0	, i
+3	810	252	18	0	nterpret and communicate mathematical information in a variety of 
+3	835	138	18	0	forms appropriate to the information and context. 
+3	907	85	18	0	Students should be aware that mathematics can be used to develop models of real 
+3	932	85	18	0	situations and that these models may be more or less effective depending on how the 
+3	957	85	18	0	situation has been simplified and the assumptions that have been made. Students should 
+3	982	85	18	0	also be able to recall, select and apply mathematical formulae (see Appendix). 
+4	1167	436	18	0	4 
+4	83	85	27	1	Subject content 
+4	133	85	18	0	GCSE specifications in mathematics should reflect the aims and learning outcomes 
+4	157	85	18	0	outlined above, and should include the knowledge, understanding and skills listed below, 
+4	182	85	18	0	giving due consideration to the assessment objectives. The essential subject content 
+4	207	85	18	0	outlined here provides the framework for developing a coherent study at GCSE. 
+4	250	85	18	0	This content sets out the full range of content for GCSE specifications in mathematics. 
+4	275	85	18	0	Awarding organisations may, however, use any flexibility to increase depth, breadth or 
+4	300	85	18	0	context within the specified topics or to consolidate teaching of the subject content.  
+4	343	85	18	0	Students can be said to have confidence and competence with mathematical content 
+4	367	85	18	0	when they can apply it flexibly to solve problems. 
+4	410	85	18	0	The expectation is that: 
+4	454	112	18	0	•
+4	454	120	18	0	  All students will develop confidence and competence with the content identified by 
+4	479	139	18	0	standard type 
+4	514	112	18	0	•
+4	514	120	18	0	  All students will be assessed on the content identified by the standard and 
+4	539	139	18	0	the underlined type; more highly attaining students will develop confidence and 
+4	564	139	18	0	competence with all of this content 
+4	599	112	18	0	•
+4	599	120	18	0	  Only the more highly attaining students will be assessed on the content identified 
+4	624	139	18	0	by 
+4	623	163	18	1	bold
+4	624	201	18	0	 type. The highest attaining students will develop confidence and 
+4	649	139	18	0	competence with the 
+4	648	309	18	1	bold
+4	649	347	18	0	 content. 
+4	682	85	18	0	The distinction between standard, underlined and 
+4	682	483	18	1	bold
+4	682	521	18	0	 type applies to the content 
+4	707	85	18	0	statements only, not to the assessment objectives or to the mathematical formulae in the 
+4	732	85	18	0	appendix. 
+4	774	85	24	1	Scope of study 
+4	821	85	18	0	GCSE specifications in mathematics should require students to: 
+4	854	85	21	1	Number 
+4	901	85	18	0	Structure and calculation 
+4	944	117	18	0	1. 
+4	944	138	18	0	order positive and negative integers, decimals and fractions; use the symbols =, ≠, 
+4	969	144	18	0	<, >
+4	969	175	18	0	, ≤, ≥ 
+4	1003	111	18	0	2. 
+4	1003	138	18	0	apply the four operations, including formal written methods, to integers, decimals 
+4	1028	138	18	0	and simple fractions (proper and improper), and mixed numbers – all both positive 
+4	1052	138	18	0	and negative; understand and use place value (e.g. when working with very large 
+4	1077	138	18	0	or very small numbers, and when calculating with decimals) 
+5	1167	436	18	0	5 
+5	84	111	18	0	3. 
+5	84	138	18	0	recognise and use relationships between operations, including inverse operations 
+5	108	138	18	0	(e.g. cancellation to simplify calculations and expressions; use conventional 
+5	133	138	18	0	notation for priority of operations, including brackets, powers, roots and reciprocals 
+5	167	111	18	0	4. 
+5	167	138	18	0	use the concepts and vocabulary of prime numbers, factors (divisors), multiples, 
+5	192	138	18	0	common factors, common multiples, highest common factor, lowest common 
+5	217	138	18	0	multiple, prime factorisation, including using product notation and the unique 
+5	242	138	18	0	factorisation theorem 
+5	275	111	18	0	5. 
+5	275	138	18	0	apply systematic listing strategies 
+5	275	410	18	1	including use of the product rule for 
+5	300	138	18	1	counting 
+5	334	111	18	0	6. 
+5	334	138	18	0	use positive integer powers and associated real
+5	334	522	18	0	roots (square, cube and higher), 
+5	359	138	18	0	recognise powers of 2, 3, 4, 5
+5	359	374	18	1	;
+5	359	380	18	1	 estimate powers and roots of any given positive 
+5	384	138	18	1	number
+5	418	111	18	0	7. 
+5	418	138	18	0	calculate with roots, and with integer 
+5	417	433	18	1	and
+5	417	470	18	1	fractional
+5	418	551	18	0	 indices
+5	453	111	18	0	8. 
+5	453	138	18	0	calculate exactly with fractions, 
+5	453	390	18	1	surds
+5	453	439	18	0	 and multiples of 
+5	453	575	18	0	π
+5	453	585	18	1	;
+5	453	596	18	1	simplify surd 
+5	482	138	18	1	expressions involving squares (e.g. 
+5	482	462	18	1	12 = 4×3 = 4 × 3 = 2 3
+5	482	674	18	1	) and
+5	509	138	18	1	rationalise denominators
+5	543	111	18	0	9. 
+5	543	138	18	0	calculate with and interpret standard form 
+5	543	473	18	0	A
+5	543	484	18	0	 x 
+5	543	503	18	0	10
+5	541	521	12	0	n
+5	543	527	18	0	, where 
+5	543	591	18	0	1 ≤ 
+5	543	619	18	0	A
+5	543	630	18	0	 < 10
+5	543	667	18	0	 and 
+5	543	707	18	0	n
+5	543	716	18	0	 is an 
+5	568	138	18	0	integer. 
+5	636	85	18	0	Fractions, decimals and percentages 
+5	679	111	18	0	10. 
+5	679	138	18	0	work interchangeably with terminating decimals and their corresponding fractions 
+5	716	138	18	0	(such as 3.5 and   7
+5	730	286	18	0	2
+5	716	301	18	0	or 0.375 or  3
+5	730	397	18	0	8
+5	716	417	18	0	)
+5	715	423	18	1	; change recurring decimals into their 
+5	754	138	18	1	corresponding fractions and vice versa 
+5	788	111	18	0	11. 
+5	788	138	18	0	identify and work with fractions in ratio problems 
+5	822	111	18	0	12. 
+5	822	138	18	0	interpret fractions and percentages as operators. 
+5	890	85	18	0	Measures and accuracy 
+5	933	111	18	0	13. 
+5	933	138	18	0	use standard units of mass, length, time, money and other measures (including 
+5	957	138	18	0	standard compound measures) using decimal quantities where appropriate 
+5	991	111	18	0	14. 
+5	991	138	18	0	estimate answers; check calculations using approximation and estimation, 
+5	1016	138	18	0	including answers obtained using technology 
+5	1050	111	18	0	15. 
+5	1050	138	18	0	round numbers and measures to an appropriate degree of accuracy (e.g. to a 
+5	1075	138	18	0	specified number of decimal places or significant figures); use inequality notation 
+5	1100	138	18	0	to specify simple error intervals due to truncation or rounding 
+5	1134	111	18	0	16. 
+5	1134	138	18	0	apply and interpret limits of accuracy
+5	1133	430	18	1	,
+5	1133	440	18	1	including
+5	1133	525	18	1	upper and lower bounds
+6	1167	436	18	0	6 
+6	83	85	21	1	Algebra  
+6	131	85	18	0	Notation, vocabulary and manipulation 
+6	173	111	18	0	1. 
+6	173	138	18	0	use and interpret algebraic notation, including: 
+6	209	170	18	0	
+6	207	197	18	0	ab
+6	207	215	18	0	 in place of 
+6	207	307	18	0	a
+6	207	316	18	0	 × 
+6	207	336	18	0	b
+6	234	170	18	0	
+6	232	197	18	0	3
+6	232	206	18	0	y
+6	232	214	18	0	 in place of 
+6	232	306	18	0	y
+6	232	314	18	0	 + 
+6	232	334	18	0	y
+6	232	342	18	0	 + 
+6	232	361	18	0	y
+6	232	369	18	0	 and 
+6	232	409	18	0	3 × 
+6	232	437	18	0	y
+6	258	170	21	0	
+6	259	197	18	0	a
+6	257	206	12	0	2
+6	259	212	18	0	 in place of 
+6	259	304	18	0	a × a
+6	259	344	18	0	,
+6	259	353	18	0	a
+6	257	362	12	0	3
+6	259	368	18	0	 in place of 
+6	259	460	18	0	a 
+6	259	474	18	0	×
+6	259	484	18	0	 a 
+6	259	502	18	0	× 
+6	259	516	18	0	a
+6	259	525	18	0	, 
+6	259	536	18	0	a
+6	257	544	12	0	2
+6	259	550	18	0	b
+6	259	559	18	0	 in place of 
+6	259	652	18	0	a
+6	259	661	18	0	 × 
+6	259	680	18	0	a
+6	259	689	18	0	 × 
+6	259	708	18	0	b
+6	298	170	18	0	
+6	284	202	18	0	a
+6	310	202	18	0	b
+6	296	217	18	0	in place of 
+6	296	304	18	0	a 
+6	295	317	19	0	÷
+6	296	327	18	0	 b
+6	337	170	18	0	
+6	335	197	18	0	coefficients written as fractions rather than as decimals 
+6	362	170	18	0	
+6	360	197	18	0	brackets 
+6	394	111	18	0	2. 
+6	394	138	18	0	substitute numerical values into formulae and expressions, including scientific 
+6	419	138	18	0	formulae 
+6	453	111	18	0	3. 
+6	453	138	18	0	understand and use the concepts and vocabulary of expressions, equations, 
+6	477	138	18	0	formulae, identities
+6	477	294	18	0	inequalities, terms and factors
+6	511	111	18	0	4. 
+6	511	138	18	0	simplify and manipulate algebraic expressions (including those involving surds 
+6	536	138	18	1	and
+6	536	175	18	1	algebraic fractions
+6	536	335	18	0	) by:  
+6	572	170	18	0	
+6	570	197	18	0	collecting like terms 
+6	597	170	18	0	
+6	595	197	18	0	multiplying a single term over a bracket 
+6	621	170	18	0	
+6	620	197	18	0	taking out common factors 
+6	646	170	18	0	
+6	644	197	18	0	expanding products of two 
+6	644	413	18	1	or more
+6	644	480	18	0	 binomials 
+6	671	170	18	0	
+6	669	197	18	0	factorising quadratic expressions of the form 
+6	669	555	18	0	x
+6	667	563	12	0	2 
+6	669	572	18	0	+ bx + c
+6	669	635	18	0	, including the 
+6	694	197	18	0	difference of two squares
+6	694	399	18	1	; factorising quadratic expressions of the form
+6	721	219	10	1	2
+6	721	200	18	1	ax
+6	721	242	18	1	bx c
+6	722	229	18	0	+
+6	722	263	18	0	+
+6	749	170	18	0	
+6	747	197	18	0	simplifying
+6	747	286	18	0	expressions involving sums, products and powers, including the 
+6	772	197	18	0	laws of indices  
+6	806	111	18	0	5. 
+6	806	138	18	0	understand and use standard mathematical formulae; rearrange formulae to 
+6	831	138	18	0	change the subject 
+6	865	111	18	0	6. 
+6	865	138	18	0	know the difference between an equation and an identity; argue mathematically to 
+6	889	138	18	0	show algebraic expressions are equivalent, and use algebra to support and 
+6	914	138	18	0	construct arguments 
+6	914	306	18	1	and proofs
+6	948	111	18	0	7. 
+6	948	138	18	0	where appropriate, interpret simple expressions as functions with inputs and 
+6	973	138	18	0	outputs
+6	973	197	18	1	; interpret the reverse process as the ‘inverse function’; interpret the 
+6	998	138	18	1	succession of two functions as a ‘composite function’. 
+6	1065	85	18	0	Graphs 
+6	1108	111	18	0	8. 
+6	1108	138	18	0	work with coordinates in all four quadrants 
+7	1167	436	18	0	7 
+7	84	111	18	0	9. 
+7	84	138	18	0	plot graphs of equations that correspond to straight-line graphs in the coordinate 
+7	109	138	18	0	plane;
+7	109	192	18	0	use the form  
+7	108	302	18	0	y = mx + c  
+7	109	391	18	0	to identify parallel 
+7	108	536	18	1	and perpendicular lines
+7	109	738	18	0	; find 
+7	133	138	18	0	the equation of the line through two given points, or through one point with a given 
+7	158	138	18	0	gradient
+7	183	111	18	0	10. 
+7	183	138	18	0	identify and interpret gradients and intercepts of linear functions graphically and 
+7	208	138	18	0	algebraically 
+7	233	111	18	0	11. 
+7	233	138	18	0	identify and interpret roots, intercepts, turning points of quadratic functions
+7	258	138	18	0	graphically; deduce roots algebraically 
+7	257	448	18	1	and turning points by completing the 
+7	282	138	18	1	square 
+7	307	111	18	0	12. 
+7	307	138	18	0	recognise, sketch and interpret graphs of linear functions, quadratic functions, 
+7	344	138	18	0	simple cubic functions, the reciprocal function  
+7	344	510	18	0	y
+7	344	518	18	0	 = 
+7	333	543	18	0	1
+7	358	544	18	0	x
+7	344	558	18	0	 with 
+7	344	600	18	0	x
+7	344	613	18	0	≠ 0
+7	344	638	18	1	,
+7	344	648	18	1	exponential 
+7	386	138	18	1	functions
+7	386	241	18	0	=
+7	385	265	11	1	x
+7	385	229	18	1	y k
+7	386	274	18	1	 for positive values of 
+7	386	464	18	1	k
+7	386	473	18	1	, and the trigonometric functions 
+7	414	138	18	1	(with arguments in degrees)
+7	415	401	18	0	=
+7	414	415	18	1	sin
+7	414	388	18	1	y
+7	414	441	18	1	x
+7	414	454	18	1	, 
+7	415	482	18	0	=
+7	414	496	18	1	cos
+7	414	469	18	1	y
+7	414	524	18	1	x
+7	414	542	18	1	and 
+7	416	597	17	0	=
+7	416	610	17	1	tan
+7	416	584	17	1	y
+7	416	640	17	1	x
+7	414	658	18	1	for angles of 
+7	443	138	18	1	any size 
+7	468	111	18	0	13. 
+7	468	138	18	1	sketch translations and reflections of a given function 
+7	493	111	18	0	14. 
+7	493	138	18	0	plot and interpret graphs
+7	493	338	18	0	(including
+7	493	420	18	0	reciprocal graphs
+7	492	558	18	1	 and exponential graphs
+7	493	765	18	0	)
+7	517	138	18	0	and graphs of non-standard functions in real contexts, to find approximate 
+7	542	138	18	0	solutions to problems such as simple kinematic problems involving distance, 
+7	567	138	18	0	speed and acceleration 
+7	592	111	18	0	15. 
+7	592	138	18	1	calculate or estimate gradients of graphs and areas under graphs (including 
+7	617	138	18	1	quadratic and other non-linear graphs), and interpret results in cases such 
+7	642	138	18	1	as distance-time graphs, velocity-time graphs and graphs in financial 
+7	666	138	18	1	contexts 
+7	691	111	18	0	16. 
+7	691	138	18	1	recognise and use the equation of a circle with centre at the origin;
+7	691	716	18	1	find the 
+7	716	138	18	1	equation of a tangent to a circle at a given point. 
+7	775	85	18	0	Solving equations and inequalities 
+7	818	111	18	0	17. 
+7	818	138	18	0	solve linear equations in one unknown algebraically (including those with the 
+7	843	138	18	0	unknown on both sides of the equation); find approximate solutions using a graph  
+7	867	111	18	0	18. 
+7	867	138	18	0	solve
+7	867	185	18	0	quadratic equations (
+7	867	353	18	1	including those that require 
+7	892	138	18	1	rearrangement
+7	892	264	18	0	) algebraically
+7	892	380	18	0	by factorising
+7	892	486	18	1	, by completing the square and by 
+7	917	138	18	1	using the quadratic formula
+7	917	375	18	0	;
+7	917	385	18	0	find approximate solutions using a graph 
+7	942	111	18	0	19. 
+7	942	138	18	0	solve two simultaneous equations in two variables (linear/linear 
+7	942	645	18	1	or
+7	967	138	18	1	linear/quadratic
+7	967	272	18	0	) algebraically; find approximate solutions using a graph 
+7	992	111	18	0	20. 
+7	991	138	18	1	find approximate solutions to equations numerically using iteration
+7	1016	111	18	0	21. 
+7	1016	138	18	0	translate simple situations or procedures into algebraic expressions or formulae; 
+7	1040	138	18	0	derive an equation (or two simultaneous equations), solve the equation(s) and 
+7	1064	138	18	0	interpret the solution. 
+7	1088	111	18	0	22. 
+7	1088	138	18	0	solve linear inequalities in one 
+7	1088	383	18	1	or two 
+7	1088	442	18	0	variable(
+7	1088	511	18	1	s), and quadratic inequalities in 
+7	1112	138	18	1	one variable
+7	1113	243	18	0	; represent the solution set on a number line
+7	1112	594	18	1	,
+7	1112	605	18	1	using set notation and 
+7	1137	138	18	1	on a graph
+8	1167	436	18	0	8 
+8	84	85	18	0	Sequences 
+8	126	111	18	0	23. 
+8	126	138	18	0	generate terms of a sequence from either a term-to-term or a position-to-term rule 
+8	160	111	18	0	24. 
+8	160	138	18	0	recognise and use sequences of triangular, square and cube numbers, simple 
+8	185	138	18	0	arithmetic progressions, Fibonacci type sequences, quadratic sequences, and 
+8	210	138	18	0	simple geometric progressions (
+8	210	398	18	0	r 
+8	208	409	12	0	n
+8	210	415	18	0	 where 
+8	210	474	18	0	n
+8	210	483	18	0	 is an integer, and
+8	210	631	18	0	r
+8	210	638	18	0	 is a rational 
+8	235	138	18	0	number > 0 
+8	235	235	18	1	or a surd
+8	235	312	18	0	) 
+8	235	323	18	1	and other sequences 
+8	269	111	18	0	25. 
+8	269	138	18	0	deduce expressions to calculate the 
+8	269	429	18	0	n
+8	267	438	12	0	th
+8	269	448	18	0	 term of linear 
+8	269	563	18	1	and quadratic
+8	269	682	18	0	 sequences. 
+8	336	85	21	1	Ratio, proportion and rates of change 
+8	383	112	18	0	1. 
+8	383	138	18	0	change freely between related standard units (e.g. time, length, area, 
+8	408	139	18	0	volume/capacity, mass) and compound units (e.g. speed, rates of pay, 
+8	433	139	18	0	prices, density, pressure) in numerical and algebraic contexts         
+8	467	112	18	0	2. 
+8	467	138	18	0	use scale factors, scale diagrams and maps 
+8	501	112	18	0	3. 
+8	501	138	18	0	express one quantity as a fraction of another, where the fraction is less than 1 or 
+8	526	139	18	0	greater than 1 
+8	559	111	18	0	4. 
+8	559	138	18	0	use ratio notation, including reduction to simplest form 
+8	593	112	18	0	5. 
+8	593	138	18	0	divide a given quantity into two parts in a given part:part or part:whole ratio; 
+8	618	139	18	0	express the division of a quantity into two parts as a ratio; apply ratio to real 
+8	643	139	18	0	contexts and problems (such as those involving conversion, comparison, scaling, 
+8	668	139	18	0	mixing, concentrations) 
+8	702	112	18	0	6. 
+8	702	138	18	0	express a multiplicative relationship between two quantities as a ratio or a fraction 
+8	735	112	18	0	7. 
+8	735	138	18	0	understand and use proportion as equality of ratios 
+8	769	112	18	0	8. 
+8	769	138	18	0	relate ratios to fractions and to linear functions 
+8	803	112	18	0	9. 
+8	803	138	18	0	define percentage as ‘number of parts per hundred’; interpret percentages and 
+8	828	139	18	0	percentage changes as a fraction or a decimal, and interpret these multiplicatively; 
+8	853	139	18	0	express one quantity as a percentage of another; compare two quantities using 
+8	878	139	18	0	percentages; work with percentages greater than 100%; solve problems involving 
+8	903	139	18	0	percentage change, including percentage increase/decrease and original value 
+8	927	139	18	0	problems, and simple interest including in financial mathematics 
+8	961	112	18	0	10. 
+8	961	138	18	0	solve problems involving direct and inverse proportion, including graphical and 
+8	986	139	18	0	algebraic representations 
+8	1020	112	18	0	11. 
+8	1020	138	18	0	use compound units such as speed, rates of pay, unit pricing
+8	1020	621	18	0	, 
+8	1020	631	18	0	density and 
+8	1045	139	18	0	pressure 
+8	1079	111	18	0	12. 
+8	1079	138	18	0	compare lengths, areas and volumes using ratio notation; make links to similarity 
+8	1103	138	18	0	(including trigonometric ratios) and scale factors 
+9	1167	436	18	0	9 
+9	84	111	18	0	13. 
+9	84	138	18	0	understand that 
+9	83	268	18	0	X
+9	84	279	18	0	 is inversely proportional to 
+9	83	499	18	0	Y
+9	84	509	18	0	 is equivalent to 
+9	83	639	18	0	X
+9	84	650	18	0	 is proportional to
+9	109	143	18	0	1
+9	134	141	18	0	Y
+9	121	158	18	0	;
+9	120	163	18	1	 construct and
+9	121	287	18	0	 interpret equations that describe direct and
+9	121	638	18	0	inverse proportion 
+9	159	111	18	0	14. 
+9	159	138	18	0	interpret the gradient of a straight line graph as a rate of change; recognise and 
+9	184	138	18	0	interpret graphs that illustrate direct and
+9	184	460	18	0	inverse proportion
+9	209	111	18	0	15. 
+9	209	138	18	1	interpret the gradient at a point on a curve as the instantaneous rate of 
+9	234	138	18	1	change; apply the concepts of average and instantaneous rate of change 
+9	259	138	18	1	(gradients of chords and tangents) in numerical, algebraic and graphical 
+9	283	138	18	1	contexts 
+9	308	111	18	0	16. 
+9	308	138	18	0	set up, solve and interpret the answers in growth and decay problems, including
+9	333	138	18	0	compound interest 
+9	333	291	18	1	and work with general iterative processes. 
+9	396	85	21	1	Geometry and measures 
+9	443	85	18	0	Properties and constructions 
+9	486	112	18	0	1. 
+9	486	138	18	0	use conventional terms and notations: points, lines, vertices, edges, planes, 
+9	511	139	18	0	parallel lines, perpendicular lines, right angles, polygons, regular polygons and 
+9	536	139	18	0	polygons with reflection and/or rotation symmetries;  use the standard conventions 
+9	560	139	18	0	for labelling and referring to the sides and angles of triangles; draw diagrams from 
+9	585	139	18	0	written description 
+9	619	112	18	0	2. 
+9	619	138	18	0	use the standard ruler and compass constructions (perpendicular bisector of a line 
+9	644	139	18	0	segment, constructing a perpendicular to a given line from/at a given point, 
+9	669	139	18	0	bisecting a given angle); use these to construct given figures and solve loci 
+9	694	139	18	0	problems; know that the perpendicular distance from a point to a line is the 
+9	718	139	18	0	shortest distance to the line  
+9	752	111	18	0	3. 
+9	752	138	18	0	apply the properties of angles at a point, angles at a point on a straight line, 
+9	777	138	18	0	vertically opposite angles; understand and use alternate and corresponding angles 
+9	802	138	18	0	on parallel lines; derive and use the sum of angles in a triangle (e.g. to deduce and 
+9	827	138	18	0	use the angle sum in any polygon, and to derive properties of regular polygons) 
+9	852	111	18	0	4. 
+9	852	138	18	0	derive and apply the properties and definitions of: special types of quadrilaterals, 
+9	876	138	18	0	including square, rectangle, parallelogram, trapezium, kite and rhombus; and 
+9	901	138	18	0	triangles and other plane figures using appropriate language 
+9	926	111	18	0	5. 
+9	926	138	18	0	use the basic congruence criteria for triangles (SSS, SAS, ASA, RHS) 
+9	960	112	18	0	6. 
+9	960	138	18	0	apply angle facts, triangle congruence, similarity and properties of quadrilaterals to 
+9	985	139	18	0	conjecture and derive results about angles and sides, including Pythagoras’ 
+9	1010	139	18	0	Theorem
+9	1010	216	18	0	and the fact that the base angles of an isosceles triangle are equal, and 
+9	1034	139	18	0	use known results to obtain simple proofs 
+9	1068	112	18	0	7. 
+9	1068	139	18	0	identify, describe and construct congruent and similar shapes, including on 
+9	1093	139	18	0	coordinate axes, by considering rotation, reflection, translation and enlargement 
+9	1118	139	18	0	(including fractional
+9	1118	294	18	1	 and negative 
+9	1118	414	18	0	scale factors) 
+10	1167	431	18	0	10 
+10	84	112	18	0	8. 
+10	83	139	18	1	describe the changes and invariance achieved by combinations of rotations, 
+10	108	139	18	1	reflections and translations
+10	133	112	18	0	9. 
+10	133	139	18	0	identify and apply circle definitions and properties, including: centre, radius, chord, 
+10	158	139	18	0	diameter, circumference, tangent, arc, sector and segment 
+10	183	112	18	0	10. 
+10	183	139	18	1	apply and prove the standard circle theorems concerning angles, radii, 
+10	208	139	18	1	tangents and chords, and use them to prove related results 
+10	242	112	18	0	11. 
+10	242	138	18	0	solve geometrical problems on coordinate axes 
+10	275	112	18	0	12. 
+10	275	138	18	0	identify properties of the faces, surfaces, edges and vertices of: cubes, cuboids, 
+10	300	139	18	0	prisms, cylinders, pyramids, cones and spheres 
+10	334	112	18	0	13. 
+10	334	138	18	0	construct and
+10	334	251	18	0	interpret plans and elevations of 3D shapes. 
+10	402	85	18	0	Mensuration and calculation 
+10	445	112	18	0	14. 
+10	445	139	18	0	use standard units of measure and related concepts (length, area, 
+10	470	139	18	0	volume/capacity, mass, time, money, etc.) 
+10	503	112	18	0	15. 
+10	503	138	18	0	measure line segments and angles in geometric figures, including interpreting 
+10	528	139	18	0	maps and scale drawings and use of bearings  
+10	562	112	18	0	16. 
+10	562	138	18	0	know and apply formulae to calculate: area of triangles, parallelograms, trapezia; 
+10	587	139	18	0	volume of cuboids and other right prisms (including cylinders) 
+10	622	112	18	0	17. 
+10	622	138	18	0	know the formulae: circumference of a circle 
+10	622	495	18	0	= 2
+10	622	519	18	0	π
+10	622	529	18	0	r
+10	622	536	18	0	 = 
+10	622	555	18	0	π
+10	622	565	18	0	d
+10	622	574	18	0	,
+10	622	579	18	0	 area of a circle 
+10	622	707	18	0	= 
+10	622	722	18	0	π
+10	622	732	18	0	r
+10	620	739	12	0	2
+10	622	745	18	0	; 
+10	647	139	18	0	calculate: perimeters of 2D shapes, including circles; areas of circles and 
+10	672	139	18	0	composite shapes
+10	672	284	18	0	;
+10	672	289	18	0	 surface area and volume of spheres, pyramids, cones and 
+10	697	139	18	0	composite solids 
+10	731	112	18	0	18. 
+10	731	138	18	0	calculate arc lengths, angles and areas of sectors of circles 
+10	765	112	18	0	19. 
+10	765	138	18	0	apply the concepts of congruence and similarity, including the relationships 
+10	789	139	18	0	between lengths, 
+10	789	280	18	1	areas and volumes 
+10	789	447	18	0	in similar figures  
+10	823	112	18	0	20. 
+10	823	139	18	0	know the formulae for: Pythagoras’ theorem, 
+10	823	498	18	0	a
+10	821	507	12	0	2
+10	823	513	18	0	 + b
+10	821	543	12	0	2
+10	823	549	18	0	 = c
+10	821	579	12	0	2
+10	823	585	18	0	, and the trigonometric 
+10	860	139	18	0	ratios, 
+10	860	193	18	0	sin
+10	860	214	18	0	θ =
+10	848	253	18	0	opposite
+10	874	244	18	0	hypotenuse
+10	860	330	18	0	,
+10	860	335	18	0	 cos
+10	860	363	18	0	θ
+10	860	377	18	0	=
+10	848	406	18	0	adjacent
+10	874	397	18	0	hypotenuse
+10	860	483	18	0	and 
+10	860	518	18	0	tan
+10	860	540	18	0	θ
+10	860	554	18	0	=
+10	848	573	18	0	opposite
+10	874	573	18	0	adjacent
+10	860	641	18	0	; apply them to find 
+10	902	139	18	0	angles and lengths in right-angled triangles 
+10	902	487	18	1	and, where possible, general 
+10	927	139	18	1	triangles
+10	927	214	18	0	 in two 
+10	927	271	18	1	and
+10	927	308	18	1	three
+10	927	352	18	0	 dimensional figures  
+10	952	112	18	0	21. 
+10	952	139	18	0	know the exact values of 
+10	952	341	18	0	sin
+10	952	362	18	0	θ 
+10	952	375	18	0	 and 
+10	952	416	18	0	cos
+10	952	440	18	0	θ
+10	952	448	18	0	 for 
+10	952	479	18	0	θ
+10	952	488	18	0	 = 
+10	952	509	18	0	0
+10	950	518	12	0	0
+10	952	524	18	0	, 
+10	952	534	18	0	30
+10	950	552	12	0	0
+10	952	558	18	0	, 45
+10	950	585	12	0	0
+10	952	591	18	0	 , 60
+10	950	623	12	0	0 
+10	952	632	18	0	and 
+10	952	667	18	0	90
+10	950	685	12	0	0
+10	952	691	18	0	; know the 
+10	977	139	18	0	exact value of 
+10	977	255	18	0	tan
+10	976	277	18	0	θ
+10	977	286	18	0	 for 
+10	976	317	18	0	θ = 
+10	977	347	18	0	0
+10	975	356	12	0	0
+10	977	362	18	0	, 
+10	977	372	18	0	30
+10	975	390	12	0	0
+10	977	396	18	0	, 45
+10	975	423	12	0	0
+10	977	434	18	0	and
+10	977	464	18	0	 60
+10	975	486	12	0	0
+10	1017	112	18	0	22. 
+10	1017	139	18	1	know and apply the sine rule, 
+10	1029	399	19	1	sin
+10	1029	457	19	1	sin
+10	1029	516	19	1	sin
+10	1003	413	19	1	a
+10	1003	472	19	1	b
+10	1003	530	19	1	c
+10	1029	425	19	1	A
+10	1029	482	19	1	B
+10	1029	540	19	1	C
+10	1015	442	19	0	=
+10	1015	500	19	0	=
+10	1017	558	18	1	, and cosine rule, 
+10	1058	152	10	1	2
+10	1058	187	10	1	2
+10	1058	220	10	1	2
+10	1058	243	18	1	2 cos
+10	1058	142	18	1	a
+10	1058	177	18	1	b c
+10	1058	252	18	1	bc
+10	1058	300	18	1	A
+10	1059	163	18	0	=
+10	1059	197	18	0	+
+10	1059	230	18	0	−
+10	1059	315	18	1	, to find unknown lengths and angles 
+10	1099	112	18	0	23. 
+10	1099	139	18	1	know and apply 
+10	1085	343	19	1	1
+10	1097	282	19	1	Area = 
+10	1097	375	19	1	sin
+10	1112	343	19	1	2
+10	1097	355	19	1	ab
+10	1097	399	19	1	C
+10	1099	416	18	1	 to calculate the area, sides or angles of any 
+10	1138	139	18	1	triangle.
+11	1167	431	18	0	11 
+11	84	85	18	0	Vectors 
+11	126	112	18	0	24. 
+11	126	139	18	0	describe translations as 2D vectors 
+11	151	112	18	0	25. 
+11	151	139	18	0	apply addition and subtraction of vectors, multiplication of vectors by a scalar, and 
+11	176	139	18	0	diagrammatic and column representations of vectors; 
+11	176	567	18	1	use vectors to
+11	176	694	18	1	construct 
+11	201	139	18	1	geometric arguments and proofs 
+11	272	85	21	1	Probability 
+11	320	111	18	0	1. 
+11	320	138	18	0	record describe and analyse the frequency of outcomes of probability experiments 
+11	345	138	18	0	using tables and frequency trees 
+11	369	111	18	0	2. 
+11	369	138	18	0	apply ideas of randomness, fairness and equally likely events to calculate 
+11	394	138	18	0	expected outcomes of multiple future experiments  
+11	419	111	18	0	3. 
+11	419	138	18	0	relate relative expected frequencies to theoretical probability, using appropriate 
+11	444	138	18	0	language and the 0 - 1 probability scale 
+11	469	111	18	0	4. 
+11	469	138	18	0	apply the property that the probabilities of an exhaustive set of outcomes sum to 
+11	494	138	18	0	one; apply the property that the probabilities of an exhaustive set of mutually 
+11	518	138	18	0	exclusive events sum to one 
+11	543	111	18	0	5. 
+11	543	138	18	0	understand that empirical unbiased samples tend towards theoretical probability 
+11	568	138	18	0	distributions, with increasing sample size 
+11	593	111	18	0	6. 
+11	593	138	18	0	enumerate sets and combinations of sets systematically, using tables, grids, Venn 
+11	618	138	18	0	diagrams and tree diagrams  
+11	643	111	18	0	7. 
+11	643	138	18	0	construct theoretical possibility spaces for single and combined experiments with 
+11	667	138	18	0	equally likely outcomes and use these to calculate theoretical probabilities 
+11	692	111	18	0	8. 
+11	692	138	18	0	calculate the probability of independent and dependent combined events, 
+11	717	138	18	0	including using tree diagrams and other representations, and know the underlying 
+11	742	138	18	0	assumptions 
+11	767	111	18	0	9. 
+11	767	138	18	1	calculate and interpret conditional probabilities through representation 
+11	791	138	18	1	using expected frequencies with two-way tables, tree diagrams and Venn 
+11	816	138	18	1	diagrams. 
+11	888	85	21	1	Statistics 
+11	935	111	18	0	1. 
+11	935	138	18	0	infer properties of populations or distributions from a sample, whilst knowing the 
+11	960	138	18	0	limitations of sampling 
+11	985	111	18	0	2. 
+11	985	138	18	0	interpret and construct tables, charts and diagrams, including frequency tables, 
+11	1010	138	18	0	bar charts, pie charts and pictograms for categorical data, vertical line charts for 
+11	1035	138	18	0	ungrouped discrete numerical data, tables and line graphs for time series data and 
+11	1059	138	18	0	know their appropriate use 
+11	1084	111	18	0	3. 
+11	1084	138	18	1	construct and interpret diagrams for grouped discrete data and continuous 
+11	1109	138	18	1	data, i.e. histograms with equal and unequal class intervals and cumulative 
+11	1134	138	18	1	frequency graphs, and know their appropriate use 
+12	1167	431	18	0	12 
+12	84	111	18	0	4. 
+12	84	138	18	0	interpret, analyse and compare the distributions of data sets from univariate 
+12	108	138	18	0	empirical distributions through:  
+12	144	170	18	0	
+12	142	197	18	0	appropriate graphical representation involving discrete, continuous and 
+12	167	197	18	0	grouped data, 
+12	167	313	18	1	including box plots
+12	194	170	18	0	
+12	192	197	18	0	appropriate measures of central tendency (median, mean, mode and 
+12	217	197	18	0	modal class) and spread (range, including consideration of outliers
+12	217	727	18	1	,
+12	241	197	18	1	quartiles and inter-quartile range
+12	242	478	18	0	)  
+12	275	111	18	0	5. 
+12	275	138	18	0	apply statistics to describe a population  
+12	300	111	18	0	6. 
+12	300	138	18	0	use and interpret scatter graphs of bivariate data; recognise correlation and know 
+12	325	138	18	0	that it does not indicate causation; draw estimated lines of best fit; make 
+12	350	138	18	0	predictions; interpolate and extrapolate apparent trends whilst knowing the 
+12	375	138	18	0	dangers of so doing 
+13	1167	431	18	0	13 
+13	83	85	27	1	Assessment objectives 
+13	155	234	18	1	Assessment Objectives 
+13	139	680	18	1	Weighting 
+13	171	636	18	1	Higher  Foundation 
+13	231	61	18	1	AO1 
+13	201	125	18	1	Use and apply standard techniques  
+13	231	125	18	0	Students should be able to: 
+13	262	125	18	0	•
+13	262	133	18	0	  accurately recall facts, terminology and definitions 
+13	293	125	18	0	•
+13	293	133	18	0	  use and interpret notation correctly  
+13	324	125	18	0	•
+13	324	133	18	0	  accurately carry out routine procedures or set tasks 
+13	344	152	18	0	requiring multi-step solutions 
+13	273	646	18	0	40% 
+13	273	753	18	0	50% 
+13	404	61	18	1	AO2 
+13	375	125	18	1	Reason, interpret and communicate mathematically  
+13	405	125	18	0	Students should be able to: 
+13	436	125	18	0	•
+13	435	133	18	0	  make deductions, inferences and draw conclusions from 
+13	456	152	18	0	mathematical information 
+13	487	125	18	0	•
+13	487	133	18	0	  construct chains of reasoning to achieve a given result  
+13	518	125	18	0	•
+13	518	133	18	0	  interpret and communicate information accurately 
+13	549	125	18	0	•
+13	549	133	18	0	  present arguments and proofs 
+13	534	646	18	0	30% 
+13	534	753	18	0	25% 
+13	580	125	18	0	•
+13	580	133	18	0	  assess the validity of an argument and critically evaluate 
+13	600	152	18	0	a given way of presenting information  
+13	630	125	18	0	Where problems require candidates to ‘use and apply 
+13	651	125	18	0	standard techniques’ or to independently ‘solve problems’ a 
+13	672	125	18	0	proportion of those marks should be attributed to the 
+13	692	125	18	0	corresponding Assessment Objective  
+13	752	61	18	1	AO3 
+13	723	125	18	1	Solve problems within mathematics and in other 
+13	743	125	18	1	contexts 
+13	773	125	18	0	Students should be able to: 
+13	804	125	18	0	•
+13	804	133	18	0	  translate problems in mathematical or non-mathematical 
+13	825	152	18	0	contexts into a process or a series of mathematical 
+13	845	152	18	0	processes  
+13	876	125	18	0	•
+13	876	133	18	0	  make and use connections between different parts of 
+13	897	152	18	0	mathematics 
+13	928	125	18	0	•
+13	928	133	18	0	  interpret results in the context of the given problem  
+13	923	646	18	0	30% 
+13	923	753	18	0	25% 
+13	959	125	18	0	•
+13	959	133	18	0	  evaluate methods used and results obtained  
+13	990	125	18	0	•
+13	990	133	18	0	  evaluate solutions to identify how they may have been 
+13	1011	152	18	0	affected by assumptions made 
+13	1040	125	18	0	Where problems require candidates to ‘use and apply 
+13	1061	125	18	0	standard techniques’ or to ‘reason, interpret and 
+13	1082	125	18	0	communicate mathematically’ a proportion of those marks 
+13	1102	125	18	0	should be attributed to the corresponding Assessment 
+13	1123	125	18	0	Objective. 
+14	1167	431	18	0	14 
+14	83	85	27	1	Appendix: Mathematical formulae 
+14	139	112	18	0	1.  Formulae included in the subject content. Candidates are expected to know these 
+14	164	139	18	0	formulae; they must not be given in the assessment.  
+14	207	112	18	0	The quadratic formula 
+14	250	112	18	0	The solutions of 
+14	251	244	18	0	𝑎𝑥
+14	249	265	13	0	2
+14	251	277	18	0	+
+14	251	294	18	0	𝑏𝑥
+14	251	318	18	0	+
+14	251	336	18	0	𝑐
+14	251	349	18	0	=  0
+14	250	382	18	0	 where 
+14	251	441	18	0	𝑎
+14	251	460	18	0	≠
+14	251	479	18	0	0
+14	299	471	10	0	2
+14	299	493	18	0	4
+14	324	458	18	0	2
+14	299	424	18	0	b
+14	299	461	18	0	b
+14	299	503	18	0	ac
+14	310	387	18	0	x
+14	324	468	18	0	a
+14	299	414	18	0	− ±
+14	299	481	18	0	−
+14	310	399	18	0	=
+14	410	112	18	0	Circumference and area of a circle 
+14	452	112	18	0	Where 
+14	452	170	18	0	r
+14	452	177	18	0	 is the radius and 
+14	452	319	18	0	d
+14	452	328	18	0	 is the diameter: 
+14	497	293	18	0	Circumference of a circle =  2
+14	497	521	18	0	𝜋𝑟
+14	497	545	18	0	=  
+14	497	568	18	0	𝜋𝑑
+14	540	356	18	0	Area of a circle =  
+14	540	498	18	0	𝜋𝑟
+14	539	518	13	0	2
+14	582	112	18	0	Pythagoras’s theorem 
+14	625	117	18	0	In any right-angled triangle where 
+14	625	389	18	0	a
+14	625	398	18	0	, 
+14	625	408	18	0	b
+14	625	417	18	0	 and 
+14	625	457	18	0	c
+14	625	465	18	0	 are the length of the sides and 
+14	625	717	18	0	c
+14	625	725	18	0	 is the 
+14	650	117	18	0	hypotenuse: 
+14	787	328	18	0	a 
+14	831	532	18	0	A 
+14	761	458	18	0	c 
+14	860	458	18	0	b 
+14	694	392	18	0	𝑎
+14	693	402	13	0	2
+14	694	414	18	0	+
+14	694	432	18	0	𝑏
+14	693	442	13	0	2
+14	694	455	18	0	=
+14	694	473	18	0	𝑐
+14	693	483	13	0	2
+14	912	117	18	0	Trigonometry formulae 
+14	954	117	18	0	In any right-angled triangle ABC where 
+14	954	431	18	0	a
+14	954	440	18	0	, 
+14	954	450	18	0	b
+14	954	459	18	0	 and 
+14	954	499	18	0	c
+14	954	507	18	0	 are the length of the sides and 
+14	954	759	18	0	c 
+14	954	772	18	0	is 
+14	979	117	18	0	the hypotenuse: 
+14	1016	339	18	0	sin
+14	1016	406	18	0	,  cos
+14	1016	489	18	0	,  tan
+14	1004	394	18	0	a
+14	1004	477	18	0	b
+14	1004	559	18	0	a
+14	1016	364	18	0	A
+14	1016	448	18	0	A
+14	1016	529	18	0	A
+14	1030	394	18	0	c
+14	1030	477	18	0	c
+14	1030	559	18	0	b
+14	1016	379	18	0	=
+14	1016	462	18	0	=
+14	1016	544	18	0	=
+15	1167	431	18	0	15 
+15	84	139	18	0	In any triangle ABC where 
+15	83	353	18	0	a
+15	84	362	18	0	,
+15	83	372	18	0	b
+15	84	385	18	0	and 
+15	83	420	18	0	c
+15	84	428	18	0	 are the length of the sides 
+15	162	337	18	0	sine rule: 
+15	176	418	18	0	sin
+15	176	475	18	0	sin
+15	176	532	18	0	sin
+15	151	432	18	0	a
+15	151	489	18	0	b
+15	151	546	18	0	c
+15	176	444	18	0	A
+15	176	500	18	0	B
+15	176	555	18	0	C
+15	162	460	18	0	=
+15	162	517	18	0	=
+15	222	320	18	0	cosine rule:
+15	222	430	10	0	2
+15	222	465	10	0	2
+15	222	497	10	0	2
+15	222	520	18	0	2 cos
+15	222	420	18	0	a
+15	222	455	18	0	b c
+15	222	529	18	0	bc
+15	222	576	18	0	A
+15	222	441	18	0	=
+15	222	475	18	0	+ −
+15	266	435	18	0	1
+15	277	377	18	0	Area = 
+15	277	468	18	0	sin
+15	292	435	18	0	2
+15	277	448	18	0	ab
+15	277	491	18	0	C
+15	516	112	18	0	2.  The following formulae are not specified in the content but should be derived or 
+15	541	139	18	0	informally understood by candidates. These formulae must not be given in the 
+15	566	139	18	0	examination.  
+15	609	117	18	0	Perimeter, area, surface area and volume formulae 
+15	652	117	18	0	Where 
+15	651	175	18	0	a
+15	652	184	18	0	 and 
+15	651	224	18	0	b
+15	652	233	18	0	 are the lengths of the parallel sides and 
+15	651	557	18	0	h
+15	652	566	18	0	 is their perpendicular 
+15	677	117	18	0	separation: 
+15	732	312	18	0	Area of a trapezium =  
+15	718	490	18	0	1
+15	744	490	18	0	2
+15	731	503	18	0	(
+15	732	511	18	0	𝑎
+15	732	525	18	0	+
+15	732	543	18	0	𝑏
+15	731	553	18	0	)
+15	732	560	18	0	ℎ
+15	782	259	18	0	Volume of a prism = area of cross section × length 
+15	825	117	18	0	Compound interest 
+15	868	117	18	0	Where 
+15	867	175	18	0	P
+15	868	186	18	0	 is the principal amount, 
+15	867	381	18	0	r
+15	868	388	18	0	 is the interest rate over a given period and 
+15	867	734	18	0	n 
+15	868	748	18	0	is 
+15	893	117	18	0	number of times that the interest is compounded:  
+15	929	324	18	0	Total accrued =  
+15	929	456	18	0	𝑃 �
+15	929	479	18	0	1 +
+15	915	521	18	0	𝑟
+15	941	511	18	0	100
+15	929	541	18	0	�
+15	916	550	13	0	𝑛
+15	961	117	18	0	Probability  
+15	1004	117	18	0	Where 
+15	1004	175	18	0	P(A)
+15	1004	209	18	0	 is the probability of outcome 
+15	1004	443	18	0	A
+15	1004	454	18	0	 and 
+15	1004	494	18	0	P(B)
+15	1004	528	18	0	 is the probability of outcome 
+15	1004	762	18	0	B
+15	1004	773	18	0	: 
+15	1048	286	18	0	𝑃
+15	1047	298	18	0	(
+15	1048	305	18	0	𝐴
+15	1048	321	18	0	𝑜𝑟
+15	1048	343	18	0	𝐵
+15	1047	356	18	0	) =
+15	1048	387	18	0	𝑃
+15	1047	398	18	0	(
+15	1048	406	18	0	𝐴
+15	1047	417	18	0	) +
+15	1048	446	18	0	𝑃
+15	1047	458	18	0	(
+15	1048	465	18	0	𝐵
+15	1047	477	18	0	)
+15	1048	489	18	0	− 𝑃
+15	1048	518	18	0	(
+15	1048	526	18	0	𝐴
+15	1048	541	18	0	𝑎𝑛𝑑
+15	1048	576	18	0	𝐵
+15	1048	589	18	0	)
+15	1098	313	18	0	𝑃
+15	1098	325	18	0	(
+15	1098	332	18	0	𝐴
+15	1098	348	18	0	𝑎𝑛𝑑
+15	1098	383	18	0	𝐵
+15	1098	395	18	0	) =
+15	1098	426	18	0	𝑃
+15	1098	438	18	0	(
+15	1098	445	18	0	𝐴
+15	1098	461	18	0	𝑔𝑖𝑣𝑒𝑛
+15	1098	511	18	0	𝐵
+15	1098	523	18	0	)
+15	1098	531	18	0	𝑃
+15	1098	542	18	0	(
+15	1098	550	18	0	𝐵
+15	1098	562	18	0	)
+16	1167	431	18	0	16 
+16	84	112	18	0	3.  Formulae that candidates should be able to use, but need not memorise. These 
+16	108	139	18	0	can be given in the exam, either in the relevant question, or in a list from which 
+16	133	139	18	0	candidates select and apply as appropriate. 
+16	176	112	18	0	Perimeter, area, surface area and volume formulae 
+16	219	117	18	0	Where 
+16	219	175	18	0	r
+16	219	182	18	0	 is the radius of the sphere or cone, 
+16	219	469	18	0	l
+16	219	474	18	0	 is the slant height of a cone and 
+16	219	739	18	0	h
+16	219	748	18	0	 is the 
+16	244	117	18	0	perpendicular height of a cone: 
+16	288	302	18	0	Curved surface area of a cone =  
+16	288	555	18	0	𝜋𝑟𝑙
+16	332	317	18	0	Surface area of a sphere =  4
+16	332	537	18	0	𝜋𝑟
+16	330	558	13	0	2
+16	386	333	18	0	Volume of a sphere =  
+16	373	508	18	0	4
+16	398	508	18	0	3
+16	386	521	18	0	𝜋𝑟
+16	384	541	13	0	3
+16	449	336	18	0	Volume of a cone =  
+16	435	494	18	0	1
+16	461	494	18	0	3
+16	449	507	18	0	𝜋𝑟
+16	447	528	13	0	2
+16	449	536	18	0	ℎ
+16	499	112	18	0	Kinematics formulae 
+16	542	117	18	0	Where 
+16	542	175	18	0	a
+16	542	184	18	0	 is constant acceleration, 
+16	542	387	18	0	u
+16	542	396	18	0	 is initial velocity, 
+16	542	535	18	0	v
+16	542	543	18	0	 is final velocity, 
+16	542	674	18	0	s
+16	542	681	18	0	 is 
+16	567	117	18	0	displacement from the position when 
+16	566	414	18	0	t 
+16	567	424	18	0	= 0
+16	567	447	18	0	 and 
+16	566	487	18	0	t
+16	567	492	18	0	 is time taken: 
+16	611	395	18	0	𝑣
+16	611	411	18	0	=  
+16	611	433	18	0	𝑢
+16	611	448	18	0	+  
+16	611	469	18	0	𝑎𝑡
+16	666	382	18	0	𝑠
+16	666	396	18	0	=  
+16	666	418	18	0	𝑢𝑡
+16	666	440	18	0	+ 
+16	652	461	18	0	1
+16	678	461	18	0	2
+16	666	474	18	0	𝑎𝑡
+16	664	492	13	0	2
+16	717	382	18	0	𝑣
+16	716	392	13	0	2
+16	717	406	18	0	=  
+16	717	428	18	0	𝑢
+16	716	439	13	0	2
+16	717	451	18	0	+  2
+16	717	482	18	0	𝑎𝑠
+17	1167	431	18	0	17 
+17	689	85	18	0	© Crown copyright 2013 
+17	732	85	18	0	You may re-use this information (excluding logos) free of charge in any format or 
+17	757	85	18	0	medium, under the terms of the Open Government Licence. To view this licence, visit 
+17	782	85	18	1	http://www.nationalarchives.gov.uk/doc/open-government-licence
+17	782	648	18	0	/ or e-mail: 
+17	807	85	18	1	psi@nationalarchives.gsi.gov.uk
+17	807	365	18	0	.  
+17	850	85	18	0	Where we have identified any third party copyright information you will need to obtain 
+17	874	85	18	0	permission from the copyright holders concerned.  
+17	917	85	18	0	Any enquiries regarding this publication should be sent to us 
+17	942	85	18	0	at: 
+17	942	110	18	0	www.education.gov.uk/contactus
+17	942	372	18	0	.  
+17	985	85	18	0	This document is also available from our website 
+17	1010	85	18	0	at: 
+17	1010	110	18	0	www.education.gov.uk/schools/teachingandlearning/qualifications/gcses
+17	1010	684	18	0	.  
+17	1053	85	18	0	Reference: DFE-00233-2013 
