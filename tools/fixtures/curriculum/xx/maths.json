@@ -1,0 +1,15 @@
+{
+ "about": "A MADE-UP SECOND COUNTRY (never shipped: it lives under tools/fixtures/, outside data/settings/curriculum/, and only tools/one-curriculum.js reads it). It proves a country is one file: three nodes, each citing its document, the two sub-topics mapped to three existing skills of data/settings/qgen.json; the check adds it beside the live files and sees its questions, tags and Find topics follow with nothing else changed.",
+ "docs": {
+  "xx-nc": { "title": "Made-up national curriculum for mathematics (fixture)", "url": "https://example.org/xx/maths-curriculum" }
+ },
+ "nodes": [
+  { "id": "xx.ma", "name": "Mathematics (XX)", "parent": "", "src": [{ "doc": "xx-nc", "ref": "Mathematics" }] },
+  { "id": "xx.ma.number", "name": "Number (XX)", "parent": "xx.ma", "levels": ["GCSE Foundation"], "src": [{ "doc": "xx-nc", "ref": "1. Number" }] },
+  { "id": "xx.ma.algebra", "name": "Algebra (XX)", "parent": "xx.ma", "levels": ["GCSE Foundation"], "src": [{ "doc": "xx-nc", "ref": "2. Algebra" }] }
+ ],
+ "templates": {
+  "xx.ma.number": ["hcf", "lcm"],
+  "xx.ma.algebra": ["expand"]
+ }
+}

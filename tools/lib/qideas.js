@@ -30,9 +30,9 @@ function names(tb) {
 /* ONE QUESTION'S IDEA, from the table only: its set's, else its first topic's that the table names. */
 function ideaOf(r, T) {
   if (T.set[r.paper_id]) return T.set[r.paper_id];
-  /* A GENERATED @family SET (owner, 25 Nov): its DfE sub-topic's idea, the one data/settings/dfe-maths.json `ideas` maps to it, or none. */
-  const QG = require('./qgen.js'), g = QG.nodeOfSet(r.paper_id);
-  if (g) return QG.ideaOfNode(SD.json(QG.DFE))[g] || '';
+  /* A GENERATED @family SET (owner, 25 Nov): its sub-topic's idea, the one its country file's `ideas` maps to it (tools/lib/qgen.js), or none. */
+  const g = require('./qgen.js').ideaOfSet(r.paper_id);
+  if (g != null) return g;
   const a = atoms(r.topics).find(t => T.topic[t]);
   return a ? T.topic[a] : '';
 }

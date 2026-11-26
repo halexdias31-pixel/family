@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /* @family. — tools/gen-questions.js THE GENERATED QUESTIONS, WRITTEN (owner, 25 Nov: "generated questions are first-class @family questions").
-   data/settings/qgen.json and data/settings/dfe-maths.json -> data/questions.json: each template's fixed set (tools/lib/qgen.js emit) as
-   ordinary rows, one @family question set per DfE sub-topic (P-FAM-GEN-*), the words in data-private/questions.json where this machine has it.
+   data/settings/qgen.json and every country file data/settings/curriculum/<country>/<subject>.json -> data/questions.json: each bound
+   template's fixed set (tools/lib/qgen.js emit) as ordinary rows, one @family question set per country sub-topic (P-FAM-GEN-*), the words in data-private/questions.json where this machine has it.
    A pure function of the two tables: run twice, nothing changes; edit a template or its node and its questions get new ids; revert and the
    old ids come back. A question no longer made stays, inactive (and its words stay), so an answer saved under it keeps what the child saw.
    Run first by tools/build.js; held by tools/one-gen.js. */
