@@ -123,7 +123,7 @@ function getPayloadLists_() {
     /* ---------- `claims` WAS NEVER IN THIS LITERAL, AND `payload.claims.push` THREW § */
     claims: [],
     /* `links: []` WAS FIRST ON THIS LINE. See "`links` IS NOT SENT AT ALL NOW" below. */
-    shop: [], promotions: [], intervals: [],
+    promotions: [], intervals: [],
     campaigns: [],
     /* What the search funnel asks and what it calls it — see SCHEMA.facets. */
     facets: [],

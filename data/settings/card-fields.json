@@ -11,7 +11,6 @@
 {"kind": "receipt", "cls": "", "pic": "", "title": "", "tags": "", "lines": "", "tiles": "job-pay:pound:Pay", "notes": "its item map (ITEM_MAPS.booking): tags say what, who, when, rate, paid; a line says who and how much in all; then the receipt paper (bookingDoc_, a tool) laid out whole", "facts": true, "icon": "pound"},
 {"kind": "question", "cls": "", "pic": "ownPic", "title": "ownHead", "tags": "ownTags", "lines": "ownLines", "tiles": "", "notes": "its own file writes it; findCard cuts it into the parts: a question: its tag line, then its sheet and answer box (.qcard kept for its handlers)", "facts": false, "icon": ""},
 {"kind": "answer", "cls": "", "pic": "ownPic", "title": "ownHead", "tags": "ownTags", "lines": "ownLines", "tiles": "", "notes": "its own file writes it; findCard cuts it into the parts: as a question", "facts": false, "icon": ""},
-{"kind": "shop", "cls": "", "pic": "", "title": "", "tags": "", "lines": "", "tiles": "cart-add:cart:Buy", "notes": "its item map (ITEM_MAPS.product): picture, name, facets, price tag", "facts": true, "icon": "cart"},
 {"kind": "practical", "cls": "", "pic": "", "title": "", "tags": "", "lines": "", "tiles": "", "notes": "drawn from its spec (cardKind_, master template)", "facts": false, "icon": "tools"},
 {"kind": "project", "cls": "", "pic": "", "title": "", "tags": "", "lines": "", "tiles": "", "notes": "drawn from its spec (cardKind_, master template)", "facts": false, "icon": "spark"},
 {"kind": "content", "cls": "", "pic": "ownPic", "title": "ownHead", "tags": "ownTags", "lines": "ownLines", "tiles": "", "notes": "its own file writes it; findCard cuts it into the parts", "facts": true, "icon": "doc"},
@@ -36,6 +35,5 @@
 {"kind": "setting", "cls": "", "pic": "ownPic", "title": "ownHead", "tags": "ownTags", "lines": "ownLines", "tiles": "", "notes": "its own file writes it; findCard cuts it into the parts: a settings door", "facts": true, "icon": "tools"},
 {"kind": "health", "cls": "", "pic": "ownPic", "title": "ownHead", "tags": "ownTags", "lines": "ownLines", "tiles": "", "notes": "its own file writes it; findCard cuts it into the parts: an Optimiser card", "facts": true, "icon": "tick"},
 {"kind": "offPosts", "cls": "", "pic": "", "title": "", "tags": "", "lines": "", "tiles": "", "notes": "drawn from its spec (cardKind_, master template)", "facts": true, "icon": "spark"},
-{"kind": "offShop", "cls": "", "pic": "", "title": "", "tags": "", "lines": "", "tiles": "", "notes": "drawn from its spec (cardKind_, master template)", "facts": true, "icon": "cart"},
 {"kind": "offBooking", "cls": "", "pic": "", "title": "", "tags": "", "lines": "", "tiles": "", "notes": "drawn from its spec (cardKind_, master template)", "facts": true, "icon": "book"}
 ]

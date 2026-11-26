@@ -1,4 +1,4 @@
-/* @family. — doGet's payload: terms, the shop, questions and jobs. Called from doGet in doget.gs (1140). */
+/* @family. — doGet's payload: terms, questions and jobs. Called from doGet in doget.gs (1140). */
 
 /* The terms still to come, from the computed year. */
 function getTerms_(payload) {
@@ -49,75 +49,6 @@ function getTerms_(payload) {
       startDate: fmtDate(win.first) || fmtDate(r.start_date),
       endDate: fmtDate(win.last) || fmtDate(r.end_date),
       lastSun: fmtDate(r.last_sunday)
-    });
-  });
-}
-
-/* The shop list: bikes, wearables and trips. */
-function getShop_(payload) {
-  // --- links --------------------------------------------------------------------------------
-  /* ---------- `links` IS READ OFF THE REPOSITORY NOW § */
-
-  /* The shop holds both kinds of stock, but wearables only exist as rows once they've been seeded — so a freshly deployed site showed one bike and nothing else § */
-  /* AND THIS ONE REBUILT THE WHOLE SCHEMA MID-PAYLOAD. § */
-  const shopTab = read(TAB.shop);
-  if (shopTab.sheet && shopTab.headers.indexOf('kind') >= 0
-      && !shopTab.rows.some(r => norm(r.kind) === 'avatar')) {
-    seedAvatarItems_();
-    clearCache();
-  }
-
-  // --- shop -------------------------------------------------------------------------------
-  // One list, one shape. A wearable carries a slot and an art_id; a bike doesn't. Everything
-  // else about them is identical, which is why they're one tab and one editor.
-  read(TAB.shop).rows.forEach(r => {
-    if (!S(r.name)) return;
-    /* THE SAME THREE WORDS AS A RESOURCE. § */
-    const kind = norm(r.kind) === 'avatar' ? 'wearable' : 'thing';
-    payload.shop.push({
-      id: r._row, rowIndex: r._row, kind, kindRaw: norm(r.kind) || 'thing',
-      /* Against the word that is now set, not the one that used to be. § */
-      /* ---------- THE PAYLOAD SHAPE HAS NOT MOVED § */
-      name: S(r.name),
-      price: (function () {
-        const how = norm(r.acquire);
-        if (how === 'level' || how === 'issued' || how === 'loan') return '';
-        if (how === 'ticks') return S(r.price_ticks);
-        return S(r.price_coins) || S(r.price_pence);
-      })(),
-      unit: (function () {
-        const how = norm(r.acquire);
-        if (how === 'ticks') return '✓ ';
-        if (S(r.price_coins)) return '🪙 ';
-        if (S(r.price_pence)) return 'p';
-        return kind === 'wearable' ? '🪙 ' : '£';
-      })(),
-      /* HOW YOU GET IT, SENT AS ITSELF TOO. § */
-      acquire: norm(r.acquire) || 'buy',
-      audience: norm(r.audience) || 'all',
-      level: N(r.level_required) || 0,
-      slot: S(r.slot), artId: S(r.art_id),
-      /* A THEME IS A TAG (740): history, space…; an empty cell is no tag. */
-      description: S(r.description), image: S(r.photo), theme: S(r.theme),
-      inStock: ON_(r.active),
-      fields: SHOP_EDITABLE.reduce((a, f) => { a[f] = S(r[f]); return a; }, {})
-    });
-  });
-
-  /* A TRIP IS A SHOP ITEM (463): the `trips` tab's active rows join the shop list, priced per child in pence, bought through the basket like any other thing. */
-  read(TAB.trips).rows.forEach(r => {
-    if (!S(r.name) || !ON_(r.active)) return;
-    const pence = N(r.price_per_child) > 0 ? String(Math.round(N(r.price_per_child) * 100)) : '';
-    const when = fmtDate(r.date);
-    const cap = N(r.max_children);
-    payload.shop.push({
-      id: 'trip' + r._row, rowIndex: 0, kind: 'thing', kindRaw: 'thing',
-      name: S(r.name) + (when ? ' · ' + when : ''),
-      price: pence, unit: pence ? 'p' : '£',
-      acquire: 'buy', audience: 'all', level: 0, slot: '', artId: '',
-      description: [S(r.description), S(r.place) || S(r.venue), cap ? 'up to ' + cap + ' children' : '']
-        .filter(Boolean).join(' · '),
-      image: S(r.photo), theme: '', inStock: true, fields: {}
     });
   });
 }

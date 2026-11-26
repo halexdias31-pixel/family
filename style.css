@@ -1087,9 +1087,6 @@ h2 .subject, h3 .subject { color: var(--green); }
 h2 .venue, h3 .venue { color: var(--purple); }
 .card.is-tutor > h3 { color: var(--coral); }
 h2 .tutor, h3 .tutor { color: var(--coral); }
-/* A cape, a hat, a scarf. The fourth and last of these — the colours are meant to answer "what
-   kind of thing is this" at a glance, and a glance can hold four categories and not eight. */
-.card.is-wear > h3 { color: var(--pink); }
 
 /* A prompt before a heading, because this is a terminal. Two characters, and they do more for the
    look than any amount of styling on the text itself. */
@@ -1313,19 +1310,6 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
 
 /* ---------- WHO REACTED: THE FACE IS THE HEADING § */
 
-/* Dropping something from the basket. A small ✕ beside the price rather than a swipe — a swipe
-   here would fight the one that changes tabs. */
-.text-drop { color: var(--bad); cursor: pointer; padding: var(--s1) var(--s2); margin-left: var(--s2); }
-
-/* ---------- THE SAME CONTROL AS A REAL BUTTON § */
-button.text-action, button.text-drop {
-  background: none; border: 0; font: inherit; color: inherit;
-  cursor: pointer; display: inline-block;
-  min-height: var(--tap); min-width: var(--tap); padding: var(--s1) var(--s2);
-}
-button.text-drop { color: var(--bad); }
-/* ON, AND SAYING SO IN THE COLOUR THE APP USES FOR "this is chosen". */
-.lam-on { color: var(--gold); }
 
 /* THE THINGS THAT WERE BUILT AFTER THE SCREENS. § */
 
@@ -1654,9 +1638,6 @@ html.flow:not(.is-loaded) #s-feed { min-height: 100svh; }   /* the home column h
 /* ---------- A TOTAL'S LABEL RUNS ACROSS THE ROW, SO IT CANNOT WIDEN THE QUESTION COLUMN § */
 .rc-total .bk-k { grid-column: 1 / -2; }
 .rc-total .bk-v, .rc-total .bk-m, .rc-total .bk-r { display: none; }
-/* ---------- AND ON A BASKET IT IS TWO COLUMNS, BECAUSE THE BASKET'S CARD IS § */
-/* THE THREE IT HID ARE HIDDEN ON EVERY TOTAL NOW — see `.rc-total .bk-k` below — so the basket's
-   own copy of that rule went rather than standing as a second statement of it. */
 
 /* ---------- ELEVEN RULES THAT SAID THE SAME ELEVEN THINGS IN A SECOND COLOUR § */
 
@@ -2131,8 +2112,7 @@ textarea { touch-action: none; }
 /* ---------- THE ONES INSIDE A LINE OF TEXT § */
 /* `.post-edit` WAS IN THIS EXCEPTION LIST and there is no `.post-edit` — the post's ⋯ became a tile with everything else you can do to a post. § */
 /* `.qw` IS NOT UNDERLINED EITHER: § */
-span[data-do]:not(.act):not(.chip):not(.react):not(.qw),
-.text-action, .text-drop {
+span[data-do]:not(.act):not(.chip):not(.react):not(.qw) {
   text-decoration: underline;
   text-decoration-style: dotted;
   text-underline-offset: 3px;
@@ -2463,16 +2443,14 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 /* THE SAME TWO COLUMNS AS EVERY OTHER ROW, so a card of mixed rows lines up down its left edge. § */
 /* ---------- AND THE LABEL COLUMN GIVES WAY WHEREVER NOTHING BESIDE IT WANTS THE ROOM § */
 /* ---------- AND THE FIGURE COLUMN WAS NEVER WIDE ENOUGH FOR THE FIGURE § */
-/* A BASKET CARD IS TWO COLUMNS, SO IT SAYS SO ON THE CARD. § */
-.bk:has(> .is-wide) { grid-template-columns: minmax(0, 1fr) max-content; }
 /* ---------- AND A BLANK ROW'S LABEL COLUMN GIVES WAY INSTEAD OF THE LABEL § */
 /* ---------- AND THE DASH ENDS WHERE EVERY OTHER VALUE ENDS § */
 
 /* ---------- A ROW WITH NO FIGURES DRAWS NO FIGURES, AND KEEPS THE TRACKS ANYWAY § */
 /* ---------- AND A DAY ROW IS THE ONE THAT CARRIES A MULTIPLIER WITHOUT A TOTAL § */
 /* ---------- AND THE DATES ROW IS THE SECOND OF THOSE, ASKED FOR BY NAME § */
-.bk-row:not(.is-cols):not(.is-wide):not(.bk-wk):not(:has(.bk-dates)):not(:has(.bk-t:not(:empty))) .bk-m,
-.bk-row:not(.is-cols):not(.is-wide):not(.bk-wk):not(:has(.bk-dates)):not(:has(.bk-t:not(:empty))) .bk-r { visibility: hidden; }
+.bk-row:not(.is-cols):not(.bk-wk):not(:has(.bk-dates)):not(:has(.bk-t:not(:empty))) .bk-m,
+.bk-row:not(.is-cols):not(.bk-wk):not(:has(.bk-dates)):not(:has(.bk-t:not(:empty))) .bk-r { visibility: hidden; }
 /* ---------- AND THE ANSWER STAYS IN THE ANSWER COLUMN § */
 
 /* ---------- THE FIGURE COLUMNS STAY ON AN UNPRICED CARD, FOURTH TIME OF ASKING § */
@@ -2495,21 +2473,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .bk-row.is-cols .bk-r,
 .bk-row.is-cols .bk-t { font-family: inherit; font-weight: 400; color: inherit; }
 
-/* ---------- A NAME AND A PRICE, WHICH IS NOT WHAT SIX COLUMNS ARE FOR § */
-/* `is-wide`'s COLUMNS ARE SET BELOW, beside `rc-total`, because both needed the same repair and a
-   width stated twice is the fault the note over `is-bare` already records. */
-.bk-row.is-wide .bk-n, .bk-row.is-wide .bk-k,
-.bk-row.is-wide .bk-m, .bk-row.is-wide .bk-r { display: none; }
-/* LEFT, AND IN THE ORDINARY INK. A title reads from the left like a title, not right-aligned like a
-   figure — and it is the thing on the line, so it is not the quiet colour a value takes when it
-   sits under a label that names it. */
-.bk-row.is-wide .bk-v {
-  text-align: left; color: inherit;
-  overflow-wrap: break-word; hyphens: none;
-}
-/* `:not(.is-wide)` BECAUSE A BASKET LINE CAN BE BOTH. § */
-.bk-row.is-bare:not(.is-wide) .bk-m, .bk-row.is-bare:not(.is-wide) .bk-r { visibility: hidden; }
-.bk-row.is-bare.is-wide .bk-t { display: none; }
+.bk-row.is-bare .bk-m, .bk-row.is-bare .bk-r { visibility: hidden; }
 
 /* AN OPEN WAITING LIST — A TICKET, NOT A CARD. § */
 .cpn {
@@ -3207,44 +3171,6 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
   font: 600 var(--fs-small)/1.2 var(--mono); color: var(--ink); white-space: nowrap; }
 /* ---------- 40px, IN px, ON THE TWO CONTROLS THE WHOLE CARD EXISTS TO REACH § */
 
-/* THE TERMS. This was `var(--paper-dim)` with a note saying `.faint` is a dark-theme grey and the terms sit on off-white — which was true of the paper and is the § */
-.rc-terms {
-  margin: var(--s0) 0 0;
-  text-align: center;
-  font-size: var(--fs-small);
-  line-height: var(--lh-mid);
-  color: var(--ink);
-}
-
-/* THE ✕ ON A BASKET LINE. `.text-drop` is sized for a settings row; on a receipt line it has to sit
-   with the title rather than beside it, and stay pressable at 44px without making the line taller
-   than its neighbours. */
-.bk-v .text-drop { padding: var(--s1) var(--s1); margin-left: var(--s1); }
-
-/* ---------- A BASKET LINE IS A NAME, THEN ONE STRIP OF CONTROLS § */
-/* ---------- AND NOW THE NAME RUNS ON A LEADER TO ITS PRICE, AND THE STRIP IS ONLY THERE WHEN USED -- § */
-.bk-row.is-wide > .bk-v { display: contents; }
-.bk-row.is-wide > .bk-t { grid-column: 2; grid-row: 1; }
-.bk-row.is-wide .cart-ln { grid-column: 1; grid-row: 1; display: flex; align-items: baseline;
-                           gap: var(--s1); min-width: 0; text-align: left; }
-.bk-row.is-wide .cart-nm { flex: 0 1 auto; min-width: 0; overflow-wrap: break-word; }
-.bk-row.is-wide .cart-pp { flex: none; }
-/* THE LEADER IS AN EMPTY BOX WITH A BOTTOM BORDER, and an empty flex item's baseline is its bottom edge — so on a baseline row its dots sit on the text's § */
-.bk-row.is-wide .cart-lead { flex: 1 1 1rem; min-width: 1rem; border-bottom: 1px dotted var(--line); }
-.bk-row.is-wide .cart-ln .text-drop { margin: 0; flex: none; }
-.bk-row.is-wide .cart-ctl { grid-column: 1 / -1; grid-row: 2; display: flex; flex-wrap: wrap;
-                            align-items: center; gap: 0 var(--s1); }
-/* NO NEGATIVE MARGIN TO PULL THE ✕ FLUSH with the figure: tried, and `check/ui.js` named the line
-   4px wider than its box at every width. The ✕'s own padding is the gap. */
-.bk-row.is-wide .cart-ctl .text-drop { margin-left: auto; }
-/* LAMINATE IS THE FORM'S ONE BUTTON (`tile_({ form })`), sized to its word so the pages and the ✕ share its line. */
-.bk-row.is-wide .cart-ctl > .btn { width: auto; flex: 0 1 auto; margin: 0; }
-/* THE BUNDLE'S CAPTION IS ITS OWN ROW, across both columns. */
-.bk-row.is-wide .cart-from { grid-column: 1 / -1; }
-/* THE BUNDLE A GROUP OF LINES CAME FROM — a caption over them rather than a line of its own to buy,
-   so it is the quiet ink and a size down, and it has a little air above it where a second bundle
-   starts under the first. */
-.bk-v .cart-from { display: block; margin-top: var(--s1); font-size: var(--fs-body); color: var(--ink); text-align: left; }
 
 /* DOCUMENTS — the agreements and policies, read in a sheet. § */
 
@@ -3445,20 +3371,11 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
    breadcrumb, because the two are one block and the space belongs below them, not between. */
 .card .crumb + h3 { margin-top: 0; font-size: var(--fs-body); font-weight: 600; }
 
-/* ---------- A BUNDLE: THE PAPERS ON THE SCREEN, LISTED § */
-.card.bundle .bundle-list {
-  margin: var(--s1) 0 var(--s1); padding-left: var(--s5);
-  font-size: var(--fs-small); line-height: var(--lh-close); color: var(--ink);
-}
-.card.bundle .bundle-list li { margin: 0 0 var(--s0); overflow-wrap: anywhere; }
-.card.bundle .bundle-list li::marker { color: var(--ink); font-family: var(--mono); }
-.card.bundle .bundle-name { color: var(--ink); }
-.card.bundle .bundle-off { margin: var(--s1) 0 0; font-size: var(--fs-small); color: var(--ink); }
 /* THE TITLE IS WHAT IS BEING CHOSEN, so it is the one large line -- ink, not gold, because gold is
    the header's word on every card in this family. It wraps on its middots, which is where it reads. */
 
-/* ---------- ONE BOXED CARD: a widget, a question card and the bundle card share one surface; a widget's padding is its own. § */
-[data-shape="Card"], .card[data-shape="Card"].bundle {
+/* ---------- ONE BOXED CARD: a widget and a question card share one surface; a widget's padding is its own. § */
+[data-shape="Card"] {
   background: var(--raised); border: 1px solid var(--line); border-radius: var(--r-ui);
   padding: var(--s3); margin-bottom: var(--card-gap);
 }
@@ -4371,8 +4288,6 @@ table.qp-cells :is(td, th) { border: 1px solid var(--line); padding: var(--s1) v
 .is-writing > :not(.rep-box):not(#no-such-id) { display: none; }
 .is-writing > .rep-box { flex: 1 1 auto; min-height: 0; overflow-y: auto; margin: 0; padding-top: 0; border-top: 0; }
 
-/* THE SHOP (491): an icon in front of every item, and the search card's list of matches. */
-
 /* THE WEEKLY EMAIL'S PREVIEW (491, 547): the backend's own email in a frame, phone-wide and tall enough to read; the email brings its own colours. */
 
 /* ---------- THE RULES (496): the Rules card on Site, and the two rules only CSS applies (`data-uni`, rules.js) ---------- */
@@ -4431,7 +4346,7 @@ table.qp-cells :is(td, th) { border: 1px solid var(--line); padding: var(--s1) v
 #bookr [data-state~="receipt"], .page [data-state~="receipt"] { background: none; border: 0; border-radius: 0; padding: var(--s1) 0 var(--s2); }
 .rc-head .qtags { margin: 0 0 var(--s1); }
 /* THREE PRICE COLUMNS ON EVERY FORM, priced or not (owner, 8 Nov): the same lines always, the last column carries a dash until it has a figure. */
-.bk-row:not(.is-cols):not(.is-wide):not(.rc-total):not(:has(.bk-tick)) > .bk-t:empty::before { content: '\2014'; }
+.bk-row:not(.is-cols):not(.rc-total):not(:has(.bk-tick)) > .bk-t:empty::before { content: '\2014'; }
 /* THE ANSWERS LOOK LIKE THE CREAM QUESTION PILL, so a reader sees at once what can be set. */
 /* ONE ROW HEIGHT FOR THE FORM AND THE SAVED BOOKING. */
 [data-state~="receipt"] .bk-row { padding-block: var(--s0); align-items: center; }

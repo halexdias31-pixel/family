@@ -18,8 +18,6 @@ const RULES = [
     uni: 'Anyone of age sees it, like the Talmud and the Quran.', flip: true },
   { id: 'finder-members', say: 'Signed out, Find answers only Settings (Sign in and Join), Booking (its steps; Send asks you to sign in) and the library (never questions or Practice)', where: 'Find (C+, 1040)',
     uni: 'Signed out, Find answers everything, as signed in.' },
-  { id: 'keep-basket', say: 'The basket can never be deleted', where: 'Shop (462)',
-    uni: 'Delete on it like every other widget.', lock: 'It is the one place a shop order is paid; without it nobody could pay.' },
   { id: 'admin-cols', say: 'Business and Site cards stay on those 2 columns and admin-only columns made past Site (508), and no other card moves onto them', where: 'Business and Site (491)',
     uni: 'Any card moves to any column.', lock: 'A card moved onto an admin column would vanish for everyone but an admin.' },
   { id: 'people-no-merge', say: 'A card drawn a page a person (Tutor directory, Every student, Every parent) cannot be merged', where: 'Profile columns (480)',

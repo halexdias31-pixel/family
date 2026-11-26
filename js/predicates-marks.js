@@ -1,5 +1,4 @@
-/* A basket line printed on paper (a part's marking method is the engine's: `markSchemeOf_`, find-marking.js). */
-const isPrint_ = c => !!c && c.kind === 'print';
+/* (a part's marking method is the engine's: `markSchemeOf_`, find-marking.js). */
 /* A people column by name: the tutors' cards and the students' (1040). */
 const isTutorsCol_ = col => col === 'tutors';
 const isStudentsCol_ = col => col === 'students';

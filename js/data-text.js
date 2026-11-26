@@ -18,10 +18,7 @@ const LAW_LISTS = {
   venues: d => (d.venues || []).map(v => v.title),
   /* THE FAMILIES IN THE SESSIONS THIS PHONE CAN SEE. § */
   clients: d => [...new Set((d.liveJobs || d.jobs || []).flatMap(j => (j.slots || []).map(s => s && s.client)).filter(Boolean))],
-  /* Everything in the shop that is worn rather than posted. § */
-  wearables: d => (d.shop || []).filter(isWearable).map(x => x.name),
 };
-LAW_LISTS.wearable = LAW_LISTS.wearables;
 function lawList(name) {
   const f = Object.prototype.hasOwnProperty.call(LAW_LISTS, norm(name)) ? LAW_LISTS[norm(name)] : null;
   return f ? f(DATA || {}) : [];

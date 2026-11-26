@@ -98,7 +98,7 @@ function seatCutOf_(v) {
   return x <= CUT_MAX_() ? x : NaN;
 }
 
-/* NO FORMAT, PRACTICAL OR TRIP ON A BOOKING (463): those are shop items now, so a booking is teaching and a room. */
+/* NO FORMAT, PRACTICAL OR TRIP ON A BOOKING (463): a booking is teaching and a room. */
 /* ---------- THE ONE SUM FROM CHARGED TO NET § */
 function bookMoney_(m) {
   m = m || {};

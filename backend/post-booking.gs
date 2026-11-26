@@ -565,7 +565,7 @@ function createJobRow_(body, ctx) {
     booked_by: key(S(body.name)) === key(me) ? '' : S(body.name),
     /* THE MONEY BLOCK, AS THE PHONE PRICED IT (docs/history/353) — blank from an older phone, never a nought, for `tutor_pay`'s reason. § */
     gross: cash(body.gross), tutor_payout: cash(body.tutorPayout), venue_cost: cash(body.venueCost),
-    /* NO MATERIALS, TICKETS OR FORMAT FROM A PHONE ANY MORE (463): trips and practicals are shop items. An older phone's fields are ignored; old rows keep theirs. */
+    /* NO MATERIALS, TICKETS OR FORMAT FROM A PHONE ANY MORE (463): trips and practicals are not booked. An older phone's fields are ignored; old rows keep theirs. */
     card_fees: cash(body.cardFees), net_profit: cash(body.netProfit),
     discount_type: S(body.discountType), discount_value: cash(body.discountValue),
     discount_code: S(body.discountCode),

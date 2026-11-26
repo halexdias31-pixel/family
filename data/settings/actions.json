@@ -30,7 +30,6 @@
   "practical:delete": {"roles":[]},
   "project:delete": {"roles":[]},
   "library:read": {"roles":"tiers","library":true},
-  "shop:read": {"roles":"tiers","door":"Shop"},
   "tools:read": {"roles":"tiers","door":"Tools"},
   "games:read": {"roles":"tiers","door":"Games"},
   "timetable:save": {"roles":"signedIn","handler":"postSaveTimetable_"},
