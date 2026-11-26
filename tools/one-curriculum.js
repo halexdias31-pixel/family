@@ -33,7 +33,8 @@ const FIXTURE = 'tools/fixtures/curriculum';
 const ALEVEL = 'A-Level (outside the DfE KS1–GCSE lists)';
 
 function headBudget(file) {
-  try { return JSON.parse(cp.execFileSync('git', ['show', 'HEAD:' + file], { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })).budget; }
+  /* 26 Nov: the commit that makes a file generated (tools/spec-tree.js) sets its budget by measurement; from then on it may only fall. */
+  try { const T = JSON.parse(cp.execFileSync('git', ['show', 'HEAD:' + file], { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })); return T.generated ? T.budget : null; }
   catch (e) { return null; }
 }
 /* THE SUBJECT'S BUDGET: the first country file of it that gives one. */

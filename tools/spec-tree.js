@@ -28,20 +28,26 @@ const ABOUT_H = 'THE GOVERNMENT DOCUMENTS\' OWN SECTION HEADINGS, exact, GENERAT
 const slug = s => String(s).toLowerCase().replace(/[’']/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 32).replace(/-$/, '');
 const key = (d, r) => d + '|' + r;
 
-/* THE GENERATED NODES OF ONE SUBJECT: [{ key, name, parentKey, src: [{doc, ref}], levels }] in reading order. */
+/* THE GENERATED NODES OF ONE SUBJECT: [{ key, name, parentKey, src: [{doc, ref}], levels, stmt }] in reading order. A heading is a node; a
+   STATEMENT under it is a node below it (26 Nov: statement level where the document has statements), named as printed, citing its code (GCSE
+   maths N1–S6) or its heading, the same statement under the same heading in several documents one node. */
+const norm = t => String(t).toLowerCase().replace(/\s+/g, ' ').trim();
 function nodesFrom(R, M, sub, levelOrder) {
   const out = [], by = {};
+  const add = (k2, make, doc, ref, levels) => {
+    let n = by[k2];
+    if (!n) { n = by[k2] = Object.assign({ key: k2, src: [], levels: [] }, make()); out.push(n); }
+    if (!n.src.some(s => s.doc === doc && s.ref === ref)) n.src.push({ doc, ref });
+    levels.forEach(l => { if (!n.levels.includes(l)) n.levels.push(l); });
+  };
   Object.keys(M.docs).filter(k => M.docs[k].subject === sub).forEach(k => {
     const doc = M.docs[k].doc, r = R[sub][doc], kOf = {};
     r.headings.forEach(h => {
       if (h.kind === 'skill') return;
       const pk = h.parent ? kOf[h.parent] : '', k2 = (pk || '') + '/' + h.text.toLowerCase();
       kOf[h.ref] = k2;
-      let n = by[k2];
-      if (!n) { n = by[k2] = { key: k2, name: h.text, parentKey: pk || '', src: [], levels: [] }; out.push(n); }
-      if (!n.src.some(s => s.doc === doc && s.ref === h.ref)) n.src.push({ doc, ref: h.ref });
-      h.levels.forEach(l => { if (!n.levels.includes(l)) n.levels.push(l); });
-      r.statements.filter(s => s.ref === h.ref && s.code).forEach(s => n.src.push({ doc, ref: s.code }));
+      add(k2, () => ({ name: h.text, parentKey: pk || '' }), doc, h.ref, h.levels);
+      r.statements.filter(s => s.ref === h.ref).forEach(s => add(k2 + '/\u00a7' + (s.code || norm(s.text)), () => ({ name: s.text, parentKey: k2, stmt: true, code: s.code || '' }), doc, s.code || h.ref, s.levels));
     });
   });
   const kids = new Set(out.map(n => n.parentKey));
@@ -59,10 +65,14 @@ function ids(G, T) {
   const bestG = T.nodes.map((h, hi) => { let b = -1, v = 0; G.forEach((g, gi) => { const x = J[gi][hi]; if (x > v) { v = x; b = gi; } }); return b; });
   const stem = stemOf(T), byKey = {}, used = new Set();
   G.forEach((g, gi) => { const hi = bestH[gi]; if (hi >= 0 && bestG[hi] === gi) { g.id = T.nodes[hi].id; g.hand = T.nodes[hi]; used.add(g.id); } byKey[g.key] = g; });
+  const ord = {};
   G.forEach(g => {
+    if (g.stmt) ord[g.key] = (ord[g.parentKey + '#'] = (ord[g.parentKey + '#'] || 0) + 1);
     if (g.id) return;
-    const parts = []; for (let n = g; n; n = byKey[n.parentKey]) parts.unshift(slug(n.name));
-    let id = stem + 'x.' + parts.join('.'), i = 2; while (used.has(id)) id = stem + 'x.' + parts.join('.') + '-' + i++;
+    let base;
+    if (g.stmt) base = byKey[g.parentKey].id + '.' + (g.code ? g.code.toLowerCase() : 's' + ord[g.key]);
+    else { const parts = []; for (let n = g; n; n = byKey[n.parentKey]) parts.unshift(slug(n.name)); base = stem + 'x.' + parts.join('.'); }
+    let id = base, i = 2; while (used.has(id)) id = base + '-' + i++;
     g.id = id; used.add(id);
   });
   G.forEach(g => { g.parent = g.parentKey ? byKey[g.parentKey].id : ''; });
@@ -90,8 +100,7 @@ function diff(G, T, S) {
 function measure(E, rows0) {
   const CU = require('./lib/curriculum.js'), QG = require('./lib/qgen.js');
   const gen = QG.emit(undefined, E).rows.filter(r => r.kind === 'question');
-  const rows = rows0.filter(r => !String(r.paper_id || '').startsWith(QG.SET_PREFIX)).map(r => Object.assign({}, r))
-    .concat(QG.emit(undefined, E).rows.map(r => Object.assign({}, r)));
+  const rows = require('./gen-questions.js').merged(rows0, QG.emit(undefined, E).rows).map(r => Object.assign({}, r));
   const t = CU.assign(rows, E), out = {};
   Object.keys(CU.SUBJECTS).forEach(k => {
     if (!t[k]) return;
@@ -103,14 +112,63 @@ function measure(E, rows0) {
   return out;
 }
 
-/* A CANDIDATE COUNTRY FILE: the hand file with the generated nodes, every map kept only where its node keeps its id. */
-function candidate(T, nodes) {
-  const ids = new Set(nodes.map(n => n.id)), C = JSON.parse(JSON.stringify(T));
-  C.nodes = nodes;
-  ['ideas', 'set', 'topic', 'spec', 'gen_ideas'].forEach(m => { if (!C[m]) return; Object.keys(C[m]).forEach(k => { const v = m === 'gen_ideas' ? k : C[m][k]; if (!ids.has(v)) delete C[m][k]; }); });
-  if (C.templates) Object.keys(C.templates).forEach(k => { if (!ids.has(k)) delete C.templates[k]; });
+/* THE LIVE COUNTRY FILE BY FORMULA (26 Nov, switched live): the hand file (sources/hand-<subject>.json: documents, levels, the maps a question
+   is tagged by, keyed by the hand ids) with the generated nodes, and
+     - every map re-derived THROUGH CITATIONS: a hand id the generated tree keeps stays; any other goes to the generated node sharing most of
+       its citations (ties: their nearest common node), or is dropped if none shares one;
+     - `templates` from data/settings/curriculum/rules.json: each statement node taught at a `gen.level` level gets the skills the rules
+       match on its text (the hand file's are not read);
+     - `gen_ideas`: a templated node no idea maps to takes the idea of the hand node sharing most of its citations (ties A–Z) that has one, else its nearest ancestor's;
+     - `budget`: the questions it leaves untagged (measured; tools/one-curriculum.js holds it);
+     - `generated`: this tool; tools/spec-tree.js refuses a live file that is not these bytes (a hand edit). */
+function liveFile(T, G, RU, sub, budget) {
+  const QG = require('./lib/qgen.js');
+  const ids = new Set(G.map(g => g.id)), byId = {}; G.forEach(g => { byId[g.id] = g; });
+  const srcSet = G.map(g => new Set(g.src.map(s => key(s.doc, s.ref)))), anc = id => { const a = []; for (let n = byId[id]; n; n = byId[n.parent]) a.push(n.id); return a; };
+  const handSrc = {}; T.nodes.forEach(h => { handSrc[h.id] = new Set(h.src.map(s => key(s.doc, s.ref))); });
+  const tgt = {};
+  const target = hid => {
+    if (tgt[hid] !== undefined) return tgt[hid];
+    if (ids.has(hid)) return (tgt[hid] = hid);
+    const hs = handSrc[hid]; if (!hs) return (tgt[hid] = '');
+    let best = 0, top = [];
+    G.forEach((g, gi) => { let c = 0; hs.forEach(x => { if (srcSet[gi].has(x)) c++; }); if (c > best) { best = c; top = [g.id]; } else if (c && c === best) top.push(g.id); });
+    if (!top.length) return (tgt[hid] = '');
+    let common = anc(top[0]); top.slice(1).forEach(id => { const a = new Set(anc(id)); common = common.filter(x => a.has(x)); });
+    return (tgt[hid] = common[0] || top[0]);
+  };
+  const C = {};
+  Object.keys(T).forEach(k => {
+    if (k === 'about') { C.about = 'GENERATED by tools/spec-tree.js from the government documents (sources/, tools/spec-read.js) and sources/hand-' + sub + '.json — never edit by hand (a hand edit fails the build). A node per heading and per statement, named as printed. ' + T.about; C.generated = 'tools/spec-tree.js'; return; }
+    if (k === 'nodes') { C.nodes = asNodes(G); return; }
+    if (['ideas', 'set', 'topic', 'spec'].includes(k)) { C[k] = {}; Object.keys(T[k]).forEach(x => { const v = target(T[k][x]); if (v) C[k][x] = v; }); return; }
+    if (k === 'gen_ideas' || k === 'templates' || k === 'budget') return;
+    C[k] = T[k];
+  });
+  const lv = [].concat((T.gen || {}).level || []), rules = RU.rules.filter(r => r.subject === sub), tpl = {};
+  G.forEach(g => {
+    if (!g.stmt || !g.leaf || (lv.length && !lv.some(l => g.levels.includes(l)))) return;
+    const skills = [];
+    rules.forEach(r => { if (r.any.some(p => new RegExp(p, 'i').test(g.name)) && !(r.none || []).some(p => new RegExp(p, 'i').test(g.name))) r.skills.forEach(x => { if (!skills.includes(x)) skills.push(x); }); });
+    if (skills.length) tpl[g.id] = skills;
+  });
+  const have = QG.ideaOfNode(C), handIdea = QG.ideaOfNode(T), gi = {};
+  Object.keys(T.gen_ideas || {}).forEach(h => { const v = target(h); if (v && tpl[v] && !have[v] && !gi[v]) gi[v] = T.gen_ideas[h]; });
+  Object.keys(tpl).forEach(id => {
+    if (have[id] || gi[id]) return;
+    const gs = srcSet[G.indexOf(byId[id])];
+    let best = 0, pick = '';
+    Object.keys(handSrc).sort().forEach(h => { if (!handIdea[h]) return; let c = 0; handSrc[h].forEach(x => { if (gs.has(x)) c++; }); if (c > best) { best = c; pick = h; } });
+    if (pick) { gi[id] = handIdea[pick]; return; }
+    for (let n = byId[byId[id].parent]; n; n = byId[n.parent]) if (have[n.id]) { gi[id] = have[n.id]; return; }
+  });
+  if (T.gen_ideas || Object.keys(gi).length) C.gen_ideas = Object.keys(gi).sort().reduce((o, k) => { o[k] = gi[k]; return o; }, {});
+  C.templates = Object.keys(tpl).sort().reduce((o, k) => { o[k] = tpl[k]; return o; }, {});
+  if (budget != null) C.budget = budget;
   return C;
 }
+const HAND = (country, sub) => path.join(SR.DIR, country, SR.SRC, 'hand-' + sub + '.json');
+const noBudget = C => { const c = JSON.parse(typeof C === 'string' ? C : JSON.stringify(C)); delete c.budget; return JSON.stringify(c); };
 
 /* STATEMENTS AGAINST THE RULE TABLE. */
 function rulesOf() { return JSON.parse(fs.readFileSync(path.join(ROOT, RULES), 'utf8')); }
@@ -176,31 +234,35 @@ function build(opt) {
     const M = SR.manifest(country), LY = SR.layouts(country), R = SR.readAll(country, opt.read);
     files[path.join(SR.DIR, country, 'headings.json')] = JSON.stringify(SR.headingsFile(country, R, ABOUT_H), null, 1) + '\n';
     const per = {}, why = [];
-    let E2 = E.slice();
+    let E2 = E.slice(), EH = E.slice();
     Object.keys(R).forEach(sub => {
-      const e = E.find(x => x.country === country && x.subject === sub);
+      const e0 = E.find(x => x.country === country && x.subject === sub);
       const G = nodesFrom(R, M, sub, LY.levels[sub]);
-      if (!e) { G.forEach(g => { g.id = country + '.' + sub.slice(0, 2) + '.x.' + slug(g.key); }); return; }
-      const SX = ids(G, e.T), nodes = asNodes(G);
-      files[path.join(SR.DIR, country, SR.SRC, 'tree-' + sub + '.json')] = JSON.stringify({ about: 'GENERATED by tools/spec-tree.js from the stored sources — never edit by hand. The ' + sub + ' tree by formula: a node per heading of the documents, named as printed; see docs/curriculum-diff-' + country + '.md.', nodes }, null, 1) + '\n';
-      per[sub] = { e, gen: G, nodes, hand: e.T.nodes.length, diff: diff(G, e.T, SX) };
-      const C = candidate(e.T, nodes);
-      E2 = E2.map(x => x === e ? Object.assign(Object.create(Object.getPrototypeOf(x)), x, { T: C }) : x);
-      per[sub].C = C;
+      if (!e0) { G.forEach(g => { g.id = country + '.' + sub.slice(0, 2) + '.x.' + slug(g.key); }); return; }
+      const hf = HAND(country, sub), T = fs.existsSync(path.join(ROOT, hf)) ? JSON.parse(fs.readFileSync(path.join(ROOT, hf), 'utf8')) : e0.T;
+      const e = Object.assign(Object.create(Object.getPrototypeOf(e0)), e0, { T });
+      EH = EH.map(x => x === e0 ? e : x);
+      const SX = ids(G, T), nodes = asNodes(G);
+      files[path.join(SR.DIR, country, SR.SRC, 'tree-' + sub + '.json')] = JSON.stringify({ about: 'GENERATED by tools/spec-tree.js from the stored sources — never edit by hand. The ' + sub + ' tree by formula: a node per heading and per statement of the documents, named as printed; it is the live ' + e0.file + '\'s `nodes`; see docs/curriculum-diff-' + country + '.md.', nodes }, null, 1) + '\n';
+      const C = liveFile(T, G, RU, sub, null);
+      const handSkills = new Set([].concat(...Object.values(T.templates || {}))), liveSkills = new Set([].concat(...Object.values(C.templates)));
+      const lost = [...handSkills].filter(x => !liveSkills.has(x));
+      if (lost.length) why.push(sub + ': skills on no statement: ' + lost.join(', '));
+      per[sub] = { e: e0, eh: e, T, G, gen: G, nodes, hand: T.nodes.length, diff: diff(G, T, SX), C };
+      E2 = E2.map(x => x === e0 ? Object.assign(Object.create(Object.getPrototypeOf(x)), x, { T: C }) : x);
     });
     if (!opt.skipMeasure) {
-      const before = measure(E, rows), after = measure(E2, rows);
+      const before = measure(EH, rows), after = measure(E2, rows);
       Object.keys(per).forEach(sub => {
         per[sub].before = before[sub]; per[sub].after = after[sub];
-        if (after[sub].tagged < before[sub].tagged) why.push(sub + ': tagged questions would fall from ' + before[sub].tagged + ' to ' + after[sub].tagged);
         if (after[sub].generated < before[sub].generated) why.push(sub + ': generated questions would fall from ' + before[sub].generated + ' to ' + after[sub].generated);
+        if (per[sub].T.budget != null) per[sub].C.budget = after[sub].questions - after[sub].tagged;
       });
-      const switched = !why.length;
-      decisions[country] = { switched, why };
-      files['docs/curriculum-diff-' + country + '.md'] = diffMd(country, per, decisions[country]);
     }
+    decisions[country] = { switched: !why.length, why };
+    if (!opt.skipMeasure) files['docs/curriculum-diff-' + country + '.md'] = diffMd(country, per, decisions[country]);
+    Object.keys(per).forEach(sub => { if (decisions[country].switched) files[per[sub].e.file] = JSON.stringify(per[sub].C, null, 1) + '\n'; });
     gapsAll.push({ country, list: match(R, RU), levels: LY.levels, R });
-    decisions[country] = decisions[country] || { switched: false, why: [] };
     decisions[country].per = per;
   });
   files[GAPS] = gapsMd(gapsAll);
@@ -230,6 +292,16 @@ function problems(opt) {
     if (!x.s.levels.length) bad.push(country + ' ' + x.sub + ' ' + x.doc + ': a statement with no level: ' + x.s.text.slice(0, 60));
     else if (!listed.includes(line)) bad.push(country + ' ' + x.sub + ' ' + x.doc + ': a statement neither matched nor listed in ' + GAPS + ': ' + x.s.text.slice(0, 60));
   }));
+  /* THE LIVE FILES ARE THIS TOOL'S (26 Nov, switched): never edited by hand; the generated tree live in every country. */
+  Object.keys(b.decisions).forEach(c => {
+    const d = b.decisions[c];
+    if (!d.switched) bad.push(c + ': the generated tree is not live: ' + d.why.join('; '));
+    Object.keys(d.per).forEach(sub => {
+      const f = d.per[sub].e.file, want = b.files[f]; if (!want) return;
+      const have = opt.live && opt.live[f] != null ? opt.live[f] : fs.readFileSync(path.join(ROOT, f), 'utf8');
+      if (noBudget(have) !== noBudget(want)) bad.push(f + ': not the file tools/spec-tree.js makes (a hand edit?) — change ' + HAND(c, sub) + ', ' + RULES + ' or the sources, then run node tools/spec-tree.js');
+    });
+  });
   /* DETERMINISM: twice here, then in a fresh process. */
   const h1 = hashOf(b.files), h2 = hashOf((opt.again || (() => build({ rules: RU, skipMeasure: true, read: opt.read })))().files);
   if (h1 !== h2) bad.push('the reader gave different bytes twice from the same sources');
@@ -249,6 +321,9 @@ function prove() {
     { name: 'a manifest hash wrong', o: () => { const m = JSON.parse(JSON.stringify(M)); m.docs[k0].text_sha256 = '0'.repeat(64); return { manifest: m }; } },
     { name: 'a rule naming no template', o: () => { const r = JSON.parse(JSON.stringify(RU)); r.rules[0].skills.push('no-such-skill'); return { rules: r }; } },
     { name: 'a gap not listed', o: () => { const b = build({ rules: RU, skipMeasure: true }); const g = b.files[GAPS].split('\n'); const i = g.findIndex(l => /^- `/.test(l)); g.splice(i, 1); return { built: b, gapsText: g.join('\n') }; } },
+    { name: 'a hand edit to the live tree', o: () => { const f = 'data/settings/curriculum/uk/maths.json', t = JSON.parse(fs.readFileSync(path.join(ROOT, f), 'utf8')); t.nodes[3].name += ' (by hand)'; return { live: { [f]: JSON.stringify(t) } }; } },
+    { name: 'a hand-mapped template', o: () => { const f = 'data/settings/curriculum/uk/science.json', t = JSON.parse(fs.readFileSync(path.join(ROOT, f), 'utf8')); const k = Object.keys(t.templates)[0]; t.templates[k] = t.templates[k].concat('hcf'); return { live: { [f]: JSON.stringify(t) } }; } },
+    { name: 'a skill on no statement', o: () => { const r = JSON.parse(JSON.stringify(RU)); r.rules = r.rules.filter(x => !x.skills.includes('sc-quadrat')); return { rules: r }; } },
     { name: 'a reader that is not deterministic', o: () => ({ again: () => { const b = build({ rules: RU, skipMeasure: true }); flip++; b.files['x'] = String(flip); return b; } }) },
   ];
   const missed = [];
@@ -263,7 +338,6 @@ function run() {
   const CU = require('./lib/curriculum.js');
   Object.keys(t.decisions).forEach(country => {
     const d = t.decisions[country];
-    if (d.switched) Object.keys(d.per).forEach(sub => { const p = d.per[sub]; writeIfChanged(path.join(ROOT, p.e.file), JSON.stringify(p.C, null, 1) + '\n'); });
     void CU;
   });
   const bad = problems({ built: build({ skipMeasure: true }) });
