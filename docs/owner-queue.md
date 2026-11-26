@@ -224,3 +224,11 @@ A place where a student drops lecture transcripts (Teams .vtt/.docx) and gets a 
 
 ## STANDING GOAL (owner, 26 Nov): any country's spec in → everything out, mechanically
 Upload (or name) a country's curriculum document → the site lays out the library and generates questions for every subject, year and level, by formula, no AI, no hand-building. Whatever the code can't handle yet is listed, and the code is refined (formulaically, never per-case) until it can. Order: UK reader (replace the hand-built tree, prove identical) → statement→template rule table + "no generator" report → Australia (ACARA codes) → Brazil (BNCC codes) → more subjects' templates.
+
+## THE ROOT (owner, 26 Nov) — the whole library's shape, top down
+Students are paused from the site's questions until it is stable; the cause was working bottom-up (chasing Corbettmaths / First Class Maths questions one by one). From now on everything proceeds TOP DOWN, mechanically, least arbitrary:
+1. World level (the fewest SSOTs): UNESCO ISCED = the levels; OECD PISA frameworks = shared maths/science/reading content. Vague, but the top.
+2. Countries' government specs under it (UK DfE, Australia ACARA, Brazil BNCC…), each read from its document by code.
+3. Exam boards under each country (AQA, Edexcel, OCR…) as tags — more specific.
+4. Worksheets (Corbettmaths, First Class Maths…) only as tags / an after-check, never a source.
+Questions are generated from the tree by formula. Ship first, then compare to outside worksheets (variety, difficulty) and refine the formulas — a fix at the top fixes everything below. Repeatable for the next country with no hand work.
