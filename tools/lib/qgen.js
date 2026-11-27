@@ -11,6 +11,7 @@
 'use strict';
 const crypto = require('crypto');
 const SD = require('./site-data.js');
+const DR = require('./qgen-draw.js');
 
 const TABLE = 'data/settings/qgen.json';
 const table = () => SD.json(TABLE);
@@ -23,6 +24,7 @@ const HELP = {
   sgn: n => (n < 0 ? '- ' + -n : '+ ' + n),            /* the sign and size of a term after the first: + 3, - 3 */
   co: n => (n === 1 ? '' : n === -1 ? '-' : String(n)), /* a coefficient: 1x is x */
   fix: n => String(+n.toFixed(10)),
+  sqrt: Math.sqrt,
   tight: s => String(s).replace(/ /g, ''),
   /* right-angled trigonometry in degrees, as a GCSE question gives them; rd(n, d) is n to d decimal places as written (2 to 1 d.p. is 2.0) */
   sin: d => Math.sin(d * Math.PI / 180), cos: d => Math.cos(d * Math.PI / 180), tan: d => Math.tan(d * Math.PI / 180),
@@ -101,7 +103,7 @@ function make(t, nums, D) {
   return {
     id: 'gen:' + t._node + ':' + tplId(t, D) + ':' + nums.join(','), node: t._node, template: tplId(t, D), version: version(t, D), nums: nums.slice(),
     text: fill(t.text, env), key: fill(t.key, env), typed: (t.typed || []).map(p => fill(p, env)), wrong: t.wrong == null ? null : fill(t.wrong, env),
-    answer_type: t.answer_type, marks: t.marks, env,
+    answer_type: t.answer_type, marks: t.marks, env, diagram: DR.ofTemplate(t, env, evaluate, fill),
   };
 }
 /* ONE QUESTION FROM A SEED: numbers drawn until the conditions hold (a template that cannot meet them in 5000 draws is broken). */
@@ -185,11 +187,13 @@ function emit(T, E) {
     let k = 0;
     list.forEach(t => fixed(t, D).forEach(q => {
       const id = rowId(q, e), r = { row_id: id, paper_id: pid, question: String(++k), kind: 'question', marks: String(t.marks), answer_type: t.answer_type,
-        active: 'True', lib_has: 'html answer accept', function_verified: 'True', lib_pending: 'True' };
+        active: 'True', lib_has: q.diagram ? 'html diagram answer accept' : 'html answer accept', function_verified: 'True', lib_pending: 'True' };
+      if (q.diagram) r.figure = q.diagram.kind;
       if (idea[node]) r.idea_id = idea[node];
       r[CU().FIELD] = node;
       rows.push(r);
-      words[id] = { html: '<p>' + html(q.text) + '</p>', answer: '<b>' + html(q.key.split('|')[0].trim()) + '</b>', accept: q.key };
+      /* A DIAGRAM (tools/lib/qgen-draw.js) is the words' `diagram`, placed before them by `<!--fig-->`, as every question figure is. */
+      words[id] = Object.assign({ html: (q.diagram ? '<!--fig-->' : '') + '<p>' + html(q.text) + '</p>' }, q.diagram ? { diagram: q.diagram.svg } : {}, { answer: '<b>' + html(q.key.split('|')[0].trim()) + '</b>', accept: q.key });
     }));
   });
   return { rows, words };
