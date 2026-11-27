@@ -14245,6 +14245,8 @@ const rep = !r ? '' : (/FREQ=HOURLY/.test(r) ? 'every ' + ((/INTERVAL=(\d+)/.exe
 return [k ? k.replace('T', ' ') : '', rep, it.date && !dkRep_(it) ? 'due ' + it.date : '', it.course, it.weight !== '' && it.weight != null ? it.weight + '%' : '', it.mark ? 'mark ' + it.mark : '']
 .filter(Boolean).join(' · ');
 }
+const DK_ADD_KINDS = [{ kind: 'task', label: 'Add task', icon: 'plus', act: 'dk-qadd' }, { kind: 'event', label: 'Add event', icon: 'flag', act: 'dk-qevent' },
+{ kind: 'lesson', label: 'Add lesson', icon: 'join', act: 'dk-qlesson' }];
 function dkCard_() {
 const now = dkNow_(), g = dkSort_(dkLoad_(), now, dkLeavesNow_());
 return renderCard(shapeCard_('docket', { kind: 'docket', name: 'Docket', tags: [],
@@ -14253,8 +14255,9 @@ body: g.open.map(i => dkLine_(i)).concat(g.later.map(i => dkLine_(i, dkWhen_(g.w
 .concat(typeof tdEvents_ === 'function' ? cardFold_('dk:terms', { type: 'text', text: text_('term-dates') }, tdEvents_().map(e => ({ type: 'text', look: 'note',
 text: e.title + ' · ' + e.start + (e.end && e.end !== e.start ? ' – ' + e.end : '') })), 'dk-terms') : [])
 .concat(g.done.length ? cardFold_('dk:done', { type: 'text', text: 'Done (' + g.done.length + ')' }, g.done.map(i => dkLine_(i)), 'dk-done') : [])
-.concat({ type: 'field', look: 'dk-qadd-f', blocks: [{ type: 'control', attrs: { class: 'dk-qadd', placeholder: 'Add an item, then Enter', 'aria-label': 'Add to the Docket', maxlength: 300, enterkeyhint: 'done' } }] }),
-tiles: [{ icon: 'plus', label: 'Add', act: 'dk-qadd', cls: 'is-submit' }] }));
+.concat({ type: 'field', look: 'dk-qadd-f', blocks: [{ type: 'control', attrs: { class: 'dk-qadd', placeholder: 'Add an item, then Enter', 'aria-label': 'Add to the Docket', maxlength: 300, enterkeyhint: 'done' } }] })
+.concat({ type: 'field', look: 'dk-qadd-f', cap: 'When (an event)', blocks: [{ type: 'control', attrs: { class: 'dk-qwhen', type: 'datetime-local', 'aria-label': 'When the event starts' } }] }),
+tiles: DK_ADD_KINDS.map(k => ({ icon: k.icon, label: k.label, act: k.act, cls: k.act === 'dk-qadd' ? 'is-submit' : '' })) }));
 }
 const dkKeep_ = () => { DK.say = ''; dkSave_(); dkPaint_(); if (typeof lateCame_ === 'function') lateCame_(); if (EINK) dkEinkTry_(); };
 const dkRedraw_ = () => { dkPaint_(); if (typeof lateCame_ === 'function') lateCame_(); };
@@ -14271,6 +14274,11 @@ on('dk-qadd', el => { const card = el.closest('.card'), inp = card && card.query
 if (!t) return;
 dkLoad_().push({ title: t.slice(0, 300) }); dkKeep_();
 setTimeout(() => { const again = document.querySelector('.dk-qadd'); if (again) again.focus(); }, 400); });
+on('dk-qevent', el => { const card = el.closest('.card'), inp = card && card.querySelector('.dk-qadd'), w = card && card.querySelector('.dk-qwhen'),
+t = String((inp && inp.value) || '').trim(), at = String((w && w.value) || '').slice(0, 16);
+if (!t || !/^\d{4}-\d\d-\d\dT\d\d:\d\d$/.test(at)) { toast('An event needs a name and a time.'); return; }
+dkLoad_().push({ title: t.slice(0, 300), start: at }); dkKeep_(); });
+on('dk-qlesson', () => go('booking'));
 document.addEventListener('change', e => {
 const el = e.target, at = el && el.getAttribute && el.getAttribute('data-dkf');
 if (at == null) return;
@@ -15977,7 +15985,6 @@ return;
 }
 const said = $('book-said');
 const L = bookPrice();
-const SH = typeof bookShares_ === 'function' ? bookShares_(L) : null;
 el.disabled = true;
 if (said) tell_(said, 'info', 'Asking…');
 const spec = bookSpec();
@@ -16023,35 +16030,22 @@ load();
 .catch(() => { el.disabled = false; bookSending_(false); });
 return;
 }
+const first = (L && L.sessionDates || [])[0], hhmm = String(spec.time || '').slice(0, 5);
+const ymd = d => d instanceof Date ? d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') : '';
+if (!first || !/^\d\d:\d\d$/.test(hhmm)) { el.disabled = false; if (said) tell_(said, 'error', 'Choose a first day and a time.'); return; }
 bookSending_(true);
-send_({ action: 'createJob',
-name: USER.name, clientName: (BOOKING.client && BOOKING.client !== NOBODY) ? BOOKING.client : USER.name,
-personId: USER.personId || '',
-subject: spec.subjects.join(', '), level: spec.level,
-day: spec.day, time: spec.time, location: BOOKING.loc,
-slots: (Array.isArray(BOOKING.slots) ? BOOKING.slots : []).join(','),
-hosting: spec.hosting, hours: spec.hours, interval: spec.interval,
-requestedTutor: spec.tutor,
-n: String(spec.n || 1),
-dates: (L && L.sessionDates || []).map(d => fmtDate_(d)).join(', '),
-price: SH ? String(SH.pays) : (L ? String(L.total || '') : ''),
-profit: SH ? String(SH.admin) : '',
-tutorPay: SH ? String(SH.tutor) : '',
-...bookMoneySend_(L),
-lines: JSON.stringify(((L2) => L2 ? breakdownRows(L2).map(r => ({
-n: r.n, k: r.k, v: r.v, mul: r.mul, rate: r.rate, total: r.total,
-})) : [])(bookPrice())),
-openToOthers: 'TRUE',
-kids: (BOOKING.kids || []).filter(Boolean).join(', '),
-service: BOOKING.service || 'Tuition',
-message: BOOKING.note || '',
-requestId: 'R' + Date.now() + '-' + Math.floor(Math.random() * 1e6) })
+send_({ action: 'addLesson', name: USER.name, personId: USER.personId || '',
+tutor: spec.tutor, learner: (BOOKING.kids || []).filter(Boolean)[0] || '',
+subject: spec.subjects.join(', '), level: spec.level, venue: BOOKING.loc,
+start: ymd(first) + 'T' + hhmm, minutes: String(Math.round((Number(spec.hours) || 1) * 60)), rrule: 'FREQ=WEEKLY' })
 .then(d => {
 if (d && d.error) throw new Error(d.error);
-toast(text_('asked-we-will-come-back-to'));
-ASKED_JOB = String((d && d.jobId) || '');
+const ls = (d && d.lesson) || {};
 resetBooking_();
 load();
+if (ls.pay !== 'owed') { toast('Booked'); return; }
+return api({ action: 'createCheckout', lessonId: ls.id, name: USER.name, personId: USER.personId || '' })
+.then(p => { if (p && p.url) location.href = p.url; else toast((p && p.error) || text_('stripe-did-not-give-us-a')); });
 })
 .catch(err => {
 el.disabled = false;
@@ -16084,61 +16078,6 @@ if (!d || !d.url) { toast(text_('stripe-did-not-give-us-a')); return; }
 location.href = d.url;
 })
 .catch(err => { el.disabled = false; toast(why_(err)); });
-});
-on('job-answer', el => {
-const yes = !!el.dataset.yes;
-if (!yes && !sure_(el, text_('turn-it-down'))) return;
-el.disabled = true;
-api({ action: 'move', jobId: el.dataset.id, role: 'client',
-name: USER.name, personId: (USER && USER.personId) || '', adminName: USER.name, asAdmin: '1',
-move: yes ? 'Accept' : 'Decline',
-requestId: 'ans-' + el.dataset.id + '-' + Date.now() })
-.then(d => {
-el.disabled = false;
-if (d && d.error) { toast(d.error); return; }
-toast(yes ? 'Accepted' : 'Declined');
-closeStep_();
-load();
-})
-.catch(err => { el.disabled = false; toast(why_(err)); });
-});
-function jobMove_(el, body, said) {
-el.disabled = true;
-api(Object.assign({ action: 'move', jobId: el.dataset.id, name: USER.name, personId: (USER && USER.personId) || '',
-requestId: body.move + '-' + el.dataset.id + '-' + Date.now() }, body))
-.then(d => {
-el.disabled = false;
-if (d && d.error) { toast(d.error); return; }
-toast(said);
-load();
-})
-.catch(err => { el.disabled = false; toast(why_(err)); });
-}
-on('job-apply', el => jobMove_(el, { role: 'tutor', move: 'Request' }, text_('applied-the-family-picks')));
-on('job-choose', el => jobMove_(el, { role: 'client', move: 'Accept', counterpart: el.dataset.tutor }, 'Chosen'));
-on('job-request-answer', el => {
-const yes = !!el.dataset.yes, id = el.dataset.id;
-const send = reason => {
-el.disabled = true;
-api({ action: 'answerRequest', jobId: id, yes: yes ? '1' : '', reason: reason || '',
-name: USER.name, personId: (USER && USER.personId) || '' })
-.then(d => {
-el.disabled = false;
-if (d && d.error) { toast(d.error); return; }
-toast(yes ? text_('accepted-the-family-can-pay-and') : text_('declined-the-family-has-been-told'));
-closeStep_();
-load();
-})
-.catch(err => { el.disabled = false; toast(why_(err)); });
-};
-if (yes) { send(''); return; }
-if (!sure_(el, text_('turn-it-down'))) return;
-const row = el.closest('.tile-row');
-if (!row || (row.nextElementSibling && row.nextElementSibling.classList.contains('req-why'))) return;
-row.insertAdjacentHTML('afterend', cardBlock_({ type: 'paperWhy', id }));
-const form = row.nextElementSibling;
-form.addEventListener('submit', e => { e.preventDefault(); form.querySelector('button').disabled = true; send(form.querySelector('input').value.trim()); });
-form.querySelector('input').focus();
 });
 on('job-leave', el => {
 const paid = !!el.dataset.paid;
