@@ -1,5 +1,5 @@
 {
-  "about": "GENERATED MATHS QUESTIONS (owner queue item 6; owner 25 Nov: first-class @family questions, each template a fixed set of ten in Find under its DfE sub-topic, tools/gen-questions.js). One template per row: `id` (its version is a fingerprint of the template and its DfE node, worked out by tools/lib/qgen.js, never written here), (a country-neutral skill: each country file data/settings/curriculum/<country>/<subject>.json maps its sub-topics to skill ids in its `templates`), `answer_type` and `marks` as data/questions.json has them, `vars` (each a whole number drawn from..to, `not` values skipped), `where` (conditions the numbers must meet), `let` (values worked out from them, in order), `text` and `key` (written with {expression}; `key` is an answer key the site's own marker reads, js/find-marking.js markAnswer_, | between accepted forms, rule: lines as in questions.json), `typed` (how a child would type the right answer; each must be marked right) and `wrong` (a near miss; must be marked wrong). Expressions use the names above, numbers, + - * / % ( ) ? : < > = ! & | and the helpers in tools/lib/qgen.js (gcd, lcm, sgn, co, plain, fix, tight). A generated question's id is gen:<node>:<id>.<version>:<numbers>, and the same id always gives the same question. Read by tools/lib/qgen.js; checked by tools/one-gen.js.",
+  "about": "GENERATED MATHS QUESTIONS (owner queue item 6; owner 25 Nov: first-class @family questions, each template a fixed set of ten in Find under its DfE sub-topic, tools/gen-questions.js). One template per row: `id` (its version is a fingerprint of the template and its DfE node, worked out by tools/lib/qgen.js, never written here), (a country-neutral skill: each country file data/settings/curriculum/<country>/<subject>.json maps its sub-topics to skill ids in its `templates`), `answer_type` and `marks` as data/questions.json has them, `vars` (each a whole number drawn from..to, `not` values skipped), `where` (conditions the numbers must meet), `let` (values worked out from them, in order), `text` and `key` (written with {expression}; `key` is an answer key the site's own marker reads, js/find-marking.js markAnswer_, | between accepted forms, rule: lines as in questions.json), `diagram` (optional: { kind, size, label } — a picture drawn from the question's own numbers by tools/lib/qgen-draw.js, `size` expressions, `label` patterns, checked by tools/one-diagram.js), `typed` (how a child would type the right answer; each must be marked right) and `wrong` (a near miss; must be marked wrong). Expressions use the names above, numbers, + - * / % ( ) ? : < > = ! & | and the helpers in tools/lib/qgen.js (gcd, lcm, sgn, co, plain, fix, tight). A generated question's id is gen:<node>:<id>.<version>:<numbers>, and the same id always gives the same question. Read by tools/lib/qgen.js; checked by tools/one-gen.js.",
   "templates": [
     {
       "id": "frac-amount", "answer_type": "calculation", "marks": 1,
@@ -78,6 +78,7 @@
     },
     {
       "id": "area-rect", "answer_type": "calculation", "marks": 1,
+      "diagram": {"kind": "rectangle", "size": {"w": "w", "h": "h"}, "label": {"w": "{w} cm", "h": "{h} cm"}},
       "vars": { "w": [2, 25], "h": [2, 25] },
       "where": ["w != h"],
       "let": { "ans": "w * h" },
@@ -87,6 +88,7 @@
     },
     {
       "id": "area-tri", "answer_type": "calculation", "marks": 1,
+      "diagram": {"kind": "triangle", "size": {"b": "b", "h": "h"}, "label": {"b": "{b} cm", "h": "{h} cm"}},
       "vars": { "b": [2, 30], "h": [2, 30] },
       "where": ["b * h % 2 == 0"],
       "let": { "ans": "b * h / 2" },
@@ -494,6 +496,7 @@
     },
     {
       "id": "angle-point", "answer_type": "short", "marks": 1,
+      "diagram": {"kind": "angles-at-point", "size": {"angles": ["a", "b", "c", "ans"]}, "label": {"angles": ["{a}°", "{b}°", "{c}°", "?"]}},
       "vars": { "a": [20, 150], "b": [20, 150], "c": [20, 150] },
       "where": ["a + b + c < 340"],
       "let": { "ans": "360 - a - b - c" },
@@ -503,6 +506,7 @@
     },
     {
       "id": "angle-tri", "answer_type": "short", "marks": 1,
+      "diagram": {"kind": "polygon", "size": {"angles": ["a", "b", "q ? c : 0", "ans"]}, "label": {"angles": ["{a}°", "{b}°", "{c}°", "?"]}},
       "vars": { "a": [15, 120], "b": [15, 120], "q": [0, 1], "c": [40, 140] },
       "where": ["q ? a + b + c < 340 : a + b < 170"],
       "let": { "ans": "q ? 360 - a - b - c : 180 - a - b", "shape": "q ? 'quadrilateral' : 'triangle'", "list": "q ? a + '°, ' + b + '° and ' + c + '°' : a + '° and ' + b + '°'" },
@@ -512,6 +516,7 @@
     },
     {
       "id": "polygon-missing", "answer_type": "short", "marks": 2,
+      "diagram": {"kind": "polygon", "size": {"angles": ["a", "b", "c", "d", "h ? 125 : 0", "ans"]}, "label": {"angles": ["{a}°", "{b}°", "{c}°", "{d}°", "125°", "x"]}},
       "vars": { "h": [0, 1], "a": [95, 140], "b": [95, 140], "c": [95, 140], "d": [95, 140] },
       "where": ["(h ? 720 - a - b - c - d - 125 : 540 - a - b - c - d) > 60", "(h ? 720 - a - b - c - d - 125 : 540 - a - b - c - d) < 175"],
       "let": { "ans": "h ? 720 - a - b - c - d - 125 : 540 - a - b - c - d", "shape": "h ? 'hexagon' : 'pentagon'", "list": "a + '°, ' + b + '°, ' + c + '°, ' + d + (h ? '°, 125°' : '°')" },
@@ -530,6 +535,7 @@
     },
     {
       "id": "pythag", "answer_type": "calculation", "marks": 3,
+      "diagram": {"kind": "right-triangle", "size": {"base": "p", "up": "q"}, "label": {"base": "{p} cm", "up": "{leg ? 'x' : q + ' cm'}", "hyp": "{leg ? r + ' cm' : 'x'}", "angle": ""}},
       "vars": { "i": [0, 9], "k": [1, 12], "leg": [0, 1] },
       "let": { "p": "(i == 0 ? 3 : i == 1 ? 5 : i == 2 ? 8 : i == 3 ? 7 : i == 4 ? 20 : i == 5 ? 9 : i == 6 ? 12 : i == 7 ? 11 : i == 8 ? 28 : 33) * k", "q": "(i == 0 ? 4 : i == 1 ? 12 : i == 2 ? 15 : i == 3 ? 24 : i == 4 ? 21 : i == 5 ? 40 : i == 6 ? 35 : i == 7 ? 60 : i == 8 ? 45 : 56) * k", "r": "(i == 0 ? 5 : i == 1 ? 13 : i == 2 ? 17 : i == 3 ? 25 : i == 4 ? 29 : i == 5 ? 41 : i == 6 ? 37 : i == 7 ? 61 : i == 8 ? 53 : 65) * k" },
       "text": "{leg ? 'A right-angled triangle has a hypotenuse of ' + r + ' cm and another side of ' + p + ' cm. Work out the length of the third side.' : 'A right-angled triangle has shorter sides of ' + p + ' cm and ' + q + ' cm. Work out the length of the hypotenuse.'}",
@@ -538,6 +544,7 @@
     },
     {
       "id": "circle-pi", "answer_type": "short", "marks": 2,
+      "diagram": {"kind": "circle", "size": {"diameter": "g"}, "label": {"line": "{g ? 2 * r : r} cm"}},
       "vars": { "r": [1, 50], "w": [0, 1], "g": [0, 1] },
       "let": { "ans": "w ? r * r : 2 * r", "bad": "w ? 2 * r : r * r", "said": "g ? 'diameter of ' + 2 * r : 'radius of ' + r" },
       "text": "A circle has a {said} cm. Work out its {w ? 'area' : 'circumference'}. Give your answer in terms of π.",
@@ -546,6 +553,7 @@
     },
     {
       "id": "cuboid", "answer_type": "calculation", "marks": 1,
+      "diagram": {"kind": "cuboid", "size": {"l": "l", "w": "w", "h": "h"}, "label": {"l": "{l} cm", "w": "{w} cm", "h": "{h} cm"}},
       "vars": { "l": [2, 20], "w": [2, 15], "h": [2, 12] },
       "let": { "ans": "l * w * h" },
       "text": "A cuboid measures {l} cm by {w} cm by {h} cm. Work out its volume.",
@@ -554,6 +562,7 @@
     },
     {
       "id": "surface-area", "answer_type": "calculation", "marks": 2,
+      "diagram": {"kind": "cuboid", "size": {"l": "l", "w": "w", "h": "h"}, "label": {"l": "{l} cm", "w": "{w} cm", "h": "{h} cm"}},
       "vars": { "l": [2, 20], "w": [2, 15], "h": [2, 12] },
       "let": { "ans": "2 * (l * w + l * h + w * h)" },
       "text": "A cuboid measures {l} cm by {w} cm by {h} cm. Work out its total surface area.",
@@ -562,6 +571,7 @@
     },
     {
       "id": "sector", "answer_type": "short", "marks": 2,
+      "diagram": {"kind": "sector", "size": {"angle": "t * 10"}, "label": {"r": "{r} cm", "angle": "{t * 10}°"}},
       "vars": { "t": [1, 35], "r": [2, 30] },
       "where": ["t * r * r % 36 == 0", "t != 18"],
       "let": { "ans": "t * r * r / 36" },
@@ -726,6 +736,7 @@
     },
     {
       "id": "trig-side", "answer_type": "calculation", "marks": 2,
+      "diagram": {"kind": "right-triangle", "size": {"base": "h * (f == 2 ? 1 : cos(a))", "up": "f == 2 ? h * tan(a) : h * sin(a)"}, "label": {"base": "{f == 1 ? 'x' : f == 2 ? h + ' cm' : ''}", "up": "{f == 1 ? '' : 'x'}", "hyp": "{f == 2 ? '' : h + ' cm'}", "angle": "{a}°"}},
       "vars": { "a": [20, 70, 44, 45, 46], "h": [4, 40], "f": [0, 2] },
       "let": {
         "x": "f == 0 ? h * sin(a) : f == 1 ? h * cos(a) : h * tan(a)",
@@ -739,6 +750,7 @@
     },
     {
       "id": "trig-angle", "answer_type": "calculation", "marks": 2,
+      "diagram": {"kind": "right-triangle", "size": {"base": "f == 0 ? sqrt(q * q - p * p) : f == 1 ? p : q", "up": "f == 1 ? sqrt(q * q - p * p) : p"}, "label": {"base": "{f == 1 ? p + ' cm' : f == 2 ? q + ' cm' : ''}", "up": "{f == 1 ? '' : p + ' cm'}", "hyp": "{f == 2 ? '' : q + ' cm'}", "angle": "x"}},
       "vars": { "p": [2, 30], "q": [3, 40], "f": [0, 2] },
       "where": ["p != q", "f == 2 || p < q", "f == 2 || (1000 * p - 707 * q) * (1000 * p - 707 * q) > 225 * q * q"],
       "let": {
@@ -794,8 +806,8 @@
     {"id":"sc-mean","answer_type":"calculation","marks":2,"vars":{"a":[20,120],"b":[20,120],"c":[20,120]},"where":["(a + b + c) % 3 == 0","a != b"],"text":"In an enzyme experiment the times taken for the starch to be broken down were {a} s, {b} s and {c} s. Calculate the mean time.","key":"{(a + b + c) / 3} s | {(a + b + c) / 3}","typed":["{(a + b + c) / 3}","{(a + b + c) / 3} s"],"wrong":"{a + b + c}"},
     {"id":"sc-bmi","answer_type":"calculation","marks":2,"vars":{"m":[40,120],"h":[150,200]},"let":{"x":"m / (h * h / 10000)","w":"m / (h / 100)"},"text":"A person has a mass of {m} kg and a height of {fix(h / 100)} m. Calculate their body mass index (BMI = mass ÷ height²). Give your answer to 1 decimal place.","key":"{rd(x, 1)}","typed":["{rd(x, 1)}"],"wrong":"{rd(w, 1)}"},
     {"id":"sc-quadrat","answer_type":"calculation","marks":2,"vars":{"q":[5,10],"k":[1,12],"A":[20,500]},"let":{"N":"q * k","P":"k * A"},"text":"A student placed {q} quadrats, each 1 m², in a field and counted {N} daisies in total. The field has an area of {A} m². Estimate the number of daisies in the field.","key":"{P}","typed":["{P}"],"wrong":"{N * A}"},
-    {"id":"sc-moment","answer_type":"calculation","marks":2,"vars":{"F":[2,200],"k":[1,30]},"where":["k != 10"],"let":{"d":"fix(k / 10)","M":"fix(F * k / 10)"},"text":"A force of {F} N acts at a perpendicular distance of {d} m from a pivot. Calculate the moment of the force.","key":"{M} N m | {M} Nm | {M}","typed":["{M}","{M} N m"],"wrong":"{fix(F * 10 / k)}"},
-    {"id":"sc-moment-balance","answer_type":"calculation","marks":2,"vars":{"a":[1,5],"b":[1,5],"v":[2,80]},"where":["a != b","v * 10 * b % a == 0"],"let":{"V":"v * 10","W":"v * 10 * b / a"},"text":"A see-saw is balanced. A child of weight {W} N sits {a} m from the pivot on one side. A child of weight {V} N sits on the other side. Calculate how far from the pivot the second child sits.","key":"{b} m | {b}","typed":["{b}","{b} m"],"wrong":"{fix(a * a / b)}"},
+    {"id":"sc-moment","diagram":{"kind":"beam","size":{"left":"0","right":"1"},"label":{"right":"{F} N","rightd":"{d} m"}},"answer_type":"calculation","marks":2,"vars":{"F":[2,200],"k":[1,30]},"where":["k != 10"],"let":{"d":"fix(k / 10)","M":"fix(F * k / 10)"},"text":"A force of {F} N acts at a perpendicular distance of {d} m from a pivot. Calculate the moment of the force.","key":"{M} N m | {M} Nm | {M}","typed":["{M}","{M} N m"],"wrong":"{fix(F * 10 / k)}"},
+    {"id":"sc-moment-balance","diagram":{"kind":"beam","size":{"left":"1","right":"1"},"label":{"left":"{W} N","leftd":"{a} m","right":"{V} N","rightd":"?"}},"answer_type":"calculation","marks":2,"vars":{"a":[1,5],"b":[1,5],"v":[2,80]},"where":["a != b","v * 10 * b % a == 0"],"let":{"V":"v * 10","W":"v * 10 * b / a"},"text":"A see-saw is balanced. A child of weight {W} N sits {a} m from the pivot on one side. A child of weight {V} N sits on the other side. Calculate how far from the pivot the second child sits.","key":"{b} m | {b}","typed":["{b}","{b} m"],"wrong":"{fix(a * a / b)}"},
     {"id":"sc-pressure","answer_type":"calculation","marks":2,"vars":{"p":[2,500],"k":[1,50]},"where":["k != 10"],"let":{"A":"fix(k / 10)","F":"fix(p * k / 10)"},"text":"A force of {F} N acts at right angles to a surface of area {A} m². Calculate the pressure on the surface.","key":"{p} Pa | {p}","typed":["{p}","{p} Pa"],"wrong":"{fix(p * k * k / 100)}"},
     {"id":"sc-liquid-pressure","answer_type":"calculation","marks":2,"vars":{"h":[1,60],"w":[0,2]},"let":{"L":"w == 0 ? 'water' : w == 1 ? 'oil' : 'sea water'","r":"w == 0 ? 1000 : w == 1 ? 800 : 1030","p":"fix(h * r * 98 / 10)"},"text":"Calculate the pressure due to the {L} at a depth of {h} m. The density of the {L} is {r} kg/m³ and the gravitational field strength is 9.8 N/kg.","key":"{p} Pa | {p}","typed":["{p}","{p} Pa"],"wrong":"{h * r}"},
     {"id":"sc-percent-yield","answer_type":"calculation","marks":2,"vars":{"y":[10,99],"t":[1,40]},"let":{"T":"t * 5","a":"fix(y * t / 20)"},"text":"The theoretical yield of a reaction is {T} g. The actual yield is {a} g. Calculate the percentage yield.","key":"{y}% | {y}","typed":["{y}","{y}%"],"wrong":"{fix(y / 100)}"},
