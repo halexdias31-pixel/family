@@ -14,7 +14,13 @@ const SD = require('./site-data.js');
 const DR = require('./qgen-draw.js');
 
 const TABLE = 'data/settings/qgen.json';
-const table = () => SD.json(TABLE);
+/* THE TEMPLATES SERVED (27 Nov): qgen.json's hand ones, less those data/settings/qgen-derived.json retires (a derived template asks the
+   same thing: least dynamic wins), then the derived ones (tools/spec-formulas.js, from the government documents' own equations). */
+const DERIVED = 'data/settings/qgen-derived.json';
+function table() {
+  const T = SD.json(TABLE), D = SD.json(DERIVED) || {}, gone = D.retired || {};
+  return { about: T.about, templates: T.templates.filter(t => !(t.id in gone)).concat(D.templates || []) };
+}
 const SET_SIZE = 10, COMPANY = '@family';
 
 /* THE HELPERS an expression may call. */
@@ -25,6 +31,7 @@ const HELP = {
   co: n => (n === 1 ? '' : n === -1 ? '-' : String(n)), /* a coefficient: 1x is x */
   fix: n => String(+n.toFixed(10)),
   sqrt: Math.sqrt,
+  pow: (a, b) => Math.pow(a, b),                       /* a power, for an equation rearranged (tools/spec-formulas.js) */
   tight: s => String(s).replace(/ /g, ''),
   /* right-angled trigonometry in degrees, as a GCSE question gives them; rd(n, d) is n to d decimal places as written (2 to 1 d.p. is 2.0) */
   sin: d => Math.sin(d * Math.PI / 180), cos: d => Math.cos(d * Math.PI / 180), tan: d => Math.tan(d * Math.PI / 180),
