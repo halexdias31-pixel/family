@@ -13,9 +13,9 @@ const fs = require('fs'), path = require('path'), vm = require('vm');
 const { ROOT, text, srcFiles, report, main } = require('./lib/gen.js');
 const ONE = 'backend/library-drive.gs';
 /* EVERY *Import* FUNCTION THE BACKEND MAY HAVE: the library's doors into the one importer, and two that are not the library's
-   (a docket and a class's assignments, rows of their own tabs). A new one is a second importer until it is listed here. */
+   (a docket, rows of its own tab). A new one is a second importer until it is listed here. */
 const IMPORTS = new Set(['libImport_', 'libImportList_', 'libImportDrive_', 'libImportHourly', 'libImportKeepBooked_', 'runLibImportDrive_',
-  'postLibImport_', 'postLibImportList_', 'postLibImportDrive_', 'postDocketImport_', 'postAssignmentsImport_']);
+  'postLibImport_', 'postLibImportList_', 'postLibImportDrive_', 'postDocketImport_']);
 
 /* WHICH FUNCTION A LINE IS IN, for a top-level `function name(` file. */
 function owners(src) {

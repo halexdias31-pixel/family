@@ -176,21 +176,6 @@
   "docketAddress": [
    "admin"
   ],
-  "assignmentsOf": [
-   "member",
-   "child",
-   "admin"
-  ],
-  "assignmentsSave": [
-   "member",
-   "child",
-   "admin"
-  ],
-  "assignmentsImport": [
-   "member",
-   "child",
-   "admin"
-  ],
   "workFileSave": [
    "member",
    "child",

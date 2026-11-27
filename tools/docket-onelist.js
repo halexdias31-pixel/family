@@ -28,7 +28,7 @@ function world(docket, extra) {
 const sorter = src => {
   const c = n => { const m = new RegExp('\\nconst ' + n + ' = (.*);\\n').exec(src); if (!m) throw new Error('docket-onelist: no ' + n + ' in js/map.js'); return 'const ' + n + ' = ' + m[1] + ';\n'; };
   const f = n => { const m = new RegExp('\\nfunction ' + n + '\\([^)]*\\) \\{[\\s\\S]*?\\n\\}\\n').exec(src); if (!m) throw new Error('docket-onelist: no ' + n + ' in js/map.js'); return m[0]; };
-  return new Function(c('dkRep_') + c('dkOn_') + c('dkIsDone_') + f('dkTick_') + f('dkOption_') + 'return { dkTick_, dkIsDone_ };')();
+  return new Function(c('dkMin_') + c('dkIso_') + c('dkEv_') + c('dkRep_') + c('dkOn_') + c('dkIsDone_') + f('dkOccur_') + f('dkSlot_') + f('dkTick_') + f('dkOption_') + 'return { dkTick_, dkIsDone_ };')();
 };
 const LIST = () => [{ title: 'Undated A' }, { title: 'Cycle B', repeat: '8h', doneOn: DAY + '/1' }, { title: 'Cycle C', repeat: '8h', doneOn: DAY + '/2' },
   { title: 'Later D', date: '2026-12-01' }, { title: 'Soon E', date: '2026-11-28' }, { title: 'Late F', date: '2026-11-20' }, { title: 'Late G', date: '2026-11-01' },

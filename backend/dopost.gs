@@ -178,9 +178,6 @@ function postActions_() {
     history: (b, a, g) => postHistory_(b, 'history:read', g),
     docketImport: postDocketImport_,
     docketAddress: postDocketAddress_,
-    assignmentsOf: (b, a, g) => postAssignmentsOf_(b, 'assignment:read', g),
-    assignmentsSave: (b, a, g) => postAssignmentsSave_(b, 'assignment:save', g),
-    assignmentsImport: postAssignmentsImport_,
     workFileSave: (b, a, g) => postWorkFile_(b, 'workfile:save', g),
     workFilesOf: (b, a, g) => postWorkFile_(b, 'workfile:list', g),
     workFileOpen: (b, a, g) => postWorkFile_(b, 'workfile:read', g),
@@ -307,8 +304,6 @@ function loginReplyFor_(r, token, extra) {
                 pendingEmail: pendingEmailOf_(r),
                 /* THE OWNER (18 Nov, `isOwner_`): the admin whose address is the owner's — Docket and food are theirs alone. */
                 owner: isOwner_(r),
-                /* THEIR ASSIGNMENTS (18 Nov): the `assignments` cell, theirs alone, as `todo` is. */
-                assignments: S(r.assignments),
                 /* THE SESSION. Sent once, at sign-in, and never again — the phone keeps it and
                    offers it on every request, and the sheet holds only its digest. */
                 token: token || '',

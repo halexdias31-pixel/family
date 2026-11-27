@@ -2,7 +2,7 @@
 /* @family. — tools/docket-plan.js THE DOCKET IS A PLAN (rule 1.75; owner 27 Nov: "When I wake up I want to look at a list and run from the top down
    without it giving me a bad order"). What the owner would notice, on a made-up Saturday (no real item text here, by design):
    (1) THE ORDER, js/map.js dkSort_ run as served: the wake item first on waking; laundry never offered before 09:00, nor once it cannot finish by
-       21:00, nor when a leave (a timetable session) comes before it finishes, each later one saying when ("from 09:00"); an overdue one-off is not on
+       21:00, nor when a leave (an event away from home) comes before it finishes, each later one saying when ("from 09:00"); an overdue one-off is not on
        top but folded as missed; a far deadline does not jump an efficient item, a deadline that waiting would miss does; the longest unattended item
        first; the out items one run, after home; the fewest minutes first within a place; meal items top once a meal began; bed items last; a slot's
        line says its least recently ticked option and a tick records it; the same input, the same order. Each rule proved by mutating the served source.
@@ -15,7 +15,7 @@ const { report, main, text } = require('./lib/gen.js');
 const text_ = SD.textOf();
 const fnOf = (src, n) => { const m = new RegExp('\\nfunction ' + n + '\\([^)]*\\) \\{[\\s\\S]*?\\n\\}\\n').exec(src); if (!m) throw new Error('docket-plan: no ' + n); return m[0]; };
 const lineOf = (src, n) => { const m = new RegExp('\\nconst ' + n + ' = .*;\\n').exec(src); if (!m) throw new Error('docket-plan: no const ' + n); return m[0]; };
-const CONSTS = ['dkRep_', 'dkOn_', 'dkIsDone_'], FNS = ['dkTick_', 'dkSort_', 'dkLeaves_', 'dkOption_', 'dkTitle_', 'dkWhen_', 'dkNowNextOf_'];
+const CONSTS = ['dkMin_', 'dkIso_', 'dkEv_', 'dkRep_', 'dkOn_', 'dkIsDone_'], FNS = ['dkOccur_', 'dkSlot_', 'dkTick_', 'dkSort_', 'dkLeaves_', 'dkOption_', 'dkTitle_', 'dkWhen_', 'dkNowNextOf_'];
 /* THE PLANNER FROM A SOURCE: js/map.js (with js/form.js's clash readers), or backend/cards-gen.gs, which holds both. */
 function planner(src, clash) {
   clash = clash || src;
@@ -42,7 +42,9 @@ const LIST = () => [
 const T = (L, ix) => ix.map(i => L[i].title).join('|');
 const at = (P, hhmm, L, leaves) => P.dkSort_(L || LIST(), DAY + ' ' + hhmm, leaves || []);
 const idx = (L, t) => L.findIndex(x => x.title === t);
-const LEAVE = P => P.dkLeaves_([{ days: 'Saturday', start: '10:00', end: '12:00' }]);
+/* A LEAVE IS AN EVENT AWAY FROM HOME (the Timetable tool went, owner 27 Nov): a made-up outing 10:00-12:00. */
+const OUTING = [{ title: 'Made-up outing', start: DAY + 'T10:00', minutes: 120, place: 'out' }];
+const LEAVE = P => P.dkLeaves_(OUTING, DAY + ' 09:30');
 const RULES = [
   ['on waking (07:30, nothing ticked) the wake item is first, ahead of the longest unattended one', P => T(LIST(), at(P, '07:30').open.slice(0, 1)) === 'Prayer'],
   ['laundry is not offered at 08:59, and is "from 09:00"', P => { const L = LIST(), g = at(P, '08:59', L), i = idx(L, 'Laundry');
@@ -149,8 +151,8 @@ function run() {
   checks.push(['(2) the backend copy is the site\'s, word for word', () => FNS.every(n => fnOf(js, n) === fnOf(gen, n)) && CONSTS.every(n => lineOf(js, n) === lineOf(gen, n))]);
   checks.push(['(2) the backend gives the site\'s order at every half hour, leave or none', () => { const B = planner(gen);
     for (let h = 0; h < 48; h++) { const hm = String(Math.floor(h / 2)).padStart(2, '0') + ':' + (h % 2 ? '30' : '00');
-      for (const lv of [[], [{ days: 'sat', start: '10:00', end: '12:00' }]]) {
-        const a = JSON.stringify(P.dkNowNextOf_(LIST(), DAY + ' ' + hm, P.dkLeaves_(lv))), b = JSON.stringify(B.dkNowNextOf_(LIST(), DAY + ' ' + hm, B.dkLeaves_(lv)));
+      for (const lv of [[], OUTING]) {
+        const a = JSON.stringify(P.dkNowNextOf_(LIST(), DAY + ' ' + hm, P.dkLeaves_(lv, DAY + ' ' + hm))), b = JSON.stringify(B.dkNowNextOf_(LIST(), DAY + ' ' + hm, B.dkLeaves_(lv, DAY + ' ' + hm)));
         if (a !== b) return false; } }
     return true; }]);
   /* (3) */
