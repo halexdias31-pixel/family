@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 /* @family. — tools/docket-look.js THE DOCKET LOOKS LIKE GOOGLE TASKS (owner, 25 Nov; one list, names only, 25 Nov night; owner-only): Tools › Docket is
    one docket card (js/map.js dkCard_, through the one maker) named Docket, no list menu. On an iPhone 13, signed in as the owner on a made-up one-list docket:
-   (a) every open line is a fold (js/cards-render.js cardFold_) whose line holds the tick and the title only, in dkSort_'s order: Overdue, Now (8h),
-       dated by date, undated;
+   (a) every open line is a fold (js/cards-render.js cardFold_) whose line holds the tick and its words only, in the plan's order (dkSort_, owner
+       27 Nov): the wake item on top, its slot's least recent option on its line ("Prayer · Option B"); an overdue one-off never among them but folded
+       under "Missed — new date? (n)"; tapping the slot line lists its every option;
    (b) tapping a line shows only Edit and Delete (no note, time, minutes or option); Edit opens the title alone, and Save renames it;
    (c) ticked items sit only under one "Done (n)" line at the foot, closed until tapped; a tick moves an item there;
    (d) the quick add puts an undated one-off at the end of the undated ones. Every save lands on the server's base.
@@ -23,12 +24,12 @@ function backend(cell) {
   };
 }
 /* Made-up items only. Dates far from today either way, so the order holds whatever day the build runs. */
-const DOCKET = { v: 1, lists: [{ name: 'Docket', items: [{ title: 'Reply to messages' }, { title: 'Drink water', repeat: '8h' }, { title: 'Book the dentist', date: '2999-03-01' },
+const DOCKET = { v: 1, lists: [{ name: 'Docket', items: [{ title: 'Reply to messages' }, { title: 'Prayer', repeat: '8h', anchor: 'wake', minutes: 5, options: ['Option A', 'Option B'], picks: ['Option A'] }, { title: 'Drink water', repeat: '8h' }, { title: 'Book the dentist', date: '2999-03-01' },
   { title: 'Return the parcel', date: '2000-01-05' }, { title: 'Brush teeth', repeat: '8h' }, { title: 'Renew the card', date: '2999-01-10' },
   { title: 'Print worksheets', done: true, doneOn: '2999-01-01' }, { title: 'Tidy room', repeat: '8h' }] }] };
-const ORDER = 'Return the parcel|Drink water|Brush teeth|Tidy room|Renew the card|Book the dentist|Reply to messages';
+const ORDER = 'Prayer · Option B|Reply to messages|Drink water|Book the dentist|Brush teeth|Renew the card|Tidy room';
 
-const lines = () => [...document.querySelectorAll('#screen .kc-docket .dk-line')].filter(d => !d.closest('.dk-done')).map(d => {
+const lines = () => [...document.querySelectorAll('#screen .kc-docket .dk-line')].filter(d => !d.closest('.dk-done, .dk-missed')).map(d => {
   const s = d.querySelector(':scope > summary'), kids = [...s.children];
   return { only: kids.length === 1 && kids[0].matches('label.check') && !s.querySelector('[data-do], .tag, .tags, .tile-row, p:not(:empty)'),
     title: s.textContent.trim(), open: d.open };
@@ -50,6 +51,15 @@ async function run() {
     if (L.map(l => l.title).join('|') !== ORDER) bad.push('(a) the order is ' + L.map(l => l.title).join('|') + ', not ' + ORDER);
     L.filter(l => !l.only).forEach(l => bad.push('(a) the line "' + l.title + '" shows more than its tick and title'));
     if (L.some(l => l.open)) bad.push('(a) a line is open before it is tapped');
+    const missed = await pg.evaluate(() => { const f = document.querySelector('#screen .kc-docket .dk-missed'); return f && { said: f.querySelector(':scope > summary').textContent.trim(), n: f.querySelectorAll('.dk-line').length, open: f.open }; });
+    if (!missed || missed.said !== 'Missed — new date? (1)' || missed.n !== 1 || missed.open) bad.push('(a) the overdue one-off is not alone under a shut "Missed — new date? (1)": ' + JSON.stringify(missed));
+    await pg.evaluate(() => [...document.querySelectorAll('#screen .dk-line > summary')].find(x => /^Prayer/.test(x.textContent.trim())).click());
+    await pg.waitForTimeout(300);
+    const opts = await pg.evaluate(() => { const d = [...document.querySelectorAll('#screen .dk-line')].find(x => /^Prayer/.test(x.querySelector('summary').textContent.trim()));
+      return [...d.querySelectorAll('.kc-fold-in [data-do="dk-pick"]')].map(b => b.textContent.trim()); });
+    if (opts.join('|') !== 'Option A|Option B') bad.push('(a) tapping the slot line does not list its options: ' + JSON.stringify(opts));
+    await pg.evaluate(() => [...document.querySelectorAll('#screen .dk-line > summary')].find(x => /^Prayer/.test(x.textContent.trim())).click());
+    await pg.waitForTimeout(300);
     fs.mkdirSync(path.join(ROOT, '.cache', 'docket-look'), { recursive: true });
     await pg.screenshot({ path: path.join(ROOT, '.cache', 'docket-look', 'onelist.png'), fullPage: false });
     /* (b) tap a line: only Edit and Delete */
@@ -83,7 +93,7 @@ async function run() {
     if (saved.lists.length !== 1 || !saved.lists[0].items.some(i => i.title === 'Water the plants' && Object.keys(i).join() === 'title')) bad.push('(d) the quick add did not save an undated one-off in the one list');
     if (STALE.n || !SAVED.n) bad.push('(save) ' + SAVED.n + ' saves landed, ' + STALE.n + ' refused as stale');
   } catch (e) { bad.push(String((e && e.message) || e).split('\n')[0]); } finally { await pg.close(); await SB.done(); }
-  console.log('docket-look: 6 rules (one card, the order, tick+title lines, Edit/Delete only, Done folds, quick add); ' + (bad.length ? bad.length + ' wrong' : 'all pass'));
+  console.log('docket-look: 8 rules (one card, the plan\'s order, tick+words lines, missed folds, slot options, Edit/Delete only, Done folds, quick add); ' + (bad.length ? bad.length + ' wrong' : 'all pass'));
   report('docket-look', bad, 'docket look rule(s) broken');
 }
 module.exports = { run };

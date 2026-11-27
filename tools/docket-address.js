@@ -16,28 +16,29 @@ const constOf = (src, name, file) => { const m = new RegExp('\\nconst ' + name +
 const lineOf = (src, name, file) => { const m = new RegExp('\\nconst ' + name + ' = .*;\\n').exec(src);
   if (!m) throw new Error('docket-address: no const ' + name + ' in ' + file); return m[0]; };
 const text_ = SD.textOf();
-const ORDER = ['dkRep_', 'dkOn_', 'dkIsDone_'], FNS = ['dkSort_', 'dkNowNextOf_', 'dkSay_', 'dkMatch_', 'dkTick_'];
+const ORDER = ['dkRep_', 'dkOn_', 'dkIsDone_'], FNS = ['clashDays_', 'clashMin_', 'dkSort_', 'dkLeaves_', 'dkOption_', 'dkTitle_', 'dkWhen_', 'dkNowNextOf_', 'dkSay_', 'dkMatch_', 'dkTick_'];
 /* THE BACKEND, AS SERVED: one owner, one todo cell, one token; a save writes the cell. */
 function backend(state, mut) {
   const gen = text('backend/cards-gen.gs'), be = (mut || (x => x))(text('backend/post-account.gs')), G = 'backend/post-account.gs';
-  const src = constOf(gen, 'LIST_KINDS', 'backend/cards-gen.gs') + ORDER.map(n => lineOf(gen, n, 'backend/cards-gen.gs')).join('') + FNS.map(n => fnOf(gen, n, 'backend/cards-gen.gs')).join('')
+  const src = constOf(gen, 'LIST_KINDS', 'backend/cards-gen.gs') + lineOf(gen, 'CLASH_DAYS', 'backend/cards-gen.gs') + ORDER.map(n => lineOf(gen, n, 'backend/cards-gen.gs')).join('') + FNS.map(n => fnOf(gen, n, 'backend/cards-gen.gs')).join('')
     + constOf(be, 'DOCKET_TOKEN_KEY', G) + constOf(be, 'DOCKET_CELL_MAX', G)
-    + ['listTidy_', 'listItemTidy_', 'todoTidy_', 'docketAnswer_', 'docketSame_', 'docketAddress_'].map(n => fnOf(be, n, G)).join('')
+    + ['listTidy_', 'listItemTidy_', 'todoTidy_', 'docketAnswer_', 'docketSame_', 'docketAddress_'].map(n => fnOf(be, n, G)).join('') + lineOf(be, 'docketLeaves_', G)
     + 'return { docketAddress_, docketAnswer_ };';
   const out = s => ({ s, setMimeType() { return this; }, getContent() { return this.s; } });
   const env = {
     S: v => (v == null ? '' : String(v)).trim(), text_, todayIso_: () => state.now.slice(0, 10), docketNow_: () => state.now,
     ContentService: { createTextOutput: out, MimeType: { TEXT: 'TEXT' } },
     PropertiesService: { getScriptProperties: () => ({ getProperty: k => state.props[k] || null }) },
-    TAB: { people: 'people' }, read: () => ({ rows: [state.owner] }), isOwner_: r => r === state.owner,
+    TAB: { people: 'people' }, read: () => ({ rows: [state.owner] }), isOwner_: r => r === state.owner, itemRows_: () => (state.sessions || []).map(data => ({ data })),
     postSavePerson_: (b, f, v) => { state.owner[f] = v; state.saves++; return out(JSON.stringify({ success: true })); },
   };
   return new Function(...Object.keys(env), src)(...Object.values(env));
 }
 function site() {
-  const js = text('js/map.js');
-  return new Function('text_', ORDER.map(n => lineOf(js, n, 'js/map.js')).join('') + ['dkSort_', 'dkNowNextOf_', 'dkSay_'].map(n => fnOf(js, n, 'js/map.js')).join('')
-    + 'return { dkNowNextOf_, dkSay_ };')(text_);
+  const js = text('js/map.js'), form = text('js/form.js');
+  return new Function('text_', lineOf(form, 'CLASH_DAYS', 'js/form.js') + fnOf(form, 'clashDays_', 'js/form.js') + fnOf(form, 'clashMin_', 'js/form.js') + ORDER.map(n => lineOf(js, n, 'js/map.js')).join('')
+    + ['dkSort_', 'dkLeaves_', 'dkOption_', 'dkTitle_', 'dkWhen_', 'dkNowNextOf_', 'dkSay_'].map(n => fnOf(js, n, 'js/map.js')).join('')
+    + 'return { dkNowNextOf_, dkSay_, dkLeaves_ };')(text_);
 }
 const DAY = '2026-11-25';
 const ITEMS = () => [{ title: 'Read a made-up book' }, { title: 'Brush teeth', repeat: '8h' }, { title: 'Shower', repeat: '8h', doneOn: DAY + '/1' },
@@ -62,7 +63,13 @@ function run() {
     const k = make(at), want = S.dkSay_(S.dkNowNextOf_(ITEMS(), DAY + ' ' + at)), got = ask(k, { docket: TOKEN }); n++;
     if (got !== want || k.state.saves) bad.push(at + ': the address says "' + got + '", the site "' + want + '"');
   });
-  if (!/^Docket: Made-up late next, 4 left\.$/.test(ask(make('07:10'), { docket: TOKEN }))) bad.push('at 07:10 the overdue item is not first, or the count is wrong');
+  /* OVERDUE IS NO REASON TO GO FIRST (the plan, owner 27 Nov): the missed one-off is said last, never next. */
+  if (!/^Docket: Read a made-up book next, 4 left\.$/.test(ask(make('07:10'), { docket: TOKEN }))) bad.push('at 07:10 the overdue item is first, or the count is wrong');
+  /* THE OWNER'S LEAVE TIMES ARE THE BACKEND'S TOO: a session at 10:00 keeps the laundry (it must stay home an hour) off the top at 09:30. */
+  { const k = make('09:30', [{ name: 'Docket', items: [{ title: 'Laundry', repeat: '8h', minutes: 5, runs: 60, stay: true, place: 'home' }, { title: 'Floss', repeat: '8h', minutes: 2 }] }]); n++;
+    k.state.sessions = [{ days: 'Wednesday', start: '10:00', end: '12:00' }];
+    const lone = make('09:30', [{ name: 'Docket', items: [{ title: 'Laundry', repeat: '8h', minutes: 5, runs: 60, stay: true, place: 'home' }, { title: 'Floss', repeat: '8h', minutes: 2 }] }]);
+    if (ask(k, { docket: TOKEN }) !== 'Docket: Floss next, 2 left.' || ask(lone, { docket: TOKEN }) !== 'Docket: Laundry next, 2 left.') bad.push('the address does not read the owner\'s leave times'); }
   /* THE SAME ORDER WITHIN NOW (runs, the minutes it runs by itself, most first): the address names the laundry first. */
   { const k = make('10:00', [{ name: 'Docket', items: [{ title: 'Floss', repeat: '8h' }, { title: 'Laundry', repeat: '8h', runs: 60 }, { title: 'Charge batteries', repeat: '8h', runs: 120 }] }]); n++;
     if (ask(k, { docket: TOKEN }) !== 'Docket: Charge batteries next, 3 left.') bad.push('the address does not put the longest-running Now item first'); }
@@ -112,11 +119,11 @@ function run() {
     const got = ask(k, { docket: TOKEN, do: 'add', what: 'milk', list: 'shopping' }), L = JSON.parse(k.state.owner.todo).lists;
     if (L.length !== 1 || L[0].name !== 'Docket' || L[0].items.map(i => i.title).join('|') !== 'Floss|Desk thing|milk' || L[0].items[2].repeat || L[0].items[2].date
       || k.state.saves !== 1 || got.indexOf(text_('dk-say-added', { title: 'milk', name: 'Docket' })) !== 0) bad.push('"add milk" did not add to the one list: ' + got); }
-  /* do=list (the desk e-paper screen, tools/docket-screen): `docket-list`, then each open item in the site's order, "! " overdue, "- " the rest;
+  /* do=list (the desk e-paper screen, tools/docket-screen): `docket-list`, then each item in the site's order, "- " the open and later, "! " the missed (last);
      nothing saved; a wrong token is still refused (the screen then keeps its last list). Two clock times and the all-done list. */
   ['07:10', '17:30'].forEach(at => { const k = make(at), m = S.dkNowNextOf_(ITEMS(), DAY + ' ' + at); n++;
     const want = ['docket-list'].concat(m.rows.map(r => (r.missed ? '! ' : '- ') + r.title)).join('\n'), got = ask(k, { docket: TOKEN, do: 'list' });
-    if (got !== want || k.state.saves || !/^docket-list\n! Made-up late\n- /.test(got)) bad.push(at + ': do=list says ' + JSON.stringify(got) + ', the site ' + JSON.stringify(want)); });
+    if (got !== want || k.state.saves || !/^docket-list\n- [\s\S]*\n! Made-up late$/.test(got)) bad.push(at + ': do=list says ' + JSON.stringify(got) + ', the site ' + JSON.stringify(want)); });
   { const k = make('10:00', [{ name: 'Docket', items: [{ title: 'Done one', done: true, doneOn: DAY }] }]); n++;
     if (ask(k, { docket: TOKEN, do: 'list' }) !== 'docket-list') bad.push('do=list with nothing open is not the heading alone'); }
   { n++; if (ask(make('10:00'), { docket: 'x'.repeat(64), do: 'list' }) !== refused) bad.push('do=list answered a wrong token'); }
