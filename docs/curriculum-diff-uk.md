@@ -514,9 +514,9 @@ Question tagging and generated questions (tools/lib/curriculum.js assign and too
 
 | | Before (hand) | After (generated) |
 |---|---|---|
-| science questions tagged | 11289 of 20710 | 11289 of 20710 |
+| science questions tagged | 13569 of 22990 | 13569 of 22990 |
 | distinct nodes tagged | 948 | 982 |
-| generated questions | 440 | 1570 |
+| generated questions | 260 | 3140 |
 
 ### renamed (33)
 

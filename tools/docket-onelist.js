@@ -1,10 +1,9 @@
 #!/usr/bin/env node
 /* @family. — tools/docket-onelist.js THE DOCKET IS ONE LIST, NAMES ONLY (rule 1.75, 1.82; owner 25 Nov night: "simplest, most stable").
-   (1) THE ORDER: js/map.js dkSort_, run as served on a made-up list at a fixed moment: Overdue (dated one-offs past their date, oldest first), then Now
-   (8h items not yet ticked this third, the most `runs` minutes first), then the dated one-offs by date, then the undated, then Done; an 8h item ticked in one third is back in the next
-   (dkOn_, dkTick_); the same input gives the same order; each rule proved by mutating the served source.
+   (1) THE THIRDS: js/map.js dkOn_/dkIsDone_/dkTick_, run as served on a made-up list: an 8h item ticked in one third is back in the next, a one-off
+   keeps its tick and day; each rule proved by mutating the served source. (The order itself is the plan's, owner 27 Nov: tools/docket-plan.js.)
    (2) THE ONE-OFF JOB: backend/access.gs docketOneList25NovRun_ in the backend vm on a made-up two-list docket: one list "Docket", cycle items first,
-   each item only title, repeat ('8h'), date and done state ("10-minute tidy" renamed "Tidy room"; slot items plain; the cell's `slots` gone); the backup
+   each item only title, repeat ('8h'), date and done state ("10-minute tidy" renamed "Tidy room"; a slot item its options' names only, 27 Nov; the cell's `slots` gone); the backup
    tab holds the whole old cell, first; a re-run is a no-op; a cell that is not the two lists is refused unchanged; over the size cap nothing is saved;
    each rule proved by mutation. No real item text here, by design. Run by tools/build.js. */
 'use strict';
@@ -29,49 +28,36 @@ function world(docket, extra) {
 const sorter = src => {
   const c = n => { const m = new RegExp('\\nconst ' + n + ' = (.*);\\n').exec(src); if (!m) throw new Error('docket-onelist: no ' + n + ' in js/map.js'); return 'const ' + n + ' = ' + m[1] + ';\n'; };
   const f = n => { const m = new RegExp('\\nfunction ' + n + '\\([^)]*\\) \\{[\\s\\S]*?\\n\\}\\n').exec(src); if (!m) throw new Error('docket-onelist: no ' + n + ' in js/map.js'); return m[0]; };
-  return new Function(c('dkRep_') + c('dkOn_') + c('dkIsDone_') + f('dkTick_') + f('dkSort_') + 'return { dkSort_, dkTick_, dkIsDone_ };')();
+  return new Function(c('dkRep_') + c('dkOn_') + c('dkIsDone_') + f('dkTick_') + f('dkOption_') + 'return { dkTick_, dkIsDone_ };')();
 };
 const LIST = () => [{ title: 'Undated A' }, { title: 'Cycle B', repeat: '8h', doneOn: DAY + '/1' }, { title: 'Cycle C', repeat: '8h', doneOn: DAY + '/2' },
   { title: 'Later D', date: '2026-12-01' }, { title: 'Soon E', date: '2026-11-28' }, { title: 'Late F', date: '2026-11-20' }, { title: 'Late G', date: '2026-11-01' },
   { title: 'Done H', done: true, doneOn: DAY }, { title: 'Undated I' }, { title: 'Today J', date: DAY }, { title: 'Cycle K', repeat: '8h' }, { title: 'Cycle L', repeat: '8h', runs: 60 }, { title: 'Cycle M', repeat: '8h', runs: 120 }];
 const T = (items, ix) => ix.map(i => items[i].title).join('|');
 const ORDER_RULES = [
-  ['the open order: Overdue (oldest first), Now (the 8h not done this third), dated by date, then undated', Sx => { const L = LIST(), g = Sx.dkSort_(L, DAY + ' 10:00');
-    return T(L, g.open) === 'Late G|Late F|Cycle M|Cycle L|Cycle B|Cycle K|Today J|Soon E|Later D|Undated A|Undated I'; }],
-  ['the groups: overdue, now, dated and undated each hold their own', Sx => { const L = LIST(), g = Sx.dkSort_(L, DAY + ' 10:00');
-    return T(L, g.over) === 'Late G|Late F' && T(L, g.now) === 'Cycle M|Cycle L|Cycle B|Cycle K' && T(L, g.dated) === 'Today J|Soon E|Later D' && T(L, g.undated) === 'Undated A|Undated I'; }],
-  ['Done holds the 8h ticked this third and the ticked one-offs', Sx => { const L = LIST(); return T(L, Sx.dkSort_(L, DAY + ' 10:00').done) === 'Cycle C|Done H'; }],
-  ['an 8h item ticked is back in the next third (16:00)', Sx => { const L = LIST(); return T(L, Sx.dkSort_(L, DAY + ' 16:00').now) === 'Cycle M|Cycle L|Cycle B|Cycle C|Cycle K'; }],
-  ['within Now, the most minutes running by itself (runs) first, ties in the stored order', Sx => { const L = LIST(); L[1].runs = 120; return T(L, Sx.dkSort_(L, DAY + ' 10:00').now) === 'Cycle B|Cycle M|Cycle L|Cycle K'; }],
+  ['an 8h item ticked in the second third is done there, back in the next (16:00); the ticked one-off stays done', Sx => { const L = LIST();
+    return Sx.dkIsDone_(L[2], DAY + ' 10:00') && !Sx.dkIsDone_(L[2], DAY + ' 16:00') && !Sx.dkIsDone_(L[1], DAY + ' 10:00') && Sx.dkIsDone_(L[7], DAY + ' 23:00') && !Sx.dkIsDone_(L[0], DAY + ' 10:00'); }],
   ['a tick at 10:00 marks the 8h item for the second third, and an untick clears it', Sx => { const L = LIST(); Sx.dkTick_(L, 10, true, DAY + ' 10:00');
     const ok = L[10].doneOn === DAY + '/2' && Sx.dkIsDone_(L[10], DAY + ' 15:59') && !Sx.dkIsDone_(L[10], DAY + ' 16:00'); Sx.dkTick_(L, 10, false, DAY + ' 10:00'); return ok && !L[10].doneOn; }],
   ['a one-off tick sets done and the day', Sx => { const L = LIST(); Sx.dkTick_(L, 0, true, DAY + ' 10:00'); return L[0].done === true && L[0].doneOn === DAY; }],
-  ['the same input gives the same order', Sx => JSON.stringify(Sx.dkSort_(LIST(), DAY + ' 10:00')) === JSON.stringify(Sx.dkSort_(LIST(), DAY + ' 10:00'))],
 ];
 const ORDER_MUTS = [
-  ['Now before Overdue', s => s.replace('g.over.concat(g.now, g.dated, g.undated)', 'g.now.concat(g.over, g.dated, g.undated)')],
-  ['undated before dated', s => s.replace('g.over.concat(g.now, g.dated, g.undated)', 'g.over.concat(g.now, g.undated, g.dated)')],
-  ['dated not sorted', s => s.replace('g.over.sort(by); g.dated.sort(by);', 'g.over.sort(by);')],
-  ['overdue not sorted', s => s.replace('g.over.sort(by); g.dated.sort(by);', 'g.dated.sort(by);')],
-  ['today counted overdue', s => s.replace('it.date && it.date < day', 'it.date && it.date <= day')],
   ['a third is twelve hours', s => s.replace('Math.floor((h >= 0 && h < 24 ? h : 0) / 8)', 'Math.floor((h >= 0 && h < 24 ? h : 0) / 12)')],
   ['an 8h item done all day', s => s.replace("const dkIsDone_ = (i, now) => (dkRep_(i) ? i.doneOn === dkOn_(now)", "const dkIsDone_ = (i, now) => (dkRep_(i) ? String(i.doneOn || '').slice(0, 10) === String(now).slice(0, 10)")],
-  ['Now not ordered by runs', s => s.replace('g.now.sort((a, b) => runs(b) - runs(a) || a - b);', '')],
-  ['runs ascending', s => s.replace('runs(b) - runs(a) || a - b', 'runs(a) - runs(b) || a - b')],
-  ['runs ties reversed', s => s.replace('runs(b) - runs(a) || a - b', 'runs(b) - runs(a) || b - a')],
-  ['done items left open', s => s.replace('if (dkIsDone_(it, now)) g.done.push(i);', 'if (false) g.done.push(i);')],
+  ['a one-off tick without its day', s => s.replace("it.doneOn = on ? String(now).slice(0, 10) : '';", "it.doneOn = '';")],
+  ['an 8h untick left ticked', s => s.replace("if (dkRep_(it)) it.doneOn = on ? dkOn_(now) : '';", "if (dkRep_(it)) it.doneOn = dkOn_(now);")],
 ];
 
 /* ---------- (2) THE ONE-OFF JOB ---------- */
 const it = (title, x) => Object.assign({ title }, x || {});
 const TWO = () => [
-  { name: 'Every 8 hours', start: '00:00', items: [it('Prayer', { repeat: '8h', slot: 'Prayer', note: 'made-up note', pick: 'x', pickOn: DAY + '/1' }),
+  { name: 'Every 8 hours', start: '00:00', items: [it('Prayer', { repeat: '8h', slot: 'prayer', note: 'made-up note', pick: 'x', pickOn: DAY + '/1' }),
     it('Glass of water', { repeat: '8h', doneOn: DAY + '/1', minutes: 2, place: 'home', runs: 60 }), it('10-minute tidy', { repeat: '8h', effort: 'easy', runs: 0 }),
     it('Protein', { repeat: '8h', slot: 'Protein' }), it('Exercise', { repeat: 'daily', slot: 'Exercise', doneOn: DAY })] },
   { name: '@ Desk', items: [it('Made-up one-off', { note: 'made-up desk note', minutes: 20 }), it('Made-up dated', { date: '2026-12-02', time: '09:00' }),
     it('Made-up ticked', { done: true, doneOn: DAY, covers: ['x'] }), it('', { note: 'no title' })] },
 ];
-const KEEP = ['title', 'repeat', 'date', 'done', 'doneOn', 'runs'];
+const KEEP = ['title', 'repeat', 'date', 'done', 'doneOn', 'runs', 'options'];
 const ITEMS = m => m.after.lists[0].items;
 const JOB_RULES = [
   ['one list named Docket', m => m.after.lists.length === 1 && m.after.lists[0].name === 'Docket' && Object.keys(m.after.lists[0]).join() === 'name,items'],
@@ -83,6 +69,7 @@ const JOB_RULES = [
   ['runs (minutes by itself) kept where set, none where 0', m => ITEMS(m)[1].runs === 60 && !('runs' in ITEMS(m)[2])],
   ['a one-off\'s date kept', m => ITEMS(m)[6].date === '2026-12-02' && !ITEMS(m)[5].date],
   ['10-minute tidy renamed Tidy room', m => !ITEMS(m).some(i => /10-minute/i.test(i.title)) && ITEMS(m)[2].title === 'Tidy room'],
+  ['a slot item keeps its slot\'s option names as options, no note; a slot with none, none', m => JSON.stringify(ITEMS(m)[0].options) === '["made-up option"]' && !('options' in ITEMS(m)[3])],
   ['the cell keeps no slots, start, note or planner field', m => !('slots' in m.after) && !/"(slot|slots|note|minutes|place|effort|covers|pick|time|start)"/.test(m.cell)],
   ['the backup holds the whole old cell, once', m => !!m.backup && m.backup.v.length === 1 && m.backup.v[0][1] === m.was && /one list "Docket"/.test(m.backup.v[0][2])],
   ['under DOCKET_CELL_MAX', m => m.cell.length <= m.cap],
@@ -107,7 +94,7 @@ function proveJob(m) {
     a => { a.lists.push({ name: '@ Desk', items: [] }); }, a => { a.lists[0].name = 'Every 8 hours'; }, a => { a.lists[0].items.reverse(); },
     a => { a.lists[0].items.pop(); }, a => { a.lists[0].items[0].note = 'x'; }, a => { a.lists[0].items[4].repeat = 'daily'; },
     a => { delete a.lists[0].items[1].doneOn; }, a => { a.lists[0].items[7].done = false; }, a => { delete a.lists[0].items[6].date; }, a => { delete a.lists[0].items[1].runs; },
-    a => { a.lists[0].items[2].title = '10-minute tidy'; }, a => { a.slots = []; }, a => { a.lists[0].start = '00:00'; },
+    a => { a.lists[0].items[2].title = '10-minute tidy'; }, a => { delete a.lists[0].items[0].options; }, a => { a.lists[0].items[0].options = [{ name: 'made-up option', note: 'made-up text' }]; }, a => { a.slots = []; }, a => { a.lists[0].start = '00:00'; },
   ].map(b => () => { const a = cp(m.after); b(a); return wa(a); });
   breaks.push(() => Object.assign({}, m, { backup: null }), () => Object.assign({}, m, { backup: { v: [[0, '{}', 'one list "Docket"']] } }),
     () => Object.assign({}, m, { cell: 'x'.repeat(m.cap + 1) }));

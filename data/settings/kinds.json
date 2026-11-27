@@ -1709,11 +1709,81 @@
       "type": "number",
       "min": 0,
       "max": 100000,
-      "say": "minutes it runs by itself once started (owner, 25 Nov night: the one hidden number); within Now the most first (js/map.js dkSort_)"
+      "say": "minutes it runs by itself once started (owner, 25 Nov night: the one hidden number); the plan starts the longest first (js/map.js dkSort_)"
+     },
+     {
+      "f": "minutes",
+      "type": "number",
+      "min": 0,
+      "max": 1440,
+      "say": "hands-on minutes (owner, 27 Nov: the plan, js/map.js dkSort_)"
+     },
+     {
+      "f": "place",
+      "type": "choice",
+      "options": [
+       "home",
+       "out",
+       "desk",
+       "phone",
+       "anywhere"
+      ],
+      "def": "",
+      "say": "where it is done; the plan groups by place, home first, out last"
+     },
+     {
+      "f": "stay",
+      "type": "flag",
+      "say": "must stay at its place until `runs` ends: not offered when a leave comes first"
+     },
+     {
+      "f": "from",
+      "type": "time",
+      "say": "starts at or after (HH:MM, daily)"
+     },
+     {
+      "f": "until",
+      "type": "time",
+      "say": "minutes + runs finish by (HH:MM, daily)"
+     },
+     {
+      "f": "days",
+      "type": "text",
+      "max": 40,
+      "say": "which days (mon-sat; js/form.js clashDays_); none is every day"
+     },
+     {
+      "f": "anchor",
+      "type": "choice",
+      "options": [
+       "wake",
+       "meal",
+       "bed"
+      ],
+      "def": "",
+      "say": "happens at that moment of the day"
+     },
+     {
+      "f": "options",
+      "type": "titles",
+      "max": 100,
+      "say": "a slot's choices; the line shows the one least recently ticked (dkOption_)"
+     },
+     {
+      "f": "picks",
+      "type": "titles",
+      "max": 100,
+      "say": "a slot's options in the order last ticked, oldest first (dkTick_)"
+     },
+     {
+      "f": "pick",
+      "type": "text",
+      "max": 100,
+      "say": "the option this tick did"
      }
     ]
    },
-   "source": "the owner's Docket (owner, 20 Nov; one list, names only, 25 Nov night): their own `todo` cell, read by js/map.js dkItems_ as one card, drawn by dkCard_ like Google Tasks: each item one line, its tick and title, sorted by dkSort_ (Overdue, then the 8-hourly not yet done this third, then dated one-offs by date, then undated, then a folded Done (n)); a tapped line shows only Edit (its name) and Delete; a quick add at the foot (rules.json 1.82)",
+   "source": "the owner's Docket (owner, 20 Nov; one list, names only, 25 Nov night): their own `todo` cell, read by js/map.js dkItems_ as one card, drawn by dkCard_ like Google Tasks: each item one line, its tick and title, in the plan's order (dkSort_, owner 27 Nov: what can start now, wake items first on waking, a deadline waiting would miss, the unattended longest first, then by place, home first and out last, fewest minutes first; then what cannot yet, each saying when; a folded Missed — new date? (n); a folded Done (n)); a tapped line shows only Edit (its name) and Delete; a quick add at the foot (rules.json 1.82)",
    "find": {
     "group": "Tools",
     "label": "docket",

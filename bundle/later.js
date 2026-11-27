@@ -86,47 +86,47 @@ const FINDER_TAGS = {
 },
 "views": {
 "admin+bible": {
-"": ["kindLabel",[["Learn"],["Profiles"],["Booking"],["Settings"],["Tools"]],[217098,3,5,29,4],217138,["[object Object]","[object Object]","[object Object]","[object Object]","[object Object]"]],
-"kindLabel=Learn": ["kindOwn",[["Questions"],["Answers"],["Practicals"],["Projects"],["Library"],["Inserts"],["Specification"]],[27749,27272,77,9,188994,194,75],217098,["[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]"]],
-"kindLabel=Learn&kindOwn=Questions": ["subject",[["Biology"],["Business"],["Chemistry"],["Economics"],["English Language"],["English Literature"],["Geography"],["Greek"],["History"],["Maths"],["Physical Education"],["Physics"],["Politics"],["Portuguese"],["Psychology"],["Religious Studies"],["Sociology"],["Statistics"]],[4115,393,4202,131,226,522,522,78,944,8337,322,4650,120,43,1187,1004,436,517],27749,["[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]"]],
-"kindLabel=Learn&kindOwn=Questions&subject=Biology": ["level",[["GCSE"],["A-Level"]],[2921,1194],4115,["[object Object]","[object Object]"]],
+"": ["kindLabel",[["Learn"],["Profiles"],["Booking"],["Settings"],["Tools"]],[218668,3,5,29,4],218708,["[object Object]","[object Object]","[object Object]","[object Object]","[object Object]"]],
+"kindLabel=Learn": ["kindOwn",[["Questions"],["Answers"],["Practicals"],["Projects"],["Library"],["Inserts"],["Specification"]],[29319,28842,77,9,188994,194,75],218668,["[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]"]],
+"kindLabel=Learn&kindOwn=Questions": ["subject",[["Biology"],["Business"],["Chemistry"],["Economics"],["English Language"],["English Literature"],["Geography"],["Greek"],["History"],["Maths"],["Physical Education"],["Physics"],["Politics"],["Portuguese"],["Psychology"],["Religious Studies"],["Sociology"],["Statistics"]],[4125,393,4242,131,226,522,522,78,944,8337,322,6170,120,43,1187,1004,436,517],29319,["[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]"]],
+"kindLabel=Learn&kindOwn=Questions&subject=Biology": ["level",[["GCSE"],["A-Level"]],[2931,1194],4125,["[object Object]","[object Object]"]],
 "kindLabel=Learn&kindOwn=Questions&subject=Business": ["level",[["GCSE"],["A-Level"]],[200,193],393,["[object Object]","[object Object]"]],
-"kindLabel=Learn&kindOwn=Questions&subject=Chemistry": ["level",[["GCSE"],["A-Level"]],[2899,1303],4202,["[object Object]","[object Object]"]],
+"kindLabel=Learn&kindOwn=Questions&subject=Chemistry": ["level",[["GCSE"],["A-Level"]],[2939,1303],4242,["[object Object]","[object Object]"]],
 "kindLabel=Learn&kindOwn=Questions&subject=English Language": ["level",[["SATs"],["GCSE"]],[66,160],226,["[object Object]","[object Object]"]],
 "kindLabel=Learn&kindOwn=Questions&subject=Geography": ["level",[["GCSE"],["A-Level"]],[230,292],522,["[object Object]","[object Object]"]],
 "kindLabel=Learn&kindOwn=Questions&subject=Greek": ["tier",[["Foundation"],["Higher"]],[37,41],78,["[object Object]","[object Object]"]],
 "kindLabel=Learn&kindOwn=Questions&subject=Maths": ["level",[["SATs"],["Functional Skills L2"],["GCSE"],["A-Level"]],[733,24,4959,2621],8337,["[object Object]","[object Object]","[object Object]","[object Object]"]],
-"kindLabel=Learn&kindOwn=Questions&subject=Physics": ["level",[["GCSE"],["A-Level"]],[3429,1221],4650,["[object Object]","[object Object]"]],
-"kindLabel=Learn&kindOwn=Answers": ["subject",[["Biology"],["Business"],["Chemistry"],["Economics"],["English Language"],["English Literature"],["Geography"],["Greek"],["History"],["Maths"],["Physical Education"],["Physics"],["Politics"],["Portuguese"],["Psychology"],["Religious Studies"],["Sociology"],["Statistics"]],[4075,393,4156,131,225,522,522,18,944,8041,322,4616,120,43,1187,1004,436,517],27272,["[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]"]],
-"kindLabel=Learn&kindOwn=Answers&subject=Biology": ["level",[["GCSE"],["A-Level"]],[2893,1182],4075,["[object Object]","[object Object]"]],
+"kindLabel=Learn&kindOwn=Questions&subject=Physics": ["level",[["GCSE"],["A-Level"]],[4949,1221],6170,["[object Object]","[object Object]"]],
+"kindLabel=Learn&kindOwn=Answers": ["subject",[["Biology"],["Business"],["Chemistry"],["Economics"],["English Language"],["English Literature"],["Geography"],["Greek"],["History"],["Maths"],["Physical Education"],["Physics"],["Politics"],["Portuguese"],["Psychology"],["Religious Studies"],["Sociology"],["Statistics"]],[4085,393,4196,131,225,522,522,18,944,8041,322,6136,120,43,1187,1004,436,517],28842,["[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]"]],
+"kindLabel=Learn&kindOwn=Answers&subject=Biology": ["level",[["GCSE"],["A-Level"]],[2903,1182],4085,["[object Object]","[object Object]"]],
 "kindLabel=Learn&kindOwn=Answers&subject=Business": ["level",[["GCSE"],["A-Level"]],[200,193],393,["[object Object]","[object Object]"]],
-"kindLabel=Learn&kindOwn=Answers&subject=Chemistry": ["level",[["GCSE"],["A-Level"]],[2877,1279],4156,["[object Object]","[object Object]"]],
+"kindLabel=Learn&kindOwn=Answers&subject=Chemistry": ["level",[["GCSE"],["A-Level"]],[2917,1279],4196,["[object Object]","[object Object]"]],
 "kindLabel=Learn&kindOwn=Answers&subject=Geography": ["level",[["GCSE"],["A-Level"]],[230,292],522,["[object Object]","[object Object]"]],
 "kindLabel=Learn&kindOwn=Answers&subject=Maths": ["level",[["SATs"],["Functional Skills L2"],["GCSE"],["A-Level"]],[525,24,4904,2588],8041,["[object Object]","[object Object]","[object Object]","[object Object]"]],
-"kindLabel=Learn&kindOwn=Answers&subject=Physics": ["level",[["GCSE"],["A-Level"]],[3402,1214],4616,["[object Object]","[object Object]"]],
+"kindLabel=Learn&kindOwn=Answers&subject=Physics": ["level",[["GCSE"],["A-Level"]],[4922,1214],6136,["[object Object]","[object Object]"]],
 "kindLabel=Profiles": ["profileType",[["Student"],["Parent"],["Staff"]],[1,1,1],3,["[object Object]","[object Object]","[object Object]"]],
 "kindLabel=Settings": ["kindOwn",[["Partners"],["Tasks"],["Drive"]],[1,1,1],29,["[object Object]","[object Object]","[object Object]"]],
 "kindLabel=Tools": ["toolName",[["Assignments"],["Library cards"],["Term dates"],["Timetable"]],[1,1,1,1],4,["[object Object]","[object Object]","[object Object]","[object Object]"]]
 },
 "bible": {
-"": ["kindLabel",[["Learn"],["Profiles"],["Booking"],["Settings"],["Tools"]],[216639,1,5,15,3],216662,["[object Object]","[object Object]","[object Object]","[object Object]","[object Object]"]],
-"kindLabel=Learn": ["kindOwn",[["Questions"],["Answers"],["Practicals"],["Projects"],["Library"],["Inserts"],["Specification"]],[27290,27095,77,9,188994,194,75],216639,["[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]"]],
-"kindLabel=Learn&kindOwn=Questions": ["subject",[["Biology"],["Business"],["Chemistry"],["Economics"],["English Language"],["English Literature"],["Geography"],["Greek"],["History"],["Maths"],["Physical Education"],["Physics"],["Politics"],["Portuguese"],["Psychology"],["Religious Studies"],["Sociology"],["Statistics"]],[4053,392,4143,131,225,522,481,18,944,8166,322,4586,120,43,1187,1004,436,517],27290,["[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]"]],
-"kindLabel=Learn&kindOwn=Questions&subject=Biology": ["level",[["GCSE"],["A-Level"]],[2888,1165],4053,["[object Object]","[object Object]"]],
+"": ["kindLabel",[["Learn"],["Profiles"],["Booking"],["Settings"],["Tools"]],[218209,1,5,15,3],218232,["[object Object]","[object Object]","[object Object]","[object Object]","[object Object]"]],
+"kindLabel=Learn": ["kindOwn",[["Questions"],["Answers"],["Practicals"],["Projects"],["Library"],["Inserts"],["Specification"]],[28860,28665,77,9,188994,194,75],218209,["[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]"]],
+"kindLabel=Learn&kindOwn=Questions": ["subject",[["Biology"],["Business"],["Chemistry"],["Economics"],["English Language"],["English Literature"],["Geography"],["Greek"],["History"],["Maths"],["Physical Education"],["Physics"],["Politics"],["Portuguese"],["Psychology"],["Religious Studies"],["Sociology"],["Statistics"]],[4063,392,4183,131,225,522,481,18,944,8166,322,6106,120,43,1187,1004,436,517],28860,["[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]"]],
+"kindLabel=Learn&kindOwn=Questions&subject=Biology": ["level",[["GCSE"],["A-Level"]],[2898,1165],4063,["[object Object]","[object Object]"]],
 "kindLabel=Learn&kindOwn=Questions&subject=Business": ["level",[["GCSE"],["A-Level"]],[200,192],392,["[object Object]","[object Object]"]],
-"kindLabel=Learn&kindOwn=Questions&subject=Chemistry": ["level",[["GCSE"],["A-Level"]],[2864,1279],4143,["[object Object]","[object Object]"]],
+"kindLabel=Learn&kindOwn=Questions&subject=Chemistry": ["level",[["GCSE"],["A-Level"]],[2904,1279],4183,["[object Object]","[object Object]"]],
 "kindLabel=Learn&kindOwn=Questions&subject=English Language": ["level",[["SATs"],["GCSE"]],[65,160],225,["[object Object]","[object Object]"]],
 "kindLabel=Learn&kindOwn=Questions&subject=Geography": ["level",[["GCSE"],["A-Level"]],[230,251],481,["[object Object]","[object Object]"]],
 "kindLabel=Learn&kindOwn=Questions&subject=Greek": ["tier",[["Foundation"],["Higher"]],[9,9],18,["[object Object]","[object Object]"]],
 "kindLabel=Learn&kindOwn=Questions&subject=Maths": ["level",[["SATs"],["Functional Skills L2"],["GCSE"],["A-Level"]],[719,24,4835,2588],8166,["[object Object]","[object Object]","[object Object]","[object Object]"]],
-"kindLabel=Learn&kindOwn=Questions&subject=Physics": ["level",[["GCSE"],["A-Level"]],[3378,1208],4586,["[object Object]","[object Object]"]],
-"kindLabel=Learn&kindOwn=Answers": ["subject",[["Biology"],["Business"],["Chemistry"],["Economics"],["English Language"],["English Literature"],["Geography"],["Greek"],["History"],["Maths"],["Physical Education"],["Physics"],["Politics"],["Portuguese"],["Psychology"],["Religious Studies"],["Sociology"],["Statistics"]],[4052,392,4143,131,225,522,481,18,944,7972,322,4586,120,43,1187,1004,436,517],27095,["[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]"]],
-"kindLabel=Learn&kindOwn=Answers&subject=Biology": ["level",[["GCSE"],["A-Level"]],[2887,1165],4052,["[object Object]","[object Object]"]],
+"kindLabel=Learn&kindOwn=Questions&subject=Physics": ["level",[["GCSE"],["A-Level"]],[4898,1208],6106,["[object Object]","[object Object]"]],
+"kindLabel=Learn&kindOwn=Answers": ["subject",[["Biology"],["Business"],["Chemistry"],["Economics"],["English Language"],["English Literature"],["Geography"],["Greek"],["History"],["Maths"],["Physical Education"],["Physics"],["Politics"],["Portuguese"],["Psychology"],["Religious Studies"],["Sociology"],["Statistics"]],[4062,392,4183,131,225,522,481,18,944,7972,322,6106,120,43,1187,1004,436,517],28665,["[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]","[object Object]"]],
+"kindLabel=Learn&kindOwn=Answers&subject=Biology": ["level",[["GCSE"],["A-Level"]],[2897,1165],4062,["[object Object]","[object Object]"]],
 "kindLabel=Learn&kindOwn=Answers&subject=Business": ["level",[["GCSE"],["A-Level"]],[200,192],392,["[object Object]","[object Object]"]],
-"kindLabel=Learn&kindOwn=Answers&subject=Chemistry": ["level",[["GCSE"],["A-Level"]],[2864,1279],4143,["[object Object]","[object Object]"]],
+"kindLabel=Learn&kindOwn=Answers&subject=Chemistry": ["level",[["GCSE"],["A-Level"]],[2904,1279],4183,["[object Object]","[object Object]"]],
 "kindLabel=Learn&kindOwn=Answers&subject=Geography": ["level",[["GCSE"],["A-Level"]],[230,251],481,["[object Object]","[object Object]"]],
 "kindLabel=Learn&kindOwn=Answers&subject=Maths": ["level",[["SATs"],["Functional Skills L2"],["GCSE"],["A-Level"]],[525,24,4835,2588],7972,["[object Object]","[object Object]","[object Object]","[object Object]"]],
-"kindLabel=Learn&kindOwn=Answers&subject=Physics": ["level",[["GCSE"],["A-Level"]],[3378,1208],4586,["[object Object]","[object Object]"]],
+"kindLabel=Learn&kindOwn=Answers&subject=Physics": ["level",[["GCSE"],["A-Level"]],[4898,1208],6106,["[object Object]","[object Object]"]],
 "kindLabel=Settings": ["settingFor",[["Student"],["Parent"],["Staff"],["Apprentice"],["Admin"]],[15,8,9,8,8],15,["[object Object]","[object Object]","[object Object]","[object Object]","[object Object]"]],
 "kindLabel=Tools": ["toolName",[["Assignments"],["Library cards"],["Term dates"]],[1,1,1],3,["[object Object]","[object Object]","[object Object]"]]
 }
@@ -14006,29 +14006,80 @@ const dkOn_ = now => { now = String(now || ''); const h = +now.slice(11, 13); re
 const dkIsDone_ = (i, now) => (dkRep_(i) ? i.doneOn === dkOn_(now) : !!(i && i.done));
 const dkDone_ = i => dkIsDone_(i, dkNow_());
 const dkGone_ = i => !dkRep_(i) && !!i.done && !!i.doneOn && i.doneOn < dkDay_();
-function dkTick_(items, i, on, now) {
+function dkTick_(items, i, on, now, pick) {
 const it = items[i];
 if (!it) return false;
+if (Array.isArray(it.options) && it.options.length) {
+const got = on ? (pick && it.options.indexOf(pick) >= 0 ? pick : dkOption_(it)) : '', was = String(it.pick || '');
+it.picks = (Array.isArray(it.picks) ? it.picks : []).filter(x => x !== (on ? got : was)).concat(on ? [got] : []);
+it.pick = got;
+}
 if (dkRep_(it)) it.doneOn = on ? dkOn_(now) : '';
 else { it.done = !!on; it.doneOn = on ? String(now).slice(0, 10) : ''; }
 return true;
 }
-function dkSort_(items, now) {
+function dkSort_(items, now, leaves) {
 now = String(now || '');
-const day = now.slice(0, 10), g = { over: [], now: [], dated: [], undated: [], done: [] };
-(items || []).forEach((it, i) => {
+items = items || [];
+const day = now.slice(0, 10), hm = v => { const m = /^(\d{1,2}):(\d\d)$/.exec(String(v == null ? '' : v).trim()); return m ? +m[1] * 60 + +m[2] : null; };
+const t = hm(now.slice(11, 16)) || 0, ut = d => Date.UTC(+d.slice(0, 4), +d.slice(5, 7) - 1, +d.slice(8, 10));
+const wd = (new Date(ut(day)).getUTCDay() + 6) % 7, third = dkOn_(now), L = Array.isArray(leaves) ? leaves : [];
+const num = v => Math.max(0, +v || 0), anc = it => (['wake', 'meal', 'bed'].indexOf(it.anchor) >= 0 ? it.anchor : '');
+const ticked = (a, on) => items.some(it => it && anc(it) === a && String(it.doneOn || '').indexOf(on) === 0);
+const wakeNow = !ticked('wake', day) || ticked('wake', third), mealNow = ticked('meal', third);
+const g = { open: [], later: [], missed: [], done: [], when: {} };
+const startAt = (it, at) => {
+const need = num(it.minutes) + num(it.runs), f = hm(it.from), u = hm(it.until), days = it.days && typeof clashDays_ === 'function' ? clashDays_(it.days) : [];
+const end = !dkRep_(it) && it.date ? Math.round((ut(String(it.date)) - ut(day)) / 864e5) : 7;
+for (let d = 0; d <= Math.min(7, end); d++) {
+const w = (wd + d) % 7;
+if (days.length && days.indexOf(w) < 0) continue;
+let s = Math.max(at - d * 1440, f == null ? 0 : f);
+for (let k = 0; k < 50 && s < 1440; k++) {
+if (u != null && s + need > u) break;
+const hit = it.stay ? L.find(x => x.days.indexOf(w) >= 0 && x.s < s + need && x.e > s) : null;
+if (!hit) return d * 1440 + s;
+s = Math.max(hit.e, s + 1);
+}
+}
+return null;
+};
+items.forEach((it, i) => {
 if (!it) return;
-if (dkIsDone_(it, now)) g.done.push(i);
-else if (dkRep_(it)) g.now.push(i);
-else if (it.date && it.date < day) g.over.push(i);
-else if (it.date) g.dated.push(i);
-else g.undated.push(i);
+if (dkIsDone_(it, now)) return g.done.push(i);
+if (!dkRep_(it) && it.date && String(it.date) < day) return g.missed.push(i);
+const at = startAt(it, t);
+if (at === t) g.open.push(i); else { g.later.push(i); g.when[i] = at; }
 });
-const by = (a, b) => String(items[a].date).localeCompare(String(items[b].date)) || a - b;
-const runs = i => Math.max(0, +items[i].runs || 0);
-g.over.sort(by); g.dated.sort(by); g.now.sort((a, b) => runs(b) - runs(a) || a - b);
-g.open = g.over.concat(g.now, g.dated, g.undated);
+const free = t + g.open.reduce((n, i) => n + num(items[i].minutes), 0);
+const last = it => (dkRep_(it) || !it.date ? null : Math.round((ut(String(it.date)) - ut(day)) / 864e5) * 1440 + (hm(it.until) == null ? 1440 : hm(it.until)) - num(it.minutes) - num(it.runs));
+const tier = it => { const a = anc(it), ls = last(it);
+return a === 'wake' && wakeNow ? 0 : a === 'meal' && mealNow ? 1 : ls != null && ls < free - num(it.minutes) ? 2 : a === 'bed' ? 6 : a === 'meal' ? 5 : num(it.runs) > 0 ? 3 : 4; };
+const place = it => { const p = ['home', 'anywhere', 'desk', 'phone', 'out'].indexOf(it.place); return p < 0 ? 1 : p; };
+const key = i => { const it = items[i], k = tier(it);
+return [k, k === 2 ? last(it) : k === 3 ? -num(it.runs) : place(it), k === 2 || k === 3 ? 0 : num(it.minutes), i]; };
+const by = (a, b) => { const x = key(a), y = key(b); for (let n = 0; n < x.length; n++) if (x[n] !== y[n]) return x[n] - y[n]; return 0; };
+g.open.sort(by);
+g.later.sort((a, b) => (g.when[a] == null ? 1e9 : g.when[a]) - (g.when[b] == null ? 1e9 : g.when[b]) || a - b);
 return g;
+}
+function dkLeaves_(rows) {
+return (Array.isArray(rows) ? rows : []).map(r => ({ days: clashDays_(r && r.days), s: clashMin_(r && r.start), e: clashMin_(r && r.end) }))
+.filter(x => x.days.length && x.s != null && x.e != null && x.e > x.s);
+}
+function dkOption_(it) {
+const o = Array.isArray(it && it.options) ? it.options.filter(Boolean) : [], p = Array.isArray(it && it.picks) ? it.picks : [];
+return o.length ? (o.find(x => p.indexOf(x) < 0) || p.find(x => o.indexOf(x) >= 0) || o[0]) : '';
+}
+function dkTitle_(it, now) {
+const o = dkIsDone_(it, now) ? String(it.pick || '') : dkOption_(it);
+return (String(it.title || '') || 'Untitled') + (o ? ' · ' + o : '');
+}
+function dkWhen_(at, now) {
+if (at == null) return text_('dk-not-week');
+const d = Math.floor(at / 1440), m = at % 1440, s = String(now || ''), wd = (new Date(Date.UTC(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10))).getUTCDay() + 6 + d) % 7;
+const hhmm = String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+return text_('dk-from', { at: (d ? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][wd] + ' ' : '') + hhmm });
 }
 const dkTidy_ = items => items.filter(it => it && !dkGone_(it));
 function dkLoad_() {
@@ -14077,10 +14128,10 @@ DK.say = (d && d.error) || text_('not-saved-try-again'); dkPaint_();
 }
 const listItem_ = (kind, o) => ({ type: 'group', look: 'dk-item', attrs: Object.assign({ 'data-shape': kindShape_(kind), 'data-item-kind': kind }, o.attrs || {}),
 blocks: (o.blocks || []).filter(Boolean), tiles: o.tiles });
-function dkNowNextOf_(items, now) {
-const g = dkSort_(items, now), over = i => g.over.indexOf(i) >= 0;
+function dkNowNextOf_(items, now, leaves) {
+const g = dkSort_(items, now, leaves), row = (i, tags, missed) => ({ at: String(i), title: dkTitle_(items[i], now), missed: !!missed, tags });
 return { name: text_('docket'), head: text_('docket'), done: text_('dk-all-done'),
-rows: g.open.map(i => ({ at: String(i), title: items[i].title || 'Untitled', missed: over(i), tags: over(i) ? [text_('dk-overdue')] : [] })) };
+rows: g.open.map(i => row(i, [])).concat(g.later.map(i => row(i, [dkWhen_(g.when[i], now)])), g.missed.map(i => row(i, [text_('dk-missed')], true))) };
 }
 function dkSay_(m) {
 return m.rows.length ? text_('dk-say-now', { name: m.name, first: m.rows[0].title, left: m.rows.length }) : text_('dk-say-over', { name: m.name });
@@ -14091,8 +14142,8 @@ let best = -1, most = 0;
 titles.forEach((t, k) => { const has = new Set(ws(t)), n = said.filter(w => has.has(w)).length; if (n > most) { most = n; best = k; } });
 return best;
 }
-function dkEinkHtml_(items, now) {
-const m = dkNowNextOf_(items, now);
+function dkEinkHtml_(items, now, leaves) {
+const m = dkNowNextOf_(items, now, leaves);
 const row = r => '<li class="ek-row' + (r.missed ? ' is-missed' : '') + '"><label class="ek-tick">' + formInput_('type="checkbox" data-dkf="' + esc(r.at) + '" aria-label="' + esc('Done: ' + r.title) + '"')
 + '<span class="ek-t">' + esc(r.title) + '</span>' + (r.tags.length ? '<span class="ek-tags">' + esc(r.tags.join(' · ')) + '</span>' : '') + '</label></li>';
 return '<h1 class="ek-now">' + esc(m.head) + '</h1>' + (m.rows.length ? '<ol class="ek-rows">' + m.rows.map(row).join('') + '</ol>' : '<p class="ek-say">' + esc(m.done) + '</p>');
@@ -14102,7 +14153,7 @@ function dkEinkPaint_() {
 let box = $('eink');
 if (!box) { box = document.createElement('main'); box.id = 'eink'; document.body.appendChild(box); document.documentElement.classList.add('eink'); }
 const owner = typeof may_ === 'function' && may_('owner');
-const html = owner ? dkEinkHtml_(dkLoad_(), dkNow_())
+const html = owner ? dkEinkHtml_(dkLoad_(), dkNow_(), dkLeavesNow_())
 : '<p class="ek-say"><a class="ek-sign" href="' + esc(location.pathname) + '">' + esc(text_('dk-eink-sign-in')) + '</a></p>';
 if (box.getAttribute('data-was') !== html) { box.innerHTML = html; box.setAttribute('data-was', html); }
 }
@@ -14131,21 +14182,25 @@ function dkItems_() {
 if (typeof may_ !== 'function' || !may_('owner') || !DK.fresh) return [];
 return [{ kind: 'docket', name: 'Docket', key: 'dk', seq: 0, sub: '', image: '', row: {}, text: ['Docket'].concat(dkLoad_().map(it => it.title)).filter(Boolean).join(' ') }];
 }
+const dkLeavesNow_ = () => { try { return dkLeaves_(((STORE_ROWS_.session || {}).rows || []).map(r => r.data || {})); } catch (e) { return []; } };
 const dkNow_ = () => { let t = ''; try { t = new Intl.DateTimeFormat('en-GB', { timeZone: tz_(), hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date()); } catch (e) { t = ''; }
 return dkDay_() + ' ' + (t || '00:00'); };
 const DKF = { edit: -1 };
-function dkLine_(i) {
-const it = dkLoad_()[i], editing = DKF.edit === i;
-return cardFold_('dk:' + i, { type: 'tick', text: it.title || 'Untitled', attrs: { 'data-dkf': String(i), checked: dkDone_(it), 'aria-label': 'Done: ' + (it.title || '') } }, [
+function dkLine_(i, when) {
+const it = dkLoad_()[i], editing = DKF.edit === i, now = dkNow_(), words = dkTitle_(it, now) + (when ? ' · ' + when : '');
+const opts = Array.isArray(it.options) ? it.options.filter(Boolean) : [];
+return cardFold_('dk:' + i, { type: 'tick', text: words, attrs: { 'data-dkf': String(i), checked: dkDone_(it), 'aria-label': 'Done: ' + words } }, [
+opts.length && !editing ? { type: 'tiles', tiles: opts.map(o => ({ label: o, act: 'dk-pick', cls: o === dkOption_(it) ? 'is-submit' : '', data: { at: i, pick: o } })) } : null,
 editing ? { type: 'group', look: 'dk-form', inner: formOf_('docket-item', { title: it.title || '' }) } : null,
 { type: 'tiles', tiles: editing ? [{ icon: 'save', label: text_('save'), act: 'dk-fsave', cls: 'is-submit', data: { at: i } }, { icon: 'close', label: 'Close', act: 'dk-fedit', data: { at: i } }]
 : [{ icon: 'edit', label: 'Edit', act: 'dk-fedit', data: { at: i } }, { icon: 'bin', label: 'Delete', act: 'dk-fdel', tone: 'danger', data: { at: i } }] }].filter(Boolean), 'dk-line');
 }
 function dkCard_() {
-const g = dkSort_(dkLoad_(), dkNow_());
+const now = dkNow_(), g = dkSort_(dkLoad_(), now, dkLeavesNow_());
 return renderCard(shapeCard_('docket', { kind: 'docket', name: 'Docket', tags: [],
-body: g.open.map(dkLine_)
-.concat(g.done.length ? cardFold_('dk:done', { type: 'text', text: 'Done (' + g.done.length + ')' }, g.done.map(dkLine_), 'dk-done') : [])
+body: g.open.map(i => dkLine_(i)).concat(g.later.map(i => dkLine_(i, dkWhen_(g.when[i], now))))
+.concat(g.missed.length ? cardFold_('dk:missed', { type: 'text', text: text_('dk-missed') + ' (' + g.missed.length + ')' }, g.missed.map(i => dkLine_(i)), 'dk-missed') : [])
+.concat(g.done.length ? cardFold_('dk:done', { type: 'text', text: 'Done (' + g.done.length + ')' }, g.done.map(i => dkLine_(i)), 'dk-done') : [])
 .concat({ type: 'field', look: 'dk-qadd-f', blocks: [{ type: 'control', attrs: { class: 'dk-qadd', placeholder: 'Add an item, then Enter', 'aria-label': 'Add to the Docket', maxlength: 300, enterkeyhint: 'done' } }] }),
 tiles: [{ icon: 'plus', label: 'Add', act: 'dk-qadd', cls: 'is-submit' }] }));
 }
@@ -14157,6 +14212,7 @@ on('dk-fsave', el => { const it = dkLoad_()[+el.getAttribute('data-at')], card =
 if (!it) return;
 if (v) it.title = v.slice(0, 300);
 DKF.edit = -1; stepDone_(DKF.step, false); dkKeep_(); });
+on('dk-pick', el => { if (dkTick_(dkLoad_(), +el.getAttribute('data-at'), true, dkNow_(), el.getAttribute('data-pick') || '')) dkKeep_(); });
 on('dk-fdel', el => { const i = +el.getAttribute('data-at'), it = dkLoad_()[i]; if (!it || !confirm('Delete "' + (it.title || 'this item') + '"?')) return;
 dkLoad_().splice(i, 1); DKF.edit = -1; stepDone_(DKF.step, false); dkKeep_(); });
 on('dk-qadd', el => { const card = el.closest('.card'), inp = card && card.querySelector('.dk-qadd'), t = String((inp && inp.value) || '').trim();

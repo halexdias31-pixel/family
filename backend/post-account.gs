@@ -728,14 +728,15 @@ function postDocketImport_(body, action, began) {
    site's (dkSort_, dkNowNextOf_, dkSay_, dkMatch_, dkTick_: js/map.js, copied into cards-gen.gs). The token lives in Script Properties only, never in the
    repo or a log; the owner sees it, or makes a new one, on the Docket (action docketAddress). tools/docket-address.js checks it. */
 const DOCKET_TOKEN_KEY = 'DOCKET_TOKEN';
-/* Pure: the one list's items (changed in place), London's 'YYYY-MM-DD HH:MM' and the query ({ do, what }); { say, items, changed }. */
-function docketAnswer_(items, now, q) {
+/* Pure: the one list's items (changed in place), London's 'YYYY-MM-DD HH:MM', the query ({ do, what }) and the owner's leave times (dkLeaves_);
+   { say, items, changed }. The plan is the site's (dkSort_, owner 27 Nov). */
+function docketAnswer_(items, now, q, leaves) {
   const act = S(q && q.do).toLowerCase(), what = S(q && q.what).slice(0, 300);
   let said = '', changed = false;
   /* `do=list` (the desk e-paper screen, tools/docket-screen, 26 Nov): the open items in the card's order, one a line, under the line `docket-list`;
      "! " before an overdue one, "- " before the rest. Nothing changes. The screen reads it as fit.h parseList. */
   if (act === 'list') {
-    const m = dkNowNextOf_(items, now);
+    const m = dkNowNextOf_(items, now, leaves);
     return { say: ['docket-list'].concat(m.rows.map(r => (r.missed ? '! ' : '- ') + S(r.title).replace(/\s+/g, ' '))).join('\n'), items: items, changed: false };
   }
   if (act === 'done' || act === 'add') {
@@ -746,7 +747,7 @@ function docketAnswer_(items, now, q) {
       const parts = what.split(/\s*(?:,|&|\+|\n|\band\b|\bplus\b)\s*/i).map(w => w.trim()).filter(Boolean), ticked = [], already = [], missed = [];
       const list = a => (a.length > 1 ? a.slice(0, -1).join(', ') + ' ' + text_('dk-say-and') + ' ' + a[a.length - 1] : a[0]);
       parts.forEach(w => {
-        const open = dkSort_(items, now).open, k = dkMatch_(open.map(i => items[i].title), w);
+        const g = dkSort_(items, now, leaves), open = g.open.concat(g.later, g.missed), k = dkMatch_(open.map(i => items[i].title), w);
         if (k >= 0) { dkTick_(items, open[k], true, now); changed = true; ticked.push(items[open[k]].title); return; }
         const done = items.map((it, i) => i).filter(i => items[i] && dkIsDone_(items[i], now)), d = dkMatch_(done.map(i => items[i].title), w);
         if (d < 0) missed.push(w);
@@ -758,9 +759,11 @@ function docketAnswer_(items, now, q) {
       return { say: said, items: items, changed: changed };
     } else { items.push({ title: what }); changed = true; said = text_('dk-say-added', { title: what, name: 'Docket' }); }
   }
-  return { say: (said ? said + ' ' : '') + dkSay_(dkNowNextOf_(items, now)), items: items, changed: changed };
+  return { say: (said ? said + ' ' : '') + dkSay_(dkNowNextOf_(items, now, leaves)), items: items, changed: changed };
 }
 const docketNow_ = () => Utilities.formatDate(new Date(), tz_(), 'yyyy-MM-dd HH:mm');
+/* THE OWNER'S LEAVE TIMES (the plan, owner 27 Nov): their timetable's sessions (kinds.json `session`), as the phone reads them; none if unreadable. */
+const docketLeaves_ = () => { try { return dkLeaves_(itemRows_('session').map(r => r.data || {})); } catch (e) { return []; } };
 /* The same length and every character compared, so a near miss takes as long as a far one. */
 function docketSame_(a, b) {
   a = S(a); b = S(b);
@@ -777,7 +780,7 @@ function docketAddress_(p) {
   let got = null;
   try { got = JSON.parse(S(me.todo)); } catch (e) { got = null; }
   const lists = got && Array.isArray(got.lists) ? got.lists : [], items = [].concat(...lists.map(L => (L && Array.isArray(L.items) ? L.items : [])));
-  const r = docketAnswer_(items, docketNow_(), p);
+  const r = docketAnswer_(items, docketNow_(), p, docketLeaves_());
   if (r.changed) {
     const rest = Object.assign({}, got || {}); delete rest.lists;
     const cell = todoTidy_(JSON.stringify(Object.assign({ v: 1 }, rest, { lists: [{ name: 'Docket', items: r.items }] })));

@@ -71,33 +71,97 @@ const dkIsDone_ = (i, now) => (dkRep_(i) ? i.doneOn === dkOn_(now) : !!(i && i.d
 const dkDone_ = i => dkIsDone_(i, dkNow_());
 const dkGone_ = i => !dkRep_(i) && !!i.done && !!i.doneOn && i.doneOn < dkDay_();
 /* THE ONE TICK: every done path (the card, ?eink, the private address) ticks through this. Pure: the items, which one, ticked or not, London's now. */
-function dkTick_(items, i, on, now) {
+function dkTick_(items, i, on, now, pick) {
   const it = items[i];
   if (!it) return false;
+  /* A SLOT RECORDS WHICH OPTION (owner, 27 Nov): `pick` (else the least recent, dkOption_) is this tick's and goes to the end of `picks`; an untick takes it off. */
+  if (Array.isArray(it.options) && it.options.length) {
+    const got = on ? (pick && it.options.indexOf(pick) >= 0 ? pick : dkOption_(it)) : '', was = String(it.pick || '');
+    it.picks = (Array.isArray(it.picks) ? it.picks : []).filter(x => x !== (on ? got : was)).concat(on ? [got] : []);
+    it.pick = got;
+  }
   if (dkRep_(it)) it.doneOn = on ? dkOn_(now) : '';
   else { it.done = !!on; it.doneOn = on ? String(now).slice(0, 10) : ''; }
   return true;
 }
-/* SORTED LIKE GOOGLE TASKS (owner, 25 Nov night): Overdue (a dated one-off past its date), then Now (an 8h item not yet done this third), then the
-   dated one-offs by date, then the undated, then Done; within Now, the most minutes it runs by itself (`runs`) first. Pure; each group keeps the list's order on a tie. The card, ?eink and the private address
-   all read this one order. tools/docket-onelist.js checks it. */
-function dkSort_(items, now) {
+/* THE PLAN (owner, 27 Nov: "run from the top down without it giving me a bad order"; every rule a number, none a feeling). Pure and deterministic:
+   the items, London's now ('YYYY-MM-DD HH:MM') and the owner's leave times (dkLeaves_: their timetable sessions; none known, none assumed).
+   An item may say `minutes` (hands-on), `runs` (unattended after), `place` (home/out/desk/phone/anywhere), `stay` (must stay at `place` until `runs` ends),
+   `from`/`until` ('HH:MM': start at or after `from`, finish minutes+runs by `until`), `days` ('mon-sat', js/form.js clashDays_), `anchor` (wake/meal/bed),
+   `date` (a one-off's hard deadline) and `options` (a slot's choices). Groups: `open` (can start now, in plan order), `later` (cannot yet; `when[i]` the
+   minute from today's 00:00 it next can, soonest first; null not this week), `missed` (a one-off past its date: "new date?"), `done`.
+   The open order: (0) wake items until the day starts (a wake item ticked today) and through the third it started in; (1) meal items while a meal item
+   was ticked this third; (2) a dated one-off whose latest start is before the time it would get if it waited behind every other open item (latest start
+   first); (3) the unattended ones (`runs`, longest first); (4) the rest by place, home first and out last (one trip covers every out item), the fewest
+   minutes first; (5) meal items; (6) bed items. Overdue is no reason to go first. Ties keep the list's order. The card, ?eink and the private address
+   (backend/cards-gen.gs copies this) all read this one plan. tools/docket-plan.js checks it. */
+function dkSort_(items, now, leaves) {
   now = String(now || '');
-  const day = now.slice(0, 10), g = { over: [], now: [], dated: [], undated: [], done: [] };
-  (items || []).forEach((it, i) => {
+  items = items || [];
+  const day = now.slice(0, 10), hm = v => { const m = /^(\d{1,2}):(\d\d)$/.exec(String(v == null ? '' : v).trim()); return m ? +m[1] * 60 + +m[2] : null; };
+  const t = hm(now.slice(11, 16)) || 0, ut = d => Date.UTC(+d.slice(0, 4), +d.slice(5, 7) - 1, +d.slice(8, 10));
+  const wd = (new Date(ut(day)).getUTCDay() + 6) % 7, third = dkOn_(now), L = Array.isArray(leaves) ? leaves : [];
+  const num = v => Math.max(0, +v || 0), anc = it => (['wake', 'meal', 'bed'].indexOf(it.anchor) >= 0 ? it.anchor : '');
+  const ticked = (a, on) => items.some(it => it && anc(it) === a && String(it.doneOn || '').indexOf(on) === 0);
+  const wakeNow = !ticked('wake', day) || ticked('wake', third), mealNow = ticked('meal', third);
+  const g = { open: [], later: [], missed: [], done: [], when: {} };
+  /* THE FIRST MINUTE (from today's 00:00, at or after `at`) IT MAY START AND STILL FINISH: in its days, its window, and, kept at its place, before a leave. */
+  const startAt = (it, at) => {
+    const need = num(it.minutes) + num(it.runs), f = hm(it.from), u = hm(it.until), days = it.days && typeof clashDays_ === 'function' ? clashDays_(it.days) : [];
+    const end = !dkRep_(it) && it.date ? Math.round((ut(String(it.date)) - ut(day)) / 864e5) : 7;
+    for (let d = 0; d <= Math.min(7, end); d++) {
+      const w = (wd + d) % 7;
+      if (days.length && days.indexOf(w) < 0) continue;
+      let s = Math.max(at - d * 1440, f == null ? 0 : f);
+      for (let k = 0; k < 50 && s < 1440; k++) {
+        if (u != null && s + need > u) break;
+        const hit = it.stay ? L.find(x => x.days.indexOf(w) >= 0 && x.s < s + need && x.e > s) : null;
+        if (!hit) return d * 1440 + s;
+        s = Math.max(hit.e, s + 1);
+      }
+    }
+    return null;
+  };
+  items.forEach((it, i) => {
     if (!it) return;
-    if (dkIsDone_(it, now)) g.done.push(i);
-    else if (dkRep_(it)) g.now.push(i);
-    else if (it.date && it.date < day) g.over.push(i);
-    else if (it.date) g.dated.push(i);
-    else g.undated.push(i);
+    if (dkIsDone_(it, now)) return g.done.push(i);
+    if (!dkRep_(it) && it.date && String(it.date) < day) return g.missed.push(i);
+    const at = startAt(it, t);
+    if (at === t) g.open.push(i); else { g.later.push(i); g.when[i] = at; }
   });
-  const by = (a, b) => String(items[a].date).localeCompare(String(items[b].date)) || a - b;
-  /* WITHIN NOW, THE LONGEST PASSIVE ONE FIRST (owner, 25 Nov night): `runs`, the minutes it runs by itself once started (laundry 60), descending. */
-  const runs = i => Math.max(0, +items[i].runs || 0);
-  g.over.sort(by); g.dated.sort(by); g.now.sort((a, b) => runs(b) - runs(a) || a - b);
-  g.open = g.over.concat(g.now, g.dated, g.undated);
+  const free = t + g.open.reduce((n, i) => n + num(items[i].minutes), 0);
+  const last = it => (dkRep_(it) || !it.date ? null : Math.round((ut(String(it.date)) - ut(day)) / 864e5) * 1440 + (hm(it.until) == null ? 1440 : hm(it.until)) - num(it.minutes) - num(it.runs));
+  const tier = it => { const a = anc(it), ls = last(it);
+    return a === 'wake' && wakeNow ? 0 : a === 'meal' && mealNow ? 1 : ls != null && ls < free - num(it.minutes) ? 2 : a === 'bed' ? 6 : a === 'meal' ? 5 : num(it.runs) > 0 ? 3 : 4; };
+  const place = it => { const p = ['home', 'anywhere', 'desk', 'phone', 'out'].indexOf(it.place); return p < 0 ? 1 : p; };
+  const key = i => { const it = items[i], k = tier(it);
+    return [k, k === 2 ? last(it) : k === 3 ? -num(it.runs) : place(it), k === 2 || k === 3 ? 0 : num(it.minutes), i]; };
+  const by = (a, b) => { const x = key(a), y = key(b); for (let n = 0; n < x.length; n++) if (x[n] !== y[n]) return x[n] - y[n]; return 0; };
+  g.open.sort(by);
+  g.later.sort((a, b) => (g.when[a] == null ? 1e9 : g.when[a]) - (g.when[b] == null ? 1e9 : g.when[b]) || a - b);
   return g;
+}
+/* THE OWNER'S LEAVE TIMES: their timetable's sessions (kinds.json `session`: days, start, end), each { days: [0..6, Monday 0], s, e } in minutes. */
+function dkLeaves_(rows) {
+  return (Array.isArray(rows) ? rows : []).map(r => ({ days: clashDays_(r && r.days), s: clashMin_(r && r.start), e: clashMin_(r && r.end) }))
+    .filter(x => x.days.length && x.s != null && x.e != null && x.e > x.s);
+}
+/* A SLOT'S OPTION (owner, 27 Nov): the one least recently ticked (`picks`, oldest first; never ticked first, in the list's order). */
+function dkOption_(it) {
+  const o = Array.isArray(it && it.options) ? it.options.filter(Boolean) : [], p = Array.isArray(it && it.picks) ? it.picks : [];
+  return o.length ? (o.find(x => p.indexOf(x) < 0) || p.find(x => o.indexOf(x) >= 0) || o[0]) : '';
+}
+/* THE LINE'S WORDS: the title, and a slot's option ("Prayer · <option>": the one to do, or the one done); nothing else. */
+function dkTitle_(it, now) {
+  const o = dkIsDone_(it, now) ? String(it.pick || '') : dkOption_(it);
+  return (String(it.title || '') || 'Untitled') + (o ? ' · ' + o : '');
+}
+/* WHEN A LATER ONE CAN START: "from 09:00" today, "from Sat 09:00" another day, "not this week" never. */
+function dkWhen_(at, now) {
+  if (at == null) return text_('dk-not-week');
+  const d = Math.floor(at / 1440), m = at % 1440, s = String(now || ''), wd = (new Date(Date.UTC(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10))).getUTCDay() + 6 + d) % 7;
+  const hhmm = String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+  return text_('dk-from', { at: (d ? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][wd] + ' ' : '') + hhmm });
 }
 /* ON EVERY LOAD: a one-off ticked before today leaves (the backend's postSaveTodo_ does the same on each save). */
 const dkTidy_ = items => items.filter(it => it && !dkGone_(it));
@@ -156,11 +220,12 @@ function dkSave_() {
    (`data-shape`, `data-item-kind`, read by tools/one-list.js); the Docket's lines are its one card's (dkCard_), Assignments' this. */
 const listItem_ = (kind, o) => ({ type: 'group', look: 'dk-item', attrs: Object.assign({ 'data-shape': kindShape_(kind), 'data-item-kind': kind }, o.attrs || {}),
   blocks: (o.blocks || []).filter(Boolean), tiles: o.tiles });
-/* WHAT ?eink AND THE PRIVATE ADDRESS SAY: the open items in dkSort_'s order, an overdue one tagged so. Each row's `at` is the item's place (the tick's address). */
-function dkNowNextOf_(items, now) {
-  const g = dkSort_(items, now), over = i => g.over.indexOf(i) >= 0;
+/* WHAT ?eink AND THE PRIVATE ADDRESS SAY: the plan's open items, then the later ones (each with when), then the missed ("new date?"), marked so.
+   Each row's `at` is the item's place (the tick's address). */
+function dkNowNextOf_(items, now, leaves) {
+  const g = dkSort_(items, now, leaves), row = (i, tags, missed) => ({ at: String(i), title: dkTitle_(items[i], now), missed: !!missed, tags });
   return { name: text_('docket'), head: text_('docket'), done: text_('dk-all-done'),
-    rows: g.open.map(i => ({ at: String(i), title: items[i].title || 'Untitled', missed: over(i), tags: over(i) ? [text_('dk-overdue')] : [] })) };
+    rows: g.open.map(i => row(i, [])).concat(g.later.map(i => row(i, [dkWhen_(g.when[i], now)])), g.missed.map(i => row(i, [text_('dk-missed')], true))) };
 }
 /* THE PLAIN-TEXT ADDRESS'S ANSWER (owner, 21 Nov): dkNowNextOf_ said in one line, for Siri or any assistant to read aloud.
    The backend says it by this copy (tools/cards-gen.js TAKE), so the address and the card cannot differ. tools/docket-address.js checks it. */
@@ -177,8 +242,8 @@ function dkMatch_(titles, what) {
 /* THE E-INK PAGE (owner, 21 Nov; open the site with ?eink): the card's open items alone, black on white, large, still, in the card's order. A tick is the
    card's (`data-dkf`). Owner-only: anybody else sees only the way to sign in. Redrawn each minute in place (only when it changed), so the screen does not
    flash. tools/eink.js checks it matches the card's order. */
-function dkEinkHtml_(items, now) {
-  const m = dkNowNextOf_(items, now);
+function dkEinkHtml_(items, now, leaves) {
+  const m = dkNowNextOf_(items, now, leaves);
   const row = r => '<li class="ek-row' + (r.missed ? ' is-missed' : '') + '"><label class="ek-tick">' + formInput_('type="checkbox" data-dkf="' + esc(r.at) + '" aria-label="' + esc('Done: ' + r.title) + '"')
     + '<span class="ek-t">' + esc(r.title) + '</span>' + (r.tags.length ? '<span class="ek-tags">' + esc(r.tags.join(' · ')) + '</span>' : '') + '</label></li>';
   return '<h1 class="ek-now">' + esc(m.head) + '</h1>' + (m.rows.length ? '<ol class="ek-rows">' + m.rows.map(row).join('') + '</ol>' : '<p class="ek-say">' + esc(m.done) + '</p>');
@@ -188,7 +253,7 @@ function dkEinkPaint_() {
   let box = $('eink');
   if (!box) { box = document.createElement('main'); box.id = 'eink'; document.body.appendChild(box); document.documentElement.classList.add('eink'); }
   const owner = typeof may_ === 'function' && may_('owner');
-  const html = owner ? dkEinkHtml_(dkLoad_(), dkNow_())
+  const html = owner ? dkEinkHtml_(dkLoad_(), dkNow_(), dkLeavesNow_())
     : '<p class="ek-say"><a class="ek-sign" href="' + esc(location.pathname) + '">' + esc(text_('dk-eink-sign-in')) + '</a></p>';
   if (box.getAttribute('data-was') !== html) { box.innerHTML = html; box.setAttribute('data-was', html); }
 }
@@ -225,25 +290,31 @@ function dkItems_() {
   if (typeof may_ !== 'function' || !may_('owner') || !DK.fresh) return [];
   return [{ kind: 'docket', name: 'Docket', key: 'dk', seq: 0, sub: '', image: '', row: {}, text: ['Docket'].concat(dkLoad_().map(it => it.title)).filter(Boolean).join(' ') }];
 }
+/* THE OWNER'S LEAVE TIMES ON THE PHONE: the timetable's sessions Find holds (js/form.js STORE_ROWS_), none if not loaded. */
+const dkLeavesNow_ = () => { try { return dkLeaves_(((STORE_ROWS_.session || {}).rows || []).map(r => r.data || {})); } catch (e) { return []; } };
 /* LONDON'S MOMENT, as dkSort_ reads it. */
 const dkNow_ = () => { let t = ''; try { t = new Intl.DateTimeFormat('en-GB', { timeZone: tz_(), hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date()); } catch (e) { t = ''; }
   return dkDay_() + ' ' + (t || '00:00'); };
 const DKF = { edit: -1 };
-/* ONE CARD, LIKE GOOGLE TASKS (owner, 25 Nov night): each item one line, its tick and title only, in dkSort_'s order; tapping a line (the one fold,
-   js/cards-render.js cardFold_) shows only Edit (its name) and Delete; the ticked fold into one "Done (n)" line at the foot; then the quick add
-   (an undated one-off). Plain rows, thin lines (style.css .kc-fold). tools/docket-look.js checks it. */
-function dkLine_(i) {
-  const it = dkLoad_()[i], editing = DKF.edit === i;
-  return cardFold_('dk:' + i, { type: 'tick', text: it.title || 'Untitled', attrs: { 'data-dkf': String(i), checked: dkDone_(it), 'aria-label': 'Done: ' + (it.title || '') } }, [
+/* ONE CARD, LIKE GOOGLE TASKS (owner, 25 Nov night; the plan, 27 Nov): each item one line, its tick and its words only (dkTitle_: a slot's "Prayer · <option>";
+   a later one's "· from 09:00"), in the plan's order (dkSort_): the open, then the later; tapping a line (the one fold, js/cards-render.js cardFold_) shows
+   a slot's every option (a tap ticks that one), Edit (its name) and Delete; the missed fold into one "Missed — new date? (n)" line, the ticked into one
+   "Done (n)" line at the foot; then the quick add (an undated one-off). Plain rows, thin lines (style.css .kc-fold). tools/docket-look.js checks it. */
+function dkLine_(i, when) {
+  const it = dkLoad_()[i], editing = DKF.edit === i, now = dkNow_(), words = dkTitle_(it, now) + (when ? ' · ' + when : '');
+  const opts = Array.isArray(it.options) ? it.options.filter(Boolean) : [];
+  return cardFold_('dk:' + i, { type: 'tick', text: words, attrs: { 'data-dkf': String(i), checked: dkDone_(it), 'aria-label': 'Done: ' + words } }, [
+    opts.length && !editing ? { type: 'tiles', tiles: opts.map(o => ({ label: o, act: 'dk-pick', cls: o === dkOption_(it) ? 'is-submit' : '', data: { at: i, pick: o } })) } : null,
     editing ? { type: 'group', look: 'dk-form', inner: formOf_('docket-item', { title: it.title || '' }) } : null,
     { type: 'tiles', tiles: editing ? [{ icon: 'save', label: text_('save'), act: 'dk-fsave', cls: 'is-submit', data: { at: i } }, { icon: 'close', label: 'Close', act: 'dk-fedit', data: { at: i } }]
       : [{ icon: 'edit', label: 'Edit', act: 'dk-fedit', data: { at: i } }, { icon: 'bin', label: 'Delete', act: 'dk-fdel', tone: 'danger', data: { at: i } }] }].filter(Boolean), 'dk-line');
 }
 function dkCard_() {
-  const g = dkSort_(dkLoad_(), dkNow_());
+  const now = dkNow_(), g = dkSort_(dkLoad_(), now, dkLeavesNow_());
   return renderCard(shapeCard_('docket', { kind: 'docket', name: 'Docket', tags: [],
-    body: g.open.map(dkLine_)
-      .concat(g.done.length ? cardFold_('dk:done', { type: 'text', text: 'Done (' + g.done.length + ')' }, g.done.map(dkLine_), 'dk-done') : [])
+    body: g.open.map(i => dkLine_(i)).concat(g.later.map(i => dkLine_(i, dkWhen_(g.when[i], now))))
+      .concat(g.missed.length ? cardFold_('dk:missed', { type: 'text', text: text_('dk-missed') + ' (' + g.missed.length + ')' }, g.missed.map(i => dkLine_(i)), 'dk-missed') : [])
+      .concat(g.done.length ? cardFold_('dk:done', { type: 'text', text: 'Done (' + g.done.length + ')' }, g.done.map(i => dkLine_(i)), 'dk-done') : [])
       .concat({ type: 'field', look: 'dk-qadd-f', blocks: [{ type: 'control', attrs: { class: 'dk-qadd', placeholder: 'Add an item, then Enter', 'aria-label': 'Add to the Docket', maxlength: 300, enterkeyhint: 'done' } }] }),
     tiles: [{ icon: 'plus', label: 'Add', act: 'dk-qadd', cls: 'is-submit' }] }));
 }
@@ -256,6 +327,8 @@ on('dk-fsave', el => { const it = dkLoad_()[+el.getAttribute('data-at')], card =
   if (!it) return;
   if (v) it.title = v.slice(0, 300);
   DKF.edit = -1; stepDone_(DKF.step, false); dkKeep_(); });
+/* A SLOT'S OPTION TAPPED: the item ticked with that option (dkTick_ records it). */
+on('dk-pick', el => { if (dkTick_(dkLoad_(), +el.getAttribute('data-at'), true, dkNow_(), el.getAttribute('data-pick') || '')) dkKeep_(); });
 on('dk-fdel', el => { const i = +el.getAttribute('data-at'), it = dkLoad_()[i]; if (!it || !confirm('Delete "' + (it.title || 'this item') + '"?')) return;
   dkLoad_().splice(i, 1); DKF.edit = -1; stepDone_(DKF.step, false); dkKeep_(); });
 on('dk-qadd', el => { const card = el.closest('.card'), inp = card && card.querySelector('.dk-qadd'), t = String((inp && inp.value) || '').trim();

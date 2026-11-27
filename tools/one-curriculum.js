@@ -184,7 +184,7 @@ async function page(brk) {
 function data() {
   const entries = CU.entries(), head = {};
   entries.forEach(e => { head[e.file] = headBudget(e.file); });
-  return { rows: SD.json('data/questions.json'), entries, fixture: CU.entries(FIXTURE), gen: SD.json(QG.TABLE), tax: SD.json('data/settings/taxonomy.json'), engine: text('js/find-finder.js'), head };
+  return { rows: SD.json('data/questions.json'), entries, fixture: CU.entries(FIXTURE), gen: QG.table(), tax: SD.json('data/settings/taxonomy.json'), engine: text('js/find-finder.js'), head };
 }
 
 const first = (d, f) => d.rows.find(r => r.kind === 'question' && f(r));

@@ -14,15 +14,15 @@ const BUDGET = {
   'lettered-list-in-stem': 73,
   'table-in-stem-unkeyed': 110,
   'table-in-note': 5,
-  'mark-scheme-in-note': 2050,
-  'no-key-note-only': 8270,
-  'no-key': 6610,
+  'mark-scheme-in-note': 1887,
+  'no-key-note-only': 8098,
+  'no-key': 6537,
   'two-keys': 903,
   'key-as-mark-words': 1326,
   'key-as-rule': 4525,
   'second-stem': 422,
   'part-label-form': 12816,
-  'words-without-card': 371,
+  'words-without-card': 0,
 };
 
 function check(words, cards) {

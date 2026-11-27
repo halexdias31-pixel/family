@@ -43,14 +43,18 @@ function assignNoAiRun_() {
    reshaped the lists the one list below replaces, so they went with it (owner, 25 Nov night); their ids stay spent (MIGRATIONS). */
 /* THE DOCKET IS ONE LIST, NAMES ONLY (owner, 25 Nov night: "simplest, most stable"): "Every 8 hours" and "@ Desk" (and any other list, after them, in
    order) become the one list "Docket". Each item keeps only its title, its repeat ('8h'; a 'daily' one becomes '8h'), its date (a one-off's), its done
-   state and `runs` (owner, 25 Nov night: the one hidden number); its note, minutes, place, effort, slot, covers and the rest go, and so do the cell's `slots`: all of it stays in the backup row. "10-minute
+   state and `runs` (owner, 25 Nov night: the one hidden number), and a slot item its slot's option names as `options` (the plan, owner 27 Nov: "Prayer ·
+   <option>"); its note, minutes, place, effort, slot, covers and the rest go, and so do the cell's `slots` (their notes with them): all of it stays in the backup row. "10-minute
    tidy" is renamed "Tidy room"; the food, Prayer and Exercise slot items are plain items. Only a cell the two-list job left ("Every 8 hours" among its
    lists) is changed; the backup tab first, read back; the size cap; the cell read back; a re-run finds nothing to do. tools/docket-onelist.js checks it. */
 const DK_ONE_LIST = 'Docket', DK_ONE_BACKUP = 'backup_docket_onelist_25nov', DK_ONE_FIRST = ['every 8 hours', '@ desk'];
 const DK_ONE_RENAME = [[/^10[- ]?minute tidy$/i, 'Tidy room']];
 /* ONE ITEM, NAMES ONLY: title, repeat, date, done, doneOn and the one hidden number `runs` (minutes it runs by itself; the Now order), each only when it says something. Pure. */
-function docketOneItem_(it) {
+function docketOneItem_(it, slots) {
   const title = DK_ONE_RENAME.reduce((t, r) => (r[0].test(t) ? r[1] : t), S(it && it.title)), o = { title: title };
+  /* A re-run (the cell's `slots` gone) keeps the options the first run gave. */
+  const opts = (slots && it.slot && slots[S(it.slot).toLowerCase()]) || (Array.isArray(it.options) ? it.options.map(o => S(o)).filter(Boolean) : []);
+  if (opts.length) o.options = opts;
   if (it.repeat === '8h' || it.repeat === 'daily') { o.repeat = '8h'; if (/^\d{4}-\d{2}-\d{2}\/[123]$/.test(S(it.doneOn))) o.doneOn = S(it.doneOn); if (+it.runs > 0) o.runs = Math.round(+it.runs); return o; }
   if (/^\d{4}-\d{2}-\d{2}$/.test(S(it.date))) o.date = S(it.date);
   if (+it.runs > 0) o.runs = Math.round(+it.runs);
@@ -64,11 +68,17 @@ function docketOneList25NovRun_() {
   let got = null; try { got = JSON.parse(was); } catch (e) { got = null; }
   if (!got || !Array.isArray(got.lists)) throw new Error('the owner has no docket lists');
   const lists = got.lists.filter(Boolean), key = L => S(L.name).trim().toLowerCase();
-  if (!lists.some(L => key(L) === DK_ONE_FIRST[0]) && !(lists.length === 1 && S(lists[0].name) === DK_ONE_LIST))
+  /* ALREADY THE ONE LIST: left whole, so a late re-run never strips what came after it (the plan's numbers, docket-plan-27nov). */
+  if (lists.length === 1 && S(lists[0].name) === DK_ONE_LIST) return 'nothing to do';
+  if (!lists.some(L => key(L) === DK_ONE_FIRST[0]))
     throw new Error('the docket is not the two lists (Every 8 hours, @ Desk) - nothing changed');
   const rank = L => { const k = DK_ONE_FIRST.indexOf(key(L)); return k < 0 ? DK_ONE_FIRST.length : k; };
   const order = lists.map((L, n) => [L, n]).sort((a, b) => rank(a[0]) - rank(b[0]) || a[1] - b[1]).map(x => x[0]);
-  const items = [].concat(...order.map(L => (Array.isArray(L.items) ? L.items : []).filter(it => it && S(it.title)).map(docketOneItem_)));
+  /* EACH SLOT'S OPTION NAMES, by the slot's name (any case); no notes. */
+  const slots = {};
+  (Array.isArray(got.slots) ? got.slots : []).forEach(x => { if (x && S(x.name)) slots[S(x.name).toLowerCase()] = (Array.isArray(x.options) ? x.options : [])
+    .map(o => S(o && typeof o === 'object' ? o.name : o).slice(0, 100)).filter(Boolean).slice(0, 50); });
+  const items = [].concat(...order.map(L => (Array.isArray(L.items) ? L.items : []).filter(it => it && S(it.title)).map(it => docketOneItem_(it, slots))));
   const cell = todoTidy_(JSON.stringify({ v: got.v || 1, lists: [{ name: DK_ONE_LIST, items: items }] }));
   if (cell === was) return 'nothing to do';
   const said = 'one list "' + DK_ONE_LIST + '" of ' + JSON.parse(cell).lists[0].items.length + ' item(s), from ' + order.map(L => S(L.name)).join(' + ');
@@ -81,6 +91,66 @@ function docketOneList25NovRun_() {
   const back = read(TAB.people).rows.find(r => isOwner_(r));
   if (!back || S(back.todo) !== cell) throw new Error('the docket did not read back');
   return said + ' (the old cell in ' + DK_ONE_BACKUP + ')';
+}
+
+/* THE PLAN'S NUMBERS (owner, 27 Nov): the owner's own values for the planner (js/map.js dkSort_) written onto their items. An item is matched by the
+   todoBase_ (post-account.gs) of its title's first four words, lowercased, letters and digits only, so no task text is in this public file. Only the
+   fields named are set, none other touched; an item already holding them is left; nothing matched or nothing to change is "nothing to do". It runs on
+   the one list alone (one list "Docket": after docket-onelist-25nov, which would drop these fields), else it throws and is retried. The backup tab first
+   (the whole old cell), read back; the size cap; the cell read back. tools/docket-plan.js checks it. */
+const DK_PLAN_BACKUP = 'backup_docket_plan_27nov';
+const DK_PLAN_27NOV = [
+  [['6.1wmszhm'], { anchor: 'wake', minutes: 5 }],
+  [['e.15yual7'], { minutes: 1 }],
+  [['7.ijpvy8', '5.xtvjpa', 'd.8zitoe', '5.1u6o5y4', '3.uumrh5', 'a.5hsxk1', '5.1nrqe8h'], { minutes: 5, anchor: 'meal' }],
+  [['8.19r3b3x'], { minutes: 20, place: 'out', from: '07:00', until: '22:00' }],
+  [['7.th2ynb'], { minutes: 10, place: 'home', anchor: 'meal' }],
+  [['5.1ctg8cu'], { minutes: 2, place: 'home', anchor: 'bed' }],
+  [['b.4womvh'], { minutes: 3, place: 'home', anchor: 'bed' }],
+  [['e.1amjoc', '9.1vce7ig'], { minutes: 10, place: 'home' }],
+  [['a.1g782yy'], { minutes: 15, place: 'out', from: '07:00', until: '21:00' }],
+  [['8.1w39ce3'], { minutes: 30, place: 'home' }],
+  [['6.1x3os3v'], { minutes: 10, place: 'home' }],
+  [['5.1w14eeo'], { minutes: 1, place: 'home' }],
+  [['7.y5ipd2'], { minutes: 5, runs: 60, place: 'home', stay: true, from: '09:00', until: '21:00' }],
+  [['4.1leehtx', 'e.j74n'], { minutes: 5 }],
+  [['g.e9kmrg'], { minutes: 1, runs: 120, place: 'home' }],
+  [['g.pg2lnm'], { minutes: 1 }],
+  [['f.ajop0d'], { minutes: 5, place: 'phone', from: '09:00', until: '21:00', date: '2026-11-29' }],
+  [['j.1s8cnt3'], { minutes: 10, place: 'phone', date: '2026-11-30' }],
+  [['f.l5989g'], { minutes: 60, place: 'desk', date: '2026-12-31' }],
+];
+const docketPlanKey_ = t => todoBase_((S(t).toLowerCase().match(/[a-z0-9]+/g) || []).slice(0, 4).join(' '));
+function docketPlan27NovRun_() {
+  const t = read(TAB.people), me = t.rows.find(r => isOwner_(r));
+  if (!me) throw new Error('no owner found');
+  const was = S(me.todo);
+  let got = null; try { got = JSON.parse(was); } catch (e) { got = null; }
+  if (!got || !Array.isArray(got.lists) || got.lists.length !== 1 || S(got.lists[0] && got.lists[0].name) !== DK_ONE_LIST)
+    throw new Error('the docket is not yet the one list (docket-onelist-25nov first) - nothing changed');
+  const items = Array.isArray(got.lists[0].items) ? got.lists[0].items : [], by = {};
+  DK_PLAN_27NOV.forEach(r => r[0].forEach(k => { by[k] = r[1]; }));
+  let n = 0;
+  items.forEach(it => {
+    const f = it && by[docketPlanKey_(it.title)];
+    if (!f) return;
+    let hit = false;
+    Object.keys(f).forEach(k => { if (it[k] !== f[k]) { it[k] = f[k]; hit = true; } });
+    if (hit) n++;
+  });
+  if (!n) return 'nothing to do';
+  const cell = todoTidy_(JSON.stringify(got));
+  if (cell === was) return 'nothing to do';
+  const said = n + ' item(s) given the plan\'s numbers';
+  const ss = t.sheet.getParent(), bk = ss.getSheetByName(DK_PLAN_BACKUP) || ss.insertSheet(DK_PLAN_BACKUP);
+  bk.appendRow([new Date(), was, said]);
+  if (S(bk.getRange(bk.getLastRow(), 2).getValue()) !== was) throw new Error('the backup did not read back - nothing changed');
+  if (cell.length > DOCKET_CELL_MAX) throw new Error('the docket would be ' + cell.length + ' characters, over ' + DOCKET_CELL_MAX + ' - nothing was saved');
+  if (!setCell(t, me, 'todo', cell)) throw new Error('the people tab has no todo column - nothing was saved');
+  clearCache();
+  const back = read(TAB.people).rows.find(r => isOwner_(r));
+  if (!back || S(back.todo) !== cell) throw new Error('the docket did not read back');
+  return said + ' (the old cell in ' + DK_PLAN_BACKUP + ')';
 }
 
 /* DOCKET INBOX (owner, 25 Nov; one list, 25 Nov night): a private Ledger tab `docket_inbox` (title, replaces; any other column, `list` and `note`
@@ -273,6 +343,11 @@ const MIGRATIONS = [
     retry: true,
     what: "the docket as one list, names only: Every 8 hours and @ Desk merged into \"Docket\", each item its title, repeat, date and done state (backup tab first, the whole old cell in it)",
     run: () => docketOneList25NovRun_() },
+  /* AFTER THE ONE LIST (it would drop these fields; this one throws, and is retried, until the one list is there). */
+  { id: 'docket-plan-27nov',
+    retry: true,
+    what: "the plan's numbers on the owner's Docket items (minutes, runs, place, window, anchor, deadline; matched by title; nothing else touched; backup tab first)",
+    run: () => docketPlan27NovRun_() },
 ];
 
 /* ---------- MOVING ROWS OUT OF THE ITEMS TAB, NEVER LOSING ONE (queue step 7, 22 Nov) ----------
