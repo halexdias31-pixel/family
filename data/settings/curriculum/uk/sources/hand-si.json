@@ -1,0 +1,16 @@
+{
+ "about": "THE ONE THING THE DOCUMENTS LEAVE UNSAID ABOUT UNITS (27 Nov; read by tools/spec-formulas.js). The GCSE science documents' Appendix 2 (SI units in science) names each base unit and its symbol (metre m, kilogram kg, ...) but not the quantity it measures, and their equation lists name quantities in words. This file is that bridge and nothing more: for each base unit as the documents print its name, the quantity words that unit measures (the SI's own pairing: the metre is the unit of length). `area` and `volume` are a length squared and cubed; `number` (number of turns) is a count, with no unit. Every derived unit (newton, joule, ...) and every compound one (m/s, kg/m³, N/kg) is worked out from the documents' own equations, never written here. No formula is listed here.",
+ "base": {
+  "metre": ["length", "distance"],
+  "kilogram": ["mass"],
+  "second": ["time"],
+  "ampere": ["current"],
+  "kelvin": ["temperature"],
+  "mole": ["amount of substance"]
+ },
+ "powers": {
+  "area": ["metre", 2],
+  "volume": ["metre", 3]
+ },
+ "counts": ["number"]
+}
