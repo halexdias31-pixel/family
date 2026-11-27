@@ -13,7 +13,13 @@ const crypto = require('crypto');
 const SD = require('./site-data.js');
 
 const TABLE = 'data/settings/qgen.json';
-const table = () => SD.json(TABLE);
+/* THE TEMPLATES SERVED (27 Nov): qgen.json's hand ones, less those data/settings/qgen-derived.json retires (a derived template asks the
+   same thing: least dynamic wins), then the derived ones (tools/spec-formulas.js, from the government documents' own equations). */
+const DERIVED = 'data/settings/qgen-derived.json';
+function table() {
+  const T = SD.json(TABLE), D = SD.json(DERIVED) || {}, gone = D.retired || {};
+  return { about: T.about, templates: T.templates.filter(t => !(t.id in gone)).concat(D.templates || []) };
+}
 const SET_SIZE = 10, COMPANY = '@family';
 
 /* THE HELPERS an expression may call. */
@@ -23,6 +29,7 @@ const HELP = {
   sgn: n => (n < 0 ? '- ' + -n : '+ ' + n),            /* the sign and size of a term after the first: + 3, - 3 */
   co: n => (n === 1 ? '' : n === -1 ? '-' : String(n)), /* a coefficient: 1x is x */
   fix: n => String(+n.toFixed(10)),
+  pow: (a, b) => Math.pow(a, b),                       /* a power, for an equation rearranged (tools/spec-formulas.js) */
   tight: s => String(s).replace(/ /g, ''),
   /* right-angled trigonometry in degrees, as a GCSE question gives them; rd(n, d) is n to d decimal places as written (2 to 1 d.p. is 2.0) */
   sin: d => Math.sin(d * Math.PI / 180), cos: d => Math.cos(d * Math.PI / 180), tan: d => Math.tan(d * Math.PI / 180),
@@ -219,5 +226,5 @@ function ideaOfNode(D) {
 /* A GENERATED SET'S IDEA ('' when none, null when the set is no country's generated set). */
 function ideaOfSet(pid, E) { const s = setNode(pid, E); return s ? ideaOfNode(s.e.T)[s.node] || '' : null; }
 
-module.exports = { TABLE, table, cfg, bind, bindings, generate, fromId, make, evaluate, tplId, version, canon, HELP, SET_SIZE, SET_PREFIX, setOf, nodeOfSet,
+module.exports = { TABLE, DERIVED, table, cfg, bind, bindings, generate, fromId, make, evaluate, tplId, version, canon, HELP, SET_SIZE, SET_PREFIX, setOf, nodeOfSet,
   setNode, ideaOfSet, rowId, fixed, emit, ideaOfNode, stem };

@@ -13323,8 +13323,9 @@
    "sc-bmi"
   ],
   "dfe.sc.b.inherit.evolution.s5": [
-   "sc-vir",
-   "sc-resistance"
+   "eq-potential-difference-current-resistance--potential-difference",
+   "eq-potential-difference-current-resistance--current",
+   "eq-potential-difference-current-resistance--resistance"
   ],
   "dfe.sc.b.photo.photo.s3": [
    "sc-photo-rate"
@@ -13343,8 +13344,9 @@
    "sc-cardiac-output"
   ],
   "dfe.sc.c.analysis.ions.s4": [
-   "sc-speed",
-   "sc-distance"
+   "eq-distance-travelled-speed-time--distance-travelled",
+   "eq-distance-travelled-speed-time--speed",
+   "eq-distance-travelled-speed-time--time"
   ],
   "dfe.sc.c.analysis.mass.s1": [
    "sc-conservation"
@@ -13380,7 +13382,9 @@
    "sc-gas-moles"
   ],
   "dfe.sc.c.atom.transition.s1": [
-   "sc-density"
+   "eq-density-mass-volume--density",
+   "eq-density-mass-volume--mass",
+   "eq-density-mass-volume--volume"
   ],
   "dfe.sc.c.change.acids.s6": [
    "sc-moles",
@@ -13390,8 +13394,9 @@
    "sc-conservation"
   ],
   "dfe.sc.c.energy.cells.s1": [
-   "sc-vir",
-   "sc-resistance"
+   "eq-potential-difference-current-resistance--potential-difference",
+   "eq-potential-difference-current-resistance--current",
+   "eq-potential-difference-current-resistance--resistance"
   ],
   "dfe.sc.c.rate.rate.s10": [
    "sc-mean"
@@ -13426,37 +13431,94 @@
    "sc-half-life"
   ],
   "dfe.sc.p.elec.current.s1": [
-   "sc-vir",
-   "sc-resistance",
-   "sc-charge"
+   "eq-potential-difference-current-resistance--potential-difference",
+   "eq-potential-difference-current-resistance--current",
+   "eq-potential-difference-current-resistance--resistance",
+   "eq-charge-flow-current-time--charge-flow",
+   "eq-charge-flow-current-time--current",
+   "eq-charge-flow-current-time--time",
+   "eq-power-potential-difference-current--power",
+   "eq-power-potential-difference-current--potential-difference",
+   "eq-power-potential-difference-current--current",
+   "eq-potential-difference-current-potential-difference-current--potential-difference-across-primary-coil",
+   "eq-potential-difference-current-potential-difference-current--current-in-primary-coil",
+   "eq-potential-difference-current-potential-difference-current--potential-difference-across-secondary-coil",
+   "eq-potential-difference-current-potential-difference-current--current-in-secondary-coil"
   ],
   "dfe.sc.p.elec.current.s2": [
-   "sc-vir",
-   "sc-resistance"
+   "eq-potential-difference-current-resistance--potential-difference",
+   "eq-potential-difference-current-resistance--current",
+   "eq-potential-difference-current-resistance--resistance",
+   "eq-power-potential-difference-current--power",
+   "eq-power-potential-difference-current--potential-difference",
+   "eq-power-potential-difference-current--current",
+   "eq-power-current-resistance--power",
+   "eq-power-current-resistance--current",
+   "eq-power-current-resistance--resistance",
+   "eq-potential-difference-current-potential-difference-current--potential-difference-across-primary-coil",
+   "eq-potential-difference-current-potential-difference-current--current-in-primary-coil",
+   "eq-potential-difference-current-potential-difference-current--potential-difference-across-secondary-coil",
+   "eq-potential-difference-current-potential-difference-current--current-in-secondary-coil"
   ],
   "dfe.sc.p.elec.current.s3": [
-   "sc-vir",
-   "sc-resistance"
+   "eq-potential-difference-current-resistance--potential-difference",
+   "eq-potential-difference-current-resistance--current",
+   "eq-potential-difference-current-resistance--resistance",
+   "eq-power-potential-difference-current--power",
+   "eq-power-potential-difference-current--potential-difference",
+   "eq-power-potential-difference-current--current",
+   "eq-power-current-resistance--power",
+   "eq-power-current-resistance--current",
+   "eq-power-current-resistance--resistance",
+   "eq-potential-difference-current-potential-difference-current--potential-difference-across-primary-coil",
+   "eq-potential-difference-current-potential-difference-current--current-in-primary-coil",
+   "eq-potential-difference-current-potential-difference-current--potential-difference-across-secondary-coil",
+   "eq-potential-difference-current-potential-difference-current--current-in-secondary-coil"
   ],
   "dfe.sc.p.elec.mains.s2": [
-   "sc-vir",
-   "sc-resistance"
+   "eq-potential-difference-current-resistance--potential-difference",
+   "eq-potential-difference-current-resistance--current",
+   "eq-potential-difference-current-resistance--resistance"
   ],
   "dfe.sc.p.elec.mains.s3": [
-   "sc-vir",
-   "sc-resistance"
+   "eq-potential-difference-current-resistance--potential-difference",
+   "eq-potential-difference-current-resistance--current",
+   "eq-potential-difference-current-resistance--resistance"
   ],
   "dfe.sc.p.elec.series.s1": [
-   "sc-vir",
-   "sc-resistance"
+   "eq-potential-difference-current-resistance--potential-difference",
+   "eq-potential-difference-current-resistance--current",
+   "eq-potential-difference-current-resistance--resistance"
   ],
   "dfe.sc.p.elec.series.s2": [
-   "sc-vir",
-   "sc-resistance"
+   "eq-potential-difference-current-resistance--potential-difference",
+   "eq-potential-difference-current-resistance--current",
+   "eq-potential-difference-current-resistance--resistance",
+   "eq-power-potential-difference-current--power",
+   "eq-power-potential-difference-current--potential-difference",
+   "eq-power-potential-difference-current--current",
+   "eq-power-current-resistance--power",
+   "eq-power-current-resistance--current",
+   "eq-power-current-resistance--resistance",
+   "eq-potential-difference-current-potential-difference-current--potential-difference-across-primary-coil",
+   "eq-potential-difference-current-potential-difference-current--current-in-primary-coil",
+   "eq-potential-difference-current-potential-difference-current--potential-difference-across-secondary-coil",
+   "eq-potential-difference-current-potential-difference-current--current-in-secondary-coil"
   ],
   "dfe.sc.p.elec.series.s3": [
-   "sc-vir",
-   "sc-resistance"
+   "eq-potential-difference-current-resistance--potential-difference",
+   "eq-potential-difference-current-resistance--current",
+   "eq-potential-difference-current-resistance--resistance",
+   "eq-power-potential-difference-current--power",
+   "eq-power-potential-difference-current--potential-difference",
+   "eq-power-potential-difference-current--current",
+   "eq-power-current-resistance--power",
+   "eq-power-current-resistance--current",
+   "eq-power-current-resistance--resistance",
+   "eq-potential-difference-current-potential-difference-current--potential-difference-across-primary-coil",
+   "eq-potential-difference-current-potential-difference-current--current-in-primary-coil",
+   "eq-potential-difference-current-potential-difference-current--potential-difference-across-secondary-coil",
+   "eq-potential-difference-current-potential-difference-current--current-in-secondary-coil"
   ],
   "dfe.sc.p.energy.efficiency.s4": [
    "sc-efficiency"
@@ -13464,103 +13526,178 @@
   "dfe.sc.p.energy.stores.s1": [
    "sc-hooke-force",
    "sc-spring-constant",
-   "sc-ke",
-   "sc-gpe"
+   "eq-kinetic-energy-mass-speed--kinetic-energy",
+   "eq-kinetic-energy-mass-speed--mass",
+   "eq-kinetic-energy-mass-speed--speed",
+   "eq-potential-energy-mass-height-gravity-constant--potential-energy",
+   "eq-potential-energy-mass-height-gravity-constant--mass",
+   "eq-potential-energy-mass-height-gravity-constant--height"
   ],
   "dfe.sc.p.energy.stores.s2": [
-   "sc-work",
+   "eq-work-done-force-distance--work-done",
+   "eq-work-done-force-distance--force",
+   "eq-work-done-force-distance--distance",
    "sc-shc-energy",
-   "sc-shc-c"
+   "sc-shc-c",
+   "eq-force-magnetic-flux-density-current-length--force-on-a-conductor-carrying-a-current",
+   "eq-force-magnetic-flux-density-current-length--magnetic-flux-density",
+   "eq-force-magnetic-flux-density-current-length--current",
+   "eq-force-magnetic-flux-density-current-length--length"
   ],
   "dfe.sc.p.energy.stores.s3": [
-   "sc-power"
+   "eq-energy-transferred-power-time--energy-transferred",
+   "eq-energy-transferred-power-time--power",
+   "eq-energy-transferred-power-time--time"
   ],
   "dfe.sc.p.energy.stores.s5": [
-   "sc-power"
+   "eq-energy-transferred-power-time--energy-transferred",
+   "eq-energy-transferred-power-time--power",
+   "eq-energy-transferred-power-time--time"
   ],
   "dfe.sc.p.energy.stores.s6": [
-   "sc-power"
+   "eq-energy-transferred-power-time--energy-transferred",
+   "eq-energy-transferred-power-time--power",
+   "eq-energy-transferred-power-time--time"
   ],
   "dfe.sc.p.forces.interact.s2": [
-   "sc-weight",
-   "sc-moon-mass"
+   "eq-gravity-force-mass-gravity-constant--gravity-force",
+   "eq-gravity-force-mass-gravity-constant--mass"
   ],
   "dfe.sc.p.forces.interact.s5": [
-   "sc-work",
+   "eq-work-done-force-distance--work-done",
+   "eq-work-done-force-distance--force",
+   "eq-work-done-force-distance--distance",
    "sc-hooke-force",
-   "sc-spring-constant"
+   "sc-spring-constant",
+   "eq-force-exerted-extension-spring-constant--force-exerted-by-a-spring",
+   "eq-force-exerted-extension-spring-constant--extension",
+   "eq-force-exerted-extension-spring-constant--spring-constant",
+   "eq-energy-transferred-spring-constant-extension--energy-transferred-in-stretching",
+   "eq-energy-transferred-spring-constant-extension--spring-constant",
+   "eq-energy-transferred-spring-constant-extension--extension"
   ],
   "dfe.sc.p.forces.interact.s6": [
-   "sc-work",
+   "eq-work-done-force-distance--work-done",
+   "eq-work-done-force-distance--force",
+   "eq-work-done-force-distance--distance",
    "sc-hooke-force",
-   "sc-spring-constant"
+   "sc-spring-constant",
+   "eq-force-exerted-extension-spring-constant--force-exerted-by-a-spring",
+   "eq-force-exerted-extension-spring-constant--extension",
+   "eq-force-exerted-extension-spring-constant--spring-constant",
+   "eq-energy-transferred-spring-constant-extension--energy-transferred-in-stretching",
+   "eq-energy-transferred-spring-constant-extension--spring-constant",
+   "eq-energy-transferred-spring-constant-extension--extension"
   ],
   "dfe.sc.p.forces.moments.s1": [
-   "sc-moment",
+   "eq-moment-force-distance--moment-of-a-force",
+   "eq-moment-force-distance--force",
+   "eq-moment-force-distance--distance",
    "sc-moment-balance"
   ],
   "dfe.sc.p.forces.moments.s2": [
-   "sc-moment",
+   "eq-moment-force-distance--moment-of-a-force",
+   "eq-moment-force-distance--force",
+   "eq-moment-force-distance--distance",
    "sc-moment-balance"
   ],
   "dfe.sc.p.forces.momentum.s1": [
-   "sc-speed",
-   "sc-distance"
+   "eq-distance-travelled-speed-time--distance-travelled",
+   "eq-distance-travelled-speed-time--speed",
+   "eq-distance-travelled-speed-time--time"
   ],
   "dfe.sc.p.forces.momentum.s2": [
    "sc-accel",
-   "sc-fma",
-   "sc-fma-accel"
+   "eq-force-mass-acceleration--force",
+   "eq-force-mass-acceleration--mass",
+   "eq-force-mass-acceleration--acceleration"
   ],
   "dfe.sc.p.forces.momentum.s3": [
    "sc-accel"
   ],
   "dfe.sc.p.forces.momentum.s5": [
-   "sc-momentum"
+   "eq-momentum-mass-velocity--momentum",
+   "eq-momentum-mass-velocity--mass",
+   "eq-momentum-mass-velocity--velocity"
   ],
   "dfe.sc.p.forces.momentum.s6": [
-   "sc-momentum"
+   "eq-momentum-mass-velocity--momentum",
+   "eq-momentum-mass-velocity--mass",
+   "eq-momentum-mass-velocity--velocity"
   ],
   "dfe.sc.p.forces.motion.s1": [
-   "sc-speed",
-   "sc-distance"
+   "eq-distance-travelled-speed-time--distance-travelled",
+   "eq-distance-travelled-speed-time--speed",
+   "eq-distance-travelled-speed-time--time"
   ],
   "dfe.sc.p.forces.motion.s2": [
    "sc-accel"
   ],
   "dfe.sc.p.forces.motion.s3": [
-   "sc-speed",
-   "sc-distance"
+   "eq-distance-travelled-speed-time--distance-travelled",
+   "eq-distance-travelled-speed-time--speed",
+   "eq-distance-travelled-speed-time--time"
   ],
   "dfe.sc.p.forces.motion.s4": [
-   "sc-speed",
-   "sc-distance",
-   "sc-accel"
+   "eq-distance-travelled-speed-time--distance-travelled",
+   "eq-distance-travelled-speed-time--speed",
+   "eq-distance-travelled-speed-time--time",
+   "sc-accel",
+   "eq-acceleration-velocity-time--acceleration",
+   "eq-acceleration-velocity-time--change-in-velocity",
+   "eq-acceleration-velocity-time--time"
   ],
   "dfe.sc.p.forces.motion.s5": [
-   "sc-speed",
-   "sc-distance",
-   "sc-accel"
+   "eq-distance-travelled-speed-time--distance-travelled",
+   "eq-distance-travelled-speed-time--speed",
+   "eq-distance-travelled-speed-time--time",
+   "sc-accel",
+   "eq-acceleration-velocity-time--acceleration",
+   "eq-acceleration-velocity-time--change-in-velocity",
+   "eq-acceleration-velocity-time--time"
   ],
   "dfe.sc.p.forces.pressure.s1": [
-   "sc-pressure",
-   "sc-liquid-pressure"
+   "eq-pressure-force-normal-area--pressure",
+   "eq-pressure-force-normal-area--force-normal-to-a-surface",
+   "eq-pressure-force-normal-area--area-of-that-surface",
+   "eq-pressure-height-density-gravity-constant--pressure-due-to-a-column-of-liquid",
+   "eq-pressure-height-density-gravity-constant--height-of-column",
+   "eq-pressure-height-density-gravity-constant--density-of-liquid"
   ],
   "dfe.sc.p.forces.pressure.s3": [
-   "sc-density"
+   "eq-density-mass-volume--density",
+   "eq-density-mass-volume--mass",
+   "eq-density-mass-volume--volume"
   ],
   "dfe.sc.p.forces.work.s1": [
-   "sc-work"
+   "eq-work-done-force-distance--work-done",
+   "eq-work-done-force-distance--force",
+   "eq-work-done-force-distance--distance",
+   "eq-moment-force-distance--moment-of-a-force",
+   "eq-moment-force-distance--force",
+   "eq-moment-force-distance--distance"
   ],
   "dfe.sc.p.forces.work.s2": [
-   "sc-work"
+   "eq-work-done-force-distance--work-done",
+   "eq-work-done-force-distance--force",
+   "eq-work-done-force-distance--distance",
+   "eq-moment-force-distance--moment-of-a-force",
+   "eq-moment-force-distance--force",
+   "eq-moment-force-distance--distance"
   ],
   "dfe.sc.p.magnet.induction.s1": [
-   "sc-vir",
-   "sc-resistance"
+   "eq-potential-difference-current-resistance--potential-difference",
+   "eq-potential-difference-current-resistance--current",
+   "eq-potential-difference-current-resistance--resistance"
   ],
   "dfe.sc.p.magnet.motor.s4": [
-   "sc-density"
+   "eq-density-mass-volume--density",
+   "eq-density-mass-volume--mass",
+   "eq-density-mass-volume--volume",
+   "eq-force-magnetic-flux-density-current-length--force-on-a-conductor-carrying-a-current",
+   "eq-force-magnetic-flux-density-current-length--magnetic-flux-density",
+   "eq-force-magnetic-flux-density-current-length--current",
+   "eq-force-magnetic-flux-density-current-length--length"
   ],
   "dfe.sc.p.matter.internal.s2": [
    "sc-shc-energy",
@@ -13571,11 +13708,14 @@
    "sc-shc-c"
   ],
   "dfe.sc.p.matter.states.s1": [
-   "sc-density"
+   "eq-density-mass-volume--density",
+   "eq-density-mass-volume--mass",
+   "eq-density-mass-volume--volume"
   ],
   "dfe.sc.p.space.solar.s2": [
-   "sc-speed",
-   "sc-distance"
+   "eq-distance-travelled-speed-time--distance-travelled",
+   "eq-distance-travelled-speed-time--speed",
+   "eq-distance-travelled-speed-time--time"
   ],
   "dfe.sc.p.waves.em.s3": [
    "sc-wave-speed",
@@ -13617,20 +13757,37 @@
    "sc-atom-economy"
   ],
   "dfe.sc.x.physics.electricity.energy-transfers.s1": [
-   "sc-power",
-   "sc-piv",
-   "sc-power-i2r",
-   "sc-energy-pt"
+   "eq-energy-transferred-power-time--energy-transferred",
+   "eq-energy-transferred-power-time--power",
+   "eq-energy-transferred-power-time--time",
+   "eq-power-potential-difference-current--power",
+   "eq-power-potential-difference-current--potential-difference",
+   "eq-power-potential-difference-current--current",
+   "eq-power-current-resistance--power",
+   "eq-power-current-resistance--current",
+   "eq-power-current-resistance--resistance"
   ],
   "dfe.sc.x.physics.electricity.energy-transfers.s3": [
-   "sc-piv",
-   "sc-power-i2r",
-   "sc-energy-pt"
+   "eq-power-potential-difference-current--power",
+   "eq-power-potential-difference-current--potential-difference",
+   "eq-power-potential-difference-current--current",
+   "eq-power-current-resistance--power",
+   "eq-power-current-resistance--current",
+   "eq-power-current-resistance--resistance",
+   "eq-energy-transferred-power-time--energy-transferred",
+   "eq-energy-transferred-power-time--power",
+   "eq-energy-transferred-power-time--time"
   ],
   "dfe.sc.x.physics.electricity.energy-transfers.s4": [
-   "sc-piv",
-   "sc-power-i2r",
-   "sc-energy-pt"
+   "eq-power-potential-difference-current--power",
+   "eq-power-potential-difference-current--potential-difference",
+   "eq-power-potential-difference-current--current",
+   "eq-power-current-resistance--power",
+   "eq-power-current-resistance--current",
+   "eq-power-current-resistance--resistance",
+   "eq-energy-transferred-power-time--energy-transferred",
+   "eq-energy-transferred-power-time--power",
+   "eq-energy-transferred-power-time--time"
   ],
   "dfe.sc.x.physics.forces-and-motion.safety-in-public-transport.s2": [
    "sc-stopping"

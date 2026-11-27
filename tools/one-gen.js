@@ -115,7 +115,7 @@ function data() {
   const rows = SD.json('data/questions.json');
   rows.forEach(r => { if (r.answer_type) types.add(r.answer_type); });
   let words = null; if (!L.ABSENT) try { words = L.readPrivate('questions'); } catch (e) { words = null; }
-  return { gen: SD.json(QG.TABLE), entries: CU.entries(), types: [...types], site: siteText(), rows, words };
+  return { gen: QG.table(), entries: CU.entries(), types: [...types], site: siteText(), rows, words };
 }
 
 const tpl = (d, id) => d.gen.templates.find(t => t.id === id);
