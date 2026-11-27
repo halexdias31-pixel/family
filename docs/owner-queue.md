@@ -232,3 +232,6 @@ Students are paused from the site's questions until it is stable; the cause was 
 3. Exam boards under each country (AQA, Edexcel, OCR…) as tags — more specific.
 4. Worksheets (Corbettmaths, First Class Maths…) only as tags / an after-check, never a source.
 Questions are generated from the tree by formula. Ship first, then compare to outside worksheets (variety, difficulty) and refine the formulas — a fix at the top fixes everything below. Repeatable for the next country with no hand work.
+
+## AGREED (27 Nov): ONE TIME LIST — after the Docket planner
+Everything with a time follows the common calendar file standard (.ics). Shown as ONE list for the day: fixed-time entries (bookings, timetable, appointments) pinned at their times; Docket tasks fill the gaps and re-plan on tick. Booking, the Tools timetable and the staff calendar become views of that list, not separate stores. Stored as two kinds only: events (a booking = an event with a student and a price) and to-dos (the Docket). The Docket's fixed-time items move to events. Phone calendars get the entries via an .ics link.
