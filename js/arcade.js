@@ -460,12 +460,28 @@ function tdYear0_(y) {
   if (d.getDate() > 5) { d = new Date(y, 8, 1); while (d.getDay() === 0 || d.getDay() > 4) d.setDate(d.getDate() + 1); }
   return d;
 }
-/* MY SCHOOL (491): starts and ends a few school days earlier or later, kept on this phone for whoever is signed in. */
-const tdKey_ = () => 'familyTermShift:' + ((typeof USER !== 'undefined' && USER && USER.personId) || 'anon');
-function tdShift_() { try { const o = JSON.parse(keep_.get(tdKey_()) || 'null'); return { s: +(o && o.s) || 0, e: +(o && o.e) || 0 }; } catch (e) { return { s: 0, e: 0 }; } }
+/* MY SCHOOL (491): starts and ends a few school days earlier or later. KEPT ON THE ACCOUNT (owner, 27 Nov: the one time list; it was on the phone):
+   the `term` beside the lists in your own `todo` cell ({ s, e }), so every phone you sign in on shows your dates; signed out, the usual dates. */
+function tdShift_() { let o = null; try { o = JSON.parse(String((typeof USER !== 'undefined' && USER && USER.todo) || 'null')); } catch (e) { o = null; }
+  const t = (o && o.term) || {}; return { s: Math.max(-5, Math.min(5, +t.s || 0)), e: Math.max(-5, Math.min(5, +t.e || 0)) }; }
+/* SAVED AS THE DOCKET SAVES (the todo cell, against the base it was read from): the owner's through dkSave_; anybody else's straight, once again on a stale base. */
+function tdShiftSave_(o) {
+  if (typeof USER === 'undefined' || !USER || !USER.personId) return;
+  if (typeof DK !== 'undefined' && DK.fresh) { DK.rest = Object.assign({}, DK.rest || {}, { term: o }); dkSave_(); return; }
+  const put = (was, base, again) => {
+    let t = null; try { t = JSON.parse(was); } catch (e) { t = null; }
+    if (!t || typeof t !== 'object' || !Array.isArray(t.lists)) t = { v: 1, lists: String(was).trim() ? [{ name: 'Docket', items: String(was).split('\n').map(x => x.trim()).filter(Boolean).map(title => ({ title })) }] : [] };
+    const todo = JSON.stringify(Object.assign(t, { term: o }));
+    USER.todo = todo; if (typeof saveUser_ === 'function') saveUser_();
+    return Promise.resolve(api({ action: 'item', door: 'save', item: 'todo', personId: USER.personId, todo, base }))
+      .then(d => { if (d && d.stale && again) return put(String(d.todo || ''), d.base, false); if (!(d && d.success)) toast((d && d.error) || text_('not-saved-try-again')); })
+      .catch(() => toast('Not saved — you look offline.'));
+  };
+  put(String(USER.todo || ''), todoBase_(String(USER.todo || '')), true);
+}
 /* N SCHOOL DAYS ON from a weekday, weekends skipped, so a shift never lands a first day on a Saturday. */
 function tdSchoolDays_(d, n) { let x = new Date(d.getTime()); const st = n < 0 ? -1 : 1; for (let k = Math.abs(n); k > 0;) { x.setDate(x.getDate() + st); if (x.getDay() % 6) k--; } return x; }
-function termDatesRows_(today) {
+function termDatesRows_(today, n) {
   const t = today || progressToday_(), y = t.getMonth() >= 7 ? t.getFullYear() : t.getFullYear() - 1, sh = tdShift_();
   const all = tdYear_(y - 1).concat(tdYear_(y), tdYear_(y + 1)).map(x => Object.assign({}, x));
   all.forEach((x, i) => {
@@ -474,8 +490,12 @@ function termDatesRows_(today) {
     if (sh.e) { x.to = tdSchoolDays_(x.to, sh.e); if (all[i + 1]) all[i + 1].from = new Date(x.to.getFullYear(), x.to.getMonth(), x.to.getDate() + 1); }
   });
   const i = all.findIndex(x => x.from <= t && t <= x.to);
-  return all.slice(Math.max(0, i), Math.max(0, i) + (TD_MORE ? 10 : 4)).map((x, k) => Object.assign(x, { now: k === 0 && i >= 0 }));
+  return all.slice(Math.max(0, i), Math.max(0, i) + (n || (TD_MORE ? 10 : 4))).map((x, k) => Object.assign(x, { now: k === 0 && i >= 0 }));
 }
+/* TERM DATES ARE EVENTS ON THE ONE TIME LIST (owner, 27 Nov): made by the one rule (tdYear_), shifted by your account's `term`, each an all-day event
+   as the Docket holds one ({ title, start, end: 'YYYY-MM-DD', kind }); the Docket card lists the next ones (dkCard_). tools/term-events.js checks it. */
+const tdIso_ = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+const tdEvents_ = (today, n) => termDatesRows_(today, n || 4).map(x => ({ title: x.name, start: tdIso_(x.from), end: tdIso_(x.to), kind: x.kind }));
 const tdDay_ = d => fmtDate_(d, 'day') + ' ' + fmtDate_(d);
 /* A TERM SAYS ITS FIRST AND LAST DAY OF TERM; A BREAK SAYS WHEN IT STARTS AND THE FIRST DAY BACK — never "ends" on a Sunday. */
 function tdLine_(x) {
@@ -493,7 +513,8 @@ function paintTermDates_() {
   const rows = termDatesRows_(), sh = tdShift_();
   const adj = (id, v, label) => progRow_(label, { type: 'control', tag: 'select', attrs: { class: 'td-adj', 'data-td': id, 'aria-label': label },
     options: [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5].map(n => ({ value: String(n), on: n === v, text: n ? (n > 0 ? n + ' later' : -n + ' earlier') : 'as usual' })) });
-  const blocks = rows.map(tdLine_).concat(adj('s', sh.s, 'My school starts'), adj('e', sh.e, 'My school ends'),
+  const signed = typeof USER !== 'undefined' && USER && USER.personId;
+  const blocks = rows.map(tdLine_).concat(signed ? [adj('s', sh.s, 'My school starts'), adj('e', sh.e, 'My school ends')] : [],
     { type: 'tiles', tiles: [{ icon: TD_MORE ? 'up' : 'down', label: TD_MORE ? 'Fewer' : 'Later', note: TD_MORE ? 'the next four' : 'the year ahead', act: 'td-more' }] });
   document.querySelectorAll('.td-box').forEach(box => {
     box.removeAttribute('aria-busy');
@@ -505,7 +526,7 @@ document.addEventListener('change', e => {
   const el = e.target && e.target.closest && e.target.closest('.td-adj');
   if (!el) return;
   const o = tdShift_(); o[el.dataset.td] = Number(el.value) || 0;
-  keep_.put(tdKey_(), JSON.stringify(o));
+  tdShiftSave_(o);
   paintTermDates_();
 });
 

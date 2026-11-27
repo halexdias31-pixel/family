@@ -24,8 +24,8 @@ function client(js, server) {
     + 'const $ = id => (id === "dk-box" ? box : null), saveUser_ = () => {}, text_ = k => k, dkDay_ = () => "2026-11-25";'
     + 'const api = b => { sent.push(b); return Promise.resolve(b.action === "docketImport" ? server.imp(b) : server.save(b)); };'
     + 'const dkCard_ = () => dkLoad_().map(i => i.title).join("|"), may_ = () => true, cardBlocks_ = b => JSON.stringify(b);'
-    + pick(/\nconst DK = .*\n/) + pick(/\nconst dkRep_ = .*\n/) + pick(/\nconst dkGone_ = .*\n/) + pick(/\nconst dkTidy_ = .*\n/)
-    + ['dkLoad_', 'dkItems_', 'todoBase_', 'dkTake_', 'dkFetch_', 'dkSave_', 'dkPaint_'].map(n => fnOf(js, n, 'js/map.js')).join('')
+    + pick(/\nconst DK = .*\n/) + pick(/\nconst dkMin_ = .*\n/) + pick(/\nconst dkIso_ = .*\n/) + pick(/\nconst dkEv_ = .*\n/) + pick(/\nconst dkRep_ = .*\n/) + pick(/\nconst dkGone_ = .*\n/) + pick(/\nconst dkTidy_ = .*\n/)
+    + ['dkOccur_', 'dkSlot_', 'dkLoad_', 'dkItems_', 'todoBase_', 'dkTake_', 'dkFetch_', 'dkSave_', 'dkPaint_'].map(n => fnOf(js, n, 'js/map.js')).join('')
     + 'return { DK, USER, sent, box, dkLoad_, dkSave_, dkPaint_, dkItems_ };')(server);
 }
 const settle = async c => { for (let i = 0; i < 5; i++) { await new Promise(u => setTimeout(u, 0)); await c.DK.asking; await c.DK.q; } };

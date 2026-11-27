@@ -38,11 +38,7 @@ const WIDGETS = [
     draw: () => dkPaint_(),
     into: 'dk-box', what: 'Your docket',
     get html() { return mapHtml_('Docket', mapBox_('dk-box', 'dk-box')); } },
-  /* ---------- ASSIGNMENTS (owner, 18 Nov): anybody's school or uni work, kept on their own account (the `assignments` cell) — the code is below; who sees it, kinds.json. */
-  { id: 'assignments', kind: 'tool', name: 'Assignments', start: () => asgPaint_(),
-    draw: () => asgPaint_(),
-    into: 'asg-box', what: 'Your assignments',
-    get html() { return mapHtml_('Assignments', mapBox_('asg-box', 'asg-box')); } },
+  /* ---------- ASSIGNMENTS WENT INTO THE DOCKET (owner, 27 Nov: the one time list): each a to-do with its due date, minutes, course, weight, mark and noAI (access.gs assignmentsToDocket27NovRun_). */
   /* ---------- YOUR LIBRARY CARDS (docs/history/339) § */
   { id: 'libcards', kind: 'tool', name: 'Library cards', solid: true, signedIn: true,
     start: () => initLibCards_?.(),
@@ -67,9 +63,57 @@ const dkDay_ = d => todayIso_(d);   // the one today, js/core.js
    Pure, from `now` ('YYYY-MM-DD HH:MM', London's; a bare day is its first third). */
 const dkRep_ = i => !!i && i.repeat === '8h';
 const dkOn_ = now => { now = String(now || ''); const h = +now.slice(11, 13); return now.slice(0, 10) + '/' + (1 + Math.floor((h >= 0 && h < 24 ? h : 0) / 8)); };
-const dkIsDone_ = (i, now) => (dkRep_(i) ? i.doneOn === dkOn_(now) : !!(i && i.done));
+/* ONE TIME LIST (owner, 27 Nov: "everything with a time follows the common calendar file standard (.ics)"): an item with a `start` ('YYYY-MM-DDTHH:MM',
+   London's wall clock; a bare day is all-day) is an event, as an .ics VEVENT: `rrule` its RRULE (FREQ=HOURLY|DAILY|WEEKLY, INTERVAL, BYDAY, UNTIL, COUNT),
+   `rdate` extra occurrences (RDATE: a different first one, "Sat 14:30 once, then Wed 18:00 weekly"), `exdate` cancelled ones (EXDATE) and `moved` single
+   occurrences elsewhere ('<was>=<now>', RECURRENCE-ID), `minutes` how long. Its tick is the occurrence it ticked (`doneOn`), so the next one comes back.
+   An item without a `start` is a to-do, as before. Times are minutes from 1970 on the wall clock (dkMin_), so a clock change moves nothing. tools/docket-repeat.js. */
+const dkMin_ = v => { const m = /^(\d{4})-(\d\d)-(\d\d)(?:[T ](\d\d):(\d\d))?$/.exec(String(v == null ? '' : v).trim()); return m ? Date.UTC(+m[1], +m[2] - 1, +m[3], +(m[4] || 0), +(m[5] || 0)) / 6e4 : null; };
+const dkIso_ = m => new Date(m * 6e4).toISOString().slice(0, 16);
+const dkEv_ = i => !!i && dkMin_(i.start) != null;
+const dkIsDone_ = (i, now) => (dkRep_(i) ? i.doneOn === dkOn_(now) : dkEv_(i) ? !!i.doneOn && i.doneOn === dkSlot_(i, now) : !!(i && i.done));
 const dkDone_ = i => dkIsDone_(i, dkNow_());
-const dkGone_ = i => !dkRep_(i) && !!i.done && !!i.doneOn && i.doneOn < dkDay_();
+const dkGone_ = i => (dkEv_(i) ? !dkSlot_(i, dkDay_()) : !dkRep_(i) && !!i.done && !!i.doneOn && i.doneOn < dkDay_());
+/* AN EVENT'S OCCURRENCES from `from` to `to` (dkMin_ minutes), sorted, each once: the rule's from `start` (COUNT counted from it, UNTIL a day or a moment),
+   then RDATE's; an EXDATE gone, a `moved` one at its new time. Pure. */
+function dkOccur_(it, from, to) {
+  const s = dkMin_(it && it.start), r = {}, list = v => (Array.isArray(v) ? v : []);
+  if (s == null) return [];
+  String(it.rrule || '').toUpperCase().replace(/^RRULE:/, '').split(';').forEach(p => { const k = p.split('='); if (k[0] && k[1]) r[k[0].trim()] = k[1].trim(); });
+  const step = Math.max(1, Math.floor(+r.INTERVAL) || 1), count = Math.max(0, Math.floor(+r.COUNT) || 0);
+  const um = /^(\d{4})(\d\d)(\d\d)(?:T(\d\d)(\d\d))?/.exec(r.UNTIL || ''), until = um ? Date.UTC(+um[1], +um[2] - 1, +um[3], um[4] ? +um[4] : 23, um[5] ? +um[5] : 59) / 6e4 : null;
+  const ex = list(it.exdate).map(dkMin_), moved = {}, got = [];
+  list(it.moved).forEach(x => { const p = String(x).split('='), a = dkMin_(p[0]), b = dkMin_(p[1]); if (a != null && b != null) moved[a] = b; });
+  const keep = m => { if (ex.indexOf(m) >= 0) return; const n = moved[m] != null ? moved[m] : m; if (n >= from && n <= to && got.indexOf(n) < 0) got.push(n); };
+  const days = (r.BYDAY || '').split(',').map(d => ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'].indexOf(d.trim().slice(-2))).filter(d => d >= 0).sort((a, b) => a - b);
+  const gap = r.FREQ === 'HOURLY' ? 60 * step : r.FREQ === 'DAILY' ? 1440 * step : r.FREQ === 'WEEKLY' ? 10080 * step : 0, far = to + 31 * 1440;
+  if (!gap) keep(s);
+  else {
+    const d0 = Math.floor(s / 1440), mon = d0 - ((d0 + 3) % 7), tod = s - d0 * 1440, wk = r.FREQ === 'WEEKLY', ds = wk ? (days.length ? days : [(d0 + 3) % 7]) : [0];
+    const base = wk ? mon * 1440 + tod : s, skip = count ? 0 : Math.max(0, Math.floor((from - 31 * 1440 - base) / gap));
+    for (let k = skip, n = 0; k < skip + 20000; k++) {
+      const b = base + k * gap;
+      if (b > far || (until != null && b > until + 10080)) break;
+      let stop = false;
+      for (const d of ds) {
+        const m = b + d * 1440;
+        if (m < s) continue;
+        if ((until != null && m > until) || (count && n >= count) || m > far) { stop = true; break; }
+        n++; keep(m);
+      }
+      if (stop) break;
+    }
+  }
+  list(it.rdate).map(dkMin_).forEach(m => { if (m != null) keep(m); });
+  return got.sort((a, b) => a - b);
+}
+/* WHICH OCCURRENCE IS IN HAND at `now`: the last today that has begun, else the next (within a year and a bit); '' when none is left. Pure. */
+function dkSlot_(it, now) {
+  const t = dkMin_(now), d0 = t == null ? null : Math.floor(t / 1440) * 1440;
+  if (t == null) return '';
+  const o = dkOccur_(it, d0, t + 400 * 1440), cur = o.filter(m => m <= t).pop(), next = o.find(m => m > t);
+  return cur != null ? dkIso_(cur) : next != null ? dkIso_(next) : '';
+}
 /* THE ONE TICK: every done path (the card, ?eink, the private address) ticks through this. Pure: the items, which one, ticked or not, London's now. */
 function dkTick_(items, i, on, now, pick) {
   const it = items[i];
@@ -80,12 +124,14 @@ function dkTick_(items, i, on, now, pick) {
     it.picks = (Array.isArray(it.picks) ? it.picks : []).filter(x => x !== (on ? got : was)).concat(on ? [got] : []);
     it.pick = got;
   }
-  if (dkRep_(it)) it.doneOn = on ? dkOn_(now) : '';
+  if (dkEv_(it)) it.doneOn = on ? dkSlot_(it, now) : '';
+  else if (dkRep_(it)) it.doneOn = on ? dkOn_(now) : '';
   else { it.done = !!on; it.doneOn = on ? String(now).slice(0, 10) : ''; }
   return true;
 }
 /* THE PLAN (owner, 27 Nov: "run from the top down without it giving me a bad order"; every rule a number, none a feeling). Pure and deterministic:
-   the items, London's now ('YYYY-MM-DD HH:MM') and the owner's leave times (dkLeaves_: their timetable sessions; none known, none assumed).
+   the items, London's now ('YYYY-MM-DD HH:MM') and the owner's leave times (dkLeaves_: their events away from home; none known, none assumed).
+   An event (`start`, dkOccur_) is pinned: open, above the rest, once its occurrence in hand has begun; later until then.
    An item may say `minutes` (hands-on), `runs` (unattended after), `place` (home/out/desk/phone/anywhere), `stay` (must stay at `place` until `runs` ends),
    `from`/`until` ('HH:MM': start at or after `from`, finish minutes+runs by `until`), `days` ('mon-sat', js/form.js clashDays_), `anchor` (wake/meal/bed),
    `date` (a one-off's hard deadline) and `options` (a slot's choices). Groups: `open` (can start now, in plan order), `later` (cannot yet; `when[i]` the
@@ -115,9 +161,9 @@ function dkSort_(items, now, leaves) {
       let s = Math.max(at - d * 1440, f == null ? 0 : f);
       for (let k = 0; k < 50 && s < 1440; k++) {
         if (u != null && s + need > u) break;
-        const hit = it.stay ? L.find(x => x.days.indexOf(w) >= 0 && x.s < s + need && x.e > s) : null;
+        const hit = it.stay ? L.find(x => x.s < d * 1440 + s + need && x.e > d * 1440 + s) : null;
         if (!hit) return d * 1440 + s;
-        s = Math.max(hit.e, s + 1);
+        s = Math.max(hit.e - d * 1440, s + 1);
       }
     }
     return null;
@@ -125,6 +171,11 @@ function dkSort_(items, now, leaves) {
   items.forEach((it, i) => {
     if (!it) return;
     if (dkIsDone_(it, now)) return g.done.push(i);
+    /* AN EVENT IS PINNED AT ITS TIME: open (on top) once its occurrence in hand has begun, else later from then; none left, done. */
+    if (dkEv_(it)) { const k = dkSlot_(it, now), m = dkMin_(k) - dkMin_(day);
+      if (!k) return g.done.push(i);
+      if (m <= t) return g.open.push(i);
+      g.later.push(i); g.when[i] = m < 7 * 1440 ? m : null; return; }
     if (!dkRep_(it) && it.date && String(it.date) < day) return g.missed.push(i);
     const at = startAt(it, t);
     if (at === t) g.open.push(i); else { g.later.push(i); g.when[i] = at; }
@@ -132,7 +183,7 @@ function dkSort_(items, now, leaves) {
   const free = t + g.open.reduce((n, i) => n + num(items[i].minutes), 0);
   const last = it => (dkRep_(it) || !it.date ? null : Math.round((ut(String(it.date)) - ut(day)) / 864e5) * 1440 + (hm(it.until) == null ? 1440 : hm(it.until)) - num(it.minutes) - num(it.runs));
   const tier = it => { const a = anc(it), ls = last(it);
-    return a === 'wake' && wakeNow ? 0 : a === 'meal' && mealNow ? 1 : ls != null && ls < free - num(it.minutes) ? 2 : a === 'bed' ? 6 : a === 'meal' ? 5 : num(it.runs) > 0 ? 3 : 4; };
+    return dkEv_(it) ? -1 : a === 'wake' && wakeNow ? 0 : a === 'meal' && mealNow ? 1 : ls != null && ls < free - num(it.minutes) ? 2 : a === 'bed' ? 6 : a === 'meal' ? 5 : num(it.runs) > 0 ? 3 : 4; };
   const place = it => { const p = ['home', 'anywhere', 'desk', 'phone', 'out'].indexOf(it.place); return p < 0 ? 1 : p; };
   const key = i => { const it = items[i], k = tier(it);
     return [k, k === 2 ? last(it) : k === 3 ? -num(it.runs) : place(it), k === 2 || k === 3 ? 0 : num(it.minutes), i]; };
@@ -141,10 +192,14 @@ function dkSort_(items, now, leaves) {
   g.later.sort((a, b) => (g.when[a] == null ? 1e9 : g.when[a]) - (g.when[b] == null ? 1e9 : g.when[b]) || a - b);
   return g;
 }
-/* THE OWNER'S LEAVE TIMES: their timetable's sessions (kinds.json `session`: days, start, end), each { days: [0..6, Monday 0], s, e } in minutes. */
-function dkLeaves_(rows) {
-  return (Array.isArray(rows) ? rows : []).map(r => ({ days: clashDays_(r && r.days), s: clashMin_(r && r.start), e: clashMin_(r && r.end) }))
-    .filter(x => x.days.length && x.s != null && x.e != null && x.e > x.s);
+/* THE OWNER'S LEAVE TIMES (the Timetable tool went, owner 27 Nov: its times are events on the one list): every occurrence, in the coming eight days,
+   of an event not at home that lasts (`minutes`), each { s, e } in minutes from `now`'s day's 00:00. Pure. */
+function dkLeaves_(items, now) {
+  const t0 = dkMin_(String(now || '').slice(0, 10)), out = [];
+  if (t0 == null) return out;
+  (Array.isArray(items) ? items : []).forEach(it => { const n = Math.max(0, +(it && it.minutes) || 0);
+    if (dkEv_(it) && n && it.place !== 'home') dkOccur_(it, t0 - n, t0 + 8 * 1440).forEach(m => out.push({ s: m - t0, e: m - t0 + n })); });
+  return out;
 }
 /* A SLOT'S OPTION (owner, 27 Nov): the one least recently ticked (`picks`, oldest first; never ticked first, in the list's order). */
 function dkOption_(it) {
@@ -216,10 +271,6 @@ function dkSave_() {
     })
     .catch(() => { DK.say = 'Not saved — you look offline.'; dkPaint_(); }));
 }
-/* THE ONE ITEM (owner, 22 Nov, UNIFY NEXT 6): every item of the owner's lists (kinds.json `list`) is drawn as an Item, marked with its shape and kind
-   (`data-shape`, `data-item-kind`, read by tools/one-list.js); the Docket's lines are its one card's (dkCard_), Assignments' this. */
-const listItem_ = (kind, o) => ({ type: 'group', look: 'dk-item', attrs: Object.assign({ 'data-shape': kindShape_(kind), 'data-item-kind': kind }, o.attrs || {}),
-  blocks: (o.blocks || []).filter(Boolean), tiles: o.tiles });
 /* WHAT ?eink AND THE PRIVATE ADDRESS SAY: the plan's open items, then the later ones (each with when), then the missed ("new date?"), marked so.
    Each row's `at` is the item's place (the tick's address). */
 function dkNowNextOf_(items, now, leaves) {
@@ -290,8 +341,8 @@ function dkItems_() {
   if (typeof may_ !== 'function' || !may_('owner') || !DK.fresh) return [];
   return [{ kind: 'docket', name: 'Docket', key: 'dk', seq: 0, sub: '', image: '', row: {}, text: ['Docket'].concat(dkLoad_().map(it => it.title)).filter(Boolean).join(' ') }];
 }
-/* THE OWNER'S LEAVE TIMES ON THE PHONE: the timetable's sessions Find holds (js/form.js STORE_ROWS_), none if not loaded. */
-const dkLeavesNow_ = () => { try { return dkLeaves_(((STORE_ROWS_.session || {}).rows || []).map(r => r.data || {})); } catch (e) { return []; } };
+/* THE OWNER'S LEAVE TIMES ON THE PHONE: their own events' (dkLeaves_). */
+const dkLeavesNow_ = () => dkLeaves_(dkLoad_(), dkNow_());
 /* LONDON'S MOMENT, as dkSort_ reads it. */
 const dkNow_ = () => { let t = ''; try { t = new Intl.DateTimeFormat('en-GB', { timeZone: tz_(), hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date()); } catch (e) { t = ''; }
   return dkDay_() + ' ' + (t || '00:00'); };
@@ -303,17 +354,30 @@ const DKF = { edit: -1 };
 function dkLine_(i, when) {
   const it = dkLoad_()[i], editing = DKF.edit === i, now = dkNow_(), words = dkTitle_(it, now) + (when ? ' · ' + when : '');
   const opts = Array.isArray(it.options) ? it.options.filter(Boolean) : [];
+  const track = (((ITEM_KINDS.kinds.docket || {}).list || {}).trackOnly || []).find(t => it[t.field] === true), facts = dkFacts_(it, now);
   return cardFold_('dk:' + i, { type: 'tick', text: words, attrs: { 'data-dkf': String(i), checked: dkDone_(it), 'aria-label': 'Done: ' + words } }, [
+    facts ? { type: 'text', look: 'note', text: facts } : null,
+    track ? { type: 'text', look: 'note', text: track.say } : null,
     opts.length && !editing ? { type: 'tiles', tiles: opts.map(o => ({ label: o, act: 'dk-pick', cls: o === dkOption_(it) ? 'is-submit' : '', data: { at: i, pick: o } })) } : null,
     editing ? { type: 'group', look: 'dk-form', inner: formOf_('docket-item', { title: it.title || '' }) } : null,
     { type: 'tiles', tiles: editing ? [{ icon: 'save', label: text_('save'), act: 'dk-fsave', cls: 'is-submit', data: { at: i } }, { icon: 'close', label: 'Close', act: 'dk-fedit', data: { at: i } }]
       : [{ icon: 'edit', label: 'Edit', act: 'dk-fedit', data: { at: i } }, { icon: 'bin', label: 'Delete', act: 'dk-fdel', tone: 'danger', data: { at: i } }] }].filter(Boolean), 'dk-line');
+}
+/* WHAT A TAPPED LINE SAYS BESIDE ITS NAME: an event's occurrence in hand and how it repeats; a moved assignment's due day, course, weight and mark. */
+function dkFacts_(it, now) {
+  const k = dkEv_(it) ? dkSlot_(it, now) : '', r = String(it.rrule || '').toUpperCase();
+  const rep = !r ? '' : (/FREQ=HOURLY/.test(r) ? 'every ' + ((/INTERVAL=(\d+)/.exec(r) || [])[1] || 1) + ' h' : /FREQ=DAILY/.test(r) ? 'daily' : 'weekly' + ((/BYDAY=([A-Z,]+)/.exec(r) || [])[1] ? ' ' + (/BYDAY=([A-Z,]+)/.exec(r) || [])[1].toLowerCase() : ''));
+  return [k ? k.replace('T', ' ') : '', rep, it.date && !dkRep_(it) ? 'due ' + it.date : '', it.course, it.weight !== '' && it.weight != null ? it.weight + '%' : '', it.mark ? 'mark ' + it.mark : '']
+    .filter(Boolean).join(' · ');
 }
 function dkCard_() {
   const now = dkNow_(), g = dkSort_(dkLoad_(), now, dkLeavesNow_());
   return renderCard(shapeCard_('docket', { kind: 'docket', name: 'Docket', tags: [],
     body: g.open.map(i => dkLine_(i)).concat(g.later.map(i => dkLine_(i, dkWhen_(g.when[i], now))))
       .concat(g.missed.length ? cardFold_('dk:missed', { type: 'text', text: text_('dk-missed') + ' (' + g.missed.length + ')' }, g.missed.map(i => dkLine_(i)), 'dk-missed') : [])
+      /* TERM DATES ARE EVENTS ON THE ONE LIST (js/arcade.js tdEvents_: the one rule, your account's shift): the next four, folded, never ticked. */
+      .concat(typeof tdEvents_ === 'function' ? cardFold_('dk:terms', { type: 'text', text: text_('term-dates') }, tdEvents_().map(e => ({ type: 'text', look: 'note',
+        text: e.title + ' · ' + e.start + (e.end && e.end !== e.start ? ' – ' + e.end : '') })), 'dk-terms') : [])
       .concat(g.done.length ? cardFold_('dk:done', { type: 'text', text: 'Done (' + g.done.length + ')' }, g.done.map(i => dkLine_(i)), 'dk-done') : [])
       .concat({ type: 'field', look: 'dk-qadd-f', blocks: [{ type: 'control', attrs: { class: 'dk-qadd', placeholder: 'Add an item, then Enter', 'aria-label': 'Add to the Docket', maxlength: 300, enterkeyhint: 'done' } }] }),
     tiles: [{ icon: 'plus', label: 'Add', act: 'dk-qadd', cls: 'is-submit' }] }));
@@ -344,128 +408,3 @@ document.addEventListener('change', e => {
 document.addEventListener('keydown', e => { const c = e.target && e.target.classList;
   if (e.key !== 'Enter' || !c || !c.contains('dk-qadd') || typeof ACTIONS === 'undefined' || !ACTIONS['dk-qadd']) return;
   e.preventDefault(); ACTIONS['dk-qadd'](e.target); });
-
-
-/* ---------- ASSIGNMENTS (owner, 18 Nov): one list a person, sorted by due date and grouped Overdue / This week / Later / Done, each with its days left,
-   size and weight as tags. Added and edited through the one form engine (kinds.json `assignment-new`, asked a field a step), saved whole by `assignmentsSave`.
-   A parent sees each child's, a tutor each booked student's (`others`, from `assignmentsOf`), the admin anybody's through the lens; only the person changes theirs. */
-const ASG = { of: '', got: {}, add: false, edit: '', say: '' };
-const DK_MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-const dkSayDay_ = d => (+d.slice(8, 10)) + ' ' + DK_MON[+d.slice(5, 7) - 1];
-const ASG_FORM = 'assignment-new';
-const asgMe_ = () => String((typeof USER !== 'undefined' && USER && USER.personId) || '');
-const asgOf_ = () => ASG.of || String(((typeof whose_ === 'function' ? whose_() : USER) || {}).personId || '') || asgMe_();
-const asgMine_ = () => asgOf_() === asgMe_();
-const asgField_ = f => (FORM_SPECS.forms[ASG_FORM].fields || []).find(x => x.f === f) || {};
-const asgSay_ = (f, v) => { const c = (asgField_(f).options || []).find(o => String(o.v) === String(v)); return c ? c.t : String(v || ''); };
-function asgOwnList_() {
-  let got = null;
-  try { got = JSON.parse(String((typeof USER !== 'undefined' && USER && USER.assignments) || 'null')); } catch (e) { got = null; }
-  return got && Array.isArray(got.assignments) ? got.assignments : [];
-}
-/* WHOSE LIST: your own from the sign-in reply at once, then fresh from `assignmentsOf` (which also names whose else you may open). */
-function asgLoad_(of) {
-  const g = ASG.got[of];
-  if (g) return g;
-  ASG.got[of] = { rows: of === asgMe_() ? asgOwnList_() : null, others: [], asked: true };
-  Promise.resolve(api({ action: 'assignmentsOf', personId: asgMe_(), of })).then(d => {
-    if (!d || !d.success) { ASG.say = (d && d.error) || 'Could not load them.'; ASG.got[of].rows = ASG.got[of].rows || []; return asgPaint_(); }
-    ASG.got[of].rows = Array.isArray(d.assignments) ? d.assignments : [];
-    if (Array.isArray(d.others) && d.others.length) ASG.got[asgMe_()] = Object.assign(ASG.got[asgMe_()] || {}, { others: d.others });
-    asgPaint_();
-  }).catch(() => { ASG.say = 'You look offline.'; ASG.got[of].rows = ASG.got[of].rows || []; asgPaint_(); });
-  return ASG.got[of];
-}
-const asgDay_ = d => { d = d || new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
-const asgDaysLeft_ = due => Math.round((Date.parse(due + 'T00:00:00Z') - Date.parse(asgDay_() + 'T00:00:00Z')) / 864e5);
-const asgDone_ = a => a.status === 'submitted' || a.status === 'marked';
-/* THE FOUR GROUPS: Overdue (past due, not handed in), This week (due within 7 days), Later (further off, or no date), Done (submitted or marked). */
-function asgGroups_(rows) {
-  const g = { Overdue: [], 'This week': [], Later: [], Done: [] };
-  rows.forEach((a, i) => {
-    const left = a.due ? asgDaysLeft_(a.due) : null;
-    (asgDone_(a) ? g.Done : left != null && left < 0 ? g.Overdue : left != null && left <= 7 ? g['This week'] : g.Later).push(i);
-  });
-  const by = i => (rows[i].due || '9999-99-99') + ' ' + (rows[i].time || '99:99');
-  return Object.keys(g).filter(k => g[k].length).map(k => ({ head: k, rows: g[k].sort((a, b) => by(a).localeCompare(by(b))) }));
-}
-function asgLeftSay_(a) {
-  if (!a.due) return '';
-  const n = asgDaysLeft_(a.due);
-  if (asgDone_(a)) return 'Due ' + dkSayDay_(a.due);
-  return n < 0 ? (-n) + ' ' + plural_(-n, 'day') + ' late' : n === 0 ? 'Due today' : n === 1 ? 'Due tomorrow' : n + ' days left';
-}
-function asgItem_(a, i, mine) {
-  const size = a.amount !== '' && a.amount != null ? Number(a.amount).toLocaleString('en-GB') + (a.unit ? ' ' + asgSay_('unit', a.unit) : '') : '';
-  const tags = [asgLeftSay_(a), a.kind ? asgSay_('kind', a.kind) : '', size, a.weight !== '' && a.weight != null ? a.weight + '%' : '',
-    asgSay_('status', a.status || 'not-started') + (a.status === 'marked' && a.mark ? ': ' + a.mark : '')].filter(Boolean);
-  const when = [a.course, a.due ? dkSayDay_(a.due) + (a.time ? ', ' + a.time : '') : ''].filter(Boolean).join(' · ');
-  const editing = mine && ASG.edit === a.id, track = asgTrackOnly_(a);
-  return listItem_('assignment', { blocks: [
-    { type: 'text', text: [{ b: a.title || 'Untitled' }] },
-    when ? { type: 'text', look: 'note', text: when } : null,
-    { type: 'tags', tags },
-    track ? { type: 'text', look: 'note', text: track.say } : null,
-    a.note && !editing ? { type: 'text', paras: String(a.note).split(/\n{2,}/) } : null,
-    a.link && !editing ? { type: 'text', text: [{ link: 'Open the link', href: a.link, out: true, look: 'link' }] } : null,
-    editing ? { type: 'group', look: 'store-form', inner: askArea_(asgEditForm_(a)) } : null],
-    tiles: mine ? [{ icon: editing ? 'close' : 'edit', label: editing ? 'Close' : 'Edit', act: 'asg-edit', data: { id: a.id } },
-      { icon: 'bin', label: 'Delete', act: 'asg-del', data: { id: a.id } }] : [] });
-}
-/* TRACKED ONLY (an assignment marked noAI: no generative AI; kinds.json assignment `list.trackOnly`): the card says so, and nothing here helps with its content. */
-const asgTrackOnly_ = a => (((ITEM_KINDS.kinds.assignment || {}).list || {}).trackOnly || []).find(t => a[t.field] === true) || null;
-/* AN EDIT IS THE SAME FORM, prefilled under `assignment-new@id` (form.js storeEditForm_), its send this list's. */
-function asgEditForm_(a) {
-  const fid = storeEditForm_('assignment', a.id, a);
-  FORM_SEND_[fid] = v => asgSend_(fid, v, a.id);
-  return fid;
-}
-function asgBlocks_() {
-  const of = asgOf_(), mine = asgMine_(), g = asgLoad_(of), me = ASG.got[asgMe_()] || {}, out = [];
-  if ((me.others || []).length && !(typeof lensOn_ === 'function' && lensOn_()))
-    out.push({ type: 'tiles', look: 'dk-lists', tiles: [{ icon: 'list', label: 'Mine', act: 'asg-who', cls: mine ? 'is-submit' : '', data: { id: '' } }]
-      .concat(me.others.map(o => ({ icon: 'list', label: o.name, act: 'asg-who', cls: of === String(o.id) ? 'is-submit' : '', data: { id: o.id } }))) });
-  if (ASG.say) out.push({ type: 'text', text: ASG.say });
-  if (g.rows === null) return out.concat({ type: 'wait', on: true });
-  if (mine) {
-    out.push({ type: 'tiles', tiles: [{ icon: ASG.add ? 'close' : 'plus', label: ASG.add ? 'Close' : 'Add an assignment', act: 'asg-add', cls: ASG.add ? '' : 'is-submit' }] });
-    if (ASG.add) out.push({ type: 'group', look: 'store-form', inner: askArea_(ASG_FORM) });
-  }
-  if (!g.rows.length) out.push({ type: 'text', text: mine ? 'Nothing yet — add your first assignment.' : 'Nothing written down yet.' });
-  asgGroups_(g.rows).forEach(s => out.push({ type: 'section', head: s.head + ' (' + s.rows.length + ')', blocks: s.rows.map(i => asgItem_(g.rows[i], i, mine)) }));
-  return out;
-}
-function asgPaint_() {
-  const box = $('asg-box');
-  if (!box) return;
-  box.innerHTML = cardBlocks_(asgBlocks_());
-}
-function asgSave_(rows) {
-  const g = ASG.got[asgMe_()];
-  if (g) g.rows = rows;
-  const cell = JSON.stringify({ v: 1, assignments: rows });
-  if (typeof USER !== 'undefined' && USER) { USER.assignments = cell; if (typeof saveUser_ === 'function') saveUser_(); }
-  ASG.say = '';
-  asgPaint_();
-  return Promise.resolve(api({ action: 'assignmentsSave', personId: asgMe_(), assignments: rows }))
-    .then(d => { if (!(d && d.success)) { ASG.say = (d && d.error) || text_('not-saved-try-again'); asgPaint_(); return false; }
-      if (Array.isArray(d.assignments) && g) { g.rows = d.assignments; USER.assignments = JSON.stringify({ v: 1, assignments: d.assignments }); if (typeof saveUser_ === 'function') saveUser_(); asgPaint_(); }
-      return true; })
-    .catch(() => { ASG.say = 'Not saved — you look offline.'; asgPaint_(); return false; });
-}
-/* THE FORM'S SEND: a new one added, an edited one replaced in place; a title is the one thing it needs. */
-function asgSend_(fid, v, id) {
-  if (!String(v.title || '').trim()) { toast('Give it a title first.'); return; }
-  const rows = ((ASG.got[asgMe_()] || {}).rows || []).slice(), a = Object.assign({ status: 'not-started' }, id ? rows.find(r => r.id === id) : {}, v);
-  if (a.status !== 'marked') a.mark = '';
-  if (id) { const at = rows.findIndex(r => r.id === id); rows[at] = a; delete ASK[fid]; ASG.edit = ''; }
-  else { a.id = 'a' + Date.now().toString(36); rows.push(a); askDone_(fid); ASG.add = false; }
-  asgSave_(rows).then(ok => { if (ok) toast(text_('saved')); });
-}
-FORM_SEND_[ASG_FORM] = v => asgSend_(ASG_FORM, v, '');
-on('asg-add', () => { ASG.add = !ASG.add; asgPaint_(); });
-on('asg-who', el => { ASG.of = String(el.dataset.id || ''); ASG.add = false; ASG.edit = ''; asgPaint_(); });
-on('asg-edit', el => { const id = String(el.dataset.id || ''); delete ASK[ASG_FORM + '@' + id]; ASG.edit = ASG.edit === id ? '' : id; asgPaint_(); });
-on('asg-del', el => { const id = String(el.dataset.id || ''), rows = ((ASG.got[asgMe_()] || {}).rows || []), a = rows.find(r => r.id === id);
-  if (!a || !confirm('Delete "' + (a.title || 'this assignment') + '"?')) return;
-  asgSave_(rows.filter(r => r.id !== id)); });

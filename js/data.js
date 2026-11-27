@@ -260,7 +260,6 @@ const KEEP = {
   'ansAt:': { scope: 'user' }, 'ansDirty:': { scope: 'user' }, 'done:': { scope: 'user' },
   'subLast:': { scope: 'user' }, 'subQ:': { scope: 'user' }, 'subBefore:': { scope: 'user' }, 'subMigrated:': { scope: 'user' },
   'draft:': { scope: 'user', ttl: 30 * 24 * 60 * 60 * 1000 },
-  'familyTermShift:': { scope: 'user' },
   familyGone: { scope: 'device', ttl: 60 * 60 * 1000 }, familyGoneKeys: { scope: 'device' }, familySwitched: { scope: 'device' },
   familyDevice: { scope: 'device' }, familyField: { scope: 'device' }, came_from: { scope: 'device' },
   familyTab: { scope: 'device' }, familyTabAt: { scope: 'device' }, 'arrival:shape': { scope: 'device' }, familyAheadSlow: { scope: 'device' },

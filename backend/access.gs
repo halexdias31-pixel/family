@@ -153,6 +153,57 @@ function docketPlan27NovRun_() {
   return said + ' (the old cell in ' + DK_PLAN_BACKUP + ')';
 }
 
+/* ASSIGNMENTS INTO THE DOCKET (owner, 27 Nov: the one time list; "migrate the 6 existing assignments, don't drop them"): every person's `assignments` cell
+   becomes to-dos at the end of their own one list ("Docket", made when missing): its title, its due day as `date`, its time as `until`, minutes from its
+   words (ASG_WORDS_AN_HOUR), its course, weight, mark and noAI; a submitted or marked one ticked for good (done, no day, so it never leaves). A title
+   already on the list (any case) is not added twice. Per person: the backup tab first (time, person, the old assignments cell, the old todo cell),
+   read back; the size cap; the todo cell read back; only then the assignments cell emptied. Nothing left to move is "nothing to do", so a re-run is a
+   no-op. Its note and link stay in the backup row (the Docket keeps names only). tools/docket-assignments.js checks it. */
+const ASG_DOCKET_BACKUP = 'backup_assignments_docket_27nov', ASG_WORDS_AN_HOUR = 250;
+function asgDocketItem_(a) {
+  const o = { title: S(a && a.title).slice(0, 300) }, words = S(a.unit).toLowerCase() === 'words' ? Number(a.amount) || 0 : 0;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(S(a.due))) o.date = S(a.due);
+  if (/^\d{2}:\d{2}$/.test(S(a.time))) o.until = S(a.time);
+  if (words > 0) o.minutes = Math.min(1440, Math.max(1, Math.round(words * 60 / ASG_WORDS_AN_HOUR)));
+  if (S(a.course)) o.course = S(a.course).slice(0, 120);
+  if (S(a.weight) !== '' && isFinite(Number(a.weight))) o.weight = Number(a.weight);
+  if (S(a.mark)) o.mark = S(a.mark).slice(0, 40);
+  if (a.noAI === true) o.noAI = true;
+  if (S(a.status) === 'submitted' || S(a.status) === 'marked') { o.done = true; o.doneOn = ''; }
+  return o;
+}
+function assignmentsToDocket27NovRun_() {
+  const t = read(TAB.people);
+  let n = 0, people = 0;
+  t.rows.forEach(r => {
+    const was = S(r.assignments);
+    let got = null; try { got = JSON.parse(was); } catch (e) { got = null; }
+    const list = got && Array.isArray(got.assignments) ? got.assignments.filter(a => a && S(a.title)) : [];
+    if (!was || !list.length) return;
+    const todoWas = S(r.todo);
+    let cell = null; try { cell = JSON.parse(todoWas); } catch (e) { cell = null; }
+    if (!cell || typeof cell !== 'object' || !Array.isArray(cell.lists))
+      cell = { v: 1, lists: todoWas ? [{ name: DK_ONE_LIST, items: todoWas.split('\n').map(x => x.trim()).filter(Boolean).map(title => ({ title: title })) }] : [] };
+    if (!cell.lists.length) cell.lists.push({ name: DK_ONE_LIST, items: [] });
+    const L = cell.lists[0]; L.items = Array.isArray(L.items) ? L.items : [];
+    const have = L.items.map(it => S(it && it.title).toLowerCase());
+    list.forEach(a => { const it = asgDocketItem_(a); if (have.indexOf(it.title.toLowerCase()) < 0) { L.items.push(it); have.push(it.title.toLowerCase()); n++; } });
+    const todo = todoTidy_(JSON.stringify(cell));
+    if (todo.length > DOCKET_CELL_MAX) throw new Error('a docket would be ' + todo.length + ' characters, over ' + DOCKET_CELL_MAX + ' - nothing was saved for ' + S(r.person_id));
+    const ss = t.sheet.getParent(), bk = ss.getSheetByName(ASG_DOCKET_BACKUP) || ss.insertSheet(ASG_DOCKET_BACKUP);
+    bk.appendRow([new Date(), S(r.person_id), was, todoWas]);
+    if (S(bk.getRange(bk.getLastRow(), 3).getValue()) !== was) throw new Error('the backup did not read back - nothing changed');
+    if (!setCell(t, r, 'todo', todo)) throw new Error('the people tab has no todo column - nothing was saved');
+    clearCache();
+    const back = read(TAB.people).rows.find(x => S(x.person_id) === S(r.person_id));
+    if (!back || S(back.todo) !== todo) throw new Error('the docket did not read back - the assignments were kept');
+    if (!setCell(t, r, 'assignments', '')) throw new Error('the people tab has no assignments column');
+    people++;
+  });
+  if (!people) return 'nothing to do';
+  return n + ' assignment(s) of ' + people + ' person(s) now Docket to-dos (the old cells in ' + ASG_DOCKET_BACKUP + ')';
+}
+
 /* DOCKET INBOX (owner, 25 Nov; one list, 25 Nov night): a private Ledger tab `docket_inbox` (title, replaces; any other column, `list` and `note`
    among them, is ignored) that Claude or the owner drops items into. On every admin page load (setupOnAdminLoad_), if it has rows: the owner's cell is
    backed up (backup_docket_inbox: time, old cell, titles), each row becomes an undated one-off {title} at the end of the one list ("Docket"; made when
@@ -348,6 +399,11 @@ const MIGRATIONS = [
     retry: true,
     what: "the plan's numbers on the owner's Docket items (minutes, runs, place, window, anchor, deadline; matched by title; nothing else touched; backup tab first)",
     run: () => docketPlan27NovRun_() },
+  /* THE ONE TIME LIST (owner, 27 Nov): the Assignments tool went; its rows are Docket to-dos (backup tab first; a re-run a no-op). */
+  { id: 'assignments-docket-27nov',
+    retry: true,
+    what: "every person's assignments as to-dos on their own Docket (due as the date, minutes from the words, course, weight, mark, noAI; backup tab first, the old cells in it)",
+    run: () => assignmentsToDocket27NovRun_() },
 ];
 
 /* ---------- MOVING ROWS OUT OF THE ITEMS TAB, NEVER LOSING ONE (queue step 7, 22 Nov) ----------

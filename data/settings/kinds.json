@@ -1644,12 +1644,8 @@
    },
    "entries": {
     "docket": {
-     "say": "Docket (owner, 18 Nov; one list, names only, 25 Nov night): the owner's one list like Google Tasks — a title, an 8h repeat or a date, ticked; kept in their own `todo` cell; js/map.js dkCard_ draws it",
+     "say": "Docket (owner, 18 Nov; one list, names only, 25 Nov night; ONE TIME LIST, 27 Nov): the owner's one list like Google Tasks — a title, an 8h repeat or a date, or an event with a start and a calendar-standard repeat, ticked; kept in their own `todo` cell; js/map.js dkCard_ draws it. The Timetable and Assignments tools went into it (owner, 27 Nov).",
      "who": "owner"
-    },
-    "assignments": {
-     "say": "Assignments (owner, 18 Nov): anybody signed in keeps their school or uni work — its fields, lists and form are the `assignment` kind below; kept in their own `assignments` cell (assignmentsSave), loaded many at once by `assignmentsImport`, read by `assignmentsOf` for a parent, a booked tutor or the admin. js/map.js WIDGETS.",
-     "who": "signedIn"
     }
    }
   },
@@ -1668,6 +1664,12 @@
      "title"
     ],
     "save": "as-is",
+    "trackOnly": [
+     {
+      "field": "noAI",
+      "say": "No generative AI: tracked only, never help with its content"
+     }
+    ],
     "gone": {
      "done": "done",
      "on": "doneOn",
@@ -1702,7 +1704,8 @@
      {
       "f": "doneOn",
       "type": "text",
-      "max": 13
+      "max": 16,
+      "say": "a one-off's day, an 8h item's third ('2026-11-25/2'), an event's occurrence ('2026-11-28T14:30')"
      },
      {
       "f": "runs",
@@ -1780,6 +1783,59 @@
       "type": "text",
       "max": 100,
       "say": "the option this tick did"
+     },
+     {
+      "f": "start",
+      "type": "moment",
+      "say": "ONE TIME LIST (owner, 27 Nov: the calendar standard, .ics): an event's first moment, 'YYYY-MM-DDTHH:MM' (London's), or a bare day for all day (DTSTART); none is a to-do. js/map.js dkOccur_"
+     },
+     {
+      "f": "rrule",
+      "type": "text",
+      "max": 200,
+      "say": "how it repeats, as .ics RRULE: FREQ=HOURLY|DAILY|WEEKLY, INTERVAL, BYDAY (MO,WE), UNTIL (YYYYMMDD[THHMM]) or COUNT; none is once"
+     },
+     {
+      "f": "rdate",
+      "type": "titles",
+      "max": 16,
+      "say": "extra occurrences (RDATE), e.g. a different first one: Sat 14:30 once, then the rule's Wed 18:00"
+     },
+     {
+      "f": "exdate",
+      "type": "titles",
+      "max": 16,
+      "say": "single occurrences cancelled (EXDATE), each its start"
+     },
+     {
+      "f": "moved",
+      "type": "titles",
+      "max": 33,
+      "say": "single occurrences moved (RECURRENCE-ID), each '<its start>=<its new start>'"
+     },
+     {
+      "f": "course",
+      "type": "text",
+      "max": 120,
+      "say": "an assignment's course (the Assignments tool went into the Docket, owner 27 Nov)"
+     },
+     {
+      "f": "weight",
+      "type": "number",
+      "min": 0,
+      "max": 100,
+      "say": "an assignment's weight, per cent"
+     },
+     {
+      "f": "mark",
+      "type": "text",
+      "max": 40,
+      "say": "an assignment's mark"
+     },
+     {
+      "f": "noAI",
+      "type": "flag",
+      "say": "no generative AI: tracked only, nothing on the site helps with its content"
      }
     ]
    },
@@ -3225,117 +3281,6 @@
     }
    }
   },
-  "session": {
-   "shape": "Card", "bodyAs": "item",
-   "source": "the owner's weekly timetable of sessions (owner, 17 Nov): who, where, which days, start-end, this term; rows in the items tab. Plain record, not a booking: no price, no sync.",
-   "sheet": {
-    "tab": "sessions",
-    "id": "session_id",
-    "columns": [
-     "session_id",
-     "who",
-     "person_id",
-     "place",
-     "address",
-     "days",
-     "start",
-     "end",
-     "term",
-     "notes"
-    ]
-   },
-   "clash": {
-    "say": "the timetable as a tool (owner, 26 Nov: no double-booking): a session sharing a day with another whose start-end crosses it (touching ends allowed), the same term or either without one, is refused by js/form.js clashOf_, asked by the phone (storeWrite_) and again by the backend (items.gs itemWrite_); tools/timetable-clash.js",
-    "id": "session_id",
-    "name": "who",
-    "days": "days",
-    "start": "start",
-    "end": "end",
-    "term": "term"
-   },
-   "find": {
-    "group": "Tools",
-    "label": "timetable",
-    "under": "Tools",
-    "from": "store",
-    "new": "New session",
-    "facets": [
-     "forLabel",
-     "kindLabel"
-    ],
-    "facetCols": {}
-   },
-   "card": {
-    "look": "kc-facts",
-    "lines": true,
-    "name": "who",
-    "tags": [
-     "days",
-     "start"
-    ]
-   },
-   "see": {
-    "who": "admin"
-   },
-   "forms": {
-    "session-new": {
-     "ask": "find",
-     "store": true,
-     "skip": true,
-     "send": {
-      "t": "Save"
-     },
-     "say": "the \"New session\" card in Find: one field a step, sent as item write.",
-     "fields": [
-      {
-       "f": "who",
-       "type": "text",
-       "label": "who"
-      },
-      {
-       "f": "person_id",
-       "type": "text",
-       "label": "person-id-if-they-have"
-      },
-      {
-       "f": "place",
-       "type": "text",
-       "label": "where"
-      },
-      {
-       "f": "address",
-       "type": "text",
-       "label": "address"
-      },
-      {
-       "f": "days",
-       "type": "text",
-       "label": "days-e-g-mon-fri"
-      },
-      {
-       "f": "start",
-       "type": "text",
-       "label": "start-hh-mm"
-      },
-      {
-       "f": "end",
-       "type": "text",
-       "label": "end-hh-mm"
-      },
-      {
-       "f": "term",
-       "type": "text",
-       "label": "term"
-      },
-      {
-       "f": "notes",
-       "type": "long",
-       "label": "notes"
-      }
-     ]
-    }
-   }
-  },
   "fooddb": {
    "source": "data/settings/foods.json (the kind tree and its foods)",
    "loader": "js/chemistry.js FOOD",
@@ -3360,147 +3305,6 @@
    },
    "see": {
     "who": "owner"
-   }
-  },
-  "assignment": {
-   "shape": "Card", "bodyAs": "item",
-   "list": {
-    "name": "Assignments",
-    "say": "ONE LIST KIND (UNIFY NEXT 6): kept in the person's own `assignments` cell as { v, assignments: [...] }, saved whole (`save: whole`): every field written, a status one of the four, a mark only once marked. assignments with a `trackOnly` field set (noAI: no generative AI) are tracked here and nothing more: the card says so and nothing on the site helps with their content.",
-    "store": {
-     "cell": "assignments",
-     "wrap": "assignments"
-    },
-    "most": 300,
-    "need": [
-     "title"
-    ],
-    "save": "whole",
-    "trackOnly": [
-     {
-      "field": "noAI",
-      "say": "No generative AI: tracked only, never help with its content"
-     }
-    ],
-    "fields": [
-     { "f": "noAI", "type": "flag" },
-     {
-      "f": "id",
-      "type": "id",
-      "max": 40
-     },
-     {
-      "f": "title",
-      "type": "text",
-      "max": 200
-     },
-     {
-      "f": "course",
-      "type": "text",
-      "max": 120
-     },
-     {
-      "f": "kind",
-      "type": "word",
-      "max": 30
-     },
-     {
-      "f": "amount",
-      "type": "number",
-      "min": 0,
-      "max": 1000000
-     },
-     {
-      "f": "unit",
-      "type": "word",
-      "max": 30
-     },
-     {
-      "f": "due",
-      "type": "date"
-     },
-     {
-      "f": "time",
-      "type": "time"
-     },
-     {
-      "f": "weight",
-      "type": "number",
-      "min": 0,
-      "max": 100
-     },
-     {
-      "f": "status",
-      "type": "choice",
-      "word": true,
-      "options": [
-       "not-started",
-       "in-progress",
-       "submitted",
-       "marked"
-      ],
-      "def": "not-started"
-     },
-     {
-      "f": "mark",
-      "type": "text",
-      "max": 40,
-      "only": {
-       "f": "status",
-       "is": "marked"
-      }
-     },
-     {
-      "f": "note",
-      "type": "text",
-      "max": 4000
-     },
-     {
-      "f": "link",
-      "type": "url",
-      "max": 500
-     }
-    ]
-   },
-   "source": "the person's own `assignments` cell (JSON), drawn by the Assignments tool (js/map.js asg*); no Find card of its own",
-   "say": "ONE ASSIGNMENT (owner, 18 Nov). Its `kind`, `unit` and `status` are the fixed lists in the form's options (a choice, never free text); the backend keeps whatever word it is sent (post-account.gs assignmentsTidy_), status one of the four. The tool groups them Overdue / This week / Later / Done by `due`.",
-   "see": {
-    "who": "self, family, staff, admin"
-   },
-   "forms": {
-    "assignment-new": {
-     "ask": "card",
-     "store": true,
-     "skip": true,
-     "back": "one",
-     "send": {
-      "t": "Save"
-     },
-     "say": "the Assignments tool's form (js/map.js asgSend_): one field a step, any but the title left empty; the whole list is sent as `assignmentsSave`.",
-     "fields": [
-      { "f": "title", "type": "text", "label": "title-2", "ph": "Title" },
-      { "f": "course", "type": "text", "label": "subject-or-module", "ph": "Subject or module" },
-      { "f": "kind", "label": "what-it-is", "options": [
-        { "v": "essay", "t": "Essay" }, { "v": "coursework", "t": "Coursework" }, { "v": "project", "t": "Project" },
-        { "v": "exam", "t": "Exam" }, { "v": "test", "t": "Test" }, { "v": "homework", "t": "Homework" },
-        { "v": "presentation", "t": "Presentation" }, { "v": "report", "t": "Report" }, { "v": "lab", "t": "Lab" },
-        { "v": "reading", "t": "Reading" }, { "v": "revision", "t": "Revision" }, { "v": "other", "t": "Other" }] },
-      { "f": "amount", "type": "text", "label": "how-much-a-number", "ph": "How much", "min": 0 },
-      { "f": "unit", "label": "of-what", "options": [
-        { "v": "words", "t": "words" }, { "v": "pages", "t": "pages" }, { "v": "slides", "t": "slides" },
-        { "v": "minutes", "t": "minutes" }, { "v": "hours", "t": "hours" }, { "v": "questions", "t": "questions" },
-        { "v": "marks", "t": "marks" }, { "v": "chapters", "t": "chapters" }] },
-      { "f": "due", "type": "date", "label": "due" },
-      { "f": "time", "type": "time", "label": "due-time" },
-      { "f": "weight", "type": "text", "label": "of-the-grade", "ph": "% of the grade", "min": 0, "max": 100 },
-      { "f": "status", "label": "status", "options": [
-        { "v": "not-started", "t": "Not started" }, { "v": "in-progress", "t": "In progress" },
-        { "v": "submitted", "t": "Submitted" }, { "v": "marked", "t": "Marked" }] },
-      { "f": "mark", "type": "text", "label": "mark", "ph": "Mark, e.g. 68% or A", "only": { "status": "marked" } },
-      { "f": "note", "type": "long", "label": "note", "ph": "Note" },
-      { "f": "link", "type": "text", "label": "link", "ph": "https://…", "pad": "url" }
-     ]
-    }
    }
   }
  },
@@ -4048,8 +3852,7 @@
    "partner",
    "food",
    "task",
-   "drive_area",
-   "session"
+   "drive_area"
   ],
   "movedSay": "THE KINDS KEPT IN THE ITEMS (or events) TAB (owner, 17 Nov): core.gs read/setCell/addRow route a listed kind there; each has a `~moved` marker row holding its columns. Their old tabs are locked and never read. A new kind is listed here and starts with SCHEMA's columns.",
   "kept": {

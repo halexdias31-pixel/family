@@ -438,6 +438,8 @@ function listItemTidy_(L, it, whole, n) {
     else if (F.type === 'word') k = assignWord_(cut(F, v));
     else if (F.type === 'date') k = /^\d{4}-\d{2}-\d{2}$/.test(S(v)) ? S(v) : '';
     else if (F.type === 'time') k = /^\d{2}:\d{2}$/.test(S(v)) ? S(v) : '';
+    /* A MOMENT (an event's `start`, ONE TIME LIST 27 Nov): a day and a time, or a bare day for all day. */
+    else if (F.type === 'moment') k = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?$/.test(S(v)) ? S(v) : '';
     else if (F.type === 'url') k = /^https?:\/\//i.test(S(v)) ? cut(F, v) : '';
     else if (F.type === 'number') { const x = Number(S(v).replace(/[%\s]/g, '')); k = S(v) !== '' && isFinite(x) && x >= F.min && x <= F.max ? x : ''; }
     else if (F.type === 'choice') { const w = F.word ? assignWord_(v) : S(v); k = F.options.indexOf(w) !== -1 ? w : F.def; }
@@ -762,8 +764,8 @@ function docketAnswer_(items, now, q, leaves) {
   return { say: (said ? said + ' ' : '') + dkSay_(dkNowNextOf_(items, now, leaves)), items: items, changed: changed };
 }
 const docketNow_ = () => Utilities.formatDate(new Date(), tz_(), 'yyyy-MM-dd HH:mm');
-/* THE OWNER'S LEAVE TIMES (the plan, owner 27 Nov): their timetable's sessions (kinds.json `session`), as the phone reads them; none if unreadable. */
-const docketLeaves_ = () => { try { return dkLeaves_(itemRows_('session').map(r => r.data || {})); } catch (e) { return []; } };
+/* THE OWNER'S LEAVE TIMES (the plan, owner 27 Nov; the Timetable tool went the same day): their own events away from home, as the phone reads them. */
+const docketLeaves_ = items => dkLeaves_(items, docketNow_());
 /* The same length and every character compared, so a near miss takes as long as a far one. */
 function docketSame_(a, b) {
   a = S(a); b = S(b);
@@ -780,7 +782,7 @@ function docketAddress_(p) {
   let got = null;
   try { got = JSON.parse(S(me.todo)); } catch (e) { got = null; }
   const lists = got && Array.isArray(got.lists) ? got.lists : [], items = [].concat(...lists.map(L => (L && Array.isArray(L.items) ? L.items : [])));
-  const r = docketAnswer_(items, docketNow_(), p, docketLeaves_());
+  const r = docketAnswer_(items, docketNow_(), p, docketLeaves_(items));
   if (r.changed) {
     const rest = Object.assign({}, got || {}); delete rest.lists;
     const cell = todoTidy_(JSON.stringify(Object.assign({ v: 1 }, rest, { lists: [{ name: 'Docket', items: r.items }] })));
@@ -804,54 +806,7 @@ function postDocketAddress_(body, action, began) {
   return jsonOut({ success: true, token: token });
 }
 
-/* ---------- ASSIGNMENTS (owner, 18 Nov): a person's school or uni work — title, course, what it is, size, due, weight, status, mark, note, link —
-   kept in their own `assignments` cell as JSON, as Docket's `todo` is: one person's list, read and saved whole, so no tab of its own.
-   Seen by the person, a parent they accepted, a tutor booked with them and the admin (`workFileMaySee_`, as History is); changed by the person alone. */
-const ASSIGN_CELL_MAX = 49000;
+/* ---------- ASSIGNMENTS WENT INTO THE DOCKET (owner, 27 Nov: the one time list): each is a Docket to-do (its due a date, its minutes from its words,
+   its course, weight, mark and noAI), moved by access.gs assignmentsToDocket27NovRun_; the `assignments` cell, its tool and its three actions went. */
+/* A CHOICE KEPT AS A WORD (listItemTidy_'s `word`): lowercase, hyphens for spaces. */
 const assignWord_ = v => norm(S(v).trim()).replace(/[\s_]+/g, '-');
-function assignmentsRead_(r) {
-  let got = null;
-  try { got = JSON.parse(S(r && r.assignments) || 'null'); } catch (err) { got = null; }
-  return listTidy_('assignment', got && Array.isArray(got.assignments) ? got.assignments : []);
-}
-function assignmentsWrite_(me, list) {
-  const cell = JSON.stringify({ v: 1, assignments: list });
-  if (cell.length > ASSIGN_CELL_MAX) return jsonOut({ error: 'That is too much to keep in one place — nothing was saved.' });
-  const t = read(TAB.people);
-  if (t.headers.indexOf('assignments') < 0) return jsonOut({ error: 'The sheet has no `assignments` column. Open the site once as an admin — nothing was saved.' });
-  setCell(t, me, 'assignments', cell);
-  return jsonOut({ success: true, assignments: list });
-}
-/* READ: your own, or a learner's you may see (parent, booked tutor, admin). */
-function postAssignmentsOf_(body) {
-  const me = findPerson('', S(body.personId));
-  if (!me || !S(me.person_id)) return refuse_('err-sign-in-first', 'not-signed-in');
-  const of = S(body.of) || S(me.person_id);
-  if (!workFileMaySee_(me, of)) return jsonOut({ error: 'Not yours to see.' });
-  const r = key(of) === key(me.person_id) ? me : findPerson('', of);
-  if (!r) return refuse_('err-person-not-found', 'not-found');
-  const mine = key(of) === key(me.person_id);
-  /* WHOSE ELSE YOU MAY OPEN: your accepted children (a parent) and your booked students (a tutor) — the History rule's people. */
-  let others = [];
-  if (mine) {
-    try { others = acceptedChildren(S(me.person_id)).map(c => ({ id: S(c.person_id), name: nameFor_(c) })); } catch (err) { others = []; }
-    workFileOthers_(me).forEach(o => { if (!others.some(x => key(x.id) === key(o.id))) others.push(o); });
-  }
-  return jsonOut({ success: true, of: S(r.person_id), mine: mine, others: others, assignments: assignmentsRead_(r) });
-}
-/* SAVE: your own list, whole — the tool's add, edit and delete. */
-function postAssignmentsSave_(body) {
-  const me = findPerson('', S(body.personId));
-  if (!me || !S(me.person_id)) return refuse_('err-sign-in-first', 'not-signed-in');
-  return assignmentsWrite_(me, listTidy_('assignment', body.assignments));
-}
-/* IMPORT: many at once onto your own list (the owner loads his uni work this way); one with the same title, course and due date is replaced, the rest added. */
-function postAssignmentsImport_(body) {
-  const me = findPerson('', S(body.personId));
-  if (!me || !S(me.person_id)) return refuse_('err-sign-in-first', 'not-signed-in');
-  const fresh = listTidy_('assignment', body.assignments);
-  if (!fresh.length) return jsonOut({ error: 'No assignments to import (each needs a title) — nothing was saved.' });
-  const sameAs = a => b => norm(a.title) === norm(b.title) && norm(a.course) === norm(b.course) && a.due === b.due;
-  const kept = assignmentsRead_(me).filter(b => !fresh.some(a => sameAs(a)(b)));
-  return assignmentsWrite_(me, listTidy_('assignment', kept.concat(fresh)));
-}
