@@ -6,8 +6,7 @@
   },
   "widgets": {
     "videos": "secondary",
-    "termdates": "secondary",
-    "libcards": "secondary"
+    "termdates": "secondary"
   },
   "kinds": {
     "question": "core",

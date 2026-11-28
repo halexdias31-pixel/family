@@ -366,7 +366,7 @@ function widgetCard_(x) {
 if (x.widget && typeof widgetOnColumn_ === 'function') return widgetOnColumn_(x.widget, true);
 return cardBlock_({ type: 'group', look: 'tool-name', blocks: [{ type: 'group', tag: 'h3', text: x.name }] });
 }
-const SOON_WIDGET_NAMES = { videos: 'Videos', termdates: 'Term dates', libcards: 'Library cards' };
+const SOON_WIDGET_NAMES = { videos: 'Videos', termdates: 'Term dates' };
 const SOON_WIDGET_UNDER = { videos: 'Videos' };
 const NEED_CALC_ = { 'Non-calculator': 1, 'Calculator allowed': 1 };
 const FRONT_SOON_MEMO = new WeakMap();
@@ -9543,7 +9543,7 @@ const w = (facetTally_(stuffFiltered(), facet).values || []).find(v => [v.value]
 if (w) return w.show || w.text || w.value; } catch (e) { oops_(e, 'find:chipShow_') } finally { STUFF.filters = was; }
 return answerSay_(facet, f.value);
 }
-const TAG_OF = {kindLabel: 0, toolName: 1, kindOwn: 1, profileType: 1, settingFor: 2, venueArea: 8, venueFor: 9, venueSize: 2, partnerStatus: 6, foodMeal: 2, foodShop: 0, taskList: 6, taskRepeat: 7, taskDone: 5, subject: 2, shelf: 3, wReligion: 9, histKind: 5, wCollection: 8, histPart: 11, wWork: 7, wSection: 1, wSource: 11, wLanguage: 6, wForm: 11, wAuthor: 10, wText: 3, wBook: 11, wChapter: 3, wUnit: 4, wPrimacy: 0, mScope: 10, mMake: 7, mModel: 7, mGen: 5, mEngine: 5, mSystem: 8, pcType: 10, pcSocket: 9, pcIface: 7, pcLinks: 8, mPhase: 8, mMarket: 6, mYears: 1, mSize: 11, mValves: 0, mBadge: 2, mFuel: 4, mPart: 6, mPrice: 9, cCategory: 5, cGroup: 9, cPeriod: 10, cState: 6, fighter: 8, decade: 5, division: 6, boutRound: 4, boutMethod: 10, boutWinner: 2, boutEvent: 0, histEra: 3, histMaterial: 3, histFormat: 11, histRole: 4, personName: 7, personYears: 0, personFrom: 11, histRepository: 4, histSide: 0, histFound: 2, histDated: 1, histTheatre: 6, required: 9, level: 4, documentType: 3, keystage: 11, yearGroup: 3, bandValue: 0, topic: 7, examBoard: 9, specTopic: 7, specPoint: 10, tier: 10, examYear: 10, examMonth: 1, examDay: 0, paperId: 5, paperSection: 8, qNumber: 8, qPart: 9, qSub: 1, marks: 1, needCalc: 4, needs: 5, myTried: 3, myResult: 2, source: 4};
+const TAG_OF = {kindLabel: 0, toolName: 7, kindOwn: 1, profileType: 1, settingFor: 1, venueArea: 8, venueFor: 9, venueSize: 2, partnerStatus: 5, foodMeal: 1, foodShop: 2, taskList: 5, taskRepeat: 6, taskDone: 4, subject: 2, shelf: 2, wReligion: 9, histKind: 5, wCollection: 8, histPart: 11, wWork: 7, wSection: 1, wSource: 11, wLanguage: 6, wForm: 11, wAuthor: 10, wText: 3, wBook: 11, wChapter: 3, wUnit: 4, wPrimacy: 0, mScope: 9, mMake: 7, mModel: 6, mGen: 4, mEngine: 5, mSystem: 8, pcType: 9, pcSocket: 8, pcIface: 6, pcLinks: 7, mPhase: 7, mMarket: 5, mYears: 0, mSize: 10, mValves: 11, mBadge: 1, mFuel: 2, mPart: 6, mPrice: 8, cCategory: 5, cGroup: 9, cPeriod: 10, cState: 6, fighter: 8, decade: 5, division: 6, boutRound: 4, boutMethod: 10, boutWinner: 1, boutEvent: 0, histEra: 3, histMaterial: 3, histFormat: 11, histRole: 4, personName: 7, personYears: 11, personFrom: 10, histRepository: 4, histSide: 2, histFound: 1, histDated: 0, histTheatre: 6, required: 9, level: 4, documentType: 3, keystage: 11, yearGroup: 3, bandValue: 0, topic: 7, examBoard: 9, specTopic: 7, specPoint: 10, tier: 10, examYear: 10, examMonth: 0, examDay: 2, paperId: 5, paperSection: 8, qNumber: 8, qPart: 9, qSub: 0, marks: 0, needCalc: 3, needs: 4, myTried: 2, myResult: 1, source: 3};
 const tagOf_ = field => 'h' + (TAG_OF[field] || 0);
 const tagAttr_ = field => ` data-tag="${tagOf_(field)}"`;
 function chipText_(f, i) {
@@ -13988,10 +13988,6 @@ get html() { return mapHtml_('Term dates', mapBox_('td-box', 'td-box')); } },
 draw: () => dkPaint_(),
 into: 'dk-box', what: 'Your docket',
 get html() { return mapHtml_('Docket', mapBox_('dk-box', 'dk-box')); } },
-{ id: 'libcards', kind: 'tool', name: 'Library cards', solid: true, signedIn: true,
-start: () => initLibCards_?.(),
-into: 'lib-box', what: 'Your library cards',
-get html() { return cardBlocks_(mapBox_('lib-box')); } },
 ];
 tierGuardWidgets_(WIDGETS);
 const DK = { items: null, rest: null, say: '', addr: null, fresh: false, base: null, asking: null, q: Promise.resolve() };

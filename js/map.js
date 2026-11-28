@@ -39,12 +39,7 @@ const WIDGETS = [
     into: 'dk-box', what: 'Your docket',
     get html() { return mapHtml_('Docket', mapBox_('dk-box', 'dk-box')); } },
   /* ---------- ASSIGNMENTS WENT INTO THE DOCKET (owner, 27 Nov: the one time list): each a to-do with its due date, minutes, course, weight, mark and noAI (access.gs assignmentsToDocket27NovRun_). */
-  /* ---------- YOUR LIBRARY CARDS (docs/history/339) § */
-  { id: 'libcards', kind: 'tool', name: 'Library cards', solid: true, signedIn: true,
-    start: () => initLibCards_?.(),
-    into: 'lib-box', what: 'Your library cards',
-    /* THE BOX ONLY: its host draws the card round it, and a card here showed twice (card-render). */
-    get html() { return cardBlocks_(mapBox_('lib-box')); } },
+  /* ---------- THE LIBRARY CARDS WENT INTO THE ARCHIVE (owner, 27 Nov): each card an Archive entry of its person (kinds.json `archive`; access.gs archive28NovRun_). */
 ];
 /* SECONDARY (860): every widget here not named core in data/settings/tiers.json throws into oops_, never into its caller. */
 tierGuardWidgets_(WIDGETS);
