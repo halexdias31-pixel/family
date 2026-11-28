@@ -4,7 +4,7 @@
  "days": [["m", "Monday"], ["tu", "Tuesday"], ["w", "Wednesday"], ["th", "Thursday"], ["f", "Friday"], ["sa", "Saturday"], ["su", "Sunday"]],
  "hours": [9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
  "roles": {
-  "_about": "THE ROLES (owner, 17 Nov), one place: `ids` in order of precedence (the first a person holds is their main role) — each its label, the old words that mean it (`aliases`), what the app calls it (`app`), its rank (people.gs rankOf; a `pending` tutor keeps their other rank), the permission tier its rank maps to (actions.json `roles`), whether a person may tick it for themselves (`self`), and `signIn: false` for a role that never signs in (a contact, owner 17 Nov: a person with no account, never listed, who may have facts; authWhoIs_ gives such a row no token). `default` is a blank role cell; `guest` is nobody signed in. `titles` decide nothing. `tiers` and `ranks` are each in order, lowest first. `notify`: the roles an email reaches somebody by (constants.gs NOTIFY_ALL_ROLES). `form`: the roles the admin's people form ticks, in the order it draws them (people.gs PEOPLE_ROLES_).",
+  "_about": "THE ROLES (owner, 17 Nov), one place: `ids` in order of precedence (the first a person holds is their main role) — each its label, the old words that mean it (`aliases`), what the app calls it (`app`), its rank (people.gs rankOf; a `pending` tutor keeps their other rank), the permission tier its rank maps to (actions.json `roles`), whether a person may tick it for themselves (`self`), and `signIn: false` for a role that never signs in (a contact, owner 17 Nov: a person with no account, never listed, who may have facts; authWhoIs_ gives such a row no token). `default` is a blank role cell; `guest` is nobody signed in: they see and use what `as` (a student) does, but `keeps: false`, nothing they do is sent to be saved (owner, 28 Nov; js/shell-click.js `guestUnkept_`), and as a child may be behind the screen, no prices (`may.prices`). `titles` decide nothing. `tiers` and `ranks` are each in order, lowest first. `notify`: the roles an email reaches somebody by (constants.gs NOTIFY_ALL_ROLES). `form`: the roles the admin's people form ticks, in the order it draws them (people.gs PEOPLE_ROLES_).",
   "ids": {
    "admin": {"label": "Admin", "aliases": ["administrator"], "rank": "admin", "tier": "admin", "self": false},
    "tutor": {"label": "Tutor", "aliases": ["teacher"], "rank": "staff", "tier": "member", "self": true, "pending": true},
@@ -13,7 +13,7 @@
    "contact": {"label": "Contact", "aliases": [], "rank": "contact", "tier": "anyone", "self": false, "signIn": false}
   },
   "default": "client",
-  "guest": {"rank": "out", "tier": "anyone"},
+  "guest": {"rank": "out", "tier": "anyone", "as": "child", "keeps": false},
   "ranks": ["contact", "student", "client", "staff", "admin"],
   "tiers": ["anyone", "member", "child", "admin"],
   "titles": {"head of boxing": "Head of Boxing", "coach": "Coach"},
@@ -21,7 +21,7 @@
    "_about": "ONE ROLE CHECK (owner, 21 Nov): the fixed words the site's `may_` and the backend's `whoMay_` answer before permissions.json's action rows, both by the shared `mayWord_` (data/settings/roles.js). Each holds when the viewer's tier is in `tiers`, or is not in `notTiers`, or their rank is at least `rank`; `owner` also wants the one owner. Any other word is a permissions.json row.",
    "admin": {"tiers": ["admin"]},
    "owner": {"tiers": ["admin"], "owner": true},
-   "prices": {"notTiers": ["child"]},
+   "prices": {"notTiers": ["child", "anyone"]},
    "staff": {"rank": "staff"},
    "signedIn": {"notTiers": ["anyone"]},
    "grownUp": {"tiers": ["member", "admin"]}

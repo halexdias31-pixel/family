@@ -16,7 +16,7 @@ const RULES = [
   /* UNIVERSAL UNTIL SWITCHED (504): the owner, "it's open source so I don't care about it being public". `flip`: the stored mark means Exception. */
   { id: 'kjv-admin', say: 'The Bible is shown to admins only', where: 'Find (490, 504)',
     uni: 'Anyone of age sees it, like the Talmud and the Quran.', flip: true },
-  { id: 'finder-members', say: 'Signed out, Find answers only Settings (Sign in and Join), Booking (its steps; Send asks you to sign in) and the library (never questions or Practice)', where: 'Find (C+, 1040)',
+  { id: 'finder-members', say: 'Signed out, Find answers what a student\'s does, never anybody\'s own (rule 1.84): Settings (Sign in and Join), Booking, Learn, Tools and every kind open to anyone; nothing a guest does is kept', where: 'Find (C+, 1040)',
     uni: 'Signed out, Find answers everything, as signed in.' },
   { id: 'admin-cols', say: 'Business and Site cards stay on those 2 columns and admin-only columns made past Site (508), and no other card moves onto them', where: 'Business and Site (491)',
     uni: 'Any card moves to any column.', lock: 'A card moved onto an admin column would vanish for everyone but an admin.' },

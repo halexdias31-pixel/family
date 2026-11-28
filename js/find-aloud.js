@@ -489,7 +489,8 @@ const FUNNEL_NOT_FOR = [];
 function stuffItemsBuild_() {
   return stuffItemsAll_().filter(x => {
     /* SIGNED OUT, ONE ANSWER (C+): Settings, which holds Sign in and Join — the same Find, never a second front door. */
-    if (!USER && (typeof ruleOn_ !== 'function' || ruleOn_('finder-members')) && typeof findSignedOut_ === 'function') return findSignedOut_(x);
+    if (!USER && (typeof ruleOn_ !== 'function' || ruleOn_('finder-members')) && typeof findSignedOut_ === 'function' && !findSignedOut_(x)) return false;
+    /* AND THEN THE SAME FUNNEL AS A STUDENT'S (owner, 28 Nov): a guest is handed what a student is, never more, never anybody's own. */
     /* READ EXACTLY AS THE `forLabel` FACET READS IT — `x.groups || kindOf_(x).group`, through `asList_` — so what leaves the funnel is what would have answered § */
     const g = asList_(x.groups || kindOf_(x).group);
     if (g.length && g.every(k => FUNNEL_NOT_FOR.indexOf(k) >= 0)) return false;
