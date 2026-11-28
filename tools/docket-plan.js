@@ -39,6 +39,11 @@ const LIST = () => [
   { title: 'Minox', repeat: '8h', minutes: 1, place: 'home' },
   { title: 'Made-up weekday thing', repeat: '8h', minutes: 3, days: 'mon-fri' },
 ];
+/* THE SAME LIST WITHOUT `stay`: where the out-over-an-end rule (below) is not what a rule is about. */
+const NOSTAY = () => LIST().map(x => (x.stay ? Object.assign(x, { stay: false }) : x));
+/* OUT WHILE IT RUNS (owner, 28 Nov): Laundry (5 min, runs 50, stay) and one out item; the order's clock from 09:00. */
+const WASH = out => [{ title: 'Laundry', repeat: '8h', minutes: 5, runs: 50, place: 'home', stay: true }, Object.assign({ title: 'Made-up out', repeat: '8h', place: 'out' }, out)];
+const clock = (P, L) => { const o = P.dkSort_(L, DAY + ' 09:00', []).open; let c = 540; const sp = {}; o.forEach(i => { sp[i] = [c, c + (+L[i].minutes || 0)]; c = sp[i][1]; }); return { o, sp }; };
 const T = (L, ix) => ix.map(i => L[i].title).join('|');
 const at = (P, hhmm, L, leaves) => P.dkSort_(L || LIST(), DAY + ' ' + hhmm, leaves || []);
 const idx = (L, t) => L.findIndex(x => x.title === t);
@@ -64,8 +69,10 @@ const RULES = [
   ['laundry is offered at 09:00 and at 19:55 (done by 21:00)', P => { const L = LIST(), i = idx(L, 'Laundry'); return at(P, '09:00', L).open.indexOf(i) >= 0 && at(P, '19:55', L).open.indexOf(i) >= 0; }],
   ['laundry is not offered at 19:56 (it would end 21:01): tomorrow from 09:00', P => { const L = LIST(), g = at(P, '19:56', L), i = idx(L, 'Laundry');
     return g.open.indexOf(i) < 0 && P.dkWhen_(g.when[i], DAY + ' 19:56') === 'from Sun 09:00'; }],
-  ['laundry is not offered at 09:30 with a leave at 10:00, and is "from 12:00" (back from it); the shower still is', P => { const L = LIST(), g = at(P, '09:30', L, LEAVE(P)), i = idx(L, 'Laundry');
-    return g.open.indexOf(i) < 0 && P.dkWhen_(g.when[i], DAY + ' 09:30') === 'from 12:00' && g.open.indexOf(idx(L, 'Shower')) >= 0; }],
+  ['an event away over laundry\'s end blocks it: not offered at 09:30 with a leave 10:00-12:00, "from 10:55" (it ends 12:00, back from it); the shower still is', P => { const L = LIST(), g = at(P, '09:30', L, LEAVE(P)), i = idx(L, 'Laundry');
+    return g.open.indexOf(i) < 0 && P.dkWhen_(g.when[i], DAY + ' 09:30') === 'from 10:55' && g.open.indexOf(idx(L, 'Shower')) >= 0; }],
+  ['stay is being there when it ends: an event away during the run but back before the end does not block it', P => { const L = LIST(), i = idx(L, 'Laundry');
+    return at(P, '09:00', L, P.dkLeaves_([{ title: 'Made-up dash', start: DAY + 'T09:20', minutes: 20, place: 'out' }], DAY + ' 09:00')).open.indexOf(i) >= 0; }],
   ['laundry is offered at 08:50 on a day with no leave', P => { const L = LIST(); L[2].from = '08:00'; return at(P, '08:50', L).open.indexOf(2) >= 0; }],
   ['an overdue one-off is never open: it sits in missed', P => { const L = LIST(), g = at(P, '07:30', L), i = idx(L, 'Old made-up errand'); return g.open.indexOf(i) < 0 && T(L, g.missed) === 'Old made-up errand'; }],
   ['a far deadline does not jump an efficient item (the 10-minute errand after the shorter ones)', P => { const L = LIST(), o = at(P, '09:00', L).open;
@@ -74,11 +81,11 @@ const RULES = [
     return o.indexOf(idx(L, 'Made-up call')) >= 0 && o.indexOf(idx(L, 'Made-up call')) < o.indexOf(idx(L, 'Charge batteries')); }],
   ['the same call with time to spare (07:00, due 23:00) does not jump', P => { const L = LIST(); L[9].until = '23:00'; const o = at(P, '07:00', L).open;
     return o.indexOf(9) > o.indexOf(idx(L, 'Charge batteries')); }],
-  ['the longest unattended first: charge batteries (120) then laundry (60), ahead of the hands-only items', P => { const L = LIST(), o = at(P, '09:00', L).open, c = idx(L, 'Charge batteries'), l = idx(L, 'Laundry');
+  ['the longest unattended first: charge batteries (120) then laundry (60), ahead of the hands-only items', P => { const L = NOSTAY(), o = at(P, '09:00', L).open, c = idx(L, 'Charge batteries'), l = idx(L, 'Laundry');
     return o.indexOf(c) === o.indexOf(l) - 1 && o.indexOf(l) < o.indexOf(idx(L, 'Minox')); }],
-  ['place orders nothing: every place swapped, the same order (owner: "ignore place and order only by efficiency")', P => { const L = LIST(), M = LIST(), ps = ['out', 'home', 'desk', 'phone', 'anywhere'];
+  ['place orders nothing: every place swapped, the same order (owner: "ignore place and order only by efficiency")', P => { const L = NOSTAY(), M = NOSTAY(), ps = ['out', 'home', 'desk', 'phone', 'anywhere'];
     M.forEach((x, n) => { x.place = ps[n % ps.length]; }); return JSON.stringify(at(P, '09:00', L).open) === JSON.stringify(at(P, '09:00', M).open); }],
-  ['the fewest minutes first (Minox 1 before Shower 10 before Shopping 20)', P => { const L = LIST(), o = at(P, '09:00', L).open; return o.indexOf(idx(L, 'Minox')) < o.indexOf(idx(L, 'Shower')) && o.indexOf(idx(L, 'Shower')) < o.indexOf(idx(L, 'Shopping')); }],
+  ['the fewest minutes first (Minox 1 before Shower 10 before Shopping 20)', P => { const L = NOSTAY(), o = at(P, '09:00', L).open; return o.indexOf(idx(L, 'Minox')) < o.indexOf(idx(L, 'Shower')) && o.indexOf(idx(L, 'Shower')) < o.indexOf(idx(L, 'Shopping')); }],
   ['one cycle: ticked at 11:59 it is open again at 12:00; ticked at 18:30 it stays done until 06:00, then open', P => { const L = LIST(), sh = idx(L, 'Shower');
     P.dkTick_(L, sh, true, DAY + ' 11:59'); const a = at(P, '11:59', L).done.indexOf(sh) >= 0 && at(P, '12:00', L).open.indexOf(sh) >= 0;
     P.dkTick_(L, sh, true, DAY + ' 18:30'); const N = '2026-11-29'; return a && P.dkSort_(L, N + ' 05:59', []).done.indexOf(sh) >= 0 && P.dkSort_(L, N + ' 06:00', []).open.indexOf(sh) >= 0; }],
@@ -101,6 +108,9 @@ const RULES = [
   ['the e-ink and address rows: the open, then the later saying when, then the missed', P => { const L = LIST(), m = P.dkNowNextOf_(L, DAY + ' 06:05', []), r = m.rows;
     const lau = r.find(x => x.title === 'Laundry'), old = r[r.length - 1];
     return r[0].title === 'Prayer · Option B' && lau && lau.tags.join() === 'from 09:00' && old.missed && old.title === 'Old made-up errand' && !r.slice(0, -1).some(x => x.missed); }],
+  ['laundry then a 20-minute shopping trip is allowed (back at 09:25, before its 09:55 end)', P => { const L = WASH({ minutes: 20 }); L[0].minutes = 5; const { o } = clock(P, L); return o.join() === '0,1'; }],
+  ['an out item longer than the run never covers laundry\'s end: done first, laundry after', P => { const L = WASH({ minutes: 60 }), { o, sp } = clock(P, L), E = sp[0][1] + 50;
+    return o.length === 2 && !(sp[1][0] <= E && E < sp[1][1]) && o[0] === 1; }],
   ['the same input gives the same order', P => JSON.stringify(at(P, '09:00')) === JSON.stringify(at(P, '09:00'))],
 ];
 const MUTS = [
@@ -110,7 +120,10 @@ const MUTS = [
   ['one-offs ignored', s => s.replace(" || (nm(x) === 'one-offs' && !dkRep_(B) && !dkEv_(B))", '')],
   ['no window start', s => s.replace('let s = Math.max(at - d * 1440, f == null ? 0 : f);', 'let s = at - d * 1440;')],
   ['no window end', s => s.replace('if (u != null && s + need > u) break;', '')],
-  ['stay ignored', s => s.replace('const hit = it.stay ?', 'const hit = false ?')],
+  ['stay ignored', s => s.replace('hit = it.stay ?', 'hit = false ?')],
+  ['stay as the whole run', s => s.replace('L.find(x => x.s <= E && x.e > E)', 'L.find(x => x.s < E && x.e > E - need)')],
+  ['out items not leaves', s => s.replace("if (it.place === 'out') outs.push(", 'if (false) outs.push(')],
+  ['out over an end not moved', s => s.replace('    g.open = ok[0].o;\n', '')],
   ['overdue on top', s => s.replace("if (!dkRep_(it) && it.date && String(it.date) < day) return g.missed.push(i);", '')],
   ['every deadline jumps', s => s.replace('ls != null && ls < free - mins(it) ? 2', 'ls != null ? 2')],
   ['no deadline tier', s => s.replace('ls != null && ls < free - mins(it) ? 2', 'false ? 2')],

@@ -278,6 +278,8 @@ function docketBefore28NovRun_() {
    the plan's old cycle tier, now a fact in the data): each pair [title keys, before] by docketPlanKey_ (any case): Shopping gets "meal", Exercise
    "Shower"; every item with `repeat` gets "one-offs"; each added to its `before` only when not already there (any case); nothing else touched. Backup tab first, the size cap, read back; none to change is "nothing to do", so a re-run is a no-op. tools/docket-before.js. */
 const DK_BEFORE2_BACKUP = 'backup_docket_before_2_28nov', DK_BEFORE2_28NOV = [[['8.19r3b3x'], ['meal']], [['8.1w39ce3'], ['Shower']]];
+/* LAUNDRY RUNS 50 (owner, 28 Nov: "the washing machine takes like 50 minutes"), set by the same job; no "take it out" item (the machine beeps). */
+const DK_RUNS_28NOV = [['7.y5ipd2'], 50];
 function docketBefore2_28NovRun_() {
   const t = read(TAB.people), me = t.rows.find(r => isOwner_(r));
   if (!me) throw new Error('no owner found');
@@ -288,6 +290,7 @@ function docketBefore2_28NovRun_() {
   const set = [];
   (Array.isArray(got.lists[0].items) ? got.lists[0].items : []).forEach(it => {
     if (!it) return;
+    if (DK_RUNS_28NOV[0].indexOf(docketPlanKey_(it.title)) >= 0 && it.runs !== DK_RUNS_28NOV[1]) { it.runs = DK_RUNS_28NOV[1]; set.push(S(it.title) + ': runs ' + it.runs); }
     const pair = DK_BEFORE2_28NOV.find(([keys]) => keys.indexOf(docketPlanKey_(it.title)) >= 0);
     const want = (pair ? pair[1] : []).concat(S(it.repeat) ? ['one-offs'] : []);
     const has = Array.isArray(it.before) ? it.before.slice() : (S(it.before) ? [S(it.before)] : []), lc = has.map(x => S(x).trim().toLowerCase());
@@ -642,7 +645,7 @@ const MIGRATIONS = [
   /* BEFORE, TWO MORE (owner, 28 Nov): Shopping before every meal, Exercise before the shower (after the one list; backup tab first; a re-run a no-op). */
   { id: 'docket-before-2-28nov',
     retry: true,
-    what: "the owner's Shopping item set to go before every meal, Exercise before Shower, every cycle item before one-offs (each added only if absent; backup tab first)",
+    what: "the owner's Shopping item set to go before every meal, Exercise before Shower, every cycle item before one-offs (each added only if absent), Laundry runs 50 (backup tab first)",
     run: () => docketBefore2_28NovRun_() },
 ];
 

@@ -134,7 +134,7 @@ function dkTick_(items, i, on, now, pick) {
    (owner, 27 Nov: "run from the top down without it giving me a bad order"; every rule a number, none a feeling). Pure and deterministic:
    the items, London's now ('YYYY-MM-DD HH:MM') and the owner's leave times (dkLeaves_: their events away from home; none known, none assumed).
    An event (`start`, dkOccur_) is pinned: open, above the rest, once its occurrence in hand has begun; later until then.
-   An item may say `minutes` (hands-on), `runs` (unattended after), `place` (home/out/desk/phone/anywhere), `stay` (must stay at `place` until `runs` ends),
+   An item may say `minutes` (hands-on), `runs` (unattended after), `place` (home/out/desk/phone/anywhere), `stay` (must be at `place` WHEN `runs` ends: owner 28 Nov, the machine beeps; out during the run is fine),
    `from`/`until` ('HH:MM': start at or after `from`, finish minutes+runs by `until`), `days` ('mon-sat', js/form.js clashDays_), `group` (a name `before` can use, e.g. "meal"; it orders nothing),
    `date` (a one-off's hard deadline) and `options` (a slot's choices). Groups: `open` (can start now, in plan order), `later` (cannot yet; `when[i]` the
    minute from today's 00:00 it next can, soonest first; null not this week), `missed` (a one-off past its date: "new date?"), `done`.
@@ -153,7 +153,8 @@ function dkSort_(items, now, leaves) {
   const wd = (new Date(ut(day)).getUTCDay() + 6) % 7, L = Array.isArray(leaves) ? leaves : [];
   const num = v => Math.max(0, +v || 0), mins = it => (it.minutes === '' || it.minutes == null || !isFinite(+it.minutes) ? DK_UNKNOWN_MIN : num(it.minutes));
   const g = { standing: [], open: [], later: [], missed: [], done: [], when: {} };
-  /* THE FIRST MINUTE (from today's 00:00, at or after `at`) IT MAY START AND STILL FINISH: in its days, its window, and, kept at its place, before a leave. */
+  /* THE FIRST MINUTE (from today's 00:00, at or after `at`) IT MAY START AND STILL FINISH: in its days, its window, and, a `stay` one, with no leave
+     over the moment it ends (start + minutes + runs: owner 28 Nov, you must be there when it beeps, not for the whole run). */
   const startAt = (it, at) => {
     const need = mins(it) + num(it.runs), f = hm(it.from), u = hm(it.until), days = it.days && typeof clashDays_ === 'function' ? clashDays_(it.days) : [];
     const end = !dkRep_(it) && it.date ? Math.round((ut(String(it.date)) - ut(day)) / 864e5) : 7;
@@ -163,9 +164,9 @@ function dkSort_(items, now, leaves) {
       let s = Math.max(at - d * 1440, f == null ? 0 : f);
       for (let k = 0; k < 50 && s < 1440; k++) {
         if (u != null && s + need > u) break;
-        const hit = it.stay ? L.find(x => x.s < d * 1440 + s + need && x.e > d * 1440 + s) : null;
+        const E = d * 1440 + s + need, hit = it.stay ? L.find(x => x.s <= E && x.e > E) : null;
         if (!hit) return d * 1440 + s;
-        s = Math.max(hit.e - d * 1440, s + 1);
+        s = Math.max(hit.e - d * 1440 - need, s + 1);
       }
     }
     return null;
@@ -204,6 +205,21 @@ function dkSort_(items, now, leaves) {
   const put = (b, path) => { if (out.indexOf(b) >= 0 || path.indexOf(b) >= 0) return; rest.forEach(a => { if (must(a, b)) put(a, path.concat(b)); }); if (out.indexOf(b) < 0) out.push(b); };
   rest.forEach(b => put(b, []));
   g.open = out;
+  /* OUT WHILE IT RUNS (owner, 28 Nov): an open `out` item is a leave from the moment the plan would start it for its minutes; no order may have
+     one away over a `stay` item's end. Where one does, the out item goes just before the stay item, or the stay item just after it, whichever
+     finishes everything (its runs too) sooner, the first on a tie; never above an event in hand. tools/docket-plan.js checks it. */
+  const span = o => { let c = t, fin = t; const ends = [], outs = [];
+    o.forEach(i => { const it = items[i], m = mins(it); if (it.stay && num(it.runs)) ends.push([i, c + m + num(it.runs)]); if (it.place === 'out') outs.push([i, c, c + m]);
+      c += m; fin = Math.max(fin, c + num(it.runs)); });
+    const bad = outs.map(([o2, s, e]) => { const w = ends.find(([, E]) => s <= E && E < e); return w ? [o2, w[0]] : null; }).find(Boolean);
+    return { fin, bad }; };
+  for (let k = 0, sp = span(g.open); sp.bad && k < g.open.length; k++, sp = span(g.open)) {
+    const [o2, w] = sp.bad, cut = (a, x) => a.filter(y => y !== x), at2 = (a, x, n) => a.slice(0, n).concat(x, a.slice(n));
+    const A = (z => at2(z, o2, Math.max(top.length, z.indexOf(w))))(cut(g.open, o2)), B = (z => at2(z, w, z.indexOf(o2) + 1))(cut(g.open, w));
+    const ok = [A, B].map(o => ({ o, s: span(o) })).filter(x => !x.s.bad).sort((x, y) => x.s.fin - y.s.fin);
+    if (!ok.length) break;
+    g.open = ok[0].o;
+  }
   g.later.sort((a, b) => (g.when[a] == null ? 1e9 : g.when[a]) - (g.when[b] == null ? 1e9 : g.when[b]) || a - b);
   return g;
 }

@@ -1738,7 +1738,7 @@
      {
       "f": "stay",
       "type": "flag",
-      "say": "must stay at its place until `runs` ends: not offered when a leave comes first"
+      "say": "must be at its place when `runs` ends (owner, 28 Nov: the machine beeps; out during the run is fine): not offered when a leave covers its end; an open `out` item counts as a leave from when the plan would start it"
      },
      {
       "f": "from",
