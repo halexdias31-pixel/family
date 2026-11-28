@@ -13,8 +13,8 @@ A tutoring business's site: static front end on GitHub Pages, Google Apps Script
 - A comment ending `§` was shortened; its story is in `docs/notes/<path>.md`. A pathless Grep skips `docs/`, `data/`, `attic/`.
 
 ## Commands
-- Checks (rule 1.75, 17 Nov): only for what a child/parent would notice, one per rule, counted site-wide, run by `tools/build.js`; nothing ships unless they pass (e.g. `tools/one-card.js`).
-- `node tools/build.js` last, after any change: every generator, the bundles, the checks and the stamp (about 1.5–2 min).
+- Checks (rule 1.75, 17 Nov): only for what a child/parent would notice, one per rule, counted site-wide, run by `tools/build.js`. A change ships once its own checks pass with `node tools/build.js --fast <its checks>` (rule 1.75, 28 Nov); the full build runs after it is live.
+- `node tools/build.js --fast <checks>` after a change (minutes); `node tools/build.js` (everything, ~2 h) after it is live.
 
 ## Reference, not rules
 - `docs/map-detail.md` (screens, data, deploying, CI; grep it) and `docs/history/` (`grep -ril <keyword> docs/history`).

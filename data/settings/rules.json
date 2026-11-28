@@ -519,7 +519,7 @@
   {
    "id": "1.75",
    "principle": 1,
-   "text": "Checks, best practice (owner, 17 Nov, lifting 16 Nov's ban): only for what a child or parent would notice, one check per rule, counted site-wide; each is a tools/ script tools/build.js runs, and nothing ships unless they pass.",
+   "text": "Checks, best practice (owner, 17 Nov, lifting 16 Nov's ban): only for what a child or parent would notice, one check per rule, counted site-wide; each is a tools/ script tools/build.js runs. A change ships once its own checks pass with the fast set (owner, 28 Nov: `node tools/build.js --fast <its checks>` — every generator, the bundles and stamp, and the site-wide smoke checks); the full build then runs after it is live, and anything it finds is fixed straight away.",
    "since": "2026-11-16"
   },
   {

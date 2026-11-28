@@ -115,12 +115,20 @@ const ORDER = [
   'shared-lists', // the shared-lists check (rule 1.1 by 1.75, owner 20 Nov): every list or limit both sides keep comes from settings.json via SHARED_SETTINGS; fails the build
   'build-stamp',  // everything served -> index.html's BUILD_STAMP; last
 ];
+/* THE FAST SET (owner, 28 Nov: "switch to that now"): a change ships once its own checks pass with these — every step that writes what is served
+   (generators, bundles, the stamp) and the few that prove the whole site still starts. `--fast a,b` runs FAST plus the named checks, in ORDER. */
+const FAST = ['kinds', 'tiers', 'aliases_gs', 'words', 'cards-gen', 'permissions', 'facet-hues', 'finder-tags', 'rules', 'backend-loads', 'bundle',
+  'one-opening', 'one-request', 'one-action-roles', 'build-stamp'];
+const fastAt = process.argv.indexOf('--fast');
+const PICK = fastAt < 0 ? null : new Set(FAST.concat(String(process.argv[fastAt + 1] || '').split(',').filter(Boolean)));
+if (PICK) [...PICK].forEach(n => { if (ORDER.indexOf(n) < 0) throw new Error('build --fast: no step ' + n); });
 (async () => {
   const t0 = Date.now();
   /* ONE SERVER AND ONE BROWSER PER ENGINE for every browser check (tools/lib/site-browser.js), closed once at the end. */
   const SB = require('./lib/site-browser.js');
   SB.share();
   for (const name of ORDER) {
+    if (PICK && !PICK.has(name)) continue;
     const file = path.join(__dirname, name + '.js');
     if (!fs.existsSync(file)) { console.log(name + ': gone, skipped'); continue; }
     const t = Date.now();
