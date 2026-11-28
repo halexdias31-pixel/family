@@ -73,7 +73,7 @@ async function run() {
     await pg.waitForTimeout(800);
     const ed = await pg.evaluate(() => { const d = document.querySelector('#screen .dk-line[open]'); if (!d) return null;
       return { fields: [...d.querySelectorAll('[data-dke]')].map(x => x.getAttribute('data-dke')), save: !!d.querySelector('[data-do="dk-fsave"]') }; });
-    if (!ed || ed.fields.join() !== 'title' || !ed.save) bad.push('(b) Edit does not open the title alone: ' + JSON.stringify(ed));
+    if (!ed || ed.fields.join() !== 'title,before' || !ed.save) bad.push('(b) Edit does not open the title and its before (owner 28 Nov: set in the edit form): ' + JSON.stringify(ed));
     await pg.evaluate(() => { const d = document.querySelector('#screen .dk-line[open]'), i = d.querySelector('[data-dke="title"]'); i.value = 'Drink a glass of water'; d.querySelector('[data-do="dk-fsave"]').click(); });
     await pg.waitForTimeout(1200);
     if (!(await pg.evaluate(() => [...document.querySelectorAll('#screen .dk-line > summary')].some(s => s.textContent.trim() === 'Drink a glass of water'))))
