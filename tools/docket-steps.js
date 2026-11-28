@@ -81,12 +81,12 @@ const stepsOk = js => { let P, S; try { P = planner(js, text('js/form.js')); S =
 /* ---------- (3) THE PRAYER JOB, made-up keys ---------- */
 const STEP_NAMES = ['Made-up one', 'Made-up two', 'Made-up three'];
 const PRAY = () => [{ name: 'Docket', items: [{ title: 'Made-up prayer', repeat: '8h', anchor: 'wake', minutes: 5, slot: 'Made-up prayer', options: ['Made-up two', 'Made-up one'], picks: ['Made-up two'] },
-  { title: 'Made-up reading', repeat: '8h', minutes: 5 }, { title: 'Made-up stand one', repeat: '8h', doneOn: DAY + '/1' }, { title: 'Made-up stand two' }, { title: 'Made-up other', repeat: '8h' }] }];
+  { title: 'Made-up reading', repeat: '8h', minutes: 5 }, { title: 'Made-up stand one', repeat: '8h', doneOn: DAY + '/1' }, { title: 'Made-up stand two' }, { title: 'Made-up other', repeat: '8h' }, { title: 'Made-up look at the list', repeat: '8h' }] }];
 const PSLOTS = { slots: [{ name: 'Made-up prayer', options: [{ name: 'Made-up two', note: 'note two' }, { name: 'Made-up one', note: 'note one' }] }, { name: 'Made-up food', options: [{ name: 'x' }] }] };
 function prayScene(ctx0) {
   const w = world(PRAY, PSLOTS), k = t => keyOf(w.ctx)(t);
   w.ctx.dkPrayerKeys_ = () => ({ item: [k('Made-up prayer')], steps: [[k('Made-up one')], [k('Made-up two')], [k('nope'), k('Made-up reading')]],
-    gone: [k('Made-up reading')], standing: [k('Made-up stand one'), k('Made-up stand two')] });
+    gone: [k('Made-up reading'), k('Made-up look at the list')], standing: [k('Made-up stand one'), k('Made-up stand two')] });
   if (ctx0) ctx0(w.ctx);
   const was = w.cell(), r = () => { w.ctx.clearCache(); return w.ctx.docketPrayer28NovRun_(); };
   const said = r(), cell = w.cell(), again = r();
@@ -95,7 +95,7 @@ function prayScene(ctx0) {
 const PRAY_RULES = [
   ['Prayer is one item of steps in the given order, each option\'s note kept, no longer a slot, still 8h and wake', m => { const p = m.c.lists[0].items[0];
     return JSON.stringify(p.steps) === JSON.stringify(['Made-up one\nnote one', 'Made-up two\nnote two', 'Made-up reading']) && !p.options && !p.picks && !p.slot && p.repeat === '8h' && p.anchor === 'wake'; }],
-  ['the reading item is gone, the others stay', m => m.c.lists[0].items.map(x => x.title).join('|') === 'Made-up prayer|Made-up stand one|Made-up stand two|Made-up other'],
+  ['the reading item and the look-at-the-list item are gone, the others stay', m => m.c.lists[0].items.map(x => x.title).join('|') === 'Made-up prayer|Made-up stand one|Made-up stand two|Made-up other'],
   ['the named lines are standing, their tick gone; the other is not', m => { const L = m.c.lists[0].items;
     return L[1].standing === true && !L[1].doneOn && L[2].standing === true && !L[3].standing; }],
   ['the prayer slot is gone, the other slot kept', m => m.c.slots.map(x => x.name).join() === 'Made-up food'],

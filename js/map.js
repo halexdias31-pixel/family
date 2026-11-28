@@ -53,11 +53,15 @@ tierGuardWidgets_(WIDGETS);
 const DK = { items: null, rest: null, say: '', addr: null, fresh: false, base: null, asking: null, q: Promise.resolve() };
 /* THE OWNER'S DAY (owner, 20 Nov): midnight is London's, whatever the device's clock says. */
 const dkDay_ = d => todayIso_(d);   // the one today, js/core.js
-/* EVERY 8 HOURS (owner, 25 Nov): an '8h' item's `doneOn` is the third of the day it was ticked in (dkOn_: '2026-11-25/2'; 00-08 is 1, 08-16 is 2,
-   16-24 is 3), so it is back, unticked, in the next third. A one-off keeps `done` and the day (`doneOn`), and leaves after midnight (dkTidy_).
-   Pure, from `now` ('YYYY-MM-DD HH:MM', London's; a bare day is its first third). */
+/* EACH CYCLE (owner, 25 Nov; one cycle at 06:00, 12:00 and 18:00, 28 Nov): an '8h' item's `doneOn` is the cycle it was ticked in (dkOn_: '2026-11-25/2'),
+   so it is back, unticked, in the next. A one-off keeps `done` and the day (`doneOn`), and leaves after midnight (dkTidy_).
+   Pure, from `now` ('YYYY-MM-DD HH:MM', London's). */
 const dkRep_ = i => !!i && i.repeat === '8h';
-const dkOn_ = now => { now = String(now || ''); const h = +now.slice(11, 13); return now.slice(0, 10) + '/' + (1 + Math.floor((h >= 0 && h < 24 ? h : 0) / 8)); };
+/* ONE CYCLE FOR EVERY REPEATING ITEM (owner, 28 Nov): a cycle starts at each of these London times (the last runs to the first, next day). An item
+   ticked in the cycle in hand is done until the next starts; its tick is that cycle's ('YYYY-MM-DD/n', n from 1; before the first start, yesterday's
+   last). The `repeat` value stays '8h' in the data and means "each cycle" (kinds.json). Single source: the backend copies this (tools/cards-gen.js). */
+const DK_CYCLE = ['06:00', '12:00', '18:00'];
+const dkOn_ = now => { now = String(now || ''); const hm = now.slice(11, 16), n = DK_CYCLE.filter(x => x <= hm).length; if (n) return now.slice(0, 10) + '/' + n; const d = new Date(Date.UTC(+now.slice(0, 4), +now.slice(5, 7) - 1, +now.slice(8, 10)) - 864e5); return (isNaN(d) ? now.slice(0, 10) : d.toISOString().slice(0, 10)) + '/' + DK_CYCLE.length; };
 /* ONE TIME LIST (owner, 27 Nov: "everything with a time follows the common calendar file standard (.ics)"): an item with a `start` ('YYYY-MM-DDTHH:MM',
    London's wall clock; a bare day is all-day) is an event, as an .ics VEVENT: `rrule` its RRULE (FREQ=HOURLY|DAILY|WEEKLY, INTERVAL, BYDAY, UNTIL, COUNT),
    `rdate` extra occurrences (RDATE: a different first one, "Sat 14:30 once, then Wed 18:00 weekly"), `exdate` cancelled ones (EXDATE) and `moved` single
@@ -124,31 +128,35 @@ function dkTick_(items, i, on, now, pick) {
   else { it.done = !!on; it.doneOn = on ? String(now).slice(0, 10) : ''; }
   return true;
 }
-/* THE PLAN (owner, 27 Nov: "run from the top down without it giving me a bad order"; every rule a number, none a feeling). Pure and deterministic:
+/* THE PLAN. PRINCIPLE 1 (owner, 28 Nov): the order minimises the TOTAL TIME to finish everything; a deadline or a time window matters only if it would
+   otherwise be missed. Every rule below follows from it (a far deadline never jumps the queue; unknown minutes are DK_UNKNOWN_MIN, 15, not 0; `place`
+   is information only, owner 28 Nov: "ignore place and order only by efficiency").
+   (owner, 27 Nov: "run from the top down without it giving me a bad order"; every rule a number, none a feeling). Pure and deterministic:
    the items, London's now ('YYYY-MM-DD HH:MM') and the owner's leave times (dkLeaves_: their events away from home; none known, none assumed).
    An event (`start`, dkOccur_) is pinned: open, above the rest, once its occurrence in hand has begun; later until then.
    An item may say `minutes` (hands-on), `runs` (unattended after), `place` (home/out/desk/phone/anywhere), `stay` (must stay at `place` until `runs` ends),
    `from`/`until` ('HH:MM': start at or after `from`, finish minutes+runs by `until`), `days` ('mon-sat', js/form.js clashDays_), `anchor` (wake/meal/bed),
    `date` (a one-off's hard deadline) and `options` (a slot's choices). Groups: `open` (can start now, in plan order), `later` (cannot yet; `when[i]` the
    minute from today's 00:00 it next can, soonest first; null not this week), `missed` (a one-off past its date: "new date?"), `done`.
-   The open order: (0) wake items until the day starts (a wake item ticked today) and through the third it started in; (1) meal items while a meal item
-   was ticked this third; (2) a dated one-off whose latest start is before the time it would get if it waited behind every other open item (latest start
-   first); (3) the unattended ones (`runs`, longest first); (4) the rest by place, home first and out last (one trip covers every out item), the fewest
-   minutes first; (5) meal items; (6) bed items. Overdue is no reason to go first. Ties keep the list's order. The card, ?eink and the private address
+   The open order: (0) wake items until the day starts (a wake item ticked today) and through the cycle it started in (DK_CYCLE); (2) a dated
+   one-off whose latest start is before the time it would get if it waited behind every other open item (latest start first); (3) the unattended
+   ones (`runs`, longest first: they run while the rest is done); (4) the rest, the fewest minutes first; (6) bed items. Overdue is no reason to go first. Ties keep the list's order. The card, ?eink and the private address
    (backend/cards-gen.gs copies this) all read this one plan. Then `before` (below). tools/docket-plan.js and tools/docket-before.js check it. */
 function dkSort_(items, now, leaves) {
+  /* UNKNOWN MINUTES ARE NOT 0 (owner, 28 Nov): an item without `minutes` takes this many, wherever the plan reads minutes. */
+  const DK_UNKNOWN_MIN = 15;
   now = String(now || '');
   items = items || [];
   const day = now.slice(0, 10), hm = v => { const m = /^(\d{1,2}):(\d\d)$/.exec(String(v == null ? '' : v).trim()); return m ? +m[1] * 60 + +m[2] : null; };
   const t = hm(now.slice(11, 16)) || 0, ut = d => Date.UTC(+d.slice(0, 4), +d.slice(5, 7) - 1, +d.slice(8, 10));
   const wd = (new Date(ut(day)).getUTCDay() + 6) % 7, third = dkOn_(now), L = Array.isArray(leaves) ? leaves : [];
-  const num = v => Math.max(0, +v || 0), anc = it => (['wake', 'meal', 'bed'].indexOf(it.anchor) >= 0 ? it.anchor : '');
+  const num = v => Math.max(0, +v || 0), mins = it => (it.minutes === '' || it.minutes == null || !isFinite(+it.minutes) ? DK_UNKNOWN_MIN : num(it.minutes)), anc = it => (['wake', 'meal', 'bed'].indexOf(it.anchor) >= 0 ? it.anchor : '');
   const ticked = (a, on) => items.some(it => it && anc(it) === a && String(it.doneOn || '').indexOf(on) === 0);
-  const wakeNow = !ticked('wake', day) || ticked('wake', third), mealNow = ticked('meal', third);
+  const wakeNow = !ticked('wake', day) || ticked('wake', third);
   const g = { standing: [], open: [], later: [], missed: [], done: [], when: {} };
   /* THE FIRST MINUTE (from today's 00:00, at or after `at`) IT MAY START AND STILL FINISH: in its days, its window, and, kept at its place, before a leave. */
   const startAt = (it, at) => {
-    const need = num(it.minutes) + num(it.runs), f = hm(it.from), u = hm(it.until), days = it.days && typeof clashDays_ === 'function' ? clashDays_(it.days) : [];
+    const need = mins(it) + num(it.runs), f = hm(it.from), u = hm(it.until), days = it.days && typeof clashDays_ === 'function' ? clashDays_(it.days) : [];
     const end = !dkRep_(it) && it.date ? Math.round((ut(String(it.date)) - ut(day)) / 864e5) : 7;
     for (let d = 0; d <= Math.min(7, end); d++) {
       const w = (wd + d) % 7;
@@ -177,13 +185,13 @@ function dkSort_(items, now, leaves) {
     const at = startAt(it, t);
     if (at === t) g.open.push(i); else { g.later.push(i); g.when[i] = at; }
   });
-  const free = t + g.open.reduce((n, i) => n + num(items[i].minutes), 0);
-  const last = it => (dkRep_(it) || !it.date ? null : Math.round((ut(String(it.date)) - ut(day)) / 864e5) * 1440 + (hm(it.until) == null ? 1440 : hm(it.until)) - num(it.minutes) - num(it.runs));
+  const free = t + g.open.reduce((n, i) => n + mins(items[i]), 0);
+  const last = it => (dkRep_(it) || !it.date ? null : Math.round((ut(String(it.date)) - ut(day)) / 864e5) * 1440 + (hm(it.until) == null ? 1440 : hm(it.until)) - mins(it) - num(it.runs));
   const tier = it => { const a = anc(it), ls = last(it);
-    return dkEv_(it) ? -1 : a === 'wake' && wakeNow ? 0 : a === 'meal' && mealNow ? 1 : ls != null && ls < free - num(it.minutes) ? 2 : a === 'bed' ? 6 : a === 'meal' ? 5 : num(it.runs) > 0 ? 3 : 4; };
-  const place = it => { const p = ['home', 'anywhere', 'desk', 'phone', 'out'].indexOf(it.place); return p < 0 ? 1 : p; };
+    return dkEv_(it) ? -1 : a === 'wake' && wakeNow ? 0 : ls != null && ls < free - mins(it) ? 2 : a === 'bed' ? 6 : num(it.runs) > 0 ? 3 : 4; };
+  /* UNKNOWN MINUTES ARE UNKNOWN, not 0 (owner, 28 Nov). */
   const key = i => { const it = items[i], k = tier(it);
-    return [k, k === 2 ? last(it) : k === 3 ? -num(it.runs) : place(it), k === 2 || k === 3 ? 0 : num(it.minutes), i]; };
+    return [k, k === 2 ? last(it) : k === 3 ? -num(it.runs) : 0, k === 2 || k === 3 ? 0 : mins(it), i]; };
   const by = (a, b) => { const x = key(a), y = key(b); for (let n = 0; n < x.length; n++) if (x[n] !== y[n]) return x[n] - y[n]; return 0; };
   g.open.sort(by);
   /* BEFORE (owner, 28 Nov: "Brush teeth has to go before breakfast"): an open item whose `before` names another open one (its title, any case, or

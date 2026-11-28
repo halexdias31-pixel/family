@@ -1691,7 +1691,8 @@
       "options": [
        "8h"
       ],
-      "def": ""
+      "def": "",
+      "say": "8h means each cycle (owner, 28 Nov): one cycle for every repeating item, starting 06:00, 12:00 and 18:00 London (js/map.js DK_CYCLE); a tick is done until the next start"
      },
      {
       "f": "done",

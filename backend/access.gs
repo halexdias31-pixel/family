@@ -179,15 +179,15 @@ function docketOneList28NovRun_() {
 }
 
 /* PRAYER AS ONE ITEM OF STEPS (owner, 28 Nov): the owner's "Prayer" item stops being a slot and becomes one item of `steps`, in the owner's order, each
-   step its option's name and the note that option already holds in the cell's `slots` (name, a new line, the note); the separate reading item goes
-   (its step is inside Prayer); three lines become `standing` (never ticked); the Prayer slot goes once empty. Everything is matched by docketPlanKey_
+   step its option's name and the note that option already holds in the cell's `slots` (name, a new line, the note); the separate reading item (its
+   step is inside Prayer) and the reminder to look at the list go; three lines become `standing` (never ticked); the Prayer slot goes once empty. Everything is matched by docketPlanKey_
    (the todoBase_ of a title's first four words), so no prayer text, not even a name, is in this public file: dkPrayerKeys_ holds the keys. It stays 8h,
    anchor wake. A step not found in the cell throws, nothing changed. Backup tab first, read back; the size cap; the cell read back; a re-run (Prayer
    already stepped, nothing left to make standing or remove) is "nothing to do". After the one list. tools/docket-before.js checks it. */
 const DK_PRAYER_BACKUP = 'backup_docket_prayer_28nov';
 function dkPrayerKeys_() {
   return { item: ['6.1wmszhm'], steps: [['h.k5spez'], ['9.1jkqwo1'], ['l.gffrjd'], ['p.qorxzc'], ['c.1uo4wmz'], ['m.ka2odn'], ['h.1s3vbwr'], ['k.sdqawt', 'e.j74n']],
-    gone: ['k.sdqawt', 'e.j74n'], standing: ['c.1dcr1d0', 'g.438gll', 's.766s1x'] };
+    gone: ['k.sdqawt', 'e.j74n', 'g.pg2lnm'], standing: ['c.1dcr1d0', 'g.438gll', 's.766s1x'] };
 }
 function docketPrayer28NovRun_() {
   const K = dkPrayerKeys_(), t = read(TAB.people), me = t.rows.find(r => isOwner_(r));
@@ -215,7 +215,7 @@ function docketPrayer28NovRun_() {
     said.push('Prayer as ' + pr.steps.length + ' steps');
   }
   const keep = items.filter(it => !(it && it !== pr && K.gone.indexOf(key(it.title)) >= 0));
-  if (keep.length !== items.length) said.push((items.length - keep.length) + ' reading item(s) removed');
+  if (keep.length !== items.length) said.push((items.length - keep.length) + ' item(s) removed (the reading; the reminder to look at the list)');
   L.items = keep;
   let st = 0;
   keep.forEach(it => { if (it && K.standing.indexOf(key(it.title)) >= 0 && it.standing !== true) {

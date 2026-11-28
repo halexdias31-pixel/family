@@ -4,7 +4,7 @@
    (1) THE ORDER, js/map.js dkSort_ run as served: the wake item first on waking; laundry never offered before 09:00, nor once it cannot finish by
        21:00, nor when a leave (an event away from home) comes before it finishes, each later one saying when ("from 09:00"); an overdue one-off is not on
        top but folded as missed; a far deadline does not jump an efficient item, a deadline that waiting would miss does; the longest unattended item
-       first; the out items one run, after home; the fewest minutes first within a place; meal items top once a meal began; bed items last; a slot's
+       first; place orders nothing; the fewest minutes first, no minutes counting as 15; one cycle from 06:00, 12:00, 18:00; a deadline a week out waits; bed items last; a slot's
        line says its least recently ticked option and a tick records it; the same input, the same order. Each rule proved by mutating the served source.
    (2) ONE PLAN, TWO PLACES: backend/cards-gen.gs's copies (the private address, do=list, the e-ink screen) give the site's order, row for row.
    (3) THE JOB: backend/access.gs docketPlan27NovRun_ in the backend vm writes the plan's numbers onto matching items, nothing else; backup first; a
@@ -15,7 +15,7 @@ const { report, main, text } = require('./lib/gen.js');
 const text_ = SD.textOf();
 const fnOf = (src, n) => { const m = new RegExp('\\nfunction ' + n + '\\([^)]*\\) \\{[\\s\\S]*?\\n\\}\\n').exec(src); if (!m) throw new Error('docket-plan: no ' + n); return m[0]; };
 const lineOf = (src, n) => { const m = new RegExp('\\nconst ' + n + ' = .*;\\n').exec(src); if (!m) throw new Error('docket-plan: no const ' + n); return m[0]; };
-const CONSTS = ['dkMin_', 'dkIso_', 'dkEv_', 'dkRep_', 'dkOn_', 'dkIsDone_'], FNS = ['dkOccur_', 'dkSlot_', 'dkTick_', 'dkSort_', 'dkLeaves_', 'dkOption_', 'dkTitle_', 'dkWhen_', 'dkNowNextOf_'];
+const CONSTS = ['dkMin_', 'dkIso_', 'dkEv_', 'dkRep_', 'DK_CYCLE', 'dkOn_', 'dkIsDone_'], FNS = ['dkOccur_', 'dkSlot_', 'dkTick_', 'dkSort_', 'dkLeaves_', 'dkOption_', 'dkTitle_', 'dkWhen_', 'dkNowNextOf_'];
 /* THE PLANNER FROM A SOURCE: js/map.js (with js/form.js's clash readers), or backend/cards-gen.gs, which holds both. */
 function planner(src, clash) {
   clash = clash || src;
@@ -56,7 +56,7 @@ const RULES = [
     return g.open.indexOf(i) < 0 && P.dkWhen_(g.when[i], DAY + ' 09:30') === 'from 12:00' && g.open.indexOf(idx(L, 'Shower')) >= 0; }],
   ['laundry is offered at 08:50 on a day with no leave', P => { const L = LIST(); L[2].from = '08:00'; return at(P, '08:50', L).open.indexOf(2) >= 0; }],
   ['an overdue one-off is never open: it sits in missed', P => { const L = LIST(), g = at(P, '07:30', L), i = idx(L, 'Old made-up errand'); return g.open.indexOf(i) < 0 && T(L, g.missed) === 'Old made-up errand'; }],
-  ['a far deadline does not jump an efficient item (the desk errand after every home item)', P => { const L = LIST(), o = at(P, '09:00', L).open;
+  ['a far deadline does not jump an efficient item (the 10-minute errand after the shorter ones)', P => { const L = LIST(), o = at(P, '09:00', L).open;
     return o.indexOf(idx(L, 'Far made-up errand')) > o.indexOf(idx(L, 'Shower')) && o.indexOf(idx(L, 'Far made-up errand')) > o.indexOf(idx(L, 'Minox')); }],
   ['a deadline that waiting would miss goes ahead of the unattended ones (08:00: the call due by 09:00)', P => { const L = LIST(), o = at(P, '08:00', L).open;
     return o.indexOf(idx(L, 'Made-up call')) >= 0 && o.indexOf(idx(L, 'Made-up call')) < o.indexOf(idx(L, 'Charge batteries')); }],
@@ -64,22 +64,27 @@ const RULES = [
     return o.indexOf(9) > o.indexOf(idx(L, 'Charge batteries')); }],
   ['the longest unattended first: charge batteries (120) then laundry (60), ahead of the hands-only items', P => { const L = LIST(), o = at(P, '09:00', L).open, c = idx(L, 'Charge batteries'), l = idx(L, 'Laundry');
     return o.indexOf(c) === o.indexOf(l) - 1 && o.indexOf(l) < o.indexOf(idx(L, 'Minox')); }],
-  ['the out items are one run, after the home items', P => { const L = LIST(), o = at(P, '09:00', L).open, outs = o.map((i, k) => (L[i].place === 'out' ? k : -1)).filter(k => k >= 0);
-    return outs.length === 2 && outs[1] === outs[0] + 1 && outs[0] > o.indexOf(idx(L, 'Shower')); }],
-  ['within a place, the fewest minutes first (Minox 1 before Shower 10)', P => { const L = LIST(), o = at(P, '09:00', L).open; return o.indexOf(idx(L, 'Minox')) < o.indexOf(idx(L, 'Shower')); }],
-  ['meal items sit after the place groups, but go on top once a meal item was ticked this third', P => { const L = LIST(), o = at(P, '09:00', L).open, pr = idx(L, 'Protein');
-    const before = o.indexOf(pr) > o.indexOf(idx(L, 'Short walk')); L.push({ title: 'Carbs', repeat: '8h', minutes: 5, anchor: 'meal', doneOn: DAY + '/2' }); L[0].doneOn = DAY + '/1';
-    return before && at(P, '09:00', L).open[0] === pr; }],
+  ['place orders nothing: every place swapped, the same order (owner: "ignore place and order only by efficiency")', P => { const L = LIST(), M = LIST(), ps = ['out', 'home', 'desk', 'phone', 'anywhere'];
+    M.forEach((x, n) => { x.place = ps[n % ps.length]; }); return JSON.stringify(at(P, '09:00', L).open) === JSON.stringify(at(P, '09:00', M).open); }],
+  ['the fewest minutes first (Minox 1 before Shower 10 before Shopping 20)', P => { const L = LIST(), o = at(P, '09:00', L).open; return o.indexOf(idx(L, 'Minox')) < o.indexOf(idx(L, 'Shower')) && o.indexOf(idx(L, 'Shower')) < o.indexOf(idx(L, 'Shopping')); }],
+  ['one cycle: ticked at 11:59 it is open again at 12:00; ticked at 18:30 it stays done until 06:00, then open', P => { const L = LIST(), sh = idx(L, 'Shower');
+    P.dkTick_(L, sh, true, DAY + ' 11:59'); const a = at(P, '11:59', L).done.indexOf(sh) >= 0 && at(P, '12:00', L).open.indexOf(sh) >= 0;
+    P.dkTick_(L, sh, true, DAY + ' 18:30'); const N = '2026-11-29'; return a && P.dkSort_(L, N + ' 05:59', []).done.indexOf(sh) >= 0 && P.dkSort_(L, N + ' 06:00', []).open.indexOf(sh) >= 0; }],
+  ['an item with no minutes counts as 15: after a 10-minute one, before a 20-minute one', P => { const L = LIST();
+    L.push({ title: 'Made-up unknown', repeat: '8h', place: 'home' }, { title: 'Made-up twenty', repeat: '8h', place: 'home', minutes: 20 });
+    const o = at(P, '09:00', L).open, u = o.indexOf(idx(L, 'Made-up unknown')); return u > o.indexOf(idx(L, 'Shower')) && u < o.indexOf(idx(L, 'Made-up twenty')); }],
+  ['a deadline a week out does not jump the queue: it waits behind the home items', P => { const L = LIST(); L.push({ title: 'Made-up week', date: '2026-12-03', minutes: 30, place: 'desk' });
+    const o = at(P, '09:00', L).open; return o.indexOf(idx(L, 'Made-up week')) > o.indexOf(idx(L, 'Minox')) && o.indexOf(idx(L, 'Made-up week')) > o.indexOf(idx(L, 'Shower')); }],
   ['bed items last', P => { const L = LIST(), o = at(P, '09:00', L).open; return o[o.length - 1] === idx(L, 'Floss'); }],
-  ['after waking (prayer ticked in the first third), at 09:00 the wake item is not pinned on top', P => { const L = LIST(); L[0].doneOn = DAY + '/1'; L.push({ title: 'Second wake', repeat: '8h', anchor: 'wake', minutes: 1 });
-    return at(P, '09:00', L).open[0] !== L.length - 1; }],
+  ['after waking (prayer ticked in the 06:00 cycle), at 12:30 the wake item is not pinned on top', P => { const L = LIST(); L[0].doneOn = DAY + '/1'; L.push({ title: 'Second wake', repeat: '8h', anchor: 'wake', minutes: 1 });
+    return at(P, '12:30', L).open[0] !== L.length - 1; }],
   ['an item outside its days is not offered, and says when', P => { const L = LIST(), g = at(P, '09:00', L), i = idx(L, 'Made-up weekday thing');
     return g.open.indexOf(i) < 0 && P.dkWhen_(g.when[i], DAY + ' 09:00') === 'from Mon 00:00'; }],
   ['later items in the order they next become possible', P => { const L = LIST(), x = L[2]; L[2] = L[13]; L[13] = x; const g = at(P, '08:30', L); return T(L, g.later) === 'Laundry|Made-up weekday thing'; }],
   ['the slot line says the least recently ticked option ("Prayer · Option B")', P => P.dkTitle_(LIST()[0], DAY + ' 07:30') === 'Prayer · Option B'],
   ['a tick records the option, and the next line offers the next least recent', P => { const L = LIST(); P.dkTick_(L, 0, true, DAY + ' 07:30');
     const ok = L[0].pick === 'Option B' && L[0].picks.join() === 'Option A,Option B' && P.dkTitle_(L[0], DAY + ' 07:31') === 'Prayer · Option B';
-    return ok && P.dkTitle_(L[0], DAY + ' 08:00') === 'Prayer · Option C'; }],
+    return ok && P.dkTitle_(L[0], DAY + ' 12:00') === 'Prayer · Option C'; }],
   ['an option tapped is the one recorded; an untick takes it off', P => { const L = LIST(); P.dkTick_(L, 0, true, DAY + ' 07:30', 'Option C'); const a = L[0].pick === 'Option C';
     P.dkTick_(L, 0, false, DAY + ' 07:30'); return a && !L[0].pick && L[0].picks.join() === 'Option A'; }],
   ['the e-ink and address rows: the open, then the later saying when, then the missed', P => { const L = LIST(), m = P.dkNowNextOf_(L, DAY + ' 08:30', []), r = m.rows;
@@ -93,13 +98,14 @@ const MUTS = [
   ['no window end', s => s.replace('if (u != null && s + need > u) break;', '')],
   ['stay ignored', s => s.replace('const hit = it.stay ?', 'const hit = false ?')],
   ['overdue on top', s => s.replace("if (!dkRep_(it) && it.date && String(it.date) < day) return g.missed.push(i);", '')],
-  ['every deadline jumps', s => s.replace('ls != null && ls < free - num(it.minutes) ? 2', 'ls != null ? 2')],
-  ['no deadline tier', s => s.replace('ls != null && ls < free - num(it.minutes) ? 2', 'false ? 2')],
+  ['every deadline jumps', s => s.replace('ls != null && ls < free - mins(it) ? 2', 'ls != null ? 2')],
+  ['no deadline tier', s => s.replace('ls != null && ls < free - mins(it) ? 2', 'false ? 2')],
   ['runs shortest first', s => s.replace('k === 3 ? -num(it.runs)', 'k === 3 ? num(it.runs)')],
   ['no runs tier', s => s.replace('num(it.runs) > 0 ? 3 : 4', '4')],
-  ['out first', s => s.replace("['home', 'anywhere', 'desk', 'phone', 'out']", "['out', 'home', 'anywhere', 'desk', 'phone']")],
-  ['longest first in a place', s => s.replace('k === 2 || k === 3 ? 0 : num(it.minutes)', 'k === 2 || k === 3 ? 0 : -num(it.minutes)')],
-  ['no meal-now', s => s.replace("a === 'meal' && mealNow ? 1 :", '')],
+  ['place orders', s => s.replace("return [k, k === 2 ? last(it) : k === 3 ? -num(it.runs) : 0,", "return [k, k === 2 ? last(it) : k === 3 ? -num(it.runs) : ['home', 'anywhere', 'desk', 'phone', 'out'].indexOf(it.place),")],
+  ['longest first', s => s.replace('k === 2 || k === 3 ? 0 : mins(it), i]', 'k === 2 || k === 3 ? 0 : -mins(it), i]')],
+  ['unknown is 0', s => s.replace('const DK_UNKNOWN_MIN = 15;', 'const DK_UNKNOWN_MIN = 0;')],
+  ['cycle at 08:00', s => s.replace("const DK_CYCLE = ['06:00', '12:00', '18:00'];", "const DK_CYCLE = ['08:00', '12:00', '18:00'];")],
   ['bed not last', s => s.replace("a === 'bed' ? 6 :", '')],
   ['no days', s => s.replace('if (days.length && days.indexOf(w) < 0) continue;', '')],
   ['later unsorted', s => s.replace('g.later.sort(', '[].sort(')],

@@ -16,7 +16,7 @@ const MEALS = ['Protein', 'Carbs', 'Dairy', 'Veg', 'Fruit'];
 /* A MADE-UP MORNING: the wake item, a glass of water (wake too), brush teeth, a shower, the five meal slots; Protein ticked this third (a meal began). */
 const LIST = () => [{ title: 'Prayer', repeat: '8h', anchor: 'wake', minutes: 5 }, { title: 'Glass of water', repeat: '8h', anchor: 'wake', minutes: 1 }]
   .concat(MEALS.map((t, n) => ({ title: t, repeat: '8h', anchor: 'meal', minutes: 5, doneOn: n ? '' : DAY + '/1' })))
-  .concat([{ title: 'Shower', repeat: '8h', minutes: 10, place: 'home' }, { title: 'Brush teeth', repeat: '8h', minutes: 3, place: 'home', before: ['meal'] }]);
+  .concat([{ title: 'Shower', repeat: '8h', minutes: 10, place: 'home' }, { title: 'Brush teeth', repeat: '8h', minutes: 6, place: 'home', before: ['meal'] }]);
 const at = (P, L, hm) => P.dkSort_(L, DAY + ' ' + (hm || '07:30'), []).open;
 const pos = (L, o, t) => o.indexOf(L.findIndex(x => x.title === t));
 const names = (L, o) => o.map(i => L[i].title).join('|');
@@ -25,6 +25,8 @@ const RULES = [
     return b >= 0 && MEALS.slice(1).every(t => pos(L, o, t) > b); }],
   ['a slot named in any case ("carbs", "DAIRY") is gone before; each pulled up just ahead of its slot, the rest in place', P => { const L = LIST(); L[8].before = ['carbs']; L[7].before = ['DAIRY'];
     const o = at(P, L); return pos(L, o, 'Brush teeth') < pos(L, o, 'Carbs') && pos(L, o, 'Shower') < pos(L, o, 'Dairy') && names(L, o) === 'Glass of water|Prayer|Brush teeth|Carbs|Shower|Dairy|Veg|Fruit'; }],
+  ['with every meal slot open: the wake items, brush teeth (6 minutes, before: meal), then the meal slots (5), then the rest', P => { const L = LIST(); L[2].doneOn = '';
+    return names(L, at(P, L)) === 'Glass of water|Prayer|Brush teeth|Protein|Carbs|Dairy|Veg|Fruit|Shower'; }],
   ['a constraint never lifts an item above the wake items', P => { const L = LIST(); L[8].before = ['meal', 'Glass of water', 'Prayer'];
     const o = at(P, L); return pos(L, o, 'Glass of water') === 0 && pos(L, o, 'Prayer') === 1 && pos(L, o, 'Brush teeth') === 2; }],
   ['a cycle lists both, every item once, in the same order each time', P => { const L = LIST(); L[7].before = ['Brush teeth']; L[8].before = ['Shower'];
@@ -32,7 +34,7 @@ const RULES = [
     return pos(L, a, 'Shower') >= 0 && pos(L, a, 'Brush teeth') >= 0 && a.length === new Set(a).size && a.length === 8 && names(L, a) === names(L, b); }],
   ['a ticked target binds nothing: the order is as without it', P => { const L = LIST(), M = LIST(); L[7].before = ['Protein']; L[7].minutes = 30; M[7].minutes = 30;
     return names(L, at(P, L)) === names(M, at(P, M)) && pos(L, at(P, L), 'Shower') > pos(L, at(P, L), 'Fruit'); }],
-  ['with no before anywhere, the plan is the plan: wake (fewest minutes first), the begun meal, home by minutes', P => { const L = LIST(); delete L[8].before;
+  ['with no before anywhere, the plan is the plan: wake items (fewest minutes first), then the fewest minutes first, place no matter', P => { const L = LIST(); delete L[8].before;
     return names(L, at(P, L)) === 'Glass of water|Prayer|Carbs|Dairy|Veg|Fruit|Brush teeth|Shower'; }],
 ];
 const MUTS = [

@@ -4,7 +4,7 @@
    is run as served, over backend/cards-gen.gs's copies of the order (dkSort_ and the rest), on a made-up one-list day, against js/map.js's own
    dkNowNextOf_/dkSay_. Counted: reads with no, an empty, a wrong and a short token, the read at three clock times, "done shower", "done zebra",
    "add milk" (into the one list, `list` ignored), several in one `what` (26 Nov, Siri: "water, protein and floss" — commas, and, &, plus,
-   new lines; each its best match; one already done this third said so, not re-ticked; one sentence back), each multi rule proved by mutating the served
+   new lines; each its best match; one already done this cycle said so, not re-ticked; one sentence back), each multi rule proved by mutating the served
    docketAnswer_; one wrong fails the build. */
 'use strict';
 const SD = require('./lib/site-data.js');
@@ -16,7 +16,7 @@ const constOf = (src, name, file) => { const m = new RegExp('\\nconst ' + name +
 const lineOf = (src, name, file) => { const m = new RegExp('\\nconst ' + name + ' = .*;\\n').exec(src);
   if (!m) throw new Error('docket-address: no const ' + name + ' in ' + file); return m[0]; };
 const text_ = SD.textOf();
-const ORDER = ['dkMin_', 'dkIso_', 'dkEv_', 'dkRep_', 'dkOn_', 'dkIsDone_'], FNS = ['clashDays_', 'clashMin_', 'dkOccur_', 'dkSlot_', 'dkSort_', 'dkLeaves_', 'dkOption_', 'dkTitle_', 'dkWhen_', 'dkNowNextOf_', 'dkSay_', 'dkMatch_', 'dkTick_'];
+const ORDER = ['dkMin_', 'dkIso_', 'dkEv_', 'dkRep_', 'DK_CYCLE', 'dkOn_', 'dkIsDone_'], FNS = ['clashDays_', 'clashMin_', 'dkOccur_', 'dkSlot_', 'dkSort_', 'dkLeaves_', 'dkOption_', 'dkTitle_', 'dkWhen_', 'dkNowNextOf_', 'dkSay_', 'dkMatch_', 'dkTick_'];
 /* THE BACKEND, AS SERVED: one owner, one todo cell, one token; a save writes the cell. */
 function backend(state, mut) {
   const gen = text('backend/cards-gen.gs'), be = (mut || (x => x))(text('backend/post-account.gs')), G = 'backend/post-account.gs';
@@ -58,8 +58,8 @@ function run() {
     if (got !== refused || k.state.saves) bad.push('a read with ' + JSON.stringify(q) + ' was answered: ' + got);
   });
   if (ask(make('07:10'), { docket: TOKEN }) === refused) bad.push('the right token is refused');
-  /* THE READ SAYS WHAT THE SITE SHOWS, at three clock times (Shower is back in the second third). */
-  ['07:10', '10:00', '17:30'].forEach(at => {
+  /* THE READ SAYS WHAT THE SITE SHOWS, at three clock times (Shower is back in the 12:00 cycle). */
+  ['07:10', '13:00', '18:30'].forEach(at => {
     const k = make(at), want = S.dkSay_(S.dkNowNextOf_(ITEMS(), DAY + ' ' + at)), got = ask(k, { docket: TOKEN }); n++;
     if (got !== want || k.state.saves) bad.push(at + ': the address says "' + got + '", the site "' + want + '"');
   });
@@ -71,33 +71,33 @@ function run() {
     const lone = make('09:30', [{ name: 'Docket', items: [{ title: 'Laundry', repeat: '8h', minutes: 5, runs: 60, stay: true, place: 'home' }, { title: 'Floss', repeat: '8h', minutes: 2 }] }]);
     if (ask(k, { docket: TOKEN }) !== 'Docket: Floss next, 3 left.' || ask(lone, { docket: TOKEN }) !== 'Docket: Laundry next, 2 left.') bad.push('the address does not read the owner\'s leave times'); }
   /* THE SAME ORDER WITHIN NOW (runs, the minutes it runs by itself, most first): the address names the laundry first. */
-  { const k = make('10:00', [{ name: 'Docket', items: [{ title: 'Floss', repeat: '8h' }, { title: 'Laundry', repeat: '8h', runs: 60 }, { title: 'Charge batteries', repeat: '8h', runs: 120 }] }]); n++;
+  { const k = make('13:00', [{ name: 'Docket', items: [{ title: 'Floss', repeat: '8h' }, { title: 'Laundry', repeat: '8h', runs: 60 }, { title: 'Charge batteries', repeat: '8h', runs: 120 }] }]); n++;
     if (ask(k, { docket: TOKEN }) !== 'Docket: Charge batteries next, 3 left.') bad.push('the address does not put the longest-running Now item first'); }
-  /* "DONE SHOWER" at 10:00: the shower is ticked for this third, saved, and the answer is the new order. */
-  { const k = make('10:00'); n++;
+  /* "DONE SHOWER" at 13:00: the shower is ticked for this cycle, saved, and the answer is the new order. */
+  { const k = make('13:00'); n++;
     const got = ask(k, { docket: TOKEN, do: 'done', what: 'Shower' }), sh = items(k).find(i => i.title === 'Shower');
     const want = text_('dk-say-ticked', { title: 'Shower' });
     if (!sh || sh.doneOn !== DAY + '/2' || k.state.saves !== 1 || got !== want) bad.push('"done shower" did not tick the shower: ' + got); }
   /* "DONE" WITH NOTHING THAT MATCHES: nothing ticked, nothing saved. */
-  { const k = make('10:00'); n++;
+  { const k = make('13:00'); n++;
     if (ask(k, { docket: TOKEN, do: 'done', what: 'zebra' }).indexOf(text_('dk-say-no-match', { what: 'zebra' })) !== 0 || k.state.saves) bad.push('"done zebra" ticked something'); }
   /* SEVERAL IN ONE `what` (Siri, 26 Nov): each rule a function of a mutation of the served source; every mutation must break at least one. */
   const AND = text_('dk-say-and'), T = t => text_('dk-say-ticked', { title: t }), A = t => text_('dk-say-already', { title: t }), N = w => text_('dk-say-no-match', { what: w });
   const DAY8 = () => [{ title: 'Water', repeat: '8h' }, { title: 'Protein', repeat: '8h' }, { title: 'Floss', repeat: '8h' }, { title: 'Shower', repeat: '8h', doneOn: DAY + '/2' }, { title: 'Read a made-up book' }];
   const MULTI = [
-    ['commas and "and": three ticked, one sentence', mut => { const k = make('10:00', [{ name: 'Docket', items: DAY8() }], mut), got = ask(k, { docket: TOKEN, do: 'done', what: 'water, protein and floss' });
+    ['commas and "and": three ticked, one sentence', mut => { const k = make('13:00', [{ name: 'Docket', items: DAY8() }], mut), got = ask(k, { docket: TOKEN, do: 'done', what: 'water, protein and floss' });
       return got === T('Water, Protein ' + AND + ' Floss') && items(k).slice(0, 3).every(i => i.doneOn === DAY + '/2') && k.state.saves === 1; }],
-    ['&, plus and a new line split too', mut => { const k = make('10:00', [{ name: 'Docket', items: DAY8() }], mut), got = ask(k, { docket: TOKEN, do: 'done', what: 'water & protein plus book\nfloss' });
+    ['&, plus and a new line split too', mut => { const k = make('13:00', [{ name: 'Docket', items: DAY8() }], mut), got = ask(k, { docket: TOKEN, do: 'done', what: 'water & protein plus book\nfloss' });
       return got === T('Water, Protein, Read a made-up book ' + AND + ' Floss') && items(k)[4].done === true; }],
-    ['one not found is named, the rest ticked', mut => { const k = make('10:00', [{ name: 'Docket', items: DAY8() }], mut), got = ask(k, { docket: TOKEN, do: 'done', what: 'water and flos' });
+    ['one not found is named, the rest ticked', mut => { const k = make('13:00', [{ name: 'Docket', items: DAY8() }], mut), got = ask(k, { docket: TOKEN, do: 'done', what: 'water and flos' });
       return got === T('Water') + ' ' + N('flos') && !items(k)[2].doneOn && k.state.saves === 1; }],
-    ['already done this third: said so, not re-ticked, nothing saved', mut => { const k = make('10:00', [{ name: 'Docket', items: DAY8() }], mut), got = ask(k, { docket: TOKEN, do: 'done', what: 'shower' });
+    ['already done this cycle: said so, not re-ticked, nothing saved', mut => { const k = make('13:00', [{ name: 'Docket', items: DAY8() }], mut), got = ask(k, { docket: TOKEN, do: 'done', what: 'shower' });
       return got === A('Shower') && k.state.saves === 0; }],
-    ['done last third counts as open again', mut => { const k = make('17:30', [{ name: 'Docket', items: DAY8() }], mut), got = ask(k, { docket: TOKEN, do: 'done', what: 'shower' });
+    ['done last cycle counts as open again', mut => { const k = make('18:30', [{ name: 'Docket', items: DAY8() }], mut), got = ask(k, { docket: TOKEN, do: 'done', what: 'shower' });
       return got === T('Shower') && items(k)[3].doneOn === DAY + '/3'; }],
-    ['the same thing twice: ticked once, then already done', mut => { const k = make('10:00', [{ name: 'Docket', items: DAY8() }], mut), got = ask(k, { docket: TOKEN, do: 'done', what: 'water, shower and water' });
+    ['the same thing twice: ticked once, then already done', mut => { const k = make('13:00', [{ name: 'Docket', items: DAY8() }], mut), got = ask(k, { docket: TOKEN, do: 'done', what: 'water, shower and water' });
       return got === T('Water') + ' ' + A('Shower'); }],
-    ['nothing found at all: nothing saved', mut => { const k = make('10:00', [{ name: 'Docket', items: DAY8() }], mut), got = ask(k, { docket: TOKEN, do: 'done', what: 'zebra, yak' });
+    ['nothing found at all: nothing saved', mut => { const k = make('13:00', [{ name: 'Docket', items: DAY8() }], mut), got = ask(k, { docket: TOKEN, do: 'done', what: 'zebra, yak' });
       return got === N('zebra ' + AND + ' yak') && k.state.saves === 0; }],
   ];
   MULTI.forEach(([name, f]) => { n++; let ok = false; try { ok = f(); } catch (e) { ok = false; } if (!ok) bad.push('several in one what: ' + name); });
@@ -121,12 +121,12 @@ function run() {
       || k.state.saves !== 1 || got.indexOf(text_('dk-say-added', { title: 'milk', name: 'Docket' })) !== 0) bad.push('"add milk" did not add to the one list: ' + got); }
   /* do=list (the desk e-paper screen, tools/docket-screen): `docket-list`, then each item in the site's order, "- " the open and later, "! " the missed (last);
      nothing saved; a wrong token is still refused (the screen then keeps its last list). Two clock times and the all-done list. */
-  ['07:10', '17:30'].forEach(at => { const k = make(at), m = S.dkNowNextOf_(ITEMS(), DAY + ' ' + at); n++;
+  ['07:10', '18:30'].forEach(at => { const k = make(at), m = S.dkNowNextOf_(ITEMS(), DAY + ' ' + at); n++;
     const want = ['docket-list'].concat(m.rows.map(r => (r.missed ? '! ' : '- ') + r.title)).join('\n'), got = ask(k, { docket: TOKEN, do: 'list' });
     if (got !== want || k.state.saves || !/^docket-list\n- [\s\S]*\n! Made-up late$/.test(got)) bad.push(at + ': do=list says ' + JSON.stringify(got) + ', the site ' + JSON.stringify(want)); });
-  { const k = make('10:00', [{ name: 'Docket', items: [{ title: 'Done one', done: true, doneOn: DAY }] }]); n++;
+  { const k = make('13:00', [{ name: 'Docket', items: [{ title: 'Done one', done: true, doneOn: DAY }] }]); n++;
     if (ask(k, { docket: TOKEN, do: 'list' }) !== 'docket-list') bad.push('do=list with nothing open is not the heading alone'); }
-  { n++; if (ask(make('10:00'), { docket: 'x'.repeat(64), do: 'list' }) !== refused) bad.push('do=list answered a wrong token'); }
+  { n++; if (ask(make('13:00'), { docket: 'x'.repeat(64), do: 'list' }) !== refused) bad.push('do=list answered a wrong token'); }
   /* do=options IS GONE: it reads as a plain read, changing nothing. */
   { const k = make('07:10'); n++;
     if (ask(k, { docket: TOKEN, do: 'options' }) !== ask(make('07:10'), { docket: TOKEN }) || k.state.saves) bad.push('do=options still answers something of its own'); }

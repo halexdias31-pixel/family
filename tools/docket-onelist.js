@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* @family. — tools/docket-onelist.js THE DOCKET IS ONE LIST, NAMES ONLY (rule 1.75, 1.82; owner 25 Nov night: "simplest, most stable").
-   (1) THE THIRDS: js/map.js dkOn_/dkIsDone_/dkTick_, run as served on a made-up list: an 8h item ticked in one third is back in the next, a one-off
+   (1) THE CYCLES (06:00, 12:00, 18:00; owner 28 Nov): js/map.js dkOn_/dkIsDone_/dkTick_, as served on a made-up list: an 8h item ticked in one cycle is back in the next, a one-off
    keeps its tick and day; each rule proved by mutating the served source. (The order itself is the plan's, owner 27 Nov: tools/docket-plan.js.)
    (2) THE ONE-OFF JOB: backend/access.gs docketOneList25NovRun_ in the backend vm on a made-up two-list docket: one list "Docket", cycle items first,
    each item only title, repeat ('8h'), date and done state ("10-minute tidy" renamed "Tidy room"; a slot item its options' names only, 27 Nov; the cell's `slots` gone); the backup
@@ -28,21 +28,24 @@ function world(docket, extra) {
 const sorter = src => {
   const c = n => { const m = new RegExp('\\nconst ' + n + ' = (.*);\\n').exec(src); if (!m) throw new Error('docket-onelist: no ' + n + ' in js/map.js'); return 'const ' + n + ' = ' + m[1] + ';\n'; };
   const f = n => { const m = new RegExp('\\nfunction ' + n + '\\([^)]*\\) \\{[\\s\\S]*?\\n\\}\\n').exec(src); if (!m) throw new Error('docket-onelist: no ' + n + ' in js/map.js'); return m[0]; };
-  return new Function(c('dkMin_') + c('dkIso_') + c('dkEv_') + c('dkRep_') + c('dkOn_') + c('dkIsDone_') + f('dkOccur_') + f('dkSlot_') + f('dkTick_') + f('dkOption_') + 'return { dkTick_, dkIsDone_ };')();
+  return new Function(c('dkMin_') + c('dkIso_') + c('dkEv_') + c('dkRep_') + c('DK_CYCLE') + c('dkOn_') + c('dkIsDone_') + f('dkOccur_') + f('dkSlot_') + f('dkTick_') + f('dkOption_') + 'return { dkTick_, dkIsDone_ };')();
 };
 const LIST = () => [{ title: 'Undated A' }, { title: 'Cycle B', repeat: '8h', doneOn: DAY + '/1' }, { title: 'Cycle C', repeat: '8h', doneOn: DAY + '/2' },
   { title: 'Later D', date: '2026-12-01' }, { title: 'Soon E', date: '2026-11-28' }, { title: 'Late F', date: '2026-11-20' }, { title: 'Late G', date: '2026-11-01' },
   { title: 'Done H', done: true, doneOn: DAY }, { title: 'Undated I' }, { title: 'Today J', date: DAY }, { title: 'Cycle K', repeat: '8h' }, { title: 'Cycle L', repeat: '8h', runs: 60 }, { title: 'Cycle M', repeat: '8h', runs: 120 }];
 const T = (items, ix) => ix.map(i => items[i].title).join('|');
 const ORDER_RULES = [
-  ['an 8h item ticked in the second third is done there, back in the next (16:00); the ticked one-off stays done', Sx => { const L = LIST();
-    return Sx.dkIsDone_(L[2], DAY + ' 10:00') && !Sx.dkIsDone_(L[2], DAY + ' 16:00') && !Sx.dkIsDone_(L[1], DAY + ' 10:00') && Sx.dkIsDone_(L[7], DAY + ' 23:00') && !Sx.dkIsDone_(L[0], DAY + ' 10:00'); }],
-  ['a tick at 10:00 marks the 8h item for the second third, and an untick clears it', Sx => { const L = LIST(); Sx.dkTick_(L, 10, true, DAY + ' 10:00');
-    const ok = L[10].doneOn === DAY + '/2' && Sx.dkIsDone_(L[10], DAY + ' 15:59') && !Sx.dkIsDone_(L[10], DAY + ' 16:00'); Sx.dkTick_(L, 10, false, DAY + ' 10:00'); return ok && !L[10].doneOn; }],
+  ['an 8h item ticked in the 12:00 cycle is done there, back at 18:00; one of the 06:00 cycle is open at 13:00; the ticked one-off stays done', Sx => { const L = LIST();
+    return Sx.dkIsDone_(L[2], DAY + ' 13:00') && !Sx.dkIsDone_(L[2], DAY + ' 18:00') && !Sx.dkIsDone_(L[1], DAY + ' 13:00') && Sx.dkIsDone_(L[7], DAY + ' 23:00') && !Sx.dkIsDone_(L[0], DAY + ' 10:00'); }],
+  ['the cycles start at 06:00, 12:00, 18:00: ticked at 11:59 it is open again at 12:00; ticked at 18:30 it stays done until 06:00; an untick clears it', Sx => { const L = LIST();
+    Sx.dkTick_(L, 10, true, DAY + ' 11:59'); const a = L[10].doneOn === DAY + '/1' && Sx.dkIsDone_(L[10], DAY + ' 11:59') && !Sx.dkIsDone_(L[10], DAY + ' 12:00');
+    Sx.dkTick_(L, 10, true, DAY + ' 18:30'); const b = L[10].doneOn === DAY + '/3' && Sx.dkIsDone_(L[10], '2026-11-26 05:59') && !Sx.dkIsDone_(L[10], '2026-11-26 06:00');
+    Sx.dkTick_(L, 10, false, DAY + ' 18:30'); return a && b && !L[10].doneOn; }],
   ['a one-off tick sets done and the day', Sx => { const L = LIST(); Sx.dkTick_(L, 0, true, DAY + ' 10:00'); return L[0].done === true && L[0].doneOn === DAY; }],
 ];
 const ORDER_MUTS = [
-  ['a third is twelve hours', s => s.replace('Math.floor((h >= 0 && h < 24 ? h : 0) / 8)', 'Math.floor((h >= 0 && h < 24 ? h : 0) / 12)')],
+  ['the first cycle at 08:00', s => s.replace("const DK_CYCLE = ['06:00', '12:00', '18:00'];", "const DK_CYCLE = ['08:00', '12:00', '18:00'];")],
+  ['a new cycle at midnight', s => s.replace("if (n) return now.slice(0, 10) + '/' + n;", "return now.slice(0, 10) + '/' + n;")],
   ['an 8h item done all day', s => s.replace("const dkIsDone_ = (i, now) => (dkRep_(i) ? i.doneOn === dkOn_(now)", "const dkIsDone_ = (i, now) => (dkRep_(i) ? String(i.doneOn || '').slice(0, 10) === String(now).slice(0, 10)")],
   ['a one-off tick without its day', s => s.replace("it.doneOn = on ? String(now).slice(0, 10) : '';", "it.doneOn = '';")],
   ['an 8h untick left ticked', s => s.replace("if (dkRep_(it)) it.doneOn = on ? dkOn_(now) : '';", "if (dkRep_(it)) it.doneOn = dkOn_(now);")],

@@ -55,7 +55,7 @@ const TAKE = [
   /* THE RULES' ONE SHAPE (496): core.gs `rulesClean_` is its length cap and this; `RULE_OF_` is core.gs's, off RULE_IDS/RULES_LOCKED. */
   ['js/rules.js', ['rulesSane_']],
   /* THE DOCKET'S ORDER (owner, 21 Nov; one list 25 Nov night): the private plain-text address (post-account.gs docketAddress_) sorts and says it as the site does. */
-  ['js/map.js', ['dkMin_', 'dkIso_', 'dkEv_', 'dkRep_', 'dkOn_', 'dkIsDone_', 'dkOccur_', 'dkSlot_', 'dkSort_', 'dkLeaves_', 'dkOption_', 'dkTitle_', 'dkWhen_', 'dkNowNextOf_', 'dkSay_', 'dkMatch_', 'dkTick_']],
+  ['js/map.js', ['dkMin_', 'dkIso_', 'dkEv_', 'dkRep_', 'DK_CYCLE', 'dkOn_', 'dkIsDone_', 'dkOccur_', 'dkSlot_', 'dkSort_', 'dkLeaves_', 'dkOption_', 'dkTitle_', 'dkWhen_', 'dkNowNextOf_', 'dkSay_', 'dkMatch_', 'dkTick_']],
   ['js/predicates-fig.js', ['FIG_WORDS', 'FIG_NOT_WORDS', 'figWords_', 'figPictured_', 'figUndrawn_']],
 ];
 /* THE EMAIL'S COLOURS, FROM style.css `:root` (20 Nov): DIGEST_INK, each email name as the token it draws; `--email-*` where the email needs its own. */
