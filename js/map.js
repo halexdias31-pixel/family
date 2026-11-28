@@ -366,12 +366,12 @@ const DKF = { edit: -1 };
    a later one's "· from 09:00"), in the plan's order (dkSort_): the open, then the later; tapping a line (the one fold, js/cards-render.js cardFold_) shows
    a slot's every option (a tap ticks that one), Edit (its name) and Delete; the missed fold into one "Missed — new date? (n)" line, the ticked into one
    "Done (n)" line at the foot; then the quick add (an undated one-off). Plain rows, thin lines (style.css .kc-fold). tools/docket-look.js checks it. */
-/* A STEP (owner, 28 Nov): "name", or "name" a new line and its note; an item's `steps` listed in order under it, a tap reads a step's note. */
+/* A STEP (owner, 28 Nov): "name", or "name" a new line and its note; an item's `steps` listed in order under it, each its name then its note in full,
+   always written out, no tap (owner, 28 Nov: "even if it looks ugly because it's so long"); the item is ticked once, as a whole. */
 const dkStep_ = s => { const t = String(s == null ? '' : s), k = t.indexOf('\n'); return k < 0 ? { name: t.trim(), note: '' } : { name: t.slice(0, k).trim(), note: t.slice(k + 1).trim() }; };
 function dkSteps_(it, i) {
-  return (Array.isArray(it.steps) ? it.steps : []).map(dkStep_).filter(x => x.name).map((x, n) => (x.note
-    ? cardFold_('dk:' + i + ':' + n, { type: 'text', look: 'dk-step', text: (n + 1) + '. ' + x.name }, [{ type: 'text', look: 'note', text: x.note }], 'dk-step')
-    : { type: 'text', look: 'dk-step', text: (n + 1) + '. ' + x.name }));
+  return (Array.isArray(it.steps) ? it.steps : []).map(dkStep_).filter(x => x.name).map((x, n) => [{ type: 'text', look: 'dk-step', text: (n + 1) + '. ' + x.name }]
+    .concat(x.note ? [{ type: 'text', look: 'note', text: x.note }] : [])).flat();
 }
 /* A STANDING LINE: its words alone, no tick box, a tap folds out its steps or note if any. */
 function dkStandLine_(i) {

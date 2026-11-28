@@ -4,7 +4,7 @@
        runs, place) and a title met twice merged, the richer kept; any write of the `todo` cell folds the same (core.gs setCell); a one-list save is
        stored as sent. The job docketOneList28NovRun_ folds the owner's two-list cell keeping course/weight/minutes and the slots; backup first; a
        re-run a no-op; MIGRATIONS runs it before docket-plan-27nov.
-   (2) STEPS AND STANDING, js/map.js as served: a stepped item lists its steps in order under it (a step's note behind a tap) and is ticked once, as a
+   (2) STEPS AND STANDING, js/map.js as served: a stepped item lists its steps in order under it (each step's note written out in full under its name, no tap) and is ticked once, as a
        whole, its 8h repeat as before; a standing line is above everything, never open, never ticked, never in Done; kinds.json declares both.
    (3) THE PRAYER JOB, docketPrayer28NovRun_ with made-up keys: one item of steps in the given order, each option's note kept, the reading item gone, the
        three standing lines, the empty slot gone, still 8h and wake; a re-run a no-op; MIGRATIONS runs it after the one list.
@@ -59,8 +59,9 @@ const stepsOf = js => new Function('cardFold_', constOf(js, 'dkStep_') + fnOf(js
 const SL = () => [{ title: 'Made-up stepped', repeat: '8h', anchor: 'wake', minutes: 5, steps: ['Made-up first\nmade-up note one', 'Made-up second', 'Made-up third\nnote three'] },
   { title: 'Made-up standing', standing: true, done: true, doneOn: DAY }, { title: 'Made-up shower', repeat: '8h', minutes: 10 }];
 const STEP_RULES = [
-  ['a stepped item lists its steps in order, a note behind a tap', (P, S) => { const b = S(SL()[0], 0), w = x => (x.head ? x.head.text : x.text);
-    return b.length === 3 && w(b[0]) === '1. Made-up first' && b[0].kids[0].text === 'made-up note one' && w(b[1]) === '2. Made-up second' && !b[1].kids && w(b[2]) === '3. Made-up third'; }],
+  ['a stepped item lists its steps in order, each step\'s note shown in full right under its name, no tap', (P, S) => { const b = S(SL()[0], 0);
+    return b.length === 5 && b.every(x => !x.head && !x.kids && x.type === 'text') && b.map(x => x.text).join('|') === '1. Made-up first|made-up note one|2. Made-up second|3. Made-up third|note three'
+      && b[1].look === 'note' && b[0].look === 'dk-step'; }],
   ['a stepped item is ticked once, as a whole, and back next third', (P) => { const L = SL(); P.dkTick_(L, 0, true, DAY + ' 07:30');
     const g = P.dkSort_(L, DAY + ' 07:35', []); return g.done.indexOf(0) >= 0 && g.open.indexOf(0) < 0 && P.dkSort_(L, DAY + ' 16:00', []).open.indexOf(0) === 0; }],
   ['a standing line is on top, never open, never ticked, never in Done', (P) => { const L = SL(), g = P.dkSort_(L, DAY + ' 07:30', []);
@@ -69,6 +70,8 @@ const STEP_RULES = [
 const STEP_MUTS = [
   ['steps reversed', s => s.replace(".filter(x => x.name).map((x, n) =>", ".filter(x => x.name).reverse().map((x, n) =>")],
   ['note dropped', s => s.replace("[{ type: 'text', look: 'note', text: x.note }]", '[]')],
+  ['note behind a tap', s => s.replace("x.note ? [{ type: 'text', look: 'note', text: x.note }] : []", "x.note ? [cardFold_('dk:' + i + ':' + n, { type: 'text', look: 'dk-step', text: 'more' }, [{ type: 'text', look: 'note', text: x.note }], 'dk-step')] : []")],
+  ['ticked per step', s => s.replace("[{ type: 'text', look: 'dk-step', text: (n + 1) + '. ' + x.name }]", "[{ type: 'tick', text: (n + 1) + '. ' + x.name }]")],
   ['standing open', s => s.replace('    if (it.standing === true) return g.standing.push(i);\n', '')],
   ['standing tickable', s => s.replace('if (!it || it.standing === true) return false;', 'if (!it) return false;')],
   ['standing not drawn first', s => s.replace('body: g.standing.map(i => dkStandLine_(i)).concat(g.open.map(i => dkLine_(i)))', 'body: g.open.map(i => dkLine_(i)).concat(g.standing.map(i => dkStandLine_(i)))')],
