@@ -75,7 +75,8 @@ function postGetProfile_(body, action, began) {
 /* WHICH PACKED AND OWN-TAB GROUPS THE FORM SENT, each only when this editor may write it. */
 function profileSent_(fields, allowed, sent, HOUR) {
   const availSent = sent(HOUR);
-  const libSent   = sent(LIBRARY_FIELD) && LIBRARY_FIELDS.some(f => allowed.indexOf(f) !== -1);
+  /* THE LIBRARY CARDS ARE ARCHIVE ENTRIES (owner, 27 Nov): a stale phone's lib boxes are never written. */
+  const libSent   = false;
   const qualsSent = sent(QUAL_FIELD) && QUAL_FIELDS.some(f => allowed.indexOf(f) !== -1);
   const phoneSent = sent(PHONE_FIELD) && allowed.indexOf('phone') !== -1;
   const dobSent   = sent(DOB_FIELD) && allowed.indexOf('date_of_birth') !== -1;
@@ -114,8 +115,7 @@ function profileColumnsNo_(has, venueTab, availSent, phoneSent, dobSent, photosS
     return text_('err-no-column-admin', { cols: packedMissing.join(', ') });
   }
   /* QUALIFICATIONS AND LIBRARY CARDS ARE ROWS ON TABS OF THEIR OWN now (see `SCHEMA.people`), so the question is whether the TAB is there — a tab `ensureSchema` § */
-  const tabMissing = [qualsSent && !read(TAB.qualifications).sheet && 'qualifications',
-                      libSent && !read(TAB.library_cards).sheet && 'library_cards'].filter(Boolean);
+  const tabMissing = [qualsSent && !read(TAB.qualifications).sheet && 'qualifications',].filter(Boolean);
   if (tabMissing.length) {
     return ('The spreadsheet has no tab called: ' + tabMissing.join(', ')
       + '. Open the site once as an admin to make it — nothing was saved.');
@@ -202,7 +202,6 @@ function profilePut_(r, t, fields, wanted, priceAsked, mailPlan, mailKey, availS
 function profileBeside_(r, fields, wrote, venueTab, qualsSent, libSent) {
   let rowsMoved = 0;
   if (qualsSent) rowsMoved += writeOwnRows_(TAB.qualifications, S(r.person_id), qualsIn(fields), QUAL_COLS).changed;
-  if (libSent) rowsMoved += writeOwnRows_(TAB.library_cards, S(r.person_id), libCardsIn(fields), LIB_COLS).changed;
   /* AND THE VENUES, AFTER THE ROW, so a refusal above has already stopped both. Only the venue
      cells that actually change are written. */
   if (venueTab) {
@@ -378,10 +377,6 @@ function profileMailSaid_(out, mail, r, adminEditing) {
     out.said = 'Saved. Your email stays ' + S(r.email) + ', and the link we sent to ' + S(moving.to)
              + ' no longer does anything.';
   }
-}
-
-function postSaveNotepad_(body, action, began) {
-  return postSavePerson_(body, 'notepad', S(body.notepad));
 }
 
 /* ---------- `redeem` WAS HERE — A PRINTED PAPER FOR A THOUSAND TICKS § */

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-/* @family. — tools/one-list-kind.js THE ONE LIST KIND (rule 1.75, owner 22 Nov: UNIFY NEXT 6): the owner's own lists (Docket, Tasks, Food; Assignments
+/* @family. — tools/one-list-kind.js THE ONE LIST KIND (rule 1.75, owner 22 Nov: UNIFY NEXT 6): the owner's own lists (Docket, Tasks, Food, Archive (owner 27 Nov); Assignments
    went into the Docket, owner 27 Nov) are one list kind, declared as kinds.json `list`, each item an Item.
-   (a) DECLARED: exactly those three kinds have a `list`, each of shape Item with its fields; a Docket to-do marked noAI stays tracked only (no generative AI).
+   (a) DECLARED: exactly those four kinds have a `list`, each of shape Item with its fields; a Docket to-do marked noAI stays tracked only (no generative AI).
    (b) SAVED THROUGH THE ONE TIDY (tools/lib/backend-vm.js): every route that writes a list (saveTodo, docketImport, the private address, the
        migration, an `item` write of a task or food row) reaches post-account.gs listTidy_ for its kind, and no other item
        tidy is left (assignmentsTidy_, docketPlanTidy_, docketPlanOf_). Run in the vm: a made-up docket (an event and a moved assignment among it) tidied twice comes back the same.
@@ -13,7 +13,7 @@ const { text, report, main, bare } = require('./lib/gen.js');
 const SD = require('./lib/site-data.js');
 const BV = require('./lib/backend-vm.js');
 
-const KINDS = ['docket', 'task', 'food'];
+const KINDS = ['docket', 'task', 'food', 'archive'];
 const fnOf = (src, name) => { const m = new RegExp('\\n(?:function ' + name + '\\([^)]*\\) \\{|const ' + name + ' = )[\\s\\S]*?\\n\\}?\\n(?=\\S|$)').exec(src); return m ? m[0] : ''; };
 
 function run() {
@@ -58,7 +58,7 @@ function run() {
   if (JSON.parse(asg)[0].course !== 'COURSE1' || JSON.parse(asg)[0].weight !== 40) bad.push('a moved assignment save lost its course or weight');
   if (JSON.parse(asg)[0].noAI !== true) bad.push('a moved assignment save lost its noAI mark');
   if (JSON.parse(asg)[1].start !== '2026-12-02T18:00' || JSON.parse(asg)[1].moved[0] !== '2026-12-16T18:00=2026-12-17T19:00') bad.push('an event save lost its start or a moved occurrence');
-  ['task', 'food'].forEach(k => { const row = k === 'task' ? { title: 'Call the vet', due: '2026-11-25', done: 'no' } : { name: 'Rice', meal: 'dinner', price: '1.20' };
+  ['task', 'food', 'archive'].forEach(k => { const row = k === 'task' ? { title: 'Call the vet', due: '2026-11-25', done: 'no' } : k === 'archive' ? { title: 'Made-up card', fields: 'Card number: 000', text: '' } : { name: 'Rice', meal: 'dinner', price: '1.20' };
     if (JSON.stringify(C.listTidy_(k, [row], 'as-is')[0]) !== JSON.stringify(row)) bad.push('a ' + k + ' row in shape is changed by listTidy_'); });
   KINDS.forEach(k => { if (!seen[k]) bad.push(k + ' never reached listTidy_'); });
 
@@ -66,7 +66,7 @@ function run() {
   const js = text('js/map.js'), jsBare = bare(js, { comments: true });
   if (!/trackOnly/.test(fnOf(js, 'dkLine_'))) bad.push('js/map.js dkLine_ does not say a tracked-only (noAI) to-do');
   if (!/shapeCard_\('docket'/.test(fnOf(js, 'dkCard_'))) bad.push("js/map.js dkCard_ does not draw through shapeCard_('docket')");
-  ['task', 'food'].forEach(k => { if (((K[k] || {}).find || {}).from !== 'store') bad.push(k + ' is not drawn by the store card (find.from: store)'); });
+  ['task', 'food', 'archive'].forEach(k => { if (((K[k] || {}).find || {}).from !== 'store') bad.push(k + ' is not drawn by the store card (find.from: store)'); });
   const groups = (jsBare.match(/look: 'dk-item'/g) || []).length;
   if (groups) bad.push('js/map.js writes ' + groups + " `dk-item` groups of its own");
   require('fs').readdirSync(require('path').join(require('./lib/gen.js').ROOT, 'js')).filter(f => f !== 'map.js' && f !== 'kinds.js' && f.endsWith('.js')).forEach(f => {
