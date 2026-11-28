@@ -135,7 +135,7 @@ function dkTick_(items, i, on, now, pick) {
    was ticked this third; (2) a dated one-off whose latest start is before the time it would get if it waited behind every other open item (latest start
    first); (3) the unattended ones (`runs`, longest first); (4) the rest by place, home first and out last (one trip covers every out item), the fewest
    minutes first; (5) meal items; (6) bed items. Overdue is no reason to go first. Ties keep the list's order. The card, ?eink and the private address
-   (backend/cards-gen.gs copies this) all read this one plan. tools/docket-plan.js checks it. */
+   (backend/cards-gen.gs copies this) all read this one plan. Then `before` (below). tools/docket-plan.js and tools/docket-before.js check it. */
 function dkSort_(items, now, leaves) {
   now = String(now || '');
   items = items || [];
@@ -184,6 +184,16 @@ function dkSort_(items, now, leaves) {
     return [k, k === 2 ? last(it) : k === 3 ? -num(it.runs) : place(it), k === 2 || k === 3 ? 0 : num(it.minutes), i]; };
   const by = (a, b) => { const x = key(a), y = key(b); for (let n = 0; n < x.length; n++) if (x[n] !== y[n]) return x[n] - y[n]; return 0; };
   g.open.sort(by);
+  /* BEFORE (owner, 28 Nov: "Brush teeth has to go before breakfast"): an open item whose `before` names another open one (its title, any case, or
+     `meal` for every meal item) is placed ahead of it; everything else keeps the order above. A wake item while the day starts, and an event, stay on
+     top, never jumped. A ticked one is not open, so it binds nothing. Each in turn, in that order, comes after whatever must go before it (pulled
+     up just ahead of it, theirs ahead of them); a cycle is broken where it closes on itself, so both stay listed, each once. tools/docket-before.js. */
+  const nm = v => String(v == null ? '' : v).trim().toLowerCase(), must = (a, b) => { const A = items[a], B = items[b];
+    return a !== b && Array.isArray(A.before) && A.before.some(x => nm(x) === nm(B.title) || (nm(x) === 'meal' && anc(B) === 'meal')); };
+  const top = g.open.filter(i => tier(items[i]) <= 0), rest = g.open.filter(i => tier(items[i]) > 0), out = top.slice();
+  const put = (b, path) => { if (out.indexOf(b) >= 0 || path.indexOf(b) >= 0) return; rest.forEach(a => { if (must(a, b)) put(a, path.concat(b)); }); if (out.indexOf(b) < 0) out.push(b); };
+  rest.forEach(b => put(b, []));
+  g.open = out;
   g.later.sort((a, b) => (g.when[a] == null ? 1e9 : g.when[a]) - (g.when[b] == null ? 1e9 : g.when[b]) || a - b);
   return g;
 }
@@ -354,7 +364,7 @@ function dkLine_(i, when) {
     facts ? { type: 'text', look: 'note', text: facts } : null,
     track ? { type: 'text', look: 'note', text: track.say } : null,
     opts.length && !editing ? { type: 'tiles', tiles: opts.map(o => ({ label: o, act: 'dk-pick', cls: o === dkOption_(it) ? 'is-submit' : '', data: { at: i, pick: o } })) } : null,
-    editing ? { type: 'group', look: 'dk-form', inner: formOf_('docket-item', { title: it.title || '' }) } : null,
+    editing ? { type: 'group', look: 'dk-form', inner: formOf_('docket-item', { title: it.title || '', before: (Array.isArray(it.before) ? it.before : []).join(', ') }) } : null,
     { type: 'tiles', tiles: editing ? [{ icon: 'save', label: text_('save'), act: 'dk-fsave', cls: 'is-submit', data: { at: i } }, { icon: 'close', label: 'Close', act: 'dk-fedit', data: { at: i } }]
       : [{ icon: 'edit', label: 'Edit', act: 'dk-fedit', data: { at: i } }, { icon: 'bin', label: 'Delete', act: 'dk-fdel', tone: 'danger', data: { at: i } }] }].filter(Boolean), 'dk-line');
 }
@@ -389,6 +399,9 @@ on('dk-fedit', el => { const i = +el.getAttribute('data-at'); if (DKF.edit === i
 on('dk-fsave', el => { const it = dkLoad_()[+el.getAttribute('data-at')], card = el.closest('.card'), b = card && card.querySelector('[data-dke="title"]'), v = String((b && b.value) || '').trim();
   if (!it) return;
   if (v) it.title = v.slice(0, 300);
+  /* BEFORE: names, comma-separated (an item, a slot, or `meal`); none clears it. */
+  const bf = card && card.querySelector('[data-dke="before"]');
+  if (bf) { const a = String(bf.value || '').split(',').map(x => x.trim().slice(0, 300)).filter(Boolean).slice(0, 20); if (a.length) it.before = a; else delete it.before; }
   DKF.edit = -1; stepDone_(DKF.step, false); dkKeep_(); });
 /* A SLOT'S OPTION TAPPED: the item ticked with that option (dkTick_ records it). */
 on('dk-pick', el => { if (dkTick_(dkLoad_(), +el.getAttribute('data-at'), true, dkNow_(), el.getAttribute('data-pick') || '')) dkKeep_(); });

@@ -153,6 +153,37 @@ function docketPlan27NovRun_() {
   return said + ' (the old cell in ' + DK_PLAN_BACKUP + ')';
 }
 
+/* BRUSH TEETH BEFORE A MEAL (owner, 28 Nov: "Brush teeth has to go before breakfast"): the owner's item of that title (docketPlanKey_, any case) gets
+   `before: ["meal"]` (js/map.js dkSort_ places it ahead of every open meal item), only when it has no `before` yet; nothing else touched. Backup tab
+   first (the whole old cell), read back; the size cap; the cell read back. None to change is "nothing to do", so a re-run is a no-op. tools/docket-before.js. */
+const DK_BEFORE_BACKUP = 'backup_docket_before_28nov', DK_BEFORE_28NOV = [['b.4womvh'], ['meal']];
+function docketBefore28NovRun_() {
+  const t = read(TAB.people), me = t.rows.find(r => isOwner_(r));
+  if (!me) throw new Error('no owner found');
+  const was = S(me.todo);
+  let got = null; try { got = JSON.parse(was); } catch (e) { got = null; }
+  if (!got || !Array.isArray(got.lists) || got.lists.length !== 1 || S(got.lists[0] && got.lists[0].name) !== DK_ONE_LIST)
+    throw new Error('the docket is not yet the one list (docket-onelist-25nov first) - nothing changed');
+  let n = 0;
+  (Array.isArray(got.lists[0].items) ? got.lists[0].items : []).forEach(it => {
+    if (!it || DK_BEFORE_28NOV[0].indexOf(docketPlanKey_(it.title)) < 0 || (Array.isArray(it.before) && it.before.length) || S(it.before)) return;
+    it.before = DK_BEFORE_28NOV[1].slice(); n++;
+  });
+  if (!n) return 'nothing to do';
+  const cell = todoTidy_(JSON.stringify(got));
+  if (cell === was) return 'nothing to do';
+  const said = n + ' item(s) set to go before every meal';
+  const ss = t.sheet.getParent(), bk = ss.getSheetByName(DK_BEFORE_BACKUP) || ss.insertSheet(DK_BEFORE_BACKUP);
+  bk.appendRow([new Date(), was, said]);
+  if (S(bk.getRange(bk.getLastRow(), 2).getValue()) !== was) throw new Error('the backup did not read back - nothing changed');
+  if (cell.length > DOCKET_CELL_MAX) throw new Error('the docket would be ' + cell.length + ' characters, over ' + DOCKET_CELL_MAX + ' - nothing was saved');
+  if (!setCell(t, me, 'todo', cell)) throw new Error('the people tab has no todo column - nothing was saved');
+  clearCache();
+  const back = read(TAB.people).rows.find(r => isOwner_(r));
+  if (!back || S(back.todo) !== cell) throw new Error('the docket did not read back');
+  return said + ' (the old cell in ' + DK_BEFORE_BACKUP + ')';
+}
+
 /* ASSIGNMENTS INTO THE DOCKET (owner, 27 Nov: the one time list; "migrate the 6 existing assignments, don't drop them"): every person's `assignments` cell
    becomes to-dos at the end of their own one list ("Docket", made when missing): its title, its due day as `date`, its time as `until`, minutes from its
    words (ASG_WORDS_AN_HOUR), its course, weight, mark and noAI; a submitted or marked one ticked for good (done, no day, so it never leaves). A title
@@ -467,6 +498,11 @@ const MIGRATIONS = [
     retry: true,
     what: "every library card and notepad as an Archive entry of its person (backup tab first, the old values in it; then the old rows go)",
     run: () => archive28NovRun_() },
+  /* BEFORE (owner, 28 Nov): the owner's brush-teeth item goes before every meal (after the one list; backup tab first; a re-run a no-op). */
+  { id: 'docket-before-28nov',
+    retry: true,
+    what: "the owner's brush-teeth Docket item set to go before every meal (before: meal; only if it has none; backup tab first)",
+    run: () => docketBefore28NovRun_() },
 ];
 
 /* ---------- MOVING ROWS OUT OF THE ITEMS TAB, NEVER LOSING ONE (queue step 7, 22 Nov) ----------

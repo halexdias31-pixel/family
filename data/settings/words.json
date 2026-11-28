@@ -280,6 +280,7 @@
   "dk-all-done": "All done.",
   "dk-from": "from {at}",
   "dk-not-week": "not this week",
+  "dk-before": "Goes before (names, commas; meal = every meal)",
   "dk-missed": "Missed — new date?",
   "dk-say-what": "Say what, after what=.",
   "dk-addr-head": "Your private address",

@@ -1773,6 +1773,12 @@
       "say": "a slot's choices; the line shows the one least recently ticked (dkOption_)"
      },
      {
+      "f": "before",
+      "type": "titles",
+      "max": 300,
+      "say": "goes before these (owner, 28 Nov: brush teeth before breakfast): each an item's title, a slot's name, or `meal` for every meal item; the plan puts it ahead of each open one (js/map.js dkSort_)"
+     },
+     {
       "f": "picks",
       "type": "titles",
       "max": 100,
@@ -1871,12 +1877,17 @@
     "docket-item": {
      "draft": false,
      "attr": "data-dke",
-     "say": "a docket item's name (owner, 25 Nov night: names only): its Edit tile opens this form in its line, Save under it, saved whole through dkSave_.",
+     "say": "a docket item's name and what it goes before (owner, 25 Nov night: names only; 28 Nov: before): its Edit tile opens this form in its line, Save under it, saved whole through dkSave_.",
      "fields": [
       {
        "f": "title",
        "type": "text",
        "label": "title-2"
+      },
+      {
+       "f": "before",
+       "type": "text",
+       "label": "dk-before"
       }
      ]
     }
