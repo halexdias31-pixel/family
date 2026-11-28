@@ -488,7 +488,19 @@ function backendFetch_(body, o) {
   const asked = fetch(API + (o.query || ''), opt);
   return o.quiet ? Promise.resolve(asked).catch(() => null) : asked;
 }
+/* A GUEST'S WORK IS NOT KEPT (owner, 28 Nov: "normal access to everything. The only thing that doesn't happen is none of their work gets saved"):
+   signed out, a request the guest's tier is refused but the one a guest stands in for (settings.json `roles.guest.as`) or a member may make is
+   never sent: no error, no nag, the reply is empty. One rule, read from permissions.json, for every save (answers, progress, xp, docket, archive, bookings). */
+function guestUnkept_(b) {
+  if ((typeof USER === 'object' && USER) || !b || typeof can_ !== 'function' || typeof DATA !== 'object' || !DATA || !DATA.permissions) return false;
+  const G = ROLES_.guest || {}, as = G.as || 'child', me = G.tier || 'anyone';
+  if (G.keeps !== false) return false;
+  const it = b.action === 'item' && (b.item || b.kind) ? [['item', (b.item || b.kind) + ':' + (b.door === 'get' ? 'read' : b.door || 'save')]] : [];
+  const r = it.concat([['action', b.action]]).find(([kind, a]) => (DATA.permissions[kind] || {})[a]);
+  return !!r && !can_(me, r[0], r[1]) && (can_(as, r[0], r[1]) || can_('member', r[0], r[1]));
+}
 function api(body, opts) {
+  if (guestUnkept_(body)) return Promise.resolve({ ok: true, kept: false });
   /* ---------- THE TOKEN GOES ON EVERY REQUEST, FROM ONE PLACE § */
   const b = Object.assign({}, body);
   if (!b.token && typeof USER === 'object' && USER && USER.token) b.token = USER.token;

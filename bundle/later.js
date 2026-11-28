@@ -8142,7 +8142,7 @@ return ITEM_MEMO.items;
 const FUNNEL_NOT_FOR = [];
 function stuffItemsBuild_() {
 return stuffItemsAll_().filter(x => {
-if (!USER && (typeof ruleOn_ !== 'function' || ruleOn_('finder-members')) && typeof findSignedOut_ === 'function') return findSignedOut_(x);
+if (!USER && (typeof ruleOn_ !== 'function' || ruleOn_('finder-members')) && typeof findSignedOut_ === 'function' && !findSignedOut_(x)) return false;
 const g = asList_(x.groups || kindOf_(x).group);
 if (g.length && g.every(k => FUNNEL_NOT_FOR.indexOf(k) >= 0)) return false;
 if ((x.kind === 'question' || x.kind === 'insert') && typeof libShown_ === 'function' && !libShown_(x)) return false;
@@ -8454,7 +8454,8 @@ function doorItems_() {
 return [].concat(profileDoorItems_(), settingDoorItems_());
 }
 const guestDoors_ = () => typeof can_ !== 'function' ? [] : FRONT_ORDER.filter(d => d !== 'Learn' && PRACTICE_DOORS.indexOf(d) === -1 && can_('anyone', 'item', d.toLowerCase() + ':read'));
-function findSignedOut_(x) { const doors = guestDoors_(); return kindTop_(x) === 'Settings' || asList_(kindTop_(x)).some(t => doors.indexOf(t) !== -1) || x.kind === 'bookform' || (guestLibrary_() && libraryCard_(x)) || (guestPractice_() && practiceCard_(x)); }
+const guestKind_ = x => !!x && String((((ITEM_KINDS.kinds || {})[x.kind] || {}).see || {}).who || '').split(',').map(w => w.trim()).indexOf('anyone') !== -1;
+function findSignedOut_(x) { const doors = guestDoors_(); return guestKind_(x) || kindTop_(x) === 'Settings' || asList_(kindTop_(x)).some(t => doors.indexOf(t) !== -1) || x.kind === 'bookform' || (guestLibrary_() && libraryCard_(x)) || (guestPractice_() && practiceCard_(x)); }
 const guestPractice_ = () => typeof can_ === 'function' && can_('anyone', 'item', 'question:read');
 const PRACTICE_DOORS = ITEM_KINDS.doors.filter(d => d.practice).map(d => d.name);
 const practiceDoor_ = x => asList_(kindTop_(x)).some(t => PRACTICE_DOORS.indexOf(t) !== -1);

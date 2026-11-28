@@ -279,7 +279,7 @@
   {
    "id": "1.44",
    "principle": 1,
-   "text": "One Find, chips only; everything browsable is a card in it (Settings, Booking, Tools); signed out sees only Settings.",
+   "text": "One Find, chips only; everything browsable is a card in it (Settings, Booking, Tools); signed out sees what a student sees (1.84).",
    "since": "2026-11-12"
   },
   {
@@ -291,7 +291,7 @@
   {
    "id": "1.46",
    "principle": 1,
-   "text": "All learning content is free behind a free sign-in, with no age gates; the content is the source and tools follow from it.",
+   "text": "All learning content is free, signed in or not (1.84), with no age gates; the content is the source and tools follow from it.",
    "since": "2026-11-12"
   },
   {
@@ -574,6 +574,12 @@
    "principle": 1,
    "text": "Every button shown, no More (owner, 23 Nov: “I don’t like how there’s a button for more buttons. I hate it… I want all to display.”; replaces the 22 Nov six + More). Every question part shows all its buttons, the same set in the same order on every question: data/settings/qengine.json `buttons` is the one list, and a button a part cannot use there (no figure for the pen, a Non-calculator paper, signed out) is drawn greyed in its own place. Site-wide, no More, ⋯ or … button or menu hides actions on a card, a setting or a screen: every action is its own visible tile, and the tiles wrap like words to fit a 390px phone and an iPad, never scrolling sideways. tools/all-buttons.js fails the build on a More or a question whose buttons differ.",
    "since": "2026-11-23"
+  },
+  {
+   "id": "1.84",
+   "principle": 1,
+   "text": "A guest has normal access to everything, and nothing they do is kept (owner, 28 Nov: \"make sure guest has access to everything ... The only thing that doesn't happen is none of their work gets saved.\"). Signed out, a person sees and uses what a student does (settings.json `roles.guest.as`): every question, its answer and marking, practicals, projects, the library, the specification, videos, tools, and every kind kinds.json opens to `anyone`. Every request a guest's tier is refused but a student or member may make (answers, progress, xp, docket and archive saves, bookings) is simply not sent (js/shell-click.js `guestUnkept_`, read from permissions.json): no error, no nag, the result just isn't kept. What is private stays private: nobody's own data, no admin tools, no profile beyond what is public; and as a guest may be a child, a guest sees no price (`roles.may.prices`, 2.6). tools/guest-all.js checks it.",
+   "since": "2026-11-28"
   }
  ],
  "sweep": [

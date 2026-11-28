@@ -201,7 +201,9 @@ function doorItems_() {
    Profiles stay signed in — they hold children's names and words (rule: a child's data only to the child, parents, tutors, admins). */
 /* Each by its own permissions row, `item` <door>:read for `anyone` (actions.json); Library and Practice answer by card below, not by door. */
 const guestDoors_ = () => typeof can_ !== 'function' ? [] : FRONT_ORDER.filter(d => d !== 'Learn' && PRACTICE_DOORS.indexOf(d) === -1 && can_('anyone', 'item', d.toLowerCase() + ':read'));
-function findSignedOut_(x) { const doors = guestDoors_(); return kindTop_(x) === 'Settings' || asList_(kindTop_(x)).some(t => doors.indexOf(t) !== -1) || x.kind === 'bookform' || (guestLibrary_() && libraryCard_(x)) || (guestPractice_() && practiceCard_(x)); }
+/* AND EVERY KIND kinds.json opens to `anyone` (`see.who`; owner, 28 Nov: "normal access to everything"): the tutor directory, venues, levels, their prices hidden (roles.may.prices). */
+const guestKind_ = x => !!x && String((((ITEM_KINDS.kinds || {})[x.kind] || {}).see || {}).who || '').split(',').map(w => w.trim()).indexOf('anyone') !== -1;
+function findSignedOut_(x) { const doors = guestDoors_(); return guestKind_(x) || kindTop_(x) === 'Settings' || asList_(kindTop_(x)).some(t => doors.indexOf(t) !== -1) || x.kind === 'bookform' || (guestLibrary_() && libraryCard_(x)) || (guestPractice_() && practiceCard_(x)); }
 const guestPractice_ = () => typeof can_ === 'function' && can_('anyone', 'item', 'question:read');
 /* PRACTICE IS NO DOOR (queue item 9, 24 Nov): its kinds are answers of their own, marked `practice` in kinds.json doors. */
 const PRACTICE_DOORS = ITEM_KINDS.doors.filter(d => d.practice).map(d => d.name);
