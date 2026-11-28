@@ -389,11 +389,11 @@ function sessionDatesOf(j) {
 
 /* ========== A LESSON IS AN EVENT ON THE ONE LIST (owner, 27 Nov: BOOKING IS ADDING TO THE ONE LIST; NO ACCEPT/DECLINE; MONEY) ==========
    A lesson is a Docket event (kinds.json docket list: start, rrule, rdate, exdate, moved; the .ics standard) plus who (tutor, learner, payer),
-   place/room, price and payment. It lives in the learner's own `lessons` cell ({ v: 1, lessons: [...] }), written only by addLesson/cancelLesson
+   place/room, price and payment. It lives in the learner's own `lessons` cell ({ v: 1, lessons: [...] }), written only by addLesson
    and the payment's return, never by a Docket save, so nobody edits their own price. The tutor's availability (settings, m09 to su20) is their yes
    in advance: a lesson inside it is confirmed at once and the tutor is told, never asked. A booking pays every lesson to the end of the term it
-   starts in (holidays and closed days skipped by the term-date rule: termsFor, closures), up front; a lesson the tutor cancels is refunded, that
-   lesson only; the next term is a new payment. Pure parts first (tools/lesson-book.js runs them in the backend vm). */
+   starts in (holidays and closed days skipped by the term-date rule: termsFor, closures), up front; nobody cancels (owner, 28 Nov: no cancellations,
+   no refunds through the site, the tutor's pay never changes); the next term is a new payment. Pure parts first (tools/lesson-book.js runs them in the backend vm). */
 const LESSONS_CELL_MAX = 45000, LESSON_MINUTES_MAX = 240;
 const lsMin_ = s => { const m = /^(\d{4})-(\d\d)-(\d\d)[T ](\d\d):(\d\d)/.exec(S(s)); return m ? Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]) / 6e4 : null; };
 const lsIso_ = m => new Date(m * 6e4).toISOString().slice(0, 16);
@@ -470,16 +470,9 @@ function lessonClashPure_(dates, minutes, others) {
   }
   return '';
 }
-/* WHAT A TUTOR'S CANCELLATION REFUNDS (owner DECIDED, 27 Nov): that one lesson's share of what was paid, if it was paid, is one of the lesson's
-   own, and is not cancelled or refunded already; else nothing. In pence. Pure. */
-function lessonRefundPure_(ls, when) {
-  if (!ls || S(ls.pay) !== 'paid' || (ls.dates || []).indexOf(when) < 0 || (ls.cancelled || []).indexOf(when) >= 0) return 0;
-  if ((ls.refunds || []).some(r => r.date === when)) return 0;
-  return Math.max(0, Math.round(N(ls.perLessonPence)));
-}
 /* WHAT A VIEWER IS SENT (a child never sees a price; a child's data goes only to the child, their parents, the tutor and admins): `as` is
    'payer' | 'admin' | 'tutor' | 'learner' (an adult) | 'child'; anyone else is sent nothing (null). Pure. */
-const LESSON_MONEY = ['totalPence', 'perLessonPence', 'pay', 'refunds', 'payRef', 'payIntent'];
+const LESSON_MONEY = ['totalPence', 'perLessonPence', 'pay', 'payRef', 'payIntent', 'earlyStartAt'];
 function lessonForViewerPure_(ls, as) {
   if (!ls || ['payer', 'admin', 'tutor', 'learner', 'child'].indexOf(as) < 0) return null;
   const o = JSON.parse(JSON.stringify(ls));
@@ -1306,7 +1299,6 @@ const PERMISSIONS = {
   adminUnlinkFamily: ['admin'],
   answerClaim: ['member', 'child', 'admin'],
   applyTeach: ['member', 'child', 'admin'],
-  cancelLesson: ['member', 'child', 'admin'],
   changePin: ['member', 'child', 'admin'],
   claimChild: ['member', 'child', 'admin'],
   claudeNoteAdd: ['admin'],
