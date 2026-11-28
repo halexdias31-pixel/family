@@ -462,6 +462,11 @@ const MIGRATIONS = [
     retry: true,
     what: "every live booking as a lesson on its learners' one list (dates, tutor, payer, learners, venue, money; paid stays paid; backup tab first)",
     run: () => bookingsToLessons27NovRun_() },
+  /* THE PERSONAL ARCHIVE (owner, 27 Nov): the library cards and notepads are Archive entries (backup tab first; a re-run a no-op). */
+  { id: 'archive-28nov',
+    retry: true,
+    what: "every library card and notepad as an Archive entry of its person (backup tab first, the old values in it; then the old rows go)",
+    run: () => archive28NovRun_() },
 ];
 
 /* ---------- MOVING ROWS OUT OF THE ITEMS TAB, NEVER LOSING ONE (queue step 7, 22 Nov) ----------
@@ -494,6 +499,49 @@ function storeDropKinds_(kinds, backup) {
   POST_WROTE = true;
   clearCache();
   return gone.length + ' row(s) kept in ' + backup + ' and deleted from items';
+}
+
+/* ---------- THE PERSONAL ARCHIVE (owner, 27 Nov): every library card and every notepad becomes an Archive entry of its person ----------
+   A library card is a title (its library, else "Library card") and its free fields, one `name: value` a line (Card number, PIN); a notepad is the
+   entry "Notepad", its words the text. The backup tab first (every old card and notepad, once), read back; then the entries (an id made from the
+   person and the card's place, so a re-run finds them there); read back; then the old rows go (storeDropKinds_, its own backup) and the notepad cells
+   are emptied. Nothing to move is "nothing to do". A login is never written to the log or the reply: the reply counts. tools/archive-move.js checks it. */
+const ARCHIVE_BACKUP = 'backup_archive_28nov', ARCHIVE_LIB_BACKUP = 'backup_archive_28nov_items';
+function archiveOfCard_(r, n) {
+  const pid = S(r.person_id), lines = [['Card number', S(r.card_number).trim()], ['PIN', S(r.pin).trim()]].filter(x => x[1]);
+  return { archive_id: 'lib-' + pid + '-' + n, person_id: pid, title: S(r.library).trim() || 'Library card', fields: lines.map(x => x[0] + ': ' + x[1]).join('\n'), text: '' };
+}
+function archive28NovRun_() {
+  clearCache();
+  const cards = read(TAB.library_cards).rows.filter(r => S(r.person_id) && (S(r.library) || S(r.card_number) || S(r.pin))).sort((a, b) => a._row - b._row);
+  const ppl = read(TAB.people), pads = ppl.rows.filter(r => S(r.person_id) && S(r.notepad).trim());
+  if (!cards.length && !pads.length) return 'nothing to do';
+  const most = LIST_KINDS.archive.fields.find(F => F.f === 'text').max;
+  if (pads.some(r => S(r.notepad).length > most)) throw new Error('a notepad is over ' + most + ' characters - nothing changed');
+  /* THE BACKUP, FIRST: [when, what, person, the old value as it was]; one already held is not added again. */
+  const old = cards.map(r => ['library_card', S(r.person_id), JSON.stringify({ library: S(r.library), card_number: S(r.card_number), pin: S(r.pin) })])
+    .concat(pads.map(r => ['notepad', S(r.person_id), S(r.notepad)]));
+  const ss = ppl.sheet.getParent(), bk = ss.getSheetByName(ARCHIVE_BACKUP) || ss.insertSheet(ARCHIVE_BACKUP);
+  const key = v => JSON.stringify(v.map(S)), held = () => { const n = bk.getLastRow(); return n ? bk.getRange(1, 2, n, 3).getValues().map(key) : []; };
+  const was = held();
+  old.filter(v => was.indexOf(key(v)) === -1).forEach(v => bk.appendRow([new Date()].concat(v)));
+  const now = held();
+  if (!old.every(v => now.indexOf(key(v)) !== -1)) throw new Error('the backup did not read back - nothing changed');
+  /* THE ENTRIES, each through the one tidy; one already there (a re-run after a stop) is not added twice. */
+  const seen = {}, want = cards.map(r => { const p = S(r.person_id); seen[p] = (seen[p] || 0) + 1; return archiveOfCard_(r, seen[p]); })
+    .concat(pads.map(r => ({ archive_id: 'notepad-' + S(r.person_id), person_id: S(r.person_id), title: 'Notepad', fields: '', text: S(r.notepad) })));
+  const t = read('archive'), there = t.rows.map(r => S(r.archive_id));
+  want.filter(e => there.indexOf(e.archive_id) === -1).forEach(e => addRow(t, listTidy_('archive', [e], 'as-is')[0]));
+  clearCache();
+  const back = read('archive').rows.map(r => S(r.archive_id));
+  if (!want.every(e => back.indexOf(e.archive_id) !== -1)) throw new Error('the archive did not read back - the old rows are kept');
+  /* AND ONLY THEN THE OLD: the card rows out of the items tab, the notepad cells emptied. */
+  if (cards.length) storeDropKinds_(['library_card'], ARCHIVE_LIB_BACKUP);
+  clearCache();
+  const p2 = read(TAB.people);
+  p2.rows.filter(r => S(r.notepad).trim()).forEach(r => { if (!setCell(p2, r, 'notepad', '')) throw new Error('the people tab has no notepad column'); });
+  clearCache();
+  return cards.length + ' library card(s) and ' + pads.length + ' notepad(s) moved into the Archive (the old values in ' + ARCHIVE_BACKUP + ')';
 }
 
 /* HANDS UP (455): who wants the tutor, kept 30 minutes in one script property, pruned on every read. */

@@ -1112,20 +1112,16 @@ const PROFILE_GROUPS = {
   /* CURRENT AND PAST JOBS, added one line at a time like the qualifications (8 Nov). */
   'Jobs': JOB_FIELDS,
   'Availability': AVAIL_DAYS.reduce((a, [p]) => a.concat(AVAIL_HOURS.map(h => p + String(h).padStart(2,'0'))), []),
-  /* A NOTE TO YOURSELF, not a credential this site issues or checks — see the columns in SCHEMA. § */
-  'Library cards': LIBRARY_FIELDS,
 };
 const CLIENT_GROUPS = {
   'About you': ['first_name','last_name','photo'],
   /* The address, because a printed copy has to go somewhere. § */
   'Contact & address': ['email','phone','city','town','borough','postcode','address'],
-  'Library cards': LIBRARY_FIELDS,
 };
 const STUDENT_GROUPS = {
   /* ---------- THE TWO EXAMS ARE ON THE FIRST PAGE NOW § */
   'About you': ['first_name','last_name','date_of_birth','photo','exam_small_date','exam_big_date'],
   'Contact & address': ['email','phone','city','town','borough','postcode','address'],
-  'Library cards': LIBRARY_FIELDS,
 };
 /* `RESOURCE_GROUPS` WAS HERE — the seven sections of the admin form that relabelled a paper, and `RESOURCE_EDITABLE` was its flattened allow-list. § */
 

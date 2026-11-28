@@ -4,7 +4,6 @@
  "features": ["events","tabs"],
  "items": {
   "profile:save": {"roles":"signedIn","handler":"postUpdateProfile_"},
-  "notepad:save": {"roles":"signedIn","handler":"postSaveNotepad_"},
   "todo:save": {"roles":"signedIn","handler":"postSaveTodo_"},
   "spotlight:save": {"roles":["admin"],"handler":"postSpotlight_"},
   "favourite:save": {"roles":"signedIn","handler":"postFavourite_"},

@@ -898,30 +898,6 @@ function writeOwnRows_(tab, pid, list, cols) {
   return { changed: changed, missing: false };
 }
 
-/* ---------- THE LIBRARY CARDS: ROWS ON `library_cards`, NINE BOXES ON THE FORM § */
-function libCardsOut(r) {
-  const rows = ownRows_(TAB.library_cards, r);
-  const out = {};
-  for (let i = 1; i <= LIBRARY_CARDS; i++) {
-    const c = rows[i - 1] || {};
-    out['lib' + i + '_name'] = S(c.library);
-    out['lib' + i + '_no']   = S(c.card_number);
-    out['lib' + i + '_pin']  = S(c.pin);
-  }
-  return out;
-}
-function libCardsIn(fields) {
-  const list = [];
-  for (let i = 1; i <= LIBRARY_CARDS; i++) {
-    const library = S(fields['lib' + i + '_name']).trim();
-    const card_number = S(fields['lib' + i + '_no']).trim();
-    const pin = S(fields['lib' + i + '_pin']).trim();
-    if (library || card_number || pin) list.push({ library, card_number, pin });
-  }
-  return list;
-}
-const LIB_COLS = ['library', 'card_number', 'pin'];
-
 /* ---------- THE EXTRA PHOTOGRAPHS: EIGHT BOXES, ONE CELL § */
 function photosOut(cellValue) {
   const items = S(cellValue).split('|').map(x => x.trim()).filter(Boolean);

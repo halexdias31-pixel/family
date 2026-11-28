@@ -231,8 +231,7 @@ function postActions_() {
 /* EVERY BOX ON THE SETTINGS FORM OPENED EMPTY, AND SAVING ONE EMPTIED THE SHEET TO MATCH. § */
 function profileOf_(r) {
   const avail = availSet(r.availability);
-  /* The library cards and the qualifications are rows on tabs of their own, read once each. */
-  const cards = libCardsOut(r);
+  /* The qualifications are rows on a tab of their own, read once (the library cards are Archive entries now, owner 27 Nov). */
   const photos = photosOut(r.photos);
   const jobs = jobsOut(r.jobs);
   const quals = qualsOut(r);
@@ -241,7 +240,6 @@ function profileOf_(r) {
   const out = { avatar: S(r.avatar), role: S(r.role) };
   PROFILE_EDITABLE.concat(PROFILE_READONLY).forEach(f => {
     out[f] = f.match(/^(m|tu|w|th|f|sa|su)\d\d$/) ? (avail[f] ? 'TRUE' : '')
-           : LIBRARY_FIELD.test(f) ? S(cards[f])
            : PHOTO_FIELD.test(f) ? S(photos[f])
            : JOB_FIELD.test(f) ? S(jobs[f])
            : QUAL_FIELD.test(f) ? S(quals[f])
