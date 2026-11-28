@@ -45,7 +45,7 @@ function run() {
   const C = BV.load({ at: true, console: { log() {}, warn() {}, error() {} } }), seen = {};
   const real = C.listTidy_;
   C.listTidy_ = function (kind, a, b) { seen[kind] = (seen[kind] || 0) + 1; return real(kind, a, b); };
-  const docket = { v: 1, lists: [{ name: 'Docket', items: [{ title: 'Jesus prayer', repeat: '8h', doneOn: '2026-11-20', minutes: 10 },
+  const docket = { v: 1, lists: [{ name: 'Docket', items: [{ title: 'Made-up routine item', repeat: '8h', doneOn: '2026-11-20', minutes: 10 },
     { title: 'Eggs', pick: 'Eggs on toast', pickOn: '2026-11-20', date: '', note: '' }, { title: 'Bank', done: true, doneOn: '2026-11-01' }, { title: 'Laundry', runs: 60, effort: 'hard' }] }] };
   const cell = C.todoTidy_(JSON.stringify(docket));
   if (C.todoTidy_(cell) !== cell) bad.push('the docket save changes a cell it has already saved');

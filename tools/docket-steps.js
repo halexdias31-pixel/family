@@ -115,7 +115,7 @@ function provePray(m) {
 /* ---------- (4) NO PRAYER TEXT ---------- */
 function changedFiles() {
   let names = [];
-  try { names = execFileSync('git', ['diff', '--name-only', 'claude/focused-wright-blx2g6'], { cwd: ROOT, encoding: 'utf8' }).split('\n'); } catch (e) { names = []; }
+  try { names = execFileSync('git', ['diff', '--name-only', 'origin/main'], { cwd: ROOT, encoding: 'utf8' }).split('\n');   /* every file not yet live, whatever branch this runs on */ } catch (e) { names = []; }
   try { names = names.concat(execFileSync('git', ['ls-files', '--others', '--exclude-standard'], { cwd: ROOT, encoding: 'utf8' }).split('\n')); } catch (e) { /* none */ }
   return [...new Set(names.filter(Boolean))].filter(f => { try { text(f); return true; } catch (e) { return false; } });
 }
@@ -160,7 +160,7 @@ function run() {
   /* (4) */
   let key = null, K = null; try { const w = world(PRAY); key = keyOf(w.ctx); K = w.ctx.dkPrayerKeys_; } catch (e) { key = null; }
   const files = changedFiles();
-  checks.push(['(4) no prayer text in the changed files (' + files.length + ')', () => { const k = K(), keys = new Set([].concat(...k.steps, k.standing, k.gone));
+  checks.push(['(4) no prayer text in the changed files (' + files.length + ')', () => { const k = K(), keys = new Set([].concat(...k.steps, k.standing));   /* the prayers and standing lines; the removed items' names (`gone`) are ordinary words, not prayer text */
     const hits = textHits(key, keys, files); if (hits.length) console.log('  prayer text in: ' + hits.join(', ')); return files.length > 0 && !hits.length; }]);
   checks.push(['(4) the text check catches a planted key', () => { const k = K(), keys = new Set([key('made up planted')].concat(...k.steps));
     return textHits(key, keys, ['tools/docket-steps.js']).length === 1; }]);
