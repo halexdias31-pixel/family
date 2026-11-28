@@ -14,7 +14,7 @@ const { world } = require('./docket-onelist.js');
 const DAY = '2026-11-28';
 const MEALS = ['Protein', 'Carbs', 'Dairy', 'Veg', 'Fruit'];
 /* A MADE-UP MORNING: the wake item, a glass of water (wake too), brush teeth, a shower, the five meal slots; Protein ticked this third (a meal began). */
-const LIST = () => [{ title: 'Prayer', repeat: '8h', within: 15, minutes: 5 }, { title: 'Glass of water', repeat: '8h', minutes: 1 }]
+const LIST = () => [{ title: 'Prayer', repeat: '8h', before: ['*'], minutes: 5 }, { title: 'Glass of water', repeat: '8h', minutes: 1 }]
   .concat(MEALS.map((t, n) => ({ title: t, repeat: '8h', group: 'meal', minutes: 5, doneOn: n ? '' : DAY + '/1' })))
   .concat([{ title: 'Shower', repeat: '8h', minutes: 10, place: 'home' }, { title: 'Brush teeth', repeat: '8h', minutes: 6, place: 'home', before: ['meal'] }]);
 const at = (P, L, hm) => P.dkSort_(L, DAY + ' ' + (hm || '06:05'), []).open;
@@ -27,6 +27,9 @@ const RULES = [
     const o = at(P, L); return pos(L, o, 'Brush teeth') < pos(L, o, 'Carbs') && pos(L, o, 'Shower') < pos(L, o, 'Dairy') && names(L, o) === 'Prayer|Glass of water|Brush teeth|Carbs|Shower|Dairy|Veg|Fruit'; }],
   ['with every meal slot open: Prayer (its 15-minute window), the fewest minutes, brush teeth (6, before: meal) ahead of the meal group (5), then the rest', P => { const L = LIST(); L[2].doneOn = '';
     return names(L, at(P, L)) === 'Prayer|Glass of water|Brush teeth|Protein|Carbs|Dairy|Veg|Fruit|Shower'; }],
+  ['* puts an item above every open one, a deadline at risk and an unattended one too, at 10:30 still in bed; two * keep the list order', P => { const L = LIST();
+    L.push({ title: 'Made-up due now', date: DAY, until: '10:40', minutes: 10 }, { title: 'Made-up runs', repeat: '8h', minutes: 1, runs: 120 }, { title: 'Made-up star two', repeat: '8h', minutes: 1, before: ['*'] });
+    const o = at(P, L, '10:30'); return pos(L, o, 'Prayer') === 0 && pos(L, o, 'Made-up star two') === 1 && pos(L, o, 'Made-up due now') === 2; }],
   ['a constraint never lifts an item above an event in hand', P => { const L = LIST(); L.push({ title: 'Made-up call', start: DAY + 'T06:00', minutes: 10 }); L[8].before = ['meal', 'Made-up call'];
     const o = at(P, L); return pos(L, o, 'Made-up call') === 0 && pos(L, o, 'Brush teeth') < pos(L, o, 'Carbs'); }],
   ['a cycle lists both, every item once, in the same order each time', P => { const L = LIST(); L[7].before = ['Brush teeth']; L[8].before = ['Shower'];
@@ -38,6 +41,8 @@ const RULES = [
     return names(L, at(P, L)) === 'Prayer|Glass of water|Carbs|Dairy|Veg|Fruit|Brush teeth|Shower'; }],
 ];
 const MUTS = [
+  ['* ignored', s => s.replace('(star(A) && (!star(B) || a < b)) || ', '')],
+  ['two * reversed', s => s.replace('(!star(B) || a < b)', '(!star(B) || a > b)')],
   ['before ignored', s => s.replace('  g.open = out;\n', '')],
   ['group ignored', s => s.replace("(!!nm(B.group) && nm(x) === nm(B.group))", 'false')],
   ['case matters', s => s.replace("const nm = v => String(v == null ? '' : v).trim().toLowerCase()", "const nm = v => String(v == null ? '' : v)")],

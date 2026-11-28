@@ -80,7 +80,7 @@ const stepsOk = js => { let P, S; try { P = planner(js, text('js/form.js')); S =
 
 /* ---------- (3) THE PRAYER JOB, made-up keys ---------- */
 const STEP_NAMES = ['Made-up one', 'Made-up two', 'Made-up three'];
-const PRAY = () => [{ name: 'Docket', items: [{ title: 'Made-up prayer', repeat: '8h', anchor: 'wake', minutes: 5, slot: 'Made-up prayer', options: ['Made-up two', 'Made-up one'], picks: ['Made-up two'] },
+const PRAY = () => [{ name: 'Docket', items: [{ title: 'Made-up prayer', repeat: '8h', anchor: 'wake', within: 15, minutes: 5, slot: 'Made-up prayer', options: ['Made-up two', 'Made-up one'], picks: ['Made-up two'] },
   { title: 'Made-up reading', repeat: '8h', minutes: 5 }, { title: 'Made-up stand one', repeat: '8h', doneOn: DAY + '/1' }, { title: 'Made-up stand two' }, { title: 'Made-up other', repeat: '8h' }, { title: 'Made-up look at the list', repeat: '8h' }, { title: 'Made-up food item', repeat: '8h', anchor: 'meal' }] }];
 const PSLOTS = { slots: [{ name: 'Made-up prayer', options: [{ name: 'Made-up two', note: 'note two' }, { name: 'Made-up one', note: 'note one' }] }, { name: 'Made-up food', options: [{ name: 'x' }] }] };
 function prayScene(ctx0) {
@@ -93,8 +93,8 @@ function prayScene(ctx0) {
   return { said, again, was, cell, cellAgain: w.cell(), c: JSON.parse(cell), backup: w.B.tabs.backup_docket_prayer_28nov };
 }
 const PRAY_RULES = [
-  ['Prayer is one item of steps in the given order, each option\'s note kept, no longer a slot, still 8h, within 15, no anchor', m => { const p = m.c.lists[0].items[0];
-    return JSON.stringify(p.steps) === JSON.stringify(['Made-up one\nnote one', 'Made-up two\nnote two', 'Made-up reading']) && !p.options && !p.picks && !p.slot && p.repeat === '8h' && p.within === 15 && p.anchor === undefined; }],
+  ['Prayer is one item of steps in the given order, each option\'s note kept, no longer a slot, still 8h, before *, no clock window, no anchor', m => { const p = m.c.lists[0].items[0];
+    return JSON.stringify(p.steps) === JSON.stringify(['Made-up one\nnote one', 'Made-up two\nnote two', 'Made-up reading']) && !p.options && !p.picks && !p.slot && p.repeat === '8h' && p.before.join() === '*' && p.within === undefined && p.anchor === undefined; }],
   ['the reading item and the look-at-the-list item are gone, the others stay', m => m.c.lists[0].items.map(x => x.title).join('|') === 'Made-up prayer|Made-up stand one|Made-up stand two|Made-up other|Made-up food item'],
   ['a meal anchor becomes the group meal; no anchor is left', m => m.c.lists[0].items[4].group === 'meal' && m.c.lists[0].items.every(x => x.anchor === undefined)],
   ['the named lines are standing, their tick gone; the other is not', m => { const L = m.c.lists[0].items;
@@ -104,7 +104,7 @@ const PRAY_RULES = [
 ];
 function provePray(m) {
   const breaks = [c => { c.lists[0].items[0].steps.reverse(); }, c => { c.lists[0].items[0].steps[0] = 'Made-up one'; }, c => { c.lists[0].items.splice(1, 0, { title: 'Made-up reading' }); },
-    c => { delete c.lists[0].items[1].standing; }, c => { c.lists[0].items[3].standing = true; }, c => { c.slots.unshift({ name: 'Made-up prayer' }); }, c => { c.lists[0].items[0].repeat = ''; }, c => { delete c.lists[0].items[0].within; }, c => { delete c.lists[0].items[4].group; }];
+    c => { delete c.lists[0].items[1].standing; }, c => { c.lists[0].items[3].standing = true; }, c => { c.slots.unshift({ name: 'Made-up prayer' }); }, c => { c.lists[0].items[0].repeat = ''; }, c => { delete c.lists[0].items[0].before; }, c => { delete c.lists[0].items[4].group; }];
   return breaks.map((b, i) => { const x = Object.assign({}, m, { c: JSON.parse(m.cell) }); b(x.c); return PRAY_RULES.some(([, r]) => { try { return !r(x); } catch (e) { return true; } }) ? -1 : i; })
     .filter(i => i >= 0).concat([m].map(x => { const y = Object.assign({}, x, { backup: null }); return PRAY_RULES.some(([, r]) => { try { return !r(y); } catch (e) { return true; } }) ? -1 : 'nobackup'; }).filter(i => i !== -1));
 }
@@ -142,6 +142,7 @@ function run() {
   checks.push(['(2) every mutation of steps and standing caught', () => { const missed = STEP_MUTS.filter(([, mu]) => { const s2 = mu(js); return s2 === js || stepsOk(s2); });
     if (PROVE || missed.length) console.log('  --prove (2): ' + (STEP_MUTS.length - missed.length) + '/' + STEP_MUTS.length + ' breaks caught' + (missed.length ? '; missed ' + missed.map(x => x[0]).join(', ') : ''));
     return !missed.length; }]);
+  checks.push(['(2) no clock window anywhere: no within field in kinds.json, none read by the plan or its backend copy', () => !/"f":"within"/.test(kinds) && !/\.within\b/.test(js) && !/\.within\b/.test(text('backend/cards-gen.gs'))]);
   checks.push(['(2) kinds.json declares steps and standing on the docket list', () => /"f":"steps","type":"titles"/.test(kinds) && /"f":"standing","type":"flag"/.test(kinds)]);
   let m = null; try { m = prayScene(); } catch (e) { console.log(e.stack); }
   if (!m) checks.push(['(3) the prayer job ran', () => false]);

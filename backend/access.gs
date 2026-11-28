@@ -100,7 +100,7 @@ function docketOneList25NovRun_() {
    (the whole old cell), read back; the size cap; the cell read back. tools/docket-plan.js checks it. */
 const DK_PLAN_BACKUP = 'backup_docket_plan_27nov';
 const DK_PLAN_27NOV = [
-  [['6.1wmszhm'], { within: 15, minutes: 5 }],
+  [['6.1wmszhm'], { before: ['*'], minutes: 5 }],
   [['e.15yual7'], { minutes: 1 }],
   [['7.ijpvy8', '5.xtvjpa', 'd.8zitoe', '5.1u6o5y4', '3.uumrh5', 'a.5hsxk1', '5.1nrqe8h'], { minutes: 5, group: 'meal' }],
   [['8.19r3b3x'], { minutes: 20, place: 'out', from: '07:00', until: '22:00' }],
@@ -182,7 +182,7 @@ function docketOneList28NovRun_() {
    step its option's name and the note that option already holds in the cell's `slots` (name, a new line, the note); the separate reading item (its
    step is inside Prayer) and the reminder to look at the list go; three lines become `standing` (never ticked); the Prayer slot goes once empty. Everything is matched by docketPlanKey_
    (the todoBase_ of a title's first four words), so no prayer text, not even a name, is in this public file: dkPrayerKeys_ holds the keys. It stays 8h,
-   Prayer within 15 (it must start within 15 minutes of each cycle's start); every `anchor` goes, a meal one becoming the group "meal". A step not found in the cell throws, nothing changed. Backup tab first, read back; the size cap; the cell read back; a re-run (Prayer
+   Prayer before every other open item (`before: ["*"]`, replacing a `within` the owner turned down, 28 Nov); every `anchor` goes, a meal one becoming the group "meal". A step not found in the cell throws, nothing changed. Backup tab first, read back; the size cap; the cell read back; a re-run (Prayer
    already stepped, nothing left to make standing or remove) is "nothing to do". After the one list. tools/docket-before.js checks it. */
 const DK_PRAYER_BACKUP = 'backup_docket_prayer_28nov';
 function dkPrayerKeys_() {
@@ -221,9 +221,10 @@ function docketPrayer28NovRun_() {
   keep.forEach(it => { if (it && K.standing.indexOf(key(it.title)) >= 0 && it.standing !== true) {
     it.standing = true; ['done', 'doneOn', 'anchor', 'options', 'picks', 'pick'].forEach(f => delete it[f]); st++; } });
   if (st) said.push(st + ' standing line(s)');
-  /* ONE PRINCIPLE (owner, 28 Nov): `anchor` orders nothing. Prayer must start within 15 minutes of each cycle's start; a meal anchor becomes the
+  /* ONE PRINCIPLE (owner, 28 Nov): `anchor` orders nothing. Prayer goes before every other open item (no clock window: "even though I'm still in bed and it's 10:30, prayer should still be at the top"); a meal anchor becomes the
      group "meal" (which `before` names); wake and bed anchors go. */
-  if (pr && (pr.within === '' || pr.within == null)) { pr.within = 15; said.push('Prayer within 15 minutes of each cycle'); }
+  if (pr && pr.within !== undefined) { delete pr.within; said.push('Prayer\'s clock window gone'); }
+  if (pr && !(Array.isArray(pr.before) && pr.before.indexOf('*') >= 0)) { pr.before = (Array.isArray(pr.before) ? pr.before : []).concat('*'); said.push('Prayer before every other item'); }
   let an = 0;
   keep.forEach(it => { if (!it || it.anchor === undefined) return; if (it.anchor === 'meal' && !it.group) it.group = 'meal'; delete it.anchor; an++; });
   if (an) said.push(an + ' anchor(s) made groups or gone');
@@ -575,7 +576,7 @@ const MIGRATIONS = [
   /* AFTER THE ONE LIST (it would drop these fields; this one throws, and is retried, until the one list is there). */
   { id: 'docket-plan-27nov',
     retry: true,
-    what: "the plan's numbers on the owner's Docket items (minutes, runs, place, window, within, meal group, deadline; matched by title; nothing else touched; backup tab first)",
+    what: "the plan's numbers on the owner's Docket items (minutes, runs, place, window, before-everything, meal group, deadline; matched by title; nothing else touched; backup tab first)",
     run: () => docketPlan27NovRun_() },
   /* THE ONE TIME LIST (owner, 27 Nov): the Assignments tool went; its rows are Docket to-dos (backup tab first; a re-run a no-op). */
   { id: 'assignments-docket-27nov',

@@ -24,7 +24,7 @@ function planner(src, clash) {
 }
 const DAY = '2026-11-28';   // a Saturday
 const LIST = () => [
-  { title: 'Prayer', repeat: '8h', within: 15, minutes: 5, options: ['Option A', 'Option B', 'Option C'], picks: ['Option A'] },
+  { title: 'Prayer', repeat: '8h', before: ['*'], minutes: 5, options: ['Option A', 'Option B', 'Option C'], picks: ['Option A'] },
   { title: 'Glass of water', repeat: '8h', minutes: 1 },
   { title: 'Laundry', repeat: '8h', minutes: 5, runs: 60, place: 'home', stay: true, from: '09:00', until: '21:00' },
   { title: 'Charge batteries', repeat: '8h', minutes: 1, runs: 120, place: 'home' },
@@ -46,8 +46,10 @@ const idx = (L, t) => L.findIndex(x => x.title === t);
 const OUTING = [{ title: 'Made-up outing', start: DAY + 'T10:00', minutes: 120, place: 'out' }];
 const LEAVE = P => P.dkLeaves_(OUTING, DAY + ' 09:30');
 const RULES = [
-  ['Prayer is first at 06:05 only because of its window (within 15): without it, it drops', P => { const L = LIST(), M = LIST(); delete M[0].within;
-    return T(L, at(P, '06:05', L).open.slice(0, 1)) === 'Prayer' && at(P, '06:05', M).open[0] !== 0 && at(P, '06:20', L).open.indexOf(0) < 0; }],
+  ['Prayer (before: *) is first at 06:00, 10:30 (still in bed), 12:30 and 23:00 with nothing ticked; without it, it drops', P => { const L = LIST(), M = LIST(); delete M[0].before;
+    return ['06:00', '10:30', '12:30', '23:00'].every(h => at(P, h, L).open[0] === 0) && at(P, '10:30', M).open[0] !== 0; }],
+  ['Prayer ticked is not first, and back on top next cycle', P => { const L = LIST(); P.dkTick_(L, 0, true, DAY + ' 10:30');
+    return at(P, '10:31', L).open[0] !== 0 && at(P, '10:31', L).done.indexOf(0) >= 0 && at(P, '12:00', L).open[0] === 0; }],
   ['no wake or bed tier: anchors order nothing (the same order with every anchor set)', P => { const L = LIST(), M = LIST(); M[1].anchor = 'wake'; M[7].anchor = 'bed'; M[6].anchor = 'meal';
     return JSON.stringify(at(P, '09:00', L)) === JSON.stringify(at(P, '09:00', M)); }],
   ['floss comes up every cycle like the rest: ticked at 07:00, done at 11:59, open at 12:00, not last', P => { const L = LIST(), f = idx(L, 'Floss'); P.dkTick_(L, f, true, DAY + ' 07:00');
@@ -86,7 +88,7 @@ const RULES = [
     return at(P, '12:30', L).open[0] !== L.length - 1; }],
   ['an item outside its days is not offered, and says when', P => { const L = LIST(), g = at(P, '09:00', L), i = idx(L, 'Made-up weekday thing');
     return g.open.indexOf(i) < 0 && P.dkWhen_(g.when[i], DAY + ' 09:00') === 'from Mon 00:00'; }],
-  ['later items in the order they next become possible', P => { const L = LIST(), x = L[2]; L[2] = L[13]; L[13] = x; const g = at(P, '08:30', L); return T(L, g.later) === 'Laundry|Prayer|Made-up weekday thing'; }],
+  ['later items in the order they next become possible', P => { const L = LIST(), x = L[2]; L[2] = L[13]; L[13] = x; const g = at(P, '08:30', L); return T(L, g.later) === 'Laundry|Made-up weekday thing'; }],
   ['the slot line says the least recently ticked option ("Prayer · Option B")', P => P.dkTitle_(LIST()[0], DAY + ' 07:30') === 'Prayer · Option B'],
   ['a tick records the option, and the next line offers the next least recent', P => { const L = LIST(); P.dkTick_(L, 0, true, DAY + ' 07:30');
     const ok = L[0].pick === 'Option B' && L[0].picks.join() === 'Option A,Option B' && P.dkTitle_(L[0], DAY + ' 07:31') === 'Prayer · Option B';
@@ -100,7 +102,7 @@ const RULES = [
 ];
 const MUTS = [
   ['a wake tier', s => s.replace('return dkEv_(it) ? -1 :', "return dkEv_(it) ? -1 : it.anchor === 'wake' ? 0 :")],
-  ['within ignored', s => s.replace('const within = it => (dkRep_(it) &&', 'const within = it => (false &&')],
+  ['* ignored', s => s.replace('(star(A) && (!star(B) || a < b)) || ', '')],
   ['one-offs mixed in', s => s.replace('dkRep_(it) ? 3 : 4; };', '3; };')],
   ['no window start', s => s.replace('let s = Math.max(at - d * 1440, f == null ? 0 : f);', 'let s = at - d * 1440;')],
   ['no window end', s => s.replace('if (u != null && s + need > u) break;', '')],
@@ -136,7 +138,7 @@ function jobScene() {
 const JOB_RULES = [
   ['laundry gets 5 minutes, runs 60, home, stay, 09:00-21:00, its repeat and done state kept', m => { const l = m.items[0];
     return l.minutes === 5 && l.runs === 60 && l.place === 'home' && l.stay === true && l.from === '09:00' && l.until === '21:00' && l.repeat === '8h' && l.doneOn === '2026-11-25/1'; }],
-  ['prayer gets within 15 and 5 minutes, no anchor, its options kept', m => m.items[1].within === 15 && m.items[1].anchor === undefined && m.items[1].minutes === 5 && m.items[1].options.join() === 'made-up'],
+  ['prayer gets before * and 5 minutes, no anchor, its options kept', m => m.items[1].before.join() === '*' && m.items[1].within === undefined && m.items[1].anchor === undefined && m.items[1].minutes === 5 && m.items[1].options.join() === 'made-up'],
   ['an unmatched item is left exactly as it was', m => JSON.stringify(m.items[2]) === JSON.stringify({ title: 'Made-up unmatched', date: '2026-12-01' })],
   ['the renamed tidy and a title in another case are matched', m => m.items[3].minutes === 10 && m.items[3].place === 'home' && m.items[4].group === 'meal' && m.items[4].minutes === 5],
   ['the backup holds the whole old cell, once', m => !!m.backup && m.backup.v.length === 1 && m.backup.v[0][1] === m.was],
@@ -145,7 +147,7 @@ const JOB_RULES = [
 ];
 function proveJob(m) {
   const cp = o => JSON.parse(JSON.stringify(o));
-  const breaks = [x => { x.items[0].runs = 30; }, x => { delete x.items[0].stay; }, x => { delete x.items[0].doneOn; }, x => { x.items[1].within = 30; },
+  const breaks = [x => { x.items[0].runs = 30; }, x => { delete x.items[0].stay; }, x => { delete x.items[0].doneOn; }, x => { x.items[1].before = []; },
     x => { x.items[1].options = []; }, x => { x.items[2].minutes = 5; }, x => { delete x.items[3].minutes; }, x => { delete x.items[4].group; },
     x => { x.backup = null; }, x => { x.cellAgain = 'x'; }, x => { x.oneAfter = 'x'; }];
   return breaks.map((b, i) => { const x = Object.assign({}, m, { items: cp(m.items), backup: m.backup }); b(x);
