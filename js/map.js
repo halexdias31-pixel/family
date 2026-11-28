@@ -138,9 +138,9 @@ function dkTick_(items, i, on, now, pick) {
    `from`/`until` ('HH:MM': start at or after `from`, finish minutes+runs by `until`), `days` ('mon-sat', js/form.js clashDays_), `group` (a name `before` can use, e.g. "meal"; it orders nothing),
    `date` (a one-off's hard deadline) and `options` (a slot's choices). Groups: `open` (can start now, in plan order), `later` (cannot yet; `when[i]` the
    minute from today's 00:00 it next can, soonest first; null not this week), `missed` (a one-off past its date: "new date?"), `done`.
-   The open order (ONE PRINCIPLE, owner 28 Nov: no tier for wake, meal or bed; what looks like priority comes from an item's own numbers): (-1) an
-   event in hand; (2) an item whose latest start (a one-off's date and `until`) is before the time it would get if it waited
-   behind every other open item, latest start first; (3) every open cycle item (`repeat`); (4) every open one-off; within (3) and (4) the unattended
+   The open order (ONE PRINCIPLE, owner 28 Nov: least total time, plus the items' own `before` facts; no tiers but these two): (-1) an event in
+   hand, at its time; (2) an item whose latest start (a one-off's date and `until`) is before the time it would get if it waited behind every other
+   open item, latest start first; (3) every other open item, cycle or one-off alike (cycle items first only as data: before: ["one-offs"]): the unattended
    ones first (`runs`, longest first: they run while the rest is done), then the fewest minutes. Overdue is no reason to go first. Ties keep the list's order. The card, ?eink and the private address
    (backend/cards-gen.gs copies this) all read this one plan. Then `before` (below). tools/docket-plan.js and tools/docket-before.js check it. */
 function dkSort_(items, now, leaves) {
@@ -186,20 +186,20 @@ function dkSort_(items, now, leaves) {
   });
   const free = t + g.open.reduce((n, i) => n + mins(items[i]), 0);
   const last = it => (dkRep_(it) || !it.date ? null : Math.round((ut(String(it.date)) - ut(day)) / 864e5) * 1440 + (hm(it.until) == null ? 1440 : hm(it.until)) - mins(it) - num(it.runs));
-  const tier = it => { const ls = last(it); return dkEv_(it) ? -1 : ls != null && ls < free - mins(it) ? 2 : dkRep_(it) ? 3 : 4; };
+  const tier = it => { const ls = last(it); return dkEv_(it) ? -1 : ls != null && ls < free - mins(it) ? 2 : 3; };
   const key = i => { const it = items[i], k = tier(it), r = num(it.runs);
     return [k, k === 2 ? last(it) : r > 0 ? 0 : 1, k === 2 ? 0 : r > 0 ? -r : mins(it), i]; };
   const by = (a, b) => { const x = key(a), y = key(b); for (let n = 0; n < x.length; n++) if (x[n] !== y[n]) return x[n] - y[n]; return 0; };
   g.open.sort(by);
   /* BEFORE (owner, 28 Nov: "Brush teeth has to go before breakfast"): an open item whose `before` names another open one (its title or its `group`,
-     any case: `meal` for every item of the meal group; `*` for every other open item: owner 28 Nov, "prayer should still be at the top", whenever the
+     any case: `meal` for every item of the meal group; `one-offs` for every open item with no `repeat` and no `start`; `*` for every other open item: owner 28 Nov, "prayer should still be at the top", whenever the
      cycle is begun, until ticked) is placed ahead of it, absolutely, over a deadline at risk too; two `*` items keep the list's order between them;
      everything else keeps the order above. An event stays on top, never
      jumped. A ticked one is not open, so it binds nothing. Each in turn, in that order, comes after whatever must go before it (pulled
      up just ahead of it, theirs ahead of them); a cycle is broken where it closes on itself, so both stay listed, each once. tools/docket-before.js. */
   const nm = v => String(v == null ? '' : v).trim().toLowerCase(), must = (a, b) => { const A = items[a], B = items[b];
     const star = X => Array.isArray(X.before) && X.before.some(x => nm(x) === '*');
-    return a !== b && Array.isArray(A.before) && ((star(A) && (!star(B) || a < b)) || A.before.some(x => nm(x) === nm(B.title) || (!!nm(B.group) && nm(x) === nm(B.group)))); };
+    return a !== b && Array.isArray(A.before) && ((star(A) && (!star(B) || a < b)) || A.before.some(x => nm(x) === nm(B.title) || (!!nm(B.group) && nm(x) === nm(B.group)) || (nm(x) === 'one-offs' && !dkRep_(B) && !dkEv_(B)))); };
   const top = g.open.filter(i => tier(items[i]) <= 0), rest = g.open.filter(i => tier(items[i]) > 0), out = top.slice();
   const put = (b, path) => { if (out.indexOf(b) >= 0 || path.indexOf(b) >= 0) return; rest.forEach(a => { if (must(a, b)) put(a, path.concat(b)); }); if (out.indexOf(b) < 0) out.push(b); };
   rest.forEach(b => put(b, []));

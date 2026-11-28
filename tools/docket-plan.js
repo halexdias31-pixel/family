@@ -54,8 +54,11 @@ const RULES = [
     return JSON.stringify(at(P, '09:00', L)) === JSON.stringify(at(P, '09:00', M)); }],
   ['floss comes up every cycle like the rest: ticked at 07:00, done at 11:59, open at 12:00, not last', P => { const L = LIST(), f = idx(L, 'Floss'); P.dkTick_(L, f, true, DAY + ' 07:00');
     const o = at(P, '12:00', L).open; return at(P, '11:59', L).done.indexOf(f) >= 0 && o.indexOf(f) >= 0 && o[o.length - 1] !== f; }],
-  ['a 2-minute one-off never precedes an open cycle item', P => { const L = LIST(); L.push({ title: 'Made-up quick one-off', minutes: 2 }); const o = at(P, '09:00', L), q = o.open.indexOf(L.length - 1);
-    return q >= 0 && o.open.every((i, n) => !(n > q && L[i].repeat === '8h')); }],
+  ['no cycle tier: with no before: one-offs, a 2-minute one-off goes ahead of a longer cycle item (least total time)', P => { const L = LIST(); L.push({ title: 'Made-up quick one-off', minutes: 2 });
+    const o = at(P, '09:00', L).open, q = o.indexOf(L.length - 1); return q > 0 && o.slice(q + 1).some(i => L[i].repeat === '8h'); }],
+  ['with before: one-offs on every cycle item (the owner\'s data), a 2-minute one-off never precedes an open cycle item; Prayer still first', P => {
+    const L = LIST().map(x => (x.repeat ? Object.assign(x, { before: (x.before || []).concat('one-offs') }) : x)); L.push({ title: 'Made-up quick one-off', minutes: 2 });
+    const o = at(P, '09:00', L).open, q = o.indexOf(L.length - 1); return o[0] === 0 && q >= 0 && o.every((i, n) => !(n > q && L[i].repeat === '8h')); }],
   ['laundry is not offered at 08:59, and is "from 09:00"', P => { const L = LIST(), g = at(P, '08:59', L), i = idx(L, 'Laundry');
     return g.open.indexOf(i) < 0 && g.later.indexOf(i) >= 0 && P.dkWhen_(g.when[i], DAY + ' 08:59') === 'from 09:00'; }],
   ['laundry is offered at 09:00 and at 19:55 (done by 21:00)', P => { const L = LIST(), i = idx(L, 'Laundry'); return at(P, '09:00', L).open.indexOf(i) >= 0 && at(P, '19:55', L).open.indexOf(i) >= 0; }],
@@ -103,7 +106,8 @@ const RULES = [
 const MUTS = [
   ['a wake tier', s => s.replace('return dkEv_(it) ? -1 :', "return dkEv_(it) ? -1 : it.anchor === 'wake' ? 0 :")],
   ['* ignored', s => s.replace('(star(A) && (!star(B) || a < b)) || ', '')],
-  ['one-offs mixed in', s => s.replace('dkRep_(it) ? 3 : 4; };', '3; };')],
+  ['the cycle tier back', s => s.replace('ls < free - mins(it) ? 2 : 3; };', 'ls < free - mins(it) ? 2 : dkRep_(it) ? 3 : 4; };')],
+  ['one-offs ignored', s => s.replace(" || (nm(x) === 'one-offs' && !dkRep_(B) && !dkEv_(B))", '')],
   ['no window start', s => s.replace('let s = Math.max(at - d * 1440, f == null ? 0 : f);', 'let s = at - d * 1440;')],
   ['no window end', s => s.replace('if (u != null && s + need > u) break;', '')],
   ['stay ignored', s => s.replace('const hit = it.stay ?', 'const hit = false ?')],

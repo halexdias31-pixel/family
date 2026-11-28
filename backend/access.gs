@@ -274,9 +274,9 @@ function docketBefore28NovRun_() {
   return said + ' (the old cell in ' + DK_BEFORE_BACKUP + ')';
 }
 
-/* SHOPPING BEFORE A MEAL, EXERCISE BEFORE THE SHOWER (owner, 28 Nov: buy food before eating it; shower after sweating): each pair [title keys, before]
-   by docketPlanKey_ (any case): Shopping gets `before: ["meal"]`, Exercise `before: ["Shower"]`, each only when it has no `before` yet; nothing else
-   touched. Backup tab first, the size cap, read back; none to change is "nothing to do", so a re-run is a no-op. tools/docket-before.js. */
+/* SHOPPING BEFORE A MEAL, EXERCISE BEFORE THE SHOWER, CYCLE ITEMS BEFORE ONE-OFFS (owner, 28 Nov: buy food before eating it; shower after sweating;
+   the plan's old cycle tier, now a fact in the data): each pair [title keys, before] by docketPlanKey_ (any case): Shopping gets "meal", Exercise
+   "Shower"; every item with `repeat` gets "one-offs"; each added to its `before` only when not already there (any case); nothing else touched. Backup tab first, the size cap, read back; none to change is "nothing to do", so a re-run is a no-op. tools/docket-before.js. */
 const DK_BEFORE2_BACKUP = 'backup_docket_before_2_28nov', DK_BEFORE2_28NOV = [[['8.19r3b3x'], ['meal']], [['8.1w39ce3'], ['Shower']]];
 function docketBefore2_28NovRun_() {
   const t = read(TAB.people), me = t.rows.find(r => isOwner_(r));
@@ -287,9 +287,13 @@ function docketBefore2_28NovRun_() {
     throw new Error('the docket is not yet the one list (docket-onelist-25nov first) - nothing changed');
   const set = [];
   (Array.isArray(got.lists[0].items) ? got.lists[0].items : []).forEach(it => {
-    const pair = it && DK_BEFORE2_28NOV.find(([keys]) => keys.indexOf(docketPlanKey_(it.title)) >= 0);
-    if (!pair || (Array.isArray(it.before) && it.before.length) || S(it.before)) return;
-    it.before = pair[1].slice(); set.push(pair[1].join());
+    if (!it) return;
+    const pair = DK_BEFORE2_28NOV.find(([keys]) => keys.indexOf(docketPlanKey_(it.title)) >= 0);
+    const want = (pair ? pair[1] : []).concat(S(it.repeat) ? ['one-offs'] : []);
+    const has = Array.isArray(it.before) ? it.before.slice() : (S(it.before) ? [S(it.before)] : []), lc = has.map(x => S(x).trim().toLowerCase());
+    const add = want.filter(x => lc.indexOf(x.toLowerCase()) < 0);
+    if (!add.length) return;
+    it.before = has.concat(add); set.push(S(it.title) + ': ' + add.join(', '));
   });
   if (!set.length) return 'nothing to do';
   const cell = todoTidy_(JSON.stringify(got));
@@ -638,7 +642,7 @@ const MIGRATIONS = [
   /* BEFORE, TWO MORE (owner, 28 Nov): Shopping before every meal, Exercise before the shower (after the one list; backup tab first; a re-run a no-op). */
   { id: 'docket-before-2-28nov',
     retry: true,
-    what: "the owner's Shopping item set to go before every meal and Exercise before Shower (only if each has none; backup tab first)",
+    what: "the owner's Shopping item set to go before every meal, Exercise before Shower, every cycle item before one-offs (each added only if absent; backup tab first)",
     run: () => docketBefore2_28NovRun_() },
 ];
 

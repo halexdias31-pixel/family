@@ -86,23 +86,25 @@ function proveJob(m) {
 }
 
 /* (3b) THE SECOND JOB: Shopping before meal, Exercise before Shower */
-const JOB2_ITEMS = () => [{ name: 'Docket', items: [{ title: 'SHOPPING', repeat: '8h', minutes: 40 }, { title: 'exercise', repeat: '8h', minutes: 30 }, { title: 'Exercise', before: ['Prayer'] },
-  { title: 'Made-up other', repeat: '8h' }] }];
+const JOB2_ITEMS = () => [{ name: 'Docket', items: [{ title: 'SHOPPING', repeat: '8h', minutes: 40 }, { title: 'exercise', repeat: '8h', minutes: 30 }, { title: 'Exercise', before: ['Prayer', 'shower'] },
+  { title: 'Made-up other', repeat: '8h', before: ['*'] }, { title: 'Made-up one-off' }, { title: 'Made-up kept', repeat: '8h', before: ['ONE-OFFS'] }] }];
 function job2Scene() {
   const w = world(JOB2_ITEMS), was = w.cell(), run = () => { w.ctx.clearCache(); return w.ctx.docketBefore2_28NovRun_(); };
   const said = run(), cell = w.cell(), again = run(), cellAgain = w.cell();
   return { said, again, was, cell, cellAgain, items: JSON.parse(cell).lists[0].items, old: JSON.parse(was).lists[0].items, backup: w.B.tabs.backup_docket_before_2_28nov };
 }
 const JOB2_RULES = [
-  ['shopping (any case) gets before: meal, the rest of it kept', m => JSON.stringify(m.items[0]) === JSON.stringify(Object.assign({}, m.old[0], { before: ['meal'] }))],
-  ['exercise gets before: Shower, the rest of it kept', m => JSON.stringify(m.items[1]) === JSON.stringify(Object.assign({}, m.old[1], { before: ['Shower'] }))],
-  ['one that already has a before, and an unmatched item, are left alone', m => JSON.stringify(m.items[2]) === JSON.stringify(m.old[2]) && JSON.stringify(m.items[3]) === JSON.stringify(m.old[3])],
+  ['shopping (any case, a cycle item) gets before: meal, one-offs, the rest of it kept', m => JSON.stringify(m.items[0]) === JSON.stringify(Object.assign({}, m.old[0], { before: ['meal', 'one-offs'] }))],
+  ['exercise gets before: Shower, one-offs, the rest of it kept', m => JSON.stringify(m.items[1]) === JSON.stringify(Object.assign({}, m.old[1], { before: ['Shower', 'one-offs'] }))],
+  ['a cycle item keeps its own before and gains one-offs; a one-off, one already saying shower or one-offs (any case), are left alone', m => JSON.stringify(m.items[3].before) === JSON.stringify(['*', 'one-offs'])
+    && JSON.stringify(m.items[2]) === JSON.stringify(m.old[2]) && JSON.stringify(m.items[4]) === JSON.stringify(m.old[4]) && JSON.stringify(m.items[5]) === JSON.stringify(m.old[5])],
   ['the backup holds the whole old cell, once; a re-run is a no-op', m => !!m.backup && m.backup.v.length === 1 && m.backup.v[0][1] === m.was && /nothing to do/.test(m.again) && m.cellAgain === m.cell],
 ];
 function proveJob2(m) {
   const cp = o => JSON.parse(JSON.stringify(o));
-  const breaks = [x => { delete x.items[0].before; }, x => { x.items[0].before = ['Shower']; }, x => { x.items[1].before = ['meal']; }, x => { delete x.items[1].before; }, x => { x.items[2].before = ['Shower']; },
-    x => { x.items[3].before = ['meal']; }, x => { x.backup = null; }, x => { x.cellAgain = 'x'; }];
+  const breaks = [x => { x.items[0].before = ['meal']; }, x => { x.items[0].before = ['Shower', 'one-offs']; }, x => { x.items[1].before = ['meal', 'one-offs']; }, x => { x.items[1].before = ['one-offs']; },
+    x => { x.items[2].before = ['Prayer', 'shower', 'Shower']; }, x => { x.items[3].before = ['*']; }, x => { x.items[4].before = ['one-offs']; }, x => { x.items[5].before = ['ONE-OFFS', 'one-offs']; },
+    x => { x.backup = null; }, x => { x.cellAgain = 'x'; }];
   return breaks.map((b, i) => { const x = Object.assign({}, m, { items: cp(m.items) }); b(x);
     return JOB2_RULES.some(([, r]) => { try { return !r(x); } catch (e) { return true; } }) ? -1 : i; }).filter(i => i >= 0);
 }
@@ -131,7 +133,7 @@ function run() {
   if (!m2) checks.push(['(3b) docketBefore2_28NovRun_ ran', () => false]);
   else {
     JOB2_RULES.forEach(([n, f]) => checks.push(['(3b) ' + n, () => f(m2)]));
-    checks.push(['(3b) every break of the second job caught', () => { const p = proveJob2(m2); if (p.length || process.argv.includes('--prove')) console.log('  --prove (3b): ' + (8 - p.length) + '/8 breaks caught'); return !p.length; }]);
+    checks.push(['(3b) every break of the second job caught', () => { const p = proveJob2(m2); if (p.length || process.argv.includes('--prove')) console.log('  --prove (3b): ' + (10 - p.length) + '/10 breaks caught'); return !p.length; }]);
   }
   checks.push(['(3b) MIGRATIONS runs docket-before-2-28nov after the one list, retried', () => { const a = acc.indexOf("id: 'docket-onelist-25nov'"), b = acc.indexOf("id: 'docket-before-2-28nov'");
     return a > 0 && b > a && /\{ id: 'docket-before-2-28nov',\s*retry: true,[\s\S]*?run: \(\) => docketBefore2_28NovRun_\(\) \}/.test(acc); }]);

@@ -1783,7 +1783,7 @@
       "f": "before",
       "type": "titles",
       "max": 300,
-      "say": "goes before these (owner, 28 Nov: brush teeth before breakfast): each an item's title, a `group` name (`meal` for every item of the meal group), or `*` for every other open item (Prayer); the plan puts it ahead of each open one (js/map.js dkSort_)"
+      "say": "goes before these (owner, 28 Nov: brush teeth before breakfast): each an item's title, a `group` name (`meal` for every item of the meal group), or a reserved name: `*` for every other open item (Prayer), `one-offs` for every open item with no `repeat` and no `start` (the owner's cycle items carry it: owner 28 Nov, the old cycle tier as data); the plan puts it ahead of each open one (js/map.js dkSort_)"
      },
      {
       "f": "picks",

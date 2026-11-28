@@ -41,7 +41,7 @@ function site() {
     + 'return { dkNowNextOf_, dkSay_, dkLeaves_ };')(text_);
 }
 const DAY = '2026-11-25';
-const ITEMS = () => [{ title: 'Read a made-up book' }, { title: 'Brush teeth', repeat: '8h' }, { title: 'Shower', repeat: '8h', doneOn: DAY + '/1' },
+const ITEMS = () => [{ title: 'Read a made-up book' }, { title: 'Brush teeth', repeat: '8h', before: ['one-offs'] }, { title: 'Shower', repeat: '8h', doneOn: DAY + '/1' },
   { title: 'Made-up late', date: '2026-11-20' }, { title: 'Made-up soon', date: '2026-11-30' }];
 function run() {
   const bad = [], TOKEN = 'a'.repeat(32) + 'b'.repeat(32), S = site();
