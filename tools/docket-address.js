@@ -64,7 +64,7 @@ function run() {
     if (got !== want || k.state.saves) bad.push(at + ': the address says "' + got + '", the site "' + want + '"');
   });
   /* OVERDUE IS NO REASON TO GO FIRST (the plan, owner 27 Nov): the missed one-off is said last, never next. */
-  if (!/^Docket: Read a made-up book next, 4 left\.$/.test(ask(make('07:10'), { docket: TOKEN }))) bad.push('at 07:10 the overdue item is first, or the count is wrong');
+  if (!/^Docket: Brush teeth next, 4 left\.$/.test(ask(make('07:10'), { docket: TOKEN }))) bad.push('at 07:10 the open cycle item is not first (cycle items before one-offs), or the count is wrong');
   /* THE OWNER'S LEAVE TIMES ARE THE BACKEND'S TOO: an outing (an event away from home) at 10:00 keeps the laundry (it must stay home an hour) off the top at 09:30. */
   { const k = make('09:30', [{ name: 'Docket', items: [{ title: 'Laundry', repeat: '8h', minutes: 5, runs: 60, stay: true, place: 'home' }, { title: 'Floss', repeat: '8h', minutes: 2 },
     { title: 'Made-up outing', start: DAY + 'T10:00', minutes: 120, place: 'out' }] }]); n++;

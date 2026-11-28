@@ -100,13 +100,13 @@ function docketOneList25NovRun_() {
    (the whole old cell), read back; the size cap; the cell read back. tools/docket-plan.js checks it. */
 const DK_PLAN_BACKUP = 'backup_docket_plan_27nov';
 const DK_PLAN_27NOV = [
-  [['6.1wmszhm'], { anchor: 'wake', minutes: 5 }],
+  [['6.1wmszhm'], { within: 15, minutes: 5 }],
   [['e.15yual7'], { minutes: 1 }],
-  [['7.ijpvy8', '5.xtvjpa', 'd.8zitoe', '5.1u6o5y4', '3.uumrh5', 'a.5hsxk1', '5.1nrqe8h'], { minutes: 5, anchor: 'meal' }],
+  [['7.ijpvy8', '5.xtvjpa', 'd.8zitoe', '5.1u6o5y4', '3.uumrh5', 'a.5hsxk1', '5.1nrqe8h'], { minutes: 5, group: 'meal' }],
   [['8.19r3b3x'], { minutes: 20, place: 'out', from: '07:00', until: '22:00' }],
-  [['7.th2ynb'], { minutes: 10, place: 'home', anchor: 'meal' }],
-  [['5.1ctg8cu'], { minutes: 2, place: 'home', anchor: 'bed' }],
-  [['b.4womvh'], { minutes: 3, place: 'home', anchor: 'bed' }],
+  [['7.th2ynb'], { minutes: 10, place: 'home', group: 'meal' }],
+  [['5.1ctg8cu'], { minutes: 2, place: 'home' }],
+  [['b.4womvh'], { minutes: 3, place: 'home' }],
   [['e.1amjoc', '9.1vce7ig'], { minutes: 10, place: 'home' }],
   [['a.1g782yy'], { minutes: 15, place: 'out', from: '07:00', until: '21:00' }],
   [['8.1w39ce3'], { minutes: 30, place: 'home' }],
@@ -182,7 +182,7 @@ function docketOneList28NovRun_() {
    step its option's name and the note that option already holds in the cell's `slots` (name, a new line, the note); the separate reading item (its
    step is inside Prayer) and the reminder to look at the list go; three lines become `standing` (never ticked); the Prayer slot goes once empty. Everything is matched by docketPlanKey_
    (the todoBase_ of a title's first four words), so no prayer text, not even a name, is in this public file: dkPrayerKeys_ holds the keys. It stays 8h,
-   anchor wake. A step not found in the cell throws, nothing changed. Backup tab first, read back; the size cap; the cell read back; a re-run (Prayer
+   Prayer within 15 (it must start within 15 minutes of each cycle's start); every `anchor` goes, a meal one becoming the group "meal". A step not found in the cell throws, nothing changed. Backup tab first, read back; the size cap; the cell read back; a re-run (Prayer
    already stepped, nothing left to make standing or remove) is "nothing to do". After the one list. tools/docket-before.js checks it. */
 const DK_PRAYER_BACKUP = 'backup_docket_prayer_28nov';
 function dkPrayerKeys_() {
@@ -210,7 +210,7 @@ function docketPrayer28NovRun_() {
       return note ? nm + '\n' + note : nm;
     });
     ['options', 'picks', 'pick', 'slot'].forEach(f => delete pr[f]);
-    pr.repeat = '8h'; pr.anchor = 'wake';
+    pr.repeat = '8h';
     if (slot) { slot.options = []; got.slots = slots.filter(x => x !== slot); if (!got.slots.length) delete got.slots; }
     said.push('Prayer as ' + pr.steps.length + ' steps');
   }
@@ -221,6 +221,12 @@ function docketPrayer28NovRun_() {
   keep.forEach(it => { if (it && K.standing.indexOf(key(it.title)) >= 0 && it.standing !== true) {
     it.standing = true; ['done', 'doneOn', 'anchor', 'options', 'picks', 'pick'].forEach(f => delete it[f]); st++; } });
   if (st) said.push(st + ' standing line(s)');
+  /* ONE PRINCIPLE (owner, 28 Nov): `anchor` orders nothing. Prayer must start within 15 minutes of each cycle's start; a meal anchor becomes the
+     group "meal" (which `before` names); wake and bed anchors go. */
+  if (pr && (pr.within === '' || pr.within == null)) { pr.within = 15; said.push('Prayer within 15 minutes of each cycle'); }
+  let an = 0;
+  keep.forEach(it => { if (!it || it.anchor === undefined) return; if (it.anchor === 'meal' && !it.group) it.group = 'meal'; delete it.anchor; an++; });
+  if (an) said.push(an + ' anchor(s) made groups or gone');
   if (!said.length) return 'nothing to do';
   const cell = todoTidy_(JSON.stringify(got));
   if (cell === was) return 'nothing to do';
@@ -569,7 +575,7 @@ const MIGRATIONS = [
   /* AFTER THE ONE LIST (it would drop these fields; this one throws, and is retried, until the one list is there). */
   { id: 'docket-plan-27nov',
     retry: true,
-    what: "the plan's numbers on the owner's Docket items (minutes, runs, place, window, anchor, deadline; matched by title; nothing else touched; backup tab first)",
+    what: "the plan's numbers on the owner's Docket items (minutes, runs, place, window, within, meal group, deadline; matched by title; nothing else touched; backup tab first)",
     run: () => docketPlan27NovRun_() },
   /* THE ONE TIME LIST (owner, 27 Nov): the Assignments tool went; its rows are Docket to-dos (backup tab first; a re-run a no-op). */
   { id: 'assignments-docket-27nov',

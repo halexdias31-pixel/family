@@ -1757,15 +1757,17 @@
       "say": "which days (mon-sat; js/form.js clashDays_); none is every day"
      },
      {
-      "f": "anchor",
-      "type": "choice",
-      "options": [
-       "wake",
-       "meal",
-       "bed"
-      ],
-      "def": "",
-      "say": "happens at that moment of the day"
+      "f": "within",
+      "type": "number",
+      "min": 0,
+      "max": 1440,
+      "say": "a cycle item must START within this many minutes of its cycle's start (06:00, 12:00, 18:00): a window the plan keeps only if it would otherwise be missed (owner, 28 Nov; Prayer 15)"
+     },
+     {
+      "f": "group",
+      "type": "text",
+      "max": 40,
+      "say": "a group name `before` can name (e.g. meal); it orders nothing (owner, 28 Nov: anchor wake/meal/bed gone)"
      },
      {
       "f": "options",
@@ -1788,7 +1790,7 @@
       "f": "before",
       "type": "titles",
       "max": 300,
-      "say": "goes before these (owner, 28 Nov: brush teeth before breakfast): each an item's title, a slot's name, or `meal` for every meal item; the plan puts it ahead of each open one (js/map.js dkSort_)"
+      "say": "goes before these (owner, 28 Nov: brush teeth before breakfast): each an item's title or a `group` name (`meal` for every item of the meal group); the plan puts it ahead of each open one (js/map.js dkSort_)"
      },
      {
       "f": "picks",

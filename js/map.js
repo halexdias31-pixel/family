@@ -135,12 +135,14 @@ function dkTick_(items, i, on, now, pick) {
    the items, London's now ('YYYY-MM-DD HH:MM') and the owner's leave times (dkLeaves_: their events away from home; none known, none assumed).
    An event (`start`, dkOccur_) is pinned: open, above the rest, once its occurrence in hand has begun; later until then.
    An item may say `minutes` (hands-on), `runs` (unattended after), `place` (home/out/desk/phone/anywhere), `stay` (must stay at `place` until `runs` ends),
-   `from`/`until` ('HH:MM': start at or after `from`, finish minutes+runs by `until`), `days` ('mon-sat', js/form.js clashDays_), `anchor` (wake/meal/bed),
+   `from`/`until` ('HH:MM': start at or after `from`, finish minutes+runs by `until`), `days` ('mon-sat', js/form.js clashDays_), `within` (a cycle item
+   must START within this many minutes of its cycle's start, DK_CYCLE: a window), `group` (a name `before` can use, e.g. "meal"; it orders nothing),
    `date` (a one-off's hard deadline) and `options` (a slot's choices). Groups: `open` (can start now, in plan order), `later` (cannot yet; `when[i]` the
    minute from today's 00:00 it next can, soonest first; null not this week), `missed` (a one-off past its date: "new date?"), `done`.
-   The open order: (0) wake items until the day starts (a wake item ticked today) and through the cycle it started in (DK_CYCLE); (2) a dated
-   one-off whose latest start is before the time it would get if it waited behind every other open item (latest start first); (3) the unattended
-   ones (`runs`, longest first: they run while the rest is done); (4) the rest, the fewest minutes first; (6) bed items. Overdue is no reason to go first. Ties keep the list's order. The card, ?eink and the private address
+   The open order (ONE PRINCIPLE, owner 28 Nov: no tier for wake, meal or bed; what looks like priority comes from an item's own numbers): (-1) an
+   event in hand; (2) an item whose latest start (a one-off's date and `until`, a cycle item's `within`) is before the time it would get if it waited
+   behind every other open item, latest start first; (3) every open cycle item (`repeat`); (4) every open one-off; within (3) and (4) the unattended
+   ones first (`runs`, longest first: they run while the rest is done), then the fewest minutes. Overdue is no reason to go first. Ties keep the list's order. The card, ?eink and the private address
    (backend/cards-gen.gs copies this) all read this one plan. Then `before` (below). tools/docket-plan.js and tools/docket-before.js check it. */
 function dkSort_(items, now, leaves) {
   /* UNKNOWN MINUTES ARE NOT 0 (owner, 28 Nov): an item without `minutes` takes this many, wherever the plan reads minutes. */
@@ -149,10 +151,12 @@ function dkSort_(items, now, leaves) {
   items = items || [];
   const day = now.slice(0, 10), hm = v => { const m = /^(\d{1,2}):(\d\d)$/.exec(String(v == null ? '' : v).trim()); return m ? +m[1] * 60 + +m[2] : null; };
   const t = hm(now.slice(11, 16)) || 0, ut = d => Date.UTC(+d.slice(0, 4), +d.slice(5, 7) - 1, +d.slice(8, 10));
-  const wd = (new Date(ut(day)).getUTCDay() + 6) % 7, third = dkOn_(now), L = Array.isArray(leaves) ? leaves : [];
-  const num = v => Math.max(0, +v || 0), mins = it => (it.minutes === '' || it.minutes == null || !isFinite(+it.minutes) ? DK_UNKNOWN_MIN : num(it.minutes)), anc = it => (['wake', 'meal', 'bed'].indexOf(it.anchor) >= 0 ? it.anchor : '');
-  const ticked = (a, on) => items.some(it => it && anc(it) === a && String(it.doneOn || '').indexOf(on) === 0);
-  const wakeNow = !ticked('wake', day) || ticked('wake', third);
+  const wd = (new Date(ut(day)).getUTCDay() + 6) % 7, L = Array.isArray(leaves) ? leaves : [];
+  const num = v => Math.max(0, +v || 0), mins = it => (it.minutes === '' || it.minutes == null || !isFinite(+it.minutes) ? DK_UNKNOWN_MIN : num(it.minutes));
+  /* THE CYCLE IN HAND'S START, from today's 00:00 (before the first start, yesterday's last), and the next start. */
+  const cyc = DK_CYCLE.map(hm), past = cyc.filter(m => m <= t), cs = past.length ? past[past.length - 1] : cyc[cyc.length - 1] - 1440;
+  const cn = cyc.find(m => m > t) != null ? cyc.find(m => m > t) : 1440 + cyc[0];
+  const within = it => (dkRep_(it) && it.within !== '' && it.within != null && isFinite(+it.within) ? cs + num(it.within) : null);
   const g = { standing: [], open: [], later: [], missed: [], done: [], when: {} };
   /* THE FIRST MINUTE (from today's 00:00, at or after `at`) IT MAY START AND STILL FINISH: in its days, its window, and, kept at its place, before a leave. */
   const startAt = (it, at) => {
@@ -182,24 +186,24 @@ function dkSort_(items, now, leaves) {
       if (m <= t) return g.open.push(i);
       g.later.push(i); g.when[i] = m < 7 * 1440 ? m : null; return; }
     if (!dkRep_(it) && it.date && String(it.date) < day) return g.missed.push(i);
+    /* A CYCLE ITEM PAST ITS `within`: later, from the next cycle's start. */
+    if (within(it) != null && t > within(it)) { g.later.push(i); g.when[i] = cn; return; }
     const at = startAt(it, t);
     if (at === t) g.open.push(i); else { g.later.push(i); g.when[i] = at; }
   });
   const free = t + g.open.reduce((n, i) => n + mins(items[i]), 0);
-  const last = it => (dkRep_(it) || !it.date ? null : Math.round((ut(String(it.date)) - ut(day)) / 864e5) * 1440 + (hm(it.until) == null ? 1440 : hm(it.until)) - mins(it) - num(it.runs));
-  const tier = it => { const a = anc(it), ls = last(it);
-    return dkEv_(it) ? -1 : a === 'wake' && wakeNow ? 0 : ls != null && ls < free - mins(it) ? 2 : a === 'bed' ? 6 : num(it.runs) > 0 ? 3 : 4; };
-  /* UNKNOWN MINUTES ARE UNKNOWN, not 0 (owner, 28 Nov). */
-  const key = i => { const it = items[i], k = tier(it);
-    return [k, k === 2 ? last(it) : k === 3 ? -num(it.runs) : 0, k === 2 || k === 3 ? 0 : mins(it), i]; };
+  const last = it => (within(it) != null ? within(it) : dkRep_(it) || !it.date ? null : Math.round((ut(String(it.date)) - ut(day)) / 864e5) * 1440 + (hm(it.until) == null ? 1440 : hm(it.until)) - mins(it) - num(it.runs));
+  const tier = it => { const ls = last(it); return dkEv_(it) ? -1 : ls != null && ls < free - mins(it) ? 2 : dkRep_(it) ? 3 : 4; };
+  const key = i => { const it = items[i], k = tier(it), r = num(it.runs);
+    return [k, k === 2 ? last(it) : r > 0 ? 0 : 1, k === 2 ? 0 : r > 0 ? -r : mins(it), i]; };
   const by = (a, b) => { const x = key(a), y = key(b); for (let n = 0; n < x.length; n++) if (x[n] !== y[n]) return x[n] - y[n]; return 0; };
   g.open.sort(by);
-  /* BEFORE (owner, 28 Nov: "Brush teeth has to go before breakfast"): an open item whose `before` names another open one (its title, any case, or
-     `meal` for every meal item) is placed ahead of it; everything else keeps the order above. A wake item while the day starts, and an event, stay on
-     top, never jumped. A ticked one is not open, so it binds nothing. Each in turn, in that order, comes after whatever must go before it (pulled
+  /* BEFORE (owner, 28 Nov: "Brush teeth has to go before breakfast"): an open item whose `before` names another open one (its title or its `group`,
+     any case: `meal` for every item of the meal group) is placed ahead of it; everything else keeps the order above. An event stays on top, never
+     jumped. A ticked one is not open, so it binds nothing. Each in turn, in that order, comes after whatever must go before it (pulled
      up just ahead of it, theirs ahead of them); a cycle is broken where it closes on itself, so both stay listed, each once. tools/docket-before.js. */
   const nm = v => String(v == null ? '' : v).trim().toLowerCase(), must = (a, b) => { const A = items[a], B = items[b];
-    return a !== b && Array.isArray(A.before) && A.before.some(x => nm(x) === nm(B.title) || (nm(x) === 'meal' && anc(B) === 'meal')); };
+    return a !== b && Array.isArray(A.before) && A.before.some(x => nm(x) === nm(B.title) || (!!nm(B.group) && nm(x) === nm(B.group))); };
   const top = g.open.filter(i => tier(items[i]) <= 0), rest = g.open.filter(i => tier(items[i]) > 0), out = top.slice();
   const put = (b, path) => { if (out.indexOf(b) >= 0 || path.indexOf(b) >= 0) return; rest.forEach(a => { if (must(a, b)) put(a, path.concat(b)); }); if (out.indexOf(b) < 0) out.push(b); };
   rest.forEach(b => put(b, []));

@@ -24,14 +24,14 @@ function planner(src, clash) {
 }
 const DAY = '2026-11-28';   // a Saturday
 const LIST = () => [
-  { title: 'Prayer', repeat: '8h', anchor: 'wake', minutes: 5, options: ['Option A', 'Option B', 'Option C'], picks: ['Option A'] },
+  { title: 'Prayer', repeat: '8h', within: 15, minutes: 5, options: ['Option A', 'Option B', 'Option C'], picks: ['Option A'] },
   { title: 'Glass of water', repeat: '8h', minutes: 1 },
   { title: 'Laundry', repeat: '8h', minutes: 5, runs: 60, place: 'home', stay: true, from: '09:00', until: '21:00' },
   { title: 'Charge batteries', repeat: '8h', minutes: 1, runs: 120, place: 'home' },
   { title: 'Shopping', repeat: '8h', minutes: 20, place: 'out', from: '07:00', until: '22:00' },
   { title: 'Shower', repeat: '8h', minutes: 10, place: 'home' },
-  { title: 'Protein', repeat: '8h', minutes: 5, anchor: 'meal' },
-  { title: 'Floss', repeat: '8h', minutes: 2, place: 'home', anchor: 'bed' },
+  { title: 'Protein', repeat: '8h', minutes: 5, group: 'meal' },
+  { title: 'Floss', repeat: '8h', minutes: 2, place: 'home' },
   { title: 'Old made-up errand', date: '2026-11-20', minutes: 5 },
   { title: 'Made-up call', date: DAY, until: '09:00', minutes: 5, place: 'phone' },
   { title: 'Far made-up errand', date: '2026-12-20', minutes: 10, place: 'desk' },
@@ -46,7 +46,14 @@ const idx = (L, t) => L.findIndex(x => x.title === t);
 const OUTING = [{ title: 'Made-up outing', start: DAY + 'T10:00', minutes: 120, place: 'out' }];
 const LEAVE = P => P.dkLeaves_(OUTING, DAY + ' 09:30');
 const RULES = [
-  ['on waking (07:30, nothing ticked) the wake item is first, ahead of the longest unattended one', P => T(LIST(), at(P, '07:30').open.slice(0, 1)) === 'Prayer'],
+  ['Prayer is first at 06:05 only because of its window (within 15): without it, it drops', P => { const L = LIST(), M = LIST(); delete M[0].within;
+    return T(L, at(P, '06:05', L).open.slice(0, 1)) === 'Prayer' && at(P, '06:05', M).open[0] !== 0 && at(P, '06:20', L).open.indexOf(0) < 0; }],
+  ['no wake or bed tier: anchors order nothing (the same order with every anchor set)', P => { const L = LIST(), M = LIST(); M[1].anchor = 'wake'; M[7].anchor = 'bed'; M[6].anchor = 'meal';
+    return JSON.stringify(at(P, '09:00', L)) === JSON.stringify(at(P, '09:00', M)); }],
+  ['floss comes up every cycle like the rest: ticked at 07:00, done at 11:59, open at 12:00, not last', P => { const L = LIST(), f = idx(L, 'Floss'); P.dkTick_(L, f, true, DAY + ' 07:00');
+    const o = at(P, '12:00', L).open; return at(P, '11:59', L).done.indexOf(f) >= 0 && o.indexOf(f) >= 0 && o[o.length - 1] !== f; }],
+  ['a 2-minute one-off never precedes an open cycle item', P => { const L = LIST(); L.push({ title: 'Made-up quick one-off', minutes: 2 }); const o = at(P, '09:00', L), q = o.open.indexOf(L.length - 1);
+    return q >= 0 && o.open.every((i, n) => !(n > q && L[i].repeat === '8h')); }],
   ['laundry is not offered at 08:59, and is "from 09:00"', P => { const L = LIST(), g = at(P, '08:59', L), i = idx(L, 'Laundry');
     return g.open.indexOf(i) < 0 && g.later.indexOf(i) >= 0 && P.dkWhen_(g.when[i], DAY + ' 08:59') === 'from 09:00'; }],
   ['laundry is offered at 09:00 and at 19:55 (done by 21:00)', P => { const L = LIST(), i = idx(L, 'Laundry'); return at(P, '09:00', L).open.indexOf(i) >= 0 && at(P, '19:55', L).open.indexOf(i) >= 0; }],
@@ -75,38 +82,38 @@ const RULES = [
     const o = at(P, '09:00', L).open, u = o.indexOf(idx(L, 'Made-up unknown')); return u > o.indexOf(idx(L, 'Shower')) && u < o.indexOf(idx(L, 'Made-up twenty')); }],
   ['a deadline a week out does not jump the queue: it waits behind the home items', P => { const L = LIST(); L.push({ title: 'Made-up week', date: '2026-12-03', minutes: 30, place: 'desk' });
     const o = at(P, '09:00', L).open; return o.indexOf(idx(L, 'Made-up week')) > o.indexOf(idx(L, 'Minox')) && o.indexOf(idx(L, 'Made-up week')) > o.indexOf(idx(L, 'Shower')); }],
-  ['bed items last', P => { const L = LIST(), o = at(P, '09:00', L).open; return o[o.length - 1] === idx(L, 'Floss'); }],
   ['after waking (prayer ticked in the 06:00 cycle), at 12:30 the wake item is not pinned on top', P => { const L = LIST(); L[0].doneOn = DAY + '/1'; L.push({ title: 'Second wake', repeat: '8h', anchor: 'wake', minutes: 1 });
     return at(P, '12:30', L).open[0] !== L.length - 1; }],
   ['an item outside its days is not offered, and says when', P => { const L = LIST(), g = at(P, '09:00', L), i = idx(L, 'Made-up weekday thing');
     return g.open.indexOf(i) < 0 && P.dkWhen_(g.when[i], DAY + ' 09:00') === 'from Mon 00:00'; }],
-  ['later items in the order they next become possible', P => { const L = LIST(), x = L[2]; L[2] = L[13]; L[13] = x; const g = at(P, '08:30', L); return T(L, g.later) === 'Laundry|Made-up weekday thing'; }],
+  ['later items in the order they next become possible', P => { const L = LIST(), x = L[2]; L[2] = L[13]; L[13] = x; const g = at(P, '08:30', L); return T(L, g.later) === 'Laundry|Prayer|Made-up weekday thing'; }],
   ['the slot line says the least recently ticked option ("Prayer · Option B")', P => P.dkTitle_(LIST()[0], DAY + ' 07:30') === 'Prayer · Option B'],
   ['a tick records the option, and the next line offers the next least recent', P => { const L = LIST(); P.dkTick_(L, 0, true, DAY + ' 07:30');
     const ok = L[0].pick === 'Option B' && L[0].picks.join() === 'Option A,Option B' && P.dkTitle_(L[0], DAY + ' 07:31') === 'Prayer · Option B';
     return ok && P.dkTitle_(L[0], DAY + ' 12:00') === 'Prayer · Option C'; }],
   ['an option tapped is the one recorded; an untick takes it off', P => { const L = LIST(); P.dkTick_(L, 0, true, DAY + ' 07:30', 'Option C'); const a = L[0].pick === 'Option C';
     P.dkTick_(L, 0, false, DAY + ' 07:30'); return a && !L[0].pick && L[0].picks.join() === 'Option A'; }],
-  ['the e-ink and address rows: the open, then the later saying when, then the missed', P => { const L = LIST(), m = P.dkNowNextOf_(L, DAY + ' 08:30', []), r = m.rows;
+  ['the e-ink and address rows: the open, then the later saying when, then the missed', P => { const L = LIST(), m = P.dkNowNextOf_(L, DAY + ' 06:05', []), r = m.rows;
     const lau = r.find(x => x.title === 'Laundry'), old = r[r.length - 1];
     return r[0].title === 'Prayer · Option B' && lau && lau.tags.join() === 'from 09:00' && old.missed && old.title === 'Old made-up errand' && !r.slice(0, -1).some(x => x.missed); }],
   ['the same input gives the same order', P => JSON.stringify(at(P, '09:00')) === JSON.stringify(at(P, '09:00'))],
 ];
 const MUTS = [
-  ['no wake anchor', s => s.replace("a === 'wake' && wakeNow ? 0 :", '')],
+  ['a wake tier', s => s.replace('return dkEv_(it) ? -1 :', "return dkEv_(it) ? -1 : it.anchor === 'wake' ? 0 :")],
+  ['within ignored', s => s.replace('const within = it => (dkRep_(it) &&', 'const within = it => (false &&')],
+  ['one-offs mixed in', s => s.replace('dkRep_(it) ? 3 : 4; };', '3; };')],
   ['no window start', s => s.replace('let s = Math.max(at - d * 1440, f == null ? 0 : f);', 'let s = at - d * 1440;')],
   ['no window end', s => s.replace('if (u != null && s + need > u) break;', '')],
   ['stay ignored', s => s.replace('const hit = it.stay ?', 'const hit = false ?')],
   ['overdue on top', s => s.replace("if (!dkRep_(it) && it.date && String(it.date) < day) return g.missed.push(i);", '')],
   ['every deadline jumps', s => s.replace('ls != null && ls < free - mins(it) ? 2', 'ls != null ? 2')],
   ['no deadline tier', s => s.replace('ls != null && ls < free - mins(it) ? 2', 'false ? 2')],
-  ['runs shortest first', s => s.replace('k === 3 ? -num(it.runs)', 'k === 3 ? num(it.runs)')],
-  ['no runs tier', s => s.replace('num(it.runs) > 0 ? 3 : 4', '4')],
-  ['place orders', s => s.replace("return [k, k === 2 ? last(it) : k === 3 ? -num(it.runs) : 0,", "return [k, k === 2 ? last(it) : k === 3 ? -num(it.runs) : ['home', 'anywhere', 'desk', 'phone', 'out'].indexOf(it.place),")],
-  ['longest first', s => s.replace('k === 2 || k === 3 ? 0 : mins(it), i]', 'k === 2 || k === 3 ? 0 : -mins(it), i]')],
+  ['runs shortest first', s => s.replace('r > 0 ? -r : mins(it), i]', 'r > 0 ? r : mins(it), i]')],
+  ['no runs first', s => s.replace('k === 2 ? last(it) : r > 0 ? 0 : 1, k === 2 ? 0 : r > 0 ? -r : mins(it), i]', 'k === 2 ? last(it) : 1, k === 2 ? 0 : mins(it), i]')],
+  ['place orders', s => s.replace('return [k, k === 2 ? last(it)', "return [k, ['out', 'home', 'anywhere', 'desk', 'phone'].indexOf(it.place), k === 2 ? last(it)")],
+  ['longest first', s => s.replace('r > 0 ? -r : mins(it), i]', 'r > 0 ? -r : -mins(it), i]')],
   ['unknown is 0', s => s.replace('const DK_UNKNOWN_MIN = 15;', 'const DK_UNKNOWN_MIN = 0;')],
   ['cycle at 08:00', s => s.replace("const DK_CYCLE = ['06:00', '12:00', '18:00'];", "const DK_CYCLE = ['08:00', '12:00', '18:00'];")],
-  ['bed not last', s => s.replace("a === 'bed' ? 6 :", '')],
   ['no days', s => s.replace('if (days.length && days.indexOf(w) < 0) continue;', '')],
   ['later unsorted', s => s.replace('g.later.sort(', '[].sort(')],
   ['most recent option', s => s.replace('o.find(x => p.indexOf(x) < 0) || p.find(x => o.indexOf(x) >= 0)', 'p.slice().reverse().find(x => o.indexOf(x) >= 0)')],
@@ -129,17 +136,17 @@ function jobScene() {
 const JOB_RULES = [
   ['laundry gets 5 minutes, runs 60, home, stay, 09:00-21:00, its repeat and done state kept', m => { const l = m.items[0];
     return l.minutes === 5 && l.runs === 60 && l.place === 'home' && l.stay === true && l.from === '09:00' && l.until === '21:00' && l.repeat === '8h' && l.doneOn === '2026-11-25/1'; }],
-  ['prayer gets anchor wake and 5 minutes, its options kept', m => m.items[1].anchor === 'wake' && m.items[1].minutes === 5 && m.items[1].options.join() === 'made-up'],
+  ['prayer gets within 15 and 5 minutes, no anchor, its options kept', m => m.items[1].within === 15 && m.items[1].anchor === undefined && m.items[1].minutes === 5 && m.items[1].options.join() === 'made-up'],
   ['an unmatched item is left exactly as it was', m => JSON.stringify(m.items[2]) === JSON.stringify({ title: 'Made-up unmatched', date: '2026-12-01' })],
-  ['the renamed tidy and a title in another case are matched', m => m.items[3].minutes === 10 && m.items[3].place === 'home' && m.items[4].anchor === 'meal' && m.items[4].minutes === 5],
+  ['the renamed tidy and a title in another case are matched', m => m.items[3].minutes === 10 && m.items[3].place === 'home' && m.items[4].group === 'meal' && m.items[4].minutes === 5],
   ['the backup holds the whole old cell, once', m => !!m.backup && m.backup.v.length === 1 && m.backup.v[0][1] === m.was],
   ['a re-run is a no-op', m => /nothing to do/.test(m.again) && m.cellAgain === m.cell && m.backup.v.length === 1],
   ['the one-list job run late leaves the numbers whole', m => m.oneAfter === m.cell],
 ];
 function proveJob(m) {
   const cp = o => JSON.parse(JSON.stringify(o));
-  const breaks = [x => { x.items[0].runs = 30; }, x => { delete x.items[0].stay; }, x => { delete x.items[0].doneOn; }, x => { x.items[1].anchor = 'bed'; },
-    x => { x.items[1].options = []; }, x => { x.items[2].minutes = 5; }, x => { delete x.items[3].minutes; }, x => { delete x.items[4].anchor; },
+  const breaks = [x => { x.items[0].runs = 30; }, x => { delete x.items[0].stay; }, x => { delete x.items[0].doneOn; }, x => { x.items[1].within = 30; },
+    x => { x.items[1].options = []; }, x => { x.items[2].minutes = 5; }, x => { delete x.items[3].minutes; }, x => { delete x.items[4].group; },
     x => { x.backup = null; }, x => { x.cellAgain = 'x'; }, x => { x.oneAfter = 'x'; }];
   return breaks.map((b, i) => { const x = Object.assign({}, m, { items: cp(m.items), backup: m.backup }); b(x);
     return JOB_RULES.some(([, r]) => { try { return !r(x); } catch (e) { return true; } }) ? -1 : i; }).filter(i => i >= 0);

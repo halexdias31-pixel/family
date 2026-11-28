@@ -2,7 +2,7 @@
 /* @family. — tools/docket-before.js ONE THING BEFORE ANOTHER (rule 1.75; owner 28 Nov: "Brush teeth has to go before breakfast ... make this docket
    sophisticated"). What the owner would notice, on a made-up morning (no real item text here, by design):
    (1) THE ORDER, js/map.js dkSort_ run as served: brush teeth (`before: meal`) shows ahead of every open Protein/Carbs/Dairy/Veg/Fruit, even once a meal
-       began; a name matches any case; a constraint never lifts an item above the wake items; a cycle still lists both, in a fixed order, and returns;
+       began; a name matches any case; a constraint never lifts an item above an event in hand; a cycle still lists both, in a fixed order, and returns;
        a ticked target binds nothing; with no `before` the order is the plan's as it was. Each rule proved by mutating the served source (--prove).
    (2) ONE PLAN, TWO PLACES: backend/cards-gen.gs gives the site's order at every half hour, and a changed copy is caught.
    (3) THE JOB: backend/access.gs docketBefore28NovRun_ sets the brush-teeth item's `before` to meal, only when it has none; backup first; a re-run a
@@ -14,34 +14,34 @@ const { world } = require('./docket-onelist.js');
 const DAY = '2026-11-28';
 const MEALS = ['Protein', 'Carbs', 'Dairy', 'Veg', 'Fruit'];
 /* A MADE-UP MORNING: the wake item, a glass of water (wake too), brush teeth, a shower, the five meal slots; Protein ticked this third (a meal began). */
-const LIST = () => [{ title: 'Prayer', repeat: '8h', anchor: 'wake', minutes: 5 }, { title: 'Glass of water', repeat: '8h', anchor: 'wake', minutes: 1 }]
-  .concat(MEALS.map((t, n) => ({ title: t, repeat: '8h', anchor: 'meal', minutes: 5, doneOn: n ? '' : DAY + '/1' })))
+const LIST = () => [{ title: 'Prayer', repeat: '8h', within: 15, minutes: 5 }, { title: 'Glass of water', repeat: '8h', minutes: 1 }]
+  .concat(MEALS.map((t, n) => ({ title: t, repeat: '8h', group: 'meal', minutes: 5, doneOn: n ? '' : DAY + '/1' })))
   .concat([{ title: 'Shower', repeat: '8h', minutes: 10, place: 'home' }, { title: 'Brush teeth', repeat: '8h', minutes: 6, place: 'home', before: ['meal'] }]);
-const at = (P, L, hm) => P.dkSort_(L, DAY + ' ' + (hm || '07:30'), []).open;
+const at = (P, L, hm) => P.dkSort_(L, DAY + ' ' + (hm || '06:05'), []).open;
 const pos = (L, o, t) => o.indexOf(L.findIndex(x => x.title === t));
 const names = (L, o) => o.map(i => L[i].title).join('|');
 const RULES = [
   ['brush teeth shows before every open meal slot, though a meal began', P => { const L = LIST(), o = at(P, L), b = pos(L, o, 'Brush teeth');
     return b >= 0 && MEALS.slice(1).every(t => pos(L, o, t) > b); }],
   ['a slot named in any case ("carbs", "DAIRY") is gone before; each pulled up just ahead of its slot, the rest in place', P => { const L = LIST(); L[8].before = ['carbs']; L[7].before = ['DAIRY'];
-    const o = at(P, L); return pos(L, o, 'Brush teeth') < pos(L, o, 'Carbs') && pos(L, o, 'Shower') < pos(L, o, 'Dairy') && names(L, o) === 'Glass of water|Prayer|Brush teeth|Carbs|Shower|Dairy|Veg|Fruit'; }],
-  ['with every meal slot open: the wake items, brush teeth (6 minutes, before: meal), then the meal slots (5), then the rest', P => { const L = LIST(); L[2].doneOn = '';
-    return names(L, at(P, L)) === 'Glass of water|Prayer|Brush teeth|Protein|Carbs|Dairy|Veg|Fruit|Shower'; }],
-  ['a constraint never lifts an item above the wake items', P => { const L = LIST(); L[8].before = ['meal', 'Glass of water', 'Prayer'];
-    const o = at(P, L); return pos(L, o, 'Glass of water') === 0 && pos(L, o, 'Prayer') === 1 && pos(L, o, 'Brush teeth') === 2; }],
+    const o = at(P, L); return pos(L, o, 'Brush teeth') < pos(L, o, 'Carbs') && pos(L, o, 'Shower') < pos(L, o, 'Dairy') && names(L, o) === 'Prayer|Glass of water|Brush teeth|Carbs|Shower|Dairy|Veg|Fruit'; }],
+  ['with every meal slot open: Prayer (its 15-minute window), the fewest minutes, brush teeth (6, before: meal) ahead of the meal group (5), then the rest', P => { const L = LIST(); L[2].doneOn = '';
+    return names(L, at(P, L)) === 'Prayer|Glass of water|Brush teeth|Protein|Carbs|Dairy|Veg|Fruit|Shower'; }],
+  ['a constraint never lifts an item above an event in hand', P => { const L = LIST(); L.push({ title: 'Made-up call', start: DAY + 'T06:00', minutes: 10 }); L[8].before = ['meal', 'Made-up call'];
+    const o = at(P, L); return pos(L, o, 'Made-up call') === 0 && pos(L, o, 'Brush teeth') < pos(L, o, 'Carbs'); }],
   ['a cycle lists both, every item once, in the same order each time', P => { const L = LIST(); L[7].before = ['Brush teeth']; L[8].before = ['Shower'];
     const a = at(P, L), b = at(P, LIST().map((x, i) => Object.assign(x, L[i].before ? { before: L[i].before } : {})));
     return pos(L, a, 'Shower') >= 0 && pos(L, a, 'Brush teeth') >= 0 && a.length === new Set(a).size && a.length === 8 && names(L, a) === names(L, b); }],
   ['a ticked target binds nothing: the order is as without it', P => { const L = LIST(), M = LIST(); L[7].before = ['Protein']; L[7].minutes = 30; M[7].minutes = 30;
     return names(L, at(P, L)) === names(M, at(P, M)) && pos(L, at(P, L), 'Shower') > pos(L, at(P, L), 'Fruit'); }],
-  ['with no before anywhere, the plan is the plan: wake items (fewest minutes first), then the fewest minutes first, place no matter', P => { const L = LIST(); delete L[8].before;
-    return names(L, at(P, L)) === 'Glass of water|Prayer|Carbs|Dairy|Veg|Fruit|Brush teeth|Shower'; }],
+  ['with no before anywhere, the plan is the plan: the window first, then the fewest minutes, place no matter', P => { const L = LIST(); delete L[8].before;
+    return names(L, at(P, L)) === 'Prayer|Glass of water|Carbs|Dairy|Veg|Fruit|Brush teeth|Shower'; }],
 ];
 const MUTS = [
   ['before ignored', s => s.replace('  g.open = out;\n', '')],
-  ['meal word ignored', s => s.replace("(nm(x) === 'meal' && anc(B) === 'meal')", 'false')],
+  ['group ignored', s => s.replace("(!!nm(B.group) && nm(x) === nm(B.group))", 'false')],
   ['case matters', s => s.replace("const nm = v => String(v == null ? '' : v).trim().toLowerCase()", "const nm = v => String(v == null ? '' : v)")],
-  ['wake items jumpable', s => s.replace('top = g.open.filter(i => tier(items[i]) <= 0), rest = g.open.filter(i => tier(items[i]) > 0)', 'top = [], rest = g.open.slice()')],
+  ['events jumpable', s => s.replace('top = g.open.filter(i => tier(items[i]) <= 0), rest = g.open.filter(i => tier(items[i]) > 0)', 'top = [], rest = g.open.slice()')],
   ['a cycle drops both', s => s.replace("if (out.indexOf(b) >= 0 || path.indexOf(b) >= 0) return;", "if (out.indexOf(b) >= 0) return; if (path.indexOf(b) >= 0) { out.push(-1); return; }")],
   ['a cycle never ends', s => s.replace("|| path.indexOf(b) >= 0) return;", ") return;")],
   ['a ticked target binds', s => s.replace('  const top = g.open.filter', '  g.open = g.open.concat(g.done.filter(i => items.some(a => Array.isArray(a.before) && a.before.some(x => nm(x) === nm(items[i].title)))));\n  const top = g.open.filter')],
