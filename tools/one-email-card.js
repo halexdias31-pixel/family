@@ -6,7 +6,7 @@
       says only HOW a site part is said (`words`, keyed by the site's parts) — never `lines` or another list of parts of its own; its `rows`
       name only site parts.
    2. THE EMAILS: the real builders run on made-up rows, the backend loaded as Apps Script loads it (tools/lib/backend-vm.js) and nothing
-      sent: the client's receipt (lessonNotify_), the requested tutor's note, a child's receipt, and the cancelled note (postDeleteJob_).
+      sent: the client's receipt (createJobNotify_), the requested tutor's note, a child's receipt, and the cancelled note (postDeleteJob_).
       Each bullet line is matched to the site part whose made-up value it says; fails when a line says no site part (the email's own), the
       parts are out of the site card's order (read here off `card.record` itself), a part is said twice, or a price part (`money.*`) is
       said to a child or with prices off. Counted: every email card drawn. `--html <dir>` writes each sample as HTML there. Run by tools/build.js. */
@@ -35,9 +35,9 @@ function emails() {
     participantsOf: () => [{ name: 'Cara Test', role: 'client' }], logEvent: () => {}, setCell: () => true, clearCache: () => {}, jobStatusOf: () => 'cancelled', jsonOut: o => o,
   });
   const cases = [
-    ['receipt to a grown-up', () => B.lessonNotify_(BODY, 'Cara Test', 'J-ZZ', false), { prices: true }],
-    ['note to the requested tutor', () => B.lessonNotify_(BODY, 'Cara Test', 'J-ZZ', true), { prices: false, pick: 1 }],
-    ['receipt to a child', () => B.lessonNotify_(BODY, 'Kit Test', 'J-ZZ', false), { prices: false }],
+    ['receipt to a grown-up', () => B.createJobNotify_(BODY, 'Cara Test', 'J-ZZ', false), { prices: true }],
+    ['note to the requested tutor', () => B.createJobNotify_(BODY, 'Cara Test', 'J-ZZ', true), { prices: false, pick: 1 }],
+    ['receipt to a child', () => B.createJobNotify_(BODY, 'Kit Test', 'J-ZZ', false), { prices: false }],
     ['cancelled note', () => B.postDeleteJob_({ jobId: 'J-ZZ', adminName: 'Ann Test' }), { prices: false, use: 'cancelled' }],
   ];
   return cases.map(([name, fn, o]) => { sent.length = 0; let threw = ''; try { fn(); } catch (e) { threw = String(e && e.message || e); }

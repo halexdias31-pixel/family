@@ -365,8 +365,6 @@ function dkFacts_(it, now) {
   return [k ? k.replace('T', ' ') : '', rep, it.date && !dkRep_(it) ? 'due ' + it.date : '', it.course, it.weight !== '' && it.weight != null ? it.weight + '%' : '', it.mark ? 'mark ' + it.mark : '']
     .filter(Boolean).join(' · ');
 }
-const DK_ADD_KINDS = [{ kind: 'task', label: 'Add task', icon: 'plus', act: 'dk-qadd' }, { kind: 'event', label: 'Add event', icon: 'flag', act: 'dk-qevent' },
-  { kind: 'lesson', label: 'Add lesson', icon: 'join', act: 'dk-qlesson' }];
 function dkCard_() {
   const now = dkNow_(), g = dkSort_(dkLoad_(), now, dkLeavesNow_());
   return renderCard(shapeCard_('docket', { kind: 'docket', name: 'Docket', tags: [],
@@ -376,10 +374,8 @@ function dkCard_() {
       .concat(typeof tdEvents_ === 'function' ? cardFold_('dk:terms', { type: 'text', text: text_('term-dates') }, tdEvents_().map(e => ({ type: 'text', look: 'note',
         text: e.title + ' · ' + e.start + (e.end && e.end !== e.start ? ' – ' + e.end : '') })), 'dk-terms') : [])
       .concat(g.done.length ? cardFold_('dk:done', { type: 'text', text: 'Done (' + g.done.length + ')' }, g.done.map(i => dkLine_(i)), 'dk-done') : [])
-      .concat({ type: 'field', look: 'dk-qadd-f', blocks: [{ type: 'control', attrs: { class: 'dk-qadd', placeholder: 'Add an item, then Enter', 'aria-label': 'Add to the Docket', maxlength: 300, enterkeyhint: 'done' } }] })
-      /* ADD ASKS THE KIND (owner, 27 Nov): a task (undated), an event (its first moment, a calendar entry), or a lesson (booked, paid to the term's end). */
-      .concat({ type: 'field', look: 'dk-qadd-f', cap: 'When (an event)', blocks: [{ type: 'control', attrs: { class: 'dk-qwhen', type: 'datetime-local', 'aria-label': 'When the event starts' } }] }),
-    tiles: DK_ADD_KINDS.map(k => ({ icon: k.icon, label: k.label, act: k.act, cls: k.act === 'dk-qadd' ? 'is-submit' : '' })) }));
+      .concat({ type: 'field', look: 'dk-qadd-f', blocks: [{ type: 'control', attrs: { class: 'dk-qadd', placeholder: 'Add an item, then Enter', 'aria-label': 'Add to the Docket', maxlength: 300, enterkeyhint: 'done' } }] }),
+    tiles: [{ icon: 'plus', label: 'Add', act: 'dk-qadd', cls: 'is-submit' }] }));
 }
 /* A CHANGE IS SAVED (dkSave_, the backend's todoTidy_) and every place that draws the Docket draws it again in the new order. */
 const dkKeep_ = () => { DK.say = ''; dkSave_(); dkPaint_(); if (typeof lateCame_ === 'function') lateCame_(); if (EINK) dkEinkTry_(); };
@@ -398,12 +394,6 @@ on('dk-qadd', el => { const card = el.closest('.card'), inp = card && card.query
   if (!t) return;
   dkLoad_().push({ title: t.slice(0, 300) }); dkKeep_();
   setTimeout(() => { const again = document.querySelector('.dk-qadd'); if (again) again.focus(); }, 400); });
-/* AN EVENT: its title and first moment (.ics DTSTART); pinned at its time in the plan. A LESSON is booked where its tutor's free time is (the booking form). */
-on('dk-qevent', el => { const card = el.closest('.card'), inp = card && card.querySelector('.dk-qadd'), w = card && card.querySelector('.dk-qwhen'),
-    t = String((inp && inp.value) || '').trim(), at = String((w && w.value) || '').slice(0, 16);
-  if (!t || !/^\d{4}-\d\d-\d\dT\d\d:\d\d$/.test(at)) { toast('An event needs a name and a time.'); return; }
-  dkLoad_().push({ title: t.slice(0, 300), start: at }); dkKeep_(); });
-on('dk-qlesson', () => go('booking'));
 document.addEventListener('change', e => {
   const el = e.target, at = el && el.getAttribute && el.getAttribute('data-dkf');
   if (at == null) return;
