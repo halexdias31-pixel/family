@@ -448,7 +448,9 @@ Object.assign(CARD_BLOCKS, { paperRow: paperRow_, paperDoc: paperDoc_, paperRost
 /* A BOOKING AS A PICTURE: the paper's own markup (`xml`, already serialised) laid in an SVG at the screen's width; `css` is the page's own rules. */
 const paperSnap_ = b => `<svg xmlns="http://www.w3.org/2000/svg" width="${Number(b.cw) || 1}" height="${Number(b.ch) || 1}" viewBox="0 0 ${(Number(b.cw) || 1) / (Number(b.k) || 1)} ${(Number(b.ch) || 1) / (Number(b.k) || 1)}">`
   + `<style>${String(b.css || '').replace(/<\//g, '<\\/')}</style><foreignObject x="0" y="0" width="${Number(b.w) || 1}" height="${Number(b.h) || 1}">${b.xml || ''}</foreignObject></svg>`;
-Object.assign(CARD_BLOCKS, { paperSnap: paperSnap_ });
+/* TURNING A REQUEST DOWN asks why, in one optional line. */
+const paperWhy_ = b => `<form class="req-why" data-id="${esc(b.id)}"><label>Why not? ${formInput_('name="why" maxlength="200" placeholder="optional, one line" autocomplete="off"')}</label>${tile_({ form: true, submit: true, label: 'Decline' })}</form>`;
+Object.assign(CARD_BLOCKS, { paperSnap: paperSnap_, paperWhy: paperWhy_ });
 /* A SETTINGS FORM'S PARTS (me-shelves): a control, a captioned field, a tick, a several-of-a-list and a plain group, all from data. */
 /* ATTRIBUTES ARE DATA: { name: value | true }, each escaped; an `on…` handler is never written. */
 const kcfAttrs_ = a => Object.keys(a || {}).filter(k => /^[a-z][\w:-]*$/i.test(k) && !/^on/i.test(k) && a[k] != null && a[k] !== false)

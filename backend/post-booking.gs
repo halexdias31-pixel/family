@@ -16,10 +16,8 @@ function postCreateCheckout_(body, action, began) {
     return jsonOut({ error: 'That checkout was already started — check the tab it opened in.' });
   }
 
-  /* A LESSON (owner, 27 Nov): the term's total, up front. */
-  if (S(body.lessonId)) return lessonCheckout_(body);
   const stripeKey = PropertiesService.getScriptProperties().getProperty('STRIPE_TEST_KEY');
-  if (!stripeKey) return refuse_('err-no-stripe-key', 'no-key');
+  if (!stripeKey) return jsonOut({ error: 'Stripe key not set. Add STRIPE_TEST_KEY in Project Settings → Script Properties.' });
 
   const t = read(TAB.jobs);
   const j = t.rows.find(x => S(x.job_id) === S(body.jobId));
@@ -101,22 +99,17 @@ function postFinalizePayment_(body, action, began) {
 
     // ASK STRIPE. Landing on the success URL proves only that a browser visited a URL; anyone
     // could type it. This is the check that makes the payment real.
-    let paid = false, intent = '';
+    let paid = false;
     try {
       const res = UrlFetchApp.fetch('https://api.stripe.com/v1/checkout/sessions/' + sessionId, {
         method: 'get', headers: { Authorization: 'Bearer ' + stripeKey }, muteHttpExceptions: true
       });
       const d = JSON.parse(res.getContentText());
-      paid = S(d.payment_status) === 'paid'; intent = S(d.payment_intent);
+      paid = S(d.payment_status) === 'paid';
     } catch (err) {
       return jsonOut({ error: 'Could not confirm the payment with Stripe: ' + err });
     }
     if (!paid) return jsonOut({ error: 'Stripe says that session has not been paid.' });
-    if (parsed.lessonId) {
-      if (!lessonPaid_(parsed.lessonId, intent)) return jsonOut({ error: 'Paid, but the lesson could not be marked: message us and we will put it right.' });
-      props.deleteProperty(ref); props.deleteProperty(ref + '_session');
-      return jsonOut({ success: true, lessonId: S(parsed.lessonId) });
-    }
 
     // Confirm is the only action that reaches Booked, and only this path writes it.
     logEvent({ jobId, actor: payer, role: 'client', action: 'Confirm',
@@ -231,8 +224,6 @@ function postMove_(body, action, began) {
   const role = norm(body.role) === 'tutor' ? 'tutor' : 'client';
   const me = S(body.name), act = S(body.move), text = S(body.text);
   if (!me) return jsonOut({ error: 'No name given.' });
-  /* NO ACCEPT/DECLINE (owner, 27 Nov): nobody answers a booking; a lesson is confirmed at once inside the tutor's availability (addLesson). */
-  if (act === ACT.ACCEPT || act === ACT.DECLINE) return jsonOut({ error: 'Bookings are confirmed at once now: nothing to accept or decline.', why: 'no-answer' });
 
   const before = participantsOf(jobId);
   const mine = before.find(p2 => key(p2.name) === key(me));
@@ -389,202 +380,243 @@ function moveTell_(j, act, me, text, target, others) {
     (act === ACT.ACCEPT || act === ACT.DECLINE || act === ACT.WITHDRAW) ? 'booked' : 'bookings'));
 }
 
-/* --- ADD A LESSON (owner, 27 Nov: BOOKING IS ADDING TO THE ONE LIST; NO ACCEPT/DECLINE; MONEY) ---------------------------------------
-   The request/accept/decline path is gone: a lesson inside the tutor's availability is confirmed at once and the tutor is told (a push, never a
-   question). It pays every lesson to the end of its term up front (pay 'owed' until the checkout's return writes 'paid'; an admin may skip:
-   'skipped'). Booked by the learner (an adult), a parent of the learner, or an admin; a child never books (actions.json grownUp). Kept in the
-   learner's `lessons` cell (booking.gs). tools/lesson-book.js checks it. */
-const LESSON_DMY_ = iso => iso.slice(8, 10) + '/' + iso.slice(5, 7) + '/' + iso.slice(0, 4);
-const LESSON_DAYS_ = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-/* ITS PRICE BY THE RULES (serverPrice_, the site's own priceFrom): pence in all and per lesson, the tutor's pay; null when it cannot be priced. */
-function lessonPrice_(b, tutor, dates, minutes) {
-  const d0 = dates[0], wd = (Math.floor(lsMin_(d0) / 1440) + 3) % 7;
-  let P = null;
-  try {
-    P = serverPrice_({ requestedTutor: personDisplayName(tutor), subject: S(b.subject), level: S(b.level), n: 1, location: S(b.venue),
-      day: LESSON_DAYS_[wd], time: d0.slice(11, 16), hours: minutes / 60, slots: 'x', dates: dates.map(LESSON_DMY_).join(',') });
-  } catch (e) { P = null; }
-  if (!P || !(N(P.price) > 0)) return null;
-  const total = Math.round(N(P.price) * 100);
-  return { totalPence: total, perLessonPence: Math.round(total / dates.length), tutorPayPence: Math.round(N(P.tutorPay) * 100) };
-}
-/* EVERY TERM THIS YEAR AND NEXT, and the closed days as yyyy-mm-dd: the term-date rule. */
-function lessonCalendar_(startIso) {
-  const y = +startIso.slice(0, 4), m = +startIso.slice(5, 7), sy = m >= 8 ? y : y - 1;
-  const terms = termsFor(sy).concat(termsFor(sy + 1));
-  const shut = closures().map(c => { const p = S(c.date).split('/'); return p.length === 3 ? p[2] + '-' + p[1] + '-' + p[0] : ''; }).filter(Boolean);
-  return { terms, shut };
-}
-function lessonSave_(t, row, list) {
-  const cell = JSON.stringify({ v: 1, lessons: list });
-  if (cell.length > LESSONS_CELL_MAX) return 'That would be more lessons than one account holds.';
-  if (!setCell(t, row, 'lessons', cell)) return 'The people tab has no lessons column.';
-  return '';
-}
-function postAddLesson_(body, action, began) {
-  const me = findPerson('', S(body.personId));
-  if (!me) return refuse_('err-sign-in-first', 'not-signed-in');
-  if (isChild_(me)) return jsonOut({ error: KID_ASK_PARENT, why: 'ask-a-parent' });
-  const admin = rankAtLeast_(me, 'admin');
-  /* WHO IT IS FOR: an id, else a child of theirs by name (the booking form's), else themselves. */
-  const byName = S(body.learner) ? acceptedChildren(S(me.person_id)).find(c => key(personDisplayName(c)) === key(body.learner) || key(c.first_name) === key(body.learner)) : null;
-  const learner = S(body.learnerId) ? findPerson('', S(body.learnerId)) : (byName || me);
-  if (!learner) return jsonOut({ error: 'Who is the lesson for?' });
-  const mine = S(learner.person_id) === S(me.person_id) || acceptedChildren(S(me.person_id)).some(c => S(c.person_id) === S(learner.person_id));
-  if (!mine && !admin) return jsonOut({ error: 'You can book only for yourself or your own children.', why: 'not-yours' });
-  const tutor = findPerson(S(body.tutor), S(body.tutorId));
-  if (!tutor || !(hasRole(tutor, 'tutor') || rankAtLeast_(tutor, 'admin'))) return jsonOut({ error: 'Choose a tutor.' });
-  if (S(tutor.person_id) === S(learner.person_id)) return jsonOut({ error: 'A tutor cannot book a lesson with themselves.' });
-  const minutes = Math.round(N(body.minutes) || 60);
-  if (minutes < 15 || minutes > LESSON_MINUTES_MAX) return jsonOut({ error: 'A lesson is 15 minutes to ' + (LESSON_MINUTES_MAX / 60) + ' hours.' });
-  const it = { start: S(body.start).slice(0, 16), rrule: S(body.rrule).slice(0, 120), rdate: (Array.isArray(body.rdate) ? body.rdate : []).map(S).filter(lsMin_).slice(0, 20) };
-  if (lsMin_(it.start) == null) return jsonOut({ error: 'When is the first lesson?' });
-  if (it.rrule && !/^(RRULE:)?FREQ=(WEEKLY|DAILY)(;[A-Z]+=[A-Z0-9,]+)*$/i.test(it.rrule)) return jsonOut({ error: 'That repeat is not one the calendar reads.' });
-  const now = lsIso_(Math.floor(Date.now() / 6e4));
-  const cal = lessonCalendar_(it.start), plan = lessonPlanPure_(it, cal.terms, cal.shut);
-  const dates = plan.dates.filter(d => d > now);
-  if (!plan.term || !dates.length) return jsonOut({ error: 'No lesson of that falls in term time.' });
-  /* THE TUTOR'S YES IN ADVANCE, and nobody booked twice. */
-  if (!lessonInAvailPure_(dates, minutes, availSet(tutor.availability)))
-    return jsonOut({ error: personDisplayName(tutor) + ' is not free then: choose a time inside their availability.', why: 'not-free' });
-  const price = lessonPrice_(body, tutor, dates, minutes);
-  if (!price && !(admin && TRUE_(body.skipPay))) return jsonOut({ error: 'That lesson could not be priced.' });
-  let saved = null;
+/* --- A TUTOR ANSWERING A REQUEST (488) ----------------------------------------------------- the named tutor, or an admin, says yes or no in one press. */
+function postAnswerRequest_(body, action, began) {
+  const asker = findPerson('', S(body.personId));
+  if (!asker) return refuse_('err-sign-in-first', 'not-signed-in');
+  const yes = TRUE_(body.yes), reason = S(body.reason).slice(0, 200);
+  let j = null, tutorName = '', clients = [], status = '';
   const early = withWriteLock_(() => {
     clearCache();
-    const all = allLessons_();
-    const busy = all.filter(x => S(x.ls.tutorId) === S(tutor.person_id) || S(x.ls.learnerId) === S(learner.person_id)).map(x => x.ls);
-    const clash = lessonClashPure_(dates, minutes, busy);
-    if (clash) return jsonOut({ error: 'That clashes with another lesson at ' + clash.replace('T', ' ') + '.', why: 'clash' });
-    const t = read(TAB.people), row = t.rows.find(r => S(r.person_id) === S(learner.person_id));
-    const ls = { id: 'L-' + Date.now().toString(36) + Math.floor(Math.random() * 1296).toString(36), kind: 'lesson',
-      title: ('Lesson ' + S(body.subject)).trim().slice(0, 120), start: dates[0], minutes, rrule: it.rrule, rdate: it.rdate,
-      exdate: plan.skipped, moved: [], dates, cancelled: [], term: S(plan.term.name),
-      tutorId: S(tutor.person_id), learnerId: S(learner.person_id), payerId: S(me.person_id),
-      subject: S(body.subject).slice(0, 60), level: S(body.level).slice(0, 40), venue: S(body.venue).slice(0, 80), room: S(body.room).slice(0, 60),
-      totalPence: price ? price.totalPence : 0, perLessonPence: price ? price.perLessonPence : 0, tutorPayPence: price ? price.tutorPayPence : 0,
-      pay: admin && TRUE_(body.skipPay) ? 'skipped' : 'owed', refunds: [], bookedAt: now };
-    const why = lessonSave_(t, row, lessonsOfRow_(row).concat([ls]));
-    if (why) return jsonOut({ error: why });
-    saved = ls;
-  }, { wait: 10000, busy: () => refuse_('err-busy', 'busy') });
+    const t = read(TAB.jobs);
+    j = t.rows.find(x => S(x.job_id) === S(body.jobId) || String(x._row) === S(body.jobId));
+    if (!j) return refuse_('err-job-not-found', 'not-found');
+    const jobId = S(j.job_id) || String(j._row);
+    const me = personDisplayName(asker), admin = rankAtLeast_(asker, 'admin');
+    const pending = tutorsIn(jobId).filter(p2 => p2.status === BM.WAITING);
+    const mine = pending.find(p2 => key(p2.name) === key(me));
+    const who = mine || (admin ? pending[0] : null);
+    if (!who) return jsonOut({ error: admin ? 'Nothing is waiting for an answer.' : 'This request is not yours to answer.' });
+    if (!admin && !rankAtLeast_(asker, 'staff')) return jsonOut({ error: 'Only a tutor can answer a request.' });
+    tutorName = who.name;
+    clients = clientsIn(jobId);
+    const by = mine ? '' : ' (answered by ' + me + ')';
+    if (yes) {
+      /* MUTUAL, as the lobby's Accept is: the client is Agreed too, so Pay and confirm is theirs next. */
+      clients.forEach(c => logEvent({ jobId, actor: tutorName, role: 'tutor', action: ACT.ACCEPT,
+        target: c.name, message: 'accepted the request' + by }));
+      if (jobAgreed_(jobId)) {
+        const frozen = jobMoneyFreeze_(j, config(), new Date());
+        if (frozen) Object.keys(frozen).forEach(f => setCell(t, j, f, frozen[f]));
+      }
+    } else {
+      /* THE TUTOR LEAVES, THE FAMILY STAYS: their card reads Declined, with the reason, from this event. */
+      logEvent({ jobId, actor: tutorName, role: 'tutor', action: ACT.DECLINE, target: tutorName,
+        message: (reason || 'declined the request') + by });
+    }
+    status = jobStatusOf(jobId);
+    setCell(t, j, 'status', status);
+  }, { wait: 10000, busy: () => jsonOut({ error: 'Busy — please press again in a moment.' }) });
   if (early) return early;
-  /* THE TUTOR IS TOLD, NOT ASKED; the payer gets the receipt (the site's booking card; a child's carries no price). */
-  /* THE LESSON IS THE LETTER'S SOURCE (cardLetterRow_ picks the card's fields); only what it says another way is worked out here. */
-  lessonNotify_(Object.assign({}, saved, { subject: S(saved.subject) || 'Lesson', day: saved.start.slice(0, 10), time: saved.start.slice(11, 16), location: saved.venue,
-    dates: saved.dates.map(d => fmtDate_(d.slice(0, 10), 'short')).join(', '), price: saved.totalPence / 100, requestedTutor: personDisplayName(tutor) }),
-    personDisplayName(me), saved.id, true);
-  return jsonOut({ success: true, lesson: lessonForViewerPure_(saved, 'payer') });
+  clients.forEach(c => deliver_(c.name, 'bookings', { push: { title: (yes ? 'Accepted: ' : 'Declined: ') + S(j.subject),
+    body: tutorName + (yes ? ' accepted. Open to pay and confirm.' : ' cannot take it.'), link: 'job:' + (S(j.job_id) || String(j._row)) } }));
+  clients.forEach(c => notify(c.name,
+    (yes ? 'Accepted: ' : 'Declined: ') + S(j.subject),
+    tutorName + (yes ? ' accepted your request for ' + S(j.subject) + '.\n\nLog in to @family. to pay and confirm.'
+                     : ' cannot take ' + S(j.subject) + (reason ? ':\n"' + reason + '"' : '.')
+                       + '\n\nYou can ask another tutor, or choose No preference.')
+    + '\n\n— @family.', 'booked'));
+  return jsonOut({ success: true, accepted: yes, jobStatus: status });
 }
 
-/* --- A TUTOR CANCELS ONE LESSON: it leaves the list (exdate) and, if paid, that lesson alone is refunded (Stripe keeps its fee); the family is told. */
-function postCancelLesson_(body, action, began) {
-  const me = findPerson('', S(body.personId));
-  if (!me) return refuse_('err-sign-in-first', 'not-signed-in');
-  const when = S(body.date).slice(0, 16);
-  let out = null, ls = null, learner = null, refund = 0;
+/* --- a new booking ----------------------------------------------------------------------- */
+function postCreateJob_(body, action, began) {
+  const cfg3 = config();
+  const cap = N(cfg3.max_open_requests) || 2;
+  /* Either name. The booking form sends `clientName`; everything else on the site sends
+     `name`, and one handler using its own word for the same thing is how the gate above came
+     to disagree with it. */
+  /* ---------- `clientName` IS AN ADMIN'S TO GIVE, AND NOBODY ELSE'S § */
+  const asker = findPerson('', S(body.personId));
+  const me = (asker && whoMay_(asker, 'admin') && S(body.clientName)) || S(body.name);
+  const t = read(TAB.jobs);
+
+  // Without a cap one family can paper every open slot and tie up every tutor's queue.
+  const tooMany = createJobCapRefusal_(me, cap, t);
+  if (tooMany) return jsonOut({ error: tooMany });
+
+  /* THE ONE NUMBER THE PHONE MUST NOT CHOOSE, checked before anything is written. § */
+  /* ---------- IF THE CLIENT IS PAYING THE TRAVEL, IT IS ADDED HERE AND NOWHERE ELSE § */
+  /* ---------- HOW MANY TIMES SOMEBODY MAKES THE JOURNEY § */
+  const sessionCount = S(body.dates).split(',').filter(Boolean).length || 1;
+
+  /* THE SERVER'S OWN PRICE (owner, 17 Nov): `serverPrice_` sums the booking by the site's lines over the sheet's rows, and its figures replace the phone's. */
+  const priced = serverPrice_(body);
+  if (!priced) return jsonOut({ error: 'This booking has no price yet — tick its hours and a term. Nothing has been booked.' });
+  Object.assign(body, priced);
+  const travel = travelCost(S(body.location), sessionCount);
+  const chargeTravel = N(cfg3.travel_on_client) > 0 && travel > 0;
+  if (chargeTravel) body.price = N(body.price) + travel;
+
+  const jobId = S(body.forceItemId) || ('J-' + Date.now());
+  const named = S(body.requestedTutor) && !/^(no preference|any)$/i.test(S(body.requestedTutor));
+  /* A TUTOR WHO TICKED THE BOX AND IS WAITING CANNOT BE BOOKED BY NAME. § */
+  const namedRow = named ? findPerson(S(body.requestedTutor)) : null;
+  if (namedRow && tutorPending_(namedRow)) {
+    return jsonOut({ error: 'That tutor is not taking bookings yet.' });
+  }
+  /* THE SEAT CAP, ASKED HERE TOO so a hand-built request cannot book past what the place or the tutor holds. */
+  const seatCap = seatCapFor_(body.location, named ? S(body.requestedTutor) : '');
+  if (seatCap > 0 && (N(body.n) || 1) > seatCap) {
+    return jsonOut({ error: 'That is more seats than ' + seatCap + ' — the most this place and tutor hold. Nothing has been booked.' });
+  }
+  /* AT HOME THE BOOKING TAKES EVERY SEAT (owner, 8 Nov): fewer than the cap is refused, so nobody pays for one seat of a private session. */
+  if (takesAllSeats_(body.location) && seatCap > 0 && (N(body.n) || 1) !== seatCap) {
+    return jsonOut({ error: 'A booking at home takes all ' + seatCap + ' ' + plural_(seatCap, 'seat') + ' and is priced for each. Nothing has been booked.' });
+  }
+  /* AN ADMIN'S DISCOUNT, AND NOBODY ELSE'S — asked before anything is written, like the refusals above (`discountRefusal_`, booking.gs). § */
+  const codes = S(body.discountCode) ? read(TAB.promo_codes) : null;
+  const codeRow = codes ? (codes.rows.find(r => key(r.code) === key(body.discountCode)) || null) : null;
+  const noDiscount = discountRefusal_(body, !!(asker && whoMay_(asker, 'admin')), codeRow, new Date());
+  if (noDiscount) return jsonOut({ error: noDiscount });
+  /* THE CLASH TESTS AND THE WRITE IN ONE HOLD (434): two phones pressing Book in the same second must not both pass. */
   const early = withWriteLock_(() => {
+    /* Fresh rows under the lock: a copy read before it may lack the booking that just took the hour. */
     clearCache();
-    const t = read(TAB.people);
-    learner = t.rows.find(r => lessonsOfRow_(r).some(x => S(x.id) === S(body.lessonId)));
-    if (!learner) return refuse_('err-no-lesson', 'not-found');
-    const list = lessonsOfRow_(learner);
-    ls = list.find(x => S(x.id) === S(body.lessonId));
-    if (S(ls.tutorId) !== S(me.person_id) && !rankAtLeast_(me, 'admin')) return jsonOut({ error: 'Only its tutor or an admin cancels a lesson.', why: 'not-yours' });
-    if (ls.dates.indexOf(when) < 0 || ls.cancelled.indexOf(when) >= 0) return jsonOut({ error: 'That lesson is not on.' });
-    refund = lessonRefundPure_(ls, when);
-    ls.cancelled.push(when);
-    if (ls.exdate.indexOf(when) < 0) ls.exdate.push(when);
-    if (refund) ls.refunds.push({ date: when, pence: refund, state: lessonStripeRefund_(ls, refund) });
-    const why = lessonSave_(t, learner, list);
-    if (why) return jsonOut({ error: why });
-  }, { wait: 10000, busy: () => refuse_('err-busy', 'busy') });
+    /* A TUTOR'S WEEK NO LONGER REFUSES (488): any day and hour may be asked; the tutor answers it (`answerRequest`). */
+    /* AND THE ROOM'S HOURS (434): a room taken at any booked hour in those weeks refuses, whoever teaches. */
+    const roomTaken = roomClashRefusal_(body);
+    if (roomTaken) return jsonOut({ error: roomTaken });
+    addRow(read(TAB.jobs), createJobRow_(body, { jobId, me, asker, named, cfg3, sessionCount }));
+    if (codeRow) setCell(codes, codeRow, 'used', N(codeRow.used) + 1);
+
+    /* Who is in it comes from here, not from cells on the row above — and inside the hold, since a job with no events reads as cancelled and holds no hour. */
+    logEvent({ jobId, actor: me, role: 'client', action: ACT.REQUEST,
+               message: S(body.message), requestId: body.requestId });
+    if (named) {
+      /* PENDING, NOT ACCEPTED (488): the named tutor is asked and answers it; nobody accepts on their behalf. */
+      logEvent({ jobId, actor: S(body.requestedTutor), role: 'tutor', action: ACT.REQUEST,
+                 message: 'requested directly by the family' });
+    }
+  }, { wait: 10000, busy: () => jsonOut({ error: 'Busy — please press Book again in a moment.' }) });
   if (early) return early;
-  [S(ls.payerId)].concat(acceptedParents(S(ls.learnerId)).map(p => S(p.person_id))).filter((x, i, a) => x && a.indexOf(x) === i)
-    .forEach(id => deliver_(id, 'booked', { push: { title: 'Lesson cancelled', body: when.replace('T', ' ') + (refund ? ' · refunded' : ''), link: 'lesson:' + ls.id } }));
-  return jsonOut({ success: true, refundedPence: refund, lesson: lessonForViewerPure_(ls, lessonViewAs_(me, ls) || 'tutor') });
-}
-/* THE REFUND ITSELF: Stripe's refund of that one lesson against the payment it was paid by ('sent'); without a key or a payment, 'owed' (the admin
-   pays it by hand). The key is the one checkout uses; nothing here changes a provider's settings. */
-function lessonStripeRefund_(ls, pence) {
-  const key = PropertiesService.getScriptProperties().getProperty('STRIPE_TEST_KEY');
-  if (!key || !S(ls.payIntent)) return 'owed';
-  try {
-    const res = UrlFetchApp.fetch('https://api.stripe.com/v1/refunds', { method: 'post', headers: { Authorization: 'Bearer ' + key },
-      payload: { payment_intent: S(ls.payIntent), amount: String(pence) }, muteHttpExceptions: true });
-    const d = JSON.parse(res.getContentText());
-    return d && d.id ? 'sent' : 'owed';
-  } catch (e) { return 'owed'; }
+
+  createJobNotify_(body, me, jobId, named);
+  const receipt = createJobReceipt_(body, me, jobId, chargeTravel, travel);
+
+  /* A FAILED RECEIPT DOES NOT FAIL THE BOOKING. § */
+  return jsonOut({ success: true, jobId,
+    receiptId: receipt.receiptId || '', receiptError: receipt.error || '' });
 }
 
-/* --- THE LESSONS A PERSON MAY SEE: their own, their children's, the ones they teach, and every one for an admin; each as lessonForViewerPure_
-   sends it (a child no money). */
-function postLessons_(body, action, began) {
-  const me = findPerson('', S(body.personId));
-  if (!me) return refuse_('err-sign-in-first', 'not-signed-in');
-  const out = [];
-  allLessons_().forEach(x => { const as = lessonViewAs_(me, x.ls), o = as ? lessonForViewerPure_(x.ls, as) : null;
-    if (o) { o.learner = fmtName_(x.row); o.tutor = fmtName_(findPerson('', S(x.ls.tutorId)) || ''); o.as = as; out.push(o); } });
-  return jsonOut({ success: true, lessons: out });
+/* ONE FAMILY'S OPEN REQUESTS AGAINST THE CAP: only OPEN ones count, settled ones hold nothing. '' when under it. */
+function createJobCapRefusal_(me, cap, t) {
+  if (!me) return '';
+  let live = 0;
+  t.rows.forEach(j => clientsIn(S(j.job_id) || String(j._row)).forEach(c => {
+    if (key(c.name) === key(me) && c.status && c.status !== BM.BOOKED) live++;
+  }));
+  return live >= cap ? 'You already have ' + live + ' requests waiting. Please resolve one first.' : '';
 }
 
-/* --- PAYING FOR A LESSON: its payer (or a parent) checks out the term's total; the return marks it paid. */
-function lessonCheckout_(body) {
-  const me = findPerson('', S(body.personId));
-  const hit = allLessons_().find(x => S(x.ls.id) === S(body.lessonId));
-  if (!me || !hit) return refuse_('err-no-lesson', 'not-found');
-  if (lessonViewAs_(me, hit.ls) !== 'payer') return jsonOut({ error: 'Only the family pays for a lesson.', why: 'not-yours' });
-  if (S(hit.ls.pay) !== 'owed' || !(N(hit.ls.totalPence) > 0)) return jsonOut({ error: 'Nothing to pay for that lesson.' });
-  const stripeKey = PropertiesService.getScriptProperties().getProperty('STRIPE_TEST_KEY');
-  if (!stripeKey) return refuse_('err-no-stripe-key', 'no-key');
-  const ref = 'PAY-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
-  PropertiesService.getScriptProperties().setProperty(ref, JSON.stringify({ lessonId: S(hit.ls.id), payer: S(me.person_id) }));
-  const params = { 'mode': 'payment', 'success_url': siteLink_('paid', '1') + '&ref=' + ref, 'cancel_url': siteLink_('paid', '0'), 'client_reference_id': ref,
-    'line_items[0][price_data][currency]': 'gbp',
-    'line_items[0][price_data][product_data][name]': (S(hit.ls.title) || 'Lesson') + ' — ' + hit.ls.dates.length + ' lessons, ' + S(hit.ls.term),
-    'line_items[0][price_data][unit_amount]': String(Math.round(N(hit.ls.totalPence))), 'line_items[0][quantity]': '1' };
-  try {
-    const res = UrlFetchApp.fetch('https://api.stripe.com/v1/checkout/sessions', { method: 'post', headers: { Authorization: 'Bearer ' + stripeKey }, payload: params, muteHttpExceptions: true });
-    const d = JSON.parse(res.getContentText());
-    if (!d.url) return jsonOut({ error: (d.error && d.error.message) || 'Stripe refused the request.' });
-    PropertiesService.getScriptProperties().setProperty(ref + '_session', S(d.id));
-    return jsonOut({ success: true, url: d.url });
-  } catch (err) { return jsonOut({ error: 'Could not reach Stripe: ' + err }); }
-}
-/* THE RETURN: Stripe says paid, so the lesson is (its payment kept for a later refund). */
-function lessonPaid_(lessonId, payIntent) {
-  clearCache();
-  const t = read(TAB.people), row = t.rows.find(r => lessonsOfRow_(r).some(x => S(x.id) === S(lessonId)));
-  if (!row) return false;
-  const list = lessonsOfRow_(row), ls = list.find(x => S(x.id) === S(lessonId));
-  if (ls.pay === 'paid') return true;
-  ls.pay = 'paid'; ls.payIntent = S(payIntent);
-  return !lessonSave_(t, row, list);
+/* THE NEW JOB'S ROW, as `postCreateJob_` writes it inside its hold. */
+function createJobRow_(body, ctx) {
+  const jobId = ctx.jobId, me = ctx.me, asker = ctx.asker, named = ctx.named, cfg3 = ctx.cfg3, sessionCount = ctx.sessionCount;
+  const cash = v => S(v) !== '' ? Math.round(N(v) * 100) / 100 : '';
+  return {
+    job_id: jobId, status: 'unconfirmed',
+    subject: S(body.subject), level: S(body.level), service: S(body.service),
+    weekday: S(body.day), start_time: fmtTime(body.time),
+    /* EVERY BOOKED HOUR (434): weekday + start + length kept only the first run, so a second run was sold twice. */
+    slot_codes: bookingCodes_(body).join(','),
+    // Per booking now, not one global figure — a client picking a three-hour slot has to have
+    // that recorded, or the price and the grid disagree the next time the job is read.
+    hours_per_session: N(body.hours) || N(cfg3.h) || 2,
+    venue: S(body.location),
+    client_hosts: body.hosting ? 'TRUE' : 'FALSE',
+    term_name: S(body.interval), session_dates: S(body.dates),
+    /* NUMBERS, not strings of numbers. § */
+    /* ---------- WHAT IT EARNS, WHAT IT COSTS, AND WHAT IS LEFT § */
+    price_total: N(body.price),
+    /* WHAT THE TUTOR EARNS, which `priceFrom` works out on the phone beside `profit` below and which was dropped here — `tutor_pay` was written as an empty string on § */
+    tutor_pay: S(body.tutorPay) !== '' ? Math.round(N(body.tutorPay) * 100) / 100 : '',
+    travel_paid: travelCost(S(body.location), sessionCount),
+    /* THE SUBTRACTION, rather than whatever the phone worked out. § */
+    admin_profit: Math.round((N(body.profit)
+      - (N(cfg3.travel_on_client) ? 0 : travelCost(S(body.location), sessionCount))) * 100) / 100,
+    // Who else is splitting this booking. Stored on the job because it's a fact ABOUT the
+    // booking — who was invited to share it — not about any one person's account.
+    split_emails: takesAllSeats_(body.location) ? '' : S(body.splitEmails),
+    /* AND WHICH CHILDREN IT IS FOR. Different from the split: those are other FAMILIES sharing
+       the cost, these are the people in the chairs. A tutor needs the second one and has never
+       been told it. */
+    /* A CHILD WHO IS ONLY WORDS IN THE BOOKER'S OWN `children` CELL GOES IN BY HER FIRST WORD, as `childNamesOf` offers her now (`kidsForJob_`) — a phone signed in § */
+    for_children: kidsForJob_(S(body.kids), (asker && whoMay_(asker, 'admin') && S(body.clientName))
+      ? findPerson(S(body.clientName)) : asker),
+    /* TRUE only where they said so. `TRUE_` reads the word; anything else — blank, absent, an
+       older booking — is a no. */
+    /* A HOME BOOKING IS PRIVATE AND HOLDS EXACTLY ITS SEATS (owner, 8 Nov). */
+    open_to_others: (TRUE_(body.openToOthers) && !takesAllSeats_(body.location)) ? 'TRUE' : 'FALSE',
+    max_students: takesAllSeats_(body.location) ? (N(body.n) || 1) : (N(cfg3.max_students_per_job) || 4),
+    // "No preference" IS the consent to being matched; naming a tutor withholds it.
+    stealable: named ? 'FALSE' : 'TRUE',
+    created_at: new Date(),
+    /* AN ADMIN BOOKING FOR A FAMILY. § */
+    booked_by: key(S(body.name)) === key(me) ? '' : S(body.name),
+    /* THE MONEY BLOCK, AS THE PHONE PRICED IT (docs/history/353) — blank from an older phone, never a nought, for `tutor_pay`'s reason. § */
+    gross: cash(body.gross), tutor_payout: cash(body.tutorPayout), venue_cost: cash(body.venueCost),
+    /* NO MATERIALS, TICKETS OR FORMAT FROM A PHONE ANY MORE (463): trips and practicals are not booked. An older phone's fields are ignored; old rows keep theirs. */
+    card_fees: cash(body.cardFees), net_profit: cash(body.netProfit),
+    discount_type: S(body.discountType), discount_value: cash(body.discountValue),
+    discount_code: S(body.discountCode),
+    discount_absorbed_by: S(body.discountType) ? (S(body.discountAbsorbedBy) || 'Shared with tutor') : '',
+  };
 }
 
-
-/* THE PAYER'S RECEIPT AND THE TUTOR'S NOTE for a new lesson (addLesson): the tutor is told, never asked (owner, 27 Nov). */
-function lessonNotify_(body, me, jobId, named) {
+/* THE CLIENT'S AND THE NAMED TUTOR'S MESSAGES for a new booking. */
+function createJobNotify_(body, me, jobId, named) {
   /* THE CLIENT'S RECEIPT — `booked`, essential: it carries the total they asked to pay. THE ONE CARD MAKER (`renderCard`, copied
      from the site by tools/cards-gen.js) with the email's `inline: 'text'`, never lines of our own; read as its reader, so a child's carries no price. */
   /* ITS PARTS ARE THE SITE CARD'S (kinds.json booking `card.record`, said by `card.letter.words`), their fields picked from the body by `cardLetterRow_`. */
   const card = cardLetterRow_('booking', body);
   const mine = findPerson(me);
-  notify(me, 'Booked 🎉',
-    'Thanks for booking ' + S(body.subject) + ' with @family.\n\n' +
+  notify(me, 'Booking received 🎉',
+    'Thanks for requesting ' + S(body.subject) + ' with @family.\n\n' +
     renderCard({ kind: 'booking', inline: 'text', row: card, see: { kid: isChild_(mine) } }) + '\n\n— @family.', 'booked');
   /* ---------- AND THE NAMED TUTOR'S — `booked` TOO, WHICH THE SURVEY OF 9 OCT HAD AS OPTIONAL § */
   if (named) {
     /* THE BOOKER BY `fmtName_`: a child's surname never leaves the server. The tutor's card has no price — the family's money is theirs. */
     const who = fmtName_(mine || me);
-    deliver_(S(body.requestedTutor), 'bookings', { push: { title: 'New lesson: ' + S(body.subject),
-      body: who + ' · ' + fmtDate_(body.day, 'day') + ' ' + fmtDate_(body.time, 'time'), link: 'lesson:' + jobId } });
+    deliver_(S(body.requestedTutor), 'bookings', { push: { title: 'New request: ' + S(body.subject),
+      body: who + ' · ' + fmtDate_(body.day, 'day') + ' ' + fmtDate_(body.time, 'time'), link: 'job:' + jobId } });
     notify(S(body.requestedTutor),
-      'New lesson: ' + S(body.subject) + ' — ' + who,
-      who + ' has booked a lesson with you.\n\n' + renderCard({ kind: 'booking', inline: 'text', row: Object.assign({}, card, { dates: '' }), see: { prices: false } }) + '\n' +
+      'New request: ' + S(body.subject) + ' — ' + who,
+      who + ' has requested you.\n\n' + renderCard({ kind: 'booking', inline: 'text', row: Object.assign({}, card, { dates: '' }), see: { prices: false } }) + '\n' +
       (S(body.message) ? '\nTheir message:\n"' + S(body.message) + '"\n' : '') +
-      '\nIt is inside your availability, so it is booked: nothing to answer. Cancel any lesson you cannot make (the family is refunded for it).\n\n— @family.', 'booked');
+      '\nIt may be outside your usual hours. Log in to @family. to accept or decline.\n\n— @family.', 'booked');
   }
+}
+
+/* THE NEW BOOKING'S RECEIPT; its error is returned, never thrown. */
+function createJobReceipt_(body, me, jobId, chargeTravel, travel) {
+  /* THE RECEIPT, WRITTEN AT THE MOMENT OF ASKING. § */
+  /* THE RECEIPT BELONGS TO THE FAMILY, NOT TO WHOEVER TYPED IT. § */
+  const forWhom = findPerson(me, S(body.clientId));
+  return writeReceipt_({
+    kind: 'session', jobId: jobId,
+    personId: S(forWhom && forWhom.person_id) || S(body.personId), personName: me,
+    total: N(body.price), currency: 'GBP',
+    lines: (function () {
+      let ls = [];
+      try { ls = JSON.parse(S(body.lines) || '[]'); } catch (e) { ls = []; }
+      /* ITS OWN LINE, or not at all. § */
+      if (chargeTravel) {
+        ls = ls.concat([{ k: 'Travel to ' + S(body.location), v: travel }]);
+      }
+      return ls;
+    })(),
+    note: S(body.message),
+  });
 }
 
 function postOpenWaitlist_(body, action, began) {

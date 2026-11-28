@@ -667,6 +667,7 @@ on('book-send', el => {
   }
   const said = $('book-said');
   const L = bookPrice();
+  const SH = typeof bookShares_ === 'function' ? bookShares_(L) : null;
   el.disabled = true;
   if (said) tell_(said, 'info', 'Asking…');
 
@@ -731,25 +732,65 @@ on('book-send', el => {
     return;
   }
 
-  /* BOOKING IS ADDING A LESSON TO THE ONE LIST (owner, 27 Nov): no request, no accept or decline. Inside the tutor's availability it is booked at
-     once (addLesson, backend/post-booking.gs), weekly from the first date to the end of its term, and the term's total is paid up front now. */
-  const first = (L && L.sessionDates || [])[0], hhmm = String(spec.time || '').slice(0, 5);
-  const ymd = d => d instanceof Date ? d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') : '';
-  if (!first || !/^\d\d:\d\d$/.test(hhmm)) { el.disabled = false; if (said) tell_(said, 'error', 'Choose a first day and a time.'); return; }
+  /* A TUTOR WITH NO HOURS IS ASKED ALL THE SAME (488): they accept or decline. */
+
+  /* THE ONE THAT MATTERS MOST. Asking for a session had no failure path: with no connection the
+     button did nothing and the request was never sent, and nobody was told either fact. */
   bookSending_(true);
-  send_({ action: 'addLesson', name: USER.name, personId: USER.personId || '',
-    tutor: spec.tutor, learner: (BOOKING.kids || []).filter(Boolean)[0] || '',
-    subject: spec.subjects.join(', '), level: spec.level, venue: BOOKING.loc,
-    start: ymd(first) + 'T' + hhmm, minutes: String(Math.round((Number(spec.hours) || 1) * 60)), rrule: 'FREQ=WEEKLY' })
+  send_({ action: 'createJob',
+    /* THE CLIENT CHOSEN ON THE FORM (`createJob` takes `clientName` from an admin only): an admin's booking for a client was filed as the admin's. */
+    name: USER.name, clientName: (BOOKING.client && BOOKING.client !== NOBODY) ? BOOKING.client : USER.name,
+    /* WHO THIS BOOKING BELONGS TO, permanently. § */
+    personId: USER.personId || '',
+    subject: spec.subjects.join(', '), level: spec.level,
+    day: spec.day, time: spec.time, location: BOOKING.loc,
+    /* EVERY HOUR TICKED, as the grid's own codes — `m16, m17, f10`. § */
+    slots: (Array.isArray(BOOKING.slots) ? BOOKING.slots : []).join(','),
+    hosting: spec.hosting, hours: spec.hours, interval: spec.interval,
+    requestedTutor: spec.tutor,
+    /* THE SEAT TOTAL, so the server can hold a home booking to the tutor's whole capacity. */
+    n: String(spec.n || 1),
+    dates: (L && L.sessionDates || []).map(d => fmtDate_(d)).join(', '),
+    price: SH ? String(SH.pays) : (L ? String(L.total || '') : ''),
+    /* WHAT THE JOB IS WORTH TO YOU, which `priceFrom` has always worked out and nothing ever
+       sent — so the sheet's profit column stayed empty on every booking made through the app. */
+    profit: SH ? String(SH.admin) : '',
+    /* AND WHAT THE TUTOR EARNS, from the same ledger — the backend wrote `tutor_pay` blank on every
+       job because nothing sent it, so a tutor's receipt had no figure to show them. */
+    tutorPay: SH ? String(SH.tutor) : '',
+    /* THE MONEY BLOCK'S FIGURES, AND WHAT KIND OF SESSION THEY PRICED (docs/history/353). § */
+    ...bookMoneySend_(L),
+    /* THE PRINTED LINES, sent with the request so the backend can keep the receipt AS DRAWN. § */
+    /* GUARDED, because `bookPrice` returns null until enough is answered to price anything — and `book-send` can be pressed before that, which is exactly what the § */
+    lines: JSON.stringify(((L2) => L2 ? breakdownRows(L2).map(r => ({
+      n: r.n, k: r.k, v: r.v, mul: r.mul, rate: r.rate, total: r.total,
+    })) : [])(bookPrice())),
+    /* WHO IS ACTUALLY COMING, by name, where the parent told us. § */
+    /* `splitOthers` was sent here too — the COUNT of other families, which nothing on the backend has ever read. § */
+    /* WHETHER A FAMILY YOU HAVE NOT MET MAY ASK TO JOIN. Sent as the plain answer rather than a
+       boolean, so the sheet reads as the question was asked. */
+    /* ALWAYS TRUE, because the question is gone and the SEATS are the answer now. § */
+    openToOthers: 'TRUE',
+    kids: (BOOKING.kids || []).filter(Boolean).join(', '),
+    service: BOOKING.service || 'Tuition',
+    /* FROM `BOOKING`, NOT FROM THE DOM. This read `#book-note` directly, which only worked while
+       that box was on screen — a redraw between typing and sending would have dropped it without a
+       word. */
+    message: BOOKING.note || '',
+    /* THE SAME ASK TWICE IS ONE ASK. A slow connection and an impatient thumb are the ordinary way
+       a family ends up with two identical bookings, and the backend already refuses a repeated
+       requestId — this is what gives it one. */
+    requestId: 'R' + Date.now() + '-' + Math.floor(Math.random() * 1e6) })
     .then(d => {
       if (d && d.error) throw new Error(d.error);
-      const ls = (d && d.lesson) || {};
+      toast(text_('asked-we-will-come-back-to'));
+      /* WHAT WAS JUST ASKED FOR, so it is drawn again under the emptied form — see `ASKED_JOB` in
+         book.js. Set before `resetBooking_()`, which is what clears the answers this receipt is
+         about. */
+      ASKED_JOB = String((d && d.jobId) || '');
+      /* Emptied from the step list rather than from a list of names written here — see `resetBooking_`. § */
       resetBooking_();
       load();
-      if (ls.pay !== 'owed') { toast('Booked'); return; }
-      /* PAID UP FRONT: straight to the checkout for the term's total. */
-      return api({ action: 'createCheckout', lessonId: ls.id, name: USER.name, personId: USER.personId || '' })
-        .then(p => { if (p && p.url) location.href = p.url; else toast((p && p.error) || text_('stripe-did-not-give-us-a')); });
     })
     .catch(err => {
       el.disabled = false;
@@ -793,6 +834,69 @@ on('job-pay', el => {
       location.href = d.url;
     })
     .catch(err => { el.disabled = false; toast(why_(err)); });
+});
+
+/* ---------- THE BUSINESS ANSWERING A REQUEST § */
+on('job-answer', el => {
+  const yes = !!el.dataset.yes;
+  /* DECLINING IS ASKED ABOUT. § */
+  /* TWO PRESSES, NOT A confirm(). § */
+  if (!yes && !sure_(el, text_('turn-it-down'))) return;
+  el.disabled = true;
+  api({ action: 'move', jobId: el.dataset.id, role: 'client',
+        name: USER.name, personId: (USER && USER.personId) || '', adminName: USER.name, asAdmin: '1',
+        move: yes ? 'Accept' : 'Decline',
+        requestId: 'ans-' + el.dataset.id + '-' + Date.now() })
+    .then(d => {
+      el.disabled = false;
+      if (d && d.error) { toast(d.error); return; }
+      toast(yes ? 'Accepted' : 'Declined');
+      closeStep_();
+      load();
+    })
+    .catch(err => { el.disabled = false; toast(why_(err)); });
+});
+
+/* A TUTOR APPLYING TO A NO-PREFERENCE BOOKING, and the family choosing one: both are a `move`. */
+function jobMove_(el, body, said) {
+  el.disabled = true;
+  api(Object.assign({ action: 'move', jobId: el.dataset.id, name: USER.name, personId: (USER && USER.personId) || '',
+                      requestId: body.move + '-' + el.dataset.id + '-' + Date.now() }, body))
+    .then(d => {
+      el.disabled = false;
+      if (d && d.error) { toast(d.error); return; }
+      toast(said);
+      load();
+    })
+    .catch(err => { el.disabled = false; toast(why_(err)); });
+}
+on('job-apply', el => jobMove_(el, { role: 'tutor', move: 'Request' }, text_('applied-the-family-picks')));
+on('job-choose', el => jobMove_(el, { role: 'client', move: 'Accept', counterpart: el.dataset.tutor }, 'Chosen'));
+
+/* ---------- A TUTOR ANSWERING A REQUEST (488) — Accept at once; Decline opens one line for why, in place. */
+on('job-request-answer', el => {
+  const yes = !!el.dataset.yes, id = el.dataset.id;
+  const send = reason => {
+    el.disabled = true;
+    api({ action: 'answerRequest', jobId: id, yes: yes ? '1' : '', reason: reason || '',
+          name: USER.name, personId: (USER && USER.personId) || '' })
+      .then(d => {
+        el.disabled = false;
+        if (d && d.error) { toast(d.error); return; }
+        toast(yes ? text_('accepted-the-family-can-pay-and') : text_('declined-the-family-has-been-told'));
+        closeStep_();
+        load();
+      })
+      .catch(err => { el.disabled = false; toast(why_(err)); });
+  };
+  if (yes) { send(''); return; }
+  if (!sure_(el, text_('turn-it-down'))) return;
+  const row = el.closest('.tile-row');
+  if (!row || (row.nextElementSibling && row.nextElementSibling.classList.contains('req-why'))) return;
+  row.insertAdjacentHTML('afterend', cardBlock_({ type: 'paperWhy', id }));
+  const form = row.nextElementSibling;
+  form.addEventListener('submit', e => { e.preventDefault(); form.querySelector('button').disabled = true; send(form.querySelector('input').value.trim()); });
+  form.querySelector('input').focus();
 });
 
 /* ---------- THE FAMILY LEAVING § */

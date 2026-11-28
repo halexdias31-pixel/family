@@ -108,7 +108,10 @@ function bmActionsFor(role, mine, theirs) {
   if (mine === BM.PAYING || mine === BM.BOOKED) return [ACT.WITHDRAW];
 
   const out = [ACT.REQUEST, ACT.WITHDRAW, ACT.SAY, ACT.EDIT];
-  /* NO ACCEPT/DECLINE (owner, 27 Nov): a tutor's availability is their yes in advance (addLesson), so nobody readies up or turns anyone down. */
+  // Ready up. Only meaningful while you're not already ready.
+  if (mine !== BM.AGREED) out.push(ACT.ACCEPT);
+  // Turn someone down — only while they're still un-ready, i.e. still a proposition.
+  if (theirs === BM.WAITING) out.push(ACT.DECLINE);
   // The lobby's start button: both sides ready, and only the client pays.
   if (role === 'client' && mine === BM.AGREED && theirs === BM.AGREED) out.push(ACT.PAY);
   return out;
@@ -385,129 +388,6 @@ function refundsOwedFor_(j, jobId) {
 
 function sessionDatesOf(j) {
   return S(j.session_dates).split(',').map(x => x.trim()).filter(Boolean);
-}
-
-/* ========== A LESSON IS AN EVENT ON THE ONE LIST (owner, 27 Nov: BOOKING IS ADDING TO THE ONE LIST; NO ACCEPT/DECLINE; MONEY) ==========
-   A lesson is a Docket event (kinds.json docket list: start, rrule, rdate, exdate, moved; the .ics standard) plus who (tutor, learner, payer),
-   place/room, price and payment. It lives in the learner's own `lessons` cell ({ v: 1, lessons: [...] }), written only by addLesson/cancelLesson
-   and the payment's return, never by a Docket save, so nobody edits their own price. The tutor's availability (settings, m09 to su20) is their yes
-   in advance: a lesson inside it is confirmed at once and the tutor is told, never asked. A booking pays every lesson to the end of the term it
-   starts in (holidays and closed days skipped by the term-date rule: termsFor, closures), up front; a lesson the tutor cancels is refunded, that
-   lesson only; the next term is a new payment. Pure parts first (tools/lesson-book.js runs them in the backend vm). */
-const LESSONS_CELL_MAX = 45000, LESSON_MINUTES_MAX = 240;
-const lsMin_ = s => { const m = /^(\d{4})-(\d\d)-(\d\d)[T ](\d\d):(\d\d)/.exec(S(s)); return m ? Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]) / 6e4 : null; };
-const lsIso_ = m => new Date(m * 6e4).toISOString().slice(0, 16);
-const lsDay_ = d => (d instanceof Date ? new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())).toISOString().slice(0, 10) : S(d).slice(0, 10));
-/* EVERY OCCURRENCE from `start` to the day `untilDay` (yyyy-mm-dd), as .ics reads it: DTSTART, a weekly/daily RRULE (INTERVAL, BYDAY, COUNT, UNTIL),
-   RDATE (a different first one: Sat 14:30 once, then Wed 18:00 weekly), EXDATE, and `moved` ('old=new', one occurrence moved). Pure. */
-function lessonOccurPure_(it, untilDay) {
-  const s = lsMin_(it && it.start), r = {}, list = v => (Array.isArray(v) ? v : S(v) ? S(v).split(',') : []);
-  if (s == null) return [];
-  const end = untilDay ? lsMin_(S(untilDay).slice(0, 10) + 'T23:59') : null;
-  S(it.rrule).toUpperCase().replace(/^RRULE:/, '').split(';').forEach(p => { const k = p.split('='); if (k[0] && k[1]) r[k[0].trim()] = k[1].trim(); });
-  const step = Math.max(1, Math.floor(+r.INTERVAL) || 1), count = Math.max(0, Math.floor(+r.COUNT) || 0);
-  const um = /^(\d{4})(\d\d)(\d\d)/.exec(r.UNTIL || ''), until = um ? Date.UTC(+um[1], +um[2] - 1, +um[3], 23, 59) / 6e4 : null;
-  const last = until != null && end != null ? Math.min(until, end) : (until != null ? until : end);
-  const ex = list(it.exdate).map(lsMin_), moved = {}, got = [];
-  list(it.moved).forEach(x => { const p = S(x).split('='), a = lsMin_(p[0]), b = lsMin_(p[1]); if (a != null && b != null) moved[a] = b; });
-  const keep = m => { if (ex.indexOf(m) >= 0) return; const n = moved[m] != null ? moved[m] : m; if (got.indexOf(n) < 0) got.push(n); };
-  const gap = r.FREQ === 'DAILY' ? 1440 * step : r.FREQ === 'WEEKLY' ? 10080 * step : 0;
-  if (!gap) keep(s);
-  else {
-    const days = (r.BYDAY || '').split(',').map(d => ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'].indexOf(d.trim().slice(-2))).filter(d => d >= 0).sort((a, b) => a - b);
-    const d0 = Math.floor(s / 1440), mon = d0 - ((d0 + 3) % 7), tod = s - d0 * 1440, wk = r.FREQ === 'WEEKLY', ds = wk ? (days.length ? days : [(d0 + 3) % 7]) : [0];
-    const base = wk ? mon * 1440 + tod : s;
-    let n = 0;
-    for (let k = 0; k < 600; k++) {
-      const b = base + k * gap;
-      if (last != null && b > last) break;
-      let stop = false;
-      for (const d of ds) {
-        const m = b + d * 1440;
-        if (m < s) continue;
-        if ((last != null && m > last) || (count && n >= count)) { stop = true; break; }
-        n++; keep(m);
-      }
-      if (stop) break;
-    }
-  }
-  list(it.rdate).map(lsMin_).forEach(m => { if (m != null && (last == null || m <= last)) keep(m); });
-  return got.sort((a, b) => a - b).map(lsIso_);
-}
-/* THE TERM A LESSON STARTS IN (or, from a holiday, the next one): `terms` as termsFor gives them ({ name, kind, start, end }). Pure. */
-function lessonTermPure_(startIso, terms) {
-  const day = S(startIso).slice(0, 10), ts = (terms || []).filter(t => t.kind === 'term').map(t => ({ name: t.name, from: lsDay_(t.start), to: lsDay_(t.end) }))
-    .sort((a, b) => (a.from < b.from ? -1 : 1));
-  return ts.find(t => day >= t.from && day <= t.to) || ts.find(t => t.from > day) || null;
-}
-/* WHAT A BOOKING PAYS FOR: every occurrence from the first to the end of its term that is inside a term and not a closed day (bank holiday,
-   INSET); the rest skipped (written to the lesson's exdate, so the one list skips them too). Pure. */
-function lessonPlanPure_(it, terms, closedDays) {
-  const term = lessonTermPure_(it && it.start, terms);
-  if (!term) return { term: null, dates: [], skipped: [] };
-  const inTerm = d => (terms || []).some(t => t.kind === 'term' && d >= lsDay_(t.start) && d <= lsDay_(t.end));
-  const shut = (closedDays || []).map(S), dates = [], skipped = [];
-  lessonOccurPure_(it, term.to).forEach(o => { const d = o.slice(0, 10); (inTerm(d) && shut.indexOf(d) < 0 ? dates : skipped).push(o); });
-  return { term, dates, skipped };
-}
-/* THE TUTOR'S YES IN ADVANCE: every hour each occurrence touches is ticked in their availability (`availSet` codes, m09 to su20). Pure. */
-function lessonInAvailPure_(dates, minutes, avail) {
-  const pre = ['m', 'tu', 'w', 'th', 'f', 'sa', 'su'], mins = Math.max(1, N(minutes) || 60);
-  return (dates || []).length > 0 && dates.every(o => { const s = lsMin_(o); if (s == null) return false;
-    for (let m = s; m < s + mins; m = (Math.floor(m / 60) + 1) * 60) { const d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60);
-      if (!avail[pre[(d + 3) % 7] + String(h).padStart(2, '0')]) return false; }
-    return true; });
-}
-/* A CLASH: an occurrence overlapping one of `others` ({ dates, minutes, cancelled }). The first clash, or ''. Pure. */
-function lessonClashPure_(dates, minutes, others) {
-  const mins = Math.max(1, N(minutes) || 60);
-  for (const o of dates || []) {
-    const a = lsMin_(o);
-    for (const x of others || []) for (const p of x.dates || []) {
-      if ((x.cancelled || []).indexOf(p) >= 0) continue;
-      const b = lsMin_(p); if (a < b + Math.max(1, N(x.minutes) || 60) && b < a + mins) return o;
-    }
-  }
-  return '';
-}
-/* WHAT A TUTOR'S CANCELLATION REFUNDS (owner DECIDED, 27 Nov): that one lesson's share of what was paid, if it was paid, is one of the lesson's
-   own, and is not cancelled or refunded already; else nothing. In pence. Pure. */
-function lessonRefundPure_(ls, when) {
-  if (!ls || S(ls.pay) !== 'paid' || (ls.dates || []).indexOf(when) < 0 || (ls.cancelled || []).indexOf(when) >= 0) return 0;
-  if ((ls.refunds || []).some(r => r.date === when)) return 0;
-  return Math.max(0, Math.round(N(ls.perLessonPence)));
-}
-/* WHAT A VIEWER IS SENT (a child never sees a price; a child's data goes only to the child, their parents, the tutor and admins): `as` is
-   'payer' | 'admin' | 'tutor' | 'learner' (an adult) | 'child'; anyone else is sent nothing (null). Pure. */
-const LESSON_MONEY = ['totalPence', 'perLessonPence', 'pay', 'refunds', 'payRef', 'payIntent'];
-function lessonForViewerPure_(ls, as) {
-  if (!ls || ['payer', 'admin', 'tutor', 'learner', 'child'].indexOf(as) < 0) return null;
-  const o = JSON.parse(JSON.stringify(ls));
-  if (as === 'child' || as === 'tutor' || (as === 'learner' && S(ls.payerId) !== S(ls.learnerId))) LESSON_MONEY.forEach(k => { delete o[k]; });
-  if (as !== 'tutor' && as !== 'admin') delete o.tutorPayPence;
-  return o;
-}
-/* A PERSON'S LESSONS CELL, read; never throws. */
-function lessonsOfRow_(r) {
-  let got = null; try { got = JSON.parse(S(r && r.lessons)); } catch (e) { got = null; }
-  return got && Array.isArray(got.lessons) ? got.lessons : [];
-}
-/* HOW `viewer` STANDS TO A LESSON: payer (or a parent of the learner), learner (an adult), child (the learner, a child), admin, tutor, or ''. */
-function lessonViewAs_(viewer, ls) {
-  if (!viewer || !ls) return '';
-  const id = S(viewer.person_id);
-  if (id && id === S(ls.learnerId)) return isChild_(viewer) ? 'child' : (id === S(ls.payerId) ? 'payer' : 'learner');
-  if (id && id === S(ls.payerId)) return 'payer';
-  if (rankAtLeast_(viewer, 'admin')) return 'admin';
-  if (id && id === S(ls.tutorId)) return 'tutor';
-  if (id && acceptedParents(S(ls.learnerId)).some(p => S(p.person_id) === id)) return 'payer';
-  return '';
-}
-/* EVERY LESSON ON THE SITE, each with the people row it lives on. */
-function allLessons_() {
-  const out = [];
-  read(TAB.people).rows.forEach(r => lessonsOfRow_(r).forEach(ls => out.push({ row: r, ls })));
-  return out;
 }
 
 /** Refuse anything this person may not do — once, before any handler runs. */
@@ -1302,17 +1182,17 @@ function moveMail_(to, key) {
 /* GENERATED by tools/permissions.js from data/settings/actions.json: edit the json, never this. */
 /* Each action's allowed tiers: anyone (signed out), member (signed in), child, admin. Not listed → refused. */
 const PERMISSIONS = {
-  addLesson: ['member', 'admin'],
   adminUnlinkFamily: ['admin'],
   answerClaim: ['member', 'child', 'admin'],
+  answerRequest: ['member', 'child', 'admin'],
   applyTeach: ['member', 'child', 'admin'],
-  cancelLesson: ['member', 'child', 'admin'],
   changePin: ['member', 'child', 'admin'],
   claimChild: ['member', 'child', 'admin'],
   claudeNoteAdd: ['admin'],
   claudeNoteDone: ['admin'],
   clientError: ['anyone', 'member', 'child', 'admin'],
   createCheckout: ['member', 'admin'],
+  createJob: ['member', 'admin'],
   decideApplication: ['admin'],
   decideSuggestion: ['admin'],
   deleteJob: ['admin'],
@@ -1331,7 +1211,6 @@ const PERMISSIONS = {
   history: ['member', 'child', 'admin'],
   item: ['anyone', 'member', 'child', 'admin'],
   joinWaitlist: ['member', 'admin'],
-  lessons: ['member', 'child', 'admin'],
   libExport: ['admin'],
   libImport: ['admin'],
   libImportDrive: ['admin'],
