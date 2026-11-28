@@ -153,6 +153,89 @@ function docketPlan27NovRun_() {
   return said + ' (the old cell in ' + DK_PLAN_BACKUP + ')';
 }
 
+/* THE ONE LIST AGAIN, EVERY FIELD KEPT (owner, 28 Nov: the live cell was two lists again, so the plan's job kept refusing): the owner's cell, if it
+   is more than one list, folded by todoOneList_ (post-account.gs: every field of every item, a title met twice merged, the slots kept); backup tab
+   first, read back; the size cap; the cell read back. A one-list cell is "nothing to do". It runs before the plan's numbers and the jobs after them. */
+const DK_ONE2_BACKUP = 'backup_docket_onelist_28nov';
+function docketOneList28NovRun_() {
+  const t = read(TAB.people), me = t.rows.find(r => isOwner_(r));
+  if (!me) throw new Error('no owner found');
+  const was = S(me.todo);
+  let got = null; try { got = JSON.parse(was); } catch (e) { got = null; }
+  if (!got || !Array.isArray(got.lists) || todoOneList_(got) === got) return 'nothing to do';
+  const cell = todoTidy_(was);
+  if (cell === was) return 'nothing to do';
+  const from = got.lists.filter(Boolean).map(L => S(L.name)).join(' + ');
+  const said = 'one list "' + DK_ONE_LIST + '" of ' + JSON.parse(cell).lists[0].items.length + ' item(s), every field kept, from ' + from;
+  const ss = t.sheet.getParent(), bk = ss.getSheetByName(DK_ONE2_BACKUP) || ss.insertSheet(DK_ONE2_BACKUP);
+  bk.appendRow([new Date(), was, said]);
+  if (S(bk.getRange(bk.getLastRow(), 2).getValue()) !== was) throw new Error('the backup did not read back - nothing changed');
+  if (cell.length > DOCKET_CELL_MAX) throw new Error('the docket would be ' + cell.length + ' characters, over ' + DOCKET_CELL_MAX + ' - nothing was saved');
+  if (!setCell(t, me, 'todo', cell)) throw new Error('the people tab has no todo column - nothing was saved');
+  clearCache();
+  const back = read(TAB.people).rows.find(r => isOwner_(r));
+  if (!back || S(back.todo) !== cell) throw new Error('the docket did not read back');
+  return said + ' (the old cell in ' + DK_ONE2_BACKUP + ')';
+}
+
+/* PRAYER AS ONE ITEM OF STEPS (owner, 28 Nov): the owner's "Prayer" item stops being a slot and becomes one item of `steps`, in the owner's order, each
+   step its option's name and the note that option already holds in the cell's `slots` (name, a new line, the note); the separate reading item goes
+   (its step is inside Prayer); three lines become `standing` (never ticked); the Prayer slot goes once empty. Everything is matched by docketPlanKey_
+   (the todoBase_ of a title's first four words), so no prayer text, not even a name, is in this public file: dkPrayerKeys_ holds the keys. It stays 8h,
+   anchor wake. A step not found in the cell throws, nothing changed. Backup tab first, read back; the size cap; the cell read back; a re-run (Prayer
+   already stepped, nothing left to make standing or remove) is "nothing to do". After the one list. tools/docket-before.js checks it. */
+const DK_PRAYER_BACKUP = 'backup_docket_prayer_28nov';
+function dkPrayerKeys_() {
+  return { item: ['6.1wmszhm'], steps: [['h.k5spez'], ['9.1jkqwo1'], ['l.gffrjd'], ['p.qorxzc'], ['c.1uo4wmz'], ['m.ka2odn'], ['h.1s3vbwr'], ['k.sdqawt', 'e.j74n']],
+    gone: ['k.sdqawt', 'e.j74n'], standing: ['c.1dcr1d0', 'g.438gll', 's.766s1x'] };
+}
+function docketPrayer28NovRun_() {
+  const K = dkPrayerKeys_(), t = read(TAB.people), me = t.rows.find(r => isOwner_(r));
+  if (!me) throw new Error('no owner found');
+  const was = S(me.todo);
+  let got = null; try { got = JSON.parse(was); } catch (e) { got = null; }
+  if (!got || !Array.isArray(got.lists) || got.lists.length !== 1 || S(got.lists[0] && got.lists[0].name) !== DK_ONE_LIST)
+    throw new Error('the docket is not yet the one list (docket-onelist-28nov first) - nothing changed');
+  const key = x => docketPlanKey_(x), L = got.lists[0], items = Array.isArray(L.items) ? L.items : [];
+  const slots = Array.isArray(got.slots) ? got.slots : [], said = [];
+  const pr = items.find(it => it && K.item.indexOf(key(it.title)) >= 0);
+  if (pr && !(Array.isArray(pr.steps) && pr.steps.length)) {
+    const sk = S(pr.slot || pr.title).trim().toLowerCase(), slot = slots.find(x => x && S(x.name).trim().toLowerCase() === sk) || slots.find(x => x && K.item.indexOf(key(x.name)) >= 0);
+    const opts = (slot && Array.isArray(slot.options) ? slot.options : []).map(o => (o && typeof o === 'object' ? { name: S(o.name), note: S(o.note) } : { name: S(o), note: '' }));
+    (Array.isArray(pr.options) ? pr.options : []).forEach(o => { if (!opts.some(x => x.name === S(o))) opts.push({ name: S(o), note: '' }); });
+    pr.steps = K.steps.map((ks, n) => {
+      const o = opts.find(x => ks.indexOf(key(x.name)) >= 0), it = o ? null : items.find(x => x && x !== pr && ks.indexOf(key(x.title)) >= 0);
+      if (!o && !it) throw new Error('step ' + (n + 1) + ' of the prayer is not in the cell - nothing changed');
+      const nm = o ? o.name : S(it.title), note = o ? o.note : S(it.note);
+      return note ? nm + '\n' + note : nm;
+    });
+    ['options', 'picks', 'pick', 'slot'].forEach(f => delete pr[f]);
+    pr.repeat = '8h'; pr.anchor = 'wake';
+    if (slot) { slot.options = []; got.slots = slots.filter(x => x !== slot); if (!got.slots.length) delete got.slots; }
+    said.push('Prayer as ' + pr.steps.length + ' steps');
+  }
+  const keep = items.filter(it => !(it && it !== pr && K.gone.indexOf(key(it.title)) >= 0));
+  if (keep.length !== items.length) said.push((items.length - keep.length) + ' reading item(s) removed');
+  L.items = keep;
+  let st = 0;
+  keep.forEach(it => { if (it && K.standing.indexOf(key(it.title)) >= 0 && it.standing !== true) {
+    it.standing = true; ['done', 'doneOn', 'anchor', 'options', 'picks', 'pick'].forEach(f => delete it[f]); st++; } });
+  if (st) said.push(st + ' standing line(s)');
+  if (!said.length) return 'nothing to do';
+  const cell = todoTidy_(JSON.stringify(got));
+  if (cell === was) return 'nothing to do';
+  const say = said.join('; ');
+  const ss = t.sheet.getParent(), bk = ss.getSheetByName(DK_PRAYER_BACKUP) || ss.insertSheet(DK_PRAYER_BACKUP);
+  bk.appendRow([new Date(), was, say]);
+  if (S(bk.getRange(bk.getLastRow(), 2).getValue()) !== was) throw new Error('the backup did not read back - nothing changed');
+  if (cell.length > DOCKET_CELL_MAX) throw new Error('the docket would be ' + cell.length + ' characters, over ' + DOCKET_CELL_MAX + ' - nothing was saved');
+  if (!setCell(t, me, 'todo', cell)) throw new Error('the people tab has no todo column - nothing was saved');
+  clearCache();
+  const back = read(TAB.people).rows.find(r => isOwner_(r));
+  if (!back || S(back.todo) !== cell) throw new Error('the docket did not read back');
+  return say + ' (the old cell in ' + DK_PRAYER_BACKUP + ')';
+}
+
 /* BRUSH TEETH BEFORE A MEAL (owner, 28 Nov: "Brush teeth has to go before breakfast"): the owner's item of that title (docketPlanKey_, any case) gets
    `before: ["meal"]` (js/map.js dkSort_ places it ahead of every open meal item), only when it has no `before` yet; nothing else touched. Backup tab
    first (the whole old cell), read back; the size cap; the cell read back. None to change is "nothing to do", so a re-run is a no-op. tools/docket-before.js. */
@@ -478,6 +561,11 @@ const MIGRATIONS = [
     retry: true,
     what: "the docket as one list, names only: Every 8 hours and @ Desk merged into \"Docket\", each item its title, repeat, date and done state (backup tab first, the whole old cell in it)",
     run: () => docketOneList25NovRun_() },
+  /* THE ONE LIST AGAIN, EVERY FIELD KEPT (owner, 28 Nov: the cell was two lists again); before the plan's numbers, which need the one list. */
+  { id: 'docket-onelist-28nov',
+    retry: true,
+    what: "the owner's docket folded into the one list \"Docket\" again, every field of every item and the slots kept (backup tab first, the whole old cell in it)",
+    run: () => docketOneList28NovRun_() },
   /* AFTER THE ONE LIST (it would drop these fields; this one throws, and is retried, until the one list is there). */
   { id: 'docket-plan-27nov',
     retry: true,
@@ -498,6 +586,11 @@ const MIGRATIONS = [
     retry: true,
     what: "every library card and notepad as an Archive entry of its person (backup tab first, the old values in it; then the old rows go)",
     run: () => archive28NovRun_() },
+  /* PRAYER AS STEPS (owner, 28 Nov): one item of steps, the reading item inside it, three standing lines (after the one list; backup tab first). */
+  { id: 'docket-prayer-28nov',
+    retry: true,
+    what: "the owner's Prayer as one item of steps in order (each option's note kept), the reading item removed, three standing lines, the empty slot gone (backup tab first)",
+    run: () => docketPrayer28NovRun_() },
   /* BEFORE (owner, 28 Nov): the owner's brush-teeth item goes before every meal (after the one list; backup tab first; a re-run a no-op). */
   { id: 'docket-before-28nov',
     retry: true,

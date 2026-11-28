@@ -1773,6 +1773,17 @@
       "say": "a slot's choices; the line shows the one least recently ticked (dkOption_)"
      },
      {
+      "f": "steps",
+      "type": "titles",
+      "max": 8000,
+      "say": "an item's steps in order (owner, 28 Nov): each its name, or its name, a new line and its note; listed under the item, the item ticked once as a whole"
+     },
+     {
+      "f": "standing",
+      "type": "flag",
+      "say": "a standing line (owner, 28 Nov): never ticked, never gone, shown above everything, not open work (js/map.js dkSort_ `standing`)"
+     },
+     {
       "f": "before",
       "type": "titles",
       "max": 300,

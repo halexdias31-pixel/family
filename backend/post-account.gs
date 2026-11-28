@@ -452,10 +452,48 @@ function listItemTidy_(L, it, whole, n) {
   return out;
 }
 /* THE DOCKET'S STORAGE (its `todo` cell, { v, lists }): each list's items through the one tidy, as the docket saves (`as-is`). */
+/* THE ONE LIST, EVERY FIELD KEPT (owner, 28 Nov: the two-list shape came back on the live cell and the plan's job could not run): a cell of more than
+   one list, or one list not named "Docket", is folded into one list "Docket": "Every 8 hours" first, "@ Desk" next, any other after, in their order;
+   an item whose title (trimmed, any case) came already is merged into it, the one with more filled fields winning each field it holds, the other's
+   kept where it has none; an old-shape item naming a `slot` and holding no `options` gets that slot's option names. The rest of the cell (`slots`
+   with their notes) is left as it was. Every docket write folds through this (todoTidy_, and core.gs setCell/setCells for the `todo` field), so the
+   two-list shape, from an old cached page or any stale writer, is never stored again. tools/docket-before.js checks it. */
+function todoOneList_(t) {
+  if (!t || typeof t !== 'object' || !Array.isArray(t.lists)) return t;
+  const lists = t.lists.filter(L => L && typeof L === 'object');
+  if (!lists.length || (lists.length === 1 && S(lists[0].name) === 'Docket' && t.lists.length === 1)) return t;
+  const first = ['every 8 hours', '@ desk'], rank = L => { const k = first.indexOf(S(L.name).trim().toLowerCase()); return k < 0 ? first.length : k; };
+  const order = lists.map((L, n) => [L, n]).sort((a, b) => rank(a[0]) - rank(b[0]) || a[1] - b[1]).map(x => x[0]);
+  const slots = {};
+  (Array.isArray(t.slots) ? t.slots : []).forEach(x => { if (x && S(x.name)) slots[S(x.name).trim().toLowerCase()] = (Array.isArray(x.options) ? x.options : [])
+    .map(o => S(o && typeof o === 'object' ? o.name : o)).filter(Boolean); });
+  const full = it => Object.keys(it).filter(k => it[k] !== '' && it[k] != null && it[k] !== false && !(Array.isArray(it[k]) && !it[k].length)).length;
+  const items = [], at = {};
+  order.forEach(L => (Array.isArray(L.items) ? L.items : []).forEach(it => {
+    if (!it || typeof it !== 'object') return;
+    it = Object.assign({}, it);
+    const sl = it.slot && slots[S(it.slot).trim().toLowerCase()];
+    if (sl && sl.length && !(Array.isArray(it.options) && it.options.length)) it.options = sl.slice();
+    const k = S(it.title).trim().toLowerCase();
+    if (!k) return items.push(it);
+    if (at[k] == null) { at[k] = items.length; items.push(it); return; }
+    const o = items[at[k]], win = full(it) > full(o) ? it : o, lose = win === it ? o : it, m = Object.assign({}, lose);
+    Object.keys(win).forEach(f => { const v = win[f]; if (!(v === '' || v == null || (Array.isArray(v) && !v.length)) || m[f] === undefined) m[f] = v; });
+    items[at[k]] = m;
+  }));
+  return Object.assign({}, t, { lists: [{ name: 'Docket', items: items }] });
+}
+function todoOneCell_(raw) {
+  let t = null;
+  try { t = JSON.parse(raw); } catch (e) { return raw; }
+  const o = todoOneList_(t);
+  return o === t ? raw : JSON.stringify(o);
+}
 function todoTidy_(raw) {
   let t = null;
   try { t = JSON.parse(raw); } catch (e) { return raw; }
   if (!t || !Array.isArray(t.lists)) return raw;
+  t = todoOneList_(t);
   t.lists.forEach(function (L) { L.items = listTidy_('docket', L.items || []); });
   return JSON.stringify(t);
 }

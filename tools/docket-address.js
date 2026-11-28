@@ -22,7 +22,7 @@ function backend(state, mut) {
   const gen = text('backend/cards-gen.gs'), be = (mut || (x => x))(text('backend/post-account.gs')), G = 'backend/post-account.gs';
   const src = constOf(gen, 'LIST_KINDS', 'backend/cards-gen.gs') + lineOf(gen, 'CLASH_DAYS', 'backend/cards-gen.gs') + ORDER.map(n => lineOf(gen, n, 'backend/cards-gen.gs')).join('') + FNS.map(n => fnOf(gen, n, 'backend/cards-gen.gs')).join('')
     + constOf(be, 'DOCKET_TOKEN_KEY', G) + constOf(be, 'DOCKET_CELL_MAX', G)
-    + ['listTidy_', 'listItemTidy_', 'todoTidy_', 'docketAnswer_', 'docketSame_', 'docketAddress_'].map(n => fnOf(be, n, G)).join('') + lineOf(be, 'docketLeaves_', G)
+    + ['listTidy_', 'listItemTidy_', 'todoOneList_', 'todoTidy_', 'docketAnswer_', 'docketSame_', 'docketAddress_'].map(n => fnOf(be, n, G)).join('') + lineOf(be, 'docketLeaves_', G)
     + 'return { docketAddress_, docketAnswer_ };';
   const out = s => ({ s, setMimeType() { return this; }, getContent() { return this.s; } });
   const env = {

@@ -243,6 +243,8 @@ function readCols_(name, cols) {
 /** Write one cell and keep the in-memory object in step. Records a column that is not there. */
 function setCell(t, row, field, value) {
   if (!t.sheet || !row) return false;
+  /* THE DOCKET IS STORED AS ONE LIST, whoever writes it (post-account.gs todoOneList_). */
+  if (field === 'todo' && typeof todoOneCell_ === 'function') value = todoOneCell_(value);
   if (t.moved) {
     if (t.headers.indexOf(field) < 0) t.headers.push(field);
     /* THE NET'S SHORTENED NAMES ARE NOT WRITTEN BACK SHORT, and the kid memo goes, as on a tab (below). */
@@ -277,6 +279,7 @@ function cellSafe_(v) {
 /* ---------- SEVERAL CELLS OF ONE ROW, IN AS FEW CALLS AS THE COLUMNS ALLOW § */
 function setCells(t, row, values) {
   if (!t.sheet || !row) return [];
+  if (values && values.todo !== undefined && typeof todoOneCell_ === 'function') values = Object.assign({}, values, { todo: todoOneCell_(values.todo) });
   if (t.moved) {
     const want = {};
     Object.keys(values || {}).forEach(f => { want[f] = kidNamesKept_(row[f], values[f], f); });

@@ -112,7 +112,7 @@ function dkSlot_(it, now) {
 /* THE ONE TICK: every done path (the card, ?eink, the private address) ticks through this. Pure: the items, which one, ticked or not, London's now. */
 function dkTick_(items, i, on, now, pick) {
   const it = items[i];
-  if (!it) return false;
+  if (!it || it.standing === true) return false;
   /* A SLOT RECORDS WHICH OPTION (owner, 27 Nov): `pick` (else the least recent, dkOption_) is this tick's and goes to the end of `picks`; an untick takes it off. */
   if (Array.isArray(it.options) && it.options.length) {
     const got = on ? (pick && it.options.indexOf(pick) >= 0 ? pick : dkOption_(it)) : '', was = String(it.pick || '');
@@ -145,7 +145,7 @@ function dkSort_(items, now, leaves) {
   const num = v => Math.max(0, +v || 0), anc = it => (['wake', 'meal', 'bed'].indexOf(it.anchor) >= 0 ? it.anchor : '');
   const ticked = (a, on) => items.some(it => it && anc(it) === a && String(it.doneOn || '').indexOf(on) === 0);
   const wakeNow = !ticked('wake', day) || ticked('wake', third), mealNow = ticked('meal', third);
-  const g = { open: [], later: [], missed: [], done: [], when: {} };
+  const g = { standing: [], open: [], later: [], missed: [], done: [], when: {} };
   /* THE FIRST MINUTE (from today's 00:00, at or after `at`) IT MAY START AND STILL FINISH: in its days, its window, and, kept at its place, before a leave. */
   const startAt = (it, at) => {
     const need = num(it.minutes) + num(it.runs), f = hm(it.from), u = hm(it.until), days = it.days && typeof clashDays_ === 'function' ? clashDays_(it.days) : [];
@@ -165,6 +165,8 @@ function dkSort_(items, now, leaves) {
   };
   items.forEach((it, i) => {
     if (!it) return;
+    /* A STANDING LINE (owner, 28 Nov): never ticked, never gone, above everything, not open work. */
+    if (it.standing === true) return g.standing.push(i);
     if (dkIsDone_(it, now)) return g.done.push(i);
     /* AN EVENT IS PINNED AT ITS TIME: open (on top) once its occurrence in hand has begun, else later from then; none left, done. */
     if (dkEv_(it)) { const k = dkSlot_(it, now), m = dkMin_(k) - dkMin_(day);
@@ -356,12 +358,26 @@ const DKF = { edit: -1 };
    a later one's "· from 09:00"), in the plan's order (dkSort_): the open, then the later; tapping a line (the one fold, js/cards-render.js cardFold_) shows
    a slot's every option (a tap ticks that one), Edit (its name) and Delete; the missed fold into one "Missed — new date? (n)" line, the ticked into one
    "Done (n)" line at the foot; then the quick add (an undated one-off). Plain rows, thin lines (style.css .kc-fold). tools/docket-look.js checks it. */
+/* A STEP (owner, 28 Nov): "name", or "name" a new line and its note; an item's `steps` listed in order under it, a tap reads a step's note. */
+const dkStep_ = s => { const t = String(s == null ? '' : s), k = t.indexOf('\n'); return k < 0 ? { name: t.trim(), note: '' } : { name: t.slice(0, k).trim(), note: t.slice(k + 1).trim() }; };
+function dkSteps_(it, i) {
+  return (Array.isArray(it.steps) ? it.steps : []).map(dkStep_).filter(x => x.name).map((x, n) => (x.note
+    ? cardFold_('dk:' + i + ':' + n, { type: 'text', look: 'dk-step', text: (n + 1) + '. ' + x.name }, [{ type: 'text', look: 'note', text: x.note }], 'dk-step')
+    : { type: 'text', look: 'dk-step', text: (n + 1) + '. ' + x.name }));
+}
+/* A STANDING LINE: its words alone, no tick box, a tap folds out its steps or note if any. */
+function dkStandLine_(i) {
+  const it = dkLoad_()[i], kids = dkSteps_(it, i);
+  return kids.length ? cardFold_('dk:' + i, { type: 'text', look: 'dk-stand', text: String(it.title || '') }, kids, 'dk-standing')
+    : { type: 'text', look: 'dk-stand', text: String(it.title || ''), attrs: { 'data-dkstand': String(i) } };
+}
 function dkLine_(i, when) {
   const it = dkLoad_()[i], editing = DKF.edit === i, now = dkNow_(), words = dkTitle_(it, now) + (when ? ' · ' + when : '');
   const opts = Array.isArray(it.options) ? it.options.filter(Boolean) : [];
   const track = (((ITEM_KINDS.kinds.docket || {}).list || {}).trackOnly || []).find(t => it[t.field] === true), facts = dkFacts_(it, now);
   return cardFold_('dk:' + i, { type: 'tick', text: words, attrs: { 'data-dkf': String(i), checked: dkDone_(it), 'aria-label': 'Done: ' + words } }, [
     facts ? { type: 'text', look: 'note', text: facts } : null,
+    ...dkSteps_(it, i),
     track ? { type: 'text', look: 'note', text: track.say } : null,
     opts.length && !editing ? { type: 'tiles', tiles: opts.map(o => ({ label: o, act: 'dk-pick', cls: o === dkOption_(it) ? 'is-submit' : '', data: { at: i, pick: o } })) } : null,
     editing ? { type: 'group', look: 'dk-form', inner: formOf_('docket-item', { title: it.title || '', before: (Array.isArray(it.before) ? it.before : []).join(', ') }) } : null,
@@ -380,7 +396,7 @@ const DK_ADD_KINDS = [{ kind: 'task', label: 'Add task', icon: 'plus', act: 'dk-
 function dkCard_() {
   const now = dkNow_(), g = dkSort_(dkLoad_(), now, dkLeavesNow_());
   return renderCard(shapeCard_('docket', { kind: 'docket', name: 'Docket', tags: [],
-    body: g.open.map(i => dkLine_(i)).concat(g.later.map(i => dkLine_(i, dkWhen_(g.when[i], now))))
+    body: g.standing.map(i => dkStandLine_(i)).concat(g.open.map(i => dkLine_(i))).concat(g.later.map(i => dkLine_(i, dkWhen_(g.when[i], now))))
       .concat(g.missed.length ? cardFold_('dk:missed', { type: 'text', text: text_('dk-missed') + ' (' + g.missed.length + ')' }, g.missed.map(i => dkLine_(i)), 'dk-missed') : [])
       /* TERM DATES ARE EVENTS ON THE ONE LIST (js/arcade.js tdEvents_: the one rule, your account's shift): the next four, folded, never ticked. */
       .concat(typeof tdEvents_ === 'function' ? cardFold_('dk:terms', { type: 'text', text: text_('term-dates') }, tdEvents_().map(e => ({ type: 'text', look: 'note',
