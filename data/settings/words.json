@@ -240,6 +240,8 @@
   "err-not-signed-in": "Not signed in.",
   "err-sign-in-first": "Sign in first.",
   "err-busy": "Busy — try again in a moment.",
+  "err-no-lesson": "No such lesson.",
+  "err-no-stripe-key": "Stripe key not set. Add STRIPE_TEST_KEY in Project Settings → Script Properties.",
   "err-person-not-found": "Person not found.",
   "err-not-authorised": "Not authorised.",
   "err-sign-in-again": "Please sign in again.",

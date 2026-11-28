@@ -249,7 +249,7 @@
   {
    "id": "1.39",
    "principle": 1,
-   "text": "Booking terms: blocks of sessions (a term) paid up front; single lessons free to cancel until 24h before; no refund for a lesson inside a paid block or for leaving midway, within consumer law (14-day cooling-off online); a tutor's cancellation refunds and tells the family automatically; seats = the smaller of tutor and place capacity (online and at home hold 4; at home takes every seat the tutor holds).",
+   "text": "Booking terms (owner, 27 Nov): booking is adding a lesson to the one list, confirmed at once inside the tutor's availability (their yes in advance; nobody accepts or declines, the tutor is told); it pays every lesson to the end of the term it starts in, up front, holidays skipped, and the next term is a new payment; single lessons free to cancel until 24h before; no refund for a lesson inside a paid block or for leaving midway, within consumer law (14-day cooling-off online); a lesson the tutor cancels is refunded, that one only (Stripe keeps its fee), and the family told (tools/lesson-book.js); seats = the smaller of tutor and place capacity (online and at home hold 4; at home takes every seat the tutor holds).",
    "since": "2026-11-12"
   },
   {

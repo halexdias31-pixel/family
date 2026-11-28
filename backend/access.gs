@@ -204,6 +204,59 @@ function assignmentsToDocket27NovRun_() {
   return n + ' assignment(s) of ' + people + ' person(s) now Docket to-dos (the old cells in ' + ASG_DOCKET_BACKUP + ')';
 }
 
+/* BOOKINGS ARE LESSONS ON THE ONE LIST (owner, 27 Nov: BOOKING IS ADDING TO THE ONE LIST; NO ACCEPT/DECLINE). Every booking (jobs tab, not a waiting
+   list, not cancelled) with a date today or later becomes a lesson in each learner's `lessons` cell (booking.gs): its dates and start time, its
+   length, its confirmed tutor (else the one it named), its payer (the client), its learners (its children matched among the payer's own, else the
+   client), its venue and room, its money shared over the learners (paid when it was paid, else owed: nobody is asked to accept it any more).
+   The backup tab first (time, job id, the whole row, the learners), read back; then each cell, read back. A booking already moved (a lesson
+   `fromJob` it) is skipped, so a re-run is a no-op; one with no tutor or client found is left and named. tools/lesson-book.js checks it. */
+const JOBS_LESSONS_BACKUP = 'backup_bookings_lessons_27nov';
+function bookingsToLessons27NovRun_() {
+  const jobs = read(TAB.jobs), people = read(TAB.people), today = lsDay_(new Date());
+  const moved = {};
+  people.rows.forEach(r => lessonsOfRow_(r).forEach(ls => { if (S(ls.fromJob)) moved[S(ls.fromJob)] = true; }));
+  let n = 0; const left = [];
+  (jobs.rows || []).forEach(j => {
+    const jobId = S(j.job_id) || String(j._row);
+    if (moved[jobId] || norm(j.kind) === 'waitlist') return;
+    const status = jobStatusOf(jobId);
+    if (status === 'cancelled') return;
+    const tm = /(\d{1,2}):(\d{2})/.exec(fmtTime(j.start_time)), at = tm ? ('0' + tm[1]).slice(-2) + ':' + tm[2] : '00:00';
+    const dates = sessionDatesOf(j).map(sheetDate).filter(Boolean).map(d => lsDay_(d) + 'T' + at).sort();
+    if (!dates.length || dates[dates.length - 1].slice(0, 10) < today) return;
+    const tp = tutorsIn(jobId), tName = (tp.find(p => p.status === BM.AGREED || p.status === BM.BOOKED) || tp[0] || {}).name;
+    const tutor = tName ? findPerson(tName) : null, client = clientsIn(jobId)[0], payer = client ? findPerson(client.name) : null;
+    if (!tutor || !payer) { left.push(jobId); return; }
+    const kids = S(j.for_children).split(/[,\n]/).map(x => key(x)).filter(Boolean), own = acceptedChildren(S(payer.person_id));
+    const learners = kids.map(k => own.find(c => key(personDisplayName(c)) === k || key(c.first_name) === k || key(S(c.first_name) + ' ' + S(c.last_name)) === k)).filter(Boolean);
+    const who = learners.length ? learners : [payer];
+    const total = Math.round(N(S(j.price_total) !== '' ? j.price_total : j.gross) * 100), share = Math.round(total / who.length);
+    const ss = jobs.sheet.getParent(), bk = ss.getSheetByName(JOBS_LESSONS_BACKUP) || ss.insertSheet(JOBS_LESSONS_BACKUP);
+    const row = {}; Object.keys(j).filter(k => k !== '_row').forEach(k => { row[k] = j[k] instanceof Date ? j[k].toISOString() : j[k]; });
+    const was = JSON.stringify(row);
+    bk.appendRow([new Date(), jobId, was, who.map(p => S(p.person_id)).join(',')]);
+    if (S(bk.getRange(bk.getLastRow(), 3).getValue()) !== was) throw new Error('the backup did not read back - nothing changed');
+    who.forEach((p, i) => {
+      clearCache();
+      const t = read(TAB.people), r = t.rows.find(x => S(x.person_id) === S(p.person_id));
+      const ls = { id: 'L-' + jobId + (who.length > 1 ? '-' + (i + 1) : ''), kind: 'lesson', fromJob: jobId,
+        title: ('Lesson ' + S(j.subject)).trim().slice(0, 120), start: dates[0], minutes: Math.round((N(j.hours_per_session) || 1) * 60), rrule: '', rdate: dates.slice(1),
+        exdate: [], moved: [], dates, cancelled: [], term: S(j.term_name), tutorId: S(tutor.person_id), learnerId: S(p.person_id), payerId: S(payer.person_id),
+        subject: S(j.subject).slice(0, 60), level: S(j.level).slice(0, 40), venue: S(j.venue).slice(0, 80), room: S(j.room).slice(0, 60),
+        totalPence: share, perLessonPence: Math.round(share / dates.length), tutorPayPence: Math.round(N(j.tutor_pay) * 100 / who.length),
+        pay: status === 'active' ? 'paid' : 'owed', refunds: [], bookedAt: lsIso_(Math.floor(Date.now() / 6e4)) };
+      const why = lessonSave_(t, r, lessonsOfRow_(r).concat([ls]));
+      if (why) throw new Error(why + ' - ' + jobId + ' stopped there');
+      clearCache();
+      const back = read(TAB.people).rows.find(x => S(x.person_id) === S(p.person_id));
+      if (!lessonsOfRow_(back).some(x => x.id === ls.id)) throw new Error('a lesson did not read back - ' + jobId + ' stopped there');
+      n++;
+    });
+  });
+  if (!n) return 'nothing to do' + (left.length ? ' (' + left.length + ' booking(s) with no tutor or client found: ' + left.join(', ') + ')' : '');
+  return n + ' lesson(s) from the bookings (their rows in ' + JOBS_LESSONS_BACKUP + ')' + (left.length ? '; left for an admin: ' + left.join(', ') : '');
+}
+
 /* DOCKET INBOX (owner, 25 Nov; one list, 25 Nov night): a private Ledger tab `docket_inbox` (title, replaces; any other column, `list` and `note`
    among them, is ignored) that Claude or the owner drops items into. On every admin page load (setupOnAdminLoad_), if it has rows: the owner's cell is
    backed up (backup_docket_inbox: time, old cell, titles), each row becomes an undated one-off {title} at the end of the one list ("Docket"; made when
@@ -404,6 +457,11 @@ const MIGRATIONS = [
     retry: true,
     what: "every person's assignments as to-dos on their own Docket (due as the date, minutes from the words, course, weight, mark, noAI; backup tab first, the old cells in it)",
     run: () => assignmentsToDocket27NovRun_() },
+  /* BOOKING IS ADDING TO THE ONE LIST (owner, 27 Nov): every live booking is a lesson in its learners' cells (backup tab first; a re-run a no-op). */
+  { id: 'bookings-lessons-27nov',
+    retry: true,
+    what: "every live booking as a lesson on its learners' one list (dates, tutor, payer, learners, venue, money; paid stays paid; backup tab first)",
+    run: () => bookingsToLessons27NovRun_() },
   /* THE PERSONAL ARCHIVE (owner, 27 Nov): the library cards and notepads are Archive entries (backup tab first; a re-run a no-op). */
   { id: 'archive-28nov',
     retry: true,

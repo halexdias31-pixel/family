@@ -139,15 +139,6 @@
    "child",
    "admin"
   ],
-  "createJob": [
-   "member",
-   "admin"
-  ],
-  "answerRequest": [
-   "member",
-   "child",
-   "admin"
-  ],
   "joinWaitlist": [
    "member",
    "admin"
