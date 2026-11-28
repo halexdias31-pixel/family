@@ -85,6 +85,7 @@
   {"name":"finalizePayment","handler":"postFinalizePayment_","roles":"grownUp","feature":true},
   {"name":"move","handler":"postMove_","roles":"signedIn","feature":true},
   {"name":"addLesson","handler":"postAddLesson_","roles":"grownUp","feature":true},
+  {"name":"cancelLesson","handler":"postCancelLesson_","roles":"signedIn"},
   {"name":"lessons","handler":"postLessons_","roles":"signedIn"},
   {"name":"joinWaitlist","handler":"postJoinWaitlist_","roles":"grownUp","feature":true},
   {"name":"openWaitlist","handler":"postOpenWaitlist_","roles":["admin"],"feature":true},

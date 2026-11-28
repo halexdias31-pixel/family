@@ -401,10 +401,10 @@ function bookingsToLessons27NovRun_() {
       const t = read(TAB.people), r = t.rows.find(x => S(x.person_id) === S(p.person_id));
       const ls = { id: 'L-' + jobId + (who.length > 1 ? '-' + (i + 1) : ''), kind: 'lesson', fromJob: jobId,
         title: ('Lesson ' + S(j.subject)).trim().slice(0, 120), start: dates[0], minutes: Math.round((N(j.hours_per_session) || 1) * 60), rrule: '', rdate: dates.slice(1),
-        exdate: [], moved: [], dates, term: S(j.term_name), tutorId: S(tutor.person_id), learnerId: S(p.person_id), payerId: S(payer.person_id),
+        exdate: [], moved: [], dates, cancelled: [], term: S(j.term_name), tutorId: S(tutor.person_id), learnerId: S(p.person_id), payerId: S(payer.person_id),
         subject: S(j.subject).slice(0, 60), level: S(j.level).slice(0, 40), venue: S(j.venue).slice(0, 80), room: S(j.room).slice(0, 60),
         totalPence: share, perLessonPence: Math.round(share / dates.length), tutorPayPence: Math.round(N(j.tutor_pay) * 100 / who.length),
-        pay: status === 'active' ? 'paid' : 'owed', earlyStartAt: '', bookedAt: lsIso_(Math.floor(Date.now() / 6e4)) };
+        pay: status === 'active' ? 'paid' : 'owed', refunds: [], bookedAt: lsIso_(Math.floor(Date.now() / 6e4)) };
       const why = lessonSave_(t, r, lessonsOfRow_(r).concat([ls]));
       if (why) throw new Error(why + ' - ' + jobId + ' stopped there');
       clearCache();

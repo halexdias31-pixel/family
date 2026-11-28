@@ -447,11 +447,8 @@ function postAddLesson_(body, action, began) {
   /* THE TUTOR'S YES IN ADVANCE, and nobody booked twice. */
   if (!lessonInAvailPure_(dates, minutes, availSet(tutor.availability)))
     return jsonOut({ error: personDisplayName(tutor) + ' is not free then: choose a time inside their availability.', why: 'not-free' });
-  const price = lessonPrice_(body, tutor, dates, minutes), skip = admin && TRUE_(body.skipPay);
-  if (!price && !skip) return jsonOut({ error: 'That lesson could not be priced.' });
-  /* STARTING STRAIGHT AWAY (owner, 28 Nov; the Consumer Contracts Regulations' express request): a lesson term is paid only once the payer has
-     ticked that lessons start at once, so the right to cancel ends when they begin; the tick's moment is kept on the lesson. */
-  if (!skip && !TRUE_(body.earlyStart)) return refuse_('err-tick-early-start', 'no-early-start');
+  const price = lessonPrice_(body, tutor, dates, minutes);
+  if (!price && !(admin && TRUE_(body.skipPay))) return jsonOut({ error: 'That lesson could not be priced.' });
   let saved = null;
   const early = withWriteLock_(() => {
     clearCache();
@@ -462,11 +459,11 @@ function postAddLesson_(body, action, began) {
     const t = read(TAB.people), row = t.rows.find(r => S(r.person_id) === S(learner.person_id));
     const ls = { id: 'L-' + Date.now().toString(36) + Math.floor(Math.random() * 1296).toString(36), kind: 'lesson',
       title: ('Lesson ' + S(body.subject)).trim().slice(0, 120), start: dates[0], minutes, rrule: it.rrule, rdate: it.rdate,
-      exdate: plan.skipped, moved: [], dates, term: S(plan.term.name),
+      exdate: plan.skipped, moved: [], dates, cancelled: [], term: S(plan.term.name),
       tutorId: S(tutor.person_id), learnerId: S(learner.person_id), payerId: S(me.person_id),
       subject: S(body.subject).slice(0, 60), level: S(body.level).slice(0, 40), venue: S(body.venue).slice(0, 80), room: S(body.room).slice(0, 60),
       totalPence: price ? price.totalPence : 0, perLessonPence: price ? price.perLessonPence : 0, tutorPayPence: price ? price.tutorPayPence : 0,
-      pay: skip ? 'skipped' : 'owed', earlyStartAt: skip ? '' : new Date().toISOString(), bookedAt: now };
+      pay: admin && TRUE_(body.skipPay) ? 'skipped' : 'owed', refunds: [], bookedAt: now };
     const why = lessonSave_(t, row, lessonsOfRow_(row).concat([ls]));
     if (why) return jsonOut({ error: why });
     saved = ls;
@@ -478,6 +475,46 @@ function postAddLesson_(body, action, began) {
     dates: saved.dates.map(d => fmtDate_(d.slice(0, 10), 'short')).join(', '), price: saved.totalPence / 100, requestedTutor: personDisplayName(tutor) }),
     personDisplayName(me), saved.id, true);
   return jsonOut({ success: true, lesson: lessonForViewerPure_(saved, 'payer') });
+}
+
+/* --- A TUTOR CANCELS ONE LESSON: it leaves the list (exdate) and, if paid, that lesson alone is refunded (Stripe keeps its fee); the family is told. */
+function postCancelLesson_(body, action, began) {
+  const me = findPerson('', S(body.personId));
+  if (!me) return refuse_('err-sign-in-first', 'not-signed-in');
+  const when = S(body.date).slice(0, 16);
+  let out = null, ls = null, learner = null, refund = 0;
+  const early = withWriteLock_(() => {
+    clearCache();
+    const t = read(TAB.people);
+    learner = t.rows.find(r => lessonsOfRow_(r).some(x => S(x.id) === S(body.lessonId)));
+    if (!learner) return refuse_('err-no-lesson', 'not-found');
+    const list = lessonsOfRow_(learner);
+    ls = list.find(x => S(x.id) === S(body.lessonId));
+    if (S(ls.tutorId) !== S(me.person_id) && !rankAtLeast_(me, 'admin')) return jsonOut({ error: 'Only its tutor or an admin cancels a lesson.', why: 'not-yours' });
+    if (ls.dates.indexOf(when) < 0 || ls.cancelled.indexOf(when) >= 0) return jsonOut({ error: 'That lesson is not on.' });
+    refund = lessonRefundPure_(ls, when);
+    ls.cancelled.push(when);
+    if (ls.exdate.indexOf(when) < 0) ls.exdate.push(when);
+    if (refund) ls.refunds.push({ date: when, pence: refund, state: lessonStripeRefund_(ls, refund) });
+    const why = lessonSave_(t, learner, list);
+    if (why) return jsonOut({ error: why });
+  }, { wait: 10000, busy: () => refuse_('err-busy', 'busy') });
+  if (early) return early;
+  [S(ls.payerId)].concat(acceptedParents(S(ls.learnerId)).map(p => S(p.person_id))).filter((x, i, a) => x && a.indexOf(x) === i)
+    .forEach(id => deliver_(id, 'booked', { push: { title: 'Lesson cancelled', body: when.replace('T', ' ') + (refund ? ' · refunded' : ''), link: 'lesson:' + ls.id } }));
+  return jsonOut({ success: true, refundedPence: refund, lesson: lessonForViewerPure_(ls, lessonViewAs_(me, ls) || 'tutor') });
+}
+/* THE REFUND ITSELF: Stripe's refund of that one lesson against the payment it was paid by ('sent'); without a key or a payment, 'owed' (the admin
+   pays it by hand). The key is the one checkout uses; nothing here changes a provider's settings. */
+function lessonStripeRefund_(ls, pence) {
+  const key = PropertiesService.getScriptProperties().getProperty('STRIPE_TEST_KEY');
+  if (!key || !S(ls.payIntent)) return 'owed';
+  try {
+    const res = UrlFetchApp.fetch('https://api.stripe.com/v1/refunds', { method: 'post', headers: { Authorization: 'Bearer ' + key },
+      payload: { payment_intent: S(ls.payIntent), amount: String(pence) }, muteHttpExceptions: true });
+    const d = JSON.parse(res.getContentText());
+    return d && d.id ? 'sent' : 'owed';
+  } catch (e) { return 'owed'; }
 }
 
 /* --- THE LESSONS A PERSON MAY SEE: their own, their children's, the ones they teach, and every one for an admin; each as lessonForViewerPure_
@@ -498,14 +535,6 @@ function lessonCheckout_(body) {
   if (!me || !hit) return refuse_('err-no-lesson', 'not-found');
   if (lessonViewAs_(me, hit.ls) !== 'payer') return jsonOut({ error: 'Only the family pays for a lesson.', why: 'not-yours' });
   if (S(hit.ls.pay) !== 'owed' || !(N(hit.ls.totalPence) > 0)) return jsonOut({ error: 'Nothing to pay for that lesson.' });
-  /* THE EARLY-START TICK (owner, 28 Nov) comes before any payment: ticked at booking, or here (a lesson moved from an old booking). */
-  if (!S(hit.ls.earlyStartAt)) {
-    if (!TRUE_(body.earlyStart)) return refuse_('err-tick-early-start', 'no-early-start');
-    const t = read(TAB.people), list = lessonsOfRow_(hit.row), ls = list.find(x => S(x.id) === S(hit.ls.id));
-    ls.earlyStartAt = new Date().toISOString();
-    const why = lessonSave_(t, t.rows.find(r => S(r.person_id) === S(hit.row.person_id)), list);
-    if (why) return jsonOut({ error: why });
-  }
   const stripeKey = PropertiesService.getScriptProperties().getProperty('STRIPE_TEST_KEY');
   if (!stripeKey) return refuse_('err-no-stripe-key', 'no-key');
   const ref = 'PAY-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
@@ -522,7 +551,7 @@ function lessonCheckout_(body) {
     return jsonOut({ success: true, url: d.url });
   } catch (err) { return jsonOut({ error: 'Could not reach Stripe: ' + err }); }
 }
-/* THE RETURN: Stripe says paid, so the lesson is (its payment reference kept). No refund goes through the site (owner, 28 Nov). */
+/* THE RETURN: Stripe says paid, so the lesson is (its payment kept for a later refund). */
 function lessonPaid_(lessonId, payIntent) {
   clearCache();
   const t = read(TAB.people), row = t.rows.find(r => lessonsOfRow_(r).some(x => S(x.id) === S(lessonId)));
@@ -554,7 +583,7 @@ function lessonNotify_(body, me, jobId, named) {
       'New lesson: ' + S(body.subject) + ' — ' + who,
       who + ' has booked a lesson with you.\n\n' + renderCard({ kind: 'booking', inline: 'text', row: Object.assign({}, card, { dates: '' }), see: { prices: false } }) + '\n' +
       (S(body.message) ? '\nTheir message:\n"' + S(body.message) + '"\n' : '') +
-      '\nIt is inside your availability, so it is booked: nothing to answer.\n\n— @family.', 'booked');
+      '\nIt is inside your availability, so it is booked: nothing to answer. Cancel any lesson you cannot make (the family is refunded for it).\n\n— @family.', 'booked');
   }
 }
 

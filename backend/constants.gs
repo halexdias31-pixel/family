@@ -216,7 +216,7 @@ const SCHEMA = {
     /* the app's state, which nobody types into */
     "avatar", "avatar_owned", "xp", "credits", "high_score_flappy", "high_score_tables",
     "friends", "notepad", "todo",
-    /* A PERSON'S LESSONS (owner, 27 Nov: a lesson is an event on the one list): JSON, written only by addLesson (booking.gs). */
+    /* A PERSON'S LESSONS (owner, 27 Nov: a lesson is an event on the one list): JSON, written only by addLesson/cancelLesson (booking.gs). */
     "lessons",
     /* ASSIGNMENTS (owner, 18 Nov): the person's own school or uni work, JSON, as `todo` is (post-account.gs assignmentsTidy_). */
     "assignments",

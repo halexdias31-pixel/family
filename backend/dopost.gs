@@ -170,6 +170,7 @@ function postActions_() {
     finalizePayment: postFinalizePayment_,
     move: postMove_,
     addLesson: postAddLesson_,
+    cancelLesson: postCancelLesson_,
     lessons: postLessons_,
     joinWaitlist: postJoinWaitlist_,
     openWaitlist: postOpenWaitlist_,

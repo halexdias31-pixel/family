@@ -640,9 +640,7 @@ function drawBooker_() {
   /* THE RUNNING BREAKDOWN. § */
   /* ---------- THE ACTIONS ARE PRINTED ON THE PAPER § */
   /* A CHILD ASKS A PARENT, NOT THE BUSINESS (398): no price reaches her, so the parent books it. Share stays — it is how she shows them. */
-  /* STARTING STRAIGHT AWAY (owner, 28 Nov; rule 1.39): a lesson term is paid only once this is ticked; a child never sees it (nor any price). */
-  const early = may_('prices') && !isWaiting_() ? formTick_('id="book-early-start" data-do="book-early"' + (BOOKING.earlyStart ? ' checked' : ''), esc(text_('lesson-early-start')), 'book-early') : '';
-  const foot = (!may_('prices') ? cardBlock_({ type: 'paperNote', look: 'rc-kid', text: KID_ASK_PARENT }) : early) + policyLinks_('family');
+  const foot = (!may_('prices') ? cardBlock_({ type: 'paperNote', look: 'rc-kid', text: KID_ASK_PARENT }) : '') + policyLinks_('family');
   const money_ = bookBreakdown(L, foot);
 
   /* ---------- THE CARD IS THE FORM, FROM THE FIRST QUESTION § */
@@ -659,7 +657,6 @@ function drawBooker_() {
   return { html: head || cardBlock_({ type: 'paperNote', text: text_('not-enough-answered-to-price-it') }), tiles };
 }
 
-on('book-early', el => { BOOKING.earlyStart = !!(el && el.checked); });
 on('book-send', el => {
   /* A GUEST SENDS NOTHING: the answers stay and Find's first step asks who you are again (`SIGN`, find-account.js). */
   if (!USER) {
@@ -739,13 +736,11 @@ on('book-send', el => {
   const first = (L && L.sessionDates || [])[0], hhmm = String(spec.time || '').slice(0, 5);
   const ymd = d => d instanceof Date ? d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') : '';
   if (!first || !/^\d\d:\d\d$/.test(hhmm)) { el.disabled = false; if (said) tell_(said, 'error', 'Choose a first day and a time.'); return; }
-  const box = $('book-early-start'), ticked = !!(BOOKING.earlyStart || (box && box.checked));
-  if (!ticked) { el.disabled = false; if (said) tell_(said, 'error', text_('err-tick-early-start')); return; }
   bookSending_(true);
   send_({ action: 'addLesson', name: USER.name, personId: USER.personId || '',
     tutor: spec.tutor, learner: (BOOKING.kids || []).filter(Boolean)[0] || '',
     subject: spec.subjects.join(', '), level: spec.level, venue: BOOKING.loc,
-    start: ymd(first) + 'T' + hhmm, minutes: String(Math.round((Number(spec.hours) || 1) * 60)), rrule: 'FREQ=WEEKLY', earlyStart: true })
+    start: ymd(first) + 'T' + hhmm, minutes: String(Math.round((Number(spec.hours) || 1) * 60)), rrule: 'FREQ=WEEKLY' })
     .then(d => {
       if (d && d.error) throw new Error(d.error);
       const ls = (d && d.lesson) || {};
@@ -753,7 +748,7 @@ on('book-send', el => {
       load();
       if (ls.pay !== 'owed') { toast('Booked'); return; }
       /* PAID UP FRONT: straight to the checkout for the term's total. */
-      return api({ action: 'createCheckout', lessonId: ls.id, earlyStart: true, name: USER.name, personId: USER.personId || '' })
+      return api({ action: 'createCheckout', lessonId: ls.id, name: USER.name, personId: USER.personId || '' })
         .then(p => { if (p && p.url) location.href = p.url; else toast((p && p.error) || text_('stripe-did-not-give-us-a')); });
     })
     .catch(err => {
