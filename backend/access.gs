@@ -100,13 +100,13 @@ function docketOneList25NovRun_() {
    (the whole old cell), read back; the size cap; the cell read back. tools/docket-plan.js checks it. */
 const DK_PLAN_BACKUP = 'backup_docket_plan_27nov';
 const DK_PLAN_27NOV = [
-  [['6.1wmszhm'], { anchor: 'wake', minutes: 5 }],
+  [['6.1wmszhm'], { before: ['*'], minutes: 5 }],
   [['e.15yual7'], { minutes: 1 }],
-  [['7.ijpvy8', '5.xtvjpa', 'd.8zitoe', '5.1u6o5y4', '3.uumrh5', 'a.5hsxk1', '5.1nrqe8h'], { minutes: 5, anchor: 'meal' }],
+  [['7.ijpvy8', '5.xtvjpa', 'd.8zitoe', '5.1u6o5y4', '3.uumrh5', 'a.5hsxk1', '5.1nrqe8h'], { minutes: 5, group: 'meal' }],
   [['8.19r3b3x'], { minutes: 20, place: 'out', from: '07:00', until: '22:00' }],
-  [['7.th2ynb'], { minutes: 10, place: 'home', anchor: 'meal' }],
-  [['5.1ctg8cu'], { minutes: 2, place: 'home', anchor: 'bed' }],
-  [['b.4womvh'], { minutes: 3, place: 'home', anchor: 'bed' }],
+  [['7.th2ynb'], { minutes: 10, place: 'home', group: 'meal' }],
+  [['5.1ctg8cu'], { minutes: 2, place: 'home' }],
+  [['b.4womvh'], { minutes: 3, place: 'home' }],
   [['e.1amjoc', '9.1vce7ig'], { minutes: 10, place: 'home' }],
   [['a.1g782yy'], { minutes: 15, place: 'out', from: '07:00', until: '21:00' }],
   [['8.1w39ce3'], { minutes: 30, place: 'home' }],
@@ -151,6 +151,166 @@ function docketPlan27NovRun_() {
   const back = read(TAB.people).rows.find(r => isOwner_(r));
   if (!back || S(back.todo) !== cell) throw new Error('the docket did not read back');
   return said + ' (the old cell in ' + DK_PLAN_BACKUP + ')';
+}
+
+/* THE ONE LIST AGAIN, EVERY FIELD KEPT (owner, 28 Nov: the live cell was two lists again, so the plan's job kept refusing): the owner's cell, if it
+   is more than one list, folded by todoOneList_ (post-account.gs: every field of every item, a title met twice merged, the slots kept); backup tab
+   first, read back; the size cap; the cell read back. A one-list cell is "nothing to do". It runs before the plan's numbers and the jobs after them. */
+const DK_ONE2_BACKUP = 'backup_docket_onelist_28nov';
+function docketOneList28NovRun_() {
+  const t = read(TAB.people), me = t.rows.find(r => isOwner_(r));
+  if (!me) throw new Error('no owner found');
+  const was = S(me.todo);
+  let got = null; try { got = JSON.parse(was); } catch (e) { got = null; }
+  if (!got || !Array.isArray(got.lists) || todoOneList_(got) === got) return 'nothing to do';
+  const cell = todoTidy_(was);
+  if (cell === was) return 'nothing to do';
+  const from = got.lists.filter(Boolean).map(L => S(L.name)).join(' + ');
+  const said = 'one list "' + DK_ONE_LIST + '" of ' + JSON.parse(cell).lists[0].items.length + ' item(s), every field kept, from ' + from;
+  const ss = t.sheet.getParent(), bk = ss.getSheetByName(DK_ONE2_BACKUP) || ss.insertSheet(DK_ONE2_BACKUP);
+  bk.appendRow([new Date(), was, said]);
+  if (S(bk.getRange(bk.getLastRow(), 2).getValue()) !== was) throw new Error('the backup did not read back - nothing changed');
+  if (cell.length > DOCKET_CELL_MAX) throw new Error('the docket would be ' + cell.length + ' characters, over ' + DOCKET_CELL_MAX + ' - nothing was saved');
+  if (!setCell(t, me, 'todo', cell)) throw new Error('the people tab has no todo column - nothing was saved');
+  clearCache();
+  const back = read(TAB.people).rows.find(r => isOwner_(r));
+  if (!back || S(back.todo) !== cell) throw new Error('the docket did not read back');
+  return said + ' (the old cell in ' + DK_ONE2_BACKUP + ')';
+}
+
+/* PRAYER AS ONE ITEM OF STEPS (owner, 28 Nov): the owner's "Prayer" item stops being a slot and becomes one item of `steps`, in the owner's order, each
+   step its option's name and the note that option already holds in the cell's `slots` (name, a new line, the note); the separate reading item (its
+   step is inside Prayer) and the reminder to look at the list go; three lines become `standing` (never ticked); the Prayer slot goes once empty. Everything is matched by docketPlanKey_
+   (the todoBase_ of a title's first four words), so no prayer text, not even a name, is in this public file: dkPrayerKeys_ holds the keys. It stays 8h,
+   Prayer before every other open item (`before: ["*"]`, replacing a `within` the owner turned down, 28 Nov); every `anchor` goes, a meal one becoming the group "meal". A step not found in the cell throws, nothing changed. Backup tab first, read back; the size cap; the cell read back; a re-run (Prayer
+   already stepped, nothing left to make standing or remove) is "nothing to do". After the one list. tools/docket-before.js checks it. */
+const DK_PRAYER_BACKUP = 'backup_docket_prayer_28nov';
+function dkPrayerKeys_() {
+  return { item: ['6.1wmszhm'], steps: [['h.k5spez'], ['9.1jkqwo1'], ['l.gffrjd'], ['p.qorxzc'], ['c.1uo4wmz'], ['m.ka2odn'], ['h.1s3vbwr'], ['k.sdqawt', 'e.j74n']],
+    gone: ['k.sdqawt', 'e.j74n', 'g.pg2lnm'], standing: ['c.1dcr1d0', 'g.438gll', 's.766s1x'] };
+}
+function docketPrayer28NovRun_() {
+  const K = dkPrayerKeys_(), t = read(TAB.people), me = t.rows.find(r => isOwner_(r));
+  if (!me) throw new Error('no owner found');
+  const was = S(me.todo);
+  let got = null; try { got = JSON.parse(was); } catch (e) { got = null; }
+  if (!got || !Array.isArray(got.lists) || got.lists.length !== 1 || S(got.lists[0] && got.lists[0].name) !== DK_ONE_LIST)
+    throw new Error('the docket is not yet the one list (docket-onelist-28nov first) - nothing changed');
+  const key = x => docketPlanKey_(x), L = got.lists[0], items = Array.isArray(L.items) ? L.items : [];
+  const slots = Array.isArray(got.slots) ? got.slots : [], said = [];
+  const pr = items.find(it => it && K.item.indexOf(key(it.title)) >= 0);
+  if (pr && !(Array.isArray(pr.steps) && pr.steps.length)) {
+    const sk = S(pr.slot || pr.title).trim().toLowerCase(), slot = slots.find(x => x && S(x.name).trim().toLowerCase() === sk) || slots.find(x => x && K.item.indexOf(key(x.name)) >= 0);
+    const opts = (slot && Array.isArray(slot.options) ? slot.options : []).map(o => (o && typeof o === 'object' ? { name: S(o.name), note: S(o.note) } : { name: S(o), note: '' }));
+    (Array.isArray(pr.options) ? pr.options : []).forEach(o => { if (!opts.some(x => x.name === S(o))) opts.push({ name: S(o), note: '' }); });
+    pr.steps = K.steps.map((ks, n) => {
+      const o = opts.find(x => ks.indexOf(key(x.name)) >= 0), it = o ? null : items.find(x => x && x !== pr && ks.indexOf(key(x.title)) >= 0);
+      if (!o && !it) throw new Error('step ' + (n + 1) + ' of the prayer is not in the cell - nothing changed');
+      const nm = o ? o.name : S(it.title), note = o ? o.note : S(it.note);
+      return note ? nm + '\n' + note : nm;
+    });
+    ['options', 'picks', 'pick', 'slot'].forEach(f => delete pr[f]);
+    pr.repeat = '8h';
+    if (slot) { slot.options = []; got.slots = slots.filter(x => x !== slot); if (!got.slots.length) delete got.slots; }
+    said.push('Prayer as ' + pr.steps.length + ' steps');
+  }
+  const keep = items.filter(it => !(it && it !== pr && K.gone.indexOf(key(it.title)) >= 0));
+  if (keep.length !== items.length) said.push((items.length - keep.length) + ' item(s) removed (the reading; the reminder to look at the list)');
+  L.items = keep;
+  let st = 0;
+  keep.forEach(it => { if (it && K.standing.indexOf(key(it.title)) >= 0 && it.standing !== true) {
+    it.standing = true; ['done', 'doneOn', 'anchor', 'options', 'picks', 'pick'].forEach(f => delete it[f]); st++; } });
+  if (st) said.push(st + ' standing line(s)');
+  /* ONE PRINCIPLE (owner, 28 Nov): `anchor` orders nothing. Prayer goes before every other open item (no clock window: "even though I'm still in bed and it's 10:30, prayer should still be at the top"); a meal anchor becomes the
+     group "meal" (which `before` names); wake and bed anchors go. */
+  if (pr && pr.within !== undefined) { delete pr.within; said.push('Prayer\'s clock window gone'); }
+  if (pr && !(Array.isArray(pr.before) && pr.before.indexOf('*') >= 0)) { pr.before = (Array.isArray(pr.before) ? pr.before : []).concat('*'); said.push('Prayer before every other item'); }
+  let an = 0;
+  keep.forEach(it => { if (!it || it.anchor === undefined) return; if (it.anchor === 'meal' && !it.group) it.group = 'meal'; delete it.anchor; an++; });
+  if (an) said.push(an + ' anchor(s) made groups or gone');
+  if (!said.length) return 'nothing to do';
+  const cell = todoTidy_(JSON.stringify(got));
+  if (cell === was) return 'nothing to do';
+  const say = said.join('; ');
+  const ss = t.sheet.getParent(), bk = ss.getSheetByName(DK_PRAYER_BACKUP) || ss.insertSheet(DK_PRAYER_BACKUP);
+  bk.appendRow([new Date(), was, say]);
+  if (S(bk.getRange(bk.getLastRow(), 2).getValue()) !== was) throw new Error('the backup did not read back - nothing changed');
+  if (cell.length > DOCKET_CELL_MAX) throw new Error('the docket would be ' + cell.length + ' characters, over ' + DOCKET_CELL_MAX + ' - nothing was saved');
+  if (!setCell(t, me, 'todo', cell)) throw new Error('the people tab has no todo column - nothing was saved');
+  clearCache();
+  const back = read(TAB.people).rows.find(r => isOwner_(r));
+  if (!back || S(back.todo) !== cell) throw new Error('the docket did not read back');
+  return say + ' (the old cell in ' + DK_PRAYER_BACKUP + ')';
+}
+
+/* BRUSH TEETH BEFORE A MEAL (owner, 28 Nov: "Brush teeth has to go before breakfast"): the owner's item of that title (docketPlanKey_, any case) gets
+   `before: ["meal"]` (js/map.js dkSort_ places it ahead of every open meal item), only when it has no `before` yet; nothing else touched. Backup tab
+   first (the whole old cell), read back; the size cap; the cell read back. None to change is "nothing to do", so a re-run is a no-op. tools/docket-before.js. */
+const DK_BEFORE_BACKUP = 'backup_docket_before_28nov', DK_BEFORE_28NOV = [['b.4womvh'], ['meal']];
+function docketBefore28NovRun_() {
+  const t = read(TAB.people), me = t.rows.find(r => isOwner_(r));
+  if (!me) throw new Error('no owner found');
+  const was = S(me.todo);
+  let got = null; try { got = JSON.parse(was); } catch (e) { got = null; }
+  if (!got || !Array.isArray(got.lists) || got.lists.length !== 1 || S(got.lists[0] && got.lists[0].name) !== DK_ONE_LIST)
+    throw new Error('the docket is not yet the one list (docket-onelist-25nov first) - nothing changed');
+  let n = 0;
+  (Array.isArray(got.lists[0].items) ? got.lists[0].items : []).forEach(it => {
+    if (!it || DK_BEFORE_28NOV[0].indexOf(docketPlanKey_(it.title)) < 0 || (Array.isArray(it.before) && it.before.length) || S(it.before)) return;
+    it.before = DK_BEFORE_28NOV[1].slice(); n++;
+  });
+  if (!n) return 'nothing to do';
+  const cell = todoTidy_(JSON.stringify(got));
+  if (cell === was) return 'nothing to do';
+  const said = n + ' item(s) set to go before every meal';
+  const ss = t.sheet.getParent(), bk = ss.getSheetByName(DK_BEFORE_BACKUP) || ss.insertSheet(DK_BEFORE_BACKUP);
+  bk.appendRow([new Date(), was, said]);
+  if (S(bk.getRange(bk.getLastRow(), 2).getValue()) !== was) throw new Error('the backup did not read back - nothing changed');
+  if (cell.length > DOCKET_CELL_MAX) throw new Error('the docket would be ' + cell.length + ' characters, over ' + DOCKET_CELL_MAX + ' - nothing was saved');
+  if (!setCell(t, me, 'todo', cell)) throw new Error('the people tab has no todo column - nothing was saved');
+  clearCache();
+  const back = read(TAB.people).rows.find(r => isOwner_(r));
+  if (!back || S(back.todo) !== cell) throw new Error('the docket did not read back');
+  return said + ' (the old cell in ' + DK_BEFORE_BACKUP + ')';
+}
+
+/* SHOPPING BEFORE A MEAL, EXERCISE BEFORE THE SHOWER, CYCLE ITEMS BEFORE ONE-OFFS (owner, 28 Nov: buy food before eating it; shower after sweating;
+   the plan's old cycle tier, now a fact in the data): each pair [title keys, before] by docketPlanKey_ (any case): Shopping gets "meal", Exercise
+   "Shower"; every item with `repeat` gets "one-offs"; each added to its `before` only when not already there (any case); nothing else touched. Backup tab first, the size cap, read back; none to change is "nothing to do", so a re-run is a no-op. tools/docket-before.js. */
+const DK_BEFORE2_BACKUP = 'backup_docket_before_2_28nov', DK_BEFORE2_28NOV = [[['8.19r3b3x'], ['meal']], [['8.1w39ce3'], ['Shower']]];
+/* LAUNDRY RUNS 50 (owner, 28 Nov: "the washing machine takes like 50 minutes"), set by the same job; no "take it out" item (the machine beeps). */
+const DK_RUNS_28NOV = [['7.y5ipd2'], 50];
+function docketBefore2_28NovRun_() {
+  const t = read(TAB.people), me = t.rows.find(r => isOwner_(r));
+  if (!me) throw new Error('no owner found');
+  const was = S(me.todo);
+  let got = null; try { got = JSON.parse(was); } catch (e) { got = null; }
+  if (!got || !Array.isArray(got.lists) || got.lists.length !== 1 || S(got.lists[0] && got.lists[0].name) !== DK_ONE_LIST)
+    throw new Error('the docket is not yet the one list (docket-onelist-25nov first) - nothing changed');
+  const set = [];
+  (Array.isArray(got.lists[0].items) ? got.lists[0].items : []).forEach(it => {
+    if (!it) return;
+    if (DK_RUNS_28NOV[0].indexOf(docketPlanKey_(it.title)) >= 0 && it.runs !== DK_RUNS_28NOV[1]) { it.runs = DK_RUNS_28NOV[1]; set.push(S(it.title) + ': runs ' + it.runs); }
+    const pair = DK_BEFORE2_28NOV.find(([keys]) => keys.indexOf(docketPlanKey_(it.title)) >= 0);
+    const want = (pair ? pair[1] : []).concat(S(it.repeat) ? ['one-offs'] : []);
+    const has = Array.isArray(it.before) ? it.before.slice() : (S(it.before) ? [S(it.before)] : []), lc = has.map(x => S(x).trim().toLowerCase());
+    const add = want.filter(x => lc.indexOf(x.toLowerCase()) < 0);
+    if (!add.length) return;
+    it.before = has.concat(add); set.push(S(it.title) + ': ' + add.join(', '));
+  });
+  if (!set.length) return 'nothing to do';
+  const cell = todoTidy_(JSON.stringify(got));
+  if (cell === was) return 'nothing to do';
+  const said = set.length + ' item(s) set to go before: ' + set.join('; ');
+  const ss = t.sheet.getParent(), bk = ss.getSheetByName(DK_BEFORE2_BACKUP) || ss.insertSheet(DK_BEFORE2_BACKUP);
+  bk.appendRow([new Date(), was, said]);
+  if (S(bk.getRange(bk.getLastRow(), 2).getValue()) !== was) throw new Error('the backup did not read back - nothing changed');
+  if (cell.length > DOCKET_CELL_MAX) throw new Error('the docket would be ' + cell.length + ' characters, over ' + DOCKET_CELL_MAX + ' - nothing was saved');
+  if (!setCell(t, me, 'todo', cell)) throw new Error('the people tab has no todo column - nothing was saved');
+  clearCache();
+  const back = read(TAB.people).rows.find(r => isOwner_(r));
+  if (!back || S(back.todo) !== cell) throw new Error('the docket did not read back');
+  return said + ' (the old cell in ' + DK_BEFORE2_BACKUP + ')';
 }
 
 /* ASSIGNMENTS INTO THE DOCKET (owner, 27 Nov: the one time list; "migrate the 6 existing assignments, don't drop them"): every person's `assignments` cell
@@ -394,16 +554,41 @@ const MIGRATIONS = [
     retry: true,
     what: "the docket as one list, names only: Every 8 hours and @ Desk merged into \"Docket\", each item its title, repeat, date and done state (backup tab first, the whole old cell in it)",
     run: () => docketOneList25NovRun_() },
+  /* THE ONE LIST AGAIN, EVERY FIELD KEPT (owner, 28 Nov: the cell was two lists again); before the plan's numbers, which need the one list. */
+  { id: 'docket-onelist-28nov',
+    retry: true,
+    what: "the owner's docket folded into the one list \"Docket\" again, every field of every item and the slots kept (backup tab first, the whole old cell in it)",
+    run: () => docketOneList28NovRun_() },
   /* AFTER THE ONE LIST (it would drop these fields; this one throws, and is retried, until the one list is there). */
   { id: 'docket-plan-27nov',
     retry: true,
-    what: "the plan's numbers on the owner's Docket items (minutes, runs, place, window, anchor, deadline; matched by title; nothing else touched; backup tab first)",
+    what: "the plan's numbers on the owner's Docket items (minutes, runs, place, window, before-everything, meal group, deadline; matched by title; nothing else touched; backup tab first)",
     run: () => docketPlan27NovRun_() },
   /* THE ONE TIME LIST (owner, 27 Nov): the Assignments tool went; its rows are Docket to-dos (backup tab first; a re-run a no-op). */
   { id: 'assignments-docket-27nov',
     retry: true,
     what: "every person's assignments as to-dos on their own Docket (due as the date, minutes from the words, course, weight, mark, noAI; backup tab first, the old cells in it)",
     run: () => assignmentsToDocket27NovRun_() },
+  /* THE PERSONAL ARCHIVE (owner, 27 Nov): the library cards and notepads are Archive entries (backup tab first; a re-run a no-op). */
+  { id: 'archive-28nov',
+    retry: true,
+    what: "every library card and notepad as an Archive entry of its person (backup tab first, the old values in it; then the old rows go)",
+    run: () => archive28NovRun_() },
+  /* PRAYER AS STEPS (owner, 28 Nov): one item of steps, the reading item inside it, three standing lines (after the one list; backup tab first). */
+  { id: 'docket-prayer-28nov',
+    retry: true,
+    what: "the owner's Prayer as one item of steps in order (each option's note kept), the reading item removed, three standing lines, the empty slot gone (backup tab first)",
+    run: () => docketPrayer28NovRun_() },
+  /* BEFORE (owner, 28 Nov): the owner's brush-teeth item goes before every meal (after the one list; backup tab first; a re-run a no-op). */
+  { id: 'docket-before-28nov',
+    retry: true,
+    what: "the owner's brush-teeth Docket item set to go before every meal (before: meal; only if it has none; backup tab first)",
+    run: () => docketBefore28NovRun_() },
+  /* BEFORE, TWO MORE (owner, 28 Nov): Shopping before every meal, Exercise before the shower (after the one list; backup tab first; a re-run a no-op). */
+  { id: 'docket-before-2-28nov',
+    retry: true,
+    what: "the owner's Shopping item set to go before every meal, Exercise before Shower, every cycle item before one-offs (each added only if absent), Laundry runs 50 (backup tab first)",
+    run: () => docketBefore2_28NovRun_() },
 ];
 
 /* ---------- MOVING ROWS OUT OF THE ITEMS TAB, NEVER LOSING ONE (queue step 7, 22 Nov) ----------
@@ -436,6 +621,49 @@ function storeDropKinds_(kinds, backup) {
   POST_WROTE = true;
   clearCache();
   return gone.length + ' row(s) kept in ' + backup + ' and deleted from items';
+}
+
+/* ---------- THE PERSONAL ARCHIVE (owner, 27 Nov): every library card and every notepad becomes an Archive entry of its person ----------
+   A library card is a title (its library, else "Library card") and its free fields, one `name: value` a line (Card number, PIN); a notepad is the
+   entry "Notepad", its words the text. The backup tab first (every old card and notepad, once), read back; then the entries (an id made from the
+   person and the card's place, so a re-run finds them there); read back; then the old rows go (storeDropKinds_, its own backup) and the notepad cells
+   are emptied. Nothing to move is "nothing to do". A login is never written to the log or the reply: the reply counts. tools/archive-move.js checks it. */
+const ARCHIVE_BACKUP = 'backup_archive_28nov', ARCHIVE_LIB_BACKUP = 'backup_archive_28nov_items';
+function archiveOfCard_(r, n) {
+  const pid = S(r.person_id), lines = [['Card number', S(r.card_number).trim()], ['PIN', S(r.pin).trim()]].filter(x => x[1]);
+  return { archive_id: 'lib-' + pid + '-' + n, person_id: pid, title: S(r.library).trim() || 'Library card', fields: lines.map(x => x[0] + ': ' + x[1]).join('\n'), text: '' };
+}
+function archive28NovRun_() {
+  clearCache();
+  const cards = read(TAB.library_cards).rows.filter(r => S(r.person_id) && (S(r.library) || S(r.card_number) || S(r.pin))).sort((a, b) => a._row - b._row);
+  const ppl = read(TAB.people), pads = ppl.rows.filter(r => S(r.person_id) && S(r.notepad).trim());
+  if (!cards.length && !pads.length) return 'nothing to do';
+  const most = LIST_KINDS.archive.fields.find(F => F.f === 'text').max;
+  if (pads.some(r => S(r.notepad).length > most)) throw new Error('a notepad is over ' + most + ' characters - nothing changed');
+  /* THE BACKUP, FIRST: [when, what, person, the old value as it was]; one already held is not added again. */
+  const old = cards.map(r => ['library_card', S(r.person_id), JSON.stringify({ library: S(r.library), card_number: S(r.card_number), pin: S(r.pin) })])
+    .concat(pads.map(r => ['notepad', S(r.person_id), S(r.notepad)]));
+  const ss = ppl.sheet.getParent(), bk = ss.getSheetByName(ARCHIVE_BACKUP) || ss.insertSheet(ARCHIVE_BACKUP);
+  const key = v => JSON.stringify(v.map(S)), held = () => { const n = bk.getLastRow(); return n ? bk.getRange(1, 2, n, 3).getValues().map(key) : []; };
+  const was = held();
+  old.filter(v => was.indexOf(key(v)) === -1).forEach(v => bk.appendRow([new Date()].concat(v)));
+  const now = held();
+  if (!old.every(v => now.indexOf(key(v)) !== -1)) throw new Error('the backup did not read back - nothing changed');
+  /* THE ENTRIES, each through the one tidy; one already there (a re-run after a stop) is not added twice. */
+  const seen = {}, want = cards.map(r => { const p = S(r.person_id); seen[p] = (seen[p] || 0) + 1; return archiveOfCard_(r, seen[p]); })
+    .concat(pads.map(r => ({ archive_id: 'notepad-' + S(r.person_id), person_id: S(r.person_id), title: 'Notepad', fields: '', text: S(r.notepad) })));
+  const t = read('archive'), there = t.rows.map(r => S(r.archive_id));
+  want.filter(e => there.indexOf(e.archive_id) === -1).forEach(e => addRow(t, listTidy_('archive', [e], 'as-is')[0]));
+  clearCache();
+  const back = read('archive').rows.map(r => S(r.archive_id));
+  if (!want.every(e => back.indexOf(e.archive_id) !== -1)) throw new Error('the archive did not read back - the old rows are kept');
+  /* AND ONLY THEN THE OLD: the card rows out of the items tab, the notepad cells emptied. */
+  if (cards.length) storeDropKinds_(['library_card'], ARCHIVE_LIB_BACKUP);
+  clearCache();
+  const p2 = read(TAB.people);
+  p2.rows.filter(r => S(r.notepad).trim()).forEach(r => { if (!setCell(p2, r, 'notepad', '')) throw new Error('the people tab has no notepad column'); });
+  clearCache();
+  return cards.length + ' library card(s) and ' + pads.length + ' notepad(s) moved into the Archive (the old values in ' + ARCHIVE_BACKUP + ')';
 }
 
 /* HANDS UP (455): who wants the tutor, kept 30 minutes in one script property, pruned on every read. */

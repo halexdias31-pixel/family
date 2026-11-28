@@ -1691,7 +1691,8 @@
       "options": [
        "8h"
       ],
-      "def": ""
+      "def": "",
+      "say": "8h means each cycle (owner, 28 Nov): one cycle for every repeating item, starting 06:00, 12:00 and 18:00 London (js/map.js DK_CYCLE); a tick is done until the next start"
      },
      {
       "f": "done",
@@ -1737,7 +1738,7 @@
      {
       "f": "stay",
       "type": "flag",
-      "say": "must stay at its place until `runs` ends: not offered when a leave comes first"
+      "say": "must be at its place when `runs` ends (owner, 28 Nov: the machine beeps; out during the run is fine): not offered when a leave covers its end; an open `out` item counts as a leave from when the plan would start it"
      },
      {
       "f": "from",
@@ -1756,21 +1757,33 @@
       "say": "which days (mon-sat; js/form.js clashDays_); none is every day"
      },
      {
-      "f": "anchor",
-      "type": "choice",
-      "options": [
-       "wake",
-       "meal",
-       "bed"
-      ],
-      "def": "",
-      "say": "happens at that moment of the day"
+      "f": "group",
+      "type": "text",
+      "max": 40,
+      "say": "a group name `before` can name (e.g. meal); it orders nothing (owner, 28 Nov: anchor wake/meal/bed gone)"
      },
      {
       "f": "options",
       "type": "titles",
       "max": 100,
       "say": "a slot's choices; the line shows the one least recently ticked (dkOption_)"
+     },
+     {
+      "f": "steps",
+      "type": "titles",
+      "max": 8000,
+      "say": "an item's steps in order (owner, 28 Nov): each its name, or its name, a new line and its note; listed under the item, the item ticked once as a whole"
+     },
+     {
+      "f": "standing",
+      "type": "flag",
+      "say": "a standing line (owner, 28 Nov): never ticked, never gone, shown above everything, not open work (js/map.js dkSort_ `standing`)"
+     },
+     {
+      "f": "before",
+      "type": "titles",
+      "max": 300,
+      "say": "goes before these (owner, 28 Nov: brush teeth before breakfast): each an item's title, a `group` name (`meal` for every item of the meal group), or a reserved name: `*` for every other open item (Prayer), `one-offs` for every open item with no `repeat` and no `start` (the owner's cycle items carry it: owner 28 Nov, the old cycle tier as data); the plan puts it ahead of each open one (js/map.js dkSort_)"
      },
      {
       "f": "picks",
@@ -1871,12 +1884,17 @@
     "docket-item": {
      "draft": false,
      "attr": "data-dke",
-     "say": "a docket item's name (owner, 25 Nov night: names only): its Edit tile opens this form in its line, Save under it, saved whole through dkSave_.",
+     "say": "a docket item's name and what it goes before (owner, 25 Nov night: names only; 28 Nov: before): its Edit tile opens this form in its line, Save under it, saved whole through dkSave_.",
      "fields": [
       {
        "f": "title",
        "type": "text",
        "label": "title-2"
+      },
+      {
+       "f": "before",
+       "type": "text",
+       "label": "dk-before"
       }
      ]
     }
@@ -3216,6 +3234,60 @@
     }
    }
   },
+  "archive": {
+   "shape": "Card", "bodyAs": "item",
+   "list": {
+    "name": "Archive",
+    "say": "THE PERSONAL ARCHIVE (owner, 27 Nov): Tools › Library cards, the notepad and any notes are one kind. An entry is a title, free fields (one `name: value` a line: a card number, a login) and text, kept as rows of the items tab (`archive`), each write tidied by listTidy_ as it is sent. Its fields may hold a login: never logged, never in a URL (the `item` action is a POST body), never kept as a draft, seen only by its person and an admin (`see`), as the library cards were. The old rows moved by access.gs archive28NovRun_ (backup tab first).",
+    "store": {
+     "tab": "archive"
+    },
+    "save": "as-is",
+    "fields": [
+     { "f": "title", "type": "text", "max": 300 },
+     { "f": "fields", "type": "text", "max": 4000 },
+     { "f": "text", "type": "text", "max": 40000 }
+    ]
+   },
+   "source": "each person's own archive (owner, 27 Nov): rows in the items tab; the library cards and notepads moved there by archive28NovRun_",
+   "sheet": {
+    "tab": "archive",
+    "id": "archive_id",
+    "owner": ["person_id"],
+    "columns": ["archive_id", "person_id", "title", "fields", "text"]
+   },
+   "find": {
+    "group": "Life",
+    "label": "archive",
+    "under": "Settings",
+    "from": "store",
+    "new": "New archive entry",
+    "facets": ["forLabel", "kindLabel"]
+   },
+   "card": {
+    "look": "kc-facts",
+    "lines": true,
+    "name": "title"
+   },
+   "see": {
+    "who": "self, admin"
+   },
+   "edit": "self",
+   "forms": {
+    "archive-new": {
+     "ask": "find",
+     "store": true,
+     "skip": true,
+     "send": { "t": "Save" },
+     "say": "the \"New archive entry\" card in Find (form.js storeSend_): a title, free fields and text, sent as the one action `item` (mode write); the writer is its person (items.gs itemWrite_). No draft: a login typed here is never kept on the phone.",
+     "fields": [
+      { "f": "title", "type": "text", "label": "title-2" },
+      { "f": "fields", "type": "long", "label": "archive-fields" },
+      { "f": "text", "type": "long", "label": "archive-text" }
+     ]
+    }
+   }
+  },
   "drive_area": {
    "shape": "Card", "bodyAs": "item",
    "source": "the owner's Google Drive areas (owner, 17 Nov); rows in the items tab",
@@ -3852,7 +3924,7 @@
    "partner",
    "food",
    "task",
-   "drive_area"
+   "drive_area", "archive"
   ],
   "movedSay": "THE KINDS KEPT IN THE ITEMS (or events) TAB (owner, 17 Nov): core.gs read/setCell/addRow route a listed kind there; each has a `~moved` marker row holding its columns. Their old tabs are locked and never read. A new kind is listed here and starts with SCHEMA's columns.",
   "kept": {

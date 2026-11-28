@@ -192,7 +192,6 @@ function getRequiredTabs_() {
     venues:  'the booking form has nowhere to offer, so nothing can be booked',
     jobs:    "a family's sessions come back as none, which reads as them being cancelled",
     events:  'the calendar is empty, which is not distinguishable from nothing being on',
-    shop:    'every wearable is gone, and the coins buy nothing',
     options: 'every dropdown on every admin form comes back blank'
   };
   const missingTabs = Object.keys(REQUIRED_TABS).filter(name => !read(name).sheet);

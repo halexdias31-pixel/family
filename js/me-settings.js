@@ -157,36 +157,10 @@ function libFit_(pane) {
   } catch (e) { /* the column's width stands */ }
 }
 
-/* YOUR LIBRARY CARDS, A TOOL (docs/history/339) § */
-function libCardsDraw_(into) {
-  if (!into) return;
-  const held = into.querySelector('.me-form[data-dirty], .me-form.is-sending');
-  if (held) return;
-  const note = text => cardBlock_({ type: 'group', tag: 'p', look: 'note', text });
-  if (!whose_()) { into.innerHTML = note('Sign in and your library cards are kept here.'); return; }
-  const list = libFieldsOf_(myGroups_());
-  if (!list.length && typeof awaiting_ === 'function' && awaiting_()) { into.innerHTML = loading_(); return; }
-  /* AN OLDER SERVER, SAID AS ONE — `OLD_SERVER_SAY_`, the card editor's sentence for the same case. § */
-  if (!list.length) {
-    into.innerHTML = note(OLD_SERVER_SAY_);
-    return;
-  }
-  const p = whose_().profile || {};
-  into.innerHTML = cardBlock_({ type: 'group', look: 'me-form', inner: libraryShelf_(list, f => p[f] ?? '') + cardBlock_(meSaidB_('')) });
-}
-function initLibCards_() { libCardsDraw_($('lib-box')); }
-/* EVERY COPY ON THE PAGE — Tools' and, starred, Saved's — for `myProfile` landing (`profileRefresh_`): § */
-function libCardsRedraw_() {
-  /* NOT A COPY SOMEBODY IS IN — a box focused and not yet typed into is not dirty, and redrawing it would take the caret away § */
-  document.querySelectorAll('[id="lib-box"]').forEach(into => {
-    if (!into.contains(document.activeElement)) libCardsDraw_(into);
-  });
-}
-
 /* ---------- EVERY SETTINGS FIELD SAVES AS YOU TYPE (owner, 8 Nov) § */
 const AUTOSAVE_MS = 800;
 const AUTOSAVE_T = new WeakMap();
-const AUTOSAVE_FORMS_ = '.set-typed .me-form, #lib-box .me-form';
+const AUTOSAVE_FORMS_ = '.set-typed .me-form';
 function autosaveLater_(form) {
   clearTimeout(AUTOSAVE_T.get(form));
   AUTOSAVE_T.set(form, setTimeout(() => autosaveNow_(form), AUTOSAVE_MS));
@@ -451,8 +425,6 @@ function profileRefresh_(loud, onOld) {
           try { land(() => { paint(c); placeCells('y', true, 0, c); }); } catch (e) { /* a screen gone before it lands is painted on its next draw */ }
       });
       /* AND THE PROGRESS COLUMN, the same rule: § */
-      /* AND THE LIBRARY CARDS ON TOOLS, which are drawn from this copy and are a widget now, not a page this column repaints (docs/history/339). § */
-      try { land(() => libCardsRedraw_()); } catch (e) { oops_(e, 'me:profileRefresh_') }
     })
     .catch(() => { PROFILE_ASKING = false; });
 }

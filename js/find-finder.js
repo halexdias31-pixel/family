@@ -107,7 +107,7 @@ function widgetCard_(x) {
 }
 
 /* THE OFF WIDGETS' NAMES (880), for a card whose file is never fetched: written by tools/tiers.js from map.js's WIDGETS, never by hand. */
-const SOON_WIDGET_NAMES = { videos: 'Videos', termdates: 'Term dates', libcards: 'Library cards' };
+const SOON_WIDGET_NAMES = { videos: 'Videos', termdates: 'Term dates' };
 /* AN OFF WIDGET THAT WAITS UNDER ANOTHER FRONT ANSWER (owner, 6 Nov: Homework under Tools); the rest wait under Coming soon. */
 const SOON_WIDGET_UNDER = { videos: 'Videos' };
 /* A FRONT ANSWER HOLDING ONLY COMING SOON CARDS IS GREYED, never hidden (owner, 7 Nov P7/P8): Videos and Games until one is turned on. */

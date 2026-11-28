@@ -1299,7 +1299,6 @@ const ITEM_PERMISSIONS = {
   'listed:save': ['admin'],
   'media:delete': ['admin'],
   'media:save': ['admin'],
-  'notepad:save': ['member', 'child', 'admin'],
   'notify:save': ['member', 'child', 'admin'],
   'person:delete': ['admin'],
   'person:read': ['admin'],
@@ -1343,7 +1342,6 @@ function itemMay_(kind, verb, role) {
 function itemDoors_() {
   return {
     'profile:save': { self: postUpdateProfile_ },
-    'notepad:save': { self: postSaveNotepad_ },
     'todo:save': { self: postSaveTodo_ },
     'spotlight:save': { self: postSpotlight_ },
     'favourite:save': { self: postFavourite_ },

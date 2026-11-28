@@ -14,7 +14,7 @@ function drawers() {
   const esc = s => String(s ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
   /* the tick box is the form maker's (js/form.js formInput_); here only its attributes matter, so a plain input stands in for it */
   const formInput_ = a => '<input ' + a + '>';
-  return new Function('text_', 'esc', 'formInput_', c('CLASH_DAYS', form) + f('clashDays_', form) + f('clashMin_', form) + ['dkMin_', 'dkIso_', 'dkEv_', 'dkRep_', 'dkOn_', 'dkIsDone_'].map(n => c(n)).join('')
+  return new Function('text_', 'esc', 'formInput_', c('CLASH_DAYS', form) + f('clashDays_', form) + f('clashMin_', form) + ['dkMin_', 'dkIso_', 'dkEv_', 'dkRep_', 'DK_CYCLE', 'dkOn_', 'dkIsDone_'].map(n => c(n)).join('')
     + ['dkOccur_', 'dkSlot_', 'dkSort_', 'dkLeaves_', 'dkOption_', 'dkTitle_', 'dkWhen_', 'dkNowNextOf_', 'dkEinkHtml_'].map(n => f(n)).join('')
     + 'return { dkSort_, dkTitle_, dkEinkHtml_ };')(text_, esc, formInput_);
 }

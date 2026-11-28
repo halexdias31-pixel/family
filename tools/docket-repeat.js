@@ -38,8 +38,8 @@ const RULES = [
   ['(2) an untick clears it', P => { const L = LIST(); P.dkTick_(L, 1, true, DAY + ' 14:40'); P.dkTick_(L, 1, false, DAY + ' 14:41'); return !L[1].doneOn && at(P, '14:45', L).open[0] === 1; }],
   ['(2) a past one-off event is not offered', P => { const g = at(P, '09:00', LIST()); return g.open.indexOf(3) < 0 && g.later.indexOf(3) < 0; }],
   ['(2) an undated to-do is offered as before', P => at(P, '09:00', LIST()).open.indexOf(2) >= 0],
-  ['(2) the lesson away keeps a stay-home item off until it is back (a leave)', P => { const L = LIST().concat({ title: 'Made-up laundry', repeat: '8h', minutes: 5, runs: 60, stay: true, place: 'home' });
-    const g = at(P, '14:00', L); return g.open.indexOf(4) < 0 && P.dkWhen_(g.when[4], DAY + ' 14:00') === 'from 15:30'; }],
+  ['(2) the lesson away keeps a stay item from ending while away (owner 28 Nov: home when it ends; it may run meanwhile)', P => { const L = LIST().concat({ title: 'Made-up laundry', repeat: '8h', minutes: 5, runs: 60, stay: true, place: 'home' });
+    const g = at(P, '14:00', L); return g.open.indexOf(4) < 0 && P.dkWhen_(g.when[4], DAY + ' 14:00') === 'from 14:25'; }],
 ];
 const MUTS = [
   ['no different first (RDATE ignored)', s => s.replace('list(it.rdate).map(dkMin_).forEach(m => { if (m != null) keep(m); });', '')],

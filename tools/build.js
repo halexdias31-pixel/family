@@ -40,8 +40,11 @@ const ORDER = [
   'date-cases',   // the date check (rule 1.75, owner 20 Nov): js/core.js dateOf_/todayIso_ and backend/cards-gen.gs's copies on one table (DD/MM, ISO, BST days, London midnight); a wrong day or a disagreement fails the build
   'docket-onelist', // the one-list Docket (rule 1.75, 1.82, owner 25 Nov night): an 8h item back each third (dkOn_, dkTick_), and docketOneList25NovRun_ in the backend vm merges the two lists into one, names only (a slot item its options' names), backup first, a re-run a no-op; proved by mutation; fails the build
   'docket-plan', // the Docket's plan (rule 1.75, owner 27 Nov): js/map.js dkSort_ on a made-up Saturday: the wake item first, laundry never before 09:00, past the time it can finish by 21:00 or before a leave, overdue never on top, out items one run, the longest unattended first, a slot's least recent option; backend/cards-gen.gs gives the same order; docketPlan27NovRun_ writes the owner's numbers after the one list, nothing else, backup first, a re-run a no-op; --prove breaks each; fails the build
+  'docket-before', // one thing before another (rule 1.75, owner 28 Nov: "Brush teeth has to go before breakfast"): js/map.js dkSort_ on a made-up morning: brush teeth ahead of every open meal slot, a name in any case, never above the wake items, a cycle lists both and ends, a ticked target binds nothing, no before the plan as it was; the backend's order the same; docketBefore28NovRun_ sets the owner's brush teeth before meal, only if it has none, backup first, a re-run a no-op; --prove breaks each; fails the build
+  'docket-steps', // the one list holds, and an item of steps (rule 1.75, owner 28 Nov): a two-list save or any write of the todo cell stored as the one list "Docket" with every field; docketOneList28NovRun_ folds the owner's cell keeping course/weight/minutes and the slots, before docket-plan-27nov; a stepped item lists its steps in order and ticks once; a standing line on top, never ticked, never in Done; docketPrayer28NovRun_ with made-up keys: steps in order with notes, the reading item gone, standing lines, the slot gone, a re-run a no-op; no prayer text in the changed files; --prove breaks each; fails the build
   'docket-repeat', // the one time list's repeats (rule 1.75, owner 27 Nov: the calendar standard, .ics): js/map.js dkOccur_ on a made-up Saturday: a different first one (Sat 14:30, then Wed 18:00 weekly), a cancelled and a moved occurrence, UNTIL, COUNT, every 8 hours, two weekdays, every other week; the event later until it starts, then open on top, its tick that occurrence's, a past one not offered, an undated to-do as before; kinds.json declares the fields; the backend's order the same; --prove breaks each; fails the build
   'docket-assignments', // the assignments-into-the-Docket check (rule 1.75, owner 27 Nov: "migrate the 6 existing assignments, don't drop them"): access.gs assignmentsToDocket27NovRun_ in the backend vm puts six made-up assignments on their people's Docket as to-dos (due, minutes from words, course, weight, mark, noAI), none dropped or doubled, backup first, cells emptied, a re-run a no-op; the tool and its actions gone; --prove; fails the build
+  'archive-move', // the personal-archive check (rule 1.75, owner 27 Nov: PERSONAL ARCHIVE): access.gs archive28NovRun_ in the backend vm makes each made-up library card and notepad an Archive entry of its person (title, free fields, text), none dropped or doubled, backup first, old rows gone, a re-run a no-op, no login in the reply; seen by its person and an admin only, a new one its writer's, no draft, declared once in kinds.json; the Library cards tool and the notepad action gone; --prove; fails the build
   'term-events', // the term-dates-as-events check (rule 1.75, owner 27 Nov): js/arcade.js tdEvents_ are the one rule's (tdYear_) intervals, shifted by the account's `term` (todo cell, not the phone), saved against its base with the lists untouched; the Docket card folds them; --prove breaks each; fails the build
   'docket-inbox', // the docket inbox check (rule 1.75, owner 25 Nov; one list 25 Nov night): docketInboxRun_ in the backend vm puts docket_inbox rows into the one list as undated one-offs (title only), skips dupes, replaces and delete-only rows remove, backs up, clears the rows, an empty tab a no-op; proved by mutation; fails the build
   'docket-fresh', // the fresh-Docket check (rule 1.75, owner 25 Nov): a save on a stale todo cell is refused and the cell unchanged, the Docket opened with a stale cache draws the server's lists, no save before a fresh read; proved by mutation; fails the build
@@ -112,12 +115,20 @@ const ORDER = [
   'shared-lists', // the shared-lists check (rule 1.1 by 1.75, owner 20 Nov): every list or limit both sides keep comes from settings.json via SHARED_SETTINGS; fails the build
   'build-stamp',  // everything served -> index.html's BUILD_STAMP; last
 ];
+/* THE FAST SET (owner, 28 Nov: "switch to that now"): a change ships once its own checks pass with these — every step that writes what is served
+   (generators, bundles, the stamp) and the few that prove the whole site still starts. `--fast a,b` runs FAST plus the named checks, in ORDER. */
+const FAST = ['kinds', 'tiers', 'aliases_gs', 'words', 'cards-gen', 'permissions', 'facet-hues', 'finder-tags', 'rules', 'backend-loads', 'bundle',
+  'one-opening', 'one-request', 'one-action-roles', 'build-stamp'];
+const fastAt = process.argv.indexOf('--fast');
+const PICK = fastAt < 0 ? null : new Set(FAST.concat(String(process.argv[fastAt + 1] || '').split(',').filter(Boolean)));
+if (PICK) [...PICK].forEach(n => { if (ORDER.indexOf(n) < 0) throw new Error('build --fast: no step ' + n); });
 (async () => {
   const t0 = Date.now();
   /* ONE SERVER AND ONE BROWSER PER ENGINE for every browser check (tools/lib/site-browser.js), closed once at the end. */
   const SB = require('./lib/site-browser.js');
   SB.share();
   for (const name of ORDER) {
+    if (PICK && !PICK.has(name)) continue;
     const file = path.join(__dirname, name + '.js');
     if (!fs.existsSync(file)) { console.log(name + ': gone, skipped'); continue; }
     const t = Date.now();

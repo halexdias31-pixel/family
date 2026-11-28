@@ -243,6 +243,8 @@ function readCols_(name, cols) {
 /** Write one cell and keep the in-memory object in step. Records a column that is not there. */
 function setCell(t, row, field, value) {
   if (!t.sheet || !row) return false;
+  /* THE DOCKET IS STORED AS ONE LIST, whoever writes it (post-account.gs todoOneList_). */
+  if (field === 'todo' && typeof todoOneCell_ === 'function') value = todoOneCell_(value);
   if (t.moved) {
     if (t.headers.indexOf(field) < 0) t.headers.push(field);
     /* THE NET'S SHORTENED NAMES ARE NOT WRITTEN BACK SHORT, and the kid memo goes, as on a tab (below). */
@@ -277,6 +279,7 @@ function cellSafe_(v) {
 /* ---------- SEVERAL CELLS OF ONE ROW, IN AS FEW CALLS AS THE COLUMNS ALLOW § */
 function setCells(t, row, values) {
   if (!t.sheet || !row) return [];
+  if (values && values.todo !== undefined && typeof todoOneCell_ === 'function') values = Object.assign({}, values, { todo: todoOneCell_(values.todo) });
   if (t.moved) {
     const want = {};
     Object.keys(values || {}).forEach(f => { want[f] = kidNamesKept_(row[f], values[f], f); });
@@ -897,30 +900,6 @@ function writeOwnRows_(tab, pid, list, cols) {
   mine.slice(list.length).sort((x, y) => y._row - x._row).forEach(x => { delRow(t, x); changed++; });
   return { changed: changed, missing: false };
 }
-
-/* ---------- THE LIBRARY CARDS: ROWS ON `library_cards`, NINE BOXES ON THE FORM § */
-function libCardsOut(r) {
-  const rows = ownRows_(TAB.library_cards, r);
-  const out = {};
-  for (let i = 1; i <= LIBRARY_CARDS; i++) {
-    const c = rows[i - 1] || {};
-    out['lib' + i + '_name'] = S(c.library);
-    out['lib' + i + '_no']   = S(c.card_number);
-    out['lib' + i + '_pin']  = S(c.pin);
-  }
-  return out;
-}
-function libCardsIn(fields) {
-  const list = [];
-  for (let i = 1; i <= LIBRARY_CARDS; i++) {
-    const library = S(fields['lib' + i + '_name']).trim();
-    const card_number = S(fields['lib' + i + '_no']).trim();
-    const pin = S(fields['lib' + i + '_pin']).trim();
-    if (library || card_number || pin) list.push({ library, card_number, pin });
-  }
-  return list;
-}
-const LIB_COLS = ['library', 'card_number', 'pin'];
 
 /* ---------- THE EXTRA PHOTOGRAPHS: EIGHT BOXES, ONE CELL § */
 function photosOut(cellValue) {

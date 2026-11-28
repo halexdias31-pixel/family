@@ -149,6 +149,9 @@ function itemWrite_(body, v) {
   const id = itemIdOf_(home, given);
   if (!id) return { error: 'The item needs its ' + [].concat(home.id).join(' and ') + '.', why: 'id' };
   const have = itemRows_(kind).find(it => it.id === id);
+  /* A NEW ITEM OF A KIND WITH AN OWNER, NONE NAMED, IS ITS WRITER'S (the archive, owner 27 Nov): the store form never asks whose it is. */
+  const own = (spec.sheet.owner || [])[0];
+  if (own && !have && v.id && !S(given[own])) given = Object.assign({}, given, { [own]: v.id });
   const hidden = itemHidden_(spec, v);
   /* THE FIELDS: the kind's own columns (its tab's headers, or what the item already holds), none hidden from this viewer. */
   const known = t.headers;
