@@ -8143,7 +8143,7 @@ return ITEM_MEMO.items;
 const FUNNEL_NOT_FOR = [];
 function stuffItemsBuild_() {
 return stuffItemsAll_().filter(x => {
-if (!USER && (typeof ruleOn_ !== 'function' || ruleOn_('finder-members')) && typeof findSignedOut_ === 'function') return findSignedOut_(x);
+if (!USER && (typeof ruleOn_ !== 'function' || ruleOn_('finder-members')) && typeof findSignedOut_ === 'function' && !findSignedOut_(x)) return false;
 const g = asList_(x.groups || kindOf_(x).group);
 if (g.length && g.every(k => FUNNEL_NOT_FOR.indexOf(k) >= 0)) return false;
 if ((x.kind === 'question' || x.kind === 'insert') && typeof libShown_ === 'function' && !libShown_(x)) return false;
@@ -8455,7 +8455,8 @@ function doorItems_() {
 return [].concat(profileDoorItems_(), settingDoorItems_());
 }
 const guestDoors_ = () => typeof can_ !== 'function' ? [] : FRONT_ORDER.filter(d => d !== 'Learn' && PRACTICE_DOORS.indexOf(d) === -1 && can_('anyone', 'item', d.toLowerCase() + ':read'));
-function findSignedOut_(x) { const doors = guestDoors_(); return kindTop_(x) === 'Settings' || asList_(kindTop_(x)).some(t => doors.indexOf(t) !== -1) || x.kind === 'bookform' || (guestLibrary_() && libraryCard_(x)) || (guestPractice_() && practiceCard_(x)); }
+const guestKind_ = x => !!x && String((((ITEM_KINDS.kinds || {})[x.kind] || {}).see || {}).who || '').split(',').map(w => w.trim()).indexOf('anyone') !== -1;
+function findSignedOut_(x) { const doors = guestDoors_(); return guestKind_(x) || kindTop_(x) === 'Settings' || asList_(kindTop_(x)).some(t => doors.indexOf(t) !== -1) || x.kind === 'bookform' || (guestLibrary_() && libraryCard_(x)) || (guestPractice_() && practiceCard_(x)); }
 const guestPractice_ = () => typeof can_ === 'function' && can_('anyone', 'item', 'question:read');
 const PRACTICE_DOORS = ITEM_KINDS.doors.filter(d => d.practice).map(d => d.name);
 const practiceDoor_ = x => asList_(kindTop_(x)).some(t => PRACTICE_DOORS.indexOf(t) !== -1);
@@ -13993,7 +13994,8 @@ tierGuardWidgets_(WIDGETS);
 const DK = { items: null, rest: null, say: '', addr: null, fresh: false, base: null, asking: null, q: Promise.resolve() };
 const dkDay_ = d => todayIso_(d);
 const dkRep_ = i => !!i && i.repeat === '8h';
-const dkOn_ = now => { now = String(now || ''); const h = +now.slice(11, 13); return now.slice(0, 10) + '/' + (1 + Math.floor((h >= 0 && h < 24 ? h : 0) / 8)); };
+const DK_CYCLE = ['06:00', '12:00', '18:00'];
+const dkOn_ = now => { now = String(now || ''); const hm = now.slice(11, 16), n = DK_CYCLE.filter(x => x <= hm).length; if (n) return now.slice(0, 10) + '/' + n; const d = new Date(Date.UTC(+now.slice(0, 4), +now.slice(5, 7) - 1, +now.slice(8, 10)) - 864e5); return (isNaN(d) ? now.slice(0, 10) : d.toISOString().slice(0, 10)) + '/' + DK_CYCLE.length; };
 const dkMin_ = v => { const m = /^(\d{4})-(\d\d)-(\d\d)(?:[T ](\d\d):(\d\d))?$/.exec(String(v == null ? '' : v).trim()); return m ? Date.UTC(+m[1], +m[2] - 1, +m[3], +(m[4] || 0), +(m[5] || 0)) / 6e4 : null; };
 const dkIso_ = m => new Date(m * 6e4).toISOString().slice(0, 16);
 const dkEv_ = i => !!i && dkMin_(i.start) != null;
@@ -14039,7 +14041,7 @@ return cur != null ? dkIso_(cur) : next != null ? dkIso_(next) : '';
 }
 function dkTick_(items, i, on, now, pick) {
 const it = items[i];
-if (!it) return false;
+if (!it || it.standing === true) return false;
 if (Array.isArray(it.options) && it.options.length) {
 const got = on ? (pick && it.options.indexOf(pick) >= 0 ? pick : dkOption_(it)) : '', was = String(it.pick || '');
 it.picks = (Array.isArray(it.picks) ? it.picks : []).filter(x => x !== (on ? got : was)).concat(on ? [got] : []);
@@ -14051,17 +14053,16 @@ else { it.done = !!on; it.doneOn = on ? String(now).slice(0, 10) : ''; }
 return true;
 }
 function dkSort_(items, now, leaves) {
+const DK_UNKNOWN_MIN = 15;
 now = String(now || '');
 items = items || [];
 const day = now.slice(0, 10), hm = v => { const m = /^(\d{1,2}):(\d\d)$/.exec(String(v == null ? '' : v).trim()); return m ? +m[1] * 60 + +m[2] : null; };
 const t = hm(now.slice(11, 16)) || 0, ut = d => Date.UTC(+d.slice(0, 4), +d.slice(5, 7) - 1, +d.slice(8, 10));
-const wd = (new Date(ut(day)).getUTCDay() + 6) % 7, third = dkOn_(now), L = Array.isArray(leaves) ? leaves : [];
-const num = v => Math.max(0, +v || 0), anc = it => (['wake', 'meal', 'bed'].indexOf(it.anchor) >= 0 ? it.anchor : '');
-const ticked = (a, on) => items.some(it => it && anc(it) === a && String(it.doneOn || '').indexOf(on) === 0);
-const wakeNow = !ticked('wake', day) || ticked('wake', third), mealNow = ticked('meal', third);
-const g = { open: [], later: [], missed: [], done: [], when: {} };
+const wd = (new Date(ut(day)).getUTCDay() + 6) % 7, L = Array.isArray(leaves) ? leaves : [];
+const num = v => Math.max(0, +v || 0), mins = it => (it.minutes === '' || it.minutes == null || !isFinite(+it.minutes) ? DK_UNKNOWN_MIN : num(it.minutes));
+const g = { standing: [], open: [], later: [], missed: [], done: [], when: {} };
 const startAt = (it, at) => {
-const need = num(it.minutes) + num(it.runs), f = hm(it.from), u = hm(it.until), days = it.days && typeof clashDays_ === 'function' ? clashDays_(it.days) : [];
+const need = mins(it) + num(it.runs), f = hm(it.from), u = hm(it.until), days = it.days && typeof clashDays_ === 'function' ? clashDays_(it.days) : [];
 const end = !dkRep_(it) && it.date ? Math.round((ut(String(it.date)) - ut(day)) / 864e5) : 7;
 for (let d = 0; d <= Math.min(7, end); d++) {
 const w = (wd + d) % 7;
@@ -14069,15 +14070,16 @@ if (days.length && days.indexOf(w) < 0) continue;
 let s = Math.max(at - d * 1440, f == null ? 0 : f);
 for (let k = 0; k < 50 && s < 1440; k++) {
 if (u != null && s + need > u) break;
-const hit = it.stay ? L.find(x => x.s < d * 1440 + s + need && x.e > d * 1440 + s) : null;
+const E = d * 1440 + s + need, hit = it.stay ? L.find(x => x.s <= E && x.e > E) : null;
 if (!hit) return d * 1440 + s;
-s = Math.max(hit.e - d * 1440, s + 1);
+s = Math.max(hit.e - d * 1440 - need, s + 1);
 }
 }
 return null;
 };
 items.forEach((it, i) => {
 if (!it) return;
+if (it.standing === true) return g.standing.push(i);
 if (dkIsDone_(it, now)) return g.done.push(i);
 if (dkEv_(it)) { const k = dkSlot_(it, now), m = dkMin_(k) - dkMin_(day);
 if (!k) return g.done.push(i);
@@ -14087,15 +14089,32 @@ if (!dkRep_(it) && it.date && String(it.date) < day) return g.missed.push(i);
 const at = startAt(it, t);
 if (at === t) g.open.push(i); else { g.later.push(i); g.when[i] = at; }
 });
-const free = t + g.open.reduce((n, i) => n + num(items[i].minutes), 0);
-const last = it => (dkRep_(it) || !it.date ? null : Math.round((ut(String(it.date)) - ut(day)) / 864e5) * 1440 + (hm(it.until) == null ? 1440 : hm(it.until)) - num(it.minutes) - num(it.runs));
-const tier = it => { const a = anc(it), ls = last(it);
-return dkEv_(it) ? -1 : a === 'wake' && wakeNow ? 0 : a === 'meal' && mealNow ? 1 : ls != null && ls < free - num(it.minutes) ? 2 : a === 'bed' ? 6 : a === 'meal' ? 5 : num(it.runs) > 0 ? 3 : 4; };
-const place = it => { const p = ['home', 'anywhere', 'desk', 'phone', 'out'].indexOf(it.place); return p < 0 ? 1 : p; };
-const key = i => { const it = items[i], k = tier(it);
-return [k, k === 2 ? last(it) : k === 3 ? -num(it.runs) : place(it), k === 2 || k === 3 ? 0 : num(it.minutes), i]; };
+const free = t + g.open.reduce((n, i) => n + mins(items[i]), 0);
+const last = it => (dkRep_(it) || !it.date ? null : Math.round((ut(String(it.date)) - ut(day)) / 864e5) * 1440 + (hm(it.until) == null ? 1440 : hm(it.until)) - mins(it) - num(it.runs));
+const tier = it => { const ls = last(it); return dkEv_(it) ? -1 : ls != null && ls < free - mins(it) ? 2 : 3; };
+const key = i => { const it = items[i], k = tier(it), r = num(it.runs);
+return [k, k === 2 ? last(it) : r > 0 ? 0 : 1, k === 2 ? 0 : r > 0 ? -r : mins(it), i]; };
 const by = (a, b) => { const x = key(a), y = key(b); for (let n = 0; n < x.length; n++) if (x[n] !== y[n]) return x[n] - y[n]; return 0; };
 g.open.sort(by);
+const nm = v => String(v == null ? '' : v).trim().toLowerCase(), must = (a, b) => { const A = items[a], B = items[b];
+const star = X => Array.isArray(X.before) && X.before.some(x => nm(x) === '*');
+return a !== b && Array.isArray(A.before) && ((star(A) && (!star(B) || a < b)) || A.before.some(x => nm(x) === nm(B.title) || (!!nm(B.group) && nm(x) === nm(B.group)) || (nm(x) === 'one-offs' && !dkRep_(B) && !dkEv_(B)))); };
+const top = g.open.filter(i => tier(items[i]) <= 0), rest = g.open.filter(i => tier(items[i]) > 0), out = top.slice();
+const put = (b, path) => { if (out.indexOf(b) >= 0 || path.indexOf(b) >= 0) return; rest.forEach(a => { if (must(a, b)) put(a, path.concat(b)); }); if (out.indexOf(b) < 0) out.push(b); };
+rest.forEach(b => put(b, []));
+g.open = out;
+const span = o => { let c = t, fin = t; const ends = [], outs = [];
+o.forEach(i => { const it = items[i], m = mins(it); if (it.stay && num(it.runs)) ends.push([i, c + m + num(it.runs)]); if (it.place === 'out') outs.push([i, c, c + m]);
+c += m; fin = Math.max(fin, c + num(it.runs)); });
+const bad = outs.map(([o2, s, e]) => { const w = ends.find(([, E]) => s <= E && E < e); return w ? [o2, w[0]] : null; }).find(Boolean);
+return { fin, bad }; };
+for (let k = 0, sp = span(g.open); sp.bad && k < g.open.length; k++, sp = span(g.open)) {
+const [o2, w] = sp.bad, cut = (a, x) => a.filter(y => y !== x), at2 = (a, x, n) => a.slice(0, n).concat(x, a.slice(n));
+const A = (z => at2(z, o2, Math.max(top.length, z.indexOf(w))))(cut(g.open, o2)), B = (z => at2(z, w, z.indexOf(o2) + 1))(cut(g.open, w));
+const ok = [A, B].map(o => ({ o, s: span(o) })).filter(x => !x.s.bad).sort((x, y) => x.s.fin - y.s.fin);
+if (!ok.length) break;
+g.open = ok[0].o;
+}
 g.later.sort((a, b) => (g.when[a] == null ? 1e9 : g.when[a]) - (g.when[b] == null ? 1e9 : g.when[b]) || a - b);
 return g;
 }
@@ -14223,15 +14242,26 @@ const dkLeavesNow_ = () => dkLeaves_(dkLoad_(), dkNow_());
 const dkNow_ = () => { let t = ''; try { t = new Intl.DateTimeFormat('en-GB', { timeZone: tz_(), hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date()); } catch (e) { t = ''; }
 return dkDay_() + ' ' + (t || '00:00'); };
 const DKF = { edit: -1 };
+const dkStep_ = s => { const t = String(s == null ? '' : s), k = t.indexOf('\n'); return k < 0 ? { name: t.trim(), note: '' } : { name: t.slice(0, k).trim(), note: t.slice(k + 1).trim() }; };
+function dkSteps_(it, i) {
+return (Array.isArray(it.steps) ? it.steps : []).map(dkStep_).filter(x => x.name).map((x, n) => [{ type: 'text', look: 'dk-step', text: (n + 1) + '. ' + x.name }]
+.concat(x.note ? [{ type: 'text', look: 'note', text: x.note }] : [])).flat();
+}
+function dkStandLine_(i) {
+const it = dkLoad_()[i], kids = dkSteps_(it, i);
+return kids.length ? cardFold_('dk:' + i, { type: 'text', look: 'dk-stand', text: String(it.title || '') }, kids, 'dk-standing')
+: { type: 'text', look: 'dk-stand', text: String(it.title || ''), attrs: { 'data-dkstand': String(i) } };
+}
 function dkLine_(i, when) {
 const it = dkLoad_()[i], editing = DKF.edit === i, now = dkNow_(), words = dkTitle_(it, now) + (when ? ' · ' + when : '');
 const opts = Array.isArray(it.options) ? it.options.filter(Boolean) : [];
 const track = (((ITEM_KINDS.kinds.docket || {}).list || {}).trackOnly || []).find(t => it[t.field] === true), facts = dkFacts_(it, now);
 return cardFold_('dk:' + i, { type: 'tick', text: words, attrs: { 'data-dkf': String(i), checked: dkDone_(it), 'aria-label': 'Done: ' + words } }, [
 facts ? { type: 'text', look: 'note', text: facts } : null,
+...dkSteps_(it, i),
 track ? { type: 'text', look: 'note', text: track.say } : null,
 opts.length && !editing ? { type: 'tiles', tiles: opts.map(o => ({ label: o, act: 'dk-pick', cls: o === dkOption_(it) ? 'is-submit' : '', data: { at: i, pick: o } })) } : null,
-editing ? { type: 'group', look: 'dk-form', inner: formOf_('docket-item', { title: it.title || '' }) } : null,
+editing ? { type: 'group', look: 'dk-form', inner: formOf_('docket-item', { title: it.title || '', before: (Array.isArray(it.before) ? it.before : []).join(', ') }) } : null,
 { type: 'tiles', tiles: editing ? [{ icon: 'save', label: text_('save'), act: 'dk-fsave', cls: 'is-submit', data: { at: i } }, { icon: 'close', label: 'Close', act: 'dk-fedit', data: { at: i } }]
 : [{ icon: 'edit', label: 'Edit', act: 'dk-fedit', data: { at: i } }, { icon: 'bin', label: 'Delete', act: 'dk-fdel', tone: 'danger', data: { at: i } }] }].filter(Boolean), 'dk-line');
 }
@@ -14244,7 +14274,7 @@ return [k ? k.replace('T', ' ') : '', rep, it.date && !dkRep_(it) ? 'due ' + it.
 function dkCard_() {
 const now = dkNow_(), g = dkSort_(dkLoad_(), now, dkLeavesNow_());
 return renderCard(shapeCard_('docket', { kind: 'docket', name: 'Docket', tags: [],
-body: g.open.map(i => dkLine_(i)).concat(g.later.map(i => dkLine_(i, dkWhen_(g.when[i], now))))
+body: g.standing.map(i => dkStandLine_(i)).concat(g.open.map(i => dkLine_(i))).concat(g.later.map(i => dkLine_(i, dkWhen_(g.when[i], now))))
 .concat(g.missed.length ? cardFold_('dk:missed', { type: 'text', text: text_('dk-missed') + ' (' + g.missed.length + ')' }, g.missed.map(i => dkLine_(i)), 'dk-missed') : [])
 .concat(typeof tdEvents_ === 'function' ? cardFold_('dk:terms', { type: 'text', text: text_('term-dates') }, tdEvents_().map(e => ({ type: 'text', look: 'note',
 text: e.title + ' · ' + e.start + (e.end && e.end !== e.start ? ' – ' + e.end : '') })), 'dk-terms') : [])
@@ -14259,6 +14289,8 @@ DKF.step = openStep_({ el, draw: () => { DKF.edit = i; CARD_OPEN.add('dk:' + i);
 on('dk-fsave', el => { const it = dkLoad_()[+el.getAttribute('data-at')], card = el.closest('.card'), b = card && card.querySelector('[data-dke="title"]'), v = String((b && b.value) || '').trim();
 if (!it) return;
 if (v) it.title = v.slice(0, 300);
+const bf = card && card.querySelector('[data-dke="before"]');
+if (bf) { const a = String(bf.value || '').split(',').map(x => x.trim().slice(0, 300)).filter(Boolean).slice(0, 20); if (a.length) it.before = a; else delete it.before; }
 DKF.edit = -1; stepDone_(DKF.step, false); dkKeep_(); });
 on('dk-pick', el => { if (dkTick_(dkLoad_(), +el.getAttribute('data-at'), true, dkNow_(), el.getAttribute('data-pick') || '')) dkKeep_(); });
 on('dk-fdel', el => { const i = +el.getAttribute('data-at'), it = dkLoad_()[i]; if (!it || !confirm('Delete "' + (it.title || 'this item') + '"?')) return;
